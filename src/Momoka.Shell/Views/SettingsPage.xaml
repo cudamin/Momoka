@@ -619,9 +619,11 @@
                                 Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <TextBox
+                            x:Name="SettingTextInput"
                             Grid.Column="1"
                             HorizontalAlignment="Stretch"
                             MinWidth="260"
+                            AutomationProperties.Name="{x:Bind Label}"
                             PlaceholderText="{x:Bind Placeholder}"
                             Text="{x:Bind Text, Mode=TwoWay}" />
                     </Grid>

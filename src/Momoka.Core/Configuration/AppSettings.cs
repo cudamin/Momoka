@@ -146,7 +146,7 @@ public sealed class MpvSettings
 
     /// <summary>
     /// 内置播放器的渲染管线：集成模式将画面合成进 XAML 视觉树；独占模式由 mpv 自建原生窗口，
-    /// 自管 D3D11 交换链、无边框窗口化全屏。只对内置 libmpv 有效，下一次播放生效。
+    /// 自管交换链、无边框窗口化全屏。只对内置 libmpv 有效，下一次播放生效。
     /// <para>
     /// <b>默认独占（2026-09-20，用户裁定）。</b>集成模式全屏切换那一下画面合成层追不上窗口尺寸
     /// （窗口瞬间到全屏、合成进窗口的那层界面要几帧才按新尺寸重新提交），第一次进全屏尤其明显 ——
@@ -154,8 +154,21 @@ public sealed class MpvSettings
     /// 同一个根子的两张脸）。独占模式画面在 mpv 自己的顶层窗口里、不经过这层合成，切换干净，是这台机器上
     /// 唯一「像别的播放器一样顺」的路。代价是屏幕控件用 mpv 的 uosc 而非 shell 的 XAML chrome。
     /// </para>
+    /// <para>
+    /// <b>图形接口（2026-10-11，用户令「独占模式不再强制使用 D3D11」）。</b>集成管线的 gpu-api 仍由契约
+    /// 钉死——合成交换链（display-swapchain → SpriteVisual）只存在于 D3D11 路径，Vulkan 产不出这张
+    /// 交换链；独占管线是 mpv 自建窗口，没有这份依赖，图形接口改由设置页「图形接口」决定（默认 vulkan：
+    /// ArtCNN 的 compute 链在 D3D11 上实测慢五倍，artifacts/shader-probe/gpu-findings.md，fork 二进制里
+    /// 编有 winvk 上下文）。换片签名吃进这项设置，改了走重启而不是沿用旧 API（gpu-api 在 initialize
+    /// 之后改不动）。
+    /// </para>
     /// </summary>
     public VideoPipelineKind Pipeline { get; set; } = VideoPipelineKind.Standalone;
+
+    /// <summary>仅内置独占模式读取自定义 mpv.conf；切换模式保留偏好，下次起播生效。</summary>
+    public bool CustomConfigEnabled { get; set; }
+
+    public string CustomConfigPath { get; set; } = "";
 
     /// <summary>
     /// The user's own <c>mpv.exe</c>, and only the external backend needs it. Empty out of the box:
@@ -192,6 +205,42 @@ public sealed class MpvSettings
     /// </summary>
     public string ScreenshotDirectory { get; set; } = "";
 
+    /// <summary>
+    /// 截图的格式（「参考以下参数重构本项目的截图功能」，用户令 2026-10-11，参数随参考 mpv 配置而来；
+    /// 同日再令「默认要用png」，装机默认改回 <b>png</b>，参考预设的 webp 成为候选之一）。
+    /// mpv 自己的写法（webp/png/jpg/jxl/avif，候选目录 <see cref="Mpv.MpvBaseline.ScreenshotFormats"/>）；
+    /// 缺键的旧设置文件读出来就是装机默认，不需要迁移，手改设置文件写出的大小写变体与认不出的
+    /// 值由 <c>SettingsMigration.Normalize</c> 归一回默认 —— 外置 mpv.exe 对认不出的值是拒绝起播，不是忽略。
+    /// <para>
+    /// 与下面四项一样是「设置页上的行」：恢复默认走 <c>SettingsPreferences</c> 整组抄 <see cref="Mpv"/>，
+    /// 自动跟着走；改完当场生效 —— 设置页把整组推给正在播的那一部
+    /// （<c>PlaybackService.ApplyScreenshotOptionsAsync</c>），起播那一路由计划层从同一份设置里读，两处同源。
+    /// </para>
+    /// </summary>
+    public string ScreenshotFormat { get; set; } = "png";
+
+    /// <summary>WebP 无损。默认关（mpv 自己的默认也是关）；开启时质量与压缩两行不起作用 —— mpv 手册原话
+    /// 「当 lossless=no 时生效」，设置页把它们收起来。仅当格式是 WebP 时随组下发。</summary>
+    public bool ScreenshotWebpLossless { get; set; }
+
+    /// <summary>有损 WebP 的质量（0–100，默认 85 = 参考预设的取值）。存储端与下发端夹进同一套范围常量
+    /// （<c>SettingsMigration.Normalize</c> 与 <see cref="Mpv.MpvBaseline.ScreenshotOptions"/>），手改设置
+    /// 文件越界不会把外置 mpv.exe 拒在门外。</summary>
+    public int ScreenshotWebpQuality { get; set; } = 85;
+
+    /// <summary>WebP 压缩等级（0–6，默认 6 = 参考预设的取值）。越高编码越慢；有损时它也影响画质 —— 这是 mpv
+    /// 的语义，不是设置页的措辞。</summary>
+    public int ScreenshotWebpCompression { get; set; } = 6;
+
+    /// <summary>JPG 的质量（0–100，<c>screenshot-jpeg-quality</c>）。装机默认 <b>100</b> = 参考预设给的取值
+    /// （mpv 自己的默认是 90）；存储端与下发端夹进同一套范围常量，同 WebP 质量那条。仅当格式是 JPG 时随组下发，
+    /// 设置页那行也只在格式是 JPG 时出现（用户令 2026-10-11：「jpg呢？不用压缩吗？」）。</summary>
+    public int ScreenshotJpegQuality { get; set; } = 100;
+
+    /// <summary>把画面的色彩空间标记写进截图。默认<b>关</b>（mpv 自己的默认是开，用户预设选了关）：关着、
+    /// 或格式承接不了标记时，mpv 把画面转成 sRGB 再落盘 —— HDR 片源的截图因此是 sRGB 图，预设自选的代价。</summary>
+    public bool ScreenshotTagColorspace { get; set; }
+
     // 「libmpv-2.dll、附加参数貌似没什么用，删除」 — both are gone as of v5.
     //
     // LibMpvPath pointed at a libmpv build to load instead of the bundled one. The client ships its own
@@ -226,7 +275,10 @@ public enum VideoPipelineKind
     /// <summary>集成模式：画面合成进 XAML 视觉树，与控件混排。</summary>
     Integrated,
 
-    /// <summary>独占模式：mpv 自管 D3D11 原生窗口交换链，无边框窗口化全屏（不请求 DXGI 独占，切换顺滑）。</summary>
+    /// <summary>
+    /// 独占模式：mpv 自建原生窗口、自管交换链，无边框窗口化全屏（不请求 DXGI 独占，切换顺滑）。
+    /// 图形接口 2026-10-11 起跟随设置页「图形接口」（默认 Vulkan），不再强制 D3D11。
+    /// </summary>
     Standalone
 }
 
@@ -273,6 +325,11 @@ public sealed class PlaybackSettings
     /// 进度设置进度为100%」—— 手动点「标记为已看」同样补报一趟，位置按条目时长报满（取数见
     /// <see cref="Playback.PlaybackService.ReportMarkedWatchedAsync"/>）。这一格管的是「客户端替服务器判断
     /// 时机」，阈值与手动两种触发都归它管，所以没有为它另立一格。
+    /// </para>
+    /// <para>
+    /// 2026-10-11 用户令把手动那一支对整季 / 整部剧的落点改到最后一集：「开启通知接管后，标记整季已看时要
+    /// 发送最后一集的已看通知」；整部剧即最后一季的最后一集。挑集的规矩见
+    /// <see cref="Playback.PlaybackService.ReportMarkedWatchedAsync"/>。
     /// </para>
     /// </summary>
     public bool StopReportEnabled { get; set; }
@@ -681,18 +738,23 @@ public sealed class VideoSettings
     /// mpv's <c>hwdec</c>: 硬件加速. <c>auto-safe</c> from v7 on, where an empty string used to be the
     /// shipped value — and an empty string means mpv's own default, which is <c>no</c>, that is pure software
     /// decoding. Nobody chose that; it is what a fresh install happened to carry, and it is the one setting
-    /// that makes a 4K file plus a shader chain harder than it needs to be. <c>auto-safe</c> only picks a
-    /// decoder mpv considers safe with the current 视频渲染, and mpv falls back to software decoding by itself
-    /// when the hardware path fails.
+    /// that makes a 4K file plus a shader chain harder than it needs to be. <c>auto-copy-safe</c> from
+    /// 2026-10-11, per the 解码 reference document the user handed over: the copy modes are the ones that
+    /// let every filter and shader act on the decoded frame (「不推荐选用……无-copy 的原生硬解，目的是确保全部
+    /// 设置/滤镜/着色器正常作用（有些不支持）」), and this client's whole picture pipeline is shaders — a
+    /// decoder surface a chain cannot sample would quietly half the feature. mpv still falls back to software
+    /// decoding by itself when the hardware path fails, and the official manual's own preference for software
+    /// decoding stays true: hardware decoding is what reaches for when CPU is the bottleneck, not a choice
+    /// worth defending once it misbehaves.
     /// <para>
-    /// Only the default moved; a settings.json that already holds a value keeps it, and a stored empty string
-    /// therefore stays pure software decoding. That is worth knowing rather than worth migrating — unlike
-    /// 图形接口 (v8) and 高帧率回退 (v9), this one costs CPU rather than changing what anybody was promised, and
-    /// <see cref="Mpv.MpvRenderCheck"/> already says so in the log and the self-check report when it is off.
-    /// This machine's own file has since been set to <c>auto-safe</c> from the settings page.
+    /// Only the default moved (v7 did the same, empty → auto-safe, without rewriting anybody); a settings.json
+    /// that already holds a value keeps its decoding behavior. The redundant empty choice is now normalized
+    /// to explicit no, so it stays pure software decoding. Unlike 图形接口 (v8) and 高帧率回退 (v9), this one
+    /// costs CPU rather than changing what anybody was promised, and <see cref="Mpv.MpvRenderCheck"/> already
+    /// says so in the log and the self-check report when it is off.
     /// </para>
     /// </summary>
-    public string HardwareDecoding { get; set; } = "auto-safe";
+    public string HardwareDecoding { get; set; } = "auto-copy-safe";
 
     /// <summary>
     /// mpv's <c>video-output-levels</c>: 色彩范围. 「色彩范围默认使用 PC(0-255)」 — PC range is what a

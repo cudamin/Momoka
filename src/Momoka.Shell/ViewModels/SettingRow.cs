@@ -443,9 +443,11 @@ public sealed partial class SettingSliderRow : SettingRow
 {
     private readonly Action<double> _write;
     private readonly Action _save;
+    private readonly Action? _after;
     private readonly bool _seeded;
 
-    internal SettingSliderRow(string label, string? note, double minimum, double maximum, double step, double value, Action<double> write, Action save)
+    internal SettingSliderRow(string label, string? note, double minimum, double maximum, double step, double value,
+        Action<double> write, Action save, Action? after = null)
         : base(label, note)
     {
         Minimum = minimum;
@@ -454,6 +456,7 @@ public sealed partial class SettingSliderRow : SettingRow
         Value = Math.Clamp(value, minimum, maximum);
         _write = write;
         _save = save;
+        _after = after;
         _seeded = true;
     }
 
@@ -478,6 +481,7 @@ public sealed partial class SettingSliderRow : SettingRow
         OnPropertyChanged(nameof(ValueLabel));
         _write(value);
         _save();
+        _after?.Invoke();
     }
 }
 
@@ -696,7 +700,7 @@ public sealed partial class SettingFactRow : SettingRow
     /// <summary>
     /// 那一行值。等宽字排，因为多数时候它是一个路径。
     /// <para>
-    /// <b>可变</b>，2026-09-29 起：截图保存目录搬进了「播放器」卡，而它的落点还印在「关于」卡上 —— 改了
+    /// <b>可变</b>，2026-09-29 起：截图保存目录住进了设置页（2026-10-11 起在「播放行为」分类的截图分区卡），而它的落点还印在「关于」卡上 —— 改了
     /// 目录不重开设置窗口，这一行就得当场跟上，不然屏上印的就是一个不再生效的路径。今天的另一个写手是
     /// <c>SettingsViewModel.AnnounceScreenshotDirectory</c>；赋同样的值不喊通知，绑定那边不会白动一趟。
     /// </para>

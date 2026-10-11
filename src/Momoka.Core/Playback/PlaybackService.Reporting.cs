@@ -85,6 +85,12 @@ public sealed partial class PlaybackService
     /// 不可发一个凑出来的数）。
     /// </para>
     /// <para>
+    /// <b>整季 / 整部剧的落点是最后一集。</b>用户令 2026-10-11：「开启通知接管后，标记整季已看时要发送最后一集
+    /// 的已看通知」；整部剧即最后一季的最后一集。季条目自己没有可靠的时长，通知那头（MoviePilot）要认的也是
+    /// 「集」而不是「季」，所以先把落点换成 <see cref="ResolveLastEpisodeAsync"/> 挑出的那一集，再走与单集同一
+    /// 条路。换不到就不发，与「时长读不到就不发」同一条规矩。
+    /// </para>
+    /// <para>
     /// 这一条正在播的话借它那一场的会话号，并当场结账（<c>StopReported</c>）—— 此后本场不再向服务器喂进度与
     /// 暂停，与「到阈值补报」同一条规矩（不然刚说停，下一拍进度又把会话激活了）。
     /// </para>
@@ -103,6 +109,22 @@ public sealed partial class PlaybackService
             return false;
         }
 
+        if (item.Type is EmbyItemType.Season or EmbyItemType.Series)
+        {
+            if (await ResolveLastEpisodeAsync(item, cancellationToken).ConfigureAwait(false) is not { } episode)
+                return false;
+            item = episode;
+        }
+
+        return await ReportItemWatchedAsync(item, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// 落点已是单集（或电影）那一半：时长检查、借会话、开始加停止。从 <see cref="ReportMarkedWatchedAsync"/>
+    /// 拆出来只为给整季 / 整部剧让出一个「先换落点」的位置，规矩一条没改。
+    /// </summary>
+    private async Task<bool> ReportItemWatchedAsync(EmbyItem item, CancellationToken cancellationToken)
+    {
         if (item.RunTimeTicks is not > 0)
         {
             Log.Debug(Category, $"《{item.Name}》标记已看：读不到时长，凑不出 100%，不补报");
@@ -158,6 +180,82 @@ public sealed partial class PlaybackService
         Log.Info(Category, $"《{item.Name}》标记已看：这一条没在播，先补报开始、再补报停止，"
             + $"位置 {TimeFormat.Clock(ticks)}，{(sent ? "服务器收下了" : "没发出去")}");
         return sent;
+    }
+
+    /// <summary>
+    /// 整季 / 整部剧标记已看时挑补报落点的那一集（用户令 2026-10-11，见
+    /// <see cref="ReportMarkedWatchedAsync"/>）：向服务器问一遍这个容器的剧集
+    /// （<see cref="EmbyClient.GetEpisodesAsync"/>，季按 <c>SeasonId</c> 收窄、剧问全剧），挑出
+    /// <b>编号最大的、已播出、有时长</b>的那一集。
+    /// <para>
+    /// 未播出的集不该替「看完了」发通知 —— 追番途中整季标已看是常事，落点若落到还没播的那集上，
+    /// MoviePilot 会把没播的集记成看过；判据沿用遗漏集表那一条（<see cref="ItemDetail.MissingIsUnaired"/>，
+    /// 首播日期在今天之后）。有时长这一条是「100%」本身立不立得住（见
+    /// <see cref="ReportItemWatchedAsync"/>），未播出的虚拟条目在服务器上恰好也没有时长，两个条件一条不多。
+    /// 排序把季号放在集号前面：特别篇挂在第 0 季，自然让位给正片；整部剧那一趟问回来的是全剧的集，
+    /// 于是自动落到「最后一季的最后一集」。
+    /// </para>
+    /// <para>
+    /// 换不出落点（没挂到剧上、剧集列表没等到、全集未播出或没时长）就不发：通知这一趟是替服务器跑腿，
+    /// 宁可少一趟，不发一个指错了条目的。
+    /// </para>
+    /// </summary>
+    private async Task<EmbyItem?> ResolveLastEpisodeAsync(EmbyItem container, CancellationToken cancellationToken)
+    {
+        // 未登录或会话已释放：与单集那一支同一句话 —— 那不是错，是没有收信人。
+        EmbySessionScope scope;
+        try { scope = session.Capture(); }
+        catch (Exception error)
+        {
+            Log.Warn(Category, $"《{container.Name}》标记已看：会话不可用，查不了它的剧集", error);
+            return null;
+        }
+
+        var isSeason = container.Type == EmbyItemType.Season;
+        var seriesId = isSeason ? container.SeriesId : container.Id;
+        var seasonId = isSeason ? container.Id : null;
+        if (string.IsNullOrEmpty(seriesId))
+        {
+            Log.Debug(Category, $"《{container.Name}》标记已看：没带所属剧集的 id，找不出最后一集，不补报");
+            return null;
+        }
+
+        List<EmbyItem> episodes;
+        try
+        {
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(5));
+            episodes = await scope.ExecuteAsync((client, token) =>
+                client.GetEpisodesAsync(seriesId, seasonId, token), deadline.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            Log.Debug(Category, $"《{container.Name}》标记已看：剧集列表没等到（超时或取消），不补报");
+            return null;
+        }
+        catch (Exception error)
+        {
+            Log.Warn(Category, $"《{container.Name}》标记已看：剧集列表查取失败，不补报", error);
+            return null;
+        }
+
+        var last = episodes
+            .Where(one => one.IndexNumber is not null && one.RunTimeTicks is > 0
+                && !ItemDetail.MissingIsUnaired(one, DateTimeOffset.Now))
+            .OrderByDescending(one => one.ParentIndexNumber ?? 0)
+            .ThenByDescending(one => one.IndexNumber)
+            .FirstOrDefault();
+
+        if (last is null)
+        {
+            Log.Debug(Category, $"《{container.Name}》标记已看：{episodes.Count} 集里没有已播出且有时长的，凑不出 100%，不补报");
+            return null;
+        }
+
+        var code = last.EpisodeCode;
+        Log.Info(Category, $"《{container.Name}》标记已看：补报落点换成 "
+            + $"{(code.Length > 0 ? code + " " : "")}《{last.Name}》");
+        return last;
     }
 
     /// <summary>

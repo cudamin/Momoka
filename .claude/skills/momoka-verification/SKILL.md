@@ -1,6 +1,6 @@
 ---
 name: "momoka-verification"
-description: "Verify Momoka changes using the current gates in CLAUDE.md. Interpret self-check results, distinguish fresh Release tests from stale output, inspect screenshots and pointer evidence, and report playback coverage gaps. Use after code changes, when editing verification tools, or when asked to 验证 / 跑一遍闸门 / 发新版本."
+description: "Verify Momoka changes using the current gates in CLAUDE.md. Interpret self-check results, distinguish fresh Release tests from stale output, check capability-dependent hiding and restoration, inspect screenshots and pointer evidence, and report playback coverage gaps. Use after code changes, when editing verification tools, or when asked to 验证 / 跑一遍闸门 / 发新版本."
 ---
 
 # Momoka — verification evidence
@@ -68,6 +68,25 @@ Correct properties do not prove correct pixels. A clipped poster or blank backgr
 - Match the sampling time shown on each cursor capture to a successful `GetCursorInfo` sample in the console log; the filename uses the scheduled capture time, which can differ. The current [cursor-watch.ps1](../../../tools/cursor-watch.ps1) capture branch can label a failed sample “屏幕上没有光标” even though the log says “问不出 GetCursorInfo”; neither the image label nor exit code 0 proves a valid observation. If the matching sample is missing or failed, preserve the log and image and report missing coverage for that observation. To establish automatic hiding, require successful observations of the cursor first visible and then hidden; an already-hidden starting state does not prove that transition.
 - Read-only UI Automation can inspect without moving the pointer. In templates, locate the owning item then its local handle; the source scanner skips templates and cannot prove runtime addressability. Interacting verbs remain subject to playback authorization.
 - **Measuring a row of controls: do not derive the cells from “flush against the right edge”.** A measurement script that numbers cells that way is off by the whole shift the moment that row is moved sideways, and it silently folds a neighbour's background into the cell being measured. Locate cells from the layout actually reported (uosc's `size` × `buttons`) or, better, use connected components over the region — that also separates two stacked layers (an application glyph under a system caption glyph) that a fixed grid merges into one bounding box.
+
+## Capability-dependent visibility
+
+Verify [CLAUDE.md's visibility policy](../../../CLAUDE.md#功能可用性与显隐) through the real controls in an isolated fixture. Use [the Shell skill](../momoka-winui-shell/SKILL.md#capability-dependent-visibility) to locate the notification or rebuild path.
+
+1. Check both initial states, then change the prerequisite through the actual toggle or selector: available → unavailable → restored, without reopening the page. Also check reentry, import and reset when they affect that prerequisite. For an asynchronous service, ensure late results cannot reopen an unavailable surface.
+2. Inspect the rendered rows, menus and containers. Hidden controls must leave no dependent note, separator, empty card or layout gap, and keyboard focus must not reach them. Check that the enabling switch or mode selector remains usable and that unrelated content stays visible. `IsEnabled=false` and off-screen placement do not prove hiding.
+3. Set nondefault dependent values before hiding, then restore availability and check that the values survived. Verify stored preferences separately from effective backend values; hiding does not prove a runtime option was reset or applied. Do not alter real user settings for this check.
+4. Capture the affected visible, hidden and restored layouts at relevant window sizes. Report the assertions and screenshots actually obtained; an existing probe for a similar callback does not cover a new toggle automatically.
+
+Reference transitions:
+
+| Scenario | Expected UI |
+| --- | --- |
+| MoviePilot available → disabled or disconnected → connected again | Dependent search/subscription entries disappear and recover; configuration remains reachable. Inspect `ShellNavigationProbe.MoviePilotAvailability.cs` for current assertions. |
+| WebP lossy → lossless → lossy | Quality and compression disappear together, then return with their previous values; the lossless switch remains reachable. |
+| WebP → PNG → WebP | All WebP-only rows disappear, then return according to the preserved lossless preference; format selection remains reachable. |
+
+These are acceptance scenarios, not a claim that every transition already has an automated assertion. A documentation-only update needs document checks under CLAUDE.md, not a desktop run solely to exercise these examples.
 
 ## Tool changes
 

@@ -33,27 +33,27 @@ internal static class InlineSwitchTests
                 "叫停优先于一切");
         });
 
-        // 截图模板随片名走，不进必须相等的启动基线：常规换集集名不同，把它算进基线就把最常见的
-        // 同窗换片挡死在签名那一步。换片时由 PerFile 按新票重写。
-        TestHarness.Test("换片签名：截图模板不算基线，换片时按新票重写", () =>
+        // 截图模板 2026-10-11 起是常量（MpvBaseline.ScreenshotTemplate）：片名由 mpv 在截图那一刻从
+        // %{media-title} 展开，而 force-media-title 换片时照旧按新票重写 —— 所以模板没有随片的部分，
+        // 不再出现在换片计划里，进启动基线也不会把集名不同的常规换集挡在签名那一步。
+        TestHarness.Test("换片：截图模板不再随片重写，片名本体照旧", () =>
         {
-            Assert.True(InlineSwitch.PerFileSignatureNames.Contains("screenshot-template"),
-                "截图模板必须在随片重写的名单上");
-
-            var next = Request() with
+            var withTemplate = Request() with
             {
                 PlayerOptions =
                 [
                     new("screenshot-directory", @"C:\shots"),
-                    new("screenshot-format", "png"),
-                    new("screenshot-template", "这一集 %wH.%wM.%wS-%02n"),
+                    new("screenshot-format", "webp"),
+                    new("screenshot-template", MpvBaseline.ScreenshotTemplate),
                 ],
             };
-            var perFile = InlineSwitch.PerFile(next).ToDictionary(entry => entry.Key, entry => entry.Value);
-            Assert.Equal("这一集 %wH.%wM.%wS-%02n", perFile["screenshot-template"], "换片时按新票的集名重写模板");
+            var perFile = InlineSwitch.PerFile(withTemplate).ToDictionary(entry => entry.Key, entry => entry.Value);
+            Assert.False(perFile.ContainsKey("screenshot-template"),
+                "模板是常量，没有随片的部分：换片不重写它，下一张截图的片名由 mpv 展开时取 force-media-title");
+            Assert.True(perFile.ContainsKey("force-media-title"), "片名本体仍按新票重写，截图文件名跟着它走");
 
             var bare = InlineSwitch.PerFile(Request()).ToDictionary(entry => entry.Key, entry => entry.Value);
-            Assert.False(bare.ContainsKey("screenshot-template"), "票里没有截图选项（功能没开）就不写，签名本来就不等");
+            Assert.False(bare.ContainsKey("screenshot-template"), "票里没有截图选项（功能没开）就更不该冒出模板");
         });
 
         // 签名逐项相等才允许同一个实例换片：管线、管线必需项、Lua UI 项、票里选项表的基线部分。

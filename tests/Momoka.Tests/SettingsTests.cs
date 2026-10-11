@@ -679,7 +679,11 @@ internal static class SettingsTests
             var json = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
 
             Assert.Equal(@"D:\mpv\mpv.exe", settings.Mpv.ExecutablePath, "mpv 本体的路径还是要留着");
-            Assert.DoesNotContain("ConfigPath", json);
+            // 只检查退役字段；新功能的 CustomConfigPath 不能被子串匹配误报为旧 ConfigPath。
+            Assert.DoesNotContain("\"ConfigPath\"", json);
+            Assert.DoesNotContain("\"InputConfigPath\"", json);
+            Assert.False(settings.Mpv.CustomConfigEnabled);
+            Assert.Equal("", settings.Mpv.CustomConfigPath);
             Assert.DoesNotContain("mpv.conf", json);
             Assert.DoesNotContain("input.conf", json);
         });
@@ -862,6 +866,40 @@ internal static class SettingsTests
             settings.Shaders.ManualGroup = "anime-large";
             SettingsMigration.Normalize(settings);
             Assert.Equal("anime-large", settings.Shaders.ManualGroup, "表里有的 id 要原样留着");
+        });
+
+        // 截图画质（2026-10-11 用户令「参考文档新增自定义选项」）。存储端与下发端（MpvBaseline.ScreenshotOptions）
+        // 是同一套常量：手改设置文件写出的越界值在两条路上都到不了 mpv —— 外置 mpv.exe 对越界值是拒绝起播，不是忽略。
+        Test("规整：截图格式认不出回预设默认，质量与压缩夹回 mpv 的范围", () =>
+        {
+            var settings = SettingsMigration.NewDefaults();
+            settings.Mpv.ScreenshotFormat = "WEBP";
+            settings.Mpv.ScreenshotWebpQuality = 200;
+            settings.Mpv.ScreenshotWebpCompression = 9;
+
+            SettingsMigration.Normalize(settings);
+
+            Assert.Equal("webp", settings.Mpv.ScreenshotFormat, "大小写变体归一回 mpv 的拼写");
+            Assert.Equal(100, settings.Mpv.ScreenshotWebpQuality, "质量夹回上限");
+            Assert.Equal(6, settings.Mpv.ScreenshotWebpCompression, "压缩夹回上限");
+
+            settings.Mpv.ScreenshotFormat = "bmp";
+            SettingsMigration.Normalize(settings);
+            Assert.Equal("png", settings.Mpv.ScreenshotFormat, "认不出的格式回装机默认（png，用户令「默认要用png」），不是 mpv 出厂的 jpg");
+
+            settings.Mpv.ScreenshotFormat = "jxl";
+            settings.Mpv.ScreenshotWebpQuality = 85;
+            settings.Mpv.ScreenshotWebpCompression = 4;
+            settings.Mpv.ScreenshotJpegQuality = 200;
+            SettingsMigration.Normalize(settings);
+            Assert.Equal("png", settings.Mpv.ScreenshotFormat,
+                "jxl 已从候选删掉（用户令 2026-10-11「另外两个删掉」），存过的值归回装机默认");
+            Assert.Equal(85, settings.Mpv.ScreenshotWebpQuality, "范围内的值一个不动");
+            Assert.Equal(100, settings.Mpv.ScreenshotJpegQuality, "JPG 质量夹回上限");
+
+            settings.Mpv.ScreenshotFormat = "jpg";
+            SettingsMigration.Normalize(settings);
+            Assert.Equal("jpg", settings.Mpv.ScreenshotFormat, "目录里有的值原样留着");
         });
 
         // 媒体源排序（2026-09-24「媒体源排序 默认/新入库在前」）。装机默认「新入库在前」—— 那是同一天

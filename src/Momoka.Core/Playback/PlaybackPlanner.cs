@@ -15,8 +15,8 @@ namespace Momoka.Playback;
 /// Where mpv may cache compiled shaders; null omits the option, which is what a test wants.
 /// </param>
 /// <param name="screenshotDirectory">
-/// Where 截图 land when 设置 → 播放器的「截图保存目录」is empty; null omits all three screenshot options, which
-/// is what a test wants. Without it the files would go beside the executable without the user being told —
+/// Where 截图 land when 设置 → 播放行为的「截图保存目录」is empty; null omits the whole screenshot option block,
+/// which is what a test wants. Without it the files would go beside the executable without the user being told —
 /// which is why the screenshot rows were left out of the player menu for so long. A configured value is
 /// resolved on top of this by <see cref="Infrastructure.AppPaths.ResolveScreenshotDirectory"/>; see
 /// <see cref="ScreenshotDirectory"/>.
@@ -40,7 +40,7 @@ public sealed class PlaybackPlanner(
 
     /// <summary>
     /// Where 截图 will land, or null when nobody said. <b>Set first, constructor second</b>: the value is
-    /// <see cref="Infrastructure.AppPaths.ResolveScreenshotDirectory"/>'s — 设置 → 播放器的「截图保存目录」
+    /// <see cref="Infrastructure.AppPaths.ResolveScreenshotDirectory"/>'s — 设置 → 播放行为的「截图保存目录」
     /// when it holds one, the constructor's 装机落点 when it does not — asked afresh on every plan, so a
     /// directory changed in the settings page is what the next playback is told, with no rewiring.
     /// <para>
@@ -79,8 +79,10 @@ public sealed class PlaybackPlanner(
         var donghua = DonghuaRule.Matches(item, ticket.Parent);
         if (donghua) Log.Info(Category, $"《{item.Name}》命中国漫（类型：动画，发行公司带腾讯/哔哩哔哩/优酷/爱奇艺），标记已看走单独阈值");
 
-        // Hoisted out of the initializer below because two things need it: what mpv is told to call the film,
-        // and what a screenshot of it is called.
+        // Hoisted out of the initializer below because what mpv is told to call the film and what the
+        // screenshot template expands are one string now: force-media-title is what %{media-title}
+        // resolves first (MpvBaseline.ScreenshotTemplate), so the OSD headline and the file name of a
+        // shot are the same text by construction.
         // 2026-09-27 用户令「电视剧左上角标题要用 SxxExx 集名……集成模式和独占模式显示的要一致」：mpv 左上角
         // 那行就是 force-media-title，喂的是 headline（单集＝「剧名 SxxExx 集名」，电影＝片名）。**2026-09-28
         // 晚按用户令「标题前面加上剧名」把剧名接回主标题**（09-27 那版曾不带前缀）。组名仍不缀在标题上 ——
@@ -105,7 +107,7 @@ public sealed class PlaybackPlanner(
             ShaderDecision = decision,
             ShaderReason = decision.Reason,
             ShaderOptionCount = chainOptions.Count,
-            PlayerOptions = BuildPlayerOptions(DescribeSource(source), decision, chainOptions, ticket.DisplayRefreshHz, title, audioDevice),
+            PlayerOptions = BuildPlayerOptions(DescribeSource(source), decision, chainOptions, ticket.DisplayRefreshHz, audioDevice),
             RunTimeTicks = source.RunTimeTicks ?? item.RunTimeTicks ?? 0,
             ItemId = item.Id,
             IsDonghua = donghua,
@@ -134,11 +136,14 @@ public sealed class PlaybackPlanner(
         ShaderDecision decision,
         IReadOnlyList<KeyValuePair<string, string>> chainOptions,
         double displayRefreshHz,
-        string title,
         string? audioDevice = null)
     {
         var options = new List<KeyValuePair<string, string>>(48);
-        options.AddRange(MpvBaseline.Build(shaderCacheDirectory, ScreenshotDirectory, title, fontsDirectory));
+        // 截图画质那组从设置解析（夹取与格式归一在 MpvBaseline.ScreenshotOptions.From）：起播这一路与
+        // 设置页的实时推送（PlaybackService.ApplyScreenshotOptionsAsync）消费同一份选项表，两处同源。
+        options.AddRange(MpvBaseline.Build(
+            MpvBaseline.ScreenshotOptions.From(settings.Mpv),
+            shaderCacheDirectory, ScreenshotDirectory, fontsDirectory));
         options.AddRange(MpvOutputOptions.Build(
             settings.Video, settings.Audio, settings.Playback, source, decision.Animated, displayRefreshHz, audioDevice));
         options.AddRange(chainOptions);
@@ -156,15 +161,18 @@ public sealed class PlaybackPlanner(
         // are part of it is that a chain says what it needs and this says whether the settings meet it. Logged
         // rather than enforced — those three are the user's to set, and a chain rewriting 视频渲染 behind their
         // back is 「界面在骗人」 from the other end.
-        // 内置播放器的渲染后端与图形接口由管线契约锁定（LibMpvPipelinePolicy），设置页对它不提供这两项——
-        // 检查按真正会跑的值问，而不是按设置里存着、内置根本不用的值问；hwdec 两条后端都从设置来，照旧。
-        var pipelineOwned = settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv;
+        // 内置播放器的渲染后端永远归管线契约；图形接口只有集成管线归契约（LibMpvPipelinePolicy），
+        // 独占管线 2026-10-11 起跟随设置页「图形接口」（默认 vulkan）。检查按真正会跑的值问——
+        // 集成按钉死的值问（设置页对它不提供这一项），独占按设置存值问（那是用户改得到的地方，
+        // 提醒说「换成 vulkan」是真能照做的）；hwdec 两条后端都从设置来，照旧。
+        var builtIn = settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv;
+        var integrated = builtIn && settings.Mpv.Pipeline == VideoPipelineKind.Integrated;
         if (decision.HasGroup)
         {
             foreach (var problem in MpvRenderCheck.Problems(
-                pipelineOwned ? LibMpvPipelinePolicy.ForcedRenderer : settings.Video.Renderer,
-                pipelineOwned ? LibMpvPipelinePolicy.ForcedApi : settings.Video.GpuApi,
-                settings.Video.HardwareDecoding, decision.Group, pipelineOwned))
+                builtIn ? LibMpvPipelinePolicy.ForcedRenderer : settings.Video.Renderer,
+                integrated ? LibMpvPipelinePolicy.ForcedApi : settings.Video.GpuApi,
+                settings.Video.HardwareDecoding, decision.Group, pipelineOwned: integrated))
             {
                 Log.Warn(Category, $"着色器档位的运行条件：{problem}");
             }

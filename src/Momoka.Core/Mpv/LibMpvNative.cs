@@ -72,6 +72,9 @@ internal static class LibMpvNative
     internal static extern int mpv_initialize(IntPtr context);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int mpv_load_config_file(IntPtr context, [MarshalAs(UnmanagedType.LPUTF8Str)] string filename);
+
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void mpv_terminate_destroy(IntPtr context);
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]

@@ -1,6 +1,7 @@
 using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
+using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.ViewModels;
@@ -28,7 +29,7 @@ internal sealed partial class ShellNavigationProbe
         var evidence = new List<string> { $"系统动画：{HomeMotion.AnimationsEnabled}" };
         var page = new SettingsPage();
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
-            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask,
+            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings), new MoviePilotCredentials(PassthroughSecretProtector.Instance),
             fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
@@ -116,6 +117,44 @@ internal sealed partial class ShellNavigationProbe
             page.ReleaseHosted();
             if (page.CurrentPage is Page { Content: FrameworkElement hosted })
                 Require(hosted.Opacity == 1, "隐藏后托管页仍半透明");
+
+            // 渲染管线行住进基础输出卡之后，切管线重建的就是这一行自己住的卡 —— 祖先容器压在
+            // SelectionChanged 的传播路上被换掉，从前没有这条路径（此前的重建都发生在别的卡上）。
+            foreach (var width in new[] { 1100, 760 })
+            {
+                ResizeInspect(width, 900);
+                await SettingsPipelineRowAsync(page, fixture, width);
+            }
+
+            // 播放器分类 2026-10-11 起一或两张分区卡（播放器 ＋ 随独占模式进出的自定义 mpv.conf；外置两行
+            // 同日并回播放器卡、仅外部后端在场）；同日用户令把截图分区挪进播放行为，那一类三张分区卡
+            // （播放行为／资源筛选／截图）。宽窄两档各留同屏帧：顶帧在第一张卡，另两张把对应分区滚进视口。
+            foreach (var width in new[] { 1100, 760 })
+            {
+                ResizeInspect(width, 900);
+                page.SelectedCategory = "播放器";
+                await LayoutAsync(page);
+                await Task.Delay(430); // 分组入场动画先落定，别处同款等待。
+                AssertSettingsSettled(page);
+                await SaveReturnFrameAsync(page, $"settings-player-sections-{width}.png");
+                page.SelectedCategory = "播放行为";
+                await LayoutAsync(page);
+                await Task.Delay(430);
+                AssertSettingsSettled(page);
+                await SaveReturnFrameAsync(page, $"settings-playback-sections-{width}.png");
+                foreach (var (title, file) in new[] { ("资源筛选", $"settings-playback-resource-{width}.png"), ("截图", $"settings-playback-screenshot-{width}.png") })
+                {
+                    // 滚动条不在行数据里，把目标分区整个带进视口再拍。VerticalAlignmentRatio=0 让分区顶边
+                    // 对到视口顶 —— 默认的最小滚动只把标题滚到视口底缘，拍到的还是上一张卡的尾巴。
+                    var section = Descendants(page).OfType<FrameworkElement>()
+                        .Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible)
+                        .First(element => Descendants(element).OfType<TextBlock>().Any(text => text.Text == title));
+                    section.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0 });
+                    await LayoutAsync(page);
+                    AssertSettingsSettled(page);
+                    await SaveReturnFrameAsync(page, file);
+                }
+            }
         }
         finally
         {
@@ -148,7 +187,7 @@ internal sealed partial class ShellNavigationProbe
 
         var page = new SettingsPage();
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
-            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask,
+            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
@@ -284,5 +323,311 @@ internal sealed partial class ShellNavigationProbe
         foreach (var section in Descendants(page).OfType<FrameworkElement>().Where(element => element.Name == "SettingsSection"))
             Require(section.Opacity == 1 && (section.RenderTransform is not TranslateTransform drift || drift.Y == 0),
                 "设置分组未归位");
+    }
+
+    // 切管线必须当场重排基础输出卡（集成锁定 D3D11，独占恢复接口选择），而重建的恰好是渲染管线
+    // 那一行自己住的卡。这条探针在真实控件上走一遍事件链：对着真下拉写入另一档 SelectedItem，触发与用户
+    // 点选同一条 SelectionChanged → 双向绑定 → after 重建（这次重建发生在祖先容器上）的路，断在半路当场报红。
+    // 边界照实说：机器注不进鼠标事件，弹层开不了，「从弹层里点条目」那一段没有覆盖；其余各步与用户路径
+    // 共用同一根线（同上头 UI 动画开关那条的道理）。管线存值落在探针自己的隔离目录，不碰真实设置。
+    private async Task SettingsPipelineRowAsync(SettingsPage page, Fixture fixture, int width)
+    {
+        var original = fixture.Settings.Mpv.Pipeline;
+        var originalApi = fixture.Settings.Video.GpuApi;
+        try
+        {
+            Require(fixture.Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv, "管线探针假定内置后端");
+            page.SelectedCategory = "视频输出";
+            await LayoutAsync(page);
+
+            // 出发前的两态要与存值对得上，否则探针照到的是别的坏处。
+            var integrated = fixture.Settings.Mpv.Pipeline == VideoPipelineKind.Integrated;
+            AssertGraphicsApi(page, fixture);
+
+            // 档位次序是 Pipelines 表的次序（集成在前、独占在后），按下标挑另一档。
+            var (row, combo) = PipelineRow(page);
+            combo.SelectedItem = row.Choices[integrated ? 1 : 0];
+            await Task.Delay(430); // 重建可能带分组入场动画，与别处一样等它落定再读。
+            Require(fixture.Settings.Mpv.Pipeline == (integrated ? VideoPipelineKind.Standalone : VideoPipelineKind.Integrated),
+                "切管线没有保存新选择");
+            AssertGraphicsApi(page, fixture);
+            Require(fixture.Settings.Video.GpuApi == originalApi, "集成接口覆盖了独占接口偏好");
+            AssertSettingsSettled(page);
+            await SaveReturnFrameAsync(page, $"settings-pipeline-switched-{width}.png");
+            await SaveProbeScreenAsync($"settings-pipeline-switched-{width}-screen.png");
+
+            // 重建把整张卡的行和下拉换成了新对象，切回去要重新找；顺带证明确实换了新树。
+            var (restoredRow, restoredCombo) = PipelineRow(page);
+            Require(!ReferenceEquals(restoredCombo, combo), "重建没有换出新的下拉");
+            restoredCombo.SelectedItem = restoredRow.Choices[integrated ? 0 : 1];
+            await Task.Delay(430);
+            Require(fixture.Settings.Mpv.Pipeline == original, "切回原管线没有保存选择");
+            AssertGraphicsApi(page, fixture);
+            Require(fixture.Settings.Video.GpuApi == originalApi, "切回后丢失了原先的图形接口");
+            AssertSettingsSettled(page);
+            await SaveReturnFrameAsync(page, $"settings-pipeline-restored-{width}.png");
+            await SaveProbeScreenAsync($"settings-pipeline-restored-{width}-screen.png");
+        }
+        finally
+        {
+            // 探针中断时的保险：存值归位，别把半截状态留给同目录后面的探针步骤。
+            fixture.Settings.Mpv.Pipeline = original;
+        }
+    }
+
+    private async Task SettingsVideoAvailabilityAsync(int width, bool customConfigOnly = false)
+    {
+        using var fixture = CreateFixture();
+        using var moviePilot = new MoviePilotClient(new RejectNetwork());
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, $"video-settings-{width}"));
+        paths.EnsureCreated();
+        var fonts = new FontLibrary();
+        Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
+        var page = new SettingsPage();
+        page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
+            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
+            new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+        _root.Children.Add(page);
+        try
+        {
+            ResizeInspect(width, 900);
+            if (customConfigOnly) await SettingsCustomConfigAsync(page, fixture, width);
+            else await SettingsVideoDependenciesAsync(page, fixture, width);
+        }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
+            ResizeInspect(1420, 980);
+        }
+    }
+
+    private async Task SettingsVideoDependenciesAsync(SettingsPage page, Fixture fixture, int width)
+    {
+        var video = fixture.Settings.Video;
+        var mpv = fixture.Settings.Mpv;
+        var original = (video.VideoSync, video.Interpolation, video.Tscale, video.HighFrameRateAudioSync,
+            video.HighRefreshRateLimitHz, video.Dither, video.DitherDepth, video.Deband, video.DebandStrength,
+            video.QualityPreset, video.GpuApi, video.Renderer, mpv.Backend, mpv.Pipeline,
+            mpv.ExecutablePath, mpv.EnableIpc);
+        const string fallback = "高帧率或高刷新率时使用音频同步";
+        const string threshold = "音频同步回退阈值（Hz）";
+        try
+        {
+            video.VideoSync = "display-resample";
+            video.Interpolation = true;
+            video.Tscale = "spline36";
+            video.HighFrameRateAudioSync = true;
+            video.HighRefreshRateLimitHz = 144;
+            video.Dither = "fruit";
+            video.DitherDepth = "10";
+            video.Deband = "yes";
+            video.DebandStrength = "high";
+            video.QualityPreset = "default";
+            video.GpuApi = "opengl";
+            await page.ViewModel.ReloadAsync();
+            page.SelectedCategory = "视频输出";
+            await SettleAsync();
+            AssertGraphicsApi(page, fixture);
+            AssertRow("插值算法", true);
+            AssertRow(threshold, true);
+            AssertRow("抖动目标位深", true);
+            AssertRow("去色带强度", true);
+
+            await PickAsync("视频同步", MpvOutputOptions.VideoSync, "audio");
+            AssertRow("启用插值", false);
+            AssertRow("插值算法", false);
+            AssertRow(fallback, false);
+            AssertRow(threshold, false);
+            Require(video.Interpolation && video.Tscale == "spline36" && video.HighRefreshRateLimitHz == 144,
+                "音频同步清空了隐藏的插值或回退偏好");
+            await CaptureAsync("audio");
+
+            await PickAsync("视频同步", MpvOutputOptions.VideoSync, "display-resample");
+            AssertRow("插值算法", true);
+            AssertRow(threshold, true);
+            await ToggleAsync("启用插值");
+            AssertRow("插值算法", false);
+            AssertRow(fallback, true); // 显示同步本身也需要回退开关。
+            await ToggleAsync(fallback);
+            AssertRow(threshold, false);
+            await ToggleAsync(fallback);
+            AssertRow(threshold, true);
+            await PickAsync("视频同步", MpvOutputOptions.VideoSync, "");
+            AssertRow("启用插值", true);
+            AssertRow(fallback, false); // 自动 + 无插值实际使用音频同步。
+            await ToggleAsync("启用插值");
+            AssertRow("插值算法", true);
+            AssertRow(fallback, true);
+            AssertRow(threshold, true);
+            Require(video.Tscale == "spline36" && video.HighRefreshRateLimitHz == 144, "恢复后插值参数丢失");
+
+            var number = Descendants(page).OfType<NumberBox>()
+                .Single(control => AutomationProperties.GetName(control) == threshold);
+            number.Value = 165;
+            Require(video.HighRefreshRateLimitHz == 165 && Rows().Single(row => row.Label == "视频同步").Note.Contains("165 Hz"),
+                "回退阈值没有保存或同步说明没有更新");
+
+            await PickAsync("抖动", MpvOutputOptions.Dithers, "no");
+            await PickAsync("去色带", MpvOutputOptions.DebandModes, "no");
+            AssertRow("抖动目标位深", false);
+            AssertRow("去色带强度", false);
+            await CaptureAsync("effects-hidden");
+            await PickAsync("去色带", MpvOutputOptions.DebandModes, "");
+            AssertRow("去色带强度", false);
+            await PickAsync("抖动", MpvOutputOptions.Dithers, "fruit");
+            await PickAsync("去色带", MpvOutputOptions.DebandModes, "auto");
+            AssertRow("抖动目标位深", true);
+            AssertRow("去色带强度", true);
+            Require(video.DitherDepth == "10" && video.DebandStrength == "high", "恢复后抖动或去色带偏好丢失");
+            await CaptureAsync("restored");
+
+            await PickAsync("抖动", MpvOutputOptions.Dithers, "");
+            await PickAsync("画质预设", MpvOutputOptions.QualityPresets, "fast");
+            AssertRow("抖动目标位深", false);
+            await PickAsync("画质预设", MpvOutputOptions.QualityPresets, "default");
+            AssertRow("抖动目标位深", true);
+
+            page.SelectedCategory = "播放器";
+            await SettleAsync();
+            await PickLabelAsync("播放后端", "外部 mpv.exe（独立窗口）");
+            // 外置两行并回播放器卡后随值进出：外部后端当场在场，路径与 IPC 偏好不因重建而动。
+            AssertExternalRows(true);
+            await SaveReturnFrameAsync(page, $"settings-player-external-{width}.png");
+            page.SelectedCategory = "视频输出";
+            await SettleAsync();
+            AssertRow("渲染管线", false);
+            AssertRow("视频渲染", true);
+            AssertGraphicsApi(page, fixture);
+            await PickAsync("视频渲染", MpvOutputOptions.Renderers, "gpu");
+            foreach (var label in new[] { "视频同步", "硬件解码", "反交错", "色彩范围", "启用插值", "抖动", "去色带" })
+                AssertRow(label, true);
+            await CaptureAsync("external");
+            page.SelectedCategory = "播放器";
+            await SettleAsync();
+            await PickLabelAsync("播放后端", "内置播放器（libmpv）");
+            AssertExternalRows(false);
+            page.SelectedCategory = "视频输出";
+            await SettleAsync();
+            AssertRow("渲染管线", true);
+            AssertRow("视频渲染", false);
+            Require(video.GpuApi == "opengl" && mpv.Pipeline == original.Pipeline, "切后端丢失了接口或管线偏好");
+            AssertGraphicsApi(page, fixture);
+
+            // 导入/恢复默认共用 ReloadAsync；重新装载后仍按保存的条件构造行。
+            await PickAsync("视频同步", MpvOutputOptions.VideoSync, "audio");
+            await page.ViewModel.ReloadAsync();
+            await SettleAsync();
+            AssertRow("插值算法", false);
+            AssertRow(fallback, false);
+        }
+        finally
+        {
+            (video.VideoSync, video.Interpolation, video.Tscale, video.HighFrameRateAudioSync,
+                video.HighRefreshRateLimitHz, video.Dither, video.DitherDepth, video.Deband, video.DebandStrength,
+                video.QualityPreset, video.GpuApi, video.Renderer, mpv.Backend, mpv.Pipeline,
+                mpv.ExecutablePath, mpv.EnableIpc) = original;
+            await page.ViewModel.ReloadAsync();
+            await SettleAsync();
+        }
+
+        IEnumerable<SettingRow> Rows() => page.ViewModel.Sections.Where(section => section.Category == "视频输出")
+            .SelectMany(section => section.Rows);
+        // 外置两行（mpv.exe 路径 / 启用 IPC 进度通道）并回播放器卡、随播放后端进出：数据行、真实行和
+        // 可聚焦控件三头都要对上；收起时不得动路径与 IPC 偏好（隐藏不清空偏好）。
+        void AssertExternalRows(bool present)
+        {
+            var rows = page.ViewModel.Sections.Where(section => section.Category == "播放器")
+                .SelectMany(section => section.Rows).ToList();
+            Require(page.ViewModel.Sections.Count(section => section.Title == "播放器") == 1
+                && page.ViewModel.Sections.All(section => section.Title != "外置播放器"),
+                "外置播放器分区没有并回唯一的播放器卡");
+            Require(rows.Any(row => row.Label == "mpv.exe 路径") == present
+                && rows.Any(row => row.Label == "启用 IPC 进度通道") == present,
+                "外置两行的数据行显隐错误");
+            Require(Descendants(page).OfType<TextBlock>().Any(text => text.Text == "mpv.exe 路径") == present
+                && Descendants(page).OfType<TextBlock>().Any(text => text.Text == "启用 IPC 进度通道") == present,
+                "外置两行的真实行显隐错误");
+            if (!present)
+            {
+                Require(!Descendants(page).OfType<Control>().Any(control =>
+                    AutomationProperties.GetName(control) is "mpv.exe 路径" or "启用 IPC 进度通道"),
+                    "外置两行隐藏后仍留有可聚焦控件");
+                Require(mpv.ExecutablePath == original.ExecutablePath && mpv.EnableIpc == original.EnableIpc,
+                    "隐藏外置两行动了路径或 IPC 偏好");
+            }
+        }
+        void AssertRow(string label, bool present)
+        {
+            Require(Rows().Any(row => row.Label == label) == present, $"{label} 的数据行显隐错误");
+            Require(Descendants(page).OfType<TextBlock>().Any(text => text.Text == label) == present,
+                $"{label} 的真实行显隐错误");
+            if (!present)
+                Require(!Descendants(page).OfType<Control>().Any(control => AutomationProperties.GetName(control) == label),
+                    $"{label} 隐藏后仍留有可聚焦控件");
+        }
+        async Task SettleAsync()
+        {
+            await LayoutAsync(page);
+            await Task.Delay(430);
+            AssertSettingsSettled(page);
+        }
+        async Task PickLabelAsync(string label, string choice)
+        {
+            var row = page.ViewModel.Sections.SelectMany(section => section.Rows).OfType<SettingChoiceRow>()
+                .Single(candidate => candidate.Label == label);
+            var combo = Descendants(page).OfType<ComboBox>().Single(control => AutomationProperties.GetName(control) == label);
+            combo.SelectedItem = row.Choices.Single(item => item.Label == choice);
+            await SettleAsync();
+        }
+        Task PickAsync(string label, IReadOnlyList<MpvChoice> choices, string value) =>
+            PickLabelAsync(label, MpvOutputOptions.Describe(choices, value));
+        async Task ToggleAsync(string label)
+        {
+            var toggle = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == label);
+            var peer = new ToggleSwitchAutomationPeer(toggle);
+            ((IToggleProvider)peer.GetPattern(PatternInterface.Toggle)).Toggle();
+            await SettleAsync();
+        }
+        async Task CaptureAsync(string state)
+        {
+            var scroll = Descendants(page).OfType<ScrollView>().Single();
+            foreach (var offset in new[] { 0d, 650d })
+            {
+                scroll.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                await LayoutAsync(page);
+                await SaveProbeScreenAsync($"settings-video-{state}-{width}-{offset:0}-screen.png");
+            }
+            scroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+        }
+    }
+
+    private static (SettingChoiceRow Row, ComboBox Combo) PipelineRow(SettingsPage page)
+    {
+        var row = page.ViewModel.Sections.First(section => section.Title == "基础输出").Rows
+            .OfType<SettingChoiceRow>().Single(candidate => candidate.Label == "渲染管线");
+        var combo = Descendants(page).OfType<ComboBox>()
+            .Single(control => AutomationProperties.GetName(control) == "渲染管线");
+        return (row, combo);
+    }
+
+    private static void AssertGraphicsApi(SettingsPage page, Fixture fixture)
+    {
+        var integrated = fixture.Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv
+            && fixture.Settings.Mpv.Pipeline == VideoPipelineKind.Integrated;
+        var row = page.ViewModel.Sections.First(section => section.Title == "基础输出").Rows
+            .Single(candidate => candidate.Label == "图形接口");
+        var combo = Descendants(page).OfType<ComboBox>()
+            .SingleOrDefault(control => AutomationProperties.GetName(control) == "图形接口");
+        if (integrated)
+            Require(combo is null && row is SettingFactRow { Value: "Direct3D 11（D3D11）", ActionVisibility: Visibility.Collapsed }
+                && Descendants(page).OfType<TextBlock>().Any(text => text.Text == "Direct3D 11（D3D11）"),
+                "集成模式必须显示 D3D11 只读文字，不能保留下拉框");
+        else
+            Require(row is SettingChoiceRow choice && combo is { IsEnabled: true }
+                && ReferenceEquals(combo.SelectedItem, choice.Selected)
+                && choice.Selected?.Label == MpvOutputOptions.Describe(MpvOutputOptions.GpuApis, fixture.Settings.Video.GpuApi),
+                "独占模式没有恢复保存的图形接口");
     }
 }

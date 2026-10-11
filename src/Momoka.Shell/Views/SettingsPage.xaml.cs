@@ -305,6 +305,10 @@ public sealed partial class SettingsPage : Page, IShellContent
                 // 截图保存目录同理：改一行就写进正播那部的 screenshot-directory 属性，交方法不交服务。
                 request.Services.GetRequiredService<PlaybackService>().ApplyScreenshotDirectoryAsync,
 
+                // 截图格式与画质（2026-10-11 用户令「参考文档新增自定义选项」）同一通道：那一行改完把整组
+                // 推给正播的那部。服务自己读设置，这里只交「推一遍」这一件事。
+                request.Services.GetRequiredService<PlaybackService>().ApplyScreenshotOptionsAsync,
+
                 request.Services.GetRequiredService<MoviePilotService>(),
                 request.Services.GetRequiredService<MoviePilotCredentials>(),
 

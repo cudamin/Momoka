@@ -19,18 +19,67 @@ internal static class BackendLifecycleTests
             Assert.Throws<OperationCanceledException>(() => backend.StartAsync(Request(), new CancellationToken(true)).GetAwaiter().GetResult());
         });
 
-        Test("内置换片：完整生产签名排除逐片截图标题和着色器", () =>
+        // 截图模板 2026-10-11 起是常量（MpvBaseline.ScreenshotTemplate），回到启动基线里：两部片名不同的
+        // 票带着同一条模板，签名照样逐项相等，集名不同的常规换集不丢快路；链尾（scale）照旧被掐掉。
+        Test("内置换片：常量截图模板进基线，链尾照旧掐掉", () =>
         {
-            var first = Request() with { PlayerOptions = [new("screenshot-template", "first"), new("scale", "one")], ShaderOptionCount = 1 };
-            var next = Request() with { PlayerOptions = [new("screenshot-template", "next"), new("scale", "two")], ShaderOptionCount = 1 };
+            var first = Request() with
+            {
+                Title = "与你相恋到生命尽头 S01E08",
+                PlayerOptions = [new("screenshot-template", MpvBaseline.ScreenshotTemplate), new("scale", "one")],
+                ShaderOptionCount = 1,
+            };
+            var next = Request() with
+            {
+                Title = "与你相恋到生命尽头 S01E09",
+                PlayerOptions = [new("screenshot-template", MpvBaseline.ScreenshotTemplate), new("scale", "two")],
+                ShaderOptionCount = 1,
+            };
             var settings = new MpvSettings { Pipeline = VideoPipelineKind.Standalone };
             Assert.True(InlineSwitch.SameSignature(
                 LibMpvBackend.Signature(settings, new PlaybackSettings(), first, []),
                 LibMpvBackend.Signature(settings, new PlaybackSettings(), next, [])));
+
+            // 真改了启动配置（模板换了形状）基线就不等：那是有人动了模板，不是集名 —— 走重启才对。
+            Assert.False(InlineSwitch.SameSignature(
+                LibMpvBackend.Signature(settings, new PlaybackSettings(), first, []),
+                LibMpvBackend.Signature(settings, new PlaybackSettings(),
+                    next with { PlayerOptions = [new("screenshot-template", "%{media-title}-%n"), new("scale", "two")] }, [])));
+
             settings.Backend = MpvBackendKind.ExternalMpv;
             Assert.False(InlineSwitch.SameSignature(
                 LibMpvBackend.Signature(new MpvSettings { Pipeline = VideoPipelineKind.Standalone }, new PlaybackSettings(), first, []),
                 LibMpvBackend.Signature(settings, new PlaybackSettings(), next, [])));
+        });
+
+        // 独占管线的图形接口在换片签名里（2026-10-11 起）：gpu-api 在 initialize 之后改不动，改了设置
+        // 必须走重启，不能让旧实例带着旧接口接着播。
+        Test("内置换片：图形接口设置变了签名必须变", () =>
+        {
+            var vulkan = Request() with { PlayerOptions = [new("gpu-api", "vulkan")] };
+            var d3d11 = Request() with { PlayerOptions = [new("gpu-api", "d3d11")] };
+            var noApi = Request() with { PlayerOptions = [] };
+
+            Assert.False(InlineSwitch.SameSignature(
+                LibMpvBackend.Signature(new MpvSettings { Pipeline = VideoPipelineKind.Standalone }, new PlaybackSettings(), vulkan, []),
+                LibMpvBackend.Signature(new MpvSettings { Pipeline = VideoPipelineKind.Standalone }, new PlaybackSettings(), d3d11, [])),
+                "vulkan 与 d3d11 的契约不同，不能同一个实例换着用");
+            Assert.False(InlineSwitch.SameSignature(
+                LibMpvBackend.Signature(new MpvSettings { Pipeline = VideoPipelineKind.Standalone }, new PlaybackSettings(), vulkan, []),
+                LibMpvBackend.Signature(new MpvSettings { Pipeline = VideoPipelineKind.Standalone }, new PlaybackSettings(), noApi, [])),
+                "vulkan 与自动（空）的契约不同，不能同一个实例换着用");
+            Assert.True(InlineSwitch.SameSignature(
+                LibMpvBackend.Signature(new MpvSettings { Pipeline = VideoPipelineKind.Standalone }, new PlaybackSettings(), noApi, []),
+                LibMpvBackend.Signature(new MpvSettings { Pipeline = VideoPipelineKind.Standalone }, new PlaybackSettings(),
+                    Request() with { PlayerOptions = [new("scale", "one")], ShaderOptionCount = 1 }, [])),
+                "空票与只有逐片着色器选项的票都没有图形接口，契约相同");
+
+            // 集成管线的 api 归契约、不读票：签名里契约那一段与票里的值无关
+            // （基线那一段照旧带着票里的选项 —— 那是「这次启动的配置」的一部分，不在本条关心范围）。
+            var integrated = new MpvSettings { Pipeline = VideoPipelineKind.Integrated };
+            Assert.Equal(
+                string.Join(",", LibMpvBackend.Signature(integrated, new PlaybackSettings(), vulkan, []).PipelineOptions),
+                string.Join(",", LibMpvBackend.Signature(integrated, new PlaybackSettings(), d3d11, []).PipelineOptions));
         });
 
         Test("内置换片：依赖的start-file和结束事件必须在订阅表", () =>

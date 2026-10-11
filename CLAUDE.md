@@ -22,15 +22,15 @@ Emby 桌面客户端：WinUI 3、Windows App SDK、.NET 10、C#，非打包、x6
 
 按任务读取随代码入库的技能：
 
-- [momoka-winui-shell](.claude/skills/momoka-winui-shell/SKILL.md)：修改或审查 C# / XAML 前读取，说明分层、DI、Attach 与 UI 陷阱。
+- [momoka-winui-shell](.claude/skills/momoka-winui-shell/SKILL.md)：修改或审查 C# / XAML 前读取，说明分层、DI、Attach、功能可用性显隐与 UI 陷阱。
 - [momoka-emby-api](.claude/skills/momoka-emby-api/SKILL.md)：与服务器对话的协议面——请求基址与鉴权头、重定向与凭据边界、错误语义、接口清单与规格缺口。
 - [momoka-playback](.claude/skills/momoka-playback/SKILL.md)：播放后端、进度上报、字幕音轨、换片，以及 `assets/mpv-ui` 中的 Lua/uosc 独占控件。
 - [momoka-subtitles](.claude/skills/momoka-subtitles/SKILL.md)：字幕设置的审查、修复与验证——语言选择、强制/外语音轨、ASS/SRT/PGS 样式、双语/次字幕、颜色输入、预览与服务器字幕管理。
-- [momoka-verification](.claude/skills/momoka-verification/SKILL.md)：验证读数、截图、指针移动及其证据。
+- [momoka-verification](.claude/skills/momoka-verification/SKILL.md)：验证读数、截图、功能显隐与恢复、指针移动及其证据。
 - [mpv-shader-quality](.claude/skills/mpv-shader-quality/SKILL.md)：着色器档位与画质链。
 - [momoka-video-output](.claude/skills/momoka-video-output/SKILL.md)：视频输出三卡（基础输出、HDR 与杜比视界、画质与着色器）与 mpv 选项的落地。
 - [momoka-audio-output](.claude/skills/momoka-audio-output/SKILL.md)：音频输出设置的审查、修复与验证——设备核对与回退、声道、直通、响度、延迟与音量记忆，及随包 libmpv 的无声探针。
-- [momoka-moviepilot](.claude/skills/momoka-moviepilot/SKILL.md)：MoviePilot 接入的来源身份（TMDB／豆瓣／IMDb）、搜索、订阅管理与入库播放、原记录重整协议及验证边界。
+- [momoka-moviepilot](.claude/skills/momoka-moviepilot/SKILL.md)：MoviePilot 接入的可用性与入口显隐、来源身份（TMDB／豆瓣／IMDb）、搜索、订阅管理与入库播放、原记录重整协议及验证边界。
 - [momoka-skill-creator](.claude/skills/momoka-skill-creator/SKILL.md)：新建、改写、拆分、合并或退役项目技能时读取——先查重、英文编写与资源审查、description 触发词、正文分层、清单登记，以及区分技能场景评估和项目验证的验收方式。
 
 通用 `winui-*` 技能来自用户级技能目录或插件。**与本文件冲突时以本文件为准。** 规则改动须同步相关技能、开发文档、脚本帮助与运行提示；不在技能里另立升级、验证或安全政策，不在 `.workbuddy/`、`.zcode/` 复制规则。当前文件数、测试数、控件数从本次源码或工具输出获取。
@@ -49,6 +49,16 @@ Emby 桌面客户端：WinUI 3、Windows App SDK、.NET 10、C#，非打包、x6
 - **绑定到 `ItemsSource` 的集合对象保持稳定**：默认 `{ get; }` 加初始化器，允许原地增加、删除、移动和更新。需要整体刷新时才 `Clear()` 后重填；小改动避免全量重建，并注意选择与滚动状态。
 
 格式以 [`.editorconfig`](.editorconfig) 为准：C# 文件范围命名空间、私有字段 `_camelCase`、const / static readonly 用 `PascalCase`、不用 `this.`、4 空格；文本使用 LF，PowerShell 使用 UTF-8 带 BOM。命名等 `IDE0###` 尚未作为构建门禁，空白检查通过不等于全部风格通过。
+
+## 功能可用性与显隐
+
+- **无法使用或在当前配置下不会生效的功能自动隐藏。** 按上级开关、模式、格式、后端及已确认的能力判断适用性；相关按钮、菜单入口和设置项一起收起，不用置灰、禁用控件或补一段说明代替隐藏。
+- **收起完整的无效区域，保留恢复入口。** 从属说明、分隔线和空白随控件收起；整组无可用内容时收起组标题与容器。有其他有效内容的卡片继续显示，控制功能启用或模式切换的入口保持可达。
+- **状态变化当场更新，隐藏不清空偏好。** 同页切换、重新进入页面、导入设置和恢复默认后都重算显隐；仅改变可用性时保留原设置，条件恢复后重新显示原值，不要求重启。具体设置是否立即下发仍按该设置的生效语义处理。
+- **参考 MoviePilot 与截图设置。** MoviePilot 关闭或连接不可用时隐藏依赖它的搜索、订阅等入口，保留启用和连接配置入口；截图非 WebP 时隐藏 WebP 专属行，WebP 开启无损后隐藏质量与压缩，关闭无损后恢复这两行及原值。
+- 加载、提交和失败是过程状态，仍须显示必要的进度、错误原因与可用的恢复操作，不用隐藏掩盖失败。界面隐藏也不替代命令与服务层的能力、身份和权限检查。
+
+实现方法见 [Shell 技能](.claude/skills/momoka-winui-shell/SKILL.md#capability-dependent-visibility)，切换与恢复的核验方法见 [验证技能](.claude/skills/momoka-verification/SKILL.md#capability-dependent-visibility)。
 
 ## 项目约定与自动检查
 

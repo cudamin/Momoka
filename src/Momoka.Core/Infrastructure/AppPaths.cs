@@ -44,14 +44,14 @@ public sealed class AppPaths
     /// here, next to the log and cache directories, and 设置 → 关于 shows the path with a button that opens it.
     /// </para>
     /// <para>
-    /// <b>2026-09-29 起它还是兜底</b>：设置 → 播放器的「截图保存目录」留空时，截图就落在这里 —— 裁决在
+    /// <b>2026-09-29 起它还是兜底</b>：设置 → 播放行为的「截图保存目录」留空时，截图就落在这里 —— 裁决在
     /// <see cref="ResolveScreenshotDirectory"/>，填了的值从那一个函数过。
     /// </para>
     /// </summary>
     public string ScreenshotDirectory => Path.Combine(Root, "screenshots");
 
     /// <summary>
-    /// 截图落点的最终裁决：设置里那行（设置 → 播放器 → 截图保存目录）填了就用它，空着就是
+    /// 截图落点的最终裁决：设置里那行（设置 → 播放行为 → 截图保存目录）填了就用它，空着就是
     /// <paramref name="fallback"/> —— 容器交给 <see cref="Playback.PlaybackPlanner"/> 的装机落点。计划层、
     /// 关于卡和自检问的都是这一个函数，四处各抄一遍清洗规则就是这一类 bug 的老窝。
     /// <para>

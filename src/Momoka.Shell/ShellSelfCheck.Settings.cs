@@ -296,7 +296,7 @@ internal static partial class ShellSelfCheck
         check("字幕标题筛选加删改都写对", subtitleTitleRules.Ok, subtitleTitleRules.Detail);
 
         // 视频同步那一行的说明写的是「此刻真正生效的值」，而改得动它的有四处：它自己、启用插值、高帧率回退，
-        // 和插值关闭阈值（那一句例外里带着它填的那个数）。
+        // 和音频同步回退阈值（那一句例外里带着它填的那个数）。
         // 少接一处，屏上一点区别都看不出来 —— 说明还在，只是说的是上一次的事，也就是这一行本来要治的那个
         // 「界面在骗人」。所以这里问两件：那根线本身通不通（假下拉行按一下，SettingChoiceRow.Probe），以及屏上
         // 这一行真的是「此刻生效」那种说明、而不是一句静态介绍。点不了真下拉：这台机器上注不进鼠标事件。
@@ -337,27 +337,50 @@ internal static partial class ShellSelfCheck
         check("隐藏功能下方说明收放", compact.Ok, compact.Detail);
 
         // 安全起播已经替换旧命令行传头：保留可见提示检查，但不能继续要求屏上承诺泄露令牌。
-        // 这里只验证说明与五个设置行；管道身份和起播顺序由 Core 的离线子进程夹具验证。
-        var playerRows = page.ViewModel.Sections
-            .FirstOrDefault(section => section.Category == "播放器")?.Rows ?? [];
+        // 这里只验证说明与播放器、播放行为两个分类的各行；管道身份和起播顺序由 Core 的离线子进程夹具验证。
+        // 2026-10-11 起播放器分类一或两张分区卡（播放器 ＋ 随独占模式进出的自定义 mpv.conf；外置两行同日
+        // 并回播放器卡、仅外部后端在场），同日用户令「截图分区移到播放行为里」：那一类三张分区卡（播放行为
+        // ／资源筛选／截图），媒体源排序与视频文件名筛选凑成「资源筛选」—— 各自搬回了或落错卡都要当场报红。
+        // 内置后端时外置两行必须整个缺席，说明留着的空行也算红。
+        var playerSections = page.ViewModel.Sections
+            .Where(section => section.Category == "播放器").ToList();
+        var playerRows = playerSections.SelectMany(section => section.Rows).ToList();
+        var playbackSections = page.ViewModel.Sections
+            .Where(section => section.Category == "播放行为").ToList();
+        var playbackRows = playbackSections.SelectMany(section => section.Rows).ToList();
+        var backendRow = playerRows.OfType<SettingChoiceRow>().SingleOrDefault(row => row.Label == "播放后端");
+        var builtIn = backendRow is not null && ReferenceEquals(backendRow.Selected, backendRow.Choices[0]);
         var pathNote = playerRows.FirstOrDefault(row => row.Label == "mpv.exe 路径")?.Note ?? "";
         var saysSecureStartup = pathNote.Contains("核验进程身份", StringComparison.Ordinal)
             && pathNote.Contains("不放进命令行或临时文件", StringComparison.Ordinal)
             && pathNote.Contains("停止起播", StringComparison.Ordinal);
         var ipcNote = playerRows.FirstOrDefault(row => row.Label == "启用 IPC 进度通道")?.Note ?? "";
-        var hasPipeline = playerRows.Any(row => row.Label == "渲染管线");
-        // 「在设置中新增截图保存目录」（2026-09-29）成了这张卡的第五行，顺带钉住：说明要指明留空时的
-        // 装机落点，和关于卡、自检「截图有落点」说的是同一回事。
-        var screenshotNote = playerRows.FirstOrDefault(row => row.Label == "截图保存目录")?.Note ?? "";
+        // 视频输出的第一个分区就是「基础输出」卡，渲染管线行应当带着图形接口联动住在它最上面。
+        var videoBasicsRows = page.ViewModel.Sections
+            .FirstOrDefault(section => section.Category == "视频输出")?.Rows ?? [];
+        var hasPipeline = videoBasicsRows.Any(row => row.Label == "渲染管线");
+        var hasRenderer = videoBasicsRows.Any(row => row.Label == "视频渲染");
+        var pipelineRow = videoBasicsRows.OfType<SettingChoiceRow>().SingleOrDefault(row => row.Label == "渲染管线");
+        var customAvailable = builtIn && pipelineRow is not null && ReferenceEquals(pipelineRow.Selected, pipelineRow.Choices[1]);
+        var fixedPlaybackRows = new[] { "截图保存目录", "截图格式", "色彩空间标记" };
+        var screenshotNote = playbackRows.FirstOrDefault(row => row.Label == "截图保存目录")?.Note ?? "";
+        var resourceRows = playbackSections.FirstOrDefault(section => section.Title == "资源筛选")?.Rows ?? [];
 
         check("mpv.exe 路径那一行写明安全通道要求",
-            saysSecureStartup && ipcNote.Contains("起播和退出仍需管道", StringComparison.Ordinal)
-                && hasPipeline && playerRows.Count == 5
+            saysSecureStartup == !builtIn && ipcNote.Contains("起播和退出仍需管道", StringComparison.Ordinal) == !builtIn
+                && backendRow is not null && hasPipeline == builtIn && hasRenderer == !builtIn
+                && playerRows.Any(row => row.Label == "播放后端") && playerSections.Count == (customAvailable ? 2 : 1)
+                && playerSections.Any(section => section.Title == "自定义 mpv.conf") == customAvailable
+                && playbackSections.Select(section => section.Title).SequenceEqual(new[] { "播放行为", "资源筛选", "截图" })
+                && resourceRows.Select(row => row.Label).SequenceEqual(new[] { "媒体源排序", "视频文件名筛选" })
+                && fixedPlaybackRows.All(label => playbackRows.Any(row => row.Label == label))
                 && screenshotNote.Contains("留空用装机落点", StringComparison.Ordinal),
-            $"安全起播说明{(saysSecureStartup ? "完整" : "缺失")}、"
-                + $"{(hasPipeline ? "并且" : "但是没有")}「渲染管线」那一行、"
+            $"安全起播说明{(saysSecureStartup ? "完整" : "缺席")}、外置两行{(builtIn ? "已随内置后端收起" : "在外部后端下在场")}、"
+                + $"渲染管线行{(hasPipeline ? "已在" : "不在")}视频输出「基础输出」卡、"
                 + $"截图那行{(screenshotNote.Contains("留空用装机落点") ? "写明" : "没写明")}留空时的落点；"
-                + $"这张卡 {playerRows.Count} 行（应当 5 行：后端、渲染管线、路径、IPC、截图目录）");
+                + $"播放器分类 {playerSections.Count} 个分区共 {playerRows.Count} 行、"
+                + $"播放行为分类 {playbackSections.Count} 个分区共 {playbackRows.Count} 行"
+                + "（播放行为／资源筛选／截图三张分区；外置两行仅外部后端在场，自定义 mpv.conf 随独占模式进出，WebP 的无损、质量和压缩行随当前设置变化）");
 
         // 音频输出设备那一行必须始终可用。设备列表要从 mpv 读（临时开一个 libmpv 句柄只为枚举），而那一趟可能
         // 答不上来 —— 找不到 libmpv、没装 WASAPI 输出、机器上没有声卡。那时候这一行必须还剩「跟随系统默认设备」

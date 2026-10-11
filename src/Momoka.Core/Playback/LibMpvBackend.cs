@@ -12,7 +12,8 @@ namespace Momoka.Playback;
 /// integrated composition output onto the shell's SpriteVisual, or mpv's own top-level window for the
 /// 独立播放 pipeline. It is self-contained: the dll is loaded from an explicit absolute path, and
 /// libmpv is <c>config=no</c> by default, so no mpv.conf, input.conf or script from any mpv
-/// installation is ever read. Everything the player does comes from the settings page by way of
+/// installation is automatically read. Standalone can explicitly load a custom mpv.conf.
+/// Ordinary defaults come from the settings page by way of
 /// <see cref="PlaybackRequest.PlayerOptions"/>.
 /// <para>
 /// <see cref="PlaybackSettings"/> rides along next to <c>MpvSettings</c> for the one thing that is a
@@ -69,9 +70,11 @@ public sealed class LibMpvBackend(
     {
         cancellationToken.ThrowIfCancellationRequested();
         IntPtr context = IntPtr.Zero;
+        MpvCustomConfig? customConfig = null;
         try
         {
             var dllPath = ResolveLibMpv() ?? throw new InvalidOperationException(Validate() ?? $"找不到 {LibraryName}");
+            if (MpvCustomConfig.Resolve(settings) is { } customPath) customConfig = MpvCustomConfig.Prepare(customPath);
 
             // The dll is bound by absolute path rather than by name: a path from the settings is
             // otherwise validated here and then ignored by the loader, which only searches its
@@ -115,7 +118,7 @@ public sealed class LibMpvBackend(
             // ClientMessage 只在 Lua UI 在场时才值得收 —— 它是脚本与宿主的唯一通道。
             PruneEvents(context, keepClientMessage: uiOptions is not null);
 
-            var (surface, pipelineOptions) = ApplyOptions(context, request, uiOptions);
+            var (surface, pipelineOptions) = ApplyOptions(context, request, uiOptions, customConfig);
 
             var error = LibMpvNative.mpv_initialize(context);
             if (error < 0) throw new InvalidOperationException($"mpv 初始化失败：{Describe(error)}");
@@ -164,9 +167,11 @@ public sealed class LibMpvBackend(
             // 下一次的签名按当时的设置现算（管线换了就自然对不上）；独立管线的选项表不含画布尺寸，
             // 所以这里不传 size —— 集成管线本来就不走这条快路（surface 非空）。
             cancellationToken.ThrowIfCancellationRequested();
-            var signature = Signature(settings, playback, request, uiOptions ?? []);
+            var signature = Signature(settings, playback, request, uiOptions ?? []) with { UsesCustomConfig = customConfig is not null };
             var handle = new LibMpvHandle(context, surface, signature,
-                next => Signature(settings, playback, next, uiOptions ?? []));
+                next => Signature(settings, playback, next, uiOptions ?? []))
+            { CustomConfig = customConfig };
+            customConfig = null;
             context = IntPtr.Zero;
             try { handle.Start(request, cancellationToken); }
             catch
@@ -186,6 +191,7 @@ public sealed class LibMpvBackend(
         finally
         {
             if (context != IntPtr.Zero) LibMpvNative.mpv_terminate_destroy(context);
+            customConfig?.Dispose();
         }
     }
 
@@ -201,16 +207,33 @@ public sealed class LibMpvBackend(
     /// </para>
     /// </summary>
     private (IVideoSurface? Surface, IReadOnlyList<KeyValuePair<string, string>> PipelineOptions) ApplyOptions(
-        IntPtr context, PlaybackRequest request, IReadOnlyList<KeyValuePair<string, string>>? uiOptions)
+        IntPtr context, PlaybackRequest request, IReadOnlyList<KeyValuePair<string, string>>? uiOptions, MpvCustomConfig? custom)
     {
-        // Nothing is said about config here: libmpv already defaults to config=no, so no mpv.conf,
-        // input.conf or ~~/ path from any mpv installation is in play. Everything below, plus the
-        // settings page's own options, is the whole of what this player is configured with.
-
         // Snapshot once: settings may change while a session starts. Standalone must never
         // call the provider, not even to discover that the shell has no usable surface.
         var pipeline = settings.Pipeline;
         var surface = SelectSurface(pipeline, surfaceProvider);
+
+        // 先写普通设置，再读用户文件，最后收口窗口、认证和播放控制。不能在读完后重放普通设置。
+        var contract = LibMpvPipelinePolicy.Build(pipeline, request.PlayerOptions, surface?.Size ?? default);
+        foreach (var option in contract.Where(option => !option.Required || custom is not null && option.Name == "gpu-api"))
+            Set(context, option.Name, option.Value);
+        if (custom is not null)
+        {
+            var loaded = LibMpvNative.mpv_load_config_file(context, custom.FilePath);
+            if (loaded < 0) throw new InvalidOperationException($"自定义 mpv.conf 读取失败：{Describe(loaded)}");
+            // initialize 前不能读属性。保留配置里的 API/context，不用不可读的值重写它；
+            // D3D11 的 window/no 契约仍写入，Vulkan/OpenGL 不使用这两项。
+            contract = [.. LibMpvPipelinePolicy.Build(pipeline, [])
+                .Where(option => option.Name is not ("gpu-api" or "gpu-context"))];
+            Log.Info(Category, $"已读取自定义 mpv.conf：{custom.SourcePath}");
+        }
+
+        Set(context, "config", "no");
+        Set(context, "load-scripts", "no");
+        Set(context, "log-file", "");
+        Set(context, "input-ipc-server", "");
+        Set(context, "save-watch-history", "no");
 
         // youtube-dl 钩子整个停掉。这里的媒体 URL 只有两种形状——Emby 的直连流和本机文件——ytdl 对
         // 它们没有任何用处，只有代价：每次起播先让 [generic] 提取器去抓一遍网页（两秒的延迟），而且
@@ -301,9 +324,8 @@ public sealed class LibMpvBackend(
         // Ordinary options keep their order; pipeline-critical options are filtered and pinned
         // AFTER them, so even the default gpu-api=vulkan cannot replace D3D11. Required failures
         // abort before initialize/loadfile instead of falling back to a different presentation path.
-        var contract = LibMpvPipelinePolicy.Build(pipeline, request.PlayerOptions, surface?.Size ?? default);
         var pipelineOptions = new List<KeyValuePair<string, string>>(contract.Count);
-        foreach (var option in contract)
+        foreach (var option in contract.Where(option => option.Required))
         {
             pipelineOptions.Add(new(option.Name, option.Value));
 
@@ -312,8 +334,15 @@ public sealed class LibMpvBackend(
             if (error < 0) Log.Warn(Category, $"设置 mpv 选项 {option.Name} 失败：{Describe(error)}");
         }
 
+        var pinnedApi = "";
+        foreach (var option in contract)
+        {
+            if (option.Name == "gpu-api") pinnedApi = option.Value;
+        }
+
         Log.Info(Category, surface is null
-            ? "独立播放：mpv D3D11 原生 window，d3d11-exclusive-fs=no（无边框窗口化全屏，切换顺滑）；客户端不介入几何"
+            ? $"独立播放：mpv 原生 window（无边框窗口化全屏，切换顺滑），图形接口 "
+                + $"{(custom is not null ? "跟随自定义 mpv.conf" : pinnedApi.Length > 0 ? pinnedApi : "自动挑选（Windows 上是 Direct3D 11）")}；客户端不介入几何"
             : "集成播放：D3D11 composition，独占全屏关闭，画面由宿主合成");
         return (surface, pipelineOptions);
     }
@@ -326,16 +355,21 @@ public sealed class LibMpvBackend(
     private static string FormatSeconds(double value) =>
         Math.Max(0, value).ToString("0.###", CultureInfo.InvariantCulture);
 
-    /// <summary>Only initialization invariants enter the signature; film-specific values are reset on swap.</summary>
+    /// <summary>
+    /// Only initialization invariants enter the signature; film-specific values are reset on swap.
+    /// 独占管线的 gpu-api/gpu-context 从票里的选项来（设置页「图形接口」），所以这里把整份 PlayerOptions
+    /// 交给契约去推 —— 改了图形接口设置，签名就变，换片走重启而不是沿用旧 API（gpu-api 在 initialize
+    /// 之后改不动）。
+    /// </summary>
     internal static PlaybackLaunchSignature Signature(MpvSettings settings, PlaybackSettings playback,
         PlaybackRequest request, IReadOnlyList<KeyValuePair<string, string>> uiOptions) => new(
             settings.Pipeline,
-            [.. LibMpvPipelinePolicy.Build(settings.Pipeline, []).Where(option => option.Required)
+            [.. LibMpvPipelinePolicy.Build(settings.Pipeline, request.PlayerOptions).Where(option => option.Required)
                 .Select(option => new KeyValuePair<string, string>(option.Name, option.Value))],
             [.. uiOptions],
             settings.Pipeline == VideoPipelineKind.Standalone ? [.. MpvSeekKeys.Bindings(playback)] : [],
             Baseline(request.PlayerOptions, request.ShaderOptionCount))
-        { Backend = settings.Backend };
+        { Backend = settings.Backend, UsesCustomConfig = MpvCustomConfig.IsAvailable(settings) && settings.CustomConfigEnabled };
 
     internal static IReadOnlyList<int> UnusedEvents { get; } =
     [
@@ -367,9 +401,9 @@ public sealed class LibMpvBackend(
     /// 票里那份选项表去掉末尾那条着色器链之后的基线。链有多少项是票自己带着的
     /// （<see cref="PlaybackRequest.ShaderOptionCount"/>），所以这里不用去猜是哪一档。
     /// <para>
-    /// 再摘掉 <see cref="InlineSwitch.PerFileSignatureNames"/> 上的逐片选项（今天只有截图模板）：它带着
-    /// 影片标题，逐片都不同，是换片时按新票重写的运行期选项（见 <c>InlineSwitch.PerFile</c>），不描述
-    /// 「这次启动的配置」—— 留在基线里，集名不同的常规换集会在签名这一步白丢掉快路。
+    /// 截图模板曾经是这条基线里唯一的逐片选项（模板里带着影片标题，逐集不同），2026-10-11 起模板是常量、
+    /// 片名由 mpv 在截图时自己展开（<see cref="Mpv.MpvBaseline.ScreenshotTemplate"/>），于是它回到基线，
+    /// 「从基线里摘逐片选项」的名单整个退役。
     /// </para>
     /// internal static：换片快路的签名只认基线这一节，测试看得见。
     /// </summary>
@@ -378,11 +412,7 @@ public sealed class LibMpvBackend(
         int chainOptions)
     {
         var keep = Math.Max(0, options.Count - Math.Max(0, chainOptions));
-        var baseline = keep == options.Count ? options : [.. options.Take(keep)];
-
-        return baseline.Any(option => InlineSwitch.PerFileSignatureNames.Contains(option.Key))
-            ? [.. baseline.Where(option => !InlineSwitch.PerFileSignatureNames.Contains(option.Key))]
-            : baseline;
+        return keep == options.Count ? options : [.. options.Take(keep)];
     }
 
     /// <summary>Option errors are logged, not fatal — a bad shader path must not stop the film.</summary>
@@ -460,6 +490,7 @@ internal sealed class LibMpvHandle(
     PlaybackLaunchSignature? signature,
     Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages
 {
+    internal MpvCustomConfig? CustomConfig { get; init; }
     private const string Category = "mpv";
     private const int ClientMessageMaxArgs = 32;
 
@@ -1418,7 +1449,11 @@ internal sealed class LibMpvHandle(
     }
 
     /// <summary>mpv_terminate_destroy is only safe to call once, after the event thread exits.</summary>
-    private void Destroy() => _apiGate.Destroy(() => LibMpvNative.mpv_terminate_destroy(context));
+    private void Destroy() => _apiGate.Destroy(() =>
+    {
+        try { LibMpvNative.mpv_terminate_destroy(context); }
+        finally { CustomConfig?.Dispose(); }
+    });
 
     private void JoinWorker(TimeSpan timeout)
     {

@@ -21,11 +21,20 @@ internal static class LibMpvPipelinePolicy
     /// In particular, never even send wid or composition-size in the standalone pipeline.
     /// </summary>
     /// <summary>
-    /// 内置播放器两条管线实际锁定的渲染后端与图形接口——管线契约在设置之后强制写入，
-    /// 设置页对内置后端不提供这两项（只读显示这里的事实），兼容性检查也按这里的值问。
+    /// 内置播放器实际锁定的渲染后端，与集成管线锁定的图形接口——管线契约在设置之后强制写入。
+    /// 集成管线的两项设置页都不提供（只读显示这里的事实），兼容性检查也按这里的值问；独占管线的
+    /// 图形接口 2026-10-11 起归设置页「图形接口」（见 <see cref="Build"/>），渲染器仍归这里。
     /// </summary>
     internal const string ForcedRenderer = "gpu-next";
+
+    /// <summary>集成管线钉死的图形接口。合成交换链只存在于 D3D11 路径，没有可选项。</summary>
     internal const string ForcedApi = "d3d11";
+
+    /// <summary>
+    /// mpv 在 Windows 上的 Vulkan 上下文名。fork 二进制里编有 <c>winvk</c> 与
+    /// <c>VK_KHR_win32_surface</c>，加载器 <c>vulkan-1.dll</c> 本来就随包分发（libmpv 的静态依赖）。
+    /// </summary>
+    internal const string VulkanContext = "winvk";
 
     internal static IReadOnlyList<LibMpvPipelineOption> Build(
         VideoPipelineKind pipeline,
@@ -42,20 +51,42 @@ internal static class LibMpvPipelinePolicy
         // These names/values are verified against the bundled fork, not upstream's "flipping".
         // A single renderer (no fallback list) prevents quietly switching to a different pipeline.
         options.Add(new("vo", ForcedRenderer, Required: true));
-        options.Add(new("gpu-api", ForcedApi, Required: true));
-        options.Add(new("gpu-context", ForcedApi, Required: true));
-        options.Add(new("d3d11-output-mode", integrated ? "composition" : "window", Required: true));
-        // 两条管线都 **no**（参考项目 dyphire/mpv-config：`d3d11-exclusive-fs` 那行是注释掉的 ——
-        // 也就是关，mpv 出厂就是关，而 `d3d11-flip` 那行同样注释着，翻转模型「性能最好」的默认因此留着）。
-        //
-        // 独占模式此前是 `yes`，正是它让「独占模式下切全屏和窗口化」卡顿、闪烁、画面像倒退一下、慢半拍
-        // 才铺满（2026-09-20 用户报）：exclusive-fs=yes 会在进/退全屏那一刻向 DXGI 申请独占全屏，交换链
-        // 重建、显示模式切换，而这恰恰是别的播放器（以及这份参考配置）为了切换顺滑都不开的东西。关掉之后
-        // 走的是无边框窗口化全屏（DWM 合成、翻转模型），切换像普通播放器一样干净；代价只是放弃「独占全屏」
-        // 那点极致性能 —— 对局域网放电影几乎无感。集成模式本来就是 `no`（画面合成进 XAML 树，压根没有可独占
-        // 的顶层交换链），这一改把两条并到同一个值上。仍显式钉死而不省略：mpv 的默认是 no 不代表可以不写，
-        // 哪天默认变了得由这里说了算（本项目「不继承没钉住的默认」）。
-        options.Add(new("d3d11-exclusive-fs", "no", Required: true));
+        if (integrated)
+        {
+            // 集成模式的画面 = fork 的 D3D11 合成交换链（display-swapchain）挂进 WinUI 的 SpriteVisual；
+            // Vulkan 上下文产不出这张交换链，图形接口不是设置，是这张图的物理前提。
+            options.Add(new("gpu-api", ForcedApi, Required: true));
+            options.Add(new("gpu-context", ForcedApi, Required: true));
+            options.Add(new("d3d11-output-mode", "composition", Required: true));
+            // 独占全屏永远关（历史与理由见下面独占分支的同名项；集成没有可独占的顶层交换链，
+            // 这里钉死只为「不继承没钉住的默认」）。
+            options.Add(new("d3d11-exclusive-fs", "no", Required: true));
+        }
+        else
+        {
+            // 独占模式（2026-10-11 用户令「不再强制使用 D3D11」）：mpv 自建顶层窗口，不依赖合成交换链，
+            // 图形接口归设置页「图形接口」（默认 vulkan——ArtCNN 的 compute 链在 D3D11 上实测慢五倍，
+            // artifacts/shader-probe/gpu-findings.md）。设置值随 PlayerOptions 一起来（MpvOutputOptions 写的），
+            // 这里取最后一个按值钉契约：设置页仍是唯一写入方，杂音照旧剥掉，空白 = 自动（Windows 上挑 d3d11）。
+            var api = StandaloneApi(playerOptions);
+            if (api.Length > 0) options.Add(new("gpu-api", api, Required: true));
+            if (api == "vulkan") options.Add(new("gpu-context", VulkanContext, Required: true));
+            if (api == "d3d11") options.Add(new("gpu-context", ForcedApi, Required: true));
+            // d3d11 输出模式只在 d3d11 路径上有意义（空 = 自动，Windows 上挑的就是 d3d11）；
+            // vulkan/opengl 下是死字母，不钉，免得契约读起来像还管着一条已经不走的路。
+            if (api is "" or "d3d11")
+            {
+                options.Add(new("d3d11-output-mode", "window", Required: true));
+                // exclusive-fs **no**（参考项目 dyphire/mpv-config：那行是注释掉的——也就是关，
+                // `d3d11-flip` 那行同样注释着，翻转模型「性能最好」的默认因此留着）。独占此前是 yes，
+                // 正是它让「独占模式下切全屏和窗口化」卡顿、闪烁、画面像倒退一下、慢半拍才铺满
+                // （2026-09-20 用户报）：yes 会在进/退全屏那一刻向 DXGI 申请独占全屏，交换链重建、
+                // 显示模式切换。关掉之后走 DWM 合成的无边框窗口化全屏，切换像普通播放器一样干净；
+                // 代价只是放弃「独占全屏」那点极致性能 —— 对局域网放电影几乎无感。仍显式钉死而不省略：
+                // mpv 出厂默认是 no 不代表可以不写，哪天默认变了得由这里说了算（本项目「不继承没钉住的默认」）。
+                options.Add(new("d3d11-exclusive-fs", "no", Required: true));
+            }
+        }
         // 集成模式必须 immediate：合成交换链要在文件加载前就存在，宿主才能把它接进 XAML 面板
         // （见 LibMpvBackend 里合成附加的第一遍，否则面板一直黑）。
         //
@@ -100,6 +131,23 @@ internal static class LibMpvPipelinePolicy
         ];
         return owned.Any(option => key.Equals(option, StringComparison.OrdinalIgnoreCase)
             || key.StartsWith(option + "-", StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// 独占管线的图形接口：PlayerOptions 里最后一个 <c>gpu-api</c> 值（MpvOutputOptions 从设置页写入，
+    /// 设置模型已把认不得的值归一成空串）。空串 = 自动，mpv 在 Windows 上挑 d3d11。
+    /// </summary>
+    private static string StandaloneApi(IReadOnlyList<KeyValuePair<string, string>> playerOptions)
+    {
+        var value = "";
+        foreach (var (name, item) in playerOptions)
+        {
+            if (name.Trim().TrimStart('-').Equals("gpu-api", StringComparison.OrdinalIgnoreCase))
+                value = item;
+        }
+
+        value = value.Trim().ToLowerInvariant();
+        return value is "d3d11" or "vulkan" or "opengl" ? value : "";
     }
 }
 

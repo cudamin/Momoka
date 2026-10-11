@@ -44,10 +44,11 @@ public static class MpvRenderCheck
     /// naming ArtCNN here.
     /// </param>
     /// <param name="pipelineOwned">
-    /// True when the renderer and API were decided by the player's own pipeline contract (内置播放器) rather
-    /// than by the settings page. The renderer-mismatch problems are then about values nobody chose and are
-    /// dropped, and the compute-pass advice names what a user of the fixed pipeline can actually do instead
-    /// of pointing at a 图形接口 setting that does not apply.
+    /// True when the renderer and API were decided by the player's own pipeline contract (内置播放器的
+    /// 集成管线；独占管线的图形接口 2026-10-11 起归设置页，走 false 的口吻) rather than by the settings
+    /// page. The renderer-mismatch problems are then about values nobody chose and are dropped, and the
+    /// compute-pass advice names what a user of the fixed pipeline can actually do instead of pointing at a
+    /// 图形接口 setting that does not apply.
     /// </param>
     public static IReadOnlyList<string> Problems(
         string? renderer,
@@ -87,9 +88,10 @@ public static class MpvRenderCheck
         if (compute > 0 && (api.Length == 0 || api == "d3d11"))
         {
             problems.Add(pipelineOwned
-                ? $"内置播放器的管线固定使用 Direct3D 11，而这条链有 {compute} 个 compute pass："
+                ? $"内置播放器的集成管线固定使用 Direct3D 11，而这条链有 {compute} 个 compute pass："
                     + "本机实测同一条链在 D3D11 上只有 8.7 fps、Vulkan 上 45 fps，24fps 的片子可能跟不上——"
-                    + "内置管线改不了图形接口，卡顿时请降低显卡档位、关闭着色器，或改用外部 mpv（图形接口设为 Vulkan）"
+                    + "集成管线改不了图形接口，卡顿时请降低显卡档位、关闭着色器，或换到独占模式播放"
+                    + "（图形接口跟随设置，默认 Vulkan）"
                 : $"图形接口是 {(api.Length == 0 ? "自动挑选（Windows 上就是 Direct3D 11）" : "Direct3D 11")}，"
                     + $"而这条链有 {compute} 个 compute pass：本机实测同一条链在 D3D11 上只有 8.7 fps、Vulkan 上 45 fps，"
                     + $"24fps 的片子会跟不上（把图形接口换成 {PreferredApi}）");

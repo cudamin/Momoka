@@ -80,14 +80,14 @@ public sealed partial class SettingsViewModel : PageViewModel
 {
     private static readonly (string Label, MpvBackendKind Value)[] Backends =
     [
-        ("内置 libmpv（窗口内播放）", MpvBackendKind.BuiltInLibMpv),
+        ("内置播放器（libmpv）", MpvBackendKind.BuiltInLibMpv),
         ("外部 mpv.exe（独立窗口）", MpvBackendKind.ExternalMpv)
     ];
 
     private static readonly (string Label, VideoPipelineKind Value)[] Pipelines =
     [
-        ("集成模式（与界面混排）", VideoPipelineKind.Integrated),
-        ("独占模式（mpv 自管交换链）", VideoPipelineKind.Standalone)
+        ("集成模式（在主窗口播放）", VideoPipelineKind.Integrated),
+        ("独占模式（单独的视频窗口）", VideoPipelineKind.Standalone)
     ];
 
     private static readonly (string Label, SkipSectionMode Value)[] SkipModes =
@@ -130,8 +130,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>「把 截图保存目录 推给正在播的那部」，见 <see cref="Attach"/> 的 <c>pushScreenshotDirectory</c>。</summary>
     private Func<string, Task>? _pushScreenshotDirectory;
 
+    /// <summary>「把 截图格式与画质 推给正在播的那部」，见 <see cref="Attach"/> 的 <c>pushScreenshotOptions</c>。</summary>
+    private Func<Task>? _pushScreenshotOptions;
+
     /// <summary>
-    /// 「关于」卡上那行「截图目录」，握着好让「播放器」卡上的目录一改它就当场跟上（同 <see cref="HomeRows"/>
+    /// 「关于」卡上那行「截图目录」，握着好让「播放行为」卡上的目录一改它就当场跟上（同 <see cref="HomeRows"/>
     /// 那样握着一行的理由）。只在 <see cref="AboutCard"/> 建出来时有值；没有「关于」卡（测试路径）就是 null，
     /// 改目录那一头 null 检查过。
     /// </summary>
@@ -170,21 +173,33 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>
     /// 照账号权限造一份左栏分组表。
     /// </summary>
+    /// <remarks>
+    /// 「Momoka」组里，服务器、诊断两张内嵌页不再挂在名单末尾，而是插在 MoviePilot 与 关于 中间
+    /// （用户令 2026-10-11「调整左侧选项排序」：主页 界面 播放器 播放行为 视频输出 音频输出 字幕
+    /// 快捷键 MoviePilot 服务器 诊断 关于）。关于仍是最后一张卡，所以落点就是「最后一张卡前面」。
+    /// </remarks>
     private static List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration)
     {
-        var groups = new List<SettingsCategoryGroup> { new("Momoka", [.. CardCategories, "服务器", "诊断"]) };
+        var groups = new List<SettingsCategoryGroup> { new("Momoka", SidebarCategories()) };
         if (serverAdministration) groups.Add(new("EmbyServer", ServerAdministrationCategories));
         return groups;
     }
 
+    /// <summary>
+    /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，服务器、诊断两张内嵌页插在最后一张卡（关于）
+    /// 前面 —— 也就是 MoviePilot 与 关于 中间（用户令 2026-10-11 的次序，见 <see cref="BuildCategoryGroups"/>）。
+    /// </summary>
+    private static IReadOnlyList<string> SidebarCategories() =>
+        [.. CardCategories[..^1], "服务器", "诊断", CardCategories[^1]];
+
     /// <summary>The cards, in the order they appear in the left-hand list.</summary>
     /// <remarks>
-    /// MoviePilot sits between 界面 and 快捷键 — near the end, because it is an optional second service rather
-    /// than part of the app's own behaviour, and not last, because 快捷键 and 关于 are the two entries people
-    /// scroll to the bottom for.
+    /// 用户令 2026-10-11「调整左侧选项排序」：主页与界面领队（进设置先收拾界面本身），播放器、播放行为、
+    /// 视频输出、音频输出、字幕这五张播放相关的卡跟着，然后是快捷键；MoviePilot 在快捷键之后、
+    /// 「服务器／诊断」两张内嵌页之前 —— 它仍是可选的第二服务，不是本程序自己的行为。
     /// </remarks>
     private static readonly string[] CardCategories =
-        ["播放器", "播放行为", "字幕", "视频输出", "音频输出", "主页", "界面", "MoviePilot", "快捷键", "关于"];
+        ["主页", "界面", "播放器", "播放行为", "视频输出", "音频输出", "字幕", "快捷键", "MoviePilot", "关于"];
 
     /// <summary>
     /// 需求 2 的后半句：「诊断和服务器移动到设置里」，加上需求 8 的 Emby 网页控制台. Entries in the same list
@@ -240,7 +255,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// window's picker shows and what <c>SettingsPage.Select</c> answers 「这一页有这一项吗」 from.
     /// <see cref="ApplyServerAdministration"/> takes the same five names out of it as out of the groups.
     /// </summary>
-    public ObservableCollection<string> Categories { get; } = [.. CardCategories, .. HostedCategories];
+    public ObservableCollection<string> Categories { get; } =
+        [.. SidebarCategories(), .. ServerAdministrationCategories];
 
     public ObservableCollection<SettingSection> Sections { get; } = [];
 
@@ -248,7 +264,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ShowsHosted))]
     [NotifyPropertyChangedFor(nameof(CardsVisibility))]
     [NotifyPropertyChangedFor(nameof(HostedVisibility))]
-    public partial string SelectedCategory { get; set; } = "播放器";
+    public partial string SelectedCategory { get; set; } = CardCategories[0];
 
     /// <summary>
     /// Whether the selected entry is one of the two pages rather than one of the cards. The page watches
@@ -262,8 +278,9 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// Where the page goes when it is opened without a category, or with one it does not have. Not a
-    /// literal 「播放器」 in three places: the first card is what this page has always opened on, and the
-    /// day its order changes that should follow.
+    /// literal 「主页」 in three places: the first card is what this page has always opened on, and the
+    /// day its order changes that should follow.（2026-10-11 用户令「调整左侧选项排序」后，第一张卡从
+    /// 播放器换成了主页 —— 没有指名分类的打开就落在主页上。）
     /// </summary>
     internal static string FirstCardCategory => CardCategories[0];
 
@@ -325,6 +342,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <see cref="PlaybackService.ApplyScreenshotDirectoryAsync"/> arrives, nothing else of the player does,
     /// and nothing is playing means nothing happens.
     /// </param>
+    /// <param name="pushScreenshotOptions">
+    /// 「把 截图格式与画质 推给正在播的那部片子」, the same seam one more time:
+    /// <see cref="PlaybackService.ApplyScreenshotOptionsAsync"/> arrives — it reads the settings itself, so
+    /// the rows only have to say 「推一遍」. Nothing playing means nothing happens.
+    /// </param>
     internal void Attach(
         ISettingsService settings,
         ShaderStaging shaders,
@@ -334,6 +356,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         AudioDeviceCatalogue audioDevices,
         Func<Task> pushSubtitleStyle,
         Func<string, Task> pushScreenshotDirectory,
+        Func<Task> pushScreenshotOptions,
         MoviePilotService moviePilot,
         MoviePilotCredentials moviePilotCredentials,
         IServerCapabilities capabilities)
@@ -347,6 +370,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _audioDevices = audioDevices;
         _pushSubtitleStyle = pushSubtitleStyle;
         _pushScreenshotDirectory = pushScreenshotDirectory;
+        _pushScreenshotOptions = pushScreenshotOptions;
         _moviePilot = moviePilot;
         _moviePilotCredentials = moviePilotCredentials;
     }
@@ -444,18 +468,24 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 才求值，这里晚了才是错的。恢复默认那趟重走这里，同一句话把它拨回新文档的样子。
         SettingRow.NotesHidden = Settings.Ui.CompactMode;
 
+        // 建卡次序照左栏那份（CardCategories，用户令 2026-10-11 排的序），好让分类走查、Cards 分组这些
+        // 按 Sections 次序读数的地方与屏上的次序是同一份。同一分类的多张分区卡连着排：播放行为分类三张
+        // （播放行为 / 资源筛选 / 截图），视频输出分类三张（基础输出 / HDR / 画质与着色器）。
         Sections.Clear();
+        Sections.Add(HomeCard());
+        Sections.Add(InterfaceCard());
         Sections.Add(PlayerCard());
+        if (MpvCustomConfig.IsAvailable(Settings.Mpv)) Sections.Add(CustomMpvConfigCard());
         Sections.Add(PlaybackCard());
-        Sections.Add(SubtitleCard());
+        Sections.Add(ResourceFilterCard());
+        Sections.Add(ScreenshotCard());
         Sections.Add(VideoCard());
         Sections.Add(HdrCard());
         Sections.Add(ShaderCard());
         Sections.Add(AudioCard());
-        Sections.Add(HomeCard());
-        Sections.Add(InterfaceCard());
-        Sections.Add(MoviePilotCard());
+        Sections.Add(SubtitleCard());
         Sections.Add(ShortcutsCard());
+        Sections.Add(MoviePilotCard());
         Sections.Add(AboutCard());
 
         ShowCategory(SelectedCategory);
@@ -606,38 +636,151 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     // ── Cards ────────────────────────────────────────────────────────────────────────────────────────
 
-    private SettingSection PlayerCard() =>
-        new("播放器", "播放器", "用程序里内置的播放器播，还是调起独立的 mpv.exe 来播。",
-        [
+    // 2026-10-11 一天数改：先「把播放器移到视频输出里」，再「移回侧边栏」，然后「把渲染管线移到视频输出、
+    // 播放器卡分区」，再「两个功能合在一起，播放后端为内置时隐藏外置相关」—— 外置播放器分区并回播放器卡，
+    // 路径与 IPC 两行只有外部后端才构造（重建不写回偏好，切回外部后端恢复原值）。渲染管线行归视频输出
+    // 「基础输出」卡 —— 与图形接口的显隐联动随行过去，切管线在那一行自己的 after 里重建它所在的卡（那次
+    // 重建从此发生在行自己的卡上，探针钉着这条路）；当日早些时候自成分区卡的截图，随「截图分区移到播放
+    // 行为里」搬去了播放行为分类。左栏排序同日重排，播放器不再是第一张卡（见 CardCategories）。
+    private SettingSection PlayerCard()
+    {
+        var rows = new List<SettingRow>
+        {
             Pick("播放后端", null, Backends, () => Settings.Mpv.Backend, value => Settings.Mpv.Backend = value,
-                EqualityComparer<MpvBackendKind>.Default, after: RefreshVideoBackend),
-
-            Choice("渲染管线", Pipelines, () => Settings.Mpv.Pipeline, value => Settings.Mpv.Pipeline = value,
-                "集成模式把视频与 WinUI 控件混排；独占模式固定使用 D3D11，由 mpv 自建窗口、自管交换链，"
-                    + "视频不经过 WinUI 合成器，屏幕控件由窗里装箱的 uosc 提供（进度条、暂停、音量、倍速、"
-                    + "音轨字幕菜单、上下集；F 全屏、空格暂停、Q 停止）。独占模式播放时主窗口留在原页不动，"
-                    + "可以一边挂着片子一边继续翻媒体库，再点别的片子直接换成新点的这部；关掉视频窗就是"
-                    + "停止播放。只对内置 libmpv 有效，下一次播放生效。"),
-
+                EqualityComparer<MpvBackendKind>.Default, after: RefreshPlayerBackend)
+        };
+        if (Settings.Mpv.Backend == MpvBackendKind.ExternalMpv)
+        {
             // 认证只经过核验了服务端进程身份的管道。关闭进度不关闭这个启动必需通道；失败就停止，
             // 不退回命令行或临时明文文件。它仍然信任所选程序和同一 Windows 用户下的代码。
-            PathBox("mpv.exe 路径", "mpv.exe 路径", () => Settings.Mpv.ExecutablePath, value => Settings.Mpv.ExecutablePath = value,
+            rows.Add(PathBox("mpv.exe 路径", "mpv.exe 路径", () => Settings.Mpv.ExecutablePath, value => Settings.Mpv.ExecutablePath = value,
                 "只有「外部 mpv.exe」后端需要它。访问令牌通过核验进程身份的管道传递，不放进命令行或临时文件；"
-                    + "无法建立安全通道就停止起播。请只选择可信的 mpv.exe，同一 Windows 用户下的恶意程序仍可能窃取凭据。"),
+                    + "无法建立安全通道就停止起播。请只选择可信的 mpv.exe，同一 Windows 用户下的恶意程序仍可能窃取凭据。"));
 
-            Toggle("启用 IPC 进度通道", "关掉后不读取或上报进度，也不提供客户端控制；安全起播和退出仍需管道", () => Settings.Mpv.EnableIpc, value => Settings.Mpv.EnableIpc = value),
+            rows.Add(Toggle("启用 IPC 进度通道", "关掉后不读取或上报进度，也不提供客户端控制；安全起播和退出仍需管道", () => Settings.Mpv.EnableIpc, value => Settings.Mpv.EnableIpc = value));
+        }
+        return new SettingSection("播放器", "播放器", "用程序里内置的播放器播，还是调起独立的 mpv.exe 来播。", rows);
+    }
 
+    /// <summary>
+    /// 播放后端那一行的 after：先重建这一行自己住的播放器卡（外置两行随值进出，与渲染管线行重建自己那
+    /// 张卡同一条路），再走视频卡与自定义 mpv.conf 的联动。
+    /// </summary>
+    private void RefreshPlayerBackend()
+    {
+        var index = Sections.ToList().FindIndex(section => section.Title == "播放器");
+        if (index >= 0) Sections[index] = PlayerCard();
+        RefreshVideoBackend();
+    }
+
+    /// <summary>
+    /// 播放器卡之后的分区卡：仅内置播放器的独占模式可用（外部后端、集成模式都收起，判定在
+    /// Core 的 <see cref="MpvCustomConfig.IsAvailable"/>），下次播放生效。
+    /// </summary>
+    private SettingSection CustomMpvConfigCard()
+    {
+        var rows = new List<SettingRow>
+        {
+            Toggle("启用自定义 mpv.conf", "读取指定文件中的音视频参数，覆盖本程序的常规播放设置；窗口与播放控制仍由 Momoka 管理。",
+                () => Settings.Mpv.CustomConfigEnabled, value => Settings.Mpv.CustomConfigEnabled = value,
+                after: RefreshCustomMpvConfig)
+        };
+        if (Settings.Mpv.CustomConfigEnabled)
+            rows.Add(PathBox("mpv.conf 路径", "选择并粘贴 mpv.conf 的完整路径",
+                () => Settings.Mpv.CustomConfigPath, value => Settings.Mpv.CustomConfigPath = value,
+                "支持带引号的路径。文件内的 ~~/ 指向配置所在目录；不自动载入该目录的 input.conf 和脚本。"));
+        return new SettingSection("播放器", "自定义 mpv.conf", "仅内置播放器的独占模式可用，下次播放生效。", rows);
+    }
+
+    private void RefreshCustomMpvConfig()
+    {
+        var index = Sections.ToList().FindIndex(section => section.Title == "自定义 mpv.conf");
+        if (MpvCustomConfig.IsAvailable(Settings.Mpv))
+        {
+            if (index >= 0) Sections[index] = CustomMpvConfigCard();
+            else Sections.Insert(Sections.ToList().FindIndex(section => section.Title == "播放器") + 1, CustomMpvConfigCard());
+        }
+        else if (index >= 0) Sections.RemoveAt(index);
+        ShowCategory(SelectedCategory);
+    }
+
+    /// <summary>播放行为分类的第三张分区卡（用户令 2026-10-11「截图分区移到播放行为里」；当日早些时候它
+    /// 还是播放器分类在播放器卡之后的分区卡，「参考文档新增自定义选项」令下诞生。同日再令「默认要用png」
+    /// 「开无损后下面的压缩和质量自动隐藏」「PNG（默认）排第一个 jpg第二webp第三，另外两个删掉」与
+    /// 「jpg呢？不用压缩吗？」）。</summary>
+    private SettingSection ScreenshotCard()
+    {
+        var mpv = Settings.Mpv;
+        var rows = new List<SettingRow>
+        {
             // 「在设置中新增截图保存目录」（用户令 2026-09-29）。空 = 装机落点，裁决在 Core 的
             // AppPaths.ResolveScreenshotDirectory。每敲一键提交一次（SettingTextRow 的节奏），所以这里只做
             // 三件不要钱的事：写设置、刷新「关于」卡那行读数、把裁决后的目录推给正在播的那部 ——
             // 建目录不在这一档（会把路径的每个前缀都建成文件夹），它归启动和「关于」卡的「打开」。
-            PathBox("截图保存目录", "例如 D:\\影屏截图", () => Settings.Mpv.ScreenshotDirectory, value =>
+            PathBox("截图保存目录", "例如 D:\\影屏截图", () => mpv.ScreenshotDirectory, value =>
             {
-                Settings.Mpv.ScreenshotDirectory = value;
+                mpv.ScreenshotDirectory = value;
                 AnnounceScreenshotDirectory();
-            }, "播放器「画面」菜单里三档截图存到这儿，文件名是片名加时间码。留空用装机落点（数据目录下的 "
-                + "screenshots 文件夹）；改完当场生效，正播着的那部也从下一张截图起落进新目录")
-        ]);
+            }, "播放器「画面」菜单里三档截图存到这儿，文件名是片名、播放时间和序号。留空用装机落点（数据目录下的 "
+                + "screenshots 文件夹）；改完当场生效，正播着的那部也从下一张截图起落进新目录"),
+
+            // 截图画质是参考 mpv 配置里那组参数（webp 质量 85／压缩 6、jpg 质量 100、不标记色彩空间），默认格式按
+            // 用户令用 png。每一行写完盘就把整组推给正在播的那部（PushScreenshotOptions），不猜哪条变了 ——
+            // 运行中的播放器上「不推」就是「保持我上一分钟发的那条」。范围常量与夹取在 Core 的
+            // MpvBaseline.ScreenshotOptions，滑块只是同一套数字的控件端。
+            Mpv("截图格式", MpvBaseline.ScreenshotFormats, () => mpv.ScreenshotFormat,
+                value => mpv.ScreenshotFormat = value, "screenshot-format",
+                "装机默认 png。选 WebP 出现无损、质量与压缩，选 JPG 出现质量；其余格式用 mpv 自己的默认。",
+                RefreshScreenshotCard),
+            Toggle("色彩空间标记", "把画面的色彩空间写进文件。默认关：关着或格式不支持时 mpv 把画面转成 sRGB 再落盘，"
+                + "HDR 片源的截图因此是 sRGB 图。",
+                () => mpv.ScreenshotTagColorspace, value => mpv.ScreenshotTagColorspace = value,
+                "screenshot-tag-colorspace", PushScreenshotOptions),
+        };
+
+        // 各格式的画质行只在该它们在场的时候在场（用户令「开无损后下面的压缩和质量要是没用了就自动隐藏」，
+        // 同一原则顺着推到格式：不是 WebP，三行整个没用）：换格式或拨无损由各自行的 after 重建这张卡 ——
+        // 与渲染管线行重建基础输出卡同一条机制（那条路径有探针钉着）。
+        if (string.Equals(mpv.ScreenshotFormat, MpvBaseline.ScreenshotOptions.WebpFormat, StringComparison.OrdinalIgnoreCase))
+        {
+            rows.Add(Toggle("WebP 无损", "无损截图文件大得多，画质一点不损；开启时下面两行收起来。",
+                () => mpv.ScreenshotWebpLossless, value => mpv.ScreenshotWebpLossless = value,
+                "screenshot-webp-lossless", RefreshScreenshotCard));
+            if (!mpv.ScreenshotWebpLossless)
+            {
+                rows.Add(Slider("WebP 质量", MpvBaseline.ScreenshotOptions.MinimumQuality, MpvBaseline.ScreenshotOptions.MaximumQuality, 5,
+                    () => mpv.ScreenshotWebpQuality, value => mpv.ScreenshotWebpQuality = (int)value,
+                    "有损 WebP 的质量，越高越接近原画面、文件越大。", "screenshot-webp-quality", PushScreenshotOptions));
+                rows.Add(Slider("WebP 压缩", MpvBaseline.ScreenshotOptions.MinimumCompression, MpvBaseline.ScreenshotOptions.MaximumCompression, 1,
+                    () => mpv.ScreenshotWebpCompression, value => mpv.ScreenshotWebpCompression = (int)value,
+                    "压缩等级，越高编码越慢；有损 WebP 时它也影响画质。", "screenshot-webp-compression", PushScreenshotOptions));
+            }
+        }
+        else if (string.Equals(mpv.ScreenshotFormat, MpvBaseline.ScreenshotOptions.JpegFormat, StringComparison.OrdinalIgnoreCase))
+        {
+            rows.Add(Slider("JPG 质量", MpvBaseline.ScreenshotOptions.MinimumQuality, MpvBaseline.ScreenshotOptions.MaximumQuality, 5,
+                () => mpv.ScreenshotJpegQuality, value => mpv.ScreenshotJpegQuality = (int)value,
+                "JPEG 压缩质量，mpv 自己的默认是 90。", "screenshot-jpeg-quality", PushScreenshotOptions));
+        }
+
+        return new SettingSection("播放行为", "截图",
+            "播放器「画面」菜单里三档截图的落点与画质。改完当场生效：正播着的那部从下一张截图起照新值落盘。",
+            rows);
+    }
+
+    /// <summary>截图格式或无损开关变了，当场重建这张卡：WebP 三行按条件进出场（同渲染管线行重建基础输出卡）。
+    /// 重建之外还要推一遍 —— 换成 WebP 要把三条带值发出去、拨无损要把新状态发出去，运行中的播放器上
+    /// 「不推」就是「保持我上一分钟发的那条」。</summary>
+    private void RefreshScreenshotCard()
+    {
+        var index = Sections.ToList().FindIndex(section => section.Title == "截图");
+        if (index >= 0) Sections[index] = ScreenshotCard();
+        ShowCategory(SelectedCategory);
+        PushScreenshotOptions();
+    }
+
+    /// <summary>截图画质各行共用的「推给正在播的那部」：整组发，没在播就是无事可做。</summary>
+    private void PushScreenshotOptions() => _ = _pushScreenshotOptions?.Invoke();
 
     private SettingSection PlaybackCard()
     {
@@ -690,7 +833,6 @@ public sealed partial class SettingsViewModel : PageViewModel
             Number("续播自动快退（秒）", 0, 120, () => playback.ResumeRewindSeconds, value => playback.ResumeRewindSeconds = value),
             Number("进度上报间隔（秒）", 1, 60, () => playback.ProgressReportIntervalSeconds, value => playback.ProgressReportIntervalSeconds = value),
             Choice("跳过片头片尾", SkipModes, () => playback.SkipSections, value => playback.SkipSections = value),
-
             // 音轨语言优先级, the same drop-down as the 字幕 card's since 2026-09-22（「给音轨新增语言优先级和格式
             // 优先级」——语言这栏跟字幕一样改成勾选下拉）. It was a single-pick up to v9, which could not express
             // 「日语 > 粤语 > 英语」 at all; an empty list is 「跟随服务器默认音轨」. Unlike 字幕, 音轨 keeps 普通话／粤语
@@ -705,8 +847,21 @@ public sealed partial class SettingsViewModel : PageViewModel
             KeywordRules("音轨格式筛选", () => playback.AudioFormatRules, value => playback.AudioFormatRules = value,
                 "语言选出「哪几条是这个语言」之后，再按编码／声道里的词挑一遍：优先＝含这个词的排前头，候补＝排到最后"
                     + "（同语言只剩它时仍会给一条），默认＝不生效。预置 Atmos、TrueHD、DTS-HD、DTS、FLAC、7.1、5.1，"
-                    + "输入框可自定义添加。格式只在同一语言内部作用，不会越过语言优先级。下次播放生效"),
+                    + "输入框可自定义添加。格式只在同一语言内部作用，不会越过语言优先级。下次播放生效")
+        ]);
+    }
 
+    /// <summary>
+    /// 播放行为分类的第二张分区卡（用户令 2026-10-11「播放行为里分三个分区…一个是资源筛选」）：一部片子挂
+    /// 多版本时挑哪一版 —— 媒体源排序与视频文件名筛选从播放行为卡搬过来凑成这一张，行与说明原样照搬。
+    /// 音轨那两行没有跟着来：它们挑的是一部片子<b>里面</b>的轨，不是多版本之间的那一版，归播放行为。
+    /// </summary>
+    private SettingSection ResourceFilterCard()
+    {
+        var playback = Settings.Playback;
+        return new SettingSection("播放行为", "资源筛选",
+            "一部片子有多个版本（多个文件）时挑哪一版：媒体源按什么次序排，默认播的那一版按文件名里的词筛。",
+        [
             // 媒体源排序（2026-09-24）：一个条目挂多版本时详情页媒体源行、播放器版本菜单的次序，也顺带决定
             // 没挑到规则时默认播哪一版。现读设置 —— 下一次打开详情页或下一次起播就认新的值，没有已经摆着的
             // 东西要重排。
@@ -1467,8 +1622,9 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 播放器右键菜单 → 截图 的落点。这一行不是装饰：截图这个功能从前根本没做，理由正是
             // 「--no-config 之下没有 screenshot-directory，文件会落到 exe 旁边而不告诉用户」——
             // 所以「告诉用户落在哪儿」和截图本身是同一件事的两半。2026-09-29 起这个落点跟着设置走
-            // （播放器卡的「截图保存目录」），这一行握在 _screenshotFact 上，那头一改它当场换。
-            _screenshotFact = Fact("截图目录", "播放器右键菜单 → 截图 存到这儿，文件名是片名加时间码",
+            // （「截图保存目录」那一行，2026-10-11 起住播放行为分类的截图分区卡），这一行握在
+            // _screenshotFact 上，那头一改它当场换。
+            _screenshotFact = Fact("截图目录", "播放器右键菜单 → 截图 存到这儿，文件名是片名、播放时间和序号",
                 ScreenshotDirectory(), "打开", OpenScreenshotDirectory);
             rows.Add(_screenshotFact);
         }
@@ -1788,8 +1944,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingNumberRow Number(string label, double minimum, double maximum, Func<int> read, Action<int> write, string? note = null, Action? after = null, string mpvOption = "") =>
         new(label, Annotate(note, mpvOption), minimum, maximum, read(), value => write((int)value), () => read(), Save, after);
 
-    private SettingSliderRow Slider(string label, double minimum, double maximum, double step, Func<double> read, Action<double> write, string? note = null, string mpvOption = "") =>
-        new(label, Annotate(note, mpvOption), minimum, maximum, step, read(), write, Save);
+    /// <summary>
+    /// 一行滑块。<paramref name="after"/> 与 Toggle 行的同名钩子同一形状（写盘之后、有文档之外的后果的那一行
+    /// 专用，2026-10-11 截图画质行加入）：截图质量/压缩拖一下就把整组实时推给正在播的那部。
+    /// </summary>
+    private SettingSliderRow Slider(string label, double minimum, double maximum, double step, Func<double> read, Action<double> write, string? note = null, string mpvOption = "", Action? after = null) =>
+        new(label, Annotate(note, mpvOption), minimum, maximum, step, read(), write, Save, after);
 
     /// <summary>
     /// mpv 单位的滑块（描边大小、阴影共用，2026-09-06「把字号、描边大小，阴影也改成滑块」，取代上一批的

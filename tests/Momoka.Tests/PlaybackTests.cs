@@ -1513,19 +1513,40 @@ internal static class PlaybackTests
                 MpvRenderCheck.Problems("gpu", "d3d11", "auto-safe", artcnn, pipelineOwned: true)
                     .Where(problem => problem.Contains("渲染") || problem.Contains("ravu"))));
 
-            // compute 提醒还在（这是真会发生的卡顿），但建议不再是「换 vulkan」——内置改不了那一项。
+            // compute 提醒还在（这是真会发生的卡顿），但建议不再是「换 vulkan」——集成管线改不了那一项。
             var compute = string.Join("\n", MpvRenderCheck.Problems(
                 LibMpvPipelinePolicy.ForcedRenderer, LibMpvPipelinePolicy.ForcedApi, "auto-safe", artcnn, pipelineOwned: true));
             Assert.Contains("compute pass", compute);
-            Assert.Contains("内置播放器的管线固定使用 Direct3D 11", compute);
+            Assert.Contains("内置播放器的集成管线固定使用 Direct3D 11", compute);
             Assert.DoesNotContain("把图形接口换成", compute);
 
             // 常量与管线契约同源：Build 写出去的 vo/gpu-api 就是这两个名字，两处不许各自漂。
-            var contract = LibMpvPipelinePolicy.Build(VideoPipelineKind.Standalone, []);
+            // 集成管线的契约不读票里的选项（api 没得选），空票就够。
+            var contract = LibMpvPipelinePolicy.Build(VideoPipelineKind.Integrated, []);
             Assert.Equal(LibMpvPipelinePolicy.ForcedRenderer,
                 contract.Single(option => option.Name == "vo").Value);
             Assert.Equal(LibMpvPipelinePolicy.ForcedApi,
                 contract.Single(option => option.Name == "gpu-api").Value);
+        });
+
+        // 独占管线的图形接口 2026-10-11 起归设置页（默认 vulkan）：vulkan 不提醒；d3d11/空按外部口吻提醒
+        // ——那是设置页真能改的地方，「把图形接口换成 vulkan」是可照做的操作，不再有「管线固定、改不了」的死路。
+        Test("运行条件：独占管线的图形接口归设置页，提醒按外部口吻", () =>
+        {
+            var artcnn = ShaderGroupCatalog.Resolve(animated: true, UpscaleTier.Slight, GpuTier.Low);
+
+            Assert.Equal("", string.Join("\n",
+                MpvRenderCheck.Problems("gpu-next", "vulkan", "auto-safe", artcnn)),
+                "默认 Vulkan 不该有任何提醒");
+
+            var d3d11 = string.Join("\n", MpvRenderCheck.Problems("gpu-next", "d3d11", "auto-safe", artcnn));
+            Assert.Contains("compute pass", d3d11);
+            Assert.Contains("把图形接口换成", d3d11);
+            Assert.DoesNotContain("固定使用 Direct3D 11", d3d11, "独占管线的图形接口是设置，不是固定管线");
+
+            var auto = string.Join("\n", MpvRenderCheck.Problems("gpu-next", "", "auto-safe", artcnn));
+            Assert.Contains("compute pass", auto);
+            Assert.Contains("把图形接口换成", auto);
         });
 
         Test("运行条件：带 compute pass 的链撞上 d3d11 要被点出来（2026-09-04 那五倍）", () =>
@@ -1973,16 +1994,45 @@ internal static class PlaybackTests
                 "不核对（null）时照设置原样 —— 外部后端与旧调用走的老路");
         });
 
-        Test("计划：截图有落点、有格式、有片名加时间码的模板", () =>
+        Test("计划：截图有落点，画质随设置走", () =>
         {
             // 截图这个功能从前一条都没有，理由是「--no-config 之下没有 screenshot-directory，文件会落到 exe
-            // 旁边而不告诉用户」。所以这三条一起下发才算把那个理由消掉了 —— 少了落点那一条，症状正是当年那个。
-            var (planner, _) = Planner(@"D:\shots");
+            // 旁边而不告诉用户」。所以这几条一起下发才算把那个理由消掉了 —— 少了落点那一条，症状正是当年那个。
+            // 装机默认格式 png（用户令 2026-10-11「默认要用png」），WebP 三条不随非 WebP 格式发；
+            // 色彩空间标记与格式无关，照发（默认关 = 用户参考预设的取值）。
+            var (planner, settings) = Planner(@"D:\shots");
             var options = Options(planner.Plan(Ticket(), Connection()).PlayerOptions);
 
             Assert.Equal(@"D:\shots", options["screenshot-directory"]);
-            Assert.Equal("png", options["screenshot-format"], "看画质的图不能先过一遍有损压缩");
-            Assert.True(options["screenshot-template"].Contains("%wH"), "模板里要带时间码");
+            Assert.Equal("png", options["screenshot-format"]);
+            Assert.False(options.ContainsKey("screenshot-webp-quality"));
+            Assert.False(options.ContainsKey("screenshot-webp-compression"));
+            Assert.Equal("no", options["screenshot-tag-colorspace"]);
+            Assert.Equal("%{media-title}-%wH.%wM.%wS.%wT-%n", options["screenshot-template"],
+                "模板是常量：片名与非法字符净化交给 mpv 在截图那一刻自己做");
+
+            // 换成 WebP：三条整组出现，质量/压缩取参考预设的 85/6 —— 自定义选项（用户令 2026-10-11）
+            // 的「设置页说的就是发出去的」，下发规则在 MpvBaseline.ScreenshotOptions。
+            settings.Mpv.ScreenshotFormat = "webp";
+            var webp = Options(planner.Plan(Ticket(), Connection()).PlayerOptions);
+            Assert.Equal("webp", webp["screenshot-format"]);
+            Assert.Equal("85", webp["screenshot-webp-quality"]);
+            Assert.Equal("6", webp["screenshot-webp-compression"]);
+
+            // 无损开着三条照发：质量与压缩那一刻被 mpv 自己忽略，但推送端「不推＝保持上一分钟发的那条」，
+            // 少发一条，用户把无损拨回去的下一张截图就带着旧质量落盘。
+            settings.Mpv.ScreenshotWebpLossless = true;
+            var lossless = Options(planner.Plan(Ticket(), Connection()).PlayerOptions);
+            Assert.Equal("yes", lossless["screenshot-webp-lossless"]);
+            Assert.Equal("85", lossless["screenshot-webp-quality"]);
+
+            // 换成 JPG：只多质量一条（装机默认 100 = 参考预设的取值）。
+            settings.Mpv.ScreenshotFormat = "jpg";
+            settings.Mpv.ScreenshotJpegQuality = 95;
+            var jpeg = Options(planner.Plan(Ticket(), Connection()).PlayerOptions);
+            Assert.Equal("jpg", jpeg["screenshot-format"]);
+            Assert.Equal("95", jpeg["screenshot-jpeg-quality"]);
+            Assert.False(jpeg.ContainsKey("screenshot-webp-quality"));
 
             // 没有落点的时候一条都不发：那是测试和命令行那条路，不是屏上那条。
             var (bare, _) = Planner();
@@ -1990,6 +2040,50 @@ internal static class PlaybackTests
             Assert.False(without.ContainsKey("screenshot-directory"));
             Assert.False(without.ContainsKey("screenshot-format"));
             Assert.False(without.ContainsKey("screenshot-template"));
+        });
+
+        Test("截图画质解析：夹取、格式归一、画质行随格式走", () =>
+        {
+            // 手改设置文件能写出的越界值在这里收口（Normalize 存储端是同一条规则、同一套常量）—— 外置
+            // mpv.exe 对超范围的值是拒绝起播，不是忽略。
+            var messy = MpvBaseline.ScreenshotOptions.From(new MpvSettings
+            {
+                ScreenshotFormat = "WEBP",
+                ScreenshotWebpQuality = 200,
+                ScreenshotWebpCompression = 9,
+                ScreenshotJpegQuality = -5,
+            });
+            Assert.Equal("webp", messy.Format, "大小写变体归一回 mpv 的拼写");
+            Assert.Equal(100, messy.WebpQuality, "质量夹回上限");
+            Assert.Equal(6, messy.WebpCompression, "压缩夹回上限");
+            Assert.Equal(0, messy.JpegQuality, "JPG 质量夹回下限");
+            Assert.Equal("png", MpvBaseline.ScreenshotOptions.NormalizeFormat("bmp"),
+                "认不出的格式回装机默认（png，用户令「默认要用png」），不悄悄换成 mpv 出厂的 jpg");
+            Assert.Equal("png", MpvBaseline.ScreenshotOptions.NormalizeFormat("jxl"),
+                "候选删掉的格式（jxl/avif，用户令「另外两个删掉」）从设置里归回 png");
+
+            // WebP：三条整组发。无损开着时质量与压缩照发 —— 推送端「不推＝保持上一分钟发的那条」，
+            // 少发一条，用户把无损拨回去的下一张截图就带着旧质量落盘。
+            var lossless = new MpvBaseline.ScreenshotOptions("webp", true, 85, 6, 100, false);
+            var webpNames = lossless.ToMpvOptions().Select(option => option.Key).ToArray();
+            Assert.Equal(5, webpNames.Length);
+            Assert.Equal("screenshot-webp-lossless", webpNames[1]);
+            Assert.Equal("yes", lossless.ToMpvOptions()[1].Value);
+            Assert.Equal("85", lossless.ToMpvOptions()[2].Value, "无损开着质量照发，mpv 自己忽略它");
+
+            // JPG：只有质量一条（用户令「jpg呢？不用压缩吗？」）。
+            var jpeg = new MpvBaseline.ScreenshotOptions("jpg", false, 85, 6, 95, false);
+            var jpegNames = jpeg.ToMpvOptions().Select(option => option.Key).ToArray();
+            Assert.Equal(3, jpegNames.Length);
+            Assert.Equal("screenshot-jpeg-quality", jpegNames[1]);
+            Assert.Equal("95", jpeg.ToMpvOptions()[1].Value);
+
+            // PNG：只剩格式与标记两条。
+            var png = new MpvBaseline.ScreenshotOptions("png", true, 85, 6, 100, true);
+            var pngNames = png.ToMpvOptions().Select(option => option.Key).ToArray();
+            Assert.Equal(2, pngNames.Length);
+            Assert.Equal("screenshot-tag-colorspace", pngNames[1]);
+            Assert.Equal("yes", png.ToMpvOptions()[1].Value);
         });
 
         Test("计划：截图目录设置压过装机落点，清空回到装机落点", () =>
@@ -2047,30 +2141,19 @@ internal static class PlaybackTests
             Assert.False(without.ContainsKey("sub-fonts-dir"), "测试和命令行那条路没有字体目录就不发");
         });
 
-        Test("截图模板：片名进得去，非法文件名字符进不去", () =>
+        Test("截图模板：常量，片名与净化交给 mpv", () =>
         {
-            // 时间码用 %wH.%wM.%wS 而不是 mpv 现成的 %p：后者是 HH:MM:SS，而冒号在 Windows 文件名里非法。
-            // 末尾那个序号非有不可：mpv 不覆盖已经存在的截图，而只有模板里带序号时它才会另找一个名字 —— 少了它，
-            // 同一帧（暂停时时间码一秒都不走）连截两张，第二张干脆不存，而屏上照旧写「已保存到…」。
-            Assert.Equal("攻壳机动队 %wH.%wM.%wS-%02n", MpvBaseline.ScreenshotTemplate("攻壳机动队"));
+            // 片名不再由 C# 拼进模板（DownloadPlan.Safe 那套随 2026-10-11 的重构退役）：mpv 在截图那一刻
+            // 展开 %{media-title} —— 先取 force-media-title（OSD 同一串字，集名不同的换集自动跟上），
+            // 再落容器元数据、URL；非法文件名字符也是它自己净化（随包内核实测：片名「攻壳/机动队: SAC?2045
+            // 100%纯度」落盘成「攻壳_机动队_ SAC_2045 100%纯度-…」）。这里钉形状，谁动模板谁复审。
+            Assert.Equal("%{media-title}-%wH.%wM.%wS.%wT-%n", MpvBaseline.ScreenshotTemplate);
 
-            // 服务器上的剧名带 : / ? 是常事，而这三个都不许进文件名。走的是「下载到设备」那同一份规矩
-            // （DownloadPlan.Safe），所以这个仓库里只有一个答案说「文件名里能放什么」。
-            var messy = MpvBaseline.ScreenshotTemplate("攻壳/机动队: SAC?2045");
-            foreach (var illegal in new[] { '\\', '/', ':', '*', '?', '"', '<', '>', '|' })
-            {
-                Assert.False(messy.Contains(illegal), $"模板里不许出现 {illegal}");
-            }
-
-            // 百分号得自己再挡一次：Safe() 没理由管它，可 mpv 会把它读成一个自己的格式符。片名里抄来的 %n 要变成
-            // 一个普通的 n，而模板末尾那个序号是我们自己加的 —— 两者不能混。
-            Assert.True(MpvBaseline.ScreenshotTemplate("100%纯度 %n").StartsWith("100纯度 n "),
-                "片名里的百分号不许变成 mpv 的格式符");
-            Assert.True(MpvBaseline.ScreenshotTemplate("100%纯度").StartsWith("100纯度"));
-
-            // 片名一个字都不剩的时候不能落成一个只有时间码的名字，也不能是 mpv 默认那个 mpv-shotNNNN。
-            Assert.Equal("Momoka %wH.%wM.%wS-%02n", MpvBaseline.ScreenshotTemplate("  ..  "));
-            Assert.Equal("Momoka %wH.%wM.%wS-%02n", MpvBaseline.ScreenshotTemplate(null));
+            // 时间码是播放位置（预设 %P 的内容），用点号写而不用 %P 的冒号 —— Windows 文件名不认冒号。
+            Assert.Contains("%wH.%wM.%wS.%wT", MpvBaseline.ScreenshotTemplate);
+            // 序号收尾：mpv 不覆盖已存在的截图，只有模板带序号时才另找空名 —— 暂停时时间码（含毫秒）
+            // 一毫都不走，连截两张要靠它岔开，不然第二张不存而屏上照旧说「已保存到…」。
+            Assert.True(MpvBaseline.ScreenshotTemplate.EndsWith("-%n"));
         });
 
         Test("计划：轨道建议按偏好语言给出默认值", () =>
@@ -2543,8 +2626,10 @@ internal static class PlaybackTests
             Assert.Equal("fruit", options["dither"]);
             Assert.Equal("6", options["dither-size-fruit"]);
             Assert.Equal("full", options["video-output-levels"], "「色彩范围默认使用 PC(0-255)」");
-            Assert.Equal("auto-safe", options["hwdec"],
-                "v7 起硬解出厂就是「自动」：留空等于 mpv 的 no，也就是纯软件解码，那不是谁挑的，是装机时碰巧带着的");
+            Assert.Equal("auto-copy-safe", options["hwdec"],
+                "v7 起硬解出厂就是「自动」（留空等于 mpv 的 no，纯软件解码，那不是谁挑的）；"
+                + "2026-10-11 按解码参考文档换成 auto-copy-safe：复制回内存才保证滤镜与着色器全部生效，"
+                + "无 copy 的原生硬解文档明确不推荐。存量设置不迁移，仍按 v7 那次的规矩");
             Assert.False(options.ContainsKey("profile"), "画质预设出厂是 default，什么都不该传");
         });
 
@@ -5435,6 +5520,15 @@ internal static class PlaybackTests
 
         Test("标记已看补报：这一条正在播时借它那一场的会话号，报完就结账", () =>
             MarkedWatchedWhilePlayingAsync().GetAwaiter().GetResult());
+
+        Test("标记已看补报：标记整季已看时发送最后一集的已看通知，未播出的集让位", () =>
+            MarkedWatchedSeasonReportsLastEpisodeAsync().GetAwaiter().GetResult());
+
+        Test("标记已看补报：标记整部剧已看时发送最后一季的最后一集，特别篇让位", () =>
+            MarkedWatchedSeriesReportsLastEpisodeAsync().GetAwaiter().GetResult());
+
+        Test("标记已看补报：整季查不出可报的集时不发", () =>
+            MarkedWatchedSeasonUnresolvableAsync().GetAwaiter().GetResult());
     }
 
     /// <summary>
@@ -5678,6 +5772,129 @@ internal static class PlaybackTests
         handle.End(100, PlaybackEndReason.Stopped);
         await playing.WaitAsync(cancellation.Token);
         Assert.Equal(1, transport.SentTo("Sessions/Playing/Stopped").Count);
+    }
+
+    /// <summary>
+    /// 用户令 2026-10-11「开启通知接管后，标记整季已看时要发送最后一集的已看通知」。季条目自己没有可靠时长，
+    /// 落点要先换成这一季的最后一集（规矩见 <see cref="PlaybackService.ResolveLastEpisodeAsync"/> 的文档）。
+    /// 名单故意乱序、还混着未播出的一集、一个特别篇和一条没有编号的：挑集的四个条件各钉各的 —— 服务器排好序
+    /// 送上来不是前提，「编号最大的已播出有时长的那一集」是本地挑出来的。
+    /// </summary>
+    private static async Task MarkedWatchedSeasonReportsLastEpisodeAsync()
+    {
+        var (service, session, transport) = PlayingServiceWithTransport(StopReportSettings());
+        using var sessionLifetime = session;
+        transport.Answer("Shows/77/Episodes", """
+            {
+              "Items": [
+                { "Id": "e12", "Name": "第十二集", "Type": "Episode", "IndexNumber": 12, "ParentIndexNumber": 1,
+                  "RunTimeTicks": 14400000000, "PremiereDate": "2026-12-01T00:00:00Z" },
+                { "Id": "e11", "Name": "第十一集", "Type": "Episode", "IndexNumber": 11, "ParentIndexNumber": 1,
+                  "RunTimeTicks": 14400000000, "PremiereDate": "2024-01-01T00:00:00Z" },
+                { "Id": "e5", "Name": "某特别篇", "Type": "Episode", "IndexNumber": 5, "ParentIndexNumber": 0,
+                  "RunTimeTicks": 14400000000, "PremiereDate": "2024-01-01T00:00:00Z" },
+                { "Id": "e0", "Name": "没有编号的一集", "Type": "Episode",
+                  "RunTimeTicks": 14400000000, "PremiereDate": "2024-01-01T00:00:00Z" }
+              ],
+              "TotalRecordCount": 4
+            }
+            """);
+
+        var season = Item("某季", id: "s1", type: EmbyItemType.Season);
+        season.SeriesId = "77";
+
+        Assert.True(await service.ReportMarkedWatchedAsync(season), "开着通知接管、季里查得到已播出的集，该补报出去");
+
+        // 落点那一趟问的是这一季的剧集：剧 id 77、季 id s1。
+        var listed = transport.Only("Shows/77/Episodes");
+        Assert.Contains("SeasonId=s1", listed.Url, "季那一档要按 SeasonId 收窄，不能把整部剧的集都问回来");
+
+        // 报文落 e11：e12 虽然编号最大，但首播日期在未来（服务器上还没播）；特别篇挂第 0 季、e0 连编号都
+        // 没有，都排不到前面。位置按 e11 自己的时长报满。
+        var stopped = transport.SentTo("Sessions/Playing/Stopped");
+        Assert.Equal(1, stopped.Count);
+        using var report = System.Text.Json.JsonDocument.Parse(stopped[0].Body);
+        Assert.Equal("e11", report.RootElement.GetProperty("ItemId").GetString());
+        Assert.Equal(14_400_000_000, report.RootElement.GetProperty("PositionTicks").GetInt64());
+
+        // 没在播那一支先补报开始再补报停止，两趟都指 e11 —— 通知那头要认出的是「这一集播完了」。
+        var start = transport.SentTo("Sessions/Playing")
+            .Single(one => !one.Url.Contains("/Progress", StringComparison.Ordinal)
+                && !one.Url.Contains("/Stopped", StringComparison.Ordinal));
+        using var opening = System.Text.Json.JsonDocument.Parse(start.Body);
+        Assert.Equal("e11", opening.RootElement.GetProperty("ItemId").GetString());
+        Assert.Equal(0, opening.RootElement.GetProperty("PositionTicks").GetInt64());
+    }
+
+    /// <summary>
+    /// 整部剧那一档（用户令 2026-10-11 续：「标记整部剧时发最后一季的最后一集」）：问回来的是全剧的集，
+    /// 按季号、集号挑 —— 特别篇（第 0 季）与第一季都让位，第二季里未播出的最后一集也不顶上。全剧查询
+    /// 不带 <c>SeasonId</c>，这一点也是接口契约的一半。
+    /// </summary>
+    private static async Task MarkedWatchedSeriesReportsLastEpisodeAsync()
+    {
+        var (service, session, transport) = PlayingServiceWithTransport(StopReportSettings());
+        using var sessionLifetime = session;
+        transport.Answer("Shows/77/Episodes", """
+            {
+              "Items": [
+                { "Id": "s0e3", "Name": "某特别篇", "Type": "Episode", "IndexNumber": 3, "ParentIndexNumber": 0,
+                  "RunTimeTicks": 14400000000, "PremiereDate": "2024-01-01T00:00:00Z" },
+                { "Id": "e10", "Name": "第一季第十集", "Type": "Episode", "IndexNumber": 10, "ParentIndexNumber": 1,
+                  "RunTimeTicks": 14400000000, "PremiereDate": "2024-01-01T00:00:00Z" },
+                { "Id": "e21", "Name": "第二季第八集", "Type": "Episode", "IndexNumber": 8, "ParentIndexNumber": 2,
+                  "RunTimeTicks": 14400000000, "PremiereDate": "2026-12-01T00:00:00Z" },
+                { "Id": "e20", "Name": "第二季第七集", "Type": "Episode", "IndexNumber": 7, "ParentIndexNumber": 2,
+                  "RunTimeTicks": 14400000000, "PremiereDate": "2024-01-01T00:00:00Z" }
+              ],
+              "TotalRecordCount": 4
+            }
+            """);
+
+        var series = Item("某部剧", id: "77", type: EmbyItemType.Series);
+
+        Assert.True(await service.ReportMarkedWatchedAsync(series), "开着通知接管、剧里查得到已播出的集，该补报出去");
+
+        var listed = transport.Only("Shows/77/Episodes");
+        Assert.DoesNotContain("SeasonId", listed.Url, "全剧查询不收窄到某一行季，不然「最后一季」就不归我们挑了");
+
+        var stopped = transport.SentTo("Sessions/Playing/Stopped");
+        Assert.Equal(1, stopped.Count);
+        using var report = System.Text.Json.JsonDocument.Parse(stopped[0].Body);
+        Assert.Equal("e20", report.RootElement.GetProperty("ItemId").GetString());
+        Assert.Equal(14_400_000_000, report.RootElement.GetProperty("PositionTicks").GetInt64());
+    }
+
+    /// <summary>
+    /// 换不出落点的三档（见 <see cref="PlaybackService.ResolveLastEpisodeAsync"/> 的文档）：季没挂到剧上
+    /// （连问都没得问）、剧集列表问不回来（服务器那一头出岔子）、问回来全集未播出或没时长。三档都是「宁可
+    /// 少发一趟」—— 一个报文都不出去，季条目自己也不顶上。
+    /// </summary>
+    private static async Task MarkedWatchedSeasonUnresolvableAsync()
+    {
+        static EmbyItem Season(string id = "s1", string? seriesId = "77") =>
+            new() { Id = id, Name = "某季", Type = EmbyItemType.Season, SeriesId = seriesId };
+
+        // 名单空：这季一集都没有。
+        var (empty, emptySession, emptyTransport) = PlayingServiceWithTransport(StopReportSettings());
+        using var emptyLifetime = emptySession;
+        emptyTransport.Answer("Shows/77/Episodes", """{ "Items": [], "TotalRecordCount": 0 }""");
+        Assert.False(await empty.ReportMarkedWatchedAsync(Season()), "没有可报的集，不该发");
+        Assert.Equal(0, emptyTransport.SentTo("Sessions/Playing/Stopped").Count);
+
+        // 服务器答不上来：与「时长读不到就不发」同一句话，不换成一个凑出来的落点。
+        var (broken, brokenSession, brokenTransport) = PlayingServiceWithTransport(StopReportSettings());
+        using var brokenLifetime = brokenSession;
+        brokenTransport.Fail("Shows/77/Episodes", System.Net.HttpStatusCode.InternalServerError);
+        Assert.False(await broken.ReportMarkedWatchedAsync(Season()), "剧集列表查取失败，不该发");
+        Assert.Equal(0, brokenTransport.SentTo("Sessions/Playing/Stopped").Count);
+
+        // 季没带所属剧集的 id：第一道门就出不去，一趟请求都不该有。
+        var (orphan, orphanSession, orphanTransport) = PlayingServiceWithTransport(StopReportSettings());
+        using var orphanLifetime = orphanSession;
+        Assert.False(await orphan.ReportMarkedWatchedAsync(Season(seriesId: null)), "挂不到剧上的季找不出最后一集，不该发");
+        Assert.Equal(0, orphanTransport.Count("Shows/77/Episodes"));
+        Assert.Equal(0, orphanTransport.SentTo("Sessions/Playing/Stopped").Count);
     }
 
     /// <summary>
@@ -6753,19 +6970,63 @@ internal static class PlaybackTests
 
     private static void RegisterLibMpvPipeline()
     {
-        Test("mpv 管线：真实规划器的默认 Vulkan 在两条内置管线都不能覆盖 D3D11", () =>
+        Test("mpv 管线：集成管线盖过默认 Vulkan 钉死 D3D11，独占管线跟随设置（2026-10-11 起）", () =>
         {
             var (planner, _) = Planner();
             var request = planner.Plan(Ticket(), Connection());
             Assert.Equal("vulkan", Options(request.PlayerOptions)["gpu-api"]);
-            foreach (var pipeline in new[] { VideoPipelineKind.Standalone, VideoPipelineKind.Integrated })
-            {
-                var plan = LibMpvPipelinePolicy.Build(pipeline, request.PlayerOptions, (1920, 1080));
-                Assert.Equal("d3d11", plan.Single(option => option.Name == "gpu-api").Value);
-                Assert.Equal("d3d11", plan.Single(option => option.Name == "gpu-context").Value);
-                Assert.Equal("gpu-next", plan.Single(option => option.Name == "vo").Value);
-                Assert.Equal("vulkan", Options(request.PlayerOptions)["gpu-api"], "不得修改外部 mpv 共用的请求");
-            }
+
+            // 独占：图形接口归设置页 —— 票里的 vulkan 原样钉出去，配上 winvk 上下文；
+            // d3d11 专属两项不钉（对 vulkan 是死字母）。
+            var standalone = LibMpvPipelinePolicy.Build(VideoPipelineKind.Standalone, request.PlayerOptions, (1920, 1080));
+            Assert.Equal("vulkan", standalone.Single(option => option.Name == "gpu-api").Value);
+            Assert.Equal("winvk", standalone.Single(option => option.Name == "gpu-context").Value);
+            Assert.Equal("gpu-next", standalone.Single(option => option.Name == "vo").Value);
+            Assert.False(standalone.Any(option => option.Name == "d3d11-output-mode"),
+                "vulkan 路径上 d3d11-output-mode 是死字母，不该出现在契约里");
+            Assert.False(standalone.Any(option => option.Name == "d3d11-exclusive-fs"),
+                "vulkan 路径上 d3d11-exclusive-fs 是死字母，不该出现在契约里");
+
+            // 集成：合成交换链只有 D3D11 这条路，票里的 vulkan 被剥掉、契约钉死 d3d11。
+            var integrated = LibMpvPipelinePolicy.Build(VideoPipelineKind.Integrated, request.PlayerOptions, (1920, 1080));
+            Assert.Equal("d3d11", integrated.Single(option => option.Name == "gpu-api").Value);
+            Assert.Equal("d3d11", integrated.Single(option => option.Name == "gpu-context").Value);
+            Assert.Equal("composition", integrated.Single(option => option.Name == "d3d11-output-mode").Value);
+            Assert.Equal("gpu-next", integrated.Single(option => option.Name == "vo").Value);
+            Assert.Equal("vulkan", Options(request.PlayerOptions)["gpu-api"], "不得修改外部 mpv 共用的请求");
+        });
+
+        Test("mpv 管线：独占模式的图形接口按设置值钉契约（vulkan/d3d11/自动/取最后一个）", () =>
+        {
+            // vulkan：api + winvk 上下文。
+            var vulkan = LibMpvPipelinePolicy.Build(VideoPipelineKind.Standalone, [new("gpu-api", "vulkan")]);
+            Assert.Equal("vulkan", vulkan.Single(option => option.Name == "gpu-api").Value);
+            Assert.Equal("winvk", vulkan.Single(option => option.Name == "gpu-context").Value);
+
+            // d3d11：全套照旧 —— api、上下文、window 模式、独占全屏关。
+            var d3d11 = LibMpvPipelinePolicy.Build(VideoPipelineKind.Standalone, [new("gpu-api", "d3d11")]);
+            Assert.Equal("d3d11", d3d11.Single(option => option.Name == "gpu-api").Value);
+            Assert.Equal("d3d11", d3d11.Single(option => option.Name == "gpu-context").Value);
+            Assert.Equal("window", d3d11.Single(option => option.Name == "d3d11-output-mode").Value);
+            Assert.Equal("no", d3d11.Single(option => option.Name == "d3d11-exclusive-fs").Value);
+
+            // 空 = 自动：不钉 api/context（mpv 在 Windows 上挑 d3d11），但 window 模式仍要成立。
+            var auto = LibMpvPipelinePolicy.Build(VideoPipelineKind.Standalone, []);
+            Assert.False(auto.Any(option => option.Name == "gpu-api"), "自动就是不替用户写 api");
+            Assert.False(auto.Any(option => option.Name == "gpu-context"), "自动就是不替用户写上下文");
+            Assert.Equal("window", auto.Single(option => option.Name == "d3d11-output-mode").Value);
+            Assert.Equal("no", auto.Single(option => option.Name == "d3d11-exclusive-fs").Value);
+
+            // 票里出现两次时取最后一个（mpv 自己是 last-wins，契约与它同规）。
+            var lastWins = LibMpvPipelinePolicy.Build(VideoPipelineKind.Standalone,
+                [new("gpu-api", "vulkan"), new("gpu-api", "d3d11")]);
+            Assert.Equal("d3d11", lastWins.Single(option => option.Name == "gpu-api").Value);
+            Assert.Equal("d3d11", lastWins.Single(option => option.Name == "gpu-context").Value);
+
+            // opengl：只钉 api；fork 有没有 WGL 上下文没验证过，上下文留给 mpv 挑，初始化失败会停在一次起播上。
+            var opengl = LibMpvPipelinePolicy.Build(VideoPipelineKind.Standalone, [new("gpu-api", "opengl")]);
+            Assert.Equal("opengl", opengl.Single(option => option.Name == "gpu-api").Value);
+            Assert.False(opengl.Any(option => option.Name == "gpu-context"), "opengl 的上下文让 mpv 自己挑");
         });
 
         Test("mpv 管线：预设、普通重复值、着色器先执行，关键选项最后且全部 fatal", () =>
@@ -6787,7 +7048,9 @@ internal static class PlaybackTests
             // （2026-09-19 实测：yes 出生 960x540 居中、文件一开跳 1280x720，源打不开时那个黑框还一直挂着；
             // no 全程无窗口，能放时以终值尺寸出生）。画面一上来由 LibMpvHandle 改回 yes 把窗口按住。
             // 集成模式仍是 immediate，见下一条断言。
-            Assert.Equal("vo=gpu-next,gpu-api=d3d11,gpu-context=d3d11,d3d11-output-mode=window,d3d11-exclusive-fs=no,force-window=no,input-default-bindings=yes,input-vo-keyboard=yes,input-media-keys=no",
+            // 图形接口 2026-10-11 起归设置页：票里的 gpu-api=vulkan 原样钉出并带上 winvk 上下文；
+            // d3d11 专属两项（output-mode、exclusive-fs）对 vulkan 是死字母，不再钉。
+            Assert.Equal("vo=gpu-next,gpu-api=vulkan,gpu-context=winvk,force-window=no,input-default-bindings=yes,input-vo-keyboard=yes,input-media-keys=no",
                 string.Join(",", plan.Where(option => option.Required).Select(option => $"{option.Name}={option.Value}")));
             var firstRequired = plan.ToList().FindIndex(option => option.Required);
             Assert.True(plan.Skip(firstRequired).All(option => option.Required), "后面不能再有普通选项覆盖管线");

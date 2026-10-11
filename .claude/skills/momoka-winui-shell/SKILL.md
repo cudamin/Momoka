@@ -1,6 +1,6 @@
 ---
 name: "momoka-winui-shell"
-description: "Momoka's WinUI 3 and MVVM architecture: service registration, view-model Attach lifetimes, reusable Core rules, theme roles, and XAML and pointer pitfalls. Use when adding, modifying or reviewing C# or XAML in this project; current policy lives in CLAUDE.md."
+description: "Momoka's WinUI 3 and MVVM architecture: service registration, view-model Attach lifetimes, reusable Core rules, capability-dependent visibility, theme roles, and XAML and pointer pitfalls. Use when adding, modifying or reviewing C# or XAML, or hiding inapplicable settings and feature entries in this project; current policy lives in CLAUDE.md."
 ---
 
 # Momoka — WinUI 3 shell terrain
@@ -56,6 +56,17 @@ For a single operation, a method delegate may express the boundary more clearly 
 The rule — pure UI behaviour may stay there, business capability may not — is in `CLAUDE.md`. **The test is "did business logic leak in", not "is there a binding".** Live examples: `ShellPage.xaml.cs` (the `_trail` / `_forward` breadcrumb stacks, library items built from what the server returned), `PlayerPage.Input.cs` (the three window buttons, which exist only on the player's title bar), `PosterCard.xaml.cs` (the hover layer). The counter-example: page-level busy/notice is *not* a code-behind toggle — it is a derived property on `PageViewModel` with `[NotifyPropertyChangedFor]`.
 
 `Views/ItemCommands.cs` and `ItemCommands.Server.cs` are existing code-behind debt, not a template. They drive card commands through `EmbyClient`; some operations use `session.ExecuteAsync`, while downloads capture an `EmbySessionScope` so later work remains bound to the original identity. Inspect the relevant path rather than replacing every scope with the current session. Metadata field rules already live in `Core/Emby/ItemMetadataEdit.cs` with tests. Refactoring follows CLAUDE.md: extract a service when it improves responsibility, lifetime or testability, preserving confirmation and identity boundaries; being a large static class is not sufficient reason on its own.
+
+## Capability-dependent visibility
+
+Apply [CLAUDE.md's visibility policy](../../../CLAUDE.md#功能可用性与显隐). Establish the prerequisite and the scope of each control before editing XAML: a persistent preference for a supported playback mode is not inapplicable merely because nothing is playing. Use confirmed service capabilities for service-backed actions; a saved enable flag alone need not mean that the service is usable.
+
+- Trace every dependent surface: settings rows, hand-written cards, navigation, context menus and already-open child views. Collapse the whole inapplicable row or group, including its note and spacing; retain other usable content and the switch or selector that restores the prerequisite. `IsEnabled=false` alone does not meet the policy.
+- Reuse the existing notification or rebuild path. `SettingsViewModel.ScreenshotCard` constructs the applicable rows, and the format/lossless controls call `RefreshScreenshotCard` through their `after` callbacks. The callback replaces the affected section and refreshes the selected category; hiding rows does not erase their stored values. For bound visibility, notify every dependency and reevaluate on `Attach`, import and reset. Keep bound collection instances stable.
+- MoviePilot uses `MoviePilotService.Available` and `AvailabilityChanged`; `ShellPage.MoviePilot.cs` also closes dependent views and prunes unusable navigation history. Follow [momoka-moviepilot](../momoka-moviepilot/SKILL.md#可用性与入口显隐) for that lifecycle instead of checking only `Enabled` at first load.
+- Keep visibility separate from execution guards and effective option application. An old menu or asynchronous callback must still be rejected after its prerequisite changes. A hidden preference may still need an explicit reset or a complete option push to prevent stale backend state; follow the owning domain skill.
+
+Use [momoka-verification](../momoka-verification/SKILL.md#capability-dependent-visibility) for initial, hidden and restored states, real layout and keyboard checks. A property assertion or a disabled control is not evidence that the unavailable region disappeared.
 
 ## Colours: the role table, and why literal hex hides
 

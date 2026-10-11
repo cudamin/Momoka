@@ -153,17 +153,25 @@ internal static partial class ShellSelfCheck
                     + "运行前置条件都落在了选项里，链的次序和 mpv 的执行次序一致");
 
         // 任务书 5.6：vo / gpu-api / hwdec 归进同一套档位。只报不判 —— 那三项是用户自己设的，替他改成「能跑」
-        // 就是从另一头「界面在骗人」。默认那一套（gpu-next + vulkan + auto-safe）在这里应当一句话都没有。
-        // 拿这一列里带 compute pass 的那条链去问：ArtCNN 在 D3D11 上比 Vulkan 慢五倍（2026-09-04 实测 8.7 对
-        // 45 fps），而那条链是不是在这台机器上跑得动，恰恰要连着图形接口一起看才有答案。
-        var video = services.GetRequiredService<AppSettings>().Video;
+        // 就是从另一头「界面在骗人」。默认那一套（独占管线 + gpu-next + vulkan + auto-safe）在这里应当一句话
+        // 都没有。拿这一列里带 compute pass 的那条链去问：ArtCNN 在 D3D11 上比 Vulkan 慢五倍（2026-09-04
+        // 实测 8.7 对 45 fps），而那条链是不是在这台机器上跑得动，恰恰要连着图形接口一起看才有答案。
+        // 问法与 PlaybackPlanner 同源：内置集成管线的 vo/gpu-api 归管线契约，独占管线的图形接口归设置页。
+        var appSettings = services.GetRequiredService<AppSettings>();
+        var video = appSettings.Video;
+        var builtIn = appSettings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv;
+        var integrated = builtIn && appSettings.Mpv.Pipeline == VideoPipelineKind.Integrated;
+        var renderer = builtIn ? LibMpvPipelinePolicy.ForcedRenderer : video.Renderer;
+        var gpuApi = integrated ? LibMpvPipelinePolicy.ForcedApi : video.GpuApi;
         var conditions = MpvRenderCheck.Problems(
-            video.Renderer,
-            video.GpuApi,
+            renderer,
+            gpuApi,
             video.HardwareDecoding,
-            chains.FirstOrDefault(chain => chain.Shaders.Any(shader => shader.ComputePasses > 0)));
+            chains.FirstOrDefault(chain => chain.Shaders.Any(shader => shader.ComputePasses > 0)),
+            pipelineOwned: integrated);
 
-        report.AppendLine($"[信息] 着色器的运行条件 — vo={video.Renderer}、gpu-api={video.GpuApi}、"
+        report.AppendLine($"[信息] 着色器的运行条件 — 管线={(integrated ? "集成" : builtIn ? "独占" : "外部 mpv")}、"
+            + $"vo={renderer}、gpu-api={(string.IsNullOrWhiteSpace(gpuApi) ? "（未设置，自动）" : gpuApi)}、"
             + $"hwdec={(string.IsNullOrWhiteSpace(video.HardwareDecoding) ? "（未设置）" : video.HardwareDecoding)}："
             + (conditions.Count == 0 ? "没有需要提醒的" : string.Join("；", conditions)));
 

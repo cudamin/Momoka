@@ -40,7 +40,7 @@ internal static class SubtitleSettingsProbe
             var pushes = 0;
             page.ViewModel.Attach(service, new ShaderStaging(settings), new FontLibrary(), options.Paths,
                 new OfflineLauncher(), new AudioDeviceCatalogue(() => null),
-                () => { pushes++; return Task.CompletedTask; }, _ => Task.CompletedTask,
+                () => { pushes++; return Task.CompletedTask; }, _ => Task.CompletedTask, () => Task.CompletedTask,
                 new MoviePilotService(moviePilot, new MoviePilotCredentials(ProbeSecrets.Instance), settings), new MoviePilotCredentials(ProbeSecrets.Instance),
                 new OfflineCapabilities());
             page.ViewModel.SelectedCategory = "字幕";

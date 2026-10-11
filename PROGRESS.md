@@ -2,6 +2,129 @@
 
 最后更新：2026-10-11
 
+## 通知接管：标记整季/整部剧已看时补报最后一集（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的全部未提交工作。本轮只动 `src/Momoka.Core/Playback/PlaybackService.Reporting.cs`（`ReportMarkedWatchedAsync` 设置检查后，`Type` 为 Season/Series 时先经新私有 `ResolveLastEpisodeAsync` 把补报落点换成最后一集再走原有单集路径；原单集半段原样抽成 `ReportItemWatchedAsync`，电影/单集行为不变）、`AppSettings.cs` 与 `NotificationsPage.xaml` 的通知接管注释各补一行、`tests/Momoka.Tests/PlaybackTests.cs` 新增三条测试。未提交、未推送。
+- 用户令：「开启通知接管后 标记整季已看时要发送最后一集的已看通知」；追问确认「标记整季时发这季的最后一集 标记整部剧时发最后一季的最后一集」。此前整季/整部剧的补报落在季/剧条目本身——季条目往往读不到时长，实际经常什么都不发。
+- 挑集规矩：向服务器问一遍容器剧集（`EmbyClient.GetEpisodesAsync`，季按 `SeasonId` 收窄、剧问全剧不带 `SeasonId`，5 秒死线），本地挑「编号最大、已播出（复用 `ItemDetail.MissingIsUnaired`，追番途中整季标已看不把未播集记成看过）、`RunTimeTicks > 0`」的一集，按季号→集号降序（特别篇挂第 0 季自然让位）。换不出落点（季没挂剧上、查询失败、全集未播出或没时长）就不发，沿用「宁可少发一趟」。
+- 验证：Release 测试项目+Core 编译 0 警告 0 错误；1742 项测试全部通过、0 失败 0 跳过（新增三条：整季落点是已播 E11 而非未来首播的 E12 且报文位置＝其时长、整剧落点最后一季最后已播集且 URL 不带 SeasonId、季没挂剧/查询 500/名单空三档不发）；`format whitespace` 通过；闸门 3 发布通过（533 文件 302.6 MB，`artifacts/publish/win-x64`，发布前确认应用未运行）。
+- 未验证：真实服务器行为——标记整季已看会改写真实观看历史，属第三档授权范围；MoviePilot 那头实际收到的通知未实测。通知接管关着时行为不变（原有两条测试钉住）。
+
+## 左栏排序重排＋播放行为三分区（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的全部未提交工作。本轮只动 Shell 设置页、自检/探针与 Core 注释：`SettingsViewModel.cs`（① `CardCategories` 重排为 主页/界面/播放器/播放行为/视频输出/音频输出/字幕/快捷键/MoviePilot/关于，新增 `SidebarCategories()` 把「服务器」「诊断」两张内嵌页插到 MoviePilot 与 关于 中间，`Categories` 平铺与 `BuildCategoryGroups` 共用它，EmbyServer 组不动；`SelectedCategory` 初值从字面量「播放器」改为 `CardCategories[0]`——第一张卡从此是主页；`ReloadAsync` 建卡次序镜像左栏；② 播放行为卡拆分：`ResourceFilterCard` 新分区卡收「媒体源排序」「视频文件名筛选」两行（行与说明原样照搬，音轨两行留下——它们挑的是片内轨不是版本），播放行为分类三张分区卡＝播放行为／资源筛选／截图；③ `ScreenshotCard` 分类「播放器」→「播放行为」）、`ShellSelfCheck.Settings.cs`（「mpv.exe 路径…」检查改为钉：播放器分类 1–2 分区、播放行为分类三张分区卡标题序列、资源筛选两行序列、截图三行在播放行为分类；检查名不变、基线不动）、`ShellNavigationProbe.Settings.cs`（分区截图循环补「播放行为」四帧：资源筛选/截图卡各自滚进视口，`StartBringIntoView` 带 `VerticalAlignmentRatio=0`——默认最小滚动只把标题滚到视口底缘；「设置分类动效与快速切换」用例限时 12→45 秒，多四帧后 12 秒不够，与视频基础输出用例同款理由）、`ShellNavigationProbe.cs`（同上一行的限时参数）、Core 四处注释与 `SettingRow.cs` 一处注释（「设置 → 播放器 → 截图保存目录」改「播放行为」）、`momoka-video-output` 技能一行。未提交、未推送。
+- 用户令三句：「截图分区移到播放行为里」「播放行为里分三个分区一个是播放行为 一个是资源筛选 一个是截图」「调整左侧选项排序：主页 界面 播放器 播放行为 视频输出 音频输出 字幕 快捷键 mp 服务器 诊断 关于」（「mp」＝MoviePilot，「服务器」＝内嵌的 Emby 服务器页——两句合起来正是现有 12 个入口的重排）。左栏「关于」仍居末位，「服务器／诊断」按点名插在 MoviePilot 之后。命令行 `--show-settings` 默认仍是「界面」，与左栏次序无关。
+- 验证：Release 全方案构建 0 警告 0 错误（探针扩帧后复建一次，同 0/0）；`format whitespace` 通过；1739 项测试全部通过、0 失败 0 跳过（MpvUiTests 对 `CardCategories` 字面量的源码解析照常工作——该声明保持一行字面量写法）；闸门 3 发布通过（533 文件 302.6 MB，`artifacts/publish/win-x64`，发布前用户已关闭正开着的应用）；发布件 `--probe-shell --screen 1` 72/72 通过（中途一轮「设置分类动效」因新增截图超 12 秒限时失败，限时提到 45 秒后全绿）。
+- 截图目检（`shell-probe-20261011-141054348-23320`）：`settings-server-admin-shown.png` 左栏次序＝主页/界面/播放器/播放行为/视频输出/音频输出/字幕/快捷键/MoviePilot/服务器/诊断/关于、页面默认落在主页；`settings-playback-resource-1100.png` 资源筛选卡（2 项：媒体源排序/视频文件名筛选）与截图卡（3 项：目录/格式 PNG（默认）/色彩空间标记）同屏；`settings-player-sections-1100.png` 播放器分类回到播放器＋自定义 mpv.conf 两卡、无截图卡；窄窗 760 两帧布局正常。
+- 未验证（闸门 4 两轮均停登录页，与今日此前轮次同因同数）：Emby 服务器 502（`run-9531f055…`/`run-e1529198…`：87 项运行检查全过、0 失败；100 消失/1 降级/3 新增全是登录页停驻），本轮改写的「mpv.exe 路径…」检查没得到当轮运行，结构事实由探针截图替代钉住，留待服务器恢复后补跑；真实播放不受本轮影响（未动 Core 与播放执行路径）。
+
+## 播放器与外置播放器两卡合一（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的全部未提交工作。本轮只动 Shell 设置页与自检/探针/技能：`SettingsViewModel.cs`（外置播放器分区并回播放器卡——mpv.exe 路径与启用 IPC 进度通道两行只有外部后端才构造，播放后端的 after 新增 `RefreshPlayerBackend` 先重建自己住的卡再走 `RefreshVideoBackend` 联动；`RefreshCustomMpvConfig` 插入锚点从「外置播放器」改为「播放器」；`ExternalPlayerCard` 退役）、`ShellSelfCheck.Settings.cs`（「mpv.exe 路径…」检查改为钉 2 分区＋外置两行随后端进出——内置时整个缺席、外部时说明必须在场，`saysSecureStartup == !builtIn` 一句两头都钉；检查名不变、基线不动）、`ShellNavigationProbe.Settings.cs`（`SettingsVideoDependenciesAsync` 新增 `AssertExternalRows`：数据行/真实行/可聚焦控件三头核对，收起不动偏好，外部态留 `settings-player-external-*.png`；分区截图注释改两分区）、`momoka-video-output` 技能一行。未提交、未推送。
+- 用户令：「这两个功能合在一起，播放后端为内置时候隐藏外置相关」。合并沿用既有「行按条件构造、卡片整体重建」机制（与渲染管线行同款）：内置后端播放器卡只剩播放后端一行（1 项），外置后端三行（3 项）；隐藏不清空偏好，切回外部后端原值恢复。自定义 mpv.conf 卡不受影响，仍随独占模式进出（外部后端下整个隐藏，锚点只是换了地方插）。原「选『外部 mpv.exe（独立窗口）』后端时生效，内置播放器不看这里」说明随分区消失——行自己会进出，不再需要道歉式说明。
+- 验证：Release 全方案构建 0 警告 0 错误；`format whitespace` 通过；1739 项测试全部通过、0 失败 0 跳过；Shell 离线探针 72/72 通过（含新增外置两行进出断言；内置态 1 项、外置态 3 项宽窄四张截图逐张目检：`work/settings-player-sections-1100.png`、`work/settings-player-external-1100/760.png`）。闸门 4 自检两轮均停在登录页——Emby 服务器 502（`run-8ab1ca8443884746a2707da3013dbe07`：87 项运行检查全过、0 失败；100 消失/1 降级/3 新增全是登录页停驻的同一原因，与今日早些轮次同因同数），本轮改写的「mpv.exe 路径…」检查没得到当轮运行；结构事实由探针与截图替代钉住（外置态截图里安全说明原文完整可见），留待服务器恢复后发版轮补跑。
+- 未验证：真实播放不受本轮影响（未动 Core 与播放执行路径）；外部 mpv.exe 实播不在本轮范围。
+
+## 截图格式三选一＋JPG 质量行（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留原有全部未提交修改（含并行两轮「视频基础输出条件显隐」「独占模式自定义 mpv.conf」——那两轮已在合并树上各自过闸并发版）。本轮只动截图卡：`MpvBaseline.cs`（候选目录改 PNG（默认）/JPG/WebP，jxl/avif 退役，`ScreenshotOptions` 增加 JpegQuality 与 jpg 下发分支）、`AppSettings.cs`（`ScreenshotJpegQuality`，默认 100 = 参考预设取值，mpv 自身默认 90）、`SettingsMigration.cs`（JPG 质量夹取；存过的 jxl/avif 归回 png）、`SettingsViewModel.cs`（JPG 质量滑块行，仅 JPG 格式出现）、`ShellSelfCheck.Settings.cs` 未动（并行轮已把截图行名并入按名核对的钉子）。测试 `PlaybackTests.cs`（解析加 JPG 分支与退役格式归一、计划加 JPG 用例）、`SettingsTests.cs`（jxl 归一）。技能 `momoka-playback`。未提交、未推送。
+- 用户令（上一问「怎么只剩这三个选项了」后）：「jpg呢？不用压缩吗？PNG（默认）排第一个 jpg第二webp第三，另外两个删掉」。显隐规则维持上一轮的追问答案未变：各格式画质行只在该格式被选中时出现（选 WebP 出现无损/质量/压缩，选 JPG 出现质量），无损开着再收起质量/压缩 —— 「怎么只剩三行」正是这条规则对 PNG 默认的作用，非缺陷。
+- 随包内核实测补一条：`screenshot-jpeg-quality` 存在、默认 90、范围 0–100（`screenshot-jpeg-source-chroma` 也在但按预设不落行）。
+- 验证：合并树 Release 构建 0 警告 0 错误；`format whitespace` 通过；1739 项测试全部通过、0 失败 0 跳过；Shell 离线探针 72/72 通过，播放器分区截图逐张目检（格式下拉显示「PNG (默认)」，`work/settings-player-sections-final.png`）；发布校验通过（533 文件 302.6 MB，`artifacts/publish/win-x64`，快捷方式指向不变）。本轮构建/测试/探针/发布覆盖的是与并行两轮共处的合并树。
+- 未验证：①无损/换格式触发的卡片重建与 JPG 质量行进出场仍无专门探针（机制与管线行重建同款，该路径有探针）；②闸门 4 未在本轮重跑（上一轮自定义 mpv.conf 已跑过一次全绿，本轮其后的改动只涉截图卡，普通自检不含这些行）；③真实播放验证属第三档授权范围。
+
+## 独占模式自定义 mpv.conf（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`，保留原有全部未提交修改；主代理统一改源码，子代理核对 mpv 行为并在各自 `work/` 子目录准备离线探针。未提交、未推送。
+- 设置 → 播放器增加「自定义 mpv.conf」分区，含默认关闭的开关和路径框；仅内置独占显示，集成和外部后端隐藏。关闭开关收起路径，切换模式、重新进入及恢复设置不丢偏好。路径输入沿用去引号、失焦自动保存；文本行模板补可访问名称与稳定句柄。
+- `MpvCustomConfig` 只在运行副本展开 `~~/` 和本地 include，mpv 负责参数及条件配置组解析；用户原文件不改。普通选项 → 用户配置 → Momoka 控制与管线契约。配置中的日志、独立历史、IPC、自动脚本及宿主窗口选项在全部配置组中排除。临时 include 随播放句柄存活，销毁后清理。自定义模式每次换集重建实例以重新读取文件，避免旧同窗复用逻辑把自定义值重置为出厂默认；这是已说明的行为代价。
+- 随包 libmpv 实测：`config=no` 下仅设置 config-dir 不能解析 `~~/`；`config=yes` 又会在 initialize 自动重读配置，因此使用路径展开副本。initialize 前属性不可读，自定义模式保留载入的 gpu-api/context，仍强制 D3D11 window/no 与 gpu-next 契约。用户指定文件中的 `sub-bold=y=no` 是原有无效值，mpv 忽略该项，load/init 返回 0。
+- Release 构建 0 警告 0 错误，1739 项测试全部通过、0 失败 0 跳过；空白检查、句柄扫描通过。迁移测试改为匹配完整旧字段名，继续确认退役 ConfigPath/InputConfigPath 不迁入新功能，避免 CustomConfigPath 被子串误报。发布已刷新快捷方式所指 `artifacts/publish/win-x64`（533 文件、302.6 MB）。
+- 指定 `C:/mpv_config-2026.08.12/portable_config/mpv.conf` 经正式 LibMpvBackend + 1280×720 本地彩条起播，预热后 6 秒进度推进 6 秒，正常停止；读回 d3d11、hwdec=no、WebP、字幕字号 50、osd-duration=2000、HQ/SSIM 配置组，两条着色器路径均存在。关闭开关的对照正常播放并恢复 Vulkan/png/osd-duration=1000，自定义配置组不存在。原文件 SHA-256 始终一致。证据在 `work/custom-config-acceptance/runs/`，不使用 Emby 服务或真实观看记录；有初始着色器编译延迟及掉帧读数，未声称零掉帧。
+- 最终 UI：发布件在 2560×1440 主屏跑 `--probe-shell --screen 1`，72/72 通过；自定义配置宽窄两关均通过，开启/关闭/集成隐藏/恢复的真实截图已逐张核对（`%LOCALAPPDATA%/Momoka/logs/shell-probe-20261011-122252595-24664/logs/settings-custom-config-*`）。首轮选了宽度仅 1080 的竖屏，宽窗截图越界，失败记录保留；该轮也发现文本框自动化名称缺失，修复模板后重新发布。
+- 最终发布 Core（SHA-256 `D92A90D156578CB99D836A9FA621048DF2AC88540E00F66FF7BEB4FF6CB83685`）已再次串行完成开/关配置的正式后端播放，两轮均通过，预热后各 6 秒进度推进 6 秒，原配置 SHA-256 不变。报告为 `work/custom-config-acceptance/runs/20261011-122623-162-enabled-2688/report.json` 与 `20261011-122634-654-disabled-23084/report.json`。
+- 发布件已实际运行 `--self-check --dump-ui --screen 1 --self-check-data <独立目录>`；进程退出 0，再用 `selfcheck-diff.ps1 -Log` 比较这份新日志，闸门 4 绿：184 项、0 失败、0 消失、0 降级、0 新增。日志为 `artifacts/selfcheck/custom-config-4d5014375a2945eda168dd2ded86e1db/logs/selfcheck-shell.txt`，该轮仅导航读取真实库，不启动真实服务器播放。原设置文件未改。
+
+## 视频基础输出审查、条件显隐与只读接口（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；主代理写入，两个子代理只读核对执行链与界面。保留进入本轮时的全部未提交工作及并行文档更新，未提交、未推送。主要修改 `SettingsViewModel.Video.cs`、设置选项文案、`ShellNavigationProbe.Settings.cs`、普通设置自检与视频技能。
+- 用户最终要求：集成模式「图形接口」保留，但不要下拉框。采用已有 `SettingFactRow` 显示 `Direct3D 11（D3D11）` 只读文字，移除上一轮仅为禁用下拉增加的通用 `IsEnabled` 属性和绑定；独占与外部后端恢复可选接口，展示有效值不改原偏好。
+- 审查未发现必须改动内置管线契约的缺陷：集成／独占均支持其他基础输出项；外部 mpv 的「渲染管线」无效，改为隐藏，保留「视频渲染」。从属行按实际规则即时重建：音频同步隐藏插值与回退；关闭插值隐藏算法；无显示同步隐藏回退，回退关闭隐藏阈值；关闭抖动隐藏位深；去色带关闭或继承预设隐藏强度。内置 fast 预设继承抖动时也隐藏位深，切画质预设同步刷新基础卡；所有隐藏项保留偏好。
+- 文案去掉 WinUI／uosc／交换链细节及单机「快 5 倍」结论，修正内置后端「窗口内播放」与独占模式矛盾的标签；回退阈值明确也影响显示同步，网络缓冲说明后向缓存预算，硬解不再承诺所有滤镜兼容，算法标签去掉绝对优劣。阈值输入只更新同步说明并保留参数注释，避免编辑时重建输入框。
+- 子代理核对钉版源码及随包 `v0.41.0-923-g7b8915bc1` 的隔离无媒体句柄：基础输出项在 gpu/gpu-next 均有实现；默认／fast／high-quality 的 `tscale=oversample`，修正旧 mitchell 注释；fast 为 `dither=no`。原生硬解受接口与驱动限制，不据此隐藏整组硬解或滤镜；该检查不证明实际硬解或画面质量。
+- 验证：当前 Release 全方案构建 0 警告／0 错误，空白与自动化句柄检查通过；1734 项测试全过，0 失败／0 跳过；Shell 离线探针 70/70 通过。新增宽窄两个独立真实控件用例，涵盖选择器、UIA 开关、数字输入、重载、隐藏恢复与非默认值保留；原用例 12 秒上限不变，新用例因多轮操作和截图设为 45 秒。截图逐张复核，无溢出或残留空白，证据保存在 `artifacts/video-basics-validation/`，原运行目录为 `shell-probe-20261011-114213502-23788`。
+- 已发布至 `artifacts/publish/win-x64`：533 文件、302.6 MB，发布 DLL 与运行检查所用开发构建一致，桌面 `Momoka.lnk` 已核对指向该目录。普通自检 `run-2d7238bcab774ea4a929699b77d63b21` 全绿：184 项、0 失败、0 消失、0 降级、0 新增，未修改基线；本轮调整的设置自检已实际执行。未验证真实媒体播放、独占／外部后端实播、实际 HDR 输出或硬解性能。
+
+## 不可用功能自动隐藏：规则与技能同步（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；本轮仅维护 `CLAUDE.md`、开发文档和项目技能，保留已有未提交代码与技能修改。使用 `momoka-skill-creator`，统一不可用或不生效的入口自动隐藏、完整收起从属区域、即时刷新、保留偏好和恢复入口的要求。
+- Shell 技能保存依赖与刷新方法，验证技能保存双向切换、原值、键盘焦点和布局的核验方法；MoviePilot 与播放技能分别补充可用性事件和截图条件行的源码入口。视频、字幕技能及字幕验证矩阵同步去掉“不可用控件保持禁用显示”的旧要求；没有新增技能或修改用户级安装副本。
+- 本轮是规则更新，不声称产品界面全部达标。已核对的明确差距：集成管线「图形接口」当前仍为禁用下拉，设置探针仍检查此展示；视频技能记录待按新规则对齐。截图无损切换的实机覆盖缺口保留，不能用其他控件探针通过替代。
+- 验证：`check-skill.py --all` 检查 10 个技能，0 error；1 条既有 warning 为创建技能的内联 `metadata` 不在检查器支持范围。新增 16 处相对链接及章节锚点、10 份文档的 UTF-8/LF/末尾换行、`git diff --check` 均通过；本轮增量经只读复核，文档范围外 25 份已有修改的文件哈希保持不变。未运行应用、构建、播放或发布，未提交、未推送。
+
+## 集成模式显示锁定 D3D11，硬件解码选项去重（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交工作。本轮修改视频基础输出卡、通用下拉的只读状态绑定、硬解候选及归一规则、视频设置测试和设置页离线探针；未提交、未推送。
+- 内置集成模式的「图形接口」不再隐藏，显示禁用的 `Direct3D 11（D3D11）` 下拉；切回独占模式立即恢复可编辑状态和原接口偏好。展示有效值不覆盖共用的 `Video.GpuApi`，底层集成管线继续强制 D3D11；外部 mpv 的接口仍可选。
+- 硬件解码从 11 项减为 10 项：合并「不指定（等同纯软件解码）」与「关闭（纯软件解码）」。旧空值、空白、未知值归一为 `no`，保持软解并确保下拉能选中；合法硬解选择保留，新装默认仍为 `auto-copy-safe`。简化自动档标签，保留有实际差异的原生/复制路径与各厂商接口。
+- 随包无媒体句柄核对：`mpv v0.41.0-923-g7b8915bc1` 的 `hwdec` 初始值和编译默认均为 `no`；10 个非空候选设置/读回均成功。钉版 `vd_lavc.c` 确认 `auto-safe=auto`、`auto-copy-safe=auto-copy`，目录没有重复列出别名；普通自动可能回退复制模式，标签写「优先原生硬解」。该检查不代表设备实际硬解能力，未加载媒体。
+- 验证：当前 Release 全方案构建 0 警告/0 错误，空白检查与自动化句柄扫描通过；1734 项测试全部通过，0 失败/0 跳过。首轮将单测与 Shell 探针并行，触发它们共用的自检互斥锁，9 条 SelfCheckTests 失败；保留 `artifacts/video-output-tests-parallel-conflict.log`，串行重跑全部通过，最终日志为 `artifacts/video-output-tests.log`。首轮探针 67/68，其中设置分类检查通过；MoviePilot 菜单检查超时，发布后串行复核已通过。
+- 已发布到 `artifacts/publish/win-x64`，校验 533 文件、302.6 MB；桌面快捷方式已核对指向该目录。发布版完整 Shell 离线探针最终 68/68 通过，两种宽度下的集成/独占真实截图已复核，报告与四张截图保存在 `artifacts/video-output-validation/`，原运行目录为本机日志下 `shell-probe-20261011-112044931-2564`。中间一次 `Start-Process -WindowStyle Hidden` 隐藏了待验证窗口，13 项截图检查拒绝采集（保留 `shell-probe-20261011-111928696-12260`）；恢复正常应用入口后全过，没有改断言。
+- 未验证真实影片播放、实际硬解性能及独占/外部后端实播；本轮不改这些执行路径。
+
+## 截图画质做成设置页自定义选项（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交工作（含同日上一轮「截图画质预设与模板交给 mpv」——那轮把预设硬编码，本轮按用户再令改为自定义选项，并把默认格式换成 png）。Core：`AppSettings.cs`（MpvSettings 新增 截图格式/WebP 无损/质量/压缩/色彩空间标记 五个属性，默认 png／关／85／6／关）、`MpvBaseline.cs`（`ScreenshotFormats` 候选目录与 `ScreenshotOptions`：解析、夹取、`ToMpvOptions` 下发规则，`Build` 收必填的 ScreenshotOptions）、`SettingsMigration.cs`（Normalize 夹取与格式归一）、`PlaybackService.cs`（`ApplyScreenshotOptionsAsync` 整组实时推送）；Shell：`SettingsViewModel.cs`（截图卡 1 行变 3–6 行：条件显隐＋after 重建 `RefreshScreenshotCard`）、`SettingRow.cs`（SettingSliderRow 补 after 钩子，同 Toggle 行 09-25 的形状）、`SettingsPage.xaml.cs`（推送接线）、`ShellSelfCheck.Settings.cs`（钉数 4→6 行并写明条件行缘由）、三处探针 Attach 补参；测试 `PlaybackTests.cs`（计划随设置走＋解析规则两条）、`SettingsTests.cs`（规整一条）；技能 `momoka-playback`。未提交、未推送。
+- 用户令三句：「参考文档新增自定义选项」（把上一轮的预设参数做成设置项）、「默认要用png」、「开无损后下面的压缩和质量要是没用了就自动隐藏」。显隐顺着同一原则推到格式：不是 WebP 时三行整个没用，也藏；质量/压缩只在 WebP 且未开无损时出现。换格式/拨无损由各自行的 after 当场重建截图卡——与渲染管线行重建基础输出卡同一条机制（那条路径有探针钉着；toggle 触发的重建没有专门探针，机制相同）。重建回调同时把整组推给正在播的那部（换格式要带值发、拨无损要发新状态；质量/压缩滑块各自推）。
+- 下发规则（`MpvBaseline.ScreenshotOptions.ToMpvOptions`，起播与实时推送同源）：format 恒发；WebP 三条只随 webp 格式发；无损开着时质量与压缩**照发**——mpv 那一刻忽略它们，但推送端「不推＝保持我上一分钟发的那条」，少发一条，用户把无损拨回去的下一张截图就带着旧质量落盘；tag-colorspace 恒发。存储端 Normalize 与下发端 From 用同一套范围常量（质量 0–100、压缩 0–6），格式认不出回装机默认 png——外置 mpv.exe 对越界/未知的值是拒绝起播，不是忽略。上一轮的探针证据（webp 编码器在、选项存在、85/6 落盘）原样有效。
+- 模板维持常量 `%{media-title}-%wH.%wM.%wS.%wT-%n`，没有做成可编辑设置：模板串写错会让截图悄悄不落盘而屏上照报「已保存」。
+- 验证：Release 全方案构建 0 警告 0 错误；`format whitespace` 通过；1732 项测试全部通过、0 失败 0 跳过（新增 3 条：计划随设置走、解析规则、规整夹取）；自动化句柄扫描 0 缺失；Shell 离线探针 68/68 通过（改默认前后各跑一轮，播放器分区截图逐张目检：webp 展开态 6 行与 png 默认态 3 行各有一张实证，`work/settings-player-sections-1100.png`、`work/settings-player-sections-png-default.png`）；发布校验通过（533 文件 302.6 MB，`artifacts/publish/win-x64`，快捷方式指向不变）。
+- 未验证：①无损开着时「质量/压缩收起」的实机画面——同一条件分支与格式显隐共用、机制有管线行探针背书；判据：截图卡选 WebP → 出现无损/质量/压缩，拨开无损 → 后两行当场收起。②闸门 4 自检（Emby 服务器仍 502，同因）。③真实播放中改设置→下一张截图落新值的实机链路（属第三档授权范围）。
+
+## 截图画质预设与模板交给 mpv（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交工作（硬解默认、图形接口分家、播放器三分区三批）。本轮改 Core：`MpvBaseline.cs`（截图块换成用户给的参考预设：webp 质量 85／压缩 6／不写色彩空间标记，模板改常量 `%{media-title}-%wH.%wM.%wS.%wT-%n`）、`PlaybackPlanner.cs`（BuildPlayerOptions 不再传标题）、`InlineSwitch.cs`（删除 `PerFileSignatureNames` 与换片重写模板的块）、`LibMpvBackend.cs`（`Baseline` 不再摘逐片选项）；Shell 只动 `SettingsViewModel.cs` 两句截图说明；测试改 `PlaybackTests.cs`、`InlineSwitchTests.cs`、`BackendLifecycleTests.cs`；技能同步 `momoka-playback`。未提交、未推送。
+- 用户令：「参考以下参数重构本项目的截图功能」（screenshot-format=webp、webp-quality=85、webp-compression=6、tag-colorspace=no、模板 `~~/files/screen/%{media-title}-%P-%n`）。两处适配：①目录不进模板——预设自己注明「模板带路径与 screenshot-dir 二选一」，本客户端的「截图保存目录」设置（2026-09-29）拥有这半边，`~~` 在 `--no-config` 的 libmpv 里也没有可靠指向；②时间码用 `%wH.%wM.%wS.%wT` 而非 `%P`——`%P` 是 `HH:MM:SS.mmm`，冒号进不了 Windows 文件名（mpv 会净化成下划线），点号写法同一信息、处处合法（与旧模板对 `%p` 的处理同一道理）。
+- 模板改常量后，C# 拼片名＋换片重写的整套机制退役：mpv 在截图那一刻展开 `%{media-title}`（先取 force-media-title＝OSD 同一串字，换集自动跟上，再落容器元数据、URL），非法文件名字符也由它净化。换片签名随之简化：常量模板进启动基线，`Baseline` 只剩掐链尾。
+- 依据：随包 libmpv（v0.41.0-923 fork）隔离探针（`work/probe-screenshot.py`，vo=null 合成 y4m、无窗口无网络、config=no）：webp 在 encoder 名单里，`screenshot-webp-quality/compression`（默认 75/4，范围 0-100/0-6）与 `screenshot-tag-colorspace`（默认 yes）全部存在；`%{media-title}` 实测展开为 force-media-title 并把「攻壳/机动队: SAC?2045 100%纯度」净化成「攻壳_机动队_ SAC_2045 100%纯度」；`%P` 实测落盘 `00_00_00.320`；webp 85/6 截图真实落盘、序号逐张递增。旧 png 规则（「看画质的图不能先过有损压缩」）按用户预设**有意推翻**；tag-colorspace=no 的代价是 mpv 承接不了色彩空间标记时转 sRGB 落盘——HDR 片源截图是 sRGB 图，这是预设自选的取舍。
+- 外置 mpv.exe：这些选项随 PlayerOptions 进命令行；libmpv 端选项被拒只记警告不挡起播，mpv.exe 端未知选项会拒启——四个选项名 mpv 0.36 起就有，未见现实风险，但属外置后端边界。
+- 验证：Release 全方案构建 0 警告 0 错误；`format whitespace` 通过（途中用 Python 改文件把 SettingsViewModel.cs 行尾写成 CRLF，1934 行全被逮出后转回 LF——工具改文件也要守行尾规矩）；1730 项测试全部通过、0 失败 0 跳过（三处逐条原地改写：计划断言 webp 四条与常量模板、换片不再重写模板、签名把常量模板当基线并保留「模板真变就重启」的反例）；发布校验通过（533 文件 302.6 MB，`artifacts/publish/win-x64`，快捷方式指向不变）。
+- 未验证：闸门 4 自检（上轮起 Emby 服务器 502 停在登录页，同因未重跑；本轮无自检增删）；真实播放中三档截图的实机落盘（属第三档授权范围）。判据：播放任意影片 → 画面菜单三档截图，文件应落在「截图保存目录」，名字是「片名-00.00.00.000-000n.webp」（片名里的 : / ? 落成下划线），HDR 片源截图为 sRGB。
+
+## 渲染管线行移入视频输出＋播放器分类三分区（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交工作（硬解默认、图形接口分家两批）。本轮只动 Shell 设置页与自检/探针：`SettingsViewModel.cs`（播放器卡拆成 播放器／外置播放器／截图 三张分区卡，渲染管线行移出）、`SettingsViewModel.Video.cs`（渲染管线行落在「基础输出」卡最上面，说明改「跟随下面『图形接口』一行」，两态联动注释随手更新）、`ShellSelfCheck.Settings.cs`（「mpv.exe 路径…」检查改为钉 3 分区 4 行＋渲染管线行在视频输出基础输出卡，检查名不变、基线不动）、`ShellNavigationProbe.Settings.cs`（新增管线切换探针与播放器三分区宽窄截图）、`Views/PlayerPage.SelfCheck.Window.cs`（窗口命令探针期间强制内置集成，见下）、`momoka-video-output` 技能一行。未提交、未推送。
+- 用户令三句：「把渲染管线移到视频输出」「在设置的播放器栏中进行分区」「一个分区是外置播放器、一个分区是截图」。分区沿用「多张卡共用一个分类」的既有机制（同 视频输出 的三张卡），行为零改动：行与安全说明一字未动，只换住处；播放后端留守第一分区，外置播放器分区收 路径＋IPC 两行（Core 里只有 `MpvProcessBackend` 认 IPC），截图分区收保存目录。
+- **切管线重建的从此是行自己住的卡**：渲染管线行的 after 回调（重建基础输出卡）随行搬进视频输出，重建第一次压在 SelectionChanged 的传播路上。`ShellNavigationProbe.Settings` 新增探针在真实控件上走这条链：对真下拉写入另一档 `SelectedItem`（触发与用户点选同一条 SelectionChanged → 双向绑定 → after 重建），断言两态互换、行与下拉换成了新对象、再切回原状；两态各留渲染帧（`settings-pipeline-switched/restored.png`）。边界照实说：机器注不进鼠标事件，「从弹层里点条目」那一段没覆盖。
+- **顺手修了闸门 4 一条环境假红**：「窗口命令按钮」连跑两轮报「全屏时窗口化图标不对」——自检复制的真实设置管线=独占，`SetFullscreen` 走 native 分支、宿主窗根本不进全屏，图标自然不动。这正是 `ProbeForcePipeline` 注释里点名的「窗口命令按钮红过的环境病」（当年只在「置顶开关」一关按了药）。修法照既有模式：`ProbeWindowCommands` 期间把管线/后端按到内置集成（只动内存），量完放回；不是放宽断言，是让这一关量它本来要量的宿主窗改形路。
+- 验证：Release 全方案构建 0 警告/0 错误；`format whitespace` 通过；1730 项测试全部通过、0 失败 0 跳过；自动化句柄扫描 0 缺失；Shell 离线探针 68/68 通过（含新增管线探针；中途一轮「MoviePilot 订阅封面悬停」在构建刚结束、机器高载时 80ms 动画窗口内没走到而报红，空闲复跑通过，与本轮改动无关的时机敏感检查）；发布通过（533 文件 302.6 MB，`artifacts/publish/win-x64`，快捷方式指向不变）；播放器三分区宽窄两档截图 `work/settings-player-sections-1100/760.png` 已逐张目检。
+- 未验证：闸门 4 整段设置区检查——Emby 服务器仍 502，自检四轮全部停在登录页（87 项运行检查全过、0 失败，含修好的「窗口命令按钮」；100 项消失、1 项降级、3 项新增全是登录页停驻的同一原因），本轮改写的「mpv.exe 路径…」检查没得到当轮运行，结构事实由探针与截图替代钉住，留待服务器恢复后发版轮补跑；真实播放不受本轮影响（未动 Core）。
+
+## 硬解出厂默认按解码参考文档改为 auto-copy-safe（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交工作（图形接口分家那批）。本轮只动解码默认：`AppSettings.cs`（`HardwareDecoding` 出厂值 `auto-safe` → `auto-copy-safe` 及注释）、`MpvOutputOptions.cs`（`HardwareDecoders` 推荐档从 auto-safe 挪到 auto-copy-safe，值与顺序不变）、`SettingsViewModel.Video.cs`（硬件解码行说明）、`PlaybackTests.cs`（出厂值断言）、`momoka-video-output` 技能一行。未提交、未推送。
+- 用户令：「参考以下文档修改本项目」，随后中途确认「视频渲染（vo）内置播放器固定，两条管线都钉死 gpu-next；图形接口（gpu-api）仅集成模式固定，集成钉死 d3d11」（两项已在位，不动），最后令「继续，同时参考文档设置本项目的默认值」。文档解码一节其余各行（hwdec-codecs、hwdec-threads、vd-lavc-dr/threads、vd-queue-enable、vd-lavc-assume-old-x264、opengl-pbo、d3d11va-zero-copy、d3d11-adapter / vulkan-device、双显卡 vd=_qsv）在参考配置里均为注释掉的可选项，不落为默认，也不新增设置行。
+- 换默认的依据取自文档原文：复制回内存的模式确保「全部设置/滤镜/着色器正常作用（有些不支持）」，无 copy 的原生硬解文档明确不推荐；Windows 手动指定建议 d3d11va / d3d12va-copy；官方手册整体优先软解。本项目画面管线以着色器链为卖点，解码面进不了采样等于半套功能，故自动档选 copy 模式。
+- 默认变化只对全新安装生效：存量 settings.json 的 hwdec 存值不迁移（v7 空值 → auto-safe 那次同规矩），`auto-safe` 仍在候选目录。本机存值是 auto-safe，要吃到新默认需在设置页把「硬件解码」拨到「自动（复制回内存，兼容滤镜与着色器，推荐）」。
+- 验证：Release 全方案构建 0 警告/0 错误；`format whitespace` 通过；1730 项测试全部通过、0 失败 0 跳过；发布校验通过（533 文件 302.6 MB，`artifacts/publish/win-x64`，快捷方式指向不变）。
+- 未验证：闸门 4 自检（上轮起 Emby 服务器 502 停在登录页，同因不重跑）；真实播放中 copy 硬解与着色器链的实机表现（属第三档授权范围）。
+
+## 播放器卡移回侧边栏（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；撤回上一轮「播放器卡并入视频输出」中的设置页布局部分。改动仅 Shell：`SettingsViewModel.cs`（CardCategories 恢复「播放器」在首位、默认分类回「播放器」、PlayerCard 分类回「播放器」）、`SettingsCategoryGlyphConverter.cs`（恢复播放器图标项）、`ShellNavigationProbe.Settings.cs`、`ShellSelfCheck.Settings.cs`（两处硬编码回原值）；`momoka-video-output` 技能措辞同步。图形接口三态显隐与全部管线契约改动**保留不动**。
+- 用户令：「把播放器移回侧边栏」。渲染管线行的 after 回调保留——卡与视频输出分居两个分类，切管线照旧当场重建视频卡，「集成模式自动隐藏图形接口」不受影响。
+- 验证：Release 构建 0 警告/0 错误、`format whitespace` 通过、1730 项测试全过、发布校验 533 文件通过；截图 `work/settings-video-reverted.png`——播放器卡回到侧边栏第一位，且本轮截到的正是独占状态：图形接口下拉可见（当前值「自动挑选」），补上了上一轮缺的独占态设置页画面。附注：用户生产设置当前为渲染管线=独占、图形接口=自动（即 d3d11），要吃到 Vulkan 的 5 倍着色器提升需在图形接口里选 Vulkan。
+
+## 独占模式放开图形接口＋播放器卡并入视频输出（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交工作。Core 修改 `LibMpvPipelinePolicy.cs`、`LibMpvBackend.cs`、`PlaybackPlanner.cs`、`MpvRenderCheck.cs`、`AppSettings.cs`；Shell 修改 `SettingsViewModel.cs`、`SettingsViewModel.Video.cs`、`SettingsCategoryGlyphConverter.cs`、`ShellSelfCheck.Pages.cs`、`ShellSelfCheck.Settings.cs`、`ShellNavigationProbe.Settings.cs`；测试修改 `PlaybackTests.cs`、`BackendLifecycleTests.cs`；技能同步 `momoka-video-output`。未提交、未推送。
+- 用户令三件事：「独占模式不再强制使用 D3D11」「把播放器移到视频输出里，单独一个分区，放在最上面」「开集成模式的时候自动隐藏图形接口选项」。
+- 管线契约：集成仍钉 `gpu-api=d3d11`（合成交换链只在 D3D11 路径，`display-swapchain` → SpriteVisual，Vulkan 产不出这张交换链）；独占图形接口改由设置页「图形接口」决定（默认 vulkan，空 = 自动）——`vulkan` 钉 `gpu-context=winvk`（fork 二进制确认编有 winvk 与 VK_KHR_win32_surface，`vulkan-1.dll` 本就随包）、`d3d11` 钉全套（window 模式 + 独占全屏关）、`opengl` 只钉 api、空不钉 api 但仍钉 `d3d11-output-mode=window` + `exclusive-fs=no`。换片签名改从票推契约（`LibMpvBackend.Signature` 改传 `request.PlayerOptions`），改图形接口设置后换片走重启而不是沿用旧 API（gpu-api 在 initialize 后改不动）。`PlaybackPlanner` 与 Shell 自检的渲染条件检查按管线取有效值：集成按契约（pipelineOwned 文案不变），独占按设置存值——compute 提醒恢复「把图形接口换成 vulkan」的可执行文案，不再是「管线固定改不了」的死路。
+- 设置页：播放器卡（后端/渲染管线/mpv.exe 路径/IPC/截图目录五行，行与安全说明一字未动）移入「视频输出」分类最上面；`CardCategories` 移除「播放器」、「视频输出」提至首位（页面默认开在视频输出；`PlayerSettingsLinks` 三落点不受影响，导航探针、自检、图标表三处硬编码同步）。`VideoCard` 三态：外部后端 = 视频渲染 + 图形接口两行；内置集成 = 渲染方式只读行、图形接口行隐藏；内置独占 = 图形接口下拉（说明写明默认 Vulkan 与本机 5 倍实测）。渲染管线 Choice 加 after 回调，切管线当场重建视频卡（「自动隐藏」）。
+- 依据：`artifacts/shader-probe/gpu-findings.md`（2026-09-04 实测 ArtCNN_C4F16 + CfL 在 D3D11 上 8.7 fps、Vulkan 上 45 fps；瓶颈是 D3D11 的 compute 派发、与片源大小无关，换更强的卡只等比例缓解）。
+- 验证：Release 全方案构建 0 警告/0 错误；`format whitespace` 通过；1730 项测试全部通过、0 失败 0 跳过（新增独占契约分支、独占渲染条件、换片签名图形接口三条，重写管线契约两条旧断言）；发布校验通过（533 文件 302.6 MB，`artifacts/publish/win-x64`，快捷方式指向不变）；运行截图 `work/settings-video-integrated.png`——视频输出卡开在播放器分区最上面（五行齐全）、集成态图形接口行已隐藏、导航无「播放器」卡；自检 87 项全过，含新格式「着色器的运行条件 — 管线=集成」行。
+- 未验证：①独占模式 + Vulkan 的真实起播——fork 的 winvk 上下文此前从未实机跑过，三条离线探针固定集成管线，真实播放属三档授权范围。判据：独占模式播一部片子，mpv 日志应报 `gpu-api=vulkan`，画面正常、uosc 控件在；无 Vulkan 运行时的机器（VM/老驱动）首播会失败并给出明确错误，设置页把图形接口改「自动」即恢复。②独占态设置页图形接口下拉未截图（`--self-check-data` 只能与 `--self-check` 同用，不改真实设置拿不到独占态画面）——判据：渲染管线切到独占模式后，「基础输出」应立即出现「图形接口」下拉。③闸门 4 因 Emby 服务器仍不可达停在登录页（与上一批同因：502），87 项全过、基线未动，留待发版轮补跑。
+
 ## v0.1.3 以来在途一批落主树（2026-10-11，未发版）
 
 - 当前树 `C:/Users/89400/Momoka`；把 v0.1.3 以来十余轮在途工作（各自记录见下）整批提交。曾按用户「提交代码，打包发布新版本」起一发版轮：版本升 0.1.4、闸门 1～3 全过，闸门 4 因 Emby 服务器宕机无法通过，用户改令「只提交代码，不发布」——版本号回退 0.1.3，未打标签、未发 GitHub Release、对外安装包/ZIP/商店包已删除。

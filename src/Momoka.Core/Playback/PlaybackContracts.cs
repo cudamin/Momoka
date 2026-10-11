@@ -163,9 +163,8 @@ public sealed record PlaybackRequest
     /// <summary>
     /// Plain mpv <c>name=value</c> options: the client's own baseline, then the 画质预设 and the
     /// 视频输出 / 音频输出 / 字幕外观 settings, then the chosen shader group — later entries overriding
-    /// earlier ones, which is how mpv itself resolves a repeated option. There is no config file behind
-    /// them any more, and (since v5) no 附加参数 after them: what is not here is mpv's own compiled-in
-    /// default.
+    /// earlier ones, which is how mpv itself resolves a repeated option. Built-in standalone playback
+    /// may subsequently load the explicitly enabled custom mpv.conf over these ordinary defaults.
     /// </summary>
     public IReadOnlyList<KeyValuePair<string, string>> PlayerOptions { get; init; } = [];
 

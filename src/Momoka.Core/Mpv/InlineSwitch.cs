@@ -27,6 +27,9 @@ public sealed record PlaybackLaunchSignature(
     IReadOnlyList<KeyValuePair<string, string>> BaselineOptions)
 {
     public MpvBackendKind Backend { get; init; } = MpvBackendKind.BuiltInLibMpv;
+
+    // 自定义文件及其条件配置可能在两次起播间变化，重建实例才能重新读取全部配置。
+    public bool UsesCustomConfig { get; init; }
 }
 
 /// <summary>
@@ -46,19 +49,13 @@ public static class InlineSwitch
     /// 两次起播的签名对得上吗。对得上才允许同一个实例换片；对不上就只能停掉重开（老路）。
     /// </summary>
     public static bool SameSignature(PlaybackLaunchSignature running, PlaybackLaunchSignature next) =>
-        running.Backend == next.Backend
+        !running.UsesCustomConfig && !next.UsesCustomConfig
+        && running.Backend == next.Backend
         && running.Pipeline == next.Pipeline
         && Same(running.PipelineOptions, next.PipelineOptions)
         && Same(running.UiOptions, next.UiOptions)
         && Same(running.SeekKeyOptions, next.SeekKeyOptions)
         && Same(running.BaselineOptions, next.BaselineOptions);
-
-    /// <summary>
-    /// 会随影片标题变、但换片时按新票重写的选项名 —— 不进必须相等的启动基线（见
-    /// <c>LibMpvBackend.Baseline</c>），换片时由 <see cref="PerFile"/> 按新票重写。名单里今天只有
-    /// 截图模板一条：常规换集集名不同，模板跟着集名走，把它算进基线就把最常见的同窗换片挡死在签名。
-    /// </summary>
-    public static IReadOnlyList<string> PerFileSignatureNames { get; } = ["screenshot-template"];
 
     /// <summary>
     /// 这个实例此刻还能不能接下一票（<c>LibMpvHandle.SwapToAsync</c> 的入口闸）。交接
@@ -157,13 +154,9 @@ public static class InlineSwitch
             new("pause", "no"),
         };
 
-        // 截图模板随片名走（每部片一个模板）：起播时它已经随 PlayerOptions 应用过一次，这里在换片时
-        // 按新票再写一遍 —— planner 放的那条就在新票自己的选项表里。它因此不进启动基线
-        // （<see cref="PerFileSignatureNames"/>），否则集名不同的常规换集在签名那一步就丢了快路。
-        // 新票没有这条（截图功能整个没开）就不写：那时 directory/format 也不在，签名本来就不等。
-        if (LastValue(next.PlayerOptions, "screenshot-template") is { } template)
-            plan.Add(new("screenshot-template", template));
-
+        // 截图模板不在这里（2026-10-11 起）：模板是常量（MpvBaseline.ScreenshotTemplate），片名由 mpv 在
+        // 截图那一刻从 %{media-title} 自己展开，而 force-media-title 上面已经按新票写过 —— 换集后下一张
+        // 截图自动落在新的集名上，模板本身没有东西可重写，进启动基线也不会挡快路。
         return plan;
     }
 

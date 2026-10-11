@@ -81,7 +81,14 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("整剧删除清除后代并保留新查询", DeleteContainerAsync);
             await CaseAsync("详情封面删除保持其他货架与播放目标", DeleteDetailCardAsync);
             await CaseAsync("播放返回主页不补播入场", HomePlaybackReturnAsync);
-            await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync);
+            // 2026-10-11 起该用例多四帧分区截图（播放行为分类的资源筛选、截图卡滚进视口各两帧），12 秒的
+            // 默认限时不够了 —— 与视频基础输出用例同款理由（多轮控件切换与截图设 45 秒）。
+            await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
+            // 每档包含多轮真实控件切换与截图，单独计时，原有用例仍保持 12 秒超时。
+            await CaseAsync("视频基础输出显隐与偏好恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100), 45);
+            await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45);
+            await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30);
+            await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync);
             await CaseAsync("原生控制台分区、响应布局与离页取消", ServerDashboardAsync);
             await CaseAsync("服务器管理菜单、确认与身份隔离", ServerAdministrationAsync);
@@ -122,11 +129,11 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private async Task CaseAsync(string name, Func<Task> run)
+    private async Task CaseAsync(string name, Func<Task> run, int timeoutSeconds = 12)
     {
         try
         {
-            await run().WaitAsync(TimeSpan.FromSeconds(12));
+            await run().WaitAsync(TimeSpan.FromSeconds(timeoutSeconds));
             _checks.Add(new Check(name, true, ""));
         }
         catch (Exception error) { _checks.Add(new Check(name, false, error.ToString())); }

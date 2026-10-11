@@ -73,25 +73,31 @@ public static class MpvOutputOptions
 
     public static readonly MpvChoice[] GpuApis =
     [
-        new(Inherit, "自动挑选（Windows 上是 Direct3D 11）"),
+        new(Inherit, "自动（由播放器选择）"),
         new("d3d11", "Direct3D 11"),
         new("vulkan", "Vulkan"),
         new("opengl", "OpenGL")
     ];
 
+    /// <summary>
+    /// 硬件解码的候选值。推荐档跟解码参考文档走（2026-10-11）：自动模式给 <c>auto-copy-safe</c> —— 复制回
+    /// 内存才保证滤镜与着色器全部吃到解码后的帧，无 copy 的原生硬解「理论上效率最高」但部分滤镜不支持，
+    /// 文档明确不推荐；Windows 手动指定建议 d3d11va / d3d12va 的复制档（d3d11va 对格式支持最广，含 4K60
+    /// AV1）；官方手册整体优先软解，硬解遇到问题时退回软件解码。
+    /// 不再单列空值「不指定」：随包内核默认也是 no，旧空值由 SettingsMigration 归一为显式关闭。
+    /// </summary>
     public static readonly MpvChoice[] HardwareDecoders =
     [
-        new(Inherit, "不指定（等同纯软件解码）"),
-        new("auto-safe", "自动（推荐）"),
-        new("auto-copy-safe", "自动（复制回内存，兼容滤镜）"),
+        new(Off, "关闭（纯软件解码）"),
+        new("auto-safe", "自动（优先原生硬解）"),
+        new("auto-copy-safe", "自动（复制回内存，推荐）"),
         new("d3d11va", "D3D11VA"),
         new("d3d11va-copy", "D3D11VA（复制回内存）"),
         new("d3d12va-copy", "D3D12VA（复制回内存）"),
         new("dxva2", "DXVA2"),
         new("nvdec", "NVDEC（NVIDIA，需匹配图形接口）"),
         new("nvdec-copy", "NVDEC（复制回内存）"),
-        new("vulkan", "Vulkan"),
-        new(Off, "关闭（纯软件解码）")
+        new("vulkan", "Vulkan")
     ];
 
     public static readonly MpvChoice[] DeinterlaceModes =
@@ -121,7 +127,7 @@ public static class MpvOutputOptions
         // 「跟随插值」 rather than the 「等同音频同步」 this used to say: with 启用插值 on it is not equivalent to
         // audio sync, it resolves to display-resample. Which of the two is in force is on the row's own note,
         // from ResolveSync — the label states that the choice defers, and the note states what it defers to.
-        new(Inherit, "不指定（跟随插值）"),
+        new(Inherit, "自动（跟随插值）"),
         new("audio", "音频同步"),
         new("display-resample", "显示同步（重采样音频）"),
         new("display-vdrop", "显示同步（丢帧）")
@@ -137,8 +143,7 @@ public static class MpvOutputOptions
     /// actually straddles, so each output frame is (at worst) a mix of two real frames and motion cannot smear.
     /// Every other entry is a true reconstruction filter — mpv synthesises the in-between frame from the whole
     /// neighbourhood, which smooths motion further at the cost of possible ringing around sharp moving edges.
-    /// mpv's own default is <c>mitchell</c>; it is offered here like any other, not shipped, because 「mpv's
-    /// default」 is not a reason on a machine where nobody sent <c>tscale</c> before.
+    /// The bundled core also defaults to <c>oversample</c>; other kernels remain explicit choices.
     /// </para>
     /// <para>
     /// No 「不设置」 entry: <see cref="Build"/> names the kernel on every interpolation launch, so an unknown
@@ -149,12 +154,12 @@ public static class MpvOutputOptions
     /// </summary>
     public static readonly MpvChoice[] InterpolationKernels =
     [
-        new("oversample", "过采样（最省，运动最干净）"),
+        new("oversample", "过采样（低开销）"),
         new("mitchell", "Mitchell（均衡）"),
-        new("catmull_rom", "Catmull-Rom（更锐一档）"),
+        new("catmull_rom", "Catmull-Rom（较锐利）"),
         new("bicubic", "双三次"),
         new("spline36", "Spline36（更锐，轻微振铃）"),
-        new("lanczos", "Lanczos（最锐，振铃最明显）")
+        new("lanczos", "Lanczos（锐利，可能振铃）")
     ];
 
     /// <summary>
@@ -165,8 +170,8 @@ public static class MpvOutputOptions
     [
         new(Inherit, "继承画质预设（未指定时为 Fruit）"),
         new("fruit", "Fruit（推荐）"),
-        new("ordered", "有序抖动（最省）"),
-        new("error-diffusion", "误差扩散（最好，最费）"),
+        new("ordered", "有序抖动（低开销）"),
+        new("error-diffusion", "误差扩散（高开销）"),
         new(Off, "关闭")
     ];
 
@@ -178,7 +183,7 @@ public static class MpvOutputOptions
     /// </summary>
     public static readonly MpvChoice[] DebandModes =
     [
-        new(Inherit, "不设置（保持关闭）"),
+        new(Inherit, "继承画质预设"),
         new(Auto, "自动（8bit 片源开启）"),
         new(Anime, "在动画中开启"),
         new("yes", "始终开启"),
@@ -815,7 +820,7 @@ public static class MpvOutputOptions
 
         if (!video.Interpolation) return (chosen, false, null);
         if (chosen.Length > 0 && !chosen.StartsWith("display-", StringComparison.Ordinal))
-            return (chosen, false, "当前选择的是音频同步，插值不会启用；请选择显示同步或不指定");
+            return (chosen, false, "音频同步不启用插值；切换到显示同步或自动后可启用");
 
         return (chosen.Length == 0 ? "display-resample" : chosen, true, null);
     }

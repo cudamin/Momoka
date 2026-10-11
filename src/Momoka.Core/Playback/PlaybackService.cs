@@ -267,6 +267,19 @@ public sealed partial class PlaybackService(
 
     public Task ApplyScreenshotDirectoryAsync(string directory) => SetPropertyAsync("screenshot-directory", directory);
 
+    /// <summary>
+    /// 「截图格式与画质那几行改了，推给正在播的那一部」（用户令 2026-10-11：截图参数做成设置页的自定义选项）。
+    /// 与 <see cref="ApplyScreenshotDirectoryAsync"/> 同一语义，与 <see cref="ApplySubtitleStyleAsync"/> 同一手法：
+    /// 整组发，不猜哪条变了 —— 这几行没有「不设置」的档位，在运行中的播放器上「不推」就是「保持我上一分钟发的
+    /// 那条」。选项表由 <see cref="MpvBaseline.ScreenshotOptions.ToMpvOptions"/> 出（起播那一路的同一份），
+    /// WebP 三条只随 webp 格式发。没在播就是无事可做，不算错误。
+    /// </summary>
+    public async Task ApplyScreenshotOptionsAsync()
+    {
+        foreach (var (name, value) in MpvBaseline.ScreenshotOptions.From(settings.Mpv).ToMpvOptions())
+            await SetPropertyAsync(name, value).ConfigureAwait(false);
+    }
+
     private async Task SetPropertyAsync(IPlaybackHandle handle, long generation, string name, object? value)
     {
         if (!IsCurrent(handle, generation)) return;

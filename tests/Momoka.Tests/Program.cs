@@ -14,6 +14,7 @@ internal static class Program
         PlaybackTests.Register();
         PlaybackLifecycleTests.Register();
         BackendLifecycleTests.Register();
+        MpvCustomConfigTests.Register();
         AudioOutputTests.Register();
         VideoOutputTests.Register();
         ShaderTransactionTests.Register();

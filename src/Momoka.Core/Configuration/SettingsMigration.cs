@@ -479,6 +479,17 @@ public static class SettingsMigration
         settings.Playback.SubtitleScalePercent = Math.Clamp(settings.Playback.SubtitleScalePercent,
             PlaybackSettings.MinimumSubtitleScale, PlaybackSettings.MaximumSubtitleScale);
 
+        // 截图画质（2026-10-11 用户令）：格式认不出回装机默认（候选目录里没有「不设置」——外置 mpv.exe 对
+        // 认不出的格式值是拒绝起播；候选删掉 jxl/avif 后存过的值也从这里归回 png），几个数字夹进 mpv 自己的
+        // 范围。范围常量与下发端（MpvBaseline.ScreenshotOptions.From）是同一套，存储端和下发端一个说法。
+        settings.Mpv.ScreenshotFormat = MpvBaseline.ScreenshotOptions.NormalizeFormat(settings.Mpv.ScreenshotFormat);
+        settings.Mpv.ScreenshotWebpQuality = Math.Clamp(settings.Mpv.ScreenshotWebpQuality,
+            MpvBaseline.ScreenshotOptions.MinimumQuality, MpvBaseline.ScreenshotOptions.MaximumQuality);
+        settings.Mpv.ScreenshotWebpCompression = Math.Clamp(settings.Mpv.ScreenshotWebpCompression,
+            MpvBaseline.ScreenshotOptions.MinimumCompression, MpvBaseline.ScreenshotOptions.MaximumCompression);
+        settings.Mpv.ScreenshotJpegQuality = Math.Clamp(settings.Mpv.ScreenshotJpegQuality,
+            MpvBaseline.ScreenshotOptions.MinimumQuality, MpvBaseline.ScreenshotOptions.MaximumQuality);
+
         // The same rule the settings row applies as it is typed — see PlaybackSettings.ClampFontSize.
         settings.Playback.SubtitleFontSize = PlaybackSettings.ClampFontSize(settings.Playback.SubtitleFontSize);
         // 字幕加粗 is a bool now (v20) — nothing to clamp.
@@ -512,6 +523,8 @@ public static class SettingsMigration
         settings.Video.Renderer = Choice(MpvOutputOptions.Renderers, settings.Video.Renderer);
         settings.Video.GpuApi = Choice(MpvOutputOptions.GpuApis, settings.Video.GpuApi);
         settings.Video.HardwareDecoding = Choice(MpvOutputOptions.HardwareDecoders, settings.Video.HardwareDecoding);
+        // 原「不指定」与关闭都是软解；合并后旧空值/未知值仍保持软解，并能在下拉中正确选中。
+        if (settings.Video.HardwareDecoding.Length == 0) settings.Video.HardwareDecoding = "no";
         settings.Video.OutputLevels = Choice(MpvOutputOptions.OutputLevels, settings.Video.OutputLevels);
         settings.Video.VideoSync = Choice(MpvOutputOptions.VideoSync, settings.Video.VideoSync);
 

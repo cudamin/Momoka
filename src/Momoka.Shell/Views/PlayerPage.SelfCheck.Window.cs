@@ -47,6 +47,13 @@ public sealed partial class PlayerPage
     {
         if (!Attached || _window is null) return (false, "播放层未接线");
 
+        // 管线档与后端按到内置集成（只动内存，量完放回）。还没有会话时 PictureInHostWindow 按设置推算，
+        // 这台机器的存值停在独占的话 SetFullscreen 走 native 分支、宿主窗连全屏都不进，右上角那颗图标
+        // 纹丝不动 —— 就是 ProbeForcePipeline 注释里点名的「窗口命令按钮」那场环境病（置顶那一关早已
+        // 同一手）。这一关要量的是宿主窗自己的改形路，不该看机器此刻的管线口味。
+        var keepPipeline = ViewModel.ProbeForcePipeline(VideoPipelineKind.Integrated);
+        var keepBackend = ViewModel.ProbeForceBackend(MpvBackendKind.BuiltInLibMpv);
+
         // 窗口改形那一路（ChangeWindowAsync）现在只在「在台上」才动手（stage5 加的守卫），而自检没有真实
         // 播放、_onStage 平时是假的 —— 与「置顶开关」那一关同一套：这里照实把它摆成在台上，量完放回。
         var wasOnStage = _onStage;
@@ -173,6 +180,8 @@ public sealed partial class PlayerPage
         Visibility = was;
         UpdateLayout();
         _onStage = wasOnStage;
+        ViewModel.ProbeForcePipeline(keepPipeline);
+        ViewModel.ProbeForceBackend(keepBackend);
 
         return (trouble.Count == 0,
             $"标题栏 {strip.Width:0}×{strip.Height:0} 逻辑像素，三个窗口命令"

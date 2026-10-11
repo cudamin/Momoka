@@ -9,6 +9,38 @@ internal static class VideoOutputTests
 {
     public static void Register()
     {
+        Test("硬件解码：合并软件解码选项后旧空值与未知值仍关闭硬解", () =>
+        {
+            foreach (var stored in new[] { "", " ", "no", " NO ", "unknown-decoder" })
+            {
+                var settings = new AppSettings();
+                settings.Video.HardwareDecoding = stored;
+                SettingsMigration.Normalize(settings);
+                Assert.Equal("no", settings.Video.HardwareDecoding);
+                Assert.True(MpvOutputOptions.HardwareDecoders.Any(choice => choice.Value == settings.Video.HardwareDecoding));
+                var output = Last(MpvOutputOptions.Build(settings.Video, settings.Audio));
+                Assert.Equal("no", output.GetValueOrDefault("hwdec", ""));
+                SettingsMigration.Normalize(settings);
+                Assert.Equal("no", settings.Video.HardwareDecoding, "再次加载不能把软解换成新装默认的硬解");
+            }
+        });
+
+        Test("硬件解码：去重保留独立解码模式与新装默认", () =>
+        {
+            Assert.False(MpvOutputOptions.HardwareDecoders.Any(choice => choice.Value.Length == 0), "不指定与关闭不再重复展示");
+            Assert.Equal(1, MpvOutputOptions.HardwareDecoders.Count(choice => choice.Value == "no"));
+            foreach (var choice in MpvOutputOptions.HardwareDecoders)
+            {
+                var settings = new AppSettings();
+                settings.Video.HardwareDecoding = choice.Value.ToUpperInvariant();
+                SettingsMigration.Normalize(settings);
+                Assert.Equal(choice.Value, settings.Video.HardwareDecoding, "保留每种明确指定的硬解及复制模式");
+                var output = Last(MpvOutputOptions.Build(settings.Video, settings.Audio));
+                Assert.Equal(choice.Value, output.GetValueOrDefault("hwdec", ""));
+            }
+            Assert.Equal("auto-copy-safe", SettingsMigration.Normalize(new AppSettings()).Video.HardwareDecoding);
+        });
+
         Test("视频设置：识别到的选项必须写成内核接受的规范大小写", () =>
         {
             var settings = new AppSettings();
