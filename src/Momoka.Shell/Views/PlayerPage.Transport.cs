@@ -87,9 +87,13 @@ public sealed partial class PlayerPage
         SpeedStrip.Width = (compact ? 100 : 146) * ChromeFactor;
         SpeedStrip.Visibility = width < 220 ? Visibility.Collapsed : Visibility.Visible;
         SpeedButton.Visibility = width is >= 160 and < 220 ? Visibility.Visible : Visibility.Collapsed;
-        // 音量轨高度公式不随档（窗口矮时本来就被夹住），只有上限那一个数分两档：大档 364（=280×1.3）。
-        VolumeTrack.Height = Math.Clamp((Root.ActualHeight - 176) * 0.8 - 40, 80,
-            BigChrome ? FullscreenRailTrack : WindowRailTrack);
+        // 与 uosc 一样在顶栏和底栏之间居中，随可用高度缩短，保留静音键的完整格子。
+        var top = TitleStrip.Height;
+        var bottom = BarHeight();
+        var railHeight = ChromeReveal.RailHeight(Root.ActualHeight - top - bottom, Rail.Width);
+        VolumeTrack.Height = Math.Max(0, railHeight - Rail.Width);
+        var margin = new Thickness(0, top, Rail.Margin.Right, bottom);
+        if (Rail.Margin != margin) Rail.Margin = margin;
         PaintTransportReadouts();
         RenderSpeedNotches();
     }

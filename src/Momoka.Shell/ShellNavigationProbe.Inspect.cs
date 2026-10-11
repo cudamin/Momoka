@@ -13,8 +13,13 @@ internal sealed partial class ShellNavigationProbe
 {
     private async Task InspectAsync()
     {
-        using var fixture = CreateFixture();
+        using var fixture = CreateFixture(new SearchProbeServer());
         await fixture.SelectAsync();
+        fixture.Settings.MoviePilot.Enabled = true;
+        fixture.Settings.MoviePilot.Url = "https://moviepilot.invalid:3001";
+        fixture.Settings.MoviePilot.Username = "fixture";
+        new Momoka.Configuration.MoviePilotCredentials(Momoka.Configuration.PassthroughSecretProtector.Instance)
+            .SetPassword(fixture.Settings.MoviePilot, "fixture");
         var image = await FixtureImageAsync();
         var item = Series();
         item.Name = "离线示例 · 媒体导航与封面管理";
@@ -62,6 +67,12 @@ internal sealed partial class ShellNavigationProbe
         Add("InspectDetail", "剧集详情", () =>
         {
             frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, item));
+            return Task.CompletedTask;
+        });
+        Add("InspectResources", "资源搜索", () =>
+        {
+            frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services));
+            Get<CommunityToolkit.WinUI.Controls.Segmented>((LibraryPage)frame.Content, "SourceTabs").SelectedIndex = 2;
             return Task.CompletedTask;
         });
         Add("InspectFile", "单集文件", () =>

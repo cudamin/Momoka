@@ -268,6 +268,12 @@ public sealed class PlaybackSettings
     /// <para>
     /// 出厂关着：这是替服务器提前替条目下结论，默认不动别人的观看记录。
     /// </para>
+    /// <para>
+    /// 2026-10-09 用户令又添了一个触发点：「新增打开通知接管后，点击标记为已看后自动发送通知，发送的播放
+    /// 进度设置进度为100%」—— 手动点「标记为已看」同样补报一趟，位置按条目时长报满（取数见
+    /// <see cref="Playback.PlaybackService.ReportMarkedWatchedAsync"/>）。这一格管的是「客户端替服务器判断
+    /// 时机」，阈值与手动两种触发都归它管，所以没有为它另立一格。
+    /// </para>
     /// </summary>
     public bool StopReportEnabled { get; set; }
 
@@ -1127,25 +1133,43 @@ public sealed class ShaderAutomationSettings
 /// </summary>
 public sealed class MoviePilotSettings
 {
+    public event EventHandler? ConnectionChanged;
+
     /// <summary>
     /// Whether the settings page may talk to MoviePilot at all. Off by default: a fresh install has no
     /// MoviePilot, and a client that probes an address nobody configured on every visit to the settings
     /// page would be spending a network timeout on a service that was never there.
     /// </summary>
-    public bool Enabled { get; set; }
+    public bool Enabled
+    {
+        get;
+        set { if (field == value) return; field = value; ConnectionChanged?.Invoke(this, EventArgs.Empty); }
+    }
 
     /// <summary>
     /// The API address as typed, e.g. <c>192.0.2.10:3001</c>. Normalised through
     /// <see cref="MoviePilot.MoviePilotAddress"/> on the way in and out; stored as the user's own text so a
     /// half-typed address survives a restart.
     /// </summary>
-    public string Url { get; set; } = "";
+    public string Url
+    {
+        get;
+        set { if (field == value) return; field = value; ConnectionChanged?.Invoke(this, EventArgs.Empty); }
+    } = "";
 
     /// <summary>The MoviePilot account this app signs in as.</summary>
-    public string Username { get; set; } = "";
+    public string Username
+    {
+        get;
+        set { if (field == value) return; field = value; ConnectionChanged?.Invoke(this, EventArgs.Empty); }
+    } = "";
 
     /// <summary>DPAPI-wrapped password. Empty when the user has not saved one.</summary>
-    public string ProtectedPassword { get; set; } = "";
+    public string ProtectedPassword
+    {
+        get;
+        set { if (field == value) return; field = value; ConnectionChanged?.Invoke(this, EventArgs.Empty); }
+    } = "";
 
     /// <summary>
     /// The signed-in user's display name from the last successful test, for the card to report. Not a
@@ -1165,6 +1189,8 @@ public sealed class MoviePilotSettings
 
 public sealed class UiSettings
 {
+    public Dictionary<string, List<RecentSearchEntry>> RecentSearches { get; set; } = new(StringComparer.Ordinal);
+
     public int PageSize { get; set; } = 100;
 
     /// <summary>

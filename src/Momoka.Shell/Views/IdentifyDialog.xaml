@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  「识别」：把一个条目对到刮削源上的某一条记录（Emby 网页端 components/itemidentifier 那一张）。
+
+  照网页端的样子分几段，同一张对话框里换：① 搜索条件 → ② 搜索结果 → ③ 落哪一条，另加一段 ④ 移除识别的那句
+  问话。几段都在这一个 ScrollViewer 里，靠 Visibility 换 —— 开几张 ContentDialog 是不行的（WinUI 同时只允许
+  一张），而开一张再关一张会让用户填过的东西全丢掉。
+
+  **按钮在滚动区外面**（底下那一行）：正文比窗口高的时候，正文该滚、按钮不该滚 —— 摆在正文末尾的那颗「搜索」
+  在矮窗口里会被切掉半颗，而它是这一段唯一该按的东西。一次只露该露的那两颗（见 IdentifyDialog.ShowStage）。
+
+  每一条规则（哪几种条目能识别、标签怎么写、什么时候不该问）都在 Core 的 ItemIdentify 里；这个文件只决定
+  它们长什么样、按什么次序出现。
+-->
+<ContentDialog x:Uid="IdentifyDialog_ContentDialog1"
+    x:Class="Momoka.Shell.Views.IdentifyDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:views="using:Momoka.Shell.Views"
+    DefaultButton="Primary">
+
+    <ContentDialog.Resources>
+        <!-- 比默认的 548 宽一档：一屏结果要排得下三张海报，标识符那几格也不至于挤成一列。 -->
+        <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
+    </ContentDialog.Resources>
+
+    <Grid RowSpacing="{StaticResource EgSpaceL}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer
+            HorizontalScrollBarVisibility="Disabled"
+            HorizontalScrollMode="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel Padding="0,0,12,0" Spacing="{StaticResource EgSpaceL}">
+
+                <!-- 只在真出错时才占位置，平时收着。 -->
+                <InfoBar
+                    x:Name="Problem"
+                    IsClosable="False"
+                    IsOpen="False"
+                    Severity="Error" />
+
+                <!-- ① 搜索条件 -->
+                <StackPanel x:Name="SearchForm" Spacing="{StaticResource EgSpaceM}">
+                    <TextBlock
+                        Style="{StaticResource EgBodyStyle}"
+                        Text="输入一个或多个搜索条件。移除条件可增加搜索结果。"
+                        TextWrapping="Wrap" />
+
+                    <!-- 路径：服务器上这个条目背后的文件。单集没有自己的路径、搜索结果里的存根也可能没有，
+                         所以没有就整段不出现。 -->
+                    <StackPanel x:Name="PathRow" Spacing="{StaticResource EgSpaceXS}" Visibility="Collapsed">
+                        <TextBlock Style="{StaticResource EgEyebrowStyle}" Text="路径" />
+                        <TextBlock
+                            x:Name="PathText"
+                            IsTextSelectionEnabled="True"
+                            Style="{StaticResource EgCaptionStyle}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <TextBox x:Name="NameBox" Header="标题" />
+                    <TextBox x:Name="YearBox" Header="年份" InputScope="Number" />
+
+                    <!-- 各家刮削源的标识符：服务器按条目类型答哪几家，所以这一块是代码填的。 -->
+                    <StackPanel x:Name="ProviderFields" Spacing="{StaticResource EgSpaceM}" />
+                </StackPanel>
+
+                <!-- ② 移除识别那一句问话。**不可撤销**，所以和搜索表单分开一段，问清楚再动手；
+                     那一句问话不另开一张 ContentDialog —— WinUI 同时只让开一张。 -->
+                <StackPanel x:Name="ConfirmArea" Spacing="{StaticResource EgSpaceM}" Visibility="Collapsed">
+                    <TextBlock
+                        x:Name="ConfirmText"
+                        Style="{StaticResource EgBodyStyle}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!-- ③ 搜索结果 -->
+                <StackPanel x:Name="ResultsArea" Spacing="{StaticResource EgSpaceM}" Visibility="Collapsed">
+                    <TextBlock Style="{StaticResource EgSectionTitleStyle}" Text="搜索结果" />
+                    <TextBlock
+                        x:Name="NoResults"
+                        Style="{StaticResource EgBodyStyle}"
+                        Text="刮削源上没有对得上的记录。把条件放宽一些再试一次。"
+                        TextWrapping="Wrap"
+                        Visibility="Collapsed" />
+                    <ItemsControl x:Name="Results" ItemsSource="{x:Bind Candidates}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid ItemWidth="{StaticResource EgArtworkCellWidth}" Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="views:IdentifyCandidate">
+                                <StackPanel
+                                    Margin="0,0,0,12"
+                                    Spacing="{StaticResource EgSpaceS}"
+                                    Width="{StaticResource EgArtworkFrameWidth}">
+                                    <Button
+                                        Height="{StaticResource EgArtworkFrameWidth}"
+                                        AutomationProperties.AutomationId="IdentifyResult"
+                                        AutomationProperties.Name="{x:Bind Title}"
+                                        Click="OnPick"
+                                        Style="{StaticResource EgArtworkTileStyle}"
+                                        Tag="{x:Bind}"
+                                        ToolTipService.ToolTip="选这一条">
+                                        <Grid>
+                                            <Image
+                                                Source="{x:Bind Picture, Mode=OneWay}"
+                                                Stretch="UniformToFill"
+                                                Visibility="{x:Bind HasPicture, Mode=OneWay}" />
+                                            <FontIcon
+                                                Glyph="&#xE8B6;"
+                                                Style="{StaticResource EgArtworkEmptyGlyphStyle}"
+                                                Visibility="{x:Bind EmptyMark, Mode=OneWay}" />
+                                        </Grid>
+                                    </Button>
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        Style="{StaticResource EgDataStrongStyle}"
+                                        Text="{x:Bind Title}"
+                                        TextTrimming="CharacterEllipsis" />
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        Style="{StaticResource EgCaptionStyle}"
+                                        Text="{x:Bind Subtitle}"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+
+                <!-- ④ 落哪一条 -->
+                <StackPanel x:Name="ApplyArea" Spacing="{StaticResource EgSpaceM}" Visibility="Collapsed">
+                    <TextBlock
+                        x:Name="ChosenName"
+                        Style="{StaticResource EgSubheadStyle}"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        x:Name="ChosenDetail"
+                        Style="{StaticResource EgDataStyle}"
+                        TextWrapping="Wrap" />
+                    <CheckBox x:Name="ReplaceImages" Content="替换现有图像" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 一次只露该露的那两颗；哪一段露哪两颗见 IdentifyDialog.ShowStage。 -->
+        <StackPanel
+            Grid.Row="1"
+            Orientation="Horizontal"
+            Spacing="{StaticResource EgSpaceM}">
+            <Button
+                x:Name="SearchButton"
+                Click="OnSearch"
+                Content="搜索"
+                Style="{StaticResource EgPrimaryButtonStyle}" />
+            <Button
+                x:Name="RemoveButton"
+                Click="OnAskRemove"
+                Content="移除识别"
+                Style="{StaticResource EgSecondaryButtonStyle}" />
+            <Button
+                x:Name="ConfirmRemoveButton"
+                Click="OnConfirmRemove"
+                Content="移除识别"
+                Style="{StaticResource EgPrimaryButtonStyle}"
+                Visibility="Collapsed" />
+            <Button
+                x:Name="CancelRemoveButton"
+                Click="OnCancelRemove"
+                Content="取消"
+                Style="{StaticResource EgSecondaryButtonStyle}"
+                Visibility="Collapsed" />
+            <Button
+                x:Name="ApplyButton"
+                Click="OnApply"
+                Content="识别"
+                Style="{StaticResource EgPrimaryButtonStyle}"
+                Visibility="Collapsed" />
+            <Button
+                x:Name="BackToFormButton"
+                Click="OnBackToForm"
+                Content="返回搜索条件"
+                Style="{StaticResource EgSecondaryButtonStyle}"
+                Visibility="Collapsed" />
+            <Button
+                x:Name="BackToResultsButton"
+                Click="OnBackToResults"
+                Content="返回搜索结果"
+                Style="{StaticResource EgSecondaryButtonStyle}"
+                Visibility="Collapsed" />
+        </StackPanel>
+    </Grid>
+</ContentDialog>

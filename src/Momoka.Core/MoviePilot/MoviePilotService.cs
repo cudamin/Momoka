@@ -16,11 +16,22 @@ namespace Momoka.MoviePilot;
 /// <see cref="MoviePilotSession"/>（那是「一次登录的结果」这个记录）。
 /// </para>
 /// </summary>
-public sealed partial class MoviePilotService(
-    MoviePilotClient client,
-    MoviePilotCredentials credentials,
-    AppSettings settings)
+public sealed partial class MoviePilotService : IDisposable
 {
+    private readonly MoviePilotClient _client;
+    private readonly MoviePilotCredentials _credentials;
+    private readonly AppSettings _settings;
+
+    public MoviePilotService(MoviePilotClient client, MoviePilotCredentials credentials, AppSettings settings)
+    {
+        _client = client;
+        _credentials = credentials;
+        _settings = settings;
+        _configuration = ReadConfiguration();
+        settings.MoviePilot.ConnectionChanged += OnConnectionChanged;
+    }
+
+    public void Dispose() => _settings.MoviePilot.ConnectionChanged -= OnConnectionChanged;
     private const string Category = "moviepilot";
 
     /// <summary>一次只让一趟登录在飞，省得同时来两次搜索各登一次。</summary>
@@ -30,12 +41,12 @@ public sealed partial class MoviePilotService(
     private CachedSession? _session;
 
     // 只比较密文快照；明文仅在实际登录时解开，不作为缓存键或诊断文字。
-    private sealed record SessionIdentity(Uri ApiBase, string Username, string ProtectedPassword);
+    private sealed record SessionIdentity(Uri ApiBase, string Username, string ProtectedPassword, long Generation);
 
     private sealed record CachedSession(SessionIdentity Identity, MoviePilotSession Session);
 
-    /// <summary>用户在设置里开没开这项。搜索页拿它决定那个分段切换在不在。</summary>
-    public bool Enabled => settings.MoviePilot.Enabled;
+    /// <summary>原始设置开关；界面入口使用 <see cref="Available"/>。</summary>
+    public bool Enabled => _settings.MoviePilot.Enabled;
 
     /// <summary>
     /// 搜一个关键字。空词直接回空，不发请求。<c>media/search</c> 回的是裸数组，交给
@@ -63,7 +74,7 @@ public sealed partial class MoviePilotService(
 
         var identity = CaptureIdentity();
         var data = await CallAsync((apiBase, token) =>
-            client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+            _client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
 
         var stamp = TransferConnectionStamp(identity);
         var results = MoviePilotMediaParser.Parse(data).Select(media => media with { ConnectionStamp = stamp }).ToList();
@@ -79,7 +90,7 @@ public sealed partial class MoviePilotService(
     public async Task<IReadOnlyList<MoviePilotMediaSource>> MediaSourcesAsync(CancellationToken cancellationToken)
     {
         var data = await CallAsync((apiBase, token) =>
-            client.GetAsync(apiBase, token, "media/source", cancellationToken), cancellationToken).ConfigureAwait(false);
+            _client.GetAsync(apiBase, token, "media/source", cancellationToken), cancellationToken).ConfigureAwait(false);
         return ParseMediaSources(data);
     }
 
@@ -95,7 +106,7 @@ public sealed partial class MoviePilotService(
         var identity = RequireResultConnection(media.ConnectionStamp);
         var body = MoviePilotMediaParser.SubscribeBody(media);
         await WriteAsync(identity, [SubscribeKey(media)], (apiBase, token) =>
-            client.PostAsync(apiBase, token, "subscribe/", body, cancellationToken), cancellationToken)
+            _client.PostAsync(apiBase, token, "subscribe/", body, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
 
         Log.Info(Category, $"已在 MoviePilot 订阅《{media.Title}》");
@@ -107,17 +118,21 @@ public sealed partial class MoviePilotService(
     /// </summary>
     public async Task<IReadOnlyList<MoviePilotResource>> SearchResourcesAsync(
         MoviePilotMedia media,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        MoviePilotSiteSelection? sites = null,
+        MoviePilotMediaSearchOptions? options = null)
     {
         if (!media.CanSubscribe) return [];
 
         var identity = media.ConnectionStamp.Length == 0 ? CaptureIdentity() : RequireResultConnection(media.ConnectionStamp);
         var path = $"search/media/{Uri.EscapeDataString(media.MediaId!)}?media_source={Uri.EscapeDataString(media.MediaSource!)}";
         if (!string.IsNullOrWhiteSpace(media.Type)) path += $"&mtype={Uri.EscapeDataString(media.Type)}";
+        if (options is not null) path += "&area=" + (options.Area == "imdbid" ? "imdbid" : "title");
         if (media.Season is >= 0 && media.Type == MoviePilotTransferRequest.TypeSeries)
             path += $"&season={media.Season.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        path += SearchSitesQuery(sites);
         var data = await CallAsync((apiBase, token) =>
-            client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+            _client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
 
         var stamp = TransferConnectionStamp(identity);
         var resources = MoviePilotMediaParser.ParseResources(data, media.MediaSource, media.MediaId, media)
@@ -134,15 +149,16 @@ public sealed partial class MoviePilotService(
     /// </summary>
     public async Task<IReadOnlyList<MoviePilotResource>> SearchByKeywordAsync(
         string keyword,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        MoviePilotSiteSelection? sites = null)
     {
         var text = keyword.Trim();
         if (text.Length == 0) return [];
 
         var identity = CaptureIdentity();
-        var path = $"search/title?keyword={Uri.EscapeDataString(text)}&page=0";
+        var path = $"search/title?keyword={Uri.EscapeDataString(text)}&page=0" + SearchSitesQuery(sites);
         var data = await CallAsync((apiBase, token) =>
-            client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+            _client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
 
         var stamp = TransferConnectionStamp(identity);
         var resources = MoviePilotMediaParser.ParseResources(data, null, null)
@@ -153,15 +169,17 @@ public sealed partial class MoviePilotService(
 
     /// <summary>
     /// 把一个种子加进 MoviePilot 的下载器（<c>download/add</c>）。对外副作用（真的开始下载），调用方须先二次确认。
-    /// 整份 <c>torrent_info</c> 原样回传，下载器与保存路径用 MoviePilot 的默认。
+    /// 整份 <c>torrent_info</c> 原样回传，可指定下载器与服务器保存路径。
     /// </summary>
-    public async Task DownloadAsync(MoviePilotResource resource, CancellationToken cancellationToken)
+    public async Task DownloadAsync(MoviePilotResource resource, CancellationToken cancellationToken, MoviePilotDownloadOptions? options = null)
     {
         var identity = RequireResultConnection(resource.ConnectionStamp);
-        var body = MoviePilotMediaParser.DownloadBody(resource);
+        if (resource.ConnectionGeneration is { } generation && generation != identity.Generation)
+            throw new MoviePilotOperationBlockedException("MoviePilot 配置曾发生变化，请重新搜索 AniBT 资源");
+        var body = MoviePilotMediaParser.DownloadBody(resource, options);
         var path = resource.MediaInfo.ValueKind == System.Text.Json.JsonValueKind.Object ? "download/" : "download/add";
         await WriteAsync(identity, [DownloadKey(resource)], (apiBase, token) =>
-            client.PostAsync(apiBase, token, path, body, cancellationToken), cancellationToken)
+            _client.PostAsync(apiBase, token, path, body, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
 
         Log.Info(Category, $"已把资源「{resource.Title}」加入 MoviePilot 下载");
@@ -178,7 +196,7 @@ public sealed partial class MoviePilotService(
         var apiBase = ResolveAddress();
         var proxy = MoviePilotAddress.Combine(
             apiBase, $"api/v1/system/cache/image?url={Uri.EscapeDataString(url)}");
-        return await client.GetBytesAsync(proxy, cancellationToken).ConfigureAwait(false);
+        return await _client.GetBytesAsync(proxy, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -186,6 +204,26 @@ public sealed partial class MoviePilotService(
     /// 之后还 401 那是账号或权限的事，不是过期，再试也没用。泛型：整理那一半要整份回执（含失败的），不只 data。
     /// </summary>
     private async Task<T> CallAsync<T>(
+        Func<Uri, string, Task<T>> call,
+        CancellationToken cancellationToken,
+        SessionIdentity? expectedIdentity = null)
+    {
+        var identity = expectedIdentity ?? CaptureIdentity();
+        var revision = Interlocked.Read(ref _availabilityRevision);
+        try
+        {
+            var result = await CallWithSessionAsync(call, cancellationToken, identity).ConfigureAwait(false);
+            SetAvailable(identity, revision, true);
+            return result;
+        }
+        catch (Exception error) when (ConnectionFailed(error))
+        {
+            SetAvailable(identity, revision, false);
+            throw;
+        }
+    }
+
+    private async Task<T> CallWithSessionAsync<T>(
         Func<Uri, string, Task<T>> call,
         CancellationToken cancellationToken,
         SessionIdentity? expectedIdentity = null)
@@ -217,7 +255,7 @@ public sealed partial class MoviePilotService(
     /// <summary>设置里的地址归一化成 API base，或用一句人话说明为什么不行。</summary>
     private Uri ResolveAddress()
     {
-        if (!MoviePilotAddress.TryNormalize(settings.MoviePilot.Url, out var address, out var error))
+        if (!MoviePilotAddress.TryNormalize(_settings.MoviePilot.Url, out var address, out var error))
             throw new MoviePilotException(error);
 
         return address ?? throw new MoviePilotException("先在设置里填上 MoviePilot 的服务地址");
@@ -225,22 +263,21 @@ public sealed partial class MoviePilotService(
 
     private SessionIdentity CaptureIdentity()
     {
-        var moviePilot = settings.MoviePilot;
+        var moviePilot = _settings.MoviePilot;
         if (!MoviePilotAddress.TryNormalize(moviePilot.Url, out var apiBase, out var error))
             throw new MoviePilotException(error);
         if (apiBase is null) throw new MoviePilotException("先在设置里填上 MoviePilot 的服务地址");
-        return new SessionIdentity(apiBase, moviePilot.Username?.Trim() ?? "", moviePilot.ProtectedPassword);
+        return new SessionIdentity(apiBase, moviePilot.Username?.Trim() ?? "", moviePilot.ProtectedPassword,
+            Interlocked.Read(ref _connectionGeneration));
     }
 
     private void CheckIdentity(SessionIdentity identity, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var current = settings.MoviePilot;
+        var current = _settings.MoviePilot;
         if (!current.Enabled)
             throw new OperationCanceledException("MoviePilot 已关闭，请重新启用后操作", cancellationToken);
-        if (!MoviePilotAddress.TryNormalize(current.Url, out var apiBase, out _) || identity.ApiBase != apiBase
-            || !string.Equals(identity.Username, current.Username?.Trim(), StringComparison.Ordinal)
-            || identity.ProtectedPassword != current.ProtectedPassword)
+        if (!MatchesConfiguration(identity))
             throw new OperationCanceledException("MoviePilot 登录配置已改变，请重新操作", cancellationToken);
     }
 
@@ -262,14 +299,14 @@ public sealed partial class MoviePilotService(
                 if (_session is { } cached && cached.Identity == identity) return cached;
             }
 
-            var password = credentials.GetPassword(identity.ProtectedPassword);
+            var password = _credentials.GetPassword(identity.ProtectedPassword);
             if (identity.Username.Length == 0 || password.Length == 0)
                 throw new MoviePilotException("MoviePilot 还没填用户名或密码，先去设置里连一下");
 
             MoviePilotSession session;
             try
             {
-                session = await client.SignInAsync(identity.ApiBase, identity.Username, password, cancellationToken).ConfigureAwait(false);
+                session = await _client.SignInAsync(identity.ApiBase, identity.Username, password, cancellationToken).ConfigureAwait(false);
             }
             catch
             {

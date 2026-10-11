@@ -29,7 +29,8 @@ internal sealed partial class ShellNavigationProbe
         var page = new SettingsPage();
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
             fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask,
-            new MoviePilotProbe(moviePilot), new MoviePilotCredentials(PassthroughSecretProtector.Instance));
+            new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings), new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
         var sections = page.ViewModel.Sections.ToArray();
         _root.Children.Add(page);
@@ -122,6 +123,89 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(page);
             ResizeInspect(1420, 980);
             File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "settings-motion.txt"), evidence);
+        }
+    }
+
+    /// <summary>
+    /// 「非管理员账号自动隐藏设置里的 EmbyServer 那一栏」：把假服务器报成普通账号，左栏那一组整个不出现，
+    /// 紧凑窗口的下拉里也不列那五个分类；报回管理员时整组装回来，顺序照旧。
+    /// <para>
+    /// 值得一条探针，因为三件坏事在屏上都看不出来：两份名单（分组、平铺）只摘一份就是「宽窗口藏了、窄窗口还
+    /// 列着」；收走之后右半边还停在被收走的那一页上（那页只会说「需要服务器管理员权限」，而左栏里已经没有
+    /// 它）；以及装回来时顺序乱了。三样都得读名单和落点才认得出。
+    /// </para>
+    /// </summary>
+    private async Task SettingsAdministrationGateAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        using var moviePilot = new MoviePilotClient(new RejectNetwork());
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, "settings-gate"));
+        paths.EnsureCreated();
+        // 同 SettingsEntranceAsync：本例不扫机器上的数千字体，给现有缓存放入空目录。
+        var fonts = new FontLibrary();
+        Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
+
+        var page = new SettingsPage();
+        page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
+            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask,
+            new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+        await page.ViewModel.ReloadAsync();
+        _root.Children.Add(page);
+        try
+        {
+            await LayoutAsync(page);
+            var rail = Get<ListView>(page, "CategoryNavigation");
+            var picker = Get<ComboBox>(page, "CompactCategoryNavigation");
+
+            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka", "EmbyServer" }),
+                "管理员账号下左栏没有「EmbyServer」那一组");
+
+            // 先把落点摆在被收走的那一页上，好看出收走之后它有没有被收回来。
+            page.SelectedCategory = SettingsViewModel.ServerDashboardCategory;
+            await LayoutAsync(page);
+
+            fixture.Capabilities.IsAdministrator = false;
+            // 走页面那一条（OnNavigatedTo 里的那一句），不是直接喊视图模型：分组换表之后把
+            // CollectionViewSource 重指一次这件事只在页面那头，漏了它屏上就留着一个空的组标题。
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+
+            Require(page.ViewModel.ServerAdministrationHidden
+                && page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka" }),
+                "普通账号下左栏仍留着「EmbyServer」那一组");
+            Require(!Descendants(rail).OfType<TextBlock>().Any(text => text.Text == "EmbyServer"),
+                "普通账号下左栏里「EmbyServer」那个组标题还留在屏上");
+            Require(!page.Categories.Any(category =>
+                    SettingsViewModel.ServerAdministrationCategories.Contains(category, StringComparer.Ordinal)),
+                "普通账号下平铺名单仍列着服务器管理分类");
+            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
+            Require(picker.ItemsSource is IEnumerable<string> entries && entries.SequenceEqual(page.Categories),
+                "紧凑窗口的下拉没有跟着同一份名单走");
+            Require(page.SelectedCategory == SettingsViewModel.FirstCardCategory,
+                "收走那一组之后右半边还停在被收走的那一页上");
+            await SaveReturnFrameAsync(page, "settings-server-admin-hidden.png");
+
+            fixture.Capabilities.IsAdministrator = true;
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+
+            Require(!page.ViewModel.ServerAdministrationHidden
+                && page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka", "EmbyServer" }),
+                "管理员身份回来之后那一组没有装回去");
+            Require(Descendants(rail).OfType<TextBlock>().Any(text => text.Text == "EmbyServer"),
+                "装回来之后左栏里没有「EmbyServer」那个组标题");
+            Require(page.Categories.TakeLast(SettingsViewModel.ServerAdministrationCategories.Count)
+                    .SequenceEqual(SettingsViewModel.ServerAdministrationCategories)
+                && rail.Items.Cast<string>().SequenceEqual(page.Categories),
+                "装回来的服务器管理分类次序不对");
+            await SaveReturnFrameAsync(page, "settings-server-admin-shown.png");
+        }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
         }
     }
 

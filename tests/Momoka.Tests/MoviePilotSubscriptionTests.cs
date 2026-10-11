@@ -153,6 +153,173 @@ internal static class MoviePilotSubscriptionTests
             Assert.Equal(4, service.SubscriptionFilesAsync(sub, CancellationToken.None).GetAwaiter().GetResult().MissingCount);
             Assert.Equal("GET", transport.Only("subscribe/12").Method); Assert.Equal("GET", transport.Only("subscribe/files/12").Method);
         });
+        Test("MoviePilot 订阅详情投影：信息与规则只列服务器确实给出的字段", () =>
+        {
+            var rich = MoviePilotSubscription.Parse(Json("""
+                {"id":12,"name":"示例剧","year":"2026","type":"电视剧","media_source":"douban","media_id":"42",
+                 "season":2,"total_episode":4,"start_episode":3,"lack_episode":1,"completed_episode":2,"state":"R",
+                 "vote":8.5,"keyword":"示例","include":"WEB-DL","exclude":"CAM","quality":"BluRay",
+                 "resolution":"1080p","effect":"HDR","filter":"","custom_words":"",
+                 "save_path":"/media/tv","downloader":"qbittorrent","username":"fixture",
+                 "search_interval":6,"best_version":1,"sites":[8,9],
+                 "date":"2026-07-26T10:00:00","last_update":"2026-07-27 11:30:00","last_search":"2026-07-27T11:30:00"}
+                """))!;
+            var info = MoviePilotSubscriptionFacts.Info(rich);
+            Assert.Equal("订阅编号|状态|年份|总集数|起始集|已完成|订阅进度|搜索间隔|上次搜索|上次更新|创建时间|搜索站点|下载器|保存路径|洗版|订阅用户",
+                string.Join('|', info.Select(fact => fact.Label)));
+            Assert.Equal("2 集", info.Single(fact => fact.Label == "已完成").Value);
+            Assert.Equal("每 6 小时", info.Single(fact => fact.Label == "搜索间隔").Value);
+            Assert.Equal("2 个", info.Single(fact => fact.Label == "搜索站点").Value);
+            Assert.Equal("2026-07-26 10:00", info.Single(fact => fact.Label == "创建时间").Value);
+            Assert.Equal("2026-07-27 11:30", info.Single(fact => fact.Label == "上次搜索").Value);
+            Assert.Equal("2026-07-27 11:30", info.Single(fact => fact.Label == "上次更新").Value);
+            Assert.Equal("开启", info.Single(fact => fact.Label == "洗版").Value);
+            Assert.Equal(8.5, rich.Vote);
+            var rules = MoviePilotSubscriptionFacts.Rules(rich);
+            Assert.Equal("搜索关键词|包含规则|排除规则|质量规则|分辨率规则|特效规则",
+                string.Join('|', rules.Select(fact => fact.Label)));
+            Assert.Equal("WEB-DL", rules.Single(fact => fact.Label == "包含规则").Value);
+        });
+        Test("MoviePilot 订阅详情投影：空字段不造行，评分和站点两种形态都收", () =>
+        {
+            var bare = MoviePilotSubscription.Parse(Json("""{"id":7,"name":"空订阅","type":"电影","vote":"7.5","sites":[]}"""))!;
+            Assert.Equal("订阅编号|状态", string.Join('|', MoviePilotSubscriptionFacts.Info(bare).Select(fact => fact.Label)));
+            Assert.Equal(0, MoviePilotSubscriptionFacts.Rules(bare).Count);
+            Assert.Equal(7.5, bare.Vote);
+            Assert.Equal(0, bare.SiteCount);
+            Assert.Equal("", MoviePilotSubscription.Stamp(""));
+            Assert.Equal("未识别的时间", MoviePilotSubscription.Stamp("未识别的时间"));
+        });
+        Test("MoviePilot 播出日期解析：空日期、缺集号、负集号与非数组都跳过", () =>
+        {
+            Assert.Equal(0, MoviePilotEpisodeAirDates.Parse(Json("{}")).Count);
+            Assert.Equal(0, MoviePilotEpisodeAirDates.Parse(Json("[]")).Count);
+            var dates = MoviePilotEpisodeAirDates.Parse(Json("""
+                [{"episode_number":1,"air_date":"2026-01-01"},{"episode_number":2,"air_date":"  "},
+                 {"episode_number":3,"air_date":"不是日期"},{"air_date":"2026-02-02"},
+                 {"episode_number":-1,"air_date":"2026-03-03"},{"episode_number":4,"air_date":"2026-04-04"},{"episode_number":1}]
+                """));
+            Assert.Equal(2, dates.Count);
+            Assert.Equal("2026-01-01", dates[1].ToString("yyyy-MM-dd"));
+            Assert.Equal("2026-04-04", dates[4].ToString("yyyy-MM-dd"));
+        });
+        Test("MoviePilot 集播出日期：已播出给「播出」、未播出给「待播出」，没有日期就空着且不算已播出", () =>
+        {
+            var episode = new MoviePilotSubscriptionEpisode(1, "", "", [], []);
+            Assert.Equal("", episode.AirDateLabel); Assert.False(episode.HasAired);
+            var past = episode with { AirDate = DateTimeOffset.Now.AddDays(-1) };
+            Assert.True(past.HasAired && past.AirDateLabel.StartsWith("播出 ", StringComparison.Ordinal), past.AirDateLabel);
+            var future = episode with { AirDate = DateTimeOffset.Now.AddDays(1) };
+            Assert.True(!future.HasAired && future.AirDateLabel.StartsWith("待播出 ", StringComparison.Ordinal), future.AirDateLabel);
+        });
+        Test("MoviePilot 播出日期读取：只对 TMDB 来源的电视剧发 tmdb 季集请求，按集号取日期", () =>
+        {
+            var tmdb = MoviePilotSubscription.Parse(Json("""
+                {"id":12,"name":"示例剧","type":"电视剧","media_source":"themoviedb","media_id":"42","season":2,
+                 "episode_group":"grp-9","total_episode":4,"start_episode":1}
+                """))!;
+            using var transport = new StubTransport().Answer("login/access-token", Session)
+                .Answer("tmdb/42/2", """[{"episode_number":1,"air_date":"2020-01-05"},{"episode_number":2,"air_date":""},{"episode_number":3,"air_date":"2999-12-31"}]""")
+                .Answer("subscribe/", "[" + tmdb.Data.GetRawText() + "]");
+            var service = Service(transport); var sub = Read(service);
+            var dates = service.SubscriptionAirDatesAsync(sub, CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Equal(2, dates.Count);
+            Assert.Equal("2020-01-05", dates[1].ToString("yyyy-MM-dd"));
+            Assert.Equal("2999-12-31", dates[3].ToString("yyyy-MM-dd"));
+            Assert.False(dates.ContainsKey(2));
+            var request = transport.Only("tmdb/42/2");
+            Assert.Equal("GET", request.Method);
+            Assert.Contains("episode_group=grp-9", request.Url);
+        });
+        Test("MoviePilot 播出日期读取：非 TMDB 来源、非电视剧或季号缺失时不发请求", () =>
+        {
+            using var transport = Transport();
+            var service = Service(transport); var sub = Read(service);
+            // 默认夹具是豆瓣来源的电视剧：这一趟不该产生任何请求（总数为登录 + 列表两趟）。
+            Assert.Equal(0, service.SubscriptionAirDatesAsync(sub, CancellationToken.None).GetAwaiter().GetResult().Count);
+            Assert.Equal(2, transport.Total);
+        });
+        Test("MoviePilot 剧集组：默认项永远排第一、计数从季列表算，跳过无编号项并按 id 去重", () =>
+        {
+            var options = MoviePilotEpisodeGroups.Build(
+                Json("""
+                    [{"id":"g1","name":"Seasons","group_count":4,"episode_count":110},
+                     {"id":"","name":"没有编号","group_count":1,"episode_count":2},
+                     {"id":"g1","name":"重复","group_count":1,"episode_count":1},
+                     {"id":"g2","name":"","group_count":2,"episode_count":8},
+                     {"name":"没有编号","group_count":1,"episode_count":1}]
+                    """),
+                Json("""[{"season_number":1,"episode_count":12},{"season_number":2,"episode_count":8},{"season_number":3}]"""));
+            Assert.Equal("默认|Seasons|g2", string.Join('|', options.Select(option => option.Label)));
+            Assert.True(options[0].IsDefault);
+            Assert.Equal("3 季 · 20 集", options[0].Summary);
+            Assert.Equal("4 季 · 110 集", options[1].Summary);
+            // 名字缺了用编号顶上，计数缺了只留拿到的那一半。
+            Assert.Equal("2 季 · 8 集", options[2].Summary);
+            // 两份回话都不是数组（老版本或读失败）时只剩「默认」一项，且没有计数那一行。
+            Assert.Equal("", MoviePilotEpisodeGroups.Build(Json("{}"), Json("{}"))[0].Summary);
+        });
+        Test("MoviePilot 剧集组当前项：空串落到默认，找不到的组照实说，没有选项就空着", () =>
+        {
+            var options = MoviePilotEpisodeGroups.Build(
+                Json("""[{"id":"g1","name":"Seasons","group_count":4,"episode_count":110}]"""),
+                Json("""[{"season_number":1,"episode_count":12},{"season_number":2,"episode_count":8}]"""));
+            Assert.Equal("当前：默认 · 2 季 · 20 集", MoviePilotEpisodeGroups.Current(options, ""));
+            Assert.Equal("当前：Seasons · 4 季 · 110 集", MoviePilotEpisodeGroups.Current(options, "g1"));
+            Assert.Equal("当前：g9（不在服务器的剧集组列表里）", MoviePilotEpisodeGroups.Current(options, "g9"));
+            Assert.Equal("", MoviePilotEpisodeGroups.Current([], "g1"));
+        });
+        Test("MoviePilot 剧集组读取：只对 TMDB 电视剧发两趟，默认项计数来自季列表", () =>
+        {
+            var tmdb = MoviePilotSubscription.Parse(Json("""
+                {"id":12,"name":"示例剧","type":"电视剧","media_source":"themoviedb","media_id":"42","season":2,
+                 "episode_group":"grp-9","total_episode":4,"start_episode":1}
+                """))!;
+            using var transport = new StubTransport().Answer("login/access-token", Session)
+                .Answer("media/groups/42", """[{"id":"grp-9","name":"Seasons","group_count":4,"episode_count":110}]""")
+                .Answer("media/seasons", """[{"season_number":1,"episode_count":12},{"season_number":2,"episode_count":8}]""")
+                .Answer("subscribe/", "[" + tmdb.Data.GetRawText() + "]");
+            var service = Service(transport); var sub = Read(service);
+            var options = service.SubscriptionEpisodeGroupsAsync(sub, CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Equal(2, options.Count);
+            Assert.Equal("2 季 · 20 集", options[0].Summary);
+            Assert.Equal("当前：Seasons · 4 季 · 110 集", MoviePilotEpisodeGroups.Current(options, sub.EpisodeGroup));
+            Assert.Equal("GET", transport.Only("media/groups/42").Method);
+            var seasons = transport.Only("media/seasons");
+            Assert.Equal("GET", seasons.Method);
+            Assert.Contains("media_source=themoviedb", seasons.Url);
+            Assert.Contains("media_id=42", seasons.Url);
+        });
+        Test("MoviePilot 剧集组读取：非 TMDB 来源、电影或编号非数字时不发请求", () =>
+        {
+            using var transport = Transport();
+            var service = Service(transport); var sub = Read(service);
+            Assert.Equal(0, service.SubscriptionEpisodeGroupsAsync(sub, CancellationToken.None).GetAwaiter().GetResult().Count);
+            Assert.Equal(2, transport.Total);
+
+            foreach (var variant in new[] { "电影", "电视剧" })
+            {
+                var text = Series.Replace("电视剧", variant).Replace("\"douban\"", "\"themoviedb\"");
+                if (variant == "电视剧") text = text.Replace("\"media_id\":\"42\"", "\"media_id\":\"tt42\"");
+                using var other = new StubTransport().Answer("login/access-token", Session).Answer("subscribe/", "[" + text + "]");
+                var otherService = Service(other);
+                Assert.Equal(0, otherService.SubscriptionEpisodeGroupsAsync(Read(otherService), CancellationToken.None).GetAwaiter().GetResult().Count);
+                Assert.Equal(2, other.Total);
+            }
+        });
+        Test("MoviePilot 剧集组编辑：只提交 episode_group，清空为 null，电影不发这一格", () =>
+        {
+            Assert.Equal("", MoviePilotSubscriptionEdit.From(Subscription).EpisodeGroup);
+            var body = (MoviePilotSubscriptionEdit.From(Subscription) with { EpisodeGroup = "grp-9" }).Changes(Subscription);
+            Assert.Equal(2, body.Count); Assert.Equal("grp-9", body["episode_group"]);
+            var grouped = MoviePilotSubscription.Parse(Json(Series.Replace("\"state\":\"R\"", "\"state\":\"R\",\"episode_group\":\"grp-9\"")))!;
+            var edit = MoviePilotSubscriptionEdit.From(grouped);
+            Assert.Equal("grp-9", edit.EpisodeGroup);
+            Assert.Equal(1, edit.Changes(grouped).Count);
+            Assert.Null((edit with { EpisodeGroup = "" }).Changes(grouped)["episode_group"]);
+            var movie = MoviePilotSubscription.Parse(Json(Series.Replace("电视剧", "电影")))!;
+            Assert.False((MoviePilotSubscriptionEdit.From(movie) with { EpisodeGroup = "grp-9" }).Changes(movie).ContainsKey("episode_group"));
+        });
     }
 
     private static void PlaybackTests()

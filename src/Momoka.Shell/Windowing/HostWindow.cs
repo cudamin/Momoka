@@ -1703,6 +1703,10 @@ internal sealed class HostWindow : IDisposable
             screen.Left, screen.Top, screen.Width, screen.Height,
             Native.SwpFrameChanged | Native.SwpNoActivate | Native.SwpNoCopyBits);
 
+        // 边剥掉了、窗口铺满整块屏，就轮到 DWM 那一层：圆角档会给铺满屏幕的窗口四边各画一条 1px 的线、
+        // 四个角各切一块。放在 SetWindowPos 之后 —— 样式位那一趟已经让 DWM 重算过边框，这一句再改属性。
+        ApplyWindowsChrome();
+
         // Politeness first, then the part that actually works. MarkFullscreenWindow is the documented way
         // to ask the shell to stand aside and costs nothing, but measured on this window it changes
         // nothing: the tray keeps its WS_EX_TOPMOST and its pixels. So the window joins the topmost band
@@ -1777,6 +1781,10 @@ internal sealed class HostWindow : IDisposable
             Handle, _topMost && !_aside ? Native.HwndTopMost : Native.HwndNoTopMost,
             bounds.Left, bounds.Top, bounds.Width, bounds.Height,
             Native.SwpFrameChanged | Native.SwpNoActivate | Native.SwpNoCopyBits);
+
+        // 圆角还回来。`_restore` 已经在上面清掉，所以这一句问出来的是「窗口化」那一档；顺序在样式与矩形
+        // 之后，与 EnterFullscreen 那边互为镜像（那一头是全屏几何落定后再问）。
+        ApplyWindowsChrome();
 
         // 任务栏放回排在窗口还原之后：先放任务栏再还原矩形的那几拍（快速进出全屏时大约三百毫秒），
         // 任务栏会横在还没缩回去的画面上 —— 与 EnterFullscreen 的「先藏再跳」互为镜像。
@@ -2487,13 +2495,21 @@ internal sealed class HostWindow : IDisposable
     /// 深浅跟着主题：浅色主题下 immersive dark mode 要关掉，否则窗口边框和阴影仍是给深色窗口画的那一档，
     /// 压在一片白的界面边上是一条黑线。
     /// </para>
+    /// <para>
+    /// <b>全屏那一档不要圆角，理由不是审美。</b>圆角档下 DWM 顺带给窗口画一圈 1px 的窗口边框（见
+    /// <see cref="Native.DwmCornerDoNotRound"/>）：窗口化时它画在窗口自己的边框里、屏幕上看不见，而全屏时
+    /// 窗口铺满整块显示器、<c>WS_CAPTION</c> 与 <c>WS_THICKFRAME</c> 都已剥掉，这圈线就落在屏幕四边各一条、
+    /// 四个圆角各缺一块 —— 用户 2026-10-09 报的「集成模式全屏会留有边框」。所以这一档跟着
+    /// <see cref="Fullscreen"/> 走，进出全屏各问一次 DWM（<see cref="EnterFullscreen"/>、
+    /// <see cref="LeaveFullscreen"/>），回到窗口化时圆角照旧。
+    /// </para>
     /// </summary>
     private void ApplyWindowsChrome()
     {
         var dark = ThemeHost.Current.IsDark ? 1 : 0;
         Native.DwmSetWindowAttribute(Handle, Native.DwmUseImmersiveDarkMode, ref dark, sizeof(int));
 
-        var corners = Native.DwmCornerRound;
+        var corners = Fullscreen ? Native.DwmCornerDoNotRound : Native.DwmCornerRound;
         Native.DwmSetWindowAttribute(Handle, Native.DwmWindowCornerPreference, ref corners, sizeof(int));
 
         // Ignored with a non-zero HRESULT on Win10, where the attribute does not exist. Nothing to

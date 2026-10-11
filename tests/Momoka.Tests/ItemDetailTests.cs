@@ -26,6 +26,7 @@ internal static class ItemDetailTests
         RegisterSources();
         RegisterCast();
         RegisterEpisodes();
+        RegisterMissing();
         RegisterMediaInfo();
         RegisterWebUrl();
         RegisterHero();
@@ -411,7 +412,7 @@ internal static class ItemDetailTests
                 Size = 9_010_000_000L,
                 MediaStreams = [new MediaStream { Index = 0, Type = "Video", Height = 1080, Codec = "hevc" }]
             };
-            Assert.Equal("视频：  1080p  ·  HEVC  ·  MKV  ·  8.4 GB", ItemDetail.VideoLine(source));
+            Assert.Equal("视频：  8.4 GB  ·  1080p  ·  HEVC", ItemDetail.VideoLine(source));
 
             // A source the server sent no streams for has nothing to say, not a bare 「视频：」 label.
             Assert.Equal("", ItemDetail.VideoLine(new MediaSource()));
@@ -885,6 +886,129 @@ internal static class ItemDetailTests
         });
     }
 
+    /// <summary>查看遗漏集：季那一档怎么筛，抬头那句话怎么说。</summary>
+    private static void RegisterMissing()
+    {
+        Test("遗漏集：季那一档按季号从整部剧的结果里筛出来", () =>
+        {
+            // /Shows/Missing 只承诺认 ParentId，季 id 当父不一定认 —— 所以季页面问的还是整部剧，再在本地按
+            // 季号筛。筛错的样子是「第 2 季的页面上列着第 1 季缺的那几集」，屏上看着完全正常。
+            var all = new List<EmbyItem>
+            {
+                new() { Id = "a", Type = EmbyItemType.Episode, ParentIndexNumber = 1, IndexNumber = 3 },
+                new() { Id = "b", Type = EmbyItemType.Episode, ParentIndexNumber = 2, IndexNumber = 1 },
+                new() { Id = "c", Type = EmbyItemType.Episode, ParentIndexNumber = 2, IndexNumber = 4 }
+            };
+
+            var second = ItemDetail.MissingInSeason(all, 2);
+            Assert.Equal(2, second.Count);
+            Assert.True(second.All(episode => episode.ParentIndexNumber == 2), "只留这一季的");
+
+            // 特别篇是第 0 季，和其他季一样按号筛。
+            Assert.Equal(0, ItemDetail.MissingInSeason(all, 0).Count);
+
+            // 季没编上号时不过滤，整份原样交回 —— 那不是「这一季空着」，而是「筛不了」。
+            Assert.Equal(all.Count, ItemDetail.MissingInSeason(all, null).Count);
+        });
+
+        Test("遗漏集：抬头说清是剧还是季，一集不缺时明说", () =>
+        {
+            var series = new EmbyItem { Id = "s1", Name = "攻壳机动队", Type = EmbyItemType.Series };
+            Assert.Contains("攻壳机动队", ItemDetail.MissingHeading(series, 7));
+            Assert.Contains("7", ItemDetail.MissingHeading(series, 7));
+            Assert.Contains("没有遗漏", ItemDetail.MissingHeading(series, 0));
+
+            var season = new EmbyItem { Id = "n1", Name = "第 2 季", Type = EmbyItemType.Season, SeriesId = "s1" };
+            Assert.Contains("第 2 季", ItemDetail.MissingHeading(season, 3));
+            Assert.Contains("没有遗漏", ItemDetail.MissingHeading(season, 0));
+        });
+
+        Test("遗漏集：特别篇和预告两颗开关怎么筛", () =>
+        {
+            var zone = TimeSpan.FromHours(8);
+            var now = new DateTimeOffset(2026, 10, 10, 12, 0, 0, zone);
+            var all = new List<EmbyItem>
+            {
+                new()
+                {
+                    Id = "n1",
+                    Type = EmbyItemType.Episode,
+                    ParentIndexNumber = 1,
+                    IndexNumber = 3,
+                    PremiereDate = new DateTimeOffset(2018, 7, 14, 0, 0, 0, zone)
+                },
+                new()
+                {
+                    Id = "s0",
+                    Type = EmbyItemType.Episode,
+                    ParentIndexNumber = 0,
+                    IndexNumber = 1,
+                    PremiereDate = new DateTimeOffset(2018, 9, 1, 0, 0, 0, zone)
+                },
+                new()
+                {
+                    Id = "f1",
+                    Type = EmbyItemType.Episode,
+                    ParentIndexNumber = 1,
+                    IndexNumber = 9,
+                    PremiereDate = new DateTimeOffset(2027, 1, 5, 0, 0, 0, zone)
+                }
+            };
+
+            // 两颗都关：只有正片、只有已经播过的。官方网页端那张表打开时就是这个样子（两颗开关都是灰的）。
+            var off = ItemDetail.MissingShown(all, includeSpecials: false, includeUnaired: false, now);
+            Assert.Equal(1, off.Count);
+            Assert.Equal("n1", off[0].Id);
+
+            Assert.Equal(2, ItemDetail.MissingShown(all, includeSpecials: true, includeUnaired: false, now).Count);
+            Assert.Equal(2, ItemDetail.MissingShown(all, includeSpecials: false, includeUnaired: true, now).Count);
+            Assert.Equal(3, ItemDetail.MissingShown(all, includeSpecials: true, includeUnaired: true, now).Count);
+
+            Assert.True(ItemDetail.MissingIsSpecial(all[1]), "第 0 季就是特别篇");
+            Assert.False(ItemDetail.MissingIsSpecial(all[0]));
+            Assert.False(ItemDetail.MissingIsUnaired(all[0], now));
+            Assert.True(ItemDetail.MissingIsUnaired(all[2], now));
+
+            Assert.False(
+                ItemDetail.MissingIsUnaired(new EmbyItem { Id = "x", Type = EmbyItemType.Episode }, now),
+                "没有首播日期的按已播出算 —— 藏起来会让这一集两头都找不到");
+
+            var today = new EmbyItem
+            {
+                Id = "t",
+                Type = EmbyItemType.Episode,
+                PremiereDate = new DateTimeOffset(2026, 10, 10, 0, 0, 0, zone)
+            };
+            Assert.False(ItemDetail.MissingIsUnaired(today, now), "Emby 只发日期不发时刻，当天开播的算已播出");
+        });
+
+        Test("遗漏集：那一行的剧照借的是剧集那一层", () =>
+        {
+            // 遗漏的单集自己没有图（实测 ImageTags 是空的），服务器往下发的是剧集那一层的缩略图
+            // （ParentThumbItemId），官方网页端那一列行画的也是这一张。
+            var episode = new EmbyItem
+            {
+                Id = "e1",
+                Type = EmbyItemType.Episode,
+                SeriesId = "s1",
+                ParentThumbItemId = "s1",
+                ParentThumbImageTag = "tag-thumb"
+            };
+            var series = new EmbyItem { Id = "s1", Type = EmbyItemType.Series };
+
+            var still = ItemDetail.MissingStill(episode, series);
+            Assert.NotNull(still);
+            Assert.Equal("s1", still!.Value.ItemId);
+            Assert.Equal(EmbyImageStore.Thumb, still.Value.ImageType);
+            Assert.Equal("tag-thumb", still.Value.Tag);
+
+            // 条目自己一张图都没有、上一层也没有时才是空 —— 那一格画占位字形。
+            Assert.Null(ItemDetail.MissingStill(
+                new EmbyItem { Id = "e2", Type = EmbyItemType.Episode },
+                new EmbyItem { Id = "s2", Type = EmbyItemType.Series }));
+        });
+    }
+
     /// <summary>
     /// 媒体信息, the table under 更多单集. Its heading used to name the episode a show's page was
     /// describing (「媒体信息 · S02E07」); the panel is now only ever shown on the page of the file itself,
@@ -1318,22 +1442,23 @@ internal static class ItemDetailTests
             Assert.Null(DetailHero.StillBox(667, 1000, 210, double.PositiveInfinity));
         });
 
-        // 「拉窄窗口的时候封面不要缩小，拉长窗口的时候封面要稍微放大」（2026-09-12）—— 参考宽以下不缩，
-        // 以上按 StillGrowPerPixel 缓增。
-        Test("头图封面：窄窗不缩，宽窗缓增", () =>
+        Test("头图封面：宽窗固定上限，窄窗等比缩小", () =>
         {
-            // 参考宽（1280）上就是基宽：那一张剧海报那一档（210×300 的上限盒）。
-            Assert.Equal(300d, DetailHero.StillWidth(1280, 300, 1280));
+            Assert.Equal(260d, DetailHero.StillWidth(1280, 260, 1280));
+            Assert.Equal(260d, DetailHero.StillWidth(2000, 260, 1280));
+            Assert.Equal(260d, DetailHero.StillWidth(3840, 260, 1280));
+            Assert.Equal(208d, DetailHero.StillWidth(1024, 260, 1280));
+            Assert.Equal(130d, DetailHero.StillWidth(640, 260, 1280));
+            Assert.True(Math.Abs(DetailHero.StillWidth(1023, 260, 1280) - 208) < 0.21);
 
-            // 参考宽以下不再缩小：紧凑线（1024）上照旧基宽 —— 等比缩小那一半已经删了。
-            Assert.Equal(300d, DetailHero.StillWidth(1024, 300, 1280));
-            Assert.Equal(300d, DetailHero.StillWidth(700, 300, 1280));
+            // 缩窄时同时缩放上限盒的高，图片原比例与完整内容保持不变。
+            Assert.Equal((250d, 375d), DetailHero.StillBox(800, 1200, 260, 375));
+            Assert.Equal((200d, 300d), DetailHero.StillBox(800, 1200, 208, 300));
+            Assert.Equal((125d, 187.5d), DetailHero.StillBox(800, 1200, 130, 187.5));
 
-            // 参考宽以上每像素长 StillGrowPerPixel：2000 的窗口上 300 + 720 × 0.1 = 372。
-            Assert.Equal(300d + 720 * DetailHero.StillGrowPerPixel, DetailHero.StillWidth(2000, 300, 1280));
-
-            // 页面还没量到（0）、或者两个基数不成话：照旧基宽，别缩成一条线。
-            Assert.Equal(300d, DetailHero.StillWidth(0, 300, 1280));
+            // 页面尚未量到或不可用时保留上限，不生成 NaN 布局尺寸。
+            Assert.Equal(260d, DetailHero.StillWidth(0, 260, 1280));
+            Assert.Equal(260d, DetailHero.StillWidth(double.NaN, 260, 1280));
             Assert.Equal(210d, DetailHero.StillWidth(1554, 210, 0));
             Assert.Equal(0d, DetailHero.StillWidth(1554, 0, 1280));
         });

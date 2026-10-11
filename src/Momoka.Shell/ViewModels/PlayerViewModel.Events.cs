@@ -442,8 +442,8 @@ public sealed partial class PlayerViewModel
     private void NoteSubline() => _ = PushSublineAsync();
 
     /// <summary>
-    /// 把左上角第二行那句文件信息（<see cref="PlaybackTitles.Subline"/> ＝「分辨率 · 视频编码 · 音频格式 ·
-    /// 组名」）推给独占模式视频窗的 uosc 顶栏，画成返回按钮正下方的副标题。集成模式那一行是 XAML 的
+    /// 把左上角第二行那句文件信息（<see cref="PlaybackTitles.Subline"/> ＝「文件大小 · 分辨率 · 视频编码 ·
+    /// 音频格式 · 组名」）推给独占模式视频窗的 uosc 顶栏，画成返回按钮正下方的副标题。集成模式那一行是 XAML 的
     /// <c>SubtitleBox</c>（绑 <see cref="Subtitle"/>），不走这里 —— 两模式同源、显示一致（用户令 2026-09-27，
     /// 内容与位置 2026-09-28 跟进）。
     /// <para>
@@ -639,10 +639,10 @@ public sealed partial class PlayerViewModel
         }
 
         // 左上角主标题＝headline（**带剧名**：单集＝「剧名 SxxExx 集名」，电影＝片名）；第二行是文件信息
-        // 「分辨率 · 视频编码 · 音频格式 · 组名」（用户令 2026-09-27「电视剧左上角标题要用 SxxExx 集名，
+        // 「文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名」（用户令 2026-09-27「电视剧左上角标题要用 SxxExx 集名，
         // 下方的片名改为视频编码+音轨+组名」；2026-09-28 前置分辨率并挪到返回按钮正下方；**同日更晚用户令
-        // 「标题前面加上剧名」，09-27 那版「剧名让给第二行」被翻案** —— 第二行如今只剩分辨率/编码/音频/组名，
-        // 剧名不在那儿）。两条管线同源、显示一致（独占那两行由 uosc 顶栏画，NoteSubline 把第二行
+        // 「标题前面加上剧名」，09-27 那版「剧名让给第二行」被翻案** —— 第二行如今只剩文件大小/分辨率/编码/
+        // 音频/组名，剧名不在那儿）。两条管线同源、显示一致（独占那两行由 uosc 顶栏画，NoteSubline 把第二行
         // 推过去；主标题走 force-media-title＝同一个 ToPlaybackHeadline）。
         Title = item.ToPlaybackHeadline();
         AdoptShaderLaunch(item);

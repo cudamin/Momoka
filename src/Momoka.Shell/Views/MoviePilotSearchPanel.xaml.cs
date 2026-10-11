@@ -36,9 +36,18 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         _service = service;
         _launcher = launcher;
         ViewModel.Attach(service);
-        ViewModel.UseConfirm(ConfirmDialog.For(this));
+        ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
         ViewModel.UseResourceOpener(ShowResourcesAsync);
-        _ = ViewModel.LoadSourcesAsync();
+    }
+
+    internal void LoadSources() => _ = ViewModel.LoadSourcesAsync();
+
+    internal Task PrepareSearchAsync()
+    {
+        ResourceOverlay.Release();
+        ResourceOverlay.Visibility = Visibility.Collapsed;
+        Results.Visibility = Visibility.Visible;
+        return ViewModel.SearchAsync("");
     }
 
     /// <summary>页面上那个共享搜索框提交、且此刻在 MoviePilot 段时，由页面把词转到这里。</summary>
@@ -54,6 +63,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     internal void Release()
     {
         ViewModel.Cancel();
+        SourceFilter.IsDropDownOpen = false;
         ResourceOverlay.Release();
         ResourceOverlay.Visibility = Visibility.Collapsed;
         Results.Visibility = Visibility.Visible;

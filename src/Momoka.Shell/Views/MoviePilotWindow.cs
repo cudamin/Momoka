@@ -1,4 +1,5 @@
 using Momoka.Diagnostics;
+using Momoka.AniBt;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.Interop;
@@ -6,6 +7,7 @@ using Momoka.Shell.Platform;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 using Windows.UI;
@@ -38,6 +40,7 @@ internal sealed class MoviePilotWindow
 
     private readonly Window _window;
     private readonly MoviePilotVersionsView _view;
+    private readonly AniBtSearchPanel _anime;
 
     /// <summary>换主题时重画标题栏；存下来是为了 <see cref="Close"/> 里退订。</summary>
     private readonly Action<Momoka.Theming.UiTheme> _repaint;
@@ -47,10 +50,11 @@ internal sealed class MoviePilotWindow
 
     private bool _open;
 
-    private MoviePilotWindow(Window window, MoviePilotVersionsView view)
+    private MoviePilotWindow(Window window, MoviePilotVersionsView view, AniBtSearchPanel anime)
     {
         _window = window;
         _view = view;
+        _anime = anime;
 
         _repaint = _ => PaintCaption();
         ThemeHost.Changed += _repaint;
@@ -74,17 +78,24 @@ internal sealed class MoviePilotWindow
         try
         {
             var view = new MoviePilotVersionsView { Background = WindowFill() };
+            var anime = new AniBtSearchPanel { Padding = new Thickness(16), Visibility = Visibility.Collapsed };
+            var content = new Grid { Background = WindowFill() };
+            content.Children.Add(view);
+            content.Children.Add(anime);
 
             // 深浅跟着当前主题走（这个窗口里是框架控件 + 我们的 Eg* 样式，只认 ElementTheme）。
-            ThemeHost.Register(view);
+            ThemeHost.Register(content);
 
             if (Application.Current.Resources.TryGetValue("EgUiFontFamily", out var font) && font is FontFamily family)
+            {
                 view.FontFamily = family;
+                anime.FontFamily = family;
+            }
 
-            var window = new Window { Content = view, Title = "在 MoviePilot 搜索版本" };
+            var window = new Window { Content = content, Title = "在 MoviePilot 搜索版本" };
 
             Place(window, owner);
-            var created = new MoviePilotWindow(window, view);
+            var created = new MoviePilotWindow(window, view, anime);
             created.PaintCaption();
 
             Log.Info(Category, "MoviePilot 版本窗口已创建");
@@ -99,14 +110,46 @@ internal sealed class MoviePilotWindow
 
     /// <summary>
     /// Shows the window for one item: seeds the view with the keyword the item computes to
-    /// (<see cref="MoviePilotVersionQuery.Keyword"/>) and runs the search, then brings the window up.
+    /// (<see cref="MoviePilotVersionQuery.Keyword"/>) and runs the search, then brings the window up. For an
+    /// episode the target episode rides along (<see cref="MoviePilotVersionQuery.TargetEpisode"/>) so the results
+    /// get filtered to it automatically.
     /// </summary>
-    internal void Show(MoviePilotService service, EmbyItem item, ISystemLauncher launcher)
+    internal void Show(MoviePilotService service, EmbyItem item, ISystemLauncher launcher) =>
+        Show(service, MoviePilotVersionQuery.Keyword(item), launcher, MoviePilotVersionQuery.TargetEpisode(item));
+
+    /// <summary>
+    /// 按现成的关键词开窗。订阅详情里「搜索这一集的资源」走这一支 —— 那边只有订阅快照里的剧名与季集号，
+    /// 没有 Emby 条目可算词（见 <see cref="MoviePilotVersionQuery.Keyword(string, int?, int?)"/>）。
+    /// <paramref name="episode"/> 是集页面带来的目标集，交给视图搜完自动按它筛；订阅与遗漏集那两支不给。
+    /// </summary>
+    internal void Show(MoviePilotService service, string keyword, ISystemLauncher launcher, int? episode = null)
     {
-        _view.Search(service, MoviePilotVersionQuery.Keyword(item), launcher);
+        Release();
+        _anime.Visibility = Visibility.Collapsed;
+        _view.Visibility = Visibility.Visible;
+        _window.Title = "在 MoviePilot 搜索版本";
+        _view.Search(service, keyword, launcher, episode);
         _window.AppWindow.Show();
         _window.Activate();
         _open = true;
+    }
+
+    internal void Show(AniBtService animeService, MoviePilotService service, AniBtSearchQuery query, ISystemLauncher launcher)
+    {
+        Release();
+        _view.Visibility = Visibility.Collapsed;
+        _anime.Visibility = Visibility.Visible;
+        _window.Title = "在 AniBT 搜索版本";
+        _anime.Search(animeService, service, launcher, query);
+        _window.AppWindow.Show();
+        _window.Activate();
+        _open = true;
+    }
+
+    private void Release()
+    {
+        _view.Release();
+        _anime.Release();
     }
 
     /// <summary>Off screen, still built. What the X does. The in-flight search is cancelled on the way out.</summary>
@@ -115,7 +158,7 @@ internal sealed class MoviePilotWindow
         if (!_open) return;
 
         _open = false;
-        _view.Release();
+        Release();
         _window.AppWindow.Hide();
     }
 
@@ -128,6 +171,7 @@ internal sealed class MoviePilotWindow
         _closing = true;
         _open = false;
         ThemeHost.Changed -= _repaint;
+        Release();
 
         try
         {
@@ -146,7 +190,7 @@ internal sealed class MoviePilotWindow
 
         e.Cancel = true;
         _open = false;
-        _view.Release();
+        Release();
         sender.Hide();
     }
 

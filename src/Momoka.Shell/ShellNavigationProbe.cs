@@ -46,13 +46,23 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("离页不会复活补页", PagingCancelAsync);
             await CaseAsync("新查询失败不混旧页", QueryFailureAsync);
             await CaseAsync("同词重试并保留导航参数", SearchStateAsync);
-            await CaseAsync("搜索居中、工具栏换行和来源切换", SearchHeaderLayoutAsync);
+            await CaseAsync("搜索分类、最近搜索和三种来源分流", SearchInteractionAsync);
+            await CaseAsync("AniBT 搜索、资源、取消下载和连接隔离", AniBtSearchAsync);
+            await CaseAsync("遗漏集来源菜单、AniBT 分集查询与下载选项", AniBtEpisodeSearchAsync);
+            await CaseAsync("AniBT 逐文件识别、候选绑定和取消刮削", AniBtScrapeAsync);
+            await CaseAsync("MoviePilot 连接控制入口、断线回退与恢复", MoviePilotAvailabilityAsync);
+            await CaseAsync("MoviePilot 关闭后清理历史与操作弹窗", MoviePilotUnavailableNavigationAsync);
+            await CaseAsync("MoviePilot 关闭后收起菜单且保留普通菜单", MoviePilotMenusAsync);
+            await CaseAsync("MoviePilot 搜索站点多选、清空、默认及离页取消", MoviePilotSearchSitesAsync);
+            await CaseAsync("MoviePilot 跨站点折叠、季集筛选和下载选项", MoviePilotResourceOptionsAsync);
+            await CaseAsync("搜索宽窄布局和媒体库工具栏隔离", SearchHeaderLayoutAsync);
             await CaseAsync("加载中禁止播放全部", PlaybackBusyAsync);
             await CaseAsync("字母查询过期不继续", JumpCancelAsync);
             await CaseAsync("切季回到原季撤销旧请求", SeasonCancelAsync);
             await CaseAsync("切季目标失败不部分提交", SeasonFailureAsync);
             await CaseAsync("空季保留选择器", EmptySeasonAsync);
             await CaseAsync("离页后写操作不重开详情", DetailWriteAsync);
+            await CaseAsync("文件选项长名称、断点与隐藏行", DetailPickerLayoutAsync);
             await CaseAsync("隐藏首页行不请求", HiddenHomeAsync);
             await CaseAsync("通知空态属性通知", NotificationEmptyAsync);
             await CaseAsync("离开通知页不弹旧编辑器", NotificationCancelAsync);
@@ -64,8 +74,15 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("封面结果不明须先刷新", CoverUncertainAsync);
             await CaseAsync("封面迟到图片不复活", CoverLateImageAsync);
             await CaseAsync("完整返回历史和主页按钮", ShellHistoryAsync);
+            await CaseAsync("收藏入口显隐、跳转及取消最后一项", FavoritesNavigationAsync);
+            await CaseAsync("收藏刷新、切服和退出的迟到结果隔离", FavoritesRaceAsync);
+            await CaseAsync("删除确认、失败和成功保持列表位置", DeletePreservesListAsync);
+            await CaseAsync("删除与分页、查询切换交错", DeletePagingRaceAsync);
+            await CaseAsync("整剧删除清除后代并保留新查询", DeleteContainerAsync);
+            await CaseAsync("详情封面删除保持其他货架与播放目标", DeleteDetailCardAsync);
             await CaseAsync("播放返回主页不补播入场", HomePlaybackReturnAsync);
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync);
+            await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync);
             await CaseAsync("原生控制台分区、响应布局与离页取消", ServerDashboardAsync);
             await CaseAsync("服务器管理菜单、确认与身份隔离", ServerAdministrationAsync);
             await CaseAsync("用户管理导航、页签与权限保存", ServerUsersAsync);
@@ -78,6 +95,12 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 订阅分区、封面与管理操作", MoviePilotSubscriptionsAsync);
             await CaseAsync("MoviePilot 订阅详情、入库缺集与编辑", MoviePilotSubscriptionDetailAsync);
             await CaseAsync("MoviePilot 订阅切服、旧确认与离页取消", MoviePilotSubscriptionIdentityAsync);
+            await CaseAsync("MoviePilot 媒体详情、剧集组浏览和真实资源入口", MoviePilotMediaBrowsingAsync);
+            await CaseAsync("MoviePilot 按季订阅、三种模式与取消草稿", MoviePilotSeasonSelectionAsync);
+            await CaseAsync("MoviePilot 剧集组与入库状态迟到隔离", MoviePilotMediaReadRacesAsync);
+            await CaseAsync("MoviePilot 完整固定背景与主题", MoviePilotMediaBackgroundAsync);
+            await CaseAsync("MoviePilot 按季提交部分失败与核对", MoviePilotSeasonPartialSubmitAsync);
+            await CaseAsync("MoviePilot 字幕列表、保存路径、取消与站点变更", MoviePilotMediaSubtitlesAsync);
             await CaseAsync("季页面右侧播放图标与原播放路由", SeasonTrailingPlayAsync);
             await CaseAsync("旧登录目录不覆盖新身份", ShellIdentityAsync);
             await CaseAsync("切服逆序完成不退旧登录", ShellSwitchRaceAsync);
@@ -113,7 +136,7 @@ internal sealed partial class ShellNavigationProbe
     private void Save() => File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "shell-probe.json"),
         JsonSerializer.Serialize(_checks, new JsonSerializerOptions { WriteIndented = true }));
 
-    private Fixture CreateFixture() => new(Path.Combine(_options.Paths.Root, "fixtures", Guid.NewGuid().ToString("N")));
+    private Fixture CreateFixture(HttpMessageHandler? moviePilot = null, HttpMessageHandler? aniBt = null) => new(Path.Combine(_options.Paths.Root, "fixtures", Guid.NewGuid().ToString("N")), moviePilot, aniBt);
     private static TaskCompletionSource<T> Pending<T>() => new(TaskCreationOptions.RunContinuationsAsynchronously);
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
     private static object? Call(object target, string name, params object?[] args) =>
@@ -141,6 +164,19 @@ internal sealed partial class ShellNavigationProbe
         });
         await Task.Delay(150);
     }
+
+    private async Task SaveProbeScreenAsync(string name)
+    {
+        if (_window is null) throw new InvalidOperationException("探针窗口尚未创建");
+        var topMost = _window.TopMost;
+        try
+        {
+            _window.TopMost = true;
+            await Task.Delay(80);
+            await CompositionPlaybackProbe.SaveScreenAsync(_window, Path.Combine(_options.Paths.LogDirectory, name));
+        }
+        finally { _window.TopMost = topMost; }
+    }
     private static IEnumerable<DependencyObject> Descendants(DependencyObject root)
     {
         yield return root;
@@ -158,10 +194,10 @@ internal sealed partial class ShellNavigationProbe
         public EmbySession Session { get; }
         public ISettingsService SettingsService { get; }
         public EmbyImageStore Images { get; }
-        public IServerCapabilities Capabilities { get; } = new FakeCapabilities();
+        public FakeCapabilities Capabilities { get; } = new();
         public ISystemLauncher Launcher { get; } = new FakeLauncher();
         public IServiceProvider Services { get; }
-        public Fixture(string root)
+        public Fixture(string root, HttpMessageHandler? moviePilotTransport = null, HttpMessageHandler? aniBtTransport = null)
         {
             Settings.Servers.Clear();
             Settings.Ui.PageSize = 20;
@@ -171,10 +207,14 @@ internal sealed partial class ShellNavigationProbe
             SettingsService = new SettingsService(store, Settings);
             Session = new EmbySession(Settings, store, vault, DeviceIdentity.Create("offline-shell", "test"), Transport);
             Images = new EmbyImageStore(Session, Path.Combine(root, "images"));
-            var moviePilot = new MoviePilotService(new MoviePilotClient(new RejectNetwork()),
+            var moviePilot = new MoviePilotService(new MoviePilotClient(moviePilotTransport ?? new RejectNetwork()),
                 new MoviePilotCredentials(PassthroughSecretProtector.Instance), Settings);
             Services = new ServiceCollection().AddSingleton(Session).AddSingleton(SettingsService)
-                .AddSingleton(Images).AddSingleton(Capabilities).AddSingleton(vault).AddSingleton(moviePilot)
+                .AddSingleton(new Momoka.AniBt.AniBtClient(aniBtTransport ?? new RejectNetwork()))
+                .AddSingleton<Momoka.AniBt.AniBtService>()
+                // 按接口注册，不按 FakeCapabilities：页面解析的是 IServerCapabilities，而泛型参数写死之后
+                // 注册进去的就是那个具体类型。
+                .AddSingleton(Images).AddSingleton<IServerCapabilities>(Capabilities).AddSingleton(vault).AddSingleton(moviePilot)
                 .AddSingleton<IShellActions>(Actions).AddSingleton(Launcher).BuildServiceProvider();
         }
         public async Task SelectAsync(string host = "a.invalid", string user = "user")
@@ -263,6 +303,8 @@ internal sealed partial class ShellNavigationProbe
 
     private sealed class FakeCapabilities : IServerCapabilities
     {
+        /// <summary>假服务器报的账号身份。设置页左栏那一组的显隐靠它拨；可写，好让一条探针走两种账号。</summary>
+        public bool? IsAdministrator { get; set; } = true;
         public Version? ServerVersion => new(4, 9);
         public Task ProbeAsync(CancellationToken token = default) => Task.CompletedTask;
     }
@@ -284,6 +326,9 @@ internal sealed partial class ShellNavigationProbe
             throw new InvalidOperationException("探针禁止播放");
         }
         public void Notify(string message, InfoBarSeverity severity = InfoBarSeverity.Informational) { }
+        public void ReportMarkedWatched(EmbyItem item) { }
+        public Action<EmbyItem?>? FavoritesChanged { get; set; }
+        public void RefreshFavorites(EmbyItem? changed = null) => FavoritesChanged?.Invoke(changed);
         public bool TryOpenLibrary(string id) => false;
         public void OpenGenre(string genre) { }
         public void OpenRow(HomeLayout.HomeRowTarget target) { }
@@ -291,7 +336,11 @@ internal sealed partial class ShellNavigationProbe
         public Task SwitchProfileAsync(ServerProfile server, AccountProfile? account) => Task.CompletedTask;
         public void SetTitleStrip(TitleStrip strip) { }
         public bool MoviePilotEnabled => false;
+        public event EventHandler? MoviePilotAvailabilityChanged { add { } remove { } }
         public void SearchMoviePilotVersions(EmbyItem item) { }
+        public void SearchAniBtVersions(EmbyItem item) { }
         public void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) { }
+        public void ShowAniBtScrape(EmbySessionScope scope, EmbyItem item) { }
+        public void ShowMissingEpisodes(EmbyItem item, IReadOnlyList<EmbyItem> missing) { }
     }
 }

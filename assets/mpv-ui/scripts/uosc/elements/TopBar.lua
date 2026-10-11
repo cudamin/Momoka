@@ -142,8 +142,9 @@ function TopBar:update_render_titles()
 	request_render()
 end
 
--- MOMOKA[topbar-subline] — 宿主 → uosc 的副标题（第二行）：分辨率 · 视频编码 · 音频格式 · 组名
--- （用户令 2026-09-28「下方那一栏改为分辨率+视频编码+音频格式+组名」，2026-09-27 那批的前置分辨率版）。
+-- MOMOKA[topbar-subline] — 宿主 → uosc 的副标题（第二行）：文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名
+-- （用户令 2026-10-09「这里显示的视频信息改为 文件大小 分辨率 视频编码 音频格式 组名」，在 2026-09-28
+-- 「下方那一栏改为分辨率+视频编码+音频格式+组名」与 2026-09-27 那批之上又前置了文件大小）。
 -- 独占模式的 top_bar_alt_title 选项留空（register_observers 因此不给它挂模板监听），副标题改由宿主经
 -- momoka-subline 直接写进来。位置**不跟着主标题走**：画在左上角返回按钮的正下方（左缘＝窗口左缘，
 -- 用户令 2026-09-28「移动到返回按钮的下方」），主标题仍在返回按钮右边一行。空串＝收起副标题；
@@ -416,7 +417,7 @@ function TopBar:render()
 				-- ＋ PlayerPage.SelfCheck.Chrome.cs 的 SubtitleFontSize 断言。
 				local opts = {
 					size = round(self.alt_title_size * 0.71),
-					-- MOMOKA[topbar-subline-italic] — 副标题（分辨率 · 视频编码 · 音频格式 · 组名）走斜体，
+					-- MOMOKA[topbar-subline-italic] — 副标题（文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名）走斜体，
 					-- 用户令 2026-09-28 晚「标题下方的视频元数据改为斜体」；字宽算量同样认这个标记
 					-- （lib/text.lua 的 whole_text_width 会把斜体那点倾斜算进去），框宽跟着对得上。
 					italic = true,

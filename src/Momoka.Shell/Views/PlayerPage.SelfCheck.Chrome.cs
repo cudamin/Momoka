@@ -87,6 +87,17 @@ public sealed partial class PlayerPage
                 wrong.Add($"{what}的鼠标{(want ? "没藏" : "没回来")}");
         }
 
+        // 新一场播放（用户报「关闭应用然后重新打开应用，点一次点击进入播放页面会自动显示播放控件」）：
+        // 进场（EnterPlayer）与开播（OnPlaybackStarted）都走 Reset，从前它把三样摆成全显并给一秒二的宽限，
+        // 而加载遮罩在 Loaded 那一拍才撤、比那一秒二早，尾巴于是正好露在画面上。现在 Reset 之后三样都在
+        // 屏下，**而位置判据照旧** —— 两句一起量才分得清「收掉了强制显示」与「把位置判据也一起压住了」，
+        // 后者不是这一句令要的（同一天用户在退全屏那一问上选的是「鼠标在哪儿控件在哪儿」）。
+        _chrome.Reset(++clock);
+        Sample("新一场播放", bar: false, title: false, rail: false);
+
+        _chrome.Pointer(height - 10, height, ChromePart.None, railNear: -1, ++clock);
+        Sample("新一场播放后指针落到底部带", bar: true, title: false, rail: false);
+
         // 底部：requirement 9 as it now stands — 「显示进度条的时候不需要同步显示音量条」, which is the reverse of
         // 「显示进度条的时候音量条也有要显示」 this probe was written against.
         _chrome.Pointer(height - 10, height, ChromePart.None, railNear: -1, ++clock);
@@ -227,31 +238,30 @@ public sealed partial class PlayerPage
     /// person is what says it looks right.
     /// </para>
     /// </para>
-    /// <para>
-    /// 这一关要过两支画面：<b>够大</b>时量的是强度那一套（下面那些点），<b>小到尺寸线以下</b>时音量条
-    /// 一个像素都不该有（用户令 2026-09-23「集成模式下窗口小于一定程度的时候自动隐藏音量条」）。
-    /// 两支得在同一趟里量完，因为自检窗口的大小不由探针决定 —— 这一页读「画面多大」的两口是
-    /// <see cref="PictureWidth"/>／<see cref="PictureHeight"/>，探针因此能把那个读数临时摆到想量的
-    /// 那一档（<see cref="_probePictureSize"/>），生产路径永远是 <c>Root</c> 上的真实读数。
-    /// </para>
+    /// <para>同时检查常规尺寸、小窗口和高度确实不足的窗口；修改实际布局读数并在结束时还原。</para>
     /// </summary>
     internal (bool Ok, string Detail) ProbeRailFade()
     {
         var was = Visibility;
+        var oldWidth = Root.Width;
+        var oldHeight = Root.Height;
         Visibility = Visibility.Visible;
+        Root.Width = 1280;
+        Root.Height = 720;
+        UpdateLayout();
+        ArrangeTransport();
         UpdateLayout();
 
         if (Root.ActualWidth <= 0 || Root.ActualHeight <= 0)
         {
+            Root.Width = oldWidth;
+            Root.Height = oldHeight;
             Visibility = was;
             return (false, "画面还没有尺寸，量不出右侧带");
         }
 
-        // 强度那一套只在大画面上成立，而自检窗口未必够大 —— 所以先把画面读数按「刚过阈值」摆好，
-        // 阈值以下那一支到末尾单独量。动的只是读数，真窗口一个像素都不动。
-        var width = Math.Max(Root.ActualWidth, ChromeReveal.RailMinPictureWidth + 1);
-        var height = Math.Max(Root.ActualHeight, ChromeReveal.RailMinPictureHeight + 1);
-        _probePictureSize = new Size(width, height);
+        var width = Root.ActualWidth;
+        var height = Root.ActualHeight;
         var clock = Now;
         var report = new List<string>();
         var wrong = new List<string>();
@@ -260,6 +270,9 @@ public sealed partial class PlayerPage
         {
             if (!ok) wrong.Add(what);
         }
+
+        report.Add($"首次排版底栏让位 {Rail.Margin.Bottom:F0}");
+        Want("尚未显示底栏时仍预留高度", Rail.Margin.Bottom > 0);
 
         // 加大尺寸: measured rather than declared, because the numbers are in XAML and the layout is what
         // decides whether they survived — a rail crowded out by its own margin measures small with the
@@ -366,37 +379,60 @@ public sealed partial class PlayerPage
         Render();
         Want("收起后不挡点击", !Rail.IsHitTestVisible && Rail.Opacity == 0);
 
-        // 小画面：音量条一个像素都不画（用户令 2026-09-23）。三件一起量：尺寸线高过音量条自己、窄过线时
-        // 不画、矮过线时也不画（连滚轮那次读数都不画 —— 小窗口里的音量从此没有数字可看，这个代价是那句话
-        // 的正面含义，见 ChromeReveal.RailRoom）。
-        report.Add($"音量条自己 {Rail.ActualWidth:F0}×{Rail.ActualHeight:F0}，"
-            + $"尺寸线 {ChromeReveal.RailMinPictureWidth:F0}×{ChromeReveal.RailMinPictureHeight:F0}");
-        Want("尺寸线容得下音量条自己",
-            Rail.ActualHeight > 0 && Rail.ActualHeight <= ChromeReveal.RailMinPictureHeight);
-
-        _probePictureSize = new Size(ChromeReveal.RailMinPictureWidth - 1, height);
-        clock += SettleMilliseconds;
-        _chrome.Tick(clock);
-        var narrow = Strength(ChromeReveal.RailMinPictureWidth - 2, height / 2);
+        // 缩小真实布局，确保轨道变短后，靠近和滚轮反馈都能显示且不会盖住上下控制条。
+        foreach (var (smallWidth, smallHeight) in new[] { (560, 420), (320, 300), (900, 360) })
+        {
+            Root.Width = smallWidth;
+            Root.Height = smallHeight;
+            UpdateLayout();
+            ArrangeTransport();
+            UpdateLayout();
+            _chrome.Reset(++clock);
+            clock += SettleMilliseconds;
+            _chrome.Tick(clock);
+            var smallRail = BoundsOf(Rail);
+            var near = Strength(smallRail.Left + smallRail.Width / 2, smallRail.Top + smallRail.Height / 2);
+            _chrome.FlashRail(++clock);
+            Render();
+            Want($"{smallWidth}×{smallHeight} 小窗可唤出音量条", near > 0.99 && Rail.Opacity > 0.99 && Rail.IsHitTestVisible);
+            Want($"{smallWidth}×{smallHeight} 音量条在可用区域内",
+                smallRail.Top >= Rail.Margin.Top - 1 && smallRail.Bottom <= smallHeight - Rail.Margin.Bottom + 1);
+            report.Add($"小窗 {smallWidth}×{smallHeight}：轨道 {VolumeTrack.ActualHeight:F0}，反馈 {Rail.Opacity:P0}，"
+                + $"上下让位 {Rail.Margin.Top:F0}/{Rail.Margin.Bottom:F0}");
+        }
+        Root.Height = 200;
+        UpdateLayout();
+        ArrangeTransport();
         _chrome.FlashRail(++clock);
         Render();
-        var narrowWheel = Rail.Opacity;
-        report.Add($"窄画面（{ChromeReveal.RailMinPictureWidth - 1:F0} 宽）指针压在最右缘={narrow:P0}，滚轮后={narrowWheel:P0}");
-        Want("画面窄过尺寸线时音量条不画", narrow == 0);
-        Want("画面窄过尺寸线时滚轮也不画音量条", narrowWheel == 0);
+        report.Add($"极矮窗 {Root.ActualWidth:F0}×{Root.ActualHeight:F0}：可用高 "
+            + $"{Root.ActualHeight - Rail.Margin.Top - Rail.Margin.Bottom:F0}，反馈 {Rail.Opacity:P0}");
+        Want("高度不足以容纳滑杆和静音键时收起", Rail.Opacity == 0 && !Rail.IsHitTestVisible);
 
-        _probePictureSize = new Size(width, ChromeReveal.RailMinPictureHeight - 1);
-        clock += SettleMilliseconds;
-        _chrome.Tick(clock);
-        var squat = Strength(width - 1, (ChromeReveal.RailMinPictureHeight - 1) / 2.0);
-        report.Add($"矮画面（{ChromeReveal.RailMinPictureHeight - 1:F0} 高）指针压在最右缘={squat:P0}");
-        Want("画面矮过尺寸线时音量条不画", squat == 0);
+        // 放在极矮窗检查之后，避免先显示底栏，掩盖首次测量为零的回归。
+        Root.Height = 360;
+        UpdateLayout();
+        ArrangeTransport();
+        UpdateLayout();
+        var beforeBar = BoundsOf(Rail);
+        var reservedBottom = Rail.Margin.Bottom;
+        _chrome.WakeFully(++clock);
+        Render();
+        UpdateLayout();
+        ArrangeTransport();
+        UpdateLayout();
+        var afterBar = BoundsOf(Rail);
+        Want("首次预留高度与显示后的底栏一致", Math.Abs(reservedBottom - Bar.ActualHeight) < 1);
+        Want("显示底栏不挤动音量条", Math.Abs(beforeBar.Top - afterBar.Top) < 1
+            && Math.Abs(beforeBar.Height - afterBar.Height) < 1);
+        report.Add($"底栏预留/显示 {reservedBottom:F0}/{Bar.ActualHeight:F0}，"
+            + $"音量条上沿 {beforeBar.Top:F0}→{afterBar.Top:F0}、高 {beforeBar.Height:F0}→{afterBar.Height:F0}");
 
-        // Put back the way ProbeThinLine does it: the page first, so the last Render leaves nothing of the
-        // player's over the library grid behind it. 画面读数也在这里还给窗口 —— 这一趟之后
-        // PictureWidth/PictureHeight 又只是 Root 上的两个数了。
+        Root.Width = oldWidth;
+        Root.Height = oldHeight;
         Visibility = was;
-        _probePictureSize = null;
+        UpdateLayout();
+        ArrangeTransport();
         _chrome.Reset(++clock);
         _chrome.Tick(clock + SettleMilliseconds);
         SetCursorHidden(false);
@@ -498,7 +534,7 @@ public sealed partial class PlayerPage
         var wasTitle = ViewModel.Title;
         var wasSubtitle = ViewModel.Subtitle;
         ViewModel.Title = "S01E05 塔 | 糟糕时间 | 算盘与麻花辫 | 飞驰而过的青春";
-        ViewModel.Subtitle = "1920 x 1080  ·  HEVC  ·  AAC  ·  Studio GreenTea";
+        ViewModel.Subtitle = "417.7 MB  ·  1080p  ·  HEVC  ·  AAC  ·  Studio GreenTea";
         UpdateLayout();
 
         var titleText = BoundsOf(TitleText);
@@ -1092,14 +1128,12 @@ public sealed partial class PlayerPage
         var skipCentre = new Point(skip.Left + skip.Width / 2, skip.Top + skip.Height / 2);
         Want("压在跳过按钮上的按下算按钮的", PressOnSkipButton(skipCentre));
 
-        // 量具本身. Take the bar out of the layout so its ActualHeight really is 0 — the state it is in
-        // before the first film — and make the fallback do the work.
+        // 量具本身：底栏收起时仍要量到与显示后相同的高度。
         var arranged = bar.Height;
         var wasBar = Bar.Visibility;
         Bar.Visibility = Visibility.Collapsed;
         UpdateLayout();
 
-        _barHeight = 0;
         var measured = BarHeight();
 
         Bar.Visibility = wasBar;
@@ -1119,8 +1153,7 @@ public sealed partial class PlayerPage
         Render();
         UpdateLayout();
 
-        // And the remembered height back to the arranged one, since the fallback above left it holding a
-        // measurement taken with the bar out of the tree.
+        // 根据还原后的控件重新摆放浮层。
         PlaceOverlays();
 
         // 收场那一问（offer 收掉 → 按钮 Collapsed → 同一坐标不再算它，倒计时表也停了）。上一关把

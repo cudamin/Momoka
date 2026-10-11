@@ -10,6 +10,8 @@ public sealed record MoviePilotResourceFilter
     public string Site { get; init; } = "";
     public string Resolution { get; init; } = "";
     public string Label { get; init; } = "";
+    public int? Season { get; init; }
+    public int? Episode { get; init; }
     public MoviePilotPromotionFilter Promotion { get; init; }
     public MoviePilotResourceSort Sort { get; init; }
     public bool SeededOnly { get; init; }
@@ -18,6 +20,12 @@ public sealed record MoviePilotResourceFilter
 
     public bool Matches(MoviePilotResource resource, DateTimeOffset now)
     {
+        if (Season is { } season && !resource.Seasons.Contains(season)) return false;
+        // 按集筛选认两处：meta 里解析出的集号，或标题／描述里写着集号（E05、第5集这些写法，见
+        // MoviePilotEpisodePattern）—— 服务器 meta 偶尔整段没解析出来，标题里明写着的不该跟着丢。
+        if (Episode is { } episode && !resource.Episodes.Contains(episode) &&
+            !MoviePilotEpisodePattern.Contains(resource.Title, episode) &&
+            !MoviePilotEpisodePattern.Contains(resource.Description, episode)) return false;
         if (Site.Length > 0 && !string.Equals(resource.SiteName, Site, StringComparison.OrdinalIgnoreCase)) return false;
         if (Resolution.Length > 0 && !string.Equals(resource.Resolution, Resolution, StringComparison.OrdinalIgnoreCase)) return false;
         if (Label.Length > 0 && !resource.Labels.Contains(Label, StringComparer.OrdinalIgnoreCase)) return false;

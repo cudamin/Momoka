@@ -31,6 +31,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <ComboBox x:Name="SiteFilter" Header="站点" HorizontalAlignment="Stretch"
                         ItemsSource="{x:Bind ViewModel.Sites, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedSite, Mode=TwoWay}" />
@@ -50,18 +51,26 @@
                         SelectedIndex="{x:Bind ViewModel.SortIndex, Mode=TwoWay}">
                         <x:String>站点原始顺序</x:String><x:String>做种最多</x:String><x:String>发布时间最新</x:String><x:String>体积最小</x:String><x:String>体积最大</x:String>
                     </ComboBox>
-                    <CheckBox x:Name="SeededFilter" Grid.Row="2" Content="仅有做种"
+                    <ComboBox x:Name="SeasonFilter" Grid.Row="2" Header="季" HorizontalAlignment="Stretch"
+                        ItemsSource="{x:Bind ViewModel.Seasons, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedSeason, Mode=TwoWay}" />
+                    <ComboBox x:Name="EpisodeFilter" Grid.Row="2" Grid.Column="1" Header="集" HorizontalAlignment="Stretch"
+                        ItemsSource="{x:Bind ViewModel.Episodes, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedEpisode, Mode=TwoWay}" />
+                    <TextBlock Grid.Row="2" Grid.Column="2" Style="{StaticResource EgCaptionStyle}" Text="季集筛选只匹配已识别的编号；未标集数的合集可在“全部集”查看。"
+                        Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <CheckBox x:Name="SeededFilter" Grid.Row="3" Content="仅有做种"
                         IsChecked="{x:Bind ViewModel.SeededOnly, Mode=TwoWay}" />
-                    <CheckBox x:Name="HitAndRunFilter" Grid.Row="2" Grid.Column="1" Content="排除 HR"
+                    <CheckBox x:Name="HitAndRunFilter" Grid.Row="3" Grid.Column="1" Content="排除 HR"
                         IsChecked="{x:Bind ViewModel.ExcludeHitAndRun, Mode=TwoWay}" />
-                    <Button x:Name="ResetFilters" Grid.Row="2" Grid.Column="2" HorizontalAlignment="Right" Content="清除筛选"
+                    <Button x:Name="ResetFilters" Grid.Row="3" Grid.Column="2" HorizontalAlignment="Right" Content="清除筛选"
                         Command="{x:Bind ViewModel.ResetCommand}" Style="{StaticResource EgSecondaryButtonStyle}" />
                 </Grid>
             </Expander>
         </StackPanel>
         <Grid Grid.Row="1">
-            <ListView x:Name="ResourceList" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
+            <ListView x:Name="ResourceList" ItemsSource="{x:Bind ViewModel.Groups, Mode=OneWay}"
                 SelectionMode="None" IsItemClickEnabled="False" HorizontalContentAlignment="Stretch">
+                <!-- 快速筛选会移除再插入同一组；禁用容器进出动画，避免回收的容器停在透明帧。 -->
+                <ListView.ItemContainerTransitions><TransitionCollection /></ListView.ItemContainerTransitions>
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -70,42 +79,58 @@
                     </Style>
                 </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="vm:MoviePilotResourceRow">
-                        <Grid Padding="14" RowSpacing="7" Background="{ThemeResource EgSurfaceBrush}"
-                            BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                <Border Padding="8,2" Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgPosterCornerRadius}"
-                                    VerticalAlignment="Top" Visibility="{x:Bind SiteVisibility}">
-                                    <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" Text="{x:Bind SiteName}" />
-                                </Border>
-                                <TextBlock Grid.Column="1" Style="{StaticResource EgCaptionStyle}" Text="{x:Bind PromotionText}"
-                                    TextWrapping="Wrap" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind PromotionHint}" />
-                            </Grid>
-                            <TextBlock Grid.Row="1" Style="{StaticResource EgBodyStyle}" Text="{x:Bind Title}" TextWrapping="Wrap"
-                                MaxLines="3" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
-                            <TextBlock Grid.Row="2" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
-                                Text="{x:Bind Description}" Visibility="{x:Bind DescriptionVisibility}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
-                            <StackPanel Grid.Row="3" Spacing="4">
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}"
-                                    Text="{x:Bind LabelsText}" Visibility="{x:Bind LabelsVisibility}" TextWrapping="Wrap" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
-                                    Text="{x:Bind MetaLine}" TextWrapping="Wrap" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextFaintBrush}"
-                                    Text="{x:Bind PublishedLine}" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-                                <Button x:Name="OpenTorrentPage" Content="种子页面" Command="{x:Bind OpenDetailsCommand}"
-                                    Style="{StaticResource EgSecondaryButtonStyle}" AutomationProperties.Name="{x:Bind DetailsAutomationName}"
-                                    ToolTipService.ToolTip="{x:Bind DetailsHint}" />
-                                <Button x:Name="DownloadResource" Content="{x:Bind DownloadLabel, Mode=OneWay}" Command="{x:Bind DownloadCommand}"
-                                    Style="{StaticResource EgPrimaryButtonStyle}" AutomationProperties.Name="{x:Bind DownloadAutomationName}" />
-                            </StackPanel>
-                        </Grid>
+                    <DataTemplate x:DataType="vm:MoviePilotResourceGroup">
+                        <Expander x:Name="ResourceGroup" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                            IsExpanded="{x:Bind IsExpanded, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Title}">
+                            <Expander.Header>
+                                <StackPanel Spacing="6">
+                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{x:Bind Summary, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap"
+                                        Foreground="{ThemeResource EgTextDimBrush}" />
+                                </StackPanel>
+                            </Expander.Header>
+                            <ItemsControl ItemsSource="{x:Bind Rows, Mode=OneWay}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:MoviePilotResourceRow">
+                                        <Grid Padding="14" RowSpacing="7" Background="{ThemeResource EgSurfaceBrush}"
+                                            BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid ColumnSpacing="12">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <Border Padding="8,2" Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                                                    VerticalAlignment="Top" Visibility="{x:Bind SiteVisibility}">
+                                                    <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" Text="{x:Bind SiteName}" />
+                                                </Border>
+                                                <TextBlock Grid.Column="1" Style="{StaticResource EgCaptionStyle}" Text="{x:Bind PromotionText}"
+                                                    TextWrapping="Wrap" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind PromotionHint}" />
+                                            </Grid>
+                                            <TextBlock Grid.Row="1" Style="{StaticResource EgBodyStyle}" Text="{x:Bind Title}" TextWrapping="Wrap"
+                                                MaxLines="3" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
+                                            <TextBlock Grid.Row="2" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                                                Text="{x:Bind Description}" Visibility="{x:Bind DescriptionVisibility}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                            <StackPanel Grid.Row="3" Spacing="4">
+                                                <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}"
+                                                    Text="{x:Bind LabelsText}" Visibility="{x:Bind LabelsVisibility}" TextWrapping="Wrap" />
+                                                <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                                                    Text="{x:Bind MetaLine}" TextWrapping="Wrap" />
+                                                <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextFaintBrush}"
+                                                    Text="{x:Bind PublishedLine}" TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                                                <Button x:Name="OpenTorrentPage" Content="种子页面" Command="{x:Bind OpenDetailsCommand}"
+                                                    Style="{StaticResource EgSecondaryButtonStyle}" AutomationProperties.Name="{x:Bind DetailsAutomationName}"
+                                                    ToolTipService.ToolTip="{x:Bind DetailsHint}" />
+                                                <Button x:Name="DownloadResource" Content="{x:Bind DownloadLabel, Mode=OneWay}" Command="{x:Bind DownloadCommand}"
+                                                    Style="{StaticResource EgPrimaryButtonStyle}" AutomationProperties.Name="{x:Bind DownloadAutomationName}" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Expander>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>

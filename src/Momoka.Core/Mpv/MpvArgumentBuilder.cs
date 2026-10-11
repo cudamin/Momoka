@@ -82,6 +82,9 @@ public static class MpvArgumentBuilder
             arguments.Add($"--{name}={value}");
         }
 
+        if (request.Fullscreen is { } fullscreen)
+            arguments.Add($"--fullscreen={(fullscreen ? "yes" : "no")}");
+
         return arguments;
     }
 

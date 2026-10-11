@@ -66,6 +66,13 @@ public static class CardSize
     public const int CastWidth = 124;
 
     /// <summary>
+    /// 「查看遗漏集」那张表里一行左边的剧照（16:9）。比 <see cref="WideWidth"/> 小得多 —— 它是弹层里一行文字
+    /// 旁边的一张配图，不是一块货架：160 宽在 780 宽的弹层里占五分之一出头，正是参考图那个比例，
+    /// <see cref="HeightFor"/> 在这个宽度上给整 90，没有半像素要靠框架去糊。
+    /// </summary>
+    public const int MissingWidth = 160;
+
+    /// <summary>
     /// The two lines of text and the gap under a card's picture. Added to the picture's height to get
     /// the height a horizontal row has to be given; see <c>CardShelf.RowHeight</c>.
     /// </summary>

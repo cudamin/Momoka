@@ -66,6 +66,10 @@ public sealed partial class PlaybackService
         }
         try
         {
+            // Capture before stopping the old window, once for every candidate of this request.
+            // Kept outside PlayerOptions so changing window state does not break inline compatibility.
+            var fullscreen = await ReplacementFullscreenAsync(operation).ConfigureAwait(false);
+            ThrowIfSuperseded(operation);
             var candidates = CandidateSources(ticket);
             for (var index = 0; index < candidates.Count; index++)
             {
@@ -75,7 +79,7 @@ public sealed partial class PlaybackService
                     AudioStreamIndex = null,
                     SubtitleStreamIndex = null
                 };
-                var result = await PlayOneAsync(scope, attempt, operation).ConfigureAwait(false);
+                var result = await PlayOneAsync(scope, attempt, operation, fullscreen).ConfigureAwait(false);
                 if (!result.Exit.IsFailure || result.HasStarted || index == candidates.Count - 1) return result;
                 ThrowIfSuperseded(operation);
                 Log.Info(Category, $"《{attempt.Item.ToPlaybackTitle()}》这一版打不开，改试另一版（{index + 2}/{candidates.Count}）");
@@ -141,14 +145,36 @@ public sealed partial class PlaybackService
         await Task.WhenAll(operations.Select(operation => operation.Completed.Task)).ConfigureAwait(false);
     }
 
-    private async Task<PlaybackResult> PlayOneAsync(EmbySessionScope scope, PlaybackTicket ticket, PlayOperation operation)
+    private async Task<bool?> ReplacementFullscreenAsync(PlayOperation operation)
+    {
+        if (_current is not { PictureInHostWindow: false } live) return null;
+        // 未知状态不能把换版本变成自动全屏；只有首次起播才回退到启动偏好。
+        if (!live.HasControlChannel) return false;
+        try
+        {
+            return await live.GetTextAsync("fullscreen", operation.Startup.Token).ConfigureAwait(false) switch
+            {
+                "yes" or "true" => true,
+                "no" or "false" => false,
+                _ => false
+            };
+        }
+        catch (OperationCanceledException) when (operation.Startup.IsCancellationRequested) { throw; }
+        catch (Exception error)
+        {
+            Log.Warn(Category, "换片前未能读取播放器全屏状态", error);
+            return false;
+        }
+    }
+
+    private async Task<PlaybackResult> PlayOneAsync(EmbySessionScope scope, PlaybackTicket ticket, PlayOperation operation, bool? fullscreen)
     {
         ThrowIfSuperseded(operation);
         var connection = await scope.ExecuteAsync((client, _) => Task.FromResult(client.Connection), operation.Startup.Token)
             .ConfigureAwait(false);
         var audioDevice = await ResolveAudioDeviceAsync().WaitAsync(operation.Startup.Token).ConfigureAwait(false);
         ThrowIfSuperseded(operation);
-        var request = planner.Plan(ticket, connection, audioDevice);
+        var request = planner.Plan(ticket, connection, audioDevice) with { Fullscreen = fullscreen };
         var backendKind = settings.Mpv.Backend;
         var old = _active;
         var live = _current;

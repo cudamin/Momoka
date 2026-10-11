@@ -256,6 +256,56 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     }
 
     /// <summary>
+    /// 遗漏集 — 服务器按刮削源的元数据算出来的「这部剧本该有、而库里没有」的单集。
+    /// <para>
+    /// 走 Emby 自己那条 <c>Shows/Missing</c>（4.8 起就有，官方网页端那三点的菜单里也是它），而不是给通用
+    /// 查询加一个 <c>IsMissing</c> 筛选：那一位是 Jellyfin 的，Emby 收到会静默丢掉（见
+    /// <see cref="EmbyFilterBy"/> 那段），发出去看着像做成了、其实什么都没筛。
+    /// </para>
+    /// <para>
+    /// <paramref name="seriesId"/> 走 <c>ParentId</c>：这条接口认的参数不多（<c>StartIndex</c>、
+    /// <c>Limit</c>、<c>ParentId</c>、<c>IsUnaired</c>、<c>IsSpecialSeason</c>），而 <c>ParentId</c> 是它
+    /// 承诺能把结果收窄到一部剧的那一个。季那一档由调用方在本地按季号筛（见
+    /// <see cref="ItemDetail.MissingInSeason"/>）—— 拿季 id 当 <c>ParentId</c> 传进去不一定认，而季号是每条
+    /// 遗漏集自己带着的一位，稳。
+    /// </para>
+    /// <para>
+    /// <b>两个筛选都是三态，null 才是「不发这一条」。</b>规格里它们叫 <c>IsUnaired</c> 和
+    /// <c>IsSpecialSeason</c> —— 是筛选（<c>true</c> 只要这一类、<c>false</c> 只要另一类），不是「要不要带
+    /// 上」。这一点 2026-10-10 实测过：早先照社区帖子里那对 <c>IncludeUnaired</c>／<c>IncludeSpecials</c> 发，
+    /// 服务器一个都不认、静默丢掉，四种组合问回来的条数一模一样。
+    /// </para>
+    /// </summary>
+    /// <param name="isUnaired">
+    /// true 只要还没播出的、false 只要已经播出的、null 两类都要。null 是这张表的常态：两颗开关都关着时，
+    /// 「哪些算没播出」由 <see cref="ItemDetail.MissingIsUnaired"/> 在本地判，不必多问一趟。
+    /// </param>
+    /// <param name="isSpecialSeason">true 只要特别篇（第 0 季）、false 只要正片、null 两类都要。</param>
+    public async Task<List<EmbyItem>> GetMissingEpisodesAsync(
+        string seriesId,
+        bool? isUnaired,
+        bool? isSpecialSeason,
+        CancellationToken cancellationToken)
+    {
+        var url = EmbyUrl.Combine(ApiBase, "Shows/Missing",
+            ("UserId", Connection.UserId),
+            ("ParentId", seriesId),
+            ("IncludeItemTypes", EmbyItemType.Episode),
+            ("Recursive", "true"),
+            ("SortBy", EmbySortBy.Number),
+            ("SortOrder", "Ascending"),
+            ("Fields", EmbyFields.Browse),
+            ("Limit", "500"),
+            ("IsUnaired", isUnaired is { } unaired ? (unaired ? "true" : "false") : null),
+            ("IsSpecialSeason", isSpecialSeason is { } special ? (special ? "true" : "false") : null));
+
+        var result = await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
+        Log.Debug(Category, $"读取到 {result.Items.Count} 集遗漏（未播出={isUnaired?.ToString() ?? "都要"}，"
+            + $"特别篇={isSpecialSeason?.ToString() ?? "都要"}）");
+        return result.Items;
+    }
+
+    /// <summary>
     /// 服务器上现有的合集，「添加到合集」那张表列的就是这些。
     /// <para>
     /// 不要字段：这张表只写名字。上限给到能装下任何一台真实服务器，而且仍旧是一趟请求。
@@ -385,40 +435,64 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
             cancellationToken);
 
     /// <summary>
-    /// 刷新元数据，或者刮削一遍。同一个接口两套参数：
-    /// <list type="bullet">
-    /// <item><b>刷新</b>（<paramref name="replace"/> 为 false）：缺什么补什么，现有的一个字不动。</item>
-    /// <item><b>刮削</b>：按名字重新问一遍刮削源，抓回来的盖掉现在的。</item>
-    /// </list>
+    /// 刷新元数据，按「刷新元数据」那张表上选的那一档来（照 Emby 网页端 <c>components/refreshdialog</c> 的
+    /// 做法）。<paramref name="mode"/> 两档：<c>missing</c> 是「问一遍刮削源，缺什么补什么、现有的一个字不动」，
+    /// <c>all</c> 是「抓回来的盖掉现在的」。
     /// <para>
-    /// <b>图片两档都不覆盖</b>（<c>ReplaceAllImages=false</c>）：用户刚在「修改媒体封面图」里挑的那张封面，
-    /// 不能被紧接着的一次刮削扔掉。缺图的条目照旧会补上 —— 那是「补缺」而不是「覆盖」。
+    /// <b>两档都先去问刮削源</b>（<c>MetadataRefreshMode=FullRefresh</c>）—— 网页端那两档发的是同一个
+    /// <c>FullRefresh</c>，分岔只在 <c>ReplaceAllMetadata</c> 这一位上。它写反了的代价是「刷新一下，手改过的
+    /// 简介没了」，而屏上什么都看不出来，所以这一位认的是档位自己那个字符串，不认调用方顺手传的一个 bool。
     /// </para>
     /// <para>
-    /// <paramref name="mode"/> 只有验证用得上（<c>ValidationOnly</c>）：那一档什么都不改，用来确认这条路真的
-    /// 通着，而不用拿用户的真实库去试一次覆盖。
+    /// <paramref name="replaceImages"/> / <paramref name="replaceThumbnails"/> 是那张表上另外两颗开关，默认都
+    /// <b>关</b>：用户刚在「修改媒体封面图」里挑的那张封面，不该被一次刷新扔掉；而开了的那一颗会先删光再重下，
+    /// 是有可能让可用图比以前更少的一件事，所以由用户在表上单独点。缺图的条目照旧会补上 —— 那是「补缺」不是
+    /// 「覆盖」。
+    /// </para>
+    /// <para>
+    /// 递归：一部剧刷新的时候，季和单集跟着一起来 —— 不然「刷新了却还是缺集名」。
     /// </para>
     /// </summary>
     public Task RefreshItemAsync(
         string itemId,
-        bool replace,
-        CancellationToken cancellationToken,
-        string? mode = null)
+        string mode,
+        bool replaceImages,
+        bool replaceThumbnails,
+        CancellationToken cancellationToken)
     {
-        var refresh = mode ?? (replace ? "FullRefresh" : "Default");
+        if (mode is not ("missing" or "all")) throw new ArgumentException("未知的刷新模式。");
 
         return http.PostAsync(
             EmbyUrl.Combine(ApiBase, $"Items/{itemId}/Refresh",
-                // 递归：一部剧刷新的时候，季和单集跟着一起来 —— 不然「刷新了却还是缺集名」。
                 ("Recursive", "true"),
-                ("MetadataRefreshMode", refresh),
-                ("ImageRefreshMode", refresh),
-                ("ReplaceAllMetadata", replace ? "true" : "false"),
-                ("ReplaceAllImages", "false")),
+                ("MetadataRefreshMode", "FullRefresh"),
+                ("ImageRefreshMode", "FullRefresh"),
+                ("ReplaceAllMetadata", mode == "all" ? "true" : "false"),
+                ("ReplaceAllImages", replaceImages ? "true" : "false"),
+                ("ReplaceThumbnailImages", replaceThumbnails ? "true" : "false")),
             null,
             Context,
             cancellationToken);
     }
+
+    /// <summary>
+    /// 自检专用：只走一遍 <c>Items/{id}/Refresh</c>，什么都不改（<c>MetadataRefreshMode=ValidationOnly</c>）。
+    /// 用来确认这条路真的通着，而不用拿用户的真实库去试一次覆盖。
+    /// <para>
+    /// 单独一支而不是给 <see cref="RefreshItemAsync"/> 添一个开关：那一头收的是「刷新元数据」那张表上的两档，
+    /// 而这一趟根本不是一次刷新 —— 混进去的下场是有一天有人把 <c>ValidationOnly</c> 当成第三档挂到界面上，
+    /// 于是自检每一轮都真去刮一次用户的库。
+    /// </para>
+    /// </summary>
+    public Task ValidateItemRefreshAsync(string itemId, CancellationToken cancellationToken) =>
+        http.PostAsync(
+            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/Refresh",
+                ("Recursive", "true"),
+                ("MetadataRefreshMode", "ValidationOnly"),
+                ("ImageRefreshMode", "ValidationOnly")),
+            null,
+            Context,
+            cancellationToken);
 
     /// <summary>
     /// 重新扫描媒体库 —— 整台服务器扫一遍，也就是服务器控制台上那颗「扫描媒体库」。管理员才能用。
@@ -429,6 +503,94 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public Task ScanLibraryAsync(CancellationToken cancellationToken) =>
         http.PostAsync(EmbyUrl.Combine(ApiBase, "Library/Refresh"), null, Context, cancellationToken);
+
+    // ---- 识别 ----------------------------------------------------------------
+    //
+    // 四条路拼成一件事（Emby 网页端的「识别」，协议见 ItemIdentify 的类注释）：问这个条目能填哪几家的标识符、
+    // 按表单去刮削源找候选、把挑中的一条落下来、把识别整个抹掉。
+
+    /// <summary>
+    /// 这个条目能填哪几家的标识符。服务器按条目类型答 —— 电影和剧集拿到的不是同一份。
+    /// <para>
+    /// <c>IsSupportedAsIdentifier=true</c> 是网页端加的（见 <c>components/itemidentifier</c>）：它把那些
+    /// 「能看不能用」的 provider（比如只能读不能写的）滤掉，留下的每一家都是真能填进 <c>ProviderIds</c> 的。
+    /// </para>
+    /// </summary>
+    public Task<List<ExternalIdInfo>> GetExternalIdInfosAsync(string itemId, CancellationToken cancellationToken) =>
+        http.GetJsonAsync<List<ExternalIdInfo>>(
+            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/ExternalIdInfos", ("IsSupportedAsIdentifier", "true")),
+            Context,
+            cancellationToken);
+
+    /// <summary>
+    /// 按名字／年份／各家标识符去刮削源找候选。<paramref name="itemType"/> 是条目的类型原文（<c>Movie</c>、
+    /// <c>Series</c>…）—— 服务器的路由就是按它分的，所以发之前先过 <see cref="ItemIdentify.Supports"/>。
+    /// <para>
+    /// 服务器答空数组是常事（名字对不上、插件没装、刮削源不通），那不是错。
+    /// </para>
+    /// </summary>
+    public Task<List<RemoteSearchResult>> SearchRemoteAsync(
+        string itemType,
+        RemoteSearchQuery query,
+        CancellationToken cancellationToken) =>
+        http.PostJsonAsync<List<RemoteSearchResult>>(
+            EmbyUrl.Combine(ApiBase, $"Items/RemoteSearch/{Uri.EscapeDataString(itemType)}"),
+            query,
+            Context,
+            cancellationToken);
+
+    /// <summary>
+    /// 把挑中的那一条落在这个条目上：服务器据此改写标识符、按它重新刮一遍元数据。管理员才能用。
+    /// <para>
+    /// <paramref name="replaceAllImages"/> 是网页端那个「替换现有图像」开关。默认<b>不</b>换 —— 用户刚在
+    /// 「修改媒体封面图」里挑的那张封面，不该因为一次识别被扔掉。交回去的
+    /// <see cref="RemoteSearchResult"/> 必须是服务器发来的原样那一条（见那个类的注释）。
+    /// </para>
+    /// </summary>
+    public Task ApplyRemoteSearchResultAsync(
+        string itemId,
+        RemoteSearchResult result,
+        bool replaceAllImages,
+        CancellationToken cancellationToken) =>
+        http.PostAsync(
+            EmbyUrl.Combine(ApiBase, $"Items/RemoteSearch/Apply/{itemId}",
+                ("ReplaceAllImages", replaceAllImages ? "true" : "false")),
+            result,
+            Context,
+            cancellationToken);
+
+    /// <summary>
+    /// 取一张候选海报的字节。走的是服务器那条转发（<c>Items/RemoteSearch/Image</c>），不是直连刮削源 ——
+    /// 本机连不上 TMDB 的 CDN 是常事，而服务器多半连得上。
+    /// </summary>
+    public Task<byte[]> GetRemoteSearchImageAsync(
+        string imageUrl,
+        string? providerName,
+        CancellationToken cancellationToken) =>
+        http.GetBytesAsync(
+            EmbyUrl.Combine(ApiBase, "Items/RemoteSearch/Image",
+                ("imageUrl", imageUrl), ("ProviderName", providerName)),
+            Context,
+            cancellationToken);
+
+    /// <summary>
+    /// 移除识别：把服务器上这个条目的元数据整个重置掉，之后它不再对上任何一部片子。
+    /// <para>
+    /// <b>不可撤销</b> —— 手改过的片名、简介、分级一并没了，所以调用方必须先问过用户（网页端也是先弹一句
+    /// 「ResetMetadataConfirmation」，而且那颗默认键是「取消」）。
+    /// </para>
+    /// <para>
+    /// <c>ItemIds</c> 两处都给：官方 REST 文档写的是查询串（<c>?ItemIds=…</c>），而官方网页端实际发的是
+    /// 一个 JSON 正文（<c>{"ItemIds":"…"}</c>）。两处都给，服务器认哪一处都成立 —— 这一位点错了的代价是
+    /// 「按下去什么都没发生」，那比多发几个字节难查得多。
+    /// </para>
+    /// </summary>
+    public Task ResetMetadataAsync(string itemId, CancellationToken cancellationToken) =>
+        http.PostAsync(
+            EmbyUrl.Combine(ApiBase, "Items/Metadata/Reset", ("ItemIds", itemId)),
+            new { ItemIds = itemId },
+            Context,
+            cancellationToken);
 
     /// <summary>
     /// 删除一个条目 —— <b>连磁盘上的文件一起删</b>，不可撤销。调用方必须先问过用户（见

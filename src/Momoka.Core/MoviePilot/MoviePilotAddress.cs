@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Momoka.MoviePilot;
 
 /// <summary>
@@ -82,11 +84,65 @@ public static class MoviePilotAddress
     /// </summary>
     private static int Port(Uri parsed) => parsed.IsDefaultPort ? DefaultApiPort : parsed.Port;
 
-    /// <summary>What to show back in the settings box after a successful normalisation.</summary>
-    public static string ToDisplayString(Uri address) =>
-        address.IsDefaultPort || address.Port == DefaultApiPort
-            ? address.Host
-            : $"{address.Host}:{address.Port}";
+    /// <summary>
+    /// The three boxes the settings card shows for one stored address: the http/https pick, the host, and
+    /// the port (empty when none is set). See <see cref="Split"/> and <see cref="Join"/>.
+    /// </summary>
+    public readonly record struct Parts(string Scheme, string Host, string Port);
+
+    /// <summary>
+    /// Pulls a stored address apart into the card's three boxes — the inverse of <see cref="Join"/>. Lives
+    /// here, beside the composing half and the port resolver, so the one thing that knows what a MoviePilot
+    /// address is stays one thing.
+    /// <para>
+    /// The port box is left empty when the stored address names no explicit port: that is 「用默认 3001」, and
+    /// a box pre-filled with 3001 would turn the next save into a value the user never typed.
+    /// <see cref="TryNormalize"/> is still what fills the default in on the way out, so an empty box and a box
+    /// reading 3001 call the same server. A blank or unparseable string hands the host box back whatever text
+    /// there is rather than silently blanking it; the 测试连接 button rejects it with the same message as before.
+    /// </para>
+    /// </summary>
+    public static Parts Split(string? text)
+    {
+        var trimmed = (text ?? "").Trim();
+        if (trimmed.Length == 0) return new Parts(DefaultScheme, "", "");
+
+        var hasScheme = trimmed.Contains("://", StringComparison.Ordinal);
+        var candidate = hasScheme ? trimmed : DefaultScheme + "://" + trimmed;
+
+        if (Uri.TryCreate(candidate, UriKind.Absolute, out var parsed)
+            && parsed.Scheme is "http" or "https"
+            && parsed.Host.Length > 0)
+        {
+            // 3001 is never a scheme's default port, so IsDefaultPort is exactly 「no port was written」 —
+            // which is what keeps the box empty for a bare host and fills it only for a port the user gave.
+            var port = parsed.IsDefaultPort ? "" : parsed.Port.ToString(CultureInfo.InvariantCulture);
+            return new Parts(parsed.Scheme, parsed.Host, port);
+        }
+
+        var scheme = hasScheme && trimmed.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            ? "https"
+            : DefaultScheme;
+        var host = hasScheme ? trimmed[(trimmed.IndexOf("://", StringComparison.Ordinal) + 3)..] : trimmed;
+        return new Parts(scheme, host, "");
+    }
+
+    /// <summary>
+    /// Composes the stored address out of the card's three boxes — the inverse of <see cref="Split"/>. A blank
+    /// host yields the empty string（「还没填」, the normal fresh state）rather than a scheme with nothing after
+    /// it; the port rides on <see cref="TryNormalize"/>'s default whenever the user left it empty.
+    /// </summary>
+    public static string Join(string? scheme, string? host, string? port)
+    {
+        host = (host ?? "").Trim();
+        if (host.Length == 0) return "";
+
+        var normalisedScheme = string.Equals(scheme, "https", StringComparison.OrdinalIgnoreCase)
+            ? "https"
+            : DefaultScheme;
+        port = (port ?? "").Trim();
+        return port.Length == 0 ? $"{normalisedScheme}://{host}" : $"{normalisedScheme}://{host}:{port}";
+    }
 
     /// <summary>Builds the absolute URI for one API path, e.g. <c>api/v1/dashboard/system</c>.</summary>
     public static Uri Combine(Uri apiBase, string path)

@@ -285,7 +285,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// the second half of the rule reads.
     /// </summary>
     public Visibility AlphaVisibility => Show(
-        SortKey == EmbySortBy.Name && !SortDescending && _total is > 30);
+        _request?.IsSearch != true && SortKey == EmbySortBy.Name && !SortDescending && _total is > 30);
 
     /// <summary>Whether this grid has anything the player could start, for the two play buttons.</summary>
     internal bool HasPlayable => _active && _scope?.IsCurrent == true && _firstPage && !Busy
@@ -321,7 +321,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(EmptyVisibility))]
     public partial bool ShowEmptyNotice { get; set; }
 
-    public Visibility EmptyVisibility => Show(ShowEmptyNotice);
+    public Visibility EmptyVisibility => Show(ShowEmptyNotice && (_request?.IsSearch != true || SearchText.Length > 0));
 
     /// <summary>
     /// What the middle of an empty grid says. A property rather than the literal the markup used to
@@ -343,7 +343,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 一伙 —— 换一个请求或改了设置就重问一次。
     /// </summary>
     public Visibility MoviePilotTabsVisibility =>
-        Show(_request?.IsSearch == true && _settings?.Settings.MoviePilot.Enabled == true);
+        Show(_request?.IsSearch == true && _moviePilot?.Available == true);
+
+    private Momoka.MoviePilot.MoviePilotService? _moviePilot;
+
+    internal void RefreshMoviePilotAvailability() => OnPropertyChanged(nameof(MoviePilotTabsVisibility));
 
     /// <summary>What the box holds, so it survives the page being rebuilt around it.</summary>
     [ObservableProperty]
@@ -399,7 +403,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         ISettingsService settings,
         EmbySession session,
         EmbyImageStore images,
-        IServerCapabilities capabilities)
+        IServerCapabilities capabilities,
+        Momoka.MoviePilot.MoviePilotService? moviePilot = null)
     {
         Cancel();
         _active = true;
@@ -410,6 +415,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _session = session;
         _images = images;
         _capabilities = capabilities;
+        _moviePilot = moviePilot;
 
         var ui = settings.Settings.Ui;
 
@@ -437,6 +443,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         RestoreSort();
         RestoreFilters();
         RestoreView();
+        LoadRecentSearches();
     }
 
     /// <summary>
@@ -444,9 +451,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// stack an entry on the back stack for every word typed, and the grid the user is looking at —
     /// its sort, its view shape, its filters — is the same grid either way.
     /// </summary>
-    internal Task SearchAsync(string term)
+    internal async Task SearchAsync(string term, bool remember = true)
     {
-        if (_request is not { IsSearch: true } request) return Task.CompletedTask;
+        if (!_active || _scope?.IsCurrent != true || _request is not { IsSearch: true } request) return;
 
         var query = term.Trim();
         request.SearchTerm = query;
@@ -455,10 +462,93 @@ public sealed partial class LibraryViewModel : PageViewModel
         SearchText = query;
         Heading = LibraryRequest.SearchTitle(query);
 
-        return ReloadAsync();
+        var loading = ReloadAsync();
+        var queryToken = QueryToken;
+        await loading.ConfigureAwait(true);
+        if (!QueryCurrent(queryToken) || !ReferenceEquals(_request, request) || request.SearchTerm != query || _pageFailed) return;
+        if (remember && query.Length > 0) RememberSearch();
+        if (query.Length == 0) LoadRecentSearches();
     }
 
     public override Task ReloadAsync() => LoadAsync(reset: true);
+
+    /// <summary>删除只改变当前集合；分页起点跟随新数量，删除前发出的分页响应作废。</summary>
+    internal async Task<bool> RemoveAsync(CardItem card, CancellationToken queryToken, bool deleted = true)
+    {
+        if (!QueryCurrent(queryToken) || !Cards.Contains(card)) return false;
+        // 容器会连带删除未加载的后代；查询刚切换时屏上也可能仍是旧排序，不能据旧集合推算新分页。
+        if (!_firstPage || deleted && (card.Item.IsFolder || card.Item.Type is EmbyItemType.Series
+            or EmbyItemType.Season or EmbyItemType.Folder or EmbyItemType.BoxSet or EmbyItemType.Playlist))
+            return await RefreshAfterRemovalAsync(queryToken).ConfigureAwait(true);
+        base.Cancel();
+        // 保留查询身份，菜单里已发出的其他删除仍属于这一页；只撤销读取和字母跳转。
+        _jumps.Cancel();
+        card.AbandonPoster();
+        Cards.Remove(card);
+        if (_total > 0) _total--;
+        _firstPage = true;
+        _pageFailed = false;
+        IsReady = true;
+        ShowEmptyNotice = Cards.Count == 0;
+        RowsArrived();
+        return true;
+    }
+
+    private async Task<bool> RefreshAfterRemovalAsync(CancellationToken queryToken)
+    {
+        var wanted = Math.Max(Cards.Count, _settings!.PageSize);
+        _firstPage = false;
+        _jumps.Cancel();
+        var token = BeginLoad();
+        try
+        {
+            var items = new List<EmbyItem>();
+            var total = 0;
+            do
+            {
+                var result = await ReadAsync(items.Count, token).ConfigureAwait(true);
+                if (!QueryCurrent(queryToken) || !IsCurrent(token)) return false;
+                total = result?.TotalRecordCount ?? 0;
+                if (result is null || result.Items.Count == 0) break;
+                items.AddRange(result.Items);
+            } while (items.Count < Math.Min(wanted, total));
+
+            // 原有卡片原位保留，只移除消失的项并补入需要的项，避免容器、焦点和海报整页重建。
+            var retained = Cards.ToDictionary(card => card.Item.Id, StringComparer.Ordinal);
+            var desired = items.Select(item => retained.TryGetValue(item.Id, out var existing) ? existing
+                : new CardItem(item, _images!, CardBuildWidth, CardBuildWide, indicators: _indicators)).ToArray();
+            var kept = desired.ToHashSet();
+            for (var index = Cards.Count - 1; index >= 0; index--)
+                if (!kept.Contains(Cards[index]))
+                {
+                    Cards[index].AbandonPoster();
+                    Cards.RemoveAt(index);
+                }
+            for (var index = 0; index < desired.Length; index++)
+            {
+                var current = Cards.IndexOf(desired[index]);
+                if (current < 0) Cards.Insert(index, desired[index]);
+                else if (current != index) Cards.Move(current, index);
+            }
+            _total = total;
+            _firstPage = true;
+            _pageFailed = false;
+            ShowEmptyNotice = Cards.Count == 0;
+            RowsArrived();
+            return true;
+        }
+        catch (OperationCanceledException) { return false; }
+        catch (Exception error)
+        {
+            if (QueryCurrent(queryToken) && IsCurrent(token))
+            {
+                _pageFailed = true;
+                Report("更新删除后的列表失败，请刷新重试", error);
+            }
+            return false;
+        }
+        finally { EndLoad(token); }
+    }
 
     /// <summary>
     /// Reads one page of rows: the first, or the next.
@@ -479,6 +569,12 @@ public sealed partial class LibraryViewModel : PageViewModel
             _firstPage = false;
             _pageFailed = false;
             _total = NotLoaded;
+            ShowEmptyNotice = false;
+            if (_request.IsSearch)
+            {
+                foreach (var card in Cards) card.AbandonPoster();
+                Cards.Clear();
+            }
         }
         var queryToken = _queryToken;
         var token = BeginLoad();
@@ -501,7 +597,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             }
             _firstPage = true;
             _pageFailed = false;
-            EmptyNotice = result is null ? "输入关键字开始搜索" : "这里没有内容";
+            EmptyNotice = result is null ? "输入关键字开始搜索"
+                : _request.IsSearch ? $"没有找到“{SearchText}”的匹配结果" : "这里没有内容";
             ShowEmptyNotice = Cards.Count == 0;
             EndLoad(token);
             PageArrived?.Invoke();
@@ -531,17 +628,18 @@ public sealed partial class LibraryViewModel : PageViewModel
         RowsArrived();
     }
 
-    internal void Resume()
+    internal void Resume(bool reload = true)
     {
         if (_active) return;
         _active = _scope?.IsCurrent == true;
-        if (_active) _ = ReloadAsync();
+        if (_active && reload) _ = ReloadAsync();
     }
 
     public override void Dispose()
     {
         Cancel();
         foreach (var card in Cards) card.AbandonPoster();
+        foreach (var row in RecentSearches) row.Card.AbandonPoster();
         _queries.Dispose();
         _jumps.Dispose();
         base.Dispose();
@@ -771,6 +869,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             Limit = 0,
             Fields = "",
             IsPlayed = source.IsPlayed,
+            IsFavorite = source.IsFavorite,
             Genre = source.Genre,
             PersonId = source.PersonId,
             Filters = source.Filters,
@@ -833,6 +932,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_actions is null || !_active || !card.IsCurrent) return;
 
+        RememberSearch(card.Item);
         _actions.OpenItem(card.Item);
     }
 
@@ -1084,20 +1184,11 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         if (request.IsSearch)
         {
-            if (request.SearchTerm is not { Length: > 0 } term) return null;
-
-            return new ItemQuery
-            {
-                SearchTerm = term,
-                Recursive = true,
-                IncludeItemTypes = ItemQuery.SweptTypes,
-                SortBy = SortKey,
-                Descending = SortDescending,
-                StartIndex = start,
-                Limit = limit,
-                Filters = _filters.Clone()
-            };
+            return LibrarySearch.Query(request.SearchTerm, request.SearchCategory, start, limit);
         }
+
+        if (request.IsFavorites)
+            return ItemQuery.Favorites(start, limit, SortKey, SortDescending, _filters.Clone());
 
         // 主页某一排点进来的那一页（2026-09-14「新增点击图中红框的标题可以进入对应的页面」）。和演职人员、
         // 类型那两支并排：它同样不是文件夹、没有父级，落到下面那一支就成了「服务器的媒体库列表」。

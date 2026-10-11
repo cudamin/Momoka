@@ -315,46 +315,15 @@ public sealed class ChromeReveal
     public const double RailFloor = 0;
 
     /// <summary>
-    /// 画面小于这个宽度（逻辑像素）就不画音量条了 —— 用户令 2026-09-23：
-    /// 「集成模式下窗口小于一定程度的时候自动隐藏音量条」。
-    /// <para>
-    /// 两个数照<b>音量条自己的尺寸</b>定，不是拍的（条子的尺寸由 <c>ProbeRailFade</c> 每次读出：40 宽、右边距 20、
-    /// 约 320 高 ＝ 滑杆 280 ＋ 静音键 40，右贴、纵向居中 —— 与独占 uosc 的音量矩形同几何，这也是本次
-    /// 「参考独占模式修复」的前提）：
-    /// </para>
-    /// <list type="bullet">
-    ///   <item>高度 <see cref="RailMinPictureHeight"/>：条子要占满约 320 的高，而独占 uosc 还把音量条自身压在
-    ///     「顶栏到控制条之间可用高度的八成」以内——画面再矮下去，那八成很快就托不住整条 320，条子只能被上下
-    ///     切短。与其画一根裁过的柱子，不如整条不画，留足余量收在这个数。</item>
-    ///   <item>宽度 720：条子连右边距占 60，其 uosc 唤出反达（<see cref="RailProximity"/>，离矩形 120px 起淡）
-    ///     还要再往里约 120，合起来近 180 —— 画面窄过这个数，「音量」这件事就比画面本身还抢眼。</item>
-    /// </list>
-    /// <para>
-    /// 两个方向各自成立，所以判据是合取：拖窗口下边缘拖出的「宽而矮」与拖右边缘拖出的「窄而高」都要收。
-    /// 要调就调这两个常量 —— 改大改小只影响「小到什么程度才收」，与 <see cref="RailStrength"/> 那条
-    /// 由指针距离决定的曲线无关。
-    /// </para>
-    /// <para>
-    /// 它住在 Core 而不是页面里，理由与 <see cref="EdgeBandFraction"/> 同款：这是一条「什么时候不画」的
-    /// 规则，拿两个数就答得出来，单元测试钉得住；页面只负责把窗口的尺寸递进来。
-    /// </para>
+    /// uosc Volume.lua 的整条高度（含静音键）：占上下控件间可用高度的八成，上限八个按钮格。
+    /// 窄窗只缩短轨道，不再按 720×560 的固定窗口尺寸隐藏音量反馈。
     /// </summary>
-    public const double RailMinPictureWidth = 720;
+    public static double RailHeight(double availableHeight, double size) =>
+        Math.Floor(Math.Min(size * 8, Math.Max(0, availableHeight) * 0.8) + 0.5);
 
-    /// <summary>画面矮于这个高度就不画音量条了。推导见 <see cref="RailMinPictureWidth"/>。</summary>
-    public const double RailMinPictureHeight = 560;
-
-    /// <summary>
-    /// 这么大的画面容得下音量条吗。假的时候这条音量条<b>一个像素都不画</b>：既不为指针走近右缘而露面，
-    /// 也不为滚轮／按键的读数而露面 —— 「自动隐藏」是按那句话的正面意思做的（窗口小 ⇒ 没有音量条），
-    /// 代价写在明处：<b>小窗口里滚轮调音量再没有数字可看</b>，把窗口放大或进全屏就有。
-    /// <para>
-    /// 它只答「这个画面配不配有一条音量条」，与「此刻该不该显示」是两问；后一问仍旧归
-    /// <see cref="Pointer"/> 那条路（位置、滚轮宽限、手压在滑杆上）。
-    /// </para>
-    /// </summary>
-    public static bool RailRoom(double pictureWidth, double pictureHeight) =>
-        pictureWidth >= RailMinPictureWidth && pictureHeight >= RailMinPictureHeight;
+    /// <summary>与独占模式一致：至少容得下一个滑杆格和一个静音键格才显示。</summary>
+    public static bool RailRoom(double availableHeight, double size) =>
+        size > 0 && RailHeight(availableHeight, size) > size * 2;
 
     /// <summary>最后一记活动的时刻（<see cref="CursorIdleMilliseconds"/> 那条钟的起点；2026-09-28 起只量光标）。</summary>
     private long _lastActivity;
@@ -423,11 +392,12 @@ public sealed class ChromeReveal
     private bool _pictureMenu;
 
     /// <summary>
-    /// Starts fully revealed: playback has just begun, the pointer may be anywhere, and the first thing
-    /// the user needs is to see that there are controls at all. Every field agrees so a layout pass that
-    /// runs before the first pointer event cannot read a state where the bar is up with no volume beside it.
+    /// Starts <b>收起</b>，与 <see cref="Reset"/>（进场、开播那一拍）摆出来的世界一致：新一场播放不给控件
+    /// 宽限（用户令 2026-10-10「点一次点击进入播放页面会自动显示播放控件」），三样都等指针的位置说话。
+    /// 此前这里写的是全显，理由是「刚开播先让你看见有控件」—— 那条理由随同一句令撤下。四个字段（含三条
+    /// 浓度）取值一致，所以第一次指针事件之前若有一次布局，也不会读到一个「进度条在、音量条不在」的状态。
     /// </summary>
-    public ChromeState State { get; private set; } = new(true, true, true);
+    public ChromeState State { get; private set; } = new(false, false, false);
 
     /// <summary>
     /// How strongly the volume rail should be drawn, from <see cref="RailFloor"/> to 1, and 0 when it is
@@ -442,8 +412,11 @@ public sealed class ChromeReveal
     /// sits. Both axes fall out of that one distance — the corners of the picture are far from a rail that
     /// stands 40 wide and centred down the right edge, so they stay dark without a separate centre bias.
     /// </para>
+    /// <para>
+    /// 初值 0（三条浓度同）：与 <see cref="State"/> 同一句话 —— 新一场播放三样都不在屏上（2026-10-10）。
+    /// </para>
     /// </summary>
-    public double RailStrength { get; private set; } = 1;
+    public double RailStrength { get; private set; }
 
     /// <summary>
     /// How strongly the title strip should be drawn, 0 when it is not up at all and up to 1 hard against the
@@ -460,7 +433,7 @@ public sealed class ChromeReveal
     /// 因此很淡。这是照搬独占的取舍，嫌太虚就在 <see cref="TitleLoudness"/> 里加一个下限 —— 一处常量。
     /// </para>
     /// </summary>
-    public double TitleStrength { get; private set; } = 1;
+    public double TitleStrength { get; private set; }
 
     /// <summary>
     /// How strongly the transport bar (the button row, and with it the growing timeline) should be drawn,
@@ -470,7 +443,7 @@ public sealed class ChromeReveal
     /// same readout reasons. The page also grows the timeline's height with it (uosc's
     /// <c>Timeline:get_effective_size</c>, whose visibility follows the controls).
     /// </summary>
-    public double BarStrength { get; private set; } = 1;
+    public double BarStrength { get; private set; }
 
     /// <summary>
     /// Pins the chrome open regardless of the pointer. Set while one of the bar's flyouts is up: the
@@ -826,9 +799,11 @@ public sealed class ChromeReveal
     /// get no feedback at all if the pointer is resting in the middle of the picture. A deliberate show,
     /// so it also unlocks the double-click silence latch.
     /// <para>
-    /// 暂停的半边不再走这里（用户令 2026-10-07「暂停时不要自动显示播放控件」）：暂停/播放的回执是那枚
-    /// 徽标，落在暂停上的切换（点画面、空格、可重绑键）不再给宽限；恢复播放照旧给。本类照旧不认识
-    /// 暂停 —— 是调用方在按下的方向上不来了，位置与光标那两套判据一字未动。
+    /// <b>有一批命令不再走这里</b>（用户令 2026-10-07「暂停时不要自动显示播放控件」，2026-10-10「集成模式下
+    /// 快进或者快退的时候不要自动显示播放控件 / 开始播放暂停播放的时候也不要 / 退出全屏的时候也不要」）：
+    /// 暂停与恢复、快退与快进、全屏切换这几样的回执都在画面上 —— 那枚一秒的暂停／播放徽标、画面当场跳到
+    /// 新位置、窗口形状本身变了 —— 所以调用方在那些方向上不来了，判据是外壳的 <c>PlayerPage.WakesChrome</c>。
+    /// 本类照旧不认识暂停、也不认识哪一颗键：位置与光标那两套判据一字未动。
     /// </para>
     /// </summary>
     public bool WakeFully(long now)
@@ -857,25 +832,34 @@ public sealed class ChromeReveal
     public bool Tick(long now) => Settle(now);
 
     /// <summary>
-    /// Puts the chrome back the way it looks at the start of a playback. Called on each new file, because
-    /// the pointer may be anywhere and the state left behind belongs to the file that just ended. A new
+    /// Puts the chrome back the way it looks at the start of a playback —— <b>收起</b>。Called on each new file,
+    /// because the pointer may be anywhere and the state left behind belongs to the file that just ended. A new
     /// playback is its own world, so the double-click silence latch does not survive it — 同理还有右键画面
     /// 菜单那一位（弹层自己会关，Closed 那一拍再放是空操作）。
+    /// <para>
+    /// <b>2026-10-10 起不再给控件宽限</b>（用户报「关闭应用然后重新打开应用，点一次点击进入播放页面会自动
+    /// 显示播放控件」）。从前这里把三样摆成全显并给一秒二的宽限，理由是「刚开播先让你看见有控件」；而加载
+    /// 遮罩在 <c>Loaded &amp;&amp; !Buffering</c> 那一拍才撤（见 <c>PlayerViewModel.Events</c> 的 HideCover），
+    /// 那一秒二的尾巴因此常常正好露在画面上 —— 用户看到的就是它。现在状态归零、宽限不给，位置判据照旧从
+    /// 下一拍开始说话：指针停在唤出带里，控件照旧在（同一天定的规矩，见外壳的 <c>PlayerPage.WakesChrome</c>）。
+    /// </para>
     /// </summary>
     public void Reset(long now)
     {
         _silenced = false;
         _pictureMenu = false;
         _lastActivity = now;
-        _forceUntil = now + GraceMilliseconds;
+        _forceUntil = 0;
         _railUntil = 0;
         _pointerY = -1;
         _part = ChromePart.None;
         _railNear = -1;
-        State = new ChromeState(true, true, true);
-        RailStrength = 1;
-        TitleStrength = 1;
-        BarStrength = 1;
+        // 指针不在画面里（_pointerY 为 −1）时 Decide 的答案就是这三样全假、浓度全零、光标不藏
+        // （Edges 与音量条那两支都读 _pointerY/_railNear），这里写的就是它。
+        State = new ChromeState(false, false, false);
+        RailStrength = 0;
+        TitleStrength = 0;
+        BarStrength = 0;
         CursorHidden = false;
     }
 

@@ -41,7 +41,8 @@ internal static class SubtitleSettingsProbe
             page.ViewModel.Attach(service, new ShaderStaging(settings), new FontLibrary(), options.Paths,
                 new OfflineLauncher(), new AudioDeviceCatalogue(() => null),
                 () => { pushes++; return Task.CompletedTask; }, _ => Task.CompletedTask,
-                new MoviePilotProbe(moviePilot), new MoviePilotCredentials(ProbeSecrets.Instance));
+                new MoviePilotService(moviePilot, new MoviePilotCredentials(ProbeSecrets.Instance), settings), new MoviePilotCredentials(ProbeSecrets.Instance),
+                new OfflineCapabilities());
             page.ViewModel.SelectedCategory = "字幕";
             await page.ViewModel.ReloadAsync();
             window = new HostWindow { Content = page, FreeSizing = true };
@@ -203,6 +204,17 @@ internal static class SubtitleSettingsProbe
     {
         public void OpenFolder(string path) { }
         public void OpenUrl(string url) { }
+    }
+
+    /// <summary>
+    /// 没有账号，所以「这个账号能不能管服务器」是**不知道**（null）。设置页读到的就是这个 null，于是左栏
+    /// 那一组照旧露着 —— 这一条探针管的是字幕，不是权限。
+    /// </summary>
+    private sealed class OfflineCapabilities : IServerCapabilities
+    {
+        public Version? ServerVersion => null;
+        public bool? IsAdministrator => null;
+        public Task ProbeAsync(CancellationToken token = default) => Task.CompletedTask;
     }
 
     private sealed class ProbeSecrets : ISecretProtector

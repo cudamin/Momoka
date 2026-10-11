@@ -212,14 +212,21 @@ public sealed partial class PlayerPage : IWin32KeySink
         // （「未标注的显示路径」的最后一个漏网生产路径）。
         if (_cursorHidden) _woke = "滚轮调音量";
 
-        if (Covers(SpeedStrip, point.Position))
+        var region = WheelRegion(point.Position);
+        if (region == WheelArea.Speed)
             ViewModel.NudgeSpeed(delta > 0 ? 0.1 : -0.1);
-        else if (Covers(SeekTrack, point.Position))
+        else if (region == WheelArea.Timeline)
             ViewModel.SeekTimelineBy(delta > 0 ? 5 : -5);
         else
-            RollVolume((delta > 0 ? 1 : -1) * (Covers(Rail, point.Position) ? 1 : WheelStep));
+            RollVolume((delta > 0 ? 1 : -1) * (region == WheelArea.Volume ? 1 : WheelStep));
         e.Handled = true;
     }
+
+    private enum WheelArea { Picture, Volume, Speed, Timeline }
+
+    private WheelArea WheelRegion(Point point) => Covers(SpeedStrip, point) ? WheelArea.Speed
+        : Covers(SeekTrack, point) ? WheelArea.Timeline
+        : Covers(Rail, point) ? WheelArea.Volume : WheelArea.Picture;
 
     /// <summary>
     /// Any press is activity, including one that lands on a control and stops there — except a press on
@@ -607,10 +614,10 @@ public sealed partial class PlayerPage : IWin32KeySink
 
         // A keyboard command has no pointer behind it, so the chrome is shown wherever the pointer
         // happens to be resting — otherwise pressing Space over the middle of the picture changes the
-        // playback state with nothing on screen to say so. 收提示的两颗例外不叫控件（wake=false）：
-        // 「按回车/ESC 后会唤出进度条」（用户令 2026-09-26），见 Dispatch。落在暂停上的 toggle-pause
-        // 也不叫控件（用户令 2026-10-07「暂停时不要自动显示播放控件」，回执是那枚徽标），
-        // 见 ShortcutCommand —— 所以姓名牌跟着 wake 走，wake 为假时鼠标根本没醒，不挂名。
+        // playback state with nothing on screen to say so. 例外的几样不叫控件（wake=false），它们的回执
+        // 都在画面上：收提示的两颗（用户令 2026-09-26）、快退／快进、播放／暂停、全屏切换
+        // （2026-10-07 / 2026-10-10）—— 判据在 <see cref="WakesChrome"/> 那张表里，Dispatch 与
+        // ShortcutCommand 各取一次。姓名牌跟着 wake 走，wake 为假时鼠标根本没醒，不挂名。
         if (wake && _cursorHidden) _woke = $"按键 {e.Key}";
         if (wake && _chrome.WakeFully(Now)) Render();
     }
@@ -627,12 +634,12 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// 真要退全屏/下一集，提示收掉后再按一下即可。
     /// </para>
     /// <para>
-    /// <paramref name="wakeChrome"/> 答的是「这一下要不要把整套控件叫出来」：跳过提示的那两颗不要 ——
-    /// 「按回车/ESC 后会唤出进度条」（用户令 2026-09-26）说的就是它们。收提示是「别挡着」，不是「要看控件」，
-    /// 与点画面收提示（OnTapped 那一支，从来不给宽限）同一句话。其余键照旧给宽限 —— 退全屏这些命令
-    /// 没有指针在场时，控件是唯一的回执；落在暂停上的 toggle-pause 例外（用户令 2026-10-07
-    /// 「暂停时不要自动显示播放控件」，回执是那枚徽标，宽限在 <see cref="ShortcutCommand"/> 里收走），
-    /// 恢复播放照旧给。
+    /// <paramref name="wakeChrome"/> 答的是「这一下要不要把整套控件叫出来」。跳过提示的那两颗不要 ——
+    /// 「按回车/ESC 后会唤出进度条」（用户令 2026-09-26）说的就是它们；收提示是「别挡着」，不是「要看控件」，
+    /// 与点画面收提示（OnTapped 那一支，从来不给宽限）同一句话。退全屏那一支也不要（用户令 2026-10-10
+    /// 「退出全屏的时候也不要自动显示播放控件」），判据与 F 键那一半同一句 <see cref="WakesChrome"/>。
+    /// 其余键照旧给宽限 —— 键盘命令没有指针在场时，控件是唯一的回执；自己的回执在画面上的那几样见
+    /// <see cref="WakesChrome"/>。
     /// </para>
     /// <para>
     /// 其余键走可重绑那张表：认不出的键、查不到动作、或没有处理器的，返回 false，那一下照旧不被吃掉。
@@ -654,9 +661,12 @@ public sealed partial class PlayerPage : IWin32KeySink
                 ViewModel.ExitNativeFullscreenOrStop();
                 break;
 
+            // 退全屏不给控件宽限（用户令 2026-10-10「退出全屏的时候也不要自动显示播放控件」）：与 F 键
+            // 那一半走同一句判据（<see cref="WakesChrome"/>），一处改两处跟着走。窗口形状变了本身就是回执。
             case VirtualKey.Escape when _window!.Fullscreen || _fullscreenWanted == true:
                 SetFullscreen(false);
-                break;
+                wakeChrome = WakesChrome("toggle-fullscreen");
+                return true;
 
             case VirtualKey.Escape:
                 ViewModel.Stop();
@@ -687,14 +697,41 @@ public sealed partial class PlayerPage : IWin32KeySink
         var action = ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke);
         if (action is null || !ShortcutHandlers.TryGetValue(action, out var run)) return false;
 
-        // 用户令 2026-10-07「暂停时不要自动显示播放控件」：落在暂停上的 toggle-pause 不给控件宽限
-        // （回执是那枚徽标），恢复播放照旧。三条键路（岛内 OnKeyDown、Win32 兜底、跳过兜底）的
-        // toggle-pause 都从这一处过，方向只在这里认一次。
-        if (action == "toggle-pause" && !ViewModel.Paused) wakeChrome = false;
+        // 这一下要不要把整套控件叫出来，由 <see cref="WakesChrome"/> 一处答。三条键路（岛内 OnKeyDown、
+        // Win32 兜底、seek 滑杆自己的 KeyCommand）都从这一处过，所以判据只有一个。
+        wakeChrome = WakesChrome(action);
 
         run();
         return true;
     }
+
+    /// <summary>
+    /// 这一下可重绑键要不要把整套控件叫出来（<see cref="ChromeReveal.WakeFully"/> 那条一秒二的宽限）。
+    /// <para>
+    /// 默认要：键盘命令没有指针在场，屏上什么都不动的话，按下去像没按。下面这几样例外，因为它们的回执在
+    /// 画面上看得见，再压一屏控件上去只是挡着 ——
+    /// <list type="bullet">
+    /// <item><b>快退／快进</b>（用户令 2026-10-10「集成模式下快进或者快退的时候不要自动显示播放控件」）：
+    /// 回执是画面当场跳到新位置。</item>
+    /// <item><b>播放／暂停</b>（2026-10-07「暂停时不要自动显示播放控件」，2026-10-10 补上恢复那一半）：
+    /// 回执是那枚一秒的暂停／播放徽标。两个方向都不给 —— 只给一边，同一颗键的两个方向就会有两种行为。</item>
+    /// <item><b>全屏切换</b>（2026-10-10「退出全屏的时候也不要自动显示播放控件」；问实了进全屏同样不给）：
+    /// 回执是窗口形状本身变了。Esc 退全屏那一支取的是本表的同一个答案。</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// <b>去掉的只是那条强制宽限，不是位置判据。</b>指针本来就停在唤出带里（或压在控件本体上）的时候，
+    /// 控件照旧按位置留着 —— 这几条令说的是「别主动弹出来」，不是「把这些控件收走」。方向键改绑到别的
+    /// 动作上时也照改后的来：判据认的是动作，不是键。
+    /// </para>
+    /// </summary>
+    private static bool WakesChrome(string action) => action switch
+    {
+        "seek-backward" or "seek-forward" or "seek-backward-long" or "seek-forward-long" => false,
+        "toggle-pause" => false,
+        "toggle-fullscreen" => false,
+        _ => true
+    };
 
     private Dictionary<string, Action>? _shortcutHandlers;
 
@@ -761,20 +798,12 @@ public sealed partial class PlayerPage : IWin32KeySink
         if (ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke) != "toggle-pause") return;
         if (FocusManager.GetFocusedElement() is ButtonBase) return;
 
-        // 用户令 2026-10-07「暂停时不要自动显示播放控件」：落在暂停上的这一下不唤控件（回执是那枚
-        // 徽标）；恢复播放照旧给宽限。与 ShortcutCommand 那条同款 —— 这条专路没经过它，方向得自己认。
-        var resuming = ViewModel.Paused;
+        // 这一下不唤控件，**两个方向都不唤**（用户令 2026-10-07「暂停时不要自动显示播放控件」，2026-10-10
+        // 补上恢复那一半）：回执是那枚一秒的暂停／播放徽标，控件显隐继续由指针位置决定。这条专路没经过
+        // <see cref="ShortcutCommand"/>，所以那一处的 <see cref="WakesChrome"/> 在它这儿不生效 —— 整段宽限
+        // 一并去掉，两半自然一致；从前这里只放过暂停那一半，恢复照旧给宽限，同一颗空格于是按出两种行为。
         ViewModel.TogglePause();
         e.Handled = true;
-
-        // A keyboard command has no pointer behind it, and this one may not even have had the page's usual
-        // OnKeyDown half to wake the chrome on its way: show it wherever the pointer is resting, exactly as
-        // OnKeyDown does for its own keys. 暂停那半不在此列（用户令 2026-10-07，见上）。
-        if (resuming)
-        {
-            if (_cursorHidden) _woke = "空格（播放/暂停）";
-            if (_chrome.WakeFully(Now)) Render();
-        }
     }
 
     /// <summary>

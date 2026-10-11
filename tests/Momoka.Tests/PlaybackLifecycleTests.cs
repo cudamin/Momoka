@@ -17,6 +17,102 @@ internal static class PlaybackLifecycleTests
 
     public static void Register()
     {
+        Case("换版本：重建原生窗口时保留窗口或全屏状态", async () =>
+        {
+            foreach (var state in new[] { "no", "false", "yes", "true" })
+            {
+                using var fixture = new Fixture();
+                var fullscreen = state is "yes" or "true";
+                fixture.Settings.Playback.AutoFullscreenOnPlayback = !fullscreen;
+                var first = new Handle { PictureInHostWindow = false };
+                first.ReadText = (name, _) =>
+                {
+                    Assert.Equal(0, first.StopCount, "停止旧窗口之前读取形态");
+                    return Task.FromResult<string?>(name == "fullscreen" ? state : null);
+                };
+                var second = new Handle();
+                fixture.Backend.Next = (request, _) => Task.FromResult<IPlaybackHandle>(request.ItemId == "old" ? first : second);
+                var old = fixture.Service.PlayAsync(Ticket("old"), None);
+                await first.Started.Task;
+                var next = fixture.Service.PlayAsync(Ticket("next"), None);
+                await second.Started.Task;
+                try
+                {
+                    var requests = fixture.Backend.Starts.ToArray();
+                    Assert.Null(requests[0].Fullscreen, "首次起播仍使用启动偏好");
+                    Assert.Equal<bool?>(fullscreen, requests[1].Fullscreen);
+                    var arguments = MpvArgumentBuilder.Build(requests[1], "offline-pipe");
+                    Assert.Equal($"--fullscreen={(fullscreen ? "yes" : "no")}", arguments[^1]);
+                }
+                finally { second.End(); await Task.WhenAll(old, next); }
+            }
+        });
+
+        Case("换版本：集成窗口不读原生形态，原生未知或读取失败保守窗口化", async () =>
+        {
+            foreach (var scenario in new[] { "integrated", "unknown", "invalid", "failure", "uncontrolled" })
+            {
+                using var fixture = new Fixture();
+                fixture.Settings.Playback.AutoFullscreenOnPlayback = true;
+                var integrated = scenario == "integrated";
+                var reads = 0;
+                var first = new Handle
+                {
+                    PictureInHostWindow = integrated,
+                    HasControlChannel = scenario != "uncontrolled",
+                    ReadText = (_, _) =>
+                    {
+                        reads++;
+                        return scenario == "failure" ? Task.FromException<string?>(new IOException("offline failure"))
+                            : Task.FromResult<string?>(scenario == "invalid" ? "unavailable" : null);
+                    }
+                };
+                var second = new Handle();
+                fixture.Backend.Next = (request, _) => Task.FromResult<IPlaybackHandle>(request.ItemId == "old" ? first : second);
+                var old = fixture.Service.PlayAsync(Ticket("old"), None);
+                await first.Started.Task;
+                var next = fixture.Service.PlayAsync(Ticket("next"), None);
+                await second.Started.Task;
+                try
+                {
+                    Assert.Equal<bool?>(integrated ? null : false, fixture.Backend.Starts.Last().Fullscreen);
+                    Assert.Equal(integrated || scenario == "uncontrolled" ? 0 : 1, reads);
+                }
+                finally { second.End(); await Task.WhenAll(old, next); }
+            }
+        });
+
+        Case("换版本：取消窗口状态读取不能停止旧视频", async () =>
+        {
+            using var fixture = new Fixture();
+            using var cancellation = new CancellationTokenSource();
+            var entered = Signal();
+            var first = new Handle
+            {
+                PictureInHostWindow = false,
+                ReadText = async (_, token) =>
+                {
+                    entered.TrySetResult();
+                    await Task.Delay(Timeout.Infinite, token);
+                    return null;
+                }
+            };
+            fixture.Backend.Next = (_, _) => Task.FromResult<IPlaybackHandle>(first);
+            var old = fixture.Service.PlayAsync(Ticket("old"), None);
+            await first.Started.Task;
+            try
+            {
+                var next = fixture.Service.PlayAsync(Ticket("next"), cancellation.Token);
+                await entered.Task;
+                cancellation.Cancel();
+                await Cancelled(next);
+                Assert.Equal(0, first.StopCount);
+                Assert.Equal(0, first.DisposeCount);
+                Assert.Equal(1, fixture.Backend.Starts.Count);
+            }
+            finally { first.End(); await old; }
+        });
+
         Case("播放所有权：预取消的新请求不能停止正在播放的内容", async () =>
         {
             using var fixture = new Fixture();
@@ -537,7 +633,8 @@ internal static class PlaybackLifecycleTests
         public TaskCompletionSource Started { get; } = Signal();
         public TaskCompletionSource Listening { get; } = Signal();
         public TaskCompletionSource Swapped { get; } = Signal();
-        public bool HasControlChannel => true;
+        public bool HasControlChannel { get; init; } = true;
+        public bool? PictureInHostWindow { get; init; }
         public bool IsPaused { get; private set; }
         public bool Swappable { get; init; }
         public bool WasHandedOver { get; private set; }
@@ -546,6 +643,7 @@ internal static class PlaybackLifecycleTests
         public int SwapCount { get; private set; }
         public double? Position { get; set; } = 0;
         public Func<CancellationToken, Task<double?>>? ReadPosition { get; init; }
+        public Func<string, CancellationToken, Task<string?>>? ReadText { get; set; }
         public PlayerStatus Status { get; private set; } = new();
         public event Action<bool>? PauseChanged;
         public event Action<IReadOnlyList<MpvTrack>>? TracksChanged { add { } remove { } }
@@ -589,7 +687,8 @@ internal static class PlaybackLifecycleTests
         public Task SetPropertyAsync(string name, object? value, CancellationToken cancellationToken) => Task.CompletedTask;
         public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<MpvTrack>>([]);
         public Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken) => Task.FromResult<double?>(null);
-        public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+        public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) =>
+            ReadText?.Invoke(name, cancellationToken) ?? Task.FromResult<string?>(null);
         public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken) => Task.FromResult(true);
     }
 }

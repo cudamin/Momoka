@@ -39,6 +39,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
 {
     private const string Category = "外壳";
 
+    public FavoritesViewModel Favorites { get; } = new();
+
     /// <summary>
     /// The three tags that no longer name a page in this frame, and the settings-window category each of
     /// them opens on. 需求 2 是「诊断和服务器移动到设置里」 and 需求 1 makes 设置 a window of its own, so all
@@ -223,7 +225,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
     private void WireTitleFeedback()
     {
-        foreach (var button in new[] { HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
+        foreach (var button in new[] { HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
         {
             button.PointerEntered += OnTitlePointerEntered;
             button.PointerExited += OnTitlePointerExited;
@@ -516,6 +518,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _session = services.GetRequiredService<EmbySession>();
         _settings = services.GetRequiredService<ISettingsService>();
         _capabilities = services.GetRequiredService<IServerCapabilities>();
+        StartMoviePilotMonitoring(services.GetRequiredService<MoviePilotService>());
 
         SignIn.Attach(services);
         SignIn.SignedIn += OnSignedIn;
@@ -579,6 +582,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private async Task ShutdownPlaybackAsync()
     {
         _identityLoads.Cancel();
+        StopMoviePilotMonitoring();
+        Favorites.Dispose();
         ReleaseContent();
         // 先摘无页面播放的两条对账再拆播放器：收场事件不许往一个正在拆的壳上挂页面。
         Player.ViewModel.PlaybackStarted -= OnHeadlessPlaybackStarted;
@@ -812,6 +817,29 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     void IShellActions.Notify(string message, InfoBarSeverity severity) => Notify(message, severity);
 
+    void IShellActions.ReportMarkedWatched(EmbyItem item) => ReportMarkedWatched(item);
+
+    /// <summary>
+    /// 见 <see cref="IShellActions.ReportMarkedWatched"/>：交给播放服务，一趟附带的通知，失败只记一行日志。
+    /// <para>
+    /// 不等它：用户按下「已看」要的是那一下立刻有回音，而这一趟是替服务器跑腿。也不弹提示 —— 标记本身已经在
+    /// 服务器上落地了（<c>ItemCommands</c>／<c>DetailViewModel</c> 那一头报的是那一件事）。
+    /// </para>
+    /// </summary>
+    internal void ReportMarkedWatched(EmbyItem item)
+    {
+        if (_services is null || _shutdownTask is not null) return;
+        _ = ReportMarkedWatchedAsync(_services.GetRequiredService<PlaybackService>(), item);
+    }
+
+    private static async Task ReportMarkedWatchedAsync(PlaybackService playback, EmbyItem item)
+    {
+        try { await playback.ReportMarkedWatchedAsync(item).ConfigureAwait(false); }
+        catch (OperationCanceledException) { }
+        catch (ObjectDisposedException) { }
+        catch (Exception error) { Log.Warn(Category, "标记已看后补报播放停止失败", error); }
+    }
+
     /// <summary>
     /// 播放后只重读数据，不重新导航：原页面和已经解码的背景图必须留着接住退出画面，
     /// 续播点与已看状态仍在服务器停止上报完成后刷新。
@@ -895,6 +923,13 @@ public sealed partial class ShellPage : UserControl, IShellActions
             return;
         }
 
+        if (tag == LibraryRequest.FavoritesTag && _session?.IsSignedIn == true)
+        {
+            var request = LibraryRequest.Favorites(_services);
+            Open(typeof(LibraryPage), request, request.Title, tag);
+            return;
+        }
+
         if (_libraries.TryGetValue(tag, out var library))
         {
             Open(typeof(LibraryPage), library, library.Title, tag);
@@ -969,16 +1004,30 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     /// <summary>
     /// 「在 MoviePilot 搜索其他版本」（<see cref="IShellActions.SearchMoviePilotVersions"/>）：新开或复用那个第二
-    /// 窗口，按条目算好的关键字去搜。第二窗口的生命周期归外壳，同 <see cref="ShowSettings"/> / <see cref="SettingsWindow"/>。
+    /// 窗口，按条目算好的关键字去搜。集条目把自己的集号一起带过去（<see cref="MoviePilotVersionQuery.TargetEpisode"/>），
+    /// 词里已经不发集号了，结果出来由窗口自动按这一集筛。第二窗口的生命周期归外壳，同
+    /// <see cref="ShowSettings"/> / <see cref="SettingsWindow"/>。
     /// </summary>
-    internal void SearchMoviePilotVersions(EmbyItem item)
+    internal void SearchMoviePilotVersions(EmbyItem item) =>
+        SearchMoviePilotVersions(MoviePilotVersionQuery.Keyword(item), MoviePilotVersionQuery.TargetEpisode(item));
+
+    /// <summary>
+    /// 按现成的关键词开同一个窗口。订阅详情里「搜索这一集的资源」走这一支 —— 那边只有订阅快照里的剧名与季集号，
+    /// 没有 Emby 条目可算词（见 <see cref="MoviePilotVersionQuery.Keyword(string, int?, int?)"/>），也不带目标集。
+    /// 这个单参形态还兼着方法组的角色（订阅页把它当 <c>Action&lt;string&gt;</c> 传），不能并进下面那个可省参的
+    /// 重载 —— 方法组转换不认默认参数。
+    /// </summary>
+    internal void SearchMoviePilotVersions(string keyword) => SearchMoviePilotVersions(keyword, null);
+
+    /// <summary>同上，但集页面的入口把目标集一起带来（<see cref="SearchMoviePilotVersions(EmbyItem)"/>）。</summary>
+    internal void SearchMoviePilotVersions(string keyword, int? episode)
     {
-        if (_services is null) return;
+        if (_services is null || keyword.Trim().Length == 0) return;
 
         // 菜单没开 MoviePilot 时本不该走到这里（那一条根本不出现，见 ItemMenu），这里再挡一手：设置里关着就什么
         // 都不做，不弹一个连不上的窗口。
         var service = _services.GetService<Momoka.MoviePilot.MoviePilotService>();
-        if (service is null || !service.Enabled) return;
+        if (service is null || !service.Available) return;
 
         _moviePilotWindow ??= MoviePilotWindow.TryCreate(_window);
         if (_moviePilotWindow is null)
@@ -987,7 +1036,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             return;
         }
 
-        _moviePilotWindow.Show(service, item, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>());
+        _moviePilotWindow.Show(service, keyword, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), episode);
     }
 
     /// <summary>
@@ -1001,7 +1050,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         // 同「搜索其他版本」：设置里关着就什么都不做 —— 菜单那一头本就不该把这一条排出来。
         var service = _services.GetService<Momoka.MoviePilot.MoviePilotService>();
-        if (service is null || !service.Enabled) return;
+        if (service is null || !service.Available) return;
 
         if (Root.XamlRoot is not { } root)
         {
@@ -1012,6 +1061,83 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _ = ShowMoviePilotReorganizeAsync(service, context, root);
     }
 
+    /// <summary>
+    /// 「查看遗漏集」（<see cref="IShellActions.ShowMissingEpisodes"/>）：主窗口上弹那张表。清单由菜单那头问好
+    /// （<c>ItemCommands</c> 手上有 Emby 会话），这里只负责两件外壳的事 —— 容器里的 <c>EmbyImageStore</c>
+    /// （表上每一行的剧照）和弹层要挂的 <c>XamlRoot</c>。
+    /// </summary>
+    internal void ShowMissingEpisodes(EmbyItem item, IReadOnlyList<EmbyItem> missing) =>
+        _ = ShowMissingEpisodesAsync(item, missing);
+
+    private bool _missingEpisodesShowing;
+
+    private async Task ShowMissingEpisodesAsync(EmbyItem item, IReadOnlyList<EmbyItem> missing)
+    {
+        if (_missingEpisodesShowing || _services is null || _session?.IsSignedIn != true || Root.XamlRoot is not { } root) return;
+        var session = _session.Capture();
+        var page = ContentFrame.Content;
+        _missingEpisodesShowing = true;
+        try
+        {
+            var moviePilot = _services.GetRequiredService<MoviePilotService>();
+            var connection = moviePilot.Available ? moviePilot.ConnectionStamp : null;
+            var anime = Momoka.AniBt.AniBtEligibility.HasGenre(item);
+            var searchOwner = item;
+            if (connection is not null)
+            {
+                // 虚拟遗漏集可能没有可读取的 ID，资格与剧名只从清单所属条目和父剧补齐。
+                try
+                {
+                    var detail = await session.ExecuteAsync((client, token) => client.GetItemAsync(item.Id, token), CancellationToken.None);
+                    anime |= Momoka.AniBt.AniBtEligibility.HasGenre(detail);
+                    searchOwner = detail;
+                    if (detail.Type == EmbyItemType.Season && (detail.SeriesId ?? item.SeriesId) is { Length: > 0 } seriesId)
+                    {
+                        var series = await session.ExecuteAsync((client, token) => client.GetItemAsync(seriesId, token), CancellationToken.None);
+                        anime |= Momoka.AniBt.AniBtEligibility.HasGenre(series);
+                        searchOwner = new EmbyItem
+                        {
+                            Name = detail.Name,
+                            Type = detail.Type,
+                            SeriesName = series.Name,
+                            IndexNumber = detail.IndexNumber ?? item.IndexNumber
+                        };
+                    }
+                }
+                catch (OperationCanceledException) { return; }
+                catch (Exception error) { Log.Info("anibt", $"无法补齐遗漏集的搜索元数据：{Failure.Describe(error)}"); }
+            }
+            if (!session.IsCurrent || !ReferenceEquals(ContentFrame.Content, page)) return;
+            var images = _services.GetRequiredService<EmbyImageStore>();
+            var imageScope = images.CaptureScope();
+            var dialog = new MissingEpisodesDialog(item, missing, (art, token) =>
+                imageScope is { IsCurrent: true } current
+                    ? images.GetAsync(current, art.ItemId, art.ImageType, art.Tag,
+                        EmbyImageStore.RequestWidth(CardSize.MissingWidth), token)
+                    : Task.FromResult<byte[]?>(null), connection is not null, anime)
+            { XamlRoot = root };
+            void AvailabilityChanged(object? sender, EventArgs args)
+            {
+                if (connection is not null && (!moviePilot.Available || !moviePilot.IsCurrentConnection(connection)))
+                    DispatcherQueue.TryEnqueue(dialog.Hide);
+            }
+            moviePilot.AvailabilityChanged += AvailabilityChanged;
+            try { await dialog.ShowAsync(); }
+            finally { moviePilot.AvailabilityChanged -= AvailabilityChanged; }
+            // 等清单真正关闭，再弹搜索窗口；下载确认不会与清单争用同一个 XamlRoot。
+            if (!session.IsCurrent || !ReferenceEquals(ContentFrame.Content, page) || connection is null
+                || !moviePilot.Available || !moviePilot.IsCurrentConnection(connection) || dialog.SearchEpisode is not { } episode) return;
+            if (dialog.SearchWithAniBt) SearchAniBtVersions(Momoka.AniBt.AniBtSearchQuery.From(episode, searchOwner));
+            else SearchMoviePilotVersions(MoviePilotVersionQuery.Keyword(episode, searchOwner));
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            Log.Warn(Category, "遗漏集那张表弹不出来", error);
+            Notify("无法打开遗漏集，请稍后再试", InfoBarSeverity.Warning);
+        }
+        finally { _missingEpisodesShowing = false; }
+    }
     private bool _moviePilotReorganizeShowing;
 
     private async Task ShowMoviePilotReorganizeAsync(
@@ -1028,6 +1154,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         try
         {
             var dialog = new MoviePilotReorganizeDialog(service, context) { XamlRoot = root };
+            _moviePilotDialog = dialog;
             await dialog.ShowAsync().AsTask().ConfigureAwait(true);
         }
         catch (Exception error)
@@ -1035,7 +1162,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             Log.Warn("moviepilot窗口", "弹不出手动整理表单", error);
             Notify("手动整理表单未打开，请关闭当前对话框后重试；本次没有提交整理请求", InfoBarSeverity.Warning);
         }
-        finally { _moviePilotReorganizeShowing = false; }
+        finally { _moviePilotReorganizeShowing = false; _moviePilotDialog = null; }
     }
 
     /// <summary>
@@ -1072,12 +1199,28 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         if (_services is null) return;
         var service = _services.GetRequiredService<MoviePilotService>();
-        if (!service.IsCurrentSubscription(subscription)) return;
+        if (!service.Available || !service.IsCurrentSubscription(subscription)) return;
         RememberTrail();
         ContentFrame.Navigate(typeof(MoviePilotSubscriptionPage), new MoviePilotSubscriptionRequest(service, subscription,
             _session?.IsSignedIn == true ? _session.Capture() : null,
-            target => ((IShellActions)this).PlayAsync(target.Item, target.Parent, episodes: target.Episodes)), BrowseTransition());
+            target => ((IShellActions)this).PlayAsync(target.Item, target.Parent, episodes: target.Episodes),
+            SearchMoviePilotVersions, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMoviePilotMedia,
+            SetTitleStrip: SetTitleStrip), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
+        _current = null;
+        SyncChrome();
+    }
+
+    private void OpenMoviePilotMedia(MoviePilotMedia media)
+    {
+        if (_services is null) return;
+        var service = _services.GetRequiredService<MoviePilotService>();
+        if (!service.Available) return;
+        RememberTrail();
+        ContentFrame.Navigate(typeof(MoviePilotSubscriptionPage), new MoviePilotSubscriptionRequest(service, null,
+            Launcher: _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMedia: OpenMoviePilotMedia, Media: media,
+            SetTitleStrip: SetTitleStrip), BrowseTransition());
+        _trail.Add(new Crumb(media.Display, string.Empty));
         _current = null;
         SyncChrome();
     }
@@ -1114,12 +1257,15 @@ public sealed partial class ShellPage : UserControl, IShellActions
     void IShellActions.OpenItem(EmbyItem item) => OpenItem(item);
 
     bool IShellActions.MoviePilotEnabled =>
-        _services?.GetService<Momoka.MoviePilot.MoviePilotService>()?.Enabled ?? false;
+        _services?.GetService<Momoka.MoviePilot.MoviePilotService>()?.Available ?? false;
 
     void IShellActions.SearchMoviePilotVersions(EmbyItem item) => SearchMoviePilotVersions(item);
 
     void IShellActions.ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) =>
         ShowMoviePilotReorganize(context);
+
+    void IShellActions.ShowMissingEpisodes(EmbyItem item, IReadOnlyList<EmbyItem> missing) =>
+        ShowMissingEpisodes(item, missing);
 
     bool IShellActions.TryOpenLibrary(string id) => TryOpenLibrary(id);
 
@@ -1321,6 +1467,81 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
+    /// 工具用：走到详情页，然后把「查看遗漏集」那一张表弹开留在屏上（<c>--show-missing</c>）。
+    /// <para>
+    /// 同 <see cref="ShowCoverAsync"/>：对话框只在一条命令跑着的时候存在，外面点不进去，所以它得有自己的开关。
+    /// 走的是用户那条路（<see cref="ItemCommands"/> 的 <c>ViewMissingEpisodes</c>），拍到的就是用户会看到的那张表。
+    /// </para>
+    /// <para>
+    /// 落在第一个媒体库的第一张详情页上：查看遗漏集只有剧和季有，而那个库要是电影库、或者第一张详情页是电影，
+    /// 这一条就弹不出来（菜单上本来也没有它），日志里会写一句。
+    /// </para>
+    /// </summary>
+    internal async Task ShowMissingAsync()
+    {
+        await ShowDetailAsync(episode: false).ConfigureAwait(true);
+
+        if (ContentFrame.Content is not DetailPage page)
+        {
+            Log.Warn(Category, "--show-missing：这一刻框里不是详情页");
+            return;
+        }
+
+        if (!page.OpenMissingPanel()) Log.Warn(Category, "--show-missing：这一页上没有「查看遗漏集」");
+    }
+
+    /// <summary>
+    /// 工具用：走到详情页，然后把「识别」那张表弹开留在屏上（<c>--show-identify</c>）。
+    /// <para>
+    /// 同 <see cref="ShowMissingAsync"/>：对话框只在一条命令跑着的时候存在，外面点不进去，所以它得有自己的开关。
+    /// 走的是用户那条路（<see cref="ItemCommands"/> 的 <c>Identify</c>），拍到的就是用户会看到的那张表 ——
+    /// 说明文字、路径那一行、标题／年份、各家的标识符输入框和它们下面的网址链接。
+    /// </para>
+    /// <para>
+    /// 落在第一个媒体库的第一张详情页上：识别只有服务器查得动的那几种有（电影、剧、合集、预告片），
+    /// 那一张要是个别的类型，这一条就弹不出来，日志里会写一句。
+    /// </para>
+    /// </summary>
+    internal async Task ShowIdentifyAsync()
+    {
+        await ShowDetailAsync(episode: false).ConfigureAwait(true);
+
+        if (ContentFrame.Content is not DetailPage page)
+        {
+            Log.Warn(Category, "--show-identify：这一刻框里不是详情页");
+            return;
+        }
+
+        if (!page.OpenIdentifyPanel()) Log.Warn(Category, "--show-identify：这一页上没有「识别」");
+    }
+
+    /// <summary>
+    /// 工具用：走到详情页，然后把「刷新元数据」那张表弹开留在屏上（<c>--show-refresh</c>）。
+    /// <para>
+    /// 同 <see cref="ShowIdentifyAsync"/>：对话框只在一条命令跑着的时候存在，外面点不进去，所以它得有自己的
+    /// 开关。走的是用户那条路（<see cref="ItemCommands"/> 的 <c>RefreshMetadata</c>），拍到的就是用户按菜单
+    /// 上那一条时会看到的表 —— 一档刷新模式、两颗替换开关和它们底下那三句说明。
+    /// </para>
+    /// <para>
+    /// <b>这一条对服务器是只读的</b>：表弹开之后没有人按那颗「刷新」，所以那趟请求根本不会发出去。和
+    /// <see cref="ShowMissingAsync"/> 一样落在第一个媒体库的第一张详情页上；刷新对哪个条目都成立，所以这里
+    /// 不挑类型。
+    /// </para>
+    /// </summary>
+    internal async Task ShowRefreshAsync()
+    {
+        await ShowDetailAsync(episode: false).ConfigureAwait(true);
+
+        if (ContentFrame.Content is not DetailPage page)
+        {
+            Log.Warn(Category, "--show-refresh：这一刻框里不是详情页");
+            return;
+        }
+
+        if (!page.OpenRefreshPanel()) Log.Warn(Category, "--show-refresh：这一页上的刷新表弹不出来");
+    }
+
+    /// <summary>
     /// Tooling: 把详情页的一颗下拉弹开留着（<c>--show-picker</c>），好给它拍一张。弹哪一颗由
     /// <c>DetailPage.PickerToOpen</c> 定：字幕优先，没有字幕轨的片子退到音频。
     /// <para>
@@ -1419,11 +1640,13 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     private void SyncChrome()
     {
+        PruneMoviePilotHistory();
         while (_forwardTrails.Count > ContentFrame.ForwardStack.Count) _forwardTrails.RemoveAt(_forwardTrails.Count - 1);
 
         // 主页那颗按钮在主页上自己变暗（同两支箭头「走不动就暗」的规矩）：_current 是 "home" 就是已经在主页，
         // 下钻和别的页面会把它清空，那时按钮亮着、一按回主页。
         HomeButton.IsEnabled = _session?.IsSignedIn == true && (_current != "home" || _librariesFailed);
+        FavoritesButton.IsEnabled = _session?.IsSignedIn == true && _current != LibraryRequest.FavoritesTag;
 
         ApplyChrome(ContentFrame.CanGoBack, ContentFrame.CanGoForward, _trail.Count);
     }
@@ -1501,8 +1724,18 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void OnHomeClicked(object sender, RoutedEventArgs e)
     {
+        _ = Favorites.RefreshAsync();
         if (_librariesFailed) _ = RetryLibrariesAsync();
         else GoTo("home");
+    }
+
+    private void OnFavoritesClicked(object sender, RoutedEventArgs e) => GoTo(LibraryRequest.FavoritesTag);
+
+    public void RefreshFavorites(EmbyItem? changed = null)
+    {
+        if (changed?.UserData?.IsFavorite == false && ContentFrame.Content is LibraryPage page)
+            page.RemoveUnfavorite(changed.Id);
+        _ = Favorites.RefreshAsync();
     }
 
     private async Task RetryLibrariesAsync()
@@ -1529,6 +1762,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void GoBack()
     {
+        PruneMoviePilotHistory();
         if (!ContentFrame.CanGoBack) return;
 
         _forwardTrails.Add(_trail.ToArray());
@@ -1545,6 +1779,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void GoForward()
     {
+        PruneMoviePilotHistory();
         if (!ContentFrame.CanGoForward) return;
 
         _backTrails.Add(_trail.ToArray());
@@ -1677,6 +1912,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var token = _identityLoads.Begin();
         var scope = _session.Capture();
         BrowsingPreferences.SelectIdentity(Settings.Ui, scope.Connection);
+        Favorites.Attach(scope);
+        _ = Favorites.RefreshAsync();
 
         SignIn.Detach();
         SignIn.Visibility = Visibility.Collapsed;
@@ -1868,6 +2105,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private void ShowSignIn(ServerProfile? server = null)
     {
         _identityLoads.Cancel();
+        Favorites.Clear();
         _libraries.Clear();
         _libraryViews.Clear();
         _librariesFailed = false;

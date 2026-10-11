@@ -63,7 +63,7 @@ public static class PlayerPalette
     public static ThemeColor InkFaint { get; } = ThemeColor.Parse("#8B93A0");
 
     /// <summary>
-    /// 左上角第二行那句文件信息（分辨率 · 视频编码 · 音频格式 · 组名）专用的一档中性浅灰。
+    /// 左上角第二行那句文件信息（文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名）专用的一档中性浅灰。
     /// <para>
     /// 用户令 2026-09-28 晚「元数据的字体加点灰色」先在独占模式那一头落地（uosc 顶栏那一行的
     /// <c>color = 'c8c8c8'</c>），随后「把独占模式的标题复刻到集成模式」把**同一个值**搬到这里 ——

@@ -14,4 +14,10 @@ public sealed partial class MoviePilotResourceBrowser : UserControl
         ViewModel = viewModel;
         Bindings.Update();
     }
+
+    internal void ClosePopups()
+    {
+        foreach (var filter in new[] { SiteFilter, ResolutionFilter, LabelFilter, PromotionFilter, DateFilter, SortOrder, SeasonFilter, EpisodeFilter })
+            filter.IsDropDownOpen = false;
+    }
 }

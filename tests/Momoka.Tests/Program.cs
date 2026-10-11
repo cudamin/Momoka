@@ -43,9 +43,15 @@ internal static class Program
         ImageCacheTests.Register();
         ImageIdentityTests.Register();
         BrowsingPreferencesTests.Register();
+        LibrarySearchTests.Register();
+        MoviePilotSearchSitesTests.Register();
+        MoviePilotResourceOptionsTests.Register();
+        MoviePilotAvailabilityTests.Register();
+        MoviePilotMediaDetailTests.Register();
         ItemDetailTests.Register();
         ItemArtworkTests.Register();
         ItemMenuTests.Register();
+        ItemIdentifyTests.Register();
         ItemActionTests.Register();
         HomeCarouselTests.Register();
         HomeFoldTests.Register();
@@ -79,10 +85,13 @@ internal static class Program
         PinIndicatorTests.Register();
         AboutTests.Register();
         MoviePilotTests.Register();
+        AniBtTests.Register();
+        AniBtIntegrationTests.Register();
         MoviePilotSubscriptionTests.Register();
         MoviePilotAuditTests.Register();
         MoviePilotTransferTests.Register();
         MoviePilotVersionQueryTests.Register();
+        MoviePilotEpisodePatternTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

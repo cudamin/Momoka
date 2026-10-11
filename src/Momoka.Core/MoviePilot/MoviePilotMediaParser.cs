@@ -73,9 +73,9 @@ public static class MoviePilotMediaParser
 
     /// <summary>
     /// 下载正文：整份 <c>torrent_info</c> 原样回传给 <c>download/add</c> 的 <c>torrent_in</c>（它收的是完整对象，
-    /// 不是一个链接），带上身份对好让服务器认出是哪部片。下载器与保存路径不填，走 MoviePilot 的默认。
+    /// 不是一个链接），带上完整媒体身份；未指定下载器或路径时保留 MoviePilot 默认规则。
     /// </summary>
-    public static IReadOnlyDictionary<string, object?> DownloadBody(MoviePilotResource resource)
+    public static IReadOnlyDictionary<string, object?> DownloadBody(MoviePilotResource resource, MoviePilotDownloadOptions? options = null)
     {
         if (resource.DownloadProblem is { } problem) throw new MoviePilotOperationBlockedException(problem);
         var body = new Dictionary<string, object?>(StringComparer.Ordinal)
@@ -90,6 +90,8 @@ public static class MoviePilotMediaParser
             body["media_id"] = resource.MediaId;
         }
 
+        if (!string.IsNullOrWhiteSpace(options?.Downloader)) body["downloader"] = options.Downloader;
+        if (!string.IsNullOrWhiteSpace(options?.SavePath)) body["save_path"] = options.SavePath;
         return body;
     }
 
@@ -146,6 +148,8 @@ public static class MoviePilotMediaParser
             Size = Long(torrent, "size"),
             Seeders = Math.Max(0, Number(torrent, "seeders") ?? 0),
             Resolution = resolution,
+            Seasons = MoviePilotResourceGrouping.Numbers(meta, "season_list", "begin_season", "end_season"),
+            Episodes = MoviePilotResourceGrouping.Numbers(meta, "episode_list", "begin_episode", "end_episode"),
             PageUrl = Text(torrent, "page_url"),
             PublishedText = published ?? Text(torrent, "date_elapsed"),
             PublishedAt = publishedAt,

@@ -73,6 +73,106 @@ public sealed partial class PlaybackService
         finally { Volatile.Write(ref attempt.ThresholdPending, 0); }
     }
 
+    /// <summary>
+    /// 手动「标记为已看」之后替服务器补报一趟播放停止 —— 「通知接管」（<see cref="PlaybackSettings.StopReportEnabled"/>）
+    /// 开着时才做（用户令 2026-10-09：「新增打开通知接管后，点击标记为已看后自动发送通知，发送的播放进度设置
+    /// 进度为100%」）。
+    /// <para>
+    /// 与「进度到阈值补报」是同一个出口（<c>Sessions/Playing/Stopped</c>）：服务器收到就按用户配的通知条目把
+    /// <c>playback.stop</c> 转发出去（本机那条是 Webhooks → MoviePilot）。差别只在位置 —— 那一趟报的是真实播放
+    /// 位置，这一趟按用户令固定报 <b>100%</b>：用户按下「已看」，就是对服务器说「这一条看完了」，进度条该是满的。
+    /// 所以位置取 <see cref="EmbyItem.RunTimeTicks"/>；时长读不到就没有 100% 可言，这一趟不发（宁可少发一趟，
+    /// 不可发一个凑出来的数）。
+    /// </para>
+    /// <para>
+    /// 这一条正在播的话借它那一场的会话号，并当场结账（<c>StopReported</c>）—— 此后本场不再向服务器喂进度与
+    /// 暂停，与「到阈值补报」同一条规矩（不然刚说停，下一拍进度又把会话激活了）。
+    /// </para>
+    /// <para>
+    /// <b>没在播时不能只发停止。</b>2026-10-09 实测：只发停止，服务器答 2xx 却不转发通知 —— 它的停止处理要在
+    /// 本设备的会话里认出「正在播这一条」才作数，而在浏览界面上点已看时那条会话里什么都没有。所以这一支先补报
+    /// 一趟「开始」（位置 0）把这一条放进会话，再补报「停止」（位置报满）。代价是服务器上多一条短暂的播放记录，
+    /// 订阅了「开始」的通知也会跟着收到一条。
+    /// </para>
+    /// </summary>
+    public async Task<bool> ReportMarkedWatchedAsync(EmbyItem item, CancellationToken cancellationToken = default)
+    {
+        if (!settings.Playback.StopReportEnabled || !settings.Playback.ReportProgressToServer)
+        {
+            Log.Debug(Category, $"《{item.Name}》标记已看：通知接管没开（或上报已关），不补报");
+            return false;
+        }
+
+        if (item.RunTimeTicks is not > 0)
+        {
+            Log.Debug(Category, $"《{item.Name}》标记已看：读不到时长，凑不出 100%，不补报");
+            return false;
+        }
+
+        // 未登录或会话已释放：没有身份可借，不发。调用点那边标记已看刚刚才成功过，走到这一支只说明这中间注销
+        // 了 —— 那不是错，是没有收信人。
+        EmbySessionScope scope;
+        try { scope = session.Capture(); }
+        catch (Exception error)
+        {
+            Log.Warn(Category, $"《{item.Name}》标记已看：会话不可用，没补报", error);
+            return false;
+        }
+
+        var ticks = item.RunTimeTicks.Value;
+
+        if (_active is { Ending: false } attempt && attempt.Request.ItemId == item.Id)
+        {
+            await attempt.Reports.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                // 已经报过一趟（到阈值那一趟）就别再报：服务器上那条通知会转发两次。
+                if (attempt.StopReported)
+                {
+                    Log.Debug(Category, $"《{item.Name}》标记已看：本场已经报过一趟停止，不重复");
+                    return true;
+                }
+
+                if (!IsCurrent(attempt)) return false;
+                attempt.StopReported = await ReportAsync(scope, "标记已看补报停止", (client, token) =>
+                    client.ReportPlaybackStoppedAsync(BuildWatched(item, attempt.SessionId), token), cancellationToken)
+                    .ConfigureAwait(false);
+                Log.Info(Category, $"《{item.Name}》标记已看：借当前播放那一场的会话补报停止，"
+                    + $"位置 {TimeFormat.Clock(ticks)}，{(attempt.StopReported ? "服务器收下了" : "没发出去")}");
+                return attempt.StopReported;
+            }
+            finally { attempt.Reports.Release(); }
+        }
+
+        // 这一条没在播：**先补报一趟「开始」**，让服务器把这一条放进这场会话的「正在播放」里 —— 服务器的
+        // 停止处理要靠它才认得出「这一条播完了」。2026-10-09 实测：只发停止时服务器答 2xx、却不转发通知
+        // （会话里没有这一条，那趟上报对不上号）。代价是服务器上会多一条短暂的播放记录，订阅了「开始」的
+        // 通知也会收到一条。
+        var sessionId = Guid.NewGuid().ToString("N");
+        var opening = BuildWatched(item, sessionId);
+        opening.PositionTicks = 0;
+        var started = await ReportAsync(scope, "标记已看补报开始", (client, token) =>
+            client.ReportPlaybackStartAsync(opening, token), cancellationToken).ConfigureAwait(false);
+        var sent = started && await ReportAsync(scope, "标记已看补报停止", (client, token) =>
+            client.ReportPlaybackStoppedAsync(BuildWatched(item, sessionId), token), cancellationToken).ConfigureAwait(false);
+        Log.Info(Category, $"《{item.Name}》标记已看：这一条没在播，先补报开始、再补报停止，"
+            + $"位置 {TimeFormat.Clock(ticks)}，{(sent ? "服务器收下了" : "没发出去")}");
+        return sent;
+    }
+
+    /// <summary>
+    /// 标记已看那一趟的报文：位置按用户令固定 100%（<see cref="EmbyItem.RunTimeTicks"/>，取不到的调用点根本不会
+    /// 走到这儿）。没有轨道与音量可言 —— 用户按的是「已看」，不是「正在看」。
+    /// </summary>
+    private static PlaybackReport BuildWatched(EmbyItem item, string sessionId) => new()
+    {
+        ItemId = item.Id,
+        MediaSourceId = item.DefaultMediaSource?.Id,
+        PlaySessionId = sessionId,
+        PositionTicks = item.RunTimeTicks ?? 0,
+        IsPaused = false
+    };
+
     private async Task ReportPauseAsync(EmbySessionScope scope, PlayingAttempt attempt, bool paused)
     {
         try

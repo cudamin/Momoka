@@ -28,6 +28,12 @@ public sealed record MoviePilotMedia
     /// <summary>海报地址，已是可直接交给 <c>BitmapImage</c> 的字符串；取不到时为 null。</summary>
     public string? PosterUrl { get; init; }
 
+    /// <summary>
+    /// 背景图地址，同样可直接交给 <c>BitmapImage</c>。订阅快照里的 <c>backdrop</c> 与
+    /// <c>poster</c> 是两张不同的图（横版对竖版），详情页头部拿它当底，缺图时整层不画。
+    /// </summary>
+    public string? BackdropUrl { get; init; }
+
     /// <summary>主身份来源（如 <c>themoviedb</c>/<c>douban</c>/<c>bangumi</c>）。</summary>
     public string? MediaSource { get; init; }
 

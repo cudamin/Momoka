@@ -131,7 +131,7 @@ grep -rn "MOMOKA\[" assets/mpv-ui/scripts/uosc
      2026-09-28 那版「整格 top_bar_size 见方贴角、标题条同高」随之撤回，**两模式的返回键大小自此不再相同**
      （集成模式那颗仍是 40×40）。**标题下方的「当前章节＋剩余时间」一行整段撤下**
      （`MOMOKA[topbar-no-chapter]`，用户令 2026-09-28；控制条上的章节菜单照旧）；第二行那句文件信息
-     （分辨率 · 视频编码 · 音频格式 · 组名）走**斜体**（`MOMOKA[topbar-subline-italic]`，用户令
+     （文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名）走**斜体**（`MOMOKA[topbar-subline-italic]`，用户令
      2026-09-28 晚「标题下方的视频元数据改为斜体」；osd-font 是 Microsoft YaHei、本身没有斜体字面，
      实测 libass 会合成倾斜，见 `work/probe-topbar-look.py` 的 A/B）＋**浅灰字色** `c8c8c8`
      （`MOMOKA[topbar-subline-dim]`，同批用户令「元数据的字体加点灰色」；`ass.txt` 把 `opts.color`
@@ -235,7 +235,7 @@ JSON，shape 与 uosc MenuData 对齐；画面/选集/版本三张都带 `momoka
 文案，空串＝收摊；右下角那颗「跳过」按钮按它露面 —— 集成模式那颗是 XAML 的、独占模式画面在 mpv 窗口里
 故由宿主推文案给 uosc 画，见 `MOMOKA[skip-button]`，`elements/SkipButton.lua`；offer 站多久由宿主
 `SkipCoordinator` 判，点它回推 `momoka-skip-take`）与 `momoka-subline`（左上角第二行那句文件信息
-「分辨率 · 视频编码 · 音频格式 · 组名」，空串＝收起；uosc 把它画在**返回按钮的正下方**，左缘＝窗口左缘，
+「文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名」，空串＝收起；uosc 把它画在**返回按钮的正下方**，左缘＝窗口左缘，
 见 `MOMOKA[topbar-subline]`，`elements/TopBar.lua` 的 `set_subline`；集成模式那一行是 XAML 的
 `SubtitleBox`，两句同源，见 `PlaybackTitles.Subline`）。
 uosc 靠 mpv 属性观察自取其余全部状态（音量、轨道、章节的变化会自动反映到控制窗的选择器——它们读的

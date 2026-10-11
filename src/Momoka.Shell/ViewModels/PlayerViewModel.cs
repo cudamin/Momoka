@@ -788,8 +788,10 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// </summary>
     internal bool Embedded => (_playback.PlayingBackend ?? Settings.Mpv.Backend) == MpvBackendKind.BuiltInLibMpv;
 
+    private bool _replacingPlayback;
+
     /// <summary>
-    /// 「开始播放后自动全屏」, as the page reads it at the moment a playback starts.
+    /// 「开始播放后自动全屏」只用于首次起播；换版本、换集保留当前窗口形态。
     /// <para>
     /// Read through here rather than handed the whole settings document, which is the same rope
     /// <see cref="ShortcutBindings"/> and <see cref="AutoPlayNextEpisode"/> already hold: the page gets the one
@@ -798,7 +800,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// notification pipe.
     /// </para>
     /// </summary>
-    internal bool AutoFullscreenOnPlayback => Settings.Playback.AutoFullscreenOnPlayback;
+    internal bool AutoFullscreenOnPlayback => Settings.Playback.AutoFullscreenOnPlayback && !_replacingPlayback;
 
     /// <summary>
     /// 「调整窗口大小后继续播放」（<see cref="Configuration.PlaybackSettings.ResumeAfterWindowResize"/>），

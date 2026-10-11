@@ -43,9 +43,9 @@ public sealed class NotificationRow(UserNotificationInfo info, string eventsSumm
 /// </para>
 /// <para>
 /// <b>一个例外（2026-09-29 起，2026-09-30 定名「通知接管」）</b>：列表上面那一格。它不是服务器上的通知条目，
-/// 而是客户端自己的行为（够到「标记已看」阈值就替服务器补报一趟停止，好让那边的通知早点转发出去），
-/// 所以它只能落在本机的 settings.json 里，见 <see cref="StopReportEnabled"/>。这一页的其余一切仍然一个
-/// 字节都不存。
+/// 而是客户端自己的行为（够到「标记已看」阈值、或者用户手动点了「标记为已看」，就替服务器补报一趟停止，好让
+/// 那边的通知早点转发出去），所以它只能落在本机的 settings.json 里，见 <see cref="StopReportEnabled"/>。这一页
+/// 的其余一切仍然一个字节都不存。
 /// </para>
 /// </summary>
 public sealed partial class NotificationsViewModel : PageViewModel
@@ -141,6 +141,11 @@ public sealed partial class NotificationsViewModel : PageViewModel
     /// 新增功能，播放进度达到自定义百分比的时候，自动触发发送 播放-停止」，同日续令「发送通知的判断标准改为
     /// 播放行为中的 标记已观看阈值(%)，要区分国漫」）。落到 <see cref="PlaybackSettings.StopReportEnabled"/> ——
     /// 阈值本身不在这一页，就是「播放行为」里那两档标记已看阈值（国漫走国漫那一档）。
+    /// <para>
+    /// 2026-10-09 用户令又添了一个触发点：手动点「标记为已看」也补报一趟，位置按条目时长报满（用户原话
+    /// 「发送的播放进度设置进度为100%」，落在 <c>PlaybackService.ReportMarkedWatchedAsync</c>）。这一格管的
+    /// 是「客户端替服务器判断时机」，两种触发都归它管，所以没有为它另立一格。
+    /// </para>
     /// </summary>
     public bool StopReportEnabled
     {

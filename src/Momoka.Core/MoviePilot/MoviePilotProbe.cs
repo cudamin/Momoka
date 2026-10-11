@@ -46,9 +46,8 @@ public sealed class MoviePilotProbe(MoviePilotClient client)
     }
 
     /// <summary>
-    /// The <c>name</c> of every entry in a list endpoint. Swallows its own failures: these two are the
-    /// 「额外的信息」 half of the report, and a version that came back is already proof of a working
-    /// connection.
+    /// The <c>name</c> of every entry in a list endpoint. Missing optional endpoints or malformed lists
+    /// do not fail the test, but a lost connection or expired authentication must not report success.
     /// </summary>
     private async Task<IReadOnlyList<string>> NamesAsync(
         Uri apiBase,
@@ -61,7 +60,7 @@ public sealed class MoviePilotProbe(MoviePilotClient client)
             var data = await client.GetAsync(apiBase, token, path, cancellationToken).ConfigureAwait(false);
             return Names(data);
         }
-        catch (Exception error) when (error is MoviePilotException or JsonException)
+        catch (Exception error) when (error is MoviePilotException or JsonException && !MoviePilotService.ConnectionFailed(error))
         {
             return [];
         }

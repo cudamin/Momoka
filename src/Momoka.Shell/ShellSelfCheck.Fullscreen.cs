@@ -165,6 +165,7 @@ internal static partial class ShellSelfCheck
         long fullStyle;
         long fullEx;
         bool dragRefused;
+        int? fullCorners;
         (bool Ok, string Detail) taskbar;
         try
         {
@@ -173,6 +174,7 @@ internal static partial class ShellSelfCheck
             Native.GetWindowRect(window.Handle, out full);
             fullStyle = (long)Native.GetWindowLongPtr(window.Handle, Native.GwlStyle);
             fullEx = (long)Native.GetWindowLongPtr(window.Handle, Native.GwlExStyle);
+            fullCorners = CornerPreference(window.Handle);
 
             // The title strip is still there in fullscreen, and dragging the window by it would pull the
             // frame off the monitor it is covering. Asked here because this is where a fullscreen window is.
@@ -189,6 +191,7 @@ internal static partial class ShellSelfCheck
         Native.GetWindowRect(window.Handle, out var after);
         var afterStyle = (long)Native.GetWindowLongPtr(window.Handle, Native.GwlStyle);
         var afterEx = (long)Native.GetWindowLongPtr(window.Handle, Native.GwlExStyle);
+        var backCorners = CornerPreference(window.Handle);
 
         var covered = full.Left == info.Monitor.Left && full.Top == info.Monitor.Top
             && full.Width == info.Monitor.Width && full.Height == info.Monitor.Height;
@@ -201,6 +204,22 @@ internal static partial class ShellSelfCheck
         check("全屏几何", covered && stripped && raised && restored,
             $"{full.Width}x{full.Height} 覆盖 {info.Monitor.Width}x{info.Monitor.Height}={covered}"
                 + $"，去掉边框={stripped}，已置顶={raised}，退出后还原={restored}");
+
+        // 全屏那一档不许带 DWM 的圆角与它那圈 1px 窗口边框（用户 2026-10-09 报「集成模式全屏会留有边框」）。
+        // 圆角档下 DWM 顺带给窗口画一圈 1px 的线：窗口化时它藏在窗口自己的边框里、屏幕上看不见，而全屏时
+        // 窗口铺满整块显示器、边框已经剥掉，这圈线就落在屏幕四边各一条、四个圆角各缺一块 —— 实测（白底
+        // 素材）全屏时屏幕最外圈读到 #323B48，而往里 3 像素是画面的 #FFFFFF。
+        //
+        // 判据是 DWM 自己报的圆角偏好，不是「我们调过哪个 API」。两个值问不出（Win10 上
+        // DWMWA_WINDOW_CORNER_PREFERENCE 不存在）算通过 —— 那一档系统没有圆角可画，这条修复对它是空转，
+        // 读数里会照实写「问不出」，不让它静默变成一句永远成立的话。
+        var cornersOk = fullCorners is null
+            ? backCorners is null
+            : fullCorners == Native.DwmCornerDoNotRound && backCorners == Native.DwmCornerRound;
+
+        check("全屏不带 DWM 圆角与边框", cornersOk,
+            $"全屏时 DWM 报的圆角偏好={CornerText(fullCorners)}（应 {Native.DwmCornerDoNotRound}＝不圆角），"
+                + $"退出全屏后={CornerText(backCorners)}（应 {Native.DwmCornerRound}＝圆角）");
 
         check("全屏时的任务栏", taskbar.Ok, taskbar.Detail);
 
@@ -234,6 +253,29 @@ internal static partial class ShellSelfCheck
                 + $"{moved.Width == seat.Width && moved.Height == seat.Height}）"
                 + $"，松开后不再跟随={stopped}，全屏时不接受拖动={dragRefused}");
     }
+
+    /// <summary>
+    /// DWM 现在给这扇窗报的圆角偏好，问不出就是 null。
+    /// <para>
+    /// 问不出是 Win10 那一档的正常答案（<c>DWMWA_WINDOW_CORNER_PREFERENCE</c> 那条属性那时还没有），
+    /// 所以返回值是可空的，调用方要把「问不出」与「报了个别的值」分开说。
+    /// </para>
+    /// </summary>
+    private static int? CornerPreference(IntPtr window) =>
+        window != IntPtr.Zero
+            && Native.DwmGetWindowAttributeInt(window, Native.DwmWindowCornerPreference,
+                out var value, sizeof(int)) == 0
+            ? value
+            : null;
+
+    /// <summary>圆角偏好读数的说人话版本。</summary>
+    private static string CornerText(int? preference) => preference switch
+    {
+        null => "问不出",
+        Native.DwmCornerRound => $"{Native.DwmCornerRound}＝圆角",
+        Native.DwmCornerDoNotRound => $"{Native.DwmCornerDoNotRound}＝不圆角",
+        _ => preference.Value.ToString()
+    };
 
     /// <summary>
     /// 设置窗口盖在画面上：全屏播放时主窗占着 topmost band（用户还可能亲手钉了 置顶），而 topmost 窗口压着

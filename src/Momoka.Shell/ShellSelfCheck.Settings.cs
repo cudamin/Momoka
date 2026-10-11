@@ -164,15 +164,24 @@ internal static partial class ShellSelfCheck
             .Concat(SettingsViewModel.HostedCategories)
             .ToList();
 
-        var unreachable = reachable
+        // 「EmbyServer」那一组（控制台／用户／媒体库／通知／网页控制台）只有管理员账号才列出来，所以对账之前
+        // 先按当前账号的身份把那五个名字扣掉 —— 不扣的话，普通账号跑自检会得到一句假的「分类与卡片对不上」。
+        var hidden = page.ViewModel.ServerAdministrationHidden;
+
+        var expected = reachable
+            .Where(name => !hidden || !SettingsViewModel.ServerAdministrationCategories.Contains(name, StringComparer.Ordinal))
+            .ToList();
+
+        var unreachable = expected
             .Except(page.Categories, StringComparer.Ordinal)
-            .Concat(page.Categories.Except(reachable, StringComparer.Ordinal))
+            .Concat(page.Categories.Except(expected, StringComparer.Ordinal))
             .ToList();
 
         check("设置页面", page.IsReady && rows > 0 && unreachable.Count == 0,
             unreachable.Count > 0
                 ? $"分类与卡片对不上：{string.Join('、', unreachable)}"
-                : $"{sections} 张卡片 + {SettingsViewModel.HostedCategories.Count} 个内嵌页面、{rows} 行设置，当前「{category}」");
+                : $"{sections} 张卡片 + {SettingsViewModel.HostedCategories.Count} 个内嵌页面、{rows} 行设置，当前「{category}」"
+                    + (hidden ? "；当前账号不是管理员，「EmbyServer」那一组已隐藏" : ""));
 
         // Every category, not just the last: a card that drew nothing would otherwise be hidden by the ones
         // that drew before it, since the count is of the whole tree.
@@ -488,8 +497,10 @@ internal static partial class ShellSelfCheck
 
         // Both must be down while browsing: the video surface only appears where the XAML above it is
         // transparent, so a player left visible would punch a hole in the library grid. Measured on the
-        // tree rather than on the rule, which starts out saying the chrome is up because that is what
-        // should be true the instant a film begins.
+        // tree rather than on the rule: the rule's own fields start out hidden and only move when a pointer
+        // is reported, so a page that drew the chrome anyway would read as 「up」 to nothing but the tree —
+        // 而 2026-10-10 起「刚开播先让你看见有控件」也撤了（<see cref="ChromeReveal.Reset"/> 不给宽限），
+        // 所以两边都不该有任何「一进来就是显示」的余地。
         check("播放层已让位", !player.PlayerVisible && !player.ChromeShown,
             $"可见={player.PlayerVisible}，控件在屏={player.ChromeShown}");
 
@@ -629,6 +640,14 @@ internal static partial class ShellSelfCheck
 
         var shortcuts = player.ProbeShortcuts();
         check("快捷键派发", shortcuts.Ok, shortcuts.Detail);
+
+        // 同一张表的另一半（用户令 2026-10-07「暂停时不要自动显示播放控件」，2026-10-10「集成模式下快进或者
+        // 快退的时候不要自动显示播放控件 / 开始播放暂停播放的时候也不要 / 退出全屏的时候也不要」，问实了进全屏
+        // 同样不给）：这几样按下去不该把一屏控件按出来。表（WakesChrome）与接线（真按 ←→↓↑ 与空格读回来的
+        // wake）各问一遍 —— 表对了而调用点又硬写一个 true，只有真按那一半拦得住。这一关不按 F 与 Esc（会真
+        // 切窗口／真停播），它们的取舍与上面几颗同一句判据，由表那一半钉住。
+        var quietKeys = player.ProbeQuietKeys();
+        check("快进暂停全屏不唤出控件", quietKeys.Ok, quietKeys.Detail);
 
         var toast = shell.ToastState;
         check("提示通道", toast.Exists, toast.Exists ? $"InfoBar，当前{(toast.Open ? "已显示" : "未显示")}" : "缺失");

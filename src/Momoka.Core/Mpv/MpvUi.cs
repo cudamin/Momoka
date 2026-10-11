@@ -261,7 +261,7 @@ public static class VideoWindowContract
     public const string EpisodeCount = "momoka-episode-count";
 
     /// <summary>
-    /// <b>宿主 → uosc</b>：播放页左上角第二行那句文件信息（<c>分辨率 · 视频编码 · 音频格式 · 组名</c>，见
+    /// <b>宿主 → uosc</b>：播放页左上角第二行那句文件信息（<c>文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名</c>，见
     /// <see cref="Playback.PlaybackTitles.Subline"/>），空串＝收起副标题。uosc 顶栏把它画成左上角返回按钮
     /// 正下方的副标题（alt title，用户令 2026-09-28「移动到返回按钮的下方」）。
     /// <para>

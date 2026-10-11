@@ -116,33 +116,79 @@ internal sealed partial class ShellNavigationProbe
             ? Json(new { Items = new[] { new EmbyItem { Id = "play-1", Type = EmbyItemType.Episode, ParentIndexNumber = 1, IndexNumber = 1, SeriesId = "linked-show", Path = "/library/01.mkv" } } })
             : Json(new { Items = new[] { new EmbyItem { Id = "linked-show", Type = EmbyItemType.Series, ProviderIds = new() { ["Tmdb"] = "4" } } } }));
         var played = new List<MoviePilotPlaybackTarget>();
+        var searched = new List<string>();
         var page = new MoviePilotSubscriptionPage();
         _root.Children.Add(page);
-        page.Attach(new(service, subscription, fixture.Session.Capture(), target => { played.Add(target); return Task.CompletedTask; }));
+        page.Attach(new(service, subscription, fixture.Session.Capture(),
+            target => { played.Add(target); return Task.CompletedTask; }, keyword => searched.Add(keyword)));
         try
         {
             var vm = page.ViewModel;
-            await UntilAsync(() => vm.IsReady);
+            await UntilAsync(() => vm.IsReady && page.MediaViewModel.IsReady);
+            Require(page.MediaViewModel.Detail is not null, "媒体详情读取失败：" + page.MediaViewModel.NoticeMessage);
             Require(vm.Episodes.Count == 4 && vm.Episodes.Count(episode => episode.InLibrary) == 1, "入库和下载被混为一谈：" + vm.NoticeMessage);
             Require(vm.Episodes[1].Status == "已下载 · 待入库", "待入库集状态丢失");
             Require(vm.Episodes[0].CanPlay && !vm.Episodes[1].CanPlay, "已入库没有播放入口或缺集允许播放");
+            // 播出日期来自 TMDB 季集接口；「搜索这一集资源」只给已播出的集（用户令 2026-10-10）。
+            Require(vm.Episodes[0].AirDateLabel == "播出 2026-01-01" && vm.Episodes[0].CanSearch,
+                "已播出集没有显示播出日期或搜索入口：" + vm.Episodes[0].AirDateLabel);
+            Require(vm.Episodes[2].AirDateLabel == "待播出 2999-01-01" && vm.Episodes[2].SearchVisibility == Visibility.Collapsed,
+                "未播出集不该给搜索入口：" + vm.Episodes[2].AirDateLabel);
+            Require(vm.Episodes[3].AirDateLabel.Length == 0 && vm.Episodes[3].SearchVisibility == Visibility.Collapsed,
+                "没有播出日期的集不该显示日期或搜索入口");
             foreach (var width in new[] { 1240, 760 })
             {
-                ResizeInspect(width, 1000); await LayoutAsync(page);
+                ResizeInspect(width, 1000);
+                // 窗口尺寸是异步生效的，而自适应版式跟着窗口宽度走 —— 不等它落下来，下面读到的还是上一档。
+                await UntilAsync(() => page.ActualWidth <= width + 2);
+                await LayoutAsync(page);
                 await UntilAsync(() => vm.Episodes[0].Artwork is not null);
                 var picture = Descendants(page).OfType<Border>().First(border => border.Name == "EpisodeArtwork");
                 var play = Descendants(page).OfType<Button>().First(button => button.Name == "PlaySubscriptionEpisode" && button.Visibility == Visibility.Visible);
                 Require(picture.ActualWidth > picture.ActualHeight && picture.ActualHeight > 100, "集封面没有按横版显示");
                 Require(play.Content is FontIcon && play.TransformToVisual(page).TransformPoint(default).X
                     > picture.TransformToVisual(page).TransformPoint(default).X + picture.ActualWidth, "播放图标不在封面和剧情右侧");
+                var search = Descendants(page).OfType<Button>()
+                    .First(button => button.Name == "SearchSubscriptionEpisode" && button.Visibility == Visibility.Visible);
+                Require(search.Content is FontIcon
+                    && search.TransformToVisual(page).TransformPoint(default).Y >= play.TransformToVisual(page).TransformPoint(default).Y,
+                    "搜索按钮没有排在播放按钮下方");
                 Require(!Descendants(page).OfType<TextBlock>().Any(text => text.Text.StartsWith("入库：", StringComparison.Ordinal)
                     || text.Text.StartsWith("下载：", StringComparison.Ordinal)), "剧情下方仍然显示文件路径");
+
+                // 详情版式（参考 MoviePilot 的「订阅-详细」）：入库徽标、订阅信息与订阅规则两栏都读到了内容，
+                // 评分来自订阅快照；宽窗口右栏并排在简介右侧，窄窗口整块落到简介下面（宽度因此铺满内容区）。
+                var facts = Get<StackPanel>(page, "DetailFacts");
+                Require(Get<Border>(page, "LibraryBadge").Visibility == Visibility.Visible && vm.LibraryBadge == "部分入库",
+                    "入库徽标没有按文件统计显示");
+                Require(Get<ItemsRepeater>(page, "SubscriptionFacts").ItemsSource is IReadOnlyList<MoviePilotSubscriptionFact> { Count: > 0 }
+                    && Get<ItemsRepeater>(page, "SubscriptionRules").ItemsSource is IReadOnlyList<MoviePilotSubscriptionFact> { Count: > 0 },
+                    "订阅信息或订阅规则两栏没有内容");
+                Require(vm.DetailRatingText == "8.5 / 10"
+                    && Get<ItemsRepeater>(page, "SubscriptionStars").ItemsSource is IReadOnlyList<string> { Count: 5 } stars
+                    && stars.Count(glyph => glyph == "\uE735") == 4, "评分星没有按订阅快照折算");
+                Require(width >= 1080
+                    ? Math.Abs(facts.ActualWidth - 320) < 1 && Grid.GetRow(facts) == 0 && Grid.GetColumn(facts) == 1
+                    : facts.ActualWidth > 320 && Grid.GetRow(facts) == 1 && Grid.GetColumn(facts) == 0,
+                    $"订阅信息栏在 {width} 宽下没有按预期并排或叠起来：宽 {facts.ActualWidth}，行 {Grid.GetRow(facts)}，列 {Grid.GetColumn(facts)}，页宽 {page.ActualWidth}");
                 await SaveUsersFrameAsync(page, $"mp-subscription-detail-{width}.png");
+
+                // 集列表在折叠线以下，单独滚到它再拍一张：播出日期行和播放键下方那颗搜索键得看得见（2026-10-10）。
+                // 用 ChangeView 定位而不是 StartBringIntoView —— 后者只保证「进入视野」，这里要的是它真的滚上来。
+                var detailScroll = Get<ScrollViewer>(page, "DetailScroll");
+                var firstRow = (FrameworkElement)Get<ItemsRepeater>(page, "EpisodeStatistics").GetOrCreateElement(0);
+                var rowOffset = firstRow.TransformToVisual((UIElement)detailScroll.Content).TransformPoint(default).Y;
+                detailScroll.ChangeView(null, rowOffset - 8, null, true);
+                await LayoutAsync(page);
+                await SaveUsersFrameAsync(page, $"mp-subscription-episodes-{width}.png");
             }
             var playButton = Descendants(page).OfType<Button>().First(button => button.Name == "PlaySubscriptionEpisode" && button.IsEnabled);
             InvokeSubscriptionButton(playButton);
             await UntilAsync(() => played.Count == 1);
             Require(played[0].Item.Id == "play-1" && played[0].Parent?.Id == "linked-show", "播放按钮没有送到正确的 Emby 剧集");
+            var searchButton = Descendants(page).OfType<Button>().First(button => button.Name == "SearchSubscriptionEpisode" && button.IsEnabled);
+            InvokeSubscriptionButton(searchButton);
+            Require(searched.Count == 1 && searched[0] == "漫长的旅途 S01 E01", "集搜索按钮没有送出正确的关键词：" + string.Join("、", searched));
             var filter = Get<ComboBox>(page, "EpisodeFilter");
             filter.SelectedIndex = 1;
             Require(vm.Episodes.Count == 1, "已入库筛选没有驱动视图模型");
@@ -321,14 +367,30 @@ internal sealed partial class ShellNavigationProbe
             ["media_id"] = id.ToString(),
             ["state"] = "R",
             ["poster"] = "https://poster.invalid/" + id + ".png",
+            ["backdrop"] = "https://poster.invalid/backdrop-" + id + ".png",
+            ["vote"] = 8.5,
             ["total_episode"] = id < 4 ? 0 : 4,
             ["lack_episode"] = 2,
             ["start_episode"] = 1,
             ["description"] = "一段关于相遇、离别与重逢的故事。订阅详情可查看媒体简介、管理订阅，并核对每集的入库情况。",
             ["sites"] = new JsonArray(8),
+            ["keyword"] = "星际远航",
+            ["quality"] = "BluRay",
+            ["resolution"] = "1080p",
+            ["downloader"] = "qbittorrent",
+            ["save_path"] = "/媒体库/电视剧",
+            ["search_interval"] = 6,
+            ["username"] = "fixture",
+            ["date"] = "2026-07-26T10:00:00",
+            ["last_update"] = "2026-07-27T11:30:00",
+            ["last_search"] = "2026-07-27T11:30:00",
             ["include"] = ""
         });
         internal List<string> Writes { get; } = [];
+        internal List<JsonObject> WriteBodies { get; } = [];
+        internal TaskCompletionSource<HttpResponseMessage>? PendingGroup { get; set; }
+        internal TaskCompletionSource<HttpResponseMessage>? PendingExists { get; set; }
+        internal bool FailSubscriptionCreate { get; set; }
         internal byte[] Poster { get; set; } = [];
         internal TaskCompletionSource<HttpResponseMessage>? PendingList { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -337,12 +399,51 @@ internal sealed partial class ShellNavigationProbe
             var path = request.RequestUri.AbsolutePath;
             if (path == "/api/v1/system/cache/image") return new(HttpStatusCode.OK) { Content = new ByteArrayContent(Poster) };
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Json(new { access_token = "fixture-token" });
+            if (path.EndsWith("dashboard/system", StringComparison.Ordinal)) return Json(new { version = "fixture" });
+            if (path == "/api/v1/mediaserver/exists_remote") return PendingExists is { } exists ? await exists.Task : Json(new { success = true, data = new Dictionary<string, int[]> { ["1"] = [1] } });
+            if (path.StartsWith("/api/v1/tmdb/credits/", StringComparison.Ordinal) || path.StartsWith("/api/v1/tmdb/recommend/", StringComparison.Ordinal) || path.StartsWith("/api/v1/tmdb/similar/", StringComparison.Ordinal)) return Json(Array.Empty<object>());
+            if (path == "/api/v1/media/4") return Json(new
+            {
+                title = "漫长的旅途",
+                year = "2026",
+                type = "电视剧",
+                media_source = "themoviedb",
+                media_id = "4",
+                tmdb_id = 4,
+                original_name = "The Long Journey",
+                status = "Returning Series",
+                first_air_date = "2026-01-01",
+                original_language = "ja",
+                vote_average = 8.5,
+                poster_path = "https://poster.invalid/4.png",
+                backdrop_path = "https://poster.invalid/backdrop-4.png",
+                overview = "一段关于相遇、离别与重逢的故事。",
+                tagline = "下一次相遇，在旅途的尽头。",
+                production_countries = new[] { new { name = "日本" } },
+                production_companies = new[] { new { name = "Example Studio" } },
+                season_info = new[] { new { season_number = 1, episode_count = 4, air_date = "2026-01-01", poster_path = "https://poster.invalid/4.png" }, new { season_number = 2, episode_count = 4, air_date = "2027-01-01", poster_path = "https://poster.invalid/4.png" } }
+            });
+            if (path.StartsWith("/api/v1/media/group/seasons/", StringComparison.Ordinal))
+            {
+                if (path.EndsWith("grp-9", StringComparison.Ordinal) && PendingGroup is { } group) return await group.Task;
+                return Json(new[] { new { season_number = path.EndsWith("grp-10", StringComparison.Ordinal) ? 7 : 3, episode_count = 4, name = "分组季", air_date = "2026-01-01", poster_path = "https://poster.invalid/4.png" } });
+            }
             if (request.Method != HttpMethod.Get)
             {
                 Writes.Add(request.Method.Method + " " + path);
+                if (path == "/api/v1/subscribe/" && request.Method == HttpMethod.Post)
+                {
+                    if (FailSubscriptionCreate) return Json(new { success = false, message = "模拟订阅结果未确认" });
+                    var added = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!.AsObject();
+                    WriteBodies.Add((JsonObject)added.DeepClone());
+                    var addedId = Items.Keys.Max() + 1;
+                    added["id"] = addedId; added["state"] = "R"; Items[addedId] = added;
+                    return Json(new { success = true, data = new { id = addedId } });
+                }
                 if (path == "/api/v1/subscribe/" && request.Method == HttpMethod.Put)
                 {
                     var patch = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!.AsObject();
+                    WriteBodies.Add((JsonObject)patch.DeepClone());
                     var id = patch["id"]!.GetValue<int>();
                     foreach (var pair in patch.Where(pair => pair.Key != "id")) Items[id][pair.Key] = pair.Value?.DeepClone();
                 }
@@ -351,6 +452,27 @@ internal sealed partial class ShellNavigationProbe
                 return Json(new { success = true, data = (object?)null });
             }
             if (path == "/api/v1/subscribe/") return PendingList is { } pending ? await pending.Task : Json(new { success = true, data = Items.Values.ToArray() });
+            // 剧集组那一节的两趟：组列表（media/groups）与默认排序的季列表（media/seasons，只用来算「默认」那一项
+            // 的季数/集数）。两条都得排在下面那个 int.Parse 兜底之前 —— 它们的末段不是订阅编号。
+            if (path.StartsWith("/api/v1/media/groups/", StringComparison.Ordinal)) return Json(new object[]
+            {
+                new { id = "grp-9", name = "Seasons", group_count = 4, episode_count = 110 },
+                new { id = "grp-10", name = "Cours", group_count = 4, episode_count = 48 }
+            });
+            if (path == "/api/v1/media/seasons") return Json(new object[]
+            {
+                new { season_number = 1, episode_count = 4 },
+                new { season_number = 2, episode_count = 4 }
+            });
+            // 集播出日期走 TMDB 季集接口（订阅的文件统计不带它，见 MoviePilotEpisodeAirDates）。四条各占一种形态：
+            // 已播出、已播出、还没播、没有日期 —— 屏上就该是「播出 / 播出 / 待播出 / 不显示」，搜索入口只给前两条。
+            if (path.Contains("/tmdb/", StringComparison.Ordinal)) return Json(new object[]
+            {
+                new { episode_number = 1, air_date = "2026-01-01", name = "新的开始", overview = "一场意外的重逢，让旅途有了新的方向。", still_path = "https://poster.invalid/episode-1.png" },
+                new { episode_number = 2, air_date = "2026-01-08", name = "重逢", overview = "熟悉的城市里，故事才刚刚开始。", still_path = "https://poster.invalid/episode-2.png" },
+                new { episode_number = 3, air_date = "2999-01-01", name = "远方", overview = "", still_path = "https://poster.invalid/episode-3.png" },
+                new { episode_number = 4, air_date = "", name = "归途", overview = "", still_path = "https://poster.invalid/episode-4.png" }
+            });
             var itemId = int.Parse(path.Split('/')[^1]);
             if (!Items.TryGetValue(itemId, out var item)) return new(HttpStatusCode.NotFound);
             if (path.Contains("/files/", StringComparison.Ordinal)) return Json(new

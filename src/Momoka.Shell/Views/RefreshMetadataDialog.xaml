@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  「刷新元数据」：照 Emby 网页端 components/refreshdialog 那张表做的一张，条目和媒体库用的是同一张 —— 一档刷新
+  模式加两颗替换开关，每一处底下跟着它自己那句说明。
+
+  三处选择的**意思**不在这里：档位怎么落到服务器那几条查询参数上，是 EmbyClient.RefreshItemAsync 的事。这个
+  文件只决定它们长什么样、按什么次序出现。
+
+  两颗开关默认都关，因为开着的那一颗会先删光现有的图再重下。网页端还按服务器版本（>= 4.9.1.1）决定露不露
+  「替换现有视频预览缩略图」那一行；这里不按版本收，和本仓媒体库那张表保持一致 —— 老服务器收到不认的参数只会
+  静默忽略，而少一行会让用户以为这一档不存在。
+-->
+<ContentDialog x:Class="Momoka.Shell.Views.RefreshMetadataDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="刷新元数据"
+    CloseButtonText="取消"
+    DefaultButton="Primary"
+    PrimaryButtonText="刷新">
+
+    <ContentDialog.Resources>
+        <!-- 网页端那张表是窄的：一档下拉加两颗开关，撑到默认那 548 只会让说明那一行拉得太长。 -->
+        <x:Double x:Key="ContentDialogMaxWidth">480</x:Double>
+    </ContentDialog.Resources>
+
+    <StackPanel Spacing="{StaticResource EgSpaceL}">
+
+        <!-- 刷新模式：下拉自己带 Header，说明紧跟在它底下 —— 那一句讲的是选中的这一档做什么。 -->
+        <StackPanel Spacing="{StaticResource EgSpaceXS}">
+            <ComboBox
+                x:Name="ModeBox"
+                AutomationProperties.Name="刷新模式"
+                Header="刷新模式"
+                HorizontalAlignment="Stretch"
+                SelectedIndex="1">
+                <ComboBoxItem Content="搜索缺少的元数据" />
+                <ComboBoxItem Content="替换所有元数据" />
+            </ComboBox>
+            <TextBlock
+                Style="{StaticResource EgCaptionStyle}"
+                Text="依据 Emby 媒体库中的设置和元数据提供器，用新的数据更新元数据。"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- 标签在左、开关在右，说明另起一行铺满整行 —— 同网页端。标签不走 ToggleSwitch 的 Header：那会把
+             字摆到开关上头，而这一行要的是两边对齐。 -->
+        <StackPanel Spacing="{StaticResource EgSpaceXS}">
+            <Grid ColumnSpacing="{StaticResource EgSpaceM}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Style="{StaticResource EgBodyStyle}"
+                    Text="替换现有图像" />
+                <!-- 开关自己那两个字（开／关）留空，并且 MinWidth=0：ToggleSwitch 默认给 On/Off 那两个字留了
+                     一块宽度，留着的话滑块会离右边缘差着那一块，而参考图上它是贴边的。名字给全是为了读屏。 -->
+                <ToggleSwitch
+                    x:Name="ImagesSwitch"
+                    AutomationProperties.Name="替换现有图像"
+                    Grid.Column="1"
+                    MinWidth="0"
+                    OffContent=""
+                    OnContent="" />
+            </Grid>
+            <TextBlock
+                Style="{StaticResource EgCaptionStyle}"
+                Text="基于媒体库选项，将删除全部现有图像，并下载新图像。在某些情况下，这可能会导致可用图像比以前要少。"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+        <StackPanel Spacing="{StaticResource EgSpaceXS}">
+            <Grid ColumnSpacing="{StaticResource EgSpaceM}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Style="{StaticResource EgBodyStyle}"
+                    Text="替换现有视频预览缩略图" />
+                <ToggleSwitch
+                    x:Name="ThumbnailsSwitch"
+                    AutomationProperties.Name="替换现有视频预览缩略图"
+                    Grid.Column="1"
+                    MinWidth="0"
+                    OffContent=""
+                    OnContent="" />
+            </Grid>
+            <TextBlock
+                Style="{StaticResource EgCaptionStyle}"
+                Text="如果在媒体库选项中启用此功能，将删除所有现有视频预览缩略图并生成新缩略图。"
+                TextWrapping="Wrap" />
+        </StackPanel>
+
+    </StackPanel>
+</ContentDialog>

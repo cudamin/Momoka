@@ -74,7 +74,9 @@ public sealed partial class ShellPage
 
             // 顺序就是屏幕上从左到右的顺序：主页、设置、搜索、后退、前进（主页那颗 2026-09-08 加的 —— 顶上那条
             // 标签栏删掉之后，回主页只此一颗）。
-            Button[] keys = [HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton];
+            Button[] keys = FavoritesButton.Visibility == Visibility.Visible
+                ? [HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton]
+                : [HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton];
 
             // 前两颗跟去过哪儿无关，所以三种状态下都得亮着 —— 一颗跟着导航变暗的设置按键，是按不出设置窗口。
             bool AlwaysOn() => SettingsButton.IsEnabled && SearchButton.IsEnabled;
@@ -138,7 +140,7 @@ public sealed partial class ShellPage
             var ok = idle && shallow && deep && sized && inBar && lined;
 
             return new TitleActionProbe(ok,
-                $"五颗按键各 {SettingsButton.ActualWidth:0}×{SettingsButton.ActualHeight:0}，整排从 ({group.X:0},{group.Y:0}) 起"
+                $"{keys.Length} 颗按键各 {SettingsButton.ActualWidth:0}×{SettingsButton.ActualHeight:0}，整排从 ({group.X:0},{group.Y:0}) 起"
                     + $"，占 {TitleActions.ActualWidth:0}×{TitleActions.ActualHeight:0}，最大间距 {widest:0}；"
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"

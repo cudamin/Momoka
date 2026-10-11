@@ -202,6 +202,8 @@ public sealed partial class PlayerViewModel
         // 这一场播放的号（见 _playbackAttempt）：比停掉旧那一刀更早，所以旧一场收尾时判得出「已经有新的一场了」。
         ResetTimelineDrag();
         var attempt = ++_playbackAttempt;
+        // 换版本/换集沿用用户当前窗口形态，自动全屏只属于首次进入播放。
+        _replacingPlayback = replaceExisting;
 
         try
         {

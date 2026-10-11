@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Momoka.Emby;
@@ -227,4 +228,77 @@ public sealed class RemoteSubtitleInfo
 public sealed class SubtitleDownloadResult
 {
     public int? NewIndex { get; set; }
+}
+
+/// <summary>
+/// 一家刮削源在这个条目上能填的标识符（<c>GET /Items/{Id}/ExternalIdInfos</c> 的一条）。服务器按条目类型
+/// 决定有哪几家 —— 电影是 IMDb / TheMovieDb / TheTVDB / 豆瓣，剧集是 TheTVDB / TheMovieDb / IMDb…
+/// </summary>
+public sealed class ExternalIdInfo
+{
+    /// <summary>显示名：「IMDb」「TheMovieDb」「TheTVDB」「豆瓣」。</summary>
+    public string Name { get; set; } = "";
+
+    /// <summary><c>ProviderIds</c> 里那个键（<c>Imdb</c> / <c>Tmdb</c> / <c>Tvdb</c> / <c>Douban</c>）。</summary>
+    public string Key { get; set; } = "";
+
+    /// <summary>
+    /// 这家刮削源的官网，界面上在每个输入框下面当链接显示（网页端就是这么做的）。服务器没给就是空 ——
+    /// 那一格只有输入框，没有链接。
+    /// </summary>
+    public string? Website { get; set; }
+
+    /// <summary>带占位符的网址模板（<c>https://www.imdb.com/title/{0}</c>）。这一版用不上，留着说明形状。</summary>
+    public string? UrlFormatString { get; set; }
+}
+
+/// <summary>
+/// 刮削源上的一条候选（<c>POST /Items/RemoteSearch/{Type}</c> 的一条）。
+/// <para>
+/// <see cref="Extra"/> 不是装饰：提交（<c>POST /Items/RemoteSearch/Apply/{Id}</c>）要把服务器发来的
+/// <b>原样那一条</b>交回去，服务器按里头的 <c>ProviderIds</c> 和 <c>SearchProviderName</c> 去认片子，
+/// 少一样就可能认不出来。逐字段抄一遍等于承诺「服务器的字段表我全知道」，而那张表跟着版本走 ——
+/// 没点名的原样留着，提交时自然带回去。
+/// </para>
+/// </summary>
+public sealed class RemoteSearchResult
+{
+    public string? Name { get; set; }
+
+    public Dictionary<string, string> ProviderIds { get; set; } = [];
+
+    public int? ProductionYear { get; set; }
+
+    public int? IndexNumber { get; set; }
+
+    public int? ParentIndexNumber { get; set; }
+
+    public string? PremiereDate { get; set; }
+
+    /// <summary>
+    /// 刮削源上那张海报。注意它多半是外网地址、本机不一定连得上 —— 所以取它走的是服务器那条
+    /// <c>Items/RemoteSearch/Image</c> 转发（见 <c>EmbyClient.GetRemoteSearchImageAsync</c>），
+    /// 网页端也是这么做的。
+    /// </summary>
+    public string? ImageUrl { get; set; }
+
+    public string? ThumbnailUrl { get; set; }
+
+    /// <summary>这一条是哪家给的（<c>TheMovieDb</c> / <c>IMDb</c>…），卡片上那一行小字就是它。</summary>
+    public string? SearchProviderName { get; set; }
+
+    public string? Overview { get; set; }
+
+    /// <summary>服务器发来、上面没点名的字段，提交时原样带回去。见类注释。</summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Extra { get; set; }
+
+    /// <summary>卡片上那一行小字：哪一家给的、哪一年。</summary>
+    public string Describe()
+    {
+        var parts = new List<string>(3);
+        if (!string.IsNullOrWhiteSpace(SearchProviderName)) parts.Add(SearchProviderName!);
+        if (ProductionYear is { } year and > 0) parts.Add(year.ToString());
+        return string.Join("  ·  ", parts);
+    }
 }

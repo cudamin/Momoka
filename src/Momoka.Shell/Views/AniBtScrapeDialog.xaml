@@ -1,0 +1,47 @@
+<ContentDialog
+    x:Class="Momoka.Shell.Views.AniBtScrapeDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Momoka.Shell.ViewModels"
+    xmlns:anibt="using:Momoka.AniBt"
+    PrimaryButtonText="确认重新刮削" CloseButtonText="关闭"
+    IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}"
+    PrimaryButtonClick="OnSubmit">
+    <Grid RowSpacing="12" MinWidth="260" MaxWidth="760">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <TextBlock Text="按源文件名识别每个视频。确认后由 MoviePilot 覆盖对应文件的 NFO 和图片；视频文件位置保持不变。季集编号由 MoviePilot 从当前文件名解析。" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+        <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+        <ListView x:Name="ScrapeFiles" Grid.Row="2" MaxHeight="470" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None">
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="vm:AniBtScrapeRowViewModel">
+                    <StackPanel Spacing="6" Margin="0,8" HorizontalAlignment="Stretch">
+                        <TextBlock Text="{x:Bind SourceName}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Bind TargetPath}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                        <TextBlock Text="{x:Bind MatchNote}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                        <ComboBox x:Name="AnimeChoice" Header="识别结果" PlaceholderText="选择对应番剧" HorizontalAlignment="Stretch"
+                            IsEnabled="{x:Bind CanSelect, Mode=OneWay}"
+                            ItemsSource="{x:Bind Candidates}" SelectedItem="{x:Bind Selected, Mode=TwoWay}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate x:DataType="anibt:AniBtAnime">
+                                    <StackPanel>
+                                        <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+                                        <TextBlock Text="{x:Bind OriginalTitle}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                        <TextBlock Text="{x:Bind Result, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <InfoBar x:Name="ScrapeNotice" Grid.Row="3" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}"
+            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
+            Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" IsClosable="False" />
+    </Grid>
+</ContentDialog>

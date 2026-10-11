@@ -30,14 +30,15 @@ internal static class ConfirmDialog
     /// shown must not be read as consent to any of those.
     /// </para>
     /// </summary>
-    internal static ConfirmRequest For(FrameworkElement owner) =>
-        (title, message, primary) => AskAsync(owner, title, message, primary);
+    internal static ConfirmRequest For(FrameworkElement owner, Func<ContentDialog, Task<ContentDialogResult>>? show = null) =>
+        (title, message, primary) => AskAsync(owner, title, message, primary, show);
 
     private static async Task<bool> AskAsync(
         FrameworkElement owner,
         string title,
         string message,
-        string primary)
+        string primary,
+        Func<ContentDialog, Task<ContentDialogResult>>? show)
     {
         // Read when the question is asked, not when the delegate was made: a page hands this out in its
         // constructor, which is long before it is in a tree with a root to put a dialog in.
@@ -63,7 +64,8 @@ internal static class ConfirmDialog
 
         try
         {
-            return await dialog.ShowAsync() == ContentDialogResult.Primary;
+            var result = show is null ? await dialog.ShowAsync() : await show(dialog);
+            return result == ContentDialogResult.Primary;
         }
         catch (Exception error)
         {

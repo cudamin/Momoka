@@ -24,7 +24,7 @@ public sealed partial class MoviePilotService
     public string ConnectionStamp => Enabled ? TransferConnectionStamp(CaptureIdentity()) : "";
 
     public bool IsCurrentConnection(string stamp) => stamp.Length > 0 && Enabled &&
-        MoviePilotAddress.TryNormalize(settings.MoviePilot.Url, out var address, out _) && address is not null &&
+        MoviePilotAddress.TryNormalize(_settings.MoviePilot.Url, out var address, out _) && address is not null &&
         stamp == TransferConnectionStamp(CaptureIdentity());
 
     private SessionIdentity RequireResultConnection(string stamp)

@@ -9,6 +9,13 @@
 - 合法值是开放集合：内置 `themoviedb`、`douban`、`bangumi`、`anilist`、`imdb`、`tvdb`、`musicbrainz`、`theaudiodb`、`doubanmusic`，加上插件注册的动态标识（格式 `^[a-z][a-z0-9._-]{0,63}$`，见 MediaSource schema）。**不要写死白名单**；显示名来自 `GET /api/v1/media/source` 的 `name`。
 - `media/source` 每条带 `name`、`media_source`、`media_types`。影视能力按电影/电视剧/movie/tv 判断；前端 v3.1.0 的 `utils/mediaId.ts` 不再把显式空列表视为可用。后端插件 schema 在省略字段时会补默认类型，不能把省略默认与显式 `[]` 混为一谈。来源下拉以实际目录为准，仅请求失败时才退到内置清单，成功返回空目录不伪造 TMDB。
 
+## 资源搜索的站点范围
+
+- 按官方后端 `v3.1.2-1` 的 `app/api/endpoints/search.py` 核对：`search/title` 与 `search/media/{id}` 的 `sites` 是单个字符串参数，`_parse_site_list` 按逗号拆分站点整数编号。发 `sites=1,2`，不发重复参数或 JSON 数组。
+- 省略或空 `sites` 会回退服务器的 `IndexerSites`；该设置也为空时才进一步回退可用索引器。因此界面应称“MoviePilot 默认站点”，不能一概标成“全部站点”。明确全选须传实际编号；明确清空须拦截查询，不能省略参数后扩大范围。
+- 关键词搜索目录用 `GET site/`，只投影 `is_active=true` 的 `id`（数字或数字字符串）和 `name`。精确搜索用 `GET site/media/movie` 或 `site/media/tv`，沿用服务端的媒体能力判断。目录可能带 Cookie 等敏感字段，不打印原始响应，也不把完整站点对象放进显示模型。
+- 站点编号属于获取目录时的连接与账号，选定编号的请求带同一连接戳；连接改变后拒绝旧编号，重新读取目录。站点选择用于发起搜索，结果列表中的站点筛选用于已取回结果，两者应分开标识。
+
 ## 三种身份各自是什么
 
 1. **主身份**：`media_source` + `media_id` 成对。同一个数字在不同来源下是不同作品；TMDB 内部电影和电视剧还共享同一编号空间，所以除来源外还要媒体类型（`电影`/`电视剧`）。

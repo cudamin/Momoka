@@ -92,22 +92,34 @@ internal static class ItemMenuTests
     /// <summary>电视媒体库里的一张卡：一部剧。</summary>
     private static void RegisterSeries()
     {
-        Test("更多菜单：电视媒体库那张卡上，用户要的十条都在", () =>
+        Test("更多菜单：电视媒体库那张卡上，用户要的十一条都在", () =>
         {
             var labels = Labels(new EmbyItem { Id = "s1", Name = "某剧", Type = EmbyItemType.Series });
 
             foreach (var wanted in (string[])[
                 "添加到合集…",
                 "添加到收藏",
+                "查看遗漏集",
                 "下载到设备",
                 "编辑元数据信息…",
                 "修改媒体封面图…",
-                "刮削元数据信息",
+                "识别",
                 "标记为已观看",
                 "刷新元数据信息",
                 "重新扫描媒体库",
                 "删除"])
                 Assert.Contains(wanted, labels);
+        });
+
+        Test("更多菜单：剧和季有「查看遗漏集」，电影和单集没有", () =>
+        {
+            // 遗漏集是服务器按刮削源的元数据算出来的「这部剧本该有、而库里没有」的单集 —— 只有装着一叠集的
+            // 剧和季问得出来。电影没有「漏集」这回事，而单集自己就是那一叠里的一集，问它「你还缺谁」没有意义。
+            Assert.Contains("查看遗漏集", Labels(new EmbyItem { Id = "s1", Type = EmbyItemType.Series }));
+            Assert.Contains("查看遗漏集", Labels(new EmbyItem { Id = "n1", Type = EmbyItemType.Season }));
+
+            Assert.DoesNotContain("查看遗漏集", Labels(new EmbyItem { Id = "m1", Type = EmbyItemType.Movie }));
+            Assert.DoesNotContain("查看遗漏集", Labels(Resuming()));
         });
 
         Test("更多菜单：剧集上没有「搜索和修改字幕」", () =>
@@ -149,7 +161,7 @@ internal static class ItemMenuTests
                 "编辑元数据信息…",
                 "修改媒体封面图…",
                 "搜索和修改字幕…",
-                "刮削元数据信息",
+                "识别",
                 "标记为已观看",
                 "刷新元数据信息",
                 "重新扫描媒体库",
@@ -157,13 +169,26 @@ internal static class ItemMenuTests
                 Assert.Contains(wanted, labels);
         });
 
-        Test("更多菜单：媒体库自己那张卡上没有删除、也没有刮削", () =>
+        Test("更多菜单：识别只摆在服务器真查得动的那几种上", () =>
+        {
+            // 服务器的 Items/RemoteSearch 只认电影、剧、合集、预告片和音乐那几种。季和单集跟着所属的剧一起
+            // 识别 —— 单独给它们摆一条「识别」，点下去是 404，而屏上只是「点了没反应」。
+            foreach (var wanted in (string[])[
+                EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.BoxSet, EmbyItemType.Trailer])
+                Assert.Contains("识别", Labels(new EmbyItem { Id = "x", Type = wanted }));
+
+            foreach (var refused in (string[])[
+                EmbyItemType.Season, EmbyItemType.Episode, EmbyItemType.Folder, EmbyItemType.Playlist])
+                Assert.DoesNotContain("识别", Labels(new EmbyItem { Id = "x", Type = refused }));
+        });
+
+        Test("更多菜单：媒体库自己那张卡上没有删除、也没有识别", () =>
         {
             // DELETE /Items/{Id} 连磁盘上的文件一起删 —— 落在一张媒体库卡片上就是去删整个库的目录。
             var labels = Labels(new EmbyItem { Id = "lib1", Type = EmbyItemType.CollectionFolder });
 
             Assert.DoesNotContain("删除", labels);
-            Assert.DoesNotContain("刮削", labels);
+            Assert.DoesNotContain("识别", labels);
             Assert.DoesNotContain("添加到合集", labels);
             Assert.Contains("打开", labels);
             Assert.Contains("编辑元数据信息…", labels);
@@ -172,7 +197,7 @@ internal static class ItemMenuTests
 
         Test("更多菜单：演职人员那张卡上只有打开和编辑", () =>
         {
-            // 那一排卡片是存根（只有 id、名字和类型），照它去刮削、改封面或者扫库是拿一个人名当影片使。
+            // 那一排卡片是存根（只有 id、名字和类型），照它去识别、改封面或者扫库是拿一个人名当影片使。
             var labels = Labels(new EmbyItem { Id = "p1", Type = EmbyItemType.Person });
 
             Assert.DoesNotContain("删除", labels);

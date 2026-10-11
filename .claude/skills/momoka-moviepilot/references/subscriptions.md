@@ -23,7 +23,7 @@
 ## 三个进度不是一回事
 
 - `total_episode` / `lack_episode` 是**订阅目标范围内的下载进度**。`total_episode - lack_episode` 不等于已入库集数；界面上叫"订阅进度"，不要叫"下载进度"，更不能当入库进度。
-- 已入库**只由** `subscribe/files/{id}` 的 `library` 决定。有 `library` 文件记录就是"已入库"，即使同时有 `download`；只有 `download` 有文件记录而 `library` 没有时才是"已下载 · 待入库"，两者都没有则是"缺集"。这些状态用于有效统计中的目标条目，统计不可用不套用缺集状态。
+- 订阅文件统计中的已入库**只由** `subscribe/files/{id}` 的 `library` 决定。有 `library` 文件记录就是"已入库"，即使同时有 `download`；只有 `download` 有文件记录而 `library` 没有时才是"已下载 · 待入库"，两者都没有则是"缺集"。这些状态用于有效统计中的目标条目，统计不可用不套用缺集状态。
 - 缺集是目标范围内**所有未入库**的集，包括已下载待整理的和尚未播出的。按 `start_episode` / `total_episode` 过滤，不混入范围外的集。
 - `state`：`S` 暂停、`R` 订阅中、`N` 或 `P` 待处理。暂停不代表入库事实停止。
 
@@ -33,13 +33,14 @@
 
 - 电影用**零号条目** `episodes["0"]`，不是 `episodes["1"]`。
 - 每集字段：`title`、`description`、`backdrop`、`download`、`library`。`backdrop` 是该集的横版剧照。
+- **每集没有播出日期。** `SubscribeEpisodeInfo` 的 schema 里就只有上面那几个字段，播出日期得另取 TMDB 季集接口 `GET tmdb/{tmdbid}/{season}`（可带 `episode_group`；回话是**裸的集对象数组**，字段 `episode_number` / `air_date`）。只对 `media_source` 为 `themoviedb`、`media_id` 是数字、季号明确的电视剧发这一趟；其他来源（豆瓣／IMDb 等）不发请求，屏上就不显示播出日期，也不判「已播出」。空 `air_date`、缺集号、解析不出来的日期都当「没有日期」，**别拿猜的值去判已播出**。订阅带 `episode_group` 时必须一并带上，否则集号是另一套、对不上屏上那几集。
 - `library` / `download` 是数组，元素带 `file_path`、`server` / `server_type`、`itemid`；旧版本可能直接给字符串路径。两种形态都要认。
 - 服务端按 `for i in range(start_episode or 1, total_episode + 1)` 补齐目标范围内缺的集。客户端可以照此补出未播出的空条目，但这些条目**既没有文件也没有剧照**，只能作为"未入库"出现在缺集里。
 - `subscribe` 为 `null`、`id` 对不上、`episodes` 不是对象、请求失败——全都是"**统计不可用**"，不是"全部未入库"。空响应和错误不能显示成 `0 / N`，也不能显示成已全部入库。该服务器上确实有一条订阅返回 `subscribe:null` 与空 `episodes`。
 
 ## 写操作的边界
 
-- 编辑只提交**用户实际改动**的字段，`id` 必带。`keyword` / `include` / `exclude` / `quality` / `resolution` / `effect` 与电视剧的 `total_episode` / `start_episode` 之外的一切——站点、下载器、保存路径、其他客户端留下的设置——保持服务器当前值，不回写。清空某项发 `null`，不发空串。
+- 编辑只提交**用户实际改动**的字段，`id` 必带。普通编辑支持 `keyword` / `include` / `exclude` / `quality` / `resolution` / `effect` 与电视剧的 `total_episode` / `start_episode`；季选择另支持显式修改 `best_version` / `best_version_full`。其他字段——站点、下载器、保存路径、其他客户端留下的设置——保持服务器当前值，不回写。清空某项发 `null`，不发空串。
 - 所有订阅写操作（PUT / POST / DELETE）都按有副作用处理，与 HTTP 方法无关。提交中锁住再次提交；拿不到明确回执就标记"结果不明"，要求用户先去 MoviePilot 核对再显式解除限制，**不自动重发**。超时不证明服务器没做。
 - 回执只说明请求已提交。搜索／重置成功不等于已找到资源，更不等于已入库。
 - 按订阅 `id` 单独记账，不把一条的失败盖到整批。
@@ -61,5 +62,16 @@
 - **字段差量**：只改一个字段时的请求体、清空发 `null`、未改动的站点／下载器字段不出现。
 - **统计语义**：电影零号条目、`library` 的字符串与数组两种形态、只有 `library`／只有 `download`／两者都有／两者都没有的状态判定、`subscribe:null`、空 `episodes`、范围外的集被过滤、未播出集被补齐、"统计不可用"不显示为全缺或全入库。
 - **播放匹配**：跨服务器 `itemid` 不被直接信任、同名多候选、路径唯一命中、路径大小写、无权与不存在的条目。
+- **播出日期**：空 `air_date`／缺集号／解析不出来的日期都不进表；非 TMDB 来源、非电视剧、季号缺失时**不发请求**（断言请求次数，不只看界面）；带 `episode_group` 的订阅查询要带这个参数。界面按「已播出给搜索键、未播出与无日期不给」两档断言。
 - **界面**：进度写在封面内且不与更多按钮重叠、空统计不显示为全入库、离页与切服后旧按钮失效。
 - `--probe-shell` 的三个订阅检查只操作假服务器与捕获的假播放动作；真实只读核对另行进行，且不写订阅、不起播放器。
+
+## 媒体详情与按季订阅（v3.1.3）
+
+2026-10-11 用 `dashboard/system` 确认实际服务为 v3.1.3，并核对同版本前后端源码。详情切组只读；季列表用 `media/seasons` 或 `media/group/seasons/{group}`，季号必须保留服务器值。非 TMDB 也按原来源查询季，不自行补季号；TMDB 集查询的首个参数必须是 `?episode_group=`，不能写成路径中的 `&episode_group=`。组内响应可能仍保留原始 season_number，显示与操作用外层所请求的组季号。
+
+新增、取消和模式变更按来源、媒体 ID、类型、剧集组和季定位，取消/修改只用明确订阅 ID。网页端仅按季汇总的缺陷不能照抄。普通模式为 `best_version=0,best_version_full=0`，分集为 `1,0`，全集为 `1,1`；全集指该季目标范围整包。重复 POST 可能返回已有 ID 而不更新模式，新增后需回读核实。失败保留每季已完成结果，不重发整批；明确核对才能解除不明状态。
+
+媒体季集入库状态来自只读 `POST mediaserver/exists_remote`，请求是媒体快照加当前组，错误显示未知，不能复用其他组统计。资源 `search/media` 不接受 episode/group；字幕 `search/subtitle/media` 接受 episode，但仍不接受 group。字幕是独立的扁对象，下载用 `POST download/subtitle` 的 `subtitle_in` 原样对象与 media_source/media_id/save_path；不向日志或系统启动参数输出签名链接与凭据。
+
+新增验证覆盖三模式字段、组/季隔离、部分成功与回执核对、组和库状态迟到、字幕取消保存与站点变化撤销旧结果。完整背景与主题截图来自离线 Shell 探针，不能当真实下载或播放证据。

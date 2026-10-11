@@ -92,6 +92,9 @@ public sealed class ItemQuery
     /// <summary>null = no filter, true = only watched, false = only unwatched.</summary>
     public bool? IsPlayed { get; init; }
 
+    /// <summary>收藏页的固定条件，不受工具栏清除筛选影响。</summary>
+    public bool IsFavorite { get; init; }
+
     /// <summary>
     /// true = 只收<b>有播放进度</b>的，作为 <c>Filters=IsResumable</c> 发出去 —— 和筛选面板里那颗
     /// 「可继续播放」（<see cref="EmbyFilterBy"/> 里 id <c>resumable</c> 那一格）是同一个词，出处也是同一份
@@ -162,6 +165,21 @@ public sealed class ItemQuery
         SortBy = sortBy,
         Descending = descending
     };
+
+    /// <summary>入口探测与收藏列表共用类型范围，包含可单独收藏的季、单集和合集。</summary>
+    public static ItemQuery Favorites(int startIndex, int limit, string sortBy = EmbySortBy.Name,
+        bool descending = false, ItemFilters? filters = null) => new()
+        {
+            Recursive = true,
+            IsFavorite = true,
+            IncludeItemTypes = [.. SweptTypes, EmbyItemType.Season, EmbyItemType.BoxSet,
+                EmbyItemType.Folder, EmbyItemType.Playlist, EmbyItemType.Trailer],
+            StartIndex = startIndex,
+            Limit = limit,
+            SortBy = sortBy,
+            Descending = descending,
+            Filters = filters
+        };
 
     /// <summary>
     /// 主页「接下来看」那一排点进去的那张网格。判据是「这部剧一集都没看过」—— Emby 的 NextUp 语义落到通用
@@ -257,13 +275,17 @@ public sealed class ItemQuery
     {
         var parameters = new List<(string, string?)>(16)
         {
-            ("SortBy", SortBy),
-            ("SortOrder", Descending ? "Descending" : "Ascending"),
             ("Fields", Fields),
             ("StartIndex", StartIndex.ToString()),
             ("Limit", Limit.ToString()),
             ("Recursive", Recursive ? "true" : "false")
         };
+
+        if (!string.IsNullOrWhiteSpace(SortBy))
+        {
+            parameters.Add(("SortBy", SortBy));
+            parameters.Add(("SortOrder", Descending ? "Descending" : "Ascending"));
+        }
 
         if (!string.IsNullOrWhiteSpace(ParentId)) parameters.Add(("ParentId", ParentId));
         if (!string.IsNullOrWhiteSpace(SearchTerm)) parameters.Add(("SearchTerm", SearchTerm!.Trim()));
@@ -297,6 +319,7 @@ public sealed class ItemQuery
 
         if (IsPlayed is { } played) pairs.Add((EmbyFilterBy.Keys.Filters, played ? "IsPlayed" : "IsUnplayed"));
         if (IsResumable) pairs.Add((EmbyFilterBy.Keys.Filters, "IsResumable"));
+        if (IsFavorite) pairs.Add((EmbyFilterBy.Keys.Filters, "IsFavorite"));
         if (!string.IsNullOrWhiteSpace(Genre)) pairs.Add((EmbyFilterBy.Keys.Genres, Genre!.Trim()));
         if (Filters is not null) pairs.AddRange(Filters.Contributions());
 

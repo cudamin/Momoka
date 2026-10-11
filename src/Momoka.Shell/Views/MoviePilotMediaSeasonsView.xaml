@@ -1,0 +1,92 @@
+<UserControl x:Class="Momoka.Shell.Views.MoviePilotMediaSeasonsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Momoka.Shell.ViewModels"
+    xmlns:local="using:Momoka.Shell.Views">
+    <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.SeasonsVisibility, Mode=OneWay}">
+        <TextBlock Text="季" Style="{StaticResource EgSectionTitleStyle}" />
+        <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.GroupsVisibility, Mode=OneWay}">
+            <TextBlock Text="选择剧集组" Style="{StaticResource EgCaptionStyle}" />
+            <ItemsRepeater x:Name="EpisodeGroups" ItemsSource="{x:Bind ViewModel.Groups, Mode=OneWay}">
+                <ItemsRepeater.Layout><UniformGridLayout MinItemWidth="160" MinItemHeight="64" MinColumnSpacing="8" MinRowSpacing="8" ItemsStretch="Fill" /></ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MoviePilotEpisodeGroupRow">
+                        <Button x:Name="SwitchEpisodeGroup" Command="{x:Bind SwitchCommand}" Style="{StaticResource EgArtworkTileStyle}"
+                            AutomationProperties.Name="{x:Bind SwitchName}" ToolTipService.ToolTip="{x:Bind SwitchHelp}">
+                            <Grid>
+                                <StackPanel Orientation="Horizontal" Padding="12,8" Spacing="10">
+                                    <FontIcon Glyph="&#xE8F1;" Foreground="{ThemeResource EgAccentBrush}" />
+                                    <StackPanel Spacing="4">
+                                        <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind Summary}" Style="{StaticResource EgCaptionStyle}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <Border Style="{StaticResource EgFrameActiveStyle}" Background="Transparent" IsHitTestVisible="False" Visibility="{x:Bind CurrentVisibility}" />
+                            </Grid>
+                        </Button>
+                    </DataTemplate>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
+            <TextBlock Text="{x:Bind ViewModel.GroupSummary, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+        </StackPanel>
+        <TextBlock Text="{x:Bind ViewModel.SeasonNotice, Mode=OneWay}" Visibility="{x:Bind ViewModel.SeasonNoticeVisibility, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+        <ItemsRepeater x:Name="MediaSeasonList" ItemsSource="{x:Bind ViewModel.Seasons, Mode=OneWay}">
+            <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
+            <ItemsRepeater.ItemTemplate>
+                <DataTemplate x:DataType="vm:MoviePilotMediaSeasonRow">
+                    <Expander x:Name="ExpandMediaSeason" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        IsExpanded="{x:Bind Expanded, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Title}">
+                        <Expander.Header>
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind Summary}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{x:Bind Status, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
+                                </StackPanel>
+                                <Button x:Name="SubscribeMediaSeason" Grid.Column="1" Command="{x:Bind SubscribeCommand}" Style="{StaticResource EgIconButtonStyle}"
+                                    IsEnabled="{x:Bind Editable, Mode=OneWay}"
+                                    ToolTipService.ToolTip="{x:Bind SubscribeLabel}" AutomationProperties.Name="{x:Bind SubscribeLabel}">
+                                    <FontIcon Glyph="{x:Bind HeartGlyph}" Foreground="{ThemeResource EgAccentBrush}" />
+                                </Button>
+                            </Grid>
+                        </Expander.Header>
+                        <StackPanel Spacing="12">
+                            <TextBlock Text="{x:Bind EpisodeNotice, Mode=OneWay}" Visibility="{x:Bind EpisodeNoticeVisibility, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                            <ItemsRepeater x:Name="MediaEpisodeList" ItemsSource="{x:Bind Episodes}">
+                                <ItemsRepeater.Layout><StackLayout Spacing="12" /></ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:MoviePilotMediaEpisodeRow">
+                                        <Border Style="{StaticResource EgFrameStyle}" Padding="12">
+                                            <Grid ColumnSpacing="16" RowSpacing="8" SizeChanged="OnEpisodeSizeChanged">
+                                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                                <Border Width="180" Height="102" CornerRadius="4" VerticalAlignment="Top">
+                                                    <Border.Background><ImageBrush ImageSource="{x:Bind Artwork, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Spacing="8">
+                                                <Grid ColumnSpacing="8">
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                                    <StackPanel Spacing="4">
+                                                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                        <TextBlock Text="{x:Bind Meta, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                                    </StackPanel>
+                                                    <Button x:Name="SearchMediaEpisode" Grid.Column="1" Command="{x:Bind SearchCommand}" Style="{StaticResource EgIconButtonStyle}"
+                                                        AutomationProperties.Name="搜索这一集的资源" ToolTipService.ToolTip="搜索资源">
+                                                        <FontIcon Glyph="&#xE721;" />
+                                                    </Button>
+                                                </Grid>
+                                                <TextBlock Text="{x:Bind Overview}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                        </StackPanel>
+                    </Expander>
+                </DataTemplate>
+            </ItemsRepeater.ItemTemplate>
+        </ItemsRepeater>
+    </StackPanel>
+</UserControl>

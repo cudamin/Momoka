@@ -332,14 +332,19 @@ public static class ItemDetail
     private static bool Wide(char ch) => ch >= '⺀';
 
     /// <summary>
-    /// 「视频：  1080p · HEVC · MKV · 8.4 GB」, or empty when the item carries no media source — which is
-    /// every series and season page, since a show is not a file.
+    /// 「视频：  417.7 MB · 1080p · HEVC · AAC · Studio GreenTea」, or empty when the item carries no media
+    /// source — which is every series and season page, since a show is not a file.
+    /// <para>
+    /// 与播放页左上角第二行同一条字符串（<see cref="MediaSource.ToFileInfoLabel"/>，用户令 2026-10-09
+    /// 「这里显示的视频信息改为 文件大小 分辨率 视频编码 音频格式 组名，播放页面标题的也改成一样的」）；
+    /// 「视频：」这个行首标签是详情页自己的版式，留在这一侧。
+    /// </para>
     /// </summary>
     public static string VideoLine(MediaSource? source)
     {
         if (source is null) return "";
-        var quality = source.ToQualityLabel();
-        return quality.Length > 0 ? $"视频：  {quality}" : "";
+        var info = source.ToFileInfoLabel();
+        return info.Length > 0 ? $"视频：  {info}" : "";
     }
 
     /// <summary>
@@ -814,6 +819,96 @@ public static class ItemDetail
     /// </summary>
     public static string SeasonSubtitle(EmbyItem season) =>
         season.ChildCount is { } episodes and > 0 ? $"{episodes} 集" : "";
+
+    /// <summary>
+    /// 这一条遗漏集是不是「特别篇」—— 第 0 季就是 Emby 放特别篇的地方，「特别篇」那颗开关管的就是它。
+    /// </summary>
+    public static bool MissingIsSpecial(EmbyItem episode) => episode.ParentIndexNumber == 0;
+
+    /// <summary>
+    /// 这一条遗漏集是不是「还没播出」的那一类（「预告」那颗开关管的就是它）。
+    /// <para>
+    /// 服务器不给「有没有播出」这个字段（<c>BaseItemDto</c> 上只有 <c>PremiereDate</c>），所以判据是首播日期
+    /// 在不在未来。**只到日、不到时刻**：Emby 发的就是一天，所以「今天」算已播出 —— 一部当天开播的剧，早上
+    /// 打开时它的第一集不该被藏起来。
+    /// </para>
+    /// <para>
+    /// 没有首播日期的按「已播出」算：证明不了它在未来，而藏起来会让这一集既不在「已播出」里、也不在
+    /// 「预告」里 —— 那才是真正找不到的东西。
+    /// </para>
+    /// </summary>
+    public static bool MissingIsUnaired(EmbyItem episode, DateTimeOffset now) =>
+        episode.PremiereDate is { } premiere && premiere.ToLocalTime().Date > now.ToLocalTime().Date;
+
+    /// <summary>
+    /// 那张表上此刻列哪几条：整份遗漏集按两颗开关筛过之后的样子。
+    /// <para>
+    /// <b>两颗都关着时特别篇和预告都不列</b> —— 官方网页端那张表打开时就是这个样子（两颗开关都是灰的，表里
+    /// 只有正片、只有已经播过的）。开着才是「把这一类也带上」，所以这里判的是「关着就滤掉」。
+    /// </para>
+    /// <para>
+    /// 在本地筛而不是把 <c>IsUnaired</c>／<c>IsSpecialSeason</c> 发给服务器：这两个条件客户端手上都答得出
+    /// （季号在条目上、首播日期也在条目上），而本地筛的好处是拨一下开关就出结果 —— 每拨一次都问一趟服务器，
+    /// 换来的只是同一份数据。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<EmbyItem> MissingShown(
+        IReadOnlyList<EmbyItem> missing,
+        bool includeSpecials,
+        bool includeUnaired,
+        DateTimeOffset now) =>
+        [.. missing.Where(episode =>
+            (includeSpecials || !MissingIsSpecial(episode))
+            && (includeUnaired || !MissingIsUnaired(episode, now)))];
+
+    /// <summary>
+    /// 遗漏集那一行左边那张剧照取谁的哪一张，一张都借不到就是 null（那一格画占位字形）。
+    /// <para>
+    /// <b>先问条目自己那一趟上溯。</b>遗漏的单集在库里没有文件，所以自己一张图都没有 —— 实测这台服务器答回来的
+    /// 条目 <c>ImageTags</c> 是空的，往下发的只有剧集那一层的缩略图（<c>ParentThumbItemId</c>）。官方网页端那一列
+    /// 行的图长得都一样，画的就是这一张。
+    /// </para>
+    /// <para>
+    /// 借不到再退到这一页的条目（剧或者季）自己那张 —— 同一张图，只是从另一个方向拿到。两边都问不到才是空。
+    /// </para>
+    /// </summary>
+    /// <param name="episode">遗漏的那一集。</param>
+    /// <param name="owner">这一页是哪一个条目 —— 剧页上是那部剧，季页上是那一季。</param>
+    public static ArtworkRef? MissingStill(EmbyItem episode, EmbyItem owner)
+    {
+        if (ItemArtwork.Hero(episode).FirstOrDefault() is { ItemId.Length: > 0 } inherited) return inherited;
+        if (ItemArtwork.Hero(owner).FirstOrDefault() is { ItemId.Length: > 0 } own) return own;
+        return null;
+    }
+
+    /// <summary>
+    /// 遗漏集里属于某一季的那几集。季那一档在整部剧的结果上按季号筛 —— <c>/Shows/Missing</c> 只承诺认
+    /// <c>ParentId</c>（季 id 当父不一定认），而季号是每一条遗漏集自己带着的一位（<c>ParentIndexNumber</c>），
+    /// 稳。
+    /// <para>
+    /// <paramref name="seasonNumber"/> 为 null（季没编上号）时不过滤，整份原样交回 —— 那不是「这一季空着」，
+    /// 而是「筛不了」，把整份藏掉会比多列几集更糟。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<EmbyItem> MissingInSeason(IReadOnlyList<EmbyItem> missing, int? seasonNumber) =>
+        seasonNumber is { } season
+            ? [.. missing.Where(episode => episode.ParentIndexNumber == season)]
+            : missing;
+
+    /// <summary>
+    /// 遗漏集那张表的抬头：说清这是哪一部剧／哪一季，以及一共缺几集；一集不缺时明说「没有遗漏」。
+    /// <para>
+    /// 一句给用户看的话，放 Core 而不是留在对话框里：剧和季两种说法各只有一处，而「一集都没缺」和「筛出来
+    /// 是空的」在屏上是同一张空表、说的是两件事。
+    /// </para>
+    /// </summary>
+    public static string MissingHeading(EmbyItem item, int count)
+    {
+        var season = item.Type == EmbyItemType.Season;
+        if (count == 0) return season ? "这一季没有遗漏的剧集" : "这部剧没有遗漏的剧集";
+
+        return season ? $"{item.Name}  ·  共 {count} 集遗漏" : $"《{item.Name}》  ·  共 {count} 集遗漏";
+    }
 
     /// <summary>
     /// Which series and season the episode shelf should ask for, given the page's own item. All three

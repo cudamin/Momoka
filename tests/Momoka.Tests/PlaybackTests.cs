@@ -3541,8 +3541,9 @@ internal static class PlaybackTests
         {
             var chrome = Chrome(out var now);
 
-            // 先让它收起来，否则读到的是开场那次全显示。
-            Assert.True(chrome.Tick(now + 1000));
+            // 开场就是收着的（2026-10-10 起开场不再全显示，见 ChromeReveal.Reset），所以这一拍没有东西可收 ——
+            // 从这儿起量，下面「指针进带里才出进度条」才不是靠开场那次全显示垫出来的。
+            Assert.False(chrome.Tick(now + 1000), "开场三样都在屏下，没有东西可收");
             Assert.Equal(new ChromeState(false, false, false), chrome.State);
 
             chrome.Pointer(y: 950, height: 1000, ChromePart.None, railNear: -1, now + 1100);
@@ -3773,11 +3774,21 @@ internal static class PlaybackTests
             Assert.Equal(new ChromeState(true, false, false), chrome.State,
                 "过期宽限清干净了，不会再有一屏控件弹回来");
 
-            // 新一播放是自己的世界：画面菜单那一位跟纯净闸一样不活过 Reset。
+            // 新一播放是自己的世界：画面菜单那一位跟纯净闸一样不活过 Reset。**Reset 也不再给控件宽限**
+            // （2026-10-10 用户报「点一次点击进入播放页面会自动显示播放控件」）：状态归零、三样都在屏下，
+            // 显示理由交回给指针的位置。
             chrome.SetPictureMenu(true, now + 2000);
             chrome.Reset(now + 2001);
             Assert.False(chrome.PictureMenuOpen);
-            Assert.Equal(new ChromeState(true, true, true), chrome.State, "Reset 回到开场那套全显示");
+            Assert.Equal(new ChromeState(false, false, false), chrome.State, "Reset 之后三样都在屏下");
+            Assert.Equal(0d, chrome.RailStrength, "连浓度也是零");
+            Assert.Equal(0d, chrome.BarStrength);
+            Assert.Equal(0d, chrome.TitleStrength);
+
+            // 位置判据照旧（同一天用户在退全屏那一问上选的是「鼠标在哪儿控件在哪儿」）：指针报到底部带里，
+            // 进度条当场回来。这一句挡的是「顺手把位置判据也压住」那种改法。
+            chrome.Pointer(y: 950, height: 1000, ChromePart.None, railNear: -1, now + 2050);
+            Assert.Equal(new ChromeState(true, false, false), chrome.State);
         });
 
         Test("播放器控件：拖动标题移动窗口时不画进度条和音量条", () =>
@@ -3994,25 +4005,18 @@ internal static class PlaybackTests
             Assert.False(chrome.State.Any);
         });
 
-        // 音量条的尺寸线（用户令 2026-09-23「集成模式下窗口小于一定程度的时候自动隐藏音量条」）：
-        // 「什么时候不画」那半是 Core 里的算术，这里钉边界；页面那半（Render 与 RailNear 真的按它收）
-        // 归自检 ProbeRailFade —— 它手上有排过版的音量条元素，能把「门槛高过条子自己」也量出来。
-        Test("播放器控件：画面小到尺寸线以下就没有音量条", () =>
+        Test("播放器控件：音量条按独占模式的可用高度缩短", () =>
         {
-            Assert.True(ChromeReveal.RailRoom(ChromeReveal.RailMinPictureWidth, ChromeReveal.RailMinPictureHeight),
-                "两条边正好等于阈值算容得下");
-            Assert.True(ChromeReveal.RailRoom(3840, 2160), "4K 那么大的画面当然容得下");
-
-            Assert.False(ChromeReveal.RailRoom(ChromeReveal.RailMinPictureWidth - 1, 2160),
-                "窄过线一格就不容 —— 窄而高的窗口也要收");
-            Assert.False(ChromeReveal.RailRoom(3840, ChromeReveal.RailMinPictureHeight - 1),
-                "矮过线一格就不容 —— 宽而矮的窗口也要收");
-            Assert.False(ChromeReveal.RailRoom(0, 0), "页面还没排过版（0×0）时必须是不容");
-
-            // 高度那条线是照着音量条自己量的（条子约 428 高）：线比条子矮，就意味着「容得下」的那一档里
-            // 条子会被窗口切掉。这一条只钉量级，精确那一半由自检拿真元素去比。
-            Assert.True(ChromeReveal.RailMinPictureHeight >= 500,
-                $"尺寸线比音量条自己（约 428 高）没高出多少：{ChromeReveal.RailMinPictureHeight}");
+            Assert.Equal(320d, ChromeReveal.RailHeight(544, 40));
+            Assert.Equal(195d, ChromeReveal.RailHeight(244, 40));
+            Assert.True(ChromeReveal.RailRoom(244, 40), "560×420 的小窗仍容得下音量条");
+            Assert.True(ChromeReveal.RailRoom(124, 40), "320×300 的小窗使用更短轨道");
+            Assert.False(ChromeReveal.RailRoom(100, 40), "仅够两个按钮格时与 uosc 一致收起");
+            Assert.True(ChromeReveal.RailRoom(101, 40));
+            Assert.Equal(416d, ChromeReveal.RailHeight(1000, 52));
+            Assert.False(ChromeReveal.RailRoom(100, 52), "全屏放大后的静音键也参与可用高度判定");
+            Assert.False(ChromeReveal.RailRoom(0, 40));
+            Assert.Equal(0d, ChromeReveal.RailHeight(-100, 40));
         });
 
         // 左上角那三块玻璃的浓度跟着指针高度走（用户令 2026-09-27 傍晚第三批「加深左上角亚克力背景的颜色，
@@ -4361,29 +4365,46 @@ internal static class PlaybackTests
             Assert.True(load.CursorHidden);
         });
 
-        Test("播放器控件：换片重新全显示", () =>
+        Test("播放器控件：换片不再给控件宽限", () =>
         {
+            // 用户报「关闭应用然后重新打开应用，点一次点击进入播放页面会自动显示播放控件」（2026-10-10）：
+            // 进场（EnterPlayer）与开播（OnPlaybackStarted）都走 Reset，从前它把三样摆成全显并给一秒二的
+            // 宽限 —— 而加载遮罩在 Loaded 那一拍才撤，比那一秒二早，尾巴于是露在画面上。现在状态归零、
+            // 宽限不给，显示理由交回给指针的位置。
             var chrome = Chrome(out var now);
             chrome.Tick(now + 1000);
             Assert.False(chrome.State.Any);
 
+            chrome.Pointer(y: 950, height: 1000, ChromePart.None, railNear: -1, now + 1050);
+            Assert.Equal(new ChromeState(true, false, false), chrome.State, "上一集指针还压在底边带里");
+
             chrome.Reset(now + 1100);
-            Assert.Equal(new ChromeState(true, true, true), chrome.State, "上一集收起来的状态不属于这一集");
-            Assert.Equal(1d, chrome.RailStrength, "开场那次全显示是给足的，不是淡的");
-            Assert.False(chrome.CursorHidden);
+            Assert.Equal(new ChromeState(false, false, false), chrome.State,
+                "上一集的状态不属于这一集，也不再摆一屏控件上去");
+            Assert.Equal(0d, chrome.RailStrength, "三条浓度一起归零");
+            Assert.Equal(0d, chrome.BarStrength);
+            Assert.Equal(0d, chrome.TitleStrength);
+            Assert.False(chrome.CursorHidden, "新一场的光标先还给用户，静止满一秒才收");
+
+            // 去掉的只是那条强制宽限，不是位置判据（同一天用户在退全屏那一问上选的是「鼠标在哪儿控件
+            // 在哪儿」）：下一拍指针报回来，控件照位置说话。
+            chrome.Pointer(y: 950, height: 1000, ChromePart.None, railNear: -1, now + 1150);
+            Assert.Equal(new ChromeState(true, false, false), chrome.State, "指针还在底边带里，进度条照位置回来");
         });
 
         Test("播放器控件：没有待办时不必继续轮询", () =>
         {
             var chrome = Chrome(out var now);
 
-            Assert.True(chrome.Pending(now), "开场是全显示的，等着收");
+            // 开场三样都在屏下、指针还没报过位置（_pointerY 为 −1），所以此刻没有待办。2026-10-10 之前
+            // 这里写的是 true，靠的正是 Reset 那条一秒二的宽限。
+            Assert.False(chrome.Pending(now), "开场没有待办：三样都在屏下，光标也还轮不到藏");
 
             chrome.Tick(now + 1000);
-            Assert.False(chrome.Pending(now + 1000), "都收起来了就该把定时器停掉");
+            Assert.False(chrome.Pending(now + 1000), "没东西可收，也就没有待办");
 
             chrome.FlashRail(now + 1100);
-            Assert.True(chrome.Pending(now + 1100));
+            Assert.True(chrome.Pending(now + 1100), "滚轮那一记要等它自己过期");
 
             // 控件都收了、鼠标还在，也算有待办：藏鼠标等的是它自己那一秒，而定时器要是这时候停了，
             // 就再没有人来问「该藏了吗」。
@@ -4708,7 +4729,8 @@ internal static class PlaybackTests
         Test("播放器控件：resize 的 moved 重报不解闸", () =>
         {
             var chrome = Chrome(out var now);
-            Assert.True(chrome.Silence(now));
+            // 开场三样都在屏下（2026-10-10 起 Reset 不给宽限），所以这一下收不到东西 —— 它压的是闸。
+            Assert.False(chrome.Silence(now), "开场本来就是收着的，这一下没有东西可收");
 
             // OnRootResized / 全屏切换自己那一下走的路：位置重报（moved:true），但不是手。
             chrome.Pointer(y: 950, height: 1000, ChromePart.None, railNear: -1, now + 10, moved: true);
@@ -4718,18 +4740,27 @@ internal static class PlaybackTests
         Test("播放器控件：刻意的唤醒与新一播放解开纯净闸", () =>
         {
             var chrome = Chrome(out var now);
-            Assert.True(chrome.Silence(now));
+            // 与上一关同一句话：开场收着，这一下只压闸、不收东西。
+            chrome.Silence(now);
 
             chrome.WakeFully(now + 10);
             Assert.Equal(new ChromeState(true, true, true), chrome.State, "键盘命令该亮还是要亮");
 
             Assert.True(chrome.Silence(now + 20));
             chrome.Reset(now + 30);
-            Assert.Equal(new ChromeState(true, true, true), chrome.State, "新的一场从全显示开场");
+            Assert.False(chrome.Silenced, "新的一场不活过纯净闸");
+            Assert.Equal(new ChromeState(false, false, false), chrome.State, "Reset 自己不再给控件宽限（2026-10-10）");
+
+            // 闸开了，位置判据照旧说话 —— 这一句才是「Reset 解开纯净闸」的正题。
+            chrome.Pointer(y: 950, height: 1000, ChromePart.None, railNear: -1, now + 40);
+            Assert.Equal(new ChromeState(true, false, false), chrome.State, "指针在底部带里，进度条照位置回来");
         });
     }
 
-    /// <summary>A reveal rule at a fixed clock, still in its opening 「everything showing」 state.</summary>
+    /// <summary>
+    /// A reveal rule at a fixed clock, in its opening state: 三样都在屏下、指针还没报过位置（2026-10-10 起
+    /// 开场不再全显示，见 <see cref="ChromeReveal.Reset"/>）。
+    /// </summary>
     private static ChromeReveal Chrome(out long now)
     {
         now = 100_000;
@@ -5395,6 +5426,15 @@ internal static class PlaybackTests
 
         Test("到阈值补报停止：国漫档与全局档各报各的", () =>
             StopReportFollowsDonghuaPercentAsync().GetAwaiter().GetResult());
+
+        Test("标记已看补报：开着通知接管时补报一趟停止，位置按用户令报 100%", () =>
+            MarkedWatchedReportAsync().GetAwaiter().GetResult());
+
+        Test("标记已看补报：通知接管关着时不发，时长读不到也不发", () =>
+            MarkedWatchedReportSkippedAsync().GetAwaiter().GetResult());
+
+        Test("标记已看补报：这一条正在播时借它那一场的会话号，报完就结账", () =>
+            MarkedWatchedWhilePlayingAsync().GetAwaiter().GetResult());
     }
 
     /// <summary>
@@ -5550,6 +5590,94 @@ internal static class PlaybackTests
         donghuaHandle.End(4321, PlaybackEndReason.Stopped);
         await donghuaPlaying.WaitAsync(donghuaCancellation.Token);
         Assert.Equal(1, donghuaTransport.SentTo("Sessions/Playing/Stopped").Count);
+    }
+
+    /// <summary>
+    /// 用户令 2026-10-09「新增打开通知接管后，点击标记为已看后自动发送通知，发送的播放进度设置进度为100%」。
+    /// 这一条<b>不经过播放</b>（手动点已看时不一定在播），所以直接调服务上那扇门；报文本身落在假传输层那份
+    /// 清单上 —— 要看的是「位置是不是满的」，而那是这一条的全部内容。
+    /// </summary>
+    private static async Task MarkedWatchedReportAsync()
+    {
+        var (service, session, transport) = PlayingServiceWithTransport(StopReportSettings());
+        using var sessionLifetime = session;
+
+        var item = Item("某部电影", id: "42");
+        item.RunTimeTicks = 72_000_000_000;
+
+        Assert.True(await service.ReportMarkedWatchedAsync(item), "开着通知接管时该补报出去");
+
+        var sent = transport.SentTo("Sessions/Playing/Stopped");
+        Assert.Equal(1, sent.Count);
+        using var report = System.Text.Json.JsonDocument.Parse(sent[0].Body);
+        Assert.Equal("42", report.RootElement.GetProperty("ItemId").GetString());
+        Assert.Equal(72_000_000_000, report.RootElement.GetProperty("PositionTicks").GetInt64());
+    }
+
+    /// <summary>
+    /// 两档不发的情形：开关关着（出厂那一档），以及时长读不到 —— 后者是「100%」这个数本身立不起来，宁可少
+    /// 发一趟，也不发一个凑出来的位置。
+    /// </summary>
+    private static async Task MarkedWatchedReportSkippedAsync()
+    {
+        var (off, offSession, offTransport) = PlayingServiceWithTransport(StopReportSettings(on: false));
+        using var offLifetime = offSession;
+        var played = Item("某部电影", id: "42");
+        played.RunTimeTicks = 72_000_000_000;
+        Assert.False(await off.ReportMarkedWatchedAsync(played), "通知接管关着时不该发");
+        Assert.Equal(0, offTransport.SentTo("Sessions/Playing/Stopped").Count);
+
+        var (on, onSession, onTransport) = PlayingServiceWithTransport(StopReportSettings());
+        using var onLifetime = onSession;
+        var unknown = Item("时长未知的片子", id: "43");
+        Assert.False(await on.ReportMarkedWatchedAsync(unknown), "时长读不到就没有 100% 可言，不该发");
+        Assert.Equal(0, onTransport.SentTo("Sessions/Playing/Stopped").Count);
+    }
+
+    /// <summary>
+    /// 这一条正在播时点已看：借它那一场的会话号报一趟（不另开一场，服务器才认得出这条会话），并且此后本场
+    /// 不再向服务器喂进度 —— 同「到阈值补报」那一条结账线，不然刚说停、下一拍进度又把会话激活了。
+    /// </summary>
+    private static async Task MarkedWatchedWhilePlayingAsync()
+    {
+        var handle = new PlaybackStubHandle { PositionSeconds = 100 };
+        var (service, session, transport) = PlayingServiceWithTransport(StopReportSettings(), handle);
+        using var sessionLifetime = session;
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+
+        var playing = service.PlayAsync(Ticket(), cancellation.Token);
+        await handle.Started.Task.WaitAsync(cancellation.Token);
+
+        Assert.True(
+            await WaitForRequestsAsync(transport, "Sessions/Playing/Progress", 1, cancellation.Token),
+            "先确认这一场真的在报进度");
+        Assert.Equal(0, transport.SentTo("Sessions/Playing/Stopped").Count);
+
+        // 起播那一条：Url 里不含 /Progress 也不含 /Stopped 的那一趟。
+        var start = transport.SentTo("Sessions/Playing")
+            .First(one => !one.Url.Contains("/Progress", StringComparison.Ordinal)
+                && !one.Url.Contains("/Stopped", StringComparison.Ordinal));
+        using var startBody = System.Text.Json.JsonDocument.Parse(start.Body);
+        var sessionId = startBody.RootElement.GetProperty("PlaySessionId").GetString();
+
+        var item = Item("某部电影", id: "42");
+        item.RunTimeTicks = 72_000_000_000;
+        Assert.True(await service.ReportMarkedWatchedAsync(item));
+
+        var stopped = transport.SentTo("Sessions/Playing/Stopped");
+        Assert.Equal(1, stopped.Count);
+        using var report = System.Text.Json.JsonDocument.Parse(stopped[0].Body);
+        Assert.Equal(sessionId, report.RootElement.GetProperty("PlaySessionId").GetString());
+        Assert.Equal(72_000_000_000, report.RootElement.GetProperty("PositionTicks").GetInt64());
+
+        // 结账之后这一场不再喂进度；收尾也不报第二遍。
+        var progressAtCheckpoint = transport.SentTo("Sessions/Playing/Progress").Count;
+        await Task.Delay(TimeSpan.FromSeconds(2.5), cancellation.Token);
+        Assert.Equal(progressAtCheckpoint, transport.SentTo("Sessions/Playing/Progress").Count);
+
+        handle.End(100, PlaybackEndReason.Stopped);
+        await playing.WaitAsync(cancellation.Token);
+        Assert.Equal(1, transport.SentTo("Sessions/Playing/Stopped").Count);
     }
 
     /// <summary>

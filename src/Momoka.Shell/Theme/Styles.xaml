@@ -484,6 +484,16 @@
     </Style>
 
     <!--
+      评分那一排星（订阅详情「订阅信息」栏顶上）：实心/空心两种字形，字号取正文那一档。
+      用字形而不是框架的 RatingControl —— 整套界面只有三种字体和一套角色色，这颗读数不该另起一套控件模板。
+    -->
+    <Style x:Key="EgRatingStarStyle" TargetType="FontIcon">
+        <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
+        <Setter Property="Foreground" Value="{ThemeResource EgWarningBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!--
       ===================== 收窄的滚动条（2026-10-01） =====================
 
       「收窄首页右边滚动条的背景遮罩」—— 用户点名的是那条比页面底色亮一档的**轨道底**

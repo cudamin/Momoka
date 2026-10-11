@@ -36,6 +36,8 @@ internal sealed record LibraryRequest
 
     public string? SearchTerm { get; set; }
 
+    public LibrarySearchCategory SearchCategory { get; set; }
+
     public double ScrollOffset { get; set; }
 
     public int LoadedCount { get; set; }
@@ -47,6 +49,17 @@ internal sealed record LibraryRequest
     /// folder branch with no parent, and the server answers that with its whole library root.
     /// </summary>
     public bool IsSearch => SearchTerm is not null;
+
+    public bool IsFavorites => Tag == FavoritesTag;
+
+    public const string FavoritesTag = "favorites";
+
+    public static LibraryRequest Favorites(IServiceProvider services) => new()
+    {
+        Services = services,
+        Title = "收藏",
+        Tag = FavoritesTag
+    };
 
     /// <summary>
     /// 按类型浏览的那一格：详情页上那一行类型点一个就到这儿。<see cref="ParentId"/> 是空的 —— 一个类型不是
@@ -93,6 +106,7 @@ internal sealed record LibraryRequest
     /// </para>
     /// </summary>
     public string Eyebrow => IsSearch ? "SEARCH"
+        : IsFavorites ? "FAVORITES"
         : PersonId is not null ? "CREDITS"
         : Genre is not null ? "GENRE"
         : Row is not null ? "CONTINUE"

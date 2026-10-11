@@ -164,37 +164,19 @@ public static class DetailHero
     public static double EpisodeHeight(double heroRoom) => Math.Max(EpisodeFloor, Math.Round(heroRoom));
 
     /// <summary>
-    /// 封面随窗口加宽的那一档斜率：参考宽以上每宽一像素，封面宽多少。旧规矩是等比
-    /// （<paramref name="baseWidth"/> ÷ 参考宽 ≈ 0.16），2026-09-12 他看完实拍改口「拉窄窗口的时候封面不要
-    /// 缩小，拉长窗口的时候封面要稍微放大」—— 缩小那一半整个去掉，放大这一半放缓到 0.1。真正的上限不在这
-    /// 个数上：FitStill 里那道「不超过旁边文字栏」的高上限（2:3 的封面高得比宽快）才是它在实际页面上的顶。
-    /// </summary>
-    public const double StillGrowPerPixel = 0.1;
-
-    /// <summary>
-    /// 集页左上角那张封面跟多宽的窗口走 —— 2026-09-12 他两句话定的形状：「集页面左上角的封面要跟随窗口的宽度
-    /// 放大和缩小」，同日看完实拍又改成「拉窄窗口的时候封面不要缩小，拉长窗口的时候封面要稍微放大，适配右边
-    /// 组件的大小」。
-    /// <para>
-    /// 于是分两段：参考宽（1280，<c>DetailViewModel.HeroReferenceWidth</c>）以下封面不缩，<paramref
-    /// name="baseWidth"/> 到底 —— 从前等比缩小的那一半（1024 上八成）整个去掉；参考宽以上每像素长
-    /// <see cref="StillGrowPerPixel"/>，比旧的等比斜率慢一截 —— 「稍微放大」。高由 <see cref="StillBox"/> 按位图
-    /// 自己的形状配，实际画多大还过 FitStill 那道「不超过旁边文字栏」的高上限。
-    /// </para>
-    /// <para>
-    /// 紧凑版式不在此列：那一档按参考图是贴着页宽的大封面，照旧用 <paramref name="baseWidth"/>。页面还没量到
-    /// 宽（0，第一次布局之前）也照旧用基宽，等量到了再来。
-    /// </para>
+    /// 集页封面保持固定上限，只在页面窄于参考宽时等比例缩小。
+    /// 紧凑版式也用同一条曲线，跨过版式断点时封面不会突然变大；高度由调用方按相同比例缩放，
+    /// 再由 <see cref="StillBox"/> 按图片原始比例装入。页面尚未量到宽度时先用上限。
     /// </summary>
     /// <param name="pageWidth">这一页看得见的那一段有多宽。</param>
-    /// <param name="baseWidth">参考宽上这一格画多宽。</param>
-    /// <param name="referenceWidth">版式排内容的参考宽。</param>
-    public static double StillWidth(double pageWidth, double baseWidth, double referenceWidth)
+    /// <param name="maxWidth">封面宽度上限。</param>
+    /// <param name="referenceWidth">达到封面上限时的页面宽度。</param>
+    public static double StillWidth(double pageWidth, double maxWidth, double referenceWidth)
     {
-        if (baseWidth <= 0 || referenceWidth <= 0 || pageWidth <= 0) return baseWidth;
-        if (pageWidth <= referenceWidth) return baseWidth;
+        if (maxWidth <= 0 || referenceWidth <= 0 || !double.IsFinite(pageWidth) || pageWidth <= 0)
+            return maxWidth;
 
-        return baseWidth + (pageWidth - referenceWidth) * StillGrowPerPixel;
+        return maxWidth * Math.Min(pageWidth / referenceWidth, 1);
     }
 
     /// <summary>

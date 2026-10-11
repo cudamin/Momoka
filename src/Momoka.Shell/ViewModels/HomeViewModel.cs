@@ -309,6 +309,32 @@ public sealed partial class HomeViewModel : PageViewModel
 
     public override Task ReloadAsync() => LoadAsync();
 
+    internal void Remove(CardItem removed)
+    {
+        if (!Live || !removed.IsCurrent || !_all.Any(entry => entry.Shelf.Cards.Contains(removed))) return;
+        base.Cancel();
+        bool Deleted(EmbyItem item) => item.Id == removed.Item.Id || item.ParentId == removed.Item.Id
+            || removed.Item.Type == EmbyItemType.Series && item.SeriesId == removed.Item.Id
+            || removed.Item.Type == EmbyItemType.Season && item.SeasonId == removed.Item.Id;
+        foreach (var (_, shelf) in _all)
+        {
+            foreach (var card in shelf.Cards.Where(card => Deleted(card.Item)).ToArray())
+            {
+                card.AbandonPoster();
+                shelf.Cards.Remove(card);
+            }
+            if (shelf.Cards.Count == 0) Shelves.Remove(shelf);
+        }
+        if (Slides.Any(slide => Deleted(slide.Item)))
+            Slides = Slides.Where(slide => !Deleted(slide.Item)).ToArray();
+        if (LibraryFlowIndex >= 0)
+            LibraryFlowIndex = _all.TakeWhile(entry => entry.Row.Key != HomeLayout.Libraries)
+                .Count(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0);
+        LoadedCount = _all.Where(entry => entry.Row.Key != HomeLayout.Libraries).Sum(entry => entry.Shelf.Cards.Count);
+        ShowEmptyNotice = Shelves.Count == 0;
+        IsReady = true;
+    }
+
     /// <summary>播放只改变观看状态，不重建轮播，以免返回时丢掉已解码背景并重置轮播位置。</summary>
     internal Task RefreshPlaybackAsync() => LoadAsync(refreshSlides: false);
 

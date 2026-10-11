@@ -1126,6 +1126,18 @@ internal static partial class Native
     /// <summary>DWMWCP_ROUND — Win11's own window corners, for free.</summary>
     public const int DwmCornerRound = 2;
 
+    /// <summary>
+    /// DWMWCP_DONOTROUND — 不要圆角。全屏那一档用这个值。
+    /// <para>
+    /// <b>圆角与那圈 1px 边框是同一条路上的东西</b>（2026-10-09 实测）：圆角档下 DWM 会给窗口画一圈 1px
+    /// 的窗口边框（深色主题本机读数是 #323B48）。窗口化时那圈线画在边框里，看不见；全屏时窗口铺满整块
+    /// 显示器、边框已经剥掉，于是这圈线落在<b>屏幕四边各一条</b>、四个圆角各缺一块 —— 用户报的
+    /// 「集成模式全屏会留有边框」就是它。改成这一档之后四个角是直角、那圈线也不画了，实测屏幕最外圈
+    /// 每一格都归窗口自己画的内容（白底素材下逐点读到的都是 #FFFFFF）。
+    /// </para>
+    /// </summary>
+    public const int DwmCornerDoNotRound = 1;
+
     /// <summary>DWMSBT_MAINWINDOW, i.e. Mica.</summary>
     public const int DwmBackdropMica = 2;
 
@@ -1144,6 +1156,14 @@ internal static partial class Native
 
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmGetWindowAttribute(IntPtr window, int attribute, out NativeRect value, int size);
+
+    /// <summary>
+    /// 同一个入口的整数版本，给「DWM 现在这一条属性是什么」的读数用（见
+    /// <see cref="DwmWindowCornerPreference"/>）。问不出来的属性（Win10 上没有这条）返回非零 HRESULT，
+    /// 调用方按「问不出」处理，不要当成某个值。
+    /// </summary>
+    [LibraryImport("dwmapi.dll", EntryPoint = "DwmGetWindowAttribute")]
+    public static partial int DwmGetWindowAttributeInt(IntPtr window, int attribute, out int value, int size);
 
     [LibraryImport("dwmapi.dll")]
     public static partial int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int size);

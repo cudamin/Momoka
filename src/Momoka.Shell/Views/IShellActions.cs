@@ -20,6 +20,19 @@ internal interface IShellActions
 
     void Notify(string message, InfoBarSeverity severity = InfoBarSeverity.Informational);
 
+    /// <summary>
+    /// 手动「标记为已看」之后的那一趟补报（用户令 2026-10-09）：「通知接管」开着时替服务器补报一趟播放停止，
+    /// 位置固定 100%，好让服务器上那条通知（Webhooks → MoviePilot）立刻把 <c>playback.stop</c> 转发出去。
+    /// <para>
+    /// 走外壳而不是让页面自己发：这一趟要么借正在播那一场的会话号、要么另开一个，还要跟「到阈值补报」共用同
+    /// 一条结账线 —— 三件事都在 <c>PlaybackService</c> 里，而外壳是唯一拿得到它的地方。标记已看本身已经在服务
+    /// 器上落地了，这一趟只是附带的通知，失败只写日志，不弹提示。
+    /// </para>
+    /// </summary>
+    void ReportMarkedWatched(EmbyItem item);
+
+    void RefreshFavorites(EmbyItem? changed = null);
+
     bool TryOpenLibrary(string id);
 
     /// <summary>
@@ -64,21 +77,27 @@ internal interface IShellActions
     void SetTitleStrip(TitleStrip strip);
 
     /// <summary>
-    /// 用户在设置里开没开 MoviePilot —— 决定「更多」菜单上给不给「在 MoviePilot 搜索其他版本」那一条。菜单由
+    /// MoviePilot 已在设置启用且连接可用 —— 决定「更多」菜单上给不给「在 MoviePilot 搜索其他版本」那一条。菜单由
     /// Core 的 <see cref="Emby.ItemMenu.For"/> 按条目排，这一位是它唯一够不着、得由外壳递进去的输入（见
     /// <see cref="ItemCommands.Build"/>）。
     /// </summary>
     bool MoviePilotEnabled { get; }
 
+    event EventHandler? MoviePilotAvailabilityChanged;
+
     /// <summary>
     /// 「在 MoviePilot 搜索其他版本」：新开一个窗口，按条目算好的关键字（见
     /// <see cref="Momoka.MoviePilot.MoviePilotVersionQuery"/>）去 MoviePilot 的站点搜索里列可下载的版本。
+    /// 集条目发「剧名 年份 S0x」、不带集号，窗口搜完自动按那一集筛（<see cref="Momoka.MoviePilot.MoviePilotVersionQuery.TargetEpisode"/>）。
     /// <para>
     /// 走外壳而不是页面自己开：第二个窗口的生命周期、和设置窗口一样「关掉 X 不等于退出进程」的那套，只有外壳
     /// 管得了（见 <c>ShellPage.SearchMoviePilotVersions</c> / <c>MoviePilotWindow</c>）。
     /// </para>
     /// </summary>
     void SearchMoviePilotVersions(EmbyItem item);
+
+    /// <summary>按番剧名搜索 AniBT；单集的集号单独传给 RSS。</summary>
+    void SearchAniBtVersions(EmbyItem item);
 
     /// <summary>
     /// 「手动整理」：在 MoviePilot 上把条目背后的文件识别、改名、搬进媒体库目录。走外壳 ——
@@ -87,6 +106,21 @@ internal interface IShellActions
     /// 收好（那一步要 Emby 会话，外壳不该再碰）。
     /// </summary>
     void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context);
+
+    /// <summary>读取固定 Emby 身份下的文件并展示 AniBT 识别与刮削确认。</summary>
+    void ShowAniBtScrape(EmbySessionScope scope, EmbyItem item);
+
+    /// <summary>
+    /// 「查看遗漏集」：把这部剧（或这一季）的遗漏集摆成一张表弹出来。
+    /// <para>
+    /// 清单由调用方先问好（<c>ItemCommands</c> 手上有 Emby 会话），走外壳只为两样它够不到的东西：表上每一行的
+    /// 剧照要容器里的 <c>EmbyImageStore</c>，而弹层要主窗口的 <c>XamlRoot</c>。同
+    /// <see cref="ShowMoviePilotReorganize"/> 的理由。
+    /// </para>
+    /// </summary>
+    /// <param name="item">这一页是哪一个条目 —— 抬头要说出对谁做，每行的剧照也要问它要。</param>
+    /// <param name="missing">服务器答回来的遗漏集；季那一档由调用方先按季号筛过。</param>
+    void ShowMissingEpisodes(EmbyItem item, IReadOnlyList<EmbyItem> missing);
 }
 
 /// <summary>

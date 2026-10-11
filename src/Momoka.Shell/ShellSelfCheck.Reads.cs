@@ -755,14 +755,14 @@ internal static partial class ShellSelfCheck
     }
 
     /// <summary>
-    /// 自检：「更多」菜单上那四条会弹表的命令，表本身搭得起来。
+    /// 自检：「更多」菜单上那几条会弹表的命令，表本身搭得起来。
     /// <para>
     /// 只造不弹（造出来就够）：<c>InitializeComponent</c> 那一步会把标记整棵解析一遍，而这一族最可能的坏法正是
     /// 那里 —— 引用了一个不存在的样式键、或者一个模板的 <c>x:DataType</c> 指着一个非公开的类。它抛的是构造函数
     /// 里的异常，屏上的症状只有提示条上一句「……失败」，而菜单看着一切正常。
     /// </para>
     /// <para>
-    /// 用编出来的条目而不是服务器上的：这四张表不问服务器（要问的那几趟在 <c>ItemCommands</c> 里，弹表之前就
+    /// 用编出来的条目而不是服务器上的：这几张表不问服务器（要问的那几趟在 <c>ItemCommands</c> 里，弹表之前就
     /// 问完了），所以这一关和网络无关，一台连不上服务器的机器上照样咬得住。
     /// </para>
     /// </summary>
@@ -794,6 +794,11 @@ internal static partial class ShellSelfCheck
             _ => Task.CompletedTask));
 
         Try("编辑元数据", () => new MetadataDialog(item, new ItemMetadataEdit()));
+
+        Try("查看遗漏集", () => new MissingEpisodesDialog(item, [item], (_, _) => Task.FromResult<byte[]?>(null)));
+
+        // 刷新元数据那张表一个入参都不收：它只问「选哪一档、两颗开关点没点」，条目的名字不在表上（同网页端）。
+        Try("刷新元数据", () => new RefreshMetadataDialog());
 
         return (ok, string.Join("；", notes));
 
@@ -900,8 +905,7 @@ internal static partial class ShellSelfCheck
         await Step("刷新元数据", async token =>
         {
             await session
-                .ExecuteAsync((client, t) => client.RefreshItemAsync(file.Id, replace: false, t, mode: "ValidationOnly"),
-                    token)
+                .ExecuteAsync((client, t) => client.ValidateItemRefreshAsync(file.Id, t), token)
                 .ConfigureAwait(true);
 
             return "刷新接口通（只走 ValidationOnly，没改任何东西）";
@@ -945,6 +949,55 @@ internal static partial class ShellSelfCheck
 
             var withSource = episodes.Count(episode => episode.DefaultMediaSource is not null);
             return $"《{show.Name}》{episodes.Count} 集里 {withSource} 集带媒体源";
+        }).ConfigureAwait(true);
+
+        // 「查看遗漏集」走的是 Emby 自己那条 Shows/Missing（4.8 起才有，见 EmbyClient.GetMissingEpisodesAsync）——
+        // 路径或参数发错了是 404/400，屏上一张空表看不出区别，只有真问一遍才知道这台服务器认不认。另外要问出
+        // 一件事：**默认那一趟到底含不含特别篇和未播出**。它决定「特别篇／预告」两颗开关是本地筛就够（默认
+        // 已经含了），还是根本没有东西可筛。所以这里扫一批剧，看有多少部的默认结果里真的带第 0 季／未来首播。
+        await Step("遗漏集", async token =>
+        {
+            var shows = await session.ExecuteAsync((client, t) => client.GetItemsAsync(new ItemQuery
+            {
+                Recursive = true,
+                IncludeItemTypes = [EmbyItemType.Series],
+                Fields = "",
+                Limit = 24
+            }, t), token).ConfigureAwait(true);
+
+            if (shows.Items.Count == 0) return "遗漏集 没有剧集可问";
+
+            var now = DateTimeOffset.Now;
+            var withSpecials = 0;
+            var withUnaired = 0;
+            var widest = (Name: "", All: new List<EmbyItem>());
+
+            foreach (var show in shows.Items)
+            {
+                var all = await Ask(show.Id, null, null).ConfigureAwait(true);
+                if (all.Any(ItemDetail.MissingIsSpecial)) withSpecials++;
+                if (all.Any(episode => ItemDetail.MissingIsUnaired(episode, now))) withUnaired++;
+                if (all.Count > widest.All.Count) widest = (show.Name, all);
+            }
+
+            var seasons = widest.All
+                .GroupBy(episode => episode.ParentIndexNumber?.ToString() ?? "无季号")
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .Select(group => $"S{group.Key} {group.Count()}");
+
+            var sample = widest.All.FirstOrDefault();
+            var shape = sample is null
+                ? "一条都没有"
+                : $"首条 {sample.EpisodeCode} 图种[{string.Join(',', sample.ImageTags.Keys)}]"
+                    + $" 父缩略图[{(sample.ParentThumbItemId is { Length: > 0 } ? "有" : "无")}]"
+                    + $" 剧集缩略图[{(sample.SeriesThumbImageTag is { Length: > 0 } ? "有" : "无")}]"
+                    + $" 简介{sample.Overview?.Length ?? 0}字";
+
+            return $"扫了 {shows.Items.Count} 部剧：默认结果里含第 0 季的 {withSpecials} 部、含未来首播的 {withUnaired} 部；"
+                + $"缺得最多的是《{widest.Name}》{widest.All.Count} 集（{string.Join("、", seasons)}）；{shape}";
+
+            Task<List<EmbyItem>> Ask(string id, bool? unaired, bool? special) =>
+                session.ExecuteAsync((client, t) => client.GetMissingEpisodesAsync(id, unaired, special, t), token);
         }).ConfigureAwait(true);
 
         return (ok, $"拿《{file.Name}》问的：{string.Join("；", notes)}");

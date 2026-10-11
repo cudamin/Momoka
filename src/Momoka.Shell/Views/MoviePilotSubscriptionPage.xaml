@@ -1,66 +1,264 @@
 <Page x:Class="Momoka.Shell.Views.MoviePilotSubscriptionPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Momoka.Shell.Views"
+    xmlns:mp="using:Momoka.MoviePilot"
     xmlns:vm="using:Momoka.Shell.ViewModels"
     Background="{ThemeResource EgWindowBrush}">
+    <!--
+      一条 MoviePilot 订阅的详情，版式照参考页（MoviePilot 的「订阅-详细」）：
+
+        ① 头部      固定的完整背景 + 海报 + 入库徽标 + 片名 + 媒体身份行 + 操作
+        ② 正文      左「简介」、右「订阅信息」（宽窗口并排，窄窗口上下叠）
+        ③ 订阅规则  关键词、包含、排除、质量、分辨率、特效等，只列服务器确实给了的
+        ④ 入库与缺集 文件统计、可播放状态、显示范围筛选和逐集列表
+
+      「订阅信息」「订阅规则」两栏的字段取舍在 Core（MoviePilotSubscriptionFacts），这里只负责排。
+      媒体身份（来源／编号／类型／季号）不重复进右栏 —— 它就在片名下面那一行。
+    -->
+    <Page.Resources>
+        <!-- 一行「标签 / 值」。空值根本不会进列表（投影在 Core），所以这里不用管空态。 -->
+        <DataTemplate x:Key="SubscriptionFactTemplate" x:DataType="mp:MoviePilotSubscriptionFact">
+            <Border BorderThickness="0,0,0,1" BorderBrush="{ThemeResource EgBorderBrush}" Padding="0,8">
+                <Grid ColumnSpacing="{StaticResource EgSpaceM}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Top" />
+                    <TextBlock Grid.Column="1" Text="{x:Bind Value}" Style="{StaticResource EgDataStyle}"
+                        HorizontalAlignment="Right" TextAlignment="Right" TextWrapping="Wrap" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+        <DataTemplate x:Key="MediaRelatedCardTemplate" x:DataType="vm:MoviePilotRelatedCard">
+            <Button x:Name="OpenRelatedMedia" Command="{x:Bind OpenCommand}" Style="{StaticResource EgArtworkTileStyle}" Width="142" AutomationProperties.Name="{x:Bind Title}">
+                <StackPanel Spacing="8">
+                    <Border Height="204" CornerRadius="6">
+                        <Border.Background><ImageBrush ImageSource="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
+                    </Border>
+                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" TextTrimming="CharacterEllipsis" Margin="8,0" />
+                    <TextBlock Text="{x:Bind Subtitle}" Style="{StaticResource EgCaptionStyle}" TextTrimming="CharacterEllipsis" Margin="8,0,8,8" />
+                </StackPanel>
+            </Button>
+        </DataTemplate>
+    </Page.Resources>
+
+    <Grid Loaded="OnDetailLoaded" SizeChanged="OnDetailSizeChanged">
+    <!-- 与季详情页一样，背景固定在滚动内容外，铺满视口并延伸至标题栏。 -->
+    <Grid x:Name="DetailBackdropRoot" IsHitTestVisible="False" Visibility="{x:Bind MediaViewModel.BackdropVisibility, Mode=OneWay}">
+        <Border x:Name="DetailBackdropBand" Opacity="0.9">
+            <Border.Background>
+                <ImageBrush ImageSource="{x:Bind MediaViewModel.Backdrop, Mode=OneWay}" Stretch="UniformToFill" AlignmentX="Center" AlignmentY="Top" />
+            </Border.Background>
+        </Border>
+        <Border Background="{ThemeResource EgScrimBrush}" />
+    </Grid>
     <ScrollViewer x:Name="DetailScroll" VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="28" Spacing="20">
-            <TextBlock Text="MoviePilot · 订阅媒体详情" Style="{StaticResource EgSectionTitleStyle}" />
-            <Grid ColumnSpacing="24">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="150" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                <Border Height="225" VerticalAlignment="Top" Style="{StaticResource EgFrameStyle}">
-                    <Border.Background><ImageBrush ImageSource="{x:Bind ViewModel.DetailPoster, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
+        <StackPanel Padding="{StaticResource EgPageMargin}" Spacing="{StaticResource EgSpaceXL}">
+
+            <Grid x:Name="HeroGrid" Margin="0,36,0,24" MinHeight="300" ColumnSpacing="{StaticResource EgSpaceXL}" RowSpacing="16" SizeChanged="OnHeroSizeChanged">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border x:Name="DetailPoster" Width="170" Height="255" VerticalAlignment="Top" Style="{StaticResource EgFrameStyle}">
+                    <Grid>
+                        <Grid.Background>
+                            <ImageBrush ImageSource="{x:Bind MediaViewModel.Poster, Mode=OneWay}" Stretch="UniformToFill" />
+                        </Grid.Background>
+                        <FontIcon Glyph="&#xE714;" Style="{StaticResource EgArtworkEmptyGlyphStyle}"
+                            Visibility="{x:Bind MediaViewModel.PosterEmptyVisibility, Mode=OneWay}" />
+                    </Grid>
                 </Border>
-                <StackPanel Grid.Column="1" Spacing="12">
-                    <TextBlock Text="{x:Bind ViewModel.DetailTitle, Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextWrapping="Wrap" />
-                    <TextBlock Text="{x:Bind ViewModel.DetailStatus, Mode=OneWay}" Foreground="{ThemeResource EgAccentBrush}" Style="{StaticResource EgBodyStyle}" />
-                    <TextBlock Text="{x:Bind ViewModel.DetailIdentity, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
-                    <TextBlock Text="{x:Bind ViewModel.DetailOverview, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                <StackPanel x:Name="HeroContent" Grid.Column="1" Spacing="{StaticResource EgSpaceM}">
+                    <Border x:Name="LibraryBadge" Background="{ThemeResource EgAccentSoftBrush}"
+                        CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Padding="8,2" HorizontalAlignment="Left"
+                        Visibility="{x:Bind ViewModel.LibraryBadgeVisibility, Mode=OneWay}">
+                        <TextBlock Text="{x:Bind ViewModel.LibraryBadge, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                            Foreground="{ThemeResource EgAccentBrush}" />
+                    </Border>
+                    <TextBlock Text="{x:Bind MediaViewModel.Title, Mode=OneWay}" Style="{StaticResource EgOnScrimPageTitleStyle}" TextWrapping="Wrap" />
+                    <TextBlock Text="{x:Bind MediaViewModel.Meta, Mode=OneWay}" Style="{StaticResource EgOnScrimDataStyle}" TextWrapping="Wrap" />
+                    <TextBlock Text="{x:Bind ViewModel.DetailStatus, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
+                        Foreground="{ThemeResource EgAccentBrush}" />
+
+                    <!-- 操作一排：窄窗口里排不下就换行（WrapRow），不是把最后一颗切在窗口右沿外。 -->
+                    <local:WrapRow Spacing="{StaticResource EgSpaceM}" RowSpacing="{StaticResource EgSpaceS}">
+                        <Button x:Name="SearchSubscription" Content="搜索资源" Style="{StaticResource EgSecondaryButtonStyle}"
+                            IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}">
+                            <Button.Flyout><MenuFlyout>
+                                <MenuFlyoutItem x:Name="SearchMediaTitle" Text="按标题搜索" Click="OnSearch" />
+                                <MenuFlyoutItem x:Name="SearchMediaImdb" Text="按 IMDb 搜索" Click="OnSearchImdb" />
+                            </MenuFlyout></Button.Flyout>
+                        </Button>
+                        <Button x:Name="SearchMediaSubtitles" Content="搜索字幕" Style="{StaticResource EgSecondaryButtonStyle}"
+                            IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnSearchSubtitles" />
+                        <Button x:Name="ChooseSubscribeSeasons" Content="{x:Bind MediaViewModel.SubscribeLabel, Mode=OneWay}" Style="{StaticResource EgSecondaryButtonStyle}"
+                            IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnChooseSeasons" />
+                        <Button x:Name="PlayMediaLibraryItem" Content="播放已入库" Style="{StaticResource EgSecondaryButtonStyle}"
+                            Visibility="{x:Bind ViewModel.PlayFirstVisibility, Mode=OneWay}" Command="{x:Bind ViewModel.PlayFirstCommand}" />
+                        <Button x:Name="EditSubscription" Visibility="{x:Bind SubscriptionVisibility}" Content="编辑订阅" Style="{StaticResource EgSecondaryButtonStyle}"
+                            IsEnabled="{x:Bind ViewModel.CanManage, Mode=OneWay}" Click="OnEdit" />
+                        <Button x:Name="ToggleSubscription" Visibility="{x:Bind SubscriptionVisibility}" Content="{x:Bind ViewModel.DetailPauseLabel, Mode=OneWay}"
+                            Style="{StaticResource EgSecondaryButtonStyle}" IsEnabled="{x:Bind ViewModel.CanManage, Mode=OneWay}" Click="OnTogglePause" />
+                        <Button x:Name="ResetSubscription" Visibility="{x:Bind SubscriptionVisibility}" Content="重置订阅" Style="{StaticResource EgSecondaryButtonStyle}"
+                            IsEnabled="{x:Bind ViewModel.CanManage, Mode=OneWay}" Click="OnReset" />
+                        <Button x:Name="ManageSubscription" Visibility="{x:Bind SubscriptionVisibility}" Content="管理订阅" Style="{StaticResource EgSecondaryButtonStyle}"
+                            IsEnabled="{x:Bind ViewModel.CanManage, Mode=OneWay}" Click="OnManage" />
+                        <Button x:Name="RefreshSubscriptionDetail" Content="刷新" Style="{StaticResource EgSecondaryButtonStyle}"
+                            Click="OnRefreshDetails" />
+                    </local:WrapRow>
                 </StackPanel>
             </Grid>
-            <StackPanel Orientation="Horizontal" Spacing="12">
-                <Button x:Name="ManageSubscription" Content="管理订阅" Click="OnManage" IsEnabled="{x:Bind ViewModel.CanManage, Mode=OneWay}" />
-                <Button x:Name="EditSubscription" Content="编辑订阅" Click="OnEdit" IsEnabled="{x:Bind ViewModel.CanManage, Mode=OneWay}" />
-                <Button x:Name="RefreshSubscriptionDetail" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
-            </StackPanel>
+
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
-            <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
+            <InfoBar Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
-            <TextBlock x:Name="FilesHeading" Text="入库与缺集" Style="{StaticResource EgSectionTitleStyle}" />
-            <TextBlock Text="{x:Bind ViewModel.FileSummary, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
-            <TextBlock Text="{x:Bind ViewModel.PlaybackStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
-            <TextBlock Text="按 MoviePilot 关联的媒体库统计；已下载但未入库、尚未播出的集也会计入未入库。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
-            <ComboBox x:Name="EpisodeFilter" Header="显示范围" SelectedIndex="{x:Bind ViewModel.FilterIndex, Mode=TwoWay}" MinWidth="180">
-                <ComboBoxItem Content="全部" /><ComboBoxItem Content="已入库" /><ComboBoxItem Content="缺集 / 未入库" />
-            </ComboBox>
-            <ItemsRepeater x:Name="EpisodeStatistics" ItemsSource="{x:Bind ViewModel.Episodes, Mode=OneWay}">
-                <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
-                <ItemsRepeater.ItemTemplate>
-                    <DataTemplate x:DataType="vm:MoviePilotSubscriptionEpisodeRow">
-                        <Border Style="{StaticResource EgFrameStyle}" Padding="12">
-                            <Grid ColumnSpacing="16" Loaded="OnEpisodeLoaded" Tag="{x:Bind}">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <Border x:Name="EpisodeArtwork" Width="{x:Bind ArtworkWidth}" Height="{x:Bind ArtworkHeight}" Style="{StaticResource EgFrameStyle}">
-                                    <Grid>
-                                        <Grid.Background><ImageBrush ImageSource="{x:Bind Artwork, Mode=OneWay}" Stretch="UniformToFill" /></Grid.Background>
-                                        <FontIcon Glyph="&#xE714;" Style="{StaticResource EgArtworkEmptyGlyphStyle}" Visibility="{x:Bind EmptyArtworkVisibility, Mode=OneWay}" />
-                                    </Grid>
-                                </Border>
-                                <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
-                                    <TextBlock Text="{x:Bind RowTitle}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{x:Bind Status}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
-                                    <TextBlock Text="{x:Bind Description}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
-                                </StackPanel>
-                                <Button x:Name="PlaySubscriptionEpisode" Grid.Column="2" Style="{StaticResource EgIconButtonStyle}" VerticalAlignment="Center"
-                                    Command="{x:Bind PlayCommand}" Visibility="{x:Bind PlayVisibility}" AutomationProperties.Name="{x:Bind PlayName, Mode=OneWay}"
-                                    ToolTipService.ToolTip="{x:Bind PlayHelp, Mode=OneWay}">
-                                    <FontIcon Glyph="&#xE768;" />
-                                </Button>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </ItemsRepeater.ItemTemplate>
-            </ItemsRepeater>
+
+            <ProgressBar IsIndeterminate="True" Visibility="{x:Bind MediaViewModel.BusyVisibility, Mode=OneWay}" />
+            <InfoBar Visibility="{x:Bind MediaViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind MediaViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind MediaViewModel.NoticeSeverity, Mode=OneWay}"
+                Title="{x:Bind MediaViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind MediaViewModel.NoticeMessage, Mode=OneWay}" />
+
+            <!-- ② 简介（左）与订阅信息（右）。宽窄由 code-behind 判定（ApplyOverviewLayout）：内容区放得下就并排，
+                 放不下右栏整块落到简介下面，仍排在订阅规则之前。 -->
+            <Grid x:Name="OverviewGrid" ColumnSpacing="{StaticResource EgSpaceXL}" SizeChanged="OnOverviewSizeChanged">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition x:Name="FactColumn" Width="320" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Style="{StaticResource EgBodyPanelStyle}" Spacing="{StaticResource EgSpaceM}" VerticalAlignment="Top">
+                    <TextBlock Text="{x:Bind MediaViewModel.Tagline, Mode=OneWay}" Style="{StaticResource EgDataStyle}" FontStyle="Italic" TextWrapping="Wrap" />
+                    <TextBlock Text="简介" Style="{StaticResource EgSectionTitleStyle}" />
+                    <TextBlock Text="{x:Bind MediaViewModel.Overview, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
+                        TextWrapping="Wrap" MaxWidth="{StaticResource EgProseWidth}" HorizontalAlignment="Left" />
+                    <ItemsRepeater x:Name="MediaSourceLinks" ItemsSource="{x:Bind MediaViewModel.Links, Mode=OneWay}">
+                        <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="8" /></ItemsRepeater.Layout>
+                        <ItemsRepeater.ItemTemplate><DataTemplate x:DataType="mp:MoviePilotMediaLink">
+                            <HyperlinkButton x:Name="OpenMediaSource" Content="{x:Bind Label}" NavigateUri="{x:Bind Url}" />
+                        </DataTemplate></ItemsRepeater.ItemTemplate>
+                    </ItemsRepeater>
+                    <local:MoviePilotMediaSeasonsView x:Name="MediaSeasons" />
+                </StackPanel>
+
+                <StackPanel x:Name="DetailFacts" Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Top"
+                    Spacing="{StaticResource EgSpaceXL}">
+                    <StackPanel Style="{StaticResource EgBodyPanelStyle}" Spacing="{StaticResource EgSpaceM}">
+                        <TextBlock Text="媒体信息" Style="{StaticResource EgSectionTitleStyle}" />
+                        <TextBlock Text="{x:Bind MediaViewModel.Rating, Mode=OneWay}" Style="{StaticResource EgDataStyle}" Foreground="{ThemeResource EgAccentBrush}" />
+                        <ItemsRepeater x:Name="MediaFacts" ItemsSource="{x:Bind MediaViewModel.Facts, Mode=OneWay}" ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
+                        <StackPanel Visibility="{x:Bind SubscriptionVisibility}" Spacing="8">
+                        <TextBlock Text="订阅信息" Style="{StaticResource EgSectionTitleStyle}" />
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
+                            <ItemsRepeater x:Name="SubscriptionStars" ItemsSource="{x:Bind ViewModel.DetailStars, Mode=OneWay}">
+                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="2" /></ItemsRepeater.Layout>
+                                <ItemsRepeater.ItemTemplate>
+                                    <DataTemplate x:DataType="x:String">
+                                        <FontIcon Glyph="{x:Bind}" Style="{StaticResource EgRatingStarStyle}" />
+                                    </DataTemplate>
+                                </ItemsRepeater.ItemTemplate>
+                            </ItemsRepeater>
+                            <TextBlock Text="{x:Bind ViewModel.DetailRatingText, Mode=OneWay}" Style="{StaticResource EgDataStyle}" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <ItemsRepeater x:Name="SubscriptionFacts" ItemsSource="{x:Bind ViewModel.DetailInfoFacts, Mode=OneWay}"
+                            ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <!-- ③ 订阅规则：只列服务器确实给了的字段，一条都没有时说明沿用 MoviePilot 配置。 -->
+            <StackPanel x:Name="RulePanel" Visibility="{x:Bind SubscriptionVisibility}" Style="{StaticResource EgBodyPanelStyle}" Spacing="{StaticResource EgSpaceS}">
+                <TextBlock Text="订阅规则" Style="{StaticResource EgSectionTitleStyle}" />
+                <ItemsRepeater x:Name="SubscriptionRules" ItemsSource="{x:Bind ViewModel.DetailRuleFacts, Mode=OneWay}"
+                    ItemTemplate="{StaticResource SubscriptionFactTemplate}" />
+                <TextBlock Text="{x:Bind ViewModel.DetailRulesNote, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                    TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
+            </StackPanel>
+
+            <!-- 当前订阅的入库与缺集；整部媒体的季集浏览在上方。 -->
+            <StackPanel x:Name="SubscriptionFilesPanel" Visibility="{x:Bind SubscriptionVisibility}" Style="{StaticResource EgBodyPanelStyle}" Spacing="{StaticResource EgSpaceM}">
+                <TextBlock x:Name="FilesHeading" Text="入库与缺集" Style="{StaticResource EgSectionTitleStyle}" />
+                <TextBlock Text="{x:Bind ViewModel.FileSummary, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                <TextBlock Text="{x:Bind ViewModel.PlaybackStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                    TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
+                <TextBlock Text="按 MoviePilot 关联的媒体库统计；已下载但未入库、尚未播出的集也会计入未入库。" Style="{StaticResource EgCaptionStyle}"
+                    TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
+                <ComboBox x:Name="EpisodeFilter" Header="显示范围" SelectedIndex="{x:Bind ViewModel.FilterIndex, Mode=TwoWay}" MinWidth="180">
+                    <ComboBoxItem Content="全部" /><ComboBoxItem Content="已入库" /><ComboBoxItem Content="缺集 / 未入库" />
+                </ComboBox>
+                <ItemsRepeater x:Name="EpisodeStatistics" ItemsSource="{x:Bind ViewModel.Episodes, Mode=OneWay}">
+                    <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="vm:MoviePilotSubscriptionEpisodeRow">
+                            <Border Style="{StaticResource EgFrameStyle}" Padding="12">
+                                <Grid ColumnSpacing="16" Loaded="OnEpisodeLoaded" Tag="{x:Bind}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <Border x:Name="EpisodeArtwork" Width="{x:Bind ArtworkWidth}" Height="{x:Bind ArtworkHeight}" Style="{StaticResource EgFrameStyle}">
+                                        <Grid>
+                                            <Grid.Background><ImageBrush ImageSource="{x:Bind Artwork, Mode=OneWay}" Stretch="UniformToFill" /></Grid.Background>
+                                            <FontIcon Glyph="&#xE714;" Style="{StaticResource EgArtworkEmptyGlyphStyle}" Visibility="{x:Bind EmptyArtworkVisibility, Mode=OneWay}" />
+                                        </Grid>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind RowTitle}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{x:Bind AirDateLabel}" Style="{StaticResource EgCaptionStyle}"
+                                            Foreground="{ThemeResource EgTextFaintBrush}" Visibility="{x:Bind AirDateVisibility}" />
+                                        <TextBlock Text="{x:Bind Status}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
+                                        <TextBlock Text="{x:Bind Description}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <!-- 右侧一列：播放键在上、已播出集的「搜索资源」键在下（用户令 2026-10-10）。 -->
+                                    <StackPanel Grid.Column="2" Spacing="8" VerticalAlignment="Center">
+                                        <Button x:Name="PlaySubscriptionEpisode" Style="{StaticResource EgIconButtonStyle}"
+                                            Command="{x:Bind PlayCommand}" Visibility="{x:Bind PlayVisibility}" AutomationProperties.Name="{x:Bind PlayName, Mode=OneWay}"
+                                            ToolTipService.ToolTip="{x:Bind PlayHelp, Mode=OneWay}">
+                                            <FontIcon Glyph="&#xE768;" />
+                                        </Button>
+                                        <Button x:Name="SearchSubscriptionEpisode" Style="{StaticResource EgIconButtonStyle}"
+                                            Command="{x:Bind SearchCommand}" Visibility="{x:Bind SearchVisibility}"
+                                            AutomationProperties.Name="{x:Bind SearchName, Mode=OneWay}"
+                                            ToolTipService.ToolTip="{x:Bind SearchHelp}">
+                                            <FontIcon Glyph="&#xE721;" />
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </StackPanel>
+            <StackPanel Spacing="12" Visibility="{x:Bind MediaViewModel.PeopleVisibility, Mode=OneWay}">
+                <TextBlock Text="演职员" Style="{StaticResource EgSectionTitleStyle}" />
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsRepeater x:Name="MediaPeople" ItemsSource="{x:Bind MediaViewModel.People, Mode=OneWay}" ItemTemplate="{StaticResource MediaRelatedCardTemplate}">
+                        <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="12" /></ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                </ScrollViewer>
+            </StackPanel>
+            <StackPanel Spacing="12" Visibility="{x:Bind MediaViewModel.RecommendationsVisibility, Mode=OneWay}">
+                <TextBlock Text="相关推荐" Style="{StaticResource EgSectionTitleStyle}" />
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsRepeater x:Name="MediaRecommendations" ItemsSource="{x:Bind MediaViewModel.Recommendations, Mode=OneWay}" ItemTemplate="{StaticResource MediaRelatedCardTemplate}">
+                        <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="12" /></ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                </ScrollViewer>
+            </StackPanel>
+            <StackPanel Spacing="12" Visibility="{x:Bind MediaViewModel.SimilarVisibility, Mode=OneWay}">
+                <TextBlock Text="相似作品" Style="{StaticResource EgSectionTitleStyle}" />
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ItemsRepeater x:Name="MediaSimilar" ItemsSource="{x:Bind MediaViewModel.Similar, Mode=OneWay}" ItemTemplate="{StaticResource MediaRelatedCardTemplate}">
+                        <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="12" /></ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                </ScrollViewer>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
+    <local:MoviePilotResourcePanel x:Name="MediaResources" Visibility="Collapsed" Closed="OnResourcesClosed" />
+</Grid>
 </Page>

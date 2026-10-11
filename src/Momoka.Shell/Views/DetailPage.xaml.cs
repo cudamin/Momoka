@@ -51,31 +51,18 @@ public sealed partial class DetailPage : Page, IShellContent
     /// </summary>
     private Windowing.HostWindow? _window;
 
-    /// <summary>标题栏那一条现在跟着头图罩子压到多浓，见 <see cref="PaintWash"/>。-1 是「还没画过一次」。</summary>
-    private double _wash = -1;
-
-    /// <summary>正文纸面从标题栏底边往上盖了多少，0..1。和 <see cref="_wash"/> 分开，黑色 HeroTail 正好夹在两者之间。</summary>
+    /// <summary>正文纸面从标题栏底边往上盖了多少，0..1；-1 是还没画过。</summary>
     private double _paperCover = -1;
 
-    /// <summary>标题栏当前画的是空、罩子、黑色尾部、纸面边界还是整张纸；给滚动时的 1/255 级去重用。</summary>
+    /// <summary>标题栏当前画的是空、半透明黑底、纸面边界还是整张纸；给滚动时的 1/255 级去重用。</summary>
     private int _paintPhase = -1;
 
     /// <summary>标题栏那一条算不算已经由正文纸面接管 —— 回差的另一半，见 <see cref="DetailHero.WashedOver"/>。</summary>
     private bool _washedInk;
 
     /// <summary>
-    /// 洗那一层用的画刷，一支重复用。停点的颜色随滚动改，所以它不能是 XAML 里那种一次成形的画刷；换成每次
-    /// 新建一支也行，但那是每一帧滚动一次分配。
-    /// </summary>
-    private readonly LinearGradientBrush _washBrush = new()
-    {
-        StartPoint = new Point(0.5, 0),
-        EndPoint = new Point(0.5, 1)
-    };
-
-    /// <summary>
     /// 正文纸面的上沿滚进标题栏时用的硬边渐变：上半仍是 HeroTail 的黑，下半已经是主题纸色。
-    /// 重用同一支画刷，理由和 <see cref="_washBrush"/> 一样。
+    /// 重用同一支画刷，避免滚动时每一帧分配。
     /// </summary>
     private readonly LinearGradientBrush _paperBrush = new()
     {
@@ -124,13 +111,7 @@ public sealed partial class DetailPage : Page, IShellContent
     private void OnThemeChanged(UiTheme theme) => PaintWash(force: true);
 
     /// <summary>
-    /// 把头图底下那道罩子画上 —— 高、五个停点、还有底下那块尾部的底色，全从 <see cref="DetailHero"/> 那张表来。
-    /// <para>
-    /// 这些数从前在 DetailPage.xaml 里另写了一份：五个 <c>GradientStop</c>、一个 <c>Height="440"</c>、一个
-    /// <c>Background="#B80C0E11"</c>，而算得出的那一份（<see cref="DetailHero.TopWash"/>，标题条上那层洗照着
-    /// 它算）在 Core 里。两份数没有谁管着谁，改一份忘一份的下场是标题条上重新长出那道横缝，而两边看着都「对」。
-    /// 现在只有 Core 那一份，屏上这一份由它生成。
-    /// </para>
+    /// 无图版式保留 Core 表里的渐变；有图版式让整个头部与尾部共用该表末档的半透明黑底。
     /// <para>
     /// 在构造里画而不是在 <c>Loaded</c> 里：这一页的实例会被复用，而这些数一辈子不变，画一次就够；上树之后才画
     /// 的话第一帧是一格没有罩子的亮画面，压在上面的白字那一帧读不出来。
@@ -161,6 +142,9 @@ public sealed partial class DetailPage : Page, IShellContent
         HeroTail.Background = ViewModel.HeroCardShown
             ? null
             : new SolidColorBrush(HeroScrimBrush.GradientStops[^1].Color);
+
+        // 剧、季、电影的图上从标题栏到说明区只压同一档黑；旧 HeroScrim 在有图时收起，避免叠加。
+        HeroBand.Background = ViewModel.BackdropShown ? HeroTail.Background : null;
     }
 
     internal DetailViewModel ViewModel { get; }
@@ -1041,13 +1025,18 @@ public sealed partial class DetailPage : Page, IShellContent
         {
             if (picker.Visibility != Visibility.Visible) continue;
 
+            // 集页把显隐绑在带标签的父行；隐藏行里的控件仍是 Visible，不能拿它的零尺寸作读数。
+            var row = ViewModel.HeroCardShown ? (FrameworkElement)picker.Parent : picker;
+            if (row.Visibility != Visibility.Visible) continue;
+
             var box = picker.TransformToVisual(root)
                 .TransformBounds(new Rect(0, 0, picker.ActualWidth, picker.ActualHeight));
-            var fits = box.Right <= edge + 0.5;
+            var fits = box.Width > 0 && box.Height > 0
+                && box.Left >= panel.Left + padding.Left - 0.5 && box.Right <= edge + 0.5;
             ok &= fits;
 
             if (!rows.Any(top => Math.Abs(top - box.Top) < 1.5)) rows.Add(box.Top);
-            lefts.Add(box.Left);
+            lefts.Add(row.TransformToVisual(root).TransformPoint(new Point()).X);
             read.Add($"{name} {box.Left:0}–{box.Right:0}{(fits ? "" : "（出界）")}");
         }
 
@@ -1058,27 +1047,24 @@ public sealed partial class DetailPage : Page, IShellContent
         // 偏移时和 Center 同一支），整排往右挪 —— 挪多少还跟着轨道名的长短变。屏上是它比上下两段都缩进一块，
         // 而三个下拉全在界内、换行也对，只看上面那三条读数一个都不会响。
         var contentLeft = panel.Left + padding.Left;
-        var drift = lefts.Min() - contentLeft;
+        var drift = Math.Abs(lefts.Min() - contentLeft);
         ok &= drift < 1.5;
 
         return (ok, $"{string.Join("、", read)}，可用 {contentLeft:0}–{edge:0}"
             + $"（窗口宽 {window.Width:0}），摆成 {rows.Count} 行"
             + $"，在{(ViewModel.HeroCardShown ? "片名那一栏" : "尾部")}"
-            + (drift < 1.5 ? "，整排贴着左边" : $"，整排右移了 {drift:0}"));
+            + (drift < 1.5 ? "，整排贴着左边" : $"，整排偏离左沿 {drift:0}"));
     }
 
     /// <summary>
     /// 自检：标题栏那一条洗到正文那张纸的颜色了没有 —— 「往下拉之后标题颜色要渐变，变的和下方背景一样」。
     /// <para>
-    /// 三件事，各对一种不出声的坏法。那一条的位置：它必须正好盖住标题栏让出来的那一格，短一像素就是原来那道
-    /// 横缝的一截。洗的浓度和颜色：<see cref="DetailHero.TopWash"/> 是算得出的那一份，元素上真正那支画刷是屏上
-    /// 那一份，两份对一遍。还有带子底下那道罩子的停点跟 Core 那张表对得上没有 —— 对不上的话曲线读的就不是屏上
-    /// 这道罩子，缝会照样在，而前两条一个都不会响。
+    /// 标题栏必须正好盖住让出来的那一格；图上从页顶、片名到尾部共用同一支半透明黑色画刷，旧渐变不能叠在上面。
+    /// 正文滚入标题栏时再检查纸面边界的位置和颜色。
     /// </para>
     /// <para>
     /// 自检读它的时候页面已经滚到底（<see cref="ScrollToEnd"/>），落在洗满那一档：那一档的判据是「和正文同一支
-    /// 画刷」，不是「颜色算得对」—— 那一档本来就不再是洗，见 <see cref="PaintWash"/>。洗到一半那一档在这个位置
-    /// 上量不到，而它才是那道横缝的所在，所以这里按半程的浓度画一遍读一遍再画回去（<see cref="ApplyWash"/>）。
+    /// 画刷」，不是「颜色算得对」。页顶、头部中间及纸面交界另外通过 ApplyWash 画一遍读一遍，再恢复实际位置。
     /// </para>
     /// <para>
     /// 第四件事是外壳有没有在这一条上再涂一层自己的底色（<paramref name="trailBase"/>，就是 <c>ShellPage</c> 里
@@ -1107,12 +1093,12 @@ public sealed partial class DetailPage : Page, IShellContent
         var paperCover = DetailHero.PaperCover(offset, paperTop, TitleWash.ActualHeight);
         var (painted, how) = ReadTitlePaint(offset, paperTop, tail, sheet);
 
-        // 两个过渡都在滚到底的页面上量不到：先强制画头图罩子的半程，再强制让纸面上沿走到标题栏正中。
-        // 两次都走真正的 ApplyWash，读完再按实际滚动位置画回去。
+        // 页顶和头部中间都应直接接同一支黑底，纸面上沿走到标题栏正中时才切换成两色边界。
+        ApplyWash(0, force: true);
+        var (topOk, topHow) = ScrimPaint();
         var halfOffset = BandHeight / 2;
-        var half = DetailHero.TopWash(halfOffset, true, BandHeight);
         ApplyWash(halfOffset, force: true);
-        var (halfOk, halfHow) = ScrimPaint(half, tail);
+        var (halfOk, halfHow) = ScrimPaint();
 
         var paperHalfOffset = paperTop + (TitleWash.ActualHeight / 2);
         var paperHalf = DetailHero.PaperCover(paperHalfOffset, paperTop, TitleWash.ActualHeight);
@@ -1120,23 +1106,13 @@ public sealed partial class DetailPage : Page, IShellContent
         var (paperOk, paperHow) = PaperPaint(paperHalf, tail, sheet);
         PaintWash(force: true);
 
-        // 曲线读的得是屏上这道罩子：Core 那张表和它算出来的高是同一组数的两份写法。集页的带子收窄时罩子跟着
-        // 收（DetailHero.ScrimSpan），所以这里按屏上那一块的高和位置反算，不写死 440。
-        var band = HeroScrim.ActualHeight;
-        var inset = HeroBand.ActualHeight - band;
-        var stops = HeroScrimBrush.GradientStops;
-        var curve = band > 0 && stops.All(stop =>
-            Math.Abs(DetailHero.TopWash(inset + (stop.Offset * band), true, BandHeight) - (stop.Color.A / 255d))
-                < 0.005);
-
         // 外壳那一层：有图就一层都不该有，见上面那段和 SyncTitleInk。
         var bare = trailBase is null;
 
-        return (placed && painted && halfOk && paperOk && curve && bare,
+        return (placed && painted && topOk && halfOk && paperOk && bare,
             $"滚到 {offset:0}、纸面从 {paperTop:0} 起并覆盖标题栏 {paperCover:0.00}；"
                 + $"那一条 {box.Top:0}→{box.Bottom:0} 宽 {box.Width:0}（标题栏让出 {lift:0}）；{how}；"
-                + $"罩子半程 {halfHow}；纸面半程 {paperHow}"
-                + (curve ? $"；罩子那 {stops.Count} 个停点和 Core 那张表一致" : "；罩子的停点和 Core 那张表对不上")
+                + $"页顶 {topHow}；头部半程 {halfHow}；纸面半程 {paperHow}"
                 + (bare ? "；面包屑那一行没自己上底色" : $"；面包屑那一行又涂了一层{Paint(trailBase)}")
                 + (placed ? "" : "，那一条没盖住标题栏那一格"));
 
@@ -1162,40 +1138,25 @@ public sealed partial class DetailPage : Page, IShellContent
 
         if (cover > 0) return PaperPaint(cover, tail, sheet);
 
-        var heroBottom = BandHeight;
-        if (offset >= heroBottom)
-        {
-            var same = ReferenceEquals(TitleWash.Background, HeroTail.Background);
-            return (same, same ? "黑色尾部经过，整条复用尾部画刷" : "黑色尾部经过，可标题栏不是同一支画刷");
-        }
-
-        return ScrimPaint(DetailHero.TopWash(offset, true, BandHeight), tail);
+        return ScrimPaint();
     }
 
     /// <summary>
-    /// 头上那一格这一次多高。布好版面就读屏上那个，还没布好就读视图模型算出来的那个 —— 罩子的曲线、洗到
-    /// 多浓、尾部从哪儿开始，三处都得按同一个数算，见 <see cref="DetailHero.ScrimSpan"/>。
+    /// 头上那一格这一次多高。布好版面就读屏上那个，还没布好就读视图模型算出来的那个。
     /// </summary>
     private double BandHeight => HeroBand.ActualHeight > 0 ? HeroBand.ActualHeight : ViewModel.HeroHeight;
 
-    /// <summary>逐个停点核对头图罩子的半透明黑，差一级就可能重新长出横缝。</summary>
-    private (bool Ok, string How) ScrimPaint(double want, Color tail)
+    /// <summary>图上三段共用一支半透明黑底，且不再叠加旧的片名渐变。</summary>
+    private (bool Ok, string How) ScrimPaint()
     {
-        if (TitleWash.Background != _washBrush || _washBrush.GradientStops.Count != 3)
-            return (false, $"那一条不是罩子的三个停点渐变（{TitleWash.Background?.GetType().Name ?? "空"}）");
-
-        var alpha = (byte)Math.Round(want * 255);
-        var scrim = HeroScrimBrush.GradientStops[^1].Color;
-        var face = Color.FromArgb(alpha, tail.R, tail.G, tail.B);
-        var edge = Color.FromArgb(alpha, scrim.R, scrim.G, scrim.B);
-        var stops = _washBrush.GradientStops;
-
-        var ok = stops[0].Color == face && stops[1].Color == face && stops[2].Color == edge
-            && Math.Abs(stops[1].Offset - want) < 0.01 && Math.Abs(stops[2].Offset - 1) < 0.001;
-
-        return (ok, $"渐变 {Hex(stops[0].Color)}@{stops[0].Offset:0.00} → {Hex(stops[1].Color)}"
-            + $"@{stops[1].Offset:0.00} → {Hex(stops[2].Color)}@{stops[2].Offset:0.00}"
-            + $"，该是尾部 {Hex(face)}、罩子 {Hex(edge)}、拐点 {want:0.00}");
+        var ink = DetailHero.ScrimInk;
+        var expected = Color.FromArgb(DetailHero.ScrimStops[^1].Alpha, ink.R, ink.G, ink.B);
+        var same = HeroTail.Background is SolidColorBrush { Color: var color } && color == expected
+            && ReferenceEquals(TitleWash.Background, HeroTail.Background)
+            && ReferenceEquals(HeroBand.Background, HeroTail.Background)
+            && HeroBand.ActualHeight > 0 && HeroBand.ActualWidth > 0
+            && HeroScrim.Visibility == Visibility.Collapsed;
+        return (same, same ? $"标题栏、片名与尾部共用 {Hex(expected)}，无叠加渐变" : "图上三段未接成同一层黑底");
     }
 
     /// <summary>核对正文纸面上沿在标题栏里的真实位置，以及硬边两侧的颜色。</summary>
@@ -1248,6 +1209,93 @@ public sealed partial class DetailPage : Page, IShellContent
         var card = new CardItem(item, images, CardSize.PosterWidth);
 
         ItemCommands.Run(ItemCommand.ChangeCover, session, actions, this, card,
+            siblings: ViewModel.Episodes, changed: ViewModel.Reload);
+
+        return true;
+    }
+
+    /// <summary>
+    /// 把「查看遗漏集」那一张表弹开（<c>--show-missing</c>），弹得出来就说 true。
+    /// <para>
+    /// 走的是和 <see cref="OnMoreClicked"/> 同一条路 —— 同一个 <see cref="CardItem"/>、同一条
+    /// <see cref="ItemCommands.Run"/>，所以拍到的就是用户按菜单上那一条时会看到的表。
+    /// </para>
+    /// <para>
+    /// 只有剧和季弹得出来：查看遗漏集是菜单上剧／季才有的那一条（见 <c>ItemMenu</c>），电影和单集上按不到它，
+    /// 这里也照菜单的判据先挡一道，而不是发一趟注定没有意义的请求。
+    /// </para>
+    /// </summary>
+    internal bool OpenMissingPanel()
+    {
+        if (_session is not { } session
+            || _actions is not { } actions
+            || _images is not { } images
+            || ViewModel.CurrentItem is not { } item)
+            return false;
+
+        if (item.Type is not (EmbyItemType.Series or EmbyItemType.Season)) return false;
+
+        var card = new CardItem(item, images, CardSize.PosterWidth);
+
+        ItemCommands.Run(ItemCommand.ViewMissingEpisodes, session, actions, this, card,
+            siblings: ViewModel.Episodes, changed: ViewModel.Reload);
+
+        return true;
+    }
+
+    /// <summary>
+    /// 把「识别」那张表弹开（<c>--show-identify</c>），弹得出来就说 true。
+    /// <para>
+    /// 走的是和 <see cref="OnMoreClicked"/> 同一条路 —— 同一个 <see cref="CardItem"/>、同一条
+    /// <see cref="ItemCommands.Run"/>，所以拍到的就是用户按菜单上那一条时会看到的表。
+    /// </para>
+    /// <para>
+    /// 只有服务器查得动的那几种弹得出来：识别是菜单上那几种才有的那一条（见
+    /// <see cref="ItemIdentify.Supports"/>），季、单集、文件夹上按不到它，这里也照菜单的判据先挡一道，
+    /// 而不是发一趟注定 404 的请求。
+    /// </para>
+    /// </summary>
+    internal bool OpenIdentifyPanel()
+    {
+        if (_session is not { } session
+            || _actions is not { } actions
+            || _images is not { } images
+            || ViewModel.CurrentItem is not { } item)
+            return false;
+
+        if (!ItemIdentify.Supports(item)) return false;
+
+        var card = new CardItem(item, images, CardSize.PosterWidth);
+
+        ItemCommands.Run(ItemCommand.Identify, session, actions, this, card,
+            siblings: ViewModel.Episodes, changed: ViewModel.Reload);
+
+        return true;
+    }
+
+    /// <summary>
+    /// 把「刷新元数据」那张表弹开（<c>--show-refresh</c>），弹得出来就说 true。
+    /// <para>
+    /// 走的是和 <see cref="OnMoreClicked"/> 同一条路 —— 同一个 <see cref="CardItem"/>、同一条
+    /// <see cref="ItemCommands.Run"/>，所以拍到的就是用户按菜单上那一条时会看到的表。**只弹表不发请求**：
+    /// 没人按那颗「刷新」，所以这一关对服务器是只读的。
+    /// </para>
+    /// <para>
+    /// 不挑条目类型：刷新元数据是目录里的条目都有的一条（见 <c>ItemMenu.Metadata</c>），所以这里不像
+    /// <see cref="OpenIdentifyPanel"/> 那样先按菜单的判据挡一道。
+    /// </para>
+    /// </summary>
+    internal bool OpenRefreshPanel()
+    {
+        if (_session is not { } session
+            || _actions is not { } actions
+            || _images is not { } images
+            || ViewModel.CurrentItem is not { } item)
+            return false;
+
+        var card = new CardItem(item, images, CardSize.PosterWidth);
+
+        ItemCommands.Run(ItemCommand.RefreshMetadata, session, actions, this, card,
             siblings: ViewModel.Episodes, changed: ViewModel.Reload);
 
         return true;
@@ -1529,15 +1577,14 @@ public sealed partial class DetailPage : Page, IShellContent
         // 同一个实例第二次进来时 HeroArt 的值没变，不会有通知，而 OnNavigatedFrom 已经把外壳还回了黑墨。
         // 洗到哪一档也一起重来（复用的实例上是上一个条目留下的数），见 PaintWash。
         ViewModel.PropertyChanged += OnViewModelChanged;
-        _wash = -1;
         _paperCover = -1;
         _paintPhase = -1;
         _washedInk = false;
-        PaintWash(force: true);
 
         // 集带永远在纸的第一块（标记里就那么摆的），所以这里只是「万一不在」补一下；尾部那一段的底色跟着
         // 「这一页有没有那块板」走，而那一句要等 Apply 才知道种类（那时会再来一次通知，见 OnViewModelChanged）。
         PaintScrim();
+        PaintWash(force: true);
         PlaceEpisodes();
 
         _ = ViewModel.ReloadAsync();
@@ -1545,12 +1592,20 @@ public sealed partial class DetailPage : Page, IShellContent
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs args)
     {
-        if (args.PropertyName == nameof(DetailViewModel.BackdropShown)) PaintWash(force: true);
+        if (args.PropertyName == nameof(DetailViewModel.BackdropShown))
+        {
+            PaintScrim();
+            PaintWash(force: true);
+        }
         if (args.PropertyName == nameof(DetailViewModel.SublineGenres)) PaintGenres();
 
         // 集页那块板在不在：尾部那一段的底跟着它换。宽窄跨过 1024 那一条线时变的就是它 —— 那一趟 LayoutPage
         // 也会走，可它管不到这一支。
-        if (args.PropertyName == nameof(DetailViewModel.HeroCardShown)) PaintScrim();
+        if (args.PropertyName == nameof(DetailViewModel.HeroCardShown))
+        {
+            PaintScrim();
+            PaintWash(force: true);
+        }
     }
 
     /// <summary>
@@ -1804,15 +1859,14 @@ public sealed partial class DetailPage : Page, IShellContent
         PaintWash(force: true);
     }
 
-    /// <summary>滚到哪儿了 —— 标题栏依次跟随头图罩子、黑色尾部和真正正文纸面。</summary>
+    /// <summary>滚到哪儿了 —— 标题栏先接图上的黑底，再跟随正文纸面。</summary>
     private void OnBodyViewChanged(ScrollView sender, object args) => PaintWash();
 
     /// <summary>
     /// 把标题栏那一条画成当前正从它下面经过的那一层。
     /// <para>
-    /// 现在有三段而不是原来的两段：头图里的渐深罩子、用户要求延长到剧情说明下面的黑色 HeroTail、以及从红线
-    /// 开始的主题 BodySheet。<see cref="DetailHero.TopWash"/> 只负责第一段；第二段直接复用 HeroTail 的画刷；
-    /// 第三段的上沿滚进标题栏时，用一支硬边渐变按真实位置把黑色和纸色各画一半，完全盖住之后才直接复用纸面画刷。
+    /// 图上的标题栏、片名和说明区共用 HeroTail 的画刷。BodySheet 的上沿滚进标题栏时，用一支硬边渐变按真实
+    /// 位置把黑色和纸色各画一半，完全盖住之后才直接复用纸面画刷。
     /// </para>
     /// <para>
     /// 真正纸面的位置不能再由固定的 460 推断：音轨会显隐，简介会折行和展开。<see cref="PaperOffset"/> 每次都
@@ -1828,32 +1882,25 @@ public sealed partial class DetailPage : Page, IShellContent
     private double PaperOffset() => BandHeight + HeroTail.ActualHeight;
 
     /// <summary>
-    /// <see cref="PaintWash"/> 的后半截。接收滚动位置而不是单独一个浓度，因为浓度爬到顶（
-    /// <see cref="DetailHero.ScrimCeiling"/>）以后还隔着一整段同色的 HeroTail，只有位置同时越过
-    /// <see cref="PaperOffset"/> 才能换成主题纸色。
+    /// <see cref="PaintWash"/> 的后半截。只有滚过 <see cref="PaperOffset"/>，正文纸面才开始接管标题栏。
     /// </summary>
     private void ApplyWash(double offset, bool force)
     {
         var artwork = ViewModel.BackdropShown;
-        var wash = DetailHero.TopWash(offset, artwork, BandHeight);
         var paperTop = PaperOffset();
         var paperCover = artwork
             ? DetailHero.PaperCover(offset, paperTop, TitleWash.ActualHeight)
             : 0;
-        var heroBottom = BandHeight;
         var phase = !artwork ? 0
             : paperCover >= 1 ? 4
             : paperCover > 0 ? 3
-            : offset >= heroBottom ? 2
-            : 1;
+            : 2;
 
-        // 一滚就会来一次；罩子和纸面覆盖都按 255 档去重，跨阶段则无条件换画刷。
+        // 一滚就会来一次；纸面覆盖按 255 档去重，跨阶段则无条件换画刷。
         if (!force && phase == _paintPhase
-            && Math.Abs(wash - _wash) * 255 < 1
             && Math.Abs(paperCover - _paperCover) * 255 < 1)
             return;
 
-        _wash = wash;
         _paperCover = paperCover;
         _paintPhase = phase;
         SyncTitleInk(paperCover);
@@ -1880,34 +1927,7 @@ public sealed partial class DetailPage : Page, IShellContent
             return;
         }
 
-        if (phase == 2)
-        {
-            TitleWash.Background = HeroTail.Background;
-            return;
-        }
-
-        UseScrimBrush(wash, tail);
-    }
-
-    /// <summary>头图罩子经过标题栏时，按屏上同一条曲线压同样浓的黑。</summary>
-    private void UseScrimBrush(double wash, Color tail)
-    {
-        var alpha = (byte)Math.Round(wash * 255);
-        var scrim = HeroScrimBrush.GradientStops[^1].Color;
-
-        if (TitleWash.Background != _washBrush)
-        {
-            _washBrush.GradientStops.Clear();
-            _washBrush.GradientStops.Add(new GradientStop { Offset = 0 });
-            _washBrush.GradientStops.Add(new GradientStop { Offset = 0 });
-            _washBrush.GradientStops.Add(new GradientStop { Offset = 1 });
-            TitleWash.Background = _washBrush;
-        }
-
-        _washBrush.GradientStops[0].Color = Color.FromArgb(alpha, tail.R, tail.G, tail.B);
-        _washBrush.GradientStops[1].Color = Color.FromArgb(alpha, tail.R, tail.G, tail.B);
-        _washBrush.GradientStops[1].Offset = wash;
-        _washBrush.GradientStops[2].Color = Color.FromArgb(alpha, scrim.R, scrim.G, scrim.B);
+        TitleWash.Background = HeroTail.Background;
     }
 
     /// <summary>纸面上沿滚进标题栏时，按它的真实位置画一道黑色到主题纸色的硬边。</summary>
@@ -2000,8 +2020,8 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload);
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload, ViewModel.Remove);
 
     private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload);
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload, ViewModel.Remove);
 }

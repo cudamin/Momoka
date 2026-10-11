@@ -117,7 +117,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     private FontLibrary? _fonts;
     private AppPaths? _paths;
     private Platform.ISystemLauncher? _launcher;
-    private MoviePilotProbe? _moviePilot;
+    private IServerCapabilities? _capabilities;
+    private MoviePilotService? _moviePilot;
     private MoviePilotCredentials? _moviePilotCredentials;
     private SettingMoviePilotRow? _moviePilotRow;
     private SettingFontRow? _subtitleFont;
@@ -138,6 +139,43 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>快捷键卡里那 21 行可重绑的行，握着好在重绑/清空之后逐行刷新显示（同 <see cref="HomeRows"/> 那样握着一行的理由）。</summary>
     private readonly List<SettingShortcutRow> _shortcutRows = [];
+
+    /// <summary>
+    /// 「EmbyServer」那一组 —— 左栏里唯一不是设置卡的一组，五个入口全是服务器管理页。
+    /// <para>
+    /// 五页各自都还要管理员权限（<see cref="ServerUsersViewModel"/> 那几页进来先核一遍身份，不是管理员只得到
+    /// 一句「需要服务器管理员权限」），所以这一组整个跟着账号权限显隐，见
+    /// <see cref="RefreshServerAdministrationAsync"/>。列在这里也是为了让自检能把「该露的」和「该藏的」分开算。
+    /// </para>
+    /// <para>
+    /// 位置挨着 <see cref="ServerAdministrationGroup"/> 不是随便排的：静态初始值按书写次序跑，那个组要用到
+    /// 这份名单，写它后面就是一个空的组。名字本身是常量，写在文件哪一处都一样。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<string> ServerAdministrationCategories { get; } =
+        [ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, NotificationsCategory, DashboardCategory];
+
+    /// <summary>
+    /// 当前账号是不是管理员，以及由此决定的「EmbyServer」那一组在不在。**初值是露着** —— 问不到身份时宁可多露
+    /// 一格，也不把用户有权看的东西藏掉；<see cref="ApplyServerAdministration"/> 只在一个确凿的「不是管理员」
+    /// 上动手。
+    /// </summary>
+    private bool _showsServerAdministration = true;
+
+    /// <summary>
+    /// 左栏那一列的分组，见 <see cref="CategoryGroups"/>。
+    /// </summary>
+    private IReadOnlyList<SettingsCategoryGroup> _categoryGroups = BuildCategoryGroups(serverAdministration: true);
+
+    /// <summary>
+    /// 照账号权限造一份左栏分组表。
+    /// </summary>
+    private static List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration)
+    {
+        var groups = new List<SettingsCategoryGroup> { new("Momoka", [.. CardCategories, "服务器", "诊断"]) };
+        if (serverAdministration) groups.Add(new("EmbyServer", ServerAdministrationCategories));
+        return groups;
+    }
 
     /// <summary>The cards, in the order they appear in the left-hand list.</summary>
     /// <remarks>
@@ -188,14 +226,21 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 「恢复默认」曾是这份名单末尾的一项（2026-09-13～2026-09-24）；2026-09-24 按「把恢复默认设置移动到关于中」
     /// 搬进了「关于」卡，和新增的「备份配置文件」「恢复配置」并作三颗动作按钮 —— 见 <see cref="AboutCard"/>。它不再
     /// 是名单里的一项，所以这里也不再有它。
+    /// <para>
+    /// 第二组按账号权限整组来去（<see cref="ApplyServerAdministration"/>），而**换的是一份新表，不是原地增删**：
+    /// 那个 <c>CollectionViewSource</c> 的分组视图不吃「组从集合里消失」这一套 —— 组底下的条目确实会没，组的
+    /// 标题却留在屏上（2026-10-10 截图实量，见探针 settings-server-admin-hidden.png 之前那一版）。所以这份表每次
+    /// 重算都是一个新实例，页面把 <c>CategoryGroupsSource.Source</c> 重新指一次。
+    /// </para>
     /// </remarks>
-    public IReadOnlyList<SettingsCategoryGroup> CategoryGroups { get; } =
-    [
-        new("Momoka", [.. CardCategories, "服务器", "诊断"]),
-        new("EmbyServer", [ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, NotificationsCategory, DashboardCategory])
-    ];
+    public IReadOnlyList<SettingsCategoryGroup> CategoryGroups => _categoryGroups;
 
-    public IReadOnlyList<string> Categories { get; } = [.. CardCategories, .. HostedCategories];
+    /// <summary>
+    /// The flat list of every entry, in the same order as <see cref="CategoryGroups"/> — what the compact
+    /// window's picker shows and what <c>SettingsPage.Select</c> answers 「这一页有这一项吗」 from.
+    /// <see cref="ApplyServerAdministration"/> takes the same five names out of it as out of the groups.
+    /// </summary>
+    public ObservableCollection<string> Categories { get; } = [.. CardCategories, .. HostedCategories];
 
     public ObservableCollection<SettingSection> Sections { get; } = [];
 
@@ -259,11 +304,16 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// The capabilities this page needs, and nothing else: the settings document with its write-back, the
-    /// shader catalogue the 着色器 card offers, the machine's fonts for the 字幕 card's picker, and — for the
-    /// 关于 card — where this app keeps its files and how to show a folder. Named rather than handed the whole
-    /// composition root — a page that edits settings has no business being able to reach the session or the
-    /// player.
+    /// shader catalogue the 着色器 card offers, the machine's fonts for the 字幕 card's picker, — for the
+    /// 关于 card — where this app keeps its files and how to show a folder, and what the signed-in account is
+    /// allowed to administer. Named rather than handed the whole composition root — a page that edits settings
+    /// has no business being able to reach the session or the player.
     /// </summary>
+    /// <param name="capabilities">
+    /// 当前账号是不是服务器管理员 —— 左栏「EmbyServer」那一组的显隐由它决定，见
+    /// <see cref="RefreshServerAdministrationAsync"/>。收窄过的能力而不是会话本身：这一页要知道的只有
+    /// 「这个账号能不能管服务器」这一位，上面那句「够不着会话」照旧成立。
+    /// </param>
     /// <param name="pushSubtitleStyle">
     /// 「把 字幕外观 推给正在播的那部片子」, handed over as one method rather than as the player it belongs to —
     /// which is how this page gains that one ability without gaining 播放 / 停止 / 跳转 along with it, and how
@@ -284,19 +334,87 @@ public sealed partial class SettingsViewModel : PageViewModel
         AudioDeviceCatalogue audioDevices,
         Func<Task> pushSubtitleStyle,
         Func<string, Task> pushScreenshotDirectory,
-        MoviePilotProbe moviePilot,
-        MoviePilotCredentials moviePilotCredentials)
+        MoviePilotService moviePilot,
+        MoviePilotCredentials moviePilotCredentials,
+        IServerCapabilities capabilities)
     {
         _settings = settings;
         _shaders = shaders;
         _fonts = fonts;
         _paths = paths;
         _launcher = launcher;
+        _capabilities = capabilities;
         _audioDevices = audioDevices;
         _pushSubtitleStyle = pushSubtitleStyle;
         _pushScreenshotDirectory = pushScreenshotDirectory;
         _moviePilot = moviePilot;
         _moviePilotCredentials = moviePilotCredentials;
+    }
+
+    /// <summary>自检读的：服务器管理那一组这会儿是收着的吗（非管理员账号下是）。</summary>
+    internal bool ServerAdministrationHidden => !_showsServerAdministration;
+
+    /// <summary>
+    /// 按当前账号的管理员身份决定左栏「EmbyServer」那一组在不在，并在它该收起时把落点收回第一张卡。
+    /// <para>
+    /// 页面每次打开都要走一趟，不能只在建页那一次：设置页是缓存的（半截输入和「刚看的是哪张卡」都要留着），
+    /// 换过账号之后页面不重建，不重走就会留着上一个账号的答案 —— 管理员看过的「控制台」，普通账号再进来照样
+    /// 开着。
+    /// </para>
+    /// <para>
+    /// 身份取自 <see cref="IServerCapabilities.IsAdministrator"/>，那是登录时那趟 <c>ProbeAsync</c> 顺手问出来
+    /// 的（<c>/System/Info</c> 只对管理员开放，答的是公开子集就说明不是管理员）；还没问到就在这里自己问一趟。
+    /// **问不到就照旧露着** —— 猜错的方向是藏掉用户有权看的东西，比多露一格糟。
+    /// </para>
+    /// </summary>
+    internal async Task RefreshServerAdministrationAsync()
+    {
+        if (_capabilities is null) return;
+
+        if (_capabilities.IsAdministrator is null) await _capabilities.ProbeAsync().ConfigureAwait(true);
+
+        ApplyServerAdministration(_capabilities.IsAdministrator != false);
+    }
+
+    /// <summary>
+    /// 把「EmbyServer」那一组连同它那五个分类一起装上或摘掉。
+    /// <para>
+    /// 两份名单都要动：左栏那个分组和紧凑窗口的下拉用的是两份数据（<see cref="CategoryGroups"/> 分组、
+    /// <see cref="Categories"/> 平铺），只动一份就是「宽窗口藏了、窄窗口还列着」。分组那份换的是一个新表
+    /// （理由见 <see cref="CategoryGroups"/>），页面据此重指一次源。
+    /// </para>
+    /// </summary>
+    private void ApplyServerAdministration(bool visible)
+    {
+        // 落点先挪，名单后动，这个次序不是随手排的：把 ComboBox 里正被选中的那一项摘掉，控件会把自己的选择
+        // 清空，并顺着 SelectedItem 的 TwoWay 绑定写回一个 null —— 落点就丢在一趟之后，左栏没有选中项，
+        // 右半边也不知道该显示哪张卡。先挪开，被摘的就不是选中项，也就没有这一趟。
+        if (!visible) MoveOffServerAdministration();
+
+        if (_showsServerAdministration == visible) return;
+        _showsServerAdministration = visible;
+
+        _categoryGroups = BuildCategoryGroups(visible);
+
+        if (visible)
+        {
+            foreach (var category in ServerAdministrationCategories)
+                if (!Categories.Contains(category, StringComparer.Ordinal)) Categories.Add(category);
+            return;
+        }
+
+        foreach (var category in ServerAdministrationCategories) Categories.Remove(category);
+    }
+
+    /// <summary>
+    /// 落点若正停在「EmbyServer」那一组上就退回第一张卡。两个来路：上一个账号（管理员）把它留在了「控制台」，
+    /// 或者命令行指了这一个分类 —— 不退回的话右半边留着一个再也选不中的内嵌页，它自己只会说一句
+    /// 「需要服务器管理员权限」。顺带兜住上面那个 null：控件写回来的空选择也在这里被拨回第一张卡。
+    /// </summary>
+    private void MoveOffServerAdministration()
+    {
+        if (SelectedCategory is null || ServerAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal))
+            SelectedCategory = FirstCardCategory;
     }
 
     /// <summary>
@@ -1213,7 +1331,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 代价是它比一个长期 token 危险一点，这也是为什么它默认关着、密码框永远不回填。
     /// </para>
     /// <para>
-    /// 每个输入框改了就地写盘，和这一页别的行一样；测试按钮是唯一会碰网络的东西，而且只在按下去的那一刻碰。
+    /// 输入框改了就地写盘；已启用时自动重新检查连接，测试按钮也可在关闭时验证配置。
     /// </para>
     /// </summary>
     private SettingSection MoviePilotCard()
@@ -1225,7 +1343,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         _moviePilotRow = new SettingMoviePilotRow(
             "MoviePilot",
             "接上你自己的 MoviePilot，之后就能在库里查缺集、直接订阅还搜得到资源的那一部。"
-                + "地址填 MoviePilot 的 API 端口（默认 3001），不是网页界面那个端口。",
+                + "协议选 http 或 https，地址填 MoviePilot 的主机，端口填它的 API 端口（默认 3001），"
+                + "不是网页界面那个端口。",
             moviePilot.Enabled,
             moviePilot.Url,
             moviePilot.Username,
@@ -1248,56 +1367,15 @@ public sealed partial class SettingsViewModel : PageViewModel
             [_moviePilotRow]);
     }
 
-    /// <summary>
-    /// 按下「测试连接」之后的那一路：把地址理一遍 → 拿框里的密码（框里空着就用存下来的）→ 登录 + 问三个接口 →
-    /// 把结果拼成一句话交给行去显示。
-    /// <para>
-    /// 丢出来的异常原样交给行显示，因为这一路上的每一句话都是写给用户看的（客户端那几个异常的 <c>Message</c>
-    /// 已经是「用户名或密码不正确」「无法连接到 x.x.x.x」这种）。这里只加一句「还没填地址」—— 那是唯一一件
-    /// 按钮自己就能判断、不必去网络上白跑一趟的事。
-    /// </para>
-    /// <para>
-    /// 用的是框里的密码优先、存下来的兜底，这样「换了密码想试一下」和「每次点都省得重打」两件事都成立，
-    /// 也正好和密码框上那句提示对上。
-    /// </para>
-    /// </summary>
+    /// <summary>测试已保存的当前配置，共享连接状态；只记录测试时间，不替用户打开功能开关。</summary>
     private async Task<string> TestMoviePilotAsync(CancellationToken cancellationToken)
     {
-        if (_moviePilot is null || _moviePilotCredentials is null) return "设置页还没准备好，稍后再试";
+        if (_moviePilot is null) throw new InvalidOperationException("设置页还没准备好，稍后再试");
 
-        var row = _moviePilotRow;
         var moviePilot = Settings.MoviePilot;
-
-        if (!MoviePilotAddress.TryNormalize(row?.Url ?? moviePilot.Url, out var address, out var error))
-            return error;
-
-        if (address is null) return "先填上 MoviePilot 的服务地址";
-
-        var username = (row?.Username ?? moviePilot.Username).Trim();
-        var password = row?.Password is { Length: > 0 } typed
-            ? typed
-            : _moviePilotCredentials.GetPassword(moviePilot);
-
-        if (username.Length == 0) return "先填上用户名";
-        if (password.Length == 0) return "先填上密码（或者是密码没存下来，重新输一次）";
-
-        var status = await _moviePilot
-            .RunAsync(address, username, password, cancellationToken)
-            .ConfigureAwait(true);
-
-        // 通了才把这些写回去 —— 地址归一化过、用户名是这次真的登进去的那个、时间戳记下「什么时候通的」。
-        // 没通就一个字都不改，否则一个打错的地址会把对的那个覆盖掉。
-        moviePilot.Url = MoviePilotAddress.ToDisplayString(address);
-        moviePilot.Username = username;
-        moviePilot.LastUserName = username;
+        var status = await _moviePilot.TestConnectionAsync(cancellationToken).ConfigureAwait(true);
+        moviePilot.LastUserName = moviePilot.Username.Trim();
         moviePilot.LastConnected = DateTimeOffset.Now;
-
-        // 这回真的用上了，顺手把开关打开 —— 按了「测试连接」就是想让它在用的意思。
-        if (!moviePilot.Enabled)
-        {
-            moviePilot.Enabled = true;
-            if (row is not null) row.Enabled = true;
-        }
 
         Save();
 

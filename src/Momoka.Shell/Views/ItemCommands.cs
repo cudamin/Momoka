@@ -44,12 +44,13 @@ internal static partial class ItemCommands
         object sender,
         ContextRequestedEventArgs args,
         IReadOnlyList<EmbyItem>? siblings = null,
-        Action? changed = null)
+        Action? changed = null,
+        Action<CardItem>? removed = null)
     {
         if (session is null || shell is null || sender is not FrameworkElement owner) return;
         if (Card(owner) is not { } card) return;
 
-        Show(session, shell, owner, card, args.TryGetPosition(owner, out var point) ? point : null, siblings, changed);
+        Show(session, shell, owner, card, args.TryGetPosition(owner, out var point) ? point : null, siblings, changed, removed);
 
         // Handled, or the request keeps bubbling and the page behind opens its own menu over ours.
         args.Handled = true;
@@ -67,7 +68,8 @@ internal static partial class ItemCommands
         object? sender,
         CardActionEventArgs args,
         IReadOnlyList<EmbyItem>? siblings = null,
-        Action? changed = null)
+        Action? changed = null,
+        Action<CardItem>? removed = null)
     {
         if (session is null || shell is null) return;
 
@@ -91,7 +93,7 @@ internal static partial class ItemCommands
                 ToggleFavorite(session, shell, card);
                 break;
             default:
-                Show(session, shell, args.Anchor, card, position: null, siblings, changed);
+                Show(session, shell, args.Anchor, card, position: null, siblings, changed, removed);
                 break;
         }
     }
@@ -107,10 +109,11 @@ internal static partial class ItemCommands
     /// </param>
     /// <param name="changed">
     /// Run after a change this menu could not apply to the card on the spot — a metadata save, a
-    /// deletion, 从继续观看中移除, a new cover. Every one of those can move the title, the artwork or
+    /// 从继续观看中移除, a new cover. Every one of those can move the title, the artwork or
     /// whether the item belongs in this row at all, and no amount of patching one card covers that.
     /// User-state changes do not use it: they patch the card.
     /// </param>
+    /// <param name="removed">删除成功后原地移除卡片；未提供时沿用 changed 刷新。</param>
     public static void Show(
         EmbySession session,
         IShellActions shell,
@@ -118,9 +121,56 @@ internal static partial class ItemCommands
         CardItem card,
         Point? position,
         IReadOnlyList<EmbyItem>? siblings = null,
-        Action? changed = null)
+        Action? changed = null,
+        Action<CardItem>? removed = null)
     {
-        var menu = Build(session, shell, owner, card, siblings, changed);
+        var menu = Build(session, shell, owner, card, siblings, changed, removed);
+
+        if (menu.Items.Any(item => item.Tag is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape))
+        {
+            void AvailabilityChanged(object? sender, EventArgs args)
+            {
+                if (!shell.MoviePilotEnabled) menu.Hide();
+            }
+            menu.Opened += (_, _) =>
+            {
+                shell.MoviePilotAvailabilityChanged += AvailabilityChanged;
+                AvailabilityChanged(null, EventArgs.Empty);
+            };
+            menu.Closed += (_, _) => shell.MoviePilotAvailabilityChanged -= AvailabilityChanged;
+        }
+
+        // 季、集的 Genres 常留在所属剧集上，菜单打开后只补查这一份元数据。
+        // 不把父级类型塞回 EmbyItem，且关菜单、换账号或断线后不再插入迟到的行。
+        if (shell.MoviePilotEnabled && card.Scope is { IsCurrent: true } scope &&
+            Momoka.AniBt.AniBtEligibility.Supports(card.Item) && !Momoka.AniBt.AniBtEligibility.HasGenre(card.Item))
+        {
+            var lifetime = new CancellationTokenSource();
+            var original = card.Item;
+            menu.Closed += (_, _) => { lifetime.Cancel(); lifetime.Dispose(); };
+            menu.Opened += async (_, _) =>
+            {
+                try
+                {
+                    var eligible = await scope.ExecuteAsync((client, token) =>
+                        Momoka.AniBt.AniBtEligibility.ResolveAsync(client, original, token), lifetime.Token);
+                    if (!eligible || lifetime.IsCancellationRequested || !scope.IsCurrent || !card.IsCurrent || card.Item.Id != original.Id || !shell.MoviePilotEnabled) return;
+                    var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
+                    if (versions is not null)
+                    {
+                        var plan = ItemMenu.For(original, true, animeGenre: true).Single(row => row.Command == ItemCommand.MoviePilotVersions);
+                        menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, command =>
+                            Invoke(command, shell, owner, card, siblings, changed, removed));
+                    }
+                    var anchor = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotReorganize);
+                    if (anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
+                        menu.Items.Insert(menu.Items.IndexOf(anchor) + 1, Entry("AniBT 识别并重新刮削…", ItemCommand.AniBtScrape,
+                            () => Invoke(ItemCommand.AniBtScrape, shell, owner, card, siblings, changed, removed)));
+                }
+                catch (OperationCanceledException) { }
+                catch (Exception error) { Log.Info("anibt", $"无法核对动画类型：{Failure.Describe(error)}"); }
+            };
+        }
 
         if (position is { } point) menu.ShowAt(owner, new FlyoutShowOptions { Position = point });
         else menu.ShowAt(owner);
@@ -140,7 +190,8 @@ internal static partial class ItemCommands
         FrameworkElement owner,
         CardItem card,
         IReadOnlyList<EmbyItem>? siblings = null,
-        Action? changed = null)
+        Action? changed = null,
+        Action<CardItem>? removed = null)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
 
@@ -152,11 +203,21 @@ internal static partial class ItemCommands
                 continue;
             }
 
-            menu.Items.Add(Entry(row.Label, command, () =>
-                Invoke(command, shell, owner, card, siblings, changed)));
+            menu.Items.Add(BuildEntry(row, selected =>
+                Invoke(selected, shell, owner, card, siblings, changed, removed)));
         }
 
         return menu;
+    }
+
+    private static MenuFlyoutItemBase BuildEntry(ItemMenuEntry row, Action<ItemCommand> invoke)
+    {
+        if (row.Children is not { } children)
+            return Entry(row.Label, row.Command!.Value, () => invoke(row.Command.Value));
+        var submenu = new MenuFlyoutSubItem { Text = row.Label, Tag = row.Command, Icon = new FontIcon { Glyph = Glyph.Of(row.Command!.Value) } };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(submenu, "SearchVersionSources");
+        foreach (var child in children) submenu.Items.Add(BuildEntry(child, invoke));
+        return submenu;
     }
 
     /// <summary>
@@ -174,8 +235,9 @@ internal static partial class ItemCommands
         FrameworkElement owner,
         CardItem card,
         IReadOnlyList<EmbyItem>? siblings = null,
-        Action? changed = null) =>
-        Invoke(command, shell, owner, card, siblings, changed);
+        Action? changed = null,
+        Action<CardItem>? removed = null) =>
+        Invoke(command, shell, owner, card, siblings, changed, removed);
 
     /// <summary>
     /// 按下一行之后做什么。一处 switch 而不是把动作塞进 <see cref="ItemMenu"/>：那一头是「有哪几条」，这一头
@@ -187,9 +249,11 @@ internal static partial class ItemCommands
         FrameworkElement owner,
         CardItem card,
         IReadOnlyList<EmbyItem>? siblings,
-        Action? changed)
+        Action? changed,
+        Action<CardItem>? removed)
     {
         if (card.Scope is not { IsCurrent: true } scope) return;
+        if (command is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape or ItemCommand.AniBtVersions && !shell.MoviePilotEnabled) return;
         var item = card.Item;
 
         switch (command)
@@ -242,12 +306,12 @@ internal static partial class ItemCommands
                 _ = SubtitlesAsync(scope, shell, owner, card, changed);
                 break;
 
-            case ItemCommand.Scrape:
-                _ = ScrapeAsync(scope, shell, owner, card);
+            case ItemCommand.Identify:
+                _ = IdentifyAsync(scope, shell, owner, card, changed);
                 break;
 
             case ItemCommand.RefreshMetadata:
-                Refresh(scope, shell, card);
+                _ = RefreshAsync(scope, shell, owner, card);
                 break;
 
             case ItemCommand.ScanLibrary:
@@ -258,10 +322,20 @@ internal static partial class ItemCommands
                 OpenSeries(scope, shell, item);
                 break;
 
+            // 查看遗漏集：剧和季才有这一条（菜单由 Core 排，见 ItemMenu.MissingEpisodes）。先把这部剧的
+            // 遗漏集问回来，季那一档再按季号筛，然后交给外壳弹表（表上的剧照要容器里的图片服务）。
+            case ItemCommand.ViewMissingEpisodes:
+                _ = MissingEpisodesAsync(scope, shell, card);
+                break;
+
             // 新开一个窗口去 MoviePilot 找这个条目的其他版本；关键字怎么拼由 Core 定（MoviePilotVersionQuery），
             // 窗口生命周期归外壳（同设置窗口）。
             case ItemCommand.MoviePilotVersions:
                 shell.SearchMoviePilotVersions(item);
+                break;
+
+            case ItemCommand.AniBtVersions:
+                shell.SearchAniBtVersions(item);
                 break;
 
             // MoviePilot 手动整理：先把这个条目背后的文件和身份收齐（列表里的卡片没有路径），再交给外壳弹表单。
@@ -281,8 +355,12 @@ internal static partial class ItemCommands
                 });
                 break;
 
+            case ItemCommand.AniBtScrape:
+                shell.ShowAniBtScrape(scope, item);
+                break;
+
             case ItemCommand.Delete:
-                _ = DeleteAsync(scope, shell, owner, card, changed);
+                _ = DeleteAsync(scope, shell, owner, card, changed, removed);
                 break;
         }
     }
@@ -319,16 +397,23 @@ internal static partial class ItemCommands
             (client, token) => played
                 ? client.MarkPlayedAsync(card.Item.Id, token)
                 : client.MarkUnplayedAsync(card.Item.Id, token),
-            data => Patch(card, data, state =>
+            data =>
             {
-                state.Played = played;
+                Patch(card, data, state =>
+                {
+                    state.Played = played;
 
-                // 标记为未观看在服务器上连进度一起清掉 —— 服务器没回话的那一次，手上这张卡也得跟着清，否则
-                // 底边那条进度还在，而它讲的是一个已经不存在的续播点。
-                if (played) return;
-                state.PlaybackPositionTicks = 0;
-                state.PlayedPercentage = 0;
-            }));
+                    // 标记为未观看在服务器上连进度一起清掉 —— 服务器没回话的那一次，手上这张卡也得跟着清，否则
+                    // 底边那条进度还在，而它讲的是一个已经不存在的续播点。
+                    if (played) return;
+                    state.PlaybackPositionTicks = 0;
+                    state.PlayedPercentage = 0;
+                });
+
+                // 标记为已看还要替服务器补报一趟播放停止（位置按用户令报 100%），好让服务器上那条通知立刻把
+                // playback.stop 转发出去（用户令 2026-10-09）。只在这一位：反过来「标记未观看」不是「看完了」。
+                if (played) shell.ReportMarkedWatched(card.Item);
+            });
 
     /// <summary>收藏。同上。</summary>
     private static void SetFavorite(EmbySessionScope session, IShellActions shell, CardItem card, bool favourite) =>
@@ -337,7 +422,11 @@ internal static partial class ItemCommands
             shell,
             "更新收藏失败",
             (client, token) => client.SetFavoriteAsync(card.Item.Id, favourite, token),
-            data => Patch(card, data, state => state.IsFavorite = favourite));
+            data =>
+            {
+                Patch(card, data, state => state.IsFavorite = favourite);
+                shell.RefreshFavorites(card.Item);
+            });
 
     /// <summary>
     /// The card the gesture landed on. Read off the element rather than passed in, because the sender is
@@ -449,12 +538,15 @@ internal static partial class ItemCommands
             ItemCommand.EditMetadata => 0xE70F,
             ItemCommand.ChangeCover => 0xE91B,
             ItemCommand.Subtitles => 0xED1E,
-            ItemCommand.Scrape => 0xE774,
+            ItemCommand.Identify => 0xE774,
             ItemCommand.RefreshMetadata => 0xE72C,
             ItemCommand.ScanLibrary => 0xE895,
             ItemCommand.OpenSeries => 0xE7F4,
+            ItemCommand.ViewMissingEpisodes => 0xE8FD,
             ItemCommand.MoviePilotVersions => 0xE721,
+            ItemCommand.AniBtVersions => 0xE721,
             ItemCommand.MoviePilotReorganize => 0xE8B5,
+            ItemCommand.AniBtScrape => 0xE8B5,
             ItemCommand.Delete => 0xE74D,
 
             // 漏登记一条不该在屏上变成一个空框：退到「更多」那三个点。

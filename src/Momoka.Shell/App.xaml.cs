@@ -234,6 +234,19 @@ public partial class App : Application
         // --show-detail 之后 —— 它自己就走一遍那一步，先弹面板再走就白走了。
         if (_options.ShowCover) await shell.ShowCoverAsync().ConfigureAwait(true);
 
+        // Tooling: --show-missing 在详情页之上把「查看遗漏集」那张表弹开留着。同 --show-cover 的位置和理由 ——
+        // 对话框只在一条命令跑着的时候存在，它自己就走一遍 --show-detail 那一步。
+        if (_options.ShowMissing) await shell.ShowMissingAsync().ConfigureAwait(true);
+
+        // Tooling: --show-identify 在详情页之上把「识别」那张表弹开留着。同 --show-cover 的位置和理由 ——
+        // 对话框只在一条命令跑着的时候存在，它自己就走一遍 --show-detail 那一步。
+        if (_options.ShowIdentify) await shell.ShowIdentifyAsync().ConfigureAwait(true);
+
+        // Tooling: --show-refresh 在详情页之上把「刷新元数据」那张表弹开留着。同 --show-cover 的位置和理由 ——
+        // 对话框只在一条命令跑着的时候存在，它自己就走一遍 --show-detail 那一步。这一条对服务器是只读的：
+        // 表弹开之后没有人按那颗「刷新」，所以一个字节都不会发出去。
+        if (_options.ShowRefresh) await shell.ShowRefreshAsync().ConfigureAwait(true);
+
         // Tooling: --show-picker 把详情页的一颗下拉弹开留着（字幕优先，没有字幕轨的片子退到音频）。
         // 同 --show-cover 的位置：它自己就走一遍 --show-detail 那两步（已经在详情页上就不走），
         // 所以摆在那一步之后。

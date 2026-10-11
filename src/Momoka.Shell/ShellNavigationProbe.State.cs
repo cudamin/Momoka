@@ -3,6 +3,7 @@ using Momoka.Emby;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell;
 
@@ -180,6 +181,16 @@ internal sealed partial class ShellNavigationProbe
         using var returned = new LibraryViewModel();
         returned.Attach(request, fixture.Actions, fixture.SettingsService, fixture.Session, fixture.Images, fixture.Capabilities);
         Require(returned.SearchText == "submitted" && returned.Heading.Contains("submitted", StringComparison.Ordinal), "返回重建丢失搜索词");
+        var oldResponse = Pending<HttpResponseMessage>();
+        var repeatCalls = 0;
+        fixture.Transport.Reply = (_, _) => ++repeatCalls == 1 ? oldResponse.Task
+            : Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+        var oldSearch = vm.SearchAsync("repeat");
+        await vm.SearchAsync("repeat");
+        oldResponse.TrySetResult(Items(1, 1));
+        await oldSearch;
+        Require(fixture.Settings.Ui.RecentSearches.Values.SelectMany(entries => entries).All(entry => entry.Term != "repeat"),
+            "同词旧查询在取消后仍写入最近搜索");
     }
 
     private async Task PlaybackBusyAsync()
@@ -299,6 +310,116 @@ internal sealed partial class ShellNavigationProbe
         reply.SetResult(new HttpResponseMessage(HttpStatusCode.NoContent));
         await writing;
         Require(fixture.Transport.Requests.Count == count, "旧写入完成后重新读取了详情");
+    }
+
+    private async Task DetailPickerLayoutAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var image = await FixtureImageAsync();
+        var series = Series();
+        series.ImageTags["Primary"] = "fixture";
+        series.ImageTags["Art"] = "fixture";
+        var source = new MediaSource
+        {
+            Id = "source-a",
+            Name = "离线版本 · Extended.Directors.Cut.2160p.UHD.BluRay.REMUX.Dolby.Vision.HDR10.HEVC.TrueHD.Atmos",
+            Container = "mkv",
+            MediaStreams =
+            [
+                new() { Index = 0, Type = "Video", Codec = "hevc", Width = 3840, Height = 2160 },
+                new() { Index = 1, Type = "Audio", DisplayTitle = "English · DTS-HD Master Audio 7.1 · 导演评论及制作团队特别解说完整音轨", IsDefault = true },
+                new() { Index = 2, Type = "Subtitle", DisplayTitle = "简体中文／English · 双语特效字幕 · 完整对白、歌曲翻译及制作人员说明", IsDefault = true }
+            ]
+        };
+        var episode = Episode("a");
+        episode.Name = "离线单集 · 文件选项宽度验证";
+        episode.SeriesName = series.Name;
+        episode.ParentIndexNumber = 1;
+        episode.MediaSources = [source, new() { Id = "source-b", Name = "离线版本 · 1080p", Container = "mkv", MediaStreams = source.MediaStreams }];
+        fixture.Transport.Reply = (request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(image) });
+            if (path.EndsWith("/Items/show", StringComparison.Ordinal)) return Task.FromResult(Json(series));
+            if (path.EndsWith("/Items/ep-a", StringComparison.Ordinal)) return Task.FromResult(Json(episode));
+            if (path.EndsWith("/Episodes", StringComparison.Ordinal)) return Task.FromResult(Json(new { Items = new[] { episode } }));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+        var frame = new Frame();
+        var readings = new List<string>();
+        _root.Children.Add(frame);
+        try
+        {
+            frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, episode));
+            var page = (DetailPage)frame.Content;
+            var vm = page.ViewModel;
+            await UntilAsync(() => page.IsReady && vm.StillImage is not null && vm.CornerImage is not null);
+            foreach (var all in new[] { true, false })
+            {
+                if (!all)
+                {
+                    // 同一页隐藏已量过的行，覆盖隐藏控件仍保留旧尺寸的情况。
+                    episode.MediaSources.RemoveAt(1);
+                    source.MediaStreams.RemoveAll(stream => stream.Type == "Subtitle");
+                    await vm.ReloadAsync();
+                }
+                Require(vm.Sources.Count == (all ? 2 : 1) && vm.AudioVisibility == Visibility.Visible
+                    && vm.SourceVisibility == (all ? Visibility.Visible : Visibility.Collapsed)
+                    && vm.SubtitleVisibility == (all ? Visibility.Visible : Visibility.Collapsed), "文件选项夹具显隐状态不符");
+                vm.SelectedAudio = vm.AudioTracks[1];
+                if (all) vm.SelectedSubtitle = vm.SubtitleTracks[2];
+                foreach (var width in new[] { 1023, 1024, 1064, 1280 })
+                {
+                    var scale = _root.XamlRoot.RasterizationScale;
+                    var pixels = (int)Math.Ceiling(width * scale);
+                    var height = (int)Math.Ceiling(900 * scale);
+                    ResizeInspect(pixels, height);
+                    await LayoutAsync(page);
+                    // ResizeInspect 接收外窗物理尺寸；补足窗框后才能真正命中页面断点。
+                    pixels += (int)Math.Round((width - vm.PageWidth) * scale);
+                    ResizeInspect(pixels, height);
+                    await LayoutAsync(page);
+                    Require(Math.Abs(vm.PageWidth - width) < 0.6 && vm.IsCompact == (width < 1024),
+                        $"没有到达指定页面宽度：要求 {width}，实际 {vm.PageWidth:0.00}");
+                    var fit = page.PickerFit();
+                    var label = all ? "all" : "audio";
+                    readings.Add($"{label} {width} DIP：{fit.Ok}；{fit.Detail}");
+                    Require(fit.Ok, fit.Detail);
+                    Require(fit.Detail.Contains("音频", StringComparison.Ordinal)
+                        && fit.Detail.Contains("媒体源", StringComparison.Ordinal) == all
+                        && fit.Detail.Contains("字幕", StringComparison.Ordinal) == all, "读入隐藏行或漏掉可见行：" + fit.Detail);
+                    if (!vm.IsCompact || !all)
+                        Require(fit.Detail.Contains($"摆成 {(all ? 3 : 1)} 行", StringComparison.Ordinal), "文件选项行数不符：" + fit.Detail);
+                    await SaveProbeScreenAsync($"detail-pickers-{label}-{width}-screen.png");
+                    if (width != 1064) continue;
+                    var picker = Get<EgPicker>(page, "ColumnAudioPicker");
+                    try
+                    {
+                        picker.Width = vm.PageWidth + 400;
+                        await LayoutAsync(page);
+                        var overflow = page.PickerFit();
+                        readings.Add($"{label} 超宽负对照：{overflow.Ok}；{overflow.Detail}");
+                        Require(!overflow.Ok, "下拉超过本栏，PickerFit 却通过");
+                    }
+                    finally
+                    {
+                        picker.ClearValue(FrameworkElement.WidthProperty);
+                        await LayoutAsync(page);
+                    }
+                    Require(page.PickerFit().Ok, "恢复下拉宽度后仍失败");
+                }
+            }
+            Require(fixture.Actions.Plays == 0, "文件选项布局检查意外请求播放");
+        }
+        finally
+        {
+            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-picker-layout.txt"), readings);
+            (frame.Content as IShellContent)?.Release();
+            _root.Children.Remove(frame);
+            ResizeInspect(1420, 980);
+        }
     }
 
     private async Task HiddenHomeAsync()

@@ -305,8 +305,12 @@ public sealed partial class SettingsPage : Page, IShellContent
                 // 截图保存目录同理：改一行就写进正播那部的 screenshot-directory 属性，交方法不交服务。
                 request.Services.GetRequiredService<PlaybackService>().ApplyScreenshotDirectoryAsync,
 
-                request.Services.GetRequiredService<MoviePilotProbe>(),
-                request.Services.GetRequiredService<MoviePilotCredentials>());
+                request.Services.GetRequiredService<MoviePilotService>(),
+                request.Services.GetRequiredService<MoviePilotCredentials>(),
+
+                // 左栏「EmbyServer」那一组只有服务器管理员才看得见，所以这一页要知道当前账号的身份（见
+                // RefreshServerAdministrationAsync 与下面那一句）。
+                request.Services.GetRequiredService<IServerCapabilities>());
             _ = ViewModel.ReloadAsync();
         }
 
@@ -314,6 +318,11 @@ public sealed partial class SettingsPage : Page, IShellContent
         // already fills the device row. A cached page skips ReloadAsync by design (in-progress edits are
         // the point), but the device list is a reading, not an edit — it re-enumerates on re-entry.
         if (built) _ = ViewModel.RefreshAudioDevicesAsync();
+
+        // 每一次打开都重新核一遍账号权限 —— 和上面那一行的理由同源：这一页是缓存的，换过账号之后它不重建，
+        // 不重核就会留着上一个账号的答案（管理员看过的「控制台」那一组，普通账号再进来还列着）。这一趟先于
+        // 下面 Select，好在两个路径上都已经发出去了：它回来得晚也只会把落点收回第一张卡，不会把选择拨乱。
+        _ = RefreshServerAdministrationAsync();
 
         // Both paths, and after the build: the cached path used to return before reading the parameter at
         // all, which is the whole of 「open 设置 on 诊断」 — the second time it was asked for, it opened on
@@ -326,6 +335,27 @@ public sealed partial class SettingsPage : Page, IShellContent
         // 每一次头回打开都白建一个，控制台那一页还白起一次 WebView2。
         if (!Select(request.Category)) ShowHosted();
         QueueSettingsEntrance();
+    }
+
+    /// <summary>
+    /// 重新核一遍当前账号能不能管服务器，并让左栏那一列跟上 —— 「非管理员账号自动隐藏设置中的 EmbyServer 栏」。
+    /// <para>
+    /// 权限那份读数与落点都归 <see cref="SettingsViewModel.RefreshServerAdministrationAsync"/>。这里多做的一件
+    /// 事是**重指一次分组源**：分组表换的是一份新表而不是原地增删，因为 <c>CollectionViewSource</c> 的分组视图
+    /// 不会因为一个组从集合里消失就连它的标题一起收走 —— 组底下的条目会没，标题留在屏上（2026-10-10 截图实量，
+    /// 见探针 settings-server-admin-hidden.png）。换源会让 ListView 把自己的选择清空、并顺着 TwoWay 绑定写回
+    /// 一个 null，所以落点先记下来，换完再拨回去。
+    /// </para>
+    /// </summary>
+    private async Task RefreshServerAdministrationAsync()
+    {
+        await ViewModel.RefreshServerAdministrationAsync();
+
+        if (ReferenceEquals(CategoryGroupsSource.Source, ViewModel.CategoryGroups)) return;
+
+        var selection = ViewModel.SelectedCategory;
+        CategoryGroupsSource.Source = ViewModel.CategoryGroups;
+        if (ViewModel.SelectedCategory != selection) ViewModel.SelectedCategory = selection;
     }
 
     /// <summary>

@@ -111,6 +111,9 @@ public sealed record PlaybackRequest
 {
     public required Uri MediaUrl { get; init; }
 
+    /// <summary>Native window state retained across a replacement; null uses the normal launch preference.</summary>
+    public bool? Fullscreen { get; init; }
+
     /// <summary>Shown by mpv as the media title instead of the opaque stream URL.</summary>
     public required string Title { get; init; }
 

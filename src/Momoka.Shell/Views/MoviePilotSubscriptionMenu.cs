@@ -9,13 +9,27 @@ namespace Momoka.Shell.Views;
 internal static class MoviePilotSubscriptionMenu
 {
     internal static MenuFlyout Create(FrameworkElement owner, MoviePilotSubscriptionsViewModel vm,
-        MoviePilotSubscriptionCard card, Action open)
+        MoviePilotSubscriptionCard card, Action open, MoviePilotService? service = null)
     {
         var menu = new MenuFlyout();
+        if (service is not null)
+        {
+            var dispatcher = owner.DispatcherQueue;
+            void AvailabilityChanged(object? sender, EventArgs args)
+            {
+                if (!service.Available) dispatcher.TryEnqueue(() => menu.Hide());
+            }
+            menu.Opened += (_, _) =>
+            {
+                service.AvailabilityChanged += AvailabilityChanged;
+                AvailabilityChanged(null, EventArgs.Empty);
+            };
+            menu.Closed += (_, _) => service.AvailabilityChanged -= AvailabilityChanged;
+        }
         var needsReview = vm.NeedsReview(card);
         var pauseAction = card.Subscription.Paused ? MoviePilotSubscriptionAction.Resume : MoviePilotSubscriptionAction.Pause;
         if (needsReview) Add("核对后继续", "\uE946", () => _ = vm.ReviewAsync(card), false);
-        Add("编辑", "\uE70F", () => _ = vm.EditAsync(card, subscription => MoviePilotSubscriptionEditor.ShowAsync(owner, subscription)));
+        Add("编辑", "\uE70F", () => _ = vm.EditAsync(card, subscription => MoviePilotSubscriptionEditor.ShowAsync(owner, subscription, service)));
         Add("搜索", "\uE721", () => _ = vm.ManageAsync(card, MoviePilotSubscriptionAction.Search));
         Add(card.Subscription.Paused ? "恢复" : "暂停", card.Subscription.Paused ? "\uE768" : "\uE769",
             () => _ = vm.ManageAsync(card, pauseAction));

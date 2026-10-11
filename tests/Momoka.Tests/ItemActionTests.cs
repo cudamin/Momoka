@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using Momoka.Emby;
 using static Momoka.Tests.TestHarness;
@@ -27,7 +28,9 @@ internal static class ItemActionTests
     {
         RegisterWrites();
         RegisterMetadata();
+        RegisterIdentify();
         RegisterCollections();
+        RegisterMissingEpisodes();
         RegisterImagesAndSubtitles();
         RegisterDownload();
         RegisterPurePlans();
@@ -50,41 +53,54 @@ internal static class ItemActionTests
             Assert.Equal(1, stub.Total, "一次点击一趟请求");
         });
 
-        Test("更多菜单：刮削覆盖元数据，刷新不覆盖，两档都不许动图片", () =>
+        Test("更多菜单：刷新元数据两档都问刮削源，差别只在盖不盖现有的", () =>
         {
-            // 同一个接口两套参数，分岔全在参数上 —— 这一条是这一批里最要紧的：ReplaceAllImages 要是跟着
-            // ReplaceAllMetadata 一起变 true，用户刚在「修改媒体封面图」里挑的那张会被紧接着的一次刮削扔掉。
-            var scrape = new StubTransport().Answer("Refresh", "");
-            Wait(Client(scrape).RefreshItemAsync("m1", replace: true, CancellationToken.None));
+            // 同一个接口两套参数，分岔全在参数上 —— 而这两档正是「刷新元数据」那张表上的两档。Emby 网页端
+            // 两档发的都是 FullRefresh（都去问刮削源），missing 是「缺什么补什么」、all 是「抓回来的盖掉现有
+            // 的」；这一位写反了的代价是「刷新一下，手改过的简介没了」，而屏上什么都看不出来。
+            var missing = new StubTransport().Answer("Refresh", "");
+            Wait(Client(missing).RefreshItemAsync("m1", "missing", false, false, CancellationToken.None));
 
-            var one = scrape.Only("Items/m1/Refresh");
+            var one = missing.Only("Items/m1/Refresh");
             Assert.Equal("POST", one.Method);
-            Assert.Contains("MetadataRefreshMode=FullRefresh", one.Url);
-            Assert.Contains("ReplaceAllMetadata=true", one.Url);
-            Assert.Contains("ReplaceAllImages=false", one.Url, "刮削也不许替换图片");
-            Assert.Contains("Recursive=true", one.Url);
+            Assert.Contains("MetadataRefreshMode=FullRefresh", one.Url, "补缺那一档也要去问刮削源");
+            Assert.Contains("ReplaceAllMetadata=false", one.Url);
+            Assert.Contains("ReplaceAllImages=false", one.Url, "表上那颗开关没点就不许动图片");
+            Assert.Contains("ReplaceThumbnailImages=false", one.Url);
+            Assert.Contains("Recursive=true", one.Url, "一部剧刷新时季和单集跟着一起来");
 
-            var refresh = new StubTransport().Answer("Refresh", "");
-            Wait(Client(refresh).RefreshItemAsync("m1", replace: false, CancellationToken.None));
+            var all = new StubTransport().Answer("Refresh", "");
+            Wait(Client(all).RefreshItemAsync("m1", "all", true, true, CancellationToken.None));
 
-            var two = refresh.Only("Items/m1/Refresh");
-            Assert.Contains("MetadataRefreshMode=Default", two.Url, "刷新是「缺什么补什么」");
-            Assert.Contains("ReplaceAllMetadata=false", two.Url);
-            Assert.Contains("ReplaceAllImages=false", two.Url);
+            var two = all.Only("Items/m1/Refresh");
+            Assert.Contains("MetadataRefreshMode=FullRefresh", two.Url);
+            Assert.Contains("ReplaceAllMetadata=true", two.Url, "这一档才盖现有的");
+            Assert.Contains("ReplaceAllImages=true", two.Url, "点了那一颗才换图");
+            Assert.Contains("ReplaceThumbnailImages=true", two.Url);
         });
 
-        Test("更多菜单：自检那一趟刮削真的什么都不改（ValidationOnly）", () =>
+        Test("更多菜单：刷新元数据只认那两档，别的字符串一个字节都不发", () =>
+        {
+            // 档位是从下拉的索引翻过来的，中间夹错一层就会发出一个服务器不认的值 —— 而那一下服务器只会静默
+            // 什么都不做，屏上却写着「已请求刷新」。守卫在 Core，所以它碰得到。
+            var stub = new StubTransport().Answer("Refresh", "");
+            Assert.Throws<ArgumentException>(() =>
+                Client(stub).RefreshItemAsync("m1", "scan", false, false, CancellationToken.None));
+            Assert.Equal(0, stub.Total, "不认识的档位不该发出去");
+        });
+
+        Test("更多菜单：自检那一趟刷新真的什么都不改（ValidationOnly）", () =>
         {
             // 自检要确认这条路通着，又绝不能真去刮用户的库。那一档靠的就是这个参数，所以它值一条测试 ——
-            // 哪天有人把 mode 那个参数「顺手」删掉，自检就会开始在每一轮里刮一次他的第一个条目。
+            // 哪天有人把它删掉、或者顺手换成一次真刷新，自检就会在每一轮里刮一次他的第一个条目。
             var stub = new StubTransport().Answer("Refresh", "");
 
-            Wait(Client(stub).RefreshItemAsync("m1", replace: false, CancellationToken.None, mode: "ValidationOnly"));
+            Wait(Client(stub).ValidateItemRefreshAsync("m1", CancellationToken.None));
 
             var sent = stub.Only("Refresh");
             Assert.Contains("MetadataRefreshMode=ValidationOnly", sent.Url);
             Assert.Contains("ImageRefreshMode=ValidationOnly", sent.Url);
-            Assert.Contains("ReplaceAllMetadata=false", sent.Url);
+            Assert.DoesNotContain("ReplaceAllMetadata=true", sent.Url, "这一档不许盖任何东西");
         });
 
         Test("更多菜单：扫描媒体库打在整台服务器上，不带条目 id", () =>
@@ -113,6 +129,129 @@ internal static class ItemActionTests
             var off = new StubTransport().Answer("HideFromResume", """{ "Played": false }""");
             Wait(Client(off).HideFromResumeAsync("m1", hide: false, CancellationToken.None));
             Assert.Contains("Hide=false", off.Only("HideFromResume").Url, "反方向也要发得出去");
+        });
+    }
+
+    // ── 遗漏集 ────────────────────────────────────────────────────────────────────────────────────────
+
+    private static void RegisterMissingEpisodes()
+    {
+        Test("查看遗漏集：走 Shows/Missing，按剧收窄，两个筛选按三态发", () =>
+        {
+            // 这条不是通用查询加一个 IsMissing 筛选 —— 那一位是 Jellyfin 的，Emby 收到会静默丢掉，发出去看着
+            // 像筛了、其实什么都没筛。所以路径必须是 Emby 自己那条 Shows/Missing，收窄靠 ParentId。
+            var stub = new StubTransport().Answer("Shows/Missing", """
+                { "Items": [ { "Id": "e9", "Name": "第九集", "Type": "Episode", "ParentIndexNumber": 2, "IndexNumber": 9 } ],
+                  "TotalRecordCount": 1 }
+                """);
+
+            var missing = Wait(Client(stub).GetMissingEpisodesAsync("s1", null, null, CancellationToken.None));
+
+            var sent = stub.Only("Shows/Missing");
+            Assert.Equal("GET", sent.Method);
+            Assert.Contains("Shows/Missing", sent.Url);
+            Assert.Contains("ParentId=s1", sent.Url, "收窄到这部剧靠的是 ParentId");
+            Assert.Contains("IncludeItemTypes=Episode", sent.Url, "要的是单集，不是整部剧");
+            Assert.Contains("UserId=u1", sent.Url, "这条接口要 UserId");
+            Assert.DoesNotContain("IsMissing", sent.Url, "IsMissing 是 Jellyfin 的，Emby 会静默丢掉");
+
+            // null 就是「不发这一条」：整份拿回来、两颗开关在本地筛。规格里这两个是筛选（IsUnaired /
+            // IsSpecialSeason），不是「要不要带上」—— 早先照社区帖子里那对 Include* 发，服务器一个都不认。
+            Assert.DoesNotContain("IsUnaired", sent.Url);
+            Assert.DoesNotContain("IsSpecialSeason", sent.Url);
+
+            var one = new StubTransport().Answer("Shows/Missing", """{ "Items": [], "TotalRecordCount": 0 }""");
+            Wait(Client(one).GetMissingEpisodesAsync("s1", true, false, CancellationToken.None));
+            Assert.Contains("IsUnaired=true", one.Only("Shows/Missing").Url);
+            Assert.Contains("IsSpecialSeason=false", one.Only("Shows/Missing").Url, "false 也要发出去，不能当没填");
+
+            Assert.Equal(1, missing.Count);
+            Assert.Equal("e9", missing[0].Id);
+            Assert.Equal("第九集", missing[0].Name);
+        });
+    }
+
+    // ── 识别 ──────────────────────────────────────────────────────────────────────────────────────────
+
+    private static void RegisterIdentify()
+    {
+        Test("更多菜单：识别问的是这个条目能填哪几家标识符", () =>
+        {
+            var stub = new StubTransport().Answer("ExternalIdInfos",
+                """[ { "Name": "IMDb", "Key": "Imdb", "Website": "https://www.imdb.com" } ]""");
+
+            var fields = Wait(Client(stub).GetExternalIdInfosAsync("m1", CancellationToken.None));
+
+            var sent = stub.Only("ExternalIdInfos");
+            Assert.Equal("GET", sent.Method);
+            Assert.Contains("Items/m1/ExternalIdInfos", sent.Url);
+            Assert.Contains("IsSupportedAsIdentifier=true", sent.Url, "不带这一位会混进只能读不能写的 provider");
+            Assert.Equal(1, fields.Count);
+            Assert.Equal("Imdb", fields[0].Key);
+            Assert.Equal("https://www.imdb.com", fields[0].Website, "输入框下面那个链接就是它");
+        });
+
+        Test("更多菜单：识别的搜索打在条目类型上，条件装在 SearchInfo 里", () =>
+        {
+            var stub = new StubTransport().Answer("RemoteSearch/Movie", "[]");
+            var item = new EmbyItem { Id = "m1", Name = "某片", Type = EmbyItemType.Movie };
+
+            Wait(Client(stub).SearchRemoteAsync(item.Type,
+                ItemIdentify.SearchQuery(item, "柯蒂斯总统", "2026", [("Tmdb", "296756")]),
+                CancellationToken.None));
+
+            var sent = stub.Only("RemoteSearch/Movie");
+            Assert.Equal("POST", sent.Method);
+            Assert.Contains("Items/RemoteSearch/Movie", sent.Url, "路由是按条目类型分的");
+
+            var body = JsonNode.Parse(sent.Body)!;
+            Assert.Equal("柯蒂斯总统", body["SearchInfo"]!["Name"]!.GetValue<string>());
+            Assert.Equal((int?)2026, (int?)body["SearchInfo"]!["Year"]);
+            Assert.Equal("296756", body["SearchInfo"]!["ProviderIds"]!["Tmdb"]!.GetValue<string>());
+            Assert.Equal("m1", body["ItemId"]!.GetValue<string>(), "带上条目 id，服务器才知道用哪个库的刮削源设置");
+        });
+
+        Test("更多菜单：识别落地把服务器发来的那一条原样交回去，换不换图自己说了算", () =>
+        {
+            // 服务器按 ProviderIds 和 SearchProviderName 去认片子，少一样就可能认不出来；而它的字段表跟着
+            // 版本走，所以没点名的那些也要原样带回去（RemoteSearchResult.Extra 那一位）。
+            var stub = new StubTransport().Answer("RemoteSearch/Apply", "");
+            const string payload = """
+                {"Name":"柯蒂斯总统","ProviderIds":{"Tmdb":"296756"},"ProductionYear":2026,
+                 "SearchProviderName":"TheMovieDb","SomeFutureField":7}
+                """;
+            var result = JsonSerializer.Deserialize<RemoteSearchResult>(payload, EmbyHttp.Json)!;
+
+            Wait(Client(stub).ApplyRemoteSearchResultAsync("m1", result, replaceAllImages: false, CancellationToken.None));
+
+            var sent = stub.Only("RemoteSearch/Apply");
+            Assert.Equal("POST", sent.Method);
+            Assert.Contains("Items/RemoteSearch/Apply/m1", sent.Url);
+            Assert.Contains("ReplaceAllImages=false", sent.Url, "默认不换图 —— 刚挑的那张封面不该被一次识别扔掉");
+
+            var body = JsonNode.Parse(sent.Body)!;
+            Assert.Equal("296756", body["ProviderIds"]!["Tmdb"]!.GetValue<string>());
+            Assert.Equal("TheMovieDb", body["SearchProviderName"]!.GetValue<string>());
+            Assert.NotNull(body["SomeFutureField"], "没点名的字段要原样带回去");
+
+            var replace = new StubTransport().Answer("RemoteSearch/Apply", "");
+            Wait(Client(replace).ApplyRemoteSearchResultAsync("m1", result, replaceAllImages: true, CancellationToken.None));
+            Assert.Contains("ReplaceAllImages=true", replace.Only("RemoteSearch/Apply").Url, "反方向也要发得出去");
+        });
+
+        Test("更多菜单：移除识别打的是元数据重置，条目 id 两处都给", () =>
+        {
+            // 官方 REST 文档把 ItemIds 写成查询串，官方网页端发的是一个 JSON 正文 —— 两处都给，服务器认哪一处
+            // 都成立。这一位点错了的代价是「按下去什么都没发生」，比多发几个字节难查得多。
+            var stub = new StubTransport().Answer("Metadata/Reset", "");
+
+            Wait(Client(stub).ResetMetadataAsync("m1", CancellationToken.None));
+
+            var sent = stub.Only("Metadata/Reset");
+            Assert.Equal("POST", sent.Method);
+            Assert.Contains("Items/Metadata/Reset", sent.Url);
+            Assert.Contains("ItemIds=m1", sent.Url);
+            Assert.Contains("m1", sent.Body, "正文里那一份也不能少");
         });
     }
 

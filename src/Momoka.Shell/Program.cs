@@ -152,6 +152,45 @@ public sealed record StartupOptions
     public bool ShowCover { get; init; }
 
     /// <summary>
+    /// Tooling only: with a detail page open, pop the 查看遗漏集 panel on that item and leave it there
+    /// (<c>--show-missing</c>). Same reason as <see cref="ShowCover"/>: a dialog exists only while a
+    /// command is running and this machine cannot inject mouse input, so without a switch the table has
+    /// no photograph and no gate that looks at it.
+    /// <para>
+    /// 和 <see cref="ShowCover"/> 一样落在第一个媒体库的第一张详情页上，所以**它只有在那个库是剧集库、
+    /// 而第一张详情页是剧或者季时才弹得出来**：查看遗漏集是剧和季才有的那一条（见 <c>ItemMenu</c>），
+    /// 电影和单集上没有它，弹不出来时日志里写一句。
+    /// </para>
+    /// </summary>
+    public bool ShowMissing { get; init; }
+
+    /// <summary>
+    /// Tooling only: with a detail page open, pop the 识别 table on that item and leave it there
+    /// (<c>--show-identify</c>). Same reason as <see cref="ShowCover"/>: a dialog exists only while a
+    /// command is running and this machine cannot inject mouse input, so without a switch the form, the
+    /// provider links and the result grid have no photograph and no gate that looks at them.
+    /// <para>
+    /// 和 <see cref="ShowMissing"/> 一样落在第一个媒体库的第一张详情页上，所以**只有那一张是能识别的那几种
+    /// （电影、剧、合集、预告片）时才弹得出来**：识别是这几才有的那一条（见 <c>ItemIdentify.Supports</c>），
+    /// 弹不出来时日志里写一句。
+    /// </para>
+    /// </summary>
+    public bool ShowIdentify { get; init; }
+
+    /// <summary>
+    /// Tooling only: with a detail page open, pop the 刷新元数据 table on that item and leave it there
+    /// (<c>--show-refresh</c>). Same reason as <see cref="ShowCover"/>: a dialog exists only while a
+    /// command is running and this machine cannot inject mouse input, so without a switch the mode picker,
+    /// the two replace switches and their three help lines have no photograph and no gate that looks at
+    /// them.
+    /// <para>
+    /// 这一条对服务器是<b>只读</b>的：它只把表弹开留着，没有人按那颗「刷新」，所以一个字节都不会发出去。
+    /// 和 <see cref="ShowMissing"/> 一样落在第一个媒体库的第一张详情页上。
+    /// </para>
+    /// </summary>
+    public bool ShowRefresh { get; init; }
+
+    /// <summary>
     /// Tooling only: with either detail flag, leave the page scrolled all the way down. At scroll 0 the
     /// hero fills the viewport by design, so a screenshot of a fresh detail page shows none of the body —
     /// and the body is what the glass panels and the strip of picture below them have to be looked at in.
@@ -416,6 +455,9 @@ internal static class Program
             ShowDetail = Has(args, "--show-detail"),
             ShowEpisode = Has(args, "--show-episode"),
             ShowCover = Has(args, "--show-cover"),
+            ShowMissing = Has(args, "--show-missing"),
+            ShowIdentify = Has(args, "--show-identify"),
+            ShowRefresh = Has(args, "--show-refresh"),
             ShowPicker = Has(args, "--show-picker"),
             ScrollEnd = Has(args, "--scroll-end"),
             ScrollHalf = Has(args, "--scroll-half"),

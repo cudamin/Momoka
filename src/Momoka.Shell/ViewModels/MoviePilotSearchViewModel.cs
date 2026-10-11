@@ -158,6 +158,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
     private MoviePilotService? _service;
     private readonly LoadGeneration _sourceLoads = new();
     private CancellationToken _query;
+    private bool _updatingSources;
 
     /// <summary>上一次搜的词，供 <see cref="ReloadAsync"/> 重跑。</summary>
     private string _lastTerm = "";
@@ -215,15 +216,29 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         var choices = sources.Where(source => source.IsVideo)
             .DistinctBy(source => source.Id, StringComparer.OrdinalIgnoreCase).ToList();
 
-        SourceChoices.Clear();
-        SourceChoices.Add(AllSources);
-        foreach (var source in choices) SourceChoices.Add(source);
-        SelectedSource = AllSources;
+        var selectedId = SelectedSource?.Id ?? "";
+        _updatingSources = true;
+        try
+        {
+            // 保留已有来源对象与选中项。Clear 后重建会让 ComboBox 的延迟选择通知把恢复的值再次清空。
+            var desired = new[] { AllSources }.Concat(choices).ToArray();
+            for (var index = 0; index < desired.Length; index++)
+            {
+                var existing = SourceChoices.FirstOrDefault(source => source.Id.Equals(desired[index].Id, StringComparison.OrdinalIgnoreCase));
+                if (existing is null) SourceChoices.Insert(index, desired[index]);
+                else if (SourceChoices.IndexOf(existing) != index) SourceChoices.Move(SourceChoices.IndexOf(existing), index);
+            }
+            while (SourceChoices.Count > desired.Length) SourceChoices.RemoveAt(SourceChoices.Count - 1);
+            SelectedSource = SourceChoices.FirstOrDefault(source => source.Id.Equals(selectedId, StringComparison.OrdinalIgnoreCase)) ?? AllSources;
+        }
+        finally { _updatingSources = false; }
+        if (!SelectedSource.Id.Equals(selectedId, StringComparison.OrdinalIgnoreCase) && _lastTerm.Length > 0)
+            await SearchAsync(_lastTerm).ConfigureAwait(true);
     }
 
     /// <summary>换来源筛选：有上一次的词就重搜一遍，没有就只记住选择，下次搜索时生效。</summary>
     internal Task ApplySourceFilterAsync() =>
-        SelectedSource is not null && _lastTerm.Length > 0 ? SearchAsync(_lastTerm) : Task.CompletedTask;
+        !_updatingSources && SelectedSource is not null && _lastTerm.Length > 0 ? SearchAsync(_lastTerm) : Task.CompletedTask;
 
     /// <summary>这次搜索带不带来源筛选：选了具体来源就只搜那一家。</summary>
     private IReadOnlyList<string>? Sources =>

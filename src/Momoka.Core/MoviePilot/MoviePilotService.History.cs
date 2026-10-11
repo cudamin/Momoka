@@ -10,7 +10,7 @@ public sealed partial class MoviePilotService
     {
         if (string.IsNullOrWhiteSpace(title)) throw new MoviePilotException("请输入片名或文件名查找原整理记录");
         var identity = CaptureIdentity();
-        var data = await CallAsync((apiBase, token) => client.GetAsync(apiBase, token,
+        var data = await CallAsync((apiBase, token) => _client.GetAsync(apiBase, token,
             $"history/transfer?title={Uri.EscapeDataString(title.Trim())}&page={Math.Max(1, page)}&count=100",
             cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         var items = MoviePilotTransferHistory.Member(data, "list");
@@ -90,7 +90,7 @@ public sealed partial class MoviePilotService
             [histories.Count == 1 ? "logid" : "logids"] = histories.Count == 1
                 ? histories[0].Id : histories.Select(history => history.Id).ToArray()
         };
-        var data = await CallAsync((apiBase, token) => client.PostAsync(apiBase, token,
+        var data = await CallAsync((apiBase, token) => _client.PostAsync(apiBase, token,
             "transfer/manual/target-path", body, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         CheckIdentity(identity, cancellationToken);
         return ParseTransferTarget(data);

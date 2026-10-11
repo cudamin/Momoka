@@ -7,7 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 「更多」菜单上会碰服务器的那几条 —— 合集、下载、封面图、字幕、刮削与刷新、扫库、从继续观看中移除、删除。
+/// 「更多」菜单上会碰服务器的那几条 —— 合集、下载、封面图、字幕、识别与刷新、扫库、从继续观看中移除、删除。
 /// <para>
 /// 和菜单本身分成两个文件，只为一件事：一个文件还能从头读到尾。哪几条出现在菜单上是
 /// <see cref="ItemMenu"/> 的事，搭菜单是 <c>ItemCommands.cs</c> 的事，这里是每一条按下去之后真正发生的事。
@@ -107,6 +107,49 @@ internal static partial class ItemCommands
             shell.OpenItem(series);
         });
     }
+
+    /// <summary>
+    /// 查看遗漏集：按这部剧问一遍服务器（<c>Shows/Missing</c>），再把清单交给外壳去弹那张表。
+    /// <para>
+    /// 季那一档问的还是它所属的那部剧，再在本地按季号筛（<see cref="ItemDetail.MissingInSeason"/>）——
+    /// 这条接口只承诺认 <c>ParentId</c>，拿季 id 当父传进去不一定认，而季号是每条遗漏集自己带着的一位。
+    /// </para>
+    /// <para>
+    /// 剧集 id 问不出来就明说一句：季的 <c>SeriesId</c> 理论上总在，缺了的时候能做的只有「无处可问」，而不是
+    /// 弹一张空表让用户以为这部剧一集都不缺。
+    /// </para>
+    /// <para>
+    /// 弹表那一头是外壳（<see cref="IShellActions.ShowMissingEpisodes"/>）：表上每一行的剧照要容器里的
+    /// <c>EmbyImageStore</c>，而这里是个静态类、够不到它。
+    /// </para>
+    /// </summary>
+    private static Task MissingEpisodesAsync(
+        EmbySessionScope session,
+        IShellActions shell,
+        CardItem card) =>
+        GuardAsync(shell, "查看遗漏集失败", async () =>
+        {
+            var item = card.Item;
+            var seriesId = item.Type == EmbyItemType.Series ? item.Id : item.SeriesId;
+
+            if (seriesId is not { Length: > 0 })
+            {
+                shell.Notify($"问不出「{item.Name}」所属的剧集，看不到遗漏集", InfoBarSeverity.Warning);
+                return;
+            }
+
+            // 两个筛选都不发（null）：整份拿回来，两颗开关在本地筛（ItemDetail.MissingShown）—— 拨一下开关就
+            // 出结果，不必每拨一次问一趟服务器。这两个参数是筛选而不是「要不要带上」，见 EmbyClient 那段。
+            var missing = await AskAsync(session, (client, token) =>
+                    client.GetMissingEpisodesAsync(seriesId, isUnaired: null, isSpecialSeason: null, token))
+                .ConfigureAwait(true);
+
+            var rows = item.Type == EmbyItemType.Season
+                ? ItemDetail.MissingInSeason(missing, item.IndexNumber)
+                : missing;
+
+            shell.ShowMissingEpisodes(item, rows);
+        });
 
     /// <summary>
     /// 编辑元数据. Reads the item back before showing the form — the grid's copy came from a browse query
@@ -420,44 +463,79 @@ internal static partial class ItemCommands
         });
 
     /// <summary>
-    /// 刮削元数据信息：按名字重新问一遍刮削源，抓回来的<b>盖掉</b>现在的。先问一句 —— 手改过的片名、简介、
-    /// 分级会被覆盖，而那不是一句提示能挽回的。
+    /// 识别：打开那张表，让人把候选挑一条落下来（照 Emby 网页端 <c>components/itemidentifier</c> 做的那一张）。
     /// <para>
-    /// 图片不覆盖（见 <see cref="EmbyClient.RefreshItemAsync"/>），所以刚在「修改媒体封面图」里挑的那张留得住。
+    /// 先按 id 把这个条目重新问一遍 —— 表顶上「路径」那一行要的是服务器上这个文件，而卡片那一份来自列表
+    /// 接口，不带路径。
+    /// </para>
+    /// <para>
+    /// 搜、落地、移除识别三件事由那张表自己按下按钮时调回来（三个委托），而不是「选好了再回来一次做」：
+    /// 一次打开可能搜好几轮、试几条再落地，拆成「对话框返回一个选择」的形状反而要在这里重放一遍那几步。
     /// </para>
     /// </summary>
-    private static Task ScrapeAsync(
+    private static Task IdentifyAsync(
+        EmbySessionScope session,
+        IShellActions shell,
+        FrameworkElement owner,
+        CardItem card,
+        Action? changed) =>
+        GuardAsync(shell, "识别失败", async () =>
+        {
+            if (Root(owner) is not { } root) return;
+
+            var item = card.Item;
+
+            var full = await AskAsync(session, (client, token) =>
+                    client.GetItemAsync(item.Id, token, EmbyFields.Files))
+                .ConfigureAwait(true);
+
+            var dialog = new IdentifyDialog(
+                item,
+                full.Path,
+                () => AskAsync(session, (client, token) => client.GetExternalIdInfosAsync(item.Id, token)),
+                query => AskAsync(session, (client, token) => client.SearchRemoteAsync(item.Type, query, token)),
+                result => result.ImageUrl is { Length: > 0 } url
+                    ? FetchAsync(session, (client, token) =>
+                        client.GetRemoteSearchImageAsync(url, result.SearchProviderName, token))
+                    : Task.FromResult<byte[]?>(null),
+                (result, replaceImages) => TellAsync(session, (client, token) =>
+                    client.ApplyRemoteSearchResultAsync(item.Id, result, replaceImages, token)),
+                () => TellAsync(session, (client, token) => client.ResetMetadataAsync(item.Id, token)))
+            {
+                XamlRoot = root
+            };
+
+            await dialog.ShowAsync();
+
+            // 表里改过服务器上的东西才重读这一页 —— 打开看了一眼、搜了两轮就关掉，那张卡片一个像素都不必动。
+            if (!session.IsCurrent || !dialog.Touched) return;
+
+            shell.Notify($"已更新「{item.Name}」的识别");
+            changed?.Invoke();
+        });
+
+    /// <summary>
+    /// 刷新元数据信息：先照 Emby 网页端那张表问一遍（一档刷新模式加两颗替换开关），再按选的那一档发出去。
+    /// <para>
+    /// 这一条从前是「缺什么补什么、现有的一个字不动」直接发、什么都不问；改成先弹表，是因为同一张表上还有
+    /// 「替换所有元数据」那一档 —— 它会把现有元数据盖掉，而那正是用户按下这一条时最该先看见的一件事。服务器
+    /// 在后台做，这里只报「已请求」，说「已刷新」是替服务器说话。
+    /// </para>
+    /// </summary>
+    private static Task RefreshAsync(
         EmbySessionScope session,
         IShellActions shell,
         FrameworkElement owner,
         CardItem card) =>
-        GuardAsync(shell, "刮削失败", async () =>
+        GuardAsync(shell, "刷新元数据失败", async () =>
         {
-            var item = card.Item;
+            if (Root(owner) is not { } root) return;
 
-            var agreed = await ConfirmDialog.For(owner)(
-                    "刮削元数据信息",
-                    $"将重新从刮削源抓取「{item.Name}」的元数据，抓到的会覆盖现在的片名、简介和分级等信息"
-                        + "（封面等图片不会被替换）。服务器在后台做这件事，可能要过一会儿才看得到结果。",
-                    "开始刮削")
-                .ConfigureAwait(true);
+            var dialog = new RefreshMetadataDialog { XamlRoot = root };
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
 
-            if (!agreed) return;
-
-            await TellAsync(session, (client, token) => client.RefreshItemAsync(item.Id, replace: true, token))
-                .ConfigureAwait(true);
-
-            shell.Notify($"已请求刮削「{item.Name}」，服务器在后台处理");
-        });
-
-    /// <summary>
-    /// 刷新元数据信息：缺什么补什么，现有的一个字不动 —— 所以不问，直接发。服务器在后台做，这里只报「已请求」，
-    /// 说「已刷新」是替服务器说话。
-    /// </summary>
-    private static void Refresh(EmbySessionScope session, IShellActions shell, CardItem card) =>
-        _ = GuardAsync(shell, "刷新元数据失败", async () =>
-        {
-            await TellAsync(session, (client, token) => client.RefreshItemAsync(card.Item.Id, replace: false, token))
+            await TellAsync(session, (client, token) => client.RefreshItemAsync(
+                    card.Item.Id, dialog.Mode, dialog.ReplaceImages, dialog.ReplaceThumbnails, token))
                 .ConfigureAwait(true);
 
             shell.Notify($"已请求刷新「{card.Item.Name}」的元数据，服务器在后台处理");
@@ -504,7 +582,8 @@ internal static partial class ItemCommands
         IShellActions shell,
         FrameworkElement owner,
         CardItem card,
-        Action? changed) =>
+        Action? changed,
+        Action<CardItem>? removed) =>
         GuardAsync(shell, "删除失败", async () =>
         {
             var item = card.Item;
@@ -520,6 +599,8 @@ internal static partial class ItemCommands
             await TellAsync(session, (client, token) => client.DeleteItemAsync(item.Id, token)).ConfigureAwait(true);
 
             shell.Notify($"已删除「{item.Name}」");
-            changed?.Invoke();
+            if (removed is not null) removed(card);
+            else changed?.Invoke();
+            shell.RefreshFavorites();
         });
 }

@@ -1,6 +1,232 @@
 # 开发进度
 
-最后更新：2026-10-09
+最后更新：2026-10-11
+
+## v0.1.3 以来在途一批落主树（2026-10-11，未发版）
+
+- 当前树 `C:/Users/89400/Momoka`；把 v0.1.3 以来十余轮在途工作（各自记录见下）整批提交。曾按用户「提交代码，打包发布新版本」起一发版轮：版本升 0.1.4、闸门 1～3 全过，闸门 4 因 Emby 服务器宕机无法通过，用户改令「只提交代码，不发布」——版本号回退 0.1.3，未打标签、未发 GitHub Release、对外安装包/ZIP/商店包已删除。
+- 本批内容概览：MoviePilot 媒体详情与按季订阅复刻、资源搜索站点选择与下载确认（下载器/已有目录/自定义路径）、订阅集列表播出日期与已播出集搜资源、集页版本搜索改「剧名 年份 S0x」自动按集筛选、AniBT 接入（识别刮削、搜索栏、遗漏集动画来源）、「识别」「刷新元数据」「查看遗漏集」三张网页端复刻表、标题栏收藏入口与媒体库/收藏页单项删除、搜索页最近搜索与 MoviePilot 分流、非管理员隐藏服务器管理栏、集页封面固定上限、集页文件选项溢出与音量条小窗修复、集成模式全屏 DWM 圆角边框修复。
+- 提交前验证（当时版本串为 0.1.4，回退只动 `Directory.Build.props` 三行版本 XML，不涉代码）：完整 Release 构建 0 警告 0 错误；`format whitespace` 与 18 个 PowerShell 脚本编码/语法检查通过；1727 项测试全部通过、0 失败 0 跳过（含分析器哈希与约定基线）；发布校验 533 文件、302.6 MB（11 GLSL、4 HOOK，着色器许可逐文件核对）。差异扫描无内网地址、无令牌、无本机路径入仓。
+- 闸门 4 两次运行（`run-34eea1fe9e9e4f3aa56e141b1aaedc5c`、`run-b080847a96d44f1990ec68e45b9baec7`）均停在登录页：保存令牌恢复登录时服务器返回 HTTP 502，随后公共接口探测 502/连接失败——服务器宕机属环境故障，非构建问题；两轮日志保留，未改基线消红。闸门 4 留待发版轮补跑。
+- 收尾交付：版本回退后按 0.1.3 重新发布 `artifacts/publish/win-x64`（撤销发版尝试留下的 0.1.4 标签构建），桌面快捷方式指向不变。
+
+## 集页搜版本改「剧名 年份 S0x」＋自动按集筛选（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交工作。本轮改 `MoviePilotVersionQuery.cs`、`MoviePilotResourceFilter.cs`，新增 `MoviePilotEpisodePattern.cs`；Shell 侧改 `MoviePilotResourceBrowserViewModel`、`MoviePilotVersionsViewModel`、`MoviePilotVersionsView`、`MoviePilotWindow`、`ShellPage.xaml.cs`、`IShellActions`；测试改 `MoviePilotVersionQueryTests`、`Program.cs`，新增 `MoviePilotEpisodePatternTests`。未提交、未推送。
+- 用户令：集页面搜不同版本改为先搜「剧名 年份 S0x」，再自动用 E0X、第X集筛选。集的关键词从此不带集号（词太具体站点常搜空），改搜整个季，结果出来由版本窗口自动挂上目标集的筛选 —— 筛选就挂在原有的「集」下拉上（E05），看得见、随时能改回「全部集」；年份取集条目自己的 `ProductionYear`（集页面上显示的那个），缺失就退回「剧名 S0x」。
+- 新增 Core 纯函数 `MoviePilotEpisodePattern`：在标题／描述里认 `S01E05`／`E05`／`EP05`、`第5集`／`第05集`、汉字数字 `第五集`／`第一百零五集`；数字整段读完再比（`E512` 不是第 5 集），HEVC、PART5、4KE05 这类巧合不认，无单位的汉字罗列（第二三集）不猜。`MoviePilotResourceFilter` 的按集筛选在 meta 集号之外接受这种标题写法（服务器 meta 偶尔整段解析不出来，标题明写着的不该丢）—— 这条对精确搜索资源面板的集下拉同样生效。
+- 范围外没动：订阅详情与遗漏集表的「搜索这一集」没有结果页可挂筛选，仍是「剧名 S0x E0x」旧词（`MoviePilotVersionQuery.Keyword(string,int?,int?)`）。`ShellPage.SearchMoviePilotVersions` 拆成单参与双参两个重载 —— 方法组转换不认默认参数（订阅页把单参形态当 `Action<string>` 传，并成一个会 CS1503）。
+- 验证：Release 全方案构建 0 警告/0 错误；重编译测试后 1727 项全部通过、0 失败/0 跳过（新增 12 条：关键词 2 条＋集号识别与按集筛选 10 条）；`format whitespace` 全绿。已发布到桌面快捷方式实际指向的 `artifacts/publish/win-x64`。
+- 未验证：真实 MoviePilot 站点搜索（要连真实服务器与站点，本轮没有发起）；版本窗口自动筛选的实机画面 —— 判据：集页「在 MoviePilot 搜索其他版本」开窗后，搜索框里应是「剧名 年份 S0x」，结果列表上方「集」下拉应停在 E0x、计数是「n / m 条」，改回「全部集」能看到整个季。
+
+## 自检文件选项溢出与音量条小窗失败修复（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交工作。主代理写入，两个子代理只读核对。修改 `DetailPage.xaml(.cs)`、`PlayerPage.Chrome.cs`、`PlayerPage.xaml.cs`、`PlayerPage.SelfCheck.Chrome.cs`、`ShellNavigationProbe.cs`、`ShellNavigationProbe.State.cs`、开发文档及本记录；未提交、未推送。
+- 修复用户指定的 `run-41f93e4fa78d4efaa72ecbb2b0069056` 两项失败。集页文件选项从无宽度约束的水平 StackPanel 改为 Auto 标签列加剩余宽度列，长名称不再撑出片名栏。边界检查只读真正可见的行，集页按标签行核对左沿，保持右边界容差并拒绝零尺寸。
+- 音量条失败有两层原因：底栏恢复 Collapsed 后才读取 DesiredSize，首次让位变成 0；提前保存后，又暴露宽度尚为 0 时倍速条收起、79 DIP 高度被长期缓存的问题。移除这份手写高度缓存，按当前布局测量，在 finally 恢复显隐。最终首次让位/显示高度为 89/89，音量条上沿 114→114、高 140→140；900×200 极矮窗可用高 15，反馈 0%，不挡点击。
+- 扩展原有音量自检，保留三档小窗和 200 高隐藏断言，并核对底栏显示前后实际几何。Shell 离线探针增加文件选项布局用例：1023/1024/1064/1280 DIP、三颗长名称选择框、同页隐藏源与字幕后仅音频、两次超宽负对照及恢复。`shell-probe-20261011-032510307-9860` 为 68/68 通过；八张真实屏幕截图已逐张检查，副本及读数在 `artifacts/screenshots/selfcheck-fix-20261011/`。最终发布件另通过 `--show-osd pinned` 拍摄并检查音量条，未加载影片。
+- 最终四道闸门全过：完整 Release 构建 0 警告/0 错误；1715 项测试全部通过、0 失败/0 跳过，包含分析器哈希检查；完整 whitespace、18 个 PowerShell 脚本编码/语法、git diff --check 通过。已更新桌面快捷方式实际指向的 `artifacts/publish/win-x64`，发布校验 533 文件、302.5 MB。
+- 最终自检日志：`artifacts/selfcheck/run-40a823b94f354a77a9fe027822c26d90/logs/selfcheck-shell.txt`，184 项、0 失败、0 消失、0 降级、0 新增，未修改普通自检基线。首轮修复后的额外几何断言失败证据保留于 `run-0c1c8854e099419aa613f286a37abed5`，没有放宽断言消红。命令日志为 `work/selfcheck-fix-final2-{build,format}.log`、`work/selfcheck-fix-final-{tests,publish,gate4}.log`。
+- 覆盖范围为集页布局及集成播放页的合成控件状态；普通自检和 OSD 截图只读真实库，未真实播放，未验证独占窗口或外部 mpv 后端。
+
+## 集页封面固定上限、窄窗缩小（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交工作。主代理修改 `DetailHero.cs`、`DetailViewModel.cs`、`ItemDetailTests.cs` 及本记录，子代理只读核对布局。未提交、未推送。
+- 按用户最终要求及参考截图，集页封面上限盒固定为 260×375 DIP，图片按原始比例完整装入；页宽达到 1280 后不再增大，低于 1280 时宽高同比缩小。紧凑版式共用同一条尺寸曲线，移除旧文字栏高度钳制及其回调；其他页面保留原尺寸。集页固定按最大宽取图，避免窄窗打开后再拉宽放大低分辨率图片。
+- 验证：当前 Release 全方案构建 0 警告、0 错误；1715 项测试全部通过，0 失败、0 跳过；空白检查及 `git diff --check` 通过。更新原有封面尺寸规则测试，覆盖宽窗封顶、窄窗缩放、紧凑断点连续、原图比例及未测量宽度回退。
+- 发布件实测同一集页面连续切换 1280→2000→1024→1023→800→1280 DIP：封面分别为 255×375、255×375、204×300、204×300、159×234、255×375。六张运行窗口截图已逐张检查，记录位于 `artifacts/screenshots/episode-cover-fixed-20261011/`。屏幕抓取因未取得前台而拒绝，按工具提示改用窗口直接捕获；没有用渲染图冒充屏幕截图。只用 `--show-episode` 读取真实库，没有起播或修改媒体记录。
+- 已发布到桌面 `Momoka.lnk` 实际指向的 `artifacts/publish/win-x64`，发布校验 533 个文件、302.5 MB。日志为 `work/episode-cover-fixed-{build,tests,format,publish}.log`。本轮未运行普通完整自检，也未验证真实播放。
+
+## MoviePilot 媒体详情与按季订阅复刻（2026-10-11）
+
+- 当前树 `C:/Users/89400/Momoka`，保留进入本轮时已有的未提交修改。根会话写入；两个子代理只读核对官方源码与本地实现。未提交、未上传。
+- 对照实际服务器 `dashboard/system` 返回的 v3.1.3，以及官方同版本前后端源码；只读核对真实媒体身份、元信息与剧集组。真实订阅、下载、播放写入均为 0。
+- 媒体详情新增完整元数据、资料站链接、全部季、默认/自定义剧集组浏览、季展开、演职员与相关推荐。按用户后续修正，撤掉定高圆角横幅，改成与季页面一致的完整固定背景：铺满视口、延伸标题栏，正文滚动不带走图片。
+- 季选择弹窗支持新增/取消/普通订阅/分集洗版/全集洗版；按来源、媒体、类型、组、季与明确订阅 ID 生成差量，未显示季和其他组不受影响。新增读取返回 ID 核实模式，部分失败停止并保留成功项，结果不明不重发。离开所属页面立即撤销弹窗生命周期。
+- 资源搜索与会自动下载的订阅搜索分开；新增标题/IMDb 搜索、字幕列表与 MoviePilot 服务器路径保存。字幕签名对象仅在内存中原样回传。保留当前 Emby 身份下的入库播放与原订阅管理。
+- 主要新增 Core 文件为 `MoviePilotMediaDetail`、`MoviePilotSubscriptionPlan`、`MoviePilotService.MediaDetail`、`MoviePilotSubtitle`、`MoviePilotRelatedMedia`；Shell 新增媒体 VM、季浏览和季选择控件，复用资源面板。协议规则与匿名测试进入仓库，不依赖 ignored work 快照。
+- 最终完整 Release 构建 0 警告/0 错误，重新编译测试后 1715 项全部通过、0 跳过；完整 whitespace 检查与 git diff --check 通过，自动化句柄扫描 0 缺失。最终 Shell 探针 `shell-probe-20261011-024717273-19620` 为 67/67 通过，含所属页面取消、三档宽度、五套主题完整背景、真实按钮提交、取消草稿、部分失败和字幕保存。截图已逐张检查，选取副本在 `artifacts/screenshots/mp-media-detail-20261011`。
+- 保留了两次失败证据：首轮测试选择到两个同名 CloseButton，按内容收窄后解决；一次以隐藏窗口启动使 11 项屏幕取证被遮挡检测拒绝（`shell-probe-20261011-024437235-23340`），正常可见启动复跑 67 项全过，没有降低检查或改基线。
+- 已发布到桌面快捷方式实际指向的 `artifacts/publish/win-x64`，发布验证 533 个文件、302.5 MB，着色器与许可逐文件校验通过。没有修改版本号、提交或上传；真实服务器只读核对不代表真实订阅、下载或播放验证。
+
+## 「刷新元数据」照网页端复刻那张表（刷新模式 + 两颗替换开关）（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；**保留进入本轮时已有的全部未提交修改**（另一会话的 AniBT、MoviePilot 集分组、识别表等）。本轮新增 `src/Momoka.Shell/Views/RefreshMetadataDialog.xaml(.cs)`；另改 `src/Momoka.Core/Emby/EmbyClient.cs`、`Views/ItemCommands.cs`、`Views/ItemCommands.Server.cs`、`Views/DetailPage.xaml.cs`、`Views/ShellPage.xaml.cs`、`ShellSelfCheck.Reads.cs`、`App.xaml.cs`、`Program.cs`、`tests/Momoka.Tests/ItemActionTests.cs`、`Agreements.txt`、`docs/开发与验证.md`、本文件。未提交、未推送。
+- 用户令：「复刻网页端，修改更多按钮中的刷新元数据」，参考图是 Emby 网页端那张表。
+- **协议与文案逐字取自官方网页端现行源码**（`app.emby.media/modules/refreshdialog/refreshdialog.js` 与 `modules/common/strings/zh-CN.json`，不是凭印象）：下拉两档 —— `missing`「搜索缺少的元数据」、`all`「替换所有元数据」（**默认选 all，同网页端**）；**两档都发 `MetadataRefreshMode=FullRefresh`**（都去问刮削源），分岔只在 `ReplaceAllMetadata` 这一位；两颗开关落 `ReplaceAllImages` / `ReplaceThumbnailImages`；`Recursive=true`。三句说明逐字取自 `RefreshDialogHelp` / `ReplaceExistingImagesHelp` / `ReplaceExistingThumbnailImagesHelp`。网页端还按服务器版本（>= 4.9.1.1）决定露不露缩略图那一行；这里不按版本收，和本仓媒体库那张表一致 —— 老服务器收到不认的参数只会静默忽略，而少一行会让用户以为这一档不存在。
+- **本轮唯一的可见行为变化**：这一条从前是「缺什么补什么」直接发（`replace:false` → `MetadataRefreshMode=Default`，那一档根本不去问刮削源、也不弹任何表），现在先弹表、按选的档位发 —— 而默认那一档会覆盖现有元数据。与网页端对齐，也是用户要的「复刻」。
+- 新增工具开关 **`--show-refresh`**（配详情页），同 `--show-cover` / `--show-missing` / `--show-identify`：对话框只在一条命令跑着的时候存在，外面点不进去，没有它这张表就没有照片。**这一条对服务器只读** —— 只弹表，没人按「刷新」，一个字节都不发。同步了 `docs/开发与验证.md` 的命令行开关一节与 `Agreements.txt` 的 `switch` 行。
+- 自检的「更多菜单的对话框」那一关加了这张表（`ShellSelfCheck.Reads` 的 `ReadDialogs`），只造不弹；详情串里现在有「刷新元数据『刷新元数据』」。
+- 验证：Release 全方案 **0 警告／0 错误**；`format whitespace` 过；离线单测 **1705/1705**，0 失败、0 跳过（本轮改了 2 条、加了 1 条：两档的参数分岔、认不出的档位一个字节都不发、自检那趟 `ValidationOnly` 走的是新方法）；自动化句柄扫描 `no handle at all: 0`，新表 3 个句柄逐条记进 `Agreements.txt` 的 `handle` 小节。真实截图（发布件、真账号、真库，JOJO 详情页）：`shots/refresh-metadata-dialog.png`（下拉闭合，与参考图同一套版面：标题、刷新模式＋下拉、「替换所有元数据」、三句说明、两颗贴右边的开关、刷新／取消）、`shots/refresh-metadata-dialog-modes.png`（下拉展开，两档都在）。发布件已刷新 `artifacts/publish/win-x64`（533 文件／304 MB）。
+- 闸门 4 **仍是红的**，红的还是那 2 项既存失败（「文件页文件选项」音频控件右边界出界、「音量条淡入淡出」小窗高度检查）—— 184 检查、失败 2、消失 0、降级 2、新增 0，与本轮改动无关，未改自检基线消红。
+- 未验证：**没有真跑一次刷新**（`all` 那一档会覆盖用户库的元数据，按第三档规矩先要授权）；两颗替换开关的真机效果同样没跑。`--show-refresh` 只证明这张表搭得起来、长什么样。
+
+## 「刮削元数据信息」改为「识别」，照网页端复刻识别表并加「移除识别」（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；**保留进入本轮时已有的全部未提交修改**（另一会话的 AniBT 与 MoviePilot 集分组等）。本轮新增 `src/Momoka.Core/Emby/ItemIdentify.cs`、`src/Momoka.Shell/Views/IdentifyDialog.xaml(.cs)`、`tests/Momoka.Tests/ItemIdentifyTests.cs`；另改 `EmbyResponses.cs`、`EmbyClient.cs`、`ItemMenu.cs`、`ItemCommands.cs`、`ItemCommands.Server.cs`、`DetailPage.xaml.cs`、`ShellPage.xaml.cs`、`App.xaml.cs`、`Program.cs`、`Strings/zh-Hans/Resources.resw`、`ItemMenuTests.cs`、`ItemActionTests.cs`、测试 `Program.cs`、`docs/开发与验证.md`、`Agreements.txt`、本文件。未提交、未推送。
+- 用户令：「把更多按钮中的刮削元数据信息改为 识别」，照他给的那张网页端截图复刻界面，「最后参考网页端添加一个移除识别按钮」。
+- **协议取自官方网页端现行源码**（`app.emby.media/modules/itemidentifier/`，不是凭印象）：`GET Items/{Id}/ExternalIdInfos?IsSupportedAsIdentifier=true`（每家一个输入框，标签是「名字 + 标识符」，下面挂 `Website` 链接 —— 用户截图里那三格和三条链接就是它）、`POST Items/RemoteSearch/{Type}`（体 `{SearchInfo:{Name,Year,ProviderIds}, ItemId}`）、`POST Items/RemoteSearch/Apply/{Id}?ReplaceAllImages=`（体是**服务器发来的原样那一条**，所以 `RemoteSearchResult` 带 `[JsonExtensionData]`，没点名的字段原样带回去）、`POST Items/Metadata/Reset`（移除识别）。候选海报走服务器转发 `Items/RemoteSearch/Image`，不直连刮削源 —— 本机连不上 TMDB 的 CDN 是常事。
+- **「识别」只摆在服务器查得动的那几种上**（`ItemIdentify.Supports`：电影、剧、合集、预告片、音乐那三种）：`Items/RemoteSearch` 没有 Season／Episode 路由，季和单集跟着所属的剧一起识别 —— 给它们摆一条，点下去只有 404，而屏上只是「点了没反应」。**这是本轮唯一的可见范围变化**（原「刮削元数据信息」在季和单集上也有）。原来那条「刮削」（`RefreshItemAsync(replace:true)` 全量重刮）从此不在菜单上，与网页端对齐 —— 那边就是「识别」+「刷新元数据」两条。
+- **「移除识别」摆在识别表里、搜索旁边**（网页端那个动作挂在它的条目菜单上，不在表里；用户要的是「按钮」，就放在识别这件事发生的地方）。按下去在同一张表里换一段问一句：`Items/Metadata/Reset` 不可撤销，而**不另开一张 `ContentDialog`** —— WinUI 同时只让开一张。四段（填条件／结果／落地／确认）靠 Visibility 换；**按钮在滚动区外面**，一次只露该露的两颗。第一版把按钮摆在正文末尾，矮窗口下那颗「搜索」被切掉半颗（`work/identify.png` 是第一版，`work/identify2.png` 是改过的）。
+- 新增工具开关 **`--show-identify`**（配详情页），同 `--show-cover` / `--show-missing`：对话框只在一条命令跑着的时候存在，外面点不进去，没有它这张表就没有照片。同步了 `docs/开发与验证.md` 的命令行开关一节与 `Agreements.txt` 的 `switch` 行。
+- 验证：Release 全方案 0 警告／0 错误；`format whitespace` 过；离线单测 **1704/1704**，0 失败、0 跳过（本轮新增 13 条：支持范围、标签、判据、年份、搜索体形状、提交原样字段、候选那一行小字，加四个接口各自的动词／路径／参数）；自动化句柄扫描 `no handle at all: 0`，新表 23 个句柄逐条记进 `Agreements.txt` 的 `handle` 小节。真实截图 `work/identify-published2.png`（发布件）：真账号、真库，JOJO 详情页上弹出「识别 — JOJO的奇妙冒险」，说明文字、路径那一行、标题／年份、IMDb／TheMovieDb／TheTVDB 三格与它们下面的官网链接、底下「搜索」＋「移除识别」都在位，与用户那张参考图同一套版面。
+- 未验证：**结果段与落地段没有照片**（要往表里打字、再点一张候选才到得了那两段，这台机器注不进鼠标／键盘事件），那两段用的是「修改媒体封面图」那张表已经跑通的那套（`ItemsControl` + `ItemsWrapGrid` + 异步海报）。也没有真跑搜索、落地、移除识别这三趟 —— 它们都会写用户的库，按第三档规矩先要授权。发布件已刷新 `artifacts/publish/win-x64`。
+
+## 遗漏集搜索与动画版本来源（2026-10-10）
+
+- 当前交付树 `C:/Users/89400/Momoka`；保留进入本轮的未提交工作。主代理单独写入，两个子代理只读核对 AniBT Wiki/OpenAPI 和界面接线；限流后沿用原协议子代理重试。
+- 遗漏集每行新增 MP 搜索，动画／动漫类型提供 MoviePilot 与 AniBT 两项；虚拟集缺剧名时从所属剧／季补齐。先关闭清单再打开版本窗口，并核对 Emby 身份与 MP 连接；类型可来自单集或父剧。
+- 动画媒体“搜索不同版本”改为两项子菜单，包含父剧类型的异步补查。复用独立搜索窗口和现有 MoviePilot 下载确认，支持下载器、已有目录及自定义路径；换来源、改词、关闭和连接改变均撤销旧结果。
+- AniBT 使用纯番剧名查询 Bangumi，再按选中作品用 RSS 独立 `episode` 参数查单集；提供“查看全部集数”，不将 Emby 季号当 Bangumi 身份，不假设合集被单集查询覆盖。省略默认 `limit=100`，跟随同站编号合并后用规范化身份校验资源和交给 MP，重定向不能删改分集条件。
+- 验证：Release 构建 0 警告／0 错误；当前离线测试 **1691/1691**，0 失败、0 跳过；完整 whitespace 检查及 `git diff --check` 通过，自动化句柄扫描 0 缺失，并为新增 6 个 XAML 句柄逐项追加约定基线。
+- 发布件 `--probe-shell --screen 1` **61/61 通过**，证据在 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261010-122131711-16568/logs/`。已查看展开版本子菜单、遗漏集来源菜单、宽窄列表、AniBT 第 4 集资源及下载器／自定义路径确认的真实截图；全部网络与下载提交验证使用匿名假传输。初次隐藏启动导致截图拒绝，已改为正常运行界面探针；未放宽遮挡校验，临时调整尺寸的实验已撤回。
+- 已发布至 `artifacts/publish/win-x64`，验证 533 文件／302.3 MB；桌面 `Momoka.lnk` 指向该目录。未提交 Git、未真实播放、未向真实 MoviePilot 提交下载或刮削。
+- 完整自检已运行当前发布件：`artifacts/selfcheck/run-41f93e4fa78d4efaa72ecbb2b0069056/logs/selfcheck-shell.txt`，184 项、2 失败、0 消失、2 降级，闸门 4 保持红色。失败为“文件页文件选项”（音频控件右边界 590 超过可用 588）和“音量条淡入淡出”（小窗口高度检查）。本轮没有修改这两处布局，也没有可信的变更前二进制可证明它们的起源；未改自检基线消除失败。新来源菜单的真实截图与离线断言另有 61/61 通过证据。
+## AniBT 识别刮削与搜索下载（2026-10-10）
+
+- 当前交付树 `C:/Users/89400/Momoka`，保留进入本轮的所有未提交修改。三个子代理在独立 managed worktree 的 `anibt-protocol`、`anibt-integration`、`anibt-search-panel` 中实现新增文件，由主会话逐文件整合；没有提交或推送。
+- 更多菜单支持动画／动漫 Genres 的电影、剧集、季与单集，季／集只读补查所属剧，不篡改服务端 Genres。逐文件读取原源文件名交匿名 AniBT 匹配，用户可核对候选，MP 使用 Bangumi 原生身份做文件级刮削；沿用 30 文件批量上限，完整准备后才逐文件提交，结果不明不重发。未调用重新整理或移动文件接口。
+- 搜索新增 AniBT 栏，番剧选择后读取 RSS，复用资源浏览和下载选项。严格核对 RSS Bangumi 身份与本站种子地址，MP 启用 Bangumi 时完整媒体快照交 `download/`，缺少模块时公开种子交 `download/add`。搜索、匹配、下载和刮削绑定 MP 连接与代次，关闭或断线隐藏入口。
+- 本轮只读确认 MP 为 `v3.1.3`，Bangumi 来源启用，媒体详情 `media_source/media_id/type/title` 字段及编号匹配；AniBT 匿名匹配、搜索和 RSS 已读验证。没有真实下载、刮削、播放或 Emby 扫库。
+- 验证：完整 Release 构建 0 警告／0 错误；最终当前测试 **1687/1687** 通过，0 失败、0 跳过，空白检查及 `git diff --check` 通过。首轮新增夹具漏写 `storage/list` 成功信封导致 4 项失败，修正夹具后重验通过，初始日志保留在 `artifacts/anibt-tests-initial.txt`。新增回归覆盖动画电影类型、带 `#` 源文件名，以及批量提交中媒体库身份变化时保留已写回执并停止后续文件。
+- 离线 Shell 探针最终 **60/60** 通过，相比本轮前最近 58 项报告新增 2 项、消失 0、退化 0。首轮发现四栏搜索仍按三栏分配宽度，现改为实际栏数，窄屏使用 MP 简称；取消探针排除 InfoBar 内同名关闭按钮。首轮失败报告保留 `shell-probe-20261010-114141052-19252`，最终报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261010-114543175-10348/logs/shell-probe.json`；已查看 1040／360 宽搜索、资源、识别确认以及下载确认真实截图。353 个交互控件扫描无缺失句柄，新增 10 个句柄逐条登记，未改普通自检基线。
+- 交付：已运行 `tools/publish.ps1 -NoArchive`，刷新桌面 `Momoka.lnk` 实际指向的 `artifacts/publish/win-x64`，发布验证通过（533 文件，302.3 MB）。未执行真实下载、刮削、播放、普通联网自检或 Emby 扫库；MP 回执仍不能代替逐文件落盘验证。三个协作工作树已归档保留恢复快照，主树未提交或推送。
+
+## 封面「更多」菜单新增「查看遗漏集」（仅剧和季）（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；**保留进入本轮时已有的未提交修改**（另一会话的 MoviePilot 集分组等，那边最后一笔写于 15:58；本轮 17:17 起）。本轮只动 20 个文件（另加本文件）。用户令：「参考网页端在封面的更多按钮中新增查看遗漏集（仅电视剧）」，随后明确「只在剧集封面和季页面添加，集页面不要添加」，再指出表上「没有封面，没有剧情说明，没有特别篇和预告开关」。
+- 判据落在 **Core 的 `ItemMenu.MissingEpisodes`**：`item.Type is Series or Season` 才给这一条，摆在「打开」之后。电影没有「漏集」这回事，单集自己就是那一叠里的一集 —— 用户点名的那两处正好就是这两个类型。
+- **接口是 Emby 自己那条 `GET Shows/Missing`（4.8 起就有，官方网页端那三点的菜单也用它），不是给通用查询加 `IsMissing` 筛选** —— 后者是 Jellyfin 的，Emby 收到会静默丢掉（`EmbyFilterBy` 那段已记过，本轮不改那个结论）。收窄用 `ParentId`；季那一档问的还是整部剧，再在本地按季号筛（`ItemDetail.MissingInSeason`）。一次问到底（`Limit=500`），不翻页。
+- **表照着网页端做全了**（用户第二轮点名缺的三样，全部补上）：① 每行左边一张 **16:9 剧照** —— 遗漏的单集自己没有图（实测答回来的 `ImageTags` 是空的），服务器往下发的是**剧集那一层**的缩略图（`ParentThumbItemId`），落点 `ItemDetail.MissingStill`（先问条目自己那一趟上溯，再退到这一页的剧/季）；一行一张借的是同一张，所以取图按 `ArtworkRef` 去重，一圈通常只下一张；② **两行简介**（`Overview`，实测 169 字，就在 `Fields=Browse` 里）；③ 右上两颗开关 **特别篇／预告**。行文字用现成的 `ItemDetail.EpisodeLabel`（「S1:E1 - 集名」，和集页面那一行同一个写法）与 `EpisodeRowInfo`。
+- **两颗开关在本地筛，不发给服务器**（`ItemDetail.MissingShown`）：实测这条接口**不认**任何一对筛选参数 —— 先按社区帖子的 `IncludeSpecials`／`IncludeUnaired` 发，四种组合条数一模一样；再按规格里真有的 `IsUnaired`／`IsSpecialSeason` 发，`IsSpecialSeason=true` 返回的仍是非特别篇，同样被丢掉。两个条件客户端都答得出（第 0 季看 `ParentIndexNumber`、未播出看 `PremiereDate` 在不在未来），所以本地筛，拨一下立刻出结果。默认两颗都关 = 正片 + 已播出，与网页端打开时那个样子一致；季页若正是第 0 季，特别篇默认打开（不然是一张空表）。**量出来的事实**：这台服务器扫了 24 部剧，默认结果里含第 0 季的 0 部、含未来首播的 0 部 —— 也就是说这两颗开关在本机目前拨不出东西来（服务器压根不返回这两类），行为正确但暂时看不到效果。
+- 弹表走外壳（`IShellActions.ShowMissingEpisodes` → `ShellPage`），理由同「手动整理」：表上每一行的剧照要容器里的 `EmbyImageStore`，而 `ItemCommands` 是静态类、够不到它。
+- 新增工具开关 **`--show-missing`**（配详情页）：对话框只在一条命令跑着的时候存在，外面点不进去，没有它这张表就没有照片。照 `--show-cover` 的写法（`ShellPage.ShowMissingAsync` → `DetailPage.OpenMissingPanel` → `ItemCommands.Run`）。同步了 `docs/开发与验证.md` 的命令行开关一节与 `Agreements.txt` 的 `switch` 行。
+- 四道闸门（1~3）：构建 0 警告 0 错误；`format whitespace` 过；单测 **1655/1655**（0 失败 0 跳过，本轮新增 6 条：剧/季有而电影/单集没有、`Shows/Missing` 的路径与三态参数、按季号筛、抬头话术、两颗开关怎么筛、剧照借哪一层）；自动化句柄扫描无新增缺句柄（新表四个 `x:Name` 已记进 `Agreements.txt` 的 `handle` 小节）。
+- **运行证据（真服务器）**：隔离目录自检（`artifacts/selfcheck/missing-probe4/` 那一轮）在真服务器上扫了 24 部剧的遗漏集构成，`更多菜单的接口` 与 `更多菜单的对话框` 都通过。`--show-missing` 截图 `work/missing-episodes3.png`：真账号、真库，JOJO 页弹出「《JOJO的奇妙冒险》 · 共 198 集遗漏」，每行一张剧照 + 「S1:E1 - 侵略者乔斯达」+ 播出日期 + 两行简介，右上两颗开关在位。
+- **闸门 4 两项红与本轮无关**：`文件页文件选项`（14:49 那一轮同样红，上一轮已记「这一趟自检挑到的条目换了」）、`音量条淡入淡出`（12:40 那一轮也红过，条目相关的间歇项）。本轮报告与 `docs/selfcheck-baseline.txt` 逐项比：**新增 0、消失 0**。**基线未动。**
+- 交付：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`。**发布件同时含另一会话尚未提交的 MoviePilot 集分组改动**（该批编译与单测均通过）。未提交或推送。
+
+## MP 订阅集列表补播出日期、已播出集加「搜索资源」（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；**保留进入本轮时已有的未提交修改**（MoviePilot 可用性、播放控件、订阅详情重排等批次）。本轮只动 13 个文件。用户令：「MP的集列表补上播出日期，然后在已播出的集的播放按钮下方弄一个搜索按钮」。问实两件：播出日期取 **MoviePilot 的 TMDB 季集接口**；搜索按钮**搜这一集的资源**（不是触发订阅的「立即搜索」）。
+- **播出日期为什么不能从文件统计拿**：`subscribe/files/{id}` 的 `SubscribeEpisodeInfo` schema 里只有 `title` / `description` / `backdrop` / `download` / `library` —— 没有播出日期这一项。另走 `GET tmdb/{tmdbid}/{season}`（可带 `episode_group`，回话是裸数组，字段 `episode_number` / `air_date`），落点 Core 新纯函数 `MoviePilotEpisodeAirDates.Parse` 与 `MoviePilotService.SubscriptionAirDatesAsync`。**只对 `media_source` 为 `themoviedb`、`media_id` 是数字、季号明确的电视剧发这一趟**；其他来源不发请求（`subscription.EpisodeGroup` 有值时必须带上，否则集号是另一套）。空 `air_date`、缺集号、解析不出来的日期都不进表 —— 不拿猜的值判「已播出」。
+- **「已播出」= 有日期且不晚于现在**（`MoviePilotSubscriptionEpisode.HasAired`，TMDB 只有日期没有时刻，取当天零点，所以当天也算已播出）。屏上那一行：已播出写「播出 年-月-日」、未播出写「待播出 年-月-日」、没有日期**整行不出现**（不写「未知」占位）。取不到日期是**附加读取失败**，按「没有日期」处理，不影响入库统计与播放匹配（`AirDatesAsync` 只把连接改变那一类取消往外抛）。
+- **搜索按钮**在播放键下方（第三列改成竖排 StackPanel）：`MoviePilotSubscriptionEpisodeRow.SearchCommand` → 外壳 `ShellPage.SearchMoviePilotVersions(keyword)` → 复用「搜索其他版本」那个独立窗口（`MoviePilotWindow.Show(service, keyword, launcher)` 新重载）。关键词用 Core 新重载 `MoviePilotVersionQuery.Keyword(剧名, 季号, 集号)`（「剧名 S0x E0x」，和 EmbyItem 那一支同一个规矩，那边把集的分支也改成走它）。**未播出、以及取不到日期的集不给这颗按钮**。
+- 四道闸门：构建 0 警告 0 错误；`format whitespace` 过；单测 1644/1644（0 失败 0 跳过，本轮新增 5 条：解析跳过项、已播出判定、TMDB 请求参数与集号映射、非 TMDB 不发请求、订阅关键词重载）；自动化句柄扫描 342 个交互控件、0 个缺句柄；`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（533 文件 / 304 MB），发布件 `Momoka.dll` sha256 与开发构建一致（`bd758beb…`）。
+- 发布件离线 Shell 探针 `shell-probe-20261010-073517037-3964` 57 项、50 通过，与改动前基线 `…-064325032-14984` **逐项相同**：新增 0、消失 0、通过转失败 0。订阅详情那一项（`MoviePilot 订阅详情、入库缺集与编辑`）通过，新增断言覆盖「已播出=播出日期+可搜索、未播出=待播出+无按钮、无日期=无日期行+无按钮」，以及搜索键确实排在播放键下方、点下去送出「漫长的旅途 S01 E01」。新截图 `mp-subscription-episodes-1240.png` / `-760.png` 已看（两种宽度下日期行、播放键+搜索键竖排、第 2 集只有搜索键、第 3/4 集没有搜索键都正常）。
+- **已知 7 项红不是本轮引入**：`MoviePilot 关闭后清理历史与操作弹窗` 在 `MoviePilotDialog.ShowAsync` 抛 `InvalidCastException`（上一批在途的 MoviePilot 可用性改动，改动前两次运行同样红），其余 6 项是它那条用例 `finally` 不关弹窗导致的 `Only a single ContentDialog can be open at any time` 连坐。**本轮未跑普通自检（闸门 4）** —— 改动类型是日常代码 + UI 交互，订阅详情页也要真实 MoviePilot 连接才到得了，自检覆盖不到；运行证据由离线探针与截图承担。
+- 同步了 `docs/MoviePilot订阅.md`（播出日期与集搜索的对外说明、接口表加 `tmdb/{tmdbid}/{season}`）与 `momoka-moviepilot` 技能的 `references/subscriptions.md`（文件统计没有播出日期、另取的来源与边界、验证要覆盖的几档）。未提交或推送。
+
+## 非管理员账号隐藏设置里的 EmbyServer 那一栏（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；**保留进入本轮时已有的未提交修改**（另一会话的 MoviePilot 订阅详情、详情页洗色、播放控件等，共 122 个文件；那边最后一笔写于 14:11，本轮 14:16 起）。本轮只动 7 个文件。用户令：「当前登录账号没有权限（非管理员账号）时自动隐藏设置中的EmbyServer栏」。
+- 判据取自服务器，而且**不额外多打一趟**：`/System/Info` 只对管理员开放，`EmbyClient.GetSystemInfoAsync` 对普通账号本来就退回公开子集并把 `IsRestricted` 置真 —— 于是同一趟请求既答版本、也答「这个账号是不是管理员」。落点 `ServerCapabilities.ProbeAsync`（Core，新增 `IServerCapabilities.IsAdministrator`，`bool?`，null = 还没问到／问不到）。
+- 显隐落在 `SettingsViewModel`：`CategoryGroups` 由固定表改成「按权限现造一份新表」（`BuildCategoryGroups`），`Categories` 平铺那份同步增删那五个名字；`RefreshServerAdministrationAsync` **每次打开设置页走一趟**（设置页是缓存的，换过账号不重走就会留着上一个账号的答案）。**问不到身份就照旧露着** —— 藏掉用户有权看的东西比多露一格糟。
+- 两处坑都是量出来的：① **分组视图不吃「组从集合里消失」** —— 组底下的条目会没，组的标题留在屏上（第一版截图实量），所以分组换新表、页面把 `CategoryGroupsSource.Source` 重指一次；② 把控件里正被选中的那一项摘掉，控件会清空自己的选择并顺着 `SelectedItem` 的 TwoWay 绑定写回 `null`，所以**落点先挪、名单后动**，落点若正停在被收走的那一页上就退回第一张卡。
+- 四道闸门：构建 0 警告 0 错误；`format whitespace` 过；单测 1639/1639（0 失败 0 跳过）；`tools/publish.ps1` 刷新 `artifacts/publish/win-x64`（533 文件 / 302.1 MB，另出 `artifacts/Momoka-0.1.3-win-x64.zip`）。桌面 `Momoka.lnk` 指向的正是这个目录（`.lnk` 本身被独占锁定写不进去，老毛病，目标路径本来就对）。
+- 发布件离线 Shell 探针 `shell-probe-20261010-064325032-14984` 57 项、50 通过：新增一项「非管理员账号隐藏服务器管理入口」**通过**，覆盖两条名单（分组、平铺）、紧凑窗口下拉、落点回退、组标题真的从屏上消失，以及权限回来之后整组装回且次序不变；截图 `settings-server-admin-hidden.png`／`settings-server-admin-shown.png`。**已知 7 项红不是本轮引入**：MoviePilot 弹窗那条在改动前的两次运行里同样红（见上一节），其余 6 项是它的连坐。
+- **闸门 4 红 1 项，与本轮无关**：`文件页文件选项` 在 `run-eb68a2f68dbd4a67bc845a49f62773eb` 失败（音频下拉 318–590 出界，可用区只到 588）。原因是**这一趟自检挑到的条目换了**：12:43 那一轮挑「黑暗召唤师在地下恋爱中」S01E01（带 1064×347、可用 274–994、通过），本轮挑「JOJO的奇妙冒险」S06E01（带 1064×401、可用 280–588、红）—— 条目一换，头部带子高变、信息栏跟着变窄，那条定宽下拉就顶了出去。该检查属走查第 2 阶段，早于设置页（第 5 阶段）打开，本轮改的文件一个都不在这条路上；设置那三条（`设置页面`／`设置分类走查`／`设置行模板`）全绿，且 `设置页面` 那行没有「非管理员」后缀（这台机器上的账号是管理员，本轮改动对它是空操作）。**基线未动。**
+- 未提交或推送。
+
+## MoviePilot 订阅详情页照参考版式重排（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交修改（MoviePilot 可用性、播放控件等批次）。用户令：参考 MoviePilot 的「订阅-详细」页，把本项目的订阅详情页在功能布局、交互流程和展示效果上对齐，明确订阅信息、规则、状态与刷新选项，并保证桌面端显示正常。
+- 版式（`Views/MoviePilotSubscriptionPage.xaml`）：① 头部 —— 横版背景带（拿到 `backdrop` 才出现）、海报、入库徽标（已入库／部分入库／未入库，统计读不到时不给结论）、片名、媒体身份行（来源 · 编号 · 类型 · 季号），下面一排操作：搜索资源、编辑订阅、暂停／恢复、重置订阅、管理订阅、刷新（`WrapRow`，窄了换行）；② 左「简介」右「订阅信息」；③「订阅规则」；④「入库与缺集」—— 原有文件统计、可播放状态、显示范围筛选与逐集列表，句柄 `EpisodeFilter`／`EpisodeArtwork`／`PlaySubscriptionEpisode`／`FilesHeading`／`ManageSubscription` 原样保留，筛选与播放接线一字未动。
+- 字段取舍与投影在 Core（新增 `MoviePilotSubscriptionFact` 与纯函数 `MoviePilotSubscriptionFacts.Info/Rules`）：订阅信息 = 编号／状态／年份／总集数／起始集／已完成／订阅进度／搜索间隔／上次搜索／上次更新／创建时间／搜索站点／下载器／保存路径／洗版／订阅用户；订阅规则 = 搜索关键词／包含／排除／质量／分辨率／特效／过滤规则／自定义识别词。空值不进列表（不写「无」），媒体身份不重复进右栏。顺带补上 `vote` 的浮点解析（`Real`）、时间戳归一化（`Stamp`）、`sites` 计数与 `best_version`／`completed_episode` 读数。
+- 评分画成五颗星字形（新 `EgRatingStarStyle` + `FavoriteStar`／`FavoriteStarFill`），**没有用框架的 `RatingControl`**：整套界面只有三种字体和一套角色色，而这颗读数不值得为它引入一个本仓库从未用过的控件模板。
+- 宽窄由 `OverviewGrid.SizeChanged` → `ApplyOverviewLayout` 决定（code-behind，纯摆位）：内容区 ≥960 并排（右栏 320），否则右栏整块落到简介下面（最宽 520）。**这一处没用 `AdaptiveTrigger`** —— 本页实测自适应状态没有生效（探针读回的 `CurrentState` 为空），而且判据本来就该按**内容区**宽度算，按窗口宽度反而要另配补偿数。
+- 四道闸门：构建 0 警告 0 错误；`format whitespace` 过；单测 1639/1639（0 失败 0 跳过，本轮新增 2 条投影回归）；`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（533 文件 / 304 MB）；自动化扫描 341 个交互控件、0 个缺句柄。
+- 发布件离线 Shell 探针 `shell-probe-20261010-060928903-11180` 56 项、49 通过。订阅详情那一项通过，新增断言覆盖入库徽标、两栏有内容、评分折算，以及宽窗口并排／窄窗口叠起来的实际行列表号与宽度；宽窄截图 `mp-subscription-detail-1240.png`／`mp-subscription-detail-760.png` 已看（背景带、徽标、身份行、按钮换行、两栏并排与叠起来都正常）。
+- **已知红项，不是本轮引入**：`MoviePilot 关闭后清理历史与操作弹窗` 在 `MoviePilotDialog.ShowAsync` 的 `Changed` → `dialog.DispatcherQueue.TryEnqueue` 抛 `InvalidCastException`（`MarshalDelegate.CreateMarshaler2` → `IObjectReference.AsValue`）。这条检查在改动前的两次 56 项运行里同样是红的（当时失败在 `LayoutAsync`／等待阶段，症状是 `TimeoutException`），属上一批在途的 MoviePilot 可用性改动。它这次失败得更晚（确认弹窗已经开着），而那条用例的 `finally` 不关弹窗，于是后面 5 项封面检查与 1 项下载弹窗检查被「Only a single ContentDialog can be open at any time」连坐 —— 这 6 项是它的连带，不是各自的问题。建议后续在那条用例的 `finally` 里先关掉打开的 `ContentDialog`，别让一条失败污染整轮。
+- 未提交或推送。
+
+## 进入播放页不再自动显示控件（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交修改（MoviePilot 等批次）。用户报「关闭应用然后重新打开应用，点一次点击进入播放页面会自动显示播放控件」—— 正是上一轮留给他的那件事（「刚开播先让你看见有控件」）。
+- 落点 `ChromeReveal.Reset`（进场 `EnterPlayer` 与开播 `OnPlaybackStarted` 都走它）：从前把三样摆成全显并给一秒二的宽限，而加载遮罩在 `Loaded && !Buffering` 那一拍才撤、比那一秒二早，尾巴于是露在画面上 —— 用户看到的就是它。现在状态归零（`State` 三样全假、三条浓度 0）、`_forceUntil = 0`，光标照旧先还给用户。**去掉的只是强制显示，位置判据一字未动**：指针落在唤出带里控件照旧在（同一天用户在退全屏那一问上选的正是「鼠标在哪儿控件在哪儿」）。`ChromeReveal` 那四个字段的初值一并归零，与 XAML 里那三样本来就是 `Collapsed`／`Opacity="0"` 的初值对齐。
+- 自检「显隐规则」加两条读数（不加检查名，基线不动）：「新一场播放→全部隐藏」与「新一场播放后指针落到底部带→进度条 100%」—— 两句一起量才分得清「收掉了强制显示」和「把位置判据也一起压住」。Core 单测：改写「换片不再给控件宽限」（原「换片重新全显示」），并补上「Silence 那一族」里三条靠「开场全显」垫着的断言（`Tick`/`Silence` 返回的是「有没有东西被收走」，开场本来就收着）。
+- 四道闸门：构建 0 警告 0 错误；`format whitespace` 过；单测 1637/1637（0 失败 0 跳过）；`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（533 文件 / 304 MB / 11 GLSL / 4 HOOK）；自检 184 项、0 失败、消失 0、降级 0、新增 0，报告 `artifacts/selfcheck/run-7b64b5d902924a1eb40da489f7c6af43/logs/selfcheck-shell.txt`。
+- **闸门 4 第一次红、同一构建复跑绿**：「音量条淡入淡出」最后一条断言（`Root.Height = 200` 时音量条必须收起）在 `run-6a62efa17a2b4fadb1977377e8724145` 失败、在 `run-7b64b5d902924a1eb40da489f7c6af43` 通过 —— 两次窗口几何（872,268,1373×976）与逐条读数**逐字相同**，只差这一条翻面，所以是这一关自身的不稳定，不是本轮改动引起的。疑点在 `PlayerPage.BarHeight()` 那条「`Bar.ActualHeight > 0` 就用它」的优先路：它在 `ArrangeTransport` 里决定 `Rail.Margin.Bottom`，而 `RailRoom()` 用的正是这个边距，谁先被量到取决于时序。该断言与按高度判据的 `RailHeight`／`RailRoom` 同属那批未提交改动，**本轮没动它**，留给那片工作的人。
+- 视觉证据：`--hide-cursor`（走 `EnterPlayer`、不播）截屏 `work/enter-player-20261010.png` —— 黑舞台、三样控件一个都没有；对照 `--show-osd`（把浮层钉住）`work/enter-player-osd-20261010.png` —— 同一套控件画得出来。**一张静图分不出「旧版那一秒二的闪现」**（那一半在时间上，不在画面上），所以它由 Core 单测与自检在进场那一刻的读数承担。顺带记一笔本轮的环境副作用：这两次启停让应用把窗口位置从 (659,296) 记成了 (872,268)（生产设置里那一行，走正常关闭路径写的，没动它）。未提交或推送。
+
+## 集成模式：快退／快进、播放／暂停、全屏切换不再自动显示控件（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的未提交修改（MoviePilot 等批次）。用户令「集成模式下快进或者快退的时候不要自动显示播放控件，开始播放暂停播放的时候也不要自动显示，退出全屏的时候也不要自动显示」；问实了两件：**进全屏同样不给**，**退出全屏后不额外压住位置判据**（鼠标落在唤出带里时控件照旧按位置在）。
+- 落点：`PlayerPage.WakesChrome(动作)` 一张表 —— 快退／快进四条、`toggle-pause`、`toggle-fullscreen` 不给 `ChromeReveal.WakeFully` 那条 1.2 秒宽限，其余 15 个动作照旧。`ShortcutCommand` 与 Esc 退全屏那一支各取一次这张表（Esc 那一支写的就是 `WakesChrome("toggle-fullscreen")`，一处改两处跟着走）；空格专路（`OnSpaceShortcut`）不经过它，整段宽限直接去掉 —— 从前它只放过暂停那一半、恢复照旧给，同一颗空格于是按出两种行为。去掉的只是那条强制宽限，位置判据一字未动。
+- 新增自检「快进暂停全屏不唤出控件」（`ProbeQuietKeys`）：表（21 个动作的取舍）与接线（真按 ←→↓↑ 与空格走 `Dispatch`，读回来的 wake 必须与表一致）各问一遍；不真按 F 与 Esc（会真切窗口／真停播，它们的取舍与上面几颗同一句判据，由表那一半钉住）。基线追加该行（183 → 184 项）。
+- 四道闸门：构建 0 警告 0 错误；`format whitespace` 过；单测 1637/1637（0 失败 0 跳过）；`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（533 文件 / 304 MB / 11 GLSL / 4 HOOK）；自检 184 项、0 失败、消失 0、降级 0、新增 1，读数「真按 5 颗：Space→toggle-pause：不叫、Left→seek-backward：不叫、Right→seek-forward：不叫、Down→seek-backward-long：不叫、Up→seek-forward-long：不叫」，日志 `artifacts/selfcheck/run-ff682542494c44b6a787de2f33d72f25/logs/selfcheck-shell.txt`。
+- 未验证：这台机器注不进按键，「按一下之后屏上确实没冒控件」的像素级证据拿不到 —— 自检读的是 `Dispatch` 交出来的 wake 与表的比对，`wake=false ⇒ 不调 WakeFully` 那一步在 `OnKeyDown` 一行里；未真播、未实机按键。顺带记一笔**本轮未动的旧账**：`SeekSlider.KeyCommand` 那条路在 wake 为真时只调 `WakeFully`、不挂 `_woke` 名牌（进度条持有键盘焦点时按 M 这类键会写出「未标注的显示路径」），与本次三条令无关，留待另议。未提交或推送。
+
+## MoviePilot 功能按启用与连接状态显示（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`，保留进入本轮时已有未提交修改；主会话写入，子代理只读核对入口、连接竞态、历史导航及弹窗生命周期。
+- 增加进程内可用性状态：设置启用且当前配置连接成功才显示搜索来源、主页订阅、换版本和整理入口。启动及配置变化后只读检查连接，稳定状态每 30 秒检查；关闭或更换配置立即撤销，保留同一地址等价写法的会话复用。配置代次拒绝旧请求回填，连接身份戳和写操作防重状态保持原义。
+- 失联时搜索页回到媒体库，订阅详情返回主页，清理历史栈中的失效订阅页；收起版本窗口及 MP 确认、编辑、下载与整理弹窗。设置卡保留，测试连接共享状态但不自动开启功能。
+- 新增 7 项 Core 回归和 2 项离线 Shell 检查。首轮 Core 回归发现等价地址触发额外登录，已按归一化配置修复；当前测试编译 0 警告、0 错误，1637/1637 通过（0 失败、0 跳过），空白及差异检查通过。构建、测试与格式日志位于 `artifacts/mp-availability-*.log`。
+- 首轮发布件离线 Shell 检查 55/56 通过，新增历史导航与操作弹窗检查等待超时，失败报告保留于 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261010-033154979-17184/logs/shell-probe.json`。已查看未验证、连接成功、断线及 360 宽截图，入口显隐与布局正常；第二轮报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261010-033607645-21496/logs/shell-probe.json` 仍为 55/56，分步诊断定位为测试未执行登录后的浏览区显示、页面被默认折叠层隐藏；已补齐实际浏览入口与布局等待后重验中。
+- 后续收尾：修复关闭 MP 时 `ContentDialog.Hide` 方法组直接封送引发的 `InvalidCastException`，改用托管回调；探针失败清理也主动关闭遗留确认框，避免单条失败污染其余检查。媒体卡片与订阅的已展开菜单随可用性变化收起，普通 Emby 菜单保留；搜索来源、站点选择与资源筛选的下拉层在面板释放时同步关闭。设置连接测试不再吞掉可选信息请求中的断线、401 或 5xx，404 等可选接口差异仍可容错。
+- 最终完整 Release 构建 0 警告、0 错误，当前测试单独重新编译后 **1657/1657 通过、0 跳过**，全方案空白检查与 `git diff --check` 通过。新增两项 Core 回归覆盖测试途中断线／认证失败与迟到响应；后一条首跑因假传输回调持续触发而未能恢复，明确撤掉该回调后重验通过，首跑记录保留 `artifacts/mp-availability-tests-initial.txt`，最终日志 `artifacts/mp-availability-tests.txt`。
+- 最终开发构建离线 Shell 探针 **58/58 通过**，报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261010-111007673-25700/logs/shell-probe.json`。新增菜单运行用例覆盖 MP 菜单消失、普通菜单保留及订阅菜单消失，搜索入口用例补充实际站点弹层关闭；历史栈、确认与编辑弹窗的旧红项全部通过。已查看连接／断线搜索页、360 宽搜索页和关闭弹窗后的真实截图。此前隐藏方式启动导致截图保护拒绝采集的失败报告保留在 `shell-probe-20261010-110839033-7000`，不计为通过。
+- 已运行 `tools/publish.ps1 -NoArchive` 刷新桌面快捷方式指向的 `artifacts/publish/win-x64`，发布验证通过（533 文件，302.1 MB）。本次未运行普通联网自检，未进行真实 MoviePilot 写入、下载或播放，未提交或推送。
+
+## MoviePilot 资源折叠、季集筛选与下载选项（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`，保留进入本轮时其他工作的未提交修改。按完整发布名、非零体积和媒体身份折叠跨站点资源，展开后保留各站点原始下载对象、优惠、详情和按钮；过滤、排序和清除保留行对象、展开状态及下载状态。季集筛选使用返回的编号、范围及离散集列表，特别篇 0 不丢失，不把未标集号的合集猜作单集命中。
+- 订阅搜索的“搜索资源”先打开站点选择面板，用户确定范围后发起首次搜索。关键词和精确资源搜索共用下载选项弹窗，支持启用的下载器、已有路径和自定义服务器路径；默认选项省略请求字段，远程存储前缀原样保留。沿用完整媒体快照、连接身份核对和服务级防重，取消/离页不提交。
+- 只读核实本轮 MoviePilot 为 `v3.1.3`，`download/clients` 返回 `name/type`，`download/paths` 带 `save_path` 等目录字段；仅记录字段和数量，未输出凭据，未启动真实下载。
+- 完整 Release 构建 0 警告、0 错误，1630 项测试全部通过（0 失败、0 跳过）；新增 7 项 Core 回归和 1 项离线 Shell 检查。首轮开发构建探针 54/54 通过，日志 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261010-025444535-2452/logs/shell-probe.json`。发布后扩大验证涵盖自定义路径与迟到选项取消，新检查通过，但旧站点选择检查在弹层截图时抛 `ArgumentException`，保留失败报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261010-030021268-4332/logs/shell-probe.json`；同时真实截图发现快速清除筛选后宽窗口首组留白。
+- 资源列表禁用容器进出动画，避免快速移除/插入分组后容器停留在透明帧。修复后 Release 编译仍为 0 警告、0 错误，离线探针 54/54 通过（含上一轮失败的旧站点选择检查），报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261010-030454020-21728/logs/shell-probe.json`。已查看 1040、720、520 宽窗口的实际截图、跨站点展开、下载对话框和首次搜索前页面；1040 宽首组留白已消失。空白检查、Git 差异检查和自动化句柄扫描通过（无句柄控件 0）。
+- 最终 `tools/publish.ps1 -NoArchive` 已更新桌面快捷方式实际目标 `artifacts/publish/win-x64/Momoka.exe`，校验 533 文件、302.0 MB；日志 `artifacts/mp-resource-final-publish.log`。最终发布程序直接运行离线 Shell 探针，54/54 通过、退出码 0，报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261010-031047414-5300/logs/shell-probe.json`；已再次查看发布件的 1040 宽截图，首组正常显示。本轮未运行普通联网自检，未启动真实下载或播放，未提交或推送。
+
+## 小窗口音量条与换版本窗口形态（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；保留已有未提交修改，主会话写入，子代理只读复核全屏生命周期。沿用当前树的小窗音量修复：按独占 uosc 的可用高度缩短音量条，隐藏父级下的倍速条和进度条不再截走音量滚轮。
+- 换版本及换集不再重复应用起播自动全屏；原生窗口重建前读取当前全屏状态并传递给新窗口。首次起播继续使用启动偏好；原生未知状态、无控制通道或读取失败统一窗口化兜底。补充假后端回归，覆盖窗口/全屏与启动偏好相反、首次启动、集成归属、未知和错误读数，以及取消读取不停止旧视频。
+- 当前源码 Release 构建 0 警告、0 错误，1623 项测试全部通过（0 失败、0 跳过），空白检查与 18 个 PowerShell 脚本检查通过。已发布至桌面快捷方式实际目标 `artifacts/publish/win-x64/Momoka.exe`，发布校验 533 文件、301.9 MB，发布与开发程序集 SHA-256 一致。
+- 发布件自检 183 项全部通过，失败/消失/降级均为 0；报告 `artifacts/selfcheck/run-6919742ca3d3434aa1712b28b654ff4f/logs/selfcheck-shell.txt`。音量条检查涵盖 560×420、320×300、900×360；控制条检查涵盖 180～1280 宽度及隐藏父级下的滚轮区域。已查看同目录三张 `player-transport-*.png`（WinUI 渲染截图），小窗音量条无越界。未进行真实媒体播放、实际滚轮输入至内核或独占/外部后端窗口重建的实播验证；本轮未提交或推送。
+
+## 收藏入口与封面删除位置修复（2026-10-10）
+
+- 当前树 `C:/Users/89400/Momoka`；保留进入本轮及续接时其他任务的未提交修改，子代理只读排查和复核。标题栏主页右侧新增收藏按钮；存在性查询与收藏列表共享固定收藏条件和媒体类型范围，支持季、单集、合集等，音乐类型继续排除。登录、切服、收藏变更和删除后更新入口，旧身份和旧刷新结果不回填。
+- 媒体库和收藏页单项删除原地移除，取消旧分页，保留已加载卡片和滚动位置；容器删除及查询切换期间删除重新读取当前范围，再增量对齐，避免后代残留、分页跳漏和旧结果混入。首页和详情封面同步接入原地移除，修正首页空行后的媒体库次序；详情删除推荐不取消剧季加载，删除单集同步清理播放目标。
+- 新增离线查询测试与 Shell 运行回归，涵盖删除确认/取消/失败、滚动位置、在途分页、交错删除、整剧后代和详情目标读取。初轮探针 52 项中 49 项通过，3 项因真实截图被遮挡/屏外而失败，保留报告 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261009-123443646-2212/logs/shell-probe.json`。后续诊断在 `shell-probe-20261010-020901782-22076` 明确读到窗口可见性为 False，原因是验证命令使用了隐藏窗口启动；改用直接运行可见程序，截图临时置顶后恢复，遮挡校验保持不变。滚动回归改为等待 ScrollTo 的实际偏移到位后再取初值，避免拿尚未完成的滚动当删除跳动。
+- 最终当前源码 Release 构建 0 警告、0 错误，1620 项测试全部通过（0 失败、0 跳过），空白检查和自动化句柄扫描通过（无句柄控件 0）。已用 `tools/publish.ps1 -NoArchive` 更新桌面快捷方式实际目标 `artifacts/publish/win-x64/Momoka.exe`，发布校验 533 文件、301.9 MB。
+- 最终发布件离线 Shell 探针 53/53 通过：`C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261010-021135990-21628/logs/shell-probe.json`。已查看同目录 `favorites-screen-1240.png`、`favorites-screen-760.png`、`delete-after-screen.png`，收藏入口、宽窄布局与删除后位置正常。自检 183 项全部通过，失败/消失/降级均为 0，日志 `artifacts/selfcheck/run-178c5714eca4417ca0c6c7d7d2876643/logs/selfcheck-shell.txt`。删除与收藏写入验证只使用离线夹具，未删除真实媒体；未提交或推送。
+
+## 剧、季、电影详情页顶部遮罩衔接（2026-10-09）
+
+- 当前树 `C:/Users/89400/Momoka`；本轮修改 `DetailPage.xaml`、`DetailPage.xaml.cs` 及 `DetailViewModel.ScrimVisibility`，保留已有未提交工作。去掉背景层顶部固定 220 高的黑色渐变，让标题栏、整个片名区域和说明尾部共用原有 `#B80C0E11` 半透明画刷，避免交界留白和叠加压暗；图片下沿 64 高的淡出继续保留，无图和单集版式沿用原路径。
+- 标题栏在背景图上保持同一档浓度，真正正文滚上来后仍按纸面实际位置接色。同步 `HeroArt` 的可见性通知，导航时先生成共用画刷再绘制标题栏；退役只服务旧顶部曲线的画刷和滚动浓度状态。
+- 保留自检名称「标题条洗到正文色」，将旧曲线断言改为读取页顶、头部中间三段共用画刷及旧渐变已隐藏，继续检查标题栏覆盖范围、正文半程接色和面包屑无额外底色。当前发布件该项通过，报告明确记录三段共用同一画刷、纸面边界 0.50。
+- 本轮先完成 1614 项测试和空白检查；与 MoviePilot 站点选择聊天协调后，由其统一完成最终 Release 构建（0 警告、0 错误）、1619 项测试（0 失败、0 跳过）、发布和 183 项自检（0 失败、0 消失、0 降级）。日志 `artifacts/selfcheck/run-f464421583704aad8588801c22665160/logs/selfcheck-shell.txt`；桌面快捷方式已核对指向更新后的 `artifacts/publish/win-x64/Momoka.exe`。
+- 视觉证据位于 `work/detail-scrim-20261009/`：五套存活主题的真实截图使用已完成开发构建的独立副本，详情源码哈希与最终树一致；最终发布件另外实拍剧页、季页、电影页、剧页和电影页窄窗口（746 像素可见宽度）及剧页滚动半程。均已查看，顶部衔接连续，未见新增横缝或重复压暗；子代理另做只读代码与截图复核。通过导航开关和卡片标题对应的 UIA 导航入口取图，未启动媒体播放。验证实例已关闭，未提交或上传代码。
+
+## MoviePilot 资源搜索选择站点（2026-10-09）
+
+- 用户要求资源搜索支持选择站点。当前树新增共用的“搜索站点”选择器，关键词资源搜索与媒体精确资源搜索均接入；默认沿用 MoviePilot 的站点设置，支持手动多选、全选、清空和刷新。更改范围使旧请求及结果失效，随后显式重新搜索；清空不退回默认，连接改变不复用旧编号。
+- 对照官方后端 `v3.1.2-1`：目录为 `site/`、`site/media/movie`、`site/media/tv`，界面仅保留已启用站点的整数编号和名称，不保存站点凭据。`sites` 使用单个逗号分隔参数；省略时服务器会先回退 `IndexerSites`，因此“默认”与显式“全选”分别处理。
+- 实际只读验证同版本：启用站点 14 个，电影和电视剧可搜索目录各 13 个；明确选择 2 个站点返回 28 条资源，28 条全部属于所选站点，请求参数验证通过。设置文件哈希未变，未提交下载或订阅。
+- 最终完整 Release 构建 0 警告、0 错误，1619 项测试全部通过（0 跳过），空白检查退出码 0，新增控件句柄检查缺失 0。验证包含数字／字符串编号、默认／全选／清空、关键词和精确查询参数、凭据投影和连接改变。
+- 最终离线 Shell 探针 47 项全部通过，报告 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261009-120745212-20716/logs/shell-probe.json`。新站点弹层使用实际 CheckBox 接线验证多选和摘要，覆盖清空不请求、全选明确传编号、范围变化后旧结果不回填，以及精确媒体按类型选择目录。初轮旧搜索布局截图因弹层拥有者移除后丢失前台被拒绝，补齐探针清理阶段的窗口激活后重跑通过；未降低截图断言。WinApp UIA 实际切换默认、多选两个站点成功，真实窗口截图 `work/search-sites-selected-ui.png` 已查看，文字与长名称换行正常。
+- 实际发布目录 `artifacts/publish/win-x64` 已恢复并最终刷新，校验 533 文件、301.9 MB。发布件自检 183 项，0 失败、0 消失、0 降级，比较器退出码 0；日志 `artifacts/selfcheck/run-f464421583704aad8588801c22665160/logs/selfcheck-shell.txt`。当前发布件包含已协调的详情页遮罩修改，桌面已释放供该聊天补充自身视觉验证；本聊天不再写 PROGRESS。
+- 共享树协调：保留详情页聊天的 `DetailPage.xaml`、`DetailPage.xaml.cs`、`DetailViewModel.cs` 遮罩修改。由本聊天统一构建和恢复实际发布目录，详情页聊天通过私有运行副本进行视觉检查，运行桌面检查串行。
+
+## 搜索页、最近搜索与 MoviePilot 分流（2026-10-09）
+
+- 当前树 `C:/Users/89400/Momoka`，保留进入本轮时已有的播放通知、全屏自检和技能修改。单一写入会话负责搜索页面、查询分类、历史模型、MoviePilot 面板及对应测试；子代理仅做只读定位与复核。
+- 搜索页隐藏排序／播放／随机／海报／筛选工具栏，改用“热门结果／节目／影片／集”；普通媒体库工具栏保留。媒体库与订阅媒体搜索增加 400 ms 输入防抖，回车可立即查询；资源搜索单独显式提交。输入、切分类、换来源和离页均使旧请求失效，同词旧请求不能写入新历史。
+- 最近搜索仅保存关键词及用户选中过的媒体展示快照，按服务器基址和用户身份隔离，最多 20 条，支持单条移除与清除；不保存路径、媒体源或凭据，偏好重置保留、导出不携带。返回 MoviePilot 订阅搜索保留选中来源，目录刷新期间不触发额外搜索。
+- 退役离线探针对“搜索页工具栏换行”的旧断言，改查搜索工具栏隐藏、宽窄搜索框与分类完整、普通媒体库工具栏保留，补充实际输入入口、历史及两种 MoviePilot 请求分流。原 UIA 句柄继续保留。
+- 真实只读搜索验证：当前媒体库样本返回 13 项（节目 1、集 12）；MoviePilot `v3.1.2-1` 来源 9 个，关键词媒体 30 条、资源 164 条。只允许搜索／目录／版本读取和必要登录，设置文件哈希未变，未播放、订阅或下载。
+- 最终验证：Release 构建 0 警告、0 错误；1614 项 Core 测试全部通过、0 跳过；空白检查退出码 0（保留既有工作区加载提示），自动化句柄扫描未定位控件 0。修正分类条首次显示的同值选中事件取消防抖、来源列表刷新以及探针选择前未等待控件载入的问题后，最终离线 Shell 探针 46 项全部通过，报告 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261009-113340455-21928/logs/shell-probe.json`；检查 360～1600 宽度，360/1040 的真实截图及最近搜索截图已人工查看。WinApp UIA 实际键盘输入、回车提交及清空后历史展示通过；MoviePilot 分流与来源选择由离线运行断言和真实只读 HTTP 分别覆盖，未用鼠标点击真实媒体。
+- 已刷新桌面快捷方式指向的 `artifacts/publish/win-x64`，发布校验 533 文件、301.8 MB，发布程序集与已测开发程序集 SHA-256 相同。当前发布件自检 183 项、0 失败、0 消失、0 降级，比较器退出码 0，日志 `artifacts/selfcheck/run-1afeceb95b0f4e289741d0b65cf2c4b8/logs/selfcheck-shell.txt`。未提交或上传代码。
+
+## 标记已看后补报播放停止（2026-10-09）
+
+- 用户令 2026-10-09：「新增打开通知接管后，点击标记为已看后自动发送通知，发送的播放进度设置进度为100%」。范围：`src/Momoka.Core/Playback/PlaybackService.Reporting.cs` 新增 `ReportMarkedWatchedAsync` 与 `BuildWatched`；`src/Momoka.Shell/Views/IShellActions.cs` 新增 `ReportMarkedWatched` 成员，`ShellPage.xaml.cs` 实现；两处入口 `Views/ItemCommands.cs`（卡片「更多」菜单与悬浮按钮）和 `ViewModels/DetailViewModel.cs`（详情页按钮）在标记为已看成功之后各调一次；`ShellNavigationProbe` 的假动作补齐；通知设置页那一格的说明文字与 `AppSettings`／`NotificationsViewModel`／`NotificationsPage.xaml` 的相关注释同步。
+- 行为：通知接管开着（且「上报播放进度」没关）时，手动点「标记为已看」补报一趟 `Sessions/Playing/Stopped`，位置取条目 `RunTimeTicks`（即用户令说的 100%）；时长读不到就没有这个数，这一趟不发。这一条正在播时借当前播放那一场的会话号并当场结账（此后本场不再向服务器喂进度与暂停，同「到阈值补报」）；没在播就另开一个会话号。点「标记未观看」不补报。
+- 验证：完整 Release 构建 0 警告、0 错误；1609 项测试全部通过（新增 3 条：位置报满 100%、开关关着与时长缺失两档都不发、正在播时借会话号且报完结账）；`format whitespace` 退出码 0；发布件 533 文件、301.8 MB，发布校验通过；当前发布件自检 193 项全部通过、比较器退出码 0，日志 `artifacts/selfcheck/run-37817b89c4424980b06642ec928223ef/logs/selfcheck-shell.txt`。
+- 未验证：真实服务器上的通知转发没有实测（Webhooks → MoviePilot 是否真收到那条 `playback.stop`），按播放验证第三档需用户授权；本轮只证明报文按预期发出（位置 100%、会话号与在播那一场一致）。另记一条本机环境坑：沙箱会拦内网 `192.168.31.230:8896`，在沙箱内跑自检时登录恢复拿到 403、100 项依赖登录的检查整批不发生而报告仍写「全部通过」—— 自检必须在非沙箱下运行，比较器的「消失 100」就是这一档。
 
 ## v0.1.3 发版与微软商店提交（2026-10-09）
 
@@ -43,6 +269,19 @@
 - 补齐相邻专项技能和开发文档链接；国漫工作室别名改为查源码名单，播放页分部文件改为按当前树定位，并补充音频测试入口。技能职责未变，CLAUDE 清单无需调整。
 - 四个修正场景经独立只读复核，与当前源码及现有测试一致。结构检查全量 10 个技能无错误；目标技能无警告，唯一现有警告是创建技能的内联 `metadata` 超出检查器解析范围。目标技能 UTF-8、LF、末尾换行、相对链接及差异空白检查通过。
 - 本轮只修改文档，未构建、运行探针、播放或发布应用，未实测自动触发率；保留同树已有修改，未提交或上传。
+
+## 集成模式全屏残留边框：DWM 圆角档在全屏时给屏幕四边画线（2026-10-09，四道闸门全过，未提交）
+
+用户令（原话）：「集成模式全屏会留有边框，请修复」。
+
+- **现象与根因**：集成管线进全屏后，屏幕最外圈残留一圈细线、四个角各缺一小块。不是客户区几何不对（剥掉 `WS_CAPTION | WS_THICKFRAME` 后客户区实测 2560×1440、边框 0×0），而是 **DWM 那一层**：`HostWindow` 一直按窗口化给窗口设 `DWMWA_WINDOW_CORNER_PREFERENCE = DWMWCP_ROUND`（圆角），DWM 会**顺带**画一圈 1px 窗口边框。窗口化时这圈线藏在窗口自己的边框里看不见；全屏时窗口铺满整块显示器、边框已被剥离，它就直接落在屏幕四边各一条线、四角各切一块。
+- **改法（两处）**：
+  - `Windowing/HostWindow.cs`：`ApplyWindowsChrome()` 的圆角档改为跟随全屏 —— `Fullscreen ? DWMWCP_DONOTROUND : DWMWCP_ROUND`；并在 `EnterFullscreen` 的 `SetWindowPos` 之后、`LeaveFullscreen` 的还原矩形之后各补一次 `ApplyWindowsChrome()`（样式位那一趟会让 DWM 重算边框，之后再改属性，两头互为镜像）。
+  - `Interop/Native.cs`：新增常量 `DwmCornerDoNotRound = 1`，以及整数读版本的 `DwmGetWindowAttributeInt`（给「DWM 现在这一条属性是什么」的读数用）。
+- **自检**：`ShellSelfCheck.Fullscreen.cs` 新增读数与检查「全屏不带 DWM 圆角与边框」——全屏中读一次、退出后读一次，判据是「全屏=不圆角 且 退出后=圆角」；`docs/selfcheck-baseline.txt` 按字母序插入一行。
+- **没跟着改的地方**：最大化那一档本来就没有这圈线（对照实测：最大化时上边是窗口阴影带、左右是画面色，没有 1px 线），所以**不**把最大化一起改成不圆角，避免可见行为变化。
+- **真实读数**（`--probe-composition` 驱动到全屏 + 隔离白底素材，屏幕最外圈像素归属用 `WindowFromPoint` + `GetAncestor` 分离）：修复前 DWM 圆角偏好=2，屏幕四边读到 `#323B48`/`#343940`，3px 内才是 `#FFFFFF`；修复后偏好=1，**四边与四角读到的全是 `#FFFFFF`**，4 次采样一致。截图证据在 `work/fs-border-20261009/`（`corner-topleft-4x.png`、`edge-top-mid-4x.png`、`bars/`、`control-round-5x.png`、`control-donotround-5x.png`）。
+- **验证（四道闸门全过）**：闸门 1 构建 0 警 0 错、`format whitespace` 过；闸门 2 单测 **1606/1606**、0 失败 0 跳过；闸门 3 `artifacts/publish/win-x64` 刷新（**533 文件 / 301.8 MB**，11 GLSL / 4 HOOK）；闸门 4 自检 **183 项、0 失败行，消失 0、降级 0、新增 0**，新检查读数「全屏时 DWM 报的圆角偏好=1＝不圆角（应 1），退出全屏后=2＝圆角（应 2）」。`momoka-winui-shell` 技能补一条英文要点，`check-skill.py --all` 10 个技能 0 error。**未提交。**
 
 ## 剧/季/电影三页的文件选项下拉改成透明亚克力：闭合态与展开态同一支（2026-10-09，四道闸门全过，未提交）
 

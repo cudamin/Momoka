@@ -31,15 +31,25 @@
             <Setter Property="Padding" Value="18,0,20,2" />
         </Style>
 
-        <Style x:Key="EgPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+        <!-- 播放键和上面那颗是同一个外形，区别只在它是「这一页最要紧那颗」—— 但它和连播站在同一块底上
+             （2026-10-11）：「播放按钮背景要和连播一致」，连播那个半透明的药丸（DefaultButtonStyle 给的那支
+             底，压在图上透得回剧照）就正是这个底。原来是 AccentButtonStyle 给的整块实心强调色，和旁边几颗
+             药丸一个亮一个暗、两块底对不上。底交给框架默认那一档之后，强调色从**面上**挪到了**图标上**
+             —— 底下那颗回转图标就是它亮的地方（有断点时取 accent，见两颗 Button 里的写法）。 -->
+        <Style x:Key="EgPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
             <Setter Property="Padding" Value="18,0,20,2" />
+            <!-- 底半透明了，字得回到压在图上那支浅墨上 —— 从前那支深墨（EgTextOnAccent）是给实心强调色面
+                 配的，现在底是暗的，深墨压上去读不出来。 -->
+            <Setter Property="Foreground" Value="{StaticResource EgOnScrimBrush}" />
         </Style>
 
-        <!-- 连播那颗的样式：和带字的药丸键同一个外形，勾上时底色走 accent（词表里现成的三档：常／悬／按）、
-             字取 accent 上的那支深墨 —— 它是个开关，开着的名字写在脸上比埋在默认那层半透明白里读得清。 -->
+        <!-- 连播那颗的样式：和带字的药丸键同一个外形。它是个开关，可「开着」在屏上只落在一颗图标上 ——
+             勾上时**只有图标换色**（2026-10-11，参考图里那颗回转图标是绿的、药丸和字原样不动）：
+             底那三档按回不带勾时的那三支（常／悬／按，见两颗 ToggleButton 各自的 Resources），
+             字钉死在压在图上那支浅墨上，于是 Foreground 一路继承下来只剩那颗 FontIcon 跟着走。 -->
         <Style x:Key="EgPillToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
             <Setter Property="Height" Value="{StaticResource EgActionHeight}" />
             <Setter Property="MinWidth" Value="0" />
@@ -235,28 +245,9 @@
                 </Border.Background>
             </Border>
 
-            <!-- 顶上那一道罩子。它和图一样从窗口的上沿起，因为它压的就是那一段上面的字：三颗系统窗口按钮、左上
-                 角那颗齿轮、和面包屑那一行 —— 有图的时候那几处走的是 EgOnScrim 那套白墨（ShellPage 的
-                 SetTitleOnScrim），白字直接压在一张亮剧照上读不出来。220 高是量出来的：标题栏 32、面包屑那行
-                 连上下留白约 38，一百六出头（那会儿右上角那枚 64 高的徽标离页顶 28，也在这一段里），罩子得比它
-                 再长一截才淡得看不出边。现在那个角站的是一张 146 高的艺术图、下沿到二百四出头，这个数没跟着长：
-                 它不是白字、不靠这道罩子才读得出，而罩子在 220 处已经淡到全透明，那儿接不出边来。
-                 写死 #0C0E11 那一家（同主页大图）：它压的是一张照片，不是主题色；况且 HighContrast 那本
-                 词典里只有画刷没有颜色键，渐变里写 ThemeResource 的颜色键会在运行时抛。 -->
-            <Border Height="220" VerticalAlignment="Top">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
-                        <GradientStop Color="#990C0E11" Offset="0" />
-                        <GradientStop Color="#000C0E11" Offset="1" />
-                    </LinearGradientBrush>
-                </Border.Background>
-            </Border>
-
-            <!-- 标题栏那一条上的洗 —— 「往下拉之后标题颜色要渐变，变的和下方背景一样」。
-                 只盖标题栏加面包屑那一条（高由 LiftBackdrop 量出来写进来，就是这一页在工作区里让开的那么多），
-                 底和高都在代码里给（PaintWash）：洗的颜色要取正文那张纸此刻的颜色，而 HighContrast 那本
-                 词典里只有画刷没有颜色键，渐变的停点上写不了 ThemeResource。浓度跟着滚动走，见 DetailHero.TopWash。
-                 不接指针：它盖在标题栏上，那一条要能拖窗口。 -->
+            <!-- 标题栏和面包屑直接接片名区域的半透明黑底，不再叠一层独立的顶部渐变。
+                 LiftBackdrop 量出这一条的实际高度；PaintWash 在图上复用 HeroBand / HeroTail 的画刷，
+                 正文滚上来时再按纸面位置接色。不接指针，保留标题栏拖动。 -->
             <Border x:Name="TitleWash" IsHitTestVisible="False" VerticalAlignment="Top" />
         </Grid>
 
@@ -334,20 +325,10 @@
                         Margin="28,8,28,0"
                         Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}" />
 
-                    <!-- 底下那一块：海报、字和六颗键都站在它上面，白字压在剧照上靠的就是这一层。四档里最上面
-                         那两档管的是两行片名和副标题，最下面那两档管读数和按钮 —— 越往下的字越小，罩子也越浓。
-                         高和那五个停点这儿一个都不写：它们全由 Core 那张表生成（DetailHero.ScrimStops，画的
-                         地方是 PaintScrim）。从前这儿另写了一份一模一样的停点，而标题条上那层洗照着 Core 那份
-                         算（DetailHero.TopWash），两份数改一份忘一份就是标题条上接出一道横缝 —— 所以只留一份，
-                         由算得出的那一份去画看得见的这一份。自检照旧把元素上真正的停点跟那张表对一遍（见
-                         WashRead）：生成本身也会坏 —— 没赋上、画反、被样式盖掉。
-                         末档是 #B8 而不是满黑 ——「太黑了都看不清背景」：满黑那一版把这一格下半和底下那段尾部
-                         一起压死，整屏只剩黑，那张铺满页面的剧照白铺了。理由和这个数怎么来的写在
-                         DetailHero.ScrimCeiling 上（它由简介那行最淡的小字定），底下那块尾部必须同色。
-                         高是绑上来的而不是 PaintScrim 里设死的 440：集页的带子按里面那一叠实测给、比电影页那一档
-                         矮（见
-                         DetailViewModel.HeroHeight），罩子得跟着收，不然它从带子的上沿溢出去，而标题条上那层
-                         洗按收完的那一块算（DetailHero.ScrimSpan）—— 两边错开就是那道横缝。 -->
+                    <!-- 有背景图时 HeroBand 整块复用 HeroTail 的半透明黑底，与 TitleWash 连成一片（PaintScrim）。
+                         下面的旧渐变只留给无背景图、又没有集页面板的版式。
+                         停点取 DetailHero.ScrimStops，高度随带子收缩。末档仍取半透明的 ScrimCeiling，
+                         让图上的标题、说明可读，同时保留背景画面；不能改成满黑把整张图压死。 -->
                     <Border
                         x:Name="HeroScrim"
                         Height="{x:Bind ViewModel.ScrimHeight, Mode=OneWay}"
@@ -636,54 +617,70 @@
                                     Style="{StaticResource EgOnScrimDataStyle}"
                                     Text="{x:Bind ViewModel.VideoLine, Mode=OneWay}"
                                     Visibility="{x:Bind ViewModel.VideoVisibility, Mode=OneWay}" />
-                                <StackPanel
-                                    Orientation="Horizontal"
-                                    Spacing="10"
+                                <!-- Auto 标签 + 剩余宽度：长名称不能把选择框撑出片名栏。 -->
+                                <Grid
+                                    ColumnSpacing="10"
                                     Visibility="{x:Bind ViewModel.SourceVisibility, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock
                                         x:Uid="DetailPage_TextBlock2"
                                         VerticalAlignment="Center"
                                         Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnSourcePicker"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Left"
                                         CornerRadius="{StaticResource EgPickerCornerRadius}"
                                         DisplayMemberPath="Text"
                                         ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}"
-                                        MinWidth="200"
+                                        MinWidth="0"
                                         SelectedItem="{x:Bind ViewModel.SelectedSource, Mode=TwoWay}" />
-                                </StackPanel>
-                                <StackPanel
-                                    Orientation="Horizontal"
-                                    Spacing="10"
+                                </Grid>
+                                <Grid
+                                    ColumnSpacing="10"
                                     Visibility="{x:Bind ViewModel.AudioVisibility, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock
                                         x:Uid="DetailPage_TextBlock3"
                                         VerticalAlignment="Center"
                                         Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnAudioPicker"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Left"
                                         CornerRadius="{StaticResource EgPickerCornerRadius}"
                                         DisplayMemberPath="Text"
                                         ItemsSource="{x:Bind ViewModel.AudioTracks, Mode=OneWay}"
-                                        MinWidth="200"
+                                        MinWidth="0"
                                         SelectedItem="{x:Bind ViewModel.SelectedAudio, Mode=TwoWay}" />
-                                </StackPanel>
-                                <StackPanel
-                                    Orientation="Horizontal"
-                                    Spacing="10"
+                                </Grid>
+                                <Grid
+                                    ColumnSpacing="10"
                                     Visibility="{x:Bind ViewModel.SubtitleVisibility, Mode=OneWay}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock
                                         x:Uid="DetailPage_TextBlock4"
                                         VerticalAlignment="Center"
                                         Foreground="{StaticResource EgOnScrimBrush}" />
                                     <local:EgPicker
                                         x:Name="ColumnSubtitlePicker"
+                                        Grid.Column="1"
+                                        HorizontalAlignment="Left"
                                         CornerRadius="{StaticResource EgPickerCornerRadius}"
                                         DisplayMemberPath="Text"
                                         ItemsSource="{x:Bind ViewModel.SubtitleTracks, Mode=OneWay}"
-                                        MinWidth="200"
+                                        MinWidth="0"
                                         SelectedItem="{x:Bind ViewModel.SelectedSubtitle, Mode=TwoWay}" />
-                                </StackPanel>
+                                </Grid>
                             </StackPanel>
 
                             <!-- 那排键，宽版式的唯一一份（2026-09-13 起电影、剧、季也摆在这里，「向右移动
@@ -706,7 +703,20 @@
                                         Style="{StaticResource EgPlayButtonStyle}"
                                         Visibility="{x:Bind ViewModel.PlayVisibility, Mode=OneWay}">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <FontIcon FontSize="14" Glyph="&#xE768;" />
+                                            <!-- 有断点时图标亮成强调色（同连播那颗「激活只换图标」的手法，
+                                                 只是这颗常态就有一颗图标，亮的是它）；没有断点时它和字一样
+                                                 是压在图上那支浅墨。底两边都在 —— 半透明药丸，所以 accent
+                                                 这一次是落在图标上，不是像从前那样把整个面涂绿。 -->
+                                            <FontIcon
+                                                FontSize="14"
+                                                Glyph="&#xE768;"
+                                                Foreground="{StaticResource EgOnScrimBrush}"
+                                                Visibility="{x:Bind ViewModel.NotResumePlay, Mode=OneWay}" />
+                                            <FontIcon
+                                                FontSize="14"
+                                                Glyph="&#xE768;"
+                                                Foreground="{StaticResource EgAccentBrush}"
+                                                Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                             <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                         </StackPanel>
                                     </Button>
@@ -731,17 +741,21 @@
                                         IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                         Style="{StaticResource EgPillToggleButtonStyle}"
                                         Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
+                                        <!-- 勾上只换图标那一支色：底按回不带勾的三档（常／悬／按），Foreground 取 accent
+                                             而字自己钉在浅墨上 —— 那支 accent 于是只落在没写 Foreground 的 FontIcon 上。
+                                             别名指的就是模板自己读的那三个键（UiThemes 那五套全是深色，所以这里
+                                             解析出来的和不带勾那份是同一支刷子）。 -->
                                         <ToggleButton.Resources>
-                                            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgAccentBrush" />
-                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
-                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgAccentPressedBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextOnAccentBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextOnAccentBrush" />
-                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextOnAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ToggleButtonBackground" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ToggleButtonBackgroundPointerOver" />
+                                            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ToggleButtonBackgroundPressed" />
+                                            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
                                         </ToggleButton.Resources>
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <FontIcon FontSize="14" Glyph="&#xE8EE;" />
-                                            <TextBlock x:Uid="DetailPage_ContinuePlay" />
+                                            <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{StaticResource EgOnScrimBrush}" />
                                         </StackPanel>
                                     </ToggleButton>
 
@@ -802,6 +816,10 @@
                                      （WideProgressVisibility）—— 两份容器各按各的版式收着，屏上永远只有一份
                                      在（宽版式只剩这一份：那排键 2026-09-13 搬进这一叠，其余三页从带子底下
                                      那一行跟着搬了过来，「宽窗口缺少播放进度条」的账还在）。
+                                     条和右边那行字取 accent（2026-10-11，同连播那颗激活时「只有图标变色」的手法）：
+                                     这一行只在有断点时露头，它亮起来说的正是「接着看」这件事 —— 和上面播放键上
+                                     那颗转绿的回转图标同一句话。从前条走框架默认、字走 EgOnScrimDimBrush（压在
+                                     图上的那支暗墨），屏上是一条不说话的灰条。
                                      不跟窗口宽走到底（「进度条怎么是随窗口宽度无限延长的」，2026-09-12）：
                                      限在 EgProseWidth —— 剧情说明那行字的上限，页面上已有的一档量，靠左站，
                                      和它上面那一列内容同一条左沿。条定死 4 高：这一行露头的时候带高跟着
@@ -820,12 +838,13 @@
                                         AutomationProperties.AutomationId="WideResumeProgress"
                                         Height="4"
                                         Maximum="100"
+                                        Foreground="{StaticResource EgAccentBrush}"
                                         Value="{x:Bind ViewModel.ProgressValue, Mode=OneWay}" />
                                     <TextBlock
                                         Grid.Column="1"
                                         VerticalAlignment="Center"
                                         FontSize="{StaticResource EgCaptionFontSize}"
-                                        Foreground="{StaticResource EgOnScrimDimBrush}"
+                                        Foreground="{StaticResource EgAccentBrush}"
                                         Text="{x:Bind ViewModel.ResumeRemain, Mode=OneWay}" />
                                 </Grid>
                             </StackPanel>
@@ -1057,7 +1076,9 @@
                              （CompactVisibility），一个像素都不占。
                              进度跟着断点走（PlayTarget.ProgressFraction），「剩余 x 分钟」由 ItemDetail.Remaining
                              给；没有断点整行收起来（ResumeVisibility）—— 没有进度可言的条目上摆一条空进度条，
-                             读着像坏了。限宽同宽版式那两份（EgProseWidth、靠左，「窄窗口的进度条太长，
+                             读着像坏了。条和右边那行字取 accent（2026-10-11，同宽版式那份、同连播那颗激活时的
+                             手法）：这一行只在有断点时露头，亮起来说的正是「接着看」。限宽同宽版式那两份（EgProseWidth、
+                             靠左，「窄窗口的进度条太长，
                              窄窗口多长它就多长」，2026-09-12）。这一块的字全用压在图上那套浅墨（EgOnScrim*）：
                              它站在尾部，和音轨、剧情说明同一条竖线上，同一套墨才像一段。
                              更多 和宽版式那颗是同一个处理器（OnMoreClicked），菜单挂在按下的那一颗上，
@@ -1076,7 +1097,18 @@
                                     Style="{StaticResource EgPlayButtonStyle}"
                                     Visibility="{x:Bind ViewModel.PlayVisibility, Mode=OneWay}">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <FontIcon FontSize="14" Glyph="&#xE768;" />
+                                        <!-- 与宽版式那颗同一条规矩：有断点时图标亮成 accent，没有断点时跟字同色、
+                                             都是压在图上那支浅墨（见上面那颗的注释；底色半透明，和连播一致）。 -->
+                                        <FontIcon
+                                            FontSize="14"
+                                            Glyph="&#xE768;"
+                                            Foreground="{StaticResource EgOnScrimBrush}"
+                                            Visibility="{x:Bind ViewModel.NotResumePlay, Mode=OneWay}" />
+                                        <FontIcon
+                                            FontSize="14"
+                                            Glyph="&#xE768;"
+                                            Foreground="{StaticResource EgAccentBrush}"
+                                            Visibility="{x:Bind ViewModel.ResumePlay, Mode=OneWay}" />
                                         <TextBlock Text="{x:Bind ViewModel.PlayText, Mode=OneWay}" />
                                     </StackPanel>
                                 </Button>
@@ -1092,25 +1124,26 @@
                                     </StackPanel>
                                 </Button>
 
-                                <!-- 连播，和宽版式那两颗同一个开关同一句话；紧凑版式这颗也是勾选态走
-                                     accent 底的 ToggleButton（从前格子那一版是「图标取 accent、底按住不画」，
-                                     那对可见性随格子一起退场了）。 -->
+                                <!-- 连播，和宽版式那两颗同一个开关同一句话；紧凑版式这颗也是**勾上只换图标色**
+                                     （2026-10-11 起：底按回不带勾的三档，字钉在浅墨上，accent 只落在图标上；
+                                     更早那两版是「勾上走 accent 底」、再往前格子那一版是「图标取 accent、底按住不画」，
+                                     这回把两版的结论合起来——底不画，色只给图标）。 -->
                                 <ToggleButton
                                     AutomationProperties.AutomationId="CompactContinueButton"
                                     IsChecked="{x:Bind ViewModel.ContinuePlay, Mode=TwoWay}"
                                     Style="{StaticResource EgPillToggleButtonStyle}"
                                     Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                     <ToggleButton.Resources>
-                                        <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgAccentBrush" />
-                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
-                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgAccentPressedBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextOnAccentBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextOnAccentBrush" />
-                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextOnAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ToggleButtonBackground" />
+                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="ToggleButtonBackgroundPointerOver" />
+                                        <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="ToggleButtonBackgroundPressed" />
+                                        <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgAccentBrush" />
+                                        <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgAccentBrush" />
                                     </ToggleButton.Resources>
                                     <StackPanel Orientation="Horizontal" Spacing="8">
                                         <FontIcon FontSize="14" Glyph="&#xE8EE;" />
-                                        <TextBlock x:Uid="DetailPage_ContinuePlay" />
+                                        <TextBlock x:Uid="DetailPage_ContinuePlay" Foreground="{StaticResource EgOnScrimBrush}" />
                                     </StackPanel>
                                 </ToggleButton>
 
@@ -1179,12 +1212,13 @@
                                     AutomationProperties.AutomationId="CompactResumeProgress"
                                     Height="4"
                                     Maximum="100"
+                                    Foreground="{StaticResource EgAccentBrush}"
                                     Value="{x:Bind ViewModel.ProgressValue, Mode=OneWay}" />
                                 <TextBlock
                                     Grid.Column="1"
                                     VerticalAlignment="Center"
                                     FontSize="{StaticResource EgCaptionFontSize}"
-                                    Foreground="{StaticResource EgOnScrimDimBrush}"
+                                    Foreground="{StaticResource EgAccentBrush}"
                                     Text="{x:Bind ViewModel.ResumeRemain, Mode=OneWay}" />
                             </Grid>
 

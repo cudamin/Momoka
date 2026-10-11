@@ -6,19 +6,20 @@
     xmlns:local="using:Momoka.Shell.Views">
     <Grid Padding="16" Background="{ThemeResource EgWindowBrush}" RowSpacing="12">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <AutoSuggestBox x:Name="SearchInput" Header="搜索 MoviePilot 资源"
             PlaceholderText="输入关键字（如：剧名 S01 E01）" QueryIcon="Find" QuerySubmitted="OnSearch" />
-        <InfoBar Grid.Row="1" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+        <local:MoviePilotSitePicker x:Name="SearchSitePicker" Grid.Row="1" />
+        <InfoBar Grid.Row="2" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
             Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="3">
             <local:MoviePilotResourceBrowser x:Name="Browser" />
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}">
                 <ProgressRing IsActive="{x:Bind ViewModel.Busy, Mode=OneWay}" Width="40" Height="40" />
                 <TextBlock Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
-                    Text="正在各站点搜索版本，可能要等一会儿…" TextAlignment="Center" TextWrapping="Wrap" />
+                    Text="正在所选站点范围搜索版本，可能要等一会儿…" TextAlignment="Center" TextWrapping="Wrap" />
             </StackPanel>
             <TextBlock Margin="24,48,24,0" HorizontalAlignment="Center" VerticalAlignment="Top"
                 Foreground="{ThemeResource EgTextDimBrush}" Style="{StaticResource EgBodyStyle}" Text="{x:Bind ViewModel.EmptyNotice, Mode=OneWay}"

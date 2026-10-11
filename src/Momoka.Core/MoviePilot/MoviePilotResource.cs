@@ -8,11 +8,14 @@ public sealed record MoviePilotResource
 {
     public required string Title { get; init; }
     internal string ConnectionStamp { get; init; } = "";
+    internal long? ConnectionGeneration { get; init; }
     public string? Description { get; init; }
     public string? SiteName { get; init; }
     public long Size { get; init; }
     public int Seeders { get; init; }
     public string? Resolution { get; init; }
+    public IReadOnlyList<int> Seasons { get; init; } = [];
+    public IReadOnlyList<int> Episodes { get; init; } = [];
     public string? PageUrl { get; init; }
     public string? PublishedText { get; init; }
     public DateTimeOffset? PublishedAt { get; init; }

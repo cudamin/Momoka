@@ -283,7 +283,7 @@ public sealed class MediaSource
     [JsonIgnore]
     public MediaStream? PrimaryVideoStream => MediaStreams.FirstOrDefault(stream => stream.IsVideo);
 
-    /// <summary>"1080p · HEVC · 8.4 GB" for the detail page.</summary>
+    /// <summary>"1080p · HEVC · MKV · 8.4 GB" for the progress bar, the version menu and the 播放信息 overlay.</summary>
     public string ToQualityLabel()
     {
         var parts = new List<string>(4);
@@ -293,6 +293,44 @@ public sealed class MediaSource
         if (!string.IsNullOrWhiteSpace(Container)) parts.Add(Container!.ToUpperInvariant());
         if (TimeFormat.FileSize(Size) is { Length: > 0 } size) parts.Add(size);
         return string.Join("  ·  ", parts);
+    }
+
+    /// <summary>
+    /// 「417.7 MB · 1080p · HEVC · AAC · Studio GreenTea」—— 这一份文件的五项读数（文件大小、分辨率、
+    /// 视频编码、音频格式、组名），详情页那行「视频：…」与播放页左上角第二行共用同一条字符串（用户令
+    /// 2026-10-09「这里显示的视频信息改为 文件大小 分辨率 视频编码 音频格式 组名，播放页面标题的也改成
+    /// 一样的」）。逐项为空即跳过，全空给空串 —— 集成模式那一行空串＝副标题框收起。
+    /// <para>
+    /// 与 <see cref="ToQualityLabel"/> 分工不同，两条都要留着：那条是**画质**读数（分辨率·视频编码·容器·
+    /// 大小），进度条中间、版本菜单右列、播放信息浮层问它；这条是**文件信息**读数，容器不写（详情页
+    /// 「媒体信息」表里「格 式」那行已经说了），改带音频格式与制作组。
+    /// </para>
+    /// </summary>
+    public string ToFileInfoLabel()
+    {
+        var parts = new List<string>(5);
+        var video = PrimaryVideoStream;
+
+        if (TimeFormat.FileSize(Size) is { Length: > 0 } size) parts.Add(size);
+        if (video?.Height is > 0) parts.Add(DescribeHeight(video.Height.Value));
+        if (!string.IsNullOrWhiteSpace(video?.Codec)) parts.Add(video!.Codec!.ToUpperInvariant());
+        if (PrimaryAudioCodec() is { Length: > 0 } audioCodec) parts.Add(audioCodec.ToUpperInvariant());
+        if (ReleaseGroup.FromFileName(Path) is { Length: > 0 } group) parts.Add(group);
+
+        return string.Join("  ·  ", parts);
+    }
+
+    /// <summary>
+    /// 正在放这一版的主音轨编码：服务器点名的默认音轨优先（<see cref="DefaultAudioStreamIndex"/>），找不到就
+    /// 退到第一条音轨。取编码而不是语言，是与「视频编码」对称、且不随「当前选了哪条轨」而变。
+    /// </summary>
+    private string? PrimaryAudioCodec()
+    {
+        var audio = DefaultAudioStreamIndex is { } index
+            ? MediaStreams.FirstOrDefault(stream => stream.IsAudio && stream.Index == index)
+            : null;
+        audio ??= AudioStreams.FirstOrDefault();
+        return audio?.Codec;
     }
 
     private static string DescribeHeight(int height) => height switch
@@ -604,7 +642,7 @@ public sealed class EmbyItem
     /// 播放页左上角那一行主标题：单集＝「剧名 SxxExx 集名」（用现成的 <see cref="EpisodeCode"/>），其余留片名本身。
     /// <para>
     /// 2026-09-27 那版曾**不带剧名前缀**（当时的说法是「剧名让给第二行的文件信息」）；**2026-09-28 晚按用户令
-    /// 「标题前面加上剧名」改回带前缀** —— 第二行如今是「分辨率 · 视频编码 · 音频格式 · 组名」，剧名在那行里
+    /// 「标题前面加上剧名」改回带前缀** —— 第二行如今是「文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名」，剧名在那行里
     /// 本来就不出现，主标题于是把它接回来。写法直接复用 <see cref="ToPlaybackTitle"/>（同一条字符串），
     /// 两处不再各写一份、也不会再悄悄走偏；诊断 / 概览 / 下载命名用的仍是同一个方法。
     /// </para>

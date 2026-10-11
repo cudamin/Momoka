@@ -25,7 +25,7 @@ public sealed partial class MoviePilotService
     {
         var identity = CaptureIdentity();
         var storages = MoviePilotTransfer.Array(await CallAsync((apiBase, token) =>
-            client.GetAsync(apiBase, token, "storage/options", cancellationToken), cancellationToken, identity)
+            _client.GetAsync(apiBase, token, "storage/options", cancellationToken), cancellationToken, identity)
             .ConfigureAwait(false))
             .Where(item => MoviePilotTransfer.Text(item, "name").Length > 0)
             .Select(item => new MoviePilotStorage(
@@ -33,7 +33,7 @@ public sealed partial class MoviePilotService
             .ToList();
 
         var directories = MoviePilotTransfer.Array(await CallAsync((apiBase, token) =>
-            client.GetAsync(apiBase, token, "storage/directories?directory_type=library", cancellationToken),
+            _client.GetAsync(apiBase, token, "storage/directories?directory_type=library", cancellationToken),
             cancellationToken, identity).ConfigureAwait(false))
             .Where(item => MoviePilotTransfer.Text(item, "library_path").Length > 0)
             .Select(item => new MoviePilotDirectory(
@@ -47,7 +47,7 @@ public sealed partial class MoviePilotService
             .ToList();
 
         var sources = ParseMediaSources(await CallAsync((apiBase, token) =>
-            client.GetAsync(apiBase, token, "media/source", cancellationToken), cancellationToken, identity).ConfigureAwait(false))
+            _client.GetAsync(apiBase, token, "media/source", cancellationToken), cancellationToken, identity).ConfigureAwait(false))
             .Where(source => source.IsVideo).ToList();
         CheckIdentity(identity, cancellationToken);
 
@@ -63,7 +63,7 @@ public sealed partial class MoviePilotService
     /// </summary>
     public async Task<JsonElement> TransferFileAsync(string sourcePath, CancellationToken cancellationToken)
     {
-        var reply = await CallAsync((apiBase, token) => client.PostReplyAsync(apiBase, token,
+        var reply = await CallAsync((apiBase, token) => _client.PostReplyAsync(apiBase, token,
             "storage/list?sort=name",
             new Dictionary<string, object?> { ["storage"] = "local", ["type"] = "file", ["path"] = sourcePath },
             cancellationToken), cancellationToken).ConfigureAwait(false);
@@ -99,7 +99,7 @@ public sealed partial class MoviePilotService
     public async Task<MoviePilotTransferOptions> TransferTargetAsync(
         JsonElement file, CancellationToken cancellationToken)
     {
-        var reply = await CallAsync((apiBase, token) => client.PostReplyAsync(apiBase, token,
+        var reply = await CallAsync((apiBase, token) => _client.PostReplyAsync(apiBase, token,
             "transfer/manual/target-path",
             new Dictionary<string, object?> { ["fileitem"] = file }, cancellationToken), cancellationToken)
             .ConfigureAwait(false);
@@ -173,7 +173,7 @@ public sealed partial class MoviePilotService
         }
         CheckIdentity(identity, cancellationToken);
         var body = preview.Request.Body(preview.Files, preview: false);
-        var reply = await WriteAsync(identity, TransferKeys(preview), (apiBase, token) => client.PostReplyAsync(
+        var reply = await WriteAsync(identity, TransferKeys(preview), (apiBase, token) => _client.PostReplyAsync(
             apiBase, token, $"transfer/manual?background={(background ? "true" : "false")}", body, cancellationToken),
             cancellationToken).ConfigureAwait(false);
         var result = MoviePilotTransfer.ParseResult(reply.Data, reply.Success, reply.Message, preview: false);
@@ -197,7 +197,7 @@ public sealed partial class MoviePilotService
         CheckIdentity(identity, cancellationToken);
         ValidateHistoryConnection(request.Histories, identity);
         var body = request.Body(files, preview);
-        var reply = await CallAsync((apiBase, token) => client.PostReplyAsync(
+        var reply = await CallAsync((apiBase, token) => _client.PostReplyAsync(
             apiBase, token, $"transfer/manual?background={(background ? "true" : "false")}", body, cancellationToken),
             cancellationToken, identity).ConfigureAwait(false);
 

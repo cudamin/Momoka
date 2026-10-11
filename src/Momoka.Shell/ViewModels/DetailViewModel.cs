@@ -81,18 +81,15 @@ public sealed partial class DetailViewModel : PageViewModel
 
     private const int PosterStillHeight = 300;
 
+    // 集页按参考截图固定最大封面；窄窗等比缩小，不受右侧文字行数影响。
+    private const int EpisodeStillWidth = 260;
+    private const int EpisodeStillHeight = 375;
+
     /// <summary>
-    /// 封面这一次按多宽解码 —— 画出来多宽就取多宽（集页的宽版式随窗口走，
-    /// <see cref="DetailHero.StillWidth"/>；取图那一刻的宽说了算，窗口随后再变不重解码，同一张图缓存里只有
-    /// 那一份）。集页的封面是剧的那张 2:3 海报（「集页面的封面改用剧页面的封面」），基宽同一张：210。
-    /// 取整到像素。取图不看画不画（<see cref="DetailHero.ShowsStill"/>）：不画的档照取，窗口拉宽跨过
-    /// <see cref="DetailHero.CompactFloor"/> 的那一下封面就地回来，不用再等一趟往返。
+    /// 按封面最大显示宽度取图，避免窄窗打开后拉宽只放大低分辨率位图。
+    /// 取图不看当前显隐，窗口跨过紧凑断点时可直接显示已有图片。
     /// </summary>
-    private int StillDecodeWidth => IsEpisodePage
-        ? (int)Math.Ceiling(IsCompact
-            ? (double)PosterStillWidth
-            : DetailHero.StillWidth(PageWidth, PosterStillWidth, HeroReferenceWidth))
-        : PosterStillWidth;
+    private int StillDecodeWidth => IsEpisodePage ? EpisodeStillWidth : PosterStillWidth;
 
     /// <summary>How many lines of 简介 are shown before 阅读更多 appears.</summary>
     private const int CollapsedLines = 4;
@@ -129,6 +126,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 标记本季已看 knows what 本季 is.
     /// </summary>
     private readonly List<EmbyItem> _episodes = [];
+    private readonly HashSet<string> _deletedItems = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Artwork has its own cancellation, separate from the page's load. Switching seasons deliberately
@@ -514,6 +512,7 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     [NotifyPropertyChangedFor(nameof(HeroArtVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroPlainVisibility))]
+    [NotifyPropertyChangedFor(nameof(ScrimVisibility))]
     public partial bool HeroArt { get; set; }
 
     /// <summary>
@@ -573,12 +572,6 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial double StackRoom { get; set; }
 
     /// <summary>
-    /// 文字那一叠量出了新高 —— 封面的高上限（<see cref="FitStill"/>）跟着走。只在集页的宽版式上咬合
-    /// （其余页面 FitStill 不看这个数），而 FitStill 对没变的数不喊通知，拖窗口的负载不在这里。
-    /// </summary>
-    partial void OnStackRoomChanged(double value) => FitStill();
-
-    /// <summary>
     /// 带子里那一叠（剧照、片名、副标题、读数、那排键）连上下留白实测要占多高。集页那一格的高就是它
     /// （<see cref="DetailHero.EpisodeHeight"/>）；电影、剧、季三页也用它 —— 和老档取大
     /// （<see cref="DetailHero.WideHeight"/>），那一叠长过海报的时候带子跟着长。
@@ -633,7 +626,7 @@ public sealed partial class DetailViewModel : PageViewModel
     partial void OnPageWidthChanged(double value) => RefitArtwork();
 
     /// <summary>
-    /// 封面和角图按现在的窗口宽各排一遍 —— 「集页面左上角的封面要跟随窗口的宽度放大和缩小」加角图的题栏保底，
+    /// 封面和角图按现在的窗口宽各排一遍 —— 集页封面窄窗缩小、宽窗封顶，角图保留题栏宽度，
     /// 规则都在 Core（<see cref="DetailHero.StillWidth"/>／<see cref="DetailHero.CornerBoxWidth"/>）。两个时机喊：
     /// 图到手（<see cref="ShowStill"/>／<see cref="ShowCorner"/> 先把像素尺寸记下来），和窗口宽变了
     /// （<see cref="OnPageWidthChanged"/>）。先封面后角图：角图让多少位（<see cref="CornerMaxWidth"/>）要看封面
@@ -646,17 +639,12 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 封面那一格按现在的宽排：不画的档（<see cref="CoverShown"/>）先把宽高归零退出去；集页的宽版式随窗口走
-    /// （<see cref="DetailHero.StillWidth"/>，基宽是剧那张海报的 210 —— 「集页面的封面改用剧页面的封面」，
-    /// 形状也同它，2:3），紧凑版式和其余页面照旧用基宽（紧凑那一档按参考图是贴着页宽的大封面）。图到手了就
-    /// 按位图自己的形状收进盒子里（<see cref="DetailHero.StillBox"/>），还没到手就摆上限盒 —— 那一拍这一格
-    /// 整个收着（<see cref="StillVisibility"/>），摆的数没人看见。
+    /// 封面按图片原始比例装入上限盒。集页以参考截图的尺寸封顶，页面窄于参考宽时宽高一起缩小；
+    /// 其余页面保留原来的海报尺寸。不画的档先把宽高归零，避免隐藏封面仍占据头部高度。
     /// <para>
-    /// 集页的宽版式还有一道高上限：<b>不超过旁边那一叠文字</b>（<see cref="StackRoom"/>，里面已经含按键和
-    /// 进度那几行）。封面是 2:3 的，随宽放大高得比文字快 —— 文字短的页面（片名一行、没有折行）上它会高出
-    /// 一大截，而按键排在按键行等的是整行的结束，屏上就是文字和按键之间空出海报高出来的那一截（他圈的
-    /// 那块空位，2026-09-12 死神 S2:E41 的截图）。盖住它，封面和文字栏同高，谁也不给谁留洞；文字多的页面
-    /// （片名折行）上限跟着长，封面照旧随宽放大。
+    /// 集页封面不再用文字栏高度封顶，否则宽窗下仍会随文字行数变动。
+    /// 按键已经放在文字栏内部，不再等待整行的底边；<see cref="HeroRoom"/> 按封面、文字和角图的实际高度
+    /// 取大，让下方内容随之让位。
     /// </para>
     /// </summary>
     private void FitStill()
@@ -671,13 +659,12 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
 
-        var maxW = IsEpisodePage && !IsCompact
-            ? DetailHero.StillWidth(PageWidth, PosterStillWidth, HeroReferenceWidth)
+        var maxW = IsEpisodePage
+            ? DetailHero.StillWidth(PageWidth, EpisodeStillWidth, HeroReferenceWidth)
             : (double)PosterStillWidth;
-        var maxH = maxW * PosterStillHeight / (double)PosterStillWidth;
-
-        if (IsEpisodePage && !IsCompact)
-            maxH = Math.Min(maxH, Math.Max(StackRoom, PosterStillHeight));
+        var maxH = IsEpisodePage
+            ? maxW * EpisodeStillHeight / EpisodeStillWidth
+            : PosterStillHeight;
 
         if (_stillPixels is { } pixels
             && DetailHero.StillBox(pixels.Width, pixels.Height, maxW, maxH) is { } fit)
@@ -934,6 +921,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(PlayText))]
+    [NotifyPropertyChangedFor(nameof(ResumePlay))]
+    [NotifyPropertyChangedFor(nameof(NotResumePlay))]
     [NotifyPropertyChangedFor(nameof(PlayVisibility))]
     [NotifyPropertyChangedFor(nameof(RestartVisibility))]
     [NotifyPropertyChangedFor(nameof(ProgressValue))]
@@ -1106,9 +1095,10 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility ScoreVisibility => Show(!string.IsNullOrWhiteSpace(Score));
 
     /// <summary>
-    /// 「视频：1080p · H264 · MP4 · 211 MB」这一行该不该有。两处用它：集页的宽版式里它是一枚 chips
+    /// 「视频：417.7 MB · 1080p · H264 · AAC · 制作组」这一行该不该有。两处用它：集页的宽版式里它是一枚 chips
     /// （和音频、字幕那几格一起换行，「按键布局参考上方截图」），其余版式里它是片名那一栏的独立一行
-    /// （<see cref="VideoLineVisibility"/>）。
+    /// （<see cref="VideoLineVisibility"/>）。内容是 <see cref="ItemDetail.VideoLine"/> 那条共用读数
+    /// （文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名，与播放页第二行同源，用户令 2026-10-09）。
     /// <para>
     /// 有话说是第一句，第二句是**底下那个媒体源下拉没在屏上**。一个文件的条目上没有下拉，这一行是那份读数
     /// 唯一的出处，收掉它就等于把分辨率和大小从页面上抹了。
@@ -1189,13 +1179,13 @@ public sealed partial class DetailViewModel : PageViewModel
     public bool HeroCardShown => HeroCard;
 
     /// <summary>
-    /// 带子下沿那道渐深罩子画不画 —— 它压的是一张剧照，好让压在图上的白字读得出来。
+    /// 无背景图时保留带子下沿的渐深罩子；有图时整块头部改由同一支半透明黑色画刷承接标题栏与尾部。
     /// <para>
     /// 集页那块板上不画（<see cref="HeroCard"/>）：那一页不铺背景图（<see cref="SpreadsBackdrop"/>），没有照片
     /// 可压；留着它只会把板的下半截压暗，板底和自己那几块小面板的底边对不上。板上的底由板自己给。
     /// </para>
     /// </summary>
-    public Visibility ScrimVisibility => Show(!HeroCard);
+    public Visibility ScrimVisibility => Show(!HeroCard && !BackdropShown);
 
     /// <summary>紧凑版式里才画的那一块（全宽播放键、断点进度、带字的一排操作）显不显 —— <see cref="IsCompact"/>。</summary>
     public Visibility CompactVisibility => Show(IsCompact);
@@ -1251,6 +1241,27 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>「播放」, 「播放 S01E02」 or 「继续播放 20:34」 — the resume clock is on the button itself.</summary>
     public string PlayText => ItemDetail.PlayText(PlayTarget);
+
+    /// <summary>
+    /// 播放键上的回转图标亮不亮 —— 有断点就亮。和 <see cref="RestartVisibility"/> 同一个判据（<see
+    /// cref="ItemDetail.PlayText"/> 里那条 <c>HasResumePosition</c> 分支），所以图标、字、旁边的「从头开始」
+    /// 三样说的是同一件事：断点。
+    /// <para>
+    /// 亮的是那一颗图标自己 —— 有断点时它取 accent（<c>EgAccentBrush</c>），没有断点时和字一样是压在图上
+    /// 那支浅墨。按键的底是半透明的药丸（<c>EgPlayButtonStyle</c>，和连播同一块底，2026-10-11），强调色
+    /// 于是只能落在图标上：从前那颗键是整块实心 accent、字是深墨，一颗图标反而不显眼。这一下和连播
+    /// 那颗「激活只换图标」是同一个手法，只是这颗常态就有一颗图标，亮的就是它。
+    /// </para>
+    /// <para>
+    /// 这里不问「点了会不会真的从断点接上」（那是 <see cref="PlaybackSettings.ResumeFromSavedPosition"/>，
+    /// 关掉后 从头开始 也是片头）—— 亮的是「这颗条目有断点」，和 <see cref="PlayText"/> 的
+    /// 「继续播放 20:34」、旁边那颗 从头开始 同进同退。承接位置归播放器那一头算。
+    /// </para>
+    /// </summary>
+    public Visibility ResumePlay => Show(PlayTarget?.HasResumePosition == true);
+
+    /// <summary>没有断点时那一支图标 —— 两颗 FontIcon 一个占位、一个让位，同「未看／已看」那一对的写法。</summary>
+    public Visibility NotResumePlay => Show(PlayTarget?.HasResumePosition != true);
 
     public Visibility PlayVisibility => Show(PlayTarget is not null);
 
@@ -1577,6 +1588,7 @@ public sealed partial class DetailViewModel : PageViewModel
         ISystemLauncher launcher)
     {
         Cancel();
+        _deletedItems.Clear();
         _active = true;
         _scope = images.CaptureScope();
         _actions = actions;
@@ -1990,6 +2002,7 @@ public sealed partial class DetailViewModel : PageViewModel
             .ExecuteAsync((client, ct) => client.GetSeasonsAsync(series.Id, ct), token).ConfigureAwait(true);
         if (!IsCurrent(token)) return;
 
+        seasons.RemoveAll(WasDeleted);
         var picked = ItemDetail.PickSeason(seasons);
         _syncingSeason = true;
         try
@@ -2017,6 +2030,7 @@ public sealed partial class DetailViewModel : PageViewModel
             .ExecuteAsync((client, ct) => client.GetEpisodesAsync(scope.SeriesId, scope.SeasonId, ct), token)
             .ConfigureAwait(true);
         if (!IsCurrent(token)) return;
+        episodes.RemoveAll(WasDeleted);
 
         // 播放目标也要读齐才提交，不能把新季列表与旧季目标组合成可播放状态。
         EmbyItem? target = null;
@@ -2069,7 +2083,7 @@ public sealed partial class DetailViewModel : PageViewModel
                 .ConfigureAwait(true);
             if (!IsCurrent(token)) return;
 
-            shelf.Fill(similar);
+            shelf.Fill(similar.Where(item => !WasDeleted(item)));
         }
         catch (OperationCanceledException)
         {
@@ -2525,6 +2539,11 @@ public sealed partial class DetailViewModel : PageViewModel
                     : client.MarkPlayedAsync(item.Id, token), CancellationToken.None)
                 .ConfigureAwait(true);
 
+            // 标记为已看（played 为 false 的那一次）还要替服务器补报一趟播放停止，位置按用户令报 100%，好让
+            // 服务器上那条通知立刻把 playback.stop 转发出去（用户令 2026-10-09，见 IShellActions.ReportMarkedWatched）。
+            // 反过来「标记未观看」不是「看完了」，不报。
+            if (!played) _actions?.ReportMarkedWatched(item);
+
             // Re-read rather than flipped locally: marking a season watched moves every episode's tick
             // and the show's unplayed count with it, and only the server knows what it did.
             if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail) && scope.IsCurrent)
@@ -2557,9 +2576,11 @@ public sealed partial class DetailViewModel : PageViewModel
             // other things with it; 收藏 moves nothing — and a reload here cost the page its artwork, its
             // 演职人员 row and its 更多类似 row, all re-fetched to answer a question the click already
             // answered. The item's own copy is updated too, so the next click reads the current value.
-            if (!Attached || lifetime != _lifetime || !ReferenceEquals(item, _detail) || !scope.IsCurrent) return;
+            if (!scope.IsCurrent) return;
             item.UserData ??= new EmbyUserData();
             item.UserData.IsFavorite = !favorite;
+            _actions?.RefreshFavorites(item);
+            if (!Attached || lifetime != _lifetime || !ReferenceEquals(item, _detail)) return;
             Favorite = !favorite;
         }
         catch (OperationCanceledException) { }
@@ -2634,6 +2655,80 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>What a context menu calls after it has changed something on the server.</summary>
     internal void Reload() => _ = LoadAsync();
+
+    /// <summary>封面删除只移除受影响的卡片；播放目标若被删除，再读取剩余单集的目标。</summary>
+    internal void Remove(CardItem removed) => _ = RemoveAsync(removed);
+
+    private bool WasDeleted(EmbyItem item) => _deletedItems.Contains(item.Id)
+        || item.ParentId is { } parent && _deletedItems.Contains(parent)
+        || item.SeriesId is { } series && _deletedItems.Contains(series)
+        || item.SeasonId is { } season && _deletedItems.Contains(season);
+
+    internal async Task RemoveAsync(CardItem removed)
+    {
+        if (!Attached || !removed.IsCurrent) return;
+        CardShelf?[] shelves = [EpisodeShelf, SeasonShelf, SimilarShelf];
+        if (!shelves.Any(shelf => shelf?.Cards.Contains(removed) == true)) return;
+        _deletedItems.Add(removed.Item.Id);
+        // 推荐卡不参与单集或播放目标时，只移除推荐；不能撤销仍在读取的剧季或补选目标。
+        if (!_episodes.Any(WasDeleted) && !Seasons.Any(WasDeleted) && (PlayTarget is null || !WasDeleted(PlayTarget)))
+        {
+            if (SimilarShelf is { } similar)
+                foreach (var card in similar.Cards.Where(card => WasDeleted(card.Item)).ToArray())
+                {
+                    card.AbandonPoster();
+                    similar.Cards.Remove(card);
+                }
+            return;
+        }
+        bool Deleted(EmbyItem item) => WasDeleted(item);
+        var token = BeginLoad();
+        _switchingSeason = false;
+        try
+        {
+            foreach (var shelf in shelves.OfType<CardShelf>())
+                foreach (var card in shelf.Cards.Where(card => Deleted(card.Item)).ToArray())
+                {
+                    card.AbandonPoster();
+                    shelf.Cards.Remove(card);
+                }
+            _episodes.RemoveAll(Deleted);
+            _syncingSeason = true;
+            try
+            {
+                foreach (var season in Seasons.Where(Deleted).ToArray()) Seasons.Remove(season);
+                if (SelectedSeason is { } selected && Deleted(selected)) SelectedSeason = ItemDetail.PickSeason(Seasons);
+            }
+            finally { _syncingSeason = false; }
+
+            if (_loadedSeason is { } loaded && Deleted(loaded) || SelectedSeason is { } picked && !ReferenceEquals(picked, _loadedSeason))
+            {
+                _loadedSeason = null;
+                PlayTarget = null;
+                ShowTarget(null);
+                if (SelectedSeason is { } next) await LoadEpisodesAsync(next, retarget: true, token).ConfigureAwait(true);
+            }
+            else
+            {
+                if (PlayTarget is { } target && Deleted(target))
+                {
+                    PlayTarget = null;
+                    ShowTarget(null);
+                }
+                if (_detail?.Type is EmbyItemType.Series or EmbyItemType.Season
+                    && PlayTarget is null && ItemDetail.PickEpisode(_episodes) is { } next)
+                    await ApplyPlayTargetAsync(next, token).ConfigureAwait(true);
+            }
+            if (IsCurrent(token) && _detail is { } detail && EpisodeShelf is { } episodes)
+                episodes.Title = ItemDetail.EpisodeHeading(ItemDetail.EpisodeScope(detail, _loadedSeason).SeasonName, _episodes);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            if (IsCurrent(token)) _actions?.Notify($"更新删除后的单集失败：{Failure.Describe(error)}", InfoBarSeverity.Error);
+        }
+        finally { EndLoad(token); }
+    }
 
     /// <inheritdoc />
     public override void Cancel()

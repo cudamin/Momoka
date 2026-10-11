@@ -384,8 +384,6 @@ public sealed partial class PlayerPage
     private const double FullscreenRailInset = 26;
     private const double WindowRailGlyph = 22;
     private const double FullscreenRailGlyph = 28.6;
-    private const double WindowRailTrack = 280;
-    private const double FullscreenRailTrack = 364;
 
     /// <summary>
     /// **跳过按钮**的两档。<b>2026-09-30 用户令「缩小图标跳过按钮两倍」：整颗按钮一律减半</b>（那一批
@@ -633,7 +631,7 @@ public sealed partial class PlayerPage
     /// 右缘音量条的**两档**（用户令 2026-09-28 更晚「复刻独占模式的控件放大策略到集成模式」）。
     /// 独占那头是 uosc 的 <c>Volume.lua</c>：<c>size = round(volume_size × state.scale)</c> ⇒ 40 / 52，
     /// 整条（滑杆、静音键格、贴缘让位）随档；轨的**高度**在集成里是按画面高度现算的
-    /// （<see cref="ArrangeTransport"/>，上限两档见 <see cref="WindowRailTrack"/>），不在这里摆。
+    /// （<see cref="ArrangeTransport"/>），不在这里摆。
     /// <para>
     /// <see cref="PaintTransportReadouts"/> 里那块数字裁剪以前手抄轨宽 40 —— 本轮改成读
     /// <c>VolumeTrack.ActualWidth</c>，宽到 52 时数字才不会被裁掉一截。
@@ -643,7 +641,7 @@ public sealed partial class PlayerPage
     {
         var size = fullscreen ? FullscreenRailSize : WindowRailSize;
         Rail.Width = size;
-        Rail.Margin = new Thickness(0, 0, fullscreen ? FullscreenRailInset : WindowRailInset, 0);
+        Rail.Margin = new Thickness(0, Rail.Margin.Top, fullscreen ? FullscreenRailInset : WindowRailInset, Rail.Margin.Bottom);
         VolumeSlider.Width = size;
         MuteButton.Width = MuteButton.Height = size;
         MuteGlyph.FontSize = fullscreen ? FullscreenRailGlyph : WindowRailGlyph;
@@ -971,27 +969,24 @@ public sealed partial class PlayerPage
     }
 
     /// <summary>
-    /// How tall the transport bar is, from the last time it was arranged if it has been and from a measure
-    /// on the spot if it has not.
+    /// Measures the transport bar for its current controls and available width.
     /// <para>
-    /// The fallback is not hypothetical bookkeeping: this is called before the first frame of a playback, at
-    /// a point where the bar has been made visible but nothing has been laid out yet, so
-    /// <c>ActualHeight</c> is still zero. A collapsed or unarranged element measures nothing, hence the flip
-    /// — the same trick the probes use, and safe for the same reason: it is put back inside this call, so no
-    /// frame is composed with the bar up.
+    /// Before the first layout the width is zero and the speed strip is hidden. Remembering that height
+    /// would keep the narrower layout's value after the strip appears. Measure the current tree instead;
+    /// a temporary visibility change is restored within this call, before a frame can be composed.
     /// </para>
     /// </summary>
     private double BarHeight()
     {
-        if (Bar.ActualHeight > 0) return _barHeight = Bar.ActualHeight;
-        if (_barHeight > 0) return _barHeight;
-
         var was = Bar.Visibility;
-        Bar.Visibility = Visibility.Visible;
-        Bar.Measure(new Size(Root.ActualWidth > 0 ? Root.ActualWidth : double.PositiveInfinity, double.PositiveInfinity));
-        Bar.Visibility = was;
-
-        return _barHeight = Bar.DesiredSize.Height;
+        try
+        {
+            Bar.Visibility = Visibility.Visible;
+            Bar.Measure(new Size(Root.ActualWidth > 0 ? Root.ActualWidth : double.PositiveInfinity, double.PositiveInfinity));
+            // 收回 Collapsed 后 DesiredSize 会归零，必须在恢复显隐前取得测量结果。
+            return Bar.DesiredSize.Height;
+        }
+        finally { Bar.Visibility = was; }
     }
 
     /// <summary>
@@ -1058,26 +1053,9 @@ public sealed partial class PlayerPage
         return ChromePart.None;
     }
 
-    /// <summary>
-    /// 画面此刻多大 —— 平常就是这一页自己的读数，而自检可以临时把答案换掉。
-    /// <para>
-    /// 这一道缝只为 <see cref="ProbeRailFade"/> 存在：音量条那条尺寸门槛（<see cref="ChromeReveal.RailRoom"/>）
-    /// 的「假」那一支要在真窗口里验，而探针改不了窗口大小。默认分支永远是真实读数，见两个属性的
-    /// <c>??</c>；覆盖只发生在那个探针方法里，且出去就还回去。
-    /// </para>
-    /// </summary>
-    private Size? _probePictureSize;
-
-    private double PictureWidth => _probePictureSize?.Width ?? Root.ActualWidth;
-
-    private double PictureHeight => _probePictureSize?.Height ?? Root.ActualHeight;
-
-    /// <summary>
-    /// 这个画面容得下音量条吗（<see cref="ChromeReveal.RailRoom"/>）。假的时候音量条一个像素都不画 ——
-    /// <see cref="Render"/> 那一支是唯一的落点，而 <see cref="RailNear"/> 也一并答「指针不在唤出带里」，
-    /// 于是规则那一头压根不会以为它该露面（<c>ChromeState.Rail</c> 为假，右缘因此也不再吊住控件与光标）。
-    /// </summary>
-    private bool RailRoom() => ChromeReveal.RailRoom(PictureWidth, PictureHeight);
+    /// <summary>显隐和高度共用同一份可用空间，避免小窗已缩短轨道却仍被旧尺寸门槛挡住。</summary>
+    private bool RailRoom() => Root.ActualWidth > 0
+        && ChromeReveal.RailRoom(Root.ActualHeight - Rail.Margin.Top - Rail.Margin.Bottom, Rail.Width);
 
     /// <summary>
     /// The volume rail's uosc proximity for a pointer at <paramref name="point"/> (Root coordinates): the
@@ -1092,14 +1070,14 @@ public sealed partial class PlayerPage
     /// XAML 走，没有会漂的第二份尺寸——触发线因此回到独占的「离右缘约 180px 起淡、约 100px 满」。
     /// </para>
     /// <para>
-    /// 这条唤出整个不存在于小窗口里（用户令 2026-09-23「窗口小于一定程度的时候自动隐藏音量条」）：
+    /// 可用高度连滑杆和静音键都容不下时才停止唤出：
     /// <see cref="RailRoom"/> 为假时一律答 -1，于是「指针走到右缘」不再是音量条的理由，也不再算「停在控件上」
     /// （那一位从 2026-09-28 起只影响光标：指针在控件上时屏上有东西，光标不藏）。
     /// </para>
     /// </summary>
     private double RailNear(Point point)
     {
-        if (PictureWidth <= 0 || !RailRoom()) return -1;
+        if (!RailRoom()) return -1;
 
         var w = Rail.ActualWidth;
         var h = Rail.ActualHeight;
@@ -1129,6 +1107,15 @@ public sealed partial class PlayerPage
         if (element.Visibility != Visibility.Visible || !element.IsHitTestVisible
             || element.ActualWidth <= 0 || element.ActualHeight <= 0)
             return false;
+
+        DependencyObject? node = element;
+        while (node is UIElement ancestor)
+        {
+            if (ancestor.Visibility != Visibility.Visible || !ancestor.IsHitTestVisible) return false;
+            if (ReferenceEquals(ancestor, Root)) break;
+            node = VisualTreeHelper.GetParent(ancestor);
+        }
+        if (!ReferenceEquals(node, Root)) return false;
 
         var origin = OriginIn(element);
         return point.X >= origin.X && point.X <= origin.X + element.ActualWidth
@@ -1180,7 +1167,7 @@ public sealed partial class PlayerPage
     /// see <see cref="FadeRail"/>.
     /// <para>
     /// 音量条那道尺寸门槛（用户令 2026-09-23「窗口小于一定程度的时候自动隐藏音量条」）也收在这一句里：
-    /// 画面小到一定程度就<b>一个像素都不画</b> —— 不为指针走近右缘画，也不为滚轮／按键的读数画。
+    /// 可用高度不足以放下滑杆和静音键时才不画 —— 不为指针走近右缘画，也不为滚轮／按键的读数画。
     /// 这是唯一收得住两边的地方：<c>Rail.Opacity</c> 只有 <see cref="FadeRail"/> 会写，而 FadeRail
     /// 只有这里会调（<see cref="RailNear"/> 那一半管的是「规则以为它该不该出现」）。规则那一头照旧算它的
     /// 答案，页面只是在画的时候把这一档扣掉 —— 于是窗口重新变大时不需要任何补偿动作。
@@ -1332,7 +1319,7 @@ public sealed partial class PlayerPage
             if (ViewModel.Title is not { Length: > 0 })
             {
                 ViewModel.Title = "本地动画验证";
-                ViewModel.Subtitle = "1920 x 1080 · HEVC · AAC · Studio GreenTea";
+                ViewModel.Subtitle = "417.7 MB · 1080p · HEVC · AAC · Studio GreenTea";
             }
         }
 

@@ -28,6 +28,11 @@
     Background="{ThemeResource LayerFillColorDefaultBrush}">
 
     <Page.Resources>
+        <Style x:Key="RecentSearchButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Background" Value="{ThemeResource SubtleFillColorTransparentBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
         <!-- ItemsView 的格子在指针下面会自己铺一层灰底（SubtleFillColorSecondary），按下去再深一档。
              这一套里「指针在这张卡上」是卡片外面那圈胶片格整圈变强调色说的（见 Theme/Styles.xaml 的
              EgFrameStyle），格子那层灰底叠上去就成了两句话说同一件事，而且它比卡片大一圈、圆角也不是同
@@ -177,7 +182,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock x:Name="LibraryTitle" Text="{x:Bind ViewModel.Heading, Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />
+                <TextBlock x:Name="LibraryTitle" Text="{x:Bind local:LibraryPage.HeaderTitle(ViewModel.SearchVisibility, ViewModel.Heading), Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />
 
                 <Border x:Name="SearchSurface" Grid.ColumnSpan="2" Padding="10,8" CornerRadius="14"
                     Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1"
@@ -195,24 +200,30 @@
                         </Grid.RowDefinitions>
                         <AutoSuggestBox
                             x:Name="SearchInput"
+                            Grid.ColumnSpan="2"
                             x:Uid="LibrarySearchBox"
-                            Width="240"
+                            HorizontalAlignment="Stretch"
                             CornerRadius="12"
                             VerticalAlignment="Center"
                             QueryIcon="Find"
                             QuerySubmitted="OnSearchSubmitted"
+                            TextChanged="OnSearchTextChanged"
                             Text="{x:Bind ViewModel.SearchText, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}" />
 
                         <!-- 结果来源：库里的 Emby，还是去 MoviePilot 找新片。见 LibraryPage.OnSourceChanged。 -->
                         <tkcontrols:Segmented
                             x:Name="SourceTabs"
-                            Grid.Column="1"
+                            Grid.Row="1"
+                            Grid.ColumnSpan="2"
                             SelectedIndex="0"
+                            HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Visibility="{x:Bind ViewModel.MoviePilotTabsVisibility, Mode=OneWay}">
-                            <tkcontrols:SegmentedItem x:Uid="LibraryPage_SourceEmby" />
-                            <tkcontrols:SegmentedItem x:Uid="LibraryPage_SourceMoviePilot" />
+                            <tkcontrols:SegmentedItem AutomationProperties.Name="媒体库搜索"><TextBlock Text="媒体库" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 订阅搜索"><TextBlock Text="MoviePilot 订阅" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 资源搜索"><TextBlock Text="MoviePilot 资源" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem AutomationProperties.Name="AniBT 搜索"><TextBlock Text="AniBT" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                         </tkcontrols:Segmented>
                     </Grid>
                 </Border>
@@ -413,6 +424,7 @@
              failure has to be able to reopen it. -->
         <InfoBar
             Grid.Row="1"
+            Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
             IsClosable="True"
             IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
             Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
@@ -424,9 +436,19 @@
         <Grid x:Name="EmbyContent" Grid.Row="2">
             <!-- Grid so the letter bar can sit over the scroller's right edge without taking a column
                  away from it（Emby 的 alphaPicker 是 position:fixed 的覆盖层，不是布局成员）。 -->
-            <Grid>
+            <Grid RowSpacing="16">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                <SelectorBar x:Name="SearchCategories" HorizontalAlignment="Center"
+                    Visibility="{x:Bind ViewModel.SearchCategoriesVisibility, Mode=OneWay}">
+                    <SelectorBarItem x:Name="TopResultsCategory" Text="热门结果" IsSelected="True" Tag="TopResults" />
+                    <SelectorBarItem x:Name="SeriesCategory" Text="节目" Tag="Series" />
+                    <SelectorBarItem x:Name="MoviesCategory" Text="影片" Tag="Movies" />
+                    <SelectorBarItem x:Name="EpisodesCategory" Text="集" Tag="Episodes" />
+                </SelectorBar>
             <ItemsView
                 x:Name="Cards"
+                Grid.Row="1"
+                Visibility="{x:Bind ViewModel.SearchResultsVisibility, Mode=OneWay}"
                 IsItemInvokedEnabled="True"
                 ItemInvoked="OnItemInvoked"
                 ItemTemplate="{StaticResource PosterTemplate}"
@@ -458,6 +480,7 @@
                  总数 > 30）。点击跳到该字母第一项；当前字母高亮随滚动更新。 -->
             <local:AlphaBar
                 x:Name="Alpha"
+                Grid.Row="1"
                 JumpRequested="OnAlphaJump"
                 Visibility="{x:Bind ViewModel.AlphaVisibility, Mode=OneWay}" />
         </Grid>
@@ -473,6 +496,47 @@
             </Border>
             <TextBlock Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}" Text="{x:Bind ViewModel.EmptyNotice, Mode=OneWay}" TextWrapping="Wrap" TextAlignment="Center" />
         </StackPanel>
+            <Grid x:Name="RecentSearchSection" MaxWidth="900" RowSpacing="12" HorizontalAlignment="Stretch"
+                Visibility="{x:Bind ViewModel.RecentSearchVisibility, Mode=OneWay}">
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                <Grid>
+                    <TextBlock Text="最近搜索" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+                    <Button x:Name="ClearRecentSearches" Content="清除" HorizontalAlignment="Right"
+                        Style="{StaticResource RecentSearchButtonStyle}" Command="{x:Bind ViewModel.ClearRecentSearchesCommand}"
+                        Visibility="{x:Bind ViewModel.ClearRecentVisibility, Mode=OneWay}" />
+                </Grid>
+                <ListView x:Name="RecentSearchList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.RecentSearches, Mode=OneWay}"
+                    SelectionMode="None" HorizontalContentAlignment="Stretch">
+                    <ListView.ItemContainerStyle><Style TargetType="ListViewItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="0" /></Style></ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="vm:RecentSearchRow">
+                            <Grid ColumnSpacing="12" Padding="0,8" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,0,0,1">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <Button x:Name="OpenRecentSearch" Command="{x:Bind OpenCommand}" Style="{StaticResource RecentSearchButtonStyle}"
+                                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" AutomationProperties.Name="{x:Bind Title}">
+                                    <Grid ColumnSpacing="16">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="56" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <Grid Height="84" CornerRadius="{StaticResource EgPosterCornerRadius}" Background="{ThemeResource EgSurfaceAltBrush}">
+                                            <FontIcon Glyph="&#xE8E5;" Foreground="{ThemeResource EgTextDimBrush}" />
+                                            <Image Source="{x:Bind Card.Poster, Mode=OneWay}" Stretch="UniformToFill" />
+                                        </Grid>
+                                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind TypeLabel}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </Button>
+                                <Button x:Name="RemoveRecentSearch" Grid.Column="1" Command="{x:Bind RemoveCommand}" VerticalAlignment="Center"
+                                    Style="{StaticResource RecentSearchButtonStyle}" AutomationProperties.Name="{x:Bind RemoveLabel}" ToolTipService.ToolTip="{x:Bind RemoveLabel}">
+                                    <SymbolIcon Symbol="Cancel" />
+                                </Button>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <TextBlock Grid.Row="1" Text="暂无最近搜索" Margin="0,20" Style="{StaticResource EgBodyStyle}"
+                    Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind ViewModel.NoRecentVisibility, Mode=OneWay}" />
+            </Grid>
         </Grid>
 
         <!-- MoviePilot 那一段，和 EmbyContent 叠在同一格，按分段切显隐（默认藏着，见 OnSourceChanged）。 -->
@@ -480,5 +544,7 @@
             x:Name="MoviePilotPanel"
             Grid.Row="2"
             Visibility="Collapsed" />
+        <local:MoviePilotVersionsView x:Name="MoviePilotResources" Grid.Row="2" Visibility="Collapsed" />
+        <local:AniBtSearchPanel x:Name="AniBtPanel" Grid.Row="2" Visibility="Collapsed" />
     </Grid>
 </Page>

@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Momoka.Configuration;
+using Momoka.MoviePilot;
 using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
@@ -46,8 +47,25 @@ public sealed partial class SettingMoviePilotRow : SettingRow
     [ObservableProperty]
     public partial bool Enabled { get; set; }
 
+    /// <summary>
+    /// The protocol picker, as the index the ComboBox binds its <c>SelectedIndex</c> to: 0 = http, 1 = https.
+    /// An index rather than a string because an inline-item ComboBox selects by position, and this stays the
+    /// one place that maps the two back to a scheme — see <see cref="Url"/>.
+    /// </summary>
     [ObservableProperty]
-    public partial string Url { get; set; }
+    public partial int SchemeIndex { get; set; }
+
+    /// <summary>The host box — just the address, no scheme and no port.</summary>
+    [ObservableProperty]
+    public partial string Host { get; set; }
+
+    /// <summary>
+    /// The API-port box（标注为「API 端口」，不是网页界面那个端口）. Empty means 「用默认 3001」 —
+    /// <see cref="MoviePilotAddress"/> fills the default in when the address is actually called, so a blank box
+    /// and 3001 reach the same server.
+    /// </summary>
+    [ObservableProperty]
+    public partial string Port { get; set; }
 
     [ObservableProperty]
     public partial string Username { get; set; }
@@ -100,7 +118,14 @@ public sealed partial class SettingMoviePilotRow : SettingRow
         : base(label, note)
     {
         Enabled = enabled;
-        Url = url;
+
+        // The one stored string arrives split into the three boxes; composing it back is the Url getter's job.
+        // http unless the stored scheme is explicitly https — the same default MoviePilotAddress applies everywhere.
+        var parts = MoviePilotAddress.Split(url);
+        SchemeIndex = parts.Scheme == "https" ? 1 : 0;
+        Host = parts.Host;
+        Port = parts.Port;
+
         Username = username;
         Password = "";
         HasSavedPassword = hasSavedPassword;
@@ -137,6 +162,13 @@ public sealed partial class SettingMoviePilotRow : SettingRow
         ? new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x5D, 0xC4, 0x8A))
         : new Microsoft.UI.Xaml.Media.SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xE0, 0x6C, 0x75));
 
+    /// <summary>
+    /// The three boxes composed back into the one stored address — what 测试连接 normalises and what the
+    /// settings file keeps. Named <c>Url</c> still because that is the one setting behind it; the view model
+    /// reads it to run a test and never has to know it is three controls on screen.
+    /// </summary>
+    public string Url => MoviePilotAddress.Join(SchemeIndex == 1 ? "https" : "http", Host, Port);
+
     partial void OnEnabledChanged(bool value)
     {
         if (!_seeded) return;
@@ -144,10 +176,20 @@ public sealed partial class SettingMoviePilotRow : SettingRow
         _save();
     }
 
-    partial void OnUrlChanged(string value)
+    partial void OnSchemeIndexChanged(int value) => WriteAddress();
+
+    partial void OnHostChanged(string value) => WriteAddress();
+
+    partial void OnPortChanged(string value) => WriteAddress();
+
+    /// <summary>
+    /// Any of the three address boxes changed: compose them into the stored string and write it, the same
+    /// seam the single box used before it became three — the setting is still one string.
+    /// </summary>
+    private void WriteAddress()
     {
         if (!_seeded) return;
-        _writeUrl(value);
+        _writeUrl(Url);
         _save();
     }
 

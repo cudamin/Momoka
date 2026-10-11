@@ -8,6 +8,7 @@ namespace Momoka.Shell.Views;
 public sealed partial class MoviePilotSubscriptionsView : UserControl
 {
     private Action<MoviePilotSubscription>? _open;
+    private MoviePilotService? _service;
     private readonly DispatcherTimer _refresh = new() { Interval = TimeSpan.FromMinutes(1) };
     internal MoviePilotSubscriptionsViewModel ViewModel { get; } = new();
 
@@ -19,14 +20,29 @@ public sealed partial class MoviePilotSubscriptionsView : UserControl
 
     internal void Attach(MoviePilotService service, Action<MoviePilotSubscription>? open)
     {
+        Release();
+        _service = service;
+        service.AvailabilityChanged += OnAvailabilityChanged;
         _open = open;
         ViewModel.Attach(service);
-        ViewModel.UseConfirm(ConfirmDialog.For(this));
+        ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
         _ = ViewModel.ReloadAsync();
         _refresh.Start();
     }
 
-    internal void Release() { _refresh.Stop(); ViewModel.Cancel(); _open = null; }
+    internal void Release()
+    {
+        if (_service is { } service) service.AvailabilityChanged -= OnAvailabilityChanged;
+        _service = null;
+        _refresh.Stop(); ViewModel.Cancel(); _open = null;
+    }
+
+    private void OnAvailabilityChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (!ReferenceEquals(sender, _service)) return;
+        ViewModel.RefreshAvailability();
+        if (_service?.Available == true && !ViewModel.Busy && !ViewModel.Working) _ = ViewModel.ReloadAsync();
+    });
     private void Open(MoviePilotSubscriptionCard card) { if (ViewModel.Owns(card)) _open?.Invoke(card.Subscription); }
     private void OnPosterOpen(object? sender, EventArgs args) { if (sender is MoviePilotSubscriptionPoster { Card: { } card }) Open(card); }
     private void OnCardLoaded(object sender, RoutedEventArgs args)
@@ -35,5 +51,5 @@ public sealed partial class MoviePilotSubscriptionsView : UserControl
     {
         if (sender is MoviePilotSubscriptionPoster { Card: { } card } poster) Menu(card).ShowAt(poster.MenuAnchor);
     }
-    private MenuFlyout Menu(MoviePilotSubscriptionCard card) => MoviePilotSubscriptionMenu.Create(this, ViewModel, card, () => Open(card));
+    private MenuFlyout Menu(MoviePilotSubscriptionCard card) => MoviePilotSubscriptionMenu.Create(this, ViewModel, card, () => Open(card), _service);
 }

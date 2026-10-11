@@ -89,21 +89,39 @@ internal static class MoviePilotTests
             Assert.True(empty.Length > 0, "拒了就得说一句为什么");
         });
 
-        Test("MoviePilot 地址：显示串和解析串是同一件事来回走", () =>
+        Test("MoviePilot 地址：拆成协议/地址/端口三格，再合回同一条", () =>
         {
-            // 存的是用户看得懂的那一串，用的必须是归一化过的那一个 —— 两个方向都要能对上。
-            // API 端口那一档不带 :3001 的尾巴：那是默认值，写出来只会让下一次归一化多绕一圈。
-            Assert.True(MoviePilotAddress.TryNormalize("192.0.2.10:3001", out var address, out _));
-            Assert.Equal("192.0.2.10", MoviePilotAddress.ToDisplayString(address!));
-            Assert.Equal(3001, address!.Port, "收起来了，但用的时候仍是 3001");
+            // 设置卡把一条地址摆成三格给人填（协议下拉 + 地址 + 端口），存回去仍是一个字符串。拆（Split）
+            // 和合（Join）必须互为逆，不然在设置页点一下就把地址改样了。
+            var parts = MoviePilotAddress.Split("192.0.2.10:3001");
+            Assert.Equal("http", parts.Scheme, "没写协议时填 http");
+            Assert.Equal("192.0.2.10", parts.Host);
+            Assert.Equal("3001", parts.Port);
 
-            // 自己写的非默认端口要留在显示串里 —— 丢掉它等于把用户写的东西改掉了。
-            Assert.True(MoviePilotAddress.TryNormalize("192.0.2.10:3000", out var custom, out _));
-            Assert.Equal("192.0.2.10:3000", MoviePilotAddress.ToDisplayString(custom!));
+            // 没写端口＝用默认 3001，端口格留空，不替用户把 3001 填进去（填了下次保存就成了他没敲过的值）。
+            var bare = MoviePilotAddress.Split("192.0.2.10");
+            Assert.Equal("", bare.Port, "没写端口时端口格空着，默认由 TryNormalize 补");
 
-            // 而显示串本身读回去还是同一个地址：来回走一趟不该越走越远。
-            Assert.True(MoviePilotAddress.TryNormalize(MoviePilotAddress.ToDisplayString(custom!), out var again, out _));
-            Assert.Equal(custom!.AbsoluteUri, again!.AbsoluteUri);
+            // https 不能在拆的时候掉成 http。
+            var secure = MoviePilotAddress.Split("https://192.0.2.10:3001");
+            Assert.Equal("https", secure.Scheme);
+            Assert.Equal("192.0.2.10", secure.Host);
+            Assert.Equal("3001", secure.Port);
+
+            // 合：地址空着是「还没填」，给个空串而不是「http://」这种没有主机的壳。
+            Assert.Equal("", MoviePilotAddress.Join("http", "", "3001"));
+            Assert.Equal("http://192.0.2.10", MoviePilotAddress.Join("http", "192.0.2.10", ""), "端口空着就不缀尾巴");
+            Assert.Equal("https://192.0.2.10:3000", MoviePilotAddress.Join("https", "192.0.2.10", "3000"));
+
+            // 合出来的串归一化回去还是同一个地址：来回走一趟不该越走越远。
+            Assert.True(MoviePilotAddress.TryNormalize(MoviePilotAddress.Join("https", "192.0.2.10", "3000"), out var again, out _));
+            Assert.Equal("https://192.0.2.10:3000/", again!.AbsoluteUri);
+
+            // 拆 → 合 → 拆 回到同一组三格。
+            var round = MoviePilotAddress.Split(MoviePilotAddress.Join(secure.Scheme, secure.Host, secure.Port));
+            Assert.Equal(secure.Scheme, round.Scheme);
+            Assert.Equal(secure.Host, round.Host);
+            Assert.Equal(secure.Port, round.Port);
         });
 
         Test("MoviePilot 地址：拼出来的请求地址落在 api/v1 底下", () =>

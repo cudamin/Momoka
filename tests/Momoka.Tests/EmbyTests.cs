@@ -319,6 +319,25 @@ internal static class EmbyTests
 
     private static void RegisterQuery()
     {
+        Test("查询：收藏固定条件与附加筛选合并且覆盖季和合集", () =>
+        {
+            var filters = new ItemFilters();
+            filters.Toggles.Add("unplayed");
+            var query = ItemQuery.Favorites(40, 20, EmbySortBy.DateAdded, true, filters);
+            var parameters = query.ToParameters();
+            Assert.Equal(1, parameters.Count(pair => pair.Key == "Filters"));
+            Assert.Contains("IsFavorite", parameters.Single(pair => pair.Key == "Filters").Value!);
+            Assert.Contains("IsUnplayed", parameters.Single(pair => pair.Key == "Filters").Value!);
+            Assert.True(query.IncludeItemTypes.Contains(EmbyItemType.Season));
+            Assert.True(query.IncludeItemTypes.Contains(EmbyItemType.BoxSet));
+            Assert.True(query.IncludeItemTypes.Contains(EmbyItemType.Folder));
+            Assert.True(query.IncludeItemTypes.Contains(EmbyItemType.Playlist));
+            Assert.False(query.IncludeItemTypes.Any(EmbyItemType.IsMusic));
+            filters.Toggles.Clear();
+            Assert.Contains("Filters=IsFavorite", query.ToQueryString());
+            Assert.Contains("StartIndex=40", query.ToQueryString());
+        });
+
         Test("查询：分页与排序参数", () =>
         {
             var query = ItemQuery.Children("lib-1", startIndex: 100, limit: 50, EmbySortBy.DateAdded, descending: true).ToQueryString();
@@ -1017,11 +1036,12 @@ internal static class EmbyTests
             Assert.Equal("2016", movie.CardSubtitle);
         });
 
-        Test("文件信息行：分辨率 · 视频编码 · 音频格式 · 组名", () =>
+        Test("文件信息行：文件大小 · 分辨率 · 视频编码 · 音频格式 · 组名", () =>
         {
             var source = new MediaSource
             {
                 Path = @"\\NAS\media\再见菈菈\Season 1\再见菈菈 S01E12 1080p.AAC-Studio GreenTea.mp4",
+                Size = 9_010_000_000L,
                 DefaultAudioStreamIndex = 2,
                 MediaStreams =
                 {
@@ -1030,14 +1050,14 @@ internal static class EmbyTests
                 }
             };
 
-            // 主视频轨的 宽 x 高、视频编码大写、主音轨（默认轨）编码大写、文件名尾部的组名，
-            // 用 " · " 拼起来（两模式共用这一句）。
-            Assert.Equal("1920 x 1080  ·  HEVC  ·  AAC  ·  Studio GreenTea", PlaybackTitles.Subline(source));
+            // 文件大小、主视频轨的高度档、视频编码大写、主音轨（默认轨）编码大写、文件名尾部的组名，
+            // 用 " · " 拼起来（详情页那行「视频：…」与播放页左上角第二行共用这一句）。
+            Assert.Equal("8.4 GB  ·  1080p  ·  HEVC  ·  AAC  ·  Studio GreenTea", PlaybackTitles.Subline(source));
         });
 
         Test("文件信息行：缺项跳过、空源给空串", () =>
         {
-            // 没有组名（文件名里没有 -）：只剩分辨率 · 视频编码 · 音频格式。
+            // 没有大小、没有组名（文件名里没有 -）：只剩分辨率 · 视频编码 · 音频格式。
             var noGroup = new MediaSource
             {
                 Path = @"D:\media\Show.S01E01.1080p.mkv",
@@ -1047,9 +1067,9 @@ internal static class EmbyTests
                     new MediaStream { Index = 2, Type = "Audio", Codec = "ac3" }
                 }
             };
-            Assert.Equal("1920 x 1080  ·  H264  ·  AC3", PlaybackTitles.Subline(noGroup));
+            Assert.Equal("1080p  ·  H264  ·  AC3", PlaybackTitles.Subline(noGroup));
 
-            // 没有服务器点名的默认音轨号：退到第一条音轨。
+            // 没有服务器点名的默认音轨号：退到第一条音轨。分辨率写的是高度档（2160 读作 4K）。
             var firstAudio = new MediaSource
             {
                 Path = @"D:\media\Movie-GRP.mkv",
@@ -1059,9 +1079,9 @@ internal static class EmbyTests
                     new MediaStream { Index = 3, Type = "Audio", Codec = "flac" }
                 }
             };
-            Assert.Equal("3840 x 2160  ·  AV1  ·  FLAC  ·  GRP", PlaybackTitles.Subline(firstAudio));
+            Assert.Equal("4K  ·  AV1  ·  FLAC  ·  GRP", PlaybackTitles.Subline(firstAudio));
 
-            // 只有视频、没有音轨也没有组名；视频轨连宽高都没给 —— 分辨率整项跳过。
+            // 只有视频、没有音轨也没有组名；视频轨连高度都没给 —— 分辨率整项跳过。
             var videoOnly = new MediaSource
             {
                 Path = @"D:\media\clip.mp4",

@@ -63,6 +63,23 @@ public sealed partial class PlayerPage
                 if (width >= 680 && PlayButton.Visibility != Visibility.Collapsed)
                     issues.Add($"{width}: 宽窗重复播放键未隐藏");
             }
+            Root.Width = 560;
+            Root.Height = 420;
+            UpdateLayout();
+            ArrangeTransport();
+            Render();
+            UpdateLayout();
+            var speedBounds = BoundsOf(SpeedStrip);
+            var seekBounds = BoundsOf(SeekTrack);
+            var speedPoint = new Point(speedBounds.Left + speedBounds.Width / 2, speedBounds.Top + speedBounds.Height / 2);
+            var seekPoint = new Point(seekBounds.Left + seekBounds.Width / 2, seekBounds.Top + seekBounds.Height / 2);
+            if (WheelRegion(speedPoint) != WheelArea.Speed || WheelRegion(seekPoint) != WheelArea.Timeline)
+                issues.Add("可见控件的滚轮区域不正确");
+            FadeStrip(TransportRow, 0);
+            if (WheelRegion(speedPoint) != WheelArea.Picture) issues.Add("已淡出的倍速条仍截走音量滚轮");
+            Bar.Visibility = Visibility.Collapsed;
+            if (WheelRegion(seekPoint) != WheelArea.Picture) issues.Add("已收起的进度条仍截走音量滚轮");
+            Render();
             // 「更多」那一棵 2026-09-27 晚不再挂在控制条那颗按钮上（那颗按钮撤了），改拼进右键画面菜单 ——
             // 这里仍把它整棵拼一遍，只问「延迟入口已移除」那一条老判据；拼装目标改成本地一只临时浮层。
             var moreProbe = new MenuFlyout();
@@ -73,7 +90,7 @@ public sealed partial class PlayerPage
             if (!layers.Ok) issues.Add(layers.Detail);
             var timeline = ViewModel.ProbeTimelineState();
             if (!timeline.Ok) issues.Add(timeline.Detail);
-            return (issues.Count == 0, $"{string.Join('/', sizes)} 宽度：按钮无重叠、贴底时间轴、窄窗播放键读屏；{layers.Detail}；延迟入口已移除；{timeline.Detail}"
+            return (issues.Count == 0, $"{string.Join('/', sizes)} 宽度：按钮无重叠、贴底时间轴、窄窗播放键读屏、隐藏控件不截走音量滚轮；{layers.Detail}；延迟入口已移除；{timeline.Detail}"
                 + (issues.Count == 0 ? "" : "；" + string.Join("；", issues)));
         }
         finally
@@ -178,7 +195,7 @@ public sealed partial class PlayerPage
                 LoopA = 2400,
                 LoopB = 3000
             }, [new(0, "片头"), new(450, "第一章"), new(1350, "第二章"), new(3150, "第三章"), new(4800, "片尾")]);
-            foreach (var (width, height) in new[] { (1280, 720), (560, 420), (320, 260) })
+            foreach (var (width, height) in new[] { (1280, 720), (560, 420), (320, 300) })
             {
                 Root.Width = width;
                 Root.Height = height;

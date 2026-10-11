@@ -659,11 +659,37 @@
                                 OffContent="关闭"
                                 OnContent="开启" />
 
-                            <TextBox
-                                AutomationProperties.Name="MoviePilot 地址"
-                                Header="服务地址"
-                                PlaceholderText="192.0.2.10:3001"
-                                Text="{x:Bind Url, Mode=TwoWay}" />
+                            <!--
+                              服务地址拆成「协议 + 地址 + API 端口」三格（用户令）：协议是个 http/https 的下拉（SelectedIndex
+                              对着 SchemeIndex，0=http、1=https），地址只填主机，端口是 MoviePilot 的 API 端口（默认 3001，
+                              不是网页界面那个），留空就用默认。三格合回一条存进设置里那一个字符串，拆/合都在 Core 的
+                              MoviePilotAddress，见 SettingMoviePilotRow.Url。
+                              横排、各自定宽、靠左摆（用户令「地址框别弄那么长」）：地址一个 IP 或主机名 240 够宽，
+                              不跟着卡面拉满；下面用户名/密码才是整幅宽的框。
+                            -->
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ComboBox
+                                    MinWidth="88"
+                                    AutomationProperties.Name="MoviePilot 协议"
+                                    Header="协议"
+                                    SelectedIndex="{x:Bind SchemeIndex, Mode=TwoWay}">
+                                    <ComboBoxItem Content="http" />
+                                    <ComboBoxItem Content="https" />
+                                </ComboBox>
+                                <TextBox
+                                    Width="240"
+                                    AutomationProperties.Name="MoviePilot 地址"
+                                    Header="地址"
+                                    PlaceholderText="192.0.2.10"
+                                    Text="{x:Bind Host, Mode=TwoWay}" />
+                                <TextBox
+                                    Width="110"
+                                    AutomationProperties.Name="MoviePilot API 端口"
+                                    Header="API 端口"
+                                    InputScope="Number"
+                                    PlaceholderText="3001"
+                                    Text="{x:Bind Port, Mode=TwoWay}" />
+                            </StackPanel>
 
                             <TextBox
                                 AutomationProperties.Name="MoviePilot 用户名"

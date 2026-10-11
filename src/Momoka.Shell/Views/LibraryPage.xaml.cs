@@ -48,6 +48,9 @@ public sealed partial class LibraryPage : Page, IShellContent
     private ScrollView? _scroll;
     private bool _released = true;
     private int _navigation;
+    private CancellationTokenSource? _typing;
+
+    public static string HeaderTitle(Visibility search, string heading) => search == Visibility.Visible ? "搜索" : heading;
 
     public LibraryPage()
     {
@@ -68,6 +71,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         // crashes the page. Subscribing after InitializeComponent skips that init-time firing; every later
         // change lands with the whole tree in place.
         SourceTabs.SelectionChanged += OnSourceChanged;
+        SearchCategories.SelectionChanged += OnSearchCategoryChanged;
         HeaderLayout.SizeChanged += OnHeaderSizeChanged;
         SearchSurface.SizeChanged += OnHeaderSizeChanged;
         Toolbar.SizeChanged += OnHeaderSizeChanged;
@@ -304,18 +308,26 @@ public sealed partial class LibraryPage : Page, IShellContent
         _capabilities = services.GetRequiredService<IServerCapabilities>();
         _actions = services.GetRequiredService<IShellActions>();
 
+        _moviePilot = services.GetRequiredService<MoviePilotService>();
+        _moviePilot.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
         ViewModel.Attach(
             request,
             _actions,
             _settings,
             _session,
             services.GetRequiredService<EmbyImageStore>(),
-            _capabilities);
+            _capabilities, _moviePilot);
 
         // MoviePilot 那半的连接服务，交给面板（它自己接确认对话框）。只有搜索页且接了 MoviePilot 时那个分段
         // 才出现，但服务无条件拿——构造它不花什么，也省得这里再判一次设置。
         MoviePilotPanel.Attach(services.GetRequiredService<MoviePilotService>(),
             services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>());
+        MoviePilotResources.Attach(services.GetRequiredService<MoviePilotService>(),
+            services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), sharedInput: true);
+        AniBtPanel.Attach(services.GetRequiredService<Momoka.AniBt.AniBtService>(), _moviePilot,
+            services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>());
+        SearchCategories.SelectedItem = SearchCategories.Items.FirstOrDefault(item =>
+            item.Tag is string value && value == request.SearchCategory.ToString()) ?? TopResultsCategory;
 
         // 每次进来都从「我的媒体库」开始：Emby 那半可见、MoviePilot 那半藏着。SelectedIndex 已是 0 时不触发
         // SelectionChanged，所以显式对一次账。
@@ -345,6 +357,9 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_released) return;
         _released = true;
+        if (_moviePilot is { } moviePilot) moviePilot.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
+        _moviePilot = null;
+        CancelTyping();
         _navigation++;
         if (_request is { } request)
         {
@@ -352,8 +367,11 @@ public sealed partial class LibraryPage : Page, IShellContent
             request.LoadedCount = ViewModel.Cards.Count;
         }
         ViewModel.Cancel();
+        ViewModel.ReleaseSearchPosters();
         FilterPane.Dismiss();
         MoviePilotPanel.Release();
+        MoviePilotResources.Release();
+        AniBtPanel.Release();
     }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -405,33 +423,38 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (width <= 0) return;
 
         var search = _request?.IsSearch == true;
-        ToolbarSurface.ColumnSpacing = search ? 0 : 12;
-        SearchInput.Width = Math.Min(240, Math.Max(0, width - 22));
-        SearchSurface.MaxWidth = width;
-
-        var tabsWidth = SourceTabs.Visibility == Visibility.Visible ? SourceTabs.DesiredSize.Width : 0;
-        var stackSource = tabsWidth > 0 && width < SearchInput.Width + tabsWidth + 34;
-        Grid.SetRow(SourceTabs, stackSource ? 1 : 0);
-        Grid.SetColumn(SourceTabs, stackSource ? 0 : 1);
-        SourceTabs.HorizontalAlignment = stackSource ? HorizontalAlignment.Center : HorizontalAlignment.Stretch;
-        SearchForm.ColumnSpacing = tabsWidth > 0 && !stackSource ? 12 : 0;
-        SearchForm.RowSpacing = stackSource ? 8 : 0;
-
-        var searchWidth = stackSource ? Math.Max(SearchInput.Width, tabsWidth) + 22
-            : SearchInput.Width + tabsWidth + SearchForm.ColumnSpacing + 22;
-        var buttons = Toolbar.Children.OfType<FrameworkElement>()
-            .Where(button => button.Visibility == Visibility.Visible).ToArray();
-        var toolsWidth = buttons.Sum(button => button.DesiredSize.Width)
-            + Math.Max(0, buttons.Length - 1) * Toolbar.Spacing + 22;
-        var sideWidth = Math.Max(toolsWidth, Math.Min(240, LibraryTitle.DesiredSize.Width));
-        var stacked = search && (width - searchWidth) / 2 < sideWidth + 24;
-
-        HeaderLayout.RowSpacing = stacked ? 12 : 0;
-        Grid.SetRow(LibraryTitle, stacked ? 1 : 0);
-        Grid.SetRow(ToolbarSurface, stacked ? 1 : 0);
-        // 两行时给标题留下可读的宽度；极窄时按钮本身也能在有限宽度里继续换行。
+        PageRoot.RowSpacing = search ? 8 : 20;
+        HeaderGrid.RowSpacing = search ? 0 : 16;
+        HeaderLayout.RowSpacing = search ? 16 : 0;
+        Grid.SetRow(SearchSurface, 1);
+        Grid.SetRow(LibraryTitle, 0);
+        Grid.SetRow(ToolbarSurface, 0);
+        LibraryTitle.MaxWidth = search ? width : Math.Max(0, width / 2);
         ToolbarSurface.MaxWidth = Math.Max(0, width - Math.Min(120, width / 3) - 24);
-        LibraryTitle.MaxWidth = search && !stacked ? Math.Max(0, (width - searchWidth) / 2 - 24) : double.PositiveInfinity;
+        if (!search) return;
+
+        var formWidth = Math.Min(900, width);
+        SearchSurface.Width = formWidth;
+        SearchSurface.MaxWidth = width;
+        SearchInput.Width = Math.Max(0, formWidth - 22);
+        SearchForm.ColumnSpacing = 0;
+        SearchForm.RowSpacing = SourceTabs.Visibility == Visibility.Visible ? 8 : 0;
+        foreach (var item in SourceTabs.Items.OfType<CommunityToolkit.WinUI.Controls.SegmentedItem>())
+        {
+            item.MaxWidth = Math.Max(0, (formWidth - 22) / Math.Max(1, SourceTabs.Items.Count));
+            item.Padding = new Thickness(8, 4, 8, 4);
+            if (item.Content is TextBlock label)
+            {
+                label.MaxWidth = Math.Max(0, item.MaxWidth - 18);
+                label.Text = SourceTabs.Items.IndexOf(item) switch
+                {
+                    1 => formWidth < 520 ? "MP 订阅" : "MoviePilot 订阅",
+                    2 => formWidth < 520 ? "MP 资源" : "MoviePilot 资源",
+                    3 => "AniBT",
+                    _ => "媒体库"
+                };
+            }
+        }
     }
 
     /// <summary>
@@ -440,6 +463,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnViewChanged(ScrollView sender, object args)
     {
+        if (_removingCard) return;
         var remaining = sender.ExtentHeight - (sender.VerticalOffset + sender.ViewportHeight);
         if (remaining < sender.ViewportHeight) ViewModel.LoadMore();
 
@@ -459,7 +483,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {
-            if (_released || _scroll is null || !ViewModel.HasMore) return;
+            if (_released || _removingCard || _scroll is null || !ViewModel.HasMore) return;
             if (_scroll.ExtentHeight <= _scroll.ViewportHeight + 1) ViewModel.LoadMore();
         });
     }
@@ -475,11 +499,51 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// an edit can move the item's title, its artwork and its position in the sort all at once.
     /// </summary>
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload);
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback());
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
     private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload);
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback());
+
+    private bool _removingCard;
+    private int _removalVersion;
+
+    internal Action<CardItem> RemovalCallback()
+    {
+        var token = ViewModel.QueryToken;
+        return card => _ = RemoveCardAsync(card, token);
+    }
+
+    private async Task RemoveCardAsync(CardItem card, CancellationToken token, bool deleted = true)
+    {
+        if (_released || !ViewModel.QueryCurrent(token)) return;
+        var version = ++_removalVersion;
+        var offset = _scroll?.VerticalOffset ?? 0;
+        _removingCard = true;
+        var removed = await ViewModel.RemoveAsync(card, token, deleted).ConfigureAwait(true);
+        if (version != _removalVersion) return;
+        if (!removed || _released || !ViewModel.QueryCurrent(token))
+        {
+            _removingCard = false;
+            return;
+        }
+        Cards.UpdateLayout();
+        _scroll?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        {
+            if (version != _removalVersion) return;
+            _removingCard = false;
+            if (_released || !ViewModel.QueryCurrent(token)) return;
+            SyncAlphaFromScroll();
+            PumpIfShort();
+        });
+    }
+
+    internal void RemoveUnfavorite(string id)
+    {
+        if (_request?.IsFavorites == true && ViewModel.Cards.FirstOrDefault(card => card.Item.Id == id) is { } card)
+            _ = RemoveCardAsync(card, ViewModel.QueryToken, deleted: false);
+    }
 
     private void Reload() => _ = ViewModel.ReloadAsync();
 
@@ -577,47 +641,128 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// 按当前来源分流：在「MoviePilot」那一段时把词交给那半的面板，否则照旧搜 Emby 库。
     /// </para>
     /// </summary>
-    private void OnSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs e)
-    {
-        var text = e.QueryText ?? sender.Text ?? string.Empty;
+    private void OnSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs e) =>
+        _ = SubmitSearchAsync(e.QueryText ?? sender.Text ?? string.Empty);
 
-        if (IsMoviePilotSource) _ = MoviePilotPanel.SearchAsync(text);
-        else _ = ViewModel.SearchAsync(text);
+    internal Task SubmitSearchAsync(string text)
+    {
+        CancelTyping();
+        return RunSearchAsync(text, remember: true);
     }
 
-    /// <summary>此刻在不在「MoviePilot」那一段。分段不可见（没接 MoviePilot、或不是搜索页）时永远为否。</summary>
-    private bool IsMoviePilotSource =>
-        SourceTabs.Visibility == Visibility.Visible && SourceTabs.SelectedIndex == 1;
-
-    private void OnSourceChanged(object sender, SelectionChangedEventArgs e) => ApplySource();
-
-    /// <summary>
-    /// 把选中的来源应用到屏上：Emby 那半（网格、字母条、空态）和 MoviePilot 那半只显其一；Emby 的工具条
-    /// （排序/筛选/视图/播放）只在 Emby 那半在场时才有意义，切走时一并收起，免得摆一排按下去没反应的键
-    /// （项目规矩：界面不许骗人）。切到 MoviePilot 时，Emby 在 Row 1 的进度条和提示条 MoviePilot 面板盖不住，
-    /// 所以取消在飞的读取、关掉提示，让它们按各自的绑定收起；再用搜索框现有的词跑一次 MoviePilot 搜索。
-    /// 纯 UI 行为，留在 code-behind。
-    /// </summary>
-    private void ApplySource()
+    private void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
-        var moviePilot = IsMoviePilotSource;
+        if (args.Reason == AutoSuggestionBoxTextChangeReason.UserInput && args.CheckCurrent()
+            && !string.Equals(sender.Text, ViewModel.SearchText, StringComparison.Ordinal))
+            _ = SearchTypingAsync(sender.Text ?? string.Empty);
+    }
 
-        MoviePilotPanel.Visibility = moviePilot ? Visibility.Visible : Visibility.Collapsed;
-        EmbyContent.Visibility = moviePilot ? Visibility.Collapsed : Visibility.Visible;
-        Toolbar.Visibility = moviePilot ? Visibility.Collapsed : Visibility.Visible;
-        ToolbarSurface.Visibility = Toolbar.Visibility;
-        ApplyHeaderLayout();
-
-        if (!moviePilot)
+    // 入口同时供离线探针使用；输入后立即废弃旧查询，避免等防抖期间旧结果落到新关键词下面。
+    internal async Task SearchTypingAsync(string text)
+    {
+        if (_released) return;
+        CancelTyping();
+        if (SearchSource == 0) ViewModel.PrepareSearch(text);
+        else
         {
-            if (!_released) ViewModel.Resume();
-            return;
+            ViewModel.SearchText = text;
+            if (SearchSource == 1) await MoviePilotPanel.PrepareSearchAsync().ConfigureAwait(true);
+            else if (SearchSource == 3) await AniBtPanel.SearchAsync("").ConfigureAwait(true);
+            else await MoviePilotResources.SearchAsync("").ConfigureAwait(true);
         }
+        var typing = new CancellationTokenSource();
+        _typing = typing;
+        try
+        {
+            if (text.Trim().Length > 0)
+            {
+                // 站点资源检索会访问多个站点，保留显式提交；媒体库与订阅媒体搜索随输入更新。
+                if (SearchSource is 2 or 3) return;
+                await Task.Delay(400, typing.Token).ConfigureAwait(true);
+            }
+            if (!typing.IsCancellationRequested && !_released)
+                await RunSearchAsync(text, remember: false).ConfigureAwait(true);
+        }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            if (ReferenceEquals(_typing, typing)) _typing = null;
+            typing.Dispose();
+        }
+    }
 
+    private Task RunSearchAsync(string text, bool remember)
+    {
+        if (_released) return Task.CompletedTask;
+        ViewModel.SearchText = text;
+        return SearchSource switch
+        {
+            1 => MoviePilotPanel.SearchAsync(text),
+            2 => MoviePilotResources.SearchAsync(text),
+            3 => AniBtPanel.SearchAsync(text),
+            _ => ViewModel.SearchAsync(text, remember)
+        };
+    }
+
+    private int SearchSource => SourceTabs.Visibility == Visibility.Visible ? Math.Max(0, SourceTabs.SelectedIndex) : 0;
+
+    private void CancelTyping()
+    {
+        _typing?.Cancel();
+        _typing = null;
+    }
+
+    private void OnSourceChanged(object sender, SelectionChangedEventArgs e) => ApplySource(runSearch: true);
+
+    private MoviePilotService? _moviePilot;
+
+    private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (_released || !ReferenceEquals(sender, _moviePilot)) return;
+        ViewModel.RefreshMoviePilotAvailability();
+        if (_moviePilot?.Available != true && SourceTabs.SelectedIndex != 0)
+        {
+            SourceTabs.SelectedIndex = 0;
+        }
+    });
+
+    private void ApplySource(bool runSearch = false)
+    {
+        CancelTyping();
+        var source = SearchSource;
+        MoviePilotPanel.Release();
+        MoviePilotResources.Release();
+        AniBtPanel.Release();
+        MoviePilotPanel.Visibility = source == 1 ? Visibility.Visible : Visibility.Collapsed;
+        MoviePilotResources.Visibility = source == 2 ? Visibility.Visible : Visibility.Collapsed;
+        AniBtPanel.Visibility = source == 3 ? Visibility.Visible : Visibility.Collapsed;
+        EmbyContent.Visibility = source == 0 ? Visibility.Visible : Visibility.Collapsed;
+        ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : Visibility.Visible;
+        SearchInput.PlaceholderText = source switch
+        {
+            1 => "搜索可订阅的电影、电视剧",
+            2 => "输入资源关键词，按回车搜索",
+            3 => "输入番剧名称，按回车搜索 AniBT",
+            _ => "搜索媒体库中的影片、节目和单集"
+        };
+        ApplyHeaderLayout();
         ViewModel.Cancel();
         ViewModel.NoticeOpen = false;
+        if (_released) return;
+        if (source == 0) ViewModel.Resume(reload: false);
+        if (source == 1) MoviePilotPanel.LoadSources();
+        if (runSearch) _ = RunSearchAsync(SearchInput.Text ?? string.Empty, remember: false);
+    }
 
-        _ = MoviePilotPanel.SearchAsync(SearchInput.Text ?? string.Empty);
+    private void OnSearchCategoryChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)
+    {
+        if (!_released && sender.SelectedItem?.Tag is string name && Enum.TryParse<LibrarySearchCategory>(name, out var category))
+        {
+            // 分类条首次显示也会补发选中事件；同一分类不能取消正在等待的输入查询。
+            if (_request?.SearchCategory == category) return;
+            CancelTyping();
+            _ = ViewModel.ChooseSearchCategoryAsync(category);
+        }
     }
 
     /// <summary>A view shape was picked out of the view menu. The Tag carries the enum name — the

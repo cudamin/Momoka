@@ -305,13 +305,6 @@ public sealed partial class PlayerPage : UserControl
     private double _ticksFor;
 
     /// <summary>
-    /// The transport bar's height the last time it was laid out, which is what the 跳过 button is placed
-    /// above. Remembered rather than read on the spot, because the offer stands outside the reveal rule —
-    /// it is up while the bar is down, and a bar that is down measures nothing at all.
-    /// </summary>
-    private double _barHeight;
-
-    /// <summary>
     /// What the last applied status said about <c>pause</c>, or null before the first status of a playback.
     /// The badge is for the moment pause changes, and status arrives about twenty times a second saying the
     /// same thing; null covers the other end — a file opening paused, or opening at all, is not something

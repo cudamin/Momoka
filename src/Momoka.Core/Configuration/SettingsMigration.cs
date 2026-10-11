@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Mpv;
 using Momoka.Playback;
@@ -419,6 +420,17 @@ public static class SettingsMigration
     /// <summary>Clamps anything a hand-edited file could put out of range.</summary>
     public static AppSettings Normalize(AppSettings settings)
     {
+        settings.Ui.RecentSearches ??= new(StringComparer.Ordinal);
+        foreach (var (identity, entries) in settings.Ui.RecentSearches.ToArray())
+        {
+            var clean = (entries ?? []).Where(entry => entry is not null && !string.IsNullOrWhiteSpace(entry.Term)
+                    && !string.IsNullOrWhiteSpace(entry.Name)
+                    && (entry.ItemId is null || (entry.ItemId.Length > 0 && entry.ItemId.IndexOfAny(['/', '\\', '?', '#']) < 0)))
+                .DistinctBy(entry => entry.Term, StringComparer.OrdinalIgnoreCase).Take(RecentSearch.Limit).ToList();
+            if (clean.Count == 0) settings.Ui.RecentSearches.Remove(identity);
+            else settings.Ui.RecentSearches[identity] = clean;
+        }
+
         settings.EnsureDeviceId();
         settings.Ui.PageSize = Math.Clamp(settings.Ui.PageSize, 20, 500);
 

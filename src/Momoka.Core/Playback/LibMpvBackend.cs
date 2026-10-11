@@ -295,10 +295,8 @@ public sealed class LibMpvBackend(
         // 播放页进场换手、播放页开播应答、独占模式开播应答）从此共用一个答主。这里传「窗口化」＝
         // 「还没全屏」，那是事实：起播前 mpv 窗口还没出生、fullscreen 属性也还没读；而 fullscreen=yes
         // 是幂等的，最坏情况只是多发一条命令。
-        if (pipeline == VideoPipelineKind.Standalone
-            && WindowForms.WantsAutoFullscreen(
-                autoFullscreen?.Invoke() ?? false, lifecycleActive: true, WindowForm.Windowed))
-            Set(context, "fullscreen", "yes");
+        if (pipeline == VideoPipelineKind.Standalone)
+            Set(context, "fullscreen", (request.Fullscreen ?? autoFullscreen?.Invoke() ?? false) ? "yes" : "no");
 
         // Ordinary options keep their order; pipeline-critical options are filtered and pinned
         // AFTER them, so even the default gpu-api=vulkan cannot replace D3D11. Required failures

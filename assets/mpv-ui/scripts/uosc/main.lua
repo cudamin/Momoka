@@ -55,7 +55,7 @@
 -- │                             是内建的退全屏/退出、回车没有绑定，不借这两把键，提示立着按它们
 -- │                             什么都不会发生。集成模式那半在 shell 侧（PlayerPage 的 Root 兜底
 -- │                             + Win32 钩子），不走本通道。
--- │     MOMOKA[topbar-subline] 宿主 → uosc 的通道：momoka-subline <分辨率·视频编码·音频格式·组名|空>
+-- │     MOMOKA[topbar-subline] 宿主 → uosc 的通道：momoka-subline <文件大小·分辨率·视频编码·音频格式·组名|空>
 -- │                             写进顶栏副标题（第二行），空串＝收起。集成模式那一行是 XAML 的 SubtitleBox，
 -- │                             独占模式由 uosc 顶栏画在返回按钮正下方 —— 两模式同源同显。
 -- │     MOMOKA[click-pause]   轻点空白画面切换暂停的动作（命中区在 lib/utils.lua 的 render 里）；
@@ -1183,7 +1183,7 @@ mp.register_script_message('momoka-episode-count', function(value)
 	Elements:trigger('dispositions')
 end)
 
--- MOMOKA[topbar-subline] — 宿主 → uosc 的通道：左上角第二行那句文件信息（分辨率 · 视频编码 · 音频格式 ·
+-- MOMOKA[topbar-subline] — 宿主 → uosc 的通道：左上角第二行那句文件信息（文件大小 · 分辨率 · 视频编码 · 音频格式 ·
 -- 组名，空串＝收起）。集成模式那一行是 XAML 的 SubtitleBox（PlayerViewModel.Subtitle 驱动）；独占模式画面在
 -- mpv 窗口里，那一行由 uosc 顶栏画，于是宿主把同一句话推过来（两模式同源、显示一致，用户令 2026-09-27、
 -- 内容 2026-09-28 加分辨率）。主标题走 force-media-title，副标题走这条 —— TopBar 把它画在返回按钮正下方。

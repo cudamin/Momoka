@@ -1002,6 +1002,16 @@ public sealed partial class HomePage : Page, IShellContent
                     labels.Add("──");
                     break;
 
+                case MenuFlyoutSubItem submenu:
+                    ok &= submenu.Text == wanted.Label && submenu.Tag is ItemCommand parent && parent == wanted.Command
+                        && submenu.Icon is FontIcon { Glyph.Length: > 0 } && submenu.IsEnabled
+                        && wanted.Children is { } children && submenu.Items.Count == children.Count
+                        && submenu.Items.OfType<MenuFlyoutItem>().Select(entry => (entry.Text, entry.Tag))
+                            .SequenceEqual(children.Select(child => (child.Label, (object)child.Command!.Value)))
+                        && submenu.Items.OfType<MenuFlyoutItem>().All(entry => entry.IsEnabled && entry.Icon is FontIcon { Glyph.Length: > 0 });
+                    labels.Add(submenu.Text);
+                    break;
+
                 case MenuFlyoutItem entry:
                     ok &= !wanted.IsRule
                         && entry.Text == wanted.Label
@@ -1252,11 +1262,11 @@ public sealed partial class HomePage : Page, IShellContent
     /// reloads every row, because the item that changed may be in more than one of them.
     /// </summary>
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, changed: Reload);
+        ItemCommands.Handle(_session, _actions, sender, args, changed: Reload, removed: ViewModel.Remove);
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
     private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, changed: Reload);
+        ItemCommands.Handle(_session, _actions, sender, args, changed: Reload, removed: ViewModel.Remove);
 
     /// <summary>需求 5：播放 on the carousel. Fire and forget, same as every other play on this page.</summary>
     private void OnBannerPlayRequested(object? sender, BannerSlide slide) => _ = ViewModel.PlayAsync(slide);

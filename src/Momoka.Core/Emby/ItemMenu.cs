@@ -43,14 +43,31 @@ public enum ItemCommand
 
     Subtitles,
 
-    /// <summary>刮削元数据信息：重新抓一遍并覆盖现有的，和只补缺失的 <see cref="RefreshMetadata"/> 是两条。</summary>
-    Scrape,
+    /// <summary>
+    /// 识别：把这个条目对到刮削源上的某一条记录（弹那张表，见 <see cref="ItemIdentify"/>）。和「缺什么补什么、
+    /// 现有的一个字不动」的 <see cref="RefreshMetadata"/> 是两条不同的话。
+    /// <para>
+    /// 2026-10-10 由「刮削元数据信息」改来：从前这一条按下去就是一次全量重刮（按名字抓一遍、盖掉现有的），
+    /// 而官方网页端那一条是「识别」—— 先把候选摆出来让人挑一条，再落下去。改的是同一个位置的同一件事，
+    /// 只是把「服务器自己猜的那一条」换成「用户挑的那一条」。
+    /// </para>
+    /// </summary>
+    Identify,
 
     RefreshMetadata,
 
     ScanLibrary,
 
     OpenSeries,
+
+    /// <summary>
+    /// 查看遗漏集：服务器按刮削源的元数据算出这部剧（或这一季）本该有、而库里没有的单集，列在一张表上。
+    /// <para>
+    /// 只有剧和季有这一条 —— 电影没有「漏集」这回事，单集自己也不是一个装着一叠集的容器（它已经是其中
+    /// 一集）。见 <see cref="ItemMenu"/> 里 <c>MissingEpisodes</c> 那一段。
+    /// </para>
+    /// </summary>
+    ViewMissingEpisodes,
 
     /// <summary>
     /// 在 MoviePilot 搜索这个条目的其他版本：新开一个窗口，按条目算好的关键字（见
@@ -66,13 +83,19 @@ public enum ItemCommand
     /// </summary>
     MoviePilotReorganize,
 
+    /// <summary>用原文件名交 AniBT 识别，再由 MoviePilot 重新刮削。</summary>
+    AniBtScrape,
+
+    /// <summary>直接使用 AniBT Open API 搜索番剧及其资源。</summary>
+    AniBtVersions,
+
     Delete
 }
 
 /// <summary>
 /// 菜单上的一行：一条命令加它这一次该写的字，或者一条分隔线（<see cref="Command"/> 为空）。
 /// </summary>
-public readonly record struct ItemMenuEntry(ItemCommand? Command, string Label)
+public readonly record struct ItemMenuEntry(ItemCommand? Command, string Label, IReadOnlyList<ItemMenuEntry>? Children = null)
 {
     /// <summary>一条分隔线。</summary>
     public static ItemMenuEntry Rule { get; } = new(null, "");
@@ -103,14 +126,32 @@ public static class ItemMenu
     /// 用户在设置里开没开 MoviePilot。开了才给「在 MoviePilot 搜索其他版本」那一条 —— 没开就和从前一模一样，
     /// 免得点下去弹个连不上的窗口。默认关：全新装机没有 MoviePilot，测试里不点名这一项的也照旧只看基础菜单。
     /// </param>
-    public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false) => Join(
+    public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false) => Join(
         Opening(item),
+        MissingEpisodes(item),
         UserState(item),
         Organising(item),
-        MoviePilotBlock(item, moviePilotEnabled),
+        MoviePilotBlock(item, moviePilotEnabled, animeGenre),
         Metadata(item),
         Navigation(item),
         Destructive(item));
+
+    /// <summary>
+    /// 查看遗漏集。**只有剧和季**：一部剧、一季是一叠文件，服务器按刮削源的元数据算得出「本该有哪几集、
+    /// 库里缺哪几集」；电影没有「漏集」这回事，而单集自己就是那一叠里的一集，问它「你还缺谁」没有意义。
+    /// <para>
+    /// 和「缺失剧集」那个筛选（<c>IsMissing</c>）不是一回事 —— 那一位是 Jellyfin 的，Emby 会静默丢掉
+    /// （见 <c>EmbyFilterBy</c> 那段）。这一条走的是 Emby 自己那条 <c>/Shows/Missing</c>，4.8 起就有，
+    /// 官方网页端那三点的菜单里也挂着同一件事。
+    /// </para>
+    /// <para>
+    /// 摆在「打开」之后：它是这一部剧／这一季上最想先看的一件事，埋在「删除」旁边就找不着了。
+    /// </para>
+    /// </summary>
+    private static List<ItemMenuEntry> MissingEpisodes(EmbyItem item) =>
+        item.Type is EmbyItemType.Series or EmbyItemType.Season
+            ? [new(ItemCommand.ViewMissingEpisodes, "查看遗漏集")]
+            : [];
 
     /// <summary>
     /// 一个文件：能播的那几种类型（电影、单集、视频……）背后正好是服务器上的一个文件。剧和季是一叠文件 ——
@@ -196,14 +237,27 @@ public static class ItemMenu
     /// 表单，不是按下去就做完的事。
     /// </para>
     /// </summary>
-    private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled) =>
-        enabled && MoviePilotVersionQuery.Supports(item)
-            ? [new(ItemCommand.MoviePilotVersions, "搜索其他版本"), new(ItemCommand.MoviePilotReorganize, "手动整理…")]
-            : [];
+    private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre)
+    {
+        if (!enabled || !MoviePilotVersionQuery.Supports(item)) return [];
+        List<ItemMenuEntry> rows = [new(ItemCommand.MoviePilotVersions, "搜索其他版本"), new(ItemCommand.MoviePilotReorganize, "手动整理…")];
+        if (AniBt.AniBtEligibility.Supports(item) && (animeGenre || AniBt.AniBtEligibility.HasGenre(item)))
+        {
+            rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
+                [new(ItemCommand.MoviePilotVersions, "使用 MoviePilot"), new(ItemCommand.AniBtVersions, "使用 AniBT API 搜索")]);
+            rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别并重新刮削…"));
+        }
+        return rows;
+    }
 
     /// <summary>
-    /// 元数据那一叠。<see cref="ItemCommand.Scrape"/> 和 <see cref="ItemCommand.RefreshMetadata"/> 是两条不同的话：
-    /// 刮削是「按名字重新抓一遍，抓到的盖掉现在的」，刷新是「缺什么补什么，现有的一个字不动」。
+    /// 元数据那一叠。<see cref="ItemCommand.Identify"/> 和 <see cref="ItemCommand.RefreshMetadata"/> 是两条不同的话：
+    /// 识别是「把候选摆出来，挑一条落下去」，刷新是「缺什么补什么，现有的一个字不动」。
+    /// <para>
+    /// 识别还要再看 <see cref="ItemIdentify.Supports"/>：服务器的 <c>Items/RemoteSearch</c> 只认电影、剧、合集、
+    /// 预告片和音乐那几种 —— 季和单集没有「单独对哪一部片子」这回事（它们跟着所属的剧一起识别），文件夹和播放
+    /// 列表也没有可对上的片子。给那几种摆一条「识别」，点下去只有 404。
+    /// </para>
     /// </summary>
     private static List<ItemMenuEntry> Metadata(EmbyItem item)
     {
@@ -214,7 +268,7 @@ public static class ItemMenu
         {
             rows.Add(new(ItemCommand.ChangeCover, "修改媒体封面图…"));
             if (IsFile(item)) rows.Add(new(ItemCommand.Subtitles, "搜索和修改字幕…"));
-            rows.Add(new(ItemCommand.Scrape, "刮削元数据信息"));
+            if (ItemIdentify.Supports(item)) rows.Add(new(ItemCommand.Identify, "识别"));
             rows.Add(new(ItemCommand.RefreshMetadata, "刷新元数据信息"));
         }
 

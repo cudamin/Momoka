@@ -27,7 +27,7 @@ font-size  Theme/Styles.xaml  2
 font-size  Views/CoverDialog.xaml  6
 font-size  Views/CoverPickerDialog.xaml  1
 font-size  Views/DashboardPage.xaml  5
-font-size  Views/DetailPage.xaml  19
+font-size  Views/DetailPage.xaml  21
 font-size  Views/DiagnosticsPage.xaml  8
 font-size  Views/EpisodeRow.xaml  3
 font-size  Views/HomeBanner.xaml  4
@@ -229,6 +229,30 @@ handle  Views/HtmlColorPicker.xaml  SatValSquare
 handle  Views/HtmlColorPicker.xaml  SatValThumb
 handle  Views/HtmlColorPicker.xaml  SaturationBox
 handle  Views/HtmlColorPicker.xaml  ValueBox
+handle  Views/IdentifyDialog.xaml  ApplyArea
+handle  Views/IdentifyDialog.xaml  ApplyButton
+handle  Views/IdentifyDialog.xaml  BackToFormButton
+handle  Views/IdentifyDialog.xaml  BackToResultsButton
+handle  Views/IdentifyDialog.xaml  CancelRemoveButton
+handle  Views/IdentifyDialog.xaml  ChosenDetail
+handle  Views/IdentifyDialog.xaml  ChosenName
+handle  Views/IdentifyDialog.xaml  ConfirmArea
+handle  Views/IdentifyDialog.xaml  ConfirmRemoveButton
+handle  Views/IdentifyDialog.xaml  ConfirmText
+handle  Views/IdentifyDialog.xaml  IdentifyResult
+handle  Views/IdentifyDialog.xaml  NameBox
+handle  Views/IdentifyDialog.xaml  NoResults
+handle  Views/IdentifyDialog.xaml  PathRow
+handle  Views/IdentifyDialog.xaml  PathText
+handle  Views/IdentifyDialog.xaml  Problem
+handle  Views/IdentifyDialog.xaml  ProviderFields
+handle  Views/IdentifyDialog.xaml  RemoveButton
+handle  Views/IdentifyDialog.xaml  ReplaceImages
+handle  Views/IdentifyDialog.xaml  Results
+handle  Views/IdentifyDialog.xaml  ResultsArea
+handle  Views/IdentifyDialog.xaml  SearchButton
+handle  Views/IdentifyDialog.xaml  SearchForm
+handle  Views/IdentifyDialog.xaml  YearBox
 handle  Views/LibraryPage.xaml  Alpha
 handle  Views/LibraryPage.xaml  CardLayout
 handle  Views/LibraryPage.xaml  Cards
@@ -272,6 +296,10 @@ handle  Views/MetadataDialog.xaml  Problem
 handle  Views/MetadataDialog.xaml  ProductionYearBox
 handle  Views/MetadataDialog.xaml  SortNameBox
 handle  Views/MetadataDialog.xaml  TagsBox
+handle  Views/MissingEpisodesDialog.xaml  List
+handle  Views/MissingEpisodesDialog.xaml  SpecialsSwitch
+handle  Views/MissingEpisodesDialog.xaml  Summary
+handle  Views/MissingEpisodesDialog.xaml  UnairedSwitch
 handle  Views/MoviePilotReorganizeDialog.xaml  AdvancedOptions
 handle  Views/MoviePilotReorganizeDialog.xaml  CategoryFolderToggle
 handle  Views/MoviePilotReorganizeDialog.xaml  ConfirmChanges
@@ -473,6 +501,9 @@ handle  Views/PosterCard.xaml  Root
 handle  Views/PosterCard.xaml  SubLine
 handle  Views/PosterCard.xaml  TitleLine
 handle  Views/PosterCard.xaml  WatchedButton
+handle  Views/RefreshMetadataDialog.xaml  ImagesSwitch
+handle  Views/RefreshMetadataDialog.xaml  ModeBox
+handle  Views/RefreshMetadataDialog.xaml  ThumbnailsSwitch
 handle  Views/ServersPage.xaml  PageLayout
 handle  Views/ServersPage.xaml  ServersAddButton
 handle  Views/ServersPage.xaml  ServersClearCacheButton
@@ -612,9 +643,28 @@ switch  --self-check-data
 switch  --show-cover
 switch  --show-detail
 switch  --show-episode
+switch  --show-identify
 switch  --show-library
 switch  --show-menu
+switch  --show-missing
 switch  --show-osd
 switch  --show-picker
+switch  --show-refresh
 switch  --show-settings
 switch  --theme
+handle  Views/AniBtScrapeDialog.xaml  AnimeChoice
+handle  Views/AniBtScrapeDialog.xaml  ScrapeFiles
+handle  Views/AniBtScrapeDialog.xaml  ScrapeNotice
+handle  Views/AniBtSearchPanel.xaml  AnimeResults
+handle  Views/AniBtSearchPanel.xaml  LoadMoreAnime
+handle  Views/AniBtSearchPanel.xaml  OpenAnimeResources
+handle  Views/AniBtSearchPanel.xaml  ReloadAnimeResources
+handle  Views/AniBtSearchPanel.xaml  ResourceBrowser
+handle  Views/AniBtSearchPanel.xaml  ReturnToAnime
+handle  Views/LibraryPage.xaml  AniBtPanel
+handle  Views/AniBtSearchPanel.xaml  AnimeSearchInput
+handle  Views/AniBtSearchPanel.xaml  ShowAllAnimeEpisodes
+handle  Views/MissingEpisodesDialog.xaml  SearchMissingMoviePilot
+handle  Views/MissingEpisodesDialog.xaml  SearchMissingSources
+handle  Views/MissingEpisodesDialog.xaml  MissingMoviePilot
+handle  Views/MissingEpisodesDialog.xaml  MissingAniBt
