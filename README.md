@@ -1,10 +1,12 @@
 # Momoka
 
-自用的媒体库客户端，由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
+自用的媒体库客户端，界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
 
 telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
-界面是原生 WinUI 3，播放器内核是 libmpv。
+观影交流群：[1039548970](https://qm.qq.com/q/vXph3vMyFW)
+
+
 ## 设计参考
 
 - UI 界面参考 **Emby 小秘** 设计。
