@@ -2,6 +2,15 @@
 
 最后更新：2026-10-11
 
+## 发版 0.1.4：四件交付物上 GitHub Release（2026-10-11）
+
+- 用户令：「提交代码，更新版本，发布到github，生成一个.msix包」；闸门 4 受阻后改令「跳过，这次不用自检了」。本轮：在途一批（七轮，同日）先行提交 ad12f77 推 origin；`Directory.Build.props` 三行版本 0.1.3→0.1.4；闸门 3 发布并出四件资产；发版提交打标签 v0.1.4 推 origin；GitHub Release（Pre-release，正文照 v0.1.3 格式，下载清单加 MSIX 一条）传安装包/便携 ZIP/签名 MSIX/SHA256SUMS。
+- 障碍与修复：`artifacts/devcert.pfx` 是 2026-09-06 旧身份（CN=EmbyNian，更名 Momoka 之前）的证书，与清单 Publisher CN=Momoka 不符，MSIX 签名失败。挪开为 `devcert-embynian-obsolete.pfx`，publish.ps1 经 `winapp cert generate --manifest` 重出 CN=Momoka 证书，`-SkipPublish` 补打包并加 digicert 时间戳成功。代价：本机装 MSIX 前要 `winapp cert install artifacts\devcert.pfx` 信任新证书（旧的即使信任过也作废）；对外包在 Release 正文说明自签信任步骤。
+- 交付物（`artifacts/`）：`Momoka_windows-x64_0.1.4.exe` 83 MB（Inno Setup，-SkipPublish 取同一发布目录）、`Momoka-0.1.4-win-x64.zip` 117.3 MB、`Momoka-0.1.4-win-x64.msix` 120.2 MB（CN=Momoka 自签+时间戳）、`SHA256SUMS.txt`（三件，格式照 v0.1.3）。发布校验 533 文件 302.6 MB（11 GLSL、4 HOOK 着色器许可逐文件核对）。
+- 验证：闸门 1 完整 Release 构建 0 警告 0 错误，`format whitespace` 与 18 个 PowerShell 脚本检查通过；闸门 2 编译后 1742 项测试全部通过、0 失败 0 跳过（含分析器哈希与约定基线）；闸门 3 发布校验通过；差异扫描无内网地址、无令牌、无本机路径。
+- 闸门 4 未过：Emby 服务器自 22:47 起 502/连接失败（run-da70f02b4fd748c0b812aff6c09734e3：87 项运行检查全过、0 失败；100 消失/1 降级/3 新增全是登录页停驻），轮询约 10 分钟未恢复，用户明示跳过本轮自检。基线未动。本批各轮在早些时候的自检（自定义 mpv.conf 轮 184 项全绿、视频基础输出轮全绿）与 72 项离线探针有通过记录；左栏重排与播放器合一两轮改写的设置自检仍欠当轮运行，留待服务器恢复后补。
+- 未验证：真实服务器播放（第三档授权范围，本轮未动）。
+
 ## 通知接管：标记整季/整部剧已看时补报最后一集（2026-10-11）
 
 - 当前树 `C:/Users/89400/Momoka`；保留进入本轮时已有的全部未提交工作。本轮只动 `src/Momoka.Core/Playback/PlaybackService.Reporting.cs`（`ReportMarkedWatchedAsync` 设置检查后，`Type` 为 Season/Series 时先经新私有 `ResolveLastEpisodeAsync` 把补报落点换成最后一集再走原有单集路径；原单集半段原样抽成 `ReportItemWatchedAsync`，电影/单集行为不变）、`AppSettings.cs` 与 `NotificationsPage.xaml` 的通知接管注释各补一行、`tests/Momoka.Tests/PlaybackTests.cs` 新增三条测试。未提交、未推送。
