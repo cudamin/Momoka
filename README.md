@@ -4,6 +4,8 @@
 
 telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
+[微软商店：](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN)
+
 观影交流群：[1039548970](https://qm.qq.com/q/vXph3vMyFW)
 
 
