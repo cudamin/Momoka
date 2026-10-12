@@ -36,7 +36,7 @@ public sealed partial class ShellPage
 
         var fold = home.FoldRead();
         var width = home.ActualWidth;
-        var client = XamlRoot?.Size.Width ?? 0;
+        var client = (XamlRoot?.Size.Width ?? 0) - ContentHost.Margin.Left;
         var detail = $"页宽 {width:0}：{fold.Detail}";
 
         if (fold.Ok is null) return (null, detail);
@@ -45,7 +45,7 @@ public sealed partial class ShellPage
 
         return (fold.Ok == true && fullWidth,
             detail + $"；客户区宽 {client:0}"
-                + (fullWidth ? "，页面占满整宽（左边没有第二列）" : "，和页宽对不上（左边多了一列？）"));
+                + (fullWidth ? "，页面占满导航后的内容区" : "，和内容区宽度对不上"));
     }
 
     /// <summary>
@@ -74,7 +74,7 @@ public sealed partial class ShellPage
 
             // 顺序就是屏幕上从左到右的顺序：主页、设置、搜索、后退、前进（主页那颗 2026-09-08 加的 —— 顶上那条
             // 标签栏删掉之后，回主页只此一颗）。
-            Button[] keys = FavoritesButton.Visibility == Visibility.Visible
+            Button[] keys = SidebarShown ? [BackButton, ForwardButton] : FavoritesButton.Visibility == Visibility.Visible
                 ? [HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton]
                 : [HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton];
 
@@ -140,11 +140,11 @@ public sealed partial class ShellPage
             var ok = idle && shallow && deep && sized && inBar && lined;
 
             return new TitleActionProbe(ok,
-                $"{keys.Length} 颗按键各 {SettingsButton.ActualWidth:0}×{SettingsButton.ActualHeight:0}，整排从 ({group.X:0},{group.Y:0}) 起"
+                $"{keys.Length} 颗按键各 {keys[0].ActualWidth:0}×{keys[0].ActualHeight:0}，整排从 ({group.X:0},{group.Y:0}) 起"
                     + $"，占 {TitleActions.ActualWidth:0}×{TitleActions.ActualHeight:0}，最大间距 {widest:0}；"
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"
-                    + $"哪儿都走不动时{(idle ? "五颗都在、设置搜索亮、两支箭头暗、面包屑整行收起" : "不对")}、"
+                    + $"哪儿都走不动时{(idle ? "当前模式的按键都在、设置搜索可用、两支箭头暗、面包屑整行收起" : "不对")}、"
                     + $"只能退时{(shallow ? "只有返回亮" : "不对")}、"
                     + $"两头都能走时{(deep ? "两支亮加面包屑" : "不对")}",
                 group.X, group.Y, TitleActions.ActualWidth, TitleActions.ActualHeight);

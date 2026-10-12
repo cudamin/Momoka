@@ -67,7 +67,7 @@ public sealed partial class SettingsViewModel
                 RefreshVideoBackend));
             if (video.Interpolation)
                 rows.Add(Mpv("插值算法", MpvOutputOptions.InterpolationKernels, () => video.Tscale, value => video.Tscale = value,
-                    "tscale", "过采样开销较低；其他算法可能更平滑，也可能在运动边缘产生重影或振铃。"));
+                    "tscale", "过采样偏清晰；Mitchell 兼顾清晰与平滑；双三次更平滑，也更容易模糊。混合帧可能产生重影，Mitchell 还可能在运动边缘产生振铃。"));
         }
         var (effectiveSync, _, _) = MpvOutputOptions.ResolveSync(video);
         if (effectiveSync.StartsWith("display-", StringComparison.Ordinal))

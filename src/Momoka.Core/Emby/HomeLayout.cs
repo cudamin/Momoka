@@ -31,6 +31,13 @@ public static class HomeLayout
     /// <summary>接着往下看的下一集。</summary>
     public const string NextUp = "nextup";
 
+    public const string MoviePilotMovies = "moviepilot:movies";
+    public const string MoviePilotSeries = "moviepilot:series";
+
+    public static bool IsMoviePilot(string key) => key is MoviePilotMovies or MoviePilotSeries;
+
+    public static bool IsAvailable(string key, bool moviePilotAvailable) => !IsMoviePilot(key) || moviePilotAvailable;
+
     /// <summary>媒体库那几排的钥匙前缀，后面跟着那个库的 id。</summary>
     private const string LibraryPrefix = "library:";
 
@@ -54,6 +61,8 @@ public static class HomeLayout
         Resume => "继续观看",
         Libraries => "媒体库",
         NextUp => "接下来看",
+        MoviePilotMovies => "MoviePilot 电影订阅",
+        MoviePilotSeries => "MoviePilot 电视剧订阅",
         _ => null
     };
 
@@ -168,7 +177,7 @@ public static class HomeLayout
         }
 
         // 存档里没有的补在后面：三排固定的按默认次序，媒体库那几排按服务器给的次序。
-        foreach (var key in Fixed.Concat(order))
+        foreach (var key in Fixed.Concat(order).Concat([MoviePilotMovies, MoviePilotSeries]))
         {
             if (!taken.Add(key)) continue;
 
@@ -176,6 +185,17 @@ public static class HomeLayout
         }
 
         return plan;
+    }
+
+    /// <summary>只替换本次编辑的行；暂时不可用的订阅保留原位置和勾选状态。</summary>
+    public static IReadOnlyList<HomeRowPlan> MergeEdits(IReadOnlyList<HomeRowPlan> plan, IReadOnlyList<HomeRowPlan> edits)
+    {
+        // 设置页可能仍缓存着已被服务器删除的库；队列和替换槽位必须来自同一份有效键。
+        var current = plan.Select(row => row.Key).ToHashSet(StringComparer.Ordinal);
+        var filtered = edits.Where(row => current.Contains(row.Key)).DistinctBy(row => row.Key, StringComparer.Ordinal).ToArray();
+        var keys = filtered.Select(row => row.Key).ToHashSet(StringComparer.Ordinal);
+        var pending = new Queue<HomeRowPlan>(filtered);
+        return plan.Select(row => keys.Contains(row.Key) ? pending.Dequeue() : row).ToArray();
     }
 
     /// <summary>归一化之后的这一份写回设置文件，见 <c>UiSettings.HomeRows</c>。</summary>

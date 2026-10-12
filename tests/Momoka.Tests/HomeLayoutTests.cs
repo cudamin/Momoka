@@ -21,12 +21,14 @@ internal static class HomeLayoutTests
             var plan = HomeLayout.Plan(null, [Library("1", "电影"), Library("2", "电视节目")]);
 
             // 整个服务器的「最近添加」那一排 2026-09-12 退役：默认版面里不再有它。
-            Assert.Equal(5, plan.Count);
+            Assert.Equal(7, plan.Count);
             Assert.Equal("继续观看", plan[0].Title);
             Assert.Equal("媒体库", plan[1].Title);
             Assert.Equal("接下来看", plan[2].Title);
             Assert.Equal("最近添加 · 电影", plan[3].Title);
             Assert.Equal("最近添加 · 电视节目", plan[4].Title);
+            Assert.Equal(HomeLayout.MoviePilotMovies, plan[5].Key);
+            Assert.Equal(HomeLayout.MoviePilotSeries, plan[6].Key);
 
             // 默认全部显示：新加的库不该悄悄地不出现。
             Assert.True(plan.All(row => row.Visible), "默认应当全部显示");
@@ -50,7 +52,7 @@ internal static class HomeLayoutTests
             Assert.Equal("接下来看", plan[2].Title);
 
             // 存档里没有的补在末尾。
-            Assert.Equal(4, plan.Count);
+            Assert.Equal(6, plan.Count);
             Assert.Equal("最近添加 · 电影", plan[3].Title);
             Assert.True(plan[3].Visible);
         });
@@ -69,7 +71,7 @@ internal static class HomeLayoutTests
             var plan = HomeLayout.Plan(saved, [Library("7", "纪录片")]);
 
             // 存档里没写的固定排照默认补上；退役的那一排两边都不再回来。
-            Assert.Equal(4, plan.Count);
+            Assert.Equal(6, plan.Count);
             Assert.True(plan.All(row => row.Key != "latest"), "退役的那一排还在版面里");
             Assert.Equal("继续观看", plan[0].Title);
             Assert.Equal("最近添加 · 纪录片", plan[1].Title);
@@ -78,7 +80,7 @@ internal static class HomeLayoutTests
 
             // 库列表不在手上时也一样扔；库那一排按存档里记着的名字原地留着。
             var blind = HomeLayout.Plan(saved, null);
-            Assert.Equal(4, blind.Count);
+            Assert.Equal(6, blind.Count);
             Assert.True(blind.All(row => row.Key != "latest"), "空手时退役的那一排回来了");
             Assert.Equal("最近添加 · 纪录片", blind[1].Title);
         });
@@ -96,11 +98,11 @@ internal static class HomeLayoutTests
             var plan = HomeLayout.Plan(saved, [Library("new", "电影")]);
 
             // 那个库已经不在服务器上了：这一排整个扔掉 —— 留着就是一排永远空的货架。
-            Assert.Equal(4, plan.Count);
+            Assert.Equal(6, plan.Count);
             Assert.True(plan.All(row => HomeLayout.LibraryId(row.Key) != "gone"), "删掉的库还在版面里");
 
-            Assert.Equal("最近添加 · 电影", plan[^1].Title);
-            Assert.Equal(HomeLayout.LibraryKey("new"), plan[^1].Key);
+            Assert.Equal("最近添加 · 电影", plan[^3].Title);
+            Assert.Equal(HomeLayout.LibraryKey("new"), plan[^3].Key);
         });
 
         Test("主页版面：库列表不在手上时用存档里记着的名字", () =>
@@ -121,17 +123,17 @@ internal static class HomeLayoutTests
             {
                 var plan = HomeLayout.Plan(saved, unknown);
 
-                Assert.Equal(4, plan.Count);
+                Assert.Equal(6, plan.Count);
                 Assert.Equal("最近添加 · 电视节目", plan[0].Title);
                 Assert.False(plan[0].Visible, "勾没了");
 
                 // 这一份跟存档一模一样，所以主页那一头不会把它当「变了」写回去 —— 那正是抹掉那几排的路。
-                Assert.True(HomeLayout.Same(saved, plan), "空手时不该改动存档里那一份");
+                Assert.True(HomeLayout.Same(saved, plan.Where(row => !HomeLayout.IsMoviePilot(row.Key)).ToArray()), "空手时不该改动原媒体库排序");
             }
 
             // 存档里连名字都没记：这一排写不出标题，只能扔。
             var nameless = HomeLayout.Plan([Row(HomeLayout.LibraryKey("4"), "")], null);
-            Assert.Equal(3, nameless.Count);
+            Assert.Equal(5, nameless.Count);
             Assert.True(nameless.All(row => HomeLayout.LibraryId(row.Key) is null), "没有名字的库排进了版面");
         });
 
@@ -154,9 +156,9 @@ internal static class HomeLayoutTests
             var noId = new EmbyItem { Id = "", Name = "没有 id 的库" };
             var plan = HomeLayout.Plan(saved, [noId, Library("1", "电影")]);
 
-            Assert.Equal(4, plan.Count);
+            Assert.Equal(6, plan.Count);
             Assert.True(plan.All(row => row.Key != "nonsense" && row.Key.Length > 0), "认不出的钥匙进了版面");
-            Assert.Equal(HomeLayout.LibraryKey("1"), plan[^1].Key);
+            Assert.Equal(HomeLayout.LibraryKey("1"), plan[^3].Key);
         });
 
         Test("主页版面：钥匙认得出媒体库那几排", () =>
@@ -193,6 +195,65 @@ internal static class HomeLayoutTests
             Assert.Equal(HomeLayout.HomeRowTarget.None, HomeLayout.TargetOf("library:"));
             Assert.Equal(HomeLayout.HomeRowTarget.None, HomeLayout.TargetOf(null));
             Assert.Equal(HomeLayout.HomeRowTarget.None, HomeLayout.TargetOf(""));
+        });
+
+        Test("主页版面：订阅与媒体库混排，隐藏的勾选和次序可以往返", () =>
+        {
+            var original = HomeLayout.Plan(null, [Library("1", "电影")]);
+            var movie = original.Single(row => row.Key == HomeLayout.MoviePilotMovies) with { Visible = false };
+            var series = original.Single(row => row.Key == HomeLayout.MoviePilotSeries);
+            var mixed = new[] { series, original[0], movie, original[1], original[2], original[3] };
+            var saved = HomeLayout.Save(mixed);
+            var restored = HomeLayout.Plan(saved, null);
+            Assert.True(HomeLayout.Same(saved, restored), "订阅混排没有完整保存");
+            Assert.False(restored[2].Visible, "关闭的电影订阅被重新勾选");
+            Assert.Equal("MoviePilot 电视剧订阅", restored[0].Title);
+        });
+
+        Test("主页版面：断线时编辑其他排不抹掉订阅偏好", () =>
+        {
+            var plan = HomeLayout.Plan([
+                Row(HomeLayout.MoviePilotSeries, "旧标题", false),
+                Row(HomeLayout.Resume, "继续观看"),
+                Row(HomeLayout.MoviePilotMovies, "旧标题"),
+                Row(HomeLayout.Libraries, "媒体库"),
+                Row(HomeLayout.NextUp, "接下来看")], null);
+            var available = plan.Where(row => HomeLayout.IsAvailable(row.Key, false)).Reverse()
+                .Select(row => row with { Visible = false }).ToArray();
+            Assert.Equal(3, available.Length);
+            var changed = HomeLayout.MergeEdits(plan, available);
+            Assert.Equal(plan[0], changed[0]);
+            Assert.Equal(plan[2], changed[2]);
+            Assert.Equal(HomeLayout.NextUp, changed[1].Key);
+            Assert.False(changed[1].Visible);
+            var restored = HomeLayout.Plan(HomeLayout.Save(changed), null)
+                .Where(row => HomeLayout.IsAvailable(row.Key, true)).ToArray();
+            Assert.Equal(5, restored.Length);
+            Assert.Equal(changed[0], restored[0]);
+            Assert.Equal(changed[2], restored[2]);
+        });
+
+        Test("主页版面：旧设置页不能复活已删除的库或挤掉现有库", () =>
+        {
+            var b = new HomeRowPlan(HomeLayout.LibraryKey("b"), "乙", true);
+            var c = new HomeRowPlan(HomeLayout.LibraryKey("c"), "丙", true);
+            var mp = new HomeRowPlan(HomeLayout.MoviePilotMovies, "MoviePilot 电影订阅", false);
+            var changed = HomeLayout.MergeEdits([b, mp, c], [
+                new(HomeLayout.LibraryKey("gone"), "已删库", true), c, c with { Visible = false }, b]);
+            Assert.Equal(3, changed.Count);
+            Assert.Equal(c, changed[0]);
+            Assert.Equal(mp, changed[1]);
+            Assert.Equal(b, changed[2]);
+        });
+
+        Test("主页版面：重复订阅键只保留首份偏好", () =>
+        {
+            var plan = HomeLayout.Plan([
+                Row(HomeLayout.MoviePilotMovies, "旧标题", false),
+                Row(HomeLayout.MoviePilotMovies, "重复", true)], null);
+            Assert.Equal(1, plan.Count(row => row.Key == HomeLayout.MoviePilotMovies));
+            Assert.False(plan[0].Visible);
+            Assert.Equal("MoviePilot 电影订阅", plan[0].Title);
         });
 
         Test("主页版面：只有真变了才回写设置文件", () =>

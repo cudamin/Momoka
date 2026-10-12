@@ -2768,13 +2768,13 @@ internal static class PlaybackTests
             var stock = Options(MpvOutputOptions.Build(new VideoSettings { Interpolation = true }, new AudioSettings()));
             Assert.Equal("oversample", stock["tscale"], "装机默认是从前写死的那个值，没动过这一行的人画面不变");
 
-            var sharper = Options(MpvOutputOptions.Build(
-                new VideoSettings { Interpolation = true, Tscale = "spline36" }, new AudioSettings()));
-            Assert.Equal("spline36", sharper["tscale"], "选了哪一档就发哪一档");
+            var smoother = Options(MpvOutputOptions.Build(
+                new VideoSettings { Interpolation = true, Tscale = "bicubic" }, new AudioSettings()));
+            Assert.Equal("bicubic", smoother["tscale"], "选了哪一档就发哪一档");
 
             // 插值没开就不发 tscale —— 单发一个算法等于宣称一个不存在的设置。
             var off = Options(MpvOutputOptions.Build(
-                new VideoSettings { Tscale = "lanczos" }, new AudioSettings()));
+                new VideoSettings { Tscale = "mitchell" }, new AudioSettings()));
             Assert.False(off.ContainsKey("tscale"));
             Assert.False(off.ContainsKey("interpolation"));
         });

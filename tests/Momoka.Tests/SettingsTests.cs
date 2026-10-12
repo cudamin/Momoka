@@ -141,6 +141,19 @@ internal static class SettingsTests
 
     private static void RegisterMigration()
     {
+        Test("设置：侧边栏默认关闭，旧配置兼容且开关保存读回", () =>
+        {
+            Assert.False(SettingsMigration.NewDefaults().Ui.SidebarMode);
+            var settings = SettingsMigration.FromJson("{\"Ui\":{}}", Protector);
+            Assert.False(settings.Ui.SidebarMode);
+            foreach (var enabled in new[] { true, false })
+            {
+                settings.Ui.SidebarMode = enabled;
+                var saved = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
+                Assert.Equal(enabled, SettingsMigration.FromJson(saved, Protector).Ui.SidebarMode);
+            }
+        });
+
         Test("设置：UI 动画旧配置默认开启，关闭后保存读回仍关闭", () =>
         {
             var settings = SettingsMigration.FromJson("{\"Ui\":{}}", Protector);
@@ -845,10 +858,10 @@ internal static class SettingsTests
             Assert.Equal(120, settings.Video.HighRefreshRateLimitHz,
                 "0 是旧文件缺键 —— 这个键 2026-09-10 才有，缺键升级的人行为一个数都不许变，不能读成下限 24");
 
-            settings.Video.Tscale = "spline36";
+            settings.Video.Tscale = "bicubic";
             settings.Video.HighRefreshRateLimitHz = 99999;
             SettingsMigration.Normalize(settings);
-            Assert.Equal("spline36", settings.Video.Tscale, "目录里有的值原样留着");
+            Assert.Equal("bicubic", settings.Video.Tscale, "目录里有的值原样留着");
             Assert.Equal(1000, settings.Video.HighRefreshRateLimitHz, "越界夹回上限");
         });
 
@@ -1524,6 +1537,7 @@ internal static class SettingsTests
             ui.ShowHomeBanner = false;
             ui.CompactMode = true;
             ui.AnimationsEnabled = false;
+            ui.SidebarMode = true;
             ui.ImageCacheMegabytes = ImageCachePolicy.MaxMegabytes;
             ui.ScoreSource = ScoreSource.Critic;
             ui.HomeRows = [new HomeRowSetting { Key = "library:1", Title = "改过", Visible = false }];
@@ -1548,6 +1562,7 @@ internal static class SettingsTests
             Assert.Equal(fresh.ShowHomeBanner, ui.ShowHomeBanner, "「恢复默认」之后主页轮播大图要是开的");
             Assert.Equal(fresh.CompactMode, ui.CompactMode, "「恢复默认」之后精简模式要是关的（说明全部放回来）");
             Assert.True(ui.AnimationsEnabled, "恢复默认重新开启 UI 动画");
+            Assert.False(ui.SidebarMode, "恢复默认关闭侧边栏模式");
             Assert.Equal(fresh.ImageCacheMegabytes, ui.ImageCacheMegabytes);
             Assert.Equal(fresh.ScoreSource, ui.ScoreSource);
             Assert.Equal(0, ui.HomeRows.Count, "主页版面回到空，也就是「照默认版面排」");
@@ -1666,6 +1681,7 @@ internal static class SettingsTests
                 source.Ui.Theme = "midnight";
                 source.Ui.PageSize = 37;
                 source.Ui.AnimationsEnabled = false;
+                source.Ui.SidebarMode = true;
                 source.Shortcuts.Bindings["toggle-pause"] = "F";
                 source.Audio.ExclusiveMode = true;
                 source.Audio.DelayMilliseconds = 250;
@@ -1694,6 +1710,7 @@ internal static class SettingsTests
                 Assert.Equal("midnight", target.Ui.Theme);
                 Assert.Equal(37, target.Ui.PageSize);
                 Assert.False(target.Ui.AnimationsEnabled, "UI 动画偏好随备份恢复");
+                Assert.True(target.Ui.SidebarMode, "侧边栏偏好随备份恢复");
                 Assert.Equal("F", target.Shortcuts.Bindings["toggle-pause"]);
                 Assert.True(target.Audio.ExclusiveMode, "音频独占是偏好，跟着备份走");
                 Assert.Equal(250, target.Audio.DelayMilliseconds, "音频延迟是偏好，跟着备份走");

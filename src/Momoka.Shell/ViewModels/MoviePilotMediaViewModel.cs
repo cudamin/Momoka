@@ -35,8 +35,29 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     public ObservableCollection<MoviePilotMediaEpisodeRow> Episodes { get; } = [];
     [ObservableProperty] public partial BitmapImage? Poster { get; set; }
     [ObservableProperty] public partial string Status { get; set; } = "入库状态未知";
+
+    /// <summary>
+    /// 订阅季的折叠栏直接装这条订阅的文件统计（用户令 2026-10-12）。订阅详情的视图模型由
+    /// <see cref="MoviePilotMediaSeasonsView"/> 挂到匹配季号的这一行上：它既是「这一季装文件统计」的标志
+    /// （媒体侧据此跳过通用集列表），也带来下面几项显示快照。不走嵌套 x:Bind（bind 基线只许减），
+    /// 数值由视图推进来，<see cref="FilesEpisodes"/> 与订阅视图模型共享同一个集合实例，筛选原地生效。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FilesHostVisibility))]
+    [NotifyPropertyChangedFor(nameof(MediaEpisodesVisibility))]
+    [NotifyPropertyChangedFor(nameof(MediaEpisodeNoticeVisibility))]
+    public partial MoviePilotSubscriptionsViewModel? Files { get; set; }
+    [ObservableProperty] public partial string FilesSummary { get; set; } = "";
+    [ObservableProperty] public partial string FilesPlaybackStatus { get; set; } = "";
+    [ObservableProperty] public partial int FilesFilterIndex { get; set; }
+    [ObservableProperty] public partial ObservableCollection<MoviePilotSubscriptionEpisodeRow>? FilesEpisodes { get; set; }
+    public Visibility FilesHostVisibility => Files is not null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility MediaEpisodesVisibility => Files is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility MediaEpisodeNoticeVisibility => Files is null && EpisodeNotice.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EpisodeNoticeVisibility))]
+    [NotifyPropertyChangedFor(nameof(MediaEpisodeNoticeVisibility))]
     public partial string EpisodeNotice { get; set; } = "展开后加载剧集";
     public Visibility EpisodeNoticeVisibility => EpisodeNotice.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     [ObservableProperty] public partial bool Expanded { get; set; }
@@ -263,7 +284,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 
     internal async Task LoadEpisodesAsync(MoviePilotMediaSeasonRow row)
     {
-        if (!Live || _service is null || Detail is null || !Seasons.Contains(row) || row.Episodes.Count > 0 || !_loadingEpisodes.Add(row)) return;
+        // 订阅季的展开内容由文件统计渲染（row.Files 由 MoviePilotMediaSeasonsView 挂上），不再拉通用集列表。
+        if (row.Files is not null || !Live || _service is null || Detail is null || !Seasons.Contains(row) || row.Episodes.Count > 0 || !_loadingEpisodes.Add(row)) return;
         var group = GroupId;
         var token = _lifetime!.Token;
         row.EpisodeNotice = "正在读取剧集…";

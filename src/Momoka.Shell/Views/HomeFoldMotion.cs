@@ -151,11 +151,12 @@ internal sealed class HomeFoldMotion
     /// <summary>子树里第一件 <typeparamref name="T"/>。一排的模板根往里找 —— 带子在哪一层由模板说了算，别写死。</summary>
     internal static T? Find<T>(DependencyObject node) where T : DependencyObject
     {
+        if (node is UIElement { Visibility: Visibility.Collapsed }) return null;
+        if (node is T found) return found;
         var count = VisualTreeHelper.GetChildrenCount(node);
         for (var index = 0; index < count; index++)
         {
             var child = VisualTreeHelper.GetChild(node, index);
-            if (child is T found) return found;
             if (Find<T>(child) is { } deeper) return deeper;
         }
 

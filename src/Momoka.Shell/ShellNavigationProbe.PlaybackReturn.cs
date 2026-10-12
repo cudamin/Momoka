@@ -118,6 +118,39 @@ internal sealed partial class ShellNavigationProbe
                 }
                 await SaveReturnFrameAsync(shell, $"home-return-{width}-refreshed.png");
             }
+
+            // 设置 → 界面 → 「首页媒体库位置」（2026-10-12）：两个「固定」档不看窗口高矮。上面那一轮已经在
+            // 1000 宽上量出默认档的两个答案（980 高压上、300 高回默认），这里就在同一套几何上把设置拨过去 ——
+            // 该压的松了手、该落的不落，都当场看得出来。拨完放回装机那一档，别把状态留给下一次运行。
+            ResizeInspect(1000, 980);
+            await LayoutAsync(shell);
+            await UntilAsync(() => home.ViewModel.LibraryOnBanner);
+
+            fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.BelowCarousel;
+            ShellPrefs.Apply(fixture.Settings.Ui);
+            await UntilAsync(() => !home.ViewModel.LibraryOnBanner);
+            await Task.Delay(600); // 翻档那一趟 260 ms（＋迟一拍），等它落地再拍。
+            await SaveReturnFrameAsync(shell, "home-library-placement-below.png");
+
+            fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.OnCarousel;
+            ShellPrefs.Apply(fixture.Settings.Ui);
+            await UntilAsync(() => home.ViewModel.LibraryOnBanner);
+            await Task.Delay(600);
+            await SaveReturnFrameAsync(shell, "home-library-placement-on-banner.png");
+
+            // 轮播被一屏压矮那一档：默认档在这一档回默认，钉在轮播里的那一档照旧压着。
+            ResizeInspect(1000, 300);
+            await LayoutAsync(shell);
+            await Task.Delay(400);
+            Require(home.ViewModel.LibraryOnBanner, "「固定在轮播图中」在轮播被压矮时松了手");
+
+            fixture.Settings.Ui.HomeLibraryPlacement = HomeLibraryPlacement.Auto;
+            ShellPrefs.Apply(fixture.Settings.Ui);
+            await UntilAsync(() => !home.ViewModel.LibraryOnBanner);
+
+            ResizeInspect(1000, 980);
+            await LayoutAsync(shell);
+            await UntilAsync(() => home.ViewModel.LibraryOnBanner);
         }
         finally
         {

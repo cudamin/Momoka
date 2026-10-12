@@ -125,7 +125,7 @@
                      em 方框，而旁边那几颗 24×24 的 PathIcon 实际只画到约 20，所以要走比 24 小的
                      那一档才和它们一样大；照抄 24 会明显偏大。不写内联数字，字号刻度那条绊线才不留账。 -->
                 <Button x:Name="FavoritesButton" x:Uid="ShellPage_FavoritesButton" Click="OnFavoritesClicked"
-                    Visibility="{x:Bind Favorites.Visibility, Mode=OneWay}">
+                    Visibility="Collapsed">
                     <FontIcon
                         FontFamily="{ThemeResource SymbolThemeFontFamily}"
                         FontSize="{StaticResource EgSubheadFontSize}"
@@ -307,6 +307,29 @@
 
             <!-- 每次导航由 BrowseTransition 选择入场动效；系统关闭动画时直接切换。 -->
             <Frame x:Name="ContentFrame" Grid.Row="1" />
+        </Grid>
+
+        <!-- 只承载导航菜单，页面仍留在原来的 Frame 中。关闭模式时不改页面的父节点或返回栈。 -->
+        <Grid x:Name="SidebarHost" Canvas.ZIndex="1" HorizontalAlignment="Left"
+            Background="{ThemeResource EgSurfaceBrush}" Visibility="Collapsed">
+            <NavigationView x:Name="Sidebar" Margin="0,32,0,0"
+                PaneDisplayMode="Left" OpenPaneLength="220" CompactPaneLength="48"
+                IsPaneOpen="True" IsSettingsVisible="False" IsBackButtonVisible="Collapsed"
+                IsTitleBarAutoPaddingEnabled="False" AlwaysShowHeader="False"
+                ItemInvoked="OnSidebarItemInvoked" SelectionChanged="OnSidebarSelectionChanged">
+                <NavigationView.MenuItems>
+                    <NavigationViewItem x:Name="SidebarHome" Content="主页" Tag="home" Icon="Home" />
+                    <NavigationViewItem x:Name="SidebarSearch" Content="搜索" Tag="search" Icon="Find" />
+                    <NavigationViewItem x:Name="SidebarFavorites" Content="收藏" Tag="favorites" Visibility="Collapsed">
+                        <NavigationViewItem.Icon><FontIcon Glyph="&#xEB51;" /></NavigationViewItem.Icon>
+                    </NavigationViewItem>
+                    <NavigationViewItemHeader x:Name="SidebarLibrariesHeader" Content="媒体库" Visibility="Collapsed" />
+                </NavigationView.MenuItems>
+                <NavigationView.FooterMenuItems>
+                    <NavigationViewItem x:Name="SidebarSettings" Content="设置" Tag="settings"
+                        Icon="Setting" SelectsOnInvoked="False" />
+                </NavigationView.FooterMenuItems>
+            </NavigationView>
         </Grid>
 
         <local:SignInPage x:Name="SignIn" />

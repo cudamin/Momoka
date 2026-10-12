@@ -30,6 +30,7 @@ namespace Momoka.Shell.ViewModels;
 /// </summary>
 public sealed partial class CardShelf : ObservableObject
 {
+    internal string HomeKey { get; init; } = "";
     private readonly EmbyImageStore _images;
     private readonly int _width;
     private readonly bool _wide;

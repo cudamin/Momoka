@@ -120,6 +120,22 @@ public sealed partial class HomeViewModel : PageViewModel
     internal int LibraryFlowIndex { get; private set; } = -1;
 
     /// <summary>
+    /// 设置 → 界面 → 「首页媒体库位置」（<c>UiSettings.HomeLibraryPlacement</c>）：媒体库那一排该压在轮播里、
+    /// 还是待在轮播下面。
+    /// <para>
+    /// **每次问设置要，不存快照**：它和轮播那几项同一张表上的东西，改完当场生效（<c>ShellPrefs</c>），
+    /// 存成快照就得等下次开这一页 —— 而那正是用户会当成「设置没生效」的样子。
+    /// </para>
+    /// <para>
+    /// 这一头只交出用户选的那一档；「这一档窗口该压不该压」由 <see cref="HomeFold.LibraryOnBanner"/> 结合量出来的
+    /// 几何定，屏上量那几样在 <c>HomePage.UpdateLibraryOverlay</c>。还没 <see cref="Attach"/> 时没有设置可问，
+    /// 交回装机默认那一档。
+    /// </para>
+    /// </summary>
+    internal Emby.HomeLibraryPlacement LibraryPlacement =>
+        _settings?.Settings.Ui.HomeLibraryPlacement ?? Emby.HomeLibraryPlacement.Auto;
+
+    /// <summary>
     /// 视图（量完几何之后）对矮窗档下的判断。开、关都走 <see cref="ApplyLibraryOverlay"/> 搬那一排；没有媒体库
     /// 那一排时开不了。
     /// </summary>
@@ -291,7 +307,7 @@ public sealed partial class HomeViewModel : PageViewModel
             // 只递一个库 id，于是那两排没有 id、牌子一直是死的。
             return (row, new CardShelf(
                 row.Title, images, width, wide, badges,
-                HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key)));
+                HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key)) { HomeKey = row.Key });
         })];
     }
 

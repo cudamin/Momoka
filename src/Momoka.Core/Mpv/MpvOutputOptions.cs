@@ -134,32 +134,27 @@ public static class MpvOutputOptions
     ];
 
     /// <summary>
-    /// 插值算法 (mpv's <c>tscale</c>): how <c>interpolation</c> blends two neighbouring frames across one
-    /// display refresh. 「为当前的插值功能设置更多的可选项」(2026-09-10) — up to then this client always sent
-    /// <c>oversample</c>, so that value is the shipped default and an install that never touches the row keeps
-    /// exactly the picture it had.
+    /// 插值算法 (mpv's <c>tscale</c>): temporal mixing of existing frames, not motion compensation.
+    /// Keep three distinct smoothness choices: oversample, Mitchell and bicubic (B=1, C=0).
+    /// Catmull-Rom, Spline36 and Lanczos remain valid mpv filters, but were removed from this UI on
+    /// 2026-10-12 to reduce fine-grained choices; this catalogue is not a spatial-scaling quality ranking.
     /// <para>
-    /// <c>oversample</c> is the cheap end and the honest one: it only mixes on the refreshes a frame boundary
-    /// actually straddles, so each output frame is (at worst) a mix of two real frames and motion cannot smear.
-    /// Every other entry is a true reconstruction filter — mpv synthesises the in-between frame from the whole
-    /// neighbourhood, which smooths motion further at the cost of possible ringing around sharp moving edges.
-    /// The bundled core also defaults to <c>oversample</c>; other kernels remain explicit choices.
+    /// <c>oversample</c> mixes the frames covered by a display refresh and remains the shipped default.
+    /// Mitchell offers more smoothing; bicubic is softer still. Frame mixing can blur moving edges,
+    /// and kernels with negative weights such as Mitchell can also ring. Do not promise smear-free motion
+    /// or assume tscale-clamp is enabled: the bundled core reports a default of 0 despite its manual saying 1.
     /// </para>
     /// <para>
     /// No 「不设置」 entry: <see cref="Build"/> names the kernel on every interpolation launch, so an unknown
-    /// stored value falls back to the first entry (SettingsMigration) rather than to an empty string that would
-    /// leave mpv on mitchell while the page promised something else. Only sent with 启用插值 on — the option
-    /// does nothing without it.
+    /// or removed stored value falls back to the first entry (SettingsMigration), keeping the settings page
+    /// and playback choice aligned. Only sent when interpolation is actually enabled for this playback.
     /// </para>
     /// </summary>
     public static readonly MpvChoice[] InterpolationKernels =
     [
-        new("oversample", "过采样（低开销）"),
+        new("oversample", "过采样（推荐）"),
         new("mitchell", "Mitchell（均衡）"),
-        new("catmull_rom", "Catmull-Rom（较锐利）"),
-        new("bicubic", "双三次"),
-        new("spline36", "Spline36（更锐，轻微振铃）"),
-        new("lanczos", "Lanczos（锐利，可能振铃）")
+        new("bicubic", "双三次（更平滑，较模糊）")
     ];
 
     /// <summary>

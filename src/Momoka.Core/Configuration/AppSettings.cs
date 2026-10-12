@@ -773,16 +773,13 @@ public sealed class VideoSettings
     public bool Interpolation { get; set; }
 
     /// <summary>
-    /// 插值算法 (mpv's <c>tscale</c>), one of <see cref="Mpv.MpvOutputOptions.InterpolationKernels"/> —
-    /// 「为当前的插值功能设置更多的可选项」, 2026-09-10. <c>oversample</c> has always been what this client
-    /// sent (it only blends the frames a refresh boundary straddles: cheapest, and the one kernel that cannot
-    /// smear motion), so it is the shipped value and an install that never touches the row keeps exactly the
-    /// picture it had. The rest are true reconstruction filters — smoother motion, possible ringing around
-    /// sharp moving edges; the trade is on each entry's label.
+    /// 插值算法 (mpv's <c>tscale</c>), one of <see cref="Mpv.MpvOutputOptions.InterpolationKernels"/>.
+    /// <c>oversample</c> remains the shipped default; Mitchell and bicubic offer progressively more smoothing
+    /// at the cost of blur. These filters mix existing frames and do not perform motion compensation.
     /// <para>
     /// Only reaches mpv with <see cref="Interpolation"/> on. No 「不设置」 entry, so
-    /// <c>SettingsMigration.Normalize</c> lands an unknown value on <c>oversample</c> rather than on an empty
-    /// string that would leave mpv on mitchell while the page promised something else.
+    /// <c>SettingsMigration.Normalize</c> maps unknown or removed choices to <c>oversample</c>, so the
+    /// settings page and playback always name the same supported choice.
     /// </para>
     /// </summary>
     public string Tscale { get; set; } = "oversample";
@@ -1267,6 +1264,9 @@ public sealed class UiSettings
     /// <summary>界面动效开关；默认保留现有动画，关闭时直接显示最终状态。仍遵循 Windows 的动画设置。</summary>
     public bool AnimationsEnabled { get; set; } = true;
 
+    /// <summary>主窗口左侧导航；默认关闭，旧配置缺少此项时继续使用标题栏入口。</summary>
+    public bool SidebarMode { get; set; }
+
     // 「海报宽度（像素）」那一行 2026-09-05 按用户的话删掉了（「删掉设置中的海报宽度」）：卡片从此固定用
     // CardSize 的默认尺寸（海报 170、剧照 300、演职人员人像 124）。这里不留一个存而不用的键 —— 反序列化碰到
     // 没处放的键本来就不出声，所以旧设置文件里留下的那一行照旧读得起来，只是没人再听它的。
@@ -1301,6 +1301,26 @@ public sealed class UiSettings
     /// </para>
     /// </summary>
     public bool ShowHomeBanner { get; set; } = true;
+
+    /// <summary>
+    /// 主页第一屏上媒体库那一排摆在哪 —— 「首页媒体库位置」（用户的话，2026-10-12）。三档见
+    /// <see cref="Emby.HomeLibraryPlacement"/>：随窗口高度变换（默认，2026-09-13 起一直有的那一档）、固定在轮播
+    /// 图中、固定在轮播图下方。
+    /// <para>
+    /// 摆在设置 → 界面卡上（那一页的「首页媒体库位置」一行），因为它说的是「这块界面长什么样」，和主页那张
+    /// 版面表（勾哪几排、什么次序）不是一回事。
+    /// </para>
+    /// <para>
+    /// 枚举存整数（同 <see cref="CarouselSource"/> 那条规矩），<c>Auto</c> 必须是 0：缺键的旧设置文件读出来就是
+    /// 它，从旧版本升上来的人一个像素都不变。认不出来的数字由 <c>SettingsMigration.Normalize</c> 拨回。
+    /// </para>
+    /// <para>
+    /// 改完当场生效：设置页写完喊一声 <c>ShellPrefs</c>，主页那一头重新摆一次那一排（不等回到主页、不用重启）。
+    /// 轮播收起来的时候（关掉大图，或者一张幻灯片都没有）「固定在轮播图中」没有轮播可依，那一排按「在下方」显示 ——
+    /// 这是唯一一处钉不住的情形，屏上回退成下面那一档的样子。
+    /// </para>
+    /// </summary>
+    public Emby.HomeLibraryPlacement HomeLibraryPlacement { get; set; } = Emby.HomeLibraryPlacement.Auto;
 
     /// <summary>
     /// 轮播条目从哪来 —— 「要使用最近添加还是随机的」（用户的话，2026-09-13）。枚举存整数

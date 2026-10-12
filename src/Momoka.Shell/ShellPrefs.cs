@@ -5,7 +5,7 @@ namespace Momoka.Shell;
 /// <summary>
 /// 界面那一组设置改完当场生效的那一根线：图片缓存上限、主页版面（次序和勾选）、主页轮播开关。
 /// <para>
-/// 从前还有一条「默认收起侧边栏」，那一行和侧边栏本身 2026-09-06 一起删掉了；这根线上少了一个订阅方，形状没变。
+/// 侧边栏单独通知外壳，避免一次纯布局切换让主页重建货架、重新查询。导入和恢复默认仍通知所有订阅方。
 /// </para>
 /// 存在的理由是设置页在它自己那个窗口里（<c>SettingsWindow</c>）。它手上有设置文档，可是没有主窗口的 HWND，
 /// 也没有外壳那一页 —— 而这些开关要动的正是那两样。<see cref="ThemeHost.Changed"/> 早就是这个形状了：
@@ -25,6 +25,10 @@ public static class ShellPrefs
     /// <summary>界面那一组设置改了。参数是改完之后的那一份。</summary>
     public static event Action<UiSettings>? Changed;
 
+    public static event Action<UiSettings>? SidebarChanged;
+
+    public static void ApplySidebar(UiSettings ui) => SidebarChanged?.Invoke(ui);
+
     public static event Action? ShortcutsChanged;
 
     public static void ApplyShortcuts() => ShortcutsChanged?.Invoke();
@@ -33,6 +37,7 @@ public static class ShellPrefs
     public static void Apply(UiSettings ui)
     {
         Views.HomeMotion.ApplyPreference(ui.AnimationsEnabled);
+        ApplySidebar(ui);
         Changed?.Invoke(ui);
     }
 }

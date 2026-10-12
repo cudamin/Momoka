@@ -93,9 +93,11 @@ public sealed class WrapRow : Panel
 
         foreach (var child in Children)
         {
-            if (child.Visibility != Visibility.Visible) continue;
-
+            // 收起的孩子也要经过 Measure，WinUI 才会记录它与父面板的测量关系。
+            // 否则初次收起的播放键稍后显示时可能仍是零宽，直到图片或窗口变化碰巧重测整排。
             if (!arrange) child.Measure(new Size(limit, double.PositiveInfinity));
+
+            if (child.Visibility != Visibility.Visible) continue;
 
             kids.Add(child);
             boxes.Add((child.DesiredSize.Width, child.DesiredSize.Height));

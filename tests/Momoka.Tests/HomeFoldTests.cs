@@ -14,6 +14,10 @@ namespace Momoka.Tests;
 /// 钉的是两条边界的形状，数字取 1422 宽的默认窗那一档：带子的设计形状 608（<see cref="HomeCarousel.NaturalHeight"/>），
 /// 那条线在 922。形状与从前一字未动 —— 挪的是线上站着的那一排（见下面那组算术的测试）。
 /// </para>
+/// <para>
+/// 上面这一整套只属于 <see cref="HomeLibraryPlacement.Auto"/>（「随窗口高度变换」）那一档。2026-10-12 起设置 →
+/// 界面多了「首页媒体库位置」一行，另两档由用户钉死，几何一个都不看 —— 见文件末尾那三条。
+/// </para>
 /// </summary>
 internal static class HomeFoldTests
 {
@@ -22,15 +26,15 @@ internal static class HomeFoldTests
         Test("矮窗档：那条线被裁掉 —— 压上", () =>
         {
             // 视口 900：线在 922、整个在第一屏外 —— 线以下（那一排的卡）一个像素都不露，这正是要压上轮播的那一档。
-            Assert.True(HomeFold.LibraryOnBanner(viewport: 900, nextRowLine: 922, bandHeight: 608));
-            Assert.True(HomeFold.LibraryOnBanner(700, 922, 608), "更矮一点还是同一档");
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, viewport: 900, nextRowLine: 922, bandHeight: 608));
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 700, 922, 608), "更矮一点还是同一档");
         });
 
         Test("矮窗档：高窗装得下那条线 —— 默认", () =>
         {
             // 线 922 < 视口：线以下还露得出来（哪怕只是那一排的卡露了头），媒体库留在横排里。
-            Assert.False(HomeFold.LibraryOnBanner(1000, 922, 608));
-            Assert.False(HomeFold.LibraryOnBanner(923, 922, 608), "线哪怕只露一像素，也算露");
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 1000, 922, 608));
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 923, 922, 608), "线哪怕只露一像素，也算露");
         });
 
         Test("矮窗档：媒体库整个出了屏、轮播还是设计形状 —— 压着不放", () =>
@@ -38,21 +42,21 @@ internal static class HomeFoldTests
             // 视口 620：媒体库的顶 632 在第一屏外（按「只能看到轮播图」的旧规则这一档已经回默认），但视口还
             // 撑得住带子的设计形状 608 —— 剧照上下裁切和默认大小一个样，压上档继续，媒体库跟着那一排一起
             // 住进轮播左下角（2026-09-13「轮播图上下裁切过多时隐藏，默认大小时不隐藏」）。
-            Assert.True(HomeFold.LibraryOnBanner(620, 922, 608));
-            Assert.True(HomeFold.LibraryOnBanner(632, 922, 608), "媒体库的顶正好压线，一个像素都没露");
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 620, 922, 608));
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 632, 922, 608), "媒体库的顶正好压线，一个像素都没露");
         });
 
         Test("矮窗档：轮播被一屏压矮、上下裁切超出默认档 —— 恢复默认", () =>
         {
             // 视口 607 差一像素够不到带子的设计形状 608：带子被压矮，剧照上下各多裁出一截 —— 该回默认了。
-            Assert.False(HomeFold.LibraryOnBanner(607, 922, 608));
-            Assert.False(HomeFold.LibraryOnBanner(600, 922, 608), "更矮只会裁得更多");
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 607, 922, 608));
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 600, 922, 608), "更矮只会裁得更多");
         });
 
         Test("矮窗档：两条边界的等号", () =>
         {
-            Assert.True(HomeFold.LibraryOnBanner(922, 922, 608), "那条线 ＝ 视口底：线以下一个像素都没露，算裁掉");
-            Assert.True(HomeFold.LibraryOnBanner(608, 922, 608), "视口 ＝ 设计形状：正好撑住，还没多裁");
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 922, 922, 608), "那条线 ＝ 视口底：线以下一个像素都没露，算裁掉");
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 608, 922, 608), "视口 ＝ 设计形状：正好撑住，还没多裁");
         });
 
         Test("矮窗档：那条线落在下面那一排的再下面那一排的封面顶上", () =>
@@ -77,8 +81,44 @@ internal static class HomeFoldTests
 
         Test("矮窗档：量不到视口不做决定", () =>
         {
-            Assert.False(HomeFold.LibraryOnBanner(0, 922, 608));
-            Assert.False(HomeFold.LibraryOnBanner(-1, 922, 608));
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, 0, 922, 608));
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, -1, 922, 608));
+        });
+
+        // ── 设置 → 界面 → 「首页媒体库位置」的后两档（2026-10-12）─────────────────────────────────────
+        //
+        // 那两档由用户钉死，几何一个都不看。取的就是上面那两组里两个已知的答案当反例：
+        // 1000／922／608 在默认档是「不压」，607／922／608 在默认档也是「不压」，900／922／608 在默认档是「压」。
+        // 递进去的线和带高在两档里都不该改变结论 —— 那正是「固定」这两个字的意思。
+
+        Test("首页媒体库位置：固定在轮播图中 —— 不看窗口高矮", () =>
+        {
+            // 默认档判「不压」的两档窗口，钉住之后照样压着。
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.OnCarousel, 1000, 922, 608), "高窗也压着");
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.OnCarousel, 607, 922, 608), "轮播被一屏压矮也压着");
+
+            // 线递什么都一样：调用方在钉住的档里压根不去量它（主页那一头就是拿 0 递进来的）。
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.OnCarousel, 1000, 0, 608));
+            Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.OnCarousel, 300, 0, 0));
+        });
+
+        Test("首页媒体库位置：固定在轮播图下方 —— 一次都不压", () =>
+        {
+            // 默认档判「压」的两档窗口，钉住之后一个都不压。
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.BelowCarousel, 900, 922, 608), "矮窗也不压");
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.BelowCarousel, 620, 922, 608), "媒体库整个出屏也不压");
+            Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.BelowCarousel, 922, 922, 608), "线正压视口底也不压");
+        });
+
+        Test("首页媒体库位置：量不到视口时三档都不压", () =>
+        {
+            // 这一条在钉住的两档上不是「用户说了算」：量不到视口就没有可压的那块地方（主页那一头在调到这里之前
+            // 已经把「轮播收着」也挡掉了）。钉住 ≠ 在没有轮播的页面上凭空压出一排来。
+            foreach (var placement in Enum.GetValues<HomeLibraryPlacement>())
+            {
+                Assert.False(HomeFold.LibraryOnBanner(placement, 0, 922, 608), $"{placement}：视口 0");
+                Assert.False(HomeFold.LibraryOnBanner(placement, -1, 922, 608), $"{placement}：视口负");
+            }
         });
     }
 }

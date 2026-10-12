@@ -1,4 +1,5 @@
 using Momoka.Configuration;
+using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 using Momoka.Mpv;
@@ -77,7 +78,7 @@ internal sealed partial class ShellNavigationProbe
                 }
                 evidence.Add($"宽度 {width}：入场分组 {entering.Length}，透明度 "
                     + string.Join(", ", entering.Select(section => section.Opacity.ToString("0.000"))));
-                await Task.Delay(430);
+                await WaitForSettingsSettledAsync(page);
                 AssertSettingsSettled(page);
                 Require(page.SelectedCategory == "视频输出" && page.ViewModel.Sections.SequenceEqual(sections),
                     "快速切换回到了旧分类或重建了设置行");
@@ -89,7 +90,7 @@ internal sealed partial class ShellNavigationProbe
                     new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
                 await Task.Delay(100);
                 page.SelectedCategory = "关于";
-                await Task.Delay(430);
+                await WaitForSettingsSettledAsync(page);
                 AssertSettingsSettled(page);
                 var visible = Descendants(page).OfType<FrameworkElement>()
                     .Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible).ToArray();
@@ -134,12 +135,12 @@ internal sealed partial class ShellNavigationProbe
                 ResizeInspect(width, 900);
                 page.SelectedCategory = "播放器";
                 await LayoutAsync(page);
-                await Task.Delay(430); // 分组入场动画先落定，别处同款等待。
+                await WaitForSettingsSettledAsync(page); // 分组入场动画先落定，别处同款等待。
                 AssertSettingsSettled(page);
                 await SaveReturnFrameAsync(page, $"settings-player-sections-{width}.png");
                 page.SelectedCategory = "播放行为";
                 await LayoutAsync(page);
-                await Task.Delay(430);
+                await WaitForSettingsSettledAsync(page);
                 AssertSettingsSettled(page);
                 await SaveReturnFrameAsync(page, $"settings-playback-sections-{width}.png");
                 foreach (var (title, file) in new[] { ("资源筛选", $"settings-playback-resource-{width}.png"), ("截图", $"settings-playback-screenshot-{width}.png") })
@@ -162,6 +163,89 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(page);
             ResizeInspect(1420, 980);
             File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "settings-motion.txt"), evidence);
+        }
+    }
+
+    /// <summary>
+    /// 设置 → 界面 → 「首页媒体库位置」（用户令 2026-10-12）：三档下拉，装机默认是「随窗口高度变换」。
+    /// <para>
+    /// 值得一条探针，因为这一行坏掉的样子在屏上都很安静：下拉里少一项读起来像「这功能就这样」；控件没有落在
+    /// 存档里那一档上（<see cref="SettingChoiceRow"/> 的候选表认不出存档里的值时会给一个「设置文件中的值」的
+    /// 兜底项），用户下次打开设置看到的就不是自己选的那一档；而选一下没有写回设置，主页那一头读到的还是旧值 ——
+    /// 三样都得读存档和真实控件才认得出。界面卡另留宽窄两帧截图。
+    /// </para>
+    /// </summary>
+    private async Task SettingsHomeLibraryPlacementAsync()
+    {
+        const string label = "首页媒体库位置";
+        using var fixture = CreateFixture();
+        using var moviePilot = new MoviePilotClient(new RejectNetwork());
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, "settings-library-placement"));
+        paths.EnsureCreated();
+        // 同 SettingsEntranceAsync：本例不扫机器上的数千字体，给现有缓存放入空目录。
+        var fonts = new FontLibrary();
+        Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
+
+        var page = new SettingsPage();
+        page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
+            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
+            new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+        await page.ViewModel.ReloadAsync();
+        _root.Children.Add(page);
+        try
+        {
+            page.SelectedCategory = "界面";
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            AssertSettingsSettled(page);
+
+            var row = page.ViewModel.Sections.Where(section => section.Category == "界面")
+                .SelectMany(section => section.Rows)
+                .OfType<SettingChoiceRow>().Single(candidate => candidate.Label == label);
+            var combo = Descendants(page).OfType<ComboBox>()
+                .Single(control => AutomationProperties.GetName(control) == label);
+
+            Require(row.Choices.Count == 3 && combo.Items.Count == 3,
+                $"「{label}」不是三档：数据行 {row.Choices.Count} 项、控件 {combo.Items.Count} 项");
+            Require(row.Choices.Select(choice => choice.Label)
+                    .SequenceEqual(["随窗口高度变换", "固定在轮播图中", "固定在轮播图下方"]),
+                "「首页媒体库位置」三档的名字或次序变了：" + string.Join("、", row.Choices.Select(choice => choice.Label)));
+
+            // 装机默认那一档：存档里是 Auto，控件显示的也是它（不是那个「设置文件中的值」的兜底项）。
+            Require(fixture.Settings.Ui.HomeLibraryPlacement == HomeLibraryPlacement.Auto, "界面卡的默认档不是「随窗口高度变换」");
+            Require(ReferenceEquals(combo.SelectedItem, row.Selected), "控件没有落在存档里那一档上");
+
+            // 逐档拨过去，存档跟着走 —— 主页那一头读的就是这一个字段（ShellPrefs 那一趟不在本例里验，
+            // 它由主页用例真拨一次设置来覆盖）。
+            foreach (var (text, value) in new[]
+            {
+                ("固定在轮播图中", HomeLibraryPlacement.OnCarousel),
+                ("固定在轮播图下方", HomeLibraryPlacement.BelowCarousel),
+                ("随窗口高度变换", HomeLibraryPlacement.Auto)
+            })
+            {
+                combo.SelectedItem = row.Choices.Single(choice => choice.Label == text);
+                await Task.Delay(80);
+                Require(fixture.Settings.Ui.HomeLibraryPlacement == value, $"选「{text}」没有写回设置");
+            }
+
+            foreach (var width in new[] { 1100, 760 })
+            {
+                ResizeInspect(width, 900);
+                await LayoutAsync(page);
+                await WaitForSettingsSettledAsync(page);
+                AssertSettingsSettled(page);
+                combo.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0 });
+                await LayoutAsync(page);
+                await SaveProbeScreenAsync($"settings-interface-placement-{width}-screen.png");
+            }
+        }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
+            ResizeInspect(1420, 980);
         }
     }
 
@@ -317,6 +401,11 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
+    private static Task WaitForSettingsSettledAsync(SettingsPage page) => UntilAsync(() =>
+        Get<Grid>(page, "SettingsContent").Opacity == 1
+        && Descendants(page).OfType<FrameworkElement>().Where(element => element.Name == "SettingsSection")
+            .All(section => section.Opacity == 1 && (section.RenderTransform is not TranslateTransform drift || drift.Y == 0)));
+
     private static void AssertSettingsSettled(SettingsPage page)
     {
         Require(Get<Grid>(page, "SettingsContent").Opacity == 1, "设置内容停留在透明状态");
@@ -347,7 +436,7 @@ internal sealed partial class ShellNavigationProbe
             // 档位次序是 Pipelines 表的次序（集成在前、独占在后），按下标挑另一档。
             var (row, combo) = PipelineRow(page);
             combo.SelectedItem = row.Choices[integrated ? 1 : 0];
-            await Task.Delay(430); // 重建可能带分组入场动画，与别处一样等它落定再读。
+            await WaitForSettingsSettledAsync(page); // 重建可能带分组入场动画，与别处一样等它落定再读。
             Require(fixture.Settings.Mpv.Pipeline == (integrated ? VideoPipelineKind.Standalone : VideoPipelineKind.Integrated),
                 "切管线没有保存新选择");
             AssertGraphicsApi(page, fixture);
@@ -360,7 +449,7 @@ internal sealed partial class ShellNavigationProbe
             var (restoredRow, restoredCombo) = PipelineRow(page);
             Require(!ReferenceEquals(restoredCombo, combo), "重建没有换出新的下拉");
             restoredCombo.SelectedItem = restoredRow.Choices[integrated ? 0 : 1];
-            await Task.Delay(430);
+            await WaitForSettingsSettledAsync(page);
             Require(fixture.Settings.Mpv.Pipeline == original, "切回原管线没有保存选择");
             AssertGraphicsApi(page, fixture);
             Require(fixture.Settings.Video.GpuApi == originalApi, "切回后丢失了原先的图形接口");
@@ -417,7 +506,7 @@ internal sealed partial class ShellNavigationProbe
         {
             video.VideoSync = "display-resample";
             video.Interpolation = true;
-            video.Tscale = "spline36";
+            video.Tscale = "bicubic";
             video.HighFrameRateAudioSync = true;
             video.HighRefreshRateLimitHz = 144;
             video.Dither = "fruit";
@@ -435,12 +524,42 @@ internal sealed partial class ShellNavigationProbe
             AssertRow("抖动目标位深", true);
             AssertRow("去色带强度", true);
 
+            var interpolation = Rows().OfType<SettingChoiceRow>().Single(row => row.Label == "插值算法");
+            var interpolationCombo = Descendants(page).OfType<ComboBox>()
+                .Single(control => AutomationProperties.GetName(control) == "插值算法");
+            Require(interpolation.Choices.Count == 3 && interpolationCombo.Items.Count == 3,
+                "插值算法必须只显示过采样、Mitchell、双三次三项");
+            foreach (var kernel in new[] { "oversample", "mitchell", "bicubic" })
+            {
+                await PickAsync("插值算法", MpvOutputOptions.InterpolationKernels, kernel);
+                Require(video.Tscale == kernel && ReferenceEquals(interpolationCombo.SelectedItem, interpolation.Selected),
+                    "插值算法选择没有保存或控件没有显示当前值");
+            }
+            var topMost = _window!.TopMost;
+            try
+            {
+                // Raise the host before opening the popup; raising it afterwards can cover the dropdown.
+                _window.TopMost = true;
+                interpolationCombo.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.5 });
+                await SettleAsync();
+                interpolationCombo.IsDropDownOpen = true;
+                await SettleAsync();
+                Require(interpolationCombo.IsDropDownOpen, "插值算法下拉没有展开");
+                await CompositionPlaybackProbe.SaveScreenAsync(_window,
+                    Path.Combine(_options.Paths.LogDirectory, $"settings-video-interpolation-{width}-screen.png"));
+            }
+            finally
+            {
+                interpolationCombo.IsDropDownOpen = false;
+                _window.TopMost = topMost;
+            }
+
             await PickAsync("视频同步", MpvOutputOptions.VideoSync, "audio");
             AssertRow("启用插值", false);
             AssertRow("插值算法", false);
             AssertRow(fallback, false);
             AssertRow(threshold, false);
-            Require(video.Interpolation && video.Tscale == "spline36" && video.HighRefreshRateLimitHz == 144,
+            Require(video.Interpolation && video.Tscale == "bicubic" && video.HighRefreshRateLimitHz == 144,
                 "音频同步清空了隐藏的插值或回退偏好");
             await CaptureAsync("audio");
 
@@ -461,7 +580,7 @@ internal sealed partial class ShellNavigationProbe
             AssertRow("插值算法", true);
             AssertRow(fallback, true);
             AssertRow(threshold, true);
-            Require(video.Tscale == "spline36" && video.HighRefreshRateLimitHz == 144, "恢复后插值参数丢失");
+            Require(video.Tscale == "bicubic" && video.HighRefreshRateLimitHz == 144, "恢复后插值参数丢失");
 
             var number = Descendants(page).OfType<NumberBox>()
                 .Single(control => AutomationProperties.GetName(control) == threshold);
@@ -570,7 +689,7 @@ internal sealed partial class ShellNavigationProbe
         async Task SettleAsync()
         {
             await LayoutAsync(page);
-            await Task.Delay(430);
+            await WaitForSettingsSettledAsync(page);
             AssertSettingsSettled(page);
         }
         async Task PickLabelAsync(string label, string choice)

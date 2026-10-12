@@ -165,7 +165,7 @@ internal static class MoviePilotSubscriptionTests
                  "date":"2026-07-26T10:00:00","last_update":"2026-07-27 11:30:00","last_search":"2026-07-27T11:30:00"}
                 """))!;
             var info = MoviePilotSubscriptionFacts.Info(rich);
-            Assert.Equal("订阅编号|状态|年份|总集数|起始集|已完成|订阅进度|搜索间隔|上次搜索|上次更新|创建时间|搜索站点|下载器|保存路径|洗版|订阅用户",
+            Assert.Equal("订阅编号|订阅状态|年份|总集数|起始集|已完成|订阅进度|搜索间隔|上次搜索|上次更新|创建时间|搜索站点|下载器|保存路径|洗版|订阅用户",
                 string.Join('|', info.Select(fact => fact.Label)));
             Assert.Equal("2 集", info.Single(fact => fact.Label == "已完成").Value);
             Assert.Equal("每 6 小时", info.Single(fact => fact.Label == "搜索间隔").Value);
@@ -183,7 +183,7 @@ internal static class MoviePilotSubscriptionTests
         Test("MoviePilot 订阅详情投影：空字段不造行，评分和站点两种形态都收", () =>
         {
             var bare = MoviePilotSubscription.Parse(Json("""{"id":7,"name":"空订阅","type":"电影","vote":"7.5","sites":[]}"""))!;
-            Assert.Equal("订阅编号|状态", string.Join('|', MoviePilotSubscriptionFacts.Info(bare).Select(fact => fact.Label)));
+            Assert.Equal("订阅编号|订阅状态", string.Join('|', MoviePilotSubscriptionFacts.Info(bare).Select(fact => fact.Label)));
             Assert.Equal(0, MoviePilotSubscriptionFacts.Rules(bare).Count);
             Assert.Equal(7.5, bare.Vote);
             Assert.Equal(0, bare.SiteCount);

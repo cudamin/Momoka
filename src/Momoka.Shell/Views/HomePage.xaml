@@ -134,6 +134,16 @@
             </Grid>
         </DataTemplate>
 
+        <DataTemplate x:Key="SubscriptionShelfTemplate" x:DataType="local:MoviePilotHomeRow">
+            <Grid>
+                <Grid.RenderTransform><TranslateTransform /></Grid.RenderTransform>
+                <local:MoviePilotSubscriptionsView Row="{x:Bind}">
+                    <local:MoviePilotSubscriptionsView.RenderTransform><TranslateTransform /></local:MoviePilotSubscriptionsView.RenderTransform>
+                </local:MoviePilotSubscriptionsView>
+            </Grid>
+        </DataTemplate>
+        <local:HomeRowTemplates x:Key="HomeRowTemplates" Library="{StaticResource ShelfTemplate}"
+            Subscription="{StaticResource SubscriptionShelfTemplate}" />
     </Page.Resources>
 
     <!--
@@ -270,8 +280,8 @@
 
                     <ItemsRepeater
                         x:Name="ShelfRepeater"
-                        ItemTemplate="{StaticResource ShelfTemplate}"
-                        ItemsSource="{x:Bind ViewModel.Shelves, Mode=OneWay}">
+                        ItemTemplate="{StaticResource HomeRowTemplates}"
+                        ItemsSource="{x:Bind HomeRows, Mode=OneWay}">
                         <ItemsRepeater.Layout>
                             <!-- 排与排之间：2026-09-13 从 36 收到 24（「首页组件的上下间距弄紧凑一些」）；
                                  2026-09-14 再从 24 收到 22 —— 卡片那一档缩过之后（继续观看 300→256、媒体库
@@ -301,16 +311,11 @@
                         </ItemsRepeater.Layout>
                     </ItemsRepeater>
 
-                    <!-- 上边那 24 走板块自己那一层（MoviePilotSubscriptionsView 里那个 StackPanel），不走这里：
-                         这一块在没有订阅时整个收着（见 MoviePilotSubscriptionsViewModel.Visible），而写在这个宿主上的
-                         边距是会留下来的 —— 主页最底下就会多出 24 个谁也看不见的像素。 -->
-                    <local:MoviePilotSubscriptionsView x:Name="Subscriptions" />
-
                     <TextBlock x:Uid="HomePage_TextBlock1"
                         Foreground="{ThemeResource EgTextFaintBrush}"
                         Margin="0,24,0,0"
                         Style="{StaticResource EgBodyStyle}"
-                        Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" />
+                        Visibility="{x:Bind local:HomePage.HomeEmptyVisibility(ViewModel.EmptyVisibility, HomeRows.Count), Mode=OneWay}" />
                 </StackPanel>
             </Grid>
         </StackPanel>

@@ -9,7 +9,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 namespace Momoka.Shell.ViewModels;
 
 public sealed partial class MoviePilotSubscriptionEpisodeRow(
-    MoviePilotSubscriptionEpisode episode, Func<bool> canPlay, Func<MoviePilotSubscriptionEpisodeRow, Task> play,
+    MoviePilotSubscriptionEpisode episode, Func<bool> playbackAvailable, Func<bool> canPlay, Func<MoviePilotSubscriptionEpisodeRow, Task> play,
     Func<bool> canSearch, Action<MoviePilotSubscriptionEpisodeRow> search) : ObservableObject
 {
     private CancellationTokenSource? _artworkLoad;
@@ -36,8 +36,9 @@ public sealed partial class MoviePilotSubscriptionEpisodeRow(
     public Visibility AirDateVisibility => AirDateLabel.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public bool InLibrary => Episode.InLibrary;
-    public bool CanPlay => InLibrary && Target is not null && canPlay();
-    public Visibility PlayVisibility => InLibrary ? Visibility.Visible : Visibility.Collapsed;
+    public bool HasPlayableTarget => !_retired && InLibrary && Target is not null && playbackAvailable();
+    public bool CanPlay => HasPlayableTarget && canPlay();
+    public Visibility PlayVisibility => HasPlayableTarget ? Visibility.Visible : Visibility.Collapsed;
     public string PlayLabel => Target?.Item.HasResumePosition == true ? "继续播放" : "播放";
     public string PlayName => $"{PlayLabel} · {RowTitle}";
     public string PlayHelp => Target is null ? "当前 Emby 中尚未找到匹配的可播放条目，可刷新重试" : "使用当前 Emby 账号播放";
@@ -51,7 +52,8 @@ public sealed partial class MoviePilotSubscriptionEpisodeRow(
     internal void SetTarget(MoviePilotPlaybackTarget? target) { Target = target; Refresh(); }
     internal void Refresh()
     {
-        OnPropertyChanged(nameof(CanPlay)); OnPropertyChanged(nameof(PlayLabel)); OnPropertyChanged(nameof(PlayName)); OnPropertyChanged(nameof(PlayHelp));
+        OnPropertyChanged(nameof(HasPlayableTarget)); OnPropertyChanged(nameof(CanPlay)); OnPropertyChanged(nameof(PlayVisibility));
+        OnPropertyChanged(nameof(PlayLabel)); OnPropertyChanged(nameof(PlayName)); OnPropertyChanged(nameof(PlayHelp));
         PlayCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(CanSearch));
         SearchCommand.NotifyCanExecuteChanged();
@@ -85,5 +87,6 @@ public sealed partial class MoviePilotSubscriptionEpisodeRow(
         _artworkLoad?.Cancel();
         _artworkLoad = null;
         Artwork = null;
+        Refresh();
     }
 }

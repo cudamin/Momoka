@@ -122,7 +122,20 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     internal (bool Ok, string Detail)? MeasureHomeRows()
     {
-        if (ViewModel.MeasureHomeRows() is not { } probe) return null;
+        if (ViewModel.HomeRows is null) return null;
+
+        // 这张表只在它那张卡显示着的时候量得准，也只在显示着的时候才被重填（见 SettingsViewModel.RefreshHomeRows）。
+        // 分类走查结束时页面停在最后一张卡上，所以先把「主页」摆到前面 —— 这一下也顺带把它重填一次 —— 量完再
+        // 还回原来那张。
+        var previous = SelectedCategory;
+        SelectedCategory = SettingsViewModel.FirstCardCategory;
+        SettleHomeList();
+
+        if (ViewModel.MeasureHomeRows() is not { } probe)
+        {
+            SelectedCategory = previous;
+            return null;
+        }
 
         var drawn = 0;
         CountHomeRows(this, ref drawn);
@@ -133,7 +146,27 @@ public sealed partial class SettingsPage : Page, IShellContent
         // 上面那两个数一个都不会动。往一行里加控件（那两颗箭头就是）之后最容易踩这一脚。
         var (fits, room) = HomeRowsFit();
 
+        SelectedCategory = previous;
+
         return (probe.Ok && drawn == expected && fits, $"{probe.Detail}；屏上 {drawn} 行、{room}");
+    }
+
+    /// <summary>
+    /// 把那张表催到当前这一帧：重填是一记 Reset，容器要下一趟布局才建得出来，不催就会量到上一帧的读数。
+    /// 这只是把读数摆到当下，不放宽判据 —— 表真少画一行、真装不下时，上面那两个数照样红。
+    /// </summary>
+    private void SettleHomeList()
+    {
+        if (FindHomeList(this) is not { } list) return;
+
+        for (var pass = 0; pass < 4; pass++)
+        {
+            list.UpdateLayout();
+
+            var drawn = 0;
+            CountHomeRows(this, ref drawn);
+            if (drawn >= list.Items.Count) return;
+        }
     }
 
     /// <summary>
@@ -285,6 +318,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         // the page — and throw the typing away — on every visit.
         var built = ReferenceEquals(_request?.Services, request.Services) && ViewModel.IsReady;
 
+        StopMoviePilotMonitoring();
         _request = request;
 
         if (!built)
@@ -322,6 +356,8 @@ public sealed partial class SettingsPage : Page, IShellContent
         // already fills the device row. A cached page skips ReloadAsync by design (in-progress edits are
         // the point), but the device list is a reading, not an edit — it re-enumerates on re-entry.
         if (built) _ = ViewModel.RefreshAudioDevicesAsync();
+
+        WatchMoviePilot(request.Services.GetRequiredService<MoviePilotService>());
 
         // 每一次打开都重新核一遍账号权限 —— 和上面那一行的理由同源：这一页是缓存的，换过账号之后它不重建，
         // 不重核就会留着上一个账号的答案（管理员看过的「控制台」那一组，普通账号再进来还列着）。这一趟先于
@@ -489,6 +525,7 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     internal void ReleaseHosted()
     {
+        StopMoviePilotMonitoring();
         StopSettingsEntrance();
         (HostedFrame.Content as IShellContent)?.Release();
         if (HostedFrame.Content is Page { Content: FrameworkElement layout }) HomeMotion.Stop(layout);
@@ -514,6 +551,27 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </para>
     /// </summary>
     public void Release() => ReleaseHosted();
+
+    private MoviePilotService? _moviePilot;
+
+    internal void WatchMoviePilot(MoviePilotService service)
+    {
+        StopMoviePilotMonitoring();
+        _moviePilot = service;
+        _moviePilot.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
+        ViewModel.RefreshHomeRows();
+    }
+
+    private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (ReferenceEquals(sender, _moviePilot)) ViewModel.RefreshHomeRows();
+    });
+
+    private void StopMoviePilotMonitoring()
+    {
+        if (_moviePilot is { } service) service.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
+        _moviePilot = null;
+    }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {

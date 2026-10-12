@@ -143,7 +143,10 @@ public static class MoviePilotSubscriptionFacts
         var facts = new List<MoviePilotSubscriptionFact>
         {
             new("订阅编号", subscription.Id.ToString(CultureInfo.InvariantCulture)),
-            new("状态", subscription.StateLabel)
+            // 「订阅状态」而不是「状态」：这一列现在和媒体信息那一列同住一张卡（用户令 2026-10-12，
+            // 照网页端把两段并成一列），而媒体信息里已经有一行「状态」说的是 TMDB 的状态
+            //（Returning Series / Released），两个「状态」并排看不出哪个是哪个。
+            new("订阅状态", subscription.StateLabel)
         };
         if (subscription.Media.Year is { } year) Add(facts, "年份", year.ToString(CultureInfo.InvariantCulture));
         if (subscription.IsSeries)

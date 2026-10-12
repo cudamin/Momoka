@@ -50,7 +50,7 @@ internal static class VideoOutputTests
             settings.Video.HardwareDecoding = "AUTO-SAFE";
             settings.Video.OutputLevels = "FULL";
             settings.Video.VideoSync = "DISPLAY-RESAMPLE";
-            settings.Video.Tscale = "LANCZOS";
+            settings.Video.Tscale = "MITCHELL";
             settings.Video.Dither = "Fruit";
             settings.Video.Deband = "AUTO";
             settings.Video.HdrMode = "TONEMAP";
@@ -66,7 +66,7 @@ internal static class VideoOutputTests
             Assert.Equal("auto-safe", settings.Video.HardwareDecoding);
             Assert.Equal("full", settings.Video.OutputLevels);
             Assert.Equal("display-resample", settings.Video.VideoSync);
-            Assert.Equal("lanczos", settings.Video.Tscale);
+            Assert.Equal("mitchell", settings.Video.Tscale);
             Assert.Equal("fruit", settings.Video.Dither);
             Assert.Equal("auto", settings.Video.Deband);
             Assert.Equal("tonemap", settings.Video.HdrMode);
@@ -75,6 +75,43 @@ internal static class VideoOutputTests
             Assert.Equal("high", settings.Video.DebandStrength);
             Assert.Equal("spline", settings.Video.ToneMapping);
             Assert.Equal("yes", settings.Video.HdrComputePeak);
+        });
+
+        Test("插值：三档选择保留偏好并使用内核接受的大小写", () =>
+        {
+            Assert.Equal("oversample,mitchell,bicubic", string.Join(",", MpvOutputOptions.InterpolationKernels.Select(choice => choice.Value)));
+            foreach (var kernel in new[] { "oversample", "mitchell", "bicubic" })
+            {
+                var settings = new AppSettings();
+                settings.Video.Interpolation = true;
+                settings.Video.Tscale = $" {kernel.ToUpperInvariant()} ";
+                SettingsMigration.Normalize(settings);
+                Assert.Equal(kernel, settings.Video.Tscale);
+                var output = Last(MpvOutputOptions.Build(settings.Video, settings.Audio));
+                Assert.Equal(kernel, output["tscale"]);
+                Assert.Equal("yes", output["interpolation"]);
+            }
+        });
+
+        Test("插值：移除的旧算法回到过采样且不改变插值开关", () =>
+        {
+            foreach (var stored in new[] { "catmull_rom", " CATMULL_ROM ", "spline36", " SPLINE36 ", "lanczos", " LANCZOS " })
+            {
+                foreach (var enabled in new[] { false, true })
+                {
+                    var settings = new AppSettings();
+                    settings.Video.Interpolation = enabled;
+                    settings.Video.Tscale = stored;
+                    SettingsMigration.Normalize(settings);
+                    Assert.Equal("oversample", settings.Video.Tscale);
+                    Assert.Equal(enabled, settings.Video.Interpolation);
+                    var output = Last(MpvOutputOptions.Build(settings.Video, settings.Audio));
+                    Assert.Equal(enabled, output.ContainsKey("tscale"));
+                    if (enabled) Assert.Equal("oversample", output["tscale"]);
+                    SettingsMigration.Normalize(settings);
+                    Assert.Equal("oversample", settings.Video.Tscale, "再次加载仍保留回退结果");
+                }
+            }
         });
 
         Test("视频设置：大小写变体归一后仍执行明确的 HDR 与去色带语义", () =>

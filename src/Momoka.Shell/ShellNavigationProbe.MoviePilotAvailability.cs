@@ -115,9 +115,20 @@ internal sealed partial class ShellNavigationProbe
             Require(await service.RefreshAvailabilityAsync(), "订阅菜单恢复前连接失败");
             subscriptions.Attach(service);
             await subscriptions.ReloadAsync();
+            // 「文件统计」只在电视剧上给：它滚到订阅季折叠栏里那份统计，而电影那块独立面板已按用户令
+            //（2026-10-12）删掉 —— 电影上这一项无处可去，跟着收起而不是置灰。
             subscriptionMenu = MoviePilotSubscriptionMenu.Create(anchor, subscriptions, subscriptions.Movies[0], () => { }, service);
             subscriptionMenu.ShowAt(anchor);
             await UntilAsync(() => MenuItems().Length > 0);
+            Require(MenuItems().Any(item => item.Text == "媒体详情") && MenuItems().All(item => item.Text != "文件统计"),
+                "电影订阅菜单仍给「文件统计」：" + string.Join("、", MenuItems().Select(item => item.Text)));
+            subscriptionMenu.Hide();
+            await UntilAsync(() => MenuItems().Length == 0);
+            subscriptionMenu = MoviePilotSubscriptionMenu.Create(anchor, subscriptions, subscriptions.Series[0], () => { }, service);
+            subscriptionMenu.ShowAt(anchor);
+            await UntilAsync(() => MenuItems().Length > 0);
+            Require(MenuItems().Any(item => item.Text == "文件统计"), "电视剧订阅菜单少了「文件统计」："
+                + string.Join("、", MenuItems().Select(item => item.Text)));
             fixture.Settings.MoviePilot.Enabled = false;
             await UntilAsync(() => MenuItems().Length == 0);
             await SaveProbeScreenAsync("moviepilot-menus-dismissed.png");

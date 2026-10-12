@@ -149,6 +149,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     public ShellPage()
     {
         InitializeComponent();
+        InitializeSidebar();
 
         // 深浅跟着当前主题走。登记之后换主题会连带把这棵树翻过去 —— 框架自己那些没被调色板覆盖的刷子
         // 只认 ElementTheme，不登记的话浅色主题下就是「白面配深色控件」。
@@ -517,6 +518,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _services = services;
         _session = services.GetRequiredService<EmbySession>();
         _settings = services.GetRequiredService<ISettingsService>();
+        OnSidebarPreferencesChanged(Settings.Ui);
         _capabilities = services.GetRequiredService<IServerCapabilities>();
         StartMoviePilotMonitoring(services.GetRequiredService<MoviePilotService>());
 
@@ -752,6 +754,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     internal void ShowPlayer(bool playing)
     {
+        _sidebarPlaying = playing;
         if (playing)
         {
             // 退出播放要停在离开详情页时的位置：收起播放层时框架会把焦点挪进详情页、随之把落点滚进视口
@@ -762,6 +765,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             if (_window is not null) _window.PlaybackTitleBar = true;
             ContentHost.Visibility = Visibility.Collapsed;
             SignIn.Visibility = Visibility.Collapsed;
+            SyncSidebar();
             return;
         }
 
@@ -792,6 +796,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (_detailScrollBeforePlayer is { } offset && ContentFrame.Content is DetailPage detail)
             detail.KeepScrollThroughReveal(offset);
         _detailScrollBeforePlayer = null;
+        SyncSidebar();
     }
 
     /// <summary>
@@ -1649,6 +1654,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         FavoritesButton.IsEnabled = _session?.IsSignedIn == true && _current != LibraryRequest.FavoritesTag;
 
         ApplyChrome(ContentFrame.CanGoBack, ContentFrame.CanGoForward, _trail.Count);
+        SyncSidebar();
     }
 
     /// <summary>
@@ -1913,6 +1919,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var scope = _session.Capture();
         BrowsingPreferences.SelectIdentity(Settings.Ui, scope.Connection);
         Favorites.Attach(scope);
+        _libraries.Clear();
+        _libraryViews.Clear();
+        _librariesFailed = false;
+        RebuildSidebarLibraries();
         _ = Favorites.RefreshAsync();
 
         SignIn.Detach();
@@ -1922,6 +1932,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // 账号那颗按钮（现在站在标题栏里）只在登录之后露面：登录卡上它没的可切，而它收着的时候窗口那一头
         // 挖给它的洞也就没了 —— ShowAccount 一改字宽度变了，SizeChanged 会再把洞报对。
         AccountButton.Visibility = Visibility.Visible;
+        SyncSidebar();
 
         ShowAccount(_session.Account?.Username, _session.ServerDisplayName);
         FillSwitchMenus();
@@ -1986,6 +1997,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             };
         }
 
+        RebuildSidebarLibraries();
         Log.Info(Category, views.Count == _libraries.Count
             ? $"媒体库 {_libraries.Count} 个已读入"
             : $"媒体库 {_libraries.Count} 个已读入（服务器共 {views.Count} 个，音乐库已屏蔽）");
@@ -2110,6 +2122,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _libraryViews.Clear();
         _librariesFailed = false;
         ContentHost.Visibility = Visibility.Collapsed;
+        RebuildSidebarLibraries();
 
         // 账号那颗也收起来：没登录它没的可切，而且在登录卡上它上面的菜单（切换服务器／注销）一个都不通。
         // 标题栏那一排（主页、设置、搜索、两支箭头）照旧留着 —— 它是窗口的外壳。

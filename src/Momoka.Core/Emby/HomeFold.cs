@@ -1,6 +1,30 @@
 namespace Momoka.Emby;
 
 /// <summary>
+/// 主页第一屏上媒体库那一排摆在哪 —— 设置 → 界面 → 「首页媒体库位置」。
+/// <para>
+/// 三档里的后两档是「钉住」：<see cref="OnCarousel"/> 和 <see cref="BelowCarousel"/> 不看窗口高矮，用户说了
+/// 算；<see cref="Auto"/> 才是从 2026-09-13 起一直有的那一档 —— 由 <see cref="HomeFold.LibraryOnBanner"/> 按量
+/// 出来的几何自己翻。
+/// </para>
+/// <para>
+/// 枚举存整数（同 <see cref="CarouselSource"/> 那条规矩），<see cref="Auto"/> 必须是 0：缺键的旧设置文件读出来
+/// 就是它，从旧版本升上来的人一个像素都不变。认不出来的数字由 <c>SettingsMigration.Normalize</c> 拨回。
+/// </para>
+/// </summary>
+public enum HomeLibraryPlacement
+{
+    /// <summary>随窗口高度变换（装机默认）：窗口矮到那条线被第一屏裁掉时压上轮播，拉高又落回轮播下面。</summary>
+    Auto = 0,
+
+    /// <summary>固定在轮播图中：只要轮播在，媒体库那一排就压在封面的左下角，不看窗口高矮。</summary>
+    OnCarousel = 1,
+
+    /// <summary>固定在轮播图下方：媒体库那一排始终站在横排里，一次都不压上轮播。</summary>
+    BelowCarousel = 2
+}
+
+/// <summary>
 /// 主页首屏的「矮窗档」：窗口拉矮到「继续观看」那块牌子底下那条线被第一屏裁掉之后，媒体库那一排不再占横排的格子，
 /// 改压到轮播封面的左下角，原来在它下面的那一排向上补位 ——「把媒体库那压到轮播图封面的左下角，原来媒体库
 /// 下方的哪一栏向上移填补媒体库的位置」（用户的话，2026-09-13）。
@@ -39,11 +63,23 @@ namespace Momoka.Emby;
 /// 多少，所以「过多」不用再去挑一个百分比：超出设计形状的第一像素就是那道线。</item>
 /// </list>
 /// </para>
+/// <para>
+/// 这两条边界只管 <see cref="HomeLibraryPlacement.Auto"/>（「随窗口高度变换」）那一档。2026-10-12 起设置 → 界面
+/// 多了一行「首页媒体库位置」，另两档由用户钉死：<see cref="HomeLibraryPlacement.OnCarousel"/> 压着不放、
+/// <see cref="HomeLibraryPlacement.BelowCarousel"/> 一次不压 —— 那两档下这里两条边界都不参与，见
+/// <see cref="LibraryOnBanner(HomeLibraryPlacement, double, double, double)"/>。
+/// </para>
 /// </summary>
 public static class HomeFold
 {
     /// <summary>
-    /// 这一档窗口该不该把媒体库那一排压上轮播。
+    /// 这一档窗口该不该把媒体库那一排压上轮播。设置里那一行（<paramref name="placement"/>）先说哪一档：
+    /// <list type="bullet">
+    /// <item><see cref="HomeLibraryPlacement.OnCarousel"/> / <see cref="HomeLibraryPlacement.BelowCarousel"/>
+    /// 是用户钉住的，几何一个都不看 —— 那两档下 <paramref name="nextRowLine"/> 和 <paramref name="bandHeight"/>
+    /// 递什么都不参与判定（调用方也就不用去算那条线：钉在轮播里那一档，媒体库下面有没有别的排都不相干）。</item>
+    /// <item><see cref="HomeLibraryPlacement.Auto"/> 才走下面那条几何判定。</item>
+    /// </list>
     /// <para>
     /// <paramref name="nextRowLine"/> 是**滚回顶上之后**那条线到视口顶边的距离（内容坐标，不带滚动位移，按默认
     /// 摆法的几何还原）—— 拿现场坐标来判，用户往下滚一下这一档就会自己翻面。这条线由 <see cref="CoversLine"/>
@@ -51,15 +87,30 @@ public static class HomeFold
     /// 一排 —— 牌子和空当页面从排好的树上量，这里不写死。
     /// </para>
     /// </summary>
+    /// <param name="placement">设置 → 界面 → 「首页媒体库位置」。</param>
     /// <param name="viewport">第一屏的高（窗口客户区）。</param>
-    /// <param name="nextRowLine">那条线在第一屏里的位置（默认摆法的几何），见 <see cref="CoversLine"/>。</param>
-    /// <param name="bandHeight">轮播带按设计形状的高（<see cref="HomeCarousel.NaturalHeight"/>，不被一屏封住）。</param>
-    public static bool LibraryOnBanner(double viewport, double nextRowLine, double bandHeight)
+    /// <param name="nextRowLine">那条线在第一屏里的位置（默认摆法的几何），见 <see cref="CoversLine"/>。只在默认档用。</param>
+    /// <param name="bandHeight">轮播带按设计形状的高（<see cref="HomeCarousel.NaturalHeight"/>，不被一屏封住）。只在默认档用。</param>
+    public static bool LibraryOnBanner(
+        HomeLibraryPlacement placement,
+        double viewport,
+        double nextRowLine,
+        double bandHeight)
     {
+        // 量不到视口、或者带子这一拍收着（页面那头先把这两档挡掉了）：没有左下角可压，钉也钉不住。
         if (viewport <= 0) return false;
 
-        // 那条线压着第一屏底或更靠下（线以下全被裁），并且视口还撑得住带子的设计形状（剧照上下裁切没超出默认档）。
-        return nextRowLine >= viewport && viewport >= bandHeight;
+        return placement switch
+        {
+            // 钉在轮播里：只要轮播在，就压着不放 —— 窗口矮到带子被压扁、剧照多裁一截也不松手（「固定」就是这个意思）。
+            HomeLibraryPlacement.OnCarousel => true,
+
+            // 钉在轮播下方：一次都不压上，跟窗口高矮没关系。
+            HomeLibraryPlacement.BelowCarousel => false,
+
+            // 默认档：那条线压着第一屏底或更靠下（线以下全被裁），并且视口还撑得住带子的设计形状（剧照上下裁切没超出默认档）。
+            _ => nextRowLine >= viewport && viewport >= bandHeight
+        };
     }
 
     /// <summary>

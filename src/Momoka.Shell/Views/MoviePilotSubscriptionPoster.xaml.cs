@@ -1,4 +1,5 @@
 using Momoka.Shell.ViewModels;
+using System.ComponentModel;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -12,6 +13,8 @@ public sealed partial class MoviePilotSubscriptionPoster : UserControl
         typeof(MoviePilotSubscriptionCard), typeof(MoviePilotSubscriptionPoster), new PropertyMetadata(null, OnCardChanged));
     private readonly HoverWatch _watch;
     private Storyboard? _motion;
+    private MoviePilotSubscriptionCard? _observedCard;
+    private MoviePilotSubscriptionCard? _requestedCard;
     private bool _live;
     private bool _hovered;
     private bool _focused;
@@ -25,8 +28,12 @@ public sealed partial class MoviePilotSubscriptionPoster : UserControl
         Root.AddHandler(PointerReleasedEvent, new PointerEventHandler(OnReleased), true);
         Root.AddHandler(PointerCanceledEvent, new PointerEventHandler(OnReleased), true);
         Root.AddHandler(PointerCaptureLostEvent, new PointerEventHandler(OnReleased), true);
-        Loaded += (_, _) => _live = true;
-        Unloaded += (_, _) => { _live = false; ResetMotion(); };
+        Loaded += (_, _) => { _live = true; ObserveCard(Card); RequestPoster(); };
+        Unloaded += (_, _) =>
+        {
+            if (XamlRoot is not null) return;
+            _live = false; _requestedCard = null; ObserveCard(null); ResetMotion();
+        };
     }
 
     public MoviePilotSubscriptionCard? Card
@@ -36,11 +43,38 @@ public sealed partial class MoviePilotSubscriptionPoster : UserControl
     }
     public event EventHandler? OpenRequested;
     public event EventHandler? MenuRequested;
+    public event EventHandler? PosterRequested;
     internal FrameworkElement MenuAnchor => SubscriptionMore.Visibility == Visibility.Visible ? SubscriptionMore : SubscriptionCover;
     internal double Zoom => PosterMotion.ScaleX;
     internal int PointerEntries { get; private set; }
-    private static void OnCardChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args) =>
-        ((MoviePilotSubscriptionPoster)sender).ResetMotion();
+    private static void OnCardChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        var poster = (MoviePilotSubscriptionPoster)sender;
+        poster.ResetMotion();
+        poster.ObserveCard(poster.Card);
+        poster.RequestPoster();
+    }
+
+    private void ObserveCard(MoviePilotSubscriptionCard? card)
+    {
+        if (ReferenceEquals(card, _observedCard)) return;
+        if (_observedCard is not null) _observedCard.PropertyChanged -= OnCardUpdated;
+        _observedCard = card;
+        if (card is not null) card.PropertyChanged += OnCardUpdated;
+    }
+
+    private void OnCardUpdated(object? sender, PropertyChangedEventArgs args)
+    {
+        // Update 的统一通知发生在新订阅快照赋值之后；清图和解码完成都不触发重试。
+        if (string.IsNullOrEmpty(args.PropertyName)) RequestPoster(refresh: true);
+    }
+
+    private void RequestPoster(bool refresh = false)
+    {
+        if (PosterRequested is null || Card is null || !refresh && ReferenceEquals(Card, _requestedCard)) return;
+        _requestedCard = Card;
+        PosterRequested.Invoke(this, EventArgs.Empty);
+    }
 
     private void OnOpen(object sender, RoutedEventArgs args) => OpenRequested?.Invoke(this, EventArgs.Empty);
     private void OnMore(object sender, RoutedEventArgs args) => MenuRequested?.Invoke(this, EventArgs.Empty);

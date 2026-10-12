@@ -610,6 +610,10 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         foreach (var section in Sections)
             section.IsVisible = string.Equals(section.Category, category, StringComparison.Ordinal);
+
+        // 主页那张版面表只在它显示着的时候重填。收着的时候 ListView 不重排，重填进来的那几排只建得出容器、
+        // 套不上模板 —— 用户回到这一页看到的是几个空盒子（见 RefreshHomeRows）。
+        if (string.Equals(category, FirstCardCategory, StringComparison.Ordinal)) RefreshHomeRows();
     }
 
     private AppSettings Settings => _settings!.Settings;
@@ -1134,18 +1138,16 @@ public sealed partial class SettingsViewModel : PageViewModel
         var plan = Emby.HomeLayout.Plan(ui.HomeRows, null);
 
         HomeRows = new SettingHomeLayoutRow(
-            "主页上放哪几排",
+            "媒体库顺序",
             "按住一行往上下拖、或者按右边那两颗箭头决定次序，取消勾选就不显示。媒体库那一排是进各媒体库的入口"
                 + "（点上面的卡片打开那个库），那几排装的是每个库最近添加的内容。",
-            plan.Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible)),
+            plan.Where(row => Emby.HomeLayout.IsAvailable(row.Key, _moviePilot?.Available == true))
+                .Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible)),
             rows =>
             {
-                ui.HomeRows = [.. rows.Select(row => new Configuration.HomeRowSetting
-                {
-                    Key = row.Key,
-                    Title = row.Title,
-                    Visible = row.Visible
-                })];
+                ui.HomeRows = Emby.HomeLayout.Save(Emby.HomeLayout.MergeEdits(
+                    Emby.HomeLayout.Plan(ui.HomeRows, null),
+                    rows.Select(row => new Emby.HomeRowPlan(row.Key, row.Title, row.Visible)).ToArray()));
 
                 Save();
                 ShellPrefs.Apply(ui);
@@ -1229,6 +1231,34 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>自检用：那张可拖拽的表这一次建出来的那一行。</summary>
     internal SettingHomeLayoutRow? HomeRows { get; private set; }
 
+    internal void RefreshHomeRows()
+    {
+        if (_settings is null || HomeRows is null) return;
+
+        // 只在这一页显示着的时候重填。MoviePilot 那两排是连接状态落定之后才进表的，那一刻用户可能正开在
+        // 别的分类上：卡收着的时候 ListView 不重排，重填进来的那两排只建得出容器、套不上模板，等用户切回
+        // 主页看到的就是两个空盒子（2026-10-12 实测：7 个容器里只有 5 个带模板）。收着就先不动，ShowCategory
+        // 把这一页摆到前面时会再喊一次。
+        if (!string.Equals(SelectedCategory, FirstCardCategory, StringComparison.Ordinal)) return;
+
+        var wanted = Emby.HomeLayout.Plan(Settings.Ui.HomeRows, null)
+            .Where(row => Emby.HomeLayout.IsAvailable(row.Key, _moviePilot?.Available == true))
+            .Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible))
+            .ToList();
+
+        // 名单没变就别重填。重填是一记 Reset，会把这一页上正看着的容器整批拆了重建 —— 而「切回主页」这一次
+        // 调用绝大多数时候名单就是一个没变（见 ShowCategory），白拆一遍只会把切分类那点动效搅乱。
+        if (HomeRows.Rows.Count == wanted.Count
+            && HomeRows.Rows.Zip(wanted).All(pair => pair.First.Key == pair.Second.Key
+                && pair.First.Title == pair.Second.Title
+                && pair.First.Visible == pair.Second.Visible))
+        {
+            return;
+        }
+
+        HomeRows.Seed(wanted);
+    }
+
     /// <summary>
     /// 自检用：「图片缓存上限（MB）」那一行。
     /// <para>
@@ -1283,12 +1313,13 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         if (HomeRows is not { } row) return null;
 
-        var saved = Settings.Ui.HomeRows;
+        var saved = Emby.HomeLayout.Plan(Settings.Ui.HomeRows, null)
+            .Where(entry => Emby.HomeLayout.IsAvailable(entry.Key, _moviePilot?.Available == true)).ToArray();
         var keys = row.Rows.Select(choice => choice.Key).ToList();
-        var ok = keys.Count == saved.Count
+        var ok = keys.Count == saved.Length
             && saved.Select(entry => entry.Key).SequenceEqual(keys, StringComparer.Ordinal);
 
-        return (ok, $"表里 {keys.Count} 排、存档 {saved.Count} 排"
+        return (ok, $"表里 {keys.Count} 排、当前可用 {saved.Length} 排"
             + $"：{(keys.Count == 0 ? "无" : string.Join('、', row.Rows.Select(choice =>
                 $"{choice.Title}{(choice.Visible ? "✓" : "✗")}")))}");
     }
@@ -1311,13 +1342,37 @@ public sealed partial class SettingsViewModel : PageViewModel
                 + "只是下次看到那些封面时要重新下载一遍。",
             after: () => ShellPrefs.Apply(ui));
 
-        return new SettingSection("界面", "界面", "配色主题、UI 动画、隐藏功能下方说明、媒体库分页和图片缓存上限。",
+        return new SettingSection("界面", "界面", "配色主题、UI 动画、侧边栏模式、首页媒体库位置、隐藏功能下方说明、媒体库分页和图片缓存上限。",
         [
             Themes,
 
             Toggle("UI 动画", "控制页面切换、卡片悬停等界面动效，修改后立即生效；开启时仍遵循 Windows 动画设置",
                 () => ui.AnimationsEnabled,
                 value => ui.AnimationsEnabled = value,
+                after: () => ShellPrefs.Apply(ui)),
+
+            Toggle("侧边栏模式", "在主窗口左侧显示主页、搜索、收藏和媒体库导航；默认关闭，修改后立即生效",
+                () => ui.SidebarMode,
+                value => ui.SidebarMode = value,
+                after: () => ShellPrefs.ApplySidebar(ui)),
+
+            // 「首页媒体库位置」（用户令 2026-10-12）。摆在界面卡上而不是主页卡上：主页那张卡管的是「放哪几排、
+            // 什么次序、轮播站什么」，这一行管的是「第一屏那块地方长什么样」，是界面的事。三档的判定在 Core
+            // （<see cref="Emby.HomeFold.LibraryOnBanner"/>），主页那一头只管量几何和搬那一排。
+            // 改完当场喊一声（ShellPrefs）：主页在另一个窗口里，它照这一档重新摆一次，不等回到主页、不用重启。
+            Pick("首页媒体库位置",
+                "媒体库那一排（进各媒体库的入口）摆在主页第一屏的哪儿。「随窗口高度变换」是装机默认：窗口矮到"
+                    + "快看不见下面那几排时，它自己压到轮播封面的左下角，窗口拉高又落回轮播下面；另两档钉死，"
+                    + "不看窗口高矮。轮播收起来的时候（关掉大图，或者一张幻灯片都没有）没有轮播可依，"
+                    + "「固定在轮播图中」按「在下方」显示。",
+                [
+                    ("随窗口高度变换", Emby.HomeLibraryPlacement.Auto),
+                    ("固定在轮播图中", Emby.HomeLibraryPlacement.OnCarousel),
+                    ("固定在轮播图下方", Emby.HomeLibraryPlacement.BelowCarousel)
+                ],
+                () => ui.HomeLibraryPlacement,
+                value => ui.HomeLibraryPlacement = value,
+                EqualityComparer<Emby.HomeLibraryPlacement>.Default,
                 after: () => ShellPrefs.Apply(ui)),
 
             // 「锁定窗口比例大小」原来就在这里，2026-09-05 按用户的话整条删掉了（「删除设置中锁定比例的功能」）

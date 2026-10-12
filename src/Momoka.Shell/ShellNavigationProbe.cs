@@ -39,6 +39,10 @@ internal sealed partial class ShellNavigationProbe
             _window = new HostWindow { Content = _root, FreeSizing = true };
             _window.Show(false, _options.Screen, new WindowBounds(80, 80, 1420, 980));
             await LayoutAsync(_root);
+            await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
+            await CaseAsync("剧页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Series), 30);
+            await CaseAsync("季页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Season), 30);
+            await CaseAsync("电影页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Movie), 30);
             await CaseAsync("切回 Emby 恢复查询代次", ResumeQueryAsync);
             await CaseAsync("切季与整页刷新交错不清空", SeasonRefreshRaceAsync);
             await CaseAsync("旧导航恢复不补新搜索", NavigationRestoreRaceAsync);
@@ -51,6 +55,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("遗漏集来源菜单、AniBT 分集查询与下载选项", AniBtEpisodeSearchAsync);
             await CaseAsync("AniBT 逐文件识别、候选绑定和取消刮削", AniBtScrapeAsync);
             await CaseAsync("MoviePilot 连接控制入口、断线回退与恢复", MoviePilotAvailabilityAsync);
+            await CaseAsync("主页媒体库与订阅混排、显隐及偏好恢复", HomeOrderAsync, 45);
             await CaseAsync("MoviePilot 关闭后清理历史与操作弹窗", MoviePilotUnavailableNavigationAsync);
             await CaseAsync("MoviePilot 关闭后收起菜单且保留普通菜单", MoviePilotMenusAsync);
             await CaseAsync("MoviePilot 搜索站点多选、清空、默认及离页取消", MoviePilotSearchSitesAsync);
@@ -80,10 +85,12 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("删除与分页、查询切换交错", DeletePagingRaceAsync);
             await CaseAsync("整剧删除清除后代并保留新查询", DeleteContainerAsync);
             await CaseAsync("详情封面删除保持其他货架与播放目标", DeleteDetailCardAsync);
-            await CaseAsync("播放返回主页不补播入场", HomePlaybackReturnAsync);
+            await CaseAsync("播放返回主页不补播入场", HomePlaybackReturnAsync, 30);
             // 2026-10-11 起该用例多四帧分区截图（播放行为分类的资源筛选、截图卡滚进视口各两帧），12 秒的
             // 默认限时不够了 —— 与视频基础输出用例同款理由（多轮控件切换与截图设 45 秒）。
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
+            // 设置 → 界面新增一行「首页媒体库位置」，宽窄两帧截图 + 三档写回。
+            await CaseAsync("界面卡上的首页媒体库位置三档", SettingsHomeLibraryPlacementAsync, 30);
             // 每档包含多轮真实控件切换与截图，单独计时，原有用例仍保持 12 秒超时。
             await CaseAsync("视频基础输出显隐与偏好恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100), 45);
             await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45);
@@ -100,8 +107,15 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("媒体库高级设置和部分失败重试", ServerLibraryAdvancedAsync);
             await CaseAsync("媒体库离页、切服与管理权限", ServerLibraryIdentityAsync);
             await CaseAsync("MoviePilot 订阅分区、封面与管理操作", MoviePilotSubscriptionsAsync);
-            await CaseAsync("MoviePilot 订阅详情、入库缺集与编辑", MoviePilotSubscriptionDetailAsync);
+            // 这一条从 2026-10-12 起多两帧「下方三段」的截图与一段等待（演职员／相关推荐／相似作品那三排卡片
+            // 的图是异步抓的），12 秒的默认限时不够 —— 同视频基础输出用例的理由。
+            await CaseAsync("MoviePilot 订阅详情、入库缺集与编辑", MoviePilotSubscriptionDetailAsync, 30);
+            await CaseAsync("MoviePilot 电影订阅详情不再有入库面板与空季卡", MoviePilotMovieSubscriptionDetailAsync);
             await CaseAsync("MoviePilot 订阅切服、旧确认与离页取消", MoviePilotSubscriptionIdentityAsync);
+            await CaseAsync("MoviePilot 海报刷新重试与原地更新", MoviePilotSubscriptionPosterRefreshAsync);
+            await CaseAsync("MoviePilot 订阅同号季隔离、播放恢复与最窄布局", MoviePilotSubscriptionFilesRecoveryAsync, 25);
+            await CaseAsync("MoviePilot 取消后重新订阅同步新编号", MoviePilotSubscriptionRecreateAsync, 25);
+            await CaseAsync("MoviePilot 详情操作待核对与恢复", MoviePilotSubscriptionReviewAsync);
             await CaseAsync("MoviePilot 媒体详情、剧集组浏览和真实资源入口", MoviePilotMediaBrowsingAsync);
             await CaseAsync("MoviePilot 按季订阅、三种模式与取消草稿", MoviePilotSeasonSelectionAsync);
             await CaseAsync("MoviePilot 剧集组与入库状态迟到隔离", MoviePilotMediaReadRacesAsync);
@@ -170,6 +184,13 @@ internal sealed partial class ShellNavigationProbe
             return element.XamlRoot is not null && element.ActualWidth > 0 && element.ActualHeight > 0;
         });
         await Task.Delay(150);
+    }
+
+    private void ResizeProbeClient(int width, int height)
+    {
+        var scale = _root.XamlRoot.RasterizationScale;
+        var window = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window!.Handle));
+        window.ResizeClient(new Windows.Graphics.SizeInt32((int)Math.Round(width * scale), (int)Math.Round(height * scale)));
     }
 
     private async Task SaveProbeScreenAsync(string name)

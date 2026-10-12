@@ -48,11 +48,12 @@ public sealed partial class MoviePilotSubscriptionCard : ObservableObject
         Subscription.Media.Season is { } season ? $"第 {season} 季" : ""
     }.Where(part => !string.IsNullOrWhiteSpace(part)));
 
-    /// <summary>详情页右栏「订阅信息」与左栏「订阅规则」两串事实，投影在 Core（见 <see cref="MoviePilotSubscriptionFacts"/>）。</summary>
+    /// <summary>
+    /// 详情页资料卡里「订阅信息」那一串事实，投影在 Core（见 <see cref="MoviePilotSubscriptionFacts"/>）。
+    /// 规则那一串（<c>MoviePilotSubscriptionFacts.Rules</c>）不再进这个视图模型：页面上那块「订阅规则」
+    /// 卡已按用户令（2026-10-12）删掉，规则在「编辑订阅」里看和改。
+    /// </summary>
     public IReadOnlyList<MoviePilotSubscriptionFact> InfoFacts => MoviePilotSubscriptionFacts.Info(Subscription);
-    public IReadOnlyList<MoviePilotSubscriptionFact> RuleFacts => MoviePilotSubscriptionFacts.Rules(Subscription);
-    public bool HasRules => RuleFacts.Count > 0;
-    public string RulesNote => HasRules ? "「编辑订阅」可修改以上规则；未列出的项沿用 MoviePilot 当前配置。" : "未设置自定义搜索与过滤规则，沿用 MoviePilot 当前配置。";
 
     /// <summary>评分是 0～10 的读数，五颗星按 10 分制的一半折算。</summary>
     public bool HasRating => Subscription.Vote is > 0;
@@ -149,9 +150,10 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public double RowHeight => CardSize.HeightFor(CardSize.PosterWidth, false) + CardSize.Chrome;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanWriteSelected))]
     public partial MoviePilotSubscriptionCard? Selected { get; set; }
     public string DetailTitle => Selected?.Title ?? "订阅媒体详情";
-    public string DetailStatus => Selected?.Status ?? "";
+    public string DetailStatus => Deleted ? "已取消订阅" : Selected?.Status ?? "";
     public string DetailMeta => Selected?.Meta ?? "";
     public string DetailOverview => Selected?.Overview ?? "";
     public BitmapImage? DetailPoster => Selected?.Poster;
@@ -159,8 +161,6 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public Visibility DetailPosterEmptyVisibility => Show(Selected?.Poster is null);
     public Visibility DetailBackdropVisibility => Show(Selected?.Backdrop is not null);
     public IReadOnlyList<MoviePilotSubscriptionFact> DetailInfoFacts => Selected?.InfoFacts ?? [];
-    public IReadOnlyList<MoviePilotSubscriptionFact> DetailRuleFacts => Selected?.RuleFacts ?? [];
-    public string DetailRulesNote => Selected?.RulesNote ?? "";
     public string DetailRatingText => Selected?.RatingText ?? "";
     public IReadOnlyList<string> DetailStars => Selected?.Stars ?? [];
     public bool DetailPaused => Selected?.Subscription.Paused == true;
@@ -187,15 +187,18 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         OnPropertyChanged(nameof(DetailMeta));
         OnPropertyChanged(nameof(DetailOverview)); OnPropertyChanged(nameof(DetailPoster)); OnPropertyChanged(nameof(DetailBackdrop));
         OnPropertyChanged(nameof(DetailPosterEmptyVisibility)); OnPropertyChanged(nameof(DetailBackdropVisibility));
-        OnPropertyChanged(nameof(DetailInfoFacts)); OnPropertyChanged(nameof(DetailRuleFacts)); OnPropertyChanged(nameof(DetailRulesNote));
+        OnPropertyChanged(nameof(DetailInfoFacts));
         OnPropertyChanged(nameof(DetailRatingText)); OnPropertyChanged(nameof(DetailStars));
         OnPropertyChanged(nameof(DetailPaused)); OnPropertyChanged(nameof(DetailPauseLabel));
     }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanManage))]
+    [NotifyPropertyChangedFor(nameof(CanWriteSelected))]
     public partial bool Working { get; set; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanManage))]
+    [NotifyPropertyChangedFor(nameof(CanWriteSelected))]
+    [NotifyPropertyChangedFor(nameof(DetailStatus))]
     public partial bool Deleted { get; set; }
     [ObservableProperty]
     public partial string FileSummary { get; set; } = "正在读取文件统计…";
@@ -204,8 +207,9 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     [ObservableProperty]
     public partial int FilterIndex { get; set; }
     public bool CanManage => Live && _service?.Available == true && !Working && !Busy && !Deleted;
+    public bool CanWriteSelected => CanManage && Selected is { } selected && !NeedsReview(selected);
     partial void OnFilterIndexChanged(int value) => ApplyFilter();
-    protected override void BusyChanged() { OnPropertyChanged(nameof(CanManage)); RefreshCommands(); }
+    protected override void BusyChanged() { OnPropertyChanged(nameof(CanManage)); OnPropertyChanged(nameof(CanWriteSelected)); RefreshCommands(); }
     partial void OnWorkingChanged(bool value) => RefreshCommands();
     partial void OnDeletedChanged(bool value) => RefreshCommands();
 
@@ -217,7 +221,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         PlayFirstCommand.NotifyCanExecuteChanged();
     }
 
-    public Visibility PlayFirstVisibility => Show(_episodes.Any(row => row.CanPlay));
+    public Visibility PlayFirstVisibility => Show(_episodes.Any(row => row.HasPlayableTarget));
     private bool CanPlayFirst => _episodes.Any(row => row.CanPlay);
     [RelayCommand(CanExecute = nameof(CanPlayFirst))]
     private Task PlayFirstAsync() => _episodes.FirstOrDefault(row => row.CanPlay) is { } row ? PlayEpisodeAsync(row) : Task.CompletedTask;
@@ -231,7 +235,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         };
 
     internal void AttachPlayback(EmbySessionScope? scope, Func<MoviePilotPlaybackTarget, Task>? play)
-    { _playbackScope = scope; _play = play; }
+    { _playbackScope = scope; _play = play; RefreshCommands(); }
 
     /// <summary>
     /// 「搜索这一集的资源」的出口。外壳递进来（打开 MoviePilot 资源窗口是外壳的事，同「搜索其他版本」），
@@ -288,7 +292,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
                 if (!IsCurrent(token) || !Live) return;
                 _episodes = files.Episodes.Select(episode => new MoviePilotSubscriptionEpisodeRow(
                     episode with { AirDate = airDates.TryGetValue(episode.Number, out var aired) ? aired : null },
-                    () => CanManage && _playbackScope?.IsCurrent == true && _play is not null, PlayEpisodeAsync,
+                    () => Live && _service.Available && !Deleted && _playbackScope?.IsCurrent == true && _play is not null,
+                    () => CanManage, PlayEpisodeAsync,
                     () => CanManage && _search is not null, SearchEpisode)).ToArray();
                 FileSummary = current.IsSeries ? files.Summary
                     : files.Episodes.Count == 0 ? files.Summary : files.LibraryCount > 0 ? "电影已入库" : "电影尚未入库";
@@ -329,18 +334,30 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         }
         OnPropertyChanged(nameof(Visible));
         OnPropertyChanged(nameof(CanManage));
+        OnPropertyChanged(nameof(CanWriteSelected));
         RefreshCommands();
     }
 
     internal async Task RefreshAfterMediaChangesAsync()
     {
-        if (!Live || _service is null || _lifetime is null || Selected is not { } selected) return;
-        var token = _lifetime.Token;
-        var subscriptions = await _service.SubscriptionsAsync(token);
-        if (!Live || token.IsCancellationRequested) return;
-        Deleted = subscriptions.All(item => item.Id != selected.Subscription.Id);
-        if (!Deleted) await ReloadAsync();
-        else { FileSummary = "这条订阅已取消，已入库文件保留。"; }
+        if (Working || !Live || _service is null || _lifetime is null || Selected is not { } selected) return;
+        var load = BeginLoad();
+        using var pending = CancellationTokenSource.CreateLinkedTokenSource(load, _lifetime.Token);
+        try
+        {
+            var subscriptions = await _service.SubscriptionsAsync(pending.Token);
+            if (!Live || !IsCurrent(load) || !ReferenceEquals(Selected, selected)) return;
+            var original = selected.Subscription;
+            var matches = subscriptions.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, original.Media)
+                && item.Media.Season == original.Media.Season && item.EpisodeGroup == original.EpisodeGroup).ToArray();
+            var current = matches.FirstOrDefault(item => item.Id == original.Id) ?? (matches.Length == 1 ? matches[0] : null);
+            Deleted = current is null;
+            if (current is not null) selected.Update(current);
+            else FileSummary = "这条订阅已取消，已入库文件保留。";
+        }
+        catch (OperationCanceledException) { return; }
+        finally { EndLoad(load); }
+        if (Live && IsCurrent(load) && !Deleted) await ReloadAsync();
     }
 
     private static void Apply(ObservableCollection<MoviePilotSubscriptionCard> cards, IReadOnlyList<MoviePilotSubscription> items)
@@ -378,9 +395,9 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         finally { if (!token.IsCancellationRequested) Working = false; }
     }
 
-    public async Task ManageAsync(MoviePilotSubscriptionCard card, MoviePilotSubscriptionAction action)
+    public async Task<bool> ManageAsync(MoviePilotSubscriptionCard card, MoviePilotSubscriptionAction action)
     {
-        if (!CanManage || !Owns(card) || _service is null || _lifetime is null) return;
+        if (!CanManage || !Owns(card) || _service is null || _lifetime is null) return false;
         var subscription = card.Subscription;
         var token = _lifetime.Token;
         var verb = action switch
@@ -403,10 +420,10 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         var changed = false;
         try
         {
-            if (!await ConfirmAsync(verb, subscription.Media.Confirmation + "\n\n" + note, verb)) return;
-            if (token.IsCancellationRequested || !Owns(card)) return;
+            if (!await ConfirmAsync(verb, subscription.Media.Confirmation + "\n\n" + note, verb)) return false;
+            if (token.IsCancellationRequested || !Owns(card)) return false;
             await _service.ManageSubscriptionAsync(subscription, action, token);
-            if (token.IsCancellationRequested || !Owns(card)) return;
+            if (token.IsCancellationRequested || !Owns(card)) return false;
             changed = true;
             if (action == MoviePilotSubscriptionAction.Delete)
             {
@@ -420,6 +437,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         finally { if (!token.IsCancellationRequested) Working = false; }
         if (changed && !Deleted && Live && action != MoviePilotSubscriptionAction.Search) await ReloadAsync();
         NotifyRows();
+        return changed;
     }
 
     internal async Task EditAsync(MoviePilotSubscriptionCard card, Func<MoviePilotSubscription, Task<MoviePilotSubscriptionEdit?>> edit)
@@ -543,5 +561,6 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         ClearCards();
         base.Cancel();
         OnPropertyChanged(nameof(CanManage));
+        OnPropertyChanged(nameof(CanWriteSelected));
     }
 }

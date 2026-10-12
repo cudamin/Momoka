@@ -452,6 +452,11 @@ public static class SettingsMigration
         if (!Enum.IsDefined(settings.Ui.CarouselSource)) settings.Ui.CarouselSource = Emby.CarouselSource.Recent;
         if (!Enum.IsDefined(settings.Ui.CarouselMedia)) settings.Ui.CarouselMedia = Emby.CarouselMediaType.All;
 
+        // 首页媒体库位置（设置 → 界面，2026-10-12）。同样是存整数的枚举：认不出来的值拨回 Auto（装机默认，也是
+        // 缺键的旧设置文件读出来的那一个），留着它屏上按哪一档走谁也说不清。
+        if (!Enum.IsDefined(settings.Ui.HomeLibraryPlacement))
+            settings.Ui.HomeLibraryPlacement = Emby.HomeLibraryPlacement.Auto;
+
         // 主题 id 不在目录里就写回默认那套，而不是留着一个认不出来的字符串：留着的话每次启动都要再判一次，
         // 而且设置里那个下拉框会显示成空的。这里换掉，用户下次保存就落盘成一个真的 id。
         settings.Ui.Theme = Theming.UiThemes.Resolve(settings.Ui.Theme).Id;
@@ -528,8 +533,8 @@ public static class SettingsMigration
         settings.Video.OutputLevels = Choice(MpvOutputOptions.OutputLevels, settings.Video.OutputLevels);
         settings.Video.VideoSync = Choice(MpvOutputOptions.VideoSync, settings.Video.VideoSync);
 
-        // 插值算法没有「不设置」那一档 —— 插值开着时 Build 每次都点名它，所以认不出的值落回第一档（装机那一
-        // 档），而不是空串：空串会让 mpv 留在自己的 mitchell 上，而设置页写着别的。
+        // 插值算法没有「不设置」档；未知值及精简时移除的 Catmull-Rom / Spline36 / Lanczos
+        // 统一回到首项 oversample，保证旧设置、导入和播放与当前下拉选择一致。
         settings.Video.Tscale = Kernel(settings.Video.Tscale);
 
         // 插值关闭阈值。0 是旧文件缺键（这个键 2026-09-10 才有），读成装机默认 120 —— 缺键升级的人行为一个数
@@ -762,9 +767,8 @@ public static class SettingsMigration
     }
 
     /// <summary>
-    /// 插值算法. No 「不设置」 entry — the client names the kernel on every interpolation launch — so an unknown
-    /// value lands on the first entry (the shipped one) rather than on an empty string that would leave mpv on
-    /// mitchell while the settings page promised something else. Same shape as <see cref="Preset"/>.
+    /// 插值算法. Unknown or removed values map to the first entry (the shipped default), never an empty
+    /// selection. Recognized values use the catalogue's canonical spelling. Same shape as <see cref="Preset"/>.
     /// </summary>
     private static string Kernel(string? value)
     {
