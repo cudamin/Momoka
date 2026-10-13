@@ -12,10 +12,10 @@ using Windows.System;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// The sign-in card. All of it is <see cref="SignInViewModel"/>; what is left here is the four things
-/// only an element can do.
+/// The sign-in form. State belongs to <see cref="SignInViewModel"/>; the remaining responsibilities
+/// are element-specific presentation, focus and input.
 /// <para>
-/// Those four: put the caret in a box, because focus belongs to an element and the view model can only
+/// Put the caret in a box, because focus belongs to an element and the view model can only
 /// name which one — see <see cref="SignInFocus"/>; decide what Enter means in each of the two boxes,
 /// which is a keystroke and never reaches a view model; fill the 已保存的服务器 flyout, because a
 /// <c>MenuFlyout</c> is not an items control and has no <c>ItemsSource</c> to bind; and detach the
@@ -113,6 +113,11 @@ public sealed partial class SignInPage : UserControl
     /// <inheritdoc cref="SignInViewModel.ShowRestoring"/>
     internal void ShowRestoring(string serverName) => ViewModel.ShowRestoring(serverName);
 
+    // ScrollView does not forward Control.VerticalContentAlignment to its presenter. Give the form
+    // at least one viewport of height: short forms centre, while long forms retain natural scrolling.
+    private void OnFormViewportSizeChanged(object sender, SizeChangedEventArgs e) =>
+        SignInCard.MinHeight = e.NewSize.Height;
+
     /// <summary>
     /// Puts the caret where the view model asked. Named for the action rather than called <c>Focus</c>,
     /// which <see cref="Control"/> already has. Silent before the tree is live: a Focus call on an
@@ -188,6 +193,7 @@ public sealed partial class SignInPage : UserControl
     /// </summary>
     private static void DetachClearButton(TextBox box)
     {
+        box.ApplyTemplate();
         if (FindNamedDescendant(box, "DeleteButton") is not { } button) return;
         (button.Parent as Grid)?.Children.Remove(button);
     }
@@ -200,6 +206,9 @@ public sealed partial class SignInPage : UserControl
     /// </summary>
     private static void CentrePasswordContent(PasswordBox box)
     {
+        // The credential panel starts collapsed, so Loaded can precede creation of template parts.
+        // Build them before aligning the empty placeholder, not only after the first password focus.
+        box.ApplyTemplate();
         if (FindNamedDescendant(box, "ContentElement") is { } host) host.HorizontalAlignment = HorizontalAlignment.Center;
         if (FindNamedDescendant(box, "PlaceholderTextContentPresenter") is TextBlock placeholder) placeholder.TextAlignment = TextAlignment.Center;
     }

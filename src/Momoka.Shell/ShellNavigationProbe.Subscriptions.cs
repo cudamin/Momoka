@@ -154,8 +154,9 @@ internal sealed partial class ShellNavigationProbe
             Require(!Descendants(page).OfType<TextBlock>().Any(text => text.Text == "入库与缺集"), "页面上还立着独立的「入库与缺集」面板");
             Require(Descendants(host).OfType<ItemsRepeater>().Any(repeater => repeater.Name == "MediaEpisodeList" && repeater.Visibility == Visibility.Collapsed),
                 "订阅季的通用集列表没有让位");
-            Require(Descendants(host).OfType<TextBlock>().Any(text => text.Text.Contains("已入库 1 / 4 项", StringComparison.Ordinal)),
-                "折叠栏里没有文件统计摘要");
+            Require(Descendants((Grid)host.Header).OfType<TextBlock>().Any(text => text.Text == vm.FileSummary)
+                && Descendants(host).OfType<TextBlock>().Count(text => text.Text.Contains("已入库 1 / 4 项", StringComparison.Ordinal)) == 1,
+                "入库摘要没有统一放在季标题，或展开后重复显示");
             foreach (var width in new[] { 1240, 760 })
             {
                 ResizeInspect(width, 1000);
@@ -173,6 +174,7 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 host = Descendants(seasonsView).OfType<Expander>().First(expander => expander.Name == "ExpandMediaSeason" && expander.IsExpanded);
                 await LayoutAsync(page);
+                await SaveProbeScreenAsync($"mp-subscription-season-{width}-screen.png");
                 await UntilAsync(() => vm.Episodes[0].Artwork is not null);
                 var picture = Descendants(page).OfType<Border>().First(border => border.Name == "EpisodeArtwork");
                 var play = Descendants(page).OfType<Button>().First(button => button.Name == "PlaySubscriptionEpisode" && button.Visibility == Visibility.Visible);

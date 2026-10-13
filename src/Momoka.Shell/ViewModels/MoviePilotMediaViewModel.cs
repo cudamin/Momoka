@@ -34,7 +34,9 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     public string HeartGlyph => Subscription is null ? "\uEB51" : "\uEB52";
     public ObservableCollection<MoviePilotMediaEpisodeRow> Episodes { get; } = [];
     [ObservableProperty] public partial BitmapImage? Poster { get; set; }
-    [ObservableProperty] public partial string Status { get; set; } = "入库状态未知";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HeaderStatus))]
+    public partial string Status { get; set; } = "入库状态未知";
 
     /// <summary>
     /// 订阅季的折叠栏直接装这条订阅的文件统计（用户令 2026-10-12）。订阅详情的视图模型由
@@ -46,14 +48,19 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     [NotifyPropertyChangedFor(nameof(FilesHostVisibility))]
     [NotifyPropertyChangedFor(nameof(MediaEpisodesVisibility))]
     [NotifyPropertyChangedFor(nameof(MediaEpisodeNoticeVisibility))]
+    [NotifyPropertyChangedFor(nameof(HeaderStatus))]
     public partial MoviePilotSubscriptionsViewModel? Files { get; set; }
-    [ObservableProperty] public partial string FilesSummary { get; set; } = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HeaderStatus))]
+    public partial string FilesSummary { get; set; } = "";
     [ObservableProperty] public partial string FilesPlaybackStatus { get; set; } = "";
     [ObservableProperty] public partial int FilesFilterIndex { get; set; }
     [ObservableProperty] public partial ObservableCollection<MoviePilotSubscriptionEpisodeRow>? FilesEpisodes { get; set; }
     public Visibility FilesHostVisibility => Files is not null ? Visibility.Visible : Visibility.Collapsed;
     public Visibility MediaEpisodesVisibility => Files is null ? Visibility.Visible : Visibility.Collapsed;
     public Visibility MediaEpisodeNoticeVisibility => Files is null && EpisodeNotice.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    // 订阅按自己的目标范围统计；只在季标题显示一次，加载和失败提示也沿用同一来源。
+    public string HeaderStatus => Files is null ? Status : FilesSummary;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EpisodeNoticeVisibility))]

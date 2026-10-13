@@ -99,6 +99,7 @@ public sealed partial class SignInViewModel : PageViewModel
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AddressVisibility))]
     [NotifyPropertyChangedFor(nameof(CredentialVisibility))]
+    [NotifyPropertyChangedFor(nameof(FormTitle))]
     public partial SignInStep Step { get; set; }
 
     /// <summary>The line under the app's name. Says what is happening whenever something is.</summary>
@@ -150,6 +151,13 @@ public sealed partial class SignInViewModel : PageViewModel
     public Visibility AddressVisibility => Show(Step == SignInStep.Address);
 
     public Visibility CredentialVisibility => Show(Step == SignInStep.Credential);
+
+    public string FormTitle => Step switch
+    {
+        SignInStep.Address => "连接服务器",
+        SignInStep.Credential => "登录账号",
+        _ => "欢迎回来"
+    };
 
     public Visibility DiscoveredVisibility => Show(ShowDiscovered && Discovered.Count > 0);
 

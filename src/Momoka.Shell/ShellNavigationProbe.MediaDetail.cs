@@ -138,7 +138,7 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             ResizeInspect(1240, 1000);
-            await UntilAsync(() => page.MediaViewModel.IsReady && page.MediaViewModel.Backdrop is not null);
+            await UntilAsync(() => page.ViewModel.IsReady && page.MediaViewModel.IsReady && page.MediaViewModel.Backdrop is not null);
             await LayoutAsync(page);
             var backdrop = Get<Border>(page, "DetailBackdropBand");
             Require(double.IsNaN(backdrop.Height) && backdrop.CornerRadius.TopLeft == 0 && backdrop.BorderThickness.Left == 0
@@ -149,6 +149,41 @@ internal sealed partial class ShellNavigationProbe
             {
                 ThemeHost.Apply(theme.Id); await LayoutAsync(page);
                 await SaveUsersFrameAsync(page, $"mp-media-background-{theme.Id}.png");
+            }
+            var seasons = Get<MoviePilotMediaSeasonsView>(page, "MediaSeasons");
+            seasons.StartBringIntoView();
+            await LayoutAsync(page);
+            var season = page.MediaViewModel.Seasons.Single(row => row.Files is not null);
+            var expander = Descendants(seasons).OfType<Expander>().Single(control => control.IsExpanded);
+            var header = Descendants(expander).OfType<Microsoft.UI.Xaml.Controls.Primitives.ToggleButton>()
+                .Single(control => control.Name == "ExpanderHeader");
+            var summary = Descendants((Grid)expander.Header).OfType<TextBlock>().Single(text => text.Text == page.ViewModel.FileSummary);
+            var originalSummary = page.ViewModel.FileSummary;
+            foreach (var status in new[] { "正在读取文件统计…", "文件统计读取失败", originalSummary })
+            {
+                page.ViewModel.FileSummary = status;
+                Require(summary.Text == status, "季标题没有同步统计的加载、失败或恢复状态");
+            }
+            foreach (var theme in Momoka.Theming.UiThemes.All)
+            {
+                ThemeHost.Apply(theme.Id);
+                foreach (var expanded in new[] { false, true })
+                {
+                    // 操作真实头部控件，验证模板到视图模型的双向绑定；不移动用户的鼠标。
+                    header.IsChecked = expanded;
+                    await LayoutAsync(page);
+                    Require(expander.IsExpanded == expanded && season.Expanded == expanded, "季折叠状态未同步");
+                    Require(summary.Text == originalSummary, "折叠切换丢失了入库摘要");
+                    Require(header.Background is Microsoft.UI.Xaml.Media.SolidColorBrush headerBrush
+                        && headerBrush.Color == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
+                        && expander.Background is Microsoft.UI.Xaml.Media.SolidColorBrush contentBrush
+                        && contentBrush.Color == headerBrush.Color, "季标题与展开区域没有跟随当前主题");
+                    var scroll = Get<ScrollViewer>(page, "DetailScroll");
+                    var offset = seasons.TransformToVisual((UIElement)scroll.Content).TransformPoint(default).Y;
+                    scroll.ChangeView(null, offset - 16, null, true);
+                    await LayoutAsync(page);
+                    await SaveProbeScreenAsync($"mp-season-{theme.Id}-{(expanded ? "expanded" : "collapsed")}-screen.png");
+                }
             }
             Get<ScrollViewer>(page, "DetailScroll").ChangeView(null, 300, null, true);
             await LayoutAsync(page);

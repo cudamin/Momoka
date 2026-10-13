@@ -519,22 +519,20 @@ internal sealed partial class ShellNavigationProbe
             page.SelectedCategory = "视频输出";
             await SettleAsync();
             AssertGraphicsApi(page, fixture);
-            AssertRow("插值算法", true);
+            AssertInterpolation("bicubic");
             AssertRow(threshold, true);
             AssertRow("抖动目标位深", true);
             AssertRow("去色带强度", true);
 
-            var interpolation = Rows().OfType<SettingChoiceRow>().Single(row => row.Label == "插值算法");
-            var interpolationCombo = Descendants(page).OfType<ComboBox>()
-                .Single(control => AutomationProperties.GetName(control) == "插值算法");
-            Require(interpolation.Choices.Count == 3 && interpolationCombo.Items.Count == 3,
-                "插值算法必须只显示过采样、Mitchell、双三次三项");
             foreach (var kernel in new[] { "oversample", "mitchell", "bicubic" })
             {
-                await PickAsync("插值算法", MpvOutputOptions.InterpolationKernels, kernel);
-                Require(video.Tscale == kernel && ReferenceEquals(interpolationCombo.SelectedItem, interpolation.Selected),
-                    "插值算法选择没有保存或控件没有显示当前值");
+                await PickAsync("插值", MpvOutputOptions.InterpolationKernels, kernel);
+                AssertInterpolation(kernel);
+                Require(video.Interpolation && video.Tscale == kernel, "插值算法选择没有保存");
             }
+            // 选择后重建基础卡，截图和断言必须重新取得当前控件。
+            var interpolationCombo = Descendants(page).OfType<ComboBox>()
+                .Single(control => AutomationProperties.GetName(control) == "插值");
             var topMost = _window!.TopMost;
             try
             {
@@ -544,7 +542,7 @@ internal sealed partial class ShellNavigationProbe
                 await SettleAsync();
                 interpolationCombo.IsDropDownOpen = true;
                 await SettleAsync();
-                Require(interpolationCombo.IsDropDownOpen, "插值算法下拉没有展开");
+                Require(interpolationCombo.IsDropDownOpen, "插值下拉没有展开");
                 await CompositionPlaybackProbe.SaveScreenAsync(_window,
                     Path.Combine(_options.Paths.LogDirectory, $"settings-video-interpolation-{width}-screen.png"));
             }
@@ -555,29 +553,36 @@ internal sealed partial class ShellNavigationProbe
             }
 
             await PickAsync("视频同步", MpvOutputOptions.VideoSync, "audio");
-            AssertRow("启用插值", false);
-            AssertRow("插值算法", false);
+            AssertInterpolation("no", readOnly: true);
             AssertRow(fallback, false);
             AssertRow(threshold, false);
             Require(video.Interpolation && video.Tscale == "bicubic" && video.HighRefreshRateLimitHz == 144,
-                "音频同步清空了隐藏的插值或回退偏好");
+                "音频同步清空了插值或回退偏好");
             await CaptureAsync("audio");
 
             await PickAsync("视频同步", MpvOutputOptions.VideoSync, "display-resample");
-            AssertRow("插值算法", true);
+            AssertInterpolation("bicubic");
             AssertRow(threshold, true);
-            await ToggleAsync("启用插值");
-            AssertRow("插值算法", false);
+            await PickLabelAsync("插值", "关闭");
+            AssertInterpolation("no");
+            Require(!video.Interpolation && video.Tscale == "bicubic", "关闭插值没有停用开关或清空了算法偏好");
+            Require(Rows().Single(row => row.Label == "视频同步").Note.Contains("插值关闭"), "关闭插值后同步说明没有更新");
             AssertRow(fallback, true); // 显示同步本身也需要回退开关。
             await ToggleAsync(fallback);
             AssertRow(threshold, false);
             await ToggleAsync(fallback);
             AssertRow(threshold, true);
             await PickAsync("视频同步", MpvOutputOptions.VideoSync, "");
-            AssertRow("启用插值", true);
+            AssertInterpolation("no");
             AssertRow(fallback, false); // 自动 + 无插值实际使用音频同步。
-            await ToggleAsync("启用插值");
-            AssertRow("插值算法", true);
+            await CaptureAsync("interpolation-off");
+            await PickAsync("视频同步", MpvOutputOptions.VideoSync, "audio");
+            AssertInterpolation("no", readOnly: true);
+            await PickAsync("视频同步", MpvOutputOptions.VideoSync, "");
+            AssertInterpolation("no");
+            Require(!video.Interpolation && video.Tscale == "bicubic", "切换同步模式意外开启插值或清空算法偏好");
+            await PickAsync("插值", MpvOutputOptions.InterpolationKernels, "bicubic");
+            AssertInterpolation("bicubic");
             AssertRow(fallback, true);
             AssertRow(threshold, true);
             Require(video.Tscale == "bicubic" && video.HighRefreshRateLimitHz == 144, "恢复后插值参数丢失");
@@ -620,7 +625,7 @@ internal sealed partial class ShellNavigationProbe
             AssertRow("视频渲染", true);
             AssertGraphicsApi(page, fixture);
             await PickAsync("视频渲染", MpvOutputOptions.Renderers, "gpu");
-            foreach (var label in new[] { "视频同步", "硬件解码", "反交错", "色彩范围", "启用插值", "抖动", "去色带" })
+            foreach (var label in new[] { "视频同步", "硬件解码", "反交错", "色彩范围", "插值", "抖动", "去色带" })
                 AssertRow(label, true);
             await CaptureAsync("external");
             page.SelectedCategory = "播放器";
@@ -638,8 +643,11 @@ internal sealed partial class ShellNavigationProbe
             await PickAsync("视频同步", MpvOutputOptions.VideoSync, "audio");
             await page.ViewModel.ReloadAsync();
             await SettleAsync();
-            AssertRow("插值算法", false);
+            AssertInterpolation("no", readOnly: true);
             AssertRow(fallback, false);
+            await PickAsync("视频同步", MpvOutputOptions.VideoSync, "display-vdrop");
+            AssertInterpolation("bicubic");
+            Require(video.Interpolation && video.Tscale == "bicubic", "重新加载后插值偏好丢失");
         }
         finally
         {
@@ -653,6 +661,31 @@ internal sealed partial class ShellNavigationProbe
 
         IEnumerable<SettingRow> Rows() => page.ViewModel.Sections.Where(section => section.Category == "视频输出")
             .SelectMany(section => section.Rows);
+        void AssertInterpolation(string value, bool readOnly = false)
+        {
+            AssertRow("插值", true);
+            AssertRow("启用插值", false);
+            AssertRow("插值算法", false);
+            var row = Rows().Single(candidate => candidate.Label == "插值");
+            var combo = Descendants(page).OfType<ComboBox>()
+                .SingleOrDefault(control => AutomationProperties.GetName(control) == "插值");
+            if (readOnly)
+            {
+                Require(combo is null && row is SettingFactRow { Value: "关闭", ActionVisibility: Visibility.Collapsed }
+                    && Descendants(page).OfType<FrameworkElement>().Any(element => ReferenceEquals(element.DataContext, row)
+                        && Descendants(element).OfType<TextBlock>().Any(text => text.Text == "关闭")),
+                    "音频同步下必须保留插值只读关闭文字，不能保留下拉框");
+            }
+            else
+            {
+                var expected = new[] { "关闭" }.Concat(MpvOutputOptions.InterpolationKernels.Select(kernel => kernel.Label));
+                Require(row is SettingChoiceRow choice && choice.Choices.Select(item => item.Label).SequenceEqual(expected)
+                    && combo is { IsEnabled: true } && combo.Items.Count == 4
+                    && ReferenceEquals(combo.SelectedItem, choice.Selected)
+                    && choice.Selected?.Label == (value == "no" ? "关闭" : MpvOutputOptions.Describe(MpvOutputOptions.InterpolationKernels, value)),
+                    "插值必须显示关闭及三种算法，并选中当前值");
+            }
+        }
         // 外置两行（mpv.exe 路径 / 启用 IPC 进度通道）并回播放器卡、随播放后端进出：数据行、真实行和
         // 可聚焦控件三头都要对上；收起时不得动路径与 IPC 偏好（隐藏不清空偏好）。
         void AssertExternalRows(bool present)

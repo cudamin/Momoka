@@ -39,6 +39,7 @@ internal sealed partial class ShellNavigationProbe
             _window = new HostWindow { Content = _root, FreeSizing = true };
             _window.Show(false, _options.Screen, new WindowBounds(80, 80, 1420, 980));
             await LayoutAsync(_root);
+            await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
             await CaseAsync("剧页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Series), 30);
             await CaseAsync("季页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Season), 30);
@@ -119,7 +120,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 媒体详情、剧集组浏览和真实资源入口", MoviePilotMediaBrowsingAsync);
             await CaseAsync("MoviePilot 按季订阅、三种模式与取消草稿", MoviePilotSeasonSelectionAsync);
             await CaseAsync("MoviePilot 剧集组与入库状态迟到隔离", MoviePilotMediaReadRacesAsync);
-            await CaseAsync("MoviePilot 完整固定背景与主题", MoviePilotMediaBackgroundAsync);
+            // 同时检查季折叠栏的五套主题、摘要恢复与展开/折叠实屏截图。
+            await CaseAsync("MoviePilot 完整固定背景与主题", MoviePilotMediaBackgroundAsync, 30);
             await CaseAsync("MoviePilot 按季提交部分失败与核对", MoviePilotSeasonPartialSubmitAsync);
             await CaseAsync("MoviePilot 字幕列表、保存路径、取消与站点变更", MoviePilotMediaSubtitlesAsync);
             await CaseAsync("季页面右侧播放图标与原播放路由", SeasonTrailingPlayAsync);

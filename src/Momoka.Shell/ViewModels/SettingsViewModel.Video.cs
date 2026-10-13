@@ -60,14 +60,22 @@ public sealed partial class SettingsViewModel
                 "deinterlace", "用于消除隔行视频运动边缘的梳齿。老电视片源可选自动；普通逐行视频保持关闭。"),
             sync
         ]);
-        if (video.VideoSync != "audio")
+        if (video.VideoSync == "audio")
         {
-            rows.Add(Toggle("启用插值", "混合相邻帧，减轻视频帧率与屏幕刷新率不匹配造成的顿挫；不生成运动补偿帧。",
-                () => video.Interpolation, value => video.Interpolation = value, "interpolation",
+            // 用户要求始终显示插值；只读状态展示有效值，不覆盖原来的开关与算法偏好。
+            rows.Add(Fact("插值", Annotate("音频同步下插值关闭；切换视频同步后可选择插值。", "interpolation、tscale"), "关闭"));
+        }
+        else
+        {
+            rows.Add(Mpv("插值", [new("no", "关闭"), .. MpvOutputOptions.InterpolationKernels],
+                () => video.Interpolation ? video.Tscale : "no",
+                value =>
+                {
+                    video.Interpolation = value != "no";
+                    if (video.Interpolation) video.Tscale = value;
+                }, "interpolation、tscale",
+                "混合相邻帧以减轻顿挫，不生成运动补偿帧。过采样偏清晰；Mitchell 兼顾清晰与平滑；双三次更平滑，也更容易模糊。混合帧可能产生重影，Mitchell 还可能在运动边缘产生振铃。",
                 RefreshVideoBackend));
-            if (video.Interpolation)
-                rows.Add(Mpv("插值算法", MpvOutputOptions.InterpolationKernels, () => video.Tscale, value => video.Tscale = value,
-                    "tscale", "过采样偏清晰；Mitchell 兼顾清晰与平滑；双三次更平滑，也更容易模糊。混合帧可能产生重影，Mitchell 还可能在运动边缘产生振铃。"));
         }
         var (effectiveSync, _, _) = MpvOutputOptions.ResolveSync(video);
         if (effectiveSync.StartsWith("display-", StringComparison.Ordinal))

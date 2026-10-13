@@ -1,22 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The sign-in card.
+  A full-height cinema entrance: a theme-aware screen on the left and a quiet form on the right.
+  At compact widths the screen becomes a small brand header; the form keeps its own scroll viewport
+  so long user lists and errors remain reachable even in short windows.
 
-  A UserControl rather than a Page because it is not navigated to: the shell keeps it as a sibling of
-  the NavigationView and shows one or the other. That way there is one window, one theme root and one
-  XamlRoot for the whole app, and signing out does not tear down and rebuild the visual tree.
-
-  Two steps, because the second one needs an answer from the server: type an address, and the server
-  tells us its name and which users it is willing to advertise. Only then is there a user list to pick
-  from — which is the whole reason for asking twice instead of showing five empty boxes at once.
-
-  Every piece of state here is bound to SignInViewModel. Named presentation elements only support the
-  two-column welcome layout — brand, illustration and tagline on the left, the card on the right at
-  wide widths — and its entrance motion; the inputs and flyout retain their original roles.
-
-  The three input bindings all carry UpdateSourceTrigger=PropertyChanged. Text and Password push to the
-  source on LostFocus by default, and Enter arrives while the box still has focus — without it the view
-  model would be asked to connect with the previous address, or to sign in with the previous password.
+  The shell retains this UserControl across sign-in/sign-out. State and commands stay in the view
+  model; input bindings update on every keystroke because Enter can arrive before focus changes.
 -->
 <UserControl
     x:Class="Momoka.Shell.Views.SignInPage"
@@ -25,27 +14,67 @@
     xmlns:emby="using:Momoka.Emby">
 
     <UserControl.Resources>
-        <DataTemplate x:Key="UserTemplate" x:DataType="emby:EmbyUser">
-            <Grid ColumnSpacing="12" Padding="0,4">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
+        <ResourceDictionary>
+            <!-- Local aliases keep the native button states on the same palette as the screen. -->
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Dark">
+                    <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="AccentButtonForeground" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Light">
+                    <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="AccentButtonForeground" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="HighContrast">
+                    <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                    <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                    <StaticResource x:Key="AccentButtonForeground" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                    <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+            <Style x:Key="SignInPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EgPrimaryButtonStyle}">
+                <Setter Property="MinHeight" Value="50" />
+                <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
+                <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
+                <Setter Property="CornerRadius" Value="8" />
+            </Style>
+            <Style x:Key="SignInSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource EgSecondaryButtonStyle}">
+                <Setter Property="MinHeight" Value="44" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="Background" Value="{ThemeResource EgWindowBrush}" />
+            </Style>
+            <DataTemplate x:Key="UserTemplate" x:DataType="emby:EmbyUser">
+                <Grid ColumnSpacing="12" Padding="0,4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-                <!-- DisplayName rather than an image: the avatar lives behind the very token this page
-                     exists to obtain, so before signing in there are only initials to draw. -->
-                <PersonPicture
-                    DisplayName="{x:Bind Name}"
-                    Height="32"
-                    Width="32" />
+                    <!-- DisplayName rather than an image: the avatar lives behind the very token this page
+                         exists to obtain, so before signing in there are only initials to draw. -->
+                    <PersonPicture
+                        DisplayName="{x:Bind Name}"
+                        Height="32"
+                        Width="32" />
 
-                <TextBlock
-                    Grid.Column="1"
-                    Text="{x:Bind Name}"
-                    TextTrimming="CharacterEllipsis"
-                    VerticalAlignment="Center" />
-            </Grid>
-        </DataTemplate>
+                    <TextBlock
+                        Grid.Column="1"
+                        Text="{x:Bind Name}"
+                        TextTrimming="CharacterEllipsis"
+                        VerticalAlignment="Center" />
+                </Grid>
+            </DataTemplate>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid x:Name="SignInRoot" Background="{ThemeResource EgWindowBrush}">
@@ -58,246 +87,240 @@
                 </VisualState>
                 <VisualState x:Name="WideWelcome">
                     <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="1040" />
+                        <AdaptiveTrigger MinWindowWidth="1000" />
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
                         <Setter Target="FormColumn.Width" Value="440" />
-                        <Setter Target="WelcomePanel.Margin" Value="0,32,64,32" />
+                        <Setter Target="WelcomePanel.(Grid.RowSpan)" Value="2" />
+                        <Setter Target="WelcomePanel.Background" Value="{ThemeResource EgAccentSoftBrush}" />
+                        <Setter Target="WelcomePanel.Padding" Value="40" />
+                        <Setter Target="WelcomePanel.MaxWidth" Value="2000" />
+                        <Setter Target="WelcomePanel.Margin" Value="0" />
                         <Setter Target="WelcomeArt.Visibility" Value="Visible" />
-                        <Setter Target="SignInCard.(Grid.Row)" Value="0" />
-                        <Setter Target="SignInCard.(Grid.Column)" Value="1" />
-                        <Setter Target="SignInCard.VerticalAlignment" Value="Center" />
-                        <Setter Target="SignInLayout.Margin" Value="48,64" />
+                        <Setter Target="BrandCaption.Visibility" Value="Visible" />
+                        <Setter Target="BrandRow.(Grid.Row)" Value="2" />
+                        <Setter Target="BrandMark.VerticalAlignment" Value="Top" />
+                        <Setter Target="BrandMark.HorizontalAlignment" Value="Left" />
+                        <Setter Target="BrandMark.Margin" Value="0" />
+                        <Setter Target="BrandRow.Margin" Value="0" />
+                        <Setter Target="BrandWordmark.Style" Value="{StaticResource EgDisplayTitleStyle}" />
+                        <Setter Target="FormScroll.(Grid.Row)" Value="0" />
+                        <Setter Target="FormScroll.(Grid.RowSpan)" Value="2" />
+                        <Setter Target="FormScroll.(Grid.Column)" Value="1" />
+                        <Setter Target="FormScroll.Margin" Value="40,0,0,0" />
+                        <Setter Target="SignInLayout.Margin" Value="28,48,28,28" />
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
 
-        <ScrollView VerticalScrollBarVisibility="Auto">
-            <Grid x:Name="SignInLayout" Margin="24,32" MaxWidth="1120" RowSpacing="28">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition x:Name="FormColumn" Width="0" />
-                </Grid.ColumnDefinitions>
+        <Grid x:Name="SignInLayout" Margin="24,48,24,24" MaxWidth="1440">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="FormColumn" Width="0" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid x:Name="WelcomePanel" CornerRadius="20" MaxWidth="360" Margin="0,0,0,24">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
+                <Image x:Name="BrandMark" Source="ms-appx:///app-icon.png"
+                    Width="40" Height="40" HorizontalAlignment="Left"
+                    AutomationProperties.AccessibilityView="Raw" />
 
-                <StackPanel x:Name="WelcomePanel" Spacing="20" MaxWidth="580">
-                    <!-- The brand mark shows the real app icon — the same pixels the taskbar paints,
-                         not a stand-in glyph. -->
-                    <StackPanel x:Name="BrandRow" Orientation="Horizontal" Spacing="12">
-                        <Image
-                            x:Name="BrandMark"
-                            Source="ms-appx:///app-icon.png"
-                            Width="44"
-                            Height="44"
-                            AutomationProperties.AccessibilityView="Raw" />
-                        <TextBlock Text="Momoka" FontSize="23" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    </StackPanel>
-
-                    <!-- A quiet cinema illustration made from theme-aware shapes, so no image download
-                         is needed before the user has connected their server. -->
-                    <Grid x:Name="WelcomeArt" Height="222" Margin="0,12,0,0" Visibility="Collapsed"
-                        IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw">
-                        <Border Width="214" Height="144" Background="{ThemeResource EgSurfaceAltBrush}"
-                            BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="18"
-                            HorizontalAlignment="Left" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                            <Border.RenderTransform><RotateTransform Angle="-9" /></Border.RenderTransform>
-                        </Border>
-                        <Border Width="214" Height="144" Background="{ThemeResource EgAccentSoftBrush}"
-                            BorderBrush="{ThemeResource EgAccentMutedBrush}" BorderThickness="1" CornerRadius="18"
-                            HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                            <Border.RenderTransform><RotateTransform Angle="8" /></Border.RenderTransform>
-                        </Border>
-                        <Border Width="268" Height="174" Background="{ThemeResource EgSurfaceBrush}"
-                            BorderBrush="{ThemeResource EgBorderStrongBrush}" BorderThickness="1" CornerRadius="20"
-                            HorizontalAlignment="Center" VerticalAlignment="Center" Padding="20">
-                            <Grid>
-                                <Border Width="58" Height="58" CornerRadius="29" Background="{ThemeResource EgAccentSoftBrush}">
-                                    <FontIcon Glyph="&#xE768;" FontSize="25" Foreground="{ThemeResource EgAccentBrush}" Margin="4,0,0,0" />
-                                </Border>
-                                <Grid VerticalAlignment="Bottom" Height="3">
-                                    <Border Background="{ThemeResource EgBorderBrush}" CornerRadius="2" />
-                                    <Border Background="{ThemeResource EgAccentBrush}" CornerRadius="2" Width="84" HorizontalAlignment="Left" />
-                                </Grid>
-                            </Grid>
-                        </Border>
+                <!-- One large projected screen, drawn locally. The nested apertures create depth
+                     without borrowing artwork from a server the user has not connected to yet. -->
+                <Viewbox x:Name="WelcomeArt" Grid.Row="1" Margin="-12,24,-12,24" MaxWidth="640"
+                    Visibility="Collapsed" IsHitTestVisible="False" AutomationProperties.AccessibilityView="Raw">
+                    <Grid Width="480" Height="360">
+                        <Path Data="M 24,64 L 456,20 L 456,340 L 24,296 Z"
+                            Fill="{ThemeResource EgWindowBrush}" Opacity="0.32" />
+                        <Path Data="M 24,64 L 456,20 L 456,340 L 24,296 Z"
+                            Stroke="{ThemeResource EgAccentMutedBrush}" StrokeThickness="1" />
+                        <Path Data="M 58,84 L 420,49 L 420,311 L 58,276 Z"
+                            Stroke="{ThemeResource EgAccentMutedBrush}" StrokeThickness="1" />
+                        <Path Data="M 92,104 L 384,78 L 384,282 L 92,256 Z"
+                            Stroke="{ThemeResource EgAccentMutedBrush}" StrokeThickness="1" />
+                        <Path Data="M 126,124 L 348,107 L 348,253 L 126,236 Z"
+                            Fill="{ThemeResource EgWindowBrush}" Opacity="0.7" />
+                        <Path Data="M 126,124 L 348,107 L 348,253 L 126,236 Z"
+                            Stroke="{ThemeResource EgAccentBrush}" StrokeThickness="1" />
+                        <Path Data="M 207,137 L 275,180 L 207,223 Z"
+                            Fill="{ThemeResource EgAccentBrush}" />
                     </Grid>
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon Glyph="&#xE8B2;" FontSize="14" Foreground="{ThemeResource EgAccentBrush}" />
-                        <TextBlock x:Uid="SignInPage_WelcomeNote" FontSize="13" Foreground="{ThemeResource EgTextDimBrush}" />
-                    </StackPanel>
+                </Viewbox>
+
+                <StackPanel x:Name="BrandRow" Margin="52,0,0,0" VerticalAlignment="Center" Spacing="10">
+                    <TextBlock x:Name="BrandWordmark" Text="Momoka" Style="{StaticResource EgSectionTitleStyle}"
+                        Foreground="{ThemeResource EgTextBrush}" />
+                    <TextBlock x:Name="BrandCaption" x:Uid="SignInPage_WelcomeNote" Visibility="Collapsed"
+                        Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                 </StackPanel>
-
-            <Border
-                x:Name="SignInCard"
-                Grid.Row="1"
-                Background="{ThemeResource EgSurfaceBrush}"
-                BorderBrush="{ThemeResource EgBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="24"
-                HorizontalAlignment="Stretch"
-                MaxWidth="440"
-                Padding="28"
-                VerticalAlignment="Top">
-
-                <StackPanel Spacing="20">
-                        <StackPanel Spacing="8">
-                            <TextBlock
-                                x:Uid="SignInPage_FormTitle"
-                                FontSize="26"
-                                FontWeight="SemiBold" />
-                            <TextBlock
-                                FontSize="14"
-                                Foreground="{ThemeResource EgTextDimBrush}"
-                                TextWrapping="Wrap"
-                                Text="{x:Bind ViewModel.Caption, Mode=OneWay}" />
-                        </StackPanel>
-
-                    <ProgressRing
-                        HorizontalAlignment="Left"
-                        Height="20"
-                        IsActive="{x:Bind ViewModel.Busy, Mode=OneWay}"
-                        Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}"
-                        Width="20" />
-
-                    <!-- TwoWay on IsOpen so dismissing the bar is recorded rather than forgotten. -->
-                    <InfoBar
-                        IsClosable="True"
-                        IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
-                        Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
-                        Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
-                        Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
-
-                    <!-- Step one. -->
-                    <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.AddressVisibility, Mode=OneWay}">
-                        <!-- The label rides inside the box as the centred placeholder (用户 2026-09-30,
-                             参考账号/密码框的截图) — no header line above it. -->
-                        <TextBox
-                            x:Name="ServerBox"
-                            x:Uid="SignInPage_ServerBox"
-                            MinHeight="42"
-                            KeyDown="OnAddressKeyDown"
-                            TextAlignment="Center"
-                            Text="{x:Bind ViewModel.Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                        <StackPanel Spacing="10">
-                            <Button x:Uid="SignInPage_Button1"
-                                AutomationProperties.AutomationId="SignInConnectButton"
-                                Command="{x:Bind ViewModel.ConnectCommand}"
-                                HorizontalAlignment="Stretch"
-                                Style="{StaticResource EgPrimaryButtonStyle}" />
-
-                            <DropDownButton x:Uid="SignInPage_DropDownButton2"
-                                AutomationProperties.AutomationId="SignInSavedServersButton"
-                                HorizontalAlignment="Stretch" MinHeight="40"
-                                Visibility="{x:Bind ViewModel.SavedVisibility, Mode=OneWay}">
-                                <DropDownButton.Flyout>
-                                    <!-- Filled in code: a MenuFlyout holds Items, not an ItemsSource. Each
-                                         entry still carries the view model's own command. -->
-                                    <MenuFlyout x:Name="SavedMenu" Placement="Bottom" />
-                                </DropDownButton.Flyout>
-                            </DropDownButton>
-                        </StackPanel>
-
-                        <Button x:Uid="SignInPage_ButtonA1"
-                            AutomationProperties.AutomationId="SignInDiscoverButton"
-                            Command="{x:Bind ViewModel.DiscoverCommand}"
-                            HorizontalAlignment="Stretch" Style="{StaticResource EgSecondaryButtonStyle}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon Glyph="&#xE968;" />
-                                <TextBlock x:Uid="SignInPage_TextBlock3" />
-                            </StackPanel>
-                        </Button>
-
-                        <ListView
-                            AutomationProperties.AutomationId="SignInDiscoveredList"
-                            IsItemClickEnabled="True"
-                            ItemClick="OnDiscoveredServerPicked"
-                            ItemsSource="{x:Bind ViewModel.Discovered, Mode=OneWay}"
-                            MaxHeight="196"
-                            Visibility="{x:Bind ViewModel.DiscoveredVisibility, Mode=OneWay}">
-                            <ListView.ItemTemplate>
-                                <DataTemplate x:DataType="emby:EmbyDiscoveredServer">
-                                    <Grid ColumnSpacing="12" Padding="0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <FontIcon
-                                            FontSize="18"
-                                            Foreground="{ThemeResource EgAccentBrush}"
-                                            Glyph="&#xE774;"
-                                            VerticalAlignment="Center" />
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock
-                                                FontWeight="SemiBold"
-                                                Text="{x:Bind Name}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
-                                                FontSize="{StaticResource EgCaptionFontSize}"
-                                                Foreground="{ThemeResource EgTextDimBrush}"
-                                                Text="{x:Bind DisplayName}"
-                                                TextTrimming="CharacterEllipsis" />
-                                        </StackPanel>
-                                    </Grid>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                    </StackPanel>
-
-                    <!-- Step two. -->
-                    <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.CredentialVisibility, Mode=OneWay}">
-                        <TextBlock
-                            FontWeight="SemiBold"
-                            Text="{x:Bind ViewModel.ServerLabel, Mode=OneWay}"
-                            TextTrimming="CharacterEllipsis" />
-
-                        <ListView
-                            AutomationProperties.AutomationId="SignInUserList"
-                            ItemTemplate="{StaticResource UserTemplate}"
-                            ItemsSource="{x:Bind ViewModel.Users, Mode=OneWay}"
-                            MaxHeight="196"
-                            SelectedItem="{x:Bind ViewModel.SelectedUser, Mode=TwoWay}"
-                            SelectionMode="Single"
-                            Visibility="{x:Bind ViewModel.UsersVisibility, Mode=OneWay}" />
-
-                        <TextBox
-                            x:Name="UserBox"
-                            x:Uid="SignInPage_UserBox"
-                            MinHeight="42"
-                            KeyDown="OnCredentialKeyDown"
-                            TextAlignment="Center"
-                            Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                        <PasswordBox
-                            x:Name="PasswordInput"
-                            x:Uid="SignInPage_PasswordInput"
-                            MinHeight="42"
-                            KeyDown="OnCredentialKeyDown"
-                            Password="{x:Bind ViewModel.Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-
-                        <CheckBox x:Uid="SignInPage_CheckBox4" AutomationProperties.AutomationId="SignInRememberBox" IsChecked="{x:Bind ViewModel.Remember, Mode=TwoWay}" />
-
-                        <StackPanel Spacing="10">
-                            <Button
-                                AutomationProperties.AutomationId="SignInSubmitButton"
-                                Command="{x:Bind ViewModel.SignInCommand}"
-                                Content="{x:Bind ViewModel.SignInText, Mode=OneWay}"
-                                HorizontalAlignment="Stretch"
-                                Style="{StaticResource EgPrimaryButtonStyle}" />
-                            <!-- Not gated on Busy, unlike the other three: this is how a connect that is
-                                 going nowhere gets abandoned. -->
-                            <Button x:Uid="SignInPage_Button5" AutomationProperties.AutomationId="SignInBackButton"
-                                HorizontalAlignment="Stretch" Style="{StaticResource EgSecondaryButtonStyle}"
-                                Command="{x:Bind ViewModel.BackToAddressCommand}" />
-                        </StackPanel>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
             </Grid>
-        </ScrollView>
+
+            <ScrollView x:Name="FormScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                SizeChanged="OnFormViewportSizeChanged" HorizontalContentAlignment="Stretch">
+                <Border x:Name="SignInCard" MaxWidth="360" HorizontalAlignment="Stretch" Padding="0,24">
+                    <StackPanel x:Name="FormContent" Spacing="24" VerticalAlignment="Center">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="{x:Bind ViewModel.FormTitle, Mode=OneWay}"
+                                Style="{StaticResource EgPageTitleStyle}" TextWrapping="Wrap" />
+                            <TextBlock Text="{x:Bind ViewModel.Caption, Mode=OneWay}"
+                                Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+
+                        <ProgressBar IsIndeterminate="{x:Bind ViewModel.Busy, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+
+                        <InfoBar x:Name="SignInNotice" IsClosable="True"
+                            IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+                            Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
+                            Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
+                            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
+                            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
+
+                        <!-- Step one. -->
+                        <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.AddressVisibility, Mode=OneWay}">
+                            <!-- Retain the requested centred fields and their visible placeholders. -->
+                            <TextBox
+                                x:Name="ServerBox"
+                                x:Uid="SignInPage_ServerBox"
+                                AutomationProperties.Name="服务器地址"
+                                MinHeight="52"
+                                Padding="16,14"
+                                CornerRadius="8"
+                                KeyDown="OnAddressKeyDown"
+                                TextAlignment="Center"
+                                Text="{x:Bind ViewModel.Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <StackPanel Spacing="10">
+                                <Button x:Uid="SignInPage_Button1"
+                                    AutomationProperties.AutomationId="SignInConnectButton"
+                                    Command="{x:Bind ViewModel.ConnectCommand}"
+                                    HorizontalAlignment="Stretch"
+                                    Style="{StaticResource SignInPrimaryButtonStyle}" />
+
+                                <DropDownButton x:Uid="SignInPage_DropDownButton2"
+                                    AutomationProperties.AutomationId="SignInSavedServersButton"
+                                    HorizontalAlignment="Stretch" MinHeight="44" CornerRadius="8"
+                                    Visibility="{x:Bind ViewModel.SavedVisibility, Mode=OneWay}">
+                                    <DropDownButton.Flyout>
+                                        <!-- Filled in code: a MenuFlyout holds Items, not an ItemsSource. Each
+                                             entry still carries the view model's own command. -->
+                                        <MenuFlyout x:Name="SavedMenu" Placement="Bottom" />
+                                    </DropDownButton.Flyout>
+                                </DropDownButton>
+                            </StackPanel>
+
+                            <Button x:Uid="SignInPage_ButtonA1"
+                                AutomationProperties.AutomationId="SignInDiscoverButton"
+                                Command="{x:Bind ViewModel.DiscoverCommand}"
+                                HorizontalAlignment="Stretch" Style="{StaticResource SignInSecondaryButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE968;" />
+                                    <TextBlock x:Uid="SignInPage_TextBlock3" />
+                                </StackPanel>
+                            </Button>
+
+                            <ListView
+                                AutomationProperties.AutomationId="SignInDiscoveredList"
+                                IsItemClickEnabled="True"
+                                ItemClick="OnDiscoveredServerPicked"
+                                ItemsSource="{x:Bind ViewModel.Discovered, Mode=OneWay}"
+                                MaxHeight="196"
+                                Visibility="{x:Bind ViewModel.DiscoveredVisibility, Mode=OneWay}">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="emby:EmbyDiscoveredServer">
+                                        <Grid ColumnSpacing="12" Padding="0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <FontIcon
+                                                FontSize="18"
+                                                Foreground="{ThemeResource EgAccentBrush}"
+                                                Glyph="&#xE774;"
+                                                VerticalAlignment="Center" />
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock
+                                                    FontWeight="SemiBold"
+                                                    Text="{x:Bind Name}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                                <TextBlock
+                                                    FontSize="{StaticResource EgCaptionFontSize}"
+                                                    Foreground="{ThemeResource EgTextDimBrush}"
+                                                    Text="{x:Bind DisplayName}"
+                                                    TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                        </StackPanel>
+
+                        <!-- Step two. -->
+                        <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.CredentialVisibility, Mode=OneWay}">
+                            <TextBlock
+                                FontWeight="SemiBold"
+                                Text="{x:Bind ViewModel.ServerLabel, Mode=OneWay}"
+                                TextTrimming="CharacterEllipsis" />
+
+                            <ListView
+                                AutomationProperties.AutomationId="SignInUserList"
+                                ItemTemplate="{StaticResource UserTemplate}"
+                                ItemsSource="{x:Bind ViewModel.Users, Mode=OneWay}"
+                                MaxHeight="196"
+                                SelectedItem="{x:Bind ViewModel.SelectedUser, Mode=TwoWay}"
+                                SelectionMode="Single"
+                                Visibility="{x:Bind ViewModel.UsersVisibility, Mode=OneWay}" />
+
+                            <TextBox
+                                x:Name="UserBox"
+                                x:Uid="SignInPage_UserBox"
+                                AutomationProperties.Name="用户名"
+                                MinHeight="52"
+                                Padding="16,14"
+                                CornerRadius="8"
+                                KeyDown="OnCredentialKeyDown"
+                                TextAlignment="Center"
+                                Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <PasswordBox
+                                x:Name="PasswordInput"
+                                x:Uid="SignInPage_PasswordInput"
+                                AutomationProperties.Name="密码"
+                                MinHeight="52"
+                                Padding="16,14"
+                                CornerRadius="8"
+                                KeyDown="OnCredentialKeyDown"
+                                Password="{x:Bind ViewModel.Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                            <CheckBox x:Uid="SignInPage_CheckBox4" AutomationProperties.AutomationId="SignInRememberBox" IsChecked="{x:Bind ViewModel.Remember, Mode=TwoWay}" />
+
+                            <StackPanel Spacing="10">
+                                <Button
+                                    AutomationProperties.AutomationId="SignInSubmitButton"
+                                    Command="{x:Bind ViewModel.SignInCommand}"
+                                    Content="{x:Bind ViewModel.SignInText, Mode=OneWay}"
+                                    HorizontalAlignment="Stretch"
+                                    Style="{StaticResource SignInPrimaryButtonStyle}" />
+                                <!-- Not gated on Busy, unlike the other three: this is how a connect that is
+                                     going nowhere gets abandoned. -->
+                                <Button x:Uid="SignInPage_Button5" AutomationProperties.AutomationId="SignInBackButton"
+                                    HorizontalAlignment="Stretch" Style="{StaticResource SignInSecondaryButtonStyle}"
+                                    Command="{x:Bind ViewModel.BackToAddressCommand}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </ScrollView>
+        </Grid>
     </Grid>
 </UserControl>

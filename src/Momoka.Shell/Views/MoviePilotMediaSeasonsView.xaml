@@ -35,14 +35,27 @@
             <ItemsRepeater.ItemTemplate>
                 <DataTemplate x:DataType="vm:MoviePilotMediaSeasonRow">
                     <Expander x:Name="ExpandMediaSeason" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                        Background="{ThemeResource EgSurfaceAltBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                        CornerRadius="{StaticResource EgCardCornerRadius}"
                         IsExpanded="{x:Bind Expanded, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Title}">
+                        <!-- 框架的折叠栏画刷已提前解析，须在此覆盖它实际读取的键，避免默认半透明白叠在深色面板上。 -->
+                        <Expander.Resources>
+                            <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="EgSurfaceAltBrush" />
+                            <StaticResource x:Key="ExpanderHeaderBorderBrush" ResourceKey="EgBorderBrush" />
+                            <StaticResource x:Key="ExpanderHeaderBorderPointerOverBrush" ResourceKey="EgBorderStrongBrush" />
+                            <StaticResource x:Key="ExpanderHeaderBorderPressedBrush" ResourceKey="EgBorderStrongBrush" />
+                            <StaticResource x:Key="ExpanderHeaderDisabledBorderBrush" ResourceKey="EgBorderBrush" />
+                            <StaticResource x:Key="ExpanderChevronPointerOverBackground" ResourceKey="EgSurfaceHoverBrush" />
+                            <StaticResource x:Key="ExpanderChevronPressedBackground" ResourceKey="EgSurfaceElevatedBrush" />
+                        </Expander.Resources>
                         <Expander.Header>
                             <Grid ColumnSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <StackPanel Spacing="4">
                                     <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" />
                                     <TextBlock Text="{x:Bind Summary}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                                    <TextBlock Text="{x:Bind Status, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
+                                    <TextBlock Text="{x:Bind HeaderStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                                        Foreground="{ThemeResource EgAccentBrush}" TextWrapping="Wrap" />
                                 </StackPanel>
                                 <Button x:Name="SubscribeMediaSeason" Grid.Column="1" Command="{x:Bind SubscribeCommand}" Style="{StaticResource EgIconButtonStyle}"
                                     IsEnabled="{x:Bind Editable, Mode=OneWay}"
@@ -56,7 +69,6 @@
                                  通用集列表给订阅季让位（用户令 2026-10-12）。数值与筛选由视图从订阅详情的视图模型推进来 ——
                                  不用嵌套 x:Bind（bind 基线只许减），也不用 ElementName。 -->
                             <StackPanel Spacing="8" Visibility="{x:Bind FilesHostVisibility, Mode=OneWay}">
-                                <TextBlock Text="{x:Bind FilesSummary, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
                                 <TextBlock Text="{x:Bind FilesPlaybackStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                                     TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
                                 <TextBlock Text="按 MoviePilot 关联的媒体库统计；已下载但未入库、尚未播出的集也会计入未入库。" Style="{StaticResource EgCaptionStyle}"
