@@ -14,7 +14,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 - UI 界面参考 **Emby 小秘** 设计。
 - 播放器架构参考 [**mpv-winui-player**](https://github.com/ikas-mc/mpv-winui-player) 和 **小幻影视** 设计。
 - 内置lua脚本使用 @dyphire[**mpv-config**](https://github.com/dyphire/mpv-config)的脚本进行魔改
-- 播放器控件、着色器与 mpv 相关设置参考 @dyphire[**mpv-config**](https://github.com/dyphire/mpv-config) 进行设置
+- mpv 相关设置参考 @dyphire[**mpv-config**](https://github.com/dyphire/mpv-config) 进行设置
 - 内置 [**mpv-winbuild**](https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-10-14-270367e8af)（LGPL 构建）
 
 ## 主要功能
