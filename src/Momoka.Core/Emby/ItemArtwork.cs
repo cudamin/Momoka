@@ -151,8 +151,9 @@ public static class ItemArtwork
     /// <para>
     /// 先问条目自己的，没有再借<paramref name="parent"/>（剧集那一层）的 —— 这一处和 <see cref="Footer"/> 同一个
     /// 道理：一集自己几乎不会有艺术图，而服务器也不往下发 <c>ParentArt</c>（ParentLogo、ParentBackdrop、
-    /// ParentThumb 都有，独缺这一个），剧集那个条目要调用方自己去取。集页现在不铺背景图（同一天的另一句指令），
-    /// 所以从前「整页已经站在同一张艺术图上时这一角空着」的防重也不需要了 —— 这一页上没有第二处会画它。
+    /// ParentThumb 都有，独缺这一个），剧集那个条目要调用方自己去取。集页的宽版式不铺背景图（同一天的另一句
+    /// 指令），所以从前「整页已经站在同一张艺术图上时这一角空着」的防重也不需要了 —— 那一档上没有第二处会画它
+    /// （紧凑版式铺图，可那一档这一角本来就收着，见 <c>DetailViewModel.CornerVisibility</c>）。
     /// </para>
     /// </summary>
     /// <param name="item">这一页的条目。</param>

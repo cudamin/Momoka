@@ -603,6 +603,12 @@
   <data name="ShellPage_MenuFlyoutItem2.Text" xml:space="preserve">
     <value>注销</value>
   </data>
+  <data name="ShellPage_NavToggleButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>导航</value>
+  </data>
+  <data name="ShellPage_NavToggleButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭导航</value>
+  </data>
   <data name="ShellPage_SearchButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>搜索</value>
   </data>
@@ -616,6 +622,12 @@
     <value>设置</value>
   </data>
   <data name="ShellPage_SettingsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="ShellPage_SidebarSettingsButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="ShellPage_SidebarSettingsButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>设置</value>
   </data>
   <data name="ShellPage_UserMenu.Text" xml:space="preserve">

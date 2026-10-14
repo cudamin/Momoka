@@ -135,6 +135,7 @@ internal static partial class ShellSelfCheck
         ShellPage shell,
         Momoka.Emby.EmbyImageStore images,
         Momoka.Playback.AudioDeviceCatalogue audioDevices,
+        Momoka.Shell.Platform.IStartupRegistration startup,
         StringBuilder report,
         Action<string, bool, string> check)
     {
@@ -335,6 +336,29 @@ internal static partial class ShellSelfCheck
         // 话），读数跟着换名；探针与判定不动。
         var compact = SettingRow.ProbeCompactMode();
         check("隐藏功能下方说明收放", compact.Ok, compact.Detail);
+
+        // 「在设置中新增开机自启的功能」（2026-10-13）。这一行写的不是设置文件，而是机器上的启动项，所以它坏掉的
+        // 样子几乎全在屏外：整行没建出来（办得到的时候本该在）、说明没写明这一项不进设置文件（用户会以为它跟着
+        // 备份和「恢复默认」走）、以及初值不是问机器而是写死一个「关」（机器上开着、屏上却是关的，用户以为没开）。
+        // <b>这里只读不写</b>：自检不能真去改用户机器上的启动项。拨开关那两条路（写下去、写不成时拨回去）由离线
+        // 探针用假实现驱动，见「界面卡上的开机自启开关」那条用例。
+        var interfaceRows = page.ViewModel.Sections
+            .FirstOrDefault(section => section.Category == "界面")?.Rows ?? [];
+        var startupRow = interfaceRows.OfType<SettingToggleRow>().FirstOrDefault(row => row.Label == "开机自启");
+        var startupApplicable = startup.Available;
+        var startupNoteOk = startupRow is not null
+            && startupRow.Note.Contains("启动项", StringComparison.Ordinal)
+            && startupRow.Note.Contains("设置文件", StringComparison.Ordinal);
+
+        check("开机自启那一行",
+            (startupRow is not null) == startupApplicable
+                && (startupRow is null || (startupRow.IsOn == startup.IsEnabled && startupNoteOk)),
+            startupRow is null
+                ? (startupApplicable
+                    ? "界面卡上没有这一行 —— 办得到的时候它本该在"
+                    : "这一档下按设计整个不显示（打包安装，启动项归包管理）")
+                : $"这一行在，读到{(startupRow.IsOn ? "开" : "关")}、机器上是{(startup.IsEnabled ? "开" : "关")}；"
+                    + $"说明{(startupNoteOk ? "写明" : "没写明")}这一项改的是机器上的启动项、不进设置文件");
 
         // 安全起播已经替换旧命令行传头：保留可见提示检查，但不能继续要求屏上承诺泄露令牌。
         // 这里只验证说明与播放器、播放行为两个分类的各行；管道身份和起播顺序由 Core 的离线子进程夹具验证。

@@ -25,6 +25,7 @@ internal static class Program
         MpvProcessTests.Register();
         SelfCheckTests.Register();
         SettingsTests.Register();
+        StartupEntryTests.Register();
         NotificationTests.Register();
         ShortcutTests.Register();
         SeekKeyTests.Register();

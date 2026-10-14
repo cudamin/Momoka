@@ -117,6 +117,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private FontLibrary? _fonts;
     private AppPaths? _paths;
     private Platform.ISystemLauncher? _launcher;
+    private Platform.IStartupRegistration? _startup;
     private IServerCapabilities? _capabilities;
     private MoviePilotService? _moviePilot;
     private MoviePilotCredentials? _moviePilotCredentials;
@@ -347,12 +348,18 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <see cref="PlaybackService.ApplyScreenshotOptionsAsync"/> arrives — it reads the settings itself, so
     /// the rows only have to say 「推一遍」. Nothing playing means nothing happens.
     /// </param>
+    /// <param name="startup">
+    /// 开机自启那一格：它读写的不是设置文件而是机器上的启动项（HKCU 的 Run），所以这一页要的是「这台机器上这一
+    /// 条此刻在不在、拨一下改得动吗」，见 <see cref="StartupRow"/>。打包安装（MSIX）之后它答
+    /// <see cref="Platform.IStartupRegistration.Available"/> 为假，那一行整个不显示。
+    /// </param>
     internal void Attach(
         ISettingsService settings,
         ShaderStaging shaders,
         FontLibrary fonts,
         AppPaths paths,
         Platform.ISystemLauncher launcher,
+        Platform.IStartupRegistration startup,
         AudioDeviceCatalogue audioDevices,
         Func<Task> pushSubtitleStyle,
         Func<string, Task> pushScreenshotDirectory,
@@ -366,6 +373,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _fonts = fonts;
         _paths = paths;
         _launcher = launcher;
+        _startup = startup;
         _capabilities = capabilities;
         _audioDevices = audioDevices;
         _pushSubtitleStyle = pushSubtitleStyle;
@@ -1342,8 +1350,8 @@ public sealed partial class SettingsViewModel : PageViewModel
                 + "只是下次看到那些封面时要重新下载一遍。",
             after: () => ShellPrefs.Apply(ui));
 
-        return new SettingSection("界面", "界面", "配色主题、UI 动画、侧边栏模式、首页媒体库位置、隐藏功能下方说明、媒体库分页和图片缓存上限。",
-        [
+        var rows = new List<SettingRow>
+        {
             Themes,
 
             Toggle("UI 动画", "控制页面切换、卡片悬停等界面动效，修改后立即生效；开启时仍遵循 Windows 动画设置",
@@ -1356,6 +1364,14 @@ public sealed partial class SettingsViewModel : PageViewModel
                 value => ui.SidebarMode = value,
                 after: () => ShellPrefs.ApplySidebar(ui)),
 
+            // 「在设置中新增开机自启的功能」。打包安装（MSIX）之后这一条办不到（见 IStartupRegistration），
+            // 那时整行不显示 —— 按项目规则，当前配置下不会生效的功能整个收起，不是置灰。
+        };
+
+        if (_startup is { Available: true }) rows.Add(StartupRow());
+
+        rows.AddRange(
+        [
             // 「首页媒体库位置」（用户令 2026-10-12）。摆在界面卡上而不是主页卡上：主页那张卡管的是「放哪几排、
             // 什么次序、轮播站什么」，这一行管的是「第一屏那块地方长什么样」，是界面的事。三档的判定在 Core
             // （<see cref="Emby.HomeFold.LibraryOnBanner"/>），主页那一头只管量几何和搬那一排。
@@ -1422,6 +1438,51 @@ public sealed partial class SettingsViewModel : PageViewModel
                     RefreshNoteVisibility();
                 })
         ]);
+
+        return new SettingSection("界面", "界面",
+            "配色主题、UI 动画、侧边栏模式、开机自启、首页媒体库位置、隐藏功能下方说明、媒体库分页和图片缓存上限。",
+            rows);
+    }
+
+    /// <summary>
+    /// 「在设置中新增开机自启的功能」。这一行和这一页别的行都不一样：它写进去的不是设置文件，而是机器上的启动项
+    /// （HKCU 里 <see cref="StartupEntry"/> 说的那两格），所以它没有存档值 —— 读的是注册表当下的事实，拨一下当场
+    /// 写下去。
+    /// <para>
+    /// <b>不另存一份偏好。</b>注册表那两格就是事实，另存一份迟早会和它对不上；而用户去任务管理器「启动」页看时
+    /// 看到的是那两格，那时屏上这一行要是还说「开着」，就是这一页最怕的「界面在骗人」。代价写在
+    /// <see cref="SettingRow"/> 那一头：这一项不进备份文件，也不跟着「恢复默认」走 —— 那两件事动的都是设置文件里
+    /// 的偏好，而这是机器上的登记。
+    /// </para>
+    /// <para>
+    /// 写不成（组策略挡住、注册表只读、安全软件拦下）时把开关拨回去并说一句：不拨回去的话，开关停在用户拨的
+    /// 那一档、机器上什么都没变，而这一页没有任何别的读数会响。
+    /// </para>
+    /// </summary>
+    private SettingToggleRow StartupRow()
+    {
+        SettingToggleRow? row = null;
+
+        row = Toggle("开机自启",
+            "登录 Windows 之后自动打开 Momoka；关掉就从系统的启动项里撤掉。改完当场生效，不用重启。"
+                + "这一项不进设置文件，任务管理器「启动」页上看到的就是它。",
+            () => _startup?.IsEnabled ?? false,
+            value => _startup?.Apply(value),
+            after: () =>
+            {
+                if (row is null || _startup is null) return;
+
+                var actual = _startup.IsEnabled;
+                if (actual == row.IsOn) return;
+
+                row.Reseed(actual);
+                Notify(null, actual
+                    ? "没能关掉开机自启：系统拒绝了这次改动，本程序仍会在登录后启动。"
+                    : "没能打开开机自启：系统拒绝了这次改动，本程序不会在登录后启动。",
+                    InfoBarSeverity.Error);
+            });
+
+        return row;
     }
 
     /// <summary>

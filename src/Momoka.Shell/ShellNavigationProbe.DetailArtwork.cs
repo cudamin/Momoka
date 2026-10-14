@@ -74,6 +74,28 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                     Require(width == 0 || Math.Abs(page.ViewModel.PageWidth - width) < 0.6,
                         $"没有到达目标页面宽度 {width}，实际 {page.ViewModel.PageWidth:0.0}");
+
+                    // 尾部那条窄带的紧凑度（2026-10-13「窄窗口下这些组件上下之间弄紧凑一点，改动包括电影、
+                    // 电视剧、季、集页面」）：这三页和集页共用同一个视图模型，所以这一支的四个数在这里也读一遍
+                    // 控件自己那一份 —— 集页那一头（含封面在紧凑档收掉）在同一条用例里另量。读控件而不是读
+                    // 视图模型，因为「算对了而某一块忘了绑」在读数里长得一模一样，而那正是用户圈出来的那件事。
+                    var tail = Get<StackPanel>(page, "TailContent");
+                    var pickers = Get<StackPanel>(page, "PickerPanel");
+                    var sheet = Get<StackPanel>(page, "BodySheet");
+                    var wantTail = page.ViewModel.IsCompact ? 8d : 12d;
+                    Require(Math.Abs(tail.Spacing - page.ViewModel.TailSpacing) < 0.01
+                            && pickers.Padding == page.ViewModel.TailPanelPadding
+                            && sheet.Padding == page.ViewModel.SheetPadding
+                            && Math.Abs(sheet.Spacing - page.ViewModel.SheetSpacing) < 0.01,
+                        $"{type} {width} 尾部那条窄带的紧凑度没绑上：尾部 {tail.Spacing:0.##}、面板 {pickers.Padding}、"
+                            + $"纸面 {sheet.Padding}／{sheet.Spacing:0.##}");
+                    Require(Math.Abs(tail.Spacing - wantTail) < 0.01
+                            && Math.Abs(pickers.Padding.Top - (page.ViewModel.IsCompact ? 8 : 24)) < 0.01,
+                        $"{type} {width} 尾部三块的竖距不对：{tail.Spacing:0.##}（该 {wantTail}）、"
+                            + $"面板 {pickers.Padding}（该上下 {(page.ViewModel.IsCompact ? 8 : 24)}）");
+                    readings.Add($"{type} {state} {width} 窄带: 尾部 {tail.Spacing:0.##}、面板 {pickers.Padding}、"
+                        + $"纸面 {sheet.Padding}／{sheet.Spacing:0.##}、紧凑={page.ViewModel.IsCompact}");
+
                     await SaveProbeScreenAsync($"detail-no-art-{type}-{state}-{width}.png");
                     foreach (var suffix in new[] { "PlayButton", "RestartButton" })
                     {

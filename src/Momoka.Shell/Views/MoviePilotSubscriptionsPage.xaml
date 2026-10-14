@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MoviePilot 的订阅列表：电影一条、电视剧一条，各是侧边栏里的一个目的地（2026-10-13）。
+
+  版式与主页那两排订阅是同一套 —— 这一页不自己画卡片，直接把 MoviePilotSubscriptionsView 接上来，
+  再按这一条入口筛掉另一半（Row 给哪一排，另一排自己收着，见那个视图的 MoviesVisible／SeriesVisible）。
+  所以封面、刷新、订阅管理那张菜单、空态与错误提示都只有一份：主页那边改了这里跟着改。
+
+  这一页只多做两件主页那排做不到的事：一个页标题，和一条「什么都没有」时也说得出口的空态。空态里那颗
+  「刷新订阅」不是重复 —— 内容为空时那一排自带的刷新键跟着整排一起收起（它在那排自己的可见性里），
+  只留一句话就等于这一页没有出口。
+-->
+<Page
+    x:Class="Momoka.Shell.Views.MoviePilotSubscriptionsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Momoka.Shell.Views"
+    Background="{ThemeResource LayerFillColorDefaultBrush}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Padding="{StaticResource EgPageMargin}" Spacing="{StaticResource EgSpaceXL}">
+            <TextBlock x:Name="PageTitle" Style="{StaticResource EgPageTitleStyle}" />
+            <local:MoviePilotSubscriptionsView x:Name="Subscriptions" />
+            <StackPanel x:Name="EmptyState" Spacing="{StaticResource EgSpaceM}" Visibility="Collapsed">
+                <TextBlock x:Name="EmptyText" Style="{StaticResource EgBodyStyle}" />
+                <Button x:Name="RefreshSubscriptions" Content="刷新订阅"
+                    Style="{StaticResource EgSecondaryButtonStyle}" Click="OnRefresh" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

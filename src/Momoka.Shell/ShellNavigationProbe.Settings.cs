@@ -30,7 +30,7 @@ internal sealed partial class ShellNavigationProbe
         var evidence = new List<string> { $"系统动画：{HomeMotion.AnimationsEnabled}" };
         var page = new SettingsPage();
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
-            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
+            fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings), new MoviePilotCredentials(PassthroughSecretProtector.Instance),
             fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
@@ -188,7 +188,7 @@ internal sealed partial class ShellNavigationProbe
 
         var page = new SettingsPage();
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
-            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
+            fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
@@ -250,6 +250,128 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
+    /// 设置 → 界面 → 「开机自启」：这一行和这一页别的行都不一样 —— 它写进去的不是设置文件，而是机器上的启动项
+    /// （HKCU 的 Run），所以它坏掉的样子几乎全在屏外：开关拨了没写下去（屏上照样亮着、机器上什么都没变）、写不
+    /// 下去时开关不肯拨回去（用户以为改成了）、初值不是问机器而是写死一个「关」（机器上开着，屏上却是关的），以及
+    /// 打包安装那一档下这一行本该整个不显示却还在。
+    /// <para>
+    /// 驱动的是真控件、真那一行，接的却是假实现：探针绝不能真写 HKCU 里那条启动项 —— 那会在跑探针这台机器上
+    /// 留下一条真的开机自启，而那是用户机器上的登记，不是探针该动的东西。
+    /// </para>
+    /// </summary>
+    private async Task SettingsStartupRegistrationAsync()
+    {
+        const string label = "开机自启";
+        using var fixture = CreateFixture();
+        using var moviePilot = new MoviePilotClient(new RejectNetwork());
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, "settings-startup"));
+        paths.EnsureCreated();
+        // 同 SettingsEntranceAsync：本例不扫机器上的数千字体，给现有缓存放入空目录。
+        var fonts = new FontLibrary();
+        Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
+
+        // 先把它摆成「机器上开着」：这一行的初值只能来自那台机器的事实，写死一个「关」在这一步就露馅。
+        Require(fixture.Startup.Apply(true) && fixture.Startup.IsEnabled, "假启动项没有摆成开着");
+
+        var page = new SettingsPage();
+        page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
+            fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
+            new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+        await page.ViewModel.ReloadAsync();
+        _root.Children.Add(page);
+        try
+        {
+            page.SelectedCategory = "界面";
+            await SettleAsync();
+
+            ToggleSwitch Control() => Descendants(page).OfType<ToggleSwitch>()
+                .Single(control => AutomationProperties.GetName(control) == label);
+
+            SettingToggleRow Row() => page.ViewModel.Sections
+                .Where(section => section.Category == "界面")
+                .SelectMany(section => section.Rows)
+                .OfType<SettingToggleRow>()
+                .Single(candidate => candidate.Label == label);
+
+            Require(Row().IsOn && Control().IsOn, "机器上开着，这一行却没有读成开");
+            Require(Row().Note.Contains("启动项", StringComparison.Ordinal)
+                && Row().Note.Contains("设置文件", StringComparison.Ordinal),
+                "这一行的说明没写明它改的是机器上的启动项、不进设置文件：" + Row().Note);
+
+            // 关掉：机器上那一条要真被撤掉，屏上两处跟着走。
+            fixture.Startup.Requests.Clear();
+            Control().IsOn = false;
+            await SettleAsync();
+            Require(fixture.Startup.Requests.SequenceEqual([false]) && !fixture.Startup.IsEnabled,
+                $"拨到关没有写下去（收到 {string.Join('、', fixture.Startup.Requests)}）");
+            Require(!Row().IsOn && !Control().IsOn, "拨到关之后屏上没有跟着走");
+
+            // 再打开。
+            fixture.Startup.Requests.Clear();
+            Control().IsOn = true;
+            await SettleAsync();
+            Require(fixture.Startup.Requests.SequenceEqual([true]) && fixture.Startup.IsEnabled, "拨到开没有写下去");
+            Require(Row().IsOn && Control().IsOn, "拨到开之后屏上没有跟着走");
+
+            // 写不下去（组策略挡住、注册表只读、安全软件拦下）：开关必须拨回去并说一句，
+            // 而不是停在用户拨的那一档 —— 那正是这一页最怕的「界面在骗人」。
+            fixture.Startup.Refuse = true;
+            Control().IsOn = false;
+            await SettleAsync();
+            Require(fixture.Startup.IsEnabled, "假启动项在被拒绝时仍改了状态（这一条用例本身就假了）");
+            Require(Row().IsOn && Control().IsOn, "写不下去时开关没有拨回真正生效的那一档");
+            Require(page.ViewModel.NoticeOpen && page.ViewModel.NoticeSeverity == InfoBarSeverity.Error
+                && (page.ViewModel.NoticeMessage ?? "").Contains("没能关掉", StringComparison.Ordinal),
+                $"写不下去时没有说一句：开={page.ViewModel.NoticeOpen}、话=「{page.ViewModel.NoticeMessage}」");
+            fixture.Startup.Refuse = false;
+
+            // 打包安装那一档：这一条办不到，整行不显示（按项目规则整个收起，不是置灰）。
+            fixture.Startup.Available = false;
+            await page.ViewModel.ReloadAsync();
+            page.SelectedCategory = "界面";
+            await SettleAsync();
+            Require(!Rows().Any(row => row.Label == label), "打包安装那一档下这一行的数据行还在");
+            Require(!Descendants(page).OfType<Control>().Any(control => AutomationProperties.GetName(control) == label)
+                && !Descendants(page).OfType<TextBlock>().Any(text => text.Text == label),
+                "打包安装那一档下这一行的控件或标签还在屏上");
+
+            // 装回来，并留一张宽窄两档的实屏。
+            fixture.Startup.Available = true;
+            await page.ViewModel.ReloadAsync();
+            page.SelectedCategory = "界面";
+            await SettleAsync();
+            Require(Rows().Any(row => row.Label == label), "办得到的时候这一行没有装回来");
+
+            foreach (var width in new[] { 1100, 760 })
+            {
+                ResizeInspect(width, 900);
+                await SettleAsync();
+                Control().StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.5 });
+                await LayoutAsync(page);
+                await SaveProbeScreenAsync($"settings-interface-startup-{width}-screen.png");
+            }
+
+            IReadOnlyList<SettingRow> Rows() => [.. page.ViewModel.Sections
+                .Where(section => section.Category == "界面")
+                .SelectMany(section => section.Rows)];
+
+            async Task SettleAsync()
+            {
+                await LayoutAsync(page);
+                await WaitForSettingsSettledAsync(page);
+                AssertSettingsSettled(page);
+            }
+        }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
+            ResizeInspect(1420, 980);
+        }
+    }
+
+    /// <summary>
     /// 「非管理员账号自动隐藏设置里的 EmbyServer 那一栏」：把假服务器报成普通账号，左栏那一组整个不出现，
     /// 紧凑窗口的下拉里也不列那五个分类；报回管理员时整组装回来，顺序照旧。
     /// <para>
@@ -271,7 +393,7 @@ internal sealed partial class ShellNavigationProbe
 
         var page = new SettingsPage();
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
-            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
+            fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
@@ -474,7 +596,7 @@ internal sealed partial class ShellNavigationProbe
         Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
         var page = new SettingsPage();
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
-            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
+            fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
         _root.Children.Add(page);

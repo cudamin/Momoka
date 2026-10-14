@@ -50,8 +50,9 @@ public sealed partial class ShellPage
 
     /// <summary>
     /// 把这一排按键的几种状态各摆一遍，量出来对一遍：设置、搜索两颗任何时候都按得动；两头都走不动时两支箭头
-    /// 都在、都是暗的；能退不能进时只有返回亮；两样都能走又有两层路径时，两支箭头加面包屑那一行。主页那颗的
-    /// 亮暗跟着 <c>_current</c> 走，这里不摆它 —— 排成一行、落在标题栏里这两件事照量。
+    /// 都在、都按不动（**2026-10-13 晚起不再变淡** —— 停用走的是静止那支墨，见 <c>_titleInk</c>，所以这一关
+    /// 问的是 <c>IsEnabled</c>，不是墨的深浅）；能退不能进时只有返回按得动；两样都能走又有两层路径时，两支箭头
+    /// 加面包屑那一行。主页那颗的亮暗跟着 <c>_current</c> 走，这里不摆它 —— 排成一行、落在标题栏里这两件事照量。
     /// <para>
     /// 之所以要一个探针而不是直接看现场：后两颗由 <c>Frame.CanGoBack</c>、<c>Frame.CanGoForward</c> 和路径深度
     /// 决定，而前两件是框架自己算的，自检没法让它说某句话。<see cref="ApplyChrome"/> 把三件事变成参数，于是每
@@ -72,9 +73,9 @@ public sealed partial class ShellPage
             Windows.Foundation.Point At(FrameworkElement element) =>
                 element.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));
 
-            // 顺序就是屏幕上从左到右的顺序：主页、设置、搜索、后退、前进（主页那颗 2026-09-08 加的 —— 顶上那条
-            // 标签栏删掉之后，回主页只此一颗）。
-            Button[] keys = SidebarShown ? [BackButton, ForwardButton] : FavoritesButton.Visibility == Visibility.Visible
+            // 顺序就是屏幕上从左到右的顺序。侧边栏模式里前三颗是「导航开关、后退、前进」—— 开关 2026-10-13
+            // 从侧边栏内部挪到标题栏左上角，两支箭头因此紧跟在它右边（见 ShellPage.Sidebar.cs）。
+            Button[] keys = SidebarShown ? [NavToggleButton, BackButton, ForwardButton] : FavoritesButton.Visibility == Visibility.Visible
                 ? [HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton]
                 : [HomeButton, SettingsButton, SearchButton, BackButton, ForwardButton];
 
@@ -144,9 +145,9 @@ public sealed partial class ShellPage
                     + $"，占 {TitleActions.ActualWidth:0}×{TitleActions.ActualHeight:0}，最大间距 {widest:0}；"
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"
-                    + $"哪儿都走不动时{(idle ? "当前模式的按键都在、设置搜索可用、两支箭头暗、面包屑整行收起" : "不对")}、"
-                    + $"只能退时{(shallow ? "只有返回亮" : "不对")}、"
-                    + $"两头都能走时{(deep ? "两支亮加面包屑" : "不对")}",
+                    + $"哪儿都走不动时{(idle ? "当前模式的按键都在、设置搜索可用、两支箭头按不动、面包屑整行收起" : "不对")}、"
+                    + $"只能退时{(shallow ? "只有返回按得动" : "不对")}、"
+                    + $"两头都能走时{(deep ? "两支都按得动加面包屑" : "不对")}",
                 group.X, group.Y, TitleActions.ActualWidth, TitleActions.ActualHeight);
         }
         finally
@@ -169,6 +170,8 @@ public sealed partial class ShellPage
     /// 多让就是图上一条底色，而第 1 行没删干净的样子正是这里多出来的那 48。</item>
     /// <item>账号那颗按钮贴着右上角（留在系统那三颗窗口按钮左边），而且和左边那一排五颗同在标题栏那 32 像素里
     /// —— 它挪进来是第 1 行删掉的后果，落位错了就压不进挖给它的洞，一按就是拖窗口。</item>
+    /// <item>账号那两格字的排法跟着落位走：侧边栏展开那一档两行（用户名在上、服务器名在下），其余各档一行
+    /// （「名字 · 服务器」）。</item>
     /// </list>
     /// 那颗「主页」按钮和左边那一排的落位排布由 <see cref="ProbeTitleActions"/> 一起量。
     /// </summary>
@@ -183,21 +186,54 @@ public sealed partial class ShellPage
         var accountAt = At(AccountButton);
         var right = accountAt.X + AccountButton.ActualWidth;
         var accountShown = AccountButton.Visibility == Visibility.Visible;
+
+        // 账号那一组 2026-10-13 起有两种落位：侧边栏在屏上时它整组落在窗口左下角（栏的左端、贴着下沿），
+        // 不在侧边栏模式时它回到标题栏右上角、留在系统那三颗窗口按钮左边。两种都要求它真的在屏上、
+        // 而且没有压出窗口。
+        var clusterAt = At(AccountCluster);
         var corner = accountShown
             && AccountButton.ActualWidth > 0
-            && right <= ActualWidth + 0.5
-            && ActualWidth - right <= 200
-            && accountAt.Y >= barAt.Y - 0.5
-            && accountAt.Y + AccountButton.ActualHeight <= chrome + 0.5;
+            && AccountButton.ActualHeight > 0
+            && (SidebarShown
+                ? clusterAt.X <= 1
+                    && clusterAt.Y + AccountCluster.ActualHeight >= ActualHeight - 1
+                    && clusterAt.X + AccountCluster.ActualWidth <= ActualWidth + 0.5
+                : right <= ActualWidth + 0.5
+                    && ActualWidth - right <= 200
+                    && accountAt.Y >= barAt.Y - 0.5
+                    && accountAt.Y + AccountButton.ActualHeight <= chrome + 0.5);
 
-        var ok = shown && stacked && corner;
+        // 账号那两格字的排法（2026-10-13 用户：「改成用户名在上服务器名在下」）：侧边栏展开那一档是两行 ——
+        // 用户名在上、服务器名在下、左沿对齐在同一条竖线上，中间那个「·」收起，按钮真长到了两行那么高；
+        // 其余各档是一行 —— 「名字 · 服务器」，名字在服务器名左边。排错了在截图里都只是「一行小字」，
+        // 得逐字读才看得出来，所以按两格字的相对位置判，不按截图。
+        var twoLines = SidebarShown && Sidebar.IsPaneOpen;
+        var textShown = AccountText.Visibility == Visibility.Visible;
+        var userAt = At(AccountUser);
+        var serverAt = At(AccountServer);
+        var arrangement = !textShown
+            ? true
+            : twoLines
+                ? userAt.Y + AccountUser.ActualHeight <= serverAt.Y + 1
+                    && Math.Abs(userAt.X - serverAt.X) <= 1
+                    && AccountDot.Visibility == Visibility.Collapsed
+                    && AccountButton.ActualHeight >= AccountUser.ActualHeight + AccountServer.ActualHeight
+                : Math.Abs(userAt.Y - serverAt.Y) <= 1 && userAt.X < serverAt.X;
+        var arrangementText = !textShown
+            ? "那两格字收着（图标栏）"
+            : twoLines
+                ? arrangement ? "两行：用户名在上、服务器名在下" : "两格字的排法不对（该两行、用户名在上）"
+                : arrangement ? "一行：名字 · 服务器" : "两格字的排法不对（该一行、名字在左）";
+
+        var ok = shown && stacked && corner && arrangement;
 
         return (ok,
             $"{(shown ? "外壳在屏上" : "外壳收着了")}；"
                 + $"标题栏从 y={barAt.Y:0} 起、高 {AppTitleBar.Height:0}，外壳共 {chrome:0} 高"
                 + $"（该 {HomePage.ChromeHeight:0}{(stacked ? "" : "，对不上")}）；"
-                + $"账号 {(accountShown ? $"{AccountButton.ActualWidth:0}×{AccountButton.ActualHeight:0} 右沿 {right:0}／窗口宽 {ActualWidth:0}" : "收着")}"
-                + $"，{(corner ? "贴着右上角、在标题栏里" : "不在右上角或压出了标题栏")}");
+                + $"账号 {(accountShown ? $"{AccountButton.ActualWidth:0}×{AccountButton.ActualHeight:0} 左沿 {accountAt.X:0}／窗口 {ActualWidth:0}×{ActualHeight:0}" : "收着")}"
+                + $"，{(corner ? SidebarShown ? "落在左下角、在侧边栏里" : "贴着右上角、在标题栏里" : "不在它该在的位置")}"
+                + $"，{arrangementText}");
 
         Windows.Foundation.Point At(FrameworkElement element) =>
             element.TransformToVisual(this).TransformPoint(new Windows.Foundation.Point(0, 0));

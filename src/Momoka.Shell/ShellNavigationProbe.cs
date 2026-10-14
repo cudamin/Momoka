@@ -41,9 +41,13 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(_root);
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
+            await CaseAsync("侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页", MoviePilotSidebarAsync, 45);
             await CaseAsync("剧页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Series), 30);
             await CaseAsync("季页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Season), 30);
             await CaseAsync("电影页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Movie), 30);
+            // 集页封面只在宽版式里画（紧凑版式整个收掉），加上集页紧凑版式的那张背景图、以及尾部那条窄带在
+            // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
+            await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
             await CaseAsync("切回 Emby 恢复查询代次", ResumeQueryAsync);
             await CaseAsync("切季与整页刷新交错不清空", SeasonRefreshRaceAsync);
             await CaseAsync("旧导航恢复不补新搜索", NavigationRestoreRaceAsync);
@@ -92,6 +96,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
             // 设置 → 界面新增一行「首页媒体库位置」，宽窄两帧截图 + 三档写回。
             await CaseAsync("界面卡上的首页媒体库位置三档", SettingsHomeLibraryPlacementAsync, 30);
+            // 设置 → 界面新增一行「开机自启」：拨开关写的是机器上的启动项（假实现），办不到时整行不显示，
+            // 另留宽窄两帧截图。
+            await CaseAsync("界面卡上的开机自启开关", SettingsStartupRegistrationAsync, 30);
             // 每档包含多轮真实控件切换与截图，单独计时，原有用例仍保持 12 秒超时。
             await CaseAsync("视频基础输出显隐与偏好恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100), 45);
             await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45);
@@ -121,7 +128,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 按季订阅、三种模式与取消草稿", MoviePilotSeasonSelectionAsync);
             await CaseAsync("MoviePilot 剧集组与入库状态迟到隔离", MoviePilotMediaReadRacesAsync);
             // 同时检查季折叠栏的五套主题、摘要恢复与展开/折叠实屏截图。
-            await CaseAsync("MoviePilot 完整固定背景与主题", MoviePilotMediaBackgroundAsync, 30);
+            await CaseAsync("MoviePilot 背景按页宽等比、下滑遮罩与纸面", MoviePilotMediaBackgroundAsync, 30);
             await CaseAsync("MoviePilot 按季提交部分失败与核对", MoviePilotSeasonPartialSubmitAsync);
             await CaseAsync("MoviePilot 字幕列表、保存路径、取消与站点变更", MoviePilotMediaSubtitlesAsync);
             await CaseAsync("季页面右侧播放图标与原播放路由", SeasonTrailingPlayAsync);
@@ -226,6 +233,7 @@ internal sealed partial class ShellNavigationProbe
         public EmbyImageStore Images { get; }
         public FakeCapabilities Capabilities { get; } = new();
         public ISystemLauncher Launcher { get; } = new FakeLauncher();
+        public FakeStartup Startup { get; } = new FakeStartup();
         public IServiceProvider Services { get; }
         public Fixture(string root, HttpMessageHandler? moviePilotTransport = null, HttpMessageHandler? aniBtTransport = null)
         {
@@ -245,7 +253,8 @@ internal sealed partial class ShellNavigationProbe
                 // 按接口注册，不按 FakeCapabilities：页面解析的是 IServerCapabilities，而泛型参数写死之后
                 // 注册进去的就是那个具体类型。
                 .AddSingleton(Images).AddSingleton<IServerCapabilities>(Capabilities).AddSingleton(vault).AddSingleton(moviePilot)
-                .AddSingleton<IShellActions>(Actions).AddSingleton(Launcher).BuildServiceProvider();
+                .AddSingleton<IShellActions>(Actions).AddSingleton(Launcher).AddSingleton<IStartupRegistration>(Startup)
+                .BuildServiceProvider();
         }
         public async Task SelectAsync(string host = "a.invalid", string user = "user")
         {
@@ -342,6 +351,33 @@ internal sealed partial class ShellNavigationProbe
     {
         public void OpenFolder(string path) => throw new InvalidOperationException("探针不打开外部程序");
         public void OpenUrl(string url) => throw new InvalidOperationException("探针不打开外部程序");
+    }
+
+    /// <summary>
+    /// 假的启动项：探针绝不能真写 HKCU 里那条开机自启 —— 那会在跑探针这台机器上留下一条真的启动项。拨一下只
+    /// 记在内存里，并照真实实现那样「写完读回来」，好让用例验得动「写进去了没有」这条线。
+    /// </summary>
+    private sealed class FakeStartup : IStartupRegistration
+    {
+        /// <summary>这一台机器上办不办得到。置假就是打包安装那一档，设置页上那一行该整个不显示。</summary>
+        public bool Available { get; set; } = true;
+
+        /// <summary>置真时 <see cref="Apply"/> 什么都不改，模拟组策略或安全软件挡下 —— 走「开关拨回去」那条路。</summary>
+        public bool Refuse { get; set; }
+
+        public bool IsEnabled { get; private set; }
+
+        /// <summary>拨过哪几档，按次序。探针拿它验「拨一下真写下去了没有」。</summary>
+        public List<bool> Requests { get; } = [];
+
+        public bool Apply(bool enabled)
+        {
+            Requests.Add(enabled);
+            if (Refuse) return false;
+
+            IsEnabled = enabled;
+            return true;
+        }
     }
     private sealed class FakeActions : IShellActions
     {

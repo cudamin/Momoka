@@ -274,6 +274,7 @@ internal static partial class ShellSelfCheck
                 shell,
                 services.GetRequiredService<Momoka.Emby.EmbyImageStore>(),
                 services.GetRequiredService<Momoka.Playback.AudioDeviceCatalogue>(),
+                services.GetRequiredService<Momoka.Shell.Platform.IStartupRegistration>(),
                 report,
                 Check);
             ReportDashboard(report, Check);
@@ -337,9 +338,9 @@ internal static partial class ShellSelfCheck
         Check("主页轮播", banner.Ok, banner.Detail);
 
         // 标题栏上那一排按键. 一半问外壳、一半问窗口：外壳那半是各种状态摆得对不对（两头走不动时箭头照旧站着、
-        // 只是暗下来，而不是一支消失把旁边的挪走；折叠、设置、搜索三颗任何时候都按得动），窗口那半是那块地方到
-        // 底属于谁 —— 按键画在标题栏里，就必须在拖动区上挖出正好那么大一个洞，洞小了点不着按钮，洞大了或者挖
-        // 错地方就整条拖不动窗口。
+        // 只是按不动而不是一支消失把旁边的挪走 —— 2026-10-13 晚起也不再变淡，见 ShellPage._titleInk；折叠、设置、
+        // 搜索三颗任何时候都按得动），窗口那半是那块地方到底属于谁 —— 按键画在标题栏里，就必须在拖动区上挖出
+        // 正好那么大一个洞，洞小了点不着按钮，洞大了或者挖错地方就整条拖不动窗口。
         var keys = TitleBarKeys(window, shell, captionAtStartup);
         Check("标题栏按键", keys.Ok, keys.Detail);
 

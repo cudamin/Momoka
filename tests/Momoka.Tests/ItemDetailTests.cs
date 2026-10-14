@@ -1442,49 +1442,35 @@ internal static class ItemDetailTests
             Assert.Null(DetailHero.StillBox(667, 1000, 210, double.PositiveInfinity));
         });
 
-        Test("头图封面：宽窗固定上限，窄窗等比缩小", () =>
+        // 「固定集页面封面的大小，拉窄窗口时不要缩小」+「切换到窄窗口时可以缩小」（2026-10-13 同一天两句）
+        // 那一版有一条按页面对 1024 的比例收的曲线（`DetailHero.StillWidth`），只活了几十分钟 —— 同一天最后
+        // 一句「窄窗口下不要封面」把紧凑版式那一档整个拿掉（见下面那条），曲线连同它那一组断言一起退役。
+        // 这里剩下的是「图怎么装进那一格」：盒子只有宽版式会用，两个数都是定值（DetailViewModel 里那两对
+        // 常量），所以这一条量的是 StillBox，不是「那一格多大」。
+        Test("头图封面：按图自己的形状装进那一格，一个像素不裁", () =>
         {
-            Assert.Equal(260d, DetailHero.StillWidth(1280, 260, 1280));
-            Assert.Equal(260d, DetailHero.StillWidth(2000, 260, 1280));
-            Assert.Equal(260d, DetailHero.StillWidth(3840, 260, 1280));
-            Assert.Equal(208d, DetailHero.StillWidth(1024, 260, 1280));
-            Assert.Equal(130d, DetailHero.StillWidth(640, 260, 1280));
-            Assert.True(Math.Abs(DetailHero.StillWidth(1023, 260, 1280) - 208) < 0.21);
-
-            // 缩窄时同时缩放上限盒的高，图片原比例与完整内容保持不变。
+            // 2:3 的剧海报装进集页那一格（260×375）：贴着高，宽收到 250 —— 比盒子窄，所以不裁。
             Assert.Equal((250d, 375d), DetailHero.StillBox(800, 1200, 260, 375));
-            Assert.Equal((200d, 300d), DetailHero.StillBox(800, 1200, 208, 300));
-            Assert.Equal((125d, 187.5d), DetailHero.StillBox(800, 1200, 130, 187.5));
 
-            // 页面尚未量到或不可用时保留上限，不生成 NaN 布局尺寸。
-            Assert.Equal(260d, DetailHero.StillWidth(0, 260, 1280));
-            Assert.Equal(260d, DetailHero.StillWidth(double.NaN, 260, 1280));
-            Assert.Equal(210d, DetailHero.StillWidth(1554, 210, 0));
-            Assert.Equal(0d, DetailHero.StillWidth(1554, 0, 1280));
+            // 同一张图任何时候装出来都是同一个结果：那一格没有跟着窗口走的数。
+            Assert.Equal((260d, 146d), DetailHero.StillBox(1920, 1080, 260, 375));
+
+            // 其余页面那一格照旧 210×300。
+            Assert.Equal((200d, 300d), DetailHero.StillBox(667, 1000, 210, 300));
         });
 
-        // 「剧页面和集页面窄窗口下不用显示封面」+「集页面的封面留着」+「电影页面窄窗口也要隐藏左上角的封面」
-        // （2026-09-12 同日三句）—— 紧凑版式里剧、电影两页不画封面，季、集照旧；宽版式四页全画。一天四句的
-        // 来龙去脉在 DetailHero.ShowsStill 的注释里：早上全救回来、中午点走剧、集两页、傍晚把集页还回，
-        // 最后把电影页也收了回去。
-        Test("头图封面：紧凑版式里剧、电影不画，季集照旧", () =>
+        // 「窄窗口下不要封面」（2026-10-13）—— 紧凑版式下四种页面同一个答案：都不画。这一句把 2026-09-12 那天
+        // 按页分的那条规矩整个作废（那天的来龙去脉在 DetailHero.ShowsStill 的注释里：早上把「紧凑版式不画海报」
+        // 整个作废、中午点走剧和集两页、傍晚「集页面的封面留着」把集页还回来、再一句把电影页也收回去，
+        // 最后落在「剧、电影两页不画，季、集照旧」）。
+        Test("头图封面：紧凑版式下四种页面都不画", () =>
         {
-            // 紧凑档：剧页不要封面 —— 画面条铺的本来就是同一部剧的图，单列里它是纯占地方。
-            Assert.False(DetailHero.ShowsStill(compact: true, type: EmbyItemType.Series));
+            // 紧凑档：四页一个答案，type 这个自变量已经不在这一支的签名里了。
+            Assert.False(DetailHero.ShowsStill(compact: true));
 
-            // 电影页是同日最后一句收回去的。
-            Assert.False(DetailHero.ShowsStill(compact: true, type: EmbyItemType.Movie));
-
-            // 「集页面的封面留着」：它把集列表往下压一截这件事他不要了，封面照画；季页同一个答案。
-            Assert.True(DetailHero.ShowsStill(compact: true, type: EmbyItemType.Episode));
-            Assert.True(DetailHero.ShowsStill(compact: true, type: EmbyItemType.Season));
-
-            // 类型还没到手（null，导航之前）当要画：这一拍页宽还是 0，紧凑根本没成立。
-            Assert.True(DetailHero.ShowsStill(compact: true, type: null));
-
-            // 宽版式（还没量到宽也算宽，IsCompact 对 0 就是 false）四页全画：紧凑线以上一张不少，
+            // 宽版式（还没量到宽也算宽 —— IsCompact 对 0 是 false）照旧画：紧凑线以上一张不少，
             // 窗口从窄拉宽跨过 1024 的那一下封面就地回来。
-            Assert.True(DetailHero.ShowsStill(compact: false, type: EmbyItemType.Series));
+            Assert.True(DetailHero.ShowsStill(compact: false));
         });
 
         // 角图的题栏保底（同日）—— 窗口窄下来它让位，题栏永远留得住参考宽上那一份。

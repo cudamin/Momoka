@@ -381,7 +381,9 @@
                              「集页面的封面改用剧页面的封面」，取图改在 StillAsync）：从前集页摆的是本集自己的
                              16:9 剧照，跟海报摆在一页上说着两件事。这一张的尺寸不跟海报卡那一档
                              （CardSize.PosterWidth）走，是全应用唯一的例外，理由见 DetailViewModel.PosterStillWidth；
-                             集页的宽版式上它随窗口宽走（DetailHero.StillWidth）。
+                             集页那一格是参考截图上量的 260×375（DetailViewModel.EpisodeStillWidth），和其余页面的
+                             210×300 一样是个定值，不随窗口宽走 —— 「固定集页面封面的大小，拉窄窗口时不要缩小」，
+                             而它只画在宽版式上：紧凑版式下四种页面都不画（2026-10-13「窄窗口下不要封面」）。
                              宽高是绑上来的而不是写死的两个数：图到手之后这一格按它自己的形状收窄（见
                              DetailHero.StillBox），所以「海报下方会被裁切」那件事在这一格的尺寸上就没了。Uniform
                              因此只是那道保险 —— 盒子和图已经同形，取整差的那半像素宁可留一线底色，不要裁掉。 -->
@@ -854,8 +856,9 @@
                           右上角那张艺术图 —— 「给集页面右上角添加艺术图」（2026-09-12）。艺术图是横的、上面没有字，
                           所以它当得起「角上摆一张画」这件事；哪一张归这儿由 ItemArtwork.Corner 定：这一集自己的，
                           没有就借剧集那一层的 —— 一集自己几乎不会有这张图，而服务器也不下发 ParentArt，剧集那个
-                          条目是取图那一遍自己去要的。集页现在不铺背景图，所以这一页上没有第二处画它，不存在从前
-                          「整页站在同一张图上、角上再钉一张缩印本」的重。
+                          条目是取图那一遍自己去要的。同一页上不会有两处画它：集页的宽版式不铺背景图，而紧凑版式
+                          铺图的那一档这一角本来就收着（CornerVisibility 的第三句）—— 从前「整页站在同一张图上、
+                          角上再钉一张缩印本」那种重，没有回来的路。
 
                           只在集页上画（CornerVisibility 的三句话），剧、电影、季页上这一格收着，Auto 那一栏收成
                           0 宽 —— 片名那一栏照旧把地方全占回来。摆一栏而不是压在字那一栏的右上角：占一栏，字就
@@ -952,7 +955,7 @@
                         x:Name="TailContent"
                         Width="{x:Bind ViewModel.HeroLayoutWidth, Mode=OneWay}"
                         Padding="{x:Bind ViewModel.TailInset, Mode=OneWay}"
-                        Spacing="12">
+                        Spacing="{x:Bind ViewModel.TailSpacing, Mode=OneWay}">
 
                         <!-- 三个文件选项下拉刻意不撑满整行：撑满会读成表格的一行，而 Header 是前缀不是列标题。
 
@@ -1012,6 +1015,7 @@
                             Style="{StaticResource EgBodyPanelStyle}"
                             Background="Transparent"
                             BorderThickness="0"
+                            Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.PickersVisibility, Mode=OneWay}">
                             <StackPanel.Resources>
                                 <!-- 弹层那支也跟着走（用户 2026-10-09 第二条：「展开后背景要和未展开一样」）：
@@ -1065,9 +1069,12 @@
 
                         <!-- ============ 紧凑版式的那一块 ============ -->
                         <!-- 页面窄过 1024（DetailHero.CompactFloor —— 「缩小到一定程度后 UI 参考手机版式切换」）
-                             就换单列的紧凑版式：头图上剩片名那一叠和封面（封面的去留是另一条规矩 —— 剧、电影
-                             两页不画，季、集照旧，见 DetailHero.ShowsStill），宽版式那排键让位，同一排键和
-                             断点进度排在这里 —— 画面底下那段压暗的暗区里。
+                             就换单列的紧凑版式：头图上只剩片名那一叠（封面在这一档整个不画 —— 2026-10-13
+                             「窄窗口下不要封面」，四种页面同一个答案，见 DetailHero.ShowsStill），宽版式那排键
+                             让位，同一排键和断点进度排在这里 —— 画面底下那段压暗的暗区里。
+                             这一块和上面两块（文件选项、剧情说明）同属尾部那条窄带，三块的竖距和内边距在紧凑
+                             档各收一档（DetailViewModel.TailSpacing／TailPanelPadding，同一天「这些组件上下之间
+                             弄紧凑一点」）—— 从前三块各带 24 的上下内边距、之间再隔 12，单列里就是一屏的空。
                              从前这一块照参考图排的是「图标在上、字在下」的格子行、播放键通栏；他看完要回
                              宽版式那副样子（2026-09-12：「把窄窗口里播放按钮下的已看、喜欢、网页等按钮删除，
                              恢复上方被隐藏的原按钮」，配图正是宽版式那两排）—— 于是这一块和宽版式排的是
@@ -1088,7 +1095,8 @@
                             Style="{StaticResource EgBodyPanelStyle}"
                             Background="Transparent"
                             BorderThickness="0"
-                            Spacing="16"
+                            Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
+                            Spacing="10"
                             Visibility="{x:Bind ViewModel.CompactVisibility, Mode=OneWay}">
                             <local:WrapRow RowSpacing="10" Spacing="10">
                                 <Button
@@ -1241,6 +1249,7 @@
                             Style="{StaticResource EgBodyPanelStyle}"
                             Background="Transparent"
                             BorderThickness="0"
+                            Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
                             Spacing="2"
                             Visibility="{x:Bind ViewModel.OverviewVisibility, Mode=OneWay}">
                             <TextBlock
@@ -1284,9 +1293,9 @@
                         x:Name="BodySheet"
                         Grid.Row="1"
                         MinHeight="{x:Bind ViewModel.PaperMinHeight, Mode=OneWay}"
-                        Padding="28"
+                        Padding="{x:Bind ViewModel.SheetPadding, Mode=OneWay}"
                         Background="{ThemeResource EgWindowBrush}"
-                        Spacing="20">
+                        Spacing="{x:Bind ViewModel.SheetSpacing, Mode=OneWay}">
 
                         <!-- 单集：季页一行一集的竖置列表，剧页和集页一条横向翻页带 ——「只有季页的集使用竖置
                              列表列表就好，另外两个页面使用竖置翻页」。两种形状共用上面这一个标题和季切换（切换

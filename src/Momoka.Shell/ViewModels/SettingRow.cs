@@ -307,6 +307,7 @@ public sealed partial class SettingToggleRow : SettingRow
     private readonly Action _save;
     private readonly Action? _after;
     private readonly bool _seeded;
+    private bool _resetting;
 
     internal SettingToggleRow(string label, string note, bool value, Action<bool> write, Action save, Action? after = null)
         : base(label, note)
@@ -321,9 +322,25 @@ public sealed partial class SettingToggleRow : SettingRow
     [ObservableProperty]
     public partial bool IsOn { get; set; }
 
+    /// <summary>
+    /// 把开关摆到它真正生效的那一档，不算一次用户拨动 —— 不写、不存、不再喊 <c>after</c>。
+    /// <para>
+    /// 只有设置 → 界面那张卡上的「开机自启」用得上：它写的不是设置文件而是机器上的启动项，而那一下可能办不成
+    /// （组策略挡住、注册表只读、安全软件拦下）。不摆回去的话，开关停在用户拨的那一档、机器上什么都没变，
+    /// 而这一页没有任何别的读数会响 —— 正是这一页最怕的「界面在骗人」。别的开关写的是内存里的文档，失败只会让
+    /// 顶上那条「未保存」亮起来，用不到这一手。
+    /// </para>
+    /// </summary>
+    internal void Reseed(bool value)
+    {
+        _resetting = true;
+        try { IsOn = value; }
+        finally { _resetting = false; }
+    }
+
     partial void OnIsOnChanged(bool value)
     {
-        if (!_seeded) return;
+        if (!_seeded || _resetting) return;
         _write(value);
         _save();
         _after?.Invoke();

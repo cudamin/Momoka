@@ -207,7 +207,7 @@ internal static class HomeLayoutTests
             var restored = HomeLayout.Plan(saved, null);
             Assert.True(HomeLayout.Same(saved, restored), "订阅混排没有完整保存");
             Assert.False(restored[2].Visible, "关闭的电影订阅被重新勾选");
-            Assert.Equal("MoviePilot 电视剧订阅", restored[0].Title);
+            Assert.Equal("MP 电视剧订阅", restored[0].Title);
         });
 
         Test("主页版面：断线时编辑其他排不抹掉订阅偏好", () =>
@@ -237,6 +237,8 @@ internal static class HomeLayoutTests
         {
             var b = new HomeRowPlan(HomeLayout.LibraryKey("b"), "乙", true);
             var c = new HomeRowPlan(HomeLayout.LibraryKey("c"), "丙", true);
+            // 「MoviePilot 电影订阅」是改名之前存档里那一份标题（2026-10-13 晚起叫「MP 电影订阅」）：
+            // 这一条要的正是「认得出的键，标题照存档里那份留着」—— 拿旧名字当夹具比拿新名字更能说明问题。
             var mp = new HomeRowPlan(HomeLayout.MoviePilotMovies, "MoviePilot 电影订阅", false);
             var changed = HomeLayout.MergeEdits([b, mp, c], [
                 new(HomeLayout.LibraryKey("gone"), "已删库", true), c, c with { Visible = false }, b]);
@@ -253,7 +255,7 @@ internal static class HomeLayoutTests
                 Row(HomeLayout.MoviePilotMovies, "重复", true)], null);
             Assert.Equal(1, plan.Count(row => row.Key == HomeLayout.MoviePilotMovies));
             Assert.False(plan[0].Visible);
-            Assert.Equal("MoviePilot 电影订阅", plan[0].Title);
+            Assert.Equal("MP 电影订阅", plan[0].Title);
         });
 
         Test("主页版面：只有真变了才回写设置文件", () =>

@@ -26,7 +26,7 @@ description: "Develop, review and verify Momoka's MoviePilot integration: servic
 遵循 [CLAUDE.md 的显隐规则](../../../CLAUDE.md#功能可用性与显隐)，实现与验证分别联读 [Shell 技能](../momoka-winui-shell/SKILL.md#capability-dependent-visibility)和[验证技能](../momoka-verification/SKILL.md#capability-dependent-visibility)。
 
 - 入口判断使用 `MoviePilotService.Available`：开关已开启，且当前配置在本进程成功连接。`Enabled`、历史连接时间和缓存令牌都不能单独作为可用证据；配置变化通过 `AvailabilityChanged` 撤销旧状态。
-- 核对搜索面板、主页订阅、订阅管理、条目菜单及已打开的附属窗口。`ItemMenu.MoviePilotBlock` 在不可用时返回空组；`ShellPage.MoviePilot.cs` 收起窗口和对话框、退出不可用订阅页并清理前进/后退历史。新增入口须接入同一变化链，保留设置中的启用、连接配置和状态反馈。
+- 核对搜索面板、主页订阅、侧栏「订阅」那一段（两条入口与那条分区标题同进同退，见 `ShellPage.Sidebar.cs` 的 `SyncSidebar`）、订阅管理、条目菜单及已打开的附属窗口。`ItemMenu.MoviePilotBlock` 在不可用时返回空组；`ShellPage.MoviePilot.cs` 收起窗口和对话框、退出不可用订阅页并清理前进/后退历史。新增入口须接入同一变化链，保留设置中的启用、连接配置和状态反馈。
 - 隐藏不删除连接配置，也不解除下载、订阅和整理的防重状态。执行入口仍核对当前连接与结果身份，迟到响应不得重新显示旧面板。
 - `ShellNavigationProbe.MoviePilotAvailability.cs` 提供仅开启但未验证、连接成功、断线、恢复和关闭的假服务器场景。按当前断言核实覆盖；普通搜索及独立来源的入口按自身依赖判断，不能只因位于同一面板就一并隐藏。
 

@@ -81,12 +81,27 @@ public sealed partial class DetailViewModel : PageViewModel
 
     private const int PosterStillHeight = 300;
 
-    // 集页按参考截图固定最大封面；窄窗等比缩小，不受右侧文字行数影响。
+    /// <summary>
+    /// 集页那一格封面有多大 —— 260×375 是在参考截图上量的，和其余页面那 210×300 一样是个定值，不随窗口宽走。
+    /// <para>
+    /// 它从前是版面里唯一吃窗口宽的一格（按页面对 1280 的比例等比缩，同一个窗口宽上集页那张因此比剧页那张
+    /// 小一圈、窄窗口里还在继续小）。2026-10-13 当天两句：「固定集页面封面的大小，拉窄窗口时不要缩小」先把宽
+    /// 版式那一档钉住，接着「切换到窄窗口时可以缩小」给紧凑版式留了一条按页宽收的曲线（<c>DetailHero.StillWidth</c>）
+    /// —— 同一天最后一句「窄窗口下不要封面」把那条曲线连同它的自变量一起作废：紧凑版式下这一格整个不画
+    /// （<see cref="DetailHero.ShowsStill"/>），画它的只有宽版式，而宽版式不跟着窗口缩。
+    /// </para>
+    /// <para>
+    /// 画出来的宽高再由 <see cref="DetailHero.StillBox"/> 按图片自己的比例从这个盒子里收窄一点（2:3 的剧海报
+    /// 是 250×375）—— 盒子本身不变。
+    /// </para>
+    /// </summary>
     private const int EpisodeStillWidth = 260;
+
+    /// <summary>同 <see cref="EpisodeStillWidth"/> —— 那一格的高。</summary>
     private const int EpisodeStillHeight = 375;
 
     /// <summary>
-    /// 按封面最大显示宽度取图，避免窄窗打开后拉宽只放大低分辨率位图。
+    /// 按封面画出来的宽取图 —— 取图宽度就是那一格的上限，不会出现「窄窗开出来一张小图、拉宽了再放大」。
     /// 取图不看当前显隐，窗口跨过紧凑断点时可直接显示已有图片。
     /// </summary>
     private int StillDecodeWidth => IsEpisodePage ? EpisodeStillWidth : PosterStillWidth;
@@ -326,6 +341,10 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(CornerVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroInset))]
     [NotifyPropertyChangedFor(nameof(TailInset))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetSpacing))]
     [NotifyPropertyChangedFor(nameof(ColumnPickersVisibility))]
     [NotifyPropertyChangedFor(nameof(PickersVisibility))]
     [NotifyPropertyChangedFor(nameof(VideoLineVisibility))]
@@ -334,12 +353,10 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(WideProgressVisibility))]
     public partial double PageWidth { get; set; }
 
-    // 版式排内容的参考宽：封面（DetailHero.StillWidth）和角图让位（DetailHero.CornerBoxWidth）的比值都以它算。
-    private const double HeroReferenceWidth = 1280;
-
     /// <summary>
     /// 这一页这次走哪套版式 —— 页面窄过 <see cref="DetailHero.CompactFloor"/> 就换成单列的紧凑版式：封面按
-    /// <see cref="DetailHero.ShowsStill"/> 让位（剧、电影两页不画，季、集照旧），播放和那排操作挪到画面底下
+    /// <see cref="DetailHero.ShowsStill"/> 让位（紧凑版式下四种页面都不画，2026-10-13「窄窗口下不要封面」），
+    /// 播放和那排操作挪到画面底下
     /// 的暗区里（<c>DetailPage</c> 标记里的紧凑块）。桌面版式不再缩小任何东西 ——
     /// 「收窄窗口后组件要自动换行」（2026-09-12）：从前 1024 到 1280 那一段整体等比缩小（<c>HeroScale</c>，
     /// 那个属性随之退役），缩到八成的组件又小又松；现在组件保持原大小，行装不下就换行，换行的落点跟着
@@ -356,8 +373,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>
     /// 头图和尾部的内容按多宽排 —— 页面本身的宽。从前是「至少 1280、窄了由 Viewbox 整体缩下去」：那一版换行的
     /// 落点钉在 1280 上不动，窗口窄了只会整体变小（「组件又小又松」）。现在内容按真实页宽排，行装不下就地换行
-    /// （按键行、文件选项那几块 chips），封面和角图各自随宽走（<see cref="DetailHero.StillWidth"/>／
-    /// <see cref="DetailHero.CornerBoxWidth"/>）—— 0 是「还没量」（第一次布局之前）。
+    /// （按键行、文件选项那几块 chips）。版面里吃窗口宽的只剩一样，也在 Core：角图的让位
+    /// （<see cref="DetailHero.CornerBoxWidth"/>）—— 封面那一格两个数都是定值，而且只画在宽版式上
+    /// （<see cref="DetailHero.ShowsStill"/>）。0 是「还没量」（第一次布局之前）。
     /// </summary>
     public double HeroLayoutWidth => Math.Max(PageWidth, 0);
 
@@ -390,7 +408,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private HeroPictureLoader.HeroPixels? _heroPixels;
 
     /// <summary>
-    /// 解好的封面（集页剧照、其余海报）原图像素 —— 随窗口宽重排那一格的原料
+    /// 解好的封面（集页那张剧海报、其余页面的海报）原图像素 —— 按图收窄那一格的原料
     /// （<see cref="FitStill"/>）。换条目、换图时作废。
     /// </summary>
     private (int Width, int Height)? _stillPixels;
@@ -405,7 +423,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private int _heroBlurGeneration;
 
     /// <summary>当前的模糊档位 —— 裁切占比（<see cref="DetailHero.PictureCrop"/>）换算的半径。电影和剧没有
-    /// 基础半径，裁多少加多少；集页没有背景图，这一手到不了它。</summary>
+    /// 基础半径，裁多少加多少；集页只在紧凑版式里画这张图，宽版式上裁切占比算出来照样有值，只是没有一层画它。</summary>
     private int HeroBlurTarget => BackdropBlur.CropRadius(
         DetailHero.PictureCrop(PageWidth, HeroHeightRatio, Viewport), CropBlurStart, 0, CropBlurExtra, CropBlurStep);
 
@@ -491,13 +509,18 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 这一页要不要按「背后铺着一张图」那一档布 —— 服务器上有没有那张图（<see cref="ItemArtwork.Hero"/> 问标签
-    /// 表的结果），集页除外：那一页不铺背景图（2026-09-12「去掉集页面的背景图」），无论服务器有什么，这里都是
-    /// false，整页走「没有剧照」的那一档版面（见 <see cref="DetailHero.PlainHeight"/>）。
+    /// 表的结果），加上集页那一页这次走哪套版式：集页的宽版式不铺（2026-09-12「去掉集页面的背景图」，那一页
+    /// 整段合成在一块板上），紧凑版式铺（2026-10-13「再给集页面的窄窗口加背景图」）。判据只写一份，在
+    /// <see cref="SpreadsBackdrop"/>。
     /// <para>
     /// 分成两个值是为了「点击主页封面后窗口会闪一下，然后才会进入页面」。版面按有没有这张图分档
     /// （背景层、尾部、纸面下限，<see cref="DetailHero.Height"/>）；拿解好的位图当判据，那一下就是先按
     /// 没有图布一遍、图到了再翻一遍，屏上看着就是闪一下。列表接口回来的条目已经带着标签，所以这句话在
     /// <see cref="Attach"/> 那一刻就答得出：第一帧的版面就是最后的版面，之后到的只是画面本身。
+    /// </para>
+    /// <para>
+    /// 「哪套版式」那一半是唯一会在同一页上翻的一次，翻的时机在 <see cref="OnPageWidthChanged"/> 里
+    /// （<see cref="SyncBackdrop"/>）；跨过紧凑断点那一帧的版面跟着翻，和整套版式换掉是同一拍。
     /// </para>
     /// </summary>
     [ObservableProperty]
@@ -620,17 +643,45 @@ public sealed partial class DetailViewModel : PageViewModel
     public double HeroHeight => HeroLayoutHeight;
 
     /// <summary>
-    /// 窗口宽变了（<c>DetailPage.OnBodySizeChanged</c> 量完喊）—— 封面和角图跟着新宽各重排一遍。每一像素都喊，
-    /// 和带高、背景盒高那些绑定同一个节奏；两个 Fit 做的都是几次乘除加两次属性通知，拖窗口的负载不在这里。
+    /// 窗口宽变了（<c>DetailPage.OnBodySizeChanged</c> 量完喊）—— 三件事：封面按新宽重排（集页那一格在紧凑
+    /// 版式里跟着收）、角图让位、以及重问一句「这一页这次铺不铺背景图」（<see cref="SyncBackdrop"/> —— 集页的
+    /// 宽版式不铺、紧凑版式铺，跨过断点那一下答案就翻了）。每一像素都喊，和带高、背景盒高那些绑定同一个
+    /// 节奏；做的都是几次乘除加几次属性通知，拖窗口的负载不在这里。
     /// </summary>
-    partial void OnPageWidthChanged(double value) => RefitArtwork();
+    partial void OnPageWidthChanged(double value)
+    {
+        RefitArtwork();
+        SyncBackdrop();
+    }
 
     /// <summary>
-    /// 封面和角图按现在的窗口宽各排一遍 —— 集页封面窄窗缩小、宽窗封顶，角图保留题栏宽度，
-    /// 规则都在 Core（<see cref="DetailHero.StillWidth"/>／<see cref="DetailHero.CornerBoxWidth"/>）。两个时机喊：
-    /// 图到手（<see cref="ShowStill"/>／<see cref="ShowCorner"/> 先把像素尺寸记下来），和窗口宽变了
-    /// （<see cref="OnPageWidthChanged"/>）。先封面后角图：角图让多少位（<see cref="CornerMaxWidth"/>）要看封面
-    /// 这一次多宽。
+    /// 页宽跨过紧凑断点之后重问一句「这一页要不要铺背景图」，答案翻了才写 ——
+    /// <see cref="SpreadsBackdrop"/> 从 2026-10-13 起读 <see cref="IsCompact"/>，而 <see cref="HeroArt"/> 自己
+    /// 那四个赋值点（<see cref="Attach"/>／<see cref="Preview"/>／<see cref="Apply"/>）都是「换条目」的时机，
+    /// 没有人会因为窗口变窄再问一遍。写下去之后生成的 setter 把背景层、底色层、罩子、带高、画面盒高和尾部
+    /// 下限一起通知出去，视图那一头 <c>DetailPage</c> 也挂了 <see cref="BackdropShown"/>，跟着重画罩子。
+    /// <para>
+    /// 只在真翻了的时候写：这个 setter 在拖窗口的每一像素上都会被喊到，而它一写就是半个页面的重排。
+    /// </para>
+    /// </summary>
+    private void SyncBackdrop()
+    {
+        if (_detail is not { } item) return;
+
+        var wanted = SpreadsBackdrop(item);
+        if (wanted != HeroArt) HeroArt = wanted;
+    }
+
+    /// <summary>
+    /// 封面和角图按现在的像素尺寸各排一遍 —— 封面装进自己那一格的上限盒（<see cref="FitStill"/>，集页那一格在
+    /// 紧凑版式里按页宽收），角图按题栏保底让位（<see cref="DetailHero.CornerBoxWidth"/>）。两个时机喊：图到手
+    /// （<see cref="ShowStill"/>／<see cref="ShowCorner"/> 先把像素尺寸记下来），和这一页讲的东西换了一种
+    /// （<see cref="CoverShown"/> 可能跟着翻，<c>Preview</c> 与 <c>Apply</c> 各一次）。先封面后角图：角图让
+    /// 多少位（<see cref="CornerMaxWidth"/>）要看封面这一次多宽。
+    /// <para>
+    /// 窗口宽变了也喊这一支（<see cref="OnPageWidthChanged"/>）：集页那一格在紧凑版式里跟着页宽收，其余两个数
+    /// 不变，重排一遍只是把同样的值再算一次。
+    /// </para>
     /// </summary>
     private void RefitArtwork()
     {
@@ -639,8 +690,11 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 封面按图片原始比例装入上限盒。集页以参考截图的尺寸封顶，页面窄于参考宽时宽高一起缩小；
-    /// 其余页面保留原来的海报尺寸。不画的档先把宽高归零，避免隐藏封面仍占据头部高度。
+    /// 封面按图片原始比例装入自己那一格的上限盒 —— 集页 260×375（<see cref="EpisodeStillWidth"/>），其余页面
+    /// 210×300（<see cref="PosterStillWidth"/>）。两个盒子都是定值，不随窗口宽走：画它的只有宽版式
+    /// （<see cref="CoverShown"/> —— 紧凑版式下四种页面都不画，2026-10-13「窄窗口下不要封面」），而宽版式的组件
+    /// 本来就不跟着窗口缩（「固定集页面封面的大小，拉窄窗口时不要缩小」，同一天的第一句）。不画的档先把宽高归零，
+    /// 避免隐藏封面仍占据头部高度。
     /// <para>
     /// 集页封面不再用文字栏高度封顶，否则宽窗下仍会随文字行数变动。
     /// 按键已经放在文字栏内部，不再等待整行的底边；<see cref="HeroRoom"/> 按封面、文字和角图的实际高度
@@ -659,12 +713,8 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
 
-        var maxW = IsEpisodePage
-            ? DetailHero.StillWidth(PageWidth, EpisodeStillWidth, HeroReferenceWidth)
-            : (double)PosterStillWidth;
-        var maxH = IsEpisodePage
-            ? maxW * EpisodeStillHeight / EpisodeStillWidth
-            : PosterStillHeight;
+        var maxW = IsEpisodePage ? (double)EpisodeStillWidth : PosterStillWidth;
+        var maxH = IsEpisodePage ? (double)EpisodeStillHeight : PosterStillHeight;
 
         if (_stillPixels is { } pixels
             && DetailHero.StillBox(pixels.Width, pixels.Height, maxW, maxH) is { } fit)
@@ -757,20 +807,19 @@ public sealed partial class DetailViewModel : PageViewModel
     private const double PictureFadeHeight = 64;
 
     /// <summary>
-    /// 这一档版面要不要封面 —— 规则在 Core（<see cref="DetailHero.ShowsStill"/>）：紧凑版式下剧、电影两页
-    /// 不画（2026-09-12 一天四句的最后一落，来龙去脉记在那边）。图解出来没有不算在这里 —— 那是
-    /// <see cref="StillVisibility"/> 自己的另一半。
+    /// 这一档版面要不要封面 —— 规则在 Core（<see cref="DetailHero.ShowsStill"/>）：紧凑版式下一律不画
+    /// （2026-10-13「窄窗口下不要封面」，四种页面同一个答案；在那之前是「剧、电影两页不画，季、集照旧」）。
+    /// 图解出来没有不算在这里 —— 那是 <see cref="StillVisibility"/> 自己的另一半。
     /// </summary>
-    private bool CoverShown => DetailHero.ShowsStill(IsCompact, _detail?.Type);
+    private bool CoverShown => DetailHero.ShowsStill(IsCompact);
 
     /// <summary>
     /// 带子左边那张海报（集页上是剧照）显不显 —— 两句话合起来：「图解出来了没有」，和「这一档版面要不要它」
     /// （<see cref="CoverShown"/>）。
     /// <para>
-    /// 第二句的规矩 2026-09-12 当天翻了几回：早上紧凑版式不画海报，他一句「剧页面和电影页面的封面怎么没了？」
-    /// 整个救了回来（「单列归单列，封面是封面」）；看完实拍点走剧集两页，傍晚又把集页还回来，最后「电影页面
-    /// 窄窗口也要隐藏左上角的封面」把电影页也收了回去。最终紧凑档不画的是剧、电影两页，季、集照旧。规则本体
-    /// 在 <see cref="DetailHero.ShowsStill"/>，这里只照着问。
+    /// 第二句的规矩翻过好几回（2026-09-12 一天四句，来龙去脉记在 <see cref="DetailHero.ShowsStill"/> 那边），
+    /// 最后落在 2026-10-13 的「窄窗口下不要封面」：紧凑版式下四种页面都不画，宽版式四页全画。规则本体在
+    /// <see cref="DetailHero.ShowsStill"/>，这里只照着问。
     /// </para>
     /// <para>
     /// 不画的那一档 <see cref="FitStill"/> 把那一格的宽高一并归零：带高（<see cref="HeroRoom"/> 读
@@ -831,6 +880,48 @@ public sealed partial class DetailViewModel : PageViewModel
         : HeroCard
             ? new(StackLeft, 12, StackLeft, 20)
             : new(20, IsEpisodePage ? 12 : 14, 20, 4);
+
+    /// <summary>
+    /// 尾部那几块（文件选项、播放那排键和进度、剧情说明）之间的竖距（<c>TailContent.Spacing</c>）——
+    /// 紧凑版式收一档。
+    /// <para>
+    /// 2026-10-13「窄窗口下这些组件上下之间弄紧凑一点，改动包括电影、电视剧、季、集页面」：单列版式里这一段
+    /// 是一条从画面下沿一路排到纸面的窄带，12 落在宽版式那 60 的页边和 24 的板内边距之间看不出来，落在紧凑
+    /// 版式这 20 的页边和 8 的板内边距之间就是一段接一段的空。四页共用这一支。
+    /// </para>
+    /// </summary>
+    public double TailSpacing => IsCompact ? 8 : 12;
+
+    /// <summary>
+    /// 尾部那三块面板自己的上下内边距 —— <c>EgBodyPanelStyle</c> 那 24 在这里换成 <see cref="IsCompact"/> 的那一档
+    /// （标记里三块各绑一次，样式表里的 24 留给别的页面的面板）。
+    /// <para>
+    /// 那三块外圈和底色都不画（「移除音频和剧情说明那两个栏的框」），内边距因此是它们唯一的可见效果：宽版式上
+    /// 24 把一块的字和上下两块隔开，是「板里的板」那一套；紧凑版式里三块一条线叠着，24 上下相加就是一段 48 的
+    /// 空，加上 <see cref="TailSpacing"/>，一屏里白白吃掉一百多像素。
+    /// </para>
+    /// <para>
+    /// 左右仍是 24 不动：<see cref="TailInset"/> 那 2 是照着「2 + 24 落在头图那一叠的 20 上」定的
+    /// （见那一支的注释），把横向那一份一起收掉，片名、文件选项和播放键那条竖线就散了。
+    /// </para>
+    /// </summary>
+    public Thickness TailPanelPadding => IsCompact ? new(24, 8, 24, 8) : new(24);
+
+    /// <summary>
+    /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 紧凑版式上下收一档，左右照旧 28。
+    /// <para>
+    /// 纸面上沿紧跟着尾部最后一块（剧情说明），28 加上底下第一块自己的 24 就是「简介到 更多来自 之间那一大段
+    /// 空」的大半（2026-10-13 的截图里最显眼的一处）。左右不收：纸面上那几块卡的内边距和尾部那条竖线各算各的，
+    /// 动它只会让两段的左沿错开。
+    /// </para>
+    /// </summary>
+    public Thickness SheetPadding => IsCompact ? new(28, 18, 28, 18) : new(28);
+
+    /// <summary>
+    /// 纸面上那几块（单集、媒体信息、剧季、相似、演职人员）之间的竖距（<c>BodySheet.Spacing</c>）——
+    /// 紧凑版式收一档，同 <see cref="TailSpacing"/>。
+    /// </summary>
+    public double SheetSpacing => IsCompact ? 14 : 20;
 
     /// <summary>
     /// 片名那一栏里那两栏之间的一格间距（<c>HeroContent.ColumnSpacing</c>，标记里绑的是这一个数）。
@@ -1070,13 +1161,22 @@ public sealed partial class DetailViewModel : PageViewModel
     private bool IsEpisodePage => _detail?.Type == EmbyItemType.Episode;
 
     /// <summary>
-    /// 这一页要不要按「背后铺着一张图」那一档布（<see cref="HeroArt"/> 的判据）。集页不铺背景图
-    /// （2026-09-12「去掉集页面的背景图」），无论服务器有什么都是 false；其余页面照 <see cref="ItemArtwork.Hero"/>
-    /// 问标签表。三处赋值（<see cref="Attach"/>、<see cref="Preview"/>、<see cref="Apply"/>）共用这一句 ——
-    /// 答案分叉的后果是同一页里带高按两档各算各的。
+    /// 这一页要不要按「背后铺着一张图」那一档布（<see cref="HeroArt"/> 的判据）—— 两句话：服务器上有没有那张
+    /// 图（<see cref="ItemArtwork.Hero"/> 问标签表的结果），以及集页那一页这次走哪套版式。
+    /// <para>
+    /// 集页的宽版式不铺背景图（2026-09-12「去掉集页面的背景图」）：那一页整段合成在一块板上，铺一张图反而把
+    /// 板糊掉；紧凑版式照铺 —— 「再给集页面的窄窗口加背景图」（2026-10-13），单列版式本来就没有那块板，而
+    /// 参考图上的窄版式头图上正是一张画面。季页和电影、剧两页一直是照 <see cref="ItemArtwork.Hero"/> 问的。
+    /// </para>
+    /// <para>
+    /// 因此这一句读 <see cref="PageWidth"/>（经 <see cref="IsCompact"/>），跨过紧凑断点那一下必须重问一遍 ——
+    /// 那是 <see cref="OnPageWidthChanged"/> 里的 <see cref="SyncBackdrop"/>。四处赋值（<see cref="Attach"/>、
+    /// <see cref="Preview"/>、<see cref="Apply"/> 和这一处）共用这一句，答案分叉的后果是同一页里带高按两档
+    /// 各算各的。
+    /// </para>
     /// </summary>
-    private static bool SpreadsBackdrop(EmbyItem item) =>
-        item.Type != EmbyItemType.Episode && ItemArtwork.Hero(item).Count > 0;
+    private bool SpreadsBackdrop(EmbyItem item) =>
+        (item.Type != EmbyItemType.Episode || IsCompact) && ItemArtwork.Hero(item).Count > 0;
 
     /// <summary>
     /// Whether 单集 belongs down the page as rows rather than across it as cards. The rule itself is
@@ -1139,11 +1239,13 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility HeroArtVisibility => Show(BackdropShown);
 
     /// <summary>
-    /// 上面那一层的反面：背景不画的时候（这一条目没有图），头图那一格自己当底的那一层（一层底色加顶上一道
-    /// 罩子）。有图的时候这两样都在那张固定的图上，这一层就得让开，否则一块不透明的底色会把图盖掉。
+    /// 上面那一层的反面：背景不画的时候（这一条目没有图，或者集页正走宽版式），头图那一格自己当底的那一层
+    /// （一层底色加顶上一道罩子）。有图的时候这两样都在那张固定的图上，这一层就得让开，否则一块不透明的底色
+    /// 会把图盖掉。
     /// <para>
     /// 2026-09-12 起集页的宽版式不在这一档里：那一页那一段合成了一块面板（见 <see cref="HeroCard"/>），底色、
-    /// 圆角和外圈由面板自己画。两层都画的话面板的圆角先被糊掉，左右那两条 28 的留白也会被填成底色。
+    /// 圆角和外圈由面板自己画。两层都画的话面板的圆角先被糊掉，左右那两条 28 的留白也会被填成底色。集页的
+    /// 紧凑版式仍然在（没有板，也没有图的那一档就是它自己当底）。
     /// </para>
     /// </summary>
     public Visibility HeroPlainVisibility => Show(!BackdropShown && !HeroCard);
@@ -1161,8 +1263,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 所以这三个属性是一组：宽窄一变、页面种类一变，三个一起重算。
     /// </para>
     /// <para>
-    /// 判据不是「有没有剧照」：有剧照的那几页整段压在照片上，一块不透明的板会把照片盖掉；集页是唯一
-    /// 「没有剧照、又整段挤在第一屏里」的那一页。
+    /// 判据不是「有没有剧照」：有剧照的那几页整段压在照片上，一块不透明的板会把照片盖掉；集页的宽版式是唯一
+    /// 「没有剧照、又整段挤在第一屏里」的那一档。（集页的紧凑版式 2026-10-13 起铺背景图，也不在这一档里 ——
+    /// 单列版式本来就没有「上方那一段」可框。）
     /// </para>
     /// <para>
     /// 同日他还要去掉过一次（「去掉集页面最上面的框」），去完又要回来（「框加回去」）—— 同一个下午来回两趟，
@@ -1181,8 +1284,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>
     /// 无背景图时保留带子下沿的渐深罩子；有图时整块头部改由同一支半透明黑色画刷承接标题栏与尾部。
     /// <para>
-    /// 集页那块板上不画（<see cref="HeroCard"/>）：那一页不铺背景图（<see cref="SpreadsBackdrop"/>），没有照片
-    /// 可压；留着它只会把板的下半截压暗，板底和自己那几块小面板的底边对不上。板上的底由板自己给。
+    /// 集页那块板上不画（<see cref="HeroCard"/>，只可能是宽版式）：那一页的宽版式不铺背景图，没有照片可压；
+    /// 留着它只会把板的下半截压暗，板底和自己那几块小面板的底边对不上。板上的底由板自己给。集页的紧凑版式
+    /// 铺图，走的是有图那一档（<c>DetailPage.PaintScrim</c> 把带子的底接成尾部那一支）。
     /// </para>
     /// </summary>
     public Visibility ScrimVisibility => Show(!HeroCard && !BackdropShown);
@@ -1744,7 +1848,7 @@ public sealed partial class DetailViewModel : PageViewModel
         Watched = seed.IsWatched;
         Favorite = seed.UserData?.IsFavorite == true;
 
-        // 这一格先按上限盒摆（集页的宽版式随当前窗口宽走，见 FitStill）；图到手再按它自己的形状收窄。
+        // 这一格先按上限盒摆（集页那一格 260×375，见 FitStill）；图到手再按它自己的形状收窄。
         _stillPixels = null;
         _cornerPixels = null;
         RefitArtwork();
@@ -1882,9 +1986,9 @@ public sealed partial class DetailViewModel : PageViewModel
         Watched = item.IsWatched;
         Favorite = item.UserData?.IsFavorite == true;
 
-        // 图留着的那一档连这些一起留着：海报到手时 FitStill 已经把它们按图和当前窗口宽收窄过，写回上限就是把那
-        // 一格重新撑开一次，屏上是海报周围凭空多出一条边再收回去。（集页宽版式那一档的上限随窗口走
-        // （DetailHero.StillWidth），所以这里不写死两个数，交给 FitStill 按当前宽算。）
+        // 图留着的那一档连这些一起留着：海报到手时 FitStill 已经把它们按图收窄过，写回上限就是把那一格重新
+        // 撑开一次，屏上是海报周围凭空多出一条边再收回去。（上限盒本身是定值，所以这里不写死两个数，交给
+        // FitStill 算 —— 集页那一页的盒子将来要改，改的也只是它自己那对常量。）
         if (!keepArtwork)
         {
             _stillPixels = null;
@@ -2124,11 +2228,12 @@ public sealed partial class DetailViewModel : PageViewModel
         // 空着一格强。其余页面照旧取自己的 Primary / Thumb。
         var episode = item.Type == EmbyItemType.Episode;
 
-        // 集页不铺背景图（见 <see cref="HeroArt"/>），所以头图那一串整页不画 —— 那就一张都不取，省下的不止一次
-        // 下载：从前那一档还要把图解到像素、过一遍模糊（<c>HeroPictureLoader</c>），全是没人看的功夫。
-        // 集页多问的倒是另一趟：剧集那一层的条目。右上角那张艺术图（<see cref="ItemArtwork.Corner"/>）、页尾那张
-        // 横幅（<see cref="ItemArtwork.Footer"/>）和左上角这张封面都可能要借它的 —— 服务器不下发 ParentArt /
-        // ParentBanner，剧集那个条目只有自己取到才借得成。一趟往返三处共用；电影和剧自己就是答案，不用问。
+        // 集页的宽版式不铺背景图（见 <see cref="HeroArt"/>），可是头图这一路照取 —— 取图不看这一页这次铺不铺：
+        // 窗口从宽拉窄跨过紧凑断点的那一下答案就从不要翻成要，图已经在手，画面就地出来，不用再等一趟往返
+        // （2026-10-13「再给集页面的窄窗口加背景图」）。集页多问的倒是另一趟：剧集那一层的条目。右上角那张
+        // 艺术图（<see cref="ItemArtwork.Corner"/>）、页尾那张横幅（<see cref="ItemArtwork.Footer"/>）和左上角
+        // 这张封面都可能要借它的 —— 服务器不下发 ParentArt / ParentBanner，剧集那个条目只有自己取到才借得成。
+        // 一趟往返三处共用；电影和剧自己就是答案，不用问。
         async Task<EmbyItem?> ShowAsync(CancellationToken token)
         {
             if (!episode || item.SeriesId is not { Length: > 0 } series) return null;
@@ -2187,7 +2292,8 @@ public sealed partial class DetailViewModel : PageViewModel
         // 完成上屏（不经 Paint：它要多带一个生代号，重糊那一头比它新就不许盖上去）。「当窗口拉宽导致背景图
         // 下方被裁切的时候，触发背景图模糊，裁切越多越模糊」：半径由 DetailHero.PictureCrop ×
         // BackdropBlur.CropRadius 算（电影和剧没有基础半径，裁多少加多少；量化成档，拖窗口不为一个像素重糊），
-        // 档位换了由 UpdateHeroBlur 用同一批像素重糊。集页不铺背景图（连模糊一起不存在），这一路到不了它。
+        // 档位换了由 UpdateHeroBlur 用同一批像素重糊。集页的宽版式不画这一张（紧凑版式画），所以那一页上这一
+        // 路解出来的东西多数时候躺在 _heroPixels 里等一次窗口变窄。
         // 头图多带一个数上屏：这张图自己的高÷宽（ShowHero）——紧凑版式的带高和背景盒高都按它算
         // （DetailHero.CompactHeight / PictureHeight）；量不成话（0 或负）就不动兜底的那 0.5625。
         async Task HeroAsync(EmbyItem page, CancellationToken token)
@@ -2222,7 +2328,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
         // 头图多带一个数上屏：这张图自己的高÷宽。紧凑版式的带高和背景那张的盒高都按它算
         // （DetailHero.CompactHeight / PictureHeight —— 「窗口收窄时背景图要等比例缩放」），解出来的是
-        // 什么形状就照什么形状缩；量不成话（0 或负）就不动兜底的那 0.5625。集页不铺背景图，这一手到不了它。
+        // 什么形状就照什么形状缩；量不成话（0 或负）就不动兜底的那 0.5625。集页的宽版式不画这张图，所以这一手
+        // 在那一页上多数时候白跑一趟 —— 而它算的正是窗口变窄之后要用的那个数，那一趟不能省。
         void ShowHero(BitmapImage picture)
         {
             if (picture.PixelWidth > 0 && picture.PixelHeight > 0)
@@ -2295,7 +2402,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 那一格原来是写死的 210×300、图按 <c>UniformToFill</c> 铺满它，而服务器上的海报是 2:3，于是上下各裁掉七八
     /// 个像素。现在那一格按这张图自己的形状收窄（<see cref="DetailHero.StillBox"/>），一个像素都不裁。
     /// 集页上这一张是剧的那张海报（「集页面的封面改用剧页面的封面」），取图那头已经换过源头了（见
-    /// <c>StillAsync</c>），这里四种页面同一套：按图加当前窗口宽算盒子（<see cref="FitStill"/>）。
+    /// <c>StillAsync</c>），这里四种页面同一套：按图装进自己那一格定值的上限盒（<see cref="FitStill"/>）。
     /// </para>
     /// <para>
     /// 换尺寸和换图是同一拍里的两件事，顺序也就要紧：先尺寸再图。反过来的那一版会先按上一档尺寸画一帧、再收窄，

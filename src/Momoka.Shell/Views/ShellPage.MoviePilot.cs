@@ -44,26 +44,34 @@ public sealed partial class ShellPage
     private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
     {
         MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
+        // 侧边栏那两条订阅入口跟的是可用性，而**两个方向都要重算**：连上时它们要出现，断线时它们要收起。
+        // 所以这一句不能挪到下面那道「不可用才继续」的门里面 —— 那道门管的是「收起已经打开的附属界面」，
+        // 只走一个方向。
+        SyncSidebar();
         if (_moviePilotService is null || _moviePilotService.Available) return;
         _moviePilotWindow?.Hide();
         _moviePilotDialog?.Hide();
-        if (ContentFrame.Content is MoviePilotSubscriptionPage) GoTo("home");
+        if (IsMoviePilotPage(ContentFrame.Content?.GetType())) GoTo("home");
         PruneMoviePilotHistory();
         SyncChrome();
     });
+
+    /// <summary>连不上 MoviePilot 时不能再留着的两页：订阅列表（侧边栏那两条入口）和一条订阅的详情。</summary>
+    private static bool IsMoviePilotPage(Type? type) =>
+        type == typeof(MoviePilotSubscriptionPage) || type == typeof(MoviePilotSubscriptionsPage);
 
     private void PruneMoviePilotHistory()
     {
         if (_moviePilotService?.Available == true) return;
         for (var index = ContentFrame.BackStack.Count - 1; index >= 0; index--)
         {
-            if (ContentFrame.BackStack[index].SourcePageType != typeof(MoviePilotSubscriptionPage)) continue;
+            if (!IsMoviePilotPage(ContentFrame.BackStack[index].SourcePageType)) continue;
             ContentFrame.BackStack.RemoveAt(index);
             if (index < _backTrails.Count) _backTrails.RemoveAt(index);
         }
         for (var index = ContentFrame.ForwardStack.Count - 1; index >= 0; index--)
         {
-            if (ContentFrame.ForwardStack[index].SourcePageType != typeof(MoviePilotSubscriptionPage)) continue;
+            if (!IsMoviePilotPage(ContentFrame.ForwardStack[index].SourcePageType)) continue;
             ContentFrame.ForwardStack.RemoveAt(index);
             if (index < _forwardTrails.Count) _forwardTrails.RemoveAt(index);
         }

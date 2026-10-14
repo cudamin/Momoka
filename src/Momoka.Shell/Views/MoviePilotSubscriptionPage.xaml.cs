@@ -4,8 +4,10 @@ using Momoka.Shell.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Momoka.Shell.Platform;
+using Windows.UI;
 
 namespace Momoka.Shell.Views;
 
@@ -63,6 +65,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     public MoviePilotSubscriptionPage()
     {
         InitializeComponent();
+        PaintBackdropFade();
         MediaViewModel.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(MediaViewModel.Backdrop))
@@ -70,16 +73,75 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         };
     }
 
+    /// <summary>
+    /// 图下沿那道黑色渐变（用户令 2026-10-13「下方组件背景也参考电影页面做下滑遮罩」）—— 同电影详情页
+    /// <c>DetailPage.BackdropFade</c> 那一支：先爬后收，最后一段压到满墨，藏住画面被截断的那条硬边。
+    /// <para>
+    /// 在构造里画而不是在标记里写四个色值：这一页此前一处硬编码颜色都没有，写进去会往「Shell XAML 里的
+    /// 硬编码颜色只减不增」那条基线上加四行。停点与电影页逐档相同，色由 Core 那支墨给
+    /// （<see cref="DetailHero.ScrimInk"/>），所以两页的渐变是同一个色。
+    /// </para>
+    /// <para>
+    /// 不跟主题走：它压的是一张剧照，剧照不会因为用户挑了浅色主题就变亮（同电影页那一支，理由写在
+    /// <c>DetailHero.ScrimInk</c> 上）。
+    /// </para>
+    /// </summary>
+    private void PaintBackdropFade()
+    {
+        var ink = DetailHero.ScrimInk;
+        BackdropFadeBrush.GradientStops.Clear();
+        foreach (var (along, alpha) in BackdropFadeStops)
+            BackdropFadeBrush.GradientStops.Add(new GradientStop
+            {
+                Offset = along,
+                Color = Color.FromArgb(alpha, ink.R, ink.G, ink.B)
+            });
+    }
+
+    /// <summary>图下沿那道渐变的停点，与 <c>DetailPage.xaml</c> 里 BackdropFade 那一支逐档相同。</summary>
+    private static readonly (double Along, byte Alpha)[] BackdropFadeStops =
+        [(0, 0x00), (0.42, 0xA6), (0.78, 0xE8), (1, 0xFF)];
+
     public object? NavigationRequest => _request is { Subscription: { } subscription } request
         ? request with { Subscription = ViewModel.Deleted ? null : ViewModel.Selected?.Subscription ?? subscription, Media = subscription.Media }
         : _request;
 
     private void OnDetailLoaded(object sender, RoutedEventArgs args) => LiftBackdrop();
     private void OnDetailSizeChanged(object sender, SizeChangedEventArgs args) => LiftBackdrop();
+
+    /// <summary>
+    /// 这一页看得见的那一段有多宽、多高 —— 背景那张画多高（<c>MoviePilotMediaViewModel.BackdropHeight</c>）
+    /// 和头部那一段让开多少（<c>HeroMinHeight</c>）都问它。只有布好的滚动视图知道自己的视口，怎么用这个数
+    /// 是 Core 那两支纯函数的事，不在这个处理器里。
+    /// <para>
+    /// 0 不写回去：这一层在资源面板打开时是收着的（<c>OpenResources</c> 把 <c>DetailScroll</c> 收起来），
+    /// 收着的元素量出来是 0，写进去会让背景图当场消失；面板关掉时再量一次就对了。
+    /// </para>
+    /// </summary>
+    private void OnDetailScrollSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        if (args.NewSize.Width > 0) MediaViewModel.PageWidth = args.NewSize.Width;
+        if (args.NewSize.Height > 0) MediaViewModel.Viewport = args.NewSize.Height;
+    }
+
+    /// <summary>
+    /// 头部那一叠（封面、片名、操作、资料卡、简介）本来多高 —— 背景那张至少垫住它，否则头部下半截会落到
+    /// 图外面那段页底色上。量的是让开高度那一层里面这一叠，所以「让开多少」不会回头改这个数。
+    /// </summary>
+    private void OnHeroContentSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        if (args.NewSize.Height > 0) MediaViewModel.HeroBandHeight = args.NewSize.Height;
+    }
+
     private void LiftBackdrop()
     {
         if (XamlRoot?.Content is not UIElement root) return;
         var lift = Math.Max(0, TransformToVisual(root).TransformPoint(default).Y);
+
+        // 头部那一段让开的高度是「图的下沿折进滚动内容坐标」，所以要减掉这一截（赶在提前返回之前写：
+        // 换主题、面包屑显隐都会挪它，而那些时候边距未必变）。
+        MediaViewModel.HeaderLift = lift;
+
         if (Math.Abs(DetailBackdropRoot.Margin.Top + lift) > 0.5)
             DetailBackdropRoot.Margin = new Thickness(0, -lift, 0, 0);
     }

@@ -329,6 +329,10 @@ public sealed partial class SettingsPage : Page, IShellContent
                 request.Services.GetRequiredService<FontLibrary>(),
                 request.Services.GetRequiredService<AppPaths>(),
                 request.Services.GetRequiredService<Platform.ISystemLauncher>(),
+
+                // 开机自启那一格：它读写的不是设置文件而是机器上的启动项，所以这一页要的是「这台机器上这一条
+                // 此刻在不在、拨一下改得动吗」。打包安装（MSIX）之后它自己答「办不到」，那一行整个不显示。
+                request.Services.GetRequiredService<Platform.IStartupRegistration>(),
                 request.Services.GetRequiredService<AudioDeviceCatalogue>(),
 
                 // 字幕外观改一行就推给正在播的那部片子。交出去的是一个方法而不是 PlaybackService 本身：

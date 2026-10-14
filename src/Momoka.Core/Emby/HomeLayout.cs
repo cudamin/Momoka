@@ -55,14 +55,21 @@ public static class HomeLayout
             ? key[LibraryPrefix.Length..]
             : null;
 
-    /// <summary>三排固定的各叫什么；媒体库那几排的标题是 <see cref="LibraryTitle"/> 的事。</summary>
+    /// <summary>
+    /// 三排固定的各叫什么；媒体库那几排的标题是 <see cref="LibraryTitle"/> 的事。
+    /// <para>
+    /// 两条订阅 2026-10-13 晚从「MoviePilot 电影订阅／电视剧订阅」缩成「MP 电影订阅／MP 电视剧订阅」
+    /// （用户：「简化为 MP 电影、电视剧订阅」）。名字只有这一处 —— 侧栏那两条入口、主页那两排和订阅列表页
+    /// 的标题都读它，改一个字三处一起走（侧栏那份是 ShellPage.xaml 里的字面量，由离线探针按这条等式盯着）。
+    /// </para>
+    /// </summary>
     public static string? FixedTitle(string? key) => key switch
     {
         Resume => "继续观看",
         Libraries => "媒体库",
         NextUp => "接下来看",
-        MoviePilotMovies => "MoviePilot 电影订阅",
-        MoviePilotSeries => "MoviePilot 电视剧订阅",
+        MoviePilotMovies => "MP 电影订阅",
+        MoviePilotSeries => "MP 电视剧订阅",
         _ => null
     };
 

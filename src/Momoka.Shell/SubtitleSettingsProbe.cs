@@ -39,7 +39,7 @@ internal static class SubtitleSettingsProbe
             var page = new SettingsPage();
             var pushes = 0;
             page.ViewModel.Attach(service, new ShaderStaging(settings), new FontLibrary(), options.Paths,
-                new OfflineLauncher(), new AudioDeviceCatalogue(() => null),
+                new OfflineLauncher(), new OfflineStartup(), new AudioDeviceCatalogue(() => null),
                 () => { pushes++; return Task.CompletedTask; }, _ => Task.CompletedTask, () => Task.CompletedTask,
                 new MoviePilotService(moviePilot, new MoviePilotCredentials(ProbeSecrets.Instance), settings), new MoviePilotCredentials(ProbeSecrets.Instance),
                 new OfflineCapabilities());
@@ -204,6 +204,18 @@ internal static class SubtitleSettingsProbe
     {
         public void OpenFolder(string path) { }
         public void OpenUrl(string url) { }
+    }
+
+    /// <summary>离线探针也不碰真实的启动项：拨开关只记在内存里，跑完不留痕。</summary>
+    private sealed class OfflineStartup : IStartupRegistration
+    {
+        public bool Available => true;
+        public bool IsEnabled { get; private set; }
+        public bool Apply(bool enabled)
+        {
+            IsEnabled = enabled;
+            return true;
+        }
     }
 
     /// <summary>

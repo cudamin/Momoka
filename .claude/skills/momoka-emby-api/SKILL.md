@@ -7,6 +7,8 @@ description: "Momoka 与 Emby Server 之间的 REST 协议层：请求基址与�
 
 规则归 [CLAUDE.md](../../../CLAUDE.md)：授权、凭据、闸门与交付以它为准。本技能只记协议层本身容易误判的地方，不另立安全或发布政策。
 
+**本技能只覆盖 Emby 服务器。** 接 Jellyfin 时基址不带 `/emby/`、凭据走 `Authorization: MediaBrowser` 头、用户作用域路由没有 `userId` 路径段 —— 差异与逐条对照见 [momoka-jellyfin-api](../momoka-jellyfin-api/SKILL.md)，本技能描述的传输层决定（重定向、错误翻译、超时、下载、脱敏）两边共用。
+
 `src/Momoka.Core/Emby/` 是与服务器对话的全部落点。**功能语义**在领域技能和 `docs/媒体库管理.md`、`docs/用户管理.md`；这里只讲"请求怎么发出去、失败怎么读"。这两份文档声明的对照基准是同一台服务器的同一份规格 —— 本技能是它们背后的协议面。
 
 ## 开始之前：先拿规格，别猜

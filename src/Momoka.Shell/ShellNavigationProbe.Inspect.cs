@@ -120,10 +120,12 @@ internal sealed partial class ShellNavigationProbe
         app.Resize(new Windows.Graphics.SizeInt32(width, height));
     }
 
-    private static async Task<byte[]> FixtureImageAsync()
+    /// <summary>
+    /// 探针用的假图，默认 320×200 的横图（背景图、横幅那一类）。尺寸可选，好让某一条用例要一张竖的 ——
+    /// 详情页那一格封面是 260:375，拿横图去装它，画出来是一条矮带子，截图里看着不像一张海报。
+    /// </summary>
+    private static async Task<byte[]> FixtureImageAsync(int width = 320, int height = 200)
     {
-        const int width = 320;
-        const int height = 200;
         var pixels = new byte[width * height * 4];
         for (var y = 0; y < height; y++)
         {
@@ -131,15 +133,17 @@ internal sealed partial class ShellNavigationProbe
             {
                 var offset = (y * width + x) * 4;
                 var ridge = y > height / 2 + (int)(Math.Sin(x / 40.0) * 30);
-                pixels[offset] = (byte)(ridge ? 65 : 100 + y / 3);
-                pixels[offset + 1] = (byte)(ridge ? 90 : 125 + y / 3);
-                pixels[offset + 2] = (byte)(ridge ? 45 : 45 + x / 3);
+                // 夹一下上限：默认那一档（320×200）本来就到不了 255，改了尺寸的（竖图 400×600）会到，而
+                // (byte) 溢出是绕回去 —— 一张渐变上突然出现一道暗带，看着像图坏了。
+                pixels[offset] = (byte)Math.Min(255, ridge ? 65 : 100 + y / 3);
+                pixels[offset + 1] = (byte)Math.Min(255, ridge ? 90 : 125 + y / 3);
+                pixels[offset + 2] = (byte)Math.Min(255, ridge ? 45 : 45 + x / 3);
                 pixels[offset + 3] = 255;
             }
         }
         using var stream = new InMemoryRandomAccessStream();
         var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
-        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight, width, height, 96, 96, pixels);
+        encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Straight, (uint)width, (uint)height, 96, 96, pixels);
         await encoder.FlushAsync();
         stream.Seek(0);
         using var reader = new DataReader(stream);

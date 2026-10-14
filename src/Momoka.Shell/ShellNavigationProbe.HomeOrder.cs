@@ -49,7 +49,7 @@ internal sealed partial class ShellNavigationProbe
         Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
         var settings = new SettingsPage();
         settings.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
-            fixture.Launcher, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
+            fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             service, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
         await settings.ViewModel.ReloadAsync();
         settings.WatchMoviePilot(service);
@@ -79,12 +79,12 @@ internal sealed partial class ShellNavigationProbe
                 list.StartBringIntoView();
                 await LayoutAsync(settings);
                 Require(list.Items.Count == 6 && Descendants(list).OfType<CheckBox>()
-                    .Any(check => AutomationProperties.GetName(check) == "MoviePilot 电视剧订阅"), "排序表未实现订阅勾选控件");
+                    .Any(check => AutomationProperties.GetName(check) == HomeLayout.FixedTitle(HomeLayout.MoviePilotSeries)), "排序表未实现订阅勾选控件");
                 await SaveProbeScreenAsync($"settings-home-order-{width}.png");
             }
             // 真正的复选框写回偏好；断线期间编辑 Emby 排不能把隐藏项抹掉。
             var movieCheck = Descendants(settings).OfType<CheckBox>()
-                .Single(check => AutomationProperties.GetName(check) == "MoviePilot 电影订阅");
+                .Single(check => AutomationProperties.GetName(check) == HomeLayout.FixedTitle(HomeLayout.MoviePilotMovies));
             movieCheck.IsChecked = false;
             await LayoutAsync(settings);
             Require(!fixture.Settings.Ui.HomeRows.Single(row => row.Key == HomeLayout.MoviePilotMovies).Visible, "电影订阅勾选未保存");

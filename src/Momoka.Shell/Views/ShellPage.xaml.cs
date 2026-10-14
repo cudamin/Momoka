@@ -118,20 +118,34 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private MoviePilotWindow? _moviePilotWindow;
 
     /// <summary>
-    /// 标题栏的静止前景。悬停采用强调色，停用采用淡墨，按钮的背景始终透明。
+    /// 标题栏的静止前景。悬停采用强调色，按钮的背景始终透明。
     /// <para>
-    /// 自己立两支画刷而不是把 <c>EgTextBrush</c> 直接塞到键上：这里要换的不是颜色跟着主题走，而是同一颗
+    /// 自己立一支画刷而不是把 <c>EgTextBrush</c> 直接塞到键上：这里要换的不是颜色跟着主题走，而是同一颗
     /// 按钮在两种底上换两种墨（页面的底色 vs 剧照顶上那层暗罩）。而字典里的键换一支新画刷是不会重画的 ——
-    /// 已经解析过的引用认的是对象，不是键。所以键上永远是这两个对象，改的是它们的 <c>Color</c>。
+    /// 已经解析过的引用认的是对象，不是键。所以键上永远是这一个对象，改的是它的 <c>Color</c>。
+    /// </para>
+    /// <para>
+    /// **2026-10-13 晚起停用态也用这一支**（用户：「上方标题要和下面颜色一样」，指的是侧栏顶上那一排
+    /// ≡／后退／前进）。原来停用走一支淡墨（<c>EgTextDim</c>／<c>EgOnScrimDim</c>），于是「哪儿也走不动」
+    /// 时那两支箭头比旁边的 ≡、比栏里的条目都暗一截。停用这件事现在只剩两条线索：按下去没有反应，悬停也
+    /// 不放大（<see cref="OnTitlePointerEntered"/> 那道 <c>IsEnabled</c> 门）—— 代价是没有了「一眼看出走不动」
+    /// 的那一笔，用户确认过。
     /// </para>
     /// </summary>
     private readonly SolidColorBrush _titleInk = new();
 
-    /// <inheritdoc cref="_titleInk"/>
-    private readonly SolidColorBrush _titleInkDim = new();
-
     /// <summary>无底板按钮的悬停与按下前景；高对比度下跟随系统文字色。</summary>
     private readonly SolidColorBrush _titleInkHover = new();
+
+    /// <summary>
+    /// 账号那一组（账号 + 设置）的墨。和 <see cref="_titleInk"/> 分开两支：它 2026-10-13 起在侧边栏模式里
+    /// 挪到左下角、压在栏的底色上，那时它不跟剧照走 —— 拿剧照顶上那支浅墨去画栏里的字，在一套浅色主题下
+    /// 就是白字压白底。<see cref="_titleInk"/> 那两支还给标题栏那一排按键用，所以不能共用。
+    /// </summary>
+    private readonly SolidColorBrush _accountInk = new();
+
+    /// <inheritdoc cref="_accountInk"/>
+    private readonly SolidColorBrush _accountInkDim = new();
 
     /// <summary>
     /// 面包屑那一行的墨。和 <see cref="_titleInk"/> 是同一件事 —— 同一格字在两种底上换两种墨 —— 判断不同：
@@ -220,13 +234,18 @@ public sealed partial class ShellPage : UserControl, IShellActions
             "ButtonBackgroundDisabled", "ButtonBorderBrushPointerOver", "ButtonBorderBrushPressed",
             "ButtonBorderBrushDisabled"
         })
+        {
             Chrome.Resources[key] = transparent;
+            // 账号那一组现在是 Root 的孩子（见 AccountCluster）：它不在 Chrome 的树下，那几支透明底要
+            // 在它自己这一层再说一遍，否则它一悬停就铺出一块默认灰底，和旁边那几颗不一样。
+            AccountCluster.Resources[key] = transparent;
+        }
     }
 
     /// <summary>只缩放按钮内容，点击范围和非客户区穿透矩形始终保持布局尺寸。</summary>
     private void WireTitleFeedback()
     {
-        foreach (var button in new[] { HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
+        foreach (var button in new[] { NavToggleButton, HomeButton, FavoritesButton, SettingsButton, SearchButton, BackButton, ForwardButton, AccountButton })
         {
             button.PointerEntered += OnTitlePointerEntered;
             button.PointerExited += OnTitlePointerExited;
@@ -342,10 +361,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </para>
     /// <para>
     /// 压在图上的那一档用固定的浅墨（<c>EgOnScrim*</c>），不跟主题走：剧照顶上那层暗罩是黑的，而一套浅色
-    /// 主题的墨是深色。停用的两支箭头另用淡的那一支 —— 「走不动的箭头是淡墨，不是一块灰底」，见标记那一段。
-    /// 面包屑在图上时用的是亮的那一支而不是淡的：平底上它是二等的陪衬字（跟着 EgDataStyle 走暗墨），压到
-    /// 一张有明有暗的画面上就得自己站得住。页面自己洗过那一条的那一档（<see cref="TitleStrip.PagePainted"/>）
-    /// 墨回到主题那支，因为那时它压的已经是正文的底色。
+    /// 主题的墨是深色。**停用那两支箭头 2026-10-13 晚起也走同一支亮墨** —— 用户要的是顶上那一排和栏里
+    /// 那些条目一个颜色，见 <see cref="_titleInk"/>。面包屑在图上时用的是亮的那一支而不是淡的：平底上它是
+    /// 二等的陪衬字（跟着 EgDataStyle 走暗墨），压到一张有明有暗的画面上就得自己站得住。页面自己洗过那一条
+    /// 的那一档（<see cref="TitleStrip.PagePainted"/>）墨回到主题那支，因为那时它压的已经是正文的底色。
     /// </para>
     /// <para>
     /// 账号那颗按钮那行字跟着同一支墨：直接写在元素上（见下面 <c>AccountUser</c> 那几行），所以这里改一次
@@ -358,7 +377,6 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var highContrast = new Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
 
         _titleInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextBrush");
-        _titleInkDim.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimDimBrush" : "EgTextDimBrush");
         _titleInkHover.Color = Ink(highContrast ? "SystemColorWindowTextColor" : "EgAccentBrush");
         _trailInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : onScrim ? "EgOnScrimBrush" : "EgTextDimBrush");
 
@@ -366,18 +384,28 @@ public sealed partial class ShellPage : UserControl, IShellActions
             ? Application.Current.Resources["LayerFillColorDefaultBrush"] as Brush
             : null;
 
-        // 状态画刷对象保持不变，主题切换只修改颜色；悬停以图标前景反馈，不铺背景。
+        // 状态画刷对象保持不变，主题切换只修改颜色；悬停以图标前景反馈，不铺背景。停用那一档也指回
+        // 静止那支（见 _titleInk 的注释）：走不动的箭头不再变淡。
         AppTitleBar.Resources["ButtonForeground"] = _titleInk;
         AppTitleBar.Resources["ButtonForegroundPointerOver"] = _titleInkHover;
         AppTitleBar.Resources["ButtonForegroundPressed"] = _titleInkHover;
-        AppTitleBar.Resources["ButtonForegroundDisabled"] = _titleInkDim;
+        AppTitleBar.Resources["ButtonForegroundDisabled"] = _titleInk;
 
         // 账号那几样直接写在元素上，不走键：那行字一个走 FontWeight、一个走 EgDataStyle，而样式自己设了
         // Foreground —— 写在元素上的值压得过样式里的 setter，写进字典里的键则压不过。
-        AccountUser.Foreground = _titleInk;
-        AccountDot.Foreground = _titleInkDim;
-        AccountServer.Foreground = _titleInkDim;
-        AccountChevron.Foreground = _titleInkDim;
+        //
+        // 它自己那两支墨（见 _accountInk）：侧边栏模式里这一组在左下角、压在栏的底色上，那时它不跟剧照走。
+        var accountOnScrim = onScrim && !SidebarShown;
+        _accountInk.Color = Ink(highContrast ? "SystemColorWindowTextColor" : accountOnScrim ? "EgOnScrimBrush" : "EgTextBrush");
+        _accountInkDim.Color = Ink(highContrast ? "SystemColorWindowTextColor" : accountOnScrim ? "EgOnScrimDimBrush" : "EgTextDimBrush");
+        AccountUser.Foreground = _accountInk;
+        AccountDot.Foreground = _accountInkDim;
+        AccountServer.Foreground = _accountInkDim;
+        AccountChevron.Foreground = _accountInkDim;
+        AccountGlyph.Foreground = _accountInk;
+        // 左下角那颗设置一直在栏里，所以它跟着栏的墨走，不跟着剧照走。
+        SidebarSettingsGlyph.Foreground = _accountInk;
+        SidebarSettingsText.Foreground = _accountInk;
 
         // 系统那三颗归窗口画：它们不在这棵树上，是 Win32 的非客户区。洗过那一档跟着「不在图上」走 ——
         // 那时它们压的是页面洗出来的正文底色，白墨在一套浅色主题上就没了。
@@ -863,6 +891,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
             case LibraryPage library:
                 _ = library.ViewModel.ReloadAsync();
                 break;
+            case MoviePilotSubscriptionsPage subscriptions:
+                _ = subscriptions.ViewModel.ReloadAsync();
+                break;
         }
     }
 
@@ -932,6 +963,16 @@ public sealed partial class ShellPage : UserControl, IShellActions
         {
             var request = LibraryRequest.Favorites(_services);
             Open(typeof(LibraryPage), request, request.Title, tag);
+            return;
+        }
+
+        // MoviePilot 的两条订阅入口（侧边栏）。服务不可用时这两条入口本来就收着，这里再守一道：迟到的
+        // 点击不能把一页读不出东西的订阅列表推上来。
+        if (tag is HomeLayout.MoviePilotMovies or HomeLayout.MoviePilotSeries)
+        {
+            if (_moviePilotService?.Available != true) return;
+            var request = new MoviePilotSubscriptionsRequest(_moviePilotService, tag, OpenSubscription);
+            Open(typeof(MoviePilotSubscriptionsPage), request, HomeLayout.FixedTitle(tag)!, tag);
             return;
         }
 
@@ -1709,6 +1750,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private (double X, double Y, double Width, double Height)? AccountRect()
     {
+        // 侧边栏模式里这一组在左下角、不在标题栏那 32 像素里 —— 报出去就是在一个跟标题栏无关的地方挖洞。
+        if (SidebarShown) return null;
+
         if (AccountButton.Visibility != Visibility.Visible
             || AccountButton.ActualWidth <= 0
             || AccountButton.ActualHeight <= 0) return null;

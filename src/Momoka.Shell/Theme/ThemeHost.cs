@@ -96,6 +96,17 @@ public static class ThemeHost
         ("TextFillColorSecondaryBrush", theme => theme.Colors.TextDim),
         ("TextFillColorTertiaryBrush", theme => theme.Colors.TextFaint),
 
+        // 侧边栏里的字与两条分区标题（2026-10-13 晚）：都取主题正文色，和标题栏那一排同一支墨。框架那几支
+        // 键（条目是写死的白、分区标题是 Secondary 那档暗字、选中态另有一支白）解析得比我们早，覆盖不到，
+        // 只能按键逐个换掉。
+        ("NavigationViewItemForeground", theme => theme.Colors.Text),
+        ("NavigationViewItemForegroundPointerOver", theme => theme.Colors.Text),
+        ("NavigationViewItemForegroundPressed", theme => theme.Colors.Text),
+        ("NavigationViewItemForegroundSelected", theme => theme.Colors.Text),
+        ("NavigationViewItemForegroundSelectedPointerOver", theme => theme.Colors.Text),
+        ("NavigationViewItemForegroundSelectedPressed", theme => theme.Colors.Text),
+        ("NavigationViewItemHeaderForeground", theme => theme.Colors.Text),
+
         // 影院画布使用稳定的实色层次，避免桌面壁纸透进内容区后冲淡海报和正文。
         // 浮层仍由 EgFrostBrush 提供材质，底层画布与卡片各用自己的主题角色。
         ("LayerFillColorDefaultBrush", theme => theme.Colors.Window),

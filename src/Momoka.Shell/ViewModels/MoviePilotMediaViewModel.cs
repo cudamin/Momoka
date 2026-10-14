@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.Media;
 
@@ -114,9 +115,99 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public partial BitmapImage? Poster { get; set; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BackdropVisibility))]
+    [NotifyPropertyChangedFor(nameof(BackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
     public partial BitmapImage? Backdrop { get; set; }
     public Visibility PosterEmptyVisibility => Show(Poster is null);
     public Visibility BackdropVisibility => Show(Backdrop is not null);
+
+    /// <summary>
+    /// 背景那张位图的高 ÷ 宽（16:9 是 0.5625），图解出来时跟着 <see cref="Backdrop"/> 一起换。它喂背景
+    /// 盒高（<see cref="BackdropHeight"/>）：用户令 2026-10-13「参考电影页面的背景图修改订阅页面的背景图」
+    /// —— 电影详情页那张是「宽的窗口上铺满第一屏、窄下来整张等比缩小」，按的就是图自己的形状
+    /// （<c>DetailViewModel.HeroHeightRatio</c> 同一套账）。图还没解出来时按 16:9 兜底：背景那几张全是横图，
+    /// 第一帧按它布、真图到了再修正。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    public partial double BackdropRatio { get; set; } = 9d / 16;
+
+    /// <summary>
+    /// 这一页看得见的那一段有多宽／多高，由页面在每次改尺寸时量给
+    /// （<c>MoviePilotSubscriptionPage.OnDetailScrollSizeChanged</c>）。背景那张画多高、尾部让开多少都问它。
+    /// 0 是「还没量」（第一次布局之前），<see cref="DetailHero.PictureHeight"/> 按那个档给。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    public partial double PageWidth { get; set; }
+
+    /// <inheritdoc cref="PageWidth"/>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    public partial double Viewport { get; set; }
+
+    /// <summary>
+    /// 头部那一叠（封面、片名、操作、资料卡、简介）连上下留白实测有多高，由页面量给
+    /// （<c>MoviePilotSubscriptionPage.OnHeroContentSizeChanged</c>）。它是背景盒高的下限：图比这一叠矮的话，
+    /// 头部的下半截就落到图外面那段页底色上，而压在图上那几行字用的是固定浅墨（<c>EgOnScrim*</c>），
+    /// 在那里读不出来。同电影详情页 <c>DetailViewModel.HeroRoom</c>。
+    /// <para>
+    /// 量的是头部里面那一叠、不是让它让开高度的那一层（<c>HeroSection</c>）—— 那一层的高由
+    /// <see cref="HeroMinHeight"/> 定，拿它当自变量就成了自己喂自己。
+    /// </para>
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(BackdropHeight))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    public partial double HeroBandHeight { get; set; }
+
+    /// <summary>
+    /// 背景那一层被顶上窗口上沿的那一截（标题栏加页面在窗口里的偏移，见
+    /// <c>MoviePilotSubscriptionPage.LiftBackdrop</c>）。滚动内容的坐标比窗口坐标低这一截，所以「图的下沿」
+    /// 折进内容坐标要减掉它 —— 不减的话尾部永远多让出一截标题栏高的空画面（同电影详情页
+    /// <c>DetailViewModel.HeaderLift</c>）。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HeroMinHeight))]
+    public partial double HeaderLift { get; set; }
+
+    /// <summary>
+    /// 背景那一张这次画多高 —— <see cref="DetailHero.PictureHeight"/>：宽的窗口上被视口封顶、照旧铺满第一屏；
+    /// 窄到「页宽 × 图的高宽比」够不着视口之后整张等比缩小、一像素不裁。下限是头部那一叠的实测高，别让压在
+    /// 图上那几行字落到图外面去。
+    /// </summary>
+    public double BackdropHeight => DetailHero.PictureHeight(PageWidth, BackdropRatio, Viewport, HeroBandHeight);
+
+    /// <summary>
+    /// 图下沿那道黑色渐变摆多高 —— 盒子的下沿减去渐变自己的高，渐变钉在画面的下沿上、不钉在视口上：往下滚它
+    /// 跟着那条边待在原地，纸面盖过来把它收走（同电影详情页 <c>DetailViewModel.PictureFadeMargin</c>）。
+    /// </summary>
+    public Thickness BackdropFadeMargin => new(0, Math.Max(0, BackdropHeight - FadeHeight), 0, 0);
+
+    /// <summary>
+    /// 头部那一段自己至少要多高：把正文纸面的上沿推到图的下沿上，第一屏因此是「图 + 一条压暗的尾巴」，而不是
+    /// 纸面切在画面中间（同电影详情页的 <c>HeroTail</c>）。头部那一叠本身比这还高时就按它自己的高走。
+    /// </summary>
+    public double HeroMinHeight => Math.Max(0, BackdropHeight - HeaderLift);
+
+    /// <summary>图下沿那道黑色渐变的高度 —— 同电影详情页 <c>DetailViewModel.PictureFadeHeight</c>。</summary>
+    private const double FadeHeight = 64;
+
+    /// <summary>解出来的那张图的高宽比上屏（同电影详情页 <c>DetailViewModel.ShowHero</c> 那一手）。量不成话
+    /// （0 或负）就不动兜底的那 0.5625。</summary>
+    partial void OnBackdropChanged(BitmapImage? value)
+    {
+        if (value is { PixelWidth: > 0, PixelHeight: > 0 })
+            BackdropRatio = value.PixelHeight / (double)value.PixelWidth;
+    }
     [ObservableProperty] public partial string SubscribeLabel { get; set; } = "选择订阅季";
     [ObservableProperty] public partial string GroupId { get; set; } = "";
     [ObservableProperty] public partial string GroupSummary { get; set; } = "";

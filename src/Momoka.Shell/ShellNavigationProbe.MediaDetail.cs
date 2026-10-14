@@ -1,5 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
+using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
@@ -135,16 +137,53 @@ internal sealed partial class ShellNavigationProbe
         var originalTheme = ThemeHost.Current.Id;
         _root.Children.Add(page);
         page.Attach(new(service, subscription));
+        static Windows.Foundation.Rect Box(UIElement anchor, FrameworkElement element) => element
+            .TransformToVisual(anchor)
+            .TransformBounds(new Windows.Foundation.Rect(0, 0, element.ActualWidth, element.ActualHeight));
         try
         {
             ResizeInspect(1240, 1000);
             await UntilAsync(() => page.ViewModel.IsReady && page.MediaViewModel.IsReady && page.MediaViewModel.Backdrop is not null);
             await LayoutAsync(page);
-            var backdrop = Get<Border>(page, "DetailBackdropBand");
-            Require(double.IsNaN(backdrop.Height) && backdrop.CornerRadius.TopLeft == 0 && backdrop.BorderThickness.Left == 0
-                && Math.Abs(backdrop.ActualWidth - page.ActualWidth) < 2 && backdrop.ActualHeight >= page.ActualHeight - 2,
-                "背景仍是定高圆角横幅，没有覆盖整个页面");
-            var before = backdrop.TransformToVisual(page).TransformPoint(default);
+
+            // 背景这一层照电影详情页那一套（用户令 2026-10-13「参考电影页面的背景图修改订阅页面的背景图」
+            // 「下方组件背景也参考电影页面做下滑遮罩」）：图按页宽等比、顶对齐铺在页面顶部；罩子只盖住图那一屏；
+            // 图下沿一道黑色渐变（下滑遮罩）；下方组件整段站在不透明的主题纸面上。
+            // 这一条此前钉的是「图撑满整页、Height 是 NaN、没有圆角边框」—— 那个前提随本轮改动作废：图现在有定高
+            // （DetailHero.PictureHeight），而「按页宽等比」和「盖住整页」本来就是两回事。保留的覆盖是三条读数：
+            // 图的高与 Core 那支纯函数逐像素一致、罩子正好盖住图、纸面接在头部下沿上。
+            var scroll = Get<ScrollViewer>(page, "DetailScroll");
+            var image = Get<Border>(page, "DetailBackdropBand");
+            var scrim = Get<Border>(page, "DetailBackdropScrim");
+            var fade = Get<Border>(page, "DetailBackdropFade");
+            var sheet = Get<StackPanel>(page, "BodySheet");
+            var hero = Get<StackPanel>(page, "HeroSection");
+            var expected = DetailHero.PictureHeight(scroll.ActualWidth, page.MediaViewModel.BackdropRatio,
+                scroll.ActualHeight, page.MediaViewModel.HeroBandHeight);
+            var imageBox = Box(page, image);
+            var scrimBox = Box(page, scrim);
+            var fadeBox = Box(page, fade);
+            var sheetBox = Box(page, sheet);
+            var heroBox = Box(page, hero);
+            Require(Math.Abs(image.ActualWidth - page.ActualWidth) < 2
+                && image.VerticalAlignment == VerticalAlignment.Top
+                && image.CornerRadius.TopLeft == 0 && image.BorderThickness.Left == 0
+                && Math.Abs(image.ActualHeight - expected) < 2
+                && image.ActualHeight <= scroll.ActualHeight + 2,
+                $"背景图没有按页宽等比铺在页面顶部：图 {image.ActualWidth:0}×{image.ActualHeight:0}、"
+                + $"页面 {page.ActualWidth:0}×{page.ActualHeight:0}、该是 {expected:0}");
+            Require(Math.Abs(scrimBox.Top - imageBox.Top) < 1.5 && Math.Abs(scrimBox.Height - imageBox.Height) < 1.5,
+                $"罩子没有正好盖住图那一屏：罩子 {scrimBox.Top:0}–{scrimBox.Bottom:0}、图 {imageBox.Top:0}–{imageBox.Bottom:0}");
+            Require(fadeBox.Height > 0 && Math.Abs(fadeBox.Bottom - imageBox.Bottom) < 1.5
+                && fade.Background is LinearGradientBrush { GradientStops.Count: 4 },
+                $"图下沿那道下滑遮罩没钉在画面的下沿上：渐变 {fadeBox.Top:0}–{fadeBox.Bottom:0}、图下沿 {imageBox.Bottom:0}");
+            Require(sheet.Background is SolidColorBrush { Color.A: 255 }
+                && Math.Abs(sheet.ActualWidth - page.ActualWidth) < 2
+                && Math.Abs(sheetBox.Top - heroBox.Bottom) < 1.5
+                && Descendants(sheet).OfType<MoviePilotMediaSeasonsView>().Any(),
+                $"下方组件没有站在不透明的纸面上：纸 {sheetBox.Top:0}–{sheetBox.Bottom:0}、头部下沿 {heroBox.Bottom:0}");
+
+            var before = image.TransformToVisual(page).TransformPoint(default);
             foreach (var theme in Momoka.Theming.UiThemes.All)
             {
                 ThemeHost.Apply(theme.Id); await LayoutAsync(page);
@@ -178,16 +217,15 @@ internal sealed partial class ShellNavigationProbe
                         && headerBrush.Color == ThemeHost.ToColor(theme.Colors.SurfaceAlt)
                         && expander.Background is Microsoft.UI.Xaml.Media.SolidColorBrush contentBrush
                         && contentBrush.Color == headerBrush.Color, "季标题与展开区域没有跟随当前主题");
-                    var scroll = Get<ScrollViewer>(page, "DetailScroll");
                     var offset = seasons.TransformToVisual((UIElement)scroll.Content).TransformPoint(default).Y;
                     scroll.ChangeView(null, offset - 16, null, true);
                     await LayoutAsync(page);
                     await SaveProbeScreenAsync($"mp-season-{theme.Id}-{(expanded ? "expanded" : "collapsed")}-screen.png");
                 }
             }
-            Get<ScrollViewer>(page, "DetailScroll").ChangeView(null, 300, null, true);
+            scroll.ChangeView(null, 300, null, true);
             await LayoutAsync(page);
-            var after = backdrop.TransformToVisual(page).TransformPoint(default);
+            var after = image.TransformToVisual(page).TransformPoint(default);
             Require(before.Y == after.Y && before.X == after.X, "背景跟着正文滚走");
         }
         finally { page.Release(); _root.Children.Remove(page); ThemeHost.Apply(originalTheme); ResizeInspect(1420, 980); }

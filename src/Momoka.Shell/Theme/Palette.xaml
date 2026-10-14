@@ -151,6 +151,43 @@
             <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="{StaticResource EgTextDimColor}" />
             <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="{StaticResource EgTextFaintColor}" />
 
+            <!-- 侧边栏里的字（2026-10-13 晚）。用户两条：「上方标题要和下面颜色一样」「分区标题改成和条目一样
+                 的白」，这两颗键就是那两句话的落点：
+
+                 NavigationViewItemForeground —— 栏里每个条目的字与图标。框架自己那支是 TextFillColorPrimary，
+                 但框架在解析它自己那份字典时就把它算成了一支写死的纯白，我们这份覆盖不到（同上面强调色那一段
+                 的来由）；于是栏里的字一直是框架的白，和标题栏那一排、和全应用其它正文（主题正文色）差着一成
+                 里的一半。接上角色之后，栏里的字和标题栏那一排就是同一支墨。
+                 NavigationViewItemHeaderForeground —— 「媒体库」「订阅」这两条分区标题。框架给的是 Secondary
+                 那档暗字，所以它一直比下面那些条目暗一截；用户要的就是它和条目一样。
+
+                 这两颗键不进 ThemeHost.Brushes 的话，它们会一直停在第一帧的字面值上 —— 换主题时栏里的字不跟着
+                 走（见 ShellSelfCheck.Theme 的「主题角色覆盖」）。 -->
+            <SolidColorBrush x:Key="NavigationViewItemForeground" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemHeaderForeground" Color="{StaticResource EgTextColor}" />
+
+            <!-- 条目那几态的字色。框架这几颗键都是「正文主色」那一支（只有按下那两态偏暗一档），和上面那颗
+                 静止态是同一个色；不写的话，选中的那一项（主页）会留在框架那支写死的白上，而旁边没选中的
+                 已经换成主题正文色 —— 屏上就是「选中那一项的字比别的亮一点点」。这几颗也一并接上。 -->
+            <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelected" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPointerOver" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPressed" Color="{StaticResource EgTextColor}" />
+
+            <!-- 栏自己的底（2026-10-14，用户原话「侧边栏展开后不要变色」）。框架那层 SplitView 的
+                 PaneBackground 有两档：模板默认是 NavigationViewDefaultPaneBackground（框架给的是
+                 AcrylicInAppFillColorDefaultBrush，一块中性亚克力），「面板不盖住内容」那一态才把它换成
+                 NavigationViewExpandedPaneBackground（框架那一支本来就是透明的）。这条栏收成 48 宽那一档
+                 是 LeftCompact，此时按 ≡ 展开会**先落进「面板盖住内容」那一态**，之后再切回 Left 也不回头
+                 补 —— 于是同一件事在屏上出现两种底色：窗宽够、栏一上来就展开时是面色（161C2B），先收起再
+                 展开时多出一层亚克力（282D39，2026-10-14 逐像素实测，见 PROGRESS）。
+
+                 钉这一颗：栏的底只由外壳那条 EgSurfaceBrush 决定，怎么开、走哪条路开都不换色。不进
+                 ThemeHost.Brushes —— 透明在两份字典里是同一个值，没有「换主题时得重涂」的东西；
+                 NavigationViewExpandedPaneBackground 不用再写一遍，框架那一支本来就是透明的。 -->
+            <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="Transparent" />
+
             <!-- Mica shows through the layer brushes, which is the whole point of using them for the
                  nav pane and the page surface instead of a flat fill. -->
             <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#FF0C1116" />
@@ -331,6 +368,22 @@
             <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="{StaticResource EgTextColor}" />
             <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="{StaticResource EgTextDimColor}" />
             <SolidColorBrush x:Key="TextFillColorTertiaryBrush" Color="{StaticResource EgTextFaintColor}" />
+
+            <!-- 同 Dark 那几条：栏里的字与「媒体库／订阅」两条分区标题都走主题正文色（条目那几态一并接上，
+                 选中那一项才不会留在框架那支写死的白上）。浅色这边尤其要写 —— 框架那支白压在白面上就是
+                 一片看不见的字。 -->
+            <SolidColorBrush x:Key="NavigationViewItemForeground" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemHeaderForeground" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundPressed" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelected" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPointerOver" Color="{StaticResource EgTextColor}" />
+            <SolidColorBrush x:Key="NavigationViewItemForegroundSelectedPressed" Color="{StaticResource EgTextColor}" />
+
+            <!-- 同 Dark 那一颗：栏自己的底钉成透明，栏的底只由外壳那条 EgSurfaceBrush 决定（来由与实测
+                 数字见 Dark 那份的注释）。浅色这边尤其要写 —— 框架那支亚克力是中性灰的，压在白面上就是
+                 栏比页面暗一截的那块。 -->
+            <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="Transparent" />
 
             <!-- No Mica to show through on this side: the layer brushes are opaque so light-mode text
                  keeps its contrast whether or not the backdrop came up. -->

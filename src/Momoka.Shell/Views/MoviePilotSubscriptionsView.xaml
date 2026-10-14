@@ -17,7 +17,7 @@
     <StackPanel Spacing="{StaticResource EgSpaceM}" Visibility="{x:Bind ViewModel.Visible, Mode=OneWay}">
       <StackPanel Spacing="{StaticResource EgSpaceM}" Visibility="{x:Bind MoviesVisible(ViewModel.MoviesVisibility, ViewModel.NoticeOpen), Mode=OneWay}">
         <Grid>
-            <local:ShelfHead Title="MoviePilot 电影订阅" Note="{x:Bind ViewModel.MoviesNote, Mode=OneWay}" />
+            <local:ShelfHead x:Name="MoviesHead" Note="{x:Bind ViewModel.MoviesNote, Mode=OneWay}" />
             <Button x:Name="RefreshSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
         </Grid>
         <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
@@ -29,7 +29,7 @@
       </StackPanel>
       <StackPanel Spacing="{StaticResource EgSpaceM}" Visibility="{x:Bind SeriesVisible(ViewModel.SeriesVisibility, ViewModel.NoticeOpen), Mode=OneWay}">
         <Grid>
-            <local:ShelfHead Title="MoviePilot 电视剧订阅" Note="{x:Bind ViewModel.SeriesNote, Mode=OneWay}" />
+            <local:ShelfHead x:Name="SeriesHead" Note="{x:Bind ViewModel.SeriesNote, Mode=OneWay}" />
             <Button x:Name="RefreshSeriesSubscriptions" HorizontalAlignment="Right" Content="刷新订阅"
                 Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
         </Grid>

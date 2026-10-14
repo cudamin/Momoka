@@ -146,6 +146,10 @@ internal static class ShellServices
         services.AddSingleton<IClipboard, SystemClipboard>();
         services.AddSingleton<ISystemLauncher, SystemLauncher>();
 
+        // 开机自启那一格：改的是 HKCU 下的启动项，所以也归这一组「平台能力」，离线探针换成假的（真拨一次会在
+        // 跑探针那台机器上留下一条真的启动项）。判断在 Core 的 StartupEntry，这里只有注册表那几下。
+        services.AddSingleton<IStartupRegistration, StartupRegistration>();
+
         // Singleton because the scan is per machine and slow enough to be worth doing once: the 字幕 card's
         // font picker asks for the families, and asking again on every visit to the settings page would
         // re-read every file in C:\Windows\Fonts to arrive at the same list.

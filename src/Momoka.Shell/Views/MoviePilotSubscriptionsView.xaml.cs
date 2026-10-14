@@ -25,6 +25,12 @@ public sealed partial class MoviePilotSubscriptionsView : UserControl
     public MoviePilotSubscriptionsView()
     {
         InitializeComponent();
+
+        // 两排的名字从 Core 那一份取，不在这里再写一遍字面量（2026-10-13 晚改名时发现这里本来各有一份，
+        // 和 HomeLayout.FixedTitle、和侧栏那两条入口的字面量是同一句话的四个副本）。这一控件同时供主页
+        // 那两排和订阅列表页使用，所以改名一处生效也要求这一处跟着走。
+        MoviesHead.Title = HomeLayout.FixedTitle(HomeLayout.MoviePilotMovies) ?? string.Empty;
+        SeriesHead.Title = HomeLayout.FixedTitle(HomeLayout.MoviePilotSeries) ?? string.Empty;
     }
 
     internal void Attach(MoviePilotService service, Action<MoviePilotSubscription>? open)
@@ -32,6 +38,22 @@ public sealed partial class MoviePilotSubscriptionsView : UserControl
         _standalone.Attach(service, open);
         ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
     }
+
+    /// <summary>
+    /// 整页宿主用（MoviePilotSubscriptionsPage）：把这一排接到调用方自己的订阅数据上，两边共用同一套读取、
+    /// 刷新与订阅管理菜单。**Row 必须先落定再装确认框** —— <see cref="ViewModel"/> 是从 Row 的属主那儿取的，
+    /// 反过来的话那一问就装到这一页用不到的备用属主上了。
+    /// </summary>
+    internal void AttachRow(MoviePilotHomeSubscriptions owner, MoviePilotHomeRow row, MoviePilotService service,
+        Action<MoviePilotSubscription>? open)
+    {
+        owner.Attach(service, open);
+        Row = row;
+        ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
+    }
+
+    /// <summary>整页宿主用：松开那一排，之后 <see cref="ViewModel"/> 回到这一控件自己的备用属主。</summary>
+    internal void DetachRow() => Row = null;
 
     internal void Release()
     {
