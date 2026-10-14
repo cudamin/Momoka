@@ -6344,3 +6344,13 @@ t+2s     指针本来就没动 → 又满足 ≥2000 → 又 hide → 又盖章 
 - 取舍留给用户：**打包安装（MSIX／商店）时这一格没做隐藏**。开机自启那一格在打包身份下会整行收起（那种身份下 Run 那一格会拉起另一个副本），而检查更新在打包身份下仍然查得对、只是「打开下载页」给的是 exe／zip，不是商店那条更新路。要不要照开机自启那样也收起来，是产品决定，本轮没替用户做。
 - 未提交：本轮改动留在工作区，**没有 commit、没有 push**（用户没让提交）。本树另有一批在途未提交改动（换 LGPL 内核、许可改 MIT，另一个会话留下的），本轮一个字没碰。
 
+## 发版 0.1.7：LGPL 内核与更新检查上 GitHub Release（2026-10-14 深夜）
+
+- 用户令：「打包发布新版本，github 上只需上传 `Momoka_windows-x64_0.1.6.exe` / `SHA256SUMS.txt` / Source code (zip) / Source code (tar.gz) 即可」。问清版本号后用户选定**升到 0.1.7** —— 0.1.6 当天中午已经发过一版（安装包＋ZIP＋商店 MSIX＋校验文件），此后主树又落了 LGPL 内核、MIT 许可与更新检查三批改动（`978b80c`）。本轮 `Directory.Build.props` 三行版本 0.1.6→0.1.7，四道闸门全跑，**交付物只出安装包与校验文件两件**。
+- 验证：闸门 1 完整 Release 构建 **0 警告、0 错误**，`format whitespace` 退出 0，`tools/check-scripts.ps1` 18 个脚本通过；闸门 2 编译后 `--no-build` 跑 **1784 项全部通过、0 失败、0 跳过**（含分析器哈希与六条约定基线）；闸门 3 `tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（**540 文件、282.7 MB、11 GLSL／4 HOOK 逐文件校验通过**），发布件 `Momoka.exe` FileVersion `0.1.7.0`；闸门 4 **绿 ｜ 检查 186、失败行 0；消失 0、降级 0、新增 0**（`artifacts/selfcheck/run-aa55d75740954767b6e0572ad699f8b0`）。
+- 交付物（`artifacts/`）：`Momoka_windows-x64_0.1.7.exe`（83 158 609 字节、79.3 MB，Inno Setup，`-SkipPublish` 取同一发布目录）、`SHA256SUMS.txt`（**本次只列安装包一件**，96 字节）。SHA-256：安装包 `53a44379bd7ca5c87b44682695979ec6b3475cfd45a67b364e1f940a79baacf6`、校验文件 `09c40d1503f1a2c5eb2de986cf6082c534129c87e11d3c918c223939d94a6db0`。**不出便携 ZIP 与 MSIX**（用户令只发这两件）；安装包比 0.1.6 那份小 4 MB，差的就是换掉的 LGPL 内核。
+- 发布：发版提交 `885849e`（先被远端三条 README 提交挡下，变基到 `8d9a9de` 后再推）；GitHub Release <https://github.com/cudamin/Momoka/releases/tag/v0.1.7>（Pre-release，id 412887059）两件资产均 `uploaded`。源码包由 GitHub 按标签自动生成，`archive/refs/tags/v0.1.7.zip` 与 `.tar.gz` 均 HTTP 200。
+- **回读核对用的是 GitHub API 给资产算的 `digest` 字段**（服务端摘要，不必把 79 MB 整份下回来）：远端 `sha256:53a44379…` 与本地逐字节相同、`sha256:09c40d15…` 与本地相同，字节数 83 158 609／96 两边一致；`SHA256SUMS.txt` 另把远端内容取回逐字对过（一行、与本地一致）。标签 v0.1.7 指向 `885849eafd1a15ffcafce6872321ba244cbb9473`（`git ls-remote` 核实）；本机不 `git push <标签>`（0.1.5／0.1.6 都被反复 SIGTERM），由 GitHub 按 `target_commitish` 建。
+- **一处如实记的不一致**：发布件 `ProductVersion` 是 `0.1.7+978b80c…`，即构建那一刻的 HEAD；变基之后发版提交成了 `885849e`，两者之间只差远端那三个 README 提交（不进二进制）。**功能不受影响** —— 更新检查读的是 `AppIdentity.Version`（`AssemblyVersion` 的三段，`0.1.7`），不是这个信息性后缀。0.1.5 那一轮变基后也是同样的情形。
+- 未验证（如实说）：没有把安装包整份下回来重算哈希（用的是服务端 `digest`，等价但形式不同）；**安装包没有在本机安装运行过**；没有做代码签名，从网上下载的人第一次双击仍会看到 SmartScreen 提示。
+
