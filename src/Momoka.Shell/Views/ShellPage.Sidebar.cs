@@ -251,6 +251,10 @@ public sealed partial class ShellPage
     {
         AccountDot.Visibility = stacked ? Visibility.Collapsed : Visibility.Visible;
         AccountText.ColumnSpacing = stacked ? 0 : 8;
+        // 行距也要跟着排法走：两行那一档名字与服务器各占一行，留 2 像素的行距；一行那一档第 1 行是空的
+        // （Auto 收成 0），可 RowSpacing 还在，它照样在那一行上下各摊一份，两格字的重心因此差出 2 像素
+        // （实测 user y=3、server y=5）—— 「一行」这一档要把行距归零。
+        AccountText.RowSpacing = stacked ? 2 : 0;
         AccountText.ColumnDefinitions[0].Width = stacked ? new GridLength(1, GridUnitType.Star) : GridLength.Auto;
         AccountText.ColumnDefinitions[2].Width = stacked ? GridLength.Auto : new GridLength(1, GridUnitType.Star);
 

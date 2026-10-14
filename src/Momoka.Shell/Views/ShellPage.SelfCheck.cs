@@ -207,10 +207,15 @@ public sealed partial class ShellPage
         // 用户名在上、服务器名在下、左沿对齐在同一条竖线上，中间那个「·」收起，按钮真长到了两行那么高；
         // 其余各档是一行 —— 「名字 · 服务器」，名字在服务器名左边。排错了在截图里都只是「一行小字」，
         // 得逐字读才看得出来，所以按两格字的相对位置判，不按截图。
+        // 一行那一档比的是**竖直中心**不是上沿：名字是 13 号 SemiBold（实高约 16.5）、服务器名走 12 号
+        // 等宽（约 14），两格都 VerticalAlignment=Center，上沿天生差 (16.5−14)/2≈1.3 像素 —— 比上沿会把
+        // 这个字体高度差当成「没排在一行」，而屏上两者的基线其实对得只差 0.05 像素。容差取 1.5（中心实测
+        // 差 0.72），既容得下这个高度差，又能逮住真正错开一整行（两行那一档的中心差有十来像素）。
         var twoLines = SidebarShown && Sidebar.IsPaneOpen;
         var textShown = AccountText.Visibility == Visibility.Visible;
         var userAt = At(AccountUser);
         var serverAt = At(AccountServer);
+        var sameLine = Math.Abs(userAt.Y + AccountUser.ActualHeight / 2 - (serverAt.Y + AccountServer.ActualHeight / 2)) <= 1.5;
         var arrangement = !textShown
             ? true
             : twoLines
@@ -218,7 +223,7 @@ public sealed partial class ShellPage
                     && Math.Abs(userAt.X - serverAt.X) <= 1
                     && AccountDot.Visibility == Visibility.Collapsed
                     && AccountButton.ActualHeight >= AccountUser.ActualHeight + AccountServer.ActualHeight
-                : Math.Abs(userAt.Y - serverAt.Y) <= 1 && userAt.X < serverAt.X;
+                : sameLine && userAt.X < serverAt.X;
         var arrangementText = !textShown
             ? "那两格字收着（图标栏）"
             : twoLines
