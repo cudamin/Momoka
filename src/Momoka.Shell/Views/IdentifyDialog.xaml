@@ -105,6 +105,7 @@
                                         Click="OnPick"
                                         Style="{StaticResource EgArtworkTileStyle}"
                                         Tag="{x:Bind}"
+                                        Visibility="{x:Bind PreviewVisibility}"
                                         ToolTipService.ToolTip="选这一条">
                                         <Grid>
                                             <Image
@@ -117,6 +118,14 @@
                                                 Visibility="{x:Bind EmptyMark, Mode=OneWay}" />
                                         </Grid>
                                     </Button>
+                                    <Button
+                                        AutomationProperties.AutomationId="IdentifyTextResult"
+                                        AutomationProperties.Name="{x:Bind Title}"
+                                        Click="OnPick"
+                                        Content="选择此项"
+                                        HorizontalAlignment="Stretch"
+                                        Tag="{x:Bind}"
+                                        Visibility="{x:Bind TextChoiceVisibility}" />
                                     <TextBlock
                                         HorizontalAlignment="Center"
                                         Style="{StaticResource EgDataStrongStyle}"

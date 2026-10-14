@@ -195,7 +195,8 @@ internal static partial class ItemCommands
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
 
-        foreach (var row in ItemMenu.For(card.Item, shell.MoviePilotEnabled))
+        foreach (var row in ItemMenu.For(card.Item, shell.MoviePilotEnabled,
+            jellyfin: card.Scope?.Connection.IsJellyfin == true))
         {
             if (row.Command is not { } command)
             {
@@ -253,6 +254,7 @@ internal static partial class ItemCommands
         Action<CardItem>? removed)
     {
         if (card.Scope is not { IsCurrent: true } scope) return;
+        if (!ItemMenu.Supports(command, scope.Connection.IsJellyfin)) return;
         if (command is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape or ItemCommand.AniBtVersions && !shell.MoviePilotEnabled) return;
         var item = card.Item;
 

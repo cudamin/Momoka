@@ -105,7 +105,8 @@ public sealed partial class ServerLibrariesPage : Page, IShellContent
         AutomationProperties.SetAutomationId(thumbnails, "LibraryScanReplaceThumbnails");
         var panel = new StackPanel { Spacing = 16, MinWidth = 280 };
         panel.Children.Add(new TextBlock { Text = row.Name, TextWrapping = TextWrapping.Wrap });
-        panel.Children.Add(modes); panel.Children.Add(images); panel.Children.Add(thumbnails);
+        panel.Children.Add(modes); panel.Children.Add(images);
+        if (ViewModel.SupportsThumbnailRefresh) panel.Children.Add(thumbnails);
         if (await ShowDialogAsync(CreateDialog("刷新元数据", panel, "刷新")) == ContentDialogResult.Primary)
             await ViewModel.ScanAsync(row, new[] { "missing", "all" }[modes.SelectedIndex], images.IsChecked == true, thumbnails.IsChecked == true);
     }
@@ -113,7 +114,7 @@ public sealed partial class ServerLibrariesPage : Page, IShellContent
     private async void OnAddPath(object sender, RoutedEventArgs e) => await ShowDirectoryAsync(null, false);
     private async void OnEditPath(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { Tag: LibraryPathRow row }) await ShowDirectoryAsync(row, false);
+        if (sender is Button { Tag: LibraryPathRow { CanEdit: true } row }) await ShowDirectoryAsync(row, false);
     }
     private async void OnRemovePath(object sender, RoutedEventArgs e)
     {
@@ -136,12 +137,13 @@ public sealed partial class ServerLibrariesPage : Page, IShellContent
         foreach (var pair in new (DependencyObject Control, string Id)[] { (path, "LibraryDirectoryPath"), (network, "LibraryDirectoryNetwork"), (username, "LibraryDirectoryUser"), (password, "LibraryDirectoryPassword"), (browse, "LibraryDirectoryBrowse"), (up, "LibraryDirectoryUp"), (roots, "LibraryDirectoryRoot"), (folders, "LibraryDirectoryList") })
             AutomationProperties.SetAutomationId(pair.Control, pair.Id);
         var panel = new StackPanel { Spacing = 12 };
-        panel.Children.Add(new TextBlock { Text = "选择运行 Emby Server 的设备上的文件夹。", TextWrapping = TextWrapping.Wrap });
+        panel.Children.Add(new TextBlock { Text = $"选择运行 {ViewModel.ServerProduct} 的设备上的文件夹。", TextWrapping = TextWrapping.Wrap });
         panel.Children.Add(path);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         buttons.Children.Add(browse); buttons.Children.Add(up); buttons.Children.Add(roots);
-        panel.Children.Add(buttons); panel.Children.Add(folders); panel.Children.Add(network);
-        if (!metadata) { panel.Children.Add(username); panel.Children.Add(password); }
+        panel.Children.Add(buttons); panel.Children.Add(folders);
+        if (ViewModel.SupportsNetworkCredentials) panel.Children.Add(network);
+        if (!metadata && ViewModel.SupportsNetworkCredentials) { panel.Children.Add(username); panel.Children.Add(password); }
         panel.Children.Add(message);
         var dialog = CreateDialog(metadata ? "选择元数据目录" : original is null ? "添加媒体文件夹" : "编辑媒体文件夹", new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MaxHeight = 650 }, "确定");
         async Task BrowseAsync()
@@ -173,7 +175,9 @@ public sealed partial class ServerLibrariesPage : Page, IShellContent
                 else
                 {
                     var value = original is null ? new JsonObject() : (JsonObject)original.Document.DeepClone();
-                    value["Path"] = path.Text; value["NetworkPath"] = network.Text; value["Username"] = username.Text; value["Password"] = password.Password;
+                    value["Path"] = path.Text;
+                    if (ViewModel.SupportsNetworkCredentials)
+                    { value["NetworkPath"] = network.Text; value["Username"] = username.Text; value["Password"] = password.Password; }
                     args.Cancel = !await ViewModel.SavePathAsync(value, original);
                 }
                 if (args.Cancel) message.Text = ViewModel.NoticeMessage ?? "尚未保存，请检查填写内容。";
@@ -226,7 +230,7 @@ public sealed partial class ServerLibrariesPage : Page, IShellContent
             (_, type, index, chosen) => context.ApplyAsync(type, index, chosen),
             (_, type, index) => context.DeleteAsync(type, index),
             (_, type, picked) => context.UploadAsync(type, picked.Bytes, ArtworkFile.ContentType(picked.FileName)),
-            async _ => await context.ReloadAsync(), async address => await context.FetchRemoteAsync(address))
+            async _ => await context.ReloadAsync(), ViewModel.IsJellyfin ? null : async address => await context.FetchRemoteAsync(address))
         { XamlRoot = XamlRoot };
         await ShowDialogAsync(dialog);
         if (ViewModel.CanUse) await ViewModel.ReloadAsync();

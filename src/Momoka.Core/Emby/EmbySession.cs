@@ -92,8 +92,9 @@ public sealed class EmbySession : IDisposable
         var generation = BeginIdentityChange();
         try
         {
-            var apiBase = EmbyServerAddress.Normalize(server.Url);
-            var connection = await Gateway.AuthenticateAsync(apiBase, username, password, cancellationToken).ConfigureAwait(false);
+            var apiBase = EmbyServerAddress.Normalize(server.Url, server.ServerKind);
+            var connection = await Gateway.AuthenticateAsync(apiBase, username, password, cancellationToken,
+                server.ServerKind, server.ServerVersion, server.ServerId).ConfigureAwait(false);
 
             lock (_lifecycleGate)
             {
@@ -133,7 +134,7 @@ public sealed class EmbySession : IDisposable
     private bool CanCommit(long generation) => !_disposed && generation == _generation;
 
     private static bool HasAddress(ServerProfile server, Uri apiBase) =>
-        EmbyServerAddress.TryNormalize(server.Url, out var current, out _) && current == apiBase;
+        EmbyServerAddress.TryNormalize(server.Url, out var current, out _, server.ServerKind) && current == apiBase;
 
     // 调用方持有 lifecycleGate，凭据、当前 client 和最后身份必须一起提交。
     private void CommitSignIn(ServerProfile server, AccountProfile account, EmbyConnection connection, string password, bool rememberPassword)
@@ -169,12 +170,32 @@ public sealed class EmbySession : IDisposable
         var userId = account.UserId;
         var username = account.Username;
         if (token.Length == 0 || userId.Length == 0) return false;
-        if (!EmbyServerAddress.TryNormalize(server.Url, out var apiBase, out _)) return false;
+        if (!EmbyServerAddress.TryNormalize(server.Url, out var apiBase, out _, server.ServerKind)) return false;
 
-        var connection = new EmbyConnection(apiBase, token, userId, username, server.Name, Device);
-        var candidate = new EmbyClient(_http, connection);
+        var connection = new EmbyConnection(apiBase, token, userId, username, server.Name, Device)
+        {
+            ServerKind = server.ServerKind,
+            ServerVersion = server.ServerVersion,
+            ServerId = server.ServerId
+        };
         try
         {
+            // Upgrades may remove the old user routes. Refresh Jellyfin's version before checking its token.
+            if (connection.IsJellyfin)
+            {
+                var detected = await Gateway.DetectAsync(server.Url, cancellationToken).ConfigureAwait(false);
+                if (detected.ServerKind != connection.ServerKind || detected.ApiBase != apiBase) return false;
+                if (connection.ServerId is { Length: > 0 } knownId && detected.Id is { Length: > 0 } id && knownId != id) return false;
+                connection = connection with { ServerVersion = detected.Version, ServerId = detected.Id ?? connection.ServerId };
+            }
+            var candidate = new EmbyClient(_http, connection);
+            if (connection.IsJellyfin)
+            {
+                var current = await candidate.GetCurrentUserAsync(cancellationToken).ConfigureAwait(false);
+                if (!string.Equals(current.Id, userId, StringComparison.Ordinal)) return false;
+                connection = connection with { IsAdministrator = current.Policy?.IsAdministrator };
+                candidate = new EmbyClient(_http, connection);
+            }
             var views = await candidate.GetViewsAsync(cancellationToken).ConfigureAwait(false);
             connection = await NameServerAsync(apiBase, connection, cancellationToken).ConfigureAwait(false);
             lock (_lifecycleGate)
@@ -183,6 +204,7 @@ public sealed class EmbySession : IDisposable
                 if (!CanCommit(generation) || !HasAddress(server, apiBase)) return false;
                 Adopt(server, account, connection);
                 _restoredViews = views;
+                Persist();
             }
 
             Log.Info(Category, "已使用保存的令牌恢复登录");
@@ -214,7 +236,8 @@ public sealed class EmbySession : IDisposable
 
         try
         {
-            connection = await Gateway.AuthenticateAsync(apiBase, username, password, cancellationToken).ConfigureAwait(false);
+            connection = await Gateway.AuthenticateAsync(apiBase, username, password, cancellationToken,
+                connection.ServerKind, connection.ServerVersion, connection.ServerId).ConfigureAwait(false);
             lock (_lifecycleGate)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -339,7 +362,8 @@ public sealed class EmbySession : IDisposable
             try
             {
                 Log.Info(Category, "令牌过期，正在使用保存的密码重新登录");
-                connection = await Gateway.AuthenticateAsync(stale.Connection.ApiBase, stale.Connection.UserName, password, cancellationToken)
+                connection = await Gateway.AuthenticateAsync(stale.Connection.ApiBase, stale.Connection.UserName, password, cancellationToken,
+                    stale.Connection.ServerKind, stale.Connection.ServerVersion, stale.Connection.ServerId)
                     .ConfigureAwait(false);
             }
             catch (Exception error)
@@ -381,7 +405,12 @@ public sealed class EmbySession : IDisposable
         try
         {
             var info = await Gateway.GetPublicSystemInfoAsync(apiBase, cancellationToken).ConfigureAwait(false);
-            return info.ServerName is { Length: > 0 } name ? connection with { ServerName = name } : connection;
+            return connection with
+            {
+                ServerName = info.ServerName is { Length: > 0 } name ? name : connection.ServerName,
+                ServerVersion = info.Version ?? connection.ServerVersion,
+                ServerId = info.Id ?? connection.ServerId
+            };
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
@@ -394,6 +423,9 @@ public sealed class EmbySession : IDisposable
     {
         _restoredViews = null;
         if (connection.ServerName.Length > 0 && server.HasPlaceholderName) server.Name = connection.ServerName;
+        server.ServerKind = connection.ServerKind;
+        server.ServerVersion = connection.ServerVersion;
+        server.ServerId = connection.ServerId;
         Server = server;
         Account = account;
         _client = new EmbyClient(_http, connection);

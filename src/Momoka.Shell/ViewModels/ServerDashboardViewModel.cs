@@ -82,10 +82,17 @@ public sealed partial class ServerDashboardViewModel : PageViewModel
     [ObservableProperty] public partial string ActivityMessage { get; set; } = "正在读取活动记录…";
     [ObservableProperty] public partial string ActivitySummary { get; set; } = "最近 20 条";
 
+    public string ServerProduct => _scope?.Connection.IsJellyfin == true ? "Jellyfin Server" : "Emby Server";
+    public string RestartLabel => "重启 " + ServerProduct;
+    public string ShutdownLabel => "关闭 " + ServerProduct;
+    private bool HasAdminPermission => _scope?.Connection.IsJellyfin == true
+        ? _scope.Connection.IsAdministrator == true && SystemInfo?.IsRestricted == false : SystemInfo?.IsRestricted == false;
+    public Visibility AdministrationVisibility => Show(_attached && _scope?.IsCurrent == true && HasAdminPermission);
+    public Visibility RestartVisibility => Show(AdministrationVisibility == Visibility.Visible && SystemInfo?.CanSelfRestart != false);
     public Visibility ContentVisibility => Show(HasSnapshot);
     public bool CanRefresh => _attached && _scope?.IsCurrent == true && !Busy;
     public bool CanAutoRefresh => _attached && !Busy && !_powerRequested;
-    public bool CanManage => CanRefresh && HasSnapshot && SystemInfo is { IsRestricted: false, IsShuttingDown: false } && !_powerRequested;
+    public bool CanManage => CanRefresh && HasSnapshot && HasAdminPermission && SystemInfo is { IsRestricted: false, IsShuttingDown: false } && !_powerRequested;
     public bool CanRestart => CanManage && SystemInfo?.CanSelfRestart != false;
 
     partial void OnHasSnapshotChanged(bool value) => BusyChanged();
@@ -99,9 +106,12 @@ public sealed partial class ServerDashboardViewModel : PageViewModel
         if (_scope is { } scope)
         {
             ServerName = scope.Connection.ServerName;
-            Address = EmbyServerAddress.ToDisplayString(scope.Connection.ApiBase);
+            Address = scope.Connection.IsJellyfin ? scope.Connection.ApiBase.AbsoluteUri.TrimEnd('/')
+                : EmbyServerAddress.ToDisplayString(scope.Connection.ApiBase);
         }
-        RefreshCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(RestartLabel));
+        OnPropertyChanged(nameof(ShutdownLabel));
+        BusyChanged();
     }
 
     public override async Task ReloadAsync()
@@ -199,8 +209,8 @@ public sealed partial class ServerDashboardViewModel : PageViewModel
         try
         {
             var message = $"确定{verb}「{ServerName}」吗？这会中断这台服务器上的所有播放和客户端连接。"
-                + (restart ? "" : "关闭后需要在服务器所在设备上重新启动 Emby Server。");
-            if (!await ConfirmAsync($"{verb} Emby Server", message, verb).ConfigureAwait(true)
+                + (restart ? "" : $"关闭后需要在服务器所在设备上重新启动 {ServerProduct}。");
+            if (!await ConfirmAsync($"{verb} {ServerProduct}", message, verb).ConfigureAwait(true)
                 || !IsCurrent(token) || !scope.IsCurrent) return;
             sent = true;
             await scope.ExecuteAsync((client, ct) => restart ? client.RestartServerAsync(ct) : client.ShutdownServerAsync(ct), token)
@@ -221,6 +231,8 @@ public sealed partial class ServerDashboardViewModel : PageViewModel
 
     protected override void BusyChanged()
     {
+        OnPropertyChanged(nameof(AdministrationVisibility));
+        OnPropertyChanged(nameof(RestartVisibility));
         RefreshCommand.NotifyCanExecuteChanged();
         RenameServerCommand.NotifyCanExecuteChanged();
         RestartServerCommand.NotifyCanExecuteChanged();

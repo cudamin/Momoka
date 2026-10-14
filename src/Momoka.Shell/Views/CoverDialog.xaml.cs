@@ -112,7 +112,7 @@ public sealed partial class CoverDialog : ContentDialog
     private readonly SwapArtwork _swap;
     private readonly DeleteArtwork _delete;
     private readonly UploadArtwork _upload;
-    private readonly FetchRemote _fetchRemote;
+    private readonly FetchRemote? _fetchRemote;
     private readonly Func<string, Task<EmbyItem?>> _reload;
     private readonly List<ArtworkSlot> _slots = [];
     private bool _busy;
@@ -127,7 +127,7 @@ public sealed partial class CoverDialog : ContentDialog
     public ObservableCollection<ArtworkSlot> Backdrops { get; } = [];
 
     public CoverDialog(EmbyItem item, FindArtwork find, FetchArtwork fetch, SwapArtwork swap,
-        DeleteArtwork delete, UploadArtwork upload, Func<string, Task<EmbyItem?>> reload, FetchRemote fetchRemote)
+        DeleteArtwork delete, UploadArtwork upload, Func<string, Task<EmbyItem?>> reload, FetchRemote? fetchRemote)
     {
         InitializeComponent();
         _item = item;
@@ -181,8 +181,9 @@ public sealed partial class CoverDialog : ContentDialog
         }
     }
 
+    internal bool CanPreviewRemoteArtwork => _fetchRemote is not null;
     internal Task<byte[]?> FetchRemoteAsync(string address) => _closed
-        ? Task.FromCanceled<byte[]?>(new CancellationToken(true)) : _fetchRemote(address);
+        ? Task.FromCanceled<byte[]?>(new CancellationToken(true)) : _fetchRemote?.Invoke(address) ?? Task.FromResult<byte[]?>(null);
     internal async Task<PickedArtwork?> PickArtworkAsync() => await ArtworkFile.PickAsync(XamlRoot).ConfigureAwait(true);
     private static ArtworkSlot? SlotOf(object sender) => (sender as FrameworkElement)?.Tag as ArtworkSlot;
 

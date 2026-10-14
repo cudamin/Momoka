@@ -393,8 +393,14 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     private async Task RefreshServerAdministrationAsync()
     {
-        await ViewModel.RefreshServerAdministrationAsync();
+        var refresh = ViewModel.RefreshServerAdministrationAsync();
+        UpdateCategoryGroups();
+        await refresh;
+        UpdateCategoryGroups();
+    }
 
+    private void UpdateCategoryGroups()
+    {
         if (ReferenceEquals(CategoryGroupsSource.Source, ViewModel.CategoryGroups)) return;
 
         var selection = ViewModel.SelectedCategory;
@@ -441,6 +447,12 @@ public sealed partial class SettingsPage : Page, IShellContent
     private void ShowHosted()
     {
         if (_request is null) return;
+
+        if (!ViewModel.CanOpenServerCategory(ViewModel.SelectedCategory))
+        {
+            ViewModel.SelectedCategory = SettingsViewModel.FirstCardCategory;
+            return;
+        }
 
         if (!ViewModel.ShowsHosted)
         {

@@ -14,13 +14,14 @@ namespace Momoka.Shell.Views;
 /// 公开的，因为 <c>x:Bind</c> 在 DataTemplate 里是按类型名编译的。
 /// </para>
 /// </summary>
-public sealed class CoverChoice(RemoteImageInfo info) : INotifyPropertyChanged
+public sealed class CoverChoice(RemoteImageInfo info, bool canPreview = true) : INotifyPropertyChanged
 {
     private BitmapImage? _picture;
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public RemoteImageInfo Info { get; } = info;
+    public Visibility PreviewVisibility => canPreview ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>哪家、多大、什么语言。</summary>
     public string Caption { get; } = info.Describe();
@@ -87,10 +88,11 @@ public sealed partial class CoverPickerDialog : ContentDialog
         Title = $"{(kind.Many ? "另加一张" : "换一张")}{kind.Name} — {item.Name}";
 
         foreach (var image in found.Images.Where(image => !string.IsNullOrWhiteSpace(image.Url)).Take(Most))
-            _choices.Add(new CoverChoice(image));
+            _choices.Add(new CoverChoice(image, owner.CanPreviewRemoteArtwork));
 
         Grid.ItemsSource = _choices;
         Grid.Visibility = _choices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (!owner.CanPreviewRemoteArtwork) Grid.Height = double.NaN;
 
         if (_choices.Count == 0)
         {
@@ -105,7 +107,7 @@ public sealed partial class CoverPickerDialog : ContentDialog
         IsPrimaryButtonEnabled = false;
 
         // 不 await：一张张图慢慢回来，这张表先画出来。
-        _ = LoadAsync();
+        if (owner.CanPreviewRemoteArtwork) _ = LoadAsync();
     }
 
     /// <summary>挑中的那一张，没挑就是空。</summary>

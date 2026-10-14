@@ -30,7 +30,7 @@ Not measured here: whether a pre-12 Jellyfin still needs `/emby/`. Treat "use th
 | `OperatingSystem` | Present but marked deprecated in the specification. |
 | `StartupWizardCompleted` | Present. |
 
-Momoka's `PublicSystemInfo` currently declares only `ServerName`, `Version`, `Id`, `OperatingSystem`. `ProductName` has to be added before the products can be told apart — and note that Emby answers this same route with the same field names, so the discriminator has to be the value, not the presence of a field.
+Momoka's `PublicSystemInfo` includes `ProductName`; `DetectAsync` reads its value before sending credentials. Emby answers the same route with similar field names, so the discriminator is the value, not merely the presence of a field.
 
 ## The authorization header
 
@@ -69,7 +69,7 @@ The parsing lives in Jellyfin's `Jellyfin.Server.Implementations/Security/Author
 
 The `?ApiKey=` row is the surprise: the capitalised query key is not behind the gate in the source as read here. Do not treat that as an invitation — putting a token in a URL is exactly what CLAUDE.md's credential rules forbid, and it would leak through `Redact`-adjacent logging paths and into any URL the user can copy. It is recorded so that a future reader who finds it in a working client knows why it still functions.
 
-`EmbyHttp.SendAsync` currently sends `X-Emby-Authorization` and `X-Emby-Token`. Against a default Jellyfin 12 server both are ignored, which surfaces as an anonymous request — a 401 for authenticated routes, and for `/System/Info/Public` a perfectly normal-looking 200 that says nothing about why the next call failed.
+`EmbyHttp.SendAsync` and playback use `MediaServerHeaders`. The Emby branch sends `X-Emby-Authorization` and `X-Emby-Token`; the Jellyfin branch sends `Authorization`. Sending only the Emby pair to default Jellyfin 12 would be treated as anonymous: public-info success cannot establish that later authenticated requests will work.
 
 ## JSON shape
 

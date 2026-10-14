@@ -82,6 +82,9 @@ public sealed class ShortcutSettings
 
 public sealed class ServerProfile
 {
+    public Momoka.Emby.MediaServerKind ServerKind { get; set; }
+    public string? ServerVersion { get; set; }
+    public string? ServerId { get; set; }
     /// <summary>The name a brand-new profile carries; a migrated one gets <see cref="MigratedName"/>.</summary>
     public const string DefaultName = "Emby 服务器";
 

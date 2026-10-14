@@ -158,7 +158,7 @@
                                                 <TextBlock Text="{x:Bind Path}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
                                                 <TextBlock Text="{x:Bind NetworkPath}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
                                             </StackPanel>
-                                            <Button x:Name="LibraryPathEdit" Grid.Column="1" Tag="{x:Bind}" Content="编辑" Click="OnEditPath" AutomationProperties.Name="编辑媒体目录" />
+                                            <Button x:Name="LibraryPathEdit" Visibility="{x:Bind EditVisibility}" Grid.Column="1" Tag="{x:Bind}" Content="编辑" Click="OnEditPath" AutomationProperties.Name="编辑媒体目录" />
                                             <Button x:Name="LibraryPathRemove" Grid.Column="2" Tag="{x:Bind}" Content="移除" Click="OnRemovePath" AutomationProperties.Name="移除媒体目录" />
                                         </Grid>
                                     </DataTemplate>

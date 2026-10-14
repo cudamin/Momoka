@@ -405,7 +405,7 @@ internal static partial class ItemCommands
                 (id, type, picked) => TellAsync(session, (client, token) => client.UploadImageAsync(
                     id, type, picked.Bytes, ArtworkFile.ContentType(picked.FileName), token)),
                 id => ReloadAsync(session, id),
-                address => FetchAsync(session, (client, token) =>
+                session.Connection.IsJellyfin ? null : address => FetchAsync(session, (client, token) =>
                     client.GetRemoteImageBytesAsync(address, token)))
             {
                 XamlRoot = root
@@ -494,13 +494,13 @@ internal static partial class ItemCommands
                 full.Path,
                 () => AskAsync(session, (client, token) => client.GetExternalIdInfosAsync(item.Id, token)),
                 query => AskAsync(session, (client, token) => client.SearchRemoteAsync(item.Type, query, token)),
-                result => result.ImageUrl is { Length: > 0 } url
+                session.Connection.IsJellyfin ? null : result => result.ImageUrl is { Length: > 0 } url
                     ? FetchAsync(session, (client, token) =>
                         client.GetRemoteSearchImageAsync(url, result.SearchProviderName, token))
                     : Task.FromResult<byte[]?>(null),
                 (result, replaceImages) => TellAsync(session, (client, token) =>
                     client.ApplyRemoteSearchResultAsync(item.Id, result, replaceImages, token)),
-                () => TellAsync(session, (client, token) => client.ResetMetadataAsync(item.Id, token)))
+                session.Connection.IsJellyfin ? null : () => TellAsync(session, (client, token) => client.ResetMetadataAsync(item.Id, token)))
             {
                 XamlRoot = root
             };
@@ -531,7 +531,7 @@ internal static partial class ItemCommands
         {
             if (Root(owner) is not { } root) return;
 
-            var dialog = new RefreshMetadataDialog { XamlRoot = root };
+            var dialog = new RefreshMetadataDialog(!session.Connection.IsJellyfin) { XamlRoot = root };
             if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
 
             await TellAsync(session, (client, token) => client.RefreshItemAsync(

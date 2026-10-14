@@ -42,7 +42,7 @@ Jellyfin also documents `GET /Items/Filters2` next to the legacy `GET /Items/Fil
 
 Jellyfin additionally documents a path-segment form, `GET /Items/{itemId}/Images/{imageType}/{imageIndex}/{tag}/{format}/{maxWidth}/{maxHeight}/{percentPlayed}/{unplayedCount}`, for clients that prefer not to use query parameters. Momoka's `EmbyUrl.Image` uses query parameters (`maxWidth`, `quality`, `tag`); the query form still exists in the document.
 
-The **upload body** question from `momoka-emby-api` — raw bytes for item images, Base64 text for user avatars — is unchanged by the product: the same two code paths (`PostBytesAsync`, `EmbyClient.Users.cs`) are what a Jellyfin branch would reuse, and the same "the specification and the implementation disagree" caveat applies.
+Jellyfin **requires Base64 text for both item images and user avatars**. `ImageController.SetItemImage` reads `GetFromBase64Stream(Request.Body)` in both the 10.11 source and current source. Emby item uploads remain raw bytes. Share the HTTP transport, but select the body representation by product; a matching route does not establish an identical upload contract.
 
 ## Subtitles
 
@@ -115,7 +115,7 @@ Jellyfin also documents `GET /Library/PhysicalPaths`, which has no Emby counterp
 | `GET /Environment/NetworkDevices` | **absent** | Network browsing is not exposed |
 | `POST /Environment/DirectoryContents` | `GET /Environment/DirectoryContents` | The document lists `GET` only, with `path`, `includeFiles`, `includeDirectories`. Momoka sends credentials in the body; that form is not documented here |
 | `POST /Environment/ValidatePath` | same | |
-| `GET /Environment/ParentPath` | same | Still plain-text bytes rather than JSON |
+| `GET /Environment/ParentPath` | same | Jellyfin returns a JSON string or null; parse it before using the path. Emby's plain-text response is a different contract |
 
 ## User management
 
@@ -128,7 +128,7 @@ Jellyfin also documents `GET /Library/PhysicalPaths`, which has no Emby counterp
 | `GET /Users/{Id}` | `GET /Users/{userId}` | |
 | `POST /Users/{Id}` | **absent** | Editing is split: `POST /Users/{userId}/Policy`, `POST /Users/Configuration` (with `userId`) |
 | `POST /Users/{Id}/Policy` | `POST /Users/{userId}/Policy` | |
-| `POST /Users/{Id}/Password` | `POST /Users/Password` | `userId` query; body is `UpdateUserPassword` (`CurrentPw`, `NewPw`, `ResetPassword`) |
+| `POST /Users/{Id}/Password` | `POST /Users/Password` | `userId` query; body is `UpdateUserPassword` (`CurrentPw`, `NewPw`, `ResetPassword`). Changing the signed-in user's own password requires `CurrentPw`, even for administrators |
 | `POST /Users/{Id}/Delete` | `DELETE /Users/{userId}` | |
 | `POST /Users/{Id}/Configuration/Partial` | `POST /Users/Configuration` | `userId` query |
 | `POST /Users/{sourceId}/CopyData` | **absent** | User-copy is an Emby feature |
@@ -162,6 +162,7 @@ Collecting the "absent" rows, these features have no route in the Jellyfin 12.2.
 
 - Tag enumeration as its own endpoint (`/Tags`) — the values are still reachable through `/Items/Filters`.
 - The remote-image proxy (`/Images/Remote`).
+- The identification-image proxy (`/Items/RemoteSearch/Image`). Candidate text and applying a selection remain usable without requesting either proxy.
 - Hiding an item from resume (`…/HideFromResume`).
 - Paged virtual-folder listing (`/Library/VirtualFolders/Query`) and `/Library/SelectableMediaFolders`.
 - Network-device browsing (`/Environment/NetworkDevices`), and the credentialed `POST` form of `/Environment/DirectoryContents`.

@@ -57,7 +57,9 @@ public sealed partial class SignInViewModel : PageViewModel
     private const string Category = "login";
 
     /// <summary>The caption the card wears whenever it is not saying something more specific.</summary>
-    private const string FirstCaption = "连接到你的 Emby 服务器";
+    private const string FirstCaption = "连接到你的 Emby 或 Jellyfin 服务器";
+
+    private PublicSystemInfo? _detectedServer;
 
     private ISettingsService? _settings;
     private EmbySession? _session;
@@ -330,18 +332,20 @@ public sealed partial class SignInViewModel : PageViewModel
         try
         {
             var gateway = _session!.Gateway;
-            var info = await gateway.GetPublicSystemInfoAsync(apiBase, token).ConfigureAwait(true);
+            var info = await gateway.DetectAsync(Address, token).ConfigureAwait(true);
+            apiBase = info.ApiBase!;
 
             // A server that will not list its users is still a server worth signing into by hand, so
             // this failure is swallowed rather than allowed to end the connect.
-            var users = await ListUsersAsync(gateway, apiBase, token).ConfigureAwait(true);
+            var users = await ListUsersAsync(gateway, apiBase, token, info.ServerKind).ConfigureAwait(true);
 
-            if (!IsCurrent(token) || !EmbySignInIdentity.SameAddress(Address, apiBase.AbsoluteUri)) return;
+            if (!IsCurrent(token) || !EmbySignInIdentity.SameAddress(Address, apiBase.AbsoluteUri, info.ServerKind)) return;
 
             ServerLabel = info.ServerName is { Length: > 0 } name
-                ? $"{name}　·　Emby {info.Version}"
+                ? $"{name}　·　{info.ServerKind} {info.Version}"
                 : apiBase.Host;
 
+            _detectedServer = info;
             _usersAddress = apiBase;
             ShowCredentialStep(users);
         }
@@ -428,9 +432,17 @@ public sealed partial class SignInViewModel : PageViewModel
         try
         {
             var server = _settings!.ResolveServer(Address);
+            if (_detectedServer is { ApiBase: { } detectedBase } detected
+                && EmbySignInIdentity.SameAddress(Address, detectedBase.AbsoluteUri, detected.ServerKind))
+            {
+                server.ServerKind = detected.ServerKind;
+                server.ServerVersion = detected.Version;
+                server.ServerId = detected.Id;
+                server.Url = EmbyServerAddress.ToDisplayString(detectedBase, detected.ServerKind);
+            }
             var account = _settings.ResolveAccount(server, username);
-            var passwordless = EmbySignInIdentity.IsPasswordless(Address, _usersAddress, username, SelectedUser);
-            var password = EmbySignInIdentity.PasswordFor(Address, username, Password, _passwordAddress, _passwordUsername, passwordless);
+            var passwordless = EmbySignInIdentity.IsPasswordless(Address, _usersAddress, username, SelectedUser, server.ServerKind);
+            var password = EmbySignInIdentity.PasswordFor(Address, username, Password, _passwordAddress, _passwordUsername, passwordless, server.ServerKind);
 
             await _session!
                 .SignInAsync(server, account, password, username, Remember, token)
@@ -471,7 +483,7 @@ public sealed partial class SignInViewModel : PageViewModel
     partial void OnSelectedUserChanged(EmbyUser? value)
     {
         if (_filling || value is null || !Attached || _usersAddress is null
-            || !EmbySignInIdentity.SameAddress(Address, _usersAddress.AbsoluteUri)) return;
+            || !EmbySignInIdentity.SameAddress(Address, _usersAddress.AbsoluteUri, _detectedServer?.ServerKind ?? MediaServerKind.Emby)) return;
 
         Username = value.Name;
         var saved = EmbySignInIdentity.SavedAccount(Settings.Servers, Address, value.Name);
@@ -489,7 +501,8 @@ public sealed partial class SignInViewModel : PageViewModel
 
     partial void OnAddressChanged(string oldValue, string newValue)
     {
-        if (EmbySignInIdentity.SameAddress(oldValue, newValue)) return;
+        if (EmbySignInIdentity.SameAddress(oldValue, newValue, _detectedServer?.ServerKind ?? MediaServerKind.Emby)) return;
+        _detectedServer = null;
         Password = "";
         _passwordAddress = "";
         _passwordUsername = "";
@@ -562,11 +575,12 @@ public sealed partial class SignInViewModel : PageViewModel
     private async Task<List<EmbyUser>> ListUsersAsync(
         EmbyServerGateway gateway,
         Uri apiBase,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        MediaServerKind kind = MediaServerKind.Emby)
     {
         try
         {
-            return await gateway.GetPublicUsersAsync(apiBase, cancellationToken).ConfigureAwait(true);
+            return await gateway.GetPublicUsersAsync(apiBase, cancellationToken, kind).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {

@@ -104,7 +104,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30);
-            await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync);
+            await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 30);
+            await CaseAsync("Jellyfin 通用对话框能力显隐", JellyfinDialogCapabilitiesAsync, 30);
+            await CaseAsync("Jellyfin 服务器管理与权限显隐", JellyfinAdministrationAsync, 30);
             await CaseAsync("原生控制台分区、响应布局与离页取消", ServerDashboardAsync);
             await CaseAsync("服务器管理菜单、确认与身份隔离", ServerAdministrationAsync);
             await CaseAsync("用户管理导航、页签与权限保存", ServerUsersAsync);
@@ -256,9 +258,9 @@ internal sealed partial class ShellNavigationProbe
                 .AddSingleton<IShellActions>(Actions).AddSingleton(Launcher).AddSingleton<IStartupRegistration>(Startup)
                 .BuildServiceProvider();
         }
-        public async Task SelectAsync(string host = "a.invalid", string user = "user")
+        public async Task SelectAsync(string host = "a.invalid", string user = "user", MediaServerKind kind = MediaServerKind.Emby)
         {
-            var server = new ServerProfile { Name = host, Url = $"https://{host}/media" };
+            var server = new ServerProfile { Name = host, Url = $"https://{host}/media", ServerKind = kind };
             var account = new AccountProfile
             {
                 Username = user,
@@ -342,6 +344,8 @@ internal sealed partial class ShellNavigationProbe
 
     private sealed class FakeCapabilities : IServerCapabilities
     {
+        public MediaServerKind ServerKind { get; set; }
+        public bool IsConnected { get; set; } = true;
         /// <summary>假服务器报的账号身份。设置页左栏那一组的显隐靠它拨；可写，好让一条探针走两种账号。</summary>
         public bool? IsAdministrator { get; set; } = true;
         public Version? ServerVersion => new(4, 9);

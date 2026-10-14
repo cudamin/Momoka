@@ -54,6 +54,7 @@ internal sealed partial class ShellNavigationProbe
 
         var page = new SettingsPage();
         Field(page, "_request", new SettingsRequest(fixture.Services));
+        Field(page.ViewModel, "_capabilities", fixture.Capabilities);
         _root.Children.Add(page);
         try
         {

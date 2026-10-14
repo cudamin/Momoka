@@ -37,8 +37,11 @@ public sealed partial class ServerLibrariesViewModel : PageViewModel
     public ObservableCollection<LibraryFieldSection> ImageSections { get; } = [];
     public ObservableCollection<LibraryChoice> Languages { get; } = [];
     public ObservableCollection<LibraryChoice> Countries { get; } = [];
-    public IReadOnlyList<LibraryChoice> ContentTypes { get; } = new[] { "movies", "tvshows", "music", "audiobooks", "books", "games", "musicvideos", "homevideos", "mixed" }
-        .Select(type => new LibraryChoice(type, EmbyLibraryOptions.TypeName(type))).ToArray();
+    public ObservableCollection<LibraryChoice> ContentTypes { get; } = [];
+    public bool IsJellyfin => _scope?.Connection.IsJellyfin == true;
+    public string ServerProduct => IsJellyfin ? "Jellyfin Server" : "Emby Server";
+    public bool SupportsNetworkCredentials => !IsJellyfin;
+    public bool SupportsThumbnailRefresh => !IsJellyfin;
 
     [ObservableProperty] public partial bool IsAdministrator { get; set; }
     [ObservableProperty] public partial bool Editing { get; set; }
@@ -76,6 +79,10 @@ public sealed partial class ServerLibrariesViewModel : PageViewModel
         Cancel();
         _lifetime = new();
         _scope = session.IsSignedIn ? session.Capture() : null;
+        ContentTypes.Clear();
+        foreach (var type in new[] { "movies", "tvshows", "music", "audiobooks", "books", "games", "musicvideos", "homevideos", "mixed" }
+            .Where(type => !IsJellyfin || type is not ("audiobooks" or "games")))
+            ContentTypes.Add(new(type, EmbyLibraryOptions.TypeName(type)));
         IsAdministrator = false;
         Editing = false;
         _advancedLoaded = false;
@@ -139,10 +146,10 @@ public sealed partial class ServerLibrariesViewModel : PageViewModel
             ContentTypeIndex = IsNew ? 0 : -1;
             Name = current?.Name ?? "电影";
             _available = available;
-            _draft = current is null ? EmbyLibraryOptions.NewOptions(available, "movies") : (JsonObject)current.Options.DeepClone();
+            _draft = current is null ? NewLibraryOptions(available, "movies") : (JsonObject)current.Options.DeepClone();
             _baseline = (JsonObject)_draft.DeepClone();
             Paths.Clear();
-            foreach (var path in current?.Paths.OfType<JsonObject>() ?? []) Paths.Add(new((JsonObject)path.DeepClone()));
+            foreach (var path in current?.Paths.OfType<JsonObject>() ?? []) Paths.Add(new((JsonObject)path.DeepClone(), !IsJellyfin || IsNew));
             BuildEditor();
             HasChanges = false;
             Editing = true;
@@ -164,7 +171,7 @@ public sealed partial class ServerLibrariesViewModel : PageViewModel
             ContentTypeIndex = index;
             if (Name == oldDefaultName || Name.Length == 0) Name = ContentTypes[index].Name;
             _available = available;
-            _draft = EmbyLibraryOptions.NewOptions(available, type);
+            _draft = NewLibraryOptions(available, type);
             _baseline = (JsonObject)_draft.DeepClone();
             BuildEditor();
             _building = false;
@@ -280,7 +287,7 @@ public sealed partial class ServerLibrariesViewModel : PageViewModel
         await RunAsync("无法读取服务器目录", async token =>
         {
             result = await scope.ExecuteAsync((client, ct) => client.GetServerDirectoriesAsync(path, username, password, ct), token);
-            if (path.Length == 0) result.Add(new JsonObject { ["Name"] = "网络", ["Path"] = "Network" });
+            if (path.Length == 0 && !IsJellyfin) result.Add(new JsonObject { ["Name"] = "网络", ["Path"] = "Network" });
         });
         return result;
     }
@@ -308,7 +315,7 @@ public sealed partial class ServerLibrariesViewModel : PageViewModel
 
     internal async Task<bool> SavePathAsync(JsonObject pathInfo, LibraryPathRow? original)
     {
-        if (!CanEditFields || _scope is not { } scope) return false;
+        if (!CanEditFields || _scope is not { } scope || IsJellyfin && !IsNew && original is not null) return false;
         var saved = false;
         await RunAsync("保存媒体目录失败", async token =>
         {
@@ -319,7 +326,7 @@ public sealed partial class ServerLibrariesViewModel : PageViewModel
             pathInfo["Path"] = path;
             if (IsNew)
             {
-                if (original is null) Paths.Add(new((JsonObject)pathInfo.DeepClone())); else Paths[Paths.IndexOf(original)] = new((JsonObject)pathInfo.DeepClone());
+                if (original is null) Paths.Add(new((JsonObject)pathInfo.DeepClone(), true)); else Paths[Paths.IndexOf(original)] = new((JsonObject)pathInfo.DeepClone());
                 HasChanges = true;
             }
             else if (_original is { } folder)
@@ -349,12 +356,15 @@ public sealed partial class ServerLibrariesViewModel : PageViewModel
         });
     }
 
+    private JsonObject NewLibraryOptions(JsonObject available, string type) => IsJellyfin
+        ? JellyfinManagement.NewLibraryOptions(available) : EmbyLibraryOptions.NewOptions(available, type);
+
     private async Task RefreshPathsAsync(CancellationToken token)
     {
         var latest = await FindLibraryAsync(CurrentLibraryId, token);
         EnsureCurrent(token);
         Paths.Clear();
-        foreach (var path in latest.Paths.OfType<JsonObject>()) Paths.Add(new((JsonObject)path.DeepClone()));
+        foreach (var path in latest.Paths.OfType<JsonObject>()) Paths.Add(new((JsonObject)path.DeepClone(), !IsJellyfin || IsNew));
         // 目录通过专用接口立即保存；选项草稿中不再携带旧的目录快照。
         _draft["PathInfos"] = latest.Paths.DeepClone();
         _baseline["PathInfos"] = latest.Paths.DeepClone();

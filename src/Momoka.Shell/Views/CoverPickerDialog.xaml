@@ -39,7 +39,9 @@
                         <!-- 固定高、Uniform：候选封面的形状不一（海报、方的、偶尔一张横的），一格格高矮
                              不齐的网格看不出哪张更好。 -->
                         <Border
+                            x:Name="CoverCandidatePreview"
                             Height="210"
+                            Visibility="{x:Bind PreviewVisibility}"
                             Style="{StaticResource EgFrameStyle}">
                             <Image
                                 Source="{x:Bind Picture, Mode=OneWay}"

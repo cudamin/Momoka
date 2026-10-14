@@ -10,15 +10,16 @@ namespace Momoka.Services;
 /// </summary>
 public interface IServerCapabilities
 {
+    MediaServerKind ServerKind => MediaServerKind.Emby;
+    bool IsConnected => true;
     /// <summary>
     /// The server's version, once <see cref="ProbeAsync"/> has answered, and null until then.
     /// </summary>
     Version? ServerVersion { get; }
 
     /// <summary>
-    /// Whether the signed-in account may administer this server. Null means "not known yet" — nobody is
-    /// signed in, the probe has not come back, or it failed — and every caller is expected to read that as
-    /// 「offer it anyway」: hiding something the user is entitled to is the worse of the two mistakes.
+    /// Whether the signed-in account may administer this server. Null means unknown. Jellyfin
+    /// administration requires a confirmed true value; unknown permission must not expose its controls.
     /// </summary>
     bool? IsAdministrator { get; }
 
@@ -28,6 +29,8 @@ public interface IServerCapabilities
 /// <inheritdoc cref="IServerCapabilities"/>
 public sealed class ServerCapabilities(EmbySession session) : IServerCapabilities
 {
+    public MediaServerKind ServerKind => session.Connection?.ServerKind ?? MediaServerKind.Emby;
+    public bool IsConnected => session.IsSignedIn;
     private const string Category = "app";
 
     private readonly object _gate = new();
@@ -48,7 +51,8 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
                 scope = _scope;
                 version = _serverVersion;
             }
-            return scope?.IsCurrent == true ? version : null;
+            return scope?.IsCurrent == true ? version
+                : Version.TryParse(session.Connection?.ServerVersion, out var saved) ? saved : null;
         }
     }
 
@@ -64,7 +68,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
                 scope = _scope;
                 administrator = _administrator;
             }
-            return scope?.IsCurrent == true ? administrator : null;
+            return scope?.IsCurrent == true ? administrator : session.Connection?.IsAdministrator;
         }
     }
 
@@ -72,15 +76,12 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
     /// Asks the server what version it is and whether this account may administer it, and remembers both
     /// answers for the rest of the session.
     /// <para>
-    /// Fire and forget, and silent on failure. Nothing blocks on the answer: every caller treats a null
-    /// version as "offer the key anyway" and a null administrator as 「show it anyway」, so a server that
-    /// will not say is no worse off than one that has not been asked yet.
+    /// Silent on failure. Product-specific callers decide which controls an unknown capability permits.
     /// </para>
     /// <para>
-    /// One round trip, not two. <c>/System/Info</c> is administrators-only, and
-    /// <see cref="EmbyClient.GetSystemInfoAsync"/> already falls back to the public subset for everyone
-    /// else — which is the same question asked and answered, so the account's standing comes out of it for
-    /// free rather than out of a second call to <c>/Users/{id}</c>.
+    /// Emby infers permission from the privileged system endpoint and its public fallback.
+    /// Jellyfin reads the current user's Policy first: its system information response alone does not
+    /// establish administrator permission.
     /// </para>
     /// </summary>
     public async Task ProbeAsync(CancellationToken token = default)

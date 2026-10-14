@@ -9,6 +9,62 @@ internal static class UserManagementTests
 {
     public static void Register()
     {
+        Test("Jellyfin 用户管理：数组列表、版本密码和头像路由与 DELETE", () =>
+        {
+            foreach (var version in new[] { "10.11.0", "12.2.0" })
+            {
+                var modern = version.StartsWith("12", StringComparison.Ordinal);
+                var transport = new StubTransport().Answer("/Users/Password", "").Answer("/Users/a/Password", "")
+                    .Answer("/UserImage", "").Answer("/Users/a/Images/Primary", "").Answer("/Users/a", "")
+                    .Answer("/Users", """[{"Id":"a","Name":"家庭","Policy":{"IsAdministrator":false}}]""");
+                using var http = new EmbyHttp(transport);
+                var connection = Client(http).Connection with { ServerKind = MediaServerKind.Jellyfin, ServerVersion = version, IsAdministrator = true };
+                var client = new EmbyClient(http, connection);
+                Assert.Equal(1, client.GetManagedUsersAsync(default).GetAwaiter().GetResult().Count);
+                client.UpdateManagedUserPasswordAsync("a", "fixture-password", default).GetAwaiter().GetResult();
+                client.DeleteManagedUserImageAsync("a", default).GetAwaiter().GetResult();
+                client.DeleteManagedUserAsync("a", default).GetAwaiter().GetResult();
+                var password = transport.Only(modern ? "/Users/Password" : "/Users/a/Password");
+                Assert.True(!password.Url.Contains("fixture-password", StringComparison.Ordinal));
+                Assert.Equal("fixture-password", Parse(password.Body)["NewPw"]!.ToString());
+                Assert.Equal("DELETE", transport.Only(modern ? "/UserImage" : "/Users/a/Images/Primary").Method);
+                Assert.True(transport.SentTo("/Users/a").Any(request => request.Method == "DELETE" && new Uri(request.Url).AbsolutePath.EndsWith("/Users/a", StringComparison.Ordinal)));
+                if (modern) Assert.True(password.Url.Contains("userId=a", StringComparison.Ordinal));
+            }
+        });
+        Test("Jellyfin 用户管理：不可用功能和非管理员不发送管理请求", () =>
+        {
+            var transport = new StubTransport();
+            using var http = new EmbyHttp(transport);
+            var connection = Client(http).Connection with { ServerKind = MediaServerKind.Jellyfin, ServerVersion = "12.2.0", IsAdministrator = true };
+            var client = new EmbyClient(http, connection);
+            Assert.Throws<NotSupportedException>(() => client.CopyManagedUserDataAsync("a", "b", ["userdata"], default).GetAwaiter().GetResult());
+            Assert.Throws<NotSupportedException>(() => client.LinkManagedUserAsync("a", "name", default).GetAwaiter().GetResult());
+            Assert.Throws<NotSupportedException>(() => client.UpdateManagedUserPinAsync("a", "1234", default).GetAwaiter().GetResult());
+            Assert.Throws<NotSupportedException>(() => client.UpdateManagedUserAsync("a", new JsonObject(), default).GetAwaiter().GetResult());
+            foreach (var administrator in new bool?[] { false, null })
+            {
+                var restricted = new EmbyClient(http, connection with { IsAdministrator = administrator });
+                Assert.Throws<EmbyApiException>(() => restricted.DeleteManagedUserAsync("a", default).GetAwaiter().GetResult());
+                Assert.Throws<EmbyApiException>(() => restricted.RestartServerAsync(default).GetAwaiter().GetResult());
+                Assert.Throws<EmbyApiException>(() => restricted.GetManagedUsersAsync(default).GetAwaiter().GetResult());
+            }
+            Assert.Equal(0, transport.Total);
+        });
+        Test("Jellyfin 用户管理：编辑选项避开 Emby 专属接口", () =>
+        {
+            var transport = new StubTransport().Answer("Library/VirtualFolders", """[{"ItemId":"movies","Name":"电影","LibraryOptions":{}}]""")
+                .Answer("Auth/Providers", "[]").Answer("Localization/ParentalRatings", "[]").Answer("Channels", "{\"Items\":[]}")
+                .Answer("Devices", "{\"Items\":[]}").Answer("System/Configuration", "{}").Answer("Library/MediaFolders", "{\"Items\":[]}");
+            using var http = new EmbyHttp(transport);
+            var client = new EmbyClient(http, Client(http).Connection with { ServerKind = MediaServerKind.Jellyfin, IsAdministrator = true });
+            var options = client.GetUserEditorOptionsAsync(default).GetAwaiter().GetResult();
+            Assert.Equal("movies", options.Folders[0]!["Id"]!.ToString());
+            Assert.Equal(0, options.Features.Count);
+            Assert.Equal(0, options.CopyOptions.Count);
+            Assert.True(!transport.SentTo("").Any(request => request.Url.Contains("SelectableMediaFolders", StringComparison.Ordinal)
+                || request.Url.Contains("CopyDataOptions", StringComparison.Ordinal) || request.Url.Contains("Features?", StringComparison.Ordinal)));
+        });
         Test("用户管理：分页读取完整且保留反代路径", () =>
         {
             var transport = new StubTransport().Sequence("Users/Query",

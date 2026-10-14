@@ -25,8 +25,9 @@ public sealed partial class ManagedLibraryRow(EmbyVirtualFolder folder, EmbySess
     [ObservableProperty] public partial BitmapImage? Image { get; set; }
 }
 
-public sealed record LibraryPathRow(JsonObject Document)
+public sealed record LibraryPathRow(JsonObject Document, bool CanEdit = true)
 {
+    public Visibility EditVisibility => CanEdit ? Visibility.Visible : Visibility.Collapsed;
     public string Path => EmbyLibraryOptions.Text(Document, "Path");
     public string NetworkPath => EmbyLibraryOptions.Text(Document, "NetworkPath");
 }

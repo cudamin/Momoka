@@ -59,7 +59,8 @@ public sealed partial class NotificationsViewModel : PageViewModel
     private bool _stopReportSeeded;
     private EmbySessionScope? _scope;
     private CancellationTokenSource? _lifetime;
-    private bool Live => _lifetime is { IsCancellationRequested: false } && _scope?.IsCurrent == true;
+    private bool Live => _lifetime is { IsCancellationRequested: false } && _scope?.IsCurrent == true
+        && !_scope.Connection.IsJellyfin;
 
     public override void Cancel()
     {

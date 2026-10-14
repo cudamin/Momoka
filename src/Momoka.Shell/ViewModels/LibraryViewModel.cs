@@ -711,6 +711,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         foreach (var option in EmbySortBy.For(preset, _capabilities!.ServerVersion))
         {
+            if (!SupportsSort(option.ValueOf(preset))) continue;
             // Separators rather than headings: nineteen keys need the grouping to be visible, and a
             // heading row in a MenuFlyout can only be faked with a disabled item.
             if (previousGroup is not null && option.Group != previousGroup) entries.Add(SortEntry.Divider);
@@ -725,9 +726,10 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>A key was picked out of the flyout.</summary>
     internal void ChooseSort(EmbySortOption option)
     {
-        if (_request is null || _actions is null) return;
+        if (!_active || _scope?.IsCurrent != true || _request is null || _actions is null) return;
 
         var key = option.ValueOf(_request.SortPreset);
+        if (!SupportsSort(key)) return;
 
         // Emby's own behaviour, and the only sensible one: a date key opens newest first and a name key
         // A to Z. Choosing 加入日期 and being shown the oldest thing in the library is never what was
@@ -1042,7 +1044,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (MemoryKey() is { } memoryKey
             && Settings.Ui.Sort.TryGetValue(memoryKey, out var saved)
             && EmbySortBy.Find(saved.By) is { } option
-            && option.AppliesTo(preset, _capabilities!.ServerVersion))
+            && option.AppliesTo(preset, _capabilities!.ServerVersion)
+            && SupportsSort(saved.By))
         {
             SortKey = saved.By;
             label = option.Label;
@@ -1051,6 +1054,8 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         ShowSort(label, descending);
     }
+
+    private bool SupportsSort(string value) => _scope?.Connection.IsJellyfin != true || JellyfinQuery.SupportsSort(value);
 
     private void RememberSort()
     {

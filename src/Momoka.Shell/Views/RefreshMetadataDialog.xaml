@@ -6,9 +6,8 @@
   三处选择的**意思**不在这里：档位怎么落到服务器那几条查询参数上，是 EmbyClient.RefreshItemAsync 的事。这个
   文件只决定它们长什么样、按什么次序出现。
 
-  两颗开关默认都关，因为开着的那一颗会先删光现有的图再重下。网页端还按服务器版本（>= 4.9.1.1）决定露不露
-  「替换现有视频预览缩略图」那一行；这里不按版本收，和本仓媒体库那张表保持一致 —— 老服务器收到不认的参数只会
-  静默忽略，而少一行会让用户以为这一档不存在。
+  两颗开关默认都关，因为开着的那一颗会先删光现有的图再重下。Jellyfin 不支持 Emby 的缩略图替换语义，
+  调用方传入能力后收起整行及说明。
 -->
 <ContentDialog x:Class="Momoka.Shell.Views.RefreshMetadataDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -38,7 +37,7 @@
             </ComboBox>
             <TextBlock
                 Style="{StaticResource EgCaptionStyle}"
-                Text="依据 Emby 媒体库中的设置和元数据提供器，用新的数据更新元数据。"
+                Text="依据媒体库中的设置和元数据提供器，用新的数据更新元数据。"
                 TextWrapping="Wrap" />
         </StackPanel>
 
@@ -70,7 +69,7 @@
                 TextWrapping="Wrap" />
         </StackPanel>
 
-        <StackPanel Spacing="{StaticResource EgSpaceXS}">
+        <StackPanel x:Name="ThumbnailsRow" Spacing="{StaticResource EgSpaceXS}">
             <Grid ColumnSpacing="{StaticResource EgSpaceM}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

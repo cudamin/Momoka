@@ -28,11 +28,13 @@ public sealed partial class ServerLibrariesViewModel
     private void BuildEditor()
     {
         Sections.Clear(); Providers.Clear(); ImageSections.Clear();
-        foreach (var group in EmbyLibrarySettings.All.Where(setting => setting.AppliesTo(CurrentType)).GroupBy(setting => setting.Group))
+        foreach (var group in EmbyLibrarySettings.All.Where(setting => setting.AppliesTo(CurrentType) && (!IsJellyfin || JellyfinManagement.SupportsLibrarySetting(setting.Key))).GroupBy(setting => setting.Group))
         {
-            var section = new LibraryFieldSection(group.Key);
-            foreach (var setting in group)
+            var section = new LibraryFieldSection(IsJellyfin && group.Key == "视频预览缩略图" ? "章节图像" : group.Key);
+            foreach (var originalSetting in group)
             {
+                var setting = IsJellyfin && originalSetting.Key == "Thumbnails"
+                    ? originalSetting with { Label = "提取章节图像", Note = "" } : originalSetting;
                 var choices = ChoicesFor(setting);
                 if (setting.Key == "MultiVersion" && CurrentType is "homevideos" or "musicvideos") choices = choices.Where(choice => choice.Value is "files" or "none");
                 if (setting.Key == "MusicFolderStructure" && CurrentType == "audiobooks") choices = [new("", "其他或非结构化"), new("artist_album_track", "作者 / 书籍 / 章节"), new("album_track", "书籍 / 章节")];
@@ -51,7 +53,8 @@ public sealed partial class ServerLibrariesViewModel
             BuildImageOptions(typeName, type, target);
         }
         AddProviders("字幕下载器", "subtitles", _available, _draft, "SubtitleFetchers", "DisabledSubtitleFetchers", "SubtitleFetcherOrder", true);
-        AddProviders("歌词下载器", "lyrics", _available, _draft, "LyricsFetchers", "DisabledLyricsFetchers", "LyricsFetcherOrder", true);
+        AddProviders("歌词下载器", "lyrics", _available, _draft, IsJellyfin ? "LyricFetchers" : "LyricsFetchers",
+            IsJellyfin ? "DisabledLyricFetchers" : "DisabledLyricsFetchers", IsJellyfin ? "LyricFetcherOrder" : "LyricsFetcherOrder", true);
         // 构建仅补足展示所需的默认形状，它们不应被当作用户改动提交。
         _baseline = (JsonObject)_draft.DeepClone();
         RefreshFieldVisibility();
@@ -149,7 +152,8 @@ public sealed partial class ServerLibrariesViewModel
         {
             await LoadLocalizationAsync(token);
             var configuration = await scope.ExecuteAsync((client, ct) => client.GetServerConfigurationAsync(ct), token);
-            var metadata = await scope.ExecuteAsync((client, ct) => client.GetLibraryNamedConfigurationAsync("metadata", ct), token);
+            var metadata = IsJellyfin ? new JsonObject()
+                : await scope.ExecuteAsync((client, ct) => client.GetLibraryNamedConfigurationAsync("metadata", ct), token);
             EnsureCurrent(token);
             _building = true;
             _configuration = (JsonObject)configuration.DeepClone();
@@ -168,7 +172,7 @@ public sealed partial class ServerLibrariesViewModel
     private void BuildAdvanced()
     {
         AdvancedSections.Clear();
-        foreach (var group in EmbyLibrarySettings.Advanced.GroupBy(setting => setting.Group))
+        foreach (var group in EmbyLibrarySettings.Advanced.Where(setting => !IsJellyfin || JellyfinManagement.SupportsAdvancedSetting(setting.Key)).GroupBy(setting => setting.Group))
         {
             var section = new LibraryFieldSection(group.Key);
             foreach (var setting in group)
@@ -186,7 +190,7 @@ public sealed partial class ServerLibrariesViewModel
             await scope.ExecuteAsync((client, ct) => client.ValidateServerDirectoryAsync(path, "", "", true, ct), token);
             EnsureCurrent(token);
             _configuration["MetadataPath"] = path;
-            _configuration["MetadataNetworkPath"] = networkPath;
+            if (!IsJellyfin) _configuration["MetadataNetworkPath"] = networkPath;
             _building = true;
             BuildAdvanced();
             _building = false;
@@ -211,7 +215,8 @@ public sealed partial class ServerLibrariesViewModel
             if (!JsonNode.DeepEquals(latest, merged)) await scope.ExecuteAsync((client, ct) => client.SaveServerConfigurationAsync(merged, ct), token);
             EnsureCurrent(token);
             _configurationBaseline = (JsonObject)_configuration.DeepClone();
-            var metadata = await scope.ExecuteAsync((client, ct) => client.GetLibraryNamedConfigurationAsync("metadata", ct), token);
+            var metadata = IsJellyfin ? new JsonObject()
+                : await scope.ExecuteAsync((client, ct) => client.GetLibraryNamedConfigurationAsync("metadata", ct), token);
             EnsureCurrent(token);
             var mergedMetadata = EmbyLibraryOptions.Merge(metadata, _metadataBaseline, _metadata);
             if (!JsonNode.DeepEquals(metadata, mergedMetadata)) await scope.ExecuteAsync((client, ct) => client.SaveLibraryNamedConfigurationAsync("metadata", mergedMetadata, ct), token);

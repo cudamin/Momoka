@@ -77,11 +77,12 @@ public sealed class SettingsService(SettingsStore store, AppSettings settings) :
 
         foreach (var candidate in Settings.Servers)
         {
-            if (EmbyServerAddress.TryNormalize(candidate.Url, out var existing, out _) && existing == normalized)
+            if (EmbyServerAddress.TryNormalize(candidate.Url, out var existing, out _, candidate.ServerKind)
+                && existing == EmbyServerAddress.Normalize(url, candidate.ServerKind))
             {
                 // Keep the canonical form: a profile saved from a hand-typed host gets tidied up the
                 // first time it is signed into again.
-                candidate.Url = EmbyServerAddress.ToDisplayString(normalized);
+                candidate.Url = EmbyServerAddress.ToDisplayString(existing, candidate.ServerKind);
                 return candidate;
             }
         }

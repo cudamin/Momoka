@@ -6,17 +6,21 @@ namespace Momoka.Emby;
 
 public sealed partial class EmbyClient
 {
+    // 页面显隐不能代替执行守卫；旧回调和未探明权限的 Jellyfin 身份不能发管理请求。
+    private EmbyHttp.RequestContext AdministrationContext => Connection.IsJellyfin && Connection.IsAdministrator != true
+        ? throw new EmbyApiException("需要服务器管理员权限", HttpStatusCode.Forbidden) : Context;
+
     public Task<JsonObject> GetServerConfigurationAsync(CancellationToken cancellationToken) =>
-        http.GetJsonAsync<JsonObject>(EmbyUrl.Combine(ApiBase, "System/Configuration"), Context, cancellationToken);
+        http.GetJsonAsync<JsonObject>(EmbyUrl.Combine(ApiBase, "System/Configuration"), AdministrationContext, cancellationToken);
 
     public Task SaveServerConfigurationAsync(JsonObject configuration, CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, "System/Configuration"), configuration, Context, cancellationToken);
+        http.PostAsync(EmbyUrl.Combine(ApiBase, "System/Configuration"), configuration, AdministrationContext, cancellationToken);
 
     public Task RestartServerAsync(CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, "System/Restart"), null, Context, cancellationToken);
+        http.PostAsync(EmbyUrl.Combine(ApiBase, "System/Restart"), null, AdministrationContext, cancellationToken);
 
     public Task ShutdownServerAsync(CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, "System/Shutdown"), null, Context, cancellationToken);
+        http.PostAsync(EmbyUrl.Combine(ApiBase, "System/Shutdown"), null, AdministrationContext, cancellationToken);
 
     /// <summary>
     /// 只读控制台。先确认系统信息，再并行读取会话和最近活动；没有管理员权限时仅展示公开信息。
@@ -24,6 +28,7 @@ public sealed partial class EmbyClient
     /// </summary>
     public async Task<EmbyDashboardSnapshot> GetDashboardAsync(CancellationToken cancellationToken)
     {
+        _ = AdministrationContext;
         var system = await GetSystemInfoAsync(cancellationToken).ConfigureAwait(false);
         if (system.IsRestricted)
         {
@@ -44,7 +49,7 @@ public sealed partial class EmbyClient
     {
         try
         {
-            var value = await http.GetJsonAsync<T>(url, Context, cancellationToken).ConfigureAwait(false);
+            var value = await http.GetJsonAsync<T>(url, AdministrationContext, cancellationToken).ConfigureAwait(false);
             return new(value, null);
         }
         catch (EmbyApiException error) when (error.StatusCode == HttpStatusCode.Forbidden)

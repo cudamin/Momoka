@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
+using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
@@ -160,11 +161,11 @@ public sealed partial class SettingsViewModel : PageViewModel
         [ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, NotificationsCategory, DashboardCategory];
 
     /// <summary>
-    /// 当前账号是不是管理员，以及由此决定的「EmbyServer」那一组在不在。**初值是露着** —— 问不到身份时宁可多露
-    /// 一格，也不把用户有权看的东西藏掉；<see cref="ApplyServerAdministration"/> 只在一个确凿的「不是管理员」
-    /// 上动手。
+    /// 管理组是否显示。初始表用于离线布局；接入能力服务后，在请求前同步真实身份与产品。
+    /// Jellyfin 只在确认管理员时显示，Emby 保留未知权限时的既有回退行为。
     /// </summary>
     private bool _showsServerAdministration = true;
+    private MediaServerKind _administrationKind;
 
     /// <summary>
     /// 左栏那一列的分组，见 <see cref="CategoryGroups"/>。
@@ -179,12 +180,19 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// （用户令 2026-10-11「调整左侧选项排序」：主页 界面 播放器 播放行为 视频输出 音频输出 字幕
     /// 快捷键 MoviePilot 服务器 诊断 关于）。关于仍是最后一张卡，所以落点就是「最后一张卡前面」。
     /// </remarks>
-    private static List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration)
+    private static List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration,
+        MediaServerKind kind = MediaServerKind.Emby)
     {
         var groups = new List<SettingsCategoryGroup> { new("Momoka", SidebarCategories()) };
-        if (serverAdministration) groups.Add(new("EmbyServer", ServerAdministrationCategories));
+        if (serverAdministration) groups.Add(new(kind == MediaServerKind.Jellyfin ? "JellyfinServer" : "EmbyServer",
+            AdministrationCategories(kind)));
         return groups;
     }
+
+    private static IReadOnlyList<string> AdministrationCategories(MediaServerKind kind) =>
+        kind == MediaServerKind.Jellyfin
+            ? [ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, DashboardCategory]
+            : ServerAdministrationCategories;
 
     /// <summary>
     /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，服务器、诊断两张内嵌页插在最后一张卡（关于）
@@ -394,19 +402,30 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 开着。
     /// </para>
     /// <para>
-    /// 身份取自 <see cref="IServerCapabilities.IsAdministrator"/>，那是登录时那趟 <c>ProbeAsync</c> 顺手问出来
-    /// 的（<c>/System/Info</c> 只对管理员开放，答的是公开子集就说明不是管理员）；还没问到就在这里自己问一趟。
-    /// **问不到就照旧露着** —— 猜错的方向是藏掉用户有权看的东西，比多露一格糟。
+    /// 身份取自 <see cref="IServerCapabilities.IsAdministrator"/>；Jellyfin 读取用户策略，不能从系统信息的
+    /// 可读性推断管理员。还没问到时发起探针，结束后重新读取当前身份，避免切服后应用旧答案。
     /// </para>
     /// </summary>
     internal async Task RefreshServerAdministrationAsync()
     {
         if (_capabilities is null) return;
 
+        // 先同步已知状态，防止权限请求尚在等待时显示上一个账号的管理页。
+        ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
         if (_capabilities.IsAdministrator is null) await _capabilities.ProbeAsync().ConfigureAwait(true);
 
-        ApplyServerAdministration(_capabilities.IsAdministrator != false);
+        ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
     }
+
+    private bool CanShowServerAdministration => _capabilities?.IsConnected == true
+        && (_capabilities.ServerKind == MediaServerKind.Jellyfin
+            ? _capabilities.IsAdministrator == true
+            : _capabilities.IsAdministrator != false);
+
+    internal bool CanOpenServerCategory(string category) =>
+        !ServerAdministrationCategories.Contains(category, StringComparer.Ordinal)
+        || (CanShowServerAdministration && AdministrationCategories(_capabilities!.ServerKind)
+            .Contains(category, StringComparer.Ordinal));
 
     /// <summary>
     /// 把「EmbyServer」那一组连同它那五个分类一起装上或摘掉。
@@ -416,26 +435,28 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// （理由见 <see cref="CategoryGroups"/>），页面据此重指一次源。
     /// </para>
     /// </summary>
-    private void ApplyServerAdministration(bool visible)
+    private void ApplyServerAdministration(bool visible, MediaServerKind kind)
     {
         // 落点先挪，名单后动，这个次序不是随手排的：把 ComboBox 里正被选中的那一项摘掉，控件会把自己的选择
         // 清空，并顺着 SelectedItem 的 TwoWay 绑定写回一个 null —— 落点就丢在一趟之后，左栏没有选中项，
         // 右半边也不知道该显示哪张卡。先挪开，被摘的就不是选中项，也就没有这一趟。
+        var available = visible ? AdministrationCategories(kind) : [];
         if (!visible) MoveOffServerAdministration();
+        else if (ServerAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal)
+            && !available.Contains(SelectedCategory, StringComparer.Ordinal))
+            SelectedCategory = FirstCardCategory;
 
-        if (_showsServerAdministration == visible) return;
+        if (_showsServerAdministration == visible && _administrationKind == kind) return;
         _showsServerAdministration = visible;
+        _administrationKind = kind;
 
-        _categoryGroups = BuildCategoryGroups(visible);
+        _categoryGroups = BuildCategoryGroups(visible, kind);
 
-        if (visible)
-        {
-            foreach (var category in ServerAdministrationCategories)
-                if (!Categories.Contains(category, StringComparer.Ordinal)) Categories.Add(category);
-            return;
-        }
-
-        foreach (var category in ServerAdministrationCategories) Categories.Remove(category);
+        foreach (var category in ServerAdministrationCategories)
+            if (!available.Contains(category, StringComparer.Ordinal)) Categories.Remove(category);
+        var first = Categories.Count - Categories.Count(category => ServerAdministrationCategories.Contains(category));
+        for (var index = 0; index < available.Count; index++)
+            if (!Categories.Contains(available[index])) Categories.Insert(first + index, available[index]);
     }
 
     /// <summary>

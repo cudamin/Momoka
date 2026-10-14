@@ -34,6 +34,7 @@ internal static class Program
         HtmlColorTests.Register();
         SubtitlePreviewTests.Register();
         EmbyTests.Register();
+        JellyfinWebConsoleTests.Register();
         DashboardTests.Register();
         UserManagementTests.Register();
         LibraryManagementTests.Register();

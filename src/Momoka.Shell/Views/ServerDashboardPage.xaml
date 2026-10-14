@@ -34,7 +34,7 @@
                     <FontIcon Glyph="&#xE712;" />
                     <Button.Flyout>
                         <MenuFlyout Placement="BottomEdgeAlignedRight">
-                            <MenuFlyoutItem x:Name="ServerRenameMenuItem" Text="更改服务器的显示名称"
+                            <MenuFlyoutItem x:Name="ServerRenameMenuItem" Visibility="{x:Bind ViewModel.AdministrationVisibility, Mode=OneWay}" Text="更改服务器的显示名称"
                                 Icon="Edit" Command="{x:Bind ViewModel.RenameServerCommand}" />
                             <MenuFlyoutItem x:Name="ServerInformationMenuItem" Text="查看服务器信息"
                                 IsEnabled="{x:Bind ViewModel.HasSnapshot, Mode=OneWay}" Click="OnServerInformation">
@@ -43,13 +43,13 @@
                         </MenuFlyout>
                     </Button.Flyout>
                 </Button>
-                <Button x:Name="ServerDashboardPowerButton" AutomationProperties.Name="服务器电源" ToolTipService.ToolTip="服务器电源">
+                <Button x:Name="ServerDashboardPowerButton" Visibility="{x:Bind ViewModel.AdministrationVisibility, Mode=OneWay}" AutomationProperties.Name="服务器电源" ToolTipService.ToolTip="服务器电源">
                     <FontIcon Glyph="&#xE7E8;" />
                     <Button.Flyout>
                         <MenuFlyout Placement="BottomEdgeAlignedRight">
-                            <MenuFlyoutItem x:Name="ServerRestartMenuItem" Text="重启 Emby Server"
+                            <MenuFlyoutItem x:Name="ServerRestartMenuItem" Text="{x:Bind ViewModel.RestartLabel, Mode=OneWay}" Visibility="{x:Bind ViewModel.RestartVisibility, Mode=OneWay}"
                                 Icon="Refresh" Command="{x:Bind ViewModel.RestartServerCommand}" />
-                            <MenuFlyoutItem x:Name="ServerShutdownMenuItem" Text="关闭 Emby Server"
+                            <MenuFlyoutItem x:Name="ServerShutdownMenuItem" Text="{x:Bind ViewModel.ShutdownLabel, Mode=OneWay}"
                                 Command="{x:Bind ViewModel.ShutdownServerCommand}">
                                 <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7E8;" /></MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>

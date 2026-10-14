@@ -11,7 +11,7 @@ namespace Momoka.Emby;
 /// — <see cref="EmbySystemInfo"/> and friends — are a different thing and live in EmbyDashboard.cs.)
 /// </para>
 /// </summary>
-public static class EmbyWebConsole
+public static partial class EmbyWebConsole
 {
     /// <summary>
     /// Where Emby's web client keeps the servers it has signed into. Read off the running server's own

@@ -6,14 +6,14 @@ namespace Momoka.Emby;
 /// </summary>
 public static class EmbyServerAddress
 {
-    /// <summary>The API base, always ending in "/emby/" so relative request paths resolve correctly.</summary>
-    public static Uri Normalize(string input)
+    /// <summary>The API base with a trailing slash; only Emby adds its "/emby/" API prefix.</summary>
+    public static Uri Normalize(string input, MediaServerKind kind = MediaServerKind.Emby)
     {
-        if (!TryNormalize(input, out var address, out var error)) throw new ArgumentException(error, nameof(input));
+        if (!TryNormalize(input, out var address, out var error, kind)) throw new ArgumentException(error, nameof(input));
         return address;
     }
 
-    public static bool TryNormalize(string input, out Uri address, out string error)
+    public static bool TryNormalize(string input, out Uri address, out string error, MediaServerKind kind = MediaServerKind.Emby)
     {
         address = null!;
         error = "";
@@ -47,12 +47,11 @@ public static class EmbyServerAddress
 
         var path = parsed.AbsolutePath.TrimEnd('/');
         // A user who pastes the address out of a browser usually includes /emby already.
-        if (path.EndsWith("/emby", StringComparison.OrdinalIgnoreCase)) path = path[..^5];
-        else if (path.Equals("/emby", StringComparison.OrdinalIgnoreCase)) path = "";
+        if (kind == MediaServerKind.Emby && path.EndsWith("/emby", StringComparison.OrdinalIgnoreCase)) path = path[..^5];
 
         var builder = new UriBuilder(parsed.Scheme, parsed.Host, parsed.Port)
         {
-            Path = path + "/emby/",
+            Path = path + (kind == MediaServerKind.Jellyfin ? "/" : "/emby/"),
             Query = "",
             Fragment = ""
         };
@@ -61,10 +60,10 @@ public static class EmbyServerAddress
         return true;
     }
 
-    /// <summary>The address without the "/emby/" suffix, for display back to the user.</summary>
-    public static string ToDisplayString(Uri apiBase)
+    /// <summary>The display address; Jellyfin preserves the complete reverse-proxy path.</summary>
+    public static string ToDisplayString(Uri apiBase, MediaServerKind kind = MediaServerKind.Emby)
     {
         var text = apiBase.GetLeftPart(UriPartial.Path).TrimEnd('/');
-        return text.EndsWith("/emby", StringComparison.OrdinalIgnoreCase) ? text[..^5] : text;
+        return kind == MediaServerKind.Emby && text.EndsWith("/emby", StringComparison.OrdinalIgnoreCase) ? text[..^5] : text;
     }
 }

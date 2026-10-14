@@ -9,17 +9,21 @@ Rules live in [CLAUDE.md](../../../CLAUDE.md): authorization tiers, credentials,
 
 [momoka-emby-api](../momoka-emby-api/SKILL.md) owns the Emby side of the same terrain and should be read first. The transport, redirect, error-translation and download decisions in `EmbyHttp` are shared and product-neutral; this skill records where Jellyfin differs. Feature semantics belong to the domain skills and `docs/媒体库管理.md` / `docs/用户管理.md`.
 
-## Current state: there is no Jellyfin code yet
+## Implemented boundary
 
-`src/Momoka.Core/Emby/` is written against Emby and names Emby in its types. As of this writing the repository has no Jellyfin branch, no `MediaServerKind` and no product check — Jellyfin appears only in comments explaining which parameters must *not* be copied from it (`EmbyFilterBy`, `ItemMenu`, `EmbyClient`). Treat everything below as a specification reading, not as behaviour this client has been observed to perform.
+`src/Momoka.Core/Emby/` shares its transport and session code between Emby and Jellyfin. `MediaServerKind` and the server version live on `EmbyConnection` and the saved profile. `EmbyServerGateway.DetectAsync` identifies the product through anonymous public system information before authentication. Jellyfin refreshes the version before restoring saved browsing so an upgrade can select the correct route dialect.
 
-So "make Momoka work with Jellyfin" does not start with a new client class. It starts with deciding how a connection learns which product it is talking to, and then making the four things in the next section product-aware. A draft contract for that — `MediaServerKind` on `EmbyConnection`, `ProductName` on `PublicSystemInfo` — sits in the gitignored `work/jellyfin/contract.patch`. It is a proposal, not landed code, and it is not a prerequisite for reading this skill.
+Jellyfin uses a plain service base and `Authorization: MediaBrowser`; REST and playback share the header rule. Settings displays `JellyfinServer` only for a confirmed administrator, using `Policy.IsAdministrator`, not access to `/System/Info`. Native management uses product-specific routes and supported-field lists. Notifications, Emby Connect, user-copy and other unsupported controls are hidden and guarded at execution. See [Jellyfin support](../../../docs/Jellyfin支持.md) for the supported boundary.
+
+Jellyfin Web uses `web/index.html#/dashboard` and `jellyfin_credentials`. Server entries contain `Id`, `UserId`, `AccessToken` and lowercase `manualAddressOnly` directly, without Emby's per-server `Users` list. `EmbyWebConsole.Jellyfin.cs` isolates profiles by server and user and limits credential seeding to the trusted origin and Web path. Emby theme keys are not written to Jellyfin.
+
+The reference tables below record protocol differences, not live-server results. User-prefixed routes remain documented for older Jellyfin versions; inspect the 10.x/12.x branch before changing a path. The scratch contract patch is historical and is not a prerequisite.
 
 ## Four things that break on contact
 
-### 1. The base address does not end in `/emby/`
+### 1. Do not append `/emby/` to a Jellyfin base
 
-`EmbyServerAddress.TryNormalize` (`Core/Emby/EmbyServerAddress.cs`) hard-codes the suffix: it strips a trailing `/emby` and appends `/emby/`, so every request URL is built under it. That is right for Emby and **wrong for Jellyfin 12**, whose release notes state that "support for the legacy `/emby/` and `/mediabrowser/` addresses has been removed".
+The Emby branch of `EmbyServerAddress.TryNormalize` (`Core/Emby/EmbyServerAddress.cs`) strips a trailing `/emby` and appends `/emby/`. The Jellyfin branch preserves the supplied root or proxy subpath and appends only a slash. Jellyfin 12 removed the legacy product aliases; a proxy subpath literally named `/emby/` is still a user-supplied path and must not be silently removed.
 
 Jellyfin documents its API at the server root — its OpenAPI declares `servers: [{ "url": "http://localhost" }]`. Use the plain base: root, or the reverse-proxy subpath. Keep the trailing slash, because relative resolution in `EmbyUrl.Combine` depends on it.
 
@@ -27,7 +31,7 @@ Do not "fix" this by special-casing `/emby/` at the request site and leaving the
 
 ### 2. Auth moves to one `Authorization` header, and the old forms are off
 
-Emby's spec registers `apikeyauth` (`?api_key=`, or `X-Emby-Token`) and `embyauth`; `EmbyHttp.SendAsync` sends `X-Emby-Authorization` plus `X-Emby-Token`. Jellyfin's spec registers exactly one scheme — a header named `Authorization` — and Jellyfin 12 disables the legacy forms by default.
+Emby's spec registers `apikeyauth` (`?api_key=`, or `X-Emby-Token`) and `embyauth`; the Emby branch sends `X-Emby-Authorization` plus `X-Emby-Token`. Jellyfin's spec registers exactly one scheme — a header named `Authorization` — and Jellyfin 12 disables the legacy forms by default. `MediaServerHeaders` selects the shared REST/playback header representation.
 
 The good news: `DeviceIdentity.ToAuthorizationHeader` already emits the Jellyfin scheme name. It returns `MediaBrowser Client="…", Device="…", DeviceId="…", Version="…"`. What changes is the header it goes under and where the token goes.
 
@@ -63,13 +67,13 @@ Prefer the documented route; when you cannot, record which server version you me
 
 ## Terrain
 
-| File | What a Jellyfin branch would touch |
+| File | Product-specific responsibility |
 | --- | --- |
 | `EmbyServerAddress.cs` | The `/emby/` suffix — §1 |
 | `DeviceIdentity.cs` | Header name and token placement — §2 |
 | `EmbyHttp.cs` | Which headers each request carries (`SendAsync`, the `X-Emby-Authorization` line) |
-| `EmbyResponses.cs` | `PublicSystemInfo` needs `ProductName` to tell the products apart |
-| `EmbyConnection` | Where product identity would live, so `IsSameIdentityAs` still means "same server, same person" |
+| `EmbyResponses.cs` | `PublicSystemInfo.ProductName` distinguishes the products |
+| `EmbyConnection` | Product identity and version, so `IsSameIdentityAs` still means "same server, same person" |
 | `EmbyUrl.cs`, `EmbyClient*.cs` | Every path in §3 |
 
 Error translation, redirect rules, timeouts, `.part` downloads and log redaction stay in `momoka-emby-api`; do not fork them.
@@ -90,9 +94,9 @@ The snapshot behind this skill is `work/jellyfin/openapi.json`, byte-identical (
 
 - Route claims here are static: they come from an OpenAPI document and from Jellyfin's own source. They are not evidence that a request succeeds against a running server. Say which of the two you have.
 - When adding or changing a path, fetch the target server's `/openapi.json` and compare by **structure**, not by literal grep — parameter names differ between products and between Jellyfin versions (`{itemId}` vs `{Id}`, `{routeItemId}`).
-- Anything touching `EmbyHttp` headers, redirect handling, error classification or `EmbyUrl` has unit coverage; run the test project rather than only UI checks. Jellyfin-specific transport behaviour has **no** coverage yet, so a new branch needs new tests, and until they exist the gap is real.
+- Anything touching `EmbyHttp` headers, redirect handling, error classification or `EmbyUrl` has unit coverage; run the test project rather than only UI checks. Jellyfin transport, versioned routes and administration guards have offline tests; report real-server coverage separately.
 - A live check against a Jellyfin server is a new authorization question, not a continuation of the Emby one. CLAUDE.md's three playback tiers and credential rules apply as written: a Jellyfin server is not the user's Emby library, and read-only is still the default.
 
 ## Delivery
 
-When Jellyfin support lands, update this skill, the "which product" boundary in `momoka-emby-api`, [docs/开发与验证.md](../../../docs/开发与验证.md), and the domain docs that declare which server they were written against. Keep this skill from drifting into a copy of the Jellyfin specification: link the version you measured and name the route you chose.
+When the supported boundary changes, update this skill, the "which product" boundary in `momoka-emby-api`, [docs/开发与验证.md](../../../docs/开发与验证.md), and the domain docs that declare which server they were written against. Keep this skill from drifting into a copy of the Jellyfin specification: link the version you measured and name the route you chose.

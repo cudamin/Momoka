@@ -223,10 +223,16 @@ public sealed partial class ServersViewModel : PageViewModel
         try
         {
             var info = await _session!.Gateway
-                .GetPublicSystemInfoAsync(apiBase, token)
+                .DetectAsync(row.Profile.Url, token)
                 .ConfigureAwait(true);
 
             if (!IsCurrent(token)) return;
+
+            row.Profile.ServerKind = info.ServerKind;
+            row.Profile.ServerVersion = info.Version;
+            row.Profile.ServerId = info.Id;
+            row.Profile.Url = EmbyServerAddress.ToDisplayString(info.ApiBase!, info.ServerKind);
+            _settings!.Save();
 
             if (info.ServerName is { Length: > 0 } name && row.Profile.HasPlaceholderName)
             {

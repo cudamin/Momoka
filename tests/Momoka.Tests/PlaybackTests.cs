@@ -1759,6 +1759,26 @@ internal static class PlaybackTests
             Assert.Contains("MediaBrowser Client=", request.HttpHeaders[1].Value);
         });
 
+        Test("计划：Jellyfin 流与外挂字幕共用标准认证且不进入启动参数", () =>
+        {
+            var (planner, settings) = Planner();
+            settings.Shaders.Enabled = false;
+            var connection = Connection() with
+            {
+                ApiBase = new Uri("https://jellyfin.invalid/media/"),
+                ServerKind = MediaServerKind.Jellyfin,
+                ServerVersion = "12.2.0"
+            };
+            var request = planner.Plan(Ticket(), connection);
+            Assert.Equal(1, request.HttpHeaders.Count);
+            Assert.Equal("Authorization", request.HttpHeaders[0].Key);
+            Assert.Contains("Token=\"token-abc\"", request.HttpHeaders[0].Value);
+            Assert.Contains("/media/Videos/", request.MediaUrl.AbsoluteUri);
+            Assert.True(request.ExternalSubtitles.All(url => url.AbsolutePath.StartsWith("/media/Videos/", StringComparison.Ordinal)));
+            Assert.DoesNotContain("token-abc", Line(LaunchArguments(request)));
+            Assert.DoesNotContain("token-abc", request.MediaUrl.AbsoluteUri);
+        });
+
         Test("计划：轨道索引换成 mpv 编号，外挂字幕换成 URL", () =>
         {
             var (planner, _) = Planner();

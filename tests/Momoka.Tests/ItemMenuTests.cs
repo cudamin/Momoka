@@ -23,6 +23,33 @@ internal static class ItemMenuTests
         RegisterShape();
         RegisterMoviePilot();
         RegisterDownloadPlan();
+        RegisterJellyfin();
+    }
+
+    private static void RegisterJellyfin()
+    {
+        Test("Jellyfin 更多菜单：隐藏续播移除且保留其他用户状态与媒体操作", () =>
+        {
+            var item = Resuming();
+            var emby = ItemMenu.For(item).Where(row => !row.IsRule).Select(row => row.Command).ToArray();
+            var jellyfin = ItemMenu.For(item, jellyfin: true).Where(row => !row.IsRule).Select(row => row.Command).ToArray();
+            Assert.False(jellyfin.Contains(ItemCommand.HideFromResume));
+            Assert.True(jellyfin.SequenceEqual(emby.Where(command => command != ItemCommand.HideFromResume)));
+            Assert.False(ItemMenu.Supports(ItemCommand.HideFromResume, jellyfin: true));
+            Assert.True(ItemMenu.Supports(ItemCommand.MarkUnplayed, jellyfin: true));
+            Assert.True(ItemMenu.For(item).Any(row => row.Command == ItemCommand.HideFromResume));
+            Assert.Equal(1800_000_000L, item.ResumeTicks);
+        });
+
+        Test("Jellyfin 更多菜单：过滤后保留遗漏集、识别和分隔结构", () =>
+        {
+            var series = new EmbyItem { Id = "series", Type = EmbyItemType.Series };
+            var menu = ItemMenu.For(series, jellyfin: true);
+            Assert.True(menu.Any(row => row.Command == ItemCommand.ViewMissingEpisodes));
+            Assert.True(menu.Any(row => row.Command == ItemCommand.Identify));
+            Assert.False(menu[0].IsRule || menu[^1].IsRule);
+            for (var index = 1; index < menu.Count; index++) Assert.False(menu[index - 1].IsRule && menu[index].IsRule);
+        });
     }
 
     /// <summary>继续观看那一排上的一张卡：一集看到一半。</summary>

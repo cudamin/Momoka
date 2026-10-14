@@ -21,7 +21,7 @@ public sealed partial class ServerUsersViewModel
         Tab = "profile";
         NewAdministrator = false;
         CopyFrom = "";
-        NewPassword = ConfirmPassword = "";
+        CurrentPassword = NewPassword = ConfirmPassword = "";
         ProfilePin = _original is null ? "" : EmbyManagedUser.Text(_original.Configuration, "ProfilePin");
         HasPassword = _original?.HasPassword == true;
         RemoteBitrate = Number(policy, "RemoteClientBitrateLimit") / 1_000_000;
@@ -36,10 +36,11 @@ public sealed partial class ServerUsersViewModel
 
         PermissionGroups.Clear();
         foreach (var group in EmbyUserPermissions.Profile.Where(permission =>
-            (permission.Key != "IsDisabled" || _original?.IsAdministrator != true || _original.IsDisabled)
+            (!IsJellyfin || JellyfinManagement.SupportsUserPermission(permission.Key))
+            && (permission.Key != "IsDisabled" || _original?.IsAdministrator != true || _original.IsDisabled)
             && (permission.Key != "EnableRemoteAccess" || EmbyManagedUser.Flag(options.ServerConfiguration, "EnableRemoteAccess", true)))
             .GroupBy(permission => permission.Group))
-            PermissionGroups.Add(new(group.Key, group.Select(permission => new UserOptionRow(permission.Key, permission.Label,
+            PermissionGroups.Add(new(group.Key, group.Select(permission => new UserOptionRow(permission.Key, IsJellyfin && permission.Key == "IsHidden" ? "在登录页面上隐藏此用户" : permission.Label,
                 EmbyManagedUser.Flag(policy, permission.Key, permission.Key == "EnableRemoteAccess"), permission.Note)).ToArray()));
 
         Features.Clear();
@@ -118,7 +119,10 @@ public sealed partial class ServerUsersViewModel
         Unrated.Clear();
         foreach (var (id, name) in new[] { ("Book", "图书"), ("Game", "游戏"), ("ChannelContent", "频道内容"), ("LiveTvChannel", "直播电视"),
             ("Movie", "电影"), ("Music", "音乐"), ("Trailer", "预告片"), ("Series", "电视节目") })
+        {
+            if (IsJellyfin && id == "Game") continue;
             Unrated.Add(new(id, name, EmbyManagedUser.Strings(policy, "BlockUnratedItems").Contains(id)));
+        }
         Tags.Clear();
         foreach (var tag in EmbyManagedUser.Strings(policy, "BlockedTags")) Tags.Add(tag);
         NewTag = "";
@@ -148,21 +152,27 @@ public sealed partial class ServerUsersViewModel
         {
             foreach (var option in PermissionGroups.SelectMany(group => group.Options)) policy[option.Id] = option.Selected;
             policy["AuthenticationProviderId"] = SelectedProvider;
-            policy["RemoteClientBitrateLimit"] = Bitrate(RemoteBitrate, double.MaxValue);
-            policy["AutoRemoteQuality"] = Bitrate(AutoRemoteQuality, 200);
-            if (!double.IsFinite(StreamLimit) || StreamLimit < 0 || StreamLimit > 50 || StreamLimit != Math.Truncate(StreamLimit))
-                throw new ArgumentException("同时播放流数量须为 0 至 50 的整数，0 表示不限。");
-            policy["SimultaneousStreamLimit"] = (int)StreamLimit;
+            policy["RemoteClientBitrateLimit"] = Bitrate(RemoteBitrate, IsJellyfin ? int.MaxValue / 1_000_000d : double.MaxValue);
+            if (!IsJellyfin)
+            {
+                policy["AutoRemoteQuality"] = Bitrate(AutoRemoteQuality, 200);
+                if (!double.IsFinite(StreamLimit) || StreamLimit < 0 || StreamLimit > 50 || StreamLimit != Math.Truncate(StreamLimit))
+                    throw new ArgumentException("同时播放流数量须为 0 至 50 的整数，0 表示不限。");
+                policy["SimultaneousStreamLimit"] = (int)StreamLimit;
+            }
             policy["EnableContentDeletion"] = DeleteAll;
             policy["EnableContentDeletionFromFolders"] = DeleteAll ? new JsonArray() : WithUnlisted(policy, "EnableContentDeletionFromFolders", DeleteFolders);
-            policy["RestrictedFeatures"] = EmbyUserPermissions.Array(Features.Where(row => !row.Selected).Select(row => row.Id)
+            if (!IsJellyfin) policy["RestrictedFeatures"] = EmbyUserPermissions.Array(Features.Where(row => !row.Selected).Select(row => row.Id)
                 .Concat(EmbyManagedUser.Strings(policy, "RestrictedFeatures").Where(id => Features.All(row => row.Id != id))));
         }
         WriteAccess(policy, includeDevices: _original?.IsAdministrator != true);
         {
             policy["MaxParentalRating"] = SelectedRating.Length == 0 ? null : int.Parse(SelectedRating, System.Globalization.CultureInfo.InvariantCulture);
-            policy["IsTagBlockingModeInclusive"] = IncludeTags;
-            policy["AllowTagOrRating"] = AnyRestriction;
+            if (!IsJellyfin)
+            {
+                policy["IsTagBlockingModeInclusive"] = IncludeTags;
+                policy["AllowTagOrRating"] = AnyRestriction;
+            }
             policy["BlockUnratedItems"] = WithUnlisted(policy, "BlockUnratedItems", Unrated);
             policy["BlockedTags"] = EmbyUserPermissions.Array(Tags);
             if (_original?.IsAdministrator != true) policy["AccessSchedules"] = new JsonArray(Schedules.Select(row => row.Value.DeepClone()).ToArray());
@@ -175,7 +185,7 @@ public sealed partial class ServerUsersViewModel
         policy["EnableAllFolders"] = AllFolders;
         policy["EnabledFolders"] = AllFolders ? new JsonArray() : WithUnlisted(policy, "EnabledFolders", Folders);
         var children = Folders.SelectMany(row => row.Children).ToArray();
-        policy["ExcludedSubFolders"] = AllFolders ? new JsonArray() : EmbyUserPermissions.Array(children.Where(row => !row.Selected).Select(row => row.Id)
+        if (!IsJellyfin) policy["ExcludedSubFolders"] = AllFolders ? new JsonArray() : EmbyUserPermissions.Array(children.Where(row => !row.Selected).Select(row => row.Id)
             .Concat(EmbyManagedUser.Strings(policy, "ExcludedSubFolders").Where(id => children.All(row => row.Id != id && row.AlternateId != id))));
         policy["EnableAllChannels"] = AllChannels;
         policy["EnabledChannels"] = AllChannels ? new JsonArray() : WithUnlisted(policy, "EnabledChannels", Channels);
@@ -184,7 +194,7 @@ public sealed partial class ServerUsersViewModel
             policy["EnableAllDevices"] = AllDevices;
             policy["EnabledDevices"] = AllDevices ? new JsonArray() : WithUnlisted(policy, "EnabledDevices", Devices);
         }
-        policy["BlockedMediaFolders"] = null;
+        if (!IsJellyfin) policy["BlockedMediaFolders"] = null;
     }
 
     private static JsonArray WithUnlisted(JsonObject policy, string key, IEnumerable<UserOptionRow> choices)

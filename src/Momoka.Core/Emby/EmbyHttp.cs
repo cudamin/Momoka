@@ -307,9 +307,8 @@ public sealed class EmbyHttp : IDisposable
             using var request = new HttpRequestMessage(method, url);
             if (authenticated)
             {
-                request.Headers.TryAddWithoutValidation("X-Emby-Authorization", context.Device.ToAuthorizationHeader());
-                if (!string.IsNullOrEmpty(context.AccessToken))
-                    request.Headers.TryAddWithoutValidation("X-Emby-Token", context.AccessToken);
+                foreach (var header in MediaServerHeaders.Create(context.Device, context.AccessToken, context.ServerKind))
+                    request.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             if (payload is not null)
@@ -426,5 +425,6 @@ public sealed class EmbyHttp : IDisposable
         _handler.Dispose();
     }
 
-    public readonly record struct RequestContext(DeviceIdentity Device, string? AccessToken, bool IsAuthenticationAttempt = false);
+    public readonly record struct RequestContext(DeviceIdentity Device, string? AccessToken, bool IsAuthenticationAttempt = false,
+        MediaServerKind ServerKind = MediaServerKind.Emby);
 }

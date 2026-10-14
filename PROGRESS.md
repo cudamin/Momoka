@@ -6284,3 +6284,20 @@ t+2s     指针本来就没动 → 又满足 ≥2000 → 又 hide → 又盖章 
 改过颜色就用 `--theme <id>` 各拍一张，别只看默认那套。逐页拍照走 `tools\shot.ps1`（`-ExeArgs "--theme midnight --show-settings"`），自检自己只留一张截图。**从前这里写的是「`--theme daylight` 是唯一的浅色，没登记进 `ThemeHost` 的画刷和系统自己画的那块标题栏只在它身上露出来」—— 那一套 2026-09-05 按他一句「删掉晴昼主题」删了**，五套主题从此全是深色，所以那类毛病现在没有东西逮得住；别再照旧话去跑 `--theme daylight`，它只回落到默认那套。
 
 做完的活在两份归档里：[`docs/progress-2026-09.md`](docs/progress-2026-09.md)（09-01 到 09-02，外加 08-31 那两轮的尾巴）和 [`docs/progress-2026-08.md`](docs/progress-2026-08.md)（08-31 之前的全部，包括十个阶段的完成清单和 2026-08-27 那次验收复核）。
+
+## 2026-10-14：Jellyfin 连接与服务器管理
+
+- 当前树整合 Jellyfin 产品识别、保存/恢复、Authorization 请求头、10.x/12.x 用户路由、字段/排序过滤和播放请求头；保留 Emby 协议。三份并行实施分别在 jellyfin-connection、jellyfin-admin、jellyfin-ui 工作树完成，主树整合后已归档；集成补丁保存在忽略目录 work/jellyfin-integration。主树未提交或推送。
+- 设置按连接自动切为 JellyfinServer，普通账号、断开和 Jellyfin 权限未知时隐藏管理组；控制台、用户、媒体库、网页控制台已适配。通知、Connect、复制用户、PIN 和不支持字段/操作隐藏，命令与请求层同样守卫；Emby 切回后恢复五入口。
+- 网页控制台使用 Jellyfin 的 #/dashboard、jellyfin_credentials 与服务器/用户隔离的浏览器目录，仅在受信来源和 Web 路径写入凭据。未把种入的服务器 ID 当成登录成功证据。
+- 源码交叉核对补齐：自身改密码传 CurrentPw；家长控制隐藏 Game；Jellyfin 条目图片上传用 Base64；ParentPath 解析 JSON 字符串。同步指定技能中原先错误的正文与响应说明。远程图片预览无安全代取接口时收起，保留文字选择和本机上传。
+- Release 完整构建 0 警告、0 错误；最新 Core 测试 1779/1779 通过、0 失败、0 跳过（work/jellyfin-tests.log）。whitespace 验证退出 0，git diff --check 通过；自动化扫描 399 控件、缺少句柄 0。占位凭据的网页脚本在 Node vm 中验证来源/路径隔离、格式、合并和转义通过。
+- 设置动效旧探针改为等待旧控件移除、新布局和滚动偏移钳制完成，保留原断言。最新发布版 --probe-shell 完成 89 项，88 通过、1 失败，进程退出 1：MoviePilot 订阅同号季隔离、播放恢复与最窄布局出现 Sequence contains more than one matching element。此失败未改基线或忽略；Jellyfin 两项新检查、非管理员显隐/产品切换、控制台/用户/媒体库及通用对话框检查均通过。日志与截图：%LOCALAPPDATA%/Momoka/logs/shell-probe-20261014-032255724-27424/logs。
+- 早期探针的隐藏启动、屏幕截图遮挡/无效句柄和未等完滚动等失败均保留原日志，不作为通过证据。最终截图已检查 JellyfinServer 分组、无通知入口、普通账号、用户/库编辑及无预览候选布局。
+- 已用 tools/publish.ps1 -NoArchive 更新 artifacts/publish/win-x64；校验 533 文件、302.9 MB、11 GLSL/4 HOOK（含许可哈希）通过，桌面 Momoka.lnk 指向该目录。最终发布日志 work/jellyfin-publish.log。发布曾被本任务开发探针锁住构建 DLL，待其正常退出后单独发布成功，未杀进程。
+- 未连接真实 Jellyfin 验证管理写入、实际 Web 登录或播放。MoviePilot 的 Jellyfin 提供者标识匹配需要分页读取可见条目，大库请求量增加。使用范围与协议边界见 docs/Jellyfin支持.md。
+
+## 发版 0.1.6：Jellyfin 支持落主树（2026-10-14）
+
+- 用户令：「提交代码，打包发布新版本」。本轮把 Jellyfin 那一整批在途工作（连接识别与保存／恢复、`Authorization: MediaBrowser` 请求头、10.x／12.x 用户路由、JellyfinServer 管理分组、控制台／用户／媒体库／网页控制台适配、不支持项隐藏）连同侧边栏与账号两格字那几轮的修复整批落主树，`Directory.Build.props` 三行版本 0.1.5→0.1.6；四道闸门全跑。
+- 验证：闸门 1 完整 Release 构建 **0 警告、0 错误**，`format whitespace` 退出 0，`tools/check-scripts.ps1` 18 个脚本通过；闸门 2 编译后用 `--no-build` 跑 **1779 项全部通过、0 失败、0 跳过**（`work/gate2-tests.log`，含分析器哈希与六条约定基线）。

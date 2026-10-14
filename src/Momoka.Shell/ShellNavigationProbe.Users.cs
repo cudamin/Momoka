@@ -18,6 +18,7 @@ internal sealed partial class ShellNavigationProbe
         fixture.Transport.Reply = server.ReplyAsync;
         var settings = new SettingsPage();
         Field(settings, "_request", new SettingsRequest(fixture.Services));
+        Field(settings.ViewModel, "_capabilities", fixture.Capabilities);
         _root.Children.Add(settings);
         try
         {

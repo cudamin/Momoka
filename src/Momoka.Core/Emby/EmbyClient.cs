@@ -16,7 +16,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     public Uri ApiBase => Connection.ApiBase;
 
-    private EmbyHttp.RequestContext Context => new(Connection.Device, Connection.AccessToken);
+    private EmbyHttp.RequestContext Context => new(Connection.Device, Connection.AccessToken, ServerKind: Connection.ServerKind);
 
     // ---- browsing -------------------------------------------------------------
 
@@ -26,7 +26,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         // ChildCount for the 「N 项」 line under one, and no PrimaryImageAspectRatio, which is the only
         // thing that says whether a library's cover art is poster-shaped or a wide banner before the
         // grid has downloaded it.
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/Views", ("Fields", EmbyFields.Browse));
+        var url = Url($"Users/{Connection.UserId}/Views", ("Fields", EmbyFields.Browse));
         var result = await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
         Log.Debug(Category, $"读取到 {result.Items.Count} 个媒体库");
         return result.Items;
@@ -34,7 +34,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     public Task<ItemsResult> GetItemsAsync(ItemQuery query, CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/Items", query.ToParameters());
+        var url = Url($"Users/{Connection.UserId}/Items", query.ToParameters());
         return http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken);
     }
 
@@ -55,6 +55,19 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public async Task<List<string>> GetFilterValuesAsync(string key, ItemQuery scope, CancellationToken cancellationToken)
     {
+        if (Connection.IsJellyfin)
+        {
+            if (key is not (EmbyFilterBy.Keys.Genres or EmbyFilterBy.Keys.Tags or EmbyFilterBy.Keys.Years))
+                throw new ArgumentException("未知的筛选列表", nameof(key));
+            var filters = await http.GetJsonAsync<JsonObject>(Url("Items/Filters",
+                ("UserId", Connection.UserId), ("ParentId", scope.ParentId),
+                ("IncludeItemTypes", string.Join(',', scope.IncludeItemTypes)), ("MediaTypes", scope.MediaTypes)),
+                Context, cancellationToken).ConfigureAwait(false);
+            var values = filters.FirstOrDefault(pair => pair.Key.Equals(key, StringComparison.OrdinalIgnoreCase)).Value as JsonArray;
+            var names = values?.Select(value => value?.ToString() ?? "").Where(value => value.Length > 0)
+                .Distinct(StringComparer.Ordinal).ToList() ?? [];
+            return key == EmbyFilterBy.Keys.Years ? [.. names.OrderDescending(StringComparer.Ordinal)] : [.. names.Order(StringComparer.Ordinal)];
+        }
         var query = new ItemQuery
         {
             ParentId = scope.ParentId,
@@ -74,7 +87,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         parameters.AddRange(query.ToParameters());
 
         var result = await http
-            .GetJsonAsync<ItemsResult>(EmbyUrl.Combine(ApiBase, key, [.. parameters]), Context, cancellationToken)
+            .GetJsonAsync<ItemsResult>(Url(key, [.. parameters]), Context, cancellationToken)
             .ConfigureAwait(false);
 
         Log.Debug(Category, $"{key} 可选值 {result.Items.Count} 个");
@@ -94,7 +107,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     public async Task<EmbyItem> GetItemAsync(string itemId, CancellationToken cancellationToken,
         string fields = EmbyFields.Detail, MediaSourceOrder order = MediaSourceOrder.Default)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/Items/{itemId}", ("Fields", fields));
+        var url = Url($"Users/{Connection.UserId}/Items/{itemId}", ("Fields", fields));
         var item = await http.GetJsonAsync<EmbyItem>(url, Context, cancellationToken).ConfigureAwait(false);
         if (order == MediaSourceOrder.NewestFirst)
             await OrderVersionsByAddedAsync(item, cancellationToken).ConfigureAwait(false);
@@ -124,7 +137,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
         try
         {
-            var url = EmbyUrl.Combine(ApiBase, "Items",
+            var url = Url("Items",
                 ("Ids", string.Join(',', ids)),
                 ("Fields", "DateCreated"));
             var result = await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
@@ -163,7 +176,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// <param name="startIndex">翻页用的起点；<see cref="GetResumeAsync"/> 传 0。</param>
     public async Task<ItemsResult> QueryResumeAsync(int startIndex, int limit, CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/Items/Resume",
+        var url = Url($"Users/{Connection.UserId}/Items/Resume",
             ("StartIndex", startIndex.ToString()),
             ("Limit", limit.ToString()),
             ("Fields", EmbyFields.Browse),
@@ -186,7 +199,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         CancellationToken cancellationToken,
         string? includeItemTypes = null)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/Items/Latest",
+        var url = Url($"Users/{Connection.UserId}/Items/Latest",
             ("Limit", limit.ToString()),
             ("Fields", EmbyFields.Browse),
             ("ParentId", parentId),
@@ -206,7 +219,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         IReadOnlyList<string> includeItemTypes,
         CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/Items", new ItemQuery
+        var url = Url($"Users/{Connection.UserId}/Items", new ItemQuery
         {
             Recursive = true,
             IncludeItemTypes = includeItemTypes,
@@ -225,7 +238,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public async Task<List<EmbyItem>> GetNextUpAsync(int limit, CancellationToken cancellationToken, string? seriesId = null)
     {
-        var url = EmbyUrl.Combine(ApiBase, "Shows/NextUp",
+        var url = Url("Shows/NextUp",
             ("UserId", Connection.UserId),
             ("SeriesId", seriesId),
             ("Limit", limit.ToString()),
@@ -236,7 +249,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     public async Task<List<EmbyItem>> GetSeasonsAsync(string seriesId, CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Shows/{seriesId}/Seasons",
+        var url = Url($"Shows/{seriesId}/Seasons",
             ("UserId", Connection.UserId),
             ("Fields", EmbyFields.Browse));
         var result = await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
@@ -245,7 +258,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     public async Task<List<EmbyItem>> GetEpisodesAsync(string seriesId, string? seasonId, CancellationToken cancellationToken, string fields = EmbyFields.Browse)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Shows/{seriesId}/Episodes",
+        var url = Url($"Shows/{seriesId}/Episodes",
             ("UserId", Connection.UserId),
             ("SeasonId", seasonId),
             ("SortBy", EmbySortBy.Number),
@@ -287,7 +300,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         bool? isSpecialSeason,
         CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, "Shows/Missing",
+        var url = Url(Connection.IsJellyfin ? "Items" : "Shows/Missing",
             ("UserId", Connection.UserId),
             ("ParentId", seriesId),
             ("IncludeItemTypes", EmbyItemType.Episode),
@@ -297,9 +310,12 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
             ("Fields", EmbyFields.Browse),
             ("Limit", "500"),
             ("IsUnaired", isUnaired is { } unaired ? (unaired ? "true" : "false") : null),
-            ("IsSpecialSeason", isSpecialSeason is { } special ? (special ? "true" : "false") : null));
+            ("IsMissing", Connection.IsJellyfin ? "true" : null),
+            ("IsSpecialSeason", !Connection.IsJellyfin && isSpecialSeason is { } special ? (special ? "true" : "false") : null));
 
         var result = await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
+        if (Connection.IsJellyfin && isSpecialSeason is { } onlySpecial)
+            result.Items.RemoveAll(item => (item.ParentIndexNumber == 0) != onlySpecial);
         Log.Debug(Category, $"读取到 {result.Items.Count} 集遗漏（未播出={isUnaired?.ToString() ?? "都要"}，"
             + $"特别篇={isSpecialSeason?.ToString() ?? "都要"}）");
         return result.Items;
@@ -335,7 +351,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public async Task<List<EmbyItem>> GetSimilarAsync(string itemId, int limit, CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Items/{itemId}/Similar",
+        var url = Url($"Items/{itemId}/Similar",
             ("UserId", Connection.UserId),
             ("Limit", limit.ToString()),
             ("Fields", EmbyFields.Browse));
@@ -352,21 +368,21 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public Task<EmbyUserData?> MarkPlayedAsync(string itemId, CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/PlayedItems/{itemId}");
+        var url = Url($"Users/{Connection.UserId}/PlayedItems/{itemId}");
         return http.PostForJsonAsync<EmbyUserData>(url, null, Context, cancellationToken);
     }
 
     /// <inheritdoc cref="MarkPlayedAsync"/>
     public Task<EmbyUserData?> MarkUnplayedAsync(string itemId, CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/PlayedItems/{itemId}");
+        var url = Url($"Users/{Connection.UserId}/PlayedItems/{itemId}");
         return http.DeleteForJsonAsync<EmbyUserData>(url, Context, cancellationToken);
     }
 
     /// <inheritdoc cref="MarkPlayedAsync"/>
     public Task<EmbyUserData?> SetFavoriteAsync(string itemId, bool isFavorite, CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/FavoriteItems/{itemId}");
+        var url = Url($"Users/{Connection.UserId}/FavoriteItems/{itemId}");
         return isFavorite
             ? http.PostForJsonAsync<EmbyUserData>(url, null, Context, cancellationToken)
             : http.DeleteForJsonAsync<EmbyUserData>(url, Context, cancellationToken);
@@ -379,7 +395,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// <inheritdoc cref="MarkPlayedAsync"/>
     public Task<EmbyUserData?> HideFromResumeAsync(string itemId, bool hide, CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/Items/{itemId}/HideFromResume",
+        var url = Url($"Users/{Connection.UserId}/Items/{itemId}/HideFromResume",
             ("Hide", hide ? "true" : "false"));
         return http.PostForJsonAsync<EmbyUserData>(url, null, Context, cancellationToken);
     }
@@ -395,7 +411,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public Task<JsonObject> GetItemJsonAsync(string itemId, CancellationToken cancellationToken)
     {
-        var url = EmbyUrl.Combine(ApiBase, $"Users/{Connection.UserId}/Items/{itemId}");
+        var url = Url($"Users/{Connection.UserId}/Items/{itemId}");
         return http.GetJsonAsync<JsonObject>(url, Context, cancellationToken);
     }
 
@@ -404,7 +420,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// report rather than to hide, since nothing about the item is wrong.
     /// </summary>
     public Task UpdateItemAsync(string itemId, JsonObject item, CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, $"Items/{itemId}"), item, Context, cancellationToken);
+        http.PostAsync(Url($"Items/{itemId}"), item, Context, cancellationToken);
 
     // ---- 合集、刮削、扫库、删除 ------------------------------------------------
 
@@ -414,7 +430,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         IReadOnlyList<string> itemIds,
         CancellationToken cancellationToken) =>
         http.PostJsonAsync<CollectionCreationResult>(
-            EmbyUrl.Combine(ApiBase, "Collections",
+            Url("Collections",
                 ("Name", name),
                 ("Ids", string.Join(',', itemIds)),
                 // 不锁：锁住的合集不再接受刮削，而这一步只是「把几样东西归到一处」。
@@ -429,7 +445,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         IReadOnlyList<string> itemIds,
         CancellationToken cancellationToken) =>
         http.PostAsync(
-            EmbyUrl.Combine(ApiBase, $"Collections/{collectionId}/Items", ("Ids", string.Join(',', itemIds))),
+            Url($"Collections/{collectionId}/Items", ("Ids", string.Join(',', itemIds))),
             null,
             Context,
             cancellationToken);
@@ -463,7 +479,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         if (mode is not ("missing" or "all")) throw new ArgumentException("未知的刷新模式。");
 
         return http.PostAsync(
-            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/Refresh",
+            Url($"Items/{itemId}/Refresh",
                 ("Recursive", "true"),
                 ("MetadataRefreshMode", "FullRefresh"),
                 ("ImageRefreshMode", "FullRefresh"),
@@ -486,7 +502,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public Task ValidateItemRefreshAsync(string itemId, CancellationToken cancellationToken) =>
         http.PostAsync(
-            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/Refresh",
+            Url($"Items/{itemId}/Refresh",
                 ("Recursive", "true"),
                 ("MetadataRefreshMode", "ValidationOnly"),
                 ("ImageRefreshMode", "ValidationOnly")),
@@ -502,7 +518,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </para>
     /// </summary>
     public Task ScanLibraryAsync(CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, "Library/Refresh"), null, Context, cancellationToken);
+        http.PostAsync(Url("Library/Refresh"), null, Context, cancellationToken);
 
     // ---- 识别 ----------------------------------------------------------------
     //
@@ -518,7 +534,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public Task<List<ExternalIdInfo>> GetExternalIdInfosAsync(string itemId, CancellationToken cancellationToken) =>
         http.GetJsonAsync<List<ExternalIdInfo>>(
-            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/ExternalIdInfos", ("IsSupportedAsIdentifier", "true")),
+            Url($"Items/{itemId}/ExternalIdInfos", ("IsSupportedAsIdentifier", "true")),
             Context,
             cancellationToken);
 
@@ -534,7 +550,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         RemoteSearchQuery query,
         CancellationToken cancellationToken) =>
         http.PostJsonAsync<List<RemoteSearchResult>>(
-            EmbyUrl.Combine(ApiBase, $"Items/RemoteSearch/{Uri.EscapeDataString(itemType)}"),
+            Url($"Items/RemoteSearch/{Uri.EscapeDataString(itemType)}"),
             query,
             Context,
             cancellationToken);
@@ -553,7 +569,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         bool replaceAllImages,
         CancellationToken cancellationToken) =>
         http.PostAsync(
-            EmbyUrl.Combine(ApiBase, $"Items/RemoteSearch/Apply/{itemId}",
+            Url($"Items/RemoteSearch/Apply/{itemId}",
                 ("ReplaceAllImages", replaceAllImages ? "true" : "false")),
             result,
             Context,
@@ -568,7 +584,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string? providerName,
         CancellationToken cancellationToken) =>
         http.GetBytesAsync(
-            EmbyUrl.Combine(ApiBase, "Items/RemoteSearch/Image",
+            Url("Items/RemoteSearch/Image",
                 ("imageUrl", imageUrl), ("ProviderName", providerName)),
             Context,
             cancellationToken);
@@ -587,7 +603,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public Task ResetMetadataAsync(string itemId, CancellationToken cancellationToken) =>
         http.PostAsync(
-            EmbyUrl.Combine(ApiBase, "Items/Metadata/Reset", ("ItemIds", itemId)),
+            Url("Items/Metadata/Reset", ("ItemIds", itemId)),
             new { ItemIds = itemId },
             Context,
             cancellationToken);
@@ -597,18 +613,18 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// <c>ItemCommands</c> 那一句确认）。账号没有删除权限时服务器答 403，那是要报给用户的话。
     /// </summary>
     public Task DeleteItemAsync(string itemId, CancellationToken cancellationToken) =>
-        http.DeleteAsync(EmbyUrl.Combine(ApiBase, $"Items/{itemId}"), Context, cancellationToken);
+        http.DeleteAsync(Url($"Items/{itemId}"), Context, cancellationToken);
 
     // ---- playback reporting ---------------------------------------------------
 
     public Task ReportPlaybackStartAsync(PlaybackReport report, CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, "Sessions/Playing"), report, Context, cancellationToken);
+        http.PostAsync(Url("Sessions/Playing"), report, Context, cancellationToken);
 
     public Task ReportPlaybackProgressAsync(PlaybackReport report, CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, "Sessions/Playing/Progress"), report, Context, cancellationToken);
+        http.PostAsync(Url("Sessions/Playing/Progress"), report, Context, cancellationToken);
 
     public Task ReportPlaybackStoppedAsync(PlaybackReport report, CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, "Sessions/Playing/Stopped"), report, Context, cancellationToken);
+        http.PostAsync(Url("Sessions/Playing/Stopped"), report, Context, cancellationToken);
 
     // ---- notifications ---------------------------------------------------------
     //
@@ -619,50 +635,50 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// <summary>装在服务器上的通知服务（通知渠道）。这台服务器上装了官方 Webhooks 插件时，答案就是它。</summary>
     public Task<List<NotificationServiceInfo>> GetNotificationServicesAsync(CancellationToken cancellationToken) =>
         http.GetJsonAsync<List<NotificationServiceInfo>>(
-            EmbyUrl.Combine(ApiBase, "Notifications/Services", ("UserId", Connection.UserId)), Context, cancellationToken);
+            EmbyOnlyUrl("Notifications/Services", ("UserId", Connection.UserId)), Context, cancellationToken);
 
     /// <summary>可订阅的事件清单，按类分节。名字服务器已按用户的语言本地化，界面上直接用，不再自带一份词表。</summary>
     public Task<List<NotificationCategoryInfo>> GetNotificationTypesAsync(CancellationToken cancellationToken) =>
         http.GetJsonAsync<List<NotificationCategoryInfo>>(
-            EmbyUrl.Combine(ApiBase, "Notifications/Types", ("UserId", Connection.UserId)), Context, cancellationToken);
+            EmbyOnlyUrl("Notifications/Types", ("UserId", Connection.UserId)), Context, cancellationToken);
 
     /// <summary>当前用户已配置的通知条目（「通知」页的列表本体）。</summary>
     public Task<List<UserNotificationInfo>> GetNotificationsAsync(CancellationToken cancellationToken) =>
         http.GetJsonAsync<List<UserNotificationInfo>>(
-            EmbyUrl.Combine(ApiBase, "Notifications/Services/Configured", ("UserId", Connection.UserId)),
+            EmbyOnlyUrl("Notifications/Services/Configured", ("UserId", Connection.UserId)),
             Context, cancellationToken);
 
     /// <summary>一条新通知的铺底（官方网页端「添加」的起点）：服务键、启用状态和该服务自己的默认选项，
     /// 事件表是空的 —— 事件由编辑器选。服务键取自 <see cref="NotificationServiceInfo.Id"/>。</summary>
     public Task<UserNotificationInfo> GetNotificationDefaultsAsync(string notifierKey, CancellationToken cancellationToken) =>
         http.GetJsonAsync<UserNotificationInfo>(
-            EmbyUrl.Combine(ApiBase, "Notifications/Services/Defaults",
+            EmbyOnlyUrl("Notifications/Services/Defaults",
                 ("UserId", Connection.UserId), ("NotifierKey", notifierKey)), Context, cancellationToken);
 
     /// <summary>保存一条通知（新建与编辑同一条路，整份 POST —— 官方网页端就是这个节拍）。</summary>
     public Task SaveNotificationAsync(UserNotificationInfo entry, CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, "Notifications/Services/Configured"), entry, Context, cancellationToken);
+        http.PostAsync(EmbyOnlyUrl("Notifications/Services/Configured"), entry, Context, cancellationToken);
 
     /// <summary>删一条通知。官方网页端删的是「这条 + 这个用户」，两个参数都在查询串上。</summary>
     public Task DeleteNotificationAsync(string entryId, CancellationToken cancellationToken) =>
-        http.DeleteAsync(EmbyUrl.Combine(ApiBase, "Notifications/Services/Configured",
+        http.DeleteAsync(EmbyOnlyUrl("Notifications/Services/Configured",
             ("Id", entryId), ("UserId", Connection.UserId)), Context, cancellationToken);
 
     /// <summary>让服务器按这条通知的配置真发一次。目的地不通、令牌不对时服务器把原因写进错误回应里，这里不吞。</summary>
     public Task TestNotificationAsync(UserNotificationInfo entry, CancellationToken cancellationToken) =>
-        http.PostAsync(EmbyUrl.Combine(ApiBase, "Notifications/Services/Test"), entry, Context, cancellationToken);
+        http.PostAsync(EmbyOnlyUrl("Notifications/Services/Test"), entry, Context, cancellationToken);
 
     /// <summary>「限定用户」选择框的数据源（管理员才用得上，但读这四个名字没有权限门槛）。</summary>
     public Task<List<NotificationUser>> GetNotificationUsersAsync(CancellationToken cancellationToken) =>
         http.GetJsonAsync<List<NotificationUser>>(
-            EmbyUrl.Combine(ApiBase, "Users",
+            EmbyOnlyUrl("Users",
                 ("SortBy", "SortName"), ("SortOrder", "Ascending"), ("EnableImages", "false")),
             Context, cancellationToken);
 
     /// <summary>「限定媒体库」选择框的数据源。</summary>
     public Task<List<NotificationLibrary>> GetNotificationLibrariesAsync(CancellationToken cancellationToken) =>
         http.GetJsonAsync<List<NotificationLibrary>>(
-            EmbyUrl.Combine(ApiBase, "Library/VirtualFolders",
+            EmbyOnlyUrl("Library/VirtualFolders",
                 ("SortBy", "SortName"), ("SortOrder", "Ascending"), ("EnableImages", "false")),
             Context, cancellationToken);
 
@@ -670,7 +686,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     public async Task<List<NotificationDevice>> GetNotificationDevicesAsync(CancellationToken cancellationToken)
     {
         var list = await http.GetJsonAsync<NotificationDeviceList>(
-            EmbyUrl.Combine(ApiBase, "Devices"), Context, cancellationToken).ConfigureAwait(false);
+            EmbyOnlyUrl("Devices"), Context, cancellationToken).ConfigureAwait(false);
         return list.Items;
     }
 
@@ -684,17 +700,26 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public async Task<EmbySystemInfo> GetSystemInfoAsync(CancellationToken cancellationToken)
     {
+        if (Connection.IsJellyfin)
+        {
+            var user = await GetCurrentUserAsync(cancellationToken).ConfigureAwait(false);
+            var restricted = user.Policy?.IsAdministrator != true;
+            var info = await http.GetJsonAsync<EmbySystemInfo>(
+                Url(restricted ? "System/Info/Public" : "System/Info"), Context, cancellationToken).ConfigureAwait(false);
+            info.IsRestricted = restricted;
+            return info;
+        }
         try
         {
             return await http
-                .GetJsonAsync<EmbySystemInfo>(EmbyUrl.Combine(ApiBase, "System/Info"), Context, cancellationToken)
+                .GetJsonAsync<EmbySystemInfo>(Url("System/Info"), Context, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (EmbyApiException error) when (error.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
             Log.Debug(Category, "当前账户不是管理员，改用公开的服务器信息");
             var info = await http
-                .GetJsonAsync<EmbySystemInfo>(EmbyUrl.Combine(ApiBase, "System/Info/Public"), Context, cancellationToken)
+                .GetJsonAsync<EmbySystemInfo>(Url("System/Info/Public"), Context, cancellationToken)
                 .ConfigureAwait(false);
             info.IsRestricted = true;
             return info;
@@ -737,7 +762,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string imageType,
         CancellationToken cancellationToken) =>
         http.GetJsonAsync<RemoteImageResult>(
-            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/RemoteImages",
+            Url($"Items/{itemId}/RemoteImages",
                 ("Type", imageType),
                 ("IncludeAllLanguages", "true"),
                 ("Limit", "60")),
@@ -752,7 +777,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string? providerName,
         CancellationToken cancellationToken) =>
         http.PostAsync(
-            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/RemoteImages/Download",
+            Url($"Items/{itemId}/RemoteImages/Download",
                 ("Type", imageType),
                 ("ProviderName", providerName),
                 ("ImageUrl", imageUrl)),
@@ -766,7 +791,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </summary>
     public Task<byte[]> GetRemoteImageBytesAsync(string imageUrl, CancellationToken cancellationToken) =>
         http.GetBytesAsync(
-            EmbyUrl.Combine(ApiBase, "Images/Remote", ("ImageUrl", imageUrl)),
+            Url("Images/Remote", ("ImageUrl", imageUrl)),
             Context,
             cancellationToken);
 
@@ -788,7 +813,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         int? index,
         CancellationToken cancellationToken) =>
         http.DeleteAsync(
-            EmbyUrl.Combine(ApiBase, ImagePath(itemId, imageType, index)),
+            Url(ImagePath(itemId, imageType, index)),
             Context,
             cancellationToken);
 
@@ -812,8 +837,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string contentType,
         CancellationToken cancellationToken) =>
         http.PostBytesAsync(
-            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/Images/{imageType}"),
-            bytes,
+            Url($"Items/{itemId}/Images/{imageType}"),
+            Connection.IsJellyfin ? System.Text.Encoding.ASCII.GetBytes(Convert.ToBase64String(bytes)) : bytes,
             contentType,
             Context,
             cancellationToken);
@@ -836,7 +861,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string language,
         CancellationToken cancellationToken) =>
         http.GetJsonAsync<List<RemoteSubtitleInfo>>(
-            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/RemoteSearch/Subtitles/{Uri.EscapeDataString(language)}",
+            Url($"Items/{itemId}/RemoteSearch/Subtitles/{Uri.EscapeDataString(language)}",
                 ("MediaSourceId", mediaSourceId)),
             Context,
             cancellationToken);
@@ -853,7 +878,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string subtitleId,
         CancellationToken cancellationToken) =>
         http.PostForJsonAsync<SubtitleDownloadResult>(
-            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/RemoteSearch/Subtitles/{Uri.EscapeDataString(subtitleId)}",
+            Url($"Items/{itemId}/RemoteSearch/Subtitles/{Uri.EscapeDataString(subtitleId)}",
                 ("MediaSourceId", mediaSourceId)),
             null,
             Context,
@@ -861,7 +886,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     /// <summary>删掉一条外挂字幕。内嵌在容器里的那些删不掉，服务器会拒绝。</summary>
     public Task DeleteSubtitleAsync(string itemId, int index, CancellationToken cancellationToken) =>
-        http.DeleteAsync(EmbyUrl.Combine(ApiBase, $"Items/{itemId}/Subtitles/{index}"), Context, cancellationToken);
+        http.DeleteAsync(Url($"{(Connection.IsJellyfin ? "Videos" : "Items")}/{itemId}/Subtitles/{index}"), Context, cancellationToken);
 
     // ---- 下载到设备 -----------------------------------------------------------
 
@@ -875,7 +900,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         IProgress<(long Done, long? Total)>? progress,
         CancellationToken cancellationToken) =>
         http.DownloadToFileAsync(
-            EmbyUrl.Combine(ApiBase, $"Items/{itemId}/Download"),
+            Url($"Items/{itemId}/Download"),
             path,
             Context,
             progress,

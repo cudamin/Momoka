@@ -13,7 +13,7 @@ public sealed partial class PlaybackService
         var request = attempt.Request;
         var exitTask = handle.WaitForExitAsync(cancellationToken);
         var interval = TimeSpan.FromSeconds(Math.Clamp(settings.Playback.ProgressReportIntervalSeconds, 1, 60));
-        var stopEnabled = settings.Playback.StopReportEnabled && settings.Playback.ReportProgressToServer;
+        var stopEnabled = !scope.Connection.IsJellyfin && settings.Playback.StopReportEnabled && settings.Playback.ReportProgressToServer;
         var stopPercent = StopReportPercent(request.IsDonghua,
             settings.Playback.MarkWatchedPercent, settings.Playback.DonghuaMarkWatchedPercent);
 
@@ -103,7 +103,7 @@ public sealed partial class PlaybackService
     /// </summary>
     public async Task<bool> ReportMarkedWatchedAsync(EmbyItem item, CancellationToken cancellationToken = default)
     {
-        if (!settings.Playback.StopReportEnabled || !settings.Playback.ReportProgressToServer)
+        if (session.Connection?.IsJellyfin == true || !settings.Playback.StopReportEnabled || !settings.Playback.ReportProgressToServer)
         {
             Log.Debug(Category, $"《{item.Name}》标记已看：通知接管没开（或上报已关），不补报");
             return false;
@@ -142,6 +142,7 @@ public sealed partial class PlaybackService
         }
 
         var ticks = item.RunTimeTicks.Value;
+        if (scope.Connection.IsJellyfin) return false;
 
         if (_active is { Ending: false } attempt && attempt.Request.ItemId == item.Id)
         {

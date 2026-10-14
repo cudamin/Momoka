@@ -126,15 +126,19 @@ public static class ItemMenu
     /// 用户在设置里开没开 MoviePilot。开了才给「在 MoviePilot 搜索其他版本」那一条 —— 没开就和从前一模一样，
     /// 免得点下去弹个连不上的窗口。默认关：全新装机没有 MoviePilot，测试里不点名这一项的也照旧只看基础菜单。
     /// </param>
-    public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false) => Join(
+    public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
+        bool jellyfin = false) => Join(
         Opening(item),
         MissingEpisodes(item),
-        UserState(item),
+        UserState(item, jellyfin),
         Organising(item),
         MoviePilotBlock(item, moviePilotEnabled, animeGenre),
         Metadata(item),
         Navigation(item),
         Destructive(item));
+
+    /// <summary>菜单和迟到的点击共用同一能力判断；Jellyfin 没有保留续播点的隐藏接口。</summary>
+    public static bool Supports(ItemCommand command, bool jellyfin) => !jellyfin || command != ItemCommand.HideFromResume;
 
     /// <summary>
     /// 查看遗漏集。**只有剧和季**：一部剧、一季是一叠文件，服务器按刮削源的元数据算得出「本该有哪几集、
@@ -199,7 +203,7 @@ public static class ItemMenu
     /// 里不再列它（服务器上是 <c>HideFromResume</c>），下次还能接着看；「标记为未观看」是把进度清成零。
     /// </para>
     /// </summary>
-    private static List<ItemMenuEntry> UserState(EmbyItem item)
+    private static List<ItemMenuEntry> UserState(EmbyItem item, bool jellyfin)
     {
         var rows = new List<ItemMenuEntry>(4);
         if (!item.TracksUserState) return rows;
@@ -212,7 +216,8 @@ public static class ItemMenu
             ? new(ItemCommand.Unfavorite, "取消收藏")
             : new(ItemCommand.Favorite, "添加到收藏"));
 
-        if (item.HasResumePosition) rows.Add(new(ItemCommand.HideFromResume, "从继续观看中移除"));
+        if (item.HasResumePosition && Supports(ItemCommand.HideFromResume, jellyfin))
+            rows.Add(new(ItemCommand.HideFromResume, "从继续观看中移除"));
 
         return rows;
     }

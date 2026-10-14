@@ -28,6 +28,7 @@ internal static class EmbyTests
         RegisterMetadataEdit();
         RegisterImageCache();
         HttpDeadlineTests.Register();
+        JellyfinProtocolTests.Register();
     }
 
     private static void RegisterAddress()

@@ -103,8 +103,8 @@
                         <MenuFlyout>
                             <MenuFlyoutItem x:Name="UserAvatarUpload" Text="上传头像" Icon="Upload" Command="{x:Bind ViewModel.UploadAvatarCommand}" />
                             <MenuFlyoutItem x:Name="UserAvatarRemove" Text="移除头像" Command="{x:Bind ViewModel.RemoveAvatarCommand}" />
-                            <MenuFlyoutItem x:Name="UserCopyData" Text="复制用户数据" Icon="Copy" Click="OnCopyData" />
-                            <MenuFlyoutItem x:Name="UserPreferences" Text="编辑此用户的其他偏好" Click="OnPreferences" />
+                            <MenuFlyoutItem x:Name="UserCopyData" Visibility="{x:Bind ViewModel.EmbyVisibility, Mode=OneWay}" Text="复制用户数据" Icon="Copy" Click="OnCopyData" />
+                            <MenuFlyoutItem x:Name="UserPreferences" Visibility="{x:Bind ViewModel.EmbyVisibility, Mode=OneWay}" Text="编辑此用户的其他偏好" Click="OnPreferences" />
                             <MenuFlyoutSeparator />
                             <MenuFlyoutItem x:Name="UserDelete" Text="删除用户" Icon="Delete" Command="{x:Bind ViewModel.DeleteCommand}" />
                         </MenuFlyout>
@@ -127,18 +127,18 @@
                         <StackPanel Spacing="16">
                             <TextBox x:Name="NewUserNameBox" Header="名称" Text="{x:Bind ViewModel.UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <CheckBox x:Name="NewUserAdminCheck" Content="允许此用户管理服务器" IsChecked="{x:Bind ViewModel.NewAdministrator, Mode=TwoWay}" />
-                            <ComboBox x:Name="NewUserCopyFrom" Header="从现有用户复制数据" HorizontalAlignment="Stretch"
+                            <ComboBox x:Name="NewUserCopyFrom" Visibility="{x:Bind ViewModel.EmbyVisibility, Mode=OneWay}" Header="从现有用户复制数据" HorizontalAlignment="Stretch"
                                 ItemsSource="{x:Bind ViewModel.CopyUsers, Mode=OneWay}" ItemTemplate="{StaticResource UserValueTemplate}"
                                 SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.CopyFrom, Mode=TwoWay}" />
                             <ItemsControl ItemsSource="{x:Bind ViewModel.CopyOptions, Mode=OneWay}" ItemTemplate="{StaticResource UserOptionTemplate}" Visibility="{x:Bind ViewModel.CopyVisibility, Mode=OneWay}" />
                         </StackPanel>
                     </Border>
                     <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.ProfileVisibility, Mode=OneWay}">
-                        <Border Style="{StaticResource UserCard}">
+                        <Border Style="{StaticResource UserCard}" Visibility="{x:Bind ViewModel.IdentityVisibility, Mode=OneWay}">
                             <StackPanel Spacing="16">
-                                <TextBox x:Name="UserNameBox" Header="名称" Text="{x:Bind ViewModel.UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                <TextBox x:Name="UserConnectBox" Header="Emby Connect 用户名或电子邮件" Text="{x:Bind ViewModel.ConnectName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                <TextBlock Text="可选。关联后可使用 Emby Connect 登录；留空并保存可解除关联。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                <TextBox x:Name="UserNameBox" Visibility="{x:Bind ViewModel.UserNameVisibility, Mode=OneWay}" Header="名称" Text="{x:Bind ViewModel.UserName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBox x:Name="UserConnectBox" Visibility="{x:Bind ViewModel.EmbyVisibility, Mode=OneWay}" Header="Emby Connect 用户名或电子邮件" Text="{x:Bind ViewModel.ConnectName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Visibility="{x:Bind ViewModel.EmbyVisibility, Mode=OneWay}" Text="可选。关联后可使用 Emby Connect 登录；留空并保存可解除关联。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                                 <ComboBox x:Name="UserProviderBox" Header="身份验证提供程序" HorizontalAlignment="Stretch" Visibility="{x:Bind ViewModel.ProviderVisibility, Mode=OneWay}"
                                     ItemsSource="{x:Bind ViewModel.Providers, Mode=OneWay}" ItemTemplate="{StaticResource UserValueTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.SelectedProvider, Mode=TwoWay}" />
                             </StackPanel>
@@ -158,13 +158,13 @@
                         <Border Style="{StaticResource UserCard}">
                             <StackPanel Spacing="12">
                                 <TextBlock Text="播放限制" Style="{StaticResource EgSubheadStyle}" />
-                                <NumberBox x:Name="UserStreamLimit" Header="同时播放流数量（0 表示不限）" Minimum="0" Maximum="50" SmallChange="1" Value="{x:Bind ViewModel.StreamLimit, Mode=TwoWay}" />
-                                <TextBlock Text="同时播放流数量限制需要 Emby Premiere，由服务器决定是否生效。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                <NumberBox x:Name="UserStreamLimit" Visibility="{x:Bind ViewModel.EmbyVisibility, Mode=OneWay}" Header="同时播放流数量（0 表示不限）" Minimum="0" Maximum="50" SmallChange="1" Value="{x:Bind ViewModel.StreamLimit, Mode=TwoWay}" />
+                                <TextBlock Visibility="{x:Bind ViewModel.EmbyVisibility, Mode=OneWay}" Text="同时播放流数量限制需要 Emby Premiere，由服务器决定是否生效。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                                 <NumberBox x:Name="UserRemoteBitrate" Header="远程播放码率上限（Mbps，0 表示不限）" Minimum="0" SmallChange="0.25" Value="{x:Bind ViewModel.RemoteBitrate, Mode=TwoWay}" />
-                                <NumberBox x:Name="UserAutoRemoteQuality" Header="自动远程播放质量（Mbps，0 使用默认值）" Minimum="0" Maximum="200" SmallChange="0.25" Value="{x:Bind ViewModel.AutoRemoteQuality, Mode=TwoWay}" />
+                                <NumberBox x:Name="UserAutoRemoteQuality" Visibility="{x:Bind ViewModel.EmbyVisibility, Mode=OneWay}" Header="自动远程播放质量（Mbps，0 使用默认值）" Minimum="0" Maximum="200" SmallChange="0.25" Value="{x:Bind ViewModel.AutoRemoteQuality, Mode=TwoWay}" />
                             </StackPanel>
                         </Border>
-                        <Border Style="{StaticResource UserCard}">
+                        <Border Style="{StaticResource UserCard}" Visibility="{x:Bind ViewModel.FeaturesVisibility, Mode=OneWay}">
                             <StackPanel Spacing="8">
                                 <TextBlock Text="其他功能访问" Style="{StaticResource EgSubheadStyle}" />
                                 <ItemsControl ItemsSource="{x:Bind ViewModel.Features, Mode=OneWay}" ItemTemplate="{StaticResource UserOptionTemplate}" />
@@ -226,8 +226,8 @@
                         </Border>
                         <Border Style="{StaticResource UserCard}">
                             <StackPanel Spacing="12">
-                                <TextBlock Text="标签限制" Style="{StaticResource EgSubheadStyle}" />
-                                <ToggleSwitch x:Name="UserIncludeTagsSwitch" Header="标签匹配方式" OnContent="仅允许这些标签" OffContent="阻止这些标签" IsOn="{x:Bind ViewModel.IncludeTags, Mode=TwoWay}" />
+                                <TextBlock Text="{x:Bind ViewModel.TagHeading, Mode=OneWay}" Style="{StaticResource EgSubheadStyle}" />
+                                <ToggleSwitch x:Name="UserIncludeTagsSwitch" Visibility="{x:Bind ViewModel.EmbyVisibility, Mode=OneWay}" Header="标签匹配方式" OnContent="仅允许这些标签" OffContent="阻止这些标签" IsOn="{x:Bind ViewModel.IncludeTags, Mode=TwoWay}" />
                                 <ToggleSwitch x:Name="UserAnyRestrictionSwitch" Header="分级与标签组合" OnContent="满足任意条件" OffContent="必须满足全部条件"
                                     IsOn="{x:Bind ViewModel.AnyRestriction, Mode=TwoWay}" Visibility="{x:Bind ViewModel.CombinationVisibility, Mode=OneWay}" />
                                 <Grid ColumnSpacing="8">
@@ -270,6 +270,8 @@
                     <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.PasswordVisibility, Mode=OneWay}">
                         <Border Style="{StaticResource UserCard}">
                             <StackPanel Spacing="16">
+                                <PasswordBox x:Name="UserCurrentPasswordBox" Header="当前密码" Visibility="{x:Bind ViewModel.CurrentPasswordVisibility, Mode=OneWay}"
+                                    Password="{x:Bind ViewModel.CurrentPassword, Mode=TwoWay}" />
                                 <PasswordBox x:Name="UserNewPasswordBox" Header="新密码" Password="{x:Bind ViewModel.NewPassword, Mode=TwoWay}" />
                                 <PasswordBox x:Name="UserConfirmPasswordBox" Header="确认新密码" Password="{x:Bind ViewModel.ConfirmPassword, Mode=TwoWay}" />
                                 <TextBlock Text="管理员必须设置密码。普通用户可将新密码留空，保存后移除密码。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />

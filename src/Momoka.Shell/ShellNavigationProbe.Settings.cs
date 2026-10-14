@@ -92,6 +92,8 @@ internal sealed partial class ShellNavigationProbe
                 page.SelectedCategory = "关于";
                 await WaitForSettingsSettledAsync(page);
                 AssertSettingsSettled(page);
+                // ScrollView 在合成提交后才按新 extent 钳制偏移；分组动画结束不代表滚动操作已结束。
+                await UntilAsync(() => scroll.VerticalOffset <= scroll.ScrollableHeight + 1);
                 var visible = Descendants(page).OfType<FrameworkElement>()
                     .Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible).ToArray();
                 Require(visible.Length == 1 && visible[0].ActualHeight > 0, "长页切短页没有实现目标分组");
@@ -446,6 +448,52 @@ internal sealed partial class ShellNavigationProbe
                 && rail.Items.Cast<string>().SequenceEqual(page.Categories),
                 "装回来的服务器管理分类次序不对");
             await SaveReturnFrameAsync(page, "settings-server-admin-shown.png");
+
+            // 产品变化时权限仍为 true；不能只在权限位变化时重建组名和分类。
+            page.SelectedCategory = SettingsViewModel.NotificationsCategory;
+            fixture.Capabilities.ServerKind = MediaServerKind.Jellyfin;
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka", "JellyfinServer" }),
+                "连接 Jellyfin 后管理组没有自动改名");
+            Require(!page.Categories.Contains(SettingsViewModel.NotificationsCategory)
+                && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.NotificationsCategory)
+                && page.SelectedCategory == SettingsViewModel.FirstCardCategory,
+                "Jellyfin 仍允许打开通知或留下已失效的通知页面");
+            foreach (var width in new[] { 1100, 760 })
+            {
+                ResizeInspect(width, 900);
+                await LayoutAsync(page);
+                Require(rail.Items.Cast<string>().SequenceEqual(page.Categories)
+                    && picker.ItemsSource is IEnumerable<string> jellyfinEntries && jellyfinEntries.SequenceEqual(page.Categories),
+                    "Jellyfin 宽窄导航分类不一致");
+                await SaveProbeScreenAsync($"settings-jellyfin-admin-{width}-screen.png");
+            }
+
+            foreach (bool? administrator in new bool?[] { false, null })
+            {
+                fixture.Capabilities.IsAdministrator = administrator;
+                await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+                await LayoutAsync(page);
+                Require(page.ViewModel.ServerAdministrationHidden
+                    && !page.Categories.Any(SettingsViewModel.ServerAdministrationCategories.Contains)
+                    && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.ServerUsersCategory),
+                    "Jellyfin 非管理员或权限未知时仍暴露管理入口");
+            }
+            await SaveProbeScreenAsync("settings-jellyfin-user-screen.png");
+
+            fixture.Capabilities.ServerKind = MediaServerKind.Emby;
+            fixture.Capabilities.IsAdministrator = true;
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+            Require(page.Categories.TakeLast(SettingsViewModel.ServerAdministrationCategories.Count)
+                    .SequenceEqual(SettingsViewModel.ServerAdministrationCategories)
+                && page.ViewModel.CategoryGroups.Last().Name == "EmbyServer",
+                "返回 Emby 后五个管理入口没有按原次序恢复");
+
+            fixture.Capabilities.IsConnected = false;
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            Require(page.ViewModel.ServerAdministrationHidden, "退出连接后仍暴露管理入口");
         }
         finally
         {
@@ -558,6 +606,9 @@ internal sealed partial class ShellNavigationProbe
             // 档位次序是 Pipelines 表的次序（集成在前、独占在后），按下标挑另一档。
             var (row, combo) = PipelineRow(page);
             combo.SelectedItem = row.Choices[integrated ? 1 : 0];
+            // 数据集合先变，XAML 容器在后续布局才替换；旧树也可能恰好处于“不在动画”的状态。
+            await UntilAsync(() => !Descendants(page).Any(element => ReferenceEquals(element, combo)));
+            await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page); // 重建可能带分组入场动画，与别处一样等它落定再读。
             Require(fixture.Settings.Mpv.Pipeline == (integrated ? VideoPipelineKind.Standalone : VideoPipelineKind.Integrated),
                 "切管线没有保存新选择");
@@ -571,6 +622,8 @@ internal sealed partial class ShellNavigationProbe
             var (restoredRow, restoredCombo) = PipelineRow(page);
             Require(!ReferenceEquals(restoredCombo, combo), "重建没有换出新的下拉");
             restoredCombo.SelectedItem = restoredRow.Choices[integrated ? 0 : 1];
+            await UntilAsync(() => !Descendants(page).Any(element => ReferenceEquals(element, restoredCombo)));
+            await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
             Require(fixture.Settings.Mpv.Pipeline == original, "切回原管线没有保存选择");
             AssertGraphicsApi(page, fixture);

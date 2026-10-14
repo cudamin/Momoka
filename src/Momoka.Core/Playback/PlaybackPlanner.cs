@@ -244,12 +244,7 @@ public sealed class PlaybackPlanner(
     }
 
     private static List<KeyValuePair<string, string>> BuildHeaders(EmbyConnection connection) =>
-    [
-        // The stream URL carries no api_key, so the token has to reach the server another way.
-        // A header keeps it out of the server's access log and out of any proxy in between.
-        new("X-Emby-Token", connection.AccessToken),
-        new("X-Emby-Authorization", connection.Device.ToAuthorizationHeader())
-    ];
+        MediaServerHeaders.Create(connection.Device, connection.AccessToken, connection.ServerKind);
 
     private static void WarnAboutUnavailableTracks((int? AudioIndex, int? SubtitleIndex, bool SubtitlesDisabled) tracks, MpvTrackMap map)
     {

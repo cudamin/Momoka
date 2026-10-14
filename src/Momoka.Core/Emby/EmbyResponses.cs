@@ -12,6 +12,7 @@ public sealed class ItemsResult
 
 public sealed class EmbyUser
 {
+    public EmbyUserPolicy? Policy { get; set; }
     public string Id { get; set; } = "";
 
     public string Name { get; set; } = "";
@@ -21,6 +22,11 @@ public sealed class EmbyUser
     public bool HasPassword { get; set; }
 
     public string? PrimaryImageTag { get; set; }
+}
+
+public sealed class EmbyUserPolicy
+{
+    public bool IsAdministrator { get; set; }
 }
 
 public sealed class AuthenticationResult
@@ -34,6 +40,14 @@ public sealed class AuthenticationResult
 
 public sealed class PublicSystemInfo
 {
+    public string? ProductName { get; set; }
+
+    [JsonIgnore]
+    public MediaServerKind ServerKind => string.Equals(ProductName, "Jellyfin", StringComparison.OrdinalIgnoreCase)
+        ? MediaServerKind.Jellyfin : MediaServerKind.Emby;
+
+    [JsonIgnore]
+    public Uri? ApiBase { get; set; }
     public string? ServerName { get; set; }
 
     public string? Version { get; set; }
@@ -102,6 +116,12 @@ public sealed record EmbyConnection(
     string ServerName,
     DeviceIdentity Device)
 {
+    public MediaServerKind ServerKind { get; init; }
+    public string? ServerVersion { get; init; }
+    public string? ServerId { get; init; }
+    public bool? IsAdministrator { get; init; }
+    public bool IsJellyfin => ServerKind == MediaServerKind.Jellyfin;
+    public bool UsesJellyfin12Routes => IsJellyfin && (!Version.TryParse(ServerVersion?.Split('-')[0], out var version) || version.Major >= 12);
     /// <summary>
     /// 这两条连接是不是「同一台服务器上的同一个人」。令牌不算：一次重新登录换的正是令牌，而换了令牌的还是他。
     /// <para>
@@ -115,7 +135,8 @@ public sealed record EmbyConnection(
     /// </para>
     /// </summary>
     public bool IsSameIdentityAs(EmbyConnection other) =>
-        ApiBase == other.ApiBase && string.Equals(UserId, other.UserId, StringComparison.Ordinal);
+        ServerKind == other.ServerKind && ApiBase == other.ApiBase && string.Equals(UserId, other.UserId, StringComparison.Ordinal)
+        && (string.IsNullOrEmpty(ServerId) || string.IsNullOrEmpty(other.ServerId) || string.Equals(ServerId, other.ServerId, StringComparison.Ordinal));
 }
 
 /// <summary>新建合集之后服务器答的那一句：这个合集的 id 和名字。</summary>

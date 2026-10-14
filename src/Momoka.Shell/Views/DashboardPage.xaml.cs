@@ -53,6 +53,9 @@ public sealed partial class DashboardPage : Page, IShellContent
     private string _client = "尚未取样";
     private bool _settled;
     private bool _released;
+    private EmbySessionScope? _scope;
+    private readonly CancellationTokenSource _lifetime = new();
+    private string _storageKey = EmbyWebConsole.StorageKey;
 
     /// <summary>
     /// 这一页第几次去载入控制台：导航进来算一次，每按一下「重新载入」再算一次。两条带延时的后续
@@ -136,18 +139,22 @@ public sealed partial class DashboardPage : Page, IShellContent
         if (session.Connection is not { } connection)
         {
             _url = "";
-            _address = "尚未登录 Emby 服务器";
+            _address = "尚未登录服务器";
             Say("");
-            Show("先在「服务器」里登录一个账号，Emby 自己的控制台就会显示在这里。");
+            Show("先在「服务器」里登录管理员账号，服务器的控制台就会显示在这里。");
             _settled = true;
             return;
         }
 
         try
         {
-            _url = request.Route is { Length: > 0 } route ? EmbyWebConsole.PageUrl(connection.ApiBase, route)
+            _scope = session.Capture();
+            _storageKey = EmbyWebConsole.CredentialStorageKey(connection);
+            _url = request.Route is { Length: > 0 } route ? EmbyWebConsole.PageUrl(connection, route)
                 : request.SettingsUserId is { Length: > 0 } userId
-                    ? EmbyWebConsole.UserPreferencesUrl(connection.ApiBase, userId) : EmbyWebConsole.Url(connection.ApiBase);
+                    ? connection.IsJellyfin ? EmbyWebConsole.Url(connection)
+                        : EmbyWebConsole.UserPreferencesUrl(connection.ApiBase, userId)
+                    : EmbyWebConsole.Url(connection);
         }
         catch (ArgumentException)
         {
@@ -157,7 +164,8 @@ public sealed partial class DashboardPage : Page, IShellContent
         }
         _address = _url;
         Say("正在启动内嵌浏览器…");
-        _ = StartAsync(connection, services.GetRequiredService<AppPaths>().WebViewDirectory);
+        _ = StartAsync(connection, EmbyWebConsole.ProfileDirectory(connection,
+            services.GetRequiredService<AppPaths>().WebViewDirectory));
     }
 
     /// <summary>
@@ -173,14 +181,25 @@ public sealed partial class DashboardPage : Page, IShellContent
     {
         try
         {
+            if (_scope is null) return;
+            var system = await _scope.ExecuteAsync((client, token) => client.GetSystemInfoAsync(token), _lifetime.Token);
+            if (_released || !_scope.IsCurrent) return;
+            if (system.IsRestricted)
+            {
+                _url = "";
+                _settled = true;
+                Show("需要服务器管理员权限。");
+                return;
+            }
+            connection = _scope.Connection;
             Directory.CreateDirectory(profile);
 
             var environment = await CoreWebView2Environment
                 .CreateWithOptionsAsync("", profile, new CoreWebView2EnvironmentOptions());
-            if (_released) return;
+            if (_released || !_scope.IsCurrent) return;
 
             await Web.EnsureCoreWebView2Async(environment);
-            if (_released || Web.CoreWebView2 is not { } core) return;
+            if (_released || !_scope.IsCurrent || Web.CoreWebView2 is not { } core) return;
             _core = true;
 
             // 控制台跟着当前主题的深浅走，两半都在这儿：这一位是浏览器的 prefers-color-scheme，另一半是
@@ -197,19 +216,24 @@ public sealed partial class DashboardPage : Page, IShellContent
             Web.NavigationCompleted += OnNavigationCompleted;
             core.NewWindowRequested += OnNewWindowRequested;
 
-            await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.SignInScript(
-                connection.ApiBase, connection.UserId, connection.AccessToken, connection.ServerName));
-            if (_released) return;
-            _seeded = true;
+            // 缺少公开服务器 ID 时保留网页自己的登录流程，不构造一个猜测的 Jellyfin 身份。
+            if (!connection.IsJellyfin || !string.IsNullOrWhiteSpace(connection.ServerId))
+            {
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.SignInScript(connection));
+                if (_released || !_scope.IsCurrent) return;
+                _seeded = true;
+            }
 
-            await core.AddScriptToExecuteOnDocumentCreatedAsync(
-                EmbyWebConsole.ThemeScript(connection.ApiBase, connection.UserId));
-            if (_released) return;
+            if (!connection.IsJellyfin)
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(
+                    EmbyWebConsole.ThemeScript(connection.ApiBase, connection.UserId));
+            if (_released || !_scope.IsCurrent) return;
 
             Say("正在载入控制台…");
             core.Navigate(_url);
             _ = GiveUpAsync(_generation);
         }
+        catch (OperationCanceledException) when (_released || _lifetime.IsCancellationRequested) { }
         catch (Exception error)
         {
             // Most likely no WebView2 runtime on the machine. Say so instead of showing an empty box.
@@ -257,9 +281,8 @@ public sealed partial class DashboardPage : Page, IShellContent
 
     /// <summary>
     /// One look at what the web client ended up doing with the seeded session: which route it settled on,
-    /// which theme it resolved to, and whether it filled in the server id — which it only does once a
-    /// connection has been validated, so that is the readable proof that auto sign-in worked. Reads no
-    /// credential and returns none.
+    /// which theme it resolved to, and whether it has a server record. Jellyfin receives its server id in
+    /// the seed, so this record is configuration evidence, not proof of authentication. No credential is returned.
     /// <para>
     /// 主题读的是 <c>&lt;html&gt;</c> 上那个 <c>theme-*</c> 类名（<c>skinmanager.js</c> 挑好主题后就加在
     /// 那儿），所以它答的是「网页端最后真的用了哪套」，而不是「我们请求了哪套」—— 跟随主题这件事只有
@@ -273,10 +296,11 @@ public sealed partial class DashboardPage : Page, IShellContent
 
         try
         {
+            var recordLabel = _scope?.Connection.IsJellyfin == true ? "服务器记录已配置 " : "服务器 id ";
             var json = await Web.ExecuteScriptAsync($$"""
                 (function () {
                   try {
-                    var data = JSON.parse(localStorage.getItem({{JsonSerializer.Serialize(EmbyWebConsole.StorageKey)}}) || "null");
+                    var data = JSON.parse(localStorage.getItem({{JsonSerializer.Serialize(_storageKey)}}) || "null");
                     var servers = data && Array.isArray(data.Servers) ? data.Servers : [];
                     var id = "未填";
                     for (var i = 0; i < servers.length; i++) if (servers[i] && servers[i].Id) { id = "已填"; break; }
@@ -286,7 +310,7 @@ public sealed partial class DashboardPage : Page, IShellContent
                     for (var j = 0; j < names.length; j++)
                       if (names[j].indexOf("theme-") === 0) { theme = names[j].substring(6); break; }
 
-                    return "路由 " + (location.hash || "(无)") + "  ·  主题 " + theme + "  ·  服务器 id " + id;
+                    return "路由 " + (location.hash || "(无)") + "  ·  主题 " + theme + "  ·  " + {{JsonSerializer.Serialize(recordLabel)}} + id;
                   } catch (e) { return "取样出错：" + e; }
                 })();
                 """);
@@ -325,7 +349,7 @@ public sealed partial class DashboardPage : Page, IShellContent
 
     private void OnRefresh(object sender, RoutedEventArgs e)
     {
-        if (Web.CoreWebView2 is not { } core || _url.Length == 0) return;
+        if (Web.CoreWebView2 is not { } core || _url.Length == 0 || _scope?.IsCurrent != true) return;
 
         _navigated = null;
         _settled = false;
@@ -338,7 +362,10 @@ public sealed partial class DashboardPage : Page, IShellContent
         _ = GiveUpAsync(_generation);
     }
 
-    private void OnOpenInBrowser(object sender, RoutedEventArgs e) => Open(_url);
+    private void OnOpenInBrowser(object sender, RoutedEventArgs e)
+    {
+        if (_scope?.IsCurrent == true) Open(_url);
+    }
 
     private void Open(string url)
     {
@@ -373,6 +400,8 @@ public sealed partial class DashboardPage : Page, IShellContent
     {
         if (_released) return;
         _released = true;
+        _lifetime.Cancel();
+        _lifetime.Dispose();
 
         try
         {

@@ -63,7 +63,7 @@ public sealed partial class ServerUsersPage : Page, IShellContent
         }
         Add("编辑用户", "UserCardEdit", () => ViewModel.OpenAsync(row));
         Add("上传头像", "UserCardUpload", async () => { await ViewModel.OpenAsync(row); if (ViewModel.CurrentUserId == row.Id) await ViewModel.UploadAvatarCommand.ExecuteAsync(null); });
-        Add("复制用户数据", "UserCardCopy", async () => { await ViewModel.OpenAsync(row); if (ViewModel.CurrentUserId == row.Id) await ShowCopyDialogAsync(); });
+        if (ViewModel.SupportsUserCopy) Add("复制用户数据", "UserCardCopy", async () => { await ViewModel.OpenAsync(row); if (ViewModel.CurrentUserId == row.Id) await ShowCopyDialogAsync(); });
         Add("删除用户", "UserCardDelete", async () => { await ViewModel.OpenAsync(row); if (ViewModel.CurrentUserId == row.Id) await ViewModel.DeleteCommand.ExecuteAsync(null); });
         menu.ShowAt(anchor);
     }
@@ -109,7 +109,7 @@ public sealed partial class ServerUsersPage : Page, IShellContent
 
     private async Task ShowCopyDialogAsync()
     {
-        if (!ViewModel.CanManageExisting) return;
+        if (!ViewModel.CanManageExisting || !ViewModel.SupportsUserCopy) return;
         var candidates = ViewModel.CopyUsers.Where(user => user.Id.Length > 0).ToArray();
         var source = new ComboBox { Header = "从哪个用户复制", ItemsSource = candidates.Select(user => user.Name).ToArray(), SelectedIndex = candidates.Length > 0 ? 0 : -1, HorizontalAlignment = HorizontalAlignment.Stretch };
         AutomationProperties.SetAutomationId(source, "CopyUserSource");
@@ -131,7 +131,7 @@ public sealed partial class ServerUsersPage : Page, IShellContent
 
     private void OnPreferences(object sender, RoutedEventArgs e)
     {
-        if (ViewModel.CanManageExisting) _request?.OpenPreferences(ViewModel.CurrentUserId);
+        if (ViewModel.CanManageExisting && ViewModel.SupportsUserPreferences) _request?.OpenPreferences(ViewModel.CurrentUserId);
     }
 
     private ContentDialog CreateDialog(string title, object content, string primary) => new()

@@ -68,12 +68,21 @@ public sealed partial class ServerUsersViewModel : PageViewModel
     [ObservableProperty] public partial double AutoRemoteQuality { get; set; }
     [ObservableProperty] public partial double StreamLimit { get; set; }
     [ObservableProperty] public partial string NewPassword { get; set; } = "";
+    [ObservableProperty] public partial string CurrentPassword { get; set; } = "";
     [ObservableProperty] public partial string ConfirmPassword { get; set; } = "";
     [ObservableProperty] public partial string ProfilePin { get; set; } = "";
     [ObservableProperty] public partial bool HasPassword { get; set; }
     [ObservableProperty] public partial string NewTag { get; set; } = "";
     [ObservableProperty] public partial string Tab { get; set; } = "profile";
 
+    public bool IsJellyfin => _scope?.Connection.IsJellyfin == true;
+    public bool SupportsUserCopy => !IsJellyfin;
+    public bool SupportsUserPreferences => !IsJellyfin;
+    public Visibility EmbyVisibility => Show(!IsJellyfin);
+    public Visibility UserNameVisibility => Show(_scope?.Connection.UsesJellyfin12Routes != true);
+    public Visibility IdentityVisibility => Show(!IsJellyfin || UserNameVisibility == Visibility.Visible || ProviderVisibility == Visibility.Visible);
+    public Visibility FeaturesVisibility => Show(!IsJellyfin && Features.Count > 0);
+    public string TagHeading => IsJellyfin ? "阻止以下标签" : "标签限制";
     public Visibility ListVisibility => Show(!Editing);
     public Visibility EditorVisibility => Show(Editing);
     public Visibility NewVisibility => Show(IsNew);
@@ -82,8 +91,9 @@ public sealed partial class ServerUsersViewModel : PageViewModel
     public Visibility AccessVisibility => Show(Tab == "access" || IsNew && CopyFrom.Length == 0);
     public Visibility ParentalVisibility => Show(!IsNew && Tab == "parentalcontrol");
     public Visibility PasswordVisibility => Show(!IsNew && Tab == "password");
+    public Visibility CurrentPasswordVisibility => Show(IsJellyfin && !IsNew && _original?.Id == _scope?.Connection.UserId);
     public Visibility SaveVisibility => Show(IsNew || Tab != "password");
-    public Visibility CopyVisibility => Show(IsNew && CopyFrom.Length > 0);
+    public Visibility CopyVisibility => Show(!IsJellyfin && IsNew && CopyFrom.Length > 0);
     public Visibility DeleteFoldersVisibility => Show(!DeleteAll);
     public Visibility FoldersVisibility => Show(!AllFolders);
     public Visibility ChannelsVisibility => Show(Channels.Count > 0);
@@ -92,9 +102,9 @@ public sealed partial class ServerUsersViewModel : PageViewModel
     public Visibility DevicesVisibility => Show(!AllDevices);
     public Visibility ScheduleVisibility => Show(_original?.IsAdministrator != true);
     public Visibility UnratedVisibility => Show(SelectedRating.Length > 0);
-    public Visibility CombinationVisibility => Show(SelectedRating.Length > 0 && IncludeTags);
+    public Visibility CombinationVisibility => Show(!IsJellyfin && SelectedRating.Length > 0 && IncludeTags);
     public Visibility ProviderVisibility => Show(Providers.Count > 1 && _original?.IsAdministrator != true);
-    public Visibility PinVisibility => Show(HasPassword);
+    public Visibility PinVisibility => Show(!IsJellyfin && HasPassword);
     public bool CanUse => _attached && _scope?.IsCurrent == true && IsAdministrator && !Busy;
     public bool CanSave => CanUse && Editing;
     public bool CanEditFields => CanSave && _pendingNewPolicy is null;
@@ -113,7 +123,7 @@ public sealed partial class ServerUsersViewModel : PageViewModel
         IsAdministrator = false;
         _original = null;
         _pendingNewPolicy = null;
-        BusyChanged();
+        AnnounceEditor();
     }
 
     public override async Task ReloadAsync()
@@ -175,7 +185,7 @@ public sealed partial class ServerUsersViewModel : PageViewModel
     {
         Editing = false;
         _original = null;
-        NewPassword = ConfirmPassword = ProfilePin = "";
+        CurrentPassword = NewPassword = ConfirmPassword = ProfilePin = "";
         BusyChanged();
     }
 
@@ -217,11 +227,11 @@ public sealed partial class ServerUsersViewModel : PageViewModel
                 var draft = BuildPolicy();
                 var policy = _initialEditorPolicy is { } initial
                     ? EmbyUserPermissions.Merge(original.Policy, initial, draft) : draft;
-                if (_initialEditorPolicy is { } accessBaseline && new[] { "EnableAllFolders", "EnabledFolders", "ExcludedSubFolders" }
+                if (!IsJellyfin && _initialEditorPolicy is { } accessBaseline && new[] { "EnableAllFolders", "EnabledFolders", "ExcludedSubFolders" }
                     .Any(key => !JsonNode.DeepEquals(accessBaseline[key], draft[key]))) policy["BlockedMediaFolders"] = null;
-                await EmbyUserAdministration.SaveAsync(scope, original, policy, UserName, token);
+                await EmbyUserAdministration.SaveAsync(scope, original, policy, _scope.Connection.UsesJellyfin12Routes ? null : UserName, token);
                 if (!Current(token)) return;
-                if (ConnectName.Trim() != original.ConnectUserName)
+                if (!IsJellyfin && ConnectName.Trim() != original.ConnectUserName)
                 {
                     if (ConnectName.Trim().Length == 0)
                         await scope.ExecuteAsync((client, ct) => client.UnlinkManagedUserAsync(original.Id, ct), token);
@@ -257,7 +267,7 @@ public sealed partial class ServerUsersViewModel : PageViewModel
             ApplyFilter();
             Editing = false;
             _original = null;
-            NewPassword = ConfirmPassword = ProfilePin = "";
+            CurrentPassword = NewPassword = ConfirmPassword = ProfilePin = "";
             Notify("已删除", $"用户「{user.Name}」已删除。", InfoBarSeverity.Success);
         });
     }
@@ -266,14 +276,16 @@ public sealed partial class ServerUsersViewModel : PageViewModel
     private Task SavePasswordAsync() => RunExistingAsync("保存密码失败", async (scope, user, token) =>
     {
         EmbyUserPermissions.ValidatePassword(user.IsAdministrator, NewPassword, ConfirmPassword);
-        await scope.ExecuteAsync((client, ct) => client.UpdateManagedUserPasswordAsync(user.Id, NewPassword, ct), token);
-        if (Current(token)) NewPassword = ConfirmPassword = "";
+        await scope.ExecuteAsync((client, ct) => client.UpdateManagedUserPasswordAsync(user.Id, NewPassword, ct,
+            CurrentPasswordVisibility == Visibility.Visible ? CurrentPassword : ""), token);
+        if (Current(token)) CurrentPassword = NewPassword = ConfirmPassword = "";
         return true;
     });
 
     [RelayCommand(CanExecute = nameof(CanManageExisting))]
     private Task SavePinAsync() => RunExistingAsync("保存个人 PIN 失败", async (scope, user, token) =>
     {
+        if (IsJellyfin) return false;
         await scope.ExecuteAsync((client, ct) => client.UpdateManagedUserPinAsync(user.Id, ProfilePin, ct), token);
         return true;
     });
@@ -297,6 +309,7 @@ public sealed partial class ServerUsersViewModel : PageViewModel
 
     internal Task CopyDataAsync(string sourceId, IEnumerable<string> options) => RunExistingAsync("复制用户数据失败", async (scope, user, token) =>
     {
+        if (!SupportsUserCopy) return false;
         var selected = options.ToArray();
         if (sourceId.Length == 0 || sourceId == user.Id || selected.Length == 0) throw new ArgumentException("请选择其他用户及需要复制的数据。");
         if (!await ConfirmAsync("复制用户数据", $"选中的数据将覆盖「{user.Name}」对应的用户数据。确定继续吗？", "复制") || !Current(token)) return false;
@@ -422,7 +435,8 @@ public sealed partial class ServerUsersViewModel : PageViewModel
     {
         foreach (var name in new[] { nameof(ProfileVisibility), nameof(AccessVisibility), nameof(ParentalVisibility), nameof(PasswordVisibility),
             nameof(SaveVisibility), nameof(CopyVisibility), nameof(ChannelsVisibility), nameof(DeviceSectionVisibility), nameof(ScheduleVisibility),
-            nameof(UnratedVisibility), nameof(CombinationVisibility), nameof(ProviderVisibility), nameof(PinVisibility) }) OnPropertyChanged(name);
+            nameof(UnratedVisibility), nameof(CombinationVisibility), nameof(ProviderVisibility), nameof(PinVisibility), nameof(CurrentPasswordVisibility),
+            nameof(EmbyVisibility), nameof(UserNameVisibility), nameof(IdentityVisibility), nameof(FeaturesVisibility), nameof(TagHeading) }) OnPropertyChanged(name);
         BusyChanged();
     }
 
@@ -448,7 +462,7 @@ public sealed partial class ServerUsersViewModel : PageViewModel
     {
         _attached = false;
         base.Cancel();
-        NewPassword = ConfirmPassword = ProfilePin = "";
+        CurrentPassword = NewPassword = ConfirmPassword = ProfilePin = "";
         BusyChanged();
     }
 }

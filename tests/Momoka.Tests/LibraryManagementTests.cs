@@ -9,6 +9,61 @@ internal static class LibraryManagementTests
 {
     public static void Register()
     {
+        Test("Jellyfin 媒体库：数组列表和按名称改名删除目录", () =>
+        {
+            var transport = new StubTransport()
+                .Answer("Library/VirtualFolders/Name", "").Answer("Library/VirtualFolders/Paths", "")
+                .Answer("Library/VirtualFolders", """[{"ItemId":"movies","Name":"电影 & 家庭","CollectionType":"movies","LibraryOptions":{"Future":42}}]""");
+            using var http = new EmbyHttp(transport);
+            var client = new EmbyClient(http, Client(http).Connection with { ServerKind = MediaServerKind.Jellyfin, IsAdministrator = true });
+            Assert.Equal(1, client.GetVirtualFoldersAsync(default).GetAwaiter().GetResult().Count);
+            client.RenameVirtualFolderAsync("movies", "精选 & 合集", default).GetAwaiter().GetResult();
+            client.AddLibraryPathAsync("movies", Parse("""{"Path":"/media/影片"}"""), default).GetAwaiter().GetResult();
+            client.RemoveLibraryPathAsync("movies", "/media/旧片", default).GetAwaiter().GetResult();
+            client.RemoveVirtualFolderAsync("movies", default).GetAwaiter().GetResult();
+            var rename = transport.Only("VirtualFolders/Name");
+            Assert.True(rename.Url.Contains("name=" + Uri.EscapeDataString("电影 & 家庭"), StringComparison.Ordinal));
+            Assert.True(rename.Url.Contains("newName=" + Uri.EscapeDataString("精选 & 合集"), StringComparison.Ordinal));
+            Assert.Equal("", rename.Body);
+            var added = transport.SentTo("VirtualFolders/Paths").Single(request => request.Method == "POST");
+            Assert.Equal("电影 & 家庭", Parse(added.Body)["Name"]!.ToString());
+            Assert.True(!Parse(added.Body).ContainsKey("Id"));
+            Assert.Equal("/media/影片", Parse(added.Body)["PathInfo"]!["Path"]!.ToString());
+            Assert.Equal(2, transport.SentTo("VirtualFolders").Count(request => request.Method == "DELETE"));
+            Assert.True(transport.SentTo("VirtualFolders").Where(request => request.Method == "DELETE").All(request => request.Body.Length == 0));
+        });
+        Test("Jellyfin 媒体库：目录 GET 和校验正文不能沿用 Emby 拼写", () =>
+        {
+            var transport = new StubTransport().Answer("DirectoryContents", "[]").Answer("ValidatePath", "").Answer("ScheduledTasks/Running/scan", "");
+            using var http = new EmbyHttp(transport);
+            var client = new EmbyClient(http, Client(http).Connection with { ServerKind = MediaServerKind.Jellyfin, IsAdministrator = true });
+            client.GetServerDirectoriesAsync("/media/电影", "", "", default).GetAwaiter().GetResult();
+            client.ValidateServerDirectoryAsync("/metadata", "", "", true, default).GetAwaiter().GetResult();
+            client.SetLibraryTaskRunningAsync("scan", false, default).GetAwaiter().GetResult();
+            Assert.Equal("GET", transport.Only("DirectoryContents").Method);
+            var validation = transport.Only("ValidatePath");
+            Assert.True(!validation.Url.Contains('?', StringComparison.Ordinal));
+            Assert.Equal("/metadata", Parse(validation.Body)["Path"]!.ToString());
+            Assert.True(Parse(validation.Body)["ValidateWritable"]!.GetValue<bool>());
+            Assert.True(!Parse(validation.Body).ContainsKey("ValidateWriteable") && !Parse(validation.Body).ContainsKey("Password"));
+            Assert.Equal("DELETE", transport.Only("ScheduledTasks/Running/scan").Method);
+            Assert.Throws<NotSupportedException>(() => client.GetServerDirectoriesAsync("Network", "", "", default).GetAwaiter().GetResult());
+            Assert.Throws<NotSupportedException>(() => client.ValidateServerDirectoryAsync("/media", "name", "password", false, default).GetAwaiter().GetResult());
+        });
+        Test("Jellyfin 媒体库：字段白名单与新建默认值避免静默无效配置", () =>
+        {
+            Assert.True(JellyfinManagement.SupportsLibrarySetting("EnableRealtimeMonitor"));
+            Assert.True(JellyfinManagement.SupportsLibrarySetting("Thumbnails"));
+            foreach (var key in new[] { "MinResumePct", "MaxResumePct", "IntroDetection", "MultiVersion", "SaveMetadataHidden" })
+                Assert.True(!JellyfinManagement.SupportsLibrarySetting(key));
+            Assert.True(!JellyfinManagement.SupportsAdvancedSetting("MetadataNetworkPath"));
+            Assert.True(!JellyfinManagement.SupportsUserPermission("IsHiddenRemotely"));
+            var available = Parse("""{"TypeOptions":[{"Type":"Movie","MetadataFetchers":[{"Name":"TMDB","DefaultEnabled":true}]}]}""");
+            var options = JellyfinManagement.NewLibraryOptions(available);
+            Assert.True(options["Enabled"]!.GetValue<bool>());
+            Assert.Equal("TMDB", options["TypeOptions"]![0]!["MetadataFetchers"]![0]!.ToString());
+            Assert.True(!options.ContainsKey("EnableArchiveMediaFiles") && !options.ContainsKey("ContentType") && !options.ContainsKey("EnableAudioResume"));
+        });
         Test("媒体库管理：分页、ItemId 和旧目录回退", () =>
         {
             var transport = new StubTransport().Sequence("VirtualFolders/Query",

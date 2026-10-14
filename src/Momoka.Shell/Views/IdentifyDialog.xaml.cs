@@ -19,9 +19,10 @@ public sealed partial class IdentifyCandidate : INotifyPropertyChanged
     private BitmapImage? _picture;
     private int _generation;
 
-    public IdentifyCandidate(RemoteSearchResult result)
+    public IdentifyCandidate(RemoteSearchResult result, bool canPreview = true)
     {
         Result = result;
+        CanPreview = canPreview;
         Title = result.Name is { Length: > 0 } name ? name : "（没有名字）";
         Subtitle = result.Describe();
     }
@@ -29,6 +30,10 @@ public sealed partial class IdentifyCandidate : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public RemoteSearchResult Result { get; }
+
+    public bool CanPreview { get; }
+    public Visibility PreviewVisibility => CanPreview ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility TextChoiceVisibility => CanPreview ? Visibility.Collapsed : Visibility.Visible;
 
     public string Title { get; }
 
@@ -109,9 +114,9 @@ public sealed partial class IdentifyDialog : ContentDialog
     private readonly EmbyItem _item;
     private readonly Func<Task<List<ExternalIdInfo>>> _fields;
     private readonly Func<RemoteSearchQuery, Task<List<RemoteSearchResult>>> _search;
-    private readonly Func<RemoteSearchResult, Task<byte[]?>> _picture;
+    private readonly Func<RemoteSearchResult, Task<byte[]?>>? _picture;
     private readonly Func<RemoteSearchResult, bool, Task> _apply;
-    private readonly Func<Task> _remove;
+    private readonly Func<Task>? _remove;
     private readonly List<(string Key, TextBox Box)> _idBoxes = [];
     private IdentifyCandidate? _chosen;
 
@@ -130,9 +135,9 @@ public sealed partial class IdentifyDialog : ContentDialog
         string? path,
         Func<Task<List<ExternalIdInfo>>> fields,
         Func<RemoteSearchQuery, Task<List<RemoteSearchResult>>> search,
-        Func<RemoteSearchResult, Task<byte[]?>> picture,
+        Func<RemoteSearchResult, Task<byte[]?>>? picture,
         Func<RemoteSearchResult, bool, Task> apply,
-        Func<Task> remove)
+        Func<Task>? remove)
     {
         InitializeComponent();
 
@@ -209,13 +214,14 @@ public sealed partial class IdentifyDialog : ContentDialog
                 .ConfigureAwait(true);
 
             Candidates.Clear();
-            foreach (var result in results) Candidates.Add(new IdentifyCandidate(result));
+            foreach (var result in results) Candidates.Add(new IdentifyCandidate(result, _picture is not null));
 
             NoResults.Visibility = Candidates.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             ShowStage(Stage.Results);
 
             // 海报一张张来：先把格子摆出来，图各自到位 —— 等全部取回来再画会让一屏结果卡在那里不动。
-            foreach (var candidate in Candidates) _ = candidate.LoadAsync(_picture);
+            if (_picture is { } picture)
+                foreach (var candidate in Candidates) _ = candidate.LoadAsync(picture);
         }
         catch (Exception error)
         {
@@ -265,6 +271,7 @@ public sealed partial class IdentifyDialog : ContentDialog
     /// <summary>「移除识别」：先问一句。这一下把服务器上这个条目的元数据整个重置掉，问不出口就什么都不做。</summary>
     private void OnAskRemove(object sender, RoutedEventArgs e)
     {
+        if (_remove is null) return;
         ConfirmText.Text = $"将重置服务器上「{_item.Name}」的元数据，之后它不再对上任何一部片子。"
             + "手改过的片名、简介和分级会一起没掉，此操作无法撤销。";
         ShowStage(Stage.Confirm);
@@ -274,10 +281,11 @@ public sealed partial class IdentifyDialog : ContentDialog
 
     private async void OnConfirmRemove(object sender, RoutedEventArgs e)
     {
+        if (_remove is not { } remove) return;
         SetBusy(true);
         try
         {
-            await _remove().ConfigureAwait(true);
+            await remove().ConfigureAwait(true);
             Touched = true;
             Hide();
         }
@@ -310,7 +318,7 @@ public sealed partial class IdentifyDialog : ContentDialog
         ApplyArea.Visibility = stage == Stage.Apply ? Visibility.Visible : Visibility.Collapsed;
 
         SearchButton.Visibility = stage == Stage.Form ? Visibility.Visible : Visibility.Collapsed;
-        RemoveButton.Visibility = stage == Stage.Form ? Visibility.Visible : Visibility.Collapsed;
+        RemoveButton.Visibility = stage == Stage.Form && _remove is not null ? Visibility.Visible : Visibility.Collapsed;
 
         ConfirmRemoveButton.Visibility = stage == Stage.Confirm ? Visibility.Visible : Visibility.Collapsed;
         CancelRemoveButton.Visibility = stage == Stage.Confirm ? Visibility.Visible : Visibility.Collapsed;

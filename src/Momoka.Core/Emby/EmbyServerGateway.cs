@@ -18,24 +18,57 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
     public Task<PublicSystemInfo> GetPublicSystemInfoAsync(Uri apiBase, CancellationToken cancellationToken) =>
         http.GetJsonAsync<PublicSystemInfo>(EmbyUrl.Combine(apiBase, "System/Info/Public"), Anonymous, cancellationToken);
 
+    /// <summary>Identify the product anonymously before sending a password or a saved token.</summary>
+    public async Task<PublicSystemInfo> DetectAsync(string address, CancellationToken cancellationToken)
+    {
+        var plain = EmbyServerAddress.Normalize(address, MediaServerKind.Jellyfin);
+        var emby = EmbyServerAddress.Normalize(address);
+        var candidates = new[] { plain, emby }.Distinct();
+        EmbyApiException? failure = null;
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                var info = await GetPublicSystemInfoAsync(candidate, cancellationToken).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(info.Id) && string.IsNullOrWhiteSpace(info.ServerName)
+                    && string.IsNullOrWhiteSpace(info.Version))
+                    throw new EmbyApiException("该地址未返回可识别的媒体服务器信息");
+                info.ApiBase = info.ServerKind == MediaServerKind.Jellyfin ? candidate : emby;
+                return info;
+            }
+            catch (EmbyApiException error) when (error is not EmbyUnreachableException
+                && error.StatusCode is null or System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.BadRequest or System.Net.HttpStatusCode.OK)
+            {
+                failure = error;
+            }
+        }
+        throw failure ?? new EmbyApiException("无法识别媒体服务器");
+    }
+
     /// <summary>
     /// The users the server is willing to advertise, so the login page can offer a
     /// picker instead of making the user type a username.
     /// </summary>
-    public Task<List<EmbyUser>> GetPublicUsersAsync(Uri apiBase, CancellationToken cancellationToken) =>
-        http.GetJsonAsync<List<EmbyUser>>(EmbyUrl.Combine(apiBase, "Users/Public"), Anonymous, cancellationToken);
+    public Task<List<EmbyUser>> GetPublicUsersAsync(Uri apiBase, CancellationToken cancellationToken,
+        MediaServerKind kind = MediaServerKind.Emby) =>
+        http.GetJsonAsync<List<EmbyUser>>(EmbyUrl.Combine(apiBase, "Users/Public"), new(device, null, ServerKind: kind), cancellationToken);
 
     public async Task<EmbyConnection> AuthenticateAsync(
         Uri apiBase,
         string username,
         string password,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        MediaServerKind kind = MediaServerKind.Emby,
+        string? serverVersion = null,
+        string? serverId = null)
     {
         if (string.IsNullOrWhiteSpace(username)) throw new EmbyAuthenticationException("请填写用户名");
 
         var url = EmbyUrl.Combine(apiBase, "Users/AuthenticateByName");
-        var body = new AuthenticateByNameRequest { Username = username.Trim(), Pw = password };
-        var context = new EmbyHttp.RequestContext(device, null, IsAuthenticationAttempt: true);
+        object body = kind == MediaServerKind.Jellyfin
+            ? new { Username = username.Trim(), Pw = password }
+            : new AuthenticateByNameRequest { Username = username.Trim(), Pw = password };
+        var context = new EmbyHttp.RequestContext(device, null, IsAuthenticationAttempt: true, ServerKind: kind);
 
         var result = await http.PostJsonAsync<AuthenticationResult>(url, body, context, cancellationToken).ConfigureAwait(false);
 
@@ -47,6 +80,8 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         {
             var info = await GetPublicSystemInfoAsync(apiBase, cancellationToken).ConfigureAwait(false);
             serverName = info.ServerName ?? apiBase.Host;
+            serverVersion = info.Version ?? serverVersion;
+            serverId = info.Id ?? serverId;
         }
         catch (EmbyApiException error)
         {
@@ -56,7 +91,13 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         }
 
         Log.Info(Category, $"已登录 {serverName}（用户 {result.User!.Name}）");
-        return new EmbyConnection(apiBase, result.AccessToken, result.User.Id, result.User.Name, serverName, device);
+        return new EmbyConnection(apiBase, result.AccessToken, result.User.Id, result.User.Name, serverName, device)
+        {
+            ServerKind = kind,
+            ServerVersion = serverVersion,
+            ServerId = result.ServerId ?? serverId,
+            IsAdministrator = kind == MediaServerKind.Jellyfin ? result.User.Policy?.IsAdministrator : null
+        };
     }
 
     private sealed class AuthenticateByNameRequest
