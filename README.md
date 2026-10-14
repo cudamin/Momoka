@@ -21,7 +21,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
 **着色器** — 着色器随程序打包（ArtCNN、ravu、CfL、SSimDownscaler 等），按放大倍数分四档 × 真人/动画 × 显卡档，每一档都做色度重建。
 
-**字幕筛选** — 字幕优先级筛选，排除繁体中文，优先选择双语字幕、特效字幕。
+**字幕筛选** — 字幕优先级筛选，排除繁体中文，优先自动选择双语字幕、特效字幕。
 
 **MoviePilot API调用** — 通过调用MoviePilot API内置多个功能的快捷键，提高片库管理效率。
 
