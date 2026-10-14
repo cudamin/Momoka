@@ -32,6 +32,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 - Windows 10 1809 及以上，仅 x64
 - Emby 4.10.x
 - MoviePilot 3.x.x
+- Jellyfin 未验证
 - 可选：「服务器控制台」页需要 WebView2 Runtime，没有则提示改用浏览器打开
 
 ### 下载
