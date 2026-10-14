@@ -27,7 +27,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
 **界面** — 五套深色配色墨绿、纯黑、午夜、石墨、紫夜，首页轮播图。
 
-### 系统要求
+## 系统要求
 
 - Windows 10 1809 及以上，仅 x64
 - Emby 4.10.x
@@ -35,7 +35,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 - Jellyfin 未验证
 - 可选：「服务器控制台」页需要 WebView2 Runtime，没有则提示改用浏览器打开
 
-### 下载
+## 下载
 
 到 [Releases](https://github.com/cudamin/Momoka/releases) 下载最新的 `Momoka_windows-x64_x.x.x.exe` 安装包。
 
