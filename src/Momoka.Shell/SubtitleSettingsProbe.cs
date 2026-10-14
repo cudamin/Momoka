@@ -9,6 +9,7 @@ using Momoka.Shell.Platform;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
+using Momoka.Updates;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -26,6 +27,10 @@ internal static class SubtitleSettingsProbe
         HostWindow? window = null;
         var report = new StringBuilder();
         using var moviePilot = new MoviePilotClient(new OfflineHttp());
+
+        // 「关于」卡上那颗手动「检查新版本」要的客户端。这一趟探针不按它，所以给一个拒绝真实网络的传输 ——
+        // 探针跑起来之后不该有任何一条请求能落到发布页上（同 RejectNetwork 在 ShellNavigationProbe 里的用法）。
+        using var updates = new UpdateClient(new OfflineHttp());
         using var stopping = new CancellationTokenSource(TimeSpan.FromMinutes(options.InspectSubtitles ? 10 : 2));
         try
         {
@@ -42,6 +47,7 @@ internal static class SubtitleSettingsProbe
                 new OfflineLauncher(), new OfflineStartup(), new AudioDeviceCatalogue(() => null),
                 () => { pushes++; return Task.CompletedTask; }, _ => Task.CompletedTask, () => Task.CompletedTask,
                 new MoviePilotService(moviePilot, new MoviePilotCredentials(ProbeSecrets.Instance), settings), new MoviePilotCredentials(ProbeSecrets.Instance),
+                updates,
                 new OfflineCapabilities());
             page.ViewModel.SelectedCategory = "字幕";
             await page.ViewModel.ReloadAsync();

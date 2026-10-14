@@ -26,6 +26,36 @@ Require-File (Join-Path $root 'libmpv-2.dll') '内置 libmpv'
 # 里没有一关会真的起播，所以这一行是它唯一的守卫。
 Require-File (Join-Path $root 'vulkan-1.dll') 'libmpv 依赖的 Vulkan loader'
 
+# 许可正文必须随二进制走：libmpv-2.dll 是 LGPL（mpv 自身 LGPL-2.1-or-later，它静态链入的 FFmpeg 是
+# LGPL-3.0，判定依据见 assets\mpv-runtime\NOTICE.txt），vulkan-1.dll 是 Apache-2.0，项目自身是 MIT，
+# 三者都要求把许可文本连同二进制一起交给接收者。2026-10-14 之前发布包里一份许可文本都没有 ——
+# libmpv-2.dll 就躺在 exe 旁边，许可正文却不在，这是发行上的缺口。四道闸门里没有一关会读许可证，
+# 所以只能在这里守。
+Require-File (Join-Path $root 'LICENSE') '项目自身的 MIT 许可正文'
+Require-File (Join-Path $root 'LICENSE.LGPL-2.1.txt') 'libmpv-2.dll 的 LGPL-2.1 许可文本'
+Require-File (Join-Path $root 'LICENSE.LGPL-3.0.txt') 'libmpv-2.dll 链入的 FFmpeg 的 LGPL-3.0 许可文本'
+Require-File (Join-Path $root 'LICENSE.GPL-3.0.txt') 'LGPL-3.0 正文引用的 GPL-3.0 条款'
+Require-File (Join-Path $root 'LICENSE.Apache-2.0.txt') 'vulkan-1.dll 的 Apache-2.0 许可文本'
+Require-File (Join-Path $root 'THIRD-PARTY-NOTICES.md') '第三方组件归属清单'
+
+# 那三份 LGPL/GPL 文本在仓库里有两个位置：assets\mpv-runtime（随 *.txt 拷到 exe 根，给 libmpv-2.dll）
+# 与 assets\shaders（着色器源文件指向的那一份）。发布件里同样是两处 —— exe 根与 shaders\。改了一处
+# 忘了另一处谁都不会发现，所以两头都比：仓库里那两份必须一致，发布根的那一份必须与源头一致。
+$repositoryPath = (Resolve-Path -LiteralPath $RepositoryRoot).Path
+foreach ($shared in @('LICENSE.LGPL-2.1.txt', 'LICENSE.LGPL-3.0.txt', 'LICENSE.GPL-3.0.txt')) {
+    $runtimeCopy = Join-Path $repositoryPath "assets\mpv-runtime\$shared"
+    $shaderCopy = Join-Path $repositoryPath "assets\shaders\$shared"
+    Require-File $runtimeCopy '运行时许可正文'
+    Require-File $shaderCopy '着色器许可正文'
+    $runtimeHash = (Get-FileHash -LiteralPath $runtimeCopy -Algorithm SHA256).Hash
+    if ($runtimeHash -ne (Get-FileHash -LiteralPath $shaderCopy -Algorithm SHA256).Hash) {
+        throw "发布验证失败：同一份许可正文在仓库的两个位置内容不一致：$shared"
+    }
+    if ($runtimeHash -ne (Get-FileHash -LiteralPath (Join-Path $root $shared) -Algorithm SHA256).Hash) {
+        throw "发布验证失败：发布件里的许可正文与仓库不一致：$shared"
+    }
+}
+
 $shaderSource = Join-Path (Resolve-Path -LiteralPath $RepositoryRoot).Path 'assets\shaders'
 $shaderRoot = Join-Path $root 'shaders'
 $expectedShaders = @(Get-ChildItem -LiteralPath $shaderSource -Recurse -File |

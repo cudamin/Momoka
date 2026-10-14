@@ -8,6 +8,7 @@ using Momoka.Shell.Platform;
 using Momoka.Shell.Security;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
+using Momoka.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 
@@ -126,6 +127,12 @@ internal static class ShellServices
         services.AddSingleton<MoviePilotService>();
         services.AddSingleton<Momoka.AniBt.AniBtClient>();
         services.AddSingleton<Momoka.AniBt.AniBtService>();
+
+        // ---- 检查更新 ---------------------------------------------------------------------------------
+        // 「开启应用后自动检查有没有新版本」。单例不是为了共享状态（它没有状态），而是因为它自带一个
+        // HttpClient：每次检查新建一个会把连接池一起丢掉。它不读设置、不认识用户，手上只有「去发布页问一句」
+        // 这一件事 —— 开关和「关掉就不再检查」那一头都在设置页与外壳（见 ShellPage.CheckForUpdatesAsync）。
+        services.AddSingleton<UpdateClient>();
 
         // ---- what the view models depend on ----------------------------------------------------------
         services.AddSingleton<ISettingsService, SettingsService>();

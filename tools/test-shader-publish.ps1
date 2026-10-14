@@ -10,12 +10,19 @@ $required = @(
     'Momoka.exe', 'Momoka.deps.json', 'Momoka.runtimeconfig.json', 'libmpv-2.dll', 'vulkan-1.dll',
     'Momoka.pri', 'mpv-ui\scripts\uosc\main.lua', 'mpv-ui\scripts\uosc\lib\utils.lua',
     'mpv-ui\scripts\uosc\elements\Timeline.lua', 'mpv-ui\fonts\uosc_textures.ttf',
-    'mpv-ui\fonts\MaterialIconsRound-Regular.otf', 'mpv-ui\LICENSE.LGPL'
+    'mpv-ui\fonts\MaterialIconsRound-Regular.otf', 'mpv-ui\LICENSE.LGPL',
+    'LICENSE', 'LICENSE.LGPL-2.1.txt', 'LICENSE.LGPL-3.0.txt', 'LICENSE.GPL-3.0.txt',
+    'LICENSE.Apache-2.0.txt', 'THIRD-PARTY-NOTICES.md'
 )
 foreach ($relative in $required) {
     $target = Join-Path $root $relative
     [System.IO.Directory]::CreateDirectory((Split-Path -Parent $target)) | Out-Null
     [System.IO.File]::WriteAllText($target, 'fixture themeresources')
+}
+# 那三份 LGPL/GPL 正文不行：verify-publish 拿它们与仓库逐字节比对，占位文本会被当场判为「与仓库不一致」，
+# 于是每条用例都变成同一种失败（假载荷自己不合格），真正的判据全被掩盖。所以从仓库真拷。
+foreach ($name in @('LICENSE.LGPL-2.1.txt', 'LICENSE.LGPL-3.0.txt', 'LICENSE.GPL-3.0.txt')) {
+    Copy-Item -LiteralPath (Join-Path $repo "assets\mpv-runtime\$name") -Destination (Join-Path $root $name) -Force
 }
 $source = Join-Path $repo 'assets\shaders'
 Copy-Item -LiteralPath $source -Destination (Join-Path $root 'shaders') -Recurse
@@ -56,6 +63,14 @@ $extra = Join-Path $root 'shaders\unexpected.hook'
 [System.IO.File]::WriteAllText($extra, 'unexpected')
 Invoke-Check 'unexpected shader' $false 'unexpected.hook'
 Remove-Item -LiteralPath $extra
+
+# 许可正文在两个位置各有一份（exe 根给 libmpv-2.dll、shaders\ 给着色器），发布根那一份必须与仓库源头
+# 一致。改掉它必须报出来，判据是文件名 —— 只报「不一致」而不说是哪一份，等于让人逐个文件去猜。
+$sharedLicense = Join-Path $root 'LICENSE.LGPL-2.1.txt'
+$savedLicense = [System.IO.File]::ReadAllBytes($sharedLicense)
+[System.IO.File]::WriteAllText($sharedLicense, 'damaged license')
+Invoke-Check 'corrupt published license' $false 'LICENSE.LGPL-2.1.txt'
+[System.IO.File]::WriteAllBytes($sharedLicense, $savedLicense)
 $results | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $run 'results.json') -Encoding UTF8
 $failed = @($results | Where-Object { -not $_.passed }).Count
 Write-Output ("shader publish checks: {0} total, {1} failed; {2}" -f $results.Count, $failed, $run)

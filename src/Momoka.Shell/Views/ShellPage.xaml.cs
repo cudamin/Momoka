@@ -10,6 +10,7 @@ using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Windowing;
+using Momoka.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
@@ -913,6 +914,66 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (server is not null && account is not null && (account.HasSavedToken || account.HasSavedPassword))
             await SwitchAsync(server, account).ConfigureAwait(true);
         else ShowSignIn();
+    }
+
+    /// <summary>
+    /// 启动时那一趟检查更新（设置 → 关于 那一格开关管着它）。
+    /// <para>
+    /// <b>开关关着就什么都不做</b> —— 「关掉就不再联网检查」这句话落地的地方就是这一句：这一格关着时，进程不会
+    /// 向发布页发出任何请求。拨开关的那一下不查（见 <c>UiSettings.AutoCheckUpdates</c>），想立刻知道结果按设置页
+    /// 那颗手动按钮。
+    /// </para>
+    /// <para>
+    /// 由调用方不 await（一趟网络请求不该挡住窗口显示）。失败也不打扰用户：没网、被挡、发布页抽风都不是他这一刻
+    /// 要处理的事，写一行日志就够。真发现新版本才弹一句，带一颗「打开下载页」。
+    /// </para>
+    /// </summary>
+    internal async Task CheckForUpdatesAsync()
+    {
+        if (_services is null || _settings is null) return;
+
+        if (!Settings.Ui.AutoCheckUpdates) return;
+
+        try
+        {
+            var current = new Version(AppIdentity.Version);
+            var release = await _services.GetRequiredService<UpdateClient>()
+                .FindNewerAsync(current, CancellationToken.None).ConfigureAwait(true);
+            if (release is null) return;
+
+            // 窗口还没落到树上（还没有 XamlRoot）时弹不出对话框，退成一条不带按钮的提示 —— 那一句里指向设置页
+            // 那颗手动按钮，仍然给得出去处。
+            if (Root.XamlRoot is null)
+            {
+                Notify(UpdateNotice.Available(release, current));
+                return;
+            }
+
+            var ask = ConfirmDialog.For(Root);
+            if (await ask(UpdateNotice.Title, UpdateNotice.Prompt(release, current), UpdateNotice.OpenLabel)
+                .ConfigureAwait(true))
+                OpenReleasePage(release);
+        }
+        catch (Exception error)
+        {
+            Log.Info(Category, $"启动时检查更新失败：{error.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 把某一版的发布页交给 Windows 打开。和设置页那一颗共用同一句兜底的理由：按了没反应、屏上又什么都不说，
+    /// 下一步多半是再按一遍。
+    /// </summary>
+    private void OpenReleasePage(AppRelease release)
+    {
+        try
+        {
+            _services?.GetRequiredService<Platform.ISystemLauncher>().OpenUrl(release.PageUrl);
+        }
+        catch (Exception error)
+        {
+            Notify($"打不开下载页：{error.Message}", InfoBarSeverity.Warning);
+        }
     }
 
     /// <summary>

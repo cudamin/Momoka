@@ -1,0 +1,74 @@
+Momoka bundled runtime notices
+
+The two DLLs in this directory are copied next to Momoka.exe on every build and
+publish. The license text for each ships in the publish root:
+
+  LICENSE                  Momoka itself (MIT)
+  LICENSE.LGPL-2.1.txt     libmpv-2.dll, the mpv code
+  LICENSE.LGPL-3.0.txt     libmpv-2.dll, the FFmpeg it links statically
+  LICENSE.GPL-3.0.txt      referenced by the LGPL-3.0 text above
+  LICENSE.Apache-2.0.txt   vulkan-1.dll
+
+The three LGPL/GPL files are byte-identical copies of the canonical ones under
+assets/shaders, where the shader sources point at them. tools/verify-publish.ps1
+compares the two locations, so they cannot drift apart.
+
+
+libmpv-2.dll  (in the repository root; copied next to the exe by Momoka.Shell.csproj)
+
+  Upstream:  https://github.com/mpv-player/mpv
+  Build:     https://github.com/zhongfly/mpv-winbuild (based on shinchiro/mpv-winbuild-cmake)
+  Version:   mpv v0.41.0-1163-g270367e8a
+             commit 270367e8af7e2f49fc3d3f8da03c985f5ae3b402, built 2026-10-14 03:08:54
+             Copyright (C) 2000-2026 mpv/MPlayer/mplayer2 projects
+  Release:   tag 2026-10-14-270367e8af, asset
+             mpv-dev-lgpl-x86_64-20261014-git-270367e8af.7z
+  Archive:   SHA256 1488b4458279561a4a0134ddf837989dcc8045308ac521657a98a284bcd8529d
+             (identical to the hash the release publishes in sha256.txt)
+  File:      SHA256 fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17
+             101,242,880 bytes
+  License:   LGPL-2.1-or-later (mpv itself), statically linked against an LGPL-3.0
+             FFmpeg, so the DLL as distributed is an LGPL-3.0 work.
+
+  Why this is the LGPL build, not the GPL one. The binary reports its own
+  configure line at startup. The "--vo=help" style listings are gone with
+  -Dcplayer=false, so read it through the libmpv log interface:
+
+    -Dgpl=false -Ddvdnav=disabled -Drubberband=disabled -Dopenal=disabled
+    -Dcplayer=false -Dlibmpv=true ...
+
+  Its enabled-features line carries no gpl, direct3d, dvdnav or rubberband, and
+  the strings libx264, libx265, libdvdcss and dvdread appear zero times in the
+  file (the previous GPL build had 5, 10, 3 and 6 occurrences).
+
+  Consequence: LGPL allows linking without the copyleft reaching the application,
+  so Momoka is distributed under its own license (MIT, see LICENSE). The DLL is
+  still an LGPL work -- its license texts travel with it, and its corresponding
+  source is at the upstream addresses above. Until 2026-10-14 the bundled DLL was
+  a GPL build, which forced the whole application to GPL-2.0-or-later; that
+  history and the re-check procedure are in THIRD-PARTY-NOTICES.md and in the
+  license audit under docs/.
+
+  Unmodified: shipped exactly as upstream builds it.
+
+
+vulkan-1.dll
+
+  Upstream:  https://github.com/KhronosGroup/Vulkan-Loader
+  Version:   1.4.359.0 (1.4.359.Dev Build)
+  SHA256:    13dd448a97495763b5cce84b8ade84cd2fa13c71f7e871f3c7d509eca845ad0f
+  License:   Apache-2.0. See LICENSE.Apache-2.0.txt.
+
+  This is libmpv's only non-system dependency; it is a static import, so libmpv
+  fails to load without it. Provenance and the re-check procedure after an
+  upgrade are in README.md in this directory.
+
+
+License text sources (SPDX license-list-data):
+  LICENSE (MIT) and LICENSE.Apache-2.0.txt were retrieved on 2026-10-14. The
+  LGPL-2.1, LGPL-3.0 and GPL-3.0 texts arrived with assets/shaders on 2026-10-04.
+
+The complete distributed source of Momoka is available at:
+  https://github.com/cudamin/Momoka
+The corresponding source of mpv, of the FFmpeg it links and of the
+Vulkan-Loader is available at the upstream addresses above.

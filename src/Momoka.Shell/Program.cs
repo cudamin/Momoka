@@ -244,6 +244,16 @@ public sealed record StartupOptions
     /// </summary>
     public string? Theme { get; init; }
 
+    /// <summary>
+    /// 「这一次运行是工具在跑」：自检，或者任何一个只为让截图／探针看到某一屏而存在的开关（<c>--show-*</c>、
+    /// <c>--play</c>、<c>--theme</c>、<c>--dump-ui</c>）。
+    /// <para>
+    /// 给启动时那一趟检查更新用：那些运行不该弹一个「发现新版本」的对话框 —— 它会压在正要拍的那一页上，而一次
+    /// 截图不需要一次网络请求。普通启动（含 <c>--maximized</c>／<c>--screen</c>）不算工具，照常检查。
+    /// </para>
+    /// </summary>
+    public bool Tooling { get; init; }
+
     public required AppPaths Paths { get; init; }
 }
 
@@ -462,6 +472,16 @@ internal static class Program
             ScrollEnd = Has(args, "--scroll-end"),
             ScrollHalf = Has(args, "--scroll-half"),
             PlayFirst = Has(args, "--play"),
+
+            // 「这一次是工具在跑」：只为让截图／探针看到某一屏的那些开关，加上自检。启动时那一趟检查更新看它
+            // （见 StartupOptions.Tooling）。--maximized / --screen 不算：那两个普通启动也在用。
+            Tooling = selfCheck
+                || Has(args, "--dump-ui") || Has(args, "--show-library") || Has(args, "--show-menu")
+                || Has(args, "--show-osd") || Has(args, "--hide-cursor") || Has(args, "--show-settings")
+                || Has(args, "--show-detail") || Has(args, "--show-episode") || Has(args, "--show-cover")
+                || Has(args, "--show-missing") || Has(args, "--show-identify") || Has(args, "--show-refresh")
+                || Has(args, "--show-picker") || Has(args, "--play") || Text(args, "--theme") is not null,
+
             Theme = Text(args, "--theme"),
             Paths = paths
         };

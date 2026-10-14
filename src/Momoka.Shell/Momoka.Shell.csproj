@@ -230,10 +230,46 @@
     gpu-api defaults to vulkan anyway. The system copy cannot be relied on — it arrives with a GPU driver.
     assets/mpv-runtime/README.md records the provenance and how to re-check the import table after an
     upgrade. .md is excluded for the same reason as the shaders.
+
+    *.txt is included as well: LICENSE.Apache-2.0.txt is vulkan-1.dll's license, the three
+    LICENSE.LGPL-2.1 / LICENSE.LGPL-3.0 / LICENSE.GPL-3.0 texts are libmpv-2.dll's (mpv itself plus the
+    LGPL-3.0 FFmpeg it links statically), and NOTICE.txt is the attribution for both DLLs. Until
+    2026-10-14 not one license text was in the publish output even though libmpv-2.dll sits right next
+    to the exe. They land in the exe root, next to the DLLs.
+
+    The three LGPL/GPL files are byte-identical copies of the ones under assets/shaders, which is where
+    the shader sources point. Two locations because the publish puts them in two places — the exe root
+    for the DLL and shaders\ for those files. tools/verify-publish.ps1 compares them so the copies
+    cannot drift apart; edit one, edit the other.
   -->
   <ItemGroup>
-    <None Include="..\..\assets\mpv-runtime\*.dll">
+    <None Include="..\..\assets\mpv-runtime\*.dll;..\..\assets\mpv-runtime\*.txt">
       <Link>%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!--
+    根目录的 LICENSE（项目自身，MIT）与第三方组件归属清单，都随发布拷到 exe 根。许可正文要连同
+    二进制交给接收者，而 libmpv-2.dll 就在 exe 旁边 —— 2026-10-14 之前这两份都不在发布件里。
+    THIRD-PARTY-NOTICES.md 是「哪个组件、什么许可、许可正文在哪」的唯一索引，发行版里读者不必
+    逐个目录翻。
+
+    2026-10-14 晚换内核（GPL 构建 → LGPL 构建）之后，这份 LICENSE 从 GPL-2.0 正文换成 MIT 正文：
+    LGPL 允许链接而不传染，项目自身不再被迫 GPL。libmpv 那一份的许可正文不在这里，而是上面那三份
+    LGPL/GPL 文本 —— 两者不再是同一份文件，所以当初「放两份一样的 GPL 文本会让人问哪份算数」的
+    顾虑也不存在了。
+
+    这两份 .md / 无扩展名文件在别的条目里被排除是因为那些 .md 只记录仓库内的来龙去脉，
+    这两份不同：它们是发行物的一部分。
+  -->
+  <ItemGroup>
+    <None Include="..\..\LICENSE">
+      <Link>LICENSE</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="..\..\THIRD-PARTY-NOTICES.md">
+      <Link>THIRD-PARTY-NOTICES.md</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

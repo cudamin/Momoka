@@ -7,6 +7,7 @@ using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
+using Momoka.Updates;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -32,6 +33,7 @@ internal sealed partial class ShellNavigationProbe
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings), new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            new UpdateClient(new RejectNetwork()),
             fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
         var sections = page.ViewModel.Sections.ToArray();
@@ -98,6 +100,13 @@ internal sealed partial class ShellNavigationProbe
                     .Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible).ToArray();
                 Require(visible.Length == 1 && visible[0].ActualHeight > 0, "长页切短页没有实现目标分组");
                 Require(scroll.VerticalOffset <= scroll.ScrollableHeight + 1, "切短页后滚动位置超出内容");
+
+                // 「设置 → 关于」新增的两行（「启动时自动检查新版本」那一格与那颗手动「检查新版本」按钮，
+                // 2026-10-14）拍下来：这一页是另一扇窗口，而设置窗口的原生 Title 是空的，tools/shot.ps1 够不着它
+                // （见 docs/开发与验证.md），所以宽窄两张只能由探针自己拍。摆在切到「关于」之后、回「播放器」之前。
+                scroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                await LayoutAsync(page);
+                await SaveProbeScreenAsync($"settings-about-{width}-screen.png");
 
                 // 窗口隐藏调用的释放入口，在排队或播放中都必须作废回调；之后仍能重新入场。
                 page.SelectedCategory = "播放器";
@@ -192,7 +201,8 @@ internal sealed partial class ShellNavigationProbe
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
-            new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
         _root.Children.Add(page);
         try
@@ -279,7 +289,8 @@ internal sealed partial class ShellNavigationProbe
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
-            new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
         _root.Children.Add(page);
         try
@@ -397,7 +408,8 @@ internal sealed partial class ShellNavigationProbe
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
-            new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
         _root.Children.Add(page);
         try
@@ -651,7 +663,8 @@ internal sealed partial class ShellNavigationProbe
         page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
-            new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
         _root.Children.Add(page);
         try
         {

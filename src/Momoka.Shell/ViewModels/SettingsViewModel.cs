@@ -11,6 +11,7 @@ using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Theming;
+using Momoka.Updates;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -123,6 +124,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private MoviePilotService? _moviePilot;
     private MoviePilotCredentials? _moviePilotCredentials;
     private SettingMoviePilotRow? _moviePilotRow;
+    private UpdateClient? _updates;
     private SettingFontRow? _subtitleFont;
     private AudioDeviceCatalogue? _audioDevices;
     private SettingChoiceRow? _audioDevice;
@@ -141,6 +143,19 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 改目录那一头 null 检查过。
     /// </summary>
     private SettingFactRow? _screenshotFact;
+
+    /// <summary>
+    /// 「关于」卡上那行「检查新版本」，握着好在按下去之后当场改它那一行读数（同 <see cref="_screenshotFact"/>
+    /// 握着一行的理由）。只在 <see cref="AboutCard"/> 建出来时有值；没有「关于」卡（测试路径）就是 null，
+    /// 手动检查那一头 null 检查过。
+    /// </summary>
+    private SettingFactRow? _updateRow;
+
+    /// <summary>
+    /// 手动检查正在跑。这一趟有网络、要几秒，挡掉连点：不挡的话按第二下会再发一个请求，而两颗按钮长得一样、
+    /// 第一趟还没回来时看不出哪个是哪个。
+    /// </summary>
+    private bool _checkingUpdates;
 
     /// <summary>快捷键卡里那 21 行可重绑的行，握着好在重绑/清空之后逐行刷新显示（同 <see cref="HomeRows"/> 那样握着一行的理由）。</summary>
     private readonly List<SettingShortcutRow> _shortcutRows = [];
@@ -361,6 +376,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 条此刻在不在、拨一下改得动吗」，见 <see cref="StartupRow"/>。打包安装（MSIX）之后它答
     /// <see cref="Platform.IStartupRegistration.Available"/> 为假，那一行整个不显示。
     /// </param>
+    /// <param name="updates">
+    /// 「关于」卡上那颗手动「检查新版本」用的：去项目的发布页问一句有没有比这一版新的。交出去的是一个客户端而不是
+    /// 一个方法，因为这一页要的正是「查一次」这一件事的全部结果（有没有新版、新版是哪一版、它的页面在哪），
+    /// 而打开那个页面仍走这一页本来就有的 <see cref="Platform.ISystemLauncher"/>。
+    /// </param>
     internal void Attach(
         ISettingsService settings,
         ShaderStaging shaders,
@@ -374,6 +394,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Func<Task> pushScreenshotOptions,
         MoviePilotService moviePilot,
         MoviePilotCredentials moviePilotCredentials,
+        UpdateClient updates,
         IServerCapabilities capabilities)
     {
         _settings = settings;
@@ -389,6 +410,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _pushScreenshotOptions = pushScreenshotOptions;
         _moviePilot = moviePilot;
         _moviePilotCredentials = moviePilotCredentials;
+        _updates = updates;
     }
 
     /// <summary>自检读的：服务器管理那一组这会儿是收着的吗（非管理员账号下是）。</summary>
@@ -1719,6 +1741,73 @@ public sealed partial class SettingsViewModel : PageViewModel
         _launcher?.OpenFolder(directory);
     }
 
+    // ── 检查新版本 ────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// 「关于」卡上那颗「检查新版本」：现在就去发布页问一句，结果写回那一行读数；真有新版本再问一句要不要打开
+    /// 下载页。和启动时那一趟（<c>ShellPage.CheckForUpdatesAsync</c>）共用 Core 的客户端与措辞，只有「要不要说
+    /// 失败」这一点不同 —— 那一趟是程序自己动的，失败只写日志；这一趟是用户按的，失败必须说一句，否则一颗按下去
+    /// 什么都不发生的按钮，看起来就是坏的。
+    /// <para>
+    /// 结果先写「正在检查…」：这一趟有网络、要几秒，不写的话那一行从头到尾一个字都不变，用户不知道按没按上。
+    /// </para>
+    /// </summary>
+    private async Task CheckForUpdatesAsync()
+    {
+        if (_updates is null || _updateRow is null || _checkingUpdates) return;
+
+        var row = _updateRow;
+        _checkingUpdates = true;
+        row.Value = UpdateNotice.Checking;
+
+        try
+        {
+            var current = new Version(AppIdentity.Version);
+            var release = await _updates.FindNewerAsync(current, CancellationToken.None).ConfigureAwait(true);
+
+            // 这一趟在等网络的时候页面可能被整页重建（恢复默认／恢复配置都重建），那就别往旧的那一行上写字 ——
+            // 它已经不在树上了。
+            if (!ReferenceEquals(row, _updateRow)) return;
+
+            if (release is null)
+            {
+                row.Value = UpdateNotice.UpToDate(current);
+                return;
+            }
+
+            row.Value = UpdateNotice.Found(release);
+            if (await ConfirmAsync(UpdateNotice.Title, UpdateNotice.Prompt(release, current), UpdateNotice.OpenLabel)
+                .ConfigureAwait(true))
+                OpenReleasePage(release);
+        }
+        catch (Exception error)
+        {
+            if (!ReferenceEquals(row, _updateRow)) return;
+            row.Value = UpdateNotice.Failed;
+            Report("检查更新失败", error);
+        }
+        finally
+        {
+            _checkingUpdates = false;
+        }
+    }
+
+    /// <summary>
+    /// 把某一版的发布页交给 Windows 打开。<see cref="Platform.ISystemLauncher.OpenUrl"/> 打不开是抛出来的，
+    /// 所以这里兜一句 —— 用户按了「打开下载页」、浏览器没起来、屏上又什么都不说，下一步多半是再按一遍。
+    /// </summary>
+    private void OpenReleasePage(AppRelease release)
+    {
+        try
+        {
+            _launcher?.OpenUrl(release.PageUrl);
+        }
+        catch (Exception error)
+        {
+            Report("打不开下载页", error);
+        }
+    }
+
     /// <summary>
     /// 关于：这份程序是哪一版、拿哪个内核在放、它的东西放在磁盘上哪儿。
     /// <para>
@@ -1744,8 +1833,25 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 底下四行目录的说明留着：那几句说的是「点开这颗按钮会看到什么」，本来就是给用它的人读的。
             Fact("客户端版本", null, AboutFacts.Client),
             Fact("构建时间", null, AboutFacts.BuiltAt(Path.Combine(home, "Momoka.exe"))),
-            Fact("播放内核", null, AboutFacts.PlaybackCore(home))
+            Fact("播放内核", null, AboutFacts.PlaybackCore(home)),
+
+            // 「在设置中新增开启应用后自动检查有没有新版本的功能」。开关和下面那颗手动按钮是同一件事的两半：
+            // 开关管「以后每次启动留意一下」，手动管「现在就知道结果」。装机默认开（用户令 2026-10-14），
+            // 关掉就不再联网检查 —— 这一格是那件事唯一的开关。拨一下下一次启动生效，不在这里顺手查一次。
+            Toggle(UpdateNotice.ToggleLabel,
+                "打开之后，每次启动会去发布页问一句有没有比这一版新的，有新版本就弹一条提示，带一颗「打开下载页」；"
+                    + "关掉就不再联网检查。默认开，拨一下下一次启动生效。",
+                () => Settings.Ui.AutoCheckUpdates,
+                value => Settings.Ui.AutoCheckUpdates = value)
         };
+
+        // 手动那一颗：和开关无关，用户按的，开关关着也照样查。行握着（_updateRow），按完当场改它那一行读数。
+        // 单列一句 Add 而不是写进上面的初始化器：那里出现一个赋值，整个大括号会被当成对象初始化器。
+        _updateRow = Fact(UpdateNotice.RowLabel,
+            "现在就去发布页问一句有没有比这一版新的，结果写在这一行；有新版本会再弹一条提示，带一颗「打开下载页」。"
+                + "这一颗不受上面那个开关管 —— 它是你按的。",
+            "", "检查更新", () => _ = CheckForUpdatesAsync());
+        rows.Add(_updateRow);
 
         if (_paths is { } paths)
         {
@@ -1784,7 +1890,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             "恢复默认", () => _ = RestoreDefaultsAsync()));
 
         return new SettingSection("关于", "关于",
-            "版本、播放内核，这个程序在磁盘上的几个位置，以及配置的备份、恢复和恢复默认。", rows);
+            "版本、检查新版本、播放内核，这个程序在磁盘上的几个位置，以及配置的备份、恢复和恢复默认。", rows);
     }
 
     /// <summary>

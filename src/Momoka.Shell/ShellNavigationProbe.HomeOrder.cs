@@ -8,6 +8,7 @@ using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
+using Momoka.Updates;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
@@ -50,7 +51,8 @@ internal sealed partial class ShellNavigationProbe
         var settings = new SettingsPage();
         settings.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
-            service, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+            service, new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
         await settings.ViewModel.ReloadAsync();
         settings.WatchMoviePilot(service);
         var frame = new Frame();

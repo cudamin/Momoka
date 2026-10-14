@@ -5,6 +5,7 @@ using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.ViewModels;
+using Momoka.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -349,6 +350,10 @@ public sealed partial class SettingsPage : Page, IShellContent
 
                 request.Services.GetRequiredService<MoviePilotService>(),
                 request.Services.GetRequiredService<MoviePilotCredentials>(),
+
+                // 「关于」卡上那颗手动「检查新版本」：去项目的发布页问一句有没有比这一版新的。打开那个页面仍走
+                // 这一页本来就有的 ISystemLauncher，所以这里只交「查一次」这一件事的客户端。
+                request.Services.GetRequiredService<UpdateClient>(),
 
                 // 左栏「EmbyServer」那一组只有服务器管理员才看得见，所以这一页要知道当前账号的身份（见
                 // RefreshServerAdministrationAsync 与下面那一句）。

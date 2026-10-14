@@ -1228,6 +1228,12 @@
             <!--
               一行读数：左边标签、底下一行值（等宽，多半是个路径，所以要能折行），右边一颗可有可无的按钮。
               值不摆进控件列 —— 那一列只有 320 宽，一个路径在里面要折三行；标签列本来就宽，值跟着标签走。
+              <para>
+              值和它的可见性都要 OneWay：这一行的 Value 是**会变的**，而且不重建卡片就变 —— 关于卡上「截图目录」
+              跟着「播放行为」那一行的目录走（SettingsViewModel.AnnounceScreenshotDirectory），「检查新版本」那一行
+              按下去先写「正在检查…」再写结果。x:Bind 在 DataTemplate 里默认 OneTime，写的时候屏上不会动一下，
+              而 SettingFactRow 的 Value setter 是照 OneWay 写的（它连 ValueVisibility 的通知一起喊）。
+              </para>
             -->
             <local:SettingRowTemplates.Fact>
                 <DataTemplate x:DataType="vm:SettingFactRow">
@@ -1241,9 +1247,9 @@
                             <TextBlock
                                 IsTextSelectionEnabled="True"
                                 Style="{StaticResource EgDataStyle}"
-                                Text="{x:Bind Value}"
+                                Text="{x:Bind Value, Mode=OneWay}"
                                 TextWrapping="Wrap"
-                                Visibility="{x:Bind ValueVisibility}" />
+                                Visibility="{x:Bind ValueVisibility, Mode=OneWay}" />
                             <TextBlock
                                 Style="{StaticResource EgSettingNote}"
                                 Text="{x:Bind Note}"

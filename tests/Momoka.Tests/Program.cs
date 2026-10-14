@@ -87,6 +87,7 @@ internal static class Program
         WindowFormTests.Register();
         PinIndicatorTests.Register();
         AboutTests.Register();
+        UpdateTests.Register();
         MoviePilotTests.Register();
         AniBtTests.Register();
         AniBtIntegrationTests.Register();

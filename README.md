@@ -15,7 +15,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 - 播放器架构参考 [**mpv-winui-player**](https://github.com/ikas-mc/mpv-winui-player) 和 **小幻影视** 设计。
 - 内置lua脚本使用 @dyphire[**mpv-config**](https://github.com/dyphire/mpv-config)的脚本进行魔改
 - 播放器控件、着色器与 mpv 相关设置参考 @dyphire[**mpv-config**](https://github.com/dyphire/mpv-config) 进行设置
-- 内置 [**mpv-winbuild**](https://github.com/dyphire/mpv-winbuild/releases/tag/mpv_own-2026-08-31)
+- 内置 [**mpv-winbuild**](https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-10-14-270367e8af)（LGPL 构建）
 
 ## 主要功能
 
@@ -39,6 +39,22 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
 到 [Releases](https://github.com/cudamin/Momoka/releases) 下载最新的 `Momoka_windows-x64_x.x.x.exe` 安装包。
 
+## 许可证
+
+**本软件按 `MIT` 分发**，许可正文见 [LICENSE](LICENSE)。
+
+随包的播放内核是 **LGPL 构建的 mpv / libmpv**（LGPL-2.1-or-later，静态链 LGPL-3.0 的 FFmpeg）。
+LGPL 允许链接而不传染，所以本软件自身按 MIT 分发；那一份 dll 仍是 LGPL 作品，它的许可正文
+（`LICENSE.LGPL-2.1.txt`、`LICENSE.LGPL-3.0.txt`、`LICENSE.GPL-3.0.txt`）与对应源代码地址随包提供。
+
+随包还包含多个第三方组件（uosc、Material Icons、着色器、vulkan-1.dll 等），逐个组件的许可证、
+许可正文在包内的位置、以及本软件对它们做过的修改，都列在
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)；审计过程与判定依据见
+[docs/第三方组件许可合规.md](docs/第三方组件许可合规.md)。其中 `mpv-ui` 里那份 uosc 是 LGPL-2.1，
+本软件改过它，修改部分本身也以 LGPL-2.1 授权。
+
+完整对应源代码见本仓库。
+
 ## 免责声明
 
 **请在使用 Momoka 前完整阅读本节。下载、安装或使用本软件，即表示你已阅读、理解并同意以下全部内容；若你不同意，请立即停止使用并卸载。**
@@ -53,7 +69,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
 **5. 责任限制。** 在适用法律允许的最大范围内，开发者不对因使用或无法使用本软件而造成的任何直接、间接、附带、特殊、惩罚性或后果性损害承担责任，包括但不限于数据丢失、播放记录或续播点变化、服务器账号被限制或封禁、设备或数据损坏、服务中断，以及任何第三方索赔。使用本软件的风险由你自行承担。
 
-**6. 第三方组件。** 本软件随包包含 mpv / libmpv（GPL-3.0 / LGPL）、uosc 与 Material Icons（MIT / Apache-2.0）、ArtCNN / ravu / CfL / SSimDownscaler 等着色器（LGPL），以及 Microsoft Windows App SDK、WebView2 Runtime 等第三方组件。它们各自遵循其许可，版权归各自作者，相关许可与归属文本随包提供；使用这些组件不改变本声明。
+**6. 第三方组件。** 本软件随包包含 mpv / libmpv（**LGPL-2.1-or-later**，静态链 LGPL-3.0 的 FFmpeg）、uosc（**LGPL-2.1**）与 Material Icons Round 字体（Apache-2.0）、ArtCNN 与 CfL 着色器（MIT）、ravu 与 igv 的 SSimDownscaler / SSimSuperRes（LGPL-3.0-or-later）、an3223 着色器（LGPL-2.1-or-later）、igv adaptive-sharpen（BSD-2-Clause）、vulkan-1.dll（Apache-2.0），以及 Microsoft Windows App SDK、WebView2 Runtime 等第三方组件。它们各自遵循其许可，版权归各自作者，相关许可与归属文本随包提供（清单见 `THIRD-PARTY-NOTICES.md`）。**其中 mpv / libmpv 是 LGPL 构建，LGPL 允许链接而不传染，本软件自身按 MIT 分发；那一份 dll 仍是 LGPL 作品，其许可正文与对应源代码地址随包提供。** 使用这些组件不改变本声明。
 
 **7. 第三方接口依赖。** 部分功能依赖第三方服务器接口（如 Emby、MoviePilot、TMDB 等），这些接口可能随时变更、限制或停止服务。由此导致的功能失效或不可用，开发者不作保证，也不承担责任。
 

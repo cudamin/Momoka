@@ -205,6 +205,12 @@ public partial class App : Application
     {
         await shell.StartAsync().ConfigureAwait(true);
 
+        // 「开启应用后自动检查有没有新版本」：开关在设置 → 关于，关着时外壳那一趟什么都不做（见
+        // ShellPage.CheckForUpdatesAsync —— 「关掉就不再联网检查」落地的地方就是那里）。不 await：一趟网络请求
+        // 不该拖住下面那串工具开关，也拖不住窗口显示。工具运行（自检、--show-*、--play、--theme）跳过 ——
+        // 一个「发现新版本」的对话框会压在正要拍的那一页上。
+        if (!_options.Tooling) _ = shell.CheckForUpdatesAsync();
+
         // Tooling: --show-settings presses 设置, which is a second window and therefore the one part of the
         // UI a screenshot cannot reach by waiting. Defaults to 界面 rather than the card the button opens on,
         // because what a shot of this window is usually wanted for is the theme swatches; another card is

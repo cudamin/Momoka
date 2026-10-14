@@ -10,6 +10,7 @@ using Momoka.Services;
 using Momoka.Shell.Interop;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
+using Momoka.Updates;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -81,7 +82,8 @@ internal sealed partial class ShellNavigationProbe
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask,
             _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
-            new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Capabilities);
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
         await page.ViewModel.ReloadAsync();
         page.SelectedCategory = "界面";
         page.Visibility = Visibility.Collapsed;

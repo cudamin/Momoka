@@ -3,6 +3,7 @@ using Momoka.Playback;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
+using Momoka.Updates;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell;
@@ -451,6 +452,21 @@ internal static partial class ShellSelfCheck
                 + $"恢复默认{(hasReset ? "在" : "缺")}、备份{(hasBackup ? "在" : "缺")}、恢复配置{(hasRestore ? "在" : "缺")}；"
                 + $"确认框{(saysAccountsStay ? "写明了服务器和账号不动" : "没写")}、{(canAsk ? "已接上页面" : "没接上")}；"
                 + $"文件框{(canPick ? "已接上" : "没接上，点下去弹不出框")}");
+
+        // 「在设置中新增开启应用后自动检查有没有新版本的功能」：关于卡上那一格开关和那颗手动检查的按钮都在。
+        // 和上面那一关同一个理由 —— 开关没建出来、或者按钮那一头没接上，屏上只是一行不在，而单测进不到外壳。
+        // 这里**不真按**：按下去是一次真实网络请求，而自检在隔离目录里跑、也不该替用户去发布页问一句。
+        var aboutRows = page.ViewModel.Sections
+            .FirstOrDefault(section => section.Category == "关于")?.Rows ?? [];
+        var autoCheck = aboutRows.OfType<SettingToggleRow>()
+            .FirstOrDefault(row => row.Label == UpdateNotice.ToggleLabel);
+        var manualCheck = aboutActions.Contains(UpdateNotice.RowLabel);
+
+        check("关于卡检查新版本那一格与那颗按钮",
+            autoCheck is not null && manualCheck,
+            $"启动时自动检查开关{(autoCheck is null ? "不在" : "在")}"
+                + $"（当前{(autoCheck?.IsOn == true ? "开着" : "关着")}）；"
+                + $"手动「{UpdateNotice.RowLabel}」按钮{(manualCheck ? "在" : "缺")}");
 
         // The one path this page's cache guard exists for. Pressing 设置 again re-navigates the settings
         // window's frame to this same page type, and a page that rebuilt itself on the way in would throw
