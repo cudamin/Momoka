@@ -80,6 +80,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("空季保留选择器", EmptySeasonAsync);
             await CaseAsync("离页后写操作不重开详情", DetailWriteAsync);
             await CaseAsync("文件选项长名称、断点与隐藏行", DetailPickerLayoutAsync);
+            // 展开态：框架在弹层打开那一拍把选中项的文本收掉，框的宽度塌回 MinWidth，右邻被弹层压住
+            // （用户 2026-10-16）。这一条量的是展开态的宽度与弹层右沿。
+            await CaseAsync("文件选项下拉展开的位置与宽度", PickerDropDownAsync);
             await CaseAsync("隐藏首页行不请求", HiddenHomeAsync);
             await CaseAsync("通知空态属性通知", NotificationEmptyAsync);
             await CaseAsync("离开通知页不弹旧编辑器", NotificationCancelAsync);

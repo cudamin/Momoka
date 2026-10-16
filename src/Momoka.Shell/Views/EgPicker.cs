@@ -2,6 +2,7 @@ using Momoka.Emby;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Windows.Foundation;
 
 namespace Momoka.Shell.Views;
 
@@ -22,7 +23,7 @@ namespace Momoka.Shell.Views;
 /// 一点都没透上来。
 /// </para>
 /// <para>
-/// 所以这一层壳只做一件事：把那颗弹层的 <see cref="Popup.ShouldConstrainToRootBounds"/> 设回 <c>true</c>。
+/// 所以这一层壳的第一件事是把那颗弹层的 <see cref="Popup.ShouldConstrainToRootBounds"/> 设回 <c>true</c>。
 /// 浮层于是回到<em>同一棵树</em>里渲染（不再开窗口），亚克力按它本来的意思工作 —— 模糊底下的页面、按调色板
 /// 的 tint 上色，和详情页正文那几块玻璃（<c>EgFrostBrush</c>）是同一种材料、同一套参数。
 /// </para>
@@ -30,6 +31,17 @@ namespace Momoka.Shell.Views;
 /// 代价说清楚：树内弹层受窗口边界约束。窗口矮到装不下整张浮层时，框架会把浮层往上翻、必要时收窄它
 /// （列表本来就在 <c>ScrollViewer</c> 里，收窄之后照样滚得到），而不是像窗口化弹层那样悬到窗口外面去。
 /// 详情页这几颗下拉都长在页面里、离窗口边很远，实际看得见的差别只有「下拉不再越出窗口」这一条。
+/// </para>
+/// <para>
+/// 第二件事是展开态的宽度（用户 2026-10-16：「选择栏展开后会触发自动收缩导致选择栏与右侧的组件重叠」，
+/// 同日补一句「展开后自动调整选择框长度适配选择项中最长的那一条」）。**框架在弹层打开那一拍会把选中项的
+/// 文本收掉**（模板的 DropDownOpened 态把 <c>ContentPresenter</c> 置零），框的期望宽度随即塌回
+/// <see cref="FrameworkElement.MinWidth"/>；而弹层是按<em>最宽</em>那一条轨道名撑的。副屏离线探针实拍读数
+/// （`detail-picker-open.txt`，电影页尾部那一排，长名音轨）：框 44–616 弹开时塌成 44–244、44–577 塌成
+/// 44–244，弹层两次都是 44–602 —— 整排跟着重排，右边那一颗往左挪进弹层底下，屏上就是「选择栏与右侧的
+/// 组件重叠」。所以展开这一拍把框的宽度钉到列表那一份的宽度上（取展开前那一拍的宽度与列表宽度里大的
+/// 那个，免得选中最长那条时反被收窄；再按容器里剩下的地方封顶，免得把这一排顶出界）。收起时把
+/// <c>Width</c> 清回去，闭合态照旧由内容（选中那条轨道名）撑。
 /// </para>
 /// <para>
 /// 为什么是子类而不是改模板：模板那一份是框架的 <c>DefaultComboBoxStyle</c>，抄一份进仓库就等于自己养一份
@@ -45,6 +57,27 @@ namespace Momoka.Shell.Views;
 /// </summary>
 public sealed class EgPicker : ComboBox
 {
+    /// <summary>
+    /// 收起态那一拍的宽度。模板在弹层打开这一拍把选中项的文本收掉，框的宽度当场塌回
+    /// <see cref="FrameworkElement.MinWidth"/>，所以要在这之前记下来 —— 展开态的宽度不许比它窄。
+    /// <para>
+    /// 记的是「收起时的每一次尺寸变化」，不是打开那一刻读一次：框架收文本与重排不是同步做完的，
+    /// 打开那一拍读到的可能已经是塌下去的数。
+    /// </para>
+    /// </summary>
+    private double _restingWidth;
+
+    public EgPicker()
+    {
+        SizeChanged += (_, e) =>
+        {
+            if (!IsDropDownOpen) _restingWidth = e.NewSize.Width;
+        };
+        // 列表那一份的宽度要等它自己布完才量得到，所以撑宽这一步排在下一个 UI 回合。
+        DropDownOpened += (_, _) => DispatcherQueue.TryEnqueue(WidenToDropDown);
+        DropDownClosed += (_, _) => ClearValue(WidthProperty);
+    }
+
     /// <summary>
     /// 模板里那颗弹层，<see cref="OnApplyTemplate"/> 拿到之后留着给自检读（「浮层在树内」那一条）。
     /// 模板还没上树时是 null。
@@ -66,5 +99,31 @@ public sealed class EgPicker : ComboBox
         if (PopupPart is null) return;
 
         PopupPart.ShouldConstrainToRootBounds = true;
+    }
+
+    /// <summary>
+    /// 展开态把框撑到列表那一份的宽度 —— 列表的宽度就是最宽那条轨道名撑出来的，框跟它齐平之后右邻才站得开。
+    /// <para>
+    /// 取「展开前那一拍的宽度」与「列表宽度」里大的那个：选中的正好是最长那条时，框自己的宽度（还带着那颗
+    /// 下拉箭头）会比列表略宽，按列表收窄会让选中项的文本被截。再按容器里剩下的地方封顶：这一颗在宽版式里
+    /// 站在片名那一栏的 <c>*</c> 格上，那格的宽就是它的上限，不封顶会把这一排顶出栏外（自检的
+    /// <c>PickerFit</c> 读的就是这条）。
+    /// </para>
+    /// </summary>
+    private void WidenToDropDown()
+    {
+        if (PopupPart?.Child is not FrameworkElement list) return;
+
+        var room = RoomInParent();
+        var width = Math.Min(Math.Max(_restingWidth, list.ActualWidth), room);
+        if (width > 0) Width = width;
+    }
+
+    /// <summary>这一颗在它的父级里还剩多少横向地方；父级量不出来时不给上限（<c>WrapRow</c> 自己会换行）。</summary>
+    private double RoomInParent()
+    {
+        if (Parent is not FrameworkElement parent || parent.ActualWidth <= 0) return double.PositiveInfinity;
+
+        return parent.ActualWidth - TransformToVisual(parent).TransformPoint(new Point()).X;
     }
 }

@@ -4,6 +4,7 @@ using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.Foundation;
 
 namespace Momoka.Shell;
 
@@ -310,6 +311,119 @@ internal sealed partial class ShellNavigationProbe
         reply.SetResult(new HttpResponseMessage(HttpStatusCode.NoContent));
         await writing;
         Require(fixture.Transport.Requests.Count == count, "旧写入完成后重新读取了详情");
+    }
+
+    /// <summary>元素在根坐标里的矩形；树内弹层的孩子也在这套坐标里（<c>null</c> 就是视觉树根）。</summary>
+    private static Rect Box(FrameworkElement element) =>
+        element.TransformToVisual(null).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+
+    /// <summary>
+    /// 电影／剧／季三页尾部那一份文件选项（<c>PickerPanel</c>）展开态的宽度与位置 —— 用户 2026-10-16
+    /// 两条令：「选择栏展开后会触发自动收缩导致选择栏与右侧的组件重叠」、「展开后自动调整选择框长度适配
+    /// 选择项中最长的那一条」。
+    /// <para>
+    /// 框架在弹层打开那一拍会把选中项的文本收掉（模板的 DropDownOpened 态把 <c>ContentPresenter</c> 置零），
+    /// 框的期望宽度随即塌回 <see cref="FrameworkElement.MinWidth"/>；而弹层是按<em>最宽</em>那条轨道名撑的。
+    /// 整排跟着重排，右边那一颗往左挪进弹层底下 —— 屏上就是那句「与右侧的组件重叠」。这一条钉的就是展开态
+    /// 那两个数：**框不许比闭合时窄**，**弹层不许探出框的右沿**（探出去多少就压住右邻多少）。宽版式那一档
+    /// 还要在这一排被撑宽之后仍然没人出界（<see cref="DetailPage.PickerFit"/> 那一条的老判据）。
+    /// </para>
+    /// <para>
+    /// 三条轨道名长短分明，是为了让「塌回 MinWidth」和「按最宽那条撑开」在读数里分得开；窗口取 1280 DIP
+    /// 那一档，尾部那一份在四种页面上都画得出来。读数落在 <c>detail-picker-open.txt</c>。
+    /// </para>
+    /// </summary>
+    private async Task PickerDropDownAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var image = await FixtureImageAsync();
+        var movie = Movie("movie-picker");
+        movie.Name = "离线电影 · 文件选项下拉";
+        movie.ImageTags["Primary"] = "fixture";
+        movie.ImageTags["Art"] = "fixture";
+        movie.MediaSources =
+        [
+            new()
+            {
+                Id = "source-a",
+                Name = "离线版本 · 2160p",
+                Container = "mkv",
+                MediaStreams =
+                [
+                    new() { Index = 0, Type = "Video", Codec = "hevc", Width = 3840, Height = 2160 },
+                    new() { Index = 1, Type = "Audio", DisplayTitle = "English · DTS-HD Master Audio 7.1 · 导演评论及制作团队特别解说完整音轨", IsDefault = true },
+                    new() { Index = 2, Type = "Subtitle", DisplayTitle = "简体中文／English · 双语特效字幕", IsDefault = true },
+                    new() { Index = 3, Type = "Audio", DisplayTitle = "Chinese · FLAC stereo · 默认" },
+                    new() { Index = 4, Type = "Audio", DisplayTitle = "Chinese · DTS-HD MA 5.1" },
+                    new() { Index = 5, Type = "Audio", DisplayTitle = "Chinese · AC3 stereo" },
+                    new() { Index = 6, Type = "Audio", DisplayTitle = "Chinese · AC3 5.1" },
+                    new() { Index = 7, Type = "Audio", DisplayTitle = "Japanese · AAC stereo" },
+                    new() { Index = 8, Type = "Audio", DisplayTitle = "English · AC3 stereo" }
+                ]
+            }
+        ];
+        fixture.Transport.Reply = (request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.Contains("/Images/", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(image) });
+            if (path.EndsWith("/Items/movie-picker", StringComparison.Ordinal)) return Task.FromResult(Json(movie));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+        var frame = new Frame();
+        var readings = new List<string>();
+        _root.Children.Add(frame);
+        try
+        {
+            frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, movie));
+            var page = (DetailPage)frame.Content;
+            var vm = page.ViewModel;
+            await UntilAsync(() => page.IsReady && vm.AudioTracks.Count > 3 && vm.SelectedAudio is not null);
+            var scale = _root.XamlRoot.RasterizationScale;
+            ResizeInspect((int)Math.Ceiling(1280 * scale), (int)Math.Ceiling(900 * scale));
+            await LayoutAsync(page);
+            var audio = Get<EgPicker>(page, "AudioPicker");
+            // 第 0 条是最长的（它自己就比 MinWidth 宽）、第 5 条是最短的（闭合时正好贴在 MinWidth 上）——
+            // 用户那张实拍里塌下去的正是后一种。
+            foreach (var index in new[] { 0, 5 })
+            {
+                if (index >= vm.AudioTracks.Count) continue;
+                vm.SelectedAudio = vm.AudioTracks[index];
+                await SettleAsync();
+                var closed = Box(audio);
+                audio.IsDropDownOpen = true;
+                await SettleAsync();
+                await SettleAsync();
+                var open = Box(audio);
+                var list = audio.PopupPart?.Child is FrameworkElement panel ? Box(panel) : default;
+                var fit = page.PickerFit();
+                readings.Add($"选中 {index}：闭合 {closed.Left:0}–{closed.Right:0}"
+                    + $" → 展开 {open.Left:0}–{open.Right:0}（宽 {open.Width:0}）"
+                    + $"，弹层 {list.Left:0}–{list.Right:0}（上 {list.Top:0} 下 {list.Bottom:0}）"
+                    + $"，根 {_root.XamlRoot.Size.Width:0}×{_root.XamlRoot.Size.Height:0}"
+                    + $"，选中项 {vm.SelectedAudio?.Text}；{fit.Detail}");
+                Require(open.Width >= closed.Width - 0.5,
+                    $"展开后选择框反而窄了：{closed.Width:0} → {open.Width:0}");
+                Require(list.Right <= open.Right + 0.5,
+                    $"弹层探出选择框右沿 {list.Right - open.Right:0} 像素，压住了右边那一颗");
+                Require(fit.Ok, fit.Detail);
+                if (index == 0) await SaveProbeScreenAsync("detail-picker-open-screen.png");
+                audio.IsDropDownOpen = false;
+                await SettleAsync();
+                // 收起之后要回到内容撑出来的宽度：展开态那个数不许留在身上。
+                Require(Math.Abs(Box(audio).Width - closed.Width) < 0.5,
+                    $"收起后选择框没有回到原来的宽度：{Box(audio).Width:0} 对 {closed.Width:0}");
+            }
+            Require(fixture.Actions.Plays == 0, "文件选项展开检查意外请求播放");
+        }
+        finally
+        {
+            File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-picker-open.txt"), readings);
+            (frame.Content as IShellContent)?.Release();
+            _root.Children.Remove(frame);
+            ResizeInspect(1420, 980);
+        }
     }
 
     private async Task DetailPickerLayoutAsync()

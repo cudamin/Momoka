@@ -1002,12 +1002,19 @@
                              浓度由画笔自己的 `Opacity` 定 —— 为什么是这么个形状、每一档屏上量出来是什么样，
                              写在那一支的注释里）。第一版直接指到浮层那支 `ComboBoxDropDownBackground`
                              （0.55/0.55），用户看完一句「不够透明」。
-                             **弹层那一支也一并指过来**（用户同日第二条令：「展开后背景要和未展开一样」）——
-                             只改闭合态的话，点开那一下浓度会跳一档。别的页面的弹层照旧走全局那支。
                              五个背景键一起指过去（含 PointerOver/Pressed/Focused/Unfocused）：只改静止态的
                              话，指针一压上去就跳回实心块。悬停的反馈仍由框线和那颗下拉箭头给，同「选完落回来
                              像什么都没发生过」那套（见 Palette 里闭合态五件套的说明）。
                              边框不碰：那一圈是「哪儿能点」的读法，用户要去掉的从来只是底色。
+
+                             **只有闭合态走这一支（2026-10-16 用户两条令：「收起时候保持原来的透明度，展开后
+                             背景切换为亚克力材质」）**。此前弹层那支也一并指过来（2026-10-09 的第三条令：
+                             「展开后背景要和未展开一样」），那是为了让点开那一下浓度不跳档；这一轮反过来 ——
+                             列表开着的时候底下压着轨道名、邻座那颗下拉和剧情说明，透成那样读不清，用户要的是
+                             「展开＝亚克力」。所以这里只留五个闭合态的键，**`ComboBoxDropDownBackground`
+                             不再覆盖**，弹层回到 `Palette.xaml` 全局那一支（0.55/0.55 的 `AcrylicBrush`，
+                             2026-09-27 他验收过的那一支）；设置页、诊断页的弹层本来就走全局那支，一并照旧。
+                             弹层与闭合态因此不是同一种材料，这是用户点名的取舍，不是漏配。
 
                              集页那三颗（ColumnPickers）不在内 —— 它们压在片名底下那张剧照上，而这三颗底下是
                              压暗了七成二的画面；用户这一轮点名的也是电影、剧、季三页。 -->
@@ -1019,9 +1026,8 @@
                             Padding="{x:Bind ViewModel.TailPanelPadding, Mode=OneWay}"
                             Visibility="{x:Bind ViewModel.PickersVisibility, Mode=OneWay}">
                             <StackPanel.Resources>
-                                <!-- 弹层那支也跟着走（用户 2026-10-09 第二条：「展开后背景要和未展开一样」）：
-                                     点开时那圈底换成另一支浓度，屏上就是「一开就变浓」的一跳。 -->
-                                <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="EgPickerGlassBrush" />
+                                <!-- 只有闭合态那五件套：展开态那支 ComboBoxDropDownBackground 不覆盖，
+                                     弹层走 Palette 全局的亚克力（2026-10-16 用户令，理由见上一段）。 -->
                                 <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgPickerGlassBrush" />
                                 <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgPickerGlassBrush" />
                                 <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgPickerGlassBrush" />
