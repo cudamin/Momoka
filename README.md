@@ -25,7 +25,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
 **MoviePilot API调用** — 通过调用MoviePilot API内置多个功能的快捷键，提高片库管理效率。
 
-**界面** — 五套深色配色墨绿、纯黑、午夜、石墨、紫夜，首页轮播图。
+**界面** — 原生 WinUI 3，内置五套深色配色墨绿、纯黑、午夜、石墨、紫夜，首页轮播图。
 
 **多账号** — 支持多个账号同时登录，不同版本实时切换。
 
