@@ -1,6 +1,6 @@
 # Momoka
 
-第三方媒体库客户端，支持EMBY、Jellyfin（未验证），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
+自用的媒体库客户端，支持 Emby、Jellyfin（实服播放与写入未验证）和飞牛影视（实播未验证），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
 
 telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
@@ -27,20 +27,28 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
 **界面** — 五套深色配色墨绿、纯黑、午夜、石墨、紫夜，首页轮播图。
 
+**多账号** 支持多个账号同时登录，不同版本实时切换。
+
+**服务器** 支持多种服务器，Emby、Jellyfin（实服播放与写入未验证）和飞牛影视（实播未验证）
+
 ## 系统要求
 
 - Windows 10 1809 及以上，仅 x64
 - Emby 4.10.x
 - MoviePilot 3.x.x
-- Jellyfin 未验证
+- Jellyfin 已做协议与离线界面适配，实服播放、写入及网页控制台登录未验证
+- 飞牛影视按网页 0.9.8 / 服务 0.8.43 的官方前端核对，当前原画适配的实播未验证；这组版本是核对记录，不是全版本兼容保证
 - 可选：「服务器控制台」页需要 WebView2 Runtime，没有则提示改用浏览器打开
 
 ## 下载
 
-到 [Releases](https://github.com/cudamin/Momoka/releases) 下载最新的 `Momoka_windows-x64_x.x.x.exe` 安装包。
+到 [Releases](https://github.com/cudamin/Momoka/releases) 下载最新的 `Momoka_windows-x64_x.x.x.exe` 安装包，或通过 [Microsoft Store](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN) 安装。
+
+## 开发与验证
+
+开发使用 .NET 10 SDK，具体版本以 [global.json](global.json) 为准；构建、离线测试、隔离界面探针及发布命令见 [开发与验证](docs/开发与验证.md)。本地播放与发布需要另行准备匹配的 x64 `libmpv-2.dll`，该文件不入库。
 
 ## 许可证
-
 **本软件按 `MIT` 分发**，许可正文见 [LICENSE](LICENSE)。
 
 随包的播放内核是 **LGPL 构建的 mpv / libmpv**（LGPL-2.1-or-later，静态链 LGPL-3.0 的 FFmpeg）。
