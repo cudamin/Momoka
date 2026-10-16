@@ -1,6 +1,6 @@
 # Momoka
 
-第三方媒体库客户端，支持 Emby、Jellyfin（实服播放与写入未验证）和飞牛影视（实播未验证），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
+第三方媒体库客户端，支持 Emby、Jellyfin（实服播放与写入未验证）和飞牛影视（实播未验证），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。本项目不会支持任何和网盘或收费服有关的功能。
 
 telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
