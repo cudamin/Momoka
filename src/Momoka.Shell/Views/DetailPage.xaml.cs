@@ -1516,13 +1516,27 @@ public sealed partial class DetailPage : Page, IShellContent
         _window = window;
         window.GeometryChanged += OnWindowGeometryChanged;
         SyncPaperLine();
+        SyncCornerScale();
     }
 
     /// <summary>
     /// 换了显示器、改了窗口大小、全屏来回（<see cref="Windowing.HostWindow.GeometryChanged"/> 的全部场合）：
     /// 纸面上沿那条线跟着显示器走（<see cref="DetailHero.PaperLineFor"/>），这些时候都要重算一遍。
     /// </summary>
-    private void OnWindowGeometryChanged() => SyncPaperLine();
+    private void OnWindowGeometryChanged()
+    {
+        SyncPaperLine();
+        SyncCornerScale();
+    }
+
+    private void SyncCornerScale()
+    {
+        if (_window is not { } window || XamlRoot is not { RasterizationScale: > 0 } root) return;
+
+        var maximumWidth = window.WorkArea().Width / root.RasterizationScale;
+        var windowWidth = window.IsMaximized ? maximumWidth : window.ClientSize.Width / root.RasterizationScale;
+        ViewModel.SetCornerViewport(windowWidth, maximumWidth);
+    }
 
     /// <summary>
     /// 把纸面上沿那条线送到视图模型：阈值窗口的高（<see cref="DetailHero.PaperLineFor"/>，跟着这台显示器走）
@@ -1814,6 +1828,7 @@ public sealed partial class DetailPage : Page, IShellContent
         // 同一趟量的另一个数：这一页有多宽。紧凑版式换不换（DetailHero.IsCompact）、背景那一张画多高
         // （DetailViewModel.PictureHeight）都问它 —— 「多宽」只有布好的版面知道。
         ViewModel.PageWidth = Body.ActualWidth;
+        SyncCornerScale();
 
         // 宽高都变了，裁切模糊的档位跟着重算（DetailViewModel.UpdateHeroBlur）：换档它自己会用缓存的像素
         // 重糊，不换什么都不发生。

@@ -20,6 +20,7 @@ internal static class IdentityRegressionTests
         RegisterPasswords();
         RegisterSessionChanges();
         RegisterScopes();
+        RegisterMultipleSources();
         RegisterCapabilities();
         RegisterMoviePilot();
         RegisterDownloads();
@@ -114,7 +115,6 @@ internal static class IdentityRegressionTests
                         return Task.FromResult(sent.IsWrite ? Json("", HttpStatusCode.Unauthorized) : Standard(sent));
                     };
                     await fixture.Restore(fixture.A);
-                    var oldToken = fixture.A.Account.ProtectedAccessToken;
                     var old = fixture.Session.ExecuteAsync((client, token) => client.MarkPlayedAsync("old-item", token), None);
                     await entered.Task;
                     await fixture.Restore(fixture.B);
@@ -125,11 +125,13 @@ internal static class IdentityRegressionTests
 
                     Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
                     Assert.Equal(bToken, fixture.B.Account.ProtectedAccessToken);
-                    Assert.Equal(oldToken, fixture.A.Account.ProtectedAccessToken, "旧结果不能写入 A 的凭据");
+                    Assert.Equal(outcome == "success" ? "fresh-a" : "", fixture.Vault.GetAccessToken(fixture.A.Account),
+                        "A 的恢复结果只更新 A；失败只移除 A 的令牌");
                     Assert.Equal(fixture.B.Server.Id, fixture.Settings.LastServerId);
                     Assert.Equal(fixture.B.Account.Id, fixture.Settings.LastAccountId);
                     Assert.Equal(0, fixture.SignedOut);
-                    Assert.Equal(1, fixture.Transport.Sent.Count(s => s.IsWrite));
+                    Assert.Equal(outcome == "success" ? 2 : 1, fixture.Transport.Sent.Count(s => s.IsWrite));
+                    Assert.True(fixture.Transport.Sent.Where(s => s.IsWrite).All(s => s.Url.AbsolutePath.Contains("/Users/a/", StringComparison.Ordinal)));
                 });
 
         foreach (var success in new[] { true, false })
@@ -155,7 +157,8 @@ internal static class IdentityRegressionTests
                 await Fails<EmbyTokenExpiredException>(old);
                 Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
                 Assert.Equal(0, fixture.SignedOut);
-                Assert.Equal(1, fixture.Transport.Sent.Count(s => s.IsWrite));
+                Assert.Equal(success ? 2 : 1, fixture.Transport.Sent.Count(s => s.IsWrite));
+                Assert.True(fixture.Transport.Sent.Where(s => s.IsWrite).All(s => s.Url.AbsolutePath.Contains("/Users/a/", StringComparison.Ordinal)));
             });
 
         Case("身份回归：B 恢复尚未完成时，A 的旧恢复失败不能撤销 B 的选择", async () =>
@@ -194,7 +197,7 @@ internal static class IdentityRegressionTests
         });
 
         foreach (var unauthorized in new[] { false, true })
-            Case($"身份回归：两次令牌恢复逆序返回，旧 A {(unauthorized ? "401" : "成功")}不落地", async () =>
+            Case($"多来源身份：两次恢复逆序返回，A {(unauthorized ? "过期后重登" : "成功")}保留且默认仍是 B", async () =>
             {
                 using var fixture = new SessionFixture();
                 var entered = Signal<bool>();
@@ -208,19 +211,19 @@ internal static class IdentityRegressionTests
                     }
                     return Task.FromResult(Standard(sent));
                 };
-                var oldToken = fixture.A.Account.ProtectedAccessToken;
                 var a = fixture.Session.TryRestoreAsync(fixture.A.Server, fixture.A.Account, None);
                 await entered.Task;
                 await fixture.Restore(fixture.B);
                 reply.SetResult(unauthorized ? Json("", HttpStatusCode.Unauthorized) : Views("a"));
-                Assert.False(await a);
-                Assert.Equal(oldToken, fixture.A.Account.ProtectedAccessToken);
+                Assert.True(await a);
+                Assert.Equal(unauthorized ? "fresh-a" : "token-a", fixture.Vault.GetAccessToken(fixture.A.Account));
                 Assert.Equal("b-view", fixture.Session.TakeRestoredViews()![0].Id);
                 Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
-                Assert.Equal(0, fixture.Transport.Sent.Count(s => s.IsAuthentication));
+                Assert.Equal(unauthorized ? 1 : 0, fixture.Transport.Sent.Count(s => s.IsAuthentication));
+                Assert.Equal(2, fixture.Session.Sources.Count);
             });
 
-        Case("身份回归：显式登录逆序完成，只允许最后选择保存凭据", async () =>
+        Case("多来源身份：显式登录逆序完成，两者在线但默认保留最后选择", async () =>
         {
             using var fixture = new SessionFixture();
             var entered = Signal<bool>();
@@ -234,15 +237,15 @@ internal static class IdentityRegressionTests
                 }
                 return Task.FromResult(Standard(sent));
             };
-            var oldToken = fixture.A.Account.ProtectedAccessToken;
             var a = fixture.Session.SignInAsync(fixture.A.Server, fixture.A.Account, "new-a", "a", true, None);
             await entered.Task;
             await fixture.Session.SignInAsync(fixture.B.Server, fixture.B.Account, "new-b", "b", true, None);
             reply.SetResult(SignedIn("a", "late-a"));
-            await Fails<OperationCanceledException>(a);
+            await a;
             Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
-            Assert.Equal(oldToken, fixture.A.Account.ProtectedAccessToken);
-            Assert.Equal("password-a", fixture.Vault.GetPassword(fixture.A.Account));
+            Assert.Equal("late-a", fixture.Vault.GetAccessToken(fixture.A.Account));
+            Assert.Equal("new-a", fixture.Vault.GetPassword(fixture.A.Account));
+            Assert.Equal(2, fixture.Session.Sources.Count);
         });
 
         Case("身份回归：尚无 client 时退出登录也撤销正在登录的结果", async () =>
@@ -329,7 +332,7 @@ internal static class IdentityRegressionTests
             Assert.Equal(1, fixture.Transport.Sent.Count(s => s.IsAuthentication));
         });
 
-        Case("身份 Scope：离开 A 后 A 的 401 失败，但不能重登或注销 B", async () =>
+        Case("多来源 Scope：默认改为 B 后，A 的 401 仅恢复 A 且不注销 B", async () =>
         {
             using var fixture = new SessionFixture();
             await fixture.Restore(fixture.A);
@@ -338,7 +341,8 @@ internal static class IdentityRegressionTests
             fixture.Transport.Reply = (sent, _) => Task.FromResult(sent.IsWrite
                 ? Json("", HttpStatusCode.Unauthorized) : Standard(sent));
             await Fails<EmbyTokenExpiredException>(scope.ExecuteAsync((client, token) => client.MarkPlayedAsync("old", token), None));
-            Assert.Equal(0, fixture.Transport.Sent.Count(s => s.IsAuthentication));
+            Assert.Equal(1, fixture.Transport.Sent.Count(s => s.IsAuthentication));
+            Assert.True(scope.IsAvailable);
             Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
             Assert.Equal(0, fixture.SignedOut);
         });
@@ -431,6 +435,190 @@ internal static class IdentityRegressionTests
                     await Fails<OperationCanceledException>(scope.ExecuteAsync((_, _) => Task.CompletedTask, None));
                 }
             });
+    }
+
+    private static void RegisterMultipleSources()
+    {
+        Case("聚合媒体库：不同服务器相同库编号保留两份且来源各自绑定", async () =>
+        {
+            using var fixture = new SessionFixture();
+            fixture.Transport.Reply = (sent, _) => Task.FromResult(sent.IsViews
+                ? Json("{\"Items\":[{\"Id\":\"shared-library\",\"Name\":\"电影\",\"Type\":\"CollectionFolder\"}]}")
+                : Standard(sent));
+            await fixture.Session.RestoreAllAsync(None);
+            var result = await SourceLibraries.LoadAsync(fixture.Session, None);
+            Assert.Equal(2, result.Items.Count);
+            Assert.True(result.Items.All(item => item.Id == "shared-library"));
+            Assert.Equal(2, result.Items.Select(item => item.IdentityKey).Distinct().Count());
+            Assert.Equal(0, result.FailedSources.Count);
+            Assert.True(result.Items.All(item => item.Source?.IsAvailable == true));
+        });
+
+        Case("聚合媒体库：一台服务器请求失败仍返回另一台媒体库并注明来源", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await fixture.Session.RestoreAllAsync(None);
+            foreach (var source in fixture.Session.Sources) fixture.Session.TakeRestoredViews(source);
+            fixture.Transport.Reply = (sent, _) => Task.FromResult(sent.IsViews && sent.Token == "token-a"
+                ? Json("", HttpStatusCode.ServiceUnavailable) : Standard(sent));
+            var result = await SourceLibraries.LoadAsync(fixture.Session, None);
+            Assert.Equal(1, result.Items.Count);
+            Assert.Equal(fixture.B.Account.Id, result.Items[0].Source?.AccountProfileId);
+            Assert.Equal(1, result.FailedSources.Count);
+            Assert.Contains(fixture.A.Account.Username, result.FailedSources[0]);
+        });
+
+        Case("聚合媒体库：退出来源后不再查询该账号", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await fixture.Session.RestoreAllAsync(None);
+            fixture.Session.SignOut(fixture.A.Server, fixture.A.Account);
+            foreach (var source in fixture.Session.Sources) fixture.Session.TakeRestoredViews(source);
+            fixture.Transport.Sent.Clear();
+            var result = await SourceLibraries.LoadAsync(fixture.Session, None);
+            Assert.Equal(1, result.Items.Count);
+            Assert.Equal(fixture.B.Account.Id, result.Items[0].Source?.AccountProfileId);
+            Assert.True(fixture.Transport.Sent.All(sent => sent.Token != "token-a"));
+            Assert.Equal(1, fixture.Transport.Sent.Count(sent => sent.IsViews));
+        });
+
+        Case("多来源：启动恢复所有保存账号并保留默认，重复条目号按来源区分", async () =>
+        {
+            using var fixture = new SessionFixture(true);
+            fixture.Settings.Remember(fixture.B.Server, fixture.B.Account);
+            Assert.Equal(2, await fixture.Session.RestoreAllAsync(None));
+            Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
+            var sources = fixture.Session.Sources;
+            var first = sources.Single(source => source.AccountProfileId == fixture.A.Account.Id);
+            var second = sources.Single(source => source.AccountProfileId == fixture.B.Account.Id);
+            var a = await first.ExecuteAsync((_, _) => Task.FromResult(new EmbyItem { Id = "same" }), None);
+            var b = await second.ExecuteAsync((_, _) => Task.FromResult(new ItemsResult { Items = [new EmbyItem { Id = "same" }] }), None);
+            Assert.Equal(first.Key, a.Source?.Key);
+            Assert.Equal(second.Key, b.Items[0].Source?.Key);
+            Assert.False(a.IdentityKey == b.Items[0].IdentityKey);
+            Assert.Equal(first.Key, fixture.Session.Capture(a).Key);
+            using var json = JsonDocument.Parse(JsonSerializer.Serialize(a));
+            Assert.False(json.RootElement.TryGetProperty("Source", out _));
+            Assert.False(json.RootElement.TryGetProperty("IdentityKey", out _));
+        });
+
+        Case("多来源：退出 A 仅撤销 A，保留 B 及 A 保存密码但不自动重登", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await fixture.Session.RestoreAllAsync(None);
+            var a = fixture.Session.Sources.Single(source => source.AccountProfileId == fixture.A.Account.Id);
+            var b = fixture.Session.Sources.Single(source => source.AccountProfileId == fixture.B.Account.Id);
+            var item = a.Bind(new EmbyItem { Id = "same" });
+            fixture.Session.SelectSource(b);
+            fixture.Session.SignOut(fixture.A.Server, fixture.A.Account);
+            Assert.False(a.IsAvailable);
+            Assert.True(b.IsAvailable);
+            Assert.Equal(1, fixture.Session.Sources.Count);
+            Assert.Equal(0, fixture.SignedOut);
+            Assert.False(fixture.A.Account.AutoConnect ?? true);
+            Assert.True(fixture.A.Account.HasSavedPassword);
+            Assert.False(fixture.A.Account.HasSavedToken);
+            Assert.Throws<OperationCanceledException>(() => fixture.Session.Capture(item));
+            using var restart = new EmbySession(fixture.Settings,
+                new SettingsStore(new AppPaths(Path.Combine(fixture.Root, "restart")), PassthroughSecretProtector.Instance),
+                fixture.Vault, DeviceIdentity.Create("restart", "1"), new Transport());
+            Assert.Equal(1, await restart.RestoreAllAsync(None));
+            Assert.Equal(fixture.B.Account.Id, restart.Capture().AccountProfileId);
+        });
+
+        Case("多来源：旧设置仅保存密码而没有令牌的账号不在启动时自动登录", async () =>
+        {
+            using var fixture = new SessionFixture();
+            fixture.Vault.ClearAccessToken(fixture.A.Account);
+            Assert.Null(fixture.A.Account.AutoConnect);
+            Assert.Equal(1, await fixture.Session.RestoreAllAsync(None));
+            Assert.Equal(fixture.B.Account.Id, fixture.Session.Capture().AccountProfileId);
+            Assert.False(fixture.Transport.Sent.Any(sent => sent.IsAuthentication));
+        });
+
+        Case("多来源：A 令牌失效且未保存密码只注销 A，不撤销 B 的 scope", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await fixture.Session.RestoreAllAsync(None);
+            var a = fixture.Session.Sources.Single(source => source.AccountProfileId == fixture.A.Account.Id);
+            var b = fixture.Session.Sources.Single(source => source.AccountProfileId == fixture.B.Account.Id);
+            fixture.Vault.SetPassword(fixture.A.Account, "", false);
+            fixture.Transport.Reply = (sent, _) => Task.FromResult(sent.IsWrite && sent.Token == "token-a"
+                ? Json("", HttpStatusCode.Unauthorized) : Standard(sent));
+            await Fails<EmbyTokenExpiredException>(a.ExecuteAsync((client, token) => client.MarkPlayedAsync("a-item", token), None));
+            Assert.False(a.IsAvailable);
+            Assert.True(b.IsAvailable);
+            Assert.True(fixture.Session.IsSignedIn);
+            Assert.Equal(0, fixture.SignedOut);
+            await b.ExecuteAsync((client, token) => client.MarkPlayedAsync("b-item", token), None);
+            Assert.Equal("token-b", fixture.Transport.Sent.Last(sent => sent.IsWrite).Token);
+        });
+
+        Case("多来源：不同账号的令牌恢复互不排队，重试各自使用原用户", async () =>
+        {
+            using var fixture = new SessionFixture(true);
+            await fixture.Session.RestoreAllAsync(None);
+            var a = fixture.Session.Sources.Single(source => source.AccountProfileId == fixture.A.Account.Id);
+            var b = fixture.Session.Sources.Single(source => source.AccountProfileId == fixture.B.Account.Id);
+            var entered = Signal<bool>();
+            var reply = Signal<HttpResponseMessage>();
+            fixture.Transport.Reply = (sent, _) =>
+            {
+                if (sent.IsAuthentication && sent.Username == "a")
+                {
+                    entered.SetResult(true);
+                    return reply.Task;
+                }
+                return Task.FromResult(sent.IsWrite && sent.Token.StartsWith("token-", StringComparison.Ordinal)
+                    ? Json("", HttpStatusCode.Unauthorized) : Standard(sent));
+            };
+            var first = a.ExecuteAsync((client, token) => client.MarkPlayedAsync("a-item", token), None);
+            await entered.Task;
+            await b.ExecuteAsync((client, token) => client.MarkPlayedAsync("b-item", token), None).WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.False(first.IsCompleted);
+            reply.SetResult(SignedIn("a", "fresh-a"));
+            await first;
+            Assert.Equal(2, fixture.Transport.Sent.Count(sent => sent.IsAuthentication));
+            Assert.True(fixture.Transport.Sent.Where(sent => sent.IsWrite && sent.Token == "fresh-a")
+                .All(sent => sent.Url.AbsolutePath.Contains("/Users/a/", StringComparison.Ordinal)));
+            Assert.True(fixture.Transport.Sent.Where(sent => sent.IsWrite && sent.Token == "fresh-b")
+                .All(sent => sent.Url.AbsolutePath.Contains("/Users/b/", StringComparison.Ordinal)));
+        });
+
+        Case("多来源：同账号连续登录的旧成功不能覆盖新凭据", async () =>
+        {
+            using var fixture = new SessionFixture();
+            var entered = Signal<bool>();
+            var reply = Signal<HttpResponseMessage>();
+            var requests = 0;
+            fixture.Transport.Reply = (sent, _) =>
+            {
+                if (sent.IsAuthentication && Interlocked.Increment(ref requests) == 1)
+                {
+                    entered.SetResult(true);
+                    return reply.Task;
+                }
+                return Task.FromResult(Standard(sent));
+            };
+            var first = fixture.Session.SignInAsync(fixture.A.Server, fixture.A.Account, "old", "a", true, None);
+            await entered.Task;
+            await fixture.Session.SignInAsync(fixture.A.Server, fixture.A.Account, "new", "a", true, None);
+            reply.SetResult(SignedIn("a", "obsolete"));
+            await Fails<OperationCanceledException>(first);
+            Assert.Equal("fresh-a", fixture.Vault.GetAccessToken(fixture.A.Account));
+            Assert.Equal("new", fixture.Vault.GetPassword(fixture.A.Account));
+            Assert.Equal(1, fixture.Session.Sources.Count);
+        });
+
+        Case("多来源：其他会话的条目不能借本会话默认账号执行", async () =>
+        {
+            using var fixture = new SessionFixture();
+            using var other = new SessionFixture();
+            await fixture.Restore(fixture.A);
+            await other.Restore(other.A);
+            var item = other.Session.Capture().Bind(new EmbyItem { Id = "foreign" });
+            Assert.Throws<OperationCanceledException>(() => fixture.Session.Capture(item));
+        });
     }
 
     private static void RegisterCapabilities()

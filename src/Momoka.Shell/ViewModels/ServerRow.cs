@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using Momoka.Configuration;
+using Momoka.Emby;
 using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
@@ -15,13 +16,15 @@ namespace Momoka.Shell.ViewModels;
 /// </summary>
 public sealed class ServerRow
 {
-    internal ServerRow(ServersViewModel owner, ServerProfile profile, bool current, AccountProfile? currentAccount)
+    internal ServerRow(ServersViewModel owner, ServerProfile profile, bool current, AccountProfile? currentAccount,
+        IReadOnlyList<EmbySessionScope> sources)
     {
         Owner = owner;
         Profile = profile;
         IsCurrent = current;
         Accounts = new ObservableCollection<AccountRow>(profile.Accounts.Select(account =>
-            new AccountRow(owner, profile, account, current && ReferenceEquals(account, currentAccount))));
+            new AccountRow(owner, profile, account, current && ReferenceEquals(account, currentAccount),
+                sources.Any(source => source.ServerProfileId == profile.Id && source.AccountProfileId == account.Id))));
     }
 
     /// <summary>
@@ -45,7 +48,7 @@ public sealed class ServerRow
 
     public string Url => Profile.Url;
 
-    public string AccountSummary => Accounts.Count == 0 ? "无账号" : $"{Accounts.Count} 个账号";
+    public string AccountSummary => Accounts.Count == 0 ? "无账号" : $"{Accounts.Count(account => account.IsConnected)} / {Accounts.Count} 个账号已连接";
 
     public ObservableCollection<AccountRow> Accounts { get; }
 
@@ -60,12 +63,13 @@ public sealed class ServerRow
 /// </summary>
 public sealed class AccountRow
 {
-    internal AccountRow(ServersViewModel owner, ServerProfile server, AccountProfile account, bool current)
+    internal AccountRow(ServersViewModel owner, ServerProfile server, AccountProfile account, bool current, bool connected)
     {
         Owner = owner;
         Server = server;
         Account = account;
         IsCurrent = current;
+        IsConnected = connected;
     }
 
     /// <inheritdoc cref="ServerRow.Owner" />
@@ -82,10 +86,19 @@ public sealed class AccountRow
     /// also the order the sign-in page tries them in.
     /// </summary>
     public string Status => IsCurrent
-        ? "当前账号"
+        ? "已连接 · 默认管理账号"
+        : IsConnected ? "已连接 · 已参与聚合"
         : Account.HasSavedToken ? "已保存登录令牌"
         : Account.HasSavedPassword ? "已保存密码"
         : "需要登录";
 
     public bool IsCurrent { get; }
+
+    public bool IsConnected { get; }
+
+    public string LoginLabel => IsConnected ? "设为默认管理账号" : "登录账号";
+
+    public Visibility LoginVisibility => IsCurrent ? Visibility.Collapsed : Visibility.Visible;
+
+    public Visibility SignOutVisibility => IsConnected ? Visibility.Visible : Visibility.Collapsed;
 }

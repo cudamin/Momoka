@@ -993,7 +993,7 @@ public sealed partial class HomePage : Page, IShellContent
 
         if (target?.Card is not { } card) return null;
 
-        ItemCommands.Show(_session, _actions, target, card, position: null, changed: Reload);
+        ItemCommands.Show(_session, _actions, target, card, position: null, changed: Reload, watched: ViewModel.MarkedWatched);
         return card.Title;
     }
 
@@ -1299,13 +1299,18 @@ public sealed partial class HomePage : Page, IShellContent
     /// 需求 6：右键一张卡片。No sibling list: a home-page row is a handful of unrelated next-up episodes
     /// from different series, and offering them to each other as 选集 would be wrong. A metadata save
     /// reloads every row, because the item that changed may be in more than one of them.
+    /// <para>
+    /// 标记已看走的是另一条路（<c>watched</c>）：那一件事只需补一张卡，见 <see cref="HomeViewModel.MarkedWatched"/>。
+    /// </para>
     /// </summary>
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, changed: Reload, removed: ViewModel.Remove);
+        ItemCommands.Handle(_session, _actions, sender, args,
+            changed: Reload, removed: ViewModel.Remove, watched: ViewModel.MarkedWatched);
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
     private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, changed: Reload, removed: ViewModel.Remove);
+        ItemCommands.Handle(_session, _actions, sender, args,
+            changed: Reload, removed: ViewModel.Remove, watched: ViewModel.MarkedWatched);
 
     /// <summary>需求 5：播放 on the carousel. Fire and forget, same as every other play on this page.</summary>
     private void OnBannerPlayRequested(object? sender, BannerSlide slide) => _ = ViewModel.PlayAsync(slide);

@@ -36,6 +36,8 @@ public sealed class SettingsCategoryGlyphConverter : IValueConverter
         ["控制台"] = 0xE9D9,       // ViewDashboard
         ["用户"] = 0xE716,         // People
         ["媒体库"] = 0xE8B7,       // Folder
+        ["设置"] = 0xE713,         // Settings
+        ["任务计划"] = 0xE787,     // Calendar
         ["网页控制台"] = 0xE774,   // Globe
         ["恢复默认"] = 0xE72C      // Refresh（还原、重来一遍）
     };

@@ -40,6 +40,7 @@ public static class HomeLayout
 
     /// <summary>媒体库那几排的钥匙前缀，后面跟着那个库的 id。</summary>
     private const string LibraryPrefix = "library:";
+    private const string ScopedLibraryPrefix = LibraryPrefix + "source:";
 
     /// <summary>
     /// 默认版面：三排固定的按这个次序，然后每个媒体库一排。第一次运行、以及设置文件里那份被删空时用的就是它。
@@ -49,10 +50,21 @@ public static class HomeLayout
     /// <summary>一个媒体库那一排的钥匙。</summary>
     public static string LibraryKey(string id) => LibraryPrefix + id;
 
+    /// <summary>不同服务器、账号中的同名库和相同 ID 都有独立的版面位置。</summary>
+    public static string LibraryKey(EmbyItem library) => library.Source is { } source
+        ? $"{ScopedLibraryPrefix}{Uri.EscapeDataString(source.Key)}:{Uri.EscapeDataString(library.Id)}"
+        : LibraryKey(library.Id);
+
+    private static string? LibrarySourceKey(string key) => key.StartsWith(ScopedLibraryPrefix, StringComparison.Ordinal)
+        && key.LastIndexOf(':') > ScopedLibraryPrefix.Length
+            ? Uri.UnescapeDataString(key[ScopedLibraryPrefix.Length..key.LastIndexOf(':')]) : null;
+
     /// <summary>那把钥匙指的是哪个媒体库，不是媒体库那几排就是 <see langword="null"/>。</summary>
     public static string? LibraryId(string? key) =>
         key is { Length: > 0 } && key.StartsWith(LibraryPrefix, StringComparison.Ordinal)
-            ? key[LibraryPrefix.Length..]
+            ? key.StartsWith(ScopedLibraryPrefix, StringComparison.Ordinal)
+                ? Uri.UnescapeDataString(key[(key.LastIndexOf(':') + 1)..])
+                : key[LibraryPrefix.Length..]
             : null;
 
     /// <summary>
@@ -152,7 +164,7 @@ public static class HomeLayout
         {
             if (library.Id is not { Length: > 0 } id) continue;
 
-            var key = LibraryKey(id);
+            var key = LibraryKey(library);
             if (names.ContainsKey(key)) continue;
 
             names[key] = LibraryTitle(library.Name);
@@ -161,6 +173,8 @@ public static class HomeLayout
 
         var plan = new List<HomeRowPlan>(Fixed.Length + order.Count);
         var taken = new HashSet<string>(StringComparer.Ordinal);
+        var knownSources = (libraries ?? []).Where(library => library.Source is not null)
+            .Select(library => library.Source!.Key).ToHashSet(StringComparer.Ordinal);
 
         // 一排叫什么。四排固定的自己说得出；媒体库那一排的名字在服务器那份库列表里 —— 除非这一头压根没有那份
         // 列表（设置窗口不连服务器，主窗口读库列表失败时也是空手），那就用存档里记着的那一句。少了这一手，那几排
@@ -168,14 +182,19 @@ public static class HomeLayout
         string? Title(string key, string? cached) =>
             FixedTitle(key)
             ?? (names.TryGetValue(key, out var live) ? live : null)
-            ?? (names.Count == 0 && LibraryId(key) is { Length: > 0 } && cached is { Length: > 0 }
+            ?? ((names.Count == 0 || LibrarySourceKey(key) is { } source && !knownSources.Contains(source))
+                && LibraryId(key) is { Length: > 0 } && cached is { Length: > 0 }
                 ? cached
                 : null);
 
         // 存档里那一份先走，它就是用户拖出来的次序。
         foreach (var row in saved ?? [])
         {
-            if (row.Key is not { Length: > 0 } key || !taken.Add(key)) continue;
+            if (row.Key is not { Length: > 0 } key) continue;
+            // 旧版库 key 没有来源；沿用第一处匹配库的位置和勾选状态，其余来源作为独立新库追加。
+            if (!names.ContainsKey(key) && LibrarySourceKey(key) is null && LibraryId(key) is { } legacyId)
+                key = order.FirstOrDefault(candidate => LibraryId(candidate) == legacyId) ?? key;
+            if (!taken.Add(key)) continue;
 
             // 认不出来的钥匙：那个库删了，或者手改设置时写错了。扔掉 —— 留着就是一排永远空的货架。
             if (Title(key, row.Title) is not { } title) continue;

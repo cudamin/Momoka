@@ -28,6 +28,7 @@ public sealed partial class ServersPage : Page, IShellContent
     private const string Category = "服务器";
 
     private ServerRequest? _request;
+    private EmbySession? _session;
 
     public ServersPage()
     {
@@ -93,17 +94,30 @@ public sealed partial class ServersPage : Page, IShellContent
         // The one place this page resolves anything. Deliberately a single block: it is the line that goes
         // when the shell stops handing a container around.
         var services = request.Services;
+        if (_session is not null) _session.SourcesChanged -= OnSourcesChanged;
+        _session = services.GetRequiredService<EmbySession>();
+        _session.SourcesChanged += OnSourcesChanged;
 
         ViewModel.Attach(
             services.GetRequiredService<IShellActions>(),
             services.GetRequiredService<ISettingsService>(),
-            services.GetRequiredService<EmbySession>(),
+            _session,
             services.GetRequiredService<EmbyImageStore>());
 
         _ = ViewModel.ReloadAsync();
     }
 
-    public void Release() => ViewModel.Cancel();
+    public void Release()
+    {
+        if (_session is not null) _session.SourcesChanged -= OnSourcesChanged;
+        _session = null;
+        ViewModel.Cancel();
+    }
+
+    private void OnSourcesChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (_session is not null) ViewModel.Refresh();
+    });
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {

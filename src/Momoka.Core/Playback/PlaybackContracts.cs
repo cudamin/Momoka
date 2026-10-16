@@ -28,6 +28,9 @@ public sealed record PlaybackTicket
 
     public long StartTicks { get; init; }
 
+    /// <summary>播放中换版本使用当前读数，不重复应用从保存位置续播的回退秒数。</summary>
+    public bool ExactStart { get; init; }
+
     /// <summary>The series row for an episode, so genre-based rules can see the show's metadata.</summary>
     public EmbyItem? Parent { get; init; }
 
@@ -89,7 +92,10 @@ public sealed record PlaybackChoice(
     int? AudioStreamIndex,
     int? SubtitleStreamIndex,
     bool SubtitlesDisabled,
-    long StartTicks);
+    long StartTicks)
+{
+    public bool ExactStart { get; init; }
+}
 
 /// <summary>
 /// What the most recent playback was launched with, kept for the diagnostics page after that playback
@@ -109,6 +115,8 @@ public sealed record LaunchRecord(
 /// </summary>
 public sealed record PlaybackRequest
 {
+    public Momoka.FnNas.FnNasPlaybackSelection? FnNasSelection { get; init; }
+
     public required Uri MediaUrl { get; init; }
 
     /// <summary>Native window state retained across a replacement; null uses the normal launch preference.</summary>

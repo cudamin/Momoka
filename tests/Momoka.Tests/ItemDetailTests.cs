@@ -710,11 +710,77 @@ internal static class ItemDetailTests
 
         Test("单集：播放从第一集未看的开始", () =>
         {
+            // 没有季这一层（剧上问不出季）时整份都算，与从前一样。
             var episodes = new List<EmbyItem> { Watched("第一集"), Watched("第二集"), Unwatched("第三集") };
-            Assert.Equal("第三集", ItemDetail.PickEpisode(episodes)?.Name);
+            Assert.Equal("第三集", ItemDetail.PickEpisode(episodes, null)?.Name);
 
-            Assert.Equal("第一集", ItemDetail.PickEpisode([Watched("第一集"), Watched("第二集")])?.Name);
-            Assert.Null(ItemDetail.PickEpisode([]));
+            Assert.Equal("第一集", ItemDetail.PickEpisode([Watched("第一集"), Watched("第二集")], null)?.Name);
+            Assert.Null(ItemDetail.PickEpisode([], null));
+        });
+
+        Test("单集：播放起的是这一季的集，不是并进来的特典", () =>
+        {
+            // 《伪恋》第 1 季那一份的形状：服务器把 air-order 特典并进这一季的列表（23 条里 3 条记在 S00），
+            // 而它们排在最前。照单取第一条，剧页面的播放键就写着 S00E01 —— 用户 2026-10-15 报的那一条。
+            var first = Season("第 1 季", unplayed: 3, index: 1);
+            first.Id = "s1";
+            var specials = Season("特别篇", unplayed: 1, index: 0);
+            specials.Id = "s0";
+
+            var oad = new EmbyItem
+            {
+                Name = "OAD 1",
+                Type = EmbyItemType.Episode,
+                SeasonId = "s0",
+                SeasonName = "特别篇",
+                ParentIndexNumber = 0,
+                IndexNumber = 1
+            };
+            var episode1 = new EmbyItem
+            {
+                Name = "第一集",
+                Type = EmbyItemType.Episode,
+                SeasonId = "s1",
+                SeasonName = "第 1 季",
+                ParentIndexNumber = 1,
+                IndexNumber = 1
+            };
+            var episode2 = new EmbyItem
+            {
+                Name = "第二集",
+                Type = EmbyItemType.Episode,
+                SeasonId = "s1",
+                SeasonName = "第 1 季",
+                ParentIndexNumber = 1,
+                IndexNumber = 2
+            };
+
+            var merged = new List<EmbyItem> { oad, episode1, episode2 };
+
+            // 什么都没看过：起 S01E01，不是排在最前的 S00E01。
+            Assert.Equal("第一集", ItemDetail.PickEpisode(merged, first)?.Name);
+
+            // 看过第一集：起第二集 —— 挑的仍是这一季里第一个没看的。
+            episode1.UserData = new EmbyUserData { Played = true };
+            Assert.Equal("第二集", ItemDetail.PickEpisode(merged, first)?.Name);
+            episode1.UserData = null;
+
+            // 特典那一季自己：那一份整份都是它的，起第一条。
+            Assert.Equal("OAD 1", ItemDetail.PickEpisode([oad], specials)?.Name);
+
+            // 一位都比不出来时（条目上没有季 id、也没有季号）照旧取整份第一条，而不是没有落点。
+            var loose = new List<EmbyItem> { Unwatched("第一条"), Unwatched("第二条") };
+            Assert.Equal("第一条", ItemDetail.PickEpisode(loose, first)?.Name);
+
+            // 只有季号可认时也认得出季：季 id 缺席（换服务器、条目字段不全）不该让它退化成整份。
+            var byNumber = new EmbyItem
+            {
+                Name = "特典",
+                Type = EmbyItemType.Episode,
+                ParentIndexNumber = 0,
+                IndexNumber = 1
+            };
+            Assert.Equal("第一集", ItemDetail.PickEpisode([byNumber, episode1], first)?.Name);
         });
 
         Test("单集：标题行数出总数与已看数", () =>
@@ -1479,7 +1545,7 @@ internal static class ItemDetailTests
             // 参考宽上这道钳制不咬合：1280 − 96 内边距 − 352 封面 − 44 两道栏距 − 308 题栏 ＝ 480，正好封顶。
             Assert.Equal(DetailHero.CornerWidth, DetailHero.CornerBoxWidth(1280, 352));
 
-            // 更宽也是 480：题栏只宽不窄，角图不多占。
+            // 未传放大进度时仍保持默认大小。
             Assert.Equal(DetailHero.CornerWidth, DetailHero.CornerBoxWidth(2000, 469));
 
             // 窄到 1064（自检那一档）：角图让到 323，题栏保住 308。
@@ -1490,23 +1556,35 @@ internal static class ItemDetailTests
             Assert.Equal(0d, DetailHero.CornerBoxWidth(700, 256));
         });
 
-        // 「放大集页面右侧的艺术图」（2026-09-12，320×180 → 480×270）—— 那一格多大，以及它会不会长高过带子。
+        Test("头图艺术图：常规窗口之后连续放大到当前屏幕最大档", () =>
+        {
+            Assert.Equal(1d, DetailHero.CornerScale(1280, 1920));
+            Assert.Equal(1d, DetailHero.CornerScale(1100, 1920));
+            Assert.Equal(1.25, DetailHero.CornerScale(1600, 1920));
+            Assert.Equal(1.5, DetailHero.CornerScale(1920, 1920));
+            Assert.Equal(1.5, DetailHero.CornerScale(2560, 1920));
+            Assert.Equal(1.25, DetailHero.CornerScale(1920, 2560));
+            Assert.Equal(1d, DetailHero.CornerScale(1024, 1024));
+            Assert.Equal(1d, DetailHero.CornerScale(double.NaN, 1920));
+            Assert.Equal(540d, DetailHero.CornerBoxWidth(1920, 250, 1.5));
+            Assert.Equal(366d, DetailHero.CornerBoxWidth(1064, 250, 1.5));
+        });
+
         Test("头图艺术图：那一格是一整格 16:9，图按形状装进去", () =>
         {
             // 16:9 的艺术图一分不裁地填满它 —— 这两个数正是照 16:9 挑的，所以盒子的比例本身就是规矩。
             Assert.Equal(DetailHero.CornerHeight * 16d / 9, DetailHero.CornerWidth);
-            Assert.Equal((480d, 270d),
+            Assert.Equal((360d, 202d),
                 DetailHero.StillBox(1280, 720, DetailHero.CornerWidth, DetailHero.CornerHeight));
 
-            // 别的形状按短边收，整张画得下：4:3 的横画收到 360 宽，竖画收到 270 高那一边。
-            Assert.Equal((360d, 270d),
+            // 横画和竖画都完整装进上限盒，不裁切。
+            Assert.Equal((270d, 202d),
                 DetailHero.StillBox(1024, 768, DetailHero.CornerWidth, DetailHero.CornerHeight));
-            Assert.Equal((152d, 270d),
+            Assert.Equal((114d, 202d),
                 DetailHero.StillBox(1080, 1920, DetailHero.CornerWidth, DetailHero.CornerHeight));
 
-            // 它比集页那一叠字键还高（那一叠两百六七）—— 带子的账必须算上它，不然就是一截画压在音频那一行上。
-            // 宽版式的集页上留给内容的只有带高减上下两道边（28 和 16），402 上下；这一张 270 占得住。
-            Assert.True(DetailHero.CornerHeight > 260);
+            // 最大档仍可能比文字更高，带高需要纳入放大后的图片高度。
+            Assert.True(DetailHero.CornerHeight * DetailHero.CornerScaleLimit > 260);
             Assert.True(DetailHero.CornerHeight < DetailHero.ArtHeight);
         });
 

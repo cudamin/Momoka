@@ -121,6 +121,9 @@ public sealed class ChapterInfo
 
 public sealed class MediaStream
 {
+    [JsonIgnore]
+    public string? ProviderId { get; set; }
+
     public int Index { get; set; }
 
     /// <summary>"Video", "Audio", "Subtitle", "EmbeddedImage".</summary>
@@ -242,6 +245,10 @@ public sealed class MediaStream
 
 public sealed class MediaSource
 {
+    /// <summary>Provider-resolved original media URL. Authentication remains on the captured connection.</summary>
+    [JsonIgnore]
+    public Uri? DirectStreamUrl { get; set; }
+
     public string Id { get; set; } = "";
 
     /// <summary>
@@ -393,6 +400,14 @@ public sealed class EmbyStudio
 
 public sealed class EmbyItem
 {
+    /// <summary>运行期所属服务器账号；不进入服务器 JSON 或持久化设置。</summary>
+    [JsonIgnore]
+    public EmbySessionScope? Source { get; set; }
+
+    /// <summary>区分不同服务器、不同账号上编号相同的条目。</summary>
+    [JsonIgnore]
+    public string IdentityKey => Source is { } source ? $"{source.Key}:{Id}" : Id;
+
     public string Id { get; set; } = "";
 
     public string Name { get; set; } = "";
@@ -440,6 +455,9 @@ public sealed class EmbyItem
     /// response whose <c>Fields</c> did not list it (see <see cref="EmbyFields.Detail"/>).
     /// </summary>
     public DateTimeOffset? EndDate { get; set; }
+
+    /// <summary>剧集的播出状态：Continuing 或 Ended；缺失时不推测仍在连载。</summary>
+    public string? Status { get; set; }
 
     public DateTimeOffset? DateCreated { get; set; }
 
@@ -621,10 +639,17 @@ public sealed class EmbyItem
                 return code.Length > 0 ? $"{code}  ·  {SeriesName}" : SeriesName ?? "";
             }
 
+            if (Type == EmbyItemType.Series)
+            {
+                if (ProductionYear is not { } start || start <= 0) return "";
+                return string.Equals(Status, "Continuing", StringComparison.OrdinalIgnoreCase)
+                    ? $"{start} – 至今"
+                    : ItemDetail.Years(this);
+            }
+
             var parts = new List<string>(2);
             if (ProductionYear is { } year and > 0) parts.Add(year.ToString());
-            if (Type is EmbyItemType.Series && ChildCount is { } count and > 0) parts.Add($"{count} 季");
-            else if (DisplayTypeName.Length > 0 && Type != EmbyItemType.Movie) parts.Add(DisplayTypeName);
+            if (DisplayTypeName.Length > 0 && Type != EmbyItemType.Movie) parts.Add(DisplayTypeName);
             return string.Join("  ·  ", parts);
         }
     }

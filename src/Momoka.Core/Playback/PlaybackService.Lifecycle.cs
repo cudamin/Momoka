@@ -16,7 +16,7 @@ public sealed partial class PlaybackService
         public void Dispose() { Startup.Dispose(); Lifetime.Dispose(); }
     }
 
-    private sealed class PlayingAttempt(IPlaybackHandle handle, PlaybackRequest request, long generation, PlaybackTrackState trackState)
+    private sealed class PlayingAttempt(IPlaybackHandle handle, PlaybackRequest request, long generation, PlaybackTrackState trackState, EmbySessionScope scope)
     {
         private readonly object _stopGate = new();
         private Task? _stopTask;
@@ -24,6 +24,7 @@ public sealed partial class PlaybackService
         public PlaybackRequest Request { get; } = request;
         public long Generation { get; } = generation;
         public PlaybackTrackState TrackState { get; } = trackState;
+        public EmbySessionScope Scope { get; } = scope;
         public string SessionId { get; } = Guid.NewGuid().ToString("N");
         public SemaphoreSlim Reports { get; } = new(1, 1);
         public volatile bool Ending;
@@ -50,7 +51,14 @@ public sealed partial class PlaybackService
         cancellationToken.ThrowIfCancellationRequested();
         startupCancellation.ThrowIfCancellationRequested();
         EmbySessionScope scope;
-        try { scope = identity ?? session.Capture(); }
+        try
+        {
+            scope = identity ?? session.Capture(ticket.Item);
+            if (ticket.Item.Source is { } source && source.Key != scope.Key)
+                throw new InvalidOperationException("播放条目与登录来源不一致");
+            scope.ThrowIfUnavailable();
+            scope.Bind(ticket.Item);
+        }
         catch
         {
             if (_current is null) RaiseNowPlaying(null, Generation);
@@ -208,7 +216,7 @@ public sealed partial class PlaybackService
                 ThrowIfSuperseded(operation);
                 operation.Established = true;
                 _current = handle;
-                attempt = new PlayingAttempt(handle, request, Interlocked.Increment(ref _playbackGeneration), trackState)
+                attempt = new PlayingAttempt(handle, request, Interlocked.Increment(ref _playbackGeneration), trackState, scope)
                 {
                     BackendKind = backendKind,
                     HasStarted = handle is IPlayerControl { Status: { HasPosition: true } status }

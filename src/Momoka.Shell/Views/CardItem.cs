@@ -122,7 +122,8 @@ public sealed class CardItem : INotifyPropertyChanged
     {
         _item = item;
         _images = images;
-        Scope = images.CaptureScope();
+        Scope = images.CaptureScope(item);
+        if (item.Source is null) Scope?.Bind(item);
         _width = width;
         _wide = wide;
         _subtitle = subtitle;
@@ -139,7 +140,7 @@ public sealed class CardItem : INotifyPropertyChanged
 
     internal EmbySessionScope? Scope { get; }
 
-    internal bool IsCurrent => Scope?.IsCurrent == true;
+    internal bool IsCurrent => Scope?.IsAvailable == true;
 
     public string Title => _item.Name;
 
@@ -318,7 +319,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _wanted = true;
 
         if (_imageType is null || _missing || _poster is not null || _loading is not null) return;
-        if (Scope is not { IsCurrent: true } scope) return;
+        if (Scope is not { IsAvailable: true } scope) return;
 
         // 上一次「没取到」还没隔够冷却时间就不问了：滚动一路会把同一张卡反复递进来，不拦的话一次断网就是每一趟
         // 滚动都朝服务器排一遍车轮战。隔够了才放行 —— 服务器多半已经喘过气来了。
@@ -343,7 +344,7 @@ public sealed class CardItem : INotifyPropertyChanged
             var bytes = await _images.GetAsync(scope, _item.Id, _imageType, tag, EmbyImageStore.RequestWidth(_width), cts.Token)
                 .ConfigureAwait(true);
 
-            if (cts.IsCancellationRequested || !scope.IsCurrent) return;
+            if (cts.IsCancellationRequested || !scope.IsAvailable) return;
 
             if (bytes is null || bytes.Length == 0)
             {
@@ -358,7 +359,7 @@ public sealed class CardItem : INotifyPropertyChanged
             }
 
             var bitmap = await PosterLoader.DecodeAsync(bytes, _width).ConfigureAwait(true);
-            if (cts.IsCancellationRequested || !scope.IsCurrent) return;
+            if (cts.IsCancellationRequested || !scope.IsAvailable) return;
 
             if (bitmap is not null) PosterCache.Remember(cacheKey, bitmap);
 

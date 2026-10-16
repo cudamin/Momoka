@@ -149,6 +149,11 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     private EmbyItem? _parent;
     private EmbyItem? _nowPlaying;
+    private IReadOnlyList<MediaVersion> _versions = [];
+    private int _versionDiscovery;
+    private sealed record PendingPlayback(EmbyItem Item, EmbyItem? Parent, IReadOnlyList<EmbyItem> Episodes,
+        EmbySessionScope Scope, long Intent);
+    private PendingPlayback? _pendingPlayback;
 
     /// <summary>See the class remarks: the reason the player survives the seam between two episodes.</summary>
     private int _playerHold;
@@ -305,6 +310,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _playback.NowPlayingUpdated += OnNowPlayingChanged;
         _playback.VideoWindowUpdated += OnVideoWindowMessage;
         ShellPrefs.ShortcutsChanged += NativeShortcutsChanged;
+        _session.SourcesChanged += OnVersionSourcesChanged;
     }
 
     /// <summary>
@@ -335,6 +341,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _playback.NowPlayingUpdated -= OnNowPlayingChanged;
         _playback.VideoWindowUpdated -= OnVideoWindowMessage;
         ShellPrefs.ShortcutsChanged -= NativeShortcutsChanged;
+        _session.SourcesChanged -= OnVersionSourcesChanged;
         _lifetime.Cancel();
         _generation++;
         _coverGeneration++;
@@ -529,7 +536,8 @@ public sealed partial class PlayerViewModel : ObservableObject
         set
         {
             _currentItem = value;
-            VersionControlsVisible = value is not null && value.MediaSources.Count > 1;
+            _versions = MediaVersionDiscovery.Local(value);
+            VersionControlsVisible = _versions.Count > 1;
 
             // 独占模式视频窗里那颗「版本」按钮吃的是同一个数（用户令 2026-09-23「只有一个版本的情况下
             // 不显示…」）：uosc 的控件表是静态的，露不露面得宿主把答案告诉它。写在同一格里，「有几版」
@@ -646,8 +654,23 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     internal string PlayingItemId { get; private set; } = "";
 
+    internal string PlayingItemKey => _nowPlaying?.IdentityKey ?? "";
+
+    private bool HasAggregateQueue => EpisodeNavigation.HasMultipleSources(Episodes);
+
+    internal string EpisodeMenuLabel(EmbyItem episode) => episode.ToPlaybackTitle();
+
     /// <summary>这个条目上的全部版本，顺序就是「版本」菜单里的次序。没在播时是空表。</summary>
-    internal IReadOnlyList<MediaSource> Versions => MediaVersionSwitch.Versions(_nowPlaying);
+    internal IReadOnlyList<MediaSource> Versions => _versions
+        .Where(version => version.Item.Source is null || version.Item.Source.IsAvailable)
+        .Select(version => version.Source).ToArray();
+
+    internal string VersionLabel(MediaSource source) => _versions
+        .FirstOrDefault(version => ReferenceEquals(version.Source, source))?.LabelFor(MediaVersionDiscovery.HasMultipleServers(_session.Sources))
+        ?? ItemDetail.SourceLabel(source);
+
+    internal bool IsPlayingVersion(MediaSource source) => _versions
+        .Any(version => ReferenceEquals(version.Source, source) && version.IsPlaying(_nowPlaying, _playback.PlayingSource));
 
     /// <summary>
     /// 正在放的那一版 —— <b>条目版本表里的那一行</b>，候选回退落定之后的那一版（见

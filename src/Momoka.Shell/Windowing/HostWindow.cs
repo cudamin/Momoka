@@ -1440,7 +1440,7 @@ internal sealed class HostWindow : IDisposable
     /// The usable rectangle of the monitor the window is on, taskbar excluded, or an empty rectangle when
     /// the OS will not say — which <see cref="AspectLock.Fit"/> reads as 「do not constrain」.
     /// </summary>
-    private WindowBounds WorkArea()
+    internal WindowBounds WorkArea()
     {
         var monitor = Native.MonitorFromWindow(Handle, Native.MonitorDefaultToNearest);
         var info = new MonitorInfo { Size = (uint)Marshal.SizeOf<MonitorInfo>() };
@@ -2598,7 +2598,7 @@ internal sealed class HostWindow : IDisposable
     /// only other window the app has.
     /// <para>
     /// 悬停和按下那两档故意用半透明的白／黑而不是主题里的某个面：它们压在标题栏底色上，靠透明度叠出来的
-    /// 那一档在六套主题里都对。
+    /// 那一档在每一套主题里都对。
     /// </para>
     /// <para>
     /// 那三颗按钮的墨还多一个条件：主页那张大图铺到窗口顶边之后它们就站在剧照上，见

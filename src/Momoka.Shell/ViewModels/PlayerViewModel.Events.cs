@@ -378,10 +378,10 @@ public sealed partial class PlayerViewModel
         List<UoscMenuItem> items = Episodes.Count == 0
             ? [new UoscMenuItem("（这一场没有可用的集列表）", null, false, false)]
             : [.. Episodes.Select((episode, index) => new UoscMenuItem(
-                episode.ToPlaybackTitle(),
+                EpisodeMenuLabel(episode),
                 $"script-message {VideoWindowContract.EpisodeIndex} {snapshot.ValueAt(index)}",
                 true,
-                string.Equals(episode.Id, PlayingItemId, StringComparison.Ordinal)))];
+                string.Equals(episode.IdentityKey, PlayingItemKey, StringComparison.Ordinal)))];
 
         await SendMenuAsync("episodes", "选集", items, anchor: true).ConfigureAwait(true);
     }
@@ -483,10 +483,10 @@ public sealed partial class PlayerViewModel
         List<UoscMenuItem> items = versions.Count <= 1
             ? [new UoscMenuItem("没有可切换的版本", null, false, false)]
             : [.. versions.Select((source, index) => new UoscMenuItem(
-                ItemDetail.SourceLabel(source),
+                VersionLabel(source),
                 $"script-message {VideoWindowContract.VersionIndex} {snapshot.ValueAt(index)}",
                 true,
-                MediaVersionSwitch.Same(source, PlayingSource),
+                IsPlayingVersion(source),
                 QualityTail(source)))];
 
         await SendMenuAsync("versions", "版本", items, anchor: true).ConfigureAwait(true);
@@ -591,7 +591,7 @@ public sealed partial class PlayerViewModel
         _seekSent = null;
         _nowPlaying = item;
         if (item is not null
-            && string.Equals(_episodeSwitchTargetId, item.Id, StringComparison.Ordinal))
+            && string.Equals(_episodeSwitchTargetId, item.IdentityKey, StringComparison.Ordinal))
             _episodeSwitchTargetId = null;
 
         // 换版在途标记同样在这一刻放开 —— 它挡的是「同一下点两遍」，不是整场播放。
@@ -644,13 +644,22 @@ public sealed partial class PlayerViewModel
         // 「标题前面加上剧名」，09-27 那版「剧名让给第二行」被翻案** —— 第二行如今只剩文件大小/分辨率/编码/
         // 音频/组名，剧名不在那儿）。两条管线同源、显示一致（独占那两行由 uosc 顶栏画，NoteSubline 把第二行
         // 推过去；主标题走 force-media-title＝同一个 ToPlaybackHeadline）。
+        if (_pendingPlayback is { } pending && ReferenceEquals(pending.Item, item))
+        {
+            _parent = pending.Parent;
+            Episodes = pending.Episodes;
+            _playbackScope = pending.Scope;
+            _activeIntent = pending.Intent;
+            _pendingPlayback = null;
+        }
+        PlayingItemId = item.Id;
         Title = item.ToPlaybackHeadline();
         AdoptShaderLaunch(item);
         Subtitle = PlaybackTitles.Subline(PlayingSourceOrFirst(item));
 
         // 控制条中间那行读数是**正在放的那一版**的，见 PlayingSourceLabel。
         SourceLabel = PlayingSourceLabel(item);
-        EpisodeControlsVisible = item.Type == EmbyItemType.Episode
+        EpisodeControlsVisible = HasAggregateQueue || item.Type == EmbyItemType.Episode
             && (Episodes.Count > 1 || !string.IsNullOrEmpty(item.SeriesId));
 
         // 独占模式视频窗里那颗「选集」按钮吃同一个数（2026-09-26 用户令「播放电影的时候不要显示这个
@@ -670,6 +679,9 @@ public sealed partial class PlayerViewModel
         // （浏览级元数据没有媒体源），而 FillSiblingsAsync 后来会把服务器那条更全的换上去；
         // 两边各算各的就会打架，见 CurrentItem 与 VersionControlsVisible 的注释。
         CurrentItem = item;
+        if (Episodes.Count == 0 && item.Type == EmbyItemType.Episode && _playbackScope is { } scope)
+            _ = FillSiblingsAsync(item, scope, _activeIntent);
+        _ = LoadVersionsAsync(item, _generation, ++_versionDiscovery);
 
         // Before the player is shown rather than after: the window is reshaped for the picture while the
         // picture is still being opened, so the first frame arrives into a client area that is already its
@@ -777,9 +789,9 @@ public sealed partial class PlayerViewModel
         }
 
         // 同一条目换媒体源可复用背景；还在解码时则等待原任务，不能提前放行进场。
-        if (string.Equals(_coverBackdropItemId, item.Id, StringComparison.Ordinal)) return _coverBackdropLoad;
+        if (string.Equals(_coverBackdropItemId, item.IdentityKey, StringComparison.Ordinal)) return _coverBackdropLoad;
 
-        _coverBackdropItemId = item.Id;
+        _coverBackdropItemId = item.IdentityKey;
         var generation = ++_coverGeneration;
         CoverBackdropFrame = null;
         CoverBackdrop = null;
@@ -823,20 +835,21 @@ public sealed partial class PlayerViewModel
 
     private async Task<byte[]?> PickCoverBackdropBytesAsync(EmbyItem item, int width)
     {
+        var scope = _session.Capture(item);
         if (item.BackdropImageTags.Count > 0)
         {
-            var own = await _images.GetAsync(item.Id, EmbyImageStore.Backdrop, item.BackdropImageTags[0], width, CancellationToken.None).ConfigureAwait(true);
+            var own = await _images.GetAsync(scope, item.Id, EmbyImageStore.Backdrop, item.BackdropImageTags[0], width, CancellationToken.None).ConfigureAwait(true);
             if (own is not null) return own;
         }
 
         if (item is { ParentBackdropItemId: { Length: > 0 } parent, ParentBackdropImageTags.Count: > 0 })
         {
-            var inherited = await _images.GetAsync(parent, EmbyImageStore.Backdrop, item.ParentBackdropImageTags[0], width, CancellationToken.None).ConfigureAwait(true);
+            var inherited = await _images.GetAsync(scope, parent, EmbyImageStore.Backdrop, item.ParentBackdropImageTags[0], width, CancellationToken.None).ConfigureAwait(true);
             if (inherited is not null) return inherited;
         }
 
         if (item.ThumbImageTag is { Length: > 0 } thumb)
-            return await _images.GetAsync(item.Id, EmbyImageStore.Thumb, thumb, width, CancellationToken.None).ConfigureAwait(true);
+            return await _images.GetAsync(scope, item.Id, EmbyImageStore.Thumb, thumb, width, CancellationToken.None).ConfigureAwait(true);
 
         return null;
     }

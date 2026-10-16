@@ -100,9 +100,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     private IShellActions? _actions;
 
     private ISettingsService? _settings;
-    private EmbySession? _session;
     private EmbyImageStore? _images;
     private IServerCapabilities? _capabilities;
+
+    private Version? SourceServerVersion => _scope?.IsCurrent == true ? _capabilities?.ServerVersion
+        : Version.TryParse(_scope?.Connection.ServerVersion, out var version) ? version : null;
 
     /// <summary>Total the server reported; <see cref="NotLoaded"/> until the first page has come back.</summary>
     private int _total = NotLoaded;
@@ -128,6 +130,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     private readonly LoadGeneration _jumps = new();
     private CancellationToken _queryToken;
     private EmbySessionScope? _scope;
+    private IReadOnlyList<EmbySessionScope> _sources = [];
+    private AggregateQueryCursor? _cursor;
+    private readonly HashSet<string> _resumeRead = new(StringComparer.Ordinal);
+    private bool Aggregated => _sources.Count > 1;
+    private bool SourcesAvailable => _sources.Any(source => source.IsAvailable);
     private bool _active;
     private bool _firstPage;
     private bool _pageFailed;
@@ -285,10 +292,10 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// the second half of the rule reads.
     /// </summary>
     public Visibility AlphaVisibility => Show(
-        _request?.IsSearch != true && SortKey == EmbySortBy.Name && !SortDescending && _total is > 30);
+        !Aggregated && _scope?.Connection.IsFnNas != true && _request?.IsSearch != true && SortKey == EmbySortBy.Name && !SortDescending && _total is > 30);
 
     /// <summary>Whether this grid has anything the player could start, for the two play buttons.</summary>
-    internal bool HasPlayable => _active && _scope?.IsCurrent == true && _firstPage && !Busy
+    internal bool HasPlayable => _active && SourcesAvailable && _firstPage && !Busy
         && Cards.Any(card => card.Item.IsPlayable);
 
     protected override void BusyChanged() => RowsArrived();
@@ -368,7 +375,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// Whether the server has rows this grid has not asked for yet. True before the first page, because
     /// 「nothing has been asked」 and 「everything has arrived」 must not look the same to the pager.
     /// </summary>
-    internal bool HasMore => _total < 0 || Cards.Count < _total;
+    internal bool HasMore => !(_request?.IsSearch == true && string.IsNullOrWhiteSpace(_request.SearchTerm))
+        && (Aggregated ? _cursor?.HasMore ?? true : _total < 0 || Cards.Count < _total);
 
     /// <summary>
     /// 这一页是不是主页「继续观看」那一排点进来的。见 <see cref="ReadAsync"/>：这一页的条目整份由服务器那条
@@ -385,7 +393,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 那是这张网格怎么画，与服务器无关。
     /// </para>
     /// </summary>
-    public Visibility SortFilterVisibility => Show(!IsResumePage);
+    public Visibility SortFilterVisibility => Show(!IsResumePage && !Aggregated);
+    public Visibility FilterVisibility => Show(!IsResumePage && !Aggregated && _scope?.Connection.IsFnNas != true);
 
     /// <summary>
     /// Handed the navigation payload and the four capabilities one grid draws from, once per navigation to
@@ -408,11 +417,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         Cancel();
         _active = true;
-        _scope = images.CaptureScope();
+        _scope = request.Source ?? images.CaptureScope();
+        _sources = request.Source is { } source ? [source]
+            : request.ParentId is not null || request.PersonId is not null ? _scope is null ? [] : [_scope]
+            : session.Sources.ToArray();
         _request = request;
         _actions = actions;
         _settings = settings;
-        _session = session;
         _images = images;
         _capabilities = capabilities;
         _moviePilot = moviePilot;
@@ -439,6 +450,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         // 这两颗键在不在，也是这一页的身份说的（见 SortFilterVisibility）—— 换一个请求就得重问一次。
         OnPropertyChanged(nameof(SortFilterVisibility));
+        OnPropertyChanged(nameof(FilterVisibility));
 
         RestoreSort();
         RestoreFilters();
@@ -453,7 +465,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal async Task SearchAsync(string term, bool remember = true)
     {
-        if (!_active || _scope?.IsCurrent != true || _request is not { IsSearch: true } request) return;
+        if (!_active || !SourcesAvailable || _request is not { IsSearch: true } request) return;
 
         var query = term.Trim();
         request.SearchTerm = query;
@@ -477,7 +489,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (!QueryCurrent(queryToken) || !Cards.Contains(card)) return false;
         // 容器会连带删除未加载的后代；查询刚切换时屏上也可能仍是旧排序，不能据旧集合推算新分页。
-        if (!_firstPage || deleted && (card.Item.IsFolder || card.Item.Type is EmbyItemType.Series
+        if (Aggregated || !_firstPage || deleted && (card.Item.IsFolder || card.Item.Type is EmbyItemType.Series
             or EmbyItemType.Season or EmbyItemType.Folder or EmbyItemType.BoxSet or EmbyItemType.Playlist))
             return await RefreshAfterRemovalAsync(queryToken).ConfigureAwait(true);
         base.Cancel();
@@ -494,6 +506,54 @@ public sealed partial class LibraryViewModel : PageViewModel
         return true;
     }
 
+    /// <summary>
+    /// 「继续观看」那一页的一张卡被标成已看之后，把那一格收拾干净 —— 单集换成本剧的下一集，电影、以及没有
+    /// 下一集的单集一律撤掉（用户令 2026-10-15）。
+    /// <para>
+    /// 与主页那一排同一份判据、同一段收尾（<see cref="ResumeSlot"/>）：那两个面子讲的是同一件事，口径必须一样
+    /// —— 2026-09-22「一排 1 项、进去 9 项」那次就是两个面子各说各话。
+    /// </para>
+    /// <para>
+    /// 只在继续观看那一页动手：别的页上的卡标记已看只是它自己那个对勾的事，条目还在这一页里。
+    /// </para>
+    /// </summary>
+    internal void MarkedWatched(CardItem card)
+    {
+        if (IsResumePage) _ = AfterWatchedAsync(card);
+    }
+
+    private async Task AfterWatchedAsync(CardItem card)
+    {
+        var queryToken = _queryToken;
+        if (!QueryCurrent(queryToken) || card.Scope is not { IsAvailable: true } scope || !Cards.Contains(card)) return;
+
+        var watched = card.Item;
+
+        // 下一集先问回来再动屏（同主页那一排）：先撤后插会让这一格空着闪一下。问不出来（最后一集、断线、
+        // 离页）都按「没有下一集」办。
+        var next = ResumeRow.WantsNext(watched)
+            ? await ResumeSlot.NextEpisodeAsync(scope, watched, Category).ConfigureAwait(true)
+            : null;
+
+        // 这一趟往返里页面可能已经走了、换了账号、或者换了一次查询：那就一个字都别动。
+        if (!QueryCurrent(queryToken) || !card.IsCurrent || !Cards.Contains(card)) return;
+
+        var slot = ResumeSlot.Apply(Cards, card, next, NewCard);
+        if (_resumeRead.Remove(watched.IdentityKey)) _cursor?.RemoveConsumed(scope.Key);
+        Log.Info(Category, slot is null
+            ? $"「{watched.Name}」标记已看，从继续观看撤下"
+            : $"「{watched.Name}」标记已看，那一格换成「{slot.Name}」");
+
+        // 撤掉一格少一项、换掉那一格总数不变（同 RemoveAsync 里那份账）：分页起点跟着新数量走。
+        if (slot is null && _total > 0) _total--;
+        ShowEmptyNotice = Cards.Count == 0;
+        RowsArrived();
+    }
+
+    /// <summary>照这一页当前的视图形状造一张卡（同 <see cref="LoadAsync"/> 那一句）。</summary>
+    private CardItem NewCard(EmbyItem item) =>
+        new(item, _images!, CardBuildWidth, CardBuildWide, indicators: _indicators);
+
     private async Task<bool> RefreshAfterRemovalAsync(CancellationToken queryToken)
     {
         var wanted = Math.Max(Cards.Count, _settings!.PageSize);
@@ -502,6 +562,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         var token = BeginLoad();
         try
         {
+            ResetCursor();
             var items = new List<EmbyItem>();
             var total = 0;
             do
@@ -514,9 +575,11 @@ public sealed partial class LibraryViewModel : PageViewModel
             } while (items.Count < Math.Min(wanted, total));
 
             // 原有卡片原位保留，只移除消失的项并补入需要的项，避免容器、焦点和海报整页重建。
-            var retained = Cards.ToDictionary(card => card.Item.Id, StringComparer.Ordinal);
-            var desired = items.Select(item => retained.TryGetValue(item.Id, out var existing) ? existing
-                : new CardItem(item, _images!, CardBuildWidth, CardBuildWide, indicators: _indicators)).ToArray();
+            var retained = Cards.DistinctBy(card => card.Item.IdentityKey).ToDictionary(card => card.Item.IdentityKey, StringComparer.Ordinal);
+            var desired = items.Select(item => retained.TryGetValue(item.IdentityKey, out var existing) ? existing
+                : NewCard(item)).ToArray();
+            if (IsResumePage)
+                foreach (var item in items) _resumeRead.Add(item.IdentityKey);
             var kept = desired.ToHashSet();
             for (var index = Cards.Count - 1; index >= 0; index--)
                 if (!kept.Contains(Cards[index]))
@@ -560,7 +623,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </param>
     private async Task LoadAsync(bool reset)
     {
-        if (!_active || _scope is not { IsCurrent: true } || _request is null || _actions is null) return;
+        if (!_active || !SourcesAvailable || _request is null || _actions is null) return;
         if (!reset && (Busy || !HasMore || !_firstPage || _pageFailed)) return;
         if (reset)
         {
@@ -569,6 +632,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             _firstPage = false;
             _pageFailed = false;
             _total = NotLoaded;
+            ResetCursor();
             ShowEmptyNotice = false;
             if (_request.IsSearch)
             {
@@ -592,7 +656,10 @@ public sealed partial class LibraryViewModel : PageViewModel
             if (result is not null)
             {
                 foreach (var item in result.Items)
-                    Cards.Add(new CardItem(item, _images!, CardBuildWidth, CardBuildWide, indicators: _indicators));
+                {
+                    Cards.Add(NewCard(item));
+                    if (IsResumePage) _resumeRead.Add(item.IdentityKey);
+                }
                 if (result.Items.Count == 0) _total = Cards.Count;
             }
             _firstPage = true;
@@ -617,7 +684,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal CancellationToken QueryToken => _queryToken;
 
     internal bool QueryCurrent(CancellationToken token) =>
-        _active && _scope?.IsCurrent == true && _queries.IsCurrent(token);
+        _active && SourcesAvailable && _queries.IsCurrent(token);
 
     public override void Cancel()
     {
@@ -631,7 +698,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal void Resume(bool reload = true)
     {
         if (_active) return;
-        _active = _scope?.IsCurrent == true;
+        _active = SourcesAvailable;
         if (_active && reload) _ = ReloadAsync();
     }
 
@@ -656,13 +723,42 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <returns>null ＝ 这一页没什么可问的（搜索页空着那个框，<see cref="BuildQuery"/> 也为它返回 null）。</returns>
     private async Task<ItemsResult?> ReadAsync(int start, CancellationToken token)
     {
-        if (!_active || _scope is not { IsCurrent: true } scope) throw new OperationCanceledException();
+        if (!_active || !SourcesAvailable) throw new OperationCanceledException();
+        if (!IsResumePage && BuildQuery(start) is null) return null;
+        if (Aggregated)
+            return await ReadAggregatedAsync(_cursor ??= NewCursor(), token).ConfigureAwait(true);
+        return await ReadSourceAsync(_sources[0], start, token).ConfigureAwait(true);
+    }
+
+    private AggregateQueryCursor NewCursor() => new(_sources.Select(source => source.Key));
+
+    private void ResetCursor()
+    {
+        _cursor = Aggregated ? NewCursor() : null;
+        _resumeRead.Clear();
+    }
+
+    private async Task<ItemsResult> ReadAggregatedAsync(AggregateQueryCursor cursor, CancellationToken token)
+    {
+        var page = await cursor.ReadAsync((key, offset, ct) =>
+            ReadSourceAsync(_sources.First(source => source.Key == key), offset, ct), token).ConfigureAwait(true);
+        if (_active && !token.IsCancellationRequested && page.Failures.Count > 0)
+        {
+            Notify(null, "部分来源暂时无法读取，已显示其他来源；刷新可重试。", Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning);
+            foreach (var (key, error) in page.Failures) Log.Warn(Category, $"聚合读取来源 {key} 失败", error);
+        }
+        return page.Result;
+    }
+
+    private async Task<ItemsResult> ReadSourceAsync(EmbySessionScope scope, int start, CancellationToken token)
+    {
+        scope.ThrowIfUnavailable();
         if (IsResumePage)
             return await scope
                 .ExecuteAsync((client, ct) => client.QueryResumeAsync(start, _settings!.PageSize, ct), token)
                 .ConfigureAwait(true);
 
-        if (BuildQuery(start) is not { } query) return null;
+        if (BuildQuery(start) is not { } query) return new ItemsResult();
 
         return await scope
             .ExecuteAsync((client, ct) => client.GetItemsAsync(query, ct), token)
@@ -709,7 +805,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         var entries = new List<SortEntry>();
         string? previousGroup = null;
 
-        foreach (var option in EmbySortBy.For(preset, _capabilities!.ServerVersion))
+        foreach (var option in EmbySortBy.For(preset, SourceServerVersion))
         {
             if (!SupportsSort(option.ValueOf(preset))) continue;
             // Separators rather than headings: nineteen keys need the grouping to be visible, and a
@@ -726,7 +822,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>A key was picked out of the flyout.</summary>
     internal void ChooseSort(EmbySortOption option)
     {
-        if (!_active || _scope?.IsCurrent != true || _request is null || _actions is null) return;
+        if (!_active || !SourcesAvailable || _request is null || _actions is null || Aggregated) return;
 
         var key = option.ValueOf(_request.SortPreset);
         if (!SupportsSort(key)) return;
@@ -810,6 +906,14 @@ public sealed partial class LibraryViewModel : PageViewModel
         var token = BeginLoad();
         try
         {
+            if (Aggregated)
+            {
+                var cursor = NewCursor();
+                var all = await PlayableList.CollectAsync([], true,
+                    async (_, ct) => await ReadAggregatedAsync(cursor, ct).ConfigureAwait(true),
+                    () => IsCurrent(token), token).ConfigureAwait(true);
+                return (all, token);
+            }
             var items = await PlayableList.CollectAsync(
                 loaded, hasMore, ReadAsync, () => IsCurrent(token), token).ConfigureAwait(true);
             return (items, token);
@@ -829,7 +933,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <returns>The index of the first row at or after the letter, and the letter to light up.</returns>
     internal async Task<(int Index, string Letter)?> JumpToAsync(string letter)
     {
-        if (!_active || Busy || !_firstPage || _scope is not { IsCurrent: true } scope || BuildQuery(0) is not { } source)
+        if (!_active || Aggregated || Busy || !_firstPage || _scope is not { IsAvailable: true } scope || BuildQuery(0) is not { } source)
             return null;
         var queryToken = _queryToken;
         var jumpToken = _jumps.Begin();
@@ -879,11 +983,11 @@ public sealed partial class LibraryViewModel : PageViewModel
             NameStartsWith = letter
         };
 
-        scope.ThrowIfNotCurrent();
+        scope.ThrowIfUnavailable();
         var result = await scope
             .ExecuteAsync((client, ct) => client.GetItemsAsync(query, ct), token)
             .ConfigureAwait(true);
-        scope.ThrowIfNotCurrent();
+        scope.ThrowIfUnavailable();
 
         return result.TotalRecordCount;
     }
@@ -982,11 +1086,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal async Task<IReadOnlyList<string>> FetchFilterValuesAsync(string key, CancellationToken cancellationToken)
     {
-        if (_request is null) return [];
+        if (_request is null || Aggregated || _scope is not { IsAvailable: true } source) return [];
 
         if (BuildQuery(0) is not { } scope) return [];
 
-        return await _session!
+        return await source
             .ExecuteAsync((client, token) => client.GetFilterValuesAsync(key, scope, token), cancellationToken)
             .ConfigureAwait(true);
     }
@@ -1044,7 +1148,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (MemoryKey() is { } memoryKey
             && Settings.Ui.Sort.TryGetValue(memoryKey, out var saved)
             && EmbySortBy.Find(saved.By) is { } option
-            && option.AppliesTo(preset, _capabilities!.ServerVersion)
+            && option.AppliesTo(preset, SourceServerVersion)
             && SupportsSort(saved.By))
         {
             SortKey = saved.By;
@@ -1055,7 +1159,9 @@ public sealed partial class LibraryViewModel : PageViewModel
         ShowSort(label, descending);
     }
 
-    private bool SupportsSort(string value) => _scope?.Connection.IsJellyfin != true || JellyfinQuery.SupportsSort(value);
+    private bool SupportsSort(string value) => _scope?.Connection.IsFnNas == true
+        ? Momoka.FnNas.FnNasMediaAdapter.SupportsSort(value)
+        : _scope?.Connection.IsJellyfin != true || JellyfinQuery.SupportsSort(value);
 
     private void RememberSort()
     {
@@ -1107,7 +1213,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     private void RestoreFilters()
     {
-        _filters = MemoryKey() is { } memoryKey
+        _filters = _scope?.Connection.IsFnNas != true && MemoryKey() is { } memoryKey
             && Settings.Ui.Filters.TryGetValue(memoryKey, out var saved)
                 ? saved.Clone()
                 : new ItemFilters();
@@ -1169,7 +1275,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// every time one was opened.
     /// </summary>
     private string? MemoryKey() =>
-        _request is { CollectionType: not null, ParentId: { Length: > 0 } id } && _scope is { IsCurrent: true } scope
+        _request is { CollectionType: not null, ParentId: { Length: > 0 } id } && _scope is { IsAvailable: true } scope
             ? BrowsingPreferences.LibraryKey(scope.Connection, id) : null;
 
     private string Describe() =>

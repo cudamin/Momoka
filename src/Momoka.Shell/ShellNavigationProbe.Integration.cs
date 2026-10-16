@@ -57,8 +57,13 @@ internal sealed partial class ShellNavigationProbe
         var shell = new ShellPage();
         shell.Attach(fixture.Services);
         _root.Children.Add(shell);
-        var reply = Pending<HttpResponseMessage>();
+        var reply = Pending<bool>();
         var entered = Pending<bool>();
+        async Task<HttpResponseMessage> LateLibraryAsync()
+        {
+            await reply.Task;
+            return Json(new { Items = new[] { new EmbyItem { Id = "a-library", Name = "A 的库", Type = EmbyItemType.CollectionFolder } } });
+        }
         try
         {
             await LayoutAsync(shell);
@@ -68,7 +73,7 @@ internal sealed partial class ShellNavigationProbe
                 if (request.RequestUri!.Host == "a.invalid" && request.RequestUri.AbsolutePath.EndsWith("/Views", StringComparison.Ordinal))
                 {
                     entered.TrySetResult(true);
-                    return reply.Task;
+                    return LateLibraryAsync();
                 }
                 if (request.RequestUri.AbsolutePath.EndsWith("/Views", StringComparison.Ordinal))
                     return Task.FromResult(Json(new { Items = new[] { new EmbyItem { Id = "b-library", Name = "B 的库", Type = EmbyItemType.CollectionFolder, CollectionType = "movies" } } }));
@@ -77,15 +82,18 @@ internal sealed partial class ShellNavigationProbe
             var enteringA = (Task)Call(shell, "EnterShellAsync")!;
             await entered.Task;
             await fixture.SelectAsync("b.invalid");
-            await (Task)Call(shell, "EnterShellAsync")!;
-            reply.SetResult(Json(new { Items = new[] { new EmbyItem { Id = "a-library", Name = "A 的旧库", Type = EmbyItemType.CollectionFolder } } }));
-            await enteringA;
-            Require(shell.LibraryViews.Count == 1 && shell.LibraryViews[0].Id == "b-library" && shell.CurrentTag == "home",
-                "旧目录覆盖新身份或更改新导航");
+            var enteringB = (Task)Call(shell, "EnterShellAsync")!;
+            reply.SetResult(true);
+            await Task.WhenAll(enteringA, enteringB);
+            await UntilAsync(() => shell.LibraryViews.Count == 2 && shell.CurrentTag == "home" && shell.ActiveContentReady);
+            Require(shell.LibraryViews.Select(view => view.Id).Order().SequenceEqual(new[] { "a-library", "b-library" })
+                && shell.LibraryViews.Select(view => view.Source?.Key).Distinct().Count() == 2
+                && fixture.Session.Connection?.ApiBase.Host == "b.invalid",
+                "并发加载未保留两台服务器媒体库，或迟到目录抢回了默认管理身份");
         }
         finally
         {
-            reply.TrySetResult(Items(0, 0));
+            reply.TrySetResult(true);
             Call(shell, "ReleaseContent");
             shell.SignInRoot.Detach();
             _root.Children.Remove(shell);
@@ -96,6 +104,7 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
+        var original = fixture.Session.Capture();
         var shell = new ShellPage();
         shell.Attach(fixture.Services);
         _root.Children.Add(shell);
@@ -134,6 +143,9 @@ internal sealed partial class ShellNavigationProbe
             await switchingA;
             Require(fixture.Session.Connection?.ApiBase.Host == "new.invalid" && !shell.SignInVisible && shell.CurrentTag == "home",
                 "旧恢复失败或取消把新身份退回登录卡");
+            Require(original.IsAvailable && fixture.Session.Sources.Count == 2
+                && fixture.Session.Sources.All(source => source.Connection.ApiBase.Host != "old.invalid"),
+                "取消的登录被迟到响应恢复，或切换登录时注销了原本在线的来源");
         }
         finally
         {

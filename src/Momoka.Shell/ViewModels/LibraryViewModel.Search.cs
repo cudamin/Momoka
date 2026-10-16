@@ -72,13 +72,16 @@ public sealed partial class LibraryViewModel
     {
         foreach (var row in RecentSearches) row.Card.AbandonPoster();
         RecentSearches.Clear();
-        if (_scope is { IsCurrent: true } scope && _settings is not null && _images is not null)
-            foreach (var entry in RecentSearch.Read(_settings.Settings.Ui, scope.Connection))
-            {
-                var card = new CardItem(entry.ToItem(), _images, 56, indicators: false);
-                RecentSearches.Add(new RecentSearchRow(entry, this, card));
-                _ = card.EnsurePosterAsync();
-            }
+        if (_settings is not null && _images is not null)
+            foreach (var scope in _sources.Where(source => source.IsAvailable))
+                foreach (var entry in RecentSearch.Read(_settings.Settings.Ui, scope.Connection))
+                {
+                    var item = entry.ToItem();
+                    scope.Bind(item);
+                    var card = new CardItem(item, _images, 56, indicators: false);
+                    RecentSearches.Add(new RecentSearchRow(entry, this, card));
+                    _ = card.EnsurePosterAsync();
+                }
         OnPropertyChanged(nameof(ClearRecentVisibility));
         OnPropertyChanged(nameof(NoRecentVisibility));
         OnSearchTextChanged(SearchText);
@@ -91,27 +94,28 @@ public sealed partial class LibraryViewModel
 
     internal void RememberSearch(EmbyItem? item = null)
     {
-        if (!_active || _scope is not { IsCurrent: true } scope || _request?.IsSearch != true || _settings is null) return;
+        var scope = item?.Source ?? _scope;
+        if (!_active || scope is not { IsAvailable: true } || _request?.IsSearch != true || _settings is null) return;
         RecentSearch.Remember(_settings.Settings.Ui, scope.Connection, SearchText, item);
         SaveSearchHistory();
     }
 
     internal async Task OpenRecentAsync(RecentSearchRow row)
     {
-        if (!_active || _scope?.IsCurrent != true || !row.Card.IsCurrent) return;
+        if (!_active || row.Card.Scope is not { IsAvailable: true } scope || !row.Card.IsCurrent) return;
         if (row.Entry.ItemId is null)
             await SearchAsync(row.Entry.Term).ConfigureAwait(true);
         else
         {
-            RecentSearch.Remember(_settings!.Settings.Ui, _scope.Connection, row.Entry.Term, row.Entry.ToItem());
+            RecentSearch.Remember(_settings!.Settings.Ui, scope.Connection, row.Entry.Term, row.Card.Item);
             SaveSearchHistory();
-            _actions?.OpenItem(row.Entry.ToItem());
+            _actions?.OpenItem(row.Card.Item);
         }
     }
 
     internal void RemoveRecent(RecentSearchRow row)
     {
-        if (!_active || _scope is not { IsCurrent: true } scope || _settings is null) return;
+        if (!_active || row.Card.Scope is not { IsAvailable: true } scope || _settings is null) return;
         RecentSearch.Remove(_settings.Settings.Ui, scope.Connection, row.Entry);
         row.Card.AbandonPoster();
         RecentSearches.Remove(row);
@@ -123,8 +127,8 @@ public sealed partial class LibraryViewModel
     [RelayCommand]
     private void ClearRecentSearches()
     {
-        if (!_active || _scope is not { IsCurrent: true } scope || _settings is null) return;
-        RecentSearch.Clear(_settings.Settings.Ui, scope.Connection);
+        if (!_active || _settings is null) return;
+        foreach (var scope in _sources) RecentSearch.Clear(_settings.Settings.Ui, scope.Connection);
         LoadRecentSearches();
         SaveSearchHistory();
     }

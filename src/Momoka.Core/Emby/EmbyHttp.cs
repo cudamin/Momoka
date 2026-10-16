@@ -30,6 +30,24 @@ public sealed class EmbyHttp : IDisposable
     private readonly HttpClient _long;
 
     private readonly HttpMessageHandler _handler;
+    private readonly bool _handlerInjected;
+    private Momoka.FnNas.FnNasHttp? _fnNasHttp;
+    private Momoka.FnNas.FnNasClient? _fnNasClient;
+    private readonly object _fnNasGate = new();
+
+    internal Momoka.FnNas.FnNasClient FnNasClient
+    {
+        get
+        {
+            lock (_fnNasGate)
+            {
+                // Emby 禁用 Cookie；飞牛访问码由自己的 Cookie 容器保存，不能共用生产 handler。
+                _fnNasHttp ??= _handlerInjected ? new Momoka.FnNas.FnNasHttp(_handler, disposeHandler: false)
+                    : new Momoka.FnNas.FnNasHttp();
+                return _fnNasClient ??= new Momoka.FnNas.FnNasClient(_fnNasHttp);
+            }
+        }
+    }
 
     public EmbyHttp(HttpMessageHandler? handler = null)
         : this(handler, TimeSpan.FromSeconds(30))
@@ -39,6 +57,7 @@ public sealed class EmbyHttp : IDisposable
     /// <summary>测试可缩短等待上限，生产请求仍使用公开构造函数的 30 秒。</summary>
     internal EmbyHttp(HttpMessageHandler? handler, TimeSpan requestTimeout)
     {
+        _handlerInjected = handler is not null;
         handler ??= new SocketsHttpHandler
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
@@ -422,6 +441,7 @@ public sealed class EmbyHttp : IDisposable
         // 两个客户端都不持有 handler（disposeHandler: false），所以它在这里放，而且只放一次。
         _http.Dispose();
         _long.Dispose();
+        _fnNasHttp?.Dispose();
         _handler.Dispose();
     }
 

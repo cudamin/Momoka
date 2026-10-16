@@ -5,8 +5,10 @@ using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Platform;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
+using Momoka.Theming;
 using Momoka.Updates;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -493,6 +495,43 @@ internal sealed partial class ShellNavigationProbe
                     "Jellyfin 非管理员或权限未知时仍暴露管理入口");
             }
             await SaveProbeScreenAsync("settings-jellyfin-user-screen.png");
+
+            fixture.Capabilities.ServerKind = MediaServerKind.FnNas;
+            fixture.Capabilities.IsAdministrator = true;
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+            Require(page.ViewModel.CategoryGroups.Last().Name == "飞牛影视"
+                && page.Categories.TakeLast(4).SequenceEqual(SettingsViewModel.FnNasAdministrationCategories),
+                "飞牛影视四个管理入口未按网页次序显示");
+            Require(!page.ViewModel.CanOpenServerCategory(SettingsViewModel.DashboardCategory)
+                && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.NotificationsCategory),
+                "飞牛影视仍暴露 Emby 管理入口");
+            foreach (var width in new[] { 1100, 760 })
+            {
+                ResizeInspect(width, 900);
+                await LayoutAsync(page);
+                Require(rail.Items.Cast<string>().SequenceEqual(page.Categories)
+                    && picker.ItemsSource is IEnumerable<string> fnNasEntries && fnNasEntries.SequenceEqual(page.Categories),
+                    "飞牛影视宽窄导航分类不一致");
+                await SaveProbeScreenAsync($"settings-fnnas-admin-{width}-screen.png");
+            }
+            foreach (bool? administrator in new bool?[] { false, null })
+            {
+                page.SelectedCategory = SettingsViewModel.FnNasSettingsCategory;
+                fixture.Capabilities.IsAdministrator = administrator;
+                await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+                await LayoutAsync(page);
+                Require(page.ViewModel.ServerAdministrationHidden
+                    && !page.Categories.Any(SettingsViewModel.FnNasAdministrationCategories.Contains)
+                    && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.FnNasSettingsCategory)
+                    && page.SelectedCategory == SettingsViewModel.FirstCardCategory,
+                    "飞牛普通账号或未知权限留下管理页");
+            }
+            fixture.Capabilities.IsAdministrator = true;
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            Require(page.Categories.TakeLast(4).SequenceEqual(SettingsViewModel.FnNasAdministrationCategories),
+                "飞牛权限恢复后四个入口未恢复");
+            await SaveProbeScreenAsync("settings-fnnas-admin-restored-screen.png");
 
             fixture.Capabilities.ServerKind = MediaServerKind.Emby;
             fixture.Capabilities.IsAdministrator = true;

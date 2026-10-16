@@ -1,6 +1,6 @@
 # 接口清单
 
-Momoka **尚未调用任何一条**——下表是接入时的起点。来源两处，逐行标注：
+下表保留原有来源并补充 2026-10-15 官方网页 0.9.8 / 服务 0.8.43 核对结果；当前调用以 `src/Momoka.Core/FnNas/FnNasClient*.cs` 为准。官方前端证据不等于真实写入或播放已经验证。
 
 - 【抓包】= 社区抓包文档 `jimboo7339/fntv_danmu_all` 的 `doc/飞牛影视API文档.md`，基于前端 `0.9.7` / 服务端 `0.8.35`。
 - 【上游】= MoviePilot `app/modules/trimemedia/api.py`，长期维护的生产实现。
@@ -70,9 +70,9 @@ Momoka **尚未调用任何一条**——下表是接入时的起点。来源两
 | POST | `/api/v1/play/record` | **上报进度**：`{item_guid, media_guid, video_guid, audio_guid, subtitle_guid, resolution, bitrate, ts, duration}` | 抓包 |
 | GET | `/api/v1/play/list` | 继续观看列表 | 两者 |
 | POST | `/api/v1/stream` | 取播放流：`{media_guid, ip, header, level}` | 抓包 |
-| GET | `/api/v1/stream/list/{media_guid}` | 音视频字幕流列表（strm 可能返回空） | 抓包 |
+| GET | `/api/v1/stream/list/{item_guid}` | 音视频字幕流列表；官方前端传条目 guid | 官方前端 |
 
-`POST /stream` 响应里的两条来源要分清：
+`POST /stream` 属历史协议研究，当前用户明确排除全部网盘功能，客户端不实现或调用此接口。下面保留来源说明用于辨认未实现协议：
 
 - `qualities[]`：服务端转码/渐进流（`bitrate`、`resolution`、`progressive`）。
 - `direct_link_qualities[].url`：**云盘直链**（外部网盘地址）；`cloud_storage_info.cloud_storage_type == 9001` 表示 strm 文件（网盘串流）。
@@ -100,17 +100,40 @@ Momoka **尚未调用任何一条**——下表是接入时的起点。来源两
 | --- | --- | --- | --- |
 | GET | `/api/v1/task/running` | 是否有任务在跑（上游只判真假） | 上游 |
 
-## 规格缺口与矛盾
+## 官方管理接口补充
+
+路径仍相对 `/v/` 入口；请求字段和保存范围见客户端源码，不以这张摘要表替代字段核对。
+
+| 方法 | 路径 | 功能 |
+| --- | --- | --- |
+| PUT | `/api/v1/mdb/create` | 创建媒体库 |
+| GET / POST / DELETE | `/api/v1/mdb/{guid}` | 读取 / 编辑 / 移除媒体库 |
+| POST | `/api/v1/server/path` | 浏览授权目录 |
+| PUT | `/api/v2/manager/user/create` | 创建影视用户，密码 SHA-256 |
+| POST | `/api/v2/manager/user/{guid}` | 更新影视用户 |
+| DELETE | `/api/v1/manager/user/{guid}` | 删除影视用户 |
+| POST | `/api/v1/manager/user/unlock` | 解锁用户 |
+| GET / POST | `/api/v1/manager/template/permission` | 新用户默认媒体库权限 |
+| GET / POST | `/api/v1/server/info` | 读取 / 保存服务配置，保留未编辑与未知字段 |
+| GET | `/api/v1/server/allVols` | 可选存储空间 |
+| GET / POST | `/api/v1/search/indexStatus` / `/api/v1/search/rebuild` | 索引状态 / 重建 |
+| GET | `/api/v1/task/schedule/list` | 任务与上次运行记录 |
+| POST | `/api/v1/task/schedule/getSetting` | 每日任务开关 |
+| POST | `/api/v1/task/schedule/set` | `task_switch` 字符串 `"1"` / `"2"` |
+
+用户页面字段为用户名、密码、媒体库权限（无 / 全部含未来 / 部分）。任务计划只有一个全局开关和扫描/字幕提取两项说明，不包含每任务 cron 或立即执行。具体官方资源名见技能正文。
+
+## 规格缺口与历史矛盾
 
 接入时**必须核对**，不要照抄：
 
 | 项 | 冲突/缺口 | 处理 |
 | --- | --- | --- |
-| `authx` 的 `sign` 算法 | 社区文档 `MD5(nonce+timestamp+token)` vs 上游 `MD5(APP_SECRET_apiPath_nonce_ts_dataHash_APP_KEY)`，互相矛盾 | 抓官方前端 JS 或对目标服务器实测定案，见 [传输与鉴权](http-and-auth.md#authx-签名未决项) |
+| `authx` 的 `sign` 算法 | 社区简化公式与上游公式不同 | 当前官方 SDK 确认路径/正文/应用常量公式，见 [传输与鉴权](http-and-auth.md#authx-签名官方前端已定案) |
 | v1 登录 | 新服务端已废弃，一律 `-15`；`-15` 无法区分账号/密码/接口版本 | 一律走 v2，见 [传输与鉴权](http-and-auth.md#登录) |
 | 访问码 | 校验在 `/c/{code}`（不在 `/v` 下），失败返回 404，靠会话 Cookie | 做成可选配置；请求需支持 Cookie |
 | `search/list` | 只在上游实现里出现，社区抓包文档未登记 | 标记为待核实，抓前端 JS 确认 |
-| `mdb/*`、`task/running` | 只在上游实现里出现（管理员接口） | 同上 |
+| `mdb/*`、`task/running` | 旧资料仅记上游实现 | 当前官方 SDK 已核对；真实写入仍未验证 |
 | 前端/服务端版本 | 接口随版本变，社区文档基于 0.9.7 / 0.8.35 | 每次接入前 `sys/version` 重取并记录 |
 
 ## 容易猜错的
@@ -123,5 +146,5 @@ Momoka **尚未调用任何一条**——下表是接入时的起点。来源两
 | 拿到 `-15` 就是账号密码错 | 新服务端上打 v1 也会 `-15`，先确认接口版本 |
 | 按 HTTP 401/403 判错 | 错误码在正文 `code` 里，HTTP 常常还是 200 |
 | 图片 URL 可以直接给 mpv/浏览器 | 需要鉴权头，必须经进程内/已验证通道 |
-| `sign` 用 token 参与 | 两套公式里只有社区文档版用 token；上游版用的是应用级常量 |
+| `sign` 用 token 参与 | 当前官方公式使用路径、正文摘要和应用级常量，不含 token |
 | 访问码校验在 `/v` 下 | 在设备根路径 `/c/{code}`，且失败是 404 |

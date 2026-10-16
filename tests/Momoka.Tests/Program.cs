@@ -13,6 +13,7 @@ internal static class Program
 
         PlaybackTests.Register();
         PlaybackLifecycleTests.Register();
+        MediaVersionDiscoveryTests.Register();
         BackendLifecycleTests.Register();
         MpvCustomConfigTests.Register();
         AudioOutputTests.Register();
@@ -34,6 +35,8 @@ internal static class Program
         HtmlColorTests.Register();
         SubtitlePreviewTests.Register();
         EmbyTests.Register();
+        FnNasProtocolTests.Register();
+        FnNasMediaTests.Register();
         JellyfinWebConsoleTests.Register();
         DashboardTests.Register();
         UserManagementTests.Register();
@@ -47,6 +50,7 @@ internal static class Program
         ImageIdentityTests.Register();
         BrowsingPreferencesTests.Register();
         LibrarySearchTests.Register();
+        AggregateQueryTests.Register();
         MoviePilotSearchSitesTests.Register();
         MoviePilotResourceOptionsTests.Register();
         MoviePilotAvailabilityTests.Register();
@@ -60,6 +64,7 @@ internal static class Program
         HomeFoldTests.Register();
         BackdropBlurTests.Register();
         HomeLayoutTests.Register();
+        ResumeRowTests.Register();
         UiLifecycleTests.Register();
         StartIntentTests.Register();
         DiagnosticsTests.Register();

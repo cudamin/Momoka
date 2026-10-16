@@ -28,6 +28,9 @@ internal sealed record LibraryRequest
 
     public string? ParentId { get; init; }
 
+    /// <summary>限定来源；为空时搜索、收藏和主页清单聚合全部在线账号。</summary>
+    public EmbySessionScope? Source { get; init; }
+
     /// <summary>
     /// Emby's own collection type for a library root ("movies", "tvshows"). What decides whether the
     /// query is recursive: see <see cref="ItemQuery.FlattenedTypes"/>.
@@ -124,7 +127,7 @@ internal sealed record LibraryRequest
     /// <see cref="CollectionType"/> and <see cref="Tag"/>: below a library root the folder tree is
     /// what the user is walking, and it is no longer any single pane entry's destination.
     /// </summary>
-    public LibraryRequest Child(EmbyItem item) => For(Services, item);
+    public LibraryRequest Child(EmbyItem item) => For(Services, item) with { Source = item.Source ?? Source };
 
     /// <summary>
     /// The same thing for a caller that has no request of its own to descend from — the home page, and
@@ -134,6 +137,7 @@ internal sealed record LibraryRequest
     {
         Services = services,
         Title = item.Name,
+        Source = item.Source,
         ParentId = item.Id,
         ParentType = item.Type
     };
@@ -174,6 +178,7 @@ internal sealed record LibraryRequest
     {
         Services = services,
         Title = person.Name,
+        Source = person.Source,
         PersonId = person.Id
     };
 
@@ -181,10 +186,11 @@ internal sealed record LibraryRequest
     /// 按类型浏览，见 <see cref="Genre"/>。标题就是那个类型自己 —— 页头那行代号已经说了这是个类型
     /// （GENRE），标题再写一遍「类型：动画」就是同一句话说两遍。
     /// </summary>
-    public static LibraryRequest ForGenre(IServiceProvider services, string genre) => new()
+    public static LibraryRequest ForGenre(IServiceProvider services, string genre, EmbySessionScope? source = null) => new()
     {
         Services = services,
         Title = genre.Trim(),
+        Source = source,
         Genre = genre.Trim()
     };
 
@@ -195,7 +201,7 @@ internal sealed record LibraryRequest
     /// <see cref="Tag"/> 空着（下钻）：侧边栏没有哪一条指着它，这就是同一张网格又往下走了一层。
     /// </para>
     /// </summary>
-    public static LibraryRequest ForRow(IServiceProvider services, HomeLayout.HomeRowTarget target) => new()
+    public static LibraryRequest ForRow(IServiceProvider services, HomeLayout.HomeRowTarget target, EmbySessionScope? source = null) => new()
     {
         Services = services,
         Title = HomeLayout.FixedTitle(target switch
@@ -204,6 +210,7 @@ internal sealed record LibraryRequest
             HomeLayout.HomeRowTarget.NextUp => HomeLayout.NextUp,
             _ => null
         }) ?? "继续观看",
-        Row = target
+        Row = target,
+        Source = source
     };
 }

@@ -15,6 +15,7 @@ public static class EmbyServerAddress
 
     public static bool TryNormalize(string input, out Uri address, out string error, MediaServerKind kind = MediaServerKind.Emby)
     {
+        if (kind == MediaServerKind.FnNas) return Momoka.FnNas.FnNasEndpoint.TryNormalize(input, out address, out error);
         address = null!;
         error = "";
 
@@ -64,6 +65,7 @@ public static class EmbyServerAddress
     public static string ToDisplayString(Uri apiBase, MediaServerKind kind = MediaServerKind.Emby)
     {
         var text = apiBase.GetLeftPart(UriPartial.Path).TrimEnd('/');
+        if (kind == MediaServerKind.FnNas) return text;
         return kind == MediaServerKind.Emby && text.EndsWith("/emby", StringComparison.OrdinalIgnoreCase) ? text[..^5] : text;
     }
 }

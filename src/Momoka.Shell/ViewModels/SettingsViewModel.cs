@@ -175,6 +175,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     public static IReadOnlyList<string> ServerAdministrationCategories { get; } =
         [ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, NotificationsCategory, DashboardCategory];
 
+    public static IReadOnlyList<string> FnNasAdministrationCategories { get; } =
+        [ServerLibrariesCategory, ServerUsersCategory, FnNasSettingsCategory, FnNasTasksCategory];
+
+    private static IReadOnlyList<string> AllAdministrationCategories { get; } =
+        [.. ServerAdministrationCategories, FnNasSettingsCategory, FnNasTasksCategory];
+
     /// <summary>
     /// 管理组是否显示。初始表用于离线布局；接入能力服务后，在请求前同步真实身份与产品。
     /// Jellyfin 只在确认管理员时显示，Emby 保留未知权限时的既有回退行为。
@@ -199,15 +205,21 @@ public sealed partial class SettingsViewModel : PageViewModel
         MediaServerKind kind = MediaServerKind.Emby)
     {
         var groups = new List<SettingsCategoryGroup> { new("Momoka", SidebarCategories()) };
-        if (serverAdministration) groups.Add(new(kind == MediaServerKind.Jellyfin ? "JellyfinServer" : "EmbyServer",
-            AdministrationCategories(kind)));
+        if (serverAdministration) groups.Add(new(kind switch
+        {
+            MediaServerKind.FnNas => "飞牛影视",
+            MediaServerKind.Jellyfin => "JellyfinServer",
+            _ => "EmbyServer"
+        }, AdministrationCategories(kind)));
         return groups;
     }
 
-    private static IReadOnlyList<string> AdministrationCategories(MediaServerKind kind) =>
-        kind == MediaServerKind.Jellyfin
-            ? [ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, DashboardCategory]
-            : ServerAdministrationCategories;
+    private static IReadOnlyList<string> AdministrationCategories(MediaServerKind kind) => kind switch
+    {
+        MediaServerKind.FnNas => FnNasAdministrationCategories,
+        MediaServerKind.Jellyfin => [ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, DashboardCategory],
+        _ => ServerAdministrationCategories
+    };
 
     /// <summary>
     /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，服务器、诊断两张内嵌页插在最后一张卡（关于）
@@ -242,7 +254,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </para>
     /// </summary>
     public static IReadOnlyList<string> HostedCategories { get; } =
-        ["服务器", "诊断", ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, NotificationsCategory, DashboardCategory];
+        ["服务器", "诊断", .. AllAdministrationCategories];
 
     /// <summary>
     /// 「通知」那一页. Named because the navigation switch and the self-check both have to say it —
@@ -259,6 +271,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     public const string ServerDashboardCategory = "控制台";
     public const string ServerUsersCategory = "用户";
     public const string ServerLibrariesCategory = "媒体库";
+    public const string FnNasSettingsCategory = "设置";
+    public const string FnNasTasksCategory = "任务计划";
 
     /// <summary>The left-hand list. Order is the order of the cards, then the hosted pages.</summary>
     /// <remarks>
@@ -434,20 +448,24 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         // 先同步已知状态，防止权限请求尚在等待时显示上一个账号的管理页。
         ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
-        if (_capabilities.IsAdministrator is null) await _capabilities.ProbeAsync().ConfigureAwait(true);
+        if (_capabilities.IsAdministrator is null || _capabilities.ServerKind == MediaServerKind.FnNas)
+            await _capabilities.ProbeAsync().ConfigureAwait(true);
 
         ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
     }
 
     private bool CanShowServerAdministration => _capabilities?.IsConnected == true
-        && (_capabilities.ServerKind == MediaServerKind.Jellyfin
+        && (_capabilities.ServerKind is MediaServerKind.Jellyfin or MediaServerKind.FnNas
             ? _capabilities.IsAdministrator == true
             : _capabilities.IsAdministrator != false);
 
     internal bool CanOpenServerCategory(string category) =>
-        !ServerAdministrationCategories.Contains(category, StringComparer.Ordinal)
+        !AllAdministrationCategories.Contains(category, StringComparer.Ordinal)
         || (CanShowServerAdministration && AdministrationCategories(_capabilities!.ServerKind)
             .Contains(category, StringComparer.Ordinal));
+
+    internal IReadOnlyList<string> AvailableHostedCategories =>
+        ["服务器", "诊断", .. (_showsServerAdministration ? AdministrationCategories(_administrationKind) : [])];
 
     /// <summary>
     /// 把「EmbyServer」那一组连同它那五个分类一起装上或摘掉。
@@ -464,7 +482,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 右半边也不知道该显示哪张卡。先挪开，被摘的就不是选中项，也就没有这一趟。
         var available = visible ? AdministrationCategories(kind) : [];
         if (!visible) MoveOffServerAdministration();
-        else if (ServerAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal)
+        else if (AllAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal)
             && !available.Contains(SelectedCategory, StringComparer.Ordinal))
             SelectedCategory = FirstCardCategory;
 
@@ -474,11 +492,15 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         _categoryGroups = BuildCategoryGroups(visible, kind);
 
-        foreach (var category in ServerAdministrationCategories)
+        foreach (var category in AllAdministrationCategories)
             if (!available.Contains(category, StringComparer.Ordinal)) Categories.Remove(category);
-        var first = Categories.Count - Categories.Count(category => ServerAdministrationCategories.Contains(category));
+        var first = Categories.Count - Categories.Count(category => AllAdministrationCategories.Contains(category));
         for (var index = 0; index < available.Count; index++)
-            if (!Categories.Contains(available[index])) Categories.Insert(first + index, available[index]);
+        {
+            var current = Categories.IndexOf(available[index]);
+            if (current < 0) Categories.Insert(first + index, available[index]);
+            else if (current != first + index) Categories.Move(current, first + index);
+        }
     }
 
     /// <summary>
@@ -488,7 +510,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     private void MoveOffServerAdministration()
     {
-        if (SelectedCategory is null || ServerAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal))
+        if (SelectedCategory is null || AllAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal))
             SelectedCategory = FirstCardCategory;
     }
 
@@ -842,7 +864,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var playback = Settings.Playback;
         return new SettingSection("播放行为", "播放行为", "断点续播、进度上报、片头片尾和音轨选择。",
         [
-            Toggle("向服务器汇报播放进度", "关掉后 Emby 就不记你看过的进度了", () => playback.ReportProgressToServer, value => playback.ReportProgressToServer = value),
+            Toggle("向服务器汇报播放进度", "关闭后服务器不再记录本次播放进度", () => playback.ReportProgressToServer, value => playback.ReportProgressToServer = value),
             Toggle("从服务器保存的位置继续", "关掉后每次都从片头放起", () => playback.ResumeFromSavedPosition, value => playback.ResumeFromSavedPosition = value),
             Toggle("自动播放下一集", "一集放完自动接下一集，本季放完退出播放", () => playback.AutoPlayNextEpisode, value => playback.AutoPlayNextEpisode = value),
 

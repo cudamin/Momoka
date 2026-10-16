@@ -69,6 +69,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private readonly List<Crumb[]> _backTrails = [];
     private readonly List<Crumb[]> _forwardTrails = [];
     private readonly LoadGeneration _identityLoads = new();
+    private int _sourceOperations;
+    private bool _pendingSourcesChange;
+    private string _displayedSources = "";
     private bool _librariesFailed;
 
     /// <summary>Library tag to the request that opens it, filled from the server's own view list.</summary>
@@ -488,11 +491,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// writes, and the kind that stays right until the day it does not.
     /// </para>
     /// </summary>
-    internal bool TryOpenLibrary(string id)
+    internal bool TryOpenLibrary(string id, EmbySessionScope? source = null)
     {
         foreach (var (tag, request) in _libraries)
         {
             if (!string.Equals(request.ParentId, id, StringComparison.Ordinal)) continue;
+            if (source is not null && request.Source?.Key != source.Key) continue;
 
             GoTo(tag);
             return true;
@@ -557,6 +561,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // Marshalled: a token can expire on any thread that happens to be running a request, and this
         // handler swaps the visual tree.
         _session.SignedOut += (_, reason) => DispatcherQueue.TryEnqueue(() => OnSignedOut(reason));
+        _session.SourcesChanged += (_, _) => DispatcherQueue.TryEnqueue(OnSourcesChanged);
     }
 
     /// <summary>
@@ -907,13 +912,24 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         if (_settings is null || _session is null) return;
 
-        var settings = Settings;
-        var server = settings.ResolveLastServer();
-        var account = settings.ResolveLastAccount(server);
-
-        if (server is not null && account is not null && (account.HasSavedToken || account.HasSavedPassword))
-            await SwitchAsync(server, account).ConfigureAwait(true);
-        else ShowSignIn();
+        ShowSignIn();
+        var token = _identityLoads.Begin();
+        _sourceOperations++;
+        SignIn.ShowRestoring("已保存的服务器和账号");
+        try
+        {
+            await _session.RestoreAllAsync(token).ConfigureAwait(true);
+            if (!_identityLoads.IsCurrent(token)) return;
+            if (_session.IsSignedIn) await EnterShellAsync().ConfigureAwait(true);
+            else ShowSignIn();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            Log.Warn(Category, "恢复已登录账号失败", error);
+            if (_identityLoads.IsCurrent(token)) ShowSignIn();
+        }
+        finally { FinishChangingSources(); }
     }
 
     /// <summary>
@@ -1181,7 +1197,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private async Task ShowMissingEpisodesAsync(EmbyItem item, IReadOnlyList<EmbyItem> missing)
     {
         if (_missingEpisodesShowing || _services is null || _session?.IsSignedIn != true || Root.XamlRoot is not { } root) return;
-        var session = _session.Capture();
+        var session = _session.Capture(item);
         var page = ContentFrame.Content;
         _missingEpisodesShowing = true;
         try
@@ -1214,11 +1230,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
                 catch (OperationCanceledException) { return; }
                 catch (Exception error) { Log.Info("anibt", $"无法补齐遗漏集的搜索元数据：{Failure.Describe(error)}"); }
             }
-            if (!session.IsCurrent || !ReferenceEquals(ContentFrame.Content, page)) return;
+            if (!session.IsAvailable || !ReferenceEquals(ContentFrame.Content, page)) return;
             var images = _services.GetRequiredService<EmbyImageStore>();
-            var imageScope = images.CaptureScope();
+            var imageScope = session;
             var dialog = new MissingEpisodesDialog(item, missing, (art, token) =>
-                imageScope is { IsCurrent: true } current
+                imageScope is { IsAvailable: true } current
                     ? images.GetAsync(current, art.ItemId, art.ImageType, art.Tag,
                         EmbyImageStore.RequestWidth(CardSize.MissingWidth), token)
                     : Task.FromResult<byte[]?>(null), connection is not null, anime)
@@ -1232,7 +1248,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             try { await dialog.ShowAsync(); }
             finally { moviePilot.AvailabilityChanged -= AvailabilityChanged; }
             // 等清单真正关闭，再弹搜索窗口；下载确认不会与清单争用同一个 XamlRoot。
-            if (!session.IsCurrent || !ReferenceEquals(ContentFrame.Content, page) || connection is null
+            if (!session.IsAvailable || !ReferenceEquals(ContentFrame.Content, page) || connection is null
                 || !moviePilot.Available || !moviePilot.IsCurrentConnection(connection) || dialog.SearchEpisode is not { } episode) return;
             if (dialog.SearchWithAniBt) SearchAniBtVersions(Momoka.AniBt.AniBtSearchQuery.From(episode, searchOwner));
             else SearchMoviePilotVersions(MoviePilotVersionQuery.Keyword(episode, searchOwner));
@@ -1279,6 +1295,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
     internal void OpenItem(EmbyItem item)
     {
         if (_services is null) return;
+        if (item.Source is { IsAvailable: false })
+        {
+            Notify("此媒体所属的账号已退出，请重新登录后打开", InfoBarSeverity.Warning);
+            return;
+        }
 
         if (DetailRequest.Supports(item))
         {
@@ -1374,13 +1395,13 @@ public sealed partial class ShellPage : UserControl, IShellActions
     void IShellActions.ShowMissingEpisodes(EmbyItem item, IReadOnlyList<EmbyItem> missing) =>
         ShowMissingEpisodes(item, missing);
 
-    bool IShellActions.TryOpenLibrary(string id) => TryOpenLibrary(id);
+    bool IShellActions.TryOpenLibrary(string id, EmbySessionScope? source) => TryOpenLibrary(id, source);
 
-    void IShellActions.OpenGenre(string genre) => OpenGenre(genre);
+    void IShellActions.OpenGenre(string genre, EmbySessionScope? source) => OpenGenre(genre, source);
 
-    void IShellActions.OpenRow(HomeLayout.HomeRowTarget target) => OpenRow(target);
+    void IShellActions.OpenRow(HomeLayout.HomeRowTarget target, EmbySessionScope? source) => OpenRow(target, source);
 
-    void IShellActions.OpenSignIn(ServerProfile? server) => OpenSignIn(server);
+    void IShellActions.OpenSignIn(ServerProfile? server, bool newAccount) => OpenSignIn(server, newAccount);
 
     Task IShellActions.SwitchProfileAsync(ServerProfile server, AccountProfile? account) =>
         SwitchProfileAsync(server, account);
@@ -1835,6 +1856,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private void OnHomeClicked(object sender, RoutedEventArgs e)
     {
+        if (SignInVisible && _session?.IsSignedIn == true)
+        {
+            _ = EnterShellAsync();
+            return;
+        }
         _ = Favorites.RefreshAsync();
         if (_librariesFailed) _ = RetryLibrariesAsync();
         else GoTo("home");
@@ -1845,7 +1871,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     public void RefreshFavorites(EmbyItem? changed = null)
     {
         if (changed?.UserData?.IsFavorite == false && ContentFrame.Content is LibraryPage page)
-            page.RemoveUnfavorite(changed.Id);
+            page.RemoveUnfavorite(changed);
         _ = Favorites.RefreshAsync();
     }
 
@@ -1983,7 +2009,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// 不带 tag：侧边栏没有一项指着某个类型，所以这是一次下钻（面包屑上多一节，高亮不动），同往剧里点进去。
     /// </para>
     /// </summary>
-    public void OpenGenre(string genre)
+    public void OpenGenre(string genre, EmbySessionScope? source = null)
     {
         if (_services is null) return;
 
@@ -1992,7 +2018,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         Log.Info(Category, $"按类型浏览：{name}");
 
-        Open(typeof(LibraryPage), LibraryRequest.ForGenre(_services, name), name, tag: "");
+        Open(typeof(LibraryPage), LibraryRequest.ForGenre(_services, name, source), name, tag: "");
     }
 
     /// <summary>
@@ -2002,11 +2028,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// 2026-09-14 用户原话「新增点击图中红框的标题可以进入对应的页面」—— 图里圈的是「继续观看」那一排的牌子。
     /// </para>
     /// </summary>
-    public void OpenRow(HomeLayout.HomeRowTarget target)
+    public void OpenRow(HomeLayout.HomeRowTarget target, EmbySessionScope? source = null)
     {
         if (_services is null) return;
 
-        var request = LibraryRequest.ForRow(_services, target);
+        var request = LibraryRequest.ForRow(_services, target, source);
 
         Log.Info(Category, $"打开一排：{request.Title}");
 
@@ -2022,8 +2048,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
         if (_session is null || _capabilities is null || !_session.IsSignedIn) return;
         var token = _identityLoads.Begin();
         var scope = _session.Capture();
+        var sourcesStamp = SourcesStamp();
         BrowsingPreferences.SelectIdentity(Settings.Ui, scope.Connection);
-        Favorites.Attach(scope);
+        Favorites.Attach(_session);
         _libraries.Clear();
         _libraryViews.Clear();
         _librariesFailed = false;
@@ -2039,7 +2066,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
         AccountButton.Visibility = Visibility.Visible;
         SyncSidebar();
 
-        ShowAccount(_session.Account?.Username, _session.ServerDisplayName);
+        ShowAccount(_session.Account?.Username,
+            _session.Sources.Count > 1 ? $"{_session.Sources.Count} 个账号在线 · {_session.ServerDisplayName}" : _session.ServerDisplayName);
         FillSwitchMenus();
 
         // Whatever the previous account was looking at belongs to the previous account.
@@ -2052,18 +2080,16 @@ public sealed partial class ShellPage : UserControl, IShellActions
         await LoadLibrariesAsync(scope, token).ConfigureAwait(true);
         if (!_identityLoads.IsCurrent(token) || !scope.IsCurrent) return;
         GoTo("home");
-        if (_librariesFailed) Notify("媒体库目录读取失败，点击主页按钮可重试", InfoBarSeverity.Warning);
+        _displayedSources = sourcesStamp;
+        if (_librariesFailed) Notify("部分来源的媒体库未能读取，已显示可用内容；点击主页按钮可重试", InfoBarSeverity.Warning);
     }
 
     private async Task LoadLibrariesAsync(EmbySessionScope scope, CancellationToken token)
     {
-        List<EmbyItem> views;
+        SourceLibraries.Result result;
         try
         {
-            // 恢复登录那一趟已经取回过一份（它拿这个接口当令牌探针），领得到就用它 —— 每次启动省掉一趟往返，
-            // 而这一趟压在「看到第一屏」的路上。只给一次，所以下面每一次刷新照旧真去问服务器。
-            views = _session!.TakeRestoredViews()
-                ?? await scope.ExecuteAsync((client, ct) => client.GetViewsAsync(ct), token).ConfigureAwait(true);
+            result = await SourceLibraries.LoadAsync(_session!, token).ConfigureAwait(true);
         }
         catch (OperationCanceledException) { return; }
         catch (Exception error)
@@ -2074,11 +2100,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
             return;
         }
         if (!_identityLoads.IsCurrent(token) || !scope.IsCurrent) return;
-        _librariesFailed = false;
+        _librariesFailed = result.FailedSources.Count > 0;
         _libraries.Clear();
         _libraryViews.Clear();
 
-        foreach (var view in views)
+        foreach (var view in result.Items)
         {
             // 需求 3：「屏蔽媒体库里音乐的内容」. Filtered here rather than in each place a library can be
             // reached, because this loop is the only source of both: the requests that open a library, and
@@ -2088,7 +2114,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             // three span every library.
             if (EmbyItemType.IsMusicLibrary(view.CollectionType)) continue;
 
-            var tag = $"library:{view.Id}";
+            var tag = HomeLayout.LibraryKey(view);
 
             _libraryViews.Add(view);
 
@@ -2098,14 +2124,15 @@ public sealed partial class ShellPage : UserControl, IShellActions
                 Title = view.Name,
                 Tag = tag,
                 ParentId = view.Id,
+                Source = view.Source,
                 CollectionType = view.CollectionType
             };
         }
 
         RebuildSidebarLibraries();
-        Log.Info(Category, views.Count == _libraries.Count
+        Log.Info(Category, result.Items.Count == _libraries.Count
             ? $"媒体库 {_libraries.Count} 个已读入"
-            : $"媒体库 {_libraries.Count} 个已读入（服务器共 {views.Count} 个，音乐库已屏蔽）");
+            : $"媒体库 {_libraries.Count} 个已读入（来源共 {result.Items.Count} 个，音乐库已屏蔽）");
     }
 
     /// <summary>
@@ -2174,10 +2201,24 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private async Task SwitchAsync(ServerProfile server, AccountProfile? account)
     {
         if (_session is null || _settings is null) return;
-        ShowSignIn(server);
+        var online = _session.Sources.FirstOrDefault(source => source.ServerProfileId == server.Id
+            && (account is null || source.AccountProfileId == account.Id));
+        if (online is not null)
+        {
+            _sourceOperations++;
+            try
+            {
+                _session.SelectSource(online);
+                await EnterShellAsync().ConfigureAwait(true);
+            }
+            finally { FinishChangingSources(); }
+            return;
+        }
+        ShowSignIn(server, account: account);
         var token = _identityLoads.Begin();
         if (account is null || (!account.HasSavedToken && !account.HasSavedPassword)) return;
         SignIn.ShowRestoring(server.Name);
+        _sourceOperations++;
         try
         {
             var restored = await _session.TryRestoreAsync(server, account, token).ConfigureAwait(true);
@@ -2195,14 +2236,15 @@ public sealed partial class ShellPage : UserControl, IShellActions
             if (!_identityLoads.IsCurrent(token)) return;
             Log.Warn(Category, $"切换到 {server.Name} 失败", error);
         }
-        if (_identityLoads.IsCurrent(token)) ShowSignIn(server);
+        finally { FinishChangingSources(); }
+        if (_identityLoads.IsCurrent(token)) ShowSignIn(server, account: account);
     }
 
     /// <summary>Lets management pages reuse the same restore/sign-in path as the account menu.</summary>
     internal Task SwitchProfileAsync(ServerProfile server, AccountProfile? account) => SwitchAsync(server, account);
 
     /// <summary>Opens the existing sign-in page for adding a server or entering credentials.</summary>
-    internal void OpenSignIn(ServerProfile? server = null) => ShowSignIn(server);
+    internal void OpenSignIn(ServerProfile? server = null, bool newAccount = false) => ShowSignIn(server, newAccount);
 
     private void OnSignOut(object sender, RoutedEventArgs e)
     {
@@ -2214,18 +2256,47 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     private void OnSignedOut(string reason)
     {
+        if (_session?.IsSignedIn == true) return;
         Log.Info(Category, $"返回登录页：{reason}");
         ShowSignIn();
     }
 
+    private void OnSourcesChanged()
+    {
+        if (_sourceOperations > 0) { _pendingSourcesChange = true; return; }
+        if (_session is null || SignInVisible) return;
+        if (_session.IsSignedIn)
+        {
+            if (_displayedSources != SourcesStamp()) _ = EnterShellAsync();
+        }
+        else ShowSignIn();
+    }
+
+    private string SourcesStamp()
+    {
+        var sources = _session?.Sources ?? [];
+        return string.Join('|', sources.Select(source => source.Key + ":" + source.DisplayName).Order(StringComparer.Ordinal))
+            + "|default:" + sources.FirstOrDefault(source => source.IsCurrent)?.Key;
+    }
+
+    private void FinishChangingSources()
+    {
+        _sourceOperations--;
+        if (_sourceOperations > 0) return;
+        if (!_pendingSourcesChange) return;
+        _pendingSourcesChange = false;
+        OnSourcesChanged();
+    }
+
     /// <summary>Puts the sign-in card back in front, pointed at a particular server when there is one.</summary>
-    private void ShowSignIn(ServerProfile? server = null)
+    private void ShowSignIn(ServerProfile? server = null, bool newAccount = false, AccountProfile? account = null)
     {
         _identityLoads.Cancel();
         Favorites.Clear();
         _libraries.Clear();
         _libraryViews.Clear();
         _librariesFailed = false;
+        _displayedSources = "";
         ContentHost.Visibility = Visibility.Collapsed;
         RebuildSidebarLibraries();
 
@@ -2245,7 +2316,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         SyncChrome();
 
         ShowAccount(null, null);
-        SignIn.Prepare(server);
+        SignIn.Prepare(server, newAccount, account);
     }
 
     /// <summary>

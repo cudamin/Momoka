@@ -74,6 +74,8 @@ public sealed partial class CardShelf : ObservableObject
     /// </summary>
     public string? LibraryId { get; }
 
+    public EmbySessionScope? Source { get; init; }
+
     /// <summary>
     /// 这一排点进去是哪一页。<see cref="HomeLayout.HomeRowTarget.Library"/> 的走
     /// <see cref="LibraryId"/>，「继续观看」「接下来看」各有自己的那一页，
@@ -158,6 +160,14 @@ public sealed partial class CardShelf : ObservableObject
         foreach (var (item, subtitle) in items)
             Cards.Add(new CardItem(item, _images, _width, _wide, subtitle, _indicators));
     }
+
+    /// <summary>
+    /// 照这一排自己的尺寸、形状和角标造一张卡。给「继续观看那一格标记已看之后换成下一集」用
+    /// （<see cref="HomeViewModel.MarkedWatched"/>）：卡片怎么造是这一排的私事（宽、16:9、角标），
+    /// 换卡的那一头不该知道那三样、更不该各写一份。
+    /// </summary>
+    internal CardItem NewCard(EmbyItem item) =>
+        new(item, _images, _width, _wide, subtitle: null, _indicators);
 
     /// <summary>
     /// The same, for a shelf drawn as 列表 rows rather than as cards — 详情页's 单集 list. Its own path

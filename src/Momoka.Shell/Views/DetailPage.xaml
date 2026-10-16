@@ -745,7 +745,7 @@
                                         Visibility="{x:Bind ViewModel.ContinueVisibility, Mode=OneWay}">
                                         <!-- 勾上只换图标那一支色：底按回不带勾的三档（常／悬／按），Foreground 取 accent
                                              而字自己钉在浅墨上 —— 那支 accent 于是只落在没写 Foreground 的 FontIcon 上。
-                                             别名指的就是模板自己读的那三个键（UiThemes 那五套全是深色，所以这里
+                                             别名指的就是模板自己读的那三个键（UiThemes 每一套都是深色，所以这里
                                              解析出来的和不带勾那份是同一支刷子）。 -->
                                         <ToggleButton.Resources>
                                             <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="ToggleButtonBackground" />
@@ -864,7 +864,8 @@
                           0 宽 —— 片名那一栏照旧把地方全占回来。摆一栏而不是压在字那一栏的右上角：占一栏，字就
                           真的让开，长片名折行也压不到这张画底下。
 
-                          Uniform 配 480×270 的上限，正好一格 16:9 —— 两个数都在 Core 里
+                          Uniform 配默认 360×202.5 的上限，窗口超过 1280 后逐步放大至 540×303.75，仍是一格 16:9。
+                          两个数都在 Core 里
                           （DetailHero.CornerWidth／CornerHeight），解码宽度跟着它走，见
                           DetailViewModel.CornerDecodeWidth。带子的高要看这一张：它比那一叠字键还高的时候
                           带子跟着长（DetailViewModel.CornerHeight → HeroRoom），不然就是一截画压在底下的

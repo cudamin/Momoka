@@ -105,7 +105,8 @@ public sealed partial class SignInPage : UserControl
             services.GetRequiredService<CredentialVault>());
 
     /// <inheritdoc cref="SignInViewModel.Prepare"/>
-    internal void Prepare(ServerProfile? prefer = null) => ViewModel.Prepare(prefer);
+    internal void Prepare(ServerProfile? prefer = null, bool newAccount = false, AccountProfile? preferredAccount = null) =>
+        ViewModel.Prepare(prefer, newAccount, preferredAccount);
 
     /// <summary>Stops whatever this page has in flight; the shell calls it when it hides the page.</summary>
     internal void Detach() => ViewModel.Detach();

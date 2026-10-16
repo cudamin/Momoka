@@ -122,11 +122,31 @@ internal sealed partial class ShellNavigationProbe
             var input = Get<AutoSuggestBox>(page, "SearchInput");
             input.Text = "订阅关键词";
             var tabs = Get<Segmented>(page, "SourceTabs");
+
+            // 换来源只换面板，不替用户搜一次（2026-10-15 用户令「切换时不要自动触发搜索」）：切过去之后
+            // 搜索请求数必须原封不动（来源目录 media/source 不是搜索），搜不搜由回车或搜索图标决定。
+            var quiet = Searches(mp.Paths);
             tabs.SelectedIndex = 1;
-            await UntilAsync(() => Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").ViewModel.Results.Count == 1);
-            Require(mp.Paths.Any(path => path.Contains("media/search?title=", StringComparison.Ordinal)), "订阅未走媒体搜索");
-            Require(Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").ViewModel.SourceChoices.Count > 1, "MoviePilot 来源目录被取消");
+            await SettleAsync();
+            Require(Searches(mp.Paths) == quiet, $"切到订阅来源时自动发出了搜索：{string.Join(';', mp.Paths)}");
+
+            // 键入也一样归回车：随输入更新只属于「媒体库」这一个来源（2026-10-15 用户令）。订阅来源上键入只收起
+            // 旧结果，一个搜索请求都不该发；占位文案得把这件事说出来，否则用户敲完字只会以为坏了。
+            await page.SearchTypingAsync("订阅关键词");
+            await SettleAsync();
+            Require(Searches(mp.Paths) == quiet, $"订阅来源键入时自动发出了搜索：{string.Join(';', mp.Paths)}");
+            Require(input.PlaceholderText.Contains("按回车", StringComparison.Ordinal),
+                $"订阅来源的占位文案没有提示回车：{input.PlaceholderText}");
+            // 占位文案只有框空着时才看得见：拍这一帧之前先把框清掉（程序改 Text 不走键入那条路），拍完放回去。
+            input.Text = string.Empty;
+            await SaveReturnFrameAsync(page, "search-subscription-idle.png");
+            input.Text = "订阅关键词";
+
+            await page.SubmitSearchAsync("订阅关键词");
             var subscriptionPanel = Get<MoviePilotSearchPanel>(page, "MoviePilotPanel");
+            await UntilAsync(() => subscriptionPanel.ViewModel.Results.Count == 1);
+            Require(mp.Paths.Any(path => path.Contains("media/search?title=", StringComparison.Ordinal)), "订阅未走媒体搜索");
+            Require(subscriptionPanel.ViewModel.SourceChoices.Count > 1, "MoviePilot 来源目录被取消");
             await LayoutAsync(subscriptionPanel);
             var sourceFilter = Get<ComboBox>(subscriptionPanel, "SourceFilter");
             sourceFilter.SelectedItem = subscriptionPanel.ViewModel.SourceChoices.Single(source => source.Id == "douban");
@@ -135,18 +155,32 @@ internal sealed partial class ShellNavigationProbe
             {
                 throw new InvalidOperationException($"来源选择没有落入视图模型：items={sourceFilter.Items.Count}, index={sourceFilter.SelectedIndex}, selected={sourceFilter.SelectedItem}, vm={subscriptionPanel.ViewModel.SelectedSource?.Id}");
             }
+            await SettleAsync();
+            quiet = Searches(mp.Paths);
             tabs.SelectedIndex = 2;
+            await SettleAsync();
+            Require(Searches(mp.Paths) == quiet, $"切到资源来源时自动发出了搜索：{string.Join(';', mp.Paths)}");
+            await page.SubmitSearchAsync("订阅关键词");
             await UntilAsync(() => mp.Paths.Any(path => path.Contains("search/title?keyword=", StringComparison.Ordinal)));
             await UntilAsync(() => !Get<MoviePilotVersionsView>(page, "MoviePilotResources").ViewModel.Busy);
             Require(Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Collapsed, "资源与订阅面板重叠");
+
+            // 迟到的来源目录不能把用户选的那一个重置掉：目录还在飞的时候搜一次，目录回来之后再搜一次，
+            // 两次都必须用用户选的来源（从前这一条靠「切回订阅时自动搜一次」顺手量到，换来源不自动搜之后
+            // 改成显式提交）。
             mp.PendingSources = Pending<HttpResponseMessage>();
             tabs.SelectedIndex = 1;
-            await UntilAsync(() => !subscriptionPanel.ViewModel.Busy);
+            await page.SubmitSearchAsync("订阅关键词");
+            Require(mp.Paths.Last().Contains("media_source=douban", StringComparison.Ordinal),
+                $"来源目录在飞时的搜索没有沿用用户选的来源：last={mp.Paths.Last()}");
             mp.PendingSources.TrySetResult(SearchProbeServer.Sources());
             await SettleAsync();
-            Require(subscriptionPanel.ViewModel.SelectedSource.Id == "douban"
-                && mp.Paths.Last(path => path.Contains("media/search?", StringComparison.Ordinal)).Contains("media_source=douban", StringComparison.Ordinal),
-                $"迟到的来源目录重置了用户选择：source={subscriptionPanel.ViewModel.SelectedSource?.Id}, last={mp.Paths.Last(path => path.Contains("media/search?", StringComparison.Ordinal))}");
+            Require(subscriptionPanel.ViewModel.SelectedSource?.Id == "douban", "迟到的来源目录重置了用户选择");
+            var afterCatalogue = mp.Paths.Count;
+            await page.SubmitSearchAsync("订阅关键词");
+            await UntilAsync(() => mp.Paths.Count > afterCatalogue);
+            Require(mp.Paths.Last().Contains("media_source=douban", StringComparison.Ordinal),
+                $"来源目录回来后的搜索没有沿用用户选的来源：last={mp.Paths.Last()}");
             mp.PendingSources = null;
             tabs.SelectedIndex = 2;
             await UntilAsync(() => !Get<MoviePilotVersionsView>(page, "MoviePilotResources").ViewModel.Busy);
@@ -154,9 +188,14 @@ internal sealed partial class ShellNavigationProbe
             var count = mp.Paths.Count;
             await page.SubmitSearchAsync("新的资源词");
             Require(mp.Paths.Count == count + 1 && mp.Paths.Last().Contains(Uri.EscapeDataString("新的资源词"), StringComparison.Ordinal), "资源没有显式提交新关键词");
+            quiet = Searches(mp.Paths);
             tabs.SelectedIndex = 0;
-            await UntilAsync(() => !page.ViewModel.Busy);
-            Require(page.LoadedCount == 2 && Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Collapsed, "切回媒体库未恢复查询");
+            await SettleAsync();
+            Require(Searches(mp.Paths) == quiet, $"切回媒体库时自动发出了搜索：{string.Join(';', mp.Paths)}");
+            Require(Get<Grid>(page, "EmbyContent").Visibility == Visibility.Visible
+                && Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Collapsed, "切回媒体库没有换回媒体库面板");
+            await page.SubmitSearchAsync("新词");
+            Require(page.LoadedCount == 2 && page.ViewModel.SearchText == "新词", "切回媒体库后显式搜索没有结果");
             var pending = page.SearchTypingAsync("离页词");
             page.Release();
             await pending;
@@ -168,6 +207,15 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(frame);
         }
     }
+
+    /// <summary>
+    /// 只数搜索请求。来源目录 <c>media/source</c> 与站点目录不是搜索：换来源照旧会拉它们，把它们算进来
+    /// 就量不出「换来源不替用户搜一次」。
+    /// </summary>
+    private static int Searches(IReadOnlyList<string> paths) => paths.Count(path =>
+        path.Contains("media/search", StringComparison.Ordinal)
+        || path.Contains("search/title", StringComparison.Ordinal)
+        || path.Contains("search/media/", StringComparison.Ordinal));
 
     private sealed class SearchProbeServer : HttpMessageHandler
     {

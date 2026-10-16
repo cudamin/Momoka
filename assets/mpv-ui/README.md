@@ -152,16 +152,13 @@ grep -rn "MOMOKA\[" assets/mpv-ui/scripts/uosc
      `PlayerPage.Chrome.cs` 的 `WindowPinGlyph`）、已置顶时同样整颗常亮；从前那句「uosc 画不出集成那两颗
      躺着的空心钉／立着的实心钉」随这条令作废，两边不再有那两颗。状态由 main.lua 观察 mpv 的 `ontop` 属性
      送进顶栏（同一个 `create_state_setter`，谁改的都从这里回来）。
-   - **菜单大小对齐集成模式右键菜单**（`MOMOKA[menu-style]`，用户令 2026-10-07「独占模式的右键菜单
-     体积太大了，大小改为跟集成模式一致（注意全屏和最大化时要放大 1.3 倍）」；上色沿用 2026-09-29
-     「参考 C:\mpv_config-2026.08.12」那轮批准的样子，画菜单的是同一个 uosc Menu 元件）：字号 14
-     （WinUI `ControlContentThemeFontSize`）、行高＝字号×(1+gap)＝42（集成一行＝行外边距 2×2＋内边距
-     9/10＋14px 行盒 18.6 ≈ 41.6）、最小宽 96（`FlyoutThemeMinWidth`）、外围 padding 5（presenter 1
-     ＋行外边距 4）；**缩放＝uosc 的 `state.scale`**＝`hidpi_scale`×（全屏/最大化时 `scale_fullscreen`
-     =1.3，否则 `scale`=1）—— 与集成菜单同样随 DPI 走、不随窗口高走，菜单开着时切全屏/最大化也会
-     重算。悬停行**白底深字**（#FFFFFF/#222222；active 行＝当前值照旧 0.8 白高亮）、底板**不透明**
-     #222222＋圆角 5＋0.5 白细描边、分隔线 #555555 照旧。逐项映射与「不搬的两件」（子菜单悬停开合
-     延迟、勾选框列）写在 main.lua 选项区同名槽；几何与上色在 `elements/Menu.lua` 同名槽。
+   - **独占菜单重绘**（`MOMOKA[menu-style]`，2026-10-15）：正文 16、辅助文字 13、行高 32，内容最小宽
+     216、面板留白 6、圆角 10。深紫灰不透明底板（#25232A）配低对比描边和柔和投影；悬停填底，当前值
+     另以淡紫勾选和浅底标记，快捷键/动态值右对齐。颜色是独占播放器自己的固定色系，不随 Shell 主题切换。
+     **缩放继续使用 `state.scale`**（DPI × 全屏/最大化 1.3），不随窗口高度改变。
+     子菜单与父项对齐、间隔 6；靠右时向左展开，后续层级延续方向，小窗内保证面板不越屏。
+     `separator=true` 表示在该项**之后**画分组线，不能吞掉菜单项；绘制、滚动与命中共用行位置，
+     分组空隙不能触发命令。选项在 `main.lua`、绘制在 `elements/Menu.lua`，投影使用 `lib/ass.lua` 的可选 blur。
    - `osd-width`/`osd-height` number 观察兜底：d3d11 窗口管线下 osd-dimensions 的 native 观察
      会漏掉起播初段「画布=视频尺寸→画布=窗口尺寸」的变化，导致控件可见而点击热区全错位。
 2. **lib/utils.lua**：目录/播放列表导航（`get_adjacent_files`、`decide_navigation_in_list`、
@@ -296,10 +293,10 @@ py tools/test-uosc.py --output work/uosc-interaction-run
    追踪/`input-bindings` 左键全量 dump。判据：双击后 fullscreen 翻转、pause 不变、命令账无
    `cycle pause`、撤销 ≥1（撤在第二拍按下）。**注意 pump 必须处理 MPV_EVENT_CLIENT_MESSAGE(16)**，
    只收日志会把回包全丢（第一次跑就这么哑的）。报告落在 `work/probe-doubleclick-real-<tag>.txt`。
-6. `work/probe-menu-look.py` 是**右键菜单观感实拍**（真窗口＋真光标，PrintWindow 抓窗口表面）：
-   宿主形状的夹具菜单（hint/active/分隔符/两级子菜单）锚光标弹出，逐拍验证面板 #2C2C2C、
-   悬停行 #353535、白字、分隔线坐在槽位正中、根＋子面板贴缝共用叠边；后几拍 Lua 直驱
-   （桌面物理输入会抢菜单）。判据全过才退 0；报告 `work/uosc-menu-look/report.json`，
-   PNG 同目录。2026-10-07 复刻参考菜单那次抓过「预览面板喂错矩形场崩了整只脚本」的活。
+6. `work/probe-menu-look.py` 与 `work/uosc-menu-look/` 保存 2026-10-07 旧外观的实拍和判据，
+   其中白字、颜色和零间距断言已被 2026-10-15 的重绘替代，不能用于验收当前外观。
+   当前离线交互回归运行 `py tools/test-uosc.py --output <新目录>`，覆盖分组后的命令/子菜单、
+   不可点击的分组空隙、级联间隙与右缘连续向左展开。真实窗口视觉证据另记在 `PROGRESS.md`；
+   Lua 回归本身没有窗口、媒体或实际鼠标输入，不代替实拍。
 7. 重建发布后跑 `tools/verify-publish.ps1`——它守装箱完整性（入口脚本、工具库、时间轴、
    两个字体、LGPL 文本）。

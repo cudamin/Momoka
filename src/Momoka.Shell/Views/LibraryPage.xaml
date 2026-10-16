@@ -326,7 +326,7 @@
                         <Button
                             x:Name="FilterButton"
                             MinHeight="32"
-                            Visibility="{x:Bind ViewModel.SortFilterVisibility, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.FilterVisibility, Mode=OneWay}"
                             HorizontalContentAlignment="Center"
                             MinWidth="0"
                             ToolTipService.ToolTip="{x:Bind ViewModel.FilterTooltip, Mode=OneWay}">

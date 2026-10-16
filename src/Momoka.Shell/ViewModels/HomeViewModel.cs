@@ -57,8 +57,9 @@ public sealed partial class HomeViewModel : PageViewModel
     private IReadOnlyList<EmbyItem> _libraryViews = [];
     private readonly HomeRefresh _refresh = new();
     private EmbySessionScope? _scope;
+    private IReadOnlyList<EmbySessionScope> _sources = [];
     private bool _active;
-    private bool Live => _active && _scope?.IsCurrent == true;
+    private bool Live => _active && _sources.Any(source => source.IsAvailable);
     private bool Visible(string key) => _all.Any(entry => entry.Row.Key == key && entry.Row.Visible);
 
     /// <summary>角标那个开关，<see cref="Attach"/> 时取一次的快照 —— 见那一段的说明。卡片尺寸从前也在这张
@@ -246,6 +247,7 @@ public sealed partial class HomeViewModel : PageViewModel
         Cancel();
         _active = true;
         _scope = images.CaptureScope();
+        _sources = session.Sources.ToArray();
         if (_scope is not null) BrowsingPreferences.SelectIdentity(settings.Settings.Ui, _scope.Connection);
         _actions = actions;
         _libraryViews = libraryViews;
@@ -307,7 +309,11 @@ public sealed partial class HomeViewModel : PageViewModel
             // 只递一个库 id，于是那两排没有 id、牌子一直是死的。
             return (row, new CardShelf(
                 row.Title, images, width, wide, badges,
-                HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key)) { HomeKey = row.Key });
+                HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key))
+            {
+                HomeKey = row.Key,
+                Source = _libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == row.Key)?.Source
+            });
         })];
     }
 
@@ -329,9 +335,9 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         if (!Live || !removed.IsCurrent || !_all.Any(entry => entry.Shelf.Cards.Contains(removed))) return;
         base.Cancel();
-        bool Deleted(EmbyItem item) => item.Id == removed.Item.Id || item.ParentId == removed.Item.Id
+        bool Deleted(EmbyItem item) => item.Source?.Key == removed.Item.Source?.Key && (item.Id == removed.Item.Id || item.ParentId == removed.Item.Id
             || removed.Item.Type == EmbyItemType.Series && item.SeriesId == removed.Item.Id
-            || removed.Item.Type == EmbyItemType.Season && item.SeasonId == removed.Item.Id;
+            || removed.Item.Type == EmbyItemType.Season && item.SeasonId == removed.Item.Id);
         foreach (var (_, shelf) in _all)
         {
             foreach (var card in shelf.Cards.Where(card => Deleted(card.Item)).ToArray())
@@ -339,16 +345,74 @@ public sealed partial class HomeViewModel : PageViewModel
                 card.AbandonPoster();
                 shelf.Cards.Remove(card);
             }
-            if (shelf.Cards.Count == 0) Shelves.Remove(shelf);
         }
         if (Slides.Any(slide => Deleted(slide.Item)))
             Slides = Slides.Where(slide => !Deleted(slide.Item)).ToArray();
+        ReconcileRows();
+        IsReady = true;
+    }
+
+    /// <summary>
+    /// 主页「继续观看」那一排的一张卡被标成已看之后，把那一格收拾干净 —— 单集换成本剧的下一集，电影、以及
+    /// 没有下一集的单集一律撤掉（用户令 2026-10-15「主页的继续观看标记已看之后要自动切换为下一集，如果没有下一集
+    /// 或者是电影标记已看后要移出继续观看」）。
+    /// </summary>
+    /// <remarks>
+    /// 只认「继续观看」那一排：别的排上的卡标记已看只是它自己那个对勾的事，条目还在那一排里（服务器那条 Resume
+    /// 接口才管得着「这一项该不该留在继续观看」）。
+    /// <para>
+    /// 不重读整排、也不走整页重读：服务器那条 Resume 接口只认「有没有播放进度」，标记已看之后那一集从清单里消失
+    /// 是对的，可下一集没有播放进度、它不会给 —— 「切换为下一集」得自己问（<see cref="ResumeSlot"/>，服务器那条
+    /// <c>Shows/NextUp</c> 缩到这一部剧上）。重读整页换不来下一集，却要重建一页海报和轮播。
+    /// </para>
+    /// </remarks>
+    internal void MarkedWatched(CardItem card) => _ = AfterWatchedAsync(card);
+
+    private async Task AfterWatchedAsync(CardItem card)
+    {
+        if (!Live || card.Scope is not { IsAvailable: true } scope) return;
+        if (ResumeShelf() is not { } shelf) return;
+        if (!card.IsCurrent || !shelf.Cards.Contains(card)) return;
+
+        var watched = card.Item;
+
+        // 下一集先问回来再动屏：问的这段时间那张卡还在原处（它已经带上已看的对勾了），回来才一次换掉 ——
+        // 先撤后插会让那一排空着闪一下。问不出来（最后一集、断线、离页）都按「没有下一集」办。
+        var next = ResumeRow.WantsNext(watched)
+            ? await ResumeSlot.NextEpisodeAsync(scope, watched, Category).ConfigureAwait(true)
+            : null;
+
+        // 这一趟往返里页面可能已经走了、或者换了账号：那就一个字都别动。
+        if (!Live || !card.IsCurrent || !shelf.Cards.Contains(card)) return;
+
+        var slot = ResumeSlot.Apply(shelf.Cards, card, next, shelf.NewCard);
+        Log.Info(Category, slot is null
+            ? $"「{watched.Name}」标记已看，从继续观看撤下"
+            : $"「{watched.Name}」标记已看，那一格换成「{slot.Name}」");
+
+        ReconcileRows();
+    }
+
+    /// <summary>「继续观看」那一排；勾掉了、或者这个账号一条都没有时是 null。</summary>
+    private CardShelf? ResumeShelf() =>
+        _all.FirstOrDefault(entry => entry.Row.Key == HomeLayout.Resume).Shelf;
+
+    /// <summary>
+    /// 某一排的卡片增减过之后的账：装载数、空态，以及空掉的那几排从横排里收起来（装到了东西才排，见
+    /// <see cref="LoadAsync"/>）。删除和「标记已看之后那一格撤掉」共用这一份。
+    /// </summary>
+    private void ReconcileRows()
+    {
+        foreach (var (_, shelf) in _all)
+        {
+            if (shelf.Cards.Count == 0) Shelves.Remove(shelf);
+        }
+
         if (LibraryFlowIndex >= 0)
             LibraryFlowIndex = _all.TakeWhile(entry => entry.Row.Key != HomeLayout.Libraries)
                 .Count(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0);
         LoadedCount = _all.Where(entry => entry.Row.Key != HomeLayout.Libraries).Sum(entry => entry.Shelf.Cards.Count);
         ShowEmptyNotice = Shelves.Count == 0;
-        IsReady = true;
     }
 
     /// <summary>播放只改变观看状态，不重建轮播，以免返回时丢掉已解码背景并重置轮播位置。</summary>
@@ -399,12 +463,13 @@ public sealed partial class HomeViewModel : PageViewModel
         // 整个服务器的「最近添加」那一排 2026-09-12 从版面上退役了，但它没有断请求 —— 轮播 2026-09-13 起
         // 单独问一次（见上面 latest）。
         var perLibrary = new Dictionary<string, Task<List<EmbyItem>>>(StringComparer.Ordinal);
-        foreach (var (row, _) in _all)
+        foreach (var (row, shelf) in _all)
         {
             if (!row.Visible || HomeLayout.LibraryId(row.Key) is not { Length: > 0 } id) continue;
+            if (_libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == row.Key) is not { } library) continue;
 
             perLibrary[row.Key] = FetchAsync(
-                row.Title, (client, ct) => client.GetLatestAsync(id, LatestSize, ct), token);
+                HomeLayout.LibraryTitle(library.Name), (client, ct) => client.GetLatestAsync(id, LatestSize, ct), token, shelf.Source ?? _scope);
         }
 
         await Task.WhenAll(perLibrary.Values.Append(resume).Append(nextUp).Append(latest)).ConfigureAwait(true);
@@ -489,9 +554,7 @@ public sealed partial class HomeViewModel : PageViewModel
         // would be plainly untrue.
         ShowEmptyNotice = Shelves.Count == 0;
 
-        Subheading = LoadedCount == 0
-            ? _session.ServerDisplayName
-            : $"{_session.ServerDisplayName}  ·  {LoadedCount} 项";
+        Subheading = LoadedCount == 0 ? null : $"{LoadedCount} 项";
 
         EndLoad(token);
     }
@@ -623,7 +686,7 @@ public sealed partial class HomeViewModel : PageViewModel
 
         // A library's own card routes through the pane entry that opens it, so the pane highlight and
         // the breadcrumb end up exactly where clicking it in the pane would have put them.
-        if (card.Item.Type is EmbyItemType.CollectionFolder && _actions.TryOpenLibrary(card.Item.Id)) return;
+        if (card.Item.Type is EmbyItemType.CollectionFolder && _actions.TryOpenLibrary(card.Item.Id, card.Scope)) return;
 
         _actions.OpenItem(card.Item);
     }
@@ -660,7 +723,7 @@ public sealed partial class HomeViewModel : PageViewModel
                 if (shelf.LibraryId is { Length: > 0 } id)
                 {
                     Log.Info(Category, $"进库（牌子）：{id}");
-                    _actions.TryOpenLibrary(id);
+                    _actions.TryOpenLibrary(id, shelf.Source);
                 }
                 else
                 {
@@ -671,7 +734,7 @@ public sealed partial class HomeViewModel : PageViewModel
             case HomeLayout.HomeRowTarget.Resume:
             case HomeLayout.HomeRowTarget.NextUp:
                 Log.Info(Category, $"开一排的页面：{shelf.Target}");
-                _actions.OpenRow(shelf.Target);
+                _actions.OpenRow(shelf.Target, shelf.Source);
                 break;
 
             default:
@@ -693,12 +756,29 @@ public sealed partial class HomeViewModel : PageViewModel
     private async Task<List<EmbyItem>> FetchAsync(
         string what,
         Func<EmbyClient, CancellationToken, Task<List<EmbyItem>>> operation,
+        CancellationToken token,
+        EmbySessionScope? source = null)
+    {
+        var sources = source is not null ? [source] : _sources;
+        var results = await Task.WhenAll(sources.Select(scope => FetchSourceAsync(scope, what, operation, token))).ConfigureAwait(true);
+        var items = new List<EmbyItem>();
+        // 轮流取各来源的一项，避免默认账号填满轮播或首屏，其他来源永远看不到。
+        for (var index = 0; results.Any(result => result.Count > index); index++)
+            foreach (var result in results)
+                if (index < result.Count) items.Add(result[index]);
+        return items;
+    }
+
+    private async Task<List<EmbyItem>> FetchSourceAsync(
+        EmbySessionScope scope,
+        string what,
+        Func<EmbyClient, CancellationToken, Task<List<EmbyItem>>> operation,
         CancellationToken token)
     {
         try
         {
-            if (!Live) return [];
-            return await _scope!.ExecuteAsync(operation, token).ConfigureAwait(true);
+            if (!Live || !scope.IsAvailable) return [];
+            return await scope.ExecuteAsync(operation, token).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {
@@ -706,7 +786,7 @@ public sealed partial class HomeViewModel : PageViewModel
         }
         catch (Exception error)
         {
-            Log.Warn(Category, $"读取{what}失败", error);
+            Log.Warn(Category, $"读取{scope.DisplayName}的{what}失败", error);
 
             // First failure wins the bar: three stacked messages saying the server is unreachable is
             // two more than anyone needs, and the other two are in the log either way.

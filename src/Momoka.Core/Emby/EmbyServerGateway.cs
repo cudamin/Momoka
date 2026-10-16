@@ -42,7 +42,14 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
                 failure = error;
             }
         }
-        throw failure ?? new EmbyApiException("无法识别媒体服务器");
+        try
+        {
+            return await Momoka.FnNas.FnNasMediaAdapter.DetectAsync(http.FnNasClient, address, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Momoka.FnNas.FnNasApiException)
+        {
+            throw failure ?? new EmbyApiException("无法识别媒体服务器");
+        }
     }
 
     /// <summary>
@@ -51,7 +58,8 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
     /// </summary>
     public Task<List<EmbyUser>> GetPublicUsersAsync(Uri apiBase, CancellationToken cancellationToken,
         MediaServerKind kind = MediaServerKind.Emby) =>
-        http.GetJsonAsync<List<EmbyUser>>(EmbyUrl.Combine(apiBase, "Users/Public"), new(device, null, ServerKind: kind), cancellationToken);
+        kind == MediaServerKind.FnNas ? Task.FromResult(new List<EmbyUser>())
+        : http.GetJsonAsync<List<EmbyUser>>(EmbyUrl.Combine(apiBase, "Users/Public"), new(device, null, ServerKind: kind), cancellationToken);
 
     public async Task<EmbyConnection> AuthenticateAsync(
         Uri apiBase,
@@ -63,6 +71,10 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         string? serverId = null)
     {
         if (string.IsNullOrWhiteSpace(username)) throw new EmbyAuthenticationException("请填写用户名");
+
+        if (kind == MediaServerKind.FnNas)
+            return await Momoka.FnNas.FnNasMediaAdapter.SignInAsync(http.FnNasClient, apiBase, username, password, device,
+                serverVersion, serverId, cancellationToken).ConfigureAwait(false);
 
         var url = EmbyUrl.Combine(apiBase, "Users/AuthenticateByName");
         object body = kind == MediaServerKind.Jellyfin

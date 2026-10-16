@@ -29,6 +29,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel>
                     <TextBlock Text="{x:Bind Username}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
@@ -37,15 +38,24 @@
                         Foreground="{ThemeResource EgTextDimBrush}"
                         Text="{x:Bind Status}" />
                 </StackPanel>
-                <Button x:Uid="ServersPage_ButtonA1"
+                <Button x:Name="AccountLoginButton"
                     Grid.Column="1"
+                    ToolTipService.ToolTip="{x:Bind LoginLabel}"
+                    AutomationProperties.Name="{x:Bind LoginLabel}"
+                    Visibility="{x:Bind LoginVisibility}"
                     Style="{StaticResource EgIconButtonStyle}"
                     Command="{x:Bind Owner.LoginAccountCommand}"
                     CommandParameter="{x:Bind}">
                     <FontIcon Glyph="&#xE8A5;" />
                 </Button>
+                <Button x:Name="AccountSignOutButton"
+                    Grid.Column="2" Content="退出"
+                    AutomationProperties.Name="退出此账号"
+                    Visibility="{x:Bind SignOutVisibility}"
+                    Command="{x:Bind Owner.SignOutAccountCommand}"
+                    CommandParameter="{x:Bind}" />
                 <Button x:Uid="ServersPage_ButtonA2"
-                    Grid.Column="2"
+                    Grid.Column="3"
                     Style="{StaticResource EgIconButtonStyle}"
                     Command="{x:Bind Owner.DeleteAccountCommand}"
                     CommandParameter="{x:Bind}">
@@ -115,6 +125,12 @@
                                 Command="{x:Bind Owner.LoginServerCommand}"
                                 CommandParameter="{x:Bind}">
                                 <FontIcon Glyph="&#xE8A5;" />
+                            </Button>
+                            <Button x:Name="ServerAddAccountButton"
+                                ToolTipService.ToolTip="添加账号" AutomationProperties.Name="添加账号"
+                                Style="{StaticResource EgIconButtonStyle}"
+                                Command="{x:Bind Owner.AddAccountCommand}" CommandParameter="{x:Bind}">
+                                <FontIcon Glyph="&#xE710;" />
                             </Button>
                             <Button x:Uid="ServersPage_ButtonA5"
                                 Style="{StaticResource EgIconButtonStyle}"

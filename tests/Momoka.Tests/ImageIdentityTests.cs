@@ -55,7 +55,7 @@ internal static class ImageIdentityTests
             Assert.Equal(1, fixture.Transport.Images.Count);
         });
 
-        Case("图片身份：旧下载迟到不交给新身份或占用新身份的请求", async () =>
+        Case("图片身份：默认账号切换后两个在线来源各自收到自己的在途图片", async () =>
         {
             using var fixture = new Fixture();
             var entered = Signal();
@@ -72,13 +72,11 @@ internal static class ImageIdentityTests
             await fixture.Select("https://b.invalid/media", "u");
             var current = fixture.Get();
             reply.SetResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("old-a") });
-            var cancelled = false;
-            try { await old; } catch (OperationCanceledException) { cancelled = true; }
-            Assert.True(cancelled, "旧身份的图片应放弃，而不是以成功结果回到新页面");
+            Assert.Equal("old-a", Text(await old));
             Assert.Equal("b.invalid/u", Text(await current));
         });
 
-        Case("图片身份：重试期间切服不拿新身份重发旧图片", async () =>
+        Case("图片身份：退出来源后停止其重试，不拿其他在线账号重发图片", async () =>
         {
             using var fixture = new Fixture();
             var entered = Signal();
@@ -88,13 +86,47 @@ internal static class ImageIdentityTests
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
             };
             await fixture.Select("https://a.invalid/media", "u");
+            var server = fixture.Session.Server!;
+            var account = fixture.Session.Account!;
             var old = fixture.Get();
             await entered.Task;
             await fixture.Select("https://b.invalid/media", "u");
+            fixture.Session.SignOut(server, account);
             var cancelled = false;
             try { await old; } catch (OperationCanceledException) { cancelled = true; }
             Assert.True(cancelled);
-            Assert.Equal(1, fixture.Transport.Images.Count, "切服后不再重试旧图片");
+            Assert.Equal(1, fixture.Transport.Images.Count, "退出来源后不再重试它的图片");
+        });
+
+        Case("图片身份：聚合条目与章节图使用固定来源，不随默认账号改写", async () =>
+        {
+            using var fixture = new Fixture();
+            await fixture.Select("https://a.invalid/media", "a");
+            var source = fixture.Session.Capture();
+            var item = source.Bind(new EmbyItem { Id = "same", ImageTags = new() { ["Primary"] = "poster" } });
+            await fixture.Select("https://b.invalid/media", "b");
+            Assert.Equal(source.Key, fixture.Store.CaptureScope(item)!.Key);
+            Assert.Equal("a.invalid/a", Text(await fixture.Store.GetAsync(item, "Primary", 320, None)));
+            Assert.Equal("a.invalid/a", Text(await fixture.Store.GetChapterAsync(source, "same", 0, null, 320, None)));
+            Assert.Equal("b.invalid/b", Text(await fixture.Get()));
+        });
+
+        Case("图片身份：退出后聚合条目的缓存也不会通过另一个账号重新读取", async () =>
+        {
+            using var fixture = new Fixture();
+            await fixture.Select("https://a.invalid/media", "a");
+            var server = fixture.Session.Server!;
+            var account = fixture.Session.Account!;
+            var source = fixture.Session.Capture();
+            var item = source.Bind(new EmbyItem { Id = "same", ImageTags = new() { ["Primary"] = "poster" } });
+            await fixture.Store.GetAsync(item, "Primary", 320, None);
+            await fixture.Select("https://b.invalid/media", "b");
+            fixture.Session.SignOut(server, account);
+            var cancelled = false;
+            try { await fixture.Store.GetAsync(item, "Primary", 320, None); }
+            catch (OperationCanceledException) { cancelled = true; }
+            Assert.True(cancelled);
+            Assert.Equal(1, fixture.Transport.Images.Count);
         });
 
         Case("图片身份：章节图和海报遵循同一身份边界", async () =>

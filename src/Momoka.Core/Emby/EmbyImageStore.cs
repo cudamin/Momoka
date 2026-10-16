@@ -112,10 +112,11 @@ public sealed class EmbyImageStore
     /// </summary>
     public Task<byte[]?> GetAsync(EmbyItem item, string imageType, int width, CancellationToken cancellationToken) =>
         TagFor(item, imageType) is { } tag
-            ? GetAsync(item.Id, imageType, tag, width, cancellationToken)
+            ? GetAsync(_session.Capture(item), item.Id, imageType, tag, width, cancellationToken)
             : Task.FromResult<byte[]?>(null);
 
-    public EmbySessionScope? CaptureScope() => _session.IsSignedIn ? _session.Capture() : null;
+    public EmbySessionScope? CaptureScope(EmbyItem? item = null) =>
+        item?.Source ?? (_session.IsSignedIn ? _session.Capture() : null);
 
     public Task<byte[]?> GetAsync(string itemId, string imageType, string tag, int width, CancellationToken cancellationToken) =>
         GetAsync(_session.Capture(), itemId, imageType, tag, width, cancellationToken);
@@ -135,8 +136,11 @@ public sealed class EmbyImageStore
     /// and would otherwise re-download the same frames on every pass.
     /// </summary>
     public Task<byte[]?> GetChapterAsync(string itemId, int index, string? tag, int width, CancellationToken cancellationToken)
+        => GetChapterAsync(_session.Capture(), itemId, index, tag, width, cancellationToken);
+
+    public Task<byte[]?> GetChapterAsync(EmbySessionScope scope, string itemId, int index, string? tag, int width,
+        CancellationToken cancellationToken)
     {
-        var scope = _session.Capture();
         return Fetch(
             scope,
             CacheKey(scope.Connection, itemId, $"Chapter{index}", tag ?? "untagged", width),
@@ -152,7 +156,7 @@ public sealed class EmbyImageStore
         string description,
         CancellationToken cancellationToken)
     {
-        scope.ThrowIfNotCurrent();
+        scope.ThrowIfUnavailable();
         cancellationToken.ThrowIfCancellationRequested();
         var path = Path.Combine(_directory, key);
 
@@ -168,7 +172,7 @@ public sealed class EmbyImageStore
             // 是异步的，正是因为「一屏四十张卡片各停一次等磁盘」就是快速滚动时那一下卡顿。`ConfigureAwait(false)`
             // 多数时候会把这里挪到池线程上，可那只是多数：一次同步完成的读会让下面这几句原地跑在界面线程上。推时
             // 间戳只影响淘汰次序，屏上没有任何东西等它，所以让它自己去跑。
-            scope.ThrowIfNotCurrent();
+            scope.ThrowIfUnavailable();
             _ = Task.Run(() => Touch(path));
             return cached;
         }
@@ -179,7 +183,7 @@ public sealed class EmbyImageStore
         var bytes = await _downloads
             .RunAsync(key, () => DownloadAsync(scope, download, description, path), cancellationToken)
             .ConfigureAwait(false);
-        scope.ThrowIfNotCurrent();
+        scope.ThrowIfUnavailable();
         cancellationToken.ThrowIfCancellationRequested();
         return bytes;
     }
@@ -197,9 +201,9 @@ public sealed class EmbyImageStore
                 // CancellationToken.None on purpose: whoever asked first may be gone by now, and the bytes
                 // are still wanted — by the other cards waiting on this one download, and by the disk cache
                 // that makes the next visit instant. The request is bounded by the HTTP timeout instead.
-                scope.ThrowIfNotCurrent();
+                scope.ThrowIfUnavailable();
                 var bytes = await scope.ExecuteAsync(download, CancellationToken.None).ConfigureAwait(false);
-                scope.ThrowIfNotCurrent();
+                scope.ThrowIfUnavailable();
 
                 if (bytes.Length == 0) return null;
 

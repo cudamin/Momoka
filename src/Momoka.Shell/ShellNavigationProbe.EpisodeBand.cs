@@ -1,6 +1,7 @@
 using System.Net;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.Emby;
 using Momoka.Shell.Views;
 
@@ -44,6 +45,7 @@ internal sealed partial class ShellNavigationProbe
 
         var series = Series();
         series.BackdropImageTags.Add("fixture");
+        series.ImageTags["Art"] = "fixture";
 
         var episode = Episode("a");
         episode.Name = "离线单集 · 集页封面与窄窗背景";
@@ -58,12 +60,14 @@ internal sealed partial class ShellNavigationProbe
 
         var poster = await FixtureImageAsync(400, 600);
         var backdrop = await FixtureImageAsync();
+        var artwork = await FixtureImageAsync(1600, 900);
         fixture.Transport.Reply = (request, _) =>
         {
             var path = request.RequestUri!.AbsolutePath;
             if (path.Contains("/Images/", StringComparison.Ordinal))
             {
-                var bytes = path.Contains("/Images/Primary", StringComparison.Ordinal) ? poster : backdrop;
+                var bytes = path.Contains("/Images/Primary", StringComparison.Ordinal) ? poster
+                    : path.Contains("/Images/Art", StringComparison.Ordinal) ? artwork : backdrop;
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(bytes) });
             }
             if (path.EndsWith("/Items/" + series.Id, StringComparison.Ordinal)) return Task.FromResult(Json(series));
@@ -78,9 +82,11 @@ internal sealed partial class ShellNavigationProbe
         {
             frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, episode));
             var page = (DetailPage)frame.Content;
+            page.AttachWindow(_window!);
             await UntilAsync(() => page.IsReady);
             await UntilAsync(() => page.ViewModel.StillImage is not null);
             await UntilAsync(() => page.ViewModel.HeroImage is not null);
+            await UntilAsync(() => page.ViewModel.CornerImage is not null);
 
             var coverWidths = new Dictionary<int, double>();
             foreach (var width in new[] { 1280, 1024, 1023, 768 })
@@ -181,10 +187,54 @@ internal sealed partial class ShellNavigationProbe
             Require(coverWidths[1023] == 0 && coverWidths[768] == 0,
                 $"紧凑版式里那一格还占着地方：1023 上 {coverWidths[1023]:0.##}、768 上 {coverWidths[768]:0.##}");
 
+            var maximum = _window!.WorkArea().Width / _root.XamlRoot.RasterizationScale;
+            var midpoint = (int)Math.Round((DetailHero.CornerGrowFrom + maximum) / 2);
+            foreach (var width in new[] { 1280, 1400, midpoint, 0, 1280 })
+            {
+                if (width == 0) _window.ToggleMaximize();
+                else
+                {
+                    if (_window.IsMaximized) _window.ToggleMaximize();
+                    ResizeProbeClient(width, 900);
+                }
+                await LayoutAsync(page);
+                var corner = Get<Image>(page, "CornerArt");
+                var actualWindow = width == 0 ? maximum : _window.ClientSize.Width / _root.XamlRoot.RasterizationScale;
+                var scale = DetailHero.CornerScale(actualWindow, maximum);
+                var wantWidth = DetailHero.CornerBoxWidth(page.ViewModel.PageWidth, page.ViewModel.StillWidth, scale);
+                var wantHeight = wantWidth * 9 / 16;
+                bool LimitsMatch() => Math.Abs(corner.MaxWidth - wantWidth) < 0.01
+                    && Math.Abs(corner.MaxHeight - wantHeight) < 0.01;
+                if (width == 1280)
+                {
+                    var saved = corner.MaxWidth;
+                    try
+                    {
+                        corner.MaxWidth = saved + 40;
+                        Require(!LimitsMatch(), "错误的艺术图尺寸上限未被检查识别");
+                    }
+                    finally { corner.MaxWidth = saved; }
+                }
+                // 解码后的位图像素会取整，Image 的 Uniform 按那一份比例排版；分别验上限绑定、贴边与真实比例，
+                // 不能把原图 16:9 当作缩略图也能精确保留的比例，否则两次取整会造成约一像素的假失败。
+                var bitmap = (BitmapSource)corner.Source;
+                var pixel = 1 / _root.XamlRoot.RasterizationScale;
+                Require(corner.Visibility == Visibility.Visible
+                    && LimitsMatch()
+                    && corner.ActualWidth <= wantWidth + pixel && corner.ActualHeight <= wantHeight + pixel
+                    && Math.Min(Math.Abs(corner.ActualWidth - wantWidth), Math.Abs(corner.ActualHeight - wantHeight)) <= pixel
+                    && Math.Abs(corner.ActualWidth - corner.ActualHeight * bitmap.PixelWidth / bitmap.PixelHeight) <= pixel,
+                    $"艺术图尺寸未跟随窗口：{actualWindow:0.##} 上 {corner.ActualWidth:0.##}×{corner.ActualHeight:0.##}，应为 {wantWidth:0.##}×{wantHeight:0.##}");
+                Require(page.ViewModel.HeroHeight >= corner.ActualHeight, "艺术图溢出头部高度");
+                readings.Add($"艺术图：窗口 {actualWindow:0.##}，最大 {maximum:0.##}，倍率 {scale:0.###}，实际 {corner.ActualWidth:0.##}×{corner.ActualHeight:0.##}");
+                await SaveProbeScreenAsync($"detail-corner-{(width == 0 ? "max" : width.ToString())}.png");
+            }
+
             Require(fixture.Actions.Plays == 0, "布局检查意外请求播放");
         }
         finally
         {
+            if (_window?.IsMaximized == true) _window.ToggleMaximize();
             File.WriteAllLines(Path.Combine(_options.Paths.LogDirectory, "detail-episode-band.txt"), readings);
             (frame.Content as IShellContent)?.Release();
             _root.Children.Remove(frame);

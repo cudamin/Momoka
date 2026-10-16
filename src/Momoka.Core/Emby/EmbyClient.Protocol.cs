@@ -4,6 +4,7 @@ public sealed partial class EmbyClient
 {
     private Uri Url(string path, params (string Key, string? Value)[] query)
     {
+        if (Connection.IsFnNas) throw new NotSupportedException("飞牛影视不支持此 Emby 操作");
         if (!Connection.IsJellyfin) return EmbyUrl.Combine(ApiBase, path, query);
         if (path is "Items/Metadata/Reset" or "Images/Remote" or "Items/RemoteSearch/Image" || path.EndsWith("/HideFromResume", StringComparison.Ordinal)
             || query.Any(pair => pair.Key.EndsWith("RefreshMode", StringComparison.OrdinalIgnoreCase)
@@ -36,7 +37,7 @@ public sealed partial class EmbyClient
 
     private void RequireEmby(string feature)
     {
-        if (Connection.IsJellyfin) throw new NotSupportedException($"当前 Jellyfin 服务器不支持{feature}");
+        if (Connection.ServerKind != MediaServerKind.Emby) throw new NotSupportedException($"当前服务器不支持{feature}");
     }
 
     private Uri EmbyOnlyUrl(string path, params (string Key, string? Value)[] query)
@@ -46,5 +47,6 @@ public sealed partial class EmbyClient
     }
 
     public Task<EmbyUser> GetCurrentUserAsync(CancellationToken cancellationToken) =>
-        http.GetJsonAsync<EmbyUser>(Url(Connection.IsJellyfin ? "Users/Me" : $"Users/{Connection.UserId}"), Context, cancellationToken);
+        Connection.IsFnNas ? FnNasMedia.GetCurrentUserAsync(cancellationToken)
+        : http.GetJsonAsync<EmbyUser>(Url(Connection.IsJellyfin ? "Users/Me" : $"Users/{Connection.UserId}"), Context, cancellationToken);
 }

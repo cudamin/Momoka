@@ -25,9 +25,10 @@ public static class EmbyFields
     /// <para>
     /// <c>PremiereDate</c> is here for the episode list: 「2016/4/17  ·  46 分钟」 is the reference's own
     /// row, and an air date the response did not carry is a row that silently loses half its line.
+    /// <c>EndDate</c> and <c>Status</c> supply the series card's year range or “至今”, matching the web client.
     /// </para>
     /// </summary>
-    public const string Browse = "PrimaryImageAspectRatio,Overview,ProductionYear,PremiereDate,ChildCount,DateCreated,Genres,Tags";
+    public const string Browse = "PrimaryImageAspectRatio,Overview,ProductionYear,PremiereDate,EndDate,Status,ChildCount,DateCreated,Genres,Tags";
 
     /// <summary>
     /// Adds the media sources needed to build a stream URL and list tracks, plus the chapter
@@ -52,7 +53,7 @@ public static class EmbyFields
     /// </para>
     /// </summary>
     public const string Detail =
-        "PrimaryImageAspectRatio,Overview,ProductionYear,PremiereDate,EndDate,ChildCount,DateCreated,Genres,Tags,Studios,MediaSources,Path,OfficialRating,CommunityRating,CriticRating,ProviderIds,ParentId,Chapters";
+        "PrimaryImageAspectRatio,Overview,ProductionYear,PremiereDate,EndDate,Status,ChildCount,DateCreated,Genres,Tags,Studios,MediaSources,Path,OfficialRating,CommunityRating,CriticRating,ProviderIds,ParentId,Chapters";
 
     /// <summary>
     /// 只要「这个条目背后是哪个文件」—— 下载到设备和搜索字幕都只需要这一样。

@@ -227,41 +227,30 @@ defaults = {
 	speed_step = 0.1,
 	speed_step_is_factor = false,
 
-	-- MOMOKA[menu-style] — 界面整把复刻参考项目（C:\mpv_config-2026.08.12）右键菜单的样子：
-	-- 2026-10-07 晚用户令「参考这个项目的 lua 脚本右键菜单界面修改本项目独占模式的右键菜单界面
-	-- （只复刻界面，不抄功能选项）」，随图实测定数（截图逐像素量过，见 work/ref-menu/）：
-	--   · 底板不透明 #2C2C2C、圆角 5、0.5 白细描边；行高＝字号×(1+gap)=字号×1.2（行与行贴着排，
-	--     参考图行距/字号 ≈ 22/20）；分隔符＝上下各让 padding(4) 的 1px #3E3E3E 细线（参考图实测
-	--     过分隔符处行距 32＝24＋8）。
-	--   · 悬停/键盘所在行＝#353535 浅灰底（左右各让 3、圆角 4），**字色保持白**（参考图悬停行
-	--     实测 53,53,53 底＋255 白字，不是 mpv 主线 context_menu 的白底深字）；active 行（当前值）
-	--     照旧 fg@0.8 高亮＋深字。hint（快捷键/动态值那列）从 0.5 提到全亮白，右距 8 贴边
-	--     （参考图 b/q/PGUP 与 ▸ 同一条右缘）；文字左缩进 36（参考图左侧留白显著大于右侧）。
-	--   · 级联＝参考图的骨架：子面板贴着父面板右缘（零缝、共用那根白描边）、顶边对齐父项行、
-	--     父面板原地不动；面板不再有最小宽度（参考图面板贴内容）；标题行/脚注/左缘指示条整块
-	--     撤下（参考图没有这些）。上一轮（同日早些）的 WinUI 尺寸（fs14/行高42）就此退役，
-	--     但**缩放尺子保留**：state.scale（hidpi × 全屏/最大化 1.3）依旧管大小——那道令只废了
-	--     「随窗口高」，这里不复活。
-	-- 不搬的两件（理由同 2026-09-29 那轮）：子菜单的悬停开合延迟（seconds_to_open/close_submenus=0.2
-	-- —— 要动导航状态机，风险大于收益；点开子菜单照旧）；勾选框列（uosc 用 active 高亮示当前值，
-	-- 同义不同形）。
-	-- 作用于所有 uosc 菜单（画面/选集/版本/音轨/字幕/章节）。
-	menu_font_size = 20,
-	menu_gap = 0.2,
-	menu_min_width = 0,
-	menu_padding = 4,
+	-- MOMOKA[menu-style] — 独占菜单共用播放器的深紫灰色系：正文、辅助文字、当前值分层。
+	-- 字号 16 / 行高 32，勾选标识与悬停分开；级联面板留 6px 间距，DPI 和全屏缩放沿用 state.scale。
+	-- 下列颜色直接交给 ASS，顺序为 BGR（例如底板 2A2325 对应 #25232A）。
+	menu_font_size = 16,
+	menu_gap = 1,
+	menu_min_width = 216,
+	menu_padding = 6,
 	menu_item_indent = 36,
-	menu_item_pad_right = 8,
-	menu_hover_inset = 3,
-	menu_hover_radius = 4,
-	menu_background_color = '2C2C2C',
-	menu_corner_radius = 5,
+	menu_item_pad_right = 16,
+	menu_hover_inset = 6,
+	menu_hover_radius = 5,
+	menu_panel_gap = 6,
+	menu_background_color = '2A2325',
+	menu_corner_radius = 10,
 	menu_outline_size = 0.5,
-	menu_outline_color = 'FFFFFF',
+	menu_outline_color = '4F4549',
+	menu_text_color = 'F7F0F4',
+	menu_hint_color = 'C0B4B9',
 	menu_focused_color = 'FFFFFF',
-	menu_focused_back_color = '353535',
-	menu_disabled_color = '555555',
-	menu_separator_color = '3E3E3E',
+	menu_focused_back_color = '3F3437',
+	menu_active_color = 'FFBCD0',
+	menu_active_back_color = '402C32',
+	menu_disabled_color = '8C8187',
+	menu_separator_color = '40373B',
 	-- 用户原配置：输入即搜索会锁死「同键关闭菜单」，嵌入后保持 no
 	menu_type_to_search = false,
 

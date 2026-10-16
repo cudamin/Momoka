@@ -163,32 +163,63 @@ do
 				item:handle_shortcut(create_shortcut('kp_enter'), {event = 'press', is_mouse = false})
 				require_equal(picked(), 2)
 			end)
-			test('menu size matches the reference context menu metrics', function()
+			test('menu rows keep text legible with space for a check and hints', function()
 				local item = menu()
-				-- 参考项目（C:\mpv_config-2026.08.12）右键菜单的实测值，见 main.lua MOMOKA[menu-style]：
-				-- 字号 20、行高＝字号×1.2＝24、hint 字号−1、面板无最小宽、面板留空 4
-				require_equal(item.font_size, 20)
-				require_equal(item.item_height, 24)
-				require_equal(item.font_size_hint, 19)
-				require_equal(item.min_width, 0)
-				require_equal(item.padding, 4)
+				assert(item.item_height >= item.font_size + 12, 'rows crowd the text')
+				assert(item.font_size_hint >= 12 and item.font_size_hint < item.font_size, 'hint hierarchy lost')
+				assert(item.root.width >= 200, 'short labels collapse the hit target')
+				assert(item.item_indent > item.font_size + item.hover_inset, 'check overlaps the title')
 				item:close(true)
+			end)
+			test('a separator after an action keeps its text and clickable row', function()
+				local item, picked = menu({items = {
+					{title = 'Playback information', value = 1, separator = true},
+					{title = 'Settings', value = 2},
+				}})
+				assert(item:render().text:find('Playback information', 1, true), 'separator erased its action')
+				local panel = item.layout[1]
+				cursor.x, cursor.y = panel.x + 40, panel.y + item.padding + item.item_height / 2
+				item:update_proximity()
+				item:handle_cursor_down(); item:handle_cursor_up()
+				require_equal(picked(), 1)
+			end)
+			test('a separator gap cannot activate its preceding action', function()
+				local item, picked = menu({items = {
+					{title = 'Action', value = 1, separator = true},
+					{title = 'Next action', value = 2},
+				}})
+				item:select_index(1); item:render()
+				local panel = item.layout[1]
+				cursor.x, cursor.y = panel.x + 40, panel.y + item.padding + item.item_height + item.padding
+				item:update_proximity()
+				item:handle_cursor_down(); item:handle_cursor_up()
+				require_equal(picked(), nil)
+			end)
+			test('a separated submenu remains visible and opens with the keyboard', function()
+				local item = menu({items = {
+					{title = 'Shaders', separator = true, items = {{title = 'Automatic', value = 1}}},
+					{title = 'Settings', value = 2},
+				}})
+				assert(item:render().text:find('Shaders', 1, true), 'separator erased its submenu')
+				item:select_index(1)
+				item:handle_shortcut(create_shortcut('right'), {event = 'press', is_mouse = false})
+				require_equal(item.current.title, 'Shaders')
 			end)
 			test('menu scales 1.3x live while fullscreen or maximized', function()
 				local item = menu()
 				state.fullscreen = true
 				update_fullormaxed()
 				require_equal(state.scale, 1.3)
-				require_equal(item.font_size, 26) -- round(20 * 1.3)
-				require_equal(item.item_height, 31) -- round(26 * 1.2)
+				require_equal(item.font_size, 21) -- round(16 * 1.3)
+				require_equal(item.item_height, 42)
 				state.fullscreen, state.maximized = false, true
 				update_fullormaxed()
 				require_equal(state.scale, 1.3)
-				require_equal(item.font_size, 26)
+				require_equal(item.font_size, 21)
 				state.fullscreen, state.maximized = false, false
 				update_fullormaxed()
 				require_equal(state.scale, 1)
-				require_equal(item.font_size, 20)
+				require_equal(item.font_size, 16)
 				item:close(true)
 			end)
 			test('menu font follows the hidpi scale like the integrated flyout', function()
@@ -196,11 +227,11 @@ do
 				state.hidpi_scale = 1.5
 				update_display_dimensions() -- state.scale 重算不依赖 osd 画布，harness 里 vo=null 也一样
 				item:on_display()
-				require_equal(item.font_size, 30)
+				require_equal(item.font_size, 24)
 				state.hidpi_scale = 1
 				update_display_dimensions()
 				item:on_display()
-				require_equal(item.font_size, 20)
+				require_equal(item.font_size, 16)
 				item:close(true)
 			end)
 			test('menu pointer click supersedes keyboard selected row', function()
@@ -311,6 +342,48 @@ do
 				require_equal(#boxes, 2)
 				for _, box in ipairs(boxes) do assert(box.ax >= 0 and box.bx <= display.width, 'submenu outside display') end
 				item:close(true)
+			end)
+			test('nested submenus keep opening left at the right screen edge', function()
+				display.width, display.bx = 640, 640
+				cursor.x, cursor.y = 630, 100
+				local item = menu({momoka_anchor = true, items = {
+					{title = 'Parent', items = {{title = 'Child', items = {{title = 'Leaf', value = 1}}}}},
+				}})
+				item:select_index(1); item:activate_selected_item(); item:select_index(1)
+				local panels = item:compute_layout()
+				require_equal(#panels, 3)
+				assert(panels[2].x < panels[1].x and panels[3].x < panels[2].x, 'submenu flipped over its ancestor')
+				for _, panel in ipairs(panels) do assert(panel.x >= 0 and panel.x + panel.w <= display.width) end
+			end)
+			test('hovering an overlapping submenu does not change the covered parent row', function()
+				display.width, display.bx = 640, 640
+				cursor.x, cursor.y = 630, 100
+				local item = menu({momoka_anchor = true, items = {
+					{title = 'Parent', items = {
+						{title = 'Child', items = {{title = 'First', value = 1}, {title = 'Second', value = 2}}},
+						{title = 'Covered sibling', value = 3},
+					}},
+				}})
+				item:select_index(1); item:activate_selected_item(); item:select_index(1)
+				local panels = item:compute_layout()
+				cursor.x = panels[3].x + panels[3].w - 10
+				cursor.y = panels[3].y + item.padding + item.item_height * 1.5
+				item.mouse_nav = true; cursor.history:clear()
+				item:render()
+				require_equal(item.current.selected_index, 1)
+				require_equal(#item:compute_layout(), 3)
+			end)
+			test('the gap between cascading menus cannot activate an item', function()
+				local item, picked = menu({items = {{title = 'Parent', items = {{title = 'Child', value = 1}}}}})
+				item:select_index(1); item:render()
+				local panels = item.layout
+				cursor.x = (panels[1].x + panels[1].w + panels[2].x) / 2
+				cursor.y = panels[1].y + item.padding + item.item_height / 2
+				item:update_proximity()
+				item:handle_cursor_down(); item:handle_cursor_up()
+				require_equal(picked(), nil)
+				require_equal(item.current, item.root)
+				require_equal(#item:compute_layout(), 2)
 			end)
 			test('submenu preview guard survives mouse navigation toward it', function()
 				-- 2026-10-07 复刻参考菜单实拍抓的崩：预览面板表是 x/y/w/h，去程守卫把它喂给

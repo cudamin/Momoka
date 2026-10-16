@@ -45,12 +45,13 @@ internal static partial class ItemCommands
         ContextRequestedEventArgs args,
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
-        Action<CardItem>? removed = null)
+        Action<CardItem>? removed = null,
+        Action<CardItem>? watched = null)
     {
         if (session is null || shell is null || sender is not FrameworkElement owner) return;
         if (Card(owner) is not { } card) return;
 
-        Show(session, shell, owner, card, args.TryGetPosition(owner, out var point) ? point : null, siblings, changed, removed);
+        Show(session, shell, owner, card, args.TryGetPosition(owner, out var point) ? point : null, siblings, changed, removed, watched);
 
         // Handled, or the request keeps bubbling and the page behind opens its own menu over ours.
         args.Handled = true;
@@ -69,7 +70,8 @@ internal static partial class ItemCommands
         CardActionEventArgs args,
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
-        Action<CardItem>? removed = null)
+        Action<CardItem>? removed = null,
+        Action<CardItem>? watched = null)
     {
         if (session is null || shell is null) return;
 
@@ -87,13 +89,13 @@ internal static partial class ItemCommands
                 _ = shell.PlayAsync(card.Item, episodes: siblings);
                 break;
             case CardAction.Watched:
-                ToggleWatched(session, shell, card);
+                ToggleWatched(session, shell, card, watched);
                 break;
             case CardAction.Favorite:
                 ToggleFavorite(session, shell, card);
                 break;
             default:
-                Show(session, shell, args.Anchor, card, position: null, siblings, changed, removed);
+                Show(session, shell, args.Anchor, card, position: null, siblings, changed, removed, watched);
                 break;
         }
     }
@@ -114,6 +116,15 @@ internal static partial class ItemCommands
     /// User-state changes do not use it: they patch the card.
     /// </param>
     /// <param name="removed">删除成功后原地移除卡片；未提供时沿用 changed 刷新。</param>
+    /// <param name="watched">
+    /// 标记已看成功之后喊一声（用户令 2026-10-15「主页的继续观看标记已看之后要自动切换为下一集，如果没有下一集
+    /// 或者是电影标记已看后要移出继续观看」）。和 <paramref name="changed"/> 分开是因为这一件事「补一张卡」就够：
+    /// 继续观看那一排那一格的去处由 <see cref="Momoka.Emby.ResumeRow"/> 说了算，而重读整排既换不来下一集
+    /// （服务器那条 Resume 接口只认播放进度）、又要重建一页海报。
+    /// <para>
+    /// 只有主页那一排和它点进去的那一页递它 —— 别的排上的卡标记已看只是它自己那个对勾的事，条目还在那一排里。
+    /// </para>
+    /// </param>
     public static void Show(
         EmbySession session,
         IShellActions shell,
@@ -122,9 +133,10 @@ internal static partial class ItemCommands
         Point? position,
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
-        Action<CardItem>? removed = null)
+        Action<CardItem>? removed = null,
+        Action<CardItem>? watched = null)
     {
-        var menu = Build(session, shell, owner, card, siblings, changed, removed);
+        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched);
 
         if (menu.Items.Any(item => item.Tag is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape))
         {
@@ -142,7 +154,7 @@ internal static partial class ItemCommands
 
         // 季、集的 Genres 常留在所属剧集上，菜单打开后只补查这一份元数据。
         // 不把父级类型塞回 EmbyItem，且关菜单、换账号或断线后不再插入迟到的行。
-        if (shell.MoviePilotEnabled && card.Scope is { IsCurrent: true } scope &&
+        if (shell.MoviePilotEnabled && card.Scope is { IsAvailable: true } scope &&
             Momoka.AniBt.AniBtEligibility.Supports(card.Item) && !Momoka.AniBt.AniBtEligibility.HasGenre(card.Item))
         {
             var lifetime = new CancellationTokenSource();
@@ -154,18 +166,18 @@ internal static partial class ItemCommands
                 {
                     var eligible = await scope.ExecuteAsync((client, token) =>
                         Momoka.AniBt.AniBtEligibility.ResolveAsync(client, original, token), lifetime.Token);
-                    if (!eligible || lifetime.IsCancellationRequested || !scope.IsCurrent || !card.IsCurrent || card.Item.Id != original.Id || !shell.MoviePilotEnabled) return;
+                    if (!eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
                     var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
                     if (versions is not null)
                     {
                         var plan = ItemMenu.For(original, true, animeGenre: true).Single(row => row.Command == ItemCommand.MoviePilotVersions);
                         menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, command =>
-                            Invoke(command, shell, owner, card, siblings, changed, removed));
+                            Invoke(command, shell, owner, card, siblings, changed, removed, watched));
                     }
                     var anchor = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotReorganize);
                     if (anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
                         menu.Items.Insert(menu.Items.IndexOf(anchor) + 1, Entry("AniBT 识别并重新刮削…", ItemCommand.AniBtScrape,
-                            () => Invoke(ItemCommand.AniBtScrape, shell, owner, card, siblings, changed, removed)));
+                            () => Invoke(ItemCommand.AniBtScrape, shell, owner, card, siblings, changed, removed, watched)));
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception error) { Log.Info("anibt", $"无法核对动画类型：{Failure.Describe(error)}"); }
@@ -191,12 +203,13 @@ internal static partial class ItemCommands
         CardItem card,
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
-        Action<CardItem>? removed = null)
+        Action<CardItem>? removed = null,
+        Action<CardItem>? watched = null)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
 
         foreach (var row in ItemMenu.For(card.Item, shell.MoviePilotEnabled,
-            jellyfin: card.Scope?.Connection.IsJellyfin == true))
+            jellyfin: card.Scope?.Connection.IsJellyfin == true, fnNas: card.Scope?.Connection.IsFnNas == true))
         {
             if (row.Command is not { } command)
             {
@@ -205,7 +218,7 @@ internal static partial class ItemCommands
             }
 
             menu.Items.Add(BuildEntry(row, selected =>
-                Invoke(selected, shell, owner, card, siblings, changed, removed)));
+                Invoke(selected, shell, owner, card, siblings, changed, removed, watched)));
         }
 
         return menu;
@@ -237,8 +250,9 @@ internal static partial class ItemCommands
         CardItem card,
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
-        Action<CardItem>? removed = null) =>
-        Invoke(command, shell, owner, card, siblings, changed, removed);
+        Action<CardItem>? removed = null,
+        Action<CardItem>? watched = null) =>
+        Invoke(command, shell, owner, card, siblings, changed, removed, watched);
 
     /// <summary>
     /// 按下一行之后做什么。一处 switch 而不是把动作塞进 <see cref="ItemMenu"/>：那一头是「有哪几条」，这一头
@@ -251,10 +265,11 @@ internal static partial class ItemCommands
         CardItem card,
         IReadOnlyList<EmbyItem>? siblings,
         Action? changed,
-        Action<CardItem>? removed)
+        Action<CardItem>? removed,
+        Action<CardItem>? watched)
     {
-        if (card.Scope is not { IsCurrent: true } scope) return;
-        if (!ItemMenu.Supports(command, scope.Connection.IsJellyfin)) return;
+        if (card.Scope is not { IsAvailable: true } scope) return;
+        if (!ItemMenu.Supports(command, scope.Connection.IsJellyfin, scope.Connection.IsFnNas)) return;
         if (command is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape or ItemCommand.AniBtVersions && !shell.MoviePilotEnabled) return;
         var item = card.Item;
 
@@ -276,7 +291,7 @@ internal static partial class ItemCommands
             // 翻面的 ToggleWatched —— 那是悬浮层上那颗按钮的活儿。
             case ItemCommand.MarkPlayed:
             case ItemCommand.MarkUnplayed:
-                SetWatched(scope, shell, card, played: command == ItemCommand.MarkPlayed);
+                SetWatched(scope, shell, card, played: command == ItemCommand.MarkPlayed, watched);
                 break;
 
             case ItemCommand.Favorite:
@@ -371,16 +386,20 @@ internal static partial class ItemCommands
     /// 已看，从悬浮层那颗按钮上按下的。当前状态在这里读而不是传进来：一颗按钮说的是「翻到另一面」，而它按下的
     /// 那一刻的状态才算数。
     /// </summary>
-    public static void ToggleWatched(EmbySession session, IShellActions shell, CardItem card)
+    public static void ToggleWatched(
+        EmbySession session,
+        IShellActions shell,
+        CardItem card,
+        Action<CardItem>? watched = null)
     {
-        if (card.Scope is { IsCurrent: true } scope)
-            SetWatched(scope, shell, card, played: card.Item.UserData?.Played != true);
+        if (card.Scope is { IsAvailable: true } scope)
+            SetWatched(scope, shell, card, played: card.Item.UserData?.Played != true, watched);
     }
 
     /// <summary>收藏。同上。</summary>
     public static void ToggleFavorite(EmbySession session, IShellActions shell, CardItem card)
     {
-        if (card.Scope is { IsCurrent: true } scope)
+        if (card.Scope is { IsAvailable: true } scope)
             SetFavorite(scope, shell, card, favourite: card.Item.UserData?.IsFavorite != true);
     }
 
@@ -391,7 +410,16 @@ internal static partial class ItemCommands
     /// 的网格是荒唐的。
     /// </para>
     /// </summary>
-    private static void SetWatched(EmbySessionScope session, IShellActions shell, CardItem card, bool played) =>
+    /// <param name="watched">
+    /// 标记已看成功之后喊一声，见 <see cref="Show"/> 那一段。「标记未观看」不喊 —— 那一下不会把条目从继续观看
+    /// 里挪走，也就没有那一格要补。
+    /// </param>
+    private static void SetWatched(
+        EmbySessionScope session,
+        IShellActions shell,
+        CardItem card,
+        bool played,
+        Action<CardItem>? watched = null) =>
         Run(
             session,
             shell,
@@ -412,9 +440,14 @@ internal static partial class ItemCommands
                     state.PlayedPercentage = 0;
                 });
 
+                if (!played) return;
+
                 // 标记为已看还要替服务器补报一趟播放停止（位置按用户令报 100%），好让服务器上那条通知立刻把
                 // playback.stop 转发出去（用户令 2026-10-09）。只在这一位：反过来「标记未观看」不是「看完了」。
-                if (played) shell.ReportMarkedWatched(card.Item);
+                shell.ReportMarkedWatched(card.Item);
+
+                // 那一格该换成下一集还是撤掉，页面比这一头清楚（见 Show 的 watched）。
+                watched?.Invoke(card);
             });
 
     /// <summary>收藏。同上。</summary>

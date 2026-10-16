@@ -233,7 +233,7 @@ public static class HomeCarousel
     /// its own series arriving in two different rows would otherwise be two slides of the same thing.
     /// </summary>
     private static string Show(EmbyItem item) =>
-        item.SeriesId is { Length: > 0 } series ? series : item.Id;
+        (item.Source?.Key ?? "") + ":" + (item.SeriesId is { Length: > 0 } series ? series : item.Id);
 
     /// <summary>
     /// Where <paramref name="delta"/> presses from <paramref name="index"/> land, wrapping at both ends: the

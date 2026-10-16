@@ -33,7 +33,7 @@ internal interface IShellActions
 
     void RefreshFavorites(EmbyItem? changed = null);
 
-    bool TryOpenLibrary(string id);
+    bool TryOpenLibrary(string id, EmbySessionScope? source = null);
 
     /// <summary>
     /// 按类型浏览：详情页上那一行类型现在是点得动的，点一个类型就是一格「这个类型下的全部影片和剧集」。
@@ -43,7 +43,7 @@ internal interface IShellActions
     /// （<c>ItemQuery.Genre</c>）。
     /// </para>
     /// </summary>
-    void OpenGenre(string genre);
+    void OpenGenre(string genre, EmbySessionScope? source = null);
 
     /// <summary>
     /// 主页某一排点进去的那一页：这一排装的是什么，就列什么。
@@ -58,9 +58,9 @@ internal interface IShellActions
     /// <c>HomeLayout</c> 里有一份说法（<c>TargetOf</c>），别处照抄一份就会有一天两边对不上。
     /// </para>
     /// </summary>
-    void OpenRow(HomeLayout.HomeRowTarget target);
+    void OpenRow(HomeLayout.HomeRowTarget target, EmbySessionScope? source = null);
 
-    void OpenSignIn(ServerProfile? server = null);
+    void OpenSignIn(ServerProfile? server = null, bool newAccount = false);
 
     Task SwitchProfileAsync(ServerProfile server, AccountProfile? account);
 

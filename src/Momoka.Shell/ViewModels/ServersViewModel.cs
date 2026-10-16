@@ -123,17 +123,24 @@ public sealed partial class ServersViewModel : PageViewModel
 
         var current = _session!.Server;
         var account = _session.Account;
+        var sources = _session.Sources;
 
         Servers.Clear();
         foreach (var server in Settings.Servers)
-            Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account));
+            Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account, sources));
 
         ShowEmpty = Servers.Count == 0;
-        Subheading = Servers.Count == 0 ? "管理服务器与登录用户" : $"已保存 {Servers.Count} 台服务器";
+        Subheading = Servers.Count == 0 ? "管理服务器与登录用户" : $"已保存 {Servers.Count} 台服务器 · {sources.Count} 个账号同时在线，主页与搜索自动聚合";
     }
 
     [RelayCommand]
     private void AddServer() => _actions?.OpenSignIn();
+
+    [RelayCommand]
+    private void AddAccount(ServerRow? row)
+    {
+        if (row is not null) _actions?.OpenSignIn(row.Profile, newAccount: true);
+    }
 
     /// <summary>需求 1：find servers on this network without anyone typing an address.</summary>
     [RelayCommand(CanExecute = nameof(CanRun))]
@@ -273,7 +280,23 @@ public sealed partial class ServersViewModel : PageViewModel
     private void LoginAccount(AccountRow? row)
     {
         if (_actions is null || row is null) return;
+        var source = _session?.Sources.FirstOrDefault(source => source.ServerProfileId == row.Server.Id
+            && source.AccountProfileId == row.Account.Id);
+        if (source is not null)
+        {
+            _session!.SelectSource(source);
+            Refresh();
+            return;
+        }
         _ = _actions.SwitchProfileAsync(row.Server, row.Account);
+    }
+
+    [RelayCommand]
+    private void SignOutAccount(AccountRow? row)
+    {
+        if (!Attached || row is null) return;
+        _session!.SignOut(row.Server, row.Account);
+        Refresh();
     }
 
     [RelayCommand]
@@ -287,7 +310,7 @@ public sealed partial class ServersViewModel : PageViewModel
             "删除").ConfigureAwait(true);
         if (!confirmed || !Attached) return;
 
-        if (ReferenceEquals(row.Profile, _session!.Server)) _session.SignOut();
+        _session!.SignOutServer(row.Profile);
 
         Settings.Servers.Remove(row.Profile);
         if (Settings.LastServerId == row.Profile.Id)
@@ -309,9 +332,7 @@ public sealed partial class ServersViewModel : PageViewModel
             .ConfigureAwait(true);
         if (!confirmed || !Attached) return;
 
-        if (ReferenceEquals(row.Server, _session!.Server) &&
-            ReferenceEquals(row.Account, _session.Account))
-            _session.SignOut();
+        _session!.SignOut(row.Server, row.Account);
 
         row.Server.Accounts.Remove(row.Account);
         if (Settings.LastAccountId == row.Account.Id) Settings.LastAccountId = null;

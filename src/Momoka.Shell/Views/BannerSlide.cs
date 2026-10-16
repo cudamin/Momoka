@@ -43,11 +43,13 @@ public sealed class BannerSlide : INotifyPropertyChanged
     private bool _asked;
     private BitmapImage? _pictureImage;
     private BitmapImage? _logoImage;
-
+    private readonly EmbySessionScope? _scope;
     public BannerSlide(EmbyItem item, EmbyImageStore images)
     {
         Item = item;
         _images = images;
+        _scope = images.CaptureScope(item);
+        if (item.Source is null) _scope?.Bind(item);
         _picture = ItemArtwork.Banner(item);
         _logo = ItemArtwork.Plate(item);
     }
@@ -107,7 +109,7 @@ public sealed class BannerSlide : INotifyPropertyChanged
     /// </summary>
     public async Task EnsureAsync()
     {
-        if (_asked || _loading is not null) return;
+        if (_asked || _loading is not null || _scope?.IsAvailable != true) return;
 
         var cts = new CancellationTokenSource();
         _loading = cts;
@@ -119,17 +121,17 @@ public sealed class BannerSlide : INotifyPropertyChanged
             // it, and the two together would otherwise race for the one connection the session holds.
             var bytes = await FetchAsync(_picture, PictureWidth, cts.Token).ConfigureAwait(true);
 
-            if (bytes is { Length: > 0 } && !cts.IsCancellationRequested)
+            if (bytes is { Length: > 0 } && !cts.IsCancellationRequested && _scope.IsAvailable)
             {
                 var picture = await BannerPictureLoader.DecodeAsync(bytes, PictureWidth, cts.Token).ConfigureAwait(true);
-                if (!ReferenceEquals(_loading, cts) || cts.IsCancellationRequested) return;
+                if (!ReferenceEquals(_loading, cts) || cts.IsCancellationRequested || !_scope.IsAvailable) return;
                 Picture = picture;
             }
 
-            if (cts.IsCancellationRequested) return;
+            if (cts.IsCancellationRequested || !_scope.IsAvailable) return;
 
             var logo = await DecodeAsync(_logo, LogoWidth, cts.Token).ConfigureAwait(true);
-            if (!ReferenceEquals(_loading, cts) || cts.IsCancellationRequested) return;
+            if (!ReferenceEquals(_loading, cts) || cts.IsCancellationRequested || !_scope.IsAvailable) return;
             Logo = logo;
         }
         catch (OperationCanceledException)
@@ -169,20 +171,16 @@ public sealed class BannerSlide : INotifyPropertyChanged
     /// <summary>取字节那一半（缓存命中的话是一次磁盘读），解码那一半在调用方。</summary>
     private async Task<byte[]?> FetchAsync(ArtworkRef? artwork, int width, CancellationToken token)
     {
-        if (artwork is not { } reference) return null;
+        if (artwork is not { } reference || _scope is not { IsAvailable: true } scope) return null;
 
         return await _images
-            .GetAsync(reference.ItemId, reference.ImageType, reference.Tag, EmbyImageStore.RequestWidth(width), token)
+            .GetAsync(scope, reference.ItemId, reference.ImageType, reference.Tag, EmbyImageStore.RequestWidth(width), token)
             .ConfigureAwait(true);
     }
 
     private async Task<BitmapImage?> DecodeAsync(ArtworkRef? artwork, int width, CancellationToken token)
     {
-        if (artwork is not { } reference) return null;
-
-        var bytes = await _images
-            .GetAsync(reference.ItemId, reference.ImageType, reference.Tag, EmbyImageStore.RequestWidth(width), token)
-            .ConfigureAwait(true);
+        var bytes = await FetchAsync(artwork, width, token).ConfigureAwait(true);
 
         return bytes is { Length: > 0 } && !token.IsCancellationRequested
             ? await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true)

@@ -113,7 +113,7 @@ function Menu:init(data, callback, opts)
 	self.menu_scale = state.scale -- MOMOKA[menu-style]：菜单自己的缩放（DPI×全屏/最大化 1.3），update_content_dimensions 重算
 	self.radius = state.radius -- MOMOKA[menu-style]：菜单面板的圆角基准（同上）
 	self.item_spacing = 0 -- MOMOKA[menu-style]：行距在 update_content_dimensions 里按字号重算
-	self.item_indent = nil -- MOMOKA[menu-style]：文字左缩进（参考菜单左侧留白显著大于右侧）
+	self.item_indent = nil -- 有当前值的菜单为勾选标识留出左列
 	self.item_pad_right = nil -- MOMOKA[menu-style]：右列（hint/▸）距面板右缘的贴边距
 	self.hover_inset = nil -- MOMOKA[menu-style]：悬停行四边让空
 	self.hover_radius = nil -- MOMOKA[menu-style]：悬停行圆角
@@ -312,13 +312,8 @@ function Menu:update_items(items)
 end
 
 function Menu:update_content_dimensions()
-	-- MOMOKA[menu-style] — 尺子整把换成参考项目（C:\mpv_config-2026.08.12）右键菜单的实测值：
-	-- 2026-10-07 晚用户令「只复刻界面，不抄功能选项」。字号 20、行高＝字号×(1+gap)＝字号×1.2（行与行
-	-- 贴着排，参考图行距/字号≈22/20）；文字左缩进 36、右列贴边 8（参考图左松右紧）；面板不再有最小
-	-- 宽度（贴内容）。分隔符占自己的小槽位（上下各让 padding 的 1px 细线，参考图过分隔符行距 32＝
-	-- 24＋8），行高因此按前缀和（item_tops/content_height）算，不再假设每行等高。缩放照旧＝
-	-- state.scale（hidpi × 全屏/最大化 1.3）——同日早些那道令保留的部分，2026-09-29 那把随窗口高的
-	-- 尺子（osd_height/720）不复活。
+	-- MOMOKA[menu-style] — 字号与行高共同跟随 DPI / 全屏倍率，不跟随视频或窗口高度。
+	-- 分隔符使用独立的小槽位；绘制、命中与滚动共用 item_tops，避免小窗中点到相邻行。
 	local menu_scale = state.scale
 	self.menu_scale = menu_scale
 	self.font_size = round(options.menu_font_size * menu_scale * options.font_scale)
@@ -330,18 +325,20 @@ function Menu:update_content_dimensions()
 	self.padding = round(options.menu_padding * menu_scale)
 	self.gap = round(2 * menu_scale)
 	self.radius = round(options.border_radius * menu_scale)
-	self.font_size_hint = self.font_size - 1
+	self.font_size_hint = round(self.font_size * 0.8125)
 	self.item_indent = round(options.menu_item_indent * menu_scale)
 	self.item_pad_right = round(options.menu_item_pad_right * menu_scale)
 	self.hover_inset = round(options.menu_hover_inset * menu_scale)
 	self.hover_radius = round(options.menu_hover_radius * menu_scale)
-	self.item_padding = round(4 * menu_scale)
+	self.item_padding = round(12 * menu_scale)
 	self.scroll_step = self.item_height + self.item_spacing
 
 	local hint_opts = {size = self.font_size_hint}
 
 	for _, menu in ipairs(self.all) do
-		-- Estimate width of a widest item：内容左缘从 item_indent 起算，右缘到 item_pad_right 止
+		-- 固定勾选列；当前值异步变化时文字与面板宽度不会横跳。
+		menu.text_indent = self.item_indent
+		-- Estimate the widest row including its hint and trailing icon.
 		local max_width = 0
 		for _, item in ipairs(menu.items) do
 			local icon_width = item.icon and self.font_size or 0
@@ -351,20 +348,19 @@ function Menu:update_content_dimensions()
 			item.hint_width = text_width(item.hint, hint_opts)
 			local spacings_in_item = (item.title_width > 0 and 1 or 0)
 				+ (item.hint_width > 0 and 1 or 0) + (icon_width > 0 and 1 or 0)
-			local estimated_width = self.item_indent + item.title_width + item.hint_width + icon_width
+			local estimated_width = menu.text_indent + item.title_width + item.hint_width + icon_width
 				+ (self.item_padding * spacings_in_item) + self.item_pad_right
 			if estimated_width > max_width then max_width = estimated_width end
 		end
 
 		menu.max_width = max_width
 
-		-- MOMOKA[menu-style] — 行位置前缀和：普通行高 item_height，分隔符槽位＝1px 线＋上下各让
-		-- padding（参考图分隔符上下各 4px 留空）。所有滚动/命中/绘制都改读这张表。
+		-- 普通行与分隔符共用的前缀和。
 		local item_tops = {}
 		local y = 0
 		for i, item in ipairs(menu.items) do
 			item_tops[i] = y
-			y = y + (item.separator and (self.separator_size + self.padding * 2) or self.item_height)
+			y = y + self:row_height(menu, i)
 		end
 		menu.item_tops = item_tops
 		menu.content_height = y
@@ -373,9 +369,15 @@ function Menu:update_content_dimensions()
 	self:update_dimensions()
 end
 
--- Height of one row (separators take a compact slot; everything else a full item row).
+-- separator 是宿主/uosc 的「此项之后分组」属性，不能把该项本身画成分隔线。
+-- 同时兼容不可选择的独立分隔项，不改动菜单索引和回调值。
+function Menu:row_body_height(item)
+	return item.separator and item.selectable == false and not item.items and 0 or self.item_height
+end
+
 function Menu:row_height(menu, index)
-	return menu.items[index].separator and (self.separator_size + self.padding * 2) or self.item_height
+	local item = menu.items[index]
+	return self:row_body_height(item) + (item.separator and (self.separator_size + self.padding * 2) or 0)
 end
 
 -- Content-space y of the row containing `y` (nil if below the last row).
@@ -383,7 +385,7 @@ function Menu:index_at_y(menu, y)
 	local items = menu.items
 	for i = 1, #items do
 		local top = menu.item_tops[i]
-		if y >= top and y < top + self:row_height(menu, i) then return i end
+		if y >= top and y < top + self:row_body_height(items[i]) then return i end
 	end
 end
 
@@ -430,10 +432,8 @@ function Menu:update_dimensions()
 	self:update_coordinates()
 end
 
--- MOMOKA[menu-style] — 参考菜单的级联布局：根面板在锚点/居中的位置上，子面板贴着父面板右缘
--- （零缝、共用那根白描边）、顶边对齐父项里通往它的那一行，父面板原地不动（用户令 2026-10-07 晚
--- 「只复刻界面」；上游那套「子菜单坐屏幕中、父面板往左排队」的几何退役）。返回可见面板表
--- （{menu, x, y, w, h}，面板 bg 坐标，根在前），最后一级是 current 选中项的子菜单预览。
+-- MOMOKA[menu-style] — 级联面板沿父项展开，父面板保持位置，最后一块是当前项的子菜单预览。
+-- 返回背景矩形 {menu, x, y, w, h}，绘制与命中使用同一布局。
 function Menu:compute_layout()
 	local panels = {}
 	local root = self.root
@@ -473,27 +473,29 @@ function Menu:compute_layout()
 	return panels
 end
 
--- 把 child 面板贴着 parent_panel 右缘放下（零缝），顶边对齐 parent 里通往 child 的那一行；
--- 底边越界上收、右侧越界翻到父面板左边（参考实现同一条规则）。
+-- 子菜单行与父项对齐，面板之间留缝；底边越界上收，右侧越界向左展开。
 function Menu:place_panel(parent_panel, parent_menu, child, margin)
 	local w = child.width + self.padding * 2
-	local h = child.height + self.padding * 2
-	local x = parent_panel.x + parent_panel.w
-	local y = parent_panel.y + self.padding
+	local title_h = child.search and self.scroll_step + self.separator_size + 1 or 0
+	local h = child.height + title_h + self.padding * 2
+	local panel_gap = round(options.menu_panel_gap * self.menu_scale)
+	local direction = parent_panel.direction or 1
+	local x = direction == 1 and parent_panel.x + parent_panel.w + panel_gap or parent_panel.x - w - panel_gap
+	local y = parent_panel.y
 	if parent_menu then
 		local row = itable_index_of(parent_menu.items, child)
 		if row and parent_menu.item_tops then
-			y = parent_panel.y + self.padding + parent_menu.item_tops[row] - parent_menu.scroll_y
+			local parent_title_h = parent_menu.search and self.scroll_step + self.separator_size + 1 or 0
+			y = parent_panel.y + parent_title_h + parent_menu.item_tops[row] - parent_menu.scroll_y - title_h
 		end
 	end
 	y = clamp(margin, y, math.max(margin, display.height - margin - self.padding - h))
-	if x + w > display.width - margin then
-		x = parent_panel.x - w
-		if x < 0 then
-			x = math.max(0, math.min(parent_panel.x + parent_panel.w, display.width - margin - w))
-		end
+	-- 第一次碰右缘向左展开，后续层级延续该方向，避免来回翻转覆盖祖先菜单。
+	if not parent_panel.direction and x + w > display.width - margin then
+		direction, x = -1, parent_panel.x - w - panel_gap
 	end
-	return {menu = child, x = x, y = y, w = w, h = h}
+	x = clamp(margin, x, math.max(margin, display.width - margin - w))
+	return {menu = child, x = x, y = y, w = w, h = h, direction = direction}
 end
 
 -- 光标下的可见面板（self.layout 由 compute_layout 维护；从后往前＝后画者在上）。
@@ -830,11 +832,12 @@ function Menu:select_from_cursor(panel)
 	panel = panel or self:panel_at(cursor.x, cursor.y)
 	if not panel then return end
 	local menu = panel.menu
-	local x, y = cursor.x - panel.x, cursor.y - panel.y - self.padding
+	local title_h = menu.search and self.scroll_step + self.separator_size + 1 or 0
+	local x, y = cursor.x - panel.x, cursor.y - panel.y - self.padding - title_h
 	local index = self:index_at_y(menu, y + menu.scroll_y)
 	local item = index and menu.items[index]
 	self.mouse_nav = true
-	if x >= 0 and x <= panel.w and y >= 0 and item and item.selectable ~= false then
+	if x >= 0 and x <= panel.w and y >= 0 and y < menu.height and item and item.selectable ~= false then
 		self:select_index(index, menu.id)
 	else
 		self:select_index(nil, menu.id)
@@ -1545,11 +1548,7 @@ function Menu:command_or_event(command, params, event)
 	return nil
 end
 
--- MOMOKA[menu-style] — 参考菜单的渲染：每帧按 compute_layout 画全部可见面板（根、祖先链、
--- current 选中项的子菜单预览），元素边界＝面板并集；无标题/脚注/左缘指示条；悬停行 #353535
--- 白字（左右各让 hover_inset、圆角 hover_radius）；分隔符＝通宽 1px 细线（menu_separator_color）
--- 坐在自己的小槽位正中；hint 列全亮白、右缘贴 item_pad_right；文字左缘从 item_indent 起算
--- （参考图左松右紧）。用户令 2026-10-07 晚「只复刻界面，不抄功能选项」。
+-- MOMOKA[menu-style] — 每帧绘制可见级联面板。悬停填底，当前值另画勾选，辅助文字保持次级对比度。
 function Menu:render()
 	for _, menu in ipairs(self.all) do
 		if menu.fling then
@@ -1599,6 +1598,11 @@ function Menu:draw_panel(ass, panel)
 	}
 	local scroll_clip = '\\clip(0,' .. content_rect.ay .. ',' .. display.width .. ',' .. content_rect.by .. ')'
 
+	-- 柔和投影分开相邻层级，底板保持不透明，亮画面上也能读清文字。
+	ass:rect(panel.x, panel.y + 4 * self.menu_scale, panel.x + panel.w, panel.y + panel.h + 4 * self.menu_scale, {
+		color = '000000', opacity = menu_opacity * 0.45,
+		radius = options.menu_corner_radius * self.menu_scale, blur = 12 * self.menu_scale,
+	})
 	-- Background
 	ass:rect(panel.x, panel.y, panel.x + panel.w, panel.y + panel.h, {
 		color = options.menu_background_color,
@@ -1615,7 +1619,9 @@ function Menu:draw_panel(ass, panel)
 		local thumb_y = content_rect.ay + 1 + ((menu.scroll_y / menu.scroll_height) * (groove_height - thumb_height))
 		local sax = content_rect.bx - round(self.scrollbar_size / 2)
 		local sbx = sax + self.scrollbar_size
-		ass:rect(sax, thumb_y, sbx, thumb_y + thumb_height, {color = fg, opacity = menu_opacity * 0.8})
+		ass:rect(sax, thumb_y, sbx, thumb_y + thumb_height, {
+			color = options.menu_hint_color, opacity = menu_opacity * 0.65, radius = self.scrollbar_size / 2,
+		})
 	end
 
 	-- Visible rows（前缀和找可见窗口；分隔符占小槽位，行不再等高）
@@ -1648,40 +1654,43 @@ function Menu:draw_panel(ass, panel)
 		local item = items[index]
 		if not item then break end -- end_index deliberately overshoots by one
 		local item_ay = content_rect.ay + menu.item_tops[index] - menu.scroll_y
-		local item_height = self:row_height(menu, index)
+		local item_height = self:row_body_height(item)
 		local item_by = item_ay + item_height
 
 		-- Separator
-		-- MOMOKA[menu-style] — 通宽 1px 细线坐在槽位正中（参考图实测线色 ≈ #3E3E3E、上下各让 4px）
+		-- 分隔线收在面板内部，与正文边距呼应。
 		if item.separator then
-			if item_by <= content_rect.by then
-				local line_ay = round(item_ay + item_height / 2 - self.separator_size / 2)
-				ass:rect(panel.x, line_ay, panel.x + panel.w, line_ay + self.separator_size, {
+			local line_ay = item_by + self.padding
+			if line_ay + self.separator_size <= content_rect.by then
+				ass:rect(panel.x + self.item_pad_right, line_ay, panel.x + panel.w - self.item_pad_right, line_ay + self.separator_size, {
 					color = options.menu_separator_color, opacity = menu_opacity, clip = scroll_clip,
 				})
 			end
-		else
+		end
+		if item_height > 0 then
 			local item_center_y = item_ay + item_height / 2
 			local item_clip = (item_ay < content_rect.ay or item_by > content_rect.by) and scroll_clip or nil
 			local is_selected = menu.selected_index == index
-			-- MOMOKA[menu-style] — 文字左缘从 item_indent 起算，右列（hint/▸）贴 item_pad_right
-			local text_ax, text_bx = panel.x + self.item_indent, panel.x + panel.w - self.item_pad_right
-			local font_color = is_selected and options.menu_focused_color or item.active and fgt or bgt
+			local text_ax, text_bx = panel.x + menu.text_indent, panel.x + panel.w - self.item_pad_right
+			local font_color = is_selected and options.menu_focused_color or options.menu_text_color
 			local actions = is_selected and (item.actions or menu.item_actions) -- not nil = actions are visible
 			local action = actions and actions[menu.action_index] -- not nil = action is selected
 
 			if action then selected_action = action end
 
-			-- Hover/active row highlight
-			-- MOMOKA[menu-style] — 悬停/键盘所在行＝#353535 浅灰底、**字色保持白**（参考图悬停行
-			-- 实测 53 底 255 字）；active 行（当前值）照旧 fg@0.8＋深字，叠加时取悬停底色。
-			local highlight_opacity = (item.active and 0.8 or 0) + (is_selected and 1 or 0)
-			if highlight_opacity > 0 then
-				ass:rect(panel.x + self.hover_inset, item_ay, panel.x + panel.w - self.hover_inset, item_by, {
+			-- 当前值与悬停不再共用反白样式：移到别行时，当前值的勾选仍然清楚。
+			if item.active or is_selected then
+				local inset_y = self.menu_scale
+				ass:rect(panel.x + self.hover_inset, item_ay + inset_y, panel.x + panel.w - self.hover_inset, item_by - inset_y, {
 					radius = self.hover_radius,
-					color = is_selected and options.menu_focused_back_color or fg,
-					opacity = math.min(highlight_opacity, 1) * menu_opacity,
+					color = is_selected and options.menu_focused_back_color or options.menu_active_back_color,
+					opacity = menu_opacity,
 					clip = item_clip,
+				})
+			end
+			if item.active then
+				ass:icon(panel.x + menu.text_indent / 2, item_center_y, icon_size, 'check', {
+					color = options.menu_active_color, opacity = menu_opacity, clip = item_clip,
 				})
 			end
 
@@ -1769,8 +1778,8 @@ function Menu:draw_panel(ass, panel)
 					if item.icon == 'spinner' then
 						ass:spinner(x, item_center_y, icon_size * 1.5, {color = font_color, opacity = menu_opacity * 0.8})
 					else
-						ass:icon(x, item_center_y, icon_size * 1.5, item.icon, {
-							color = font_color, opacity = menu_opacity, clip = item_clip,
+						ass:icon(x, item_center_y, item.items and icon_size or icon_size * 1.5, item.icon, {
+							color = options.menu_hint_color, opacity = menu_opacity, clip = item_clip,
 						})
 					end
 				end
@@ -1793,7 +1802,7 @@ function Menu:draw_panel(ass, panel)
 			end
 
 			-- Hint
-			-- MOMOKA[menu-style] — 快捷键/动态值那列全亮白（参考图 b/q/PGUP 与正文同色），右缘贴边
+			-- 快捷键和动态值右对齐，使用次级文字色。
 			if item.hint then
 				item.ass_safe_hint = item.ass_safe_hint or ass_escape(item.hint)
 				local clip = '\\clip(' .. title_clip_bx + self.item_padding .. ','
@@ -1801,7 +1810,7 @@ function Menu:draw_panel(ass, panel)
 					.. math.min(item_by, content_rect.by) .. ')'
 				ass:txt(text_bx, item_center_y, 6, item.ass_safe_hint, {
 					size = self.font_size_hint,
-					color = font_color,
+					color = options.menu_hint_color,
 					wrap = 2,
 					opacity = menu_opacity,
 					clip = clip,
@@ -1840,7 +1849,8 @@ function Menu:draw_panel(ass, panel)
 				bx = panel.x + panel.w - (item.items and 0 or self.hover_inset),
 				by = math.min(item_ay + item_height, panel.y + panel.h),
 			}
-			if self.mouse_nav and item.selectable ~= false then
+			-- 窄窗的深层面板可能覆盖父面板，只有最上层面板接收悬停，不能改写背后的父项。
+			if self.mouse_nav and item.selectable ~= false and self:panel_at(cursor.x, cursor.y) == panel then
 				if is_current then
 					if preview_rect and cursor:direction_to_rectangle_distance(preview_rect)
 						or actions_rect and actions_rect.is_outside and cursor:direction_to_rectangle_distance(actions_rect) then

@@ -1,6 +1,6 @@
 # Momoka
 
-自用的媒体库客户端，支持EMBY、Jellyfin（未验证），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
+自用的媒体库客户端，支持 Emby、Jellyfin（实服播放与写入未验证）和飞牛影视（实播未验证），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
 
 telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
@@ -19,25 +19,40 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
 ## 主要功能
 
+**多服务器与多账号** — 多个账号同时在线，主页、继续观看、收藏和媒体库搜索聚合在线来源，具体媒体库仍保留各自的排序与筛选。版本选择仅在连接多个不同服务器时追加服务器名，不显示用户名；播放中可保留当前进度切换已匹配的来源。跨服务器版本依赖可信刮削标识及类型、年份、季集信息，不按同名自动合并。使用说明与匹配范围见 [多服务器与多账号](docs/多服务器与多账号.md)。
+
+**飞牛影视** — 自动识别连接，支持媒体浏览、搜索和原画播放链路。已确认管理员权限的当前账号可使用媒体库、用户、服务器设置与任务计划四个原生管理分区；不接入转码设置和网盘功能，直播频道播放及外置字幕管理尚未接入。当前实播未验证，支持范围与验证记录见 [飞牛影视](docs/飞牛影视.md)。
+
+**继续观看与选集** — 继续观看中的单集标记已看后，原位换成下一集；电影或没有下一集的单集从列表移除。默认选集区分正片与特典，避免混入列表的特典抢占播放目标。
+
+**搜索** — 媒体库搜索随输入更新，按热门结果、节目、影片和集分类，并保留最近搜索。MoviePilot 订阅、资源及 AniBT 搜索由回车或搜索按钮触发，切换来源不会自动发起查询。
+
+**播放器交互** — 独占模式使用重绘的深紫灰右键菜单，保留分组操作、快捷键提示与级联子菜单，尺寸跟随 DPI 及全屏、最大化状态。
+
 **着色器** — 着色器随程序打包（ArtCNN、ravu、CfL、SSimDownscaler 等），按放大倍数分四档 × 真人/动画 × 显卡档，每一档都做色度重建。
 
 **字幕筛选** — 字幕优先级筛选，排除繁体中文，优先自动选择双语字幕、特效字幕。
 
 **MoviePilot API调用** — 通过调用MoviePilot API内置多个功能的快捷键，提高片库管理效率。
 
-**界面** — 五套深色配色墨绿、纯黑、午夜、石墨、紫夜，首页轮播图。
+**界面** — 五套深色配色墨绿、纯黑、午夜、石墨、紫夜，首页轮播图与可选侧边栏；详情艺术图按窗口宽度缩放，电视剧封面显示年份区间或「至今」。
 
 ## 系统要求
 
 - Windows 10 1809 及以上，仅 x64
 - Emby 4.10.x
-- MoviePilot 3.x.x
-- Jellyfin 未验证
-- 可选：「服务器控制台」页需要 WebView2 Runtime，没有则提示改用浏览器打开
+- MoviePilot 3.x.x（可选，相关功能需配置连接）
+- Jellyfin 已做协议与离线界面适配，实服播放、写入及网页控制台登录未验证；见 [Jellyfin 支持](docs/Jellyfin支持.md)
+- 飞牛影视按网页 0.9.8 / 服务 0.8.43 的官方前端核对，当前原画适配的实播未验证；这组版本是核对记录，不是全版本兼容保证
+- 可选：「网页控制台」页需要 WebView2 Runtime，没有则提示改用浏览器打开
 
 ## 下载
 
-到 [Releases](https://github.com/cudamin/Momoka/releases) 下载最新的 `Momoka_windows-x64_x.x.x.exe` 安装包。
+到 [Releases](https://github.com/cudamin/Momoka/releases) 下载最新的 `Momoka_windows-x64_x.x.x.exe` 安装包，或通过 [Microsoft Store](https://apps.microsoft.com/detail/9nqjl7k0h8x0?hl=zh-CN&gl=CN) 安装。
+
+## 开发与验证
+
+开发使用 .NET 10 SDK，具体版本以 [global.json](global.json) 为准；构建、离线测试、隔离界面探针及发布命令见 [开发与验证](docs/开发与验证.md)。本地播放与发布需要另行准备匹配的 x64 `libmpv-2.dll`，该文件不入库。
 
 ## 许可证
 

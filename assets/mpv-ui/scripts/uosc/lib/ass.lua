@@ -193,11 +193,11 @@ end
 ---@param ay number
 ---@param bx number
 ---@param by number
----@param opts? {color?: string; border?: number; border_color?: string; opacity?: number|{primary?: number; border?: number, shadow?: number, main?: number}; clip?: string, radius?: number}
+---@param opts? {color?: string; border?: number; border_color?: string; opacity?: number|{primary?: number; border?: number, shadow?: number, main?: number}; clip?: string, radius?: number; blur?: number}
 function ass_mt:rect(ax, ay, bx, by, opts)
 	opts = opts or {}
 	local border_size = opts.border or 0
-	local tags = '\\pos(0,0)\\rDefault\\an7\\blur0'
+	local tags = '\\pos(0,0)\\rDefault\\an7\\blur' .. (opts.blur or 0)
 	-- border
 	tags = tags .. '\\bord' .. border_size
 	-- colors

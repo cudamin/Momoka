@@ -71,6 +71,12 @@ public sealed partial class LibraryPage : Page, IShellContent
         // crashes the page. Subscribing after InitializeComponent skips that init-time firing; every later
         // change lands with the whole tree in place.
         SourceTabs.SelectionChanged += OnSourceChanged;
+
+        // 换来源之后光标要能落在搜索框里：这一页唯一的输入口是那个框，而点标签会把焦点留在标签上，
+        // 用户换完来源就打不了字、也按不出回车（2026-10-15 用户报的正是「按回车不触发搜索」）。只认
+        // 指针点的那一下，键盘方向键在标签之间移动时不抢焦点，见 OnSourceTabsKeyDown。
+        SourceTabs.AddHandler(PointerReleasedEvent, new PointerEventHandler(OnSourceTabsPointerReleased), handledEventsToo: true);
+        SourceTabs.PreviewKeyDown += OnSourceTabsKeyDown;
         SearchCategories.SelectionChanged += OnSearchCategoryChanged;
         HeaderLayout.SizeChanged += OnHeaderSizeChanged;
         SearchSurface.SizeChanged += OnHeaderSizeChanged;
@@ -499,11 +505,11 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// an edit can move the item's title, its artwork and its position in the sort all at once.
     /// </summary>
     private void OnCardContextRequested(UIElement sender, ContextRequestedEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback());
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
     private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
-        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback());
+        ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
 
     private bool _removingCard;
     private int _removalVersion;
@@ -539,9 +545,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         });
     }
 
-    internal void RemoveUnfavorite(string id)
+    internal void RemoveUnfavorite(EmbyItem changed)
     {
-        if (_request?.IsFavorites == true && ViewModel.Cards.FirstOrDefault(card => card.Item.Id == id) is { } card)
+        if (_request?.IsFavorites == true && ViewModel.Cards.FirstOrDefault(card => card.Item.IdentityKey == changed.IdentityKey) is { } card)
             _ = RemoveCardAsync(card, ViewModel.QueryToken, deleted: false);
     }
 
@@ -657,29 +663,32 @@ public sealed partial class LibraryPage : Page, IShellContent
             _ = SearchTypingAsync(sender.Text ?? string.Empty);
     }
 
-    // 入口同时供离线探针使用；输入后立即废弃旧查询，避免等防抖期间旧结果落到新关键词下面。
+    /// <summary>
+    /// 键入（<see cref="OnSearchTextChanged"/>）与离线探针共用这条入口。
+    /// <para>
+    /// <b>随输入更新只属于「媒体库」这一个来源</b>：另外三个（MoviePilot 订阅、MoviePilot 资源、AniBT）都要用户
+    /// 按回车或点搜索图标才发请求（2026-10-15 用户令）。那三个来源上键入仍做「收起旧查询」这一步 —— 它不发请求，
+    /// 但能让上一个关键词的结果不再挂在新词下面，也让清空输入框回到空态。
+    /// </para>
+    /// </summary>
     internal async Task SearchTypingAsync(string text)
     {
         if (_released) return;
         CancelTyping();
-        if (SearchSource == 0) ViewModel.PrepareSearch(text);
-        else
+        if (SearchSource != 0)
         {
             ViewModel.SearchText = text;
             if (SearchSource == 1) await MoviePilotPanel.PrepareSearchAsync().ConfigureAwait(true);
             else if (SearchSource == 3) await AniBtPanel.SearchAsync("").ConfigureAwait(true);
             else await MoviePilotResources.SearchAsync("").ConfigureAwait(true);
+            return;
         }
+        ViewModel.PrepareSearch(text);
         var typing = new CancellationTokenSource();
         _typing = typing;
         try
         {
-            if (text.Trim().Length > 0)
-            {
-                // 站点资源检索会访问多个站点，保留显式提交；媒体库与订阅媒体搜索随输入更新。
-                if (SearchSource is 2 or 3) return;
-                await Task.Delay(400, typing.Token).ConfigureAwait(true);
-            }
+            if (text.Trim().Length > 0) await Task.Delay(400, typing.Token).ConfigureAwait(true);
             if (!typing.IsCancellationRequested && !_released)
                 await RunSearchAsync(text, remember: false).ConfigureAwait(true);
         }
@@ -712,7 +721,29 @@ public sealed partial class LibraryPage : Page, IShellContent
         _typing = null;
     }
 
-    private void OnSourceChanged(object sender, SelectionChangedEventArgs e) => ApplySource(runSearch: true);
+    private void OnSourceChanged(object sender, SelectionChangedEventArgs e) => ApplySource();
+
+    /// <summary>
+    /// 指针点了来源标签：把光标交回搜索框。点击把焦点留在标签上，而用户接下来要么打新词、要么按回车
+    /// 用现有的词搜 —— 两件事都要求焦点在框里。挂 <c>PointerReleased</c> 而不是无条件抢：键盘方向键
+    /// 在标签之间移动时焦点本来就该留在标签上（见 <see cref="OnSourceTabsKeyDown"/>）。
+    /// </summary>
+    private void OnSourceTabsPointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (!_released && _request?.IsSearch == true) SearchInput.Focus(FocusState.Programmatic);
+    }
+
+    /// <summary>
+    /// 焦点在来源标签上时的回车＝照框里现有的词搜一次。键盘换来源不走上面那条（焦点留在标签上），所以
+    /// 这一颗回车得由标签自己补上；标签本身没有回车语义 —— <c>Segmented</c> 只用方向键移焦点并跟着改
+    /// 选中项，回车在它上面本来就是空的。
+    /// </summary>
+    private void OnSourceTabsKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (_released || e.Key != Windows.System.VirtualKey.Enter) return;
+        e.Handled = true;
+        _ = SubmitSearchAsync(SearchInput.Text ?? string.Empty);
+    }
 
     private MoviePilotService? _moviePilot;
 
@@ -726,7 +757,13 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
     });
 
-    private void ApplySource(bool runSearch = false)
+    /// <summary>
+    /// 换来源只换面板，不替用户搜一次。旧行为是拿框里现有的词直接发一趟搜索，用户 2026-10-15 报的就是
+    /// 它（「切换时不要自动触发搜索」）—— 词换不换、搜不搜都归用户按回车决定。所以这里只剩三件事：切
+    /// 显隐、收起旧请求、按新来源改占位文案；把光标交给搜索框那一手在
+    /// <see cref="OnSourceTabsPointerReleased"/>。
+    /// </summary>
+    private void ApplySource()
     {
         CancelTyping();
         var source = SearchSource;
@@ -740,7 +777,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : Visibility.Visible;
         SearchInput.PlaceholderText = source switch
         {
-            1 => "搜索可订阅的电影、电视剧",
+            1 => "输入关键词，按回车搜索可订阅的影视",
             2 => "输入资源关键词，按回车搜索",
             3 => "输入番剧名称，按回车搜索 AniBT",
             _ => "搜索媒体库中的影片、节目和单集"
@@ -751,7 +788,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_released) return;
         if (source == 0) ViewModel.Resume(reload: false);
         if (source == 1) MoviePilotPanel.LoadSources();
-        if (runSearch) _ = RunSearchAsync(SearchInput.Text ?? string.Empty, remember: false);
     }
 
     private void OnSearchCategoryChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)

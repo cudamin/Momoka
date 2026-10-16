@@ -12,7 +12,7 @@
 
 ## 项目与技能
 
-Emby 桌面客户端：WinUI 3、Windows App SDK、.NET 10、C#，非打包、x64，播放内核 libmpv。SDK 版本见 `global.json`，包版本见各项目的 csproj。
+媒体服务器桌面客户端（Emby、Jellyfin、飞牛影视）：WinUI 3、Windows App SDK、.NET 10、C#，非打包、x64，播放内核 libmpv。SDK 版本见 `global.json`，包版本见各项目的 csproj。
 
 - `src/Momoka.Core`：不依赖 UI 框架。目前不引用 NuGet 包，这是保持轻量的选择，不是“有包就不能测试”的限制。
 - `src/Momoka.Shell`：WinUI 外壳。
@@ -25,7 +25,7 @@ Emby 桌面客户端：WinUI 3、Windows App SDK、.NET 10、C#，非打包、x6
 - [momoka-winui-shell](.claude/skills/momoka-winui-shell/SKILL.md)：修改或审查 C# / XAML 前读取，说明分层、DI、Attach、功能可用性显隐与 UI 陷阱。
 - [momoka-emby-api](.claude/skills/momoka-emby-api/SKILL.md)：与 Emby 服务器对话的协议面——请求基址与鉴权头、重定向与凭据边界、错误语义、接口清单与规格缺口。
 - [momoka-jellyfin-api](.claude/skills/momoka-jellyfin-api/SKILL.md)：接 Jellyfin 服务器时与 Emby 不同的那一半——不带 `/emby/` 的基址、`Authorization: MediaBrowser` 鉴权头与 Jellyfin 12 默认停用的旧式凭据、用户作用域路由搬到顶层，以及接口逐条对照与版本漂移。
-- [momoka-fnnas-media-api](.claude/skills/momoka-fnnas-media-api/SKILL.md)：飞牛影视（fnOS 影视／trim.media，非 fnOS 系统 WebSocket API）媒体服务的协议面——接入基址与 `/v` 前缀、v2 登录与已废弃的 v1 明文登录、authx 签名分歧、正文 `code` 错误语义、接口清单与规格缺口；Momoka 尚未接入，属接入前地图。
+- [momoka-fnnas-media-api](.claude/skills/momoka-fnnas-media-api/SKILL.md)：飞牛影视（fnOS 影视／trim.media，非 fnOS 系统 WebSocket API）的独立协议、v2 登录、已由官方前端核对的 authx、浏览与播放适配，以及原生媒体库、用户、设置、任务计划管理；区分前端证据、离线测试和真实服务器覆盖。
 - [momoka-playback](.claude/skills/momoka-playback/SKILL.md)：播放后端、进度上报、字幕音轨、换片，以及 `assets/mpv-ui` 中的 Lua/uosc 独占控件。
 - [momoka-subtitles](.claude/skills/momoka-subtitles/SKILL.md)：字幕设置的审查、修复与验证——语言选择、强制/外语音轨、ASS/SRT/PGS 样式、双语/次字幕、颜色输入、预览与服务器字幕管理。
 - [momoka-verification](.claude/skills/momoka-verification/SKILL.md)：验证读数、截图、功能显隐与恢复、指针移动及其证据。

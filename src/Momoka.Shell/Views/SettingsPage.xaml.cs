@@ -466,6 +466,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         }
 
         var services = _request.Services;
+        var isFnNas = services.GetRequiredService<IServerCapabilities>().ServerKind == Momoka.Emby.MediaServerKind.FnNas;
 
         Type page;
         object parameter;
@@ -492,8 +493,8 @@ public sealed partial class SettingsPage : Page, IShellContent
         }
         else if (ViewModel.SelectedCategory == SettingsViewModel.ServerUsersCategory)
         {
-            page = typeof(ServerUsersPage);
-            parameter = new ServerUsersRequest(services, userId =>
+            page = isFnNas ? typeof(FnNasUsersPage) : typeof(ServerUsersPage);
+            parameter = isFnNas ? new FnNasUsersRequest(services) : new ServerUsersRequest(services, userId =>
             {
                 HostedFrame.Navigate(typeof(DashboardPage), new DashboardRequest(services, userId, ShowHosted));
                 HostedFrame.BackStack.Clear();
@@ -501,8 +502,18 @@ public sealed partial class SettingsPage : Page, IShellContent
         }
         else if (ViewModel.SelectedCategory == SettingsViewModel.ServerLibrariesCategory)
         {
-            page = typeof(ServerLibrariesPage);
-            parameter = new ServerLibrariesRequest(services);
+            page = isFnNas ? typeof(FnNasLibrariesPage) : typeof(ServerLibrariesPage);
+            parameter = isFnNas ? new FnNasLibrariesRequest(services) : new ServerLibrariesRequest(services);
+        }
+        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasSettingsCategory)
+        {
+            page = typeof(FnNasSettingsPage);
+            parameter = new FnNasSettingsRequest(services);
+        }
+        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasTasksCategory)
+        {
+            page = typeof(FnNasTasksPage);
+            parameter = new FnNasTasksRequest(services);
         }
         else if (ViewModel.SelectedCategory == SettingsViewModel.DashboardCategory)
         {

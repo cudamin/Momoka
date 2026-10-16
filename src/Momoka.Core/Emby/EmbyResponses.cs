@@ -43,8 +43,11 @@ public sealed class PublicSystemInfo
     public string? ProductName { get; set; }
 
     [JsonIgnore]
-    public MediaServerKind ServerKind => string.Equals(ProductName, "Jellyfin", StringComparison.OrdinalIgnoreCase)
-        ? MediaServerKind.Jellyfin : MediaServerKind.Emby;
+    public MediaServerKind? DetectedServerKind { get; set; }
+
+    [JsonIgnore]
+    public MediaServerKind ServerKind => DetectedServerKind ?? (string.Equals(ProductName, "Jellyfin", StringComparison.OrdinalIgnoreCase)
+        ? MediaServerKind.Jellyfin : MediaServerKind.Emby);
 
     [JsonIgnore]
     public Uri? ApiBase { get; set; }
@@ -121,6 +124,7 @@ public sealed record EmbyConnection(
     public string? ServerId { get; init; }
     public bool? IsAdministrator { get; init; }
     public bool IsJellyfin => ServerKind == MediaServerKind.Jellyfin;
+    public bool IsFnNas => ServerKind == MediaServerKind.FnNas;
     public bool UsesJellyfin12Routes => IsJellyfin && (!Version.TryParse(ServerVersion?.Split('-')[0], out var version) || version.Major >= 12);
     /// <summary>
     /// 这两条连接是不是「同一台服务器上的同一个人」。令牌不算：一次重新登录换的正是令牌，而换了令牌的还是他。

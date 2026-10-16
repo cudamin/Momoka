@@ -53,8 +53,9 @@ public sealed partial class PlayerPage
             // the items of every previous build and only the newest set would be radio-exclusive.
             var row = new RadioMenuFlyoutItem
             {
-                Text = EpisodeLabel(episode),
-                IsChecked = string.Equals(episode.Id, ViewModel.PlayingItemId, StringComparison.Ordinal),
+                Text = EpisodeNavigation.HasMultipleSources(ViewModel.Episodes)
+                    ? ViewModel.EpisodeMenuLabel(episode) : EpisodeLabel(episode),
+                IsChecked = string.Equals(episode.IdentityKey, ViewModel.PlayingItemKey, StringComparison.Ordinal),
                 Tag = episode
             };
 
@@ -107,8 +108,8 @@ public sealed partial class PlayerPage
         {
             var row = new RadioMenuFlyoutItem
             {
-                Text = ItemDetail.SourceLabel(source),
-                IsChecked = MediaVersionSwitch.Same(source, ViewModel.PlayingSource),
+                Text = ViewModel.VersionLabel(source),
+                IsChecked = ViewModel.IsPlayingVersion(source),
                 Tag = source
             };
 

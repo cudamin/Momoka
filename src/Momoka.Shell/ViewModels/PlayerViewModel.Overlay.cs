@@ -100,9 +100,11 @@ public sealed partial class PlayerViewModel
 
         try
         {
+            var scope = _playbackScope;
+            if (scope is null) return;
             var width = EmbyImageStore.RequestWidth(ChapterPeekWidth);
             var bytes = await _images
-                .GetChapterAsync(itemId, chapter, tag, width, _lifetime.Token)
+                .GetChapterAsync(scope, itemId, chapter, tag, width, _lifetime.Token)
                 .ConfigureAwait(true);
 
             if (generation != _generation) return;

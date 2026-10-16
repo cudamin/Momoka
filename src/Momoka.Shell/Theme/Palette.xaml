@@ -10,7 +10,7 @@
 
   Merged after XamlControlsResources in App.xaml, so these keys shadow the framework's own.
 
-  这里写下的每个色值现在只画第一帧。真正生效的是 Momoka.Core 的 UiThemes 那五套主题，由
+  这里写下的每个色值现在只画第一帧。真正生效的是 Momoka.Core 的 UiThemes 那九套主题，由
   Theme/ThemeHost.cs 在窗口出现之前把它们写进下面这些 SolidColorBrush 对象里 —— 改的是画刷自己的
   Color，不是换字典条目，所以已经绑上去的那几百处会当场跟着变。字面值和默认那套（emby-dark）保持一致，
   只为了「万一 ThemeHost 没跑起来」时界面还是这个样子，而不是一片透明。Light 那一份现在没有哪套主题会

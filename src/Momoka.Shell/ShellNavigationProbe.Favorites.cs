@@ -76,7 +76,7 @@ internal sealed partial class ShellNavigationProbe
             Require(page.ViewModel.ShowEmptyNotice && shell.CurrentTag == LibraryRequest.FavoritesTag,
                 "取消最后一项收藏没有停留在空收藏页");
             await SaveReturnFrameAsync(shell, "favorites-empty.png");
-            Call(shell, "ShowSignIn", new object?[] { null });
+            Call(shell, "ShowSignIn", new object?[] { null, false, null });
             Require(!shell.Favorites.HasItems, "退出登录未清除收藏入口");
         }
         finally

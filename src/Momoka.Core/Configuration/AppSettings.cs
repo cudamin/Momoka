@@ -131,6 +131,9 @@ public sealed class AccountProfile
 
     public bool RememberPassword { get; set; } = true;
 
+    /// <summary>退出账号时关闭，显式再次登录时开启；保存密码本身不构成重新登录授权。</summary>
+    public bool? AutoConnect { get; set; }
+
     public DateTimeOffset? LastSignedIn { get; set; }
 
     [JsonIgnore]

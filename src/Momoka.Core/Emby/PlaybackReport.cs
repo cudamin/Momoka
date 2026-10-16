@@ -6,6 +6,9 @@ namespace Momoka.Emby;
 /// </summary>
 public sealed class PlaybackReport
 {
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Momoka.FnNas.FnNasPlaybackSelection? FnNasSelection { get; init; }
+
     public required string ItemId { get; init; }
 
     public string? MediaSourceId { get; init; }

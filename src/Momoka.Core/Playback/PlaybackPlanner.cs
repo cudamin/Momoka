@@ -93,10 +93,13 @@ public sealed class PlaybackPlanner(
 
         var request = new PlaybackRequest
         {
-            MediaUrl = EmbyUrl.Stream(connection.ApiBase, item.Id, source.Id, source.Container),
+            MediaUrl = connection.IsFnNas ? Momoka.FnNas.FnNasPlaybackSelection.MediaUrl(connection, source)
+                : EmbyUrl.Stream(connection.ApiBase, item.Id, source.Id, source.Container),
+            FnNasSelection = connection.IsFnNas
+                ? Momoka.FnNas.FnNasPlaybackSelection.FromSource(source, source.RunTimeTicks ?? item.RunTimeTicks ?? 0) : null,
             Title = title,
             HttpHeaders = BuildHeaders(connection),
-            StartSeconds = TimeFormat.ToSeconds(ResumeFrom(ticket.StartTicks)),
+            StartSeconds = TimeFormat.ToSeconds(ticket.ExactStart ? Math.Max(0, ticket.StartTicks) : ResumeFrom(ticket.StartTicks)),
             AudioId = map.AudioId(tracks.AudioIndex),
             SubtitleId = map.SubtitleId(tracks.SubtitleIndex),
             SubtitlesDisabled = tracks.SubtitlesDisabled,

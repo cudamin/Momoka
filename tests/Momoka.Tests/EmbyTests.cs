@@ -1011,6 +1011,25 @@ internal static class EmbyTests
 
     private static void RegisterItemModel()
     {
+        Test("条目：电视剧封面按网页版显示连载与完结年份，不显示季数", () =>
+        {
+            var series = System.Text.Json.JsonSerializer.Deserialize<EmbyItem>(
+                """{"Type":"Series","ProductionYear":2016,"EndDate":"2018-06-01T00:00:00Z","Status":"Continuing","ChildCount":3}""",
+                EmbyHttp.Json)!;
+            Assert.Equal("2016 – 至今", series.CardSubtitle);
+            series.Status = "Ended";
+            Assert.Equal("2016 – 2018", series.CardSubtitle);
+            series.EndDate = new DateTimeOffset(2016, 6, 1, 0, 0, 0, TimeSpan.Zero);
+            Assert.Equal("2016", series.CardSubtitle);
+            series.EndDate = null;
+            series.Status = null;
+            Assert.Equal("2016", series.CardSubtitle);
+            series.ProductionYear = null;
+            Assert.Equal("", series.CardSubtitle);
+            Assert.Contains("EndDate", EmbyFields.Browse);
+            Assert.Contains("Status", EmbyFields.Browse);
+        });
+
         Test("条目：单集标题带上剧名与集号", () =>
         {
             var episode = new EmbyItem

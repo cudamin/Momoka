@@ -111,9 +111,8 @@ public static class DetailHero
     /// <summary>
     /// 右上角那张艺术图最宽能画到多少 —— 「给集页面右上角添加艺术图」。
     /// <para>
-    /// 320 → 480 是用户第二次要的「放大集页面右侧的艺术图」（第一次是 146 → 180，配的是「再把艺术图调大一些」）。
-    /// 两个数同时是这一格的解码宽度（<c>DetailViewModel.CornerDecodeWidth</c>）：画出来的宽和取图时用的宽一旦
-    /// 分岔，这张图要么糊要么白占内存。
+    /// 默认上限由 480×270 缩到 360×202.5，为常规 1280 DIP 窗口的操作排留位；继续拉宽时逐渐放大到 540×303.75。
+    /// 解码宽度按放大后的上限取，避免拉大窗口时把小位图放糊。
     /// </para>
     /// <para>
     /// 它和 <see cref="CornerHeight"/> 一起定死这一格的形状，所以这一格的<em>高</em>是可算的、不跟着版面走 ——
@@ -122,17 +121,29 @@ public static class DetailHero
     /// <c>DetailViewModel.HeroLayoutWidth</c> 上那段「不能读回缩放后的内容高度」）。
     /// </para>
     /// </summary>
-    public const double CornerWidth = 480;
+    public const double CornerWidth = 360;
 
     /// <summary>
-    /// 右上角那张艺术图最高能画到多少 —— 同 <see cref="CornerWidth"/>，480×270 正好一格 16:9。
+    /// 右上角艺术图的默认高度，和 <see cref="CornerWidth"/> 组成 360×202.5 的 16:9 上限盒。
     /// <para>
     /// 这一格<b>算进集页的带高</b>（<c>DetailViewModel.HeroRoom</c>）：艺术图顶对齐摆在这一格里，带子矮过
-    /// 它就是一截画压在底下的音轨那一行上。从前 180 比那一叠字键的实测高（两百六七）矮，压不着；抬到 270
-    /// 之后就压得着了。
+    /// 它就是一截画压在底下的音轨那一行上。放大后的高度仍须参与带高计算。
     /// </para>
     /// </summary>
-    public const double CornerHeight = 270;
+    public const double CornerHeight = 202.5;
+
+    public const double CornerGrowFrom = 1280;
+    public const double CornerScaleLimit = 1.5;
+
+    /// <summary>按窗口逻辑宽度渐增；1280 以内保持默认，当前显示器工作区宽度处达到最大档。</summary>
+    public static double CornerScale(double windowWidth, double maximumWidth)
+    {
+        if (!double.IsFinite(windowWidth) || !double.IsFinite(maximumWidth)
+            || windowWidth <= CornerGrowFrom || maximumWidth <= CornerGrowFrom) return 1;
+
+        return 1 + (CornerScaleLimit - 1)
+            * Math.Clamp((windowWidth - CornerGrowFrom) / (maximumWidth - CornerGrowFrom), 0, 1);
+    }
 
     /// <summary>
     /// 没有画面可铺时那一格的高：由它里面那一叠（剧照、片名、副标题、读数、那排键）连上下留白实测给出。
@@ -168,10 +179,10 @@ public static class DetailHero
     /// <para>
     /// 角图占的是第三栏（Auto），中间题栏拿剩下的；窗口窄下来的时候它必须让位，不然题栏会被挤得放不下一行
     /// 片名。保底的数是参考宽（1280）上题栏本来就有的那一份：1280 − 内边距 96（板沿 28 加板内 20，两道）−
-    /// 封面 352 − 两道栏距 44 − 角图 <see cref="CornerWidth"/> ＝ 308。那 352 是封面还按 1280 等比缩放的那一版
+    /// 封面 352 − 两道栏距 44 − 当时的角图 480 ＝ 308。那 352 是封面还按 1280 等比缩放的那一版
     /// 在参考宽上的取值，是这道钳制的来历，不是今天画出来的宽 —— 今天参考宽上封面是 260
     /// （<c>DetailViewModel.EpisodeStillWidth</c>）；这道钳制本身一个数没动，所以参考宽上题栏仍然只宽不窄。
-    /// 参考宽以上这道钳制不咬合（角图照旧 480 封顶、题栏只宽不窄），以下角图线性让位 —— 2026-09-12 他那句
+    /// 默认上限现在是 360，窗口大于 1280 后上限随 scale 增至 540；空间不足仍线性让位 —— 2026-09-12 他那句
     /// 「徽标跟艺术图不要动」说的是位置和画法不动，不是让它在窄窗口上把片名挤没。
     /// </para>
     /// </summary>
@@ -179,11 +190,12 @@ public static class DetailHero
     /// <param name="stillWidth">封面这一次画多宽 —— 集页 <c>DetailViewModel.EpisodeStillWidth</c>（260），
     /// 其余页面 <c>PosterStillWidth</c>（210）；紧凑版式下封面整个不画（<see cref="ShowsStill"/>），
     /// 交进来的是 0，而那一档角图本来也不画（只有集页的宽版式有它，<c>DetailViewModel.HeroCard</c>）。</param>
-    public static double CornerBoxWidth(double pageWidth, double stillWidth)
+    public static double CornerBoxWidth(double pageWidth, double stillWidth, double scale = 1)
     {
         const double insets = 96, spacings = 44, minTitle = 308;
 
-        return Math.Clamp(pageWidth - insets - stillWidth - spacings - minTitle, 0, CornerWidth);
+        return Math.Clamp(pageWidth - insets - stillWidth - spacings - minTitle, 0,
+            CornerWidth * Math.Clamp(scale, 1, CornerScaleLimit));
     }
 
     /// <summary>

@@ -11,26 +11,34 @@ public sealed record EpisodeDestination(EmbyItem Episode, IReadOnlyList<EmbyItem
 /// </summary>
 public static class EpisodeNavigation
 {
-    public static EpisodeDestination? Step(
-        IReadOnlyList<EmbyItem> episodes,
-        string currentItemId,
-        int offset)
+    /// <summary>播放器的列表定位必须包含服务器账号；不同来源允许出现相同条目 ID。</summary>
+    public static int IndexOf(IReadOnlyList<EmbyItem> episodes, string currentIdentityKey)
+    {
+        for (var index = 0; index < episodes.Count; index++)
+            if (string.Equals(episodes[index].IdentityKey, currentIdentityKey, StringComparison.Ordinal)) return index;
+        return -1;
+    }
+
+    public static bool HasMultipleSources(IReadOnlyList<EmbyItem> episodes) => episodes.Count > 1
+        && episodes.Skip(1).Any(item => item.Source?.Key != episodes[0].Source?.Key);
+
+    /// <summary>显式的聚合播放列表按用户给定顺序前进，保留整个队列且不回绕。</summary>
+    public static EpisodeDestination? StepQueue(IReadOnlyList<EmbyItem> episodes, string currentIdentityKey, int offset)
     {
         if (offset is not (-1 or 1)) throw new ArgumentOutOfRangeException(nameof(offset));
+        var index = IndexOf(episodes, currentIdentityKey);
+        if (index < 0 || index + offset < 0 || index + offset >= episodes.Count) return null;
+        return new(episodes[index + offset], episodes);
+    }
 
-        for (var index = 0; index < episodes.Count; index++)
-        {
-            if (!string.Equals(episodes[index].Id, currentItemId, StringComparison.Ordinal)) continue;
-
-            var targetIndex = index + offset;
-            if (targetIndex < 0 || targetIndex >= episodes.Count) return null;
-
-            var target = episodes[targetIndex];
-            var siblings = episodes.Where(candidate => SameSeason(candidate, target)).ToList();
-            return new EpisodeDestination(target, siblings.Count > 0 ? siblings : [target]);
-        }
-
-        return null;
+    public static EpisodeDestination? Step(
+        IReadOnlyList<EmbyItem> episodes,
+        string currentIdentityKey,
+        int offset)
+    {
+        if (StepQueue(episodes, currentIdentityKey, offset) is not { } step) return null;
+        var siblings = episodes.Where(candidate => SameSeason(candidate, step.Episode)).ToList();
+        return step with { Siblings = siblings.Count > 0 ? siblings : [step.Episode] };
     }
 
     /// <summary>
@@ -50,16 +58,16 @@ public static class EpisodeNavigation
     /// </summary>
     public static async Task<EpisodeDestination?> ResolveAdjacentAsync(
         IReadOnlyList<EmbyItem> seriesEpisodes,
-        string currentItemId,
+        string currentIdentityKey,
         int offset,
         Func<string?, Task<IReadOnlyList<EmbyItem>>> fetchSeasonEpisodes)
     {
-        if (Step(seriesEpisodes, currentItemId, offset) is not { } step) return null;
+        if (Step(seriesEpisodes, currentIdentityKey, offset) is not { } step) return null;
 
         var target = step.Episode;
         var season = await fetchSeasonEpisodes(target.SeasonId).ConfigureAwait(false);
 
-        if (season.Count > 0 && season.Any(episode => string.Equals(episode.Id, target.Id, StringComparison.Ordinal)))
+        if (season.Count > 0 && season.Any(episode => string.Equals(episode.IdentityKey, target.IdentityKey, StringComparison.Ordinal)))
             return step with { Siblings = season };
 
         return step;
@@ -80,22 +88,25 @@ public static class EpisodeNavigation
     /// </summary>
     public static EpisodeDestination? StepInSeason(
         IReadOnlyList<EmbyItem> episodes,
-        string currentItemId,
+        string currentIdentityKey,
         int offset)
     {
         if (offset is not (-1 or 1)) throw new ArgumentOutOfRangeException(nameof(offset));
 
-        var current = episodes.FirstOrDefault(item =>
-            string.Equals(item.Id, currentItemId, StringComparison.Ordinal));
-        if (current is null) return null;
+        var index = IndexOf(episodes, currentIdentityKey);
+        if (index < 0) return null;
+        var current = episodes[index];
 
         var season = episodes.Where(candidate => SameSeason(candidate, current)).ToList();
 
-        return Step(season, currentItemId, offset);
+        return Step(season, currentIdentityKey, offset);
     }
 
     private static bool SameSeason(EmbyItem candidate, EmbyItem target)
     {
+        if (candidate.Source?.Key != target.Source?.Key) return false;
+        if (candidate.SeriesId is { Length: > 0 } candidateSeries && target.SeriesId is { Length: > 0 } targetSeries
+            && !string.Equals(candidateSeries, targetSeries, StringComparison.Ordinal)) return false;
         if (candidate.SeasonId is { Length: > 0 } candidateSeason
             && target.SeasonId is { Length: > 0 } targetSeason)
             return string.Equals(candidateSeason, targetSeason, StringComparison.Ordinal);
@@ -108,6 +119,6 @@ public static class EpisodeNavigation
             && target.SeasonName is { Length: > 0 } targetName)
             return string.Equals(candidateName, targetName, StringComparison.Ordinal);
 
-        return string.Equals(candidate.Id, target.Id, StringComparison.Ordinal);
+        return string.Equals(candidate.IdentityKey, target.IdentityKey, StringComparison.Ordinal);
     }
 }

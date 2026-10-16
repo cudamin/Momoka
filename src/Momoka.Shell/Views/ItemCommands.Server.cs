@@ -60,18 +60,18 @@ internal static partial class ItemCommands
     /// </summary>
     private static async Task<T> AskAsync<T>(EmbySessionScope session, Func<EmbyClient, CancellationToken, Task<T>> work)
     {
-        session.ThrowIfNotCurrent();
+        session.ThrowIfUnavailable();
         var result = await session.ExecuteAsync(work, CancellationToken.None).ConfigureAwait(false);
-        session.ThrowIfNotCurrent();
+        session.ThrowIfUnavailable();
         return result;
     }
 
     /// <inheritdoc cref="AskAsync{T}"/>
     private static async Task TellAsync(EmbySessionScope session, Func<EmbyClient, CancellationToken, Task> work)
     {
-        session.ThrowIfNotCurrent();
+        session.ThrowIfUnavailable();
         await session.ExecuteAsync(work, CancellationToken.None).ConfigureAwait(false);
-        session.ThrowIfNotCurrent();
+        session.ThrowIfUnavailable();
     }
 
     /// <summary>
@@ -246,10 +246,10 @@ internal static partial class ItemCommands
         GuardAsync(shell, "下载失败", async () =>
         {
             var scope = session;
-            scope.ThrowIfNotCurrent();
+            scope.ThrowIfUnavailable();
             var item = card.Item;
             var files = await FilesOfAsync(scope, item).ConfigureAwait(true);
-            scope.ThrowIfNotCurrent();
+            scope.ThrowIfUnavailable();
 
             if (files.Count == 0)
             {
@@ -265,7 +265,7 @@ internal static partial class ItemCommands
             await DownloadGate.WaitAsync(CancellationToken.None).ConfigureAwait(true);
             try
             {
-                scope.ThrowIfNotCurrent();
+                scope.ThrowIfUnavailable();
                 await SaveAsync(scope, shell, item, files, folder).ConfigureAwait(true);
             }
             finally
@@ -323,7 +323,7 @@ internal static partial class ItemCommands
 
         foreach (var file in files)
         {
-            scope.ThrowIfNotCurrent();
+            scope.ThrowIfUnavailable();
             index++;
 
             // 手上这一份没带媒体源就补问一次：后缀名只有它说得出来，而没有后缀的影片双击打不开。
@@ -354,7 +354,7 @@ internal static partial class ItemCommands
 
             shell.Notify($"正在下载 {head}…");
 
-            scope.ThrowIfNotCurrent();
+            scope.ThrowIfUnavailable();
             await scope.ExecuteAsync((client, token) => client.DownloadToFileAsync(file.Id, path, progress, token), CancellationToken.None)
                 .ConfigureAwait(true);
 
@@ -414,7 +414,7 @@ internal static partial class ItemCommands
             await dialog.ShowAsync();
 
             // 面板里改过才要重读这一页 —— 打开看了一眼就关掉，那张卡片一个像素都不必动。
-            if (!session.IsCurrent || (!dialog.Touched && !dialog.NeedsRefresh)) return;
+            if (!session.IsAvailable || (!dialog.Touched && !dialog.NeedsRefresh)) return;
 
             if (dialog.Touched) shell.Notify($"已更新「{item.Name}」的封面图");
             changed?.Invoke();
@@ -508,7 +508,7 @@ internal static partial class ItemCommands
             await dialog.ShowAsync();
 
             // 表里改过服务器上的东西才重读这一页 —— 打开看了一眼、搜了两轮就关掉，那张卡片一个像素都不必动。
-            if (!session.IsCurrent || !dialog.Touched) return;
+            if (!session.IsAvailable || !dialog.Touched) return;
 
             shell.Notify($"已更新「{item.Name}」的识别");
             changed?.Invoke();

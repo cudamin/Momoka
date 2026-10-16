@@ -597,9 +597,9 @@ internal static partial class ShellSelfCheck
                 var first = episodes[boundary + 1];
 
                 var forward = await EpisodeNavigation
-                    .ResolveAdjacentAsync(episodes, last.Id, 1, FetchSeasonAsync)
+                    .ResolveAdjacentAsync(episodes, last.IdentityKey, 1, FetchSeasonAsync)
                     .ConfigureAwait(true);
-                var back = forward is null ? null : EpisodeNavigation.Step(episodes, forward.Episode.Id, -1);
+                var back = forward is null ? null : EpisodeNavigation.Step(episodes, forward.Episode.IdentityKey, -1);
 
                 var scoped = await session
                     .ExecuteAsync((client, token) => client.GetEpisodesAsync(series.Id, first.SeasonId, token),
@@ -694,12 +694,22 @@ internal static partial class ShellSelfCheck
         var opened = page.SelectedSeason;
         var expected = ItemDetail.PickSeason(seasons);
 
+        // 打开的那一季也要问一遍「播放会起哪一集」：切季那一半只量了切过去之后的季，而用户 2026-10-15 报的
+        // 那一条正落在打开的这一季上 —— 剧页面有多季、什么都没看过时，播放键写的是 S00E01 而不是 S01E01。
+        // 来由是服务器并进这一季列表的 air-order 特典记在第 0 季、排在正片前面（《伪恋》第 1 季 23 条里有
+        // 3 条是特典），所以这一关问的不是「列表对不对」，而是「照单取第一条之前有没有先认出自己那一季」。
+        // 判据与切季那一半同一条规则，读的也是这一页自己手上的那几行。
+        var openingTarget = page.PlayTarget;
+        var openingText = page.PlayText;
+        var openingWanted = ItemDetail.PickEpisode(page.Episodes, opened);
+
         // The page's own choice against the rule applied to a list fetched separately — the same question
         // the poster on the home page answers, which is why the two have to agree.
         var openedOk = opened is not null
             && expected is not null
             && opened.Id == expected.Id
-            && page.Seasons.Count == seasons.Count;
+            && page.Seasons.Count == seasons.Count
+            && openingTarget?.Id == openingWanted?.Id;
 
         // Whichever side of the boundary above the page did not open on. Both sides are known to hold
         // episodes — each contributed one to the list the boundary was found in — so 「no episodes」 and
@@ -730,7 +740,7 @@ internal static partial class ShellSelfCheck
         var rows = page.Episodes;
         var strayed = rows.Count(episode => episode.SeasonId != target.Id);
         var heading = page.EpisodeShelf?.Title ?? "";
-        var wanted = ItemDetail.PickEpisode(rows);
+        var wanted = ItemDetail.PickEpisode(rows, target);
 
         var switched = openedOk
             && !page.Busy
@@ -746,7 +756,10 @@ internal static partial class ShellSelfCheck
 
         return (switched,
             $"《{series.Name}》季 {page.Seasons.Count} 行，打开在「{opened?.Name ?? "无"}」"
-                + $"（规则应为「{expected?.Name ?? "无"}」）；切到「{target.Name}」后 {rows.Count} 集"
+                + $"（规则应为「{expected?.Name ?? "无"}」），播放目标「{openingTarget?.Name ?? "无"}」"
+                + $"{Code(openingTarget)}、按钮「{openingText}」"
+                + $"（该季应播「{(openingWanted is null ? "无" : ItemDetail.EpisodeLabel(openingWanted))}」）；"
+                + $"切到「{target.Name}」后 {rows.Count} 集"
                 + $"{(strayed > 0 ? $"，其中 {strayed} 集不属于该季" : "，全部属于该季")}，"
                 + $"标题「{heading}」，播放目标「{page.PlayTarget?.Name ?? "无"}」{Code(page.PlayTarget)}，"
                 + $"按钮「{page.PlayText}」"

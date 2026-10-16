@@ -57,7 +57,7 @@ public sealed partial class SignInViewModel : PageViewModel
     private const string Category = "login";
 
     /// <summary>The caption the card wears whenever it is not saying something more specific.</summary>
-    private const string FirstCaption = "连接到你的 Emby 或 Jellyfin 服务器";
+    private const string FirstCaption = "连接到你的 Emby、Jellyfin 或飞牛影视服务器";
 
     private PublicSystemInfo? _detectedServer;
 
@@ -169,7 +169,7 @@ public sealed partial class SignInViewModel : PageViewModel
     public Visibility SavedVisibility => Show(SavedServers.Count > 1);
 
     /// <summary>The sign-in button's own label, which used to be assigned alongside its IsEnabled.</summary>
-    public string SignInText => Busy ? "请稍候…" : "登录";
+    public string SignInText => Busy ? "请稍候…" : _session?.IsSignedIn == true ? "登录并加入聚合" : "登录";
 
     /// <summary>
     /// What gates the three buttons that start something. The guard the click handlers used to open with
@@ -218,7 +218,7 @@ public sealed partial class SignInViewModel : PageViewModel
     /// The server to fill in, when the caller has one in mind — a 切换服务器 that needed a password.
     /// Otherwise the last one signed into.
     /// </param>
-    internal void Prepare(ServerProfile? prefer = null)
+    internal void Prepare(ServerProfile? prefer = null, bool newAccount = false, AccountProfile? preferredAccount = null)
     {
         if (!Attached) return;
 
@@ -233,16 +233,19 @@ public sealed partial class SignInViewModel : PageViewModel
         var settings = Settings;
         var server = prefer ?? settings.ResolveLastServer();
 
-        var account = prefer is null
+        var account = preferredAccount ?? (prefer is null
             ? settings.ResolveLastAccount(server)
-            : prefer.FindAccount(settings.LastAccountId) ?? prefer.Accounts.FirstOrDefault();
+            : prefer.FindAccount(settings.LastAccountId) ?? prefer.Accounts.FirstOrDefault());
+        if (newAccount) account = null;
 
         Address = server?.Url ?? "";
         Username = account?.Username ?? "";
         Remember = account?.RememberPassword ?? true;
         Password = ReadSavedPassword(EmbySignInIdentity.SavedAccount(Settings.Servers, Address, Username));
+        if (newAccount) Password = "";
 
         FillSavedServers();
+        OnPropertyChanged(nameof(SignInText));
         RequestFocus(SignInFocus.Next);
     }
 
@@ -342,7 +345,7 @@ public sealed partial class SignInViewModel : PageViewModel
             if (!IsCurrent(token) || !EmbySignInIdentity.SameAddress(Address, apiBase.AbsoluteUri, info.ServerKind)) return;
 
             ServerLabel = info.ServerName is { Length: > 0 } name
-                ? $"{name}　·　{info.ServerKind} {info.Version}"
+                ? $"{name}　·　{(info.ServerKind == MediaServerKind.FnNas ? "飞牛影视" : info.ServerKind.ToString())} {info.Version}"
                 : apiBase.Host;
 
             _detectedServer = info;

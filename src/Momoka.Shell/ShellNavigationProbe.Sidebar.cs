@@ -125,12 +125,13 @@ internal sealed partial class ShellNavigationProbe
             DumpSidebarLayout(shell, "1240 expanded");
             await SaveProbeScreenAsync("sidebar-on-1240-screen.png");
 
-            Select(nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == "library:A-movies"));
+            var moviesTag = HomeLayout.LibraryKey(shell.LibraryViews.Single(view => view.Id == "A-movies"));
+            Select(nav.MenuItems.OfType<NavigationViewItem>().Single(item => item.Tag as string == moviesTag));
             await UntilAsync(() => shell.ActiveContentReady);
-            Require(shell.CurrentTag == "library:A-movies", "侧栏选择没有导航到媒体库");
+            Require(shell.CurrentTag == moviesTag, "侧栏选择没有导航到媒体库");
             shell.OpenDetail(DetailRequest.For(fixture.Services, Series()));
             await UntilAsync(() => shell.ActiveContentReady);
-            Require((nav.SelectedItem as NavigationViewItem)?.Tag as string == "library:A-movies", "详情页丢失所属媒体库高亮");
+            Require((nav.SelectedItem as NavigationViewItem)?.Tag as string == moviesTag, "详情页丢失所属媒体库高亮");
             Call(shell, "GoBack");
             await UntilAsync(() => shell.ActiveContentReady);
             var libraryPage = (LibraryPage)frame.Content;
@@ -233,11 +234,13 @@ internal sealed partial class ShellNavigationProbe
 
             await fixture.SelectAsync("b.invalid");
             await (Task)Call(shell, "EnterShellAsync")!;
+            await UntilAsync(() => shell.ActiveContentReady && shell.LibraryViews.Count == 4);
             var switched = nav.MenuItems.OfType<NavigationViewItem>()
                 .Where(item => item.Tag is string tag && tag.StartsWith("library:", StringComparison.Ordinal)).ToArray();
-            Require(switched.Length == 2 && fixture.Settings.Ui.SidebarMode
-                && switched.All(item => ((string)item.Tag).StartsWith("library:B-", StringComparison.Ordinal)), "切服后缺库或留下旧媒体库");
-            Call(shell, "ShowSignIn", new object?[] { null });
+            Require(switched.Length == 4 && fixture.Settings.Ui.SidebarMode
+                && switched.Select(item => (string)item.Tag).ToHashSet(StringComparer.Ordinal)
+                    .SetEquals(shell.LibraryViews.Select(HomeLayout.LibraryKey)), "第二个账号上线后没有保留所有来源的独立媒体库");
+            Call(shell, "ShowSignIn", null, false, null);
             Require(host.Visibility == Visibility.Collapsed && Get<Button>(shell, "SettingsButton").Visibility == Visibility.Visible,
                 "注销后侧栏或设置恢复入口错误");
 

@@ -61,9 +61,11 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <summary>
     /// 右上角那张艺术图（<see cref="ItemArtwork.Corner"/>）的解码宽度，同它画出来的那个盒子
     /// （<see cref="DetailHero.CornerWidth"/>×<see cref="DetailHero.CornerHeight"/>）。它是一幅装饰画，不是读数，
-    /// 480 宽在它的上限盒子上已经够清晰 —— 2026-09-12 按他的「放大集页面右侧的艺术图」从 320 一起抬上来的。
+    /// 按最大档的 540 宽解码，窗口拉大时不需要重新请求图片。
     /// </summary>
-    private const int CornerDecodeWidth = (int)DetailHero.CornerWidth;
+    private const int CornerDecodeWidth = (int)(DetailHero.CornerWidth * DetailHero.CornerScaleLimit);
+
+    private double _cornerScale = 1;
 
     /// <summary>
     /// 页尾那张横幅（<see cref="ItemArtwork.Footer"/>）的解码宽度，同它画出来的那个上限（760）。横幅图上写着片名，
@@ -135,6 +137,9 @@ public sealed partial class DetailViewModel : PageViewModel
     private bool _syncingSeason;
     private bool _switchingSeason;
     private EmbySessionScope? _scope;
+    private IReadOnlyList<MediaVersion> _versions = [];
+    private int _versionGeneration;
+    private CancellationTokenSource? _versionLoad;
 
     /// <summary>
     /// The episodes on screen, handed to the player so 下一集 works and to the context menu so
@@ -488,7 +493,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 右上角那张艺术图这一次画多高 —— 图到手时由 <see cref="ShowCorner"/> 按它的形状算进这个上限盒子里
-    /// （<see cref="DetailHero.StillBox"/>，480×270），带高就跟着它长。
+    /// （<see cref="DetailHero.StillBox"/>，默认 360×202.5，宽窗逐步放大），带高就跟着它长。
     /// <para>
     /// 180 → 270 这一档是「放大集页面右侧的艺术图」（2026-09-12）的直接后果：从前的上限 180 比那一叠字键的
     /// 实测高（两百六七）矮，所以它从来不决定带子的高，也就没有这个数；抬到 270 之后它比那一叠还高，不把它算
@@ -736,6 +741,7 @@ public sealed partial class DetailViewModel : PageViewModel
     private void FitCorner()
     {
         OnPropertyChanged(nameof(CornerMaxWidth));
+        OnPropertyChanged(nameof(CornerMaxHeight));
 
         var maxW = CornerMaxWidth;
 
@@ -772,16 +778,26 @@ public sealed partial class DetailViewModel : PageViewModel
     public VerticalAlignment HeroContentAlignment => HeroCard ? VerticalAlignment.Top : VerticalAlignment.Bottom;
 
     /// <summary>
-    /// 右上角那张艺术图这一次的上限盒宽，绑在标记里那个 max 上 —— 参考宽以上是 480 封顶
+    /// 右上角艺术图这一次的上限盒宽，默认 360，窗口超过 1280 后逐步放大至 540，
     /// （<see cref="DetailHero.CornerWidth"/>，这个数只在那里写一遍），以下让位给题栏
     /// （<see cref="DetailHero.CornerBoxWidth"/>：封面的宽进去，题栏的保底出来）。取图那一头
     /// （<see cref="ShowCorner"/> → <see cref="FitCorner"/>）读的也是它，两处不会分叉。
     /// 谁的手换了它的输入，谁负责喊它：<see cref="FitCorner"/>（页面宽和封面的宽都在它那儿汇齐）。
     /// </summary>
-    public double CornerMaxWidth => DetailHero.CornerBoxWidth(PageWidth, StillWidth);
+    public double CornerMaxWidth => DetailHero.CornerBoxWidth(PageWidth, StillWidth, _cornerScale);
 
     /// <inheritdoc cref="CornerMaxWidth"/>
-    public double CornerMaxHeight => DetailHero.CornerHeight;
+    public double CornerMaxHeight => CornerMaxWidth * DetailHero.CornerHeight / DetailHero.CornerWidth;
+
+    /// <summary>窗口和显示器的宽度都使用 DIP；侧栏只影响题栏让位，不影响放大进度。</summary>
+    internal void SetCornerViewport(double windowWidth, double maximumWidth)
+    {
+        var scale = DetailHero.CornerScale(windowWidth, maximumWidth);
+        if (_cornerScale == scale) return;
+
+        _cornerScale = scale;
+        FitCorner();
+    }
 
     /// <summary>
     /// 背景那一张这次画多高 —— <see cref="DetailHero.PictureHeight"/>：宽窗铺满视口，窄窗整张等比缩，带子是
@@ -1126,7 +1142,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 点了一个类型：交给外壳开一格「这个类型下的全部影片和剧集」（<see cref="IShellActions.OpenGenre"/>）。
     /// 视图那边把这一行的每一个类型接到这儿来，同卡片上的点击接到 <see cref="OpenCard"/>。
     /// </summary>
-    internal void OpenGenre(string genre) => _actions?.OpenGenre(genre);
+    internal void OpenGenre(string genre) => _actions?.OpenGenre(genre, _scope);
 
     /// <summary>
     /// 副标题的字号. On an episode page this line is 「S2:E7 - 集名」, which is the one thing the reader
@@ -1669,7 +1685,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// parameters, so this single question answers for all of them; past this gate they are dereferenced
     /// with <c>!</c>. <see cref="_seed"/> is a separate question — 「which item」 — and the loads ask both.
     /// </summary>
-    private bool Attached => _active && _settings is not null && _scope?.IsCurrent == true;
+    private bool Attached => _active && _settings is not null && _scope?.IsAvailable == true;
 
     /// <summary>
     /// The live settings object, read through the service rather than copied: it is one instance for the
@@ -1694,7 +1710,7 @@ public sealed partial class DetailViewModel : PageViewModel
         Cancel();
         _deletedItems.Clear();
         _active = true;
-        _scope = images.CaptureScope();
+        _scope = images.CaptureScope(request.Item);
         _actions = actions;
         _seed = request.Item;
         _settings = settings;
@@ -2044,6 +2060,9 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private void ShowTarget(EmbyItem? target)
     {
+        _versionLoad?.Cancel();
+        var generation = ++_versionGeneration;
+        _versions = MediaVersionDiscovery.Local(target);
         Sources.Clear();
 
         if (target is null)
@@ -2052,7 +2071,7 @@ public sealed partial class DetailViewModel : PageViewModel
             return;
         }
 
-        foreach (var row in ItemDetail.SourceRows(target)) Sources.Add(row);
+        foreach (var version in _versions) Sources.Add(new SourceRow(version.Source, version.LabelFor(MediaVersionDiscovery.HasMultipleServers(_session!.Sources))));
 
         // 默认预选哪一版：多版本时按视频文件名筛选规则挑（单版本／没规则时就是服务器第一版，同从前）。
         var rules = Attached ? Settings.Playback.VideoFileRules : null;
@@ -2061,6 +2080,34 @@ public sealed partial class DetailViewModel : PageViewModel
 
         if (Equals(SelectedSource, picked)) ShowSource(picked?.Source);
         else SelectedSource = picked;
+        if (Attached) _ = LoadVersionsAsync(target, generation, _lifetime);
+    }
+
+    private async Task LoadVersionsAsync(EmbyItem target, int generation, int lifetime)
+    {
+        using var cancellation = new CancellationTokenSource();
+        _versionLoad = cancellation;
+        try
+        {
+            var result = await MediaVersionDiscovery.FindAsync(_session!, target,
+                Settings.Playback.MediaSourceOrder, cancellation.Token).ConfigureAwait(true);
+            if (!Attached || generation != _versionGeneration || lifetime != _lifetime) return;
+            _versions = result.Versions;
+            foreach (var version in result.Versions.Skip(Sources.Count))
+                Sources.Add(new SourceRow(version.Source, version.LabelFor(MediaVersionDiscovery.HasMultipleServers(_session!.Sources))));
+            if (result.FailedSources.Count > 0)
+                _actions?.Notify($"部分来源的版本读取失败：{string.Join("、", result.FailedSources)}", InfoBarSeverity.Warning);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            if (Attached && generation == _versionGeneration && lifetime == _lifetime)
+                _actions?.Notify($"读取其他来源版本失败：{Failure.Describe(error)}", InfoBarSeverity.Warning);
+        }
+        finally
+        {
+            if (ReferenceEquals(_versionLoad, cancellation)) _versionLoad = null;
+        }
     }
 
     /// <summary>
@@ -2095,7 +2142,8 @@ public sealed partial class DetailViewModel : PageViewModel
         InfoRows.Clear();
         if (!Attached || _detail is not { IsPlayable: true }) return;
 
-        foreach (var row in ItemDetail.MediaInfo(_detail, source)) InfoRows.Add(row);
+        var owner = _versions.FirstOrDefault(version => ReferenceEquals(version.Source, source))?.Item ?? _detail;
+        foreach (var row in ItemDetail.MediaInfo(owner, source)) InfoRows.Add(row);
     }
 
     private async Task LoadSeriesAsync(EmbyItem series, CancellationToken token)
@@ -2137,8 +2185,10 @@ public sealed partial class DetailViewModel : PageViewModel
         episodes.RemoveAll(WasDeleted);
 
         // 播放目标也要读齐才提交，不能把新季列表与旧季目标组合成可播放状态。
+        // 挑的是「这一季的」第一集未看的：服务器并进这一季列表的 air-order 特典记在第 0 季，不能让它
+        // 顶掉 S01E01（用户 2026-10-15 报的那一条）。
         EmbyItem? target = null;
-        if (retarget && ItemDetail.PickEpisode(episodes) is { } picked)
+        if (retarget && ItemDetail.PickEpisode(episodes, season) is { } picked)
         {
             target = picked.MediaSources.Count > 0 ? picked
                 : await _scope!.ExecuteAsync((client, ct) => client.GetItemAsync(
@@ -2301,7 +2351,7 @@ public sealed partial class DetailViewModel : PageViewModel
             foreach (var picture in ItemArtwork.Hero(page))
             {
                 var bytes = await _images!
-                    .GetAsync(picture.ItemId, picture.ImageType, picture.Tag,
+                    .GetAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
                         EmbyImageStore.RequestWidth(HeroDecodeWidth), token)
                     .ConfigureAwait(true);
                 if (bytes is null || bytes.Length == 0) continue;
@@ -2486,7 +2536,7 @@ public sealed partial class DetailViewModel : PageViewModel
         foreach (var picture in pictures)
         {
             var bytes = await _images!
-                .GetAsync(picture.ItemId, picture.ImageType, picture.Tag,
+                .GetAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
                     EmbyImageStore.RequestWidth(width), token)
                 .ConfigureAwait(true);
             if (bytes is null || bytes.Length == 0) continue;
@@ -2521,7 +2571,12 @@ public sealed partial class DetailViewModel : PageViewModel
         _ = SwitchSeasonAsync(value);
     }
 
-    partial void OnSelectedSourceChanged(SourceRow? value) => ShowSource(value?.Source);
+    partial void OnSelectedSourceChanged(SourceRow? value)
+    {
+        if (_versions.FirstOrDefault(version => ReferenceEquals(version.Source, value?.Source)) is { } version)
+            PlayTarget = version.Item;
+        ShowSource(value?.Source);
+    }
 
     /// <summary>
     /// Another season's episodes, without re-reading the show. Its own load rather than a call into
@@ -2610,16 +2665,21 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         if (!Attached || _actions is null || PlayTarget is not { } target) return;
 
-        var parent = target.Type == EmbyItemType.Episode
+        var version = _versions.FirstOrDefault(version => ReferenceEquals(version.Source, SelectedSource?.Source));
+        target = version?.Item ?? target;
+        var sameSource = target.Source?.Key == _scope?.Key;
+
+        var parent = version?.Parent ?? (sameSource && target.Type == EmbyItemType.Episode
             && _detail is { Type: EmbyItemType.Series or EmbyItemType.Season }
             ? _detail
-            : null;
+            : null);
+        var episodes = sameSource ? _episodes : null;
 
         // No source at all is still playable: the player asks the server for one itself, and refusing
         // here would turn a server that reports its files late into a button that does nothing.
         if ((SelectedSource?.Source ?? target.DefaultMediaSource) is not { } source)
         {
-            await _actions.PlayAsync(target, parent, episodes: _episodes).ConfigureAwait(true);
+            await _actions.PlayAsync(target, parent, episodes: episodes).ConfigureAwait(true);
             return;
         }
 
@@ -2627,7 +2687,7 @@ public sealed partial class DetailViewModel : PageViewModel
         var choice = new PlaybackChoice(source, SelectedAudio?.Stream?.Index, SelectedSubtitle?.Stream?.Index,
             SelectedSubtitle?.Disable == true, start);
 
-        await _actions.PlayAsync(target, parent, choice, _episodes).ConfigureAwait(true);
+        await _actions.PlayAsync(target, parent, choice, episodes).ConfigureAwait(true);
     }
 
     [RelayCommand(CanExecute = nameof(CanAct))]
@@ -2653,7 +2713,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
             // Re-read rather than flipped locally: marking a season watched moves every episode's tick
             // and the show's unplayed count with it, and only the server knows what it did.
-            if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail) && scope.IsCurrent)
+            if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail) && scope.IsAvailable)
                 await LoadAsync().ConfigureAwait(true);
         }
         catch (OperationCanceledException) { }
@@ -2683,7 +2743,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // other things with it; 收藏 moves nothing — and a reload here cost the page its artwork, its
             // 演职人员 row and its 更多类似 row, all re-fetched to answer a question the click already
             // answered. The item's own copy is updated too, so the next click reads the current value.
-            if (!scope.IsCurrent) return;
+            if (!scope.IsAvailable) return;
             item.UserData ??= new EmbyUserData();
             item.UserData.IsFavorite = !favorite;
             _actions?.RefreshFavorites(item);
@@ -2823,7 +2883,7 @@ public sealed partial class DetailViewModel : PageViewModel
                     ShowTarget(null);
                 }
                 if (_detail?.Type is EmbyItemType.Series or EmbyItemType.Season
-                    && PlayTarget is null && ItemDetail.PickEpisode(_episodes) is { } next)
+                    && PlayTarget is null && ItemDetail.PickEpisode(_episodes, _loadedSeason) is { } next)
                     await ApplyPlayTargetAsync(next, token).ConfigureAwait(true);
             }
             if (IsCurrent(token) && _detail is { } detail && EpisodeShelf is { } episodes)
@@ -2841,6 +2901,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public override void Cancel()
     {
         _active = false;
+        _versionLoad?.Cancel();
         _lifetime++;
         _switchingSeason = false;
         base.Cancel();

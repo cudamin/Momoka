@@ -48,6 +48,7 @@ internal sealed partial class ShellNavigationProbe
             // 集页封面只在宽版式里画（紧凑版式整个收掉），加上集页紧凑版式的那张背景图、以及尾部那条窄带在
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
             await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
+            await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
             await CaseAsync("切回 Emby 恢复查询代次", ResumeQueryAsync);
             await CaseAsync("切季与整页刷新交错不清空", SeasonRefreshRaceAsync);
             await CaseAsync("旧导航恢复不补新搜索", NavigationRestoreRaceAsync);
@@ -61,6 +62,12 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("AniBT 逐文件识别、候选绑定和取消刮削", AniBtScrapeAsync);
             await CaseAsync("MoviePilot 连接控制入口、断线回退与恢复", MoviePilotAvailabilityAsync);
             await CaseAsync("主页媒体库与订阅混排、显隐及偏好恢复", HomeOrderAsync, 45);
+            await CaseAsync("多账号主页、聚合搜索分页与媒体库详情来源", AggregateBrowsingAsync, 45);
+            await CaseAsync("浏览不标来源且版本仅在多服务器时显示", SourceCaptionTransitionsAsync, 45);
+            await CaseAsync("指定账号登录、添加账号与取消返回", MultiSourceSignInAsync, 30);
+            await CaseAsync("默认账号失效后保留其他来源主页", MultiSourceDefaultExpiryAsync, 30);
+            // 「继续观看」那一格标记已看之后的去处（用户令 2026-10-15）：主页那一排与点进去的那一页各走一遍。
+            await CaseAsync("继续观看标记已看后换成下一集或撤掉", WatchedResumeSlotAsync, 30);
             await CaseAsync("MoviePilot 关闭后清理历史与操作弹窗", MoviePilotUnavailableNavigationAsync);
             await CaseAsync("MoviePilot 关闭后收起菜单且保留普通菜单", MoviePilotMenusAsync);
             await CaseAsync("MoviePilot 搜索站点多选、清空、默认及离页取消", MoviePilotSearchSitesAsync);
@@ -104,7 +111,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30);
-            await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 30);
+            await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
+            await CaseAsync("飞牛影视四区、保存、权限撤销和恢复", FnNasAdministrationAsync, 60);
             await CaseAsync("Jellyfin 通用对话框能力显隐", JellyfinDialogCapabilitiesAsync, 30);
             await CaseAsync("Jellyfin 服务器管理与权限显隐", JellyfinAdministrationAsync, 30);
             await CaseAsync("原生控制台分区、响应布局与离页取消", ServerDashboardAsync);
@@ -236,6 +244,7 @@ internal sealed partial class ShellNavigationProbe
         public FakeCapabilities Capabilities { get; } = new();
         public ISystemLauncher Launcher { get; } = new FakeLauncher();
         public FakeStartup Startup { get; } = new FakeStartup();
+
         public IServiceProvider Services { get; }
         public Fixture(string root, HttpMessageHandler? moviePilotTransport = null, HttpMessageHandler? aniBtTransport = null)
         {
@@ -383,6 +392,7 @@ internal sealed partial class ShellNavigationProbe
             return true;
         }
     }
+
     private sealed class FakeActions : IShellActions
     {
         public int Plays { get; private set; }
@@ -399,10 +409,10 @@ internal sealed partial class ShellNavigationProbe
         public void ReportMarkedWatched(EmbyItem item) { }
         public Action<EmbyItem?>? FavoritesChanged { get; set; }
         public void RefreshFavorites(EmbyItem? changed = null) => FavoritesChanged?.Invoke(changed);
-        public bool TryOpenLibrary(string id) => false;
-        public void OpenGenre(string genre) { }
-        public void OpenRow(HomeLayout.HomeRowTarget target) { }
-        public void OpenSignIn(ServerProfile? server = null) { }
+        public bool TryOpenLibrary(string id, EmbySessionScope? source = null) => false;
+        public void OpenGenre(string genre, EmbySessionScope? source = null) { }
+        public void OpenRow(HomeLayout.HomeRowTarget target, EmbySessionScope? source = null) { }
+        public void OpenSignIn(ServerProfile? server = null, bool newAccount = false) { }
         public Task SwitchProfileAsync(ServerProfile server, AccountProfile? account) => Task.CompletedTask;
         public void SetTitleStrip(TitleStrip strip) { }
         public bool MoviePilotEnabled => false;

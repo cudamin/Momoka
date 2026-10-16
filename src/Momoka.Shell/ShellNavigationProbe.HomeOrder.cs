@@ -25,6 +25,7 @@ internal sealed partial class ShellNavigationProbe
         await fixture.SelectAsync();
         var service = (MoviePilotService)fixture.Services.GetService(typeof(MoviePilotService))!;
         var library = new EmbyItem { Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder };
+        fixture.Session.Capture().Bind(library);
         var content = new EmbyItem
         {
             Id = "home-order-movie",

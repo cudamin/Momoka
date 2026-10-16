@@ -269,7 +269,7 @@ internal sealed class SettingsWindow
     /// inherit — see <c>HostWindow.ConfigureTitleBar</c>, which this mirrors.
     /// <para>
     /// 颜色取自当前主题，所以换主题时这里要再跑一遍（<see cref="_repaint"/>）。悬停和按下那两档故意用
-    /// 半透明的白／黑而不是主题里的某个面：它们压在标题栏底色上，靠透明度叠出来的那一档在六套主题里都对。
+    /// 半透明的白／黑而不是主题里的某个面：它们压在标题栏底色上，靠透明度叠出来的那一档在每一套主题里都对。
     /// </para>
     /// <para>
     /// Its own try/catch, inside <see cref="TryCreate"/>'s: a caption colour that will not take is a

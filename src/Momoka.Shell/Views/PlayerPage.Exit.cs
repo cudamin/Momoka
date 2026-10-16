@@ -95,7 +95,7 @@ public sealed partial class PlayerPage
     /// </summary>
     private void PaintExit()
     {
-        // 解析不到就保持上一支：这个色号在六套主题里都是一个「窗口色的近黑」，画错的代价远小于不画 ——
+        // 解析不到就保持上一支：这个色号在每一套主题里都是一个「窗口色的近黑」，画错的代价远小于不画 ——
         // 不画的话退场底是全透明的，等于回到了用户截图里那个观感。
         if (Application.Current.Resources["EgWindowBrush"] is not SolidColorBrush reference) return;
 

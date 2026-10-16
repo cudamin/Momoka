@@ -138,8 +138,11 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
 {
     private const string Category = "moviepilot";
 
-    /// <summary>还没搜时页面中间那句话。</summary>
-    private const string IdlePrompt = "输入关键字，在 MoviePilot 上找库里还没有的片子";
+    /// <summary>
+    /// 还没搜时页面中间那句话。这一来源**不随输入更新**（2026-10-15 用户令：随输入只属于「媒体库」），所以这句
+    /// 得把回车说出来 —— 另外两半（资源、AniBT）的空态早就是这么写的。
+    /// </summary>
+    private const string IdlePrompt = "输入关键字，按回车或点击搜索图标，在 MoviePilot 上找库里还没有的片子";
 
     /// <summary>来源下拉的第一条哨兵：Id 为空表示不加 media_source，全来源都搜。</summary>
     internal static readonly MoviePilotMediaSource AllSources = new("全部来源", "", []);

@@ -13,7 +13,7 @@ public sealed partial class PlaybackService
         var request = attempt.Request;
         var exitTask = handle.WaitForExitAsync(cancellationToken);
         var interval = TimeSpan.FromSeconds(Math.Clamp(settings.Playback.ProgressReportIntervalSeconds, 1, 60));
-        var stopEnabled = !scope.Connection.IsJellyfin && settings.Playback.StopReportEnabled && settings.Playback.ReportProgressToServer;
+        var stopEnabled = scope.Connection.ServerKind == MediaServerKind.Emby && settings.Playback.StopReportEnabled && settings.Playback.ReportProgressToServer;
         var stopPercent = StopReportPercent(request.IsDonghua,
             settings.Playback.MarkWatchedPercent, settings.Playback.DonghuaMarkWatchedPercent);
 
@@ -103,7 +103,7 @@ public sealed partial class PlaybackService
     /// </summary>
     public async Task<bool> ReportMarkedWatchedAsync(EmbyItem item, CancellationToken cancellationToken = default)
     {
-        if (session.Connection?.IsJellyfin == true || !settings.Playback.StopReportEnabled || !settings.Playback.ReportProgressToServer)
+        if (session.Connection?.ServerKind != MediaServerKind.Emby || !settings.Playback.StopReportEnabled || !settings.Playback.ReportProgressToServer)
         {
             Log.Debug(Category, $"《{item.Name}》标记已看：通知接管没开（或上报已关），不补报");
             return false;
@@ -134,7 +134,7 @@ public sealed partial class PlaybackService
         // 未登录或会话已释放：没有身份可借，不发。调用点那边标记已看刚刚才成功过，走到这一支只说明这中间注销
         // 了 —— 那不是错，是没有收信人。
         EmbySessionScope scope;
-        try { scope = session.Capture(); }
+        try { scope = session.Capture(item); }
         catch (Exception error)
         {
             Log.Warn(Category, $"《{item.Name}》标记已看：会话不可用，没补报", error);
@@ -142,9 +142,9 @@ public sealed partial class PlaybackService
         }
 
         var ticks = item.RunTimeTicks.Value;
-        if (scope.Connection.IsJellyfin) return false;
+        if (scope.Connection.ServerKind != MediaServerKind.Emby) return false;
 
-        if (_active is { Ending: false } attempt && attempt.Request.ItemId == item.Id)
+        if (_active is { Ending: false } attempt && attempt.Request.ItemId == item.Id && attempt.Scope.Key == scope.Key)
         {
             await attempt.Reports.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
@@ -205,7 +205,7 @@ public sealed partial class PlaybackService
     {
         // 未登录或会话已释放：与单集那一支同一句话 —— 那不是错，是没有收信人。
         EmbySessionScope scope;
-        try { scope = session.Capture(); }
+        try { scope = session.Capture(container); }
         catch (Exception error)
         {
             Log.Warn(Category, $"《{container.Name}》标记已看：会话不可用，查不了它的剧集", error);
@@ -365,6 +365,7 @@ public sealed partial class PlaybackService
             : null;
         return new PlaybackReport
         {
+            FnNasSelection = request.FnNasSelection,
             ItemId = request.ItemId,
             MediaSourceId = request.MediaSourceId,
             PlaySessionId = sessionId,

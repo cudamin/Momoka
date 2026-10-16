@@ -161,18 +161,13 @@ internal static partial class ShellSelfCheck
         // is a card no one can reach. 服务器, 诊断 and 服务器控制台 are the entries that are deliberately not
         // cards — they are pages hosted in the same column (需求 2) — so they join the cards on that side.
         // （「恢复默认」曾是名单末尾的第四项，2026-09-24 搬进了「关于」卡，不再在这份名单里，见下方那一关。）
-        var reachable = page.Cards
+        var expected = page.Cards
             .Select(card => card.Category)
-            .Concat(SettingsViewModel.HostedCategories)
+            .Concat(page.ViewModel.AvailableHostedCategories)
             .ToList();
 
-        // 「EmbyServer」那一组（控制台／用户／媒体库／通知／网页控制台）只有管理员账号才列出来，所以对账之前
-        // 先按当前账号的身份把那五个名字扣掉 —— 不扣的话，普通账号跑自检会得到一句假的「分类与卡片对不上」。
+        // 各产品管理页不同，且只对确认有权限的身份开放；不能拿所有产品的页面并集当当前导航。
         var hidden = page.ViewModel.ServerAdministrationHidden;
-
-        var expected = reachable
-            .Where(name => !hidden || !SettingsViewModel.ServerAdministrationCategories.Contains(name, StringComparer.Ordinal))
-            .ToList();
 
         var unreachable = expected
             .Except(page.Categories, StringComparer.Ordinal)
@@ -182,8 +177,8 @@ internal static partial class ShellSelfCheck
         check("设置页面", page.IsReady && rows > 0 && unreachable.Count == 0,
             unreachable.Count > 0
                 ? $"分类与卡片对不上：{string.Join('、', unreachable)}"
-                : $"{sections} 张卡片 + {SettingsViewModel.HostedCategories.Count} 个内嵌页面、{rows} 行设置，当前「{category}」"
-                    + (hidden ? "；当前账号不是管理员，「EmbyServer」那一组已隐藏" : ""));
+                : $"{sections} 张卡片 + {page.ViewModel.AvailableHostedCategories.Count} 个内嵌页面、{rows} 行设置，当前「{category}」"
+                    + (hidden ? "；服务器管理分区已隐藏" : ""));
 
         // Every category, not just the last: a card that drew nothing would otherwise be hidden by the ones
         // that drew before it, since the count is of the whole tree.

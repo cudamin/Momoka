@@ -144,6 +144,7 @@ public static class ItemDetail
             return new EmbyItem
             {
                 Id = seriesId,
+                Source = item.Source,
                 Name = item.SeriesName ?? item.Name,
                 Type = EmbyItemType.Series,
                 IsStub = true
@@ -652,6 +653,7 @@ public static class ItemDetail
             var card = new EmbyItem
             {
                 Id = person.Id,
+                Source = item.Source,
                 Name = person.Name,
                 Type = EmbyItemType.Person,
                 IsStub = true
@@ -689,11 +691,66 @@ public static class ItemDetail
     }
 
     /// <summary>
-    /// Which episode 播放 starts on a show's page: the first unwatched one, else the first. Null for an
-    /// empty list, which is a show whose season has no episodes on disk yet.
+    /// Which episode 播放 starts on a show's page: the first unwatched one of the season being shown, else
+    /// the first of it. Null for an empty list, which is a show whose season has no episodes on disk yet.
+    /// <para>
+    /// 「这一季的」不是废话，是 2026-10-15 用户报的那一条：一部有多季、什么都没看过的剧，剧页面的播放键
+    /// 写的是 S00E01，而它该写 S01E01。来由在服务器那一头 —— 按季问回来的列表会把「按播出顺序排进这一季」
+    /// 的 air-order 特典并进来（《伪恋》第 1 季 23 条，其中 3 条记在 S00），而这些特典排在最前，照单取
+    /// 第一条就落在特典上。季本身早就挑对了（<see cref="PickSeason"/> 跳过第 0 季），漏的是列表里这一层。
+    /// </para>
+    /// <para>
+    /// 那一列卡片（书架）不过滤，见 <see cref="SeasonEpisodes"/>。
+    /// </para>
     /// </summary>
-    public static EmbyItem? PickEpisode(IReadOnlyList<EmbyItem> episodes) =>
-        episodes.FirstOrDefault(episode => episode.UserData?.Played != true) ?? episodes.FirstOrDefault();
+    /// <param name="season">
+    /// 这一页此刻展示的那一季；null（剧上问不出季，或者剧本来就没有季这一层）时整份都算，与从前一样。
+    /// </param>
+    public static EmbyItem? PickEpisode(IReadOnlyList<EmbyItem> episodes, EmbyItem? season)
+    {
+        var pool = SeasonEpisodes(episodes, season);
+        return pool.FirstOrDefault(episode => episode.UserData?.Played != true) ?? pool.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// <paramref name="episodes"/> 里真正属于 <paramref name="season"/> 的那几条：服务器并进来的
+    /// air-order 特典记在别的季（第 0 季），在这里被挑出去。
+    /// <para>
+    /// 只问「该起哪一集」，不问「该列哪几集」—— 季页面上那张清单要的就是服务器按季给的那一份，连特典一起
+    /// （跨季相邻单集那条判据靠的正是这份清单与服务端按季返回逐个相同）。
+    /// </para>
+    /// <para>
+    /// 一条都对不上时整份原样交回，不是交空：认不出季的服务器（条目上既没有季 id、也没有季号）不能因此
+    /// 变得没法播。宁可选宽，不可让播放键没有落点。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<EmbyItem> SeasonEpisodes(IReadOnlyList<EmbyItem> episodes, EmbyItem? season)
+    {
+        if (season is null) return episodes;
+
+        var pool = episodes.Where(episode => SameSeasonAs(episode, season)).ToList();
+        return pool.Count > 0 ? pool : episodes;
+    }
+
+    /// <summary>
+    /// 这一集是不是这一季的。判据按手上有的那一位往下退：季 id（服务器自己的父子关系）、季号、季名；
+    /// 一位都比不出来就当它是。这是 <c>EpisodeNavigation.SameSeason</c> 的姊妹判据 —— 那边比的是两集、
+    /// 答不上来时答「不是」（不能凭猜把两条不同季的条目算成一家），这边比的是「一集与一季」、答不上来时
+    /// 答「是」（筛不出东西时保持从前的行为，比筛空强）。
+    /// </summary>
+    private static bool SameSeasonAs(EmbyItem episode, EmbyItem season)
+    {
+        if (season.Id is { Length: > 0 } seasonId && episode.SeasonId is { Length: > 0 } episodeSeasonId)
+            return string.Equals(episodeSeasonId, seasonId, StringComparison.Ordinal);
+
+        if (season.IndexNumber is { } seasonNumber && episode.ParentIndexNumber is { } episodeSeasonNumber)
+            return seasonNumber == episodeSeasonNumber;
+
+        if (season.Name is { Length: > 0 } seasonName && episode.SeasonName is { Length: > 0 } episodeSeasonName)
+            return string.Equals(episodeSeasonName, seasonName, StringComparison.Ordinal);
+
+        return true;
+    }
 
     /// <summary>
     /// 「12 集，已看 3 集」, or empty for a season with nothing in it. Its own function because both

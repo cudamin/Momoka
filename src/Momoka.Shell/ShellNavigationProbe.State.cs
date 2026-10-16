@@ -434,6 +434,99 @@ internal sealed partial class ShellNavigationProbe
         Require(count == fixture.Transport.Requests.Count && !vm.NoticeOpen, "隐藏行和关闭轮播不应联网或报错");
     }
 
+    /// <summary>
+    /// 「主页的继续观看标记已看之后要自动切换为下一集，如果没有下一集或者是电影标记已看后要移出继续观看」
+    /// （用户令 2026-10-15）。走的是真那条路：卡片菜单那条命令 → 服务器写已看 → 那一格换掉或者撤掉。
+    /// <para>
+    /// 两个面子各走一遍 —— 主页那一排（<see cref="HomeViewModel"/>）和它点进去的那一页
+    /// （<see cref="LibraryViewModel"/> 的继续观看那一页）。两处同源是 2026-09-22「一排 1 项、进去 9 项」
+    /// 那次留下的规矩，所以这两条断言也必须一起钉。
+    /// </para>
+    /// </summary>
+    private async Task WatchedResumeSlotAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        fixture.Transport.Reply = (request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/Items/Resume", StringComparison.Ordinal))
+                return Task.FromResult(Json(new
+                {
+                    Items = new[] { Movie("movie"), Episode("ep-3", "show"), Episode("ep-12", "show-b") },
+                    TotalRecordCount = 3
+                }));
+            if (path.EndsWith("/Shows/NextUp", StringComparison.Ordinal))
+                return Task.FromResult(Query(request, "SeriesId") == "show"
+                    ? Json(new { Items = new[] { Episode("ep-4", "show") }, TotalRecordCount = 1 })
+                    : Json(new { Items = Array.Empty<EmbyItem>(), TotalRecordCount = 0 }));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+
+        using var home = new HomeViewModel();
+        home.Attach(fixture.Actions, [], fixture.SettingsService, fixture.Session, fixture.Images);
+        await home.ReloadAsync();
+        await UntilAsync(() => home.Shelves.Count == 1 && home.Shelves[0].Cards.Count == 3);
+        var shelf = home.Shelves[0];
+        Require(shelf.Title == "继续观看", $"主页第一排该是继续观看，实际是「{shelf.Title}」");
+
+        // 单集：那一格换成本剧的下一集，位置不动、总数不变。
+        ItemCommands.ToggleWatched(fixture.Session, fixture.Actions, Card(shelf, "ep-3"), home.MarkedWatched);
+        await UntilAsync(() => shelf.Cards.Any(card => card.Item.Id == "ep-4"));
+        Require(shelf.Cards.Count == 3 && shelf.Cards[1].Item.Id == "ep-4",
+            $"主页那一排：单集标记已看后该在原位换成下一集，实际 {Ids(shelf.Cards)}");
+
+        // 电影：整格撤掉。
+        ItemCommands.ToggleWatched(fixture.Session, fixture.Actions, Card(shelf, "movie"), home.MarkedWatched);
+        await UntilAsync(() => shelf.Cards.All(card => card.Item.Id != "movie"));
+        Require(shelf.Cards.Count == 2 && shelf.Cards[0].Item.Id == "ep-4",
+            $"主页那一排：电影标记已看后该移出继续观看，实际 {Ids(shelf.Cards)}");
+
+        // 最后一集：这部剧没有下一集（NextUp 空），同样撤掉。
+        ItemCommands.ToggleWatched(fixture.Session, fixture.Actions, Card(shelf, "ep-12"), home.MarkedWatched);
+        await UntilAsync(() => shelf.Cards.All(card => card.Item.Id != "ep-12"));
+        Require(shelf.Cards.Count == 1 && shelf.Cards[0].Item.Id == "ep-4",
+            $"主页那一排：没有下一集该移出继续观看，实际 {Ids(shelf.Cards)}");
+        home.Cancel();
+
+        // 点进去的那一页：同一份判据、同一段收尾。
+        using var page = new LibraryViewModel();
+        page.Attach(
+            LibraryRequest.ForRow(fixture.Services, HomeLayout.HomeRowTarget.Resume),
+            fixture.Actions, fixture.SettingsService, fixture.Session, fixture.Images, fixture.Capabilities);
+        await page.ReloadAsync();
+        await UntilAsync(() => page.Cards.Count == 3);
+
+        var first = page.Cards.First(card => card.Item.Id == "ep-3");
+        ItemCommands.ToggleWatched(fixture.Session, fixture.Actions, first, page.MarkedWatched);
+        await UntilAsync(() => page.Cards.Any(card => card.Item.Id == "ep-4"));
+        Require(page.Cards.Count == 3 && page.Cards[1].Item.Id == "ep-4",
+            $"继续观看那一页：单集标记已看后该在原位换成下一集，实际 {Ids(page.Cards)}");
+
+        var movie = page.Cards.First(card => card.Item.Id == "movie");
+        ItemCommands.ToggleWatched(fixture.Session, fixture.Actions, movie, page.MarkedWatched);
+        await UntilAsync(() => page.Cards.All(card => card.Item.Id != "movie"));
+        Require(page.Cards.Count == 2, $"继续观看那一页：电影标记已看后该移出，实际 {Ids(page.Cards)}");
+        page.Cancel();
+    }
+
+    private static CardItem Card(CardShelf shelf, string id) =>
+        shelf.Cards.FirstOrDefault(card => card.Item.Id == id)
+            ?? throw new InvalidOperationException($"那一排上没有 {id}");
+
+    private static string Ids(IEnumerable<CardItem> cards) => string.Join('、', cards.Select(card => card.Item.Id));
+
+    private static EmbyItem Movie(string id) => new() { Id = id, Name = id, Type = EmbyItemType.Movie };
+
+    private static EmbyItem Episode(string id, string series) => new()
+    {
+        Id = id,
+        Name = id,
+        Type = EmbyItemType.Episode,
+        SeriesId = series,
+        SeasonId = series + "-s1"
+    };
+
     private static Task NotificationEmptyAsync()
     {
         using var vm = new NotificationsViewModel();
@@ -467,8 +560,11 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
+        var server = fixture.Session.Server!;
+        var account = fixture.Session.Account!;
         var card = new CardItem(new EmbyItem { Id = "same", Name = "旧身份", Type = EmbyItemType.Movie }, fixture.Images, 170);
         await fixture.SelectAsync("b.invalid");
+        fixture.Session.SignOut(server, account);
         var count = fixture.Transport.Requests.Count;
         ItemCommands.ToggleWatched(fixture.Session, fixture.Actions, card);
         ItemCommands.ToggleFavorite(fixture.Session, fixture.Actions, card);

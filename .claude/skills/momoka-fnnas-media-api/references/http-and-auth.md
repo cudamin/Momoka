@@ -1,6 +1,6 @@
 # 传输与鉴权
 
-本文件记的是**飞牛影视媒体服务**的传输层事实与两处未决项。因为 Momoka 尚未接入，这里没有"已经做过的决定"，只有"接之前必须核对的输入"。凡标 `【实测】` 的才是在本机服务器上验过的；其余为 `【抓包·未实测】`（社区文档）或 `【上游实现】`（MoviePilot）。
+本文件记**飞牛影视媒体服务**的传输层。2026-10-15 已读取官方网页 0.9.8 / 服务 0.8.43 的前端资源；下面标 `【官方前端】` 的是本次一手代码证据，未执行真实登录或播放。历史社区和 MoviePilot 资料仅保留用于解释协议差异。
 
 ## 入口与基址归一
 
@@ -25,7 +25,7 @@
 1. 若开了访问码，先过访问码（下节），否则连登录接口都够不着。
 2. 打 v2。`code == 0` → 取 `data.token`。
 3. v2 返回了**业务错误码**（如 `-15`）→ 直接失败，**不回退**。
-4. v2 **HTTP 层失败**（接口不存在/连不上）→ 才回退 v1 明文登录。
+4. 上游在 v2 HTTP 层失败后回退 v1；Momoka 针对当前官方版本使用 v2，不把网络错误当成发送明文密码的理由。
 
 新版服务端的坑：v1 对**任何**输入都回 `-15 Password Incorrect`，所以 `-15` 只能说明"登录没成功"，**不能**区分账号不存在、密码错、还是打错了接口版本。诊断时先确认走的是 v2。
 
@@ -43,15 +43,15 @@ GET {根}/c/{urlencode(访问码)}      # 根 = 入口去掉结尾的 /v（访�
 - 未配置访问码 → 跳过。
 - 设计上做成可选配置项；开启时才需要，且需要会话 Cookie 支持（请求要允许带 Cookie，与 Emby 侧默认禁用 Cookie 的策略相反，别照搬）。
 
-## authx 签名（**未决项**）
+## authx 签名（官方前端已定案）
 
-所有请求带一个 `authx` 头，**形状**两来源一致：
+业务 JSON 请求带 `authx`。官方 SDK 豁免 `/sys/img/`、`/img/`、`/concat/`、`/media/` 路径前缀；媒体原画 `media/range` 使用 Authorization，不需要 authx。头的形状：
 
 ```
 authx: nonce={6位随机数字}&timestamp={毫秒时间戳}&sign={小写十六进制 MD5}
 ```
 
-但 `sign` 的算法**两来源冲突**：
+历史上两份二手资料冲突；当前官方 SDK 已确认下面的 **B**。A 不用于本版本：
 
 **A. 社区抓包文档【抓包·未实测】**
 
@@ -70,22 +70,17 @@ sign      = MD5( APP_SECRET + "_" + api_path + "_" + nonce + "_" + timestamp + "
 - `APP_SECRET = "NDzZTVxnRKP8Z0jXg1VAMonaG8akvh"`、`APP_KEY = "16CCEB3D-AB42-077D-36A1-F355324E4237"`（上游硬编码的应用级常量，**不是用户凭据**）。
 - 这些常量属应用身份，不是账号密码；即便如此也按 CLAUDE.md 的凭据习惯处理，别写进日志正文。
 
-两者不可能对同一版本同时成立。**接入前必须定案**，办法二选一：
-
-1. 读官方前端 `{入口}/v/assets/` 下的签名代码（一手）。
-2. 对目标服务器做一次最小验证：登录拿到 token 后，用同一公式发一次只读请求（如 `sys/version`），看是否被接受。
-
-定案前不要把任何一版当权威；把结论、服务器版本和验证方式写进 PROBE/注释，并回写本文件。
+【官方前端】`14a77ac952fc83b785b65592c335e16d-BGXwY7Sz.js` 的中间件确认 B；GET 摘要还需先遍历 URLSearchParams，跳过值为字面量 `undefined`/`null` 的项，再将其余项按 key 存储并排序、重建查询、解码。过滤在赋值前，因此 `?a=old&a=null` 保留 old。POST/PUT/DELETE 摘要使用实际发送的 JSON 原文。新版本重新从 HTML 依赖定位 SDK，不假定旧资源名仍可用。
 
 ## 请求头清单【上游实现】
 
 ```
 Authorization: <token>              # 登录后；登录/访问码请求为空
-authx: nonce=…&timestamp=…&sign=…   # 每个请求都要
+authx: nonce=…&timestamp=…&sign=…   # JSON API；上述媒体前缀豁免
 Accept: application/json
 Referer: {入口}
 User-Agent: <自定义>
-Content-Type: application/json      # 仅 POST
+Content-Type: application/json      # 有 JSON 正文时
 ```
 
 Cookie 在开启访问码时随会话携带。
@@ -107,5 +102,5 @@ Cookie 在开启访问码时随会话携带。
 
 - 令牌只走 `Authorization` 头；不进 URL、启动参数、日志。日志 URL 剥掉 query。
 - 图片接口需要鉴权，**不能**当公共静态图直接给外部进程；经进程内 API 或已验证的进程间通道传递（同 [播放技能](../momoka-playback/SKILL.md) 的边界）。
-- 云盘直链（`direct_link_qualities[].url`）指向**外部网盘**，属外部来源，播放前按 CLAUDE.md 的来源边界处理。
+- 云盘协议不在当前实现范围内：用户明确要求不做任何网盘功能，不添加对应配置、解析或播放链路。
 - 上游实现里访问码、密码等都只存配置；本仓沿用 DPAPI 加密存储的既有做法（见 CLAUDE.md「凭据」），不复用 Emby 的熵。
