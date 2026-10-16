@@ -1,6 +1,6 @@
 # Momoka
 
-自用的媒体库客户端，支持 Emby、Jellyfin（实服播放与写入未验证）和飞牛影视（实播未验证），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
+第三方媒体库客户端，支持 Emby、Jellyfin（实服播放与写入未验证）和飞牛影视（实播未验证），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
 
 telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
@@ -11,7 +11,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
 ## 设计参考
 
-- UI 界面参考 **Emby 小秘** 设计。
+- UI 界面参考 **Emby网页端和小秘** 设计。
 - 播放器架构参考 [**mpv-winui-player**](https://github.com/ikas-mc/mpv-winui-player) 和 **小幻影视** 设计。
 - 内置lua脚本使用 @dyphire[**mpv-config**](https://github.com/dyphire/mpv-config)的脚本进行魔改
 - mpv 相关设置参考 @dyphire[**mpv-config**](https://github.com/dyphire/mpv-config) 进行设置
