@@ -5,11 +5,16 @@ using static Momoka.Tests.TestHarness;
 namespace Momoka.Tests;
 
 /// <summary>
-/// 「开启应用后自动检查有没有新版本」那件事的判据：发布页上的 tag 怎么读、和手上这一版怎么比、清单怎么挑。
+/// 「开启应用后自动检查有没有新版本」那件事的判据：发布源上的 tag 怎么读、和手上这一版怎么比、清单怎么挑。
 /// <para>
 /// 每一处错法屏上都不出声。tag 认错了就是永远查不到更新（用户以为这个功能坏了，或者以为确实没有新版）；
-/// 版本号不补齐就是同一版被反复提示；把 <c>draft</c> 当成新版就是把一个还没发布的构建推给用户；而 <c>prerelease</c>
-/// 反过来 —— 本项目的 Release 全被标成了它，按它过滤同样等于永远查不到。这几条都在这儿钉着，网络那一头不测。
+/// 版本号不补齐就是同一版被反复提示；把读不出来的正文当成「一版都没有」就是发布页抽风时答「已是最新版本」。
+/// 这几条都在这儿钉着，网络那一头不测。
+/// </para>
+/// <para>
+/// 发布源是 <c>releases.atom</c>，只有已发布的条目 —— 草稿根本不出现在里面，而本项目的 Release 全被标成了
+/// pre-release，所以「按 pre-release 过滤」那条老坑在源这一层不再有对应的开关，靠的是「这个源照收 pre-release」
+/// 这个事实本身（见 <see cref="UpdateClient.Parse"/> 头上那段）。
 /// </para>
 /// </summary>
 internal static class UpdateTests
@@ -73,28 +78,61 @@ internal static class UpdateTests
 
         Test("检查更新：发布清单读得懂，坏的那几条跳过", () =>
         {
-            // 形状照 GitHub 的 /releases 接口，只留这一版用得到的那几栏，另加几栏证明多余的字段不影响解析。
-            const string json = """
-                [
-                  {"tag_name":"v0.1.6","html_url":"https://github.com/cudamin/Momoka/releases/tag/v0.1.6","draft":false,"prerelease":true,"name":"v0.1.6"},
-                  {"tag_name":"v0.1.5","html_url":"https://github.com/cudamin/Momoka/releases/tag/v0.1.5","draft":false,"prerelease":true},
-                  {"tag_name":"v0.9.0","html_url":"https://github.com/cudamin/Momoka/releases/tag/v0.9.0","draft":true,"prerelease":false},
-                  {"tag_name":"nightly","html_url":"https://github.com/cudamin/Momoka/releases/tag/nightly","draft":false,"prerelease":true}
-                ]
+            // 形状照 releases.atom 的真响应：命名空间、feed 自己那条 alternate、每条里那几栏（content 里的正文
+            // 一个字都用不着，留着是为了证明多余的栏不影响解析）。
+            const string feed = """
+                <?xml version="1.0" encoding="UTF-8"?>
+                <feed xmlns="http://www.w3.org/2005/Atom" xmlns:media="http://search.yahoo.com/mrss/" xml:lang="en-US">
+                  <id>tag:github.com,2008:https://github.com/cudamin/Momoka/releases</id>
+                  <link type="text/html" rel="alternate" href="https://github.com/cudamin/Momoka/releases"/>
+                  <title>Release notes from Momoka</title>
+                  <updated>2026-10-14T15:36:33Z</updated>
+                  <entry>
+                    <id>tag:github.com,2008:Repository/1352680664/v0.1.6</id>
+                    <updated>2026-10-14T04:52:21Z</updated>
+                    <link rel="alternate" type="text/html" href="https://github.com/cudamin/Momoka/releases/tag/v0.1.6"/>
+                    <title>v0.1.6</title>
+                    <content type="html">&lt;p&gt;Momoka 0.1.6 现已发布&lt;/p&gt;</content>
+                    <author><name>cudamin</name></author>
+                  </entry>
+                  <entry>
+                    <id>tag:github.com,2008:Repository/1352680664/v0.1.4</id>
+                    <updated>2026-10-11T15:06:50Z</updated>
+                    <link rel="alternate" type="text/html" href="https://github.com/cudamin/Momoka/releases/tag/v0.1.4"/>
+                    <title>Momoka 0.1.4</title>
+                    <content type="html">&lt;p&gt;…&lt;/p&gt;</content>
+                  </entry>
+                  <entry>
+                    <id>tag:github.com,2008:Repository/1352680664/nightly</id>
+                    <updated>2026-10-10T04:23:54Z</updated>
+                    <link rel="alternate" type="text/html" href="https://github.com/cudamin/Momoka/releases/tag/nightly"/>
+                    <title>nightly</title>
+                  </entry>
+                  <entry>
+                    <id>tag:github.com,2008:Repository/1352680664/v0.1.3</id>
+                    <updated>2026-10-09T03:11:01Z</updated>
+                    <link rel="self" type="application/atom+xml" href="https://github.com/cudamin/Momoka/releases.atom"/>
+                    <title>v0.1.3</title>
+                  </entry>
+                </feed>
                 """;
 
-            var releases = UpdateClient.Parse(json);
+            var releases = UpdateClient.Parse(feed);
             Assert.NotNull(releases, "这是一份发布清单");
-            Assert.Equal(2, releases!.Count, "草稿和不是版本号的 tag 都跳过");
+            Assert.Equal(2, releases!.Count, "tag 不是版本号的、没有页面地址的都跳过");
 
-            // pre-release 照收：本项目的 Release 全被标成它，按它过滤就等于永远查不到更新。
-            Assert.Equal("v0.1.6", releases[0].Tag, "带 prerelease 的照收");
+            Assert.Equal("v0.1.6", releases[0].Tag, "tag 从页面地址里取");
             Assert.Equal("0.1.6", releases[0].VersionText, "给人看的是三段版本号");
+            Assert.Equal("https://github.com/cudamin/Momoka/releases/tag/v0.1.6", releases[0].PageUrl, "打开下载页用的是这条地址");
+
+            // 标题不是 tag：真响应里 v0.1.4 那条的 <title> 写的是「Momoka 0.1.4」。按标题认版本号会漏掉这一版，
+            // 而屏上一个字都不说 —— 所以这一条必须靠页面地址认出来。
+            Assert.Equal("v0.1.4", releases[1].Tag, "标题不是 tag 的那一条也认得出");
 
             // 读不出来与「一版都没有」是两件事：混成一个的话，发布页抽风时手动检查会答「已是最新版本」。
-            Assert.Null(UpdateClient.Parse("""{"message":"Not Found"}"""), "不是发布数组的正文");
-            Assert.Null(UpdateClient.Parse("not json at all"), "根本不是 JSON");
-            Assert.Equal(0, UpdateClient.Parse("[]")!.Count, "空数组是「一版都没有」");
+            Assert.Null(UpdateClient.Parse("Not Found"), "仓库改名后 GitHub 回的就是这段纯文本");
+            Assert.Null(UpdateClient.Parse("<html><body>Not Found</body></html>"), "错误页是 HTML，不是 feed");
+            Assert.Equal(0, UpdateClient.Parse("""<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"/>""")!.Count, "空 feed 是「一版都没有」");
         });
 
         Test("检查更新：这一格装机默认开着，恢复默认也回到开", () =>

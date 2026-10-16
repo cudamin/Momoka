@@ -1,6 +1,6 @@
 # Momoka 隐私政策
 
-最后更新：2026-10-14
+最后更新：2026-10-16
 
 ## 一句话
 
@@ -41,7 +41,7 @@ Momoka 是一个本地播放客户端。**开发者不收集、不上传、不�
 1. **你自己的 Emby / Jellyfin 服务器** —— 你在应用里填的地址。用于登录、读取媒体库、上报播放进度、同步续播位置与「看过」标记。
 2. **你自己配置的第三方片库管理服务**（可选功能） —— 你在应用里填的地址。用于搜索、订阅与整理。
 3. **你的服务器在元数据里给出的图片地址** —— 海报与背景图可能由你的服务器指向第三方图片服务（例如 `image.tmdb.org`）。应用只是按服务器给出的地址取图，不自行决定去哪个第三方。
-4. **本项目的发布页**（可关闭，默认开启） —— 应用在每次启动时会向 GitHub 的公开接口（`api.github.com/repos/cudamin/Momoka/releases`）查询有没有比当前这一版新的版本；「设置 → 关于」里的「检查新版本」按钮也会在你按下的那一刻发一次同样的请求。这个请求**不携带任何身份信息**：请求头里只有客户端名与应用版本号，不含账号、令牌、设备 ID、计算机名或你的服务器地址。不想要这个检查，把「设置 → 关于」里的「启动时自动检查新版本」关掉即可 —— 关掉之后，应用不会再向该地址发出任何请求（那一格旁边的手动按钮仍会按你的意思发一次）。
+4. **本项目的发布页**（可关闭，默认开启） —— 应用在每次启动时会向本项目的发布页源（`github.com/cudamin/Momoka/releases.atom`）查询有没有比当前这一版新的版本；「设置 → 关于」里的「检查新版本」按钮也会在你按下的那一刻发一次同样的请求。这个请求**不携带任何身份信息**：请求头里只有客户端名与应用版本号，不含账号、令牌、设备 ID、计算机名或你的服务器地址。不想要这个检查，把「设置 → 关于」里的「启动时自动检查新版本」关掉即可 —— 关掉之后，应用不会再向该地址发出任何请求（那一格旁边的手动按钮仍会按你的意思发一次）。
 
 发往 Emby 服务器的请求带有这些标识：客户端名 `Momoka`、**本机计算机名**、随机生成并保存在本机的设备 ID、应用版本号，以及你的访问令牌。这些只发给**你自己的服务器**，用途是让服务器认出「这是哪台设备」。
 
@@ -82,7 +82,7 @@ Momoka 是一个本地播放客户端。**开发者不收集、不上传、不�
 
 # Momoka Privacy Policy
 
-Last updated: 2026-10-14
+Last updated: 2026-10-16
 
 Momoka is a Windows desktop client for an Emby media server that you own or are authorized to use.
 
@@ -90,7 +90,7 @@ Momoka is a Windows desktop client for an Emby media server that you own or are 
 
 Everything the app stores stays on your machine, under `%LOCALAPPDATA%\Momoka`: your server address, account name and preferences (`settings.json`); your password and access token, encrypted with the Windows Data Protection API (DPAPI) so that only the current Windows account on this machine can decrypt them; logs, in which request URLs are recorded without query parameters and credentials are never written; a poster and backdrop image cache; a shader compilation cache; screenshots you take; and WebView2 browsing data created by the embedded server console page. The app also reads the local font list for subtitle font selection; that information is only displayed locally.
 
-The app connects only to: (1) your own Emby or Jellyfin server, at the address you enter, to sign in, browse your library, report playback progress, and sync resume positions; (2) a third-party library-management service that you configure yourself, if you enable that feature, at the address you enter; (3) image URLs that your own server supplies in its metadata (for example `image.tmdb.org`); and (4) the project's own releases page (on by default, can be turned off) — on each launch the app asks GitHub's public API (`api.github.com/repos/cudamin/Momoka/releases`) whether a newer version exists, and the 「检查新版本」 button in Settings → About sends the same request when you press it. That request carries **no identifying information**: its headers hold only the client name and the app version — no account, no token, no device ID, no machine name, no server address. To stop it, turn off 「启动时自动检查新版本」 in Settings → About; with that switch off the app sends nothing to that address (the manual button next to it still sends one request when you press it).
+The app connects only to: (1) your own Emby or Jellyfin server, at the address you enter, to sign in, browse your library, report playback progress, and sync resume positions; (2) a third-party library-management service that you configure yourself, if you enable that feature, at the address you enter; (3) image URLs that your own server supplies in its metadata (for example `image.tmdb.org`); and (4) the project's own releases page (on by default, can be turned off) — on each launch the app asks the project's releases feed (`github.com/cudamin/Momoka/releases.atom`) whether a newer version exists, and the 「检查新版本」 button in Settings → About sends the same request when you press it. That request carries **no identifying information**: its headers hold only the client name and the app version — no account, no token, no device ID, no machine name, no server address. To stop it, turn off 「启动时自动检查新版本」 in Settings → About; with that switch off the app sends nothing to that address (the manual button next to it still sends one request when you press it).
 
 Requests to your Emby server carry the client name `Momoka`, this computer's machine name, a randomly generated device ID stored locally, the app version, and your access token — sent only to your own server, so it can identify this device. Item (4) above is the only address the app contacts that you did not configure yourself, and it carries none of those identifiers.
 
