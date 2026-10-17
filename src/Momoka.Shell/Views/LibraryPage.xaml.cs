@@ -3,6 +3,7 @@ using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Services;
 using Momoka.Shell.ViewModels;
+using Momoka.Theming;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -10,6 +11,8 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace Momoka.Shell.Views;
 
@@ -49,6 +52,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     private bool _released = true;
     private int _navigation;
     private CancellationTokenSource? _typing;
+    private readonly SolidColorBrush _tabSelected = new();
+    private readonly SolidColorBrush _tabForeground = new();
 
     public static string HeaderTitle(Visibility search, string heading) => search == Visibility.Visible ? "搜索" : heading;
 
@@ -87,9 +92,62 @@ public sealed partial class LibraryPage : Page, IShellContent
         Unloaded += OnUnloaded;
     }
 
+    private void BuildBrowseSections()
+    {
+        UpdateTabColors(ThemeHost.Current);
+        LibrarySections.Children.Clear();
+        foreach (var entry in ViewModel.BrowseSections)
+        {
+            var tab = new ToggleButton
+            {
+                Content = entry.Label,
+                Tag = entry.Section,
+                Style = (Style)Resources["LibraryTabStyle"],
+                IsChecked = ViewModel.Section == entry.Section
+            };
+            // Scoped resource overrides keep the selected pill neutral, like the web reference,
+            // while theme roles still switch when the app's theme changes.
+            foreach (var key in new[] { "ToggleButtonBackgroundChecked", "ToggleButtonBackgroundCheckedPointerOver",
+                "ToggleButtonBackgroundCheckedPressed" }) tab.Resources[key] = _tabSelected;
+            foreach (var key in new[] { "ToggleButtonForegroundChecked", "ToggleButtonForegroundCheckedPointerOver",
+                "ToggleButtonForegroundCheckedPressed" }) tab.Resources[key] = _tabForeground;
+            AutomationProperties.SetAutomationId(tab, "LibrarySection" + entry.Section);
+            AutomationProperties.SetName(tab, entry.Label);
+            tab.Checked += OnBrowseSectionClick;
+            tab.Click += OnBrowseSectionClick;
+            LibrarySections.Children.Add(tab);
+        }
+        ApplyHeaderLayout();
+    }
+
+    private void UpdateTabColors(UiTheme theme)
+    {
+        _tabSelected.Color = ThemeHost.ToColor(theme.Colors.Text.Mix(theme.Colors.Window, 0.6));
+        _tabForeground.Color = ThemeHost.ToColor(theme.Colors.Text);
+    }
+
+    private async void OnBrowseSectionClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ToggleButton { Tag: LibrarySection section }) return;
+        await ViewModel.ChooseSectionAsync(section);
+        if (_released || ViewModel.Section != section) return;
+        // Clicking the already-selected ToggleButton would otherwise uncheck the only selection.
+        foreach (var tab in LibrarySections.Children.OfType<ToggleButton>())
+            tab.IsChecked = tab.Tag is LibrarySection value && value == ViewModel.Section;
+        _scroll?.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+    }
+
+    private async void OnBrowseGroupBack(object sender, RoutedEventArgs e) =>
+        await ViewModel.LeaveBrowseGroupAsync();
+
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(LibraryViewModel.View)) ApplyView();
+        if (e.PropertyName == nameof(LibraryViewModel.SectionVisibility))
+        {
+            BuildBrowseSections();
+            ApplyView();
+        }
         if (e.PropertyName == nameof(LibraryViewModel.SortLabel)
             || e.PropertyName == nameof(LibraryViewModel.SortDescending))
             Alpha.SetCurrent(null);
@@ -341,6 +399,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         ApplySource();
 
         ApplyView();
+        BuildBrowseSections();
 
         _ = LoadNavigationAsync(request, _navigation);
     }
@@ -388,6 +447,9 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        ThemeHost.Changed -= UpdateTabColors;
+        ThemeHost.Changed += UpdateTabColors;
+        UpdateTabColors(ThemeHost.Current);
         ApplyHeaderLayout();
         if (_request?.IsSearch == true) HomeMotion.Reveal(SearchSurface, 0, 220, 8);
 
@@ -413,6 +475,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnUnloaded(object sender, RoutedEventArgs e)
     {
+        ThemeHost.Changed -= UpdateTabColors;
         HomeMotion.Stop(SearchSurface);
         if (_scroll is null) return;
 
@@ -431,12 +494,15 @@ public sealed partial class LibraryPage : Page, IShellContent
         var search = _request?.IsSearch == true;
         PageRoot.RowSpacing = search ? 8 : 20;
         HeaderGrid.RowSpacing = search ? 0 : 16;
-        HeaderLayout.RowSpacing = search ? 16 : 0;
+        HeaderLayout.RowSpacing = search ? 16 : 20;
+        LibraryTitle.Visibility = ViewModel.IsSectionLibrary ? Visibility.Collapsed : Visibility.Visible;
+        LibrarySectionsSurface.MaxWidth = width;
+        ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right : HorizontalAlignment.Center;
         Grid.SetRow(SearchSurface, 1);
         Grid.SetRow(LibraryTitle, 0);
-        Grid.SetRow(ToolbarSurface, 0);
+        Grid.SetRow(ToolbarSurface, search ? 0 : 1);
         LibraryTitle.MaxWidth = search ? width : Math.Max(0, width / 2);
-        ToolbarSurface.MaxWidth = Math.Max(0, width - Math.Min(120, width / 3) - 24);
+        ToolbarSurface.MaxWidth = width;
         if (!search) return;
 
         var formWidth = Math.Min(900, width);
@@ -547,7 +613,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     internal void RemoveUnfavorite(EmbyItem changed)
     {
-        if (_request?.IsFavorites == true && ViewModel.Cards.FirstOrDefault(card => card.Item.IdentityKey == changed.IdentityKey) is { } card)
+        if ((_request?.IsFavorites == true || ViewModel.Section == LibrarySection.Favorites) && ViewModel.Cards.FirstOrDefault(card => card.Item.IdentityKey == changed.IdentityKey) is { } card)
             _ = RemoveCardAsync(card, ViewModel.QueryToken, deleted: false);
     }
 
@@ -568,6 +634,16 @@ public sealed partial class LibraryPage : Page, IShellContent
         SortMenu.Items.Clear();
 
         var labels = new List<string>();
+        var group = "library-sort-" + Guid.NewGuid().ToString("N");
+        var ascending = new RadioMenuFlyoutItem { Text = "升序", GroupName = group + "-direction", IsChecked = !ViewModel.SortDescending };
+        var descending = new RadioMenuFlyoutItem { Text = "降序", GroupName = group + "-direction", IsChecked = ViewModel.SortDescending };
+        AutomationProperties.SetAutomationId(ascending, "LibrarySortAscending");
+        AutomationProperties.SetAutomationId(descending, "LibrarySortDescending");
+        ascending.Click += (_, _) => ViewModel.SortDescending = false;
+        descending.Click += (_, _) => ViewModel.SortDescending = true;
+        SortMenu.Items.Add(ascending);
+        SortMenu.Items.Add(descending);
+        SortMenu.Items.Add(new MenuFlyoutSeparator());
 
         foreach (var entry in ViewModel.SortEntries())
         {
@@ -577,12 +653,12 @@ public sealed partial class LibraryPage : Page, IShellContent
                 continue;
             }
 
-            // No GroupName: the flyout is thrown away and rebuilt on the next open, so the radio state
-            // only has to be right for as long as the menu is up, and a shared group name would
-            // otherwise leave this page's items registered against the next page's.
+            // A fresh group per opening keeps direction and key radio states independent,
+            // without joining the groups owned by another page's menu.
             var item = new RadioMenuFlyoutItem
             {
                 Text = option.Label,
+                GroupName = group + "-key",
                 Tag = option,
                 IsChecked = entry.IsChecked
             };
@@ -867,6 +943,12 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </remarks>
     private void ApplyView()
     {
+        if (ViewModel.IsBrowseIndex)
+        {
+            Cards.ItemTemplate = (DataTemplate)Resources["LibraryIndexTemplate"];
+            Cards.Layout = (Layout)Resources["LibraryIndexLayout"];
+            return;
+        }
         Cards.ItemTemplate = ViewModel.View switch
         {
             LibraryView.Thumb => (DataTemplate)Resources["ThumbTemplate"],
@@ -876,7 +958,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         Cards.Layout = ViewModel.View == LibraryView.List ? (Layout)Resources["ListLayout"] : CardLayout;
 
-        foreach (var item in ViewMenu.Items.OfType<RadioMenuFlyoutItem>())
+        foreach (var item in ViewButton.Items.OfType<RadioMenuFlyoutItem>())
             item.IsChecked = item.Tag is string name && Enum.TryParse<LibraryView>(name, out var view) && view == ViewModel.View;
     }
 }

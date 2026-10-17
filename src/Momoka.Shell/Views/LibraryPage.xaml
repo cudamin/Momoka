@@ -28,6 +28,26 @@
     Background="{ThemeResource LayerFillColorDefaultBrush}">
 
     <Page.Resources>
+        <Style x:Key="LibraryPillStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Height" Value="32" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style x:Key="LibraryTabStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
         <Style x:Key="RecentSearchButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Background" Value="{ThemeResource SubtleFillColorTransparentBrush}" />
             <Setter Property="BorderThickness" Value="0" />
@@ -100,66 +120,17 @@
              裁掉一截，标题、信息行、简介整段被挤到格子外面，列表看上去就是一堆没有字的小图。行高不用
              算：图有自己的高，字排完就是行的高。 -->
         <StackLayout x:Key="ListLayout" Spacing="12" />
+        <UniformGridLayout x:Key="LibraryIndexLayout" MinItemWidth="170" MinItemHeight="72" MinRowSpacing="12" MinColumnSpacing="12" />
+        <DataTemplate x:Key="LibraryIndexTemplate" x:DataType="local:CardItem">
+            <ItemContainer>
+                <Border Background="{ThemeResource EgSurfaceHoverBrush}" CornerRadius="16" Padding="16" MinHeight="72">
+                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </Border>
+            </ItemContainer>
+        </DataTemplate>
     </Page.Resources>
 
     <Grid x:Name="PageRoot" Margin="{StaticResource EgPageMargin}" RowSpacing="20">
-        <!--
-            At medium widths the actions become icon-first controls; below the first breakpoint the same
-            controls tighten their chrome. Keeping one set of commands means the keyboard order and the
-            flyouts do not fork just because the window was resized.
-
-            这里只调整按钮密度；是否换行按页头的实际可用宽度决定，不能拿窗口宽度代替侧栏后的内容宽度。
-        -->
-        <VisualStateManager.VisualStateGroups>
-            <VisualStateGroup x:Name="ResponsiveStates">
-                <!-- The un-triggered state is the fallback below the first breakpoint. Adaptive
-                     states progressively restore the roomier desktop chrome as width becomes available. -->
-                <VisualState x:Name="Narrow">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="0" />
-                    </VisualState.StateTriggers>
-                    <VisualState.Setters>
-                        <Setter Target="PageRoot.Margin" Value="16,12,16,12" />
-                        <Setter Target="SortText.Visibility" Value="Collapsed" />
-                        <Setter Target="ViewText.Visibility" Value="Collapsed" />
-                        <Setter Target="FilterText.Visibility" Value="Collapsed" />
-                        <Setter Target="Toolbar.Spacing" Value="4" />
-                        <Setter Target="SortButton.Width" Value="72" />
-                        <Setter Target="ViewButton.Width" Value="42" />
-                        <Setter Target="FilterButton.Width" Value="42" />
-                        <Setter Target="PlayAllButton.Width" Value="36" />
-                        <Setter Target="PlayRandomButton.Width" Value="36" />
-                        <Setter Target="SortButton.Padding" Value="0" />
-                        <Setter Target="ViewButton.Padding" Value="0" />
-                        <Setter Target="FilterButton.Padding" Value="0" />
-                    </VisualState.Setters>
-                </VisualState>
-                <VisualState x:Name="Medium">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="760" />
-                    </VisualState.StateTriggers>
-                    <VisualState.Setters>
-                        <Setter Target="SortText.Visibility" Value="Collapsed" />
-                        <Setter Target="ViewText.Visibility" Value="Collapsed" />
-                        <Setter Target="FilterText.Visibility" Value="Collapsed" />
-                        <Setter Target="SortButton.Width" Value="72" />
-                        <Setter Target="ViewButton.Width" Value="48" />
-                        <Setter Target="FilterButton.Width" Value="48" />
-                        <Setter Target="PlayAllButton.Width" Value="40" />
-                        <Setter Target="PlayRandomButton.Width" Value="40" />
-                        <Setter Target="SortButton.Padding" Value="0" />
-                        <Setter Target="ViewButton.Padding" Value="0" />
-                        <Setter Target="FilterButton.Padding" Value="0" />
-                    </VisualState.Setters>
-                </VisualState>
-                <VisualState x:Name="Wide">
-                    <VisualState.StateTriggers>
-                        <AdaptiveTrigger MinWindowWidth="1040" />
-                    </VisualState.StateTriggers>
-                </VisualState>
-            </VisualStateGroup>
-        </VisualStateManager.VisualStateGroups>
-
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -177,11 +148,21 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+                <Border x:Name="LibrarySectionsSurface" Grid.ColumnSpan="2" HorizontalAlignment="Center"
+                    Background="{ThemeResource EgSurfaceHoverBrush}" CornerRadius="18" Padding="3"
+                    Visibility="{x:Bind ViewModel.SectionVisibility, Mode=OneWay}">
+                    <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" />
+                </Border>
+                <HyperlinkButton x:Name="LibraryBrowseGroup" Grid.Row="2" Grid.ColumnSpan="2"
+                    HorizontalAlignment="Center" Content="{x:Bind ViewModel.BrowseGroupLabel, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.BrowseGroupVisibility, Mode=OneWay}"
+                    ToolTipService.ToolTip="返回分类列表" Click="OnBrowseGroupBack" />
                 <TextBlock x:Name="LibraryTitle" Text="{x:Bind local:LibraryPage.HeaderTitle(ViewModel.SearchVisibility, ViewModel.Heading), Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />
 
                 <Border x:Name="SearchSurface" Grid.ColumnSpan="2" Padding="10,8" CornerRadius="14"
@@ -228,103 +209,65 @@
                     </Grid>
                 </Border>
 
-                <Grid x:Name="ToolbarSurface" Grid.Column="1" ColumnSpacing="12" Padding="10,8" CornerRadius="14"
-                    Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1"
-                    HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
-                        Visibility="{x:Bind local:LibraryPage.BrowseHintVisibility(ViewModel.SearchVisibility), Mode=OneWay}">
-                        <FontIcon Glyph="&#xE8B7;" FontSize="16" Foreground="{ThemeResource EgAccentBrush}" />
-                        <TextBlock x:Uid="LibraryPage_BrowseHint" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
-                    </StackPanel>
+                <Grid x:Name="ToolbarSurface" Grid.ColumnSpan="2" Grid.Row="1" Padding="0"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
                     <local:WrapRow
                         x:Name="Toolbar"
-                        Grid.Column="1"
                         Spacing="8"
                         RowSpacing="8"
                         VerticalAlignment="Center">
 
-                        <!-- One control for both halves of a sort: the left half flips the direction, the
-                             right half picks the key. A ComboBox would need two controls and would be
-                             unusable with nineteen keys in the list.
-
-                             IsChecked is two-way, so clicking the toggle half is a sort change rather than
-                             a picture of one — and the glyph and the tooltip beside it are derived from the
-                             same flag, so the three cannot come apart. -->
-                        <ToggleSplitButton
-                            x:Name="SortButton"
-                            MinHeight="32"
-                            Visibility="{x:Bind ViewModel.SortFilterVisibility, Mode=OneWay}"
-                            HorizontalContentAlignment="Center"
-                            IsChecked="{x:Bind ViewModel.SortDescending, Mode=TwoWay}"
-                            MinWidth="0"
-                            ToolTipService.ToolTip="{x:Bind ViewModel.SortTooltip, Mode=OneWay}">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon FontSize="14" Glyph="{x:Bind ViewModel.SortGlyph, Mode=OneWay}" />
-                                <TextBlock x:Name="SortText" Text="{x:Bind ViewModel.SortLabel, Mode=OneWay}" />
-                            </StackPanel>
-                            <ToggleSplitButton.Flyout>
-                                <!-- Filled in code on every open: a MenuFlyout has an Items list and no
-                                     ItemsSource, so there is nothing for a template to bind to. Which keys
-                                     belong in it is decided in LibraryViewModel.SortEntries. -->
-                                <MenuFlyout
-                                    x:Name="SortMenu"
-                                    Opening="OnSortMenuOpening"
-                                    Placement="BottomEdgeAlignedRight" />
-                            </ToggleSplitButton.Flyout>
-                        </ToggleSplitButton>
-
+                        <TextBlock x:Name="LibraryItemCount" Text="{x:Bind ViewModel.TotalLabel, Mode=OneWay}"
+                            FontSize="{StaticResource EgCaptionFontSize}" FontWeight="SemiBold" Margin="0,0,2,0" VerticalAlignment="Center" />
                         <!-- 播放全部 / 随机播放：Emby 工具栏的 btnPlay / btnShuffle。命令在视图模型里，载入
                              中自己就是灰的，与排序/筛选的即时行为一致。 -->
                         <Button
                             x:Name="PlayAllButton"
                             MinHeight="32"
-                            Width="40"
+                            Style="{StaticResource LibraryPillStyle}"
+                            Visibility="{x:Bind ViewModel.DirectPlayVisibility, Mode=OneWay}"
                 x:Uid="LibraryPage_PlayAllButton"
                             Command="{x:Bind ViewModel.PlayAllCommand}"
                             HorizontalContentAlignment="Center"
                             MinWidth="0"
-                            Padding="0">
-                            <FontIcon FontSize="14" Glyph="&#xE768;" />
+                            Padding="12,0">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="12" Glyph="&#xE768;" />
+                                <TextBlock Text="播放" />
+                            </StackPanel>
                         </Button>
                         <Button
                             x:Name="PlayRandomButton"
                             MinHeight="32"
-                            Width="40"
+                            Style="{StaticResource LibraryPillStyle}"
+                            Visibility="{x:Bind ViewModel.DirectPlayVisibility, Mode=OneWay}"
                 x:Uid="LibraryPage_PlayRandomButton"
                             Command="{x:Bind ViewModel.PlayRandomCommand}"
                             HorizontalContentAlignment="Center"
                             MinWidth="0"
-                            Padding="0">
-                            <FontIcon FontSize="14" Glyph="&#xE8B1;" />
+                            Padding="12,0">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="12" Glyph="&#xE8B1;" />
+                                <TextBlock Text="随机播放" />
+                            </StackPanel>
                         </Button>
 
-                        <!-- 视图切换：Emby 收在 ⋯ 菜单里；这里直接放一个下拉按钮 —— 三个选项用不上对话框。
-                             字形跟着当前视图走，点开是三个单选项。 -->
-                        <DropDownButton
-                            x:Name="ViewButton"
-                            MinHeight="32"
-                x:Uid="LibraryPage_ViewButton"
-                            HorizontalContentAlignment="Center"
-                            MinWidth="0">
-                            <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon FontSize="14" Glyph="{x:Bind ViewModel.ViewGlyph, Mode=OneWay}" />
-                                <TextBlock x:Name="ViewText" Text="{x:Bind ViewModel.ViewLabel, Mode=OneWay}" />
+                        <Button x:Name="SortButton" Style="{StaticResource LibraryPillStyle}"
+                            Visibility="{x:Bind ViewModel.SortFilterVisibility, Mode=OneWay}"
+                            ToolTipService.ToolTip="排序" AutomationProperties.Name="排序">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="12" Glyph="&#xE8CB;" />
+                                <TextBlock x:Name="SortText" Text="{x:Bind ViewModel.ToolbarSortLabel, Mode=OneWay}" />
+                                <FontIcon FontSize="14" Glyph="{x:Bind ViewModel.SortGlyph, Mode=OneWay}" />
                             </StackPanel>
-                            <DropDownButton.Flyout>
-                                <MenuFlyout x:Name="ViewMenu" Placement="BottomEdgeAlignedRight">
-                                    <RadioMenuFlyoutItem x:Uid="LibraryPage_RadioMenuFlyoutItem1" Click="OnViewChosen" Tag="Poster" />
-                                    <RadioMenuFlyoutItem x:Uid="LibraryPage_RadioMenuFlyoutItem2" Click="OnViewChosen" Tag="Thumb" />
-                                    <RadioMenuFlyoutItem x:Uid="LibraryPage_RadioMenuFlyoutItem3" Click="OnViewChosen" Tag="List" />
-                                </MenuFlyout>
-                            </DropDownButton.Flyout>
-                        </DropDownButton>
-
+                            <Button.Flyout>
+                                <MenuFlyout x:Name="SortMenu" Opening="OnSortMenuOpening" Placement="Bottom" />
+                            </Button.Flyout>
+                        </Button>
                         <Button
                             x:Name="FilterButton"
+                            Style="{StaticResource LibraryPillStyle}" Width="{x:Bind ViewModel.FilterButtonWidth, Mode=OneWay}" Padding="0"
+                            AutomationProperties.Name="筛选"
                             MinHeight="32"
                             Visibility="{x:Bind ViewModel.FilterVisibility, Mode=OneWay}"
                             HorizontalContentAlignment="Center"
@@ -332,7 +275,7 @@
                             ToolTipService.ToolTip="{x:Bind ViewModel.FilterTooltip, Mode=OneWay}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <FontIcon FontSize="14" Glyph="&#xE71C;" />
-                                <TextBlock x:Name="FilterText"
+                                <TextBlock x:Name="FilterText" Visibility="Collapsed"
                 x:Uid="LibraryPage_FilterText" />
                                 <!-- How many filters are on, without spending a row of the page saying so. -->
                                 <InfoBadge
@@ -360,6 +303,23 @@
                                 </Flyout>
                             </Button.Flyout>
                         </Button>
+                        <Button x:Name="LibraryMoreButton" Style="{StaticResource LibraryPillStyle}"
+                            Width="32" Padding="0" ToolTipService.ToolTip="更多" AutomationProperties.Name="更多">
+                            <FontIcon FontSize="14" Glyph="&#xE712;" />
+                            <Button.Flyout>
+                                <MenuFlyout x:Name="LibraryMoreMenu" Placement="Bottom">
+                                    <MenuFlyoutSubItem x:Name="ViewButton" Text="视图">
+                                        <RadioMenuFlyoutItem x:Name="LibraryPosterView" x:Uid="LibraryPage_RadioMenuFlyoutItem1" Click="OnViewChosen" Tag="Poster" />
+                                        <RadioMenuFlyoutItem x:Name="LibraryThumbView" x:Uid="LibraryPage_RadioMenuFlyoutItem2" Click="OnViewChosen" Tag="Thumb" />
+                                        <RadioMenuFlyoutItem x:Name="LibraryListView" x:Uid="LibraryPage_RadioMenuFlyoutItem3" Click="OnViewChosen" Tag="List" />
+                                    </MenuFlyoutSubItem>
+                                    <MenuFlyoutItem x:Name="LibraryMenuPlay" Text="播放" Command="{x:Bind ViewModel.PlayAllCommand}"
+                                        Visibility="{x:Bind ViewModel.MenuPlayVisibility, Mode=OneWay}" />
+                                    <MenuFlyoutItem x:Name="LibraryMenuShuffle" Text="随机播放" Command="{x:Bind ViewModel.PlayRandomCommand}"
+                                        Visibility="{x:Bind ViewModel.MenuPlayVisibility, Mode=OneWay}" />
+                                </MenuFlyout>
+                            </Button.Flyout>
+                        </Button>
                     </local:WrapRow>
                 </Grid>
 
@@ -372,6 +332,7 @@
                  和总数是一伙的；而且筛得多的时候它要能折行，挂在工具栏里就得跟排序、视图那几颗键抢宽度。
                  整行没有筛选时收起（FilterChipsVisibility），一个像素都不占。 -->
             <local:WrapRow
+                x:Name="LibraryFilterChips"
                 Grid.Row="1"
                 RowSpacing="8"
                 Spacing="8"

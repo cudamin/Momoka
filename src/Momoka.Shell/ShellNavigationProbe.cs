@@ -49,6 +49,7 @@ internal sealed partial class ShellNavigationProbe
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
             await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
             await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
+            await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
             await CaseAsync("切回 Emby 恢复查询代次", ResumeQueryAsync);
             await CaseAsync("切季与整页刷新交错不清空", SeasonRefreshRaceAsync);
             await CaseAsync("旧导航恢复不补新搜索", NavigationRestoreRaceAsync);
@@ -104,8 +105,8 @@ internal sealed partial class ShellNavigationProbe
             // 2026-10-11 起该用例多四帧分区截图（播放行为分类的资源筛选、截图卡滚进视口各两帧），12 秒的
             // 默认限时不够了 —— 与视频基础输出用例同款理由（多轮控件切换与截图设 45 秒）。
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
-            // 设置 → 界面新增一行「首页媒体库位置」，宽窄两帧截图 + 三档写回。
-            await CaseAsync("界面卡上的首页媒体库位置三档", SettingsHomeLibraryPlacementAsync, 30);
+            // 主页卡新增一行「主页媒体库位置」（2026-10-16 从界面卡挪来、同时改名），宽窄两帧截图 + 三档写回。
+            await CaseAsync("主页卡上的主页媒体库位置三档", SettingsHomeLibraryPlacementAsync, 30);
             // 设置 → 界面新增一行「开机自启」：拨开关写的是机器上的启动项（假实现），办不到时整行不显示，
             // 另留宽窄两帧截图。
             await CaseAsync("界面卡上的开机自启开关", SettingsStartupRegistrationAsync, 30);
@@ -115,18 +116,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
-            await CaseAsync("飞牛影视四区、保存、权限撤销和恢复", FnNasAdministrationAsync, 60);
             await CaseAsync("Jellyfin 通用对话框能力显隐", JellyfinDialogCapabilitiesAsync, 30);
-            await CaseAsync("Jellyfin 服务器管理与权限显隐", JellyfinAdministrationAsync, 30);
-            await CaseAsync("原生控制台分区、响应布局与离页取消", ServerDashboardAsync);
-            await CaseAsync("服务器管理菜单、确认与身份隔离", ServerAdministrationAsync);
-            await CaseAsync("用户管理导航、页签与权限保存", ServerUsersAsync);
-            await CaseAsync("用户创建、复制、头像、删除与重试", ServerUsersMutationsAsync);
-            await CaseAsync("用户管理离页、切服与普通账号隔离", ServerUsersIdentityAsync);
-            await CaseAsync("媒体库页面、动态选项与并发保存", ServerLibrariesAsync);
-            await CaseAsync("媒体库新建、目录、扫描与移除", ServerLibraryOperationsAsync);
-            await CaseAsync("媒体库高级设置和部分失败重试", ServerLibraryAdvancedAsync);
-            await CaseAsync("媒体库离页、切服与管理权限", ServerLibraryIdentityAsync);
             await CaseAsync("MoviePilot 订阅分区、封面与管理操作", MoviePilotSubscriptionsAsync);
             // 这一条从 2026-10-12 起多两帧「下方三段」的截图与一段等待（演职员／相关推荐／相似作品那三排卡片
             // 的图是异步抓的），12 秒的默认限时不够 —— 同视频基础输出用例的理由。
@@ -248,6 +238,13 @@ internal sealed partial class ShellNavigationProbe
         public ISystemLauncher Launcher { get; } = new FakeLauncher();
         public FakeStartup Startup { get; } = new FakeStartup();
 
+        /// <summary>
+        /// 探针跑在自己的线程上、没有 UI 队列，所以给一个「就地跑」的实现。<c>HomeViewModel</c> 的实时通道要
+        /// 用它把通知排回页面那一头 —— 离线探针里那条通道本来就连不上（实时通道走真 WebSocket，而这里的
+        /// FakeTransport 只管假的 HTTP），所以这个实现实际只保证「真要排的时候排得动」。
+        /// </summary>
+        public IUiDispatcher Dispatcher { get; } = new InlineDispatcher();
+
         public IServiceProvider Services { get; }
         public Fixture(string root, HttpMessageHandler? moviePilotTransport = null, HttpMessageHandler? aniBtTransport = null)
         {
@@ -268,6 +265,7 @@ internal sealed partial class ShellNavigationProbe
                 // 注册进去的就是那个具体类型。
                 .AddSingleton(Images).AddSingleton<IServerCapabilities>(Capabilities).AddSingleton(vault).AddSingleton(moviePilot)
                 .AddSingleton<IShellActions>(Actions).AddSingleton(Launcher).AddSingleton<IStartupRegistration>(Startup)
+                .AddSingleton(Dispatcher)
                 .BuildServiceProvider();
         }
         public async Task SelectAsync(string host = "a.invalid", string user = "user", MediaServerKind kind = MediaServerKind.Emby)
@@ -292,7 +290,7 @@ internal sealed partial class ShellNavigationProbe
         public DetailViewModel Detail()
         {
             var vm = new DetailViewModel();
-            vm.Attach(DetailRequest.For(Services, Series()), Actions, SettingsService, Session, Images, Launcher);
+            vm.Attach(DetailRequest.For(Services, Series()), Actions, SettingsService, Session, Images);
             return vm;
         }
         public void Dispose()
@@ -306,6 +304,20 @@ internal sealed partial class ShellNavigationProbe
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
             Task.FromException<HttpResponseMessage>(new InvalidOperationException("离线探针禁止真实网络"));
+    }
+
+    /// <summary>
+    /// <see cref="IUiDispatcher"/> 的就地版：两个成员都当场执行。探针线程就是它自己的「UI 线程」，没有队列可排。
+    /// </summary>
+    private sealed class InlineDispatcher : IUiDispatcher
+    {
+        public bool Post(Action work)
+        {
+            work();
+            return true;
+        }
+
+        public void Run(Action work) => work();
     }
 
     private sealed class FakeTransport : HttpMessageHandler

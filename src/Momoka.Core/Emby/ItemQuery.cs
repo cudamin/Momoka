@@ -40,9 +40,10 @@ public static class EmbyFields
     /// rather than assumed to ride along with the rest of the item.
     /// </para>
     /// <para>
-    /// <c>CriticRating</c> and <c>ProviderIds</c> are the 评分来源 setting's two: the first is the only rating
-    /// on an Emby item that is independent of <c>CommunityRating</c>, and the second is the only thing that says
-    /// which scraper this item was matched against. Both are named here rather than assumed — and naming a field
+    /// <c>CriticRating</c> and <c>ProviderIds</c> are the 详情评分 pair: the first is the only rating
+    /// on an Emby item that is independent of <c>CommunityRating</c> (so it is what the score falls back to
+    /// when the server holds no community rating, see <c>ItemScore</c>), and the second is the only thing that
+    /// says which scraper this item was matched against. Both are named here rather than assumed — and naming a field
     /// the server's own <c>Options</c> list does not enumerate is safe, which this line already demonstrates:
     /// eight of the names in it (ProductionYear, PremiereDate, EndDate, ChildCount, Tags, MediaSources,
     /// OfficialRating, CommunityRating) are not on that list either, and this client has always worked.
@@ -121,6 +122,9 @@ public sealed class ItemQuery
     public bool IsResumable { get; init; }
 
     public string? Genre { get; init; }
+
+    /// <summary>Fixed studio identity of a drill-down, not a removable toolbar filter.</summary>
+    public string? Studio { get; init; }
 
     /// <summary>
     /// One credited person, for 「这个人还演过什么」. Sent as Emby's <c>PersonIds</c>.
@@ -322,6 +326,7 @@ public sealed class ItemQuery
         if (IsResumable) pairs.Add((EmbyFilterBy.Keys.Filters, "IsResumable"));
         if (IsFavorite) pairs.Add((EmbyFilterBy.Keys.Filters, "IsFavorite"));
         if (!string.IsNullOrWhiteSpace(Genre)) pairs.Add((EmbyFilterBy.Keys.Genres, Genre!.Trim()));
+        if (!string.IsNullOrWhiteSpace(Studio)) pairs.Add(("Studios", Studio.Trim()));
         if (Filters is not null) pairs.AddRange(Filters.Contributions());
 
         // GroupBy yields groups in the order their keys were first seen, so the query string stays the

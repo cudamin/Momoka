@@ -116,12 +116,6 @@ public sealed partial class LibraryViewModel : PageViewModel
     private ItemFilters _filters = new();
 
     /// <summary>
-    /// 设置 → 显示观看状态标记, read once per navigation so a card built later in a long scroll agrees
-    /// with the ones above it.
-    /// </summary>
-    private bool _indicators = true;
-
-    /// <summary>
     /// Set while <see cref="SortDescending"/> is being pushed to match a key's default, so its own
     /// change handler does not fire a second reload of the query the key change is already reloading.
     /// </summary>
@@ -203,6 +197,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     /// <summary>What the sort button says. Set together with <see cref="SortKey"/>; see <see cref="ShowSort"/>.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ToolbarSortLabel))]
     public partial string SortLabel { get; set; }
 
     /// <summary>
@@ -274,9 +269,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>How many filters are on, for the badge on the filter button.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FilterBadgeVisibility))]
+    [NotifyPropertyChangedFor(nameof(FilterButtonWidth))]
     public partial int FilterCount { get; set; }
 
     public Visibility FilterBadgeVisibility => Show(FilterCount > 0);
+    public double FilterButtonWidth => FilterCount > 0 ? 52 : 32;
 
     /// <summary>
     /// 工具栏底下那一行筛选条，一条筛选一格。见 <see cref="EmbyFilterBy.Chips"/>：那颗按钮上的数字说「筛了
@@ -284,7 +281,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     public ObservableCollection<FilterChipRow> FilterChips { get; } = [];
 
-    public Visibility FilterChipsVisibility => Show(FilterChips.Count > 0);
+    public Visibility FilterChipsVisibility => Show(FilterChips.Count > 0 && FilterVisibility == Visibility.Visible);
 
     /// <summary>
     /// Whether the letter bar belongs on this grid — Emby's own rule: name-ordered, and enough rows
@@ -292,7 +289,14 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// the second half of the rule reads.
     /// </summary>
     public Visibility AlphaVisibility => Show(
-        !Aggregated && _scope?.Connection.IsFnNas != true && _request?.IsSearch != true && SortKey == EmbySortBy.Name && !SortDescending && _total is > 30);
+        !Aggregated && !IsBrowseIndex && Section != LibrarySection.Recommended && SupportsBrowseConditions && _request?.IsSearch != true && SortKey == EmbySortBy.Name && !SortDescending && _total is > 30);
+
+    /// <summary>
+    /// 这台服务器认不认 Emby 那套浏览条件 —— 字母跳转、筛选面板、按库记住筛选。飞牛与 Plex 各有自己的
+    /// 查询语言，装不出同一套条件，所以这三样在它们名下一起收起来（排序仍按各自支持的那几档单独裁剪，
+    /// 见 <see cref="SupportsSort"/>）。
+    /// </summary>
+    private bool SupportsBrowseConditions => _scope?.Connection.IsFnNas != true && _scope?.Connection.IsPlex != true;
 
     /// <summary>Whether this grid has anything the player could start, for the two play buttons.</summary>
     internal bool HasPlayable => _active && SourcesAvailable && _firstPage && !Busy
@@ -316,6 +320,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// event for this exact moment.</summary>
     internal void RowsArrived()
     {
+        OnPropertyChanged(nameof(TotalLabel));
         PlayAllCommand.NotifyCanExecuteChanged();
         PlayRandomCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(AlphaVisibility));
@@ -364,7 +369,51 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal ItemFilters Filters => _filters;
 
     /// <summary>Which kind of row this grid holds, as the sort catalogue sees it.</summary>
-    internal string? SortPreset => _request?.SortPreset;
+    internal string? SortPreset => IsSectionLibrary
+        ? LibraryBrowse.SortPreset(_request!.CollectionType, _request.Section) : _request?.SortPreset;
+
+    internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, CollectionType: "movies" or "tvshows", IsSearch: false };
+    internal LibrarySection Section => _request?.Section ?? LibrarySection.Items;
+    internal bool IsBrowseIndex => IsSectionLibrary && LibraryBrowse.IsIndex(Section, _request!.BrowseGroup);
+    internal IReadOnlyList<LibrarySectionEntry> BrowseSections => IsSectionLibrary
+        ? LibraryBrowse.Sections(_request!.CollectionType, _scope?.Connection.ServerKind ?? MediaServerKind.Emby) : [];
+    public Visibility SectionVisibility => Show(IsSectionLibrary && BrowseSections.Count > 1);
+    public Visibility BrowseGroupVisibility => Show(IsSectionLibrary && _request?.BrowseGroup is not null);
+    public string BrowseGroupLabel => _request?.BrowseGroup ?? "";
+    public Visibility DirectPlayVisibility => Show(!IsSectionLibrary || _request!.CollectionType == "movies" && !IsBrowseIndex);
+    public Visibility MenuPlayVisibility => Show(IsSectionLibrary && _request!.CollectionType == "tvshows" && !IsBrowseIndex);
+    public string TotalLabel => _total < 0 ? _pageFailed ? "加载失败" : "正在加载" : $"共 {_total} 项";
+    public string ToolbarSortLabel => SortLabel == "标题名称" ? "标题" : SortLabel;
+
+    internal async Task ChooseSectionAsync(LibrarySection section)
+    {
+        if (!IsSectionLibrary || !BrowseSections.Any(entry => entry.Section == section)) return;
+        if (_request!.Section == section && _request.BrowseGroup is null) return;
+        _request.Section = section;
+        _request.BrowseGroup = null;
+        _request.ScrollOffset = 0;
+        _request.LoadedCount = 0;
+        RestoreSort();
+        RestoreFilters();
+        RestoreView();
+        RefreshBrowseChrome();
+        await ReloadAsync().ConfigureAwait(true);
+    }
+
+    internal async Task LeaveBrowseGroupAsync()
+    {
+        if (!IsSectionLibrary || _request!.BrowseGroup is null) return;
+        _request.BrowseGroup = null;
+        RefreshBrowseChrome();
+        await ReloadAsync().ConfigureAwait(true);
+    }
+
+    private void RefreshBrowseChrome()
+    {
+        foreach (var name in new[] { nameof(SectionVisibility), nameof(BrowseGroupVisibility), nameof(BrowseGroupLabel),
+            nameof(DirectPlayVisibility), nameof(MenuPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
+            nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel) }) OnPropertyChanged(name);
+    }
 
     internal int LoadedCount => Cards.Count;
 
@@ -393,8 +442,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 那是这张网格怎么画，与服务器无关。
     /// </para>
     /// </summary>
-    public Visibility SortFilterVisibility => Show(!IsResumePage && !Aggregated);
-    public Visibility FilterVisibility => Show(!IsResumePage && !Aggregated && _scope?.Connection.IsFnNas != true);
+    public Visibility SortFilterVisibility => Show(!IsResumePage && !Aggregated && !IsBrowseIndex && Section != LibrarySection.Recommended);
+    public Visibility FilterVisibility => Show(!IsResumePage && !Aggregated && !IsBrowseIndex && Section != LibrarySection.Recommended && SupportsBrowseConditions);
 
     /// <summary>
     /// Handed the navigation payload and the four capabilities one grid draws from, once per navigation to
@@ -428,11 +477,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         _capabilities = capabilities;
         _moviePilot = moviePilot;
 
-        var ui = settings.Settings.Ui;
-
-        // 「海报宽度」那一行设置 2026-09-05 删掉了，宽度回到 CardSize 固定的默认档；角标照旧读设置。
+        // 「海报宽度」那一行设置 2026-09-05 删掉了，宽度回到 CardSize 固定的默认档。
         CardWidth = CardSize.PosterWidth;
-        _indicators = ui.ShowWatchedIndicators;
 
         Heading = request.IsSearch ? LibraryRequest.SearchTitle(request.SearchTerm!) : request.Title;
         SearchText = request.SearchTerm ?? "";
@@ -452,9 +498,15 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(SortFilterVisibility));
         OnPropertyChanged(nameof(FilterVisibility));
 
+        if (IsSectionLibrary && !BrowseSections.Any(entry => entry.Section == request.Section))
+        {
+            request.Section = LibrarySection.Items;
+            request.BrowseGroup = null;
+        }
         RestoreSort();
         RestoreFilters();
         RestoreView();
+        RefreshBrowseChrome();
         LoadRecentSearches();
     }
 
@@ -552,7 +604,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     /// <summary>照这一页当前的视图形状造一张卡（同 <see cref="LoadAsync"/> 那一句）。</summary>
     private CardItem NewCard(EmbyItem item) =>
-        new(item, _images!, CardBuildWidth, CardBuildWide, indicators: _indicators);
+        new(item, _images!, CardBuildWidth, CardBuildWide);
 
     private async Task<bool> RefreshAfterRemovalAsync(CancellationToken queryToken)
     {
@@ -634,7 +686,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             _total = NotLoaded;
             ResetCursor();
             ShowEmptyNotice = false;
-            if (_request.IsSearch)
+            if (_request.IsSearch || IsSectionLibrary)
             {
                 foreach (var card in Cards) card.AbandonPoster();
                 Cards.Clear();
@@ -760,6 +812,14 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         if (BuildQuery(start) is not { } query) return new ItemsResult();
 
+        if (IsSectionLibrary)
+        {
+            var request = _request!;
+            var section = request.Section;
+            var group = request.BrowseGroup;
+            return await scope.ExecuteAsync((client, ct) => client.GetLibraryItemsAsync(
+                request.CollectionType!, section, group, query, ct), token).ConfigureAwait(true);
+        }
         return await scope
             .ExecuteAsync((client, ct) => client.GetItemsAsync(query, ct), token)
             .ConfigureAwait(true);
@@ -801,7 +861,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_request is null) return [];
 
-        var preset = _request.SortPreset;
+        var preset = SortPreset;
         var entries = new List<SortEntry>();
         string? previousGroup = null;
 
@@ -824,12 +884,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (!_active || !SourcesAvailable || _request is null || _actions is null || Aggregated) return;
 
-        var key = option.ValueOf(_request.SortPreset);
+        var key = option.ValueOf(SortPreset);
         if (!SupportsSort(key)) return;
 
         // Emby's own behaviour, and the only sensible one: a date key opens newest first and a name key
         // A to Z. Choosing 加入日期 and being shown the oldest thing in the library is never what was
         // meant, however the direction happened to be left by the previous key.
+        if (SortFilterVisibility != Visibility.Visible || !option.AppliesTo(SortPreset, SourceServerVersion)) return;
         if (key == SortKey && option.DescendingByDefault == SortDescending) return;
 
         SortKey = key;
@@ -977,6 +1038,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             IsPlayed = source.IsPlayed,
             IsFavorite = source.IsFavorite,
             Genre = source.Genre,
+            Studio = source.Studio,
             PersonId = source.PersonId,
             Filters = source.Filters,
             MediaTypes = source.MediaTypes,
@@ -1038,6 +1100,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_actions is null || !_active || !card.IsCurrent) return;
 
+        if (IsBrowseIndex)
+        {
+            _request!.BrowseGroup = card.Item.Name;
+            RefreshBrowseChrome();
+            _ = ReloadAsync();
+            return;
+        }
         RememberSearch(card.Item);
         _actions.OpenItem(card.Item);
     }
@@ -1138,7 +1207,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     private void RestoreSort()
     {
         var request = _request!;
-        var preset = request.SortPreset;
+        var preset = SortPreset;
         var fallback = EmbySortBy.Default(preset);
 
         SortKey = fallback.ValueOf(preset);
@@ -1161,7 +1230,9 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private bool SupportsSort(string value) => _scope?.Connection.IsFnNas == true
         ? Momoka.FnNas.FnNasMediaAdapter.SupportsSort(value)
-        : _scope?.Connection.IsJellyfin != true || JellyfinQuery.SupportsSort(value);
+        : _scope?.Connection.IsPlex == true
+            ? Momoka.Plex.PlexMediaAdapter.SupportsSort(value)
+            : _scope?.Connection.IsJellyfin != true || JellyfinQuery.SupportsSort(value);
 
     private void RememberSort()
     {
@@ -1192,11 +1263,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             return;
         }
 
-        if (MemoryKey() is { } memoryKey
-            && Settings.Ui.Views.TryGetValue(memoryKey, out var saved))
-        {
-            View = saved;
-        }
+        View = MemoryKey() is { } memoryKey && Settings.Ui.Views.TryGetValue(memoryKey, out var saved)
+            ? saved : Section == LibrarySection.Episodes ? LibraryView.Thumb : LibraryView.Poster;
     }
 
     private void RememberView()
@@ -1213,7 +1281,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     private void RestoreFilters()
     {
-        _filters = _scope?.Connection.IsFnNas != true && MemoryKey() is { } memoryKey
+        _filters = SupportsBrowseConditions && MemoryKey() is { } memoryKey
             && Settings.Ui.Filters.TryGetValue(memoryKey, out var saved)
                 ? saved.Clone()
                 : new ItemFilters();
@@ -1276,7 +1344,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     private string? MemoryKey() =>
         _request is { CollectionType: not null, ParentId: { Length: > 0 } id } && _scope is { IsAvailable: true } scope
-            ? BrowsingPreferences.LibraryKey(scope.Connection, id) : null;
+            ? BrowsingPreferences.LibraryKey(scope.Connection, id)
+                + (Section == LibrarySection.Items ? "" : "/section/" + Section) : null;
 
     private string Describe() =>
         _total <= 0 ? (Cards.Count == 0 ? "没有内容" : $"共 {Cards.Count} 项")
@@ -1371,6 +1440,10 @@ public sealed partial class LibraryViewModel : PageViewModel
                 Filters = _filters.Clone()
             };
         }
+
+        if (IsSectionLibrary)
+            return LibraryBrowse.Query(request.CollectionType!, request.ParentId!, request.Section,
+                start, limit, SortKey, SortDescending, _filters, request.BrowseGroup);
 
         var types = ItemQuery.FlattenedTypes(request.CollectionType);
 

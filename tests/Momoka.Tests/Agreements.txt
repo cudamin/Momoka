@@ -27,7 +27,7 @@ font-size  Theme/Styles.xaml  2
 font-size  Views/CoverDialog.xaml  6
 font-size  Views/CoverPickerDialog.xaml  1
 font-size  Views/DashboardPage.xaml  5
-font-size  Views/DetailPage.xaml  21
+font-size  Views/DetailPage.xaml  19
 font-size  Views/DiagnosticsPage.xaml  8
 font-size  Views/EpisodeRow.xaml  3
 font-size  Views/HomeBanner.xaml  4
@@ -84,7 +84,6 @@ handle  Views/DetailPage.xaml  BodySheet
 handle  Views/DetailPage.xaml  CastRow
 handle  Views/DetailPage.xaml  ColumnActions
 handle  Views/DetailPage.xaml  ColumnAudioPicker
-handle  Views/DetailPage.xaml  ColumnBrowserButton
 handle  Views/DetailPage.xaml  ColumnContinueButton
 handle  Views/DetailPage.xaml  ColumnFavoriteButton
 handle  Views/DetailPage.xaml  ColumnMoreButton
@@ -95,7 +94,6 @@ handle  Views/DetailPage.xaml  ColumnSourcePicker
 handle  Views/DetailPage.xaml  ColumnSubtitlePicker
 handle  Views/DetailPage.xaml  ColumnWatchedButton
 handle  Views/DetailPage.xaml  CompactBlock
-handle  Views/DetailPage.xaml  CompactBrowserButton
 handle  Views/DetailPage.xaml  CompactContinueButton
 handle  Views/DetailPage.xaml  CompactFavoriteButton
 handle  Views/DetailPage.xaml  CompactMoreButton
@@ -264,13 +262,10 @@ handle  Views/LibraryPage.xaml  FilterText
 handle  Views/LibraryPage.xaml  HeaderGrid
 handle  Views/LibraryPage.xaml  LibraryClearFiltersButton
 handle  Views/LibraryPage.xaml  LibraryTitle
-handle  Views/LibraryPage.xaml  Medium
 handle  Views/LibraryPage.xaml  MoviePilotPanel
-handle  Views/LibraryPage.xaml  Narrow
 handle  Views/LibraryPage.xaml  PageRoot
 handle  Views/LibraryPage.xaml  PlayAllButton
 handle  Views/LibraryPage.xaml  PlayRandomButton
-handle  Views/LibraryPage.xaml  ResponsiveStates
 handle  Views/LibraryPage.xaml  SearchInput
 handle  Views/LibraryPage.xaml  SortButton
 handle  Views/LibraryPage.xaml  SortMenu
@@ -278,9 +273,6 @@ handle  Views/LibraryPage.xaml  SortText
 handle  Views/LibraryPage.xaml  SourceTabs
 handle  Views/LibraryPage.xaml  Toolbar
 handle  Views/LibraryPage.xaml  ViewButton
-handle  Views/LibraryPage.xaml  ViewMenu
-handle  Views/LibraryPage.xaml  ViewText
-handle  Views/LibraryPage.xaml  Wide
 handle  Views/MetadataDialog.xaml  CommunityRatingBox
 handle  Views/MetadataDialog.xaml  CriticRatingBox
 handle  Views/MetadataDialog.xaml  GenresBox

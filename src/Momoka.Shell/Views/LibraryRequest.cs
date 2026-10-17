@@ -37,6 +37,11 @@ internal sealed record LibraryRequest
     /// </summary>
     public string? CollectionType { get; init; }
 
+    // Navigation history retains the section and its scoped genre/studio drill-down.
+    public LibrarySection Section { get; set; }
+
+    public string? BrowseGroup { get; set; }
+
     public string? SearchTerm { get; set; }
 
     public LibrarySearchCategory SearchCategory { get; set; }

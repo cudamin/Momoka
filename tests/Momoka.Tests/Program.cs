@@ -35,12 +35,12 @@ internal static class Program
         HtmlColorTests.Register();
         SubtitlePreviewTests.Register();
         EmbyTests.Register();
+        EmbyRealtimeTests.Register();
         FnNasProtocolTests.Register();
         FnNasMediaTests.Register();
+        PlexProtocolTests.Register();
+        PlexMediaTests.Register();
         JellyfinWebConsoleTests.Register();
-        DashboardTests.Register();
-        UserManagementTests.Register();
-        LibraryManagementTests.Register();
         SessionTests.Register();
         IdentityRegressionTests.Register();
         HttpRedirectTests.Register();
@@ -51,6 +51,7 @@ internal static class Program
         BrowsingPreferencesTests.Register();
         LibrarySearchTests.Register();
         AggregateQueryTests.Register();
+        LibraryBrowseTests.Register();
         MoviePilotSearchSitesTests.Register();
         MoviePilotResourceOptionsTests.Register();
         MoviePilotAvailabilityTests.Register();
