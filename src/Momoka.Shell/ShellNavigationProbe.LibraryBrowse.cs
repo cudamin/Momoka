@@ -73,9 +73,16 @@ internal sealed partial class ShellNavigationProbe
                 {
                     ResizeProbeClient(width, 800);
                     await LayoutAsync(page);
+                    // 网页端这一行是「库名在左、分类在右」：库名必须在，而且不能被分类栏压住。
+                    var title = Get<TextBlock>(page, "LibraryTitle");
+                    Require(title.Visibility == Visibility.Visible && title.Text == page.ViewModel.Heading,
+                        $"左上角没有库名（{title.Text}）");
+                    var titleBox = title.TransformToVisual(page).TransformBounds(new(0, 0, title.ActualWidth, title.ActualHeight));
+                    Require(titleBox.Left >= -1 && titleBox.Left < page.ActualWidth / 2, "库名不在左上角");
                     var surface = Get<Border>(page, "LibrarySectionsSurface");
                     var box = surface.TransformToVisual(page).TransformBounds(new(0, 0, surface.ActualWidth, surface.ActualHeight));
                     Require(box.Left >= -1 && box.Right <= page.ActualWidth + 1, "分类栏被裁切");
+                    Require(box.Left >= titleBox.Right - 1, "分类栏压在库名上");
                     foreach (var tab in tabs.Children.OfType<ToggleButton>())
                     {
                         var peer = new ToggleButtonAutomationPeer(tab);
@@ -167,9 +174,87 @@ internal sealed partial class ShellNavigationProbe
                 await SelectAsync(LibrarySection.Folders);
                 Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal)).Contains("Recursive=false", StringComparison.Ordinal), "文件夹被拍平");
                 await SelectAsync(LibrarySection.Items);
-                page.BuildSortMenu();
-                var menu = Get<MenuFlyout>(page, "SortMenu");
-                Require(menu.Items.OfType<RadioMenuFlyoutItem>().Count(value => value.IsChecked) == 2, "排序字段与方向没有分别显示选中状态");
+                var sortLabels = page.BuildSortMenu();
+                Require(page.SortList.Items.Count == sortLabels.Count && sortLabels.Count > 0, "排序菜单没有按条目填满");
+                Require(string.Join(',', sortLabels) == string.Join(',', sortLabels.OrderBy(value => value, StringComparer.Ordinal)),
+                    "排序菜单没有按字段名排序");
+                var ticked = page.ViewModel.SortEntries().Where(entry => entry.IsChecked).ToList();
+                Require(ticked.Count == 1 && ticked[0].Option.ValueOf(page.ViewModel.SortPreset) == page.ViewModel.SortKey,
+                    "排序菜单里选中的不是当前那一项，或者不止一项");
+                Require(ticked[0].ArrowVisibility == Visibility.Visible
+                    && page.ViewModel.SortEntries().Where(entry => !entry.IsChecked).All(entry => entry.ArrowVisibility == Visibility.Collapsed),
+                    "方向箭头没有只出现在选中那一行");
+                if (collection == "tvshows")
+                {
+                    // 网页端「电视节目-节目」那一列：十三条，按字段名排。缺一条、多一条或换了顺序，
+                    // 这一页就与截图不是同一个菜单。
+                    Require(string.Join(',', sortLabels)
+                        == "IMDb 评分,上次发布集日期,上次添加集日期,加入日期,发行日期,家长评分,导演,年份,影评人评分,播放日期,播放时长,标题,随机",
+                        "电视剧库的排序菜单与网页端不同");
+                }
+                await SaveProbeScreenAsync($"library-{collection}-sort-screen.png");
+
+                // 筛选面板：网页端 modules/filtermenu 那一块。这里走用户点那颗筛选键的同一条路 ——
+                // 打开面板、读它的行、改一处、看请求跟着变。
+                page.CloseFilter();
+                var filterButton = Get<Button>(page, "FilterButton");
+                var openFilter = FrameworkElementAutomationPeer.CreatePeerForElement(filterButton)
+                    ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                Require(openFilter is not null, "筛选键没有可调用的自动化入口");
+                openFilter!.Invoke();
+                await SettleAsync();
+                Require(page.FilterOverlay.Visibility == Visibility.Visible, "筛选面板没有打开");
+                Require(page.FilterPane.EveryTemplateResolves, "筛选面板有行没有可用的模板");
+
+                var rows = page.FilterPane.RowLabels;
+                if (collection == "tvshows")
+                {
+                    // 截图那一页：八行无标题的，功能四条，元数据两条，缺少元数据三条 —— 一行不多一行不少。
+                    // 媒体信息整组不出现：剧集本身没有流，服务器对它答不了画质、3D 与字幕。
+                    Require(string.Join(',', rows)
+                        == "播放状态,收藏,重制,类型,家长评分,工作室,年份,状态,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
+                        $"电视剧库的筛选面板与网页端不同：{string.Join(',', rows)}");
+                }
+                else
+                {
+                    Require(rows.Contains("画质") && rows.Contains("字幕") && !rows.Contains("状态"),
+                        $"电影库的筛选面板不对：{string.Join(',', rows)}");
+                }
+
+                // 这一趟之前已经开着「类型：动画」，所以比的是「多了两条」，不是「等于两条」。
+                var filterCountBefore = page.ViewModel.FilterCount;
+                var playState = page.FilterPane.ViewModel.Rows.OfType<FilterSelectRow>().First(row => row.Label == "播放状态");
+                // 网页端只在 Movie／Episode／Trailer／Audio／MusicVideo／Video 的 visibleSettings 里放
+                // IsResumable（listcontroller.js 的 getVisibleFilters），剧集没有断点，所以「节目」这一页
+                // 的下拉里没有「可继续播放」（EmbyFilterBy.ChoicesFor 的 NotFor 就是这一条）。
+                Require(string.Join(',', playState.Choices)
+                    == (collection == "movies" ? "全部,已播放,未播放,可继续播放" : "全部,已播放,未播放"),
+                    $"播放状态的选项不对：{string.Join(',', playState.Choices)}");
+                playState.SelectedIndex = 2;
+                await UntilAsync(() => !page.ViewModel.Busy);
+                Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal))
+                    .Contains("IsUnplayed", StringComparison.Ordinal), "播放状态没有真的发出去");
+
+                var favorite = page.FilterPane.ViewModel.Rows.OfType<FilterSwitchRow>().First(row => row.Label == "收藏");
+                favorite.IsOn = true;
+                await UntilAsync(() => !page.ViewModel.Busy);
+                Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal))
+                    .Contains("IsFavorite", StringComparison.Ordinal), "收藏开关没有真的发出去");
+                Require(page.ViewModel.FilterCount == filterCountBefore + 2 && page.FilterPane.ViewModel.Rows.Count == rows.Count,
+                    $"改了筛选之后徽标或面板行数不对（徽标 {filterCountBefore} → {page.ViewModel.FilterCount}，行 {page.FilterPane.ViewModel.Rows.Count}/{rows.Count}）");
+                await SaveProbeScreenAsync($"library-{collection}-filter-screen.png");
+
+                // 清空会整份重建，旧行对象不再代表屏上那一行 —— 所以读的是重建后的那一批。
+                page.FilterPane.ViewModel.ClearCommand.Execute(null);
+                await UntilAsync(() => !page.ViewModel.Busy);
+                Require(page.ViewModel.Filters.IsBlank
+                    && page.FilterPane.ViewModel.Rows.OfType<FilterSelectRow>().First(row => row.Label == "播放状态").SelectedIndex == 0
+                    && !page.FilterPane.ViewModel.Rows.OfType<FilterSwitchRow>().First(row => row.Label == "收藏").IsOn,
+                    "清空筛选之后控件没有回到全部");
+
+                page.CloseFilter();
+                await SettleAsync();
+                Require(page.FilterOverlay.Visibility == Visibility.Collapsed, "筛选面板关不上");
                 // 设置面板：网页端那颗齿轮里的四组东西。这里走的是用户点齿轮的同一条路 —— 打开面板、
                 // 读面板上的控件、改一处、看请求与版面跟着变。网页端那颗 ⋯ 本身就是设置键，所以这一页
                 // 只留一颗齿轮，不再有第二个「更多」。

@@ -334,7 +334,7 @@ internal sealed partial class ShellNavigationProbe
         {
             var path = request.RequestUri!.AbsolutePath;
             if (path.EndsWith("/Views", StringComparison.Ordinal)) return Json(new { Items = Array.Empty<EmbyItem>(), TotalRecordCount = 0 });
-            if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal)) return Json(new { ServerName = "离线服务器", Version = "4.9.0" });
+            if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal)) return Json(new { ServerName = "离线服务器", Version = "4.10.1.0" });
             if (path.Contains("/Images/", StringComparison.Ordinal)) return new HttpResponseMessage(HttpStatusCode.NotFound);
             if (path.EndsWith("/Seasons", StringComparison.Ordinal)) return Json(new { Items = new[] { Season("a"), Season("b") } });
             if (path.EndsWith("/Episodes", StringComparison.Ordinal))
@@ -372,7 +372,9 @@ internal sealed partial class ShellNavigationProbe
         public bool IsConnected { get; set; } = true;
         /// <summary>假服务器报的账号身份。设置页左栏那一组的显隐靠它拨；可写，好让一条探针走两种账号。</summary>
         public bool? IsAdministrator { get; set; } = true;
-        public Version? ServerVersion => new(4, 9);
+        /// <summary>假服务器报的版本。照用户那一台 4.10.1.0 —— 排序里的「导演」（4.9.0.48 起）、
+        /// 「上次发布集日期」（4.9.0.17 起）与筛选里的「重制」（4.9.0.42 起）都靠它才放得出来。</summary>
+        public Version? ServerVersion => new(4, 10, 1, 0);
         public Task ProbeAsync(CancellationToken token = default) => Task.CompletedTask;
     }
     private sealed class FakeLauncher : ISystemLauncher

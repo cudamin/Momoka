@@ -7,134 +7,169 @@ using Microsoft.UI.Xaml;
 namespace Momoka.Shell.ViewModels;
 
 /// <summary>
-/// One tickable box in the filter panel — an on/off option out of <see cref="EmbyFilterBy.All"/>, or one
-/// genre, tag or year the server reported.
+/// One tickable box in a <see cref="FilterValuesRow"/> — one genre, parental rating, studio, tag or year
+/// the server reported.
 /// <para>
-/// One type for both, because the two differ only in what a tick writes: the option's id goes into
-/// <see cref="ItemFilters.Toggles"/>, a value into one of the three lists. That difference is a pair of
-/// delegates handed over at construction, which is the shape <see cref="SettingRow"/> already uses and
-/// for the same reason — the access stays compiled and checked, so a renamed member is a build error
-/// rather than a box that silently stops filtering.
+/// The tick writes through a pair of delegates handed over at construction, which is the shape
+/// <see cref="SettingRow"/> already uses and for the same reason: the access stays compiled and checked,
+/// so a renamed member is a build error rather than a box that silently stops filtering.
 /// </para>
 /// </summary>
 public sealed partial class FilterCheck : ObservableObject
 {
-    private readonly Func<bool> _read;
     private readonly Action<bool> _write;
     private readonly bool _seeded;
-    private bool _reseeding;
 
-    internal FilterCheck(string label, string? query, Func<bool> read, Action<bool> write)
+    internal FilterCheck(string label, bool isChecked, Action<bool> write)
     {
         Label = label;
-        Query = query;
-        _read = read;
         _write = write;
 
-        IsChecked = read();
+        IsChecked = isChecked;
 
-        // Set last, so seeding the box above did not count as ticking it. A flag per box rather than one
-        // 「syncing」 flag over the whole panel, which is the choice SettingChoiceRow explains: the
-        // panel-wide version also had to be reasoned about globally, and was left on across a rebuild
-        // that awaited anything.
+        // Set last, so seeding the box above did not count as ticking it.
         _seeded = true;
     }
 
-    /// <summary>What the box says: the option's Chinese label, or the genre/tag/year itself.</summary>
+    /// <summary>What the box says: the genre, rating, studio, tag or year itself.</summary>
     public string Label { get; }
-
-    /// <summary>
-    /// The query this box contributes, as <c>Key=Value</c>, for the tooltip — the one place the panel
-    /// admits what it is really sending, which is worth having when a filter comes back empty. Null for a
-    /// genre, tag or year, where the label is already the value and a tooltip would only repeat it.
-    /// </summary>
-    public string? Query { get; }
 
     [ObservableProperty]
     public partial bool IsChecked { get; set; }
 
-    /// <summary>
-    /// Puts the box back in step with the model without writing to it — for a box some other box turned
-    /// off. 已播放 and 未播放 together ask for items that are both, so ticking one drops the other in the
-    /// model, and this is how the drop reaches the screen. Same idea as
-    /// <see cref="SettingNumberRow.Reseed"/>.
-    /// </summary>
-    internal void Reseed() => Reseed(_read());
-
-    private void Reseed(bool value)
-    {
-        _reseeding = true;
-        try { IsChecked = value; }
-        finally { _reseeding = false; }
-    }
-
     partial void OnIsCheckedChanged(bool value)
     {
-        if (!_seeded || _reseeding) return;
+        if (!_seeded) return;
         _write(value);
     }
 }
 
 /// <summary>
-/// One block of the filter panel. Either a heading with a grid of on/off boxes under it, or an
-/// <see cref="Expander"/> whose choices are read off the server the first time it is opened.
+/// One row of the filter panel: a label with a control under it, exactly as Emby's own filter dialog
+/// draws it (<c>modules/filtermenu/filtermenu.template.html</c>).
 /// <para>
-/// The blocks are data and the shapes are markup, which is the arrangement the settings page already
-/// uses: <see cref="Views.FilterSectionTemplates"/> picks the shape for each. Before this the panel built
-/// every <c>CheckBox</c>, <c>Grid</c> and <c>Expander</c> in code and pushed them into a named
-/// <c>StackPanel</c>, so the layout could only be looked at on screen and the tick handlers had to be
-/// attached and detached by hand.
+/// Three shapes — a dropdown, a switch, a dropdown of checkboxes — and one heading in front of the first
+/// row of each group (功能 / 元数据 / 缺少元数据). The rows are data and the shapes are markup, which is
+/// the arrangement the settings page already uses: <see cref="Views.FilterSectionTemplates"/> picks the
+/// shape for each.
 /// </para>
 /// </summary>
-public abstract class FilterSection : ObservableObject
+public abstract class FilterRow : ObservableObject
 {
-    /// <summary>
-    /// The narrowest a box may be before the row wraps. With <c>ItemsStretch="Fill"</c> on the layout the
-    /// boxes then share the row equally, so this decides the column count without naming it: 150 leaves
-    /// room for two across the 360-wide panel and not three.
-    /// </summary>
-    protected const double TwoUp = 150;
-
-    /// <summary>Years are four characters and fit three across; a genre or a tag can be a sentence.</summary>
-    protected const double ThreeUp = 95;
-
-    protected FilterSection(string label, double columnWidth)
+    protected FilterRow(EmbyFilterField field, string? heading)
     {
-        Label = label;
-        ColumnWidth = columnWidth;
+        Field = field;
+        Heading = heading;
     }
 
-    /// <summary>The group name, or the list's name — 状态, 画质, 类型, 年份.</summary>
-    public string Label { get; }
+    /// <summary>The catalogue row this one draws.</summary>
+    public EmbyFilterField Field { get; }
 
-    /// <inheritdoc cref="TwoUp"/>
-    public double ColumnWidth { get; }
+    /// <summary>播放状态, 类型, 预告片, IMDb Id.</summary>
+    public string Label => Field.Label;
 
-    /// <summary>What this block is offering, for the self-check to report on.</summary>
+    /// <summary>
+    /// The group heading to draw above this row, or null. Only the first row of a group carries it, so
+    /// the heading appears once and the rows under it stay a plain column.
+    /// </summary>
+    public string? Heading { get; }
+
+    public Visibility HeadingVisibility => Heading is null ? Visibility.Collapsed : Visibility.Visible;
+
+    /// <summary>What this row is offering, for the self-check to report on.</summary>
     internal abstract IEnumerable<string> Labels { get; }
 }
 
 /// <summary>
-/// A heading and the on/off boxes under it: one of <see cref="EmbyFilterBy.Groups"/>, holding whichever
-/// of its options this grid can actually answer.
+/// A dropdown of mutually exclusive choices — 播放状态, 状态, 预告片, 已锁定. The web client draws these as
+/// <c>&lt;select&gt;</c> boxes; a <see cref="Microsoft.UI.Xaml.Controls.ComboBox"/> is the same thing.
 /// </summary>
-public sealed class FilterToggleGroup : FilterSection
+public sealed partial class FilterSelectRow : FilterRow
 {
-    internal FilterToggleGroup(string heading, IReadOnlyList<FilterCheck> toggles)
-        : base(heading, TwoUp) => Toggles = toggles;
+    private readonly ItemFilters _selection;
+    private readonly Action _changed;
+    private readonly IReadOnlyList<FilterChoice> _choices;
+    private readonly bool _seeded;
 
-    public IReadOnlyList<FilterCheck> Toggles { get; }
+    internal FilterSelectRow(EmbyFilterField field, string? heading, string? preset, ItemFilters selection, Action changed)
+        : base(field, heading)
+    {
+        _selection = selection;
+        _changed = changed;
+        _choices = field.ChoicesFor(preset);
+        Choices = [.. _choices.Select(choice => choice.Label)];
 
-    internal override IEnumerable<string> Labels => Toggles.Select(toggle => toggle.Label);
+        var current = selection.Choice(field);
+        var index = _choices.ToList().IndexOf(current);
+        SelectedIndex = index < 0 ? 0 : index;
+
+        _seeded = true;
+    }
+
+    /// <summary>The choice labels, 全部 first — what the dropdown shows.</summary>
+    public IReadOnlyList<string> Choices { get; }
+
+    [ObservableProperty]
+    public partial int SelectedIndex { get; set; }
+
+    internal override IEnumerable<string> Labels => Choices;
+
+    partial void OnSelectedIndexChanged(int value)
+    {
+        if (!_seeded) return;
+        if (value < 0 || value >= _choices.Count) return;
+
+        if (_selection.Select(Field, _choices[value])) _changed();
+    }
+
 }
 
 /// <summary>
-/// One of 类型/标签/年份: an <see cref="Expander"/> whose contents are not in any catalogue, because they
-/// are whatever the rows this grid is listing happen to have. Asked of the server the first time it is
-/// opened, and collapsed unless something in it is already on — a section the user chose from is one they
-/// need to be able to see and untick, and everything else stays out of the way.
+/// A switch — 收藏, 重制, and the three 缺少元数据 rows, where the switch being on means the id is
+/// <b>missing</b> and the query therefore carries <c>false</c>.
 /// </summary>
-public sealed partial class FilterValueSection : FilterSection
+public sealed partial class FilterSwitchRow : FilterRow
+{
+    private readonly ItemFilters _selection;
+    private readonly Action _changed;
+    private readonly bool _seeded;
+
+    internal FilterSwitchRow(EmbyFilterField field, string? heading, ItemFilters selection, Action changed)
+        : base(field, heading)
+    {
+        _selection = selection;
+        _changed = changed;
+        IsOn = selection.IsOn(field);
+        _seeded = true;
+    }
+
+    [ObservableProperty]
+    public partial bool IsOn { get; set; }
+
+    internal override IEnumerable<string> Labels => [Label];
+
+    partial void OnIsOnChanged(bool value)
+    {
+        if (!_seeded) return;
+
+        if (Field.Choices.FirstOrDefault()?.OptionId is not { } id) return;
+        if (EmbyFilterBy.Find(id) is not { } option) return;
+
+        if (_selection.Set(option, value)) _changed();
+    }
+
+}
+
+/// <summary>
+/// A dropdown of checkboxes whose values are not in any catalogue, because they are whatever the rows
+/// this grid is listing happen to have — 类型, 家长评分, 工作室, 标签, 年份.
+/// <para>
+/// The web client draws these as a <c>&lt;select multiple&gt;</c>: closed it says 全部, opened it is a
+/// list you tick several of. That is a button with a flyout here, and the request for the list starts
+/// when the flyout is first opened rather than when the panel is.
+/// </para>
+/// </summary>
+public sealed partial class FilterValuesRow : FilterRow
 {
     private const string Category = "筛选";
 
@@ -142,52 +177,43 @@ public sealed partial class FilterValueSection : FilterSection
     private readonly ItemFilters _selection;
     private readonly FilterPanelViewModel _owner;
 
-    internal FilterValueSection(EmbyFilterList list, ItemFilters selection, FilterPanelViewModel owner)
-        : base(list.Label, list.Key == EmbyFilterBy.Keys.Years ? ThreeUp : TwoUp)
+    internal FilterValuesRow(EmbyFilterField field, EmbyFilterList list, ItemFilters selection, FilterPanelViewModel owner)
+        : base(field, null)
     {
         _list = list;
         _selection = selection;
         _owner = owner;
 
-        ShowHeader();
-
-        // Last, because the setter starts the request. Everything above it is what that request needs.
-        IsExpanded = selection.Values(list.Key).Count > 0;
+        ShowSummary();
     }
 
     public ObservableCollection<FilterCheck> Values { get; } = [];
 
-    /// <summary>The label, plus how many of it are on — the count the collapsed header has to carry.</summary>
+    /// <summary>全部, or 已选 N 项 — what the closed dropdown says.</summary>
     [ObservableProperty]
-    public partial string Header { get; set; } = "";
+    public partial string Summary { get; set; } = "全部";
 
-    /// <summary>
-    /// 正在读取…, a failure, or 这里没有可选的类型. Empty once there are boxes to show instead, and the
-    /// <see cref="TextBlock"/> collapses with it rather than leaving a blank line above the boxes.
-    /// </summary>
+    /// <summary>正在读取…, a failure, or 这里没有可选的类型. Collapsed once there are boxes to show.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(NoteVisibility))]
     public partial string Note { get; set; } = "";
 
-    /// <summary>
-    /// Two-way, and the request starts from the setter rather than from <c>Expander.Expanding</c>: that
-    /// way the section this class opens itself and the one the user opens take the same path.
-    /// </summary>
+    /// <summary>Two-way: the flyout's own open state, and the trigger for the request.</summary>
     [ObservableProperty]
-    public partial bool IsExpanded { get; set; }
+    public partial bool IsOpen { get; set; }
 
     public Visibility NoteVisibility => Note.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
 
     internal override IEnumerable<string> Labels => [Label];
 
-    partial void OnIsExpandedChanged(bool value)
+    partial void OnIsOpenChanged(bool value)
     {
         if (value) _ = FillAsync();
     }
 
     /// <summary>
-    /// Fills this section from the server. Reentrant on purpose — a section that opens itself is opened
-    /// again by the user soon enough — and both callers await the one request, which the panel keeps.
+    /// Fills this row from the server. Reentrant on purpose — a row opened twice is opened again soon
+    /// enough — and both callers await the one request, which the panel keeps.
     /// </summary>
     private async Task FillAsync()
     {
@@ -239,19 +265,18 @@ public sealed partial class FilterValueSection : FilterSection
 
     private FilterCheck Check(string value) => new(
         value,
-        null,
-        () => _selection.Values(_list.Key).Contains(value),
+        _selection.Values(_list.Key).Contains(value),
         on =>
         {
             if (!_selection.SetValue(_list.Key, value, on)) return;
 
-            ShowHeader();
+            ShowSummary();
             _owner.Notify();
         });
 
-    private void ShowHeader()
+    private void ShowSummary()
     {
         var count = _selection.Values(_list.Key).Count;
-        Header = count == 0 ? Label : $"{Label} · 已选 {count}";
+        Summary = count == 0 ? "全部" : $"已选 {count} 项";
     }
 }

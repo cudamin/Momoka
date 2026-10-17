@@ -2,6 +2,21 @@
 
 最后更新：2026-10-17
 
+## 媒体库「电视节目 → 节目」分区照网页版收口：排序、筛选与左上角库名（2026-10-17 用户令）
+
+用户令（原话）：「复刻网页的的 电视节目-节目 分区 排序（图1）过滤器（图2/3）设置（图4）左上角参考网页版加上电视节目（图5）」，附五张网页端截图。动手前读了 `CLAUDE.md`、shell 技能与 emby 协议技能，并再一次抓了那台 4.10.1.0 的网页端源码（`modules/filtermenu/filtermenu.template.html`／`.js`、`tabbedview/listcontroller.js`、`itemmanager/baseitemcontroller.js`、`strings/zh-CN.json`）逐条核对，没有凭截图猜。本轮在主树动手，**保留进入本轮时那一批未提交工作**（详情页、主页实时、Plex、删服务器管理页等），只动媒体库这一页；**图4 那张设置面板上一轮已照网页端做完，本轮只用它核对，无改动**。
+
+- **左上角是库名，分类栏在右**：库名不再随分类栏出现而收起。`LibraryPage.ApplyHeaderLayout` 用标题的实测宽度给分类栏留余量（实测不到就按标题宽 0.4 倍、上限 240 估），分类栏右对齐并把剩下的宽度吃满，工具栏整排贴左；窄窗里分类自己折行，不压库名。
+- **排序菜单十三条、按字段名排**：`EmbySortBy` 整体重写成扁平目录 + `StringComparer.Ordinal`（网页端 `sortBy.sort(compareByName)` 就是 `a < b`，中文按码位，于是「标题」落在「播放时长」与「随机」之间）。电视剧库「节目」那一页十三条：IMDb 评分、上次发布集日期、上次添加集日期、加入日期、发行日期、家长评分、导演、年份、影评人评分、播放日期、播放时长、标题、随机。菜单从 `MenuFlyout` 改成 `Flyout` + `ListView`：网页端一行是「勾 + 字段名 + 方向箭头」，`MenuFlyoutItem` 画不出右端第二个可点的东西；点箭头翻方向（`FlipSort`），点字换字段，顶上不再有「升序／降序」两颗。版本门控照网页端：源分辨率 4.7.3、上次发布集日期 4.9.0.17、导演 4.9.0.48，未知版本/未知类型一律 fail open。
+- **筛选面板照网页端那一列字段重做**：`EmbyFilterBy` 从「20 个开关五组」改成字段目录（`EmbyFilterField`：Id/Label/Kind/Group/Choices/ListKey/NotFor/OnlyFor/MinServerVersion），结构转录自 `filtermenu.template.html`，显隐规则转录自 `getVisibleFilters`。电视剧库十七条：播放状态（下拉）、收藏／重制（开关，4.9.0.42 起）、类型、家长评分、工作室、标签、年份（可勾选的下拉）、状态（下拉，仅剧集）｜功能×4｜元数据×2｜缺少元数据×3。**电影库才有的「媒体信息」整组**（画质／3D／字幕）对剧集不出现 —— 剧集自己没有流，服务器答不了这几项。五张可选清单（`/Genres`、`/OfficialRatings`、`/Studios`、`/Tags`、`/Years`）端点名即参数键，名称类用 `|` 分隔、枚举与年份用 `,`；「缺少元数据」三个开关是**反过来**的（打开发 `HasImdbId=false`）。
+- **面板是页内模态层，不是浮层**：与设置面板同一套做法（整层遮罩、点外面关掉、面板自己一颗 ✕）—— 上一轮踩过：亚克力浮层会把底下的卡片墙透上来。`DataTemplateSelector` 的键从 `ToggleGroup`/`Values` 换成 `Select`/`Switch`/`Values`，`FilterSelectRow`（下拉，同字段选项互斥，`ItemFilters.Select` 清掉同字段其它选项再勾这一项）、`FilterSwitchRow`、`FilterValuesRow`（展开时才问服务器要值，摘要写「已选 N 项」）。
+- **`ItemFilters` 补两张清单与三个下拉帮手**：新增 `OfficialRatings` 与 `Studios`，`Count`/`IsBlank`/`Clear`/`Clone`/`Values`/`Describe` 全部跟上；新增 `Select(field, choice)`／`Choice(field)`／`IsOn(field)` —— 「播放状态」一行三个选项互斥，选「未播放」要把「已播放」清掉。
+- **测试**：`EmbyTests` 的排序 9 条、筛选约 20 条全部按网页端重写（含「电视剧-节目那一页就是网页端那十三条」「序数顺序」「筛选：电视剧-节目那一页的行与顺序照网页端」「播放状态是一个下拉，选项互斥」「缺少元数据是反过来的开关」「目录本身是自洽的」等）。**1870 项全部通过、0 失败、0 跳过**（55570 ms）。
+- **探针**：「电影与电视剧网页分类、工具栏、作用域及主题」一条补断言 —— 库名在左上角且不被分类栏压住（1100／760／520／360 四档）、排序菜单十三条与序数顺序、勾与箭头只在选中那一行、筛选面板十七条（电影库断言有 媒体信息、没有 状态）、播放状态选「未播放」与收藏开关真的进了查询、清空后控件回「全部」、点外面与 ✕ 都关得上，另存 `library-{库}-sort-screen.png` 与 `library-{库}-filter-screen.png`。**87 项、86 通过**，唯一失败是上一轮就红着的「隐藏首页行不请求」（主页那一批未提交工作留下的旧红，与本轮无关，没有洗绿）。
+- **四道闸门**：1 完整 Release 方案 **0 警告、0 错误**，`dotnet format whitespace --verify-no-changes` 退出 0；2 **1870 项全部通过、0 失败、0 跳过**；3 `tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（**540 文件、282.6 MB，11 GLSL／4 HOOK 逐文件校验通过**）；4 **红 ｜ 检查 186、失败行 1；消失 0、降级 1、新增 0**（`artifacts/selfcheck/run-8df2eaeeb72f4b2584bb3c7bb5caf3a7`）—— 失败的是 `集页首屏（文件页）`「集带 779–1106（出屏）」，前三轮同一条同 11 像素，真实库换片后那集简介变长留下的旧红，**没有改基线、没有洗绿**。
+- **基线与句柄**：`SortButton.Flyout` 由 `MenuFlyout` 换成 `Flyout` + `SortList`（去掉分组分隔线），`FilterButton` 去掉 `Button.Flyout`、新增 `FilterOverlay`/`FilterScrim`，`FilterPanel.xaml` 新增 `FilterCloseButton`/`FilterRows`；`Agreements.txt` 里 `FilterFlyout` 退役。
+- **未验证（如实说）**：① 全程假传输、假海报，**没有在内网库上点过这一页的排序与筛选** —— 网页端源码是用户授权访问的那台 4.10.1.0，但客户端这一轮没连过真服务器；② 截图里下拉全是收着的（播放状态、年份、类型、家长评分、工作室、标签、状态），选项文案是照网页端 `zh-CN.json` 与 `filtermenu.js` 的取值转写的，不是从截图逐字读的；③ 「可继续播放」在剧集页不出现，依据是网页端 `getVisibleFilters` 只对 ``／Movie／Episode／Trailer／Audio／MusicVideo／Video 推 `IsResumable`，**没有在真库上验过「剧集带 `IsResumable=true` 返回空」**；④ 十三条排序只核到字符串层面，真实排序结果（尤其 IMDb 评分、影评人评分、上次发布集日期）没有实测；⑤ 头部只在探针四个宽度档看过，没有最大化与 4K。
+
 ## 电视剧库「推荐」页照网页版做成三排货架（2026-10-17 用户令）
 
 用户令（原话）：「复刻网页端的推荐页面，三个分区 继续观看、最新集、最近发布的剧集」，附网页端截图。动手前读了 `CLAUDE.md`、shell 技能与 emby 协议技能。本轮在主树动手，**保留进入本轮时那一批未提交工作**（详情页、主页实时、Plex、删服务器管理页），只动媒体库这一页。

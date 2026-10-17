@@ -12,24 +12,34 @@ using Microsoft.UI.Xaml;
 namespace Momoka.Shell.ViewModels;
 
 /// <summary>
-/// One line of the sort flyout: a key to choose, or the rule that a group boundary was crossed.
+/// One line of the sort menu: a key to choose, whether it is the one in force, and which way it runs.
 /// <para>
-/// The flyout is still built out of <c>RadioMenuFlyoutItem</c>s by the page, because a
-/// <c>MenuFlyout</c> has an <c>Items</c> list and no <c>ItemsSource</c> — there is nothing for a
-/// template to bind to. What moved here is every decision that loop used to make for itself: which
-/// keys this grid may offer, where the separators go, and which one is ticked. The page's loop is now
-/// a translation with no judgement in it, and the list can be read without a window on screen.
+/// The menu is a <c>ListView</c> in a flyout rather than a <c>MenuFlyout</c>, because the web client's
+/// row is 「勾 + 字段名 + 方向箭头」 and a <c>MenuFlyoutItem</c> can draw a check or an icon but not a
+/// second pressable thing at the right edge. Every decision that row needs is made here — which keys this
+/// grid may offer, their order, which one is ticked, which arrow it carries — so the page's loop is a
+/// translation with no judgement in it and the list can be read without a window on screen.
 /// </para>
 /// </summary>
-/// <param name="Option">The key, or null for a separator.</param>
-public sealed record SortEntry(EmbySortOption? Option, bool IsChecked)
+/// <param name="Option">The key.</param>
+/// <param name="IsChecked">Whether this is the key in force.</param>
+/// <param name="Descending">Which way it runs; only drawn on the ticked row.</param>
+public sealed record SortEntry(EmbySortOption Option, bool IsChecked, bool Descending)
 {
-    /// <summary>The group boundary. One instance: it carries no state and there are eighteen of them.</summary>
-    public static SortEntry Divider { get; } = new(null, false);
+    /// <summary>What the row says.</summary>
+    public string Label => Option.Label;
 
-    public bool IsSeparator => Option is null;
+    /// <summary>The tick, or nothing at all — the empty column is what keeps the labels aligned.</summary>
+    public Visibility CheckVisibility => IsChecked ? Visibility.Visible : Visibility.Collapsed;
 
-    public string Label => Option?.Label ?? "";
+    /// <summary>The direction arrow, only on the row in force.</summary>
+    public Visibility ArrowVisibility => CheckVisibility;
+
+    /// <summary>The arrow itself: the same two glyphs the toolbar's sort button uses.</summary>
+    public string Glyph => char.ConvertFromUtf32(Descending ? 0xE70D : 0xE70E);
+
+    /// <summary>What pressing the arrow does, for its accessible name.</summary>
+    public string ArrowName => Descending ? "改为升序" : "改为降序";
 }
 
 /// <summary>
@@ -427,7 +437,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility DirectPlayVisibility => Show(!IsSectionLibrary
         || (!IsBrowseIndex && _firstPage && Cards.Any(card => card.Item.IsPlayable)));
     public string TotalLabel => _total < 0 ? _pageFailed ? "加载失败" : "正在加载" : $"共 {_total} 项";
-    public string ToolbarSortLabel => SortLabel == "标题名称" ? "标题" : SortLabel;
+    public string ToolbarSortLabel => SortLabel;
 
     internal async Task ChooseSectionAsync(LibrarySection section)
     {
@@ -1076,21 +1086,25 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (_request is null) return [];
 
         var preset = SortPreset;
-        var entries = new List<SortEntry>();
-        string? previousGroup = null;
 
-        foreach (var option in EmbySortBy.For(preset, SourceServerVersion))
-        {
-            if (!SupportsSort(option.ValueOf(preset))) continue;
-            // Separators rather than headings: nineteen keys need the grouping to be visible, and a
-            // heading row in a MenuFlyout can only be faked with a disabled item.
-            if (previousGroup is not null && option.Group != previousGroup) entries.Add(SortEntry.Divider);
+        return
+        [
+            .. EmbySortBy.For(preset, SourceServerVersion)
+                .Where(option => SupportsSort(option.ValueOf(preset)))
+                .Select(option => new SortEntry(option, option.ValueOf(preset) == SortKey, SortDescending))
+        ];
+    }
 
-            previousGroup = option.Group;
-            entries.Add(new SortEntry(option, option.ValueOf(preset) == SortKey));
-        }
+    /// <summary>
+    /// The arrow on the ticked row: same field, other direction. Guarded rather than trusting the caller,
+    /// because a menu rebuilt while the query was in flight can be pressed for a key that is no longer it.
+    /// </summary>
+    internal void FlipSort(EmbySortOption option)
+    {
+        if (!_active || !SourcesAvailable || _request is null || Aggregated) return;
+        if (option.ValueOf(SortPreset) != SortKey) return;
 
-        return entries;
+        SortDescending = !SortDescending;
     }
 
     /// <summary>A key was picked out of the flyout.</summary>

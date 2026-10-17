@@ -494,6 +494,17 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnHeaderSizeChanged(object sender, SizeChangedEventArgs e) => ApplyHeaderLayout();
 
+    /// <summary>
+    /// How much of the header row the library's name takes, for the tab strip to be measured against.
+    /// The measured width is the honest one, but it is zero on the first pass — before the title has been
+    /// laid out once — and a zero there would let the tabs run the whole width and sit on top of it.
+    /// </summary>
+    private double TitleWidth()
+    {
+        var measured = LibraryTitle.ActualWidth;
+        return measured > 0 ? measured + 24 : Math.Min(240, HeaderLayout.ActualWidth * 0.4);
+    }
+
     /// <summary>按内容区宽度给搜索区留出对称空间；侧栏、按钮文字和来源显隐都参与实际测量。</summary>
     private void ApplyHeaderLayout()
     {
@@ -504,9 +515,12 @@ public sealed partial class LibraryPage : Page, IShellContent
         PageRoot.RowSpacing = search ? 8 : 20;
         HeaderGrid.RowSpacing = search ? 0 : 16;
         HeaderLayout.RowSpacing = search ? 16 : 20;
-        LibraryTitle.Visibility = ViewModel.IsSectionLibrary ? Visibility.Collapsed : Visibility.Visible;
-        LibrarySectionsSurface.MaxWidth = width;
-        ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right : HorizontalAlignment.Center;
+        // 网页端这一行是「库名在左、分类在右」，所以媒体库这一页的标题不再收起 —— 2026-10-17 用户令
+        // 「左上角参考网页版加上电视节目」。分类栏占右边那一格，宽度是页面宽度减掉标题量出来的那一截，
+        // 窄窗里它自己折行，而不是压到标题上。
+        LibraryTitle.Visibility = Visibility.Visible;
+        LibrarySectionsSurface.MaxWidth = Math.Max(0, width - TitleWidth());
+        ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right : HorizontalAlignment.Left;
         Grid.SetRow(SearchSurface, 1);
         Grid.SetRow(LibraryTitle, 0);
         Grid.SetRow(ToolbarSurface, search ? 0 : 1);
@@ -645,73 +659,82 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnSortMenuOpening(object sender, object e) => BuildSortMenu();
 
     /// <summary>
-    /// Builds the flyout and hands back the labels it put there, so the self-check reports on the real
+    /// Fills the flyout and hands back the labels it put there, so the self-check reports on the real
     /// menu rather than on a copy of this loop.
+    /// <para>
+    /// 一列扁平的条目，按标签排序（<see cref="LibraryViewModel.SortEntries"/> 决定），选中的那一条左边一个
+    /// 勾、右边一个箭头 —— 网页端就是这个样子。方向不再是菜单顶上那两颗「升序／降序」：它挂在选中的那一条
+    /// 上，点箭头翻方向，点字换字段。两件事分在两处，是因为它们本来就是两件事。
+    /// </para>
     /// </summary>
     internal IReadOnlyList<string> BuildSortMenu()
     {
-        SortMenu.Items.Clear();
-
-        var labels = new List<string>();
-        var group = "library-sort-" + Guid.NewGuid().ToString("N");
-        var ascending = new RadioMenuFlyoutItem { Text = "升序", GroupName = group + "-direction", IsChecked = !ViewModel.SortDescending };
-        var descending = new RadioMenuFlyoutItem { Text = "降序", GroupName = group + "-direction", IsChecked = ViewModel.SortDescending };
-        AutomationProperties.SetAutomationId(ascending, "LibrarySortAscending");
-        AutomationProperties.SetAutomationId(descending, "LibrarySortDescending");
-        ascending.Click += (_, _) => ViewModel.SortDescending = false;
-        descending.Click += (_, _) => ViewModel.SortDescending = true;
-        SortMenu.Items.Add(ascending);
-        SortMenu.Items.Add(descending);
-        SortMenu.Items.Add(new MenuFlyoutSeparator());
-
-        foreach (var entry in ViewModel.SortEntries())
-        {
-            if (entry.Option is not { } option)
-            {
-                SortMenu.Items.Add(new MenuFlyoutSeparator());
-                continue;
-            }
-
-            // A fresh group per opening keeps direction and key radio states independent,
-            // without joining the groups owned by another page's menu.
-            var item = new RadioMenuFlyoutItem
-            {
-                Text = option.Label,
-                GroupName = group + "-key",
-                Tag = option,
-                IsChecked = entry.IsChecked
-            };
-
-            item.Click += OnSortKeyChosen;
-            SortMenu.Items.Add(item);
-            labels.Add(option.Label);
-        }
-
-        return labels;
+        var entries = ViewModel.SortEntries();
+        SortList.ItemsSource = entries;
+        return [.. entries.Select(entry => entry.Label)];
     }
 
-    private void OnSortKeyChosen(object sender, RoutedEventArgs e)
+    private void OnSortItemClick(object sender, ItemClickEventArgs e)
     {
-        if (sender is RadioMenuFlyoutItem { Tag: EmbySortOption option }) ViewModel.ChooseSort(option);
+        if (e.ClickedItem is not SortEntry entry) return;
+
+        ViewModel.ChooseSort(entry.Option);
+        SortMenu.Hide();
+    }
+
+    /// <summary>箭头：同一字段翻方向。菜单留在原地，网格立刻重查。</summary>
+    private void OnSortDirectionClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: EmbySortOption option }) return;
+
+        ViewModel.FlipSort(option);
+        BuildSortMenu();
     }
 
     /// <summary>Tooling: drops the sort menu open where a screenshot can see it.</summary>
     internal void ShowSortMenu() => SortButton.Flyout?.ShowAt(SortButton);
 
     /// <summary>Tooling: the same for the filter panel.</summary>
-    internal void ShowFilterPanel() => FilterButton.Flyout?.ShowAt(FilterButton);
+    internal void ShowFilterPanel() => OpenFilter();
+
+    /// <summary>工具栏那颗筛选键：打开盖在整页上的面板。</summary>
+    private void OnFilterClicked(object sender, RoutedEventArgs e) => OpenFilter();
 
     /// <summary>
-    /// 需求 5：fills the panel for this grid. Rebuilt on every open rather than once, for the reasons the
-    /// sort menu is — and the server version in particular may still have been in flight when the page
-    /// opened.
+    /// 需求 5：fills the panel for this grid, then puts it on the page. Rebuilt on every open rather than
+    /// once, for the reasons the sort menu is — and the server version in particular may still have been
+    /// in flight when the page opened.
     /// </summary>
-    private void OnFilterOpening(object? sender, object e)
+    internal void OpenFilter()
+    {
+        PrepareFilterPanel();
+        if (_capabilities is null) return;
+
+        FilterOverlay.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>
+    /// Rebuilds the panel without putting it on screen — what the self-check and the filter-changed path
+    /// need. Showing it is <see cref="OpenFilter"/>'s half, and the two are apart so that reading the
+    /// panel never leaves a modal layer over a page a screenshot is about to take.
+    /// </summary>
+    internal void PrepareFilterPanel()
     {
         if (_capabilities is null) return;
 
         FilterPane.Open(ViewModel.Filters, ViewModel.SortPreset, _capabilities.ServerVersion, ViewModel.FetchFilterValuesAsync);
     }
+
+    /// <summary>收起筛选层，回到原来的网格。</summary>
+    internal void CloseFilter()
+    {
+        FilterOverlay.Visibility = Visibility.Collapsed;
+        FilterPane.Dismiss();
+    }
+
+    private void OnFilterScrimClicked(object sender, RoutedEventArgs e) => CloseFilter();
+
+    private void OnFilterCloseRequested(object? sender, EventArgs e) => CloseFilter();
 
     /// <summary>
     /// Builds the filter panel through the page's own handler and hands back what it offered, so the
@@ -720,7 +743,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     internal IReadOnlyList<string> BuildFilterPanel()
     {
-        OnFilterOpening(this, new object());
+        PrepareFilterPanel();
         return FilterPane.Labels;
     }
 

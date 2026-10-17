@@ -235,7 +235,8 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <Border x:Name="LibrarySectionsSurface" Grid.ColumnSpan="2" HorizontalAlignment="Center"
+                <!-- 网页端这一行是「库名在左、分类在右」：标题说这是哪一页，分类说这一页的哪一格。 -->
+                <Border x:Name="LibrarySectionsSurface" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center"
                     Background="{ThemeResource EgSurfaceHoverBrush}" CornerRadius="18" Padding="3"
                     Visibility="{x:Bind ViewModel.SectionVisibility, Mode=OneWay}">
                     <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" />
@@ -291,7 +292,7 @@
                 </Border>
 
                 <Grid x:Name="ToolbarSurface" Grid.ColumnSpan="2" Grid.Row="1" Padding="0"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    HorizontalAlignment="Left" VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.ToolbarVisibility, Mode=OneWay}">
                     <local:WrapRow
                         x:Name="Toolbar"
@@ -343,9 +344,76 @@
                                 <FontIcon FontSize="14" Glyph="{x:Bind ViewModel.SortGlyph, Mode=OneWay}" />
                             </StackPanel>
                             <Button.Flyout>
-                                <MenuFlyout x:Name="SortMenu" Opening="OnSortMenuOpening" Placement="Bottom" />
+                                <!-- 网页端那一列：按字段名排序、选中的那条带勾、右边一个方向箭头。
+                                     用 ListView 而不是 MenuFlyout：MenuFlyoutItem 画不出「右端还有一个可点的
+                                     箭头」这一格。 -->
+                                <Flyout x:Name="SortMenu" Opening="OnSortMenuOpening" Placement="Bottom">
+                                    <Flyout.FlyoutPresenterStyle>
+                                        <Style BasedOn="{StaticResource DefaultFlyoutPresenterStyle}" TargetType="FlyoutPresenter">
+                                            <Setter Property="Padding" Value="4" />
+                                            <Setter Property="MinWidth" Value="0" />
+                                            <Setter Property="MaxWidth" Value="280" />
+                                            <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
+                                            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+                                        </Style>
+                                    </Flyout.FlyoutPresenterStyle>
+                                    <ListView
+                                        x:Name="SortList"
+                                        x:FieldModifier="internal"
+                                        AutomationProperties.Name="排序方式"
+                                        IsItemClickEnabled="True"
+                                        ItemClick="OnSortItemClick"
+                                        SelectionMode="None"
+                                        Width="200">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="MinHeight" Value="32" />
+                                                <Setter Property="Padding" Value="10,0" />
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:SortEntry">
+                                                <Grid ColumnSpacing="8" MinWidth="168">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="18" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <FontIcon
+                                                        FontSize="{StaticResource EgCaptionFontSize}"
+                                                        Glyph="&#xE73E;"
+                                                        VerticalAlignment="Center"
+                                                        Visibility="{x:Bind CheckVisibility}" />
+                                                    <TextBlock
+                                                        Grid.Column="1"
+                                                        Style="{StaticResource EgBodyStyle}"
+                                                        Text="{x:Bind Label}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        VerticalAlignment="Center" />
+                                                    <Button
+                                                        Grid.Column="2"
+                                                        AutomationProperties.Name="{x:Bind ArrowName}"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Click="OnSortDirectionClicked"
+                                                        MinHeight="0"
+                                                        MinWidth="0"
+                                                        Padding="4"
+                                                        Tag="{x:Bind Option}"
+                                                        Visibility="{x:Bind ArrowVisibility}">
+                                                        <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="{x:Bind Glyph}" />
+                                                    </Button>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </Flyout>
                             </Button.Flyout>
                         </Button>
+                        <!-- 网页端的筛选：打开的是盖住整页的一块面板（网页端也是个模态框），不是浮层。
+                             浮层是亚克力的，底下的卡片墙会从面板底下透上来 —— 设置面板当初就是因为这个改成
+                             页内模态层的，这一块跟着它。 -->
                         <Button
                             x:Name="FilterButton"
                             Style="{StaticResource LibraryPillStyle}" Width="{x:Bind ViewModel.FilterButtonWidth, Mode=OneWay}" Padding="0"
@@ -354,6 +422,7 @@
                             Visibility="{x:Bind ViewModel.FilterVisibility, Mode=OneWay}"
                             HorizontalContentAlignment="Center"
                             MinWidth="0"
+                            Click="OnFilterClicked"
                             ToolTipService.ToolTip="{x:Bind ViewModel.FilterTooltip, Mode=OneWay}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
                                 <FontIcon FontSize="14" Glyph="&#xE71C;" />
@@ -364,26 +433,6 @@
                                     Value="{x:Bind ViewModel.FilterCount, Mode=OneWay}"
                                     Visibility="{x:Bind ViewModel.FilterBadgeVisibility, Mode=OneWay}" />
                             </StackPanel>
-                            <Button.Flyout>
-                                <!-- Built in code on every open, from EmbyFilterBy plus whatever the server
-                                     says this grid's rows actually contain: see FilterPanel. -->
-                                <Flyout x:Name="FilterFlyout" Opening="OnFilterOpening" Placement="BottomEdgeAlignedRight">
-                                    <Flyout.FlyoutPresenterStyle>
-                                        <!-- BasedOn is not optional: a FlyoutPresenter style without it
-                                             replaces the implicit style that carries the control's template,
-                                             and the panel would come up as unpainted content with no border. -->
-                                        <Style BasedOn="{StaticResource DefaultFlyoutPresenterStyle}" TargetType="FlyoutPresenter">
-                                            <Setter Property="Padding" Value="16,12,16,16" />
-                                            <Setter Property="MinWidth" Value="0" />
-                                            <Setter Property="MaxWidth" Value="440" />
-                                            <Setter Property="MaxHeight" Value="620" />
-                                            <Setter Property="ScrollViewer.HorizontalScrollMode" Value="Disabled" />
-                                            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-                                        </Style>
-                                    </Flyout.FlyoutPresenterStyle>
-                                    <local:FilterPanel x:Name="FilterPane" Changed="OnFilterChanged" />
-                                </Flyout>
-                            </Button.Flyout>
                         </Button>
                         <!-- 网页端那颗齿轮：视图、图像大小、分组、显示字段。原来 ⋯ 里那个「视图」三选一的
                              子菜单由它接手 —— 那三档只是网页端七档里的三档，图像大小和显示字段也没有入口。
@@ -635,6 +684,38 @@
             Visibility="Collapsed" />
         <local:MoviePilotVersionsView x:Name="MoviePilotResources" Grid.Row="2" Visibility="Collapsed" />
         <local:AniBtSearchPanel x:Name="AniBtPanel" Grid.Row="2" Visibility="Collapsed" />
+
+        <!-- 筛选面板盖在整页上。与设置面板同一套做法：铺满整层、点外面关掉、面板自己一颗 ✕。 -->
+        <Grid
+            x:Name="FilterOverlay"
+            x:FieldModifier="internal"
+            Grid.RowSpan="3"
+            Visibility="Collapsed">
+            <Button
+                x:Name="FilterScrim"
+                x:FieldModifier="internal"
+                AutomationProperties.Name="关闭筛选"
+                Background="{ThemeResource EgScrimBrush}"
+                BorderThickness="0"
+                Click="OnFilterScrimClicked"
+                CornerRadius="0"
+                HorizontalAlignment="Stretch"
+                IsTabStop="False"
+                Padding="0"
+                VerticalAlignment="Stretch">
+                <Button.Resources>
+                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgScrimBrush" />
+                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
+                </Button.Resources>
+            </Button>
+            <local:FilterPanel
+                x:Name="FilterPane"
+                x:FieldModifier="internal"
+                Changed="OnFilterChanged"
+                CloseRequested="OnFilterCloseRequested"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center" />
+        </Grid>
 
         <!-- 设置面板盖在整页上（网页端那颗齿轮打开的就是一块模态框）。铺满三层，压住搜索、工具栏与网格。
              关掉有两条路：面板上那颗 ✕，或者点面板外面那片空位（铺满整层的遮罩按钮，三态同色，

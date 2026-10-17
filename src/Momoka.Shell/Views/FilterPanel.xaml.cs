@@ -1,14 +1,15 @@
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 需求 5：the filter panel. All of it is <see cref="FilterPanelViewModel"/>; what is left here is the
-/// contract the library page holds it by.
+/// 筛选面板：网页端 <c>modules/filtermenu</c> 那一块。All of it is <see cref="FilterPanelViewModel"/>;
+/// what is left here is the contract the library page holds it by.
 /// <para>
-/// Nothing in this file draws anything. The blocks are built by the view model and drawn by the templates
+/// Nothing in this file draws anything. The rows are built by the view model and drawn by the templates
 /// in the markup, which is what the 332 lines this replaced were doing by hand — every <c>CheckBox</c>,
 /// <c>Grid</c> and <c>Expander</c> constructed in code, pushed into a named <c>StackPanel</c>, and its
 /// handlers attached and detached around every programmatic change.
@@ -33,26 +34,28 @@ public sealed partial class FilterPanel : UserControl
     /// </summary>
     public event EventHandler? Changed;
 
+    /// <summary>The ✕ was pressed: the page takes the panel off the page.</summary>
+    public event EventHandler? CloseRequested;
+
     internal FilterPanelViewModel ViewModel { get; }
 
     /// <inheritdoc cref="FilterPanelViewModel.Labels"/>
     internal IReadOnlyList<string> Labels => ViewModel.Labels;
 
+    /// <inheritdoc cref="FilterPanelViewModel.RowLabels"/>
+    internal IReadOnlyList<string> RowLabels => ViewModel.RowLabels;
+
     /// <summary>
-    /// Whether every block the view model built has a shape to be drawn in, for the self-check. This is
+    /// Whether every shape the view model built has a template to be drawn in, for the self-check. This is
     /// the one thing about this panel that no amount of correct view-model state would reveal: a
     /// <see cref="DataTemplateSelector"/> that returns null is legal and silent — see
     /// <see cref="FilterSectionTemplates"/>, which is a selector this codebase has already been caught by
     /// once — so the panel would come up empty with nothing anywhere saying why.
-    /// <para>
-    /// Asked rather than looked at, because the flyout's content is not in the visual tree until the
-    /// flyout is shown, and the self-check builds this panel without ever opening it.
-    /// </para>
     /// </summary>
     internal bool EveryTemplateResolves =>
-        Resources["EgFilterSections"] is FilterSectionTemplates templates
-        && ViewModel.Sections.Count > 0
-        && ViewModel.Sections.All(section => templates.SelectTemplate(section) is not null);
+        Resources["EgFilterRows"] is FilterSectionTemplates templates
+        && ViewModel.Rows.Count > 0
+        && ViewModel.Rows.All(row => templates.SelectTemplate(row, this) is not null);
 
     /// <inheritdoc cref="FilterPanelViewModel.Open"/>
     internal void Open(
@@ -64,4 +67,22 @@ public sealed partial class FilterPanel : UserControl
 
     /// <inheritdoc cref="FilterPanelViewModel.Dismiss"/>
     internal void Dismiss() => ViewModel.Dismiss();
+
+    private void OnCloseClicked(object sender, RoutedEventArgs e) => CloseRequested?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>
+    /// The checkbox list under a 类型/家长评分/工作室/年份 row was opened. The row asks the server the first
+    /// time this happens rather than when the panel opens: five lists nobody looked at is five requests
+    /// nobody needed.
+    /// </summary>
+    private void OnValuesClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: FilterValuesRow row }) row.IsOpen = true;
+    }
+
+    private void OnValuesClosed(object? sender, object e)
+    {
+        if ((sender as Flyout)?.Target is FrameworkElement { DataContext: FilterValuesRow row })
+            row.IsOpen = false;
+    }
 }

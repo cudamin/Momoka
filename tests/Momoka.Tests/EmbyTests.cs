@@ -476,29 +476,24 @@ internal static class EmbyTests
     }
 
     /// <summary>
-    /// 排序目录。这些值是从 Emby Theater 自带的 listcontroller.js 里抄下来的，不是猜的，
-    /// 所以这里断言的重点是"没有抄错"：复合键的次序、每个键自己的默认方向、
-    /// 以及哪些键在哪种列表里根本没有意义。
+    /// 排序目录。这些值是从 Emby 网页端自己的 <c>baseitemcontroller.js</c>（4.10.1.0）里抄下来的，不是猜的，
+    /// 所以这里断言的重点是"没有抄错"：复合键的次序、每个键自己的默认方向、哪些键在哪种列表里根本没有意义，
+    /// 以及最要紧的一条 —— 菜单是按字段名的序数排的，不是按这个文件的书写顺序。
     /// </summary>
     private static void RegisterSort()
     {
-        Test("排序：需求里的 16 个键一个不少", () =>
+        Test("排序：网页端那一整套键一个不少", () =>
         {
             string[] required =
             [
-                "公众评分", "加入日期", "发行年份", "发行日期", "媒体容器", "媒体码率",
-                "家长分级", "影评指数", "播放次数", "文件名称", "文件大小", "时间长度",
-                "最近播放", "最近更新", "标题名称", "源分辨率"
+                "标题", "节目名称", "顺序编号", "文件名称", "加入日期", "上次添加集日期", "上次发布集日期",
+                "播放日期", "发行日期", "年份", "播放时长", "IMDb 评分", "影评人评分", "家长评分", "导演",
+                "播放次数", "源分辨率", "媒体码率", "媒体容器", "文件大小", "随机"
             ];
 
+            Assert.Equal(required.Length, EmbySortBy.All.Count);
             foreach (var label in required)
                 Assert.True(EmbySortBy.All.Any(option => option.Label == label), $"缺少排序键：{label}");
-
-            foreach (var option in EmbySortBy.All)
-            {
-                Assert.True(option.Value.Length > 0, $"{option.Label} 没有 SortBy 值");
-                Assert.True(EmbySortBy.Groups.Order.Contains(option.Group), $"{option.Label} 的分组不在菜单里");
-            }
 
             var duplicated = EmbySortBy.All.GroupBy(option => option.Value).FirstOrDefault(group => group.Count() > 1);
             Assert.True(duplicated is null, $"有两个键用了同一个值：{duplicated?.Key}");
@@ -509,10 +504,12 @@ internal static class EmbyTests
             // 一律带 SortName 收尾：光按 DateCreated 排，同一次扫描进来的条目顺序就是随机的
             Assert.Equal("DateCreated,SortName", Value("加入日期"));
             Assert.Equal("ProductionYear,PremiereDate,SortName", Value("发行日期"));
-            Assert.Equal("DateLastContentAdded,SortName", Value("最近更新"));
-            Assert.Equal("OfficialRating,SortName", Value("家长分级"));
-            Assert.Equal("CommunityRating,SortName", Value("公众评分"));
+            Assert.Equal("DateLastContentAdded,SortName", Value("上次添加集日期"));
+            Assert.Equal("LastContentPremiereDate,SortName", Value("上次发布集日期"));
+            Assert.Equal("OfficialRating,SortName", Value("家长评分"));
+            Assert.Equal("CommunityRating,SortName", Value("IMDb 评分"));
             Assert.Equal("Resolution,SortName", Value("源分辨率"));
+            Assert.Equal("Director,SortName", Value("导演"));
 
             // 用户列的是 VideoBitRate，Emby 实际排的是整个文件的码率
             Assert.Equal("TotalBitrate,SortName", Value("媒体码率"));
@@ -522,20 +519,33 @@ internal static class EmbyTests
 
             // 日期、评分、大小都是越大越有用；名字和时长反过来
             Assert.True(Option("加入日期").DescendingByDefault);
-            Assert.True(Option("公众评分").DescendingByDefault);
+            Assert.True(Option("IMDb 评分").DescendingByDefault);
             Assert.True(Option("文件大小").DescendingByDefault);
-            Assert.False(Option("标题名称").DescendingByDefault);
-            Assert.False(Option("时间长度").DescendingByDefault, "时长升序：先看短的那些");
+            Assert.False(Option("标题").DescendingByDefault);
+            Assert.False(Option("播放时长").DescendingByDefault, "时长升序：先看短的那些");
             Assert.False(Option("顺序编号").DescendingByDefault);
         });
 
         Test("排序：剧集自己的播放日期是另一个键", () =>
         {
-            var option = Option("最近播放");
+            var option = Option("播放日期");
 
             Assert.Equal("SeriesDatePlayed,SortName", option.ValueOf(EmbySortPreset.Series), "剧本身没有播放日期");
             Assert.Equal("DatePlayed,SortName", option.ValueOf(EmbySortPreset.Movie));
             Assert.Equal("DatePlayed,SortName", option.ValueOf(null));
+
+            // 存下来的是那个特殊值，读回来必须还是这一条，而不是一个认不出的键
+            Assert.Equal(option.Label, EmbySortBy.Find("SeriesDatePlayed,SortName")?.Label);
+        });
+
+        Test("排序：电视剧-节目那一页就是网页端那十三条，顺序也一样", () =>
+        {
+            // 2026-10-17 用户令：复刻网页端「电视节目-节目」的排序菜单，附截图。截图上的次序是
+            // Emby 自己 sort(compareByName) 排出来的（按字符串序数），不是谁写的顺序 —— 所以这里比的是
+            // 整串，多一条、少一条、换一处都算没复刻上。
+            Assert.Equal(
+                "IMDb 评分,上次发布集日期,上次添加集日期,加入日期,发行日期,家长评分,导演,年份,影评人评分,播放日期,播放时长,标题,随机",
+                Labels(EmbySortPreset.Series, new Version(4, 10, 1)));
         });
 
         Test("排序：无意义的键不出现在菜单里", () =>
@@ -545,19 +555,22 @@ internal static class EmbyTests
             Assert.DoesNotContain("源分辨率", series);
             Assert.DoesNotContain("文件大小", series);
             Assert.DoesNotContain("播放次数", series);
-            Assert.Contains("最近更新", series, "剧集正需要这个键");
+            Assert.DoesNotContain("顺序编号", series);
+            Assert.Contains("上次添加集日期", series, "剧集正需要这个键");
+            Assert.Contains("导演", series, "4.9.0.48 起剧集也能按导演排");
 
             var album = Labels(EmbySortPreset.Album);
-            Assert.DoesNotContain("影评指数", album);
+            Assert.DoesNotContain("影评人评分", album);
             Assert.DoesNotContain("媒体容器", album);
 
             var photo = Labels(EmbySortPreset.Photo);
-            Assert.DoesNotContain("时间长度", photo);
-            Assert.DoesNotContain("公众评分", photo);
+            Assert.DoesNotContain("播放时长", photo);
+            Assert.DoesNotContain("IMDb 评分", photo);
 
             var movie = Labels(EmbySortPreset.Movie);
             Assert.DoesNotContain("顺序编号", movie, "电影没有集号");
             Assert.DoesNotContain("节目名称", movie);
+            Assert.DoesNotContain("上次添加集日期", movie, "网页端只给剧集这一支");
             Assert.Contains("媒体码率", movie);
             Assert.Contains("文件名称", movie);
 
@@ -572,24 +585,31 @@ internal static class EmbyTests
             var unknown = Labels(null);
 
             Assert.Contains("媒体码率", unknown);
-            Assert.Contains("时间长度", unknown);
+            Assert.Contains("播放时长", unknown);
             Assert.DoesNotContain("节目名称", unknown, "只对单集有意义的键不能漏出来");
+            Assert.DoesNotContain("上次发布集日期", unknown, "只对剧集有意义的键不能漏出来");
         });
 
-        Test("排序：源分辨率要服务器 4.7.3 以上", () =>
+        Test("排序：每个键各自要的服务器版本", () =>
         {
             Assert.DoesNotContain("源分辨率", Labels(EmbySortPreset.Movie, new Version(4, 7, 2)));
             Assert.Contains("源分辨率", Labels(EmbySortPreset.Movie, new Version(4, 7, 3)));
-            Assert.Contains("源分辨率", Labels(EmbySortPreset.Movie, new Version(4, 9, 1, 40)));
+
+            Assert.DoesNotContain("导演", Labels(EmbySortPreset.Movie, new Version(4, 9, 0, 47)));
+            Assert.Contains("导演", Labels(EmbySortPreset.Movie, new Version(4, 9, 0, 48)));
+
+            Assert.DoesNotContain("上次发布集日期", Labels(EmbySortPreset.Series, new Version(4, 9, 0, 16)));
+            Assert.Contains("上次发布集日期", Labels(EmbySortPreset.Series, new Version(4, 9, 0, 17)));
 
             // 版本还没探到的时候宁可多给一个键：服务器不认识顶多忽略，藏掉就是白藏
             Assert.Contains("源分辨率", Labels(EmbySortPreset.Movie), "版本未知时不该提前藏起来");
+            Assert.Contains("导演", Labels(EmbySortPreset.Movie), "版本未知时不该提前藏起来");
         });
 
         Test("排序：默认键按列表内容挑", () =>
         {
-            Assert.Equal("标题名称", EmbySortBy.Default(EmbySortPreset.Movie).Label);
-            Assert.Equal("标题名称", EmbySortBy.Default(null).Label);
+            Assert.Equal("标题", EmbySortBy.Default(EmbySortPreset.Movie).Label);
+            Assert.Equal("标题", EmbySortBy.Default(null).Label);
 
             // 一季按字母排是唯一肯定错的顺序
             Assert.Equal("顺序编号", EmbySortBy.Default(EmbySortPreset.Episode).Label);
@@ -599,25 +619,23 @@ internal static class EmbyTests
         Test("排序：存下来的值还能认回标签", () =>
         {
             Assert.Equal("加入日期", EmbySortBy.LabelOf(EmbySortBy.DateAdded));
-            Assert.Equal("标题名称", EmbySortBy.LabelOf(EmbySortBy.Name));
+            Assert.Equal("标题", EmbySortBy.LabelOf(EmbySortBy.Name));
             Assert.True(EmbySortBy.Find("DateCreated") is null, "旧的单字段值不再是目录里的键");
             Assert.Equal("", EmbySortBy.LabelOf(null));
         });
 
-        Test("排序：菜单按分组连着排，不会跳来跳回", () =>
+        Test("排序：菜单按字段名的序数排，不是按这个文件的顺序", () =>
         {
-            // 菜单里靠分隔线分组，所以同一组必须是连续的一段
-            var groups = EmbySortBy.All.Select(option => option.Group).ToList();
-            var seen = new List<string>();
-
-            foreach (var group in groups)
+            // Emby 的 compareByName 就是 a < b：中文按码位，于是「标题」落在「播放时长」和「随机」之间。
+            // 这条断言把那个结果钉住，谁改回手写顺序这里就红。
+            foreach (var preset in new[] { null, EmbySortPreset.Movie, EmbySortPreset.Series, EmbySortPreset.Episode })
             {
-                if (seen.Count > 0 && seen[^1] == group) continue;
-                Assert.False(seen.Contains(group), $"分组 {group} 被拆成了两段");
-                seen.Add(group);
+                var labels = EmbySortBy.For(preset, new Version(4, 10, 1)).Select(option => option.Label).ToList();
+                Assert.Equal(string.Join(',', labels.OrderBy(label => label, StringComparer.Ordinal)), string.Join(',', labels));
             }
 
-            Assert.Equal(string.Join(',', EmbySortBy.Groups.Order), string.Join(',', seen), "分组顺序要和菜单一致");
+            Assert.True(EmbySortBy.All.Select(option => option.Label).Distinct().Count() == EmbySortBy.All.Count,
+                "两条菜单项不能同叫一个名字，否则排序不稳定");
         });
 
         static EmbySortOption Option(string label) => EmbySortBy.All.First(option => option.Label == label);
@@ -630,13 +648,129 @@ internal static class EmbyTests
 
     /// <summary>
     /// 筛选目录。这里的每个参数名、每个枚举值和每个分隔符都是从服务器自己的 OpenAPI 文档抄的
-    /// （4.9.x 的 <c>/emby/openapi.json</c> 不需要令牌就能取），所以断言的重点和排序一样是"没有抄错"，
+    /// （4.10 的 <c>/emby/openapi.json</c> 不需要令牌就能取），面板的行与顺序则照网页端的
+    /// <c>filtermenu.template.html</c> 与 <c>getVisibleFilters</c>，所以断言的重点和排序一样是"没有抄错"，
     /// 外加一件排序没有的事：Emby 对不认识的查询参数是直接忽略，抄错了不会报错，只会把整个库原样返回。
     /// </summary>
     private static void RegisterFilters()
     {
-        // 工具栏底下那一行筛选条：那颗按钮上的数字说「筛了几条」，这一行说「筛的是哪几条」，而且每一格能被
-        // 点掉。两句话必须对得上，所以这里逐条比的是「格数 = 那个数」和「点掉一格只掉一条」。
+        Test("筛选：电视剧-节目那一页的行与顺序照网页端", () =>
+        {
+            // 2026-10-17 用户令，附网页端截图。八行无标题的，功能四条，元数据两条，缺少元数据三条；
+            // 媒体信息整组不出现 —— 剧集本身没有媒体流，网页端对它一条画质/字幕都不问。
+            Assert.Equal(
+                "播放状态,收藏,重制,类型,家长评分,工作室,年份,状态,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
+                Rows(EmbySortPreset.Series, new Version(4, 10, 1)));
+
+            // 电影页多出媒体信息那一组，没有剧集状态那一行
+            var movie = EmbyFilterBy.For(EmbySortPreset.Movie, new Version(4, 10, 1)).Select(field => field.Label).ToList();
+            Assert.True(movie.Contains("画质") && movie.Contains("3D") && movie.Contains("字幕"), "电影页缺少媒体信息那一组");
+            Assert.True(!movie.Contains("状态"), "连载/完结只对剧有意义");
+        });
+
+        Test("筛选：分组标题只挂在每组第一行上", () =>
+        {
+            var fields = EmbyFilterBy.For(EmbySortPreset.Series, new Version(4, 10, 1));
+
+            Assert.Equal("播放状态", fields[0].Label);
+            Assert.True(fields[0].Group is null, "第一组没有标题");
+
+            var headings = fields.Where(field => field.Group is not null)
+                .GroupBy(field => field.Group)
+                .ToDictionary(group => group.Key!, group => group.ToList());
+
+            Assert.Equal(string.Join(',', new[] { "功能", "元数据", "缺少元数据" }), string.Join(',', headings.Keys));
+            Assert.Equal(4, headings["功能"].Count);
+            Assert.Equal(2, headings["元数据"].Count);
+            Assert.Equal(3, headings["缺少元数据"].Count);
+
+            // 同一组必须是连续的一段，否则标题会出现两次
+            var seen = new List<string?>();
+            foreach (var group in fields.Select(field => field.Group))
+            {
+                if (seen.Count > 0 && seen[^1] == group) continue;
+                Assert.True(!seen.Contains(group), $"分组 {group} 被拆成了两段");
+                seen.Add(group);
+            }
+        });
+
+        Test("筛选：播放状态是一个下拉，三个选项互斥", () =>
+        {
+            var field = Field("播放状态");
+            Assert.Equal(FilterKind.Select, field.Kind);
+            Assert.Equal("全部,已播放,未播放,可继续播放",
+                string.Join(',', field.ChoicesFor(EmbySortPreset.Movie).Select(choice => choice.Label)));
+
+            // 剧自己没有断点，所以那一行不出现
+            Assert.Equal("全部,已播放,未播放",
+                string.Join(',', field.ChoicesFor(EmbySortPreset.Series).Select(choice => choice.Label)));
+
+            var filters = new ItemFilters();
+            Assert.True(filters.Select(field, field.ChoicesFor(null)[1]));
+            Assert.True(filters.Has("played"));
+            Assert.False(filters.Select(field, field.ChoicesFor(null)[1]), "选同一个不算改动");
+
+            Assert.True(filters.Select(field, field.ChoicesFor(null)[3]));
+            Assert.True(filters.Has("resumable"));
+            Assert.False(filters.Has("played"), "一个下拉只装得下一个答案");
+
+            Assert.True(filters.Select(field, field.ChoicesFor(null)[0]));
+            Assert.True(filters.IsBlank, "选回「全部」就是把这一行关掉");
+            Assert.Equal("全部", filters.Choice(field).Label);
+        });
+
+        Test("筛选：缺少元数据是反过来的开关", () =>
+        {
+            var field = Field("IMDb Id");
+            Assert.Equal(FilterKind.Switch, field.Kind);
+            Assert.Equal("missingImdbId", field.Choices[0].OptionId);
+
+            // 网页端 data-invert：开关打开发的是 false。抄反了就是「有 IMDb Id」而不是「缺少」
+            var option = EmbyFilterBy.Find("missingImdbId")!;
+            Assert.Equal("HasImdbId", option.Key);
+            Assert.Equal("false", option.Value);
+
+            var filters = new ItemFilters();
+            filters.Set(option, true);
+            Assert.Contains("HasImdbId=false", new ItemQuery { Filters = filters }.ToQueryString());
+            Assert.Equal("缺少 IMDb Id", EmbyFilterBy.LabelOf("missingImdbId"));
+        });
+
+        Test("筛选：功能那四条是「有／无」两个方向", () =>
+        {
+            var field = Field("预告片");
+            Assert.Equal("全部,有,无", string.Join(',', field.Choices.Select(choice => choice.Label)));
+
+            var filters = new ItemFilters();
+            filters.Select(field, field.Choices[2]);
+            Assert.Contains("HasTrailer=false", new ItemQuery { Filters = filters }.ToQueryString());
+            Assert.Equal("无预告片", EmbyFilterBy.Chips(filters)[0].Label);
+
+            filters.Select(field, field.Choices[1]);
+            Assert.Contains("HasTrailer=true", new ItemQuery { Filters = filters }.ToQueryString());
+            Assert.Equal("有预告片", EmbyFilterBy.Chips(filters)[0].Label);
+        });
+
+        Test("筛选：五张按值多选的表各有各的清单", () =>
+        {
+            var filters = new ItemFilters();
+
+            foreach (var list in EmbyFilterBy.Lists)
+            {
+                Assert.True(list.Label.Length > 0);
+                filters.SetValue(list.Key, "x", true);
+                Assert.Equal(1, filters.Values(list.Key).Count, $"{list.Label} 存到了别的清单里");
+            }
+
+            Assert.Equal(5, filters.Count);
+
+            // 端点名就是键名，一个方法取五份清单靠的正是这个
+            Assert.Equal("Genres,OfficialRatings,Studios,Tags,Years",
+                string.Join(',', EmbyFilterBy.Lists.Select(list => list.Key)));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => filters.Values("IsHD"));
+        });
+
         Test("筛选条：一条筛选一格，顺序跟面板一样", () =>
         {
             var filters = new ItemFilters();
@@ -644,12 +778,12 @@ internal static class EmbyTests
             filters.Toggles.Add("unplayed");
             filters.Genres.Add("动画");
             filters.Years.Add("2019");
-            filters.Tags.Add("剧场版");
+            filters.Studios.Add("A24");
 
             var chips = EmbyFilterBy.Chips(filters);
 
-            // 开关按目录顺序（未播放在收藏前面），不是按点的顺序；三张列表按面板顺序：类型、标签、年份。
-            Assert.Equal("未播放,收藏,类型：动画,标签：剧场版,年份：2019",
+            // 开关按面板顺序（播放状态在收藏前面），再按面板顺序走五张表：类型、工作室、年份。
+            Assert.Equal("未播放,收藏,类型：动画,工作室：A24,年份：2019",
                 string.Join(',', chips.Select(chip => chip.Label)));
             Assert.Equal(filters.Count, chips.Count);
         });
@@ -688,14 +822,12 @@ internal static class EmbyTests
             foreach (var option in EmbyFilterBy.All)
             {
                 Assert.True(option.Id.Length > 0, "有个筛选项没有 id");
-                Assert.True(option.Label.Length > 0, $"{option.Id} 没有标签");
-                Assert.True(option.Key.Length > 0, $"{option.Label} 没有参数名");
-                Assert.True(option.Value.Length > 0, $"{option.Label} 没有参数值");
-                Assert.True(EmbyFilterBy.Groups.Order.Contains(option.Group), $"{option.Label} 的分组不在面板里");
+                Assert.True(option.Key.Length > 0, $"{option.Id} 没有参数名");
+                Assert.True(option.Value.Length > 0, $"{option.Id} 没有参数值");
 
                 // 互斥项指向的必须是真的存在的 id，否则那条互斥永远不会生效
                 foreach (var excluded in option.Excludes)
-                    Assert.True(EmbyFilterBy.Find(excluded) is not null, $"{option.Label} 排斥了不存在的 {excluded}");
+                    Assert.True(EmbyFilterBy.Find(excluded) is not null, $"{option.Id} 排斥了不存在的 {excluded}");
             }
 
             var duplicatedId = EmbyFilterBy.All.GroupBy(option => option.Id).FirstOrDefault(group => group.Count() > 1);
@@ -705,20 +837,31 @@ internal static class EmbyTests
                 .GroupBy(option => $"{option.Key}={option.Value}")
                 .FirstOrDefault(group => group.Count() > 1);
             Assert.True(duplicatedPair is null, $"有两个筛选项发同一个参数：{duplicatedPair?.Key}");
-        });
 
-        Test("筛选：分组连着排，顺序和面板一致", () =>
-        {
-            var seen = new List<string>();
+            // 每一个选项都得有一行认领它，否则它只能被 Chips 念出来，面板上点不到也点不掉
+            foreach (var option in EmbyFilterBy.All)
+                Assert.True(EmbyFilterBy.FieldOf(option.Id) is not null, $"{option.Id} 没有出现在任何一行里");
 
-            foreach (var group in EmbyFilterBy.All.Select(option => option.Group))
+            // 反过来：每一行引用的选项都得是真的
+            foreach (var field in EmbyFilterBy.Fields)
+                foreach (var choice in field.Choices)
+                    if (choice.OptionId is { } id)
+                        Assert.True(EmbyFilterBy.Find(id) is not null, $"{field.Label} 指向了不存在的 {id}");
+
+            // 一行只许有一个「全部」，而且它排第一
+            foreach (var field in EmbyFilterBy.Fields.Where(field => field.Kind == FilterKind.Select))
             {
-                if (seen.Count > 0 && seen[^1] == group) continue;
-                Assert.False(seen.Contains(group), $"分组 {group} 被拆成了两段");
-                seen.Add(group);
+                Assert.True(field.Choices[0].OptionId is null, $"{field.Label} 的第一个选项不是「全部」");
+                Assert.Equal(1, field.Choices.Count(choice => choice.OptionId is null));
             }
 
-            Assert.Equal(string.Join(',', EmbyFilterBy.Groups.Order), string.Join(',', seen));
+            // 开关行只有一条：一个开关装不下两个答案
+            foreach (var field in EmbyFilterBy.Fields.Where(field => field.Kind == FilterKind.Switch))
+                Assert.Equal(1, field.Choices.Count);
+
+            // 按值多选的行必须指着一张清单
+            foreach (var field in EmbyFilterBy.Fields.Where(field => field.Kind == FilterKind.Values))
+                Assert.True(EmbyFilterBy.Lists.Any(list => list.Key == field.ListKey), $"{field.Label} 没有对应的清单");
         });
 
         Test("筛选：分隔符按键分，抄错一个就是查不到东西", () =>
@@ -754,19 +897,20 @@ internal static class EmbyTests
             Assert.Contains("Filters=IsUnplayed%2CIsFavorite", query, "逗号连接并转义");
         });
 
-        Test("筛选：类型用竖线连接", () =>
+        Test("筛选：类型与工作室用竖线连接", () =>
         {
             var filters = new ItemFilters();
             filters.SetValue("Genres", "动画", true);
             filters.SetValue("Genres", "科幻", true);
+            filters.SetValue("Studios", "A24", true);
             filters.SetValue("Years", "2019", true);
-            filters.SetValue("Years", "2020", true);
 
             var query = new ItemQuery { Filters = filters }.ToQueryString();
 
             Assert.Equal(1, Occurrences(query, "Genres="));
             Assert.Contains("Genres=%E5%8A%A8%E7%94%BB%7C", query, "竖线是 %7C");
-            Assert.Contains("Years=2019%2C2020", query, "年份是逗号");
+            Assert.Contains("Studios=A24", query);
+            Assert.Contains("Years=2019", query, "年份是逗号");
             Assert.DoesNotContain("动画", query, "值必须转义");
         });
 
@@ -849,72 +993,6 @@ internal static class EmbyTests
             Assert.False(filters.Clear());
         });
 
-        Test("筛选：答不了的选项不出现在面板里", () =>
-        {
-            // 电视剧库列的是剧，剧本身没有媒体流，问它有没有字幕答的是空
-            var series = Labels(EmbySortPreset.Series);
-            Assert.DoesNotContain("有字幕", series);
-            Assert.DoesNotContain("高清", series);
-            Assert.DoesNotContain("蓝光原盘", series);
-            Assert.DoesNotContain("可继续播放", series, "剧自己没有断点");
-            Assert.Contains("连载中", series, "剧集状态只在这里有意义");
-            Assert.Contains("收藏", series);
-
-            // 一季里列的是单集，这时候上面那些才答得出来
-            var episode = Labels(EmbySortPreset.Episode);
-            Assert.Contains("有字幕", episode);
-            Assert.Contains("可继续播放", episode);
-            Assert.Contains("未播出", episode);
-            Assert.DoesNotContain("连载中", episode);
-            Assert.DoesNotContain("有预告片", episode, "预告片挂在剧或电影上");
-
-            var movie = Labels(EmbySortPreset.Movie);
-            Assert.Contains("有字幕", movie);
-            Assert.Contains("蓝光原盘", movie);
-            Assert.Contains("3D", movie);
-            Assert.DoesNotContain("连载中", movie);
-            Assert.DoesNotContain("未播出", movie);
-
-            var photo = Labels(EmbySortPreset.Photo);
-            Assert.DoesNotContain("高清", photo);
-            Assert.DoesNotContain("有字幕", photo);
-            Assert.Contains("收藏", photo, "照片也能收藏");
-        });
-
-        Test("筛选：类型不明时不减面板，只藏掉限定键", () =>
-        {
-            var unknown = Labels(null);
-
-            Assert.Contains("有字幕", unknown);
-            Assert.Contains("高清", unknown);
-            Assert.DoesNotContain("连载中", unknown, "只对剧有意义的键不能漏出来");
-            Assert.DoesNotContain("未播出", unknown);
-
-            // 版本还没探到就不该提前藏东西
-            Assert.Equal(
-                Labels(EmbySortPreset.Movie),
-                Labels(EmbySortPreset.Movie, new Version(4, 9, 5)),
-                "4.9 上没有任何选项要藏");
-        });
-
-        Test("筛选：动态分组各有各的清单", () =>
-        {
-            var filters = new ItemFilters();
-
-            foreach (var list in EmbyFilterBy.Lists)
-            {
-                Assert.True(list.Label.Length > 0);
-                filters.SetValue(list.Key, "x", true);
-                Assert.Equal(1, filters.Values(list.Key).Count, $"{list.Label} 存到了别的清单里");
-            }
-
-            Assert.Equal(3, filters.Count);
-            Assert.Throws<ArgumentOutOfRangeException>(() => filters.Values("OfficialRatings"));
-
-            // 端点名就是键名，一个方法取三份清单靠的正是这个
-            Assert.Equal("Genres,Tags,Years", string.Join(',', EmbyFilterBy.Lists.Select(list => list.Key)));
-        });
-
         Test("筛选：副本是断开的", () =>
         {
             var filters = new ItemFilters();
@@ -923,7 +1001,7 @@ internal static class EmbyTests
 
             var copy = filters.Clone();
             copy.Set(Option("hd"), true);
-            copy.SetValue("Genres", "科幻", true);
+            copy.SetValue("Studios", "A24", true);
 
             Assert.Equal(2, filters.Count, "改副本不该动到原来那份");
             Assert.Equal(4, copy.Count);
@@ -937,15 +1015,17 @@ internal static class EmbyTests
             filters.SetValue("Genres", "动画", true);
             filters.SetValue("Genres", "科幻", true);
 
-            // 勾选次序不影响摘要：按目录顺序念，同一份选择每次都念成同一句
+            // 勾选次序不影响摘要：按面板顺序念，同一份选择每次都念成同一句
             Assert.Equal("未播放、收藏  ·  类型：动画、科幻", filters.Describe());
             Assert.Equal("", new ItemFilters().Describe());
         });
 
         static EmbyFilterOption Option(string id) => EmbyFilterBy.All.First(option => option.Id == id);
 
-        static string Labels(string? preset, Version? version = null) =>
-            string.Join(',', EmbyFilterBy.For(preset, version).Select(option => option.Label));
+        static EmbyFilterField Field(string label) => EmbyFilterBy.Fields.First(field => field.Label == label);
+
+        static string Rows(string? preset, Version? version = null) =>
+            string.Join(',', EmbyFilterBy.For(preset, version).Select(field => field.Label));
 
         static int Occurrences(string text, string needle)
         {
@@ -1827,107 +1907,53 @@ internal static class EmbyTests
         }
     }
 
-    // ---- 评分来源 --------------------------------------------------------------
+    // ---- 详情评分 --------------------------------------------------------------
     //
-    // 「加入显示评分改为豆瓣评分的功能，可在设置使用豆瓣、tmdb、烂番茄等平台的评分」。这一族钉的全是屏上看着挺
-    // 正常的坏法：0 分被当成有分、烂番茄的 92 被当成十分制、小数点跟着机器的文化走、以及标签说了一句服务器根本
-    // 没答应的话（把一个来路不明的分说成豆瓣的）。
+    // 「服务端给什么评分就用什么」（2026-10-16 起，设置里那一档「评分来源」整个删掉了）。这一族钉的全是屏上看着挺
+    // 正常的坏法：0 分被当成有分、烂番茄的 92 被当成十分制、小数点跟着机器的文化走，以及大众分没有时忘了退到影评
+    // 指数（服务器明明有一个分，那一格却整块收起来）。
 
     private static void RegisterScoreSource()
     {
-        Test("评分来源：公众评分照旧那样格式化，0 与缺失都当作没有", () =>
+        Test("详情评分：公众评分照旧那样格式化，0 与缺失都当作没有", () =>
         {
             // 这四条是从 ItemDetail.Score 那一条原样搬过来的，行为一字不改。
-            Assert.Equal("8.4", ItemScore.Resolve(new EmbyItem { CommunityRating = 8.4f }, ScoreSource.Community).Text);
-            Assert.Equal("8", ItemScore.Resolve(new EmbyItem { CommunityRating = 8f }, ScoreSource.Community).Text);
-            Assert.Equal("8.4", ItemScore.Resolve(new EmbyItem { CommunityRating = 8.44f }, ScoreSource.Community).Text);
-            Assert.False(ItemScore.Resolve(new EmbyItem { CommunityRating = 0 }, ScoreSource.Community).Any);
-            Assert.False(ItemScore.Resolve(new EmbyItem(), ScoreSource.Community).Any);
-            Assert.Equal("公众评分", ItemScore.Resolve(new EmbyItem { CommunityRating = 8.4f }, ScoreSource.Community).Label);
+            Assert.Equal("8.4", ItemScore.Resolve(new EmbyItem { CommunityRating = 8.4f }).Text);
+            Assert.Equal("8", ItemScore.Resolve(new EmbyItem { CommunityRating = 8f }).Text);
+            Assert.Equal("8.4", ItemScore.Resolve(new EmbyItem { CommunityRating = 8.44f }).Text);
+            Assert.False(ItemScore.Resolve(new EmbyItem { CommunityRating = 0 }).Any);
+            Assert.False(ItemScore.Resolve(new EmbyItem()).Any);
+            Assert.Equal("公众评分", ItemScore.Resolve(new EmbyItem { CommunityRating = 8.4f }).Label);
         });
 
-        Test("评分来源：烂番茄是百分数，取整远离零", () =>
+        Test("详情评分：烂番茄是百分数，取整远离零", () =>
         {
-            var item = new EmbyItem { CommunityRating = 8.4f, CriticRating = 92.4f };
-            var badge = ItemScore.Resolve(item, ScoreSource.Critic);
+            var item = new EmbyItem { CriticRating = 92.4f };
+            var badge = ItemScore.Resolve(item);
 
             Assert.Equal("92%", badge.Text, "0–100 和 0–10 是两种刻度，混了就是屏上一个「92.0 分」");
             Assert.Equal("烂番茄", badge.Label);
 
-            Assert.Equal("93%", ItemScore.Resolve(new EmbyItem { CriticRating = 92.6f }, ScoreSource.Critic).Text);
+            Assert.Equal("93%", ItemScore.Resolve(new EmbyItem { CriticRating = 92.6f }).Text);
 
             // 默认的 Math.Round 是「取偶」，92.5 会答 92；这里要的是符合直觉的 93。
-            Assert.Equal("93%", ItemScore.Resolve(new EmbyItem { CriticRating = 92.5f }, ScoreSource.Critic).Text);
+            Assert.Equal("93%", ItemScore.Resolve(new EmbyItem { CriticRating = 92.5f }).Text);
         });
 
-        Test("评分来源：豆瓣和 TMDB 只在服务器认出那一家时才署它的名", () =>
+        Test("详情评分：大众分在就画大众分，没有才退到影评指数", () =>
         {
-            var plain = new EmbyItem { CommunityRating = 8.4f };
-            Assert.Equal("公众评分", ItemScore.Resolve(plain, ScoreSource.Douban).Label,
-                "认不出豆瓣就老实写公众评分，不能把一个来路不明的分说成豆瓣的");
+            var both = new EmbyItem { CommunityRating = 8.4f, CriticRating = 92f };
+            Assert.Equal("8.4", ItemScore.Resolve(both).Text, "两个槽都有时画大众分");
+            Assert.Equal("公众评分", ItemScore.Resolve(both).Label);
 
-            var douban = new EmbyItem { CommunityRating = 8.4f, ProviderIds = { ["Douban"] = "26816519" } };
-            Assert.Equal("豆瓣", ItemScore.Resolve(douban, ScoreSource.Douban).Label);
-            Assert.Equal("8.4", ItemScore.Resolve(douban, ScoreSource.Douban).Text, "数还是同一个 —— 换的只有名字");
-            Assert.Equal("公众评分", ItemScore.Resolve(douban, ScoreSource.Tmdb).Label, "有豆瓣不等于有 TMDB");
-
-            var tmdb = new EmbyItem { CommunityRating = 7.9f, ProviderIds = { ["Tmdb"] = "1396" } };
-            Assert.Equal("TMDB", ItemScore.Resolve(tmdb, ScoreSource.Tmdb).Label);
-        });
-
-        Test("评分来源：ProviderIds 的键大小写不敏感，而且不靠字典自带的比较器", () =>
-        {
-            // System.Text.Json 给带 setter 的集合属性新建一个默认比较器的字典，把属性初始化器里那个换掉 —— 所以
-            // 真正会坏的那一格是「服务器发来小写键、走反序列化」，而失配的样子是标签静静退回「公众评分」。
-            var json = """
-                {"Name":"活着","Id":"x","CommunityRating":9.3,"ProviderIds":{"douban":"1292365","imdb":"tt0110081"}}
-                """;
-
-            var item = System.Text.Json.JsonSerializer.Deserialize<EmbyItem>(json, EmbyHttp.Json)!;
-
-            Assert.True(ItemScore.Matched(item, ItemScore.DoubanProvider), "小写的 douban 也算认出来了");
-            Assert.Equal("豆瓣", ItemScore.Resolve(item, ScoreSource.Douban).Label);
-            Assert.False(ItemScore.Matched(item, ItemScore.TmdbProvider));
-        });
-
-        Test("评分来源：三级回落，只有两个数都没有才是空", () =>
-        {
-            // 缺的那一格屏上会莫名空掉：服务器明明有一个分，而用户看到的是「选了豆瓣评分就没分了」。
+            // 缺的那一格屏上会莫名空掉：服务器明明有一个分，那一格却整块收起来。
             var criticOnly = new EmbyItem { CriticRating = 92f };
-            var badge = ItemScore.Resolve(criticOnly, ScoreSource.Douban);
+            var badge = ItemScore.Resolve(criticOnly);
             Assert.Equal("92%", badge.Text);
-            Assert.Equal("烂番茄", badge.Label, "标签说的是实际取到的那一档");
+            Assert.Equal("烂番茄", badge.Label, "标签说的是实际取到的那一槽");
 
-            var communityOnly = new EmbyItem { CommunityRating = 8.4f };
-            Assert.Equal("8.4", ItemScore.Resolve(communityOnly, ScoreSource.Critic).Text, "选了烂番茄但服务器没有");
-            Assert.Equal("公众评分", ItemScore.Resolve(communityOnly, ScoreSource.Critic).Label);
-
-            Assert.False(ItemScore.Resolve(new EmbyItem(), ScoreSource.Critic).Any);
-            Assert.False(ItemScore.Resolve(new EmbyItem { CommunityRating = 0, CriticRating = 0 }, ScoreSource.Douban).Any);
-        });
-
-        Test("评分来源：下拉盖住枚举的每一档，标签互不相同", () =>
-        {
-            // 存着的值不在选项里时，设置页那一手会额外造一条「设置文件中的值」塞进下拉 —— 少一档就是屏上多一行
-            // 看不懂的东西。Catalogue 由 Describe 生成，所以这一条是结构性事实，钉的是「别有人改回手写两份」。
-            Assert.Equal(Enum.GetValues<ScoreSource>().Length, ItemScore.Catalogue.Count);
-
-            foreach (var source in Enum.GetValues<ScoreSource>())
-            {
-                Assert.Equal(1, ItemScore.Catalogue.Count(row => row.Value == source), $"{source} 出现的次数");
-                Assert.True(ItemScore.Describe(source).Trim().Length > 0, $"{source} 没有名字");
-            }
-
-            Assert.Equal(ItemScore.Catalogue.Count,
-                ItemScore.Catalogue.Select(row => row.Label).Distinct(StringComparer.Ordinal).Count(),
-                "两档同名，用户就分不出选的是哪一个");
-        });
-
-        Test("评分来源：公众评分那一档必须是 0", () =>
-        {
-            // 设置文件里枚举存的是整数，缺键读出来是 0 —— 那必须落在装机时的行为上。往中间插一档会把用户存着的
-            // 选择悄悄换成另一档。
-            Assert.Equal(0, (int)ScoreSource.Community);
+            Assert.False(ItemScore.Resolve(new EmbyItem()).Any);
+            Assert.False(ItemScore.Resolve(new EmbyItem { CommunityRating = 0, CriticRating = 0 }).Any);
         });
     }
 }

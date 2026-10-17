@@ -20,6 +20,14 @@ public sealed class ItemFilters
 
     public List<string> Genres { get; set; } = [];
 
+    /// <summary>
+    /// 家长评分 — <c>OfficialRatings</c>, pipe-delimited. A list rather than a single value because the
+    /// web client's select is a multi-select and the server takes several ratings at once.
+    /// </summary>
+    public List<string> OfficialRatings { get; set; } = [];
+
+    public List<string> Studios { get; set; } = [];
+
     public List<string> Tags { get; set; } = [];
 
     /// <summary>
@@ -38,7 +46,8 @@ public sealed class ItemFilters
     /// </para>
     /// </summary>
     public int Count =>
-        Toggles.Count(id => EmbyFilterBy.Find(id) is not null) + Genres.Count + Tags.Count + Years.Count;
+        Toggles.Count(id => EmbyFilterBy.Find(id) is not null)
+        + Genres.Count + OfficialRatings.Count + Studios.Count + Tags.Count + Years.Count;
 
     public bool IsEmpty => Count == 0;
 
@@ -48,7 +57,8 @@ public sealed class ItemFilters
     /// filters nothing and shows nothing, so it is empty, but it is not blank and must not be discarded
     /// the first time an older build touches the panel.
     /// </summary>
-    public bool IsBlank => Toggles.Count == 0 && Genres.Count == 0 && Tags.Count == 0 && Years.Count == 0;
+    public bool IsBlank => Toggles.Count == 0 && Genres.Count == 0 && OfficialRatings.Count == 0
+        && Studios.Count == 0 && Tags.Count == 0 && Years.Count == 0;
 
     public bool Has(string id) => Toggles.Contains(id);
 
@@ -59,6 +69,8 @@ public sealed class ItemFilters
     public List<string> Values(string key) => key switch
     {
         EmbyFilterBy.Keys.Genres => Genres,
+        EmbyFilterBy.Keys.OfficialRatings => OfficialRatings,
+        EmbyFilterBy.Keys.Studios => Studios,
         EmbyFilterBy.Keys.Tags => Tags,
         EmbyFilterBy.Keys.Years => Years,
         // Not a user-facing failure: the keys come from EmbyFilterBy.Lists, a constant. Throwing means a
@@ -93,6 +105,55 @@ public sealed class ItemFilters
         return changed;
     }
 
+    /// <summary>
+    /// Picks one choice out of a select field — 播放状态, 预告片, 已锁定 — and clears every other choice of
+    /// that same field first. Returns whether anything changed.
+    /// <para>
+    /// The clearing is per field and not per pair of options: 可继续播放 does not contradict 已播放 the way
+    /// 已播放 contradicts 未播放, but the web client's select holds exactly one of the three, and a
+    /// selection holding two of them is a state the panel could never draw.
+    /// </para>
+    /// </summary>
+    public bool Select(EmbyFilterField field, FilterChoice choice)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+        ArgumentNullException.ThrowIfNull(choice);
+
+        var changed = false;
+
+        foreach (var other in field.Choices)
+        {
+            if (other.OptionId is not { } id || id == choice.OptionId) continue;
+            changed |= Toggles.Remove(id);
+        }
+
+        if (choice.OptionId is not { } pick) return changed;
+        if (Toggles.Contains(pick)) return changed;
+
+        Toggles.Add(pick);
+        return true;
+    }
+
+    /// <summary>
+    /// Which choice of a select field is on, for the panel to seed its dropdown with; the 全部 choice
+    /// when none is.
+    /// </summary>
+    public FilterChoice Choice(EmbyFilterField field)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+
+        return field.Choices.FirstOrDefault(choice => choice.OptionId is { } id && Toggles.Contains(id))
+            ?? field.Choices.First(choice => choice.OptionId is null);
+    }
+
+    /// <summary>Whether the one option a switch field carries is on.</summary>
+    public bool IsOn(EmbyFilterField field)
+    {
+        ArgumentNullException.ThrowIfNull(field);
+
+        return field.Choices.Any(choice => choice.OptionId is { } id && Toggles.Contains(id));
+    }
+
     /// <summary>Turns one value of a dynamic section on or off. Returns whether anything changed.</summary>
     public bool SetValue(string key, string value, bool on)
     {
@@ -113,6 +174,8 @@ public sealed class ItemFilters
 
         Toggles.Clear();
         Genres.Clear();
+        OfficialRatings.Clear();
+        Studios.Clear();
         Tags.Clear();
         Years.Clear();
         return true;
@@ -123,6 +186,8 @@ public sealed class ItemFilters
     {
         Toggles = [.. Toggles],
         Genres = [.. Genres],
+        OfficialRatings = [.. OfficialRatings],
+        Studios = [.. Studios],
         Tags = [.. Tags],
         Years = [.. Years]
     };
@@ -157,9 +222,10 @@ public sealed class ItemFilters
     {
         var sections = new List<string>(4);
 
-        var labels = EmbyFilterBy.All
-            .Where(option => Toggles.Contains(option.Id))
-            .Select(option => option.Label)
+        var labels = EmbyFilterBy.Fields
+            .SelectMany(field => field.Choices)
+            .Where(choice => choice.OptionId is { } id && Toggles.Contains(id))
+            .Select(choice => choice.ChipLabel ?? choice.Label)
             .ToList();
 
         if (labels.Count > 0) sections.Add(string.Join('、', labels));

@@ -5,12 +5,12 @@ using Microsoft.UI.Xaml.Controls;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// Picks the shape for one block of the filter panel from the block's type — a heading with a grid of
-/// boxes, or an expander that fills itself from the server.
+/// Picks the shape for one row of the filter panel from the row's type — a dropdown, a switch, or a
+/// dropdown of checkboxes that fills itself from the server.
 /// <para>
-/// The same arrangement as <see cref="SettingRowTemplates"/>, and for the same reason: the panel's blocks
+/// The same arrangement as <see cref="SettingRowTemplates"/>, and for the same reason: the panel's rows
 /// are decided by <see cref="FilterPanelViewModel"/> from what the grid behind it lists, so their number
-/// and order are not known until it is opened, while their two shapes are fixed. Data for the first,
+/// and order are not known until it is opened, while their three shapes are fixed. Data for the first,
 /// markup for the second.
 /// </para>
 /// <para>
@@ -21,20 +21,23 @@ namespace Momoka.Shell.Views;
 /// </summary>
 public sealed partial class FilterSectionTemplates : DataTemplateSelector
 {
-    public DataTemplate? ToggleGroup { get; set; }
+    public DataTemplate? Select { get; set; }
+
+    public DataTemplate? Switch { get; set; }
 
     public DataTemplate? Values { get; set; }
 
     protected override DataTemplate? SelectTemplateCore(object item) => item switch
     {
-        FilterToggleGroup => ToggleGroup,
-        FilterValueSection => Values,
+        FilterSelectRow => Select,
+        FilterSwitchRow => Switch,
+        FilterValuesRow => Values,
         _ => null
     };
 
     /// <summary>
     /// The overload an <c>ItemsControl</c> actually calls. It does not fall back to the one-argument form
-    /// on its own, so a selector that overrides only that one returns null for every block and the panel
+    /// on its own, so a selector that overrides only that one returns null for every row and the panel
     /// comes up empty — with no error, because returning no template is legal.
     /// </summary>
     protected override DataTemplate? SelectTemplateCore(object item, DependencyObject container) =>

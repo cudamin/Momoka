@@ -57,11 +57,13 @@ public static class EmbySortPreset
 /// <summary>
 /// One entry in the sort menu.
 /// <para>
-/// Transcribed from Emby Theater's own list controller rather than invented, so the composite
-/// tie-breakers (<c>DateCreated,SortName</c> and not a bare <c>DateCreated</c>), the per-key default
-/// direction and the exclusions are the server's behaviour instead of a guess at it. Two of them are
-/// worth knowing about: 媒体码率 sorts on <c>TotalBitrate</c>, not on a video-only bitrate, and
-/// 源分辨率 only exists from server 4.7.3.
+/// Transcribed from Emby's own list controller (<c>modules/common/itemmanager/baseitemcontroller.js</c>,
+/// 4.10.1.0) rather than invented, so the composite tie-breakers (<c>DateCreated,SortName</c> and not a
+/// bare <c>DateCreated</c>), the per-key default direction and the exclusions are the server's behaviour
+/// instead of a guess at it. Three of them are worth knowing about: 媒体码率 sorts on
+/// <c>TotalBitrate</c>, not on a video-only bitrate; 源分辨率 only exists from server 4.7.3; and the
+/// two episode-date keys belong to 剧集 alone, which is why the 电视剧-节目 page's menu is exactly the
+/// thirteen entries the web client shows there.
 /// </para>
 /// </summary>
 public sealed record EmbySortOption
@@ -71,9 +73,6 @@ public sealed record EmbySortOption
 
     /// <summary>The <c>SortBy</c> value, commas and all.</summary>
     public required string Value { get; init; }
-
-    /// <summary>Which section of the menu this belongs under; see <see cref="EmbySortBy.Groups"/>.</summary>
-    public required string Group { get; init; }
 
     /// <summary>
     /// The direction to switch to when this key is chosen. Newest first for a date, A to Z for a
@@ -99,6 +98,12 @@ public sealed record EmbySortOption
         preset is not null && ValueFor.TryGetValue(preset, out var special) ? special : Value;
 
     /// <summary>
+    /// Whether this key can be answered for a preset at all, ignoring the server version.
+    /// </summary>
+    public bool OfferedFor(string? preset) =>
+        preset is null ? OnlyFor.Count == 0 : (OnlyFor.Count == 0 || OnlyFor.Contains(preset)) && !NotFor.Contains(preset);
+
+    /// <summary>
     /// Whether to offer this key at all.
     /// <para>
     /// Both unknowns fail open. An unrecognised preset means a mixed folder or a search result, where
@@ -115,17 +120,20 @@ public sealed record EmbySortOption
             && serverVersion < required)
             return false;
 
-        if (preset is null) return OnlyFor.Count == 0;
-
-        if (OnlyFor.Count > 0 && !OnlyFor.Contains(preset)) return false;
-
-        return !NotFor.Contains(preset);
+        return OfferedFor(preset);
     }
 }
 
 /// <summary>
 /// The sort catalogue. <see cref="All"/> is the whole of it; <see cref="For"/> is what a particular
 /// grid should show.
+/// <para>
+/// <b>The menu is sorted by label, ordinally — not by this file's order.</b> Emby builds its own menu
+/// and then calls <c>sortBy.sort(compareByName)</c>, which is a plain <c>a &lt; b</c> on the localized
+/// string; in Chinese that puts 标题 between 播放时长 and 随机 and nobody would write that order by
+/// hand. Copying the sort instead of the list is what makes the menu read like the web client's, and it
+/// is why <see cref="All"/> below is grouped by subject only for the reader's benefit.
+/// </para>
 /// </summary>
 public static class EmbySortBy
 {
@@ -139,48 +147,28 @@ public static class EmbySortBy
     public const string PlayCount = "PlayCount,SortName";
     public const string Random = "Random";
 
-    /// <summary>Menu section titles, in the order they should appear.</summary>
-    public static class Groups
-    {
-        public const string Naming = "名称";
-        public const string Time = "时间";
-        public const string Rating = "评价";
-        public const string Media = "媒体";
-        public const string Other = "其他";
-
-        public static readonly string[] Order = [Naming, Time, Rating, Media, Other];
-    }
-
     /// <summary>
-    /// Every key, in menu order rather than Emby's. Emby sorts its own menu alphabetically by
-    /// localized name, which in Chinese produces an order nobody can predict, so these are grouped
-    /// by what they sort on instead.
-    /// <para>
-    /// The exclusion lists are Emby's, narrowed to the presets this application can actually produce.
-    /// Its Studio, Genre, Tag, MusicArtist, TvChannel, Program, Playlist, Game and GameSystem cases
-    /// are dropped because no grid here ever lists those.
-    /// </para>
+    /// Every key. The exclusion lists are Emby's, narrowed to the presets this application can actually
+    /// produce; its Studio, Genre, Tag, MusicArtist, TvChannel, Program, Playlist, Game and GameSystem
+    /// cases are dropped because no grid here ever lists those.
     /// </summary>
     public static readonly IReadOnlyList<EmbySortOption> All =
     [
         new()
         {
-            Label = "标题名称",
-            Value = Name,
-            Group = Groups.Naming
+            Label = "标题",
+            Value = Name
         },
         new()
         {
             Label = "节目名称",
             Value = "SeriesSortName,ParentIndexNumber,IndexNumber,SortName",
-            Group = Groups.Naming,
             OnlyFor = [EmbySortPreset.Episode]
         },
         new()
         {
             Label = "顺序编号",
             Value = Number,
-            Group = Groups.Naming,
             NotFor =
             [
                 EmbySortPreset.Movie, EmbySortPreset.Video, EmbySortPreset.Trailer,
@@ -194,28 +182,34 @@ public static class EmbySortBy
             // IsFolder first is Emby's: it keeps sub-directories together at one end instead of
             // interleaving them with the files by name.
             Value = "IsFolder,Filename",
-            Group = Groups.Naming,
             NotFor = [EmbySortPreset.Trailer, EmbySortPreset.Album, EmbySortPreset.Series, EmbySortPreset.BoxSet]
         },
         new()
         {
             Label = "加入日期",
             Value = DateAdded,
-            Group = Groups.Time,
             DescendingByDefault = true
         },
         new()
         {
-            Label = "最近更新",
+            // 剧集自己的两个日期键：Emby 的 switch 只给 Series 这一支，电影、合集和混合列表都没有。
+            Label = "上次添加集日期",
             Value = "DateLastContentAdded,SortName",
-            Group = Groups.Time,
+            OnlyFor = [EmbySortPreset.Series],
             DescendingByDefault = true
         },
         new()
         {
-            Label = "最近播放",
+            Label = "上次发布集日期",
+            Value = "LastContentPremiereDate,SortName",
+            OnlyFor = [EmbySortPreset.Series],
+            DescendingByDefault = true,
+            MinServerVersion = "4.9.0.17"
+        },
+        new()
+        {
+            Label = "播放日期",
             Value = "DatePlayed,SortName",
-            Group = Groups.Time,
             DescendingByDefault = true,
             // A series has no play date of its own; the server exposes its episodes' latest as a
             // separate key.
@@ -229,61 +223,61 @@ public static class EmbySortBy
         {
             Label = "发行日期",
             Value = ReleaseDate,
-            Group = Groups.Time,
             DescendingByDefault = true,
             NotFor = [EmbySortPreset.BoxSet]
         },
         new()
         {
-            Label = "发行年份",
+            Label = "年份",
             Value = "ProductionYear,SortName",
-            Group = Groups.Time,
             DescendingByDefault = true,
             NotFor = [EmbySortPreset.BoxSet]
         },
         new()
         {
-            Label = "时间长度",
+            Label = "播放时长",
             Value = "Runtime,SortName",
-            Group = Groups.Time,
             NotFor = [EmbySortPreset.Photo]
         },
         new()
         {
-            Label = "公众评分",
+            Label = "IMDb 评分",
             Value = Rating,
-            Group = Groups.Rating,
             DescendingByDefault = true,
             NotFor = [EmbySortPreset.Photo, EmbySortPreset.BoxSet]
         },
         new()
         {
-            Label = "影评指数",
+            Label = "影评人评分",
             Value = "CriticRating,SortName",
-            Group = Groups.Rating,
             DescendingByDefault = true,
             NotFor = [EmbySortPreset.Photo, EmbySortPreset.BoxSet, EmbySortPreset.Album, EmbySortPreset.Song]
         },
         new()
         {
-            Label = "家长分级",
+            Label = "家长评分",
             Value = "OfficialRating,SortName",
-            Group = Groups.Rating,
             DescendingByDefault = true
+        },
+        new()
+        {
+            Label = "导演",
+            Value = "Director,SortName",
+            DescendingByDefault = true,
+            MinServerVersion = "4.9.0.48",
+            NotFor = [EmbySortPreset.Photo, EmbySortPreset.BoxSet, EmbySortPreset.Album, EmbySortPreset.Song]
         },
         new()
         {
             Label = "播放次数",
             Value = PlayCount,
-            Group = Groups.Rating,
             DescendingByDefault = true,
-            NotFor = [EmbySortPreset.Series, EmbySortPreset.BoxSet]
+            NotFor = [EmbySortPreset.Series, EmbySortPreset.BoxSet, EmbySortPreset.Photo]
         },
         new()
         {
             Label = "源分辨率",
             Value = "Resolution,SortName",
-            Group = Groups.Media,
             DescendingByDefault = true,
             MinServerVersion = "4.7.3",
             NotFor = [EmbySortPreset.Series, EmbySortPreset.BoxSet, EmbySortPreset.Album, EmbySortPreset.Song]
@@ -294,15 +288,17 @@ public static class EmbySortBy
             // TotalBitrate, not a video-only figure: this is the whole file's rate, which is what
             // Emby indexes and the only one it will sort on.
             Value = "TotalBitrate,SortName",
-            Group = Groups.Media,
             DescendingByDefault = true,
-            NotFor = [EmbySortPreset.Photo, EmbySortPreset.Series, EmbySortPreset.BoxSet, EmbySortPreset.Album]
+            NotFor =
+            [
+                EmbySortPreset.Photo, EmbySortPreset.Series, EmbySortPreset.BoxSet,
+                EmbySortPreset.Album, EmbySortPreset.Song
+            ]
         },
         new()
         {
             Label = "媒体容器",
             Value = "Container,SortName",
-            Group = Groups.Media,
             DescendingByDefault = true,
             NotFor = [EmbySortPreset.Series, EmbySortPreset.BoxSet, EmbySortPreset.Album]
         },
@@ -310,23 +306,24 @@ public static class EmbySortBy
         {
             Label = "文件大小",
             Value = "Size,SortName",
-            Group = Groups.Media,
             DescendingByDefault = true,
             NotFor = [EmbySortPreset.Series, EmbySortPreset.BoxSet, EmbySortPreset.Album]
         },
         new()
         {
-            // Not one of Emby's: it has no random sort in this menu. Ours, and worth keeping for a
-            // library too big to browse.
+            // Emby has had this since 4.8.0.11 for exactly these presets, and puts it last by name.
             Label = "随机",
-            Value = Random,
-            Group = Groups.Other
+            Value = Random
         }
     ];
 
-    /// <summary>The keys a grid should offer, in menu order.</summary>
+    /// <summary>
+    /// The keys a grid should offer, in the order the menu draws them: by label, ordinally. See the
+    /// type's remarks for why this is a sort and not a hand-written order.
+    /// </summary>
     public static IReadOnlyList<EmbySortOption> For(string? preset, Version? serverVersion = null) =>
-        [.. All.Where(option => option.AppliesTo(preset, serverVersion))];
+        [.. All.Where(option => option.AppliesTo(preset, serverVersion))
+            .OrderBy(option => option.Label, StringComparer.Ordinal)];
 
     /// <summary>
     /// What to sort by before anyone chooses. Episodes and seasons go in broadcast order, because a
@@ -337,14 +334,23 @@ public static class EmbySortBy
             ? Find(Number) ?? All[0]
             : All[0];
 
-    /// <summary>The catalogue entry for a stored <c>SortBy</c> value, or null if it is no longer offered.</summary>
-    public static EmbySortOption? Find(string? value) =>
-        value is null ? null : All.FirstOrDefault(option => option.Value == value);
+    /// <summary>
+    /// The catalogue entry for a stored <c>SortBy</c> value, or null if it is no longer offered. The
+    /// per-preset values count too: 播放日期 stores <c>SeriesDatePlayed,SortName</c> for a 剧集 grid, and
+    /// that has to read back as the same menu entry rather than as an unknown key.
+    /// </summary>
+    public static EmbySortOption? Find(string? value)
+    {
+        if (value is null) return null;
+
+        return All.FirstOrDefault(option => option.Value == value)
+            ?? All.FirstOrDefault(option => option.ValueFor.Values.Contains(value, StringComparer.Ordinal));
+    }
 
     /// <summary>The label to show for a value, falling back to the value itself.</summary>
     public static string LabelOf(string? value) => Find(value)?.Label ?? value ?? "";
 
     /// <summary>Label/value pairs for a plain sort dropdown, for the shell that has no grouped menu.</summary>
     public static (string Label, string Value)[] Choices =>
-        [.. All.Select(option => (option.Label, option.Value))];
+        [.. All.OrderBy(option => option.Label, StringComparer.Ordinal).Select(option => (option.Label, option.Value))];
 }

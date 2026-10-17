@@ -6,30 +6,22 @@ using Momoka.Emby;
 namespace Momoka.Shell.ViewModels;
 
 /// <summary>
-/// 需求 5：the filter panel. Edits an <see cref="ItemFilters"/> in place and says so; the page it sits in
-/// owns that object, puts it in the query and remembers it.
+/// 筛选面板：网页端 <c>modules/filtermenu</c> 那一块。改的是传进来的 <see cref="ItemFilters"/>，改完说一声，
+/// 由页面重查并记住。
 /// <para>
-/// The on/off entries come from <see cref="EmbyFilterBy"/> — a catalogue transcribed from the server's own
-/// OpenAPI document, because Emby ignores a query parameter it does not recognise and a filter with a
-/// wrong key therefore returns the whole library rather than an error. 类型, 标签 and 年份 cannot be
-/// catalogued at all: they are whatever the rows in this particular grid happen to have, so each is a
-/// <see cref="FilterValueSection"/> that asks the server the first time it is opened.
+/// 行与顺序来自 <see cref="EmbyFilterBy.Fields"/> —— 播放状态、收藏、重制、类型、家长评分、工作室、年份、状态，
+/// 再是 功能 / 元数据 / 缺少元数据 三组。哪些行出现取决于这一页列的是什么（<c>getVisibleFilters</c> 的那几条
+/// 规则），所以每次打开都重建：电视剧库的「节目」页上没有 媒体信息 这一组，电影页上就有。
 /// </para>
 /// <para>
-/// Every tick applies immediately, which is why there is no 确定 button: the grid is right there behind
-/// the flyout, and a panel that made the user confirm would be a panel that hid the answer.
-/// </para>
-/// <para>
-/// Not a <see cref="PageViewModel"/>: this is a flyout, not a page. It has no progress bar and no notice
-/// bar of its own — a section that cannot read its choices says so in its own header rather than over the
-/// whole panel — and its load is per section rather than per panel.
+/// 每一处改动立刻生效，所以没有「确定」键：网格就在面板后面，一个要按确认的面板等于把答案藏起来。
 /// </para>
 /// </summary>
 public sealed partial class FilterPanelViewModel : ObservableObject
 {
     /// <summary>
     /// One request per list for as long as this panel lives, kept as the task rather than its result so
-    /// two openings of the same section share one round trip. A failed task is dropped, so closing the
+    /// two openings of the same row share one round trip. A failed task is dropped, so closing the
     /// panel and opening it again retries instead of remembering the failure.
     /// </summary>
     private readonly Dictionary<string, Task<IReadOnlyList<string>>> _requests = new(StringComparer.Ordinal);
@@ -45,8 +37,8 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     /// </summary>
     internal event EventHandler? Changed;
 
-    /// <summary>The blocks on screen, in order; see <see cref="FilterSection"/>.</summary>
-    public ObservableCollection<FilterSection> Sections { get; } = [];
+    /// <summary>The rows on screen, in order; see <see cref="FilterRow"/>.</summary>
+    public ObservableCollection<FilterRow> Rows { get; } = [];
 
     /// <summary>
     /// What is on, in words. The button outside only has room for a number, and a panel that has been
@@ -56,7 +48,10 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     public partial string Summary { get; set; } = "全部内容";
 
     /// <summary>Every choice this panel is offering, for the self-check to report on.</summary>
-    internal IReadOnlyList<string> Labels => [.. Sections.SelectMany(section => section.Labels)];
+    internal IReadOnlyList<string> Labels => [.. Rows.SelectMany(row => row.Labels)];
+
+    /// <summary>The row labels in order, headings excluded — the panel's own structure.</summary>
+    internal IReadOnlyList<string> RowLabels => [.. Rows.Select(row => row.Label)];
 
     /// <summary>
     /// IsBlank rather than IsEmpty, so an id this build does not recognise can still be cleared —
@@ -66,7 +61,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
 
     /// <summary>
     /// Rebuilds the panel for the grid it is about to be shown over. Called on every open rather than
-    /// once: which options apply depends on what the grid lists and on a server version that may still
+    /// once: which rows apply depends on what the grid lists and on a server version that may still
     /// have been in flight when the page opened.
     /// </summary>
     internal void Open(
@@ -81,16 +76,12 @@ public sealed partial class FilterPanelViewModel : ObservableObject
         _lookup = lookup;
 
         // 取消过的那个不能再用：Dismiss() 只取消、不换新的，而取消是一去不回的 —— 接着开的话每一次
-        // Lookup 拿到的都是一个已经取消的令牌，三张按需去问服务器的表（类型、标签、年份）会一直是空的，
-        // 日志里一句话都没有。**今天到不了这个状态**（面板和这个视图模型跟着 LibraryPage 一起生一起死，
-        // 而那一页没有开缓存），所以这几行是一颗地雷的拆除，不是修一个看得见的病：哪天有人给 LibraryPage
-        // 加上 NavigationCacheMode，那件事就会以「筛选面板打不开了」的样子回来。
+        // Lookup 拿到的都是一个已经取消的令牌，四张按需去问服务器的表会一直是空的，日志里一句话都没有。
         if (_cancel is null || _cancel.IsCancellationRequested)
         {
             _cancel = new CancellationTokenSource();
 
-            // 缓存里要扔的只有被取消连坐、没跑完的那几份；已经拿到答案的照旧有效 —— 令牌只把关请求的
-            // 开始，管不着已经回来的结果，留着它们下一回开面板还能少跑几趟。
+            // 缓存里要扔的只有被取消连坐、没跑完的那几份；已经拿到答案的照旧有效。
             foreach (var key in _requests
                 .Where(entry => !entry.Value.IsCompletedSuccessfully)
                 .Select(entry => entry.Key)
@@ -104,7 +95,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     }
 
     /// <summary>
-    /// The page is leaving. Not called when the flyout merely closes: a list still arriving is worth
+    /// The page is leaving. Not called when the panel merely closes: a list still arriving is worth
     /// keeping, since the next open would otherwise ask for it again.
     /// </summary>
     internal void Dismiss() => _cancel?.Cancel();
@@ -121,7 +112,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
         return request;
     }
 
-    /// <summary>Drops a failed request, so opening its section again asks the server rather than the cache.</summary>
+    /// <summary>Drops a failed request, so opening its row again asks the server rather than the cache.</summary>
     internal void Forget(string key) => _requests.Remove(key);
 
     /// <summary>The selection changed. Redraws what this panel says about itself, then tells the page.</summary>
@@ -132,20 +123,8 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Puts every on/off box back in step with the model, for the box some other box turned off. Only the
-    /// exclusive pairs need it — 已播放/未播放 and 高清/标清 — but there are two dozen boxes in total and
-    /// finding the four that matter would mean the panel knowing which those are.
-    /// </summary>
-    internal void SyncToggles()
-    {
-        foreach (var group in Sections.OfType<FilterToggleGroup>())
-            foreach (var toggle in group.Toggles)
-                toggle.Reseed();
-    }
-
-    /// <summary>
-    /// A rebuild rather than a walk over the boxes: clearing also collapses the sections, which is the
-    /// state a panel with nothing on should be in.
+    /// A rebuild rather than a walk over the controls: clearing also resets every dropdown to 全部 and
+    /// closes every open list, which is the state a panel with nothing on should be in.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanClear))]
     private void Clear()
@@ -158,38 +137,33 @@ public sealed partial class FilterPanelViewModel : ObservableObject
 
     private void Build()
     {
-        Sections.Clear();
+        Rows.Clear();
 
-        var options = EmbyFilterBy.For(_preset, _serverVersion);
+        var fields = EmbyFilterBy.For(_preset, _serverVersion);
+        string? previousGroup = null;
 
-        foreach (var group in EmbyFilterBy.Groups.Order)
+        foreach (var field in fields)
         {
-            var inGroup = options.Where(option => option.Group == group).ToList();
-            if (inGroup.Count == 0) continue;
+            // The heading goes in front of the first row of its group, not above the panel: 播放状态 has
+            // no group at all, and 功能 starts a heading mid-list.
+            var heading = field.Group is { } group && group != previousGroup ? group : null;
+            previousGroup = field.Group;
 
-            Sections.Add(new FilterToggleGroup(group, [.. inGroup.Select(Toggle)]));
+            Rows.Add(Row(field, heading));
         }
-
-        foreach (var list in EmbyFilterBy.Lists)
-            Sections.Add(new FilterValueSection(list, _selection, this));
 
         ShowSummary();
     }
 
-    private FilterCheck Toggle(EmbyFilterOption option) => new(
-        option.Label,
-        $"{option.Key}={option.Value}",
-        () => _selection.Has(option.Id),
-        on =>
-        {
-            if (!_selection.Set(option, on)) return;
+    private FilterRow Row(EmbyFilterField field, string? heading) => field.Kind switch
+    {
+        FilterKind.Select => new FilterSelectRow(field, heading, _preset, _selection, Notify),
+        FilterKind.Switch => new FilterSwitchRow(field, heading, _selection, Notify),
+        _ => new FilterValuesRow(field, List(field.ListKey), _selection, this)
+    };
 
-            // 已播放 and 未播放 together ask for items that are both, which is nothing at all: the model
-            // just dropped the other one and the boxes have to show it.
-            if (option.Excludes.Count > 0) SyncToggles();
-
-            Notify();
-        });
+    private static EmbyFilterList List(string? key) =>
+        EmbyFilterBy.Lists.First(list => list.Key == key);
 
     private void ShowSummary()
     {

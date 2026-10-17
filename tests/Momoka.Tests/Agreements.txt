@@ -160,6 +160,8 @@ handle  Views/EpisodeRow.xaml  Hover
 handle  Views/EpisodeRow.xaml  Root
 handle  Views/EpisodeRow.xaml  RowTitle
 handle  Views/FilterPanel.xaml  FilterClearButton
+handle  Views/FilterPanel.xaml  FilterCloseButton
+handle  Views/FilterPanel.xaml  FilterRows
 handle  Views/HomeBanner.xaml  Actions
 handle  Views/HomeBanner.xaml  ActionsShift
 handle  Views/HomeBanner.xaml  Band
@@ -256,8 +258,9 @@ handle  Views/LibraryPage.xaml  CardLayout
 handle  Views/LibraryPage.xaml  CardWall
 handle  Views/LibraryPage.xaml  EmbyContent
 handle  Views/LibraryPage.xaml  FilterButton
-handle  Views/LibraryPage.xaml  FilterFlyout
+handle  Views/LibraryPage.xaml  FilterOverlay
 handle  Views/LibraryPage.xaml  FilterPane
+handle  Views/LibraryPage.xaml  FilterScrim
 handle  Views/LibraryPage.xaml  FilterText
 handle  Views/LibraryPage.xaml  HeaderGrid
 handle  Views/LibraryPage.xaml  LibraryClearFiltersButton
@@ -274,6 +277,7 @@ handle  Views/LibraryPage.xaml  SettingsOverlay
 handle  Views/LibraryPage.xaml  SettingsPane
 handle  Views/LibraryPage.xaml  SettingsScrim
 handle  Views/LibraryPage.xaml  SortButton
+handle  Views/LibraryPage.xaml  SortList
 handle  Views/LibraryPage.xaml  SortMenu
 handle  Views/LibraryPage.xaml  SortText
 handle  Views/LibraryPage.xaml  SourceTabs
