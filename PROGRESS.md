@@ -2,6 +2,17 @@
 
 最后更新：2026-10-17
 
+## 官方 Emby SDK 仓库记进协议技能（2026-10-17 用户令）
+
+用户令（原话）：「作为“接口字典”  记到技能上面」。动手前先读了 `CLAUDE.md`、`momoka-emby-api` 与 `momoka-skill-creator`。本轮在主树动手，**保留进入本轮时那一批未提交工作**（同日媒体库分类栏、详情页、Plex、删管理页等），只动 emby-api 技能与本文件。纯文档改动，不构建、不重发。
+
+- **新增 `references/official-sdk.md`**：`MediaBrowser/Emby.ApiClients` 是官方从服务器 OpenAPI 生成的多语言客户端（8 种语言；2026-10-17 读到 C# 那份 `4.10.1.0`，比本地 `4.10.0.40` 快照新一档）。记了「只能查、不能引」的五条理由：`netstandard2.0` 带 RestSharp + ServiceStack.Text、方法签名是 `Task<RestResponse<T>>` 且没有 CancellationToken、只认 Emby（Jellyfin／飞牛／Plex 一个字没有）、C# 那份 420 个文件约 5 MB（338 个 Model、70 个 `*ServiceApi`，单文件最大 35 万字节）、**仓库没有 LICENSE 文件且文件头写 `No license applied`**，而本项目按 MIT 分发。
+- **记了它真正有用的四处**：规格取不到时的离线对照；枚举与参数拼写的权威来源；`PlaybackInfoRequest` / `MediaSourceInfo` / `TranscodeReason` 这批「客户端现在不调、将来接转码与直连判断才要」的模型；判断 `endpoints.md` 里的规格缺口是生成遗漏还是接口不存在。也记了两条读模型的规矩：枚举看 `[EnumMember(Value=…)]`，属性名就是 JSON 名且**没有** `[DataMember]` 标注。
+- **`SKILL.md` 加了「第二本字典：官方 SDK 仓库」小节**（挂在「开始之前：先拿规格，别猜」下面），「验证」那条补一句规格取不到时改查 SDK 并写明依据的版本号。没有动 `CLAUDE.md` 的技能索引——技能职责没变，索引那句仍然准确。
+- **没有引包、没有拷代码、没有碰 Core**：依据是 `Momoka.Core.csproj` 至今零 NuGet，以及 `EmbyHttp` 的传输层决定（30 秒总超时、异常层次、重定向的凭据边界、DPAPI 多账号、逐请求头）不能被生成客户端绕过。
+- **核对**：`check-skill.py .claude/skills/momoka-emby-api` **0 error、0 warning**（frontmatter 341 字符、正文 90 行）；文档里那条列 Model 的命令实跑过，返回 **338** 个，与文中数字一致；LF、无 BOM、尾部有换行。
+- **未验证（如实说）**：没有拿 SDK 去核任何一条真实接口的字段——本轮只记「怎么用」，不是一次字段核对；beta 分支没看，`Net.RestSharp` 那份客户端没读。
+
 ## 媒体库分类栏与工具栏照网页版重做（2026-10-17 用户令）
 
 用户令（原话）：「复刻网页端的这些设置媒体库设置替换本项目的」，附两张网页端截图：电视剧库是「节目／推荐／预告／收藏／类型／播出平台／集／文件夹」加「共 56 项 · 标题↑ · 筛选 · ⋯」，电影库是「影片／推荐／预告片／合集／类型／收藏／文件夹」加「共 47 项 · 播放 · 随机播放 · 加入日期↓ · 筛选 · ⋯」。动手前先读了 `CLAUDE.md` 与 shell 技能。本轮在主树 `C:/Users/89400/Momoka` 动手，**保留进入本轮时那一批未提交工作**（同日详情页、主页实时、Plex、删服务器管理页等），只动自己这几处。已提交，未推送。
