@@ -253,7 +253,7 @@ handle  Views/IdentifyDialog.xaml  SearchForm
 handle  Views/IdentifyDialog.xaml  YearBox
 handle  Views/LibraryPage.xaml  Alpha
 handle  Views/LibraryPage.xaml  CardLayout
-handle  Views/LibraryPage.xaml  Cards
+handle  Views/LibraryPage.xaml  CardWall
 handle  Views/LibraryPage.xaml  EmbyContent
 handle  Views/LibraryPage.xaml  FilterButton
 handle  Views/LibraryPage.xaml  FilterFlyout
@@ -267,9 +267,12 @@ handle  Views/LibraryPage.xaml  MoviePilotPanel
 handle  Views/LibraryPage.xaml  PageRoot
 handle  Views/LibraryPage.xaml  PlayAllButton
 handle  Views/LibraryPage.xaml  PlayRandomButton
+handle  Views/LibraryPage.xaml  RecommendedRows
+handle  Views/LibraryPage.xaml  RecommendedScroll
 handle  Views/LibraryPage.xaml  SearchInput
 handle  Views/LibraryPage.xaml  SettingsOverlay
 handle  Views/LibraryPage.xaml  SettingsPane
+handle  Views/LibraryPage.xaml  SettingsScrim
 handle  Views/LibraryPage.xaml  SortButton
 handle  Views/LibraryPage.xaml  SortMenu
 handle  Views/LibraryPage.xaml  SortText

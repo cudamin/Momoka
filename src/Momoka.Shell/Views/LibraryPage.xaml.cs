@@ -269,12 +269,12 @@ public sealed partial class LibraryPage : Page, IShellContent
 
             // The layout is swapped by ApplyView off the property change, and the cell numbers are pushed
             // into it by two bindings; a measured pass is what turns both into something to read.
-            Cards.UpdateLayout();
+            CardWall.UpdateLayout();
             seen.Add(Shape());
         }
 
         ViewModel.ApplyDisplay(original, remember: false, requery: false);
-        Cards.UpdateLayout();
+        CardWall.UpdateLayout();
 
         // Whether the page was handed back the way it was found, answered here because this is the only
         // scope that remembers what that was: everything the report reads off the page afterwards is
@@ -291,7 +291,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// the right object back」 is precisely what the walk above is asking. A <c>StackLayout</c> has no cell
     /// to report — the row it lays out is as wide as the page.
     /// </summary>
-    private (string Label, string Layout, double Cell, double Row) Shape() => Cards.Layout switch
+    private (string Label, string Layout, double Cell, double Row) Shape() => CardWall.Layout switch
     {
         UniformGridLayout grid => (ViewModel.ViewLabel, nameof(UniformGridLayout), grid.MinItemWidth, grid.MinItemHeight),
         { } other => (ViewModel.ViewLabel, other.GetType().Name, 0, 0),
@@ -315,7 +315,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </remarks>
     internal (bool Found, string Still, string Over, string Pressed) ContainerHalo()
     {
-        if (Find<ItemContainer>(Cards) is not { } box) return (false, "无格子", "无格子", "无格子");
+        if (Find<ItemContainer>(CardWall) is not { } box) return (false, "无格子", "无格子", "无格子");
 
         var (still, over, pressed) = (Fill("UnselectedNormal"), Fill("UnselectedPointerOver"), Fill("UnselectedPressed"));
 
@@ -423,8 +423,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_released || navigation != _navigation || !ViewModel.QueryCurrent(queryToken)) return;
         if (count > 0) await ViewModel.LoadUntilAsync(count - 1).ConfigureAwait(true);
         if (_released || navigation != _navigation || !ViewModel.QueryCurrent(queryToken)) return;
-        Cards.UpdateLayout();
-        Cards.ScrollView?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        CardWall.UpdateLayout();
+        CardWall.ScrollView?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
     }
 
     public void Release()
@@ -471,7 +471,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         // ItemsView exposes the scroller it owns; there is no other way to know how far down the list
         // the user is, and no other place to hang the paging trigger.
-        _scroll = Cards.ScrollView;
+        _scroll = CardWall.ScrollView;
 
         if (_scroll is null)
         {
@@ -575,6 +575,16 @@ public sealed partial class LibraryPage : Page, IShellContent
     }
 
     /// <summary>
+    /// 推荐页那一排里的一张卡：点开这一项。和主页同一条路（<c>PosterCard.Card</c> 这条编译期通道），
+    /// **不走 DataContext** —— ItemsRepeater + x:Bind 的模板实例上没人设过它，模式匹配必败、点击无声
+    /// （2026-09-14 主页「继续观看点了没反应」就是漏在这一格）。
+    /// </summary>
+    private void OnShelfCardClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Content: PosterCard { Card: { } card } }) ViewModel.Open(card);
+    }
+
+    /// <summary>
     /// 需求 6：右键一张卡片。The list this grid is showing is handed along so 选集 works off it, exactly
     /// as it does for an invoke, and a metadata save reloads the page rather than patching the card —
     /// an edit can move the item's title, its artwork and its position in the sort all at once.
@@ -608,7 +618,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             _removingCard = false;
             return;
         }
-        Cards.UpdateLayout();
+        CardWall.UpdateLayout();
         _scroll?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {
@@ -935,7 +945,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (index < 0 || index >= ViewModel.Cards.Count) return;
 
-        Cards.StartBringItemIntoView(index, new BringIntoViewOptions
+        CardWall.StartBringItemIntoView(index, new BringIntoViewOptions
         {
             AnimationDesired = false,
             HorizontalAlignmentRatio = 0,
@@ -952,7 +962,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void SyncAlphaFromScroll()
     {
         if (_scroll is null || Alpha.Visibility != Visibility.Visible) return;
-        if (!Cards.TryGetItemIndex(0, 0, out var index)) return;
+        if (!CardWall.TryGetItemIndex(0, 0, out var index)) return;
 
         Alpha.SetCurrent(ViewModel.CurrentLetterOf(index));
     }
@@ -969,13 +979,13 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (ViewModel.IsBrowseIndex)
         {
-            Cards.ItemTemplate = (DataTemplate)Resources["LibraryIndexTemplate"];
-            Cards.Layout = (Layout)Resources["LibraryIndexLayout"];
+            CardWall.ItemTemplate = (DataTemplate)Resources["LibraryIndexTemplate"];
+            CardWall.Layout = (Layout)Resources["LibraryIndexLayout"];
             TableHeader.Visibility = Visibility.Collapsed;
             ApplyTableWidth();
             return;
         }
-        Cards.ItemTemplate = ViewModel.View switch
+        CardWall.ItemTemplate = ViewModel.View switch
         {
             LibraryView.Thumb or LibraryView.Banner or LibraryView.Disc or LibraryView.Logo =>
                 (DataTemplate)Resources["ThumbTemplate"],
@@ -984,7 +994,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             _ => (DataTemplate)Resources["PosterTemplate"]
         };
 
-        Cards.Layout = ViewModel.View switch
+        CardWall.Layout = ViewModel.View switch
         {
             LibraryView.List => (Layout)Resources["ListLayout"],
             LibraryView.Table => (Layout)Resources["TableLayout"],

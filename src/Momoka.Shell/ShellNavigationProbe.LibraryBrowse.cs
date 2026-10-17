@@ -29,10 +29,26 @@ internal sealed partial class ShellNavigationProbe
             if (Query(request, "ParentId") is null) return Task.FromResult(FakeTransport.Standard(request));
             var path = request.RequestUri.AbsolutePath;
             var index = path.EndsWith("/Genres", StringComparison.Ordinal) || path.EndsWith("/Studios", StringComparison.Ordinal);
+            // 继续观看那一条没有 IncludeItemTypes（它就是 Resume），推荐页那一排装的是单集。
+            var resume = path.EndsWith("/Items/Resume", StringComparison.Ordinal);
             var type = index ? path.EndsWith("/Genres", StringComparison.Ordinal) ? "Genre" : "Studio"
+                : resume ? EmbyItemType.Episode
                 : (Query(request, "IncludeItemTypes") ?? EmbyItemType.Movie).Split(',')[0];
             var sample = new EmbyItem { Id = "library-sample-" + type, Name = index ? "科幻与动画" : "离线媒体库内容", Type = type };
             sample.ImageTags["Primary"] = "fixture";
+            // 推荐页三排卡片底下那两行字要真的能读出来：剧集写年份区间，单集写「SxxExx - 集名」。
+            if (type == EmbyItemType.Series)
+            {
+                sample.ProductionYear = 2006;
+                sample.Status = "Continuing";
+                sample.UserData = new EmbyUserData { UnplayedItemCount = 3 };
+            }
+            else if (type == EmbyItemType.Episode)
+            {
+                sample.Name = "敏北";
+                sample.ParentIndexNumber = 1;
+                sample.IndexNumber = 7;
+            }
             return Task.FromResult(Json(new { Items = new[] { sample }, TotalRecordCount = 1 }));
         };
         var frame = new Frame();
@@ -116,6 +132,38 @@ internal sealed partial class ShellNavigationProbe
                 }
                 await SelectAsync(LibrarySection.Recommended);
                 Require(Get<Button>(page, "SortButton").Visibility == Visibility.Collapsed && Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed, "推荐还显示不生效的排序筛选");
+                // 推荐页：电视剧库是三排货架（继续观看／最新集／最近发布的剧集，2026-10-17 用户令），
+                // 电影库照旧是网格（网页端电影库的推荐是另一组行，这一轮没做）。
+                if (collection == "tvshows")
+                {
+                    Require(string.Join(',', page.ViewModel.RecommendedShelves.Select(shelf => shelf.Title)) == "继续观看,最新集,最近发布的剧集", "推荐页三排标题与网页不同");
+                    Require(Get<ScrollViewer>(page, "RecommendedScroll").Visibility == Visibility.Visible
+                        && Get<ItemsRepeater>(page, "RecommendedRows").Visibility == Visibility.Visible
+                        && page.TableScroll.Visibility == Visibility.Collapsed, "推荐页没有把网格换成三排货架");
+                    Require(page.ViewModel.RecommendedShelves.All(shelf => shelf.Cards.Count == 1), "推荐页有一排没载入");
+                    Require(page.ViewModel.RecommendedShelves[0].Cards[0].Subtitle == "S01E07 - 敏北", "继续观看那一排的集号行不对");
+                    Require(page.ViewModel.RecommendedShelves[1].Cards[0].Subtitle == "2006 - 现在"
+                        && page.ViewModel.RecommendedShelves[1].Cards[0].UnplayedVisibility == Visibility.Visible, "最新集那一排的年份或未看角标不对");
+                    Require(page.ViewModel.RecommendedShelves[2].Cards[0].Subtitle == "S01E07 - 敏北", "最近发布的剧集那一排的集号行不对");
+                    Require(fixture.Transport.Requests.Any(value => value.Contains("Items/Resume", StringComparison.Ordinal)
+                        && value.Contains("ParentId=library-a", StringComparison.Ordinal)), "继续观看没有收在本库");
+                    // 两帧：第一屏（继续观看 + 最新集）与滚到底（最近发布的剧集）。三排都在屏上，
+                    // 靠这一对实图，不靠「集合里有三个元素」。
+                    ResizeProbeClient(1100, 800);
+                    await LayoutAsync(page);
+                    await SaveProbeScreenAsync("library-tvshows-recommended-screen.png");
+                    Get<ScrollViewer>(page, "RecommendedScroll").ChangeView(null, double.MaxValue, null, disableAnimation: true);
+                    await LayoutAsync(page);
+                    await SaveProbeScreenAsync("library-tvshows-recommended-bottom-screen.png");
+                    Get<ScrollViewer>(page, "RecommendedScroll").ChangeView(null, 0, null, disableAnimation: true);
+                    ResizeProbeClient(900, 700);
+                    await LayoutAsync(page);
+                }
+                else
+                {
+                    Require(page.ViewModel.RecommendedShelves.Count == 0 && page.TableScroll.Visibility == Visibility.Visible
+                        && Get<ScrollViewer>(page, "RecommendedScroll").Visibility == Visibility.Collapsed, "电影库的推荐不该变成三排");
+                }
                 await SelectAsync(LibrarySection.Folders);
                 Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal)).Contains("Recursive=false", StringComparison.Ordinal), "文件夹被拍平");
                 await SelectAsync(LibrarySection.Items);
@@ -146,7 +194,7 @@ internal sealed partial class ShellNavigationProbe
                 // 视图：换成列表，网格要变成一行一条，图像大小那一行同时收起（列表没有格子可缩放）。
                 pane.SetView(LibraryView.List);
                 await UntilAsync(() => page.ViewModel.View == LibraryView.List && !page.ViewModel.Busy);
-                Require(Get<ItemsView>(page, "Cards").Layout is StackLayout, "选了列表视图，网格没有换成一行一条");
+                Require(Get<ItemsView>(page, "CardWall").Layout is StackLayout, "选了列表视图，网格没有换成一行一条");
                 Require(pane.SizeSection.Visibility == Visibility.Collapsed, "列表视图还留着图像大小那一行");
 
                 // 视图：换成表格，行模板换成表格，列头按勾上的字段生成。

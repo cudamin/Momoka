@@ -161,7 +161,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
             await page.ViewModel.LoadUntilAsync(79);
             await LayoutAsync(page);
-            var scroll = Get<ItemsView>(page, "Cards").ScrollView!;
+            var scroll = Get<ItemsView>(page, "CardWall").ScrollView!;
             scroll.ScrollTo(0, 1200, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
             await UntilAsync(() => Math.Abs(scroll.VerticalOffset - 1200) <= 1);
             var offset = scroll.VerticalOffset;

@@ -137,7 +137,7 @@ internal sealed partial class ShellNavigationProbe
             var libraryPage = (LibraryPage)frame.Content;
             var history = frame.BackStack.Count;
             var forward = frame.ForwardStack.Count;
-            var scroll = Get<ItemsView>(libraryPage, "Cards").ScrollView!;
+            var scroll = Get<ItemsView>(libraryPage, "CardWall").ScrollView!;
             ResizeProbeClient(760, 650);
             await LayoutAsync(shell);
             scroll.ScrollTo(0, 120, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));

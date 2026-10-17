@@ -459,7 +459,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         foreach (var name in new[] { nameof(SectionVisibility), nameof(BrowseGroupVisibility), nameof(BrowseGroupLabel),
             nameof(DirectPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
             nameof(ToolbarVisibility), nameof(SettingsVisibility), nameof(Fields),
-            nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel) }) OnPropertyChanged(name);
+            nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel),
+            nameof(RecommendedVisibility), nameof(GridVisibility) }) OnPropertyChanged(name);
     }
 
     internal int LoadedCount => Cards.Count;
@@ -471,8 +472,155 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// Whether the server has rows this grid has not asked for yet. True before the first page, because
     /// 「nothing has been asked」 and 「everything has arrived」 must not look the same to the pager.
     /// </summary>
-    internal bool HasMore => !(_request?.IsSearch == true && string.IsNullOrWhiteSpace(_request.SearchTerm))
+    internal bool HasMore => !IsRecommendedPage && !(_request?.IsSearch == true && string.IsNullOrWhiteSpace(_request.SearchTerm))
         && (Aggregated ? _cursor?.HasMore ?? true : _total < 0 || Cards.Count < _total);
+
+    // ---------------------------------------------------------------- 推荐页（三排货架）
+
+    /// <summary>
+    /// 网页端电视剧库「推荐」那一格：三排横着走的货架（继续观看、最新集、最近发布的剧集），不是一面卡片墙。
+    /// <para>
+    /// 2026-10-17 用户令「复刻网页端的推荐页面，三个分区 继续观看、最新集、最近发布的剧集」。这一页的「说什么、
+    /// 怎么问」在 <see cref="LibraryRecommended"/> 里；这里只管把三份数据装进三排，以及这一页该显示什么。
+    /// </para>
+    /// <para>
+    /// 电影库没有这几排（网页端电影库的推荐是另一组行，本轮没做），别的分类也不是推荐页 —— 那些情况
+    /// <see cref="IsRecommendedPage"/> 为假，页面照旧是网格，一行标记都不用改。
+    /// </para>
+    /// </summary>
+    public ObservableCollection<CardShelf> RecommendedShelves { get; } = [];
+
+    /// <summary>这一页是货架页而不是网格页。</summary>
+    internal bool IsRecommendedPage => IsSectionLibrary && Section == LibrarySection.Recommended
+        && LibraryRecommended.Rows(_request!.CollectionType).Count > 0;
+
+    /// <summary>三排货架在不在（网格由 <see cref="GridVisibility"/> 收起来，两者互斥）。</summary>
+    public Visibility RecommendedVisibility => Show(IsRecommendedPage);
+
+    /// <summary>网格在不在。推荐页把整块网格（含它的滚动器与表格列头）收起，屏上只剩那三排。</summary>
+    public Visibility GridVisibility => Show(!IsRecommendedPage);
+
+    /// <summary>
+    /// 照这一页该有的排数把货架造出来。已经是对的就不重建 —— 每次刷新都 <c>Clear</c> 再 <c>Add</c>，屏上那三排
+    /// 会被拆掉重装一遍，滚到一半的位置也会回开头。换库、换分类时排数或标题变了才重造。
+    /// </summary>
+    private void EnsureRecommendedShelves()
+    {
+        if (_images is not { } images || _request is null) return;
+
+        var rows = LibraryRecommended.Rows(_request.CollectionType);
+        if (RecommendedShelves.Count == rows.Count
+            && RecommendedShelves.Select(shelf => shelf.Title).SequenceEqual(rows.Select(row => row.Title), StringComparer.Ordinal))
+            return;
+
+        RecommendedShelves.Clear();
+        foreach (var row in rows)
+            RecommendedShelves.Add(new CardShelf(
+                row.Title, images, row.Wide ? Momoka.Infrastructure.CardSize.HomeWideWidth : Momoka.Infrastructure.CardSize.PosterWidth, row.Wide));
+    }
+
+    /// <summary>
+    /// 推荐页那一趟：三排各问一次，谁也不等谁。和主页那几排同一个理由 —— 一排一趟往返地串起来，这一页就是
+    /// 一排一秒；三排之间没有任何依赖。
+    /// </summary>
+    /// <remarks>
+    /// 不分页：三排各自只要 <see cref="LibraryRecommended.Size"/> 条，翻页由货架自己那一对箭头管（它是在已有
+    /// 的那些卡里翻，不再问服务器）。
+    /// </remarks>
+    private async Task LoadRecommendedAsync(bool reset)
+    {
+        if (!reset) return;
+        if (!_active || !SourcesAvailable || _request is not { } request || _images is null) return;
+
+        _queryToken = _queries.Begin();
+        _jumps.Cancel();
+        _firstPage = false;
+        _pageFailed = false;
+        _total = NotLoaded;
+        ShowEmptyNotice = false;
+        var queryToken = _queryToken;
+        var token = BeginLoad();
+        try
+        {
+            EnsureRecommendedShelves();
+            var rows = LibraryRecommended.Rows(request.CollectionType);
+            var items = await Task.WhenAll(rows.Select(row => ReadRecommendedAsync(row, request, token))).ConfigureAwait(true);
+            if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
+
+            for (var index = 0; index < rows.Count && index < RecommendedShelves.Count; index++)
+                RecommendedShelves[index].Fill(items[index], LibraryRecommended.Subtitle);
+
+            _total = RecommendedShelves.Sum(shelf => shelf.Cards.Count);
+            _firstPage = true;
+            ShowEmptyNotice = RecommendedShelves.All(shelf => shelf.Cards.Count == 0);
+            RowsArrived();
+            EndLoad(token);
+            PageArrived?.Invoke();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
+            _pageFailed = true;
+            Log.Warn(Category, $"读取「{Heading}」的推荐失败", error);
+            Report($"读取「{Heading}」失败，请刷新重试", error);
+        }
+        finally { EndLoad(token); }
+    }
+
+    /// <summary>
+    /// 一排的数据。多来源时轮流取各来源的一项（同主页那一排）：默认账号的库填满整排、别的账号一条都露不出来，
+    /// 是「多服务器」支持里最容易犯的那个错。
+    /// </summary>
+    private async Task<List<EmbyItem>> ReadRecommendedAsync(RecommendedRow row, LibraryRequest request, CancellationToken token)
+    {
+        var sources = _sources.Where(source => source.IsAvailable).ToArray();
+        if (sources.Length == 0) return [];
+
+        var results = await Task.WhenAll(sources.Select(source => ReadRecommendedSourceAsync(source, row, request, token)))
+            .ConfigureAwait(true);
+
+        var items = new List<EmbyItem>();
+        for (var index = 0; results.Any(result => result.Count > index); index++)
+            foreach (var result in results)
+                if (index < result.Count) items.Add(result[index]);
+        return items;
+    }
+
+    private async Task<List<EmbyItem>> ReadRecommendedSourceAsync(
+        EmbySessionScope scope, RecommendedRow row, LibraryRequest request, CancellationToken token)
+    {
+        try
+        {
+            if (!scope.IsAvailable) return [];
+
+            // 继续观看整份交给服务器那条 Resume 接口（「有没有播放进度、有没有被移出」的口径都在它手里，
+            // 通用查询拼不出来），这一趟只是把它收到本库 —— 见 EmbyClient.QueryResumeAsync 的 parentId。
+            if (row.Shelf == RecommendedShelf.ContinueWatching)
+            {
+                var resume = await scope
+                    .ExecuteAsync((client, ct) => client.QueryResumeAsync(0, LibraryRecommended.Size, ct, request.ParentId), token)
+                    .ConfigureAwait(true);
+                return [.. resume.Items.Where(item => !EmbyItemType.IsMusic(item.Type))];
+            }
+
+            var query = LibraryRecommended.Query(request.ParentId ?? "", row.Shelf);
+            var result = await scope
+                .ExecuteAsync((client, ct) => client.GetItemsAsync(query, ct), token)
+                .ConfigureAwait(true);
+            return [.. result.Items];
+        }
+        catch (OperationCanceledException)
+        {
+            return [];
+        }
+        catch (Exception error)
+        {
+            Log.Warn(Category, $"读取{scope.DisplayName}的「{row.Title}」失败", error);
+            if (IsCurrent(token) && !NoticeOpen) Report($"读取「{row.Title}」失败", error);
+            return [];
+        }
+    }
 
     /// <summary>
     /// 这一页是不是主页「继续观看」那一排点进来的。见 <see cref="ReadAsync"/>：这一页的条目整份由服务器那条
@@ -734,6 +882,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     private async Task LoadAsync(bool reset)
     {
         if (!_active || !SourcesAvailable || _request is null || _actions is null) return;
+        // 推荐页不是一面网格：三排货架各问一次，没有翻页、没有字母跳转、没有「共 N 项」。整条路分开走，
+        // 下面那些分页与游标的账一笔都不记（见 LoadRecommendedAsync）。
+        if (IsRecommendedPage)
+        {
+            await LoadRecommendedAsync(reset).ConfigureAwait(true);
+            return;
+        }
         if (!reset && (Busy || !HasMore || !_firstPage || _pageFailed)) return;
         if (reset)
         {
@@ -816,6 +971,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         Cancel();
         foreach (var card in Cards) card.AbandonPoster();
+        foreach (var shelf in RecommendedShelves) shelf.Clear();
         foreach (var row in RecentSearches) row.Card.AbandonPoster();
         _queries.Dispose();
         _jumps.Dispose();
@@ -1210,12 +1366,18 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal IReadOnlyList<EmbyItem>? Episodes()
     {
-        var episodes = Cards
+        // 推荐页没有 Cards（三排各自装着卡），选集要从三排里凑：这一页上的单集本来就散在「继续观看」和
+        // 「最近发布的剧集」两排里，右键一张卡时拿到的应该是它自己那一排那一批，不是空。
+        var source = IsRecommendedPage
+            ? RecommendedShelves.SelectMany(shelf => shelf.Cards)
+            : Cards;
+        var rows = source.ToList();
+        var episodes = rows
             .Select(card => card.Item)
             .Where(item => item.Type == EmbyItemType.Episode)
             .ToList();
 
-        return episodes.Count == Cards.Count && episodes.Count > 0 ? episodes : null;
+        return episodes.Count == rows.Count && episodes.Count > 0 ? episodes : null;
     }
 
     /// <summary>

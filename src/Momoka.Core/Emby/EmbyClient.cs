@@ -189,14 +189,21 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// </para>
     /// </summary>
     /// <param name="startIndex">翻页用的起点；<see cref="GetResumeAsync"/> 传 0。</param>
-    public async Task<ItemsResult> QueryResumeAsync(int startIndex, int limit, CancellationToken cancellationToken)
+    /// <param name="parentId">
+    /// 只看这一个库里的续播（电视剧库「推荐」页那一排）。这条接口在官方规格里认 <c>ParentId</c>；不传就是整台
+    /// 服务器，主页那一排和「继续观看」那一页走的都是不传的这一档。飞牛与 Plex 的适配各自没有这个筛选，
+    /// 传进来也被忽略 —— 那两家的推荐页本来就不存在。
+    /// </param>
+    public async Task<ItemsResult> QueryResumeAsync(int startIndex, int limit, CancellationToken cancellationToken,
+        string? parentId = null)
     {
         if (Connection.IsFnNas) return await FnNasMedia.QueryResumeAsync(startIndex, limit, cancellationToken).ConfigureAwait(false);
         var url = Url($"Users/{Connection.UserId}/Items/Resume",
             ("StartIndex", startIndex.ToString()),
             ("Limit", limit.ToString()),
             ("Fields", EmbyFields.Browse),
-            ("MediaTypes", "Video"));
+            ("MediaTypes", "Video"),
+            ("ParentId", parentId));
         return await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
     }
 

@@ -52,6 +52,7 @@ internal static class Program
         LibrarySearchTests.Register();
         AggregateQueryTests.Register();
         LibraryBrowseTests.Register();
+        LibraryRecommendedTests.Register();
         LibraryDisplayTests.Register();
         MoviePilotSearchSitesTests.Register();
         MoviePilotResourceOptionsTests.Register();

@@ -75,6 +75,53 @@
             <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
         </Style>
 
+        <!-- ============================================================ 推荐页那三排货架
+             2026-10-17 用户令「复刻网页端的推荐页面，三个分区 继续观看、最新集、最近发布的剧集」。
+             用的就是主页那三件（CardShelf / ShelfStrip / ShelfHead / PosterCard），所以卡片的形状、
+             悬停那一层、翻页箭头和右键菜单与主页是同一份实现，不另写一套「像主页的」卡片。 -->
+
+        <!-- 一排卡里的一张。Button 保留点击、键盘激活和焦点框；三态底色一律透明，卡片自己的悬停由
+             PosterCard 画（与主页同一份写法）。 -->
+        <DataTemplate x:Key="ShelfCardTemplate" x:DataType="local:CardItem">
+            <Button
+                Background="Transparent"
+                BorderThickness="0"
+                Click="OnShelfCardClicked"
+                ContextRequested="OnCardContextRequested"
+                Padding="0">
+                <Button.Resources>
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="Transparent" />
+                </Button.Resources>
+                <local:PosterCard
+                    ActionRequested="OnCardActionRequested"
+                    Card="{x:Bind}"
+                    CardWidth="{x:Bind CardWidth}"
+                    PosterHeight="{x:Bind PosterHeight}" />
+            </Button>
+        </DataTemplate>
+
+        <!-- 那一排卡。高度绑 RowHeight（图 + 底下两行字），横向一条带子，翻页由两端的圆形键管。 -->
+        <DataTemplate x:Key="ShelfStripTemplate" x:DataType="vm:CardShelf">
+            <local:ShelfStrip
+                Height="{x:Bind RowHeight}"
+                ItemSpacing="18"
+                ItemTemplate="{StaticResource ShelfCardTemplate}"
+                ItemsSource="{x:Bind Cards}" />
+        </DataTemplate>
+
+        <!-- 一整排：牌子（标题 + 底下那条线）接一条带子。牌子在这里是**死的** —— 网页端这三行标题不可点，
+             这一页也没有「更多」可去（三排各自已经是整份清单）。所以 Offer 不绑、Tag 不挂、Note 不绑
+             （「20 项」那个胶囊在这一页没有意义，网页端也没有）。 -->
+        <DataTemplate x:Key="ShelfRowTemplate" x:DataType="vm:CardShelf">
+            <StackPanel Spacing="{StaticResource EgSpaceM}">
+                <local:ShelfHead Title="{x:Bind Title, Mode=OneWay}" />
+                <ContentPresenter
+                    Content="{x:Bind}"
+                    ContentTemplate="{StaticResource ShelfStripTemplate}" />
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="PosterTemplate" x:DataType="local:CardItem">
             <!-- ItemContainer, not a Button in a Border: it is the one element that gives an
                  ItemsView child its hover state, keyboard focus and invoke handling for free. -->
@@ -445,7 +492,8 @@
                 HorizontalScrollBarVisibility="Disabled"
                 HorizontalScrollMode="Disabled"
                 VerticalScrollBarVisibility="Disabled"
-                VerticalScrollMode="Disabled">
+                VerticalScrollMode="Disabled"
+                Visibility="{x:Bind ViewModel.GridVisibility, Mode=OneWay}">
                 <Grid x:Name="TableCanvas" x:FieldModifier="internal">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -454,8 +502,12 @@
                     <!-- 表格视图的列头。列在代码里按勾上的字段生成（见 LibraryPage.BuildTableHeader），
                          与每一行用同一套宽度 —— 两处各写一遍宽度，第一列就会歪。 -->
                     <Grid x:Name="TableHeader" x:FieldModifier="internal" Grid.Row="0" Padding="12,0" Margin="0,0,0,16" Visibility="Collapsed" />
+                    <!-- 这张网格叫 CardWall 而不是 Cards：页面上有一个 x:Name 与某张 DataTemplate 里
+                         x:Bind 的路径同名（货架那一排绑的是 CardShelf.Cards），XAML 编译器会以一个
+                         说不出所以然的 WMC9999（连错误资源都找不到）整份失败。2026-10-17 加推荐页三排时
+                         撞上这一格，逐块二分才落到这里。改名比留一个查不出来的编译器坑便宜。 -->
                     <ItemsView
-                        x:Name="Cards"
+                        x:Name="CardWall"
                         Grid.Row="1"
                         Visibility="{x:Bind ViewModel.SearchResultsVisibility, Mode=OneWay}"
                         IsItemInvokedEnabled="True"
@@ -485,6 +537,32 @@
                         </ItemsView.Layout>
                     </ItemsView>
                 </Grid>
+            </ScrollViewer>
+
+            <!-- 推荐页那三排。占的是网格那一格（同一行、同样跨到字母条那一行），两者互斥：
+                 网格在的时候这块整个收起，反过来也一样（见 LibraryViewModel.GridVisibility）。
+                 整页一个竖向滚动器 —— 三排各自横向翻页，竖着滚的是这一页。 -->
+            <ScrollViewer
+                x:Name="RecommendedScroll"
+                x:FieldModifier="internal"
+                Grid.Row="1"
+                Grid.RowSpan="2"
+                Padding="0,0,0,32"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                VerticalScrollBarVisibility="Auto"
+                VerticalScrollMode="Auto"
+                Visibility="{x:Bind ViewModel.RecommendedVisibility, Mode=OneWay}">
+                <ItemsRepeater
+                    x:Name="RecommendedRows"
+                    x:FieldModifier="internal"
+                    ItemTemplate="{StaticResource ShelfRowTemplate}"
+                    ItemsSource="{x:Bind ViewModel.RecommendedShelves, Mode=OneWay}">
+                    <ItemsRepeater.Layout>
+                        <!-- 排与排之间 32：比一排自己标题到卡片的 12 宽得多，读起来才是三件事。 -->
+                        <StackLayout Orientation="Vertical" Spacing="32" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
             </ScrollViewer>
 
             <!-- 字母跳转条：只在按名称排序且有足够条目时出现（对应 Emby 的 enableAlphaPicker +
