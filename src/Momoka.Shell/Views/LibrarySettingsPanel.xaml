@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  网页端媒体库那颗齿轮里的「设置」面板（modules/viewsettings/viewsettings.template.html）。
+
+  四组东西，顺序与网页端一致：视图、图像大小、将项目分组到合集中、显示字段。改一下就生效 —— 网页端也是
+  这样（每改一处 saveValues + refreshItems），这里没有「确定」键，只有关掉面板的那一下。
+
+  面板本身不认库：它拿到的是一份 LibraryDisplay，改完把新的一份递回去。哪个库、哪些字段能出现，都是
+  调用方（LibraryPage）的事。
+-->
+<UserControl
+    x:Class="Momoka.Shell.Views.LibrarySettingsPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Width="520">
+
+    <!-- 面板自己铺一层实底：浮层默认是亚克力的，底下的卡片墙会透上来，读起来像没画完。
+         网页端那颗齿轮打开的是一块实心面板，这里跟着它。 -->
+    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="12">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Padding="16,12,12,8" ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button
+                    x:Name="SettingsCloseButton"
+                    AutomationProperties.Name="关闭设置"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    Click="OnCloseClicked"
+                    Padding="8"
+                    ToolTipService.ToolTip="关闭">
+                    <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE711;" />
+                </Button>
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Style="{StaticResource EgSubheadStyle}"
+                    Text="设置" />
+            </Grid>
+
+            <ScrollViewer
+                Grid.Row="1"
+                MaxHeight="560"
+                Padding="16,0,16,16"
+                HorizontalScrollMode="Disabled"
+                HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Spacing="18">
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource EgCaptionStyle}" Text="视图" />
+                        <ComboBox
+                            x:Name="ViewCombo" x:FieldModifier="internal"
+                            AutomationProperties.Name="视图"
+                            HorizontalAlignment="Stretch"
+                            SelectionChanged="OnViewChanged" />
+                    </StackPanel>
+
+                    <!-- 网页端只在能算宽度的视图里给这一行（海报/横幅图/光盘封面/徽标/缩略图），
+                         列表与表格没有格子可缩放，所以整行连说明一起收起。 -->
+                    <StackPanel x:Name="SizeSection" x:FieldModifier="internal" Spacing="6">
+                        <TextBlock Style="{StaticResource EgCaptionStyle}" Text="图像大小" />
+                        <ComboBox
+                            x:Name="SizeCombo" x:FieldModifier="internal"
+                            AutomationProperties.Name="图像大小"
+                            HorizontalAlignment="Stretch"
+                            SelectionChanged="OnSizeChanged" />
+                        <TextBlock
+                            Foreground="{ThemeResource EgTextFaintBrush}"
+                            Style="{StaticResource EgCaptionStyle}"
+                            Text="设置图像网格的首选尺寸。"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="GroupSection" Spacing="4">
+                        <Grid ColumnSpacing="{StaticResource EgSpaceM}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource EgBodyStyle}"
+                                Text="将项目分组到合集中" />
+                            <ToggleSwitch
+                                x:Name="GroupSwitch"
+                                Grid.Column="1"
+                                AutomationProperties.Name="将项目分组到合集中"
+                                MinWidth="0"
+                                OffContent=""
+                                OnContent=""
+                                Toggled="OnGroupToggled" />
+                        </Grid>
+                        <TextBlock
+                            Foreground="{ThemeResource EgTextFaintBrush}"
+                            Style="{StaticResource EgCaptionStyle}"
+                            Text="根据已添加到的合集对项目进行分组。启用某些筛选器或排序命令可能会自动禁用此功能。"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="FieldsSection" Spacing="4">
+                        <TextBlock
+                            Margin="0,0,0,4"
+                            Style="{StaticResource EgSubheadStyle}"
+                            Text="显示字段" />
+                        <!-- 十四行在代码里生成：一行是「标签在左、开关在右」，与网页端同一版式。 -->
+                        <StackPanel x:Name="FieldRows" x:FieldModifier="internal" Spacing="2" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>

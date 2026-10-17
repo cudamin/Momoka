@@ -45,14 +45,21 @@ public sealed class CardItem : INotifyPropertyChanged
     private readonly bool _wide;
 
     /// <summary>
-    /// 设置 → 显示观看状态标记. False hides the corner badges — 已看, 收藏 and the unplayed count — and
-    /// nothing else: the hover strip's buttons are how those states are *changed*, and a user who has
-    /// turned the badges off has not asked to lose the controls.
+    /// 这一张卡画不画角标 —— 已看、收藏和未看集数。**不再有开关**：2026-10-16 按用户的话删掉了设置里那
+    /// 一行（「删掉这个开关，改为默认开启」），角标从此一直画；说 false 的只剩几处「这一排本来就没有状态
+    /// 可言」的地方（演职人员、主页的媒体库那一排、搜索建议那张小卡），见各自的调用点。
+    /// <para>
+    /// 它管不着悬浮层里那两颗按钮：按钮是那些状态**改**得动的地方，而一排没有状态可言的卡上那两颗按钮
+    /// 由 <see cref="UserStateVisibility"/> 按条目类型收起来，跟这里是不是画角标是两件事。
+    /// </para>
     /// </summary>
     private readonly bool _indicators;
 
     /// <summary>What to write on the second line instead of the item's own; null to use the item's.</summary>
     private readonly string? _subtitle;
+
+    /// <summary>第三行：勾了宣传语或概要才有，null 就是这一行整行收起。</summary>
+    private readonly string? _note;
 
     /// <summary>Whether artwork exists to ask for, or null when the item has none worth asking for.</summary>
     private readonly string? _imageType;
@@ -111,6 +118,13 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <param name="current">
     /// True for the one row that is the page you are already on; see <see cref="IsCurrentEpisode"/>.
     /// </param>
+    /// <param name="imageTypes">
+    /// 这一面墙要的那几种图，按先后排。媒体库七种视图各要各的（横幅图要 Banner、光盘封面要 Disc、
+    /// 徽标要背景图），取不到就往后退一格；null 或空数组表示按卡片的宽窄自己挑。
+    /// </param>
+    /// <param name="tableFields">
+    /// 表格视图的列。非空时卡片同时算出每一格的文字与宽度（<see cref="Cells"/>），行模板只负责摆出来。
+    /// </param>
     public CardItem(
         EmbyItem item,
         EmbyImageStore images,
@@ -118,7 +132,10 @@ public sealed class CardItem : INotifyPropertyChanged
         bool wide = false,
         string? subtitle = null,
         bool indicators = true,
-        bool current = false)
+        bool current = false,
+        IReadOnlyList<string>? imageTypes = null,
+        IReadOnlyList<LibraryField>? tableFields = null,
+        string? note = null)
     {
         _item = item;
         _images = images;
@@ -127,11 +144,22 @@ public sealed class CardItem : INotifyPropertyChanged
         _width = width;
         _wide = wide;
         _subtitle = subtitle;
+        _note = note;
         _indicators = indicators;
         IsCurrentEpisode = current;
 
-        _imageType = wide ? PreferWide(item) : PreferTall(item);
+        _imageType = imageTypes is { Count: > 0 } wanted
+            ? wanted.FirstOrDefault(type => EmbyImageStore.TagFor(item, type) is not null)
+            : wide ? PreferWide(item) : PreferTall(item);
+
+        Cells = tableFields is null
+            ? []
+            : [.. tableFields.Select(field => new CardCell(
+                LibraryCardText.Cell(item, field), LibraryTableColumns.WidthOf(field)))];
     }
+
+    /// <summary>表格视图这一行的每一格；别的视图是空数组。</summary>
+    public IReadOnlyList<CardCell> Cells { get; }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -185,6 +213,11 @@ public sealed class CardItem : INotifyPropertyChanged
     public Visibility CurrentVisibility => Show(IsCurrentEpisode);
 
     public string Subtitle => _subtitle ?? _item.CardSubtitle;
+
+    /// <summary>第三行（宣传语或概要）。媒体库设置里勾了才有；别的页面一律空。</summary>
+    public string Note => _note ?? "";
+
+    public Visibility NoteVisibility => Show(Note.Length > 0);
 
     /// <summary>Drawn behind the poster, so an item with no artwork still looks deliberate.</summary>
     public string Glyph => char.ConvertFromUtf32(_item.Type switch
@@ -243,9 +276,9 @@ public sealed class CardItem : INotifyPropertyChanged
     // Visibility rather than bool plus a converter: these are view-model properties on a view-model
     // that only a view uses, and a converter per flag would be four more files saying less.
     //
-    // 角标和按钮各有一对，名字里带 Badge 的那对才受 _indicators 管：角标是「显示观看状态标记」这个开关
-    // 说的东西，悬浮按钮上的图标不是 —— 关掉标记之后按钮还在，两个图标要是都被 _indicators 关掉，那颗
-    // 按钮就成了一块什么都不画的空白。
+    // 角标和按钮各有一对，名字里带 Badge 的那对才受 _indicators 管：角标是这一排画不画状态，悬浮按钮上的
+    // 图标不是 —— 一排不画角标的卡上按钮照旧要有图标，两个图标要是都被 _indicators 关掉，那颗按钮就成了
+    // 一块什么都不画的空白。
     public Visibility WatchedBadgeVisibility => Show(_indicators && Watched);
 
     public Visibility FavoriteBadgeVisibility => Show(_indicators && IsFavorite);
@@ -290,8 +323,8 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <para>
     /// The item's type decides it, not the caller: the same library card can appear on another page, and
     /// which buttons make sense is a fact about the item rather than about where it is drawn. Separate
-    /// from <see cref="_indicators"/> for the reason given there — that flag is a display preference and
-    /// this one is whether the action exists at all.
+    /// from <see cref="_indicators"/> for the reason given there — that flag is about how the row is drawn
+    /// and this one is whether the action exists at all.
     /// </para>
     /// </summary>
     public Visibility UserStateVisibility => Show(_item.TracksUserState);
@@ -506,4 +539,15 @@ public sealed class CardItem : INotifyPropertyChanged
 
     private void Raise([CallerMemberName] string? property = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property ?? string.Empty));
+}
+
+/// <summary>
+/// 表格视图的一格：这一项字段的文字，以及这一列多宽。宽度与列头同源（<see cref="LibraryTableColumns"/>），
+/// 所以行和列头不会各算一套。
+/// </summary>
+public sealed class CardCell(string text, double width)
+{
+    public string Text { get; } = text;
+
+    public double Width { get; } = width;
 }

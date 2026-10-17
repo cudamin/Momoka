@@ -2,6 +2,24 @@
 
 最后更新：2026-10-17
 
+## 媒体库设置面板照网页版重做（2026-10-17 用户令）
+
+用户令（原话）：「很多地方都不一样，我授权你访问 http://192.168.31.230:8896/ 对照」，附网页端设置面板三张截图；随后「你好好查一下 Emby 的 API 吧能接的都接上，官方 api 没给的就先不要弄了」「电视剧和电影之间是不一样的，注意区分」。动手前读了 `CLAUDE.md`、shell 技能与 `momoka-emby-api/references/official-sdk.md`。本轮在主树动手，**保留进入本轮时那一批未提交工作**（同日详情页、主页实时、Plex、删服务器管理页等），只动自己这几处。已提交，未推送。
+
+- **照着网页端的源码抄的**：抓了那台 4.10.1.0 的 `modules/viewsettings/viewsettings.js` 与 `.template.html`、`tabbedview/listcontroller.js`、`cardbuilder.js`、`common/itemmanager/baseitemcontroller.js`、`strings/zh-CN.json`。四组的顺序、七个视图、八档尺寸、十四项字段与两条说明文字都按它们来，没有凭截图猜。
+- **四组设置**：视图（海报／横幅图／光盘封面／徽标／缩略图／列表／表格）、图像大小（超小／特小／小／中／默认／大／特大／超大）、将项目分组到合集中、显示字段（标题／IMDb 评分／影评人评分／家长评分／年份／播放时长／类型／导演／标签／工作室／宣传语／概要／播放日期／创建日期）。**改一处就生效**，没有确定键 —— 网页端也是每改一处 `saveValues` + `refreshItems`。
+- **官方 API 对照（SDK 4.10.1.0）**：`GetUsersByUseridItems` 的签名里就有 `bool? groupItemsIntoCollections`（发 `GroupItemsIntoCollections`，说明是「hide items behind their boxsets」），`fields` 是逗号串；`People`／`Taglines`／`Studios`／`Overview`／`PremiereDate`／`DateCreated`／`OfficialRating`／`CriticRating`／`CommunityRating`／`Genres`／`Tags`／`ProductionYear` 都是 `Fields` 认的词。**推荐那条 `Users/{id}/Suggestions` 不声明分组参数**，所以那一支明确不发。
+- **请求只问要画的**：`Fields` 由勾上的字段拼（导演要 `People`、宣传语要 `Taglines`、概要要 `Overview`），一项都没勾时留 `PrimaryImageAspectRatio` 这个底座；`GroupItemsIntoCollections` 每面库墙都显式发 true／false，不再让服务器的默认值与开关上的字各说各话。
+- **七种视图都画得出来**：海报 2:3、横幅图 1000:185、光盘封面 1:1、徽标 16:9、缩略图 16:9、列表、表格；取图按视图换（`Banner`／`Disc`／`Backdrop`／`Logo`），取不到往后退一格。表格的列头与每一行读同一份宽度（`LibraryTableColumns`），勾几个字段就有几列。
+- **卡片底下两行**：第二行按勾的字段拼（`8.1 · 2019 · 2 小时 12 分 · 剧情 / 科幻 · 丹尼斯·维伦纽瓦 · A24`），宣传语或概要进第三行（没勾就整行收起，行高也跟着少 18）。
+- **电视剧和电影分开**：年份是区间（还在播就「至今」）还是单值、时长是「每集 45 分钟」还是整片、单集那一行带不带集号，都按条目类型分支；**设置按库各存一份**（`UiSettings.Display`），电影库和电视剧库各开各的视图、各显示各的字段。旧的 `UiSettings.Views` 只在没有新记录时读一次并搬过来。
+- **旧的「更多 › 视图」三档子菜单退役**，工具栏最后一颗换成齿轮；打开的是盖住整页的一块面板（网页端也是模态框）。先做成浮层，实测亚克力把底下的卡片墙透上来了，改成页内模态层 + 实底。
+- **测试**：新增 `LibraryDisplayTests` 15 条（目录与顺序、字段→`ItemFields` 映射、空选底座、规范化、八档宽度阶梯、七种形状的高宽比、分组只发库内查询、只带勾上的字段、电影与剧集的年份与时长、单集集号、宣传语优先、表格列宽、存取往返）。
+- **探针**：媒体库那条重写设置部分 —— 齿轮可点开、面板七／八／十四项摆齐、列表视图收起图像大小、表格按字段生成列头与行、换档格子变宽、勾导演请求里出现 `People`、关分组请求里发 false、还原后回到原来那一套。**87 项，86 通过**；唯一失败的是与本轮无关的 `隐藏首页行不请求`（主页那一批未提交工作留下的旧红）。
+- **四道闸门**：闸门 1 完整 Release 方案 **0 警告、0 错误**，`dotnet format whitespace --verify-no-changes` 退出 0；闸门 2 **1856 项全部通过、0 失败、0 跳过**（53760 ms）；闸门 3 `tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（540 文件、282.5 MB，发布验证通过），`Momoka.dll` SHA-256 `862f1dff2951c2fbc899d0c5eebf9c9ee6d01865593e15702a249b1947941765`，与开发构建逐字节相同；**闸门 4 只剩一条旧红**：`集页首屏（文件页）` 报「集带 779–1106（出屏）」，判定要求起点 ≤768，差 11 像素 —— 上一轮就红着，原因是真实库换片后那一集的简介变长，与本轮改动无关，**没有改基线，也没有洗绿**（186 项、失败 1、消失 0、新增 0）。
+- **基线与句柄**：`ViewButton` 退役，基线里换成 `LibrarySettingsButton`、`SettingsOverlay`、`TableHeader` 与面板自己的 8 个句柄；`媒体库三种视图的布局` 改名 `媒体库七种视图的布局`，断言按七种形状重写（横幅图与光盘封面的行高要算上卡片底下那两行字）。
+- **未验证（如实说）**：① 探针全程假传输，**没有在真实服务器上点过这些分类与设置**，「推荐」的真实返回内容没核对；② 徽标视图是把 `Logo` 图当封面（contain），网页端是「背景图 + 徽标叠加」，这一处是简化；③ 表格不横向滚动，勾满十四项会从右边裁掉；④ **推荐页仍是平铺网格**，网页端那三行（继续观看／最新集／最近发布的剧集）要另起一轮（`Resume`／`NextUp`／`Latest` 三条接口都带 ParentId，能接）。
+
 ## 官方 Emby SDK 仓库记进协议技能（2026-10-17 用户令）
 
 用户令（原话）：「作为“接口字典”  记到技能上面」。动手前先读了 `CLAUDE.md`、`momoka-emby-api` 与 `momoka-skill-creator`。本轮在主树动手，**保留进入本轮时那一批未提交工作**（同日媒体库分类栏、详情页、Plex、删管理页等），只动 emby-api 技能与本文件。纯文档改动，不构建、不重发。

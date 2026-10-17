@@ -121,34 +121,92 @@ internal sealed partial class ShellNavigationProbe
                 page.BuildSortMenu();
                 var menu = Get<MenuFlyout>(page, "SortMenu");
                 Require(menu.Items.OfType<RadioMenuFlyoutItem>().Count(value => value.IsChecked) == 2, "排序字段与方向没有分别显示选中状态");
-                // 「更多」是这两套工具栏里唯一一个把东西藏起来的入口：视图的三档形状、电视剧库的播放
-                // 与随机播放都在它里面。弹出层是独立顶层窗口，窗口截图拍不到（同目录那张 -more-screen.png
-                // 上什么菜单都没有），所以这里读的是菜单对象本身：它开没开、里面装着什么。
+                // 「更多」现在只装电视剧库那两颗播放键（视图三选一已经交给设置面板）。弹出层是独立顶层
+                // 窗口，窗口截图拍不到，所以这里读的是菜单对象本身。
                 var more = Get<Button>(page, "LibraryMoreButton");
                 var moreMenu = (MenuFlyout)more.Flyout!;
                 moreMenu.ShowAt(more);
                 await SettleAsync();
+                if (!moreMenu.IsOpen)
+                {
+                    // 浮层偶尔在窗口还没拿到焦点时自己收回去；再开一次，仍然是用户点那颗键的同一条路。
+                    moreMenu.ShowAt(more);
+                    await SettleAsync();
+                }
                 Require(moreMenu.IsOpen, "更多菜单没有展开");
-                Require(moreMenu.Items.OfType<MenuFlyoutSubItem>().Any(item => item.Text == "视图"), "更多菜单里没有视图子菜单");
+                Require(moreMenu.Items.OfType<MenuFlyoutSubItem>().All(item => item.Text != "视图"), "更多菜单里还留着旧的视图子菜单");
                 var menuPlay = moreMenu.Items.OfType<MenuFlyoutItem>().Where(item => item.Text is "播放" or "随机播放").ToArray();
                 Require(menuPlay.Length == 2
                     && menuPlay.All(item => (item.Visibility == Visibility.Visible) == (collection == "tvshows")), "播放与随机播放没有按库类型收进更多");
-                var viewItems = Get<MenuFlyoutSubItem>(page, "ViewButton").Items.OfType<RadioMenuFlyoutItem>().ToArray();
-                Require(string.Join(',', viewItems.Select(item => item.Tag)) == "Poster,Thumb,List"
-                    && viewItems.All(item => Enum.TryParse<LibraryView>(item.Tag as string, out _)), "视图菜单项与三档形状对不上");
-                Require(viewItems.Count(item => item.IsChecked) == 1
-                    && viewItems.Single(item => item.IsChecked).Tag as string == page.ViewModel.View.ToString(), "视图菜单没有标出当前视图");
                 await SaveProbeScreenAsync($"library-{collection}-more-screen.png");
                 moreMenu.Hide();
-                // 子菜单项在展开之前不在树里，也就没有可点的自动化入口（试过：Expand 之后 peer 仍为空），
-                // 所以这里验的是能悄悄坏掉的那一半 —— Tag 能不能解析成三档形状（上面已验），以及换了形状
-                // 之后网格真的换了模板与布局。点下去会调用 ChooseView，走的正是这一条。
-                page.ViewModel.ChooseView(LibraryView.List);
-                await UntilAsync(() => !page.ViewModel.Busy);
+
+                // 设置面板：网页端那颗齿轮里的四组东西。这里走的是用户点齿轮的同一条路 —— 打开浮层、
+                // 读面板上的控件、改一处、看请求与版面跟着变。
+                var settingsButton = Get<Button>(page, "LibrarySettingsButton");
+                Require(settingsButton.Visibility == Visibility.Visible, "媒体库页没有设置入口");
+                var openSettings = FrameworkElementAutomationPeer.CreatePeerForElement(settingsButton)
+                    ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                Require(openSettings is not null, "设置入口没有可调用的自动化入口");
+                openSettings!.Invoke();
+                await SettleAsync();
+                Require(page.SettingsOverlay.Visibility == Visibility.Visible, "设置面板没有打开");
+
+                var pane = page.SettingsPane;
+                Require(pane.ViewCombo.Items.Count == 7 && pane.SizeCombo.Items.Count == 8
+                    && pane.FieldRows.Children.Count == 14, "设置面板的四组东西没有照网页端摆齐");
+                Require(pane.SizeSection.Visibility == Visibility.Visible, "海报视图下没有图像大小这一行");
+                var before = page.ViewModel.Display;
+
+                // 视图：换成列表，网格要变成一行一条，图像大小那一行同时收起（列表没有格子可缩放）。
+                pane.SetView(LibraryView.List);
+                await UntilAsync(() => page.ViewModel.View == LibraryView.List && !page.ViewModel.Busy);
                 Require(Get<ItemsView>(page, "Cards").Layout is StackLayout, "选了列表视图，网格没有换成一行一条");
-                page.ViewModel.ChooseView(LibraryView.Poster);
+                Require(pane.SizeSection.Visibility == Visibility.Collapsed, "列表视图还留着图像大小那一行");
+
+                // 视图：换成表格，行模板换成表格，列头按勾上的字段生成。
+                pane.SetView(LibraryView.Table);
+                await UntilAsync(() => page.ViewModel.View == LibraryView.Table && !page.ViewModel.Busy);
+                Require(page.TableHeader.Visibility == Visibility.Visible
+                    && page.TableHeader.Children.Count == page.ViewModel.Fields.Count, "表格视图没有按字段生成列头");
+                Require(page.ViewModel.Cards.Count > 0 && page.ViewModel.Cards[0].Cells.Count == page.ViewModel.Fields.Count,
+                    "表格视图的行没有按字段分格");
+
+                // 图像大小：回到海报，换到超大档，格子宽度要按档位变，而且卡片是按新宽度重造的。
+                pane.SetView(LibraryView.Poster);
+                await UntilAsync(() => page.ViewModel.View == LibraryView.Poster && !page.ViewModel.Busy);
+                var defaultWidth = page.ViewModel.CellWidth;
+                pane.SetCardSize(LibraryCardSize.ExtraLarge);
+                await UntilAsync(() => page.ViewModel.CardSize == LibraryCardSize.ExtraLarge && !page.ViewModel.Busy);
+                Require(page.ViewModel.CellWidth > defaultWidth
+                    && Math.Abs(page.ViewModel.CardWidth - page.ViewModel.CellWidth) < 0.01,
+                    $"图像大小换了档，格子宽度没跟着走（{defaultWidth:0} → {page.ViewModel.CellWidth:0}，"
+                    + $"卡片 {page.ViewModel.CardWidth}，档位 {page.ViewModel.CardSize}，视图 {page.ViewModel.View}，"
+                    + $"面板 {pane.Current.CardSize}）");
+
+                // 显示字段：勾上「导演」，请求里要出现 People，卡片那一行要真的多出导演名。
+                pane.SetField(LibraryField.Director, true);
+                await UntilAsync(() => page.ViewModel.Fields.Contains(LibraryField.Director) && !page.ViewModel.Busy);
+                Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal))
+                    .Contains("People", StringComparison.Ordinal), "勾了导演，请求里没有要 People");
+                Require(pane.Current.Fields.Contains(LibraryField.Director), "勾了导演，面板上没有记下这一项");
+
+                // 分组到合集：关掉它，请求里要明确发 false（网页端每次都发这一键）。
+                pane.SetGroupIntoCollections(false);
+                await UntilAsync(() => !page.ViewModel.GroupIntoCollections && !page.ViewModel.Busy);
+                Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal))
+                    .Contains("GroupItemsIntoCollections=false", StringComparison.Ordinal), "关掉分组，请求里没有发 false");
+
+                await SaveProbeScreenAsync($"library-{collection}-settings-screen.png");
+                // 原样还回去，并且是「记住」的那一种：面板每改一处都会写进这个库的记忆，只用
+                // remember:false 还回去，下一套库打开时拿到的仍是探针上一趟留下的「超大」。
+                page.ViewModel.ApplyDisplay(before, remember: true);
                 await UntilAsync(() => !page.ViewModel.Busy);
-                Require(Get<ItemsView>(page, "Cards").Layout is UniformGridLayout, "视图切回海报没有恢复网格");
+                page.CloseSettings();
+                await SettleAsync();
+                Require(page.SettingsOverlay.Visibility == Visibility.Collapsed, "设置面板没有收起");
+                Require(page.ViewModel.View == before.View && page.ViewModel.CardSize == before.CardSize
+                    && page.ViewModel.Fields.SequenceEqual(before.Fields), "设置面板没有把原来的那一套还回去");
             }
             Require(fixture.Transport.Requests.All(value => value.StartsWith("GET ", StringComparison.Ordinal)), "媒体库浏览产生写请求");
             var pending = Pending<HttpResponseMessage>();

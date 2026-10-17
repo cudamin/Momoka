@@ -48,13 +48,21 @@ public static class LibraryBrowse
     };
 
     public static ItemQuery Query(string collectionType, string parentId, LibrarySection section,
-        int start, int limit, string sort, bool descending, ItemFilters filters, string? group = null)
+        int start, int limit, string sort, bool descending, ItemFilters filters, string? group = null,
+        LibraryDisplay? display = null)
     {
         var index = IsIndex(section, group);
         return new ItemQuery
         {
             ParentId = parentId,
             Recursive = section != LibrarySection.Folders,
+            // 只问这一面墙要画的字段。导演要 People、概要要 Overview，勾上才要，没勾就不必替每一页
+            // 多拖几十 KB；一条都没勾时退回列表的底座（图、年份、类型）。
+            Fields = display is null ? EmbyFields.Browse : LibraryDisplayCatalog.RequestFields(display.Fields),
+            // 「将项目分组到合集中」只有 Items 那条接口认；推荐走 Suggestions，它不声明这个参数，
+            // 发过去只会被丢掉，所以那一支明确不谈这件事。
+            GroupItemsIntoCollections = display is null || section == LibrarySection.Recommended
+                ? null : display.GroupIntoCollections,
             IncludeItemTypes = section switch
             {
                 LibrarySection.Episodes => [EmbyItemType.Episode],

@@ -1,20 +1,37 @@
 namespace Momoka.Emby;
 
 /// <summary>
-/// How a library grid lays its rows out — Emby Theater's imageType setting, in the three shapes this
-/// client draws. Which shapes exist is a fact about the catalogue; which one a library opens in is the
-/// user's, remembered per library root alongside the sort (see <c>UiSettings.Views</c>).
+/// How a library grid lays its rows out — Emby's imageType setting, in the seven shapes the web client
+/// offers (see <c>viewsettings.template.html</c>). Which one a library opens in is the user's, remembered
+/// per library root alongside the sort (see <c>UiSettings.Display</c>).
+/// <para>
+/// The values are written out because settings.json stores the number, not the name: 海报/缩略图/列表 were
+/// 0/1/2 before this type had seven shapes, and inserting 横幅图 between two of them would silently turn
+/// every saved 缩略图 into a 横幅图. New shapes go on the end.
+/// </para>
 /// </summary>
 public enum LibraryView
 {
     /// <summary>海报: the 2:3 poster grid every library opens in by default.</summary>
-    Poster,
+    Poster = 0,
 
     /// <summary>缩略图: the 16:9 still grid, Emby's thumb view.</summary>
-    Thumb,
+    Thumb = 1,
 
     /// <summary>列表: compact rows, Emby's list view — a small still and the row's title and info.</summary>
-    List
+    List = 2,
+
+    /// <summary>横幅图: Emby's banner shape — the wide banner image, roughly 1000×185.</summary>
+    Banner = 3,
+
+    /// <summary>光盘封面: Emby's disc shape — the square disc image.</summary>
+    Disc = 4,
+
+    /// <summary>徽标: Emby's logo shape — a 16:9 backdrop with the item's logo over it.</summary>
+    Logo = 5,
+
+    /// <summary>表格: Emby's datagrid — one row per item, the chosen fields as columns.</summary>
+    Table = 6
 }
 
 /// <summary>Field sets requested from Emby. Only names that exist in Emby's ItemFields.</summary>
@@ -82,6 +99,17 @@ public sealed class ItemQuery
     public IReadOnlyList<string> IncludeItemTypes { get; init; } = [];
 
     public string Fields { get; init; } = EmbyFields.Browse;
+
+    /// <summary>
+    /// 媒体库设置里的「将项目分组到合集中」，发 <c>GroupItemsIntoCollections</c>。
+    /// <para>
+    /// 只有媒体库那一面墙谈这件事：搜索、演职人员、继续观看都不是「某个库里的条目」，
+    /// 服务器那几条接口也不声明这个参数，所以是 <see langword="bool"/>? 而不是布尔 —— null 就是不谈。
+    /// 网页端对每一面库墙都显式发这个键（默认 true），这里照做：不发的话服务器的默认值与开关上的字
+    /// 是两回事，用户勾了「分组」却看不到合集就是从这里来的。
+    /// </para>
+    /// </summary>
+    public bool? GroupItemsIntoCollections { get; init; }
 
     public string SortBy { get; init; } = EmbySortBy.Name;
 
@@ -293,6 +321,7 @@ public sealed class ItemQuery
         }
 
         if (!string.IsNullOrWhiteSpace(ParentId)) parameters.Add(("ParentId", ParentId));
+        if (GroupItemsIntoCollections is { } group) parameters.Add(("GroupItemsIntoCollections", group ? "true" : "false"));
         if (!string.IsNullOrWhiteSpace(SearchTerm)) parameters.Add(("SearchTerm", SearchTerm!.Trim()));
         if (!string.IsNullOrWhiteSpace(PersonId)) parameters.Add(("PersonIds", PersonId!.Trim()));
         if (IncludeItemTypes.Count > 0) parameters.Add(("IncludeItemTypes", string.Join(',', IncludeItemTypes)));

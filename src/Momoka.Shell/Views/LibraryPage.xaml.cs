@@ -77,6 +77,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         // change lands with the whole tree in place.
         SourceTabs.SelectionChanged += OnSourceChanged;
 
+        // 面板上那颗 ✕：面板自己不认识宿主（它也能放进别处），收起由页面做。
+        SettingsPane.CloseRequested += CloseSettings;
+
         // 换来源之后光标要能落在搜索框里：这一页唯一的输入口是那个框，而点标签会把焦点留在标签上，
         // 用户换完来源就打不了字、也按不出回车（2026-10-15 用户报的正是「按回车不触发搜索」）。只认
         // 指针点的那一下，键盘方向键在标签之间移动时不抢焦点，见 OnSourceTabsKeyDown。
@@ -251,12 +254,15 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     internal (IReadOnlyList<(string Label, string Layout, double Cell, double Row)> Views, bool Restored) WalkViews()
     {
-        var original = ViewModel.View;
-        var seen = new List<(string, string, double, double)>(3);
+        var original = ViewModel.Display;
+        var seen = new List<(string, string, double, double)>(7);
 
         foreach (var view in Enum.GetValues<LibraryView>())
         {
-            ViewModel.View = view;
+            // remember: false —— 走查看过就走，不把库留在别的形状上，也不写设置文件。
+            ViewModel.ApplyDisplay(
+                new LibraryDisplay { View = view, CardSize = original.CardSize, Fields = [.. original.Fields] },
+                remember: false, requery: false);
 
             // The layout is swapped by ApplyView off the property change, and the cell numbers are pushed
             // into it by two bindings; a measured pass is what turns both into something to read.
@@ -264,14 +270,14 @@ public sealed partial class LibraryPage : Page, IShellContent
             seen.Add(Shape());
         }
 
-        ViewModel.View = original;
+        ViewModel.ApplyDisplay(original, remember: false, requery: false);
         Cards.UpdateLayout();
 
         // Whether the page was handed back the way it was found, answered here because this is the only
         // scope that remembers what that was: everything the report reads off the page afterwards is
         // already the restored value, so a check comparing those to each other would agree with itself.
         // Enum.GetValues comes back in numeric order, so each shape's reading sits at its own value.
-        var restored = ViewModel.View == original && Shape() == seen[(int)original];
+        var restored = ViewModel.View == original.View && Shape() == seen[(int)original.View];
 
         return (seen, restored);
     }
@@ -879,11 +885,23 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     /// <summary>A view shape was picked out of the view menu. The Tag carries the enum name — the
     /// menu is markup, and an enum-typed Tag would need a converter either way.</summary>
-    private void OnViewChosen(object sender, RoutedEventArgs e)
+    /// <summary>
+    /// 齿轮打开了：把这一面墙现在的那一套摆上去，再把面板层显出来。每次打开都重摆一次 —— 面板是同一个
+    /// 控件，换了库（电视剧 ↔ 电影）之后它还留着上一个库的勾选。
+    /// </summary>
+    private void OnSettingsClicked(object sender, RoutedEventArgs e)
     {
-        if (sender is RadioMenuFlyoutItem { Tag: string name } && Enum.TryParse<LibraryView>(name, out var view))
-            ViewModel.ChooseView(view);
+        SettingsPane.Show(ViewModel.Display);
+        SettingsOverlay.Visibility = Visibility.Visible;
     }
+
+    /// <summary>面板上那颗 ✕。收起面板层，回到原来的网格。</summary>
+    internal void CloseSettings() => SettingsOverlay.Visibility = Visibility.Collapsed;
+
+    /// <summary>
+    /// 面板上改了一处。立刻生效，与网页端一致：视图模型重查一次，网格按新形状/新字段重建。
+    /// </summary>
+    private void OnDisplayChanged(LibraryDisplay display) => ViewModel.ApplyDisplay(display);
 
     /// <summary>
     /// The letter bar was clicked. The view model answers with the row to land on — a count the server
@@ -947,18 +965,51 @@ public sealed partial class LibraryPage : Page, IShellContent
         {
             Cards.ItemTemplate = (DataTemplate)Resources["LibraryIndexTemplate"];
             Cards.Layout = (Layout)Resources["LibraryIndexLayout"];
+            TableHeader.Visibility = Visibility.Collapsed;
             return;
         }
         Cards.ItemTemplate = ViewModel.View switch
         {
-            LibraryView.Thumb => (DataTemplate)Resources["ThumbTemplate"],
+            LibraryView.Thumb or LibraryView.Banner or LibraryView.Disc or LibraryView.Logo =>
+                (DataTemplate)Resources["ThumbTemplate"],
             LibraryView.List => (DataTemplate)Resources["ListTemplate"],
+            LibraryView.Table => (DataTemplate)Resources["TableRowTemplate"],
             _ => (DataTemplate)Resources["PosterTemplate"]
         };
 
-        Cards.Layout = ViewModel.View == LibraryView.List ? (Layout)Resources["ListLayout"] : CardLayout;
+        Cards.Layout = ViewModel.View switch
+        {
+            LibraryView.List => (Layout)Resources["ListLayout"],
+            LibraryView.Table => (Layout)Resources["TableLayout"],
+            _ => CardLayout
+        };
 
-        foreach (var item in ViewButton.Items.OfType<RadioMenuFlyoutItem>())
-            item.IsChecked = item.Tag is string name && Enum.TryParse<LibraryView>(name, out var view) && view == ViewModel.View;
+        // 表格的列头与每一行同一套宽度；换成别的视图就整行收起（一个像素都不占）。
+        TableHeader.Visibility = ViewModel.View == LibraryView.Table ? Visibility.Visible : Visibility.Collapsed;
+        if (ViewModel.View == LibraryView.Table) BuildTableHeader();
+    }
+
+    /// <summary>
+    /// 表格视图的列头。列 = 勾上的字段（含标题），宽度取自 <see cref="LibraryTableColumns"/> ——
+    /// 行里每一格用的也是同一份宽度，两处各写一遍的话第一列就会歪。
+    /// </summary>
+    private void BuildTableHeader()
+    {
+        var fields = ViewModel.Fields;
+        TableHeader.ColumnDefinitions.Clear();
+        TableHeader.Children.Clear();
+
+        foreach (var field in fields)
+        {
+            TableHeader.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(LibraryTableColumns.WidthOf(field)) });
+            var label = new TextBlock
+            {
+                Text = LibraryDisplayCatalog.LabelOf(field),
+                Style = (Style)Resources["TableHeaderTextStyle"],
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            Grid.SetColumn(label, TableHeader.ColumnDefinitions.Count - 1);
+            TableHeader.Children.Add(label);
+        }
     }
 }

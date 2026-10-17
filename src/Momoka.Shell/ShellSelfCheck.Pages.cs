@@ -239,21 +239,31 @@ internal static partial class ShellSelfCheck
                     || (library.CellWidth == library.CardWidth && library.CellHeight > library.CardWidth)),
             $"卡片 {library.CardWidth}，网格单元 {library.CellWidth:0}×{library.CellHeight:0}（视图「{library.View}」）");
 
-        // Each of the three shapes put on the live grid in turn — see LibraryPage.WalkViews for why nothing
-        // a launch reads can stand in for this. 海报 is a portrait cell of the set width, 缩略图 a
-        // wider-than-tall one, and 列表 is not a grid at all: a row spans the page, and a cell width is the
-        // wrong question to ask about it. The shapes were computed from the view and announced to nobody
-        // when it changed, so 缩略图 drew 16:9 stills into poster cells and 列表 drew rows into them, with
-        // the title, the info line and the synopsis cut off past the cell's right edge.
+        // 七种形状轮流摆到活的网格上 —— 见 LibraryPage.WalkViews 说明为什么「启动时读一次」替不了这一步。
+        // 海报是竖格、缩略图/徽标是 16:9 宽格、光盘封面是方格子、横幅图是细长条，列表与表格根本不是网格
+        // （一行占满页宽，问「格宽」就是问错了问题）。形状是从视图算出来又没告诉过任何人的，所以换形状时
+        // 缩略图把 16:9 的剧照画进了海报格、列表把整行画进格子里，标题与信息行都被裁掉。
         var walk = library.Views;
-        var poster = walk.Count > 0 ? walk[0] : default;
-        var thumb = walk.Count > 1 ? walk[1] : default;
-        var list = walk.Count > 2 ? walk[2] : default;
+        (string Layout, double Cell, double Row) At(int index) =>
+            walk.Count > index ? (walk[index].Layout, walk[index].Cell, walk[index].Row) : default;
 
-        check("媒体库三种视图的布局", walk.Count == 3
+        var poster = At((int)LibraryView.Poster);
+        var thumb = At((int)LibraryView.Thumb);
+        var list = At((int)LibraryView.List);
+        var banner = At((int)LibraryView.Banner);
+        var disc = At((int)LibraryView.Disc);
+        var logo = At((int)LibraryView.Logo);
+        var table = At((int)LibraryView.Table);
+
+        check("媒体库七种视图的布局", walk.Count == 7
                 && poster.Layout == "UniformGridLayout" && poster.Cell == library.CardWidth && poster.Row > poster.Cell
                 && thumb.Layout == "UniformGridLayout" && thumb.Cell > library.CardWidth && thumb.Row < thumb.Cell
                 && list.Layout == "StackLayout"
+                // 行高是「画面 + 卡片底下那两行字」，所以横幅图比它的格宽窄得多、光盘封面是格宽加那两行字。
+                && banner.Layout == "UniformGridLayout" && Math.Abs(banner.Row - (banner.Cell * 0.185 + 59)) < 2
+                && disc.Layout == "UniformGridLayout" && Math.Abs(disc.Row - (disc.Cell + 59)) < 2
+                && logo.Layout == "UniformGridLayout" && logo.Row < logo.Cell
+                && table.Layout == "StackLayout"
                 && library.ViewRestored,
             string.Join('；', walk.Select(one => one.Layout == "StackLayout"
                     ? $"{one.Label} {one.Layout}（整行占页宽，不吃格宽）"
@@ -552,9 +562,9 @@ internal static partial class ShellSelfCheck
         // 那一行类型点不点得动。搭空了屏上就是一行看着一模一样的字，点下去什么都不发生 —— 别的读数一个都不响。
         if (_detailGenres is { } genres) check("详情类型可点", genres.Ok, genres.Detail);
 
-        // 「加入显示评分改为豆瓣评分的功能，可在设置使用豆瓣、tmdb、烂番茄等平台的评分」。判的是本应用自己的规矩
+        // 「服务端给什么评分就用什么」（2026-10-16 起，设置里那一档「评分来源」已删）。判的是本应用自己的规矩
         // （规矩说该画什么、屏上就得画什么；服务器没给分就整块收起来）；服务器那一头给了什么字段只报不判 —— 有没有
-        // 豆瓣的痕迹是那台机器上装了哪些插件的事，而那一句正是这一关最值得读的：从此每次自检都自己答一遍。
+        // 影评指数是那台机器上装了哪些插件的事，而那一句正是这一关最值得读的：从此每次自检都自己答一遍。
         if (_detailScore is { } score) check("详情评分来源", score.Ok, score.Detail);
         else report.AppendLine("[信息] 详情类型可点 — 这次没走到详情页");
 

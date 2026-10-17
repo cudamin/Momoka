@@ -501,14 +501,13 @@ public sealed class EmbyItem
     /// <summary>
     /// 这个条目在服务器上对上了哪几家刮削源的 id —— <c>Tmdb</c> / <c>Imdb</c> / <c>Tvdb</c> / <c>Douban</c>。
     /// <para>
-    /// <b>只有 id，没有分数。</b>它唯一的用处是「这个 CommunityRating 该署谁的名」（见 <see cref="ItemScore"/>）：
-    /// 服务器上豆瓣、TMDB、IMDb 三家的大众分都写进同一个 <see cref="CommunityRating"/>，客户端换不出来，能说的只有
-    /// 「这个条目属于哪一家」。
+    /// <b>只有 id，没有分数。</b>服务器上豆瓣、TMDB、IMDb 三家的大众分都写进同一个
+    /// <see cref="CommunityRating"/>，客户端换不出来，能说的只有「这个条目属于哪一家」。比对的人不止一个
+    /// （MoviePilot 的入库匹配、多版本发现），所以比较由调用方显式做、不吃字典自己的比较器：**键的大小写不要指望
+    /// 这个字典自己** —— <c>System.Text.Json</c> 会新建一个默认比较器的字典把这里整个换掉。
     /// </para>
     /// <para>
-    /// 形状照 <see cref="ImageTags"/> 来（服务器的 schema 说这个字典的值全是字符串）。**键的大小写不要指望这个字典
-    /// 自己**：<c>System.Text.Json</c> 会新建一个默认比较器的字典把这里整个换掉，所以比较由
-    /// <see cref="ItemScore.Matched"/> 显式做。
+    /// 形状照 <see cref="ImageTags"/> 来（服务器的 schema 说这个字典的值全是字符串）。
     /// </para>
     /// </summary>
     public Dictionary<string, string> ProviderIds { get; set; } = [];
@@ -590,6 +589,12 @@ public sealed class EmbyItem
     /// produced — the detail page is the only place with enough of the item to show it.
     /// </summary>
     public List<EmbyPerson> People { get; set; } = [];
+
+    /// <summary>
+    /// 宣传语，服务器只在 <c>Fields=Taglines</c> 时才给。列表接口默认不带它 —— 媒体库设置里勾了
+    /// 「宣传语」之后，<see cref="LibraryDisplayCatalog.RequestFields"/> 才会把它写进请求。
+    /// </summary>
+    public List<string> Taglines { get; set; } = [];
 
     [JsonIgnore]
     public bool IsPlayable => EmbyItemType.IsPlayable(Type);

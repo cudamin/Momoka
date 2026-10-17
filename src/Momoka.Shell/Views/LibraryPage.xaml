@@ -120,6 +120,40 @@
              裁掉一截，标题、信息行、简介整段被挤到格子外面，列表看上去就是一堆没有字的小图。行高不用
              算：图有自己的高，字排完就是行的高。 -->
         <StackLayout x:Key="ListLayout" Spacing="12" />
+        <!-- 表格视图：一行占满页宽，行与行之间只隔一条发丝线那么一点，读起来才是一张表。 -->
+        <StackLayout x:Key="TableLayout" Spacing="2" />
+        <Style x:Key="TableHeaderTextStyle" TargetType="TextBlock" BasedOn="{StaticResource EgCaptionStyle}">
+            <Setter Property="Foreground" Value="{ThemeResource EgTextDimBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+
+        <!-- 表格的一行：每一格由 CardItem 算好（文字 + 列宽），这里只负责摆出来。列头在
+             LibraryPage.BuildTableHeader 里用同一份宽度生成，两处不会各算一套。 -->
+        <DataTemplate x:Key="TableRowTemplate" x:DataType="local:CardItem">
+            <ItemContainer>
+                <Grid Padding="12,0" MinHeight="44" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,0,0,1">
+                    <ItemsControl ItemsSource="{x:Bind Cells}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="local:CardCell">
+                                <TextBlock
+                                    Width="{x:Bind Width}"
+                                    Padding="0,0,12,0"
+                                    Style="{StaticResource EgBodyStyle}"
+                                    Text="{x:Bind Text}"
+                                    TextTrimming="CharacterEllipsis"
+                                    VerticalAlignment="Center" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </ItemContainer>
+        </DataTemplate>
         <UniformGridLayout x:Key="LibraryIndexLayout" MinItemWidth="170" MinItemHeight="72" MinRowSpacing="12" MinColumnSpacing="12" />
         <DataTemplate x:Key="LibraryIndexTemplate" x:DataType="local:CardItem">
             <ItemContainer>
@@ -308,17 +342,23 @@
                             <FontIcon FontSize="14" Glyph="&#xE712;" />
                             <Button.Flyout>
                                 <MenuFlyout x:Name="LibraryMoreMenu" Placement="Bottom">
-                                    <MenuFlyoutSubItem x:Name="ViewButton" Text="视图">
-                                        <RadioMenuFlyoutItem x:Name="LibraryPosterView" x:Uid="LibraryPage_RadioMenuFlyoutItem1" Click="OnViewChosen" Tag="Poster" />
-                                        <RadioMenuFlyoutItem x:Name="LibraryThumbView" x:Uid="LibraryPage_RadioMenuFlyoutItem2" Click="OnViewChosen" Tag="Thumb" />
-                                        <RadioMenuFlyoutItem x:Name="LibraryListView" x:Uid="LibraryPage_RadioMenuFlyoutItem3" Click="OnViewChosen" Tag="List" />
-                                    </MenuFlyoutSubItem>
                                     <MenuFlyoutItem x:Name="LibraryMenuPlay" Text="播放" Command="{x:Bind ViewModel.PlayAllCommand}"
                                         Visibility="{x:Bind ViewModel.MenuPlayVisibility, Mode=OneWay}" />
                                     <MenuFlyoutItem x:Name="LibraryMenuShuffle" Text="随机播放" Command="{x:Bind ViewModel.PlayRandomCommand}"
                                         Visibility="{x:Bind ViewModel.MenuPlayVisibility, Mode=OneWay}" />
                                 </MenuFlyout>
                             </Button.Flyout>
+                        </Button>
+
+                        <!-- 网页端那颗齿轮：视图、图像大小、分组、显示字段。原来 ⋯ 里那个「视图」三选一的
+                             子菜单由它接手 —— 那三档只是网页端七档里的三档，图像大小和显示字段也没有入口。
+                             打开的是本页盖上来的一块面板（网页端也是个模态框），不是浮层：浮层是亚克力的，
+                             卡片墙会从面板底下透上来。 -->
+                        <Button x:Name="LibrarySettingsButton" Style="{StaticResource LibraryPillStyle}"
+                            Width="32" Padding="0" ToolTipService.ToolTip="设置" AutomationProperties.Name="设置"
+                            Click="OnSettingsClicked"
+                            Visibility="{x:Bind ViewModel.SettingsVisibility, Mode=OneWay}">
+                            <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE713;" />
                         </Button>
                     </local:WrapRow>
                 </Grid>
@@ -398,7 +438,7 @@
             <!-- Grid so the letter bar can sit over the scroller's right edge without taking a column
                  away from it（Emby 的 alphaPicker 是 position:fixed 的覆盖层，不是布局成员）。 -->
             <Grid RowSpacing="16">
-                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
                 <SelectorBar x:Name="SearchCategories" HorizontalAlignment="Center"
                     Visibility="{x:Bind ViewModel.SearchCategoriesVisibility, Mode=OneWay}">
                     <SelectorBarItem x:Name="TopResultsCategory" Text="热门结果" IsSelected="True" Tag="TopResults" />
@@ -406,9 +446,12 @@
                     <SelectorBarItem x:Name="MoviesCategory" Text="影片" Tag="Movies" />
                     <SelectorBarItem x:Name="EpisodesCategory" Text="集" Tag="Episodes" />
                 </SelectorBar>
+            <!-- 表格视图的列头。列在代码里按勾上的字段生成（见 LibraryPage.BuildTableHeader），
+                 与每一行用同一套宽度 —— 两处各写一遍宽度，第一列就会歪。 -->
+            <Grid x:Name="TableHeader" x:FieldModifier="internal" Grid.Row="1" Padding="12,0" Visibility="Collapsed" />
             <ItemsView
                 x:Name="Cards"
-                Grid.Row="1"
+                Grid.Row="2"
                 Visibility="{x:Bind ViewModel.SearchResultsVisibility, Mode=OneWay}"
                 IsItemInvokedEnabled="True"
                 ItemInvoked="OnItemInvoked"
@@ -441,7 +484,7 @@
                  总数 > 30）。点击跳到该字母第一项；当前字母高亮随滚动更新。 -->
             <local:AlphaBar
                 x:Name="Alpha"
-                Grid.Row="1"
+                Grid.Row="2"
                 JumpRequested="OnAlphaJump"
                 Visibility="{x:Bind ViewModel.AlphaVisibility, Mode=OneWay}" />
         </Grid>
@@ -507,5 +550,21 @@
             Visibility="Collapsed" />
         <local:MoviePilotVersionsView x:Name="MoviePilotResources" Grid.Row="2" Visibility="Collapsed" />
         <local:AniBtSearchPanel x:Name="AniBtPanel" Grid.Row="2" Visibility="Collapsed" />
+
+        <!-- 设置面板盖在整页上（网页端那颗齿轮打开的就是一块模态框）。铺满三层，压住搜索、工具栏与网格；
+             关掉只有面板上那颗 ✕ —— 与网页端一致，点外面不收。 -->
+        <Grid
+            x:Name="SettingsOverlay"
+            x:FieldModifier="internal"
+            Grid.RowSpan="3"
+            Background="{ThemeResource EgScrimBrush}"
+            Visibility="Collapsed">
+            <local:LibrarySettingsPanel
+                x:Name="SettingsPane"
+                x:FieldModifier="internal"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Changed="OnDisplayChanged" />
+        </Grid>
     </Grid>
 </Page>

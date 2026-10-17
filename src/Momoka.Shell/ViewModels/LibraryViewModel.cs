@@ -141,7 +141,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         SortKey = EmbySortBy.Name;
         SortLabel = EmbySortBy.LabelOf(EmbySortBy.Name);
         FilterTooltip = "筛选";
-        CardWidth = CardSize.PosterWidth;
+        CardWidth = Momoka.Infrastructure.CardSize.PosterWidth;
     }
 
     /// <summary>
@@ -178,12 +178,16 @@ public sealed partial class LibraryViewModel : PageViewModel
     public partial int CardWidth { get; set; }
 
     /// <summary>
-    /// How tall one cell of the grid has to be: the picture plus the two lines of text under it.
+    /// How tall one cell of the grid has to be: the picture plus the text under it — the title, the field
+    /// line, and the extra line when 宣传语 or 概要 is switched on.
     /// Computed rather than typed in, which is how the old markup's <c>MinItemHeight="308"</c> came to
     /// be six pixels short of the card it was sizing. Same arithmetic as
     /// <see cref="CardShelf.RowHeight"/>, for the same reason.
     /// </summary>
-    public double RowHeight => CardSize.HeightFor(CardBuildWidth, CardBuildWide) + CardSize.Chrome;
+    public double RowHeight => LibraryCardMetrics.Height(View, CardBuildWidth) + Momoka.Infrastructure.CardSize.Chrome + NoteHeight;
+
+    /// <summary>多出来的那一行字（宣传语或概要）占的高度；没勾这两项就是 0。</summary>
+    private double NoteHeight => Fields.Contains(LibraryField.Tagline) || Fields.Contains(LibraryField.Overview) ? 18 : 0;
 
     /// <summary>The cell width the live layout should be using, in the current view.</summary>
     /// <remarks>
@@ -216,55 +220,71 @@ public sealed partial class LibraryViewModel : PageViewModel
     public string SortTooltip => SortDescending ? "降序，点击改为升序" : "升序，点击改为降序";
 
     /// <summary>
-    /// How this grid lays its rows out. Changing it rebuilds the cards at the new shape's size — the
-    /// decode width has to follow the drawn width or every bitmap comes back blurry.
+    /// 这一面墙现在的整套显示设置：视图、图像大小、分组、显示字段。网页端那颗齿轮里的四组东西，
+    /// 一个库一份 —— 电视剧库和电影库互不影响（见 <see cref="RestoreDisplay"/>）。
     /// <para>
-    /// Both cell measurements hang off it as well, and they have to: the shape decides the card size, and
-    /// a cell that keeps the old shape's numbers clips the new cards to it. 海报 → 缩略图 was drawing
-    /// 16:9 stills into 170-wide poster cells, and 列表 was worse — the row's text sits to the right of
-    /// its picture, so a too-narrow cell cut the title, the info line and the synopsis away entirely.
+    /// 换一个形状就要按新尺寸重建卡片：解码宽度必须跟着画出来的宽度走，否则每一张都是糊的。
+    /// 两种格子的量法也都挂在它上面：形状决定卡片多大，而一个还按旧形状算的格子会把新卡片裁掉一截。
     /// </para>
     /// </summary>
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ViewGlyph))]
-    [NotifyPropertyChangedFor(nameof(ViewLabel))]
-    [NotifyPropertyChangedFor(nameof(RowHeight))]
-    [NotifyPropertyChangedFor(nameof(CellWidth))]
-    public partial LibraryView View { get; set; }
+    private LibraryDisplay _display = new();
+
+    /// <summary>这一面墙的视图形状。改它走 <see cref="ApplyDisplay"/>，不要直接赋值。</summary>
+    public LibraryView View => _display.View;
+
+    /// <summary>网页端「图像大小」那一档。</summary>
+    public LibraryCardSize CardSize => _display.CardSize;
+
+    /// <summary>网页端「将项目分组到合集中」。</summary>
+    public bool GroupIntoCollections => _display.GroupIntoCollections;
+
+    /// <summary>这一面墙要显示的字段，顺序按目录。</summary>
+    public IReadOnlyList<LibraryField> Fields => _display.Fields;
+
+    /// <summary>设置面板读的那一份副本；改动请走 <see cref="ApplyDisplay"/>。</summary>
+    internal LibraryDisplay Display => _display.Clone();
 
     /// <summary>What the view button shows; see <see cref="ViewGlyphOf"/>.</summary>
     public string ViewGlyph => Glyph(ViewGlyphOf(View));
 
-    public string ViewLabel => View switch
-    {
-        LibraryView.Thumb => "缩略图",
-        LibraryView.List => "列表",
-        _ => "海报"
-    };
+    public string ViewLabel => LibraryDisplayCatalog.LabelOf(View);
 
-    /// <summary>Segoe Fluent codepoints for the three view shapes.</summary>
+    /// <summary>Segoe Fluent codepoints for the view shapes.</summary>
     internal static int ViewGlyphOf(LibraryView view) => view switch
     {
         LibraryView.Thumb => 0xE8A9,   // 网格（宽格）
-        LibraryView.List => 0xE8FD,   // 列表
+        LibraryView.List => 0xE8FD,    // 列表
+        LibraryView.Table => 0xE8FD,   // 表格
+        LibraryView.Banner => 0xE7C4,  // 横幅
+        LibraryView.Disc => 0xE958,    // 光盘
+        LibraryView.Logo => 0xE8D2,    // 徽标
         _ => 0xE80A                    // 平铺
     };
 
-    /// <summary>Whether this grid is wide-shaped (16:9), which is what the thumb view draws.</summary>
-    internal bool ViewIsWide => View == LibraryView.Thumb;
+    /// <summary>Whether this grid draws a 16:9 still rather than a poster.</summary>
+    internal bool ViewIsWide => View is LibraryView.Thumb or LibraryView.Logo or LibraryView.List or LibraryView.Table;
 
     /// <summary>
     /// The width a card is built at in the current view. The poster shape draws at
     /// <see cref="CardSize.PosterWidth"/>; the thumb and list shapes draw the same wide width the detail
     /// page's episode rows use, so the two list styles in the app agree with each other.
     /// </summary>
-    internal int CardBuildWidth => View switch
-    {
-        LibraryView.Poster => CardSize.PosterWidth,
-        _ => CardSize.WideWidth
-    };
+    internal int CardBuildWidth => LibraryCardMetrics.Width(View, CardSize);
 
-    internal bool CardBuildWide => View != LibraryView.Poster;
+    internal bool CardBuildWide => ViewIsWide;
+
+    /// <summary>
+    /// 这一面墙取图的先后顺序。网页端七种视图各要各的图：海报要竖图、横幅图要 Banner、光盘封面要
+    /// Disc、徽标与缩略图要背景图（Backdrop），取不到再往后退一格。空数组就是让卡片按自己的老规矩挑
+    /// （竖卡先要 Primary、宽卡先要 Thumb）。
+    /// </summary>
+    internal IReadOnlyList<string> CardImageTypes => View switch
+    {
+        LibraryView.Banner => ["Banner", "Backdrop", "Primary"],
+        LibraryView.Disc => ["Disc", "Primary"],
+        LibraryView.Logo => ["Backdrop", "Thumb"],
+        _ => []
+    };
 
     /// <summary>How many filters are on, for the badge on the filter button.</summary>
     [ObservableProperty]
@@ -378,6 +398,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal IReadOnlyList<LibrarySectionEntry> BrowseSections => IsSectionLibrary
         ? LibraryBrowse.Sections(_request!.CollectionType, _scope?.Connection.ServerKind ?? MediaServerKind.Emby) : [];
     public Visibility SectionVisibility => Show(IsSectionLibrary && BrowseSections.Count > 1);
+    public Visibility SettingsVisibility => Show(IsSectionLibrary);
     public Visibility BrowseGroupVisibility => Show(IsSectionLibrary && _request?.BrowseGroup is not null);
     public string BrowseGroupLabel => _request?.BrowseGroup ?? "";
     public Visibility DirectPlayVisibility => Show(!IsSectionLibrary || _request!.CollectionType == "movies" && !IsBrowseIndex);
@@ -395,7 +416,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _request.LoadedCount = 0;
         RestoreSort();
         RestoreFilters();
-        RestoreView();
+        RestoreDisplay();
         RefreshBrowseChrome();
         await ReloadAsync().ConfigureAwait(true);
     }
@@ -478,7 +499,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _moviePilot = moviePilot;
 
         // 「海报宽度」那一行设置 2026-09-05 删掉了，宽度回到 CardSize 固定的默认档。
-        CardWidth = CardSize.PosterWidth;
+        CardWidth = Momoka.Infrastructure.CardSize.PosterWidth;
 
         Heading = request.IsSearch ? LibraryRequest.SearchTitle(request.SearchTerm!) : request.Title;
         SearchText = request.SearchTerm ?? "";
@@ -505,7 +526,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
         RestoreSort();
         RestoreFilters();
-        RestoreView();
+        RestoreDisplay();
         RefreshBrowseChrome();
         LoadRecentSearches();
     }
@@ -602,9 +623,19 @@ public sealed partial class LibraryViewModel : PageViewModel
         RowsArrived();
     }
 
-    /// <summary>照这一页当前的视图形状造一张卡（同 <see cref="LoadAsync"/> 那一句）。</summary>
+    /// <summary>照这一页当前的显示设置造一张卡（同 <see cref="LoadAsync"/> 那一句）。</summary>
     private CardItem NewCard(EmbyItem item) =>
-        new(item, _images!, CardBuildWidth, CardBuildWide);
+        new(item, _images!, CardBuildWidth, CardBuildWide,
+            subtitle: CardLine(item), imageTypes: CardImageTypes,
+            tableFields: View == LibraryView.Table ? Fields : null,
+            note: LibraryCardText.Note(item, Fields));
+
+    /// <summary>
+    /// 卡片底下那一行字。勾了字段就按勾的拼；一项能说的都没有时交回卡片自己的副标题（
+    /// 剧集的「S01E02 · 剧名」、文件夹的「文件夹」），总比留一行空白强。
+    /// </summary>
+    private string? CardLine(EmbyItem item) =>
+        LibraryCardText.Line(item, Fields) is { Length: > 0 } line ? line : null;
 
     private async Task<bool> RefreshAfterRemovalAsync(CancellationToken queryToken)
     {
@@ -902,20 +933,34 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>
-    /// A view shape was picked. Rebuilds the grid at the new shape's size rather than resizing the old
-    /// cards: a bitmap decoded for 170px drawn at 300 is a blurry bitmap, and the wide shape wants the
-    /// still, not the poster, from the image store.
+    /// 设置面板改了东西。按新的一套重建卡片，而不是把旧卡片拉大 —— 为 170 像素解出来的图放到 300 像素上
+    /// 就是一张糊图，而换了字段之后服务器还没把新字段送过来，只有重查一次才拿得到。
     /// </summary>
-    internal void ChooseView(LibraryView view)
+    /// <param name="next">面板上拼出来的那一套。</param>
+    /// <param name="remember">探针走查时传 false：看过就走，不把库留在别的形状上。</param>
+    /// <param name="requery">
+    /// 探针走查传 false：那一趟只想知道每种形状把网格量成什么样，不要顺手把卡片清空重查 ——
+    /// 自检随后要数这一页的卡片，重查还没回来时数到的是 0。
+    /// </param>
+    internal void ApplyDisplay(LibraryDisplay next, bool remember = true, bool requery = true)
     {
-        if (view == View) return;
+        var normalized = next.Normalized();
+        if (SameDisplay(normalized, _display)) return;
 
-        View = view;
-        RememberView();
-        Requery();
+        _display = normalized;
+        if (remember) RememberDisplay();
+        RaiseDisplay();
+        if (requery) Requery();
 
-        Log.Debug(Category, $"视图切换：{ViewLabel}");
+        Log.Debug(Category, $"显示设置：{ViewLabel}，{LibraryDisplayCatalog.LabelOf(CardSize)}，"
+            + $"字段 {Fields.Count} 项，分组 {(GroupIntoCollections ? "开" : "关")}");
     }
+
+    private static bool SameDisplay(LibraryDisplay left, LibraryDisplay right) =>
+        left.View == right.View
+        && left.CardSize == right.CardSize
+        && left.GroupIntoCollections == right.GroupIntoCollections
+        && left.Fields.SequenceEqual(right.Fields);
 
     /// <summary>
     /// 播放全部: the grid's first playable row, with the whole grid as the playlist — Emby's own
@@ -1246,32 +1291,80 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>
-    /// The view shape this grid opens in, on the same terms as the sort: remembered per library root,
-    /// the catalogue's default elsewhere.
+    /// 这一面墙打开时用哪一套显示设置，与排序同一套记忆：一个库一份，电影库和电视剧库各是各的。
     /// </summary>
     /// <remarks>
     /// 主页某一排点进来的两页（继续观看、接下来看）不问记忆，直接开在缩略图视图 —— 2026-09-14
     /// 「图片要用背景图」：这两页装的是看了一半的条目，卡片该是 16:9 的剧照（<c>CardItem</c> 宽卡先要 Thumb、
     /// 再要 Backdrop），和主页那两排长得一样，而不是一面 2:3 的海报墙。这两页没有 <see cref="MemoryKey"/>
     /// （不是哪个库的根），视图选择记不住也不该记：每次进来都先给背景图，页内想换海报再换。
+    /// <para>
+    /// 旧文件里只有 <c>UiSettings.Views</c>（一个库一个形状）。读到它就搬进新的那一份，从此
+    /// 视图、图像大小、分组、字段一起记 —— 不迁移的话，升级后每个库都会退回默认。
+    /// </para>
     /// </remarks>
-    private void RestoreView()
+    private void RestoreDisplay()
     {
         if (_request?.Row is not null)
         {
-            View = LibraryView.Thumb;
+            _display = new LibraryDisplay { View = LibraryView.Thumb };
+            RaiseDisplay();
             return;
         }
 
-        View = MemoryKey() is { } memoryKey && Settings.Ui.Views.TryGetValue(memoryKey, out var saved)
-            ? saved : Section == LibrarySection.Episodes ? LibraryView.Thumb : LibraryView.Poster;
+        var saved = MemoryKey() is { } memoryKey ? SavedDisplay(memoryKey) : null;
+        if (saved is not null)
+        {
+            _display = saved.Normalized();
+        }
+        else
+        {
+            // 剧集那一页（「集」）装的是单集：一行一条比一面海报墙好读，所以默认就是缩略图，
+            // 电影库和电视剧库的条目页默认还是海报。这是两种库本来就不同的地方之一。
+            _display = new LibraryDisplay
+            {
+                View = Section == LibrarySection.Episodes ? LibraryView.Thumb : LibraryView.Poster
+            };
+        }
+        RaiseDisplay();
     }
 
-    private void RememberView()
+    /// <summary>
+    /// 这个库记着的那一份，或者 null。旧字段（<see cref="UiSettings.Views"/>）只在没有新记录时读一次，
+    /// 读到就顺手写进新记录，下一次起就走新字段。
+    /// </summary>
+    private LibraryDisplay? SavedDisplay(string memoryKey)
+    {
+        if (Settings.Ui.Display.TryGetValue(memoryKey, out var saved)) return saved;
+        if (!Settings.Ui.Views.TryGetValue(memoryKey, out var legacy)) return null;
+
+        var migrated = new LibraryDisplay { View = legacy };
+        Settings.Ui.Display[memoryKey] = migrated;
+        return migrated;
+    }
+
+    private void RememberDisplay()
     {
         if (MemoryKey() is not { } memoryKey) return;
 
-        Settings.Ui.Views[memoryKey] = View;
+        Settings.Ui.Display[memoryKey] = _display.Clone();
+    }
+
+    /// <summary>把依赖这套设置的读数一起喊一遍（行高、格宽、视图名、取图顺序）。</summary>
+    private void RaiseDisplay()
+    {
+        // 卡片宽度就是这一面墙此刻按哪一档画的 —— 自检与探针读的是它，它得跟着图像大小走。
+        CardWidth = CardBuildWidth;
+        OnPropertyChanged(nameof(View));
+        OnPropertyChanged(nameof(CardSize));
+        OnPropertyChanged(nameof(GroupIntoCollections));
+        OnPropertyChanged(nameof(Fields));
+        OnPropertyChanged(nameof(ViewGlyph));
+        OnPropertyChanged(nameof(ViewLabel));
+        OnPropertyChanged(nameof(RowHeight));
+        OnPropertyChanged(nameof(CellWidth));
+        OnPropertyChanged(nameof(CardBuildWidth));
+        OnPropertyChanged(nameof(CardImageTypes));
     }
 
     /// <summary>
@@ -1443,7 +1536,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         if (IsSectionLibrary)
             return LibraryBrowse.Query(request.CollectionType!, request.ParentId!, request.Section,
-                start, limit, SortKey, SortDescending, _filters, request.BrowseGroup);
+                start, limit, SortKey, SortDescending, _filters, request.BrowseGroup, _display);
 
         var types = ItemQuery.FlattenedTypes(request.CollectionType);
 

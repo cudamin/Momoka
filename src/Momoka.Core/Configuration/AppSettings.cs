@@ -1277,7 +1277,9 @@ public sealed class UiSettings
     // CardSize 的默认尺寸（海报 170、剧照 300、演职人员人像 124）。这里不留一个存而不用的键 —— 反序列化碰到
     // 没处放的键本来就不出声，所以旧设置文件里留下的那一行照旧读得起来，只是没人再听它的。
 
-    public bool ShowWatchedIndicators { get; set; } = true;
+    // 「显示观看状态标记」（`ShowWatchedIndicators`）2026-10-16 按同一句话的下一轮删掉了（「删掉这个开关，
+    // 改为默认开启」）：海报角上的已看、收藏与未看集数从此一直画。**同一个理由不留键** —— 旧设置文件里存着
+    // 的 `false` 照旧读得起来、也没人再听它的，也就是升级之后角标自己回来，正是用户要的那一件。
 
     /// <summary>
     /// 隐藏功能下方说明（屏上原叫「精简模式」）—— 「在设置中新增一个精简模式，开启后隐藏各项功能下方的
@@ -1330,12 +1332,13 @@ public sealed class UiSettings
     public bool ShowHomeBanner { get; set; } = true;
 
     /// <summary>
-    /// 主页第一屏上媒体库那一排摆在哪 —— 「首页媒体库位置」（用户的话，2026-10-12）。三档见
+    /// 主页第一屏上媒体库那一排摆在哪 —— 「主页媒体库位置」（用户 2026-10-12 时叫「首页媒体库位置」，
+    /// 2026-10-16 按用户令改名并挪进主页卡）。三档见
     /// <see cref="Emby.HomeLibraryPlacement"/>：随窗口高度变换（默认，2026-09-13 起一直有的那一档）、固定在轮播
     /// 图中、固定在轮播图下方。
     /// <para>
-    /// 摆在设置 → 界面卡上（那一页的「首页媒体库位置」一行），因为它说的是「这块界面长什么样」，和主页那张
-    /// 版面表（勾哪几排、什么次序）不是一回事。
+    /// 摆在设置 → 主页卡上（那一页的「主页媒体库位置」一行）：2026-10-16 之前它在界面卡上，理由是「这块界面长
+    /// 什么样」，而用户把它和主页那张版面表（勾哪几排、什么次序）看作同一件事 —— 都是主页第一屏长什么样。
     /// </para>
     /// <para>
     /// 枚举存整数（同 <see cref="CarouselSource"/> 那条规矩），<c>Auto</c> 必须是 0：缺键的旧设置文件读出来就是
@@ -1350,8 +1353,8 @@ public sealed class UiSettings
     public Emby.HomeLibraryPlacement HomeLibraryPlacement { get; set; } = Emby.HomeLibraryPlacement.Auto;
 
     /// <summary>
-    /// 轮播条目从哪来 —— 「要使用最近添加还是随机的」（用户的话，2026-09-13）。枚举存整数
-    /// （同 <see cref="Emby.ScoreSource"/> 那条规矩），Recent 必须是 0：缺键的旧设置文件读出来就是它，
+    /// 轮播条目从哪来 —— 「要使用最近添加还是随机的」（用户的话，2026-09-13）。枚举存整数，
+    /// Recent 必须是 0：缺键的旧设置文件读出来就是它，
     /// 从旧版本升上来的人一个像素都不变。认不出来的数字由 <c>SettingsMigration.Normalize</c> 拨回。
     /// <para>
     /// 改完当场生效：设置页写完喊一声 <c>ShellPrefs</c>，主页那一头照新来源把条目重新要一遍。
@@ -1401,19 +1404,10 @@ public sealed class UiSettings
     /// </summary>
     public int ImageCacheMegabytes { get; set; } = Emby.ImageCachePolicy.DefaultMegabytes;
 
-    /// <summary>
-    /// 详情页上那个评分显示哪个平台的 —— 「可在设置使用豆瓣、tmdb、烂番茄等平台的评分」。
-    /// <para>
-    /// 这份 JSON 没有装 <c>JsonStringEnumConverter</c>，枚举存的是整数，所以
-    /// <see cref="Emby.ScoreSource.Community"/> 必须是 0：那是装机时的行为，也是缺键时读出来的值 —— 从旧版本升上来
-    /// 的人因此一个像素都不变。认不出来的整数由 <c>SettingsMigration.Normalize</c> 拨回默认档。
-    /// </para>
-    /// <para>
-    /// <b>这一档能做到什么，写在 <see cref="Emby.ItemScore"/> 的类注释里</b>：Emby 的条目上只有两个数字评分槽，
-    /// 豆瓣／TMDB／IMDb 三家的大众分都写进同一个，所以只有烂番茄那一档真的换了一个数，另两档换的是标签。
-    /// </para>
-    /// </summary>
-    public Emby.ScoreSource ScoreSource { get; set; } = Emby.ScoreSource.Community;
+    // 「评分来源」原来在这一行下面（2026-09-03 起：「加入显示评分改为豆瓣评分的功能，可在设置使用豆瓣、tmdb、
+    // 烂番茄等平台的评分」），2026-10-16 按用户的话整条删掉了（「删掉评分来源这个设置选项，服务端给什么评分就用
+    // 什么」）—— 详情页那个分从此直接画服务器给的那个数（Emby.ItemScore），不再由用户选平台。旧设置文件里那个键
+    // 被反序列化器直接丢掉，不需要迁移。
 
     // 「锁定窗口比例大小」那一行 2026-09-05 按用户的话整条删掉了（「删除设置中锁定比例的功能」）：浏览时的窗口
     // 从此随便拉，只有放片子的时候形状还跟着画面走（HostWindow.PictureAspect）。「默认收起侧边栏」那一行
@@ -1451,6 +1445,16 @@ public sealed class UiSettings
     /// silently mean something else the day a shape is inserted between two others.
     /// </summary>
     public Dictionary<string, LibraryView> Views { get; set; } = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// 每个媒体库自己的那一套显示设置（视图、图像大小、分组、显示字段），键与 <see cref="Views"/> 同一个。
+    /// <para>
+    /// 2026-10-17 起取代 <see cref="Views"/>：网页端那颗设置齿轮里的四组东西都记在这儿，一个库一份 ——
+    /// 电视剧库和电影库因此可以各开各的视图、各显示各的字段。<see cref="Views"/> 只留着读旧文件，
+    /// 读到之后由 <c>LibraryViewModel</c> 搬进这里。
+    /// </para>
+    /// </summary>
+    public Dictionary<string, LibraryDisplay> Display { get; set; } = new(StringComparer.Ordinal);
 
     /// <summary>
     /// 窗口关掉时它多大、在哪儿 —— 下次照这个开。桌面坐标，物理像素，不含最大化那一档（那一档是
