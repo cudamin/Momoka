@@ -45,7 +45,7 @@ MSYS_NO_PATHCONV=1 git show origin/master:.claude/skills/momoka-skill-creator/SK
 
 The last two commands read the local remote-tracking snapshot, not necessarily live GitHub. Compare commit IDs before describing it as current. If needed and permitted, fetch `origin master` to update that snapshot without changing working files; if remote access is unavailable, state that limit. The `MSYS_NO_PATHCONV=1` prefix prevents Git Bash from rewriting `revision:path` arguments.
 
-Check the actual remote before use. Follow the repository's Git and credential rules; keep credentials out of commands, files and output. A remote lookup is not authorization to commit, push or publish.
+Check the actual remote before use. Follow the repository's Git and credential rules; keep credentials out of commands, files and output. A remote lookup is not authorization to push or publish; committing is part of every change, per CLAUDE.md.
 
 Choose the smallest coherent maintenance action:
 
@@ -202,7 +202,7 @@ Repeat only when the feedback or evidence calls for it. Do not force a large eva
 
 ## 9. Deliver without changing installation scope
 
-Save the reviewed skill in the current tree and summarize exact changed files, validation results and remaining limits. Follow CLAUDE.md for work records, Git authorization and delivery; editing a skill is not permission to commit, push, update a marketplace installation or publish an application.
+Save the reviewed skill in the current tree and summarize exact changed files, validation results and remaining limits. Follow CLAUDE.md for work records, commits and delivery: the commit belongs to the change itself, while push, marketplace installation updates and publishing an application still need explicit authorization.
 
 For repository use, the reviewed directory is the primary result. If a downloadable copy is needed, export the final SKILL.md or archive only the required skill resources into `outputs/`; exclude scratch reports, caches, credentials and unrelated files. Preserve the directory name and document its repository-relative dependencies. Such an archive is not automatically a portable or globally installed skill.
 
