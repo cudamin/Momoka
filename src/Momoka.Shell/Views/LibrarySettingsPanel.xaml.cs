@@ -20,13 +20,21 @@ public sealed partial class LibrarySettingsPanel : UserControl
 {
     private readonly Dictionary<LibraryField, ToggleSwitch> _fieldToggles = [];
 
+    /// <summary>面板上这一份字段表是给哪一页摆的；换页（比如切到「文件夹」）要重摆。</summary>
+    private LibrarySection? _section;
+
+    /// <summary>
+    /// 存下来的那份里、这一页没有开关的那几项（文件夹页的文件名、集页的集号在别的页就是这种）。
+    /// 面板只改自己摆出来的那几行，这几项原样带回去 —— 不然在这一页改一处，别的页的勾选就被抹掉了。
+    /// </summary>
+    private IReadOnlyList<LibraryField> _carried = [];
+
     /// <summary>回填控件时按下去：那是「显示现在这一套」，不是用户改了东西。</summary>
     private bool _syncing;
 
     public LibrarySettingsPanel()
     {
         InitializeComponent();
-        BuildFieldRows();
         BuildViewOptions();
         BuildSizeOptions();
     }
@@ -37,12 +45,21 @@ public sealed partial class LibrarySettingsPanel : UserControl
     /// <summary>面板上那颗 ✕。宿主据此收起浮层。</summary>
     public event Action? CloseRequested;
 
-    /// <summary>把面板摆成这一套。</summary>
-    internal void Show(LibraryDisplay display)
+    /// <summary>
+    /// 把面板摆成这一套。<paramref name="section"/> 决定「显示字段」那一列摆哪几项 —— 文件夹那一页列的是
+    /// 文件本身（文件名、容器、码率…），别的页列的是条目（类型、导演、播出平台…），网页端也是两套。
+    /// </summary>
+    internal void Show(LibraryDisplay display, LibrarySection section)
     {
         _syncing = true;
         try
         {
+            if (_section != section)
+            {
+                _section = section;
+                BuildFieldRows(section);
+            }
+            _carried = [.. display.Fields.Where(field => !LibraryDisplayCatalog.Applies(field, section))];
             Select(ViewCombo, display.View);
             Select(SizeCombo, display.CardSize);
             GroupSwitch.IsOn = display.GroupIntoCollections;
@@ -64,8 +81,12 @@ public sealed partial class LibrarySettingsPanel : UserControl
         View = ViewCombo.SelectedItem is ComboBoxItem { Tag: LibraryView view } ? view : LibraryView.Poster,
         CardSize = SizeCombo.SelectedItem is ComboBoxItem { Tag: LibraryCardSize size } ? size : LibraryCardSize.Default,
         GroupIntoCollections = GroupSwitch.IsOn,
+        // 按全表顺序存，与视图模型里的 Normalized 同一把尺子：两处各排一次，才不会来回抖。
+        // 这一页没有开关的那几项（_carried）原样带上，别的页的勾选不会因为在这里改了一处就丢。
         Fields = [.. _fieldToggles.Where(pair => pair.Value.IsOn).Select(pair => pair.Key)
-            .OrderBy(item => LibraryDisplayCatalog.Fields.ToList().FindIndex(info => info.Field == item))]
+            .Concat(_carried)
+            .Distinct()
+            .OrderBy(entry => LibraryDisplayCatalog.CanonicalOrder.ToList().IndexOf(entry))]
     };
 
     // ---------------------------------------------------------------- 供探针驱动
@@ -108,12 +129,15 @@ public sealed partial class LibrarySettingsPanel : UserControl
     }
 
     /// <summary>
-    /// 十四行显示字段。顺序就是网页端那一列，一行一个开关；开关的自动化名用「显示字段 + 中文名」，
-    /// 读屏和探针都靠它认人。
+    /// 这一页的字段表：默认十四行，文件夹页二十二行，集页十六行（多剧名与集号）。顺序就是网页端那一列，
+    /// 一行一个开关；开关的自动化名用中文名，读屏和探针都靠它认人。
     /// </summary>
-    private void BuildFieldRows()
+    private void BuildFieldRows(LibrarySection section)
     {
-        foreach (var info in LibraryDisplayCatalog.Fields)
+        FieldRows.Children.Clear();
+        _fieldToggles.Clear();
+
+        foreach (var info in LibraryDisplayCatalog.FieldsFor(section))
         {
             var row = new Grid { ColumnSpacing = 12 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });

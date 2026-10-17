@@ -90,6 +90,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSurface.SizeChanged += OnHeaderSizeChanged;
         Toolbar.SizeChanged += OnHeaderSizeChanged;
         LibraryTitle.SizeChanged += OnHeaderSizeChanged;
+        // 窗口宽窄变了，表格画布要多宽就跟着变（见 ApplyTableWidth）。
+        TableScroll.SizeChanged += (_, _) => ApplyTableWidth();
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -146,6 +148,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(LibraryViewModel.View)) ApplyView();
+        if (e.PropertyName == nameof(LibraryViewModel.Fields)) ApplyTableWidth();
         if (e.PropertyName == nameof(LibraryViewModel.SectionVisibility))
         {
             BuildBrowseSections();
@@ -891,12 +894,15 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnSettingsClicked(object sender, RoutedEventArgs e)
     {
-        SettingsPane.Show(ViewModel.Display);
+        SettingsPane.Show(ViewModel.Display, ViewModel.Section);
         SettingsOverlay.Visibility = Visibility.Visible;
     }
 
-    /// <summary>面板上那颗 ✕。收起面板层，回到原来的网格。</summary>
+    /// <summary>面板上那颗 ✕，或者面板外面那片空位。收起面板层，回到原来的网格。</summary>
     internal void CloseSettings() => SettingsOverlay.Visibility = Visibility.Collapsed;
+
+    /// <summary>点面板外面。遮罩铺满整层，点它就是把面板收起来。</summary>
+    private void OnSettingsScrimClicked(object sender, RoutedEventArgs e) => CloseSettings();
 
     /// <summary>
     /// 面板上改了一处。立刻生效，与网页端一致：视图模型重查一次，网格按新形状/新字段重建。
@@ -966,6 +972,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             Cards.ItemTemplate = (DataTemplate)Resources["LibraryIndexTemplate"];
             Cards.Layout = (Layout)Resources["LibraryIndexLayout"];
             TableHeader.Visibility = Visibility.Collapsed;
+            ApplyTableWidth();
             return;
         }
         Cards.ItemTemplate = ViewModel.View switch
@@ -987,6 +994,34 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 表格的列头与每一行同一套宽度；换成别的视图就整行收起（一个像素都不占）。
         TableHeader.Visibility = ViewModel.View == LibraryView.Table ? Visibility.Visible : Visibility.Collapsed;
         if (ViewModel.View == LibraryView.Table) BuildTableHeader();
+        ApplyTableWidth();
+    }
+
+    /// <summary>
+    /// 表格视图的横向滚动面。勾满字段时一行比页面宽，从前是从右边裁掉；现在画布跟着列宽走，多出来的
+    /// 部分靠外面那层滚动器左右滚，列头在同一个画布里所以跟着走。
+    /// <para>
+    /// 其余视图把画布交回页面宽度（<c>NaN</c> ＝ 由布局拉伸），横向滚动关掉 —— 卡片墙的格子是按页面宽
+    /// 算的，画布要是留着上一轮表格的宽度，格子就会按那个宽度铺。
+    /// </para>
+    /// </summary>
+    private void ApplyTableWidth()
+    {
+        var table = ViewModel.View == LibraryView.Table && !ViewModel.IsBrowseIndex;
+        TableScroll.HorizontalScrollMode = table ? ScrollMode.Enabled : ScrollMode.Disabled;
+        TableScroll.HorizontalScrollBarVisibility = table ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
+
+        if (!table)
+        {
+            if (!double.IsNaN(TableCanvas.Width)) TableCanvas.Width = double.NaN;
+            return;
+        }
+
+        var viewport = TableScroll.ActualWidth;
+        if (viewport <= 0) return;
+
+        var width = Math.Max(viewport, LibraryTableColumns.TotalWidth(ViewModel.Fields));
+        if (double.IsNaN(TableCanvas.Width) || Math.Abs(TableCanvas.Width - width) > 0.5) TableCanvas.Width = width;
     }
 
     /// <summary>

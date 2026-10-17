@@ -238,8 +238,14 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>网页端「将项目分组到合集中」。</summary>
     public bool GroupIntoCollections => _display.GroupIntoCollections;
 
-    /// <summary>这一面墙要显示的字段，顺序按目录。</summary>
-    public IReadOnlyList<LibraryField> Fields => _display.Fields;
+    /// <summary>
+    /// 这一面墙要显示的字段，顺序按这一页的表（见 <see cref="LibraryDisplayCatalog.Applied"/>）。
+    /// 存下来的那一份是整库共用的，别的页独有的字段（文件夹页的文件名、集页的集号）在这里被滤掉 ——
+    /// 那些字段在别的页上没有开关，漏过来就是一段关不掉的字。
+    /// </summary>
+    public IReadOnlyList<LibraryField> Fields => _fields;
+
+    private IReadOnlyList<LibraryField> _fields = [];
 
     /// <summary>设置面板读的那一份副本；改动请走 <see cref="ApplyDisplay"/>。</summary>
     internal LibraryDisplay Display => _display.Clone();
@@ -341,6 +347,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal void RowsArrived()
     {
         OnPropertyChanged(nameof(TotalLabel));
+        // 两颗播放键在不在，看的是这一页有没有可播的行（见 DirectPlayVisibility）。
+        OnPropertyChanged(nameof(DirectPlayVisibility));
         PlayAllCommand.NotifyCanExecuteChanged();
         PlayRandomCommand.NotifyCanExecuteChanged();
         OnPropertyChanged(nameof(AlphaVisibility));
@@ -398,11 +406,26 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal IReadOnlyList<LibrarySectionEntry> BrowseSections => IsSectionLibrary
         ? LibraryBrowse.Sections(_request!.CollectionType, _scope?.Connection.ServerKind ?? MediaServerKind.Emby) : [];
     public Visibility SectionVisibility => Show(IsSectionLibrary && BrowseSections.Count > 1);
-    public Visibility SettingsVisibility => Show(IsSectionLibrary);
+
+    /// <summary>
+    /// 这一页底下那一条工具栏（总数、播放、排序、筛选、设置）在不在。网页端不是每一页都有：
+    /// 推荐、预告、收藏三页只有内容，总数与按键一起收起 —— 那三页的顺序或范围是服务器定的，摆一排按不动的键
+    /// 只是占地方。索引页（类型、播出平台）留总数与设置；文件夹没有筛选可筛（它问的是文件树）。
+    /// </summary>
+    private bool HasToolbar => !IsSectionLibrary || Section is not
+        (LibrarySection.Recommended or LibrarySection.Trailers or LibrarySection.Favorites);
+
+    public Visibility ToolbarVisibility => Show(HasToolbar);
+    public Visibility SettingsVisibility => Show(IsSectionLibrary && HasToolbar);
     public Visibility BrowseGroupVisibility => Show(IsSectionLibrary && _request?.BrowseGroup is not null);
     public string BrowseGroupLabel => _request?.BrowseGroup ?? "";
-    public Visibility DirectPlayVisibility => Show(!IsSectionLibrary || _request!.CollectionType == "movies" && !IsBrowseIndex);
-    public Visibility MenuPlayVisibility => Show(IsSectionLibrary && _request!.CollectionType == "tvshows" && !IsBrowseIndex);
+    /// <summary>
+    /// 播放全部与随机播放两颗键在不在。电影库与「集」那一页有东西可播；电视剧库的「节目」页装的是剧集本身，
+    /// 一集都播不了 —— 那种页面上两颗键没有意义，整对收起（原来它们藏在「更多」里，那个菜单 2026-10-17 按
+    /// 用户的话删掉了：菜单里除了这两颗常年灰着的键什么都没有）。
+    /// </summary>
+    public Visibility DirectPlayVisibility => Show(!IsSectionLibrary
+        || (!IsBrowseIndex && _firstPage && Cards.Any(card => card.Item.IsPlayable)));
     public string TotalLabel => _total < 0 ? _pageFailed ? "加载失败" : "正在加载" : $"共 {_total} 项";
     public string ToolbarSortLabel => SortLabel == "标题名称" ? "标题" : SortLabel;
 
@@ -431,8 +454,11 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private void RefreshBrowseChrome()
     {
+        // 换页会换字段表（文件夹 / 集 / 其余），生效的字段跟着这一页重算。
+        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section);
         foreach (var name in new[] { nameof(SectionVisibility), nameof(BrowseGroupVisibility), nameof(BrowseGroupLabel),
-            nameof(DirectPlayVisibility), nameof(MenuPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
+            nameof(DirectPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
+            nameof(ToolbarVisibility), nameof(SettingsVisibility), nameof(Fields),
             nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel) }) OnPropertyChanged(name);
     }
 
@@ -463,8 +489,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 那是这张网格怎么画，与服务器无关。
     /// </para>
     /// </summary>
-    public Visibility SortFilterVisibility => Show(!IsResumePage && !Aggregated && !IsBrowseIndex && Section != LibrarySection.Recommended);
-    public Visibility FilterVisibility => Show(!IsResumePage && !Aggregated && !IsBrowseIndex && Section != LibrarySection.Recommended && SupportsBrowseConditions);
+    public Visibility SortFilterVisibility => Show(HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex);
+    public Visibility FilterVisibility => Show(HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
+        && Section != LibrarySection.Folders && SupportsBrowseConditions);
 
     /// <summary>
     /// Handed the navigation payload and the four capabilities one grid draws from, once per navigation to
@@ -1353,6 +1380,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>把依赖这套设置的读数一起喊一遍（行高、格宽、视图名、取图顺序）。</summary>
     private void RaiseDisplay()
     {
+        // 这一页真正生效的字段：换页（文件夹 ↔ 节目 ↔ 集）也要重算，所以放在这里而不是只算一次。
+        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section);
         // 卡片宽度就是这一面墙此刻按哪一档画的 —— 自检与探针读的是它，它得跟着图像大小走。
         CardWidth = CardBuildWidth;
         OnPropertyChanged(nameof(View));

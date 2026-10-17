@@ -244,7 +244,8 @@
                 </Border>
 
                 <Grid x:Name="ToolbarSurface" Grid.ColumnSpan="2" Grid.Row="1" Padding="0"
-                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                    Visibility="{x:Bind ViewModel.ToolbarVisibility, Mode=OneWay}">
                     <local:WrapRow
                         x:Name="Toolbar"
                         Spacing="8"
@@ -337,19 +338,6 @@
                                 </Flyout>
                             </Button.Flyout>
                         </Button>
-                        <Button x:Name="LibraryMoreButton" Style="{StaticResource LibraryPillStyle}"
-                            Width="32" Padding="0" ToolTipService.ToolTip="更多" AutomationProperties.Name="更多">
-                            <FontIcon FontSize="14" Glyph="&#xE712;" />
-                            <Button.Flyout>
-                                <MenuFlyout x:Name="LibraryMoreMenu" Placement="Bottom">
-                                    <MenuFlyoutItem x:Name="LibraryMenuPlay" Text="播放" Command="{x:Bind ViewModel.PlayAllCommand}"
-                                        Visibility="{x:Bind ViewModel.MenuPlayVisibility, Mode=OneWay}" />
-                                    <MenuFlyoutItem x:Name="LibraryMenuShuffle" Text="随机播放" Command="{x:Bind ViewModel.PlayRandomCommand}"
-                                        Visibility="{x:Bind ViewModel.MenuPlayVisibility, Mode=OneWay}" />
-                                </MenuFlyout>
-                            </Button.Flyout>
-                        </Button>
-
                         <!-- 网页端那颗齿轮：视图、图像大小、分组、显示字段。原来 ⋯ 里那个「视图」三选一的
                              子菜单由它接手 —— 那三档只是网页端七档里的三档，图像大小和显示字段也没有入口。
                              打开的是本页盖上来的一块面板（网页端也是个模态框），不是浮层：浮层是亚克力的，
@@ -446,39 +434,58 @@
                     <SelectorBarItem x:Name="MoviesCategory" Text="影片" Tag="Movies" />
                     <SelectorBarItem x:Name="EpisodesCategory" Text="集" Tag="Episodes" />
                 </SelectorBar>
-            <!-- 表格视图的列头。列在代码里按勾上的字段生成（见 LibraryPage.BuildTableHeader），
-                 与每一行用同一套宽度 —— 两处各写一遍宽度，第一列就会歪。 -->
-            <Grid x:Name="TableHeader" x:FieldModifier="internal" Grid.Row="1" Padding="12,0" Visibility="Collapsed" />
-            <ItemsView
-                x:Name="Cards"
-                Grid.Row="2"
-                Visibility="{x:Bind ViewModel.SearchResultsVisibility, Mode=OneWay}"
-                IsItemInvokedEnabled="True"
-                ItemInvoked="OnItemInvoked"
-                ItemTemplate="{StaticResource PosterTemplate}"
-                ItemTransitionProvider="{x:Null}"
-                ItemsSource="{x:Bind ViewModel.Cards, Mode=OneWay}"
-                SelectionMode="None">
-                <ItemsView.Layout>
-                    <!-- ItemsStretch="Fill" is what makes the grid reflow instead of leaving a ragged
-                         right margin, and it is the reason resizing looks settled (requirement 1).
+            <!-- 表格视图要能横向滚：勾满字段时一行比页面宽，从前是从右边裁掉。列头与每一行必须在同一个
+                 滚动面里 —— 各滚各的，滚了行、列头就留在原处。其余视图这个滚动器不滚（横向滚动关掉、
+                 画布宽度跟着页面走），卡片墙的排布与从前一模一样。 -->
+            <ScrollViewer
+                x:Name="TableScroll"
+                x:FieldModifier="internal"
+                Grid.Row="1"
+                Grid.RowSpan="2"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                VerticalScrollBarVisibility="Disabled"
+                VerticalScrollMode="Disabled">
+                <Grid x:Name="TableCanvas" x:FieldModifier="internal">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <!-- 表格视图的列头。列在代码里按勾上的字段生成（见 LibraryPage.BuildTableHeader），
+                         与每一行用同一套宽度 —— 两处各写一遍宽度，第一列就会歪。 -->
+                    <Grid x:Name="TableHeader" x:FieldModifier="internal" Grid.Row="0" Padding="12,0" Margin="0,0,0,16" Visibility="Collapsed" />
+                    <ItemsView
+                        x:Name="Cards"
+                        Grid.Row="1"
+                        Visibility="{x:Bind ViewModel.SearchResultsVisibility, Mode=OneWay}"
+                        IsItemInvokedEnabled="True"
+                        ItemInvoked="OnItemInvoked"
+                        ItemTemplate="{StaticResource PosterTemplate}"
+                        ItemTransitionProvider="{x:Null}"
+                        ItemsSource="{x:Bind ViewModel.Cards, Mode=OneWay}"
+                        SelectionMode="None">
+                        <ItemsView.Layout>
+                            <!-- ItemsStretch="Fill" is what makes the grid reflow instead of leaving a ragged
+                                 right margin, and it is the reason resizing looks settled (requirement 1).
 
-                         The cell size follows CardSize's poster width and the current view shape; the
-                         height is the picture plus the two lines of text under it, worked out in the
-                         view model rather than typed in here.
+                                 The cell size follows CardSize's poster width and the current view shape; the
+                                 height is the picture plus the two lines of text under it, worked out in the
+                                 view model rather than typed in here.
 
-                         行距比列距大：卡片底下那两行字是它自己的（离画面 8 像素），一行一行之间要是和一列
-                         一列之间一样宽，那两行字就悬在两张画面中间，读起来像是下一排卡片的标题。24 对 16
-                         把每张画面和它自己的字归成一组，一面墙也就读成一行一行，而不是一片方块。 -->
-                    <UniformGridLayout
-                        x:Name="CardLayout"
-                        ItemsStretch="Fill"
-                        MinColumnSpacing="16"
-                        MinItemHeight="{x:Bind ViewModel.RowHeight, Mode=OneWay}"
-                        MinItemWidth="{x:Bind ViewModel.CellWidth, Mode=OneWay}"
-                        MinRowSpacing="24" />
-                </ItemsView.Layout>
-            </ItemsView>
+                                 行距比列距大：卡片底下那两行字是它自己的（离画面 8 像素），一行一行之间要是和一列
+                                 一列之间一样宽，那两行字就悬在两张画面中间，读起来像是下一排卡片的标题。24 对 16
+                                 把每张画面和它自己的字归成一组，一面墙也就读成一行一行，而不是一片方块。 -->
+                            <UniformGridLayout
+                                x:Name="CardLayout"
+                                ItemsStretch="Fill"
+                                MinColumnSpacing="16"
+                                MinItemHeight="{x:Bind ViewModel.RowHeight, Mode=OneWay}"
+                                MinItemWidth="{x:Bind ViewModel.CellWidth, Mode=OneWay}"
+                                MinRowSpacing="24" />
+                        </ItemsView.Layout>
+                    </ItemsView>
+                </Grid>
+            </ScrollViewer>
 
             <!-- 字母跳转条：只在按名称排序且有足够条目时出现（对应 Emby 的 enableAlphaPicker +
                  总数 > 30）。点击跳到该字母第一项；当前字母高亮随滚动更新。 -->
@@ -551,14 +558,32 @@
         <local:MoviePilotVersionsView x:Name="MoviePilotResources" Grid.Row="2" Visibility="Collapsed" />
         <local:AniBtSearchPanel x:Name="AniBtPanel" Grid.Row="2" Visibility="Collapsed" />
 
-        <!-- 设置面板盖在整页上（网页端那颗齿轮打开的就是一块模态框）。铺满三层，压住搜索、工具栏与网格；
-             关掉只有面板上那颗 ✕ —— 与网页端一致，点外面不收。 -->
+        <!-- 设置面板盖在整页上（网页端那颗齿轮打开的就是一块模态框）。铺满三层，压住搜索、工具栏与网格。
+             关掉有两条路：面板上那颗 ✕，或者点面板外面那片空位（铺满整层的遮罩按钮，三态同色，
+             所以指针划过去它不会忽明忽暗）。 -->
         <Grid
             x:Name="SettingsOverlay"
             x:FieldModifier="internal"
             Grid.RowSpan="3"
-            Background="{ThemeResource EgScrimBrush}"
             Visibility="Collapsed">
+            <Button
+                x:Name="SettingsScrim"
+                x:FieldModifier="internal"
+                AutomationProperties.Name="关闭设置"
+                Background="{ThemeResource EgScrimBrush}"
+                BorderThickness="0"
+                Click="OnSettingsScrimClicked"
+                CornerRadius="0"
+                HorizontalAlignment="Stretch"
+                IsTabStop="False"
+                Padding="0"
+                VerticalAlignment="Stretch">
+                <Button.Resources>
+                    <!-- 三态同一个色：遮罩不是一颗会被按下去的键，它是「面板外面」那片地方。 -->
+                    <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgScrimBrush" />
+                    <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgScrimBrush" />
+                </Button.Resources>
+            </Button>
             <local:LibrarySettingsPanel
                 x:Name="SettingsPane"
                 x:FieldModifier="internal"

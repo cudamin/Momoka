@@ -57,8 +57,11 @@ public static class LibraryBrowse
             ParentId = parentId,
             Recursive = section != LibrarySection.Folders,
             // 只问这一面墙要画的字段。导演要 People、概要要 Overview，勾上才要，没勾就不必替每一页
-            // 多拖几十 KB；一条都没勾时退回列表的底座（图、年份、类型）。
-            Fields = display is null ? EmbyFields.Browse : LibraryDisplayCatalog.RequestFields(display.Fields),
+            // 多拖几十 KB；一条都没勾时退回列表的底座（图、年份、类型）。别的页独有的字段（文件夹页的
+            // 文件名、集页的集号）在这里就被滤掉，不会跟着跑到这一页的请求里。
+            Fields = display is null
+                ? EmbyFields.Browse
+                : LibraryDisplayCatalog.RequestFields(LibraryDisplayCatalog.Applied(display.Fields, section)),
             // 「将项目分组到合集中」只有 Items 那条接口认；推荐走 Suggestions，它不声明这个参数，
             // 发过去只会被丢掉，所以那一支明确不谈这件事。
             GroupItemsIntoCollections = display is null || section == LibrarySection.Recommended

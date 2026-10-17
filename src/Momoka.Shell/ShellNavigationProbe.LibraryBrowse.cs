@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
@@ -121,28 +122,12 @@ internal sealed partial class ShellNavigationProbe
                 page.BuildSortMenu();
                 var menu = Get<MenuFlyout>(page, "SortMenu");
                 Require(menu.Items.OfType<RadioMenuFlyoutItem>().Count(value => value.IsChecked) == 2, "排序字段与方向没有分别显示选中状态");
-                // 「更多」现在只装电视剧库那两颗播放键（视图三选一已经交给设置面板）。弹出层是独立顶层
-                // 窗口，窗口截图拍不到，所以这里读的是菜单对象本身。
-                var more = Get<Button>(page, "LibraryMoreButton");
-                var moreMenu = (MenuFlyout)more.Flyout!;
-                moreMenu.ShowAt(more);
-                await SettleAsync();
-                if (!moreMenu.IsOpen)
-                {
-                    // 浮层偶尔在窗口还没拿到焦点时自己收回去；再开一次，仍然是用户点那颗键的同一条路。
-                    moreMenu.ShowAt(more);
-                    await SettleAsync();
-                }
-                Require(moreMenu.IsOpen, "更多菜单没有展开");
-                Require(moreMenu.Items.OfType<MenuFlyoutSubItem>().All(item => item.Text != "视图"), "更多菜单里还留着旧的视图子菜单");
-                var menuPlay = moreMenu.Items.OfType<MenuFlyoutItem>().Where(item => item.Text is "播放" or "随机播放").ToArray();
-                Require(menuPlay.Length == 2
-                    && menuPlay.All(item => (item.Visibility == Visibility.Visible) == (collection == "tvshows")), "播放与随机播放没有按库类型收进更多");
-                await SaveProbeScreenAsync($"library-{collection}-more-screen.png");
-                moreMenu.Hide();
-
-                // 设置面板：网页端那颗齿轮里的四组东西。这里走的是用户点齿轮的同一条路 —— 打开浮层、
-                // 读面板上的控件、改一处、看请求与版面跟着变。
+                // 设置面板：网页端那颗齿轮里的四组东西。这里走的是用户点齿轮的同一条路 —— 打开面板、
+                // 读面板上的控件、改一处、看请求与版面跟着变。网页端那颗 ⋯ 本身就是设置键，所以这一页
+                // 只留一颗齿轮，不再有第二个「更多」。
+                Require(page.GetType().GetField("LibraryMoreButton",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public) is null,
+                    "工具栏上还留着与设置重复的「更多」按钮");
                 var settingsButton = Get<Button>(page, "LibrarySettingsButton");
                 Require(settingsButton.Visibility == Visibility.Visible, "媒体库页没有设置入口");
                 var openSettings = FrameworkElementAutomationPeer.CreatePeerForElement(settingsButton)
@@ -202,11 +187,98 @@ internal sealed partial class ShellNavigationProbe
                 // remember:false 还回去，下一套库打开时拿到的仍是探针上一趟留下的「超大」。
                 page.ViewModel.ApplyDisplay(before, remember: true);
                 await UntilAsync(() => !page.ViewModel.Busy);
-                page.CloseSettings();
+
+                // 点面板外面那片空位也要能关 —— 用户点的是遮罩本身（铺满整层那颗按钮），不是 ✕。
+                var closeByOutside = FrameworkElementAutomationPeer.CreatePeerForElement(page.SettingsScrim)
+                    ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                Require(closeByOutside is not null, "面板外面那片空位没有可点的自动化入口");
+                closeByOutside!.Invoke();
                 await SettleAsync();
-                Require(page.SettingsOverlay.Visibility == Visibility.Collapsed, "设置面板没有收起");
+                Require(page.SettingsOverlay.Visibility == Visibility.Collapsed, "点面板外面没有关掉设置");
                 Require(page.ViewModel.View == before.View && page.ViewModel.CardSize == before.CardSize
                     && page.ViewModel.Fields.SequenceEqual(before.Fields), "设置面板没有把原来的那一套还回去");
+
+                // 表格视图的横向滚动：勾满字段时一行比页面宽，从前是从右边裁掉。画布要按列宽变宽，
+                // 列头与每一行在同一个画布里，多出来的部分由外面那层滚动器滚。
+                page.ViewModel.ApplyDisplay(new LibraryDisplay
+                {
+                    View = LibraryView.Table,
+                    CardSize = page.ViewModel.CardSize,
+                    GroupIntoCollections = page.ViewModel.GroupIntoCollections,
+                    Fields =
+                    [
+                        LibraryField.Title, LibraryField.Genres, LibraryField.Overview,
+                        LibraryField.Director, LibraryField.Tagline, LibraryField.Studios
+                    ]
+                });
+                await UntilAsync(() => page.ViewModel.View == LibraryView.Table && !page.ViewModel.Busy);
+                await LayoutAsync(page);
+                var rowWidth = page.ViewModel.Cards[0].Cells.Sum(cell => cell.Width) + 24;
+                Require(page.TableScroll.HorizontalScrollMode == ScrollMode.Enabled, "表格视图没有打开横向滚动");
+                Require(page.TableCanvas.ActualWidth >= rowWidth - 2,
+                    $"表格画布没有按列宽变宽（画布 {page.TableCanvas.ActualWidth:0}，各列之和 {rowWidth:0}）");
+                Require(page.TableCanvas.ActualWidth > page.TableScroll.ActualWidth + 1,
+                    $"表格画布没有比可见区域宽（画布 {page.TableCanvas.ActualWidth:0}，可见 {page.TableScroll.ActualWidth:0}）");
+                await SaveProbeScreenAsync($"library-{collection}-table-wide-screen.png");
+                page.TableScroll.ChangeView(160, null, null, disableAnimation: true);
+                await SettleAsync();
+                await LayoutAsync(page);
+                Require(page.TableScroll.HorizontalOffset > 1,
+                    $"表格没有真的横向滚起来（偏移 {page.TableScroll.HorizontalOffset:0}）");
+
+                // 换成海报（回到打开面板之前那一套），画布要交回页面宽度、横向滚动关掉 —— 卡片墙的格子
+                // 按页面宽算，画布留着表格那一轮的宽度，格子就会按那个宽度铺。
+                page.ViewModel.ApplyDisplay(before, remember: true);
+                await UntilAsync(() => page.ViewModel.View == before.View && !page.ViewModel.Busy);
+                await LayoutAsync(page);
+                Require(page.TableScroll.HorizontalScrollMode == ScrollMode.Disabled
+                    && double.IsNaN(page.TableCanvas.Width), "离开表格视图后画布还留着横向滚动那一套");
+
+                // 文件夹页勾了「文件名」与「媒体容器」：前者从 Path 取、后者要 MediaSources，请求里就得真的
+                // 带上它；别的页不该跟着多出这两段（那些页没有这两个开关，漏过去就是关不掉的字）。
+                await SelectAsync(LibrarySection.Folders);
+                var folders = page.ViewModel.Display;
+                var folderRequests = fixture.Transport.Requests.Count;
+                page.ViewModel.ApplyDisplay(new LibraryDisplay
+                {
+                    View = folders.View,
+                    CardSize = folders.CardSize,
+                    GroupIntoCollections = folders.GroupIntoCollections,
+                    Fields = [.. folders.Fields, LibraryField.Filename, LibraryField.Container]
+                });
+                await UntilAsync(() => page.ViewModel.Fields.Contains(LibraryField.Filename) && !page.ViewModel.Busy);
+                await SettleAsync();
+                // 这一页每次重载都会先问一次总数（Limit=0，不带 Fields），所以看的是「这一轮有没有一条
+                // 带了 MediaSources 的」，而不是最后一条。
+                Require(fixture.Transport.Requests.Skip(folderRequests)
+                    .Any(value => value.Contains("MediaSources", StringComparison.Ordinal)),
+                    "勾了媒体容器，请求里没有要 MediaSources");
+
+                var itemRequests = fixture.Transport.Requests.Count;
+                await SelectAsync(LibrarySection.Items);
+                await SettleAsync();
+                Require(!page.ViewModel.Fields.Contains(LibraryField.Filename), "文件夹页的文件名漏到了节目页");
+                Require(!fixture.Transport.Requests.Skip(itemRequests)
+                    .Any(value => value.Contains("MediaSources", StringComparison.Ordinal)),
+                    "节目页还在替文件夹页要 MediaSources");
+
+                await SelectAsync(LibrarySection.Folders);
+                page.ViewModel.ApplyDisplay(folders, remember: true);
+                await UntilAsync(() => !page.ViewModel.Busy);
+                if (collection == "tvshows")
+                {
+                    // 集页的字段表比别的页多两行：所属剧集与集号（网页端 Episode 那一支先 push 这两列）。
+                    await SelectAsync(LibrarySection.Episodes);
+                    var gear = Get<Button>(page, "LibrarySettingsButton");
+                    ((IInvokeProvider)FrameworkElementAutomationPeer.CreatePeerForElement(gear)!
+                        .GetPattern(PatternInterface.Invoke)!).Invoke();
+                    await SettleAsync();
+                    Require(page.SettingsPane.FieldRows.Children.Count == 16,
+                        $"集页的字段表不是十六项（{page.SettingsPane.FieldRows.Children.Count}）");
+                    page.CloseSettings();
+                    await SettleAsync();
+                    await SelectAsync(LibrarySection.Items);
+                }
             }
             Require(fixture.Transport.Requests.All(value => value.StartsWith("GET ", StringComparison.Ordinal)), "媒体库浏览产生写请求");
             var pending = Pending<HttpResponseMessage>();

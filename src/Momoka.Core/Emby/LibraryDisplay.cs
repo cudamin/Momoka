@@ -41,7 +41,21 @@ public enum LibraryField
     Tagline,
     Overview,
     PremiereDate,
-    DateCreated
+    DateCreated,
+
+    /// <summary>下面这八项只在「文件夹」那一页出现 —— 网页端那一页列的是文件本身。</summary>
+    Filename,
+    Container,
+    Resolution,
+    Bitrate,
+    FileSize,
+    VideoCodec,
+    Framerate,
+    AudioCodec,
+
+    /// <summary>下面这两项只在「集」那一页出现 —— 网页端那一页列的是单集，多出剧名与集号两列。</summary>
+    SeriesName,
+    EpisodeNumber
 }
 
 /// <summary>一项显示字段：界面上的名字，以及向服务器要它时要写进 <c>Fields</c> 的那个词。</summary>
@@ -98,7 +112,7 @@ public sealed class LibraryDisplay
             View = Enum.IsDefined(View) ? View : LibraryView.Poster,
             CardSize = Enum.IsDefined(CardSize) ? CardSize : LibraryCardSize.Default,
             GroupIntoCollections = GroupIntoCollections,
-            Fields = [.. LibraryDisplayCatalog.Fields.Select(info => info.Field).Where(known.Contains)]
+            Fields = [.. LibraryDisplayCatalog.CanonicalOrder.Where(known.Contains)]
         };
     }
 }
@@ -126,6 +140,95 @@ public static class LibraryDisplayCatalog
     ];
 
     /// <summary>
+    /// 文件本身的八项，只出现在「文件夹」那一页。名字取自网页端那一页的设置面板；<c>MediaSources</c>
+    /// 一次带回容器、大小、码率与两条流的编解码器，八项里除文件名（从 <c>Path</c> 取）之外都从它读。
+    /// </summary>
+    public static IReadOnlyList<LibraryFieldInfo> FileFields { get; } =
+    [
+        new(LibraryField.Filename, "文件名", null),
+        new(LibraryField.Container, "媒体容器", "MediaSources"),
+        new(LibraryField.Resolution, "分辨率", "MediaSources"),
+        new(LibraryField.Bitrate, "比特率", "MediaSources"),
+        new(LibraryField.FileSize, "文件尺寸", "MediaSources"),
+        new(LibraryField.VideoCodec, "视频编解码器", "MediaSources"),
+        new(LibraryField.Framerate, "帧率", "MediaSources"),
+        new(LibraryField.AudioCodec, "音频编解码器", "MediaSources")
+    ];
+
+    /// <summary>
+    /// 「文件夹」那一页的字段表：顺序照网页端，文件名紧跟标题，评分那一项在那里的名字是「社区评分」
+    /// （同一份 <see cref="LibraryField.CommunityRating"/>，只是这一页叫法不同），文件那几项排在后面。
+    /// </summary>
+    private static readonly IReadOnlyList<LibraryFieldInfo> FolderFields =
+    [
+        new(LibraryField.Title, "标题", null),
+        new(LibraryField.Filename, "文件名", null),
+        new(LibraryField.CommunityRating, "社区评分", "CommunityRating"),
+        new(LibraryField.CriticRating, "影评人评分", "CriticRating"),
+        new(LibraryField.OfficialRating, "家长评分", "OfficialRating"),
+        new(LibraryField.ProductionYear, "年份", "ProductionYear"),
+        new(LibraryField.Runtime, "播放时长", null),
+        new(LibraryField.Genres, "类型", "Genres"),
+        new(LibraryField.Director, "导演", "People"),
+        new(LibraryField.Tags, "标签", "Tags"),
+        new(LibraryField.Studios, "工作室", "Studios"),
+        new(LibraryField.Tagline, "宣传语", "Taglines"),
+        new(LibraryField.Overview, "概要", "Overview"),
+        new(LibraryField.Container, "媒体容器", "MediaSources"),
+        new(LibraryField.Resolution, "分辨率", "MediaSources"),
+        new(LibraryField.Bitrate, "比特率", "MediaSources"),
+        new(LibraryField.FileSize, "文件尺寸", "MediaSources"),
+        new(LibraryField.PremiereDate, "播放日期", "PremiereDate"),
+        new(LibraryField.DateCreated, "创建日期", "DateCreated"),
+        new(LibraryField.VideoCodec, "视频编解码器", "MediaSources"),
+        new(LibraryField.Framerate, "帧率", "MediaSources"),
+        new(LibraryField.AudioCodec, "音频编解码器", "MediaSources")
+    ];
+
+    /// <summary>
+    /// 「集」那一页多出的两项。网页端 <c>getAvailableFields</c> 的 Episode 那一支先 push 剧名再 push 集号，
+    /// 位置在标题前面，这里照那个顺序；中文名取网页端那两列的译名（Series／Number）。
+    /// </summary>
+    private static readonly IReadOnlyList<LibraryFieldInfo> EpisodeOnly =
+    [
+        new(LibraryField.SeriesName, "所属剧集", "SeriesName"),
+        // 集号不用单独要：IndexNumber 与 ParentIndexNumber 是每条都给的。
+        new(LibraryField.EpisodeNumber, "集号", null)
+    ];
+
+    /// <summary>「集」那一页的字段表：剧名与集号在前，其余十四项照旧。</summary>
+    public static IReadOnlyList<LibraryFieldInfo> EpisodeFields { get; } = [.. EpisodeOnly, .. Fields];
+
+    /// <summary>三张表合起来的全部字段；认名字、排规范顺序都走这一份。</summary>
+    private static IReadOnlyList<LibraryFieldInfo> All { get; } = [.. Fields, .. FileFields, .. EpisodeOnly];
+
+    /// <summary>这一页的字段表。文件夹那一页多出文件本身那几项，集那一页多出剧名与集号，其余各页是同一份十四项。</summary>
+    public static IReadOnlyList<LibraryFieldInfo> FieldsFor(LibrarySection section) => section switch
+    {
+        LibrarySection.Folders => FolderFields,
+        LibrarySection.Episodes => EpisodeFields,
+        _ => Fields
+    };
+
+    /// <summary>
+    /// 这一页的字段表里有没有这一项。文件夹页的「文件名」、集页的「集号」在别的页上没有开关可以关掉，
+    /// 放它们过去就等于凭空多出一段关不掉的字。
+    /// </summary>
+    public static bool Applies(LibraryField field, LibrarySection section) =>
+        FieldsFor(section).Any(info => info.Field == field);
+
+    /// <summary>
+    /// 存下来的那一份收成这一页真正要画的那几项，顺序照这一页的表 —— 表格的列、卡片那一行、请求里的
+    /// <c>Fields</c> 都读它，三处因此不会各排一套。别的页独有的字段留在这份记录里但不生效：换回那一页
+    /// 还在，开关也还在。
+    /// </summary>
+    public static IReadOnlyList<LibraryField> Applied(IEnumerable<LibraryField> fields, LibrarySection section)
+    {
+        var wanted = new HashSet<LibraryField>(fields);
+        return [.. FieldsFor(section).Select(info => info.Field).Where(wanted.Contains)];
+    }
+
+    /// <summary>
     /// 网页端的默认勾选：标题一项。这个客户端原来卡片底下就有一行年份，多留一项年份是为了不把
     /// 已有的版面悄悄改掉；两行字里「标题 + 年份」也是网页端最常见的组合。
     /// </summary>
@@ -135,7 +238,11 @@ public static class LibraryDisplayCatalog
     public static bool Knows(LibraryField field) => Enum.IsDefined(field);
 
     public static LibraryFieldInfo Info(LibraryField field) =>
-        Fields.First(info => info.Field == field);
+        All.First(info => info.Field == field);
+
+    /// <summary>所有字段的规范顺序（默认十四项在前，文件八项与单集两项在后），存下来的那一份按它排。</summary>
+    public static IReadOnlyList<LibraryField> CanonicalOrder { get; } =
+        [.. All.Select(info => info.Field)];
 
     public static string LabelOf(LibraryField field) => Info(field).Label;
 
@@ -257,8 +364,23 @@ public static class LibraryTableColumns
         LibraryField.Tagline => 200,
         LibraryField.Overview => 320,
         LibraryField.PremiereDate or LibraryField.DateCreated => 100,
+        LibraryField.Filename => 260,
+        LibraryField.Container => 90,
+        LibraryField.Resolution => 90,
+        LibraryField.Bitrate => 100,
+        LibraryField.FileSize => 100,
+        LibraryField.VideoCodec or LibraryField.AudioCodec => 120,
+        LibraryField.Framerate => 90,
+        LibraryField.SeriesName => 200,
+        LibraryField.EpisodeNumber => 90,
         _ => 120
     };
+
+    /// <summary>
+    /// 一行表格要多宽：各列加起来，再加上行与列头左右各 12 像素的边距（两处模板都是 <c>Padding="12,0"</c>）。
+    /// 勾满字段时这个数会超过页宽，表格就要能横向滚 —— 页面拿它决定滚动面的宽度。
+    /// </summary>
+    public static double TotalWidth(IEnumerable<LibraryField> fields) => 24 + fields.Sum(WidthOf);
 }
 
 /// <summary>
@@ -276,8 +398,14 @@ public static class LibraryCardText
     {
         var parts = new List<string>(fields.Count);
         foreach (var field in fields)
+        {
+            // 「标题」这一项在单集上已经写成 SxxExx（见 Segment），再勾「集号」会把它写第二遍。
+            if (field == LibraryField.EpisodeNumber && item.Type == EmbyItemType.Episode
+                && fields.Contains(LibraryField.Title)) continue;
+
             if (Segment(item, field) is { Length: > 0 } text)
                 parts.Add(text);
+        }
         return string.Join("  ·  ", parts);
     }
 
@@ -315,6 +443,24 @@ public static class LibraryCardText
         LibraryField.Studios => Short(item.Studios.Select(studio => studio.Name).ToList(), 1, " / "),
         LibraryField.PremiereDate => Date(item.PremiereDate),
         LibraryField.DateCreated => Date(item.DateCreated),
+
+        // 文件本身那几项只从媒体源读 —— 没问 MediaSources 的请求里它们是空的，正好整段不画。
+        LibraryField.Filename => FileName(item),
+        LibraryField.Container => item.DefaultMediaSource?.Container ?? "",
+        LibraryField.Resolution => item.DefaultMediaSource?.PrimaryVideoStream?.Height is > 0 and var height
+            ? height + "p" : "",
+        LibraryField.Bitrate => item.DefaultMediaSource?.Bitrate is > 0 and var bitrate
+            ? (bitrate / 1_000_000d).ToString("0.#", CultureInfo.InvariantCulture) + " Mbps" : "",
+        LibraryField.FileSize => TimeFormat.FileSize(item.DefaultMediaSource?.Size),
+        LibraryField.VideoCodec => item.DefaultMediaSource?.PrimaryVideoStream?.Codec ?? "",
+        LibraryField.Framerate => item.DefaultMediaSource?.PrimaryVideoStream?.AverageFrameRate is > 0 and var fps
+            ? fps.ToString("0.###", CultureInfo.InvariantCulture) + " fps" : "",
+        LibraryField.AudioCodec => item.DefaultMediaSource?.AudioStreams.FirstOrDefault()?.Codec ?? "",
+
+        // 单集多出来的两项。集号写 SxxExx 而不是光一个数字：这一页是一条条单集排下来的，脱离季号
+        // 的「5」在表里读不出是第几季的第几集（网页端那一列只写数字，这里没有照抄）。
+        LibraryField.SeriesName => item.Type == EmbyItemType.Episode ? item.SeriesName ?? "" : "",
+        LibraryField.EpisodeNumber => item.Type == EmbyItemType.Episode ? item.EpisodeCode : "",
         _ => ""
     };
 
@@ -346,6 +492,9 @@ public static class LibraryCardText
         if (duration.Length == 0) return "";
         return item.Type is EmbyItemType.Series ? $"每集 {duration}" : duration;
     }
+
+    private static string FileName(EmbyItem item) =>
+        item.Path is { Length: > 0 } path ? System.IO.Path.GetFileName(path) : "";
 
     private static string Date(DateTimeOffset? value) =>
         value is { } moment ? moment.ToLocalTime().ToString("yyyy/M/d", CultureInfo.InvariantCulture) : "";

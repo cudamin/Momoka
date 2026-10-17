@@ -166,6 +166,70 @@ internal static class LibraryDisplayTests
             Assert.False(back.GroupIntoCollections);
             Assert.Equal("Title,Genres,Studios", string.Join(',', back.Fields));
         });
+        Test("媒体库设置：三种页各有一份字段表，集页多出剧名与集号", () =>
+        {
+            Assert.Equal(14, LibraryDisplayCatalog.FieldsFor(LibrarySection.Items).Count);
+            Assert.Equal(22, LibraryDisplayCatalog.FieldsFor(LibrarySection.Folders).Count);
+            Assert.Equal(16, LibraryDisplayCatalog.FieldsFor(LibrarySection.Episodes).Count);
+
+            // 网页端 getAvailableFields 的 Episode 那一支先 push 剧名再 push 集号，位置在标题前面。
+            Assert.Equal("所属剧集,集号,标题",
+                string.Join(',', LibraryDisplayCatalog.FieldsFor(LibrarySection.Episodes).Take(3).Select(info => info.Label)));
+            Assert.Equal("SeriesName", LibraryDisplayCatalog.Info(LibraryField.SeriesName).RequestField);
+            Assert.Equal<string?>(null, LibraryDisplayCatalog.Info(LibraryField.EpisodeNumber).RequestField);
+        });
+        Test("媒体库设置：别的页独有的字段不在这一页生效，但换回去还在", () =>
+        {
+            // 文件夹页勾了「文件名」「媒体容器」、集页勾了「集号」，节目页不该多出这三段关不掉的字。
+            LibraryField[] saved =
+                [LibraryField.Title, LibraryField.Filename, LibraryField.Container, LibraryField.EpisodeNumber, LibraryField.ProductionYear];
+
+            Assert.Equal("Title,ProductionYear",
+                string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Items)));
+            Assert.Equal("Title,Filename,ProductionYear,Container",
+                string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Folders)));
+            Assert.Equal("EpisodeNumber,Title,ProductionYear",
+                string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Episodes)));
+
+            Assert.False(LibraryDisplayCatalog.Applies(LibraryField.Filename, LibrarySection.Items));
+            Assert.True(LibraryDisplayCatalog.Applies(LibraryField.Filename, LibrarySection.Folders));
+
+            // 请求里也只问这一页的字段：节目页不该因为文件夹页勾过容器就带上 MediaSources。
+            var query = LibraryBrowse.Query("movies", "library-a", LibrarySection.Items, 0, 20,
+                EmbySortBy.Name, false, new(), null,
+                new LibraryDisplay { Fields = [.. saved] });
+            Assert.DoesNotContain("MediaSources", query.ToQueryString());
+            Assert.DoesNotContain("SeriesName", query.ToQueryString());
+
+            var folderQuery = LibraryBrowse.Query("movies", "library-a", LibrarySection.Folders, 0, 20,
+                EmbySortBy.Name, false, new(), null,
+                new LibraryDisplay { Fields = [.. saved] });
+            Assert.Contains("MediaSources", folderQuery.ToQueryString());
+        });
+        Test("媒体库设置：单集的剧名与集号，标题已经带过集号就不再写一遍", () =>
+        {
+            var episode = Item(EmbyItemType.Episode, year: 2016, minutes: 24);
+            episode.SeriesName = "某剧";
+            episode.ParentIndexNumber = 2;
+            episode.IndexNumber = 5;
+
+            Assert.Equal("某剧  ·  S02E05", LibraryCardText.Line(episode,
+                [LibraryField.SeriesName, LibraryField.EpisodeNumber]));
+            // 标题那一项在单集上写的就是 SxxExx，再勾集号只写一次。
+            Assert.Equal("某剧  ·  S02E05  ·  2016", LibraryCardText.Line(episode,
+                [LibraryField.SeriesName, LibraryField.EpisodeNumber, LibraryField.Title, LibraryField.ProductionYear]));
+            // 表格里标题那一格是片名本身，集号那一格才是 SxxExx —— 两列说的是两件事。
+            Assert.Equal("条目", LibraryCardText.Cell(episode, LibraryField.Title));
+            Assert.Equal("S02E05", LibraryCardText.Cell(episode, LibraryField.EpisodeNumber));
+            Assert.Equal("某剧", LibraryCardText.Cell(episode, LibraryField.SeriesName));
+        });
+        Test("媒体库设置：表格一行的宽度是各列之和加两侧边距", () =>
+        {
+            LibraryField[] fields = [LibraryField.Title, LibraryField.Genres, LibraryField.Overview];
+            Assert.Equal(260d + 190d + 320d + 24d, LibraryTableColumns.TotalWidth(fields));
+            Assert.True(LibraryTableColumns.WidthOf(LibraryField.SeriesName) > 0);
+            Assert.True(LibraryTableColumns.WidthOf(LibraryField.EpisodeNumber) > 0);
+        });
     }
 
     private static EmbyItem Item(string type, int year, int minutes = 0, int? endYear = null, string? status = null,
