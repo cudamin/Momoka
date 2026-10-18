@@ -4,7 +4,7 @@ namespace Momoka.Emby;
 /// 轮播条目从哪来 —— 「要使用最近添加还是随机的」（用户的话，2026-09-13）。装机默认是最近添加，
 /// 那是 2026-09-13 之前唯一的来路：缺键的旧设置文件读出来的整数 0 因此一个像素都不变。
 /// <para>
-/// JSON 没装 <c>JsonStringEnumConverter</c>，枚举存整数（同 <see cref="ScoreSource"/> 的规矩），认不出的
+/// JSON 没装 <c>JsonStringEnumConverter</c>，枚举存整数（同 <see cref="HomeLibraryPlacement"/> 的规矩），认不出的
 /// 数字由 <c>SettingsMigration.Normalize</c> 拨回 Recent。
 /// </para>
 /// </summary>

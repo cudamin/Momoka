@@ -27,7 +27,6 @@
 | POST | `/api/v1/login` | 旧版明文登录，**新服务端已废弃**（一律 `-15`） | 上游 |
 | POST | `/api/v1/user/logout` | 登出 | 上游 |
 | GET | `/api/v1/user/info` | 当前用户信息 | 两者 |
-| GET | `/api/v1/manager/user/list` | 用户列表（**仅管理员**） | 上游 |
 | POST | `/api/v1/user/getData` | 用户偏好 KV（`key` 如 `mdb:list:setting`） | 抓包 |
 
 登录细节与 `-15` 的陷阱见 [传输与鉴权](http-and-auth.md#登录)。
@@ -38,9 +37,8 @@
 | --- | --- | --- | --- |
 | GET | `/api/v1/mediadb/list` | 媒体库列表（普通用户） | 两者 |
 | GET | `/api/v1/mediadb/sum` | 各库数量统计 | 两者 |
-| GET | `/api/v1/mdb/list` | 媒体库列表（**管理员**，多 `dir_list`） | 上游 |
-| POST | `/api/v1/mdb/scanall` | 扫描全部媒体库 | 上游 |
-| POST | `/api/v1/mdb/scan/{guid}` | 扫描指定库 | 上游 |
+
+管理端的 `mdb/*`（创建、编辑、移除、扫描、排序）随原生管理页退役，见下方「原生管理接口（2026-10-16 已退役）」。
 
 ## 条目（媒体）
 
@@ -100,15 +98,21 @@
 | --- | --- | --- | --- |
 | GET | `/api/v1/task/running` | 是否有任务在跑（上游只判真假） | 上游 |
 
-## 官方管理接口补充
+## 原生管理接口（2026-10-16 已退役）
 
-路径仍相对 `/v/` 入口；请求字段和保存范围见客户端源码，不以这张摘要表替代字段核对。
+这些接口原先由客户端的四个原生管理页调用；**客户端现已不再调用其中任何一个**（`FnNasClient` 的管理分部类与四个页面一起删除）。下表只作协议追溯，字段与保存范围也不再以客户端源码为准。
 
-| 方法 | 路径 | 功能 |
+| 方法 | 路径 | 原功能 |
 | --- | --- | --- |
+| GET | `/api/v1/mdb/list` | 媒体库列表（管理员，多 `dir_list`） |
 | PUT | `/api/v1/mdb/create` | 创建媒体库 |
 | GET / POST / DELETE | `/api/v1/mdb/{guid}` | 读取 / 编辑 / 移除媒体库 |
+| POST | `/api/v1/mdb/scanall` · `/api/v1/mdb/scan/{guid}` | 扫描全部 / 指定媒体库 |
+| POST | `/api/v1/mdb/setSort` | 保存媒体库排序 |
+| POST | `/api/v1/mdb/iptv/temp/upload` | 上传直播源文件 |
+| GET | `/api/v1/server/getAppAuthorizedDir` | App 授权目录 |
 | POST | `/api/v1/server/path` | 浏览授权目录 |
+| GET | `/api/v1/manager/user/list` | 用户列表（仅管理员） |
 | PUT | `/api/v2/manager/user/create` | 创建影视用户，密码 SHA-256 |
 | POST | `/api/v2/manager/user/{guid}` | 更新影视用户 |
 | DELETE | `/api/v1/manager/user/{guid}` | 删除影视用户 |
@@ -121,7 +125,7 @@
 | POST | `/api/v1/task/schedule/getSetting` | 每日任务开关 |
 | POST | `/api/v1/task/schedule/set` | `task_switch` 字符串 `"1"` / `"2"` |
 
-用户页面字段为用户名、密码、媒体库权限（无 / 全部含未来 / 部分）。任务计划只有一个全局开关和扫描/字幕提取两项说明，不包含每任务 cron 或立即执行。具体官方资源名见技能正文。
+当时排除的范围仍然排除：全部网盘功能、GPU 转码、首选 GPU 与 CPU 解码回退。**不要为了补回管理能力恢复网盘开关、直链权限或流解析接口。**
 
 ## 规格缺口与历史矛盾
 
@@ -133,7 +137,7 @@
 | v1 登录 | 新服务端已废弃，一律 `-15`；`-15` 无法区分账号/密码/接口版本 | 一律走 v2，见 [传输与鉴权](http-and-auth.md#登录) |
 | 访问码 | 校验在 `/c/{code}`（不在 `/v` 下），失败返回 404，靠会话 Cookie | 做成可选配置；请求需支持 Cookie |
 | `search/list` | 只在上游实现里出现，社区抓包文档未登记 | 标记为待核实，抓前端 JS 确认 |
-| `mdb/*`、`task/running` | 旧资料仅记上游实现 | 当前官方 SDK 已核对；真实写入仍未验证 |
+| `mdb/*`、`task/running` | 旧资料仅记上游实现 | 当前官方 SDK 已核对；`mdb/*` 随原生管理页退役，真实写入仍未验证 |
 | 前端/服务端版本 | 接口随版本变，社区文档基于 0.9.7 / 0.8.35 | 每次接入前 `sys/version` 重取并记录 |
 
 ## 容易猜错的

@@ -177,8 +177,8 @@ public sealed partial class FilterValuesRow : FilterRow
     private readonly ItemFilters _selection;
     private readonly FilterPanelViewModel _owner;
 
-    internal FilterValuesRow(EmbyFilterField field, EmbyFilterList list, ItemFilters selection, FilterPanelViewModel owner)
-        : base(field, null)
+    internal FilterValuesRow(EmbyFilterField field, EmbyFilterList list, ItemFilters selection, FilterPanelViewModel owner, string? heading)
+        : base(field, heading)
     {
         _list = list;
         _selection = selection;

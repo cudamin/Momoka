@@ -127,8 +127,12 @@ public static class ItemMenu
     /// 免得点下去弹个连不上的窗口。默认关：全新装机没有 MoviePilot，测试里不点名这一项的也照旧只看基础菜单。
     /// </param>
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
-        bool jellyfin = false, bool fnNas = false) => fnNas
+        bool jellyfin = false, bool fnNas = false, bool plex = false) => fnNas
         ? Join(Opening(item), UserState(item, true), Navigation(item))
+        // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
+        // offered and then refused.
+        : plex
+        ? Join(Opening(item), UserState(item, true, favorites: false), Navigation(item))
         : Join(
         Opening(item),
         MissingEpisodes(item),
@@ -139,11 +143,18 @@ public static class ItemMenu
         Navigation(item),
         Destructive(item));
 
-    /// <summary>菜单和迟到的点击共用同一能力判断；Jellyfin 没有保留续播点的隐藏接口。</summary>
-    public static bool Supports(ItemCommand command, bool jellyfin, bool fnNas = false) => fnNas
-        ? command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
-            or ItemCommand.MarkUnplayed or ItemCommand.Favorite or ItemCommand.Unfavorite or ItemCommand.OpenSeries
-        : !jellyfin || command != ItemCommand.HideFromResume;
+    /// <summary>
+    /// 菜单和迟到的点击共用同一能力判断；Jellyfin 没有保留续播点的隐藏接口，飞牛没有合集与元数据编辑，
+    /// Plex 既没有收藏也没有保留续播点。
+    /// </summary>
+    public static bool Supports(ItemCommand command, bool jellyfin, bool fnNas = false, bool plex = false)
+    {
+        if (fnNas) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
+            or ItemCommand.MarkUnplayed or ItemCommand.Favorite or ItemCommand.Unfavorite or ItemCommand.OpenSeries;
+        if (plex) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
+            or ItemCommand.MarkUnplayed or ItemCommand.OpenSeries;
+        return !jellyfin || command != ItemCommand.HideFromResume;
+    }
 
     /// <summary>
     /// 查看遗漏集。**只有剧和季**：一部剧、一季是一叠文件，服务器按刮削源的元数据算得出「本该有哪几集、
@@ -208,7 +219,7 @@ public static class ItemMenu
     /// 里不再列它（服务器上是 <c>HideFromResume</c>），下次还能接着看；「标记为未观看」是把进度清成零。
     /// </para>
     /// </summary>
-    private static List<ItemMenuEntry> UserState(EmbyItem item, bool jellyfin)
+    private static List<ItemMenuEntry> UserState(EmbyItem item, bool jellyfin, bool favorites = true)
     {
         var rows = new List<ItemMenuEntry>(4);
         if (!item.TracksUserState) return rows;
@@ -217,9 +228,10 @@ public static class ItemMenu
         if (!played) rows.Add(new(ItemCommand.MarkPlayed, "标记为已观看"));
         if (played || item.HasResumePosition) rows.Add(new(ItemCommand.MarkUnplayed, "标记为未观看"));
 
-        rows.Add(item.UserData?.IsFavorite == true
-            ? new(ItemCommand.Unfavorite, "取消收藏")
-            : new(ItemCommand.Favorite, "添加到收藏"));
+        if (favorites)
+            rows.Add(item.UserData?.IsFavorite == true
+                ? new(ItemCommand.Unfavorite, "取消收藏")
+                : new(ItemCommand.Favorite, "添加到收藏"));
 
         if (item.HasResumePosition && Supports(ItemCommand.HideFromResume, jellyfin))
             rows.Add(new(ItemCommand.HideFromResume, "从继续观看中移除"));

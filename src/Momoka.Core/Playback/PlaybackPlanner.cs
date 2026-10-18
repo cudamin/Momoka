@@ -66,7 +66,9 @@ public sealed class PlaybackPlanner(
 
         var externalSubtitles = map.ExternalSubtitleIndexes
             .Select(index => source.MediaStreams.First(stream => stream.Index == index))
-            .Select(stream => EmbyUrl.Subtitle(connection.ApiBase, item.Id, source.Id, stream.Index, stream.Codec))
+            .Select(stream => connection.IsPlex
+                ? Momoka.Plex.PlexPlaybackSelection.SubtitleUrl(connection.ApiBase, stream)
+                : EmbyUrl.Subtitle(connection.ApiBase, item.Id, source.Id, stream.Index, stream.Codec))
             .ToList();
 
         var resolver = ticket.ShaderSettings is { } shaderSettings ? new ShaderGroupResolver(shaderSettings) : shaders;
@@ -94,9 +96,13 @@ public sealed class PlaybackPlanner(
         var request = new PlaybackRequest
         {
             MediaUrl = connection.IsFnNas ? Momoka.FnNas.FnNasPlaybackSelection.MediaUrl(connection, source)
+                : connection.IsPlex ? Momoka.Plex.PlexPlaybackSelection.MediaUrl(connection.ApiBase, source)
                 : EmbyUrl.Stream(connection.ApiBase, item.Id, source.Id, source.Container),
             FnNasSelection = connection.IsFnNas
                 ? Momoka.FnNas.FnNasPlaybackSelection.FromSource(source, source.RunTimeTicks ?? item.RunTimeTicks ?? 0) : null,
+            PlexSelection = connection.IsPlex
+                ? Momoka.Plex.PlexPlaybackSelection.FromSource(item.Id, connection.ApiBase, source,
+                    source.RunTimeTicks ?? item.RunTimeTicks ?? 0) : null,
             Title = title,
             HttpHeaders = BuildHeaders(connection),
             StartSeconds = TimeFormat.ToSeconds(ticket.ExactStart ? Math.Max(0, ticket.StartTicks) : ResumeFrom(ticket.StartTicks)),

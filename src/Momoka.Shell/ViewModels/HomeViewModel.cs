@@ -4,6 +4,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Services;
+using Momoka.Shell.Platform;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 
@@ -56,15 +57,60 @@ public sealed partial class HomeViewModel : PageViewModel
     private ISettingsService? _settings;
     private IReadOnlyList<EmbyItem> _libraryViews = [];
     private readonly HomeRefresh _refresh = new();
+
+    /// <summary>
+    /// 「服务器上有没有新入库的东西」的账（<see cref="LibraryWatch"/>）：整页重读时记下每个来源此刻最新的一批，
+    /// 定时那一趟（<see cref="AutoRefreshAsync"/>）拿新的一批和它比。变了才重读 —— 没变也重读，等于每隔半分钟
+    /// 把一页海报连轮播全拆了重装。
+    /// </summary>
+    private readonly LibraryWatch _watch = new();
+
+    /// <summary>定时那一趟还在路上。防止 30 秒的钟比一趟往返还快时叠上第二趟。</summary>
+    private bool _watchBusy;
+
+    /// <summary>
+    /// 服务器推了「有库变更」但这一趟还没去核对。<see cref="EmbyRealtimeWatch"/> 收到 <c>LibraryChanged</c> 时立起来，
+    /// 由 <see cref="PumpRealtimeAsync"/> 消费。
+    /// <para>
+    /// 为什么要中间这一格而不是收到就直接重读：一条库变更常常连着推好几条（Emby 扫一遍会为一集、一季、一部各发一条），
+    /// 直接重读就是几秒钟里把整页海报拆装好几遍。立脏位、再在一拍之后统一核对一次，是让那几条并成一次重读。
+    /// </para>
+    /// </summary>
+    private bool _realtimeDirty;
+
+    /// <summary>
+    /// 实时通道报上来的来源钥匙（<see cref="EmbySessionScope.Key"/>）。只是日志里要说清是哪个来源变了；
+    /// 重读走的还是整页那一趟（<see cref="LoadAsync"/>），不按来源分开。
+    /// </summary>
+    private readonly HashSet<string> _realtimeSources = new(StringComparer.Ordinal);
+
+    /// <summary>这一拍的通知已经排上了。连着收到几条不该排好几个一拍。</summary>
+    private bool _realtimeScheduled;
+
+    /// <summary>
+    /// 实时通道。<c>HomePage</c> 导航进来时开、离开时收（<see cref="Attach"/> / <see cref="Cancel"/>）。
+    /// <para>
+    /// 这是**快路径**：收到 <c>LibraryChanged</c> 就提前走一遍核对，把 30 秒那一趟的空窗压到约一秒。
+    /// 30 秒那一趟留着不动，所以这条通道连不上、或者服务器不推的时候，行为等于没有它。
+    /// </para>
+    /// </summary>
+    private readonly EmbyRealtimeWatch _realtime = new();
+
+    /// <summary>这一场读取故障已经记过日志了。定时检查每半分钟一趟，不设这一格就是每半分钟一条同样的警告。</summary>
+    private bool _watchReported;
+
     private EmbySessionScope? _scope;
     private IReadOnlyList<EmbySessionScope> _sources = [];
+    private IUiDispatcher? _dispatcher;
     private bool _active;
     private bool Live => _active && _sources.Any(source => source.IsAvailable);
     private bool Visible(string key) => _all.Any(entry => entry.Row.Key == key && entry.Row.Visible);
 
-    /// <summary>角标那个开关，<see cref="Attach"/> 时取一次的快照 —— 见那一段的说明。卡片尺寸从前也在这张
-    /// 快照上（<c>_poster</c>/<c>_still</c>），2026-09-05「海报宽度」那行设置删掉之后就只剩这一个了。</summary>
-    private bool _badges;
+    /// <summary>
+    /// 这一页上有没有东西会因为「服务器新入库」而换掉（<see cref="HomeLayout.CanRefresh"/>）：轮播开着，或者
+    /// 至少有一排读服务器条目清单的货架勾着。都不是的时候定时检查和实时通道都不该再问服务器 —— 隐藏的行不联网。
+    /// </summary>
+    private bool ShowsAnything => HomeLayout.CanRefresh(_all.Select(entry => entry.Row), _banner);
 
     /// <summary>
     /// 设置 → 界面 → 「显示主页轮播大图」（<c>UiSettings.ShowHomeBanner</c>）。关掉的时候顶上那张大图没有：
@@ -121,7 +167,7 @@ public sealed partial class HomeViewModel : PageViewModel
     internal int LibraryFlowIndex { get; private set; } = -1;
 
     /// <summary>
-    /// 设置 → 界面 → 「首页媒体库位置」（<c>UiSettings.HomeLibraryPlacement</c>）：媒体库那一排该压在轮播里、
+    /// 设置 → 主页 → 「主页媒体库位置」（<c>UiSettings.HomeLibraryPlacement</c>）：媒体库那一排该压在轮播里、
     /// 还是待在轮播下面。
     /// <para>
     /// **每次问设置要，不存快照**：它和轮播那几项同一张表上的东西，改完当场生效（<c>ShellPrefs</c>），
@@ -242,24 +288,29 @@ public sealed partial class HomeViewModel : PageViewModel
         IReadOnlyList<EmbyItem> libraryViews,
         ISettingsService settings,
         EmbySession session,
-        EmbyImageStore images)
+        EmbyImageStore images,
+        IUiDispatcher dispatcher)
     {
         Cancel();
         _active = true;
         _scope = images.CaptureScope();
         _sources = session.Sources.ToArray();
+        // 换了一趟会话，上一次那份「服务器长什么样」不再作数（连账号都可能是另一个了）。
+        _watch.Clear();
+        _watchReported = false;
+        _realtimeDirty = false;
+        _realtimeSources.Clear();
         if (_scope is not null) BrowsingPreferences.SelectIdentity(settings.Settings.Ui, _scope.Connection);
         _actions = actions;
         _libraryViews = libraryViews;
         _session = session;
         _images = images;
         _settings = settings;
+        _dispatcher = dispatcher;
 
-        var ui = settings.Settings.Ui;
-
-        // 卡片尺寸不再来自设置（「海报宽度」那一行 2026-09-05 删掉了，卡片固定走 CardSize 的默认档），
-        // 快照上只剩角标这一个真正的设置读数。
-        _badges = ui.ShowWatchedIndicators;
+        // 实时通道跟着这一页走：开着的时候服务器一推 LibraryChanged 就提前核对一次新入库，
+        // 不必等 30 秒那一趟。它只是快路径 —— 连不上或者服务器不推，30 秒那一趟照旧。
+        _realtime.Attach(_sources, OnRealtimeLibraryChanged);
 
         BuildShelves();
     }
@@ -302,7 +353,7 @@ public sealed partial class HomeViewModel : PageViewModel
                 HomeLayout.Resume or HomeLayout.NextUp => (true, CardSize.HomeWideWidth),
                 _ => (false, CardSize.PosterWidth)
             };
-            var badges = row.Key != HomeLayout.Libraries && _badges;
+            var badges = row.Key != HomeLayout.Libraries;
 
             // 这一排点进哪儿由版面说了算（HomeLayout.TargetOf）：库那几排认库，继续观看 / 接下来看各有
             // 自己的一页，详情页造出来的那些排是 None —— 牌子右端跟不跟大于号就看它。2026-09-14 之前这里
@@ -418,6 +469,163 @@ public sealed partial class HomeViewModel : PageViewModel
     /// <summary>播放只改变观看状态，不重建轮播，以免返回时丢掉已解码背景并重置轮播位置。</summary>
     internal Task RefreshPlaybackAsync() => LoadAsync(refreshSlides: false);
 
+    /// <summary>
+    /// 定时看看服务器上有没有新入库的东西（见 <see cref="LibraryWatch"/>）：有新内容才整页重读一遍，货架和
+    /// 轮播一起换；没变化就什么都不动。
+    /// <para>
+    /// 用户令（2026-10-16）「有新媒体入库时主页不会自动刷新」：从别的页面返回时这一页本来就会重读一次
+    /// （<c>ShellPage.RefreshActive</c>），缺的正是「就停在这一页上」那一档 —— 主页只在导航进来时读一次，
+    /// 之后服务器新入库的内容不会自己出现。
+    /// </para>
+    /// <para>
+    /// 这一趟只问一句「最新的一批变没变」（每个来源一次），**不重读整页**：没变也重读，等于每隔半分钟把一页
+    /// 海报连轮播全拆了重装。真变了才走 <see cref="LoadAsync"/> —— 那和用户自己按刷新、从别的页面返回时走的
+    /// 是同一条路（含轮播，用户 2026-10-16 选定「货架+轮播一起更新」）。
+    /// </para>
+    /// <para>
+    /// 钟在页面上（<c>HomePage</c>），这一头只有这一件事。还没 <c>Attach</c>、已经离页、正在读、或者上一趟
+    /// 还没回来，都直接放过这一拍。
+    /// </para>
+    /// </summary>
+    internal async Task AutoRefreshAsync()
+    {
+        if (!Live || _session is null || _actions is null || _all.Length == 0) return;
+        if (Busy || _watchBusy) return;
+
+        // 空页面（全不勾、轮播也关着）没有东西可换：这一拍连那一句「变了没有」都不问。
+        if (!ShowsAnything) return;
+
+        _watchBusy = true;
+        try
+        {
+            if (await ProbeStampsAsync(CancellationToken.None).ConfigureAwait(true) is not { } stamps) return;
+            if (!Live) return;
+
+            var changed = _watch.Changed(stamps);
+            if (changed.Count == 0) return;
+
+            // 先记下新的一批再重读：重读那一趟自己也会记一遍，但万一它读不成（比如最新那一条接口刚好抽风），
+            // 没有这一句就会每半分钟拿同一个变化重读一次，一直刷下去。
+            _watch.Reset(stamps);
+            Log.Info(Category, $"定时检查：{string.Join('、', changed.Select(SourceName))} 有新入库，重读主页");
+            await LoadAsync().ConfigureAwait(true);
+        }
+        finally
+        {
+            _watchBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// 实时通道报上来了：服务器说某个来源上有库变更（<c>LibraryChanged</c>）。
+    /// <para>
+    /// **不直接重读**，只立脏位、排一拍，由 <see cref="PumpRealtimeAsync"/> 统一消费。理由见
+    /// <see cref="_realtimeDirty"/>：一次库变更常连着推好几条，直接重读会把整页海报拆装好几遍。
+    /// </para>
+    /// <para>
+    /// 这一句可能在任意线程上被叫到（通道的循环跑在线程池上），所以脏位和集合只做最轻的写、不碰 UI：
+    /// 真正读 UI 的那一步在 <see cref="PumpRealtimeAsync"/> 里，它已经回到了这一页的同步上下文。
+    /// </para>
+    /// </summary>
+    private void OnRealtimeLibraryChanged(string sourceKey)
+    {
+        lock (_realtimeSources)
+        {
+            _realtimeDirty = true;
+            if (sourceKey.Length > 0) _realtimeSources.Add(sourceKey);
+            if (_realtimeScheduled) return;
+            _realtimeScheduled = true;
+        }
+
+        // 排到这一页自己的同步上下文上跑。拿不到队列（还没 Attach / 已经离页）就放过这一拍 ——
+        // 30 秒那一趟还在，不会漏掉什么。
+        if (_dispatcher?.Post(() => _ = PumpRealtimeAsync()) != true) ClearRealtimeScheduled();
+    }
+
+    /// <summary>
+    /// 把攒下的实时通知折成一趟核对。<see cref="AutoRefreshAsync"/> 本来就是「问一句变了没有、真变了才重读」，
+    /// 这一趟直接复用它 —— 快路径和 30 秒那一趟走的是同一条路，两边的判据、防重刷、日志都是同一套。
+    /// </summary>
+    private async Task PumpRealtimeAsync()
+    {
+        string[] sources;
+        lock (_realtimeSources)
+        {
+            if (!_realtimeDirty) { _realtimeScheduled = false; return; }
+            _realtimeDirty = false;
+            sources = [.. _realtimeSources];
+            _realtimeSources.Clear();
+            _realtimeScheduled = false;
+        }
+
+        if (sources.Length > 0)
+            Log.Info(Category, $"实时通道：{string.Join('、', sources.Select(SourceName))} 有新入库，提前核对一次");
+
+        await AutoRefreshAsync().ConfigureAwait(true);
+    }
+
+    /// <summary>把这一拍交出去失败之后把「已排」放回去，否则下一批通知会被那一格挡住、再也排不上。</summary>
+    private void ClearRealtimeScheduled()
+    {
+        lock (_realtimeSources) _realtimeScheduled = false;
+    }
+
+    /// <summary>
+    /// 每个来源此刻最新的一批入库，折成一行字（<see cref="LibraryWatch.Stamp"/>）。
+    /// <para>
+    /// 读不出来的来源**不放进结果里**：调用方拿它和上一次的读数比，缺了一个来源会被读成「变了」，那正是多账号
+    /// 聚合时每半分钟白刷一次的来源（见 <see cref="LibraryWatch"/>）。这一趟失败也不弹提示条 —— 用户没让做什么
+    /// 事，一个后台的例行问询不该在屏上留一条红 —— 只记日志，而且同一场故障只记一条（<see cref="_watchReported"/>）。
+    /// </para>
+    /// </summary>
+    private async Task<Dictionary<string, string>?> ProbeStampsAsync(CancellationToken token)
+    {
+        var sources = _sources.Where(scope => scope.IsAvailable).ToArray();
+        if (sources.Length == 0) return null;
+
+        async Task<(string Key, string? Stamp, Exception? Error)> ReadAsync(EmbySessionScope scope)
+        {
+            try
+            {
+                var items = await scope
+                    .ExecuteAsync((client, ct) => client.GetLatestAsync(null, LatestSize, ct), token)
+                    .ConfigureAwait(true);
+                return (scope.Key, LibraryWatch.Stamp(items), null);
+            }
+            catch (Exception error)
+            {
+                return (scope.Key, null, error);
+            }
+        }
+
+        var results = await Task.WhenAll(sources.Select(ReadAsync)).ConfigureAwait(true);
+
+        var stamps = new Dictionary<string, string>(StringComparer.Ordinal);
+        Exception? failure = null;
+
+        foreach (var result in results)
+        {
+            if (result.Stamp is { } stamp) stamps[result.Key] = stamp;
+            else if (result.Error is not OperationCanceledException) failure ??= result.Error;
+        }
+
+        if (failure is null)
+        {
+            _watchReported = false;
+        }
+        else if (!_watchReported)
+        {
+            _watchReported = true;
+            Log.Warn(Category, "定时检查服务器最新入库失败，这一趟按没有变化处理（同一场故障只记这一条）", failure);
+        }
+
+        return stamps.Count > 0 ? stamps : null;
+    }
+
+    /// <summary>一个来源的显示名（日志用）；认不出来就照钥匙报。</summary>
+    private string SourceName(string key) =>
+        _sources.FirstOrDefault(scope => scope.Key == key)?.DisplayName ?? key;
+
     private async Task LoadAsync(bool refreshSlides = true)
     {
         if (!Live || _session is null || _actions is null || _all.Length == 0) return;
@@ -472,9 +680,18 @@ public sealed partial class HomeViewModel : PageViewModel
                 HomeLayout.LibraryTitle(library.Name), (client, ct) => client.GetLatestAsync(id, LatestSize, ct), token, shelf.Source ?? _scope);
         }
 
-        await Task.WhenAll(perLibrary.Values.Append(resume).Append(nextUp).Append(latest)).ConfigureAwait(true);
+        // 定时检查（见 AutoRefreshAsync）的基线也是这一趟记下的：整页重读之后，屏上这一份就是「服务器此刻的
+        // 样子」。和别的请求一起发出去，不另起一趟往返。空页面上没有可换的东西，这一句省掉 —— 否则「隐藏的行
+        // 不联网」就在这一句上破功（见 ShowsAnything）。
+        var watch = ShowsAnything
+            ? ProbeStampsAsync(token)
+            : Task.FromResult<Dictionary<string, string>?>(null);
+
+        await Task.WhenAll(perLibrary.Values.Cast<Task>().Append(resume).Append(nextUp).Append(latest).Append(watch)).ConfigureAwait(true);
 
         if (!IsCurrent(token)) return;
+
+        if (watch.Result is { } stamps) _watch.Reset(stamps);
 
         // 继续观看 and 接下来看 span every item the account has touched — music included. This app has no
         // music face, so a track card would open onto nothing; the rows are filtered here rather than by
@@ -746,6 +963,10 @@ public sealed partial class HomeViewModel : PageViewModel
     public override void Cancel()
     {
         _active = false;
+        // 这一页走了，实时通道一起收：它听的是这一页上的数据，页都不在了没人接这个结果。
+        _realtime.Release();
+        _realtimeDirty = false;
+        lock (_realtimeSources) _realtimeSources.Clear();
         base.Cancel();
     }
 

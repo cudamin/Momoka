@@ -72,6 +72,47 @@ internal static class LibraryDisplayTests
             Assert.Equal(169, LibraryCardMetrics.Height(LibraryView.Thumb, 300));
             Assert.Equal(169, LibraryCardMetrics.Height(LibraryView.Logo, 300));
         });
+        Test("媒体库网格：一行铺满宽度，封面填满格子", () =>
+        {
+            // 1280 宽的窗口、集页 300 宽的封面：三列，剩下的宽度全摊给这三列。从前卡片钉死在 300、格子
+            // 由版面自己算，300 宽的封面住着 414 宽的格子，两张之间空出 114 像素 —— 2026-10-18 用户令
+            // 「封面随窗口大小变化，互相之间不要留太大的空隙」。
+            var fit = LibraryCardMetrics.Fit(1198, 300);
+
+            Assert.Equal(3, fit.Columns);
+            Assert.Equal(388, fit.Cell);
+            Assert.True(fit.Cell > 300, "窗口比一列宽得多，封面却还是档位宽");
+
+            // 铺满：三列加两条缝不超过这一行给得出的宽度，差的那一点是向下取整留下的（最多列数减一像素）。
+            var used = fit.Cell * fit.Columns + LibraryCardMetrics.ColumnSpacing * (fit.Columns - 1);
+            Assert.True(used <= 1198, $"铺出去 {used}，比 1198 还宽");
+            Assert.True(1198 - used < fit.Columns, $"右边空了 {1198 - used} 像素");
+        });
+        Test("媒体库网格：列数按「每列连着自己的那条缝」算，和版面同一条算术", () =>
+        {
+            // UniformGridLayout 数的是 floor(可用宽 / (最小宽 + 列距))：每列都要连着自己的那条缝才算塞得下，
+            // 最后一列后面那条缝也算。少算这一条，这边就会比版面多认一列 —— 2026-10-18 探针里那个 521 的
+            // 来由（1058 宽、拿摊出来的 342 当最小宽，这边算三列，版面只肯排两列）。
+            var tight = LibraryCardMetrics.Fit(1058, 342);
+            Assert.Equal(2, tight.Columns);
+            Assert.Equal(521, tight.Cell);
+        });
+        Test("媒体库网格：窗口变宽封面跟着变宽，窗口窄过一列就缩到窗口那么宽", () =>
+        {
+            var narrow = LibraryCardMetrics.Fit(1018, 300);
+            var wide = LibraryCardMetrics.Fit(1198, 300);
+            Assert.True(wide.Cell > narrow.Cell, "窗口宽了 180 像素，封面没有跟着变宽");
+
+            // 窗口比一列还窄：给一列、宽度就是窗口那么宽。宁可卡片小一点，也不要横向裁掉一截 ——
+            // 这一页的横向滚动是关着的。
+            var tiny = LibraryCardMetrics.Fit(278, 300);
+            Assert.Equal(1, tiny.Columns);
+            Assert.Equal(278, tiny.Cell);
+
+            // 还没量到宽度（新建的页面在第一帧之前就把卡片建好了）：退回档位宽。
+            Assert.Equal((1, 300), LibraryCardMetrics.Fit(0, 300));
+            Assert.Equal((1, 300), LibraryCardMetrics.Fit(double.NaN, 300));
+        });
         Test("媒体库设置：分组只发给库内的条目查询，推荐不认这一键", () =>
         {
             var on = LibraryBrowse.Query("tvshows", "library-a", LibrarySection.Items, 0, 20,
@@ -170,10 +211,11 @@ internal static class LibraryDisplayTests
         {
             Assert.Equal(14, LibraryDisplayCatalog.FieldsFor(LibrarySection.Items).Count);
             Assert.Equal(22, LibraryDisplayCatalog.FieldsFor(LibrarySection.Folders).Count);
-            Assert.Equal(16, LibraryDisplayCatalog.FieldsFor(LibrarySection.Episodes).Count);
+            Assert.Equal(21, LibraryDisplayCatalog.FieldsFor(LibrarySection.Episodes).Count);
+            Assert.Equal(23, LibraryDisplayCatalog.FieldsFor(LibrarySection.Episodes, LibraryView.Table).Count);
 
             // 网页端 getAvailableFields 的 Episode 那一支先 push 剧名再 push 集号，位置在标题前面。
-            Assert.Equal("所属剧集,集号,标题",
+            Assert.Equal("标题,文件名,社区评分",
                 string.Join(',', LibraryDisplayCatalog.FieldsFor(LibrarySection.Episodes).Take(3).Select(info => info.Label)));
             Assert.Equal("SeriesName", LibraryDisplayCatalog.Info(LibraryField.SeriesName).RequestField);
             Assert.Equal<string?>(null, LibraryDisplayCatalog.Info(LibraryField.EpisodeNumber).RequestField);
@@ -188,7 +230,7 @@ internal static class LibraryDisplayTests
                 string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Items)));
             Assert.Equal("Title,Filename,ProductionYear,Container",
                 string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Folders)));
-            Assert.Equal("EpisodeNumber,Title,ProductionYear",
+            Assert.Equal("Title,Filename,ProductionYear,Container",
                 string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Episodes)));
 
             Assert.False(LibraryDisplayCatalog.Applies(LibraryField.Filename, LibrarySection.Items));

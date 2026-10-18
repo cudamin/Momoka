@@ -14,7 +14,7 @@
 
 ## 项目与技能
 
-媒体服务器桌面客户端（Emby、Jellyfin、飞牛影视）：WinUI 3、Windows App SDK、.NET 10、C#，非打包、x64，播放内核 libmpv。SDK 版本见 `global.json`，包版本见各项目的 csproj。
+媒体服务器桌面客户端（Emby、Jellyfin、飞牛影视、Plex）：WinUI 3、Windows App SDK、.NET 10、C#，非打包、x64，播放内核 libmpv。SDK 版本见 `global.json`，包版本见各项目的 csproj。
 
 - `src/Momoka.Core`：不依赖 UI 框架。目前不引用 NuGet 包，这是保持轻量的选择，不是“有包就不能测试”的限制。
 - `src/Momoka.Shell`：WinUI 外壳。
@@ -27,7 +27,7 @@
 - [momoka-winui-shell](.claude/skills/momoka-winui-shell/SKILL.md)：修改或审查 C# / XAML 前读取，说明分层、DI、Attach、功能可用性显隐与 UI 陷阱。
 - [momoka-emby-api](.claude/skills/momoka-emby-api/SKILL.md)：与 Emby 服务器对话的协议面——请求基址与鉴权头、重定向与凭据边界、错误语义、接口清单与规格缺口。
 - [momoka-jellyfin-api](.claude/skills/momoka-jellyfin-api/SKILL.md)：接 Jellyfin 服务器时与 Emby 不同的那一半——不带 `/emby/` 的基址、`Authorization: MediaBrowser` 鉴权头与 Jellyfin 12 默认停用的旧式凭据、用户作用域路由搬到顶层，以及接口逐条对照与版本漂移。
-- [momoka-fnnas-media-api](.claude/skills/momoka-fnnas-media-api/SKILL.md)：飞牛影视（fnOS 影视／trim.media，非 fnOS 系统 WebSocket API）的独立协议、v2 登录、已由官方前端核对的 authx、浏览与播放适配，以及原生媒体库、用户、设置、任务计划管理；区分前端证据、离线测试和真实服务器覆盖。
+- [momoka-fnnas-media-api](.claude/skills/momoka-fnnas-media-api/SKILL.md)：飞牛影视（fnOS 影视／trim.media，非 fnOS 系统 WebSocket API）的独立协议、v2 登录、已由官方前端核对的 authx、浏览与播放适配（原生媒体库、用户、设置、任务计划四页 2026-10-16 已退役）；区分前端证据、离线测试和真实服务器覆盖。
 - [momoka-playback](.claude/skills/momoka-playback/SKILL.md)：播放后端、进度上报、字幕音轨、换片，以及 `assets/mpv-ui` 中的 Lua/uosc 独占控件。
 - [momoka-subtitles](.claude/skills/momoka-subtitles/SKILL.md)：字幕设置的审查、修复与验证——语言选择、强制/外语音轨、ASS/SRT/PGS 样式、双语/次字幕、颜色输入、预览与服务器字幕管理。
 - [momoka-verification](.claude/skills/momoka-verification/SKILL.md)：验证读数、截图、功能显隐与恢复、指针移动及其证据。
@@ -35,6 +35,7 @@
 - [momoka-video-output](.claude/skills/momoka-video-output/SKILL.md)：视频输出三卡（基础输出、HDR 与杜比视界、画质与着色器）与 mpv 选项的落地。
 - [momoka-audio-output](.claude/skills/momoka-audio-output/SKILL.md)：音频输出设置的审查、修复与验证——设备核对与回退、声道、直通、响度、延迟与音量记忆，及随包 libmpv 的无声探针。
 - [momoka-moviepilot](.claude/skills/momoka-moviepilot/SKILL.md)：MoviePilot 接入的可用性与入口显隐、来源身份（TMDB／豆瓣／IMDb）、搜索、订阅管理与入库播放、原记录重整协议及验证边界。
+- [momoka-plex-api](.claude/skills/momoka-plex-api/SKILL.md)：接 Plex 服务器时的独立协议——令牌与客户端标识的头部规则、plex.tv 账号认证加服务器二次核对、`/library/sections` 与 `/library/metadata` 的浏览映射、`/:/scrobble` 与 `/:/timeline` 的状态与上报、分页走容器头，以及 Plex 名下没有的收藏、筛选与原生管理入口边界。**真实服务器未核对**，只有离线证据。
 - [momoka-skill-creator](.claude/skills/momoka-skill-creator/SKILL.md)：新建、改写、拆分、合并或退役项目技能时读取——先查重、英文编写与资源审查、description 触发词、正文分层、清单登记，以及区分技能场景评估和项目验证的验收方式。
 
 通用 `winui-*` 技能来自用户级技能目录或插件。**与本文件冲突时以本文件为准。** 规则改动须同步相关技能、开发文档、脚本帮助与运行提示；不在技能里另立升级、验证或安全政策，不在 `.workbuddy/`、`.zcode/` 复制规则。当前文件数、测试数、控件数从本次源码或工具输出获取。

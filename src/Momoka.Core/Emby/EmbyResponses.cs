@@ -125,6 +125,15 @@ public sealed record EmbyConnection(
     public bool? IsAdministrator { get; init; }
     public bool IsJellyfin => ServerKind == MediaServerKind.Jellyfin;
     public bool IsFnNas => ServerKind == MediaServerKind.FnNas;
+    public bool IsPlex => ServerKind == MediaServerKind.Plex;
+
+    /// <summary>
+    /// Whether this product's routes and identity have to be re-probed before a saved token is trusted.
+    /// All three non-Emby products do, and for the same reason: what was saved is a token and an address,
+    /// and only the server can confirm that the two still belong together.
+    /// </summary>
+    public bool IsProbedProduct => IsJellyfin || IsFnNas || IsPlex;
+
     public bool UsesJellyfin12Routes => IsJellyfin && (!Version.TryParse(ServerVersion?.Split('-')[0], out var version) || version.Major >= 12);
     /// <summary>
     /// 这两条连接是不是「同一台服务器上的同一个人」。令牌不算：一次重新登录换的正是令牌，而换了令牌的还是他。

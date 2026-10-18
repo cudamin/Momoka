@@ -149,19 +149,6 @@ internal static class JellyfinProtocolTests
             Assert.Equal("AAEC/w==", handler.Sent.Single().Body);
             Assert.Equal("/media/Items/item/Images/Primary", handler.Sent.Single().Path);
         });
-        Case("Jellyfin：自身密码提交当前密码，目录上一级解析 JSON 字符串", async () =>
-        {
-            var handler = new Transport { Reply = _ => Json("\"/srv/media\"") };
-            using var http = new EmbyHttp(handler);
-            var client = new EmbyClient(http, Connection() with { IsAdministrator = true });
-            await client.UpdateManagedUserPasswordAsync("u1", "new-fixture", default, "current-fixture");
-            var body = System.Text.Json.Nodes.JsonNode.Parse(handler.Sent[0].Body)!;
-            Assert.Equal("current-fixture", body["CurrentPw"]!.GetValue<string>());
-            Assert.Equal("new-fixture", body["NewPw"]!.GetValue<string>());
-            Assert.Equal("/srv/media", await client.GetServerParentDirectoryAsync("/srv/media/movies", default));
-            handler.Reply = _ => Json("null");
-            Assert.Equal("", await client.GetServerParentDirectoryAsync("/", default));
-        });
         Test("Jellyfin：不兼容排序有显隐判据且保留身份边界", () =>
         {
             Assert.True(JellyfinQuery.SupportsSort(EmbySortBy.DateAdded));

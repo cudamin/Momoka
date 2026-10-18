@@ -34,6 +34,9 @@ public sealed class EmbyHttp : IDisposable
     private Momoka.FnNas.FnNasHttp? _fnNasHttp;
     private Momoka.FnNas.FnNasClient? _fnNasClient;
     private readonly object _fnNasGate = new();
+    private Momoka.Plex.PlexHttp? _plexHttp;
+    private Momoka.Plex.PlexClient? _plexClient;
+    private readonly object _plexGate = new();
 
     internal Momoka.FnNas.FnNasClient FnNasClient
     {
@@ -45,6 +48,24 @@ public sealed class EmbyHttp : IDisposable
                 _fnNasHttp ??= _handlerInjected ? new Momoka.FnNas.FnNasHttp(_handler, disposeHandler: false)
                     : new Momoka.FnNas.FnNasHttp();
                 return _fnNasClient ??= new Momoka.FnNas.FnNasClient(_fnNasHttp);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Plex's own transport. Same arrangement as the 飞牛 one: a second client over the same handler,
+    /// because Plex needs headers Emby must not carry, and an injected handler still has to be shared so
+    /// one offline test can drive both.
+    /// </summary>
+    internal Momoka.Plex.PlexClient PlexClient
+    {
+        get
+        {
+            lock (_plexGate)
+            {
+                _plexHttp ??= _handlerInjected ? new Momoka.Plex.PlexHttp(_handler, disposeHandler: false)
+                    : new Momoka.Plex.PlexHttp();
+                return _plexClient ??= new Momoka.Plex.PlexClient(_plexHttp);
             }
         }
     }
@@ -442,6 +463,7 @@ public sealed class EmbyHttp : IDisposable
         _http.Dispose();
         _long.Dispose();
         _fnNasHttp?.Dispose();
+        _plexHttp?.Dispose();
         _handler.Dispose();
     }
 

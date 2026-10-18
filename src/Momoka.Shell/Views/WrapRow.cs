@@ -38,6 +38,15 @@ public sealed class WrapRow : Panel
     public static readonly DependencyProperty RowSpacingProperty = DependencyProperty.Register(
         nameof(RowSpacing), typeof(double), typeof(WrapRow), new PropertyMetadata(0d, OnLayoutChanged));
 
+    public static readonly DependencyProperty CenterRowsProperty = DependencyProperty.Register(
+        nameof(CenterRows), typeof(bool), typeof(WrapRow), new PropertyMetadata(false, OnLayoutChanged));
+
+    public bool CenterRows
+    {
+        get => (bool)GetValue(CenterRowsProperty);
+        set => SetValue(CenterRowsProperty, value);
+    }
+
     public double Spacing
     {
         get => (double)GetValue(SpacingProperty);
@@ -103,7 +112,7 @@ public sealed class WrapRow : Panel
             boxes.Add((child.DesiredSize.Width, child.DesiredSize.Height));
         }
 
-        var plan = WrapLayout.Place(boxes, width, Spacing, RowSpacing);
+        var plan = WrapLayout.Place(boxes, width, Spacing, RowSpacing, arrange && CenterRows);
 
         if (arrange)
         {

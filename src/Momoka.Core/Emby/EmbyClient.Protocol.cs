@@ -5,6 +5,7 @@ public sealed partial class EmbyClient
     private Uri Url(string path, params (string Key, string? Value)[] query)
     {
         if (Connection.IsFnNas) throw new NotSupportedException("飞牛影视不支持此 Emby 操作");
+        if (Connection.IsPlex) throw new NotSupportedException("Plex 不支持此 Emby 操作");
         if (!Connection.IsJellyfin) return EmbyUrl.Combine(ApiBase, path, query);
         if (path is "Items/Metadata/Reset" or "Images/Remote" or "Items/RemoteSearch/Image" || path.EndsWith("/HideFromResume", StringComparison.Ordinal)
             || query.Any(pair => pair.Key.EndsWith("RefreshMode", StringComparison.OrdinalIgnoreCase)
@@ -48,5 +49,6 @@ public sealed partial class EmbyClient
 
     public Task<EmbyUser> GetCurrentUserAsync(CancellationToken cancellationToken) =>
         Connection.IsFnNas ? FnNasMedia.GetCurrentUserAsync(cancellationToken)
+        : Connection.IsPlex ? PlexMedia.GetCurrentUserAsync(cancellationToken)
         : http.GetJsonAsync<EmbyUser>(Url(Connection.IsJellyfin ? "Users/Me" : $"Users/{Connection.UserId}"), Context, cancellationToken);
 }

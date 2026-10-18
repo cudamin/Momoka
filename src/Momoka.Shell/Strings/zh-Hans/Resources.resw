@@ -129,9 +129,6 @@
   <data name="DetailPage_ButtonA2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>收藏</value>
   </data>
-  <data name="DetailPage_ButtonA3.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
-    <value>在网页端打开</value>
-  </data>
   <data name="DetailPage_ComboBoxA4.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>切换季</value>
   </data>

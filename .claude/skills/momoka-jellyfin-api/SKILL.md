@@ -7,13 +7,13 @@ description: "Momoka's REST protocol layer for Jellyfin servers: base address wi
 
 Rules live in [CLAUDE.md](../../../CLAUDE.md): authorization tiers, credentials, gates and delivery. This skill records only what is easy to get wrong about talking to a Jellyfin server; it does not define a second policy.
 
-[momoka-emby-api](../momoka-emby-api/SKILL.md) owns the Emby side of the same terrain and should be read first. The transport, redirect, error-translation and download decisions in `EmbyHttp` are shared and product-neutral; this skill records where Jellyfin differs. Feature semantics belong to the domain skills and `docs/媒体库管理.md` / `docs/用户管理.md`.
+[momoka-emby-api](../momoka-emby-api/SKILL.md) owns the Emby side of the same terrain and should be read first. The transport, redirect, error-translation and download decisions in `EmbyHttp` are shared and product-neutral; this skill records where Jellyfin differs. Feature semantics belong to the domain skills and the feature documents under `docs/`.
 
 ## Implemented boundary
 
 `src/Momoka.Core/Emby/` shares its transport and session code between Emby and Jellyfin. `MediaServerKind` and the server version live on `EmbyConnection` and the saved profile. `EmbyServerGateway.DetectAsync` identifies the product through anonymous public system information before authentication. Jellyfin refreshes the version before restoring saved browsing so an upgrade can select the correct route dialect.
 
-Jellyfin uses a plain service base and `Authorization: MediaBrowser`; REST and playback share the header rule. Settings displays `JellyfinServer` only for a confirmed administrator, using `Policy.IsAdministrator`, not access to `/System/Info`. Native management uses product-specific routes and supported-field lists. Notifications, Emby Connect, user-copy and other unsupported controls are hidden and guarded at execution. See [Jellyfin support](../../../docs/Jellyfin支持.md) for the supported boundary.
+Jellyfin uses a plain service base and `Authorization: MediaBrowser`; REST and playback share the header rule. Settings lists 网页控制台 only for a confirmed administrator, using `Policy.IsAdministrator`, not access to `/System/Info`; 通知 has no Jellyfin counterpart and is never listed. See [Jellyfin support](../../../docs/Jellyfin支持.md) for the supported boundary.
 
 Jellyfin Web uses `web/index.html#/dashboard` and `jellyfin_credentials`. Server entries contain `Id`, `UserId`, `AccessToken` and lowercase `manualAddressOnly` directly, without Emby's per-server `Users` list. `EmbyWebConsole.Jellyfin.cs` isolates profiles by server and user and limits credential seeding to the trusted origin and Web path. Emby theme keys are not written to Jellyfin.
 

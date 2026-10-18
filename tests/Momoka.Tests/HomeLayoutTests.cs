@@ -278,6 +278,35 @@ internal static class HomeLayoutTests
             unticked[0].Visible = false;
             Assert.False(HomeLayout.Same(unticked, plan));
         });
+
+        // 「隐藏的行不联网」在 2026-10-16 加的定时检查上破了功：那一趟无条件问了一次 Items/Latest，
+        // 几排读服务器条目的货架都收着、轮播也关着的时候，主页上只剩媒体库那几块牌子和订阅，没有可换的东西。
+        // 判据搬到 Core 来，探针「隐藏首页行不请求」盯运行面。
+        Test("主页自动刷新：读条目清单的那几排都收着、轮播也关着就不问服务器", () =>
+        {
+            var hidden = new[]
+            {
+                new HomeRowPlan(HomeLayout.Resume, "继续观看", false),
+                new HomeRowPlan(HomeLayout.NextUp, "接下来看", false),
+                new HomeRowPlan(HomeLayout.LibraryKey("lib-1"), "最近添加 · 电影", false),
+                new HomeRowPlan(HomeLayout.Libraries, "媒体库", true),
+                new HomeRowPlan(HomeLayout.MoviePilotMovies, "MP 电影订阅", true)
+            };
+            Assert.False(HomeLayout.CanRefresh(hidden, banner: false), "没有东西会跟着新入库换，这一拍不该问");
+            Assert.False(HomeLayout.CanRefresh([], banner: false), "一排都没有也一样");
+        });
+
+        Test("主页自动刷新：轮播开着或者有一排条目货架勾着就照旧问", () =>
+        {
+            var hidden = new[] { new HomeRowPlan(HomeLayout.Resume, "继续观看", false) };
+            var shown = new[] { new HomeRowPlan(HomeLayout.Resume, "继续观看", true) };
+            var library = new[] { new HomeRowPlan(HomeLayout.LibraryKey("lib-1"), "最近添加 · 电影", true) };
+
+            Assert.True(HomeLayout.CanRefresh(hidden, banner: true), "轮播开着：服务器新入库要换的是顶上那张大图");
+            Assert.True(HomeLayout.CanRefresh(shown, banner: false), "继续观看勾着：那一排要跟着换");
+            Assert.True(HomeLayout.CanRefresh(library, banner: false), "媒体库那一排勾着：它装的就是那个库的最近添加");
+            Assert.True(HomeLayout.CanRefresh(shown, banner: true));
+        });
     }
 
     private static EmbyItem Library(string id, string name) =>

@@ -160,31 +160,7 @@ public sealed record EmbyFilterList
 /// <summary>
 /// The filter catalogue. <see cref="Fields"/> is the panel, in order; <see cref="All"/> is every
 /// option those fields can turn on, and is what a stored selection is read back against.
-/// <para>
-/// Five things Emby's web client offers are deliberately absent, each for a reason worth keeping:
-/// </para>
-/// <list type="bullet">
-///   <item>
-///     喜欢 / 不喜欢 (<c>Filters=Likes,Dislikes</c>) — nothing in this client can set a thumb rating, and
-///     a filter for a state the user cannot reach is a filter that always comes back empty.
-///   </item>
-///   <item>
-///     缺失剧集 (<c>IsMissing</c>) — Jellyfin has it, Emby 4.10 does not. It is not in the server's
-///     parameter list, so it would be silently dropped.
-///   </item>
-///   <item>
-///     容器 / 视频编码 / 音频编码 / 音频布局 / 音频语言 / 字幕编码 / 字幕语言 — the parameters exist, but
-///     the lists they filter on come from endpoints this client does not call yet. A select with no
-///     options is worse than no select.
-///   </item>
-///   <item>
-///     分辨率 (<c>Resolution</c>: 4K/1080p/720p/SD) — same endpoint problem, and 画质 below covers the
-///     one distinction the server can answer without a list.
-///   </item>
-///   <item>
-///     频道映射状态 — live TV only; no grid here lists channels.
-///   </item>
-/// </list>
+/// <para>媒体清单按需读取；缺失剧集与直播频道映射不属于此浏览目录。</para>
 /// </summary>
 public static class EmbyFilterBy
 {
@@ -221,6 +197,14 @@ public static class EmbyFilterBy
         public const string IsDuplicate = "IsDuplicate";
         public const string IsHD = "IsHD";
         public const string Is3D = "Is3D";
+        public const string Containers = "Containers";
+        public const string VideoCodecs = "VideoCodecs";
+        public const string ExtendedVideoTypes = "ExtendedVideoTypes";
+        public const string AudioCodecs = "AudioCodecs";
+        public const string AudioLayouts = "AudioLayouts";
+        public const string AudioLanguages = "AudioLanguages";
+        public const string SubtitleCodecs = "SubtitleCodecs";
+        public const string SubtitleLanguages = "SubtitleLanguages";
     }
 
     /// <summary>
@@ -237,8 +221,13 @@ public static class EmbyFilterBy
     {
         Keys.Genres or Keys.Tags or Keys.OfficialRatings or Keys.Studios => "|",
         Keys.Filters or Keys.Years or Keys.VideoTypes or Keys.SeriesStatus => ",",
+        _ when MediaListKeys.Contains(key) => ",",
         _ => null
     };
+
+    public static IReadOnlyList<string> MediaListKeys { get; } =
+    [Keys.Containers, Keys.VideoCodecs, Keys.ExtendedVideoTypes, Keys.AudioCodecs,
+        Keys.AudioLayouts, Keys.AudioLanguages, Keys.SubtitleCodecs, Keys.SubtitleLanguages];
 
     // ---------------------------------------------------------------- 选项目录
 
@@ -277,7 +266,11 @@ public static class EmbyFilterBy
         new() { Id = "missingTvdbId", Key = Keys.HasTvdbId, Value = "false" },
         new() { Id = "missingTmdbId", Key = Keys.HasTmdbId, Value = "false" },
         new() { Id = "continuing", Key = Keys.SeriesStatus, Value = "Continuing" },
-        new() { Id = "ended", Key = Keys.SeriesStatus, Value = "Ended" }
+        new() { Id = "ended", Key = Keys.SeriesStatus, Value = "Ended" },
+        new() { Id = "resolution4k", Key = "MinWidth", Value = "3800" },
+        new() { Id = "resolution1080", Key = "MinWidth", Value = "1800" },
+        new() { Id = "resolution720", Key = "MinWidth", Value = "1200" },
+        new() { Id = "resolutionSd", Key = "MaxWidth", Value = "1199" }
     ];
 
     /// <summary>
@@ -290,7 +283,15 @@ public static class EmbyFilterBy
         new() { Label = "家长评分", Key = Keys.OfficialRatings },
         new() { Label = "工作室", Key = Keys.Studios },
         new() { Label = "标签", Key = Keys.Tags },
-        new() { Label = "年份", Key = Keys.Years }
+        new() { Label = "年份", Key = Keys.Years },
+        new() { Label = "媒体容器", Key = Keys.Containers },
+        new() { Label = "视频编解码器", Key = Keys.VideoCodecs },
+        new() { Label = "视频类型", Key = Keys.ExtendedVideoTypes },
+        new() { Label = "音频编解码器", Key = Keys.AudioCodecs },
+        new() { Label = "音频布局", Key = Keys.AudioLayouts },
+        new() { Label = "音频语言", Key = Keys.AudioLanguages },
+        new() { Label = "字幕编解码器", Key = Keys.SubtitleCodecs },
+        new() { Label = "字幕语言", Key = Keys.SubtitleLanguages }
     ];
 
     // Presets that have no media streams of their own. Emby offers them none of the codec, container or
@@ -373,7 +374,8 @@ public static class EmbyFilterBy
             Id = "officialRating",
             Label = "家长评分",
             Kind = FilterKind.Values,
-            ListKey = Keys.OfficialRatings
+            ListKey = Keys.OfficialRatings,
+            NotFor = [EmbySortPreset.Episode]
         },
         new()
         {
@@ -414,13 +416,25 @@ public static class EmbyFilterBy
         },
 
         // ------------------------------------------------------------ 媒体信息
+        new() { Id = "container", Label = "媒体容器", Kind = FilterKind.Values, ListKey = Keys.Containers,
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+        new() { Id = "videoCodec", Label = "视频编解码器", Kind = FilterKind.Values, ListKey = Keys.VideoCodecs,
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+        new() { Id = "videoType", Label = "视频类型", Kind = FilterKind.Values, ListKey = Keys.ExtendedVideoTypes,
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+        new() { Id = "resolution", Label = "分辨率", Kind = FilterKind.Select,
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode], Choices =
+            [new() { Label = "全部" }, new() { Label = "4K", OptionId = "resolution4k", ChipLabel = "4K" },
+                new() { Label = "1080p", OptionId = "resolution1080", ChipLabel = "1080p" },
+                new() { Label = "720p", OptionId = "resolution720", ChipLabel = "720p" },
+                new() { Label = "SD", OptionId = "resolutionSd", ChipLabel = "SD" }] },
         new()
         {
             Id = "quality",
             Label = "画质",
             Kind = FilterKind.Select,
             Group = Groups.Media,
-            NotFor = NoStreams,
+            NotFor = [.. NoStreams, EmbySortPreset.Episode],
             Choices =
             [
                 new() { Label = "全部" },
@@ -437,6 +451,12 @@ public static class EmbyFilterBy
             NotFor = NoStreams,
             Choices = [new() { Label = "3D", OptionId = "3d", ChipLabel = "3D" }]
         },
+        new() { Id = "audioCodec", Label = "音频编解码器", Kind = FilterKind.Values, ListKey = Keys.AudioCodecs,
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+        new() { Id = "audioLayout", Label = "音频布局", Kind = FilterKind.Values, ListKey = Keys.AudioLayouts,
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+        new() { Id = "audioLanguage", Label = "音频语言", Kind = FilterKind.Values, ListKey = Keys.AudioLanguages,
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
         new()
         {
             Id = "subtitles",
@@ -451,6 +471,11 @@ public static class EmbyFilterBy
                 new() { Label = "无", OptionId = "noSubtitles", ChipLabel = "无字幕" }
             ]
         },
+
+        new() { Id = "subtitleCodec", Label = "字幕编解码器", Kind = FilterKind.Values, ListKey = Keys.SubtitleCodecs,
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+        new() { Id = "subtitleLanguage", Label = "字幕语言", Kind = FilterKind.Values, ListKey = Keys.SubtitleLanguages,
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
 
         // ------------------------------------------------------------ 功能
         new()
@@ -574,8 +599,11 @@ public static class EmbyFilterBy
     ];
 
     /// <summary>The rows a grid should offer, in panel order.</summary>
-    public static IReadOnlyList<EmbyFilterField> For(string? preset, Version? serverVersion = null) =>
-        [.. Fields.Where(field => field.AppliesTo(preset, serverVersion))];
+    public static IReadOnlyList<EmbyFilterField> For(string? preset, Version? serverVersion = null,
+        MediaServerKind serverKind = MediaServerKind.Emby) =>
+        [.. Fields.Where(field => field.AppliesTo(preset, serverVersion)
+            && (serverKind == MediaServerKind.Emby || field.ListKey is null || !MediaListKeys.Contains(field.ListKey))
+            && (serverKind == MediaServerKind.Emby || field.Id != "resolution"))];
 
     /// <summary>The catalogue entry for a stored id, or null if it is no longer offered.</summary>
     public static EmbyFilterOption? Find(string? id) =>

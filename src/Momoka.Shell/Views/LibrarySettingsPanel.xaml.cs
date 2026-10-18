@@ -23,6 +23,9 @@ public sealed partial class LibrarySettingsPanel : UserControl
     /// <summary>面板上这一份字段表是给哪一页摆的；换页（比如切到「文件夹」）要重摆。</summary>
     private LibrarySection? _section;
 
+    /// <summary>这一页是不是索引页、是哪一种（类型 / 播出平台 / 不是）。见 <see cref="ApplyIndexRows"/>。</summary>
+    private LibraryIndexKind _index = LibraryIndexKind.None;
+
     /// <summary>
     /// 存下来的那份里、这一页没有开关的那几项（文件夹页的文件名、集页的集号在别的页就是这种）。
     /// 面板只改自己摆出来的那几行，这几项原样带回去 —— 不然在这一页改一处，别的页的勾选就被抹掉了。
@@ -48,18 +51,19 @@ public sealed partial class LibrarySettingsPanel : UserControl
     /// <summary>
     /// 把面板摆成这一套。<paramref name="section"/> 决定「显示字段」那一列摆哪几项 —— 文件夹那一页列的是
     /// 文件本身（文件名、容器、码率…），别的页列的是条目（类型、导演、播出平台…），网页端也是两套。
+    /// <paramref name="index"/> 是「这一页是不是索引页、是哪一种」：类型与播出平台只有「标题」一项，
+    /// 也没有「将项目分组到合集中」这回事（它们列的是类型名与台名，不是条目）。
     /// </summary>
-    internal void Show(LibraryDisplay display, LibrarySection section)
+    internal void Show(LibraryDisplay display, LibrarySection section, LibraryIndexKind index = LibraryIndexKind.None)
     {
+        SettingsScroll.ChangeView(null, 0, null, disableAnimation: true);
         _syncing = true;
         try
         {
-            if (_section != section)
-            {
-                _section = section;
-                BuildFieldRows(section);
-            }
-            _carried = [.. display.Fields.Where(field => !LibraryDisplayCatalog.Applies(field, section))];
+            _section = section;
+            _index = index;
+            BuildFieldRows(section, display.View, index);
+            _carried = [.. display.Fields.Where(field => !LibraryDisplayCatalog.Applies(field, section, display.View, index))];
             Select(ViewCombo, display.View);
             Select(SizeCombo, display.CardSize);
             GroupSwitch.IsOn = display.GroupIntoCollections;
@@ -68,6 +72,7 @@ public sealed partial class LibrarySettingsPanel : UserControl
                 toggle.IsOn = display.Fields.Contains(field);
 
             ApplyViewDependentRows(display.View);
+            ApplyIndexRows();
         }
         finally
         {
@@ -129,15 +134,15 @@ public sealed partial class LibrarySettingsPanel : UserControl
     }
 
     /// <summary>
-    /// 这一页的字段表：默认十四行，文件夹页二十二行，集页十六行（多剧名与集号）。顺序就是网页端那一列，
-    /// 一行一个开关；开关的自动化名用中文名，读屏和探针都靠它认人。
+    /// 这一页的字段表：默认十四行，文件夹页二十二行，集页十六行（多剧名与集号），两张索引页只有「标题」一行。
+    /// 顺序就是网页端那一列，一行一个开关；开关的自动化名用中文名，读屏和探针都靠它认人。
     /// </summary>
-    private void BuildFieldRows(LibrarySection section)
+    private void BuildFieldRows(LibrarySection section, LibraryView view, LibraryIndexKind index = LibraryIndexKind.None)
     {
         FieldRows.Children.Clear();
         _fieldToggles.Clear();
 
-        foreach (var info in LibraryDisplayCatalog.FieldsFor(section))
+        foreach (var info in LibraryDisplayCatalog.FieldsFor(section, view, index))
         {
             var row = new Grid { ColumnSpacing = 12 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -188,13 +193,44 @@ public sealed partial class LibrarySettingsPanel : UserControl
             ? Visibility.Collapsed
             : Visibility.Visible;
 
+    /// <summary>
+    /// 索引页（类型、播出平台）少的那两样。
+    /// <para>
+    /// 「将项目分组到合集中」对它们没有意义 —— 那一页列的是类型名与台名，不是条目，没有合集可归。整组连说明
+    /// 一起收起（见 CLAUDE.md 的显隐规矩：收起完整的无效区域，不留分隔线和空白）。
+    /// </para>
+    /// <para>
+    /// **视图与图像大小留着**：类型的方卡与播出平台的宽卡各按那八档缩放，两页都认这两个设置（2026-10-18 起；
+    /// 从前它们在索引页上完全无效，见 <c>LibraryPage.ApplyView</c> 里那段）。
+    /// </para>
+    /// </summary>
+    private void ApplyIndexRows()
+    {
+        var index = _index != LibraryIndexKind.None;
+        GroupSection.Visibility = index ? Visibility.Collapsed : Visibility.Visible;
+        FieldsSection.Visibility = Visibility.Visible;
+    }
+
     // ---------------------------------------------------------------- 事件
 
     private void OnViewChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_syncing) return;
 
-        ApplyViewDependentRows(Current.View);
+        var next = Current;
+        if (_section is { } section)
+        {
+            _syncing = true;
+            try
+            {
+                BuildFieldRows(section, next.View, _index);
+                _carried = [.. next.Fields.Where(field => !LibraryDisplayCatalog.Applies(field, section, next.View, _index))];
+                foreach (var (field, toggle) in _fieldToggles) toggle.IsOn = next.Fields.Contains(field);
+            }
+            finally { _syncing = false; }
+        }
+        ApplyViewDependentRows(next.View);
+        ApplyIndexRows();
         Changed?.Invoke(Current);
     }
 

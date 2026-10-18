@@ -35,7 +35,11 @@ internal sealed partial class ShellNavigationProbe
                 : resume ? EmbyItemType.Episode
                 : (Query(request, "IncludeItemTypes") ?? EmbyItemType.Movie).Split(',')[0];
             var sample = new EmbyItem { Id = "library-sample-" + type, Name = index ? "科幻与动画" : "离线媒体库内容", Type = type };
-            sample.ImageTags["Primary"] = "fixture";
+            // 索引页的两类图各挂各的那一格：类型的四格封面是 Primary，播出平台的台标是 Thumb
+            // （本机 4.10.1.0 实测 23 个有图的台全在 Thumb 里）。两格都挂上就分不出卡片到底要的哪一格了。
+            if (type == EmbyItemType.Studio) sample.ImageTags["Thumb"] = "fixture";
+            else sample.ImageTags["Primary"] = "fixture";
+            if (type == EmbyItemType.Studio) sample.PrimaryImageAspectRatio = 16.0 / 9.0;
             // 推荐页三排卡片底下那两行字要真的能读出来：剧集写年份区间，单集写「SxxExx - 集名」。
             if (type == EmbyItemType.Series)
             {
@@ -46,6 +50,7 @@ internal sealed partial class ShellNavigationProbe
             else if (type == EmbyItemType.Episode)
             {
                 sample.Name = "敏北";
+                sample.SeriesName = "离线剧集";
                 sample.ParentIndexNumber = 1;
                 sample.IndexNumber = 7;
             }
@@ -73,7 +78,6 @@ internal sealed partial class ShellNavigationProbe
                 {
                     ResizeProbeClient(width, 800);
                     await LayoutAsync(page);
-                    // 网页端这一行是「库名在左、分类在右」：库名必须在，而且不能被分类栏压住。
                     var title = Get<TextBlock>(page, "LibraryTitle");
                     Require(title.Visibility == Visibility.Visible && title.Text == page.ViewModel.Heading,
                         $"左上角没有库名（{title.Text}）");
@@ -82,7 +86,15 @@ internal sealed partial class ShellNavigationProbe
                     var surface = Get<Border>(page, "LibrarySectionsSurface");
                     var box = surface.TransformToVisual(page).TransformBounds(new(0, 0, surface.ActualWidth, surface.ActualHeight));
                     Require(box.Left >= -1 && box.Right <= page.ActualWidth + 1, "分类栏被裁切");
-                    Require(box.Left >= titleBox.Right - 1, "分类栏压在库名上");
+                    Require(box.Top >= titleBox.Bottom - 1, "分类栏没有落到库名下方");
+                    Require(Math.Abs(box.Left + box.Width / 2 - page.ActualWidth / 2) <= 2, "分类栏没有居中");
+                    foreach (var line in tabs.Children.OfType<ToggleButton>().GroupBy(tab =>
+                        Math.Round(tab.TransformToVisual(page).TransformPoint(new(0, 0)).Y)))
+                    {
+                        var bounds = line.Select(tab => tab.TransformToVisual(page).TransformBounds(new(0, 0, tab.ActualWidth, tab.ActualHeight))).ToArray();
+                        Require(Math.Abs((bounds.Min(value => value.Left) + bounds.Max(value => value.Right)) / 2 - page.ActualWidth / 2) <= 2,
+                            "分类栏换行之后该行没有居中");
+                    }
                     foreach (var tab in tabs.Children.OfType<ToggleButton>())
                     {
                         var peer = new ToggleButtonAutomationPeer(tab);
@@ -91,6 +103,7 @@ internal sealed partial class ShellNavigationProbe
                     var toolbar = Get<Grid>(page, "ToolbarSurface");
                     var controls = toolbar.TransformToVisual(page).TransformBounds(new(0, 0, toolbar.ActualWidth, toolbar.ActualHeight));
                     Require(controls.Left >= -1 && controls.Right <= page.ActualWidth + 1 && controls.Top >= box.Bottom, "工具栏未在分类下方或被裁切");
+                    Require(Math.Abs(controls.Left + controls.Width / 2 - page.ActualWidth / 2) <= 2, "工具栏没有居中");
                     await SaveReturnFrameAsync(page, $"library-{collection}-{width}.png");
                 }
                 ResizeProbeClient(900, 700);
@@ -119,10 +132,20 @@ internal sealed partial class ShellNavigationProbe
                 await SelectAsync(LibrarySection.Genres);
                 Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed
                     && Get<WrapRow>(page, "LibraryFilterChips").Visibility == Visibility.Collapsed, "类型索引仍有筛选残留");
+                await CheckIndexSectionAsync(page, request, fixture, "genres", EmbyItemType.Genre);
                 page.ViewModel.Open(page.ViewModel.Cards[0]);
                 await UntilAsync(() => request.BrowseGroup is not null && page.ViewModel.IsReady && !page.ViewModel.Busy);
                 Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Visible
                     && fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal)).Contains("Genres=", StringComparison.Ordinal), "类型下钻没有真正发出作用域查询");
+                // 下钻之后那一页装的是剧集，不是类型名：卡片要退回普通海报（方卡与「只有标题」的字段表都属于
+                // 索引页）。字段表那一头问的是「这一页认不认那十四项」而不是「画了几项」—— 这一页生效的仍是
+                // 用户勾过的字段，而索引页上刚默认只勾了标题。
+                Require(page.ViewModel.IndexKind == LibraryIndexKind.None
+                    && LibraryDisplayCatalog.FieldsFor(page.ViewModel.Section, LibraryView.Poster,
+                        page.ViewModel.IndexKind).Count == 14, "类型下钻之后还按索引页画");
+                var drilledCard = page.ViewModel.Cards[0];
+                Require(Math.Abs(drilledCard.PosterHeight - Math.Round(drilledCard.CardWidth * 1.5)) <= 1,
+                    $"类型下钻之后的卡片不是 2:3 的海报（宽 {drilledCard.CardWidth}，高 {drilledCard.PosterHeight}）");
                 await page.ViewModel.LeaveBrowseGroupAsync();
                 await SelectAsync(LibrarySection.Items);
                 Require(page.ViewModel.SortKey == EmbySortBy.DateAdded && page.ViewModel.Filters.Genres.Contains("动画"), "分类切回丢失原排序筛选");
@@ -133,9 +156,12 @@ internal sealed partial class ShellNavigationProbe
                 if (collection == "tvshows")
                 {
                     await SelectAsync(LibrarySection.Studios);
+                    await CheckIndexSectionAsync(page, request, fixture, "studios", EmbyItemType.Studio);
                     page.ViewModel.Open(page.ViewModel.Cards[0]);
                     await UntilAsync(() => request.BrowseGroup is not null && page.ViewModel.IsReady && !page.ViewModel.Busy);
                     Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal)).Contains("Studios=", StringComparison.Ordinal), "播出平台没有真正下钻");
+                    await page.ViewModel.LeaveBrowseGroupAsync();
+                    await UntilAsync(() => !page.ViewModel.Busy);
                 }
                 await SelectAsync(LibrarySection.Recommended);
                 Require(Get<Button>(page, "SortButton").Visibility == Visibility.Collapsed && Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed, "推荐还显示不生效的排序筛选");
@@ -205,6 +231,7 @@ internal sealed partial class ShellNavigationProbe
                 await SettleAsync();
                 Require(page.FilterOverlay.Visibility == Visibility.Visible, "筛选面板没有打开");
                 Require(page.FilterPane.EveryTemplateResolves, "筛选面板有行没有可用的模板");
+                await CheckLibraryPanelSizingAsync(page, page.FilterPane, $"library-{collection}-filter");
 
                 var rows = page.FilterPane.RowLabels;
                 if (collection == "tvshows")
@@ -269,6 +296,7 @@ internal sealed partial class ShellNavigationProbe
                 openSettings!.Invoke();
                 await SettleAsync();
                 Require(page.SettingsOverlay.Visibility == Visibility.Visible, "设置面板没有打开");
+                await CheckLibraryPanelSizingAsync(page, page.SettingsPane, $"library-{collection}-settings");
 
                 var pane = page.SettingsPane;
                 Require(pane.ViewCombo.Items.Count == 7 && pane.SizeCombo.Items.Count == 8
@@ -400,14 +428,129 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => !page.ViewModel.Busy);
                 if (collection == "tvshows")
                 {
-                    // 集页的字段表比别的页多两行：所属剧集与集号（网页端 Episode 那一支先 push 这两列）。
+                    // 卡片视图与表格视图的可用字段分别核对。
                     await SelectAsync(LibrarySection.Episodes);
                     var gear = Get<Button>(page, "LibrarySettingsButton");
                     ((IInvokeProvider)FrameworkElementAutomationPeer.CreatePeerForElement(gear)!
                         .GetPattern(PatternInterface.Invoke)!).Invoke();
                     await SettleAsync();
-                    Require(page.SettingsPane.FieldRows.Children.Count == 16,
-                        $"集页的字段表不是十六项（{page.SettingsPane.FieldRows.Children.Count}）");
+                    Require(page.SettingsPane.FieldRows.Children.Count == 21,
+                        $"集页的字段表不是二十一项（{page.SettingsPane.FieldRows.Children.Count}）");
+                    Require(page.ViewModel.View == LibraryView.Poster && !page.ViewModel.GroupIntoCollections
+                        && page.ViewModel.Fields.SequenceEqual(new[] { LibraryField.Title }), "集页默认显示设置不匹配参考图");
+                    Require(page.ViewModel.SortKey == LibrarySortCatalog.EpisodeOrder && page.ViewModel.SortLabel == "剧集", "集页默认排序不对");
+                    Require(page.ViewModel.Cards[0].Title == "离线剧集" && page.ViewModel.Cards[0].Subtitle == "S1:E7 - 敏北", "集页两行标题不对");
+                    page.SettingsPane.SetField(LibraryField.Title, false);
+                    await UntilAsync(() => !page.ViewModel.Busy);
+                    Require(page.ViewModel.Cards[0].Title.Length == 0 && page.ViewModel.Cards[0].Subtitle.Length == 0,
+                        "集页关闭标题后仍显示旧文案");
+                    page.SettingsPane.SetField(LibraryField.Title, true);
+                    await UntilAsync(() => !page.ViewModel.Busy);
+                    page.SettingsPane.SetView(LibraryView.Table);
+                    await UntilAsync(() => !page.ViewModel.Busy);
+                    Require(page.SettingsPane.FieldRows.Children.Count == 23, "集页表格没有剧名和集号两列");
+                    page.SettingsPane.SetView(LibraryView.Poster);
+                    await UntilAsync(() => !page.ViewModel.Busy);
+                    foreach (var width in new[] { 1100, 760, 360 })
+                    {
+                        ResizeProbeClient(width, 800);
+                        await LayoutAsync(page);
+                        await SaveProbeScreenAsync($"library-tvshows-episodes-settings-{width}-screen.png");
+                    }
+                    page.CloseSettings();
+                    foreach (var width in new[] { 1100, 760, 360 })
+                    {
+                        ResizeProbeClient(width, 800);
+                        await LayoutAsync(page);
+                        await SaveProbeScreenAsync($"library-tvshows-episodes-{width}-screen.png");
+                    }
+
+                    // 用户令 2026-10-18「封面随窗口大小变化，互相之间不要留太大的空隙」。量的是活的格子与活的
+                    // 卡片：卡片比格子窄出来的那一截，就是两张封面之间多出来的那条缝。窗口宽了 180 像素，封面
+                    // 要跟着变大 —— 从前它钉死在 300，多出来的宽度全摊成了缝（1280 的窗口上两张封面之间空
+                    // 114 像素，比封面自己还显眼）。
+                    //
+                    // 假库里这一类只有一张（下面几条都按「第一张」断言），所以这里问不出「一行排满」——
+                    // 「格子是几列、铺没铺满」问的是版面自己的数，不是这一行里有几张卡。
+                    ResizeProbeClient(1100, 800);
+                    await LayoutAsync(page);
+                    // 窗口这次是被三档索引页那一段放小又放回来的：滚动器的尺寸变化、视图模型重算格宽、版面重排
+                    // 三件事不在同一拍上，直接量会量到「视图模型已经算出 342、版面还按上一轮的 422 排」那一帧。
+                    // 等活的版面把格宽摊成视图模型算出来的那个数再量 —— 这一条问的是最终版面，不是中间那一帧。
+                    // 等不到就是真没重排：下面那两条断言会把两个数一起报出来。
+                    try
+                    {
+                        await UntilAsync(() =>
+                        {
+                            page.UpdateLayout();
+                            var live = page.GridPaint();
+                            return live.Cell > 0 && Math.Abs(live.Cell - page.ViewModel.CellWidth) <= 1;
+                        });
+                    }
+                    catch (TimeoutException)
+                    {
+                    }
+                    var at1100 = page.GridPaint();
+                    var sizing = page.Sizing;
+                    var liveLayout = (UniformGridLayout)Get<ItemsView>(page, "CardWall").Layout;
+                    var detail = $"卡片 {at1100.Card:0}、格子 {at1100.Cell:0}、墙 {at1100.Wall:0}、视口 {at1100.Viewport:0}"
+                        + $"、版面上的格宽 {sizing.CellWidth:0}、视图模型的格宽 {page.ViewModel.CellWidth:0}"
+                        + $"、卡片自己的宽度 {page.ViewModel.Cards[0].CardWidth:0}"
+                        + $"、分区 {page.ViewModel.Section}、索引 {page.ViewModel.IndexKind}、视图 {page.ViewModel.View}"
+                        + $"、最小宽 {page.ViewModel.CardMinWidth}、行高 {page.ViewModel.RowHeight:0}"
+                        + $"、活版面的最小宽 {liveLayout.MinItemWidth:0}、活版面的最小高 {liveLayout.MinItemHeight:0}"
+                        + $"、卡片类型 {page.ViewModel.Cards[0].Item.Type}";
+                    Require(at1100.Cell > 0 && Math.Abs(at1100.Card - at1100.Cell) <= 1,
+                        $"卡片没填满格子，两张封面之间多出一条缝（{detail}）");
+                    Require(Math.Abs(at1100.Cell - sizing.CellWidth) <= 1,
+                        $"格宽换了，版面还按 {sizing.CellWidth:0} 排 —— 列数没跟着重算（{detail}）");
+
+                    ResizeProbeClient(1280, 800);
+                    await LayoutAsync(page);
+                    await UntilAsync(() => page.ViewModel.CardWidth > at1100.Card + 20);
+                    var at1280 = page.GridPaint();
+                    Require(at1280.Card > at1100.Card + 20 && Math.Abs(at1280.Card - at1280.Cell) <= 1,
+                        $"窗口从 1100 宽到 1280 宽，封面只从 {at1100.Card:0} 变成 {at1280.Card:0}（格子 {at1280.Cell:0}）");
+                    ResizeProbeClient(1100, 800);
+                    await LayoutAsync(page);
+
+                    page.ShowFilterPanel();
+                    await LayoutAsync(page);
+                    Require(string.Join(',', page.FilterPane.RowLabels) ==
+                        "播放状态,收藏,重制,类型,工作室,年份,媒体容器,视频编解码器,视频类型,分辨率,3D,音频编解码器,音频布局,音频语言,字幕,字幕编解码器,字幕语言,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id", "集页筛选行不对");
+                    ResizeProbeClient(760, 900);
+                    await LayoutAsync(page);
+                    await SaveProbeScreenAsync("library-tvshows-episodes-filter-screen.png");
+                    var filterScroll = Get<ScrollViewer>(page.FilterPane, "FilterScroll");
+                    filterScroll.ChangeView(null, double.MaxValue, null, disableAnimation: true);
+                    await LayoutAsync(page);
+                    Require(filterScroll.VerticalOffset > 0, "集页筛选面板没有滚动到下半部");
+                    await SaveProbeScreenAsync("library-tvshows-episodes-filter-bottom-screen.png");
+                    page.CloseFilter();
+                    page.ShowSortMenu();
+                    await LayoutAsync(page);
+                    await SaveProbeScreenAsync("library-tvshows-episodes-sort-screen.png");
+                    Get<Flyout>(page, "SortMenu").Hide();
+                    await SelectAsync(LibrarySection.Folders);
+                    Require(page.ViewModel.SortLabel == "文件名" && page.ViewModel.Cards[0].FolderFrame, "文件夹默认排序或外框不对");
+                    ((IInvokeProvider)FrameworkElementAutomationPeer.CreatePeerForElement(gear)!
+                        .GetPattern(PatternInterface.Invoke)!).Invoke();
+                    await LayoutAsync(page);
+                    Require(page.SettingsPane.FieldRows.Children.Count == 22, "文件夹设置字段不对");
+                    await SaveProbeScreenAsync("library-tvshows-folders-settings-screen.png");
+                    page.CloseSettings();
+                    foreach (var width in new[] { 1100, 760, 360 })
+                    {
+                        ResizeProbeClient(width, 800);
+                        await LayoutAsync(page);
+                        await SaveProbeScreenAsync($"library-tvshows-folders-{width}-screen.png");
+                    }
+                    ResizeProbeClient(760, 900);
+                    await LayoutAsync(page);
+                    page.ShowSortMenu();
+                    await LayoutAsync(page);
+                    await SaveProbeScreenAsync("library-tvshows-folders-sort-screen.png");
+                    Get<Flyout>(page, "SortMenu").Hide();
                     page.CloseSettings();
                     await SettleAsync();
                     await SelectAsync(LibrarySection.Items);
@@ -434,5 +577,117 @@ internal sealed partial class ShellNavigationProbe
             ThemeHost.Apply(oldTheme);
             ResizeInspect(1420, 980);
         }
+    }
+
+    /// <summary>
+    /// 索引页（类型、播出平台）那一段：2026-10-18 用户令「复刻网页端电视节目的播出平台和类型两个分区」。
+    /// <para>
+    /// 两页从前是一块只有名字的圆角块 —— 没有图、写死 170×72、跟「图像大小」和窗口宽度都没关系。这一条
+    /// 问的是改完之后那几件事：是否有真图、形状对不对（类型 1:1、播出平台 16:9）、名字是不是居中且只有一行、
+    /// 设置面板是不是只剩「标题」并且收起了「分组」、以及 1100／760／360 三档下卡片没有被窗口裁掉。
+    /// </para>
+    /// <para>
+    /// 假传输给每一条都挂了 <c>Primary</c> 标签（见 <see cref="LibraryBrowseAsync"/> 里那个 fixture），
+    /// 类型与播出平台都取得到图，所以这里量得到「图真的画上去了」。
+    /// </para>
+    /// </summary>
+    private async Task CheckIndexSectionAsync(LibraryPage page, LibraryRequest request, Fixture fixture,
+        string name, string itemType)
+    {
+        var indexKind = itemType == EmbyItemType.Genre ? LibraryIndexKind.Genre : LibraryIndexKind.Studio;
+        Require(page.ViewModel.IndexKind == indexKind, $"「{name}」这一页没有认出自己是索引页");
+
+        // 卡片上只有图和一个居中的名字：没有第二行、没有角标、没有播放键。
+        var card = page.ViewModel.Cards[0];
+        Require(card.CardWidth == page.ViewModel.CellWidth,
+            $"索引卡的宽度没有跟着格宽走（卡 {card.CardWidth}，格 {page.ViewModel.CellWidth}）");
+        Require(card.Subtitle.Length == 0 && card.Title == card.Item.Name,
+            $"索引卡底下不该有第二行字（标题「{card.Title}」、副标题「{card.Subtitle}」）");
+        Require(card.TitleAlignment == TextAlignment.Center, "索引卡的名字没有居中");
+        Require(card.PlayVisibility == Visibility.Collapsed && card.UserStateVisibility == Visibility.Collapsed,
+            "索引卡上出现了播放键或已观看/收藏按钮");
+        var expectedHeight = Math.Round(card.CardWidth * (indexKind == LibraryIndexKind.Genre ? 1 : 9.0 / 16.0));
+        Require(Math.Abs(card.PosterHeight - expectedHeight) <= 1,
+            $"索引卡的形状不对（{indexKind}：宽 {card.CardWidth}，高 {card.PosterHeight}，期望 {expectedHeight}）");
+        Require(card.PosterStretch == (indexKind == LibraryIndexKind.Studio
+                ? Microsoft.UI.Xaml.Media.Stretch.Uniform : Microsoft.UI.Xaml.Media.Stretch.UniformToFill),
+            "台标没有留边（或者四格封面被留了边）");
+
+        // 请求真的问到了图，而且问的是这一页该问的那一格：类型的四格封面是 Primary，播出平台的台标是
+        // Thumb（假数据也照这个分：见 LibraryBrowseAsync 里那个 fixture，两类各只挂一格）。
+        await UntilAsync(() => card.Poster is not null);
+        Require(card.Poster is not null, $"「{name}」的索引卡没有取到图");
+        var wantedImageType = indexKind == LibraryIndexKind.Genre ? "Primary" : "Thumb";
+        Require(fixture.Transport.Requests.Any(value => value.Contains($"/Images/{wantedImageType}", StringComparison.Ordinal)),
+            $"「{name}」的索引卡没有按 {wantedImageType} 取图");
+
+        // 「显示字段」只剩标题，「分组」整组收起；视图与图像大小两行还在（索引页认这两样）。
+        var gear = Get<Button>(page, "LibrarySettingsButton");
+        ((IInvokeProvider)FrameworkElementAutomationPeer.CreatePeerForElement(gear)!
+            .GetPattern(PatternInterface.Invoke)!).Invoke();
+        await SettleAsync();
+        Require(page.SettingsPane.FieldRows.Children.Count == 1, $"索引页的字段表不止一项（{page.SettingsPane.FieldRows.Children.Count}）");
+        Require(page.SettingsPane.GroupSection.Visibility == Visibility.Collapsed, "索引页还留着「将项目分组到合集中」");
+        Require(page.SettingsPane.SizeSection.Visibility == Visibility.Visible, "索引页把「图像大小」也收起来了");
+
+        // 图像大小换一档：索引卡要跟着变大（从前这两页完全不认这个设置）。
+        var defaultWidth = page.ViewModel.CellWidth;
+        page.SettingsPane.SetCardSize(LibraryCardSize.ExtraLarge);
+        await UntilAsync(() => page.ViewModel.CardSize == LibraryCardSize.ExtraLarge && !page.ViewModel.Busy);
+        Require(page.ViewModel.CellWidth > defaultWidth,
+            $"索引页换了图像大小，格宽没变（{defaultWidth:0} → {page.ViewModel.CellWidth:0}）");
+        page.SettingsPane.SetCardSize(LibraryCardSize.Default);
+        await UntilAsync(() => !page.ViewModel.Busy);
+        page.CloseSettings();
+        await SettleAsync();
+
+        // 三档窗口：卡片不越界、列数随宽度变。
+        foreach (var width in new[] { 1100, 760, 360 })
+        {
+            ResizeProbeClient(width, 800);
+            await LayoutAsync(page);
+            await UntilAsync(() => !page.ViewModel.Busy);
+            var paint = page.GridPaint();
+            Require(paint.Card > 0 && paint.Card <= page.ActualWidth + 1,
+                $"「{name}」在 {width} 宽的窗口里卡片被裁掉了（卡 {paint.Card:0}，页 {page.ActualWidth:0}）");
+            Require(Math.Abs(paint.Card - paint.Cell) <= 1,
+                $"「{name}」在 {width} 宽时卡片没填满格子（卡 {paint.Card:0}，格 {paint.Cell:0}）");
+            await SaveProbeScreenAsync($"library-tvshows-{name}-{width}-screen.png");
+        }
+
+        ResizeProbeClient(900, 700);
+        await LayoutAsync(page);
+        await UntilAsync(() => !page.ViewModel.Busy);
+    }
+
+    private async Task CheckLibraryPanelSizingAsync(LibraryPage page, FrameworkElement pane, string name)
+    {
+        double previousWidth = 0, previousHeight = 0;
+        foreach (var size in new[] { (Width: 360, Height: 500), (Width: 760, Height: 640), (Width: 1100, Height: 900), (Width: 1600, Height: 1040) })
+        {
+            ResizeProbeClient(size.Width, size.Height);
+            await LayoutAsync(page);
+            var box = pane.TransformToVisual(page).TransformBounds(new(0, 0, pane.ActualWidth, pane.ActualHeight));
+            var root = Get<Grid>(page, "PageRoot");
+            var expected = Momoka.Infrastructure.LibraryPanelSize.For(root.ActualWidth, root.ActualHeight);
+            Require(Math.Abs(pane.ActualWidth - expected.Width) <= 2 && Math.Abs(pane.ActualHeight - expected.Height) <= 2,
+                $"弹窗尺寸没有跟窗口走：{box}，期望 {expected}");
+            Require(box.Left >= -1 && box.Top >= -1 && box.Right <= page.ActualWidth + 1 && box.Bottom <= page.ActualHeight + 1,
+                $"弹窗被主窗口裁切：{box}");
+            Require(Math.Abs(box.Left + box.Width / 2 - page.ActualWidth / 2) <= 2
+                && Math.Abs(box.Top + box.Height / 2 - page.ActualHeight / 2) <= 2, "弹窗没有居中");
+            Require(pane.ActualWidth > previousWidth && pane.ActualHeight > previousHeight, "窗口放大后弹窗没有扩大");
+            previousWidth = pane.ActualWidth;
+            previousHeight = pane.ActualHeight;
+            var scroll = Descendants(pane).OfType<ScrollViewer>().First(value => value.ActualHeight > 0 && value.HorizontalScrollMode == ScrollMode.Disabled);
+            scroll.ChangeView(null, double.MaxValue, null, disableAnimation: true);
+            await LayoutAsync(page);
+            Require(scroll.ScrollableHeight == 0 || scroll.VerticalOffset > 0, "弹窗正文不能滚到底");
+            scroll.ChangeView(null, 0, null, disableAnimation: true);
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync($"{name}-{size.Width}x{size.Height}-screen.png");
+        }
+        ResizeProbeClient(900, 700);
+        await LayoutAsync(page);
     }
 }

@@ -91,8 +91,8 @@ internal sealed class SettingsWindow
     internal event Action? Hidden;
 
     /// <summary>
-    /// What is on screen inside this window: the hosted 服务器/诊断/服务器控制台 page when the settings page
-    /// has one showing, otherwise the settings page itself. The self-check reads both trees through this.
+    /// What is on screen inside this window: the hosted 服务器/诊断/通知/网页控制台 page when the settings
+    /// page has one showing, otherwise the settings page itself. The self-check reads both trees through this.
     /// </summary>
     internal object? CurrentPage => (_frame.Content as SettingsPage)?.CurrentPage ?? _frame.Content;
 

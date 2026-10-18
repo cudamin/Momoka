@@ -1,7 +1,8 @@
 namespace Momoka.Emby;
 
 /// <summary>
-/// 主页第一屏上媒体库那一排摆在哪 —— 设置 → 界面 → 「首页媒体库位置」。
+/// 主页第一屏上媒体库那一排摆在哪 —— 设置 → 主页 → 「主页媒体库位置」（2026-10-16 前在界面卡上、叫「首页媒体库
+/// 位置」）。
 /// <para>
 /// 三档里的后两档是「钉住」：<see cref="OnCarousel"/> 和 <see cref="BelowCarousel"/> 不看窗口高矮，用户说了
 /// 算；<see cref="Auto"/> 才是从 2026-09-13 起一直有的那一档 —— 由 <see cref="HomeFold.LibraryOnBanner"/> 按量
@@ -64,8 +65,8 @@ public enum HomeLibraryPlacement
 /// </list>
 /// </para>
 /// <para>
-/// 这两条边界只管 <see cref="HomeLibraryPlacement.Auto"/>（「随窗口高度变换」）那一档。2026-10-12 起设置 → 界面
-/// 多了一行「首页媒体库位置」，另两档由用户钉死：<see cref="HomeLibraryPlacement.OnCarousel"/> 压着不放、
+/// 这两条边界只管 <see cref="HomeLibraryPlacement.Auto"/>（「随窗口高度变换」）那一档。2026-10-12 起设置里
+/// 多了一行「主页媒体库位置」，另两档由用户钉死：<see cref="HomeLibraryPlacement.OnCarousel"/> 压着不放、
 /// <see cref="HomeLibraryPlacement.BelowCarousel"/> 一次不压 —— 那两档下这里两条边界都不参与，见
 /// <see cref="LibraryOnBanner(HomeLibraryPlacement, double, double, double)"/>。
 /// </para>
@@ -87,7 +88,7 @@ public static class HomeFold
     /// 一排 —— 牌子和空当页面从排好的树上量，这里不写死。
     /// </para>
     /// </summary>
-    /// <param name="placement">设置 → 界面 → 「首页媒体库位置」。</param>
+    /// <param name="placement">设置 → 主页 → 「主页媒体库位置」。</param>
     /// <param name="viewport">第一屏的高（窗口客户区）。</param>
     /// <param name="nextRowLine">那条线在第一屏里的位置（默认摆法的几何），见 <see cref="CoversLine"/>。只在默认档用。</param>
     /// <param name="bandHeight">轮播带按设计形状的高（<see cref="HomeCarousel.NaturalHeight"/>，不被一屏封住）。只在默认档用。</param>

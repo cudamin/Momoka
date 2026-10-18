@@ -111,6 +111,25 @@ internal static class WrapLayoutTests
             Assert.Equal(90d, plan.Height, "48 + 10 + 32");
         });
 
+        Test("换行：居中模式逐行对称，不改变其它面板默认左对齐", () =>
+        {
+            var plan = WrapLayout.Place(Boxes(200, 200, 200), 500, 14, 10, centerRows: true);
+            Assert.Equal((43d, 0d), plan.Spots[0]);
+            Assert.Equal((257d, 0d), plan.Spots[1]);
+            Assert.Equal((150d, 42d), plan.Spots[2]);
+            Assert.Equal(414d, plan.Width);
+            Assert.Equal((0d, 42d), WrapLayout.Place(Boxes(200, 200, 200), 500, 14, 10).Spots[2]);
+        });
+
+        Test("换行：居中遇到无限宽、超宽或空排仍有确定位置", () =>
+        {
+            Assert.Equal((0d, 0d), WrapLayout.Place(Boxes(200), double.PositiveInfinity, 14, 10, centerRows: true).Spots[0]);
+            var wide = WrapLayout.Place(Boxes(700, 200), 500, 14, 10, centerRows: true);
+            Assert.Equal((0d, 0d), wide.Spots[0]);
+            Assert.Equal((150d, 42d), wide.Spots[1]);
+            Assert.Equal(0, WrapLayout.Place([], 500, 14, 10, centerRows: true).Rows);
+        });
+
         static (double Width, double Height)[] Boxes(params double[] widths) =>
             [.. widths.Select(width => (width, 32d))];
     }

@@ -43,7 +43,7 @@ public enum LibraryField
     PremiereDate,
     DateCreated,
 
-    /// <summary>下面这八项只在「文件夹」那一页出现 —— 网页端那一页列的是文件本身。</summary>
+    /// <summary>下面这八项在「文件夹」与「集」的卡片视图出现 —— 网页端那一页列的是文件本身。</summary>
     Filename,
     Container,
     Resolution,
@@ -53,7 +53,7 @@ public enum LibraryField
     Framerate,
     AudioCodec,
 
-    /// <summary>下面这两项只在「集」那一页出现 —— 网页端那一页列的是单集，多出剧名与集号两列。</summary>
+    /// <summary>下面这两项只在「集」那一页的表格视图出现。</summary>
     SeriesName,
     EpisodeNumber
 }
@@ -145,7 +145,7 @@ public static class LibraryDisplayCatalog
     /// </summary>
     public static IReadOnlyList<LibraryFieldInfo> FileFields { get; } =
     [
-        new(LibraryField.Filename, "文件名", null),
+        new(LibraryField.Filename, "文件名", "Path"),
         new(LibraryField.Container, "媒体容器", "MediaSources"),
         new(LibraryField.Resolution, "分辨率", "MediaSources"),
         new(LibraryField.Bitrate, "比特率", "MediaSources"),
@@ -162,7 +162,7 @@ public static class LibraryDisplayCatalog
     private static readonly IReadOnlyList<LibraryFieldInfo> FolderFields =
     [
         new(LibraryField.Title, "标题", null),
-        new(LibraryField.Filename, "文件名", null),
+        new(LibraryField.Filename, "文件名", "Path"),
         new(LibraryField.CommunityRating, "社区评分", "CommunityRating"),
         new(LibraryField.CriticRating, "影评人评分", "CriticRating"),
         new(LibraryField.OfficialRating, "家长评分", "OfficialRating"),
@@ -196,36 +196,73 @@ public static class LibraryDisplayCatalog
         new(LibraryField.EpisodeNumber, "集号", null)
     ];
 
-    /// <summary>「集」那一页的字段表：剧名与集号在前，其余十四项照旧。</summary>
-    public static IReadOnlyList<LibraryFieldInfo> EpisodeFields { get; } = [.. EpisodeOnly, .. Fields];
+    /// <summary>「集」的卡片字段与文件夹相同，但不包含宣传语；剧名和集号只在表格中单列。</summary>
+    public static IReadOnlyList<LibraryFieldInfo> EpisodeFields { get; } =
+        [.. FolderFields.Where(info => info.Field != LibraryField.Tagline)];
+
+    /// <summary>
+    /// 索引页（类型、播出平台）的字段表：**只有标题**。
+    /// <para>
+    /// 网页端这两种条目在 <c>baseitemcontroller.getAvailableFields</c> 里各有一支，但两支都只 <c>push</c>
+    /// 一个 <c>SortName</c>，而那一项标着 <c>viewTypes:"datagrid"</c>（只在表格视图里出现）—— 于是卡片视图的
+    /// 「显示字段」只剩「标题」一项。用户给的那张网页端设置截图也是这一行。这一边照那个结果做，而不是照那句
+    /// 「没有专属分支」的解释（2026-10-18 复核过网页端源码，原先的注释写错了理由）。
+    /// </para>
+    /// <para>
+    /// 卡片底下也只写这一个名字：一个类型没有年份、评分、导演可言，勾了也不会有值。
+    /// </para>
+    /// </summary>
+    private static readonly IReadOnlyList<LibraryFieldInfo> IndexFields =
+    [
+        new(LibraryField.Title, "标题", null)
+    ];
+
+    public static LibraryDisplay DefaultFor(LibrarySection section, LibraryIndexKind index = LibraryIndexKind.None) => new()
+    {
+        // 索引页没有「合集」这回事：它列的是类型名与台名，不是条目。
+        GroupIntoCollections = index == LibraryIndexKind.None
+            && section is not (LibrarySection.Episodes or LibrarySection.Folders),
+        Fields = index != LibraryIndexKind.None ? [LibraryField.Title]
+            : section == LibrarySection.Episodes ? [LibraryField.Title]
+            : [.. DefaultFields]
+    };
 
     /// <summary>三张表合起来的全部字段；认名字、排规范顺序都走这一份。</summary>
     private static IReadOnlyList<LibraryFieldInfo> All { get; } = [.. Fields, .. FileFields, .. EpisodeOnly];
 
-    /// <summary>这一页的字段表。文件夹那一页多出文件本身那几项，集那一页多出剧名与集号，其余各页是同一份十四项。</summary>
-    public static IReadOnlyList<LibraryFieldInfo> FieldsFor(LibrarySection section) => section switch
+    /// <summary>这一页的字段表。文件夹那一页多出文件本身那几项，集那一页多出剧名与集号，两张索引页只有标题，其余各页是同一份十四项。</summary>
+    public static IReadOnlyList<LibraryFieldInfo> FieldsFor(LibrarySection section, LibraryView view = LibraryView.Poster,
+        LibraryIndexKind index = LibraryIndexKind.None)
     {
-        LibrarySection.Folders => FolderFields,
-        LibrarySection.Episodes => EpisodeFields,
-        _ => Fields
-    };
+        if (index != LibraryIndexKind.None) return IndexFields;
+
+        return section switch
+        {
+            LibrarySection.Folders => FolderFields,
+            LibrarySection.Episodes when view == LibraryView.Table => [.. EpisodeOnly, .. EpisodeFields],
+            LibrarySection.Episodes => EpisodeFields,
+            _ => Fields
+        };
+    }
 
     /// <summary>
     /// 这一页的字段表里有没有这一项。文件夹页的「文件名」、集页的「集号」在别的页上没有开关可以关掉，
     /// 放它们过去就等于凭空多出一段关不掉的字。
     /// </summary>
-    public static bool Applies(LibraryField field, LibrarySection section) =>
-        FieldsFor(section).Any(info => info.Field == field);
+    public static bool Applies(LibraryField field, LibrarySection section, LibraryView view = LibraryView.Poster,
+        LibraryIndexKind index = LibraryIndexKind.None) =>
+        FieldsFor(section, view, index).Any(info => info.Field == field);
 
     /// <summary>
     /// 存下来的那一份收成这一页真正要画的那几项，顺序照这一页的表 —— 表格的列、卡片那一行、请求里的
     /// <c>Fields</c> 都读它，三处因此不会各排一套。别的页独有的字段留在这份记录里但不生效：换回那一页
     /// 还在，开关也还在。
     /// </summary>
-    public static IReadOnlyList<LibraryField> Applied(IEnumerable<LibraryField> fields, LibrarySection section)
+    public static IReadOnlyList<LibraryField> Applied(IEnumerable<LibraryField> fields, LibrarySection section,
+        LibraryView view = LibraryView.Poster, LibraryIndexKind index = LibraryIndexKind.None)
     {
         var wanted = new HashSet<LibraryField>(fields);
-        return [.. FieldsFor(section).Select(info => info.Field).Where(wanted.Contains)];
+        return [.. FieldsFor(section, view, index).Select(info => info.Field).Where(wanted.Contains)];
     }
 
     /// <summary>
@@ -312,6 +349,55 @@ public static class LibraryDisplayCatalog
 }
 
 /// <summary>
+/// 索引页那两张卡片的形状。两份差别不是审美，是服务器给这两种条目存的图本来就不一样，而图不能裁错：
+/// <list type="bullet">
+/// <item>「类型」的图是服务器按这个类型下的条目拼出来的**四格封面**（1:1，本机实测 4.10.1.0 上 22 个类型里
+/// 8 个有图、宽高比全是 1），所以卡片是方的 —— 按竖卡裁会切掉四格里的两格，按宽卡裁会切掉上下两半。
+/// 网页端也是这么算的：<c>imagehelper.getShape</c> 取这一页那些图的高宽比的众数，方图落在「方」那一档。</item>
+/// <item>「播出平台」的图是**台标**，服务器存在 <c>Thumb</c> 里（本机 134 个台里 23 个有，全是 16:9）。
+/// 这一页**网页端没有先例**（4.10.1.0 的分类栏里没有播出平台这一格，只有类型）—— 16:9 的宽卡与「留边不裁」
+/// 是这个客户端的产品决定：台标是一块字形，铺在方格里四边全是空白，铺在 16:9 的格子里才占得住。</item>
+/// </list>
+/// <para>
+/// 没有图的那一张照样占同样的形状：网格是一行一行读的，缺图的格子忽大忽小比留一个占位更难看。
+/// </para>
+/// </summary>
+public static class LibraryIndexCards
+{
+    /// <summary>卡片里那张图的高宽比（高 ÷ 宽）：类型 1，播出平台 9/16。</summary>
+    public static double Aspect(LibraryIndexKind index) => index switch
+    {
+        LibraryIndexKind.Genre => 1,
+        LibraryIndexKind.Studio => 9.0 / 16.0,
+        _ => 1
+    };
+
+    /// <summary>
+    /// 取图的先后。类型的图就是它自己的 <c>Primary</c>；播出平台的台标存在 <c>Thumb</c>，退一步再要是
+    /// <c>Primary</c>（本机实测：23 个有图的台全在 Thumb 里，Primary 一个都没有）。
+    /// </summary>
+    public static IReadOnlyList<string> ImageTypes(LibraryIndexKind index) => index switch
+    {
+        LibraryIndexKind.Genre => [EmbyImageStore.Primary],
+        LibraryIndexKind.Studio => [EmbyImageStore.Thumb, EmbyImageStore.Primary],
+        _ => []
+    };
+
+    /// <summary>
+    /// 这一页的图要不要「装进去」（留边、不裁）而不是「铺满」。只有台标要 —— 它是画在透明底上的一块字形，
+    /// 铺满会把字切掉；四格封面本来就是一张画满的图，铺满才不留边。
+    /// </summary>
+    public static bool ContainArtwork(LibraryIndexKind index) => index == LibraryIndexKind.Studio;
+
+    /// <summary>
+    /// 卡片底下那一行字要留的高度。索引卡只有一个居中的名字（没有第二行、没有宣传语），所以比别处那
+    /// 两行加一行的 <see cref="Momoka.Infrastructure.CardSize.Chrome"/>（59）矮一大截 —— 照 59 排，
+    /// 每张卡底下会空出三十多像素，一行一行读下来是「每隔一张空一行」。
+    /// </summary>
+    public const int TextHeight = 28;
+}
+
+/// <summary>
 /// 一张卡片画多宽、多高。形状与「图像大小」一起决定这两个数 —— 解码宽度就是画出来的宽度，
 /// 所以这里算错一档，卡片要么糊要么白占内存。
 /// </summary>
@@ -320,29 +406,95 @@ public static class LibraryCardMetrics
     /// <summary>
     /// 默认档的宽度：海报 170（<see cref="CardSize.PosterWidth"/>），宽卡 300
     /// （<see cref="CardSize.WideWidth"/>），其余档按 <see cref="LibraryDisplayCatalog.Scale"/> 缩放。
+    /// <para>
+    /// 索引页按 <see cref="LibraryIndexKind"/> 换基准：类型是方卡（基准同海报 170），播出平台是 16:9 宽卡
+    /// （基准同剧照 300）。「图像大小」那一档照旧缩放，所以两页各有各的八档。
+    /// </para>
     /// </summary>
-    public static int Width(LibraryView view, LibraryCardSize size)
+    public static int Width(LibraryView view, LibraryCardSize size, LibrarySection section = LibrarySection.Items,
+        LibraryIndexKind index = LibraryIndexKind.None)
     {
         var scale = LibraryDisplayCatalog.Scale(size);
-        var baseWidth = view switch
+        var baseWidth = index switch
         {
-            LibraryView.Poster or LibraryView.Disc => CardSize.PosterWidth,
-            _ => CardSize.WideWidth
+            LibraryIndexKind.Genre => CardSize.PosterWidth,
+            LibraryIndexKind.Studio => CardSize.WideWidth,
+            _ => section == LibrarySection.Episodes && view == LibraryView.Poster ? CardSize.WideWidth : view switch
+            {
+                LibraryView.Poster or LibraryView.Disc => CardSize.PosterWidth,
+                _ => CardSize.WideWidth
+            }
         };
         return Math.Max(80, (int)Math.Round(baseWidth * scale));
     }
 
     /// <summary>
+    /// 一行里两张卡片之间的那条缝，和 <c>LibraryPage.xaml</c> 里 <c>UniformGridLayout.MinColumnSpacing</c>
+    /// 是同一个数。
+    /// <para>
+    /// 两处各写一遍是必须的 —— 标记里那个是布局自己排格子用的，这里这个要参与算格宽 —— 但改一处就得改另一处：
+    /// <see cref="Fit"/> 把「这一行剩下的宽度」全摊给这几列，列距对不上，一行就会差出十几像素，最后一张不是
+    /// 挤出右边界就是右边空一条。
+    /// </para>
+    /// </summary>
+    public const double ColumnSpacing = 16;
+
+    /// <summary>
+    /// 这一行排得下几列、每列多宽。用户令 2026-10-18：「封面随窗口大小变化，互相之间不要留太大的空隙」。
+    /// <para>
+    /// 从前这里只给一个固定宽度（海报 170、剧照 300），列数由版面按「塞得下几列」自己定，余下的宽度留在格子
+    /// 里；卡片是居中的，那点余量于是摊成了两张封面之间的一条大缝 —— 电视节目-集 在 1280 宽的窗口上，300 宽的
+    /// 封面住着 414 宽的格子，两张之间空出 114 像素，比封面自己还显眼。
+    /// </para>
+    /// <para>
+    /// 现在反过来算：先按「最小宽度」（图像大小那一档）定列数，再把这一行剩下的宽度平摊给这几列，卡片于是填满
+    /// 格子，列距永远是 <paramref name="spacing"/> 那一条缝。窗口变宽，封面跟着变大，直到塞得下多一列为止
+    /// （那时每张会退回最小宽度附近再涨）。
+    /// </para>
+    /// <para>
+    /// <paramref name="available"/> 比最小宽度还窄（窗口拖得很小）时给一列、宽度就是窗口那么宽：宁可卡片小
+    /// 一点，也不要横向裁掉一截 —— 这一页的横向滚动是关着的。
+    /// </para>
+    /// <para>
+    /// <paramref name="minimum"/> 必须是「图像大小」那一档，**不能拿这里算出来的格宽再喂回来**：格宽是摊出来的，
+    /// n 列格宽加 n 条缝比可用宽还多一条缝，版面按自己的算术只肯排 n-1 列，格子于是比卡片宽出一大截。
+    /// </para>
+    /// </summary>
+    public static (int Columns, int Cell) Fit(double available, int minimum, double spacing = ColumnSpacing)
+    {
+        var least = Math.Max(1, minimum);
+        if (!double.IsFinite(available) || available <= 0) return (1, least);
+
+        var gap = Math.Max(0, spacing);
+
+        // 列数和版面那边必须用同一条算术：UniformGridLayout 数的是 floor(可用宽 / (最小宽 + 列距)) ——
+        // **每一列都要连着自己的那条缝才算塞得下**，最后一列后面那条缝也算。少算这一条，这里就会比版面
+        // 多认一列（2026-10-18 探针：1058 宽、格宽 342，这边算三列，版面只肯排两列，格子成了 521）。
+        var columns = Math.Max(1, (int)Math.Floor(available / (least + gap)));
+
+        // 向下取整：宁可每列少半个像素，也不要算出比版面多一列、把最后一张顶出右边界。
+        var cell = (int)Math.Floor((available - (columns - 1) * gap) / columns);
+        return (columns, Math.Max(1, cell));
+    }
+
+    /// <summary>
     /// 形状的高宽比：海报 2:3、光盘 1:1、横幅 1000:185（Emby 的横幅图就是那个比例）、
     /// 徽标与缩略图 16:9。列表与表格的图只是行首那一小张，同样按 16:9 算。
+    /// <para>
+    /// 索引页那一支不看「视图」：类型永远是方卡、播出平台永远是 16:9（见
+    /// <see cref="LibraryIndexCards.Aspect"/>）。理由在那边 —— 图本身是什么形状，卡片就该是什么形状。
+    /// </para>
     /// </summary>
-    public static double Height(LibraryView view, int width) => view switch
-    {
-        LibraryView.Poster => Math.Round(width * 1.5),
-        LibraryView.Disc => width,
-        LibraryView.Banner => Math.Round(width * 0.185),
-        _ => Math.Round(width * 9.0 / 16.0)
-    };
+    public static double Height(LibraryView view, int width, LibrarySection section = LibrarySection.Items,
+        LibraryIndexKind index = LibraryIndexKind.None) =>
+        index != LibraryIndexKind.None ? Math.Round(width * LibraryIndexCards.Aspect(index))
+        : section == LibrarySection.Episodes && view == LibraryView.Poster ? Math.Round(width * 9.0 / 16.0) : view switch
+        {
+            LibraryView.Poster => Math.Round(width * 1.5),
+            LibraryView.Disc => width,
+            LibraryView.Banner => Math.Round(width * 0.185),
+            _ => Math.Round(width * 9.0 / 16.0)
+        };
 }
 
 /// <summary>
@@ -422,6 +574,18 @@ public static class LibraryCardText
     /// <summary>表格视图的一格：这一项字段在这条条目上的文字。标题那一格就是条目名本身。</summary>
     public static string Cell(EmbyItem item, LibraryField field) =>
         field == LibraryField.Title ? item.Name : Segment(item, field);
+
+    public static string Title(EmbyItem item, IReadOnlyList<LibraryField> fields, LibrarySection section) =>
+        !fields.Contains(LibraryField.Title) ? "" : section == LibrarySection.Episodes
+            ? item.SeriesName ?? item.Name : item.Name;
+
+    public static string Subtitle(EmbyItem item, IReadOnlyList<LibraryField> fields, LibrarySection section)
+    {
+        if (section != LibrarySection.Episodes) return Line(item, fields);
+        var episode = fields.Contains(LibraryField.Title) ? LibraryUpcoming.Subtitle(item) : "";
+        var details = Line(item, [.. fields.Where(field => field != LibraryField.Title)]);
+        return string.Join("  ·  ", new[] { episode, details }.Where(text => !string.IsNullOrEmpty(text)));
+    }
 
     private static string Segment(EmbyItem item, LibraryField field) => field switch
     {

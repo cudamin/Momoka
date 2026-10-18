@@ -51,7 +51,7 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => vm.Movies[0].Poster is not null);
                 InvokeSubscriptionButton(covers[0]);
                 Require(opened?.Id == 1, "封面点击没有打开媒体详情");
-                await SaveUsersFrameAsync(host, $"mp-subscriptions-home-{width}.png");
+                await SaveSettledFrameAsync(host, $"mp-subscriptions-home-{width}.png");
             }
             var poster = Descendants(view).OfType<MoviePilotSubscriptionPoster>().First();
             var more = Get<Button>(poster, "SubscriptionMore");
@@ -78,7 +78,7 @@ internal sealed partial class ShellNavigationProbe
             poster.SetHovered(false); await Task.Delay(250);
             poster.SetHovered(true); await Task.Delay(80);
             if (HomeMotion.AnimationsEnabled) Require(poster.Zoom > 1 && poster.Zoom <= 1.045, "悬停未产生图片推近动画");
-            await SaveUsersFrameAsync(host, "mp-subscription-hover.png");
+            await SaveSettledFrameAsync(host, "mp-subscription-hover.png");
             poster.SetHovered(false); await Task.Delay(250);
             Require(Math.Abs(poster.Zoom - 1) < 0.001 && more.Visibility == Visibility.Collapsed, "鼠标离开后缩放没有复原或管理按钮没有隐藏");
             seriesPoster.SetHovered(false);
@@ -168,7 +168,7 @@ internal sealed partial class ShellNavigationProbe
                 //（用户令 2026-10-12）。
                 Get<ScrollViewer>(page, "DetailScroll").ChangeView(null, 0, null, true);
                 await LayoutAsync(page);
-                await SaveUsersFrameAsync(page, $"mp-subscription-header-{width}.png");
+                await SaveSettledFrameAsync(page, $"mp-subscription-header-{width}.png");
                 // 窗口一变，季列表按新视口重新实现；把季列表重新滚进视野，折叠栏里的逐集行才有得读。
                 seasonsView.StartBringIntoView();
                 await LayoutAsync(page);
@@ -293,7 +293,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(moreItems.Take(4).All(item => item.IsEnabled == vm.CanManage) && moreItems[7].IsEnabled == vm.CanManage
                     && moreItems.Skip(4).Take(2).All(item => item.IsEnabled),
                     "「更多」菜单里的可用性与原来那几颗键不一致");
-                await SaveUsersFrameAsync(page, $"mp-subscription-detail-{width}.png");
+                await SaveSettledFrameAsync(page, $"mp-subscription-detail-{width}.png");
 
                 // 集列表在折叠线以下，单独滚到它再拍一张：播出日期行和播放键下方那颗搜索键得看得见（2026-10-10）。
                 // 用 ChangeView 定位而不是 StartBringIntoView —— 后者只保证「进入视野」，这里要的是它真的滚上来。
@@ -303,7 +303,7 @@ internal sealed partial class ShellNavigationProbe
                 var rowOffset = firstRow.TransformToVisual((UIElement)detailScroll.Content).TransformPoint(default).Y;
                 detailScroll.ChangeView(null, rowOffset - 8, null, true);
                 await LayoutAsync(page);
-                await SaveUsersFrameAsync(page, $"mp-subscription-episodes-{width}.png");
+                await SaveSettledFrameAsync(page, $"mp-subscription-episodes-{width}.png");
 
                 // 下方三段（演职员／相关推荐／相似作品）照电影详情页那三段（用户令 2026-10-12：「下方的演员和
                 // 推荐啥的参考电影页面添加背景」）：每段一块 EgBodyPanelStyle 的板，板里是 ShelfHead 牌子接
@@ -346,7 +346,7 @@ internal sealed partial class ShellNavigationProbe
                 // 卡片上的图是异步抓的：不等它落下来，那张截图上的三段就是三排空板（断言不看图，只截图不好看）。
                 await UntilAsync(() => media.People.All(card => card.Poster is not null)
                     && media.Recommendations.All(card => card.Poster is not null));
-                await SaveUsersFrameAsync(page, $"mp-subscription-related-{width}.png");
+                await SaveSettledFrameAsync(page, $"mp-subscription-related-{width}.png");
             }
             var playButton = Descendants(page).OfType<Button>().First(button => button.Name == "PlaySubscriptionEpisode" && button.IsEnabled);
             InvokeSubscriptionButton(playButton);
@@ -381,7 +381,7 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(editor);
                 Get<TextBox>(editor, "IncludeInput").Text = "WEB-DL";
                 Get<NumberBox>(editor, "TotalInput").Value = 6;
-                await SaveUsersFrameAsync(editor, "mp-subscription-editor.png");
+                await SaveSettledFrameAsync(editor, "mp-subscription-editor.png");
                 await vm.EditAsync(vm.Selected!, _ => Task.FromResult<MoviePilotSubscriptionEdit?>(editor.Read()));
                 Require(server.Items[4]["include"]!.ToString() == "WEB-DL" && server.Items[4]["total_episode"]!.GetValue<int>() == 6, "编辑未保存输入字段");
                 Require(server.Items[4]["sites"]![0]!.GetValue<int>() == 8, "编辑覆盖了未改动的站点");
@@ -460,7 +460,7 @@ internal sealed partial class ShellNavigationProbe
                 //    在 MoviePilotSubscriptionDetailAsync 里钉（那里断言它是 Visible）。
                 Require(Get<Button>(page, "PlayMediaLibraryItem").Visibility == Visibility.Collapsed,
                     "没有可播放片源，「播放已入库」却立着");
-                await SaveUsersFrameAsync(page, $"mp-movie-subscription-detail-{width}.png");
+                await SaveSettledFrameAsync(page, $"mp-movie-subscription-detail-{width}.png");
             }
 
             // ⑥ 「更多」菜单在电影上的那一份：摊平的一层里没有「文件统计」（电影没有季折叠栏可滚），也没有
@@ -588,7 +588,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(row.ShowTrailingPlay && play.Visibility == Visibility.Visible && play.Content is FontIcon, "季页面没有显示右侧播放图标");
                 Require(play.TransformToVisual(row).TransformPoint(default).X >= picture.ActualWidth + 10, "季页面播放图标位置错误");
                 await UntilAsync(() => row.Card?.Poster is not null);
-                await SaveUsersFrameAsync(page, $"season-trailing-play-{width}.png");
+                await SaveSettledFrameAsync(page, $"season-trailing-play-{width}.png");
                 var opened = fixture.Actions.Opened;
                 InvokeSubscriptionButton(play);
                 Require(played.LastOrDefault()?.Id == episode.Id && siblings?.Any(item => item.Id == episode.Id) == true, "季页面播放图标没有携带正确的集和剧集列表");

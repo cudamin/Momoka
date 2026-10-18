@@ -19,33 +19,6 @@ public static partial class EmbyWebConsole
         ? $"{Root(connection)}/web/index.html#/dashboard"
         : Url(connection.ApiBase);
 
-    public static string PageUrl(EmbyConnection connection, string route)
-    {
-        if (!connection.IsJellyfin) return PageUrl(connection.ApiBase, route);
-        ArgumentException.ThrowIfNullOrWhiteSpace(route);
-        var webRoot = new Uri($"{Root(connection)}/web/");
-        if (Uri.TryCreate(route, UriKind.Absolute, out var absolute))
-        {
-            if (!webRoot.IsBaseOf(absolute) || absolute.UserInfo.Length > 0)
-                throw new ArgumentException("配置页面不属于当前服务器。");
-            return absolute.AbsoluteUri;
-        }
-        route = route.Trim();
-        if (route.StartsWith("//", StringComparison.Ordinal) || route.Contains('\\')
-            || route.Contains("..", StringComparison.Ordinal)) throw new ArgumentException("配置页面地址无效。");
-        if (route.StartsWith("#!/", StringComparison.Ordinal)) route = route[3..];
-        else if (route.StartsWith('#')) route = route[1..].TrimStart('/');
-        else route = route.TrimStart('/');
-        if (route.StartsWith("web/", StringComparison.OrdinalIgnoreCase)) route = route[4..];
-        if (route.StartsWith("index.html", StringComparison.OrdinalIgnoreCase))
-        {
-            var page = new Uri(webRoot, route);
-            if (!webRoot.IsBaseOf(page)) throw new ArgumentException("配置页面不属于当前服务器。");
-            return page.AbsoluteUri;
-        }
-        return $"{webRoot}index.html#/{route}";
-    }
-
     /// <summary>按服务器和用户隔离 Jellyfin 浏览器状态；目录名不包含令牌或用户名。</summary>
     public static string ProfileDirectory(EmbyConnection connection, string directory) => connection.IsJellyfin
         ? Path.Combine(directory, "jellyfin-" + Convert.ToHexString(SHA256.HashData(

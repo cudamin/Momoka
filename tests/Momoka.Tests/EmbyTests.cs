@@ -751,7 +751,7 @@ internal static class EmbyTests
             Assert.Equal("有预告片", EmbyFilterBy.Chips(filters)[0].Label);
         });
 
-        Test("筛选：五张按值多选的表各有各的清单", () =>
+        Test("筛选：按值多选的表各有各的清单", () =>
         {
             var filters = new ItemFilters();
 
@@ -762,10 +762,9 @@ internal static class EmbyTests
                 Assert.Equal(1, filters.Values(list.Key).Count, $"{list.Label} 存到了别的清单里");
             }
 
-            Assert.Equal(5, filters.Count);
+            Assert.Equal(EmbyFilterBy.Lists.Count, filters.Count);
 
-            // 端点名就是键名，一个方法取五份清单靠的正是这个
-            Assert.Equal("Genres,OfficialRatings,Studios,Tags,Years",
+            Assert.Equal("Genres,OfficialRatings,Studios,Tags,Years,Containers,VideoCodecs,ExtendedVideoTypes,AudioCodecs,AudioLayouts,AudioLanguages,SubtitleCodecs,SubtitleLanguages",
                 string.Join(',', EmbyFilterBy.Lists.Select(list => list.Key)));
 
             Assert.Throws<ArgumentOutOfRangeException>(() => filters.Values("IsHD"));

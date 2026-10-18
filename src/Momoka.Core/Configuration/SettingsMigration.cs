@@ -439,21 +439,17 @@ public static class SettingsMigration
         // 一个保存时被悄悄搬走的数。缺键（从旧版本升上来）读出来是 0，ClampMegabytes 把 0 当「按装机默认」。
         settings.Ui.ImageCacheMegabytes = Emby.ImageCachePolicy.ClampMegabytes(settings.Ui.ImageCacheMegabytes);
 
-        // 评分来源。枚举存的是整数，所以手改过的文件、或者装回一个档数更少的旧版本，都能留下一个认不出来的数字；
-        // 留着它的下场是设置里那个下拉显示成「设置文件中的值」，而屏上按哪一档走谁也说不清。
-        if (!Enum.IsDefined(settings.Ui.ScoreSource)) settings.Ui.ScoreSource = Emby.ScoreSource.Community;
-
         // 轮播的四项（2026-09-13「新增在设置中设置轮播图要使用什么媒体，和要使用最近添加还是随机的还有数量
         // 的选项。还有封面的轮换的秒数」）。两个数夹进设置页那一行同样的范围 —— 常量都在 Emby.HomeCarousel
-        // 上，三处同源；两个枚举存整数，认不出来的值拨回装机默认，理由同上面的评分来源。
+        // 上，三处同源；两个枚举存整数，认不出来的值拨回装机默认。
         settings.Ui.CarouselCount = Emby.HomeCarousel.ClampSlots(settings.Ui.CarouselCount);
         settings.Ui.CarouselSeconds = Math.Clamp(
             settings.Ui.CarouselSeconds, Emby.HomeCarousel.MinDwellSeconds, Emby.HomeCarousel.MaxDwellSeconds);
         if (!Enum.IsDefined(settings.Ui.CarouselSource)) settings.Ui.CarouselSource = Emby.CarouselSource.Recent;
         if (!Enum.IsDefined(settings.Ui.CarouselMedia)) settings.Ui.CarouselMedia = Emby.CarouselMediaType.All;
 
-        // 首页媒体库位置（设置 → 界面，2026-10-12）。同样是存整数的枚举：认不出来的值拨回 Auto（装机默认，也是
-        // 缺键的旧设置文件读出来的那一个），留着它屏上按哪一档走谁也说不清。
+        // 主页媒体库位置（设置 → 主页，2026-10-12 进设置、2026-10-16 挪进主页卡）。同样是存整数的枚举：认不出来的
+        // 值拨回 Auto（装机默认，也是缺键的旧设置文件读出来的那一个），留着它屏上按哪一档走谁也说不清。
         if (!Enum.IsDefined(settings.Ui.HomeLibraryPlacement))
             settings.Ui.HomeLibraryPlacement = Emby.HomeLibraryPlacement.Auto;
 

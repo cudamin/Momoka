@@ -797,13 +797,6 @@
                                         </Grid>
                                     </Button>
 
-                                    <Button x:Uid="DetailPage_ButtonA3"
-                                        AutomationProperties.AutomationId="ColumnBrowserButton"
-                                        Command="{x:Bind ViewModel.OpenBrowserCommand}"
-                                        Style="{StaticResource EgRoundButtonStyle}">
-                                        <FontIcon FontSize="15" Glyph="&#xE8A7;" />
-                                    </Button>
-
                                     <Button
                                         x:Name="ColumnMoreButton"
                                         x:Uid="DetailPage_MoreButton"
@@ -1196,13 +1189,6 @@
                                             Glyph="&#xEB52;"
                                             Visibility="{x:Bind ViewModel.FavoriteVisibility, Mode=OneWay}" />
                                     </Grid>
-                                </Button>
-
-                                <Button x:Uid="DetailPage_ButtonA3"
-                                    AutomationProperties.AutomationId="CompactBrowserButton"
-                                    Command="{x:Bind ViewModel.OpenBrowserCommand}"
-                                    Style="{StaticResource EgRoundButtonStyle}">
-                                    <FontIcon FontSize="15" Glyph="&#xE8A7;" />
                                 </Button>
 
                                 <Button

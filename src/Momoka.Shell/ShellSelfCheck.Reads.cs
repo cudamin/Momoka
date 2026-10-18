@@ -6,7 +6,6 @@ using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Interop;
-using Momoka.Shell.Platform;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Shell.Windowing;
@@ -686,8 +685,7 @@ internal static partial class ShellSelfCheck
             services.GetRequiredService<IShellActions>(),
             services.GetRequiredService<ISettingsService>(),
             session,
-            services.GetRequiredService<EmbyImageStore>(),
-            services.GetRequiredService<ISystemLauncher>());
+            services.GetRequiredService<EmbyImageStore>());
 
         await page.ReloadAsync().ConfigureAwait(true);
 

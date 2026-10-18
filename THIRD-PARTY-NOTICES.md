@@ -141,7 +141,7 @@ GPL-2.0-or-later 处理；换内核后按文件本身的许可写。
 | 组件 | 许可 | 说明 |
 |---|---|---|
 | Microsoft Windows App SDK | Microsoft 软件许可条款（非开源） | 随包 |
-| Microsoft WebView2 Runtime | Microsoft 软件许可条款（非开源） | 可选，用于「服务器控制台」页 |
+| Microsoft WebView2 Runtime | Microsoft 软件许可条款（非开源） | 可选，用于「网页控制台」页 |
 | CommunityToolkit.Mvvm / WinUI.* | MIT | NuGet |
 | Microsoft.Extensions.DependencyInjection | MIT | NuGet |
 | System.Security.Cryptography.ProtectedData | MIT | NuGet |

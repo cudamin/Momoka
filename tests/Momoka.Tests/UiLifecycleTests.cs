@@ -84,6 +84,49 @@ internal static class UiLifecycleTests
             Assert.True(refresh.NeedsSlides(false));
         });
 
+        Test("主页定时检查：指纹按顺序记，认不出的条目跳过", () =>
+        {
+            Assert.Equal("2:1\u001f2", LibraryWatch.Stamp([Movie("1"), Movie("2")]));
+            Assert.Equal("2:2\u001f1", LibraryWatch.Stamp([Movie("2"), Movie("1")]));
+            Assert.Equal("1:1", LibraryWatch.Stamp([Movie("1"), new EmbyItem { Id = "", Type = EmbyItemType.Movie }]));
+            Assert.Equal("0:", LibraryWatch.Stamp([]));
+        });
+        Test("主页定时检查：没变化不报变化，新入库才报", () =>
+        {
+            var watch = new LibraryWatch();
+            var first = Stamps(("a", [Movie("1"), Movie("2")]));
+
+            // 从没记过的时候先报一次 —— 调用方据此在整页重读时建立基线（见 HomeViewModel.LoadAsync）。
+            Assert.Equal("a", string.Join(',', watch.Changed(first)));
+
+            watch.Reset(first);
+            Assert.Equal(0, watch.Changed(first).Count);
+
+            // 同一部剧来了新一集：服务器那边 GroupItems 并剧之后，头上那一条换人。
+            var newer = Stamps(("a", [Movie("3"), Movie("1")]));
+            Assert.Equal("a", string.Join(',', watch.Changed(newer)));
+
+            watch.Reset(newer);
+            Assert.Equal(0, watch.Changed(newer).Count);
+
+            watch.Clear();
+            Assert.Equal("a", string.Join(',', watch.Changed(newer)), "换账号之后这一份不再作数");
+        });
+        Test("主页定时检查：读不出来的来源不参与比较", () =>
+        {
+            var watch = new LibraryWatch();
+            var both = Stamps(("a", [Movie("1")]), ("b", [Movie("9")]));
+            watch.Reset(both);
+
+            // 这一趟只读到 a（b 超时，调用方把它丢掉了）：a 没变，因此没有变化 —— 拿少了的那一份当「变了」
+            // 就是多账号聚合时每隔半分钟白刷一次。
+            Assert.Equal(0, watch.Changed(Stamps(("a", [Movie("1")]))).Count);
+
+            // b 回来之后照旧和它上一次的读数比。
+            Assert.Equal(0, watch.Changed(both).Count);
+            Assert.Equal("b", string.Join(',', watch.Changed(Stamps(("a", [Movie("1")]), ("b", [Movie("9"), Movie("10")])))));
+        });
+
         Test("窗口切换：快速反向共享暂停归属并只恢复一次", () =>
         {
             var pause = new HandoffPause();
@@ -132,4 +175,11 @@ internal static class UiLifecycleTests
     }
 
     private static EmbyItem Movie(string id) => new() { Id = id, Name = id, Type = EmbyItemType.Movie };
+
+    /// <summary>一个来源此刻的指纹表，见 <see cref="LibraryWatch"/>。</summary>
+    private static Dictionary<string, string> Stamps(params (string Source, EmbyItem[] Items)[] sources) =>
+        sources.ToDictionary(
+            entry => entry.Source,
+            entry => LibraryWatch.Stamp(entry.Items),
+            StringComparer.Ordinal);
 }

@@ -11,9 +11,8 @@ using Microsoft.Web.WebView2.Core;
 
 namespace Momoka.Shell.Views;
 
-/// <summary>导航到服务器控制台页时传入的容器。</summary>
-internal sealed record DashboardRequest(IServiceProvider Services, string? SettingsUserId = null, Action? ReturnToUsers = null,
-    string? Route = null, string ReturnLabel = "返回用户");
+/// <summary>导航到网页控制台时传入的容器。</summary>
+internal sealed record DashboardRequest(IServiceProvider Services);
 
 /// <summary>
 /// 需求 8：Emby 网页端的控制台，用 <c>WebView2</c> 嵌在设置里，并且是已经登录好的状态。
@@ -126,8 +125,6 @@ public sealed partial class DashboardPage : Page, IShellContent
         }
 
         _request = request;
-        DashboardBackToUsers.Visibility = request.ReturnToUsers is null ? Visibility.Collapsed : Visibility.Visible;
-        DashboardBackToUsers.Label = request.ReturnLabel;
         Tag = "dashboard";
         _generation++;
 
@@ -150,11 +147,7 @@ public sealed partial class DashboardPage : Page, IShellContent
         {
             _scope = session.Capture();
             _storageKey = EmbyWebConsole.CredentialStorageKey(connection);
-            _url = request.Route is { Length: > 0 } route ? EmbyWebConsole.PageUrl(connection, route)
-                : request.SettingsUserId is { Length: > 0 } userId
-                    ? connection.IsJellyfin ? EmbyWebConsole.Url(connection)
-                        : EmbyWebConsole.UserPreferencesUrl(connection.ApiBase, userId)
-                    : EmbyWebConsole.Url(connection);
+            _url = EmbyWebConsole.Url(connection);
         }
         catch (ArgumentException)
         {
@@ -276,8 +269,6 @@ public sealed partial class DashboardPage : Page, IShellContent
         e.Handled = true;
         Open(e.Uri);
     }
-
-    private void OnBackToUsers(object sender, RoutedEventArgs e) => (_request as DashboardRequest)?.ReturnToUsers?.Invoke();
 
     /// <summary>
     /// One look at what the web client ended up doing with the seeded session: which route it settled on,

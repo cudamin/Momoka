@@ -50,6 +50,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
             await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
             await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
+            await CaseAsync("电视节目收藏分排、分页、失败恢复与宽窄布局", LibraryFavoritesAsync, 60);
+            await CaseAsync("电视节目预告日期分组、加载动画、分页和恢复", LibraryUpcomingAsync, 45);
             await CaseAsync("切回 Emby 恢复查询代次", ResumeQueryAsync);
             await CaseAsync("切季与整页刷新交错不清空", SeasonRefreshRaceAsync);
             await CaseAsync("旧导航恢复不补新搜索", NavigationRestoreRaceAsync);

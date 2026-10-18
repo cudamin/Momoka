@@ -117,6 +117,9 @@ public sealed record PlaybackRequest
 {
     public Momoka.FnNas.FnNasPlaybackSelection? FnNasSelection { get; init; }
 
+    /// <summary>Plex reports against the file (the part) rather than the item; see the type's own note.</summary>
+    public Momoka.Plex.PlexPlaybackSelection? PlexSelection { get; init; }
+
     public required Uri MediaUrl { get; init; }
 
     /// <summary>Native window state retained across a replacement; null uses the normal launch preference.</summary>

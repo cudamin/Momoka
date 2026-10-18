@@ -20,6 +20,8 @@ public static class EmbyItemType
     public const string Audio = "Audio";
     public const string MusicAlbum = "MusicAlbum";
     public const string MusicArtist = "MusicArtist";
+    public const string Genre = "Genre";
+    public const string Studio = "Studio";
 
     private static readonly HashSet<string> Playable =
         new(StringComparer.OrdinalIgnoreCase) { Movie, Episode, Video, MusicVideo, Trailer };
@@ -40,9 +42,13 @@ public static class EmbyItemType
     /// The types 已观看 and 收藏 are not a thing for. A 媒体库 is the shelf the items live on, not one of
     /// them, and a 演职人员 is a name — neither has a watched state to toggle, and the server's copy of
     /// them carries no user data to toggle it on.
+    /// <para>
+    /// 类型与播出平台同理（2026-10-18）：一个类型名、一家电视台都不是能看的条目。服务器那边也只是把一份
+    /// 空 <c>UserData</c> 挂上去，按下去没有任何东西会改。索引卡上那两个按钮从前一直在，是从没人点开过。
+    /// </para>
     /// </summary>
     private static readonly HashSet<string> Stateless =
-        new(StringComparer.OrdinalIgnoreCase) { CollectionFolder, Person };
+        new(StringComparer.OrdinalIgnoreCase) { CollectionFolder, Person, Genre, Studio };
 
     public static bool IsPlayable(string? type) => type is not null && Playable.Contains(type);
 
@@ -76,6 +82,8 @@ public static class EmbyItemType
         Audio => "音乐",
         MusicAlbum => "专辑",
         MusicArtist => "艺术家",
+        Genre => "类型",
+        Studio => "播出平台",
         null or "" => "",
         _ => type
     };
@@ -441,6 +449,8 @@ public sealed class EmbyItem
     /// 当「这是磁盘上的哪个文件」。多版本条目每一版各自的路径在 <see cref="MediaSource.Path"/> 上，这一份是条目级的那个。
     /// </summary>
     public string? Path { get; set; }
+
+    public string? LocationType { get; set; }
 
     public string? Overview { get; set; }
 

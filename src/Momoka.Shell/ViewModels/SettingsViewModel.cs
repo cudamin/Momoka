@@ -161,25 +161,22 @@ public sealed partial class SettingsViewModel : PageViewModel
     private readonly List<SettingShortcutRow> _shortcutRows = [];
 
     /// <summary>
-    /// 「EmbyServer」那一组 —— 左栏里唯一不是设置卡的一组，五个入口全是服务器管理页。
+    /// 管理员才看得见的那几个内嵌入口，按左栏次序：Emby 是「通知」与「网页控制台」，Jellyfin 只有
+    /// 「网页控制台」（通知读写的是 Emby 服务器自己的通知系统，Jellyfin 没有）。
     /// <para>
-    /// 五页各自都还要管理员权限（<see cref="ServerUsersViewModel"/> 那几页进来先核一遍身份，不是管理员只得到
-    /// 一句「需要服务器管理员权限」），所以这一组整个跟着账号权限显隐，见
-    /// <see cref="RefreshServerAdministrationAsync"/>。列在这里也是为了让自检能把「该露的」和「该藏的」分开算。
+    /// 用户令 2026-10-16：这两张不再自成一区，而是并进「Momoka」组、排在 诊断 与 关于 中间 —— 左栏里
+    /// 「EmbyServer」「JellyfinServer」两个组名，连同里面的「控制台」「用户」「媒体库」三页一起退役。
+    /// 同日第二轮，飞牛影视的「媒体库」「用户」「设置」「任务计划」四个原生管理页也退役，所以左栏从此只剩
+    /// 「Momoka」一组，不再有第二个分组。
     /// </para>
     /// <para>
-    /// 位置挨着 <see cref="ServerAdministrationGroup"/> 不是随便排的：静态初始值按书写次序跑，那个组要用到
-    /// 这份名单，写它后面就是一个空的组。名字本身是常量，写在文件哪一处都一样。
+    /// 两页各自都还要管理员权限（进来先核一遍身份，不是管理员只得到一句「需要服务器管理员权限」），所以整份
+    /// 跟着账号权限来去，见 <see cref="RefreshServerAdministrationAsync"/>。列在这里也是为了让自检能把
+    /// 「该露的」和「该藏的」分开算。
     /// </para>
     /// </summary>
     public static IReadOnlyList<string> ServerAdministrationCategories { get; } =
-        [ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, NotificationsCategory, DashboardCategory];
-
-    public static IReadOnlyList<string> FnNasAdministrationCategories { get; } =
-        [ServerLibrariesCategory, ServerUsersCategory, FnNasSettingsCategory, FnNasTasksCategory];
-
-    private static IReadOnlyList<string> AllAdministrationCategories { get; } =
-        [.. ServerAdministrationCategories, FnNasSettingsCategory, FnNasTasksCategory];
+        [NotificationsCategory, DashboardCategory];
 
     /// <summary>
     /// 管理组是否显示。初始表用于离线布局；接入能力服务后，在请求前同步真实身份与产品。
@@ -199,34 +196,40 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <remarks>
     /// 「Momoka」组里，服务器、诊断两张内嵌页不再挂在名单末尾，而是插在 MoviePilot 与 关于 中间
     /// （用户令 2026-10-11「调整左侧选项排序」：主页 界面 播放器 播放行为 视频输出 音频输出 字幕
-    /// 快捷键 MoviePilot 服务器 诊断 关于）。关于仍是最后一张卡，所以落点就是「最后一张卡前面」。
+    /// 快捷键 MoviePilot 服务器 诊断 关于）；管理员才看得见的「通知」「网页控制台」再插在 诊断 与 关于
+    /// 中间（用户令 2026-10-16「通知和网页控制台放到诊断和关于之间」）。关于仍是最后一张卡，所以落点就是
+    /// 「最后一张卡前面」。
+    /// <para>
+    /// 用户令 2026-10-16 两轮之后，左栏只剩这一组：EmbyServer／JellyfinServer 两个组名随「控制台」「用户」
+    /// 「媒体库」三页退役，飞牛影视那一组随「媒体库」「用户」「设置」「任务计划」四页退役。
+    /// </para>
     /// </remarks>
     private static List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration,
-        MediaServerKind kind = MediaServerKind.Emby)
-    {
-        var groups = new List<SettingsCategoryGroup> { new("Momoka", SidebarCategories()) };
-        if (serverAdministration) groups.Add(new(kind switch
-        {
-            MediaServerKind.FnNas => "飞牛影视",
-            MediaServerKind.Jellyfin => "JellyfinServer",
-            _ => "EmbyServer"
-        }, AdministrationCategories(kind)));
-        return groups;
-    }
+        MediaServerKind kind = MediaServerKind.Emby) =>
+        [new("Momoka", SidebarCategories(serverAdministration, kind))];
 
+    /// <summary>
+    /// 当前产品下、管理员才看得见的那几个入口。飞牛影视与 Plex 一个都没有 —— 飞牛的四个原生管理页已退役
+    /// （用户令 2026-10-16），Plex 则从来没有对应的服务端接口，所以这里给它们空表，左栏也就不再为它们多出
+    /// 一组。
+    /// </summary>
     private static IReadOnlyList<string> AdministrationCategories(MediaServerKind kind) => kind switch
     {
-        MediaServerKind.FnNas => FnNasAdministrationCategories,
-        MediaServerKind.Jellyfin => [ServerDashboardCategory, ServerUsersCategory, ServerLibrariesCategory, DashboardCategory],
+        MediaServerKind.FnNas => [],
+        MediaServerKind.Plex => [],
+        MediaServerKind.Jellyfin => [DashboardCategory],
         _ => ServerAdministrationCategories
     };
 
     /// <summary>
     /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，服务器、诊断两张内嵌页插在最后一张卡（关于）
-    /// 前面 —— 也就是 MoviePilot 与 关于 中间（用户令 2026-10-11 的次序，见 <see cref="BuildCategoryGroups"/>）。
+    /// 前面 —— 也就是 MoviePilot 与 关于 中间（用户令 2026-10-11 的次序，见 <see cref="BuildCategoryGroups"/>）；
+    /// 管理员才看得见的「通知」「网页控制台」再插在 诊断 与 关于 中间（用户令 2026-10-16）。
     /// </summary>
-    private static IReadOnlyList<string> SidebarCategories() =>
-        [.. CardCategories[..^1], "服务器", "诊断", CardCategories[^1]];
+    private static IReadOnlyList<string> SidebarCategories(bool serverAdministration, MediaServerKind kind) =>
+        [.. CardCategories[..^1], "服务器", "诊断",
+            .. (serverAdministration ? AdministrationCategories(kind) : []),
+            LastCardCategory];
 
     /// <summary>The cards, in the order they appear in the left-hand list.</summary>
     /// <remarks>
@@ -254,7 +257,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </para>
     /// </summary>
     public static IReadOnlyList<string> HostedCategories { get; } =
-        ["服务器", "诊断", .. AllAdministrationCategories];
+        ["服务器", "诊断", .. ServerAdministrationCategories];
 
     /// <summary>
     /// 「通知」那一页. Named because the navigation switch and the self-check both have to say it —
@@ -268,22 +271,16 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     public const string DashboardCategory = "网页控制台";
 
-    public const string ServerDashboardCategory = "控制台";
-    public const string ServerUsersCategory = "用户";
-    public const string ServerLibrariesCategory = "媒体库";
-    public const string FnNasSettingsCategory = "设置";
-    public const string FnNasTasksCategory = "任务计划";
-
     /// <summary>The left-hand list. Order is the order of the cards, then the hosted pages.</summary>
     /// <remarks>
     /// 「恢复默认」曾是这份名单末尾的一项（2026-09-13～2026-09-24）；2026-09-24 按「把恢复默认设置移动到关于中」
     /// 搬进了「关于」卡，和新增的「备份配置文件」「恢复配置」并作三颗动作按钮 —— 见 <see cref="AboutCard"/>。它不再
     /// 是名单里的一项，所以这里也不再有它。
     /// <para>
-    /// 第二组按账号权限整组来去（<see cref="ApplyServerAdministration"/>），而**换的是一份新表，不是原地增删**：
-    /// 那个 <c>CollectionViewSource</c> 的分组视图不吃「组从集合里消失」这一套 —— 组底下的条目确实会没，组的
-    /// 标题却留在屏上（2026-10-10 截图实量，见探针 settings-server-admin-hidden.png 之前那一版）。所以这份表每次
-    /// 重算都是一个新实例，页面把 <c>CategoryGroupsSource.Source</c> 重新指一次。
+    /// 管理员才看得见的那几个入口按身份来去（<see cref="ApplyServerAdministration"/>），而**换的是一份新表，
+    /// 不是原地增删**：那个 <c>CollectionViewSource</c> 的分组视图不吃「组从集合里消失」这一套 —— 组底下的条目
+    /// 确实会没，组的标题却留在屏上（2026-10-10 截图实量，见探针 settings-server-admin-hidden.png 之前那一版）。
+    /// 所以这份表每次重算都是一个新实例，页面把 <c>CategoryGroupsSource.Source</c> 重新指一次。
     /// </para>
     /// </remarks>
     public IReadOnlyList<SettingsCategoryGroup> CategoryGroups => _categoryGroups;
@@ -291,10 +288,10 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>
     /// The flat list of every entry, in the same order as <see cref="CategoryGroups"/> — what the compact
     /// window's picker shows and what <c>SettingsPage.Select</c> answers 「这一页有这一项吗」 from.
-    /// <see cref="ApplyServerAdministration"/> takes the same five names out of it as out of the groups.
+    /// <see cref="ApplyServerAdministration"/> takes the same names out of it as out of the groups.
     /// </summary>
     public ObservableCollection<string> Categories { get; } =
-        [.. SidebarCategories(), .. ServerAdministrationCategories];
+        [.. SidebarCategories(serverAdministration: true, MediaServerKind.Emby)];
 
     public ObservableCollection<SettingSection> Sections { get; } = [];
 
@@ -323,7 +320,13 @@ public sealed partial class SettingsViewModel : PageViewModel
     internal static string FirstCardCategory => CardCategories[0];
 
     /// <summary>
-    /// 这个名字是不是一张设置卡（不是 服务器／诊断／通知／服务器控制台 那几页）。给「点进去落在哪张卡」这类
+    /// 最后一张卡（关于）。管理员才看得见的「通知」「网页控制台」就插在它前面 —— 探针拿它认那两个入口的落点，
+    /// 所以不写成字面量。
+    /// </summary>
+    internal static string LastCardCategory => CardCategories[^1];
+
+    /// <summary>
+    /// 这个名字是不是一张设置卡（不是 服务器／诊断／通知／网页控制台 那几页）。给「点进去落在哪张卡」这类
     /// 读数当判据用：播放页右键菜单末尾那三行设置入口（<see cref="Momoka.Mpv.PlayerSettingsLinks"/>）拿它
     /// 对账，卡片改名而那一张表没跟上时当场报红 —— 找不到名字时 <c>SettingsPage.Select</c> 会安静地退回
     /// 「播放器」，用户点「字幕」却开在别的卡上，那种错靠看是看不出来的。
@@ -365,7 +368,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// has no business being able to reach the session or the player.
     /// </summary>
     /// <param name="capabilities">
-    /// 当前账号是不是服务器管理员 —— 左栏「EmbyServer」那一组的显隐由它决定，见
+    /// 当前账号是不是服务器管理员 —— 左栏「通知」「网页控制台」（以及飞牛影视那一组）的显隐由它决定，见
     /// <see cref="RefreshServerAdministrationAsync"/>。收窄过的能力而不是会话本身：这一页要知道的只有
     /// 「这个账号能不能管服务器」这一位，上面那句「够不着会话」照旧成立。
     /// </param>
@@ -427,15 +430,15 @@ public sealed partial class SettingsViewModel : PageViewModel
         _updates = updates;
     }
 
-    /// <summary>自检读的：服务器管理那一组这会儿是收着的吗（非管理员账号下是）。</summary>
+    /// <summary>自检读的：管理员才看得见的那几个入口这会儿是收着的吗（非管理员账号下是）。</summary>
     internal bool ServerAdministrationHidden => !_showsServerAdministration;
 
     /// <summary>
-    /// 按当前账号的管理员身份决定左栏「EmbyServer」那一组在不在，并在它该收起时把落点收回第一张卡。
+    /// 按当前账号的管理员身份决定「通知」「网页控制台」在不在，并在它们该收起时把落点收回第一张卡。
     /// <para>
     /// 页面每次打开都要走一趟，不能只在建页那一次：设置页是缓存的（半截输入和「刚看的是哪张卡」都要留着），
-    /// 换过账号之后页面不重建，不重走就会留着上一个账号的答案 —— 管理员看过的「控制台」，普通账号再进来照样
-    /// 开着。
+    /// 换过账号之后页面不重建，不重走就会留着上一个账号的答案 —— 管理员看过的「网页控制台」，普通账号再进来
+    /// 照样开着。
     /// </para>
     /// <para>
     /// 身份取自 <see cref="IServerCapabilities.IsAdministrator"/>；Jellyfin 读取用户策略，不能从系统信息的
@@ -448,19 +451,19 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         // 先同步已知状态，防止权限请求尚在等待时显示上一个账号的管理页。
         ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
-        if (_capabilities.IsAdministrator is null || _capabilities.ServerKind == MediaServerKind.FnNas)
+        if (_capabilities.IsAdministrator is null)
             await _capabilities.ProbeAsync().ConfigureAwait(true);
 
         ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
     }
 
     private bool CanShowServerAdministration => _capabilities?.IsConnected == true
-        && (_capabilities.ServerKind is MediaServerKind.Jellyfin or MediaServerKind.FnNas
+        && (_capabilities.ServerKind == MediaServerKind.Jellyfin
             ? _capabilities.IsAdministrator == true
             : _capabilities.IsAdministrator != false);
 
     internal bool CanOpenServerCategory(string category) =>
-        !AllAdministrationCategories.Contains(category, StringComparer.Ordinal)
+        !ServerAdministrationCategories.Contains(category, StringComparer.Ordinal)
         || (CanShowServerAdministration && AdministrationCategories(_capabilities!.ServerKind)
             .Contains(category, StringComparer.Ordinal));
 
@@ -468,11 +471,16 @@ public sealed partial class SettingsViewModel : PageViewModel
         ["服务器", "诊断", .. (_showsServerAdministration ? AdministrationCategories(_administrationKind) : [])];
 
     /// <summary>
-    /// 把「EmbyServer」那一组连同它那五个分类一起装上或摘掉。
+    /// 把当前账号该看得见的那几个入口装上或摘掉。
     /// <para>
     /// 两份名单都要动：左栏那个分组和紧凑窗口的下拉用的是两份数据（<see cref="CategoryGroups"/> 分组、
     /// <see cref="Categories"/> 平铺），只动一份就是「宽窗口藏了、窄窗口还列着」。分组那份换的是一个新表
     /// （理由见 <see cref="CategoryGroups"/>），页面据此重指一次源。
+    /// </para>
+    /// <para>
+    /// 平铺那份的做法是「先把会来会去的那几个名字全摘掉、再按当前产品插回去」，不是原地挪：插回去的位置要
+    /// 先摘干净才算得准 —— Emby／Jellyfin 的「通知」「网页控制台」住「Momoka」组里、落在最后一张卡（关于）
+    /// 前面；飞牛影视一个管理入口都没有，这一份在它名下是空的。
     /// </para>
     /// </summary>
     private void ApplyServerAdministration(bool visible, MediaServerKind kind)
@@ -482,7 +490,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 右半边也不知道该显示哪张卡。先挪开，被摘的就不是选中项，也就没有这一趟。
         var available = visible ? AdministrationCategories(kind) : [];
         if (!visible) MoveOffServerAdministration();
-        else if (AllAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal)
+        else if (ServerAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal)
             && !available.Contains(SelectedCategory, StringComparer.Ordinal))
             SelectedCategory = FirstCardCategory;
 
@@ -492,25 +500,19 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         _categoryGroups = BuildCategoryGroups(visible, kind);
 
-        foreach (var category in AllAdministrationCategories)
-            if (!available.Contains(category, StringComparer.Ordinal)) Categories.Remove(category);
-        var first = Categories.Count - Categories.Count(category => AllAdministrationCategories.Contains(category));
-        for (var index = 0; index < available.Count; index++)
-        {
-            var current = Categories.IndexOf(available[index]);
-            if (current < 0) Categories.Insert(first + index, available[index]);
-            else if (current != first + index) Categories.Move(current, first + index);
-        }
+        foreach (var category in ServerAdministrationCategories) Categories.Remove(category);
+        var index = Categories.IndexOf(LastCardCategory);
+        for (var offset = 0; offset < available.Count; offset++) Categories.Insert(index + offset, available[offset]);
     }
 
     /// <summary>
-    /// 落点若正停在「EmbyServer」那一组上就退回第一张卡。两个来路：上一个账号（管理员）把它留在了「控制台」，
-    /// 或者命令行指了这一个分类 —— 不退回的话右半边留着一个再也选不中的内嵌页，它自己只会说一句
-    /// 「需要服务器管理员权限」。顺带兜住上面那个 null：控件写回来的空选择也在这里被拨回第一张卡。
+    /// 落点若正停在一个管理员才看得见的入口上就退回第一张卡。两个来路：上一个账号（管理员）把它留在了
+    /// 「网页控制台」，或者命令行指了这一个分类 —— 不退回的话右半边留着一个再也选不中的内嵌页，它自己只会
+    /// 说一句「需要服务器管理员权限」。顺带兜住上面那个 null：控件写回来的空选择也在这里被拨回第一张卡。
     /// </summary>
     private void MoveOffServerAdministration()
     {
-        if (SelectedCategory is null || AllAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal))
+        if (SelectedCategory is null || ServerAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal))
             SelectedCategory = FirstCardCategory;
     }
 
@@ -548,7 +550,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(HomeCard());
         Sections.Add(InterfaceCard());
         Sections.Add(PlayerCard());
-        if (MpvCustomConfig.IsAvailable(Settings.Mpv)) Sections.Add(CustomMpvConfigCard());
+        if (MpvCustomConfig.IsBuiltInBackend(Settings.Mpv)) Sections.Add(CustomMpvConfigCard());
         Sections.Add(PlaybackCard());
         Sections.Add(ResourceFilterCard());
         Sections.Add(ScreenshotCard());
@@ -751,28 +753,39 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 播放器卡之后的分区卡：仅内置播放器的独占模式可用（外部后端、集成模式都收起，判定在
-    /// Core 的 <see cref="MpvCustomConfig.IsAvailable"/>），下次播放生效。
+    /// 播放器卡之后的分区卡：<b>内置播放器后端就建卡</b>（用户令 2026-10-16「播放后端选择内置播放器时自定义
+    /// mpv.conf 不自动隐藏」）。卡里那一项只在独占模式下可选；集成模式下它固定为关，那一行换成只读文字
+    /// （判定在 Core 的 <see cref="MpvCustomConfig.IsAvailable"/>，与视频输出卡上「图形接口」在集成模式下的做法
+    /// 同一条路）。外部后端整张卡收起，因为那时读的是 mpv.exe 自己的配置。下次播放生效。
     /// </summary>
     private SettingSection CustomMpvConfigCard()
     {
-        var rows = new List<SettingRow>
+        var rows = new List<SettingRow>();
+        if (MpvCustomConfig.IsAvailable(Settings.Mpv))
         {
-            Toggle("启用自定义 mpv.conf", "读取指定文件中的音视频参数，覆盖本程序的常规播放设置；窗口与播放控制仍由 Momoka 管理。",
+            rows.Add(Toggle("启用自定义 mpv.conf", "读取指定文件中的音视频参数，覆盖本程序的常规播放设置；窗口与播放控制仍由 Momoka 管理。",
                 () => Settings.Mpv.CustomConfigEnabled, value => Settings.Mpv.CustomConfigEnabled = value,
-                after: RefreshCustomMpvConfig)
-        };
-        if (Settings.Mpv.CustomConfigEnabled)
-            rows.Add(PathBox("mpv.conf 路径", "选择并粘贴 mpv.conf 的完整路径",
-                () => Settings.Mpv.CustomConfigPath, value => Settings.Mpv.CustomConfigPath = value,
-                "支持带引号的路径。文件内的 ~~/ 指向配置所在目录；不自动载入该目录的 input.conf 和脚本。"));
-        return new SettingSection("播放器", "自定义 mpv.conf", "仅内置播放器的独占模式可用，下次播放生效。", rows);
+                after: RefreshCustomMpvConfig));
+            if (Settings.Mpv.CustomConfigEnabled)
+                rows.Add(PathBox("mpv.conf 路径", "选择并粘贴 mpv.conf 的完整路径",
+                    () => Settings.Mpv.CustomConfigPath, value => Settings.Mpv.CustomConfigPath = value,
+                    "支持带引号的路径。文件内的 ~~/ 指向配置所在目录；不自动载入该目录的 input.conf 和脚本。"));
+        }
+        else
+        {
+            // 集成模式：不读外部配置文件，这一项固定关闭。只读文字展示有效值，不动用户存着的偏好 ——
+            // 切回独占模式时原来那个开关和路径都还在（隐藏/不可用不清空偏好）。
+            rows.Add(Fact("启用自定义 mpv.conf",
+                "集成模式不读取外部配置文件，这一项固定关闭；切成独占模式后可以选择。", "关"));
+        }
+        return new SettingSection("播放器", "自定义 mpv.conf",
+            "内置播放器可用；只有独占模式会读取这个文件，下次播放生效。", rows);
     }
 
     private void RefreshCustomMpvConfig()
     {
         var index = Sections.ToList().FindIndex(section => section.Title == "自定义 mpv.conf");
-        if (MpvCustomConfig.IsAvailable(Settings.Mpv))
+        if (MpvCustomConfig.IsBuiltInBackend(Settings.Mpv))
         {
             if (index >= 0) Sections[index] = CustomMpvConfigCard();
             else Sections.Insert(Sections.ToList().FindIndex(section => section.Title == "播放器") + 1, CustomMpvConfigCard());
@@ -1243,8 +1256,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             ("随机挑选", Emby.CarouselSource.Random)
         ];
 
-        return new SettingSection("主页", "主页", "顶上那张轮播大图，以及主页上那几排的次序和显示与否，包括每个"
-            + "媒体库自己那一排。",
+        return new SettingSection("主页", "主页", "顶上那张轮播大图、媒体库那一排摆在哪，以及主页上那几排的次序和"
+            + "显示与否，包括每个媒体库自己那一排。",
         [
             // 「在设置中新增关闭轮播图的功能」（用户的话，2026-09-05）。摆在四行轮播设置和拖拽表上面，
             // 因为它管的是整个第一屏：关掉之后顶上那张大图整个没有，那张表里的每一排照旧横着排在各自的
@@ -1296,6 +1309,25 @@ public sealed partial class SettingsViewModel : PageViewModel
                     ShellPrefs.Apply(ui);
                 },
                 "一张封面站多少秒再换下一张，指针停在带上的时候不计时"),
+
+            // 「主页媒体库位置」（用户 2026-10-12 令，当时叫「首页媒体库位置」、摆在界面卡上；2026-10-16 令改名
+            // 并挪进主页卡）。三档的判定在 Core（<see cref="Emby.HomeFold.LibraryOnBanner"/>），主页那一头只管量
+            // 几何和搬那一排。改完当场喊一声（ShellPrefs）：主页在另一个窗口里，它照这一档重新摆一次，不等回到
+            // 主页、不用重启。
+            Pick("主页媒体库位置",
+                "媒体库那一排（进各媒体库的入口）摆在主页第一屏的哪儿。「随窗口高度变换」是装机默认：窗口矮到"
+                    + "快看不见下面那几排时，它自己压到轮播封面的左下角，窗口拉高又落回轮播下面；另两档钉死，"
+                    + "不看窗口高矮。轮播收起来的时候（关掉大图，或者一张幻灯片都没有）没有轮播可依，"
+                    + "「固定在轮播图中」按「在下方」显示。",
+                [
+                    ("随窗口高度变换", Emby.HomeLibraryPlacement.Auto),
+                    ("固定在轮播图中", Emby.HomeLibraryPlacement.OnCarousel),
+                    ("固定在轮播图下方", Emby.HomeLibraryPlacement.BelowCarousel)
+                ],
+                () => ui.HomeLibraryPlacement,
+                value => ui.HomeLibraryPlacement = value,
+                EqualityComparer<Emby.HomeLibraryPlacement>.Default,
+                after: () => ShellPrefs.Apply(ui)),
 
             HomeRows
         ]);
@@ -1437,24 +1469,8 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         rows.AddRange(
         [
-            // 「首页媒体库位置」（用户令 2026-10-12）。摆在界面卡上而不是主页卡上：主页那张卡管的是「放哪几排、
-            // 什么次序、轮播站什么」，这一行管的是「第一屏那块地方长什么样」，是界面的事。三档的判定在 Core
-            // （<see cref="Emby.HomeFold.LibraryOnBanner"/>），主页那一头只管量几何和搬那一排。
-            // 改完当场喊一声（ShellPrefs）：主页在另一个窗口里，它照这一档重新摆一次，不等回到主页、不用重启。
-            Pick("首页媒体库位置",
-                "媒体库那一排（进各媒体库的入口）摆在主页第一屏的哪儿。「随窗口高度变换」是装机默认：窗口矮到"
-                    + "快看不见下面那几排时，它自己压到轮播封面的左下角，窗口拉高又落回轮播下面；另两档钉死，"
-                    + "不看窗口高矮。轮播收起来的时候（关掉大图，或者一张幻灯片都没有）没有轮播可依，"
-                    + "「固定在轮播图中」按「在下方」显示。",
-                [
-                    ("随窗口高度变换", Emby.HomeLibraryPlacement.Auto),
-                    ("固定在轮播图中", Emby.HomeLibraryPlacement.OnCarousel),
-                    ("固定在轮播图下方", Emby.HomeLibraryPlacement.BelowCarousel)
-                ],
-                () => ui.HomeLibraryPlacement,
-                value => ui.HomeLibraryPlacement = value,
-                EqualityComparer<Emby.HomeLibraryPlacement>.Default,
-                after: () => ShellPrefs.Apply(ui)),
+            // 「主页媒体库位置」原来在这一段里（2026-10-12 起，叫「首页媒体库位置」），2026-10-16 按用户令改名并挪
+            // 进主页卡 —— 它和主页那张版面表（勾哪几排、什么次序）说的是同一件事：主页第一屏长什么样。
 
             // 「锁定窗口比例大小」原来就在这里，2026-09-05 按用户的话整条删掉了（「删除设置中锁定比例的功能」）
             // —— 浏览时的窗口从此随便拉，放片子时形状照旧跟着画面走。紧跟着那一行是「默认收起侧边栏」，
@@ -1474,18 +1490,11 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 「新增可在设置中调整图片缓存大小的功能」. Built above so the self-check can drive it; see ImageBudget.
             ImageBudget,
 
-            // 「加入显示评分改为豆瓣评分的功能，可在设置使用豆瓣、tmdb、烂番茄等平台的评分」. The catalogue is
-            // ItemScore's, so the four names exist in exactly one place — and what each option can actually do is in
-            // that class's remarks, which the note below says in the user's own words.
-            Choice("评分来源", Emby.ItemScore.Catalogue,
-                () => ui.ScoreSource,
-                value => ui.ScoreSource = value,
-                note: "详情页那个分显示哪一家的。「烂番茄」读的是服务器上的「影评指数」，是唯一真正独立的第二个分；"
-                    + "「豆瓣」和「TMDB」换的是分数旁边那个署名 —— 服务器上三家的大众分都写在同一个字段里，"
-                    + "客户端换不出来，只能在服务器认出这个条目属于哪一家时把那一家的名字写上去，认不出来就写"
-                    + "「公众评分」。豆瓣要服务器上装了豆瓣刮削插件才认得出来。"),
+            // 「评分来源」原来在这一行下面，2026-10-16 按用户的话整行删掉了（「删掉评分来源这个设置选项，服务端给
+            // 什么评分就用什么」）—— 详情页那个分从此直接画服务器给的那个数（Emby.ItemScore），不再有下拉可选。
 
-            Toggle("显示观看状态标记", "在海报角上显示已看和收藏状态", () => ui.ShowWatchedIndicators, value => ui.ShowWatchedIndicators = value),
+            // 「显示观看状态标记」原来在这一行下面，2026-10-16 按用户的话整行删掉了（「删掉这个开关，改为默认
+            // 开启」）—— 海报角上的已看、收藏和未看集数从此一直画，`AppSettings.UiSettings` 里那句注释记着这件事。
 
             // 「在设置中新增一个精简模式，开启后隐藏各项功能下方的说明」（用户的话，2026-09-25）。收放是页级
             // 的事（SettingRow.NotesHidden），所以 after 里先对齐标记、再逐行喊一遍 —— 与 ShowHomeBanner 不同，
@@ -1505,7 +1514,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         ]);
 
         return new SettingSection("界面", "界面",
-            "配色主题、UI 动画、侧边栏模式、开机自启、首页媒体库位置、隐藏功能下方说明、媒体库分页和图片缓存上限。",
+            "配色主题、UI 动画、侧边栏模式、开机自启、隐藏功能下方说明、媒体库分页和图片缓存上限。",
             rows);
     }
 

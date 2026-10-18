@@ -28,7 +28,6 @@ internal static class ItemDetailTests
         RegisterEpisodes();
         RegisterMissing();
         RegisterMediaInfo();
-        RegisterWebUrl();
         RegisterHero();
         RegisterProse();
     }
@@ -200,8 +199,8 @@ internal static class ItemDetailTests
                 new EmbyItem { Name = "第一季", Type = EmbyItemType.Season, SeriesName = "葬送的芙莉莲" }).Count);
         });
 
-        // 评分那一条搬走了：显示哪个平台的分现在是设置里的一行，规则和它的单测都在 ItemScore / EmbyTests 那边
-        // （「评分来源：…」那一族）。这里从前那一条只问 CommunityRating 怎么格式化，行为一字不改地搬了过去。
+        // 评分那一条搬走了：显示哪个分、署谁的名字，规则和它的单测都在 ItemScore / EmbyTests 那边（「详情评分：…」
+        // 那一族）。这里从前那一条只问 CommunityRating 怎么格式化，行为一字不改地搬了过去。
     }
 
     private static void RegisterFacts()
@@ -1141,34 +1140,6 @@ internal static class ItemDetailTests
             var none = ItemDetail.MediaInfo(new EmbyItem(), null);
             Assert.Equal(1, none.Count);
             Assert.Contains("没有返回可播放的媒体源", none[0].Value);
-        });
-    }
-
-    private static void RegisterWebUrl()
-    {
-        Test("网页端：/emby 要脱掉，且不分大小写", () =>
-        {
-            var item = new EmbyItem { Id = "42", ServerId = "srv" };
-
-            Assert.Equal("http://192.0.2.10:8896/web/index.html#!/item?id=42&serverId=srv",
-                ItemDetail.WebUrl(new Uri("http://192.0.2.10:8896/emby/"), item));
-
-            // The address came from something a person typed, so the case is not ours to assume.
-            Assert.Equal("http://h:8096/web/index.html#!/item?id=42&serverId=srv",
-                ItemDetail.WebUrl(new Uri("http://h:8096/EMBY/"), item));
-
-            // A reverse proxy's sub-path is part of the web root and must survive.
-            Assert.Equal("https://nas.example.com/media/web/index.html#!/item?id=42&serverId=srv",
-                ItemDetail.WebUrl(new Uri("https://nas.example.com/media/emby/"), item));
-        });
-
-        Test("网页端：没有 serverId 就不带，id 会转义", () =>
-        {
-            Assert.Equal("http://h:8096/web/index.html#!/item?id=42",
-                ItemDetail.WebUrl(new Uri("http://h:8096/emby/"), new EmbyItem { Id = "42" }));
-
-            Assert.Contains("id=a%20b",
-                ItemDetail.WebUrl(new Uri("http://h:8096/emby/"), new EmbyItem { Id = "a b" }));
         });
     }
 

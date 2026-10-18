@@ -6,6 +6,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <UserControl.Resources>
+        <Style x:Key="FolderFrameStyle" TargetType="Border" BasedOn="{StaticResource EgFrameStyle}">
+            <Setter Property="Background" Value="{ThemeResource EgTextFaintBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
         <!-- 保留平台按钮模板与焦点反馈；右下操作仅画图标，遮罩负责照片上的对比度。 -->
         <Style x:Key="EgCardActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="32" />
@@ -47,9 +51,15 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <Viewbox Height="14" HorizontalAlignment="Left" VerticalAlignment="Top"
+            IsHitTestVisible="False" Visibility="{x:Bind Card.FolderFrameVisibility, Mode=OneWay}">
+            <Path Fill="{ThemeResource EgTextFaintBrush}" Data="M 0,14 L 0,6 Q 0,0 6,0 L 30,0 L 44,10 L 70,10 L 70,14 Z" />
+        </Viewbox>
         <Border
             x:Name="Art"
             Height="{x:Bind PosterHeight, Mode=OneWay}"
+            Margin="{x:Bind Card.FrameMargin, Mode=OneWay}"
+            Padding="{x:Bind Card.ArtworkPadding, Mode=OneWay}"
             Style="{StaticResource EgFrameStyle}">
             <Grid>
                 <FontIcon
@@ -61,11 +71,17 @@
                     ImageOpened="OnPosterOpened"
                     RenderTransformOrigin="0.5,0.5"
                     Source="{x:Bind Card.Poster, Mode=OneWay}"
-                    Stretch="UniformToFill">
+                    Stretch="{x:Bind Card.PosterStretch, Mode=OneWay}">
                     <Image.RenderTransform>
                         <ScaleTransform x:Name="PosterMotion" />
                     </Image.RenderTransform>
                 </Image>
+                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"
+                    Margin="4" Padding="4,1" Background="{ThemeResource EgScrimBrush}"
+                    Visibility="{x:Bind Card.DurationVisibility, Mode=OneWay}">
+                    <TextBlock Text="{x:Bind Card.DurationText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                        Foreground="{ThemeResource EgOnScrimBrush}" />
+                </Border>
                 <Border
                     x:Name="HoverShade"
                     Background="{ThemeResource EgScrimBrush}"
@@ -174,13 +190,15 @@
             </Grid>
         </Border>
 
-        <StackPanel Grid.Row="1" Margin="0,8,0,0">
+        <StackPanel Grid.Row="1" Margin="{x:Bind Card.TextMargin, Mode=OneWay}">
             <TextBlock
                 x:Name="TitleLine"
                 FontWeight="SemiBold"
                 MaxLines="1"
                 Style="{StaticResource EgBodyStyle}"
                 Text="{x:Bind Card.Title, Mode=OneWay}"
+                Visibility="{x:Bind Card.TitleVisibility, Mode=OneWay}"
+                TextAlignment="{x:Bind Card.TitleAlignment, Mode=OneWay}"
                 TextTrimming="CharacterEllipsis"
                 ToolTipService.ToolTip="{x:Bind Card.Title, Mode=OneWay}" />
             <TextBlock
@@ -188,6 +206,9 @@
                 MaxLines="1"
                 Style="{StaticResource EgDataStyle}"
                 Text="{x:Bind Card.Subtitle, Mode=OneWay}"
+                Visibility="{x:Bind Card.SubtitleVisibility, Mode=OneWay}"
+                TextAlignment="{x:Bind Card.TitleAlignment, Mode=OneWay}"
+                ToolTipService.ToolTip="{x:Bind Card.Subtitle, Mode=OneWay}"
                 TextTrimming="CharacterEllipsis" />
             <!-- 第三行：宣传语或概要。媒体库设置里勾了才有，没勾时整行收起（一个像素都不占）。 -->
             <TextBlock

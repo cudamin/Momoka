@@ -1449,12 +1449,12 @@
             </ListView>
 
             <!--
-              需求 2 的后半句：「诊断和服务器移动到设置里」. The left-hand list now ends with three entries that are
-              not cards — 服务器, 诊断 and 服务器控制台 are whole pages, with a server list that talks to the network,
-              a log view that tails a file and an embedded browser, and none is expressible as a stack of setting
-              rows. Which one is visible follows the selected category, decided in the view model rather than here
-              so the page and the self-check read the same flag. （「恢复默认」曾是这份名单末尾的第四项，2026-09-24
-              搬进了「关于」卡，见 SettingsViewModel.AboutCard。）
+              需求 2 的后半句：「诊断和服务器移动到设置里」. The left-hand list also holds entries that are not
+              cards — 服务器, 诊断, 通知, 网页控制台 and 飞牛影视's four management pages are whole pages, with a
+              server list that talks to the network, a log view that tails a file and an embedded browser, and
+              none is expressible as a stack of setting rows. Which one is visible follows the selected category,
+              decided in the view model rather than here so the page and the self-check read the same flag.
+              （「恢复默认」曾是这份名单末尾的第四项，2026-09-24 搬进了「关于」卡，见 SettingsViewModel.AboutCard。）
             -->
             <Grid x:Name="SettingsContent" Grid.Column="1" Grid.RowSpan="2">
                 <!--

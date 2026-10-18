@@ -355,7 +355,7 @@ public sealed partial class SettingsPage : Page, IShellContent
                 // 这一页本来就有的 ISystemLauncher，所以这里只交「查一次」这一件事的客户端。
                 request.Services.GetRequiredService<UpdateClient>(),
 
-                // 左栏「EmbyServer」那一组只有服务器管理员才看得见，所以这一页要知道当前账号的身份（见
+                // 左栏「通知」「网页控制台」只有服务器管理员才看得见，所以这一页要知道当前账号的身份（见
                 // RefreshServerAdministrationAsync 与下面那一句）。
                 request.Services.GetRequiredService<IServerCapabilities>());
             _ = ViewModel.ReloadAsync();
@@ -380,14 +380,14 @@ public sealed partial class SettingsPage : Page, IShellContent
         //
         // 只有在选择没动的时候才自己喊一次：动了的话 SelectedCategory 的通知已经把 ShowHosted 喊过了（见构造
         // 函数里那个订阅），紧接着再喊一遍就是把内嵌页面建两次 —— 头一个刚 OnNavigatedTo 就被第二次导航
-        // OnNavigatedFrom 掉。第一次打开「服务器」「诊断」「服务器控制台」正是选择会动的那一次，也就是说这三页
-        // 每一次头回打开都白建一个，控制台那一页还白起一次 WebView2。
+        // OnNavigatedFrom 掉。第一次打开「服务器」「诊断」「通知」「网页控制台」正是选择会动的那一次，也就是说
+        // 这几页每一次头回打开都白建一个，网页控制台那一页还白起一次 WebView2。
         if (!Select(request.Category)) ShowHosted();
         QueueSettingsEntrance();
     }
 
     /// <summary>
-    /// 重新核一遍当前账号能不能管服务器，并让左栏那一列跟上 —— 「非管理员账号自动隐藏设置中的 EmbyServer 栏」。
+    /// 重新核一遍当前账号能不能管服务器，并让左栏那一列跟上 —— 「非管理员账号自动隐藏网页控制台」那一令。
     /// <para>
     /// 权限那份读数与落点都归 <see cref="SettingsViewModel.RefreshServerAdministrationAsync"/>。这里多做的一件
     /// 事是**重指一次分组源**：分组表换的是一份新表而不是原地增删，因为 <c>CollectionViewSource</c> 的分组视图
@@ -424,7 +424,6 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </returns>
     private bool Select(string category)
     {
-        if (category == "服务器控制台") category = SettingsViewModel.ServerDashboardCategory;
         if (string.IsNullOrEmpty(category)) return false;
         if (category == "着色器") category = "视频输出";
 
@@ -439,10 +438,10 @@ public sealed partial class SettingsPage : Page, IShellContent
     }
 
     /// <summary>
-    /// Keeps <c>HostedFrame</c> in step with the selected category: 服务器, 诊断 and 服务器控制台 are pages,
-    /// not cards.
+    /// Keeps <c>HostedFrame</c> in step with the selected category: 服务器, 诊断, 通知 and 网页控制台 are
+    /// pages, not cards.（飞牛影视那四张内嵌页 2026-10-16 退役，见 <c>SettingsViewModel</c>。）
     /// <para>
-    /// Navigated afresh every time rather than left in place, because all three load when they are navigated
+    /// Navigated afresh every time rather than left in place, because all of them load when they are navigated
     /// to and none is worth showing stale — a server list from five minutes ago, a log that stopped tailing
     /// and a console whose token has since been replaced are exactly what these exist to not be. Selecting a
     /// card cancels whatever the page had in flight, which is what the frame would have done had we navigated
@@ -466,7 +465,6 @@ public sealed partial class SettingsPage : Page, IShellContent
         }
 
         var services = _request.Services;
-        var isFnNas = services.GetRequiredService<IServerCapabilities>().ServerKind == Momoka.Emby.MediaServerKind.FnNas;
 
         Type page;
         object parameter;
@@ -485,35 +483,6 @@ public sealed partial class SettingsPage : Page, IShellContent
         {
             page = typeof(NotificationsPage);
             parameter = new NotificationsRequest(services);
-        }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.ServerDashboardCategory)
-        {
-            page = typeof(ServerDashboardPage);
-            parameter = new ServerDashboardRequest(services, () => ViewModel.SelectedCategory = SettingsViewModel.DashboardCategory);
-        }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.ServerUsersCategory)
-        {
-            page = isFnNas ? typeof(FnNasUsersPage) : typeof(ServerUsersPage);
-            parameter = isFnNas ? new FnNasUsersRequest(services) : new ServerUsersRequest(services, userId =>
-            {
-                HostedFrame.Navigate(typeof(DashboardPage), new DashboardRequest(services, userId, ShowHosted));
-                HostedFrame.BackStack.Clear();
-            });
-        }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.ServerLibrariesCategory)
-        {
-            page = isFnNas ? typeof(FnNasLibrariesPage) : typeof(ServerLibrariesPage);
-            parameter = isFnNas ? new FnNasLibrariesRequest(services) : new ServerLibrariesRequest(services);
-        }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasSettingsCategory)
-        {
-            page = typeof(FnNasSettingsPage);
-            parameter = new FnNasSettingsRequest(services);
-        }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasTasksCategory)
-        {
-            page = typeof(FnNasTasksPage);
-            parameter = new FnNasTasksRequest(services);
         }
         else if (ViewModel.SelectedCategory == SettingsViewModel.DashboardCategory)
         {

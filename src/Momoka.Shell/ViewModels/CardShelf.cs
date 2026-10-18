@@ -40,6 +40,11 @@ public sealed partial class CardShelf : ObservableObject
     /// True for a 16:9 row, which prefers the episode still over the poster — a 继续观看 card is about
     /// the scene you stopped at, not the cover art.
     /// </param>
+    /// <param name="indicators">
+    /// 这一排的卡片画不画角标（已看、收藏、未看集数），转给 <see cref="CardItem"/>。**默认画**：2026-10-16
+    /// 之后它不再是一个用户开关，只有「这一排本来就没有状态可言」的几处调用点说不画 —— 主页的媒体库那一排、
+    /// 演职人员。
+    /// </param>
     /// <param name="libraryId">
     /// 这一排代表哪个媒体库，「最近添加 · 电影」那一排才有值（主页媒体库那几排各自是
     /// <c>HomeLayout.LibraryKey</c> 造出来的）。有了它，牌子右端那个大于号才知道该把
@@ -51,7 +56,7 @@ public sealed partial class CardShelf : ObservableObject
     /// 牌子一直是死的；而用户那句「新增点击图中红框的标题可以进入对应的页面」圈的正是「继续观看」。
     /// 判据改成问版面要一个去处，库里那几排照旧，那两排也有了。
     /// </param>
-    internal CardShelf(string title, EmbyImageStore images, int width, bool wide, bool indicators,
+    internal CardShelf(string title, EmbyImageStore images, int width, bool wide, bool indicators = true,
         string? libraryId = null, HomeLayout.HomeRowTarget target = HomeLayout.HomeRowTarget.None)
     {
         Title = title;

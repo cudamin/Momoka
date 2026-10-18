@@ -119,7 +119,8 @@ internal sealed partial class ShellNavigationProbe
                 await SaveReturnFrameAsync(shell, $"home-return-{width}-refreshed.png");
             }
 
-            // 设置 → 界面 → 「首页媒体库位置」（2026-10-12）：两个「固定」档不看窗口高矮。上面那一轮已经在
+            // 设置 → 主页 → 「主页媒体库位置」（2026-10-12 进设置、2026-10-16 挪进主页卡）：两个「固定」档不看窗口
+            // 高矮。上面那一轮已经在
             // 1000 宽上量出默认档的两个答案（980 高压上、300 高回默认），这里就在同一套几何上把设置拨过去 ——
             // 该压的松了手、该落的不落，都当场看得出来。拨完放回装机那一档，别把状态留给下一次运行。
             ResizeInspect(1000, 980);
@@ -191,5 +192,15 @@ internal sealed partial class ShellNavigationProbe
         stream.Seek(0);
         using var output = File.Create(Path.Combine(_options.Paths.LogDirectory, name));
         await stream.AsStreamForRead().CopyToAsync(output);
+    }
+
+    /// <summary>
+    /// 同上，先等一会儿再拍。给那些刚被拨过一下、还欠一两拍布局的界面用：截图拍的是当下这一帧，不先把
+    /// 布局催齐就会拍到上一帧的样子。
+    /// </summary>
+    private async Task SaveSettledFrameAsync(FrameworkElement element, string name)
+    {
+        await Task.Delay(300);
+        await SaveReturnFrameAsync(element, name);
     }
 }

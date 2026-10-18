@@ -158,8 +158,9 @@ internal static partial class ShellSelfCheck
 
         // The left-hand list and the cards, against each other. Both are written out by hand and in different
         // places, so a category with no card is an entry that shows an empty pane and a card with no category
-        // is a card no one can reach. 服务器, 诊断 and 服务器控制台 are the entries that are deliberately not
-        // cards — they are pages hosted in the same column (需求 2) — so they join the cards on that side.
+        // is a card no one can reach. 服务器, 诊断, 通知 and 网页控制台 are deliberately not cards — they are pages
+        // hosted in the same column (需求 2) — so they join the cards on that side.（飞牛影视那四张内嵌页
+        // 2026-10-16 退役，不再出现在这份名单里。）
         // （「恢复默认」曾是名单末尾的第四项，2026-09-24 搬进了「关于」卡，不再在这份名单里，见下方那一关。）
         var expected = page.Cards
             .Select(card => card.Category)
@@ -178,7 +179,7 @@ internal static partial class ShellSelfCheck
             unreachable.Count > 0
                 ? $"分类与卡片对不上：{string.Join('、', unreachable)}"
                 : $"{sections} 张卡片 + {page.ViewModel.AvailableHostedCategories.Count} 个内嵌页面、{rows} 行设置，当前「{category}」"
-                    + (hidden ? "；服务器管理分区已隐藏" : ""));
+                    + (hidden ? "；服务器管理入口已隐藏" : ""));
 
         // Every category, not just the last: a card that drew nothing would otherwise be hidden by the ones
         // that drew before it, since the count is of the whole tree.
@@ -358,10 +359,11 @@ internal static partial class ShellSelfCheck
 
         // 安全起播已经替换旧命令行传头：保留可见提示检查，但不能继续要求屏上承诺泄露令牌。
         // 这里只验证说明与播放器、播放行为两个分类的各行；管道身份和起播顺序由 Core 的离线子进程夹具验证。
-        // 2026-10-11 起播放器分类一或两张分区卡（播放器 ＋ 随独占模式进出的自定义 mpv.conf；外置两行同日
-        // 并回播放器卡、仅外部后端在场），同日用户令「截图分区移到播放行为里」：那一类三张分区卡（播放行为
-        // ／资源筛选／截图），媒体源排序与视频文件名筛选凑成「资源筛选」—— 各自搬回了或落错卡都要当场报红。
-        // 内置后端时外置两行必须整个缺席，说明留着的空行也算红。
+        // 2026-10-11 起播放器分类一或两张分区卡（播放器 ＋ 自定义 mpv.conf；外置两行同日并回播放器卡、仅外部后端
+        // 在场），同日用户令「截图分区移到播放行为里」：那一类三张分区卡（播放行为／资源筛选／截图），媒体源排序与
+        // 视频文件名筛选凑成「资源筛选」—— 各自搬回了或落错卡都要当场报红。内置后端时外置两行必须整个缺席，说明
+        // 留着的空行也算红。2026-10-16 用户令「内置播放器时自定义 mpv.conf 不自动隐藏，集成模式下这一项固定为关」：
+        // 那张卡改随内置后端在场，集成模式下开关换成值为「关」的只读文字。
         var playerSections = page.ViewModel.Sections
             .Where(section => section.Category == "播放器").ToList();
         var playerRows = playerSections.SelectMany(section => section.Rows).ToList();
@@ -381,7 +383,13 @@ internal static partial class ShellSelfCheck
         var hasPipeline = videoBasicsRows.Any(row => row.Label == "渲染管线");
         var hasRenderer = videoBasicsRows.Any(row => row.Label == "视频渲染");
         var pipelineRow = videoBasicsRows.OfType<SettingChoiceRow>().SingleOrDefault(row => row.Label == "渲染管线");
-        var customAvailable = builtIn && pipelineRow is not null && ReferenceEquals(pipelineRow.Selected, pipelineRow.Choices[1]);
+        var customAvailable = builtIn;
+        var standalone = pipelineRow is not null && ReferenceEquals(pipelineRow.Selected, pipelineRow.Choices[1]);
+        var customRows = playerSections.FirstOrDefault(section => section.Title == "自定义 mpv.conf")?.Rows ?? [];
+        var customShapeOk = !builtIn
+            || (standalone
+                ? customRows.OfType<SettingToggleRow>().Any(row => row.Label == "启用自定义 mpv.conf")
+                : customRows.OfType<SettingFactRow>().Any(row => row.Label == "启用自定义 mpv.conf" && row.Value == "关"));
         var fixedPlaybackRows = new[] { "截图保存目录", "截图格式", "色彩空间标记" };
         var screenshotNote = playbackRows.FirstOrDefault(row => row.Label == "截图保存目录")?.Note ?? "";
         var resourceRows = playbackSections.FirstOrDefault(section => section.Title == "资源筛选")?.Rows ?? [];
@@ -391,6 +399,7 @@ internal static partial class ShellSelfCheck
                 && backendRow is not null && hasPipeline == builtIn && hasRenderer == !builtIn
                 && playerRows.Any(row => row.Label == "播放后端") && playerSections.Count == (customAvailable ? 2 : 1)
                 && playerSections.Any(section => section.Title == "自定义 mpv.conf") == customAvailable
+                && customShapeOk
                 && playbackSections.Select(section => section.Title).SequenceEqual(new[] { "播放行为", "资源筛选", "截图" })
                 && resourceRows.Select(row => row.Label).SequenceEqual(new[] { "媒体源排序", "视频文件名筛选" })
                 && fixedPlaybackRows.All(label => playbackRows.Any(row => row.Label == label))
@@ -400,7 +409,7 @@ internal static partial class ShellSelfCheck
                 + $"截图那行{(screenshotNote.Contains("留空用装机落点") ? "写明" : "没写明")}留空时的落点；"
                 + $"播放器分类 {playerSections.Count} 个分区共 {playerRows.Count} 行、"
                 + $"播放行为分类 {playbackSections.Count} 个分区共 {playbackRows.Count} 行"
-                + "（播放行为／资源筛选／截图三张分区；外置两行仅外部后端在场，自定义 mpv.conf 随独占模式进出，WebP 的无损、质量和压缩行随当前设置变化）");
+                + "（播放行为／资源筛选／截图三张分区；外置两行仅外部后端在场，自定义 mpv.conf 随内置后端在场、集成模式下那一项固定为关，WebP 的无损、质量和压缩行随当前设置变化）");
 
         // 音频输出设备那一行必须始终可用。设备列表要从 mpv 读（临时开一个 libmpv 句柄只为枚举），而那一趟可能
         // 答不上来 —— 找不到 libmpv、没装 WASAPI 输出、机器上没有声卡。那时候这一行必须还剩「跟随系统默认设备」

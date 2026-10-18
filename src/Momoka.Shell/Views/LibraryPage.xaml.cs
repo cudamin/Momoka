@@ -55,11 +55,24 @@ public sealed partial class LibraryPage : Page, IShellContent
     private readonly SolidColorBrush _tabSelected = new();
     private readonly SolidColorBrush _tabForeground = new();
 
+    /// <summary>
+    /// 窗口停下来之后再去算这一面墙的格宽（见 <see cref="OnCardWallSizeChanged"/>）。拖动窗口时尺寸每帧都变，
+    /// 每帧重造一遍卡片等于每帧给几十张封面各发一趟请求。
+    /// </summary>
+    private readonly DispatcherQueueTimer _gridResize;
+
     public static string HeaderTitle(Visibility search, string heading) => search == Visibility.Visible ? "搜索" : heading;
 
     public LibraryPage()
     {
         InitializeComponent();
+
+        // 这一面墙一格多宽是按窗口宽度算的（见 LibraryViewModel.ResizeGrid）：窗口一停就把新宽度推过去。
+        // 计时器在这里建，是因为「停下来」这件事只有页面知道 —— 尺寸变化本身不带「这是最后一帧」。
+        _gridResize = DispatcherQueue.CreateTimer();
+        _gridResize.Interval = TimeSpan.FromMilliseconds(120);
+        _gridResize.IsRepeating = false;
+        _gridResize.Tick += (_, _) => RebuildWall();
 
         // Before the first load can raise it. The view model asks for one more page when it has just
         // added one; whether the window is full is the one thing only the view can answer.
@@ -90,8 +103,17 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSurface.SizeChanged += OnHeaderSizeChanged;
         Toolbar.SizeChanged += OnHeaderSizeChanged;
         LibraryTitle.SizeChanged += OnHeaderSizeChanged;
+        PageRoot.SizeChanged += (_, _) => ApplyPanelSize();
+        FilterOverlay.SizeChanged += (_, _) => ApplyPanelSize();
+        SettingsOverlay.SizeChanged += (_, _) => ApplyPanelSize();
         // 窗口宽窄变了，表格画布要多宽就跟着变（见 ApplyTableWidth）。
         TableScroll.SizeChanged += (_, _) => ApplyTableWidth();
+        // 量的是外面这层滚动器而不是卡片墙自己：墙的宽度是算出来钉上去的（见 ApplyWallMetrics），
+        // 量它自己等于拿上一帧的答案算这一帧。
+        TableScroll.SizeChanged += (_, _) => OnWallWidthChanged();
+        UpcomingScroll.SizeChanged += (_, _) => ViewModel.ResizeUpcoming(UpcomingScroll.ActualWidth);
+        UpcomingScroll.ViewChanged += OnUpcomingViewChanged;
+        FavoritesScroll.SizeChanged += (_, _) => ViewModel.ResizeFavorites(FavoritesScroll.ActualWidth);
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -139,7 +161,11 @@ public sealed partial class LibraryPage : Page, IShellContent
         // Clicking the already-selected ToggleButton would otherwise uncheck the only selection.
         foreach (var tab in LibrarySections.Children.OfType<ToggleButton>())
             tab.IsChecked = tab.Tag is LibrarySection value && value == ViewModel.Section;
-        _scroll?.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        if (ViewModel.IsUpcomingPage)
+            UpcomingScroll.ChangeView(null, 0, null, disableAnimation: true);
+        else if (ViewModel.IsFavoritesPage)
+            FavoritesScroll.ChangeView(null, 0, null, disableAnimation: true);
+        else _scroll?.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
     }
 
     private async void OnBrowseGroupBack(object sender, RoutedEventArgs e) =>
@@ -154,6 +180,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             BuildBrowseSections();
             ApplyView();
         }
+        if (e.PropertyName is nameof(LibraryViewModel.UpcomingVisibility) or nameof(LibraryViewModel.FavoritesVisibility)) ApplyHeaderLayout();
         if (e.PropertyName == nameof(LibraryViewModel.SortLabel)
             || e.PropertyName == nameof(LibraryViewModel.SortDescending))
             Alpha.SetCurrent(null);
@@ -293,7 +320,9 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private (string Label, string Layout, double Cell, double Row) Shape() => CardWall.Layout switch
     {
-        UniformGridLayout grid => (ViewModel.ViewLabel, nameof(UniformGridLayout), grid.MinItemWidth, grid.MinItemHeight),
+        // 格宽取视图模型算出来的那一份，不取版面的 MinItemWidth：2026-10-18 起版面的最小宽是「图像大小」那一档，
+        // 摊出来的格宽比它宽一点（列数由版面定，剩下的宽度平摊给这几列）。行高同源。
+        UniformGridLayout => (ViewModel.ViewLabel, nameof(UniformGridLayout), ViewModel.CellWidth, ViewModel.RowHeight),
         { } other => (ViewModel.ViewLabel, other.GetType().Name, 0, 0),
         _ => (ViewModel.ViewLabel, "没有布局", 0, 0)
     };
@@ -337,6 +366,53 @@ public sealed partial class LibraryPage : Page, IShellContent
                 _ => "不是纯色",
             };
         }
+    }
+
+    /// <summary>
+    /// 探针：这一面墙上一个真实格子多宽、格子里的卡片画多宽、这一行排了几张、墙本身多宽。
+    /// <para>
+    /// 用户令 2026-10-18「封面随窗口大小变化，互相之间不要留太大的空隙」说的是像素，所以这里量的是活的容器：
+    /// 算出来的数只能证明算式自洽，证明不了卡片真的填满了格子。格子比卡片宽出来的那一截，就是两张封面之间多
+    /// 出来的那条缝。
+    /// </para>
+    /// </summary>
+    internal (double Cell, double Card, double Wall, double Viewport) GridPaint()
+    {
+        CardWall.UpdateLayout();
+
+        var origin = new Windows.Foundation.Point(0, 0);
+        var cards = DescendantsOf(CardWall).OfType<PosterCard>()
+            .Select(card => (Card: card, Top: card.TransformToVisual(CardWall).TransformPoint(origin).Y))
+            .ToArray();
+        if (cards.Length == 0) return (0, 0, CardWall.ActualWidth, TableScroll.ActualWidth);
+
+        var first = cards.Min(entry => entry.Top);
+        var row = cards.Where(entry => Math.Abs(entry.Top - first) < 2).ToArray();
+        var sample = row[0].Card;
+
+        // 卡片外面那层就是格子（模板里 PosterCard 直接住在 ItemContainer 里）；量格子而不是量卡片，才看得见
+        // 「卡片没填满格子」这件事本身。
+        var cell = (FrameworkElement)sample;
+        for (var node = VisualTreeHelper.GetParent(sample); node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is ItemContainer box)
+            {
+                cell = box;
+                break;
+            }
+        }
+
+        return (cell.ActualWidth, sample.ActualWidth, CardWall.ActualWidth, TableScroll.ActualWidth);
+    }
+
+    /// <summary>视觉树里所有这种东西，按从外到里的顺序。</summary>
+    private static IEnumerable<DependencyObject> DescendantsOf(DependencyObject node)
+    {
+        yield return node;
+
+        var children = VisualTreeHelper.GetChildrenCount(node);
+        for (var index = 0; index < children; index++)
+            foreach (var child in DescendantsOf(VisualTreeHelper.GetChild(node, index))) yield return child;
     }
 
     /// <summary>视觉树里第一个这种东西，可以再挑名字。找不到就是 null —— 没实现出来的容器不是错。</summary>
@@ -421,10 +497,33 @@ public sealed partial class LibraryPage : Page, IShellContent
         var queryToken = ViewModel.QueryToken;
         await loading.ConfigureAwait(true);
         if (_released || navigation != _navigation || !ViewModel.QueryCurrent(queryToken)) return;
-        if (count > 0) await ViewModel.LoadUntilAsync(count - 1).ConfigureAwait(true);
+        if (count > 0 && !ViewModel.IsFavoritesPage) await ViewModel.LoadUntilAsync(count - 1).ConfigureAwait(true);
         if (_released || navigation != _navigation || !ViewModel.QueryCurrent(queryToken)) return;
-        CardWall.UpdateLayout();
-        CardWall.ScrollView?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        if (ViewModel.IsUpcomingPage)
+        {
+            UpcomingScroll.UpdateLayout();
+            UpcomingScroll.ChangeView(null, offset, null, disableAnimation: true);
+        }
+        else if (ViewModel.IsFavoritesPage)
+        {
+            if (offset > 0)
+                foreach (var row in ViewModel.FavoriteRows)
+                    while (ViewModel.QueryCurrent(queryToken) && row.HasMore && row.Error.Length == 0
+                        && row.ReadCount < count)
+                    {
+                        var before = row.ReadCount;
+                        await ViewModel.LoadFavoriteRowAsync(row).ConfigureAwait(true);
+                        if (row.ReadCount <= before) break;
+                    }
+            if (_released || navigation != _navigation || !ViewModel.QueryCurrent(queryToken)) return;
+            FavoritesScroll.UpdateLayout();
+            FavoritesScroll.ChangeView(null, offset, null, disableAnimation: true);
+        }
+        else
+        {
+            CardWall.UpdateLayout();
+            CardWall.ScrollView?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        }
     }
 
     public void Release()
@@ -437,7 +536,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _navigation++;
         if (_request is { } request)
         {
-            request.ScrollOffset = _scroll?.VerticalOffset ?? 0;
+            request.ScrollOffset = ContentScrollOffset;
             request.LoadedCount = ViewModel.Cards.Count;
         }
         ViewModel.Cancel();
@@ -486,6 +585,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         ThemeHost.Changed -= UpdateTabColors;
         HomeMotion.Stop(SearchSurface);
+        _gridResize.Stop();
         if (_scroll is null) return;
 
         _scroll.ViewChanged -= OnViewChanged;
@@ -495,36 +595,66 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnHeaderSizeChanged(object sender, SizeChangedEventArgs e) => ApplyHeaderLayout();
 
     /// <summary>
-    /// How much of the header row the library's name takes, for the tab strip to be measured against.
-    /// The measured width is the honest one, but it is zero on the first pass — before the title has been
-    /// laid out once — and a zero there would let the tabs run the whole width and sit on top of it.
+    /// 这一面墙的可用宽度变了：先把格宽、行高算出来（拖窗口时每帧都要算，这一步只算账），再等窗口停下来
+    /// 重画卡片 —— 拖动时每帧重画一遍，等于每帧给几十张封面各发一趟请求，而解码宽度必须跟着画出来的宽度走，
+    /// 不能不重画（见 <see cref="LibraryViewModel.RebuildGrid"/>）。
     /// </summary>
-    private double TitleWidth()
+    private void OnWallWidthChanged()
     {
-        var measured = LibraryTitle.ActualWidth;
-        return measured > 0 ? measured + 24 : Math.Min(240, HeaderLayout.ActualWidth * 0.4);
+        ApplyWallMetrics();
+
+        _gridResize.Stop();
+        _gridResize.Start();
     }
 
-    /// <summary>按内容区宽度给搜索区留出对称空间；侧栏、按钮文字和来源显隐都参与实际测量。</summary>
+    /// <summary>
+    /// 窗口停下来了：按当前格宽重画卡片。卡片是原地换宽度的（不换对象、不动列表），所以滚动位置不用管。
+    /// </summary>
+    private void RebuildWall()
+    {
+        _gridResize.Stop();
+        ViewModel.RebuildGrid();
+    }
+
+    /// <summary>
+    /// 按可用宽度算这一面墙的格子（格宽、行高）。版面的 <c>MinItemWidth</c> 是档位宽、不随窗口变，它自己会在
+    /// 可用尺寸变过时重算列数；格宽与行高按同一条算术跟着走（见 <see cref="LibraryCardMetrics.Fit"/>）。
+    /// </summary>
+    private void ApplyWallMetrics()
+    {
+        var width = TableScroll.ActualWidth;
+        if (width <= 0 || !double.IsFinite(width)) return;
+        ViewModel.ResizeGrid(width);
+    }
+
+    /// <summary>库名独占一行，分类与工具栏在下面分别居中；搜索保留自己的版式。</summary>
     private void ApplyHeaderLayout()
     {
         var width = HeaderLayout.ActualWidth;
         if (width <= 0) return;
 
         var search = _request?.IsSearch == true;
-        PageRoot.RowSpacing = search ? 8 : 20;
-        HeaderGrid.RowSpacing = search ? 0 : 16;
-        HeaderLayout.RowSpacing = search ? 16 : 20;
-        // 网页端这一行是「库名在左、分类在右」，所以媒体库这一页的标题不再收起 —— 2026-10-17 用户令
-        // 「左上角参考网页版加上电视节目」。分类栏占右边那一格，宽度是页面宽度减掉标题量出来的那一截，
-        // 窄窗里它自己折行，而不是压到标题上。
+        var sectionLibrary = ViewModel.IsSectionLibrary;
+        var contentPage = ViewModel.IsUpcomingPage || ViewModel.IsFavoritesPage;
+        PageRoot.Margin = sectionLibrary ? new Thickness(20) : (Thickness)Application.Current.Resources["EgPageMargin"];
+        PageRoot.RowSpacing = search ? 8 : contentPage ? 4 : 20;
+        HeaderGrid.RowSpacing = search || contentPage ? 0 : 16;
+        HeaderLayout.RowSpacing = search ? 16 : sectionLibrary ? 12 : 20;
+        ((Grid)UpcomingScroll.Parent).RowSpacing = contentPage ? 0 : 16;
         LibraryTitle.Visibility = Visibility.Visible;
-        LibrarySectionsSurface.MaxWidth = Math.Max(0, width - TitleWidth());
-        ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right : HorizontalAlignment.Left;
+        LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
+        LibrarySectionsSurface.MaxWidth = width;
+        LibrarySectionsSurface.HorizontalAlignment = HorizontalAlignment.Center;
+        Grid.SetRow(LibrarySectionsSurface, 1);
+        Grid.SetColumn(LibrarySectionsSurface, 0);
+        Grid.SetColumnSpan(LibrarySectionsSurface, 2);
+        ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right : sectionLibrary ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        Toolbar.CenterRows = sectionLibrary;
         Grid.SetRow(SearchSurface, 1);
         Grid.SetRow(LibraryTitle, 0);
-        Grid.SetRow(ToolbarSurface, search ? 0 : 1);
-        LibraryTitle.MaxWidth = search ? width : Math.Max(0, width / 2);
+        Grid.SetColumnSpan(LibraryTitle, search ? 1 : 2);
+        Grid.SetRow(ToolbarSurface, search ? 0 : sectionLibrary ? 2 : 1);
+        LibraryTitle.MaxWidth = width;
         ToolbarSurface.MaxWidth = width;
         if (!search) return;
 
@@ -552,6 +682,17 @@ public sealed partial class LibraryPage : Page, IShellContent
         }
     }
 
+    private void ApplyPanelSize()
+    {
+        if (PageRoot.ActualWidth <= 0 || PageRoot.ActualHeight <= 0) return;
+        var (width, height) = Momoka.Infrastructure.LibraryPanelSize.For(PageRoot.ActualWidth, PageRoot.ActualHeight);
+        foreach (var pane in new FrameworkElement[] { FilterPane, SettingsPane })
+        {
+            pane.Width = width;
+            pane.Height = height;
+        }
+    }
+
     /// <summary>
     /// The paging trigger. One viewport of slack, which is what keeps a fast scroll from ever reaching
     /// the bottom of what has been loaded.
@@ -564,6 +705,20 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         SyncAlphaFromScroll();
     }
+
+    private void OnUpcomingViewChanged(object? sender, ScrollViewerViewChangedEventArgs args)
+    {
+        if (_released || _removingCard || !ViewModel.IsUpcomingPage) return;
+        var remaining = UpcomingScroll.ScrollableHeight - UpcomingScroll.VerticalOffset;
+        if (remaining < UpcomingScroll.ViewportHeight) ViewModel.LoadMore();
+    }
+
+    private void OnFavoriteMoreClicked(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: FavoriteRow row }) _ = ViewModel.LoadFavoriteRowAsync(row);
+    }
+
+    private void OnUpcomingRetryClicked(object sender, RoutedEventArgs e) => Reload();
 
     /// <summary>
     /// Asks for one more page when the last did not fill the window, and keeps the two play buttons
@@ -578,8 +733,12 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {
-            if (_released || _removingCard || _scroll is null || !ViewModel.HasMore) return;
-            if (_scroll.ExtentHeight <= _scroll.ViewportHeight + 1) ViewModel.LoadMore();
+            if (_released || _removingCard || !ViewModel.HasMore) return;
+            if (ViewModel.IsUpcomingPage)
+            {
+                if (UpcomingScroll.ScrollableHeight < UpcomingScroll.ViewportHeight) ViewModel.LoadMore();
+            }
+            else if (_scroll is { } scroll && scroll.ExtentHeight <= scroll.ViewportHeight + 1) ViewModel.LoadMore();
         });
     }
 
@@ -610,6 +769,9 @@ public sealed partial class LibraryPage : Page, IShellContent
     private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
         ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
 
+    private double ContentScrollOffset => ViewModel.IsUpcomingPage ? UpcomingScroll.VerticalOffset
+        : ViewModel.IsFavoritesPage ? FavoritesScroll.VerticalOffset : _scroll?.VerticalOffset ?? 0;
+
     private bool _removingCard;
     private int _removalVersion;
 
@@ -623,7 +785,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_released || !ViewModel.QueryCurrent(token)) return;
         var version = ++_removalVersion;
-        var offset = _scroll?.VerticalOffset ?? 0;
+        var offset = ContentScrollOffset;
         _removingCard = true;
         var removed = await ViewModel.RemoveAsync(card, token, deleted).ConfigureAwait(true);
         if (version != _removalVersion) return;
@@ -632,8 +794,21 @@ public sealed partial class LibraryPage : Page, IShellContent
             _removingCard = false;
             return;
         }
-        CardWall.UpdateLayout();
-        _scroll?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        if (ViewModel.IsUpcomingPage)
+        {
+            UpcomingScroll.UpdateLayout();
+            UpcomingScroll.ChangeView(null, offset, null, disableAnimation: true);
+        }
+        else if (ViewModel.IsFavoritesPage)
+        {
+            FavoritesScroll.UpdateLayout();
+            FavoritesScroll.ChangeView(null, offset, null, disableAnimation: true);
+        }
+        else
+        {
+            CardWall.UpdateLayout();
+            _scroll?.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+        }
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {
             if (version != _removalVersion) return;
@@ -711,6 +886,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (_capabilities is null) return;
 
         FilterOverlay.Visibility = Visibility.Visible;
+        ApplyPanelSize();
     }
 
     /// <summary>
@@ -722,7 +898,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_capabilities is null) return;
 
-        FilterPane.Open(ViewModel.Filters, ViewModel.SortPreset, _capabilities.ServerVersion, ViewModel.FetchFilterValuesAsync);
+        FilterPane.Open(ViewModel.Filters, ViewModel.SortPreset, _capabilities.ServerVersion, ViewModel.FetchFilterValuesAsync, ViewModel.SourceServerKind);
     }
 
     /// <summary>收起筛选层，回到原来的网格。</summary>
@@ -892,7 +1068,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         MoviePilotResources.Visibility = source == 2 ? Visibility.Visible : Visibility.Collapsed;
         AniBtPanel.Visibility = source == 3 ? Visibility.Visible : Visibility.Collapsed;
         EmbyContent.Visibility = source == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : Visibility.Visible;
+        ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : ViewModel.ToolbarVisibility;
         SearchInput.PlaceholderText = source switch
         {
             1 => "输入关键词，按回车搜索可订阅的影视",
@@ -927,8 +1103,9 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnSettingsClicked(object sender, RoutedEventArgs e)
     {
-        SettingsPane.Show(ViewModel.Display, ViewModel.Section);
+        SettingsPane.Show(ViewModel.Display, ViewModel.Section, ViewModel.IndexKind);
         SettingsOverlay.Visibility = Visibility.Visible;
+        ApplyPanelSize();
     }
 
     /// <summary>面板上那颗 ✕，或者面板外面那片空位。收起面板层，回到原来的网格。</summary>
@@ -1000,14 +1177,14 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </remarks>
     private void ApplyView()
     {
-        if (ViewModel.IsBrowseIndex)
-        {
-            CardWall.ItemTemplate = (DataTemplate)Resources["LibraryIndexTemplate"];
-            CardWall.Layout = (Layout)Resources["LibraryIndexLayout"];
-            TableHeader.Visibility = Visibility.Collapsed;
-            ApplyTableWidth();
-            return;
-        }
+        // 索引页（类型、播出平台）走的就是下面这套，没有专属分支：从 2026-10-18 起这两页的卡片就是普通
+        // 海报卡，差别只在卡片自己身上 —— 方卡/宽卡的高宽比、居中的单行名字、留边不裁的台标，都由
+        // CardItem 按 IndexKind 带着走（见 LibraryIndexCards 与 LibraryViewModel.NewCard）。
+        //
+        // 从前这两页有一个专属模板与专属版面（写死 170×72 的文字格）。把它们去掉不只是删旧代码：换页时
+        // 换模板换版面会让 ItemsView 把整面墙重新实现一遍，而「临时换一份版面」正是 2026-10-18 那次
+        // 格子宽度错乱（模型 342、屏上 422）的来源。现在四种视图之外的页共用同一份模板与版面，
+        // 换页不再动它们，那条路径就不存在了。
         CardWall.ItemTemplate = ViewModel.View switch
         {
             LibraryView.Thumb or LibraryView.Banner or LibraryView.Disc or LibraryView.Logo =>
@@ -1029,6 +1206,10 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (ViewModel.View == LibraryView.Table) BuildTableHeader();
         ApplyTableWidth();
     }
+
+
+
+
 
     /// <summary>
     /// 表格视图的横向滚动面。勾满字段时一行比页面宽，从前是从右边裁掉；现在画布跟着列宽走，多出来的

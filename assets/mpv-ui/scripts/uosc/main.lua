@@ -77,7 +77,11 @@
 -- │                             #3E3E3E 上下各让 4；子面板贴父面板右缘零缝、顶边对齐父项行、父面板
 -- │                             不动；无标题/脚注/最小宽。缩放仍走 state.scale（DPI，全屏/最大化
 -- │                             ×1.3 —— 同日早些「大小跟集成模式一致」那道令保留的部分）。逐项映射
--- │                             见本文件选项区 MOMOKA[menu-style]，几何与上色在 Menu.lua 同名槽
+-- │                             见本文件选项区 MOMOKA[menu-style]，几何与上色在 Menu.lua 同名槽。
+-- │                             **2026-10-17 再叠一档 menu_scale 0.88**（用户令「把独占模式的右键
+-- │                             菜单和子菜单整体缩小约 12%，保持底部控制条、顶栏和其他控件不变」）：
+-- │                             选项在 main.lua 的 menu_scale，落点只有 Menu.lua 的
+-- │                             update_content_dimensions（state.scale × menu_scale），重打时两处都要带
 -- │   elements/TopBar.lua
 -- │     MOMOKA[topbar-back]   左上角返回按钮：退出 mpv＝回到外壳详情页（与集成模式左上角返回同位同义）
 -- │     MOMOKA[topbar-pin]    右上角置顶按钮（push_pin）：点它 cycle ontop（置顶这块 mpv 窗口）；状态画在
@@ -230,6 +234,14 @@ defaults = {
 	-- MOMOKA[menu-style] — 独占菜单共用播放器的深紫灰色系：正文、辅助文字、当前值分层。
 	-- 字号 16 / 行高 32，勾选标识与悬停分开；级联面板留 6px 间距，DPI 和全屏缩放沿用 state.scale。
 	-- 下列颜色直接交给 ASS，顺序为 BGR（例如底板 2A2325 对应 #25232A）。
+	--
+	-- menu_scale 是**菜单自己的一把尺**（2026-10-17 用户令「把独占模式的右键菜单和子菜单整体缩小约 12%，
+	-- 保持底部控制条、顶栏和其他控件不变」）：下面那一串字号/行高/内边距/最小宽/勾选列/悬停让空/面板间距
+	-- 都先按原值写，再乘这一档，所以它们仍是「原尺寸的刻度」，改其中一项不必跟着改缩放。它只乘在 Menu.lua
+	-- 的 self.menu_scale 上 —— state.scale（DPI×全屏 1.3）不动，控制条、顶栏和其余控件因此尺寸不变；
+	-- 级联子面板走同一个 Menu 元件，一起缩。0.88 是「约 12%」的落点：字号 16→14、行高 32→28、
+	-- 最小宽 216→190。
+	menu_scale = 0.88,
 	menu_font_size = 16,
 	menu_gap = 1,
 	menu_min_width = 216,

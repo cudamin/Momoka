@@ -37,6 +37,8 @@ public sealed class ItemFilters
     /// </summary>
     public List<string> Years { get; set; } = [];
 
+    public Dictionary<string, List<string>> MediaValues { get; set; } = new(StringComparer.Ordinal);
+
     /// <summary>
     /// How many individual choices are on; what the button's badge shows.
     /// <para>
@@ -47,7 +49,8 @@ public sealed class ItemFilters
     /// </summary>
     public int Count =>
         Toggles.Count(id => EmbyFilterBy.Find(id) is not null)
-        + Genres.Count + OfficialRatings.Count + Studios.Count + Tags.Count + Years.Count;
+        + Genres.Count + OfficialRatings.Count + Studios.Count + Tags.Count + Years.Count
+        + MediaValues.Where(pair => EmbyFilterBy.Lists.Any(list => list.Key == pair.Key)).Sum(pair => pair.Value.Count);
 
     public bool IsEmpty => Count == 0;
 
@@ -58,7 +61,7 @@ public sealed class ItemFilters
     /// the first time an older build touches the panel.
     /// </summary>
     public bool IsBlank => Toggles.Count == 0 && Genres.Count == 0 && OfficialRatings.Count == 0
-        && Studios.Count == 0 && Tags.Count == 0 && Years.Count == 0;
+        && Studios.Count == 0 && Tags.Count == 0 && Years.Count == 0 && MediaValues.Values.All(values => values.Count == 0);
 
     public bool Has(string id) => Toggles.Contains(id);
 
@@ -73,10 +76,15 @@ public sealed class ItemFilters
         EmbyFilterBy.Keys.Studios => Studios,
         EmbyFilterBy.Keys.Tags => Tags,
         EmbyFilterBy.Keys.Years => Years,
-        // Not a user-facing failure: the keys come from EmbyFilterBy.Lists, a constant. Throwing means a
-        // new section that forgot its list fails in the tests rather than filtering nothing on screen.
+        _ when EmbyFilterBy.MediaListKeys.Contains(key) => MediaList(key),
         _ => throw new ArgumentOutOfRangeException(nameof(key), key, "没有这个筛选分组")
     };
+
+    private List<string> MediaList(string key)
+    {
+        if (!MediaValues.TryGetValue(key, out var values)) MediaValues[key] = values = [];
+        return values;
+    }
 
     /// <summary>
     /// Turns one option on or off, taking its <see cref="EmbyFilterOption.Excludes"/> with it. Returns
@@ -178,6 +186,7 @@ public sealed class ItemFilters
         Studios.Clear();
         Tags.Clear();
         Years.Clear();
+        MediaValues.Clear();
         return true;
     }
 
@@ -189,7 +198,8 @@ public sealed class ItemFilters
         OfficialRatings = [.. OfficialRatings],
         Studios = [.. Studios],
         Tags = [.. Tags],
-        Years = [.. Years]
+        Years = [.. Years],
+        MediaValues = MediaValues.ToDictionary(pair => pair.Key, pair => new List<string>(pair.Value), StringComparer.Ordinal)
     };
 
     /// <summary>
@@ -207,6 +217,9 @@ public sealed class ItemFilters
         foreach (var option in EmbyFilterBy.All)
             if (Toggles.Contains(option.Id))
                 yield return (option.Key, option.Value);
+
+        if (Has("resolution1080")) yield return ("MaxWidth", "2200");
+        if (Has("resolution720")) yield return ("MaxWidth", "1799");
 
         foreach (var list in EmbyFilterBy.Lists)
             foreach (var value in Values(list.Key))

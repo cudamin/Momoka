@@ -9,6 +9,14 @@ public sealed class PlaybackReport
     [System.Text.Json.Serialization.JsonIgnore]
     public Momoka.FnNas.FnNasPlaybackSelection? FnNasSelection { get; init; }
 
+    /// <summary>
+    /// Plex's part key and duration, which its timeline report needs and Emby has no equivalent for.
+    /// Ignored by the JSON serializer for the same reason as <see cref="FnNasSelection"/>: this shape is
+    /// also the Emby request body, and Plex's fields must not leak into it.
+    /// </summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Momoka.Plex.PlexPlaybackSelection? PlexSelection { get; init; }
+
     public required string ItemId { get; init; }
 
     public string? MediaSourceId { get; init; }

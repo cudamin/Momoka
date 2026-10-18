@@ -96,8 +96,8 @@
                 <local:PosterCard
                     ActionRequested="OnCardActionRequested"
                     Card="{x:Bind}"
-                    CardWidth="{x:Bind CardWidth}"
-                    PosterHeight="{x:Bind PosterHeight}" />
+                    CardWidth="{x:Bind CardWidth, Mode=OneWay}"
+                    PosterHeight="{x:Bind PosterHeight, Mode=OneWay}" />
             </Button>
         </DataTemplate>
 
@@ -131,9 +131,9 @@
                 <local:PosterCard
                     ActionRequested="OnCardActionRequested"
                     Card="{x:Bind}"
-                    CardWidth="{x:Bind CardWidth}"
+                    CardWidth="{x:Bind CardWidth, Mode=OneWay}"
                     ContextRequested="OnCardContextRequested"
-                    PosterHeight="{x:Bind PosterHeight}" />
+                    PosterHeight="{x:Bind PosterHeight, Mode=OneWay}" />
             </ItemContainer>
         </DataTemplate>
 
@@ -144,10 +144,45 @@
                 <local:PosterCard
                     ActionRequested="OnCardActionRequested"
                     Card="{x:Bind}"
-                    CardWidth="{x:Bind CardWidth}"
+                    CardWidth="{x:Bind CardWidth, Mode=OneWay}"
                     ContextRequested="OnCardContextRequested"
-                    PosterHeight="{x:Bind PosterHeight}" />
+                    PosterHeight="{x:Bind PosterHeight, Mode=OneWay}" />
             </ItemContainer>
+        </DataTemplate>
+
+        <DataTemplate x:Key="FavoriteRowTemplate" x:DataType="vm:FavoriteRow">
+            <StackPanel Spacing="8" Visibility="{x:Bind GroupVisibility, Mode=OneWay}">
+                <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgSectionTitleStyle}"
+                    AutomationProperties.HeadingLevel="Level2" />
+                <ItemsRepeater x:Name="FavoriteCards" ItemsSource="{x:Bind Cards}" ItemTemplate="{StaticResource ShelfCardTemplate}">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout ItemsJustification="Start" ItemsStretch="None"
+                            MinItemWidth="{x:Bind CardWidth, Mode=OneWay}" MinItemHeight="{x:Bind RowHeight, Mode=OneWay}"
+                            MinColumnSpacing="18" MinRowSpacing="24" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
+                <TextBlock Text="{x:Bind StatusText, Mode=OneWay}" TextWrapping="Wrap"
+                    Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                    Visibility="{x:Bind StatusVisibility, Mode=OneWay}" AutomationProperties.LiveSetting="Polite" />
+                <Button x:Name="FavoriteRetry" Content="重新加载" Tag="{x:Bind}" Click="OnFavoriteMoreClicked"
+                    HorizontalAlignment="Left" Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
+                <Button x:Name="FavoriteMore" Content="加载更多" Tag="{x:Bind}" Click="OnFavoriteMoreClicked"
+                    HorizontalAlignment="Left" Visibility="{x:Bind MoreVisibility, Mode=OneWay}" />
+            </StackPanel>
+        </DataTemplate>
+
+        <DataTemplate x:Key="UpcomingDayTemplate" x:DataType="vm:UpcomingDay">
+            <StackPanel Spacing="{StaticResource EgSpaceS}">
+                <TextBlock Style="{StaticResource EgSectionTitleStyle}" Text="{x:Bind Title}"
+                    AutomationProperties.HeadingLevel="Level2" />
+                <ItemsRepeater ItemsSource="{x:Bind Cards}" ItemTemplate="{StaticResource ShelfCardTemplate}">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout ItemsJustification="Start" ItemsStretch="None"
+                            MinItemWidth="{x:Bind CardWidth}" MinItemHeight="{x:Bind RowHeight}"
+                            MinColumnSpacing="18" MinRowSpacing="24" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
+            </StackPanel>
         </DataTemplate>
 
         <!-- 列表视图：EpisodeRow —— 详情页单集列表的同一个行控件，列表视图就是那个样子：左小图
@@ -201,14 +236,6 @@
                 </Grid>
             </ItemContainer>
         </DataTemplate>
-        <UniformGridLayout x:Key="LibraryIndexLayout" MinItemWidth="170" MinItemHeight="72" MinRowSpacing="12" MinColumnSpacing="12" />
-        <DataTemplate x:Key="LibraryIndexTemplate" x:DataType="local:CardItem">
-            <ItemContainer>
-                <Border Background="{ThemeResource EgSurfaceHoverBrush}" CornerRadius="16" Padding="16" MinHeight="72">
-                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                </Border>
-            </ItemContainer>
-        </DataTemplate>
     </Page.Resources>
 
     <Grid x:Name="PageRoot" Margin="{StaticResource EgPageMargin}" RowSpacing="20">
@@ -230,18 +257,18 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <!-- 网页端这一行是「库名在左、分类在右」：标题说这是哪一页，分类说这一页的哪一格。 -->
-                <Border x:Name="LibrarySectionsSurface" Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center"
+                <Border x:Name="LibrarySectionsSurface" Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Center" VerticalAlignment="Center"
                     Background="{ThemeResource EgSurfaceHoverBrush}" CornerRadius="18" Padding="3"
                     Visibility="{x:Bind ViewModel.SectionVisibility, Mode=OneWay}">
-                    <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" />
+                    <local:WrapRow x:Name="LibrarySections" Spacing="0" RowSpacing="4" CenterRows="True" />
                 </Border>
-                <HyperlinkButton x:Name="LibraryBrowseGroup" Grid.Row="2" Grid.ColumnSpan="2"
+                <HyperlinkButton x:Name="LibraryBrowseGroup" Grid.Row="3" Grid.ColumnSpan="2"
                     HorizontalAlignment="Center" Content="{x:Bind ViewModel.BrowseGroupLabel, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.BrowseGroupVisibility, Mode=OneWay}"
                     ToolTipService.ToolTip="返回分类列表" Click="OnBrowseGroupBack" />
@@ -291,8 +318,8 @@
                     </Grid>
                 </Border>
 
-                <Grid x:Name="ToolbarSurface" Grid.ColumnSpan="2" Grid.Row="1" Padding="0"
-                    HorizontalAlignment="Left" VerticalAlignment="Center"
+                <Grid x:Name="ToolbarSurface" Grid.ColumnSpan="2" Grid.Row="2" Padding="0"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.ToolbarVisibility, Mode=OneWay}">
                     <local:WrapRow
                         x:Name="Toolbar"
@@ -442,7 +469,7 @@
                             Width="32" Padding="0" ToolTipService.ToolTip="设置" AutomationProperties.Name="设置"
                             Click="OnSettingsClicked"
                             Visibility="{x:Bind ViewModel.SettingsVisibility, Mode=OneWay}">
-                            <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE713;" />
+                            <FontIcon FontSize="{StaticResource EgBodyFontSize}" Glyph="&#xE712;" />
                         </Button>
                     </local:WrapRow>
                 </Grid>
@@ -503,7 +530,7 @@
             Grid.Row="1"
             Height="2"
             IsIndeterminate="True"
-            Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+            Visibility="{x:Bind ViewModel.LibraryBusyVisibility, Mode=OneWay}" />
 
         <!-- TwoWay on IsOpen, so dismissing the bar is recorded rather than only drawn: the next
              failure has to be able to reopen it. -->
@@ -581,7 +608,7 @@
                                 ItemsStretch="Fill"
                                 MinColumnSpacing="16"
                                 MinItemHeight="{x:Bind ViewModel.RowHeight, Mode=OneWay}"
-                                MinItemWidth="{x:Bind ViewModel.CellWidth, Mode=OneWay}"
+                                MinItemWidth="{x:Bind ViewModel.CardMinWidth, Mode=OneWay}"
                                 MinRowSpacing="24" />
                         </ItemsView.Layout>
                     </ItemsView>
@@ -614,6 +641,33 @@
                 </ItemsRepeater>
             </ScrollViewer>
 
+            <ScrollViewer x:Name="FavoritesScroll" x:FieldModifier="internal"
+                Grid.Row="1" Grid.RowSpan="2" Padding="0,0,0,32"
+                HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
+                VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto"
+                Visibility="{x:Bind ViewModel.FavoritesVisibility, Mode=OneWay}">
+                <ItemsRepeater x:Name="FavoritesGroups" x:FieldModifier="internal"
+                    ItemsSource="{x:Bind ViewModel.VisibleFavoriteRows, Mode=OneWay}" ItemTemplate="{StaticResource FavoriteRowTemplate}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Orientation="Vertical" Spacing="40" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
+            </ScrollViewer>
+
+            <ScrollViewer x:Name="UpcomingScroll" x:FieldModifier="internal"
+                Grid.Row="1" Grid.RowSpan="2" Padding="0,0,0,32"
+                HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
+                VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto"
+                Visibility="{x:Bind ViewModel.UpcomingVisibility, Mode=OneWay}">
+                <ItemsRepeater x:Name="UpcomingGroups" x:FieldModifier="internal"
+                    ItemTemplate="{StaticResource UpcomingDayTemplate}"
+                    ItemsSource="{x:Bind ViewModel.UpcomingDays, Mode=OneWay}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Orientation="Vertical" Spacing="40" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
+            </ScrollViewer>
+
             <!-- 字母跳转条：只在按名称排序且有足够条目时出现（对应 Emby 的 enableAlphaPicker +
                  总数 > 30）。点击跳到该字母第一项；当前字母高亮随滚动更新。 -->
             <local:AlphaBar
@@ -622,6 +676,18 @@
                 JumpRequested="OnAlphaJump"
                 Visibility="{x:Bind ViewModel.AlphaVisibility, Mode=OneWay}" />
         </Grid>
+
+        <StackPanel x:Name="UpcomingLoadingPanel" HorizontalAlignment="Center" VerticalAlignment="Center"
+            Spacing="{StaticResource EgSpaceL}" Visibility="{x:Bind ViewModel.UpcomingLoadingVisibility, Mode=OneWay}">
+            <ProgressRing x:Name="UpcomingLoadingRing" x:FieldModifier="internal" Width="44" Height="44"
+                IsActive="{x:Bind ViewModel.UpcomingLoading, Mode=OneWay}" IsIndeterminate="True"
+                Foreground="{ThemeResource EgAccentBrush}" AutomationProperties.Name="正在加载电视节目预告" />
+            <TextBlock Text="正在加载预告…" Style="{StaticResource EgBodyStyle}"
+                Foreground="{ThemeResource EgTextDimBrush}" TextAlignment="Center"
+                AutomationProperties.LiveSetting="Polite" />
+        </StackPanel>
+        <Button x:Name="UpcomingRetryButton" Content="重新加载" HorizontalAlignment="Center" VerticalAlignment="Center"
+            Click="OnUpcomingRetryClicked" Visibility="{x:Bind ViewModel.UpcomingErrorVisibility, Mode=OneWay}" />
 
         <StackPanel
             HorizontalAlignment="Center"

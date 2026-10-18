@@ -40,7 +40,8 @@ public static class WrapLayout
     /// <param name="spacing">同一行里两个盒子之间的横向间距。</param>
     /// <param name="rowSpacing">换行之后两行之间的纵向间距。</param>
     public static WrapPlan Place(
-        IReadOnlyList<(double Width, double Height)> boxes, double limit, double spacing, double rowSpacing)
+        IReadOnlyList<(double Width, double Height)> boxes, double limit, double spacing, double rowSpacing,
+        bool centerRows = false)
     {
         var bound = Bound(limit);
         var spots = new (double Left, double Top)[boxes.Count];
@@ -67,6 +68,21 @@ public static class WrapLayout
             x = left + box.Width;
             rowHeight = Math.Max(rowHeight, box.Height);
             widest = Math.Max(widest, x);
+        }
+
+        if (centerRows)
+        {
+            var available = double.IsFinite(bound) ? Math.Max(0, bound) : widest;
+            for (var first = 0; first < spots.Length;)
+            {
+                var last = first;
+                while (last + 1 < spots.Length && spots[last + 1].Top == spots[first].Top) last++;
+                var used = spots[last].Left + boxes[last].Width;
+                var offset = Math.Max(0, (available - used) / 2);
+                for (var index = first; index <= last; index++)
+                    spots[index] = (spots[index].Left + offset, spots[index].Top);
+                first = last + 1;
+            }
         }
 
         return new WrapPlan(spots, double.IsInfinity(bound) ? widest : Math.Min(widest, bound), y + rowHeight, rows);

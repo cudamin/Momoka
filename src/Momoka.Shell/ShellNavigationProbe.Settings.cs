@@ -180,17 +180,18 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 设置 → 界面 → 「首页媒体库位置」（用户令 2026-10-12）：三档下拉，装机默认是「随窗口高度变换」。
+    /// 设置 → 主页 → 「主页媒体库位置」（用户 2026-10-12 令、2026-10-16 改名并挪进主页卡）：三档下拉，装机默认是
+    /// 「随窗口高度变换」。
     /// <para>
     /// 值得一条探针，因为这一行坏掉的样子在屏上都很安静：下拉里少一项读起来像「这功能就这样」；控件没有落在
     /// 存档里那一档上（<see cref="SettingChoiceRow"/> 的候选表认不出存档里的值时会给一个「设置文件中的值」的
     /// 兜底项），用户下次打开设置看到的就不是自己选的那一档；而选一下没有写回设置，主页那一头读到的还是旧值 ——
-    /// 三样都得读存档和真实控件才认得出。界面卡另留宽窄两帧截图。
+    /// 三样都得读存档和真实控件才认得出。主页卡另留宽窄两帧截图。
     /// </para>
     /// </summary>
     private async Task SettingsHomeLibraryPlacementAsync()
     {
-        const string label = "首页媒体库位置";
+        const string label = "主页媒体库位置";
         using var fixture = CreateFixture();
         using var moviePilot = new MoviePilotClient(new RejectNetwork());
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, "settings-library-placement"));
@@ -209,12 +210,12 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(page);
         try
         {
-            page.SelectedCategory = "界面";
+            page.SelectedCategory = "主页";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
             AssertSettingsSettled(page);
 
-            var row = page.ViewModel.Sections.Where(section => section.Category == "界面")
+            var row = page.ViewModel.Sections.Where(section => section.Category == "主页")
                 .SelectMany(section => section.Rows)
                 .OfType<SettingChoiceRow>().Single(candidate => candidate.Label == label);
             var combo = Descendants(page).OfType<ComboBox>()
@@ -224,10 +225,10 @@ internal sealed partial class ShellNavigationProbe
                 $"「{label}」不是三档：数据行 {row.Choices.Count} 项、控件 {combo.Items.Count} 项");
             Require(row.Choices.Select(choice => choice.Label)
                     .SequenceEqual(["随窗口高度变换", "固定在轮播图中", "固定在轮播图下方"]),
-                "「首页媒体库位置」三档的名字或次序变了：" + string.Join("、", row.Choices.Select(choice => choice.Label)));
+                "「主页媒体库位置」三档的名字或次序变了：" + string.Join("、", row.Choices.Select(choice => choice.Label)));
 
             // 装机默认那一档：存档里是 Auto，控件显示的也是它（不是那个「设置文件中的值」的兜底项）。
-            Require(fixture.Settings.Ui.HomeLibraryPlacement == HomeLibraryPlacement.Auto, "界面卡的默认档不是「随窗口高度变换」");
+            Require(fixture.Settings.Ui.HomeLibraryPlacement == HomeLibraryPlacement.Auto, "主页卡的默认档不是「随窗口高度变换」");
             Require(ReferenceEquals(combo.SelectedItem, row.Selected), "控件没有落在存档里那一档上");
 
             // 逐档拨过去，存档跟着走 —— 主页那一头读的就是这一个字段（ShellPrefs 那一趟不在本例里验，
@@ -252,7 +253,7 @@ internal sealed partial class ShellNavigationProbe
                 AssertSettingsSettled(page);
                 combo.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0 });
                 await LayoutAsync(page);
-                await SaveProbeScreenAsync($"settings-interface-placement-{width}-screen.png");
+                await SaveProbeScreenAsync($"settings-home-placement-{width}-screen.png");
             }
         }
         finally
@@ -387,12 +388,18 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 「非管理员账号自动隐藏设置里的 EmbyServer 那一栏」：把假服务器报成普通账号，左栏那一组整个不出现，
-    /// 紧凑窗口的下拉里也不列那五个分类；报回管理员时整组装回来，顺序照旧。
+    /// 「非管理员账号自动隐藏网页控制台」：把假服务器报成普通账号，左栏里「通知」「网页控制台」两个入口都不
+    /// 出现，紧凑窗口的下拉里也不列；报回管理员时两个装回来，次序照旧（服务器 诊断 通知 网页控制台 关于）。
+    /// <para>
+    /// 用户令 2026-10-16：这两张从自成一组并进了「Momoka」、落在 诊断 与 关于 中间；左栏里「EmbyServer」
+    /// 「JellyfinServer」两个组名，连同「控制台」「用户」「媒体库」三页一起退役。同日第二轮，飞牛影视的
+    /// 「媒体库」「用户」「设置」「任务计划」四页也退役 —— 左栏从此只剩「Momoka」一组，任何产品都不再有
+    /// 第二个分组，飞牛名下也没有管理入口。
+    /// </para>
     /// <para>
     /// 值得一条探针，因为三件坏事在屏上都看不出来：两份名单（分组、平铺）只摘一份就是「宽窗口藏了、窄窗口还
     /// 列着」；收走之后右半边还停在被收走的那一页上（那页只会说「需要服务器管理员权限」，而左栏里已经没有
-    /// 它）；以及装回来时顺序乱了。三样都得读名单和落点才认得出。
+    /// 它）；以及装回来时次序乱了。三样都得读名单和落点才认得出。
     /// </para>
     /// </summary>
     private async Task SettingsAdministrationGateAsync()
@@ -420,11 +427,15 @@ internal sealed partial class ShellNavigationProbe
             var rail = Get<ListView>(page, "CategoryNavigation");
             var picker = Get<ComboBox>(page, "CompactCategoryNavigation");
 
-            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka", "EmbyServer" }),
-                "管理员账号下左栏没有「EmbyServer」那一组");
+            // Emby 管理员：左栏只剩「Momoka」一组，两个入口夹在 诊断 与 关于 中间。
+            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka" }),
+                "管理员账号下 Emby 左栏不该再有第二个分组");
+            Require(SitsBeforeLastCard(page.Categories, SettingsViewModel.ServerAdministrationCategories),
+                "「通知」「网页控制台」没有排在 诊断 与 关于 中间");
+            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
 
             // 先把落点摆在被收走的那一页上，好看出收走之后它有没有被收回来。
-            page.SelectedCategory = SettingsViewModel.ServerDashboardCategory;
+            page.SelectedCategory = SettingsViewModel.DashboardCategory;
             await LayoutAsync(page);
 
             fixture.Capabilities.IsAdministrator = false;
@@ -435,17 +446,15 @@ internal sealed partial class ShellNavigationProbe
 
             Require(page.ViewModel.ServerAdministrationHidden
                 && page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka" }),
-                "普通账号下左栏仍留着「EmbyServer」那一组");
-            Require(!Descendants(rail).OfType<TextBlock>().Any(text => text.Text == "EmbyServer"),
-                "普通账号下左栏里「EmbyServer」那个组标题还留在屏上");
+                "普通账号下左栏仍留着管理员入口");
             Require(!page.Categories.Any(category =>
                     SettingsViewModel.ServerAdministrationCategories.Contains(category, StringComparer.Ordinal)),
-                "普通账号下平铺名单仍列着服务器管理分类");
+                "普通账号下平铺名单仍列着「通知」「网页控制台」");
             Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
             Require(picker.ItemsSource is IEnumerable<string> entries && entries.SequenceEqual(page.Categories),
                 "紧凑窗口的下拉没有跟着同一份名单走");
             Require(page.SelectedCategory == SettingsViewModel.FirstCardCategory,
-                "收走那一组之后右半边还停在被收走的那一页上");
+                "收走那两个入口之后右半边还停在被收走的那一页上");
             await SaveReturnFrameAsync(page, "settings-server-admin-hidden.png");
 
             fixture.Capabilities.IsAdministrator = true;
@@ -453,24 +462,20 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
 
             Require(!page.ViewModel.ServerAdministrationHidden
-                && page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka", "EmbyServer" }),
-                "管理员身份回来之后那一组没有装回去");
-            Require(Descendants(rail).OfType<TextBlock>().Any(text => text.Text == "EmbyServer"),
-                "装回来之后左栏里没有「EmbyServer」那个组标题");
-            Require(page.Categories.TakeLast(SettingsViewModel.ServerAdministrationCategories.Count)
-                    .SequenceEqual(SettingsViewModel.ServerAdministrationCategories)
-                && rail.Items.Cast<string>().SequenceEqual(page.Categories),
-                "装回来的服务器管理分类次序不对");
+                && SitsBeforeLastCard(page.Categories, SettingsViewModel.ServerAdministrationCategories),
+                "管理员身份回来之后那两个入口没有装回去或次序不对");
+            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
             await SaveReturnFrameAsync(page, "settings-server-admin-shown.png");
 
-            // 产品变化时权限仍为 true；不能只在权限位变化时重建组名和分类。
+            // 产品变化时权限仍为 true；不能只在权限位变化时重建分类。
             page.SelectedCategory = SettingsViewModel.NotificationsCategory;
             fixture.Capabilities.ServerKind = MediaServerKind.Jellyfin;
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             await LayoutAsync(page);
-            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka", "JellyfinServer" }),
-                "连接 Jellyfin 后管理组没有自动改名");
-            Require(!page.Categories.Contains(SettingsViewModel.NotificationsCategory)
+            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka" }),
+                "连接 Jellyfin 后左栏多出了一个分组");
+            Require(page.Categories.Contains(SettingsViewModel.DashboardCategory)
+                && !page.Categories.Contains(SettingsViewModel.NotificationsCategory)
                 && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.NotificationsCategory)
                 && page.SelectedCategory == SettingsViewModel.FirstCardCategory,
                 "Jellyfin 仍允许打开通知或留下已失效的通知页面");
@@ -491,18 +496,20 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 Require(page.ViewModel.ServerAdministrationHidden
                     && !page.Categories.Any(SettingsViewModel.ServerAdministrationCategories.Contains)
-                    && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.ServerUsersCategory),
+                    && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.DashboardCategory),
                     "Jellyfin 非管理员或权限未知时仍暴露管理入口");
             }
             await SaveProbeScreenAsync("settings-jellyfin-user-screen.png");
 
+            // 用户令 2026-10-16（第二轮）：飞牛影视的四个原生管理页退役，左栏不再为它多出一组，飞牛名下也没有
+            // 任何管理入口；Emby／Jellyfin 那两个入口在它名下同样打不开。
             fixture.Capabilities.ServerKind = MediaServerKind.FnNas;
             fixture.Capabilities.IsAdministrator = true;
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             await LayoutAsync(page);
-            Require(page.ViewModel.CategoryGroups.Last().Name == "飞牛影视"
-                && page.Categories.TakeLast(4).SequenceEqual(SettingsViewModel.FnNasAdministrationCategories),
-                "飞牛影视四个管理入口未按网页次序显示");
+            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka" })
+                && !page.Categories.Any(category => category is "用户" or "媒体库" or "设置" or "任务计划"),
+                "飞牛影视仍多出一组或仍列着已退役的管理入口");
             Require(!page.ViewModel.CanOpenServerCategory(SettingsViewModel.DashboardCategory)
                 && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.NotificationsCategory),
                 "飞牛影视仍暴露 Emby 管理入口");
@@ -513,34 +520,16 @@ internal sealed partial class ShellNavigationProbe
                 Require(rail.Items.Cast<string>().SequenceEqual(page.Categories)
                     && picker.ItemsSource is IEnumerable<string> fnNasEntries && fnNasEntries.SequenceEqual(page.Categories),
                     "飞牛影视宽窄导航分类不一致");
-                await SaveProbeScreenAsync($"settings-fnnas-admin-{width}-screen.png");
+                await SaveProbeScreenAsync($"settings-fnnas-{width}-screen.png");
             }
-            foreach (bool? administrator in new bool?[] { false, null })
-            {
-                page.SelectedCategory = SettingsViewModel.FnNasSettingsCategory;
-                fixture.Capabilities.IsAdministrator = administrator;
-                await (Task)Call(page, "RefreshServerAdministrationAsync")!;
-                await LayoutAsync(page);
-                Require(page.ViewModel.ServerAdministrationHidden
-                    && !page.Categories.Any(SettingsViewModel.FnNasAdministrationCategories.Contains)
-                    && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.FnNasSettingsCategory)
-                    && page.SelectedCategory == SettingsViewModel.FirstCardCategory,
-                    "飞牛普通账号或未知权限留下管理页");
-            }
-            fixture.Capabilities.IsAdministrator = true;
-            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
-            Require(page.Categories.TakeLast(4).SequenceEqual(SettingsViewModel.FnNasAdministrationCategories),
-                "飞牛权限恢复后四个入口未恢复");
-            await SaveProbeScreenAsync("settings-fnnas-admin-restored-screen.png");
 
             fixture.Capabilities.ServerKind = MediaServerKind.Emby;
             fixture.Capabilities.IsAdministrator = true;
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             await LayoutAsync(page);
-            Require(page.Categories.TakeLast(SettingsViewModel.ServerAdministrationCategories.Count)
-                    .SequenceEqual(SettingsViewModel.ServerAdministrationCategories)
-                && page.ViewModel.CategoryGroups.Last().Name == "EmbyServer",
-                "返回 Emby 后五个管理入口没有按原次序恢复");
+            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka" })
+                && SitsBeforeLastCard(page.Categories, SettingsViewModel.ServerAdministrationCategories),
+                "返回 Emby 后两个入口没有按原次序恢复");
 
             fixture.Capabilities.IsConnected = false;
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
@@ -552,6 +541,15 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(page);
         }
     }
+
+    /// <summary>
+    /// 管理员入口是不是正好落在最后一张卡（关于）前面、且次序与 <paramref name="expected"/> 一致。
+    /// 用户令 2026-10-16 那句「通知和网页控制台放到诊断和关于之间」量的就是这件事。
+    /// </summary>
+    private static bool SitsBeforeLastCard(IReadOnlyList<string> categories, IReadOnlyList<string> expected) =>
+        categories.Count > expected.Count + 1
+        && categories[^1] == SettingsViewModel.LastCardCategory
+        && categories.Skip(categories.Count - 1 - expected.Count).Take(expected.Count).SequenceEqual(expected);
 
     private async Task SettingsAnimationToggleAsync(SettingsPage page, Fixture fixture)
     {

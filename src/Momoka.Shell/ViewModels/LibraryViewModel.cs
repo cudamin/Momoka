@@ -194,7 +194,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// be six pixels short of the card it was sizing. Same arithmetic as
     /// <see cref="CardShelf.RowHeight"/>, for the same reason.
     /// </summary>
-    public double RowHeight => LibraryCardMetrics.Height(View, CardBuildWidth) + Momoka.Infrastructure.CardSize.Chrome + NoteHeight;
+    public double RowHeight => LibraryCardMetrics.Height(View, CardBuildWidth, Section, IndexKind)
+        + (IndexKind == LibraryIndexKind.None ? Momoka.Infrastructure.CardSize.Chrome : LibraryIndexCards.TextHeight)
+        + NoteHeight;
 
     /// <summary>多出来的那一行字（宣传语或概要）占的高度；没勾这两项就是 0。</summary>
     private double NoteHeight => Fields.Contains(LibraryField.Tagline) || Fields.Contains(LibraryField.Overview) ? 18 : 0;
@@ -228,6 +230,12 @@ public sealed partial class LibraryViewModel : PageViewModel
     public string SortGlyph => Glyph(SortDescending ? DescendingIcon : AscendingIcon);
 
     public string SortTooltip => SortDescending ? "降序，点击改为升序" : "升序，点击改为降序";
+
+    /// <summary>
+    /// 这一面墙上一次量到的可用宽度（<c>CardWall.ActualWidth</c>），0 是还没量过 —— 见
+    /// <see cref="CardBuildWidth"/> 与 <see cref="ResizeGrid"/>。页面在尺寸变化时推过来，窗口被拖动时跟着变。
+    /// </summary>
+    private double _gridWidth;
 
     /// <summary>
     /// 这一面墙现在的整套显示设置：视图、图像大小、分组、显示字段。网页端那颗齿轮里的四组东西，
@@ -281,26 +289,71 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal bool ViewIsWide => View is LibraryView.Thumb or LibraryView.Logo or LibraryView.List or LibraryView.Table;
 
     /// <summary>
-    /// The width a card is built at in the current view. The poster shape draws at
-    /// <see cref="CardSize.PosterWidth"/>; the thumb and list shapes draw the same wide width the detail
-    /// page's episode rows use, so the two list styles in the app agree with each other.
+    /// The width a card is built at in the current view — **not** the constant the shape prefers, but the
+    /// width this window's row can give it; see <see cref="LibraryCardMetrics.Fit"/>.
+    /// <para>
+    /// 从前它就是那个常量（海报 170、剧照 300）：格子按「塞得下几列」定，余下的宽度留在格子里，卡片居中，
+    /// 于是两张封面之间空出一条比封面还显眼的缝。2026-10-18 用户令「封面随窗口大小变化，互相之间不要留太大的
+    /// 空隙」之后，宽度由窗口算出来（<see cref="_gridWidth"/>）：列数按档位宽定，剩下的宽度平摊给这几列，
+    /// 卡片画出来的宽度就是格宽。
+    /// </para>
+    /// <para>
+    /// 还没量到窗口宽度时退回档位宽。新建的页面在第一帧之前就可能把卡片建好了，那时宽度无从谈起 ——
+    /// 量到之后 <see cref="RebuildGrid"/> 会按新宽度重造一遍。
+    /// </para>
     /// </summary>
-    internal int CardBuildWidth => LibraryCardMetrics.Width(View, CardSize);
+    internal int CardBuildWidth => GridFit.Cell;
 
-    internal bool CardBuildWide => ViewIsWide;
+    /// <summary>这一行排几列、每列多宽；还没量到宽度时就是档位宽一列。</summary>
+    private (int Columns, int Cell) GridFit => _gridWidth > 0
+        ? LibraryCardMetrics.Fit(_gridWidth, MinimumCardWidth)
+        : (1, MinimumCardWidth);
+
+    /// <summary>图像大小那一档给的最小宽度：列数与格宽都从它算起。</summary>
+    private int MinimumCardWidth => LibraryCardMetrics.Width(View, CardSize, Section, IndexKind);
+
+    /// <summary>
+    /// 版面的 <c>MinItemWidth</c>。**是档位宽，不是 <see cref="CardBuildWidth"/>**：格宽是摊出来的，拿它当最小宽，
+    /// n 列加 n 条缝就比可用宽多出一条缝，版面只肯排 n-1 列（见 <see cref="LibraryCardMetrics.Fit"/>）。
+    /// </summary>
+    internal int CardMinWidth => MinimumCardWidth;
+
+    /// <summary>
+    /// 这张卡是不是 16:9 的宽卡（<see cref="CardItem"/> 拿它挑图、也拿它算高）。
+    /// <para>
+    /// 索引页不由「视图」决定，而由**服务器给这两类条目存的图是什么形状**决定：播出平台的台标存在 Thumb 里
+    /// （16:9），类型的四格封面是方图。见 <see cref="LibraryIndexCards"/>。
+    /// </para>
+    /// </summary>
+    internal bool CardBuildWide => IndexKind == LibraryIndexKind.Studio
+        || IndexKind == LibraryIndexKind.None
+        && (ViewIsWide || Section == LibrarySection.Episodes && View == LibraryView.Poster);
 
     /// <summary>
     /// 这一面墙取图的先后顺序。网页端七种视图各要各的图：海报要竖图、横幅图要 Banner、光盘封面要
     /// Disc、徽标与缩略图要背景图（Backdrop），取不到再往后退一格。空数组就是让卡片按自己的老规矩挑
     /// （竖卡先要 Primary、宽卡先要 Thumb）。
+    /// <para>
+    /// 索引页也不由视图决定：类型要它自己的 Primary（四格封面），播出平台先要 Thumb（台标存的那一格）。
+    /// </para>
     /// </summary>
-    internal IReadOnlyList<string> CardImageTypes => View switch
-    {
-        LibraryView.Banner => ["Banner", "Backdrop", "Primary"],
-        LibraryView.Disc => ["Disc", "Primary"],
-        LibraryView.Logo => ["Backdrop", "Thumb"],
-        _ => []
-    };
+    internal IReadOnlyList<string> CardImageTypes => IndexKind != LibraryIndexKind.None
+        ? LibraryIndexCards.ImageTypes(IndexKind)
+        : View switch
+        {
+            LibraryView.Banner => ["Banner", "Backdrop", "Primary"],
+            LibraryView.Disc => ["Disc", "Primary"],
+            LibraryView.Logo => ["Backdrop", "Thumb"],
+            _ => []
+        };
+
+    /// <summary>
+    /// 这一页是哪一种索引页（类型 / 播出平台 / 不是）。**一切「索引页特别怎么办」的判断都从它出发**，
+    /// 别再各处写一遍 <c>Section == Genres || Section == Studios</c> —— 那样漏掉下钻那一层的情况，就会把
+    /// 「类型 → 动画」那一页也当成索引页（2026-10-18 差点那么写）。
+    /// </summary>
+    internal LibraryIndexKind IndexKind => IsSectionLibrary
+        ? LibraryBrowse.IndexKind(Section, _request!.BrowseGroup) : LibraryIndexKind.None;
 
     /// <summary>How many filters are on, for the badge on the filter button.</summary>
     [ObservableProperty]
@@ -323,9 +376,17 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// Whether the letter bar belongs on this grid — Emby's own rule: name-ordered, and enough rows
     /// that jumping is worth the trip. Recomputed on every page arrival, because the count is what
     /// the second half of the rule reads.
+    /// <para>
+    /// **索引页也算在内**（2026-10-18 用户令）：类型与播出平台本来就是按名字排的清单，本机 133 个台正是
+    /// 最该有字母条的那一页；从前 `!IsBrowseIndex` 把这两页一起挡掉了，理由是「索引页没有排序」，
+    /// 而实际上 `LibraryBrowse.Query` 给它们的排序恒为名称升序，判据的第二半（名称序）自己就成立。
+    /// 跳转的计数走 `/Genres` 与 `/Studios`（见 <see cref="CountAsync"/>），与这一页翻页的是同一个端点。
+    /// </para>
     /// </summary>
     public Visibility AlphaVisibility => Show(
-        !Aggregated && !IsBrowseIndex && Section != LibrarySection.Recommended && SupportsBrowseConditions && _request?.IsSearch != true && SortKey == EmbySortBy.Name && !SortDescending && _total is > 30);
+        !Aggregated && !IsUpcomingPage && !IsFavoritesPage && Section != LibrarySection.Recommended
+        && SupportsBrowseConditions && _request?.IsSearch != true && SortKey == EmbySortBy.Name
+        && !SortDescending && _total is > 30);
 
     /// <summary>
     /// 这台服务器认不认 Emby 那套浏览条件 —— 字母跳转、筛选面板、按库记住筛选。飞牛与 Plex 各有自己的
@@ -338,7 +399,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal bool HasPlayable => _active && SourcesAvailable && _firstPage && !Busy
         && Cards.Any(card => card.Item.IsPlayable);
 
-    protected override void BusyChanged() => RowsArrived();
+    protected override void BusyChanged()
+    {
+        RowsArrived();
+        RefreshUpcomingState();
+    }
 
     // ---------------------------------------------------------------- 播放命令
 
@@ -407,12 +472,15 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal ItemFilters Filters => _filters;
 
     /// <summary>Which kind of row this grid holds, as the sort catalogue sees it.</summary>
+    internal MediaServerKind SourceServerKind => _scope?.Connection.ServerKind ?? MediaServerKind.Emby;
+
     internal string? SortPreset => IsSectionLibrary
         ? LibraryBrowse.SortPreset(_request!.CollectionType, _request.Section) : _request?.SortPreset;
 
     internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, CollectionType: "movies" or "tvshows", IsSearch: false };
     internal LibrarySection Section => _request?.Section ?? LibrarySection.Items;
     internal bool IsBrowseIndex => IsSectionLibrary && LibraryBrowse.IsIndex(Section, _request!.BrowseGroup);
+
     internal IReadOnlyList<LibrarySectionEntry> BrowseSections => IsSectionLibrary
         ? LibraryBrowse.Sections(_request!.CollectionType, _scope?.Connection.ServerKind ?? MediaServerKind.Emby) : [];
     public Visibility SectionVisibility => Show(IsSectionLibrary && BrowseSections.Count > 1);
@@ -423,7 +491,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 只是占地方。索引页（类型、播出平台）留总数与设置；文件夹没有筛选可筛（它问的是文件树）。
     /// </summary>
     private bool HasToolbar => !IsSectionLibrary || Section is not
-        (LibrarySection.Recommended or LibrarySection.Trailers or LibrarySection.Favorites);
+        (LibrarySection.Recommended or LibrarySection.Trailers or LibrarySection.Upcoming or LibrarySection.Favorites);
 
     public Visibility ToolbarVisibility => Show(HasToolbar);
     public Visibility SettingsVisibility => Show(IsSectionLibrary && HasToolbar);
@@ -464,13 +532,15 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private void RefreshBrowseChrome()
     {
-        // 换页会换字段表（文件夹 / 集 / 其余），生效的字段跟着这一页重算。
-        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section);
+        // 换页会换字段表（文件夹 / 集 / 索引页 / 其余），生效的字段跟着这一页重算。
+        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section, View, IndexKind);
+
         foreach (var name in new[] { nameof(SectionVisibility), nameof(BrowseGroupVisibility), nameof(BrowseGroupLabel),
             nameof(DirectPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
             nameof(ToolbarVisibility), nameof(SettingsVisibility), nameof(Fields),
             nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel),
-            nameof(RecommendedVisibility), nameof(GridVisibility) }) OnPropertyChanged(name);
+            nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility) }) OnPropertyChanged(name);
+        RefreshUpcomingState();
     }
 
     internal int LoadedCount => Cards.Count;
@@ -482,8 +552,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// Whether the server has rows this grid has not asked for yet. True before the first page, because
     /// 「nothing has been asked」 and 「everything has arrived」 must not look the same to the pager.
     /// </summary>
-    internal bool HasMore => !IsRecommendedPage && !(_request?.IsSearch == true && string.IsNullOrWhiteSpace(_request.SearchTerm))
-        && (Aggregated ? _cursor?.HasMore ?? true : _total < 0 || Cards.Count < _total);
+    internal bool HasMore => !IsRecommendedPage && !IsFavoritesPage && !(_request?.IsSearch == true && string.IsNullOrWhiteSpace(_request.SearchTerm))
+        && (Aggregated ? _cursor?.HasMore ?? true : _total < 0 || (IsUpcomingPage ? _upcomingReadCount : Cards.Count) < _total);
 
     // ---------------------------------------------------------------- 推荐页（三排货架）
 
@@ -508,7 +578,127 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility RecommendedVisibility => Show(IsRecommendedPage);
 
     /// <summary>网格在不在。推荐页把整块网格（含它的滚动器与表格列头）收起，屏上只剩那三排。</summary>
-    public Visibility GridVisibility => Show(!IsRecommendedPage);
+    public Visibility GridVisibility => Show(!IsRecommendedPage && !IsUpcomingPage && !IsFavoritesPage);
+
+    /// <summary>
+    /// 这一面墙此刻在不在：推荐页、预告页、收藏页各自有自己的一块。只有它在的时候才按窗口宽度重造卡片
+    /// （<see cref="ResizeGrid"/>）—— 那几块的卡片各有各的量法，拿这一面墙的宽度去改它们就是改错人。
+    /// <para>
+    /// **索引页也算这一面墙**（2026-10-18 起）：类型与播出平台的卡片走的就是这个网格，格宽同样随窗口变。
+    /// 从前这里把它排除在外，因为那时索引页是一块写死 170×72 的文字格、跟宽度没关系。
+    /// </para>
+    /// </summary>
+    private bool IsCardWall => !IsRecommendedPage && !IsUpcomingPage && !IsFavoritesPage;
+
+    internal bool IsUpcomingPage => IsSectionLibrary && Section == LibrarySection.Upcoming;
+    public ObservableCollection<UpcomingDay> UpcomingDays { get; } = [];
+    public Visibility UpcomingVisibility => Show(IsUpcomingPage);
+    public bool UpcomingLoading => IsUpcomingPage && Busy && !_firstPage;
+    public Visibility UpcomingLoadingVisibility => Show(UpcomingLoading);
+    public Visibility UpcomingErrorVisibility => Show(IsUpcomingPage && !Busy && _pageFailed && !_firstPage);
+    public Visibility LibraryBusyVisibility => Show(Busy && !UpcomingLoading);
+    private int _upcomingCardWidth = LibraryUpcoming.CardWidth;
+    private int _upcomingReadCount;
+
+    private void RefreshUpcomingState()
+    {
+        OnPropertyChanged(nameof(UpcomingLoading));
+        OnPropertyChanged(nameof(UpcomingLoadingVisibility));
+        OnPropertyChanged(nameof(UpcomingErrorVisibility));
+        OnPropertyChanged(nameof(LibraryBusyVisibility));
+    }
+
+    /// <summary>
+    /// 页面量到了这一面墙的可用宽度（窗口被拖动，或者这一页刚上屏）：列数、格宽、行高按它重算。
+    /// **只算账，不重造卡片** —— 拖窗口时每帧都会走到这里，而重造卡片要按新宽度重新解码（一趟一趟地取图），
+    /// 那一半交给窗口停下来之后的 <see cref="RebuildGrid"/>。
+    /// <para>
+    /// 格宽真变了才会喊一声：窗口挪几个像素时列数通常不变、格宽也不变，喊了也是白排一遍。
+    /// </para>
+    /// </summary>
+    /// <returns>格宽变了没有 —— 变了页面才要逼版面重排一次（见 <c>LibraryPage.RelayoutWall</c>）。</returns>
+    internal bool ResizeGrid(double width)
+    {
+        if (!(width > 0) || !double.IsFinite(width)) return false;
+        if (Math.Abs(width - _gridWidth) < 0.5) return false;
+
+        var before = CardBuildWidth;
+        _gridWidth = width;
+        if (CardBuildWidth == before) return false;
+
+        // 它一变，RowHeight 与 CellWidth 跟着喊（见属性上的两个 NotifyPropertyChangedFor），
+        // 版面的 MinItemWidth / MinItemHeight 当场换成新的。
+        CardWidth = CardBuildWidth;
+        return true;
+    }
+
+    /// <summary>
+    /// 窗口停下来之后按当前格宽重画这一面墙的卡片：宽度变了，取图尺寸、解码宽度和画出来的宽度一起换
+    /// （见 <see cref="CardItem.Resize"/>）。为旧宽度解出来的图放到新格子里就是一张糊图，这条账在
+    /// <see cref="ApplyDisplay"/> 上已经记过一遍，窗口拖宽是同一件事。
+    /// <para>
+    /// **原地改，不换卡片对象、也不清空列表**：卡片对象活在清单里，删除、继续观看那一格和探针都攥着它们；
+    /// 换掉对象等于把那些引用全作废，清空重填还会让滚到一半的一面墙跳回顶上。
+    /// </para>
+    /// </summary>
+    internal void RebuildGrid()
+    {
+        if (_images is null || Cards.Count == 0 || !IsCardWall) return;
+
+        var width = CardBuildWidth;
+        foreach (var card in Cards) card.Resize(width);
+    }
+
+    internal void ResizeUpcoming(double width)
+    {
+        if (width <= 0 || !double.IsFinite(width)) return;
+        var cardWidth = LibraryUpcoming.WidthFor(width);
+        if (_upcomingCardWidth == cardWidth) return;
+        _upcomingCardWidth = cardWidth;
+        if (!IsUpcomingPage || _images is null) return;
+        var items = Cards.Select(card => card.Item).ToArray();
+        foreach (var card in Cards) card.AbandonPoster();
+        Cards.Clear();
+        foreach (var item in items) Cards.Add(NewCard(item));
+        UpdateUpcomingDays();
+    }
+
+    private void UpdateUpcomingDays()
+    {
+        if (!IsUpcomingPage)
+        {
+            UpcomingDays.Clear();
+            return;
+        }
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var cards = Cards.ToDictionary(card => card.Item.IdentityKey, StringComparer.Ordinal);
+        var groups = LibraryUpcoming.Group(Cards.Select(card => card.Item));
+        var desired = groups.Select(group =>
+        {
+            var title = LibraryUpcoming.DateTitle(group.Date, today);
+            var day = UpcomingDays.FirstOrDefault(existing => existing.Date == group.Date
+                && existing.Title == title && existing.CardWidth == _upcomingCardWidth)
+                ?? new UpcomingDay(group.Date, title, _upcomingCardWidth);
+            var contents = group.Items.Select(item => cards[item.IdentityKey]).ToArray();
+            for (var index = day.Cards.Count - 1; index >= 0; index--)
+                if (!contents.Contains(day.Cards[index])) day.Cards.RemoveAt(index);
+            for (var index = 0; index < contents.Length; index++)
+            {
+                var oldIndex = day.Cards.IndexOf(contents[index]);
+                if (oldIndex < 0) day.Cards.Insert(index, contents[index]);
+                else if (oldIndex != index) day.Cards.Move(oldIndex, index);
+            }
+            return day;
+        }).ToArray();
+        for (var index = UpcomingDays.Count - 1; index >= 0; index--)
+            if (!desired.Contains(UpcomingDays[index])) UpcomingDays.RemoveAt(index);
+        for (var index = 0; index < desired.Length; index++)
+        {
+            var oldIndex = UpcomingDays.IndexOf(desired[index]);
+            if (oldIndex < 0) UpcomingDays.Insert(index, desired[index]);
+            else if (oldIndex != index) UpcomingDays.Move(oldIndex, index);
+        }
+    }
 
     /// <summary>
     /// 照这一页该有的排数把货架造出来。已经是对的就不重建 —— 每次刷新都 <c>Clear</c> 再 <c>Add</c>，屏上那三排
@@ -542,6 +732,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (!reset) return;
         if (!_active || !SourcesAvailable || _request is not { } request || _images is null) return;
 
+        _favoriteLoads.Cancel();
+        foreach (var row in FavoriteRows) row.Loading = false;
         _queryToken = _queries.Begin();
         _jumps.Cancel();
         _firstPage = false;
@@ -746,6 +938,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal async Task<bool> RemoveAsync(CardItem card, CancellationToken queryToken, bool deleted = true)
     {
         if (!QueryCurrent(queryToken) || !Cards.Contains(card)) return false;
+        if (IsFavoritesPage) return await RemoveFavoriteAsync(card, deleted).ConfigureAwait(true);
         // 容器会连带删除未加载的后代；查询刚切换时屏上也可能仍是旧排序，不能据旧集合推算新分页。
         if (Aggregated || !_firstPage || deleted && (card.Item.IsFolder || card.Item.Type is EmbyItemType.Series
             or EmbyItemType.Season or EmbyItemType.Folder or EmbyItemType.BoxSet or EmbyItemType.Playlist))
@@ -755,6 +948,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         _jumps.Cancel();
         card.AbandonPoster();
         Cards.Remove(card);
+        if (IsUpcomingPage && _upcomingReadCount > 0) _upcomingReadCount--;
+        UpdateUpcomingDays();
         if (_total > 0) _total--;
         _firstPage = true;
         _pageFailed = false;
@@ -809,18 +1004,43 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>照这一页当前的显示设置造一张卡（同 <see cref="LoadAsync"/> 那一句）。</summary>
-    private CardItem NewCard(EmbyItem item) =>
-        new(item, _images!, CardBuildWidth, CardBuildWide,
+    /// <remarks>
+    /// 索引页那一支（2026-10-18 用户令）：卡片上只有**一张图 + 居中的一个名字**，没有第二行字、没有角标。
+    /// 那几个决定各自都有原因：
+    /// <list type="bullet">
+    /// <item><c>subtitle: ""</c> 是必须的 —— 不传的话 <see cref="EmbyItem.CardSubtitle"/> 会把
+    /// <c>Type</c> 原样写出来，屏上于是变成「动画 / Genre」「AT-X / Studio」这种中英各一半的行。</item>
+    /// <item><c>indicators: false</c>：一个类型没有「看过 / 收藏」可言（服务器那边也一样，见
+    /// <see cref="EmbyItemType.TracksUserState"/> 对 Genre / Studio 的判据）。</item>
+    /// <item><c>containArtwork</c>：只有台标要留边（铺满会把字切掉），四格封面照旧铺满。</item>
+    /// </list>
+    /// </remarks>
+    private CardItem NewCard(EmbyItem item) => IsUpcomingPage
+        ? new(item, _images!, _upcomingCardWidth, wide: true,
+            subtitle: LibraryUpcoming.Subtitle(item), title: LibraryUpcoming.Title(item),
+            artwork: LibraryUpcoming.Artwork(item), indicators: false, upcoming: true)
+        : IndexKind != LibraryIndexKind.None
+        ? new(item, _images!, CardBuildWidth, CardBuildWide,
+            subtitle: "", indicators: false, imageTypes: CardImageTypes,
+            title: item.Name, centeredText: true,
+            containArtwork: LibraryIndexCards.ContainArtwork(IndexKind),
+            aspect: LibraryIndexCards.Aspect(IndexKind))
+        : new(item, _images!, CardBuildWidth, CardBuildWide,
             subtitle: CardLine(item), imageTypes: CardImageTypes,
             tableFields: View == LibraryView.Table ? Fields : null,
-            note: LibraryCardText.Note(item, Fields));
+            note: LibraryCardText.Note(item, Fields),
+            title: Section is LibrarySection.Episodes or LibrarySection.Folders
+                ? LibraryCardText.Title(item, Fields, Section) : null,
+            centeredText: Section is LibrarySection.Episodes or LibrarySection.Folders,
+            folderFrame: Section == LibrarySection.Folders && View == LibraryView.Poster);
 
     /// <summary>
     /// 卡片底下那一行字。勾了字段就按勾的拼；一项能说的都没有时交回卡片自己的副标题（
     /// 剧集的「S01E02 · 剧名」、文件夹的「文件夹」），总比留一行空白强。
     /// </summary>
-    private string? CardLine(EmbyItem item) =>
-        LibraryCardText.Line(item, Fields) is { Length: > 0 } line ? line : null;
+    private string? CardLine(EmbyItem item) => Section is LibrarySection.Episodes or LibrarySection.Folders
+        ? LibraryCardText.Subtitle(item, Fields, Section)
+        : LibraryCardText.Line(item, Fields) is { Length: > 0 } line ? line : null;
 
     private async Task<bool> RefreshAfterRemovalAsync(CancellationToken queryToken)
     {
@@ -862,6 +1082,11 @@ public sealed partial class LibraryViewModel : PageViewModel
                 else if (current != index) Cards.Move(current, index);
             }
             _total = total;
+            if (IsUpcomingPage)
+            {
+                _upcomingReadCount = items.Count;
+                UpdateUpcomingDays();
+            }
             _firstPage = true;
             _pageFailed = false;
             ShowEmptyNotice = Cards.Count == 0;
@@ -899,16 +1124,25 @@ public sealed partial class LibraryViewModel : PageViewModel
             await LoadRecommendedAsync(reset).ConfigureAwait(true);
             return;
         }
+        if (IsFavoritesPage)
+        {
+            await LoadFavoritesAsync(reset).ConfigureAwait(true);
+            return;
+        }
         if (!reset && (Busy || !HasMore || !_firstPage || _pageFailed)) return;
         if (reset)
         {
+            _favoriteLoads.Cancel();
+            foreach (var row in FavoriteRows) row.Loading = false;
             _queryToken = _queries.Begin();
             _jumps.Cancel();
             _firstPage = false;
             _pageFailed = false;
             _total = NotLoaded;
+            _upcomingReadCount = 0;
             ResetCursor();
             ShowEmptyNotice = false;
+            UpcomingDays.Clear();
             if (_request.IsSearch || IsSectionLibrary)
             {
                 foreach (var card in Cards) card.AbandonPoster();
@@ -917,9 +1151,10 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
         var queryToken = _queryToken;
         var token = BeginLoad();
+        RefreshUpcomingState();
         try
         {
-            var start = reset ? 0 : Cards.Count;
+            var start = reset ? 0 : IsUpcomingPage ? _upcomingReadCount : Cards.Count;
             var result = await ReadAsync(start, token).ConfigureAwait(true);
             if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
             if (reset)
@@ -932,15 +1167,19 @@ public sealed partial class LibraryViewModel : PageViewModel
             {
                 foreach (var item in result.Items)
                 {
+                    if (IsUpcomingPage && Cards.Any(card => card.Item.IdentityKey == item.IdentityKey)) continue;
                     Cards.Add(NewCard(item));
                     if (IsResumePage) _resumeRead.Add(item.IdentityKey);
                 }
-                if (result.Items.Count == 0) _total = Cards.Count;
+                if (IsUpcomingPage) _upcomingReadCount += result.Items.Count;
+                if (result.Items.Count == 0) _total = IsUpcomingPage ? _upcomingReadCount : Cards.Count;
             }
+            UpdateUpcomingDays();
             _firstPage = true;
             _pageFailed = false;
             EmptyNotice = result is null ? "输入关键字开始搜索"
-                : _request.IsSearch ? $"没有找到“{SearchText}”的匹配结果" : "这里没有内容";
+                : _request.IsSearch ? $"没有找到“{SearchText}”的匹配结果"
+                : IsUpcomingPage ? "暂无即将播出的剧集，可稍后刷新查看" : "这里没有内容";
             ShowEmptyNotice = Cards.Count == 0;
             EndLoad(token);
             PageArrived?.Invoke();
@@ -966,6 +1205,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         _active = false;
         _queries.Cancel();
         _jumps.Cancel();
+        _favoriteLoads.Cancel();
+        foreach (var row in FavoriteRows) row.Loading = false;
         base.Cancel();
         RowsArrived();
     }
@@ -982,6 +1223,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         Cancel();
         foreach (var card in Cards) card.AbandonPoster();
         foreach (var shelf in RecommendedShelves) shelf.Clear();
+        _favoriteLoads.Dispose();
         foreach (var row in RecentSearches) row.Card.AbandonPoster();
         _queries.Dispose();
         _jumps.Dispose();
@@ -1089,7 +1331,8 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         return
         [
-            .. EmbySortBy.For(preset, SourceServerVersion)
+            .. (IsSectionLibrary ? LibrarySortCatalog.For(_request.CollectionType, Section, SourceServerVersion)
+                    : EmbySortBy.For(preset, SourceServerVersion))
                 .Where(option => SupportsSort(option.ValueOf(preset)))
                 .Select(option => new SortEntry(option, option.ValueOf(preset) == SortKey, SortDescending))
         ];
@@ -1264,7 +1507,15 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>One count query with <c>Limit 0</c>, or null when it cannot be answered. With a
     /// letter, the count is of rows <b>at or after</b> that letter — <c>ItemQuery</c> sends it as
     /// <c>NameStartsWithOrGreater</c>, not a plain prefix count.</summary>
-    private static async Task<long> CountAsync(EmbySessionScope scope, ItemQuery source, string? letter, CancellationToken token)
+    /// <remarks>
+    /// 索引页（类型、播出平台）要问的是 `/Genres` 与 `/Studios`，不是 `Users/{id}/Items` —— 那一页列出来的
+    /// 是类型名与台名，拿剧集去数只会数出另一批东西，字母跳转会落在错的行上。请求仍借 <see cref="ItemQuery"/>
+    /// 拼：这两个端点接的是同一套查询参数（ParentId / IncludeItemTypes / Recursive / SortBy /
+    /// NameStartsWithOrGreater / StartIndex / Limit），差别只在端点和要不要 UserId，而那两件事
+    /// <see cref="EmbyClient.GetLibraryItemsAsync"/> 已经知道怎么分（2026-10-18 对着本机 4.10.1.0 实测：
+    /// 播出平台 133 项、`NameStartsWithOrGreater=B` 数回 124）。`Fields` 清空：这一趟只读总数。
+    /// </remarks>
+    private async Task<long> CountAsync(EmbySessionScope scope, ItemQuery source, string? letter, CancellationToken token)
     {
         var query = new ItemQuery
         {
@@ -1288,9 +1539,10 @@ public sealed partial class LibraryViewModel : PageViewModel
         };
 
         scope.ThrowIfUnavailable();
-        var result = await scope
-            .ExecuteAsync((client, ct) => client.GetItemsAsync(query, ct), token)
-            .ConfigureAwait(true);
+        var result = IsBrowseIndex
+            ? await scope.ExecuteAsync((client, ct) => client.GetLibraryItemsAsync(
+                _request!.CollectionType!, Section, null, query, ct), token).ConfigureAwait(true)
+            : await scope.ExecuteAsync((client, ct) => client.GetItemsAsync(query, ct), token).ConfigureAwait(true);
         scope.ThrowIfUnavailable();
 
         return result.TotalRecordCount;
@@ -1456,15 +1708,18 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         var request = _request!;
         var preset = SortPreset;
-        var fallback = EmbySortBy.Default(preset);
+        var fallback = IsSectionLibrary ? LibrarySortCatalog.Default(request.CollectionType, Section) : EmbySortBy.Default(preset);
+        var options = IsSectionLibrary ? LibrarySortCatalog.For(request.CollectionType, Section, SourceServerVersion)
+            : EmbySortBy.For(preset, SourceServerVersion);
 
+        if (!SupportsSort(fallback.ValueOf(preset))) fallback = EmbySortBy.Default(preset);
         SortKey = fallback.ValueOf(preset);
         var label = fallback.Label;
         var descending = fallback.DescendingByDefault;
 
         if (MemoryKey() is { } memoryKey
             && Settings.Ui.Sort.TryGetValue(memoryKey, out var saved)
-            && EmbySortBy.Find(saved.By) is { } option
+            && options.FirstOrDefault(option => option.ValueOf(preset) == saved.By) is { } option
             && option.AppliesTo(preset, SourceServerVersion)
             && SupportsSort(saved.By))
         {
@@ -1522,12 +1777,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
         else
         {
-            // 剧集那一页（「集」）装的是单集：一行一条比一面海报墙好读，所以默认就是缩略图，
-            // 电影库和电视剧库的条目页默认还是海报。这是两种库本来就不同的地方之一。
-            _display = new LibraryDisplay
-            {
-                View = Section == LibrarySection.Episodes ? LibraryView.Thumb : LibraryView.Poster
-            };
+            _display = LibraryDisplayCatalog.DefaultFor(Section, IndexKind);
         }
         RaiseDisplay();
     }
@@ -1556,8 +1806,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>把依赖这套设置的读数一起喊一遍（行高、格宽、视图名、取图顺序）。</summary>
     private void RaiseDisplay()
     {
-        // 这一页真正生效的字段：换页（文件夹 ↔ 节目 ↔ 集）也要重算，所以放在这里而不是只算一次。
-        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section);
+        // 这一页真正生效的字段：换页（文件夹 ↔ 节目 ↔ 集 ↔ 索引页）也要重算，所以放在这里而不是只算一次。
+        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section, View, IndexKind);
         // 卡片宽度就是这一面墙此刻按哪一档画的 —— 自检与探针读的是它，它得跟着图像大小走。
         CardWidth = CardBuildWidth;
         OnPropertyChanged(nameof(View));
@@ -1568,6 +1818,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(ViewLabel));
         OnPropertyChanged(nameof(RowHeight));
         OnPropertyChanged(nameof(CellWidth));
+        OnPropertyChanged(nameof(CardMinWidth));
         OnPropertyChanged(nameof(CardBuildWidth));
         OnPropertyChanged(nameof(CardImageTypes));
     }
@@ -1741,7 +1992,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         if (IsSectionLibrary)
             return LibraryBrowse.Query(request.CollectionType!, request.ParentId!, request.Section,
-                start, limit, SortKey, SortDescending, _filters, request.BrowseGroup, _display);
+                start, IsUpcomingPage ? LibraryUpcoming.PageSize : limit, SortKey, SortDescending, _filters, request.BrowseGroup, _display);
 
         var types = ItemQuery.FlattenedTypes(request.CollectionType);
 

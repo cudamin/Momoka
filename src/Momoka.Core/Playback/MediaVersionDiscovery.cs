@@ -134,7 +134,10 @@ public static class MediaVersionDiscovery
         var candidates = new Dictionary<string, EmbyItem>(StringComparer.Ordinal);
         // Jellyfin 的 provider 兼容查询要扫描全库；常见同名/原名先走快速搜索，仍以 provider 严格复核。
         if (scope.Connection.IsJellyfin) await SearchTitlesAsync().ConfigureAwait(false);
-        if (candidates.Count == 0 && scope.Connection.ServerKind != MediaServerKind.FnNas
+        // The provider query is an Emby/Jellyfin route. Plex has no equivalent, so it goes straight to
+        // the title search below — without this, every Plex source would fail this pass and be reported
+        // as a failed source in the version menu.
+        if (candidates.Count == 0 && scope.Connection.ServerKind is MediaServerKind.Emby or MediaServerKind.Jellyfin
             && anchor.Type is EmbyItemType.Movie or EmbyItemType.Series)
         {
             foreach (var provider in Providers)

@@ -198,7 +198,7 @@ public sealed class EmbySession : IDisposable
         {
             try
             {
-                if (connection.IsJellyfin || connection.IsFnNas)
+                if (connection.IsProbedProduct)
                 {
                     var detected = await Gateway.DetectAsync(server.Url, cancellationToken).ConfigureAwait(false);
                     if (detected.ServerKind != connection.ServerKind || detected.ApiBase != apiBase) return false;
@@ -206,7 +206,7 @@ public sealed class EmbySession : IDisposable
                     connection = connection with { ServerVersion = detected.Version, ServerId = detected.Id ?? connection.ServerId };
                 }
                 var candidate = new EmbyClient(_http, connection);
-                if (connection.IsJellyfin || connection.IsFnNas)
+                if (connection.IsProbedProduct)
                 {
                     var current = await InvokeAsync(candidate, static (client, ct) => client.GetCurrentUserAsync(ct), cancellationToken).ConfigureAwait(false);
                     if (!string.Equals(current.Id, userId, StringComparison.Ordinal)) return false;
@@ -331,6 +331,7 @@ public sealed class EmbySession : IDisposable
     {
         try { return await operation(client, cancellationToken).ConfigureAwait(false); }
         catch (Momoka.FnNas.FnNasApiException error) { throw Momoka.FnNas.FnNasMediaAdapter.Translate(error); }
+        catch (Momoka.Plex.PlexApiException error) { throw Momoka.Plex.PlexMediaAdapter.Translate(error); }
     }
 
     private EmbyClient? ReplacementClient(EmbySessionScope scope, EmbyClient stale) =>
@@ -399,7 +400,8 @@ public sealed class EmbySession : IDisposable
 
     private async Task<EmbyConnection> NameServerAsync(Uri apiBase, EmbyConnection connection, CancellationToken cancellationToken)
     {
-        if (connection.IsFnNas) return connection;
+        // 飞牛与 Plex 的名字在登录那一趟就已经拿到了，这里没有一条公开接口可以再问一遍。
+        if (connection.IsFnNas || connection.IsPlex) return connection;
         try
         {
             var info = await Gateway.GetPublicSystemInfoAsync(apiBase, cancellationToken).ConfigureAwait(false);

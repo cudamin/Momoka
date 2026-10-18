@@ -76,7 +76,7 @@ public static class SettingsPreferences
         Overwrite(destination.Audio, source.Audio);
         destination.Audio.Volume = volume;
 
-        // 「界面」混着两类：主题、每页条目数、图片缓存上限、评分来源、主页版面、轮播那几项都是设置页上的行，
+        // 「界面」混着两类：主题、每页条目数、图片缓存上限、主页版面、轮播那几项都是设置页上的行，
         // 从 source 抄；下面这几项是程序替他记的，设置页上一行都没有，留目的地自己的。
         var ui = destination.Ui;
         var (left, top, width, height, maximized) =

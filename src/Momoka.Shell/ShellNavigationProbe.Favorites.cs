@@ -300,7 +300,7 @@ internal sealed partial class ShellNavigationProbe
         next.Id = "ep-next";
         using var episodePage = new DetailViewModel();
         episodePage.Attach(DetailRequest.For(fixture.Services, Episode("a")), fixture.Actions, fixture.SettingsService,
-            fixture.Session, fixture.Images, fixture.Launcher);
+            fixture.Session, fixture.Images);
         fixture.Transport.Reply = (request, _) => request.RequestUri!.AbsolutePath.EndsWith("/Episodes", StringComparison.Ordinal)
             ? Task.FromResult(Json(new { Items = new[] { Episode("a"), next } })) : Task.FromResult(FakeTransport.Standard(request));
         await episodePage.ReloadAsync();

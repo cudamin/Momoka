@@ -82,6 +82,10 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
     /// Emby infers permission from the privileged system endpoint and its public fallback.
     /// Jellyfin reads the current user's Policy first: its system information response alone does not
     /// establish administrator permission.
+    /// Plex has neither: it has no administrator-only server-information endpoint this client may read,
+    /// so it is always reported as the restricted subset and never claims administrator. That is honest
+    /// rather than limiting — Plex offers no native administration here at all (see
+    /// <c>SettingsViewModel.AdministrationCategories</c>).
     /// </para>
     /// </summary>
     public async Task ProbeAsync(CancellationToken token = default)

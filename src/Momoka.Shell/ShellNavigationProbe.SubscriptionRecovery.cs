@@ -69,10 +69,22 @@ internal sealed partial class ShellNavigationProbe
             var seasons = Get<MoviePilotMediaSeasonsView>(page, "MediaSeasons");
             seasons.StartBringIntoView();
             await LayoutAsync(page);
-            var play = Descendants(seasons).OfType<Button>().Single(button => button.Name == "PlaySubscriptionEpisode"
-                && ReferenceEquals(button.Command, vm.Episodes[0].PlayCommand));
+            // ItemsRepeater 换过一遍数据之后，旧那一格的容器要等布局把它收走：这一句等它收干净再量。
+            // 收不干净（真在屏上画出两行同一个集）就照实报数 —— 2026-10-18 之前这里是一次 `Single`，
+            // 撞上那半拍只给一句「Sequence contains more than one matching element」，看不出是几个、是哪个键。
+            Button[] plays = [];
+            for (var attempt = 0; attempt < 40; attempt++)
+            {
+                plays = [.. Descendants(seasons).OfType<Button>().Where(button => button.Name == "PlaySubscriptionEpisode"
+                    && ReferenceEquals(button.Command, vm.Episodes[0].PlayCommand))];
+                if (plays.Length == 1) break;
+                await Task.Delay(25);
+                await LayoutAsync(page);
+            }
+            Require(plays.Length == 1, $"订阅集列表里第一集的播放键有 {plays.Length} 个（应为 1）");
+            var playButton = plays[0];
             var headPlay = Get<Button>(page, "PlayMediaLibraryItem");
-            Require(play.Visibility == Visibility.Collapsed && headPlay.Visibility == Visibility.Collapsed, "匹配完成前出现播放入口");
+            Require(playButton.Visibility == Visibility.Collapsed && headPlay.Visibility == Visibility.Collapsed, "匹配完成前出现播放入口");
             pending.SetResult(Json(new
             {
                 Items = new[] { new EmbyItem { Id = "play-1", Type = EmbyItemType.Episode, ParentIndexNumber = 1,
@@ -80,15 +92,15 @@ internal sealed partial class ShellNavigationProbe
             }));
             await UntilAsync(() => vm.IsReady);
             Require(vm.Episodes[0].HasPlayableTarget, "没有匹配到假播放条目：" + vm.PlaybackStatus + "；" + vm.NoticeMessage);
-            Require(play.Visibility == Visibility.Visible, "匹配完成后原行按钮没有显示");
-            Require(headPlay.Visibility == Visibility.Visible && play.IsEnabled, "匹配完成没有更新原播放按钮");
+            Require(playButton.Visibility == Visibility.Visible, "匹配完成后原行按钮没有显示");
+            Require(headPlay.Visibility == Visibility.Visible && playButton.IsEnabled, "匹配完成没有更新原播放按钮");
             vm.Working = true;
-            Require(play.Visibility == Visibility.Visible && !play.IsEnabled, "忙碌时播放按钮消失或仍允许重复操作");
+            Require(playButton.Visibility == Visibility.Visible && !playButton.IsEnabled, "忙碌时播放按钮消失或仍允许重复操作");
             vm.Working = false;
             vm.AttachPlayback(null, null);
-            Require(play.Visibility == Visibility.Collapsed && headPlay.Visibility == Visibility.Collapsed, "播放能力撤销后入口未隐藏");
+            Require(playButton.Visibility == Visibility.Collapsed && headPlay.Visibility == Visibility.Collapsed, "播放能力撤销后入口未隐藏");
             vm.AttachPlayback(scope, _ => Task.CompletedTask);
-            Require(play.Visibility == Visibility.Visible, "播放能力恢复后入口未恢复");
+            Require(playButton.Visibility == Visibility.Visible, "播放能力恢复后入口未恢复");
 
             foreach (var width in new[] { 600, 760, 600 })
             {
@@ -105,21 +117,29 @@ internal sealed partial class ShellNavigationProbe
                 Require(content.ActualWidth >= (width == 600 ? 250 : 150), "集名、日期和状态被固定海报挤窄");
                 Require(Grid.GetRow(content) == (width == 600 ? 1 : 0), "紧凑布局没有随窗口恢复");
                 Require(actions.TransformToVisual(row).TransformPoint(default).X + actions.ActualWidth <= row.ActualWidth + 1, "播放或搜索按钮超出行宽");
-                await SaveUsersFrameAsync(page, $"mp-subscription-files-recovery-{width}.png");
+                await SaveSettledFrameAsync(page, $"mp-subscription-files-recovery-{width}.png");
             }
             vm.FilterIndex = 1;
             var files = vm.Episodes;
             server.PendingGroup = Pending<HttpResponseMessage>();
             server.PendingGroup.SetResult(Json(new[] { new { season_number = 1, episode_count = 4, name = "另一种分季" } }));
-            await page.MediaViewModel.SelectGroupAsync(page.MediaViewModel.Groups.Single(group => group.Group.Id == "grp-9"));
-            var other = page.MediaViewModel.Seasons.Single();
+            var ninth = page.MediaViewModel.Groups.Where(group => group.Group.Id == "grp-9").ToArray();
+            Require(ninth.Length == 1, $"剧集组 grp-9 有 {ninth.Length} 个（应为 1）");
+            await page.MediaViewModel.SelectGroupAsync(ninth[0]);
+            var ninthSeasons = page.MediaViewModel.Seasons.ToArray();
+            Require(ninthSeasons.Length == 1, $"grp-9 的季有 {ninthSeasons.Length} 行（应为 1）");
+            var other = ninthSeasons[0];
             Require(other.Files is null && other.MediaEpisodesVisibility == Visibility.Visible && !seasons.HasSubscriptionFiles,
                 "另一剧集组的同号季仍装载原订阅统计");
             Require(!page.BuildMoreMenu().Items.OfType<MenuFlyoutItem>().Any(item => item.Text == "文件统计"), "无统计落点仍显示文件统计菜单");
             other.Expanded = true;
             await UntilAsync(() => other.Episodes.Count > 0);
-            await page.MediaViewModel.SelectGroupAsync(page.MediaViewModel.Groups.Single(group => group.Group.Id.Length == 0));
-            var restored = page.MediaViewModel.Seasons.Single(row => row.Files is not null);
+            var root = page.MediaViewModel.Groups.Where(group => group.Group.Id.Length == 0).ToArray();
+            Require(root.Length == 1, $"原组（没有剧集组编号）有 {root.Length} 个（应为 1）");
+            await page.MediaViewModel.SelectGroupAsync(root[0]);
+            var loaded = page.MediaViewModel.Seasons.Where(row => row.Files is not null).ToArray();
+            Require(loaded.Length == 1, $"装着订阅统计的季有 {loaded.Length} 行（应为 1）");
+            var restored = loaded[0];
             Require(restored.Expanded && ReferenceEquals(restored.FilesEpisodes, files) && restored.FilesFilterIndex == 1, "切回原组没有恢复统计及筛选");
             Require(server.Writes.Count == 0, "浏览、匹配或切组意外写入订阅");
         }

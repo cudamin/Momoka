@@ -16,6 +16,7 @@ public static class EmbyServerAddress
     public static bool TryNormalize(string input, out Uri address, out string error, MediaServerKind kind = MediaServerKind.Emby)
     {
         if (kind == MediaServerKind.FnNas) return Momoka.FnNas.FnNasEndpoint.TryNormalize(input, out address, out error);
+        if (kind == MediaServerKind.Plex) return Momoka.Plex.PlexEndpoint.TryNormalize(input, out address, out error);
         address = null!;
         error = "";
 
@@ -61,11 +62,11 @@ public static class EmbyServerAddress
         return true;
     }
 
-    /// <summary>The display address; Jellyfin preserves the complete reverse-proxy path.</summary>
+    /// <summary>The display address; Jellyfin and Plex preserve the complete reverse-proxy path.</summary>
     public static string ToDisplayString(Uri apiBase, MediaServerKind kind = MediaServerKind.Emby)
     {
         var text = apiBase.GetLeftPart(UriPartial.Path).TrimEnd('/');
-        if (kind == MediaServerKind.FnNas) return text;
+        if (kind == MediaServerKind.FnNas || kind == MediaServerKind.Plex) return text;
         return kind == MediaServerKind.Emby && text.EndsWith("/emby", StringComparison.OrdinalIgnoreCase) ? text[..^5] : text;
     }
 }

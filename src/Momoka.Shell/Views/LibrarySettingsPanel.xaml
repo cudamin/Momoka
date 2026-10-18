@@ -11,8 +11,7 @@
 <UserControl
     x:Class="Momoka.Shell.Views.LibrarySettingsPanel"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Width="520">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- 面板自己铺一层实底：浮层默认是亚克力的，底下的卡片墙会透上来，读起来像没画完。
          网页端那颗齿轮打开的是一块实心面板，这里跟着它。 -->
@@ -46,9 +45,9 @@
             </Grid>
 
             <ScrollViewer
+                x:Name="SettingsScroll"
                 Grid.Row="1"
-                MaxHeight="560"
-                Padding="16,0,16,16"
+                Padding="32,20,32,24"
                 HorizontalScrollMode="Disabled"
                 HorizontalScrollBarVisibility="Disabled">
                 <StackPanel Spacing="18">
@@ -78,7 +77,9 @@
                             TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <StackPanel x:Name="GroupSection" Spacing="4">
+                    <!-- 索引页（类型、播出平台）整组收起：那一页列的是类型名与台名，没有合集可归。
+                         见 LibrarySettingsPanel.ApplyIndexRows。 -->
+                    <StackPanel x:Name="GroupSection" x:FieldModifier="internal" Spacing="4">
                         <Grid ColumnSpacing="{StaticResource EgSpaceM}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />

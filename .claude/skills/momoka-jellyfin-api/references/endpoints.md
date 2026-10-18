@@ -18,6 +18,7 @@ The left column is what `EmbyClient*.cs`, `EmbyServerGateway` and `EmbyUrl` call
 | `GET /Genres`, `GET /Years` | same | |
 | `GET /Tags` | **absent** | Tags come back from `GET /Items/Filters` alongside genres and years |
 | `GET /Shows/NextUp` | same | |
+| `GET /Shows/Upcoming` | same | TV Upcoming: `userId`, `parentId`, paging, legal `fields` and image options only. Do not send Emby's `SortBy`, `SortOrder`, `Recursive`, item types, date filters or collection grouping. |
 | `GET /Shows/{Id}/Seasons`, `/Episodes` | `GET /Shows/{seriesId}/Seasons`, `/Episodes` | |
 | `POST /Items/{Id}` | `POST /Items/{itemId}` | |
 | `POST /Items/{Id}/Refresh` | `POST /Items/{itemId}/Refresh` | |
@@ -82,77 +83,34 @@ Jellyfin additionally documents `POST /Sessions/Playing/Ping` (the progress hear
 
 Jellyfin also documents `GET`/`POST /UserItems/{itemId}/UserData` and `POST`/`DELETE /UserItems/{itemId}/Rating` (the like/dislike pair Momoka deliberately does not expose).
 
-## Library management
+## Retired: library management and environment browsing
 
-| Momoka today | Jellyfin 12.2.0 | Note |
-| --- | --- | --- |
-| `GET /Library/VirtualFolders/Query` | **absent** | `GET /Library/VirtualFolders` returns the list directly, without the `StartIndex` / `Limit` / `TotalRecordCount` envelope |
-| `POST /Library/VirtualFolders` | same | |
-| `POST /Library/VirtualFolders/LibraryOptions` | same | |
-| `POST /Library/VirtualFolders/Name` | same | |
-| `POST /Library/VirtualFolders/Delete` | `DELETE /Library/VirtualFolders` | |
-| `POST /Library/VirtualFolders/Paths` | same | |
-| `POST /Library/VirtualFolders/Paths/Update` | same | |
-| `POST /Library/VirtualFolders/Paths/Delete` | `DELETE /Library/VirtualFolders/Paths` | |
-| `GET /Libraries/AvailableOptions` | same | |
-| `GET /Library/MediaFolders` | same | |
-| `GET /Library/SelectableMediaFolders` | **absent** | Used by the third-party client in `work/`, so it answers on at least some servers — undocumented here |
-| `POST /Library/Refresh` | same | |
-| `POST /Items/{libraryId}/Refresh` | `POST /Items/{itemId}/Refresh` | |
-| `GET /ScheduledTasks` | same | |
-| `POST /ScheduledTasks/Running/{Id}` | `POST /ScheduledTasks/Running/{taskId}` | |
-| `POST /ScheduledTasks/Running/{Id}/Delete` | `DELETE /ScheduledTasks/Running/{taskId}` | The `POST …/Delete` alias is Emby's; Jellyfin documents the `DELETE` |
-| `GET` / `POST` `/System/Configuration/{key}` | same | |
+Momoka used to call the virtual-folder write family, `/Library/VirtualFolders/Query`, `/Libraries/AvailableOptions`, `/Library/MediaFolders`, `/Library/SelectableMediaFolders`, `/ScheduledTasks*`, `/System/Configuration/{key}` and the whole `/Environment/*` group from its native library-management page. That page retired on 2026-10-16, so none of them is mapped here any more. The library routes still called are `GET /Library/VirtualFolders` (the notifications page's library picker) and `POST /Library/Refresh` (the item menu's "scan library").
 
-Jellyfin also documents `GET /Library/PhysicalPaths`, which has no Emby counterpart in this list.
-
-## Environment browsing
-
-| Momoka today | Jellyfin 12.2.0 | Note |
-| --- | --- | --- |
-| `GET /Environment/DefaultDirectoryBrowser` | same | |
-| `GET /Environment/Drives` | same | |
-| `GET /Environment/NetworkDevices` | **absent** | Network browsing is not exposed |
-| `POST /Environment/DirectoryContents` | `GET /Environment/DirectoryContents` | The document lists `GET` only, with `path`, `includeFiles`, `includeDirectories`. Momoka sends credentials in the body; that form is not documented here |
-| `POST /Environment/ValidatePath` | same | |
-| `GET /Environment/ParentPath` | same | Jellyfin returns a JSON string or null; parse it before using the path. Emby's plain-text response is a different contract |
-
-## User management
+## Login
 
 | Momoka today | Jellyfin 12.2.0 | Note |
 | --- | --- | --- |
 | `POST /Users/AuthenticateByName` | same | |
-| `GET /Users/Query` | `GET /Users` | No pagination parameters; returns the whole list |
 | `GET /Users/Public` | same | |
-| `POST /Users/New` | same | |
-| `GET /Users/{Id}` | `GET /Users/{userId}` | |
-| `POST /Users/{Id}` | **absent** | Editing is split: `POST /Users/{userId}/Policy`, `POST /Users/Configuration` (with `userId`) |
-| `POST /Users/{Id}/Policy` | `POST /Users/{userId}/Policy` | |
-| `POST /Users/{Id}/Password` | `POST /Users/Password` | `userId` query; body is `UpdateUserPassword` (`CurrentPw`, `NewPw`, `ResetPassword`). Changing the signed-in user's own password requires `CurrentPw`, even for administrators |
-| `POST /Users/{Id}/Delete` | `DELETE /Users/{userId}` | |
-| `POST /Users/{Id}/Configuration/Partial` | `POST /Users/Configuration` | `userId` query |
-| `POST /Users/{sourceId}/CopyData` | **absent** | User-copy is an Emby feature |
-| `GET /Users/CopyDataOptions` | **absent** | Same |
-| `POST` / `DELETE` `/Users/{Id}/Connect/Link` | **absent** | Emby Connect has no Jellyfin equivalent |
 
 Jellyfin also documents `GET /Users/Me` (the user behind the token), `POST /Users/AuthenticateWithQuickConnect`, `POST /Users/ForgotPassword` and `/ForgotPassword/Pin`.
 
 `AuthenticationResult` keeps its name and shape (`User`, `SessionInfo`, `AccessToken`, `ServerId`), so the login response DTO carries over.
+
+Momoka's native user-management page used to call `GET /Users/Query`, `POST /Users/New`, `GET`/`POST` `/Users/{Id}`, `/Users/{Id}/Policy`, `/Users/{Id}/Password`, `/Users/{Id}/Delete`, `/Users/{Id}/Configuration/Partial`, `/Users/{sourceId}/CopyData`, `/Users/CopyDataOptions` and `/Users/{Id}/Connect/Link*`. That page retired on 2026-10-16 along with its Emby-only gaps.
 
 ## System and notifications
 
 | Momoka today | Jellyfin 12.2.0 | Note |
 | --- | --- | --- |
 | `GET /System/Info`, `/System/Info/Public` | same | `/System/Info` declares a stricter policy (`FirstTimeSetupOrIgnoreParentalControl`) than the default authorization; `/System/Info/Public` declares no `security` at all |
-| `GET` / `POST` `/System/Configuration` | same | |
-| `POST /System/Restart`, `/System/Shutdown` | same | |
-| `GET /System/ActivityLog/Entries` | same | |
-| `GET /Sessions` | same | |
-| `GET /Localization/Cultures`, `/Countries` | same | |
 | `GET /Notifications/Types`, `/Notifications/Services/Defaults`, `POST /Notifications/Services/Test` | **absent** | Jellyfin has no notification-services API |
 | `GET /Notifications/Services`, `GET`/`POST`/`DELETE` `/Notifications/Services/Configured` | **absent** | These were already Emby specification gaps; on Jellyfin the whole area is gone |
 | `GET /Users` (notification user list) | `GET /Users` | Present |
 | `GET /Library/VirtualFolders` (notification library list) | same | Present |
+
+Momoka's native console used to call `GET`/`POST` `/System/Configuration`, `POST /System/Restart`, `/System/Shutdown`, `GET /System/ActivityLog/Entries`, `GET /Sessions` and `GET /Localization/Cultures`, `/Countries`. It retired on 2026-10-16.
 
 Jellyfin also documents `/System/Info/Storage`, `/System/Endpoint`, `/System/Logs` and `/System/Ping`.
 
@@ -164,9 +122,6 @@ Collecting the "absent" rows, these features have no route in the Jellyfin 12.2.
 - The remote-image proxy (`/Images/Remote`).
 - The identification-image proxy (`/Items/RemoteSearch/Image`). Candidate text and applying a selection remain usable without requesting either proxy.
 - Hiding an item from resume (`…/HideFromResume`).
-- Paged virtual-folder listing (`/Library/VirtualFolders/Query`) and `/Library/SelectableMediaFolders`.
-- Network-device browsing (`/Environment/NetworkDevices`), and the credentialed `POST` form of `/Environment/DirectoryContents`.
-- Editing a user as a whole (`POST /Users/{userId}`), user copy (`CopyData`, `CopyDataOptions`) and Emby Connect.
 - The entire notifications surface.
 - `GET /Shows/Missing` — Jellyfin expresses missing episodes as a filter instead: `GET /Items` carries `isMissing` and `is4K` parameters. This is the exact inverse of the Emby situation recorded in `EmbyFilterBy`, where those two parameters are the ones Emby silently drops.
 

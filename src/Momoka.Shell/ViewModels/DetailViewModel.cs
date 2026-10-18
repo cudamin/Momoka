@@ -9,7 +9,6 @@ using Momoka.Infrastructure;
 using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Media;
-using Momoka.Shell.Platform;
 using Momoka.Shell.Views;
 using Microsoft.UI.Text;
 using Microsoft.UI.Xaml;
@@ -115,7 +114,6 @@ public sealed partial class DetailViewModel : PageViewModel
     private ISettingsService? _settings;
     private EmbySession? _session;
     private EmbyImageStore? _images;
-    private ISystemLauncher? _launcher;
 
     /// <summary>What the grid or shelf handed over. Used for its id; everything else is re-fetched.</summary>
     private EmbyItem? _seed;
@@ -242,17 +240,14 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// 自检用：规矩说这一格该画什么。屏上那两格由绑定填，而「该是什么」只有视图模型算得出来 —— 探针拿这一份和屏上
-    /// 比，两边一致才算这一条设置真的接上了。
+    /// 比，两边一致才算这一格真的接上了。
     /// </summary>
     internal Emby.ScoreBadge ScoreBadge { get; private set; } = Emby.ScoreBadge.None;
 
-    /// <summary>自检用：设置里选的那一档叫什么。</summary>
-    internal string ScoreSourceName => Emby.ItemScore.Describe(Settings.Ui.ScoreSource);
-
     /// <summary>
-    /// 自检用：服务器在这个条目上到底给了什么评分字段。**只报不判** —— 有没有豆瓣的痕迹是服务器上装了哪些插件的
-    /// 事，判它就是把一关的成败交给别人的配置。可它是这一关最值得读的一句：这台服务器有没有影评指数、有没有对上
-    /// 豆瓣，从此每次自检都自己答一遍。
+    /// 自检用：服务器在这个条目上到底给了什么评分字段。**只报不判** —— 有没有影评指数是服务器上装了哪些插件的
+    /// 事，判它就是把一关的成败交给别人的配置。可它是这一关最值得读的一句：这台服务器有没有影评指数，从此每次
+    /// 自检都自己答一遍。
     /// </summary>
     internal string ScoreFacts { get; private set; } = "还没读到条目";
 
@@ -1696,16 +1691,15 @@ public sealed partial class DetailViewModel : PageViewModel
 
     /// <summary>
     /// Handed the item to show, the shell it opens things through, the three services this page reads —
-    /// the settings for the two rows it sizes and the two playback preferences, the session for every
-    /// round trip, and the image store for the shelves — and the launcher 在浏览器中打开 goes through.
+    /// the settings for the score source and the two playback preferences, the session for every round
+    /// trip, and the image store for the shelves.
     /// </summary>
     internal void Attach(
         DetailRequest request,
         IShellActions actions,
         ISettingsService settings,
         EmbySession session,
-        EmbyImageStore images,
-        ISystemLauncher launcher)
+        EmbyImageStore images)
     {
         Cancel();
         _deletedItems.Clear();
@@ -1716,22 +1710,16 @@ public sealed partial class DetailViewModel : PageViewModel
         _settings = settings;
         _session = session;
         _images = images;
-        _launcher = launcher;
 
         // 版面高在这一句就定了下来，早于任何一次网络往返 —— 「点击主页封面后窗口会闪一下」说的就是这一句以前
         // 得等图。列表接口回来的条目已经带着 ImageTags，而这一页正是从那张列表上点进来的。
         HeroArt = SpreadsBackdrop(request.Item);
 
-        var ui = settings.Settings.Ui;
-
-        var episodes = new CardShelf("更多单集", images, CardSize.WideWidth,
-            wide: true, ui.ShowWatchedIndicators);
+        var episodes = new CardShelf("更多单集", images, CardSize.WideWidth, wide: true);
         var cast = new CardShelf("演职人员", images, CardSize.CastWidth,
             wide: false, indicators: false);
-        var seasons = new CardShelf("全部剧季", images, CardSize.PosterWidth,
-            wide: false, ui.ShowWatchedIndicators);
-        var similar = new CardShelf("更多类似", images, CardSize.PosterWidth,
-            wide: false, ui.ShowWatchedIndicators);
+        var seasons = new CardShelf("全部剧季", images, CardSize.PosterWidth, wide: false);
+        var similar = new CardShelf("更多类似", images, CardSize.PosterWidth, wide: false);
 
         if (EpisodeShelf is { } previous) previous.Cards.CollectionChanged -= OnEpisodeCardsChanged;
         if (CastShelf is { } before) before.Cards.CollectionChanged -= OnCastCardsChanged;
@@ -1986,9 +1974,9 @@ public sealed partial class DetailViewModel : PageViewModel
         TitleLink = ItemDetail.TitleTarget(item);
         Subline = ItemDetail.Subline(item);
         SublineGenres = ItemDetail.SublineGenres(item);
-        // 「显示的评分」按设置里那一档来。规则在 Core（ItemScore）：哪个数、写谁的名字、这一档没有就回落到哪儿，
-        // 都是有唯一正确答案的判断，而错起来屏上只是一个看着挺正常的数。
-        var badge = ItemScore.Resolve(item, Settings.Ui.ScoreSource);
+        // 「显示的评分」直接画服务器给的那个数（2026-10-16 起不再有「评分来源」可选）。规则在 Core（ItemScore）：
+        // 取哪个槽、写谁的名字、这一槽没有就回落到哪儿，都是有唯一正确答案的判断，而错起来屏上只是一个看着挺正常的数。
+        var badge = ItemScore.Resolve(item);
         Score = badge.Text;
         ScoreLabel = badge.Label;
         ScoreBadge = badge;
@@ -2755,29 +2743,6 @@ public sealed partial class DetailViewModel : PageViewModel
         {
             if (Attached && lifetime == _lifetime)
                 _actions?.Notify($"更新收藏失败：{Failure.Describe(error)}", InfoBarSeverity.Error);
-        }
-    }
-
-    /// <summary>Emby's own page for the item — the way to reach the fields this client cannot edit.</summary>
-    [RelayCommand]
-    private void OpenBrowser()
-    {
-        if (!Attached || _actions is null || _detail is not { } item) return;
-
-        if (_scope!.Connection is not { } connection)
-        {
-            _actions.Notify("尚未连接到服务器", InfoBarSeverity.Warning);
-            return;
-        }
-
-        try
-        {
-            _launcher!.OpenUrl(ItemDetail.WebUrl(connection.ApiBase, item));
-        }
-        catch (Exception error)
-        {
-            Log.Warn(Category, "打开网页端失败", error);
-            _actions.Notify($"打开浏览器失败：{Failure.Describe(error)}", InfoBarSeverity.Error);
         }
     }
 

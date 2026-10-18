@@ -981,24 +981,4 @@ public static class ItemDetail
 
         return (seriesId, seasonId, seasonName);
     }
-
-    /// <summary>
-    /// Emby's own web page for the item — the way to reach the handful of fields this client cannot
-    /// edit.
-    /// <para>
-    /// The api base is not the web root: it usually ends in <c>/emby</c>, and the web app sits one
-    /// level up. Stripping that suffix is the whole trick, and it has to be case-insensitive because
-    /// the address came from something a person typed.
-    /// </para>
-    /// </summary>
-    public static string WebUrl(Uri apiBase, EmbyItem item)
-    {
-        var root = apiBase.GetLeftPart(UriPartial.Authority) + apiBase.AbsolutePath.TrimEnd('/');
-        if (root.EndsWith("/emby", StringComparison.OrdinalIgnoreCase)) root = root[..^"/emby".Length];
-
-        var url = $"{root}/web/index.html#!/item?id={Uri.EscapeDataString(item.Id)}";
-        if (item.ServerId is { Length: > 0 } serverId) url += $"&serverId={Uri.EscapeDataString(serverId)}";
-
-        return url;
-    }
 }

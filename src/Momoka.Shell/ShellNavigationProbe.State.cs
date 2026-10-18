@@ -542,10 +542,18 @@ internal sealed partial class ShellNavigationProbe
         await fixture.SelectAsync();
         fixture.Settings.Ui.HomeRows = [new() { Key = HomeLayout.Resume, Visible = false }, new() { Key = HomeLayout.NextUp, Visible = false }];
         using var vm = new HomeViewModel();
-        vm.Attach(fixture.Actions, [], fixture.SettingsService, fixture.Session, fixture.Images);
+        vm.Attach(fixture.Actions, [], fixture.SettingsService, fixture.Session, fixture.Images, fixture.Dispatcher);
         var count = fixture.Transport.Requests.Count;
         await vm.ReloadAsync();
-        Require(count == fixture.Transport.Requests.Count && !vm.NoticeOpen, "隐藏行和关闭轮播不应联网或报错");
+        var extra = fixture.Transport.Requests.Skip(count).ToArray();
+        Require(extra.Length == 0 && !vm.NoticeOpen,
+            $"隐藏行和关闭轮播不应联网或报错（多出 {extra.Length} 条请求：{string.Join(" | ", extra)}；提示条「{vm.NoticeMessage}」）");
+
+        // 定时检查那一拍（2026-10-16「有新媒体入库时主页不会自动刷新」加的）问的也是服务器：这一页上什么
+        // 都没有的时候它同样不该问 —— 2026-10-18 之前它无条件问了一次 Items/Latest，就是这条检查抓到的。
+        await vm.AutoRefreshAsync();
+        var later = fixture.Transport.Requests.Skip(count).ToArray();
+        Require(later.Length == 0, $"隐藏行和关闭轮播时定时检查还在问服务器（{string.Join(" | ", later)}）");
     }
 
     /// <summary>
@@ -578,7 +586,7 @@ internal sealed partial class ShellNavigationProbe
         };
 
         using var home = new HomeViewModel();
-        home.Attach(fixture.Actions, [], fixture.SettingsService, fixture.Session, fixture.Images);
+        home.Attach(fixture.Actions, [], fixture.SettingsService, fixture.Session, fixture.Images, fixture.Dispatcher);
         await home.ReloadAsync();
         await UntilAsync(() => home.Shelves.Count == 1 && home.Shelves[0].Cards.Count == 3);
         var shelf = home.Shelves[0];

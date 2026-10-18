@@ -37,6 +37,7 @@ internal static class LibraryBrowseTests
         {
             Assert.Equal("Episode", string.Join(',', Query(LibrarySection.Episodes).IncludeItemTypes));
             Assert.Equal("BoxSet", string.Join(',', Query(LibrarySection.Collections).IncludeItemTypes));
+            Assert.Equal("Episode", string.Join(',', Query(LibrarySection.Upcoming).IncludeItemTypes));
             Assert.Equal("Trailer", string.Join(',', Query(LibrarySection.Trailers).IncludeItemTypes));
             Assert.Equal(0, Query(LibrarySection.Folders).IncludeItemTypes.Count);
             Assert.False(LibraryBrowse.Query("movies", "library-a", LibrarySection.Items, 0, 20,
@@ -78,7 +79,8 @@ internal static class LibraryBrowseTests
         {
             Assert.Equal(EmbySortPreset.Episode, LibraryBrowse.SortPreset("tvshows", LibrarySection.Episodes));
             Assert.Equal(EmbySortPreset.BoxSet, LibraryBrowse.SortPreset("movies", LibrarySection.Collections));
-            Assert.Equal(EmbySortPreset.Trailer, LibraryBrowse.SortPreset("tvshows", LibrarySection.Trailers));
+            Assert.Equal(EmbySortPreset.Trailer, LibraryBrowse.SortPreset("movies", LibrarySection.Trailers));
+            Assert.Equal(EmbySortPreset.Episode, LibraryBrowse.SortPreset("tvshows", LibrarySection.Upcoming));
             Assert.Equal<string?>(null, LibraryBrowse.SortPreset("movies", LibrarySection.Folders));
         });
         Test("媒体库分类：Emby 实际请求路径、作用域、正文与凭据边界", () => RequestsAsync(MediaServerKind.Emby).GetAwaiter().GetResult());

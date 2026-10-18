@@ -2,6 +2,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Services;
+using Momoka.Shell.Platform;
 using Momoka.Shell.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Dispatching;
@@ -44,6 +45,22 @@ public sealed partial class HomePage : Page, IShellContent
     private EmbySession? _session;
     private IShellActions? _actions;
     private Windowing.HostWindow? _window;
+
+    /// <summary>
+    /// 定时检查新入库的间隔。30 秒是「读起来是自动的」和「别拿服务器当心跳包打」之间的一档：这一趟每个来源
+    /// 只问一次最新的一小批（<see cref="HomeViewModel.AutoRefreshAsync"/>），真变了才重读整页。同页那两排
+    /// MoviePilot 订阅的钟是 1 分钟 —— 那是另一件事（订阅状态），间隔各按各的语义定。
+    /// </summary>
+    private static readonly TimeSpan WatchInterval = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// 「有没有新入库的东西」的那只钟。挂在这一页的寿命上：导航进来开始走、<see cref="Release"/> 停。
+    /// <para>
+    /// 用户令（2026-10-16）「有新媒体入库时主页不会自动刷新」：从别的页面返回时这一页本来就会重读一次，
+    /// 缺的正是「就停在这一页上」那一档。
+    /// </para>
+    /// </summary>
+    private readonly DispatcherQueueTimer _watch;
 
     /// <summary>
     /// 自检那一条「点卡片不挪页」的现场：按焦点之前这一页停在哪儿（-1 是还没按过）、焦点交出去了没有、这一页
@@ -114,6 +131,18 @@ public sealed partial class HomePage : Page, IShellContent
     {
         InitializeComponent();
         _stayProbe = (_, _) => _stayAsked++;
+
+        // 定时看看服务器上有没有新入库的东西（见 HomeViewModel.AutoRefreshAsync）。播放层占着窗口的那一段
+        // 不发：那时这一页在播放层后面，重读白搭一趟，而且会在返回的动画底下换掉整页 —— 返回该有的刷新由
+        // ShellPage.RefreshActive 那一头负责。停/起跟着这一页的寿命走，见 OnNavigatedTo 与 Release。
+        _watch = DispatcherQueue.GetForCurrentThread().CreateTimer();
+        _watch.Interval = WatchInterval;
+        _watch.IsRepeating = true;
+        _watch.Tick += (_, _) =>
+        {
+            if (_window?.PlayerLayer == true) return;
+            _ = ViewModel.AutoRefreshAsync();
+        };
 
         // 这一页的三件事都挂在轮播上：剧照一上来就把外壳那 32 像素顶回去（SyncBleed），标题栏那一行的墨
         // 跟着带面走（PaintInk），竖滚动条不从带子上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，
@@ -521,10 +550,10 @@ public sealed partial class HomePage : Page, IShellContent
     /// 它下面没有别的排（压上去没有意义）。这几档一律回到默认叠法。
     /// </para>
     /// <para>
-    /// 上面这一套只管「随窗口高度变换」那一档。设置 → 界面 → 「首页媒体库位置」（<c>UiSettings.HomeLibraryPlacement</c>，
-    /// 2026-10-12）另有「固定在轮播图中」和「固定在轮播图下方」两档：那两档由用户钉死，不看窗口高矮，这条界线
-    /// 整个不参与（<see cref="MeasureCoversLine"/> 也不用跑）。轮播收起来的时候「固定在轮播图中」没有轮播可依，
-    /// 落到上面那道门里、按「在下方」显示。
+    /// 上面这一套只管「随窗口高度变换」那一档。设置 → 主页 → 「主页媒体库位置」（<c>UiSettings.HomeLibraryPlacement</c>，
+    /// 2026-10-12 进设置、2026-10-16 从界面卡挪进主页卡）另有「固定在轮播图中」和「固定在轮播图下方」两档：那两档由
+    /// 用户钉死，不看窗口高矮，这条界线整个不参与（<see cref="MeasureCoversLine"/> 也不用跑）。轮播收起来的时候
+    /// 「固定在轮播图中」没有轮播可依，落到上面那道门里、按「在下方」显示。
     /// </para>
     /// </summary>
     private void UpdateLibraryOverlay()
@@ -1190,7 +1219,8 @@ public sealed partial class HomePage : Page, IShellContent
             request.LibraryViews,
             settings,
             _session,
-            services.GetRequiredService<EmbyImageStore>());
+            services.GetRequiredService<EmbyImageStore>(),
+            services.GetRequiredService<IUiDispatcher>());
 
         // 轮播的停留秒数（设置 → 主页 → 「封面轮换秒数」，2026-09-13）页面一进来就同步一次 —— 带子自己
         // 没有设置，它等的是这句话。
@@ -1200,12 +1230,18 @@ public sealed partial class HomePage : Page, IShellContent
         ShellPrefs.Changed -= OnShellPrefsChanged;
         ShellPrefs.Changed += OnShellPrefsChanged;
 
+        // 新入库的钟跟着这一页走。首读由下面那句 ReloadAsync 发出去，钟从导航这一刻起走 —— 两件事各管各的：
+        // 钟只问「变了没有」，重读走的是和刷新同一条路（见 HomeViewModel.AutoRefreshAsync）。
+        _watch.Start();
+
         _ = ViewModel.ReloadAsync();
     }
 
     public void Release()
     {
         _homeSettings = null;
+        // 这一页走了，新入库的钟一起停：它问的是这一页上的数据，页都不在了没人接结果。
+        _watch.Stop();
         Subscriptions.Release();
         ShellPrefs.Changed -= OnShellPrefsChanged;
         if (_window is not null) _window.PlayerLayerEnded -= OnPlayerLayerEnded;
@@ -1241,7 +1277,7 @@ public sealed partial class HomePage : Page, IShellContent
     /// <see cref="HomeBanner.ApplyDwell"/> 当场换钟。卡片尺寸那几个数不在这一句里 —— 它们是
     /// <see cref="HomeViewModel.Attach"/> 时的快照，下次开这一页才换（见那一段说明）。
     /// <para>
-    /// 「首页媒体库位置」（设置 → 界面，2026-10-12）也走这一声，而且是**当场重摆**：那一档是用户钉死的，
+    /// 「主页媒体库位置」（设置 → 主页，2026-10-12 进设置、2026-10-16 挪进主页卡）也走这一声，而且是**当场重摆**：那一档是用户钉死的，
     /// 改完不该等重载回来才生效（重载要一趟服务器往返）。下面这一句读的就是设置里那一刻的值，摆完再把重排
     /// 交给 <see cref="HomeViewModel.ApplyLayoutAsync"/> —— 货架重建之后集合变化还会再喊一次，那次是幂等的。
     /// </para>

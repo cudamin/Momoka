@@ -15,8 +15,9 @@ namespace Momoka.Tests;
 /// 那条线在 922。形状与从前一字未动 —— 挪的是线上站着的那一排（见下面那组算术的测试）。
 /// </para>
 /// <para>
-/// 上面这一整套只属于 <see cref="HomeLibraryPlacement.Auto"/>（「随窗口高度变换」）那一档。2026-10-12 起设置 →
-/// 界面多了「首页媒体库位置」一行，另两档由用户钉死，几何一个都不看 —— 见文件末尾那三条。
+/// 上面这一整套只属于 <see cref="HomeLibraryPlacement.Auto"/>（「随窗口高度变换」）那一档。2026-10-12 起设置里
+/// 多了「主页媒体库位置」一行（2026-10-16 从界面卡挪进主页卡、同时改名），另两档由用户钉死，几何一个都不看 ——
+/// 见文件末尾那三条。
 /// </para>
 /// </summary>
 internal static class HomeFoldTests
@@ -85,13 +86,13 @@ internal static class HomeFoldTests
             Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.Auto, -1, 922, 608));
         });
 
-        // ── 设置 → 界面 → 「首页媒体库位置」的后两档（2026-10-12）─────────────────────────────────────
+        // ── 设置 → 主页 → 「主页媒体库位置」的后两档（2026-10-12 进设置、2026-10-16 挪进主页卡）─────────────────────────────────────
         //
         // 那两档由用户钉死，几何一个都不看。取的就是上面那两组里两个已知的答案当反例：
         // 1000／922／608 在默认档是「不压」，607／922／608 在默认档也是「不压」，900／922／608 在默认档是「压」。
         // 递进去的线和带高在两档里都不该改变结论 —— 那正是「固定」这两个字的意思。
 
-        Test("首页媒体库位置：固定在轮播图中 —— 不看窗口高矮", () =>
+        Test("主页媒体库位置：固定在轮播图中 —— 不看窗口高矮", () =>
         {
             // 默认档判「不压」的两档窗口，钉住之后照样压着。
             Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.OnCarousel, 1000, 922, 608), "高窗也压着");
@@ -102,7 +103,7 @@ internal static class HomeFoldTests
             Assert.True(HomeFold.LibraryOnBanner(HomeLibraryPlacement.OnCarousel, 300, 0, 0));
         });
 
-        Test("首页媒体库位置：固定在轮播图下方 —— 一次都不压", () =>
+        Test("主页媒体库位置：固定在轮播图下方 —— 一次都不压", () =>
         {
             // 默认档判「压」的两档窗口，钉住之后一个都不压。
             Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.BelowCarousel, 900, 922, 608), "矮窗也不压");
@@ -110,7 +111,7 @@ internal static class HomeFoldTests
             Assert.False(HomeFold.LibraryOnBanner(HomeLibraryPlacement.BelowCarousel, 922, 922, 608), "线正压视口底也不压");
         });
 
-        Test("首页媒体库位置：量不到视口时三档都不压", () =>
+        Test("主页媒体库位置：量不到视口时三档都不压", () =>
         {
             // 这一条在钉住的两档上不是「用户说了算」：量不到视口就没有可压的那块地方（主页那一头在调到这里之前
             // 已经把「轮播收着」也挡掉了）。钉住 ≠ 在没有轮播的页面上凭空压出一排来。

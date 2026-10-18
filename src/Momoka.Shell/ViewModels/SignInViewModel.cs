@@ -57,7 +57,7 @@ public sealed partial class SignInViewModel : PageViewModel
     private const string Category = "login";
 
     /// <summary>The caption the card wears whenever it is not saying something more specific.</summary>
-    private const string FirstCaption = "连接到你的 Emby、Jellyfin 或飞牛影视服务器";
+    private const string FirstCaption = "连接到你的 Emby、Jellyfin、飞牛影视或 Plex 服务器";
 
     private PublicSystemInfo? _detectedServer;
 

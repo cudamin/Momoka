@@ -17,6 +17,8 @@
 | GET | `/Items/{Id}/Similar` | 相似条目 |
 | GET | `/Genres` · `/Tags` · `/Years` | 筛选可选值；`GetFilterValuesAsync`，key 来自 `EmbyFilterBy.Lists` |
 | GET | `/Shows/NextUp` | 下一集 |
+| GET | `/Shows/Upcoming` | 电视节目「预告」：本库 upcoming 单集，带 `UserId` / `ParentId` / 分页，按 `PremiereDate,SortName` 升序；不发库筛选或合集分组 |
+| GET | `/Trailers` | 电影库「预告片」，与电视 upcoming 单集不同 |
 | GET | `/Shows/{Id}/Seasons` · `/Shows/{Id}/Episodes` | 季 / 集列表 |
 | POST | `/Items/{Id}` | 更新条目（元数据编辑） |
 | POST | `/Items/{Id}/Refresh` | 刷新元数据 / 图片 |
@@ -71,67 +73,33 @@
 
 这三条走 `PostForJsonAsync` / `DeleteForJsonAsync`：响应体是新的 `UserItemDataDto`，读得到就用，读不到不算失败。
 
-## 媒体库管理
+## 媒体库
 
 | 方法 | 路径 | 备注 |
 | --- | --- | --- |
-| GET | `/Library/VirtualFolders/Query` | 分页读库列表，`StartIndex` / `Limit` / `TotalRecordCount` |
-| POST | `/Library/VirtualFolders` | 新建；`name` / `collectionType` / `refreshLibrary` 走 query，选项走 `LibraryOptions` 正文 |
-| POST | `/Library/VirtualFolders/LibraryOptions` | 存库选项；正文 `Id` + `LibraryOptions` |
-| POST | `/Library/VirtualFolders/Name` | 重命名；正文 `Id` + `NewName` |
-| POST | `/Library/VirtualFolders/Delete` | 移除库 |
-| POST | `/Library/VirtualFolders/Paths` | 加目录（`refreshLibrary=true`） |
-| POST | `/Library/VirtualFolders/Paths/Update` | 改目录映射与凭据 |
-| POST | `/Library/VirtualFolders/Paths/Delete` | 删目录 |
-| GET | `/Libraries/AvailableOptions` | 新建时的默认选项，按 `LibraryContentType` / `IsNewLibrary` |
-| GET | `/Library/MediaFolders` · `/Library/SelectableMediaFolders` | 库目录 / 用户可选库 |
-| POST | `/Library/Refresh` | 扫描全部媒体库 |
-| POST | `/Items/{libraryId}/Refresh` | 单库扫描；`MetadataRefreshMode` / `ImageRefreshMode` / `ReplaceAll*` |
-| GET | `/ScheduledTasks` | 任务列表 |
-| POST | `/ScheduledTasks/Running/{Id}` | 启动任务 |
-| POST | `/ScheduledTasks/Running/{Id}/Delete` | 停止任务；`SetLibraryTaskRunningAsync` 采用 POST 别名，规格也支持 DELETE |
-| GET / POST | `/System/Configuration/{key}` | 命名配置，如 `metadata` |
+| GET | `/Library/VirtualFolders` | 「限定媒体库」选择框的来源；`Notifications.cs` 认这条返回的形状 |
+| POST | `/Library/Refresh` | 扫描全部媒体库；条目菜单那一颗，`EmbyClient.cs` |
 
-## 环境浏览（新建库选目录）
+2026-10-16 原生媒体库管理页退役，写侧（`/Library/VirtualFolders` 的 POST 一族：新建、`LibraryOptions`、`Name`、`Delete`、`Paths*`）、`/Library/VirtualFolders/Query`、`/Libraries/AvailableOptions`、`/Library/MediaFolders`、`/Library/SelectableMediaFolders`、`/ScheduledTasks*`、`/System/Configuration/{key}` 和整个 `/Environment/*` 目录浏览组都不再由客户端调用。
 
-| 方法 | 路径 |
-| --- | --- |
-| GET | `/Environment/DefaultDirectoryBrowser` |
-| GET | `/Environment/Drives` |
-| GET | `/Environment/NetworkDevices` |
-| POST | `/Environment/DirectoryContents`（带 `Username` / `Password`） |
-| POST | `/Environment/ValidatePath`（带 `ValidateWriteable`） |
-| GET | `/Environment/ParentPath`（**返回纯文本字节**，不是 JSON） |
-
-## 用户管理
+## 登录
 
 | 方法 | 路径 | 备注 |
 | --- | --- | --- |
 | POST | `/Users/AuthenticateByName` | 登录，拿 token；`EmbyServerGateway.AuthenticateAsync` |
-| GET | `/Users/Query` | 分页读用户 |
 | GET | `/Users/Public` | 公开用户列表；`EmbyServerGateway.GetPublicUsersAsync` |
-| POST | `/Users/New` | 新建；复制数据用 `CopyFromUserId` + `UserCopyOptions` |
-| GET / POST | `/Users/{Id}` | 读 / 改 |
-| POST | `/Users/{Id}/Policy` · `/Password` · `/Delete` · `/Configuration/Partial` | 权限 / 密码 / 删除 / 个人 PIN |
-| POST | `/Users/{sourceId}/CopyData` | 复制到已有用户；正文 `ToUserIds` + `CopyOptions` |
-| GET | `/Users/CopyDataOptions` | 可复制项清单 |
-| POST | `/Users/{Id}/Connect/Link` · `/Users/{Id}/Connect/Link/Delete` | Emby Connect 关联 / 解绑 |
-| GET | `/Auth/Providers` · `/Features?FeatureType=User` · `/Localization/ParentalRatings` · `/Channels` · `/Devices` | 编辑页的选项来源 |
 
-**两套复制参数不能混**：新建时 `CopyFromUserId` + `UserCopyOptions`，复制到已有用户时 `ToUserIds` + `CopyOptions`。混用会静默失败或复制错东西。
+2026-10-16 原生用户管理页退役，`/Users/Query`、`/Users/New`、`/Users/{Id}` 及其 `/Policy` · `/Password` · `/Delete` · `/Configuration/Partial`、`/Users/{sourceId}/CopyData`、`/Users/CopyDataOptions`、`/Users/{Id}/Connect/Link*`，以及 `/Auth/Providers` · `/Features?FeatureType=User` · `/Localization/ParentalRatings` · `/Channels` · `/Devices` 这几个编辑页选项来源都不再由客户端调用。
 
 ## 系统与通知
 
 | 方法 | 路径 |
 | --- | --- |
 | GET | `/System/Info` · `/System/Info/Public` |
-| GET / POST | `/System/Configuration` |
-| POST | `/System/Restart` · `/System/Shutdown` |
-| GET | `/System/ActivityLog/Entries` |
-| GET | `/Sessions` |
-| GET | `/Localization/Cultures` · `/Localization/Countries` |
 | GET | `/Notifications/Types` · `/Notifications/Services/Defaults` |
 | POST | `/Notifications/Services/Test` |
+
+2026-10-16 原生控制台与媒体库页退役，`/System/Configuration`、`/System/Restart`、`/System/Shutdown`、`/System/ActivityLog/Entries`、`/Sessions`、`/Localization/Cultures` · `/Localization/Countries` 都不再由客户端调用。
 
 ## 规格缺口
 
@@ -154,21 +122,16 @@
 | --- | --- | --- |
 | POST | `/Items/Delete` | 当前删除条目使用 `DELETE /Items/{Id}` |
 | DELETE | `/Collections/{Id}/Items` | 当前仅实现加入合集的 POST 请求 |
-| DELETE | `/Users/{Id}/Images/{Type}` | 当前删除头像使用 POST `…/Images/Primary/Delete` |
-| DELETE | `/Users/{Id}` · `/Users/{Id}/Connect/Link` | 当前删除用户、解绑 Connect 使用 POST `…/Delete` 别名 |
-| DELETE | `/ScheduledTasks/Running/{Id}` | 有效的停止任务接口；当前使用 POST `…/{Id}/Delete` |
 | GET | `/Items/{Id}/CriticReviews` · `/Plugins` | 当前产品没有调用 |
 
 ## 容易猜错的
 
 | 你可能会猜 | 实际 |
 | --- | --- |
-| 规格没有 `GET /Users`，所以服务器不支持 | 通知选项正在调用它；这是规格缺口。用户管理使用分页 `/Users/Query`，公开用户列表使用 `/Users/Public` |
+| 规格没有 `GET /Users`，所以服务器不支持 | 通知选项正在调用它；这是规格缺口。公开用户列表使用 `/Users/Public` |
 | `/Items/{ItemId}/PlaybackInfo` | 路径是 `/Items/{Id}/PlaybackInfo`；而且**客户端根本没用它** |
 | 章节图需要独立的 `/Images/Chapter/…` 规格条目 | 对应已有 `/Items/{Id}/Images/{Type}/{Index}`，`Type=Chapter`；参数名不同不改变路由 |
-| 停任务只能用 `POST .../{Id}/Delete` | 这是客户端采用的别名；规格也支持 `DELETE /ScheduledTasks/Running/{Id}` |
-| `/Users/{Id}/CopyData` 给新用户复制 | 那是复制到**已有**用户；新建走 `/Users/New` 的 `CopyFromUserId` |
-| 当前两种图片上传可共用正文转换 | 当前条目图片发送原始字节，头像发送 Base64 文本；先核对对应实现与实测证据 |
+| 条目图片上传要转 Base64 | 当前条目图片发送原始字节；先核对实现与实测证据 |
 
 ## 校对方法
 

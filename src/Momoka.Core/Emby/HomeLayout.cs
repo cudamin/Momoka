@@ -228,6 +228,21 @@ public static class HomeLayout
     public static List<HomeRowSetting> Save(IEnumerable<HomeRowPlan> plan) =>
         [.. plan.Select(row => new HomeRowSetting { Key = row.Key, Title = row.Title, Visible = row.Visible })];
 
+    /// <summary>
+    /// 这一页上有没有东西会因为「服务器新入库」而换掉：轮播开着，或者至少有一排「读服务器条目清单」的货架
+    /// 是勾着的（继续观看、接下来看、以及各媒体库那一排）。
+    /// <para>
+    /// 剩下的两样不算：媒体库那一排装的是「这台服务器有哪几个库」，新入库不会改变它；两条 MoviePilot 订阅
+    /// 装的是 MoviePilot 那边的账，跟服务器的 <c>LibraryChanged</c> 没有关系。全都收着的时候定时检查
+    /// （<c>HomeViewModel.AutoRefreshAsync</c>）和实时通道问服务器没有东西可换，却把「隐藏的行不联网」这条
+    /// 规则顶掉了 —— 2026-10-18 探针「隐藏首页行不请求」抓到的正是这一条（2026-10-16 加的定时检查无条件问了
+    /// 一次 <c>Items/Latest</c>）。
+    /// </para>
+    /// </summary>
+    public static bool CanRefresh(IEnumerable<HomeRowPlan> rows, bool banner) =>
+        banner || rows.Any(row => row.Visible
+            && (row.Key is Resume or NextUp || LibraryId(row.Key) is { Length: > 0 }));
+
     /// <summary>两份版面是不是同一份 —— 只有真变了才回写设置文件。</summary>
     public static bool Same(IReadOnlyList<HomeRowSetting>? saved, IReadOnlyList<HomeRowPlan> plan)
     {

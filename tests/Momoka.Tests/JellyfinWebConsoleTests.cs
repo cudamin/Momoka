@@ -18,11 +18,6 @@ internal static class JellyfinWebConsoleTests
         Test("Jellyfin 网页：保留代理子路径并使用自身 dashboard 路由", () =>
         {
             Assert.Equal("https://fixture.invalid/emby/web/index.html#/dashboard", EmbyWebConsole.Url(Connection));
-            Assert.Equal("https://fixture.invalid/emby/web/index.html#/configurationpage?name=plugin",
-                EmbyWebConsole.PageUrl(Connection, "#!/configurationpage?name=plugin"));
-            Assert.Throws<ArgumentException>(() => EmbyWebConsole.PageUrl(Connection, "https://other.invalid/web/index.html"));
-            Assert.Throws<ArgumentException>(() => EmbyWebConsole.PageUrl(Connection, "//other.invalid"));
-            Assert.Throws<ArgumentException>(() => EmbyWebConsole.PageUrl(Connection, "../index.html"));
             Assert.DoesNotContain(Connection.AccessToken, EmbyWebConsole.Url(Connection));
         });
 

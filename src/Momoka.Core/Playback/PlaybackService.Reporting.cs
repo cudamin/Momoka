@@ -366,6 +366,7 @@ public sealed partial class PlaybackService
         return new PlaybackReport
         {
             FnNasSelection = request.FnNasSelection,
+            PlexSelection = request.PlexSelection,
             ItemId = request.ItemId,
             MediaSourceId = request.MediaSourceId,
             PlaySessionId = sessionId,

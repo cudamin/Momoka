@@ -162,6 +162,7 @@ handle  Views/EpisodeRow.xaml  RowTitle
 handle  Views/FilterPanel.xaml  FilterClearButton
 handle  Views/FilterPanel.xaml  FilterCloseButton
 handle  Views/FilterPanel.xaml  FilterRows
+handle  Views/FilterPanel.xaml  FilterScroll
 handle  Views/HomeBanner.xaml  Actions
 handle  Views/HomeBanner.xaml  ActionsShift
 handle  Views/HomeBanner.xaml  Band
@@ -257,6 +258,11 @@ handle  Views/LibraryPage.xaml  Alpha
 handle  Views/LibraryPage.xaml  CardLayout
 handle  Views/LibraryPage.xaml  CardWall
 handle  Views/LibraryPage.xaml  EmbyContent
+handle  Views/LibraryPage.xaml  FavoriteCards
+handle  Views/LibraryPage.xaml  FavoriteMore
+handle  Views/LibraryPage.xaml  FavoriteRetry
+handle  Views/LibraryPage.xaml  FavoritesGroups
+handle  Views/LibraryPage.xaml  FavoritesScroll
 handle  Views/LibraryPage.xaml  FilterButton
 handle  Views/LibraryPage.xaml  FilterOverlay
 handle  Views/LibraryPage.xaml  FilterPane
@@ -283,11 +289,17 @@ handle  Views/LibraryPage.xaml  SortText
 handle  Views/LibraryPage.xaml  SourceTabs
 handle  Views/LibraryPage.xaml  TableHeader
 handle  Views/LibraryPage.xaml  Toolbar
+handle  Views/LibraryPage.xaml  UpcomingGroups
+handle  Views/LibraryPage.xaml  UpcomingLoadingPanel
+handle  Views/LibraryPage.xaml  UpcomingLoadingRing
+handle  Views/LibraryPage.xaml  UpcomingRetryButton
+handle  Views/LibraryPage.xaml  UpcomingScroll
 handle  Views/LibrarySettingsPanel.xaml  FieldRows
 handle  Views/LibrarySettingsPanel.xaml  FieldsSection
 handle  Views/LibrarySettingsPanel.xaml  GroupSection
 handle  Views/LibrarySettingsPanel.xaml  GroupSwitch
 handle  Views/LibrarySettingsPanel.xaml  SettingsCloseButton
+handle  Views/LibrarySettingsPanel.xaml  SettingsScroll
 handle  Views/LibrarySettingsPanel.xaml  SizeCombo
 handle  Views/LibrarySettingsPanel.xaml  SizeSection
 handle  Views/LibrarySettingsPanel.xaml  ViewCombo

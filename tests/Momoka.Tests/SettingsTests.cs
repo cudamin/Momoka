@@ -1533,13 +1533,11 @@ internal static class SettingsTests
             var ui = settings.Ui;
             ui.Theme = "midnight";
             ui.PageSize = 37;
-            ui.ShowWatchedIndicators = false;
             ui.ShowHomeBanner = false;
             ui.CompactMode = true;
             ui.AnimationsEnabled = false;
             ui.SidebarMode = true;
             ui.ImageCacheMegabytes = ImageCachePolicy.MaxMegabytes;
-            ui.ScoreSource = ScoreSource.Critic;
             ui.HomeRows = [new HomeRowSetting { Key = "library:1", Title = "改过", Visible = false }];
 
             // 快捷键那一组只有一张字典，MutateAll 跳过字典（见它的注释），所以上面那趟反射改不到它 ——
@@ -1558,13 +1556,11 @@ internal static class SettingsTests
             var fresh = new UiSettings();
             Assert.Equal(fresh.Theme, ui.Theme, "主题回默认那一套");
             Assert.Equal(fresh.PageSize, ui.PageSize);
-            Assert.Equal(fresh.ShowWatchedIndicators, ui.ShowWatchedIndicators);
             Assert.Equal(fresh.ShowHomeBanner, ui.ShowHomeBanner, "「恢复默认」之后主页轮播大图要是开的");
             Assert.Equal(fresh.CompactMode, ui.CompactMode, "「恢复默认」之后精简模式要是关的（说明全部放回来）");
             Assert.True(ui.AnimationsEnabled, "恢复默认重新开启 UI 动画");
             Assert.False(ui.SidebarMode, "恢复默认关闭侧边栏模式");
             Assert.Equal(fresh.ImageCacheMegabytes, ui.ImageCacheMegabytes);
-            Assert.Equal(fresh.ScoreSource, ui.ScoreSource);
             Assert.Equal(0, ui.HomeRows.Count, "主页版面回到空，也就是「照默认版面排」");
             Assert.Equal(0, settings.Shortcuts.Bindings.Count, "快捷键改动清空，回到全默认");
         });

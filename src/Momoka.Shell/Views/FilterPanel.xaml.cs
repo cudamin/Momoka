@@ -62,8 +62,12 @@ public sealed partial class FilterPanel : UserControl
         ItemFilters selection,
         string? preset,
         Version? serverVersion,
-        Func<string, CancellationToken, Task<IReadOnlyList<string>>> lookup) =>
-        ViewModel.Open(selection, preset, serverVersion, lookup);
+        Func<string, CancellationToken, Task<IReadOnlyList<string>>> lookup,
+        MediaServerKind serverKind = MediaServerKind.Emby)
+    {
+        FilterScroll.ChangeView(null, 0, null, disableAnimation: true);
+        ViewModel.Open(selection, preset, serverVersion, lookup, serverKind);
+    }
 
     /// <inheritdoc cref="FilterPanelViewModel.Dismiss"/>
     internal void Dismiss() => ViewModel.Dismiss();

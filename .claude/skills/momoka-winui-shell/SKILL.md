@@ -31,7 +31,7 @@ Most non-UI capability sits in `Core/Emby`, `Core/Playback`, `Core/Mpv` and `Cor
 
 **Use the layering policy in CLAUDE.md.** Important business decisions, reusable calculations and regression-prone algorithms belong in testable Core code; local presentation predicates may remain near the UI. The current test-project reference is not a reason to extract every conditional. Existing reusable rules include:
 
-`HomeLayout` (which home rows, in what order, and only writing settings back when something really changed), `ScreenPlacement` (which monitor, restoring geometry), `ItemArtwork.SamePictures`, `CardSize`, `ImageCachePolicy` and `LruCache` (eviction), `LoadGeneration` (which load is still the current one), `ItemMenu.For` (which menu rows and their wording), `CardStrip`, `WrapLayout`, `HomeCarousel`, `ItemMetadataEdit`, `EpisodeNavigation`, `TrackSelection` / `TrackLanguagePriority`, `StartupArgs`.
+`HomeLayout` (which home rows, in what order, and only writing settings back when something really changed), `ScreenPlacement` (which monitor, restoring geometry), `ItemArtwork.SamePictures`, `CardSize`, `ImageCachePolicy` and `LruCache` (eviction), `LoadGeneration` (which load is still the current one), `HomeRefresh` (whether a light refresh may keep the carousel), `LibraryWatch` (whether anything was newly added — the home page's periodic check compares these stamps and only reloads on a real change), `ItemMenu.For` (which menu rows and their wording), `CardStrip`, `WrapLayout`, `HomeCarousel`, `ItemMetadataEdit`, `EpisodeNavigation`, `TrackSelection` / `TrackLanguagePriority`, `StartupArgs`.
 
 ## Pages, view models, `Attach`
 

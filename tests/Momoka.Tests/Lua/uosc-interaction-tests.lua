@@ -163,11 +163,13 @@ do
 				item:handle_shortcut(create_shortcut('kp_enter'), {event = 'press', is_mouse = false})
 				require_equal(picked(), 2)
 			end)
+			-- 尺寸门槛跟着 2026-10-17 的 menu_scale 0.88 下调一档（原 hint 12、最小宽 200）：这两条守的是
+			-- 「还看得清、还点得中」，不是某个绝对像素；缩放档本身由下面的全屏 1.3× 与 hidpi 两条用例钉住。
 			test('menu rows keep text legible with space for a check and hints', function()
 				local item = menu()
 				assert(item.item_height >= item.font_size + 12, 'rows crowd the text')
-				assert(item.font_size_hint >= 12 and item.font_size_hint < item.font_size, 'hint hierarchy lost')
-				assert(item.root.width >= 200, 'short labels collapse the hit target')
+				assert(item.font_size_hint >= 11 and item.font_size_hint < item.font_size, 'hint hierarchy lost')
+				assert(item.root.width >= 190, 'short labels collapse the hit target')
 				assert(item.item_indent > item.font_size + item.hover_inset, 'check overlaps the title')
 				item:close(true)
 			end)
@@ -210,16 +212,16 @@ do
 				state.fullscreen = true
 				update_fullormaxed()
 				require_equal(state.scale, 1.3)
-				require_equal(item.font_size, 21) -- round(16 * 1.3)
-				require_equal(item.item_height, 42)
+				require_equal(item.font_size, 18) -- round(16 * 1.3 * menu_scale 0.88)
+				require_equal(item.item_height, 36)
 				state.fullscreen, state.maximized = false, true
 				update_fullormaxed()
 				require_equal(state.scale, 1.3)
-				require_equal(item.font_size, 21)
+				require_equal(item.font_size, 18)
 				state.fullscreen, state.maximized = false, false
 				update_fullormaxed()
 				require_equal(state.scale, 1)
-				require_equal(item.font_size, 16)
+				require_equal(item.font_size, 14)
 				item:close(true)
 			end)
 			test('menu font follows the hidpi scale like the integrated flyout', function()
@@ -227,11 +229,11 @@ do
 				state.hidpi_scale = 1.5
 				update_display_dimensions() -- state.scale 重算不依赖 osd 画布，harness 里 vo=null 也一样
 				item:on_display()
-				require_equal(item.font_size, 24)
+				require_equal(item.font_size, 21)
 				state.hidpi_scale = 1
 				update_display_dimensions()
 				item:on_display()
-				require_equal(item.font_size, 16)
+				require_equal(item.font_size, 14)
 				item:close(true)
 			end)
 			test('menu pointer click supersedes keyboard selected row', function()

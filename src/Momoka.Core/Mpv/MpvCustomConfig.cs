@@ -13,8 +13,20 @@ public sealed class MpvCustomConfig : IDisposable
     public string FilePath { get; private set; } = "";
     public string SourcePath { get; private set; } = "";
 
+    /// <summary>
+    /// 设置里那张「自定义 mpv.conf」卡在什么时候出现：<b>内置播放器后端就出现</b>（用户令 2026-10-16「播放后端选择
+    /// 内置播放器时自定义 mpv.conf 不自动隐藏」）。从前只有内置＋独占才建卡，集成模式下整张卡不见了 —— 现在卡
+    /// 留着，只是集成模式下那一项固定关闭（判定见 <see cref="IsAvailable"/>）。
+    /// </summary>
+    public static bool IsBuiltInBackend(MpvSettings settings) =>
+        settings.Backend == MpvBackendKind.BuiltInLibMpv;
+
+    /// <summary>
+    /// 这一档配置此刻真的会被读进播放器没有：只有内置后端 + 独占管线。集成管线的画面合成在 XAML 视觉树里，那条
+    /// 路径不读外部 conf；外部 mpv.exe 后端有自己的配置，也不读这一份。
+    /// </summary>
     public static bool IsAvailable(MpvSettings settings) =>
-        settings.Backend == MpvBackendKind.BuiltInLibMpv && settings.Pipeline == VideoPipelineKind.Standalone;
+        IsBuiltInBackend(settings) && settings.Pipeline == VideoPipelineKind.Standalone;
 
     public static string? Resolve(MpvSettings settings)
     {

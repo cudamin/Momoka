@@ -1,6 +1,6 @@
 # Momoka
 
-第三方媒体库客户端，支持 Emby、Jellyfin（实服播放与写入未验证）和飞牛影视（实播未验证），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
+第三方媒体库客户端，支持 Emby、Jellyfin（实服播放与写入未验证）、飞牛影视（实播未验证）和 Plex（未对真实服务器核对），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
 
 telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
@@ -31,7 +31,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 
 **多账号** — 支持多个账号同时登录，不同版本实时切换。
 
-**服务端** — 支持多种服务端，Emby、Jellyfin（实服播放与写入未验证）和飞牛影视（实播未验证）
+**服务端** — 支持多种服务端，Emby、Jellyfin（实服播放与写入未验证）、飞牛影视（实播未验证）和 Plex（未对真实服务器核对）
 
 ## 系统要求
 
@@ -40,7 +40,8 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 - MoviePilot 3.x.x
 - Jellyfin 已做协议与离线界面适配，实服播放、写入及网页控制台登录未验证
 - 飞牛影视按网页 0.9.8 / 服务 0.8.43 的官方前端核对，当前原画适配的实播未验证；这组版本是核对记录，不是全版本兼容保证
-- 可选：「服务器控制台」页需要 WebView2 Runtime，没有则提示改用浏览器打开
+- Plex 只做了协议与离线测试适配，没有对任何真实服务器核对过；连接、浏览与播放的实际行为未经证实，边界见 [Plex 支持](docs/Plex支持.md)
+- 可选：「网页控制台」页需要 WebView2 Runtime，没有则提示改用浏览器打开
 
 ## 下载
 

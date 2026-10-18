@@ -29,6 +29,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     private ItemFilters _selection = new();
     private string? _preset;
     private Version? _serverVersion;
+    private MediaServerKind _serverKind;
     private Func<string, CancellationToken, Task<IReadOnlyList<string>>>? _lookup;
     private CancellationTokenSource? _cancel;
 
@@ -68,11 +69,14 @@ public sealed partial class FilterPanelViewModel : ObservableObject
         ItemFilters selection,
         string? preset,
         Version? serverVersion,
-        Func<string, CancellationToken, Task<IReadOnlyList<string>>> lookup)
+        Func<string, CancellationToken, Task<IReadOnlyList<string>>> lookup,
+        MediaServerKind serverKind = MediaServerKind.Emby)
     {
+        _requests.Clear();
         _selection = selection;
         _preset = preset;
         _serverVersion = serverVersion;
+        _serverKind = serverKind;
         _lookup = lookup;
 
         // 取消过的那个不能再用：Dismiss() 只取消、不换新的，而取消是一去不回的 —— 接着开的话每一次
@@ -139,7 +143,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     {
         Rows.Clear();
 
-        var fields = EmbyFilterBy.For(_preset, _serverVersion);
+        var fields = EmbyFilterBy.For(_preset, _serverVersion, _serverKind);
         string? previousGroup = null;
 
         foreach (var field in fields)
@@ -159,7 +163,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     {
         FilterKind.Select => new FilterSelectRow(field, heading, _preset, _selection, Notify),
         FilterKind.Switch => new FilterSwitchRow(field, heading, _selection, Notify),
-        _ => new FilterValuesRow(field, List(field.ListKey), _selection, this)
+        _ => new FilterValuesRow(field, List(field.ListKey), _selection, this, heading)
     };
 
     private static EmbyFilterList List(string? key) =>

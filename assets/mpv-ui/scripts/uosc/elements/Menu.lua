@@ -110,7 +110,7 @@ function Menu:init(data, callback, opts)
 	self.mouse_nav = self.opts.mouse_nav -- Stops pre-selecting items
 	self.item_height = nil
 	self.min_width = nil
-	self.menu_scale = state.scale -- MOMOKA[menu-style]：菜单自己的缩放（DPI×全屏/最大化 1.3），update_content_dimensions 重算
+	self.menu_scale = state.scale -- MOMOKA[menu-style]：菜单自己的缩放（DPI×全屏/最大化 1.3×menu_scale 0.88），update_content_dimensions 重算
 	self.radius = state.radius -- MOMOKA[menu-style]：菜单面板的圆角基准（同上）
 	self.item_spacing = 0 -- MOMOKA[menu-style]：行距在 update_content_dimensions 里按字号重算
 	self.item_indent = nil -- 有当前值的菜单为勾选标识留出左列
@@ -314,7 +314,10 @@ end
 function Menu:update_content_dimensions()
 	-- MOMOKA[menu-style] — 字号与行高共同跟随 DPI / 全屏倍率，不跟随视频或窗口高度。
 	-- 分隔符使用独立的小槽位；绘制、命中与滚动共用 item_tops，避免小窗中点到相邻行。
-	local menu_scale = state.scale
+	-- options.menu_scale 是菜单自己的缩放档（2026-10-17 用户令整体缩小约 12%，见 main.lua 选项区）：
+	-- 乘在 state.scale 上，于是字号、行高、内边距、最小宽、勾选列、悬停让空、面板间距、圆角与描边
+	-- 一起缩，级联子面板同尺；state.scale 本身不动，控制条/顶栏/其余控件不受影响。
+	local menu_scale = state.scale * options.menu_scale
 	self.menu_scale = menu_scale
 	self.font_size = round(options.menu_font_size * menu_scale * options.font_scale)
 	self.item_height = round(self.font_size * (1 + options.menu_gap))

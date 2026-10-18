@@ -541,7 +541,7 @@ internal static partial class ItemCommands
             shell.Notify($"已请求刷新「{card.Item.Name}」的元数据，服务器在后台处理");
         });
 
-    /// <summary>重新扫描媒体库：整台服务器扫一遍，也就是服务器控制台上那颗按钮。管理员账号才用得了。</summary>
+    /// <summary>重新扫描媒体库：整台服务器扫一遍，也就是网页控制台里那颗按钮。管理员账号才用得了。</summary>
     private static void ScanLibrary(EmbySessionScope session, IShellActions shell) =>
         _ = GuardAsync(shell, "扫描媒体库失败", async () =>
         {

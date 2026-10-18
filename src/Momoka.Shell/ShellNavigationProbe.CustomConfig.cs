@@ -20,6 +20,7 @@ internal sealed partial class ShellNavigationProbe
         page.SelectedCategory = "播放器";
         await SettleAsync();
         AssertCard(true);
+        AssertToggle(true);
         AssertPath(false);
         await ToggleAsync();
         AssertPath(true);
@@ -37,13 +38,21 @@ internal sealed partial class ShellNavigationProbe
         AssertPath(false);
         Require(fixture.Settings.Mpv.CustomConfigPath == path, "关闭开关清空了路径");
         await CaptureAsync("disabled");
+
+        // 开着再切到集成模式（用户令 2026-10-16）：卡不收起，但那一项固定为关 —— 开关换成只读文字，路径也收起；
+        // 存着的偏好（开 + 路径）不许被这一趟清掉。
         await ToggleAsync();
         await PipelineAsync(VideoPipelineKind.Integrated);
-        AssertCard(false);
+        AssertCard(true);
+        AssertToggle(false);
+        AssertFixedOff();
         AssertPath(false);
+        Require(fixture.Settings.Mpv.CustomConfigEnabled && fixture.Settings.Mpv.CustomConfigPath == path,
+            "集成模式清空了开关或路径偏好");
         await CaptureAsync("integrated");
         await PipelineAsync(VideoPipelineKind.Standalone);
         AssertCard(true);
+        AssertToggle(true);
         AssertPath(true);
         Require(fixture.Settings.Mpv.CustomConfigEnabled && fixture.Settings.Mpv.CustomConfigPath == path, "切回独占丢失偏好");
         await page.ViewModel.ReloadAsync();
@@ -64,14 +73,25 @@ internal sealed partial class ShellNavigationProbe
         await page.ViewModel.ReloadAsync();
         await SettleAsync();
         AssertCard(true);
+        AssertToggle(true);
         AssertPath(false);
 
         void AssertCard(bool present)
         {
             Require(page.ViewModel.Sections.Any(section => section.Title == title) == present, "配置分区数据显隐错误");
             Require(Descendants(page).OfType<TextBlock>().Any(control => control.Text == title) == present, "配置分区标题显隐错误");
-            Require(Descendants(page).OfType<ToggleSwitch>().Any(control => AutomationProperties.GetName(control) == toggleName) == present,
-                "配置开关未随整个分区显隐");
+        }
+        void AssertToggle(bool present) => Require(Descendants(page).OfType<ToggleSwitch>()
+            .Any(control => AutomationProperties.GetName(control) == toggleName) == present, "配置开关显隐错误");
+        // 集成模式下那一行换成只读文字：数据行是 SettingFactRow、值是「关」，屏上那颗开关必须不在。
+        void AssertFixedOff()
+        {
+            var row = page.ViewModel.Sections.First(section => section.Title == title).Rows
+                .OfType<SettingFactRow>().SingleOrDefault(candidate => candidate.Label == toggleName);
+            Require(row is { Value: "关" }, "集成模式下这一项没有固定为关的只读文字");
+            Require(Descendants(page).OfType<TextBlock>().Any(text => text.Text == toggleName)
+                && Descendants(page).OfType<TextBlock>().Any(text => text.Text == "关"),
+                "集成模式下的只读文字没有画在屏上");
         }
         void AssertPath(bool present) => Require(Descendants(page).OfType<TextBox>()
             .Any(control => AutomationProperties.GetName(control) == pathName) == present, "路径输入框显隐错误");

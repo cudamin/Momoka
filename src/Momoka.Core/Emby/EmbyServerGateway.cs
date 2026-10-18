@@ -48,17 +48,34 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         }
         catch (Momoka.FnNas.FnNasApiException)
         {
+        }
+        try
+        {
+            return await Momoka.Plex.PlexMediaAdapter
+                .DetectAsync(http.PlexClient, address, PlexCall, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Momoka.Plex.PlexApiException)
+        {
             throw failure ?? new EmbyApiException("无法识别媒体服务器");
         }
     }
 
+    /// <summary>Plex's anonymous probe identifies the client but carries no credential.</summary>
+    private Momoka.Plex.PlexCall PlexCall => Momoka.Plex.PlexCall.For(null, device.DeviceId, device.Version);
+
     /// <summary>
     /// The users the server is willing to advertise, so the login page can offer a
     /// picker instead of making the user type a username.
+    /// <para>
+    /// Empty for 飞牛影视 and Plex, which do not advertise a user list at all: a Plex server has no such
+    /// endpoint, and an account there belongs to Plex rather than to the server. The login page is built
+    /// to carry on without the list (see <c>SignInViewModel.ListUsersAsync</c>).
+    /// </para>
     /// </summary>
     public Task<List<EmbyUser>> GetPublicUsersAsync(Uri apiBase, CancellationToken cancellationToken,
         MediaServerKind kind = MediaServerKind.Emby) =>
-        kind == MediaServerKind.FnNas ? Task.FromResult(new List<EmbyUser>())
+        kind is MediaServerKind.FnNas or MediaServerKind.Plex ? Task.FromResult(new List<EmbyUser>())
         : http.GetJsonAsync<List<EmbyUser>>(EmbyUrl.Combine(apiBase, "Users/Public"), new(device, null, ServerKind: kind), cancellationToken);
 
     public async Task<EmbyConnection> AuthenticateAsync(
@@ -74,6 +91,10 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
 
         if (kind == MediaServerKind.FnNas)
             return await Momoka.FnNas.FnNasMediaAdapter.SignInAsync(http.FnNasClient, apiBase, username, password, device,
+                serverVersion, serverId, cancellationToken).ConfigureAwait(false);
+
+        if (kind == MediaServerKind.Plex)
+            return await Momoka.Plex.PlexMediaAdapter.SignInAsync(http.PlexClient, apiBase, username, password, device,
                 serverVersion, serverId, cancellationToken).ConfigureAwait(false);
 
         var url = EmbyUrl.Combine(apiBase, "Users/AuthenticateByName");

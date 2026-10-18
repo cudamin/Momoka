@@ -53,7 +53,11 @@ internal static class Program
         AggregateQueryTests.Register();
         LibraryBrowseTests.Register();
         LibraryRecommendedTests.Register();
+        LibraryFavoritesTests.Register();
+        LibraryUpcomingTests.Register();
         LibraryDisplayTests.Register();
+        LibraryEpisodeFolderTests.Register();
+        LibraryIndexTests.Register();
         MoviePilotSearchSitesTests.Register();
         MoviePilotResourceOptionsTests.Register();
         MoviePilotAvailabilityTests.Register();

@@ -5,6 +5,7 @@ using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Shell.Media;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 
 namespace Momoka.Shell.Views;
@@ -39,10 +40,24 @@ public sealed class CardItem : INotifyPropertyChanged
 
     private readonly EmbyItem _item;
     private readonly EmbyImageStore _images;
-    private readonly int _width;
+    /// <summary>
+    /// 画出来、解码、取图三处共用的那个宽度。**不是 readonly**：窗口被拖动时整面墙一起换宽度（见
+    /// <see cref="Resize"/>），三处必须一起动，否则卡片要么糊要么白占内存。
+    /// </summary>
+    private int _width;
 
     /// <summary>True for a 16:9 card. Kept, not just consumed, because it also decides the height.</summary>
     private readonly bool _wide;
+
+    /// <summary>
+    /// 这一张卡自己的高宽比（高 ÷ 宽），null 就是按 <see cref="_wide"/> 走那两档（16:9 或 2:3）。
+    /// <para>
+    /// 索引页的「类型」是方卡（1:1，服务器拼的四格封面就是方图），而那两档里没有 1 这个值：喂 1 进
+    /// <see cref="CardSize.HeightFor"/> 只会拿到 2:3 的 304，屏上是一张图上下各留一大条空白。所以宽高比由
+    /// 造卡片的人给（见 <c>LibraryViewModel.NewCard</c> 与 <see cref="LibraryIndexCards.Aspect"/>）。
+    /// </para>
+    /// </summary>
+    private readonly double? _aspect;
 
     /// <summary>
     /// 这一张卡画不画角标 —— 已看、收藏和未看集数。**不再有开关**：2026-10-16 按用户的话删掉了设置里那
@@ -57,6 +72,8 @@ public sealed class CardItem : INotifyPropertyChanged
 
     /// <summary>What to write on the second line instead of the item's own; null to use the item's.</summary>
     private readonly string? _subtitle;
+    private readonly string? _title;
+    private readonly ArtworkRef? _artwork;
 
     /// <summary>第三行：勾了宣传语或概要才有，null 就是这一行整行收起。</summary>
     private readonly string? _note;
@@ -135,7 +152,14 @@ public sealed class CardItem : INotifyPropertyChanged
         bool current = false,
         IReadOnlyList<string>? imageTypes = null,
         IReadOnlyList<LibraryField>? tableFields = null,
-        string? note = null)
+        string? note = null,
+        string? title = null,
+        ArtworkRef? artwork = null,
+        bool upcoming = false,
+        bool centeredText = false,
+        bool containArtwork = false,
+        bool folderFrame = false,
+        double? aspect = null)
     {
         _item = item;
         _images = images;
@@ -144,6 +168,13 @@ public sealed class CardItem : INotifyPropertyChanged
         _width = width;
         _wide = wide;
         _subtitle = subtitle;
+        _title = title;
+        _artwork = artwork;
+        IsUpcoming = upcoming;
+        CenteredText = upcoming || centeredText;
+        FolderFrame = folderFrame;
+        _aspect = aspect;
+        PosterStretch = containArtwork ? Stretch.Uniform : Stretch.UniformToFill;
         _note = note;
         _indicators = indicators;
         IsCurrentEpisode = current;
@@ -170,7 +201,21 @@ public sealed class CardItem : INotifyPropertyChanged
 
     internal bool IsCurrent => Scope?.IsAvailable == true;
 
-    public string Title => _item.Name;
+    public string Title => _title ?? _item.Name;
+    public bool IsUpcoming { get; }
+    public bool CenteredText { get; }
+    public bool FolderFrame { get; }
+    public Visibility FolderFrameVisibility => Show(FolderFrame);
+    public Thickness FrameMargin => FolderFrame ? new Thickness(0, 7, 0, 0) : new Thickness(0);
+    public Thickness ArtworkPadding => FolderFrame ? new Thickness(8, 18, 8, 10) : new Thickness(0);
+    public string DurationText => FolderFrame && _item.RunTimeTicks > 0
+        ? TimeFormat.Clock(_item.RunTimeTicks) : "";
+    public Visibility DurationVisibility => Show(DurationText.Length > 0);
+    public Visibility TitleVisibility => Show(Title.Length > 0);
+    public Visibility SubtitleVisibility => Show(Subtitle.Length > 0);
+    public Stretch PosterStretch { get; }
+    public TextAlignment TitleAlignment => CenteredText ? TextAlignment.Center : TextAlignment.Left;
+    public Thickness TextMargin => new(0, CenteredText ? 4 : 8, 0, 0);
 
     /// <summary>
     /// 列表视图 row's own title: 「1. 集名」. Kept separate from <see cref="Title"/> because the numbered
@@ -235,7 +280,39 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </summary>
     public double CardWidth => _width;
 
-    public double PosterHeight => CardSize.HeightFor(_width, _wide);
+    /// <summary>
+    /// 这一张卡换个宽度重画（窗口被拖动时，一面墙上的卡片一起换）。
+    /// <para>
+    /// **宽度不只是画多大**：它是取图要的尺寸、解码宽度和画出来的宽度三件事，所以换宽度就得把图重新取一遍、
+    /// 重新解一遍 —— 旧宽度解出来的图放到新格子里就是一张糊图。
+    /// </para>
+    /// <para>
+    /// 原地改而不是把卡片换掉：卡片对象活在页面的清单里（<c>LibraryViewModel.Cards</c>），删除、继续观看那一格、
+    /// 探针都攥着这些对象；换掉对象等于把那些引用全作废（2026-10-18 探针「删除保持列表位置」就是这么红起来的）。
+    /// </para>
+    /// </summary>
+    internal void Resize(int width)
+    {
+        if (width <= 0 || width == _width) return;
+
+        _width = width;
+        Raise(nameof(CardWidth));
+        Raise(nameof(PosterHeight));
+
+        // 在路上的那一趟是按旧宽度取的：撤掉，按新宽度重来。
+        _loading?.Cancel();
+        _loading = null;
+
+        if (_poster is null) return;
+
+        Poster = null;
+
+        // 只有屏上这一张要立刻补回来；不在屏上的，等容器再把它递进来时按新宽度取（见 EnsurePosterAsync）。
+        if (_wanted) _ = EnsurePosterAsync();
+    }
+
+    /// <summary>画出来的图有多高。索引卡自带宽高比时按它算（见 <see cref="_aspect"/>），否则按两档形状。</summary>
+    public double PosterHeight => _aspect is { } aspect ? Math.Round(_width * aspect) : CardSize.HeightFor(_width, _wide);
 
     public BitmapImage? Poster
     {
@@ -314,7 +391,8 @@ public sealed class CardItem : INotifyPropertyChanged
     /// instead: a button offering to play one of them would be offering nothing.
     /// </summary>
     public Visibility PlayVisibility =>
-        Show(_item.IsPlayable || _item.Type is EmbyItemType.Series or EmbyItemType.Season);
+        Show((!IsUpcoming || !string.Equals(_item.LocationType, "Virtual", StringComparison.OrdinalIgnoreCase))
+            && (_item.IsPlayable || _item.Type is EmbyItemType.Series or EmbyItemType.Season));
 
     /// <summary>
     /// 已观看 and 收藏 on the hover strip, which the 媒体库 row on the home page and the 演职人员 shelf
@@ -351,7 +429,7 @@ public sealed class CardItem : INotifyPropertyChanged
     {
         _wanted = true;
 
-        if (_imageType is null || _missing || _poster is not null || _loading is not null) return;
+        if (_imageType is null && _artwork is null || _missing || _poster is not null || _loading is not null) return;
         if (Scope is not { IsAvailable: true } scope) return;
 
         // 上一次「没取到」还没隔够冷却时间就不问了：滚动一路会把同一张卡反复递进来，不拦的话一次断网就是每一趟
@@ -371,10 +449,9 @@ public sealed class CardItem : INotifyPropertyChanged
 
         try
         {
-            var tag = EmbyImageStore.TagFor(_item, _imageType);
-            if (tag is null) return;
-            var cacheKey = PosterCache.Key(scope.Connection, _item.Id, _imageType, tag, _width);
-            var bytes = await _images.GetAsync(scope, _item.Id, _imageType, tag, EmbyImageStore.RequestWidth(_width), cts.Token)
+            if (PosterArtwork is not { } picture) return;
+            var cacheKey = PosterCache.Key(scope.Connection, picture.ItemId, picture.ImageType, picture.Tag, _width);
+            var bytes = await _images.GetAsync(scope, picture.ItemId, picture.ImageType, picture.Tag, EmbyImageStore.RequestWidth(_width), cts.Token)
                 .ConfigureAwait(true);
 
             if (cts.IsCancellationRequested || !scope.IsAvailable) return;
@@ -494,9 +571,12 @@ public sealed class CardItem : INotifyPropertyChanged
     /// this card wants. Built each time rather than kept: the tag in it is the server's, and artwork
     /// replaced there has to read as a different picture.
     /// </summary>
+    private ArtworkRef? PosterArtwork => _artwork ?? (_imageType is not null
+        && EmbyImageStore.TagFor(_item, _imageType) is { } tag ? new(_item.Id, _imageType, tag) : null);
+
     private string? PosterKey() =>
-        Scope is { } scope && _imageType is not null && EmbyImageStore.TagFor(_item, _imageType) is { } tag
-            ? PosterCache.Key(scope.Connection, _item.Id, _imageType, tag, _width)
+        Scope is { } scope && PosterArtwork is { } picture
+            ? PosterCache.Key(scope.Connection, picture.ItemId, picture.ImageType, picture.Tag, _width)
             : null;
 
     /// <summary>Re-reads the badges after the item's user data changes. Requirement 6 calls this.</summary>

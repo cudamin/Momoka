@@ -38,7 +38,7 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(page);
                 Get<MoviePilotMediaSeasonsView>(page, "MediaSeasons").StartBringIntoView();
                 await LayoutAsync(page);
-                await SaveUsersFrameAsync(page, $"mp-media-seasons-{width}.png");
+                await SaveSettledFrameAsync(page, $"mp-media-seasons-{width}.png");
             }
             var resources = Get<MoviePilotResourcePanel>(page, "MediaResources");
             var search = Descendants(page).OfType<Button>().First(button => button.Name == "SearchMediaEpisode");
@@ -187,7 +187,7 @@ internal sealed partial class ShellNavigationProbe
             foreach (var theme in Momoka.Theming.UiThemes.All)
             {
                 ThemeHost.Apply(theme.Id); await LayoutAsync(page);
-                await SaveUsersFrameAsync(page, $"mp-media-background-{theme.Id}.png");
+                await SaveSettledFrameAsync(page, $"mp-media-background-{theme.Id}.png");
             }
             var seasons = Get<MoviePilotMediaSeasonsView>(page, "MediaSeasons");
             seasons.StartBringIntoView();
@@ -283,7 +283,7 @@ internal sealed partial class ShellNavigationProbe
             await panel.ViewModel.Subtitles[0].DownloadCommand.ExecuteAsync(null);
             Require(server.SubtitleDownloads.Count == 1 && server.SubtitleDownloads[0].GetProperty("save_path").GetString() == "/subtitles", "字幕下载没有提交实际保存路径");
             await LayoutAsync(panel);
-            await SaveUsersFrameAsync(panel, "mp-media-subtitles.png");
+            await SaveSettledFrameAsync(panel, "mp-media-subtitles.png");
             panel.ViewModel.SearchSites.UseDefault = false;
             Require(panel.ViewModel.Subtitles.Count == 0, "更换站点后仍显示已失效字幕");
         }
