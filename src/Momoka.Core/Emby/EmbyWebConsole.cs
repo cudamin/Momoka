@@ -55,7 +55,65 @@ public static partial class EmbyWebConsole
     public const string FollowColorScheme = "auto";
 
     /// <summary>The page 需求 8 names, hash route and all.</summary>
-    public static string Url(Uri apiBase) => $"{Root(apiBase)}/web/index.html#!/dashboard";
+    public static string Url(Uri apiBase) => RouteUrl(apiBase, ServerSettingsMenu.DefaultRoute);
+
+    /// <summary>
+    /// One page inside the console, hash route and all. 服务器控制台左栏的每一项都从这里换地址；路由先过
+    /// <see cref="ServerSettingsMenu.NormalizeRoute"/> 和 <see cref="ServerSettingsMenu.IsSafeRoute"/>，
+    /// 插件页从服务器拿来的 href 不能把内嵌浏览器带到别的站点。
+    /// </summary>
+    /// <exception cref="ArgumentException">The route is empty or not a server-relative console route.</exception>
+    public static string RouteUrl(Uri apiBase, string route)
+    {
+        var normalized = ServerSettingsMenu.NormalizeRoute(route);
+        if (normalized is null || !ServerSettingsMenu.IsSafeRoute(normalized))
+            throw new ArgumentException("服务器控制台页面地址无效", nameof(route));
+
+        return $"{Root(apiBase)}/web/index.html#!/{normalized}";
+    }
+
+    /// <summary>
+    /// 一段文档开始脚本：把网页端自己那套抽屉导航收起来。控制台的左栏已经由本应用画了一份（三个分区、
+    /// 服务器插件页），网页再画一份就是两条并排的同一个菜单；顶栏那颗开关也一起收掉，免得点开一个看不见的抽屉。
+    /// <para>
+    /// 只认 class 里的 <c>mainDrawer</c>、<c>drawer-backdrop</c> 和 <c>…NavDrawer…</c> 这几个网页端自己的
+    /// 名字；设置页自己的内容、对话框和播放器都不碰。脚本没有凭据，也不用知道服务器地址。
+    /// </para>
+    /// </summary>
+    public static string HideDrawerScript() => """
+        (function () {
+          try {
+            var css = [
+              ".mainDrawer { display: none !important; }",
+              ".drawer-backdrop { display: none !important; }",
+              ".btnOpenNavDrawer, .btnToggleNavDrawer, .btnPinNavDrawer { display: none !important; }"
+            ].join("\n");
+
+            function addStyle() {
+              if (document.getElementById("momoka-hide-drawer")) return;
+              var style = document.createElement("style");
+              style.id = "momoka-hide-drawer";
+              style.textContent = css;
+              (document.head || document.documentElement).appendChild(style);
+            }
+
+            function hideToggles() {
+              addStyle();
+              var elements = document.querySelectorAll('[class*="NavDrawer"]');
+              for (var i = 0; i < elements.length; i++) {
+                elements[i].style.setProperty("display", "none", "important");
+              }
+            }
+
+            if (document.head) hideToggles();
+            else document.addEventListener("DOMContentLoaded", hideToggles, { once: true });
+            setTimeout(hideToggles, 400);
+            setTimeout(hideToggles, 1600);
+          } catch (e) {
+            // 抽屉没藏好不该把控制台变成白屏；左栏本来也能用。
+          }
+        })();
+        """;
 
     /// <summary>
     /// Where the web client is served from: the API base without <c>/emby/</c>. The same string the client

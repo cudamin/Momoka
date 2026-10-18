@@ -16,8 +16,23 @@ public static partial class EmbyWebConsole
         : Root(connection.ApiBase);
 
     public static string Url(EmbyConnection connection) => connection.IsJellyfin
-        ? $"{Root(connection)}/web/index.html#/dashboard"
+        ? RouteUrl(connection, ServerSettingsMenu.DefaultRoute)
         : Url(connection.ApiBase);
+
+    /// <summary>
+    /// 同样是一页控制台，两个产品的路由写法不同：Emby 用 <c>#!/</c>，Jellyfin Web 用 <c>#/</c>。
+    /// 原生左栏只在 Emby 下出现，但地址的拼法还是放在这里，别让页面自己去猜。
+    /// </summary>
+    public static string RouteUrl(EmbyConnection connection, string route)
+    {
+        var normalized = ServerSettingsMenu.NormalizeRoute(route);
+        if (normalized is null || !ServerSettingsMenu.IsSafeRoute(normalized))
+            throw new ArgumentException("服务器控制台页面地址无效", nameof(route));
+
+        return connection.IsJellyfin
+            ? $"{Root(connection)}/web/index.html#/{normalized}"
+            : RouteUrl(connection.ApiBase, normalized);
+    }
 
     /// <summary>按服务器和用户隔离 Jellyfin 浏览器状态；目录名不包含令牌或用户名。</summary>
     public static string ProfileDirectory(EmbyConnection connection, string directory) => connection.IsJellyfin

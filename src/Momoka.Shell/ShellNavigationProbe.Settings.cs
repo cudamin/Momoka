@@ -10,6 +10,7 @@ using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Theming;
 using Momoka.Updates;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -540,6 +541,128 @@ internal sealed partial class ShellNavigationProbe
             page.Release();
             _root.Children.Remove(page);
         }
+    }
+
+    /// <summary>
+    /// 服务器控制台左栏：照网页端管理菜单的三段（Emby Server／设备／高级），固定条目之外还有服务器
+    /// 报出来的插件页（Cinema Intros／DLNA／Backup &amp; Restore）。宽窗是左栏、窄窗换成下拉；点「通用」
+    /// 要把网页带到 <c>#!/dashboard/settings</c>。全程假服务器，网页本身连不上是预期的，断言只看导航
+    /// 和它交给浏览器的地址。
+    /// </summary>
+    private async Task SettingsConsoleNavigationAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        fixture.Transport.Reply = (request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/System/Info", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { ServerName = "离线服务器", Version = "4.10.1.0" }));
+            if (path.EndsWith("/web/ConfigurationPages", StringComparison.Ordinal))
+                return Task.FromResult(Json(new object[]
+                {
+                    new { Name = "cinemaintros", DisplayName = "Cinema Intros", Href = "configurationpage?name=cinemaintros", MenuSection = "server", MenuIcon = "movie", EnableInMainMenu = true },
+                    new { Name = "dlna", DisplayName = "DLNA", Href = "configurationpage?name=dlna", MenuSection = "devices", MenuIcon = "devices", EnableInMainMenu = true },
+                    new { Name = "backup", DisplayName = "Backup & Restore", Href = "configurationpage?name=backup", MenuSection = (string?)null, EnableInMainMenu = true }
+                }));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, "console-nav-" + Guid.NewGuid().ToString("N")));
+        paths.EnsureCreated();
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+            .AddSingleton(fixture.Session)
+            .AddSingleton(fixture.Launcher)
+            .AddSingleton(paths)
+            .BuildServiceProvider();
+
+        // 探针里不等入场 Storyboard：关掉动画，页面第一帧就是不透明的，截图拍得到左栏。
+        var originalAnimations = HomeMotion.PreferenceEnabled;
+        HomeMotion.ApplyPreference(false);
+
+        // 直接挂页，不经过 Frame：探针窗口里 Frame 的导航转场会把整页留在不透明度 0，
+        // 屏上只剩上一轮设置页的残影（2026-10-19 实测）。
+        var page = new DashboardPage();
+        _root.Children.Add(page);
+        try
+        {
+            ResizeInspect(1100, 900);
+            page.Attach(new DashboardRequest(services, LoadContent: false));
+            await LayoutAsync(page);
+
+            // 控制台这一条自己占根；别的设置用例留下的页必须已经收走，不然截图拍到的会是它们。
+            Require(_root.Children.Count == 1 && ReferenceEquals(_root.Children[0], page)
+                && !Descendants(_root).OfType<SettingsPage>().Any(),
+                $"控制台探针的根里还留着别的页（{_root.Children.Count} 个直接孩子）");
+
+            // 固定三段先出来，插件页要等那一趟假服务器请求。
+            for (var attempt = 0; attempt < 300 && !page.NavigationItems.Any(item => item.Label == "Backup & Restore"); attempt++)
+                await Task.Delay(100);
+
+            Require(page.ActualWidth > 800 && page.ActualHeight > 600 && page.Opacity == 1
+                && Get<Grid>(page, "PageLayout").Opacity == 1,
+                $"控制台页没有真正落在窗口里（{page.ActualWidth:0}×{page.ActualHeight:0}，不透明度 {page.Opacity:0.##}）");
+
+            var reading = page.NavigationReading;
+            Require(reading.Count == 3 && reading[0].Name == "Emby Server"
+                && reading[1].Name == "设备" && reading[2].Name == "高级",
+                "控制台左栏不是网页端那三个分区");
+            Require(reading[0].Items.SequenceEqual(new[]
+                {
+                    "控制台", "通用", "用户", "Emby Premiere", "媒体库", "电视直播", "网络", "转码",
+                    "数据库", "转换", "计划任务", "日志", "Cinema Intros"
+                }), "服务器分区条目或插件页位置不对");
+            Require(reading[1].Items.SequenceEqual(new[] { "设备", "下载", "相机上传", "DLNA" }),
+                "设备分区条目或 DLNA 位置不对");
+            Require(reading[2].Items.SequenceEqual(new[] { "插件", "API 密钥", "元数据管理器", "Backup & Restore" }),
+                "高级分区条目或末尾插件页不对");
+            Require(page.NavigationRailVisible && !page.NavigationPickerVisible, "宽窗没有显示左栏");
+            await SaveRenderAsync(page, "settings-console-nav-1100-render.png");
+
+            var list = Get<ListView>(page, "ServerSettingsNavList");
+            list.SelectedItem = page.NavigationItems.Single(item => item.Label == "通用");
+            await UntilAsync(() => page.SelectedNavigationRoute == "dashboard/settings");
+            Require(page.CurrentNavigationAddress.Contains("#!/dashboard/settings", StringComparison.Ordinal),
+                "点「通用」没有把网页带到对应路由");
+
+            ResizeInspect(760, 900);
+            await LayoutAsync(page);
+            Require(!page.NavigationRailVisible && page.NavigationPickerVisible, "窄窗没有把左栏收成下拉");
+            Require(Get<ComboBox>(page, "CompactNavPicker").SelectedItem is ServerSettingsNavItem { Label: "通用" },
+                "窄窗下拉没有跟着落点");
+            await SaveRenderAsync(page, "settings-console-nav-760-render.png");
+        }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
+            HomeMotion.ApplyPreference(originalAnimations);
+            ResizeInspect(1420, 980);
+        }
+    }
+
+    /// <summary>
+    /// 把这一页（不是整个窗口）渲染成 PNG。控制台页的探针不启动 WebView2，屏幕截图在这种假窗口里
+    /// 会拍到前一张设置页的残影（2026-10-19 实测）；这条渲染图只作左栏布局的辅助证据，不冒充实屏。
+    /// </summary>
+    private async Task SaveRenderAsync(FrameworkElement element, string name)
+    {
+        var bitmap = new Microsoft.UI.Xaml.Media.Imaging.RenderTargetBitmap();
+        await bitmap.RenderAsync(element);
+        var buffer = await bitmap.GetPixelsAsync();
+        var pixels = new byte[buffer.Length];
+        using (var reader = Windows.Storage.Streams.DataReader.FromBuffer(buffer)) reader.ReadBytes(pixels);
+
+        using var stream = new Windows.Storage.Streams.InMemoryRandomAccessStream();
+        var encoder = await Windows.Graphics.Imaging.BitmapEncoder.CreateAsync(
+            Windows.Graphics.Imaging.BitmapEncoder.PngEncoderId, stream);
+        encoder.SetPixelData(Windows.Graphics.Imaging.BitmapPixelFormat.Bgra8,
+            Windows.Graphics.Imaging.BitmapAlphaMode.Ignore,
+            (uint)bitmap.PixelWidth, (uint)bitmap.PixelHeight, 96, 96, pixels);
+        await encoder.FlushAsync();
+        stream.Seek(0);
+        using var output = File.Create(Path.Combine(_options.Paths.LogDirectory, name));
+        await stream.AsStreamForRead().CopyToAsync(output);
     }
 
     /// <summary>

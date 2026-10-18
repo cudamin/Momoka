@@ -803,6 +803,9 @@
   <data name="DashboardPage_OpenAction.Label" xml:space="preserve">
     <value>用浏览器打开</value>
   </data>
+  <data name="DashboardPage_NavPicker.Header" xml:space="preserve">
+    <value>服务器设置页面</value>
+  </data>
   <data name="SettingsPage_CategoryPicker.Header" xml:space="preserve">
     <value>设置分类</value>
   </data>

@@ -2,6 +2,19 @@
 
 最后更新：2026-10-19
 
+## 服务器控制台三段左栏照网页端管理菜单复刻（2026-10-19 用户令）
+
+用户令（原话）：「复刻网页端设置页面的Emby Server、设备、高级分区」，附网页端设置左栏截图；随后「动手之前先读项目规则…具体实现方式你决定，不需要问我，我现在不在电脑前」。本轮在主树动手，保留进入时的全部已有改动，只动服务器控制台这一条。已提交，未推送。
+
+- **依据不是照截图猜**：管理菜单的次序与分组在网页端 `modules/navdrawer/navdrawercontent.js` 的 `getAdminMenuItems`：固定条目之后按插件页的 `MenuSection` 插入。本地缓存的 `work/emby-app.js` 给出每条路由（`/dashboard`、`/dashboard/settings`、`/users`、`/embypremiere`、`/librarysetup`、`/livetvsetup`、`/network`、`/transcoding`、`/database`、`/conversions?mode=convert`、`/scheduledtasks`、`/logs`、`/devices`、`/serverdownloads`、`/devices/cameraupload.html`、`/plugins`、`/apikeys`、`/metadatamanager`）。插件页走服务器自己的 `GET web/ConfigurationPages?PageType=PluginConfiguration&UserId=…&EnableInMainMenu=true`；`server` 段插件接在日志后面，`devices` 段接在相机上传后面，`advanced` 段接在元数据管理器后面，空分区接在最后 —— Cinema Intros、CustomCssJS Provider、DLNA、Backup & Restore、Open Subtitles 的位置与截图逐条对上。
+- **Core**：新增 `Emby/ServerSettingsMenu.cs`（三段目录、插件插入、地址归一与安全过滤、网页路由前缀匹配）与 `EmbyClient.ServerSettings.cs`（只读配置页列表）。插件页缺 `Href` 时回落到 `configurationpage?name=…`；绝对地址、协议相对地址、反斜杠、`javascript:` 和未知分区整条丢掉。`EmbyWebConsole` 增加 `RouteUrl`（Emby `#!/`、Jellyfin `#/`）与 `RouteOf`，并加一段文档开始脚本收起网页端自己的 `.mainDrawer`、`.drawer-backdrop` 与 `…NavDrawer…` 开关，避免两份导航并排；脚本里没有凭据，也不接受服务器地址。
+- **Shell**：`DashboardPage` 左侧加原生三段导航（`ServerSettingsNavList`），宽窗左栏、窄窗 `CompactNavPicker` 下拉；选中一项把内嵌网页带到对应路由，网页内部跳转时按 `SourceChanged` 的井号路由把左栏点亮。插件页在网页起来之后后台读回并补进左栏，读不到只保留固定三段。Jellyfin 不显示这份 Emby 目录，也不收网页自己的抽屉；Emby 非管理员仍在 `System/Info` 那一关被挡住。现有的免登录、主题、刷新、用浏览器打开与自检 `Summary` 行为不变。
+- **测试**：新增 `ServerSettingsTests` 9 条（固定三段与次序、插件页三个插入位置、回落地址、不安全地址/未知分区/重复项、Emby/Jellyfin 路由、从网页地址认路由、前缀匹配、请求形状与解析、Jellyfin 不发请求、抽屉脚本只收网页自己的类）。Release 方案 **0 警告、0 错误**；**1933 项全过，0 失败、0 跳过**；`dotnet format whitespace --verify-no-changes` 退出 0，`git diff --check` 退出 0；`tools/scan-automation-ids.js` 337 个交互元素，`no handle at all 0`。
+- **探针**：新增「服务器控制台三段导航与窄窗下拉」一条，用 `DashboardRequest(LoadContent: false)` 跳过 WebView2，假服务器回三条插件页；断言三段名称与 14/4/5 个条目及插入位置、宽窗左栏/窄窗下拉、点「通用」后地址带 `#!/dashboard/settings`。**该条通过**；整轮 90 项、4 项失败，全是既有/环境项：`登录页两步流程、主题与宽窄布局`（短窗口滚到底仍无法换服务器）、`侧边栏模式、导航与宽窄布局`（未等到预期状态）、`删除确认、失败和成功保持列表位置`（未等到预期状态）、`MoviePilot 订阅同号季隔离、播放恢复与最窄布局`（集名、日期和状态被固定海报挤窄）。这 4 项此前都有记录，本轮没有改断言、容差或基线。
+- **实屏证据缺口（如实说）**：`--probe-shell` 的窗口截图在这个假身份页面里拍到的是上一张设置页的残影（2026-10-19 多次复现）；因此本轮只用 `RenderTargetBitmap` 保存了 `settings-console-nav-1100-render.png` 与 `-760-render.png`（页面渲染，不是实屏），宽窗左栏与窄窗下拉都逐张看过。真实窗口里的网页内容、网页端抽屉是否真的收干净、插件页是否真能打开，**没有实屏证据**：服务器当前不可达。
+- **闸门 4 红（环境阻塞）**：`tools/selfcheck-diff.ps1` 运行目录 `artifacts/selfcheck/run-5d0b645539a0438ba060bacf2d173cbd`，结果 **红 ｜ 检查 87、失败行 1；消失 102、降级 2、新增 3**。日志第 8 行起记录 `GET …/Users/…/Views -> 502`，随后「无法使用保存的令牌恢复登录」，应用停在登录页；失败行是 `屏幕像素 — 整片 #16181C —— 单一颜色，XAML 岛没有合成任何东西`，消失的大多数是登录后才执行的检查（含「服务器控制台」）。这不是本轮改动造成的绿或红，也没有改账号、设置或基线。**未发布到 `artifacts/publish/win-x64`，桌面快捷方式仍是旧版。**
+- 改动规模：**14 个路径**（Core 4、Shell 6、测试 2，文档与本文件各 1）。本轮未跑 `check-scripts.ps1`（没有改 PowerShell 脚本）。
+
 ## 按网页截图复核电影与混合内容的排序、筛选与设置选项（2026-10-19 用户令）
 
 用户补充了 16 张电影库、5 张混合内容库的网页端截图，随后说明「我发的都是网页端的，你复核一下选项是不是都对」。逐项对照后，发现上一轮有几处把「电影」「混合内容」「文件夹」的选项混在了一起，本轮按截图改正；预告片空态那句「未找到预告片…」用户说明不是项目缺陷，没有当成 bug 处理。

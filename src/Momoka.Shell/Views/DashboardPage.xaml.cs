@@ -6,13 +6,18 @@ using Momoka.Shell.Platform;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Web.WebView2.Core;
 
 namespace Momoka.Shell.Views;
 
 /// <summary>导航到网页控制台时传入的容器。</summary>
-internal sealed record DashboardRequest(IServiceProvider Services);
+/// <param name="LoadContent">
+/// 真正启动内嵌浏览器。离线探针只验证左栏与宽窄布局时传 false —— WebView2 在探针窗口里的合成会让
+/// 整页截不到内容，也会在退出时留下一个 CLR 崩溃；不启动它，探针读的仍然是真的页面与真的导航。
+/// </param>
+internal sealed record DashboardRequest(IServiceProvider Services, bool LoadContent = true);
 
 /// <summary>
 /// 需求 8：Emby 网页端的控制台，用 <c>WebView2</c> 嵌在设置里，并且是已经登录好的状态。
@@ -43,6 +48,7 @@ public sealed partial class DashboardPage : Page, IShellContent
     private static readonly TimeSpan SampleDelay = TimeSpan.FromSeconds(2.5);
 
     private object? _request;
+    private bool _loadContent = true;
     private ISystemLauncher? _launcher;
     private string _url = "";
     private bool _core;
@@ -83,6 +89,21 @@ public sealed partial class DashboardPage : Page, IShellContent
         Unloaded += (_, _) => HomeMotion.Stop(PageLayout);
     }
 
+    /// <summary>左栏留到多宽才收成下拉。窗口里这一页大约比窗口窄一圈，默认 1100 的设置窗口仍在侧栏这一档。</summary>
+    private const double NavWideWidth = 780;
+
+    /// <summary>上一次建出来的目录，给「网页自己跳了之后左栏跟着亮」那条路按路由找回来。</summary>
+    private IReadOnlyList<ServerSettingsMenuGroup> _menuGroups = [];
+
+    private List<ServerSettingsNavItem> _navItems = [];
+    private ServerSettingsNavItem? _navCurrent;
+    private CollectionViewSource? _navSource;
+    private bool _navAvailable;
+    private bool _selectingNav;
+
+    /// <summary>当前左栏选中页的路由；换页时先改它，再改地址。</summary>
+    private string _route = ServerSettingsMenu.DefaultRoute;
+
     /// <summary>
     /// True once there is nothing more to wait for: the console is up and sampled, or it has failed and said
     /// why. The self-check's <c>Settled</c> gate reads this, so every terminal path has to set it — including
@@ -96,6 +117,20 @@ public sealed partial class DashboardPage : Page, IShellContent
     /// </summary>
     internal (bool Ready, string Url, bool Core, bool Seeded, bool? Navigated, string Error, string Client) Summary =>
         (_settled, _url, _core, _seeded, _navigated, _error, _client);
+
+    /// <summary>探针读的：左栏三组各有哪些页，按屏幕上的次序。</summary>
+    internal IReadOnlyList<(string Name, string[] Items)> NavigationReading =>
+        [.. _menuGroups.Select(group => (group.Label, group.Entries.Select(entry => entry.Label).ToArray()))];
+
+    internal IReadOnlyList<ServerSettingsNavItem> NavigationItems => _navItems;
+
+    internal string? SelectedNavigationRoute => _navCurrent?.Route;
+
+    internal string CurrentNavigationAddress => _url;
+
+    internal bool NavigationRailVisible => ServerSettingsNavList.Visibility == Visibility.Visible;
+
+    internal bool NavigationPickerVisible => CompactNavPicker.Visibility == Visibility.Visible;
 
     public object? NavigationRequest => _request;
 
@@ -114,6 +149,198 @@ public sealed partial class DashboardPage : Page, IShellContent
         };
     }
 
+    /// <summary>
+    /// Emby 才画那三段左栏。Jellyfin 的网页端有自己的菜单，硬塞一份 Emby 的目录只会多出打不开的项；
+    /// 所以它仍走原来的整页控制台。非管理员在 <see cref="StartAsync"/> 里就被挡住，左栏根本不会出现。
+    /// </summary>
+    private void ConfigureNavigation(EmbyConnection connection)
+    {
+        if (connection.IsJellyfin)
+        {
+            _navAvailable = false;
+            ApplyNavigationLayout();
+            return;
+        }
+
+        _navAvailable = true;
+        _route = ServerSettingsMenu.DefaultRoute;
+        _url = EmbyWebConsole.RouteUrl(connection, _route);
+        _address = _url;
+        BuildNavigation([]);
+        ApplyNavigationLayout();
+    }
+
+    /// <summary>
+    /// 用 Core 那份目录重画左栏。第一次只有固定条目；插件页从服务器读回来之后整份换一次，按路由
+    /// 把落点接回去，不跟着重载网页。整份换源而不是原地加，因为分组视图不会自己收走消失的组标题
+    /// （与设置页 <c>CategoryGroups</c> 同一个理由）。
+    /// </summary>
+    private void BuildNavigation(IReadOnlyList<ServerSettingsPluginPage> pages)
+    {
+        _menuGroups = ServerSettingsMenu.Build(pages);
+
+        var groups = new List<ServerSettingsNavGroup>();
+        foreach (var group in _menuGroups)
+        {
+            var navGroup = new ServerSettingsNavGroup(group.Label);
+            foreach (var entry in group.Entries)
+                navGroup.Add(new ServerSettingsNavItem(entry.Label, entry.Route, entry.Icon, entry.Section, entry.FromPlugin));
+            groups.Add(navGroup);
+        }
+
+        _navItems = groups.SelectMany(group => group).ToList();
+        _navSource = new CollectionViewSource { IsSourceGrouped = true, Source = groups };
+
+        _selectingNav = true;
+        try
+        {
+            ServerSettingsNavList.ItemsSource = _navSource.View;
+            CompactNavPicker.ItemsSource = _navItems;
+
+            var current = _navItems.FirstOrDefault(item =>
+                string.Equals(item.Route, _route, StringComparison.OrdinalIgnoreCase));
+            _navCurrent = current;
+            ServerSettingsNavList.SelectedItem = current;
+            CompactNavPicker.SelectedItem = current;
+        }
+        finally
+        {
+            _selectingNav = false;
+        }
+    }
+
+    /// <summary>
+    /// 左栏、窄窗下拉和「不要左栏」（Jellyfin／非管理员／浏览器起不来）三档。宽度是这一页自己的宽度，
+    /// 不是窗口宽度：设置窗口左边还有一列分类，1100 的窗口到这一页已经窄了一圈。
+    /// </summary>
+    private void ApplyNavigationLayout()
+    {
+        if (!_navAvailable)
+        {
+            NavColumn.Width = new GridLength(0);
+            ServerSettingsNavList.Visibility = Visibility.Collapsed;
+            CompactNavPicker.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        var wide = ActualWidth >= NavWideWidth;
+        NavColumn.Width = wide ? new GridLength(220) : new GridLength(0);
+        ServerSettingsNavList.Visibility = wide ? Visibility.Visible : Visibility.Collapsed;
+        CompactNavPicker.Visibility = wide ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void OnPageSizeChanged(object sender, SizeChangedEventArgs e) => ApplyNavigationLayout();
+
+    private void OnNavSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_selectingNav) return;
+        if (ServerSettingsNavList.SelectedItem is ServerSettingsNavItem item)
+            SelectNavigation(item, navigate: true);
+    }
+
+    private void OnCompactNavSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_selectingNav) return;
+        if (CompactNavPicker.SelectedItem is ServerSettingsNavItem item)
+            SelectNavigation(item, navigate: true);
+    }
+
+    /// <summary>
+    /// 两条导航共用一个落点。程序里改选中时用 <see cref="_selectingNav"/> 挡住第二条路自己再跑一遍。
+    /// <para>
+    /// <paramref name="navigate"/> 为假的是「网页自己跳到了别的页，左右栏跟着亮」那一趟：只改选中，
+    /// 不再让网页重新载入 —— 它已经在那一页上了。
+    /// </para>
+    /// </summary>
+    private void SelectNavigation(ServerSettingsNavItem item, bool navigate)
+    {
+        var changed = !string.Equals(_navCurrent?.Route, item.Route, StringComparison.OrdinalIgnoreCase);
+        _navCurrent = item;
+
+        _selectingNav = true;
+        try
+        {
+            if (!ReferenceEquals(ServerSettingsNavList.SelectedItem, item))
+                ServerSettingsNavList.SelectedItem = item;
+            if (!ReferenceEquals(CompactNavPicker.SelectedItem, item))
+                CompactNavPicker.SelectedItem = item;
+        }
+        finally
+        {
+            _selectingNav = false;
+        }
+
+        if (navigate && changed) NavigateTo(item);
+    }
+
+    /// <summary>
+    /// 把网页带到左栏选中的那一页。还没起浏览器时只记下地址，<see cref="StartAsync"/> 最后会用最新的
+    /// <c>_url</c> 起第一趟，所以这里空等也不会把落点丢掉。
+    /// </summary>
+    private void NavigateTo(ServerSettingsNavItem item)
+    {
+        if (_scope is not { IsCurrent: true } scope || !ServerSettingsMenu.IsSafeRoute(item.Route)) return;
+
+        _generation++;
+        _settled = false;
+        _navigated = null;
+        _error = "";
+        _route = item.Route;
+        _url = EmbyWebConsole.RouteUrl(scope.Connection, item.Route);
+        _address = _url;
+
+        NoticePanel.Visibility = Visibility.Collapsed;
+        Web.Visibility = Visibility.Visible;
+
+        if (Web.CoreWebView2 is not { } core)
+        {
+            Say("正在启动内嵌浏览器…");
+            return;
+        }
+
+        Say("正在载入服务器设置…");
+        core.Navigate(_url);
+        _ = GiveUpAsync(_generation);
+    }
+
+    /// <summary>
+    /// 服务器插件页（Cinema Intros、DLNA、Backup &amp; Restore…）是服务器自己报出来的主菜单项，固定
+    /// 条目里没有。读到之后补进左栏；读不到就保留固定那三段，不拿一条错误挡住整个控制台。
+    /// </summary>
+    private async Task LoadPluginPagesAsync()
+    {
+        if (_scope is not { IsCurrent: true } scope) return;
+
+        try
+        {
+            var pages = await scope.ExecuteAsync(
+                (client, token) => client.GetServerSettingsPagesAsync(token), _lifetime.Token);
+            if (_released || !scope.IsCurrent || pages.Count == 0) return;
+            BuildNavigation(pages);
+        }
+        catch (OperationCanceledException) when (_released || _lifetime.IsCancellationRequested) { }
+        catch (Exception error)
+        {
+            Log.Debug(Category, $"读取服务器插件页失败：{error.Message}");
+        }
+    }
+
+    /// <summary>
+    /// 网页里自己的链接跳了页（比如仪表盘上的齿轮、设备列表点进一台设备）：按新路由把左栏点亮。
+    /// 认不出就当没发生，不去猜。
+    /// </summary>
+    private void OnSourceChanged(CoreWebView2 sender, CoreWebView2SourceChangedEventArgs e)
+    {
+        if (_released || !_navAvailable) return;
+
+        var match = ServerSettingsMenu.Match(_menuGroups, ServerSettingsMenu.RouteOf(sender.Source));
+        if (match is null) return;
+
+        var item = _navItems.FirstOrDefault(candidate =>
+            string.Equals(candidate.Route, match.Route, StringComparison.OrdinalIgnoreCase));
+        if (item is not null) SelectNavigation(item, navigate: false);
+    }
+
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
@@ -124,7 +351,18 @@ public sealed partial class DashboardPage : Page, IShellContent
             return;
         }
 
+        Attach(request);
+    }
+
+    /// <summary>
+    /// 页面真正开始干活的那一段。单独拎出来是给离线探针用的：探针把这一页直接挂到自己的窗口里，
+    /// 不经过 Frame（Frame 的导航转场在探针窗口里会把整页留在不透明度 0），生产路径仍走
+    /// <see cref="OnNavigatedTo"/>。
+    /// </summary>
+    internal void Attach(DashboardRequest request)
+    {
         _request = request;
+        _loadContent = request.LoadContent;
         Tag = "dashboard";
         _generation++;
 
@@ -137,6 +375,8 @@ public sealed partial class DashboardPage : Page, IShellContent
         {
             _url = "";
             _address = "尚未登录服务器";
+            _navAvailable = false;
+            ApplyNavigationLayout();
             Say("");
             Show("先在「服务器」里登录管理员账号，服务器的控制台就会显示在这里。");
             _settled = true;
@@ -147,7 +387,8 @@ public sealed partial class DashboardPage : Page, IShellContent
         {
             _scope = session.Capture();
             _storageKey = EmbyWebConsole.CredentialStorageKey(connection);
-            _url = EmbyWebConsole.Url(connection);
+            _route = ServerSettingsMenu.DefaultRoute;
+            _url = EmbyWebConsole.RouteUrl(connection, _route);
         }
         catch (ArgumentException)
         {
@@ -185,6 +426,17 @@ public sealed partial class DashboardPage : Page, IShellContent
                 return;
             }
             connection = _scope.Connection;
+            ConfigureNavigation(connection);
+
+            // 离线探针只读左栏与落点，不把 WebView2 拉进探针窗口（见 DashboardRequest.LoadContent）。
+            if (!_loadContent)
+            {
+                _settled = true;
+                Say("离线探针不载入网页");
+                _ = LoadPluginPagesAsync();
+                return;
+            }
+
             Directory.CreateDirectory(profile);
 
             var environment = await CoreWebView2Environment
@@ -208,6 +460,7 @@ public sealed partial class DashboardPage : Page, IShellContent
 
             Web.NavigationCompleted += OnNavigationCompleted;
             core.NewWindowRequested += OnNewWindowRequested;
+            core.SourceChanged += OnSourceChanged;
 
             // 缺少公开服务器 ID 时保留网页自己的登录流程，不构造一个猜测的 Jellyfin 身份。
             if (!connection.IsJellyfin || !string.IsNullOrWhiteSpace(connection.ServerId))
@@ -222,9 +475,15 @@ public sealed partial class DashboardPage : Page, IShellContent
                     EmbyWebConsole.ThemeScript(connection.ApiBase, connection.UserId));
             if (_released || !_scope.IsCurrent) return;
 
-            Say("正在载入控制台…");
+            // 左栏已经是本应用画的那一份；网页端自己的抽屉收起来，顶栏那颗开关也一起收掉。
+            if (!connection.IsJellyfin)
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.HideDrawerScript());
+            if (_released || !_scope.IsCurrent) return;
+
+            Say("正在载入服务器设置…");
             core.Navigate(_url);
             _ = GiveUpAsync(_generation);
+            if (!connection.IsJellyfin) _ = LoadPluginPagesAsync();
         }
         catch (OperationCanceledException) when (_released || _lifetime.IsCancellationRequested) { }
         catch (Exception error)
@@ -232,6 +491,8 @@ public sealed partial class DashboardPage : Page, IShellContent
             // Most likely no WebView2 runtime on the machine. Say so instead of showing an empty box.
             _error = error.Message;
             _settled = true;
+            _navAvailable = false;
+            ApplyNavigationLayout();
             Log.Warn(Category, $"内嵌控制台启动失败：{error.Message}");
             if (!_released) Show($"内嵌浏览器没能启动：{error.Message}\n可以点右上角「用浏览器打开」，用系统浏览器看同一个页面。");
         }
@@ -397,7 +658,11 @@ public sealed partial class DashboardPage : Page, IShellContent
         try
         {
             Web.NavigationCompleted -= OnNavigationCompleted;
-            if (Web.CoreWebView2 is { } core) core.NewWindowRequested -= OnNewWindowRequested;
+            if (Web.CoreWebView2 is { } core)
+            {
+                core.NewWindowRequested -= OnNewWindowRequested;
+                core.SourceChanged -= OnSourceChanged;
+            }
             Web.Close();
         }
         catch (Exception error)
