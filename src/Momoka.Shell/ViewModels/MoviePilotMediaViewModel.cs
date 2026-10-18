@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Momoka.AniBt;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.Media;
@@ -221,6 +222,15 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [ObservableProperty] public partial string SubmitSummary { get; set; } = "选择季和订阅模式，提交后 MoviePilot 将按配置处理订阅。取消订阅会保留已入库文件。";
     public bool CanInteract => Live && !Busy && !Submitting && !Submitted;
     public bool CanSubmit => CanInteract && Detail is not null && Seasons.Count > 0;
+
+    /// <summary>
+    /// 订阅详情页上「在 AniBT 中搜索」那一颗。只有订阅详情（不是从搜索或推荐打开的纯媒体页）
+    /// 才把这一位打开；具体是否日本动画要等媒体详情回来才知道，见
+    /// <see cref="AniBtEligibility.IsJapaneseAnime"/>。
+    /// </summary>
+    [ObservableProperty] public partial bool AniBtSearch { get; set; }
+    public Visibility AniBtVisibility => Show(AniBtSearch && Live && Detail is not null && AniBtEligibility.IsJapaneseAnime(Detail));
+    public bool CanSearchAniBt => CanInteract && AniBtVisibility == Visibility.Visible;
     public Visibility SeasonsVisibility => Show(Detail?.SupportsSeasons == true);
     public Visibility GroupsVisibility => Show(Groups.Count > 1);
     public Visibility SubmitReviewVisibility => Show(Submitted);
@@ -229,11 +239,12 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         || row.Subscription is { } subscription && _service?.SubscriptionNeedsReview(subscription) == true));
     partial void OnSubmittingChanged(bool value) => NotifyState();
     partial void OnSubmittedChanged(bool value) => NotifyState();
+    partial void OnAniBtSearchChanged(bool value) => NotifyState();
     protected override void BusyChanged() => NotifyState();
     private void NotifyState()
     {
         OnPropertyChanged(nameof(CanInteract)); OnPropertyChanged(nameof(CanSubmit)); OnPropertyChanged(nameof(SubmitReviewVisibility));
-        OnPropertyChanged(nameof(ReviewVisibility));
+        OnPropertyChanged(nameof(ReviewVisibility)); OnPropertyChanged(nameof(AniBtVisibility)); OnPropertyChanged(nameof(CanSearchAniBt));
         foreach (var row in Groups) row.Refresh();
         foreach (var row in Seasons) row.Editable = CanInteract;
     }
@@ -246,6 +257,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         _search = search; _subscribe = subscribe; _lifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetimeToken);
         Title = media.Display; Overview = media.Overview ?? ""; Meta = media.SourceLabel + " · " + media.MediaId + " · " + media.Type;
         Submitted = false;
+        AniBtSearch = false;
     }
 
     public override async Task ReloadAsync()
@@ -259,6 +271,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             var subscriptions = await _service.SubscriptionsAsync(linked.Token);
             if (!Live || !IsCurrent(load)) return;
             Detail = detail; _subscriptions = subscriptions.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, _media)).ToArray();
+            OnPropertyChanged(nameof(AniBtVisibility)); OnPropertyChanged(nameof(CanSearchAniBt));
             _ = LoadHeroImagesAsync(detail, linked.Token);
             Title = detail.Media.Display; Overview = detail.Media.Overview ?? ""; Tagline = detail.Tagline;
             Meta = string.Join(" · ", new[] { detail.Media.Type, detail.Genres, detail.Media.SourceLabel + " " + detail.Media.MediaId }.Where(value => !string.IsNullOrEmpty(value)));
@@ -489,5 +502,6 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         Poster = Backdrop = null; ClearRelated(); Submitting = false;
         _loadingEpisodes.Clear();
         base.Cancel(); NotifyState();
+        OnPropertyChanged(nameof(AniBtVisibility)); OnPropertyChanged(nameof(CanSearchAniBt));
     }
 }

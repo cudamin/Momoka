@@ -1,4 +1,5 @@
 using System.Net;
+using Momoka.MoviePilot;
 
 namespace Momoka.AniBt;
 
@@ -37,6 +38,12 @@ public sealed record AniBtRelease(
     string GroupName = "",
     string EpisodeKey = "",
     string Resolution = "");
+
+/// <summary>
+/// 一条 AniBT 发布与交给 MoviePilot 的下载资源。两半来自同一次 RSS 读取，序号一一对应：
+/// 页面上的字幕组、集号与清晰度只用发布这一半，下载身份与防重状态仍只认资源这一半。
+/// </summary>
+public sealed record AniBtResource(AniBtRelease Release, MoviePilotResource Resource);
 
 public sealed class AniBtException(
     string message,

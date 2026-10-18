@@ -40,12 +40,13 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         return result;
     }
 
-    public async Task<IReadOnlyList<MoviePilotResource>> ResourcesAsync(AniBtAnime anime, CancellationToken cancellationToken, int? episode = null)
+    public async Task<IReadOnlyList<AniBtResource>> ResourcesAsync(AniBtAnime anime, CancellationToken cancellationToken, int? episode = null)
     {
         var connection = moviePilot.CaptureAniBtConnection();
         var releases = await client.ReleasePageAsync(anime, cancellationToken, episode).ConfigureAwait(false);
         moviePilot.CheckAniBtConnection(connection, cancellationToken);
-        return await moviePilot.AniBtResourcesAsync(anime with { BgmId = releases.BgmId }, releases.Items, connection, cancellationToken).ConfigureAwait(false);
+        var resources = await moviePilot.AniBtResourcesAsync(anime with { BgmId = releases.BgmId }, releases.Items, connection, cancellationToken).ConfigureAwait(false);
+        return [.. resources.Select((resource, index) => new AniBtResource(releases.Items[index], resource))];
     }
 
     public async Task<AniBtScrapePlan> PrepareAsync(EmbyClient emby, EmbyItem item, CancellationToken cancellationToken)

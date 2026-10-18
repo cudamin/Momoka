@@ -195,7 +195,9 @@
                              播放已入库、编辑订阅；右端那颗「更多」把暂停／恢复订阅、重置订阅、编辑、搜索、文件统计
                              （只电视剧）、刷新与取消订阅摊在一层里（见 code-behind 的 BuildMoreMenu）—— 用户令
                              2026-10-12「不要折叠，去掉重复的选项」之后这一层不再有子菜单。「播放已入库」只在当前
-                             Emby 里真的找得到可播放条目时才出现（PlayFirstVisibility），没有片源就没有这颗键。 -->
+                             Emby 里真的找得到可播放条目时才出现（PlayFirstVisibility），没有片源就没有这颗键。
+                             2026-10-19：日本动画的订阅在「搜索资源」旁多一颗「在 AniBT 中搜索」—— 判据是媒体详情里
+                             的类型与出品国家／原始语言（见 AniBtEligibility.IsJapaneseAnime），不是猜标题。 -->
                         <local:WrapRow Spacing="10" RowSpacing="10">
                             <Button x:Name="SearchSubscription" Content="搜索资源" Style="{StaticResource EgActionButtonStyle}"
                                 IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}">
@@ -204,6 +206,9 @@
                                     <MenuFlyoutItem x:Name="SearchMediaImdb" Text="按 IMDb 搜索" Click="OnSearchImdb" />
                                 </MenuFlyout></Button.Flyout>
                             </Button>
+                            <Button x:Name="SearchAniBt" Content="在 AniBT 中搜索" Style="{StaticResource EgActionButtonStyle}"
+                                Visibility="{x:Bind MediaViewModel.AniBtVisibility, Mode=OneWay}"
+                                IsEnabled="{x:Bind MediaViewModel.CanSearchAniBt, Mode=OneWay}" Click="OnSearchAniBt" />
                             <Button x:Name="SearchMediaSubtitles" Content="搜索字幕" Style="{StaticResource EgActionButtonStyle}"
                                 IsEnabled="{x:Bind MediaViewModel.CanInteract, Mode=OneWay}" Click="OnSearchSubtitles" />
                             <Button x:Name="ChooseSubscribeSeasons" Content="{x:Bind MediaViewModel.SubscribeLabel, Mode=OneWay}" Style="{StaticResource EgActionButtonStyle}"

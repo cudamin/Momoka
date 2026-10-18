@@ -707,7 +707,6 @@ handle  Views/AniBtScrapeDialog.xaml  AnimeChoice
 handle  Views/AniBtScrapeDialog.xaml  ScrapeFiles
 handle  Views/AniBtScrapeDialog.xaml  ScrapeNotice
 handle  Views/AniBtSearchPanel.xaml  AnimeResults
-handle  Views/AniBtSearchPanel.xaml  LoadMoreAnime
 handle  Views/AniBtSearchPanel.xaml  OpenAnimeResources
 handle  Views/AniBtSearchPanel.xaml  ReloadAnimeResources
 handle  Views/AniBtSearchPanel.xaml  ResourceBrowser

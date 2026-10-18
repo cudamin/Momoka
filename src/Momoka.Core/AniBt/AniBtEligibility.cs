@@ -1,4 +1,5 @@
 using Momoka.Emby;
+using Momoka.MoviePilot;
 
 namespace Momoka.AniBt;
 
@@ -10,6 +11,27 @@ public static class AniBtEligibility
 
     public static bool HasGenre(EmbyItem item) => item.Genres.Any(genre =>
         genre.Contains("动画", StringComparison.Ordinal) || genre.Contains("动漫", StringComparison.Ordinal));
+
+    /// <summary>
+    /// 订阅详情那颗「在 AniBT 中搜索」的显示条件：类型是动画，且能从出品国家、原始语言或 Bangumi
+    /// 来源确认它是日本动画。缺国家与语言时宁可不显示，也不把国漫之类的订阅交给 AniBT。
+    /// </summary>
+    public static bool IsJapaneseAnime(MoviePilotMediaDetail? detail)
+    {
+        if (detail is null || !IsAnimeGenre(detail.Genres)) return false;
+        return detail.Countries.Contains("日本", StringComparison.Ordinal)
+            || detail.Countries.Contains("Japan", StringComparison.OrdinalIgnoreCase)
+            || detail.OriginalLanguage.Equals("ja", StringComparison.OrdinalIgnoreCase)
+            || detail.OriginalLanguage.Equals("jpn", StringComparison.OrdinalIgnoreCase)
+            || detail.Media.MediaSource?.Equals("bangumi", StringComparison.OrdinalIgnoreCase) == true;
+    }
+
+    private static bool IsAnimeGenre(string genres) =>
+        genres.Contains("动画", StringComparison.Ordinal)
+        || genres.Contains("动漫", StringComparison.Ordinal)
+        || genres.Contains("番剧", StringComparison.Ordinal)
+        || genres.Contains("アニメ", StringComparison.Ordinal)
+        || genres.Contains("Animation", StringComparison.OrdinalIgnoreCase);
 
     public static async Task<bool> ResolveAsync(EmbyClient client, EmbyItem item, CancellationToken cancellationToken)
     {

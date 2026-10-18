@@ -26,6 +26,62 @@ internal static class AniBtTests
 
     public static void Register()
     {
+        Test("AniBT 发布短标签：单集号、合集与相对时间", () =>
+        {
+            Assert.Equal("01", AniBtReleaseLabels.EpisodeBadge("1"));
+            Assert.Equal("12", AniBtReleaseLabels.EpisodeBadge("12"));
+            Assert.Equal("004", AniBtReleaseLabels.EpisodeBadge("004"));
+            Assert.Equal("合集", AniBtReleaseLabels.EpisodeBadge(""));
+            Assert.Equal("合集", AniBtReleaseLabels.EpisodeBadge("batch"));
+            Assert.Equal("未标集号", AniBtReleaseLabels.EpisodeChoice(null));
+            Assert.Equal("SP1", AniBtReleaseLabels.EpisodeChoice(" SP1 "));
+            Assert.Equal("未标字幕组", AniBtReleaseLabels.Group(" "));
+            Assert.Equal("未标清晰度", AniBtReleaseLabels.Resolution(null));
+
+            var now = new DateTimeOffset(2026, 10, 19, 12, 0, 0, TimeSpan.FromHours(8));
+            Assert.Equal("刚刚", AniBtReleaseLabels.Published(now - TimeSpan.FromSeconds(30), now));
+            Assert.Equal("5 分钟前", AniBtReleaseLabels.Published(now - TimeSpan.FromMinutes(5), now));
+            Assert.Equal("3 小时前", AniBtReleaseLabels.Published(now - TimeSpan.FromHours(3), now));
+            Assert.Equal("2 天前", AniBtReleaseLabels.Published(now - TimeSpan.FromDays(2), now));
+            Assert.Equal("2026-10-09", AniBtReleaseLabels.Published(now - TimeSpan.FromDays(10), now));
+            Assert.Equal("2026-10-20", AniBtReleaseLabels.Published(now + TimeSpan.FromDays(1), now));
+            Assert.Equal("发布时间未提供", AniBtReleaseLabels.Published(null, now));
+        });
+
+        Test("AniBT RSS：多条发布保留集号、字幕组与清晰度", () =>
+        {
+            const string feed = """
+                <rss xmlns:anibt="https://anibt.net/xmlns/rss/1.0/"><channel><item>
+                  <title>[离线字幕组] 离线示例动画 - 01 [1080p][HEVC]</title><guid>rel_one</guid>
+                  <anibt:bgmId>123</anibt:bgmId><anibt:groupName>离线字幕组</anibt:groupName>
+                  <anibt:resolution>1080p</anibt:resolution><anibt:episodeKey>01</anibt:episodeKey>
+                  <enclosure url="https://anibt.net/api/torrent/rel_one.torrent" length="1234567890" />
+                  <pubDate>Sun, 18 Oct 2026 12:00:00 +0800</pubDate>
+                </item><item>
+                  <title>[另一个字幕组] 离线示例动画 - 02 [720p][HEVC]</title><guid>rel_two</guid>
+                  <anibt:bgmId>123</anibt:bgmId><anibt:groupName>另一个字幕组</anibt:groupName>
+                  <anibt:resolution>720p</anibt:resolution><anibt:episodeKey>02</anibt:episodeKey>
+                  <enclosure url="https://anibt.net/api/torrent/rel_two.torrent" length="456789012" />
+                  <pubDate>Sat, 17 Oct 2026 12:00:00 +0800</pubDate>
+                </item><item>
+                  <title>[离线字幕组] 离线示例动画 合集 [1080p][HEVC]</title><guid>rel_batch</guid>
+                  <anibt:bgmId>123</anibt:bgmId><anibt:groupName>离线字幕组</anibt:groupName>
+                  <anibt:resolution>1080p</anibt:resolution><anibt:episodeKey></anibt:episodeKey>
+                  <enclosure url="https://anibt.net/api/torrent/rel_batch.torrent" length="9876543210" />
+                  <pubDate>Sat, 10 Oct 2026 12:00:00 +0800</pubDate>
+                </item></channel></rss>
+                """;
+            using var transport = new Transport((_, _) => Xml(feed));
+            using var client = new AniBtClient(transport);
+            var result = client.ReleasePageAsync(new AniBtAnime("", 123, "离线示例动画"), default).GetAwaiter().GetResult();
+            Assert.Equal(3, result.Items.Count);
+            Assert.Equal("01", result.Items[0].EpisodeKey);
+            Assert.Equal("离线字幕组", result.Items[0].GroupName);
+            Assert.Equal("1080p", result.Items[0].Resolution);
+            Assert.Equal("02", result.Items[1].EpisodeKey);
+            Assert.Equal("", result.Items[2].EpisodeKey);
+        });
+
         Test("遗漏集搜索分流：MP 拼季集，AniBT 番剧名与集号分开", () =>
         {
             var owner = new EmbyItem { Name = "第二季", SeriesName = "测试动画", Type = EmbyItemType.Season, IndexNumber = 2 };

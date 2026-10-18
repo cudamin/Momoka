@@ -97,18 +97,26 @@ internal sealed partial class ShellNavigationProbe
             Require(Get<AutoSuggestBox>(panel, "AnimeSearchInput").Text == owner.Name, "AniBT 关键词混入了 MP 季集格式");
             await panel.ViewModel.Results[0].OpenCommand.ExecuteAsync(null);
             Require(aniBt.Requests.Contains("/rss/anime.xml?bgmId=123&episode=4"), "AniBT RSS 没有收到独立分集参数");
-            panel.ViewModel.Browser.Groups[0].IsExpanded = true;
             await LayoutAsync(panel);
-            await SaveProbeScreenAsync("anibt-episode-resources.png");
+            await SaveSettledFrameAsync(panel, "anibt-episode-resources-render.png");
+            Require(panel.ViewModel.Browser.Rows.Count == 1,
+                $"AniBT 分集资源没有读取到一行：Rows={panel.ViewModel.Browser.Rows.Count}，Empty={panel.ViewModel.Browser.EmptyMessage}，"
+                + $"提示开={panel.ViewModel.NoticeOpen}，提示={panel.ViewModel.NoticeMessage}，"
+                + $"请求={string.Join("、", aniBt.Requests)}");
             var row = panel.ViewModel.Browser.Rows.Single();
             var downloading = row.DownloadCommand.ExecuteAsync(null);
             var dialog = await DownloadDialogAsync();
             await UntilAsync(() => !dialog.ViewModel.Busy);
-            Get<ComboBox>(dialog, "DownloadClient").SelectedItem = "备用下载器";
-            Get<ComboBox>(dialog, "DownloadPath").Text = "/downloads/custom-anime";
+            var client = Get<ComboBox>(dialog, "DownloadClient");
+            await UntilAsync(() => client.Items.Contains("备用下载器"));
             await LayoutAsync(dialog);
+            client.SelectedItem = "备用下载器";
+            var path = Get<ComboBox>(dialog, "DownloadPath");
+            path.Text = "/downloads/custom-anime";
+            await LayoutAsync(dialog);
+            await Task.Delay(80);
             Require(dialog.ViewModel.Options == new MoviePilotDownloadOptions("备用下载器", "/downloads/custom-anime"),
-                "AniBT 下载器和自定义路径未进入确认选项");
+                $"AniBT 下载器和自定义路径未进入确认选项：下载器={dialog.ViewModel.Downloader}，路径={dialog.ViewModel.SavePath}");
             await SaveProbeScreenAsync("anibt-episode-download-options.png");
             var close = Descendants(dialog).OfType<Button>().Single(button => button.Name == "CloseButton" && Equals(button.Content, dialog.CloseButtonText));
             ((IInvokeProvider)new ButtonAutomationPeer(close).GetPattern(PatternInterface.Invoke)).Invoke();

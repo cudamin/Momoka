@@ -40,6 +40,8 @@ internal static class MoviePilotMediaDetailTests
             var detail = MoviePilotMediaDetail.Parse(data, Media);
             Assert.True(detail.Facts.Any(item => item.Value == "Example"));
             Assert.True(detail.Facts.Any(item => item.Value == "日本"));
+            Assert.Equal("日本", detail.Countries);
+            Assert.Equal("", detail.OriginalLanguage);
             Assert.Equal("https://image.tmdb.org/t/p/original/poster.jpg", detail.Media.PosterUrl);
             Assert.Throws<MoviePilotException>(() => MoviePilotMediaDetail.Parse(data, Media with { Type = "电影" }));
             Assert.Throws<MoviePilotException>(() => MoviePilotMediaDetail.Parse(data, Media with { MediaSource = "douban" }));

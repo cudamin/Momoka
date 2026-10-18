@@ -1,3 +1,4 @@
+using Momoka.AniBt;
 using Momoka.MoviePilot;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
@@ -14,7 +15,7 @@ namespace Momoka.Shell.Views;
 internal sealed record MoviePilotSubscriptionRequest(MoviePilotService Service, MoviePilotSubscription? Subscription,
     EmbySessionScope? PlaybackScope = null, Func<MoviePilotPlaybackTarget, Task>? Play = null, Action<string>? SearchVersions = null,
     ISystemLauncher? Launcher = null, Action<MoviePilotMedia>? OpenMedia = null, MoviePilotMedia? Media = null,
-    Action<TitleStrip>? SetTitleStrip = null);
+    Action<TitleStrip>? SetTitleStrip = null, Action<AniBtSearchQuery>? SearchAniBt = null);
 
 public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 {
@@ -189,6 +190,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, request.Service)));
         MediaViewModel.Attach(request.Service, media, request.Subscription?.EpisodeGroup ?? "",
             search: (season, episode) => OpenResources(season, episode), subscribe: season => _ = ChooseSeasonsAsync(season));
+        // 只有订阅详情才接这一颗；从搜索/推荐打开的纯媒体页没有订阅，也没有可交给 AniBT 的那条路。
+        MediaViewModel.AniBtSearch = request.Subscription is not null && request.SearchAniBt is not null;
         MediaViewModel.OpenMedia = request.OpenMedia;
         MediaViewModel.OpenPerson = url => request.Launcher?.OpenUrl(url);
         // 订阅详情才把订阅视图模型交给季列表：匹配季号的折叠栏改装文件统计；纯媒体详情的季浏览照旧。
@@ -316,6 +319,16 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private void OnSearch(object sender, RoutedEventArgs args)
     {
         OpenResources(null, null);
+    }
+
+    /// <summary>
+    /// 订阅详情里的番剧名交给外壳的 AniBT 窗口。这里不判断媒体类型 —— 是否显示这颗键由
+    /// <see cref="MoviePilotMediaViewModel.AniBtVisibility"/> 决定，执行前再核对一次详情身份。
+    /// </summary>
+    private void OnSearchAniBt(object sender, RoutedEventArgs args)
+    {
+        if (_request is not { SearchAniBt: { } search, Subscription: not null } || MediaViewModel.Detail is not { } detail) return;
+        search(new AniBtSearchQuery(detail.Media.Title, null));
     }
 
     private void OnSearchImdb(object sender, RoutedEventArgs args) => OpenResources(null, null, "imdbid");

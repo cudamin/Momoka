@@ -127,6 +127,7 @@ internal sealed partial class ShellNavigationProbe
             // 的图是异步抓的），12 秒的默认限时不够 —— 同视频基础输出用例的理由。
             await CaseAsync("MoviePilot 订阅详情、入库缺集与编辑", MoviePilotSubscriptionDetailAsync, 30);
             await CaseAsync("MoviePilot 电影订阅详情不再有入库面板与空季卡", MoviePilotMovieSubscriptionDetailAsync);
+            await CaseAsync("MoviePilot 日本动画订阅的 AniBT 入口", MoviePilotAnimeSubscriptionDetailAsync);
             await CaseAsync("MoviePilot 订阅切服、旧确认与离页取消", MoviePilotSubscriptionIdentityAsync);
             await CaseAsync("MoviePilot 海报刷新重试与原地更新", MoviePilotSubscriptionPosterRefreshAsync);
             await CaseAsync("MoviePilot 订阅同号季隔离、播放恢复与最窄布局", MoviePilotSubscriptionFilesRecoveryAsync, 25);

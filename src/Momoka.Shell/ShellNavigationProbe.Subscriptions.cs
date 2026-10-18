@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json.Nodes;
+using Momoka.AniBt;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.MoviePilot;
@@ -260,15 +261,18 @@ internal sealed partial class ShellNavigationProbe
 
                 // 操作排（用户令 2026-10-12：「只留这四个按钮 + 一个编辑订阅按钮，其他的折叠到更多按钮里」
                 // ＋「复刻电影页面的更多按钮」）：五颗带字的键按这个次序排着，右端一颗见方的圆角图标键。
+                // 2026-10-19 起「在 AniBT 中搜索」也是一颗常驻在树上的键，只有日本动画才显示；这一条夹具不是动画。
                 var actions = Descendants(page).OfType<WrapRow>()
                     .Single(row => Descendants(row).OfType<Button>().Any(button => button.Name == "MoreActions"));
                 var rowButtons = Descendants(actions).OfType<Button>().ToArray();
                 Require(rowButtons.Select(button => button.Name).SequenceEqual(
-                        new[] { "SearchSubscription", "SearchMediaSubtitles", "ChooseSubscribeSeasons", "PlayMediaLibraryItem", "EditSubscription", "MoreActions" }),
-                    "操作排不是「四颗常用键 + 编辑订阅 + 更多」：" + string.Join("、", rowButtons.Select(button => button.Name)));
+                        new[] { "SearchSubscription", "SearchAniBt", "SearchMediaSubtitles", "ChooseSubscribeSeasons", "PlayMediaLibraryItem", "EditSubscription", "MoreActions" }),
+                    "操作排不是「搜索资源 + AniBT + 搜索字幕 + 播放 + 编辑 + 更多」：" + string.Join("、", rowButtons.Select(button => button.Name)));
                 Require(rowButtons.Select(button => button.Content as string).SequenceEqual(
-                        new[] { "搜索资源", "搜索字幕", page.MediaViewModel.SubscribeLabel, "播放已入库", "编辑订阅", null }),
+                        new[] { "搜索资源", "在 AniBT 中搜索", "搜索字幕", page.MediaViewModel.SubscribeLabel, "播放已入库", "编辑订阅", null }),
                     "操作排上的文案不对：" + string.Join("、", rowButtons.Select(button => button.Content?.ToString() ?? "（图标）")));
+                Require(Get<Button>(page, "SearchAniBt").Visibility == Visibility.Collapsed,
+                    "非日本动画的订阅显示了「在 AniBT 中搜索」");
                 // 这一条同时钉住「没有片源时隐藏播放键」的另一半：夹具里有已入库且能播的集，这颗键该在。
                 Require(Get<Button>(page, "PlayMediaLibraryItem").Visibility == Visibility.Visible,
                     "当前 Emby 里有可播放条目，「播放已入库」却没有出现");
@@ -538,6 +542,45 @@ internal sealed partial class ShellNavigationProbe
         vm.Cancel();
     }
 
+    /// <summary>
+    /// 日本动画订阅详情上的那颗「在 AniBT 中搜索」：只验显示条件、点击接线与宽度布局，不打开第二个窗口，
+    /// 也不请求 AniBT —— 外壳那一头由回调捕获，只读地去核对交出去的是订阅标题。
+    /// </summary>
+    private async Task MoviePilotAnimeSubscriptionDetailAsync()
+    {
+        using var server = new SubscriptionProbeServer { Anime = true };
+        server.Poster = await FixtureImageAsync();
+        var (_, service) = SubscriptionService(server);
+        var subscription = (await service.SubscriptionsAsync(CancellationToken.None)).First(item => item.IsSeries);
+        AniBtSearchQuery? query = null;
+        var page = new MoviePilotSubscriptionPage();
+        _root.Children.Add(page);
+        page.Attach(new(service, subscription, SearchAniBt: value => query = value));
+        try
+        {
+            await UntilAsync(() => page.ViewModel.IsReady && page.MediaViewModel.IsReady);
+            await UntilAsync(() => page.MediaViewModel.AniBtVisibility == Visibility.Visible);
+            foreach (var width in new[] { 1420, 760 })
+            {
+                ResizeInspect(width, 1000);
+                await LayoutAsync(page);
+                var button = Get<Button>(page, "SearchAniBt");
+                Require(button.Visibility == Visibility.Visible && button.IsEnabled && Equals(button.Content, "在 AniBT 中搜索"),
+                    "日本动画订阅没有显示可用的「在 AniBT 中搜索」");
+                await SaveSettledFrameAsync(page, $"mp-subscription-anibt-{width}.png");
+            }
+            InvokeSubscriptionButton(Get<Button>(page, "SearchAniBt"));
+            Require(query == new AniBtSearchQuery("漫长的旅途", null),
+                "AniBT 按钮没有把订阅标题交给搜索：" + query);
+        }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
+            ResizeInspect(1420, 980);
+        }
+    }
+
     private static void InvokeSubscriptionButton(Button button)
     {
         var peer = new ButtonAutomationPeer(button);
@@ -655,6 +698,10 @@ internal sealed partial class ShellNavigationProbe
         /// 与截图都不看它们，凭空多三段只会让那些用例的版面跟着变。
         /// </summary>
         internal bool Related { get; set; }
+
+        /// <summary>把电视剧那份媒体详情标成动画；只有「日本动画订阅的 AniBT 入口」那一条打开。</summary>
+        internal bool Anime { get; set; }
+
         internal byte[] Poster { get; set; } = [];
         internal TaskCompletionSource<HttpResponseMessage>? PendingList { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -692,6 +739,7 @@ internal sealed partial class ShellNavigationProbe
                 backdrop_path = "https://poster.invalid/backdrop-4.png",
                 overview = "一段关于相遇、离别与重逢的故事。",
                 tagline = "下一次相遇，在旅途的尽头。",
+                genres = Anime ? new[] { new { name = "动画" } } : Array.Empty<object>(),
                 production_countries = new[] { new { name = "日本" } },
                 production_companies = new[] { new { name = "Example Studio" } },
                 season_info = new[] { new { season_number = 1, episode_count = 4, air_date = "2026-01-01", poster_path = "https://poster.invalid/4.png" }, new { season_number = 2, episode_count = 4, air_date = "2027-01-01", poster_path = "https://poster.invalid/4.png" } }

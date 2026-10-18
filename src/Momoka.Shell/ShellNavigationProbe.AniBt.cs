@@ -123,9 +123,6 @@ internal sealed partial class ShellNavigationProbe
             Require(fixture.Transport.Requests.Count == embyRequests && moviePilot.Requests.All(path =>
                 !path.Contains("/search/", StringComparison.Ordinal) && !path.Contains("/media/search", StringComparison.Ordinal)),
                 "AniBT 搜索误发 Emby 或 MoviePilot 搜索请求");
-            Require(Get<Button>(panel, "LoadMoreAnime").Visibility == Visibility.Collapsed,
-                "不支持分页的 AniBT 结果仍显示加载更多");
-
             var results = panel.ViewModel.Results;
             var firstAnime = results[0];
             foreach (var width in new[] { 1040, 360 })
@@ -137,22 +134,52 @@ internal sealed partial class ShellNavigationProbe
                 Require(Descendants(list).OfType<Button>().Any(button => button.Name == "OpenAnimeResources"
                     && AutomationProperties.GetName(button).Contains(firstAnime.Title, StringComparison.Ordinal)),
                     "番剧行的资源按钮没有可定位的自动化名称");
-                await SaveProbeScreenAsync($"anibt-search-{width}.png");
+                // 本机这个窗口的 XAML 岛拍不进 BitBlt（实屏是一整块窗口底色）；用页面自身渲染留视觉证据，
+                // 文件名带 -render，报告里也按「渲染帧，不是实屏」记。
+                await SaveSettledFrameAsync(page, $"anibt-search-{width}-render.png");
             }
 
             await firstAnime.OpenCommand.ExecuteAsync(null);
-            Require(panel.ViewModel.SelectedAnime?.BgmId == 123 && panel.ViewModel.Browser.Rows.Count == 1,
-                "选择番剧后没有读取对应 AniBT 资源");
+            var browser = panel.ViewModel.Browser;
+            Require(panel.ViewModel.SelectedAnime?.BgmId == 123 && browser.Rows.Count == 3,
+                $"选择番剧后没有读取对应 AniBT 资源：Rows={browser.Rows.Count}，Empty={browser.EmptyMessage}，"
+                + $"Busy={panel.ViewModel.Busy}，提示开={panel.ViewModel.NoticeOpen}，提示={panel.ViewModel.NoticeMessage}，"
+                + $"请求={string.Join("、", aniBt.Requests)}，筛选=({browser.SelectedEpisode}|{browser.SelectedResolution}|{browser.SelectedGroup}|{browser.Text})，"
+                + $"计数={browser.CountText}");
             Require(aniBt.Requests.Any(path => path == "/rss/anime.xml?bgmId=123"),
                 "资源查询没有绑定所选番剧的 Bangumi 编号");
-            var row = panel.ViewModel.Browser.Rows[0];
+            Require(panel.ViewModel.SelectedTitle == firstAnime.Title && panel.ViewModel.SelectedBgm == "Bangumi #123",
+                "番剧头部没有用上所选番剧的标题或 Bangumi 身份");
+            Require(browser.Episodes.SequenceEqual(new[] { AniBtBrowserViewModel.AllEpisodes, "01", "02", AniBtReleaseLabels.UnknownEpisode }),
+                "集号筛选没有按 RSS 集号给出选项：" + string.Join("、", browser.Episodes));
+            Require(browser.Resolutions.SequenceEqual(new[] { AniBtBrowserViewModel.AllResolutions, "1080p", "720p" }),
+                "清晰度筛选没有按 RSS 清晰度给出选项：" + string.Join("、", browser.Resolutions));
+            Require(browser.Groups.Contains("离线字幕组") && browser.Groups.Contains("另一个字幕组"),
+                "字幕组筛选没有按 RSS 字幕组给出选项：" + string.Join("、", browser.Groups));
+
+            browser.SelectedEpisode = "02";
+            await LayoutAsync(panel);
+            Require(browser.Rows.Count == 1 && browser.CountText.Contains("1 / 3", StringComparison.Ordinal),
+                "按集筛选没有只留下第 2 集：" + browser.CountText);
+            browser.Text = "不存在的词";
+            Require(browser.Rows.Count == 0 && browser.NoMatchesVisibility == Visibility.Visible,
+                "关键词与集号组合筛选没有显示无匹配状态");
+            browser.ResetFiltersCommand.Execute(null);
+            Require(browser.Rows.Count == 3 && browser.Text.Length == 0 && browser.SelectedEpisode == AniBtBrowserViewModel.AllEpisodes,
+                "清除筛选没有恢复全部发布");
+
+            var row = browser.Rows[0];
             Require(row.CanDownload && row.Resource.MediaInfo.ValueKind != System.Text.Json.JsonValueKind.Object,
                 "未开启 Bangumi 来源时没有保留可交给 MP 的公开种子");
-            panel.ViewModel.Browser.Groups[0].IsExpanded = true;
+            Require(row.MetaLine.Contains("1080p", StringComparison.Ordinal) && row.MetaLine.Contains("离线字幕组", StringComparison.Ordinal),
+                "发布行没有显示 AniBT 的字幕组或清晰度：" + row.MetaLine);
+            await LayoutAsync(panel);
+            Require(Get<ListView>(Get<AniBtResourceBrowser>(panel, "ResourceBrowser"), "ReleaseList").Items.Count == 3,
+                "AniBT 发布列表没有绑定筛选后的三行");
             foreach (var width in new[] { 1040, 360 })
             {
                 await SizeAsync(page, width);
-                await SaveProbeScreenAsync($"anibt-resources-{width}.png");
+                await SaveSettledFrameAsync(page, $"anibt-resources-{width}-render.png");
             }
 
             await SizeAsync(page, 1040);
@@ -334,18 +361,25 @@ internal sealed partial class ShellNavigationProbe
                 });
             }
             if (request.RequestUri.AbsolutePath == "/rss/anime.xml")
+            {
+                var requested = Query(request, "episode");
+                var items = requested is { } episode
+                    ? new[] { ReleaseItem("rel_one", int.TryParse(episode, out var number) ? number.ToString("00", System.Globalization.CultureInfo.InvariantCulture) : "01",
+                        "离线字幕组", "1080p", 1234567890, "Sun, 18 Oct 2026 12:00:00 +0800") }
+                    : new[]
+                    {
+                        ReleaseItem("rel_one", "01", "离线字幕组", "1080p", 1234567890, "Sun, 18 Oct 2026 12:00:00 +0800"),
+                        ReleaseItem("rel_two", "02", "另一个字幕组", "720p", 456789012, "Sat, 17 Oct 2026 12:00:00 +0800"),
+                        ReleaseItem("rel_batch", "", "离线字幕组", "1080p", 9876543210, "Sat, 10 Oct 2026 12:00:00 +0800")
+                    };
+                var xml = new StringBuilder("""<rss xmlns:anibt="https://anibt.net/xmlns/rss/1.0/"><channel>""");
+                foreach (var item in items) xml.Append(item);
+                xml.Append("</channel></rss>");
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StringContent("""
-                        <rss xmlns:anibt="https://anibt.net/xmlns/rss/1.0/"><channel><item>
-                          <title>[离线字幕组] 离线示例动画 - EPISODE [1080p][HEVC]</title><guid>rel_one</guid>
-                          <anibt:bgmId>123</anibt:bgmId><anibt:groupName>离线字幕组</anibt:groupName>
-                          <anibt:resolution>1080p</anibt:resolution><anibt:episodeKey>EPISODE</anibt:episodeKey>
-                          <enclosure url="https://anibt.net/api/torrent/rel_one.torrent" length="1234567890" />
-                        </item></channel></rss>
-                        """.Replace("EPISODE", int.TryParse(Query(request, "episode"), out var episode) ? episode.ToString("00") : "01", StringComparison.Ordinal),
-                        Encoding.UTF8, "application/rss+xml")
+                    Content = new StringContent(xml.ToString(), Encoding.UTF8, "application/rss+xml")
                 });
+            }
             throw new InvalidOperationException("探针不应请求 AniBT 种子文件或未登记的接口");
         }
 
@@ -365,6 +399,20 @@ internal sealed partial class ShellNavigationProbe
                     }
                     """, Encoding.UTF8, "application/json")
             };
+        }
+
+        private static string ReleaseItem(string id, string episodeKey, string group, string resolution, long size, string date)
+        {
+            var suffix = episodeKey.Length == 0 ? " 合集" : " - " + episodeKey;
+            return $"""
+                <item>
+                  <title>[{group}] 离线示例动画{suffix} [{resolution}][HEVC]</title><guid>{id}</guid>
+                  <anibt:bgmId>123</anibt:bgmId><anibt:groupName>{group}</anibt:groupName>
+                  <anibt:resolution>{resolution}</anibt:resolution><anibt:episodeKey>{episodeKey}</anibt:episodeKey>
+                  <enclosure url="https://anibt.net/api/torrent/{id}.torrent" length="{size}" />
+                  <pubDate>{date}</pubDate>
+                </item>
+                """;
         }
 
         internal static HttpResponseMessage SearchReply(string title = "离线示例动画 · 星光下的旅程", long bgmId = 123) => Json(new

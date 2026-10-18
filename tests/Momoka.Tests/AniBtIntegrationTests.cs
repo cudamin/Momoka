@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using Momoka.AniBt;
 using Momoka.Configuration;
@@ -45,6 +46,26 @@ internal static class AniBtIntegrationTests
                 .GetAwaiter().GetResult().Single();
             Assert.Equal("电影", row.MediaType);
             Assert.Equal("电影", row.MediaInfo.GetProperty("type").GetString());
+        });
+
+        Test("AniBT 订阅入口：动画类型且确认日本来源才显示", () =>
+        {
+            MoviePilotMediaDetail Detail(string body, string source = "themoviedb") => new(
+                new MoviePilotMedia { Title = "示例动画", Type = "电视剧", MediaSource = source, MediaId = "42" },
+                Json(body));
+            Assert.True(AniBtEligibility.IsJapaneseAnime(Detail(
+                """{"genres":[{"name":"动画"}],"production_countries":[{"name":"日本"}]}""")));
+            Assert.True(AniBtEligibility.IsJapaneseAnime(Detail(
+                """{"genres":[{"name":"动画"}],"original_language":"ja"}""")));
+            Assert.True(AniBtEligibility.IsJapaneseAnime(Detail(
+                """{"genres":[{"name":"日本动画"}],"original_language":"jpn"}""")));
+            Assert.True(AniBtEligibility.IsJapaneseAnime(Detail("""{"genres":[{"name":"Animation"}]}""", "bangumi")));
+            Assert.False(AniBtEligibility.IsJapaneseAnime(Detail(
+                """{"genres":[{"name":"动画"}],"production_countries":[{"name":"中国大陆"}],"original_language":"zh"}""")));
+            Assert.False(AniBtEligibility.IsJapaneseAnime(Detail(
+                """{"genres":[{"name":"剧情"}],"production_countries":[{"name":"日本"}]}""")));
+            Assert.False(AniBtEligibility.IsJapaneseAnime(Detail("""{"genres":[{"name":"动画"}]}""")));
+            Assert.False(AniBtEligibility.IsJapaneseAnime(null));
         });
 
         Test("AniBT 资格：只读类型，不把标题和标签当动画类型", () =>
@@ -117,6 +138,37 @@ internal static class AniBtIntegrationTests
             Assert.False(body.TryGetProperty("media_source", out _));
             Assert.False(body.TryGetProperty("media_id", out _));
             Assert.Equal(0, transport.SentTo("media/42?").Count);
+        });
+
+        Test("AniBT 资源：RSS 发布与 MoviePilot 下载资源按序配对", () =>
+        {
+            using var transport = BaseTransport().Answer("media/source", "[]");
+            using var service = Service(transport);
+            using var feed = new RssTransport("""
+                <rss xmlns:anibt="https://anibt.net/xmlns/rss/1.0/"><channel>
+                  <item><title>匿名动画 - 01 [1080p]</title><guid>rel_one</guid><anibt:bgmId>42</anibt:bgmId>
+                    <anibt:groupName>字幕组甲</anibt:groupName><anibt:resolution>1080p</anibt:resolution>
+                    <anibt:episodeKey>01</anibt:episodeKey>
+                    <enclosure url="https://anibt.net/api/torrent/rel_one.torrent" length="1024" />
+                  </item>
+                  <item><title>匿名动画 - 02 [720p]</title><guid>rel_two</guid><anibt:bgmId>42</anibt:bgmId>
+                    <anibt:groupName>字幕组乙</anibt:groupName><anibt:resolution>720p</anibt:resolution>
+                    <anibt:episodeKey>02</anibt:episodeKey>
+                    <enclosure url="https://anibt.net/api/torrent/rel_two.torrent" length="2048" />
+                  </item>
+                </channel></rss>
+                """);
+            using var client = new AniBtClient(feed);
+            var integration = new AniBtService(client, service);
+            var rows = integration.ResourcesAsync(Anime, CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Equal(2, rows.Count);
+            Assert.Equal("01", rows[0].Release.EpisodeKey);
+            Assert.Equal("字幕组甲", rows[0].Release.GroupName);
+            Assert.Equal("1080p", rows[0].Release.Resolution);
+            Assert.Equal("匿名动画 - 01 [1080p]", rows[0].Resource.Title);
+            Assert.Equal("02", rows[1].Release.EpisodeKey);
+            Assert.Equal("字幕组乙", rows[1].Release.GroupName);
+            Assert.Equal(1, feed.Requests);
         });
 
         Test("AniBT 候选：未返回的选择不能触发任何 MP 刮削准备", () =>
@@ -258,5 +310,20 @@ internal static class AniBtIntegrationTests
             new MoviePilotCredentials(PassthroughSecretProtector.Instance), settings ?? Settings());
         Assert.True(service.RefreshAvailabilityAsync().GetAwaiter().GetResult());
         return service;
+    }
+
+    /// <summary>只接 AniBT RSS 的假传输；StubTransport 固定回 JSON，XML 走这条。</summary>
+    private sealed class RssTransport(string feed) : HttpMessageHandler
+    {
+        internal int Requests { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Requests++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(feed, Encoding.UTF8, "application/rss+xml")
+            });
+        }
     }
 }

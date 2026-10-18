@@ -1344,7 +1344,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
             _session?.IsSignedIn == true ? _session.Capture() : null,
             target => ((IShellActions)this).PlayAsync(target.Item, target.Parent, episodes: target.Episodes),
             SearchMoviePilotVersions, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMoviePilotMedia,
-            SetTitleStrip: SetTitleStrip), BrowseTransition());
+            SetTitleStrip: SetTitleStrip, SearchAniBt: SearchAniBtVersions), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;
         SyncChrome();

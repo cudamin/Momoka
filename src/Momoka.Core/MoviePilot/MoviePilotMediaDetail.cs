@@ -45,6 +45,13 @@ public sealed record MoviePilotMediaDetail(MoviePilotMedia Media, JsonElement Da
     public IReadOnlyList<MoviePilotMediaSeason> Seasons => MoviePilotSubscription.Member(Data, "season_info") is { ValueKind: JsonValueKind.Array } seasons
         ? MoviePilotMediaSeason.Parse(seasons) : [];
     public string Genres => Names(MoviePilotSubscription.Member(Data, "genres"));
+
+    /// <summary>出品国家，已按详情页的顿号连接；订阅页的 AniBT 入口据此判断日本动画。</summary>
+    public string Countries => Names(MoviePilotSubscription.Member(Data, "production_countries"));
+
+    /// <summary>原始语言（TMDB 的 ISO 639-1 代码，例如 <c>ja</c>）；来源不提供时是空串。</summary>
+    public string OriginalLanguage => Text("original_language");
+
     public IReadOnlyList<MoviePilotSubscriptionFact> Facts
     {
         get
@@ -53,8 +60,8 @@ public sealed record MoviePilotMediaDetail(MoviePilotMedia Media, JsonElement Da
             Add("原始标题", Text("original_title", "original_name"));
             Add("状态", Text("status"));
             Add("上映日期", Text("release_date", "first_air_date"));
-            Add("原始语言", Text("original_language"));
-            Add("出品国家", Names(MoviePilotSubscription.Member(Data, "production_countries")));
+            Add("原始语言", OriginalLanguage);
+            Add("出品国家", Countries);
             Add("制作公司", Names(MoviePilotSubscription.Member(Data, "production_companies")));
             Add("时长", Text("runtime") is { Length: > 0 } runtime ? runtime + " 分钟" : "");
             return facts;
