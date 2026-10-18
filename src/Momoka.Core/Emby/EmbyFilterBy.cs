@@ -307,7 +307,7 @@ public static class EmbyFilterBy
     private static readonly string[] FeaturePresets =
     [
         EmbySortPreset.Movie, EmbySortPreset.Series, EmbySortPreset.Season, EmbySortPreset.Episode,
-        EmbySortPreset.BoxSet, EmbySortPreset.MusicVideo, EmbySortPreset.Video
+        EmbySortPreset.BoxSet, EmbySortPreset.MusicVideo, EmbySortPreset.Video, EmbySortPreset.Mixed
     ];
 
     // Presets that carry a lock flag and an overview.
@@ -315,7 +315,7 @@ public static class EmbyFilterBy
     [
         EmbySortPreset.Movie, EmbySortPreset.Series, EmbySortPreset.Season, EmbySortPreset.Episode,
         EmbySortPreset.BoxSet, EmbySortPreset.Trailer, EmbySortPreset.Song, EmbySortPreset.Album,
-        EmbySortPreset.MusicVideo, EmbySortPreset.Video, EmbySortPreset.Photo
+        EmbySortPreset.MusicVideo, EmbySortPreset.Video, EmbySortPreset.Photo, EmbySortPreset.Mixed
     ];
 
     /// <summary>
@@ -367,7 +367,9 @@ public static class EmbyFilterBy
             Id = "genre",
             Label = "类型",
             Kind = FilterKind.Values,
-            ListKey = Keys.Genres
+            ListKey = Keys.Genres,
+            // 预告片那一页网页端没有这一行（见用户 2026-10-19 的截图）。
+            NotFor = [EmbySortPreset.Trailer]
         },
         new()
         {
@@ -375,14 +377,15 @@ public static class EmbyFilterBy
             Label = "家长评分",
             Kind = FilterKind.Values,
             ListKey = Keys.OfficialRatings,
-            NotFor = [EmbySortPreset.Episode]
+            NotFor = [EmbySortPreset.Episode, EmbySortPreset.Trailer]
         },
         new()
         {
             Id = "studio",
             Label = "工作室",
             Kind = FilterKind.Values,
-            ListKey = Keys.Studios
+            ListKey = Keys.Studios,
+            NotFor = [EmbySortPreset.Trailer]
         },
         new()
         {
@@ -390,16 +393,21 @@ public static class EmbyFilterBy
             Label = "标签",
             Kind = FilterKind.Values,
             ListKey = Keys.Tags,
-            // Emby's field map for a Series row has no tags to offer, and the web panel shows no 标签
-            // row on the 节目 page at all.
-            NotFor = [EmbySortPreset.Series, EmbySortPreset.Season, EmbySortPreset.Episode]
+            // Emby's field map for a Series row has no tags to offer. The web panels in the 2026-10-19
+            // screenshots also have no 标签 row on 电影 / 混合内容 / 预告片.
+            NotFor =
+            [
+                EmbySortPreset.Movie, EmbySortPreset.Series, EmbySortPreset.Season,
+                EmbySortPreset.Episode, EmbySortPreset.Mixed, EmbySortPreset.Trailer
+            ]
         },
         new()
         {
             Id = "year",
             Label = "年份",
             Kind = FilterKind.Values,
-            ListKey = Keys.Years
+            ListKey = Keys.Years,
+            NotFor = [EmbySortPreset.Trailer]
         },
         new()
         {
@@ -417,13 +425,15 @@ public static class EmbyFilterBy
 
         // ------------------------------------------------------------ 媒体信息
         new() { Id = "container", Label = "媒体容器", Kind = FilterKind.Values, ListKey = Keys.Containers,
-            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Episode, EmbySortPreset.Mixed] },
         new() { Id = "videoCodec", Label = "视频编解码器", Kind = FilterKind.Values, ListKey = Keys.VideoCodecs,
-            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Episode] },
         new() { Id = "videoType", Label = "视频类型", Kind = FilterKind.Values, ListKey = Keys.ExtendedVideoTypes,
-            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Episode] },
         new() { Id = "resolution", Label = "分辨率", Kind = FilterKind.Select,
-            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode], Choices =
+            Group = Groups.Media,
+            OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Episode, EmbySortPreset.Trailer, EmbySortPreset.Mixed],
+            Choices =
             [new() { Label = "全部" }, new() { Label = "4K", OptionId = "resolution4k", ChipLabel = "4K" },
                 new() { Label = "1080p", OptionId = "resolution1080", ChipLabel = "1080p" },
                 new() { Label = "720p", OptionId = "resolution720", ChipLabel = "720p" },
@@ -434,7 +444,9 @@ public static class EmbyFilterBy
             Label = "画质",
             Kind = FilterKind.Select,
             Group = Groups.Media,
-            NotFor = [.. NoStreams, EmbySortPreset.Episode],
+            // 网页端电影、预告片与混合内容这三张筛选截图里都没有「画质」这一行。
+            NotFor = [.. NoStreams, EmbySortPreset.Episode, EmbySortPreset.Movie,
+                EmbySortPreset.Trailer, EmbySortPreset.Mixed],
             Choices =
             [
                 new() { Label = "全部" },
@@ -452,11 +464,11 @@ public static class EmbyFilterBy
             Choices = [new() { Label = "3D", OptionId = "3d", ChipLabel = "3D" }]
         },
         new() { Id = "audioCodec", Label = "音频编解码器", Kind = FilterKind.Values, ListKey = Keys.AudioCodecs,
-            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Episode] },
         new() { Id = "audioLayout", Label = "音频布局", Kind = FilterKind.Values, ListKey = Keys.AudioLayouts,
-            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Episode] },
         new() { Id = "audioLanguage", Label = "音频语言", Kind = FilterKind.Values, ListKey = Keys.AudioLanguages,
-            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Episode] },
         new()
         {
             Id = "subtitles",
@@ -473,9 +485,9 @@ public static class EmbyFilterBy
         },
 
         new() { Id = "subtitleCodec", Label = "字幕编解码器", Kind = FilterKind.Values, ListKey = Keys.SubtitleCodecs,
-            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Episode] },
         new() { Id = "subtitleLanguage", Label = "字幕语言", Kind = FilterKind.Values, ListKey = Keys.SubtitleLanguages,
-            Group = Groups.Media, OnlyFor = [EmbySortPreset.Episode] },
+            Group = Groups.Media, OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Episode] },
 
         // ------------------------------------------------------------ 功能
         new()
@@ -573,7 +585,8 @@ public static class EmbyFilterBy
             Kind = FilterKind.Switch,
             Group = Groups.Missing,
             OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Series, EmbySortPreset.Season, EmbySortPreset.Episode,
-                EmbySortPreset.MusicVideo, EmbySortPreset.Video, EmbySortPreset.Trailer, EmbySortPreset.BoxSet],
+                EmbySortPreset.MusicVideo, EmbySortPreset.Video, EmbySortPreset.Trailer, EmbySortPreset.BoxSet,
+                EmbySortPreset.Mixed],
             Choices = [new() { Label = "IMDb Id", OptionId = "missingImdbId", ChipLabel = "缺少 IMDb Id" }]
         },
         new()
@@ -583,7 +596,7 @@ public static class EmbyFilterBy
             Kind = FilterKind.Switch,
             Group = Groups.Missing,
             OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Series, EmbySortPreset.Season, EmbySortPreset.Episode,
-                EmbySortPreset.MusicVideo, EmbySortPreset.Video, EmbySortPreset.Trailer],
+                EmbySortPreset.MusicVideo, EmbySortPreset.Video, EmbySortPreset.Trailer, EmbySortPreset.Mixed],
             Choices = [new() { Label = "Tvdb Id", OptionId = "missingTvdbId", ChipLabel = "缺少 Tvdb Id" }]
         },
         new()
@@ -593,7 +606,7 @@ public static class EmbyFilterBy
             Kind = FilterKind.Switch,
             Group = Groups.Missing,
             OnlyFor = [EmbySortPreset.Movie, EmbySortPreset.Series, EmbySortPreset.Season, EmbySortPreset.Episode,
-                EmbySortPreset.MusicVideo, EmbySortPreset.Video, EmbySortPreset.Trailer],
+                EmbySortPreset.MusicVideo, EmbySortPreset.Video, EmbySortPreset.Trailer, EmbySortPreset.Mixed],
             Choices = [new() { Label = "MovieDb Id", OptionId = "missingTmdbId", ChipLabel = "缺少 MovieDb Id" }]
         }
     ];

@@ -83,20 +83,63 @@ internal static class LibraryBrowseTests
         {
             Assert.DoesNotContain("SortBy", Query(LibrarySection.Recommended).ToQueryString());
         });
-        Test("媒体库分类：排序菜单跟随当前内容类型", () =>
+        Test("媒体库分类：排序与筛选用的是两份预设", () =>
         {
             Assert.Equal(EmbySortPreset.Episode, LibraryBrowse.SortPreset("tvshows", LibrarySection.Episodes));
-            Assert.Equal(EmbySortPreset.Trailer, LibraryBrowse.SortPreset("movies", LibrarySection.Trailers));
-            Assert.Equal(EmbySortPreset.Episode, LibraryBrowse.SortPreset("tvshows", LibrarySection.Upcoming));
+            // 电影库的预告片排序菜单与影片、收藏是同一份；筛选用的是 Trailer 那份。
+            Assert.Equal(EmbySortPreset.Movie, LibraryBrowse.SortPreset("movies", LibrarySection.Trailers));
+            Assert.Equal(EmbySortPreset.Trailer, LibraryBrowse.FilterPreset("movies", LibrarySection.Trailers));
+            Assert.Equal(EmbySortPreset.Movie, LibraryBrowse.FilterPreset("movies", LibrarySection.Items));
+            Assert.Equal(EmbySortPreset.Movie, LibraryBrowse.FilterPreset("movies", LibrarySection.Favorites));
+            Assert.Equal(EmbySortPreset.Series, LibraryBrowse.FilterPreset("tvshows", LibrarySection.Items));
+            Assert.Equal(EmbySortPreset.Episode, LibraryBrowse.FilterPreset("tvshows", LibrarySection.Episodes));
+            Assert.Equal(EmbySortPreset.Mixed, LibraryBrowse.FilterPreset("mixed", LibrarySection.Items));
+            Assert.Equal<string?>(null, LibraryBrowse.FilterPreset("mixed", LibrarySection.Folders));
             Assert.Equal<string?>(null, LibraryBrowse.SortPreset("movies", LibrarySection.Folders));
             Assert.Equal<string?>(null, LibraryBrowse.SortPreset("mixed", LibrarySection.Items));
             Assert.Equal<string?>(null, LibraryBrowse.SortPreset("mixed", LibrarySection.Folders));
         });
+        Test("媒体库分类：电影排序菜单十九条、混合内容用文件夹那份二十五条", () =>
+        {
+            const string movie =
+                "IMDb 评分,分辨率,加入日期,发行日期,媒体容器,家长评分,导演,帧率,年份,影评人评分,播放日期,播放时长,播放次数,文件名,文件尺寸,标题,比特率,视频编解码器,随机";
+            Assert.Equal(movie, SortLabels("movies", LibrarySection.Items));
+            Assert.Equal(movie, SortLabels("movies", LibrarySection.Trailers));
+            Assert.Equal(movie, SortLabels("movies", LibrarySection.Favorites));
+            // 类型下钻之后装的是这一库的条目，菜单跟着这一库走；索引页本身不显示排序。
+            Assert.Equal(movie, SortLabels("movies", LibrarySection.Genres));
+            Assert.Equal(
+                "上次添加内容日期,专辑,专辑艺人,作曲家,分辨率,加入日期,发行日期,媒体容器,家长评分,导演,帧率,年份,影评人评分,播放日期,播放时长,播放次数,文件名,文件尺寸,标题,比特率,社区评分,编号,艺人,视频编解码器,随机",
+                SortLabels("mixed", LibrarySection.Items));
+            Assert.Equal(SortLabels("mixed", LibrarySection.Folders), SortLabels("mixed", LibrarySection.Items));
+            Assert.Equal(SortLabels("mixed", LibrarySection.Folders), SortLabels("mixed", LibrarySection.Genres));
+            Assert.Equal(
+                "IMDb 评分,上次发布集日期,上次添加集日期,加入日期,发行日期,家长评分,导演,年份,影评人评分,播放日期,播放时长,标题,随机",
+                SortLabels("tvshows", LibrarySection.Genres));
+        });
+        Test("媒体库分类：电影、预告片与混合内容的筛选行照截图", () =>
+        {
+            Assert.Equal(
+                "播放状态,收藏,重制,类型,家长评分,工作室,年份,媒体容器,视频编解码器,视频类型,分辨率,3D,音频编解码器,音频布局,音频语言,字幕,字幕编解码器,字幕语言,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
+                FilterLabels(EmbySortPreset.Movie));
+            Assert.Equal(
+                "播放状态,收藏,分辨率,3D,字幕,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
+                FilterLabels(EmbySortPreset.Trailer));
+            Assert.Equal(
+                "播放状态,收藏,类型,家长评分,工作室,年份,媒体容器,分辨率,3D,字幕,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
+                FilterLabels(EmbySortPreset.Mixed));
+        });
         Test("媒体库分类：电影默认加入日期降序，混合内容默认标题升序", () =>
         {
-            var movie = LibrarySortCatalog.Default("movies", LibrarySection.Items);
-            Assert.Equal(EmbySortBy.DateAdded, movie.Value);
-            Assert.True(movie.DescendingByDefault);
+            foreach (var section in new[] { LibrarySection.Items, LibrarySection.Favorites })
+            {
+                var movie = LibrarySortCatalog.Default("movies", section);
+                Assert.Equal(EmbySortBy.DateAdded, movie.Value);
+                Assert.True(movie.DescendingByDefault);
+            }
+            var trailer = LibrarySortCatalog.Default("movies", LibrarySection.Trailers);
+            Assert.Equal(EmbySortBy.Name, trailer.Value);
+            Assert.False(trailer.DescendingByDefault);
             var mixed = LibrarySortCatalog.Default("mixed", LibrarySection.Items);
             Assert.Equal(EmbySortBy.Name, mixed.Value);
             Assert.False(mixed.DescendingByDefault);
@@ -121,6 +164,10 @@ internal static class LibraryBrowseTests
 
     private static string Labels(string type, MediaServerKind kind) =>
         string.Join(',', LibraryBrowse.Sections(type, kind).Select(entry => entry.Label));
+    private static string SortLabels(string collectionType, LibrarySection section) =>
+        string.Join(',', LibrarySortCatalog.For(collectionType, section, new Version(4, 10, 1)).Select(option => option.Label));
+    private static string FilterLabels(string preset) =>
+        string.Join(',', EmbyFilterBy.For(preset, new Version(4, 10, 1)).Select(field => field.Label));
     private static ItemQuery Query(LibrarySection section, string? group = null, ItemFilters? filters = null,
         string collectionType = "tvshows") =>
         LibraryBrowse.Query(collectionType, "library-a", section, 20, 20, EmbySortBy.DateAdded, true, filters ?? new(), group);

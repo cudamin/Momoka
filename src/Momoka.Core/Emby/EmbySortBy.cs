@@ -24,6 +24,12 @@ public static class EmbySortPreset
     public const string BoxSet = "BoxSet";
 
     /// <summary>
+    /// 混合内容库的筛选预设。排序菜单不用它：那一页在网页端给的是文件夹那整份菜单；
+    /// 这个预设只回答「混合条目能筛哪些字段」，别拿它去顶电影或电视剧的名单。
+    /// </summary>
+    public const string Mixed = "Mixed";
+
+    /// <summary>
     /// The preset for a library root, or null when the collection type says nothing useful and every
     /// general key should stay on offer.
     /// <para>

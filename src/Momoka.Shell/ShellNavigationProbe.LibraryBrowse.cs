@@ -16,6 +16,14 @@ namespace Momoka.Shell;
 
 internal sealed partial class ShellNavigationProbe
 {
+    /// <summary>2026-10-19 网页截图：电影库的影片、预告片、收藏共用这份十九条菜单。</summary>
+    private const string MovieSortLabels =
+        "IMDb 评分,分辨率,加入日期,发行日期,媒体容器,家长评分,导演,帧率,年份,影评人评分,播放日期,播放时长,播放次数,文件名,文件尺寸,标题,比特率,视频编解码器,随机";
+
+    /// <summary>文件夹与混合内容「电影和节目」共用的二十五条菜单。</summary>
+    private const string FolderSortLabels =
+        "上次添加内容日期,专辑,专辑艺人,作曲家,分辨率,加入日期,发行日期,媒体容器,家长评分,导演,帧率,年份,影评人评分,播放日期,播放时长,播放次数,文件名,文件尺寸,标题,比特率,社区评分,编号,艺人,视频编解码器,随机";
+
     private async Task LibraryBrowseAsync()
     {
         using var fixture = CreateFixture();
@@ -27,6 +35,11 @@ internal sealed partial class ShellNavigationProbe
             if (request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(poster) });
             if (Query(request, "ParentId") is null) return Task.FromResult(FakeTransport.Standard(request));
+            // 用户网页端这两页都是 0 项（没装 Trailers 插件、没有收藏）。探针照空态跑，
+            // 才能验电影库「预告片」「收藏」的工具栏、排序、筛选与设置，以及没有可播行时收起播放键。
+            if (Query(request, "IncludeItemTypes") == EmbyItemType.Trailer
+                || Query(request, "Filters")?.Contains("IsFavorite", StringComparison.Ordinal) == true)
+                return Task.FromResult(Json(new { Items = Array.Empty<EmbyItem>(), TotalRecordCount = 0 }));
             var path = request.RequestUri.AbsolutePath;
             var index = path.EndsWith("/Genres", StringComparison.Ordinal) || path.EndsWith("/Studios", StringComparison.Ordinal);
             // 继续观看那一条没有 IncludeItemTypes（它就是 Resume），推荐页那一排装的是单集。
@@ -140,6 +153,44 @@ internal sealed partial class ShellNavigationProbe
                     await UntilAsync(() => page.ViewModel.Section == section && page.ViewModel.IsReady && !page.ViewModel.Busy);
                     Require(request.Section == section && Get<WrapRow>(page, "LibrarySections").Children.OfType<ToggleButton>().Count(value => value.IsChecked == true) == 1, "分类选择未保存或不是单选");
                 }
+                // 电影库的「预告片」与「收藏」在网页端是普通网格：有排序、筛选、设置，
+                // 但空页时没有可播行，播放/随机播放收起。这三样与电影「影片」共用同一份菜单。
+                async Task CheckMovieOptionPanelsAsync(string name, int filterRows, string filterLabels, int fieldRows)
+                {
+                    var entries = page.ViewModel.SortEntries().Select(entry => entry.Option.Label).ToArray();
+                    Require(string.Join(',', entries) == MovieSortLabels,
+                        $"这一页的排序菜单与电影「影片」不同：{string.Join(',', entries)}");
+                    Require(Get<Button>(page, "SortButton").Visibility == Visibility.Visible
+                        && Get<Button>(page, "FilterButton").Visibility == Visibility.Visible
+                        && Get<Button>(page, "LibrarySettingsButton").Visibility == Visibility.Visible,
+                        "这一页缺少排序、筛选或设置");
+                    page.ShowFilterPanel();
+                    await SettleAsync();
+                    Require(page.FilterOverlay.Visibility == Visibility.Visible, "这一页的筛选面板没有打开");
+                    Require(page.FilterPane.RowLabels.Count == filterRows
+                        && string.Join(',', page.FilterPane.RowLabels) == filterLabels,
+                        $"这一页的筛选面板与网页端不同：{string.Join(',', page.FilterPane.RowLabels)}");
+                    await LayoutAsync(page);
+                    await SaveProbeScreenAsync($"library-movies-{name}-filter-screen.png");
+                    page.CloseFilter();
+                    await SettleAsync();
+                    var gear = Get<Button>(page, "LibrarySettingsButton");
+                    var invoke = FrameworkElementAutomationPeer.CreatePeerForElement(gear)
+                        ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                    Require(invoke is not null, "这一页的设置入口没有可调用的自动化入口");
+                    invoke!.Invoke();
+                    await SettleAsync();
+                    Require(page.SettingsOverlay.Visibility == Visibility.Visible, "这一页的设置面板没有打开");
+                    Require(page.SettingsPane.FieldRows.Children.Count == fieldRows,
+                        $"这一页的设置字段数不对（{page.SettingsPane.FieldRows.Children.Count}，期望 {fieldRows}）");
+                    var labels = page.SettingsPane.FieldRows.Children.OfType<Grid>()
+                        .Select(row => row.Children.OfType<TextBlock>().FirstOrDefault()?.Text ?? "").ToArray();
+                    Require(labels.Contains("IMDb 评分"), $"电影设置面板的评分行不对：{string.Join(',', labels)}");
+                    await LayoutAsync(page);
+                    await SaveProbeScreenAsync($"library-movies-{name}-settings-screen.png");
+                    page.CloseSettings();
+                    await SettleAsync();
+                }
                 page.ViewModel.ChooseSort(EmbySortBy.Find(EmbySortBy.DateAdded)!);
                 await UntilAsync(() => !page.ViewModel.Busy);
                 page.ViewModel.Filters.Genres.Add("动画");
@@ -161,7 +212,8 @@ internal sealed partial class ShellNavigationProbe
                 // 用户勾过的字段，而索引页上刚默认只勾了标题。
                 Require(page.ViewModel.IndexKind == LibraryIndexKind.None
                     && LibraryDisplayCatalog.FieldsFor(page.ViewModel.Section, LibraryView.Poster,
-                        page.ViewModel.IndexKind).Count == 14, "类型下钻之后还按索引页画");
+                        page.ViewModel.IndexKind, page.ViewModel.CollectionType).Count
+                        == (collection == "tvshows" ? 14 : 22), "类型下钻之后还按索引页画");
                 var drilledCard = page.ViewModel.Cards[0];
                 Require(Math.Abs(drilledCard.PosterHeight - Math.Round(drilledCard.CardWidth * 1.5)) <= 1,
                     $"类型下钻之后的卡片不是 2:3 的海报（宽 {drilledCard.CardWidth}，高 {drilledCard.PosterHeight}）");
@@ -174,13 +226,36 @@ internal sealed partial class ShellNavigationProbe
                     await SelectAsync(LibrarySection.Favorites);
                     Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal))
                         .Contains("IsFavorite", StringComparison.Ordinal), "库内收藏未带固定条件");
+                    if (collection == "tvshows")
+                    {
+                        // 电视剧收藏是两排货架，网页端没有工具栏；电影收藏是普通网格，要留着。
+                        Require(Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Collapsed,
+                            "电视剧收藏货架仍显示工具栏");
+                    }
+                    else
+                    {
+                        Require(Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Visible, "电影收藏页没有工具栏");
+                        Require(page.ViewModel.SortLabel == "加入日期" && page.ViewModel.SortDescending,
+                            $"电影收藏默认排序不是加入日期降序（{page.ViewModel.SortLabel}）");
+                        Require(Get<Button>(page, "PlayAllButton").Visibility == Visibility.Collapsed,
+                            "电影收藏空页仍显示播放");
+                        await CheckMovieOptionPanelsAsync("favorites", 27,
+                            "播放状态,收藏,重制,类型,家长评分,工作室,年份,媒体容器,视频编解码器,视频类型,分辨率,3D,音频编解码器,音频布局,音频语言,字幕,字幕编解码器,字幕语言,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
+                            22);
+                    }
                 }
 
                 if (collection == "movies")
                 {
                     await SelectAsync(LibrarySection.Trailers);
-                    Require(page.ViewModel.Cards[0].Item.Type == EmbyItemType.Trailer, "预告片查询没有切换类型");
-                    Require(Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Collapsed, "预告片页不该有工具栏");
+                    Require(page.ViewModel.Cards.Count == 0, "预告片空页仍有卡片");
+                    Require(Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Visible, "预告片页没有工具栏");
+                    Require(Get<Button>(page, "PlayAllButton").Visibility == Visibility.Collapsed,
+                        "预告片空页仍显示播放");
+                    Require(page.ViewModel.SortLabel == "标题" && !page.ViewModel.SortDescending,
+                        $"预告片默认排序不是标题升序（{page.ViewModel.SortLabel}）");
+                    await CheckMovieOptionPanelsAsync("trailers", 10,
+                        "播放状态,收藏,分辨率,3D,字幕,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id", 22);
                 }
                 else if (collection == "tvshows")
                 {
@@ -242,6 +317,27 @@ internal sealed partial class ShellNavigationProbe
                 }
                 await SelectAsync(LibrarySection.Folders);
                 Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal)).Contains("Recursive=false", StringComparison.Ordinal), "文件夹被拍平");
+                Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed, "文件夹页还有筛选键");
+                Require(page.ViewModel.SortLabel == "文件名" && !page.ViewModel.SortDescending,
+                    $"文件夹默认排序不是文件名升序（{page.ViewModel.SortLabel}）");
+                var folderEntries = page.ViewModel.SortEntries().Select(entry => entry.Option.Label).ToArray();
+                Require(string.Join(',', folderEntries) == FolderSortLabels,
+                    $"文件夹排序菜单与网页端不同：{string.Join(',', folderEntries)}");
+                var folderGear = Get<Button>(page, "LibrarySettingsButton");
+                var folderInvoke = FrameworkElementAutomationPeer.CreatePeerForElement(folderGear)
+                    ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                Require(folderInvoke is not null, "文件夹设置入口没有可调用的自动化入口");
+                folderInvoke!.Invoke();
+                await SettleAsync();
+                Require(page.SettingsPane.FieldRows.Children.Count == 22,
+                    $"文件夹设置字段数不对（{page.SettingsPane.FieldRows.Children.Count}）");
+                var folderLabels = page.SettingsPane.FieldRows.Children.OfType<Grid>()
+                    .Select(row => row.Children.OfType<TextBlock>().FirstOrDefault()?.Text ?? "").ToArray();
+                Require(folderLabels.Contains("社区评分"), $"文件夹设置的评分行不对：{string.Join(',', folderLabels)}");
+                await LayoutAsync(page);
+                await SaveProbeScreenAsync($"library-{collection}-folders-settings-screen.png");
+                page.CloseSettings();
+                await SettleAsync();
                 await SelectAsync(LibrarySection.Items);
                 var sortLabels = page.BuildSortMenu();
                 Require(page.SortList.Items.Count == sortLabels.Count && sortLabels.Count > 0, "排序菜单没有按条目填满");
@@ -261,13 +357,16 @@ internal sealed partial class ShellNavigationProbe
                         == "IMDb 评分,上次发布集日期,上次添加集日期,加入日期,发行日期,家长评分,导演,年份,影评人评分,播放日期,播放时长,标题,随机",
                         "电视剧库的排序菜单与网页端不同");
                 }
-                else if (collection == "mixed")
+                else if (collection == "movies")
                 {
-                    // 混合内容库没有电影或电视剧预设：节目名称、上次添加集日期这些剧集／剧集专用的键
-                    // 不该跟着电影库的名单混进来。
-                    Require(!sortLabels.Contains("节目名称") && !sortLabels.Contains("上次添加集日期")
-                        && !sortLabels.Contains("上次发布集日期") && sortLabels.Contains("加入日期"),
-                        "混合内容库的排序菜单混进了电视剧专用的键");
+                    Require(string.Join(',', sortLabels) == MovieSortLabels,
+                        $"电影库的排序菜单与网页端不同：{string.Join(',', sortLabels)}");
+                }
+                else
+                {
+                    // 混合内容库的「电影和节目」给的是文件夹那整份菜单（专辑、艺人、编号都在）。
+                    Require(string.Join(',', sortLabels) == FolderSortLabels,
+                        $"混合内容库的排序菜单与网页端不同：{string.Join(',', sortLabels)}");
                 }
                 await SaveProbeScreenAsync($"library-{collection}-sort-screen.png");
 
@@ -295,14 +394,17 @@ internal sealed partial class ShellNavigationProbe
                 }
                 else if (collection == "mixed")
                 {
-                    // 混合内容库没有电影／电视剧预设，只留两种条目都认的通用行：没有「重制」、
-                    // 没有「状态」、没有缺少元数据那一组，也不问媒体流。
-                    Require(string.Join(',', rows) == "播放状态,收藏,类型,家长评分,工作室,标签,年份,画质,3D,字幕",
+                    // 2026-10-19 网页截图：混合内容没有「重制」「标签」「画质」与「状态」，
+                    // 媒体信息只有媒体容器、分辨率、3D、字幕这几项，后面接着功能、元数据与缺少元数据。
+                    Require(string.Join(',', rows)
+                        == "播放状态,收藏,类型,家长评分,工作室,年份,媒体容器,分辨率,3D,字幕,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
                         $"混合内容库的筛选面板不对：{string.Join(',', rows)}");
                 }
                 else
                 {
-                    Require(rows.Contains("画质") && rows.Contains("字幕") && !rows.Contains("状态"),
+                    // 2026-10-19 电影网页截图：没有「标签」「画质」「状态」，媒体信息是整组十一行。
+                    Require(string.Join(',', rows)
+                        == "播放状态,收藏,重制,类型,家长评分,工作室,年份,媒体容器,视频编解码器,视频类型,分辨率,3D,音频编解码器,音频布局,音频语言,字幕,字幕编解码器,字幕语言,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
                         $"电影库的筛选面板不对：{string.Join(',', rows)}");
                 }
 
@@ -357,8 +459,14 @@ internal sealed partial class ShellNavigationProbe
                 await CheckLibraryPanelSizingAsync(page, page.SettingsPane, $"library-{collection}-settings");
 
                 var pane = page.SettingsPane;
+                var expectedFieldRows = collection == "tvshows" ? 14 : 22;
                 Require(pane.ViewCombo.Items.Count == 7 && pane.SizeCombo.Items.Count == 8
-                    && pane.FieldRows.Children.Count == 14, "设置面板的四组东西没有照网页端摆齐");
+                    && pane.FieldRows.Children.Count == expectedFieldRows,
+                    $"设置面板的字段表不对（{pane.FieldRows.Children.Count} 行，期望 {expectedFieldRows}）");
+                var fieldLabels = pane.FieldRows.Children.OfType<Grid>()
+                    .Select(row => row.Children.OfType<TextBlock>().FirstOrDefault()?.Text ?? "").ToArray();
+                Require(fieldLabels.Contains(collection == "mixed" ? "社区评分" : "IMDb 评分"),
+                    $"设置面板的评分行不对：{string.Join(',', fieldLabels)}");
                 Require(pane.SizeSection.Visibility == Visibility.Visible, "海报视图下没有图像大小这一行");
                 var before = page.ViewModel.Display;
 

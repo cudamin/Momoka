@@ -186,6 +186,16 @@ public static class LibraryDisplayCatalog
     ];
 
     /// <summary>
+    /// 电影内容页的字段表：与文件夹那套同样二十二项，评分那一行叫「IMDb 评分」而不是「社区评分」。
+    /// 用户 2026-10-19 的网页截图里，电影库的「影片」「预告片」「收藏」设置都是这一份，只有「文件夹」
+    /// 那份写的是「社区评分」；两者存的是同一个 <see cref="LibraryField.CommunityRating"/>，只是叫法不同。
+    /// </summary>
+    private static readonly IReadOnlyList<LibraryFieldInfo> MovieFields =
+        [.. FolderFields.Select(info => info.Field == LibraryField.CommunityRating
+            ? info with { Label = "IMDb 评分" }
+            : info)];
+
+    /// <summary>
     /// 「集」那一页多出的两项。网页端 <c>getAvailableFields</c> 的 Episode 那一支先 push 剧名再 push 集号，
     /// 位置在标题前面，这里照那个顺序；中文名取网页端那两列的译名（Series／Number）。
     /// </summary>
@@ -230,11 +240,25 @@ public static class LibraryDisplayCatalog
     /// <summary>三张表合起来的全部字段；认名字、排规范顺序都走这一份。</summary>
     private static IReadOnlyList<LibraryFieldInfo> All { get; } = [.. Fields, .. FileFields, .. EpisodeOnly];
 
-    /// <summary>这一页的字段表。文件夹那一页多出文件本身那几项，集那一页多出剧名与集号，两张索引页只有标题，其余各页是同一份十四项。</summary>
+    /// <summary>
+    /// 这一页的字段表。文件夹页多出文件本身那几项，集页多出剧名与集号，两张索引页只有标题；
+    /// 电影库的影片／预告片／收藏是电影那份二十二项（评分叫 IMDb），混合内容库的「电影和节目」与
+    /// 文件夹是文件夹那份二十二项（评分叫社区）；电视剧库与其余页仍是十四项。
+    /// <para>
+    /// <paramref name="collectionType"/> 是**库**的类型，不是这一页条目的类型：同样叫「节目」，电视剧库
+    /// 与混合内容库在网页端列的字段并不一样。旧调用方不传时保持十四项，不影响搜索、演职人员等页。
+    /// </para>
+    /// </summary>
     public static IReadOnlyList<LibraryFieldInfo> FieldsFor(LibrarySection section, LibraryView view = LibraryView.Poster,
-        LibraryIndexKind index = LibraryIndexKind.None)
+        LibraryIndexKind index = LibraryIndexKind.None, string? collectionType = null)
     {
         if (index != LibraryIndexKind.None) return IndexFields;
+
+        if (collectionType == "movies" && section is LibrarySection.Items or LibrarySection.Recommended
+            or LibrarySection.Trailers or LibrarySection.Favorites or LibrarySection.Genres or LibrarySection.Studios)
+            return MovieFields;
+        if (collectionType == "mixed" && section is LibrarySection.Items or LibrarySection.Genres or LibrarySection.Studios)
+            return FolderFields;
 
         return section switch
         {
@@ -250,8 +274,8 @@ public static class LibraryDisplayCatalog
     /// 放它们过去就等于凭空多出一段关不掉的字。
     /// </summary>
     public static bool Applies(LibraryField field, LibrarySection section, LibraryView view = LibraryView.Poster,
-        LibraryIndexKind index = LibraryIndexKind.None) =>
-        FieldsFor(section, view, index).Any(info => info.Field == field);
+        LibraryIndexKind index = LibraryIndexKind.None, string? collectionType = null) =>
+        FieldsFor(section, view, index, collectionType).Any(info => info.Field == field);
 
     /// <summary>
     /// 存下来的那一份收成这一页真正要画的那几项，顺序照这一页的表 —— 表格的列、卡片那一行、请求里的
@@ -259,10 +283,11 @@ public static class LibraryDisplayCatalog
     /// 还在，开关也还在。
     /// </summary>
     public static IReadOnlyList<LibraryField> Applied(IEnumerable<LibraryField> fields, LibrarySection section,
-        LibraryView view = LibraryView.Poster, LibraryIndexKind index = LibraryIndexKind.None)
+        LibraryView view = LibraryView.Poster, LibraryIndexKind index = LibraryIndexKind.None,
+        string? collectionType = null)
     {
         var wanted = new HashSet<LibraryField>(fields);
-        return [.. FieldsFor(section, view, index).Select(info => info.Field).Where(wanted.Contains)];
+        return [.. FieldsFor(section, view, index, collectionType).Select(info => info.Field).Where(wanted.Contains)];
     }
 
     /// <summary>

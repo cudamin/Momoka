@@ -27,6 +27,12 @@ public sealed partial class LibrarySettingsPanel : UserControl
     private LibraryIndexKind _index = LibraryIndexKind.None;
 
     /// <summary>
+    /// 这一页属于哪种库（movies / tvshows / mixed）。同样叫「节目」，电影库与混合内容库的字段表并不是
+    /// 同一份（电影二十二项、评分叫 IMDb；混合内容同文件夹那份、评分叫社区）。
+    /// </summary>
+    private string? _collectionType;
+
+    /// <summary>
     /// 存下来的那份里、这一页没有开关的那几项（文件夹页的文件名、集页的集号在别的页就是这种）。
     /// 面板只改自己摆出来的那几行，这几项原样带回去 —— 不然在这一页改一处，别的页的勾选就被抹掉了。
     /// </summary>
@@ -54,7 +60,8 @@ public sealed partial class LibrarySettingsPanel : UserControl
     /// <paramref name="index"/> 是「这一页是不是索引页、是哪一种」：类型与播出平台只有「标题」一项，
     /// 也没有「将项目分组到合集中」这回事（它们列的是类型名与台名，不是条目）。
     /// </summary>
-    internal void Show(LibraryDisplay display, LibrarySection section, LibraryIndexKind index = LibraryIndexKind.None)
+    internal void Show(LibraryDisplay display, LibrarySection section, LibraryIndexKind index = LibraryIndexKind.None,
+        string? collectionType = null)
     {
         SettingsScroll.ChangeView(null, 0, null, disableAnimation: true);
         _syncing = true;
@@ -62,8 +69,9 @@ public sealed partial class LibrarySettingsPanel : UserControl
         {
             _section = section;
             _index = index;
-            BuildFieldRows(section, display.View, index);
-            _carried = [.. display.Fields.Where(field => !LibraryDisplayCatalog.Applies(field, section, display.View, index))];
+            _collectionType = collectionType;
+            BuildFieldRows(section, display.View, index, collectionType);
+            _carried = [.. display.Fields.Where(field => !LibraryDisplayCatalog.Applies(field, section, display.View, index, collectionType))];
             Select(ViewCombo, display.View);
             Select(SizeCombo, display.CardSize);
             GroupSwitch.IsOn = display.GroupIntoCollections;
@@ -134,15 +142,17 @@ public sealed partial class LibrarySettingsPanel : UserControl
     }
 
     /// <summary>
-    /// 这一页的字段表：默认十四行，文件夹页二十二行，集页十六行（多剧名与集号），两张索引页只有「标题」一行。
+    /// 这一页的字段表：电视剧默认十四行；电影内容页与文件夹页二十二行（电影评分为 IMDb、文件夹与混合
+    /// 内容为社区评分）；集页二十一项（表格视图多剧名与集号），两张索引页只有「标题」一行。
     /// 顺序就是网页端那一列，一行一个开关；开关的自动化名用中文名，读屏和探针都靠它认人。
     /// </summary>
-    private void BuildFieldRows(LibrarySection section, LibraryView view, LibraryIndexKind index = LibraryIndexKind.None)
+    private void BuildFieldRows(LibrarySection section, LibraryView view, LibraryIndexKind index = LibraryIndexKind.None,
+        string? collectionType = null)
     {
         FieldRows.Children.Clear();
         _fieldToggles.Clear();
 
-        foreach (var info in LibraryDisplayCatalog.FieldsFor(section, view, index))
+        foreach (var info in LibraryDisplayCatalog.FieldsFor(section, view, index, collectionType))
         {
             var row = new Grid { ColumnSpacing = 12 };
             row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -223,8 +233,8 @@ public sealed partial class LibrarySettingsPanel : UserControl
             _syncing = true;
             try
             {
-                BuildFieldRows(section, next.View, _index);
-                _carried = [.. next.Fields.Where(field => !LibraryDisplayCatalog.Applies(field, section, next.View, _index))];
+                BuildFieldRows(section, next.View, _index, _collectionType);
+                _carried = [.. next.Fields.Where(field => !LibraryDisplayCatalog.Applies(field, section, next.View, _index, _collectionType))];
                 foreach (var (field, toggle) in _fieldToggles) toggle.IsOn = next.Fields.Contains(field);
             }
             finally { _syncing = false; }

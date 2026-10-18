@@ -898,7 +898,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_capabilities is null) return;
 
-        FilterPane.Open(ViewModel.Filters, ViewModel.SortPreset, _capabilities.ServerVersion, ViewModel.FetchFilterValuesAsync, ViewModel.SourceServerKind);
+        FilterPane.Open(ViewModel.Filters, ViewModel.FilterPreset, _capabilities.ServerVersion, ViewModel.FetchFilterValuesAsync, ViewModel.SourceServerKind);
     }
 
     /// <summary>收起筛选层，回到原来的网格。</summary>
@@ -1103,7 +1103,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnSettingsClicked(object sender, RoutedEventArgs e)
     {
-        SettingsPane.Show(ViewModel.Display, ViewModel.Section, ViewModel.IndexKind);
+        SettingsPane.Show(ViewModel.Display, ViewModel.Section, ViewModel.IndexKind, ViewModel.CollectionType);
         SettingsOverlay.Visibility = Visibility.Visible;
         ApplyPanelSize();
     }

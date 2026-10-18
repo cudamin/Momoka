@@ -477,6 +477,15 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal string? SortPreset => IsSectionLibrary
         ? LibraryBrowse.SortPreset(_request!.CollectionType, _request.Section) : _request?.SortPreset;
 
+    /// <summary>
+    /// 筛选面板用的预设。与 <see cref="SortPreset"/> 分开：电影库的「预告片」排序菜单是电影那份，
+    /// 筛选却是 Trailer 那份；混合内容库排序走文件夹菜单，筛选走 Mixed 那份。
+    /// </summary>
+    internal string? FilterPreset => IsSectionLibrary
+        ? LibraryBrowse.FilterPreset(_request!.CollectionType, _request.Section) : _request?.SortPreset;
+
+    internal string? CollectionType => _request?.CollectionType;
+
     internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, CollectionType: "movies" or "tvshows" or "mixed", IsSearch: false };
     internal LibrarySection Section => _request?.Section ?? LibrarySection.Items;
     internal bool IsBrowseIndex => IsSectionLibrary && LibraryBrowse.IsIndex(Section, _request!.BrowseGroup);
@@ -487,11 +496,13 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     /// <summary>
     /// 这一页底下那一条工具栏（总数、播放、排序、筛选、设置）在不在。网页端不是每一页都有：
-    /// 推荐、预告、收藏三页只有内容，总数与按键一起收起 —— 那三页的顺序或范围是服务器定的，摆一排按不动的键
-    /// 只是占地方。索引页（类型、播出平台）留总数与设置；文件夹没有筛选可筛（它问的是文件树）。
+    /// 推荐与预告两页只有内容，总数与按键一起收起；电视剧库的收藏是两排货架，也收起。电影库的
+    /// 预告片与收藏是普通网格，网页端照样给总数、排序、筛选与设置（播放/随机播放再看有没有可播的行），
+    /// 不能跟着电视剧那两页一起收。索引页（类型、播出平台）留总数与设置；文件夹没有筛选可筛。
     /// </summary>
-    private bool HasToolbar => !IsSectionLibrary || Section is not
-        (LibrarySection.Recommended or LibrarySection.Trailers or LibrarySection.Upcoming or LibrarySection.Favorites);
+    private bool HasToolbar => !IsSectionLibrary
+        || (Section is not (LibrarySection.Recommended or LibrarySection.Upcoming)
+            && !(Section == LibrarySection.Favorites && IsFavoritesPage));
 
     public Visibility ToolbarVisibility => Show(HasToolbar);
     public Visibility SettingsVisibility => Show(IsSectionLibrary && HasToolbar);
@@ -534,7 +545,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     private void RefreshBrowseChrome()
     {
         // 换页会换字段表（文件夹 / 集 / 索引页 / 其余），生效的字段跟着这一页重算。
-        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section, View, IndexKind);
+        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section, View, IndexKind, CollectionType);
+        RefreshEmptyNotice();
 
         foreach (var name in new[] { nameof(SectionVisibility), nameof(BrowseGroupVisibility), nameof(BrowseGroupLabel),
             nameof(DirectPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
@@ -542,6 +554,26 @@ public sealed partial class LibraryViewModel : PageViewModel
             nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel),
             nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility) }) OnPropertyChanged(name);
         RefreshUpcomingState();
+    }
+
+    /// <summary>
+    /// 空页中间那句话。电影库的「预告片」在网页端有一句专门的提示：这一页空着多半不是库里没有内容，
+    /// 而是服务器没装 Trailer 插件；照截图把插件目录写在句子里，别的页仍是「这里没有内容」。
+    /// </summary>
+    private void RefreshEmptyNotice()
+    {
+        if (_request is not { } request)
+        {
+            EmptyNotice = "这里没有内容";
+            return;
+        }
+
+        EmptyNotice = request.IsSearch ? "输入关键字开始搜索"
+            : request.Row == HomeLayout.HomeRowTarget.Resume ? "这里还没有看到一半的内容"
+            : request.Row is not null ? "这里还没有看过的内容"
+            : request.CollectionType == "movies" && request.Section == LibrarySection.Trailers
+                ? "未找到预告片。要添加预告片，请在 Emby 插件目录中安装 Trailers 插件。"
+            : "这里没有内容";
     }
 
     internal int LoadedCount => Cards.Count;
@@ -886,10 +918,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         // 其实是两件事（2026-09-14「继续观看」那一排接通之后才有人走到这一页）。两排的空页文案也分开：继续观看
         // 那一页装的是「看到一半的」（见 BuildQuery 的 Resume 分支），空了说的是「还没开头」；接下来看那一页
         // 装的是「没看完的剧集」，空了说的是「都看完了」。
-        EmptyNotice = request.IsSearch ? "输入关键字开始搜索"
-            : request.Row == HomeLayout.HomeRowTarget.Resume ? "这里还没有看到一半的内容"
-            : request.Row is not null ? "这里还没有看过的内容"
-            : "这里没有内容";
+        RefreshEmptyNotice();
         OnPropertyChanged(nameof(SearchVisibility));
         OnPropertyChanged(nameof(MoviePilotTabsVisibility));
 
@@ -1808,7 +1837,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     private void RaiseDisplay()
     {
         // 这一页真正生效的字段：换页（文件夹 ↔ 节目 ↔ 集 ↔ 索引页）也要重算，所以放在这里而不是只算一次。
-        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section, View, IndexKind);
+        _fields = LibraryDisplayCatalog.Applied(_display.Fields, Section, View, IndexKind, CollectionType);
         // 卡片宽度就是这一面墙此刻按哪一档画的 —— 自检与探针读的是它，它得跟着图像大小走。
         CardWidth = CardBuildWidth;
         OnPropertyChanged(nameof(View));

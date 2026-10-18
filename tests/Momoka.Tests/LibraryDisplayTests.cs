@@ -207,12 +207,27 @@ internal static class LibraryDisplayTests
             Assert.False(back.GroupIntoCollections);
             Assert.Equal("Title,Genres,Studios", string.Join(',', back.Fields));
         });
-        Test("媒体库设置：三种页各有一份字段表，集页多出剧名与集号", () =>
+        Test("媒体库设置：电影内容、混合内容与电视剧各有一份字段表", () =>
         {
+            // 用户 2026-10-19 的网页截图：电影库的影片／预告片／收藏与混合内容库的电影和节目都是二十二项，
+            // 区别只在评分那一行 —— 电影叫 IMDb，混合内容与文件夹叫社区；电视剧仍是十四项。
             Assert.Equal(14, LibraryDisplayCatalog.FieldsFor(LibrarySection.Items).Count);
             Assert.Equal(22, LibraryDisplayCatalog.FieldsFor(LibrarySection.Folders).Count);
             Assert.Equal(21, LibraryDisplayCatalog.FieldsFor(LibrarySection.Episodes).Count);
             Assert.Equal(23, LibraryDisplayCatalog.FieldsFor(LibrarySection.Episodes, LibraryView.Table).Count);
+            foreach (var section in new[] { LibrarySection.Items, LibrarySection.Trailers, LibrarySection.Favorites })
+                Assert.Equal(22, LibraryDisplayCatalog.FieldsFor(section, collectionType: "movies").Count);
+            Assert.Equal("IMDb 评分", LibraryDisplayCatalog.FieldsFor(LibrarySection.Items, collectionType: "movies")
+                .Single(info => info.Field == LibraryField.CommunityRating).Label);
+            Assert.Equal(22, LibraryDisplayCatalog.FieldsFor(LibrarySection.Folders, collectionType: "movies").Count);
+            Assert.Equal("社区评分", LibraryDisplayCatalog.FieldsFor(LibrarySection.Folders, collectionType: "movies")
+                .Single(info => info.Field == LibraryField.CommunityRating).Label);
+            Assert.Equal(22, LibraryDisplayCatalog.FieldsFor(LibrarySection.Items, collectionType: "mixed").Count);
+            Assert.Equal("社区评分", LibraryDisplayCatalog.FieldsFor(LibrarySection.Items, collectionType: "mixed")
+                .Single(info => info.Field == LibraryField.CommunityRating).Label);
+            Assert.Equal(14, LibraryDisplayCatalog.FieldsFor(LibrarySection.Items, collectionType: "tvshows").Count);
+            Assert.Equal(22, LibraryDisplayCatalog.FieldsFor(LibrarySection.Genres, collectionType: "movies").Count);
+            Assert.Equal(22, LibraryDisplayCatalog.FieldsFor(LibrarySection.Genres, collectionType: "mixed").Count);
 
             // 网页端 getAvailableFields 的 Episode 那一支先 push 剧名再 push 集号，位置在标题前面。
             Assert.Equal("标题,文件名,社区评分",
@@ -222,12 +237,15 @@ internal static class LibraryDisplayTests
         });
         Test("媒体库设置：别的页独有的字段不在这一页生效，但换回去还在", () =>
         {
-            // 文件夹页勾了「文件名」「媒体容器」、集页勾了「集号」，节目页不该多出这三段关不掉的字。
+            // 文件夹页勾了「文件名」「媒体容器」、集页勾了「集号」：电视剧的「节目」页没有这几项，
+            // 电影库的「影片」页有前两项（网页端电影那套本来就是二十二项），集页才有集号。
             LibraryField[] saved =
                 [LibraryField.Title, LibraryField.Filename, LibraryField.Container, LibraryField.EpisodeNumber, LibraryField.ProductionYear];
 
             Assert.Equal("Title,ProductionYear",
-                string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Items)));
+                string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Items, collectionType: "tvshows")));
+            Assert.Equal("Title,Filename,ProductionYear,Container",
+                string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Items, collectionType: "movies")));
             Assert.Equal("Title,Filename,ProductionYear,Container",
                 string.Join(',', LibraryDisplayCatalog.Applied(saved, LibrarySection.Folders)));
             Assert.Equal("Title,Filename,ProductionYear,Container",
@@ -235,13 +253,19 @@ internal static class LibraryDisplayTests
 
             Assert.False(LibraryDisplayCatalog.Applies(LibraryField.Filename, LibrarySection.Items));
             Assert.True(LibraryDisplayCatalog.Applies(LibraryField.Filename, LibrarySection.Folders));
+            Assert.True(LibraryDisplayCatalog.Applies(LibraryField.Filename, LibrarySection.Items, collectionType: "movies"));
 
-            // 请求里也只问这一页的字段：节目页不该因为文件夹页勾过容器就带上 MediaSources。
-            var query = LibraryBrowse.Query("movies", "library-a", LibrarySection.Items, 0, 20,
+            // 请求里也只问这一页的字段：电视剧「节目」页不该因为文件夹页勾过容器就带上 MediaSources。
+            var query = LibraryBrowse.Query("tvshows", "library-a", LibrarySection.Items, 0, 20,
                 EmbySortBy.Name, false, new(), null,
                 new LibraryDisplay { Fields = [.. saved] });
             Assert.DoesNotContain("MediaSources", query.ToQueryString());
             Assert.DoesNotContain("SeriesName", query.ToQueryString());
+
+            var movieQuery = LibraryBrowse.Query("movies", "library-a", LibrarySection.Items, 0, 20,
+                EmbySortBy.Name, false, new(), null,
+                new LibraryDisplay { Fields = [.. saved] });
+            Assert.Contains("MediaSources", movieQuery.ToQueryString());
 
             var folderQuery = LibraryBrowse.Query("movies", "library-a", LibrarySection.Folders, 0, 20,
                 EmbySortBy.Name, false, new(), null,

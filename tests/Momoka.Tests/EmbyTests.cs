@@ -664,10 +664,13 @@ internal static class EmbyTests
                 "播放状态,收藏,重制,类型,家长评分,工作室,年份,状态,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
                 Rows(EmbySortPreset.Series, new Version(4, 10, 1)));
 
-            // 电影页多出媒体信息那一组，没有剧集状态那一行
+            // 电影页多出整组媒体信息（2026-10-19 网页截图：媒体容器、视频编解码器、视频类型、分辨率、
+            // 3D、音频与字幕都在），没有剧集状态那一行，也没有「画质」「标签」这两行。
             var movie = EmbyFilterBy.For(EmbySortPreset.Movie, new Version(4, 10, 1)).Select(field => field.Label).ToList();
-            Assert.True(movie.Contains("画质") && movie.Contains("3D") && movie.Contains("字幕"), "电影页缺少媒体信息那一组");
+            Assert.True(movie.Contains("媒体容器") && movie.Contains("视频编解码器") && movie.Contains("分辨率")
+                && movie.Contains("3D") && movie.Contains("字幕"), "电影页缺少媒体信息那一组");
             Assert.True(!movie.Contains("状态"), "连载/完结只对剧有意义");
+            Assert.True(!movie.Contains("画质") && !movie.Contains("标签"), "电影页不该有画质或标签");
         });
 
         Test("筛选：分组标题只挂在每组第一行上", () =>

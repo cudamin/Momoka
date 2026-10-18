@@ -89,8 +89,24 @@ public static class LibraryBrowse
     public static string? SortPreset(string? collectionType, LibrarySection section) => section switch
     {
         LibrarySection.Episodes or LibrarySection.Upcoming => EmbySortPreset.Episode,
-        LibrarySection.Trailers => EmbySortPreset.Trailer,
+        // 电影库的「预告片」在网页端用电影那份排序菜单（十九条），不是 Trailer 类型那份。
+        LibrarySection.Trailers => EmbySortPreset.ForCollection(collectionType),
         LibrarySection.Folders => null,
+        _ => EmbySortPreset.ForCollection(collectionType)
+    };
+
+    /// <summary>
+    /// 筛选面板按「这一页装的是什么条目」取预设，和排序菜单不是同一件事：电影库的「预告片」用电影的
+    /// 排序菜单，但筛选用的是 Trailer 那一份（网页端只剩播放状态、收藏、分辨率、3D、字幕与元数据）；
+    /// 混合内容库排序走文件夹那份，筛选走 <see cref="EmbySortPreset.Mixed"/> 那一份。
+    /// </summary>
+    public static string? FilterPreset(string? collectionType, LibrarySection section) => section switch
+    {
+        LibrarySection.Trailers => EmbySortPreset.Trailer,
+        LibrarySection.Episodes or LibrarySection.Upcoming => EmbySortPreset.Episode,
+        LibrarySection.Folders => null,
+        LibrarySection.Items or LibrarySection.Genres or LibrarySection.Studios when collectionType == "mixed"
+            => EmbySortPreset.Mixed,
         _ => EmbySortPreset.ForCollection(collectionType)
     };
 
@@ -112,7 +128,7 @@ public static class LibraryBrowse
             Fields = display is null
                 ? EmbyFields.Browse
                 : LibraryDisplayCatalog.RequestFields(
-                        LibraryDisplayCatalog.Applied(display.Fields, section, display.View, indexKind))
+                        LibraryDisplayCatalog.Applied(display.Fields, section, display.View, indexKind, collectionType))
                     + (section == LibrarySection.Folders ? ",Status,EndDate" : ""),
             // 「将项目分组到合集中」只有 Items 那条接口认；推荐走 Suggestions，它不声明这个参数，
             // 发过去只会被丢掉，所以那一支明确不谈这件事。
