@@ -26,6 +26,10 @@ public static class EmbySortPreset
     /// <summary>
     /// The preset for a library root, or null when the collection type says nothing useful and every
     /// general key should stay on offer.
+    /// <para>
+    /// "mixed" is deliberately absent: its rows are both films and shows, so either single preset would
+    /// hide keys the other half needs. Null keeps the general catalogue instead of borrowing one of them.
+    /// </para>
     /// </summary>
     public static string? ForCollection(string? collectionType) => collectionType switch
     {

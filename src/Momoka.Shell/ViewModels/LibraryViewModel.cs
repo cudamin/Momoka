@@ -477,7 +477,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal string? SortPreset => IsSectionLibrary
         ? LibraryBrowse.SortPreset(_request!.CollectionType, _request.Section) : _request?.SortPreset;
 
-    internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, CollectionType: "movies" or "tvshows", IsSearch: false };
+    internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, CollectionType: "movies" or "tvshows" or "mixed", IsSearch: false };
     internal LibrarySection Section => _request?.Section ?? LibrarySection.Items;
     internal bool IsBrowseIndex => IsSectionLibrary && LibraryBrowse.IsIndex(Section, _request!.BrowseGroup);
 
@@ -498,9 +498,10 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility BrowseGroupVisibility => Show(IsSectionLibrary && _request?.BrowseGroup is not null);
     public string BrowseGroupLabel => _request?.BrowseGroup ?? "";
     /// <summary>
-    /// 播放全部与随机播放两颗键在不在。电影库与「集」那一页有东西可播；电视剧库的「节目」页装的是剧集本身，
-    /// 一集都播不了 —— 那种页面上两颗键没有意义，整对收起（原来它们藏在「更多」里，那个菜单 2026-10-17 按
-    /// 用户的话删掉了：菜单里除了这两颗常年灰着的键什么都没有）。
+    /// 播放全部与随机播放两颗键在不在。判据是这一页的卡片里有没有能播的：电影库的「影片」、混合内容库的
+    /// 「电影和节目」里的电影、以及「集」那一页都有；电视剧库的「节目」页装的是剧集本身，一集都播不了 ——
+    /// 那种页面上两颗键没有意义，整对收起（原来它们藏在「更多」里，那个菜单 2026-10-17 按用户的话删掉了：
+    /// 菜单里除了这两颗常年灰着的键什么都没有）。
     /// </summary>
     public Visibility DirectPlayVisibility => Show(!IsSectionLibrary
         || (!IsBrowseIndex && _firstPage && Cards.Any(card => card.Item.IsPlayable)));

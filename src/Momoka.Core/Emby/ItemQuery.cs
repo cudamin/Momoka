@@ -270,6 +270,7 @@ public sealed class ItemQuery
     {
         "movies" => [EmbyItemType.Movie, EmbyItemType.Video, EmbyItemType.BoxSet],
         "tvshows" => [EmbyItemType.Series, EmbyItemType.Video],
+        "mixed" => [EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Video],
         "musicvideos" => [EmbyItemType.MusicVideo],
         "trailers" => ["Trailer"],
         _ => []

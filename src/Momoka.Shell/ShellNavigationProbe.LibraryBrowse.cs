@@ -61,9 +61,12 @@ internal sealed partial class ShellNavigationProbe
         LibraryPage? page = null;
         try
         {
-            foreach (var collection in new[] { "movies", "tvshows" })
+            // 三套分类：电影库没有「合集」，混合内容库没有推荐／预告／收藏。电视剧库放最后，
+            // 末尾那段「迟到响应与载入失败」用的就是它的「集」页。
+            foreach (var collection in new[] { "movies", "mixed", "tvshows" })
             {
-                var request = new LibraryRequest { Services = fixture.Services, Title = "离线媒体库", ParentId = "library-a", CollectionType = collection };
+                var libraryId = "library-" + collection;
+                var request = new LibraryRequest { Services = fixture.Services, Title = "离线媒体库", ParentId = libraryId, CollectionType = collection };
                 page?.Release();
                 frame.Navigate(typeof(LibraryPage), request);
                 page = (LibraryPage)frame.Content;
@@ -71,9 +74,25 @@ internal sealed partial class ShellNavigationProbe
                 Require(page.ViewModel.Cards.Count == 1, "媒体库首屏未载入");
                 var tabs = Get<WrapRow>(page, "LibrarySections");
                 var labels = string.Join(',', tabs.Children.OfType<ToggleButton>().Select(tab => tab.Content));
-                Require(labels == (collection == "movies" ? "影片,推荐,预告片,合集,类型,收藏,文件夹" : "节目,推荐,预告,收藏,类型,播出平台,集,文件夹"), "分类顺序与网页不同");
-                Require(Get<Button>(page, "PlayAllButton").Visibility == (collection == "movies" ? Visibility.Visible : Visibility.Collapsed), "电影与电视剧的播放工具栏未分开");
+                var expectedSections = collection switch
+                {
+                    "movies" => "影片,推荐,预告片,类型,收藏,文件夹",
+                    "mixed" => "电影和节目,类型,文件夹",
+                    _ => "节目,推荐,预告,收藏,类型,播出平台,集,文件夹"
+                };
+                Require(labels == expectedSections, $"分类顺序与网页不同（{collection}：{labels}）");
+                Require(Get<Button>(page, "PlayAllButton").Visibility == (collection == "tvshows" ? Visibility.Collapsed : Visibility.Visible), $"{collection} 的播放工具栏不对");
                 Require(Get<TextBlock>(page, "LibraryItemCount").Text == "共 1 项", "工具栏总数未更新");
+                // 两张网页截图：电影库的「影片」开在加入日期降序，混合内容库开在标题升序；
+                // 电视剧库的「节目」也是标题升序。每个库用不同的 ParentId，记忆键互不相干。
+                if (collection == "movies")
+                    Require(page.ViewModel.SortKey == EmbySortBy.DateAdded && page.ViewModel.SortDescending
+                        && page.ViewModel.SortLabel == "加入日期",
+                        $"电影库「影片」的默认排序不是加入日期降序（{page.ViewModel.SortLabel}）");
+                else
+                    Require(page.ViewModel.SortKey == EmbySortBy.Name && !page.ViewModel.SortDescending
+                        && page.ViewModel.SortLabel == "标题",
+                        $"{collection} 的默认排序不是标题升序（{page.ViewModel.SortLabel}）");
                 foreach (var width in new[] { 1100, 760, 520, 360 })
                 {
                     ResizeProbeClient(width, 800);
@@ -132,7 +151,7 @@ internal sealed partial class ShellNavigationProbe
                 await SelectAsync(LibrarySection.Genres);
                 Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed
                     && Get<WrapRow>(page, "LibraryFilterChips").Visibility == Visibility.Collapsed, "类型索引仍有筛选残留");
-                await CheckIndexSectionAsync(page, request, fixture, "genres", EmbyItemType.Genre);
+                await CheckIndexSectionAsync(page, request, fixture, "genres", EmbyItemType.Genre, collection);
                 page.ViewModel.Open(page.ViewModel.Cards[0]);
                 await UntilAsync(() => request.BrowseGroup is not null && page.ViewModel.IsReady && !page.ViewModel.Busy);
                 Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Visible
@@ -149,53 +168,77 @@ internal sealed partial class ShellNavigationProbe
                 await page.ViewModel.LeaveBrowseGroupAsync();
                 await SelectAsync(LibrarySection.Items);
                 Require(page.ViewModel.SortKey == EmbySortBy.DateAdded && page.ViewModel.Filters.Genres.Contains("动画"), "分类切回丢失原排序筛选");
-                await SelectAsync(LibrarySection.Favorites);
-                Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal)).Contains("IsFavorite", StringComparison.Ordinal), "库内收藏未带固定条件");
-                await SelectAsync(collection == "movies" ? LibrarySection.Collections : LibrarySection.Episodes);
-                Require(page.ViewModel.Cards[0].Item.Type == (collection == "movies" ? EmbyItemType.BoxSet : EmbyItemType.Episode), "合集或单集查询没有切换类型");
-                if (collection == "tvshows")
+
+                if (collection != "mixed")
                 {
+                    await SelectAsync(LibrarySection.Favorites);
+                    Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal))
+                        .Contains("IsFavorite", StringComparison.Ordinal), "库内收藏未带固定条件");
+                }
+
+                if (collection == "movies")
+                {
+                    await SelectAsync(LibrarySection.Trailers);
+                    Require(page.ViewModel.Cards[0].Item.Type == EmbyItemType.Trailer, "预告片查询没有切换类型");
+                    Require(Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Collapsed, "预告片页不该有工具栏");
+                }
+                else if (collection == "tvshows")
+                {
+                    await SelectAsync(LibrarySection.Episodes);
+                    Require(page.ViewModel.Cards[0].Item.Type == EmbyItemType.Episode, "集查询没有切换类型");
                     await SelectAsync(LibrarySection.Studios);
-                    await CheckIndexSectionAsync(page, request, fixture, "studios", EmbyItemType.Studio);
+                    await CheckIndexSectionAsync(page, request, fixture, "studios", EmbyItemType.Studio, collection);
                     page.ViewModel.Open(page.ViewModel.Cards[0]);
                     await UntilAsync(() => request.BrowseGroup is not null && page.ViewModel.IsReady && !page.ViewModel.Busy);
                     Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal)).Contains("Studios=", StringComparison.Ordinal), "播出平台没有真正下钻");
                     await page.ViewModel.LeaveBrowseGroupAsync();
                     await UntilAsync(() => !page.ViewModel.Busy);
                 }
-                await SelectAsync(LibrarySection.Recommended);
-                Require(Get<Button>(page, "SortButton").Visibility == Visibility.Collapsed && Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed, "推荐还显示不生效的排序筛选");
-                // 推荐页：电视剧库是三排货架（继续观看／最新集／最近发布的剧集，2026-10-17 用户令），
-                // 电影库照旧是网格（网页端电影库的推荐是另一组行，这一轮没做）。
-                if (collection == "tvshows")
-                {
-                    Require(string.Join(',', page.ViewModel.RecommendedShelves.Select(shelf => shelf.Title)) == "继续观看,最新集,最近发布的剧集", "推荐页三排标题与网页不同");
-                    Require(Get<ScrollViewer>(page, "RecommendedScroll").Visibility == Visibility.Visible
-                        && Get<ItemsRepeater>(page, "RecommendedRows").Visibility == Visibility.Visible
-                        && page.TableScroll.Visibility == Visibility.Collapsed, "推荐页没有把网格换成三排货架");
-                    Require(page.ViewModel.RecommendedShelves.All(shelf => shelf.Cards.Count == 1), "推荐页有一排没载入");
-                    Require(page.ViewModel.RecommendedShelves[0].Cards[0].Subtitle == "S01E07 - 敏北", "继续观看那一排的集号行不对");
-                    Require(page.ViewModel.RecommendedShelves[1].Cards[0].Subtitle == "2006 - 现在"
-                        && page.ViewModel.RecommendedShelves[1].Cards[0].UnplayedVisibility == Visibility.Visible, "最新集那一排的年份或未看角标不对");
-                    Require(page.ViewModel.RecommendedShelves[2].Cards[0].Subtitle == "S01E07 - 敏北", "最近发布的剧集那一排的集号行不对");
-                    Require(fixture.Transport.Requests.Any(value => value.Contains("Items/Resume", StringComparison.Ordinal)
-                        && value.Contains("ParentId=library-a", StringComparison.Ordinal)), "继续观看没有收在本库");
-                    // 两帧：第一屏（继续观看 + 最新集）与滚到底（最近发布的剧集）。三排都在屏上，
-                    // 靠这一对实图，不靠「集合里有三个元素」。
-                    ResizeProbeClient(1100, 800);
-                    await LayoutAsync(page);
-                    await SaveProbeScreenAsync("library-tvshows-recommended-screen.png");
-                    Get<ScrollViewer>(page, "RecommendedScroll").ChangeView(null, double.MaxValue, null, disableAnimation: true);
-                    await LayoutAsync(page);
-                    await SaveProbeScreenAsync("library-tvshows-recommended-bottom-screen.png");
-                    Get<ScrollViewer>(page, "RecommendedScroll").ChangeView(null, 0, null, disableAnimation: true);
-                    ResizeProbeClient(900, 700);
-                    await LayoutAsync(page);
-                }
                 else
                 {
-                    Require(page.ViewModel.RecommendedShelves.Count == 0 && page.TableScroll.Visibility == Visibility.Visible
-                        && Get<ScrollViewer>(page, "RecommendedScroll").Visibility == Visibility.Collapsed, "电影库的推荐不该变成三排");
+                    // 混合内容库只有三个分区：推荐、预告、收藏、集与播出平台一个都不该冒出来。
+                    Require(page.ViewModel.BrowseSections.All(entry => entry.Section is
+                        LibrarySection.Items or LibrarySection.Genres or LibrarySection.Folders),
+                        "混合内容库混进了别的库的分区");
+                }
+
+                if (collection != "mixed")
+                {
+                    await SelectAsync(LibrarySection.Recommended);
+                    Require(Get<Button>(page, "SortButton").Visibility == Visibility.Collapsed
+                        && Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed, "推荐还显示不生效的排序筛选");
+                    // 推荐页：电视剧库是三排货架（继续观看／最新集／最近发布的剧集，2026-10-17 用户令），
+                    // 电影库照旧是网格（网页端电影库的推荐是另一组行，这一轮没做）。
+                    if (collection == "tvshows")
+                    {
+                        Require(string.Join(',', page.ViewModel.RecommendedShelves.Select(shelf => shelf.Title)) == "继续观看,最新集,最近发布的剧集", "推荐页三排标题与网页不同");
+                        Require(Get<ScrollViewer>(page, "RecommendedScroll").Visibility == Visibility.Visible
+                            && Get<ItemsRepeater>(page, "RecommendedRows").Visibility == Visibility.Visible
+                            && page.TableScroll.Visibility == Visibility.Collapsed, "推荐页没有把网格换成三排货架");
+                        Require(page.ViewModel.RecommendedShelves.All(shelf => shelf.Cards.Count == 1), "推荐页有一排没载入");
+                        Require(page.ViewModel.RecommendedShelves[0].Cards[0].Subtitle == "S01E07 - 敏北", "继续观看那一排的集号行不对");
+                        Require(page.ViewModel.RecommendedShelves[1].Cards[0].Subtitle == "2006 - 现在"
+                            && page.ViewModel.RecommendedShelves[1].Cards[0].UnplayedVisibility == Visibility.Visible, "最新集那一排的年份或未看角标不对");
+                        Require(page.ViewModel.RecommendedShelves[2].Cards[0].Subtitle == "S01E07 - 敏北", "最近发布的剧集那一排的集号行不对");
+                        Require(fixture.Transport.Requests.Any(value => value.Contains("Items/Resume", StringComparison.Ordinal)
+                            && value.Contains($"ParentId={libraryId}", StringComparison.Ordinal)), "继续观看没有收在本库");
+                        // 两帧：第一屏（继续观看 + 最新集）与滚到底（最近发布的剧集）。三排都在屏上，
+                        // 靠这一对实图，不靠「集合里有三个元素」。
+                        ResizeProbeClient(1100, 800);
+                        await LayoutAsync(page);
+                        await SaveProbeScreenAsync("library-tvshows-recommended-screen.png");
+                        Get<ScrollViewer>(page, "RecommendedScroll").ChangeView(null, double.MaxValue, null, disableAnimation: true);
+                        await LayoutAsync(page);
+                        await SaveProbeScreenAsync("library-tvshows-recommended-bottom-screen.png");
+                        Get<ScrollViewer>(page, "RecommendedScroll").ChangeView(null, 0, null, disableAnimation: true);
+                        ResizeProbeClient(900, 700);
+                        await LayoutAsync(page);
+                    }
+                    else
+                    {
+                        Require(page.ViewModel.RecommendedShelves.Count == 0 && page.TableScroll.Visibility == Visibility.Visible
+                            && Get<ScrollViewer>(page, "RecommendedScroll").Visibility == Visibility.Collapsed, "电影库的推荐不该变成三排");
+                    }
                 }
                 await SelectAsync(LibrarySection.Folders);
                 Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal)).Contains("Recursive=false", StringComparison.Ordinal), "文件夹被拍平");
@@ -217,6 +260,14 @@ internal sealed partial class ShellNavigationProbe
                     Require(string.Join(',', sortLabels)
                         == "IMDb 评分,上次发布集日期,上次添加集日期,加入日期,发行日期,家长评分,导演,年份,影评人评分,播放日期,播放时长,标题,随机",
                         "电视剧库的排序菜单与网页端不同");
+                }
+                else if (collection == "mixed")
+                {
+                    // 混合内容库没有电影或电视剧预设：节目名称、上次添加集日期这些剧集／剧集专用的键
+                    // 不该跟着电影库的名单混进来。
+                    Require(!sortLabels.Contains("节目名称") && !sortLabels.Contains("上次添加集日期")
+                        && !sortLabels.Contains("上次发布集日期") && sortLabels.Contains("加入日期"),
+                        "混合内容库的排序菜单混进了电视剧专用的键");
                 }
                 await SaveProbeScreenAsync($"library-{collection}-sort-screen.png");
 
@@ -242,6 +293,13 @@ internal sealed partial class ShellNavigationProbe
                         == "播放状态,收藏,重制,类型,家长评分,工作室,年份,状态,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
                         $"电视剧库的筛选面板与网页端不同：{string.Join(',', rows)}");
                 }
+                else if (collection == "mixed")
+                {
+                    // 混合内容库没有电影／电视剧预设，只留两种条目都认的通用行：没有「重制」、
+                    // 没有「状态」、没有缺少元数据那一组，也不问媒体流。
+                    Require(string.Join(',', rows) == "播放状态,收藏,类型,家长评分,工作室,标签,年份,画质,3D,字幕",
+                        $"混合内容库的筛选面板不对：{string.Join(',', rows)}");
+                }
                 else
                 {
                     Require(rows.Contains("画质") && rows.Contains("字幕") && !rows.Contains("状态"),
@@ -255,7 +313,7 @@ internal sealed partial class ShellNavigationProbe
                 // IsResumable（listcontroller.js 的 getVisibleFilters），剧集没有断点，所以「节目」这一页
                 // 的下拉里没有「可继续播放」（EmbyFilterBy.ChoicesFor 的 NotFor 就是这一条）。
                 Require(string.Join(',', playState.Choices)
-                    == (collection == "movies" ? "全部,已播放,未播放,可继续播放" : "全部,已播放,未播放"),
+                    == (collection == "tvshows" ? "全部,已播放,未播放" : "全部,已播放,未播放,可继续播放"),
                     $"播放状态的选项不对：{string.Join(',', playState.Choices)}");
                 playState.SelectedIndex = 2;
                 await UntilAsync(() => !page.ViewModel.Busy);
@@ -592,7 +650,7 @@ internal sealed partial class ShellNavigationProbe
     /// </para>
     /// </summary>
     private async Task CheckIndexSectionAsync(LibraryPage page, LibraryRequest request, Fixture fixture,
-        string name, string itemType)
+        string name, string itemType, string collection)
     {
         var indexKind = itemType == EmbyItemType.Genre ? LibraryIndexKind.Genre : LibraryIndexKind.Studio;
         Require(page.ViewModel.IndexKind == indexKind, $"「{name}」这一页没有认出自己是索引页");
@@ -652,7 +710,7 @@ internal sealed partial class ShellNavigationProbe
                 $"「{name}」在 {width} 宽的窗口里卡片被裁掉了（卡 {paint.Card:0}，页 {page.ActualWidth:0}）");
             Require(Math.Abs(paint.Card - paint.Cell) <= 1,
                 $"「{name}」在 {width} 宽时卡片没填满格子（卡 {paint.Card:0}，格 {paint.Cell:0}）");
-            await SaveProbeScreenAsync($"library-tvshows-{name}-{width}-screen.png");
+            await SaveProbeScreenAsync($"library-{collection}-{name}-{width}-screen.png");
         }
 
         ResizeProbeClient(900, 700);

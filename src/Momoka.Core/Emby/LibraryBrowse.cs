@@ -2,7 +2,7 @@ namespace Momoka.Emby;
 
 public enum LibrarySection
 {
-    Items, Recommended, Trailers, Collections, Genres, Favorites, Studios, Episodes, Folders, Upcoming
+    Items, Recommended, Trailers, Genres, Favorites, Studios, Episodes, Folders, Upcoming
 }
 
 /// <summary>
@@ -34,19 +34,35 @@ public sealed record LibrarySectionEntry(LibrarySection Section, string Label);
 /// <summary>Library identity stays in every section query, including genre/studio drill-downs.</summary>
 public static class LibraryBrowse
 {
+    /// <summary>
+    /// 这个库的分类栏，按网页端的顺序。**三套名单互不通用**：电影库没有「合集」，混合内容库没有推荐、
+    /// 预告与收藏，电视剧库也没有「合集」。名单照用户给的网页截图定，不因为别的库有这一项就补进来 ——
+    /// 补一项就是给这一页装一个网页端没有的分区。
+    /// </summary>
     public static IReadOnlyList<LibrarySectionEntry> Sections(string? collectionType, MediaServerKind serverKind)
     {
-        var movies = collectionType == "movies";
-        if (!movies && collectionType != "tvshows") return [];
-        List<LibrarySectionEntry> entries = movies
-            ? [new(LibrarySection.Items, "影片"), new(LibrarySection.Recommended, "推荐"),
-                new(LibrarySection.Trailers, "预告片"), new(LibrarySection.Collections, "合集"),
-                new(LibrarySection.Genres, "类型"), new(LibrarySection.Favorites, "收藏"),
-                new(LibrarySection.Folders, "文件夹")]
-            : [new(LibrarySection.Items, "节目"), new(LibrarySection.Recommended, "推荐"),
+        List<LibrarySectionEntry> entries = collectionType switch
+        {
+            "movies" =>
+            [
+                new(LibrarySection.Items, "影片"), new(LibrarySection.Recommended, "推荐"),
+                new(LibrarySection.Trailers, "预告片"), new(LibrarySection.Genres, "类型"),
+                new(LibrarySection.Favorites, "收藏"), new(LibrarySection.Folders, "文件夹")
+            ],
+            "tvshows" =>
+            [
+                new(LibrarySection.Items, "节目"), new(LibrarySection.Recommended, "推荐"),
                 new(LibrarySection.Upcoming, "预告"), new(LibrarySection.Favorites, "收藏"),
                 new(LibrarySection.Genres, "类型"), new(LibrarySection.Studios, "播出平台"),
-                new(LibrarySection.Episodes, "集"), new(LibrarySection.Folders, "文件夹")];
+                new(LibrarySection.Episodes, "集"), new(LibrarySection.Folders, "文件夹")
+            ],
+            "mixed" =>
+            [
+                new(LibrarySection.Items, "电影和节目"), new(LibrarySection.Genres, "类型"),
+                new(LibrarySection.Folders, "文件夹")
+            ],
+            _ => []
+        };
         // Jellyfin Suggestions has no ParentId: it cannot recommend within this library.
         // Other adapters don't implement the named indexes or physical folder hierarchy.
         return [.. entries.Where(entry => serverKind switch
@@ -73,7 +89,6 @@ public static class LibraryBrowse
     public static string? SortPreset(string? collectionType, LibrarySection section) => section switch
     {
         LibrarySection.Episodes or LibrarySection.Upcoming => EmbySortPreset.Episode,
-        LibrarySection.Collections => EmbySortPreset.BoxSet,
         LibrarySection.Trailers => EmbySortPreset.Trailer,
         LibrarySection.Folders => null,
         _ => EmbySortPreset.ForCollection(collectionType)
@@ -106,10 +121,15 @@ public static class LibraryBrowse
             IncludeItemTypes = section switch
             {
                 LibrarySection.Episodes => [EmbyItemType.Episode],
-                LibrarySection.Collections => [EmbyItemType.BoxSet],
                 LibrarySection.Trailers => [EmbyItemType.Trailer],
                 LibrarySection.Folders => [],
-                _ => collectionType == "movies" ? [EmbyItemType.Movie, EmbyItemType.Video] : [EmbyItemType.Series, EmbyItemType.Video]
+                // 「电影和节目」是同一格里并排的两种条目；电影库与电视剧库各自只要自己那一类。
+                _ => collectionType switch
+                {
+                    "movies" => [EmbyItemType.Movie, EmbyItemType.Video],
+                    "mixed" => [EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Video],
+                    _ => [EmbyItemType.Series, EmbyItemType.Video]
+                }
             },
             SortBy = index ? EmbySortBy.Name : section == LibrarySection.Recommended ? "" : sort,
             Descending = !index && descending,

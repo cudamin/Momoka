@@ -32,8 +32,8 @@ internal sealed record LibraryRequest
     public EmbySessionScope? Source { get; init; }
 
     /// <summary>
-    /// Emby's own collection type for a library root ("movies", "tvshows"). What decides whether the
-    /// query is recursive: see <see cref="ItemQuery.FlattenedTypes"/>.
+    /// Emby's own collection type for a library root ("movies", "tvshows", "mixed"). What decides whether
+    /// the query is recursive: see <see cref="ItemQuery.FlattenedTypes"/>.
     /// </summary>
     public string? CollectionType { get; init; }
 

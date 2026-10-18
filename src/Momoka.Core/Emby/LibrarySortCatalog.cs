@@ -38,7 +38,11 @@ public static class LibrarySortCatalog
         section is LibrarySection.Episodes or LibrarySection.Folders
             ? For(collectionType, section).First(option => option.Value ==
                 (section == LibrarySection.Episodes ? EpisodeOrder : Filename))
-            : EmbySortBy.Default(LibraryBrowse.SortPreset(collectionType, section));
+            // 网页端电影库的「影片」开在加入日期降序；混合内容库没有电影或电视剧预设，标题升序就是
+            // null 预设下的默认，两张网页截图里的排序键正是这两条。
+            : collectionType == "movies" && section == LibrarySection.Items
+                ? EmbySortBy.Find(EmbySortBy.DateAdded) ?? EmbySortBy.Default(EmbySortPreset.Movie)
+                : EmbySortBy.Default(LibraryBrowse.SortPreset(collectionType, section));
 
     private static string Label(EmbySortOption option) => option.Value switch
     {

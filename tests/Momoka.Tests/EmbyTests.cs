@@ -450,6 +450,8 @@ internal static class EmbyTests
             Assert.Contains(EmbyItemType.Video, movies, "未识别的视频文件也要显示");
 
             Assert.Contains(EmbyItemType.Series, string.Join(',', ItemQuery.FlattenedTypes("tvshows")));
+            // 混合内容库的根目录装的是电影和节目两种条目，递归展开要一起列出来。
+            Assert.Equal("Movie,Series,Video", string.Join(',', ItemQuery.FlattenedTypes("mixed")));
             Assert.Contains(EmbyItemType.MusicVideo, string.Join(',', ItemQuery.FlattenedTypes("musicvideos")));
 
             // 文件夹、合集、家庭视频照旧一层层翻，递归展开只对媒体库根目录成立
