@@ -24,7 +24,9 @@ internal static class AniBtIntegrationTests
             foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
             {
                 var item = new EmbyItem { Type = type, Genres = ["动漫"] };
-                Assert.True(ItemMenu.For(item, true).Any(row => row.Command == ItemCommand.AniBtScrape));
+                var scrape = ItemMenu.For(item, true).Single(row => row.Command == ItemCommand.AniBtScrape);
+                Assert.Equal("AniBT 识别", scrape.Label);
+                Assert.DoesNotContain("重新刮削", scrape.Label);
                 var versions = ItemMenu.For(item, true).Single(row => row.Command == ItemCommand.MoviePilotVersions);
                 Assert.Equal("搜索不同版本", versions.Label);
                 Assert.True(versions.Children!.Select(row => row.Command!.Value)
@@ -171,73 +173,160 @@ internal static class AniBtIntegrationTests
             Assert.Equal(1, feed.Requests);
         });
 
-        Test("AniBT 候选：未返回的选择不能触发任何 MP 刮削准备", () =>
+        Test("AniBT 候选：未返回的选择不能触发任何重新整理准备", () =>
         {
             using var transport = BaseTransport();
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            Assert.Throws<MoviePilotOperationBlockedException>(() => integration.SubmitAsync(Plan(service, Target),
-                [Anime with { BgmId = 99 }], CancellationToken.None).GetAwaiter().GetResult());
+            Assert.Throws<MoviePilotOperationBlockedException>(() => integration.SubmitAsync(Emby(transport),
+                Plan(service, (Target, History(service, 7, Target))), [Anime with { BgmId = 99 }],
+                CancellationToken.None).GetAwaiter().GetResult());
             Assert.Equal(0, transport.SentTo("media/source").Count);
+            Assert.Equal(0, transport.SentTo("transfer/manual").Count);
+        });
+
+        Test("AniBT 确认：按原整理记录预览并调用 MP 重新整理", () =>
+        {
+            using var transport = TransferTransport(Target, Target);
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var result = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+                [Anime], CancellationToken.None).GetAwaiter().GetResult();
+            Assert.True(result.Single().Success);
+            Assert.Contains("已重新整理到", result.Single().Message);
+            var calls = transport.SentTo("transfer/manual?");
+            Assert.Equal(2, calls.Count);
+            var preview = Json(calls[0].Body);
+            Assert.True(preview.GetProperty("preview").GetBoolean());
+            Assert.Equal(7, preview.GetProperty("logid").GetInt64());
+            Assert.Equal("bangumi", preview.GetProperty("media_source").GetString());
+            Assert.Equal("42", preview.GetProperty("media_id").GetString());
+            Assert.Equal(MoviePilotTransferRequest.TypeSeries, preview.GetProperty("type_name").GetString());
+            Assert.True(preview.GetProperty("reorganize").GetBoolean());
+            Assert.False(preview.GetProperty("from_history").GetBoolean());
+            Assert.False(preview.GetProperty("skip_success").GetBoolean());
+            Assert.Equal("/library/匿名动画 (2026)", preview.GetProperty("target_path").GetString());
+            Assert.Equal("move", preview.GetProperty("transfer_type").GetString());
+            Assert.True(preview.GetProperty("scrape").GetBoolean());
+            Assert.Equal(1, preview.GetProperty("season").GetInt32());
+            Assert.Equal("1", preview.GetProperty("episode_detail").GetString());
+            var submit = Json(calls[1].Body);
+            Assert.False(submit.GetProperty("preview").GetBoolean());
+            Assert.Contains("background=false", calls[1].Url);
             Assert.Equal(0, transport.SentTo("media/scrape").Count);
         });
 
         Test("AniBT 批量：第二个目标不是精确文件时，第一集也不能先写", () =>
         {
-            using var transport = ScrapeTransport().Sequence("storage/list",
-                (HttpStatusCode.OK, FileReply(Target)),
-                (HttpStatusCode.OK, """{"success":true,"data":[{"storage":"local","type":"dir","path":"/library/Anime S01E02.mkv"}]}"""));
+            const string next = "/library/Anime S01E02.mkv";
+            using var transport = BaseTransport().Answer("media/source", Sources).Answer("media/42?", Media)
+                .Answer("transfer/manual/target-path", TargetReply)
+                .Answer("history/transfer", HistoriesJson((7, Target), (8, next)))
+                .Sequence("storage/list", (HttpStatusCode.OK, FileReply(Target)),
+                    (HttpStatusCode.OK, """{"success":true,"data":[{"storage":"local","type":"dir","path":"/library/Anime S01E02.mkv"}]}"""))
+                .Sequence("transfer/manual?", (HttpStatusCode.OK, PreviewReply(Target)));
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            Assert.Throws<MoviePilotException>(() => integration.SubmitAsync(Plan(service, Target, "/library/Anime S01E02.mkv"),
+            Assert.Throws<MoviePilotException>(() => integration.SubmitAsync(Emby(transport),
+                Plan(service, (Target, History(service, 7, Target)), (next, History(service, 8, next))),
                 [Anime, Anime], CancellationToken.None).GetAwaiter().GetResult());
             Assert.Equal(2, transport.SentTo("storage/list").Count);
-            Assert.Equal(0, transport.SentTo("media/scrape").Count);
+            Assert.Equal(1, transport.SentTo("transfer/manual?").Count(response => Json(response.Body).GetProperty("preview").GetBoolean()));
+            Assert.Equal(0, transport.SentTo("transfer/manual?").Count(response => !Json(response.Body).GetProperty("preview").GetBoolean()));
         });
 
-        Test("AniBT 刮削：当前文件无集号时停止，不把 AniBT 季号当可写参数", () =>
+        Test("AniBT 没有原整理记录：自动用 Emby 识别并刷新元数据", () =>
         {
-            using var transport = ScrapeTransport().Answer("media/recognize_file", """{"meta_info":{"begin_season":2}}""");
+            using var transport = BaseTransport()
+                .Answer("Items/RemoteSearch/Series",
+                    """[{"Name":"匿名动画","ProductionYear":2026,"ProviderIds":{"Tmdb":"999"},"SearchProviderName":"TheMovieDb"}]""")
+                .Answer("RemoteSearch/Apply", "")
+                .Answer("Items/series-1/Refresh", "");
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            Assert.Throws<MoviePilotOperationBlockedException>(() => integration.SubmitAsync(Plan(service, Target),
-                [Anime], CancellationToken.None).GetAwaiter().GetResult());
-            Assert.Equal(0, transport.SentTo("media/scrape").Count);
-        });
-
-        Test("AniBT 刮削防重：重开计划和改候选不能重复写同一目标", () =>
-        {
-            using var transport = ScrapeTransport();
-            using var service = Service(transport);
-            using var client = new AniBtClient(new StubTransport());
-            var integration = new AniBtService(client, service);
-            var first = integration.SubmitAsync(Plan(service, Target), [Anime], CancellationToken.None).GetAwaiter().GetResult();
-            var second = integration.SubmitAsync(Plan(service, Target), [Anime], CancellationToken.None).GetAwaiter().GetResult();
-            Assert.True(first.Single().Success);
-            Assert.False(second.Single().Success);
-            var sent = transport.Only("media/scrape");
-            Assert.Equal("POST", sent.Method);
-            Assert.Contains("media/scrape/local?media_source=bangumi&media_id=42", sent.Url);
-            Assert.Equal("file", Json(sent.Body).GetProperty("type").GetString());
-            Assert.Equal(Target, Json(sent.Body).GetProperty("path").GetString());
+            var result = integration.SubmitAsync(Emby(transport), Plan(service, (Target, null)),
+                [Anime], CancellationToken.None).GetAwaiter().GetResult();
+            Assert.True(result.Single().Success);
+            Assert.Contains("Emby 识别", result.Single().Message);
+            var search = transport.Only("RemoteSearch/Series");
+            Assert.Equal("POST", search.Method);
+            var query = Json(search.Body).GetProperty("SearchInfo");
+            Assert.Equal("匿名动画", query.GetProperty("Name").GetString());
+            Assert.Equal("series-1", Json(search.Body).GetProperty("ItemId").GetString());
+            Assert.Contains("ReplaceAllImages=true", transport.Only("RemoteSearch/Apply").Url);
+            var refresh = transport.Only("Items/series-1/Refresh");
+            Assert.Contains("ReplaceAllMetadata=true", refresh.Url);
+            Assert.Contains("ReplaceAllImages=true", refresh.Url);
             Assert.Equal(0, transport.SentTo("transfer/manual").Count);
         });
 
-        Test("AniBT 未知回执：连接恢复后新计划仍不能重发同一目标", () =>
+        Test("AniBT 没有原整理记录：Emby 也找不到时停止，不写任何文件", () =>
         {
-            using var transport = ScrapeTransport().Throw("media/scrape", new HttpRequestException("fixture failure"));
+            using var transport = BaseTransport().Answer("Items/RemoteSearch/Series", "[]");
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            var first = integration.SubmitAsync(Plan(service, Target), [Anime], CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Throws<MoviePilotOperationBlockedException>(() => integration.SubmitAsync(Emby(transport),
+                Plan(service, (Target, null)), [Anime], CancellationToken.None).GetAwaiter().GetResult());
+            Assert.Equal(0, transport.SentTo("RemoteSearch/Apply").Count);
+            Assert.Equal(0, transport.SentTo("transfer/manual").Count);
+        });
+
+        Test("AniBT 多个文件识别成不同番剧：Emby 识别只落一部，拒绝整批", () =>
+        {
+            using var transport = BaseTransport();
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var plan = new AniBtScrapePlan(
+                [
+                    new(Target, MoviePilotTransfer.PathName(Target), Multiple, null),
+                    new("/library/Anime S01E02.mkv", "Anime S01E02.mkv", Multiple, null)
+                ], MoviePilotTransferRequest.TypeSeries, service.CaptureAniBtConnection(),
+                IdentifyItem(), 1, "");
+            Assert.Throws<MoviePilotOperationBlockedException>(() => integration.SubmitAsync(Emby(transport), plan,
+                [Anime, OtherAnime], CancellationToken.None).GetAwaiter().GetResult());
+            Assert.Equal(0, transport.SentTo("RemoteSearch").Count);
+        });
+
+        Test("AniBT 重新整理防重：重开计划不能重复提交同一条原记录", () =>
+        {
+            using var transport = TransferTransport(Target, Target, Target);
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var first = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+                [Anime], CancellationToken.None).GetAwaiter().GetResult();
+            var second = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+                [Anime], CancellationToken.None).GetAwaiter().GetResult();
+            Assert.True(first.Single().Success);
+            Assert.False(second.Single().Success);
+            var calls = transport.SentTo("transfer/manual?");
+            Assert.Equal(3, calls.Count);
+            Assert.Equal(1, calls.Count(response => !Json(response.Body).GetProperty("preview").GetBoolean()));
+        });
+
+        Test("AniBT 未知回执：连接恢复后新计划仍不能重发同一原记录", () =>
+        {
+            var manualCalls = 0;
+            using var transport = TransferTransport(Target, Target, Target)
+                .When("transfer/manual?", () => { if (++manualCalls == 2) throw new HttpRequestException("fixture failure"); });
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var first = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+                [Anime], CancellationToken.None).GetAwaiter().GetResult();
             Assert.False(first.Single().Success);
             Assert.True(service.RefreshAvailabilityAsync().GetAwaiter().GetResult());
-            var second = integration.SubmitAsync(Plan(service, Target), [Anime], CancellationToken.None).GetAwaiter().GetResult();
+            var second = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+                [Anime], CancellationToken.None).GetAwaiter().GetResult();
             Assert.False(second.Single().Success);
-            Assert.Equal(1, transport.SentTo("media/scrape").Count);
+            Assert.Equal(3, transport.SentTo("transfer/manual?").Count);
+            Assert.Equal(1, transport.SentTo("transfer/manual?").Count(response => !Json(response.Body).GetProperty("preview").GetBoolean()));
         });
 
         Test("AniBT 连接代次：配置 A 切到 B 再切回 A，旧计划和资源仍失效", () =>
@@ -260,25 +349,106 @@ internal static class AniBtIntegrationTests
         {
             const string next = "/library/Anime S01E02.mkv";
             var current = true;
-            using var transport = ScrapeTransport().Sequence("storage/list",
-                (HttpStatusCode.OK, FileReply(Target)), (HttpStatusCode.OK, FileReply(next)),
-                (HttpStatusCode.OK, FileReply(Target))).When("media/scrape", () => current = false);
+            int manualCalls = 0;
+            using var transport = BaseTransport().Answer("media/source", Sources).Answer("media/42?", Media)
+                .Answer("transfer/manual/target-path", TargetReply)
+                .Answer("history/transfer", HistoriesJson((7, Target), (8, next)))
+                .Sequence("storage/list", (HttpStatusCode.OK, FileReply(Target)), (HttpStatusCode.OK, FileReply(next)))
+                .Sequence("transfer/manual?",
+                    (HttpStatusCode.OK, PreviewReply(Target)), (HttpStatusCode.OK, PreviewReply(next)),
+                    (HttpStatusCode.OK, SubmitReply(Target)), (HttpStatusCode.OK, SubmitReply(next)))
+                .When("transfer/manual?", () => { if (++manualCalls == 3) current = false; });
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            var result = integration.SubmitAsync(Plan(service, Target, next), [Anime, Anime], CancellationToken.None, () => current)
-                .GetAwaiter().GetResult();
+            var result = integration.SubmitAsync(Emby(transport),
+                Plan(service, (Target, History(service, 7, Target)), (next, History(service, 8, next))),
+                [Anime, Anime], CancellationToken.None, () => current).GetAwaiter().GetResult();
             Assert.Equal(2, result.Count);
             Assert.True(result[0].Success);
             Assert.False(result[1].Success);
-            Assert.Equal(1, transport.SentTo("media/scrape").Count);
+            Assert.Equal(1, transport.SentTo("transfer/manual?").Count(response => !Json(response.Body).GetProperty("preview").GetBoolean()));
         });
     }
 
-    private static AniBtScrapePlan Plan(MoviePilotService service, params string[] paths) => new(
-        paths.Select(path => new AniBtScrapeRow(path, MoviePilotTransfer.PathName(path),
-            new([Anime], Anime, "auto", "high", "fixture", 1))).ToArray(),
-        MoviePilotTransferRequest.TypeSeries, service.CaptureAniBtConnection());
+    private const string TransferTarget = "/library/匿名动画 (2026)/Season 01/匿名动画 S01E01.mkv";
+    private const string HistorySource = "/downloads/[Group] Original - 01.mkv";
+    private const string TargetReply = """
+        {"success":true,"data":{"target_storage":"local","target_path":"/library/匿名动画 (2026)",
+         "transfer_type":"move","scrape":true,"library_type_folder":false,"library_category_folder":false}}
+        """;
+    private static readonly AniBtAnime OtherAnime = new("ani_other", 43, "另一部匿名动画");
+    private static readonly AniBtMatch Multiple = new([Anime, OtherAnime], null, "manual", "low", "fixture", 1);
+
+    private static AniBtScrapePlan Plan(MoviePilotService service,
+        params (string Path, MoviePilotTransferHistory? History)[] rows) => new(
+        rows.Select(row => new AniBtScrapeRow(row.Path, MoviePilotTransfer.PathName(row.Path),
+            new([Anime], Anime, "auto", "high", "fixture", 1), row.History)).ToArray(),
+        MoviePilotTransferRequest.TypeSeries, service.CaptureAniBtConnection(), IdentifyItem(), 1, "1");
+
+    private static EmbyItem IdentifyItem() => new()
+    { Id = "episode-1", Name = "第一集", Type = EmbyItemType.Episode, SeriesId = "series-1" };
+
+    private static MoviePilotTransferHistory History(MoviePilotService service, long id, string target)
+    {
+        var record = MoviePilotTransferHistory.Parse(Json(HistoriesJson((id, target))).GetProperty("list")[0])!;
+        return record with { ConnectionStamp = service.ConnectionStamp };
+    }
+
+    private static string HistoriesJson(params (long Id, string Target)[] records) => JsonSerializer.Serialize(new
+    {
+        list = records.Select(record => new
+        {
+            id = record.Id,
+            title = "匿名动画",
+            type = MoviePilotTransferRequest.TypeSeries,
+            media_source = "bangumi",
+            media_id = "42",
+            seasons = "S01",
+            episodes = "E01",
+            mode = "move",
+            status = true,
+            date = "2026-10-01 12:00:00",
+            src_fileitem = new { storage = "local", type = "file", path = HistorySource },
+            dest_fileitem = new { storage = "local", type = "file", path = record.Target }
+        }).ToArray(),
+        total = records.Length
+    });
+
+    private static StubTransport TransferTransport(params string[] sources)
+    {
+        var answers = new List<(HttpStatusCode, string)>();
+        foreach (var source in sources)
+        {
+            answers.Add((HttpStatusCode.OK, PreviewReply(source)));
+            answers.Add((HttpStatusCode.OK, SubmitReply(source)));
+        }
+        return BaseTransport().Answer("media/source", Sources).Answer("media/42?", Media)
+            .Answer("history/transfer", HistoriesJson((7, Target)))
+            .Answer("transfer/manual/target-path", TargetReply)
+            .Answer("storage/list", FileReply(Target))
+            .Sequence("transfer/manual?", [.. answers]);
+    }
+
+    private static string PreviewReply(string source) => JsonSerializer.Serialize(new
+    {
+        success = true,
+        data = new
+        {
+            items = new[] { new { source, target = TransferTarget, title = "匿名动画", success = true, state = "preview" } },
+            message = ""
+        }
+    });
+
+    private static string SubmitReply(string source) => JsonSerializer.Serialize(new
+    {
+        success = true,
+        data = new
+        {
+            items = new[] { new { source, target = TransferTarget, title = "匿名动画", success = true, state = "completed" } },
+            message = ""
+        }
+    });
 
     private static AniBtRelease Release() => new("rel_fixture", "匿名动画 - 01",
         new("https://anibt.net/api/torrent/rel_fixture.torrent"), new("https://anibt.net/resource/rel_fixture"), 1234);
@@ -286,10 +456,10 @@ internal static class AniBtIntegrationTests
     private static StubTransport BaseTransport() => new StubTransport().Answer("login/access-token", Session)
         .Answer("dashboard/system", """{"version":"v3.1.3"}""");
 
-    private static StubTransport ScrapeTransport() => BaseTransport().Answer("media/source", Sources).Answer("media/42?", Media)
-        .Answer("storage/list", FileReply(Target))
-        .Answer("media/recognize_file", """{"meta_info":{"begin_season":1,"begin_episode":1}}""")
-        .Answer("media/scrape", """{"success":true,"message":"fixture processed"}""");
+    private static EmbyClient Emby(StubTransport transport) => new(
+        new EmbyHttp(transport),
+        new EmbyConnection(new Uri("http://192.0.2.10:8096/"), "fixture-token", "user", "fixture-user", "Fixture",
+            DeviceIdentity.Create("fixture-device", "1.0")));
 
     private static string FileReply(string path) => JsonSerializer.Serialize(new { success = true, data = new[] { new { storage = "local", type = "file", path } } });
     private static JsonElement Json(string text) => JsonSerializer.Deserialize<JsonElement>(text);

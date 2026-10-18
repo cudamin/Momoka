@@ -83,7 +83,7 @@ public enum ItemCommand
     /// </summary>
     MoviePilotReorganize,
 
-    /// <summary>用原文件名交 AniBT 识别，再由 MoviePilot 重新刮削。</summary>
+    /// <summary>用原文件名交 AniBT 识别；确认后按 MoviePilot 原记录重新整理，没有记录时用 Emby 识别。</summary>
     AniBtScrape,
 
     /// <summary>直接使用 AniBT Open API 搜索番剧及其资源。</summary>
@@ -267,7 +267,7 @@ public static class ItemMenu
         {
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
                 [new(ItemCommand.MoviePilotVersions, "使用 MoviePilot"), new(ItemCommand.AniBtVersions, "使用 AniBT API 搜索")]);
-            rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别并重新刮削…"));
+            rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         }
         return rows;
     }

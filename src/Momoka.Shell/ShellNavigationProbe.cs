@@ -62,7 +62,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("搜索分类、最近搜索和三种来源分流", SearchInteractionAsync);
             await CaseAsync("AniBT 搜索、资源、取消下载和连接隔离", AniBtSearchAsync);
             await CaseAsync("遗漏集来源菜单、AniBT 分集查询与下载选项", AniBtEpisodeSearchAsync);
-            await CaseAsync("AniBT 逐文件识别、候选绑定和取消刮削", AniBtScrapeAsync);
+            await CaseAsync("AniBT 逐文件识别、候选绑定和取消重新整理", AniBtScrapeAsync);
             await CaseAsync("MoviePilot 连接控制入口、断线回退与恢复", MoviePilotAvailabilityAsync);
             await CaseAsync("主页媒体库与订阅混排、显隐及偏好恢复", HomeOrderAsync, 45);
             await CaseAsync("多账号主页、聚合搜索分页与媒体库详情来源", AggregateBrowsingAsync, 45);

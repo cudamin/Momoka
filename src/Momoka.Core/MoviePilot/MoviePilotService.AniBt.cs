@@ -6,7 +6,7 @@ namespace Momoka.MoviePilot;
 
 internal sealed record MoviePilotAniBtConnection(string Stamp, long Generation);
 
-internal sealed record MoviePilotAniBtScrapeTarget(string Path, string MediaId, string Type, JsonElement File);
+internal sealed record MoviePilotAniBtTransfer(MoviePilotTransferRequest Request, JsonElement File);
 
 public sealed partial class MoviePilotService
 {
@@ -102,54 +102,54 @@ public sealed partial class MoviePilotService
         return media.Clone();
     }
 
-    internal async Task<MoviePilotAniBtScrapeTarget> PrepareAniBtScrapeAsync(string targetPath, AniBtAnime anime,
-        string expectedType, MoviePilotAniBtConnection connection, CancellationToken cancellationToken)
+    /// <summary>
+    /// 按原整理记录和 AniBT 选中的 Bangumi 身份准备一次真正的 MoviePilot 手动整理（重新整理）。
+    /// <para>
+    /// 源文件必须走 <see cref="MoviePilotTransferHistory.TransferPath"/>：成功 move 的记录指向 Emby 现在看到的
+    /// 目标，复制/软链接记录则指向仍存在的原下载源；直接拿 Emby 路径调用 <c>storage/list</c> 会在后两种记录上
+    /// 问错文件。目的目录、整理方式和分类开关整组取自该记录的 <c>transfer/manual/target-path</c>，不按默认值另拼。
+    /// </para>
+    /// </summary>
+    internal async Task<MoviePilotAniBtTransfer> PrepareAniBtTransferAsync(string targetPath, AniBtAnime anime,
+        string expectedType, MoviePilotTransferHistory history, int? season, string episode,
+        MoviePilotAniBtConnection connection, CancellationToken cancellationToken)
     {
         CheckAniBtConnection(connection, cancellationToken);
         var sources = await MediaSourcesAsync(cancellationToken).ConfigureAwait(false);
         CheckAniBtConnection(connection, cancellationToken);
         if (!sources.Any(source => source.Id == "bangumi" && source.IsVideo))
-            throw new MoviePilotOperationBlockedException("此 MoviePilot 没有启用 Bangumi 媒体来源，暂时不能按 AniBT 结果刮削");
+            throw new MoviePilotOperationBlockedException("此 MoviePilot 没有启用 Bangumi 媒体来源，暂时不能按 AniBT 结果重新整理");
         await AniBtMediaAsync(anime.BgmId, expectedType, connection, cancellationToken).ConfigureAwait(false);
-        var file = await TransferFileAsync(targetPath, cancellationToken).ConfigureAwait(false);
+        var transferPath = history.TransferPath;
+        if (transferPath.Length == 0)
+            throw new MoviePilotOperationBlockedException($"原整理记录 #{history.Id} 没有可用的文件路径，请先在 MoviePilot 核对");
+        var file = await TransferFileAsync(transferPath, cancellationToken).ConfigureAwait(false);
         CheckAniBtConnection(connection, cancellationToken);
-        MoviePilotTransfer.RequireFile(file, targetPath);
-        if (expectedType == MoviePilotTransferRequest.TypeSeries)
+        MoviePilotTransfer.RequireFile(file, transferPath);
+        var matched = await TransferHistoryTargetAsync([history], cancellationToken).ConfigureAwait(false);
+        CheckAniBtConnection(connection, cancellationToken);
+        if (matched.Directories.Count != 1)
+            throw new MoviePilotOperationBlockedException("MoviePilot 没有为原整理记录返回目的目录，请先在 MoviePilot 核对目录配置");
+        var directory = matched.Directories[0];
+        var request = new MoviePilotTransferRequest
         {
-            var identity = RequireResultConnection(connection.Stamp);
-            var recognition = await CallAsync((address, token) => _client.GetAsync(address, token,
-                $"media/recognize_file?path={Uri.EscapeDataString(targetPath)}&media_source=bangumi", cancellationToken),
-                cancellationToken, identity).ConfigureAwait(false);
-            CheckAniBtConnection(connection, cancellationToken);
-            var meta = MoviePilotTransferHistory.Member(recognition, "meta_info");
-            if (!int.TryParse(MoviePilotTransferHistory.Scalar(meta, "begin_episode"), NumberStyles.None,
-                    CultureInfo.InvariantCulture, out var episode) || episode <= 0)
-                throw new MoviePilotOperationBlockedException($"MoviePilot 无法从当前文件名解析集号：{targetPath}。刮削接口不能改写季集号，请先在 MoviePilot 核对命名");
-        }
-        return new(targetPath, anime.BgmId.ToString(CultureInfo.InvariantCulture), expectedType, file.Clone());
-    }
-
-    internal async Task<AniBtScrapeResult> SubmitAniBtScrapeAsync(MoviePilotAniBtScrapeTarget target,
-        MoviePilotAniBtConnection connection, CancellationToken cancellationToken)
-    {
-        CheckAniBtConnection(connection, cancellationToken);
-        var currentFile = await TransferFileAsync(target.Path, cancellationToken).ConfigureAwait(false);
-        CheckAniBtConnection(connection, cancellationToken);
-        if (!JsonElement.DeepEquals(currentFile, target.File))
-            throw new MoviePilotOperationBlockedException("待刮削文件在核对后发生变化，本次没有提交");
-        var identity = RequireResultConnection(connection.Stamp);
-        // 防重按账号和实际目标路径，不按 AniBT 选择或这次计划：改选候选不能绕过未知结果锁。
-        var pathKey = target.Path.Replace('\\', '/').TrimEnd('/');
-        if (pathKey.Length > 1 && pathKey[1] == ':' || pathKey.StartsWith("//", StringComparison.Ordinal))
-            pathKey = pathKey.ToUpperInvariant();
-        var path = $"media/scrape/local?media_source=bangumi&media_id={Uri.EscapeDataString(target.MediaId)}" +
-            $"&type_name={Uri.EscapeDataString(target.Type)}";
-        var reply = await WriteAsync(identity, [OperationKey(connection.Stamp, "anibt-scrape", pathKey)],
-            (address, token) => _client.PostReplyAsync(address, token, path, currentFile, cancellationToken),
-            cancellationToken).ConfigureAwait(false);
-        if (!reply.Success)
-            throw new MoviePilotException(reply.Message.Length > 0 ? reply.Message : "MoviePilot 拒绝了刮削请求");
-        // v3.1.3 的 success 不包含逐个 NFO/图片写入状态，不能把 HTTP 成功包装成文件已验证。
-        return new(target.Path, true, "MoviePilot 已处理刮削请求，NFO 和图片结果请在 MoviePilot 核对");
+            Files = [new MoviePilotTransferFile(MoviePilotTransfer.PathName(targetPath), targetPath)],
+            Histories = [history],
+            TargetStorage = directory.Storage,
+            TargetPath = directory.Path,
+            TransferType = directory.TransferType ?? "",
+            Type = expectedType,
+            MediaSource = "bangumi",
+            MediaId = anime.BgmId.ToString(CultureInfo.InvariantCulture),
+            Season = season?.ToString(CultureInfo.InvariantCulture) ?? "",
+            Episode = episode,
+            TypeFolder = directory.TypeFolder,
+            CategoryFolder = directory.CategoryFolder,
+            // AniBT 识别的目的就是换识别并重写元数据，不能沿用目录里关闭刮削的默认值。
+            Scrape = true,
+            Reorganize = true
+        };
+        if (request.Problem is { } problem) throw new MoviePilotException(problem);
+        return new(request, file.Clone());
     }
 }

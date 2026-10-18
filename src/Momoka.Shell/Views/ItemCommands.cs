@@ -176,7 +176,7 @@ internal static partial class ItemCommands
                     }
                     var anchor = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotReorganize);
                     if (anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
-                        menu.Items.Insert(menu.Items.IndexOf(anchor) + 1, Entry("AniBT 识别并重新刮削…", ItemCommand.AniBtScrape,
+                        menu.Items.Insert(menu.Items.IndexOf(anchor) + 1, Entry("AniBT 识别", ItemCommand.AniBtScrape,
                             () => Invoke(ItemCommand.AniBtScrape, shell, owner, card, siblings, changed, removed, watched)));
                 }
                 catch (OperationCanceledException) { }

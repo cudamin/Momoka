@@ -26,6 +26,26 @@ internal static class AniBtTests
 
     public static void Register()
     {
+        Test("AniBT 默认候选：自动识别优先，否则显示第一个", () =>
+        {
+            var first = new AniBtAnime("ani_first", 123, "第一候选");
+            var second = new AniBtAnime("ani_second", 456, "第二候选");
+            Assert.Equal(first, new AniBtMatch([first, second], first, "auto", "high", "", 1).DefaultCandidate);
+            Assert.Equal(first, new AniBtMatch([first, second], null, "manual", "low", "", 1).DefaultCandidate);
+            Assert.Null(new AniBtMatch([], null, "none", "", "", null).DefaultCandidate);
+        });
+
+        Test("AniBT Emby 识别候选：标题完全一致优先，全角标点也算同一个", () =>
+        {
+            var wrong = new RemoteSearchResult { Name = "女友的闺蜜", ProductionYear = 2026 };
+            var exact = new RemoteSearchResult { Name = "学生会也有洞！", ProductionYear = 2025 };
+            var picked = AniBtService.PickIdentifyResult([wrong, exact], ["学生会也有洞!"], 2026);
+            Assert.True(ReferenceEquals(exact, picked));
+            Assert.Equal("学生会也有洞", AniBtService.NormalizeTitle("学生会也有洞！"));
+            Assert.True(ReferenceEquals(wrong, AniBtService.PickIdentifyResult([wrong], ["学生会也有洞!"], 2026)));
+            Assert.Null(AniBtService.PickIdentifyResult([], ["学生会也有洞!"], 2026));
+        });
+
         Test("AniBT 发布短标签：单集号、合集与相对时间", () =>
         {
             Assert.Equal("01", AniBtReleaseLabels.EpisodeBadge("1"));

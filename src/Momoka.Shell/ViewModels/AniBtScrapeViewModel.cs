@@ -12,10 +12,12 @@ public sealed partial class AniBtScrapeRowViewModel : ObservableObject
         TargetPath = row.TargetPath;
         SourceName = row.SourceName;
         Candidates = row.Match.Candidates;
-        Selected = row.Match.AutomaticCandidate;
-        MatchNote = row.Match.AutomaticCandidate is null
-            ? Candidates.Count == 0 ? "没有匹配结果，请在 MoviePilot 手动核对" : "存在多个候选，请选择对应番剧"
-            : "AniBT 自动识别";
+        Selected = row.Match.DefaultCandidate;
+        MatchNote = row.Match.AutomaticCandidate is not null
+            ? "AniBT 自动识别"
+            : Candidates.Count == 0 ? "没有匹配结果，请关闭后手动核对"
+            : Candidates.Count > 1 ? "有多个候选，已选择第一个，请核对"
+            : "已选择识别结果，请核对";
     }
 
     public string TargetPath { get; }
@@ -74,18 +76,19 @@ public sealed partial class AniBtScrapeViewModel : PageViewModel
         try
         {
             scope.ThrowIfNotCurrent();
-            var results = await _service.SubmitAsync(_plan, choices, token, () => scope.IsCurrent);
+            var results = await scope.ExecuteAsync((client, cancellation) =>
+                _service.SubmitAsync(client, _plan, choices, cancellation, () => scope.IsCurrent), token);
             if (!IsCurrent(token)) return;
             foreach (var result in results)
             {
                 var row = Rows.FirstOrDefault(row => row.TargetPath == result.TargetPath);
                 if (row is not null) row.Result = result.Message;
             }
-            Notify(null, $"MoviePilot 已处理 {results.Count(result => result.Success)} / {Rows.Count} 个刮削请求，请查看逐文件结果。",
+            Notify(null, $"已处理 {results.Count(result => result.Success)} / {Rows.Count} 个文件，请查看逐文件结果。",
                 results.All(result => result.Success) ? Microsoft.UI.Xaml.Controls.InfoBarSeverity.Success : Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning);
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { if (IsCurrent(token)) Report("刮削未完成，请核对 MoviePilot 后再操作", error); }
+        catch (Exception error) { if (IsCurrent(token)) Report("重新整理未完成，请核对 MoviePilot 与 Emby 后再操作", error); }
         finally { EndLoad(token); OnPropertyChanged(nameof(CanSubmit)); }
     }
 }

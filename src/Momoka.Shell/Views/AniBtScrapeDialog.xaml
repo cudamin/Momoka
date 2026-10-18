@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:Momoka.Shell.ViewModels"
     xmlns:anibt="using:Momoka.AniBt"
-    PrimaryButtonText="确认重新刮削" CloseButtonText="关闭"
+    PrimaryButtonText="重新整理" CloseButtonText="关闭"
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}"
     PrimaryButtonClick="OnSubmit">
     <Grid RowSpacing="12" MinWidth="260" MaxWidth="760">
@@ -14,7 +14,7 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock Text="按源文件名识别每个视频。确认后由 MoviePilot 覆盖对应文件的 NFO 和图片；视频文件位置保持不变。季集编号由 MoviePilot 从当前文件名解析。" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+        <TextBlock Text="按源文件名识别每个视频。确认后优先用 MoviePilot 原整理记录重新整理并刮削；MoviePilot 没有整理记录的文件改用 Emby 识别。重新整理会按目的目录配置移动或改名文件，并清理命中的旧记录与旧目标。" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
         <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         <ListView x:Name="ScrapeFiles" Grid.Row="2" MaxHeight="470" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None">
             <ListView.ItemTemplate>

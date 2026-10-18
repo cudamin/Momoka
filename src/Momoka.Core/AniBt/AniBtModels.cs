@@ -20,7 +20,12 @@ public sealed record AniBtMatch(
     string DecisionKind,
     string Confidence,
     string Reason,
-    int? StructureSeason);
+    int? StructureSeason)
+{
+    /// <summary>确认框默认选中的结果：明确的自动识别优先，否则直接显示第一个候选，不让输入框空着。</summary>
+    public AniBtAnime? DefaultCandidate =>
+        AutomaticCandidate ?? (Candidates.Count > 0 ? Candidates[0] : null);
+}
 
 /// <summary>公开 Bangumi 搜索没有分页；HasMore 不会把达到条数上限误称为可翻页。</summary>
 public sealed record AniBtSearchPage(IReadOnlyList<AniBtAnime> Items, bool HasMore);

@@ -60,7 +60,7 @@ internal sealed partial class ShellNavigationProbe
                 ResizeInspect((int)(width * scale), (int)(800 * scale));
                 await LayoutAsync(dialog);
                 var choice = Descendants(dialog).OfType<ComboBox>().Single(box => box.Name == "AnimeChoice");
-                Require(choice.Items.Count == 1 && choice.SelectedItem is AniBtAnime { BgmId: 123 }
+                Require(choice.Items.Count == 2 && choice.SelectedItem is AniBtAnime { BgmId: 123 }
                     && choice.IsEnabled && dialog.IsPrimaryButtonEnabled,
                     "AniBT 候选没有绑定到实际选择控件或确认按钮");
                 await SaveProbeScreenAsync($"anibt-scrape-{width}.png");
@@ -68,7 +68,31 @@ internal sealed partial class ShellNavigationProbe
             var close = Descendants(dialog).OfType<Button>().Single(button => button.Name == "CloseButton" && Equals(button.Content, dialog.CloseButtonText));
             ((IInvokeProvider)new ButtonAutomationPeer(close).GetPattern(PatternInterface.Invoke)).Invoke();
             Require(await shown == ContentDialogResult.None && moviePilot.MutationAttempts == 0,
-                "关闭 AniBT 识别确认仍然提交了刮削");
+                "关闭 AniBT 识别确认仍然提交了重新整理");
+
+            // 没有自动结论时也必须直接显示第一个候选，主按钮已是「重新整理」。
+            aniBt.ManualCandidates = true;
+            dialog = new AniBtScrapeDialog(service, scope, item) { XamlRoot = _root.XamlRoot };
+            shown = MoviePilotDialog.ShowAsync(dialog, mp);
+            await UntilAsync(() => dialog.ViewModel.IsReady && dialog.ViewModel.Rows.Count == 1);
+            Require(dialog.PrimaryButtonText == "重新整理" && dialog.IsPrimaryButtonEnabled,
+                "AniBT 识别确认的主按钮没有改名为「重新整理」");
+            var manualRow = dialog.ViewModel.Rows[0];
+            var manualChoice = Descendants(dialog).OfType<ComboBox>().Single(box => box.Name == "AnimeChoice");
+            Require(manualRow.Selected?.BgmId == 123 && manualChoice.Items.Count == 2
+                && manualChoice.SelectedItem is AniBtAnime { BgmId: 123 },
+                "多个候选时没有直接显示第一个识别结果");
+            var manualScale = _root.XamlRoot.RasterizationScale;
+            ResizeInspect((int)(1040 * manualScale), (int)(800 * manualScale));
+            await LayoutAsync(dialog);
+            await SaveProbeScreenAsync("anibt-scrape-candidates.png");
+            // 本机 XAML 岛拍不进 BitBlt；另存一张对话框自身的渲染帧，报告里按「渲染帧」记。
+            await SaveSettledFrameAsync(dialog, "anibt-scrape-candidates-render.png");
+            close = Descendants(dialog).OfType<Button>().Single(button => button.Name == "CloseButton" && Equals(button.Content, dialog.CloseButtonText));
+            ((IInvokeProvider)new ButtonAutomationPeer(close).GetPattern(PatternInterface.Invoke)).Invoke();
+            await shown;
+            Require(moviePilot.MutationAttempts == 0, "关闭多候选的 AniBT 识别仍然提交了重新整理");
+            aniBt.ManualCandidates = false;
 
             dialog = new AniBtScrapeDialog(service, scope, item) { XamlRoot = _root.XamlRoot };
             shown = MoviePilotDialog.ShowAsync(dialog, mp);
@@ -321,6 +345,7 @@ internal sealed partial class ShellNavigationProbe
         private readonly List<DelayedSearch> _allDelays = [];
         internal ConcurrentQueue<string> Requests { get; } = new();
         internal ConcurrentQueue<string> MatchNames { get; } = new();
+        internal bool ManualCandidates { get; set; }
         internal int SearchCount => Requests.Count(path => path.StartsWith("/api/bgm/search?", StringComparison.Ordinal));
 
         internal DelayedSearch DelayNextSearch()
@@ -387,19 +412,30 @@ internal sealed partial class ShellNavigationProbe
         {
             using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
             MatchNames.Enqueue(body.RootElement.GetProperty("rawTitle").GetString() ?? "");
-            return new HttpResponseMessage(HttpStatusCode.OK)
+            return Json(new
             {
-                Content = new StringContent("""
-                    {
-                      "version":3,"content":{"kind":"anime_episode","confidence":"high"},
-                      "structure":{"season":1},
-                      "decision":{"kind":"auto","confidence":"high","reason":"top_ranked_candidate","animeId":"ani_one","bgmId":123,"vetoes":[]},
-                      "candidates":[{"animeId":"ani_one","bgmId":123,"matchScore":100,
-                        "anime":{"_id":"ani_one","bgmId":123,"title":{"chinese":"离线示例动画","native":"Test Anime"},"episodes":12,"seasonYear":2026,"format":"TV"}}]
-                    }
-                    """, Encoding.UTF8, "application/json")
-            };
+                version = 3,
+                content = new { kind = "anime_episode", confidence = "high" },
+                structure = new { season = 1 },
+                decision = ManualCandidates
+                    ? (object)new { kind = "manual", confidence = "low", reason = "ambiguous", vetoes = Array.Empty<string>() }
+                    : new { kind = "auto", confidence = "high", reason = "top_ranked_candidate", animeId = "ani_one", bgmId = 123, vetoes = Array.Empty<string>() },
+                candidates = new object[]
+                {
+                    new { animeId = "ani_one", bgmId = 123, matchScore = 100,
+                        anime = new { _id = "ani_one", bgmId = 123, title = new { chinese = "离线示例动画", native = "Test Anime" },
+                            episodes = 12, seasonYear = 2026, format = "TV" } },
+                    new { animeId = "ani_two", bgmId = 124, matchScore = 80,
+                        anime = new { _id = "ani_two", bgmId = 124, title = new { chinese = "另一部离线动画", native = "Another Offline Anime" },
+                            episodes = 24, seasonYear = 2025, format = "TV" } }
+                }
+            });
         }
+
+        private static HttpResponseMessage Json(object value) => new(HttpStatusCode.OK)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(value), Encoding.UTF8, "application/json")
+        };
 
         private static string ReleaseItem(string id, string episodeKey, string group, string resolution, long size, string date)
         {
