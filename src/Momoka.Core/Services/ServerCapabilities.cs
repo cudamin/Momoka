@@ -12,6 +12,12 @@ public interface IServerCapabilities
 {
     MediaServerKind ServerKind => MediaServerKind.Emby;
     bool IsConnected => true;
+
+    /// <summary>
+    /// 主界面现在是哪一套服务端界面。只有一台服务器在线时按那台的产品定，没有或两台以上是通用界面
+    /// （同一台服务器的多个账号仍算一台）。设置页据此决定服务端管理入口在不在，外壳据此告诉用户当前界面。
+    /// </summary>
+    ServerInterfaceFlavor InterfaceFlavor => ServerAccess.InterfaceFor(ServerKind);
     /// <summary>
     /// The server's version, once <see cref="ProbeAsync"/> has answered, and null until then.
     /// </summary>
@@ -31,6 +37,18 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
 {
     public MediaServerKind ServerKind => session.Connection?.ServerKind ?? MediaServerKind.Emby;
     public bool IsConnected => session.IsSignedIn;
+
+    public ServerInterfaceFlavor InterfaceFlavor
+    {
+        get
+        {
+            var sources = session.Sources;
+            return ServerAccess.InterfaceFor(
+                sources.Select(source => source.ServerProfileId).Distinct(StringComparer.Ordinal).Count(),
+                sources.Select(source => source.Connection.ServerKind));
+        }
+    }
+
     private const string Category = "app";
 
     private readonly object _gate = new();

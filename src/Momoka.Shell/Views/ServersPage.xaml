@@ -84,11 +84,23 @@
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                <TextBlock
-                                    FontSize="20"
-                                    FontWeight="SemiBold"
-                                    TextTrimming="CharacterEllipsis"
-                                    Text="{x:Bind Name}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock
+                                        FontSize="20"
+                                        FontWeight="SemiBold"
+                                        TextTrimming="CharacterEllipsis"
+                                        Text="{x:Bind Name}" />
+                                    <Border
+                                        Background="{ThemeResource EgAccentSoftBrush}"
+                                        CornerRadius="8"
+                                        Padding="8,2"
+                                        VerticalAlignment="Center">
+                                        <TextBlock
+                                            FontSize="{StaticResource EgCaptionFontSize}"
+                                            Foreground="{ThemeResource EgAccentBrush}"
+                                            Text="{x:Bind KindLabel}" />
+                                    </Border>
+                                </StackPanel>
                                 <!-- A pill, not an InfoBadge: that control's Value is a number for a
                                      count, and it has no way to show a word. -->
                                 <Border
@@ -107,6 +119,28 @@
                                 Foreground="{ThemeResource EgTextDimBrush}"
                                 Text="{x:Bind Url}"
                                 TextTrimming="CharacterEllipsis" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                <TextBlock
+                                    FontSize="{StaticResource EgCaptionFontSize}"
+                                    Foreground="{ThemeResource EgTextFaintBrush}"
+                                    Text="服务端界面" VerticalAlignment="Center" />
+                                <TextBlock
+                                    FontSize="{StaticResource EgCaptionFontSize}"
+                                    Foreground="{ThemeResource EgTextBrush}"
+                                    Text="{x:Bind InterfaceLabel}" VerticalAlignment="Center" />
+                                <Border
+                                    Background="{ThemeResource EgSurfaceAltBrush}"
+                                    BorderBrush="{ThemeResource EgBorderBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="8"
+                                    Padding="7,1"
+                                    Visibility="{x:Bind InterfaceVisibility}">
+                                    <TextBlock
+                                        FontSize="{StaticResource EgCaptionFontSize}"
+                                        Foreground="{ThemeResource EgTextDimBrush}"
+                                        Text="当前界面" />
+                                </Border>
+                            </StackPanel>
                         </StackPanel>
 
                         <StackPanel
@@ -120,14 +154,17 @@
                                 CommandParameter="{x:Bind}">
                                 <FontIcon Glyph="&#xE72C;" />
                             </Button>
-                            <Button x:Uid="ServersPage_ButtonA4"
+                            <Button
+                                ToolTipService.ToolTip="{x:Bind LoginLabel}"
+                                AutomationProperties.Name="{x:Bind LoginLabel}"
                                 Style="{StaticResource EgIconButtonStyle}"
                                 Command="{x:Bind Owner.LoginServerCommand}"
                                 CommandParameter="{x:Bind}">
                                 <FontIcon Glyph="&#xE8A5;" />
                             </Button>
                             <Button x:Name="ServerAddAccountButton"
-                                ToolTipService.ToolTip="添加账号" AutomationProperties.Name="添加账号"
+                                ToolTipService.ToolTip="{x:Bind AddAccountLabel}"
+                                AutomationProperties.Name="{x:Bind AddAccountLabel}"
                                 Style="{StaticResource EgIconButtonStyle}"
                                 Command="{x:Bind Owner.AddAccountCommand}" CommandParameter="{x:Bind}">
                                 <FontIcon Glyph="&#xE710;" />
@@ -161,6 +198,13 @@
                                     Text="{x:Bind AccountSummary}" />
                             </Grid>
 
+                            <!-- 独占／聚合对账号的影响写在账号表上方，切换模式时不用猜「另一个账号去哪了」。 -->
+                            <TextBlock
+                                FontSize="{StaticResource EgCaptionFontSize}"
+                                Foreground="{ThemeResource EgTextFaintBrush}"
+                                Text="{x:Bind AccessNote}"
+                                TextWrapping="Wrap" />
+
                             <ItemsControl ItemTemplate="{StaticResource AccountTemplate}" ItemsSource="{x:Bind Accounts}" />
 
                             <TextBlock x:Uid="ServersPage_TextBlock3"
@@ -175,6 +219,7 @@
 
     <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -226,9 +271,92 @@
             Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
 
+        <!--
+          连接模式与当前界面。模式是这一页唯一一处「同时登录几个」的决定：独占只留一个在线来源，
+          聚合允许多个。界面不是另一个开关 —— 它由在线来源算出来：只有一台服务器时用那台的界面，
+          多台时回到通用界面，所以右边那块读数是结果而不是选项。
+        -->
+        <Border
+            Grid.Row="2"
+            Background="{ThemeResource EgSurfaceBrush}"
+            BorderBrush="{ThemeResource EgBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource EgCardCornerRadius}"
+            Padding="20,16">
+            <StackPanel Spacing="14">
+                <Grid ColumnSpacing="24" RowSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="连接模式" FontWeight="SemiBold" FontSize="{StaticResource EgSubheadFontSize}" />
+                        <TextBlock
+                            Text="{x:Bind ViewModel.ModeDescription, Mode=OneWay}"
+                            FontSize="{StaticResource EgCaptionFontSize}"
+                            Foreground="{ThemeResource EgTextDimBrush}"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="18" VerticalAlignment="Top">
+                        <RadioButton
+                            x:Name="ExclusiveModeRadio"
+                            AutomationProperties.AutomationId="ServersExclusiveMode"
+                            GroupName="ServerAccessMode"
+                            Content="独占模式"
+                            IsChecked="{x:Bind ViewModel.ExclusiveMode, Mode=OneWay}"
+                            Command="{x:Bind ViewModel.UseExclusiveCommand}" />
+                        <RadioButton
+                            x:Name="AggregateModeRadio"
+                            AutomationProperties.AutomationId="ServersAggregateMode"
+                            GroupName="ServerAccessMode"
+                            Content="聚合模式"
+                            IsChecked="{x:Bind ViewModel.AggregateMode, Mode=OneWay}"
+                            Command="{x:Bind ViewModel.UseAggregateCommand}" />
+                    </StackPanel>
+                </Grid>
+
+                <Border
+                    AutomationProperties.AutomationId="ServersInterfaceSummary"
+                    Background="{ThemeResource EgSurfaceAltBrush}"
+                    BorderBrush="{ThemeResource EgBorderBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource EgCardCornerRadius}"
+                    Padding="14,12">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="34" Height="34" CornerRadius="11" Background="{ThemeResource EgAccentSoftBrush}">
+                            <FontIcon Glyph="&#xE7F4;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.InterfaceTitle, Mode=OneWay}" />
+                            <TextBlock
+                                FontSize="{StaticResource EgCaptionFontSize}"
+                                Foreground="{ThemeResource EgTextDimBrush}"
+                                Text="{x:Bind ViewModel.InterfaceDescription, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+                            <!-- 在线身份单独一行，窄窗里不和说明抢那一点宽度。 -->
+                            <TextBlock
+                                Margin="0,3,0,0"
+                                FontSize="{StaticResource EgCaptionFontSize}"
+                                Foreground="{ThemeResource EgTextFaintBrush}"
+                                Text="{x:Bind ViewModel.OnlineSummary, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+        </Border>
+
         <ListView
             AutomationProperties.AutomationId="ServersDiscoveredList"
-            Grid.Row="2"
+            Grid.Row="3"
             IsItemClickEnabled="True"
             ItemClick="OnDiscoveredPicked"
             ItemsSource="{x:Bind ViewModel.Discovered, Mode=OneWay}"
@@ -260,7 +388,7 @@
             </ListView.ItemTemplate>
         </ListView>
 
-        <ScrollView Grid.Row="3" VerticalScrollBarVisibility="Auto">
+        <ScrollView Grid.Row="4" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <Border Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
                     BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"
@@ -280,7 +408,7 @@
         <!-- Outside the scroller on purpose: it is the one thing on this page that is about the machine
              rather than about a server, and a long server list would scroll it out of reach. -->
         <Border
-            Grid.Row="4"
+            Grid.Row="5"
             Background="{ThemeResource EgSurfaceBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
             BorderThickness="1"

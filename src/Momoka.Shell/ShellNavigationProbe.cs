@@ -119,6 +119,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
             await CaseAsync("服务器控制台三段导航与窄窗下拉", SettingsConsoleNavigationAsync, 60);
+            await CaseAsync("连接模式与界面摘要、独占收口", ServerAccessModesAsync, 45);
+            await CaseAsync("Jellyfin 控制台五段导航与窄窗下拉", JellyfinConsoleNavigationAsync, 45);
             await CaseAsync("Jellyfin 通用对话框能力显隐", JellyfinDialogCapabilitiesAsync, 30);
             await CaseAsync("MoviePilot 订阅分区、封面与管理操作", MoviePilotSubscriptionsAsync);
             // 这一条从 2026-10-12 起多两帧「下方三段」的截图与一段等待（演职员／相关推荐／相似作品那三排卡片
@@ -373,6 +375,10 @@ internal sealed partial class ShellNavigationProbe
     {
         public MediaServerKind ServerKind { get; set; }
         public bool IsConnected { get; set; } = true;
+
+        /// <summary>多来源探针要能拨「通用界面」，好核服务端管理入口整组收起。</summary>
+        public ServerInterfaceFlavor InterfaceFlavor { get; set; } = ServerInterfaceFlavor.Emby;
+
         /// <summary>假服务器报的账号身份。设置页左栏那一组的显隐靠它拨；可写，好让一条探针走两种账号。</summary>
         public bool? IsAdministrator { get; set; } = true;
         /// <summary>假服务器报的版本。照用户那一台 4.10.1.0 —— 排序里的「导演」（4.9.0.48 起）、

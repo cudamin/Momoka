@@ -532,6 +532,26 @@ internal sealed partial class ShellNavigationProbe
                 && SitsBeforeLastCard(page.Categories, SettingsViewModel.ServerAdministrationCategories),
                 "返回 Emby 后两个入口没有按原次序恢复");
 
+            // 聚合多服：即使管理员身份成立，通用界面下也没有唯一的目标服务器，服务端入口整组收起。
+            page.SelectedCategory = SettingsViewModel.DashboardCategory;
+            await LayoutAsync(page);
+            fixture.Capabilities.InterfaceFlavor = ServerInterfaceFlavor.Generic;
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+            Require(page.ViewModel.ServerAdministrationHidden
+                && !page.Categories.Any(SettingsViewModel.ServerAdministrationCategories.Contains)
+                && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.DashboardCategory)
+                && page.SelectedCategory == SettingsViewModel.FirstCardCategory,
+                "聚合多服的通用界面仍暴露服务端管理入口");
+            await SaveReturnFrameAsync(page, "settings-generic-admin-hidden.png");
+
+            fixture.Capabilities.InterfaceFlavor = ServerInterfaceFlavor.Emby;
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+            Require(!page.ViewModel.ServerAdministrationHidden
+                && SitsBeforeLastCard(page.Categories, SettingsViewModel.ServerAdministrationCategories),
+                "回到单服界面后服务端入口没有恢复");
+
             fixture.Capabilities.IsConnected = false;
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             Require(page.ViewModel.ServerAdministrationHidden, "退出连接后仍暴露管理入口");
@@ -631,6 +651,173 @@ internal sealed partial class ShellNavigationProbe
             Require(Get<ComboBox>(page, "CompactNavPicker").SelectedItem is ServerSettingsNavItem { Label: "通用" },
                 "窄窗下拉没有跟着落点");
             await SaveRenderAsync(page, "settings-console-nav-760-render.png");
+        }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
+            HomeMotion.ApplyPreference(originalAnimations);
+            ResizeInspect(1420, 980);
+        }
+    }
+
+    /// <summary>
+    /// 服务器页的连接模式：两台服务器在线时是通用界面，切到独占后只留一台并回到那一台的界面。
+    /// 切走的那台令牌不能在模式收口时被清掉 —— 用户只是切走了，账号以后还要能直接登录。
+    /// </summary>
+    private async Task ServerAccessModesAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        await fixture.SelectAsync("b.invalid", "b");
+
+        // 探针窗口里页面入场动画不跑完时，实屏截图会拍到上一页的残影；与服务器控制台那条一样关掉动画再等落定。
+        var originalAnimations = HomeMotion.PreferenceEnabled;
+        HomeMotion.ApplyPreference(false);
+        var page = new ServersPage();
+        _root.Children.Add(page);
+        try
+        {
+            ResizeInspect(1100, 900);
+            page.ViewModel.Attach(fixture.Actions, fixture.SettingsService, fixture.Session, fixture.Images);
+            await page.ViewModel.ReloadAsync();
+            await LayoutAsync(page);
+            await UntilAsync(() => page.Opacity == 1 && Get<Grid>(page, "PageLayout").Opacity == 1);
+            await Task.Delay(160);
+            Require(_root.Children.Count == 1 && ReferenceEquals(_root.Children[0], page),
+                $"服务器页探针的根里还留着别的页（{_root.Children.Count} 个直接孩子）");
+
+            Require(fixture.Session.Sources.Count == 2, "两台服务器没有同时上线，模式探针起点不对");
+            Require(page.ViewModel.AggregateMode && !page.ViewModel.ExclusiveMode, "默认不是聚合模式");
+            Require(Get<RadioButton>(page, "AggregateModeRadio").IsChecked == true, "聚合模式单选没有选中");
+            Require(page.ViewModel.InterfaceTitle == "通用界面",
+                $"两台服务器在线时界面应退回通用，实际是「{page.ViewModel.InterfaceTitle}」");
+            // 假身份页面里实屏截图会拍到上一张控制台页的残影（2026-10-19 多次复现，已记在 PROGRESS），
+            // 服务器页的证据用页面渲染图；它是渲染结果，不冒充实屏。
+            await SaveRenderAsync(page, "servers-access-modes-aggregate-render.png");
+
+            var prunedAccount = fixture.Settings.Servers
+                .SelectMany(server => server.Accounts)
+                .First(account => !ReferenceEquals(account, fixture.Session.Account));
+            page.ViewModel.UseExclusiveCommand.Execute(null);
+            await UntilAsync(() => fixture.Session.Sources.Count == 1);
+            await LayoutAsync(page);
+            await Task.Delay(160);
+
+            Require(fixture.Settings.ServerAccess.Mode == ServerConnectionMode.Exclusive, "独占模式没有写进设置");
+            Require(page.ViewModel.ExclusiveMode && !page.ViewModel.AggregateMode, "拨完独占模式后单选状态不对");
+            Require(Get<RadioButton>(page, "ExclusiveModeRadio").IsChecked == true, "独占模式单选没有选中");
+            Require(page.ViewModel.InterfaceTitle == "Emby 界面",
+                $"只剩一台服务器时界面应回到 Emby，实际是「{page.ViewModel.InterfaceTitle}」");
+            Require(fixture.Session.Sources.Select(source => source.ServerProfileId).Distinct().Count() == 1,
+                "独占模式仍有一台以上服务器在线");
+            Require(prunedAccount.HasSavedToken,
+                "模式收口把另一台服务器的已保存令牌清掉了");
+            await SaveRenderAsync(page, "servers-access-modes-exclusive-render.png");
+
+            ResizeInspect(760, 900);
+            await LayoutAsync(page);
+            await LayoutAsync(page);
+            await SaveRenderAsync(page, "servers-access-modes-exclusive-760-render.png");
+            ResizeInspect(1100, 900);
+            await LayoutAsync(page);
+
+            page.ViewModel.UseAggregateCommand.Execute(null);
+            Require(fixture.Settings.ServerAccess.Mode == ServerConnectionMode.Aggregate, "切回聚合模式没有写进设置");
+            Require(fixture.Session.Sources.Count == 1, "切回聚合不应自动重连被收口的来源");
+        }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
+            HomeMotion.ApplyPreference(originalAnimations);
+            ResizeInspect(1420, 980);
+        }
+    }
+
+    /// <summary>
+    /// Jellyfin 控制台的原生左栏：五段、路由按 Jellyfin Web 的 <c>#/dashboard/…</c> 写法，窄窗收成下拉。
+    /// 不启动 WebView2，只看目录、落点和地址。
+    /// </summary>
+    private async Task JellyfinConsoleNavigationAsync()
+    {
+        using var fixture = CreateFixture();
+        fixture.Transport.Reply = (request, _) =>
+        {
+            var path = request.RequestUri!.AbsolutePath;
+            if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal))
+                return Task.FromResult(Json(new
+                {
+                    Id = "jf-server",
+                    ServerName = "离线 Jellyfin",
+                    ProductName = "Jellyfin",
+                    Version = "12.2.0"
+                }));
+            if (path.EndsWith("/Users/Me", StringComparison.Ordinal))
+                return Task.FromResult(Json(new
+                {
+                    Id = "jf",
+                    Name = "jf",
+                    Policy = new { IsAdministrator = true }
+                }));
+            if (path.EndsWith("/System/Info", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { ServerName = "离线 Jellyfin", Version = "12.2.0" }));
+            // Jellyfin 12 的媒体库列表走顶层 UserViews，不是 Emby 的 Users/{id}/Views。
+            if (path.EndsWith("/UserViews", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { Items = Array.Empty<object>() }));
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+        await fixture.SelectAsync("jellyfin.invalid", "jf", MediaServerKind.Jellyfin);
+
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, "jf-console-nav-" + Guid.NewGuid().ToString("N")));
+        paths.EnsureCreated();
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection()
+            .AddSingleton(fixture.Session)
+            .AddSingleton(fixture.Launcher)
+            .AddSingleton(paths)
+            .BuildServiceProvider();
+
+        var originalAnimations = HomeMotion.PreferenceEnabled;
+        HomeMotion.ApplyPreference(false);
+
+        var page = new DashboardPage();
+        _root.Children.Add(page);
+        try
+        {
+            ResizeInspect(1100, 900);
+            page.Attach(new DashboardRequest(services, LoadContent: false));
+            await LayoutAsync(page);
+            await UntilAsync(() => page.NavigationItems.Count > 0);
+
+            Require(page.NavigationRailVisible && !page.NavigationPickerVisible, "Jellyfin 宽窗没有显示左栏");
+            var reading = page.NavigationReading;
+            Require(reading.Count == 5 && reading[0].Name == "服务器" && reading[1].Name == "设备"
+                && reading[2].Name == "电视直播" && reading[3].Name == "插件" && reading[4].Name == "高级",
+                "Jellyfin 控制台左栏不是网页端那五个分区");
+            Require(reading[0].Items.SequenceEqual(new[]
+                {
+                    "控制台", "常规", "品牌", "用户", "媒体库", "显示", "元数据", "NFO 设置",
+                    "转码", "继续观看", "流媒体", "特技播放"
+                }), "Jellyfin 服务器分区条目不对");
+            Require(reading[1].Items.SequenceEqual(new[] { "设备", "活动" }), "Jellyfin 设备分区不对");
+            Require(reading[2].Items.SequenceEqual(new[] { "电视直播", "DVR" }), "Jellyfin 电视频道分区不对");
+            Require(reading[3].Items.SequenceEqual(new[] { "插件" }), "Jellyfin 插件分区不对");
+            Require(reading[4].Items.SequenceEqual(new[] { "网络", "API 密钥", "备份", "日志", "计划任务" }),
+                "Jellyfin 高级分区不对");
+            await SaveRenderAsync(page, "settings-console-jellyfin-1100-render.png");
+
+            var list = Get<ListView>(page, "ServerSettingsNavList");
+            list.SelectedItem = page.NavigationItems.Single(item => item.Label == "媒体库");
+            await UntilAsync(() => page.SelectedNavigationRoute == "dashboard/libraries");
+            Require(page.CurrentNavigationAddress.Contains("/web/index.html#/dashboard/libraries", StringComparison.Ordinal),
+                $"Jellyfin 的「媒体库」没有把网页带到 Jellyfin 路由（{page.CurrentNavigationAddress}）");
+
+            ResizeInspect(760, 900);
+            await LayoutAsync(page);
+            Require(!page.NavigationRailVisible && page.NavigationPickerVisible, "Jellyfin 窄窗没有把左栏收成下拉");
+            Require(Get<ComboBox>(page, "CompactNavPicker").SelectedItem is ServerSettingsNavItem { Label: "媒体库" },
+                "Jellyfin 窄窗下拉没有跟着落点");
+            await SaveRenderAsync(page, "settings-console-jellyfin-760-render.png");
         }
         finally
         {

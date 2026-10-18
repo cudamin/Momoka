@@ -59,6 +59,13 @@ internal static class ServerSettingsGlyph
         // 插件页的 MenuIcon 是 Material 名字；常见的那几个认一下，其余落拼图。
         ["movie"] = 0xE8B2,         // Movies
         ["code"] = 0xE943,          // Code
+        ["palette"] = 0xE790,       // Color
+        ["display"] = 0xE8B9,       // Photo
+        ["nfo"] = 0xE8A5,           // Document
+        ["resume"] = 0xE81C,        // History
+        ["streaming"] = 0xE774,     // Globe
+        ["trickplay"] = 0xE8B2,     // Movies
+        ["activity"] = 0xE9D9,      // ViewDashboard
         ["folder"] = 0xE8B7,        // Folder
         ["backup"] = 0xE777,        // History
         ["restore"] = 0xE777,       // History

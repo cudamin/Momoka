@@ -1,9 +1,11 @@
 using Momoka.Infrastructure;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
+using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell;
 using Momoka.Shell.ViewModels;
 using Momoka.Updates;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,6 +48,7 @@ public sealed partial class SettingsPage : Page, IShellContent
     private const string Category = "设置";
 
     private SettingsRequest? _request;
+    private EmbySession? _session;
 
     public SettingsPage()
     {
@@ -368,10 +371,21 @@ public sealed partial class SettingsPage : Page, IShellContent
 
         WatchMoviePilot(request.Services.GetRequiredService<MoviePilotService>());
 
+        // 在线来源变化也会改变界面风味（第二台服务器上线 → 通用界面；只剩一台 → 那台的界面），
+        // 设置窗口可能正开着，左栏要当场跟着收放服务端管理入口，不等下一次打开设置。
+        if (_session is not null) _session.SourcesChanged -= OnSourceListChanged;
+        _session = request.Services.GetRequiredService<EmbySession>();
+        _session.SourcesChanged += OnSourceListChanged;
+
         // 每一次打开都重新核一遍账号权限 —— 和上面那一行的理由同源：这一页是缓存的，换过账号之后它不重建，
         // 不重核就会留着上一个账号的答案（管理员看过的「控制台」那一组，普通账号再进来还列着）。这一趟先于
         // 下面 Select，好在两个路径上都已经发出去了：它回来得晚也只会把落点收回第一张卡，不会把选择拨乱。
         _ = RefreshServerAdministrationAsync();
+
+        // 服务器页就在这一页的框里，拨完连接模式要当场重算服务端管理入口：聚合多服时那组入口整组收起，
+        // 只连一台时又回来。静态事件要退订，见 OnNavigatedFrom。
+        ShellPrefs.ServerAccessChanged -= OnServerAccessChanged;
+        ShellPrefs.ServerAccessChanged += OnServerAccessChanged;
 
         // Both paths, and after the build: the cached path used to return before reading the parameter at
         // all, which is the whole of 「open 设置 on 诊断」 — the second time it was asked for, it opened on
@@ -576,9 +590,24 @@ public sealed partial class SettingsPage : Page, IShellContent
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
+        ShellPrefs.ServerAccessChanged -= OnServerAccessChanged;
+        if (_session is not null) _session.SourcesChanged -= OnSourceListChanged;
+        _session = null;
         Release();
         base.OnNavigatedFrom(e);
     }
+
+    private void OnSourceListChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(
+        async () => await RefreshServerAdministrationAsync());
+
+    /// <summary>
+    /// 连接模式改完：重算左栏该不该有「通知」「网页控制台」。落点若正停在刚收起的入口上，
+    /// <see cref="SettingsViewModel.RefreshServerAdministrationAsync"/> 会把它拨回第一张卡，选择变化自己
+    /// 会把 <see cref="ShowHosted"/> 喊起来 —— 这里不再多喊一次，否则正在显示的服务器页会被重新导航，
+    /// 刚拨完模式那条提示就没了。
+    /// </summary>
+    private void OnServerAccessChanged() => DispatcherQueue.TryEnqueue(
+        async () => await RefreshServerAdministrationAsync());
 
     /// <summary>
     /// Counts realised row containers. <c>Content</c> rather than <c>DataContext</c>, for the reason spelled

@@ -345,6 +345,7 @@ public static class SettingsMigration
         if (settings.Ui is null) settings.Ui = new UiSettings();
         if (settings.Shortcuts is null) settings.Shortcuts = new ShortcutSettings();
         if (settings.MoviePilot is null) settings.MoviePilot = new MoviePilotSettings();
+        if (settings.ServerAccess is null) settings.ServerAccess = new ServerAccessSettings();
 
         if (settings.Playback.AudioLanguages is null) settings.Playback.AudioLanguages = [];
         if (settings.Playback.SubtitleLanguages is null) settings.Playback.SubtitleLanguages = [];
@@ -502,6 +503,10 @@ public static class SettingsMigration
         // clamp to High: an unrecognised number means 「nobody chose」, and the cheap column is the safe
         // reading of that on a machine whose graphics nobody has vouched for.
         if (!Enum.IsDefined(settings.Shaders.Gpu)) settings.Shaders.Gpu = GpuTier.Low;
+
+        // 连接模式是 v24 才有的键。缺键读出来是聚合（枚举的 0），与升级前的多账号行为一致；手改出认不出来的
+        // 数字时也回到聚合，而不是悄悄把用户锁进独占。
+        if (!Enum.IsDefined(settings.ServerAccess.Mode)) settings.ServerAccess.Mode = ServerConnectionMode.Aggregate;
 
         if (!Enum.IsDefined(settings.Playback.SkipSections)) settings.Playback.SkipSections = SkipSectionMode.Ask;
         if (!Enum.IsDefined(settings.Playback.SubtitleMode)) settings.Playback.SubtitleMode = SubtitleMode.Always;

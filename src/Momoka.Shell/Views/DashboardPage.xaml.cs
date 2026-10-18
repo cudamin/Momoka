@@ -155,7 +155,8 @@ public sealed partial class DashboardPage : Page, IShellContent
     /// </summary>
     private void ConfigureNavigation(EmbyConnection connection)
     {
-        if (connection.IsJellyfin)
+        // 飞牛影视与 Plex 没有可复刻的原生管理目录，网页控制台保持整页通用形态。
+        if (connection.IsFnNas || connection.IsPlex)
         {
             _navAvailable = false;
             ApplyNavigationLayout();
@@ -163,7 +164,7 @@ public sealed partial class DashboardPage : Page, IShellContent
         }
 
         _navAvailable = true;
-        _route = ServerSettingsMenu.DefaultRoute;
+        _route = connection.IsJellyfin ? JellyfinServerSettingsMenu.DefaultRoute : ServerSettingsMenu.DefaultRoute;
         _url = EmbyWebConsole.RouteUrl(connection, _route);
         _address = _url;
         BuildNavigation([]);
@@ -177,7 +178,10 @@ public sealed partial class DashboardPage : Page, IShellContent
     /// </summary>
     private void BuildNavigation(IReadOnlyList<ServerSettingsPluginPage> pages)
     {
-        _menuGroups = ServerSettingsMenu.Build(pages);
+        // Jellyfin 的固定目录照它自己的网页管理抽屉；插件配置页这一轮不读（地址规则与 Emby 不同）。
+        _menuGroups = _scope?.Connection.IsJellyfin == true
+            ? JellyfinServerSettingsMenu.Build()
+            : ServerSettingsMenu.Build(pages);
 
         var groups = new List<ServerSettingsNavGroup>();
         foreach (var group in _menuGroups)
@@ -387,7 +391,7 @@ public sealed partial class DashboardPage : Page, IShellContent
         {
             _scope = session.Capture();
             _storageKey = EmbyWebConsole.CredentialStorageKey(connection);
-            _route = ServerSettingsMenu.DefaultRoute;
+            _route = JellyfinServerSettingsMenu.DefaultRouteFor(connection.ServerKind);
             _url = EmbyWebConsole.RouteUrl(connection, _route);
         }
         catch (ArgumentException)
@@ -433,7 +437,7 @@ public sealed partial class DashboardPage : Page, IShellContent
             {
                 _settled = true;
                 Say("离线探针不载入网页");
-                _ = LoadPluginPagesAsync();
+                if (_scope.Connection.ServerKind == MediaServerKind.Emby) _ = LoadPluginPagesAsync();
                 return;
             }
 
@@ -475,15 +479,17 @@ public sealed partial class DashboardPage : Page, IShellContent
                     EmbyWebConsole.ThemeScript(connection.ApiBase, connection.UserId));
             if (_released || !_scope.IsCurrent) return;
 
-            // 左栏已经是本应用画的那一份；网页端自己的抽屉收起来，顶栏那颗开关也一起收掉。
-            if (!connection.IsJellyfin)
-                await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.HideDrawerScript());
+            // 左栏已经是本应用画的那一份；网页端自己的抽屉收起来。Emby 与 Jellyfin 的抽屉类名不同，
+            // 各用一段脚本：Emby 那套还顺手收掉顶栏那颗开抽屉的按钮，Jellyfin 则把永久抽屉让出的宽度还回去。
+            await core.AddScriptToExecuteOnDocumentCreatedAsync(connection.IsJellyfin
+                ? EmbyWebConsole.HideJellyfinDrawerScript()
+                : EmbyWebConsole.HideDrawerScript());
             if (_released || !_scope.IsCurrent) return;
 
             Say("正在载入服务器设置…");
             core.Navigate(_url);
             _ = GiveUpAsync(_generation);
-            if (!connection.IsJellyfin) _ = LoadPluginPagesAsync();
+            if (connection.ServerKind == MediaServerKind.Emby) _ = LoadPluginPagesAsync();
         }
         catch (OperationCanceledException) when (_released || _lifetime.IsCancellationRequested) { }
         catch (Exception error)

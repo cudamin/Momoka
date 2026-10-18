@@ -449,7 +449,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         if (_capabilities is null) return;
 
-        // 先同步已知状态，防止权限请求尚在等待时显示上一个账号的管理页。
+        // 先同步已知状态，防止权限请求尚在等待时显示上一个账号或上一个连接模式的管理页。
         ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
         if (_capabilities.IsAdministrator is null)
             await _capabilities.ProbeAsync().ConfigureAwait(true);
@@ -457,7 +457,13 @@ public sealed partial class SettingsViewModel : PageViewModel
         ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
     }
 
+    /// <summary>
+    /// 服务端管理入口（通知、网页控制台）此刻在不在。除了「账号能管这台服务器」，还要界面确实能确定是哪一台：
+    /// 聚合模式下同时连着多台服务器时是通用界面，这些入口指向哪台没有答案，整组收起（用户令 2026-10-19）。
+    /// 只连一台服务器时即使开着聚合模式，也回到那台服务器自己的界面与入口。
+    /// </summary>
     private bool CanShowServerAdministration => _capabilities?.IsConnected == true
+        && _capabilities.InterfaceFlavor != ServerInterfaceFlavor.Generic
         && (_capabilities.ServerKind == MediaServerKind.Jellyfin
             ? _capabilities.IsAdministrator == true
             : _capabilities.IsAdministrator != false);

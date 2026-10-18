@@ -21,7 +21,8 @@ public static partial class EmbyWebConsole
 
     /// <summary>
     /// 同样是一页控制台，两个产品的路由写法不同：Emby 用 <c>#!/</c>，Jellyfin Web 用 <c>#/</c>。
-    /// 原生左栏只在 Emby 下出现，但地址的拼法还是放在这里，别让页面自己去猜。
+    /// 两家各有自己的原生左栏目录（<see cref="ServerSettingsMenu"/> 与
+    /// <see cref="JellyfinServerSettingsMenu"/>），路由归一与安全性检查共用这一处，别让页面自己去猜。
     /// </summary>
     public static string RouteUrl(EmbyConnection connection, string route)
     {

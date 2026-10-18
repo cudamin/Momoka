@@ -116,6 +116,51 @@ public static partial class EmbyWebConsole
         """;
 
     /// <summary>
+    /// Jellyfin 的管理抽屉（桌面端是 <c>MuiDrawer</c> 的 permanent 抽屉，窄屏是移动抽屉）由网页自己画。
+    /// 原生左栏已经是一份同样的目录，两份并排就是两条导航；这段脚本把网页那份收起来，并把被它让出的
+    /// 240 像素还回去 —— 抽屉是永久档时布局用内联样式写了左边距，光藏抽屉会留下一条空白带。
+    /// <para>
+    /// 旧版 Jellyfin Web 用 <c>.mainDrawer</c>，一起处理。只动抽屉与它造成的偏移，不碰页面自己的其它
+    /// MUI 弹层与对话框。
+    /// </para>
+    /// </summary>
+    public static string HideJellyfinDrawerScript() => """
+        (function () {
+          try {
+            var css = [
+              ".mainDrawer { display: none !important; }",
+              ".drawer-backdrop { display: none !important; }",
+              ".btnOpenNavDrawer, .btnToggleNavDrawer, .btnPinNavDrawer { display: none !important; }",
+              "body.dashboardDocument .MuiDrawer-root { display: none !important; }",
+              "body.dashboardDocument .MuiDrawer-root .MuiBackdrop-root { display: none !important; }",
+              "body.dashboardDocument header.MuiAppBar-root { width: 100% !important; margin-left: 0 !important; }"
+            ].join("\n");
+
+            function addStyle() {
+              if (document.getElementById("momoka-hide-jellyfin-drawer")) return;
+              var style = document.createElement("style");
+              style.id = "momoka-hide-jellyfin-drawer";
+              style.textContent = css;
+              (document.head || document.documentElement).appendChild(style);
+            }
+
+            function apply() {
+              addStyle();
+              var main = document.querySelector("main");
+              if (main) main.style.setProperty("width", "100%", "important");
+            }
+
+            if (document.head) apply();
+            else document.addEventListener("DOMContentLoaded", apply, { once: true });
+            setTimeout(apply, 400);
+            setTimeout(apply, 1600);
+          } catch (e) {
+            // 抽屉没收干净不该把控制台变成白屏；原生左栏照旧可用。
+          }
+        })();
+        """;
+
+    /// <summary>
     /// Where the web client is served from: the API base without <c>/emby/</c>. The same string the client
     /// computes for itself — <c>app.js</c> takes <c>location.href</c> up to the last <c>/web</c> — so a
     /// server behind a reverse proxy on a sub-path keeps that path in both.

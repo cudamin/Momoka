@@ -33,6 +33,14 @@ public static class ShellPrefs
 
     public static void ApplyShortcuts() => ShortcutsChanged?.Invoke();
 
+    /// <summary>
+    /// 服务器的连接模式（独占／聚合）改了。设置页那一头拨完开关喊一声：设置窗口自己的左栏要重算
+    /// 服务端管理入口，主窗口那一头也要把账号菜单里的「当前界面」和在线来源跟上。
+    /// </summary>
+    public static event Action? ServerAccessChanged;
+
+    public static void ApplyServerAccess() => ServerAccessChanged?.Invoke();
+
     /// <summary>由设置页那一头喊：这一份刚改过，请各位跟上。</summary>
     public static void Apply(UiSettings ui)
     {

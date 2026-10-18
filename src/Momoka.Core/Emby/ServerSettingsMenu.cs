@@ -9,6 +9,8 @@ public enum ServerSettingsSection
 {
     Server,
     Devices,
+    LiveTv,
+    Plugins,
     Advanced
 }
 
