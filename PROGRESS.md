@@ -11,9 +11,10 @@
 - **Core**：新增 `AniBtResource`（发布与 MP 下载资源按 RSS 顺序配对）、`AniBtReleaseLabels`（集号、合集、相对发布时间）与 `MoviePilotMediaDetail.Countries/OriginalLanguage`；`AniBtService.ResourcesAsync` 改为返回配对结果。图片只接受公开接口给的 https、无凭据地址，按卡片宽度解码，加载失败保留占位。
 - **测试**：Release 方案 **0 警告、0 错误**；离线测试 **1951 项全过，0 失败、0 跳过**（上一轮 1947，本轮新增 4 条：发布短标签、日本动画资格、多发布 RSS、RSS 与 MP 资源配对）；`dotnet format whitespace --verify-no-changes` 退出 0，`git diff --check` 退出 0；`tools/scan-automation-ids.js` 345 个交互元素，`no handle at all 0`。句柄基线删除 `LoadMoreAnime`（API 无分页，旧按钮始终收起），新增句柄只增不减。
 - **目标探针**：用临时名称过滤只跑 AniBT 四条（`shell-probe-20261018-220418704-11896`，过滤在验收后已移除），**4 项全过、退出码 0**：番剧搜索／资源／取消下载、分集查询与下载选项、逐文件刮削、日本动画订阅入口。假 RSS 给三条发布，逐项核集号／清晰度／字幕组选项、按集与关键词筛选、无匹配与清除筛选、发布行文字，以及订阅按钮的显示、可用性与标题交接。
+- **订阅子集**：另跑 `MoviePilot 订阅` 子集 5 项，4 项通过 —— 含「MoviePilot 订阅详情、入库缺集与编辑」里更新后的操作排断言（新增的 AniBT 按钮在非动画订阅上收着）；唯一失败是既有的「同号季隔离、播放恢复与最窄布局」（集名、日期和状态被固定海报挤窄），本轮没有改它的断言、容差或产品代码。
 - **视觉证据**：`anibt-search-{1040,360}-render.png`、`anibt-resources-{1040,360}-render.png`、`anibt-episode-resources-render.png` 与 `mp-subscription-anibt-{1420,760}.png` 已看过，拷到 `artifacts/ui-review/anibt-redesign-20261019/`（连同该次 `shell-probe.json`）。**本机这个窗口的 XAML 岛拍不进 BitBlt**（实屏只剩窗口底色），所以 AniBT 页面帧是 `RenderTargetBitmap` 的页面渲染，不是实屏；订阅按钮帧同样是渲染帧。宽窗 1420 按钮与「搜索资源／搜索字幕」并排，760 折到第二行；AniBT 360 宽下筛选两行、发布行按钮在标题下方。
 - **完整探针未跑完（如实说）**：另起过一轮全量 `--probe-shell`，跑到第 5 项时与单元测试并发（违反串行），单元测试因此出现 9 个资源冲突失败；停止探针后重跑 **1951 项全过**。全量探针没有跑到 AniBT 段，已完成的 5 项中有既有的登录页短窗与侧边栏两项失败（与前几轮同类）；本轮没有改这些断言或基线，也没有把目标探针通过说成全量通过。
-- **交付**：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（**540 文件、282.8 MB、11 GLSL／4 HOOK 逐文件校验通过**），交付件 `Momoka.dll` SHA-256 `B5A5357C526E66CFBE47B621194EC714375382799D0888A2C5D15B277A4779D1`，与开发构建一致；桌面快捷方式仍指向该目录，未单独改写。
+- **交付**：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（**540 文件、282.8 MB、11 GLSL／4 HOOK 逐文件校验通过**），交付件 `Momoka.dll` SHA-256 `3B7C7DD8DF4FC4F01B1D1C8E1C0B3F14D8C1EE4E3D1645E500A3428122A2CA48`，与开发构建一致；桌面快捷方式仍指向该目录，未单独改写。
 - **未验证（如实说）**：① 没有连接真实 AniBT 或 MoviePilot 服务器，探针全走假传输；真实封面 URL、RSS 发布字段与下载回执没在第这台机器上核对。② 页面截图是渲染帧，不是实屏；还没有真实鼠标下的筛选下拉、滚动与窄窗手感。③ 全量探针未完成（见上）；没有跑自检闸门 4（日常 UI 改动不适用，且本机保存令牌/服务器此前仍阻塞登录）。④ 未推送（本轮没有上传授权）。
 
 ## 独占／聚合连接模式、按服务器切换界面与 Jellyfin 控制台（2026-10-19 用户令）
