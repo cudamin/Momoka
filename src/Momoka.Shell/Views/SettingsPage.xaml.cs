@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Momoka.Infrastructure;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
@@ -47,12 +48,18 @@ public sealed partial class SettingsPage : Page, IShellContent
 {
     private const string Category = "设置";
 
+    // DefaultListViewItemStyle 的 ListViewItemMinHeight（generic.xaml）。展开的条目用默认行高；
+    // 收起的服务器组只把容器高度收到 0，不动默认样式 —— Momoka 那一组的行距和高亮照旧。
+    private const double CategoryItemMinHeight = 40;
+
+    private readonly HashSet<SettingsCategoryGroup> _observedGroups = [];
     private SettingsRequest? _request;
     private EmbySession? _session;
 
     public SettingsPage()
     {
         InitializeComponent();
+        ObserveCategoryGroups();
         CategoryGroupsSource.Source = ViewModel.CategoryGroups;
         Loaded += (_, _) => QueueSettingsEntrance();
         Unloaded += (_, _) => StopSettingsEntrance();
@@ -430,9 +437,49 @@ public sealed partial class SettingsPage : Page, IShellContent
     {
         if (ReferenceEquals(CategoryGroupsSource.Source, ViewModel.CategoryGroups)) return;
 
+        ObserveCategoryGroups();
         var selection = ViewModel.SelectedCategory;
         CategoryGroupsSource.Source = ViewModel.CategoryGroups;
         if (ViewModel.SelectedCategory != selection) ViewModel.SelectedCategory = selection;
+    }
+
+    /// <summary>
+    /// 分组表每次重算都是新实例，折叠状态却可能在选中条目时自己变（见
+    /// <see cref="SettingsViewModel.SelectedEntry"/>），所以在这里统一盯住：组一展开/收起，就把已经
+    /// 生成的条目的容器高度跟上。
+    /// </summary>
+    private void ObserveCategoryGroups()
+    {
+        foreach (var group in _observedGroups) group.PropertyChanged -= OnCategoryGroupPropertyChanged;
+        _observedGroups.Clear();
+        foreach (var group in ViewModel.CategoryGroups)
+        {
+            if (_observedGroups.Add(group)) group.PropertyChanged += OnCategoryGroupPropertyChanged;
+        }
+    }
+
+    private void OnCategoryGroupPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsCategoryGroup.IsExpanded) && sender is SettingsCategoryGroup group)
+            ApplyCategoryItemHeights(group);
+    }
+
+    /// <summary>
+    /// 新生成的条目容器：展开的组用默认行高，收起的组收到 0。收起的条目不把容器 Visibility 折掉 ——
+    /// 那样分组列表在第一组收起后就不再生成后面的组标题（2026-10-19 探针实测），三台服务器只剩一个
+    /// 折叠头。容器始终可见、只收高度，组标题照常生成。
+    /// </summary>
+    private void OnCategoryContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (args.Item is SettingsCategoryEntry entry && args.ItemContainer is ListViewItem item)
+            item.MinHeight = entry.Group.IsExpanded ? CategoryItemMinHeight : 0;
+    }
+
+    private void ApplyCategoryItemHeights(SettingsCategoryGroup group)
+    {
+        foreach (var entry in group.Entries)
+            if (CategoryNavigation.ContainerFromItem(entry) is ListViewItem item)
+                item.MinHeight = group.IsExpanded ? CategoryItemMinHeight : 0;
     }
 
     /// <summary>多服务器分组那一行：点一下展开/收起。收起后条目只从屏上消失，选中页不被换走。</summary>

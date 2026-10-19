@@ -724,6 +724,16 @@ internal sealed partial class ShellNavigationProbe
                     && group.Entries.Count > 0
                     && group.Entries.All(entry => entry.Visibility == Visibility.Collapsed)),
                 "多服务器分组没有默认收起，或收起时条目仍露着");
+
+            // 折叠只能收走服务器组自己的容器：Momoka 组的行还得是默认 ListViewItem 的行高与内边距，
+            // 不能为了折叠把每一行压成无内边距的窄条（2026-10-19 用户当场指出）。
+            var rail = Get<ListView>(page, "CategoryNavigation");
+            var momokaItem = rail.ContainerFromItem(groups[0].Entries[0]) as ListViewItem;
+            Require(momokaItem is { MinHeight: > 0 } && momokaItem.Padding.Left > 0,
+                "Momoka 组的行失去了默认行高或内边距");
+            var collapsedItem = rail.ContainerFromItem(groups[1].Entries[0]) as ListViewItem;
+            Require(collapsedItem is null || (collapsedItem.MinHeight == 0 && collapsedItem.ActualHeight == 0),
+                $"收起的服务器组仍占着行高（MinHeight={collapsedItem?.MinHeight}，ActualHeight={collapsedItem?.ActualHeight}）");
             await SaveRenderAsync(page, "settings-multi-server-collapsed-render.png");
 
             var emby = groups.Single(group => group.SourceKey == sourceA.Key);
@@ -743,10 +753,13 @@ internal sealed partial class ShellNavigationProbe
                 .Where(button => AutomationProperties.GetName(button) == jellyfin.Name)
                 .ToArray();
             Require(toggles.Length == 1, "服务器组标题没有可点的折叠按钮");
-            jellyfin.IsExpanded = true;
+            ((IInvokeProvider)new ButtonAutomationPeer(toggles[0]).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(page);
-            Require(jellyfin.Entries.All(entry => entry.Visibility == Visibility.Visible),
+            Require(jellyfin.IsExpanded && jellyfin.Entries.All(entry => entry.Visibility == Visibility.Visible),
                 "展开服务器组后条目仍收着");
+            var expandedItem = rail.ContainerFromItem(jellyfin.Entries[0]) as ListViewItem;
+            Require(expandedItem is null || expandedItem.MinHeight == 40,
+                "展开的服务器组没有回到默认行高");
             await SaveRenderAsync(page, "settings-multi-server-expanded-render.png");
 
             // 选中一组里的「媒体库」：来源键、路由与内嵌页判定都要指向这一台，而不是当前来源。

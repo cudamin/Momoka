@@ -1405,21 +1405,13 @@
                 Padding="8"
                 IsItemClickEnabled="False"
                 ItemsSource="{x:Bind CategoryGroupsSource.View, Mode=OneWay}"
-                SelectedItem="{x:Bind ViewModel.SelectedEntry, Mode=TwoWay}">
+                SelectedItem="{x:Bind ViewModel.SelectedEntry, Mode=TwoWay}"
+                ContainerContentChanging="OnCategoryContainerContentChanging">
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
                         <ItemsStackPanel AreStickyGroupHeadersEnabled="False" />
                     </ItemsPanelTemplate>
                 </ListView.ItemsPanel>
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
-                        <!-- 折叠的组把每一项的根收起；容器自己不许再留最小高度和内边距，否则收起的条目仍占一行。 -->
-                        <Setter Property="MinHeight" Value="0" />
-                        <Setter Property="Padding" Value="0" />
-                        <Setter Property="Margin" Value="0" />
-                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                    </Style>
-                </ListView.ItemContainerStyle>
                 <ListView.GroupStyle>
                     <GroupStyle HeaderContainerStyle="{StaticResource SettingsGroupHeader}">
                         <GroupStyle.HeaderTemplate>
