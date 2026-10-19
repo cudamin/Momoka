@@ -68,7 +68,7 @@
                             ColumnSpacing="16"
                             Background="{ThemeResource EgSurfaceBrush}"
                             BorderBrush="{ThemeResource EgBorderBrush}"
-                            BorderThickness="1"
+                            BorderThickness="{StaticResource EgCardBorderThickness}"
                             CornerRadius="{StaticResource EgCardCornerRadius}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />

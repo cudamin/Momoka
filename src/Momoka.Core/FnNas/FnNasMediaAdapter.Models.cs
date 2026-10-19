@@ -11,7 +11,7 @@ public sealed partial class FnNasMediaAdapter
     public static JsonObject Query(ItemQuery query)
     {
         if (query.Filters is { IsBlank: false } || !string.IsNullOrEmpty(query.PersonId)
-            || !string.IsNullOrEmpty(query.NameStartsWith))
+            || !string.IsNullOrEmpty(query.NameStartsWith) || !string.IsNullOrWhiteSpace(query.Genre))
             throw new NotSupportedException("飞牛影视尚不支持此浏览条件");
         var sort = query.SortBy switch
         {
@@ -38,12 +38,11 @@ public sealed partial class FnNasMediaAdapter
             ["sort_column"] = sort,
             ["sort_type"] = query.Descending ? "DESC" : "ASC",
             ["exclude_grouped_video"] = 1,
-            ["tags"] = new JsonObject
-            {
-                ["type"] = new JsonArray(types.Select(value => (JsonNode?)JsonValue.Create(value)).ToArray()),
-                ["genres"] = string.IsNullOrWhiteSpace(query.Genre) ? new JsonArray() : new JsonArray(query.Genre)
-            }
+            ["tags"] = new JsonObject()
         };
+        // The server answers -4 (InternalError) for an empty array under tags; a missing key means
+        // "no filter". The official frontend and MoviePilot both omit it rather than sending [].
+        if (types.Length > 0) result["tags"]!["type"] = new JsonArray(types.Select(value => (JsonNode?)JsonValue.Create(value)).ToArray());
         if (!string.IsNullOrWhiteSpace(query.ParentId)) result["ancestor_guid"] = query.ParentId;
         if (query.IsPlayed is { } played) result["tags"]!["watched"] = played ? "1" : "0";
         return result;

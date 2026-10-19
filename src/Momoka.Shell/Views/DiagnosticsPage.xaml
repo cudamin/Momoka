@@ -72,7 +72,7 @@
                         Padding="20"
                         Background="{ThemeResource EgSurfaceBrush}"
                         BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="1"
+                        BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadius}">
                         <StackPanel Spacing="12">
                             <TextBlock x:Uid="DiagnosticsPage_TextBlock5"
@@ -117,7 +117,7 @@
                         Padding="20"
                         Background="{ThemeResource EgSurfaceBrush}"
                         BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="1"
+                        BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadius}">
                         <StackPanel Spacing="12">
                             <TextBlock x:Uid="DiagnosticsPage_TextBlock10"
@@ -150,7 +150,7 @@
                         Padding="20"
                         Background="{ThemeResource EgSurfaceBrush}"
                         BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="1"
+                        BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadius}">
                         <StackPanel Spacing="12">
                             <TextBlock x:Uid="DiagnosticsPage_TextBlock13"
@@ -183,7 +183,7 @@
                         Padding="20"
                         Background="{ThemeResource EgSurfaceBrush}"
                         BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="1"
+                        BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadius}">
                         <StackPanel Spacing="12">
                             <TextBlock x:Uid="DiagnosticsPage_TextBlock17"
@@ -203,7 +203,7 @@
                 x:Name="LogPanel" Grid.Column="1" Grid.RowSpan="2"
                 Background="{ThemeResource EgSurfaceBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
-                BorderThickness="1"
+                BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid>
                     <Grid.RowDefinitions>

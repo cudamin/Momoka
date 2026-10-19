@@ -62,7 +62,7 @@
             Background="{ThemeResource EgSurfaceBrush}"
             CornerRadius="{StaticResource EgCardCornerRadius}"
             BorderBrush="{ThemeResource EgBorderBrush}"
-            BorderThickness="1">
+            BorderThickness="{StaticResource EgCardBorderThickness}">
             <Grid>
                 <WebView2 x:Name="Web" />
                 <StackPanel x:Name="NoticePanel" Margin="32" MaxWidth="520" HorizontalAlignment="Center"

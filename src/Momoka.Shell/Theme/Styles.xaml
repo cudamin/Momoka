@@ -123,6 +123,9 @@
 
     <!-- 发丝线的粗细。结构靠它，不靠色块 —— 所以只有一档，加粗只发生在框线变强调色的时候。 -->
     <Thickness x:Key="EgHairline">1</Thickness>
+    <!-- 卡片不要白边（2026-10-19 用户令）。描边只在指针/焦点那一下由 EgFrameActiveStyle 临时画出来；
+         分隔线、输入框和徽章仍用 EgHairline，不跟着收。 -->
+    <Thickness x:Key="EgCardBorderThickness">0</Thickness>
 
     <!-- 胶片格右上角那颗方块的边长：一个数字或一个对勾刚好放得下。 -->
     <x:Double x:Key="EgCornerBadgeSize">20</x:Double>
@@ -370,14 +373,15 @@
       大，所以那一角读的是框的弧。
     -->
     <Style x:Key="EgFrameStyle" TargetType="Border">
-        <Setter Property="BorderThickness" Value="{StaticResource EgHairline}" />
+        <Setter Property="BorderThickness" Value="{StaticResource EgCardBorderThickness}" />
         <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
         <Setter Property="CornerRadius" Value="{StaticResource EgPosterCornerRadius}" />
         <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
     </Style>
 
-    <!-- 指针在上面、或者键盘焦点落在上面时的同一根线。 -->
+    <!-- 指针在上面、或者键盘焦点落在上面时的同一根线。卡片静止时没有边，所以这一档把边补回来。 -->
     <Style x:Key="EgFrameActiveStyle" TargetType="Border" BasedOn="{StaticResource EgFrameStyle}">
+        <Setter Property="BorderThickness" Value="{StaticResource EgHairline}" />
         <Setter Property="BorderBrush" Value="{ThemeResource EgAccentBrush}" />
     </Style>
 
@@ -399,7 +403,7 @@
     <Style x:Key="EgBodyPanelStyle" TargetType="StackPanel">
         <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
         <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
-        <Setter Property="BorderThickness" Value="{StaticResource EgHairline}" />
+        <Setter Property="BorderThickness" Value="{StaticResource EgCardBorderThickness}" />
         <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
         <Setter Property="Padding" Value="{StaticResource EgPanelPadding}" />
     </Style>

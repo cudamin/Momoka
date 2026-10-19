@@ -22,7 +22,7 @@
             <Border
                 Background="{ThemeResource EgSurfaceBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
-                BorderThickness="1"
+                BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}"
                 Margin="0,0,0,12"
                 Padding="20,16">
@@ -130,7 +130,7 @@
                   「播放行为」里那两行。
                 -->
                 <Border Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="20,16" Margin="0,0,0,12">
+                    BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="20,16" Margin="0,0,0,12">
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -158,7 +158,7 @@
                 </Border>
 
                 <Border Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"
+                    BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"
                     Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
                     <StackPanel HorizontalAlignment="Center" Spacing="16" MaxWidth="420">
                         <FontIcon Glyph="&#xE7E7;" FontSize="40" Foreground="{ThemeResource EgAccentBrush}" />

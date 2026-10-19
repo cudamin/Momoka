@@ -67,7 +67,7 @@
                                     AutomationProperties.Name="{x:Bind OpenAutomationName}"
                                     HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="14,12"
                                     Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
-                                    BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}">
+                                    BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}">
                                     <Grid ColumnSpacing="14">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
@@ -124,7 +124,7 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 <Border Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
-                    BorderThickness="{StaticResource EgHairline}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="16">
+                    BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="16">
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />

@@ -1574,7 +1574,7 @@
                                         <Border
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="{StaticResource EgHairline}"
+                                            BorderThickness="{StaticResource EgCardBorderThickness}"
                                             CornerRadius="12"
                                             Padding="6">
                                             <ItemsControl

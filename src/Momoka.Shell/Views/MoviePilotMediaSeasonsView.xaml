@@ -36,6 +36,7 @@
                 <DataTemplate x:DataType="vm:MoviePilotMediaSeasonRow">
                     <Expander x:Name="ExpandMediaSeason" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
                         Background="{ThemeResource EgSurfaceAltBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                        BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadius}"
                         IsExpanded="{x:Bind Expanded, Mode=TwoWay}" AutomationProperties.Name="{x:Bind Title}">
                         <!-- 框架的折叠栏画刷已提前解析，须在此覆盖它实际读取的键，避免默认半透明白叠在深色面板上。 -->

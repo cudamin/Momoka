@@ -93,7 +93,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="vm:MoviePilotResourceRow">
                                         <Grid Padding="14" RowSpacing="7" Background="{ThemeResource EgSurfaceBrush}"
-                                            BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}">
+                                            BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}">
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                                                 <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />

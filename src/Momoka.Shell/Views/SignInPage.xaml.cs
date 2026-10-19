@@ -169,6 +169,9 @@ public sealed partial class SignInPage : UserControl
         if (e.Key != VirtualKey.Enter) return;
         e.Handled = true;
 
+        // Preview, not KeyDown: PasswordBox may consume Enter in its own class handler before the
+        // bubbling event reaches this page, and then Return would silently do nothing.
+
         // Enter in the username box means "on to the password", not "log in with a blank one".
         if (ReferenceEquals(sender, UserBox) && ViewModel.Password.Length == 0)
         {

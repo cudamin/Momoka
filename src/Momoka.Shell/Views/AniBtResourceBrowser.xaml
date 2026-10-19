@@ -61,7 +61,7 @@
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="vm:AniBtResourceRow">
                     <Grid Padding="14,12" ColumnSpacing="12" RowSpacing="6" Background="{ThemeResource EgSurfaceBrush}"
-                        BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1"
+                        BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgPosterCornerRadius}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />

@@ -68,7 +68,7 @@
             <Border
                 Background="{ThemeResource EgSurfaceBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
-                BorderThickness="1"
+                BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}"
                 Margin="0,0,0,16"
                 Padding="20">
@@ -181,7 +181,7 @@
                     <Border
                         Background="{ThemeResource EgSurfaceAltBrush}"
                         BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="1"
+                        BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadius}"
                         Padding="16,14">
                         <StackPanel Spacing="8">
@@ -274,7 +274,7 @@
             Grid.Row="2"
             Background="{ThemeResource EgSurfaceBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
-            BorderThickness="1"
+            BorderThickness="{StaticResource EgCardBorderThickness}"
             CornerRadius="{StaticResource EgCardCornerRadius}"
             Padding="20,16">
             <Grid ColumnSpacing="12">
@@ -340,7 +340,7 @@
         <ScrollView Grid.Row="4" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <Border Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
-                    BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"
+                    BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"
                     Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}">
                     <StackPanel HorizontalAlignment="Center" Spacing="16" MaxWidth="400">
                         <FontIcon Glyph="&#xE774;" FontSize="40" Foreground="{ThemeResource EgAccentBrush}" />
@@ -360,7 +360,7 @@
             Grid.Row="5"
             Background="{ThemeResource EgSurfaceBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
-            BorderThickness="1"
+            BorderThickness="{StaticResource EgCardBorderThickness}"
             CornerRadius="{StaticResource EgCardCornerRadius}"
             Padding="20,16">
             <Grid ColumnSpacing="12">

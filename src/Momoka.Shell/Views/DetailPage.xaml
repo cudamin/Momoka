@@ -320,7 +320,7 @@
                         x:Name="HeroCardTop"
                         Background="{ThemeResource EgSurfaceBrush}"
                         BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="1,1,1,0"
+                        BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadiusTop}"
                         Margin="28,8,28,0"
                         Visibility="{x:Bind ViewModel.HeroCardVisibility, Mode=OneWay}" />
@@ -919,7 +919,7 @@
                         x:Name="HeroCardBottom"
                         Background="{ThemeResource EgSurfaceBrush}"
                         BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="1,0,1,1"
+                        BorderThickness="{StaticResource EgCardBorderThickness}"
                         CornerRadius="{StaticResource EgCardCornerRadiusBottom}"
                         IsHitTestVisible="False"
                         Margin="28,0,28,0"
@@ -1372,6 +1372,7 @@
                             HorizontalContentAlignment="Stretch"
                             Background="{ThemeResource EgSurfaceAltBrush}"
                             BorderBrush="{ThemeResource EgBorderBrush}"
+                            BorderThickness="{StaticResource EgCardBorderThickness}"
                             CornerRadius="{StaticResource EgCardCornerRadius}"
                             IsExpanded="True"
                             Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}">

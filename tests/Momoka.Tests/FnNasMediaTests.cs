@@ -93,6 +93,25 @@ internal static class FnNasMediaTests
             source.DirectStreamUrl = new Uri("https://external.invalid/file");
             Assert.Throws<InvalidOperationException>(() => planner.Plan(new PlaybackTicket { Item = item, Source = source }, fixture.Session.Connection!));
         });
+        Test("飞牛查询：空的类型与题材不发空数组（真实服务器对空数组回 -4）", () =>
+        {
+            var empty = FnNasMediaAdapter.Query(new ItemQuery { Limit = 24, SortBy = EmbySortBy.DateAdded, Descending = true });
+            var tags = empty["tags"]!.AsObject();
+            Assert.Equal(0, tags.Count, "没有筛选时 tags 里不该出现空数组");
+            Assert.Equal("create_time", empty["sort_column"]!.GetValue<string>());
+
+            var filtered = FnNasMediaAdapter.Query(new ItemQuery
+            {
+                IncludeItemTypes = [EmbyItemType.Movie, EmbyItemType.Series],
+                IsPlayed = true,
+                Limit = 24
+            });
+            var filteredTags = filtered["tags"]!.AsObject();
+            Assert.Equal("Movie,TV", string.Join(',', filteredTags["type"]!.AsArray().Select(node => node!.GetValue<string>())));
+            Assert.Equal("1", filteredTags["watched"]!.GetValue<string>());
+            Assert.Throws<NotSupportedException>(() => FnNasMediaAdapter.Query(new ItemQuery { Genre = "动画" }),
+                "题材取值形状未核对，不能把猜的数组发给服务器换 -4");
+        });
         Test("飞牛媒体：菜单只提供适用操作且不向 Emby 路径发送请求", () =>
         {
             using var fixture = new Fixture(); fixture.Login();
@@ -156,6 +175,9 @@ internal static class FnNasMediaTests
             if (data.Length == 0)
             {
                 var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!;
+                foreach (var key in new[] { "type", "genres" })
+                    if (body["tags"]?[key] is JsonArray values)
+                        Assert.True(values.Count > 0, $"item/list 的 tags.{key} 不能是空数组");
                 var size = body["page_size"]!.GetValue<int>(); var page = body["page"]!.GetValue<int>();
                 var list = new JsonArray(Enumerable.Range((page - 1) * size, Math.Min(size, 6 - (page - 1) * size))
                     .Select(index => (JsonNode?)new JsonObject { ["guid"] = "item" + index, ["title"] = "影片", ["type"] = "Movie" }).ToArray());

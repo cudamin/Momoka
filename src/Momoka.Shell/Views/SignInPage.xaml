@@ -196,7 +196,7 @@
                                 MinHeight="52"
                                 Padding="16,14"
                                 CornerRadius="8"
-                                KeyDown="OnAddressKeyDown"
+                                PreviewKeyDown="OnAddressKeyDown"
                                 TextAlignment="Center"
                                 Text="{x:Bind ViewModel.Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -288,7 +288,7 @@
                                 MinHeight="52"
                                 Padding="16,14"
                                 CornerRadius="8"
-                                KeyDown="OnCredentialKeyDown"
+                                PreviewKeyDown="OnCredentialKeyDown"
                                 TextAlignment="Center"
                                 Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -299,7 +299,7 @@
                                 MinHeight="52"
                                 Padding="16,14"
                                 CornerRadius="8"
-                                KeyDown="OnCredentialKeyDown"
+                                PreviewKeyDown="OnCredentialKeyDown"
                                 Password="{x:Bind ViewModel.Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
                             <CheckBox x:Uid="SignInPage_CheckBox4" AutomationProperties.AutomationId="SignInRememberBox" IsChecked="{x:Bind ViewModel.Remember, Mode=TwoWay}" />
