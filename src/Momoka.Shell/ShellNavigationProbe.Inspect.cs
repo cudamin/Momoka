@@ -1,9 +1,11 @@
 using Momoka.Emby;
+using Momoka.FnNas;
 using Momoka.Playback;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using System.Text.Json.Nodes;
 using Windows.Graphics.Imaging;
 using Windows.Storage.Streams;
 
@@ -100,6 +102,50 @@ internal sealed partial class ShellNavigationProbe
                 (_, _, _) => throw new InvalidOperationException("检查面板不向服务器上传本机文件"),
                 _ => Task.FromResult<EmbyItem?>(item), _ => Task.FromResult<byte[]?>(image))
             { XamlRoot = _root.XamlRoot };
+            await dialog.ShowAsync();
+        });
+        Add("InspectFnNasEdit", "飞牛编辑元数据", async () =>
+        {
+            var detail = JsonNode.Parse("""
+                {"title":"离线示例","overview":"一段离线简介，用来看编辑表的长相。","rating":8.4,
+                 "release_date":"2024-05-01","genres":[2,7],"posters":["p"]}
+                """)!.AsObject();
+            var dialog = new FnNasMetadataDialog(detail) { XamlRoot = _root.XamlRoot };
+            dialog.Opened += async (_, _) =>
+            {
+                await SaveSettledFrameAsync(dialog, "inspect-fn-nas-edit.png");
+                dialog.Hide();
+            };
+            await dialog.ShowAsync();
+        });
+        Add("InspectFnNasMatch", "飞牛手动匹配", async () =>
+        {
+            var dialog = new FnNasMatchDialog("离线示例", (_, _) => Task.FromResult<IReadOnlyList<FnNasScrapResult>>(
+            [
+                new("离线候选一", "tmdb", "1", "Movie", "2024-01-01"),
+                new("离线候选二", "tmdb", "2", "TV", "2023-01-01")
+            ]))
+            { XamlRoot = _root.XamlRoot };
+            dialog.Opened += async (_, _) =>
+            {
+                await SaveSettledFrameAsync(dialog, "inspect-fn-nas-match.png");
+                dialog.Hide();
+            };
+            await dialog.ShowAsync();
+        });
+        Add("InspectFnNasVersions", "飞牛管理版本", async () =>
+        {
+            var dialog = new FnNasVersionsDialog("离线示例",
+            [
+                new("file1", "/media/离线示例.1080p.mkv", 2_147_483_648, "1080p"),
+                new("file2", "/media/离线示例.2160p.mkv", 8_589_934_592, "4K")
+            ])
+            { XamlRoot = _root.XamlRoot };
+            dialog.Opened += async (_, _) =>
+            {
+                await SaveSettledFrameAsync(dialog, "inspect-fn-nas-versions.png");
+                dialog.Hide();
+            };
             await dialog.ShowAsync();
         });
         Add("InspectNarrow", "窄窗口", () => { ResizeInspect(1000, 880); return Task.CompletedTask; });

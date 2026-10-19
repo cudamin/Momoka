@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  飞牛的「手动匹配影片」：照官网页端那张表的骨架 —— 上面选搜索方式、填词、搜索，下面列候选，
+  选中一条再匹配。候选的图片与详细字段不在我们这张表上展开，只留片名和年份/来源，够认出是哪一部。
+-->
+<ContentDialog x:Class="Momoka.Shell.Views.FnNasMatchDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Momoka.Shell.Views"
+    Title="手动匹配影片"
+    PrimaryButtonText="匹配"
+    CloseButtonText="取消"
+    DefaultButton="Primary"
+    IsPrimaryButtonEnabled="False"
+    PrimaryButtonClick="OnMatch">
+
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">620</x:Double>
+    </ContentDialog.Resources>
+
+    <StackPanel Spacing="12">
+        <InfoBar
+            x:Name="Problem"
+            IsClosable="False"
+            IsOpen="False"
+            Severity="Error" />
+
+        <Grid ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ComboBox x:Name="SourceBox" Header="搜索方式" SelectedIndex="0" MinWidth="120">
+                <ComboBoxItem Content="标题" />
+                <ComboBoxItem Content="IMDb ID" />
+                <ComboBoxItem Content="TMDb ID" />
+            </ComboBox>
+            <TextBox
+                x:Name="KeywordBox"
+                Grid.Column="1"
+                Header="关键词"
+                KeyDown="OnKeywordKeyDown" />
+            <Button
+                x:Name="SearchButton"
+                Grid.Column="2"
+                AutomationProperties.Name="搜索匹配结果"
+                Click="OnSearchClicked"
+                Content="搜索"
+                VerticalAlignment="Bottom" />
+        </Grid>
+
+        <ProgressBar x:Name="Busy" IsIndeterminate="True" Visibility="Collapsed" />
+
+        <ListView
+            x:Name="Results"
+            AutomationProperties.Name="匹配结果"
+            MaxHeight="300"
+            SelectionChanged="OnSelectionChanged"
+            SelectionMode="Single">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="MinHeight" Value="46" />
+                    <Setter Property="Padding" Value="10,4" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="local:FnNasScrapCandidate">
+                    <StackPanel Spacing="2">
+                        <TextBlock
+                            Style="{StaticResource EgBodyStyle}"
+                            Text="{x:Bind Title}"
+                            TextTrimming="CharacterEllipsis" />
+                        <TextBlock
+                            Foreground="{ThemeResource EgTextDimBrush}"
+                            Style="{StaticResource EgCaptionStyle}"
+                            Text="{x:Bind Detail}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <TextBlock
+            Foreground="{ThemeResource EgTextDimBrush}"
+            Style="{StaticResource EgCaptionStyle}"
+            Text="匹配会重新抓取这个条目的元数据；现有图片和自定义字段可能被新的节目信息覆盖。"
+            TextWrapping="Wrap" />
+    </StackPanel>
+</ContentDialog>

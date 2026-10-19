@@ -43,7 +43,7 @@
 
         <!-- 标签在左、开关在右，说明另起一行铺满整行 —— 同网页端。标签不走 ToggleSwitch 的 Header：那会把
              字摆到开关上头，而这一行要的是两边对齐。 -->
-        <StackPanel Spacing="{StaticResource EgSpaceXS}">
+        <StackPanel x:Name="ImagesRow" Spacing="{StaticResource EgSpaceXS}">
             <Grid ColumnSpacing="{StaticResource EgSpaceM}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

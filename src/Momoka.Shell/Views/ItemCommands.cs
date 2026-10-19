@@ -328,6 +328,18 @@ internal static partial class ItemCommands
                 _ = IdentifyAsync(scope, shell, owner, card, changed);
                 break;
 
+            case ItemCommand.ManageVersions:
+                _ = FnNasVersionsAsync(scope, shell, owner, card, changed);
+                break;
+
+            case ItemCommand.FnNasMatch:
+                _ = FnNasMatchAsync(scope, shell, owner, card, changed);
+                break;
+
+            case ItemCommand.FnNasUnmatch:
+                _ = FnNasUnmatchAsync(scope, shell, owner, card, changed);
+                break;
+
             case ItemCommand.RefreshMetadata:
                 _ = RefreshAsync(scope, shell, owner, card);
                 break;
@@ -575,6 +587,9 @@ internal static partial class ItemCommands
             ItemCommand.ChangeCover => 0xE91B,
             ItemCommand.Subtitles => 0xED1E,
             ItemCommand.Identify => 0xE774,
+            ItemCommand.ManageVersions => 0xE8F1,
+            ItemCommand.FnNasMatch => 0xE774,
+            ItemCommand.FnNasUnmatch => 0xE8D9,
             ItemCommand.RefreshMetadata => 0xE72C,
             ItemCommand.ScanLibrary => 0xE895,
             ItemCommand.OpenSeries => 0xE7F4,

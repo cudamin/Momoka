@@ -54,6 +54,15 @@ public enum ItemCommand
     /// </summary>
     Identify,
 
+    /// <summary>管理版本：列出这个条目背后的文件（飞牛的「管理版本」）。</summary>
+    ManageVersions,
+
+    /// <summary>手动匹配影片：飞牛的刮削候选表。</summary>
+    FnNasMatch,
+
+    /// <summary>解除匹配影片：清掉飞牛上这个条目的识别结果。</summary>
+    FnNasUnmatch,
+
     RefreshMetadata,
 
     ScanLibrary,
@@ -128,7 +137,7 @@ public static class ItemMenu
     /// </param>
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
         bool jellyfin = false, bool fnNas = false, bool plex = false) => fnNas
-        ? Join(Opening(item), UserState(item, true), Navigation(item))
+        ? Join(Opening(item), UserState(item, true), FnNasManagement(item), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
         // offered and then refused.
         : plex
@@ -144,16 +153,43 @@ public static class ItemMenu
         Destructive(item));
 
     /// <summary>
-    /// 菜单和迟到的点击共用同一能力判断；Jellyfin 没有保留续播点的隐藏接口，飞牛没有合集与元数据编辑，
-    /// Plex 既没有收藏也没有保留续播点。
+    /// 菜单和迟到的点击共用同一能力判断；Jellyfin 没有保留续播点的隐藏接口，飞牛没有合集与
+    /// HideFromResume，Plex 既没有收藏也没有保留续播点。
     /// </summary>
     public static bool Supports(ItemCommand command, bool jellyfin, bool fnNas = false, bool plex = false)
     {
         if (fnNas) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
-            or ItemCommand.MarkUnplayed or ItemCommand.Favorite or ItemCommand.Unfavorite or ItemCommand.OpenSeries;
+            or ItemCommand.MarkUnplayed or ItemCommand.Favorite or ItemCommand.Unfavorite or ItemCommand.OpenSeries
+            or ItemCommand.ManageVersions or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch
+            or ItemCommand.RefreshMetadata or ItemCommand.EditMetadata or ItemCommand.Delete;
         if (plex) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
             or ItemCommand.MarkUnplayed or ItemCommand.OpenSeries;
         return !jellyfin || command != ItemCommand.HideFromResume;
+    }
+
+    /// <summary>
+    /// 飞牛的「更多」里照官网页端那六件事排：管理版本、手动匹配、解除匹配是一组；刷新与编辑元数据
+    /// 一组；删除单独收尾。条目自己的播放／已看／收藏仍排在它们前面 —— 那是这个客户端一直在做的
+    /// 事，删掉不是用户这次要的。
+    /// <para>
+    /// 管理版本只落在真有文件的条目上（电影、单集、视频）；剧和季是一叠文件，官网页端把版本表开在
+    /// 具体那一集上。删除和其余五项都要求「目录里的一个条目」，媒体库本身和演职人员不在其中。
+    /// </para>
+    /// </summary>
+    private static List<ItemMenuEntry> FnNasManagement(EmbyItem item)
+    {
+        if (!IsCatalogue(item)) return [];
+
+        var rows = new List<ItemMenuEntry>(8);
+        if (IsFile(item)) rows.Add(new(ItemCommand.ManageVersions, "管理版本"));
+        rows.Add(new(ItemCommand.FnNasMatch, "手动匹配影片"));
+        rows.Add(new(ItemCommand.FnNasUnmatch, "解除匹配影片"));
+        rows.Add(ItemMenuEntry.Rule);
+        rows.Add(new(ItemCommand.RefreshMetadata, "刷新元数据"));
+        rows.Add(new(ItemCommand.EditMetadata, "编辑元数据"));
+        rows.Add(ItemMenuEntry.Rule);
+        rows.Add(new(ItemCommand.Delete, "删除"));
+        return rows;
     }
 
     /// <summary>

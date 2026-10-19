@@ -17,6 +17,8 @@ description: "Develop or review Momoka's 飞牛影视 / fnOS media backend: Core
 
 `src/Momoka.Core/FnNas/`：`FnNasEndpoint` 管入口和路径段，`FnNasSigner` 管纯签名/密码摘要，`FnNasHttp` 是唯一 HTTP 边界，`FnNasClient` 管路径和字段。共享目录/详情模型和会话通过适配层接入，不把飞牛 API 路径塞进 Emby 请求逻辑。
 
+条目「更多」菜单的写入面（2026-10-19）：`FnNasItemActions` 拼刷新、删除、手动匹配的正文，`FnNasMetadataEdit` 管编辑元数据四格，`FnNasClient` 管 `media/itemfile`、`item/refresh`、`item/getEditDetail`／`saveEditDetail`、`scrap/*` 与带 `media_guids` 的删除。协议取自官方前端 0.9.8；这些调用的真实写入没有在用户服务器上执行过。
+
 会话/DI/显隐见 [momoka-winui-shell](../momoka-winui-shell/SKILL.md)；播放请求、内置与外部后端和管线见 [momoka-playback](../momoka-playback/SKILL.md)。
 
 ## 登录与签名

@@ -101,6 +101,34 @@ public sealed partial class FnNasClient(FnNasHttp http)
     public Task<JsonObject> GetItemAsync(FnNasConnection c, string guid, CancellationToken ct = default) =>
         ObjectAsync(c, HttpMethod.Get, "api/v1/item/" + FnNasEndpoint.Segment(guid), null, ct);
 
+    /// <summary>一个条目背后的文件，也就是「管理版本」表上的各行。</summary>
+    public Task<IReadOnlyList<JsonObject>> GetItemFilesAsync(FnNasConnection c, string guid, CancellationToken ct = default) =>
+        ListAsync(c, HttpMethod.Get, "api/v1/media/itemfile/" + FnNasEndpoint.Segment(guid), null, ct);
+
+    /// <summary>编辑元数据表的当前值，官方前端叫 <c>getEditDetail</c>；保存要整份交回。</summary>
+    public Task<JsonObject> GetItemEditDetailAsync(FnNasConnection c, string guid, CancellationToken ct = default) =>
+        ObjectAsync(c, HttpMethod.Post, "api/v1/item/getEditDetail",
+            new JsonObject { ["item_guid"] = guid }, ct);
+
+    public Task SaveItemEditDetailAsync(FnNasConnection c, JsonObject detail, CancellationToken ct = default) =>
+        ActionAsync(c, HttpMethod.Post, "api/v1/item/saveEditDetail", detail, ct);
+
+    public Task RefreshItemAsync(FnNasConnection c, JsonObject body, CancellationToken ct = default) =>
+        ActionAsync(c, HttpMethod.Post, "api/v1/item/refresh", body, ct);
+
+    public Task<IReadOnlyList<JsonObject>> SearchScrapAsync(FnNasConnection c, JsonObject body, CancellationToken ct = default) =>
+        ListAsync(c, HttpMethod.Post, "api/v1/scrap/search", body, ct);
+
+    public Task RescrapAsync(FnNasConnection c, JsonObject body, CancellationToken ct = default) =>
+        ActionAsync(c, HttpMethod.Post, "api/v1/scrap/rescrap", body, ct);
+
+    public Task UnscrapAsync(FnNasConnection c, string guid, CancellationToken ct = default) =>
+        ActionAsync(c, HttpMethod.Delete, "api/v1/scrap/" + FnNasEndpoint.Segment(guid), null, ct);
+
+    /// <summary>删除条目或它的某个版本；<paramref name="body"/> 由 <see cref="FnNasItemActions.Delete"/> 拼。</summary>
+    public Task DeleteItemAsync(FnNasConnection c, string guid, JsonObject body, CancellationToken ct = default) =>
+        ActionAsync(c, HttpMethod.Delete, "api/v1/item/" + FnNasEndpoint.Segment(guid), body, ct);
+
     public Task<IReadOnlyList<JsonObject>> GetSeasonsAsync(FnNasConnection c, string tvGuid, CancellationToken ct = default) =>
         ListAsync(c, HttpMethod.Get, "api/v1/season/list/" + FnNasEndpoint.Segment(tvGuid), null, ct);
 

@@ -125,10 +125,24 @@ internal static class FnNasMediaTests
             using var fixture = new Fixture(); fixture.Login();
             var commands = ItemMenu.For(new EmbyItem { Id = "m", Name = "电影", Type = EmbyItemType.Movie }, fnNas: true);
             Assert.True(commands.Where(row => row.Command is not null).All(row => ItemMenu.Supports(row.Command!.Value, false, true)));
-            Assert.False(commands.Any(row => row.Command == ItemCommand.EditMetadata || row.Command == ItemCommand.Delete));
+            Assert.Equal("管理版本,手动匹配影片,解除匹配影片,刷新元数据,编辑元数据,删除",
+                string.Join(',', commands.Where(row => row.Command is ItemCommand.ManageVersions or ItemCommand.FnNasMatch
+                    or ItemCommand.FnNasUnmatch or ItemCommand.RefreshMetadata or ItemCommand.EditMetadata
+                    or ItemCommand.Delete).Select(row => row.Label)));
+
+            var series = ItemMenu.For(new EmbyItem { Id = "s", Name = "剧", Type = EmbyItemType.Series }, fnNas: true);
+            Assert.False(series.Any(row => row.Command == ItemCommand.ManageVersions));
+            Assert.True(series.Any(row => row.Command == ItemCommand.FnNasMatch));
+            Assert.True(series.Any(row => row.Command == ItemCommand.Delete));
+
             var before = fixture.Transport.Paths.Count;
             Assert.Throws<NotSupportedException>(() => fixture.Session.Client.ScanLibraryAsync(default).GetAwaiter().GetResult());
             Assert.Equal(before, fixture.Transport.Paths.Count);
+        });
+        Test("飞牛筛选：工具栏下方不铺生效标签", () =>
+        {
+            Assert.False(LibraryFilterChips.ShowsActiveChips(fnNas: true));
+            Assert.True(LibraryFilterChips.ShowsActiveChips(fnNas: false));
         });
         Test("飞牛筛选：选择写成 item/list 的 tags，空值不发", () =>
         {
@@ -236,6 +250,97 @@ internal static class FnNasMediaTests
             var list = body["list_sort"]!.AsArray();
             Assert.Equal("second,first", string.Join(',', list.Select(node => node!["guid"]!.GetValue<string>())));
             Assert.Equal("0,1", string.Join(',', list.Select(node => node!["sort_num"]!.GetValue<int>())));
+        });
+        Test("飞牛菜单请求：刷新模式、删除正文与手动匹配的季集形状", () =>
+        {
+            Assert.Equal(0, FnNasItemActions.Refresh("m", FnNasItemActions.RefreshMode("all"))["refresh_mode"]!.GetValue<int>());
+            Assert.Equal(1, FnNasItemActions.Refresh("m", FnNasItemActions.RefreshMode("missing"))["refresh_mode"]!.GetValue<int>());
+
+            var delete = FnNasItemActions.Delete(deleteFile: true, ["file", "file", ""]);
+            Assert.Equal(1, delete["delete_file"]!.GetValue<int>());
+            Assert.Equal("file", delete["media_guids"]!.AsArray().Single()!.GetValue<string>());
+
+            var search = FnNasItemActions.SearchScrap("m", FnNasItemActions.SearchByImdbId, "  tt1  ", "zh-CN");
+            Assert.Equal("imdb_id", search["source"]!.GetValue<string>());
+            Assert.Equal("tt1", search["source_keyword"]!.GetValue<string>());
+            Assert.Equal("m", search["item_guid"]!.GetValue<string>());
+            Assert.Equal("zh-CN", search["lan"]!.GetValue<string>());
+
+            var movie = new EmbyItem { Id = "m", Name = "电影", Type = EmbyItemType.Movie };
+            var result = new FnNasScrapResult("电影", "tmdb", "42", "Movie", "2024-01-01");
+            var files = new[] { new FnNasVersion("file1", "/a.mkv", 1, "1080p"), new FnNasVersion("file1", "/a.mkv", 1, "1080p") };
+            var body = FnNasItemActions.Rescrap(movie, result, files);
+            Assert.Equal("Movie", body["type"]!.GetValue<string>());
+            Assert.Equal("file1", body["media_guids"]!.AsArray().Single()!.GetValue<string>());
+            Assert.False(body.ContainsKey("season_number") || body.ContainsKey("scrap_tv_type"));
+
+            var series = new EmbyItem { Id = "s", Name = "剧", Type = EmbyItemType.Series };
+            var seriesBody = FnNasItemActions.Rescrap(series, result with { Type = "" }, files);
+            Assert.Equal("TV", seriesBody["type"]!.GetValue<string>());
+            Assert.Equal(0, seriesBody["media_guids"]!.AsArray().Count);
+            Assert.Equal("MultiSeasonMultiEpisode", seriesBody["scrap_tv_type"]!.GetValue<string>());
+
+            var episode = new EmbyItem
+            {
+                Id = "e",
+                Name = "第一集",
+                Type = EmbyItemType.Episode,
+                ParentIndexNumber = 2,
+                IndexNumber = 3
+            };
+            var episodeBody = FnNasItemActions.Rescrap(episode, result with { Type = "TV" }, files);
+            Assert.Equal(2, episodeBody["season_number"]!.GetValue<int>());
+            Assert.Equal(3, episodeBody["episode_number"]!.GetValue<int>());
+            Assert.Equal("SingleEpisode", episodeBody["scrap_tv_type"]!.GetValue<string>());
+        });
+        Test("飞牛编辑元数据：只改四格，其余字段原样带回", () =>
+        {
+            var detail = JsonNode.Parse("""
+                {"title":"旧名","overview":"旧简介","rating":8.4,"release_date":"2024-01-01",
+                 "genres":[2,7],"posters":["p"],"title_locked":true}
+                """)!.AsObject();
+            var edit = FnNasMetadataEdit.Read(detail);
+            Assert.Equal("旧名", edit.Name);
+            Assert.Equal("8.4", edit.Rating);
+            Assert.Equal("2024-01-01", edit.ReleaseDate);
+            Assert.Equal("release_date", edit.ReleaseKey);
+            Assert.Null(edit.Problem);
+
+            var changed = edit with { Name = "新名", Overview = "新简介", Rating = "9.1", ReleaseDate = "2024-02-03" };
+            Assert.True(changed.ApplyTo(detail));
+            Assert.Equal("新名", detail["title"]!.GetValue<string>());
+            Assert.Equal("新简介", detail["overview"]!.GetValue<string>());
+            Assert.Equal(9.1, detail["rating"]!.GetValue<double>());
+            Assert.Equal("2024-02-03", detail["release_date"]!.GetValue<string>());
+            Assert.Equal("[2,7]", detail["genres"]!.ToJsonString());
+            Assert.True(detail["title_locked"]!.GetValue<bool>());
+            Assert.False(FnNasMetadataEdit.Read(detail).ApplyTo(detail));
+            Assert.Equal("名称不能为空", (edit with { Name = " " }).Problem);
+            Assert.NotNull((edit with { Rating = "11" }).Problem);
+            Assert.NotNull((edit with { ReleaseDate = "不是日期" }).Problem);
+
+            var episode = JsonNode.Parse("""{"title":"集","first_air_date":"2024-01-01"}""")!.AsObject();
+            Assert.Equal("first_air_date", FnNasMetadataEdit.Read(episode).ReleaseKey);
+            var emptyRelease = JsonNode.Parse("""{"title":"集","release_date":null,"first_air_date":"2024-01-01"}""")!.AsObject();
+            Assert.Equal("first_air_date", FnNasMetadataEdit.Read(emptyRelease).ReleaseKey);
+        });
+        Test("飞牛版本与匹配候选：解析文件字段和来源字段", () =>
+        {
+            var version = FnNasVersion.From(JsonNode.Parse("""
+                {"media_guid":"file1","file_path":"/media/a.mkv","file_size":2147483648,"height":1080}
+                """)!.AsObject());
+            Assert.Equal("file1", version.MediaGuid);
+            Assert.Equal("/media/a.mkv", version.Path);
+            Assert.Equal("1080p", version.Resolution);
+            Assert.Contains("GB", version.Detail);
+
+            var result = FnNasScrapResult.From(JsonNode.Parse("""
+                {"title":"片名","source":"tmdb","source_id":42,"type":"Movie","release_date":"2024-01-01"}
+                """)!.AsObject());
+            Assert.Equal("片名", result.Title);
+            Assert.Equal("42", result.SourceId);
+            Assert.Equal("Movie", result.Type);
+            Assert.Equal("2024-01-01", result.ReleaseDate);
         });
     }
 

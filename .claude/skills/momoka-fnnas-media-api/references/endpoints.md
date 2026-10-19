@@ -48,8 +48,17 @@
 | --- | --- | --- | --- |
 | POST | `/api/v1/item/list` | **核心查询**：按库/类型/标签筛选 + 排序 + 分页 | 两者 |
 | GET | `/api/v1/item/{guid}` | 条目详情（含 `posters`/`backdrops`） | 两者 |
+| GET | `/api/v1/media/itemfile/{guid}` | 条目背后的文件／版本表 | 官方前端 |
 | DELETE | `/api/v1/item/{guid}` | 删除媒体；正文 `{delete_file, media_guids}` | 上游 |
+| POST | `/api/v1/item/refresh` | 刷新元数据；正文 `{item_guid, refresh_mode}`，0=覆盖全部、1=只补缺失 | 官方前端 |
+| POST | `/api/v1/item/getEditDetail` | 读取编辑元数据表单；正文 `{item_guid}` | 官方前端 |
+| POST | `/api/v1/item/saveEditDetail` | 保存整份编辑表单（未改字段原样带回） | 官方前端 |
+| POST | `/api/v1/scrap/search` | 手动匹配搜索；正文 `{item_guid, source, source_keyword, lan}` | 官方前端 |
+| POST | `/api/v1/scrap/rescrap` | 应用匹配；正文见下 | 官方前端 |
+| DELETE | `/api/v1/scrap/{guid}` | 解除匹配 | 官方前端 |
 | GET | `/api/v1/search/list?q=` | 搜索影片、演员 | 上游 |
+
+`scrap/search` 的 `source` 取 `title` / `imdb_id` / `tmdb_id`。`scrap/rescrap` 的正文是 `{item_guid, source, source_id, type, media_guids}`；剧集另带 `season_number`、`episode_number`、`scrap_tv_type`（`SingleEpisode` / `MultiEpisode` / `MultiSeasonMultiEpisode`）。`media_guids` 来自 `media/itemfile` 的 `media_guid`；剧和季按官方前端发空数组。
 
 `item/list` 正文（上游形态）：`{tags:{type:[…]}, sort_type, sort_column, page, page_size, ancestor_guid?, exclude_grouped_video?}`；响应 `data.{total, list[]}`。`ancestor_guid` 省略时是跨库查询。
 

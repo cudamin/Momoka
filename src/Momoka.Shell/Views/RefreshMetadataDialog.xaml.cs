@@ -14,12 +14,15 @@ namespace Momoka.Shell.Views;
 public sealed partial class RefreshMetadataDialog : ContentDialog
 {
     private readonly bool _supportsThumbnailReplacement;
+    private readonly bool _supportsImageReplacement;
 
-    public RefreshMetadataDialog(bool supportsThumbnailReplacement = true)
+    public RefreshMetadataDialog(bool supportsThumbnailReplacement = true, bool supportsImageReplacement = true)
     {
         InitializeComponent();
         _supportsThumbnailReplacement = supportsThumbnailReplacement;
+        _supportsImageReplacement = supportsImageReplacement;
         ThumbnailsRow.Visibility = supportsThumbnailReplacement ? Visibility.Visible : Visibility.Collapsed;
+        ImagesRow.Visibility = supportsImageReplacement ? Visibility.Visible : Visibility.Collapsed;
 
         // 同 MetadataDialog 那段说明：对话框摆在 XamlRoot 的浮层根上，从提出它的那棵树上继承不到主题，不点明
         // 就按 Windows 的应用模式来 —— 用户在晴昼（唯一那套浅色）下会得到一张深色的表。
@@ -36,8 +39,8 @@ public sealed partial class RefreshMetadataDialog : ContentDialog
     /// </summary>
     public string Mode => ModeBox.SelectedIndex == 0 ? "missing" : "all";
 
-    /// <summary>「替换现有图像」那一颗。开着会先删光现有的图再重下。</summary>
-    public bool ReplaceImages => ImagesSwitch.IsOn;
+    /// <summary>「替换现有图像」那一颗。开着会先删光现有的图再重下；飞牛没有这一档。</summary>
+    public bool ReplaceImages => _supportsImageReplacement && ImagesSwitch.IsOn;
 
     /// <summary>「替换现有视频预览缩略图」那一颗。同上，管的是预览缩略图。</summary>
     public bool ReplaceThumbnails => _supportsThumbnailReplacement && ThumbnailsSwitch.IsOn;

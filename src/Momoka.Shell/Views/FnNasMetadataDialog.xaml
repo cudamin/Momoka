@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  飞牛的「编辑元数据」：只在官方 getEditDetail 交回来的整份对象上改这四格，保存时把其余字段原样带回。
+  这里不摆图像、标签、演职人员 —— 那几样在官方页面上各有自己的子表或上传器，塞进一张短表只会把
+  服务器上原有的内容改坏。规则在 Core 的 FnNasMetadataEdit，这里只管长相。
+-->
+<ContentDialog x:Class="Momoka.Shell.Views.FnNasMetadataDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Title="编辑元数据"
+    PrimaryButtonText="保存"
+    CloseButtonText="取消"
+    DefaultButton="Primary"
+    PrimaryButtonClick="OnSave">
+
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">560</x:Double>
+    </ContentDialog.Resources>
+
+    <StackPanel Spacing="12">
+        <InfoBar
+            x:Name="Problem"
+            IsClosable="False"
+            IsOpen="False"
+            Severity="Error" />
+
+        <TextBox x:Name="NameBox" Header="名称" />
+        <TextBox
+            x:Name="OverviewBox"
+            AcceptsReturn="True"
+            Header="简介"
+            Height="120"
+            TextWrapping="Wrap" />
+
+        <Grid ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="RatingBox" Header="评分" PlaceholderText="0 – 10" />
+            <TextBox x:Name="ReleaseBox" Grid.Column="1" Header="发行日期" PlaceholderText="2024-05-01" />
+        </Grid>
+    </StackPanel>
+</ContentDialog>

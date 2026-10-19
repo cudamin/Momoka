@@ -162,7 +162,9 @@ internal static partial class ItemCommands
         FrameworkElement owner,
         CardItem card,
         Action? changed) =>
-        GuardAsync(shell, "编辑元数据失败", async () =>
+        session.Connection.IsFnNas
+            ? FnNasEditAsync(session, shell, owner, card, changed)
+            : GuardAsync(shell, "编辑元数据失败", async () =>
         {
             if (Root(owner) is not { } root) return;
 
@@ -527,7 +529,9 @@ internal static partial class ItemCommands
         IShellActions shell,
         FrameworkElement owner,
         CardItem card) =>
-        GuardAsync(shell, "刷新元数据失败", async () =>
+        session.Connection.IsFnNas
+            ? FnNasRefreshAsync(session, shell, owner, card)
+            : GuardAsync(shell, "刷新元数据失败", async () =>
         {
             if (Root(owner) is not { } root) return;
 
@@ -584,7 +588,9 @@ internal static partial class ItemCommands
         CardItem card,
         Action? changed,
         Action<CardItem>? removed) =>
-        GuardAsync(shell, "删除失败", async () =>
+        session.Connection.IsFnNas
+            ? FnNasDeleteAsync(session, shell, owner, card, changed, removed)
+            : GuardAsync(shell, "删除失败", async () =>
         {
             var item = card.Item;
 

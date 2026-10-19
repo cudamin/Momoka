@@ -2,6 +2,25 @@
 
 最后更新：2026-10-19
 
+## 媒体库更多误导航、首页订阅刷新、飞牛筛选与更多菜单（2026-10-19 用户令）
+
+用户令（原话）：「1.进入库后点击封面的更多按钮会进入页面，而不是弹出菜单，请修复 2.删除首页mp标题右边的 刷新订阅 按钮 3.修改飞牛媒体库的筛选功能，点击选项后不要在界面添加标签 4.飞牛的更多按钮中要有以下几个按钮：管理版本、手动匹配影片、解除匹配影片、刷新元数据、编元数据、删除」，附官方飞牛「更多」菜单截图。本轮在主树修改，进入时工作区只有上一批飞牛筛选/横幅/排序的未提交改动；先把那批单独提交为 `2d5a66a`，再在干净树上做这四项。
+
+- **库内封面更多误导航**：根因是卡片操作按钮按下去之后，媒体库的 `ItemContainer` 仍会把这一下报成一次条目调用（主页那层 Button 也会），用户看到菜单一闪就进了详情/下一层。`PosterCard` 的操作层现在吃掉 `Tapped`；`LibraryPage` 另记下刚按过动作的那张卡，紧跟着同一张卡的 `ItemInvoked`/货架点击在 400ms 内丢掉，之后正常点卡片仍打开。探针新增 `ProbeActionInvokeGuard`，在媒体库区域核对「吞掉一下、随后放行」。
+- **首页订阅刷新**：`MoviePilotSubscriptionsView` 新增 `ShowRefresh`（默认关），主页两排标题右边不再画「刷新订阅」；订阅列表整页在 XAML 里点名 `ShowRefresh="True"`，仍保留刷新入口和空态刷新。探针同时核对主页两排收起、整页两排显示。
+- **飞牛筛选不再加标签**：`ShowFnNasFilterState` 只更新数量与提示，不再往 `FilterChips` 里加可点标签；`LibraryFilterChips.ShowsActiveChips(fnNas)` 把这条规则放到 Core 并加了单测。选中的值仍留在筛选面板里高亮，按钮上的数字仍表示生效条数。
+- **飞牛更多菜单六项**：`ItemMenu` 的飞牛分支在原有播放/已看/收藏之后插入管理区：管理版本（有文件的条目）、手动匹配影片、解除匹配影片、刷新元数据、编辑元数据、删除。实现按官方前端 0.9.8 的正文形状：
+  - 管理版本：`GET media/itemfile/{guid}` 列版本（路径、清晰度、体积）；选中一版后可删除，删除前再确认，走 `DELETE item/{guid}` 带 `{delete_file:1, media_guids:[…]}`。
+  - 手动匹配：`POST scrap/search`（标题/IMDb/TMDb）列候选，确认后 `POST scrap/rescrap`；电影/单集点名 `media_guids`，剧/季按官方前端发空数组；季/集带季集号与 `scrap_tv_type`。
+  - 解除匹配：确认后 `DELETE scrap/{guid}`。刷新元数据：两档（覆盖全部/只补缺失）映射 `refresh_mode` 0/1，`POST item/refresh`；飞牛不画图像替换开关。
+  - 编辑元数据：`POST item/getEditDetail` 取整份，原生表只改名称/简介/评分/发行日期，`POST item/saveEditDetail` 时把未改字段原样带回；发行日期在剧集上写回 `first_air_date`。
+  - 删除：沿用 `ItemMenu.DeletePrompt` 的确认，再走 `DELETE item/{guid}` 带 `delete_file:1`。
+  新增 `FnNasMetadataDialog`、`FnNasMatchDialog`、`FnNasVersionsDialog`；协议正文纯函数在 `FnNasItemActions`/`FnNasMetadataEdit`。`HomePage.MenuRead` 补传 jellyfin/fnNas/plex，修掉飞牛主页自检把整张 Emby 菜单当预期的旧红。
+- **测试**：Release 完整方案 **0 警告、0 错误**；离线测试 **1976 项全过、0 失败、0 跳过**（新增飞牛菜单标签/六项顺序、刷新/删除/手动匹配正文、季集形状、编辑元数据回写与保留未知字段、版本/候选解析、筛选标签规则与请求路径）；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/scan-automation-ids.js` **424 个交互元素、no handle at all 0**（补了飞牛筛选「收起」「清除筛选」两个句柄）。
+- **探针（最终构建）**：`--probe-shell --probe-section library --screen 1` **13 项全过、80 项未执行**（`shell-probe-20261019-151924979-27848`）；`--probe-section shell` **11 项全过**（`shell-probe-20261019-151902672-27584`）；`--probe-section moviepilot` **22 项全过**（`shell-probe-20261019-152056865-5992`）。`--probe-shell inspect` 的检查台新增三张飞牛对话框的渲染帧：`inspect-fn-nas-edit.png`、`inspect-fn-nas-match.png`、`inspect-fn-nas-versions.png`，已目检字段、按钮和版本行。顺手修正了订阅详情探针里一条过期断言：上一批「卡片不要白边」已把 `EgBodyPanelStyle` 描边收成 0，探针仍要求外圈，现只要求板底（产品未改）。
+- **未验证／边界**：① 飞牛六项的真实写入没有在用户服务器上执行，只核对了官方前端与假传输；② 没有在真实飞牛窗口里用鼠标点开新的「更多」菜单和三张对话框，`RenderTargetBitmap` 的检查台帧不等于实屏截图；③ 没有发布到 `artifacts/publish/win-x64` —— 用户的 Momoka 正在运行，文件锁未处理，桌面快捷方式仍是旧版；④ 闸门 1 的空白检查与分析器哈希、闸门 4 的自检未作为发版门禁运行（本轮不是发版或依赖升级）。
+- **提交范围**：上一批飞牛筛选/横幅/排序单独提交 `2d5a66a`；本轮 UI 修复与飞牛菜单动作另行提交，不夹带上一批。
+
 ## Emby 分区库工具栏到封面的空档缩短（2026-10-19 用户令）
 
 用户令（原话）：「emby库封面和上方组件的空挡太大了，缩短」，附图为电影库「影片」页。

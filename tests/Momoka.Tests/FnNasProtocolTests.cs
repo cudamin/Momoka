@@ -144,6 +144,48 @@ internal static class FnNasProtocolTests
             }
             Assert.False(transport.Disposed);
         });
+        Test("飞牛更多菜单：版本、匹配、刷新、编辑与删除走官方路径和正文", () =>
+        {
+            using var transport = new FixtureTransport(request =>
+            {
+                CheckSignature(request);
+                return request.Uri.AbsolutePath switch
+                {
+                    "/v/api/v1/media/itemfile/m" => Reply("""[{"media_guid":"file","file_path":"/a.mkv"}]"""),
+                    "/v/api/v1/item/getEditDetail" => Reply("""{"title":"旧名"}"""),
+                    "/v/api/v1/scrap/search" => Reply("[]"),
+                    _ => Reply("true")
+                };
+            });
+            using var http = new FnNasHttp(transport, disposeHandler: false);
+            var client = new FnNasClient(http);
+
+            Assert.Equal("file", client.GetItemFilesAsync(Connection, "m").GetAwaiter().GetResult().Single()["media_guid"]!.GetValue<string>());
+            var detail = client.GetItemEditDetailAsync(Connection, "m").GetAwaiter().GetResult();
+            client.SaveItemEditDetailAsync(Connection, detail).GetAwaiter().GetResult();
+            client.RefreshItemAsync(Connection, FnNasItemActions.Refresh("m", FnNasItemActions.RefreshMissing)).GetAwaiter().GetResult();
+            client.SearchScrapAsync(Connection, FnNasItemActions.SearchScrap("m", FnNasItemActions.SearchByTitle, "片名", "zh-CN"))
+                .GetAwaiter().GetResult();
+            client.RescrapAsync(Connection, FnNasItemActions.Rescrap(
+                    new Momoka.Emby.EmbyItem { Id = "m", Type = Momoka.Emby.EmbyItemType.Movie },
+                    new FnNasScrapResult("片名", "tmdb", "42", "Movie", ""),
+                    [new FnNasVersion("file", "/a.mkv", 1, "1080p")]))
+                .GetAwaiter().GetResult();
+            client.UnscrapAsync(Connection, "m").GetAwaiter().GetResult();
+            client.DeleteItemAsync(Connection, "m", FnNasItemActions.Delete(true, ["file"])).GetAwaiter().GetResult();
+
+            var sent = transport.Requests.Select(request =>
+                $"{request.Method.Method} {request.Uri.AbsolutePath} {request.Body}").ToArray();
+            Assert.Equal("GET /v/api/v1/media/itemfile/m ", sent[0]);
+            Assert.Equal("POST /v/api/v1/item/getEditDetail {\"item_guid\":\"m\"}", sent[1]);
+            Assert.Equal("POST /v/api/v1/item/saveEditDetail {\"title\":\"旧名\"}", sent[2]);
+            Assert.Equal("POST /v/api/v1/item/refresh {\"item_guid\":\"m\",\"refresh_mode\":1}", sent[3]);
+            Assert.Equal("POST /v/api/v1/scrap/search {\"item_guid\":\"m\",\"source\":\"title\",\"source_keyword\":\"片名\",\"lan\":\"zh-CN\"}", sent[4]);
+            Assert.DoesNotContain("\"scrap_tv_type\"", sent[5]);
+            Assert.Contains("\"media_guids\":[\"file\"]", sent[5]);
+            Assert.Equal("DELETE /v/api/v1/scrap/m ", sent[6]);
+            Assert.Equal("DELETE /v/api/v1/item/m {\"delete_file\":1,\"media_guids\":[\"file\"]}", sent[7]);
+        });
     }
 
     private static void CheckSignature(SentRequest request)

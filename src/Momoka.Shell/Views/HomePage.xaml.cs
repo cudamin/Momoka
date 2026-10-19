@@ -1045,7 +1045,10 @@ public sealed partial class HomePage : Page, IShellContent
         var card = (cards.FirstOrDefault(poster => poster.Card?.Item.IsPlayable == true) ?? cards.FirstOrDefault())?.Card;
         if (card is null) return null;
 
-        var plan = ItemMenu.For(card.Item, _actions.MoviePilotEnabled);
+        var plan = ItemMenu.For(card.Item, _actions.MoviePilotEnabled,
+            jellyfin: card.Scope?.Connection.IsJellyfin == true,
+            fnNas: card.Scope?.Connection.IsFnNas == true,
+            plex: card.Scope?.Connection.IsPlex == true);
         var menu = ItemCommands.Build(_session, _actions, this, card);
         var labels = new List<string>(menu.Items.Count);
         var ok = menu.Items.Count == plan.Count;

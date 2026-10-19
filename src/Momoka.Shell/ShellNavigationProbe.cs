@@ -45,6 +45,15 @@ internal sealed partial class ShellNavigationProbe
             _window = new HostWindow { Content = _root, FreeSizing = true };
             _window.Show(false, _options.Screen, new WindowBounds(80, 80, 1420, 980));
             await LayoutAsync(_root);
+            // inspect 是留给人手点的那一版检查台：它自己建假身份和假数据，前面的整套用例既拖时间又
+            // 会占着同一块桌面。直接进检查台，截图和手动操作都只针对它。
+            if (_options.InspectShell)
+            {
+                await InspectAsync();
+                ExitCode = 0;
+                SaveScope();
+                return;
+            }
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
             await CaseAsync("侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页", MoviePilotSidebarAsync, 45);
@@ -152,7 +161,6 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("目录首次失败可重试", ShellDirectoryRetryAsync);
             await CaseAsync("日志淘汰后显示空态", DiagnosticsEmptyAsync);
             await CaseAsync("对话框构造自检路径", DialogConstructionAsync);
-            if (_options.InspectShell) await InspectAsync();
             SaveScope();
             ExitCode = _checks.Count > 0 && _checks.All(check => check.Passed) ? 0 : 1;
         }
