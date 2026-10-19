@@ -22,6 +22,8 @@
 
 **播放管线与后端是两件事。** 集成管线将 mpv 的 Composition 交换链嵌入 WinUI 视觉树；独占管线（Standalone，亦称独立模式）使用 mpv 自建的顶层窗口，控件来自 `assets/mpv-ui` 的 uosc，同窗换片兼容性由 `src/Momoka.Core/Mpv/InlineSwitch.cs` 判定。默认管线以 `AppSettings.cs` 为准；内置 libmpv 与外部 mpv 进程后端的细节见播放技能。
 
+**媒体库界面按服务器分别处理。** Emby、Jellyfin、飞牛影视各自使用不同的媒体库界面与组件，涉及媒体库的改动、显隐和验证按对应服务器分别判断，不把一套的组件、选项或判定当作另外两套的通用实现；MoviePilot 与 AniBT 的相关功能跨服务器通用，只有一套。
+
 按任务读取随代码入库的技能：
 
 - [momoka-winui-shell](.claude/skills/momoka-winui-shell/SKILL.md)：修改或审查 C# / XAML 前读取，说明分层、DI、Attach、功能可用性显隐与 UI 陷阱。
