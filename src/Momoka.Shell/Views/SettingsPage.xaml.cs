@@ -472,13 +472,17 @@ public sealed partial class SettingsPage : Page, IShellContent
     private void OnCategoryContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {
         if (args.Item is SettingsCategoryEntry entry && args.ItemContainer is ListViewItem item)
+        {
             item.MinHeight = entry.Group.IsExpanded ? CategoryItemMinHeight : 0;
+            item.IsHitTestVisible = !entry.IsSection;
+            item.IsTabStop = !entry.IsSection;
+        }
     }
 
     private void ApplyCategoryItemHeights(SettingsCategoryGroup group)
     {
-        foreach (var entry in group.Entries)
-            if (CategoryNavigation.ContainerFromItem(entry) is ListViewItem item)
+        foreach (var row in group.Rows)
+            if (CategoryNavigation.ContainerFromItem(row) is ListViewItem item)
                 item.MinHeight = group.IsExpanded ? CategoryItemMinHeight : 0;
     }
 

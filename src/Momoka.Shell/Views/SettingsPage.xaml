@@ -1449,40 +1449,58 @@
                 -->
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="vm:SettingsCategoryEntry">
-                        <StackPanel Orientation="Horizontal" Spacing="12" Visibility="{x:Bind Visibility, Mode=OneWay}">
+                        <Grid Visibility="{x:Bind Visibility, Mode=OneWay}">
                             <!--
-                              图标槽二选一：MoviePilot 这一行走官方图标的白色重绘版（2026-09-18 从 v3 仓库根的
-                              app.ico 描摹，等距立方体两截轨 + 播放三角；单色版不描折角阴影），其余分类走
-                              Segoe 字形。白是用户点的名（2026-09-18：「把图标弄成白色的替换侧边栏的这个齿轮」）。
-                              Jellyfin 的分类已全部进字形表；认不出的分类给一页通用纸，不再拿齿轮兜底
-                              （2026-10-19 用户当场指出左栏齿轮太多）。
+                              原生目录的分区标题：Emby 的「Emby Server／设备／高级」、Jellyfin 的五段、
+                              飞牛的两段。只画一行小标题，不参与选择（容器在 ContainerContentChanging 里
+                              关掉命中与 Tab）。
                             -->
-                            <Grid>
-                                <FontIcon
-                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                    FontSize="16"
-                                    Glyph="{x:Bind Label, Converter={StaticResource CategoryGlyph}}"
-                                    Visibility="{x:Bind Label, Converter={StaticResource MoviePilotMark}, ConverterParameter=hide}" />
-                                <Viewbox
-                                    Width="16"
-                                    Height="16"
-                                    VerticalAlignment="Center"
-                                    Visibility="{x:Bind Label, Converter={StaticResource MoviePilotMark}}">
-                                    <Canvas Width="256" Height="256">
-                                        <Path
-                                            Data="M48,191 L32,181 L32,86 L34,80 L43,72 L120,24 L126,22 L135,24 L159,39 L159,54 L149,69 L129,56 L126,56 L63,96 L63,191 Z"
-                                            Fill="{ThemeResource TextFillColorPrimaryBrush}" />
-                                        <Path
-                                            Data="M96,221 L96,200 L101,190 L103,190 L128,201 L192,173 L192,58 L197,58 L223,72 L223,186 L220,193 L217,196 L209,200 L202,202 L197,205 L195,205 L190,208 L188,208 L183,211 L181,211 L176,214 L174,214 L169,217 L162,219 L130,233 L125,233 L119,231 Z"
-                                            Fill="{ThemeResource TextFillColorPrimaryBrush}" />
-                                        <Path
-                                            Data="M107,165 L102,162 L102,92 L106,89 L115,93 L149,113 L165,121 L170,125 L170,129 L167,132 L158,136 L124,156 Z"
-                                            Fill="{ThemeResource TextFillColorPrimaryBrush}" />
-                                    </Canvas>
-                                </Viewbox>
-                            </Grid>
-                            <TextBlock Text="{x:Bind Label}" VerticalAlignment="Center" />
-                        </StackPanel>
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                AutomationProperties.HeadingLevel="Level3"
+                                FontWeight="SemiBold"
+                                Foreground="{ThemeResource EgTextDimBrush}"
+                                Style="{StaticResource EgCaptionStyle}"
+                                Text="{x:Bind Label}"
+                                Visibility="{x:Bind SectionVisibility}" />
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="12"
+                                Visibility="{x:Bind EntryVisibility}">
+                                <!--
+                                  图标槽二选一：MoviePilot 这一行走官方图标的白色重绘版（2026-09-18 从 v3 仓库根的
+                                  app.ico 描摹，等距立方体两截轨 + 播放三角；单色版不描折角阴影），其余分类走
+                                  Segoe 字形。白是用户点的名（2026-09-18：「把图标弄成白色的替换侧边栏的这个齿轮」）。
+                                  Jellyfin 的分类已全部进字形表；认不出的分类给一页通用纸，不再拿齿轮兜底
+                                  （2026-10-19 用户当场指出左栏齿轮太多）。
+                                -->
+                                <Grid>
+                                    <FontIcon
+                                        FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                        FontSize="16"
+                                        Glyph="{x:Bind Label, Converter={StaticResource CategoryGlyph}}"
+                                        Visibility="{x:Bind Label, Converter={StaticResource MoviePilotMark}, ConverterParameter=hide}" />
+                                    <Viewbox
+                                        Width="16"
+                                        Height="16"
+                                        VerticalAlignment="Center"
+                                        Visibility="{x:Bind Label, Converter={StaticResource MoviePilotMark}}">
+                                        <Canvas Width="256" Height="256">
+                                            <Path
+                                                Data="M48,191 L32,181 L32,86 L34,80 L43,72 L120,24 L126,22 L135,24 L159,39 L159,54 L149,69 L129,56 L126,56 L63,96 L63,191 Z"
+                                                Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                                            <Path
+                                                Data="M96,221 L96,200 L101,190 L103,190 L128,201 L192,173 L192,58 L197,58 L223,72 L223,186 L220,193 L217,196 L209,200 L202,202 L197,205 L195,205 L190,208 L188,208 L183,211 L181,211 L176,214 L174,214 L169,217 L162,219 L130,233 L125,233 L119,231 Z"
+                                                Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                                            <Path
+                                                Data="M107,165 L102,162 L102,92 L106,89 L115,93 L149,113 L165,121 L170,125 L170,129 L167,132 L158,136 L124,156 Z"
+                                                Fill="{ThemeResource TextFillColorPrimaryBrush}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </Grid>
+                                <TextBlock Text="{x:Bind Label}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>

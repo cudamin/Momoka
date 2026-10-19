@@ -722,7 +722,7 @@ internal sealed partial class ShellNavigationProbe
                 "多服务器左栏不是 Momoka 后面按服务器各一组：" + string.Join("、", groups.Select(group => group.Name)));
             Require(groups.Skip(1).All(group => group.Collapsible && !group.IsExpanded
                     && group.Entries.Count > 0
-                    && group.Entries.All(entry => entry.Visibility == Visibility.Collapsed)),
+                    && group.Rows.All(row => row.Visibility == Visibility.Collapsed)),
                 "多服务器分组没有默认收起，或收起时条目仍露着");
 
             // 折叠只能收走服务器组自己的容器：Momoka 组的行还得是默认 ListViewItem 的行高与内边距，
@@ -748,6 +748,26 @@ internal sealed partial class ShellNavigationProbe
                     new[] { "修改密码", "播放偏好", "外观", "媒体库", "用户", "设置", "任务计划" }),
                 "多服务器分组没有列出各产品自己的设置目录");
 
+            // 各产品的原生分区标题也要按原次序分回来，不能把所有入口摊成一整条。
+            Require(Sections(emby).SequenceEqual(new[] { "Emby Server", "设备", "高级" })
+                && Sections(jellyfin).SequenceEqual(new[] { "服务器", "设备", "电视直播", "插件", "高级" })
+                && Sections(fnNas).SequenceEqual(new[] { "帐号", "影视服务器" }),
+                "多服务器分组丢了各产品的原生分区：" +
+                $"{string.Join("/", Sections(emby))}；{string.Join("/", Sections(jellyfin))}；{string.Join("/", Sections(fnNas))}");
+            Require(emby.Rows[0].Label == SettingsViewModel.NotificationsCategory
+                && emby.Rows[1].IsSection && emby.Rows[1].Label == "Emby Server",
+                "Emby 的通知或第一段分区次序不对");
+
+            // 分区标题只分段，不当页面：即使被键盘/自动化选中，也必须退回上一次真正打开的入口。
+            var selectionBeforeSection = page.ViewModel.SelectedEntry;
+            var section = jellyfin.Rows.First(row => row.IsSection);
+            rail.SelectedItem = section;
+            await LayoutAsync(page);
+            Require(ReferenceEquals(page.ViewModel.SelectedEntry, selectionBeforeSection)
+                && ReferenceEquals(rail.SelectedItem, selectionBeforeSection)
+                && page.ViewModel.SelectedCategory == selectionBeforeSection?.Key,
+                "分区标题被当成了可打开的分类");
+
             // 组标题真在屏上，点一下的那颗按钮接线也在；展开后条目才露出来。
             var toggles = Descendants(page).OfType<Button>()
                 .Where(button => AutomationProperties.GetName(button) == jellyfin.Name)
@@ -755,8 +775,8 @@ internal sealed partial class ShellNavigationProbe
             Require(toggles.Length == 1, "服务器组标题没有可点的折叠按钮");
             ((IInvokeProvider)new ButtonAutomationPeer(toggles[0]).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(page);
-            Require(jellyfin.IsExpanded && jellyfin.Entries.All(entry => entry.Visibility == Visibility.Visible),
-                "展开服务器组后条目仍收着");
+            Require(jellyfin.IsExpanded && jellyfin.Rows.All(row => row.Visibility == Visibility.Visible),
+                "展开服务器组后条目或分区标题仍收着");
             var expandedItem = rail.ContainerFromItem(jellyfin.Entries[0]) as ListViewItem;
             Require(expandedItem is null || expandedItem.MinHeight == 40,
                 "展开的服务器组没有回到默认行高");
@@ -997,6 +1017,9 @@ internal sealed partial class ShellNavigationProbe
             && labels[^1] == SettingsViewModel.LastCardCategory
             && labels.Skip(labels.Length - 1 - expected.Count).Take(expected.Count).SequenceEqual(expected);
     }
+
+    private static IEnumerable<string> Sections(SettingsCategoryGroup group) =>
+        group.Rows.Where(row => row.IsSection).Select(row => row.Label);
 
     private async Task SettingsAnimationToggleAsync(SettingsPage page, Fixture fixture)
     {

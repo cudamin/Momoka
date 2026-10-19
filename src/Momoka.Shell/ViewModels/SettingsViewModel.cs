@@ -187,6 +187,9 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     private bool _syncingSelection;
 
+    /// <summary>分区标题偶尔被键盘或自动化选中时，选择退回这里——上一次真正打开的页面。</summary>
+    private SettingsCategoryEntry? _lastSelectableEntry;
+
     /// <summary>飞牛影视「帐号」组的两个内嵌页；「外观」映射到现有「界面」卡，不另造一页。</summary>
     private static readonly string[] FnNasAccountHostedCategories = [FnNasPasswordCategory, FnNasPreferencesCategory];
     private static readonly string[] FnNasAccountCategories = [FnNasPasswordCategory, FnNasPreferencesCategory, FnNasAppearanceCategory];
@@ -214,7 +217,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _categoryGroups = BuildCategoryGroups(serverAdministration: false, MediaServerKind.Emby, fnNasAccount: false);
 
         Categories.Clear();
-        foreach (var entry in _categoryGroups.SelectMany(group => group))
+        foreach (var entry in _categoryGroups.SelectMany(group => group.Entries))
             Categories.Add(entry);
         SelectedEntry = Categories.FirstOrDefault();
     }
@@ -399,6 +402,22 @@ public sealed partial class SettingsViewModel : PageViewModel
     partial void OnSelectedEntryChanged(SettingsCategoryEntry? value)
     {
         if (value is null) return;
+
+        // 分区标题只用来分段。键盘或自动化偶尔把它选进来时，退回上一次真正打开的页面；
+        // 右半边不闪、SelectedCategory 也不跟着一个不存在的页名走。
+        if (value.IsSection)
+        {
+            var previous = _lastSelectableEntry ?? Categories.FirstOrDefault();
+            if (previous is not null && !ReferenceEquals(previous, value))
+            {
+                _syncingSelection = true;
+                try { SelectedEntry = previous; }
+                finally { _syncingSelection = false; }
+            }
+            return;
+        }
+
+        _lastSelectableEntry = value;
         // 在紧凑下拉里选到收起的组时把它展开；重建名单（_syncingSelection）不推翻用户手动收起的状态。
         if (!_syncingSelection && !value.Group.IsExpanded) value.Group.IsExpanded = true;
         if (_syncingSelection)
@@ -694,13 +713,16 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         foreach (var source in selected)
         {
-            var entries = SourceEntries(source, pages.GetValueOrDefault(source.Key));
-            if (entries.Count == 0) continue;
+            var rows = SourceRows(source, pages.GetValueOrDefault(source.Key));
+            if (rows.Count == 0) continue;
 
             var group = new SettingsCategoryGroup(source.Label, source.Key, collapsible: true,
                 expanded: previous.TryGetValue(source.Key, out var expanded) && expanded);
-            foreach (var entry in entries)
-                group.Add(entry.Label, source.Key, entry.Route, SectionForCategory(entry.Label));
+            foreach (var row in rows)
+            {
+                if (row.IsSection) group.AddSection(row.Label);
+                else group.Add(row.Label, source.Key, row.Route, SectionForCategory(row.Label));
+            }
             groups.Add(group);
         }
 
@@ -715,43 +737,62 @@ public sealed partial class SettingsViewModel : PageViewModel
         return index >= 0 ? index : int.MaxValue;
     }
 
+    /// <summary>左栏里的一行：原生目录的分区标题，或者一个能打开的入口。</summary>
+    private sealed record ServerSourceRow(string Label, string Route = "", bool IsSection = false);
+
     /// <summary>
-    /// 一条来源在左栏里列出的全部入口。Emby／Jellyfin 是它们自己的网页控制台目录（加上 Emby 的通知）；
-    /// 飞牛是帐号三项（所有账号可见）与管理员四项；Plex 没有这套设置。
+    /// 一条来源在左栏里列出的行。Emby／Jellyfin 保留它们网页控制台的原生分区（Emby 三段、Jellyfin 五段），
+    /// 分区标题与入口交错；Emby 的通知列在原生分区之前。飞牛保留「帐号／影视服务器」两段：
+    /// 帐号三项所有账号可见，影视服务器四项只在管理员时列出；Plex 没有这套设置。
     /// </summary>
-    private static IReadOnlyList<ServerSettingsMenuEntry> SourceEntries(ServerSettingsSource source,
+    private static IReadOnlyList<ServerSourceRow> SourceRows(ServerSettingsSource source,
         IReadOnlyList<ServerSettingsPluginPage>? pages)
     {
         if (source.Kind == MediaServerKind.Emby)
         {
             if (!source.IsAdministrator) return [];
-            return
-            [
-                new(NotificationsCategory, "", ServerSettingsSection.Server, "bell"),
-                .. ServerSettingsMenu.Build(pages).SelectMany(group => group.Entries)
-            ];
+            var rows = new List<ServerSourceRow> { new(NotificationsCategory) };
+            AddSections(rows, ServerSettingsMenu.Build(pages));
+            return rows;
         }
 
         if (source.Kind == MediaServerKind.Jellyfin)
         {
             if (!source.IsAdministrator) return [];
-            return [.. JellyfinServerSettingsMenu.Build(pages).SelectMany(group => group.Entries)];
+            var rows = new List<ServerSourceRow>();
+            AddSections(rows, JellyfinServerSettingsMenu.Build(pages));
+            return rows;
         }
 
         if (source.Kind == MediaServerKind.FnNas)
         {
-            var entries = new List<ServerSettingsMenuEntry>
+            var rows = new List<ServerSourceRow>
             {
-                new(FnNasPasswordCategory, "", ServerSettingsSection.Server, "password"),
-                new(FnNasPreferencesCategory, "", ServerSettingsSection.Server, "play"),
-                new(FnNasAppearanceCategory, "", ServerSettingsSection.Server, "appearance")
+                new("帐号", IsSection: true),
+                new(FnNasPasswordCategory),
+                new(FnNasPreferencesCategory),
+                new(FnNasAppearanceCategory)
             };
             if (source.IsAdministrator)
-                entries.AddRange(FnNasServerMenu().SelectMany(group => group.Entries));
-            return entries;
+            {
+                rows.Add(new("影视服务器", IsSection: true));
+                rows.AddRange(FnNasServerMenu()
+                    .SelectMany(group => group.Entries)
+                    .Select(entry => new ServerSourceRow(entry.Label, entry.Route)));
+            }
+            return rows;
         }
 
         return [];
+    }
+
+    private static void AddSections(List<ServerSourceRow> rows, IReadOnlyList<ServerSettingsMenuGroup> groups)
+    {
+        foreach (var group in groups)
+        {
+            rows.Add(new(group.Label, IsSection: true));
+            rows.AddRange(group.Entries.Select(entry => new ServerSourceRow(entry.Label, entry.Route)));
+        }
     }
 
     /// <summary>
@@ -847,7 +888,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private void ReplaceCategories(IReadOnlyList<SettingsCategoryGroup> groups)
     {
         _categoryGroups = groups;
-        var desired = groups.SelectMany(group => group).ToArray();
+        var desired = groups.SelectMany(group => group.Entries).ToArray();
         if (desired.Length == 0) return;
 
         var keep = desired.FirstOrDefault(entry => string.Equals(entry.Key, SelectedCategory, StringComparison.Ordinal))
