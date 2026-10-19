@@ -144,6 +144,7 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
         plan.Claim();
         var outcomes = new AniBtScrapeResult[plan.Rows.Count];
+        var moved = new List<int>();
         var stopped = false;
         foreach (var (index, transfer, preview) in transfers)
         {
@@ -159,6 +160,7 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 var result = await moviePilot.TransferSubmitAsync(preview, background: false, cancellationToken)
                     .ConfigureAwait(false);
                 outcomes[index] = new(row.TargetPath, result.Success, TransferMessage(result));
+                if (result.Success) moved.Add(index);
             }
             catch (Exception error) when (error is MoviePilotException or OperationCanceledException)
             {
@@ -184,7 +186,30 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
             foreach (var (index, _) in identify)
                 outcomes[index] = new(plan.Rows[index].TargetPath, success, message);
         }
+        if (moved.Count > 0)
+        {
+            var scan = await ScanAfterTransferAsync(emby, canContinue, cancellationToken).ConfigureAwait(false);
+            foreach (var index in moved)
+                outcomes[index] = outcomes[index] with { Message = outcomes[index].Message + scan };
+        }
         return [.. outcomes];
+    }
+
+    /// <summary>
+    /// 整理成功后文件已经换了路径；不通知媒体服务器，旧条目会一直留在库里，点开还会报文件缺失。
+    /// 用 Emby 自带的整库扫描让它按磁盘现状移除旧条目并收录新路径；扫描是异步的，结果只代表请求已发出。
+    /// </summary>
+    private static async Task<string> ScanAfterTransferAsync(EmbyClient emby, Func<bool>? canContinue,
+        CancellationToken cancellationToken)
+    {
+        if (canContinue?.Invoke() == false) return "；媒体库身份已改变，没有请求 Emby 扫描";
+        try
+        {
+            await emby.ScanLibraryAsync(cancellationToken).ConfigureAwait(false);
+            return "；已请求 Emby 扫描媒体库，旧条目会在扫描完成后移除";
+        }
+        catch (OperationCanceledException) { return "；Emby 扫描请求已取消，请手动扫描媒体库"; }
+        catch (Exception error) { return $"；Emby 扫描请求失败（{error.Message}），请手动扫描媒体库"; }
     }
 
     private static string TransferMessage(MoviePilotTransferResult result)

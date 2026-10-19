@@ -196,6 +196,9 @@ internal static class AniBtIntegrationTests
                 [Anime], CancellationToken.None).GetAwaiter().GetResult();
             Assert.True(result.Single().Success);
             Assert.Contains("已重新整理到", result.Single().Message);
+            Assert.Contains("扫描媒体库", result.Single().Message);
+            var scan = transport.Only("Library/Refresh");
+            Assert.Equal("POST", scan.Method);
             var calls = transport.SentTo("transfer/manual?");
             Assert.Equal(2, calls.Count);
             var preview = Json(calls[0].Body);
@@ -216,6 +219,19 @@ internal static class AniBtIntegrationTests
             Assert.False(submit.GetProperty("preview").GetBoolean());
             Assert.Contains("background=false", calls[1].Url);
             Assert.Equal(0, transport.SentTo("media/scrape").Count);
+        });
+
+        Test("AniBT 重新整理成功但 Emby 扫描失败：整理仍算成功并提示手动扫描", () =>
+        {
+            using var transport = TransferTransport(Target).Fail("Library/Refresh", HttpStatusCode.Forbidden);
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var result = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+                [Anime], CancellationToken.None).GetAwaiter().GetResult();
+            Assert.True(result.Single().Success);
+            Assert.Contains("扫描请求失败", result.Single().Message);
+            Assert.Contains("手动扫描媒体库", result.Single().Message);
         });
 
         Test("AniBT 批量：第二个目标不是精确文件时，第一集也不能先写", () =>
@@ -353,6 +369,7 @@ internal static class AniBtIntegrationTests
             using var transport = BaseTransport().Answer("media/source", Sources).Answer("media/42?", Media)
                 .Answer("transfer/manual/target-path", TargetReply)
                 .Answer("history/transfer", HistoriesJson((7, Target), (8, next)))
+                .Answer("Library/Refresh", "")
                 .Sequence("storage/list", (HttpStatusCode.OK, FileReply(Target)), (HttpStatusCode.OK, FileReply(next)))
                 .Sequence("transfer/manual?",
                     (HttpStatusCode.OK, PreviewReply(Target)), (HttpStatusCode.OK, PreviewReply(next)),
@@ -427,6 +444,7 @@ internal static class AniBtIntegrationTests
             .Answer("history/transfer", HistoriesJson((7, Target)))
             .Answer("transfer/manual/target-path", TargetReply)
             .Answer("storage/list", FileReply(Target))
+            .Answer("Library/Refresh", "")
             .Sequence("transfer/manual?", [.. answers]);
     }
 
