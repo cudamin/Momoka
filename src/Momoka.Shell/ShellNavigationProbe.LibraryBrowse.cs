@@ -136,6 +136,15 @@ internal sealed partial class ShellNavigationProbe
                     var controls = toolbar.TransformToVisual(page).TransformBounds(new(0, 0, toolbar.ActualWidth, toolbar.ActualHeight));
                     Require(controls.Left >= -1 && controls.Right <= page.ActualWidth + 1 && controls.Top >= box.Bottom, "工具栏未在分类下方或被裁切");
                     Require(Math.Abs(controls.Left + controls.Width / 2 - page.ActualWidth / 2) <= 2, "工具栏没有居中");
+                    // 2026-10-19 用户令「emby 库封面和上方组件的空挡太大了，缩短」：收起的选择栏、筛选条、
+                    // 状态条与浏览分组从前仍按 RowSpacing 占位，工具栏到封面空出 100 像素。量活元素：
+                    // 工具栏下沿到第一张封面之间的距离应当就是一档内容间距，而不是一串空行之和。
+                    var posterTop = Descendants(Get<ItemsView>(page, "CardWall")).OfType<PosterCard>()
+                        .Select(card => card.TransformToVisual(page).TransformPoint(new(0, 0)).Y)
+                        .DefaultIfEmpty(double.NaN).Min();
+                    var coverGap = posterTop - controls.Bottom;
+                    Require(coverGap >= 8 && coverGap <= 24,
+                        $"封面离上方工具栏的空白是 {coverGap:0} 像素，期望 20 像素左右（收起行仍在占间距？）");
                     await SaveReturnFrameAsync(page, $"library-{collection}-{width}.png");
                 }
                 ResizeProbeClient(900, 700);

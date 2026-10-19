@@ -527,6 +527,7 @@
         <!-- Indeterminate and one row of its own: a ring in the middle of the page would move the
              grid when it appeared, and the grid is already showing whatever arrived first. -->
         <ProgressBar
+            x:Name="LibraryBusyBar"
             Grid.Row="1"
             Height="2"
             IsIndeterminate="True"
@@ -535,6 +536,7 @@
         <!-- TwoWay on IsOpen, so dismissing the bar is recorded rather than only drawn: the next
              failure has to be able to reopen it. -->
         <InfoBar
+            x:Name="LibraryNoticeBar"
             Grid.Row="1"
             Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
             IsClosable="True"

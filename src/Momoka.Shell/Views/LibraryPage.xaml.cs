@@ -636,11 +636,24 @@ public sealed partial class LibraryPage : Page, IShellContent
         var search = _request?.IsSearch == true;
         var sectionLibrary = ViewModel.IsSectionLibrary;
         var contentPage = ViewModel.IsUpcomingPage || ViewModel.IsFavoritesPage;
+        // 分区库（Emby／Jellyfin）的头部有一批只在特定状态下出现的行：浏览分组、筛选条、状态条、
+        // 搜索分类栏。Grid 的 RowSpacing 连收起的行也照算，工具栏到封面因此空出 100 像素。
+        // 这一档把这些间距改由元素自己的外边距表达：行收起就一个像素不占，显示时仍是原来的 12／16。
+        // 飞牛的分区页不跟着改，按服务器分开处理。
+        var headerByMargin = sectionLibrary && !contentPage && !ViewModel.IsFnNas;
+        var contentGap = new Thickness(0, 20, 0, 0);
         PageRoot.Margin = sectionLibrary ? new Thickness(20) : (Thickness)Application.Current.Resources["EgPageMargin"];
-        PageRoot.RowSpacing = search ? 8 : contentPage ? 4 : 20;
-        HeaderGrid.RowSpacing = search || contentPage ? 0 : 16;
-        HeaderLayout.RowSpacing = search ? 16 : sectionLibrary ? 12 : 20;
-        ((Grid)UpcomingScroll.Parent).RowSpacing = contentPage ? 0 : 16;
+        PageRoot.RowSpacing = search ? 8 : contentPage ? 4 : headerByMargin ? 0 : 20;
+        HeaderGrid.RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
+        HeaderLayout.RowSpacing = search ? 16 : headerByMargin ? 0 : sectionLibrary ? 12 : 20;
+        ((Grid)UpcomingScroll.Parent).RowSpacing = contentPage || headerByMargin ? 0 : 16;
+        LibrarySectionsSurface.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
+        ToolbarSurface.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
+        LibraryBrowseGroup.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
+        LibraryFilterChips.Margin = headerByMargin ? new Thickness(0, 16, 0, 0) : new Thickness(0);
+        EmbyContent.Margin = headerByMargin ? contentGap : new Thickness(0);
+        LibraryBusyBar.Margin = headerByMargin ? contentGap : new Thickness(0);
+        LibraryNoticeBar.Margin = headerByMargin ? contentGap : new Thickness(0);
         LibraryTitle.Visibility = Visibility.Visible;
         LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
         LibrarySectionsSurface.MaxWidth = width;
