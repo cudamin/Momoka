@@ -37,6 +37,7 @@ internal sealed partial class ShellNavigationProbe
         [nameof(EpisodeBandAsync)] = ShellProbeSections.Library,
         [nameof(SeriesCardDatesAsync)] = ShellProbeSections.Library,
         [nameof(LibraryBrowseAsync)] = ShellProbeSections.Library,
+        [nameof(FnNasLibrarySpacingAsync)] = ShellProbeSections.Library,
         [nameof(LibraryFavoritesAsync)] = ShellProbeSections.Library,
         [nameof(LibraryUpcomingAsync)] = ShellProbeSections.Library,
         [nameof(DetailWriteAsync)] = ShellProbeSections.Library,

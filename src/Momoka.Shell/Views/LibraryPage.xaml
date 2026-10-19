@@ -578,7 +578,7 @@
 
             <!-- 飞牛筛选：官网页端展开在工具栏下面的那一条，不是 Emby 那种盖住整页的浮层。
                  行和值都来自 /tag/list，题材、地区再经官方映射表换成中文。 -->
-            <Border Grid.Row="2" Margin="0,0,0,4" Padding="16,12"
+            <Border x:Name="FnNasFilterPanel" Grid.Row="2" Margin="0,0,0,4" Padding="16,12"
                 Background="{ThemeResource EgSurfaceBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="1"
