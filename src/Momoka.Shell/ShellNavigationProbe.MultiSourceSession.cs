@@ -197,6 +197,18 @@ internal sealed partial class ShellNavigationProbe
                     "首页截图不能在轮播文字仍然淡入时拍摄");
                 AssertAggregateLabels(home, sources);
                 await SaveProbeScreenAsync($"aggregate-home-{stage}-{width}-screen.png");
+
+                // 多账号时再往下滚一屏：媒体库卡片名称和「最近添加」货架标题的服务器名前缀要留下实屏证据。
+                if (sources.Length > 1 && width == 1280)
+                {
+                    var scroller = Get<ScrollView>(home, "Scroller");
+                    scroller.ScrollTo(0, 620, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+                    await LayoutAsync(home);
+                    await Task.Delay(200);
+                    await SaveProbeScreenAsync($"aggregate-home-{stage}-{width}-labels-screen.png");
+                    scroller.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+                    await LayoutAsync(home);
+                }
             }
         }
 

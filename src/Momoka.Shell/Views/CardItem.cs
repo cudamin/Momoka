@@ -78,6 +78,9 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>第三行：勾了宣传语或概要才有，null 就是这一行整行收起。</summary>
     private readonly string? _note;
 
+    /// <summary>这一张卡在季集信息下面再写一行服务器名（多账号主页的继续观看）。</summary>
+    private readonly bool _sourceLine;
+
     /// <summary>Whether artwork exists to ask for, or null when the item has none worth asking for.</summary>
     private readonly string? _imageType;
 
@@ -142,6 +145,10 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <param name="tableFields">
     /// 表格视图的列。非空时卡片同时算出每一格的文字与宽度（<see cref="Cells"/>），行模板只负责摆出来。
     /// </param>
+    /// <param name="sourceLine">
+    /// True to draw the server name on a third line below the item's own subtitle. Only the home page's
+    /// continue-watching row asks for it, and only while more than one account is online.
+    /// </param>
     public CardItem(
         EmbyItem item,
         EmbyImageStore images,
@@ -159,7 +166,8 @@ public sealed class CardItem : INotifyPropertyChanged
         bool centeredText = false,
         bool containArtwork = false,
         bool folderFrame = false,
-        double? aspect = null)
+        double? aspect = null,
+        bool sourceLine = false)
     {
         _item = item;
         _images = images;
@@ -177,6 +185,7 @@ public sealed class CardItem : INotifyPropertyChanged
         PosterStretch = containArtwork ? Stretch.Uniform : Stretch.UniformToFill;
         _note = note;
         _indicators = indicators;
+        _sourceLine = sourceLine;
         IsCurrentEpisode = current;
 
         _imageType = imageTypes is { Count: > 0 } wanted
@@ -258,6 +267,14 @@ public sealed class CardItem : INotifyPropertyChanged
     public Visibility CurrentVisibility => Show(IsCurrentEpisode);
 
     public string Subtitle => _subtitle ?? _item.CardSubtitle;
+
+    /// <summary>
+    /// 第三行：这一项属于哪台服务器。空串时整行收起。只有多账号主页的继续观看卡会传
+    /// <c>sourceLine: true</c>；浏览、搜索和详情货架一律空着。
+    /// </summary>
+    public string SourceLine => _sourceLine ? _item.Source?.ServerName ?? "" : "";
+
+    public Visibility SourceLineVisibility => Show(SourceLine.Length > 0);
 
     /// <summary>第三行（宣传语或概要）。媒体库设置里勾了才有；别的页面一律空。</summary>
     public string Note => _note ?? "";

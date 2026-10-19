@@ -210,6 +210,16 @@
                 TextAlignment="{x:Bind Card.TitleAlignment, Mode=OneWay}"
                 ToolTipService.ToolTip="{x:Bind Card.Subtitle, Mode=OneWay}"
                 TextTrimming="CharacterEllipsis" />
+            <!-- 第三行：多账号主页的继续观看卡在季集下面写服务器名；别的卡片整行收起。 -->
+            <TextBlock
+                x:Name="SourceLine"
+                MaxLines="1"
+                Style="{StaticResource EgCaptionStyle}"
+                Foreground="{ThemeResource EgTextFaintBrush}"
+                Text="{x:Bind Card.SourceLine, Mode=OneWay}"
+                Visibility="{x:Bind Card.SourceLineVisibility, Mode=OneWay}"
+                TextAlignment="{x:Bind Card.TitleAlignment, Mode=OneWay}"
+                TextTrimming="CharacterEllipsis" />
             <!-- 第三行：宣传语或概要。媒体库设置里勾了才有，没勾时整行收起（一个像素都不占）。 -->
             <TextBlock
                 x:Name="NoteLine"

@@ -35,6 +35,7 @@ public sealed partial class CardShelf : ObservableObject
     private readonly int _width;
     private readonly bool _wide;
     private readonly bool _indicators;
+    private readonly bool _sourceLine;
 
     /// <param name="wide">
     /// True for a 16:9 row, which prefers the episode still over the poster — a 继续观看 card is about
@@ -56,18 +57,26 @@ public sealed partial class CardShelf : ObservableObject
     /// 牌子一直是死的；而用户那句「新增点击图中红框的标题可以进入对应的页面」圈的正是「继续观看」。
     /// 判据改成问版面要一个去处，库里那几排照旧，那两排也有了。
     /// </param>
+    /// <param name="sourceLine">
+    /// True to write the server name on a third line under every card's subtitle, and reserve that
+    /// line's height in <see cref="RowHeight"/>. Only the home page's 继续观看 row sets it, and only
+    /// while more than one account is online.
+    /// </param>
     internal CardShelf(string title, EmbyImageStore images, int width, bool wide, bool indicators = true,
-        string? libraryId = null, HomeLayout.HomeRowTarget target = HomeLayout.HomeRowTarget.None)
+        string? libraryId = null, HomeLayout.HomeRowTarget target = HomeLayout.HomeRowTarget.None,
+        bool sourceLine = false)
     {
         Title = title;
         _images = images;
         _width = width;
         _wide = wide;
         _indicators = indicators;
+        _sourceLine = sourceLine;
         LibraryId = libraryId;
         Target = target;
 
-        RowHeight = CardSize.HeightFor(width, wide) + CardSize.Chrome;
+        RowHeight = CardSize.HeightFor(width, wide) + CardSize.Chrome
+            + (sourceLine ? CardSize.SourceLine : 0);
 
         // 读数跟着内容走。挂在集合的事件上而不是在 Clear/Fill/FillRows 里各喊一遍：那三个方法之外还有
         // 别人往 Cards 里加东西（详情页换季就是），漏喊一处的症状是牌子右端那个数字停在上一季。
@@ -146,8 +155,20 @@ public sealed partial class CardShelf : ObservableObject
     /// one poster per card per refresh.
     /// </summary>
     /// <param name="subtitle">Overrides every card's second line, from the item it belongs to.</param>
-    internal void Fill(IEnumerable<EmbyItem> items, Func<EmbyItem, string?>? subtitle = null) =>
-        Fill(items.Select(item => (item, subtitle?.Invoke(item))));
+    /// <param name="title">
+    /// Overrides every card's title. Only the home page's 媒体库 row uses it, to put the server name in
+    /// front of each library name while more than one account is online.
+    /// </param>
+    internal void Fill(IEnumerable<EmbyItem> items, Func<EmbyItem, string?>? subtitle = null,
+        Func<EmbyItem, string?>? title = null)
+    {
+        Clear();
+
+        foreach (var item in items)
+            Cards.Add(new CardItem(
+                item, _images, _width, _wide, subtitle?.Invoke(item), _indicators,
+                title: title?.Invoke(item), sourceLine: _sourceLine));
+    }
 
     /// <summary>
     /// The same, for a row whose second line does not come from the item at all.
@@ -163,7 +184,8 @@ public sealed partial class CardShelf : ObservableObject
         Clear();
 
         foreach (var (item, subtitle) in items)
-            Cards.Add(new CardItem(item, _images, _width, _wide, subtitle, _indicators));
+            Cards.Add(new CardItem(item, _images, _width, _wide, subtitle, _indicators,
+                sourceLine: _sourceLine));
     }
 
     /// <summary>
@@ -172,7 +194,7 @@ public sealed partial class CardShelf : ObservableObject
     /// 换卡的那一头不该知道那三样、更不该各写一份。
     /// </summary>
     internal CardItem NewCard(EmbyItem item) =>
-        new(item, _images, _width, _wide, subtitle: null, _indicators);
+        new(item, _images, _width, _wide, subtitle: null, _indicators, sourceLine: _sourceLine);
 
     /// <summary>
     /// The same, for a shelf drawn as 列表 rows rather than as cards — 详情页's 单集 list. Its own path

@@ -79,6 +79,12 @@ public static class CardSize
     public const int Chrome = 59;
 
     /// <summary>
+    /// 第三行来源文字的额外高度。多账号主页的继续观看卡在季集那一行下面再写一行服务器名，这一排的
+    /// <c>RowHeight</c> 要把它算进去，否则末行会被下一排压掉。
+    /// </summary>
+    public const int SourceLine = 18;
+
+    /// <summary>
     /// A card's picture height for a given width and shape: 16:9 for a still, 2:3 for a poster. Rounded,
     /// which reproduces the two numbers the markup used to carry (300 → 169, 170 → 255) and gives whole
     /// pixels for every width the constants above can name.

@@ -53,6 +53,11 @@ internal static class CardSizeTests
                 "主页一排剧照：144 + 59");
             Assert.Equal(176d, CardSize.HeightFor(CardSize.LibraryWidth, wide: true) + CardSize.Chrome,
                 "主页一排媒体库格子：117 + 59");
+
+            // 多账号继续观看多一行服务器名：那一排还要再加这一截。
+            Assert.Equal(18, CardSize.SourceLine);
+            Assert.Equal(221d, CardSize.HeightFor(CardSize.HomeWideWidth, wide: true) + CardSize.Chrome + CardSize.SourceLine,
+                "多账号继续观看：144 + 59 + 18");
         });
 
         Test("卡片尺寸：每一种宽度上高度都是整像素，形状也对", () =>

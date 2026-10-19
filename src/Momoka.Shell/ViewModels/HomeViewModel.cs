@@ -107,6 +107,12 @@ public sealed partial class HomeViewModel : PageViewModel
     private bool Visible(string key) => _all.Any(entry => entry.Row.Key == key && entry.Row.Visible);
 
     /// <summary>
+    /// 两个及以上在线账号时，主页那三处要写服务器名：继续观看卡季集下面的第三行、每个库「最近添加」的货架
+    /// 标题、媒体库那一排的卡片名称。只有一个账号时一律不写 —— 多出来的服务器名不区分任何东西。
+    /// </summary>
+    private bool ShowServerNames => _sources.Count > 1;
+
+    /// <summary>
     /// 这一页上有没有东西会因为「服务器新入库」而换掉（<see cref="HomeLayout.CanRefresh"/>）：轮播开着，或者
     /// 至少有一排读服务器条目清单的货架勾着。都不是的时候定时检查和实时通道都不该再问服务器 —— 隐藏的行不联网。
     /// </summary>
@@ -355,15 +361,21 @@ public sealed partial class HomeViewModel : PageViewModel
             };
             var badges = row.Key != HomeLayout.Libraries;
 
+            // 多账号时这一排属于哪台服务器要写在标题前面；媒体库那几排各自带着自己的来源。固定排没有来源，
+            // Prefix 原样交回标题。
+            var source = _libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == row.Key)?.Source;
+            var title = SourceCaption.Prefix(row.Title, source, ShowServerNames);
+
             // 这一排点进哪儿由版面说了算（HomeLayout.TargetOf）：库那几排认库，继续观看 / 接下来看各有
             // 自己的一页，详情页造出来的那些排是 None —— 牌子右端跟不跟大于号就看它。2026-09-14 之前这里
             // 只递一个库 id，于是那两排没有 id、牌子一直是死的。
             return (row, new CardShelf(
-                row.Title, images, width, wide, badges,
-                HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key))
+                title, images, width, wide, badges,
+                HomeLayout.LibraryId(row.Key), HomeLayout.TargetOf(row.Key),
+                sourceLine: row.Key == HomeLayout.Resume && ShowServerNames)
             {
                 HomeKey = row.Key,
-                Source = _libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == row.Key)?.Source
+                Source = source
             });
         })];
     }
@@ -730,8 +742,12 @@ public sealed partial class HomeViewModel : PageViewModel
 
             // 媒体库那一排的第二行空着：一个库自己的 CardSubtitle 就是「媒体库」三个字，而那正是这一排牌子上写的
             // 词（同 CardItem 那个 subtitle 参数上写的演职人员那条 —— 一整排卡片底下重复一遍排名，一个字的信息
-            // 都不多）。空串而不是 null：null 是「按条目自己算」。
-            shelf.Fill(Items(row.Key), row.Key == HomeLayout.Libraries ? _ => "" : null);
+            // 都不多）。空串而不是 null：null 是「按条目自己算」。多账号时卡片标题前面写服务器名，和货架标题
+            // 同一份来源。
+            shelf.Fill(Items(row.Key), row.Key == HomeLayout.Libraries ? _ => "" : null,
+                row.Key == HomeLayout.Libraries
+                    ? item => SourceCaption.Prefix(item.Name, item.Source, ShowServerNames)
+                    : null);
         }
 
         // 装到了东西的排一律横着排。媒体库也在其中 —— 2026-09-08「移除轮播图右边的媒体库」之后不再单挑出来当
@@ -789,7 +805,7 @@ public sealed partial class HomeViewModel : PageViewModel
     internal string LayoutSummary => _all.Length == 0
         ? "未读取"
         : $"轮播{(_banner ? "开" : "关")}；" + string.Join("、", _all.Select(entry =>
-            $"{entry.Row.Title}{(entry.Row.Visible ? "✓" : "✗")}"
+            $"{entry.Shelf.Title}{(entry.Row.Visible ? "✓" : "✗")}"
                 + $"{(entry.Shelf.CanOpen ? "›" : "")}"
                 + $"{(entry.Shelf.Cards.Count > 0 ? "" : "（空）")}"));
 
@@ -807,7 +823,7 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         var wanted = _all
             .Where(entry => entry.Row.Visible && entry.Shelf.Cards.Count > 0)
-            .Select(entry => (entry.Row.Key, entry.Row.Title))
+            .Select(entry => (entry.Row.Key, entry.Shelf.Title))
             .Where(entry => !_libraryOnBanner || LibraryShelf is null || entry.Key != HomeLayout.Libraries)
             .Select(entry => entry.Title)
             .ToList();
@@ -819,7 +835,7 @@ public sealed partial class HomeViewModel : PageViewModel
         // 对不上也无所谓 —— 这一句问的是「这一页该有牌子的排，牌子是不是真有」。
         var opensWanted = _all
             .Where(entry => HomeLayout.TargetOf(entry.Row.Key) != HomeLayout.HomeRowTarget.None)
-            .Select(entry => entry.Row.Title)
+            .Select(entry => entry.Shelf.Title)
             .ToList();
         var opensMissing = opensWanted.Where(title => !CardOpen(title)).ToList();
 
@@ -838,7 +854,7 @@ public sealed partial class HomeViewModel : PageViewModel
     /// </summary>
     private bool CardOpen(string title) =>
         _all.Any(entry => entry.Shelf.CanOpen
-            && string.Equals(entry.Row.Title, title, StringComparison.Ordinal));
+            && string.Equals(entry.Shelf.Title, title, StringComparison.Ordinal));
 
     /// <summary>
     /// The same rows without the music ones; see <see cref="EmbyItemType.IsMusic"/> for why they are

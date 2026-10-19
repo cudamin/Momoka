@@ -66,7 +66,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 连接控制入口、断线回退与恢复", MoviePilotAvailabilityAsync);
             await CaseAsync("主页媒体库与订阅混排、显隐及偏好恢复", HomeOrderAsync, 45);
             await CaseAsync("所有账号的媒体库与最近添加、聚合搜索分页与详情来源", AggregateBrowsingAsync, 45);
-            await CaseAsync("浏览不标来源且版本仅在多服务器时显示", SourceCaptionTransitionsAsync, 45);
+            await CaseAsync("主页多账号标服务器名、浏览不标且版本仅多服务器显示", SourceCaptionTransitionsAsync, 45);
             await CaseAsync("指定账号登录、添加账号与取消返回", MultiSourceSignInAsync, 30);
             await CaseAsync("默认账号失效后保留其他来源主页", MultiSourceDefaultExpiryAsync, 30);
             // 「继续观看」那一格标记已看之后的去处（用户令 2026-10-15）：主页那一排与点进去的那一页各走一遍。
