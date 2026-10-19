@@ -85,6 +85,7 @@ internal sealed partial class ShellNavigationProbe
                 page = (LibraryPage)frame.Content;
                 await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
                 Require(page.ViewModel.Cards.Count == 1, "媒体库首屏未载入");
+                Require(page.ProbeActionInvokeGuard(), "动作按钮后的同卡调用没有被吞掉，点更多会顺带打开条目");
                 var tabs = Get<WrapRow>(page, "LibrarySections");
                 var labels = string.Join(',', tabs.Children.OfType<ToggleButton>().Select(tab => tab.Content));
                 var expectedSections = collection switch

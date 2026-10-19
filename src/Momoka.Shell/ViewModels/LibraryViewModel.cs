@@ -405,7 +405,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     public ObservableCollection<FilterChipRow> FilterChips { get; } = [];
 
-    public Visibility FilterChipsVisibility => Show(FilterChips.Count > 0 && FilterVisibility == Visibility.Visible);
+    public Visibility FilterChipsVisibility => Show(
+        LibraryFilterChips.ShowsActiveChips(IsFnNas) && FilterChips.Count > 0 && FilterVisibility == Visibility.Visible);
 
     /// <summary>
     /// Whether the letter bar belongs on this grid — Emby's own rule: name-ordered, and enough rows
@@ -2146,16 +2147,11 @@ public sealed partial class LibraryViewModel : PageViewModel
         var active = FnNasFilterRows.Where(row => row.SelectedValue.Length > 0).ToList();
         FilterCount = active.Count;
         FilterTooltip = FilterCount == 0 ? "筛选" : string.Join("；", active.Select(row => $"{row.Label}：{row.SelectedLabel}"));
+
+        // 飞牛的筛选面板自己就是「哪几条在生效」：选中的值在面板里保持高亮，收起来的时候按钮上还有数字。
+        // 不再往工具栏下面铺一行可点的标签 —— 用户 2026-10-19 令「点击选项后不要在界面添加标签」。
+        // 标签条本身留给 Emby，那里筛选面板整块盖住页面，收起后确实只剩那一条能说明筛了什么。
         FilterChips.Clear();
-        foreach (var row in active)
-        {
-            var captured = row;
-            FilterChips.Add(new FilterChipRow($"{row.Label}：{row.SelectedLabel}", () =>
-            {
-                captured.Reset();
-                ApplyFnNasFilters();
-            }));
-        }
         OnPropertyChanged(nameof(FilterChipsVisibility));
         OnPropertyChanged(nameof(FilterButtonWidth));
     }

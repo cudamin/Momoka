@@ -151,8 +151,10 @@
                     <Border Background="{ThemeResource EgAccentBrush}" />
                 </Grid>
 
-                <!-- 整层共同渐显，离开后立即停止命中，淡出完成再收起；键盘仍可从 Shift+F10 进入全部操作。 -->
-                <Grid x:Name="Hover" Opacity="0" Visibility="Collapsed">
+                <!-- 整层共同渐显，离开后立即停止命中，淡出完成再收起；键盘仍可从 Shift+F10 进入全部操作。
+                     操作层上的 Tapped 一律吃掉：媒体库的 ItemContainer 和主页那层 Button 都在外面等
+                     「这一下算不算点卡片」，而按钮自己按下去只该做按钮那一件事。 -->
+                <Grid x:Name="Hover" Opacity="0" Visibility="Collapsed" Tapped="OnActionTapped">
                     <Button
                         x:Name="PlayButton"
                         AutomationProperties.Name="{x:Bind Card.PlayActionTip, Mode=OneWay}"

@@ -763,7 +763,37 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnItemInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)
     {
-        if (args.InvokedItem is CardItem card) ViewModel.Open(card);
+        if (args.InvokedItem is not CardItem card) return;
+        if (ConsumeActionInvoke(card)) return;
+        ViewModel.Open(card);
+    }
+
+    /// <summary>
+    /// 卡片上那颗更多／播放／已看／收藏按下去之后，<c>ItemContainer</c> 紧跟着报上来的那一次「调用」
+    /// 要丢掉。它会和按钮自己的动作同时发生，用户看到的就是「点了更多，菜单一闪，人到了详情页」。
+    /// 只认同一张卡、离按下的那一下很近；过了这一小段，点卡片还是正常的打开。
+    /// </summary>
+    private bool ConsumeActionInvoke(CardItem card)
+    {
+        if (!ReferenceEquals(card, _lastActionCard)) return false;
+        _lastActionCard = null;
+        return Environment.TickCount64 - _lastActionAt < 400;
+    }
+
+    private CardItem? _lastActionCard;
+    private long _lastActionAt;
+
+    /// <summary>探针：动作按钮之后紧跟的同一张卡调用要被吞掉，之后正常点卡片仍然放行。</summary>
+    internal bool ProbeActionInvokeGuard()
+    {
+        if (ViewModel.Cards.FirstOrDefault() is not { } card) return false;
+
+        _lastActionCard = card;
+        _lastActionAt = Environment.TickCount64;
+        var suppressed = ConsumeActionInvoke(card);
+        var later = ConsumeActionInvoke(card);
+        _lastActionCard = null;
+        return suppressed && !later;
     }
 
     /// <summary>
@@ -773,7 +803,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnShelfCardClicked(object sender, RoutedEventArgs e)
     {
-        if (sender is Button { Content: PosterCard { Card: { } card } }) ViewModel.Open(card);
+        if (sender is Button { Content: PosterCard { Card: { } card } } && !ConsumeActionInvoke(card))
+            ViewModel.Open(card);
     }
 
     /// <summary>
@@ -785,8 +816,16 @@ public sealed partial class LibraryPage : Page, IShellContent
         ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
 
     /// <summary>需求 6：the same commands from the strip that appears on a card under the pointer.</summary>
-    private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
+    private void OnCardActionRequested(object? sender, CardActionEventArgs args)
+    {
+        if (sender is PosterCard { Card: { } card })
+        {
+            _lastActionCard = card;
+            _lastActionAt = Environment.TickCount64;
+        }
+
         ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes(), Reload, RemovalCallback(), ViewModel.MarkedWatched);
+    }
 
     private double ContentScrollOffset => ViewModel.IsUpcomingPage ? UpcomingScroll.VerticalOffset
         : ViewModel.IsFavoritesPage ? FavoritesScroll.VerticalOffset : _scroll?.VerticalOffset ?? 0;

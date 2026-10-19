@@ -602,6 +602,9 @@ internal sealed partial class ShellNavigationProbe
                 && Get<ShelfStrip>(view, "SeriesSubscriptions").Parent is FrameworkElement hidden
                 && hidden.Visibility == Visibility.Collapsed, "电影订阅页没有只画电影那一排");
             Require(Get<StackPanel>(page, "EmptyState").Visibility == Visibility.Collapsed, "有订阅时仍显示空态");
+            Require(Get<Button>(view, "RefreshSubscriptions").Visibility == Visibility.Visible
+                && Get<Button>(view, "RefreshSeriesSubscriptions").Visibility == Visibility.Visible,
+                "订阅列表整页的标题旁没有刷新入口");
             await SaveProbeScreenAsync("sidebar-moviepilot-page-screen.png");
 
             SelectSidebarItem(series);

@@ -645,6 +645,13 @@ public sealed partial class PosterCard : UserControl
     private void OnMoreClicked(object sender, RoutedEventArgs e) => Raise(sender, CardAction.More);
 
     /// <summary>
+    /// 操作层上的点击不往卡片外面走。媒体库的 <c>ItemContainer</c> 在点击落在卡片上时会把条目
+    /// 「调用」一次（打开详情或下一层），而按钮自己已经做完那件事了；Tapped 不吃掉的话，点「更多」
+    /// 会在菜单旁边同时打开这一项的页面。
+    /// </summary>
+    private void OnActionTapped(object sender, TappedRoutedEventArgs e) => e.Handled = true;
+
+    /// <summary>
     /// Nothing here has to mark the press handled: ButtonBase already claims the pointer events it acts
     /// on, so the ItemContainer in a library grid and the wrapping Button on the home page never see the
     /// press as an invoke and never start playing an item the user was only marking watched.

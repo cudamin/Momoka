@@ -19,7 +19,7 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Padding="{StaticResource EgPageMargin}" Spacing="{StaticResource EgSpaceXL}">
             <TextBlock x:Name="PageTitle" Style="{StaticResource EgPageTitleStyle}" />
-            <local:MoviePilotSubscriptionsView x:Name="Subscriptions" />
+            <local:MoviePilotSubscriptionsView x:Name="Subscriptions" ShowRefresh="True" />
             <StackPanel x:Name="EmptyState" Spacing="{StaticResource EgSpaceM}" Visibility="Collapsed">
                 <TextBlock x:Name="EmptyText" Style="{StaticResource EgBodyStyle}" />
                 <Button x:Name="RefreshSubscriptions" Content="刷新订阅"

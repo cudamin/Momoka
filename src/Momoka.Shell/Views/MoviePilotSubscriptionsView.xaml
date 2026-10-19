@@ -18,7 +18,7 @@
       <StackPanel Spacing="{StaticResource EgSpaceM}" Visibility="{x:Bind MoviesVisible(ViewModel.MoviesVisibility, ViewModel.NoticeOpen), Mode=OneWay}">
         <Grid>
             <local:ShelfHead x:Name="MoviesHead" Note="{x:Bind ViewModel.MoviesNote, Mode=OneWay}" />
-            <Button x:Name="RefreshSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
+            <Button x:Name="RefreshSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Visibility="Collapsed" Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
         </Grid>
         <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
@@ -30,7 +30,7 @@
       <StackPanel Spacing="{StaticResource EgSpaceM}" Visibility="{x:Bind SeriesVisible(ViewModel.SeriesVisibility, ViewModel.NoticeOpen), Mode=OneWay}">
         <Grid>
             <local:ShelfHead x:Name="SeriesHead" Note="{x:Bind ViewModel.SeriesNote, Mode=OneWay}" />
-            <Button x:Name="RefreshSeriesSubscriptions" HorizontalAlignment="Right" Content="刷新订阅"
+            <Button x:Name="RefreshSeriesSubscriptions" HorizontalAlignment="Right" Content="刷新订阅" Visibility="Collapsed"
                 Style="{StaticResource EgSecondaryButtonStyle}" Command="{x:Bind ViewModel.RefreshCommand}" />
         </Grid>
         <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />

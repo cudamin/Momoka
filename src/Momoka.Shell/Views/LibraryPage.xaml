@@ -529,6 +529,9 @@
             <!-- 生效中的筛选，一条一格，点一格去掉一条 —— 在这之前「筛的是什么」只有那颗按钮上的一个数字，
                  而这个选择是跨会话记住的：屏上写着「筛选 1」，人却容易以为库里少了东西。
 
+                 飞牛不铺这一行：它的筛选面板在工具栏下面展开，选中的值就在面板里亮着，收起后按钮上的数字
+                 仍然在（用户 2026-10-19 令「点击选项后不要在界面添加标签」）。这一行只给 Emby。
+
                  摆在搜索框底下、卡片上头，而不是挂在那颗按钮旁边：它是「这一屏为什么是这些」的交代，跟标题
                  和总数是一伙的；而且筛得多的时候它要能折行，挂在工具栏里就得跟排序、视图那几颗键抢宽度。
                  整行没有筛选时收起（FilterChipsVisibility），一个像素都不占。 -->
@@ -584,7 +587,7 @@
                 <StackPanel Spacing="10">
                     <Grid>
                         <TextBlock Text="筛选" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
-                        <HyperlinkButton Content="收起" HorizontalAlignment="Right" Click="OnFnNasFilterCloseClicked"
+                        <HyperlinkButton x:Name="FnNasFilterCollapse" Content="收起" HorizontalAlignment="Right" Click="OnFnNasFilterCloseClicked"
                             Padding="4,2,4,2" VerticalAlignment="Center" />
                     </Grid>
                     <ProgressBar IsIndeterminate="True"
@@ -617,7 +620,7 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <HyperlinkButton Content="清除筛选" HorizontalAlignment="Left"
+                    <HyperlinkButton x:Name="FnNasFilterClear" Content="清除筛选" HorizontalAlignment="Left"
                         Command="{x:Bind ViewModel.ClearFiltersCommand}" Padding="4,2,4,2" />
                 </StackPanel>
             </Border>

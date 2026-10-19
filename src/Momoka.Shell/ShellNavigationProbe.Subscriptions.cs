@@ -43,6 +43,9 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => vm.IsReady);
             Require(vm.Movies.Count == 3 && vm.Series.Count == 2, "订阅没有分成电影和电视剧：" + vm.NoticeMessage);
             Require(((StackPanel)view.Content).Visibility == Visibility.Visible, "订阅读回来了，板块却没有出现");
+            Require(Get<Button>(view, "RefreshSubscriptions").Visibility == Visibility.Collapsed
+                && Get<Button>(view, "RefreshSeriesSubscriptions").Visibility == Visibility.Collapsed,
+                "主页订阅标题旁仍然露出「刷新订阅」");
             foreach (var width in new[] { 1240, 760 })
             {
                 ResizeInspect(width, 1000); await LayoutAsync(scroll);
@@ -75,7 +78,10 @@ internal sealed partial class ShellNavigationProbe
             Require(Descendants(progress).OfType<TextBlock>().Single().Text == seriesPoster.Card!.ProgressCount,
                 "封面集数丢失或仍带有订阅进度标签");
             Require(!Descendants(view).OfType<TextBlock>().Any(text => text.Text is "订阅中" or "入库情况见文件统计" or "订阅进度"), "旧状态标签或说明仍然显示");
-            Get<Button>(view, "RefreshSubscriptions").Focus(FocusState.Programmatic);
+            // 焦点停在订阅区外面的滚动器上：刷新按钮已经按主页要求收起，不能再拿它当焦点目标；
+            // 焦点若落回封面，卡片会一直按「有焦点」画，离开后缩放不会复原。
+            scroll.IsTabStop = true;
+            scroll.Focus(FocusState.Programmatic);
             poster.SetHovered(false); await Task.Delay(250);
             poster.SetHovered(true); await Task.Delay(80);
             if (HomeMotion.AnimationsEnabled) Require(poster.Zoom > 1 && poster.Zoom <= 1.045, "悬停未产生图片推近动画");
@@ -336,8 +342,10 @@ internal sealed partial class ShellNavigationProbe
                             + string.Join("、", parts.Select(part => part.GetType().Name)));
                     var panel = section!;
                     var panelFill = panel.Background as Microsoft.UI.Xaml.Media.SolidColorBrush;
-                    Require(panelFill is not null && panelFill.Color.A > 0 && panel.BorderThickness != default,
-                        $"{name} 那一段没有板底或外圈（用户要的就是这个背景）");
+                    // 2026-10-19 用户令「界面的卡片不要加白边」把 EgBodyPanelStyle 的静止描边收成 0，
+                    // 这里仍要求板底，但不再要求外圈 —— 那根线是用户点名去掉的。
+                    Require(panelFill is not null && panelFill.Color.A > 0,
+                        $"{name} 那一段没有板底（用户要的就是这个背景）");
                     Require(Descendants(strip).OfType<ScrollViewer>().Count() == 0 && Descendants(strip).OfType<ScrollView>().Any(),
                         $"{name} 里还有内层 ScrollViewer —— 指针停在带上时它会吃掉整页的竖向滚轮");
                     Require(strip.Visibility == Visibility.Visible && ReferenceEquals(strip.ItemsSource, cards),

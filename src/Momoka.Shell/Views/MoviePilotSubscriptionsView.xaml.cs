@@ -16,6 +16,28 @@ public sealed partial class MoviePilotSubscriptionsView : UserControl
         nameof(Row), typeof(MoviePilotHomeRow), typeof(MoviePilotSubscriptionsView),
         new PropertyMetadata(null, (owner, _) => ((MoviePilotSubscriptionsView)owner).Bindings.Update()));
 
+    /// <summary>
+    /// 整页宿主（订阅列表）才给那两颗「刷新订阅」；主页那两排的标题右边只有标题和读数。
+    /// 两处共用这一份视图，所以由宿主点名，而不是在标记里按 <see cref="Row"/> 猜。
+    /// </summary>
+    public static readonly DependencyProperty ShowRefreshProperty = DependencyProperty.Register(
+        nameof(ShowRefresh), typeof(bool), typeof(MoviePilotSubscriptionsView),
+        new PropertyMetadata(false, OnShowRefreshChanged));
+
+    public bool ShowRefresh
+    {
+        get => (bool)GetValue(ShowRefreshProperty);
+        set => SetValue(ShowRefreshProperty, value);
+    }
+
+    private static void OnShowRefreshChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        var view = (MoviePilotSubscriptionsView)sender;
+        var visibility = args.NewValue is true ? Visibility.Visible : Visibility.Collapsed;
+        view.RefreshSubscriptions.Visibility = visibility;
+        view.RefreshSeriesSubscriptions.Visibility = visibility;
+    }
+
     public MoviePilotHomeRow? Row
     {
         get => (MoviePilotHomeRow?)GetValue(RowProperty);
