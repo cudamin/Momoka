@@ -90,7 +90,12 @@ internal static partial class ShellSelfCheck
     {
         if (_notifications is not { } notifications)
         {
-            report.AppendLine("[信息] 通知页面 — 未打开");
+            // 通知只有 Emby 有；Jellyfin 与飞牛／Plex 没有这一页。把同样四个检查名写成跳过，
+            // 基线据此同时容纳两家的报告，而不是把「没有这一页」说成通过，也不是让自检永远等它。
+            report.AppendLine("[跳过] 通知页面 — 当前服务器没有通知管理页");
+            report.AppendLine("[跳过] 通知确认框 — 当前服务器没有通知管理页");
+            report.AppendLine("[跳过] 通知接管那一格 — 当前服务器没有通知管理页");
+            report.AppendLine("[跳过] 通知接管的说明跟着那一开关走 — 当前服务器没有通知管理页");
             return;
         }
 
@@ -158,9 +163,9 @@ internal static partial class ShellSelfCheck
 
         // The left-hand list and the cards, against each other. Both are written out by hand and in different
         // places, so a category with no card is an entry that shows an empty pane and a card with no category
-        // is a card no one can reach. 服务器, 诊断, 通知 and 网页控制台 are deliberately not cards — they are pages
-        // hosted in the same column (需求 2) — so they join the cards on that side.（飞牛影视那四张内嵌页
-        // 2026-10-16 退役，不再出现在这份名单里。）
+        // is a card no one can reach. 服务器, 诊断, 通知 and the server management pages are deliberately not
+        // cards — they are pages hosted in the same column (需求 2) — so they join the cards on that side.
+        // （飞牛影视那四张内嵌页 2026-10-16 退役，不再出现在这份名单里。）
         // （「恢复默认」曾是名单末尾的第四项，2026-09-24 搬进了「关于」卡，不再在这份名单里，见下方那一关。）
         var expected = page.Cards
             .Select(card => card.Category)

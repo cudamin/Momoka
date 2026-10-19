@@ -480,20 +480,42 @@ internal sealed partial class ShellNavigationProbe
             Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
             await SaveReturnFrameAsync(page, "settings-server-admin-shown.png");
 
-            // Jellyfin：没有三段目录，只保留「网页控制台」。
+            // Jellyfin：换成它自己的五段目录，服务器页与 Emby 的分区、标签、插件页不混用。
             page.SelectedCategory = "控制台";
             fixture.Capabilities.ServerKind = MediaServerKind.Jellyfin;
+            fixture.Capabilities.InterfaceFlavor = ServerInterfaceFlavor.Jellyfin;
+            fixture.Capabilities.AdminPages =
+            [
+                new() { Name = "customcssjs", DisplayName = "CustomCssJS Provider", Href = "configurationpage?name=customcssjs", EnableInMainMenu = true },
+                new() { Name = "jellyfinplugin", DisplayName = "Jellyfin 插件页", Href = "configurationpage?name=jellyfinplugin", EnableInMainMenu = true }
+            ];
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             await LayoutAsync(page);
-            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka" }),
-                "连接 Jellyfin 后左栏多出了服务器目录");
-            Require(page.Categories.Contains(SettingsViewModel.DashboardCategory)
-                && !page.Categories.Contains(SettingsViewModel.NotificationsCategory)
-                && !page.Categories.Contains("控制台")
-                && page.SelectedCategory == SettingsViewModel.FirstCardCategory,
-                "Jellyfin 仍列着 Emby 服务器页或落点没有收回");
-            Require(!page.ViewModel.CanOpenServerCategory(SettingsViewModel.NotificationsCategory),
-                "Jellyfin 仍允许打开 Emby 通知");
+            var jellyfinGroups = new[] { "Momoka", "服务器", "设备", "电视直播", "插件", "高级" };
+            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(jellyfinGroups),
+                "连接 Jellyfin 后左栏不是五段 Jellyfin 目录");
+            Require(!page.Categories.Contains(SettingsViewModel.DashboardCategory)
+                && !page.Categories.Contains(SettingsViewModel.NotificationsCategory),
+                "Jellyfin 仍列着 Emby 或旧版「网页控制台」入口");
+            Require(page.Categories.Contains("控制台") && page.Categories.Contains("常规")
+                && page.Categories.Contains("用户") && page.Categories.Contains("媒体库")
+                && page.Categories.Contains("转码") && page.Categories.Contains("数字录像机")
+                && page.Categories.Contains("我的插件") && page.Categories.Contains("目录")
+                && page.Categories.Contains("计划任务") && page.Categories.Contains("媒体资料管理器")
+                && page.Categories.Contains("Jellyfin 插件页"),
+                "Jellyfin 固定条目、插件页或媒体资料管理器没有进左栏");
+            Require(!page.Categories.Any(category => category.Contains("CustomCssJS", StringComparison.OrdinalIgnoreCase)),
+                "Jellyfin 仍列出 CustomCssJS 插件页");
+            Require(page.ViewModel.ConsoleCategory == "控制台"
+                && page.ViewModel.ServerRoute("控制台") == "dashboard"
+                && page.ViewModel.ServerRoute("常规") == "dashboard/settings"
+                && page.ViewModel.ServerRoute("媒体资料管理器") == "metadata"
+                && page.ViewModel.ServerRoute("数字录像机") == "dashboard/recordings",
+                "Jellyfin 服务器页没有映射到它自己的网页路由");
+            Require(page.SelectedCategory == "控制台"
+                && page.ViewModel.ServerRoute("控制台") == "dashboard",
+                "换成 Jellyfin 后「控制台」没有留在原位并指向 Jellyfin 路由");
+            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "Jellyfin 左栏分组与平铺名单对不上");
             foreach (var width in new[] { 1100, 760 })
             {
                 ResizeInspect(width, 900);
@@ -513,13 +535,14 @@ internal sealed partial class ShellNavigationProbe
                     && !page.Categories.Any(category => category == SettingsViewModel.DashboardCategory
                         || category == SettingsViewModel.NotificationsCategory
                         || category == "控制台")
-                    && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.DashboardCategory),
+                    && page.ViewModel.ConsoleCategory is null,
                     "Jellyfin 非管理员或权限未知时仍暴露管理入口");
             }
             await SaveProbeScreenAsync("settings-jellyfin-user-screen.png");
 
             // 飞牛影视没有管理入口。
             fixture.Capabilities.ServerKind = MediaServerKind.FnNas;
+            fixture.Capabilities.InterfaceFlavor = ServerInterfaceFlavor.Generic;
             fixture.Capabilities.IsAdministrator = true;
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             await LayoutAsync(page);
@@ -527,8 +550,8 @@ internal sealed partial class ShellNavigationProbe
                 && !page.Categories.Any(category => category is "控制台" or "用户" or "媒体库" or "设置" or "任务计划")
                 && !page.Categories.Contains(SettingsViewModel.DashboardCategory),
                 "飞牛影视仍列出管理入口");
-            Require(!page.ViewModel.CanOpenServerCategory(SettingsViewModel.DashboardCategory)
-                && !page.ViewModel.CanOpenServerCategory(SettingsViewModel.NotificationsCategory),
+            Require(page.ViewModel.ConsoleCategory is null
+                && !page.Categories.Contains(SettingsViewModel.NotificationsCategory),
                 "飞牛影视仍暴露 Emby 管理入口");
             foreach (var width in new[] { 1100, 760 })
             {
@@ -542,6 +565,11 @@ internal sealed partial class ShellNavigationProbe
 
             // 回 Emby：三段目录与「控制台」回来。
             fixture.Capabilities.ServerKind = MediaServerKind.Emby;
+            fixture.Capabilities.InterfaceFlavor = ServerInterfaceFlavor.Emby;
+            fixture.Capabilities.AdminPages =
+            [
+                new() { Name = "cinemaintros", DisplayName = "Cinema Intros", Href = "configurationpage?name=cinemamode", MenuSection = "server", MenuIcon = "movie", EnableInMainMenu = true }
+            ];
             fixture.Capabilities.IsAdministrator = true;
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             await LayoutAsync(page);
@@ -638,8 +666,8 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// Jellyfin 控制台的原生左栏：五段、路由按 Jellyfin Web 的 <c>#/dashboard/…</c> 写法，窄窗收成下拉。
-    /// 不启动 WebView2，只看目录、落点和地址。
+    /// Jellyfin 控制台不再画第二条左栏：设置页外层给出路由，这一页直接落到 Jellyfin Web 的
+    /// <c>#/dashboard/…</c> 地址。不启动 WebView2，只看落点和网页地址。
     /// </summary>
     private async Task JellyfinConsoleNavigationAsync()
     {
@@ -679,53 +707,25 @@ internal sealed partial class ShellNavigationProbe
             .AddSingleton(paths)
             .BuildServiceProvider();
 
-        var originalAnimations = HomeMotion.PreferenceEnabled;
-        HomeMotion.ApplyPreference(false);
-
         var page = new DashboardPage();
         _root.Children.Add(page);
         try
         {
-            ResizeInspect(1100, 900);
-            page.Attach(new DashboardRequest(services, LoadContent: false));
-            await LayoutAsync(page);
-            await UntilAsync(() => page.NavigationItems.Count > 0);
-
-            Require(page.NavigationRailVisible && !page.NavigationPickerVisible, "Jellyfin 宽窗没有显示左栏");
-            var reading = page.NavigationReading;
-            Require(reading.Count == 5 && reading[0].Name == "服务器" && reading[1].Name == "设备"
-                && reading[2].Name == "电视直播" && reading[3].Name == "插件" && reading[4].Name == "高级",
-                "Jellyfin 控制台左栏不是网页端那五个分区");
-            Require(reading[0].Items.SequenceEqual(new[]
-                {
-                    "控制台", "常规", "品牌", "用户", "媒体库", "显示", "元数据", "NFO 设置",
-                    "转码", "继续观看", "流媒体", "特技播放"
-                }), "Jellyfin 服务器分区条目不对");
-            Require(reading[1].Items.SequenceEqual(new[] { "设备", "活动" }), "Jellyfin 设备分区不对");
-            Require(reading[2].Items.SequenceEqual(new[] { "电视直播", "DVR" }), "Jellyfin 电视频道分区不对");
-            Require(reading[3].Items.SequenceEqual(new[] { "插件" }), "Jellyfin 插件分区不对");
-            Require(reading[4].Items.SequenceEqual(new[] { "网络", "API 密钥", "备份", "日志", "计划任务" }),
-                "Jellyfin 高级分区不对");
-            await SaveRenderAsync(page, "settings-console-jellyfin-1100-render.png");
-
-            var list = Get<ListView>(page, "ServerSettingsNavList");
-            list.SelectedItem = page.NavigationItems.Single(item => item.Label == "媒体库");
-            await UntilAsync(() => page.SelectedNavigationRoute == "dashboard/libraries");
+            page.Attach(new DashboardRequest(services, "dashboard/libraries", LoadContent: false));
+            await UntilAsync(() => page.IsReady);
+            Require(page.CurrentRoute == "dashboard/libraries",
+                $"Jellyfin 落点不是外层给的路由：{page.CurrentRoute}");
             Require(page.CurrentNavigationAddress.Contains("/web/index.html#/dashboard/libraries", StringComparison.Ordinal),
-                $"Jellyfin 的「媒体库」没有把网页带到 Jellyfin 路由（{page.CurrentNavigationAddress}）");
-
-            ResizeInspect(760, 900);
-            await LayoutAsync(page);
-            Require(!page.NavigationRailVisible && page.NavigationPickerVisible, "Jellyfin 窄窗没有把左栏收成下拉");
-            Require(Get<ComboBox>(page, "CompactNavPicker").SelectedItem is ServerSettingsNavItem { Label: "媒体库" },
-                "Jellyfin 窄窗下拉没有跟着落点");
-            await SaveRenderAsync(page, "settings-console-jellyfin-760-render.png");
+                $"Jellyfin 路由没有拼成 Jellyfin Web 地址（{page.CurrentNavigationAddress}）");
+            Require(page.FindName("ServerSettingsNavList") is null
+                && page.FindName("CompactNavPicker") is null,
+                "Jellyfin 控制台仍画着自己那条内层左栏");
+            await SaveRenderAsync(page, "settings-console-jellyfin-route-render.png");
         }
         finally
         {
             page.Release();
             _root.Children.Remove(page);
-            HomeMotion.ApplyPreference(originalAnimations);
             ResizeInspect(1420, 980);
         }
     }

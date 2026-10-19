@@ -242,7 +242,7 @@ public static class ServerSettingsMenu
     /// 明确不要出现在 Momoka 设置栏里的插件页。CustomCssJS 是给网页端做全局注入的配置页，和 Momoka
     /// 自己在 WebView 里做的本地皮肤重叠；用户不要这一项。只过滤菜单，服务器上的插件本身不动。
     /// </summary>
-    private static bool IsHiddenPlugin(ServerSettingsPluginPage page)
+    internal static bool IsHiddenPlugin(ServerSettingsPluginPage page)
     {
         // 名字里可能带连字符或空格（CustomCssJS／custom-css-js），去掉分隔符再比。
         static string Key(string? value) => new(
@@ -251,7 +251,7 @@ public static class ServerSettingsMenu
             || Key(page.DisplayName).Contains("customcssjs", StringComparison.Ordinal);
     }
 
-    private static string? PluginRoute(ServerSettingsPluginPage page)
+    internal static string? PluginRoute(ServerSettingsPluginPage page)
     {
         var href = page.Href?.Trim();
         if (string.IsNullOrEmpty(href))

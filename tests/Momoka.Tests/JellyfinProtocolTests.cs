@@ -26,6 +26,16 @@ internal static class JellyfinProtocolTests
             Assert.Equal("https://jellyfin.invalid/media/emby/", EmbyServerAddress.Normalize("https://jellyfin.invalid/media").AbsoluteUri);
             Assert.False(EmbySignInIdentity.SameAddress("https://jellyfin.invalid/media", "https://jellyfin.invalid/media/emby", MediaServerKind.Jellyfin));
         });
+        Test("Jellyfin：公开信息里的 \"Jellyfin Server\" 也要认成 Jellyfin", () =>
+        {
+            var info = JsonSerializer.Deserialize<PublicSystemInfo>(
+                """{"ProductName":"Jellyfin Server","ServerName":"jellyfin","Version":"10.10.7","Id":"c1"}""")!;
+            Assert.Equal(MediaServerKind.Jellyfin, info.ServerKind);
+            Assert.Equal(MediaServerKind.Jellyfin,
+                JsonSerializer.Deserialize<PublicSystemInfo>("""{"ProductName":"Jellyfin"}""")!.ServerKind);
+            Assert.Equal(MediaServerKind.Emby,
+                JsonSerializer.Deserialize<PublicSystemInfo>("""{"ProductName":"Emby Server"}""")!.ServerKind);
+        });
         Case("Jellyfin：匿名探测先识别产品再构建登录正文与鉴权头", async () =>
         {
             using var handler = new Transport();
@@ -46,6 +56,62 @@ internal static class JellyfinProtocolTests
             Assert.Equal("user", json.RootElement.GetProperty("Username").GetString());
             Assert.Equal("fixture-password", json.RootElement.GetProperty("Pw").GetString());
             Assert.True(handler.Sent.All(sent => !sent.Url.Contains("fixture-token", StringComparison.Ordinal)));
+        });
+        Case("Jellyfin：按 Emby 假定登录后发现是 Jellyfin，类型与基址一起纠正", async () =>
+        {
+            using var handler = new Transport();
+            handler.Reply = sent => sent.Path.EndsWith("AuthenticateByName", StringComparison.Ordinal)
+                ? Json("""{"AccessToken":"fixture-token","User":{"Id":"u1","Name":"user","Policy":{"IsAdministrator":true}}}""")
+                : Json(Public);
+            using var http = new EmbyHttp(handler);
+            var gateway = new EmbyServerGateway(http, Device);
+            var assumed = new Uri("https://jellyfin.invalid/media/emby/");
+            var connection = await gateway.AuthenticateAsync(assumed, "user", "fixture-password", default,
+                MediaServerKind.Emby);
+            Assert.Equal(MediaServerKind.Jellyfin, connection.ServerKind);
+            Assert.Equal(ApiBase, connection.ApiBase);
+            Assert.True(connection.IsJellyfin && connection.IsAdministrator == true);
+            Assert.Equal(ApiBase, EmbyServerAddress.Rebase(assumed, MediaServerKind.Emby, MediaServerKind.Jellyfin));
+            Assert.Equal(assumed,
+                EmbyServerAddress.Rebase(ApiBase, MediaServerKind.Jellyfin, MediaServerKind.Emby),
+                "反过来也要把 /emby/ 补回来");
+        });
+        Case("Jellyfin：保存类型误作 Emby 时，恢复后按公开信息自愈并写回配置", async () =>
+        {
+            using var handler = new Transport
+            {
+                Reply = sent => Json(sent.Path.EndsWith("Info/Public", StringComparison.Ordinal)
+                    ? Public : "{\"Items\":[]}")
+            };
+            var settings = new AppSettings();
+            var profile = new ServerProfile
+            {
+                Url = "https://jellyfin.invalid/media",
+                ServerKind = MediaServerKind.Emby,
+                ServerVersion = "10.10.7"
+            };
+            var account = new AccountProfile
+            {
+                UserId = "u1",
+                Username = "user",
+                ProtectedAccessToken = PassthroughSecretProtector.Instance.Protect("fixture-token")
+            };
+            profile.Accounts.Add(account);
+            settings.Servers.Add(profile);
+            var directory = Path.Combine(Path.GetTempPath(), "momoka-jellyfin-heal-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                using var session = new EmbySession(settings,
+                    new SettingsStore(new AppPaths(directory), PassthroughSecretProtector.Instance),
+                    new CredentialVault(PassthroughSecretProtector.Instance), Device, handler);
+                Assert.True(await session.TryRestoreAsync(profile, account, default));
+                Assert.Equal(MediaServerKind.Jellyfin, profile.ServerKind);
+                Assert.Equal(MediaServerKind.Jellyfin, session.Connection!.ServerKind);
+                Assert.Equal(ApiBase, session.Connection.ApiBase);
+                Assert.Equal("https://jellyfin.invalid/media", profile.Url);
+                Assert.Equal(ServerInterfaceFlavor.Jellyfin, new ServerCapabilities(session).InterfaceFlavor);
+            }
+            finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
         });
         Case("Jellyfin：新版用户路由、字段与字幕路径符合当前契约", async () =>
         {

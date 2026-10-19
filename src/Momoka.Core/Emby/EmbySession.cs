@@ -466,8 +466,14 @@ public sealed class EmbySession : IDisposable
         try
         {
             var info = await Gateway.GetPublicSystemInfoAsync(apiBase, cancellationToken).ConfigureAwait(false);
+            var kind = info.ServerKind;
+            var correctedBase = EmbyServerAddress.Rebase(apiBase, connection.ServerKind, kind);
+            if (kind != connection.ServerKind)
+                Log.Info(Category, $"保存的服务器类型是 {connection.ServerKind}，服务器实为 {kind}，按新类型纠正地址");
             return connection with
             {
+                ApiBase = correctedBase,
+                ServerKind = kind,
                 ServerName = info.ServerName is { Length: > 0 } name ? name : connection.ServerName,
                 ServerVersion = info.Version ?? connection.ServerVersion,
                 ServerId = info.Id ?? connection.ServerId
@@ -494,6 +500,8 @@ public sealed class EmbySession : IDisposable
     private EmbySessionScope Adopt(ServerProfile server, AccountProfile account, EmbyConnection connection, long selection)
     {
         if (connection.ServerName.Length > 0 && server.HasPlaceholderName) server.Name = connection.ServerName;
+        if (server.ServerKind != connection.ServerKind)
+            server.Url = EmbyServerAddress.ToDisplayString(connection.ApiBase, connection.ServerKind);
         server.ServerKind = connection.ServerKind;
         server.ServerVersion = connection.ServerVersion;
         server.ServerId = connection.ServerId;

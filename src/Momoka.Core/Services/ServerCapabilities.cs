@@ -30,8 +30,8 @@ public interface IServerCapabilities
     bool? IsAdministrator { get; }
 
     /// <summary>
-    /// 服务器插件贡献的管理页（Emby 主菜单里的 Cinema Intros、DLNA 等）。产品或连接模式不适用的
-    /// 时候给空表；失败也静默，设置左栏保留固定条目。默认实现给假实现和旧测试留一条空路。
+    /// 服务器插件贡献的管理页（Emby 主菜单里的 Cinema Intros、DLNA，Jellyfin 的插件配置页）。产品或连接
+    /// 模式不适用的时候给空表；失败也静默，设置左栏保留固定条目。默认实现给假实现和旧测试留一条空路。
     /// </summary>
     Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(CancellationToken token = default) =>
         Task.FromResult<IReadOnlyList<ServerSettingsPluginPage>>([]);
@@ -100,7 +100,8 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
     /// <inheritdoc />
     public async Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(CancellationToken token = default)
     {
-        if (ServerKind != MediaServerKind.Emby || InterfaceFlavor == ServerInterfaceFlavor.Generic) return [];
+        if (ServerKind is not (MediaServerKind.Emby or MediaServerKind.Jellyfin)
+            || InterfaceFlavor == ServerInterfaceFlavor.Generic) return [];
 
         try
         {

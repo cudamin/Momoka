@@ -104,7 +104,8 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
         // 连接的身份是「此刻这个 scope 的令牌」：会话可能在中途重新登录，用旧令牌连上的是上一个身份。
         if (!_scope.IsAvailable) throw new OperationCanceledException("来源已不可用");
 
-        var url = EmbyRealtimeProtocol.Build(_scope.Connection.ApiBase, _scope.Connection.AccessToken, _scope.Connection.Device.DeviceId);
+        var url = EmbyRealtimeProtocol.Build(_scope.Connection.ApiBase, _scope.Connection.AccessToken,
+            _scope.Connection.Device.DeviceId, _scope.Connection.ServerKind);
 
         using var socket = new ClientWebSocket();
         socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(30);

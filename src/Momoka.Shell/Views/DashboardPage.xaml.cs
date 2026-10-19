@@ -7,7 +7,6 @@ using Momoka.Theming;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Navigation;
 using Microsoft.Web.WebView2.Core;
 
@@ -22,14 +21,14 @@ namespace Momoka.Shell.Views;
 /// 整页截不到内容，也会在退出时留下一个 CLR 崩溃；不启动它，探针读的仍然是真的页面与真的导航。
 /// </param>
 /// <param name="Immersive">
-/// 不给这一页留 Momoka 自己的标题、地址和按钮，也不留卡片的边距与边框：伺服器设置页面直接用网页内容
-/// 铺满设置窗口右半边。Jellyfin 的整页控制台仍用原来的标题和地址。
+/// 不给这一页留 Momoka 自己的标题、地址和按钮，也不留卡片的边距与边框：服务器设置页面直接用网页内容
+/// 铺满设置窗口右半边。Emby 与 Jellyfin 都走这一档。
 /// </param>
 internal sealed record DashboardRequest(
     IServiceProvider Services, string? Route = null, bool LoadContent = true, bool Immersive = false);
 
 /// <summary>
-/// 需求 8：Emby 网页端的控制台，用 <c>WebView2</c> 嵌在设置里，并且是已经登录好的状态。
+/// 需求 8：Emby／Jellyfin 网页端的控制台，用 <c>WebView2</c> 嵌在设置里，并且是已经登录好的状态。
 /// <para>
 /// The WebView2 assembly comes with the Windows App SDK, so there is no package reference to add; what the
 /// app does have to bring is a browser profile directory of its own (see
@@ -100,19 +99,7 @@ public sealed partial class DashboardPage : Page, IShellContent
         Unloaded += (_, _) => HomeMotion.Stop(PageLayout);
     }
 
-    /// <summary>左栏留到多宽才收成下拉。窗口里这一页大约比窗口窄一圈，默认 1100 的设置窗口仍在侧栏这一档。</summary>
-    private const double NavWideWidth = 780;
-
-    /// <summary>上一次建出来的目录，给「网页自己跳了之后左栏跟着亮」那条路按路由找回来。</summary>
-    private IReadOnlyList<ServerSettingsMenuGroup> _menuGroups = [];
-
-    private List<ServerSettingsNavItem> _navItems = [];
-    private ServerSettingsNavItem? _navCurrent;
-    private CollectionViewSource? _navSource;
-    private bool _navAvailable;
-    private bool _selectingNav;
-
-    /// <summary>当前左栏选中页的路由；换页时先改它，再改地址。</summary>
+    /// <summary>当前设置页选中项的路由；外层左栏换页时先改它，再改地址。</summary>
     private string _route = ServerSettingsMenu.DefaultRoute;
 
     /// <summary>
@@ -129,19 +116,12 @@ public sealed partial class DashboardPage : Page, IShellContent
     internal (bool Ready, string Url, bool Core, bool Seeded, bool? Navigated, string Error, string Client) Summary =>
         (_settled, _url, _core, _seeded, _navigated, _error, _client);
 
-    /// <summary>探针读的：左栏三组各有哪些页，按屏幕上的次序。</summary>
-    internal IReadOnlyList<(string Name, string[] Items)> NavigationReading =>
-        [.. _menuGroups.Select(group => (group.Label, group.Entries.Select(entry => entry.Label).ToArray()))];
-
-    internal IReadOnlyList<ServerSettingsNavItem> NavigationItems => _navItems;
-
-    internal string? SelectedNavigationRoute => _navCurrent?.Route;
-
     internal string CurrentNavigationAddress => _url;
 
-    internal bool NavigationRailVisible => ServerSettingsNavList.Visibility == Visibility.Visible;
+    internal string CurrentRoute => _route;
 
-    internal bool NavigationPickerVisible => CompactNavPicker.Visibility == Visibility.Visible;
+    /// <summary>这一页绑定的会话仍是当前会话吗；设置页在切换服务器后据此重建右半边。</summary>
+    internal bool IsCurrentSession => !_released && _scope is { IsCurrent: true };
 
     public object? NavigationRequest => _request;
 
@@ -161,153 +141,21 @@ public sealed partial class DashboardPage : Page, IShellContent
     }
 
     /// <summary>
-    /// Emby 的三段目录已经搬进设置窗口自己的左栏（见 <c>SettingsViewModel</c>），这一页不再画内层导航；
-    /// Jellyfin 的网页端有自己的管理抽屉，仍用原来的内层目录。飞牛影视与 Plex 没有这套页面。
-    /// </summary>
-    private void ConfigureNavigation(EmbyConnection connection)
-    {
-        if (!connection.IsJellyfin)
-        {
-            _navAvailable = false;
-            ApplyNavigationLayout();
-            return;
-        }
-
-        _navAvailable = true;
-        _route = JellyfinServerSettingsMenu.DefaultRoute;
-        _url = EmbyWebConsole.RouteUrl(connection, _route);
-        _address = _url;
-        BuildNavigation([]);
-        ApplyNavigationLayout();
-    }
-
-    /// <summary>
-    /// 用 Core 那份目录重画左栏。第一次只有固定条目；插件页从服务器读回来之后整份换一次，按路由
-    /// 把落点接回去，不跟着重载网页。整份换源而不是原地加，因为分组视图不会自己收走消失的组标题
-    /// （与设置页 <c>CategoryGroups</c> 同一个理由）。
-    /// </summary>
-    private void BuildNavigation(IReadOnlyList<ServerSettingsPluginPage> pages)
-    {
-        // Jellyfin 的固定目录照它自己的网页管理抽屉；插件配置页这一轮不读（地址规则与 Emby 不同）。
-        _menuGroups = _scope?.Connection.IsJellyfin == true
-            ? JellyfinServerSettingsMenu.Build()
-            : ServerSettingsMenu.Build(pages);
-
-        var groups = new List<ServerSettingsNavGroup>();
-        foreach (var group in _menuGroups)
-        {
-            var navGroup = new ServerSettingsNavGroup(group.Label);
-            foreach (var entry in group.Entries)
-                navGroup.Add(new ServerSettingsNavItem(entry.Label, entry.Route, entry.Icon, entry.Section, entry.FromPlugin));
-            groups.Add(navGroup);
-        }
-
-        _navItems = groups.SelectMany(group => group).ToList();
-        _navSource = new CollectionViewSource { IsSourceGrouped = true, Source = groups };
-
-        _selectingNav = true;
-        try
-        {
-            ServerSettingsNavList.ItemsSource = _navSource.View;
-            CompactNavPicker.ItemsSource = _navItems;
-
-            var current = _navItems.FirstOrDefault(item =>
-                string.Equals(item.Route, _route, StringComparison.OrdinalIgnoreCase));
-            _navCurrent = current;
-            ServerSettingsNavList.SelectedItem = current;
-            CompactNavPicker.SelectedItem = current;
-        }
-        finally
-        {
-            _selectingNav = false;
-        }
-    }
-
-    /// <summary>
-    /// 左栏、窄窗下拉和「不要左栏」（Jellyfin／非管理员／浏览器起不来）三档。宽度是这一页自己的宽度，
-    /// 不是窗口宽度：设置窗口左边还有一列分类，1100 的窗口到这一页已经窄了一圈。
-    /// </summary>
-    private void ApplyNavigationLayout()
-    {
-        if (!_navAvailable)
-        {
-            NavColumn.Width = new GridLength(0);
-            ServerSettingsNavList.Visibility = Visibility.Collapsed;
-            CompactNavPicker.Visibility = Visibility.Collapsed;
-            return;
-        }
-
-        var wide = ActualWidth >= NavWideWidth;
-        NavColumn.Width = wide ? new GridLength(220) : new GridLength(0);
-        ServerSettingsNavList.Visibility = wide ? Visibility.Visible : Visibility.Collapsed;
-        CompactNavPicker.Visibility = wide ? Visibility.Collapsed : Visibility.Visible;
-    }
-
-    private void OnPageSizeChanged(object sender, SizeChangedEventArgs e) => ApplyNavigationLayout();
-
-    private void OnNavSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_selectingNav) return;
-        if (ServerSettingsNavList.SelectedItem is ServerSettingsNavItem item)
-            SelectNavigation(item, navigate: true);
-    }
-
-    private void OnCompactNavSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (_selectingNav) return;
-        if (CompactNavPicker.SelectedItem is ServerSettingsNavItem item)
-            SelectNavigation(item, navigate: true);
-    }
-
-    /// <summary>
-    /// 两条导航共用一个落点。程序里改选中时用 <see cref="_selectingNav"/> 挡住第二条路自己再跑一遍。
-    /// <para>
-    /// <paramref name="navigate"/> 为假的是「网页自己跳到了别的页，左右栏跟着亮」那一趟：只改选中，
-    /// 不再让网页重新载入 —— 它已经在那一页上了。
-    /// </para>
-    /// </summary>
-    private void SelectNavigation(ServerSettingsNavItem item, bool navigate)
-    {
-        var changed = !string.Equals(_navCurrent?.Route, item.Route, StringComparison.OrdinalIgnoreCase);
-        _navCurrent = item;
-
-        _selectingNav = true;
-        try
-        {
-            if (!ReferenceEquals(ServerSettingsNavList.SelectedItem, item))
-                ServerSettingsNavList.SelectedItem = item;
-            if (!ReferenceEquals(CompactNavPicker.SelectedItem, item))
-                CompactNavPicker.SelectedItem = item;
-        }
-        finally
-        {
-            _selectingNav = false;
-        }
-
-        if (navigate && changed) NavigateTo(item);
-    }
-
-    /// <summary>
     /// 外层设置栏换到另一个服务器页时走这里：同一台服务器、同一个 DashboardPage 就留在原地，
-    /// 只让网页自己换路由。返回 false 表示这一页不适合接手（不是 Emby／会话已换），调用方仍走整页导航。
+    /// 只让网页自己换路由。返回 false 表示这一页不适合接手（会话已换／已经释放），调用方仍走整页导航。
+    /// Emby 与 Jellyfin 都暴露 <c>Emby.Page.show</c>，两边共用这条同文档切页的路。
     /// </summary>
     internal bool TryShowRoute(string route)
     {
         // 切到 Momoka 卡片时这一页已经 Release，Frame 里留着的只是外壳；再切回服务器页必须新建。
         if (_released) return false;
-        if (_scope is not { IsCurrent: true } scope || scope.Connection.IsJellyfin) return false;
+        if (_scope is not { IsCurrent: true }) return false;
         if (ServerSettingsMenu.NormalizeRoute(route) is not { } normalized
             || !ServerSettingsMenu.IsSafeRoute(normalized)) return false;
 
         NavigateToRoute(normalized);
         return true;
     }
-
-    /// <summary>
-    /// 把网页带到左栏选中的那一页。还没起浏览器时只记下地址，<see cref="StartAsync"/> 最后会用最新的
-    /// <c>_url</c> 起第一趟，所以这里空等也不会把落点丢掉。
-    /// </summary>
-    private void NavigateTo(ServerSettingsNavItem item) => NavigateToRoute(item.Route);
 
     private void NavigateToRoute(string route)
     {
@@ -332,9 +180,9 @@ public sealed partial class DashboardPage : Page, IShellContent
 
         Say("正在载入服务器设置…");
 
-        // Emby 的首个文档已经启动好之后，切页走网页自己的路由：不重载整页，也就不会再闪一次启动画面。
-        // 首次载入（或上一趟整页还没完成）仍然用整页导航，因为那时 Emby.Page 还不存在。
-        if (!scope.Connection.IsJellyfin && _booted)
+        // 首个文档已经启动好之后，切页走网页自己的路由：不重载整页，也就不会再闪一次启动画面。
+        // Emby 与 Jellyfin 的网页端都提供 Emby.Page.show；首次载入（或上一趟整页还没完成）仍然用整页导航。
+        if (_booted)
             _ = NavigateInlineAsync(core, route, _url);
         else
             core.Navigate(_url);
@@ -375,22 +223,6 @@ public sealed partial class DashboardPage : Page, IShellContent
         }
     }
 
-    /// <summary>
-    /// 网页里自己的链接跳了页（比如仪表盘上的齿轮、设备列表点进一台设备）：按新路由把左栏点亮。
-    /// 认不出就当没发生，不去猜。Emby 没有内层左栏，这个方法在那边什么都不做。
-    /// </summary>
-    private void OnSourceChanged(CoreWebView2 sender, CoreWebView2SourceChangedEventArgs e)
-    {
-        if (_released || !_navAvailable) return;
-
-        var match = ServerSettingsMenu.Match(_menuGroups, ServerSettingsMenu.RouteOf(sender.Source));
-        if (match is null) return;
-
-        var item = _navItems.FirstOrDefault(candidate =>
-            string.Equals(candidate.Route, match.Route, StringComparison.OrdinalIgnoreCase));
-        if (item is not null) SelectNavigation(item, navigate: false);
-    }
-
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
@@ -422,8 +254,7 @@ public sealed partial class DashboardPage : Page, IShellContent
             HeaderPanel.Visibility = Visibility.Collapsed;
             PageLayout.Margin = new Thickness(0);
             PageLayout.RowSpacing = 0;
-            ConsoleBody.Margin = new Thickness(0);
-            ConsoleBody.ColumnSpacing = 0;
+            WebFrame.Margin = new Thickness(0);
             WebFrame.CornerRadius = new CornerRadius(0);
             WebFrame.BorderThickness = new Thickness(0);
         }
@@ -437,8 +268,6 @@ public sealed partial class DashboardPage : Page, IShellContent
         {
             _url = "";
             _address = "尚未登录服务器";
-            _navAvailable = false;
-            ApplyNavigationLayout();
             Say("");
             Show("先在「服务器」里登录管理员账号，服务器的控制台就会显示在这里。");
             _settled = true;
@@ -491,7 +320,6 @@ public sealed partial class DashboardPage : Page, IShellContent
                 return;
             }
             connection = _scope.Connection;
-            ConfigureNavigation(connection);
 
             // 离线探针只读左栏与落点，不把 WebView2 拉进探针窗口（见 DashboardRequest.LoadContent）。
             if (!_loadContent)
@@ -524,7 +352,6 @@ public sealed partial class DashboardPage : Page, IShellContent
 
             Web.NavigationCompleted += OnNavigationCompleted;
             core.NewWindowRequested += OnNewWindowRequested;
-            core.SourceChanged += OnSourceChanged;
 
             // 缺少公开服务器 ID 时保留网页自己的登录流程，不构造一个猜测的 Jellyfin 身份。
             if (!connection.IsJellyfin || !string.IsNullOrWhiteSpace(connection.ServerId))
@@ -539,24 +366,30 @@ public sealed partial class DashboardPage : Page, IShellContent
                     EmbyWebConsole.ThemeScript(connection.ApiBase, connection.UserId));
             if (_released || !_scope.IsCurrent) return;
 
-            // 网页端自己的背景、文字与强调色也跟 Momoka：只改这个 WebView 的 CSS 变量，
-            // 不写服务器的 accentColor，手机和其他客户端不受影响。背景取「窗口」色而不是「面」色 ——
-            // 设置页的画布就是窗口色，网页铺在它上面才不会在右半边露出一块更亮的矩形；左栏自己的
-            // 面色卡片仍是面色的那一档。
+            // 网页端自己的背景、文字与强调色也跟 Momoka：只改这个 WebView 的样式，不写服务器设置，
+            // 手机和其他客户端不受影响。背景取「窗口」色而不是「面」色 —— 设置页的画布就是窗口色，
+            // 网页铺在它上面才不会在右半边露出一块更亮的矩形；卡片仍是面色的那一档。
+            // 两家的类名与主题机制不同，各用自己的一份脚本，不混用。
+            var colors = ThemeHost.Current.Colors;
+            // 导航前后的空白也取窗口色，网页还没画出来时不闪一块白。
+            Web.DefaultBackgroundColor = ThemeHost.ToColor(colors.Window);
             if (!connection.IsJellyfin)
             {
-                var colors = ThemeHost.Current.Colors;
-                // 导航前后的空白也取窗口色，网页还没画出来时不闪一块白。
-                Web.DefaultBackgroundColor = ThemeHost.ToColor(colors.Window);
                 await core.AddScriptToExecuteOnDocumentCreatedAsync(
                     EmbyWebConsole.ThemeVariablesScript(colors.Window, colors.Text, colors.Accent, colors.TextOnAccent));
                 if (_released || !_scope.IsCurrent) return;
                 await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.NativeSkinScript(colors));
                 if (_released || !_scope.IsCurrent) return;
             }
+            else
+            {
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.JellyfinNativeSkinScript(colors));
+                if (_released || !_scope.IsCurrent) return;
+            }
 
             // 左栏已经是本应用画的那一份；网页端自己的抽屉收起来。Emby 与 Jellyfin 的抽屉类名不同，
-            // 各用一段脚本：Emby 那套还顺手收掉顶栏那颗开抽屉的按钮，Jellyfin 则把永久抽屉让出的宽度还回去。
+            // 各用一段脚本：Emby 那套还顺手收掉顶栏那颗开抽屉的按钮，Jellyfin 则把永久抽屉与 MUI
+            // 顶栏让出的空间还回去。
             await core.AddScriptToExecuteOnDocumentCreatedAsync(connection.IsJellyfin
                 ? EmbyWebConsole.HideJellyfinDrawerScript()
                 : EmbyWebConsole.HideDrawerScript());
@@ -572,8 +405,6 @@ public sealed partial class DashboardPage : Page, IShellContent
             // Most likely no WebView2 runtime on the machine. Say so instead of showing an empty box.
             _error = error.Message;
             _settled = true;
-            _navAvailable = false;
-            ApplyNavigationLayout();
             Log.Warn(Category, $"内嵌控制台启动失败：{error.Message}");
             if (!_released) Show($"内嵌浏览器没能启动：{error.Message}\n可以点右上角「用浏览器打开」，用系统浏览器看同一个页面。");
         }
@@ -742,10 +573,7 @@ public sealed partial class DashboardPage : Page, IShellContent
         {
             Web.NavigationCompleted -= OnNavigationCompleted;
             if (Web.CoreWebView2 is { } core)
-            {
                 core.NewWindowRequested -= OnNewWindowRequested;
-                core.SourceChanged -= OnSourceChanged;
-            }
             Web.Close();
         }
         catch (Exception error)

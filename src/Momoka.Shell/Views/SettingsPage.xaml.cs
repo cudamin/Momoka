@@ -358,7 +358,7 @@ public sealed partial class SettingsPage : Page, IShellContent
                 // 这一页本来就有的 ISystemLauncher，所以这里只交「查一次」这一件事的客户端。
                 request.Services.GetRequiredService<UpdateClient>(),
 
-                // 左栏「通知」「网页控制台」只有服务器管理员才看得见，所以这一页要知道当前账号的身份（见
+                // 左栏的服务端管理入口只有服务器管理员才看得见，所以这一页要知道当前账号的身份（见
                 // RefreshServerAdministrationAsync 与下面那一句）。
                 request.Services.GetRequiredService<IServerCapabilities>());
             _ = ViewModel.ReloadAsync();
@@ -401,7 +401,7 @@ public sealed partial class SettingsPage : Page, IShellContent
     }
 
     /// <summary>
-    /// 重新核一遍当前账号能不能管服务器，并让左栏那一列跟上 —— 「非管理员账号自动隐藏网页控制台」那一令。
+    /// 重新核一遍当前账号能不能管服务器，并让左栏那一列跟上 —— 「非管理员账号自动隐藏服务端管理入口」那一令。
     /// <para>
     /// 权限那份读数与落点都归 <see cref="SettingsViewModel.RefreshServerAdministrationAsync"/>。这里多做的一件
     /// 事是**重指一次分组源**：分组表换的是一份新表而不是原地增删，因为 <c>CollectionViewSource</c> 的分组视图
@@ -412,10 +412,21 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     private async Task RefreshServerAdministrationAsync()
     {
+        var beforeCategory = ViewModel.SelectedCategory;
         var refresh = ViewModel.RefreshServerAdministrationAsync();
         UpdateCategoryGroups();
         await refresh;
         UpdateCategoryGroups();
+
+        // 切到另一台服务器、或换了一个产品时，同名分类（两家的「控制台」都叫控制台）会留在原位，
+        // 选中项不变也就不会触发 ShowHosted；右半边还挂着上一台服务器的 WebView。它自己的会话
+        // 已经不当前了，这时换掉它。
+        if (beforeCategory == ViewModel.SelectedCategory
+            && ViewModel.ServerRoute(ViewModel.SelectedCategory) is not null
+            && HostedFrame.Content is DashboardPage { IsCurrentSession: false })
+        {
+            ShowHosted();
+        }
     }
 
     private void UpdateCategoryGroups()
@@ -440,10 +451,8 @@ public sealed partial class SettingsPage : Page, IShellContent
     {
         if (string.IsNullOrEmpty(category)) return false;
         if (category == "着色器") category = "视频输出";
-        // Emby 的「网页控制台」从 2026-10-19 起并入「Emby Server」目录的第一项「控制台」；
-        // 命令行旧名字仍然认，Jellyfin 仍用「网页控制台」本身。
-        if (category == SettingsViewModel.DashboardCategory && ViewModel.ConsoleCategory is { } console
-            && console != SettingsViewModel.DashboardCategory)
+        // 两家的「网页控制台」从 2026-10-19 起都并入服务器目录的第一项「控制台」；命令行旧名字仍认。
+        if (category == SettingsViewModel.DashboardCategory && ViewModel.ConsoleCategory is { } console)
             category = console;
 
         var target = ViewModel.Categories.Contains(category, StringComparer.Ordinal)
@@ -457,8 +466,8 @@ public sealed partial class SettingsPage : Page, IShellContent
     }
 
     /// <summary>
-    /// Keeps <c>HostedFrame</c> in step with the selected category: 服务器, 诊断, 通知 and 网页控制台 are
-    /// pages, not cards.（飞牛影视那四张内嵌页 2026-10-16 退役，见 <c>SettingsViewModel</c>。）
+    /// Keeps <c>HostedFrame</c> in step with the selected category: 服务器, 诊断, 通知 and the server
+    /// management pages are pages, not cards.（飞牛影视那四张内嵌页 2026-10-16 退役，见 <c>SettingsViewModel</c>。）
     /// <para>
     /// Navigated afresh every time rather than left in place, because all of them load when they are navigated
     /// to and none is worth showing stale — a server list from five minutes ago, a log that stopped tailing
@@ -511,11 +520,6 @@ public sealed partial class SettingsPage : Page, IShellContent
 
             page = typeof(DashboardPage);
             parameter = new DashboardRequest(services, route, Immersive: true);
-        }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.DashboardCategory)
-        {
-            page = typeof(DashboardPage);
-            parameter = new DashboardRequest(services);
         }
         else
         {
@@ -615,7 +619,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         async () => await RefreshServerAdministrationAsync());
 
     /// <summary>
-    /// 连接模式改完：重算左栏该不该有「通知」「网页控制台」。落点若正停在刚收起的入口上，
+    /// 连接模式改完：重算左栏该不该有服务端管理入口。落点若正停在刚收起的入口上，
     /// <see cref="SettingsViewModel.RefreshServerAdministrationAsync"/> 会把它拨回第一张卡，选择变化自己
     /// 会把 <see cref="ShowHosted"/> 喊起来 —— 这里不再多喊一次，否则正在显示的服务器页会被重新导航，
     /// 刚拨完模式那条提示就没了。

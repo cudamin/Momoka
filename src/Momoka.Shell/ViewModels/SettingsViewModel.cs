@@ -162,17 +162,17 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 当前账号可见的服务端管理页名单：Emby 是「通知」加上三段服务器目录（控制台、通用、用户……
-    /// 以及服务器插件页），Jellyfin 只有「网页控制台」。飞牛影视与 Plex 没有。
+    /// 以及服务器插件页），Jellyfin 是五段服务器目录（控制台、常规、用户、媒体库、插件页……）。
+    /// 飞牛影视与 Plex 没有。
     /// <para>
-    /// 2026-10-19 用户令：「把这些分区和功能移左边设置栏里……删除网页控制台分区」。Emby 的「网页控制台」
-    /// 从此不再是单独一项，服务器目录的第一项「控制台」就是同一页；Jellyfin 仍保留「网页控制台」，
-    /// 因为它的网页端没有这套 Emby 管理菜单。
+    /// 2026-10-19 用户令：「把这些分区和功能移左边设置栏里……删除网页控制台分区」。两家的「网页控制台」
+    /// 从此都不再单列，服务器目录的第一项「控制台」就是同一页。
     /// </para>
     /// </summary>
     public IReadOnlyList<string> ServerAdministrationCategories => _serverAdministrationCategories;
 
     private IReadOnlyList<string> _serverAdministrationCategories = [];
-    private IReadOnlyList<ServerSettingsMenuGroup> _serverGroups = ServerSettingsMenu.Build([]);
+    private IReadOnlyList<ServerSettingsMenuGroup> _serverGroups = [];
     private IReadOnlyList<ServerSettingsMenuEntry> _serverEntries = [];
     private IReadOnlyDictionary<string, string> _serverRoutes = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -189,13 +189,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     private IReadOnlyList<SettingsCategoryGroup> _categoryGroups = [];
 
     /// <summary>
-    /// 建左栏初表：Momoka 一组在最上面，Emby 的三段服务器目录按固定条目接在它下面，插件页等能力服务
-    /// 读回来再补。页面随后会走 <see cref="RefreshServerAdministrationAsync"/>，按真实产品与账号权限重算。
+    /// 建左栏初表：只有 Momoka 自己的一组。服务器目录要等 <see cref="RefreshServerAdministrationAsync"/>
+    /// 按真实产品与账号权限填进来 —— 初表不该先猜一个 Emby，再从屏上换成 Jellyfin。
     /// </summary>
     public SettingsViewModel()
     {
-        SetServerMenu(ServerSettingsMenu.Build([]));
-        _categoryGroups = BuildCategoryGroups(serverAdministration: true, MediaServerKind.Emby);
+        _categoryGroups = BuildCategoryGroups(serverAdministration: false, MediaServerKind.Emby);
 
         Categories.Clear();
         foreach (var category in _categoryGroups.SelectMany(group => group))
@@ -203,8 +202,10 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 照账号权限与产品造左栏分组表：「Momoka」永远在最上面，Emby 管理员再按次序接「Emby Server」
-    /// 「设备」「高级」三段。目录的条目与次序来自 Core 的 <see cref="ServerSettingsMenu"/>，和网页端管理菜单同源。
+    /// 照账号权限与产品造左栏分组表：「Momoka」永远在最上面，Emby 管理员接「Emby Server」「设备」「高级」，
+    /// Jellyfin 管理员接「服务器」「设备」「电视直播」「插件」「高级」。两套目录的条目与次序分别来自
+    /// <see cref="ServerSettingsMenu"/> 和 <see cref="JellyfinServerSettingsMenu"/>，与各自网页端管理菜单同源，
+    /// 不混用。非管理员或其它产品只有 Momoka 一组。
     /// </summary>
     private List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration, MediaServerKind kind)
     {
@@ -214,8 +215,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         };
 
         // 用户 2026-10-19：Momoka 自己的设置在设置页最上面，服务器目录接在它下面。
-        // 切到 Jellyfin／非管理员时这个列表只剩 Momoka。
-        if (serverAdministration && kind == MediaServerKind.Emby)
+        if (serverAdministration && kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
         {
             foreach (var group in _serverGroups)
                 groups.Add(new SettingsCategoryGroup(group.Label, group.Entries.Select(entry => entry.Label)));
@@ -226,19 +226,19 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 「Momoka」组里管理员才看得见的那几个入口。Emby 只留「通知」（服务器设置有自己的三段）；
-    /// Jellyfin 留「网页控制台」；飞牛影视与 Plex 一个都没有。
+    /// Jellyfin 的管理页全在服务器目录里，没有额外入口；飞牛影视与 Plex 一个都没有。
     /// </summary>
     private static IReadOnlyList<string> MomokaAdministrationCategories(MediaServerKind kind) => kind switch
     {
-        MediaServerKind.FnNas => [],
-        MediaServerKind.Plex => [],
-        MediaServerKind.Jellyfin => [DashboardCategory],
-        _ => [NotificationsCategory]
+        MediaServerKind.Emby => [NotificationsCategory],
+        _ => []
     };
 
-    /// <summary>Emby 三段服务器目录里的页名；别的产品没有这套目录。</summary>
+    /// <summary>Emby 或 Jellyfin 服务器目录里的页名；别的产品没有这套目录。</summary>
     private IReadOnlyList<string> ServerDirectoryCategories(MediaServerKind kind) =>
-        kind == MediaServerKind.Emby ? [.. _serverEntries.Select(entry => entry.Label)] : [];
+        kind is MediaServerKind.Emby or MediaServerKind.Jellyfin
+            ? [.. _serverEntries.Select(entry => entry.Label)]
+            : [];
 
     /// <summary>当前产品下管理员可见的全部入口（Momoka 组里的 + 服务器目录）。</summary>
     private IReadOnlyList<string> AdministrationCategories(MediaServerKind kind) =>
@@ -476,21 +476,40 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         if (_capabilities is null) return;
 
-        // 先同步已知状态，防止权限请求尚在等待时显示上一个账号或上一个连接模式的管理页。
-        ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
+        // 先同步已知状态，防止权限请求尚在等待时显示上一个账号、上一台服务器或上一个连接模式的管理页。
+        // 产品一变立刻换上那一家的固定条目（插件页稍后补）；不能拿上一家的分组顶着新产品的名字。
+        // 这一步也是命令行按分类打开的落点依据：OnNavigatedTo 里的 Select 紧接着同步这一段就执行。
+        var knownKind = _capabilities.ServerKind;
+        if (knownKind != _administrationKind || _serverEntries.Count == 0)
+        {
+            SetServerMenu(knownKind switch
+            {
+                MediaServerKind.Emby => ServerSettingsMenu.Build(),
+                MediaServerKind.Jellyfin => JellyfinServerSettingsMenu.Build(),
+                _ => []
+            }, knownKind);
+        }
+        ApplyServerAdministration(CanShowServerAdministration, knownKind);
         if (_capabilities.IsAdministrator is null)
             await _capabilities.ProbeAsync().ConfigureAwait(true);
 
         var visible = CanShowServerAdministration;
         var kind = _capabilities.ServerKind;
-        if (visible && kind == MediaServerKind.Emby)
+        if (visible && kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
         {
             var pages = await _capabilities.GetAdminMenuPagesAsync().ConfigureAwait(true);
-            SetServerMenu(ServerSettingsMenu.Build(pages));
+            if (kind != _capabilities.ServerKind)
+            {
+                // 等插件页的这一趟里换了服务器，当前这份目录属于上一台；下一趟会把新目录装上。
+                return;
+            }
+            SetServerMenu(kind == MediaServerKind.Emby
+                ? ServerSettingsMenu.Build(pages)
+                : JellyfinServerSettingsMenu.Build(pages), kind);
         }
         else
         {
-            SetServerMenu([]);
+            SetServerMenu([], kind);
         }
 
         ApplyServerAdministration(visible, kind);
@@ -520,8 +539,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         _serverRoutes.TryGetValue(category, out var route) ? route : null;
 
     /// <summary>
-    /// 自检和控制台走查要落的那一页：Emby 是目录里的「控制台」，Jellyfin 是「网页控制台」。
-    /// 没有管理入口时答 null。
+    /// 自检和控制台走查要落的那一页：两家目录的第一项都是「控制台」。没有管理入口时答 null。
+    /// 「网页控制台」这个名字仍认，作为命令行和旧调用的兼容别名，见 <c>SettingsPage.Select</c>。
     /// </summary>
     internal string? ConsoleCategory =>
         _serverRoutes.FirstOrDefault(pair => pair.Value == ServerSettingsMenu.DefaultRoute).Key
@@ -570,8 +589,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>
     /// 换上服务器插件页之后的目录，并把页名到路由的对应表一起更新。页名是左栏的显示字，插件页的显示名
     /// 也就是它的分类键；同名项只留最后一个路由，避免同一行指向两页。
+    /// <para>
+    /// 管理入口名单只收当前产品真正列出的页：Emby 多一个「通知」，Jellyfin 没有；「网页控制台」从两家
+    /// 目录里退役之后不再是管理入口，只保留为命令行的别名。
+    /// </para>
     /// </summary>
-    private void SetServerMenu(IReadOnlyList<ServerSettingsMenuGroup> groups)
+    private void SetServerMenu(IReadOnlyList<ServerSettingsMenuGroup> groups, MediaServerKind kind)
     {
         _serverGroups = groups;
         _serverEntries = [.. groups.SelectMany(group => group.Entries)];
@@ -582,7 +605,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         _serverAdministrationCategories =
         [
-            .. new[] { NotificationsCategory, DashboardCategory }
+            .. MomokaAdministrationCategories(kind)
                 .Concat(_serverEntries.Select(entry => entry.Label))
                 .Distinct(StringComparer.Ordinal)
         ];

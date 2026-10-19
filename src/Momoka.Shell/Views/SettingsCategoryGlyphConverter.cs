@@ -16,8 +16,11 @@ namespace Momoka.Shell.Views;
 /// </summary>
 public sealed class SettingsCategoryGlyphConverter : IValueConverter
 {
-    /// <summary>Setting（齿轮）：认不出的分类给个中性图标，不留空。</summary>
-    private const int Fallback = 0xE713;
+    /// <summary>
+    /// Page：认不出的分类给一页通用的纸，不留空。以前兜底是齿轮，Jellyfin 一批分类没进表时
+    /// 整列几乎全是同一个齿轮（用户 2026-10-19 当场指出）；齿轮只留给真正叫「常规／设置」的两项。
+    /// </summary>
+    private const int Fallback = 0xE7C3;
 
     private static readonly IReadOnlyDictionary<string, int> Glyphs = new Dictionary<string, int>(StringComparer.Ordinal)
     {
@@ -34,23 +37,36 @@ public sealed class SettingsCategoryGlyphConverter : IValueConverter
         ["诊断"] = 0xE8A5,         // Document（日志）
         ["通知"] = 0xE7E7,         // Mail（转发出去的消息；与通知页自己的头图标同一个字形）
         ["控制台"] = 0xE9D9,       // ViewDashboard
+        ["常规"] = 0xE713,         // Settings
         ["通用"] = 0xE713,         // Settings
         ["用户"] = 0xE716,         // People
         ["Emby Premiere"] = 0xE734, // FavoriteStar
         ["媒体库"] = 0xE8B7,       // Folder
+        ["显示"] = 0xE7F4,         // TVMonitor
+        ["元数据"] = 0xE8A5,       // Document
+        ["NFO 设置"] = 0xE943,     // Code
         ["电视直播"] = 0xE7F4,     // TVMonitor
+        ["数字录像机"] = 0xE714,   // Video
         ["网络"] = 0xE701,         // WiFi
         ["转码"] = 0xE8AB,         // Switch
+        ["继续观看"] = 0xE81C,     // History
+        ["流媒体"] = 0xE774,       // Globe
+        ["特技播放"] = 0xE768,     // Play
         ["数据库"] = 0xE8F1,       // Library
         ["转换"] = 0xE8AB,         // Switch
         ["计划任务"] = 0xE787,     // Calendar
         ["日志"] = 0xE8A5,         // Document
         ["设备"] = 0xE7F4,         // TVMonitor
+        ["活动"] = 0xE81C,         // History
         ["下载"] = 0xE896,         // Download
         ["相机上传"] = 0xE722,     // Camera
-        ["插件"] = 0xE9CE,         // Puzzle
+        ["插件"] = 0xE71D,         // AllApps（插件）
+        ["我的插件"] = 0xE71D,     // AllApps（插件）
+        ["目录"] = 0xE8F1,         // Library（插件目录）
         ["API 密钥"] = 0xE8D7,    // Permissions
         ["元数据管理器"] = 0xE8A5, // Document
+        ["媒体资料管理器"] = 0xE70F, // Edit（铅笔，照 Jellyfin 网页端）
+        ["品牌"] = 0xE790,         // Color
         ["设置"] = 0xE713,         // Settings
         ["任务计划"] = 0xE787,     // Calendar
         ["网页控制台"] = 0xE774,   // Globe

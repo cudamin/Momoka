@@ -263,13 +263,17 @@ internal static class ServerSettingsTests
             Assert.True(pages[2].EnableInMainMenu, "布尔字段要真的读进来");
         });
 
-        Test("服务器控制台插件页：Jellyfin 没有这套菜单，不发请求", () =>
+        Test("服务器控制台插件页：Jellyfin 走它自己的参数形状", () =>
         {
-            var stub = new StubTransport();
+            var stub = new StubTransport().Answer("web/ConfigurationPages", "[]");
             var client = Client(stub, MediaServerKind.Jellyfin);
-            Assert.Throws<NotSupportedException>(() =>
-                client.GetServerSettingsPagesAsync(CancellationToken.None).GetAwaiter().GetResult());
-            Assert.Equal(0, stub.Total, "不该碰网络");
+            var pages = client.GetServerSettingsPagesAsync(CancellationToken.None).GetAwaiter().GetResult();
+            var sent = stub.Only("web/ConfigurationPages");
+            Assert.Equal("GET", sent.Method);
+            Assert.Contains("web/ConfigurationPages?enableInMainMenu=true", sent.Url);
+            Assert.DoesNotContain("PageType", sent.Url);
+            Assert.DoesNotContain("UserId", sent.Url);
+            Assert.Equal(0, pages.Count);
         });
     }
 
@@ -337,6 +341,22 @@ internal static class ServerSettingsTests
             Assert.Contains("location.href", route, "路由失败要能落回整页地址");
             Assert.Contains("return false", route);
             Assert.DoesNotContain("token", route, "脚本里不该有凭据");
+
+            var jellyfin = EmbyWebConsole.JellyfinNativeSkinScript(UiThemes.Default.Colors);
+            Assert.Contains("Segoe UI Variable Text", jellyfin);
+            Assert.Contains("--momoka-window", jellyfin);
+            Assert.Contains("#6EE7C5", jellyfin, "皮肤要带当前主题的强调色");
+            Assert.Contains("MuiDrawer-root", jellyfin, "网页自己的抽屉要收起");
+            Assert.Contains("MuiAppBar-root", jellyfin, "React 外壳的顶栏要收起");
+            Assert.Contains("fieldset", jellyfin, "旧版设置分组要变成卡片");
+            Assert.Contains(".emby-input", jellyfin);
+            Assert.Contains("MuiButton-containedPrimary", jellyfin);
+            Assert.Contains("border: 0 !important", jellyfin, "卡片不要白边");
+            Assert.Contains("gap: 12px", jellyfin);
+            Assert.Contains("::-webkit-scrollbar", jellyfin);
+            Assert.Contains("if (!root) return", jellyfin);
+            Assert.Contains("DOMContentLoaded", jellyfin);
+            Assert.DoesNotContain("token", jellyfin, "脚本里不该有凭据");
         });
     }
 }

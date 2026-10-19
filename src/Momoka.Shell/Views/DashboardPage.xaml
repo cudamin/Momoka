@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  需求 8：把 Emby 自己的网页控制台嵌进设置页 —— 设置里的第三个内嵌页面，和「服务器」「诊断」走同一条路。
+  需求 8：把媒体服务器自己的网页控制台嵌进设置页 —— 设置里的第三个内嵌页面，和「服务器」「诊断」走同一条路。
 
   No ViewModel, unlike the other two hosted pages, and deliberately: there is no state here to project. What
   the page shows is the WebView's own lifecycle — did the control come up, did the page load, what did the
-  web client end up on. Emby's server-settings directory now lives in the settings window's own left rail;
-  this page only opens the route it was given and hides the web console's own chrome. Jellyfin keeps its
-  inner rail because its web client has a different directory. A view model would only be a second copy of
-  the lifecycle state, so: Click handlers and named elements, which the layering rules allow for a UI page.
+  web client end up on. Emby 与 Jellyfin 的服务器设置目录都住在设置窗口自己的左栏；这一页只打开给定的
+  路由，并收起网页端自己的导航与外壳。A view model would only be a second copy of the lifecycle state,
+  so: Click handlers and named elements, which the layering rules allow for a UI page.
 
   The address bar is a TextBlock, not a box. This is one fixed page on the signed-in server, not a browser;
   the address is here so a person can see which server they are looking at, and copy it if they want it in a
@@ -17,12 +16,10 @@
     x:Class="Momoka.Shell.Views.DashboardPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Momoka.Shell.Views"
     Background="{ThemeResource EgWindowBrush}">
 
-    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="0" SizeChanged="OnPageSizeChanged">
+    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="0">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
@@ -55,87 +52,28 @@
         </Grid>
 
         <!--
-          窄窗口里左栏让位给一条下拉：和设置页自己的分类栏同一套做法，网页不出屏。下拉与左栏共用
-          SelectNavigation 那一份落点，谁被拨动都走同一条路。
+          服务器目录已经在设置窗口左栏。网页端自己的左栏由注入的样式收起，这里只放内容本身，
+          窄窗也不需要第二条下拉。
         -->
-        <ComboBox
-            x:Name="CompactNavPicker"
-            x:Uid="DashboardPage_NavPicker"
+        <Border
+            x:Name="WebFrame"
             Grid.Row="1"
             Margin="0,16,0,0"
-            HorizontalAlignment="Stretch"
-            DisplayMemberPath="Label"
-            SelectionChanged="OnCompactNavSelectionChanged"
-            Visibility="Collapsed" />
-
-        <Grid x:Name="ConsoleBody" Grid.Row="2" Margin="0,16,0,0" ColumnSpacing="16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="NavColumn" Width="0" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-
-            <!--
-              服务器设置左栏：三个分区照网页端管理菜单（Emby Server／设备／高级），条目和次序由
-              ServerSettingsMenu 决定，插件页在后台读到之后补进来。网页自己那套抽屉由注入的样式收起，
-              所以屏上只有这一份导航。
-            -->
-            <ListView
-                x:Name="ServerSettingsNavList"
-                Background="{ThemeResource EgSurfaceBrush}"
-                CornerRadius="16"
-                Padding="8"
-                Visibility="Collapsed"
-                SelectionMode="Single"
-                SelectionChanged="OnNavSelectionChanged">
-                <ListView.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <ItemsStackPanel AreStickyGroupHeadersEnabled="True" />
-                    </ItemsPanelTemplate>
-                </ListView.ItemsPanel>
-                <ListView.GroupStyle>
-                    <GroupStyle>
-                        <GroupStyle.HeaderTemplate>
-                            <DataTemplate x:DataType="local:ServerSettingsNavGroup">
-                                <TextBlock Text="{x:Bind Name}" Margin="12,16,0,8"
-                                    Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold"
-                                    AutomationProperties.HeadingLevel="Level2" />
-                            </DataTemplate>
-                        </GroupStyle.HeaderTemplate>
-                    </GroupStyle>
-                </ListView.GroupStyle>
-                <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="local:ServerSettingsNavItem">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <FontIcon
-                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                                FontSize="{StaticResource EgSubheadFontSize}"
-                                Glyph="{x:Bind Glyph}" />
-                            <TextBlock Text="{x:Bind Label}" VerticalAlignment="Center"
-                                TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-
-            <Border
-                x:Name="WebFrame"
-                Grid.Column="1"
-                Background="{ThemeResource EgSurfaceBrush}"
-                CornerRadius="{StaticResource EgCardCornerRadius}"
-                BorderBrush="{ThemeResource EgBorderBrush}"
-                BorderThickness="1">
-                <Grid>
-                    <WebView2 x:Name="Web" />
-                    <StackPanel x:Name="NoticePanel" Margin="32" MaxWidth="520" HorizontalAlignment="Center"
-                        VerticalAlignment="Center" Spacing="20" Visibility="Collapsed">
-                        <Border Width="72" Height="72" CornerRadius="24" Background="{ThemeResource EgAccentSoftBrush}">
-                            <FontIcon Glyph="&#xE774;" FontSize="32" Foreground="{ThemeResource EgAccentBrush}" />
-                        </Border>
-                        <TextBlock x:Name="Notice" Foreground="{ThemeResource EgTextDimBrush}" FontSize="15"
-                            LineHeight="25" TextAlignment="Center" TextWrapping="Wrap" />
-                    </StackPanel>
-                </Grid>
-            </Border>
-        </Grid>
+            Background="{ThemeResource EgSurfaceBrush}"
+            CornerRadius="{StaticResource EgCardCornerRadius}"
+            BorderBrush="{ThemeResource EgBorderBrush}"
+            BorderThickness="1">
+            <Grid>
+                <WebView2 x:Name="Web" />
+                <StackPanel x:Name="NoticePanel" Margin="32" MaxWidth="520" HorizontalAlignment="Center"
+                    VerticalAlignment="Center" Spacing="20" Visibility="Collapsed">
+                    <Border Width="72" Height="72" CornerRadius="24" Background="{ThemeResource EgAccentSoftBrush}">
+                        <FontIcon Glyph="&#xE774;" FontSize="32" Foreground="{ThemeResource EgAccentBrush}" />
+                    </Border>
+                    <TextBlock x:Name="Notice" Foreground="{ThemeResource EgTextDimBrush}" FontSize="15"
+                        LineHeight="25" TextAlignment="Center" TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </Page>

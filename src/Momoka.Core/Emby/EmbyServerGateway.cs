@@ -115,6 +115,17 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
             serverName = info.ServerName ?? apiBase.Host;
             serverVersion = info.Version ?? serverVersion;
             serverId = info.Id ?? serverId;
+
+            // 保存的服务器类型可能来自旧配置或添加时的默认值；登录本身能成功（Jellyfin 10 仍收
+            // Emby 式的登录请求），但产品认错会让设置栏和管理入口整组走错界面。以公开系统信息为准，
+            // 连同 API 基址一起纠正，下一次恢复配置就是对的。
+            if (info.ServerKind != kind)
+            {
+                Log.Info(Category, $"服务器产品识别为 {info.ServerKind}，纠正登录时假定的 {kind}");
+                var assumed = kind;
+                kind = info.ServerKind;
+                apiBase = EmbyServerAddress.Rebase(apiBase, assumed, kind);
+            }
         }
         catch (EmbyApiException error)
         {

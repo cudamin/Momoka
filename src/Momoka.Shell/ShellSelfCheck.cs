@@ -842,11 +842,33 @@ internal static partial class ShellSelfCheck
             return true;
         }
 
-        // Cards done. First the notifications page (it loads when selected, so the next ticks are its
-        // Settled gate), then the embedded console.
-        _notificationsStep = 1;
-        page.SelectedCategory = SettingsViewModel.NotificationsCategory;
+        // Cards done. First the notifications page when this product has one (it loads when selected, so
+        // the next ticks are its Settled gate), then the embedded console. Jellyfin has no 通知 page at all;
+        // waiting for one that can never be listed is how the 2026-10-19 self-check hung on the 关于 card.
+        if (page.Categories.Contains(SettingsViewModel.NotificationsCategory, StringComparer.Ordinal))
+        {
+            _notificationsStep = 1;
+            page.SelectedCategory = SettingsViewModel.NotificationsCategory;
+        }
+        else
+        {
+            OpenConsoleOrReturn(page);
+        }
         return true;
+    }
+
+    private static void OpenConsoleOrReturn(SettingsPage page)
+    {
+        if (page.ViewModel.ConsoleCategory is { } consoleCategory)
+        {
+            _dashboardStep = 1;
+            page.SelectedCategory = consoleCategory;
+        }
+        else
+        {
+            _dashboardStep = 2;
+            page.SelectedCategory = _settings[^1].Category;
+        }
     }
 
     /// <summary>
@@ -870,18 +892,9 @@ internal static partial class ShellSelfCheck
                 stopReport.Bound, note.Hidden, note.Follows);
             _notificationsStep = 2;
 
-            // Emby 的控制台是「Emby Server」目录里的「控制台」，Jellyfin 仍是「网页控制台」；
-            // 两边由 SettingsViewModel 给出同一个落点，自检不再写死其中一个分类名。
-            if (page.ViewModel.ConsoleCategory is { } consoleCategory)
-            {
-                _dashboardStep = 1;
-                page.SelectedCategory = consoleCategory;
-            }
-            else
-            {
-                _dashboardStep = 2;
-                page.SelectedCategory = _settings[^1].Category;
-            }
+            // 两家的控制台都是各自服务器目录里的「控制台」；由 SettingsViewModel 给出落点，
+            // 自检不再写死分类名。
+            OpenConsoleOrReturn(page);
             return true;
         }
 

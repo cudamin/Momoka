@@ -2,6 +2,23 @@
 
 最后更新：2026-10-19
 
+## Jellyfin 五段设置目录、产品识别修正与独立原生皮肤（2026-10-19 用户令）
+
+用户令（原话）：「当前服务器已切换到jellyfin，请接入Jellyfin上图中的分区到jellyfin独占模式设置栏中（emby和Jellyfin界面不同不要混用，独占模式下切换不同服务器要切换到对应的界面），尽量让它看起来是winui原生界面，而不是嵌入的」，随后指出「你这图标怎么这么多用齿轮的」。本轮在主树修改，当前真实服务器是 Jellyfin 10.10.7（192.168.31.230:8096），Emby 仍是保存的另一台（:8896）。
+
+- **产品认错的根因**：Jellyfin 10.10.7 的 `System/Info/Public` 报 `ProductName: "Jellyfin Server"`，旧识别只认全等 `"Jellyfin"`，于是把整台 Jellyfin 当成 Emby：服务器卡片写着 Emby 界面、管理入口沿用 Emby 三段。`PublicSystemInfo.ServerKind` 改为按 `Jellyfin` 前缀识别；登录与恢复在拿到公开信息后纠正 `ServerKind` 和 API 基址（`EmbyServerAddress.Rebase` 去掉或补回 `/emby/`），`Adopt` 写回配置。实机重启后保存的 `ServerKind` 从 Emby(0) 变为 Jellyfin(1)，服务器页显示「Jellyfin 界面」。
+- **随之暴露的实时通道**：类型纠正后实时通道改走 Jellyfin 路由，原先的 `/embywebsocket` 被 Jellyfin 以 400 拒绝。Jellyfin Web 的 apiclient 用的是基址下的 `/socket?api_key=…&deviceId=…`；`EmbyRealtimeProtocol.Build` 按产品选端点，实机日志「jellyfin · root 实时通道已连接」。
+- **目录**：`JellyfinServerSettingsMenu` 按 10.10.7 React 管理抽屉重写，五组「服务器／设备／电视直播／插件／高级」：服务器下有控制台、常规、用户、媒体库（显示／元数据／NFO 设置）、播放子页（转码／继续观看／流媒体／特技播放）；设备、活动；电视直播、数字录像机；我的插件、目录、`web/ConfigurationPages?enableInMainMenu=true` 返回的插件页；高级下有网络、API 密钥、日志、计划任务、媒体资料管理器（`metadata`）。插件页走 Jellyfin 自己的参数形状；CustomCssJS 继续过滤。Jellyfin 的「网页控制台」不再单列，`--show-settings 网页控制台` 与「控制台」都落到第一项。
+- **外层设置栏与切页**：Jellyfin 与 Emby 一样把目录放进 Momoka 设置窗口自己的左栏；`DashboardPage` 删掉内层导航（`ServerSettingsNav` 文件与 XAML 一起退役），`TryShowRoute` 对两家都可用，走网页自己的 `Emby.Page.show` 同文档切页。实机注入标记后从「控制台」切「常规」，标记仍在、地址变为 `#/dashboard/settings`、标题变为「常规」；没有再出现整页启动画面。切换服务器时设置窗口可能被主窗口收起；重新打开后按新产品的目录重建，已另外验证 Jellyfin→Emby 与 Emby→Jellyfin 两个方向。
+- **Jellyfin 原生皮肤**：新增 `EmbyWebConsole.JellyfinSkin.cs`，与 Emby 皮肤分开：MUI 顶栏／抽屉收起，窗口底色取 `Window` 色；旧版 `verticalSection` 与 `fieldset` 成 12 圆角、无描边卡片；输入框／下拉 32 高，开关／复选框、按钮、标签页、表格、日志行、插件卡、滚动条统一 WinUI 尺度与 Momoka 强调色；`/metadata` 的 `editPageSidebar` 成卡片、文件夹图标改强调色。所有规则只作用于这个 WebView，不写服务器主题。
+- **齿轮图标**：用户指出的原因是 Jellyfin 新分类没进 `SettingsCategoryGlyphConverter`，全部落到齿轮兜底。补了显示、元数据、NFO 设置、继续观看、流媒体、特技播放、数字录像机、活动、我的插件、目录、媒体资料管理器、品牌等字形；兜底从 `E713` 齿轮改为 `E7C3` 通用页面，齿轮只留给真正叫「常规／设置」的项。实机截图已逐条核对左栏图标。
+- **测试**：Release 方案 **0 警告、0 错误**；离线测试 **1964 项全过、0 失败、0 跳过**（新增 5 条：`Jellyfin Server` 产品名、误存 Emby 后登录纠正、恢复自愈、Jellyfin `/socket`、Jellyfin 插件页与五段目录）；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；`scan-automation-ids.js` 343 个交互元素、`no handle at all 0`。
+- **探针**：完整 `--probe-shell` **92 项全过、退出码 0**（`shell-probe-20261019-043850606-17332`）。Jellyfin 的那一条改为验证外层给定路由后的 `#/dashboard/…` 地址和「页面不再画内层左栏」；非管理员用例扩成五段目录、插件页、媒体资料管理器、CustomCssJS 过滤与切回 Emby。
+- **闸门 4（如实分开报）**：在用户当前的 Jellyfin 库上，自检跑完但 **红**（`run-74a3dc68111347578c5a7dcdf171b8bb`，检查 184、失败 2）——失败是「标题栏墨色浮图」「主页大图通栏」（该 Jellyfin 库没有可供主页大图使用的横幅，0×0），消失 3 项是「集页首屏」「详情单集形状（文件页）」「详情页季切换」（该库没有电视剧），降级 3 项（两条失败加「跨季相邻单集」没有剧集可测），新增 1 项是电影页没有同季单集。这不是本轮代码导致的绿/红；通知四项按产品写 `[跳过]`，基线与比较器同步复核。为对照既有基线，又临时切到保存的 Emby 服务器运行同一交付件：**绿，检查 186、失败 0；消失 0、降级 0、新增 0**（`run-de63e30d64f246ca9746c4f937e7d69e`），随后已切回 Jellyfin 并关闭应用。
+- **交付**：`tools/publish.ps1 -NoArchive -Shortcut` 刷新 `artifacts/publish/win-x64`（**540 文件、282.9 MB、11 GLSL／4 HOOK 逐文件校验通过**），交付件 `Momoka.dll` SHA-256 `E225CBC6DC224B3F443F3B12D6ED37F858C5711124CEEB4818D601EB9B2A57B6`，与开发构建一致；桌面快捷方式指向该目录。工作树未推送（本轮没有上传授权）。
+- **视觉证据**：`work/jellyfin-inspect-20261019/` 下 `settings-alias-console.png`、`settings-general-new.png`、`settings-users-new.png`、`settings-devices-new.png`、`settings-libraries-new.png`、`settings-logs-new.png`、`settings-metadata-final.png`、`settings-plugins-final.png`、`settings-after-switch-emby4.png`、`settings-back-jellyfin2.png` 都是设置窗口的真实屏幕截图（CopyFromScreen，不是合成图）；可见 Momoka 置顶、Jellyfin 五组、卡片底色与强调色、目录图标和切服后的 Emby 三段。
+- **未验证（如实说）**：① 首次进入控制台、设置窗口隐藏后重开、从 Momoka 卡片切回时仍会走一次整页启动画面（设计与上轮相同）。② 插件页请求未在当前服务器的主菜单返回条目（实机目录里没有插件配置项），只由离线测试与探针夹具覆盖。③ Jellyfin 12 若停用查询串令牌，`/socket` 的握手需要另验；本轮只核对了 10.10.7。④ 媒体资料管理器右侧编辑区要选中文件夹才出现内容，未把空态本身当作缺陷。⑤ Jellyfin 库上的闸门 4 红是库内容导致的，已在上面写明；不代表 Jellyfin 管理页或皮肤失败（`服务器控制台` 那一条是通过的）。
+
 ## 设置页 WinUI 原生外观、无缝底色与同文档切页（2026-10-19 用户令）
 
 用户令（原话）：「尽量让它看起来是winui原生界面，而不是嵌入的」「背景颜色能无缝衔接吗？」「卡片之间弄紧凑一些」「不要加白边」「这个页面不需要，删除」（指 CustomCssJS Provider）「切换的时候一定要加载这个界面吗」「设置里面momoka要放最上面」。本轮在主树收口此前在途的外层设置栏、沉浸式服务器页与删「网页控制台」，再补本地皮肤和切页方式。

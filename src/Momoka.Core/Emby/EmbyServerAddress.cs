@@ -69,4 +69,17 @@ public static class EmbyServerAddress
         if (kind == MediaServerKind.FnNas || kind == MediaServerKind.Plex) return text;
         return kind == MediaServerKind.Emby && text.EndsWith("/emby", StringComparison.OrdinalIgnoreCase) ? text[..^5] : text;
     }
+
+    /// <summary>
+    /// Carry a working address over to the product the server actually turned out to be. A profile saved
+    /// while the client assumed Emby may have been normalized with the <c>/emby/</c> API prefix; once the
+    /// public information says Jellyfin, the same server lives at the root (or the proxy sub-path), so the
+    /// prefix has to come off before the web console can be found. The reverse case puts it back.
+    /// </summary>
+    public static Uri Rebase(Uri apiBase, MediaServerKind current, MediaServerKind detected)
+    {
+        if (current == detected) return apiBase;
+        var display = ToDisplayString(apiBase, current);
+        return TryNormalize(display, out var address, out _, detected) ? address : apiBase;
+    }
 }

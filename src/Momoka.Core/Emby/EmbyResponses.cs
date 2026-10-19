@@ -46,8 +46,15 @@ public sealed class PublicSystemInfo
     public MediaServerKind? DetectedServerKind { get; set; }
 
     [JsonIgnore]
-    public MediaServerKind ServerKind => DetectedServerKind ?? (string.Equals(ProductName, "Jellyfin", StringComparison.OrdinalIgnoreCase)
+    public MediaServerKind ServerKind => DetectedServerKind ?? (IsJellyfinProductName(ProductName)
         ? MediaServerKind.Jellyfin : MediaServerKind.Emby);
+
+    /// <summary>
+    /// Jellyfin 的公开系统信息报的是 <c>"Jellyfin Server"</c>（10.10.7 实测），不是产品简称；
+    /// 只认全等会把整台服务器当成 Emby，管理入口和网页皮肤就全走错。产品名以 Jellyfin 开头即可。
+    /// </summary>
+    private static bool IsJellyfinProductName(string? productName) =>
+        productName?.Trim().StartsWith("Jellyfin", StringComparison.OrdinalIgnoreCase) == true;
 
     [JsonIgnore]
     public Uri? ApiBase { get; set; }

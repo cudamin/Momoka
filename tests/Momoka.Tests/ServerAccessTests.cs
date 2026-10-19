@@ -94,30 +94,60 @@ internal static class ServerAccessTests
 
     private static void RegisterJellyfinMenu()
     {
-        Test("Jellyfin 控制台菜单：照网页端管理抽屉分五区", () =>
+        Test("Jellyfin 控制台菜单：照 10.10 网页端管理抽屉分五区", () =>
         {
             var groups = JellyfinServerSettingsMenu.Build();
 
             Assert.Equal("服务器,设备,电视直播,插件,高级",
                 string.Join(",", groups.Select(group => group.Label)));
             Assert.Equal(
-                "控制台,常规,品牌,用户,媒体库,显示,元数据,NFO 设置,转码,继续观看,流媒体,特技播放",
+                "控制台,常规,用户,媒体库,显示,元数据,NFO 设置,转码,继续观看,流媒体,特技播放",
                 Labels(groups[0].Entries));
             Assert.Equal("设备,活动", Labels(groups[1].Entries));
-            Assert.Equal("电视直播,DVR", Labels(groups[2].Entries));
-            Assert.Equal("插件", Labels(groups[3].Entries));
-            Assert.Equal("网络,API 密钥,备份,日志,计划任务", Labels(groups[4].Entries));
+            Assert.Equal("电视直播,数字录像机", Labels(groups[2].Entries));
+            Assert.Equal("我的插件,目录", Labels(groups[3].Entries));
+            Assert.Equal("网络,API 密钥,日志,计划任务,媒体资料管理器", Labels(groups[4].Entries));
             Assert.Equal("dashboard", groups[0].Entries[0].Route);
             Assert.Equal("dashboard/settings", groups[0].Entries[1].Route);
-            Assert.Equal("dashboard/playback/trickplay", groups[0].Entries[^1].Route);
-            Assert.Equal("dashboard/tasks", groups[4].Entries[^1].Route);
+            Assert.Equal("dashboard/recordings", groups[2].Entries[^1].Route);
+            Assert.Equal("metadata", groups[4].Entries[^1].Route);
             Assert.True(groups.SelectMany(group => group.Entries)
                 .All(entry => ServerSettingsMenu.IsSafeRoute(entry.Route)), "每条都必须是留在服务器网页里的相对路由");
         });
 
+        Test("Jellyfin 控制台菜单：插件页接在插件分区末尾，CustomCssJS 不进来", () =>
+        {
+            var groups = JellyfinServerSettingsMenu.Build(
+            [
+                new ServerSettingsPluginPage
+                {
+                    Name = "customcssjs", DisplayName = "CustomCssJS Provider",
+                    Href = "configurationpage?name=customcssjs", EnableInMainMenu = true
+                },
+                new ServerSettingsPluginPage
+                {
+                    Name = "thing", DisplayName = "Jellyfin 插件页",
+                    Href = "/configurationpage?name=thing", MenuIcon = "extension",
+                    EnableInMainMenu = true
+                },
+                new ServerSettingsPluginPage
+                {
+                    Name = "hidden", DisplayName = "不在主菜单", EnableInMainMenu = false
+                }
+            ]);
+
+            Assert.Equal("我的插件,目录,Jellyfin 插件页", Labels(groups[3].Entries));
+            Assert.Equal("configurationpage?name=thing", groups[3].Entries[^1].Route);
+            Assert.True(groups[3].Entries[^1].FromPlugin);
+            Assert.False(groups.SelectMany(group => group.Entries)
+                .Any(entry => entry.Label.Contains("CustomCssJS", StringComparison.OrdinalIgnoreCase)
+                    || entry.Label == "不在主菜单"),
+                "被隐藏或不在主菜单里的插件页不该出现");
+        });
+
         Test("Jellyfin 控制台菜单：按产品取目录与默认页", () =>
         {
-            Assert.Equal(12, JellyfinServerSettingsMenu.For(MediaServerKind.Jellyfin)![0].Entries.Count);
+            Assert.Equal(11, JellyfinServerSettingsMenu.For(MediaServerKind.Jellyfin)![0].Entries.Count);
             Assert.Equal(JellyfinServerSettingsMenu.DefaultRoute,
                 JellyfinServerSettingsMenu.DefaultRouteFor(MediaServerKind.Jellyfin));
             Assert.Equal(ServerSettingsMenu.DefaultRoute,
@@ -133,6 +163,8 @@ internal static class ServerAccessTests
             Assert.Equal("显示", ServerSettingsMenu.Match(groups, "#/dashboard/libraries/display")?.Label,
                 "子页自己也有一条时，点亮的是子页这一条");
             Assert.Equal("控制台", ServerSettingsMenu.Match(groups, "#/dashboard")?.Label);
+            Assert.Equal("数字录像机", ServerSettingsMenu.Match(groups, "#/dashboard/recordings")?.Label);
+            Assert.Equal("目录", ServerSettingsMenu.Match(groups, "#/dashboard/plugins/catalog/extra")?.Label);
             Assert.Null(ServerSettingsMenu.Match(groups, "#/home"));
         });
     }

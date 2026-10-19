@@ -36,6 +36,15 @@ internal static class EmbyRealtimeTests
             Assert.Equal("wss", url.Scheme);
             Assert.Equal("/proxy/v/embywebsocket", url.AbsolutePath);
         });
+        Test("实时通道：Jellyfin 走网页端自己的 /socket，不套 Emby 的 embywebsocket", () =>
+        {
+            var url = EmbyRealtimeProtocol.Build(new Uri("http://192.168.31.230:8096/"), "TOKEN123", "DEV42",
+                MediaServerKind.Jellyfin);
+            Assert.Equal("ws", url.Scheme);
+            Assert.Equal("/socket", url.AbsolutePath);
+            Assert.Contains("api_key=TOKEN123", url.Query);
+            Assert.Contains("deviceId=DEV42", url.Query);
+        });
         Test("实时通道：基地址带尾斜杠不会拼出双斜杠", () =>
         {
             var url = EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid:8096/"), "t", "d");

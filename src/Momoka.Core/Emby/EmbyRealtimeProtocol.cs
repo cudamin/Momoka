@@ -24,7 +24,8 @@ public static class EmbyRealtimeProtocol
     /// 永远沉默」的连接，比连不上更难查。宁可在这里就断掉。
     /// </para>
     /// </summary>
-    public static Uri Build(Uri apiBase, string accessToken, string deviceId)
+    public static Uri Build(Uri apiBase, string accessToken, string deviceId,
+        MediaServerKind kind = MediaServerKind.Emby)
     {
         ArgumentNullException.ThrowIfNull(apiBase);
         ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
@@ -40,7 +41,11 @@ public static class EmbyRealtimeProtocol
         // ApiBase 可能带反代前缀（/proxy/v 那一类），所以从它的 Path 接上去而不是从根接。
         var basePath = apiBase.AbsolutePath.TrimEnd('/');
 
-        var builder = new UriBuilder(apiBase) { Scheme = scheme, Path = $"{basePath}/embywebsocket", Query = string.Empty };
+        // 两家网页端的实时端点不同：Emby 是 emby/socket 换成的 embywebsocket；Jellyfin Web 的
+        // apiclient 用 getUrl("socket")，也就是基址下的 /socket。Jellyfin 12 若停用查询串凭据，
+        // 这里需要另找握手方式 —— 当前核对的是 10.10.7。
+        var endpoint = kind == MediaServerKind.Jellyfin ? "socket" : "embywebsocket";
+        var builder = new UriBuilder(apiBase) { Scheme = scheme, Path = $"{basePath}/{endpoint}", Query = string.Empty };
 
         return new Uri($"{builder.Uri.GetLeftPart(UriPartial.Path)}?api_key={Uri.EscapeDataString(accessToken)}&deviceId={Uri.EscapeDataString(deviceId)}");
     }
