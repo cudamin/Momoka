@@ -18,7 +18,8 @@
   新增 `FnNasMetadataDialog`、`FnNasMatchDialog`、`FnNasVersionsDialog`；协议正文纯函数在 `FnNasItemActions`/`FnNasMetadataEdit`。`HomePage.MenuRead` 补传 jellyfin/fnNas/plex，修掉飞牛主页自检把整张 Emby 菜单当预期的旧红。
 - **测试**：Release 完整方案 **0 警告、0 错误**；离线测试 **1976 项全过、0 失败、0 跳过**（新增飞牛菜单标签/六项顺序、刷新/删除/手动匹配正文、季集形状、编辑元数据回写与保留未知字段、版本/候选解析、筛选标签规则与请求路径）；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/scan-automation-ids.js` **424 个交互元素、no handle at all 0**（补了飞牛筛选「收起」「清除筛选」两个句柄）。
 - **探针（最终构建）**：`--probe-shell --probe-section library --screen 1` **13 项全过、80 项未执行**（`shell-probe-20261019-151924979-27848`）；`--probe-section shell` **11 项全过**（`shell-probe-20261019-151902672-27584`）；`--probe-section moviepilot` **22 项全过**（`shell-probe-20261019-152056865-5992`）。`--probe-shell inspect` 的检查台新增三张飞牛对话框的渲染帧：`inspect-fn-nas-edit.png`、`inspect-fn-nas-match.png`、`inspect-fn-nas-versions.png`，已目检字段、按钮和版本行。顺手修正了订阅详情探针里一条过期断言：上一批「卡片不要白边」已把 `EgBodyPanelStyle` 描边收成 0，探针仍要求外圈，现只要求板底（产品未改）。
-- **未验证／边界**：① 飞牛六项的真实写入没有在用户服务器上执行，只核对了官方前端与假传输；② 没有在真实飞牛窗口里用鼠标点开新的「更多」菜单和三张对话框，`RenderTargetBitmap` 的检查台帧不等于实屏截图；③ 没有发布到 `artifacts/publish/win-x64` —— 用户的 Momoka 正在运行，文件锁未处理，桌面快捷方式仍是旧版；④ 闸门 1 的空白检查与分析器哈希、闸门 4 的自检未作为发版门禁运行（本轮不是发版或依赖升级）。
+- **未验证／边界**：① 飞牛六项的真实写入没有在用户服务器上执行，只核对了官方前端与假传输；② 没有在真实飞牛窗口里用鼠标点开新的「更多」菜单和三张对话框，`RenderTargetBitmap` 的检查台帧不等于实屏截图；③ 闸门 1 的空白检查与分析器哈希、闸门 4 的自检未作为发版门禁运行（本轮不是发版或依赖升级）。
+- **发布（同日补）**：用户关闭 Momoka 后在主树跑 `tools/publish.ps1 -NoArchive`，刷新 `artifacts/publish/win-x64`（**540 文件、283.2 MB、11 GLSL／4 HOOK 逐文件校验通过**），发布件 `Momoka.exe` 时间 2026-10-19 23:26；桌面快捷方式已核对指向 `artifacts/publish/win-x64\Momoka.exe`、工作目录同名，不再是旧版。
 - **提交范围**：上一批飞牛筛选/横幅/排序单独提交 `2d5a66a`；本轮 UI 修复提交 `5e089e7`，飞牛菜单动作提交 `e2227b3`，不夹带上一批。
 
 ## Emby 分区库工具栏到封面的空档缩短（2026-10-19 用户令）
