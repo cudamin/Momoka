@@ -11,7 +11,7 @@ description: "Verify Momoka changes using the current gates in CLAUDE.md. Interp
 
 Verification runs per delivery batch, not per small edit.
 
-- Intermediate edits need a compile of the affected projects/tests and the tests covering that change. At batch close, run gate 2, the affected runtime checks/probes and gate 3 once, against the final code.
+- Intermediate edits need a compile of the affected projects/tests and the tests covering that change. At batch close, run gate 2, the affected runtime checks/probes and gate 3 once, against the final code. For `--probe-shell`, select the affected areas with `--probe-section`; a partial run is not a full-probe pass.
 - Documentation and progress-record commits do not trigger a build, probe or publish.
 - A user request to test or publish closes the current batch at the requested commit; later edits start a new batch.
 - A result is evidence only for the code it ran against. If later code changes a probed path, rerun the affected check; do not recycle earlier logs, screenshots or publish hashes.
@@ -22,6 +22,7 @@ Verification runs per delivery batch, not per small edit.
 
 - Confirm tested files and output belong to the current working tree. `--no-build` needs a successful build of the current test code and Core; `-c Release` alone can select stale output. Publishing the Shell does not refresh the test assembly.
 - Report observed counts, failures and skips separately. Missing fixtures, unavailable input and known old failures are not passes.
+- A `--probe-shell --probe-section` run covers only the selected areas. Read `shell-probe-scope.txt` and report the skipped areas; exit code 0 is not a full-probe pass.
 - An isolated worktree's publish is not delivery to the desktop shortcut. Check the actual target as required by CLAUDE.md.
 - The local cursor, motion and composition probes select the integrated pipeline. They do not validate the standalone window, uosc, standalone switching or the external mpv backend.
 - Self-check uses copied settings and an isolated run directory, but can still sign in and read the real server. It is not an offline probe. Never inspect or print real tokens to validate redaction; use placeholders.

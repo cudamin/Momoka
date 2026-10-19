@@ -25,10 +25,16 @@ internal sealed partial class ShellNavigationProbe
     internal static int ExitCode { get; private set; } = 1;
     private readonly StartupOptions _options;
     private readonly List<Check> _checks = [];
+    private readonly List<Skipped> _skipped = [];
+    private readonly HashSet<string>? _sections;
     private readonly Grid _root = new();
     private HostWindow? _window;
 
-    private ShellNavigationProbe(StartupOptions options) => _options = options;
+    private ShellNavigationProbe(StartupOptions options)
+    {
+        _options = options;
+        _sections = options.ProbeSections is null ? null : new(options.ProbeSections, StringComparer.Ordinal);
+    }
     internal static Task RunAsync(StartupOptions options) => new ShellNavigationProbe(options).RunAsync();
 
     private async Task RunAsync()
@@ -42,9 +48,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
             await CaseAsync("侧边栏模式、导航与宽窄布局", SidebarAsync, 45);
             await CaseAsync("侧栏 MoviePilot 订阅入口、可用性显隐与订阅列表页", MoviePilotSidebarAsync, 45);
-            await CaseAsync("剧页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Series), 30);
-            await CaseAsync("季页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Season), 30);
-            await CaseAsync("电影页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Movie), 30);
+            await CaseAsync("剧页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Series), 30, section: ShellProbeSections.Library);
+            await CaseAsync("季页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Season), 30, section: ShellProbeSections.Library);
+            await CaseAsync("电影页面无封面播放按钮", () => DetailArtworkActionsAsync(EmbyItemType.Movie), 30, section: ShellProbeSections.Library);
             // 集页封面只在宽版式里画（紧凑版式整个收掉），加上集页紧凑版式的那张背景图、以及尾部那条窄带在
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
             await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
@@ -113,10 +119,10 @@ internal sealed partial class ShellNavigationProbe
             // 另留宽窄两帧截图。
             await CaseAsync("界面卡上的开机自启开关", SettingsStartupRegistrationAsync, 30);
             // 每档包含多轮真实控件切换与截图，单独计时，原有用例仍保持 12 秒超时。
-            await CaseAsync("视频基础输出显隐与偏好恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100), 45);
-            await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45);
-            await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30);
-            await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30);
+            await CaseAsync("视频基础输出显隐与偏好恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100), 45, section: ShellProbeSections.Settings);
+            await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45, section: ShellProbeSections.Settings);
+            await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30, section: ShellProbeSections.Settings);
+            await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30, section: ShellProbeSections.Settings);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
             await CaseAsync("多服务器设置按服务器分组、默认收起与权限隐藏", MultiServerSettingsGroupsAsync, 45);
             await CaseAsync("服务器页只报界面与在线账号，不再有连接模式", ServersPageSummaryAsync, 45);
@@ -147,7 +153,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("日志淘汰后显示空态", DiagnosticsEmptyAsync);
             await CaseAsync("对话框构造自检路径", DialogConstructionAsync);
             if (_options.InspectShell) await InspectAsync();
-            ExitCode = _checks.All(check => check.Passed) ? 0 : 1;
+            SaveScope();
+            ExitCode = _checks.Count > 0 && _checks.All(check => check.Passed) ? 0 : 1;
         }
         catch (Exception error)
         {
@@ -156,13 +163,27 @@ internal sealed partial class ShellNavigationProbe
         finally
         {
             Save();
+            SaveScope();
             _window?.Dispose();
             Application.Current.Exit();
         }
     }
 
-    private async Task CaseAsync(string name, Func<Task> run, int timeoutSeconds = 12)
+    private async Task CaseAsync(string name, Func<Task> run, int timeoutSeconds = 12, string? section = null)
     {
+        var area = section ?? CaseSections.GetValueOrDefault(run.Method.Name);
+        if (area is null)
+        {
+            _checks.Add(new Check("探针分区", false, $"用例「{name}」没有分区；请在 ShellNavigationProbe.Sections.cs 登记或显式传入 section"));
+            Save();
+            return;
+        }
+        if (_sections is not null && !_sections.Contains(area))
+        {
+            _skipped.Add(new Skipped(area, name));
+            SaveScope();
+            return;
+        }
         try
         {
             await run().WaitAsync(TimeSpan.FromSeconds(timeoutSeconds));
@@ -174,6 +195,28 @@ internal sealed partial class ShellNavigationProbe
 
     private void Save() => File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "shell-probe.json"),
         JsonSerializer.Serialize(_checks, new JsonSerializerOptions { WriteIndented = true }));
+
+    private void SaveScope()
+    {
+        var selected = _sections is null ? "全量" : string.Join(", ", _sections.OrderBy(section => section, StringComparer.Ordinal));
+        var unselected = _sections is null
+            ? "无"
+            : string.Join(", ", ShellProbeSections.All.Where(section => !_sections.Contains(section)));
+        if (unselected.Length == 0) unselected = "无";
+        var lines = new List<string>
+        {
+            $"执行区域：{selected}",
+            $"未执行区域：{unselected}",
+            $"未执行检查：{_skipped.Count}",
+        };
+        foreach (var group in _skipped.GroupBy(item => item.Section, StringComparer.Ordinal).OrderBy(group => group.Key, StringComparer.Ordinal))
+        {
+            lines.Add($"[{group.Key}]");
+            lines.AddRange(group.Select(item => "- " + item.Name));
+        }
+        File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "shell-probe-scope.txt"),
+            string.Join(Environment.NewLine, lines) + Environment.NewLine, new UTF8Encoding(false));
+    }
 
     private Fixture CreateFixture(HttpMessageHandler? moviePilot = null, HttpMessageHandler? aniBt = null) => new(Path.Combine(_options.Paths.Root, "fixtures", Guid.NewGuid().ToString("N")), moviePilot, aniBt);
     private static TaskCompletionSource<T> Pending<T>() => new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -231,6 +274,7 @@ internal sealed partial class ShellNavigationProbe
     }
 
     private sealed record Check(string Name, bool Passed, string Detail);
+    private sealed record Skipped(string Section, string Name);
 
     private sealed class Fixture : IDisposable
     {

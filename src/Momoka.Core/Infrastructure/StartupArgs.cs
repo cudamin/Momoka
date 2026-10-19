@@ -34,17 +34,74 @@ public static class StartupArgs
     public static bool RequestsShellProbe(string[] args) => args.Any(argument =>
         argument.TrimStart('-', '/').Split('=', 2)[0].Equals("probe-shell", StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>Selected probe areas; null means the full shell probe.</summary>
+    public static IReadOnlySet<string>? ShellProbeSectionFilter(string[] args)
+    {
+        var text = Text(args, "--probe-section");
+        if (text is null) return null;
+        return ShellProbeSectionValues(text)
+            .Select(section => section.ToLowerInvariant())
+            .ToHashSet(StringComparer.Ordinal);
+    }
+
     public static void ValidateShellProbe(string[] args)
     {
-        var translated = args.Select(argument =>
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var inspect = false;
+        var sections = false;
+        for (var index = 0; index < args.Length; index++)
         {
-            var parts = argument.TrimStart('-', '/').Split('=', 2);
-            return parts[0].Equals("probe-shell", StringComparison.OrdinalIgnoreCase)
-                ? "--probe-subtitles" + (parts.Length == 2 ? "=" + parts[1] : "") : argument;
-        }).ToArray();
-        if (!RequestsShellProbe(args) || RequestsSubtitleProbe(args))
-            throw new ArgumentException("Shell 探针必须独立运行");
-        ValidateSubtitleProbe(translated);
+            var parts = args[index].TrimStart('-', '/').Split('=', 2);
+            var name = parts[0].ToLowerInvariant();
+            if (!seen.Add(name)) throw new ArgumentException("Shell 探针参数不能重复");
+            switch (name)
+            {
+                case "probe-shell":
+                    if (parts.Length == 2)
+                    {
+                        if (parts[1] != "inspect") throw new ArgumentException("Shell 探针只接受 inspect 模式");
+                        inspect = true;
+                    }
+                    else if (index + 1 < args.Length && args[index + 1] == "inspect")
+                    {
+                        inspect = true;
+                        index++;
+                    }
+                    break;
+                case "probe-section":
+                    sections = true;
+                    var sectionText = parts.Length == 2 ? parts[1]
+                        : index + 1 < args.Length ? args[++index] : null;
+                    if (string.IsNullOrWhiteSpace(sectionText) || sectionText.StartsWith('-') || sectionText.StartsWith('/'))
+                        throw new ArgumentException("Shell 探针分区缺少有效的值");
+                    ShellProbeSectionValues(sectionText);
+                    break;
+                case "screen":
+                case "theme":
+                    var value = parts.Length == 2 ? parts[1]
+                        : index + 1 < args.Length ? args[++index] : null;
+                    if (string.IsNullOrWhiteSpace(value) || value.StartsWith('-') || value.StartsWith('/'))
+                        throw new ArgumentException("Shell 探针参数缺少值");
+                    if (name == "screen" && (!int.TryParse(value, out var screen) || screen < 1))
+                        throw new ArgumentException("屏幕编号必须从 1 开始");
+                    break;
+                default:
+                    throw new ArgumentException("Shell 探针不能与其他启动模式组合");
+            }
+        }
+        if (!seen.Contains("probe-shell")) throw new ArgumentException("缺少 Shell 探针开关");
+        if (inspect && sections) throw new ArgumentException("inspect 与探针分区不能同时使用");
+    }
+
+    private static string[] ShellProbeSectionValues(string text)
+    {
+        var values = text.Split(',', StringSplitOptions.TrimEntries);
+        if (values.Any(string.IsNullOrEmpty))
+            throw new ArgumentException("Shell 探针分区不能为空");
+        var unknown = values.Where(value => !ShellProbeSections.IsKnown(value)).ToArray();
+        if (unknown.Length > 0)
+            throw new ArgumentException($"未知的 Shell 探针分区：{string.Join(", ", unknown)}；可用：{ShellProbeSections.Usage}");
+        return values;
     }
 
     public static bool RequestsSubtitleProbe(string[] args) => args.Any(argument =>

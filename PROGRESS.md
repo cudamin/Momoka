@@ -2,6 +2,17 @@
 
 最后更新：2026-10-19
 
+## Shell 探针按功能域分区（2026-10-19 用户令）
+
+用户令（原话）：「探针应该分区？ 有些地方我没改还是跑了全量探针」。`--probe-shell` 新增 `--probe-section <区域[,区域]>`：不写仍跑全量；写了只跑指定区域，`shell-probe-scope.txt` 列出执行区域、未执行区域和未执行检查；选中区域的退出码 0 只代表该区域通过，不能当全量通过。`inspect` 不能与分区同时使用，未知分区在启动前报错并列出可用区域。
+
+- **区域**：`shell`、`settings`、`library`、`search`、`moviepilot`、`anibt`、`accounts`、`covers`、`favorites`、`playback`。用例按方法名登记在 `ShellNavigationProbe.Sections.cs`；lambda 用例显式传入区域；漏登记会让探针记一条失败，不会静默混进全量。
+- **实现**：`ShellProbeSections`（Core）列出名称；`StartupArgs.ValidateShellProbe` 自己解析 `probe-shell`／`probe-section`／`screen`／`theme` 并保留原有隔离组合限制，`ShellProbeSectionFilter` 去重并统一小写；`CaseAsync` 对未选中区域只登记到范围文件，不创建通过项；Program 的准备失败行也带上异常消息。
+- **测试**：Release 测试项目与 Core **0 警告、0 错误**；离线 **1963 项全过、0 失败、0 跳过**（新增分区参数与筛选规范化用例；`Agreements.txt` 增加 `switch --probe-section`，开关基线测试通过）。
+- **探针**：Release Shell **0 警告、0 错误**；`--probe-section settings --screen 1` **12 项全过、81 项未执行、退出码 0**（`shell-probe-20261019-112338839-21496`）；`--probe-section playback --screen 1` **3 项全过、90 项未执行、退出码 0**（`shell-probe-20261019-112654544-26388`）；`--probe-section nope` 在启动前退出 1 并列出可用区域。两类运行都写 `shell-probe-scope.txt`，未把分区运行当全量通过。
+- **发布**：`tools/publish.ps1 -NoArchive` 校验通过，`artifacts/publish/win-x64` 共 **540 文件、283.1 MB、11 GLSL、4 HOOK**；交付件 `Momoka.dll` 4 512 256 字节，SHA-256 `3C8532626626DFD82D7FB631E003BEDED99C0E38772D564E484CE2CFE0152EBB`，与 Release 构建产物一致；桌面快捷方式仍指向该目录。
+- **未验证**：全量 `--probe-shell` 本轮未重跑（按交付批次规则留到下一次发版或完整验收）；闸门 1 空白检查与闸门 4 未跑；本轮探针运行基于包含 `7bae4f7`（多账号服务器名）的 Release 构建。
+
 ## 多账号主页标服务器名：继续观看第三行、最近添加标题与媒体库名称（2026-10-19 用户令）
 
 用户令（原话）：「多账号链接时，在继续播放季集的下方添加服务器名称，在最近添加电影/电视剧/混合内容标题前方添加服务器名称，在媒体库名称前方添加服务器名称」。

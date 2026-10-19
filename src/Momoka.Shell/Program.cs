@@ -32,6 +32,9 @@ public sealed record StartupOptions
 
     public bool InspectShell { get; init; }
 
+    /// <summary>Null runs every shell-probe case; otherwise the selected <c>--probe-section</c> areas.</summary>
+    public IReadOnlySet<string>? ProbeSections { get; init; }
+
     public bool ProbeSubtitles { get; init; }
 
     public bool InspectSubtitles { get; init; }
@@ -323,7 +326,7 @@ internal static class Program
             }
             catch (Exception error)
             {
-                Console.Error.WriteLine($"[失败] Shell 探针准备失败（{error.GetType().Name}）；未启动主程序");
+                Console.Error.WriteLine($"[失败] Shell 探针准备失败（{error.GetType().Name}）：{error.Message}；未启动主程序");
                 return 1;
             }
         }
@@ -445,6 +448,7 @@ internal static class Program
             DumpUi = Has(args, "--dump-ui"),
             ProbeShell = RequestsShellProbe(args),
             InspectShell = Text(args, "--probe-shell") == "inspect",
+            ProbeSections = StartupArgs.ShellProbeSectionFilter(args),
             ProbeSubtitles = RequestsSubtitleProbe(args),
             InspectSubtitles = Text(args, "--probe-subtitles") == "inspect",
             ProbeComposition = CompositionPlaybackProbe.IsRequested(args),

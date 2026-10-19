@@ -684,6 +684,7 @@ switch  --play
 switch  --probe-composition
 switch  --probe-cursor
 switch  --probe-player-motion
+switch  --probe-section
 switch  --probe-shell
 switch  --probe-subtitles
 switch  --screen

@@ -73,18 +73,47 @@ internal static class BrowsingPreferencesTests
         });
         Test("Shell探针：合法参数与非法组合不会落入普通启动", () =>
         {
-            foreach (var args in new[] { new[] { "--probe-shell" }, new[] { "--probe-shell", "inspect", "--screen", "1" }, new[] { "/probe-shell=inspect", "--theme=midnight" } })
+            foreach (var args in new[]
+            {
+                new[] { "--probe-shell" },
+                new[] { "--probe-shell", "inspect", "--screen", "1" },
+                new[] { "/probe-shell=inspect", "--theme=midnight" },
+                new[] { "--probe-shell", "--probe-section", "settings", "--screen", "1" },
+                new[] { "--probe-shell", "--probe-section=settings,accounts", "--theme=midnight" },
+            })
             {
                 Assert.True(StartupArgs.RequestsShellProbe(args));
                 StartupArgs.ValidateShellProbe(args);
             }
-            foreach (var args in new[] { new[] { "--probe-shell=" }, new[] { "--probe-shell", "--play" },
-                new[] { "--probe-shell", "--self-check" }, new[] { "--probe-shell", "--show-settings" },
-                new[] { "--probe-shell", "--probe-subtitles" }, new[] { "--probe-shell", "--screen", "0" } })
+            foreach (var args in new[]
+            {
+                new[] { "--probe-shell=" },
+                new[] { "--probe-shell", "--play" },
+                new[] { "--probe-shell", "--self-check" },
+                new[] { "--probe-shell", "--show-settings" },
+                new[] { "--probe-shell", "--probe-subtitles" },
+                new[] { "--probe-shell", "--screen", "0" },
+                new[] { "--probe-shell", "--probe-section" },
+                new[] { "--probe-shell", "--probe-section=" },
+                new[] { "--probe-shell", "--probe-section", "nope" },
+                new[] { "--probe-shell", "--probe-section", "settings,,accounts" },
+                new[] { "--probe-shell", "--probe-section", "settings", "--probe-section", "accounts" },
+                new[] { "--probe-shell", "inspect", "--probe-section", "settings" },
+            })
             {
                 Assert.True(StartupArgs.RequestsShellProbe(args));
                 Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(args));
             }
+        });
+
+        Test("Shell探针：分区筛选去重并规范化，缺省为全量", () =>
+        {
+            Assert.Null(StartupArgs.ShellProbeSectionFilter(new[] { "--probe-shell" }));
+            var filter = StartupArgs.ShellProbeSectionFilter(new[] { "--probe-shell", "--probe-section", "Settings,accounts,settings" });
+            Assert.NotNull(filter);
+            Assert.Equal(2, filter!.Count);
+            Assert.True(filter.Contains("settings"));
+            Assert.True(filter.Contains("accounts"));
         });
     }
 
