@@ -39,7 +39,7 @@ telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
 - MoviePilot 3.x.x
 - Jellyfin 已做协议与离线界面适配，实服播放、写入及网页控制台登录未验证
 - 飞牛影视按网页 0.9.8 / 服务 0.8.43 的官方前端核对，当前原画适配的实播未验证；这组版本是核对记录，不是全版本兼容保证
-- 可选：「服务器控制台」页需要 WebView2 Runtime，没有则提示改用浏览器打开
+- 可选：「服务器控制台」页需要 WebView2 Runtime
 
 ## 下载
 
