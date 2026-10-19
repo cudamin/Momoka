@@ -4,9 +4,10 @@
 
   No ViewModel, unlike the other two hosted pages, and deliberately: there is no state here to project. What
   the page shows is the WebView's own lifecycle — did the control come up, did the page load, what did the
-  web client end up on — plus the native server-settings rail built from <c>ServerSettingsMenu</c>. A view
-  model would only be a second copy of both. So: Click handlers and named elements, which is what the
-  layering rules allow for a page that is only UI.
+  web client end up on. Emby's server-settings directory now lives in the settings window's own left rail;
+  this page only opens the route it was given and hides the web console's own chrome. Jellyfin keeps its
+  inner rail because its web client has a different directory. A view model would only be a second copy of
+  the lifecycle state, so: Click handlers and named elements, which the layering rules allow for a UI page.
 
   The address bar is a TextBlock, not a box. This is one fixed page on the signed-in server, not a browser;
   the address is here so a person can see which server they are looking at, and copy it if they want it in a
@@ -26,7 +27,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid ColumnSpacing="16" RowSpacing="14">
+        <Grid x:Name="HeaderPanel" ColumnSpacing="16" RowSpacing="14">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -69,7 +70,7 @@
 
         <Grid x:Name="ConsoleBody" Grid.Row="2" Margin="0,16,0,0" ColumnSpacing="16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="NavColumn" Width="220" />
+                <ColumnDefinition x:Name="NavColumn" Width="0" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
@@ -83,6 +84,7 @@
                 Background="{ThemeResource EgSurfaceBrush}"
                 CornerRadius="16"
                 Padding="8"
+                Visibility="Collapsed"
                 SelectionMode="Single"
                 SelectionChanged="OnNavSelectionChanged">
                 <ListView.ItemsPanel>
@@ -116,6 +118,7 @@
             </ListView>
 
             <Border
+                x:Name="WebFrame"
                 Grid.Column="1"
                 Background="{ThemeResource EgSurfaceBrush}"
                 CornerRadius="{StaticResource EgCardCornerRadius}"

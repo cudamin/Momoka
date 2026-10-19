@@ -161,22 +161,20 @@ public sealed partial class SettingsViewModel : PageViewModel
     private readonly List<SettingShortcutRow> _shortcutRows = [];
 
     /// <summary>
-    /// 管理员才看得见的那几个内嵌入口，按左栏次序：Emby 是「通知」与「网页控制台」，Jellyfin 只有
-    /// 「网页控制台」（通知读写的是 Emby 服务器自己的通知系统，Jellyfin 没有）。
+    /// 当前账号可见的服务端管理页名单：Emby 是「通知」加上三段服务器目录（控制台、通用、用户……
+    /// 以及服务器插件页），Jellyfin 只有「网页控制台」。飞牛影视与 Plex 没有。
     /// <para>
-    /// 用户令 2026-10-16：这两张不再自成一区，而是并进「Momoka」组、排在 诊断 与 关于 中间 —— 左栏里
-    /// 「EmbyServer」「JellyfinServer」两个组名，连同里面的「控制台」「用户」「媒体库」三页一起退役。
-    /// 同日第二轮，飞牛影视的「媒体库」「用户」「设置」「任务计划」四个原生管理页也退役，所以左栏从此只剩
-    /// 「Momoka」一组，不再有第二个分组。
-    /// </para>
-    /// <para>
-    /// 两页各自都还要管理员权限（进来先核一遍身份，不是管理员只得到一句「需要服务器管理员权限」），所以整份
-    /// 跟着账号权限来去，见 <see cref="RefreshServerAdministrationAsync"/>。列在这里也是为了让自检能把
-    /// 「该露的」和「该藏的」分开算。
+    /// 2026-10-19 用户令：「把这些分区和功能移左边设置栏里……删除网页控制台分区」。Emby 的「网页控制台」
+    /// 从此不再是单独一项，服务器目录的第一项「控制台」就是同一页；Jellyfin 仍保留「网页控制台」，
+    /// 因为它的网页端没有这套 Emby 管理菜单。
     /// </para>
     /// </summary>
-    public static IReadOnlyList<string> ServerAdministrationCategories { get; } =
-        [NotificationsCategory, DashboardCategory];
+    public IReadOnlyList<string> ServerAdministrationCategories => _serverAdministrationCategories;
+
+    private IReadOnlyList<string> _serverAdministrationCategories = [];
+    private IReadOnlyList<ServerSettingsMenuGroup> _serverGroups = ServerSettingsMenu.Build([]);
+    private IReadOnlyList<ServerSettingsMenuEntry> _serverEntries = [];
+    private IReadOnlyDictionary<string, string> _serverRoutes = new Dictionary<string, string>(StringComparer.Ordinal);
 
     /// <summary>
     /// 管理组是否显示。初始表用于离线布局；接入能力服务后，在请求前同步真实身份与产品。
@@ -188,47 +186,72 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>
     /// 左栏那一列的分组，见 <see cref="CategoryGroups"/>。
     /// </summary>
-    private IReadOnlyList<SettingsCategoryGroup> _categoryGroups = BuildCategoryGroups(serverAdministration: true);
+    private IReadOnlyList<SettingsCategoryGroup> _categoryGroups = [];
 
     /// <summary>
-    /// 照账号权限造一份左栏分组表。
+    /// 建左栏初表：Momoka 一组在最上面，Emby 的三段服务器目录按固定条目接在它下面，插件页等能力服务
+    /// 读回来再补。页面随后会走 <see cref="RefreshServerAdministrationAsync"/>，按真实产品与账号权限重算。
     /// </summary>
-    /// <remarks>
-    /// 「Momoka」组里，服务器、诊断两张内嵌页不再挂在名单末尾，而是插在 MoviePilot 与 关于 中间
-    /// （用户令 2026-10-11「调整左侧选项排序」：主页 界面 播放器 播放行为 视频输出 音频输出 字幕
-    /// 快捷键 MoviePilot 服务器 诊断 关于）；管理员才看得见的「通知」「网页控制台」再插在 诊断 与 关于
-    /// 中间（用户令 2026-10-16「通知和网页控制台放到诊断和关于之间」）。关于仍是最后一张卡，所以落点就是
-    /// 「最后一张卡前面」。
-    /// <para>
-    /// 用户令 2026-10-16 两轮之后，左栏只剩这一组：EmbyServer／JellyfinServer 两个组名随「控制台」「用户」
-    /// 「媒体库」三页退役，飞牛影视那一组随「媒体库」「用户」「设置」「任务计划」四页退役。
-    /// </para>
-    /// </remarks>
-    private static List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration,
-        MediaServerKind kind = MediaServerKind.Emby) =>
-        [new("Momoka", SidebarCategories(serverAdministration, kind))];
+    public SettingsViewModel()
+    {
+        SetServerMenu(ServerSettingsMenu.Build([]));
+        _categoryGroups = BuildCategoryGroups(serverAdministration: true, MediaServerKind.Emby);
+
+        Categories.Clear();
+        foreach (var category in _categoryGroups.SelectMany(group => group))
+            Categories.Add(category);
+    }
 
     /// <summary>
-    /// 当前产品下、管理员才看得见的那几个入口。飞牛影视与 Plex 一个都没有 —— 飞牛的四个原生管理页已退役
-    /// （用户令 2026-10-16），Plex 则从来没有对应的服务端接口，所以这里给它们空表，左栏也就不再为它们多出
-    /// 一组。
+    /// 照账号权限与产品造左栏分组表：「Momoka」永远在最上面，Emby 管理员再按次序接「Emby Server」
+    /// 「设备」「高级」三段。目录的条目与次序来自 Core 的 <see cref="ServerSettingsMenu"/>，和网页端管理菜单同源。
     /// </summary>
-    private static IReadOnlyList<string> AdministrationCategories(MediaServerKind kind) => kind switch
+    private List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration, MediaServerKind kind)
+    {
+        var groups = new List<SettingsCategoryGroup>
+        {
+            new("Momoka", SidebarCategories(serverAdministration, kind))
+        };
+
+        // 用户 2026-10-19：Momoka 自己的设置在设置页最上面，服务器目录接在它下面。
+        // 切到 Jellyfin／非管理员时这个列表只剩 Momoka。
+        if (serverAdministration && kind == MediaServerKind.Emby)
+        {
+            foreach (var group in _serverGroups)
+                groups.Add(new SettingsCategoryGroup(group.Label, group.Entries.Select(entry => entry.Label)));
+        }
+
+        return groups;
+    }
+
+    /// <summary>
+    /// 「Momoka」组里管理员才看得见的那几个入口。Emby 只留「通知」（服务器设置有自己的三段）；
+    /// Jellyfin 留「网页控制台」；飞牛影视与 Plex 一个都没有。
+    /// </summary>
+    private static IReadOnlyList<string> MomokaAdministrationCategories(MediaServerKind kind) => kind switch
     {
         MediaServerKind.FnNas => [],
         MediaServerKind.Plex => [],
         MediaServerKind.Jellyfin => [DashboardCategory],
-        _ => ServerAdministrationCategories
+        _ => [NotificationsCategory]
     };
+
+    /// <summary>Emby 三段服务器目录里的页名；别的产品没有这套目录。</summary>
+    private IReadOnlyList<string> ServerDirectoryCategories(MediaServerKind kind) =>
+        kind == MediaServerKind.Emby ? [.. _serverEntries.Select(entry => entry.Label)] : [];
+
+    /// <summary>当前产品下管理员可见的全部入口（Momoka 组里的 + 服务器目录）。</summary>
+    private IReadOnlyList<string> AdministrationCategories(MediaServerKind kind) =>
+        [.. MomokaAdministrationCategories(kind), .. ServerDirectoryCategories(kind)];
 
     /// <summary>
     /// 左栏「Momoka」组的条目，照左栏显示的次序：卡片之外，服务器、诊断两张内嵌页插在最后一张卡（关于）
-    /// 前面 —— 也就是 MoviePilot 与 关于 中间（用户令 2026-10-11 的次序，见 <see cref="BuildCategoryGroups"/>）；
-    /// 管理员才看得见的「通知」「网页控制台」再插在 诊断 与 关于 中间（用户令 2026-10-16）。
+    /// 前面；管理员入口再插在 诊断 与 关于 中间。Emby 的服务器设置目录不在这里 —— 它自成一档，
+    /// 见 <see cref="BuildCategoryGroups"/>。
     /// </summary>
     private static IReadOnlyList<string> SidebarCategories(bool serverAdministration, MediaServerKind kind) =>
         [.. CardCategories[..^1], "服务器", "诊断",
-            .. (serverAdministration ? AdministrationCategories(kind) : []),
+            .. (serverAdministration ? MomokaAdministrationCategories(kind) : []),
             LastCardCategory];
 
     /// <summary>The cards, in the order they appear in the left-hand list.</summary>
@@ -241,9 +264,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         ["主页", "界面", "播放器", "播放行为", "视频输出", "音频输出", "字幕", "快捷键", "MoviePilot", "关于"];
 
     /// <summary>
-    /// 需求 2 的后半句：「诊断和服务器移动到设置里」，加上需求 8 的 Emby 网页控制台. Entries in the same list
+    /// 需求 2 的后半句：「诊断和服务器移动到设置里」，加上需求 8 的网页控制台。Entries in the same list
     /// that are not cards but whole pages — a server list that talks to the network, a log view that tails a
-    /// file, an embedded browser on the server's own console — hosted in the settings page's own frame rather
+    /// file, the embedded browser on the server's own console — hosted in the settings page's own frame rather
     /// than flattened into setting rows they do not fit.
     /// <para>
     /// 「通知」也住这一边（2026-09-25）：它原是一张普通设置卡（客户端直发 webhook 的那套）；改走 Emby 服务器的
@@ -251,13 +274,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 反而两头不是。
     /// </para>
     /// <para>
-    /// Public and static because three places have to agree on the same names: the list built here, the
-    /// page's <c>Hosted</c> switch that knows what to navigate to, and the self-check's comparison of the
-    /// list against the cards — which without this would report them as entries selecting nothing.
+    /// 2026-10-19 起 Emby 的三段服务器设置也住这一边：它们的页名来自 <see cref="ServerSettingsMenu"/>，
+    /// 由 <see cref="ServerAdministrationCategories"/> 带着来去；Jellyfin 的「网页控制台」仍是固定一项。
     /// </para>
     /// </summary>
-    public static IReadOnlyList<string> HostedCategories { get; } =
-        ["服务器", "诊断", .. ServerAdministrationCategories];
+    private static readonly string[] FixedHostedCategories = ["服务器", "诊断"];
 
     /// <summary>
     /// 「通知」那一页. Named because the navigation switch and the self-check both have to say it —
@@ -266,8 +287,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     public const string NotificationsCategory = "通知";
 
     /// <summary>
-    /// 需求 8 的那一页. Named because the page's navigation switch and the self-check both have to say it,
-    /// and a string literal in three files is a rename waiting to go wrong.
+    /// Jellyfin 的网页控制台。Emby 从 2026-10-19 起把同一页放进「Emby Server」目录的第一项「控制台」，
+    /// 不再单列这个分类；这里保留它给 Jellyfin，因为 Jellyfin 的网页端没有这套 Emby 管理菜单。
     /// </summary>
     public const string DashboardCategory = "网页控制台";
 
@@ -302,10 +323,16 @@ public sealed partial class SettingsViewModel : PageViewModel
     public partial string SelectedCategory { get; set; } = CardCategories[0];
 
     /// <summary>
-    /// Whether the selected entry is one of the two pages rather than one of the cards. The page watches
+    /// Whether the selected entry is one of the pages rather than one of the cards. The page watches
     /// this to navigate its frame, and the two visibilities below are the same question drawn.
+    /// <para>
+    /// Emby 的三段服务器页也在 <see cref="ServerAdministrationCategories"/> 里，所以它们是 hosted；
+    /// 非管理员时这份名单为空，落在旧分类上的选择会被 <see cref="ApplyServerAdministration"/> 收走。
+    /// </para>
     /// </summary>
-    public bool ShowsHosted => HostedCategories.Contains(SelectedCategory, StringComparer.Ordinal);
+    public bool ShowsHosted =>
+        FixedHostedCategories.Contains(SelectedCategory, StringComparer.Ordinal)
+        || _serverAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal);
 
     public Visibility CardsVisibility => Show(!ShowsHosted);
 
@@ -434,15 +461,15 @@ public sealed partial class SettingsViewModel : PageViewModel
     internal bool ServerAdministrationHidden => !_showsServerAdministration;
 
     /// <summary>
-    /// 按当前账号的管理员身份决定「通知」「网页控制台」在不在，并在它们该收起时把落点收回第一张卡。
+    /// 按当前账号的管理员身份与产品决定服务端设置入口在不在，并在它们该收起时把落点收回第一张卡。
     /// <para>
     /// 页面每次打开都要走一趟，不能只在建页那一次：设置页是缓存的（半截输入和「刚看的是哪张卡」都要留着），
-    /// 换过账号之后页面不重建，不重走就会留着上一个账号的答案 —— 管理员看过的「网页控制台」，普通账号再进来
-    /// 照样开着。
+    /// 换过账号之后页面不重建，不重走就会留着上一个账号的答案。
     /// </para>
     /// <para>
     /// 身份取自 <see cref="IServerCapabilities.IsAdministrator"/>；Jellyfin 读取用户策略，不能从系统信息的
-    /// 可读性推断管理员。还没问到时发起探针，结束后重新读取当前身份，避免切服后应用旧答案。
+    /// 可读性推断管理员。Emby 管理员随后再读一次服务器插件页，把 Cinema Intros、DLNA 这些条目补进目录；
+    /// 读不到就保留固定条目，不拿一条错误挡住整页。
     /// </para>
     /// </summary>
     internal async Task RefreshServerAdministrationAsync()
@@ -454,11 +481,23 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (_capabilities.IsAdministrator is null)
             await _capabilities.ProbeAsync().ConfigureAwait(true);
 
-        ApplyServerAdministration(CanShowServerAdministration, _capabilities.ServerKind);
+        var visible = CanShowServerAdministration;
+        var kind = _capabilities.ServerKind;
+        if (visible && kind == MediaServerKind.Emby)
+        {
+            var pages = await _capabilities.GetAdminMenuPagesAsync().ConfigureAwait(true);
+            SetServerMenu(ServerSettingsMenu.Build(pages));
+        }
+        else
+        {
+            SetServerMenu([]);
+        }
+
+        ApplyServerAdministration(visible, kind);
     }
 
     /// <summary>
-    /// 服务端管理入口（通知、网页控制台）此刻在不在。除了「账号能管这台服务器」，还要界面确实能确定是哪一台：
+    /// 服务端管理入口此刻在不在。除了「账号能管这台服务器」，还要界面确实能确定是哪一台：
     /// 聚合模式下同时连着多台服务器时是通用界面，这些入口指向哪台没有答案，整组收起（用户令 2026-10-19）。
     /// 只连一台服务器时即使开着聚合模式，也回到那台服务器自己的界面与入口。
     /// </summary>
@@ -469,57 +508,84 @@ public sealed partial class SettingsViewModel : PageViewModel
             : _capabilities.IsAdministrator != false);
 
     internal bool CanOpenServerCategory(string category) =>
-        !ServerAdministrationCategories.Contains(category, StringComparer.Ordinal)
+        !_serverAdministrationCategories.Contains(category, StringComparer.Ordinal)
         || (CanShowServerAdministration && AdministrationCategories(_capabilities!.ServerKind)
             .Contains(category, StringComparer.Ordinal));
 
     internal IReadOnlyList<string> AvailableHostedCategories =>
         ["服务器", "诊断", .. (_showsServerAdministration ? AdministrationCategories(_administrationKind) : [])];
 
+    /// <summary>左栏某个服务器页（控制台、通用、插件页……）对应的网页路由；不是服务器页就答 null。</summary>
+    internal string? ServerRoute(string category) =>
+        _serverRoutes.TryGetValue(category, out var route) ? route : null;
+
+    /// <summary>
+    /// 自检和控制台走查要落的那一页：Emby 是目录里的「控制台」，Jellyfin 是「网页控制台」。
+    /// 没有管理入口时答 null。
+    /// </summary>
+    internal string? ConsoleCategory =>
+        _serverRoutes.FirstOrDefault(pair => pair.Value == ServerSettingsMenu.DefaultRoute).Key
+        ?? (Categories.Contains(DashboardCategory) ? DashboardCategory : null);
+
     /// <summary>
     /// 把当前账号该看得见的那几个入口装上或摘掉。
     /// <para>
-    /// 两份名单都要动：左栏那个分组和紧凑窗口的下拉用的是两份数据（<see cref="CategoryGroups"/> 分组、
-    /// <see cref="Categories"/> 平铺），只动一份就是「宽窗口藏了、窄窗口还列着」。分组那份换的是一个新表
-    /// （理由见 <see cref="CategoryGroups"/>），页面据此重指一次源。
-    /// </para>
-    /// <para>
-    /// 平铺那份的做法是「先把会来会去的那几个名字全摘掉、再按当前产品插回去」，不是原地挪：插回去的位置要
-    /// 先摘干净才算得准 —— Emby／Jellyfin 的「通知」「网页控制台」住「Momoka」组里、落在最后一张卡（关于）
-    /// 前面；飞牛影视一个管理入口都没有，这一份在它名下是空的。
+    /// 分组那份换的是一个新表（理由见 <see cref="CategoryGroups"/>）；平铺那份按新目录重排，但保留
+    /// ComboBox 里正被选中的那一项 —— 把选中项本身摘掉会让控件写回一个 null，落点就丢了。
     /// </para>
     /// </summary>
     private void ApplyServerAdministration(bool visible, MediaServerKind kind)
     {
-        // 落点先挪，名单后动，这个次序不是随手排的：把 ComboBox 里正被选中的那一项摘掉，控件会把自己的选择
-        // 清空，并顺着 SelectedItem 的 TwoWay 绑定写回一个 null —— 落点就丢在一趟之后，左栏没有选中项，
-        // 右半边也不知道该显示哪张卡。先挪开，被摘的就不是选中项，也就没有这一趟。
-        var available = visible ? AdministrationCategories(kind) : [];
-        if (!visible) MoveOffServerAdministration();
-        else if (ServerAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal)
-            && !available.Contains(SelectedCategory, StringComparer.Ordinal))
-            SelectedCategory = FirstCardCategory;
-
-        if (_showsServerAdministration == visible && _administrationKind == kind) return;
         _showsServerAdministration = visible;
         _administrationKind = kind;
-
         _categoryGroups = BuildCategoryGroups(visible, kind);
-
-        foreach (var category in ServerAdministrationCategories) Categories.Remove(category);
-        var index = Categories.IndexOf(LastCardCategory);
-        for (var offset = 0; offset < available.Count; offset++) Categories.Insert(index + offset, available[offset]);
+        ReplaceCategories([.. _categoryGroups.SelectMany(group => group)]);
     }
 
     /// <summary>
-    /// 落点若正停在一个管理员才看得见的入口上就退回第一张卡。两个来路：上一个账号（管理员）把它留在了
-    /// 「网页控制台」，或者命令行指了这一个分类 —— 不退回的话右半边留着一个再也选不中的内嵌页，它自己只会
-    /// 说一句「需要服务器管理员权限」。顺带兜住上面那个 null：控件写回来的空选择也在这里被拨回第一张卡。
+    /// 重排平铺名单，同时保住当前选中项：除选中项之外先清空，再按目标次序插回去。选中的那一页如果已经
+    /// 不在目标名单里，先落到第一张卡。
     /// </summary>
-    private void MoveOffServerAdministration()
+    private void ReplaceCategories(IReadOnlyList<string> desired)
     {
-        if (SelectedCategory is null || ServerAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal))
-            SelectedCategory = FirstCardCategory;
+        if (desired.Count == 0) return;
+        if (Categories.SequenceEqual(desired, StringComparer.Ordinal)) return;
+
+        var keep = SelectedCategory is { } selected && desired.Contains(selected, StringComparer.Ordinal)
+            ? selected
+            : desired[0];
+        if (!string.Equals(SelectedCategory, keep, StringComparison.Ordinal)) SelectedCategory = keep;
+
+        for (var index = Categories.Count - 1; index >= 0; index--)
+        {
+            if (!string.Equals(Categories[index], keep, StringComparison.Ordinal)) Categories.RemoveAt(index);
+        }
+        if (!Categories.Contains(keep, StringComparer.Ordinal)) Categories.Add(keep);
+
+        var keepIndex = desired.ToList().IndexOf(keep);
+        for (var index = 0; index < keepIndex; index++) Categories.Insert(index, desired[index]);
+        for (var index = keepIndex + 1; index < desired.Count; index++) Categories.Add(desired[index]);
+    }
+
+    /// <summary>
+    /// 换上服务器插件页之后的目录，并把页名到路由的对应表一起更新。页名是左栏的显示字，插件页的显示名
+    /// 也就是它的分类键；同名项只留最后一个路由，避免同一行指向两页。
+    /// </summary>
+    private void SetServerMenu(IReadOnlyList<ServerSettingsMenuGroup> groups)
+    {
+        _serverGroups = groups;
+        _serverEntries = [.. groups.SelectMany(group => group.Entries)];
+
+        var routes = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entry in _serverEntries) routes[entry.Label] = entry.Route;
+        _serverRoutes = routes;
+
+        _serverAdministrationCategories =
+        [
+            .. new[] { NotificationsCategory, DashboardCategory }
+                .Concat(_serverEntries.Select(entry => entry.Label))
+                .Distinct(StringComparer.Ordinal)
+        ];
     }
 
     /// <summary>

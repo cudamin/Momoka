@@ -118,7 +118,6 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
-            await CaseAsync("服务器控制台三段导航与窄窗下拉", SettingsConsoleNavigationAsync, 60);
             await CaseAsync("连接模式与界面摘要、独占收口", ServerAccessModesAsync, 45);
             await CaseAsync("Jellyfin 控制台五段导航与窄窗下拉", JellyfinConsoleNavigationAsync, 45);
             await CaseAsync("Jellyfin 通用对话框能力显隐", JellyfinDialogCapabilitiesAsync, 30);
@@ -382,9 +381,15 @@ internal sealed partial class ShellNavigationProbe
 
         /// <summary>假服务器报的账号身份。设置页左栏那一组的显隐靠它拨；可写，好让一条探针走两种账号。</summary>
         public bool? IsAdministrator { get; set; } = true;
+
+        /// <summary>服务器插件页；空表时设置左栏只有固定三段。</summary>
+        public IReadOnlyList<ServerSettingsPluginPage> AdminPages { get; set; } = [];
+
         /// <summary>假服务器报的版本。照用户那一台 4.10.1.0 —— 排序里的「导演」（4.9.0.48 起）、
         /// 「上次发布集日期」（4.9.0.17 起）与筛选里的「重制」（4.9.0.42 起）都靠它才放得出来。</summary>
         public Version? ServerVersion => new(4, 10, 1, 0);
+        public Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(CancellationToken token = default) =>
+            Task.FromResult(AdminPages);
         public Task ProbeAsync(CancellationToken token = default) => Task.CompletedTask;
     }
     private sealed class FakeLauncher : ISystemLauncher

@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text.Json;
+using Momoka.Theming;
 
 namespace Momoka.Emby;
 
@@ -73,11 +75,121 @@ public static partial class EmbyWebConsole
     }
 
     /// <summary>
-    /// 一段文档开始脚本：把网页端自己那套抽屉导航收起来。控制台的左栏已经由本应用画了一份（三个分区、
-    /// 服务器插件页），网页再画一份就是两条并排的同一个菜单；顶栏那颗开关也一起收掉，免得点开一个看不见的抽屉。
+    /// 一段在当前文档里换页的脚本：网页端已经启动好之后，走它自己的路由，不再整页重载，也就不会
+    /// 每切一次都重新过一遍启动画面。返回 <c>false</c> 表示这个文档里还没有 <c>Emby.Page</c>
+    /// （首次载入还没完成），调用方应退回整页导航。
     /// <para>
-    /// 只认 class 里的 <c>mainDrawer</c>、<c>drawer-backdrop</c> 和 <c>…NavDrawer…</c> 这几个网页端自己的
-    /// 名字；设置页自己的内容、对话框和播放器都不碰。脚本没有凭据，也不用知道服务器地址。
+    /// 路由失败时脚本自己落回整页地址，保证仍然能到那一页；路由和地址都按 JSON 转义后才拼进去。
+    /// </para>
+    /// </summary>
+    public static string RouteScript(string route, string fallbackUrl)
+    {
+        var routeLiteral = JsonSerializer.Serialize(route);
+        var urlLiteral = JsonSerializer.Serialize(fallbackUrl);
+        return $$"""
+            (function () {
+              try {
+                if (!globalThis.Emby || !Emby.Page || typeof Emby.Page.show !== "function") return false;
+                Promise.resolve(Emby.Page.show({{routeLiteral}})).catch(function () {
+                  globalThis.location.href = {{urlLiteral}};
+                });
+                return true;
+              } catch (e) {
+                return false;
+              }
+            })();
+            """;
+    }
+
+    /// <summary>
+    /// 一段文档开始脚本：把网页端的背景、文字与强调色 CSS 变量换成 Momoka 当前主题的值。网页端
+    /// 的强调色本来存在服务器上（<c>accentColor</c>，会带到别的设备）；这里只在 Momoka 自己的内嵌
+    /// 浏览器里改，不写服务器、不影响手机或其他客户端。
+    /// <para>
+    /// 网页的深色主题是用 <c>--background-hue/saturation/lightness</c>、
+    /// <c>--theme-text-color-*</c> 和 <c>--theme-primary-color-*</c> 拼出来的；这几个变量用
+    /// <c>!important</c> 盖过主题自己的值。强调色按钮（<c>.button-submit</c>）原先把文字写死成白色，
+    /// 页面主题里那一条一起改成主题的 <see cref="UiPalette.TextOnAccent"/>，浅色强调色上也读得清。
+    /// </para>
+    /// </summary>
+    public static string ThemeVariablesScript(
+        ThemeColor background, ThemeColor text, ThemeColor accent, ThemeColor textOnAccent)
+    {
+        var bg = background.ToHsl();
+        var ink = text.ToHsl();
+        var acc = accent.ToHsl();
+        var accentCss = $"#{accent.R:X2}{accent.G:X2}{accent.B:X2}";
+        var onAccentCss = $"#{textOnAccent.R:X2}{textOnAccent.G:X2}{textOnAccent.B:X2}";
+
+        static string Number(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+        var variables = new Dictionary<string, string>
+        {
+            ["--background-hue"] = Number(bg.Hue),
+            ["--background-saturation"] = Number(bg.Saturation) + "%",
+            ["--background-lightness"] = Number(bg.Lightness) + "%",
+            ["--theme-text-color-hue"] = Number(ink.Hue),
+            ["--theme-text-color-saturation"] = Number(ink.Saturation) + "%",
+            ["--theme-text-color-lightness"] = Number(ink.Lightness) + "%",
+            ["--theme-text-color-alpha"] = "1",
+            ["--theme-primary-color-hue"] = Number(acc.Hue),
+            ["--theme-primary-color-saturation"] = Number(acc.Saturation) + "%",
+            ["--theme-primary-color-lightness"] = Number(acc.Lightness) + "%",
+            ["--theme-accent-text-color-darkbg"] = accentCss,
+            ["--theme-accent-text-color-lightbg"] = accentCss,
+            ["--theme-accent-text-color-darkbg-alt"] = accentCss,
+            ["--theme-accent-text-color-lightbg-alt"] = accentCss,
+            ["--theme-accent-text-color"] = accentCss
+        };
+        var variablesJson = JsonSerializer.Serialize(variables);
+        var onAccentLiteral = JsonSerializer.Serialize(onAccentCss);
+
+        return $$"""
+            (function () {
+              try {
+                var vars = {{variablesJson}};
+                var onAccent = {{onAccentLiteral}};
+
+                function apply() {
+                  try {
+                    // WebView2 把文档开始脚本跑在 <html> 建出来之前，那时 documentElement 还是 null；
+                    // 第一次调用什么也不做，等下面的 DOMContentLoaded 与几个定时器再来。
+                    var root = document.documentElement;
+                    if (!root) return;
+                    // 内联的 !important 比网页主题样式表里的 :root 变量优先，换主题也不会被盖回去。
+                    for (var name in vars) root.style.setProperty(name, vars[name], "important");
+
+                    var style = document.getElementById("momoka-theme");
+                    if (!style) {
+                      style = document.createElement("style");
+                      style.id = "momoka-theme";
+                      (document.head || root).appendChild(style);
+                    }
+                    style.textContent = ".button-submit { color: " + onAccent + " !important; }";
+                  } catch (e) {
+                    // 一次没赶上不要紧，后面还有 DOMContentLoaded 与定时器。
+                  }
+                }
+
+                apply();
+                document.addEventListener("DOMContentLoaded", apply, { once: true });
+                window.addEventListener("load", apply, { once: true });
+                setTimeout(apply, 300);
+                setTimeout(apply, 1200);
+                setTimeout(apply, 2500);
+              } catch (e) {
+                // 颜色没跟上不该把控制台变成白屏。
+              }
+            })();
+            """;
+    }
+
+    /// <summary>
+    /// 一段文档开始脚本：把网页端自己的抽屉导航、顶栏和底部标签栏收起来。控制台的左栏已经由设置窗口
+    /// 画了一份（三段服务器目录），网页再画一份就是两条并排的同一个菜单；顶栏与底部标签栏也一起收掉，
+    /// 只留设置内容本身。脚本只认网页端自己的类名，不碰设置页的内容、对话框和播放器。
+    /// <para>
+    /// 隐藏顶栏和底栏之后，网页原本给它们留的上下内边距一并归零，页面才真正铺满 WebView。
     /// </para>
     /// </summary>
     public static string HideDrawerScript() => """
@@ -86,7 +198,14 @@ public static partial class EmbyWebConsole
             var css = [
               ".mainDrawer { display: none !important; }",
               ".drawer-backdrop { display: none !important; }",
-              ".btnOpenNavDrawer, .btnToggleNavDrawer, .btnPinNavDrawer { display: none !important; }"
+              ".skinHeader { display: none !important; }",
+              ".appfooter { display: none !important; }",
+              ".btnOpenNavDrawer, .btnToggleNavDrawer, .btnPinNavDrawer { display: none !important; }",
+              ".padded-top-page { padding-top: 0 !important; }",
+              ".padded-bottom-page { padding-bottom: 0 !important; }",
+              ".dashboardContainer, .dashboardGeneralForm, .fieldsets, .settingsContainer, .configPage { max-width: none !important; width: 100% !important; }",
+              ".dashboardSections { column-gap: 1em !important; }",
+              ".dashboardSection { min-width: 0 !important; flex-basis: calc(50% - 1em) !important; }"
             ].join("\n");
 
             function addStyle() {

@@ -2,6 +2,22 @@
 
 最后更新：2026-10-19
 
+## 设置页 WinUI 原生外观、无缝底色与同文档切页（2026-10-19 用户令）
+
+用户令（原话）：「尽量让它看起来是winui原生界面，而不是嵌入的」「背景颜色能无缝衔接吗？」「卡片之间弄紧凑一些」「不要加白边」「这个页面不需要，删除」（指 CustomCssJS Provider）「切换的时候一定要加载这个界面吗」「设置里面momoka要放最上面」。本轮在主树收口此前在途的外层设置栏、沉浸式服务器页与删「网页控制台」，再补本地皮肤和切页方式。
+
+- **分组与次序**：设置左栏的「Momoka」组固定在最上面；Emby 管理员下面是照网页端管理菜单分出的「Emby Server／设备／高级」三段。此前在途的「服务器目录在前」按本轮用户令改回，`SettingsViewModel.BuildCategoryGroups` 与探针 `embyGroups` 一起改。探针截图 `settings-server-admin-shown.png` 已看到 Momoka 一组领队、Emby Server 接在下面。
+- **无缝底色**：网页端背景改用 `ThemeHost.Current.Colors.Window`（设置页画布同一角色），卡片用 `Surface`；WebView2 的 `DefaultBackgroundColor` 也设成窗口色。左侧栏卡片是面色，右侧网页与窗口画布同色，不再露出一块更亮的矩形。
+- **本地 WinUI 皮肤**：新增 `EmbyWebConsole.NativeSkin.cs`，在文档开始注入 `<style id="momoka-native">` 与 `--momoka-*` 变量：Segoe UI Variable 字体与 20／16／14／12 字阶；`fieldset` 与 dashboard 分区成 12 圆角卡片，**无描边**，表单卡片间距 12px；输入框与下拉高 32、4 圆角、面色；开关 40×20；按钮 32 高、4 圆角，主按钮用强调色与 on-accent；复选框 16；列表行、设备与用户卡片、信息条、滚动条一并收口。规则带 `!important`，因为 Emby 的主题样式是启动后动态插进来的。
+- **文档开始脚本的坑**：WebView2 在 `<html>` 建出来之前就跑文档开始脚本；第一版 `apply()` 直接读 `documentElement.style` 抛错，被外层 `try` 吞掉，后面的 DOMContentLoaded 与定时器全没注册，所以颜色一直没生效。现在 `apply()` 自己捕获并 `if (!root) return`，DOMContentLoaded、load、300／1200／2500ms 都兜着，测试钉住这两条。
+- **同文档切页**：`SettingsPage.ShowHosted` 在目标仍是服务器页、且 Frame 里是一个未释放的 DashboardPage 时不再 `Navigate`，改调 `DashboardPage.TryShowRoute`；DashboardPage 用 `Emby.Page.show(route)`（`RouteScript`）在现有文档里换页，失败落回整页地址。首次进入、设置窗口隐藏后重开、或从 Momoka 卡片切回服务器页（WebView 已 `Release`）时仍走一次整页启动。实测：注入文档标记后切「通用」与「Cinema Intros」，标记仍在、`.app-splash-container` 不显示，插件内容 2.5 秒内出现。
+- **CustomCssJS**：`ServerSettingsMenu` 按 name／display 归一后过滤 `customcssjs` 插件页，服务器上的插件本身不动。单测与探针夹具各有一条，实时左栏已不再出现该项。
+- **验证**：Release 方案 **0 警告、0 错误**；离线测试 **1959 项全过、0 失败、0 跳过**；`git diff --check` 退出 0。完整 `--probe-shell` **92 项全过、退出码 0**（`shell-probe-20261019-025019369-28664`）；过程中先修了两处只在探针侧的问题：探针直接挂页面时没走 `SettingsPage` 的分组源刷新，以及 Momoka 置顶后旧的「通知在最后一张卡前」断言改看 Momoka 组。
+- **闸门 4**：对最终交付件 `run-b78dd5b094b549f68b94fcba75c923d9`：**绿，检查 186、失败行 0；消失 0、降级 0、新增 0**。第一次自检因为没有真正清掉代理停在登录页（日志 `无法连接到 192.168.31.230`），修正 PowerShell 的 `$env:` 转义后重跑通过；失败运行目录保留，未改账号、自检或基线。
+- **交付**：`tools/publish.ps1 -NoArchive -Shortcut` 刷新 `artifacts/publish/win-x64`（**540 文件、282.9 MB、11 GLSL／4 HOOK 逐文件校验通过**），交付件 `Momoka.dll` SHA-256 `42FD16D537BCDB60127FDF865EE408FCD875F0D3260520C41EC3AC774C699EE4`，与开发构建一致；`C:\Users\89400\Desktop\Momoka.lnk` 指向该目录，闸门 4 跑的就是这份交付件。
+- **视觉证据与缺口（如实说）**：`work/outer-settings/plugin-outer.png`、`general-outer.png`、`users-outer.png`、`logs-outer.png` 已看过后两轮皮肤（无描边、12px 间距、Segoe 字体、薄荷强调色）；最后一次 console/devices 实屏截图被前台浏览器窗口遮挡，不作为干净证据。Momoka 置顶由探针截图 `settings-server-admin-shown.png` 与交付件闸门 4 确认。首次进入／从 Momoka 卡片返回服务器页仍会有一次 Emby 启动画面；切到 Momoka 卡片会释放 WebView（原设计），因此不是完全的零重载。
+- **未验证（如实说）**：① 没有在真实 Jellyfin 上重验内层五段导航（本轮没动它，仍走整页导航）；② CustomCssJS 只从 Momoka 菜单隐藏，服务器插件仍在，直接访问其 URL 仍可打开；③ 最终 console/devices 实屏帧被遮挡，未重新拍；④ 未推送（本轮没有上传授权）。
+
 ## AniBT 识别确认改走 MoviePilot 重新整理与 Emby 识别兜底（2026-10-19 用户令）
 
 用户令（原话）：「1.更多中的 AniBT识别并重新刮削 改名为 AniBT识别 2.识别出来后选择框直接显示第一个识别结果 3.识别完 按确认重新刮削后，元数据还是跟原来一模一样，mp中也没有重新整理的记录。要求验收时要求上图的资源能正确一键使用MP的重新整理功能重新整理为 学生会也有洞！ 如果MP中没有整理记录自动使用emby的 识别 功能重新刮削 4.确认重新刮削改名为 重新整理」。动工前读了 `CLAUDE.md`、MoviePilot 技能与上游 v3.0.1 整理协议快照；本轮在主树修改。

@@ -1,4 +1,5 @@
 using Momoka.Emby;
+using Momoka.Theming;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -32,6 +33,7 @@ internal static class ServerSettingsTests
     {
         RegisterFixedMenu();
         RegisterPluginPlacement();
+        RegisterHiddenPlugins();
         RegisterPluginRoutes();
         RegisterBadPluginPages();
         RegisterAddresses();
@@ -91,17 +93,40 @@ internal static class ServerSettingsTests
             ]);
 
             Assert.Equal(
-                "控制台,通用,用户,Emby Premiere,媒体库,电视直播,网络,转码,数据库,转换,计划任务,日志,Cinema Intros,CustomCssJS Provider",
+                "控制台,通用,用户,Emby Premiere,媒体库,电视直播,网络,转码,数据库,转换,计划任务,日志,Cinema Intros",
                 Labels(groups[0].Entries),
-                "服务器插件页接在日志后面");
+                "服务器插件页接在日志后面；CustomCssJS 不进来");
             Assert.Equal("设备,下载,相机上传,DLNA", Labels(groups[1].Entries), "DLNA 在设备组末尾");
             Assert.Equal(
                 "Advanced Thing,插件,API 密钥,元数据管理器,Backup & Restore,Open Subtitles",
                 Labels(groups[2].Entries),
                 "标了 advanced 的在前；没标分区的两条接在元数据管理器后面");
-            Assert.Equal("movie", groups[0].Entries[^2].Icon);
-            Assert.Equal("code", groups[0].Entries[^1].Icon);
-            Assert.True(groups[0].Entries[^2].FromPlugin && groups[2].Entries[^1].FromPlugin, "插件页要能认出来");
+            Assert.Equal("movie", groups[0].Entries[^1].Icon);
+            Assert.False(groups.SelectMany(group => group.Entries)
+                    .Any(entry => entry.Label.Contains("CustomCssJS", StringComparison.OrdinalIgnoreCase)),
+                "CustomCssJS 插件页不该进左栏");
+            Assert.True(groups[0].Entries[^1].FromPlugin && groups[2].Entries[^1].FromPlugin, "插件页要能认出来");
+        });
+    }
+
+    private static void RegisterHiddenPlugins()
+    {
+        Test("服务器控制台菜单：CustomCssJS 插件页无论名字怎么写都不进左栏", () =>
+        {
+            var groups = ServerSettingsMenu.Build(
+            [
+                Plugin("customcssjs", "CustomCssJS Provider", "configurationpage?name=customcssjs", "server"),
+                Plugin("custom-css-js", null, "configurationpage?name=custom-css-js", "advanced"),
+                Plugin("CustomCssJs", "自定义样式", null, "server"),
+                Plugin("cinemaintros", "Cinema Intros", "configurationpage?name=cinemamode", "server")
+            ]);
+
+            Assert.False(groups.SelectMany(group => group.Entries)
+                    .Any(entry => entry.Label.Contains("CustomCssJS", StringComparison.OrdinalIgnoreCase)
+                        || entry.Route.Contains("customcss", StringComparison.OrdinalIgnoreCase)),
+                "CustomCssJS 插件页无论名字怎么写都不该进左栏");
+            Assert.True(groups[0].Entries.Any(entry => entry.Label == "Cinema Intros"),
+                "别的插件页应保留");
         });
     }
 
@@ -255,10 +280,63 @@ internal static class ServerSettingsTests
             var script = EmbyWebConsole.HideDrawerScript();
             Assert.Contains(".mainDrawer", script);
             Assert.Contains(".drawer-backdrop", script);
+            Assert.Contains(".skinHeader", script);
+            Assert.Contains(".appfooter", script);
             Assert.Contains("btnOpenNavDrawer", script);
             Assert.Contains("NavDrawer", script);
+            Assert.Contains(".padded-top-page", script);
             Assert.DoesNotContain("token", script, "脚本里不该有凭据");
             Assert.DoesNotContain("http", script, "脚本只认网页端自己的类名，不需要服务器地址");
+        });
+
+        Test("服务器控制台：Momoka 主题换算成网页的颜色变量", () =>
+        {
+            var mint = ThemeColor.Parse("#6EE7C5");
+            var hsl = mint.ToHsl();
+            Assert.True(hsl.Hue is > 160 and < 175, $"薄荷绿的色相不对：{hsl.Hue:0.##}");
+            Assert.True(hsl.Saturation is > 65 and < 75, $"薄荷绿的饱和度不对：{hsl.Saturation:0.##}");
+            Assert.True(hsl.Lightness is > 62 and < 72, $"薄荷绿的亮度不对：{hsl.Lightness:0.##}");
+            Assert.Equal((0.0, 100.0, 50.0), ThemeColor.Parse("#FF0000").ToHsl());
+            Assert.Equal((0.0, 0.0, 100.0), ThemeColor.Parse("#FFFFFF").ToHsl());
+
+            var script = EmbyWebConsole.ThemeVariablesScript(
+                ThemeColor.Parse("#141B22"), ThemeColor.Parse("#F2F6FA"), mint, ThemeColor.Parse("#0C1116"));
+            Assert.Contains("--background-hue", script);
+            Assert.Contains("--theme-text-color-hue", script);
+            Assert.Contains("--theme-primary-color-hue", script);
+            Assert.Contains("#6EE7C5", script, "强调色要真的进样式");
+            Assert.Contains(".button-submit", script, "强调色按钮的文字要跟着主题的 on-accent");
+            Assert.Contains("#0C1116", script);
+            Assert.Contains("!important", script);
+            // 文档开始脚本跑在 <html> 建出来之前；第一次 apply 必须能空转，否则后面的重试全被异常吃掉。
+            Assert.Contains("if (!root) return", script);
+            Assert.Contains("DOMContentLoaded", script);
+            Assert.Contains("window.addEventListener(\"load\"", script);
+            Assert.DoesNotContain("token", script, "脚本里不该有凭据");
+
+            var skin = EmbyWebConsole.NativeSkinScript(UiThemes.Default.Colors);
+            Assert.Contains("Segoe UI Variable Text", skin, "网页要换成 WinUI 的字体");
+            Assert.Contains("--momoka-accent", skin);
+            Assert.Contains("#6EE7C5", skin, "皮肤要带当前主题的强调色");
+            Assert.Contains("fieldset", skin, "设置页的分组要变成卡片");
+            Assert.Contains(".emby-input", skin);
+            Assert.Contains(".toggleSwitch", skin);
+            Assert.Contains(".button-submit", skin);
+            Assert.Contains("gap: 12px", skin, "卡片之间要紧凑");
+            Assert.Contains("border: 0 !important", skin, "卡片不要白边");
+            Assert.Contains("::-webkit-scrollbar", skin);
+            Assert.Contains("if (!root) return", skin);
+            Assert.Contains("DOMContentLoaded", skin);
+            Assert.DoesNotContain("token", skin, "脚本里不该有凭据");
+
+            var route = EmbyWebConsole.RouteScript(
+                "configurationpage?name=cinemamode",
+                "http://server/web/index.html#!/configurationpage?name=cinemamode");
+            Assert.Contains("Emby.Page.show", route, "切页要走网页自己的路由，而不是整页重载");
+            Assert.Contains("configurationpage?name=cinemamode", route);
+            Assert.Contains("location.href", route, "路由失败要能落回整页地址");
+            Assert.Contains("return false", route);
+            Assert.DoesNotContain("token", route, "脚本里不该有凭据");
         });
     }
 }

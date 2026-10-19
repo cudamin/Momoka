@@ -3,6 +3,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Shell.Platform;
+using Momoka.Theming;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -13,11 +14,19 @@ using Microsoft.Web.WebView2.Core;
 namespace Momoka.Shell.Views;
 
 /// <summary>导航到网页控制台时传入的容器。</summary>
+/// <param name="Route">
+/// 控制台里的哪一页（<c>dashboard</c>、<c>dashboard/settings</c>、<c>users</c>……）。空表示产品默认页。
+/// </param>
 /// <param name="LoadContent">
 /// 真正启动内嵌浏览器。离线探针只验证左栏与宽窄布局时传 false —— WebView2 在探针窗口里的合成会让
 /// 整页截不到内容，也会在退出时留下一个 CLR 崩溃；不启动它，探针读的仍然是真的页面与真的导航。
 /// </param>
-internal sealed record DashboardRequest(IServiceProvider Services, bool LoadContent = true);
+/// <param name="Immersive">
+/// 不给这一页留 Momoka 自己的标题、地址和按钮，也不留卡片的边距与边框：伺服器设置页面直接用网页内容
+/// 铺满设置窗口右半边。Jellyfin 的整页控制台仍用原来的标题和地址。
+/// </param>
+internal sealed record DashboardRequest(
+    IServiceProvider Services, string? Route = null, bool LoadContent = true, bool Immersive = false);
 
 /// <summary>
 /// 需求 8：Emby 网页端的控制台，用 <c>WebView2</c> 嵌在设置里，并且是已经登录好的状态。
@@ -49,9 +58,11 @@ public sealed partial class DashboardPage : Page, IShellContent
 
     private object? _request;
     private bool _loadContent = true;
+    private bool _immersive;
     private ISystemLauncher? _launcher;
     private string _url = "";
     private bool _core;
+    private bool _booted;
     private bool _seeded;
     private bool? _navigated;
     private string _error = "";
@@ -150,13 +161,12 @@ public sealed partial class DashboardPage : Page, IShellContent
     }
 
     /// <summary>
-    /// Emby 才画那三段左栏。Jellyfin 的网页端有自己的菜单，硬塞一份 Emby 的目录只会多出打不开的项；
-    /// 所以它仍走原来的整页控制台。非管理员在 <see cref="StartAsync"/> 里就被挡住，左栏根本不会出现。
+    /// Emby 的三段目录已经搬进设置窗口自己的左栏（见 <c>SettingsViewModel</c>），这一页不再画内层导航；
+    /// Jellyfin 的网页端有自己的管理抽屉，仍用原来的内层目录。飞牛影视与 Plex 没有这套页面。
     /// </summary>
     private void ConfigureNavigation(EmbyConnection connection)
     {
-        // 飞牛影视与 Plex 没有可复刻的原生管理目录，网页控制台保持整页通用形态。
-        if (connection.IsFnNas || connection.IsPlex)
+        if (!connection.IsJellyfin)
         {
             _navAvailable = false;
             ApplyNavigationLayout();
@@ -164,7 +174,7 @@ public sealed partial class DashboardPage : Page, IShellContent
         }
 
         _navAvailable = true;
-        _route = connection.IsJellyfin ? JellyfinServerSettingsMenu.DefaultRoute : ServerSettingsMenu.DefaultRoute;
+        _route = JellyfinServerSettingsMenu.DefaultRoute;
         _url = EmbyWebConsole.RouteUrl(connection, _route);
         _address = _url;
         BuildNavigation([]);
@@ -278,19 +288,37 @@ public sealed partial class DashboardPage : Page, IShellContent
     }
 
     /// <summary>
+    /// 外层设置栏换到另一个服务器页时走这里：同一台服务器、同一个 DashboardPage 就留在原地，
+    /// 只让网页自己换路由。返回 false 表示这一页不适合接手（不是 Emby／会话已换），调用方仍走整页导航。
+    /// </summary>
+    internal bool TryShowRoute(string route)
+    {
+        // 切到 Momoka 卡片时这一页已经 Release，Frame 里留着的只是外壳；再切回服务器页必须新建。
+        if (_released) return false;
+        if (_scope is not { IsCurrent: true } scope || scope.Connection.IsJellyfin) return false;
+        if (ServerSettingsMenu.NormalizeRoute(route) is not { } normalized
+            || !ServerSettingsMenu.IsSafeRoute(normalized)) return false;
+
+        NavigateToRoute(normalized);
+        return true;
+    }
+
+    /// <summary>
     /// 把网页带到左栏选中的那一页。还没起浏览器时只记下地址，<see cref="StartAsync"/> 最后会用最新的
     /// <c>_url</c> 起第一趟，所以这里空等也不会把落点丢掉。
     /// </summary>
-    private void NavigateTo(ServerSettingsNavItem item)
+    private void NavigateTo(ServerSettingsNavItem item) => NavigateToRoute(item.Route);
+
+    private void NavigateToRoute(string route)
     {
-        if (_scope is not { IsCurrent: true } scope || !ServerSettingsMenu.IsSafeRoute(item.Route)) return;
+        if (_scope is not { IsCurrent: true } scope || !ServerSettingsMenu.IsSafeRoute(route)) return;
 
         _generation++;
         _settled = false;
         _navigated = null;
         _error = "";
-        _route = item.Route;
-        _url = EmbyWebConsole.RouteUrl(scope.Connection, item.Route);
+        _route = route;
+        _url = EmbyWebConsole.RouteUrl(scope.Connection, route);
         _address = _url;
 
         NoticePanel.Visibility = Visibility.Collapsed;
@@ -303,35 +331,53 @@ public sealed partial class DashboardPage : Page, IShellContent
         }
 
         Say("正在载入服务器设置…");
-        core.Navigate(_url);
+
+        // Emby 的首个文档已经启动好之后，切页走网页自己的路由：不重载整页，也就不会再闪一次启动画面。
+        // 首次载入（或上一趟整页还没完成）仍然用整页导航，因为那时 Emby.Page 还不存在。
+        if (!scope.Connection.IsJellyfin && _booted)
+            _ = NavigateInlineAsync(core, route, _url);
+        else
+            core.Navigate(_url);
         _ = GiveUpAsync(_generation);
     }
 
     /// <summary>
-    /// 服务器插件页（Cinema Intros、DLNA、Backup &amp; Restore…）是服务器自己报出来的主菜单项，固定
-    /// 条目里没有。读到之后补进左栏；读不到就保留固定那三段，不拿一条错误挡住整个控制台。
+    /// 在当前文档里换页。脚本返回 <c>false</c>（网页还没启动好）或调用失败时落回整页导航；
+    /// 网页路由自己失败时，脚本里的 catch 也会落回整页地址。
     /// </summary>
-    private async Task LoadPluginPagesAsync()
+    private async Task NavigateInlineAsync(CoreWebView2 core, string route, string url)
     {
-        if (_scope is not { IsCurrent: true } scope) return;
-
+        var generation = _generation;
         try
         {
-            var pages = await scope.ExecuteAsync(
-                (client, token) => client.GetServerSettingsPagesAsync(token), _lifetime.Token);
-            if (_released || !scope.IsCurrent || pages.Count == 0) return;
-            BuildNavigation(pages);
+            var result = await core.ExecuteScriptAsync(EmbyWebConsole.RouteScript(route, url));
+            if (_released || generation != _generation) return;
+
+            if (!string.Equals(result, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                core.Navigate(url);
+                return;
+            }
+
+            // Emby.Page.show 已经把视图切过去了；等待焦点和内容落一帧再把这行读数定下来。
+            _navigated = true;
+            await Task.Delay(350, _lifetime.Token);
+            if (_released || generation != _generation) return;
+            _settled = true;
+            Say("已载入");
         }
         catch (OperationCanceledException) when (_released || _lifetime.IsCancellationRequested) { }
         catch (Exception error)
         {
-            Log.Debug(Category, $"读取服务器插件页失败：{error.Message}");
+            if (_released || generation != _generation) return;
+            Log.Debug(Category, $"网页内切页失败，改走整页：{error.Message}");
+            try { core.Navigate(url); } catch (Exception) { }
         }
     }
 
     /// <summary>
     /// 网页里自己的链接跳了页（比如仪表盘上的齿轮、设备列表点进一台设备）：按新路由把左栏点亮。
-    /// 认不出就当没发生，不去猜。
+    /// 认不出就当没发生，不去猜。Emby 没有内层左栏，这个方法在那边什么都不做。
     /// </summary>
     private void OnSourceChanged(CoreWebView2 sender, CoreWebView2SourceChangedEventArgs e)
     {
@@ -367,8 +413,20 @@ public sealed partial class DashboardPage : Page, IShellContent
     {
         _request = request;
         _loadContent = request.LoadContent;
+        _immersive = request.Immersive;
         Tag = "dashboard";
         _generation++;
+
+        if (_immersive)
+        {
+            HeaderPanel.Visibility = Visibility.Collapsed;
+            PageLayout.Margin = new Thickness(0);
+            PageLayout.RowSpacing = 0;
+            ConsoleBody.Margin = new Thickness(0);
+            ConsoleBody.ColumnSpacing = 0;
+            WebFrame.CornerRadius = new CornerRadius(0);
+            WebFrame.BorderThickness = new Thickness(0);
+        }
 
         var services = request.Services;
         _launcher = services.GetRequiredService<ISystemLauncher>();
@@ -391,7 +449,10 @@ public sealed partial class DashboardPage : Page, IShellContent
         {
             _scope = session.Capture();
             _storageKey = EmbyWebConsole.CredentialStorageKey(connection);
-            _route = JellyfinServerSettingsMenu.DefaultRouteFor(connection.ServerKind);
+            var requested = ServerSettingsMenu.NormalizeRoute(request.Route);
+            _route = requested is not null && ServerSettingsMenu.IsSafeRoute(requested)
+                ? requested
+                : JellyfinServerSettingsMenu.DefaultRouteFor(connection.ServerKind);
             _url = EmbyWebConsole.RouteUrl(connection, _route);
         }
         catch (ArgumentException)
@@ -437,7 +498,6 @@ public sealed partial class DashboardPage : Page, IShellContent
             {
                 _settled = true;
                 Say("离线探针不载入网页");
-                if (_scope.Connection.ServerKind == MediaServerKind.Emby) _ = LoadPluginPagesAsync();
                 return;
             }
 
@@ -479,6 +539,22 @@ public sealed partial class DashboardPage : Page, IShellContent
                     EmbyWebConsole.ThemeScript(connection.ApiBase, connection.UserId));
             if (_released || !_scope.IsCurrent) return;
 
+            // 网页端自己的背景、文字与强调色也跟 Momoka：只改这个 WebView 的 CSS 变量，
+            // 不写服务器的 accentColor，手机和其他客户端不受影响。背景取「窗口」色而不是「面」色 ——
+            // 设置页的画布就是窗口色，网页铺在它上面才不会在右半边露出一块更亮的矩形；左栏自己的
+            // 面色卡片仍是面色的那一档。
+            if (!connection.IsJellyfin)
+            {
+                var colors = ThemeHost.Current.Colors;
+                // 导航前后的空白也取窗口色，网页还没画出来时不闪一块白。
+                Web.DefaultBackgroundColor = ThemeHost.ToColor(colors.Window);
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(
+                    EmbyWebConsole.ThemeVariablesScript(colors.Window, colors.Text, colors.Accent, colors.TextOnAccent));
+                if (_released || !_scope.IsCurrent) return;
+                await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.NativeSkinScript(colors));
+                if (_released || !_scope.IsCurrent) return;
+            }
+
             // 左栏已经是本应用画的那一份；网页端自己的抽屉收起来。Emby 与 Jellyfin 的抽屉类名不同，
             // 各用一段脚本：Emby 那套还顺手收掉顶栏那颗开抽屉的按钮，Jellyfin 则把永久抽屉让出的宽度还回去。
             await core.AddScriptToExecuteOnDocumentCreatedAsync(connection.IsJellyfin
@@ -489,7 +565,6 @@ public sealed partial class DashboardPage : Page, IShellContent
             Say("正在载入服务器设置…");
             core.Navigate(_url);
             _ = GiveUpAsync(_generation);
-            if (connection.ServerKind == MediaServerKind.Emby) _ = LoadPluginPagesAsync();
         }
         catch (OperationCanceledException) when (_released || _lifetime.IsCancellationRequested) { }
         catch (Exception error)
@@ -516,6 +591,8 @@ public sealed partial class DashboardPage : Page, IShellContent
         _navigated = e.IsSuccess;
         if (e.IsSuccess)
         {
+            // 网页已经启动过一次：之后外层栏的切页就可以走 Emby.Page，不再整页重载。
+            _booted = true;
             Say("已载入");
             _ = SampleAsync(_generation);
             return;

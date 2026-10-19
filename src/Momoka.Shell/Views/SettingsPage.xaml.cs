@@ -440,6 +440,11 @@ public sealed partial class SettingsPage : Page, IShellContent
     {
         if (string.IsNullOrEmpty(category)) return false;
         if (category == "着色器") category = "视频输出";
+        // Emby 的「网页控制台」从 2026-10-19 起并入「Emby Server」目录的第一项「控制台」；
+        // 命令行旧名字仍然认，Jellyfin 仍用「网页控制台」本身。
+        if (category == SettingsViewModel.DashboardCategory && ViewModel.ConsoleCategory is { } console
+            && console != SettingsViewModel.DashboardCategory)
+            category = console;
 
         var target = ViewModel.Categories.Contains(category, StringComparer.Ordinal)
             ? category
@@ -497,6 +502,15 @@ public sealed partial class SettingsPage : Page, IShellContent
         {
             page = typeof(NotificationsPage);
             parameter = new NotificationsRequest(services);
+        }
+        else if (ViewModel.ServerRoute(ViewModel.SelectedCategory) is { } route)
+        {
+            // 已经停在一个服务器页上：把新路由交给它，网页自己换页；不再新建一次 WebView，
+            // 也就不会每切一次都重新过一遍 Emby 的启动画面。
+            if (HostedFrame.Content is DashboardPage dashboard && dashboard.TryShowRoute(route)) return;
+
+            page = typeof(DashboardPage);
+            parameter = new DashboardRequest(services, route, Immersive: true);
         }
         else if (ViewModel.SelectedCategory == SettingsViewModel.DashboardCategory)
         {

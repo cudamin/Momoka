@@ -870,8 +870,18 @@ internal static partial class ShellSelfCheck
                 stopReport.Bound, note.Hidden, note.Follows);
             _notificationsStep = 2;
 
-            _dashboardStep = 1;
-            page.SelectedCategory = SettingsViewModel.DashboardCategory;
+            // Emby 的控制台是「Emby Server」目录里的「控制台」，Jellyfin 仍是「网页控制台」；
+            // 两边由 SettingsViewModel 给出同一个落点，自检不再写死其中一个分类名。
+            if (page.ViewModel.ConsoleCategory is { } consoleCategory)
+            {
+                _dashboardStep = 1;
+                page.SelectedCategory = consoleCategory;
+            }
+            else
+            {
+                _dashboardStep = 2;
+                page.SelectedCategory = _settings[^1].Category;
+            }
             return true;
         }
 

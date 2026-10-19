@@ -38,6 +38,34 @@ public readonly record struct ThemeColor(byte A, byte R, byte G, byte B)
     /// <summary>始终八位，因为读这个字符串的是自检报告，那里要看得见 alpha。</summary>
     public string ToHex() => $"#{A:X2}{R:X2}{G:X2}{B:X2}";
 
+    /// <summary>
+    /// HSL 三个分量，给网页端那套 CSS 变量用（它是用 hue／saturation／lightness 拼 `hsl()` 的）。
+    /// alpha 不参与；饱和度为 0 时 hue 给 0。
+    /// </summary>
+    public (double Hue, double Saturation, double Lightness) ToHsl()
+    {
+        var red = R / 255.0;
+        var green = G / 255.0;
+        var blue = B / 255.0;
+        var max = Math.Max(red, Math.Max(green, blue));
+        var min = Math.Min(red, Math.Min(green, blue));
+        var lightness = (max + min) / 2;
+        var delta = max - min;
+
+        if (delta == 0) return (0, 0, lightness * 100);
+
+        var saturation = lightness > 0.5
+            ? delta / (2 - max - min)
+            : delta / (max + min);
+
+        double hue;
+        if (max == red) hue = (green - blue) / delta + (green < blue ? 6 : 0);
+        else if (max == green) hue = (blue - red) / delta + 2;
+        else hue = (red - green) / delta + 4;
+
+        return (hue * 60, saturation * 100, lightness * 100);
+    }
+
     public ThemeColor WithAlpha(byte alpha) => this with { A = alpha };
 
     /// <summary>

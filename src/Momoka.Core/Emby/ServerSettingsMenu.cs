@@ -105,6 +105,7 @@ public static class ServerSettingsMenu
         foreach (var page in pages ?? [])
         {
             if (page is null || !page.EnableInMainMenu) continue;
+            if (IsHiddenPlugin(page)) continue;
 
             var placement = PlacementOf(page.MenuSection);
             if (placement == Placement.None) continue;
@@ -235,6 +236,19 @@ public static class ServerSettingsMenu
 
         var icon = string.IsNullOrWhiteSpace(page.MenuIcon) ? "plugin" : page.MenuIcon.Trim();
         return new(label, route, SectionOf(page.MenuSection), icon, FromPlugin: true);
+    }
+
+    /// <summary>
+    /// 明确不要出现在 Momoka 设置栏里的插件页。CustomCssJS 是给网页端做全局注入的配置页，和 Momoka
+    /// 自己在 WebView 里做的本地皮肤重叠；用户不要这一项。只过滤菜单，服务器上的插件本身不动。
+    /// </summary>
+    private static bool IsHiddenPlugin(ServerSettingsPluginPage page)
+    {
+        // 名字里可能带连字符或空格（CustomCssJS／custom-css-js），去掉分隔符再比。
+        static string Key(string? value) => new(
+            (value ?? "").Where(char.IsAsciiLetterOrDigit).Select(char.ToLowerInvariant).ToArray());
+        return Key(page.Name).Contains("customcssjs", StringComparison.Ordinal)
+            || Key(page.DisplayName).Contains("customcssjs", StringComparison.Ordinal);
     }
 
     private static string? PluginRoute(ServerSettingsPluginPage page)

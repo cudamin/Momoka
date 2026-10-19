@@ -29,6 +29,13 @@ public interface IServerCapabilities
     /// </summary>
     bool? IsAdministrator { get; }
 
+    /// <summary>
+    /// 服务器插件贡献的管理页（Emby 主菜单里的 Cinema Intros、DLNA 等）。产品或连接模式不适用的
+    /// 时候给空表；失败也静默，设置左栏保留固定条目。默认实现给假实现和旧测试留一条空路。
+    /// </summary>
+    Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(CancellationToken token = default) =>
+        Task.FromResult<IReadOnlyList<ServerSettingsPluginPage>>([]);
+
     Task ProbeAsync(CancellationToken token = default);
 }
 
@@ -87,6 +94,25 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
                 administrator = _administrator;
             }
             return scope?.IsCurrent == true ? administrator : session.Connection?.IsAdministrator;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(CancellationToken token = default)
+    {
+        if (ServerKind != MediaServerKind.Emby || InterfaceFlavor == ServerInterfaceFlavor.Generic) return [];
+
+        try
+        {
+            var scope = session.Capture();
+            var pages = await scope.ExecuteAsync(
+                (client, ct) => client.GetServerSettingsPagesAsync(ct), token).ConfigureAwait(false);
+            return scope.IsCurrent ? pages : [];
+        }
+        catch (Exception error)
+        {
+            Log.Debug(Category, $"读取服务器插件页失败：{error.Message}");
+            return [];
         }
     }
 
