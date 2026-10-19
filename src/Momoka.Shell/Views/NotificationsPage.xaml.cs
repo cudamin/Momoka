@@ -10,7 +10,7 @@ using Microsoft.UI.Xaml.Navigation;
 namespace Momoka.Shell.Views;
 
 /// <summary>What <see cref="NotificationsPage"/> needs; see <see cref="LibraryRequest"/> for why it is passed.</summary>
-internal sealed record NotificationsRequest(IServiceProvider Services);
+internal sealed record NotificationsRequest(IServiceProvider Services, string? SourceKey = null);
 
 /// <summary>
 /// 设置 → 通知：Emby 服务器上当前用户的通知条目，本页是官方网页端通知设置的应用内复刻 ——
@@ -20,7 +20,7 @@ internal sealed record NotificationsRequest(IServiceProvider Services);
 /// 和服务挑选对话框接给视图模型 —— 那两样需要这里的 <c>XamlRoot</c>。
 /// </para>
 /// </summary>
-public sealed partial class NotificationsPage : Page, IShellContent
+public sealed partial class NotificationsPage : Page, IShellContent, ISessionScopedPage
 {
     private const string Category = "通知";
 
@@ -38,6 +38,9 @@ public sealed partial class NotificationsPage : Page, IShellContent
     }
 
     internal NotificationsViewModel ViewModel { get; } = new();
+
+    public bool IsCurrentSession => ViewModel.IsCurrentSession;
+    public string? SourceKey => ViewModel.SourceKey;
 
     /// <summary>True once the first load has finished; read by the self-check.</summary>
     internal bool IsReady => ViewModel.IsReady;
@@ -98,7 +101,8 @@ public sealed partial class NotificationsPage : Page, IShellContent
         var services = request.Services;
         ViewModel.Attach(
             services.GetRequiredService<Momoka.Emby.EmbySession>(),
-            services.GetRequiredService<ISettingsService>());
+            services.GetRequiredService<ISettingsService>(),
+            request.SourceKey);
         _ = ViewModel.ReloadAsync();
     }
 

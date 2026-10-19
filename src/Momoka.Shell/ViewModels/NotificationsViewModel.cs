@@ -59,8 +59,15 @@ public sealed partial class NotificationsViewModel : PageViewModel
     private bool _stopReportSeeded;
     private EmbySessionScope? _scope;
     private CancellationTokenSource? _lifetime;
-    private bool Live => _lifetime is { IsCancellationRequested: false } && _scope?.IsCurrent == true
-        && !_scope.Connection.IsJellyfin;
+
+    internal string? SourceKey { get; private set; }
+
+    private bool Live => _lifetime is { IsCancellationRequested: false } && _scope is { IsAvailable: true } scope
+        && !scope.Connection.IsJellyfin
+        && (SourceKey is not null || scope.IsCurrent);
+
+    internal bool IsCurrentSession => _scope is { IsAvailable: true } scope
+        && (SourceKey is not null || scope.IsCurrent);
 
     public override void Cancel()
     {
@@ -108,11 +115,14 @@ public sealed partial class NotificationsViewModel : PageViewModel
     /// <see cref="SettingToggleRow"/> 的 <c>_seeded</c>：控件装载时的一次回推不该被当成用户拨了一下。
     /// </para>
     /// </summary>
-    internal void Attach(EmbySession session, ISettingsService settings)
+    internal void Attach(EmbySession session, ISettingsService settings, string? sourceKey = null)
     {
         Cancel();
         _lifetime = new CancellationTokenSource();
-        _scope = session.IsSignedIn ? session.Capture() : null;
+        SourceKey = sourceKey;
+        _scope = sourceKey is { Length: > 0 }
+            ? session.Sources.FirstOrDefault(source => string.Equals(source.Key, sourceKey, StringComparison.Ordinal))
+            : session.IsSignedIn ? session.Capture() : null;
         _session = session;
         _settings = settings;
 

@@ -8,13 +8,14 @@ using Microsoft.UI.Xaml.Navigation;
 
 namespace Momoka.Shell.Views;
 
-internal sealed record FnNasLibrariesRequest(IServiceProvider Services);
+internal sealed record FnNasLibrariesRequest(IServiceProvider Services, string? SourceKey = null);
 
 public sealed partial class FnNasLibrariesPage : Page, IShellContent, ISessionScopedPage
 {
     private FnNasLibrariesRequest? _request;
 
     public bool IsCurrentSession => ViewModel.IsCurrentSession;
+    public string? SourceKey => ViewModel.SourceKey;
     private ContentDialog? _dialog;
     internal FnNasLibrariesViewModel ViewModel { get; } = new();
     public object? NavigationRequest => _request;
@@ -34,7 +35,7 @@ public sealed partial class FnNasLibrariesPage : Page, IShellContent, ISessionSc
         if (e.Parameter is not FnNasLibrariesRequest request) return;
         _request = request;
         // 此页唯一服务解析点；外部交互通过视图模型及已捕获的会话身份。
-        ViewModel.Attach(request.Services.GetRequiredService<EmbySession>());
+        ViewModel.Attach(request.Services.GetRequiredService<EmbySession>(), request.SourceKey);
         _ = ViewModel.ReloadAsync();
     }
 

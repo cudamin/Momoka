@@ -444,7 +444,7 @@ internal sealed partial class ShellNavigationProbe
                     page.ViewModel.CategoryGroups.Single(group => group.Name == "Momoka"),
                     new[] { SettingsViewModel.NotificationsCategory }),
                 "「通知」没有排在 诊断 与 关于 中间");
-            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
+            Require(rail.Items.OfType<SettingsCategoryEntry>().Select(entry => entry.Key).SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
             Require(page.ViewModel.ConsoleCategory == "控制台"
                 && page.ViewModel.ServerRoute("控制台") == "dashboard"
                 && page.ViewModel.ServerRoute("通用") == "dashboard/settings",
@@ -463,8 +463,8 @@ internal sealed partial class ShellNavigationProbe
             Require(!page.Categories.Any(category => category == SettingsViewModel.NotificationsCategory
                     || category == "控制台" || category == "Cinema Intros" || category == SettingsViewModel.DashboardCategory),
                 "普通账号下平铺名单仍列着管理页");
-            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
-            Require(picker.ItemsSource is IEnumerable<string> hiddenEntries && hiddenEntries.SequenceEqual(page.Categories),
+            Require(rail.Items.OfType<SettingsCategoryEntry>().Select(entry => entry.Key).SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
+            Require(picker.ItemsSource is IEnumerable<SettingsCategoryEntry> hiddenEntries && hiddenEntries.Select(entry => entry.Key).SequenceEqual(page.Categories),
                 "紧凑窗口的下拉没有跟着同一份名单走");
             Require(page.SelectedCategory == SettingsViewModel.FirstCardCategory,
                 "收走管理页之后右半边还停在被收走的页上");
@@ -477,7 +477,7 @@ internal sealed partial class ShellNavigationProbe
                 && page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(embyGroups)
                 && page.Categories.Contains("控制台"),
                 "管理员身份回来之后三段目录没有按原次序装回去");
-            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
+            Require(rail.Items.OfType<SettingsCategoryEntry>().Select(entry => entry.Key).SequenceEqual(page.Categories), "左栏分组与平铺名单对不上");
             await SaveReturnFrameAsync(page, "settings-server-admin-shown.png");
 
             // Jellyfin：换成它自己的五段目录，服务器页与 Emby 的分区、标签、插件页不混用。
@@ -515,13 +515,13 @@ internal sealed partial class ShellNavigationProbe
             Require(page.SelectedCategory == "控制台"
                 && page.ViewModel.ServerRoute("控制台") == "dashboard",
                 "换成 Jellyfin 后「控制台」没有留在原位并指向 Jellyfin 路由");
-            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "Jellyfin 左栏分组与平铺名单对不上");
+            Require(rail.Items.OfType<SettingsCategoryEntry>().Select(entry => entry.Key).SequenceEqual(page.Categories), "Jellyfin 左栏分组与平铺名单对不上");
             foreach (var width in new[] { 1100, 760 })
             {
                 ResizeInspect(width, 900);
                 await LayoutAsync(page);
-                Require(rail.Items.Cast<string>().SequenceEqual(page.Categories)
-                    && picker.ItemsSource is IEnumerable<string> jellyfinEntries && jellyfinEntries.SequenceEqual(page.Categories),
+                Require(rail.Items.OfType<SettingsCategoryEntry>().Select(entry => entry.Key).SequenceEqual(page.Categories)
+                    && picker.ItemsSource is IEnumerable<SettingsCategoryEntry> jellyfinEntries && jellyfinEntries.Select(entry => entry.Key).SequenceEqual(page.Categories),
                     "Jellyfin 宽窄导航分类不一致");
                 await SaveProbeScreenAsync($"settings-jellyfin-admin-{width}-screen.png");
             }
@@ -563,7 +563,7 @@ internal sealed partial class ShellNavigationProbe
                 "飞牛左栏混进了 Emby／Jellyfin 的入口");
             Require(page.ViewModel.ConsoleCategory is null,
                 "飞牛仍把控制台当作网页控制台");
-            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "飞牛左栏分组与平铺名单对不上");
+            Require(rail.Items.OfType<SettingsCategoryEntry>().Select(entry => entry.Key).SequenceEqual(page.Categories), "飞牛左栏分组与平铺名单对不上");
 
             // 帐号两页与四张服务器页都住进内嵌框；外观复用「界面」卡，不另造页面。
             // 这一条探针不启动 WebView2，所以只在这几页需要内嵌框时临时交出请求；查完就收回，
@@ -605,8 +605,8 @@ internal sealed partial class ShellNavigationProbe
             {
                 ResizeInspect(width, 900);
                 await LayoutAsync(page);
-                Require(rail.Items.Cast<string>().SequenceEqual(page.Categories)
-                    && picker.ItemsSource is IEnumerable<string> fnNasEntries && fnNasEntries.SequenceEqual(page.Categories),
+                Require(rail.Items.OfType<SettingsCategoryEntry>().Select(entry => entry.Key).SequenceEqual(page.Categories)
+                    && picker.ItemsSource is IEnumerable<SettingsCategoryEntry> fnNasEntries && fnNasEntries.Select(entry => entry.Key).SequenceEqual(page.Categories),
                     "飞牛影视宽窄导航分类不一致");
                 await SaveProbeScreenAsync($"settings-fnnas-{width}-screen.png");
             }
@@ -669,6 +669,158 @@ internal sealed partial class ShellNavigationProbe
         {
             page.Release();
             _root.Children.Remove(page);
+        }
+    }
+
+    /// <summary>
+    /// 多服务器：Momoka 组之后每台在线服务器一组，组里是那台服务器自己的设置目录。多服务器时全部
+    /// 默认收起，展开一组才露出条目；没有管理员权限的那台不列库管理设置。三个产品各用自己已完成的
+    /// 目录条目，不重做页面。
+    /// </summary>
+    private async Task MultiServerSettingsGroupsAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync("a.invalid", "a");
+        await fixture.SelectAsync("b.invalid", "b");
+        await fixture.SelectAsync("c.invalid", "c");
+        var scopes = fixture.Session.Sources;
+        Require(scopes.Count == 3, $"三台假服务器没有同时在线：{scopes.Count}");
+
+        var scopeA = scopes.Single(scope => scope.ServerName == "a.invalid");
+        var scopeB = scopes.Single(scope => scope.ServerName == "b.invalid");
+        var scopeC = scopes.Single(scope => scope.ServerName == "c.invalid");
+        var sourceA = new ServerSettingsSource(scopeA, MediaServerKind.Emby, true);
+        var sourceB = new ServerSettingsSource(scopeB, MediaServerKind.Jellyfin, true);
+        var sourceC = new ServerSettingsSource(scopeC, MediaServerKind.FnNas, true);
+        fixture.Capabilities.ServerKind = MediaServerKind.Emby;
+        fixture.Capabilities.InterfaceFlavor = ServerInterfaceFlavor.Generic;
+        fixture.Capabilities.Sources = [sourceA, sourceB, sourceC];
+
+        using var moviePilot = new MoviePilotClient(new RejectNetwork());
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, "settings-multi"));
+        paths.EnsureCreated();
+        var fonts = new FontLibrary();
+        Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
+
+        var page = new SettingsPage();
+        page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
+            fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask,
+            _ => Task.CompletedTask, () => Task.CompletedTask,
+            new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
+        await page.ViewModel.ReloadAsync();
+        await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+        _root.Children.Add(page);
+        try
+        {
+            ResizeInspect(1100, 900);
+            await LayoutAsync(page);
+
+            var groups = page.ViewModel.CategoryGroups;
+            Require(groups.Select(group => group.Name).SequenceEqual(new[] { "Momoka", sourceA.Label, sourceB.Label, sourceC.Label }),
+                "多服务器左栏不是 Momoka 后面按服务器各一组：" + string.Join("、", groups.Select(group => group.Name)));
+            Require(groups.Skip(1).All(group => group.Collapsible && !group.IsExpanded
+                    && group.Entries.Count > 0
+                    && group.Entries.All(entry => entry.Visibility == Visibility.Collapsed)),
+                "多服务器分组没有默认收起，或收起时条目仍露着");
+            await SaveRenderAsync(page, "settings-multi-server-collapsed-render.png");
+
+            var emby = groups.Single(group => group.SourceKey == sourceA.Key);
+            var jellyfin = groups.Single(group => group.SourceKey == sourceB.Key);
+            var fnNas = groups.Single(group => group.SourceKey == sourceC.Key);
+            Require(emby.Entries.Any(entry => entry.Label == SettingsViewModel.NotificationsCategory)
+                && emby.Entries.Any(entry => entry.Label == "控制台")
+                && emby.Entries.Any(entry => entry.Label == "媒体库")
+                && jellyfin.Entries.Any(entry => entry.Label == "媒体资料管理器")
+                && jellyfin.Entries.Any(entry => entry.Label == "媒体库")
+                && fnNas.Entries.Select(entry => entry.Label).SequenceEqual(
+                    new[] { "修改密码", "播放偏好", "外观", "媒体库", "用户", "设置", "任务计划" }),
+                "多服务器分组没有列出各产品自己的设置目录");
+
+            // 组标题真在屏上，点一下的那颗按钮接线也在；展开后条目才露出来。
+            var toggles = Descendants(page).OfType<Button>()
+                .Where(button => AutomationProperties.GetName(button) == jellyfin.Name)
+                .ToArray();
+            Require(toggles.Length == 1, "服务器组标题没有可点的折叠按钮");
+            jellyfin.IsExpanded = true;
+            await LayoutAsync(page);
+            Require(jellyfin.Entries.All(entry => entry.Visibility == Visibility.Visible),
+                "展开服务器组后条目仍收着");
+            await SaveRenderAsync(page, "settings-multi-server-expanded-render.png");
+
+            // 选中一组里的「媒体库」：来源键、路由与内嵌页判定都要指向这一台，而不是当前来源。
+            var library = jellyfin.Entries.Single(entry => entry.Label == "媒体库");
+            page.SelectedCategory = library.Key;
+            await LayoutAsync(page);
+            Require(page.ViewModel.SelectedEntry == library
+                && page.ViewModel.SelectedSourceKey == sourceB.Key
+                && page.ViewModel.ShowsHosted
+                && page.ViewModel.ServerRoute(library.Key) == "dashboard/libraries",
+                "服务器组里的入口没有绑定到那一台服务器的路由与来源");
+            Require(page.ViewModel.Categories.Contains(library), "平铺名单没有跟着分组换");
+
+            // 内嵌网页控制台真的拿到那一台的来源键与地址，不是「当前来源」的地址。这里不启动 WebView2，
+            // 只让页面走完管理员检查与地址拼装（DashboardRequest.LoadContent=false 的既有路径）。
+            fixture.Transport.Reply = (request, _) =>
+            {
+                var path = request.RequestUri!.AbsolutePath;
+                return Task.FromResult(path.EndsWith("/System/Info", StringComparison.Ordinal)
+                    ? Json(new { ServerName = "离线服务器", Version = "4.10.1.0" })
+                    : FakeTransport.Standard(request));
+            };
+            var dashboard = new DashboardPage();
+            _root.Children.Add(dashboard);
+            try
+            {
+                dashboard.Attach(new DashboardRequest(fixture.Services, "dashboard/libraries",
+                    LoadContent: false, Immersive: true, SourceKey: sourceB.Key));
+                await UntilAsync(() => dashboard.IsReady);
+                Require(dashboard.SourceKey == sourceB.Key
+                    && dashboard.CurrentRoute == "dashboard/libraries"
+                    && dashboard.CurrentNavigationAddress.Contains("b.invalid", StringComparison.OrdinalIgnoreCase),
+                    $"内嵌控制台没有绑到分组那一台：{dashboard.SourceKey} / {dashboard.CurrentNavigationAddress}");
+            }
+            finally
+            {
+                dashboard.Release();
+                _root.Children.Remove(dashboard);
+                fixture.Transport.Reply = null;
+            }
+
+            // Jellyfin 没有管理员权限：那一组整组隐藏；飞牛非管理员只留帐号三项，媒体库入口不列。
+            fixture.Capabilities.Sources =
+            [
+                sourceA,
+                new ServerSettingsSource(scopeB, MediaServerKind.Jellyfin, false),
+                new ServerSettingsSource(scopeC, MediaServerKind.FnNas, true)
+            ];
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka", sourceA.Label, sourceC.Label }),
+                "无管理员权限的 Jellyfin 仍占着一组");
+            Require(page.ViewModel.SelectedCategory == SettingsViewModel.FirstCardCategory,
+                "被隐藏的服务器页没有把落点收回第一张卡");
+
+            fixture.Capabilities.Sources =
+            [
+                sourceA,
+                new ServerSettingsSource(scopeB, MediaServerKind.Jellyfin, false),
+                new ServerSettingsSource(scopeC, MediaServerKind.FnNas, false)
+            ];
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+            var fnNasUser = page.ViewModel.CategoryGroups.Single(group => group.SourceKey == sourceC.Key);
+            Require(fnNasUser.Entries.Select(entry => entry.Label).SequenceEqual(new[] { "修改密码", "播放偏好", "外观" }),
+                "飞牛非管理员组没有只保留帐号设置");
+            Require(fnNasUser.Entries.All(entry => entry.Label != "媒体库"),
+                "飞牛非管理员仍列出媒体库管理入口");
+        }
+        finally
+        {
+            page.Release();
+            _root.Children.Remove(page);
+            ResizeInspect(1420, 980);
         }
     }
 
@@ -825,10 +977,13 @@ internal sealed partial class ShellNavigationProbe
     /// 管理员入口是不是正好落在最后一张卡（关于）前面、且次序与 <paramref name="expected"/> 一致。
     /// 用户令 2026-10-16 那句「通知和网页控制台放到诊断和关于之间」量的就是这件事。
     /// </summary>
-    private static bool SitsBeforeLastCard(IReadOnlyList<string> categories, IReadOnlyList<string> expected) =>
-        categories.Count > expected.Count + 1
-        && categories[^1] == SettingsViewModel.LastCardCategory
-        && categories.Skip(categories.Count - 1 - expected.Count).Take(expected.Count).SequenceEqual(expected);
+    private static bool SitsBeforeLastCard(IEnumerable<SettingsCategoryEntry> categories, IReadOnlyList<string> expected)
+    {
+        var labels = categories.Select(entry => entry.Label).ToArray();
+        return labels.Length > expected.Count + 1
+            && labels[^1] == SettingsViewModel.LastCardCategory
+            && labels.Skip(labels.Length - 1 - expected.Count).Take(expected.Count).SequenceEqual(expected);
+    }
 
     private async Task SettingsAnimationToggleAsync(SettingsPage page, Fixture fixture)
     {

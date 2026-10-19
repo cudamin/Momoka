@@ -61,6 +61,17 @@ public static class ServerAccess
     public static bool ShowsServerAdministration(ServerInterfaceFlavor flavor) =>
         flavor != ServerInterfaceFlavor.Generic;
 
+    /// <summary>
+    /// 这个账号能不能管这台服务器的库与设置。Jellyfin 与飞牛要求服务器明确答「是」；
+    /// Emby 保留未知权限时的既有回退（不把「还没问到」当成「没有权限」），Plex 没有这套管理面。
+    /// </summary>
+    public static bool CanAdminister(MediaServerKind kind, bool? isAdministrator) => kind switch
+    {
+        MediaServerKind.Emby => isAdministrator != false,
+        MediaServerKind.Jellyfin or MediaServerKind.FnNas => isAdministrator == true,
+        _ => false
+    };
+
     /// <summary>产品名的中文写法，服务器卡片上那颗小标签用。</summary>
     public static string KindName(MediaServerKind kind) => kind switch
     {

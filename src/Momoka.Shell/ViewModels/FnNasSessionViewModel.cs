@@ -15,11 +15,17 @@ public abstract partial class FnNasSessionViewModel : PageViewModel
     private bool _active;
     protected EmbySessionScope? Scope { get; private set; }
     protected EmbySession? Session { get; private set; }
+
+    /// <summary>多服务器设置分组指定的来源键；null 表示沿用当前来源。</summary>
+    internal string? SourceKey { get; private set; }
+
     public bool CanUse => Live && !Busy;
 
-    /// <summary>设置页用它判断内嵌的原生页是不是还属于当前这台飞牛服务器 / 这个账号。</summary>
-    internal bool IsCurrentSession => Scope is { IsCurrent: true } scope && scope.Connection.IsFnNas;
-    protected bool Live => _active && Scope is { IsCurrent: true } scope && scope.Connection.IsFnNas && Allowed(scope);
+    /// <summary>设置页用它判断内嵌的原生页是不是还属于这台飞牛服务器 / 这个账号。</summary>
+    internal bool IsCurrentSession => Scope is { IsAvailable: true } scope && scope.Connection.IsFnNas
+        && (SourceKey is not null || scope.IsCurrent);
+    protected bool Live => _active && Scope is { IsAvailable: true } scope && scope.Connection.IsFnNas && Allowed(scope)
+        && (SourceKey is not null || scope.IsCurrent);
     public Visibility ContentVisibility => Show(Live);
 
     /// <summary>当前账号能不能打开这一页；帐号页不限，管理页要求管理员。</summary>
@@ -28,12 +34,15 @@ public abstract partial class FnNasSessionViewModel : PageViewModel
     protected virtual string DeniedMessage => "";
     protected virtual InfoBarSeverity DeniedSeverity => InfoBarSeverity.Informational;
 
-    internal void Attach(EmbySession session)
+    internal void Attach(EmbySession session, string? sourceKey = null)
     {
         Cancel();
         _active = true;
         Session = session;
-        Scope = session.IsSignedIn ? session.Capture() : null;
+        SourceKey = sourceKey;
+        Scope = sourceKey is { Length: > 0 }
+            ? session.Sources.FirstOrDefault(source => string.Equals(source.Key, sourceKey, StringComparison.Ordinal))
+            : session.IsSignedIn ? session.Capture() : null;
         ResetEditor();
         OnPropertyChanged(nameof(ContentVisibility));
         BusyChanged();

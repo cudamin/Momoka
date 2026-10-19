@@ -6,13 +6,14 @@ using Microsoft.UI.Xaml.Navigation;
 
 namespace Momoka.Shell.Views;
 
-internal sealed record FnNasPasswordRequest(IServiceProvider Services);
+internal sealed record FnNasPasswordRequest(IServiceProvider Services, string? SourceKey = null);
 
 public sealed partial class FnNasPasswordPage : Page, IShellContent, ISessionScopedPage
 {
     private FnNasPasswordRequest? _request;
 
     public bool IsCurrentSession => ViewModel.IsCurrentSession;
+    public string? SourceKey => ViewModel.SourceKey;
 
     public FnNasPasswordPage()
     {
@@ -29,7 +30,7 @@ public sealed partial class FnNasPasswordPage : Page, IShellContent, ISessionSco
         base.OnNavigatedTo(e);
         if (e.Parameter is not FnNasPasswordRequest request) return;
         _request = request;
-        ViewModel.Attach(request.Services.GetRequiredService<EmbySession>());
+        ViewModel.Attach(request.Services.GetRequiredService<EmbySession>(), request.SourceKey);
         _ = ViewModel.ReloadAsync();
     }
 

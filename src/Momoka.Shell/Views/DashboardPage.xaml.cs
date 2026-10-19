@@ -25,7 +25,8 @@ namespace Momoka.Shell.Views;
 /// 铺满设置窗口右半边。Emby 与 Jellyfin 都走这一档。
 /// </param>
 internal sealed record DashboardRequest(
-    IServiceProvider Services, string? Route = null, bool LoadContent = true, bool Immersive = false);
+    IServiceProvider Services, string? Route = null, bool LoadContent = true, bool Immersive = false,
+    string? SourceKey = null);
 
 /// <summary>
 /// 需求 8：Emby／Jellyfin 网页端的控制台，用 <c>WebView2</c> 嵌在设置里，并且是已经登录好的状态。
@@ -69,6 +70,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     private bool _settled;
     private bool _released;
     private EmbySessionScope? _scope;
+    private string? _sourceKey;
     private readonly CancellationTokenSource _lifetime = new();
     private string _storageKey = EmbyWebConsole.StorageKey;
 
@@ -120,8 +122,14 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
 
     internal string CurrentRoute => _route;
 
-    /// <summary>这一页绑定的会话仍是当前会话吗；设置页在切换服务器后据此重建右半边。</summary>
-    public bool IsCurrentSession => !_released && _scope is { IsCurrent: true };
+    private bool Live => !_released && _scope is { } scope
+        && (SourceKey is null ? scope.IsCurrent : scope.IsAvailable);
+
+    /// <summary>这一页绑定的服务器身份还在线吗；设置页在切换服务器后据此重建右半边。</summary>
+    public bool IsCurrentSession => Live;
+
+    /// <summary>这一页绑定的是哪一条在线身份；null 表示当前来源。</summary>
+    public string? SourceKey => _sourceKey;
 
     public object? NavigationRequest => _request;
 
@@ -148,8 +156,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     internal bool TryShowRoute(string route)
     {
         // 切到 Momoka 卡片时这一页已经 Release，Frame 里留着的只是外壳；再切回服务器页必须新建。
-        if (_released) return false;
-        if (_scope is not { IsCurrent: true }) return false;
+        if (!Live) return false;
         if (ServerSettingsMenu.NormalizeRoute(route) is not { } normalized
             || !ServerSettingsMenu.IsSafeRoute(normalized)) return false;
 
@@ -159,7 +166,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
 
     private void NavigateToRoute(string route)
     {
-        if (_scope is not { IsCurrent: true } scope || !ServerSettingsMenu.IsSafeRoute(route)) return;
+        if (!Live || _scope is not { } scope || !ServerSettingsMenu.IsSafeRoute(route)) return;
 
         _generation++;
         _settled = false;
@@ -262,9 +269,29 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
         var services = request.Services;
         _launcher = services.GetRequiredService<ISystemLauncher>();
         var session = services.GetRequiredService<EmbySession>();
+        _sourceKey = request.SourceKey;
 
-        // Nothing to embed and nothing to seed: the console is per-user, and this app has no user yet.
-        if (session.Connection is not { } connection)
+        // 多服务器分组给出的是这一台自己的来源键；单服务器与旧调用仍走「当前来源」。
+        if (request.SourceKey is { Length: > 0 } sourceKey)
+        {
+            _scope = session.Sources.FirstOrDefault(source => string.Equals(source.Key, sourceKey, StringComparison.Ordinal));
+            if (_scope is not { IsAvailable: true })
+            {
+                _url = "";
+                _address = "这台服务器已离线";
+                Say("");
+                Show("这台服务器已经退出登录，请刷新设置后重试。");
+                _settled = true;
+                return;
+            }
+        }
+        else
+        {
+            // Nothing to embed and nothing to seed: the console is per-user, and this app has no user yet.
+            if (session.Connection is not null) _scope = session.Capture();
+        }
+
+        if (_scope?.Connection is not { } connection)
         {
             _url = "";
             _address = "尚未登录服务器";
@@ -276,7 +303,6 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
 
         try
         {
-            _scope = session.Capture();
             _storageKey = EmbyWebConsole.CredentialStorageKey(connection);
             var requested = ServerSettingsMenu.NormalizeRoute(request.Route);
             _route = requested is not null && ServerSettingsMenu.IsSafeRoute(requested)
@@ -311,7 +337,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
         {
             if (_scope is null) return;
             var system = await _scope.ExecuteAsync((client, token) => client.GetSystemInfoAsync(token), _lifetime.Token);
-            if (_released || !_scope.IsCurrent) return;
+            if (!Live) return;
             if (system.IsRestricted)
             {
                 _url = "";
@@ -333,10 +359,10 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
 
             var environment = await CoreWebView2Environment
                 .CreateWithOptionsAsync("", profile, new CoreWebView2EnvironmentOptions());
-            if (_released || !_scope.IsCurrent) return;
+            if (!Live) return;
 
             await Web.EnsureCoreWebView2Async(environment);
-            if (_released || !_scope.IsCurrent || Web.CoreWebView2 is not { } core) return;
+            if (!Live || Web.CoreWebView2 is not { } core) return;
             _core = true;
 
             // 控制台跟着当前主题的深浅走，两半都在这儿：这一位是浏览器的 prefers-color-scheme，另一半是
@@ -357,14 +383,14 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
             if (!connection.IsJellyfin || !string.IsNullOrWhiteSpace(connection.ServerId))
             {
                 await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.SignInScript(connection));
-                if (_released || !_scope.IsCurrent) return;
+                if (!Live) return;
                 _seeded = true;
             }
 
             if (!connection.IsJellyfin)
                 await core.AddScriptToExecuteOnDocumentCreatedAsync(
                     EmbyWebConsole.ThemeScript(connection.ApiBase, connection.UserId));
-            if (_released || !_scope.IsCurrent) return;
+            if (!Live) return;
 
             // 网页端自己的背景、文字与强调色也跟 Momoka：只改这个 WebView 的样式，不写服务器设置，
             // 手机和其他客户端不受影响。背景取「窗口」色而不是「面」色 —— 设置页的画布就是窗口色，
@@ -377,14 +403,14 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
             {
                 await core.AddScriptToExecuteOnDocumentCreatedAsync(
                     EmbyWebConsole.ThemeVariablesScript(colors.Window, colors.Text, colors.Accent, colors.TextOnAccent));
-                if (_released || !_scope.IsCurrent) return;
+                if (!Live) return;
                 await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.NativeSkinScript(colors));
-                if (_released || !_scope.IsCurrent) return;
+                if (!Live) return;
             }
             else
             {
                 await core.AddScriptToExecuteOnDocumentCreatedAsync(EmbyWebConsole.JellyfinNativeSkinScript(colors));
-                if (_released || !_scope.IsCurrent) return;
+                if (!Live) return;
             }
 
             // 左栏已经是本应用画的那一份；网页端自己的抽屉收起来。Emby 与 Jellyfin 的抽屉类名不同，
@@ -393,7 +419,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
             await core.AddScriptToExecuteOnDocumentCreatedAsync(connection.IsJellyfin
                 ? EmbyWebConsole.HideJellyfinDrawerScript()
                 : EmbyWebConsole.HideDrawerScript());
-            if (_released || !_scope.IsCurrent) return;
+            if (!Live) return;
 
             Say("正在载入服务器设置…");
             core.Navigate(_url);
@@ -515,7 +541,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
 
     private void OnRefresh(object sender, RoutedEventArgs e)
     {
-        if (Web.CoreWebView2 is not { } core || _url.Length == 0 || _scope?.IsCurrent != true) return;
+        if (Web.CoreWebView2 is not { } core || _url.Length == 0 || !Live) return;
 
         _navigated = null;
         _settled = false;
@@ -530,7 +556,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
 
     private void OnOpenInBrowser(object sender, RoutedEventArgs e)
     {
-        if (_scope?.IsCurrent == true) Open(_url);
+        if (Live) Open(_url);
     }
 
     private void Open(string url)

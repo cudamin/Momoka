@@ -17,6 +17,7 @@ internal static class ServerAccessTests
     public static void Register()
     {
         RegisterFlavors();
+        RegisterAdministrationPermission();
         RegisterKindLabels();
         RegisterJellyfinMenu();
         RegisterJellyfinConsole();
@@ -64,6 +65,26 @@ internal static class ServerAccessTests
             Assert.Equal("Jellyfin 界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.Jellyfin));
             Assert.Equal("飞牛影视界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.FnNas));
             Assert.Equal("通用界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.Generic));
+        });
+    }
+
+    private static void RegisterAdministrationPermission()
+    {
+        Test("服务端管理权限：Emby 未知仍保留，Jellyfin 与飞牛须明确，Plex 没有", () =>
+        {
+            Assert.True(ServerAccess.CanAdminister(MediaServerKind.Emby, null),
+                "Emby 的权限还没问到时保留既有入口");
+            Assert.True(ServerAccess.CanAdminister(MediaServerKind.Emby, true));
+            Assert.False(ServerAccess.CanAdminister(MediaServerKind.Emby, false));
+            Assert.True(ServerAccess.CanAdminister(MediaServerKind.Jellyfin, true));
+            Assert.False(ServerAccess.CanAdminister(MediaServerKind.Jellyfin, null),
+                "Jellyfin 权限未确认时不能露出管理入口");
+            Assert.False(ServerAccess.CanAdminister(MediaServerKind.Jellyfin, false));
+            Assert.True(ServerAccess.CanAdminister(MediaServerKind.FnNas, true));
+            Assert.False(ServerAccess.CanAdminister(MediaServerKind.FnNas, null));
+            Assert.False(ServerAccess.CanAdminister(MediaServerKind.FnNas, false));
+            Assert.False(ServerAccess.CanAdminister(MediaServerKind.Plex, true),
+                "Plex 没有这套服务端管理面");
         });
     }
 

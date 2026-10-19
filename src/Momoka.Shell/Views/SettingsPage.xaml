@@ -22,6 +22,23 @@
 
     <Page.Resources>
         <CollectionViewSource x:Name="CategoryGroupsSource" IsSourceGrouped="True" />
+        <!-- 分组头：默认的 ListViewHeaderItem 会垫一层底、留一段内边距；多服务器折叠头要的是一行小标题。 -->
+        <Style x:Key="SettingsGroupHeader" TargetType="ListViewHeaderItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <Style x:Key="SettingsGroupToggle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="Padding" Value="12,4,8,4" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
         <!-- 左边分类那一列的图标：分类名 → 一个 Segoe 字形，见 SettingsCategoryGlyphConverter。 -->
         <local:SettingsCategoryGlyphConverter x:Key="CategoryGlyph" />
         <!-- MoviePilot 那一行换官方图标的白色重绘版：这个转换器回答「这一行是不是 MoviePilot」——
@@ -1375,7 +1392,8 @@
                 HorizontalAlignment="Stretch"
                 MinWidth="0"
                 ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
-                SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}"
+                DisplayMemberPath="PickerLabel"
+                SelectedItem="{x:Bind ViewModel.SelectedEntry, Mode=TwoWay}"
                 Visibility="Collapsed" />
 
             <ListView
@@ -1387,31 +1405,59 @@
                 Padding="8"
                 IsItemClickEnabled="False"
                 ItemsSource="{x:Bind CategoryGroupsSource.View, Mode=OneWay}"
-                SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}">
+                SelectedItem="{x:Bind ViewModel.SelectedEntry, Mode=TwoWay}">
                 <ListView.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <ItemsStackPanel AreStickyGroupHeadersEnabled="True" />
+                        <ItemsStackPanel AreStickyGroupHeadersEnabled="False" />
                     </ItemsPanelTemplate>
                 </ListView.ItemsPanel>
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                        <!-- 折叠的组把每一项的根收起；容器自己不许再留最小高度和内边距，否则收起的条目仍占一行。 -->
+                        <Setter Property="MinHeight" Value="0" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </ListView.ItemContainerStyle>
                 <ListView.GroupStyle>
-                    <GroupStyle>
+                    <GroupStyle HeaderContainerStyle="{StaticResource SettingsGroupHeader}">
                         <GroupStyle.HeaderTemplate>
                             <DataTemplate x:DataType="vm:SettingsCategoryGroup">
-                                <TextBlock Text="{x:Bind Name}" Margin="12,16,0,8"
-                                    Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold"
-                                    AutomationProperties.HeadingLevel="Level2" />
+                                <Grid Margin="4,12,4,4">
+                                    <TextBlock Text="{x:Bind Name}" Margin="12,4,0,4"
+                                        Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold"
+                                        AutomationProperties.HeadingLevel="Level2"
+                                        Visibility="{x:Bind CollapsedHeaderVisibility}" />
+                                    <Button
+                                        x:Name="SettingsServerGroupToggle"
+                                        Tag="{x:Bind}"
+                                        Click="OnServerGroupToggle"
+                                        Style="{StaticResource SettingsGroupToggle}"
+                                        Visibility="{x:Bind CollapsibleHeaderVisibility}"
+                                        AutomationProperties.Name="{x:Bind Name}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{x:Bind Name}" Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <FontIcon
+                                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                FontSize="{StaticResource EgCaptionFontSize}"
+                                                Glyph="{x:Bind ChevronGlyph, Mode=OneWay}"
+                                                Foreground="{ThemeResource EgTextDimBrush}" />
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
                             </DataTemplate>
                         </GroupStyle.HeaderTemplate>
                     </GroupStyle>
                 </ListView.GroupStyle>
                 <!--
-                  参考图那样每个分类左边一个图标。分类还是字符串（十来处共用那份），所以模板的 x:DataType 是
-                  x:String、{x:Bind} 就是分类名本身：字形走 CategoryGlyph 转换器，标题直接显示。图标和标题都不写
-                  Foreground，跟着 ListViewItem 选中态的前景走 —— 选中那一项连图标一起点亮。
+                  参考图那样每个分类左边一个图标。分类项带 key（多服务器时同名的「控制台」「媒体库」各有各的来源），
+                  字形与标题都读 Label。图标和标题都不写 Foreground，跟着 ListViewItem 选中态的前景走 ——
+                  选中那一项连图标一起点亮。
                 -->
                 <ListView.ItemTemplate>
-                    <DataTemplate x:DataType="x:String">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
+                    <DataTemplate x:DataType="vm:SettingsCategoryEntry">
+                        <StackPanel Orientation="Horizontal" Spacing="12" Visibility="{x:Bind Visibility, Mode=OneWay}">
                             <!--
                               图标槽二选一：MoviePilot 这一行走官方图标的白色重绘版（2026-09-18 从 v3 仓库根的
                               app.ico 描摹，等距立方体两截轨 + 播放三角；单色版不描折角阴影），其余分类走
@@ -1423,13 +1469,13 @@
                                 <FontIcon
                                     FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                     FontSize="16"
-                                    Glyph="{x:Bind Converter={StaticResource CategoryGlyph}}"
-                                    Visibility="{x:Bind Converter={StaticResource MoviePilotMark}, ConverterParameter=hide}" />
+                                    Glyph="{x:Bind Label, Converter={StaticResource CategoryGlyph}}"
+                                    Visibility="{x:Bind Label, Converter={StaticResource MoviePilotMark}, ConverterParameter=hide}" />
                                 <Viewbox
                                     Width="16"
                                     Height="16"
                                     VerticalAlignment="Center"
-                                    Visibility="{x:Bind Converter={StaticResource MoviePilotMark}}">
+                                    Visibility="{x:Bind Label, Converter={StaticResource MoviePilotMark}}">
                                     <Canvas Width="256" Height="256">
                                         <Path
                                             Data="M48,191 L32,181 L32,86 L34,80 L43,72 L120,24 L126,22 L135,24 L159,39 L159,54 L149,69 L129,56 L126,56 L63,96 L63,191 Z"
@@ -1443,7 +1489,7 @@
                                     </Canvas>
                                 </Viewbox>
                             </Grid>
-                            <TextBlock Text="{x:Bind}" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Bind Label}" VerticalAlignment="Center" />
                         </StackPanel>
                     </DataTemplate>
                 </ListView.ItemTemplate>

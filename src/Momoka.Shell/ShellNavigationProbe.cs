@@ -118,6 +118,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
+            await CaseAsync("多服务器设置按服务器分组、默认收起与权限隐藏", MultiServerSettingsGroupsAsync, 45);
             await CaseAsync("服务器页只报界面与在线账号，不再有连接模式", ServersPageSummaryAsync, 45);
             await CaseAsync("Jellyfin 控制台只走外层路由并落到 Jellyfin Web 地址", JellyfinConsoleNavigationAsync, 45);
             await CaseAsync("Jellyfin 通用对话框能力显隐", JellyfinDialogCapabilitiesAsync, 30);
@@ -256,14 +257,16 @@ internal sealed partial class ShellNavigationProbe
             Settings.Servers.Clear();
             Settings.Ui.PageSize = 20;
             Settings.Ui.ShowHomeBanner = false;
-            var store = new SettingsStore(new AppPaths(root), PassthroughSecretProtector.Instance);
+            var paths = new AppPaths(root);
+            paths.EnsureCreated();
+            var store = new SettingsStore(paths, PassthroughSecretProtector.Instance);
             var vault = new CredentialVault(PassthroughSecretProtector.Instance);
             SettingsService = new SettingsService(store, Settings);
             Session = new EmbySession(Settings, store, vault, DeviceIdentity.Create("offline-shell", "test"), Transport);
             Images = new EmbyImageStore(Session, Path.Combine(root, "images"));
             var moviePilot = new MoviePilotService(new MoviePilotClient(moviePilotTransport ?? new RejectNetwork()),
                 new MoviePilotCredentials(PassthroughSecretProtector.Instance), Settings);
-            Services = new ServiceCollection().AddSingleton(Session).AddSingleton(SettingsService)
+            Services = new ServiceCollection().AddSingleton(Session).AddSingleton(SettingsService).AddSingleton(paths)
                 .AddSingleton(new Momoka.AniBt.AniBtClient(aniBtTransport ?? new RejectNetwork()))
                 .AddSingleton<Momoka.AniBt.AniBtService>()
                 // 按接口注册，不按 FakeCapabilities：页面解析的是 IServerCapabilities，而泛型参数写死之后
@@ -384,6 +387,9 @@ internal sealed partial class ShellNavigationProbe
 
         /// <summary>服务器插件页；空表时设置左栏只有固定三段。</summary>
         public IReadOnlyList<ServerSettingsPluginPage> AdminPages { get; set; } = [];
+
+        /// <summary>多服务器探针用的在线来源表；空表沿用单服务器路径。</summary>
+        public IReadOnlyList<ServerSettingsSource> Sources { get; set; } = [];
 
         /// <summary>假服务器报的版本。照用户那一台 4.10.1.0 —— 排序里的「导演」（4.9.0.48 起）、
         /// 「上次发布集日期」（4.9.0.17 起）与筛选里的「重制」（4.9.0.42 起）都靠它才放得出来。</summary>

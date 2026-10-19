@@ -6,13 +6,14 @@ using Microsoft.UI.Xaml.Navigation;
 
 namespace Momoka.Shell.Views;
 
-internal sealed record FnNasPreferencesRequest(IServiceProvider Services);
+internal sealed record FnNasPreferencesRequest(IServiceProvider Services, string? SourceKey = null);
 
 public sealed partial class FnNasPreferencesPage : Page, IShellContent, ISessionScopedPage
 {
     private FnNasPreferencesRequest? _request;
 
     public bool IsCurrentSession => ViewModel.IsCurrentSession;
+    public string? SourceKey => ViewModel.SourceKey;
 
     public FnNasPreferencesPage()
     {
@@ -29,7 +30,7 @@ public sealed partial class FnNasPreferencesPage : Page, IShellContent, ISession
         base.OnNavigatedTo(e);
         if (e.Parameter is not FnNasPreferencesRequest request) return;
         _request = request;
-        ViewModel.Attach(request.Services.GetRequiredService<EmbySession>());
+        ViewModel.Attach(request.Services.GetRequiredService<EmbySession>(), request.SourceKey);
         _ = ViewModel.ReloadAsync();
     }
 

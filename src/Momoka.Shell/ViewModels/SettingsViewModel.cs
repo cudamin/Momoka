@@ -17,12 +17,6 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell.ViewModels;
 
-/// <summary>保留分类字符串作为导航键；分组只决定左栏的标题和顺序。</summary>
-public sealed class SettingsCategoryGroup(string name, IEnumerable<string> items) : List<string>(items)
-{
-    public string Name { get; } = name;
-}
-
 /// <summary>One card on the settings page: a heading, a sentence about it, and the rows under it.</summary>
 public sealed partial class SettingSection : ObservableObject
 {
@@ -187,6 +181,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     private IReadOnlyList<ServerSettingsMenuEntry> _serverEntries = [];
     private IReadOnlyDictionary<string, string> _serverRoutes = new Dictionary<string, string>(StringComparer.Ordinal);
 
+    /// <summary>
+    /// 清空/重排平铺名单时保住选中项。它有自己的一小段防抖：<see cref="SelectedCategory"/> 是键，
+    /// <see cref="SelectedEntry"/> 是左栏与紧凑下拉共用的那一项。
+    /// </summary>
+    private bool _syncingSelection;
+
     /// <summary>飞牛影视「帐号」组的两个内嵌页；「外观」映射到现有「界面」卡，不另造一页。</summary>
     private static readonly string[] FnNasAccountHostedCategories = [FnNasPasswordCategory, FnNasPreferencesCategory];
     private static readonly string[] FnNasAccountCategories = [FnNasPasswordCategory, FnNasPreferencesCategory, FnNasAppearanceCategory];
@@ -214,8 +214,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         _categoryGroups = BuildCategoryGroups(serverAdministration: false, MediaServerKind.Emby, fnNasAccount: false);
 
         Categories.Clear();
-        foreach (var category in _categoryGroups.SelectMany(group => group))
-            Categories.Add(category);
+        foreach (var entry in _categoryGroups.SelectMany(group => group))
+            Categories.Add(entry);
+        SelectedEntry = Categories.FirstOrDefault();
     }
 
     /// <summary>
@@ -227,22 +228,38 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         var groups = new List<SettingsCategoryGroup>
         {
-            new("Momoka", SidebarCategories(serverAdministration, kind))
+            MomokaGroup(serverAdministration, kind)
         };
 
         // 飞牛影视的左栏照它自己的设置抽屉分成「帐号」与「影视服务器」两组。帐号组对已登录的飞牛账号
         // 一律可见；影视服务器组要管理员，和网页端一样。
         if (fnNasAccount && kind == MediaServerKind.FnNas)
-            groups.Add(new SettingsCategoryGroup("帐号", FnNasAccountCategories));
+        {
+            var account = new SettingsCategoryGroup("帐号");
+            foreach (var category in FnNasAccountCategories) account.Add(category, cardCategory: SectionForCategory(category));
+            groups.Add(account);
+        }
 
         // 用户 2026-10-19：Momoka 自己的设置在设置页最上面，服务器目录接在它下面。
         if (serverAdministration && kind is MediaServerKind.Emby or MediaServerKind.Jellyfin or MediaServerKind.FnNas)
         {
             foreach (var group in _serverGroups)
-                groups.Add(new SettingsCategoryGroup(group.Label, group.Entries.Select(entry => entry.Label)));
+            {
+                var entries = new SettingsCategoryGroup(group.Label);
+                foreach (var entry in group.Entries)
+                    entries.Add(entry.Label, route: entry.Route, cardCategory: SectionForCategory(entry.Label));
+                groups.Add(entries);
+            }
         }
 
         return groups;
+    }
+
+    private static SettingsCategoryGroup MomokaGroup(bool serverAdministration, MediaServerKind kind)
+    {
+        var group = new SettingsCategoryGroup("Momoka");
+        foreach (var category in SidebarCategories(serverAdministration, kind)) group.Add(category);
+        return group;
     }
 
     /// <summary>
@@ -348,8 +365,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// window's picker shows and what <c>SettingsPage.Select</c> answers 「这一页有这一项吗」 from.
     /// <see cref="ApplyServerAdministration"/> takes the same names out of it as out of the groups.
     /// </summary>
-    public ObservableCollection<string> Categories { get; } =
-        [.. SidebarCategories(serverAdministration: true, MediaServerKind.Emby)];
+    public ObservableCollection<SettingsCategoryEntry> Categories { get; } = [];
 
     public ObservableCollection<SettingSection> Sections { get; } = [];
 
@@ -359,6 +375,50 @@ public sealed partial class SettingsViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HostedVisibility))]
     public partial string SelectedCategory { get; set; } = CardCategories[0];
 
+    /// <summary>左栏与紧凑下拉共用的那一项；<see cref="SelectedCategory"/> 是它的键。</summary>
+    [ObservableProperty]
+    public partial SettingsCategoryEntry? SelectedEntry { get; set; }
+
+    internal SettingsCategoryEntry? EntryFor(string value) => FindEntry(value);
+
+    private SettingsCategoryEntry? FindEntry(string value) =>
+        Categories.FirstOrDefault(entry => string.Equals(entry.Key, value, StringComparison.Ordinal))
+        ?? Categories.FirstOrDefault(entry => string.Equals(entry.Label, value, StringComparison.Ordinal));
+
+    partial void OnSelectedCategoryChanged(string value)
+    {
+        if (!_syncingSelection)
+        {
+            _syncingSelection = true;
+            try { SelectedEntry = FindEntry(value); }
+            finally { _syncingSelection = false; }
+        }
+        ShowCategory(SelectedEntry?.Label ?? value);
+    }
+
+    partial void OnSelectedEntryChanged(SettingsCategoryEntry? value)
+    {
+        if (value is null) return;
+        // 在紧凑下拉里选到收起的组时把它展开；重建名单（_syncingSelection）不推翻用户手动收起的状态。
+        if (!_syncingSelection && !value.Group.IsExpanded) value.Group.IsExpanded = true;
+        if (_syncingSelection)
+        {
+            ShowCategory(value.Label);
+            return;
+        }
+
+        if (!string.Equals(SelectedCategory, value.Key, StringComparison.Ordinal))
+        {
+            _syncingSelection = true;
+            try { SelectedCategory = value.Key; }
+            finally { _syncingSelection = false; }
+        }
+        ShowCategory(value.Label);
+    }
+
+    /// <summary>选中项属于哪一条在线身份；Momoka 自己的卡片与单服务器产品组是 null。</summary>
+    internal string? SelectedSourceKey => SelectedEntry?.SourceKey;
+
     /// <summary>
     /// Whether the selected entry is one of the pages rather than one of the cards. The page watches
     /// this to navigate its frame, and the two visibilities below are the same question drawn.
@@ -367,14 +427,28 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 非管理员时服务器组那份名单收起，落在旧分类上的选择会被 <see cref="ApplyServerAdministration"/> 收走。
     /// 飞牛的「外观」不是 hosted，它落到「界面」卡。
     /// </para>
+    /// <para>
+    /// 多服务器分组里每一项都带来源键：除了飞牛的「外观」（它仍是「界面」卡），其余都是内嵌页。
+    /// </para>
     /// </summary>
-    public bool ShowsHosted =>
-        FixedHostedCategories.Contains(SelectedCategory, StringComparer.Ordinal)
-        || _fnNasAccountHosted.Contains(SelectedCategory, StringComparer.Ordinal)
-        || _serverAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal);
+    public bool ShowsHosted
+    {
+        get
+        {
+            var entry = SelectedEntry;
+            var label = entry?.Label ?? SelectedCategory;
+            if (entry?.SourceKey is not null)
+                return !string.Equals(label, FnNasAppearanceCategory, StringComparison.Ordinal);
+            return FixedHostedCategories.Contains(label, StringComparer.Ordinal)
+                || _fnNasAccountHosted.Contains(label, StringComparer.Ordinal)
+                || _serverAdministrationCategories.Contains(label, StringComparer.Ordinal);
+        }
+    }
 
     /// <summary>自检用：飞牛「外观」挂在「界面」卡上，分组表比卡片多这一项。</summary>
-    internal IReadOnlyList<string> CardAliases => _showsFnNasAccount ? [FnNasAppearanceCategory] : [];
+    internal IReadOnlyList<string> CardAliases =>
+        Categories.Any(entry => string.Equals(entry.Label, FnNasAppearanceCategory, StringComparison.Ordinal))
+            ? [FnNasAppearanceCategory] : [];
 
     public Visibility CardsVisibility => Show(!ShowsHosted);
 
@@ -522,6 +596,31 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         if (_capabilities is null) return;
 
+        // 多服务器：Momoka 组之后每台在线服务器一组，默认全部收起。组里的入口绑定那一台自己的
+        // 捕获作用域 —— 这正是从前只有独占模式才看得见的那批设置页，现在按服务器各归各的。
+        var sources = _capabilities.Sources;
+        if (sources.Select(source => source.ServerProfileId).Distinct(StringComparer.Ordinal).Count() > 1)
+        {
+            var keys = sources.Select(source => source.Key).Order(StringComparer.Ordinal).ToArray();
+            ApplyMultiServerGroups(sources, new Dictionary<string, IReadOnlyList<ServerSettingsPluginPage>>(StringComparer.Ordinal));
+
+            var pages = new Dictionary<string, IReadOnlyList<ServerSettingsPluginPage>>(StringComparer.Ordinal);
+            await Task.WhenAll(sources
+                .Where(source => source.IsAdministrator && source.Kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
+                .Select(async source =>
+                {
+                    var list = await _capabilities.GetAdminMenuPagesAsync(source.Key).ConfigureAwait(true);
+                    lock (pages) pages[source.Key] = list;
+                })).ConfigureAwait(true);
+
+            // 等插件页的这一趟里换了服务器/账号：这一份目录属于上一批来源，下一趟会重装。
+            var current = _capabilities.Sources;
+            if (!keys.SequenceEqual(current.Select(source => source.Key).Order(StringComparer.Ordinal)))
+                return;
+            ApplyMultiServerGroups(current, pages);
+            return;
+        }
+
         // 先同步已知状态，防止权限请求尚在等待时显示上一个账号、上一台服务器或上一个连接模式的管理页。
         // 产品一变立刻换上那一家的固定条目（插件页稍后补）；不能拿上一家的分组顶着新产品的名字。
         // 这一步也是命令行按分类打开的落点依据：OnNavigatedTo 里的 Select 紧接着同步这一段就执行。
@@ -565,6 +664,97 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     /// <summary>
+    /// 多服务器时的左栏：Momoka 组之后，每台在线服务器一组。组默认收起；同一台服务器上有多个账号在线时
+    /// 优先用管理员那一个 —— 那一个才看得见库管理入口。没有可管理入口的服务器不占一行。
+    /// </summary>
+    private void ApplyMultiServerGroups(IReadOnlyList<ServerSettingsSource> sources,
+        IReadOnlyDictionary<string, IReadOnlyList<ServerSettingsPluginPage>> pages)
+    {
+        _showsFnNasAccount = false;
+        _fnNasAccountHosted = [];
+        _administrationKind = _capabilities?.ServerKind ?? MediaServerKind.Emby;
+
+        var groups = new List<SettingsCategoryGroup>
+        {
+            MomokaGroup(serverAdministration: false, _administrationKind)
+        };
+
+        var previous = _categoryGroups
+            .Where(group => group.SourceKey is not null)
+            .ToDictionary(group => group.SourceKey!, group => group.IsExpanded, StringComparer.Ordinal);
+
+        var selected = sources
+            .GroupBy(source => source.ServerProfileId, StringComparer.Ordinal)
+            .Select(group => group
+                .OrderByDescending(source => source.IsAdministrator)
+                .ThenByDescending(source => source.IsCurrent)
+                .First())
+            .OrderBy(ServerOrder)
+            .ToArray();
+
+        foreach (var source in selected)
+        {
+            var entries = SourceEntries(source, pages.GetValueOrDefault(source.Key));
+            if (entries.Count == 0) continue;
+
+            var group = new SettingsCategoryGroup(source.Label, source.Key, collapsible: true,
+                expanded: previous.TryGetValue(source.Key, out var expanded) && expanded);
+            foreach (var entry in entries)
+                group.Add(entry.Label, source.Key, entry.Route, SectionForCategory(entry.Label));
+            groups.Add(group);
+        }
+
+        _showsServerAdministration = groups.Count > 1;
+        ReplaceCategories(groups);
+    }
+
+    private int ServerOrder(ServerSettingsSource source)
+    {
+        var servers = _settings?.Settings.Servers;
+        var index = servers?.FindIndex(server => string.Equals(server.Id, source.ServerProfileId, StringComparison.Ordinal)) ?? -1;
+        return index >= 0 ? index : int.MaxValue;
+    }
+
+    /// <summary>
+    /// 一条来源在左栏里列出的全部入口。Emby／Jellyfin 是它们自己的网页控制台目录（加上 Emby 的通知）；
+    /// 飞牛是帐号三项（所有账号可见）与管理员四项；Plex 没有这套设置。
+    /// </summary>
+    private static IReadOnlyList<ServerSettingsMenuEntry> SourceEntries(ServerSettingsSource source,
+        IReadOnlyList<ServerSettingsPluginPage>? pages)
+    {
+        if (source.Kind == MediaServerKind.Emby)
+        {
+            if (!source.IsAdministrator) return [];
+            return
+            [
+                new(NotificationsCategory, "", ServerSettingsSection.Server, "bell"),
+                .. ServerSettingsMenu.Build(pages).SelectMany(group => group.Entries)
+            ];
+        }
+
+        if (source.Kind == MediaServerKind.Jellyfin)
+        {
+            if (!source.IsAdministrator) return [];
+            return [.. JellyfinServerSettingsMenu.Build(pages).SelectMany(group => group.Entries)];
+        }
+
+        if (source.Kind == MediaServerKind.FnNas)
+        {
+            var entries = new List<ServerSettingsMenuEntry>
+            {
+                new(FnNasPasswordCategory, "", ServerSettingsSection.Server, "password"),
+                new(FnNasPreferencesCategory, "", ServerSettingsSection.Server, "play"),
+                new(FnNasAppearanceCategory, "", ServerSettingsSection.Server, "appearance")
+            };
+            if (source.IsAdministrator)
+                entries.AddRange(FnNasServerMenu().SelectMany(group => group.Entries));
+            return entries;
+        }
+
+        return [];
+    }
+
+    /// <summary>
     /// 飞牛影视的四个管理页。它们是 Momoka 的原生页而不是网页路由，<c>Route</c> 故意留空；
     /// 左栏只读页名，点击后的落点由 <c>SettingsPage</c> 按页名分派。
     /// </summary>
@@ -585,34 +775,51 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     private bool CanShowServerAdministration => _capabilities?.IsConnected == true
         && _capabilities.InterfaceFlavor != ServerInterfaceFlavor.Generic
-        && (_capabilities.ServerKind is MediaServerKind.Jellyfin or MediaServerKind.FnNas
-            ? _capabilities.IsAdministrator == true
-            : _capabilities.IsAdministrator != false);
+        && ServerAccess.CanAdminister(_capabilities.ServerKind, _capabilities.IsAdministrator);
 
-    internal bool CanOpenServerCategory(string category) =>
-        (!_fnNasAccountHosted.Contains(category, StringComparer.Ordinal) || _showsFnNasAccount)
-        && (!_serverAdministrationCategories.Contains(category, StringComparer.Ordinal)
-            || (CanShowServerAdministration && AdministrationCategories(_capabilities!.ServerKind)
-                .Contains(category, StringComparer.Ordinal)));
+    internal bool CanOpenServerCategory(string value)
+    {
+        var entry = FindEntry(value);
+        if (entry is not null)
+        {
+            if (entry.SourceKey is not null) return true;
+            return (!_fnNasAccountHosted.Contains(entry.Label, StringComparer.Ordinal) || _showsFnNasAccount)
+                && (!_serverAdministrationCategories.Contains(entry.Label, StringComparer.Ordinal)
+                    || (CanShowServerAdministration
+                        && AdministrationCategories(_capabilities!.ServerKind).Contains(entry.Label, StringComparer.Ordinal)));
+        }
+
+        return (!_fnNasAccountHosted.Contains(value, StringComparer.Ordinal) || _showsFnNasAccount)
+            && (!_serverAdministrationCategories.Contains(value, StringComparer.Ordinal)
+                || (CanShowServerAdministration
+                    && AdministrationCategories(_capabilities!.ServerKind).Contains(value, StringComparer.Ordinal)));
+    }
+
+    private bool IsHostedEntry(SettingsCategoryEntry entry) => entry.SourceKey is not null
+        ? !string.Equals(entry.Label, FnNasAppearanceCategory, StringComparison.Ordinal)
+        : FixedHostedCategories.Contains(entry.Label, StringComparer.Ordinal)
+            || _fnNasAccountHosted.Contains(entry.Label, StringComparer.Ordinal)
+            || _serverAdministrationCategories.Contains(entry.Label, StringComparer.Ordinal);
 
     internal IReadOnlyList<string> AvailableHostedCategories =>
-    [
-        "服务器", "诊断",
-        .. (_showsFnNasAccount ? _fnNasAccountHosted : []),
-        .. (_showsServerAdministration ? AdministrationCategories(_administrationKind) : [])
-    ];
+        [.. Categories.Where(IsHostedEntry).Select(entry => entry.Key)];
 
     /// <summary>左栏某个服务器页（控制台、通用、插件页……）对应的网页路由；不是服务器页就答 null。</summary>
-    internal string? ServerRoute(string category) =>
-        _serverRoutes.TryGetValue(category, out var route) ? route : null;
+    internal string? ServerRoute(string value)
+    {
+        if (FindEntry(value)?.Route is { Length: > 0 } route) return route;
+        return _serverRoutes.TryGetValue(value, out route) ? route : null;
+    }
 
     /// <summary>
     /// 自检和控制台走查要落的那一页：两家目录的第一项都是「控制台」。没有管理入口时答 null。
     /// 「网页控制台」这个名字仍认，作为命令行和旧调用的兼容别名，见 <c>SettingsPage.Select</c>。
     /// </summary>
     internal string? ConsoleCategory =>
-        _serverRoutes.FirstOrDefault(pair => pair.Value == ServerSettingsMenu.DefaultRoute).Key
-        ?? (Categories.Contains(DashboardCategory) ? DashboardCategory : null);
+        Categories.FirstOrDefault(entry => string.Equals(entry.Label, "控制台", StringComparison.Ordinal)
+            && string.Equals(entry.Route, ServerSettingsMenu.DefaultRoute, StringComparison.Ordinal))?.Key
+        ?? _serverRoutes.FirstOrDefault(pair => pair.Value == ServerSettingsMenu.DefaultRoute).Key
+        ?? (Categories.Any(entry => string.Equals(entry.Label, DashboardCategory, StringComparison.Ordinal)) ? DashboardCategory : null);
 
     /// <summary>
     /// 把当前账号该看得见的那几个入口装上或摘掉。
@@ -630,33 +837,37 @@ public sealed partial class SettingsViewModel : PageViewModel
             && _capabilities?.IsConnected == true
             && _capabilities.InterfaceFlavor == ServerInterfaceFlavor.FnNas;
         _fnNasAccountHosted = _showsFnNasAccount ? FnNasAccountHostedCategories : [];
-        _categoryGroups = BuildCategoryGroups(visible, kind, _showsFnNasAccount);
-        ReplaceCategories([.. _categoryGroups.SelectMany(group => group)]);
+        ReplaceCategories(BuildCategoryGroups(visible, kind, _showsFnNasAccount));
     }
 
     /// <summary>
-    /// 重排平铺名单，同时保住当前选中项：除选中项之外先清空，再按目标次序插回去。选中的那一页如果已经
-    /// 不在目标名单里，先落到第一张卡。
+    /// 重排平铺名单，同时保住当前选中项：先按新键找回同一项，找不回再按旧分类名认一次，
+    /// 都不在就落到第一项。左栏与紧凑下拉共用 <see cref="SelectedEntry"/>，所以它也跟着换。
     /// </summary>
-    private void ReplaceCategories(IReadOnlyList<string> desired)
+    private void ReplaceCategories(IReadOnlyList<SettingsCategoryGroup> groups)
     {
-        if (desired.Count == 0) return;
-        if (Categories.SequenceEqual(desired, StringComparer.Ordinal)) return;
+        _categoryGroups = groups;
+        var desired = groups.SelectMany(group => group).ToArray();
+        if (desired.Length == 0) return;
 
-        var keep = SelectedCategory is { } selected && desired.Contains(selected, StringComparer.Ordinal)
-            ? selected
-            : desired[0];
-        if (!string.Equals(SelectedCategory, keep, StringComparison.Ordinal)) SelectedCategory = keep;
+        var keep = desired.FirstOrDefault(entry => string.Equals(entry.Key, SelectedCategory, StringComparison.Ordinal))
+            ?? (SelectedCategory.Contains('\u001f')
+                ? null
+                : desired.FirstOrDefault(entry => string.Equals(entry.Label, SelectedCategory, StringComparison.Ordinal)))
+            ?? desired[0];
 
-        for (var index = Categories.Count - 1; index >= 0; index--)
+        _syncingSelection = true;
+        try
         {
-            if (!string.Equals(Categories[index], keep, StringComparison.Ordinal)) Categories.RemoveAt(index);
+            Categories.Clear();
+            foreach (var entry in desired) Categories.Add(entry);
+            if (!string.Equals(SelectedCategory, keep.Key, StringComparison.Ordinal)) SelectedCategory = keep.Key;
+            SelectedEntry = keep;
         }
-        if (!Categories.Contains(keep, StringComparer.Ordinal)) Categories.Add(keep);
+        finally { _syncingSelection = false; }
 
-        var keepIndex = desired.ToList().IndexOf(keep);
-        for (var index = 0; index < keepIndex; index++) Categories.Insert(index, desired[index]);
-        for (var index = keepIndex + 1; index < desired.Count; index++) Categories.Add(desired[index]);
+        ShowCategory(keep.Label);
+        OnPropertyChanged(nameof(CategoryGroups));
     }
 
     /// <summary>
@@ -821,8 +1032,6 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     private bool _restoring;
 
-    /// <summary>选中的分类变了：换一张卡。内嵌页（服务器 / 诊断 / 控制台）由页面盯着 <see cref="SelectedCategory"/> 自己导航。</summary>
-    partial void OnSelectedCategoryChanged(string value) => ShowCategory(value);
 
     /// <summary>存文件框：给一个建议文件名，回来的是用户选的落点（取消或弹不出来是 null）。见 <see cref="Views.SettingsFile"/>。</summary>
     internal delegate Task<string?> SaveFileRequest(string suggestedName);

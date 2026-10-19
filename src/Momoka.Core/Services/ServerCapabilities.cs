@@ -36,7 +36,36 @@ public interface IServerCapabilities
     Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(CancellationToken token = default) =>
         Task.FromResult<IReadOnlyList<ServerSettingsPluginPage>>([]);
 
+    /// <summary>
+    /// 当前同时在线的每一条服务器身份。设置左栏在多服务器时按服务器分组，正是从这里取组分母；
+    /// 每条都带着自己的捕获作用域，所以入口可以绑定到那一台服务器，而不是「当前来源」。
+    /// 默认给假实现和旧测试一条空路。
+    /// </summary>
+    IReadOnlyList<ServerSettingsSource> Sources => [];
+
+    /// <summary>某一台服务器贡献的插件页。默认空表；只有 Emby／Jellyfin 会答出内容。</summary>
+    Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(string sourceKey, CancellationToken token = default) =>
+        Task.FromResult<IReadOnlyList<ServerSettingsPluginPage>>([]);
+
     Task ProbeAsync(CancellationToken token = default);
+}
+
+/// <summary>
+/// 设置左栏分组用的一条在线服务器身份。作用域由会话捕获，页面可以用它向指定服务器发请求，
+/// 不必先把「当前来源」切过去。
+/// </summary>
+public sealed record ServerSettingsSource(EmbySessionScope Scope, MediaServerKind Kind, bool IsAdministrator)
+{
+    public string Key => Scope.Key;
+    public string ServerProfileId => Scope.ServerProfileId;
+    public string AccountProfileId => Scope.AccountProfileId;
+    public string ServerName => Scope.Connection.ServerName is { Length: > 0 } name ? name : Scope.ServerName;
+    public string AccountName => Scope.Connection.UserName;
+    public bool IsCurrent => Scope.IsCurrent;
+    public bool IsAvailable => Scope.IsAvailable;
+
+    /// <summary>左栏组名：产品名在前，同名服务器（比如两台都叫「果服」）因此还分得开。</summary>
+    public string Label => ServerAccess.KindName(Kind) + " · " + ServerName;
 }
 
 /// <inheritdoc cref="IServerCapabilities"/>
@@ -98,6 +127,12 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
     }
 
     /// <inheritdoc />
+    public IReadOnlyList<ServerSettingsSource> Sources => session.Sources
+        .Select(scope => new ServerSettingsSource(scope, scope.Connection.ServerKind,
+            ServerAccess.CanAdminister(scope.Connection.ServerKind, scope.Connection.IsAdministrator)))
+        .ToArray();
+
+    /// <inheritdoc />
     public async Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(CancellationToken token = default)
     {
         if (ServerKind is not (MediaServerKind.Emby or MediaServerKind.Jellyfin)
@@ -109,6 +144,26 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
             var pages = await scope.ExecuteAsync(
                 (client, ct) => client.GetServerSettingsPagesAsync(ct), token).ConfigureAwait(false);
             return scope.IsCurrent ? pages : [];
+        }
+        catch (Exception error)
+        {
+            Log.Debug(Category, $"读取服务器插件页失败：{error.Message}");
+            return [];
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(string sourceKey, CancellationToken token = default)
+    {
+        var source = Sources.FirstOrDefault(value => value.Key == sourceKey);
+        if (source is null || source.Kind is not (MediaServerKind.Emby or MediaServerKind.Jellyfin) || !source.IsAdministrator)
+            return [];
+
+        try
+        {
+            var pages = await source.Scope.ExecuteAsync(
+                (client, ct) => client.GetServerSettingsPagesAsync(ct), token).ConfigureAwait(false);
+            return source.IsAvailable ? pages : [];
         }
         catch (Exception error)
         {

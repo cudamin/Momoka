@@ -7,4 +7,7 @@ namespace Momoka.Shell.Views;
 internal interface ISessionScopedPage
 {
     bool IsCurrentSession { get; }
+
+    /// <summary>绑定的在线身份；null 表示跟当前来源。多服务器设置分组用它核对右半边是不是这一台。</summary>
+    string? SourceKey { get; }
 }

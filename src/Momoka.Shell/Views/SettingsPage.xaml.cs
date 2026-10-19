@@ -260,7 +260,7 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// against each other: the list and the cards are written out by hand in different places, and a typo in
     /// either is an entry that selects nothing or a card nothing selects.
     /// </summary>
-    internal IReadOnlyList<string> Categories => ViewModel.Categories;
+    internal IReadOnlyList<string> Categories => [.. ViewModel.Categories.Select(entry => entry.Key)];
 
     /// <summary>
     /// Shows one card, the same as clicking its entry in the left-hand list — the list's selection is bound
@@ -418,7 +418,9 @@ public sealed partial class SettingsPage : Page, IShellContent
         // 页面。它们自己的会话已经不当前了，这时换掉它 —— 网页控制台与飞牛的原生页都算。
         if (beforeCategory == ViewModel.SelectedCategory
             && ViewModel.ShowsHosted
-            && HostedFrame.Content is ISessionScopedPage { IsCurrentSession: false })
+            && HostedFrame.Content is ISessionScopedPage page
+            && (!page.IsCurrentSession
+                || !string.Equals(page.SourceKey, ViewModel.SelectedSourceKey, StringComparison.Ordinal)))
         {
             ShowHosted();
         }
@@ -431,6 +433,12 @@ public sealed partial class SettingsPage : Page, IShellContent
         var selection = ViewModel.SelectedCategory;
         CategoryGroupsSource.Source = ViewModel.CategoryGroups;
         if (ViewModel.SelectedCategory != selection) ViewModel.SelectedCategory = selection;
+    }
+
+    /// <summary>多服务器分组那一行：点一下展开/收起。收起后条目只从屏上消失，选中页不被换走。</summary>
+    private void OnServerGroupToggle(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: SettingsCategoryGroup group }) group.IsExpanded = !group.IsExpanded;
     }
 
     /// <summary>
@@ -450,11 +458,10 @@ public sealed partial class SettingsPage : Page, IShellContent
         if (category == SettingsViewModel.DashboardCategory && ViewModel.ConsoleCategory is { } console)
             category = console;
 
-        var target = ViewModel.Categories.Contains(category, StringComparer.Ordinal)
-            ? category
-            : SettingsViewModel.FirstCardCategory;
+        var entry = ViewModel.EntryFor(category);
+        var target = entry?.Key ?? SettingsViewModel.FirstCardCategory;
 
-        if (target == ViewModel.SelectedCategory) return false;
+        if (string.Equals(target, ViewModel.SelectedCategory, StringComparison.Ordinal)) return false;
 
         ViewModel.SelectedCategory = target;
         return true;
@@ -489,63 +496,67 @@ public sealed partial class SettingsPage : Page, IShellContent
         }
 
         var services = _request.Services;
+        var category = ViewModel.SelectedEntry?.Label ?? ViewModel.SelectedCategory;
+        var sourceKey = ViewModel.SelectedSourceKey;
 
         Type page;
         object parameter;
 
-        if (ViewModel.SelectedCategory == "服务器")
+        if (category == "服务器")
         {
             page = typeof(ServersPage);
             parameter = new ServerRequest(services);
         }
-        else if (ViewModel.SelectedCategory == "诊断")
+        else if (category == "诊断")
         {
             page = typeof(DiagnosticsPage);
             parameter = new DiagnosticsRequest(services);
         }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.NotificationsCategory)
+        else if (category == SettingsViewModel.NotificationsCategory)
         {
             page = typeof(NotificationsPage);
-            parameter = new NotificationsRequest(services);
+            parameter = new NotificationsRequest(services, sourceKey);
         }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasPasswordCategory)
+        else if (category == SettingsViewModel.FnNasPasswordCategory)
         {
             page = typeof(FnNasPasswordPage);
-            parameter = new FnNasPasswordRequest(services);
+            parameter = new FnNasPasswordRequest(services, sourceKey);
         }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasPreferencesCategory)
+        else if (category == SettingsViewModel.FnNasPreferencesCategory)
         {
             page = typeof(FnNasPreferencesPage);
-            parameter = new FnNasPreferencesRequest(services);
+            parameter = new FnNasPreferencesRequest(services, sourceKey);
         }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasLibrariesCategory)
+        else if (category == SettingsViewModel.FnNasLibrariesCategory)
         {
             page = typeof(FnNasLibrariesPage);
-            parameter = new FnNasLibrariesRequest(services);
+            parameter = new FnNasLibrariesRequest(services, sourceKey);
         }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasUsersCategory)
+        else if (category == SettingsViewModel.FnNasUsersCategory)
         {
             page = typeof(FnNasUsersPage);
-            parameter = new FnNasUsersRequest(services);
+            parameter = new FnNasUsersRequest(services, sourceKey);
         }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasSettingsCategory)
+        else if (category == SettingsViewModel.FnNasSettingsCategory)
         {
             page = typeof(FnNasSettingsPage);
-            parameter = new FnNasSettingsRequest(services);
+            parameter = new FnNasSettingsRequest(services, sourceKey);
         }
-        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasTasksCategory)
+        else if (category == SettingsViewModel.FnNasTasksCategory)
         {
             page = typeof(FnNasTasksPage);
-            parameter = new FnNasTasksRequest(services);
+            parameter = new FnNasTasksRequest(services, sourceKey);
         }
         else if (ViewModel.ServerRoute(ViewModel.SelectedCategory) is { } route)
         {
-            // 已经停在一个服务器页上：把新路由交给它，网页自己换页；不再新建一次 WebView，
-            // 也就不会每切一次都重新过一遍 Emby 的启动画面。
-            if (HostedFrame.Content is DashboardPage dashboard && dashboard.TryShowRoute(route)) return;
+            // 已经停在同一台服务器、同一个内嵌浏览器上：把新路由交给它，网页自己换页；不再新建一次
+            // WebView，也就不会每切一次都重新过一遍启动画面。换服务器时来源键不同，必须新建。
+            if (HostedFrame.Content is DashboardPage dashboard
+                && string.Equals(dashboard.SourceKey, sourceKey, StringComparison.Ordinal)
+                && dashboard.TryShowRoute(route)) return;
 
             page = typeof(DashboardPage);
-            parameter = new DashboardRequest(services, route, Immersive: true);
+            parameter = new DashboardRequest(services, route, Immersive: true, SourceKey: sourceKey);
         }
         else
         {
