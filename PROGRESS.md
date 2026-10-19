@@ -12,6 +12,20 @@
 - **验证**：Release Shell 与测试项目 **0 警告、0 错误**；离线测试 **1971 项全过、0 失败、0 跳过**；`--probe-shell --probe-section library --screen 1` **13 项全过、80 项未执行（其余九个区域）、退出码 0**（`shell-probe-20261019-141949656-22092`）。改后 UIA 读数（1280×800 客户区）：工具栏下沿 168、卡片区顶 188，空档 20；分类与工具栏之间仍是 12。实屏截图 `library-movies-emby-dark-screen.png` 已目检。`tools/publish.ps1 -NoArchive` 校验通过，交付目录 **540 文件、283.2 MB、11 GLSL、4 HOOK**；发布件 `Momoka.dll` 4 545 024 字节，SHA-256 `1F0FDE674C0D6C162B916BE0DBCDACA29B37A610A30C2F158E7A9BEE608875C2`，与开发构建一致。
 - **未验证／边界**：只核了 Emby 假服务器的分区页；Jellyfin 共用这段版式但未联网核对；飞牛分区页按服务器分开处理，本次没有改动。工作树里飞牛筛选那批未提交改动保持原样，本提交只暂存本任务的文件与差异。
 
+## 飞牛媒体库筛选、横幅布局、原生排序与去掉影片/收藏分段（2026-10-19 用户令）
+
+用户按官方网页端截图要求补齐飞牛媒体库：筛选与查询标签、「布局」菜单（用户随后点名参考「网页端横幅海报」）、原生媒体库页排序；最后一条原话是「去掉飞牛媒体库上面的这个」，附图为「影片 / 收藏」分段条。
+
+- **筛选面板**：飞牛工具栏的「筛选」在工具栏下展开内联面板，行来自 `tag/list`，题材与地区经 `tag/genres`、`tag/iso3166` 换中文；音频短名补了 `DolbySurround`/`DolbyAtmos` 等无空格写法。真实服务器 `iso3166` 的重复地区码（`MD`）按第一份收下，不再让整个面板报错。面板每行单选，点已选项不会把该行清空；已选项在工具栏下变成可逐条去掉的筛选条。
+- **-4 的真正形状**：本轮一度按数组发送 `genres`/`resolutions`/`decades`，真实服务器对「动作」仍回 `-4`。回到官方前端 0.9.8 的 `tagsParams`：只有 `type` 是数组，`genres` 是单个整数，`resolution`、`color_range`、`audio_type`、`locate`、`decade`、`recognition_status`、`watched` 都是单值字符串，且请求键用单数（`tag/list` 的返回键才是复数）。`FnNasMediaAdapter.Query` 已照此发送，空值省略；真实服务器选「动作」得到 **共 14 项**，不再报错。
+- **布局菜单**：飞牛收起 Emby 那颗齿轮，改摆「布局」；选项只有竖幅海报与横幅海报，勾跟随当前版式。横幅落到 16:9 缩略图视图并收小一档；卡片照官方截图做居中竖版海报、同图放大铺底（`EgScrimBrush` 压暗）、左上评分、右下清晰度，标题与年份居中。评分取 `vote_average`，清晰度取列表里的 `media_stream.resolutions`（过滤 480、最多两档，映射 `4k`/`1080p`/`720p`）。Emby 的缩略图视图不受影响。
+- **去掉影片/收藏分段**：飞牛媒体库页不再画标题下方那条「影片 / 收藏」，其他服务器保留；收藏仍可从顶栏收藏入口进入。页头因此只留标题、工具栏与媒体网格。
+- **原生媒体库排序**：管理页「排序」后每行出现上移/下移，首行上移与末行下移禁用；每次移动把屏幕顺序整份 `POST mdb/setSort`。写入失败时本地次序回滚，不再留下服务器不认的排列。真实服务器本轮只打开排序态核对按钮，**没有提交任何移动**。
+- **验证**：Release 完整方案 **0 警告、0 错误**；离线测试 **1971 项全过、0 失败、0 跳过**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。发布件 `tools/publish.ps1 -NoArchive` 校验通过，**540 文件、283.2 MB、11 GLSL、4 HOOK**；`Momoka.dll` 4 543 488 字节，SHA-256 `0741667EAF0E5CEFBA5F5400532C8835EED8D913B840112CF7A82368B8835BE0`，发布与开发构建一致。发布件 `--probe-shell --probe-section library,settings --screen 1` **25 项全过、68 项未执行（其余八个区域）、退出码 0**（`shell-probe-20261019-134430170-6748`）。
+- **实屏核对（真实飞牛服务器，只读）**：电影库 46 项；筛选面板各行加载，题材「动作」→14 项，收起与全部清除可用；布局菜单勾选「横幅海报」，横卡评分/清晰度与居中标题年份可见；切回「竖幅海报」并已恢复为原偏好；管理页排序按钮与边界禁用状态已目检；「影片 / 收藏」分段已消失。全程未播放、未写入，指针位置已恢复。证据：`work/fnos-genre-fixed2.png`、`work/fnos-section-removed.png`、`work/fnos-layout-wide-checked.png`、`work/fnos-manage-sort.png`、`work/fnos-filters-cleared.png`。
+- **未实现／边界**：原生管理页仍只有「扫描」和排序，没有官方的行级「编辑 / 删除媒体库」及「更多」菜单；横卡底图用放大+遮罩近似模糊底，不是逐像素高斯模糊；飞牛筛选每个分类只支持单选（与官方前端一致）；探针没有为这三项新交互新增专门断言，实屏证据来自本轮人工核对。
+- **主要文件**：`FnNasFilters.cs`、`FnNasSortCatalog.cs`、`FnNasClient.cs`、`FnNasMediaAdapter.Models.cs`、`EmbyItem.Resolutions`、`ItemQuery.FnNasFilters`、`LibraryViewModel`、`FnNasFilterRows.cs`、`LibraryPage.xaml(.cs)`、`CardItem.cs`、`PosterCard.xaml`、`FnNasLibrariesViewModel`、`FnNasLibrariesPage.xaml(.cs)`、`FnNasMediaTests.cs`。
+
 ## 飞牛查询空数组、登录回车与卡片白边（2026-10-19 用户令）
 
 用户令（原话）：「1.修复上面的错误 2.登录要支持按回车登录 3.界面的卡片不要加白边」，附图为主页提示条「轮播 飞牛影视操作失败（错误码 -4）」。

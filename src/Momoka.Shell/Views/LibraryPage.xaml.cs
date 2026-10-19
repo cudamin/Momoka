@@ -16,6 +16,12 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace Momoka.Shell.Views;
 
+/// <summary>飞牛「布局」浮层的一行：两项互斥，勾跟着当前视图走。</summary>
+public sealed record LayoutEntry(string Label, bool IsChecked, bool Wide)
+{
+    public Visibility CheckVisibility => IsChecked ? Visibility.Visible : Visibility.Collapsed;
+}
+
 /// <summary>
 /// The poster grid's view. What is left here is the four things XAML and a view model cannot do for
 /// themselves: a navigation parameter turned into an <c>Attach</c>, the scroll offset that drives the
@@ -886,7 +892,36 @@ public sealed partial class LibraryPage : Page, IShellContent
     internal void ShowFilterPanel() => OpenFilter();
 
     /// <summary>工具栏那颗筛选键：打开盖在整页上的面板。</summary>
-    private void OnFilterClicked(object sender, RoutedEventArgs e) => OpenFilter();
+    private void OnFilterClicked(object sender, RoutedEventArgs e)
+    {
+        // 飞牛的筛选是工具栏下面展开的一条，不是 Emby 那块盖住整页的浮层。
+        if (ViewModel.IsFnNas)
+        {
+            _ = ViewModel.ToggleFnNasFilterAsync();
+            return;
+        }
+
+        OpenFilter();
+    }
+
+    private void OnFnNasFilterCloseClicked(object sender, RoutedEventArgs e) => ViewModel.CloseFnNasFilter();
+
+    private void OnFnNasLayoutMenuOpening(object sender, object e)
+    {
+        // 每次打开重建，和排序菜单同一套：勾要跟着刚刚落下的那一次选择走。
+        FnNasLayoutList.ItemsSource = new[]
+        {
+            new LayoutEntry("竖幅海报", !ViewModel.FnNasLayoutWide, false),
+            new LayoutEntry("横幅海报", ViewModel.FnNasLayoutWide, true)
+        };
+    }
+
+    private void OnFnNasLayoutItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is not LayoutEntry entry) return;
+        ViewModel.SetFnNasLayout(entry.Wide);
+        FnNasLayoutMenu.Hide();
+    }
 
     /// <summary>
     /// 需求 5：fills the panel for this grid, then puts it on the page. Rebuilt on every open rather than

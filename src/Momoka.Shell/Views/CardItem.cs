@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Momoka.Diagnostics;
 using Momoka.Emby;
@@ -84,6 +85,12 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>Whether artwork exists to ask for, or null when the item has none worth asking for.</summary>
     private readonly string? _imageType;
 
+    /// <summary>
+    /// 飞牛的「横幅海报」：16:9 框里让竖版海报居中，用同一张图铺满作底，再压上评分与清晰度。
+    /// 只影响这一种版式，Emby 的缩略图视图仍是原来的满幅剧照。
+    /// </summary>
+    private readonly bool _fnNasWide;
+
     private CancellationTokenSource? _loading;
 
     /// <summary>服务器明说没有这张图（404，或这个条目压根没有这一种图）。终局答案，不再问。</summary>
@@ -167,7 +174,8 @@ public sealed class CardItem : INotifyPropertyChanged
         bool containArtwork = false,
         bool folderFrame = false,
         double? aspect = null,
-        bool sourceLine = false)
+        bool sourceLine = false,
+        bool fnNasWide = false)
     {
         _item = item;
         _images = images;
@@ -182,7 +190,8 @@ public sealed class CardItem : INotifyPropertyChanged
         CenteredText = upcoming || centeredText;
         FolderFrame = folderFrame;
         _aspect = aspect;
-        PosterStretch = containArtwork ? Stretch.Uniform : Stretch.UniformToFill;
+        _fnNasWide = fnNasWide;
+        PosterStretch = containArtwork || fnNasWide ? Stretch.Uniform : Stretch.UniformToFill;
         _note = note;
         _indicators = indicators;
         _sourceLine = sourceLine;
@@ -220,6 +229,41 @@ public sealed class CardItem : INotifyPropertyChanged
     public string DurationText => FolderFrame && _item.RunTimeTicks > 0
         ? TimeFormat.Clock(_item.RunTimeTicks) : "";
     public Visibility DurationVisibility => Show(DurationText.Length > 0);
+
+    public Visibility FnNasWideVisibility => Show(_fnNasWide);
+
+    /// <summary>官方横幅海报左上角那颗黄色评分；没有评分时整颗收起。</summary>
+    public string RatingText => _fnNasWide && _item.CommunityRating is > 0 and var rating
+        ? rating.ToString("0.0", CultureInfo.InvariantCulture)
+        : "";
+
+    public Visibility RatingVisibility => Show(RatingText.Length > 0);
+
+    /// <summary>右下角的清晰度，取列表自带的档位，至多两档。</summary>
+    public string ResolutionText => _fnNasWide ? FnNasResolution(_item.Resolutions) : "";
+
+    public Visibility ResolutionVisibility => Show(ResolutionText.Length > 0);
+
+    private static string FnNasResolution(IEnumerable<string> values)
+    {
+        var labels = values
+            .Select(value => value.Trim())
+            .Where(value => value.Length > 0 && !value.Contains("480", StringComparison.OrdinalIgnoreCase))
+            .Select(FnNasResolutionLabel)
+            .Distinct(StringComparer.Ordinal)
+            .Take(2);
+        return string.Join(" ", labels);
+    }
+
+    private static string FnNasResolutionLabel(string value) => value.ToLowerInvariant() switch
+    {
+        "4k" or "2160p" => "4K",
+        "8k" => "8K",
+        "1080p" or "1080i" => "1080",
+        "720p" or "720i" => "720",
+        _ => value.ToUpperInvariant()
+    };
+
     public Visibility TitleVisibility => Show(Title.Length > 0);
     public Visibility SubtitleVisibility => Show(Subtitle.Length > 0);
     public Stretch PosterStretch { get; }
@@ -375,7 +419,8 @@ public sealed class CardItem : INotifyPropertyChanged
     // 一块什么都不画的空白。
     public Visibility WatchedBadgeVisibility => Show(_indicators && Watched);
 
-    public Visibility FavoriteBadgeVisibility => Show(_indicators && IsFavorite);
+    /// <summary>飞牛横卡的左上角让给评分，收藏状态仍可在悬停层里看到。</summary>
+    public Visibility FavoriteBadgeVisibility => Show(_indicators && IsFavorite && !_fnNasWide);
 
     /// <summary>
     /// The two halves of each of the hover buttons' icon pairs: the white glyph shows when the state is

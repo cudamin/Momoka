@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
+using Momoka.FnNas;
 using Momoka.Infrastructure;
 using Momoka.Services;
 using Momoka.Shell.Views;
@@ -52,23 +53,36 @@ public sealed record SortEntry(EmbySortOption Option, bool IsChecked, bool Desce
 /// </summary>
 public sealed partial class FilterChipRow
 {
-    private readonly Action<FilterChip> _drop;
+    private readonly Action<FilterChip>? _dropChip;
+    private readonly Action? _drop;
+    private readonly string? _label;
 
     internal FilterChipRow(FilterChip chip, Action<FilterChip> drop)
     {
         Chip = chip;
+        _dropChip = drop;
+    }
+
+    /// <summary>飞牛那一套筛选不是 <see cref="FilterChip"/>：它只给一句屏上的字和一个去掉它的动作。</summary>
+    internal FilterChipRow(string label, Action drop)
+    {
+        _label = label;
         _drop = drop;
     }
 
-    internal FilterChip Chip { get; }
+    internal FilterChip? Chip { get; }
 
-    public string Label => Chip.Label;
+    public string Label => Chip?.Label ?? _label ?? "";
 
     /// <summary>读屏软件念出来的那一句：光一个片名念不出「点它会怎样」。</summary>
-    public string AutomationName => $"去掉筛选：{Chip.Label}";
+    public string AutomationName => $"去掉筛选：{Label}";
 
     [RelayCommand]
-    private void Drop() => _drop(Chip);
+    private void Drop()
+    {
+        if (Chip is { } chip) _dropChip?.Invoke(chip);
+        else _drop?.Invoke();
+    }
 }
 
 /// <summary>
@@ -362,7 +376,28 @@ public sealed partial class LibraryViewModel : PageViewModel
     public partial int FilterCount { get; set; }
 
     public Visibility FilterBadgeVisibility => Show(FilterCount > 0);
-    public double FilterButtonWidth => FilterCount > 0 ? 52 : 32;
+    public double FilterButtonWidth => IsFnNas ? FilterCount > 0 ? 84 : 70 : FilterCount > 0 ? 52 : 32;
+
+    /// <summary>飞牛那一套筛选的选择；Emby 的 <see cref="_filters"/> 对它无效。</summary>
+    private readonly FnNasFilterSelection _fnNasFilters = new();
+    private CancellationTokenSource? _fnNasFilterLifetime;
+
+    /// <summary>飞牛筛选面板在屏上、正在读标签、以及它自己那几行。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FnNasFilterVisibility))]
+    public partial bool FnNasFilterOpen { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FnNasFilterLoadingVisibility))]
+    public partial bool FnNasFilterLoading { get; set; }
+
+    public ObservableCollection<FnNasFilterRow> FnNasFilterRows { get; } = [];
+
+    public Visibility FnNasFilterVisibility => Show(IsFnNas && FnNasFilterOpen);
+    public Visibility FnNasFilterTextVisibility => Show(IsFnNas);
+    public Visibility FnNasFilterLoadingVisibility => Show(FnNasFilterLoading);
+
+    internal bool IsFnNas => _scope?.Connection.IsFnNas == true;
 
     /// <summary>
     /// 工具栏底下那一行筛选条，一条筛选一格。见 <see cref="EmbyFilterBy.Chips"/>：那颗按钮上的数字说「筛了
@@ -394,6 +429,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 见 <see cref="SupportsSort"/>）。
     /// </summary>
     private bool SupportsBrowseConditions => _scope?.Connection.IsFnNas != true && _scope?.Connection.IsPlex != true;
+
+    /// <summary>飞牛有自己的一套标签筛选；Emby 那套条件与 Plex 仍按原样收起。</summary>
+    private bool SupportsFilterPanel => IsFnNas || SupportsBrowseConditions;
 
     /// <summary>Whether this grid has anything the player could start, for the two play buttons.</summary>
     internal bool HasPlayable => _active && SourcesAvailable && _firstPage && !Busy
@@ -492,7 +530,8 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     internal IReadOnlyList<LibrarySectionEntry> BrowseSections => IsSectionLibrary
         ? LibraryBrowse.Sections(_request!.CollectionType, _scope?.Connection.ServerKind ?? MediaServerKind.Emby) : [];
-    public Visibility SectionVisibility => Show(IsSectionLibrary && BrowseSections.Count > 1);
+    /// <summary>飞牛媒体库不摆「影片 / 收藏」分段：官网页端没有这一条，收藏仍在别处可达。</summary>
+    public Visibility SectionVisibility => Show(!IsFnNas && IsSectionLibrary && BrowseSections.Count > 1);
 
     /// <summary>
     /// 这一页底下那一条工具栏（总数、播放、排序、筛选、设置）在不在。网页端不是每一页都有：
@@ -505,7 +544,11 @@ public sealed partial class LibraryViewModel : PageViewModel
             && !(Section == LibrarySection.Favorites && IsFavoritesPage));
 
     public Visibility ToolbarVisibility => Show(HasToolbar);
-    public Visibility SettingsVisibility => Show(IsSectionLibrary && HasToolbar);
+    /// <summary>Emby 那颗齿轮里的分组与显示字段对飞牛不生效，飞牛改用官网页端的「布局」两项。</summary>
+    public Visibility SettingsVisibility => Show(IsSectionLibrary && HasToolbar && !IsFnNas);
+    public Visibility LayoutVisibility => Show(IsFnNas && HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
+        && Section != LibrarySection.Folders);
+    public bool FnNasLayoutWide => IsFnNas && View == LibraryView.Thumb;
     public Visibility BrowseGroupVisibility => Show(IsSectionLibrary && _request?.BrowseGroup is not null);
     public string BrowseGroupLabel => _request?.BrowseGroup ?? "";
     /// <summary>
@@ -527,6 +570,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _request.BrowseGroup = null;
         _request.ScrollOffset = 0;
         _request.LoadedCount = 0;
+        ResetFnNasFilters();
         RestoreSort();
         RestoreFilters();
         RestoreDisplay();
@@ -552,6 +596,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             nameof(DirectPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
             nameof(ToolbarVisibility), nameof(SettingsVisibility), nameof(Fields),
             nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel),
+            nameof(LayoutVisibility), nameof(FnNasFilterVisibility), nameof(FnNasFilterTextVisibility),
+            nameof(FnNasLayoutWide), nameof(FilterButtonWidth),
             nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility) }) OnPropertyChanged(name);
         RefreshUpcomingState();
     }
@@ -872,9 +918,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 那是这张网格怎么画，与服务器无关。
     /// </para>
     /// </summary>
-    public Visibility SortFilterVisibility => Show(HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex);
+    public Visibility SortFilterVisibility => Show(HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
+        // 飞牛搜索走 /search/list，排序参数不会随搜索发出；摆一颗按了不动的排序键比不摆更糟。
+        && !(IsFnNas && _request?.IsSearch == true));
     public Visibility FilterVisibility => Show(HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
-        && Section != LibrarySection.Folders && SupportsBrowseConditions);
+        && Section != LibrarySection.Folders && SupportsFilterPanel
+        // 飞牛搜索走的是 /search/list，它没有标签参数；在搜索页摆一个不起作用的筛选比不摆更糟。
+        && !(IsFnNas && _request?.IsSearch == true));
 
     /// <summary>
     /// Handed the navigation payload and the four capabilities one grid draws from, once per navigation to
@@ -925,6 +975,15 @@ public sealed partial class LibraryViewModel : PageViewModel
         // 这两颗键在不在，也是这一页的身份说的（见 SortFilterVisibility）—— 换一个请求就得重问一次。
         OnPropertyChanged(nameof(SortFilterVisibility));
         OnPropertyChanged(nameof(FilterVisibility));
+        OnPropertyChanged(nameof(FnNasFilterTextVisibility));
+        OnPropertyChanged(nameof(FilterButtonWidth));
+        OnPropertyChanged(nameof(LayoutVisibility));
+
+        _fnNasFilterLifetime?.Cancel();
+        _fnNasFilterLifetime = null;
+        _fnNasFilters.Clear();
+        FnNasFilterRows.Clear();
+        FnNasFilterOpen = false;
 
         if (IsSectionLibrary && !BrowseSections.Any(entry => entry.Section == request.Section))
         {
@@ -1056,12 +1115,18 @@ public sealed partial class LibraryViewModel : PageViewModel
             containArtwork: LibraryIndexCards.ContainArtwork(IndexKind),
             aspect: LibraryIndexCards.Aspect(IndexKind))
         : new(item, _images!, CardBuildWidth, CardBuildWide,
-            subtitle: CardLine(item), imageTypes: CardImageTypes,
+            subtitle: CardLine(item),
+            // 飞牛横卡把竖版海报摆在正中、同一张图铺底，所以先要 Primary；别的视图照旧。
+            imageTypes: IsFnNas && View == LibraryView.Thumb
+                ? [EmbyImageStore.Primary, EmbyImageStore.Thumb] : CardImageTypes,
             tableFields: View == LibraryView.Table ? Fields : null,
             note: LibraryCardText.Note(item, Fields),
             title: Section is LibrarySection.Episodes or LibrarySection.Folders
                 ? LibraryCardText.Title(item, Fields, Section) : null,
-            centeredText: Section is LibrarySection.Episodes or LibrarySection.Folders,
+            // 飞牛的「横幅海报」照官网页端：卡片底下两行字居中；竖幅海报仍是默认的左对齐。
+            centeredText: Section is LibrarySection.Episodes or LibrarySection.Folders
+                || IsFnNas && View == LibraryView.Thumb,
+            fnNasWide: IsFnNas && View == LibraryView.Thumb,
             folderFrame: Section == LibrarySection.Folders && View == LibraryView.Poster);
 
     /// <summary>
@@ -1236,6 +1301,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _queries.Cancel();
         _jumps.Cancel();
         _favoriteLoads.Cancel();
+        _fnNasFilterLifetime?.Cancel();
         foreach (var row in FavoriteRows) row.Loading = false;
         base.Cancel();
         RowsArrived();
@@ -1254,6 +1320,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         foreach (var card in Cards) card.AbandonPoster();
         foreach (var shelf in RecommendedShelves) shelf.Clear();
         _favoriteLoads.Dispose();
+        _fnNasFilterLifetime?.Dispose();
         foreach (var row in RecentSearches) row.Card.AbandonPoster();
         _queries.Dispose();
         _jumps.Dispose();
@@ -1357,6 +1424,10 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_request is null) return [];
 
+        if (IsFnNas)
+            return [.. FnNasSortCatalog.Options.Select(option =>
+                new SortEntry(option, option.Value == SortKey, SortDescending))];
+
         var preset = SortPreset;
 
         return
@@ -1391,7 +1462,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         // Emby's own behaviour, and the only sensible one: a date key opens newest first and a name key
         // A to Z. Choosing 加入日期 and being shown the oldest thing in the library is never what was
         // meant, however the direction happened to be left by the previous key.
-        if (SortFilterVisibility != Visibility.Visible || !option.AppliesTo(SortPreset, SourceServerVersion)) return;
+        if (SortFilterVisibility != Visibility.Visible
+            || (!IsFnNas && !option.AppliesTo(SortPreset, SourceServerVersion))) return;
         if (key == SortKey && option.DescendingByDefault == SortDescending) return;
 
         SortKey = key;
@@ -1606,6 +1678,154 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>
+    /// 飞牛筛选按钮：面板是页面里的一条（官网页端也是展开在工具栏下面），不是 Emby 那种盖住整页的浮层。
+    /// 第一次打开才去问标签；标签失败不关面板，让人能看到失败原因并再点一次。
+    /// </summary>
+    internal async Task ToggleFnNasFilterAsync()
+    {
+        if (!IsFnNas) return;
+        if (FnNasFilterOpen)
+        {
+            FnNasFilterOpen = false;
+            return;
+        }
+
+        FnNasFilterOpen = true;
+        OnPropertyChanged(nameof(FnNasFilterVisibility));
+        if (FnNasFilterRows.Count > 0 || FnNasFilterLoading) return;
+        await LoadFnNasFilterRowsAsync().ConfigureAwait(true);
+    }
+
+    internal void CloseFnNasFilter()
+    {
+        if (FnNasFilterOpen) FnNasFilterOpen = false;
+    }
+
+    private async Task LoadFnNasFilterRowsAsync()
+    {
+        if (!_active || Aggregated || _scope is not { IsAvailable: true } scope || _request is not { } request) return;
+        _fnNasFilterLifetime ??= new CancellationTokenSource();
+        if (_fnNasFilterLifetime.IsCancellationRequested) _fnNasFilterLifetime = new CancellationTokenSource();
+        var token = _fnNasFilterLifetime.Token;
+        FnNasFilterLoading = true;
+        try
+        {
+            var options = await scope.ExecuteAsync((client, ct) => client.GetFnNasFilterOptionsAsync(
+                request.ParentId, request.IsFavorites, "zh-CN", ct), token).ConfigureAwait(true);
+            if (!_active || token.IsCancellationRequested || !scope.IsAvailable) return;
+            BuildFnNasFilterRows(options);
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            if (!_active) return;
+            Log.Warn(Category, "读取飞牛媒体库筛选项失败", error);
+            Report("读取媒体库筛选项失败，请稍后重试", error);
+        }
+        finally { FnNasFilterLoading = false; }
+    }
+
+    private void BuildFnNasFilterRows(FnNasFilterOptions options)
+    {
+        FnNasFilterRows.Clear();
+
+        // 官方前端只在库不是电影或电视剧时给「影视分类」；混合内容库才有电影/剧集两类。
+        if (CollectionType is not ("movies" or "tvshows"))
+            AddFnNasRow("type", "影视分类", [new("Movie", "电影"), new("TV", "电视节目")]);
+        AddFnNasRow("genres", "类型", options.Genres);
+        AddFnNasRow("resolutions", "分辨率", options.Resolutions);
+        AddFnNasRow("color_range", "视频动态范围", options.ColorRanges);
+        AddFnNasRow("audio_type", "音频规格", options.AudioTypes);
+        AddFnNasRow("locate", "国家/地区", options.Locations);
+        AddFnNasRow("decades", "发行年份", options.Decades);
+        AddFnNasRow("recognition_status", "匹配状态", options.RecognitionStatuses);
+        AddFnNasRow("watched", "是否已观看", [new("1", "已观看"), new("0", "未观看")]);
+
+        ShowFilterState();
+    }
+
+    private void AddFnNasRow(string key, string label, IEnumerable<FnNasTagOption> options)
+    {
+        var values = options.ToList();
+        if (values.Count == 0) return;
+
+        var row = new FnNasFilterRow(key, label, ApplyFnNasFilters);
+        row.Add("", FnNasFilterLabels.All);
+        foreach (var option in values) row.Add(option.Value, option.Label);
+        row.Restore(FnNasValue(key));
+        FnNasFilterRows.Add(row);
+    }
+
+    private string FnNasValue(string key) => key switch
+    {
+        "type" => _fnNasFilters.Type,
+        "genres" => _fnNasFilters.Genres.FirstOrDefault() ?? "",
+        "resolutions" => _fnNasFilters.Resolutions.FirstOrDefault() ?? "",
+        "color_range" => _fnNasFilters.ColorRanges.FirstOrDefault() ?? "",
+        "audio_type" => _fnNasFilters.AudioTypes.FirstOrDefault() ?? "",
+        "locate" => _fnNasFilters.Locations.FirstOrDefault() ?? "",
+        "decades" => _fnNasFilters.Decades.FirstOrDefault() ?? "",
+        "recognition_status" => _fnNasFilters.RecognitionStatuses.FirstOrDefault() ?? "",
+        "watched" => _fnNasFilters.Watched,
+        _ => ""
+    };
+
+    private void ApplyFnNasFilters()
+    {
+        _fnNasFilters.Clear();
+        foreach (var row in FnNasFilterRows)
+        {
+            var value = row.SelectedValue;
+            if (value.Length == 0) continue;
+            switch (row.Key)
+            {
+                case "type": _fnNasFilters.Type = value; break;
+                case "genres": _fnNasFilters.Genres.Add(value); break;
+                case "resolutions": _fnNasFilters.Resolutions.Add(value); break;
+                case "color_range": _fnNasFilters.ColorRanges.Add(value); break;
+                case "audio_type": _fnNasFilters.AudioTypes.Add(value); break;
+                case "locate": _fnNasFilters.Locations.Add(value); break;
+                case "decades": _fnNasFilters.Decades.Add(value); break;
+                case "recognition_status": _fnNasFilters.RecognitionStatuses.Add(value); break;
+                case "watched": _fnNasFilters.Watched = value; break;
+            }
+        }
+
+        ShowFilterState();
+        Requery();
+        Log.Debug(Category, _fnNasFilters.IsBlank
+            ? "清除飞牛筛选"
+            : "飞牛筛选：" + string.Join("、", FnNasFilterRows
+                .Where(row => row.SelectedValue.Length > 0)
+                .Select(row => $"{row.Label}：{row.SelectedLabel}")));
+    }
+
+    private void ResetFnNasFilters()
+    {
+        _fnNasFilters.Clear();
+        FnNasFilterRows.Clear();
+        FnNasFilterOpen = false;
+        ShowFilterState();
+    }
+
+    /// <summary>
+    /// 飞牛工具栏上的「布局」：官网页端只有竖幅海报与横幅海报两项。横幅落到缩略图视图，
+    /// 仍是客户端自己的显示设置，不改服务器上的媒体库。
+    /// </summary>
+    internal void SetFnNasLayout(bool wide)
+    {
+        if (!IsFnNas) return;
+        var next = wide ? LibraryView.Thumb : LibraryView.Poster;
+        var size = wide ? LibraryCardSize.Smaller : LibraryCardSize.Default;
+        if (View == next && CardSize == size) return;
+        var display = _display.Clone();
+        display.View = next;
+        // 飞牛的布局菜单没有「图像大小」第二档；横幅按官网页端的密度收小，竖幅回到默认。
+        display.CardSize = size;
+        ApplyDisplay(display);
+    }
+
+    /// <summary>
     /// Where a card goes when it is invoked: wherever the shell says. <see cref="ShellPage.OpenItem"/>
     /// is the one place the 「detail page or another grid」 choice is made, so a poster in a library, one
     /// on the home page and 打开 in the context menu all agree about the same item.
@@ -1737,6 +1957,26 @@ public sealed partial class LibraryViewModel : PageViewModel
     private void RestoreSort()
     {
         var request = _request!;
+        if (IsFnNas)
+        {
+            var fnNasFallback = FnNasSortCatalog.Default;
+            SortKey = fnNasFallback.Value;
+            var fnNasLabel = fnNasFallback.Label;
+            var fnNasDescending = fnNasFallback.DescendingByDefault;
+
+            if (MemoryKey() is { } fnNasMemoryKey
+                && Settings.Ui.Sort.TryGetValue(fnNasMemoryKey, out var fnNasSaved)
+                && FnNasSortCatalog.Find(fnNasSaved.By) is { } savedOption)
+            {
+                SortKey = savedOption.Value;
+                fnNasLabel = savedOption.Label;
+                fnNasDescending = fnNasSaved.Descending;
+            }
+
+            ShowSort(fnNasLabel, fnNasDescending);
+            return;
+        }
+
         var preset = SortPreset;
         var fallback = IsSectionLibrary ? LibrarySortCatalog.Default(request.CollectionType, Section) : EmbySortBy.Default(preset);
         var options = IsSectionLibrary ? LibrarySortCatalog.For(request.CollectionType, Section, SourceServerVersion)
@@ -1846,6 +2086,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(Fields));
         OnPropertyChanged(nameof(ViewGlyph));
         OnPropertyChanged(nameof(ViewLabel));
+        OnPropertyChanged(nameof(FnNasLayoutWide));
         OnPropertyChanged(nameof(RowHeight));
         OnPropertyChanged(nameof(CellWidth));
         OnPropertyChanged(nameof(CardMinWidth));
@@ -1882,6 +2123,12 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private void ShowFilterState()
     {
+        if (IsFnNas)
+        {
+            ShowFnNasFilterState();
+            return;
+        }
+
         FilterCount = _filters.Count;
         FilterTooltip = FilterCount == 0 ? "筛选" : _filters.Describe();
 
@@ -1892,6 +2139,25 @@ public sealed partial class LibraryViewModel : PageViewModel
             FilterChips.Add(new FilterChipRow(chip, DropFilter));
 
         OnPropertyChanged(nameof(FilterChipsVisibility));
+    }
+
+    private void ShowFnNasFilterState()
+    {
+        var active = FnNasFilterRows.Where(row => row.SelectedValue.Length > 0).ToList();
+        FilterCount = active.Count;
+        FilterTooltip = FilterCount == 0 ? "筛选" : string.Join("；", active.Select(row => $"{row.Label}：{row.SelectedLabel}"));
+        FilterChips.Clear();
+        foreach (var row in active)
+        {
+            var captured = row;
+            FilterChips.Add(new FilterChipRow($"{row.Label}：{row.SelectedLabel}", () =>
+            {
+                captured.Reset();
+                ApplyFnNasFilters();
+            }));
+        }
+        OnPropertyChanged(nameof(FilterChipsVisibility));
+        OnPropertyChanged(nameof(FilterButtonWidth));
     }
 
     /// <summary>
@@ -1908,6 +2174,14 @@ public sealed partial class LibraryViewModel : PageViewModel
     [RelayCommand]
     private void ClearFilters()
     {
+        if (IsFnNas)
+        {
+            if (FnNasFilterRows.Count == 0) return;
+            foreach (var row in FnNasFilterRows) row.Reset();
+            ApplyFnNasFilters();
+            return;
+        }
+
         if (_filters.IsBlank) return;
 
         _filters.Toggles.Clear();
@@ -1937,6 +2211,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// parent」 with its library root — a wrong answer that looks like a right one.
     /// </summary>
     private ItemQuery? BuildQuery(int start)
+    {
+        var query = BuildQueryCore(start);
+        if (query is not null) query.FnNasFilters = IsFnNas ? _fnNasFilters.Clone() : null;
+        return query;
+    }
+
+    private ItemQuery? BuildQueryCore(int start)
     {
         var request = _request!;
         var limit = _settings!.PageSize;

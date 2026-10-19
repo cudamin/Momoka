@@ -47,6 +47,14 @@ public sealed partial class FnNasLibrariesPage : Page, IShellContent, ISessionSc
     {
         if (sender is Button { Tag: FnNasLibraryRow row }) await ViewModel.ScanAsync(row);
     }
+    private async void OnMoveUp(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: FnNasLibraryRow row }) await ViewModel.MoveAsync(row, -1);
+    }
+    private async void OnMoveDown(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { Tag: FnNasLibraryRow row }) await ViewModel.MoveAsync(row, 1);
+    }
     private void OnRemoveFolder(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: FnNasChoice row }) ViewModel.RemoveFolder(row);

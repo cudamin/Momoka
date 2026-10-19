@@ -65,6 +65,14 @@ internal static class FnNasMediaTests
             Assert.Equal(6, page.TotalRecordCount);
             Assert.Equal("item3,item4", string.Join(',', page.Items.Select(item => item.Id)));
         });
+        Test("飞牛媒体：列表带上评分与清晰度供横幅卡显示", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            var page = fixture.Session.Client.GetItemsAsync(new ItemQuery { Limit = 1 }, default).GetAwaiter().GetResult();
+            var item = page.Items.Single();
+            Assert.Equal(8.4f, item.CommunityRating);
+            Assert.Equal("1080p,4k", string.Join(',', item.Resolutions));
+        });
         Test("飞牛媒体：标记已看后使用季集列表选择下一集", () =>
         {
             using var fixture = new Fixture(); fixture.Login();
@@ -122,6 +130,113 @@ internal static class FnNasMediaTests
             Assert.Throws<NotSupportedException>(() => fixture.Session.Client.ScanLibraryAsync(default).GetAwaiter().GetResult());
             Assert.Equal(before, fixture.Transport.Paths.Count);
         });
+        Test("飞牛筛选：选择写成 item/list 的 tags，空值不发", () =>
+        {
+            var filters = new FnNasFilterSelection { Type = "Movie", Watched = "1" };
+            filters.Genres.Add("2");
+            filters.Genres.Add("7");
+            filters.Resolutions.Add("4k");
+            filters.ColorRanges.Add("HDR10");
+            filters.AudioTypes.Add("Stereo");
+            filters.Locations.Add("CN");
+            filters.Decades.Add("2020s");
+            filters.RecognitionStatuses.Add("1");
+            filters.RecognitionStatuses.Add("2");
+
+            var query = FnNasMediaAdapter.Query(new ItemQuery
+            {
+                IncludeItemTypes = [EmbyItemType.Series],
+                Limit = 30,
+                SortBy = EmbySortBy.Name,
+                FnNasFilters = filters
+            });
+            var tags = query["tags"]!.AsObject();
+            Assert.Equal("Movie", tags["type"]!.AsArray().Single()!.GetValue<string>());
+            // 官方前端的筛选每一类只留一个值：题材是单数整数，其余是单数字段；发数组会被服务器当坏请求。
+            Assert.Equal(2, tags["genres"]!.GetValue<int>());
+            Assert.Equal("4k", tags["resolution"]!.GetValue<string>());
+            Assert.Equal("HDR10", tags["color_range"]!.GetValue<string>());
+            Assert.Equal("Stereo", tags["audio_type"]!.GetValue<string>());
+            Assert.Equal("CN", tags["locate"]!.GetValue<string>());
+            Assert.Equal("2020s", tags["decade"]!.GetValue<string>());
+            Assert.Equal("1", tags["recognition_status"]!.GetValue<string>());
+            Assert.Equal("1", tags["watched"]!.GetValue<string>());
+            Assert.False(tags.ContainsKey("resolutions") || tags.ContainsKey("decades"), "请求键必须是单数");
+
+            var plain = FnNasMediaAdapter.Query(new ItemQuery { Limit = 30, SortBy = EmbySortBy.Name });
+            Assert.Equal(0, plain["tags"]!.AsObject().Count);
+        });
+        Test("飞牛筛选：标签选项换成中文且映射缺失时保留原值", () =>
+        {
+            var tags = JsonNode.Parse("""
+                {"genres":[2,7],"resolutions":["4k","1080P"],"color_range":["HDR10","SDR"],
+                 "audio_type":["Stereo","Dolby Atmos","DolbySurround","DolbyAtmos"],"locate":["CN","XX"],
+                 "decades":["Recent","2020s"],"recognition_status":[1,2,3]}
+                """)!.AsObject();
+            var genres = JsonNode.Parse("""[{"id":2,"value":"动画"},{"id":7,"value":"动作"}]""")!.AsArray()
+                .Select(node => node!.AsObject()).ToArray();
+            var countries = JsonNode.Parse("""[{"key":"CN","value":"中国大陆"},{"key":"CN","value":"重复"}]""")!.AsArray()
+                .Select(node => node!.AsObject()).ToArray();
+
+            var options = FnNasMediaAdapter.FilterOptions(tags, genres, countries);
+            Assert.Equal("动画,动作", string.Join(',', options.Genres.Select(option => option.Label)));
+            Assert.Equal("4k,1080P", string.Join(',', options.Resolutions.Select(option => option.Label)));
+            Assert.Equal("HDR10,SDR", string.Join(',', options.ColorRanges.Select(option => option.Label)));
+            Assert.Equal("立体声,杜比全景声,杜比环绕,杜比全景声",
+                string.Join(',', options.AudioTypes.Select(option => option.Label)));
+            Assert.Equal("中国大陆,XX", string.Join(',', options.Locations.Select(option => option.Label)));
+            Assert.Equal("今年,2020年代", string.Join(',', options.Decades.Select(option => option.Label)));
+            Assert.Equal("未匹配,已匹配,读取 NFO",
+                string.Join(',', options.RecognitionStatuses.Select(option => option.Label)));
+        });
+        Test("飞牛筛选：经客户端读取 tag/list、题材与地区映射", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            var options = fixture.Session.Client.GetFnNasFilterOptionsAsync("library", false, "zh-CN", default)
+                .GetAwaiter().GetResult();
+            Assert.Equal("动画,动作", string.Join(',', options.Genres.Select(option => option.Label)));
+            Assert.Equal("中国大陆", options.Locations.Single().Label);
+            Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/tag/list?ancestor_guid=library"));
+            Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/tag/genres?lan=zh-CN"));
+            Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/tag/iso3166?lan=zh-CN"));
+        });
+        Test("飞牛筛选：计数、清空与克隆互不影响", () =>
+        {
+            var selection = new FnNasFilterSelection { Type = "Movie", Watched = "1" };
+            selection.Genres.Add("2");
+            selection.Resolutions.Add("4k");
+            Assert.False(selection.IsBlank);
+            Assert.Equal(4, selection.Count);
+
+            var clone = selection.Clone();
+            clone.Genres.Add("7");
+            Assert.Equal(1, selection.Genres.Count);
+            Assert.Equal(2, clone.Genres.Count);
+
+            selection.Clear();
+            Assert.True(selection.IsBlank);
+            Assert.Equal(0, selection.Count);
+        });
+        Test("飞牛排序：官方菜单四项与顺序", () =>
+        {
+            Assert.Equal("添加日期,发行日期,标题,评分",
+                string.Join(',', FnNasSortCatalog.Options.Select(option => option.Label)));
+            Assert.Equal("DateCreated,SortName,ProductionYear,PremiereDate,SortName,SortName,CommunityRating,SortName",
+                string.Join(',', FnNasSortCatalog.Options.Select(option => option.Value)));
+        });
+        Test("飞牛媒体库：保存排序按屏幕顺序发 setSort", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            var scope = fixture.Session.Capture();
+            scope.ExecuteAsync((client, ct) =>
+                    client.FnNas.SetLibraryOrderAsync(client.FnNasConnection, ["second", "first"], ct), default)
+                .GetAwaiter().GetResult();
+            Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/mdb/setSort"));
+            var body = fixture.Transport.Bodies.Last();
+            var list = body["list_sort"]!.AsArray();
+            Assert.Equal("second,first", string.Join(',', list.Select(node => node!["guid"]!.GetValue<string>())));
+            Assert.Equal("0,1", string.Join(',', list.Select(node => node!["sort_num"]!.GetValue<int>())));
+        });
     }
 
     private sealed class Fixture : IDisposable
@@ -144,6 +259,8 @@ internal static class FnNasMediaTests
     private sealed class Transport : HttpMessageHandler
     {
         public List<string> Paths { get; } = [];
+        public List<string> RequestUris { get; } = [];
+        public List<JsonObject> Bodies { get; } = [];
         public List<string> Authorizations { get; } = [];
         public int Logins { get; private set; }
         public bool Expire { get; set; }
@@ -151,6 +268,14 @@ internal static class FnNasMediaTests
         {
             Assert.Equal("fnnas.invalid", request.RequestUri!.Host);
             var path = request.RequestUri.AbsolutePath; Paths.Add(path);
+            RequestUris.Add(request.RequestUri.PathAndQuery);
+            JsonObject? body = null;
+            if (request.Content is { } content)
+            {
+                var text = await content.ReadAsStringAsync(cancellationToken);
+                if (text.TrimStart().StartsWith('{')) body = JsonNode.Parse(text) as JsonObject;
+                if (body is not null) Bodies.Add(body);
+            }
             if (request.Headers.TryGetValues("Authorization", out var authorization))
                 Authorizations.Add(authorization.Single());
             if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal)) return new(HttpStatusCode.NotFound);
@@ -163,6 +288,10 @@ internal static class FnNasMediaTests
                 "/v/api/v1/sys/config" => "{\"server_guid\":\"server\",\"server_name\":\"飞牛\"}",
                 "/v/api/v1/sys/version" => "{\"version\":\"0.9.8\",\"mediasrvVersion\":\"0.8.43\"}",
                 "/v/api/v1/mediadb/list" => "[{\"guid\":\"library\",\"name\":\"电影库\",\"category\":\"Movie\"}]",
+                "/v/api/v1/tag/list" => "{\"genres\":[2,7],\"resolutions\":[\"4k\",\"1080P\"],\"color_range\":[\"HDR10\",\"SDR\"],\"audio_type\":[\"Stereo\"],\"locate\":[\"CN\"],\"decades\":[\"Recent\",\"2020s\"],\"recognition_status\":[1,2,3]}",
+                "/v/api/v1/tag/genres" => "[{\"id\":2,\"value\":\"动画\"},{\"id\":7,\"value\":\"动作\"}]",
+                "/v/api/v1/tag/iso3166" => "[{\"key\":\"CN\",\"value\":\"中国大陆\"}]",
+                "/v/api/v1/mdb/setSort" => "null",
                 "/v/api/v1/search/list" => "[{\"guid\":\"movie\",\"title\":\"片名\",\"type\":\"Movie\"},{\"guid\":\"series\",\"title\":\"剧\",\"type\":\"TV\"}]",
                 "/v/api/v1/season/list/series" => "[{\"guid\":\"season\",\"type\":\"Season\",\"season_number\":1}]",
                 "/v/api/v1/episode/list/season" => "[{\"guid\":\"episode1\",\"title\":\"第一集\",\"episode_number\":1,\"season_number\":1,\"watched\":1},{\"guid\":\"episode2\",\"title\":\"第二集\",\"episode_number\":2,\"season_number\":1,\"watched\":0}]",
@@ -174,13 +303,25 @@ internal static class FnNasMediaTests
             };
             if (data.Length == 0)
             {
-                var body = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!;
-                foreach (var key in new[] { "type", "genres" })
-                    if (body["tags"]?[key] is JsonArray values)
-                        Assert.True(values.Count > 0, $"item/list 的 tags.{key} 不能是空数组");
+                if (body is null) throw new InvalidOperationException("item/list 缺少 JSON 正文");
+                var sent = body["tags"]!.AsObject();
+                if (sent["type"] is JsonArray types) Assert.True(types.Count > 0, "item/list 的 tags.type 不能是空数组");
+                foreach (var key in new[] { "genres", "resolution", "color_range", "audio_type",
+                    "locate", "decade", "recognition_status", "watched" })
+                    if (sent[key] is { } value)
+                        Assert.False(string.IsNullOrWhiteSpace(value.ToString()), $"item/list 的 tags.{key} 不能为空");
+                Assert.False(sent.ContainsKey("resolutions") || sent.ContainsKey("decades"),
+                    "item/list 的筛选键是单数 resolution / decade");
                 var size = body["page_size"]!.GetValue<int>(); var page = body["page"]!.GetValue<int>();
                 var list = new JsonArray(Enumerable.Range((page - 1) * size, Math.Min(size, 6 - (page - 1) * size))
-                    .Select(index => (JsonNode?)new JsonObject { ["guid"] = "item" + index, ["title"] = "影片", ["type"] = "Movie" }).ToArray());
+                    .Select(index => (JsonNode?)new JsonObject
+                    {
+                        ["guid"] = "item" + index,
+                        ["title"] = "影片",
+                        ["type"] = "Movie",
+                        ["vote_average"] = 8.4,
+                        ["media_stream"] = new JsonObject { ["resolutions"] = new JsonArray("1080p", "4k") }
+                    }).ToArray());
                 data = new JsonObject { ["total"] = 6, ["list"] = list }.ToJsonString();
             }
             return Reply(data);

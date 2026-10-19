@@ -21,16 +21,36 @@ public sealed partial class FnNasMediaAdapter
             EmbySortBy.Rating => "vote_average",
             _ => throw new NotSupportedException("飞牛影视不支持此排序方式")
         };
-        var types = query.IncludeItemTypes.Select(type => type switch
+        var selection = query.FnNasFilters;
+        // 筛选面板点的那一类优先于这一页自身的类型；没有点就仍按这一页装的是什么问。
+        var types = selection is { Type.Length: > 0 } chosen ? [chosen.Type]
+            : query.IncludeItemTypes.Select(type => type switch
+            {
+                EmbyItemType.Series => "TV",
+                EmbyItemType.Movie => "Movie",
+                EmbyItemType.Video => "Video",
+                EmbyItemType.Folder => "Directory",
+                EmbyItemType.Season => "Season",
+                EmbyItemType.Episode => "Episode",
+                _ => ""
+            }).Where(type => type.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+        var tags = new JsonObject();
+        // The server answers -4 (InternalError) for an empty array under tags; a missing key means
+        // "no filter". The official frontend and MoviePilot both omit it rather than sending [].
+        AddStrings(tags, "type", types);
+        if (selection is { } filters)
         {
-            EmbyItemType.Series => "TV",
-            EmbyItemType.Movie => "Movie",
-            EmbyItemType.Video => "Video",
-            EmbyItemType.Folder => "Directory",
-            EmbyItemType.Season => "Season",
-            EmbyItemType.Episode => "Episode",
-            _ => ""
-        }).Where(type => type.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+            // 官方前端把筛选状态原样交给 item/list：只有 type 是数组；题材是单个整数，
+            // 其余各格是单数字段，而且请求键用单数 resolution / decade（tag/list 的返回键才是复数）。
+            if (int.TryParse(filters.Genres.FirstOrDefault(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var genre))
+                tags["genres"] = genre;
+            AddString(tags, "resolution", filters.Resolutions.FirstOrDefault());
+            AddString(tags, "color_range", filters.ColorRanges.FirstOrDefault());
+            AddString(tags, "audio_type", filters.AudioTypes.FirstOrDefault());
+            AddString(tags, "locate", filters.Locations.FirstOrDefault());
+            AddString(tags, "decade", filters.Decades.FirstOrDefault());
+            AddString(tags, "recognition_status", filters.RecognitionStatuses.FirstOrDefault());
+        }
         var result = new JsonObject
         {
             ["page"] = Math.Max(0, query.StartIndex) / Math.Max(1, query.Limit) + 1,
@@ -38,14 +58,78 @@ public sealed partial class FnNasMediaAdapter
             ["sort_column"] = sort,
             ["sort_type"] = query.Descending ? "DESC" : "ASC",
             ["exclude_grouped_video"] = 1,
-            ["tags"] = new JsonObject()
+            ["tags"] = tags
         };
-        // The server answers -4 (InternalError) for an empty array under tags; a missing key means
-        // "no filter". The official frontend and MoviePilot both omit it rather than sending [].
-        if (types.Length > 0) result["tags"]!["type"] = new JsonArray(types.Select(value => (JsonNode?)JsonValue.Create(value)).ToArray());
         if (!string.IsNullOrWhiteSpace(query.ParentId)) result["ancestor_guid"] = query.ParentId;
-        if (query.IsPlayed is { } played) result["tags"]!["watched"] = played ? "1" : "0";
+        // 播放状态这一位来自列表本身的固定条件（收藏页等），比面板上点的更具体，最后写。
+        if (query.IsPlayed is { } played) tags["watched"] = played ? "1" : "0";
+        else if (selection is { Watched.Length: > 0 } watched) tags["watched"] = watched.Watched;
         return result;
+    }
+
+    private static void AddStrings(JsonObject tags, string key, IEnumerable<string> values)
+    {
+        var array = new JsonArray();
+        foreach (var value in values.Where(value => value.Length > 0).Distinct(StringComparer.Ordinal))
+            array.Add(value);
+        if (array.Count > 0) tags[key] = array;
+    }
+
+    private static void AddString(JsonObject tags, string key, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value)) tags[key] = value;
+    }
+
+    public async Task<FnNasFilterOptions> GetFilterOptionsAsync(string? parentId, bool favorites, string language, CancellationToken ct)
+    {
+        var tags = await client.GetFilterTagsAsync(connection, parentId, favorites, ct).ConfigureAwait(false);
+
+        // 题材与国家/地区只是把原始值换成中文；映射表拿不到不该让整个筛选面板打不开。
+        IReadOnlyList<JsonObject> genres = [];
+        IReadOnlyList<JsonObject> countries = [];
+        try { genres = await client.GetGenreTagsAsync(connection, language, ct).ConfigureAwait(false); }
+        catch (FnNasApiException) { }
+        try { countries = await client.GetCountryTagsAsync(connection, language, ct).ConfigureAwait(false); }
+        catch (FnNasApiException) { }
+        return FilterOptions(tags, genres, countries);
+    }
+
+    /// <summary>把 <c>tag/list</c> 与两张映射表装成面板能直接用的中文标签。</summary>
+    public static FnNasFilterOptions FilterOptions(
+        JsonObject tags, IReadOnlyList<JsonObject>? genres = null, IReadOnlyList<JsonObject>? countries = null)
+    {
+        // 真实服务器会在 iso3166 里重复同一个地区码（本次看到的 MD）；取第一份，不让一张映射表
+        // 把整个筛选面板打成错误。
+        var genreMap = Map(genres, "id");
+        var countryMap = Map(countries, "key");
+
+        return new FnNasFilterOptions(
+            Options(tags, "genres", value => genreMap.GetValueOrDefault(value, value)),
+            Options(tags, "resolutions", FnNasFilterLabels.Resolution),
+            Options(tags, "color_range", FnNasFilterLabels.ColorRange),
+            Options(tags, "audio_type", FnNasFilterLabels.AudioType),
+            Options(tags, "locate", value => countryMap.GetValueOrDefault(value, value)),
+            Options(tags, "decades", FnNasFilterLabels.Decade),
+            Options(tags, "recognition_status", FnNasFilterLabels.RecognitionStatus));
+    }
+
+    private static List<FnNasTagOption> Options(JsonObject tags, string key, Func<string, string> label)
+    {
+        var result = new List<FnNasTagOption>();
+        foreach (var value in Strings(tags[key]).Distinct(StringComparer.Ordinal))
+            result.Add(new FnNasTagOption(value, label(value)));
+        return result;
+    }
+
+    private static Dictionary<string, string> Map(IReadOnlyList<JsonObject>? values, string key)
+    {
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var value in values ?? [])
+        {
+            var id = Text(value, key);
+            if (id.Length > 0) map.TryAdd(id, Text(value, "value"));
+        }
+        return map;
     }
 
     public static EmbyItem Library(JsonObject value)
@@ -112,6 +196,8 @@ public sealed partial class FnNasMediaAdapter
         if (poster.Length > 0) item.ImageTags["Primary"] = poster;
         if (still.Length > 0) item.ImageTags["Thumb"] = still;
         item.BackdropImageTags = Strings(value["backdrops"]).ToList();
+        // 横幅海报右下角的清晰度角标；详情页的流信息仍走 stream/list，这里只读列表已经带上的档位。
+        if (value["media_stream"] is JsonObject media) item.Resolutions = Strings(media["resolutions"]).ToList();
         return item;
     }
 

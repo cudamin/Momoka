@@ -53,6 +53,8 @@
 
 `item/list` 正文（上游形态）：`{tags:{type:[…]}, sort_type, sort_column, page, page_size, ancestor_guid?, exclude_grouped_video?}`；响应 `data.{total, list[]}`。`ancestor_guid` 省略时是跨库查询。
 
+**`tags` 的形状（2026-10-19 官方前端 0.9.8 `tagsParams` 核对）**：只有 `type` 是字符串数组；`genres` 是**单个整数**；`resolution`、`color_range`、`audio_type`、`locate`、`decade`、`recognition_status`、`watched` 都是**单值字符串**。请求键用单数 `resolution` / `decade`，而 `tag/list` 的返回键是复数 `resolutions` / `decades`。没有筛选时省略对应的键；**空数组或把单值字段写成数组会让服务器返回 `-4`**（真实服务器实测，题材筛选尤其容易踩）。真实服务器 `item/list` 的条目还带 `vote_average` 与 `media_stream.resolutions`，可直接做评分/清晰度角标。
+
 `type` 取值：`MediaDB` / `Movie` / `TV` / `Season` / `Episode` / `Video` / `Directory`。
 
 ## 季 / 集

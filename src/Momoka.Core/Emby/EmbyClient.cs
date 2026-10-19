@@ -68,6 +68,12 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         return http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken);
     }
 
+    /// <summary>飞牛筛选面板的可选标签，与 <c>item/list</c> 的 <c>tags</c> 同一套名字。</summary>
+    public Task<Momoka.FnNas.FnNasFilterOptions> GetFnNasFilterOptionsAsync(
+        string? parentId, bool favorites, string language, CancellationToken cancellationToken) =>
+        Connection.IsFnNas ? FnNasMedia.GetFilterOptionsAsync(parentId, favorites, language, cancellationToken)
+        : throw new NotSupportedException("当前服务器不支持飞牛筛选标签");
+
     /// <summary>
     /// 需求 5：the choices for one of <see cref="EmbyFilterBy.Lists"/> — which genres, tags or years the
     /// items in <paramref name="scope"/> actually have.

@@ -68,6 +68,24 @@ public sealed partial class FnNasClient(FnNasHttp http)
     public Task<JsonObject> GetLibrarySummaryAsync(FnNasConnection c, CancellationToken ct = default) =>
         ObjectAsync(c, HttpMethod.Get, "api/v1/mediadb/sum", null, ct);
 
+    /// <summary>筛选面板的可选标签；<paramref name="ancestorGuid"/> 为空时是跨库查询。</summary>
+    public Task<JsonObject> GetFilterTagsAsync(FnNasConnection c, string? ancestorGuid, bool favorites, CancellationToken ct = default)
+    {
+        var query = "api/v1/tag/list";
+        var parameters = new List<string>();
+        if (!string.IsNullOrWhiteSpace(ancestorGuid))
+            parameters.Add("ancestor_guid=" + Uri.EscapeDataString(ancestorGuid));
+        if (favorites) parameters.Add("is_favorite=1");
+        if (parameters.Count > 0) query += "?" + string.Join('&', parameters);
+        return ObjectAsync(c, HttpMethod.Get, query, null, ct);
+    }
+
+    public Task<IReadOnlyList<JsonObject>> GetGenreTagsAsync(FnNasConnection c, string language, CancellationToken ct = default) =>
+        ListAsync(c, HttpMethod.Get, "api/v1/tag/genres?lan=" + Uri.EscapeDataString(language), null, ct);
+
+    public Task<IReadOnlyList<JsonObject>> GetCountryTagsAsync(FnNasConnection c, string language, CancellationToken ct = default) =>
+        ListAsync(c, HttpMethod.Get, "api/v1/tag/iso3166?lan=" + Uri.EscapeDataString(language), null, ct);
+
     public Task<IReadOnlyList<JsonObject>> GetContinueWatchingAsync(FnNasConnection c, CancellationToken ct = default) =>
         ListAsync(c, HttpMethod.Get, "api/v1/play/list", null, ct);
 

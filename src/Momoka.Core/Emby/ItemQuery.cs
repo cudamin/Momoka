@@ -176,6 +176,13 @@ public sealed class ItemQuery
     /// </summary>
     public ItemFilters? Filters { get; init; }
 
+    /// <summary>
+    /// 飞牛媒体库筛选面板的选择。飞牛那套标签（分辨率、动态范围、音频规格、地区、年代、匹配状态）
+    /// 与 Emby 的 <see cref="Filters"/> 不是同一组词，单独一格交给 <c>FnNasMediaAdapter</c> 拼进
+    /// <c>item/list</c> 的 <c>tags</c>；其他后端不读它。
+    /// </summary>
+    public Momoka.FnNas.FnNasFilterSelection? FnNasFilters { get; set; }
+
     /// <summary>"Video" restricts a recursive search to things that can actually be played.</summary>
     public string? MediaTypes { get; init; }
 

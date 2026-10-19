@@ -66,6 +66,19 @@
                     FontSize="32"
                     Foreground="{ThemeResource EgTextFaintBrush}"
                     Glyph="{x:Bind Card.Glyph, Mode=OneWay}" />
+                <!-- 飞牛横卡的底：同一张海报放大、压暗，竖版封面摆在正中（见 CardItem.FnNasWide）。 -->
+                <Grid Visibility="{x:Bind Card.FnNasWideVisibility, Mode=OneWay}">
+                    <Image
+                        Opacity="0.55"
+                        RenderTransformOrigin="0.5,0.5"
+                        Source="{x:Bind Card.Poster, Mode=OneWay}"
+                        Stretch="UniformToFill">
+                        <Image.RenderTransform>
+                            <ScaleTransform ScaleX="1.15" ScaleY="1.15" />
+                        </Image.RenderTransform>
+                    </Image>
+                    <Border Background="{ThemeResource EgScrimBrush}" Opacity="0.4" />
+                </Grid>
                 <Image
                     x:Name="Poster"
                     ImageOpened="OnPosterOpened"
@@ -80,6 +93,20 @@
                     Margin="4" Padding="4,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.DurationVisibility, Mode=OneWay}">
                     <TextBlock Text="{x:Bind Card.DurationText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                        Foreground="{ThemeResource EgOnScrimBrush}" />
+                </Border>
+                <Border HorizontalAlignment="Left" VerticalAlignment="Top" CornerRadius="5"
+                    Margin="8" Padding="7,1" Background="{ThemeResource EgScrimBrush}"
+                    Visibility="{x:Bind Card.RatingVisibility, Mode=OneWay}">
+                    <TextBlock Text="{x:Bind Card.RatingText, Mode=OneWay}" FontWeight="SemiBold"
+                        FontSize="{StaticResource EgCaptionFontSize}"
+                        Foreground="{ThemeResource EgWarningBrush}" />
+                </Border>
+                <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="5"
+                    Margin="8" Padding="7,1" Background="{ThemeResource EgScrimBrush}"
+                    Visibility="{x:Bind Card.ResolutionVisibility, Mode=OneWay}">
+                    <TextBlock Text="{x:Bind Card.ResolutionText, Mode=OneWay}" FontWeight="SemiBold"
+                        FontSize="{StaticResource EgCaptionFontSize}"
                         Foreground="{ThemeResource EgOnScrimBrush}" />
                 </Border>
                 <Border

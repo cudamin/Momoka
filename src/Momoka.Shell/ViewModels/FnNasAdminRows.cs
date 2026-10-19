@@ -50,7 +50,7 @@ internal static class FnNasJson
     }
 }
 
-public sealed class FnNasLibraryRow(JsonObject library)
+public sealed partial class FnNasLibraryRow(JsonObject library) : ObservableObject
 {
     internal JsonObject Document { get; } = FnNasJson.Copy(library);
     public string Id { get; } = FnNasJson.Text(library, "guid");
@@ -60,6 +60,18 @@ public sealed class FnNasLibraryRow(JsonObject library)
     public string Directories { get; } = string.Join("\n", FnNasJson.Strings(library["dir_list"]));
     public string Updated { get; } = "最近更新：" + FnNasJson.Time(library, "last_update_time");
     public Visibility ScanVisibility => Category == "IPTV" ? Visibility.Collapsed : Visibility.Visible;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SortVisibility))]
+    public partial bool Sorting { get; set; }
+
+    [ObservableProperty]
+    public partial bool CanMoveUp { get; set; }
+
+    [ObservableProperty]
+    public partial bool CanMoveDown { get; set; }
+
+    public Visibility SortVisibility => Sorting ? Visibility.Visible : Visibility.Collapsed;
 }
 
 public sealed class FnNasTaskRow(JsonObject task)

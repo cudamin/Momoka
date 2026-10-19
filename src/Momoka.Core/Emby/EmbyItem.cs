@@ -584,6 +584,12 @@ public sealed class EmbyItem
     public List<MediaSource> MediaSources { get; set; } = [];
 
     /// <summary>
+    /// 列表响应自带的画质档位（飞牛 <c>media_stream.resolutions</c>，如 <c>1080p</c> / <c>4k</c>）。
+    /// 别的后端不在列表里发这一项，所以为空；要完整流信息的地方仍读 <see cref="MediaSources"/>。
+    /// </summary>
+    public List<string> Resolutions { get; set; } = [];
+
+    /// <summary>
     /// The tracks, flattened out of the media source. Browse and detail responses leave this empty —
     /// they carry <see cref="MediaSources"/> instead — but a session's NowPlayingItem is sent with
     /// the streams and no sources at all, which is how the 服务器 page names what is being decoded.

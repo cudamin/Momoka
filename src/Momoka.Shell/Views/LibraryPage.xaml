@@ -75,6 +75,26 @@
             <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
         </Style>
 
+        <!-- 飞牛筛选面板上的一个可选值。官网页端是「全部」加一组文字，选中变强调色；
+             这里用 ToggleButton 自带的选中态，不额外造一套画法。 -->
+        <Style x:Key="FnNasFilterChoiceStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
+        </Style>
+
+        <DataTemplate x:Key="FnNasLayoutEntryTemplate" x:DataType="local:LayoutEntry">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}"
+                    Visibility="{x:Bind CheckVisibility}" />
+                <TextBlock Text="{x:Bind Label}" VerticalAlignment="Center" />
+            </StackPanel>
+        </DataTemplate>
+
         <!-- ============================================================ 推荐页那三排货架
              2026-10-17 用户令「复刻网页端的推荐页面，三个分区 继续观看、最新集、最近发布的剧集」。
              用的就是主页那三件（CardShelf / ShelfStrip / ShelfHead / PosterCard），所以卡片的形状、
@@ -247,6 +267,7 @@
 
         <Grid x:Name="HeaderGrid" RowSpacing="16">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -455,11 +476,40 @@
                                 <FontIcon FontSize="14" Glyph="&#xE71C;" />
                                 <TextBlock x:Name="FilterText" Visibility="Collapsed"
                 x:Uid="LibraryPage_FilterText" />
+                                <TextBlock Text="筛选" VerticalAlignment="Center"
+                                    Visibility="{x:Bind ViewModel.FnNasFilterTextVisibility, Mode=OneWay}" />
                                 <!-- How many filters are on, without spending a row of the page saying so. -->
                                 <InfoBadge
                                     Value="{x:Bind ViewModel.FilterCount, Mode=OneWay}"
                                     Visibility="{x:Bind ViewModel.FilterBadgeVisibility, Mode=OneWay}" />
                             </StackPanel>
+                        </Button>
+                        <!-- 飞牛官网页端的「布局」：只有竖幅海报与横幅海报两项。Emby 那颗齿轮里的分组与
+                             显示字段对飞牛的接口没有作用，所以飞牛收起齿轮、改摆这一颗。 -->
+                        <Button x:Name="FnNasLayoutButton" Style="{StaticResource LibraryPillStyle}"
+                            Visibility="{x:Bind ViewModel.LayoutVisibility, Mode=OneWay}"
+                            ToolTipService.ToolTip="布局" AutomationProperties.Name="布局">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE8A9;" />
+                                <TextBlock Text="布局" />
+                                <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE70D;" />
+                            </StackPanel>
+                            <Button.Flyout>
+                                <!-- 与排序菜单同一种浮层：MenuFlyout 在这颗键上会算错锚点、翻到工具栏上面去。 -->
+                                <Flyout x:Name="FnNasLayoutMenu" Placement="Bottom" Opening="OnFnNasLayoutMenuOpening">
+                                    <ListView x:Name="FnNasLayoutList" Width="180" SelectionMode="None"
+                                        IsItemClickEnabled="True" ItemClick="OnFnNasLayoutItemClick"
+                                        ItemTemplate="{StaticResource FnNasLayoutEntryTemplate}">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="MinHeight" Value="36" />
+                                                <Setter Property="Padding" Value="10,0" />
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                    </ListView>
+                                </Flyout>
+                            </Button.Flyout>
                         </Button>
                         <!-- 网页端那颗齿轮：视图、图像大小、分组、显示字段。原来 ⋯ 里那个「视图」三选一的
                              子菜单由它接手 —— 那三档只是网页端七档里的三档，图像大小和显示字段也没有入口。
@@ -522,6 +572,55 @@
                     Padding="4,2,4,2"
                     VerticalAlignment="Center" />
             </local:WrapRow>
+
+            <!-- 飞牛筛选：官网页端展开在工具栏下面的那一条，不是 Emby 那种盖住整页的浮层。
+                 行和值都来自 /tag/list，题材、地区再经官方映射表换成中文。 -->
+            <Border Grid.Row="2" Margin="0,0,0,4" Padding="16,12"
+                Background="{ThemeResource EgSurfaceBrush}"
+                BorderBrush="{ThemeResource EgBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="12"
+                Visibility="{x:Bind ViewModel.FnNasFilterVisibility, Mode=OneWay}">
+                <StackPanel Spacing="10">
+                    <Grid>
+                        <TextBlock Text="筛选" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
+                        <HyperlinkButton Content="收起" HorizontalAlignment="Right" Click="OnFnNasFilterCloseClicked"
+                            Padding="4,2,4,2" VerticalAlignment="Center" />
+                    </Grid>
+                    <ProgressBar IsIndeterminate="True"
+                        Visibility="{x:Bind ViewModel.FnNasFilterLoadingVisibility, Mode=OneWay}" />
+                    <ItemsControl x:Name="FnNasFilterRowsList" ItemsSource="{x:Bind ViewModel.FnNasFilterRows, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:FnNasFilterRow">
+                                <Grid ColumnSpacing="12" Padding="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="96" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}"
+                                        Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" />
+                                    <ItemsControl Grid.Column="1" ItemsSource="{x:Bind Choices}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <local:WrapRow Spacing="4" RowSpacing="4" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:FnNasFilterChoice">
+                                                <ToggleButton Content="{x:Bind Label}"
+                                                    IsChecked="{x:Bind IsSelected, Mode=TwoWay}"
+                                                    Style="{StaticResource FnNasFilterChoiceStyle}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <HyperlinkButton Content="清除筛选" HorizontalAlignment="Left"
+                        Command="{x:Bind ViewModel.ClearFiltersCommand}" Padding="4,2,4,2" />
+                </StackPanel>
+            </Border>
         </Grid>
 
         <!-- Indeterminate and one row of its own: a ring in the middle of the page would move the

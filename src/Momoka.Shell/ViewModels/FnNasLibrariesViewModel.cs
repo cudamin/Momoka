@@ -59,7 +59,6 @@ public sealed partial class FnNasLibrariesViewModel : FnNasAdminViewModel
     public Visibility ViewTypeVisibility => Show(Category == "Others");
     public Visibility MinimumSizeVisibility => Show(FilterSmallFiles);
     public Visibility DirectoryBrowserVisibility => Show(BrowsingDirectories);
-    public Visibility SortVisibility => Show(Sorting);
     public bool HasSavedPlaylist => _original is not null && Category == "IPTV" && FnNasJson.Text(_original["iptv"], "source_type") != "url";
     public Visibility KeepPlaylistVisibility => Show(HasSavedPlaylist);
     public Visibility PlaylistEditorVisibility => Show(!HasSavedPlaylist || ReplacePlaylist);
@@ -88,6 +87,7 @@ public sealed partial class FnNasLibrariesViewModel : FnNasAdminViewModel
         if (!Current(token)) return;
         Libraries.Clear();
         foreach (var library in libraries) Libraries.Add(new FnNasLibraryRow(library));
+        UpdateMoveState();
         OnPropertyChanged(nameof(CountText));
         BusyChanged();
     }
@@ -314,18 +314,47 @@ public sealed partial class FnNasLibrariesViewModel : FnNasAdminViewModel
     [RelayCommand(CanExecute = nameof(CanSort))]
     private void Sort() { if (CanSort) Sorting = !Sorting; }
 
-    internal void Move(FnNasLibraryRow row, int delta)
+    /// <summary>上移／下移一格，并立刻把新顺序写回 <c>mdb/setSort</c>。失败由 RunAsync 报出来。</summary>
+    internal Task MoveAsync(FnNasLibraryRow row, int delta) => RunAsync("保存媒体库排序失败", async (scope, token) =>
     {
-        if (!CanSort || !Sorting) return;
         var index = Libraries.IndexOf(row);
         var target = index + delta;
-        if (index >= 0 && target >= 0 && target < Libraries.Count) Libraries.Move(index, target);
+        if (!Sorting || index < 0 || target < 0 || target >= Libraries.Count) return;
+
+        Libraries.Move(index, target);
+        UpdateMoveState();
+        try
+        {
+            await scope.ExecuteAsync((client, ct) => client.FnNas.SetLibraryOrderAsync(
+                client.FnNasConnection, Libraries.Select(library => library.Id).ToArray(), ct), token);
+        }
+        catch
+        {
+            // 写失败时把屏上的次序退回去，不能让下一次上移基于一个服务器并不认的排列。
+            if (Current(token))
+            {
+                Libraries.Move(target, index);
+                UpdateMoveState();
+            }
+            throw;
+        }
+    });
+
+    private void UpdateMoveState()
+    {
+        for (var index = 0; index < Libraries.Count; index++)
+        {
+            var row = Libraries[index];
+            row.Sorting = Sorting;
+            row.CanMoveUp = Sorting && index > 0;
+            row.CanMoveDown = Sorting && index < Libraries.Count - 1;
+        }
     }
 
     partial void OnEditingChanged(bool value) => AnnounceEditor();
     partial void OnCategoryChanged(string value) => AnnounceEditor();
     partial void OnFilterSmallFilesChanged(bool value) => OnPropertyChanged(nameof(MinimumSizeVisibility));
-    partial void OnSortingChanged(bool value) => OnPropertyChanged(nameof(SortVisibility));
+    partial void OnSortingChanged(bool value) => UpdateMoveState();
     partial void OnBrowsingDirectoriesChanged(bool value)
     {
         OnPropertyChanged(nameof(DirectoryBrowserVisibility));
