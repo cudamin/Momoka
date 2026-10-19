@@ -65,7 +65,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("AniBT 逐文件识别、候选绑定和取消重新整理", AniBtScrapeAsync);
             await CaseAsync("MoviePilot 连接控制入口、断线回退与恢复", MoviePilotAvailabilityAsync);
             await CaseAsync("主页媒体库与订阅混排、显隐及偏好恢复", HomeOrderAsync, 45);
-            await CaseAsync("多账号主页、聚合搜索分页与媒体库详情来源", AggregateBrowsingAsync, 45);
+            await CaseAsync("所有账号的媒体库与最近添加、聚合搜索分页与详情来源", AggregateBrowsingAsync, 45);
             await CaseAsync("浏览不标来源且版本仅在多服务器时显示", SourceCaptionTransitionsAsync, 45);
             await CaseAsync("指定账号登录、添加账号与取消返回", MultiSourceSignInAsync, 30);
             await CaseAsync("默认账号失效后保留其他来源主页", MultiSourceDefaultExpiryAsync, 30);
@@ -118,7 +118,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
-            await CaseAsync("连接模式与界面摘要、独占收口", ServerAccessModesAsync, 45);
+            await CaseAsync("服务器页只报界面与在线账号，不再有连接模式", ServersPageSummaryAsync, 45);
             await CaseAsync("Jellyfin 控制台只走外层路由并落到 Jellyfin Web 地址", JellyfinConsoleNavigationAsync, 45);
             await CaseAsync("Jellyfin 通用对话框能力显隐", JellyfinDialogCapabilitiesAsync, 30);
             await CaseAsync("MoviePilot 订阅分区、封面与管理操作", MoviePilotSubscriptionsAsync);

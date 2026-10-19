@@ -295,7 +295,7 @@
                 </Grid>
             <Button.Flyout>
                 <MenuFlyout x:Name="AccountMenu" Placement="BottomEdgeAlignedRight">
-                    <!-- 当前连接模式与界面：独占／聚合、Emby／Jellyfin／通用，以及在线服务器数。
+                    <!-- 当前界面与在线服务器数：Emby／Jellyfin／通用，以及有几台服务器在线。
                          不可点，只是把「现在用的是哪一套界面」说在菜单最上面。 -->
                     <MenuFlyoutItem x:Name="InterfaceStatusItem"
                         AutomationProperties.AutomationId="AccountInterfaceStatus"

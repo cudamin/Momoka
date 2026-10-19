@@ -19,7 +19,6 @@ internal static class IdentityRegressionTests
     {
         RegisterPasswords();
         RegisterSessionChanges();
-        RegisterAccessModes();
         RegisterScopes();
         RegisterMultipleSources();
         RegisterCapabilities();
@@ -296,81 +295,6 @@ internal static class IdentityRegressionTests
         });
     }
 
-    /// <summary>
-    /// 独占／聚合模式对在线来源的约束。用的是真的 <see cref="EmbySession"/> 与假 HTTP：恢复路径、令牌保管和
-    /// 「当前账号」都走生产代码，只有网络是假的。
-    /// </summary>
-    private static void RegisterAccessModes()
-    {
-        Case("连接模式：聚合启动恢复全部来源", async () =>
-        {
-            using var fixture = new SessionFixture();
-            Assert.Equal(2, await fixture.Session.RestoreAllAsync(None));
-            Assert.Equal(2, fixture.Session.Sources.Count);
-        });
-
-        Case("连接模式：独占启动只恢复上次使用的来源，其它令牌保留", async () =>
-        {
-            using var fixture = new SessionFixture();
-            fixture.Settings.ServerAccess.Mode = ServerConnectionMode.Exclusive;
-            fixture.Settings.Remember(fixture.B.Server, fixture.B.Account);
-
-            Assert.Equal(1, await fixture.Session.RestoreAllAsync(None));
-            Assert.Equal(1, fixture.Session.Sources.Count);
-            Assert.Equal(fixture.B.Server.Id, fixture.Session.Server?.Id);
-            Assert.Equal(fixture.B.Account.Id, fixture.Session.Account?.Id);
-            Assert.Equal("token-a", fixture.Vault.GetAccessToken(fixture.A.Account),
-                "没被恢复的那个账号只是不在线，令牌不能被清掉");
-            Assert.True(fixture.A.Account.HasSavedToken);
-            Assert.True(fixture.A.Account.AutoConnect != false, "启动时的模式收口不是用户主动退出");
-        });
-
-        Case("连接模式：切到独占立刻收掉其它来源，切走谁都不丢凭据", async () =>
-        {
-            using var fixture = new SessionFixture();
-            await fixture.Restore(fixture.A);
-            await fixture.Restore(fixture.B);
-            Assert.Equal(2, fixture.Session.Sources.Count);
-
-            fixture.Settings.ServerAccess.Mode = ServerConnectionMode.Exclusive;
-            Assert.Equal(1, fixture.Session.ApplyAccessMode());
-            Assert.Equal(1, fixture.Session.Sources.Count);
-            Assert.Equal(fixture.B.Account.Id, fixture.Session.Account?.Id, "留下的是切换前的当前来源");
-            Assert.Equal("token-a", fixture.Vault.GetAccessToken(fixture.A.Account));
-            Assert.True(fixture.A.Account.HasSavedToken);
-
-            // 独占模式下再切换回来：新来源留下，B 也保留令牌。
-            await fixture.Restore(fixture.A);
-            Assert.Equal(1, fixture.Session.Sources.Count);
-            Assert.Equal(fixture.A.Account.Id, fixture.Session.Account?.Id);
-            Assert.Equal("token-b", fixture.Vault.GetAccessToken(fixture.B.Account));
-            Assert.True(fixture.B.Account.HasSavedToken);
-        });
-
-        Case("连接模式：聚合模式的应用动作不改变来源", async () =>
-        {
-            using var fixture = new SessionFixture();
-            await fixture.Restore(fixture.A);
-            await fixture.Restore(fixture.B);
-
-            Assert.Equal(0, fixture.Session.ApplyAccessMode());
-            Assert.Equal(2, fixture.Session.Sources.Count);
-        });
-
-        Case("连接模式：界面风味按在线服务器台数取", async () =>
-        {
-            using var fixture = new SessionFixture();
-            var capabilities = new ServerCapabilities(fixture.Session);
-
-            await fixture.Restore(fixture.A);
-            Assert.Equal(ServerInterfaceFlavor.Emby, capabilities.InterfaceFlavor);
-
-            await fixture.Restore(fixture.B);
-            Assert.Equal(ServerInterfaceFlavor.Generic, capabilities.InterfaceFlavor,
-                "两台服务器同时在线时，服务端管理入口指向哪一台没有答案");
-        });
-    }
-
     private static void RegisterScopes()
     {
         foreach (var sameServer in new[] { false, true })
@@ -515,6 +439,25 @@ internal static class IdentityRegressionTests
 
     private static void RegisterMultipleSources()
     {
+        Case("多来源：登录新账号不会退出已有在线来源", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await fixture.Session.RestoreAllAsync(None);
+            Assert.Equal(2, fixture.Session.Sources.Count);
+
+            var server = new ServerProfile { Name = "c", Url = "https://c.invalid" };
+            var account = new AccountProfile { Username = "c", UserId = "c" };
+            server.Accounts.Add(account);
+            fixture.Settings.Servers.Add(server);
+            await fixture.Session.SignInAsync(server, account, "password-c", "c", true, None);
+
+            Assert.Equal(3, fixture.Session.Sources.Count);
+            var accountIds = fixture.Session.Sources.Select(source => source.AccountProfileId).ToArray();
+            Assert.Equal(3, accountIds.Distinct().Count());
+            Assert.True(accountIds.Contains(fixture.A.Account.Id) && accountIds.Contains(fixture.B.Account.Id)
+                && accountIds.Contains(account.Id), "登录第三个账号后前两个来源被挤掉了");
+        });
+
         Case("聚合媒体库：不同服务器相同库编号保留两份且来源各自绑定", async () =>
         {
             using var fixture = new SessionFixture();

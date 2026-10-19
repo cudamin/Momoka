@@ -220,7 +220,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 照账号权限与产品造左栏分组表：「Momoka」永远在最上面，Emby 管理员接「Emby Server」「设备」「高级」，
-    /// Jellyfin 管理员接「服务器」「设备」「电视直播」「插件」「高级」，飞牛影视独占时接「帐号」以及管理员才有的
+    /// Jellyfin 管理员接「服务器」「设备」「电视直播」「插件」「高级」，飞牛影视作为唯一在线服务器时接「帐号」以及管理员才有的
     /// 「影视服务器」。三套目录的条目与次序各自同源、不混用。Plex 或没有连接时只有 Momoka 一组。
     /// </summary>
     private List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration, MediaServerKind kind, bool fnNasAccount)
@@ -581,8 +581,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 服务端管理入口此刻在不在。除了「账号能管这台服务器」，还要界面确实能确定是哪一台：
-    /// 聚合模式下同时连着多台服务器时是通用界面，这些入口指向哪台没有答案，整组收起（用户令 2026-10-19）。
-    /// 只连一台服务器时即使开着聚合模式，也回到那台服务器自己的界面与入口。
+    /// 同时连着多台服务器时是通用界面，这些入口指向哪台没有答案，整组收起（用户令 2026-10-19）。
     /// </summary>
     private bool CanShowServerAdministration => _capabilities?.IsConnected == true
         && _capabilities.InterfaceFlavor != ServerInterfaceFlavor.Generic
@@ -626,7 +625,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         _showsServerAdministration = visible;
         _administrationKind = kind;
-        // 帐号组只跟「独占且是飞牛」有关，不看管理员：改自己的密码和播放偏好不需要管理权限。
+        // 帐号组只跟「在线唯一来源是飞牛」有关，不看管理员：改自己的密码和播放偏好不需要管理权限。
         _showsFnNasAccount = kind == MediaServerKind.FnNas
             && _capabilities?.IsConnected == true
             && _capabilities.InterfaceFlavor == ServerInterfaceFlavor.FnNas;

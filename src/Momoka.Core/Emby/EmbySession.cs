@@ -81,43 +81,8 @@ public sealed class EmbySession : IDisposable
             SetCurrent(source);
             Persist();
         }
-        if (IsExclusive) PruneOthers();
         NotifySourcesChanged();
         return true;
-    }
-
-    /// <summary>
-    /// 连接模式改成独占时立刻收口：留下当前（没有当前就留第一个）在线来源，其余退出但保留已保存的令牌与密码。
-    /// 设置页拨完开关调用；返回这次退出了几个来源。聚合模式什么也不做。
-    /// </summary>
-    public int ApplyAccessMode()
-    {
-        if (!IsExclusive) return 0;
-        var removed = PruneOthers();
-        if (removed > 0) NotifySourcesChanged();
-        return removed;
-    }
-
-    private bool IsExclusive => _settings.ServerAccess.Mode == ServerConnectionMode.Exclusive;
-
-    /// <summary>
-    /// 独占模式只留一个在线来源。挪走的是其它来源而不是当前这一条；令牌与密码留着 —— 用户只是切走了，
-    /// 保存的账号还在列表里，下一次点它照常可以恢复。通知由调用方统一发一次，避免一次登录触发两轮外壳重载。
-    /// </summary>
-    private int PruneOthers()
-    {
-        string[] keys;
-        lock (_lifecycleGate)
-        {
-            if (_sources.Count <= 1) return 0;
-            var keep = _current?.Key ?? _sources.Keys.First();
-            if (_current is null && _sources.TryGetValue(keep, out var kept)) SetCurrent(kept);
-            keys = _sources.Keys.Where(key => !string.Equals(key, keep, StringComparison.Ordinal)).ToArray();
-        }
-
-        foreach (var key in keys)
-            EndSource(key, "独占模式只保留一个在线账号", explicitSignOut: false, keepCredentials: true, notify: false);
-        return keys.Length;
     }
 
     private (string Key, long Generation, long Selection) BeginIdentityChange(ServerProfile server, AccountProfile account, bool select)
@@ -164,7 +129,6 @@ public sealed class EmbySession : IDisposable
             Adopt(server, account, connection, attempt.Selection);
             Persist();
         }
-        if (IsExclusive) PruneOthers();
         NotifySourcesChanged();
     }
 
@@ -196,7 +160,7 @@ public sealed class EmbySession : IDisposable
     public Task<bool> TryRestoreAsync(ServerProfile server, AccountProfile account, CancellationToken cancellationToken) =>
         TryRestoreAsync(server, account, true, cancellationToken);
 
-    /// <summary>恢复允许自动连接的账号。聚合模式恢复所有来源；独占模式只恢复一个（上次那一个）。</summary>
+    /// <summary>恢复允许自动连接的账号：所有来源一起恢复，主页与媒体库因此始终覆盖全部在线账号。</summary>
     public async Task<int> RestoreAllAsync(CancellationToken cancellationToken)
     {
         var lastServer = _settings.LastServerId;
@@ -205,28 +169,6 @@ public sealed class EmbySession : IDisposable
             .Where(account => account.AutoConnect != false && (account.HasSavedToken
                 || account.AutoConnect == true && account.HasSavedPassword))
             .Select(account => (Server: server, Account: account))).ToArray();
-
-        if (IsExclusive)
-        {
-            // 上次用的那一个先试；它连不上就按最近登录次序再试下一个，直到有一个上线。独占模式仍然只有一个。
-            var order = accounts
-                .OrderByDescending(entry => entry.Server.Id == lastServer)
-                .ThenByDescending(entry => entry.Account.Id == lastAccount)
-                .ThenByDescending(entry => entry.Account.LastSignedIn)
-                .ToArray();
-            foreach (var target in order)
-            {
-                try
-                {
-                    if (await TryRestoreAsync(target.Server, target.Account, true, cancellationToken).ConfigureAwait(false)) break;
-                }
-                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { }
-                catch (EmbyApiException error) { Log.Warn(Category, "恢复独占模式的账号失败，尝试下一个", error); }
-            }
-            ApplyAccessMode();
-            NotifySourcesChanged();
-            return Sources.Count;
-        }
 
         long selection;
         lock (_lifecycleGate) selection = _selection;
@@ -307,7 +249,6 @@ public sealed class EmbySession : IDisposable
                     source.IdentityState.RestoredViews = source.Bind(views);
                     Persist();
                 }
-                if (IsExclusive) PruneOthers();
                 NotifySourcesChanged();
                 return true;
             }
@@ -347,7 +288,6 @@ public sealed class EmbySession : IDisposable
                 Adopt(server, account, connection, attempt.Selection);
                 Persist();
             }
-            if (IsExclusive) PruneOthers();
             NotifySourcesChanged();
             return true;
         }

@@ -562,18 +562,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // handler swaps the visual tree.
         _session.SignedOut += (_, reason) => DispatcherQueue.TryEnqueue(() => OnSignedOut(reason));
         _session.SourcesChanged += (_, _) => DispatcherQueue.TryEnqueue(OnSourcesChanged);
-
-        // 连接模式拨完，账号菜单里的「当前界面」和切换目标的措辞当场跟着走；来源变化那一路已经由
-        // SourcesChanged 接住，这一句只补模式本身。
-        ShellPrefs.ServerAccessChanged -= OnServerAccessChanged;
-        ShellPrefs.ServerAccessChanged += OnServerAccessChanged;
     }
-
-    private void OnServerAccessChanged() => DispatcherQueue.TryEnqueue(() =>
-    {
-        if (_session?.IsSignedIn == true) FillSwitchMenus();
-        else SignIn.ViewModel.RefreshAccessMode();
-    });
 
     /// <summary>
     /// Handed the window after it exists, which is later than <see cref="Attach"/> because the player
@@ -2159,7 +2148,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         var flavor = ServerAccess.InterfaceFor(serverCount, sources.Select(source => source.Connection.ServerKind));
         InterfaceStatusItem.Text = sources.Count == 0
             ? "尚未登录"
-            : $"{ServerAccess.ModeName(Settings.ServerAccess.Mode)} · {ServerAccess.InterfaceName(flavor)} · {serverCount} 台服务器";
+            : $"{ServerAccess.InterfaceName(flavor)} · {serverCount} 台服务器";
 
         ServerMenu.Items.Clear();
         foreach (var server in Settings.Servers)

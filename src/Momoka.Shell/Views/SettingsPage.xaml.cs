@@ -382,11 +382,6 @@ public sealed partial class SettingsPage : Page, IShellContent
         // 下面 Select，好在两个路径上都已经发出去了：它回来得晚也只会把落点收回第一张卡，不会把选择拨乱。
         _ = RefreshServerAdministrationAsync();
 
-        // 服务器页就在这一页的框里，拨完连接模式要当场重算服务端管理入口：聚合多服时那组入口整组收起，
-        // 只连一台时又回来。静态事件要退订，见 OnNavigatedFrom。
-        ShellPrefs.ServerAccessChanged -= OnServerAccessChanged;
-        ShellPrefs.ServerAccessChanged += OnServerAccessChanged;
-
         // Both paths, and after the build: the cached path used to return before reading the parameter at
         // all, which is the whole of 「open 设置 on 诊断」 — the second time it was asked for, it opened on
         // whatever card was last read instead. ShowHosted is called either way, because a cached page whose
@@ -639,7 +634,6 @@ public sealed partial class SettingsPage : Page, IShellContent
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
-        ShellPrefs.ServerAccessChanged -= OnServerAccessChanged;
         if (_session is not null) _session.SourcesChanged -= OnSourceListChanged;
         _session = null;
         Release();
@@ -647,15 +641,6 @@ public sealed partial class SettingsPage : Page, IShellContent
     }
 
     private void OnSourceListChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(
-        async () => await RefreshServerAdministrationAsync());
-
-    /// <summary>
-    /// 连接模式改完：重算左栏该不该有服务端管理入口。落点若正停在刚收起的入口上，
-    /// <see cref="SettingsViewModel.RefreshServerAdministrationAsync"/> 会把它拨回第一张卡，选择变化自己
-    /// 会把 <see cref="ShowHosted"/> 喊起来 —— 这里不再多喊一次，否则正在显示的服务器页会被重新导航，
-    /// 刚拨完模式那条提示就没了。
-    /// </summary>
-    private void OnServerAccessChanged() => DispatcherQueue.TryEnqueue(
         async () => await RefreshServerAdministrationAsync());
 
     /// <summary>

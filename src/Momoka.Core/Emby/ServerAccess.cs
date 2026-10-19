@@ -3,8 +3,8 @@ using Momoka.Configuration;
 namespace Momoka.Emby;
 
 /// <summary>
-/// 主界面用的是哪一套服务端界面。聚合模式下同时连着多台服务器时没有唯一的一套，退回通用界面；
-/// 只有一台服务器时用那一台的界面。飞牛影视独占时也用它自己的界面 —— 至少设置左栏照它的目录分成
+/// 主界面用的是哪一套服务端界面。同时连着多台服务器时没有唯一的一套，退回通用界面；
+/// 只有一台服务器时用那一台的界面。飞牛影视只有一台在线时也用它自己的界面 —— 至少设置左栏照它的目录分成
 /// 「帐号」与「影视服务器」两组；Plex 仍走通用界面（2026-10-19 用户令）。
 /// </summary>
 public enum ServerInterfaceFlavor
@@ -16,24 +16,15 @@ public enum ServerInterfaceFlavor
 }
 
 /// <summary>
-/// 连接模式与界面风味的纯规则：一台在线服务器决定界面，多台退回通用；独占模式只允许一个在线来源。
+/// 界面风味的纯规则：一台在线服务器决定界面，多台退回通用。所有已登录账号都同时在线，
+/// 因此多账号本身不改变产品界面，只有不同服务器共存才退回通用。
 /// <para>
-/// 放在 Core 里而不是页面里，因为会话（要不要恢复第二个账号）和设置页（哪些服务端入口还在）问的是同一件事，
+/// 放在 Core 里而不是页面里，因为设置页（哪些服务端入口还在）与外壳（账号菜单的界面读数）问的是同一件事，
 /// 而这两处任一处写错在屏幕上都不显眼。界面风味只看<b>在线来源</b>，不看保存了多少服务器。
 /// </para>
 /// </summary>
 public static class ServerAccess
 {
-    /// <summary>同时在线的来源上限。独占是一，聚合不设上限。</summary>
-    public static int OnlineSourceLimit(ServerConnectionMode mode) =>
-        mode == ServerConnectionMode.Exclusive ? 1 : int.MaxValue;
-
-    public static bool IsExclusive(ServerConnectionMode mode) => mode == ServerConnectionMode.Exclusive;
-
-    public static string ModeName(ServerConnectionMode mode) => mode == ServerConnectionMode.Exclusive
-        ? "独占模式"
-        : "聚合模式";
-
     /// <summary>
     /// 由在线服务器决定界面：只有一台时用那台的产品界面，没有服务器、或连着两台以上时一律通用
     /// —— 两台同为 Emby 的服务器也没有唯一的一套服务端入口，「只有一台」是用户的原话。

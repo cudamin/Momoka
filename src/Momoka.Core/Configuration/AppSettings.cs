@@ -12,7 +12,7 @@ namespace Momoka.Configuration;
 /// </summary>
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 24;
+    public const int CurrentSchemaVersion = 25;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -20,11 +20,6 @@ public sealed class AppSettings
     public string DeviceId { get; set; } = "";
 
     public List<ServerProfile> Servers { get; set; } = [];
-
-    /// <summary>
-    /// 同一时间能登录几个服务器和账号 —— 「在服务器设置中新增独占模式和聚合模式选择框」（用户令 2026-10-19）。
-    /// </summary>
-    public ServerAccessSettings ServerAccess { get; set; } = new();
 
     public string? LastServerId { get; set; }
 
@@ -83,24 +78,6 @@ public sealed class ShortcutSettings
 {
     /// <summary>动作 Id → 组合键 token（<see cref="ShortcutCatalog.Serialize"/> 那份写法）。</summary>
     public Dictionary<string, string> Bindings { get; set; } = new(StringComparer.Ordinal);
-}
-
-/// <summary>
-/// 服务器的登录方式。聚合模式沿用多账号行为；独占模式只让一个来源在线，切换服务器或账号时退出当前那一个，
-/// 保存的账号与密码不删除。缺键的旧设置文件读出来是聚合模式，升级不改变行为。
-/// </summary>
-public sealed class ServerAccessSettings
-{
-    public ServerConnectionMode Mode { get; set; } = ServerConnectionMode.Aggregate;
-}
-
-public enum ServerConnectionMode
-{
-    /// <summary>可同时登录多台服务器、多个账号；主页、搜索与收藏聚合显示。</summary>
-    Aggregate = 0,
-
-    /// <summary>同一时间只有一台服务器、一个账号在线。</summary>
-    Exclusive = 1
 }
 
 public sealed class ServerProfile

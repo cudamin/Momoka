@@ -673,10 +673,10 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 服务器页的连接模式：两台服务器在线时是通用界面，切到独占后只留一台并回到那一台的界面。
-    /// 切走的那台令牌不能在模式收口时被清掉 —— 用户只是切走了，账号以后还要能直接登录。
+    /// 服务器页不再有独占／聚合模式：两台服务器同时在线，页面只报当前界面与在线来源，
+    /// 账号表把两个账号都算作在线；没有模式单选可拨，也不会因为登录而收掉别的来源。
     /// </summary>
-    private async Task ServerAccessModesAsync()
+    private async Task ServersPageSummaryAsync()
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
@@ -698,44 +698,30 @@ internal sealed partial class ShellNavigationProbe
             Require(_root.Children.Count == 1 && ReferenceEquals(_root.Children[0], page),
                 $"服务器页探针的根里还留着别的页（{_root.Children.Count} 个直接孩子）");
 
-            Require(fixture.Session.Sources.Count == 2, "两台服务器没有同时上线，模式探针起点不对");
-            Require(page.ViewModel.AggregateMode && !page.ViewModel.ExclusiveMode, "默认不是聚合模式");
-            Require(Get<RadioButton>(page, "AggregateModeRadio").IsChecked == true, "聚合模式单选没有选中");
+            Require(fixture.Session.Sources.Count == 2, "两台服务器没有同时上线，服务器页探针起点不对");
             Require(page.ViewModel.InterfaceTitle == "通用界面",
                 $"两台服务器在线时界面应退回通用，实际是「{page.ViewModel.InterfaceTitle}」");
+            Require(page.ViewModel.OnlineSummary == "2 台服务器 · 2 个账号在线",
+                $"在线摘要不对：{page.ViewModel.OnlineSummary}");
+            Require(page.ViewModel.Subheading?.Contains("2 个账号在线", StringComparison.Ordinal) == true,
+                $"页头没有写清两个账号同时在线：{page.ViewModel.Subheading}");
+            Require(page.ViewModel.Servers.SelectMany(server => server.Accounts).All(account => account.IsConnected),
+                "服务器页把已在线账号误报成未连接");
+            Require(page.FindName("ExclusiveModeRadio") is null && page.FindName("AggregateModeRadio") is null,
+                "服务器页仍然画着独占／聚合模式单选");
             // 假身份页面里实屏截图会拍到上一张控制台页的残影（2026-10-19 多次复现，已记在 PROGRESS），
             // 服务器页的证据用页面渲染图；它是渲染结果，不冒充实屏。
-            await SaveRenderAsync(page, "servers-access-modes-aggregate-render.png");
-
-            var prunedAccount = fixture.Settings.Servers
-                .SelectMany(server => server.Accounts)
-                .First(account => !ReferenceEquals(account, fixture.Session.Account));
-            page.ViewModel.UseExclusiveCommand.Execute(null);
-            await UntilAsync(() => fixture.Session.Sources.Count == 1);
-            await LayoutAsync(page);
-            await Task.Delay(160);
-
-            Require(fixture.Settings.ServerAccess.Mode == ServerConnectionMode.Exclusive, "独占模式没有写进设置");
-            Require(page.ViewModel.ExclusiveMode && !page.ViewModel.AggregateMode, "拨完独占模式后单选状态不对");
-            Require(Get<RadioButton>(page, "ExclusiveModeRadio").IsChecked == true, "独占模式单选没有选中");
-            Require(page.ViewModel.InterfaceTitle == "Emby 界面",
-                $"只剩一台服务器时界面应回到 Emby，实际是「{page.ViewModel.InterfaceTitle}」");
-            Require(fixture.Session.Sources.Select(source => source.ServerProfileId).Distinct().Count() == 1,
-                "独占模式仍有一台以上服务器在线");
-            Require(prunedAccount.HasSavedToken,
-                "模式收口把另一台服务器的已保存令牌清掉了");
-            await SaveRenderAsync(page, "servers-access-modes-exclusive-render.png");
+            await SaveRenderAsync(page, "servers-summary-render.png");
 
             ResizeInspect(760, 900);
             await LayoutAsync(page);
             await LayoutAsync(page);
-            await SaveRenderAsync(page, "servers-access-modes-exclusive-760-render.png");
+            await SaveRenderAsync(page, "servers-summary-760-render.png");
             ResizeInspect(1100, 900);
             await LayoutAsync(page);
 
-            page.ViewModel.UseAggregateCommand.Execute(null);
-            Require(fixture.Settings.ServerAccess.Mode == ServerConnectionMode.Aggregate, "切回聚合模式没有写进设置");
-            Require(fixture.Session.Sources.Count == 1, "切回聚合不应自动重连被收口的来源");
+            Require(fixture.Session.Sources.Count == 2,
+                "服务器页刷新把已登录账号收掉了");
         }
         finally
         {

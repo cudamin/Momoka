@@ -102,7 +102,6 @@ public sealed partial class SignInViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(AddressVisibility))]
     [NotifyPropertyChangedFor(nameof(CredentialVisibility))]
     [NotifyPropertyChangedFor(nameof(FormTitle))]
-    [NotifyPropertyChangedFor(nameof(ModeNoteVisibility))]
     public partial SignInStep Step { get; set; }
 
     /// <summary>The line under the app's name. Says what is happening whenever something is.</summary>
@@ -174,23 +173,7 @@ public sealed partial class SignInViewModel : PageViewModel
         ? "请稍候…"
         : _session?.IsSignedIn != true
             ? "登录"
-            : ExclusiveMode ? "登录并切换" : "登录并加入聚合";
-
-    /// <summary>
-    /// 独占／聚合对这一次登录意味着什么。独占模式登录成功会退出当前账号，但保存的账号与密码不动 ——
-    /// 不写这一句，用户会以为「另一个账号被删了」。
-    /// </summary>
-    public string ModeNote => _settings is null
-        ? ""
-        : ExclusiveMode
-            ? _session?.IsSignedIn == true
-                ? "独占模式：登录成功后会退出当前账号，保存的账号和密码不会删除。"
-                : "独占模式：同一时间只连接一台服务器、一个账号。"
-            : "聚合模式：可同时登录多台服务器和多个账号；只有一台服务器时使用它的界面。";
-
-    public Visibility ModeNoteVisibility => Show(_settings is not null && Step != SignInStep.Restoring);
-
-    private bool ExclusiveMode => _settings?.Settings.ServerAccess.Mode == ServerConnectionMode.Exclusive;
+            : "登录并添加";
 
     /// <summary>
     /// What gates the three buttons that start something. The guard the click handlers used to open with
@@ -267,21 +250,11 @@ public sealed partial class SignInViewModel : PageViewModel
 
         FillSavedServers();
         OnPropertyChanged(nameof(SignInText));
-        OnPropertyChanged(nameof(ModeNote));
-        OnPropertyChanged(nameof(ModeNoteVisibility));
         RequestFocus(SignInFocus.Next);
     }
 
     /// <summary>Stops whatever this card has in flight; the shell calls it when it hides the card.</summary>
     internal void Detach() => Cancel();
-
-    /// <summary>连接模式改了但卡片还开着：只换那两句话，不动地址、账号与已经输入的内容。</summary>
-    internal void RefreshAccessMode()
-    {
-        OnPropertyChanged(nameof(SignInText));
-        OnPropertyChanged(nameof(ModeNote));
-        OnPropertyChanged(nameof(ModeNoteVisibility));
-    }
 
     /// <summary>
     /// The face of an automatic sign-in: neither step is shown, because there is nothing to type yet.

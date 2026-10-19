@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -6,8 +7,8 @@ using static Momoka.Tests.TestHarness;
 namespace Momoka.Tests;
 
 /// <summary>
-/// 独占／聚合模式的纯规则、由在线来源算出的界面风味，以及 Jellyfin 控制台目录。
-/// 会话本身「只留一个来源」那一条在 <c>IdentityRegressionTests</c> 里，用假 HTTP 走真的恢复路径。
+/// 由在线来源算出的界面风味、设置迁移，以及 Jellyfin 控制台目录。会话恢复全部账号那一条在
+/// <c>IdentityRegressionTests</c> 里，用假 HTTP 走真的恢复路径。
 /// </summary>
 internal static class ServerAccessTests
 {
@@ -15,25 +16,11 @@ internal static class ServerAccessTests
 
     public static void Register()
     {
-        RegisterLimits();
         RegisterFlavors();
         RegisterKindLabels();
         RegisterJellyfinMenu();
         RegisterJellyfinConsole();
         RegisterMigration();
-    }
-
-    private static void RegisterLimits()
-    {
-        Test("连接模式：独占一个在线来源，聚合不设上限", () =>
-        {
-            Assert.Equal(1, ServerAccess.OnlineSourceLimit(ServerConnectionMode.Exclusive));
-            Assert.True(ServerAccess.OnlineSourceLimit(ServerConnectionMode.Aggregate) > 1000);
-            Assert.True(ServerAccess.IsExclusive(ServerConnectionMode.Exclusive));
-            Assert.False(ServerAccess.IsExclusive(ServerConnectionMode.Aggregate));
-            Assert.Equal("独占模式", ServerAccess.ModeName(ServerConnectionMode.Exclusive));
-            Assert.Equal("聚合模式", ServerAccess.ModeName(ServerConnectionMode.Aggregate));
-        });
     }
 
     private static void RegisterFlavors()
@@ -56,7 +43,7 @@ internal static class ServerAccessTests
                 "两台同类服务器也是多服聚合，没有唯一的服务端入口");
             Assert.Equal(ServerInterfaceFlavor.FnNas,
                 ServerAccess.InterfaceFor(1, [MediaServerKind.FnNas]),
-                "飞牛影视独占时用它自己的设置目录");
+                "飞牛影视作为唯一在线服务器时用它自己的设置目录");
             Assert.Equal(ServerInterfaceFlavor.Generic,
                 ServerAccess.InterfaceFor(1, [MediaServerKind.Plex]),
                 "Plex 先用通用界面");
@@ -198,24 +185,38 @@ internal static class ServerAccessTests
 
     private static void RegisterMigration()
     {
-        Test("设置迁移：缺键的连接模式读成聚合，独占值保留", () =>
+        Test("设置迁移：旧独占键被忽略，服务器与账号原样保留", () =>
         {
-            var missing = SettingsMigration.FromJson("{\"SchemaVersion\":23,\"Ui\":{}}", Protector);
-            Assert.Equal(ServerConnectionMode.Aggregate, missing.ServerAccess.Mode,
-                "旧文件升级不能悄悄锁进独占，也不能把已登录的多账号退掉");
-            Assert.Equal(AppSettings.CurrentSchemaVersion, missing.SchemaVersion);
+            const string json = """
+            {
+              "SchemaVersion": 24,
+              "DeviceId": "fixture-device",
+              "Servers": [
+                {
+                  "Id": "s-a",
+                  "Name": "A",
+                  "Url": "http://a.invalid",
+                  "Accounts": [
+                    { "Id": "acc-a", "Username": "甲", "UserId": "u-a", "AutoConnect": true }
+                  ]
+                }
+              ],
+              "ServerAccess": { "Mode": 1 }
+            }
+            """;
 
-            var exclusive = SettingsMigration.FromJson(
-                "{\"SchemaVersion\":24,\"ServerAccess\":{\"Mode\":1}}", Protector);
-            Assert.Equal(ServerConnectionMode.Exclusive, exclusive.ServerAccess.Mode);
+            var settings = SettingsMigration.FromJson(json, Protector);
 
-            var invalid = SettingsMigration.FromJson(
-                "{\"SchemaVersion\":24,\"ServerAccess\":{\"Mode\":99}}", Protector);
-            Assert.Equal(ServerConnectionMode.Aggregate, invalid.ServerAccess.Mode);
+            Assert.Equal(AppSettings.CurrentSchemaVersion, settings.SchemaVersion);
+            Assert.Equal(1, settings.Servers.Count);
+            Assert.Equal("甲", settings.Servers[0].Accounts[0].Username,
+                "旧模式键不能让保存的账号消失");
+            Assert.True(settings.Servers[0].Accounts[0].AutoConnect == true,
+                "升级后的账号仍应参与自动恢复");
 
-            var nullable = SettingsMigration.FromJson(
-                "{\"SchemaVersion\":24,\"ServerAccess\":null}", Protector);
-            Assert.Equal(ServerConnectionMode.Aggregate, nullable.ServerAccess.Mode);
+            var saved = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
+            Assert.False(saved.Contains("ServerAccess", StringComparison.Ordinal),
+                "保存的新文档不再写已退役的连接模式");
         });
     }
 }

@@ -198,13 +198,7 @@
                                     Text="{x:Bind AccountSummary}" />
                             </Grid>
 
-                            <!-- 独占／聚合对账号的影响写在账号表上方，切换模式时不用猜「另一个账号去哪了」。 -->
-                            <TextBlock
-                                FontSize="{StaticResource EgCaptionFontSize}"
-                                Foreground="{ThemeResource EgTextFaintBrush}"
-                                Text="{x:Bind AccessNote}"
-                                TextWrapping="Wrap" />
-
+                            <!-- 所有账号都可以同时在线；这一页只显示谁在线、谁需要登录。 -->
                             <ItemsControl ItemTemplate="{StaticResource AccountTemplate}" ItemsSource="{x:Bind Accounts}" />
 
                             <TextBlock x:Uid="ServersPage_TextBlock3"
@@ -272,86 +266,41 @@
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
 
         <!--
-          连接模式与当前界面。模式是这一页唯一一处「同时登录几个」的决定：独占只留一个在线来源，
-          聚合允许多个。界面不是另一个开关 —— 它由在线来源算出来：只有一台服务器时用那台的界面，
-          多台时回到通用界面，所以右边那块读数是结果而不是选项。
+          当前界面是读数而不是开关：所有已登录账号同时在线，界面由在线服务器台数算出来 ——
+          只有一台服务器时用那台的产品界面，多台时回到通用界面。
         -->
         <Border
+            AutomationProperties.AutomationId="ServersInterfaceSummary"
             Grid.Row="2"
             Background="{ThemeResource EgSurfaceBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
             BorderThickness="1"
             CornerRadius="{StaticResource EgCardCornerRadius}"
             Padding="20,16">
-            <StackPanel Spacing="14">
-                <Grid ColumnSpacing="24" RowSpacing="10">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="连接模式" FontWeight="SemiBold" FontSize="{StaticResource EgSubheadFontSize}" />
-                        <TextBlock
-                            Text="{x:Bind ViewModel.ModeDescription, Mode=OneWay}"
-                            FontSize="{StaticResource EgCaptionFontSize}"
-                            Foreground="{ThemeResource EgTextDimBrush}"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="18" VerticalAlignment="Top">
-                        <RadioButton
-                            x:Name="ExclusiveModeRadio"
-                            AutomationProperties.AutomationId="ServersExclusiveMode"
-                            GroupName="ServerAccessMode"
-                            Content="独占模式"
-                            IsChecked="{x:Bind ViewModel.ExclusiveMode, Mode=OneWay}"
-                            Command="{x:Bind ViewModel.UseExclusiveCommand}" />
-                        <RadioButton
-                            x:Name="AggregateModeRadio"
-                            AutomationProperties.AutomationId="ServersAggregateMode"
-                            GroupName="ServerAccessMode"
-                            Content="聚合模式"
-                            IsChecked="{x:Bind ViewModel.AggregateMode, Mode=OneWay}"
-                            Command="{x:Bind ViewModel.UseAggregateCommand}" />
-                    </StackPanel>
-                </Grid>
-
-                <Border
-                    AutomationProperties.AutomationId="ServersInterfaceSummary"
-                    Background="{ThemeResource EgSurfaceAltBrush}"
-                    BorderBrush="{ThemeResource EgBorderBrush}"
-                    BorderThickness="1"
-                    CornerRadius="{StaticResource EgCardCornerRadius}"
-                    Padding="14,12">
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <Border Width="34" Height="34" CornerRadius="11" Background="{ThemeResource EgAccentSoftBrush}">
-                            <FontIcon Glyph="&#xE7F4;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
-                        </Border>
-                        <StackPanel Grid.Column="1" Spacing="2">
-                            <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.InterfaceTitle, Mode=OneWay}" />
-                            <TextBlock
-                                FontSize="{StaticResource EgCaptionFontSize}"
-                                Foreground="{ThemeResource EgTextDimBrush}"
-                                Text="{x:Bind ViewModel.InterfaceDescription, Mode=OneWay}"
-                                TextWrapping="Wrap" />
-                            <!-- 在线身份单独一行，窄窗里不和说明抢那一点宽度。 -->
-                            <TextBlock
-                                Margin="0,3,0,0"
-                                FontSize="{StaticResource EgCaptionFontSize}"
-                                Foreground="{ThemeResource EgTextFaintBrush}"
-                                Text="{x:Bind ViewModel.OnlineSummary, Mode=OneWay}"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Grid>
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Width="34" Height="34" CornerRadius="11" Background="{ThemeResource EgAccentSoftBrush}">
+                    <FontIcon Glyph="&#xE7F4;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
                 </Border>
-            </StackPanel>
+                <StackPanel Grid.Column="1" Spacing="2">
+                    <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.InterfaceTitle, Mode=OneWay}" />
+                    <TextBlock
+                        FontSize="{StaticResource EgCaptionFontSize}"
+                        Foreground="{ThemeResource EgTextDimBrush}"
+                        Text="{x:Bind ViewModel.InterfaceDescription, Mode=OneWay}"
+                        TextWrapping="Wrap" />
+                    <!-- 在线身份单独一行，窄窗里不和说明抢那一点宽度。 -->
+                    <TextBlock
+                        Margin="0,3,0,0"
+                        FontSize="{StaticResource EgCaptionFontSize}"
+                        Foreground="{ThemeResource EgTextFaintBrush}"
+                        Text="{x:Bind ViewModel.OnlineSummary, Mode=OneWay}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
         </Border>
 
         <ListView

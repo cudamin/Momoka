@@ -43,29 +43,16 @@ public sealed partial class ServersViewModel : PageViewModel
     public partial string? Subheading { get; set; }
 
     /// <summary>
-    /// 连接模式的两个单选档。只写不读回用户输入（RadioButton 的 Command 走 <see cref="SetMode"/>），
-    /// 显示值由 <see cref="Refresh"/> 从设置文件算出来 —— 一处决定，拨完开关和打开页面看到的是同一份答案。
+    /// 这一页顶上的「当前界面」：Emby 界面、Jellyfin 界面或通用界面。它只是读数 ——
+    /// 由在线服务器台数算出来，不是用户可拨的开关。
     /// </summary>
-    [ObservableProperty]
-    public partial bool ExclusiveMode { get; set; }
-
-    [ObservableProperty]
-    public partial bool AggregateMode { get; set; }
-
-    [ObservableProperty]
-    public partial string ModeTitle { get; set; } = "";
-
-    [ObservableProperty]
-    public partial string ModeDescription { get; set; } = "";
-
-    /// <summary>这一页顶上的「当前界面」：Emby 界面、Jellyfin 界面或通用界面。</summary>
     [ObservableProperty]
     public partial string InterfaceTitle { get; set; } = "";
 
     [ObservableProperty]
     public partial string InterfaceDescription { get; set; } = "";
 
-    /// <summary>独占模式一个账号、聚合模式全部来源的那一句在线摘要。</summary>
+    /// <summary>全部在线来源的那一句摘要：几台服务器、几个账号在参与聚合。</summary>
     [ObservableProperty]
     public partial string OnlineSummary { get; set; } = "";
 
@@ -152,40 +139,32 @@ public sealed partial class ServersViewModel : PageViewModel
         var current = _session!.Server;
         var account = _session.Account;
         var sources = _session.Sources;
-        var mode = Settings.ServerAccess.Mode;
-        var exclusive = mode == ServerConnectionMode.Exclusive;
 
         var serverIds = sources.Select(source => source.ServerProfileId).Distinct(StringComparer.Ordinal).ToArray();
         var flavor = ServerAccess.InterfaceFor(serverIds.Length, sources.Select(source => source.Connection.ServerKind));
         var decidesInterface = serverIds.Length == 1 ? serverIds[0] : null;
 
-        ExclusiveMode = exclusive;
-        AggregateMode = !exclusive;
-        ModeTitle = ServerAccess.ModeName(mode);
-        ModeDescription = exclusive
-            ? "同一时间只登录一台服务器、一个账号。切换到别的服务器或账号时，当前连接退出；保存的账号和密码保留。"
-            : "可同时登录多台服务器、多个账号，主页、搜索与收藏合并显示。同时连接多台服务器时使用通用界面。";
         InterfaceTitle = ServerAccess.InterfaceName(flavor);
         InterfaceDescription = DescribeInterface(flavor, serverIds.Length, sources.Count);
-        OnlineSummary = DescribeOnline(current, account, serverIds.Length, sources.Count, exclusive);
+        OnlineSummary = DescribeOnline(serverIds.Length, sources.Count);
 
         Servers.Clear();
         foreach (var server in Settings.Servers)
-            Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account, sources, mode,
+            Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account, sources,
                 decidesInterface is not null && string.Equals(decidesInterface, server.Id, StringComparison.Ordinal)));
 
         ShowEmpty = Servers.Count == 0;
         Subheading = Servers.Count == 0
             ? "管理服务器与登录用户"
-            : exclusive
-                ? $"已保存 {Servers.Count} 台服务器 · {ServerAccess.ModeName(mode)}，同一时间一个账号在线"
-                : $"已保存 {Servers.Count} 台服务器 · {sources.Count} 个账号同时在线，主页与搜索自动聚合";
+            : sources.Count == 0
+                ? $"已保存 {Servers.Count} 台服务器"
+                : $"已保存 {Servers.Count} 台服务器 · {sources.Count} 个账号在线，主页、搜索与收藏自动聚合";
     }
 
     private static string DescribeInterface(ServerInterfaceFlavor flavor, int serverCount, int accountCount)
     {
         if (accountCount == 0)
-            return "登录后按当前服务器切换界面；同时连接多台服务器时回到通用界面。";
+            return "登录后按在线服务器台数选择界面；只有一台时用它自己的界面，多台时回到通用界面。";
 
         if (flavor == ServerInterfaceFlavor.Generic)
             return serverCount > 1
@@ -193,49 +172,14 @@ public sealed partial class ServersViewModel : PageViewModel
                 : "Plex 先用通用界面：服务端管理入口由服务器自己的能力决定。";
 
         if (flavor == ServerInterfaceFlavor.FnNas)
-            return "由当前唯一的飞牛影视服务器决定，设置左栏照它的「帐号／影视服务器」目录显示。";
+            return "由在线唯一的飞牛影视服务器决定，设置左栏照它的「帐号／影视服务器」目录显示。";
 
-        return $"由当前唯一的服务器决定，服务端管理与网页控制台照 {ServerAccess.InterfaceName(flavor)} 的网页端显示。";
+        return $"由在线唯一的服务器决定，服务端管理与网页控制台照 {ServerAccess.InterfaceName(flavor)} 的网页端显示。";
     }
 
-    private static string DescribeOnline(ServerProfile? server, AccountProfile? account, int serverCount, int accountCount,
-        bool exclusive)
-    {
-        if (accountCount == 0) return "当前未登录";
-        if (exclusive)
-            return $"在线：{server?.Name ?? "服务器"} · {account?.Username ?? "账号"}（独占模式）";
-        return $"{serverCount} 台服务器 · {accountCount} 个账号在线";
-    }
-
-    /// <summary>
-    /// 拨连接模式。独占模式立刻把其它在线来源收掉（凭据保留），并让主窗口与设置左栏当场跟上。
-    /// </summary>
-    private void SetMode(ServerConnectionMode mode)
-    {
-        if (!Attached || Settings.ServerAccess.Mode == mode) return;
-
-        Settings.ServerAccess.Mode = mode;
-        _settings!.Save();
-        var closed = _session!.ApplyAccessMode();
-        ShellPrefs.ApplyServerAccess();
-        Refresh();
-
-        var title = mode == ServerConnectionMode.Exclusive ? "已切换到独占模式" : "已切换到聚合模式";
-        var message = mode switch
-        {
-            ServerConnectionMode.Exclusive when closed > 0 =>
-                $"已退出 {closed} 个其它在线账号；保存的账号和密码仍然保留，需要时可以再登录。",
-            ServerConnectionMode.Exclusive => "以后同一时间只保留一台服务器、一个账号在线。",
-            _ => "现在可以同时登录多台服务器和多个账号。"
-        };
-        Notify(title, message, InfoBarSeverity.Success);
-    }
-
-    [RelayCommand]
-    private void UseExclusive() => SetMode(ServerConnectionMode.Exclusive);
-
-    [RelayCommand]
-    private void UseAggregate() => SetMode(ServerConnectionMode.Aggregate);
+    private static string DescribeOnline(int serverCount, int accountCount) => accountCount == 0
+        ? "当前未登录"
+        : $"{serverCount} 台服务器 · {accountCount} 个账号在线";
 
     [RelayCommand]
     private void AddServer() => _actions?.OpenSignIn();
