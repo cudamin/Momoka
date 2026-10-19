@@ -269,6 +269,9 @@ handle  Views/LibraryPage.xaml  FilterPane
 handle  Views/LibraryPage.xaml  FilterScrim
 handle  Views/LibraryPage.xaml  FilterText
 handle  Views/LibraryPage.xaml  HeaderGrid
+handle  Views/LibraryPage.xaml  JellyfinLayoutButton
+handle  Views/LibraryPage.xaml  JellyfinLayoutList
+handle  Views/LibraryPage.xaml  JellyfinLayoutMenu
 handle  Views/LibraryPage.xaml  LibraryClearFiltersButton
 handle  Views/LibraryPage.xaml  LibrarySettingsButton
 handle  Views/LibraryPage.xaml  LibraryTitle

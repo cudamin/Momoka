@@ -50,6 +50,29 @@ internal static class ItemMenuTests
             Assert.False(menu[0].IsRule || menu[^1].IsRule);
             for (var index = 1; index < menu.Count; index++) Assert.False(menu[index - 1].IsRule && menu[index].IsRule);
         });
+
+        Test("Jellyfin 更多菜单：词条照 Jellyfin Web 的中文", () =>
+        {
+            var movie = new EmbyItem
+            {
+                Id = "movie",
+                Name = "电影",
+                Type = EmbyItemType.Movie,
+                RunTimeTicks = 6000_000_000
+            };
+            Assert.Equal(
+                "播放 | 详细信息 | 标为已播放 | 加入收藏 | 加入集合 | 下载 | 编辑元数据 | 修改图片 | 修改字幕 | 刮削元数据 | 刷新元数据 | 重新扫描媒体库 | 删除媒体",
+                JellyfinLabels(movie));
+            Assert.Equal("删除系列", ItemMenu.For(new EmbyItem { Id = "s", Type = EmbyItemType.Series }, jellyfin: true)
+                .Single(row => row.Command == ItemCommand.Delete).Label);
+            Assert.Equal("删除剧集", ItemMenu.For(new EmbyItem { Id = "e", Type = EmbyItemType.Episode }, jellyfin: true)
+                .Single(row => row.Command == ItemCommand.Delete).Label);
+
+            // Emby's own wording is untouched by the Jellyfin branch.
+            Assert.Contains("编辑元数据信息…", Labels(movie));
+            Assert.Contains("识别", Labels(movie));
+            Assert.Contains("删除", Labels(movie));
+        });
     }
 
     /// <summary>继续观看那一排上的一张卡：一集看到一半。</summary>
@@ -485,4 +508,9 @@ internal static class ItemMenuTests
 
     private static string LabelsMp(EmbyItem item) =>
         string.Join(" | ", ItemMenu.For(item, moviePilotEnabled: true).Select(row => row.IsRule ? "──" : row.Label));
+
+    private static string JellyfinLabels(EmbyItem item) =>
+        string.Join(" | ", ItemMenu.For(item, jellyfin: true)
+            .Where(row => !row.IsRule)
+            .Select(row => row.Label));
 }

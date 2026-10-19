@@ -31,7 +31,17 @@ public enum LibraryView
     Logo = 5,
 
     /// <summary>表格: Emby's datagrid — one row per item, the chosen fields as columns.</summary>
-    Table = 6
+    Table = 6,
+
+    /// <summary>
+    /// 海报卡片: Jellyfin Web's PosterCard layout — the same poster, title and year inside a card surface.
+    /// Jellyfin-only; Emby's view menu keeps its original seven shapes (see
+    /// <see cref="LibraryDisplayCatalog.EmbyViews"/>).
+    /// </summary>
+    PosterCard = 7,
+
+    /// <summary>缩略图卡片: Jellyfin Web's ThumbCard layout — the 16:9 still inside a card surface.</summary>
+    ThumbCard = 8
 }
 
 /// <summary>Field sets requested from Emby. Only names that exist in Emby's ItemFields.</summary>

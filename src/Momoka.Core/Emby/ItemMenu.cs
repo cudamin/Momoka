@@ -137,20 +137,20 @@ public static class ItemMenu
     /// </param>
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
         bool jellyfin = false, bool fnNas = false, bool plex = false) => fnNas
-        ? Join(Opening(item), UserState(item, true), FnNasManagement(item), Navigation(item))
+        ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
         // offered and then refused.
         : plex
-        ? Join(Opening(item), UserState(item, true, favorites: false), Navigation(item))
+        ? Join(Opening(item, false), UserState(item, true, favorites: false), Navigation(item))
         : Join(
-        Opening(item),
+        Opening(item, jellyfin),
         MissingEpisodes(item),
         UserState(item, jellyfin),
-        Organising(item),
+        Organising(item, jellyfin),
         MoviePilotBlock(item, moviePilotEnabled, animeGenre),
-        Metadata(item),
+        Metadata(item, jellyfin),
         Navigation(item),
-        Destructive(item));
+        Destructive(item, jellyfin));
 
     /// <summary>
     /// 菜单和迟到的点击共用同一能力判断；Jellyfin 没有保留续播点的隐藏接口，飞牛没有合集与
@@ -234,9 +234,9 @@ public static class ItemMenu
     public static bool IsEpisodeSet(EmbyItem item) =>
         item.Type is EmbyItemType.Series or EmbyItemType.Season;
 
-    private static List<ItemMenuEntry> Opening(EmbyItem item) => item.IsPlayable
+    private static List<ItemMenuEntry> Opening(EmbyItem item, bool jellyfin) => item.IsPlayable
         ? [
-            new(ItemCommand.Play, item.HasResumePosition
+            new(ItemCommand.Play, jellyfin ? "播放" : item.HasResumePosition
                 ? $"继续播放（{TimeFormat.Clock(item.ResumeTicks)}）"
                 : "立即播放"),
             new(ItemCommand.Details, "详细信息")
@@ -261,13 +261,14 @@ public static class ItemMenu
         if (!item.TracksUserState) return rows;
 
         var played = item.UserData?.Played == true;
-        if (!played) rows.Add(new(ItemCommand.MarkPlayed, "标记为已观看"));
-        if (played || item.HasResumePosition) rows.Add(new(ItemCommand.MarkUnplayed, "标记为未观看"));
+        if (!played) rows.Add(new(ItemCommand.MarkPlayed, jellyfin ? "标为已播放" : "标记为已观看"));
+        if (played || item.HasResumePosition)
+            rows.Add(new(ItemCommand.MarkUnplayed, jellyfin ? "标为未播放" : "标记为未观看"));
 
         if (favorites)
             rows.Add(item.UserData?.IsFavorite == true
                 ? new(ItemCommand.Unfavorite, "取消收藏")
-                : new(ItemCommand.Favorite, "添加到收藏"));
+                : new(ItemCommand.Favorite, jellyfin ? "加入收藏" : "添加到收藏"));
 
         if (item.HasResumePosition && Supports(ItemCommand.HideFromResume, jellyfin))
             rows.Add(new(ItemCommand.HideFromResume, "从继续观看中移除"));
@@ -276,11 +277,11 @@ public static class ItemMenu
     }
 
     /// <summary>把它放进哪儿、拿到哪儿去：合集和下载。</summary>
-    private static List<ItemMenuEntry> Organising(EmbyItem item)
+    private static List<ItemMenuEntry> Organising(EmbyItem item, bool jellyfin)
     {
         var rows = new List<ItemMenuEntry>(2);
-        if (IsCatalogue(item)) rows.Add(new(ItemCommand.AddToCollection, "添加到合集…"));
-        if (IsFile(item) || IsEpisodeSet(item)) rows.Add(new(ItemCommand.Download, "下载到设备"));
+        if (IsCatalogue(item)) rows.Add(new(ItemCommand.AddToCollection, jellyfin ? "加入集合" : "添加到合集…"));
+        if (IsFile(item) || IsEpisodeSet(item)) rows.Add(new(ItemCommand.Download, jellyfin ? "下载" : "下载到设备"));
         return rows;
     }
 
@@ -317,17 +318,20 @@ public static class ItemMenu
     /// 列表也没有可对上的片子。给那几种摆一条「识别」，点下去只有 404。
     /// </para>
     /// </summary>
-    private static List<ItemMenuEntry> Metadata(EmbyItem item)
+    private static List<ItemMenuEntry> Metadata(EmbyItem item, bool jellyfin)
     {
         // 编辑元数据对媒体库自己也成立（库有名字、简介和封面），所以它不看 IsCatalogue。
-        var rows = new List<ItemMenuEntry> { new(ItemCommand.EditMetadata, "编辑元数据信息…") };
+        var rows = new List<ItemMenuEntry>
+        {
+            new(ItemCommand.EditMetadata, jellyfin ? "编辑元数据" : "编辑元数据信息…")
+        };
 
         if (IsCatalogue(item))
         {
-            rows.Add(new(ItemCommand.ChangeCover, "修改媒体封面图…"));
-            if (IsFile(item)) rows.Add(new(ItemCommand.Subtitles, "搜索和修改字幕…"));
-            if (ItemIdentify.Supports(item)) rows.Add(new(ItemCommand.Identify, "识别"));
-            rows.Add(new(ItemCommand.RefreshMetadata, "刷新元数据信息"));
+            rows.Add(new(ItemCommand.ChangeCover, jellyfin ? "修改图片" : "修改媒体封面图…"));
+            if (IsFile(item)) rows.Add(new(ItemCommand.Subtitles, jellyfin ? "修改字幕" : "搜索和修改字幕…"));
+            if (ItemIdentify.Supports(item)) rows.Add(new(ItemCommand.Identify, jellyfin ? "刮削元数据" : "识别"));
+            rows.Add(new(ItemCommand.RefreshMetadata, jellyfin ? "刷新元数据" : "刷新元数据信息"));
         }
 
         // 扫库是服务器整体的一件事，跟这个条目是什么关系不大 —— 演职人员那一排除外，那不是库里的东西。
@@ -342,8 +346,19 @@ public static class ItemMenu
             : [];
 
     /// <summary>删除，单独一段摆在最后：它连磁盘上的文件一起删，不该和「刷新元数据」贴在一起被误点。</summary>
-    private static List<ItemMenuEntry> Destructive(EmbyItem item) =>
-        IsCatalogue(item) ? [new(ItemCommand.Delete, "删除")] : [];
+    private static List<ItemMenuEntry> Destructive(EmbyItem item, bool jellyfin) =>
+        IsCatalogue(item)
+            ? [new(ItemCommand.Delete, jellyfin ? JellyfinDeleteLabel(item) : "删除")]
+            : [];
+
+    /// <summary>The context-specific wording Jellyfin Web uses for its delete command.</summary>
+    private static string JellyfinDeleteLabel(EmbyItem item) => item.Type switch
+    {
+        EmbyItemType.Series => "删除系列",
+        EmbyItemType.Episode => "删除剧集",
+        EmbyItemType.Playlist or EmbyItemType.BoxSet => "删除",
+        _ => "删除媒体"
+    };
 
     /// <summary>
     /// 删除之前那一句问话：标题和正文。

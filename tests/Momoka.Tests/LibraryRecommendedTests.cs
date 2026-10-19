@@ -26,6 +26,24 @@ internal static class LibraryRecommendedTests
             Assert.Equal(0, LibraryRecommended.Rows("music").Count);
         });
 
+        Test("推荐页：Jellyfin 的电影与剧集各有一套货架", () =>
+        {
+            var movies = LibraryRecommended.Rows("movies", MediaServerKind.Jellyfin);
+            Assert.Equal("继续观看,最新电影,为你推荐", string.Join(',', movies.Select(row => row.Title)));
+            Assert.Equal("True,False,False", string.Join(',', movies.Select(row => row.Wide)));
+
+            var shows = LibraryRecommended.Rows("tvshows", MediaServerKind.Jellyfin);
+            Assert.Equal("继续观看,最新剧集,接下来看", string.Join(',', shows.Select(row => row.Title)));
+            Assert.Equal("True,True,True", string.Join(',', shows.Select(row => row.Wide)));
+
+            Assert.Equal("Movie", string.Join(',',
+                LibraryRecommended.Query("library-a", RecommendedShelf.LatestMovies).IncludeItemTypes));
+            Assert.Equal("DateCreated,SortName",
+                LibraryRecommended.Query("library-a", RecommendedShelf.LatestMovies).SortBy);
+            Assert.Equal("", LibraryRecommended.Query("library-a", RecommendedShelf.NextUp).SortBy);
+            Assert.Equal("", LibraryRecommended.Query("library-a", RecommendedShelf.MovieRecommendations).SortBy);
+        });
+
         Test("推荐页：最新集问的是剧集本身，按最近入库排", () =>
         {
             var query = LibraryRecommended.Query("library-a", RecommendedShelf.LatestEpisodes);

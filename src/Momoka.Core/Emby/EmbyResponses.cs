@@ -10,6 +10,22 @@ public sealed class ItemsResult
     public int TotalRecordCount { get; set; }
 }
 
+/// <summary>
+/// One row of <c>GET /Movies/Recommendations</c>. Jellyfin groups the films by why they were suggested
+/// (<c>SimilarToRecentlyPlayed</c>, <c>HasLikedActor</c>…) and supplies the name of the film the reason
+/// is based on; the web client turns those two fields into a section title.
+/// </summary>
+public sealed class MovieRecommendation
+{
+    public List<EmbyItem> Items { get; set; } = [];
+
+    public string? RecommendationType { get; set; }
+
+    public string? BaselineItemName { get; set; }
+
+    public string? CategoryId { get; set; }
+}
+
 public sealed class EmbyUser
 {
     public EmbyUserPolicy? Policy { get; set; }

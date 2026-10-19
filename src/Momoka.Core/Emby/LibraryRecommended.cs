@@ -12,7 +12,16 @@ public enum RecommendedShelf
     LatestEpisodes,
 
     /// <summary>按播出日期排的最新单集 —— 横版剧照、卡片底下写「SxxExx - 集名」。</summary>
-    RecentlyReleased
+    RecentlyReleased,
+
+    /// <summary>Jellyfin 电影建议的第一排：本库最近入库的电影。</summary>
+    LatestMovies,
+
+    /// <summary>Jellyfin 剧集建议的第三排：每部剧接下来该看的一集。</summary>
+    NextUp,
+
+    /// <summary>Jellyfin 电影建议的第三排：服务器按观看记录算出的相似影片。</summary>
+    MovieRecommendations
 }
 
 /// <summary>推荐页上的一排：认哪一条数据、牌子写什么、卡片是横是竖。</summary>
@@ -44,17 +53,32 @@ public static class LibraryRecommended
     public const int Size = 24;
 
     /// <summary>
-    /// 这个库该有哪几排。电视剧库三排，别的库一排都没有（<c>[]</c> ＝ 这一页不是货架页，走原来的网格）。
+    /// 这个库该有哪几排。Emby 只有电视剧库那三排；Jellyfin 的电影库也有建议页（继续观看、最新电影、
+    /// 服务器推荐），电视剧库的第三排则是「接下来看」而不是按播出日期排的单集。
     /// </summary>
-    public static IReadOnlyList<RecommendedRow> Rows(string? collectionType) =>
-        collectionType == "tvshows"
-            ?
+    public static IReadOnlyList<RecommendedRow> Rows(string? collectionType, MediaServerKind serverKind = MediaServerKind.Emby) =>
+        collectionType switch
+        {
+            "tvshows" when serverKind == MediaServerKind.Jellyfin =>
+            [
+                new(RecommendedShelf.ContinueWatching, "继续观看", Wide: true),
+                new(RecommendedShelf.LatestEpisodes, "最新剧集", Wide: true),
+                new(RecommendedShelf.NextUp, "接下来看", Wide: true)
+            ],
+            "tvshows" =>
             [
                 new(RecommendedShelf.ContinueWatching, "继续观看", Wide: true),
                 new(RecommendedShelf.LatestEpisodes, "最新集", Wide: false),
                 new(RecommendedShelf.RecentlyReleased, "最近发布的剧集", Wide: true)
-            ]
-            : [];
+            ],
+            "movies" when serverKind == MediaServerKind.Jellyfin =>
+            [
+                new(RecommendedShelf.ContinueWatching, "继续观看", Wide: true),
+                new(RecommendedShelf.LatestMovies, "最新电影", Wide: false),
+                new(RecommendedShelf.MovieRecommendations, "为你推荐", Wide: false)
+            ],
+            _ => []
+        };
 
     /// <summary>
     /// 这一排问服务器要什么。继续观看不走这里 —— 它整份交给 Resume 那条接口（见
@@ -73,12 +97,14 @@ public static class LibraryRecommended
         {
             RecommendedShelf.LatestEpisodes => [EmbyItemType.Series],
             RecommendedShelf.RecentlyReleased => [EmbyItemType.Episode],
+            RecommendedShelf.LatestMovies => [EmbyItemType.Movie],
             _ => []
         },
         SortBy = shelf switch
         {
             RecommendedShelf.LatestEpisodes => "DateLastContentAdded,SortName",
             RecommendedShelf.RecentlyReleased => "PremiereDate,SortName",
+            RecommendedShelf.LatestMovies => "DateCreated,SortName",
             _ => ""
         },
         Descending = true,

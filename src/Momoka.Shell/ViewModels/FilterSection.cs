@@ -19,6 +19,7 @@ public sealed partial class FilterCheck : ObservableObject
 {
     private readonly Action<bool> _write;
     private readonly bool _seeded;
+    private bool _syncing;
 
     internal FilterCheck(string label, bool isChecked, Action<bool> write)
     {
@@ -37,9 +38,23 @@ public sealed partial class FilterCheck : ObservableObject
     [ObservableProperty]
     public partial bool IsChecked { get; set; }
 
+    /// <summary>
+    /// Redraws the box without counting as a tick. A checkbox group whose options exclude each other
+    /// (已播放/未播放, HD/SD) has to uncheck the other box when one is chosen; writing through
+    /// <see cref="IsChecked"/> would call back into the selection and could undo the choice.
+    /// </summary>
+    internal void Set(bool value)
+    {
+        if (IsChecked == value) return;
+
+        _syncing = true;
+        try { IsChecked = value; }
+        finally { _syncing = false; }
+    }
+
     partial void OnIsCheckedChanged(bool value)
     {
-        if (!_seeded) return;
+        if (!_seeded || _syncing) return;
         _write(value);
     }
 }
@@ -161,6 +176,56 @@ public sealed partial class FilterSwitchRow : FilterRow
 }
 
 /// <summary>
+/// A row of independent checkboxes — Jellyfin's 播放状态, 视频类型, 功能 and 剧集 groups.
+/// <para>
+/// Several boxes can be on at once. The catalogue options themselves carry the exclusions that matter
+/// (已播放/未播放 and HD/SD), and <see cref="Refresh"/> redraws the sibling boxes after a change so a
+/// selection that was cleared by an exclusion disappears from the panel too.
+/// </para>
+/// </summary>
+public sealed partial class FilterChecksRow : FilterRow
+{
+    private readonly ItemFilters _selection;
+    private readonly Action _changed;
+    private readonly List<(string Id, FilterCheck Check)> _checks = [];
+
+    internal FilterChecksRow(EmbyFilterField field, string? heading, ItemFilters selection, Action changed)
+        : base(field, heading)
+    {
+        _selection = selection;
+        _changed = changed;
+
+        foreach (var choice in field.Choices)
+        {
+            if (choice.OptionId is not { } id) continue;
+
+            var check = new FilterCheck(choice.Label, selection.Has(id), on => Toggle(id, on));
+            Values.Add(check);
+            _checks.Add((id, check));
+        }
+    }
+
+    public ObservableCollection<FilterCheck> Values { get; } = [];
+
+    internal override IEnumerable<string> Labels => Values.Select(value => value.Label);
+
+    private void Toggle(string id, bool on)
+    {
+        if (EmbyFilterBy.Find(id) is not { } option) return;
+        if (_selection.Set(option, on))
+        {
+            Refresh();
+            _changed();
+        }
+    }
+
+    private void Refresh()
+    {
+        foreach (var (id, check) in _checks) check.Set(_selection.Has(id));
+    }
+}
+
+/// <summary>
 /// A dropdown of checkboxes whose values are not in any catalogue, because they are whatever the rows
 /// this grid is listing happen to have — 类型, 家长评分, 工作室, 标签, 年份.
 /// <para>
@@ -168,6 +233,7 @@ public sealed partial class FilterSwitchRow : FilterRow
 /// list you tick several of. That is a button with a flyout here, and the request for the list starts
 /// when the flyout is first opened rather than when the panel is.
 /// </para>
+/// </summary>
 /// </summary>
 public sealed partial class FilterValuesRow : FilterRow
 {

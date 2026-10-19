@@ -20,8 +20,9 @@ internal static class LibraryBrowseTests
         });
         Test("媒体库分类：不支持的服务端入口隐藏", () =>
         {
-            Assert.Equal("节目,预告,收藏,类型,播出平台,集,文件夹", Labels("tvshows", MediaServerKind.Jellyfin));
-            Assert.Equal("影片,预告片,类型,收藏,文件夹", Labels("movies", MediaServerKind.Jellyfin));
+            // Jellyfin Web 10.10 的标签是另一套：电影有合集、没有文件夹；节目没有收藏与文件夹。
+            Assert.Equal("节目,建议,即将播出,类型,制片发行商,剧集", Labels("tvshows", MediaServerKind.Jellyfin));
+            Assert.Equal("电影,建议,预告片,我的最爱,合集,类型", Labels("movies", MediaServerKind.Jellyfin));
             Assert.Equal("电影和节目,类型,文件夹", Labels("mixed", MediaServerKind.Jellyfin));
             Assert.Equal("影片,收藏", Labels("movies", MediaServerKind.FnNas));
             Assert.Equal("电影和节目", Labels("mixed", MediaServerKind.FnNas));
@@ -56,6 +57,131 @@ internal static class LibraryBrowseTests
             var filters = new ItemFilters();
             Assert.True(Query(LibrarySection.Favorites, filters: filters).IsFavorite);
             Assert.Contains("Filters=IsFavorite", Query(LibrarySection.Favorites, filters: filters).ToQueryString());
+        });
+        Test("媒体库分类：Jellyfin 合集页只问合集本身", () =>
+        {
+            var query = Query(LibrarySection.Collections);
+            Assert.Equal("BoxSet", string.Join(',', query.IncludeItemTypes));
+            Assert.True(query.Recursive);
+            Assert.Equal("library-a", query.ParentId);
+            Assert.False(query.IsFavorite);
+            Assert.Null(query.GroupItemsIntoCollections);
+            Assert.True(query.Filters!.IsBlank);
+        });
+        Test("Jellyfin 库：标签、排序菜单与默认排序照网页端", () =>
+        {
+            Assert.Equal(
+                "名称,随机,公众评分,影评人评分,加入日期,播放日期,家长分级,播放次数,发行日期,播放时长",
+                JellyfinSortLabels("movies", LibrarySection.Items));
+            Assert.Equal("名称,随机,公众评分,节目添加日期,剧集添加日期,播放日期,家长分级,发行日期",
+                JellyfinSortLabels("tvshows", LibrarySection.Items));
+            Assert.Equal("名称,TVDB 评分,加入日期,首映日期,播放日期,家长分级,播放次数,播放时长",
+                JellyfinSortLabels("tvshows", LibrarySection.Episodes));
+            Assert.Equal("名称,公众评分,加入日期,播放日期,家长分级,播放次数,发行日期",
+                JellyfinSortLabels("movies", LibrarySection.Trailers));
+            Assert.Equal("名称,公众评分,加入日期,家长分级,发行日期",
+                JellyfinSortLabels("movies", LibrarySection.Collections));
+            Assert.Equal("名称,文件夹,公众评分,影评人评分,加入日期,播放日期,家长分级,播放次数,发行日期,播放时长",
+                JellyfinSortLabels("mixed", LibrarySection.Items));
+
+            Assert.Equal("SortName,ProductionYear", JellyfinLibrary.DefaultSort("movies", LibrarySection.Items).Value);
+            Assert.Equal("SortName", JellyfinLibrary.DefaultSort("tvshows", LibrarySection.Items).Value);
+            Assert.Equal("SeriesSortName,SortName", JellyfinLibrary.DefaultSort("tvshows", LibrarySection.Episodes).Value);
+            Assert.Equal("SortName", JellyfinLibrary.DefaultSort("movies", LibrarySection.Collections).Value);
+            Assert.Equal("IsFolder,SortName", JellyfinLibrary.DefaultSort("mixed", LibrarySection.Items).Value);
+            Assert.True(JellyfinLibrary.IsNameSort("SortName,ProductionYear"));
+            Assert.True(JellyfinLibrary.IsNameSort("IsFolder,SortName"));
+            Assert.False(JellyfinLibrary.IsNameSort("DateCreated,SortName"));
+        });
+        Test("Jellyfin 库：筛选面板按网页端的复选框组", () =>
+        {
+            Assert.Equal("播放状态,功能,类型,家长分级,标签,视频类型,年份",
+                JellyfinFilterLabels("movies", LibrarySection.Items));
+            Assert.Equal("播放状态,状态,功能,类型,家长分级,标签,年份",
+                JellyfinFilterLabels("tvshows", LibrarySection.Items));
+            Assert.Equal("播放状态,剧集,功能,类型,家长分级,标签,视频类型,年份",
+                JellyfinFilterLabels("tvshows", LibrarySection.Episodes));
+            Assert.Equal("播放状态,功能,类型,家长分级,标签,视频类型,年份",
+                JellyfinFilterLabels("movies", LibrarySection.Trailers));
+            Assert.Equal(0, JellyfinFilterLabels("movies", LibrarySection.Collections).Length);
+            Assert.Equal(0, JellyfinFilterLabels("tvshows", LibrarySection.Genres).Length);
+
+            Assert.Equal("已播放,未播放,可恢复播放,我的最爱",
+                JellyfinCheckLabels("movies", LibrarySection.Items, "jellyfinStatus"));
+            Assert.Equal("连载中,完结,暂未发布",
+                JellyfinCheckLabels("tvshows", LibrarySection.Items, "jellyfinSeriesStatus"));
+            Assert.Equal("特集,缺少的剧集,未播出的剧集",
+                JellyfinCheckLabels("tvshows", LibrarySection.Episodes, "jellyfinEpisodes"));
+            Assert.Equal("字幕,预告片,花絮,主题曲,主题视频",
+                JellyfinCheckLabels("movies", LibrarySection.Items, "jellyfinFeatures"));
+            Assert.Equal("蓝光,DVD,HD高清,4K,SD标清,三维",
+                JellyfinCheckLabels("movies", LibrarySection.Items, "jellyfinVideoTypes"));
+        });
+        Test("Jellyfin 库：筛选选项进入查询参数，列表分隔符照服务器", () =>
+        {
+            var filters = new ItemFilters
+            {
+                Toggles = ["played", "is4k", "bluray", "specialEpisode", "missingEpisode", "futureEpisode", "unreleased"],
+                Genres = ["动画"],
+                OfficialRatings = ["PG-13"],
+                Tags = ["科幻"],
+                Years = ["2024"]
+            };
+            var text = new ItemQuery { Filters = filters, Limit = 20 }.ToQueryString();
+            Assert.Contains("Filters=IsPlayed", text);
+            Assert.Contains("Is4K=true", text);
+            Assert.Contains("VideoTypes=Bluray", text);
+            Assert.Contains("ParentIndexNumber=0", text);
+            Assert.Contains("IsMissing=true", text);
+            Assert.Contains("IsUnaired=true", text);
+            Assert.Contains("SeriesStatus=Unreleased", text);
+            Assert.Contains("Genres=%E5%8A%A8%E7%94%BB", text);
+            Assert.Contains("OfficialRatings=PG-13", text);
+            Assert.Contains("Tags=%E7%A7%91%E5%B9%BB", text);
+            Assert.Contains("Years=2024", text);
+        });
+        Test("Jellyfin 库：恢复筛选时只留这套面板认得的选项", () =>
+        {
+            var filters = new ItemFilters
+            {
+                Toggles = ["played", "duplicate", "locked", "favorite", "subtitles"],
+                Genres = ["动画"],
+                MediaValues = { ["Containers"] = ["mkv"] }
+            };
+            var pruned = JellyfinLibrary.Prune(filters);
+            Assert.Equal("played,favorite,subtitles", string.Join(',', pruned.Toggles));
+            Assert.Equal("动画", string.Join(',', pruned.Genres));
+            Assert.Equal(0, pruned.MediaValues.Count);
+            Assert.Equal(4, pruned.Count);
+        });
+        Test("Jellyfin 库：布局菜单与恢复时的视图裁剪", () =>
+        {
+            Assert.Equal("Banner,List,Poster,PosterCard,Thumb,ThumbCard",
+                ViewLabels("movies", LibrarySection.Items));
+            Assert.Equal("List,Poster,PosterCard,Thumb,ThumbCard",
+                ViewLabels("movies", LibrarySection.Collections));
+            Assert.Equal("List,Poster,PosterCard", ViewLabels("tvshows", LibrarySection.Episodes));
+            Assert.Equal("Poster", ViewLabels("movies", LibrarySection.Trailers));
+            Assert.Equal("Poster", ViewLabels("tvshows", LibrarySection.Genres));
+            Assert.True(JellyfinLibrary.HasLayout("movies", LibrarySection.Items));
+            Assert.True(JellyfinLibrary.HasLayout("movies", LibrarySection.Collections));
+            Assert.True(JellyfinLibrary.HasLayout("tvshows", LibrarySection.Episodes));
+            Assert.False(JellyfinLibrary.HasLayout("movies", LibrarySection.Trailers));
+            Assert.False(JellyfinLibrary.HasLayout("tvshows", LibrarySection.Genres));
+
+            var restored = JellyfinLibrary.Fit(new LibraryDisplay
+            {
+                View = LibraryView.Table,
+                GroupIntoCollections = true,
+                Fields = [LibraryField.Title]
+            }, "movies", LibrarySection.Items);
+            Assert.Equal(LibraryView.Poster, restored.View);
+            Assert.False(restored.GroupIntoCollections);
+            Assert.Equal("Title", string.Join(',', restored.Fields));
+
+            var card = JellyfinLibrary.Fit(new LibraryDisplay { View = LibraryView.PosterCard },
+                "movies", LibrarySection.Items);
+            Assert.Equal(LibraryView.PosterCard, card.View);
         });
         Test("媒体库分类：类型与平台索引不携带内容筛选", () =>
         {
@@ -166,6 +292,18 @@ internal static class LibraryBrowseTests
         string.Join(',', LibraryBrowse.Sections(type, kind).Select(entry => entry.Label));
     private static string SortLabels(string collectionType, LibrarySection section) =>
         string.Join(',', LibrarySortCatalog.For(collectionType, section, new Version(4, 10, 1)).Select(option => option.Label));
+    private static string JellyfinSortLabels(string collectionType, LibrarySection section) =>
+        string.Join(',', JellyfinLibrary.SortOptions(collectionType, section).Select(option => option.Label));
+    private static string JellyfinFilterLabels(string collectionType, LibrarySection section) =>
+        string.Join(',', JellyfinLibrary.FilterFields(collectionType, section).Select(field => field.Label));
+    private static string JellyfinCheckLabels(string collectionType, LibrarySection section, string field) =>
+        string.Join(',', JellyfinLibrary.FilterFields(collectionType, section)
+            .Single(entry => entry.Id == field)
+            .Choices
+            .Select(choice => choice.Label));
+    private static string ViewLabels(string collectionType, LibrarySection section) =>
+        string.Join(',', JellyfinLibrary.Views(collectionType, section)
+            .Select(view => view.ToString()));
     private static string FilterLabels(string preset) =>
         string.Join(',', EmbyFilterBy.For(preset, new Version(4, 10, 1)).Select(field => field.Label));
     private static ItemQuery Query(LibrarySection section, string? group = null, ItemFilters? filters = null,
@@ -183,6 +321,9 @@ internal static class LibraryBrowseTests
         var client = Client(http, kind);
         foreach (var entry in LibraryBrowse.Sections(collectionType, kind))
         {
+            // Jellyfin 的「建议」页由 Movies/Recommendations、Items/Latest、NextUp 三份货架数据拼成，
+            // 不走这条普通列表接口；它的控制器在网页端也一样。
+            if (kind == MediaServerKind.Jellyfin && entry.Section == LibrarySection.Recommended) continue;
             await client.GetLibraryItemsAsync(collectionType, entry.Section, null,
                 Query(entry.Section, collectionType: collectionType), default);
             var uri = handler.Requests.Last();
@@ -190,6 +331,8 @@ internal static class LibraryBrowseTests
             Assert.DoesNotContain("fixture-token", uri.AbsoluteUri);
             if (collectionType == "mixed" && entry.Section == LibrarySection.Items)
                 Assert.Contains("IncludeItemTypes=Movie%2CSeries%2CVideo", uri.Query);
+            if (entry.Section == LibrarySection.Collections)
+                Assert.Contains("IncludeItemTypes=BoxSet", uri.Query);
             var path = LibraryBrowse.Path(entry.Section, null, "user");
             if (kind == MediaServerKind.Jellyfin && path == "Users/user/Items") path = "Items";
             Assert.Equal("/media/" + path, uri.AbsolutePath);

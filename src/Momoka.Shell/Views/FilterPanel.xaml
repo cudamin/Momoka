@@ -140,6 +140,33 @@
                     </StackPanel>
                 </DataTemplate>
             </local:FilterSectionTemplates.Values>
+
+            <!-- Jellyfin 的一组复选：播放状态、视频类型、功能、剧集。几条可以同时勾，选项之间的
+                 互斥（已播放/未播放、HD/SD）由目录里的 Excludes 负责，勾完这一行会自己把另一格熄掉。 -->
+            <local:FilterSectionTemplates.Checks>
+                <DataTemplate x:DataType="vm:FilterChecksRow">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource EgFilterHeadingStyle}" Text="{x:Bind Heading}" Visibility="{x:Bind HeadingVisibility}" />
+                        <TextBlock Style="{StaticResource EgFilterLabelStyle}" Text="{x:Bind Label}" />
+                        <ItemsControl ItemsSource="{x:Bind Values}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <local:WrapRow Spacing="4" RowSpacing="4" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:FilterCheck">
+                                    <CheckBox
+                                        Content="{x:Bind Label}"
+                                        IsChecked="{x:Bind IsChecked, Mode=TwoWay}"
+                                        MinWidth="0"
+                                        Padding="8,4,0,4" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </DataTemplate>
+            </local:FilterSectionTemplates.Checks>
         </local:FilterSectionTemplates>
     </UserControl.Resources>
 

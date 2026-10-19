@@ -30,6 +30,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     private string? _preset;
     private Version? _serverVersion;
     private MediaServerKind _serverKind;
+    private IReadOnlyList<EmbyFilterField>? _fields;
     private Func<string, CancellationToken, Task<IReadOnlyList<string>>>? _lookup;
     private CancellationTokenSource? _cancel;
 
@@ -70,13 +71,15 @@ public sealed partial class FilterPanelViewModel : ObservableObject
         string? preset,
         Version? serverVersion,
         Func<string, CancellationToken, Task<IReadOnlyList<string>>> lookup,
-        MediaServerKind serverKind = MediaServerKind.Emby)
+        MediaServerKind serverKind = MediaServerKind.Emby,
+        IReadOnlyList<EmbyFilterField>? fields = null)
     {
         _requests.Clear();
         _selection = selection;
         _preset = preset;
         _serverVersion = serverVersion;
         _serverKind = serverKind;
+        _fields = fields;
         _lookup = lookup;
 
         // 取消过的那个不能再用：Dismiss() 只取消、不换新的，而取消是一去不回的 —— 接着开的话每一次
@@ -143,7 +146,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     {
         Rows.Clear();
 
-        var fields = EmbyFilterBy.For(_preset, _serverVersion, _serverKind);
+        var fields = _fields ?? EmbyFilterBy.For(_preset, _serverVersion, _serverKind);
         string? previousGroup = null;
 
         foreach (var field in fields)
@@ -163,6 +166,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
     {
         FilterKind.Select => new FilterSelectRow(field, heading, _preset, _selection, Notify),
         FilterKind.Switch => new FilterSwitchRow(field, heading, _selection, Notify),
+        FilterKind.Checks => new FilterChecksRow(field, heading, _selection, Notify),
         _ => new FilterValuesRow(field, List(field.ListKey), _selection, this, heading)
     };
 
@@ -171,7 +175,7 @@ public sealed partial class FilterPanelViewModel : ObservableObject
 
     private void ShowSummary()
     {
-        Summary = _selection.IsEmpty ? "全部内容" : _selection.Describe();
+        Summary = _selection.IsEmpty ? "全部内容" : _selection.Describe(_fields);
         ClearCommand.NotifyCanExecuteChanged();
     }
 }

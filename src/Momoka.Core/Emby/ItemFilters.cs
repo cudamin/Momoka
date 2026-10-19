@@ -229,13 +229,15 @@ public sealed class ItemFilters
 
     /// <summary>
     /// What is on, in words: 「未播放、收藏 · 类型：动画、科幻」. For the filter button's tooltip, where the
-    /// badge only has room for a number.
+    /// badge only has room for a number. The optional <paramref name="fields"/> lets Jellyfin describe the
+    /// selection with its own panel rather than Emby's.
     /// </summary>
-    public string Describe()
+    public string Describe(IReadOnlyList<EmbyFilterField>? fields = null)
     {
         var sections = new List<string>(4);
+        var panel = fields ?? EmbyFilterBy.Fields;
 
-        var labels = EmbyFilterBy.Fields
+        var labels = panel
             .SelectMany(field => field.Choices)
             .Where(choice => choice.OptionId is { } id && Toggles.Contains(id))
             .Select(choice => choice.ChipLabel ?? choice.Label)

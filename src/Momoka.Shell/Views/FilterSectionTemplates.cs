@@ -27,11 +27,14 @@ public sealed partial class FilterSectionTemplates : DataTemplateSelector
 
     public DataTemplate? Values { get; set; }
 
+    public DataTemplate? Checks { get; set; }
+
     protected override DataTemplate? SelectTemplateCore(object item) => item switch
     {
         FilterSelectRow => Select,
         FilterSwitchRow => Switch,
         FilterValuesRow => Values,
+        FilterChecksRow => Checks,
         _ => null
     };
 

@@ -123,7 +123,9 @@ public sealed partial class LibrarySettingsPanel : UserControl
 
     private void BuildViewOptions()
     {
-        foreach (var view in Enum.GetValues<LibraryView>())
+        // Emby's original seven shapes. Jellyfin's PosterCard/ThumbCard are not offered here: a Jellyfin
+        // library uses its own 布局 menu and never shows this panel.
+        foreach (var view in LibraryDisplayCatalog.EmbyViews)
         {
             var item = new ComboBoxItem { Content = LibraryDisplayCatalog.LabelOf(view), Tag = view };
             AutomationProperties.SetName(item, LibraryDisplayCatalog.LabelOf(view));

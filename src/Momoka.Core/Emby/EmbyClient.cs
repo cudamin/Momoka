@@ -99,7 +99,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         if (Connection.IsJellyfin && mediaList) throw new NotSupportedException("Jellyfin 不支持此筛选列表");
         if (Connection.IsJellyfin)
         {
-            if (key is not (EmbyFilterBy.Keys.Genres or EmbyFilterBy.Keys.Tags or EmbyFilterBy.Keys.Years))
+            if (key is not (EmbyFilterBy.Keys.Genres or EmbyFilterBy.Keys.Tags or EmbyFilterBy.Keys.Years
+                or EmbyFilterBy.Keys.OfficialRatings))
                 throw new ArgumentException("未知的筛选列表", nameof(key));
             var filters = await http.GetJsonAsync<JsonObject>(Url("Items/Filters",
                 ("UserId", Connection.UserId), ("ParentId", scope.ParentId),
@@ -261,7 +262,9 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string? parentId,
         int limit,
         CancellationToken cancellationToken,
-        string? includeItemTypes = null)
+        string? includeItemTypes = null,
+        bool unplayedOnly = true,
+        bool groupItems = true)
     {
         if (Connection.IsFnNas) return FnNasMedia.GetLatestAsync(parentId, limit, includeItemTypes, cancellationToken);
         if (Connection.IsPlex) return PlexMedia.GetLatestAsync(parentId, limit, includeItemTypes, cancellationToken);
@@ -269,8 +272,8 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
             ("Limit", limit.ToString()),
             ("Fields", EmbyFields.Browse),
             ("ParentId", parentId),
-            ("IsPlayed", "false"),
-            ("GroupItems", "true"),
+            ("IsPlayed", unplayedOnly ? "false" : null),
+            ("GroupItems", groupItems ? "true" : null),
             ("IncludeItemTypes", includeItemTypes));
         return http.GetJsonAsync<List<EmbyItem>>(url, Context, cancellationToken);
     }
@@ -304,17 +307,37 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     /// 「尚未观看」 row is: the same endpoint the home page uses, scoped, so the two can never disagree
     /// about which episode is next.
     /// </summary>
-    public async Task<List<EmbyItem>> GetNextUpAsync(int limit, CancellationToken cancellationToken, string? seriesId = null)
+    public async Task<List<EmbyItem>> GetNextUpAsync(int limit, CancellationToken cancellationToken,
+        string? seriesId = null, string? parentId = null)
     {
         if (Connection.IsFnNas) return await FnNasMedia.GetNextUpAsync(seriesId, limit, cancellationToken).ConfigureAwait(false);
         if (Connection.IsPlex) return await PlexMedia.GetNextUpAsync(seriesId, limit, cancellationToken).ConfigureAwait(false);
         var url = Url("Shows/NextUp",
             ("UserId", Connection.UserId),
             ("SeriesId", seriesId),
+            ("ParentId", parentId),
             ("Limit", limit.ToString()),
             ("Fields", EmbyFields.Browse));
         var result = await http.GetJsonAsync<ItemsResult>(url, Context, cancellationToken).ConfigureAwait(false);
         return result.Items;
+    }
+
+    /// <summary>
+    /// Jellyfin's 「建议」 rows for one library: <c>GET /Movies/Recommendations</c> groups films by why
+    /// they were suggested and names the film the reason is based on. Emby has no such endpoint; the
+    /// library's movie suggestions page therefore uses only the resume/latest rows there.
+    /// </summary>
+    public async Task<List<MovieRecommendation>> GetMovieRecommendationsAsync(
+        string parentId, int limit, CancellationToken cancellationToken)
+    {
+        if (!Connection.IsJellyfin) throw new NotSupportedException("当前服务器不支持电影建议");
+        var url = Url("Movies/Recommendations",
+            ("UserId", Connection.UserId),
+            ("ParentId", parentId),
+            ("Fields", EmbyFields.Browse),
+            ("CategoryLimit", "6"),
+            ("ItemLimit", limit.ToString()));
+        return await http.GetJsonAsync<List<MovieRecommendation>>(url, Context, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<List<EmbyItem>> GetSeasonsAsync(string seriesId, CancellationToken cancellationToken)

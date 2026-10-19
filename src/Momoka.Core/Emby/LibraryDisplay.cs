@@ -229,9 +229,9 @@ public static class LibraryDisplayCatalog
 
     public static LibraryDisplay DefaultFor(LibrarySection section, LibraryIndexKind index = LibraryIndexKind.None) => new()
     {
-        // 索引页没有「合集」这回事：它列的是类型名与台名，不是条目。
+        // 索引页没有「合集」这回事：它列的是类型名与台名，不是条目。合集页列的就是合集本身，也没有再分组。
         GroupIntoCollections = index == LibraryIndexKind.None
-            && section is not (LibrarySection.Episodes or LibrarySection.Folders),
+            && section is not (LibrarySection.Episodes or LibrarySection.Folders or LibrarySection.Collections),
         Fields = index != LibraryIndexKind.None ? [LibraryField.Title]
             : section == LibrarySection.Episodes ? [LibraryField.Title]
             : [.. DefaultFields]
@@ -362,8 +362,20 @@ public static class LibraryDisplayCatalog
         LibraryView.Thumb => "缩略图",
         LibraryView.List => "列表",
         LibraryView.Table => "表格",
+        LibraryView.PosterCard => "海报卡片",
+        LibraryView.ThumbCard => "缩略图卡片",
         _ => "海报"
     };
+
+    /// <summary>
+    /// Emby's original seven shapes, in enum order. The settings panel uses this list rather than every
+    /// enum value so Jellyfin's two card layouts do not appear in an Emby library's 视图 dropdown.
+    /// </summary>
+    public static IReadOnlyList<LibraryView> EmbyViews { get; } =
+    [
+        LibraryView.Poster, LibraryView.Thumb, LibraryView.List, LibraryView.Banner,
+        LibraryView.Disc, LibraryView.Logo, LibraryView.Table
+    ];
 
     /// <summary>网页端「图像大小」说明的那一行字。</summary>
     public const string ImageSizeHelp = "设置图像网格的首选尺寸。";
@@ -444,11 +456,12 @@ public static class LibraryCardMetrics
         {
             LibraryIndexKind.Genre => CardSize.PosterWidth,
             LibraryIndexKind.Studio => CardSize.WideWidth,
-            _ => section == LibrarySection.Episodes && view == LibraryView.Poster ? CardSize.WideWidth : view switch
-            {
-                LibraryView.Poster or LibraryView.Disc => CardSize.PosterWidth,
-                _ => CardSize.WideWidth
-            }
+            _ => section == LibrarySection.Episodes && view is LibraryView.Poster or LibraryView.PosterCard
+                ? CardSize.WideWidth : view switch
+                {
+                    LibraryView.Poster or LibraryView.Disc or LibraryView.PosterCard => CardSize.PosterWidth,
+                    _ => CardSize.WideWidth
+                }
         };
         return Math.Max(80, (int)Math.Round(baseWidth * scale));
     }
@@ -463,6 +476,13 @@ public static class LibraryCardMetrics
     /// </para>
     /// </summary>
     public const double ColumnSpacing = 16;
+
+    /// <summary>
+    /// Jellyfin's card layouts put the artwork and its two text lines inside a card surface. The picture
+    /// keeps its own height, so the extra height is the surface's top/bottom padding; see
+    /// <c>LibraryViewModel.RowHeight</c>.
+    /// </summary>
+    public const int CardFrameChrome = 16;
 
     /// <summary>
     /// 这一行排得下几列、每列多宽。用户令 2026-10-18：「封面随窗口大小变化，互相之间不要留太大的空隙」。
@@ -513,13 +533,14 @@ public static class LibraryCardMetrics
     public static double Height(LibraryView view, int width, LibrarySection section = LibrarySection.Items,
         LibraryIndexKind index = LibraryIndexKind.None) =>
         index != LibraryIndexKind.None ? Math.Round(width * LibraryIndexCards.Aspect(index))
-        : section == LibrarySection.Episodes && view == LibraryView.Poster ? Math.Round(width * 9.0 / 16.0) : view switch
-        {
-            LibraryView.Poster => Math.Round(width * 1.5),
-            LibraryView.Disc => width,
-            LibraryView.Banner => Math.Round(width * 0.185),
-            _ => Math.Round(width * 9.0 / 16.0)
-        };
+        : section == LibrarySection.Episodes && view is LibraryView.Poster or LibraryView.PosterCard
+            ? Math.Round(width * 9.0 / 16.0) : view switch
+            {
+                LibraryView.Poster or LibraryView.PosterCard => Math.Round(width * 1.5),
+                LibraryView.Disc => width,
+                LibraryView.Banner => Math.Round(width * 0.185),
+                _ => Math.Round(width * 9.0 / 16.0)
+            };
 }
 
 /// <summary>

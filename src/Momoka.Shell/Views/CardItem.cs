@@ -79,6 +79,12 @@ public sealed class CardItem : INotifyPropertyChanged
     /// <summary>第三行：勾了宣传语或概要才有，null 就是这一行整行收起。</summary>
     private readonly string? _note;
 
+    /// <summary>
+    /// Jellyfin's PosterCard / ThumbCard layouts: the artwork and both text lines sit on a card surface
+    /// rather than directly on the page. Only those two views pass true.
+    /// </summary>
+    private readonly bool _cardLayout;
+
     /// <summary>这一张卡在季集信息下面再写一行服务器名（多账号主页的继续观看）。</summary>
     private readonly bool _sourceLine;
 
@@ -175,7 +181,8 @@ public sealed class CardItem : INotifyPropertyChanged
         bool folderFrame = false,
         double? aspect = null,
         bool sourceLine = false,
-        bool fnNasWide = false)
+        bool fnNasWide = false,
+        bool cardLayout = false)
     {
         _item = item;
         _images = images;
@@ -191,6 +198,7 @@ public sealed class CardItem : INotifyPropertyChanged
         FolderFrame = folderFrame;
         _aspect = aspect;
         _fnNasWide = fnNasWide;
+        _cardLayout = cardLayout;
         PosterStretch = containArtwork || fnNasWide ? Stretch.Uniform : Stretch.UniformToFill;
         _note = note;
         _indicators = indicators;
@@ -268,7 +276,14 @@ public sealed class CardItem : INotifyPropertyChanged
     public Visibility SubtitleVisibility => Show(Subtitle.Length > 0);
     public Stretch PosterStretch { get; }
     public TextAlignment TitleAlignment => CenteredText ? TextAlignment.Center : TextAlignment.Left;
-    public Thickness TextMargin => new(0, CenteredText ? 4 : 8, 0, 0);
+    public Thickness TextMargin => _cardLayout
+        ? new(10, 6, 10, 10)
+        : new(0, CenteredText ? 4 : 8, 0, 0);
+
+    /// <summary>The picture's inset inside a Jellyfin card, or the folder frame's own margin.</summary>
+    public Thickness ArtMargin => _cardLayout ? new Thickness(8, 8, 8, 0) : FrameMargin;
+
+    public Visibility CardLayoutVisibility => Show(_cardLayout);
 
     /// <summary>
     /// 列表视图 row's own title: 「1. 集名」. Kept separate from <see cref="Title"/> because the numbered

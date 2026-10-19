@@ -66,7 +66,14 @@ public enum FilterKind
     Switch,
 
     /// <summary>A dropdown of checkboxes whose values come from the server — 类型, 家长评分, 工作室, 年份.</summary>
-    Values
+    Values,
+
+    /// <summary>
+    /// A short list of independent checkboxes inside one row — Jellyfin Web's 播放状态, 视频类型, 功能 and
+    /// 剧集 groups. Unlike <see cref="Select"/> several choices can be on at once, and unlike
+    /// <see cref="Values"/> the choices and their query values are fixed in the catalogue.
+    /// </summary>
+    Checks
 }
 
 /// <summary>
@@ -197,6 +204,10 @@ public static class EmbyFilterBy
         public const string IsDuplicate = "IsDuplicate";
         public const string IsHD = "IsHD";
         public const string Is3D = "Is3D";
+        public const string Is4K = "Is4K";
+        public const string ParentIndexNumber = "ParentIndexNumber";
+        public const string IsMissing = "IsMissing";
+        public const string IsUnaired = "IsUnaired";
         public const string Containers = "Containers";
         public const string VideoCodecs = "VideoCodecs";
         public const string ExtendedVideoTypes = "ExtendedVideoTypes";
@@ -246,6 +257,12 @@ public static class EmbyFilterBy
         new() { Id = "hd", Key = Keys.IsHD, Value = "true", Excludes = ["sd"] },
         new() { Id = "sd", Key = Keys.IsHD, Value = "false", Excludes = ["hd"] },
         new() { Id = "3d", Key = Keys.Is3D, Value = "true" },
+        new() { Id = "is4k", Key = Keys.Is4K, Value = "true" },
+        new() { Id = "bluray", Key = Keys.VideoTypes, Value = "Bluray" },
+        new() { Id = "dvd", Key = Keys.VideoTypes, Value = "Dvd" },
+        new() { Id = "specialEpisode", Key = Keys.ParentIndexNumber, Value = "0" },
+        new() { Id = "missingEpisode", Key = Keys.IsMissing, Value = "true" },
+        new() { Id = "futureEpisode", Key = Keys.IsUnaired, Value = "true" },
         new() { Id = "subtitles", Key = Keys.HasSubtitles, Value = "true", Excludes = ["noSubtitles"] },
         new() { Id = "noSubtitles", Key = Keys.HasSubtitles, Value = "false", Excludes = ["subtitles"] },
         new() { Id = "trailer", Key = Keys.HasTrailer, Value = "true", Excludes = ["noTrailer"] },
@@ -267,6 +284,7 @@ public static class EmbyFilterBy
         new() { Id = "missingTmdbId", Key = Keys.HasTmdbId, Value = "false" },
         new() { Id = "continuing", Key = Keys.SeriesStatus, Value = "Continuing" },
         new() { Id = "ended", Key = Keys.SeriesStatus, Value = "Ended" },
+        new() { Id = "unreleased", Key = Keys.SeriesStatus, Value = "Unreleased" },
         new() { Id = "resolution4k", Key = "MinWidth", Value = "3800" },
         new() { Id = "resolution1080", Key = "MinWidth", Value = "1800" },
         new() { Id = "resolution720", Key = "MinWidth", Value = "1200" },
@@ -630,11 +648,15 @@ public static class EmbyFilterBy
     /// <summary>
     /// The chip text for a stored id — 未播放, 有预告片, 缺少 IMDb Id — falling back to the id itself.
     /// </summary>
-    public static string LabelOf(string? id)
+    public static string LabelOf(string? id) => LabelOf(id, Fields);
+
+    /// <inheritdoc cref="LabelOf(string)"/>
+    /// <param name="fields">The panel the id was ticked in; Jellyfin rows are not in <see cref="Fields"/>.</param>
+    public static string LabelOf(string? id, IReadOnlyList<EmbyFilterField> fields)
     {
         if (id is null) return "";
 
-        foreach (var field in Fields)
+        foreach (var field in fields)
             foreach (var choice in field.Choices)
                 if (choice.OptionId == id)
                     return choice.ChipLabel ?? choice.Label;
@@ -645,18 +667,23 @@ public static class EmbyFilterBy
     /// <summary>
     /// 当前生效的每一条筛选，一条一格 —— 工具栏底下那一行可以逐个点掉的筛选条。
     /// <para>
-    /// 顺序和面板一致：先按 <see cref="Fields"/> 的顺序走一遍开关与下拉，再走四张按值多选的表。
+    /// 顺序和面板一致：先按字段表的顺序走一遍开关、下拉与复选框组，再走按值多选的表。
     /// 存的顺序是点的顺序，一行会跟着上次怎么点而重排，所以这里不读它。认不出来的开关 id 不出格，
     /// 和那个数字一致：那个数也不数它们，一格点不掉又说不出名字的筛选条比不出更糟。
     /// </para>
     /// </summary>
-    public static IReadOnlyList<FilterChip> Chips(ItemFilters filters)
+    public static IReadOnlyList<FilterChip> Chips(ItemFilters filters) => Chips(filters, Fields);
+
+    /// <inheritdoc cref="Chips(ItemFilters)"/>
+    /// <param name="fields">The panel in force. Jellyfin's rows and options differ from Emby's.</param>
+    public static IReadOnlyList<FilterChip> Chips(ItemFilters filters, IReadOnlyList<EmbyFilterField> fields)
     {
         ArgumentNullException.ThrowIfNull(filters);
+        ArgumentNullException.ThrowIfNull(fields);
 
         var chips = new List<FilterChip>(filters.Count);
 
-        foreach (var field in Fields)
+        foreach (var field in fields)
         {
             foreach (var choice in field.Choices)
             {

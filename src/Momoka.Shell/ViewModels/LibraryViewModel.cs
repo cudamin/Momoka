@@ -210,7 +210,11 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     public double RowHeight => LibraryCardMetrics.Height(View, CardBuildWidth, Section, IndexKind)
         + (IndexKind == LibraryIndexKind.None ? Momoka.Infrastructure.CardSize.Chrome : LibraryIndexCards.TextHeight)
-        + NoteHeight;
+        + NoteHeight
+        + (IsCardFrameView ? LibraryCardMetrics.CardFrameChrome : 0);
+
+    /// <summary>Jellyfin's two card layouts draw their artwork and text on a card surface.</summary>
+    private bool IsCardFrameView => View is LibraryView.PosterCard or LibraryView.ThumbCard;
 
     /// <summary>多出来的那一行字（宣传语或概要）占的高度；没勾这两项就是 0。</summary>
     private double NoteHeight => Fields.Contains(LibraryField.Tagline) || Fields.Contains(LibraryField.Overview) ? 18 : 0;
@@ -290,17 +294,18 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>Segoe Fluent codepoints for the view shapes.</summary>
     internal static int ViewGlyphOf(LibraryView view) => view switch
     {
-        LibraryView.Thumb => 0xE8A9,   // 网格（宽格）
+        LibraryView.Thumb or LibraryView.ThumbCard => 0xE8A9,   // 网格（宽格）
         LibraryView.List => 0xE8FD,    // 列表
         LibraryView.Table => 0xE8FD,   // 表格
         LibraryView.Banner => 0xE7C4,  // 横幅
         LibraryView.Disc => 0xE958,    // 光盘
         LibraryView.Logo => 0xE8D2,    // 徽标
-        _ => 0xE80A                    // 平铺
+        _ => 0xE80A                    // 平铺（海报 / 海报卡片）
     };
 
     /// <summary>Whether this grid draws a 16:9 still rather than a poster.</summary>
-    internal bool ViewIsWide => View is LibraryView.Thumb or LibraryView.Logo or LibraryView.List or LibraryView.Table;
+    internal bool ViewIsWide => View is LibraryView.Thumb or LibraryView.ThumbCard or LibraryView.Logo
+        or LibraryView.List or LibraryView.Table;
 
     /// <summary>
     /// The width a card is built at in the current view — **not** the constant the shape prefers, but the
@@ -341,7 +346,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     internal bool CardBuildWide => IndexKind == LibraryIndexKind.Studio
         || IndexKind == LibraryIndexKind.None
-        && (ViewIsWide || Section == LibrarySection.Episodes && View == LibraryView.Poster);
+        && (ViewIsWide || Section == LibrarySection.Episodes && View is LibraryView.Poster or LibraryView.PosterCard);
 
     /// <summary>
     /// 这一面墙取图的先后顺序。网页端七种视图各要各的图：海报要竖图、横幅图要 Banner、光盘封面要
@@ -358,6 +363,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             LibraryView.Banner => ["Banner", "Backdrop", "Primary"],
             LibraryView.Disc => ["Disc", "Primary"],
             LibraryView.Logo => ["Backdrop", "Thumb"],
+            LibraryView.ThumbCard => [EmbyImageStore.Thumb, EmbyImageStore.Backdrop],
             _ => []
         };
 
@@ -399,6 +405,9 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     internal bool IsFnNas => _scope?.Connection.IsFnNas == true;
 
+    /// <summary>This grid belongs to a Jellyfin server; its tabs, sorts, filters and layouts are Jellyfin Web's.</summary>
+    internal bool IsJellyfin => _scope?.Connection.IsJellyfin == true;
+
     /// <summary>
     /// 工具栏底下那一行筛选条，一条筛选一格。见 <see cref="EmbyFilterBy.Chips"/>：那颗按钮上的数字说「筛了
     /// 几条」，这一行说「筛的是哪几条」，而且每一格自己能被点掉。
@@ -421,8 +430,16 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </summary>
     public Visibility AlphaVisibility => Show(
         !Aggregated && !IsUpcomingPage && !IsFavoritesPage && Section != LibrarySection.Recommended
-        && SupportsBrowseConditions && _request?.IsSearch != true && SortKey == EmbySortBy.Name
+        && Section != LibrarySection.Collections
+        && SupportsBrowseConditions && _request?.IsSearch != true && IsNameSortInForce
+        && (!IsJellyfin || JellyfinLibrary.HasAlphabetPicker(CollectionType, Section))
         && !SortDescending && _total is > 30);
+
+    /// <summary>
+    /// Jellyfin's name sort carries a year tie-breaker (<c>SortName,ProductionYear</c>) and the mixed
+    /// library's default starts with <c>IsFolder</c>; both are still name orderings for the letter bar.
+    /// </summary>
+    private bool IsNameSortInForce => IsJellyfin ? JellyfinLibrary.IsNameSort(SortKey) : SortKey == EmbySortBy.Name;
 
     /// <summary>
     /// 这台服务器认不认 Emby 那套浏览条件 —— 字母跳转、筛选面板、按库记住筛选。飞牛与 Plex 各有自己的
@@ -523,6 +540,14 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal string? FilterPreset => IsSectionLibrary
         ? LibraryBrowse.FilterPreset(_request!.CollectionType, _request.Section) : _request?.SortPreset;
 
+    /// <summary>
+    /// The Jellyfin filter panel for this page, or null for an Emby/FnNas/Plex grid (those keep
+    /// <see cref="EmbyFilterBy.For"/> through <see cref="FilterPreset"/>). An empty list is a Jellyfin
+    /// page with no filter rows.
+    /// </summary>
+    internal IReadOnlyList<EmbyFilterField>? FilterFieldsForPage() =>
+        IsJellyfin ? JellyfinLibrary.FilterFields(FilterCollectionType, Section) : null;
+
     internal string? CollectionType => _request?.CollectionType;
 
     internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, CollectionType: "movies" or "tvshows" or "mixed", IsSearch: false };
@@ -546,9 +571,18 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     public Visibility ToolbarVisibility => Show(HasToolbar);
     /// <summary>Emby 那颗齿轮里的分组与显示字段对飞牛不生效，飞牛改用官网页端的「布局」两项。</summary>
-    public Visibility SettingsVisibility => Show(IsSectionLibrary && HasToolbar && !IsFnNas);
+    public Visibility SettingsVisibility => Show(IsSectionLibrary && HasToolbar && !IsFnNas && !IsJellyfin);
     public Visibility LayoutVisibility => Show(IsFnNas && HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
         && Section != LibrarySection.Folders);
+
+    /// <summary>
+    /// Jellyfin Web's own 视图 button. It replaces Emby's gear on a Jellyfin library: the gear's grouping
+    /// and field switches are Emby settings, while Jellyfin's tabs offer the six layout shapes (three on
+    /// the episodes tab). Trailers and the index pages have no layout button in the web client.
+    /// </summary>
+    public Visibility JellyfinLayoutVisibility => Show(IsJellyfin && IsSectionLibrary && HasToolbar
+        && !IsResumePage && !Aggregated && !IsBrowseIndex && _request?.IsSearch != true
+        && JellyfinLibrary.HasLayout(CollectionType, Section));
     public bool FnNasLayoutWide => IsFnNas && View == LibraryView.Thumb;
     public Visibility BrowseGroupVisibility => Show(IsSectionLibrary && _request?.BrowseGroup is not null);
     public string BrowseGroupLabel => _request?.BrowseGroup ?? "";
@@ -597,7 +631,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             nameof(DirectPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
             nameof(ToolbarVisibility), nameof(SettingsVisibility), nameof(Fields),
             nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel),
-            nameof(LayoutVisibility), nameof(FnNasFilterVisibility), nameof(FnNasFilterTextVisibility),
+            nameof(LayoutVisibility), nameof(JellyfinLayoutVisibility), nameof(FnNasFilterVisibility), nameof(FnNasFilterTextVisibility),
             nameof(FnNasLayoutWide), nameof(FilterButtonWidth),
             nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility) }) OnPropertyChanged(name);
         RefreshUpcomingState();
@@ -618,6 +652,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         EmptyNotice = request.IsSearch ? "输入关键字开始搜索"
             : request.Row == HomeLayout.HomeRowTarget.Resume ? "这里还没有看到一半的内容"
             : request.Row is not null ? "这里还没有看过的内容"
+            : IsJellyfin && request.Section is LibrarySection.Trailers or LibrarySection.Collections or LibrarySection.Recommended
+                ? JellyfinLibrary.EmptyNotice(request.CollectionType, request.Section)
             : request.CollectionType == "movies" && request.Section == LibrarySection.Trailers
                 ? "未找到预告片。要添加预告片，请在 Emby 插件目录中安装 Trailers 插件。"
             : "这里没有内容";
@@ -652,7 +688,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     /// <summary>这一页是货架页而不是网格页。</summary>
     internal bool IsRecommendedPage => IsSectionLibrary && Section == LibrarySection.Recommended
-        && LibraryRecommended.Rows(_request!.CollectionType).Count > 0;
+        && LibraryRecommended.Rows(_request!.CollectionType, SourceServerKind).Count > 0;
 
     /// <summary>三排货架在不在（网格由 <see cref="GridVisibility"/> 收起来，两者互斥）。</summary>
     public Visibility RecommendedVisibility => Show(IsRecommendedPage);
@@ -788,7 +824,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (_images is not { } images || _request is null) return;
 
-        var rows = LibraryRecommended.Rows(_request.CollectionType);
+        var rows = LibraryRecommended.Rows(_request.CollectionType, SourceServerKind);
         if (RecommendedShelves.Count == rows.Count
             && RecommendedShelves.Select(shelf => shelf.Title).SequenceEqual(rows.Select(row => row.Title), StringComparer.Ordinal))
             return;
@@ -825,7 +861,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         try
         {
             EnsureRecommendedShelves();
-            var rows = LibraryRecommended.Rows(request.CollectionType);
+            var rows = LibraryRecommended.Rows(request.CollectionType, SourceServerKind);
             var items = await Task.WhenAll(rows.Select(row => ReadRecommendedAsync(row, request, token))).ConfigureAwait(true);
             if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
 
@@ -883,7 +919,58 @@ public sealed partial class LibraryViewModel : PageViewModel
                 var resume = await scope
                     .ExecuteAsync((client, ct) => client.QueryResumeAsync(0, LibraryRecommended.Size, ct, request.ParentId), token)
                     .ConfigureAwait(true);
-                return [.. resume.Items.Where(item => !EmbyItemType.IsMusic(item.Type))];
+                var items = resume.Items.Where(item => !EmbyItemType.IsMusic(item.Type));
+                // Jellyfin's two suggestions pages ask for the kind of item that page is about, rather
+                // than letting a movie appear on a series row or the other way round.
+                if (scope.Connection.IsJellyfin)
+                    items = request.CollectionType switch
+                    {
+                        "movies" => items.Where(item => item.Type is EmbyItemType.Movie or EmbyItemType.Video),
+                        "tvshows" => items.Where(item => item.Type == EmbyItemType.Episode),
+                        _ => items
+                    };
+                return [.. items];
+            }
+
+            // Jellyfin's movie suggestions are categories from /Movies/Recommendations, each with its own
+            // reason. The shelf flattens them into one row titled 为你推荐; the duplicate film can appear
+            // under several reasons, so it is kept once.
+            if (row.Shelf == RecommendedShelf.MovieRecommendations)
+            {
+                if (!scope.Connection.IsJellyfin || request.ParentId is not { Length: > 0 } parent) return [];
+                var recommendations = await scope.ExecuteAsync((client, ct) =>
+                    client.GetMovieRecommendationsAsync(parent, LibraryRecommended.Size, ct), token).ConfigureAwait(true);
+                return [.. recommendations
+                    .SelectMany(recommendation => recommendation.Items)
+                    .Where(item => !EmbyItemType.IsMusic(item.Type))
+                    .DistinctBy(item => item.IdentityKey)];
+            }
+
+            // Jellyfin's third series row is NextUp, scoped to the library, not a PremiereDate-sorted list.
+            if (row.Shelf == RecommendedShelf.NextUp)
+            {
+                var items = await scope.ExecuteAsync((client, ct) =>
+                    client.GetNextUpAsync(LibraryRecommended.Size, ct, parentId: request.ParentId), token).ConfigureAwait(true);
+                return [.. items.Where(item => !EmbyItemType.IsMusic(item.Type))];
+            }
+
+            // Jellyfin's latest movie / episode rows come from /Items/Latest with the library scope. The
+            // endpoint does not filter out watched items there, unlike the Emby call this client already
+            // made for its home carousel, so both switches are turned off explicitly.
+            if (row.Shelf == RecommendedShelf.LatestMovies)
+            {
+                var items = await scope.ExecuteAsync((client, ct) => client.GetLatestAsync(
+                    request.ParentId, LibraryRecommended.Size, ct, EmbyItemType.Movie,
+                    unplayedOnly: false, groupItems: false), token).ConfigureAwait(true);
+                return [.. items.Where(item => !EmbyItemType.IsMusic(item.Type))];
+            }
+
+            if (row.Shelf == RecommendedShelf.LatestEpisodes && scope.Connection.IsJellyfin)
+            {
+                var items = await scope.ExecuteAsync((client, ct) => client.GetLatestAsync(
+                    request.ParentId, LibraryRecommended.Size, ct, EmbyItemType.Episode,
+                    unplayedOnly: false, groupItems: false), token).ConfigureAwait(true);
+                return [.. items.Where(item => !EmbyItemType.IsMusic(item.Type))];
             }
 
             var query = LibraryRecommended.Query(request.ParentId ?? "", row.Shelf);
@@ -922,8 +1009,20 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility SortFilterVisibility => Show(HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
         // 飞牛搜索走 /search/list，排序参数不会随搜索发出；摆一颗按了不动的排序键比不摆更糟。
         && !(IsFnNas && _request?.IsSearch == true));
+
+    /// <summary>Jellyfin's filter button: its own row catalogue, and its own tabs that do not have one.</summary>
+    private bool JellyfinFiltersSupported => IsJellyfin
+        && (JellyfinLibrary.HasFilter(FilterCollectionType, Section) || _request?.IsSearch == true);
+
+    /// <summary>
+    /// The collection type used for the filter catalogue. A search page has no library root in its
+    /// request, so it borrows the movie row set rather than falling back to Emby's.
+    /// </summary>
+    private string? FilterCollectionType => CollectionType ?? (_request?.IsSearch == true ? "movies" : null);
+
     public Visibility FilterVisibility => Show(HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
-        && Section != LibrarySection.Folders && SupportsFilterPanel
+        && Section != LibrarySection.Folders && Section != LibrarySection.Collections
+        && (IsJellyfin ? JellyfinFiltersSupported : SupportsFilterPanel)
         // 飞牛搜索走的是 /search/list，它没有标签参数；在搜索页摆一个不起作用的筛选比不摆更糟。
         && !(IsFnNas && _request?.IsSearch == true));
 
@@ -1126,9 +1225,11 @@ public sealed partial class LibraryViewModel : PageViewModel
                 ? LibraryCardText.Title(item, Fields, Section) : null,
             // 飞牛的「横幅海报」照官网页端：卡片底下两行字居中；竖幅海报仍是默认的左对齐。
             centeredText: Section is LibrarySection.Episodes or LibrarySection.Folders
-                || IsFnNas && View == LibraryView.Thumb,
+                || IsFnNas && View == LibraryView.Thumb
+                || IsCardFrameView,
             fnNasWide: IsFnNas && View == LibraryView.Thumb,
-            folderFrame: Section == LibrarySection.Folders && View == LibraryView.Poster);
+            folderFrame: Section == LibrarySection.Folders && View == LibraryView.Poster,
+            cardLayout: IsCardFrameView);
 
     /// <summary>
     /// 卡片底下那一行字。勾了字段就按勾的拼；一项能说的都没有时交回卡片自己的副标题（
@@ -1429,6 +1530,11 @@ public sealed partial class LibraryViewModel : PageViewModel
             return [.. FnNasSortCatalog.Options.Select(option =>
                 new SortEntry(option, option.Value == SortKey, SortDescending))];
 
+        if (IsJellyfin)
+            return [.. JellyfinLibrary.SortOptions(_request.CollectionType, Section)
+                .Where(option => SupportsSort(option.Value))
+                .Select(option => new SortEntry(option, option.Value == SortKey, SortDescending))];
+
         var preset = SortPreset;
 
         return
@@ -1447,7 +1553,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal void FlipSort(EmbySortOption option)
     {
         if (!_active || !SourcesAvailable || _request is null || Aggregated) return;
-        if (option.ValueOf(SortPreset) != SortKey) return;
+        if ((IsJellyfin ? option.Value : option.ValueOf(SortPreset)) != SortKey) return;
 
         SortDescending = !SortDescending;
     }
@@ -1457,14 +1563,18 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (!_active || !SourcesAvailable || _request is null || _actions is null || Aggregated) return;
 
-        var key = option.ValueOf(SortPreset);
+        var key = IsJellyfin ? option.Value : option.ValueOf(SortPreset);
         if (!SupportsSort(key)) return;
 
         // Emby's own behaviour, and the only sensible one: a date key opens newest first and a name key
         // A to Z. Choosing 加入日期 and being shown the oldest thing in the library is never what was
         // meant, however the direction happened to be left by the previous key.
-        if (SortFilterVisibility != Visibility.Visible
-            || (!IsFnNas && !option.AppliesTo(SortPreset, SourceServerVersion))) return;
+        if (SortFilterVisibility != Visibility.Visible) return;
+        if (IsJellyfin)
+        {
+            if (!JellyfinLibrary.SortOptions(_request.CollectionType, Section).Any(entry => entry.Value == key)) return;
+        }
+        else if (!IsFnNas && !option.AppliesTo(SortPreset, SourceServerVersion)) return;
         if (key == SortKey && option.DescendingByDefault == SortDescending) return;
 
         SortKey = key;
@@ -1826,6 +1936,19 @@ public sealed partial class LibraryViewModel : PageViewModel
         ApplyDisplay(display);
     }
 
+    /// <summary>The layout choices Jellyfin Web offers on this tab, in the web client's menu order.</summary>
+    internal IReadOnlyList<LibraryView> JellyfinViews() =>
+        IsJellyfin ? JellyfinLibrary.Views(CollectionType, Section) : [];
+
+    /// <summary>Jellyfin's 布局 menu picked a shape. Same display pipeline as every other view change.</summary>
+    internal void ChooseJellyfinView(LibraryView view)
+    {
+        if (!IsJellyfin || !JellyfinViews().Contains(view) || View == view) return;
+        var display = _display.Clone();
+        display.View = view;
+        ApplyDisplay(display);
+    }
+
     /// <summary>
     /// Where a card goes when it is invoked: wherever the shell says. <see cref="ShellPage.OpenItem"/>
     /// is the one place the 「detail page or another grid」 choice is made, so a poster in a library, one
@@ -1978,6 +2101,30 @@ public sealed partial class LibraryViewModel : PageViewModel
             return;
         }
 
+        if (IsJellyfin)
+        {
+            var jellyfinOptions = JellyfinLibrary.SortOptions(request.CollectionType, Section)
+                .Where(option => SupportsSort(option.Value)).ToList();
+            var jellyfinFallback = JellyfinLibrary.DefaultSort(request.CollectionType, Section);
+            if (!jellyfinOptions.Contains(jellyfinFallback)) jellyfinFallback = jellyfinOptions.FirstOrDefault() ?? jellyfinFallback;
+
+            SortKey = jellyfinFallback.Value;
+            var jellyfinLabel = jellyfinFallback.Label;
+            var jellyfinDescending = jellyfinFallback.DescendingByDefault;
+
+            if (MemoryKey() is { } jellyfinMemoryKey
+                && Settings.Ui.Sort.TryGetValue(jellyfinMemoryKey, out var jellyfinSaved)
+                && jellyfinOptions.FirstOrDefault(option => option.Value == jellyfinSaved.By) is { } jellyfinSavedOption)
+            {
+                SortKey = jellyfinSavedOption.Value;
+                jellyfinLabel = jellyfinSavedOption.Label;
+                jellyfinDescending = jellyfinSaved.Descending;
+            }
+
+            ShowSort(jellyfinLabel, jellyfinDescending);
+            return;
+        }
+
         var preset = SortPreset;
         var fallback = IsSectionLibrary ? LibrarySortCatalog.Default(request.CollectionType, Section) : EmbySortBy.Default(preset);
         var options = IsSectionLibrary ? LibrarySortCatalog.For(request.CollectionType, Section, SourceServerVersion)
@@ -2050,6 +2197,12 @@ public sealed partial class LibraryViewModel : PageViewModel
         {
             _display = LibraryDisplayCatalog.DefaultFor(Section, IndexKind);
         }
+
+        // Jellyfin's tabs have their own layout menus; an Emby-only shape (表格, 光盘封面, 徽标) restored
+        // from a shared library entry becomes a poster rather than a view the Jellyfin 布局 menu cannot
+        // offer or change back from.
+        if (IsJellyfin) _display = JellyfinLibrary.Fit(_display, CollectionType, Section);
+
         RaiseDisplay();
     }
 
@@ -2107,6 +2260,11 @@ public sealed partial class LibraryViewModel : PageViewModel
                 ? saved.Clone()
                 : new ItemFilters();
 
+        // A library that switched product (or a settings file written while it was Emby) may carry ids
+        // Jellyfin's panel cannot show. They would not be counted or drawn, but they would still be sent;
+        // pruning keeps the visible selection and the query saying the same thing.
+        if (IsJellyfin) _filters = JellyfinLibrary.Prune(_filters);
+
         ShowFilterState();
     }
 
@@ -2131,12 +2289,13 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
 
         FilterCount = _filters.Count;
-        FilterTooltip = FilterCount == 0 ? "筛选" : _filters.Describe();
+        var fields = IsJellyfin ? JellyfinLibrary.FilterFields(FilterCollectionType, Section) : EmbyFilterBy.Fields;
+        FilterTooltip = FilterCount == 0 ? "筛选" : _filters.Describe(fields);
 
         // 工具栏底下那一行：一条筛选一格，点一下去掉那一条。整行重建而不是逐格对账 —— 一次改动最多动一格，
         // 而这一行最长也就十几格，重建一遍比「哪一格该留」这道题便宜得多，也不会算错。
         FilterChips.Clear();
-        foreach (var chip in EmbyFilterBy.Chips(_filters))
+        foreach (var chip in EmbyFilterBy.Chips(_filters, fields))
             FilterChips.Add(new FilterChipRow(chip, DropFilter));
 
         OnPropertyChanged(nameof(FilterChipsVisibility));

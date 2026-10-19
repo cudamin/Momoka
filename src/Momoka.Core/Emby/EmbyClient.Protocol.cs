@@ -15,6 +15,9 @@ public sealed partial class EmbyClient
             : pair.Key.Equals("SortBy", StringComparison.OrdinalIgnoreCase)
                 ? (pair.Key, pair.Value is null ? null : JellyfinQuery.FilterSort(pair.Value)) : pair).ToList();
         parameters.RemoveAll(pair => pair.Key.Equals("ReplaceThumbnailImages", StringComparison.OrdinalIgnoreCase));
+        // Jellyfin's /Items has no GroupItemsIntoCollections parameter; grouping is a per-library server
+        // setting there. Sending an Emby-only key would be silently ignored at best.
+        parameters.RemoveAll(pair => pair.Key.Equals("GroupItemsIntoCollections", StringComparison.OrdinalIgnoreCase));
         var prefix = $"Users/{Connection.UserId}/";
         if (Connection.UsesJellyfin12Routes && path.StartsWith(prefix, StringComparison.Ordinal))
         {

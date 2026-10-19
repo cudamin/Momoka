@@ -16,8 +16,8 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 
 namespace Momoka.Shell.Views;
 
-/// <summary>飞牛「布局」浮层的一行：两项互斥，勾跟着当前视图走。</summary>
-public sealed record LayoutEntry(string Label, bool IsChecked, bool Wide)
+/// <summary>「布局」浮层的一行：两项互斥，勾跟着当前视图走；Jellyfin 的菜单也复用它。</summary>
+public sealed record LayoutEntry(string Label, bool IsChecked, bool Wide = false, LibraryView View = LibraryView.Poster)
 {
     public Visibility CheckVisibility => IsChecked ? Visibility.Visible : Visibility.Collapsed;
 }
@@ -929,6 +929,25 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// <summary>Tooling: drops the sort menu open where a screenshot can see it.</summary>
     internal void ShowSortMenu() => SortButton.Flyout?.ShowAt(SortButton);
 
+    /// <summary>Tooling: rebuilds Jellyfin's 布局 flyout and answers the labels it put there.</summary>
+    internal IReadOnlyList<string> BuildJellyfinLayoutMenu()
+    {
+        var entries = ViewModel.JellyfinViews()
+            .Select(view => new LayoutEntry(LibraryDisplayCatalog.LabelOf(view), view == ViewModel.View, View: view))
+            .ToArray();
+        JellyfinLayoutList.ItemsSource = entries;
+        return [.. entries.Select(entry => entry.Label)];
+    }
+
+    /// <summary>Tooling: drops Jellyfin's 布局 flyout open where a screenshot can see it.</summary>
+    internal void ShowJellyfinLayoutMenu()
+    {
+        BuildJellyfinLayoutMenu();
+        JellyfinLayoutButton.Flyout?.ShowAt(JellyfinLayoutButton);
+    }
+
+    internal void HideJellyfinLayoutMenu() => JellyfinLayoutMenu.Hide();
+
     /// <summary>Tooling: the same for the filter panel.</summary>
     internal void ShowFilterPanel() => OpenFilter();
 
@@ -964,6 +983,21 @@ public sealed partial class LibraryPage : Page, IShellContent
         FnNasLayoutMenu.Hide();
     }
 
+    /// <summary>Jellyfin 的「布局」：菜单每次打开重摆，勾跟着当前视图走。</summary>
+    private void OnJellyfinLayoutMenuOpening(object sender, object e)
+    {
+        JellyfinLayoutList.ItemsSource = ViewModel.JellyfinViews()
+            .Select(view => new LayoutEntry(LibraryDisplayCatalog.LabelOf(view), view == ViewModel.View, View: view))
+            .ToArray();
+    }
+
+    private void OnJellyfinLayoutItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is not LayoutEntry entry) return;
+        ViewModel.ChooseJellyfinView(entry.View);
+        JellyfinLayoutMenu.Hide();
+    }
+
     /// <summary>
     /// 需求 5：fills the panel for this grid, then puts it on the page. Rebuilt on every open rather than
     /// once, for the reasons the sort menu is — and the server version in particular may still have been
@@ -987,7 +1021,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_capabilities is null) return;
 
-        FilterPane.Open(ViewModel.Filters, ViewModel.FilterPreset, _capabilities.ServerVersion, ViewModel.FetchFilterValuesAsync, ViewModel.SourceServerKind);
+        FilterPane.Open(ViewModel.Filters, ViewModel.FilterPreset, _capabilities.ServerVersion, ViewModel.FetchFilterValuesAsync, ViewModel.SourceServerKind,
+            ViewModel.FilterFieldsForPage());
     }
 
     /// <summary>收起筛选层，回到原来的网格。</summary>
@@ -1276,7 +1311,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 换页不再动它们，那条路径就不存在了。
         CardWall.ItemTemplate = ViewModel.View switch
         {
-            LibraryView.Thumb or LibraryView.Banner or LibraryView.Disc or LibraryView.Logo =>
+            LibraryView.Thumb or LibraryView.ThumbCard or LibraryView.Banner or LibraryView.Disc or LibraryView.Logo =>
                 (DataTemplate)Resources["ThumbTemplate"],
             LibraryView.List => (DataTemplate)Resources["ListTemplate"],
             LibraryView.Table => (DataTemplate)Resources["TableRowTemplate"],

@@ -51,6 +51,17 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
+        <!-- Jellyfin's PosterCard / ThumbCard layouts put the picture and its text on a card surface.
+             The surface spans both rows; the picture and text carry their own insets (CardItem.ArtMargin /
+             TextMargin) so the surface's corners stay visible. Collapsed for every other view. -->
+        <Border
+            Grid.RowSpan="2"
+            Background="{ThemeResource EgSurfaceBrush}"
+            BorderBrush="{ThemeResource EgBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="{StaticResource EgCardCornerRadius}"
+            Visibility="{x:Bind Card.CardLayoutVisibility, Mode=OneWay}" />
+
         <Viewbox Height="14" HorizontalAlignment="Left" VerticalAlignment="Top"
             IsHitTestVisible="False" Visibility="{x:Bind Card.FolderFrameVisibility, Mode=OneWay}">
             <Path Fill="{ThemeResource EgTextFaintBrush}" Data="M 0,14 L 0,6 Q 0,0 6,0 L 30,0 L 44,10 L 70,10 L 70,14 Z" />
@@ -58,7 +69,7 @@
         <Border
             x:Name="Art"
             Height="{x:Bind PosterHeight, Mode=OneWay}"
-            Margin="{x:Bind Card.FrameMargin, Mode=OneWay}"
+            Margin="{x:Bind Card.ArtMargin, Mode=OneWay}"
             Padding="{x:Bind Card.ArtworkPadding, Mode=OneWay}"
             Style="{StaticResource EgFrameStyle}">
             <Grid>

@@ -844,7 +844,9 @@ internal static class EmbyTests
 
             // 每一个选项都得有一行认领它，否则它只能被 Chips 念出来，面板上点不到也点不掉
             foreach (var option in EmbyFilterBy.All)
-                Assert.True(EmbyFilterBy.FieldOf(option.Id) is not null, $"{option.Id} 没有出现在任何一行里");
+                Assert.True(EmbyFilterBy.FieldOf(option.Id) is not null
+                    || JellyfinLibrary.AllFields.Any(field => field.Choices.Any(choice => choice.OptionId == option.Id)),
+                    $"{option.Id} 没有出现在任何一行里");
 
             // 反过来：每一行引用的选项都得是真的
             foreach (var field in EmbyFilterBy.Fields)

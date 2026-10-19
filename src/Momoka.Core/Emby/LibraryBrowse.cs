@@ -2,7 +2,11 @@ namespace Momoka.Emby;
 
 public enum LibrarySection
 {
-    Items, Recommended, Trailers, Genres, Favorites, Studios, Episodes, Folders, Upcoming
+    Items, Recommended, Trailers, Genres, Favorites, Studios, Episodes, Folders, Upcoming,
+
+    /// <summary>Jellyfin's 合集 tab: the BoxSets contained in this library. Added at the end so the stored
+    /// numeric values of the existing tabs do not move.</summary>
+    Collections
 }
 
 /// <summary>
@@ -41,6 +45,11 @@ public static class LibraryBrowse
     /// </summary>
     public static IReadOnlyList<LibrarySectionEntry> Sections(string? collectionType, MediaServerKind serverKind)
     {
+        // Jellyfin Web's tabs are their own list (合集 on movies, no 收藏/文件夹 on series). Keeping this
+        // branch ahead of the Emby list is what stops a Jellyfin-only tab from leaking into Emby and
+        // vice versa.
+        if (serverKind == MediaServerKind.Jellyfin) return JellyfinLibrary.Sections(collectionType);
+
         List<LibrarySectionEntry> entries = collectionType switch
         {
             "movies" =>
@@ -63,12 +72,10 @@ public static class LibraryBrowse
             ],
             _ => []
         };
-        // Jellyfin Suggestions has no ParentId: it cannot recommend within this library.
         // Other adapters don't implement the named indexes or physical folder hierarchy.
         return [.. entries.Where(entry => serverKind switch
         {
             MediaServerKind.Emby => true,
-            MediaServerKind.Jellyfin => entry.Section != LibrarySection.Recommended,
             MediaServerKind.FnNas => entry.Section is LibrarySection.Items or LibrarySection.Favorites,
             MediaServerKind.Plex => entry.Section == LibrarySection.Items,
             _ => entry.Section == LibrarySection.Items
@@ -91,6 +98,7 @@ public static class LibraryBrowse
         LibrarySection.Episodes or LibrarySection.Upcoming => EmbySortPreset.Episode,
         // 电影库的「预告片」在网页端用电影那份排序菜单（十九条），不是 Trailer 类型那份。
         LibrarySection.Trailers => EmbySortPreset.ForCollection(collectionType),
+        LibrarySection.Collections => EmbySortPreset.BoxSet,
         LibrarySection.Folders => null,
         _ => EmbySortPreset.ForCollection(collectionType)
     };
@@ -104,7 +112,7 @@ public static class LibraryBrowse
     {
         LibrarySection.Trailers => EmbySortPreset.Trailer,
         LibrarySection.Episodes or LibrarySection.Upcoming => EmbySortPreset.Episode,
-        LibrarySection.Folders => null,
+        LibrarySection.Collections or LibrarySection.Folders => null,
         LibrarySection.Items or LibrarySection.Genres or LibrarySection.Studios when collectionType == "mixed"
             => EmbySortPreset.Mixed,
         _ => EmbySortPreset.ForCollection(collectionType)
@@ -131,13 +139,14 @@ public static class LibraryBrowse
                         LibraryDisplayCatalog.Applied(display.Fields, section, display.View, indexKind, collectionType))
                     + (section == LibrarySection.Folders ? ",Status,EndDate" : ""),
             // 「将项目分组到合集中」只有 Items 那条接口认；推荐走 Suggestions，它不声明这个参数，
-            // 发过去只会被丢掉，所以那一支明确不谈这件事。
-            GroupItemsIntoCollections = display is null || section == LibrarySection.Recommended
+            // 发过去只会被丢掉，所以那一支明确不谈这件事。合集页列的就是合集本身，也没有再分组的说法。
+            GroupItemsIntoCollections = display is null || section is LibrarySection.Recommended or LibrarySection.Collections
                 ? null : display.GroupIntoCollections,
             IncludeItemTypes = section switch
             {
                 LibrarySection.Episodes => [EmbyItemType.Episode],
                 LibrarySection.Trailers => [EmbyItemType.Trailer],
+                LibrarySection.Collections => [EmbyItemType.BoxSet],
                 LibrarySection.Folders => [],
                 // 「电影和节目」是同一格里并排的两种条目；电影库与电视剧库各自只要自己那一类。
                 _ => collectionType switch
@@ -154,7 +163,7 @@ public static class LibraryBrowse
             IsFavorite = section == LibrarySection.Favorites,
             Genre = section == LibrarySection.Genres ? group : null,
             Studio = section == LibrarySection.Studios ? group : null,
-            Filters = index ? new ItemFilters() : filters.Clone()
+            Filters = index || section == LibrarySection.Collections ? new ItemFilters() : filters.Clone()
         };
     }
 

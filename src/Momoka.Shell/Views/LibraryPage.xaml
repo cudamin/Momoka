@@ -511,6 +511,33 @@
                                 </Flyout>
                             </Button.Flyout>
                         </Button>
+                        <!-- Jellyfin Web's 「视图」 button. It replaces Emby's gear on a Jellyfin library:
+                             the gear's grouping and field switches are Emby settings, and Jellyfin offers
+                             a fixed list of layout shapes per tab instead. -->
+                        <Button x:Name="JellyfinLayoutButton" Style="{StaticResource LibraryPillStyle}"
+                            Visibility="{x:Bind ViewModel.JellyfinLayoutVisibility, Mode=OneWay}"
+                            ToolTipService.ToolTip="布局" AutomationProperties.Name="布局">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE8A9;" />
+                                <TextBlock Text="布局" />
+                                <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE70D;" />
+                            </StackPanel>
+                            <Button.Flyout>
+                                <Flyout x:Name="JellyfinLayoutMenu" Placement="Bottom" Opening="OnJellyfinLayoutMenuOpening">
+                                    <ListView x:Name="JellyfinLayoutList" Width="190" SelectionMode="None"
+                                        IsItemClickEnabled="True" ItemClick="OnJellyfinLayoutItemClick"
+                                        ItemTemplate="{StaticResource FnNasLayoutEntryTemplate}">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="MinHeight" Value="36" />
+                                                <Setter Property="Padding" Value="10,0" />
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                    </ListView>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
                         <!-- 网页端那颗齿轮：视图、图像大小、分组、显示字段。原来 ⋯ 里那个「视图」三选一的
                              子菜单由它接手 —— 那三档只是网页端七档里的三档，图像大小和显示字段也没有入口。
                              打开的是本页盖上来的一块面板（网页端也是个模态框），不是浮层：浮层是亚克力的，

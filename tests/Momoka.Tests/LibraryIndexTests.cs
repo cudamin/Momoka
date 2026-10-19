@@ -173,7 +173,7 @@ internal static class LibraryIndexTests
             Assert.Equal("类型", sections.Single(entry => entry.Section == LibrarySection.Genres).Label);
             Assert.Equal("播出平台", sections.Single(entry => entry.Section == LibrarySection.Studios).Label);
 
-            // Jellyfin 没有「推荐」，两页索引仍在（它认这一套浏览条件）。
+            // Jellyfin 的标签另有一套，但类型与制片发行商两页仍在（它认这一套浏览条件）。
             var jellyfin = LibraryBrowse.Sections("tvshows", MediaServerKind.Jellyfin);
             Assert.True(jellyfin.Any(entry => entry.Section == LibrarySection.Genres));
             Assert.True(jellyfin.Any(entry => entry.Section == LibrarySection.Studios));
