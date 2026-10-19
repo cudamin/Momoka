@@ -17,6 +17,7 @@
 - **探针**：新增「Jellyfin 媒体库标签、排序、筛选、布局与建议」，用假 Jellyfin 身份与假传输跑真 `LibraryPage`：核对电影/电视剧分类栏、默认排序与菜单、Emby 齿轮隐藏、布局按钮与六项菜单、筛选面板复选框、海报卡片、合集查询与排序、三排建议货架、剧集页三种布局与筛选行；保存 `jellyfin-library-{layout-menu,filter,poster-card,collections,suggestions,episodes}*.png`。`--probe-shell --probe-section library --screen 1` **15 项全过、0 失败、退出码 0**（`shell-probe-20261019-162029410-14860`）；已目检筛选面板、布局菜单、海报卡片、合集、建议页与剧集页截图。
 - **未验证／边界**：① 没有连接真实 Jellyfin 服务器核对新分类、排序、筛选结果与视觉密度，证据全部来自假传输和假数据；② 电影建议页把 `/Movies/Recommendations` 的多个理由类目压成一排「为你推荐」，没有照网页端为每个理由各起一个动态标题；③ 混合内容库的分类仍沿用通用三格，没有按 Jellyfin 的通用列表页重做；④ Jellyfin 的「条目菜单」保留本应用的用户状态行，不是网页端右键菜单的逐条复制；⑤ 自检闸门 4 未运行（本轮不是发版/依赖升级，且历史登录/服务器阻塞仍在）。
 - **主要文件**：`Core/Emby/JellyfinLibrary.cs`（新）、`LibraryBrowse.cs`、`LibraryDisplay.cs`、`LibraryRecommended.cs`、`EmbyFilterBy.cs`、`ItemFilters.cs`、`ItemMenu.cs`、`EmbyClient*.cs`、`Shell/ViewModels/{LibraryViewModel,FilterPanelViewModel,FilterSection}.cs`、`Shell/Views/{LibraryPage,FilterPanel,FilterSectionTemplates,CardItem,PosterCard,LibrarySettingsPanel}.xaml(.cs)`、`ShellNavigationProbe.JellyfinLibrary.cs`（新）、测试与 `docs/Jellyfin支持.md`。
+- **提交**：`c9d859a`（本地，未推送；本轮没有上传授权）。
 
 ## 飞牛分区库工具栏到封面的空档缩短（2026-10-19 用户令）
 
