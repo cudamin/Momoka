@@ -389,9 +389,9 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 管理员入口与三段服务器目录：Emby 管理员左栏是「Momoka」「Emby Server」「设备」「高级」，目录里有
-    /// 固定条目与服务器插件页，且不再单列「网页控制台」；非管理员整份收起；Jellyfin 仍只有「网页控制台」，
-    /// 飞牛影视没有管理入口；切产品或退出连接时落点收回第一张卡。分组与平铺两份名单必须同步。
+    /// 管理员入口与服务端目录：Emby 管理员左栏是「Momoka」「Emby Server」「设备」「高级」，目录里有
+    /// 固定条目与服务器插件页，且不再单列「网页控制台」；非管理员整份收起；Jellyfin 是五段目录；飞牛影视独占时是
+    /// 「帐号」「影视服务器」两组，服务器组只给管理员。切产品或退出连接时落点收回第一张卡。分组与平铺两份名单必须同步。
     /// </summary>
     private async Task SettingsAdministrationGateAsync()
     {
@@ -540,19 +540,67 @@ internal sealed partial class ShellNavigationProbe
             }
             await SaveProbeScreenAsync("settings-jellyfin-user-screen.png");
 
-            // 飞牛影视没有管理入口。
+            // 飞牛影视独占：左栏照它的设置抽屉分成「帐号」与「影视服务器」两组；四张服务器页是 Momoka 原生页。
             fixture.Capabilities.ServerKind = MediaServerKind.FnNas;
-            fixture.Capabilities.InterfaceFlavor = ServerInterfaceFlavor.Generic;
+            fixture.Capabilities.InterfaceFlavor = ServerInterfaceFlavor.FnNas;
             fixture.Capabilities.IsAdministrator = true;
             await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             await LayoutAsync(page);
-            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka" })
-                && !page.Categories.Any(category => category is "控制台" or "用户" or "媒体库" or "设置" or "任务计划")
-                && !page.Categories.Contains(SettingsViewModel.DashboardCategory),
-                "飞牛影视仍列出管理入口");
-            Require(page.ViewModel.ConsoleCategory is null
+            var fnNasAdminGroups = new[] { "Momoka", "帐号", "影视服务器" };
+            Require(page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(fnNasAdminGroups),
+                "飞牛管理员左栏不是 Momoka、帐号、影视服务器三组");
+            Require(page.Categories.Contains(SettingsViewModel.FnNasPasswordCategory)
+                && page.Categories.Contains(SettingsViewModel.FnNasPreferencesCategory)
+                && page.Categories.Contains(SettingsViewModel.FnNasAppearanceCategory)
+                && page.Categories.Contains(SettingsViewModel.FnNasLibrariesCategory)
+                && page.Categories.Contains(SettingsViewModel.FnNasUsersCategory)
+                && page.Categories.Contains(SettingsViewModel.FnNasSettingsCategory)
+                && page.Categories.Contains(SettingsViewModel.FnNasTasksCategory),
+                "飞牛七项没有全部进左栏");
+            Require(!page.Categories.Any(category => category is "控制台" or "计划任务" or "媒体资料管理器")
+                && !page.Categories.Contains(SettingsViewModel.DashboardCategory)
                 && !page.Categories.Contains(SettingsViewModel.NotificationsCategory),
-                "飞牛影视仍暴露 Emby 管理入口");
+                "飞牛左栏混进了 Emby／Jellyfin 的入口");
+            Require(page.ViewModel.ConsoleCategory is null,
+                "飞牛仍把控制台当作网页控制台");
+            Require(rail.Items.Cast<string>().SequenceEqual(page.Categories), "飞牛左栏分组与平铺名单对不上");
+
+            // 帐号两页与四张服务器页都住进内嵌框；外观复用「界面」卡，不另造页面。
+            // 这一条探针不启动 WebView2，所以只在这几页需要内嵌框时临时交出请求；查完就收回，
+            // 后面回 Emby 时不会顺手把网页控制台建起来。
+            Field(page, "_request", new SettingsRequest(fixture.Services));
+            try
+            {
+                var fnNasPages = new (string Category, Type Page)[]
+                {
+                    (SettingsViewModel.FnNasPasswordCategory, typeof(FnNasPasswordPage)),
+                    (SettingsViewModel.FnNasPreferencesCategory, typeof(FnNasPreferencesPage)),
+                    (SettingsViewModel.FnNasLibrariesCategory, typeof(FnNasLibrariesPage)),
+                    (SettingsViewModel.FnNasUsersCategory, typeof(FnNasUsersPage)),
+                    (SettingsViewModel.FnNasSettingsCategory, typeof(FnNasSettingsPage)),
+                    (SettingsViewModel.FnNasTasksCategory, typeof(FnNasTasksPage))
+                };
+                foreach (var (category, expectedPage) in fnNasPages)
+                {
+                    page.SelectedCategory = category;
+                    await UntilAsync(() => page.CurrentPage.GetType() == expectedPage);
+                    await LayoutAsync(page);
+                    Require(page.CurrentPage.GetType() == expectedPage,
+                        $"飞牛「{category}」没有打开原生页，实际是 {page.CurrentPage.GetType().Name}");
+                }
+                page.SelectedCategory = SettingsViewModel.FnNasAppearanceCategory;
+                await LayoutAsync(page);
+                Require(page.CurrentPage is SettingsPage
+                    && page.ViewModel.Sections.Count(section => section.IsVisible) == 1
+                    && page.ViewModel.Sections.Single(section => section.IsVisible) is { Category: "界面", Title: "外观" },
+                    "飞牛「外观」没有落到 Momoka 的「界面」卡，或卡抬头没有跟着写「外观」");
+                page.SelectedCategory = "界面";
+                await LayoutAsync(page);
+                Require(page.ViewModel.Sections.Single(section => section.IsVisible) is { Category: "界面", Title: "界面" },
+                    "回到「界面」后卡抬头仍写着「外观」");
+            }
+            finally { Field(page, "_request", null); }
+
             foreach (var width in new[] { 1100, 760 })
             {
                 ResizeInspect(width, 900);
@@ -562,6 +610,39 @@ internal sealed partial class ShellNavigationProbe
                     "飞牛影视宽窄导航分类不一致");
                 await SaveProbeScreenAsync($"settings-fnnas-{width}-screen.png");
             }
+
+            // 非管理员：影视服务器组收起，帐号组仍可用；被收走的页退回第一张卡。
+            page.SelectedCategory = SettingsViewModel.FnNasLibrariesCategory;
+            await LayoutAsync(page);
+            foreach (bool? administrator in new bool?[] { false, null })
+            {
+                fixture.Capabilities.IsAdministrator = administrator;
+                await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+                await LayoutAsync(page);
+                Require(page.ViewModel.ServerAdministrationHidden && page.ViewModel.FnNasAccountShown
+                    && page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka", "帐号" })
+                    && page.Categories.Contains(SettingsViewModel.FnNasPasswordCategory)
+                    && page.Categories.Contains(SettingsViewModel.FnNasPreferencesCategory)
+                    && page.Categories.Contains(SettingsViewModel.FnNasAppearanceCategory)
+                    && !page.Categories.Any(category => category is SettingsViewModel.FnNasLibrariesCategory
+                        or SettingsViewModel.FnNasUsersCategory or SettingsViewModel.FnNasSettingsCategory
+                        or SettingsViewModel.FnNasTasksCategory),
+                    "飞牛非管理员或权限未知时仍暴露影视服务器组");
+                Require(page.SelectedCategory == SettingsViewModel.FirstCardCategory,
+                    "收走影视服务器组之后右半边还停在被收走的页上");
+            }
+            await SaveProbeScreenAsync("settings-fnnas-user-screen.png");
+
+            // 聚合界面：帐号组也收起，左栏只剩 Momoka。
+            fixture.Capabilities.InterfaceFlavor = ServerInterfaceFlavor.Generic;
+            fixture.Capabilities.IsAdministrator = true;
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
+            await LayoutAsync(page);
+            Require(!page.ViewModel.FnNasAccountShown
+                && page.ViewModel.CategoryGroups.Select(group => group.Name).SequenceEqual(new[] { "Momoka" })
+                && !page.Categories.Contains(SettingsViewModel.FnNasPasswordCategory)
+                && !page.Categories.Contains(SettingsViewModel.FnNasLibrariesCategory),
+                "通用界面下仍留着飞牛的帐号或服务器目录");
 
             // 回 Emby：三段目录与「控制台」回来。
             fixture.Capabilities.ServerKind = MediaServerKind.Emby;

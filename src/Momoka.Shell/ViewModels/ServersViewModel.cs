@@ -190,7 +190,10 @@ public sealed partial class ServersViewModel : PageViewModel
         if (flavor == ServerInterfaceFlavor.Generic)
             return serverCount > 1
                 ? $"同时连着 {serverCount} 台服务器，服务端特有的按钮与管理入口已收起，只保留各端共有的功能。"
-                : "飞牛影视和 Plex 先用通用界面：服务端管理入口由服务器自己的能力决定。";
+                : "Plex 先用通用界面：服务端管理入口由服务器自己的能力决定。";
+
+        if (flavor == ServerInterfaceFlavor.FnNas)
+            return "由当前唯一的飞牛影视服务器决定，设置左栏照它的「帐号／影视服务器」目录显示。";
 
         return $"由当前唯一的服务器决定，服务端管理与网页控制台照 {ServerAccess.InterfaceName(flavor)} 的网页端显示。";
     }

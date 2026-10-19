@@ -29,6 +29,18 @@ internal static class FnNasMediaTests
             fixture.Session.SignOut();
             Assert.False(scope.IsCurrent);
         });
+        Test("飞牛帐号：改密码后保存新密码与新令牌，后续请求使用新令牌", () =>
+        {
+            using var fixture = new Fixture();
+            fixture.Login();
+            var scope = fixture.Session.Capture();
+            fixture.Session.ApplyPasswordChange(scope, "fixture-new-password", "fixture-token-2");
+            Assert.Equal("fixture-new-password", fixture.Account.ProtectedPassword);
+            Assert.Equal("fixture-token-2", fixture.Account.ProtectedAccessToken);
+            _ = fixture.Session.ExecuteAsync((client, ct) => client.FnNas.GetUserAsync(client.FnNasConnection, ct), default)
+                .GetAwaiter().GetResult();
+            Assert.Equal("fixture-token-2", fixture.Transport.Authorizations[^1]);
+        });
         Test("飞牛媒体：已保存账号恢复验证真实用户并复用目录", () =>
         {
             using var fixture = new Fixture();
@@ -113,12 +125,15 @@ internal static class FnNasMediaTests
     private sealed class Transport : HttpMessageHandler
     {
         public List<string> Paths { get; } = [];
+        public List<string> Authorizations { get; } = [];
         public int Logins { get; private set; }
         public bool Expire { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Assert.Equal("fnnas.invalid", request.RequestUri!.Host);
             var path = request.RequestUri.AbsolutePath; Paths.Add(path);
+            if (request.Headers.TryGetValues("Authorization", out var authorization))
+                Authorizations.Add(authorization.Single());
             if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal)) return new(HttpStatusCode.NotFound);
             if (Expire && path.EndsWith("/mediadb/list", StringComparison.Ordinal))
             { Expire = false; return Reply("null", -2); }

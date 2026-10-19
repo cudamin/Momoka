@@ -45,7 +45,7 @@ internal sealed record DashboardRequest(
 /// <see cref="EmbyWebConsole.ThemeScript"/> 和 <see cref="StartAsync"/> 里那一段。
 /// </para>
 /// </summary>
-public sealed partial class DashboardPage : Page, IShellContent
+public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedPage
 {
     private const string Category = "控制台";
 
@@ -121,7 +121,7 @@ public sealed partial class DashboardPage : Page, IShellContent
     internal string CurrentRoute => _route;
 
     /// <summary>这一页绑定的会话仍是当前会话吗；设置页在切换服务器后据此重建右半边。</summary>
-    internal bool IsCurrentSession => !_released && _scope is { IsCurrent: true };
+    public bool IsCurrentSession => !_released && _scope is { IsCurrent: true };
 
     public object? NavigationRequest => _request;
 

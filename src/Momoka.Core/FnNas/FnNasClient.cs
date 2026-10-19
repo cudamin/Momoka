@@ -39,6 +39,26 @@ public sealed partial class FnNasClient(FnNasHttp http)
     public Task<JsonObject> GetUserAsync(FnNasConnection c, CancellationToken ct = default) =>
         ObjectAsync(c, HttpMethod.Get, "api/v1/user/info", null, ct);
 
+    /// <summary>
+    /// 播放偏好页只改首选字幕语言与首选音频语言；正文就这两格，空串表示「任意语言」。
+    /// 官方前端在每次下拉变更后立即提交，这里由页面合并成一次保存。
+    /// </summary>
+    public Task UpdateUserInfoAsync(FnNasConnection c, JsonObject draft, CancellationToken ct = default) =>
+        ActionAsync(c, HttpMethod.Post, "api/v1/user/info", draft.DeepClone(), ct);
+
+    /// <summary>
+    /// 修改当前影视账号的密码。官方 0.9.8 的帐号页走 v2 并传 SHA-256；成功时 data 是新令牌，
+    /// 帐号页拿它替换内存里的令牌，所以这里把它交回调用者。
+    /// </summary>
+    public async Task<string?> ChangePasswordAsync(FnNasConnection c, string newPassword, CancellationToken ct = default)
+    {
+        var data = await SendAsync(c, HttpMethod.Post, "api/v2/user/passwd",
+            new JsonObject { ["password"] = FnNasSigner.HashPassword(newPassword) }, ct).ConfigureAwait(false);
+        if (data is not JsonValue value || !value.TryGetValue<string>(out var token) || token.Length == 0) return null;
+        if (token.Any(char.IsControl)) throw new FnNasApiException("飞牛影视密码修改响应缺少有效凭据");
+        return token;
+    }
+
     public Task LogoutAsync(FnNasConnection c, CancellationToken ct = default) =>
         ActionAsync(c, HttpMethod.Post, "api/v1/user/logout", null, ct);
 

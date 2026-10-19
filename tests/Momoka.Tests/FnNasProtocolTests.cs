@@ -65,6 +65,33 @@ internal static class FnNasProtocolTests
             Assert.Equal("fixture-login-token", client.LoginAsync(Base, " 测试用户 ", "秘密口令").GetAwaiter().GetResult());
             Assert.Equal(1, transport.Requests.Count);
         });
+        Test("飞牛帐号：改密码走 v2 传 SHA256 并交回新令牌，播放偏好只提交两格语言", () =>
+        {
+            using var transport = new FixtureTransport(request =>
+            {
+                Assert.Equal(Secret, request.Headers["Authorization"]);
+                CheckSignature(request);
+                var body = JsonNode.Parse(request.Body)!;
+                if (request.Uri.AbsolutePath.EndsWith("/user/passwd", StringComparison.Ordinal))
+                {
+                    Assert.Equal(HttpMethod.Post, request.Method);
+                    Assert.Equal("/v/api/v2/user/passwd", request.Uri.AbsolutePath);
+                    Assert.Equal(FnNasSigner.HashPassword("新口令"), body["password"]!.GetValue<string>());
+                    Assert.DoesNotContain("新口令", request.Body);
+                    return Reply("\"fixture-new-token\"");
+                }
+                Assert.Equal("/v/api/v1/user/info", request.Uri.AbsolutePath);
+                Assert.Equal("", body["lan"]!.GetValue<string>());
+                Assert.Equal("ja-JP", body["audio_lan"]!.GetValue<string>());
+                return Reply("true");
+            });
+            using var http = new FnNasHttp(transport, disposeHandler: false);
+            var client = new FnNasClient(http);
+            Assert.Equal("fixture-new-token", client.ChangePasswordAsync(Connection, "新口令").GetAwaiter().GetResult());
+            client.UpdateUserInfoAsync(Connection, new JsonObject { ["lan"] = "", ["audio_lan"] = "ja-JP" }).GetAwaiter().GetResult();
+            Assert.Equal(2, transport.Requests.Count);
+            foreach (var request in transport.Requests) Assert.DoesNotContain(Secret, request.Uri.AbsoluteUri);
+        });
         Test("飞牛错误：HTTP 200 业务失败及 HTTP 错误都不回显服务端凭据", () =>
         {
             foreach (var response in new[]

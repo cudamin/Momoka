@@ -418,12 +418,12 @@ public sealed partial class SettingsPage : Page, IShellContent
         await refresh;
         UpdateCategoryGroups();
 
-        // 切到另一台服务器、或换了一个产品时，同名分类（两家的「控制台」都叫控制台）会留在原位，
-        // 选中项不变也就不会触发 ShowHosted；右半边还挂着上一台服务器的 WebView。它自己的会话
-        // 已经不当前了，这时换掉它。
+        // 切到另一台服务器、或换了一个产品时，同名分类（两家的「控制台」都叫控制台，飞牛的两台服务器
+        // 都有「媒体库」）会留在原位，选中项不变也就不会触发 ShowHosted；右半边还挂着上一台服务器/账号的
+        // 页面。它们自己的会话已经不当前了，这时换掉它 —— 网页控制台与飞牛的原生页都算。
         if (beforeCategory == ViewModel.SelectedCategory
-            && ViewModel.ServerRoute(ViewModel.SelectedCategory) is not null
-            && HostedFrame.Content is DashboardPage { IsCurrentSession: false })
+            && ViewModel.ShowsHosted
+            && HostedFrame.Content is ISessionScopedPage { IsCurrentSession: false })
         {
             ShowHosted();
         }
@@ -466,8 +466,9 @@ public sealed partial class SettingsPage : Page, IShellContent
     }
 
     /// <summary>
-    /// Keeps <c>HostedFrame</c> in step with the selected category: 服务器, 诊断, 通知 and the server
-    /// management pages are pages, not cards.（飞牛影视那四张内嵌页 2026-10-16 退役，见 <c>SettingsViewModel</c>。）
+    /// Keeps <c>HostedFrame</c> in step with the selected category: 服务器, 诊断, 通知, 飞牛的帐号两页
+    /// 与服务器管理四页，以及 Emby／Jellyfin 的网页控制台页。（飞牛四页 2026-10-16 退役，2026-10-19
+    /// 随飞牛设置目录一起接回；这次是原生页。）
     /// <para>
     /// Navigated afresh every time rather than left in place, because all of them load when they are navigated
     /// to and none is worth showing stale — a server list from five minutes ago, a log that stopped tailing
@@ -511,6 +512,36 @@ public sealed partial class SettingsPage : Page, IShellContent
         {
             page = typeof(NotificationsPage);
             parameter = new NotificationsRequest(services);
+        }
+        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasPasswordCategory)
+        {
+            page = typeof(FnNasPasswordPage);
+            parameter = new FnNasPasswordRequest(services);
+        }
+        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasPreferencesCategory)
+        {
+            page = typeof(FnNasPreferencesPage);
+            parameter = new FnNasPreferencesRequest(services);
+        }
+        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasLibrariesCategory)
+        {
+            page = typeof(FnNasLibrariesPage);
+            parameter = new FnNasLibrariesRequest(services);
+        }
+        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasUsersCategory)
+        {
+            page = typeof(FnNasUsersPage);
+            parameter = new FnNasUsersRequest(services);
+        }
+        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasSettingsCategory)
+        {
+            page = typeof(FnNasSettingsPage);
+            parameter = new FnNasSettingsRequest(services);
+        }
+        else if (ViewModel.SelectedCategory == SettingsViewModel.FnNasTasksCategory)
+        {
+            page = typeof(FnNasTasksPage);
+            parameter = new FnNasTasksRequest(services);
         }
         else if (ViewModel.ServerRoute(ViewModel.SelectedCategory) is { } route)
         {

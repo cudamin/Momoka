@@ -54,26 +54,28 @@ internal static class ServerAccessTests
             Assert.Equal(ServerInterfaceFlavor.Generic,
                 ServerAccess.InterfaceFor(2, [MediaServerKind.Emby, MediaServerKind.Emby]),
                 "两台同类服务器也是多服聚合，没有唯一的服务端入口");
-            Assert.Equal(ServerInterfaceFlavor.Generic,
+            Assert.Equal(ServerInterfaceFlavor.FnNas,
                 ServerAccess.InterfaceFor(1, [MediaServerKind.FnNas]),
-                "飞牛影视先用通用界面");
+                "飞牛影视独占时用它自己的设置目录");
             Assert.Equal(ServerInterfaceFlavor.Generic,
                 ServerAccess.InterfaceFor(1, [MediaServerKind.Plex]),
                 "Plex 先用通用界面");
             Assert.Equal(ServerInterfaceFlavor.Jellyfin,
                 ServerAccess.InterfaceFor(MediaServerKind.Jellyfin));
-            Assert.Equal(ServerInterfaceFlavor.Generic,
+            Assert.Equal(ServerInterfaceFlavor.FnNas,
                 ServerAccess.InterfaceFor(MediaServerKind.FnNas));
         });
 
-        Test("界面风味：只有 Emby 与 Jellyfin 有服务端管理入口", () =>
+        Test("界面风味：Emby、Jellyfin 与飞牛影视各有服务端管理入口", () =>
         {
             Assert.True(ServerAccess.ShowsServerAdministration(ServerInterfaceFlavor.Emby));
             Assert.True(ServerAccess.ShowsServerAdministration(ServerInterfaceFlavor.Jellyfin));
+            Assert.True(ServerAccess.ShowsServerAdministration(ServerInterfaceFlavor.FnNas));
             Assert.False(ServerAccess.ShowsServerAdministration(ServerInterfaceFlavor.Generic),
                 "通用界面不知道管理入口该指向哪台服务器");
             Assert.Equal("Emby 界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.Emby));
             Assert.Equal("Jellyfin 界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.Jellyfin));
+            Assert.Equal("飞牛影视界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.FnNas));
             Assert.Equal("通用界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.Generic));
         });
     }

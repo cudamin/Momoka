@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="Momoka.Shell.Views.FnNasPreferencesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Momoka.Shell.ViewModels"
+    Background="{ThemeResource EgWindowBrush}">
+    <Page.Resources>
+        <Style x:Key="FnNasCard" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+            <Setter Property="Padding" Value="20" />
+        </Style>
+        <DataTemplate x:Key="FnNasChoiceTemplate" x:DataType="vm:FnNasChoice">
+            <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
+        </DataTemplate>
+    </Page.Resources>
+    <Grid x:Name="PageLayout" RowSpacing="12" Padding="0,0,4,0">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <StackPanel Spacing="8">
+            <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+            <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}" IsClosable="False"
+                Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
+                Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
+        </StackPanel>
+        <ScrollView Grid.Row="1" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
+            <StackPanel Spacing="16" Padding="0,0,0,20" MaxWidth="720" HorizontalAlignment="Left">
+                <TextBlock Text="播放偏好" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
+                <TextBlock Text="偏好保存在飞牛影视服务器上，作为服务器播放与字幕选择的默认语言；Momoka 自己的播放语言仍按「设置 → 字幕」执行。"
+                    Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                <Border Style="{StaticResource FnNasCard}">
+                    <StackPanel Spacing="16">
+                        <ComboBox x:Name="FnNasSubtitleLanguage" Header="首选字幕语言" HorizontalAlignment="Stretch"
+                            AutomationProperties.Name="首选字幕语言"
+                            ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}"
+                            SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.SubtitleLanguage, Mode=TwoWay}" />
+                        <TextBlock Text="优先下载及使用首选语言的字幕，播放时可切换至其他语言。"
+                            Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                        <ComboBox x:Name="FnNasAudioLanguage" Header="首选音频语言" HorizontalAlignment="Stretch"
+                            AutomationProperties.Name="首选音频语言"
+                            ItemsSource="{x:Bind ViewModel.Languages, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}"
+                            SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.AudioLanguage, Mode=TwoWay}" />
+                        <TextBlock Text="优先使用首选语言的音频，播放时可切换至其他语言。"
+                            Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </Border>
+                <Button x:Name="FnNasPreferencesSave" Content="保存修改" Style="{StaticResource AccentButtonStyle}"
+                    Command="{x:Bind ViewModel.SaveCommand}" HorizontalAlignment="Left" />
+            </StackPanel>
+        </ScrollView>
+    </Grid>
+</Page>

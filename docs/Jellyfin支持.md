@@ -6,7 +6,7 @@
 
 管理入口随连接自动取舍：Emby 在 Momoka 组里保留「通知」，服务器目录分「Emby Server／设备／高级」三组；Jellyfin 没有通知入口，管理员在 Momoka 组下面看到自己的五组目录。两家的「网页控制台」分类都已退役，统一落到服务器目录的第一项「控制台」；`--show-settings 网页控制台` 仅作兼容别名。Jellyfin 管理权限以用户 `Policy.IsAdministrator` 为准；普通账号、未连接和权限未确认时都不列出。切换服务器或账号后重新计算入口，失效页面会退出，切换产品时按新产品重建控制台。聚合模式同时连着多台服务器时界面是通用界面，这组服务端管理入口整组收起；只剩一台服务器时按它的产品重新出现。
 
-Jellyfin 控制台的原生左栏照 Jellyfin Web 10.10 的管理抽屉分成五段，完整列表与 `JellyfinServerSettingsMenu` 一致：服务器（控制台、常规、用户、媒体库及显示／元数据／NFO 设置、播放相关的转码／继续观看／流媒体／特技播放）、设备（设备、活动）、电视直播（电视直播、数字录像机）、插件（我的插件、目录、服务器插件配置页）、高级（网络、API 密钥、日志、计划任务、媒体资料管理器）。条目把网页端两个可展开分组里的子页平铺出来，因为父项本身不是页面。选中条目会把内嵌网页带到 `/web/index.html#/dashboard/…`；网页自己那份抽屉与 React 顶栏由本地皮肤收起。插件配置页通过 Jellyfin 的 `web/ConfigurationPages?enableInMainMenu=true` 读取（与 Emby 的参数形状不同），CustomCssJS 页不列。飞牛影视与 Plex 没有原生目录，保持网页自己的整页控制台。
+Jellyfin 控制台的原生左栏照 Jellyfin Web 10.10 的管理抽屉分成五段，完整列表与 `JellyfinServerSettingsMenu` 一致：服务器（控制台、常规、用户、媒体库及显示／元数据／NFO 设置、播放相关的转码／继续观看／流媒体／特技播放）、设备（设备、活动）、电视直播（电视直播、数字录像机）、插件（我的插件、目录、服务器插件配置页）、高级（网络、API 密钥、日志、计划任务、媒体资料管理器）。条目把网页端两个可展开分组里的子页平铺出来，因为父项本身不是页面。选中条目会把内嵌网页带到 `/web/index.html#/dashboard/…`；网页自己那份抽屉与 React 顶栏由本地皮肤收起。插件配置页通过 Jellyfin 的 `web/ConfigurationPages?enableInMainMenu=true` 读取（与 Emby 的参数形状不同），CustomCssJS 页不列。飞牛影视在独占时另有自己的「帐号／影视服务器」原生目录（见 [飞牛影视](飞牛影视.md)），与 Jellyfin 的五段目录不混用；Plex 没有原生目录。
 
 | 设置入口 | Jellyfin 行为 |
 | --- | --- |

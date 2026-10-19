@@ -168,6 +168,31 @@ public sealed class EmbySession : IDisposable
         NotifySourcesChanged();
     }
 
+    /// <summary>
+    /// 当前账号在服务器上改了密码之后，把已保存的密码与新令牌一起换掉 —— 不换的话下一次自动重登还用旧密码，
+    /// 结果是用户在客户端改了密码、客户端随后自己把账号退出。
+    /// <para>
+    /// 只动这一条来源的客户端令牌，不动管理默认；令牌为空（少数版本只回成功不回新令牌）时保留旧令牌。
+    /// 未选择记住密码的账号不会被悄悄改成记住。
+    /// </para>
+    /// </summary>
+    public void ApplyPasswordChange(EmbySessionScope scope, string newPassword, string? newAccessToken)
+    {
+        lock (_lifecycleGate)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            if (!IsAvailable(scope)) throw new OperationCanceledException("任务所属的服务器账号已退出登录");
+            var state = scope.IdentityState;
+            _vault.SetPassword(state.Account, newPassword, state.Account.RememberPassword);
+            if (!string.IsNullOrEmpty(newAccessToken))
+            {
+                _vault.SetAccessToken(state.Account, newAccessToken);
+                state.Client = new EmbyClient(_http, state.Client.Connection with { AccessToken = newAccessToken });
+            }
+            Persist();
+        }
+    }
+
     public Task<bool> TryRestoreAsync(ServerProfile server, AccountProfile account, CancellationToken cancellationToken) =>
         TryRestoreAsync(server, account, true, cancellationToken);
 

@@ -165,10 +165,12 @@ internal static partial class ShellSelfCheck
         // places, so a category with no card is an entry that shows an empty pane and a card with no category
         // is a card no one can reach. 服务器, 诊断, 通知 and the server management pages are deliberately not
         // cards — they are pages hosted in the same column (需求 2) — so they join the cards on that side.
-        // （飞牛影视那四张内嵌页 2026-10-16 退役，不再出现在这份名单里。）
+        // （飞牛影视那四张内嵌页 2026-10-16 退役、2026-10-19 接回；现在连帐号两页一起在内嵌名单里。）
         // （「恢复默认」曾是名单末尾的第四项，2026-09-24 搬进了「关于」卡，不再在这份名单里，见下方那一关。）
         var expected = page.Cards
             .Select(card => card.Category)
+            // 飞牛「外观」是「界面」卡的第二个入口，不新增卡片，所以分组表里比卡片多这一项。
+            .Concat(page.ViewModel.CardAliases)
             .Concat(page.ViewModel.AvailableHostedCategories)
             .ToList();
 

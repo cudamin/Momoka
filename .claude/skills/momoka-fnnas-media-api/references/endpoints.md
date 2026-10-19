@@ -26,8 +26,10 @@
 | POST | `/api/v2/user/loginByPassword` | **登录（现行）**，密码 `sha256` 十六进制小写 → `data.token` | 两者 |
 | POST | `/api/v1/login` | 旧版明文登录，**新服务端已废弃**（一律 `-15`） | 上游 |
 | POST | `/api/v1/user/logout` | 登出 | 上游 |
-| GET | `/api/v1/user/info` | 当前用户信息 | 两者 |
-| POST | `/api/v1/user/getData` | 用户偏好 KV（`key` 如 `mdb:list:setting`） | 抓包 |
+| GET | `/api/v1/user/info` | 当前用户信息（含 `lan`、`audio_lan`、`is_admin`） | 两者 |
+| POST | `/api/v1/user/info` | 播放偏好：正文 `{lan, audio_lan}`，空串为任意语言 | 官方前端 |
+| POST | `/api/v2/user/passwd` | 改当前账号密码：正文 `{password: sha256}`，`data` 为新令牌 | 官方前端 |
+| POST | `/api/v1/user/getData` | 用户偏好 KV（`key` 如 `list:card:setting`） | 抓包 |
 
 登录细节与 `-15` 的陷阱见 [传输与鉴权](http-and-auth.md#登录)。
 
@@ -98,9 +100,9 @@
 | --- | --- | --- | --- |
 | GET | `/api/v1/task/running` | 是否有任务在跑（上游只判真假） | 上游 |
 
-## 原生管理接口（2026-10-16 已退役）
+## 原生管理接口（2026-10-16 退役，2026-10-19 接回）
 
-这些接口原先由客户端的四个原生管理页调用；**客户端现已不再调用其中任何一个**（`FnNasClient` 的管理分部类与四个页面一起删除）。下表只作协议追溯，字段与保存范围也不再以客户端源码为准。
+这些接口由飞牛影视独占时设置左栏「影视服务器」组的四张原生页调用（`FnNasClient.Management.cs`）。页面只对 `is_admin == 1` 的账号显示；下表随本轮重新成为现行调用面。保存服务器设置时仍保留未编辑与未知字段。
 
 | 方法 | 路径 | 原功能 |
 | --- | --- | --- |
@@ -125,7 +127,7 @@
 | POST | `/api/v1/task/schedule/getSetting` | 每日任务开关 |
 | POST | `/api/v1/task/schedule/set` | `task_switch` 字符串 `"1"` / `"2"` |
 
-当时排除的范围仍然排除：全部网盘功能、GPU 转码、首选 GPU 与 CPU 解码回退。**不要为了补回管理能力恢复网盘开关、直链权限或流解析接口。**
+排除的范围仍然排除：全部网盘功能、GPU 转码、首选 GPU 与 CPU 解码回退。**不要为了补回管理能力恢复网盘开关、直链权限或流解析接口。** 当前服务器设置页只显示服务器名称、语言、元数据/缓存存储空间、文件监控与搜索索引；`FnNasClient.UpdateServerSettingsAsync` 只合并这几格。
 
 ## 规格缺口与历史矛盾
 
@@ -137,7 +139,7 @@
 | v1 登录 | 新服务端已废弃，一律 `-15`；`-15` 无法区分账号/密码/接口版本 | 一律走 v2，见 [传输与鉴权](http-and-auth.md#登录) |
 | 访问码 | 校验在 `/c/{code}`（不在 `/v` 下），失败返回 404，靠会话 Cookie | 做成可选配置；请求需支持 Cookie |
 | `search/list` | 只在上游实现里出现，社区抓包文档未登记 | 标记为待核实，抓前端 JS 确认 |
-| `mdb/*`、`task/running` | 旧资料仅记上游实现 | 当前官方 SDK 已核对；`mdb/*` 随原生管理页退役，真实写入仍未验证 |
+| `mdb/*`、`task/running` | 旧资料仅记上游实现 | 当前官方 SDK 已核对；页面 2026-10-19 接回，真实写入仍未验证 |
 | 前端/服务端版本 | 接口随版本变，社区文档基于 0.9.7 / 0.8.35 | 每次接入前 `sys/version` 重取并记录 |
 
 ## 容易猜错的

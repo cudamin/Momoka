@@ -4,14 +4,15 @@ namespace Momoka.Emby;
 
 /// <summary>
 /// 主界面用的是哪一套服务端界面。聚合模式下同时连着多台服务器时没有唯一的一套，退回通用界面；
-/// 只有一台服务器时用那一台的界面。飞牛影视与 Plex 目前也走通用界面（用户令 2026-10-19：
-/// 「emby、Jellyfin、飞牛、plex 四套界面……当前只有 emby 完成复刻」「飞牛、plex 先用通用界面」）。
+/// 只有一台服务器时用那一台的界面。飞牛影视独占时也用它自己的界面 —— 至少设置左栏照它的目录分成
+/// 「帐号」与「影视服务器」两组；Plex 仍走通用界面（2026-10-19 用户令）。
 /// </summary>
 public enum ServerInterfaceFlavor
 {
     Generic,
     Emby,
-    Jellyfin
+    Jellyfin,
+    FnNas
 }
 
 /// <summary>
@@ -49,6 +50,7 @@ public static class ServerAccess
     {
         MediaServerKind.Emby => ServerInterfaceFlavor.Emby,
         MediaServerKind.Jellyfin => ServerInterfaceFlavor.Jellyfin,
+        MediaServerKind.FnNas => ServerInterfaceFlavor.FnNas,
         _ => ServerInterfaceFlavor.Generic
     };
 
@@ -57,6 +59,7 @@ public static class ServerAccess
     {
         ServerInterfaceFlavor.Emby => "Emby 界面",
         ServerInterfaceFlavor.Jellyfin => "Jellyfin 界面",
+        ServerInterfaceFlavor.FnNas => "飞牛影视界面",
         _ => "通用界面"
     };
 

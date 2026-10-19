@@ -61,7 +61,7 @@ public sealed class ServerRow
 
     public string KindLabel => ServerAccess.KindName(Profile.ServerKind);
 
-    /// <summary>这台服务器单独用哪一套界面。飞牛影视与 Plex 目前是通用界面。</summary>
+    /// <summary>这台服务器单独用哪一套界面。飞牛影视有自己的设置目录；Plex 目前是通用界面。</summary>
     public string InterfaceLabel => ServerAccess.InterfaceName(ServerAccess.InterfaceFor(1, [Profile.ServerKind]));
 
     public string AccountSummary => Accounts.Count == 0 ? "无账号" : $"{Accounts.Count(account => account.IsConnected)} / {Accounts.Count} 个账号已连接";

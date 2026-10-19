@@ -1500,7 +1500,7 @@
                                           字号和 SemiBold、没写字体，于是每张卡片的名字比媒体库那些带子的名字大
                                           一点，而且是另一种字；那条线也没有，八张卡片全靠间距分家。
                                         -->
-                                        <local:ShelfHead Note="{x:Bind Count}" Title="{x:Bind Title}" />
+                                        <local:ShelfHead Note="{x:Bind Count}" Title="{x:Bind Title, Mode=OneWay}" />
                                         <TextBlock
                                             Style="{StaticResource EgSettingNote}"
                                             Text="{x:Bind Description}" />

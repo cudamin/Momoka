@@ -41,7 +41,18 @@ public sealed partial class SettingSection : ObservableObject
     /// </summary>
     public string Category { get; }
 
-    public string Title { get; }
+    public string Title { get; private set; }
+
+    /// <summary>
+    /// 同一张卡挂两个左栏入口时改抬头：飞牛的「外观」就是「界面」卡，选中哪一项，卡上就写哪一项，
+    /// 否则左栏说「外观」、右边却写「界面」。别的卡不动。
+    /// </summary>
+    internal void Retitle(string title)
+    {
+        if (string.Equals(Title, title, StringComparison.Ordinal)) return;
+        Title = title;
+        OnPropertyChanged(nameof(Title));
+    }
 
     public string Description { get; }
 
@@ -162,11 +173,11 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 当前账号可见的服务端管理页名单：Emby 是「通知」加上三段服务器目录（控制台、通用、用户……
-    /// 以及服务器插件页），Jellyfin 是五段服务器目录（控制台、常规、用户、媒体库、插件页……）。
-    /// 飞牛影视与 Plex 没有。
+    /// 以及服务器插件页），Jellyfin 是五段服务器目录（控制台、常规、用户、媒体库、插件页……），
+    /// 飞牛影视是「影视服务器」组的四个原生页。Plex 没有。
     /// <para>
-    /// 2026-10-19 用户令：「把这些分区和功能移左边设置栏里……删除网页控制台分区」。两家的「网页控制台」
-    /// 从此都不再单列，服务器目录的第一项「控制台」就是同一页。
+    /// 2026-10-19 用户令：「把这些分区和功能移左边设置栏里……删除网页控制台分区」。Emby／Jellyfin 的
+    /// 「网页控制台」从此都不再单列，服务器目录的第一项「控制台」就是同一页。
     /// </para>
     /// </summary>
     public IReadOnlyList<string> ServerAdministrationCategories => _serverAdministrationCategories;
@@ -175,6 +186,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     private IReadOnlyList<ServerSettingsMenuGroup> _serverGroups = [];
     private IReadOnlyList<ServerSettingsMenuEntry> _serverEntries = [];
     private IReadOnlyDictionary<string, string> _serverRoutes = new Dictionary<string, string>(StringComparer.Ordinal);
+
+    /// <summary>飞牛影视「帐号」组的两个内嵌页；「外观」映射到现有「界面」卡，不另造一页。</summary>
+    private static readonly string[] FnNasAccountHostedCategories = [FnNasPasswordCategory, FnNasPreferencesCategory];
+    private static readonly string[] FnNasAccountCategories = [FnNasPasswordCategory, FnNasPreferencesCategory, FnNasAppearanceCategory];
+    private IReadOnlyList<string> _fnNasAccountHosted = [];
+    private bool _showsFnNasAccount;
 
     /// <summary>
     /// 管理组是否显示。初始表用于离线布局；接入能力服务后，在请求前同步真实身份与产品。
@@ -194,7 +211,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     public SettingsViewModel()
     {
-        _categoryGroups = BuildCategoryGroups(serverAdministration: false, MediaServerKind.Emby);
+        _categoryGroups = BuildCategoryGroups(serverAdministration: false, MediaServerKind.Emby, fnNasAccount: false);
 
         Categories.Clear();
         foreach (var category in _categoryGroups.SelectMany(group => group))
@@ -203,19 +220,23 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 照账号权限与产品造左栏分组表：「Momoka」永远在最上面，Emby 管理员接「Emby Server」「设备」「高级」，
-    /// Jellyfin 管理员接「服务器」「设备」「电视直播」「插件」「高级」。两套目录的条目与次序分别来自
-    /// <see cref="ServerSettingsMenu"/> 和 <see cref="JellyfinServerSettingsMenu"/>，与各自网页端管理菜单同源，
-    /// 不混用。非管理员或其它产品只有 Momoka 一组。
+    /// Jellyfin 管理员接「服务器」「设备」「电视直播」「插件」「高级」，飞牛影视独占时接「帐号」以及管理员才有的
+    /// 「影视服务器」。三套目录的条目与次序各自同源、不混用。Plex 或没有连接时只有 Momoka 一组。
     /// </summary>
-    private List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration, MediaServerKind kind)
+    private List<SettingsCategoryGroup> BuildCategoryGroups(bool serverAdministration, MediaServerKind kind, bool fnNasAccount)
     {
         var groups = new List<SettingsCategoryGroup>
         {
             new("Momoka", SidebarCategories(serverAdministration, kind))
         };
 
+        // 飞牛影视的左栏照它自己的设置抽屉分成「帐号」与「影视服务器」两组。帐号组对已登录的飞牛账号
+        // 一律可见；影视服务器组要管理员，和网页端一样。
+        if (fnNasAccount && kind == MediaServerKind.FnNas)
+            groups.Add(new SettingsCategoryGroup("帐号", FnNasAccountCategories));
+
         // 用户 2026-10-19：Momoka 自己的设置在设置页最上面，服务器目录接在它下面。
-        if (serverAdministration && kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
+        if (serverAdministration && kind is MediaServerKind.Emby or MediaServerKind.Jellyfin or MediaServerKind.FnNas)
         {
             foreach (var group in _serverGroups)
                 groups.Add(new SettingsCategoryGroup(group.Label, group.Entries.Select(entry => entry.Label)));
@@ -234,9 +255,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         _ => []
     };
 
-    /// <summary>Emby 或 Jellyfin 服务器目录里的页名；别的产品没有这套目录。</summary>
+    /// <summary>Emby、Jellyfin 或飞牛影视服务器目录里的页名；Plex 没有这套目录。</summary>
     private IReadOnlyList<string> ServerDirectoryCategories(MediaServerKind kind) =>
-        kind is MediaServerKind.Emby or MediaServerKind.Jellyfin
+        kind is MediaServerKind.Emby or MediaServerKind.Jellyfin or MediaServerKind.FnNas
             ? [.. _serverEntries.Select(entry => entry.Label)]
             : [];
 
@@ -292,6 +313,22 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     public const string DashboardCategory = "网页控制台";
 
+    /// <summary>飞牛影视左栏：帐号三项，影视服务器四项。名字与官方 0.9.8 设置抽屉一致。</summary>
+    public const string FnNasPasswordCategory = "修改密码";
+    public const string FnNasPreferencesCategory = "播放偏好";
+    public const string FnNasAppearanceCategory = "外观";
+    public const string FnNasLibrariesCategory = "媒体库";
+    public const string FnNasUsersCategory = "用户";
+    public const string FnNasSettingsCategory = "设置";
+    public const string FnNasTasksCategory = "任务计划";
+
+    /// <summary>
+    /// 「外观」不是另一张卡：它就是 Momoka 自己的「界面」卡。飞牛网页端的外观页管的是网页自己的主题、
+    /// 语言与海报角标，搬进 WinUI 后对应的是同一批界面设置，所以左栏保留这一个入口、内容复用。
+    /// </summary>
+    internal static string SectionForCategory(string category) =>
+        string.Equals(category, FnNasAppearanceCategory, StringComparison.Ordinal) ? "界面" : category;
+
     /// <summary>The left-hand list. Order is the order of the cards, then the hosted pages.</summary>
     /// <remarks>
     /// 「恢复默认」曾是这份名单末尾的一项（2026-09-13～2026-09-24）；2026-09-24 按「把恢复默认设置移动到关于中」
@@ -326,13 +363,18 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// Whether the selected entry is one of the pages rather than one of the cards. The page watches
     /// this to navigate its frame, and the two visibilities below are the same question drawn.
     /// <para>
-    /// Emby 的三段服务器页也在 <see cref="ServerAdministrationCategories"/> 里，所以它们是 hosted；
-    /// 非管理员时这份名单为空，落在旧分类上的选择会被 <see cref="ApplyServerAdministration"/> 收走。
+    /// Emby／Jellyfin 的服务器页、飞牛的帐号两页与服务器四页都在内嵌名单里，所以它们是 hosted；
+    /// 非管理员时服务器组那份名单收起，落在旧分类上的选择会被 <see cref="ApplyServerAdministration"/> 收走。
+    /// 飞牛的「外观」不是 hosted，它落到「界面」卡。
     /// </para>
     /// </summary>
     public bool ShowsHosted =>
         FixedHostedCategories.Contains(SelectedCategory, StringComparer.Ordinal)
+        || _fnNasAccountHosted.Contains(SelectedCategory, StringComparer.Ordinal)
         || _serverAdministrationCategories.Contains(SelectedCategory, StringComparer.Ordinal);
+
+    /// <summary>自检用：飞牛「外观」挂在「界面」卡上，分组表比卡片多这一项。</summary>
+    internal IReadOnlyList<string> CardAliases => _showsFnNasAccount ? [FnNasAppearanceCategory] : [];
 
     public Visibility CardsVisibility => Show(!ShowsHosted);
 
@@ -359,7 +401,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 「播放器」，用户点「字幕」却开在别的卡上，那种错靠看是看不出来的。
     /// </summary>
     internal static bool IsCardCategory(string category) =>
-        CardCategories.Contains(category, StringComparer.Ordinal);
+        CardCategories.Contains(category, StringComparer.Ordinal)
+        || string.Equals(category, FnNasAppearanceCategory, StringComparison.Ordinal);
 
     /// <summary>主题那一行的色板，同样是为了让自检不必去树上找它。</summary>
     internal SettingThemeRow? Themes { get; private set; }
@@ -460,6 +503,9 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>自检读的：管理员才看得见的那几个入口这会儿是收着的吗（非管理员账号下是）。</summary>
     internal bool ServerAdministrationHidden => !_showsServerAdministration;
 
+    /// <summary>探针读的：飞牛「帐号」组这会儿在不在。</summary>
+    internal bool FnNasAccountShown => _showsFnNasAccount;
+
     /// <summary>
     /// 按当前账号的管理员身份与产品决定服务端设置入口在不在，并在它们该收起时把落点收回第一张卡。
     /// <para>
@@ -486,6 +532,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             {
                 MediaServerKind.Emby => ServerSettingsMenu.Build(),
                 MediaServerKind.Jellyfin => JellyfinServerSettingsMenu.Build(),
+                MediaServerKind.FnNas => FnNasServerMenu(),
                 _ => []
             }, knownKind);
         }
@@ -509,11 +556,28 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
         else
         {
-            SetServerMenu([], kind);
+            // 飞牛的四页是本机原生页，没有插件页要补；即使当前不是管理员，目录也先备着，
+            // 下次权限恢复时那几项不用再依赖一次网络。
+            SetServerMenu(kind == MediaServerKind.FnNas ? FnNasServerMenu() : [], kind);
         }
 
         ApplyServerAdministration(visible, kind);
     }
+
+    /// <summary>
+    /// 飞牛影视的四个管理页。它们是 Momoka 的原生页而不是网页路由，<c>Route</c> 故意留空；
+    /// 左栏只读页名，点击后的落点由 <c>SettingsPage</c> 按页名分派。
+    /// </summary>
+    internal static IReadOnlyList<ServerSettingsMenuGroup> FnNasServerMenu() =>
+    [
+        new("影视服务器", ServerSettingsSection.Server,
+        [
+            new(FnNasLibrariesCategory, "", ServerSettingsSection.Server, "library"),
+            new(FnNasUsersCategory, "", ServerSettingsSection.Server, "users"),
+            new(FnNasSettingsCategory, "", ServerSettingsSection.Server, "settings"),
+            new(FnNasTasksCategory, "", ServerSettingsSection.Server, "tasks")
+        ])
+    ];
 
     /// <summary>
     /// 服务端管理入口此刻在不在。除了「账号能管这台服务器」，还要界面确实能确定是哪一台：
@@ -522,17 +586,22 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     private bool CanShowServerAdministration => _capabilities?.IsConnected == true
         && _capabilities.InterfaceFlavor != ServerInterfaceFlavor.Generic
-        && (_capabilities.ServerKind == MediaServerKind.Jellyfin
+        && (_capabilities.ServerKind is MediaServerKind.Jellyfin or MediaServerKind.FnNas
             ? _capabilities.IsAdministrator == true
             : _capabilities.IsAdministrator != false);
 
     internal bool CanOpenServerCategory(string category) =>
-        !_serverAdministrationCategories.Contains(category, StringComparer.Ordinal)
-        || (CanShowServerAdministration && AdministrationCategories(_capabilities!.ServerKind)
-            .Contains(category, StringComparer.Ordinal));
+        (!_fnNasAccountHosted.Contains(category, StringComparer.Ordinal) || _showsFnNasAccount)
+        && (!_serverAdministrationCategories.Contains(category, StringComparer.Ordinal)
+            || (CanShowServerAdministration && AdministrationCategories(_capabilities!.ServerKind)
+                .Contains(category, StringComparer.Ordinal)));
 
     internal IReadOnlyList<string> AvailableHostedCategories =>
-        ["服务器", "诊断", .. (_showsServerAdministration ? AdministrationCategories(_administrationKind) : [])];
+    [
+        "服务器", "诊断",
+        .. (_showsFnNasAccount ? _fnNasAccountHosted : []),
+        .. (_showsServerAdministration ? AdministrationCategories(_administrationKind) : [])
+    ];
 
     /// <summary>左栏某个服务器页（控制台、通用、插件页……）对应的网页路由；不是服务器页就答 null。</summary>
     internal string? ServerRoute(string category) =>
@@ -557,7 +626,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         _showsServerAdministration = visible;
         _administrationKind = kind;
-        _categoryGroups = BuildCategoryGroups(visible, kind);
+        // 帐号组只跟「独占且是飞牛」有关，不看管理员：改自己的密码和播放偏好不需要管理权限。
+        _showsFnNasAccount = kind == MediaServerKind.FnNas
+            && _capabilities?.IsConnected == true
+            && _capabilities.InterfaceFlavor == ServerInterfaceFlavor.FnNas;
+        _fnNasAccountHosted = _showsFnNasAccount ? FnNasAccountHostedCategories : [];
+        _categoryGroups = BuildCategoryGroups(visible, kind, _showsFnNasAccount);
         ReplaceCategories([.. _categoryGroups.SelectMany(group => group)]);
     }
 
@@ -778,12 +852,17 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     private void ShowCategory(string category)
     {
+        var sectionCategory = SectionForCategory(category);
         foreach (var section in Sections)
-            section.IsVisible = string.Equals(section.Category, category, StringComparison.Ordinal);
+        {
+            section.IsVisible = string.Equals(section.Category, sectionCategory, StringComparison.Ordinal);
+            if (section.Category == "界面")
+                section.Retitle(string.Equals(category, FnNasAppearanceCategory, StringComparison.Ordinal) ? FnNasAppearanceCategory : "界面");
+        }
 
         // 主页那张版面表只在它显示着的时候重填。收着的时候 ListView 不重排，重填进来的那几排只建得出容器、
         // 套不上模板 —— 用户回到这一页看到的是几个空盒子（见 RefreshHomeRows）。
-        if (string.Equals(category, FirstCardCategory, StringComparison.Ordinal)) RefreshHomeRows();
+        if (string.Equals(sectionCategory, FirstCardCategory, StringComparison.Ordinal)) RefreshHomeRows();
     }
 
     private AppSettings Settings => _settings!.Settings;

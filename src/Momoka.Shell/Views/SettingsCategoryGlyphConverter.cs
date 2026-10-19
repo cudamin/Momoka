@@ -69,6 +69,9 @@ public sealed class SettingsCategoryGlyphConverter : IValueConverter
         ["品牌"] = 0xE790,         // Color
         ["设置"] = 0xE713,         // Settings
         ["任务计划"] = 0xE787,     // Calendar
+        ["修改密码"] = 0xE72E,     // Lock
+        ["播放偏好"] = 0xE768,     // Play
+        ["外观"] = 0xE790,         // Color（调色板）
         ["网页控制台"] = 0xE774,   // Globe
         ["恢复默认"] = 0xE72C      // Refresh（还原、重来一遍）
     };
