@@ -1,11 +1,22 @@
 ---
 name: "momoka-verification"
-description: "Verify Momoka changes using the current gates in CLAUDE.md. Interpret self-check results, distinguish fresh Release tests from stale output, check capability-dependent hiding and restoration, inspect screenshots and pointer evidence, and report playback coverage gaps. Use after code changes, when editing verification tools, or when asked to 验证 / 跑一遍闸门 / 发新版本."
+description: "Verify Momoka changes using the current gates in CLAUDE.md. Interpret self-check results, distinguish fresh Release tests from stale output, check capability-dependent hiding and restoration, inspect screenshots and pointer evidence, and report playback coverage gaps. Use at delivery-batch close, when editing verification tools, or when asked to 验证 / 跑一遍闸门 / 发新版本."
 ---
 
 # Momoka — verification evidence
 
 **Policy lives in [CLAUDE.md](../../../CLAUDE.md); commands and report paths live in [docs/开发与验证.md](../../../docs/开发与验证.md).** This skill explains what measurements mean, not a second gate schedule. Architecture is `momoka-winui-shell`; playback is `momoka-playback`; shaders are `mpv-shader-quality`.
+
+## Delivery batches
+
+Verification runs per delivery batch, not per small edit.
+
+- Intermediate edits need a compile of the affected projects/tests and the tests covering that change. At batch close, run gate 2, the affected runtime checks/probes and gate 3 once, against the final code.
+- Documentation and progress-record commits do not trigger a build, probe or publish.
+- A user request to test or publish closes the current batch at the requested commit; later edits start a new batch.
+- A result is evidence only for the code it ran against. If later code changes a probed path, rerun the affected check; do not recycle earlier logs, screenshots or publish hashes.
+- Do not rerun a full probe or self-check after every tweak. An environment-attributed red stays red in the report; do not repeat it each round while the relevant code and environment are unchanged, and never turn it green with a lucky rerun or a baseline edit.
+- Verification-tool changes are the exception: run the affected success and failure paths in the same round, because the tool itself is under test.
 
 ## Before accepting a result
 
