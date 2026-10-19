@@ -793,6 +793,28 @@ internal sealed partial class ShellNavigationProbe
                 "服务器组里的入口没有绑定到那一台服务器的路由与来源");
             Require(page.ViewModel.Categories.Contains(library), "平铺名单没有跟着分组换");
 
+            // 同名项按服务器产品分派：Emby／Jellyfin 的「媒体库」有网页路由，必须留在网页控制台；
+            // 只有飞牛那一组的「媒体库」才该打开原生页（2026-10-19 用户在 Emby 组里点开飞牛管理页的回归）。
+            Require(page.ViewModel.SelectedServerKind == MediaServerKind.Jellyfin
+                && !page.ViewModel.OpensFnNasPage(library.Label),
+                "Jellyfin 组里的「媒体库」被当成飞牛的原生页");
+            var embyLibrary = emby.Entries.Single(entry => entry.Label == "媒体库");
+            page.SelectedCategory = embyLibrary.Key;
+            await LayoutAsync(page);
+            Require(page.ViewModel.SelectedServerKind == MediaServerKind.Emby
+                && !page.ViewModel.OpensFnNasPage(embyLibrary.Label)
+                && page.ViewModel.ServerRoute(embyLibrary.Key) == "librarysetup",
+                "Emby 组里的「媒体库」没有留在网页控制台");
+            var fnNasLibrary = fnNas.Entries.Single(entry => entry.Label == "媒体库");
+            page.SelectedCategory = fnNasLibrary.Key;
+            await LayoutAsync(page);
+            Require(page.ViewModel.SelectedServerKind == MediaServerKind.FnNas
+                && page.ViewModel.OpensFnNasPage(fnNasLibrary.Label)
+                && page.ViewModel.SelectedSourceKey == sourceC.Key,
+                "飞牛组里的「媒体库」没有按飞牛的原生页分派");
+            page.SelectedCategory = library.Key;
+            await LayoutAsync(page);
+
             // 内嵌网页控制台真的拿到那一台的来源键与地址，不是「当前来源」的地址。这里不启动 WebView2，
             // 只让页面走完管理员检查与地址拼装（DashboardRequest.LoadContent=false 的既有路径）。
             fixture.Transport.Reply = (request, _) =>

@@ -523,6 +523,10 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// 与服务器管理四页，以及 Emby／Jellyfin 的网页控制台页。（飞牛四页 2026-10-16 退役，2026-10-19
     /// 随飞牛设置目录一起接回；这次是原生页。）
     /// <para>
+    /// 飞牛的原生页先问选中项属于哪一种产品（<see cref="SettingsViewModel.OpensFnNasPage"/>）：
+    /// 多服务器分组里 Emby／Jellyfin 的「媒体库」「用户」与飞牛同名，只看页名会把它们带进飞牛的原生页。
+    /// </para>
+    /// <para>
     /// Navigated afresh every time rather than left in place, because all of them load when they are navigated
     /// to and none is worth showing stale — a server list from five minutes ago, a log that stopped tailing
     /// and a console whose token has since been replaced are exactly what these exist to not be. Selecting a
@@ -549,6 +553,8 @@ public sealed partial class SettingsPage : Page, IShellContent
         var services = _request.Services;
         var category = ViewModel.SelectedEntry?.Label ?? ViewModel.SelectedCategory;
         var sourceKey = ViewModel.SelectedSourceKey;
+        // Emby／Jellyfin 的目录里也有「媒体库」「用户」：飞牛的原生页只认飞牛那一组，其余同名项走网页控制台。
+        var fnNas = ViewModel.OpensFnNasPage(category);
 
         Type page;
         object parameter;
@@ -568,32 +574,32 @@ public sealed partial class SettingsPage : Page, IShellContent
             page = typeof(NotificationsPage);
             parameter = new NotificationsRequest(services, sourceKey);
         }
-        else if (category == SettingsViewModel.FnNasPasswordCategory)
+        else if (fnNas && category == SettingsViewModel.FnNasPasswordCategory)
         {
             page = typeof(FnNasPasswordPage);
             parameter = new FnNasPasswordRequest(services, sourceKey);
         }
-        else if (category == SettingsViewModel.FnNasPreferencesCategory)
+        else if (fnNas && category == SettingsViewModel.FnNasPreferencesCategory)
         {
             page = typeof(FnNasPreferencesPage);
             parameter = new FnNasPreferencesRequest(services, sourceKey);
         }
-        else if (category == SettingsViewModel.FnNasLibrariesCategory)
+        else if (fnNas && category == SettingsViewModel.FnNasLibrariesCategory)
         {
             page = typeof(FnNasLibrariesPage);
             parameter = new FnNasLibrariesRequest(services, sourceKey);
         }
-        else if (category == SettingsViewModel.FnNasUsersCategory)
+        else if (fnNas && category == SettingsViewModel.FnNasUsersCategory)
         {
             page = typeof(FnNasUsersPage);
             parameter = new FnNasUsersRequest(services, sourceKey);
         }
-        else if (category == SettingsViewModel.FnNasSettingsCategory)
+        else if (fnNas && category == SettingsViewModel.FnNasSettingsCategory)
         {
             page = typeof(FnNasSettingsPage);
             parameter = new FnNasSettingsRequest(services, sourceKey);
         }
-        else if (category == SettingsViewModel.FnNasTasksCategory)
+        else if (fnNas && category == SettingsViewModel.FnNasTasksCategory)
         {
             page = typeof(FnNasTasksPage);
             parameter = new FnNasTasksRequest(services, sourceKey);

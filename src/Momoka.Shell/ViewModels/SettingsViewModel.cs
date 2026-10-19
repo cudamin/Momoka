@@ -439,6 +439,21 @@ public sealed partial class SettingsViewModel : PageViewModel
     internal string? SelectedSourceKey => SelectedEntry?.SourceKey;
 
     /// <summary>
+    /// 选中项属于哪一种产品：多服务器分组里问那一组自己的来源，单服务器时就是当前产品。
+    /// 内嵌页的分派不能只看页名 —— Emby／Jellyfin 的目录里也有「媒体库」「用户」，与飞牛的原生页同名。
+    /// </summary>
+    internal MediaServerKind SelectedServerKind =>
+        SelectedEntry?.SourceKey is { Length: > 0 } key
+        && _capabilities?.Sources.FirstOrDefault(source => string.Equals(source.Key, key, StringComparison.Ordinal)) is { } source
+            ? source.Kind
+            : _administrationKind;
+
+    /// <summary>这一项该不该打开飞牛的原生页；同名项按它所属的产品分辨。</summary>
+    internal bool OpensFnNasPage(string label) => SelectedServerKind == MediaServerKind.FnNas
+        && label is FnNasPasswordCategory or FnNasPreferencesCategory or FnNasLibrariesCategory
+            or FnNasUsersCategory or FnNasSettingsCategory or FnNasTasksCategory;
+
+    /// <summary>
     /// Whether the selected entry is one of the pages rather than one of the cards. The page watches
     /// this to navigate its frame, and the two visibilities below are the same question drawn.
     /// <para>
@@ -797,7 +812,8 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 飞牛影视的四个管理页。它们是 Momoka 的原生页而不是网页路由，<c>Route</c> 故意留空；
-    /// 左栏只读页名，点击后的落点由 <c>SettingsPage</c> 按页名分派。
+    /// 点击后的落点由 <c>SettingsPage</c> 按页名分派，但先要问选中项属于哪一种产品 ——
+    /// Emby／Jellyfin 的目录里有同名的「媒体库」「用户」，它们的页名不能落进飞牛的原生页。
     /// </summary>
     internal static IReadOnlyList<ServerSettingsMenuGroup> FnNasServerMenu() =>
     [
