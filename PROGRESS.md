@@ -8,13 +8,13 @@
 
 - **复现与读数**：主页每一排装到东西才横着排；为定位空排，临时在 `LoadAsync` 打印每排条目数。真实三来源（飞牛、Jellyfin、Emby）读数：媒体库 9、继续观看 4、接下来看 0，九个库排中 `jellyfin · 最近添加 · 节目` 为 0，其余八个均为 24；该排因此被摘掉。临时日志与诊断查询已删除，不入库。
 - **根因**：该 Jellyfin 库 `CollectionType=tvshows`，库里有 `Series`/`Season`/`Folder`，但没有单集。Jellyfin 的 `/Items/Latest` 只收可播放条目，回空表；换 `IsPlayed=false`、关闭 `GroupItems`、点名 `Episode`/`Series` 都是 0，只有点名 `Season` 才会回剧集（24 条）。不是「最近添加」列表为空，是查询口径不对。
-- **修复**：新增 Core `HomeLatest`：Jellyfin 电视剧库的最近添加改走条目查询（`IncludeItemTypes=Series`、`SortBy=DateCreated,SortName`、倒序、`Recursive`），直接列最近入库的剧集；Emby、飞牛、Plex 以及 Jellyfin 电影/混合库仍走原 `Items/Latest`。`HomeViewModel` 按 `HomeLatest.UsesSeriesQuery` 分流。接口文档见 [docs/Jellyfin支持.md](docs/Jellyfin支持.md)。
+- **修复**：新增 Core `HomeLatest`：Jellyfin 电视剧库的最近添加改走条目查询（`IncludeItemTypes=Series`、`SortBy=DateLastContentAdded,SortName`、倒序、`Recursive`），直接列最近入库的剧集；Emby、飞牛、Plex 以及 Jellyfin 电影/混合库仍走原 `Items/Latest`。`HomeViewModel` 按 `HomeLatest.UsesSeriesQuery` 分流。接口文档见 [docs/Jellyfin支持.md](docs/Jellyfin支持.md)。
 - **测试**：Release 测试项目与 Core **0 警告、0 错误**；离线测试 **1987 项全过、0 失败、0 跳过**（新增 3 条：只对 Jellyfin 电视剧库改道、其它来源/库不改道、剧集查询形状）。完整方案构建 0 警告 0 错误；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0。
 - **真实服务器验证**：发布件在用户保存的三来源上启动，主页现在出现 `jellyfin · 最近添加 · 节目`（24 项，卡片为剧集）；UIA 在 70% 滚动位置读到该排标题，实屏截图 `work/home-fixed-program-row.png` 已目检。没有播放。
 - **「主页莫名其妙刷新」**：本轮观察与当日日志中没有出现定时检查触发的整页重读（无「有新入库，重读主页」记录）；日志里的多次主页装载都对应导航进出。按现有证据，用户看到的变化来自空排被摘掉/重排。若仍有静止时整页重读，需要下一次发生时的日志时刻再定。
 - **探针（如实报红）**：发布件 `--probe-shell --probe-section shell --screen 1` **10 项通过、1 项失败**（`shell-probe-20261020-010933351-15100`）；失败项「侧边栏模式、导航与宽窄布局」报「像素探针窗口被遮挡或移到屏外」，属运行环境遮挡，与本轮取数改动无关，未改断言。
-- **发布**：`tools/publish.ps1 -NoArchive` 校验通过，刷新 `artifacts/publish/win-x64`（**540 文件、283.3 MB、11 GLSL／4 HOOK 逐文件校验通过**）；桌面快捷方式仍指向该目录。
-- **提交**：`62637d5`（本地，未推送；本轮没有上传授权）。
+- **发布**：`tools/publish.ps1 -NoArchive` 校验通过，刷新 `artifacts/publish/win-x64`（**540 文件、283.3 MB、11 GLSL／4 HOOK 逐文件校验通过**）；发布件 `Momoka.dll` 4 626 944 字节，SHA-256 `65D2221A24FA84C7C72CA61F39914ED4C789B9A447E6D7BC1EB7A01037A0CD1B`；桌面快捷方式仍指向该目录。
+- **提交**：`62637d5`（修复与单测）、`f642aa8`（排序口径对齐）（本地，未推送；本轮没有上传授权）。
 
 ## Jellyfin 媒体库按 Jellyfin Web 10.10 分流（2026-10-19 用户令）
 
