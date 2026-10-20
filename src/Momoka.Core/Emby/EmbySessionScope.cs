@@ -47,6 +47,9 @@ public sealed class EmbySessionScope
     {
         if (result is EmbyItem item) Bind(item);
         else if (result is ItemsResult query) Bind(query.Items);
+        else if (result is MovieRecommendation recommendation) Bind(recommendation.Items);
+        else if (result is IEnumerable<MovieRecommendation> recommendations)
+            foreach (var group in recommendations) Bind(group.Items);
         else if (result is IEnumerable<EmbyItem> items)
             foreach (var entry in items) Bind(entry);
         return result;

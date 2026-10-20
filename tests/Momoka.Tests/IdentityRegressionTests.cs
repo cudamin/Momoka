@@ -299,6 +299,37 @@ internal static class IdentityRegressionTests
     private static void RegisterScopes()
     {
         foreach (var sameServer in new[] { false, true })
+            Case($"推荐来源：{(sameServer ? "同服异账号" : "异服同 ID")}切默认后，图片、详情、已看和收藏仍属于 A", async () =>
+            {
+                using var fixture = new SessionFixture(sameServer);
+                await fixture.Restore(fixture.A);
+                var source = fixture.Session.Capture();
+                await fixture.Restore(fixture.B);
+                fixture.Transport.Reply = (sent, _) => Task.FromResult(
+                    sent.Url.AbsolutePath.EndsWith("Movies/Recommendations", StringComparison.Ordinal)
+                        ? Json("[{\"Items\":[{\"Id\":\"same-id\",\"ImageTags\":{\"Primary\":\"poster-a\"}}]},{\"Items\":[{\"Id\":\"other-id\"}]}]")
+                        : Standard(sent));
+                using var http = new EmbyHttp(fixture.Transport);
+                var jellyfin = new EmbyClient(http, source.Connection with { ServerKind = MediaServerKind.Jellyfin, ServerVersion = "12.2" });
+                var recommendations = await source.ExecuteAsync((_, ct) => jellyfin.GetMovieRecommendationsAsync("library-a", 6, ct), None);
+                var item = recommendations[0].Items.Single();
+                Assert.True(recommendations.SelectMany(group => group.Items).All(entry => ReferenceEquals(source, entry.Source)));
+                Assert.Equal(source.Key, fixture.Session.Capture(item).Key);
+                var direct = source.Bind(new MovieRecommendation { Items = [new EmbyItem { Id = "single" }] });
+                Assert.Equal(source.Key, direct.Items.Single().Source!.Key);
+                await item.Source!.ExecuteAsync((client, ct) => client.GetImageBytesAsync(item.Id, "Primary", "poster-a", 320, ct), None);
+                await item.Source.ExecuteAsync((client, ct) => client.GetItemAsync(item.Id, ct), None);
+                await item.Source.ExecuteAsync((client, ct) => client.MarkPlayedAsync(item.Id, ct), None);
+                await item.Source.ExecuteAsync((client, ct) => client.SetFavoriteAsync(item.Id, true, ct), None);
+                var sent = fixture.Transport.Sent.Where(request => request.Url.AbsolutePath.Contains("same-id", StringComparison.Ordinal)).ToArray();
+                Assert.Equal(4, sent.Length);
+                Assert.True(sent.All(request => request.Url.Host == "a.invalid" && request.Token == "token-a"));
+                Assert.True(sent.Where(request => request.Method == "POST")
+                    .All(request => request.Url.AbsolutePath.Contains("/Users/a/", StringComparison.Ordinal)));
+                Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
+            });
+
+        foreach (var sameServer in new[] { false, true })
             Case($"身份 Scope：切换{(sameServer ? "账号" : "服务器")}后仍可给 A 正确收尾", async () =>
             {
                 using var fixture = new SessionFixture(sameServer);
