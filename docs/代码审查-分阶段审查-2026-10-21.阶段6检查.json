@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "phase": 6,
+  "status": "通过（仅本轮文档检查，非产品新运行）",
+  "executedAt": "2026-10-21T07:25:55+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "768031b19a6923f52f8b2f32f3e9f185245ce5f7",
+  "checks": [
+    {
+      "name": "固定工作树、完整提交与开始状态",
+      "status": "通过",
+      "detail": "独立审查树/分支与阶段开始提交一致，写前暂存/已跟踪/新增集合为空"
+    },
+    {
+      "name": "五文件改动与暂存边界",
+      "status": "通过",
+      "detail": "只写审查/证据/检查、总记录与新增PROGRESS段；忽略目录工具不入库"
+    },
+    {
+      "name": "固定源码逐字节一致",
+      "status": "通过",
+      "detail": "阶段1索引中856个产品/测试/工具/资源/技能与列明入口SHA-256相同；不是856文件业务审查"
+    },
+    {
+      "name": "R-007～R-011问题字段、报告与证据一致",
+      "status": "通过",
+      "detail": "五项静态确认的触发/影响/防护/未验证/最小方向/验收和未修复状态齐备"
+    },
+    {
+      "name": "完整源码因果链及既有防护定位",
+      "status": "通过",
+      "detail": "五新增问题和R-003/R-004共享交界按准确行段核对，非故障方法执行"
+    },
+    {
+      "name": "读取深度、源码/技能哈希和覆盖缺口",
+      "status": "通过",
+      "detail": "54个文件按全文/片段/定位分层，五项缺口与八项排除独立保存"
+    },
+    {
+      "name": "原目录其他任务保护",
+      "status": "通过",
+      "detail": "网站及另一轮报告五文件仅核路径/字节哈希，状态未变，未写入或暂存"
+    },
+    {
+      "name": "固定10.0.11一手来源和取证元数据",
+      "status": "通过",
+      "detail": "微软文档/官方固定tag源码匿名GET回执与标记摘要一致；不再次联网或执行产品"
+    },
+    {
+      "name": "JSON默认选项观察与相同运行时字节",
+      "status": "通过",
+      "detail": "False选项原读数/10.0.11同DLL与配置相符；未调用产品Load或故障夹具"
+    },
+    {
+      "name": "旧测试证据复用与未覆盖新故障",
+      "status": "通过",
+      "detail": "仅复用阶段2的2072通过/0失败跳过、0警告错误，16个既有标题与日志/产物哈希核对"
+    },
+    {
+      "name": "本轮报告、总记录和新增进度本地链接",
+      "status": "通过",
+      "detail": "逐个校验本轮Markdown文件/锚点，不把历史PROGRESS全文算已复核"
+    },
+    {
+      "name": "阶段0～5历史记录和进度保留",
+      "status": "通过",
+      "detail": "旧阶段文件逐字节不改；总记录仅更新当前入口/状态并追加，PROGRESS仅增七行段"
+    },
+    {
+      "name": "去重、未验证、安全边界与阶段出口",
+      "status": "通过",
+      "detail": "累计11项未修复，五新增只静态；阶段7/真实验证/修复/推送发布均未开始"
+    },
+    {
+      "name": "UTF-8、LF、末尾换行与记录格式",
+      "status": "通过",
+      "detail": "只核本轮记录和新增进度段，不重写历史PROGRESS格式"
+    },
+    {
+      "name": "凭据与真实服务器位置形态筛查",
+      "status": "通过",
+      "detail": "只扫本轮记录，未读真实设置或令牌；不冒充全项目安全审计"
+    },
+    {
+      "name": "Git工作区和暂存差异空白",
+      "status": "通过",
+      "detail": "实际执行git diff --check与git diff --cached --check"
+    }
+  ],
+  "summary": {
+    "passed": 16,
+    "failed": 0,
+    "markdownLinksChecked": 75,
+    "newConfirmedFindings": 5,
+    "reviewedFileRecords": 54,
+    "fixedProductByteRecords": 856
+  },
+  "checkedFileSha256": {
+    "docs/代码审查-分阶段审查-2026-10-21.md": "EC124AD1485133D2E0DCC30EF9782753E7C6191E24928351DD4FF01DA696F07C",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md": "1AA0531231280A6C01C95C7E3795E12B1A3FA8B26E2143C75ADC624271CDE76D",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段6证据.json": "1BE7DFF0270FE81152BDCAE09A6AF193316696CCB3450DD81F903466B9A94602",
+    "PROGRESS.md": "B9A24A820959E47ED3D640990FFA632642B3E9CDFEC66B85F30265F378D606A7"
+  },
+  "checker": {
+    "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase6\\check_phase6.py",
+    "sha256": "03017CE111EE871CB2FB59842A0F5CFF5905CD9F278D493DD2D2B988FAB69A31",
+    "scope": "本树忽略目录的临时文档检查器，只有读取/哈希/Git状态和本检查结果写入；无产品方法/联网/故障回归执行"
+  },
+  "productBuildsOrTestsExecutedInPhase6": false,
+  "newRegressionOrInstrumentationAdded": false,
+  "systemContextCompressionExecuted": false,
+  "limitations": [
+    "五个新增故障仅静态确认，无新增产品运行回归、未修复",
+    "2072通过明确属阶段2，源码/日志/产物/runtime哈希复用",
+    "官方资料校验只读捕获元数据/标记摘要，不再联网；JSON默认选项观察不是产品Load/Prepare",
+    "只保留本轮文档检查，不构建/启动/发布应用",
+    "结果不含自身哈希避免自引用"
+  ]
+}
