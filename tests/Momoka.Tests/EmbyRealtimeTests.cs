@@ -57,7 +57,8 @@ internal static partial class EmbyRealtimeTests
             foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
             {
                 var connection = new EmbyConnection(new Uri("http://user:password@nas.invalid/proxy/?api_key=old#ignored"),
-                    "synthetic&secret", "u", "u", "synthetic", device) { ServerKind = kind };
+                    "synthetic&secret", "u", "u", "synthetic", device)
+                { ServerKind = kind };
                 var handshake = EmbyRealtimeProtocol.Handshake(connection);
                 Assert.DoesNotContain("synthetic", handshake.Url.AbsoluteUri);
                 Assert.DoesNotContain("api_key", handshake.Url.AbsoluteUri);
