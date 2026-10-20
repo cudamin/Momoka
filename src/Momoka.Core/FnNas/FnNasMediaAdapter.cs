@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json.Nodes;
 using Momoka.Emby;
+using Momoka.Diagnostics;
 
 namespace Momoka.FnNas;
 
@@ -38,12 +39,17 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
             var token = await client.LoginAsync(apiBase, username, password, ct).ConfigureAwait(false);
             var native = new FnNasConnection(apiBase, token);
             var user = User(await client.GetUserAsync(native, ct).ConfigureAwait(false));
-            var configuration = await client.GetConfigurationAsync(apiBase, ct).ConfigureAwait(false);
-            return new EmbyConnection(apiBase, token, user.Id, user.Name, Text(configuration, "server_name"), device)
+            var configuration = await OptionalReadAsync(() => client.GetConfigurationAsync(apiBase, ct), "sys/config", ct)
+                .ConfigureAwait(false) ?? new JsonObject();
+            var observedId = Text(configuration, "server_guid");
+            if (!string.IsNullOrEmpty(serverId) && observedId.Length > 0 && observedId != serverId)
+                throw new FnNasApiException("飞牛影视服务器身份已改变，请重新确认连接地址");
+            var serverName = Text(configuration, "server_name");
+            return new EmbyConnection(apiBase, token, user.Id, user.Name, serverName.Length > 0 ? serverName : apiBase.Host, device)
             {
                 ServerKind = MediaServerKind.FnNas,
                 ServerVersion = version,
-                ServerId = Text(configuration, "server_guid") is { Length: > 0 } id ? id : serverId,
+                ServerId = observedId.Length > 0 ? observedId : serverId,
                 IsAdministrator = user.Policy?.IsAdministrator == true
             };
         }
@@ -51,6 +57,22 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
         {
             if (error.IsAuthenticationFailure) throw new EmbyAuthenticationException("飞牛影视拒绝了登录，请核对用户名、密码与访问权限");
             throw Translate(error);
+        }
+    }
+
+    /// <summary>只让非关键补充信息缺失；调用方取消、身份过期、签名和无法解析的响应仍向上交给会话／页面。</summary>
+    private static async Task<T?> OptionalReadAsync<T>(Func<Task<T>> read, string endpoint, CancellationToken ct) where T : class
+    {
+        try
+        {
+            var value = await read().ConfigureAwait(false);
+            ct.ThrowIfCancellationRequested();
+            return value;
+        }
+        catch (FnNasApiException error) when (!ct.IsCancellationRequested && error.CanSkipOptionalRead)
+        {
+            Log.Warn("fnnas", $"{endpoint} 补充信息暂不可用，保留已取得的内容", error);
+            return null;
         }
     }
 
@@ -142,12 +164,15 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
         var item = Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
         if (item.IsPlayable)
         {
-            var streams = await client.GetStreamsAsync(connection, id, ct).ConfigureAwait(false);
-            item.MediaSources = Sources(streams, item.Id, client, connection);
-            var progress = await client.GetPlayInfoAsync(connection, id, ct).ConfigureAwait(false);
+            var streams = await OptionalReadAsync(() => client.GetStreamsAsync(connection, id, ct), "stream/list", ct).ConfigureAwait(false);
+            if (streams is not null) item.MediaSources = Sources(streams, item.Id, client, connection);
+            var progress = await OptionalReadAsync(() => client.GetPlayInfoAsync(connection, id, ct), "play/info", ct).ConfigureAwait(false);
             item.UserData ??= new();
-            if (Number(progress, "ts") is { } position) item.UserData.PlaybackPositionTicks = Ticks(position);
-            if (Number(progress, "duration") is > 0 and var duration) item.RunTimeTicks = Ticks(duration);
+            if (progress is not null)
+            {
+                if (Number(progress, "ts") is { } position) item.UserData.PlaybackPositionTicks = Ticks(position);
+                if (Number(progress, "duration") is > 0 and var duration) item.RunTimeTicks = Ticks(duration);
+            }
             foreach (var source in item.MediaSources) source.RunTimeTicks ??= item.RunTimeTicks;
         }
         return item;

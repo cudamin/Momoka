@@ -9,10 +9,11 @@ using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-internal static class FnNasMediaTests
+internal static partial class FnNasMediaTests
 {
     public static void Register()
     {
+        RegisterRecovery();
         Test("飞牛媒体：登录、媒体库命名和 token 失效后同身份恢复", () =>
         {
             using var fixture = new Fixture();
@@ -390,6 +391,7 @@ internal static class FnNasMediaTests
         public List<string> Authorizations { get; } = [];
         public int Logins { get; private set; }
         public bool Expire { get; set; }
+        public Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>?>? Override { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Assert.Equal("fnnas.invalid", request.RequestUri!.Host);
@@ -404,6 +406,7 @@ internal static class FnNasMediaTests
             }
             if (request.Headers.TryGetValues("Authorization", out var authorization))
                 Authorizations.Add(authorization.Single());
+            if (Override?.Invoke(request, cancellationToken) is { } pending) return await pending;
             if (path.EndsWith("/System/Info/Public", StringComparison.Ordinal)) return new(HttpStatusCode.NotFound);
             if (Expire && path.EndsWith("/mediadb/list", StringComparison.Ordinal))
             { Expire = false; return Reply("null", -2); }

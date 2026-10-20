@@ -11,43 +11,46 @@ namespace Momoka.Emby;
 /// 端点本身不在 <c>emby-openapi.json</c> 里（434 条路径里没有一条 socket 路径，<c>LibraryChanged</c> 在文档里
 /// 出现 0 次）—— 这一层照的是 Emby Theater 的实现（<c>apiclient.js</c> 的 <c>openWebSocket</c>）：
 /// <c>emby/socket</c> 换成 <c>embywebsocket</c>，<c>https</c> 换 <c>wss</c>、<c>http</c> 换 <c>ws</c>，
-/// 再把 <c>api_key</c> 和 <c>deviceId</c> 拼在查询串上。
+/// URL 只携带 <c>deviceId</c>；令牌在进程内通过产品自己的请求头传递。
 /// </para>
 /// </summary>
 public static class EmbyRealtimeProtocol
 {
-    /// <summary>
-    /// 一台服务器上的实时通道地址。<paramref name="apiBase"/> 是 HTTP 的基地址（<c>EmbyConnection.ApiBase</c>），
-    /// 这里只换协议、换路径、拼令牌，不做别的。
-    /// <para>
-    /// 令牌为空直接抛：没有令牌的握手服务器会接受，但一条消息都不推（真机实测过）—— 那样得到的是一条「活着但
-    /// 永远沉默」的连接，比连不上更难查。宁可在这里就断掉。
-    /// </para>
-    /// </summary>
-    public static Uri Build(Uri apiBase, string accessToken, string deviceId,
-        MediaServerKind kind = MediaServerKind.Emby)
+    public static bool Supports(MediaServerKind kind) => kind is MediaServerKind.Emby or MediaServerKind.Jellyfin;
+
+    /// <summary>实时 URL 只包含端点和设备号。凭据通过 <see cref="Handshake"/> 的请求头传递。</summary>
+    public static Uri Build(Uri apiBase, string deviceId, MediaServerKind kind = MediaServerKind.Emby)
     {
         ArgumentNullException.ThrowIfNull(apiBase);
-        ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
         ArgumentException.ThrowIfNullOrWhiteSpace(deviceId);
-
+        if (!Supports(kind)) throw new NotSupportedException("该服务器没有受支持的实时通道");
         var scheme = apiBase.Scheme switch
         {
             "https" => "wss",
             "http" => "ws",
-            _ => throw new ArgumentException($"实时通道只认 http/https，收到的是 {apiBase.Scheme}", nameof(apiBase))
+            _ => throw new ArgumentException("实时通道只支持 http/https", nameof(apiBase))
         };
-
-        // ApiBase 可能带反代前缀（/proxy/v 那一类），所以从它的 Path 接上去而不是从根接。
         var basePath = apiBase.AbsolutePath.TrimEnd('/');
-
-        // 两家网页端的实时端点不同：Emby 是 emby/socket 换成的 embywebsocket；Jellyfin Web 的
-        // apiclient 用 getUrl("socket")，也就是基址下的 /socket。Jellyfin 12 若停用查询串凭据，
-        // 这里需要另找握手方式 —— 当前核对的是 10.10.7。
+        // 本轮只修凭据与生命周期。Emby 现有端点别名仍需真实服务器取证，不借鉴权修复猜改路径。
         var endpoint = kind == MediaServerKind.Jellyfin ? "socket" : "embywebsocket";
-        var builder = new UriBuilder(apiBase) { Scheme = scheme, Path = $"{basePath}/{endpoint}", Query = string.Empty };
+        return new UriBuilder(apiBase)
+        {
+            Scheme = scheme,
+            Path = $"{basePath}/{endpoint}",
+            Query = "deviceId=" + Uri.EscapeDataString(deviceId),
+            Fragment = "",
+            UserName = "",
+            Password = ""
+        }.Uri;
+    }
 
-        return new Uri($"{builder.Uri.GetLeftPart(UriPartial.Path)}?api_key={Uri.EscapeDataString(accessToken)}&deviceId={Uri.EscapeDataString(deviceId)}");
+    /// <summary>复用各产品已支持的头部鉴权，不使用默认停用的 Jellyfin api_key 查询凭据。</summary>
+    internal static (Uri Url, List<KeyValuePair<string, string>> Headers) Handshake(EmbyConnection connection)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(connection.AccessToken);
+        if (connection.AccessToken.Any(char.IsControl)) throw new ArgumentException("实时通道凭据无效");
+        return (Build(connection.ApiBase, connection.Device.DeviceId, connection.ServerKind),
+            MediaServerHeaders.Create(connection.Device, connection.AccessToken, connection.ServerKind));
     }
 
     /// <summary>

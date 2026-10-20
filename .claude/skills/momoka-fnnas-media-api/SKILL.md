@@ -37,6 +37,14 @@ description: "Develop or review Momoka's 飞牛影视 / fnOS media backend: Core
 
 先核 HTTP，再核 `{code,msg,data}` 的 `code == 0`；HTTP 200 不证明业务成功。data 可能是对象、列表或标量。错误文案由客户端生成，不把可能回显凭据的 msg 原样记录或展示。令牌只走 Authorization；图片进程内下载，播放器头走现有安全传递路径；重定向核来源。访问码 Cookie 与 token 分开，`/c/{code}` 在设备根路径，不在 `/v/` 下。
 
+## Optional reads and transfer budgets
+
+Ordinary API requests retain a 30-second total deadline. Byte downloads and multipart uploads use a separate five-minute total deadline; caller cancellation, response-size bounds and same-origin redirects still apply. A 32-second fake response test exercises the old deadline boundary without contacting a server.
+
+Post-login configuration, detail stream/progress and translated genre/country labels are supplementary reads. Only named transport failures, server failures, missing resources or unsupported operations may be skipped. Authentication, permissions, signatures, caller cancellation, malformed responses and unknown errors still propagate. Token restore still requires anonymous server detection. Keep the detected server ID when optional configuration is unavailable, and reject a different returned ID. Admin checks share `FnNasMediaAdapter.Flag` with identity mapping.
+
+Password changes are committed by `EmbySession.ChangeFnNasPasswordAsync`: cancellation is accepted before dispatch, but leaving the page after dispatch cannot discard confirmed credentials. Source revocation, a replaced login generation, changed address or changed saved password rejects a late result. Do not revive a signed-out account or silently enable remember-password. Explicit-source native settings pages require source availability, not default-source equality.
+
 ## 原生设置目录（2026-10-16 曾退役，2026-10-19 接回）
 
 飞牛影视独占时，设置左栏照官方 0.9.8 设置抽屉分成两组：

@@ -129,7 +129,7 @@ public sealed partial class FnNasClient
     private async Task RequireAdminAsync(FnNasConnection c, CancellationToken ct)
     {
         var user = await GetUserAsync(c, ct).ConfigureAwait(false);
-        if (user["is_admin"] is not JsonValue admin || !admin.TryGetValue<int>(out var role) || role != 1)
+        if (!FnNasMediaAdapter.Flag(user, "is_admin"))
             throw FnNasApiException.Business(-5);
     }
 

@@ -43,7 +43,7 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
 
     private readonly EmbySessionScope _scope;
     private readonly Action<string> _onLibraryChanged;
-    private readonly CancellationTokenSource _life = new();
+    private readonly CancellationTokenSource _life;
     private readonly EmbyRealtimeBackoff _backoff = new();
     private Task? _loop;
 
@@ -51,13 +51,15 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
     {
         _scope = scope;
         _onLibraryChanged = onLibraryChanged;
+        _life = CancellationTokenSource.CreateLinkedTokenSource(scope.Lifetime);
     }
 
     /// <summary>开始跑这一条的连接循环。返回之后循环在后台自己转，<see cref="DisposeAsync"/> 收。</summary>
     internal void Start()
     {
         if (_loop is not null) return;
-        _loop = Task.Run(() => RunAsync(_life.Token));
+        var token = _life.Token;
+        _loop = Task.Run(() => RunAsync(token));
     }
 
     /// <summary>
@@ -81,7 +83,8 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
             }
             catch (Exception error)
             {
-                Log.Debug(Category, $"{_scope.DisplayName} 实时通道断开（{error.GetType().Name}: {error.Message}），将重连");
+                // Socket 异常可能携带握手信息；只记异常类型，不回显任何 URL 或鉴权头。
+                Log.Debug(Category, $"{_scope.DisplayName} 实时通道断开（{error.GetType().Name}），将重连");
             }
 
             if (token.IsCancellationRequested) return;
@@ -101,19 +104,16 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
     /// <summary>连一次、收到断开为止。正常返回表示「连上了然后又断了」，异常表示「这一趟没连上」。</summary>
     private async Task ListenOnceAsync(CancellationToken token)
     {
-        // 连接的身份是「此刻这个 scope 的令牌」：会话可能在中途重新登录，用旧令牌连上的是上一个身份。
-        if (!_scope.IsAvailable) throw new OperationCanceledException("来源已不可用");
-
-        var url = EmbyRealtimeProtocol.Build(_scope.Connection.ApiBase, _scope.Connection.AccessToken,
-            _scope.Connection.Device.DeviceId, _scope.Connection.ServerKind);
-
+        // 不能读捕获时的 Connection 快照：静默重登后该来源的 Client 已经持有新令牌。
+        var handshake = EmbyRealtimeProtocol.Handshake(_scope.CurrentConnection);
         using var socket = new ClientWebSocket();
         socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(30);
+        foreach (var header in handshake.Headers) socket.Options.SetRequestHeader(header.Key, header.Value);
 
         using (var connect = CancellationTokenSource.CreateLinkedTokenSource(token))
         {
             connect.CancelAfter(TimeSpan.FromSeconds(15));
-            await socket.ConnectAsync(url, connect.Token).ConfigureAwait(false);
+            await socket.ConnectAsync(handshake.Url, connect.Token).ConfigureAwait(false);
         }
 
         // 连上了：退避归零。下一次断线从头来（见 EmbyRealtimeBackoff.Reset）。
@@ -152,7 +152,7 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
         }
     }
 
-    public async ValueTask DisposeAsync()
+    internal void Cancel()
     {
         try
         {
@@ -162,7 +162,11 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
         {
             // 已经收过了。
         }
+    }
 
+    public async ValueTask DisposeAsync()
+    {
+        Cancel();
         if (_loop is not null)
         {
             try

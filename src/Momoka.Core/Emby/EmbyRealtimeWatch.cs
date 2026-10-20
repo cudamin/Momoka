@@ -29,11 +29,12 @@ internal sealed class EmbyRealtimeWatch : IAsyncDisposable
     /// </summary>
     internal void Attach(IReadOnlyList<EmbySessionScope> sources, Action<string> onLibraryChanged)
     {
+        Release();
         _released = false;
 
         foreach (var scope in sources)
         {
-            if (!scope.IsAvailable) continue;
+            if (!scope.IsAvailable || !EmbyRealtimeProtocol.Supports(scope.Connection.ServerKind)) continue;
 
             var connection = new EmbyRealtimeConnection(scope, onLibraryChanged);
             _connections.Add(connection);
@@ -52,6 +53,7 @@ internal sealed class EmbyRealtimeWatch : IAsyncDisposable
         var connections = _connections.ToArray();
         _connections.Clear();
         if (connections.Length == 0) return;
+        foreach (var connection in connections) connection.Cancel();
 
         Log.Info(Category, $"主页实时通道已关闭（{connections.Length} 个来源）");
 

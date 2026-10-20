@@ -5,7 +5,7 @@ using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-internal static class FnNasProtocolTests
+internal static partial class FnNasProtocolTests
 {
     private const string Secret = "fixture-secret-token";
     private static readonly Uri Base = new("https://fnnas.invalid/v/");
@@ -13,6 +13,7 @@ internal static class FnNasProtocolTests
 
     public static void Register()
     {
+        RegisterTransferBudgets();
         Test("飞牛地址：登录页、反向代理前缀和无协议地址归一", () =>
         {
             Assert.Equal("http://nas.invalid:5666/v/", FnNasEndpoint.Normalize("nas.invalid:5666").AbsoluteUri);

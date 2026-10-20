@@ -11,59 +11,81 @@ namespace Momoka.Tests;
 /// </para>
 /// <para>
 /// 端点契约照的是 Emby Theater 的 <c>apiclient.js</c>：<c>emby/socket</c> 换成 <c>embywebsocket</c>、
-/// <c>http(s)</c> 换 <c>ws(s)</c>、令牌和设备号拼在查询串上。这套东西不在 <c>emby-openapi.json</c> 里
+/// <c>http(s)</c> 换 <c>ws(s)</c>。设备号进查询串、令牌只进产品请求头。这套东西不在 <c>emby-openapi.json</c> 里
 /// （434 条路径没有一条 socket 路径），所以它是从实现里读出来的，不是从文档里猜的。
 /// </para>
 /// </summary>
-internal static class EmbyRealtimeTests
+internal static partial class EmbyRealtimeTests
 {
     public static void Register()
     {
-        Test("实时通道：http 换 ws、路径接在反代前缀后面、令牌和设备号进查询串", () =>
+        RegisterTransport();
+        Test("实时通道：http 换 ws、路径接在反代前缀后面、只有设备号进查询串", () =>
         {
-            var url = EmbyRealtimeProtocol.Build(new Uri("http://192.168.31.230:8896"), "TOKEN123", "DEV42");
+            var url = EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid:8896"), "DEV42");
 
             Assert.Equal("ws", url.Scheme);
             Assert.Equal(8896, url.Port);
             Assert.Equal("/embywebsocket", url.AbsolutePath);
-            Assert.Contains("api_key=TOKEN123", url.Query);
+            Assert.DoesNotContain("api_key", url.Query);
             Assert.Contains("deviceId=DEV42", url.Query);
         });
         Test("实时通道：https 换 wss，反代前缀原样带着", () =>
         {
-            var url = EmbyRealtimeProtocol.Build(new Uri("https://nas.invalid/proxy/v"), "t", "d");
+            var url = EmbyRealtimeProtocol.Build(new Uri("https://nas.invalid/proxy/v"), "d");
 
             Assert.Equal("wss", url.Scheme);
             Assert.Equal("/proxy/v/embywebsocket", url.AbsolutePath);
         });
         Test("实时通道：Jellyfin 走网页端自己的 /socket，不套 Emby 的 embywebsocket", () =>
         {
-            var url = EmbyRealtimeProtocol.Build(new Uri("http://192.168.31.230:8096/"), "TOKEN123", "DEV42",
+            var url = EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid:8096/"), "DEV42",
                 MediaServerKind.Jellyfin);
             Assert.Equal("ws", url.Scheme);
             Assert.Equal("/socket", url.AbsolutePath);
-            Assert.Contains("api_key=TOKEN123", url.Query);
+            Assert.DoesNotContain("api_key", url.Query);
             Assert.Contains("deviceId=DEV42", url.Query);
         });
         Test("实时通道：基地址带尾斜杠不会拼出双斜杠", () =>
         {
-            var url = EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid:8096/"), "t", "d");
+            var url = EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid:8096/"), "d");
             Assert.Equal("/embywebsocket", url.AbsolutePath);
         });
-        Test("实时通道：令牌进查询串时被转义，不会切断查询串", () =>
+        Test("实时通道：各产品令牌只在请求头，设备号转义且 URL 清除用户信息", () =>
         {
-            var url = EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid"), "a&b=c", "d/e");
-            Assert.Contains("api_key=a%26b%3Dc", url.Query);
-            Assert.Contains("deviceId=d%2Fe", url.Query);
+            var device = DeviceIdentity.Create("d/e", "1");
+            foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+            {
+                var connection = new EmbyConnection(new Uri("http://user:password@nas.invalid/proxy/?api_key=old#ignored"),
+                    "synthetic&secret", "u", "u", "synthetic", device) { ServerKind = kind };
+                var handshake = EmbyRealtimeProtocol.Handshake(connection);
+                Assert.DoesNotContain("synthetic", handshake.Url.AbsoluteUri);
+                Assert.DoesNotContain("api_key", handshake.Url.AbsoluteUri);
+                Assert.Equal("", handshake.Url.UserInfo);
+                Assert.Equal("", handshake.Url.Fragment);
+                Assert.Contains("deviceId=d%2Fe", handshake.Url.Query);
+                var headers = handshake.Headers.ToDictionary(header => header.Key, header => header.Value);
+                if (kind == MediaServerKind.Jellyfin)
+                {
+                    Assert.True(headers["Authorization"].StartsWith("MediaBrowser ", StringComparison.Ordinal));
+                    Assert.Contains("Token=\"synthetic%26secret\"", headers["Authorization"]);
+                    Assert.False(headers.ContainsKey("X-Emby-Token"));
+                }
+                else Assert.Equal("synthetic&secret", headers["X-Emby-Token"]);
+            }
         });
-        Test("实时通道：没有令牌或设备号直接拒绝，不连一条「活着但永远沉默」的连接", () =>
+        Test("实时通道：不支持飞牛和 Plex，空令牌、控制字符及非 HTTP 地址拒绝", () =>
         {
-            Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid"), "", "d"));
-            Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid"), "t", "  "));
-        });
-        Test("实时通道：不是 http/https 的基地址拒绝", () =>
-        {
-            Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Build(new Uri("ftp://nas.invalid"), "t", "d"));
+            var connection = new EmbyConnection(new Uri("http://nas.invalid"), "", "u", "u", "synthetic", DeviceIdentity.Create("d", "1"));
+            Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Handshake(connection));
+            Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Handshake(connection with { AccessToken = "bad\r\nheader" }));
+            Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid"), " "));
+            Assert.Throws<ArgumentException>(() => EmbyRealtimeProtocol.Build(new Uri("ftp://nas.invalid"), "d"));
+            foreach (var kind in new[] { MediaServerKind.FnNas, MediaServerKind.Plex })
+            {
+                Assert.False(EmbyRealtimeProtocol.Supports(kind));
+                Assert.Throws<NotSupportedException>(() => EmbyRealtimeProtocol.Build(new Uri("http://nas.invalid"), "d", kind));
+            }
         });
 
         Test("实时通道：只认 LibraryChanged 一种消息", () =>

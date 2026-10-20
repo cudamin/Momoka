@@ -89,6 +89,12 @@ Videos/{itemId}/stream{ext}?Static=true&MediaSourceId=…
 - 活服务器核对走只读；写操作按 CLAUDE.md 的授权档位来。
 - 报告实测、未覆盖与失败项；不把历史失败当成通过，不用改基线消除未经解决的红项。
 
+## Realtime credential boundary
+
+`EmbyRealtimeProtocol.Handshake` builds a credential-free URL and reuses the product's request headers. Emby uses `X-Emby-Token` plus device identity; Jellyfin uses `Authorization: MediaBrowser`. `EmbyRealtimeConnection` reads the scope's current connection under the session lock on every reconnect and links the source lifetime. FnNas and Plex are excluded. Release cancels synchronously before background disposal.
+
+Loopback WebSocket 101 tests verify header placement, reconnect after token replacement, source-key delivery and cancellation during receive/backoff. They do not establish real Emby support for a socket alias or header handshake. The existing Emby endpoint spelling was intentionally not changed without server evidence. A broken fast path still has the existing read-only polling fallback; never restore query-string tokens to make a handshake pass.
+
 ## 交付
 
 改到协议层时同步本技能与 [docs/开发与验证.md](../../../docs/开发与验证.md) 的相关命令。`references/endpoints.md` 声明了对照的服务器版本与快照日期，**换基准时一起更新**。

@@ -10,6 +10,8 @@ namespace Momoka.FnNas;
 public sealed class FnNasHttp : IDisposable
 {
     private readonly HttpClient _http;
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan TransferTimeout = TimeSpan.FromMinutes(5);
     public static JsonSerializerOptions Json { get; } = new()
     {
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -42,19 +44,20 @@ public sealed class FnNasHttp : IDisposable
             file.Headers.ContentType = new MediaTypeHeaderValue("application/octet-stream");
             form.Add(file, "file", filename);
             return form;
-        }, sign: false);
+        }, sign: false, timeout: TransferTimeout);
 
     public Task<byte[]> GetBytesAsync(Uri uri, string? accessToken, CancellationToken cancellationToken = default) =>
         SendAndReadAsync(HttpMethod.Get, uri, null, accessToken,
-            (response, token) => ReadLimitedAsync(response.Content, 64 * 1024 * 1024, token), cancellationToken);
+            (response, token) => ReadLimitedAsync(response.Content, 64 * 1024 * 1024, token), cancellationToken,
+            timeout: TransferTimeout);
 
     private async Task<T> SendAndReadAsync<T>(HttpMethod method, Uri uri, JsonNode? body, string? accessToken,
         Func<HttpResponseMessage, CancellationToken, Task<T>> read, CancellationToken cancellationToken,
-        Func<HttpContent>? createContent = null, bool sign = true)
+        Func<HttpContent>? createContent = null, bool sign = true, TimeSpan? timeout = null)
     {
         FnNasEndpoint.Validate(uri);
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        deadline.CancelAfter(TimeSpan.FromSeconds(30));
+        deadline.CancelAfter(timeout ?? RequestTimeout);
         var payload = body?.ToJsonString(Json);
         var origin = uri;
         try
@@ -94,11 +97,11 @@ public sealed class FnNasHttp : IDisposable
             }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        { throw new FnNasApiException("连接飞牛影视服务器超时"); }
+        { throw new FnNasApiException("连接飞牛影视服务器超时", isTransportFailure: true); }
         catch (HttpRequestException)
-        { throw new FnNasApiException("无法连接飞牛影视服务器，请检查地址和网络"); }
+        { throw new FnNasApiException("无法连接飞牛影视服务器，请检查地址和网络", isTransportFailure: true); }
         catch (IOException)
-        { throw new FnNasApiException("读取飞牛影视响应失败"); }
+        { throw new FnNasApiException("读取飞牛影视响应失败", isTransportFailure: true); }
     }
 
     private static async Task<JsonNode?> ReadEnvelopeAsync(HttpResponseMessage response, CancellationToken cancellationToken)

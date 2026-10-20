@@ -85,12 +85,8 @@ public sealed partial class FnNasMediaAdapter
         var tags = await client.GetFilterTagsAsync(connection, parentId, favorites, ct).ConfigureAwait(false);
 
         // 题材与国家/地区只是把原始值换成中文；映射表拿不到不该让整个筛选面板打不开。
-        IReadOnlyList<JsonObject> genres = [];
-        IReadOnlyList<JsonObject> countries = [];
-        try { genres = await client.GetGenreTagsAsync(connection, language, ct).ConfigureAwait(false); }
-        catch (FnNasApiException) { }
-        try { countries = await client.GetCountryTagsAsync(connection, language, ct).ConfigureAwait(false); }
-        catch (FnNasApiException) { }
+        var genres = await OptionalReadAsync(() => client.GetGenreTagsAsync(connection, language, ct), "tag/genres", ct).ConfigureAwait(false);
+        var countries = await OptionalReadAsync(() => client.GetCountryTagsAsync(connection, language, ct), "tag/iso3166", ct).ConfigureAwait(false);
         return FilterOptions(tags, genres, countries);
     }
 

@@ -433,6 +433,15 @@ public sealed class EmbySession : IDisposable
     public Task ExecuteAsync(Func<EmbyClient, CancellationToken, Task> operation, CancellationToken cancellationToken) =>
         ExecuteAsync(async (client, token) => { await operation(client, token).ConfigureAwait(false); return true; }, cancellationToken);
 
+    internal EmbyConnection CurrentConnection(EmbySessionScope scope)
+    {
+        lock (_lifecycleGate)
+        {
+            if (!IsAvailable(scope)) throw new OperationCanceledException("实时通道所属来源已退出");
+            return scope.Client.Connection;
+        }
+    }
+
     internal bool IsCurrent(EmbySessionScope scope) { lock (_lifecycleGate) return IsAvailable(scope) && ReferenceEquals(_current?.IdentityState, scope.IdentityState); }
     internal bool IsAvailable(EmbySessionScope scope)
     {
