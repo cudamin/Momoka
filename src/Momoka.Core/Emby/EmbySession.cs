@@ -335,17 +335,17 @@ public sealed class EmbySession : IDisposable
             ServerVersion = server.ServerVersion,
             ServerId = server.ServerId
         };
+        // 在发送令牌前纠正旧配置认错的产品；成功探测的原始入口才决定反代路径。
+        try { connection = await ResolveRestoreConnectionAsync(server.Url, connection, cancellationToken).ConfigureAwait(false); }
+        catch (EmbyApiException error)
+        {
+            Log.Warn(Category, "无法确认保存的媒体服务器身份", error);
+            return false;
+        }
         if (token.Length > 0)
         {
             try
             {
-                if (connection.IsProbedProduct)
-                {
-                    var detected = await Gateway.DetectAsync(server.Url, cancellationToken).ConfigureAwait(false);
-                    if (detected.ServerKind != connection.ServerKind || detected.ApiBase != apiBase) return false;
-                    if (connection.ServerId is { Length: > 0 } knownId && detected.Id is { Length: > 0 } id && knownId != id) return false;
-                    connection = connection with { ServerVersion = detected.Version, ServerId = detected.Id ?? connection.ServerId };
-                }
                 var candidate = new EmbyClient(_http, connection);
                 if (connection.IsProbedProduct)
                 {
@@ -355,7 +355,6 @@ public sealed class EmbySession : IDisposable
                     candidate = new EmbyClient(_http, connection);
                 }
                 var views = await InvokeAsync(candidate, static (client, ct) => client.GetViewsAsync(ct), cancellationToken).ConfigureAwait(false);
-                connection = await NameServerAsync(apiBase, connection, cancellationToken).ConfigureAwait(false);
                 lock (_lifecycleGate)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -393,7 +392,7 @@ public sealed class EmbySession : IDisposable
         }
         try
         {
-            connection = await Gateway.AuthenticateAsync(apiBase, username, password, cancellationToken,
+            connection = await Gateway.AuthenticateAsync(connection.ApiBase, username, password, cancellationToken,
                 connection.ServerKind, connection.ServerVersion, connection.ServerId).ConfigureAwait(false);
             lock (_lifecycleGate)
             {
@@ -552,31 +551,40 @@ public sealed class EmbySession : IDisposable
         finally { state.Reauthentication.Release(); }
     }
 
-    private async Task<EmbyConnection> NameServerAsync(Uri apiBase, EmbyConnection connection, CancellationToken cancellationToken)
+    private async Task<EmbyConnection> ResolveRestoreConnectionAsync(string address, EmbyConnection connection,
+        CancellationToken cancellationToken)
     {
-        // 飞牛与 Plex 的名字在登录那一趟就已经拿到了，这里没有一条公开接口可以再问一遍。
-        if (connection.IsFnNas || connection.IsPlex) return connection;
+        PublicSystemInfo info;
         try
         {
-            var info = await Gateway.GetPublicSystemInfoAsync(apiBase, cancellationToken).ConfigureAwait(false);
-            var kind = info.ServerKind;
-            var correctedBase = EmbyServerAddress.Rebase(apiBase, connection.ServerKind, kind);
-            if (kind != connection.ServerKind)
-                Log.Info(Category, $"保存的服务器类型是 {connection.ServerKind}，服务器实为 {kind}，按新类型纠正地址");
-            return connection with
-            {
-                ApiBase = correctedBase,
-                ServerKind = kind,
-                ServerName = info.ServerName is { Length: > 0 } name ? name : connection.ServerName,
-                ServerVersion = info.Version ?? connection.ServerVersion,
-                ServerId = info.Id ?? connection.ServerId
-            };
+            info = connection.IsProbedProduct
+                ? await Gateway.DetectAsync(address, cancellationToken).ConfigureAwait(false)
+                : await Gateway.DetectEmbyFamilyAsync(address, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception error) when (error is not OperationCanceledException)
+        catch (EmbyApiException error) when (!connection.IsProbedProduct)
         {
-            Log.Warn(Category, "无法读取服务器名称，先用本地记住的名字", error);
+            // 正确的 Emby 仍允许公开信息暂不可用；其他产品恢复令牌必须确认服务器身份。
+            Log.Warn(Category, "无法读取 Emby 公开信息，先用本地记住的连接", error);
             return connection;
         }
+
+        var changedProduct = info.ServerKind != connection.ServerKind;
+        if (info.ApiBase is null || !EmbyHttpRedirect.SameOrigin(connection.ApiBase, info.ApiBase)
+            || connection.IsProbedProduct && (changedProduct || info.ApiBase != connection.ApiBase)
+            || !connection.IsProbedProduct && info.ServerKind is not (MediaServerKind.Emby or MediaServerKind.Jellyfin)
+            || connection.ServerId is { Length: > 0 } knownId
+                && (info.Id is { Length: > 0 } id ? knownId != id : changedProduct))
+            throw new EmbyApiException("保存的媒体服务器身份已改变，请重新确认连接地址");
+        if (changedProduct)
+            Log.Info(Category, $"保存的服务器类型是 {connection.ServerKind}，服务器实为 {info.ServerKind}，按确认入口纠正");
+        return connection with
+        {
+            ApiBase = EmbyServerAddress.Rebase(connection.ApiBase, connection.ServerKind, info.ServerKind, info.ApiBase),
+            ServerKind = info.ServerKind,
+            ServerName = info.ServerName is { Length: > 0 } name ? name : connection.ServerName,
+            ServerVersion = info.Version ?? connection.ServerVersion,
+            ServerId = info.Id ?? connection.ServerId
+        };
     }
 
     private void SaveCredentials(AccountProfile account, EmbyConnection connection, string password, bool remember)

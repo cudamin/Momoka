@@ -97,6 +97,10 @@ The snapshot behind this skill is `work/jellyfin/openapi.json`, byte-identical (
 - Anything touching `EmbyHttp` headers, redirect handling, error classification or `EmbyUrl` has unit coverage; run the test project rather than only UI checks. Jellyfin transport, versioned routes and administration guards have offline tests; report real-server coverage separately.
 - A live check against a Jellyfin server is a new authorization question, not a continuation of the Emby one. CLAUDE.md's three playback tiers and credential rules apply as written: a Jellyfin server is not the user's Emby library, and read-only is still the default.
 
+## Restoring a legacy product label
+
+A profile saved as Emby may really belong to Jellyfin. `EmbySession.ResolveRestoreConnectionAsync` probes the original profile address anonymously within the Emby/Jellyfin family, then validates the saved server ID and current user before adopting the corrected product, version, permissions and confirmed API base. Preserve real proxy paths ending in `/emby/`; `Rebase` must not infer which suffix was client-added. Without a confirmed alternative base, keep the address where authentication actually succeeded. Mismatched identity, 403 and 5xx do not clear credentials or trigger password fallback. Only 401 from the confirmed endpoint may use a saved password.
+
 ## Realtime
 
 The socket handshake follows the same standard `Authorization: MediaBrowser` credential format as REST; no token is placed in the URL. Each reconnect reads the original source's latest connection and is cancelled when that source exits. Loopback 101 tests cover actual client header transmission and reconnect/cancellation, not a live Jellyfin server or complete server compatibility. Do not fall back to `api_key` for Jellyfin 12 when legacy authentication is disabled.

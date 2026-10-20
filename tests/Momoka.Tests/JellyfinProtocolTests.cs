@@ -10,7 +10,7 @@ using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-internal static class JellyfinProtocolTests
+internal static partial class JellyfinProtocolTests
 {
     private static readonly DeviceIdentity Device = DeviceIdentity.Create("jellyfin-fixture", "1");
     private static readonly Uri ApiBase = new("https://jellyfin.invalid/media/");
@@ -18,6 +18,7 @@ internal static class JellyfinProtocolTests
 
     public static void Register()
     {
+        RegisterRestoreCorrections();
         Test("Jellyfin：反向代理基址和显示地址往返保留路径", () =>
         {
             var address = EmbyServerAddress.Normalize("https://jellyfin.invalid/media/?x=1#view", MediaServerKind.Jellyfin);
@@ -57,7 +58,7 @@ internal static class JellyfinProtocolTests
             Assert.Equal("fixture-password", json.RootElement.GetProperty("Pw").GetString());
             Assert.True(handler.Sent.All(sent => !sent.Url.Contains("fixture-token", StringComparison.Ordinal)));
         });
-        Case("Jellyfin：按 Emby 假定登录后发现是 Jellyfin，类型与基址一起纠正", async () =>
+        Case("Jellyfin：直接登录后纠正产品但保留成功入口，只有确认地址才换基址", async () =>
         {
             using var handler = new Transport();
             handler.Reply = sent => sent.Path.EndsWith("AuthenticateByName", StringComparison.Ordinal)
@@ -69,9 +70,10 @@ internal static class JellyfinProtocolTests
             var connection = await gateway.AuthenticateAsync(assumed, "user", "fixture-password", default,
                 MediaServerKind.Emby);
             Assert.Equal(MediaServerKind.Jellyfin, connection.ServerKind);
-            Assert.Equal(ApiBase, connection.ApiBase);
+            Assert.Equal(assumed, connection.ApiBase, "直接登录时保留已成功请求的完整路径");
             Assert.True(connection.IsJellyfin && connection.IsAdministrator == true);
-            Assert.Equal(ApiBase, EmbyServerAddress.Rebase(assumed, MediaServerKind.Emby, MediaServerKind.Jellyfin));
+            Assert.Equal(assumed, EmbyServerAddress.Rebase(assumed, MediaServerKind.Emby, MediaServerKind.Jellyfin));
+            Assert.Equal(ApiBase, EmbyServerAddress.Rebase(assumed, MediaServerKind.Emby, MediaServerKind.Jellyfin, ApiBase));
             Assert.Equal(assumed,
                 EmbyServerAddress.Rebase(ApiBase, MediaServerKind.Jellyfin, MediaServerKind.Emby),
                 "反过来也要把 /emby/ 补回来");
@@ -81,7 +83,8 @@ internal static class JellyfinProtocolTests
             using var handler = new Transport
             {
                 Reply = sent => Json(sent.Path.EndsWith("Info/Public", StringComparison.Ordinal)
-                    ? Public : "{\"Items\":[]}")
+                    ? Public : sent.Path.EndsWith("Users/Me", StringComparison.Ordinal)
+                        ? "{\"Id\":\"u1\",\"Name\":\"user\",\"Policy\":{\"IsAdministrator\":true}}" : "{\"Items\":[]}")
             };
             var settings = new AppSettings();
             var profile = new ServerProfile
@@ -110,6 +113,7 @@ internal static class JellyfinProtocolTests
                 Assert.Equal(ApiBase, session.Connection.ApiBase);
                 Assert.Equal("https://jellyfin.invalid/media", profile.Url);
                 Assert.Equal(ServerInterfaceFlavor.Jellyfin, new ServerCapabilities(session).InterfaceFlavor);
+                Assert.Equal(true, session.Connection.IsAdministrator);
             }
             finally { if (Directory.Exists(directory)) Directory.Delete(directory, true); }
         });

@@ -89,6 +89,10 @@ Videos/{itemId}/stream{ext}?Static=true&MediaSourceId=…
 - 活服务器核对走只读；写操作按 CLAUDE.md 的授权档位来。
 - 报告实测、未覆盖与失败项；不把历史失败当成通过，不用改基线消除未经解决的红项。
 
+## Legacy product correction
+
+Saved-token restore can correct an old Emby label to Jellyfin after anonymous family-only probing of the original address and identity validation. Use the confirmed same-origin base, never strip a real proxy `/emby/` suffix by inference. A normal Emby profile retains its existing public-information failure fallback without probing unrelated products. Token/user/server mismatches and password fallback are covered by offline tests; this is not real-server verification.
+
 ## Realtime credential boundary
 
 `EmbyRealtimeProtocol.Handshake` builds a credential-free URL and reuses the product's request headers. Emby uses `X-Emby-Token` plus device identity; Jellyfin uses `Authorization: MediaBrowser`. `EmbyRealtimeConnection` reads the scope's current connection under the session lock on every reconnect and links the source lifetime. FnNas and Plex are excluded. Release cancels synchronously before background disposal.

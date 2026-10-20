@@ -71,15 +71,18 @@ public static class EmbyServerAddress
     }
 
     /// <summary>
-    /// Carry a working address over to the product the server actually turned out to be. A profile saved
-    /// while the client assumed Emby may have been normalized with the <c>/emby/</c> API prefix; once the
-    /// public information says Jellyfin, the same server lives at the root (or the proxy sub-path), so the
-    /// prefix has to come off before the web console can be found. The reverse case puts it back.
+    /// 换产品时采用匿名探测成功的同源入口；没有入口证据时保留已成功请求的路径，
+    /// 不把真实反代路径末尾的 /emby/ 猜成客户端追加的前缀后剥掉。
     /// </summary>
-    public static Uri Rebase(Uri apiBase, MediaServerKind current, MediaServerKind detected)
+    public static Uri Rebase(Uri apiBase, MediaServerKind current, MediaServerKind detected, Uri? confirmedBase = null)
     {
-        if (current == detected) return apiBase;
-        var display = ToDisplayString(apiBase, current);
-        return TryNormalize(display, out var address, out _, detected) ? address : apiBase;
+        if (confirmedBase is not null)
+        {
+            EmbyHttpRedirect.Validate(confirmedBase);
+            if (!EmbyHttpRedirect.SameOrigin(apiBase, confirmedBase))
+                throw new ArgumentException("确认的服务器入口必须与原地址同源", nameof(confirmedBase));
+            return Normalize(confirmedBase.GetLeftPart(UriPartial.Path), detected);
+        }
+        return current == detected ? apiBase : Normalize(apiBase.GetLeftPart(UriPartial.Path), detected);
     }
 }

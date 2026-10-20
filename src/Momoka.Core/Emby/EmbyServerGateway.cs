@@ -19,7 +19,13 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         http.GetJsonAsync<PublicSystemInfo>(EmbyUrl.Combine(apiBase, "System/Info/Public"), Anonymous, cancellationToken);
 
     /// <summary>Identify the product anonymously before sending a password or a saved token.</summary>
-    public async Task<PublicSystemInfo> DetectAsync(string address, CancellationToken cancellationToken)
+    public Task<PublicSystemInfo> DetectAsync(string address, CancellationToken cancellationToken) =>
+        DetectAsync(address, cancellationToken, embyFamilyOnly: false);
+
+    internal Task<PublicSystemInfo> DetectEmbyFamilyAsync(string address, CancellationToken cancellationToken) =>
+        DetectAsync(address, cancellationToken, embyFamilyOnly: true);
+
+    private async Task<PublicSystemInfo> DetectAsync(string address, CancellationToken cancellationToken, bool embyFamilyOnly)
     {
         var plain = EmbyServerAddress.Normalize(address, MediaServerKind.Jellyfin);
         var emby = EmbyServerAddress.Normalize(address);
@@ -42,6 +48,7 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
                 failure = error;
             }
         }
+        if (embyFamilyOnly) throw failure ?? new EmbyApiException("无法确认 Emby 或 Jellyfin 服务器信息");
         try
         {
             return await Momoka.FnNas.FnNasMediaAdapter.DetectAsync(http.FnNasClient, address, cancellationToken).ConfigureAwait(false);
@@ -119,9 +126,8 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
             serverVersion = info.Version ?? serverVersion;
             serverId = info.Id ?? serverId;
 
-            // 保存的服务器类型可能来自旧配置或添加时的默认值；登录本身能成功（Jellyfin 10 仍收
-            // Emby 式的登录请求），但产品认错会让设置栏和管理入口整组走错界面。以公开系统信息为准，
-            // 连同 API 基址一起纠正，下一次恢复配置就是对的。
+            // 公开信息纠正产品；直接登录没有原始入口探测证据时，保留刚刚认证成功的完整路径。
+            // 保存令牌恢复由 EmbySession 根据原始入口匿名探测、确认服务器和用户后再采用地址。
             if (info.ServerKind != kind)
             {
                 Log.Info(Category, $"服务器产品识别为 {info.ServerKind}，纠正登录时假定的 {kind}");
@@ -132,7 +138,7 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         }
         catch (EmbyApiException error)
         {
-            // Cosmetic only: a nameless server should not fail an otherwise good login.
+            // 此处读取失败只回退名称；读取成功会更新产品与版本，不能把整个读取当成纯装饰。
             Log.Warn(Category, "登录成功但无法读取服务器名称", error);
             serverName = apiBase.Host;
         }
