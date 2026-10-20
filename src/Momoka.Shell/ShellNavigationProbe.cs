@@ -136,7 +136,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30, section: ShellProbeSections.Settings);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
             await CaseAsync("多服务器设置按服务器分组、默认收起与权限隐藏", MultiServerSettingsGroupsAsync, 45);
-            await CaseAsync("服务器页只报界面与在线账号，不再有连接模式", ServersPageSummaryAsync, 45);
+            await CaseAsync("服务器页聚合模式开关、在线账号与凭据保留", ServersPageSummaryAsync, 45);
             await CaseAsync("Jellyfin 控制台只走外层路由并落到 Jellyfin Web 地址", JellyfinConsoleNavigationAsync, 45);
             await CaseAsync("Jellyfin 通用对话框能力显隐", JellyfinDialogCapabilitiesAsync, 30);
             await CaseAsync("MoviePilot 订阅分区、封面与管理操作", MoviePilotSubscriptionsAsync);
@@ -309,6 +309,9 @@ internal sealed partial class ShellNavigationProbe
         public Fixture(string root, HttpMessageHandler? moviePilotTransport = null, HttpMessageHandler? aniBtTransport = null)
         {
             Settings.Servers.Clear();
+            // 探针绝大多数场景要两台服务器同时在线；聚合模式在设置里默认关着，所以这里显式打开。
+            // 非聚合模式的收口由单测与「服务器页」那一条探针单独核对。
+            Settings.AggregateMode = true;
             Settings.Ui.PageSize = 20;
             Settings.Ui.ShowHomeBanner = false;
             var paths = new AppPaths(root);

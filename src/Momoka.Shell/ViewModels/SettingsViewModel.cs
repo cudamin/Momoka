@@ -10,6 +10,7 @@ using Momoka.MoviePilot;
 using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
+using Momoka.Shell.Media;
 using Momoka.Theming;
 using Momoka.Updates;
 using Microsoft.UI.Xaml;
@@ -135,6 +136,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingChoiceRow? _audioDevice;
     private SettingSubtitlePreviewRow? _subtitlePreview;
     private Func<Task>? _pushSubtitleStyle;
+
+    /// <summary>「关于」卡上图片缓存两行的数据来源；没有接上（测试路径）时那两行只是不更新。</summary>
+    private EmbyImageStore? _images;
+
+    /// <summary>「关于」卡上那行图片缓存读数，握着一清空之后当场改它（同 <see cref="_updateRow"/> 的理由）。</summary>
+    private SettingFactRow? _imageCache;
 
     /// <summary>「把 截图保存目录 推给正在播的那部」，见 <see cref="Attach"/> 的 <c>pushScreenshotDirectory</c>。</summary>
     private Func<string, Task>? _pushScreenshotDirectory;
@@ -590,7 +597,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         MoviePilotService moviePilot,
         MoviePilotCredentials moviePilotCredentials,
         UpdateClient updates,
-        IServerCapabilities capabilities)
+        IServerCapabilities capabilities,
+        EmbyImageStore? images = null)
     {
         _settings = settings;
         _shaders = shaders;
@@ -606,6 +614,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _moviePilot = moviePilot;
         _moviePilotCredentials = moviePilotCredentials;
         _updates = updates;
+        _images = images;
     }
 
     /// <summary>自检读的：管理员才看得见的那几个入口这会儿是收着的吗（非管理员账号下是）。</summary>
@@ -998,6 +1007,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(ShortcutsCard());
         Sections.Add(MoviePilotCard());
         Sections.Add(AboutCard());
+        _ = MeasureImageCacheAsync();
 
         ShowCategory(SelectedCategory);
         IsReady = true;
@@ -1813,6 +1823,9 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     internal SettingNumberRow? ImageBudget { get; private set; }
 
+    /// <summary>自检读的：「关于」卡上图片缓存那一行此刻的文字。</summary>
+    internal string ImageCacheSummary => _imageCache?.Value ?? "未读取";
+
     /// <summary>
     /// 自检：把这一行拨动一格，看图片仓库的预算跟不跟得上，再拨回去。
     /// <para>
@@ -1873,19 +1886,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         var ui = Settings.Ui;
         Themes = ThemeSwatches(ui);
 
-        // Held as well as placed, the same way the two shader thresholds are: the self-check drives this row to
-        // prove that a changed budget really reaches the image store, and the row is the only end of that rope
-        // it can reach from here.
-        ImageBudget = Number("图片缓存上限（MB）",
-            Emby.ImageCachePolicy.MinMegabytes,
-            Emby.ImageCachePolicy.MaxMegabytes,
-            () => ui.ImageCacheMegabytes,
-            value => ui.ImageCacheMegabytes = value,
-            $"海报和剧照在磁盘上最多占多少，装机是 {Emby.ImageCachePolicy.DefaultMegabytes} MB。这一行是填进去的，"
-                + "不是用箭头拨的；填小了当场就会把最久没看过的那些删到新上限以下。缓存删掉不影响任何设置，"
-                + "只是下次看到那些封面时要重新下载一遍。",
-            after: () => ShellPrefs.Apply(ui));
-
         var rows = new List<SettingRow>
         {
             Themes,
@@ -1926,9 +1926,6 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 「海报宽度（像素）」原来在这一行下面，2026-09-05 按用户的话整行删掉了（「删掉设置中的海报宽度」）
             // —— 卡片回到 CardSize 固定的默认尺寸，AppSettings.UiSettings 里那句注释记着这件事。
 
-            // 「新增可在设置中调整图片缓存大小的功能」. Built above so the self-check can drive it; see ImageBudget.
-            ImageBudget,
-
             // 「评分来源」原来在这一行下面，2026-10-16 按用户的话整行删掉了（「删掉评分来源这个设置选项，服务端给
             // 什么评分就用什么」）—— 详情页那个分从此直接画服务器给的那个数（Emby.ItemScore），不再有下拉可选。
 
@@ -1953,7 +1950,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         ]);
 
         return new SettingSection("界面", "界面",
-            "配色主题、UI 动画、侧边栏模式、开机自启、隐藏功能下方说明、媒体库分页和图片缓存上限。",
+            "配色主题、UI 动画、侧边栏模式、开机自启、隐藏功能下方说明和媒体库分页。",
             rows);
     }
 
@@ -2342,6 +2339,24 @@ public sealed partial class SettingsViewModel : PageViewModel
             rows.Add(_screenshotFact);
         }
 
+        // 图片缓存 2026-10-20 从「服务器」页与「界面」卡搬进关于：它是这台机器上的痕迹，不是某台服务器的属性。
+        // 读数握在行上，清空之后当场重数；上限行同样握着，自检靠它验证设置文档与图片仓库之间那根绳子。
+        _imageCache = Fact("图片缓存",
+            "海报和剧照已经下载到本机的部分；清除后下次浏览会重新下载，不影响服务器、账号和任何设置",
+            "正在统计…", "清除", () => _ = ClearImageCacheAsync());
+        rows.Add(_imageCache);
+
+        ImageBudget = Number("图片缓存上限（MB）",
+            Emby.ImageCachePolicy.MinMegabytes,
+            Emby.ImageCachePolicy.MaxMegabytes,
+            () => Settings.Ui.ImageCacheMegabytes,
+            value => Settings.Ui.ImageCacheMegabytes = value,
+            $"海报和剧照在磁盘上最多占多少，装机是 {Emby.ImageCachePolicy.DefaultMegabytes} MB。这一行是填进去的，"
+                + "不是用箭头拨的；填小了当场就会把最久没看过的那些删到新上限以下。缓存删掉不影响任何设置，"
+                + "只是下次看到那些封面时要重新下载一遍。",
+            after: () => ShellPrefs.Apply(Settings.Ui));
+        rows.Add(ImageBudget);
+
         // 「把恢复默认设置移动到关于中，在关于中新增配置文件备份和恢复配置的功能」（用户令 2026-09-24）。三行都是
         // 动作行：只有标签、说明和一颗按钮，没有值（Value 空 → SettingFactRow.ValueVisibility 收起那一行）。三件事
         // 都只碰「偏好设置」那一摊，判据在 Core 的 SettingsPreferences —— 服务器、账号、登录状态和窗口位置一个字
@@ -2360,7 +2375,60 @@ public sealed partial class SettingsViewModel : PageViewModel
             "恢复默认", () => _ = RestoreDefaultsAsync()));
 
         return new SettingSection("关于", "关于",
-            "版本、检查新版本、播放内核，这个程序在磁盘上的几个位置，以及配置的备份、恢复和恢复默认。", rows);
+            "版本、检查新版本、播放内核，这个程序在磁盘上的几个位置，图片缓存，以及配置的备份、恢复和恢复默认。", rows);
+    }
+
+    /// <summary>
+    /// 数一遍图片缓存，把读数写进「关于」卡的「图片缓存」行。非阻塞：缓存目录的大小要扫一遍磁盘，不值得
+    /// 挡住整页；扫完之前那一行写「正在统计…」。
+    /// </summary>
+    private async Task MeasureImageCacheAsync()
+    {
+        if (_images is not { } images || _imageCache is not { } row) return;
+
+        var usage = await images.MeasureAsync().ConfigureAwait(true);
+        if (!ReferenceEquals(row, _imageCache)) return;
+        row.Value = DescribeImageCache(usage, images.MaxBytes);
+    }
+
+    /// <summary>
+    /// 「关于」卡上那颗「清除」：删掉已下载的海报与缩略图。问一次 —— 删掉之后下次浏览要重新下载，网络慢的
+    /// 服务器上这件事看得见。已解码的那些也要清，否则屏幕上正在显示的封面会继续从内存里画出来，而提示说已经清了。
+    /// </summary>
+    private async Task ClearImageCacheAsync()
+    {
+        if (_images is not { } images || _imageCache is not { } row) return;
+
+        var confirmed = await ConfirmAsync(
+            "清除图片缓存",
+            $"将删除已下载的海报与缩略图（{row.Value}）。下次浏览会重新下载，不影响服务器、账号和任何设置。",
+            "清除").ConfigureAwait(true);
+        if (!confirmed) return;
+
+        row.Value = "正在清除…";
+        try
+        {
+            var removed = await images.ClearAsync().ConfigureAwait(true);
+            PosterCache.Clear();
+            Notify("已清除图片缓存", $"删除了 {removed:N0} 个文件。", InfoBarSeverity.Success);
+        }
+        catch (Exception error)
+        {
+            Report("清除图片缓存失败", error);
+        }
+        finally
+        {
+            await MeasureImageCacheAsync().ConfigureAwait(true);
+        }
+    }
+
+    /// <summary>「上限」跟着读数走：1.1 GB 是多是少，要旁边那个预算才说得清。</summary>
+    private static string DescribeImageCache(ImageCacheUsage usage, long max)
+    {
+        var limit = $"上限 {TimeFormat.FileSize(max)}";
+        return usage.Files == 0
+            ? $"暂无缓存 · {limit}"
+            : $"{TimeFormat.FileSize(usage.Bytes)} · {usage.Files:N0} 个文件 · {limit}";
     }
 
     /// <summary>

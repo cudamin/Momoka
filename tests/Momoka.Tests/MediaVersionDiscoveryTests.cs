@@ -62,6 +62,20 @@ internal static class MediaVersionDiscoveryTests
             Assert.False(MediaVersionDiscovery.Matches(item, other, parent, otherParent));
         });
 
+        Case("聚合模式关闭：另一台保存的服务器不会进入版本列表", async () =>
+        {
+            using var fixture = new Fixture(aggregateMode: false);
+            await fixture.AddAsync("b", "two.invalid");
+            var first = await fixture.AddAsync("a", "one.invalid");
+            Assert.Equal(1, fixture.Session.Sources.Count);
+
+            var result = await MediaVersionDiscovery.FindAsync(fixture.Session, first.Bind(Movie()),
+                MediaSourceOrder.NewestFirst, default);
+
+            Assert.Equal(1, result.Versions.Count);
+            Assert.Equal(first.Key, result.Versions[0].Item.Source?.Key);
+        });
+
         Case("跨来源版本：相同服务器不同账号各列一版，媒体源重号不误勾", async () =>
         {
             using var fixture = new Fixture();
@@ -311,8 +325,10 @@ internal static class MediaVersionDiscoveryTests
         public AppSettings Settings { get; } = new();
         public EmbySession Session { get; }
         private readonly Dictionary<string, ServerProfile> _servers = [];
-        public Fixture()
+        public Fixture(bool aggregateMode = true)
         {
+            // 这些用例全在问「多个来源同时在线时」的版本发现与播放，聚合模式必须开着；设置里的默认是关。
+            Settings.AggregateMode = aggregateMode;
             Settings.Playback.ReportProgressToServer = true;
             Settings.Playback.ResumeRewindSeconds = 0;
             Settings.Playback.ProgressReportIntervalSeconds = 60;

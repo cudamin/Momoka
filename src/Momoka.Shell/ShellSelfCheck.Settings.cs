@@ -38,9 +38,6 @@ internal static partial class ShellSelfCheck
         // signed-in shell that shows none of them has lost the rows somewhere between the two.
         check("服务器页面", servers.Ready && servers.Bound > 0 && servers.Drawn == servers.Bound,
             $"{servers.Bound} 台服务器（已渲染 {servers.Drawn}）、{servers.BoundAccounts} 个账号（已渲染 {servers.DrawnAccounts}）");
-
-        // 需求 12. Proves the measurement ran and returned, rather than the caption still saying so.
-        check("图片缓存", !servers.Cache.Contains("正在", StringComparison.Ordinal), servers.Cache);
     }
 
     /// <summary>
@@ -158,6 +155,10 @@ internal static partial class ShellSelfCheck
         // to the old one. Nothing on screen says which budget is in force.
         if (page.ViewModel.MeasureImageBudget(images) is { } budget)
             check("图片缓存上限改完当场生效", budget.Ok, budget.Detail);
+
+        // 图片缓存 2026-10-20 搬进「关于」：读数真的数过、不是还停在「正在统计…」。
+        var cache = page.ViewModel.ImageCacheSummary;
+        check("图片缓存读数（关于）", !cache.Contains("正在", StringComparison.Ordinal), cache);
 
         var (sections, rows, category, _) = page.Summary;
 

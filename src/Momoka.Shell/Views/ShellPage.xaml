@@ -295,10 +295,11 @@
                 </Grid>
             <Button.Flyout>
                 <MenuFlyout x:Name="AccountMenu" Placement="BottomEdgeAlignedRight">
-                    <!-- 当前界面与在线服务器数：Emby／Jellyfin／通用，以及有几台服务器在线。
-                         不可点，只是把「现在用的是哪一套界面」说在菜单最上面。 -->
-                    <MenuFlyoutItem x:Name="InterfaceStatusItem"
-                        AutomationProperties.AutomationId="AccountInterfaceStatus"
+                    <!-- 当前身份：用户名 · 服务器名，多来源时再补一句账号数。不写界面风味 ——
+                         「通用界面」之类的说法已经去掉了（用户令 2026-10-20）。不可点，只是把
+                         「现在是谁、在哪台服务器上」说在菜单最上面。 -->
+                    <MenuFlyoutItem x:Name="AccountIdentityItem"
+                        AutomationProperties.AutomationId="AccountIdentityStatus"
                         IsEnabled="False" Text="尚未登录" />
                     <MenuFlyoutSeparator />
                     <MenuFlyoutSubItem x:Name="ServerMenu"

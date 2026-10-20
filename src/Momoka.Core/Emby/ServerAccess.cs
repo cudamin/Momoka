@@ -5,7 +5,8 @@ namespace Momoka.Emby;
 /// <summary>
 /// 主界面用的是哪一套服务端界面。同时连着多台服务器时没有唯一的一套，退回通用界面；
 /// 只有一台服务器时用那一台的界面。飞牛影视只有一台在线时也用它自己的界面 —— 至少设置左栏照它的目录分成
-/// 「帐号」与「影视服务器」两组；Plex 仍走通用界面（2026-10-19 用户令）。
+/// 「帐号」与「影视服务器」两组；Plex 仍走通用界面（2026-10-19 用户令）。这个风味只决定哪些服务端入口可用，
+/// 不再显示给用户。
 /// </summary>
 public enum ServerInterfaceFlavor
 {
@@ -16,11 +17,11 @@ public enum ServerInterfaceFlavor
 }
 
 /// <summary>
-/// 界面风味的纯规则：一台在线服务器决定界面，多台退回通用。所有已登录账号都同时在线，
-/// 因此多账号本身不改变产品界面，只有不同服务器共存才退回通用。
+/// 界面风味的纯规则：一台在线服务器决定界面，多台退回通用。它只看<b>在线来源</b>，不看保存了多少服务器，
+/// 也不看是否打开聚合模式 —— 非聚合模式最多一个来源，自然用那台自己的界面。
 /// <para>
-/// 放在 Core 里而不是页面里，因为设置页（哪些服务端入口还在）与外壳（账号菜单的界面读数）问的是同一件事，
-/// 而这两处任一处写错在屏幕上都不显眼。界面风味只看<b>在线来源</b>，不看保存了多少服务器。
+/// 放在 Core 里而不是页面里，因为设置页（哪些服务端入口还在）与会话问的是同一件事，
+/// 而这两处任一处写错在屏幕上都不显眼。
 /// </para>
 /// </summary>
 public static class ServerAccess
@@ -43,15 +44,6 @@ public static class ServerAccess
         MediaServerKind.Jellyfin => ServerInterfaceFlavor.Jellyfin,
         MediaServerKind.FnNas => ServerInterfaceFlavor.FnNas,
         _ => ServerInterfaceFlavor.Generic
-    };
-
-    /// <summary>这一套界面叫什么，给设置页和账号菜单读。</summary>
-    public static string InterfaceName(ServerInterfaceFlavor flavor) => flavor switch
-    {
-        ServerInterfaceFlavor.Emby => "Emby 界面",
-        ServerInterfaceFlavor.Jellyfin => "Jellyfin 界面",
-        ServerInterfaceFlavor.FnNas => "飞牛影视界面",
-        _ => "通用界面"
     };
 
     /// <summary>

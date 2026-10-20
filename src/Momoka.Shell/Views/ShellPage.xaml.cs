@@ -204,6 +204,14 @@ public sealed partial class ShellPage : UserControl, IShellActions
         TitleActions.SizeChanged += (_, _) => ReportTitleBarHoles();
         AccountButton.SizeChanged += (_, _) => ReportTitleBarHoles();
 
+        // 菜单每次打开前重读一遍：在设置里拨了聚合模式之后，按钮上的身份没变，但两张子菜单的叫法
+        // 与在线标记要跟着变；登录了另一个账号时来源也可能已经换过。只在浏览态且已登录时重读，
+        // 登录卡上那几张菜单本来一个都不通。
+        AccountMenu.Opening += (_, _) =>
+        {
+            if (_session?.IsSignedIn == true && !SignInVisible) FillSwitchMenus();
+        };
+
         _toast.Tick += (_, _) =>
         {
             _toast.Stop();
@@ -435,6 +443,12 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     /// <summary>账号那颗按钮 —— 挪进标题栏之后它的收／放跟外壳一整块走，但自检还要量它在不在屏上。</summary>
     internal FrameworkElement AccountRoot => AccountButton;
+
+    /// <summary>探针读的：账号菜单第一行的身份文字、两张子菜单的叫法，以及重读一遍的入口。</summary>
+    internal (string Identity, string ServerMenu, string UserMenu) AccountMenuLabels =>
+        (AccountIdentityItem.Text, ServerMenu.Text, UserMenu.Text);
+
+    internal void RefreshAccountMenus() => FillSwitchMenus();
 
     /// <summary>浏览态那一块（面包屑 + 页面）。</summary>
     internal FrameworkElement BrowseRoot => ContentHost;
@@ -2136,35 +2150,51 @@ public sealed partial class ShellPage : UserControl, IShellActions
     }
 
     /// <summary>
-    /// 切换服务器 / 切换用户: the saved servers and the accounts on the current one, both one click away from
-    /// the button at the right end of the tab row. A switch that has a saved token or password does not ask
-    /// for anything; one that does not lands on the sign-in card with the address already filled in.
+    /// 切换服务器 / 切换用户（非聚合）或添加服务器 / 添加账号（聚合）: the saved servers and the accounts on
+    /// the current one, both one click away from the button at the right end of the tab row. A switch that has
+    /// a saved token or password does not ask for anything; one that does not lands on the sign-in card with
+    /// the address already filled in.
+    /// <para>
+    /// 菜单第一行写当前身份，不写界面风味：只有一个来源时是「用户名 · 服务器名」，多来源时再补一句账号数。
+    /// 聚合模式开着时登录是加法，所以两张子菜单改叫「添加」；关着时登录会替换当前来源，仍叫「切换」。
+    /// </para>
     /// </summary>
     private void FillSwitchMenus()
     {
         var session = _session!;
         var sources = session.Sources;
-        var serverCount = sources.Select(source => source.ServerProfileId).Distinct(StringComparer.Ordinal).Count();
-        var flavor = ServerAccess.InterfaceFor(serverCount, sources.Select(source => source.Connection.ServerKind));
-        InterfaceStatusItem.Text = sources.Count == 0
+        var aggregate = Settings.AggregateMode;
+        var user = session.Account?.Username;
+        var server = session.ServerDisplayName;
+
+        AccountIdentityItem.Text = sources.Count == 0
             ? "尚未登录"
-            : $"{ServerAccess.InterfaceName(flavor)} · {serverCount} 台服务器";
+            : string.Join(" · ", new[] { user, server }.Where(part => !string.IsNullOrWhiteSpace(part))
+                .Concat(sources.Count > 1 ? [$"{sources.Count} 个账号在线"] : []));
+
+        ServerMenu.Text = aggregate ? "添加服务器" : "切换服务器";
+        UserMenu.Text = aggregate ? "添加账号" : "切换用户";
 
         ServerMenu.Items.Clear();
-        foreach (var server in Settings.Servers)
+        foreach (var serverProfile in Settings.Servers)
         {
+            var online = sources.Any(source => source.ServerProfileId == serverProfile.Id);
             var entry = new MenuFlyoutItem
             {
-                Text = server.Name,
-                Tag = server,
-                IsEnabled = !ReferenceEquals(server, session.Server)
+                Text = online ? $"{serverProfile.Name}（在线）" : serverProfile.Name,
+                Tag = serverProfile,
+                IsEnabled = !ReferenceEquals(serverProfile, session.Server)
             };
 
             entry.Click += OnSwitchServer;
             ServerMenu.Items.Add(entry);
         }
 
-        ServerMenu.IsEnabled = ServerMenu.Items.Count > 0;
+        ServerMenu.Items.Add(new MenuFlyoutSeparator());
+        var addServer = new MenuFlyoutItem { Text = "添加服务器…", Tag = null };
+        addServer.Click += (_, _) => ShowSignIn();
+        ServerMenu.Items.Add(addServer);
+        ServerMenu.IsEnabled = true;
 
         UserMenu.Items.Clear();
         var current = session.Server;
@@ -2173,9 +2203,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
         {
             foreach (var account in current.Accounts)
             {
+                var online = sources.Any(source => source.AccountProfileId == account.Id
+                    && source.ServerProfileId == current.Id);
                 var entry = new MenuFlyoutItem
                 {
-                    Text = account.Username,
+                    Text = online ? $"{account.Username}（在线）" : account.Username,
                     Tag = account,
                     IsEnabled = !ReferenceEquals(account, session.Account)
                 };
@@ -2185,7 +2217,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
             }
         }
 
-        UserMenu.IsEnabled = UserMenu.Items.Count > 0;
+        UserMenu.Items.Add(new MenuFlyoutSeparator());
+        var addAccount = new MenuFlyoutItem { Text = "添加账号…", Tag = null };
+        addAccount.Click += (_, _) => ShowSignIn(current, newAccount: true);
+        UserMenu.Items.Add(addAccount);
+        UserMenu.IsEnabled = true;
     }
 
     private void OnSwitchServer(object sender, RoutedEventArgs e)

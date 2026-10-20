@@ -12,7 +12,7 @@ namespace Momoka.Configuration;
 /// </summary>
 public sealed class AppSettings
 {
-    public const int CurrentSchemaVersion = 25;
+    public const int CurrentSchemaVersion = 26;
 
     public int SchemaVersion { get; set; } = CurrentSchemaVersion;
 
@@ -20,6 +20,13 @@ public sealed class AppSettings
     public string DeviceId { get; set; } = "";
 
     public List<ServerProfile> Servers { get; set; } = [];
+
+    /// <summary>
+    /// 聚合模式：开着时多台服务器、多个账号可以同时在线，主页、搜索、收藏与跨服务器版本选择覆盖全部来源；
+    /// 关着（装机默认）时同一时间只保留一个在线来源，登录另一台服务器或账号会替换当前这一个。
+    /// 无论开关如何，切换都不会删除服务器、账号、令牌或密码。
+    /// </summary>
+    public bool AggregateMode { get; set; }
 
     public string? LastServerId { get; set; }
 

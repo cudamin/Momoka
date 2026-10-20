@@ -155,6 +155,8 @@ internal static class ImageIdentityTests
 
         public Fixture()
         {
+            // 这一组问的是多来源图片各自路由，需要两个来源同时在线。
+            _settings.AggregateMode = true;
             Session = new EmbySession(_settings, new SettingsStore(new AppPaths(_root), PassthroughSecretProtector.Instance),
                 new CredentialVault(PassthroughSecretProtector.Instance), DeviceIdentity.Create("image-fixture", "test"), Transport);
             Store = new EmbyImageStore(Session, Path.Combine(_root, "images"));

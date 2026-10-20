@@ -27,6 +27,22 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(shell);
             await (Task)Call(shell, "EnterShellAsync")!;
             await UntilAsync(() => shell.ActiveContentReady);
+
+            // 需求 3：账号菜单第一行写身份，不写「通用界面」；单服务器单账号时就是「用户名 · 服务器名」。
+            var labels = shell.AccountMenuLabels;
+            Require(labels.Identity == "user · 离线服务器",
+                $"账号菜单第一行不是用户名与服务器名：{labels.Identity}");
+            // 需求 2：聚合模式下登录是加法，两张子菜单叫「添加」；关掉后回到「切换」。
+            Require(labels.ServerMenu == "添加服务器" && labels.UserMenu == "添加账号",
+                $"聚合模式下子菜单没有改成添加：{labels.ServerMenu}／{labels.UserMenu}");
+            fixture.Settings.AggregateMode = false;
+            shell.RefreshAccountMenus();
+            labels = shell.AccountMenuLabels;
+            Require(labels.ServerMenu == "切换服务器" && labels.UserMenu == "切换用户",
+                $"关掉聚合模式后子菜单没有改回切换：{labels.ServerMenu}／{labels.UserMenu}");
+            fixture.Settings.AggregateMode = true;
+            shell.RefreshAccountMenus();
+
             await shell.SwitchProfileAsync(server, offline);
             Require(shell.SignInVisible && shell.SignInRoot.ViewModel.Username == offline.Username
                 && shell.SignInRoot.ViewModel.Password.Length == 0,
@@ -110,6 +126,9 @@ internal sealed partial class ShellNavigationProbe
             var multiple = await CurrentHomeAsync(2);
             Require(first.IsAvailable && fixture.Session.Sources.Select(source => source.ServerProfileId).Distinct().Count() == 1,
                 "同服务器第二账号登录退出了第一账号，或没有形成两个独立来源");
+            shell.RefreshAccountMenus();
+            Require(shell.AccountMenuLabels.Identity.Contains("2 个账号在线", StringComparison.Ordinal),
+                $"多账号时账号菜单没有写出在线账号数：{shell.AccountMenuLabels.Identity}");
             await CheckHomeAsync(multiple, "same-server-two");
             await CheckBrowsingAsync();
             shell.GoTo("home");

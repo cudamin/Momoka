@@ -28,8 +28,9 @@ public static class SettingsMigration
 
         var version = ReadInt(root, "SchemaVersion") ?? 1;
 
-        // v25 退役服务器的独占／聚合模式：ServerAccess 属性已删除，反序列化会丢掉整段旧键，
-        // 所有保存过凭据且未主动退出的账号都按聚合行为恢复在线。这里不需要改写，只留一句说明。
+        // v25 退役服务器的独占／聚合模式：ServerAccess 属性已删除，反序列化会丢掉整段旧键。
+        // v26 把它作为用户可拨的「聚合模式」布尔键接回来，缺键读成关闭（装机默认）—— 升级后只恢复上次那一个来源，
+        // 其余账号保留凭据与自动连接，用户打开开关或在服务器页登录时再上线。
 
         // Repair before anything reads the result: every step below — the version upgrades and
         // Normalize — walks into settings.Playback, settings.Video and the lists, and a document

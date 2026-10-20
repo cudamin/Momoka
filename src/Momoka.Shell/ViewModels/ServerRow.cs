@@ -17,16 +17,16 @@ namespace Momoka.Shell.ViewModels;
 public sealed class ServerRow
 {
     internal ServerRow(ServersViewModel owner, ServerProfile profile, bool current, AccountProfile? currentAccount,
-        IReadOnlyList<EmbySessionScope> sources, bool decidesInterface)
+        IReadOnlyList<EmbySessionScope> sources)
     {
         Owner = owner;
         Profile = profile;
         IsCurrent = current;
-        DecidesInterface = decidesInterface;
         var online = sources
             .Where(source => source.ServerProfileId == profile.Id)
             .Select(source => source.AccountProfileId)
             .ToHashSet(StringComparer.Ordinal);
+        IsOnline = online.Count > 0;
         Accounts = new ObservableCollection<AccountRow>(profile.Accounts.Select(account =>
             new AccountRow(owner, profile, account, current && ReferenceEquals(account, currentAccount),
                 online.Contains(account.Id))));
@@ -49,8 +49,8 @@ public sealed class ServerRow
     /// <summary>Whether this is the server the session's default management account is on right now.</summary>
     public bool IsCurrent { get; }
 
-    /// <summary>只有一台服务器在线时，界面就是这台服务器的那一套。</summary>
-    public bool DecidesInterface { get; }
+    /// <summary>这台服务器此刻有没有账号在线 —— 卡片头上那颗「在线」标记。</summary>
+    public bool IsOnline { get; }
 
     public string Name => string.IsNullOrWhiteSpace(Profile.Name) ? ServerProfile.DefaultName : Profile.Name;
 
@@ -58,12 +58,9 @@ public sealed class ServerRow
 
     public string KindLabel => ServerAccess.KindName(Profile.ServerKind);
 
-    /// <summary>这台服务器单独用哪一套界面。飞牛影视有自己的设置目录；Plex 目前是通用界面。</summary>
-    public string InterfaceLabel => ServerAccess.InterfaceName(ServerAccess.InterfaceFor(1, [Profile.ServerKind]));
-
     public string AccountSummary => Accounts.Count == 0 ? "无账号" : $"{Accounts.Count(account => account.IsConnected)} / {Accounts.Count} 个账号在线";
 
-    public string LoginLabel => "登录服务器";
+    public string LoginLabel => IsOnline ? "切换到此服务器" : "登录服务器";
 
     public string AddAccountLabel => "添加账号";
 
@@ -71,9 +68,9 @@ public sealed class ServerRow
 
     public Visibility CurrentVisibility => IsCurrent ? Visibility.Visible : Visibility.Collapsed;
 
-    public Visibility EmptyAccountsVisibility => Accounts.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility OnlineVisibility => IsOnline ? Visibility.Visible : Visibility.Collapsed;
 
-    public Visibility InterfaceVisibility => DecidesInterface ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility EmptyAccountsVisibility => Accounts.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
 }
 
 /// <summary>

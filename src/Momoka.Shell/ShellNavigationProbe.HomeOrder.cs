@@ -53,7 +53,7 @@ internal sealed partial class ShellNavigationProbe
         settings.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             service, new MoviePilotCredentials(PassthroughSecretProtector.Instance),
-            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         await settings.ViewModel.ReloadAsync();
         settings.WatchMoviePilot(service);
         var frame = new Frame();

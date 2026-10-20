@@ -35,7 +35,7 @@ font-size  Views/LibraryPage.xaml  8
 font-size  Views/MoviePilotSearchPanel.xaml  2
 font-size  Views/NotificationsPage.xaml  3
 font-size  Views/PosterCard.xaml  9
-font-size  Views/ServersPage.xaml  7
+font-size  Views/ServersPage.xaml  6
 font-size  Views/SettingsPage.xaml  10
 font-size  Views/ShelfHead.xaml  1
 font-size  Views/ShelfStrip.xaml  2
@@ -540,9 +540,9 @@ handle  Views/PosterCard.xaml  WatchedButton
 handle  Views/RefreshMetadataDialog.xaml  ImagesSwitch
 handle  Views/RefreshMetadataDialog.xaml  ModeBox
 handle  Views/RefreshMetadataDialog.xaml  ThumbnailsSwitch
+handle  Views/ServersPage.xaml  AggregateToggle
 handle  Views/ServersPage.xaml  PageLayout
 handle  Views/ServersPage.xaml  ServersAddButton
-handle  Views/ServersPage.xaml  ServersClearCacheButton
 handle  Views/ServersPage.xaml  ServersDiscoverButton
 handle  Views/ServersPage.xaml  ServersDiscoveredList
 handle  Views/ServersPage.xaml  ServersRefreshButton

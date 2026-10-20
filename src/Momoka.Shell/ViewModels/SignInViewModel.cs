@@ -173,7 +173,7 @@ public sealed partial class SignInViewModel : PageViewModel
         ? "请稍候…"
         : _session?.IsSignedIn != true
             ? "登录"
-            : "登录并添加";
+            : Settings.AggregateMode ? "登录并添加" : "登录并切换";
 
     /// <summary>
     /// What gates the three buttons that start something. The guard the click handlers used to open with

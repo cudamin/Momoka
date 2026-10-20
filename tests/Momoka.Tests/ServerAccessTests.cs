@@ -61,10 +61,6 @@ internal static class ServerAccessTests
             Assert.True(ServerAccess.ShowsServerAdministration(ServerInterfaceFlavor.FnNas));
             Assert.False(ServerAccess.ShowsServerAdministration(ServerInterfaceFlavor.Generic),
                 "通用界面不知道管理入口该指向哪台服务器");
-            Assert.Equal("Emby 界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.Emby));
-            Assert.Equal("Jellyfin 界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.Jellyfin));
-            Assert.Equal("飞牛影视界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.FnNas));
-            Assert.Equal("通用界面", ServerAccess.InterfaceName(ServerInterfaceFlavor.Generic));
         });
     }
 
@@ -234,10 +230,30 @@ internal static class ServerAccessTests
                 "旧模式键不能让保存的账号消失");
             Assert.True(settings.Servers[0].Accounts[0].AutoConnect == true,
                 "升级后的账号仍应参与自动恢复");
+            Assert.False(settings.AggregateMode,
+                "缺聚合模式键的旧文档读成关闭；升级后只恢复上次那一个来源");
 
             var saved = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
             Assert.False(saved.Contains("ServerAccess", StringComparison.Ordinal),
                 "保存的新文档不再写已退役的连接模式");
+            Assert.True(saved.Contains("\"AggregateMode\": false", StringComparison.Ordinal),
+                "新文档要写出聚合模式这一格");
+        });
+
+        Test("设置迁移：聚合模式键读得回来", () =>
+        {
+            const string json = """
+            {
+              "SchemaVersion": 26,
+              "AggregateMode": true,
+              "Servers": [ { "Id": "s-a", "Name": "A", "Url": "http://a.invalid", "Accounts": [] } ]
+            }
+            """;
+
+            var settings = SettingsMigration.FromJson(json, Protector);
+
+            Assert.True(settings.AggregateMode);
+            Assert.Equal(1, settings.Servers.Count);
         });
     }
 }

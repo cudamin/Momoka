@@ -44,14 +44,13 @@ public sealed partial class ServersPage : Page, IShellContent
     /// <inheritdoc cref="HomePage.ViewModel" />
     internal ServersViewModel ViewModel { get; } = new();
 
-    /// <summary>True once the rows are built and the cache has been counted; read by the self-check.</summary>
+    /// <summary>True once the rows are built; read by the self-check.</summary>
     internal bool IsReady => ViewModel.IsReady;
 
-    /// <summary>How many saved servers the page drew, and the cache line beneath them.</summary>
-    internal (int Servers, int Accounts, string Cache) Summary => (
+    /// <summary>How many saved servers the page drew.</summary>
+    internal (int Servers, int Accounts) Summary => (
         ViewModel.Servers.Count,
-        ViewModel.Servers.Sum(server => server.Accounts.Count),
-        ViewModel.CacheSummary ?? "未读取");
+        ViewModel.Servers.Sum(server => server.Accounts.Count));
 
     /// <summary>
     /// How many server and account cards the lists actually built, counted off the visual tree rather
@@ -101,8 +100,7 @@ public sealed partial class ServersPage : Page, IShellContent
         ViewModel.Attach(
             services.GetRequiredService<IShellActions>(),
             services.GetRequiredService<ISettingsService>(),
-            _session,
-            services.GetRequiredService<EmbyImageStore>());
+            _session);
 
         _ = ViewModel.ReloadAsync();
     }

@@ -21,6 +21,7 @@ internal static class IdentityRegressionTests
         RegisterSessionChanges();
         RegisterScopes();
         RegisterMultipleSources();
+        RegisterAggregateMode();
         RegisterCapabilities();
         RegisterMoviePilot();
         RegisterDownloads();
@@ -640,6 +641,75 @@ internal static class IdentityRegressionTests
         });
     }
 
+    private static void RegisterAggregateMode()
+    {
+        Case("聚合模式关闭：启动只恢复上次那一个来源，其余账号保留凭据与自动连接", async () =>
+        {
+            using var fixture = new SessionFixture(aggregateMode: false);
+            fixture.Settings.Remember(fixture.B.Server, fixture.B.Account);
+
+            Assert.Equal(1, await fixture.Session.RestoreAllAsync(None));
+            Assert.Equal(1, fixture.Session.Sources.Count);
+            Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
+            Assert.True(fixture.A.Account.HasSavedToken && fixture.A.Account.HasSavedPassword,
+                "没被恢复的账号不应丢掉令牌或密码");
+            Assert.True(fixture.A.Account.AutoConnect != false);
+        });
+
+        Case("聚合模式关闭：登录另一个账号替换当前来源，旧账号凭据保留", async () =>
+        {
+            using var fixture = new SessionFixture(aggregateMode: false);
+            await fixture.Restore(fixture.A);
+
+            await fixture.Session.SignInAsync(fixture.B.Server, fixture.B.Account, "password-b", "b", true, None);
+
+            Assert.Equal(1, fixture.Session.Sources.Count);
+            Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
+            Assert.True(fixture.A.Account.HasSavedToken && fixture.A.Account.HasSavedPassword,
+                "替换来源不是删除账号");
+            Assert.True(fixture.A.Account.AutoConnect != false);
+            Assert.Equal(0, fixture.SignedOut, "替换来源不是用户主动注销");
+        });
+
+        Case("聚合模式关闭：切换回旧账号后对方凭据仍保留，来回都可直接恢复", async () =>
+        {
+            using var fixture = new SessionFixture(aggregateMode: false);
+            await fixture.Restore(fixture.A);
+            await fixture.Restore(fixture.B);
+
+            Assert.Equal(1, fixture.Session.Sources.Count);
+            Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
+            Assert.True(fixture.A.Account.HasSavedToken);
+
+            await fixture.Restore(fixture.A);
+            Assert.Equal(1, fixture.Session.Sources.Count);
+            Assert.True(ReferenceEquals(fixture.A.Account, fixture.Session.Account));
+            Assert.True(fixture.B.Account.HasSavedToken && fixture.B.Account.HasSavedPassword);
+        });
+
+        Case("聚合模式：打开时不擅自重连其他账号，关掉时只留当前一个来源", async () =>
+        {
+            using var fixture = new SessionFixture(aggregateMode: false);
+            await fixture.Restore(fixture.A);
+
+            fixture.Settings.AggregateMode = true;
+            Assert.Equal(0, fixture.Session.ApplyAggregateMode());
+            Assert.Equal(1, fixture.Session.Sources.Count);
+
+            await fixture.Session.SignInAsync(fixture.B.Server, fixture.B.Account, "password-b", "b", true, None);
+            Assert.Equal(2, fixture.Session.Sources.Count);
+
+            fixture.Settings.AggregateMode = false;
+            Assert.Equal(1, fixture.Session.ApplyAggregateMode());
+            Assert.Equal(1, fixture.Session.Sources.Count);
+            Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account),
+                "收口应留下当前来源");
+            Assert.True(fixture.A.Account.HasSavedToken && fixture.A.Account.HasSavedPassword);
+            Assert.True(fixture.A.Account.AutoConnect != false);
+            Assert.Equal(0, fixture.SignedOut);
+        });
+    }
+
     private static void RegisterCapabilities()
     {
         Case("服务器能力：A 的迟到版本不能覆盖 B，退出后不再提供旧版本", async () =>
@@ -952,9 +1022,10 @@ internal static class IdentityRegressionTests
         public Profile B { get; }
         public int SignedOut { get; private set; }
 
-        public SessionFixture(bool sameServer = false)
+        public SessionFixture(bool sameServer = false, bool aggregateMode = true)
         {
             Directory.CreateDirectory(Root);
+            Settings.AggregateMode = aggregateMode;
             A = Add("a", "https://a.invalid");
             B = Add("b", sameServer ? A.Server.Url : "https://b.invalid", sameServer ? A.Server : null);
             Session = new EmbySession(Settings, new SettingsStore(new AppPaths(Root), PassthroughSecretProtector.Instance),

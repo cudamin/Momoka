@@ -478,7 +478,6 @@ internal static partial class ShellSelfCheck
         bool Ready,
         int Bound,
         int BoundAccounts,
-        string Cache,
         int Drawn,
         int DrawnAccounts);
 

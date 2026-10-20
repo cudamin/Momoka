@@ -367,7 +367,10 @@ public sealed partial class SettingsPage : Page, IShellContent
 
                 // 左栏的服务端管理入口只有服务器管理员才看得见，所以这一页要知道当前账号的身份（见
                 // RefreshServerAdministrationAsync 与下面那一句）。
-                request.Services.GetRequiredService<IServerCapabilities>());
+                request.Services.GetRequiredService<IServerCapabilities>(),
+
+                // 「关于」卡上的图片缓存读数与清除：它数的是本机缓存目录，不是某台服务器，所以搬出了服务器页。
+                request.Services.GetRequiredService<EmbyImageStore>());
             _ = ViewModel.ReloadAsync();
         }
 

@@ -37,7 +37,7 @@ internal sealed partial class ShellNavigationProbe
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings), new MoviePilotCredentials(PassthroughSecretProtector.Instance),
             new UpdateClient(new RejectNetwork()),
-            fixture.Capabilities);
+            fixture.Capabilities, fixture.Images);
         await page.ViewModel.ReloadAsync();
         var sections = page.ViewModel.Sections.ToArray();
         _root.Children.Add(page);
@@ -110,6 +110,25 @@ internal sealed partial class ShellNavigationProbe
                 scroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
                 await LayoutAsync(page);
                 await SaveProbeScreenAsync($"settings-about-{width}-screen.png");
+
+                // 图片缓存 2026-10-20 从「界面」卡与服务器页搬进关于：上限行在这里，读数不在「界面」，而且已经数完。
+                var aboutRows = page.ViewModel.Sections.Where(section => section.Category == "关于")
+                    .SelectMany(section => section.Rows).ToArray();
+                var interfaceRows = page.ViewModel.Sections.Where(section => section.Category == "界面")
+                    .SelectMany(section => section.Rows).ToArray();
+                Require(aboutRows.Any(row => row.Label == "图片缓存上限（MB）") && aboutRows.Any(row => row.Label == "图片缓存"),
+                    "关于卡没有图片缓存的上限与读数行");
+                Require(interfaceRows.All(row => row.Label != "图片缓存上限（MB）"),
+                    "界面卡仍然留着图片缓存上限行");
+                Require(!page.ViewModel.ImageCacheSummary.Contains("正在", StringComparison.Ordinal),
+                    $"图片缓存读数没有数完：{page.ViewModel.ImageCacheSummary}");
+                scroll.ScrollTo(0, scroll.ScrollableHeight,
+                    new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                await LayoutAsync(page);
+                await Task.Delay(100);
+                await SaveProbeScreenAsync($"settings-about-cache-{width}-screen.png");
+                scroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                await LayoutAsync(page);
 
                 // 窗口隐藏调用的释放入口，在排队或播放中都必须作废回调；之后仍能重新入场。
                 page.SelectedCategory = "播放器";
@@ -206,7 +225,7 @@ internal sealed partial class ShellNavigationProbe
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance),
-            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         await page.ViewModel.ReloadAsync();
         _root.Children.Add(page);
         try
@@ -294,7 +313,7 @@ internal sealed partial class ShellNavigationProbe
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance),
-            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         await page.ViewModel.ReloadAsync();
         _root.Children.Add(page);
         try
@@ -416,7 +435,7 @@ internal sealed partial class ShellNavigationProbe
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance),
-            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         await page.ViewModel.ReloadAsync();
         // 探针直接挂页面，不经过 SettingsPage.OnNavigatedTo；这里走页面那一层刷新，
         // 它除了 ViewModel 还会把分组用的 CollectionViewSource 换到新表。
@@ -708,7 +727,7 @@ internal sealed partial class ShellNavigationProbe
             _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance),
-            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         await page.ViewModel.ReloadAsync();
         await (Task)Call(page, "RefreshServerAdministrationAsync")!;
         _root.Children.Add(page);
@@ -880,8 +899,8 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 服务器页不再有独占／聚合模式：两台服务器同时在线，页面只报当前界面与在线来源，
-    /// 账号表把两个账号都算作在线；没有模式单选可拨，也不会因为登录而收掉别的来源。
+    /// 服务器页：聚合模式开关拨一下就当场收口，账号表把在线状态如实画出来；页面不再解释「当前界面」，
+    /// 也不再有独占／聚合模式单选。图片缓存已经从这一页搬去「关于」。
     /// </summary>
     private async Task ServersPageSummaryAsync()
     {
@@ -897,7 +916,7 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             ResizeInspect(1100, 900);
-            page.ViewModel.Attach(fixture.Actions, fixture.SettingsService, fixture.Session, fixture.Images);
+            page.ViewModel.Attach(fixture.Actions, fixture.SettingsService, fixture.Session);
             await page.ViewModel.ReloadAsync();
             await LayoutAsync(page);
             await UntilAsync(() => page.Opacity == 1 && Get<Grid>(page, "PageLayout").Opacity == 1);
@@ -906,16 +925,20 @@ internal sealed partial class ShellNavigationProbe
                 $"服务器页探针的根里还留着别的页（{_root.Children.Count} 个直接孩子）");
 
             Require(fixture.Session.Sources.Count == 2, "两台服务器没有同时上线，服务器页探针起点不对");
-            Require(page.ViewModel.InterfaceTitle == "通用界面",
-                $"两台服务器在线时界面应退回通用，实际是「{page.ViewModel.InterfaceTitle}」");
-            Require(page.ViewModel.OnlineSummary == "2 台服务器 · 2 个账号在线",
-                $"在线摘要不对：{page.ViewModel.OnlineSummary}");
+            Require(page.ViewModel.AggregateMode && fixture.Settings.AggregateMode,
+                "服务器页没有按设置画出聚合模式开关");
+            Require(page.ViewModel.AggregateNote.Contains("同时在线", StringComparison.Ordinal),
+                $"聚合模式开着的说明不对：{page.ViewModel.AggregateNote}");
             Require(page.ViewModel.Subheading?.Contains("2 个账号在线", StringComparison.Ordinal) == true,
                 $"页头没有写清两个账号同时在线：{page.ViewModel.Subheading}");
             Require(page.ViewModel.Servers.SelectMany(server => server.Accounts).All(account => account.IsConnected),
                 "服务器页把已在线账号误报成未连接");
+            Require(page.FindName("AggregateToggle") is not null,
+                "服务器页没有画聚合模式开关");
             Require(page.FindName("ExclusiveModeRadio") is null && page.FindName("AggregateModeRadio") is null,
                 "服务器页仍然画着独占／聚合模式单选");
+            Require(page.FindName("ServersClearCacheButton") is null,
+                "服务器页仍然画着图片缓存卡片");
             // 假身份页面里实屏截图会拍到上一张控制台页的残影（2026-10-19 多次复现，已记在 PROGRESS），
             // 服务器页的证据用页面渲染图；它是渲染结果，不冒充实屏。
             await SaveRenderAsync(page, "servers-summary-render.png");
@@ -927,8 +950,24 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1100, 900);
             await LayoutAsync(page);
 
-            Require(fixture.Session.Sources.Count == 2,
-                "服务器页刷新把已登录账号收掉了");
+            // 关掉聚合模式：只留当前来源，另一个账号下线但保存的令牌与密码都还在。
+            var first = fixture.Settings.Servers[0].Accounts[0];
+            var second = fixture.Settings.Servers[1].Accounts[0];
+            page.ViewModel.AggregateMode = false;
+            await LayoutAsync(page);
+            Require(!fixture.Settings.AggregateMode, "关掉聚合模式没有写进设置");
+            Require(fixture.Session.Sources.Count == 1, $"关掉聚合模式后仍有 {fixture.Session.Sources.Count} 个来源在线");
+            Require(ReferenceEquals(fixture.Session.Account, second), "关掉聚合模式留下的不是当前账号");
+            Require(first.HasSavedToken,
+                "关掉聚合模式把下线账号保存的凭据删掉了");
+            Require(first.AutoConnect != false, "关掉聚合模式把下线账号的自动连接关掉了");
+            Require(page.ViewModel.Subheading?.Contains("1 个账号在线", StringComparison.Ordinal) == true,
+                $"关掉聚合模式后页头没有改成一个账号：{page.ViewModel.Subheading}");
+
+            // 再打开：不自动重连别的账号，但开关状态写回设置，下一次登录就可以并存。
+            page.ViewModel.AggregateMode = true;
+            Require(fixture.Settings.AggregateMode, "重新打开聚合模式没有写进设置");
+            Require(fixture.Session.Sources.Count == 1, "打开聚合模式时不应擅自重连其他账号");
         }
         finally
         {
@@ -1193,7 +1232,7 @@ internal sealed partial class ShellNavigationProbe
             fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance),
-            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         _root.Children.Add(page);
         try
         {

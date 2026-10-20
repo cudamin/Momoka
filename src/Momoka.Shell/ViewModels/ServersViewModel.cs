@@ -4,10 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using Momoka.Configuration;
 using Momoka.Diagnostics;
 using Momoka.Emby;
-using Momoka.Infrastructure;
 using Momoka.Services;
-using Momoka.Shell;
-using Momoka.Shell.Media;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -15,8 +12,8 @@ using Microsoft.UI.Xaml.Controls;
 namespace Momoka.Shell.ViewModels;
 
 /// <summary>
-/// The servers page: saved servers and their accounts, a scan of the local network, and what the poster
-/// cache has taken up on disk.
+/// The servers page: saved servers and their accounts, the aggregate-mode switch, and a scan of the local
+/// network.
 /// <para>
 /// Every button on the page is a command here. That is the part worth having — the page used to carry
 /// nine <c>Click</c> handlers, three of which began with <c>if (_busy) return;</c>, so pressing 「测试」
@@ -30,8 +27,10 @@ public sealed partial class ServersViewModel : PageViewModel
 
     private ISettingsService? _settings;
     private EmbySession? _session;
-    private EmbyImageStore? _images;
     private IShellActions? _actions;
+
+    /// <summary>True while <see cref="Refresh"/> seeds the switch, so filling it does not read as a user flip.</summary>
+    private bool _seedingAggregate;
 
     /// <summary>The saved servers, rebuilt whenever any of them changes. See <see cref="ServerRow"/>.</summary>
     public ObservableCollection<ServerRow> Servers { get; } = [];
@@ -43,18 +42,17 @@ public sealed partial class ServersViewModel : PageViewModel
     public partial string? Subheading { get; set; }
 
     /// <summary>
-    /// 这一页顶上的「当前界面」：Emby 界面、Jellyfin 界面或通用界面。它只是读数 ——
-    /// 由在线服务器台数算出来，不是用户可拨的开关。
+    /// 聚合模式：开着时多台服务器、多个账号同时在线；关着时只保留一个在线来源。拨一下立刻写进设置并收口，
+    /// 不要求重启。
     /// </summary>
     [ObservableProperty]
-    public partial string InterfaceTitle { get; set; } = "";
+    [NotifyPropertyChangedFor(nameof(AggregateNote))]
+    public partial bool AggregateMode { get; set; }
 
-    [ObservableProperty]
-    public partial string InterfaceDescription { get; set; } = "";
-
-    /// <summary>全部在线来源的那一句摘要：几台服务器、几个账号在参与聚合。</summary>
-    [ObservableProperty]
-    public partial string OnlineSummary { get; set; } = "";
+    /// <summary>当前这一档对用户意味着什么；开关旁边那一行小字。</summary>
+    public string AggregateNote => AggregateMode
+        ? "多台服务器、多个账号可以同时在线；主页、搜索、收藏与版本选择覆盖全部在线账号。"
+        : "同一时间只保留一台服务器、一个账号在线；登录另一台或另一个账号时替换当前来源，保存的凭据不删除。";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyVisibility))]
@@ -64,26 +62,21 @@ public sealed partial class ServersViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(DiscoveredVisibility))]
     public partial bool ShowDiscovered { get; set; }
 
-    /// <summary>The cache line: 「1.1 GB · 3,481 个文件 · 上限 400 MB」 — the budget being whatever the
-    /// 界面 card's 图片缓存上限 row currently says, not a fixed 400.</summary>
-    [ObservableProperty]
-    public partial string? CacheSummary { get; set; }
-
     public Visibility EmptyVisibility => Show(ShowEmpty);
 
     public Visibility DiscoveredVisibility => Show(ShowDiscovered);
 
     /// <summary>
-    /// Whether the page is free to start something. One flag for the network scan, the connection test
-    /// and the cache wipe together: they all write the same notice bar and the same progress bar, so two
-    /// at once would have the second one's result overwrite the first one's.
+    /// Whether the page is free to start something. One flag for the network scan and the connection test
+    /// together: they both write the same notice bar and the same progress bar, so two at once would have
+    /// the second one's result overwrite the first one's.
     /// </summary>
     public bool CanRun => !Busy;
 
     private bool CanTest(ServerRow? row) => CanRun && row is not null;
 
     /// <summary>
-    /// Whether <see cref="Attach"/> has run. All four collaborators arrive in that one call as
+    /// Whether <see cref="Attach"/> has run. All three collaborators arrive in that one call as
     /// non-nullable parameters, so this single question answers for every one of them — including for the
     /// network scan, which happens to touch none of them and must still do nothing on a page nobody
     /// attached. Past this gate the fields are dereferenced with <c>!</c>.
@@ -102,7 +95,6 @@ public sealed partial class ServersViewModel : PageViewModel
         OnPropertyChanged(nameof(CanRun));
         DiscoverCommand.NotifyCanExecuteChanged();
         TestCommand.NotifyCanExecuteChanged();
-        ClearCacheCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -112,19 +104,18 @@ public sealed partial class ServersViewModel : PageViewModel
     /// back, and every button on it is a fresh read of the same three.
     /// </para>
     /// </summary>
-    internal void Attach(IShellActions actions, ISettingsService settings, EmbySession session, EmbyImageStore images)
+    internal void Attach(IShellActions actions, ISettingsService settings, EmbySession session)
     {
         _actions = actions;
         _settings = settings;
         _session = session;
-        _images = images;
     }
 
     /// <inheritdoc />
     public override Task ReloadAsync()
     {
         Refresh();
-        return MeasureCacheAsync();
+        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -140,46 +131,40 @@ public sealed partial class ServersViewModel : PageViewModel
         var account = _session.Account;
         var sources = _session.Sources;
 
-        var serverIds = sources.Select(source => source.ServerProfileId).Distinct(StringComparer.Ordinal).ToArray();
-        var flavor = ServerAccess.InterfaceFor(serverIds.Length, sources.Select(source => source.Connection.ServerKind));
-        var decidesInterface = serverIds.Length == 1 ? serverIds[0] : null;
-
-        InterfaceTitle = ServerAccess.InterfaceName(flavor);
-        InterfaceDescription = DescribeInterface(flavor, serverIds.Length, sources.Count);
-        OnlineSummary = DescribeOnline(serverIds.Length, sources.Count);
+        _seedingAggregate = true;
+        try { AggregateMode = Settings.AggregateMode; }
+        finally { _seedingAggregate = false; }
 
         Servers.Clear();
         foreach (var server in Settings.Servers)
-            Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account, sources,
-                decidesInterface is not null && string.Equals(decidesInterface, server.Id, StringComparison.Ordinal)));
+            Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account, sources));
 
         ShowEmpty = Servers.Count == 0;
         Subheading = Servers.Count == 0
             ? "管理服务器与登录用户"
             : sources.Count == 0
                 ? $"已保存 {Servers.Count} 台服务器"
-                : $"已保存 {Servers.Count} 台服务器 · {sources.Count} 个账号在线，主页、搜索与收藏自动聚合";
+                : $"已保存 {Servers.Count} 台服务器 · {sources.Count} 个账号在线";
+        IsReady = true;
     }
 
-    private static string DescribeInterface(ServerInterfaceFlavor flavor, int serverCount, int accountCount)
+    /// <summary>
+    /// 拨了聚合模式：先写设置，再让会话按新档位收口，最后重读一遍行上的在线状态。关掉时如果收掉了别的
+    /// 在线来源，说一句它们只是下线、保存的账号和密码都还在，免得看起来像被删了。
+    /// </summary>
+    partial void OnAggregateModeChanged(bool value)
     {
-        if (accountCount == 0)
-            return "登录后按在线服务器台数选择界面；只有一台时用它自己的界面，多台时回到通用界面。";
+        if (_seedingAggregate || !Attached) return;
 
-        if (flavor == ServerInterfaceFlavor.Generic)
-            return serverCount > 1
-                ? $"同时连着 {serverCount} 台服务器，服务端特有的按钮与管理入口已收起，只保留各端共有的功能。"
-                : "Plex 先用通用界面：服务端管理入口由服务器自己的能力决定。";
+        Settings.AggregateMode = value;
+        _settings!.Save();
+        var removed = _session!.ApplyAggregateMode();
+        Refresh();
 
-        if (flavor == ServerInterfaceFlavor.FnNas)
-            return "由在线唯一的飞牛影视服务器决定，设置左栏照它的「帐号／影视服务器」目录显示。";
-
-        return $"由在线唯一的服务器决定，服务端管理与网页控制台照 {ServerAccess.InterfaceName(flavor)} 的网页端显示。";
+        if (removed > 0)
+            Notify("已关闭聚合模式", $"其余 {removed} 个在线账号已下线；服务器、账号和保存的凭据都还在。",
+                InfoBarSeverity.Informational);
     }
-
-    private static string DescribeOnline(int serverCount, int accountCount) => accountCount == 0
-        ? "当前未登录"
-        : $"{serverCount} 台服务器 · {accountCount} 个账号在线";
 
     [RelayCommand]
     private void AddServer() => _actions?.OpenSignIn();
@@ -387,78 +372,5 @@ public sealed partial class ServersViewModel : PageViewModel
 
         _settings!.Save();
         Refresh();
-    }
-
-    /// <summary>
-    /// Counts the poster cache. Not gated on <see cref="CanRun"/> and does not raise the progress bar:
-    /// it is a caption, it runs on arrival, and it has no business disabling the buttons around it.
-    /// <para>
-    /// This is also where <see cref="PageViewModel.IsReady"/> is set, rather than in
-    /// <see cref="Refresh"/>: the flag means 「everything on this page has its final content」, and the
-    /// startup self-check reads the page the moment it goes true. Setting it as soon as the rows exist
-    /// would have the report quote 「正在统计…」 as the cache size.
-    /// </para>
-    /// </summary>
-    internal async Task MeasureCacheAsync()
-    {
-        if (!Attached) return;
-
-        CacheSummary = "正在统计…";
-        var usage = await _images!.MeasureAsync().ConfigureAwait(true);
-        CacheSummary = Describe(usage, _images.MaxBytes);
-        IsReady = true;
-    }
-
-    /// <summary>
-    /// 需求 12：throw the cached artwork away. Wired here rather than on the settings page because this
-    /// is where the local traces of a server are — the accounts, the saved tokens, and the pictures.
-    /// </summary>
-    [RelayCommand(CanExecute = nameof(CanRun))]
-    private async Task ClearCacheAsync()
-    {
-        if (!Attached) return;
-
-        var confirmed = await ConfirmAsync(
-            "清除图片缓存",
-            $"将删除已下载的海报与缩略图（{CacheSummary}）。下次浏览会重新下载，不影响服务器和账号。",
-            "清除").ConfigureAwait(true);
-        if (!confirmed || !Attached) return;
-
-        var token = BeginLoad();
-        CacheSummary = "正在清除…";
-
-        try
-        {
-            var removed = await _images!.ClearAsync().ConfigureAwait(true);
-            if (!IsCurrent(token)) return;
-
-            // The decoded ones too, or the covers already on screen keep showing from memory and the
-            // 「清除了」 notice is about files the user cannot see.
-            PosterCache.Clear();
-
-            Notify("已清除图片缓存", $"删除了 {removed:N0} 个文件。", InfoBarSeverity.Success);
-        }
-        catch (Exception error)
-        {
-            Log.Warn(Category, "清除图片缓存失败", error);
-            if (IsCurrent(token)) Report("清除图片缓存失败", error);
-        }
-        finally
-        {
-            EndLoad(token);
-            await MeasureCacheAsync().ConfigureAwait(true);
-        }
-    }
-
-    /// <summary>
-    /// 「上限」 comes along because a size on its own says nothing: 1.1 GB is either a problem or exactly
-    /// what was asked for, and the number that decides which is the budget beside it.
-    /// </summary>
-    private static string Describe(ImageCacheUsage usage, long max)
-    {
-        var limit = $"上限 {TimeFormat.FileSize(max)}";
-        return usage.Files == 0
-            ? $"暂无缓存 · {limit}"
-            : $"{TimeFormat.FileSize(usage.Bytes)} · {usage.Files:N0} 个文件 · {limit}";
     }
 }

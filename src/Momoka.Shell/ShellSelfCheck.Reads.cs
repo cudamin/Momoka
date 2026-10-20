@@ -343,9 +343,9 @@ internal static partial class ShellSelfCheck
     {
         if (Face(shell) is not ServersPage servers) return null;
 
-        var (bound, boundAccounts, cache) = servers.Summary;
+        var (bound, boundAccounts) = servers.Summary;
         var (drawn, drawnAccounts) = servers.Realised;
-        return new ServersState(servers.IsReady, bound, boundAccounts, cache, drawn, drawnAccounts);
+        return new ServersState(servers.IsReady, bound, boundAccounts, drawn, drawnAccounts);
     }
 
     /// <summary>

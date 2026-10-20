@@ -81,8 +81,43 @@ public sealed class EmbySession : IDisposable
             SetCurrent(source);
             Persist();
         }
+        PruneOthers();
         NotifySourcesChanged();
         return true;
+    }
+
+    /// <summary>
+    /// 聚合模式拨完之后立刻收口：关掉时留下当前（没有当前就留第一个）在线来源，其余退出但保留已保存的
+    /// 令牌、密码与自动连接。返回这次退出了几个来源；打开聚合模式什么也不做，其他账号仍由用户自己登录。
+    /// </summary>
+    public int ApplyAggregateMode()
+    {
+        var removed = PruneOthers();
+        if (removed > 0) NotifySourcesChanged();
+        return removed;
+    }
+
+    private bool Aggregate => _settings.AggregateMode;
+
+    /// <summary>
+    /// 非聚合模式只留一个在线来源。挪走的是其它来源而不是当前这一条；令牌与密码留着 —— 用户只是切走了，
+    /// 保存的账号还在列表里，下一次点它照常可以恢复。通知由调用方统一发一次，避免一次登录触发两轮外壳重载。
+    /// </summary>
+    private int PruneOthers()
+    {
+        if (Aggregate) return 0;
+        string[] keys;
+        lock (_lifecycleGate)
+        {
+            if (_sources.Count <= 1) return 0;
+            var keep = _current?.Key ?? _sources.Keys.First();
+            if (_current is null && _sources.TryGetValue(keep, out var kept)) SetCurrent(kept);
+            keys = _sources.Keys.Where(key => !string.Equals(key, keep, StringComparison.Ordinal)).ToArray();
+        }
+
+        foreach (var key in keys)
+            EndSource(key, "非聚合模式只保留一个在线来源", explicitSignOut: false, keepCredentials: true, notify: false);
+        return keys.Length;
     }
 
     private (string Key, long Generation, long Selection) BeginIdentityChange(ServerProfile server, AccountProfile account, bool select)
@@ -129,6 +164,7 @@ public sealed class EmbySession : IDisposable
             Adopt(server, account, connection, attempt.Selection);
             Persist();
         }
+        PruneOthers();
         NotifySourcesChanged();
     }
 
@@ -160,7 +196,7 @@ public sealed class EmbySession : IDisposable
     public Task<bool> TryRestoreAsync(ServerProfile server, AccountProfile account, CancellationToken cancellationToken) =>
         TryRestoreAsync(server, account, true, cancellationToken);
 
-    /// <summary>恢复允许自动连接的账号：所有来源一起恢复，主页与媒体库因此始终覆盖全部在线账号。</summary>
+    /// <summary>恢复允许自动连接的账号。聚合模式恢复所有来源；非聚合模式只恢复一个（上次那一个优先）。</summary>
     public async Task<int> RestoreAllAsync(CancellationToken cancellationToken)
     {
         var lastServer = _settings.LastServerId;
@@ -169,6 +205,29 @@ public sealed class EmbySession : IDisposable
             .Where(account => account.AutoConnect != false && (account.HasSavedToken
                 || account.AutoConnect == true && account.HasSavedPassword))
             .Select(account => (Server: server, Account: account))).ToArray();
+
+        if (!Aggregate)
+        {
+            // 上次用的那一个先试；它连不上就按最近登录次序再试下一个，直到有一个上线。
+            var order = accounts
+                .OrderByDescending(entry => entry.Server.Id == lastServer)
+                .ThenByDescending(entry => entry.Account.Id == lastAccount)
+                .ThenByDescending(entry => entry.Account.LastSignedIn)
+                .ToArray();
+            foreach (var target in order)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                try
+                {
+                    if (await TryRestoreAsync(target.Server, target.Account, true, cancellationToken).ConfigureAwait(false)) break;
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) { }
+                catch (EmbyApiException error) { Log.Warn(Category, "恢复账号失败，尝试下一个", error); }
+            }
+            PruneOthers();
+            NotifySourcesChanged();
+            return Sources.Count;
+        }
 
         long selection;
         lock (_lifecycleGate) selection = _selection;
@@ -249,6 +308,7 @@ public sealed class EmbySession : IDisposable
                     source.IdentityState.RestoredViews = source.Bind(views);
                     Persist();
                 }
+                PruneOthers();
                 NotifySourcesChanged();
                 return true;
             }
@@ -288,6 +348,7 @@ public sealed class EmbySession : IDisposable
                 Adopt(server, account, connection, attempt.Selection);
                 Persist();
             }
+            PruneOthers();
             NotifySourcesChanged();
             return true;
         }

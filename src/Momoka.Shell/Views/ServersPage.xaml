@@ -103,44 +103,32 @@
                                 </StackPanel>
                                 <!-- A pill, not an InfoBadge: that control's Value is a number for a
                                      count, and it has no way to show a word. -->
-                                <Border
-                                    Grid.Column="1"
-                                    Background="{ThemeResource EgAccentBrush}"
-                                    CornerRadius="10"
-                                    Padding="8,2"
-                                    VerticalAlignment="Center"
-                                    Visibility="{x:Bind CurrentVisibility}">
-                                    <TextBlock x:Uid="ServersPage_TextBlock1"
-                                        FontSize="{StaticResource EgCaptionFontSize}"
-                                        Foreground="{ThemeResource EgTextOnAccentBrush}" />
-                                </Border>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                    <Border
+                                        Background="{ThemeResource EgAccentSoftBrush}"
+                                        CornerRadius="10"
+                                        Padding="8,2"
+                                        Visibility="{x:Bind OnlineVisibility}">
+                                        <TextBlock
+                                            FontSize="{StaticResource EgCaptionFontSize}"
+                                            Foreground="{ThemeResource EgAccentBrush}"
+                                            Text="在线" />
+                                    </Border>
+                                    <Border
+                                        Background="{ThemeResource EgAccentBrush}"
+                                        CornerRadius="10"
+                                        Padding="8,2"
+                                        Visibility="{x:Bind CurrentVisibility}">
+                                        <TextBlock x:Uid="ServersPage_TextBlock1"
+                                            FontSize="{StaticResource EgCaptionFontSize}"
+                                            Foreground="{ThemeResource EgTextOnAccentBrush}" />
+                                    </Border>
+                                </StackPanel>
                             </Grid>
                             <TextBlock
                                 Foreground="{ThemeResource EgTextDimBrush}"
                                 Text="{x:Bind Url}"
                                 TextTrimming="CharacterEllipsis" />
-                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                                <TextBlock
-                                    FontSize="{StaticResource EgCaptionFontSize}"
-                                    Foreground="{ThemeResource EgTextFaintBrush}"
-                                    Text="服务端界面" VerticalAlignment="Center" />
-                                <TextBlock
-                                    FontSize="{StaticResource EgCaptionFontSize}"
-                                    Foreground="{ThemeResource EgTextBrush}"
-                                    Text="{x:Bind InterfaceLabel}" VerticalAlignment="Center" />
-                                <Border
-                                    Background="{ThemeResource EgSurfaceAltBrush}"
-                                    BorderBrush="{ThemeResource EgBorderBrush}"
-                                    BorderThickness="1"
-                                    CornerRadius="8"
-                                    Padding="7,1"
-                                    Visibility="{x:Bind InterfaceVisibility}">
-                                    <TextBlock
-                                        FontSize="{StaticResource EgCaptionFontSize}"
-                                        Foreground="{ThemeResource EgTextDimBrush}"
-                                        Text="当前界面" />
-                                </Border>
-                            </StackPanel>
                         </StackPanel>
 
                         <StackPanel
@@ -218,7 +206,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <Grid ColumnSpacing="16" RowSpacing="14">
@@ -266,11 +253,11 @@
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
 
         <!--
-          当前界面是读数而不是开关：所有已登录账号同时在线，界面由在线服务器台数算出来 ——
-          只有一台服务器时用那台的产品界面，多台时回到通用界面。
+          聚合模式：这台程序连接服务器的行为，不随服务器变化。关着时一次只保持一个在线来源；开着时多台服务器、
+          多个账号同时在线。拨一下当场写进设置并让会话收口，不必重启。
         -->
         <Border
-            AutomationProperties.AutomationId="ServersInterfaceSummary"
+            AutomationProperties.AutomationId="ServersAggregateCard"
             Grid.Row="2"
             Background="{ThemeResource EgSurfaceBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
@@ -281,25 +268,27 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <Border Width="34" Height="34" CornerRadius="11" Background="{ThemeResource EgAccentSoftBrush}">
-                    <FontIcon Glyph="&#xE7F4;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
+                    <FontIcon Glyph="&#xE8AB;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
                 </Border>
                 <StackPanel Grid.Column="1" Spacing="2">
-                    <TextBlock FontWeight="SemiBold" Text="{x:Bind ViewModel.InterfaceTitle, Mode=OneWay}" />
+                    <TextBlock FontWeight="SemiBold" Text="聚合模式" />
                     <TextBlock
                         FontSize="{StaticResource EgCaptionFontSize}"
                         Foreground="{ThemeResource EgTextDimBrush}"
-                        Text="{x:Bind ViewModel.InterfaceDescription, Mode=OneWay}"
-                        TextWrapping="Wrap" />
-                    <!-- 在线身份单独一行，窄窗里不和说明抢那一点宽度。 -->
-                    <TextBlock
-                        Margin="0,3,0,0"
-                        FontSize="{StaticResource EgCaptionFontSize}"
-                        Foreground="{ThemeResource EgTextFaintBrush}"
-                        Text="{x:Bind ViewModel.OnlineSummary, Mode=OneWay}"
+                        Text="{x:Bind ViewModel.AggregateNote, Mode=OneWay}"
                         TextWrapping="Wrap" />
                 </StackPanel>
+                <ToggleSwitch
+                    x:Name="AggregateToggle"
+                    AutomationProperties.Name="聚合模式"
+                    Grid.Column="2"
+                    VerticalAlignment="Center"
+                    IsOn="{x:Bind ViewModel.AggregateMode, Mode=TwoWay}"
+                    OnContent=""
+                    OffContent="" />
             </Grid>
         </Border>
 
@@ -353,44 +342,5 @@
                 <ItemsControl ItemTemplate="{StaticResource ServerTemplate}" ItemsSource="{x:Bind ViewModel.Servers, Mode=OneWay}" />
             </StackPanel>
         </ScrollView>
-
-        <!-- Outside the scroller on purpose: it is the one thing on this page that is about the machine
-             rather than about a server, and a long server list would scroll it out of reach. -->
-        <Border
-            Grid.Row="5"
-            Background="{ThemeResource EgSurfaceBrush}"
-            BorderBrush="{ThemeResource EgBorderBrush}"
-            BorderThickness="{StaticResource EgCardBorderThickness}"
-            CornerRadius="{StaticResource EgCardCornerRadius}"
-            Padding="20,16">
-            <Grid ColumnSpacing="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <Border Width="42" Height="42" CornerRadius="14" Background="{ThemeResource EgAccentSoftBrush}">
-                    <FontIcon FontSize="20" Foreground="{ThemeResource EgAccentBrush}" Glyph="&#xEB9F;" />
-                </Border>
-                <StackPanel Grid.Column="1">
-                    <TextBlock x:Uid="ServersPage_TextBlock9" FontWeight="SemiBold" />
-                    <TextBlock
-                        FontSize="{StaticResource EgCaptionFontSize}"
-                        Foreground="{ThemeResource EgTextDimBrush}"
-                        Text="{x:Bind ViewModel.CacheSummary, Mode=OneWay}" />
-                </StackPanel>
-                <Button
-                    AutomationProperties.AutomationId="ServersClearCacheButton"
-                    Grid.Column="2"
-                    Command="{x:Bind ViewModel.ClearCacheCommand}"
-                    Style="{StaticResource EgSecondaryButtonStyle}"
-                    VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <FontIcon Glyph="&#xE74D;" />
-                        <TextBlock x:Uid="ServersPage_TextBlock10" />
-                    </StackPanel>
-                </Button>
-            </Grid>
-        </Border>
     </Grid>
 </Page>

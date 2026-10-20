@@ -83,7 +83,7 @@ internal sealed partial class ShellNavigationProbe
             _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance),
-            new UpdateClient(new RejectNetwork()), fixture.Capabilities);
+            new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         await page.ViewModel.ReloadAsync();
         page.SelectedCategory = "界面";
         page.Visibility = Visibility.Collapsed;
