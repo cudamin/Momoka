@@ -836,6 +836,43 @@ internal static class IdentityRegressionTests
 
     private static void RegisterAggregateMode()
     {
+        Case("服务器账号选择：B 首账号离线、b2 在线时优先 b2，不使用 A 的全局最近账号", async () =>
+        {
+            using var fixture = new SessionFixture();
+            var offline = new AccountProfile { Username = "offline-b", UserId = "offline-b" };
+            fixture.B.Server.Accounts.Insert(0, offline);
+            await fixture.Restore(fixture.B);
+            await fixture.Restore(fixture.A);
+            Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.PreferredAccount(fixture.B.Server)));
+            fixture.Settings.LastAccountId = offline.Id;
+            Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.PreferredAccount(fixture.B.Server)));
+            fixture.Session.SignOut(fixture.B.Server, fixture.B.Account);
+            Assert.True(ReferenceEquals(offline, fixture.Session.PreferredAccount(fixture.B.Server)));
+            Assert.Null(fixture.Session.PreferredAccount(new ServerProfile()));
+        });
+        Case("服务器账号选择：同服多账号优先当前来源；无当前时最近在线优先于离线", async () =>
+        {
+            using var fixture = new SessionFixture(sameServer: true);
+            await fixture.Restore(fixture.A);
+            await fixture.Restore(fixture.B);
+            Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.PreferredAccount(fixture.A.Server)));
+            fixture.Session.SelectSource(fixture.Session.Sources.Single(source => source.AccountProfileId == fixture.A.Account.Id));
+            Assert.True(ReferenceEquals(fixture.A.Account, fixture.Session.PreferredAccount(fixture.A.Server)));
+        });
+        Case("聚合模式：来源数不变时仍通知登录动作语义更新", async () =>
+        {
+            using var fixture = new SessionFixture(aggregateMode: false);
+            await fixture.Restore(fixture.A);
+            var notifications = 0;
+            fixture.Session.SourcesChanged += (_, _) => notifications++;
+            fixture.Settings.AggregateMode = true;
+            Assert.Equal(0, fixture.Session.ApplyAggregateMode());
+            fixture.Settings.AggregateMode = false;
+            Assert.Equal(0, fixture.Session.ApplyAggregateMode());
+            Assert.Equal(2, notifications);
+            Assert.Equal(1, fixture.Session.Sources.Count);
+        });
+
         Case("聚合模式关闭：启动只恢复上次那一个来源，其余账号保留凭据与自动连接", async () =>
         {
             using var fixture = new SessionFixture(aggregateMode: false);

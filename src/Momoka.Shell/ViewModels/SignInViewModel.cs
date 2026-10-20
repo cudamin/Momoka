@@ -175,6 +175,9 @@ public sealed partial class SignInViewModel : PageViewModel
             ? "登录"
             : Settings.AggregateMode ? "登录并添加" : "登录并切换";
 
+    /// <summary>来源或聚合模式改变只刷新动作文案，不清空正在输入的账号与密码。</summary>
+    internal void RefreshSessionText() => OnPropertyChanged(nameof(SignInText));
+
     /// <summary>
     /// What gates the three buttons that start something. The guard the click handlers used to open with
     /// — <c>if (_busy) return;</c> — is still at the top of each method, because a saved-server pick and a
@@ -237,9 +240,7 @@ public sealed partial class SignInViewModel : PageViewModel
         var settings = Settings;
         var server = prefer ?? settings.ResolveLastServer();
 
-        var account = preferredAccount ?? (prefer is null
-            ? settings.ResolveLastAccount(server)
-            : prefer.FindAccount(settings.LastAccountId) ?? prefer.Accounts.FirstOrDefault());
+        var account = preferredAccount ?? (server is null ? null : _session!.PreferredAccount(server));
         if (newAccount) account = null;
 
         Address = server?.Url ?? "";
@@ -302,7 +303,7 @@ public sealed partial class SignInViewModel : PageViewModel
     {
         Address = server.Url;
 
-        var account = server.FindAccount(Settings.LastAccountId) ?? server.Accounts.FirstOrDefault();
+        var account = _session!.PreferredAccount(server);
         Username = account?.Username ?? "";
         Remember = account?.RememberPassword ?? true;
         Password = ReadSavedPassword(EmbySignInIdentity.SavedAccount(Settings.Servers, Address, Username));

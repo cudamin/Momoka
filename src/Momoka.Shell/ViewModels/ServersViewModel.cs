@@ -298,14 +298,13 @@ public sealed partial class ServersViewModel : PageViewModel
         }
     }
 
-    /// <summary>Signs in to a server, reusing whichever account was last used on it.</summary>
+    /// <summary>服务器入口优先回到已在线账号，而不是随便挑该服第一个离线账号。</summary>
     [RelayCommand]
     private void LoginServer(ServerRow? row)
     {
         if (!Attached || row is null) return;
 
-        var account = row.Profile.FindAccount(Settings.LastAccountId)
-            ?? row.Profile.Accounts.FirstOrDefault();
+        var account = _session!.PreferredAccount(row.Profile);
         _ = _actions!.SwitchProfileAsync(row.Profile, account);
     }
 

@@ -1124,7 +1124,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// 拿回来 —— 全屏画面在设置窗口立着的那段时间里一直站台下，收摊后该回到最上层（见
     /// <c>HostWindow.ReclaimAfterOwnWindow</c>）。
     /// </summary>
-    private void OnSettingsWindowHidden() => _window?.ReclaimAfterOwnWindow();
+    private void OnSettingsWindowHidden()
+    {
+        SignIn.ViewModel.RefreshSessionText();
+        _window?.ReclaimAfterOwnWindow();
+    }
 
     /// <summary>
     /// Puts the settings window away and gives the main window the foreground back. Called when the shell
@@ -2228,7 +2232,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     {
         if (_settings is null || sender is not MenuFlyoutItem { Tag: ServerProfile server }) return;
 
-        var account = server.FindAccount(Settings.LastAccountId) ?? server.Accounts.FirstOrDefault();
+        var account = _session?.PreferredAccount(server);
         _ = SwitchAsync(server, account);
     }
 
@@ -2305,6 +2309,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     private void OnSourcesChanged()
     {
+        SignIn.ViewModel.RefreshSessionText();
         if (_sourceOperations > 0) { _pendingSourcesChange = true; return; }
         if (_session is null || SignInVisible) return;
         if (_session.IsSignedIn)

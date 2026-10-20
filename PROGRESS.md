@@ -11,6 +11,8 @@
 - **E1／F1／F8 已修**：重登网络、超时、403、503 不清凭据不注销来源，恢复后可重试；修正旧 timeout 清令牌断言。发行日期用纯日期，带偏移的服务端值保留原日历日期；表单内拒绝不合法日期与 NaN／Infinity。
 - 本树 Core＋正式测试及 Shell Release 构建 **0 警告、0 错误**；正式测试 **2010 通过、0 失败、0 跳过**。日志：`work/media-review-fixes/build-credentials-dates.log`、`tests-credentials-dates.log`、`build-shell-credentials-dates.log`。设置分区 **13 通过、0 失败**，其他 9 个区域／84 条检查未执行；当前证据 `work/media-review-fixes/probe-settings-f2-visible.json`，实际目录 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261020-132800892-26096`。飞牛偏好渲染帧已查看，无截断、错位。
 - 探针曾有两次红：第一次夹具误以为 AccountProfile 默认不记密码，正式默认其实是 true；只修正夹具设置，不改产品默认。第二次 `Start-Process -WindowStyle Hidden` 导致实屏窗口命中检查失败，飞牛运行断言已过；恢复正常显示方式后设置 13 项全过，不放宽遮挡检查。这仍是中间证据，批次最终适用探针须重验；尚未刷新实际快捷方式目录、未推送。
+- **A1／A2 已修**：服务器级入口、账号菜单及登录卡统一使用会话的在线优先选账号规则，显式账号选择不变。拨聚合模式即使只有一个在线账号／来源数不变也发通知；登录卡只刷新 `SignInText` 不调用 Prepare，不丢草稿。新增正式账号／通知回归；Shell 探针通过真实服务器行按钮的 UIA Invoke 核对 B 首账号离线／第二账号在线时选在线账号，并核对登录卡可见时两档文案通知、绑定按钮及密码草稿保持。
+- A1／A2 本树 Core、正式测试与 Shell Release **0 警告、0 错误**；正式测试 **2013 通过、0 失败、0 跳过**；设置＋账号分区 **17 通过、0 失败**，其他 8 个区域未执行。日志 `work/media-review-fixes/build-a1-a2.log`、`tests-a1-a2.log`、`build-shell-a1-a2.log`、`probe-a1-a2.json`；实际探针目录 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261020-141944724-21288`。仅隔离夹具，无真实服务器写入；批次继续，未推送／未交付主快捷方式。
 
 ## MP 电影／电视剧订阅页：读取途中显示转圈，不再先说「暂无订阅」（2026-10-20 用户令）
 

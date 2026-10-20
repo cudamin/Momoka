@@ -72,6 +72,22 @@ public sealed class EmbySession : IDisposable
         }
     }
 
+    /// <summary>服务器级入口优先选择已在线账号；当前、记住的在线账号优先，离线时才回退保存的账号。</summary>
+    public AccountProfile? PreferredAccount(ServerProfile server)
+    {
+        lock (_lifecycleGate)
+        {
+            if (_current is { } current && current.ServerProfileId == server.Id && IsAvailable(current))
+                return current.IdentityState.Account;
+            var remembered = server.FindAccount(_settings.LastAccountId);
+            var online = _sources.Values.Where(source => source.ServerProfileId == server.Id && IsAvailable(source)).ToArray();
+            return online.FirstOrDefault(source => source.AccountProfileId == remembered?.Id)?.IdentityState.Account
+                ?? online.OrderByDescending(source => source.IdentityState.Account.LastSignedIn).FirstOrDefault()?.IdentityState.Account
+                ?? remembered
+                ?? server.Accounts.OrderByDescending(account => account.LastSignedIn).FirstOrDefault();
+        }
+    }
+
     public bool SelectSource(EmbySessionScope source)
     {
         lock (_lifecycleGate)
@@ -93,7 +109,8 @@ public sealed class EmbySession : IDisposable
     public int ApplyAggregateMode()
     {
         var removed = PruneOthers();
-        if (removed > 0) NotifySourcesChanged();
+        // 来源数没变（例如打开模式或只有一个在线账号）时，登录卡的动作语义仍然变了。
+        NotifySourcesChanged();
         return removed;
     }
 

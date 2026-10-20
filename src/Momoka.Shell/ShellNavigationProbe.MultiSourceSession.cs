@@ -50,6 +50,25 @@ internal sealed partial class ShellNavigationProbe
             Require(original.IsAvailable && fixture.Session.Sources.Count == 1,
                 "打开另一个账号的登录表单不应退出已在线账号");
 
+            // 登录卡可见时拨设置页的聚合模式：绑定的按钮文案当场更新，但草稿不被 Prepare 清空。
+            var vm = shell.SignInRoot.ViewModel;
+            vm.Password = "offline-unsaved-draft";
+            var textChanges = 0;
+            vm.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(vm.SignInText)) textChanges++; };
+            using var serversVm = new ViewModels.ServersViewModel();
+            serversVm.Attach(fixture.Actions, fixture.SettingsService, fixture.Session);
+            await serversVm.ReloadAsync();
+            serversVm.AggregateMode = false;
+            await UntilAsync(() => textChanges > 0 && vm.SignInText == "登录并切换");
+            Require(vm.Password == "offline-unsaved-draft" && vm.Username == offline.Username,
+                "模式刷新清空了登录草稿");
+            var textBefore = textChanges;
+            serversVm.AggregateMode = true;
+            await UntilAsync(() => textChanges > textBefore && vm.SignInText == "登录并添加");
+            var loginButton = Descendants(shell.SignInRoot).OfType<Button>()
+                .Single(button => ReferenceEquals(button.Command, vm.SignInCommand));
+            Require((string)loginButton.Content == "登录并添加", "登录按钮绑定没有跟上模式文案");
+
             shell.OpenSignIn(server, newAccount: true);
             Require(shell.SignInRoot.ViewModel.Username.Length == 0 && shell.SignInRoot.ViewModel.Password.Length == 0,
                 "添加账号仍预填已有账号的用户名或密码");

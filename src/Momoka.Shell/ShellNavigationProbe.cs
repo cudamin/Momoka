@@ -510,7 +510,12 @@ internal sealed partial class ShellNavigationProbe
         public void OpenGenre(string genre, EmbySessionScope? source = null) { }
         public void OpenRow(HomeLayout.HomeRowTarget target, EmbySessionScope? source = null) { }
         public void OpenSignIn(ServerProfile? server = null, bool newAccount = false) { }
-        public Task SwitchProfileAsync(ServerProfile server, AccountProfile? account) => Task.CompletedTask;
+        public (ServerProfile Server, AccountProfile? Account)? SwitchedProfile { get; private set; }
+        public Task SwitchProfileAsync(ServerProfile server, AccountProfile? account)
+        {
+            SwitchedProfile = (server, account);
+            return Task.CompletedTask;
+        }
         public void SetTitleStrip(TitleStrip strip) { }
         public bool MoviePilotEnabled => false;
         public event EventHandler? MoviePilotAvailabilityChanged { add { } remove { } }

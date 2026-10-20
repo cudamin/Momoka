@@ -950,6 +950,23 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1100, 900);
             await LayoutAsync(page);
 
+            // B 的首账号离线、第二个在线；A 是默认。按钮真调用绑定的命令，不只核对选择表达式。
+            var b = fixture.Settings.Servers[1];
+            var bOnline = b.Accounts.Single();
+            b.Accounts.Insert(0, new AccountProfile { Username = "离线的首账号", UserId = "offline-b" });
+            fixture.Session.SelectSource(fixture.Session.Sources.Single(source => source.ServerProfileId == fixture.Settings.Servers[0].Id));
+            await page.ViewModel.ReloadAsync();
+            await LayoutAsync(page);
+            var row = page.ViewModel.Servers.Single(server => server.Profile.Id == b.Id);
+            var login = Descendants(page).OfType<Button>().Single(button =>
+                ReferenceEquals(button.Command, page.ViewModel.LoginServerCommand) && ReferenceEquals(button.CommandParameter, row));
+            ((IInvokeProvider)new ButtonAutomationPeer(login).GetPattern(PatternInterface.Invoke)).Invoke();
+            Require(fixture.Actions.SwitchedProfile?.Account == bOnline,
+                "服务器行按钮选了 B 的离线首账号而非在线账号");
+            fixture.Session.SelectSource(fixture.Session.Sources.Single(source => source.AccountProfileId == bOnline.Id));
+            b.Accounts.RemoveAt(0);
+            await page.ViewModel.ReloadAsync();
+
             // 关掉聚合模式：只留当前来源，另一个账号下线但保存的令牌与密码都还在。
             var first = fixture.Settings.Servers[0].Accounts[0];
             var second = fixture.Settings.Servers[1].Accounts[0];
