@@ -1,0 +1,762 @@
+{
+  "schemaVersion": 1,
+  "phase": 5,
+  "capturedAt": "2026-10-21T05:16:08+08:00",
+  "timezone": "Asia/Shanghai",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "704ec7ee7c5a0b136ef9c8a2b53098e6ebc1d3ad",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "authorization": "仅阶段5只读审查/持久交接；未授权修复、新回归、真实账号/服务器、推送发布",
+  "baselineBeforeWriting": {
+    "trackedChanges": [],
+    "stagedChanges": [],
+    "untrackedFiles": [],
+    "productMatchesSource": true
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段5审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段5证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段5检查.json",
+    "PROGRESS.md"
+  ],
+  "coverage": [
+    {
+      "path": "src/Momoka.Core/Plex/PlexEndpoint.cs",
+      "readDepth": "全文",
+      "aspect": "入口/反代/端口、Api/Special/Segment/RelativeKey及同源边界",
+      "sha256": "1C466FAB5D3CAB8025894E1EB264D1294C5934AC6581C89B800C843E177FE4EC"
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexHttp.cs",
+      "readDepth": "全文",
+      "aspect": "账号固定authority、直接JSON解析、逐头/同源跳转/预算/正文限额和释放",
+      "sha256": "90F1E7CEEEE39BB19F37BCB6FE9AB360618FF022CD80F3F92A11499B1EB2BAC3"
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexApiException.cs",
+      "readDepth": "全文",
+      "aspect": "401/403/错误本地文案与共享会话分类",
+      "sha256": "4521B0ECB0CF820930BDDF2B5B5FE921D8E6E6B603B6C5AC1A1A04B7DCAE3C22"
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexClient.cs",
+      "readDepth": "主要协议方法及相关定义",
+      "aspect": "身份/服务器访问、分页请求头、特殊路由/GET上报、媒体地址与根信封",
+      "sha256": "46802E839CEFA6371D87D9428D871855817F74B10FE00BDC9A1EAA6D5FA2B3FA"
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+      "readDepth": "探测/登录/恢复/分页/能力相关段",
+      "aspect": "账号到服务器核对、用户身份来源、类型裁剪/不支持条件；未穷尽浏览全链",
+      "sha256": "6178EE81995CE825B8AC521A7A2E02BF82A3EAFD4571A117AA486FB74C0DBD7B"
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexMediaAdapter.Models.cs",
+      "readDepth": "Query/类型/字段和Items相关段",
+      "aspect": "排序/类型参数、数字字符串模型、三类容器；完整媒体映射留阶段10",
+      "sha256": "F2BEF56591DEFC9922CCD8D04768627CF9953F9B040CA33D521A9EE345F4460D"
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexPlaybackSelection.cs",
+      "readDepth": "全文（地址安全交界）",
+      "aspect": "原始文件无凭据/无query/同源及part key；完整播放寿命留阶段13",
+      "sha256": "96459643957D0DFD40D9876D3CA0523D9863813EE39B71428BC81DCE2F94E43E"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+      "readDepth": "Plex检测/认证分派相关段",
+      "aspect": "产品检测、固定账号authority调用者，匿名探测无token",
+      "sha256": "F5F4D11ABBB0965169318C1BD170563D6C24FB604A75E4A33CD1066BA1590DF0"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+      "readDepth": "Plex客户端构造/Dispose相关段",
+      "aspect": "生产独立handler、注入假handler共享及释放",
+      "sha256": "DD9BB68241B5DBED329FCBF0853BD8920C59DE77A316B092F05D07AD6E1DF71C"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerAddress.cs",
+      "readDepth": "Plex Normalize分派相关段",
+      "aspect": "端口误判进入用户地址/已存配置链路",
+      "sha256": "25BCFC0570D42D2D4CCCD5B0728B86B124ABF0D7CB1C90C272130BB72479152F"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "readDepth": "恢复最终提交与在线重登相关段",
+      "aspect": "R-003共享身份去重交界；不扩大为完整账号审查",
+      "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+      "readDepth": "Plex菜单及Supports相关段",
+      "aspect": "能力显示与迟到命令共同拒绝范围，不因PMS有更多API就强加产品范围",
+      "sha256": "F71A22AE2A76D75FBC9C7D7090AE6A2DCD69249F91857A11AD93D673C70711E0"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ServerAccess.cs",
+      "readDepth": "产品管理能力相关规则",
+      "aspect": "Plex当前通用界面和无管理能力是本客户端边界",
+      "sha256": "0BA708827E799B8A4D4230276A6D929F675FE7F88FF03B9D4EC4A0F2AC0E1C47"
+    },
+    {
+      "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+      "readDepth": "管理员和菜单Sources相关段",
+      "aspect": "Plex管理入口执行条件/来源守卫；非所有UI已验证",
+      "sha256": "50E94E6B15227CCEF1E8DB821BA910518C8B5383AE18AE5C2A520BEFA464C568"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/FavoriteAccounts.cs",
+      "readDepth": "SupportsFavorites相关定位",
+      "aspect": "Plex不参与本客户端收藏聚合",
+      "sha256": "7CC2B6FB889BE657AC7BF47905EF3FDFFD1CC855AF6CCA6FB6DBB09EF68571DF"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexProtocolTests.cs",
+      "readDepth": "协议注册/关键断言和假传输",
+      "aspect": "端口/身份/头/跳转/分页/方法参数、错误嵌套账号夹具；不是外部契约验证",
+      "sha256": "C35A14A38FCAD533E8E865626DCFEE4F94EC501248F1842FD22AA5C5B7A72179"
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexMediaTests.cs",
+      "readDepth": "登录/恢复及Transport相关段",
+      "aspect": "现有同身份401和正常结构假响应；完整媒体UI/分页留阶段10",
+      "sha256": "D0977C0F47D7EB40B1B6F67BF382834D1034956DDA64156F15494C4DB9C82DAE"
+    }
+  ],
+  "readPoliciesAndSkills": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "sha256": "364229B10809BFC4516C27B7D08352D5AF38438ADA222181FBC92B880EF4F4C0"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B"
+    },
+    {
+      "path": "docs/Plex支持.md",
+      "sha256": "57AC6F22C0E7484FFD57BBA58048D92B4516E07611090314E5218C740EC04391"
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA"
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69"
+    },
+    {
+      "path": ".claude/skills/momoka-plex-api/SKILL.md",
+      "sha256": "B319844C882292C678A558944BD88C819B1C8E6B74AA902C01DDDF465404A93A"
+    },
+    {
+      "path": ".claude/skills/momoka-plex-api/references/http-and-auth.md",
+      "sha256": "EDA620BB40C7CE5B436EB26B7E95F100CB6FC9BBFEEB11EC2070D7AE2D9C0C20"
+    },
+    {
+      "path": ".claude/skills/momoka-plex-api/references/endpoints.md",
+      "sha256": "9AB145AF2646301800E9292E7EF8FCF778060379B37923ED0697910504E8715A"
+    }
+  ],
+  "primaryReferences": [
+    {
+      "url": "https://app.plex.tv/auth-form/",
+      "finalUrl": "https://app.plex.tv/auth-form/",
+      "httpStatus": 200,
+      "sha256": "93B9D4A1FFC9BA698DEDA059BC38350EF1D353C6309E92E5F944C654F81E1776",
+      "bytes": 17729,
+      "retrievedAt": "2026-10-21T05:16:08+08:00",
+      "method": "GET",
+      "credentialsSent": false,
+      "role": "官方公开静态资料，不代表真实账号或媒体服务器运行证据"
+    },
+    {
+      "url": "https://app.plex.tv/auth-form/js/main-792-e02bf845014d00c600e0-plex-4.161.0-e486ae4.js",
+      "finalUrl": "https://app.plex.tv/auth-form/js/main-792-e02bf845014d00c600e0-plex-4.161.0-e486ae4.js",
+      "httpStatus": 200,
+      "sha256": "6DA989E89C69796125E923C4D451F8A6060F634A8EB4DEDC265707BDC543F429",
+      "bytes": 187221,
+      "retrievedAt": "2026-10-21T05:16:09+08:00",
+      "method": "GET",
+      "credentialsSent": false,
+      "role": "官方公开静态资料，不代表真实账号或媒体服务器运行证据",
+      "frontendBuildVersion": "4.161.0",
+      "frontendBuildCommit": "e486ae4",
+      "discoveredFrom": "https://app.plex.tv/auth-form/",
+      "markers": [
+        {
+          "id": "plainAjaxHelper",
+          "utf16OffsetZeroBased": 80492,
+          "markerSha256": "1157603640CBF4686BD81F46EFA70A1A06B01003B66ECD543C9D0A17DD6C260C",
+          "rawSnippetPersisted": false
+        },
+        {
+          "id": "signinV2Endpoint",
+          "utf16OffsetZeroBased": 88696,
+          "markerSha256": "FD1757D10ADEF39AE7C039349CC0AE2143A5B49304CF89172FE4B2EB8218944A",
+          "rawSnippetPersisted": false
+        },
+        {
+          "id": "passwordResponsePassThrough",
+          "utf16OffsetZeroBased": 88899,
+          "markerSha256": "45A48BB06B665AB0A6D3338305619B1D0813EF47DC48336672340D774DC616A7",
+          "rawSnippetPersisted": false
+        },
+        {
+          "id": "topLevelAccountId",
+          "utf16OffsetZeroBased": 86228,
+          "markerSha256": "56D967428A877C1ACFEA24759B03A684C2FD70ED87634580BB5981BACAE53CB9",
+          "rawSnippetPersisted": false
+        },
+        {
+          "id": "topLevelAccessToken",
+          "utf16OffsetZeroBased": 86278,
+          "markerSha256": "AD11F622FEE792E34C8699C30B4C1070A61BB5525EC7A6F0214B8F36EA67DC43",
+          "rawSnippetPersisted": false
+        }
+      ],
+      "interpretation": "官方表单同一v2密码登录接口的JSON成功对象直接带账号id与authToken；不认证真实账号、不推断所有请求Content-Type都可用"
+    },
+    {
+      "url": "https://developer.plex.tv/pms/",
+      "finalUrl": "https://developer.plex.tv/pms/",
+      "httpStatus": 200,
+      "sha256": "B26F3AB03D08041ABF8AED8D5DDED2C793ED25FECDE440889982793E36663EF5",
+      "bytes": 5199092,
+      "retrievedAt": "2026-10-21T05:16:12+08:00",
+      "method": "GET",
+      "credentialsSent": false,
+      "role": "官方公开静态资料，不代表真实账号或媒体服务器运行证据"
+    }
+  ],
+  "selectedPublicSpecification": {
+    "title": "Plex Media Server",
+    "openapiVersion": "3.1.0",
+    "declaredDocumentVersion": "1.2.3",
+    "documentVersionNotServerVersion": true,
+    "pathCount": 207,
+    "selectedRoutes": [
+      {
+        "path": "/identity",
+        "registeredMethods": [
+          {
+            "method": "get",
+            "operationId": "getIdentity",
+            "parameterNames": []
+          }
+        ]
+      },
+      {
+        "path": "/",
+        "registeredMethods": [
+          {
+            "method": "get",
+            "operationId": "getSlash",
+            "parameterNames": []
+          }
+        ]
+      },
+      {
+        "path": "/library/sections/{sectionId}/all",
+        "registeredMethods": [
+          {
+            "method": "get",
+            "operationId": "librarySectionGetAll",
+            "parameterNames": [
+              "#/components/parameters/mediaQuery",
+              "sectionId"
+            ]
+          },
+          {
+            "method": "put",
+            "operationId": "librarySectionPutAll",
+            "parameterNames": [
+              "sectionId",
+              "type",
+              "filters",
+              "field.value",
+              "field.locked",
+              "title.value",
+              "artist.title.value",
+              "artist.title.id",
+              "album.title.value",
+              "album.title.id",
+              "tagtype[idx].tag.tag",
+              "tagtype[idx].tagging.object",
+              "tagtype[].tag.tag-",
+              "tagtype[].tag"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "/hubs/search",
+        "registeredMethods": [
+          {
+            "method": "get",
+            "operationId": "hubsGetSearch",
+            "parameterNames": [
+              "query",
+              "sectionId",
+              "limit"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "/:/timeline",
+        "registeredMethods": [
+          {
+            "method": "post",
+            "operationId": "timelinePostSlash",
+            "parameterNames": [
+              "key",
+              "ratingKey",
+              "state",
+              "playQueueItemID",
+              "time",
+              "duration",
+              "continuing",
+              "updated",
+              "offline",
+              "timeToFirstFrame",
+              "timeStalled",
+              "bandwidth",
+              "bufferedTime",
+              "bufferedSize",
+              "X-Plex-Client-Identifier",
+              "X-Plex-Session-Identifier"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "/:/scrobble",
+        "registeredMethods": [
+          {
+            "method": "put",
+            "operationId": "putScrobble",
+            "parameterNames": [
+              "identifier",
+              "key",
+              "uri"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "/:/unscrobble",
+        "registeredMethods": [
+          {
+            "method": "put",
+            "operationId": "putUnscrobble",
+            "parameterNames": [
+              "identifier",
+              "key",
+              "uri"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "/library/sections/{sectionId}/filters",
+        "registeredMethods": [
+          {
+            "method": "get",
+            "operationId": "librarySectionGetFilters",
+            "parameterNames": [
+              "sectionId"
+            ]
+          }
+        ]
+      },
+      {
+        "path": "/library/sections/{sectionId}",
+        "registeredMethods": [
+          {
+            "method": "get",
+            "operationId": "librarySectionGetSection",
+            "parameterNames": [
+              "sectionId",
+              "includeDetails"
+            ]
+          },
+          {
+            "method": "delete",
+            "operationId": "libraryDeleteSection",
+            "parameterNames": [
+              "sectionId",
+              "async"
+            ]
+          },
+          {
+            "method": "put",
+            "operationId": "librarySectionPutSection",
+            "parameterNames": [
+              "sectionId",
+              "name",
+              "scanner",
+              "agent",
+              "metadataAgentProviderGroupId",
+              "language",
+              "locations",
+              "prefs"
+            ]
+          }
+        ]
+      }
+    ],
+    "interpretation": "只记录本次公开规格方法/结构；当前GET上报和分页兼容未真实验证，未登记不直接推出服务器405/404",
+    "serverAddressesOrExamplesCopied": false,
+    "paginationContract": "请求Start/Size，响应Start/Total-Size及容器offset/size需核对，不保证按请求数量返回；本轮只核规范，不执行分页故障"
+  },
+  "uriEvidence": {
+    "schemaVersion": 1,
+    "phase": 5,
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "phaseStartCommit": "704ec7ee7c5a0b136ef9c8a2b53098e6ebc1d3ad",
+    "capturedAt": "2026-10-21T05:09:33+08:00",
+    "runtimeVersion": "10.0.11",
+    "uriAssembly": {
+      "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Private.Uri.dll",
+      "runtimePath": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Private.Uri.dll",
+      "runtimeSha256": "0546093EC627BF832C244BE56D9ACCA471778385C534E0107F2A6DC6A78F93D2",
+      "identicalToReadAssembly": true
+    },
+    "uriObservations": [
+      {
+        "input": "http://plex.invalid",
+        "host": "plex.invalid",
+        "authority": "plex.invalid",
+        "parsedPort": 80,
+        "originalString": "http://plex.invalid",
+        "comparisonHostFromSource": "plex.invalid",
+        "sourceWouldTreatPortAsExplicit": false,
+        "sourceWouldSelectPort": 32400,
+        "expectedPortUnderProjectRule": 32400,
+        "observationType": "内置System.Uri属性读取和当前源码分支计算，不调用Momoka产品、不建立网络连接"
+      },
+      {
+        "input": "http://plex.invalid:80",
+        "host": "plex.invalid",
+        "authority": "plex.invalid",
+        "parsedPort": 80,
+        "originalString": "http://plex.invalid:80",
+        "comparisonHostFromSource": "plex.invalid",
+        "sourceWouldTreatPortAsExplicit": false,
+        "sourceWouldSelectPort": 32400,
+        "expectedPortUnderProjectRule": 80,
+        "observationType": "内置System.Uri属性读取和当前源码分支计算，不调用Momoka产品、不建立网络连接"
+      },
+      {
+        "input": "http://plex.invalid:32400",
+        "host": "plex.invalid",
+        "authority": "plex.invalid:32400",
+        "parsedPort": 32400,
+        "originalString": "http://plex.invalid:32400",
+        "comparisonHostFromSource": "plex.invalid",
+        "sourceWouldTreatPortAsExplicit": true,
+        "sourceWouldSelectPort": 32400,
+        "expectedPortUnderProjectRule": 32400,
+        "observationType": "内置System.Uri属性读取和当前源码分支计算，不调用Momoka产品、不建立网络连接"
+      },
+      {
+        "input": "http://[::1]",
+        "host": "[::1]",
+        "authority": "[::1]",
+        "parsedPort": 80,
+        "originalString": "http://[::1]",
+        "comparisonHostFromSource": "[[::1]]",
+        "sourceWouldTreatPortAsExplicit": true,
+        "sourceWouldSelectPort": 80,
+        "expectedPortUnderProjectRule": 32400,
+        "observationType": "内置System.Uri属性读取和当前源码分支计算，不调用Momoka产品、不建立网络连接"
+      },
+      {
+        "input": "http://[::1]:80",
+        "host": "[::1]",
+        "authority": "[::1]",
+        "parsedPort": 80,
+        "originalString": "http://[::1]:80",
+        "comparisonHostFromSource": "[[::1]]",
+        "sourceWouldTreatPortAsExplicit": true,
+        "sourceWouldSelectPort": 80,
+        "expectedPortUnderProjectRule": 80,
+        "observationType": "内置System.Uri属性读取和当前源码分支计算，不调用Momoka产品、不建立网络连接"
+      },
+      {
+        "input": "http://[::1]:32400",
+        "host": "[::1]",
+        "authority": "[::1]:32400",
+        "parsedPort": 32400,
+        "originalString": "http://[::1]:32400",
+        "comparisonHostFromSource": "[[::1]]",
+        "sourceWouldTreatPortAsExplicit": true,
+        "sourceWouldSelectPort": 32400,
+        "expectedPortUnderProjectRule": 32400,
+        "observationType": "内置System.Uri属性读取和当前源码分支计算，不调用Momoka产品、不建立网络连接"
+      },
+      {
+        "input": "https://[::1]",
+        "host": "[::1]",
+        "authority": "[::1]",
+        "parsedPort": 443,
+        "originalString": "https://[::1]",
+        "comparisonHostFromSource": "[[::1]]",
+        "sourceWouldTreatPortAsExplicit": true,
+        "sourceWouldSelectPort": 443,
+        "expectedPortUnderProjectRule": 443,
+        "observationType": "内置System.Uri属性读取和当前源码分支计算，不调用Momoka产品、不建立网络连接"
+      }
+    ],
+    "productMethodExecuted": false,
+    "networkStarted": false
+  },
+  "testReuse": {
+    "evidenceFile": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+    "evidenceSha256": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229",
+    "actualExecutionPhase": 2,
+    "actualExecutionTime": "2026-10-21T02:59:12+08:00",
+    "actualExecutionHead": "4b663c425491120a4d87234d98bf20ecc9c88619",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "rerunInPhase5": false,
+    "reuseConditionsChecked": true,
+    "summary": {
+      "total": 2072,
+      "passed": 2072,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedMilliseconds": 78960
+    },
+    "build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "plexPrefixPassedCount": 18,
+    "logs": [
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\restore.log",
+        "sha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "purpose": "本树当前测试/Core 还原；可能读取 NuGet"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\build.log",
+        "sha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "purpose": "当前 Release 测试/Core 编译"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\tests.log",
+        "sha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "purpose": "未改现有完整测试宿主运行"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\execution.json",
+        "sha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "purpose": "退出码/源码基线/执行目录回执"
+      }
+    ],
+    "compiledBinaries": [
+      {
+        "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+        "sha256": "7E7F5C29464609675DF984C63750283A8F01A10E92C14659484813441B0480F7"
+      },
+      {
+        "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+        "sha256": "CB35FA56DB6AA41C00D4ECB9F7DD80864364056D5CBA2288760807A256763994"
+      }
+    ],
+    "runtimeAssemblies": [
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.WebSockets.Client.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.WebSockets.Client.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "FF5D42603B662A634857DCC6E1239547025D03794AEA4F84D624579765C23BA9",
+        "identicalToReadAssembly": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.Http.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.Http.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "8AE9F649D43F1F3FB635170784BCB753D305BC36A42703B4B0BEDB15A29729F0",
+        "identicalToReadAssembly": true
+      }
+    ],
+    "newTopLevelAccountOrPortRegressionExecuted": false,
+    "limitation": "2072通过和18个Plex标题来自阶段2，仅代码/日志/产物/runtime哈希未变后复用；不能排除R-005/R-006"
+  },
+  "newFindings": [
+    {
+      "id": "R-005",
+      "priority": "P1",
+      "status": "已确认",
+      "title": "Plex v2成功登录对象的账号层级读错，合法响应仍报账号标识缺失",
+      "discoveryPhase": 5,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+          "member": "SignInAsync",
+          "start": 57,
+          "end": 64
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexHttp.cs",
+          "member": "SignInToAccountAsync",
+          "start": 109,
+          "end": 115
+        },
+        {
+          "path": "tests/Momoka.Tests/PlexProtocolTests.cs",
+          "member": "账号假响应",
+          "start": 97,
+          "end": 103
+        },
+        {
+          "path": "tests/Momoka.Tests/PlexMediaTests.cs",
+          "member": "Transport.SendAsync",
+          "start": 201,
+          "end": 207
+        }
+      ],
+      "trigger": "v2 users/signin返回官方表单所消费的成功JSON对象，顶层id/authToken、没有嵌套user；不要求异常token或恶意服务器",
+      "expected": "读取该成功对象里的账号标识和用户名，继续目标服务器二次访问核对；不得为绕过错误而只检查token",
+      "causalChain": "PlexHttp直接Parse并交回整个根对象；PlexMediaAdapter从根读authToken，却只从根user对象读id/name；user不存在则accountId为空，62行抛身份缺失，64行后的目标服务器核对不执行。两个正式夹具都造嵌套user，测试因此看不到该契约错配",
+      "actualImpact": "官方结构的成功账号认证会被客户端作为登录失败拒绝，阻断首次Plex登录及需要重新交换账号token的恢复；静态结论针对该形状，未真实登录，未证明JSON请求正文被服务接受或所有版本行为相同",
+      "evidenceTypes": [
+        "本仓库完整静态解析/调用链",
+        "匿名GET官方Auth表单HTML及其实际列出的登录JS，固定hash/版本/位置；未调用signin"
+      ],
+      "upstreamGuards": "token有效性、账号ID非空与服务器二次核对均必要；根对象没有任何user重包装层，当前FakeTransport结构与官方消费不同。不能因修复解析取消目标服务器核对/来源身份保护",
+      "notVerified": "未新增顶层成功对象回归、未登录plex.tv或真实PMS；请求媒体类型、2FA/PIN及全部历史响应结构未覆盖",
+      "minimalFix": "按明确v2成功JSON结构解析同一对象里的账号id/name/token；若保留其它结构兼容先记录实际证据，不混用账号/token层；同步正式假响应，保留身份校验及服务器二次核对",
+      "acceptance": "占位顶层id/authToken成功对象应进入目标服务器核对，拒绝服务访问时仍不Adopt；缺id/token及非法凭据应明确失败。现有token头/重定向/取消、账号切换、恢复身份规则不退化",
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-006",
+      "priority": "P2",
+      "status": "已确认",
+      "title": "Plex端口显式性判断丢失默认端口并重复包裹IPv6括号",
+      "discoveryPhase": 5,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Plex/PlexEndpoint.cs",
+          "member": "TryNormalize",
+          "start": 41,
+          "end": 46
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerAddress.cs",
+          "member": "TryNormalize Plex分派",
+          "start": 18,
+          "end": 19
+        }
+      ],
+      "trigger": "用户明确输入HTTP服务器或反代端口80，或输入无端口HTTP IPv6主机；都是当前Normalize接受的合法输入",
+      "expected": "显式端口80保持80；HTTP主机没有显式端口时使用项目Plex默认32400；HTTPS无端口保留443",
+      "causalChain": "使用规范化Uri.Authority与Host判有无显式端口；Uri.Authority省略显式默认80，使IPv4/域名冒充无端口而选32400；.NET10的IPv6 Host已带[]，源码又加一层[]，使无端口IPv6被判成显式端口而选默认HTTP80。两者是同一端口检测路径的反向错误",
+      "actualImpact": "连接/检测/恢复所用基址会指向错误端口，合法地址不能连接原目标。只读System.Uri属性和源码分支计算已证实输入结果；未调用产品Normalize或真实联网",
+      "evidenceTypes": [
+        "静态源码及已定位调用方",
+        "与项目运行时相同DLL的System.Uri属性只读观察，源码分支计算；不是新增产品回归"
+      ],
+      "upstreamGuards": "userinfo/scheme/path/query守卫不修正端口；已规范化Authority无法保留用户是否写了默认80，显示地址后续重入也不能补回；现有地址测试没有:80或IPv6输入",
+      "notVerified": "未新增正式端口回归、未驱动登录UI/反代或IPv6真实连接；不声称已造成身份越界或凭据泄漏",
+      "minimalFix": "在原始authority语法上识别显式端口并正确区分IPv6括号/地址中的冒号，然后使用已解析数值；仍拒绝userinfo，保留反代路径与HTTPS规则",
+      "acceptance": "表驱动覆盖域名/IPv4/IPv6无端口、显式80/32400/自定义端口、HTTPS默认/显式端口、web剥除与显示地址再归一；结果稳定且不连接真实服务器",
+      "repairAuthorized": false
+    }
+  ],
+  "priorFindings": [
+    {
+      "id": "R-001",
+      "status": "已确认，未修复"
+    },
+    {
+      "id": "R-002",
+      "status": "已确认，未修复"
+    },
+    {
+      "id": "R-003",
+      "status": "已确认，未修复",
+      "note": "Plex共享恢复最终身份同根因留阶段6，不重新计数"
+    },
+    {
+      "id": "R-004",
+      "status": "已确认，未修复"
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "P-COV-01",
+      "status": "待验证",
+      "topic": "GET scrobble/unscrobble/timeline及部分旧路由兼容",
+      "reason": "本次公开PMS规格登记PUT scrobble/unscrobble及POST timeline，当前GET只是FakeTransport固定形状；旧别名可能仍可用，规格未登记不证明运行404/405",
+      "followup": "对应阶段10/13核实际目标版本/授权和一手行为，不在阶段5猜改请求方法"
+    },
+    {
+      "id": "P-COV-02",
+      "status": "待验证",
+      "topic": "分页响应offset/头部与总数回退",
+      "reason": "官方契约说明返回offset/size可能与请求不同，当前传输丢响应头，适配只取body totalSize或当页数量；没有实际故障复现，不能由缺测试直列缺陷",
+      "followup": "阶段10追调用者完整分页，获准补边界回归后验证header-only total/非请求offset/未分页返回"
+    },
+    {
+      "id": "P-COV-03",
+      "status": "未验证",
+      "topic": "真实Plex/plex.tv支持、账号请求媒体类型、2FA/PIN/共享用户和播放",
+      "reason": "仅官方静态JS/规格，未发signin/读取账号/token/请求PMS；静态响应层级确认不证明JSON正文或全部认证模式支持",
+      "followup": "明确真实访问授权后分账号/服务器/播放覆盖，不复用Emby/飞牛真机证据"
+    },
+    {
+      "id": "P-COV-04",
+      "status": "跨阶段同根因复核",
+      "topic": "Plex认证后的machineIdentifier与共享恢复最终采用",
+      "reason": "SignInAsync采用返回machineIdentifier未比较预确认ID，自动恢复采用属于R-003共享根因；R-005当前会阻断标准成功响应，先记录适用线索不再计R号",
+      "followup": "阶段6汇总完整身份规则，按基线重核，不为了这项重写全部显式登录"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "topic": "账号访问token只在URL/启动参数中传递",
+      "reason": "本阶段HTTP逐请求头/地址守卫已核，播放交界也使用头；未新发现实际泄漏路径，不用头检查证明全部播放器安全"
+    },
+    {
+      "topic": "服务器第二步验证可删以让登录成功",
+      "reason": "真正账号解析修正后仍必须请求目标服务器并处理拒绝；不能取消该权限边界"
+    },
+    {
+      "topic": "Plex不支持本客户端的能力所以需要新增API",
+      "reason": "当前能力裁剪/执行拒绝符合范围；官方有更多接口不构成扩展授权。说明文件过度声称服务无接口仅记CAL-08"
+    },
+    {
+      "topic": "注入真实handler自动跟随属于当前产品漏洞",
+      "reason": "生产默认禁跳转/Cookie，当前注入是既有假传输；将来包装必须核末端属性，不按未来假设计数"
+    },
+    {
+      "topic": "R-002长错误正文等待重复计为Plex",
+      "reason": "Plex非2xx直接抛，不先drain；成功正文deadline/限额明确，不能套用Emby _long根因"
+    }
+  ],
+  "calibrationUpdates": [
+    {
+      "id": "CAL-08",
+      "status": "文档范围表述待校准",
+      "location": "docs/Plex支持.md 与Plex技能对管理/筛选等“服务端无接口”的绝对表述",
+      "evidence": "本次官方PMS公开规格登记过滤/管理及收藏之外的一批API；当前未映射不等于服务端没有。只记录，不要求新增能力、不修改规程"
+    }
+  ],
+  "productBuildsOrTestsExecutedInPhase5": false,
+  "productMethodExecutedForNewFindings": false,
+  "newRegressionOrInstrumentationAdded": false,
+  "realAccountOrMediaServerAccessed": false,
+  "systemContextCompressionExecuted": false,
+  "nextStage": 6,
+  "stop": "文档校验/仅本轮记录提交后停止，不进入阶段6，不自动修复"
+}
