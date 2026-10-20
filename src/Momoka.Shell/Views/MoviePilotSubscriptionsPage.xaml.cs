@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
@@ -20,8 +19,8 @@ internal sealed record MoviePilotSubscriptionsRequest(MoviePilotService Service,
 
 /// <summary>
 /// 一页 MoviePilot 订阅（电影或电视剧）。数据、刷新与菜单全部来自
-/// <see cref="MoviePilotSubscriptionsView"/> 那一套 —— 这一页只给它一个标题和一个空态，另加一层
-/// 「连不上就退出去」的寿命管理。
+/// <see cref="MoviePilotSubscriptionsView"/> 那一套 —— 这一页只给它一个标题、一条读取中的转圈和一个空态，
+/// 另加一层「连不上就退出去」的寿命管理。
 /// </summary>
 public sealed partial class MoviePilotSubscriptionsPage : Page, IShellContent
 {
@@ -59,27 +58,22 @@ public sealed partial class MoviePilotSubscriptionsPage : Page, IShellContent
         PageTitle.Text = HomeLayout.FixedTitle(request.Key)!;
         EmptyText.Text = series ? "暂无电视剧订阅。" : "暂无电影订阅。";
         Subscriptions.AttachRow(_owner, series ? _owner.Series : _owner.Movies, request.Service, request.Open);
-        ViewModel.PropertyChanged += OnViewModelChanged;
-        UpdateEmptyState();
+
+        // 转圈／空态那两档绑的是**这一页的 ViewModel**，而它要等 AttachRow 把 Row 落定才指向这一页自己那份
+        // 订阅数据（AttachRow 之前拿到的是 MoviePilotSubscriptionsView 的备用属主）。绑定路径换了一个对象，
+        // 所以这里重算一遍 —— 与 MoviePilotSubscriptionsView 在 RowProperty 变化时做的是同一件事。
+        Bindings.Update();
     }
 
     /// <inheritdoc />
     public void Release()
     {
         if (_owner is null) return;
-        ViewModel.PropertyChanged -= OnViewModelChanged;
         Subscriptions.DetachRow();
         Subscriptions.Release();
         _owner.Release();
         _owner = null;
     }
-
-    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e) => UpdateEmptyState();
-
-    /// <summary>整排收起时（没有订阅、连不上、或者正报错之外什么都没有）这一页要自己说一句话，不然屏上
-    /// 只剩一个标题。</summary>
-    private void UpdateEmptyState() =>
-        EmptyState.Visibility = ViewModel.Visible == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
 
     private void OnRefresh(object sender, RoutedEventArgs e) => _ = ViewModel.ReloadAsync();
 }

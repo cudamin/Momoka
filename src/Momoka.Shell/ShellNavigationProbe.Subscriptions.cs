@@ -517,6 +517,11 @@ internal sealed partial class ShellNavigationProbe
     /// 订阅板块的显隐判据（2026-10-08「开应用／返回主页会闪一下空板块」）：把列表那一趟扣在手里，读「数据还没
     /// 回来」和「数据回来了」两头。判据是 <see cref="MoviePilotSubscriptionsViewModel.Visible"/>，不掺时序：
     /// 假传输同步完成与否都不影响结论。
+    /// <para>
+    /// 2026-10-20 起同一条用例还量「整排收起时屏上那两档」：读取途中必须是转圈，空态只留给读完了确实没有
+    /// （<see cref="MoviePilotSubscriptionsViewModel.LoadingVisibility"/> /
+    /// <see cref="MoviePilotSubscriptionsViewModel.EmptyStateVisibility"/>）。两者互斥，也都不许在整排立着时出现。
+    /// </para>
     /// </summary>
     private async Task SubscriptionSectionVisibilityAsync(SubscriptionProbeServer server)
     {
@@ -524,18 +529,26 @@ internal sealed partial class ShellNavigationProbe
         var vm = new MoviePilotSubscriptionsViewModel();
 
         // 1. MoviePilot 开着、卡片一张都没有：整块收着。从前这里就是 Visible —— Attach 一上来凭 Enabled 把
-        //    空板块摆上屏，正是开应用／返回主页看到的那一帧。
+        //    空板块摆上屏，正是开应用／返回主页看到的那一帧。这一拍还没开始读，所以屏上该是空态、不是转圈。
         vm.Attach(service);
         Require(vm.Visible == Visibility.Collapsed, "一条订阅也没有，空板块却要立起来（开应用／返回主页会闪一下）");
+        Require(!vm.Loading && vm.LoadingVisibility == Visibility.Collapsed && vm.EmptyStateVisibility == Visibility.Visible,
+            "还没开始读的时候屏上不是空态（转圈／空态两档对不上）");
 
         // 2. **列表还扣在手里**（真实的开应用那一拍）：整块仍须收着，等数据真回来才和内容一起出现。
         var gate = Pending<HttpResponseMessage>();
         server.PendingList = gate;
         var loading = vm.ReloadAsync();
         Require(vm.Visible == Visibility.Collapsed, "列表还扣在手里，板块就已经立起来了");
+        // 读取途中是转圈那一档：从前这一拍屏上写的是「暂无电影订阅。」，几秒后卡片冒出来把它顶掉。
+        Require(vm.Loading && vm.LoadingVisibility == Visibility.Visible,
+            "列表还扣在手里，屏上没有转圈");
+        Require(vm.EmptyStateVisibility == Visibility.Collapsed, "列表还扣在手里，空态就先把话说死了");
         gate.SetResult(Json(new { success = true, data = server.Items.Values.ToArray() }));
         await loading;
         Require(vm.Movies.Count == 3 && vm.Visible == Visibility.Visible, "订阅读回来了，板块却没有立起来");
+        Require(!vm.Loading && vm.LoadingVisibility == Visibility.Collapsed && vm.EmptyStateVisibility == Visibility.Collapsed,
+            "内容回来了，转圈或空态还留在屏上");
 
         // 3. 一条订阅都没有的账号：读完了也不该出现这块（从前只看「开着 MoviePilot」就会摆出来）。
         var empty = Pending<HttpResponseMessage>();
@@ -545,6 +558,9 @@ internal sealed partial class ShellNavigationProbe
         await reloading;
         Require(vm.Movies.Count == 0 && vm.Series.Count == 0 && vm.Visible == Visibility.Collapsed,
             "一条订阅都没有，空板块还是立着");
+        // 读完了确实一条也没有 —— 这时候才轮到空态说话，转圈必须停。
+        Require(!vm.Loading && vm.LoadingVisibility == Visibility.Collapsed && vm.EmptyStateVisibility == Visibility.Visible,
+            "读完了确实没有订阅，屏上却不是空态");
 
         server.PendingList = null;
         vm.Cancel();

@@ -585,11 +585,29 @@ internal sealed partial class ShellNavigationProbe
             }
             await SaveProbeScreenAsync("sidebar-moviepilot-1240-screen.png");
 
+            // 读取中的转圈（2026-10-20）：先把列表那一趟扣在手里再点入口 —— 屏上这时该是一颗转圈加
+            // 「正在读取订阅…」，而不是「暂无电影订阅。」（从前那一句在数据回来之前就写上了，几秒后卡片
+            // 冒出来把它顶掉）。转圈与空态的判据在视图模型，这里量的是页面真接上了没有、也真画出了高度。
+            var list = Pending<HttpResponseMessage>();
+            server.PendingList = list;
             SelectSidebarItem(movies);
             await UntilAsync(() => shell.Pages.Content is MoviePilotSubscriptionsPage);
             var page = (MoviePilotSubscriptionsPage)shell.Pages.Content;
+            await LayoutAsync(page);
+            var loadingState = Get<StackPanel>(page, "LoadingState");
+            var loadingRing = Get<ProgressRing>(page, "LoadingRing");
+            Require(loadingState.Visibility == Visibility.Visible && loadingRing.IsActive,
+                "订阅还在读，页面上却没有转圈");
+            Require(loadingState.ActualHeight > 0, $"转圈那一块没有画出高度：{loadingState.ActualHeight:0.#}");
+            Require(Get<StackPanel>(page, "EmptyState").Visibility == Visibility.Collapsed,
+                "订阅还在读，空态就把「暂无电影订阅。」先写上了");
+            await SaveProbeScreenAsync("sidebar-moviepilot-loading-screen.png");
+            list.SetResult(Json(new { success = true, data = server.Items.Values.ToArray() }));
+            server.PendingList = null;
             await UntilAsync(() => page.ViewModel.IsReady);
             await LayoutAsync(page);
+            Require(loadingState.Visibility == Visibility.Collapsed && !loadingRing.IsActive,
+                "订阅读回来了，转圈还留在页面上");
             Require(shell.CurrentTag == HomeLayout.MoviePilotMovies, "订阅列表页没有落在侧栏那把钥匙上");
             Require(Get<TextBlock>(page, "PageTitle").Text == HomeLayout.FixedTitle(HomeLayout.MoviePilotMovies),
                 "订阅列表页的标题不对");

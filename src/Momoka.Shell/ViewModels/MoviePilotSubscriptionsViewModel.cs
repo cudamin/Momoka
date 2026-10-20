@@ -147,6 +147,34 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public Visibility Visible => Show(_service?.Available == true && (Movies.Count > 0 || Series.Count > 0 || NoticeOpen));
     public Visibility MoviesVisibility => Show(Movies.Count > 0);
     public Visibility SeriesVisibility => Show(Series.Count > 0);
+
+    /// <summary>
+    /// 整排收起时屏上那两档（2026-10-20）：读取中的转圈，或者「暂无…」那句话，**两者互斥**。
+    /// <para>
+    /// 从前只有空态这一档：点开侧栏那两条订阅入口时列表还在路上，整排已经收着，于是页面先写一句
+    /// 「暂无电影订阅。」，几秒后卡片冒出来把它顶掉 —— 对着用户先说了一句假话。现在读取途中换成转圈，
+    /// 空态只留给「读完了，确实一条也没有」。
+    /// </para>
+    /// <para>
+    /// 判据跟 <see cref="Visible"/> 是同一个：整排立起来时既不是转圈也不是空态（那时读取进度由那两排
+    /// 自己头顶那颗细进度条交代，见 MoviePilotSubscriptionsView）。<see cref="PageViewModel.Busy"/> 由
+    /// <c>BeginLoad</c> 在每趟读取开头立起、<c>EndLoad</c> 收尾放下，所以转圈只会在真的等服务器时出现。
+    /// </para>
+    /// </summary>
+    public bool Loading => Busy && Visible == Visibility.Collapsed;
+    public Visibility LoadingVisibility => Show(Loading);
+    public Visibility EmptyStateVisibility => Show(!Busy && Visible == Visibility.Collapsed);
+
+    /// <summary>
+    /// 上面那三样的通知名单。它们同时挂在 <see cref="Busy"/>（读取开始与结束）和 <see cref="Visible"/>
+    /// （卡片增减、提示条开关）两条路上，两处各喊一次，漏一处就是「状态变了、屏上还是老样子」。
+    /// </summary>
+    private void RaisePageState()
+    {
+        OnPropertyChanged(nameof(Loading));
+        OnPropertyChanged(nameof(LoadingVisibility));
+        OnPropertyChanged(nameof(EmptyStateVisibility));
+    }
     public double RowHeight => CardSize.HeightFor(CardSize.PosterWidth, false) + CardSize.Chrome;
 
     [ObservableProperty]
@@ -209,7 +237,13 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public bool CanManage => Live && _service?.Available == true && !Working && !Busy && !Deleted;
     public bool CanWriteSelected => CanManage && Selected is { } selected && !NeedsReview(selected);
     partial void OnFilterIndexChanged(int value) => ApplyFilter();
-    protected override void BusyChanged() { OnPropertyChanged(nameof(CanManage)); OnPropertyChanged(nameof(CanWriteSelected)); RefreshCommands(); }
+    protected override void BusyChanged()
+    {
+        OnPropertyChanged(nameof(CanManage));
+        OnPropertyChanged(nameof(CanWriteSelected));
+        RaisePageState();
+        RefreshCommands();
+    }
     partial void OnWorkingChanged(bool value) => RefreshCommands();
     partial void OnDeletedChanged(bool value) => RefreshCommands();
 
@@ -228,10 +262,15 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
 
     public MoviePilotSubscriptionsViewModel() =>
         // Visible 也看 NoticeOpen（见它的说明），而那条属性住在基类上 —— 生成器的 On…Changed 只长在声明它的
-        // 那个类里，这里够不着，就听 PropertyChanged 这一路。提示条一开一关，整块板块跟着立起来或塌下去。
+        // 那个类里，这里够不着，就听 PropertyChanged 这一路。提示条一开一关，整块板块跟着立起来或塌下去，
+        // 跟它同一判据的转圈／空态两档也一起重算（见 RaisePageState）。
         PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(NoticeOpen)) OnPropertyChanged(nameof(Visible));
+            if (args.PropertyName == nameof(NoticeOpen))
+            {
+                OnPropertyChanged(nameof(Visible));
+                RaisePageState();
+            }
         };
 
     internal void AttachPlayback(EmbySessionScope? scope, Func<MoviePilotPlaybackTarget, Task>? play)
@@ -541,6 +580,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         OnPropertyChanged(nameof(Visible));
         OnPropertyChanged(nameof(MoviesNote)); OnPropertyChanged(nameof(SeriesNote));
         OnPropertyChanged(nameof(MoviesVisibility)); OnPropertyChanged(nameof(SeriesVisibility));
+        RaisePageState();
     }
 
     [RelayCommand]

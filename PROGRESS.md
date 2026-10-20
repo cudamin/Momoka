@@ -2,6 +2,18 @@
 
 最后更新：2026-10-20
 
+## MP 电影／电视剧订阅页：读取途中显示转圈，不再先说「暂无订阅」（2026-10-20 用户令）
+
+用户令（原话）：「给mp的电影/电视剧订阅页面添加加加载动画」。
+
+- **病根是「空态抢在读取前面说话」。** 这两页（侧栏「MP 电影订阅／MP 电视剧订阅」）整排收起时只有空态这一档：点开入口那一刻列表还在路上，页面先写一句「暂无电影订阅。」，几秒后卡片冒出来把它顶掉。视图里那颗细 `ProgressBar` 住在那排自己的可见性里（`MoviePilotSubscriptionsView` 第 23／36 行），而第一次读取时整排还没立起来 —— 所以屏上根本没有「在等服务器」的样子。
+- **改法**：`MoviePilotSubscriptionsViewModel` 新增 `Loading`／`LoadingVisibility`／`EmptyStateVisibility`，判据与 `Visible` 同一个（整排立着时两档都收着，那时进度由那两排自己的细条交代；`Busy` 由 `BeginLoad`／`EndLoad` 管，所以转圈只在真等服务器时出现），通知挂在 `BusyChanged`、`NotifyRows` 与 `NoticeOpen` 三处。页面上加一块 44×44 的 `ProgressRing`（`IsActive` 跟 `Loading` 走，不钉在 True 上 —— 合成器动画不会因为祖先收起而停，理由同 `PlayerPage` 那颗 `CoverRing`）加一句「正在读取订阅…」，空态改绑 `EmptyStateVisibility`。这两处原来由 code-behind 手写赋值（`OnViewModelChanged` → `UpdateEmptyState`），改成 x:Bind 并在 `Attach` 末尾 `Bindings.Update()`：那一页的 `ViewModel` 要等 `AttachRow` 落定才指向自己那份订阅数据，绑定路径换过对象，必须重算一遍。
+- **探针**：`MoviePilotSidebarAsync` 点入口**之前**先把订阅列表那一趟扣在假传输手里（`SubscriptionProbeServer.PendingList`），读「转圈可见、`IsActive`、真画出高度、空态收着」，放行后再读两样都收起，并存 `sidebar-moviepilot-loading-screen.png`；`SubscriptionSectionVisibilityAsync` 另在视图模型上把三拍读齐（没开始读＝空态、扣在手里＝转圈、读完确实没有＝空态）。
+- **构建**：`Momoka.Shell` Release 构建 **0 错误**；4 条 `NU1900` 是离线还原拿不到 nuget.org 的噪声（用户给的代理 `192.168.31.230:8888` 对 `https://api.nuget.org` 握手失败，实测不通）。
+- **测试（如实报红，与本轮无关）**：离线测试 1995 项、通过 1973、**失败 22**。逐条归因：14 条「安全起播」是子进程管道被本会话沙箱拒（`EPERM` 边界），4 条「存储／保存」与 3 条「自检」是 `AtomicFile` 的 `File.Replace` 被拒 —— 实测本会话工具进程是 **Low 完整性**，写不进真实 `%TEMP%` 与 `%LOCALAPPDATA%`；工作区根 ACL 带 `Everyone:(CI)(DENY)(DC)`（禁删除子项），`File.Replace` 因此在工作区内也一律 `UnauthorizedAccessException`。本轮只改 Shell 的视图模型、XAML 与探针，测试工程只引用 Core，结构上够不着这些用例；4 条约定基线用例（字号／颜色／嵌套绑定／句柄）本轮全过。
+- **未验证（阻塞，未宣称交付）**：`--probe-shell --probe-section moviepilot` 与截图**没跑**——探针的数据目录固定在 `%LOCALAPPDATA%\Momoka`（`AppPaths.Default`，没有环境变量可以改道），本会话写不进去；因此「转圈真出现在屏上」目前只有编译与断言代码，没有运行证据。需要在不带 Low 沙箱的会话/终端里跑闸门 2 与这条探针。
+- **提交**：本地提交（未推送；本轮没有上传授权）。
+
 ## 双击 Momoka.exe 又被 SmartScreen 拦：根因是 DSH 工作区写入沙箱的常驻 Low 标签（2026-10-20 用户报）
 
 用户报（原话）：「修复这个问题」，附「Windows 已保护你的电脑／Microsoft Defender SmartScreen 阻止了无法识别的应用启动／应用：Momoka.exe／发行者：发布者未知／仍要运行·不运行」截图。桌面快捷方式指向 `artifacts/publish/win-x64/Momoka.exe`。

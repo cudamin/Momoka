@@ -6,9 +6,11 @@
   再按这一条入口筛掉另一半（Row 给哪一排，另一排自己收着，见那个视图的 MoviesVisible／SeriesVisible）。
   所以封面、刷新、订阅管理那张菜单、空态与错误提示都只有一份：主页那边改了这里跟着改。
 
-  这一页只多做两件主页那排做不到的事：一个页标题，和一条「什么都没有」时也说得出口的空态。空态里那颗
-  「刷新订阅」不是重复 —— 内容为空时那一排自带的刷新键跟着整排一起收起（它在那排自己的可见性里），
-  只留一句话就等于这一页没有出口。
+  这一页只多做三件主页那排做不到的事：一个页标题、一条读取中的转圈，和一条「什么都没有」时也说得出口的
+  空态。转圈与空态**互斥**，判据都在视图模型（LoadingVisibility／EmptyStateVisibility，2026-10-20）：
+  从前只有空态这一档，点开入口时数据还在路上，页面就先写一句「暂无电影订阅。」，几秒后卡片冒出来把它
+  顶掉 —— 等于先说了一句假话。空态里那颗「刷新订阅」不是重复 —— 内容为空时那一排自带的刷新键跟着整排
+  一起收起（它在那排自己的可见性里），只留一句话就等于这一页没有出口。
 -->
 <Page
     x:Class="Momoka.Shell.Views.MoviePilotSubscriptionsPage"
@@ -19,8 +21,20 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel Padding="{StaticResource EgPageMargin}" Spacing="{StaticResource EgSpaceXL}">
             <TextBlock x:Name="PageTitle" Style="{StaticResource EgPageTitleStyle}" />
+            <!-- 读取中那一档：整排还没立起来、服务器也还没回话时，屏上是一颗转圈加一句「正在读取订阅…」。
+                 IsActive 跟着 Loading 走而不是钉在 True 上 —— 转圈是合成器动画，祖先收起它也不会停（同
+                 PlayerPage 里那颗 CoverRing 的理由）。 -->
+            <StackPanel x:Name="LoadingState" HorizontalAlignment="Center" Spacing="{StaticResource EgSpaceL}"
+                Visibility="{x:Bind ViewModel.LoadingVisibility, Mode=OneWay}">
+                <ProgressRing x:Name="LoadingRing" Width="44" Height="44" Foreground="{ThemeResource EgAccentBrush}"
+                    IsActive="{x:Bind ViewModel.Loading, Mode=OneWay}" AutomationProperties.Name="正在读取订阅" />
+                <TextBlock Text="正在读取订阅…" Style="{StaticResource EgBodyStyle}"
+                    Foreground="{ThemeResource EgTextDimBrush}" TextAlignment="Center"
+                    AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
             <local:MoviePilotSubscriptionsView x:Name="Subscriptions" ShowRefresh="True" />
-            <StackPanel x:Name="EmptyState" Spacing="{StaticResource EgSpaceM}" Visibility="Collapsed">
+            <StackPanel x:Name="EmptyState" Spacing="{StaticResource EgSpaceM}"
+                Visibility="{x:Bind ViewModel.EmptyStateVisibility, Mode=OneWay}">
                 <TextBlock x:Name="EmptyText" Style="{StaticResource EgBodyStyle}" />
                 <Button x:Name="RefreshSubscriptions" Content="刷新订阅"
                     Style="{StaticResource EgSecondaryButtonStyle}" Click="OnRefresh" />
