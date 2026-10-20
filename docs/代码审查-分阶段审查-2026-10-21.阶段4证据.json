@@ -1,0 +1,455 @@
+{
+  "schemaVersion": 1,
+  "phase": 4,
+  "capturedAt": "2026-10-21T04:35:05+08:00",
+  "timezone": "Asia/Shanghai",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "6f3122d24fb4eee315a285041c821188736e1369",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "authorization": "仅阶段4只读审查/交接；未经明确批准不修复、不真实验证、不推送发布",
+  "baselineBeforeWriting": {
+    "trackedChanges": [],
+    "stagedChanges": [],
+    "untrackedFiles": [],
+    "productMatchesSource": true
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段4审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段4证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段4检查.json",
+    "PROGRESS.md"
+  ],
+  "coverage": [
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasEndpoint.cs",
+      "readDepth": "全文",
+      "aspect": "入口归一、路径段拒绝、同源/部署前缀、无userinfo/fragment",
+      "sha256": "25D705B5F5DB0329742835B5C768906BAD72378E84E3BECC37AE52FEF97F24A1"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasSigner.cs",
+      "readDepth": "全文",
+      "aspect": "authx路径/JSON/query摘要、nonce/时间戳、SHA256密码；与既有归档前端核对",
+      "sha256": "6A25534F5C35DCA68F30DE576858551A3A2AA80FE647EDAA7C57F3F0A233F59F"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasHttp.cs",
+      "readDepth": "全文",
+      "aspect": "逐请求头、默认handler、30秒/5分钟总预算、同源逐跳重签、JSON/字节限额与释放",
+      "sha256": "A372B690EFCF5A2CF308164A0DC2EF712B376A0160643F360388F0FF878CA91B"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasApiException.cs",
+      "readDepth": "全文",
+      "aspect": "业务码/HTTP映射、token过期、鉴权失败与可选读取条件",
+      "sha256": "3621476E4630EC0C261EB9F9E0EA35F7AB5073CA8E39A5B3120AF11FF6963772"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasClient.cs",
+      "readDepth": "全文",
+      "aspect": "v2登录/改密、读取、图片/媒体路径、JSON列表/对象、身份/取消守卫；功能语义留阶段9/13",
+      "sha256": "748012C3E82E60871DC6D4753728CB6D7FFEBC763CF5160B848AD4A26F359ED4"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasClient.Management.cs",
+      "readDepth": "全文",
+      "aspect": "管理协议入口、权限确认、multipart上传、未知配置保留；不做UI/真实管理验收",
+      "sha256": "AC0169E49A225FE1E99CB8B55B40D9935E0672FC9A3958F9FB33969512687ECF"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+      "readDepth": "探测/登录/错误/可选读取/身份相关段",
+      "aspect": "检测必需字段、登录后补充配置与serverId、User/权限、streams/progress降级",
+      "sha256": "F45E3B8F7C2835407882212E7F60A4CC1158EC88C68043BA1DB1A073025F7BEE"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.Models.cs",
+      "readDepth": "调用/字段和共享方法相关定位",
+      "aspect": "标签/媒体结构交界；未穷尽模型、分页、播放上报全部语义",
+      "sha256": "37DB483FDFAF63A4812BF590E6186AC1A673A5A14D1015DA4EE92B695755F08B"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasFilters.cs",
+      "readDepth": "类型与相关说明",
+      "aspect": "确认标签输入与协议标签映射分离；未作为全部筛选业务已审",
+      "sha256": "D6A8BA6D873C19D13EEDFE5F6898B6A499ED58053655F68DEDCB5170F3B62942"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+      "readDepth": "飞牛分派/错误保留相关段",
+      "aspect": "产品匿名检测与登录分派；飞牛错误不被最后Plex404覆盖",
+      "sha256": "F5F4D11ABBB0965169318C1BD170563D6C24FB604A75E4A33CD1066BA1590DF0"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+      "readDepth": "FnNasClient构造和Dispose相关段",
+      "aspect": "默认飞牛独立Cookie handler，注入仅测试共享；不重复整个Emby传输审查",
+      "sha256": "DD9BB68241B5DBED329FCBF0853BD8920C59DE77A316B092F05D07AD6E1DF71C"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "readDepth": "Invoke/重登/EndSource相关段",
+      "aspect": "FnNas错误进入共享会话，鉴权拒绝撤销、clear token及取消通知",
+      "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+      "readDepth": "连接身份相关引用",
+      "aspect": "ServerId/同身份规则用于对照R-003，不扩大为全模型审查",
+      "sha256": "8C6B51B1C9A53442214BA2DDBFD36D446A3764353FEE2BC83BBEEF6DB4877CD5"
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasProtocolTests.cs",
+      "readDepth": "注册与夹具全文",
+      "aspect": "黄金签名、v2/改密、HTTP/业务错误脱敏、重签/跨源拒绝、取消/handler释放",
+      "sha256": "1B139D157BF834EBCBB181A51670583F0A3DC3CD2912557F45369F99E2610506"
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasProtocolTests.Transfer.cs",
+      "readDepth": "全文",
+      "aspect": "32秒假响应跨旧预算、取消、64MB上限与multipart跨源守卫",
+      "sha256": "8EE49419CB4EDAD9E7C7E8528EF353BFBDF2445983BEBD65E2E8A782F23FD647"
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasMediaTests.Recovery.cs",
+      "readDepth": "全文",
+      "aspect": "可选读取503降级、身份必需、未知/权限/签名/格式与取消传播；不含-16重登",
+      "sha256": "490638750953F4854056359A2191135CB0FC11F78BAECA3EAD13EEB649775FF7"
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasMediaTests.cs",
+      "readDepth": "登录/恢复/Fixture相关段",
+      "aspect": "现有同身份刷新/保存令牌恢复、调用方夹具；其余媒体业务未深审",
+      "sha256": "9C622FE4D7FB7C15D5C08AEB4CBC0EEC9F6F87B0D5A5EDFCFD5600F5AF46C5C4"
+    },
+    {
+      "path": "tests/Momoka.Tests/HttpDeadlineTests.cs",
+      "readDepth": "既有传输预算回归交界",
+      "aspect": "普通错误正文及调用者取消已读，未将其套为飞牛全部传输运行",
+      "sha256": "2ECC9349FC78C5A8FBD91EBA1116D1EC8A9D737215CACA5A192CD419FDBCDEAD"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "readDepth": "访问码字段相关符号检索",
+      "aspect": "只确认没有当前AccessCode配置入口，未读取用户settings",
+      "sha256": "DD14BE6B567C2FEB35735D31463EC8879F5C4B95982F3877D7EBA5F5CC6C3DCB"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+      "readDepth": "访问码入口符号检索",
+      "aspect": "只确认当前登录没有访问码提交路径；原生页面/所有导航留阶段9/17",
+      "sha256": "E134859480A84FC495E54529B0C0FBAE1552D78EBE5FB51AE5CD345CDA5CF1C6"
+    }
+  ],
+  "readPoliciesAndSkills": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "sha256": "364229B10809BFC4516C27B7D08352D5AF38438ADA222181FBC92B880EF4F4C0"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B"
+    },
+    {
+      "path": "docs/飞牛影视.md",
+      "sha256": "EE5A3A04A0FD4D96AD5F4480E71CAFEA240ABB72EA2D2662F3DA4FD54398D876"
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA"
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69"
+    },
+    {
+      "path": ".claude/skills/momoka-fnnas-media-api/SKILL.md",
+      "sha256": "6B511DEA641BB61B536D23565C01A8CB68E411C5714BD74B10752EF473A732CE"
+    },
+    {
+      "path": ".claude/skills/momoka-fnnas-media-api/references/http-and-auth.md",
+      "sha256": "574F143EF18D4192F606E11810018365A9A231C3D43785F439713E790C2EA10A"
+    },
+    {
+      "path": ".claude/skills/momoka-fnnas-media-api/references/endpoints.md",
+      "sha256": "D019016B97B23116A007DF345FEAC803AB8DB8E97D84EBD0E1E4B1307B87E2CA"
+    }
+  ],
+  "archivedFrontend": {
+    "path": "C:\\Users\\89400\\Momoka\\work\\fnos-front-20261019\\14a77ac952fc83b785b65592c335e16d-BGXwY7Sz.js",
+    "sha256": "E244E703491C58F2E354BE13A2DC00A6354AD352BB6519E90D7E28A188D9F0A6",
+    "bytes": 205928,
+    "originClaim": "仓库技能/历史记录声明为2026-10-19归档的官方前端0.9.8、服务0.8.43；本阶段只读取既有JS，不重抓目标服务器、不声称当前服务版本",
+    "markers": [
+      {
+        "id": "error-enum-file-permission",
+        "utf16OffsetZeroBased": 146400,
+        "line": 1,
+        "interpretation": "公开 SDK 的 -16 枚举表示文件权限错误，不是密码错误",
+        "rawSnippetNotPersisted": true
+      },
+      {
+        "id": "error-text-file-permission",
+        "utf16OffsetZeroBased": 157335,
+        "line": 1,
+        "interpretation": "中文错误语义为文件权限不足",
+        "rawSnippetNotPersisted": true
+      },
+      {
+        "id": "error-enum-password",
+        "utf16OffsetZeroBased": 146353,
+        "line": 1,
+        "interpretation": "密码错误另用 -15",
+        "rawSnippetNotPersisted": true
+      },
+      {
+        "id": "authx-query-filter",
+        "utf16OffsetZeroBased": 177342,
+        "line": 1,
+        "interpretation": "GET 查询先按 URLSearchParams 过滤 null/undefined 再合并重复键",
+        "rawSnippetNotPersisted": true
+      },
+      {
+        "id": "authx-get-digest",
+        "utf16OffsetZeroBased": 177493,
+        "line": 1,
+        "interpretation": "GET 查询重建/解码后取摘要",
+        "rawSnippetNotPersisted": true
+      },
+      {
+        "id": "authx-json-digest",
+        "utf16OffsetZeroBased": 177635,
+        "line": 1,
+        "interpretation": "非 GET 按实际 JSON 正文摘要",
+        "rawSnippetNotPersisted": true
+      },
+      {
+        "id": "authx-builder",
+        "utf16OffsetZeroBased": 177665,
+        "line": 1,
+        "interpretation": "签名使用部署 pathname、六位随机数与毫秒时间戳；不复写公开应用常量",
+        "rawSnippetNotPersisted": true
+      },
+      {
+        "id": "signature-exempt-prefixes",
+        "utf16OffsetZeroBased": 195484,
+        "line": 1,
+        "interpretation": "官方 SDK 免签路径与普通 JSON 请求区分",
+        "rawSnippetNotPersisted": true
+      },
+      {
+        "id": "login-v2-channel",
+        "utf16OffsetZeroBased": 136788,
+        "line": 1,
+        "interpretation": "密码登录选择 v2 通道",
+        "rawSnippetNotPersisted": true
+      }
+    ],
+    "completeBundleCopiedToReport": false,
+    "actualUserCredentialRead": false
+  },
+  "testReuse": {
+    "evidenceFile": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+    "evidenceSha256": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229",
+    "actualExecutionPhase": 2,
+    "actualExecutionTime": "2026-10-21T02:59:12+08:00",
+    "actualExecutionHead": "4b663c425491120a4d87234d98bf20ecc9c88619",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "rerunInPhase4": false,
+    "reuseConditionsChecked": true,
+    "summary": {
+      "total": 2072,
+      "passed": 2072,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedMilliseconds": 78960
+    },
+    "build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "fnNasPrefixPassedCount": 81,
+    "logs": [
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\restore.log",
+        "sha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "purpose": "本树当前测试/Core 还原；可能读取 NuGet"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\build.log",
+        "sha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "purpose": "当前 Release 测试/Core 编译"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\tests.log",
+        "sha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "purpose": "未改现有完整测试宿主运行"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\execution.json",
+        "sha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "purpose": "退出码/源码基线/执行目录回执"
+      }
+    ],
+    "compiledBinaries": [
+      {
+        "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+        "sha256": "7E7F5C29464609675DF984C63750283A8F01A10E92C14659484813441B0480F7"
+      },
+      {
+        "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+        "sha256": "CB35FA56DB6AA41C00D4ECB9F7DD80864364056D5CBA2288760807A256763994"
+      }
+    ],
+    "runtimeAssemblies": [
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.WebSockets.Client.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.WebSockets.Client.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "FF5D42603B662A634857DCC6E1239547025D03794AEA4F84D624579765C23BA9",
+        "identicalToReadAssembly": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.Http.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.Http.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "8AE9F649D43F1F3FB635170784BCB753D305BC36A42703B4B0BEDB15A29729F0",
+        "identicalToReadAssembly": true
+      }
+    ],
+    "newMinus16RegressionExecuted": false,
+    "limitation": "2072全过来自阶段2运行，81个飞牛标题不是本阶段新跑，也不覆盖R-004故障；本阶段未改产品"
+  },
+  "newFindings": [
+    {
+      "id": "R-004",
+      "priority": "P2",
+      "status": "已确认",
+      "title": "飞牛文件权限错误-16被归为凭据拒绝，自动重登可能误撤销来源",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "discoveryPhase": 4,
+      "locations": [
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasApiException.cs",
+          "member": "IsAuthenticationFailure / Business",
+          "start": 11,
+          "end": 26
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+          "member": "SignInAsync",
+          "start": 39,
+          "end": 59
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "member": "TryReauthenticateAsync",
+          "start": 527,
+          "end": 531
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "member": "EndSource",
+          "start": 669,
+          "end": 674
+        }
+      ],
+      "trigger": "已在线飞牛来源因原token过期而自动重登，v2密码认证成功后，user/info或随后sys/config读取返回业务码-16；或自动认证链中该业务码到达同一错误分类。未证实特定真实部署发生该响应",
+      "expected": "文件权限错误应传播为权限/业务故障，不能仅凭它证明用户密码无效并注销来源；不能吞为可选读取成功",
+      "causalChain": "官方前端归档枚举AuthPermissionError=-16，中文文件权限不足。Business(-16)产生该码，IsAuthenticationFailure包括-16；SignInAsync整个登录/user/config链catch转换为EmbyAuthenticationException；TryReauthenticateAsync按凭据拒绝调用EndSource，清token并移除来源",
+      "actualImpact": "上述条件下正确密码后的文件权限故障会使来源退出、token清除并可能切换默认来源/触发退出通知；没有证明真实帐号被注销或共享数据遭修改",
+      "evidenceTypes": [
+        "本仓库完整静态因果链",
+        "既有官方前端归档的错误枚举/语义和文件哈希；未重新抓真实服务器"
+      ],
+      "upstreamGuards": "普通业务调用的Translate不会仅因-16重登；错误真正影响发生在SignInAsync宽catch转换。CanSkipOptionalRead明确不吞权限错误，取消/代次/旧client守卫仍在，但无法纠正分类。已确认serverId保护与R-003不同",
+      "notVerified": "未新增-16自动重登回归、未真实登录/修改权限，归档版本不代表所有当前服务器；既有补充读取错误矩阵包含-5而没有-16",
+      "minimalFix": "把-16文件权限与密码/token拒绝分开；SignInAsync后续读取权限故障保留业务语义。仍禁止可选读取吞权限，保持-2/401/-15真正拒绝、取消与并发来源保护",
+      "acceptance": "用假传输让旧请求-2触发重登，密码成功后user/info或sys/config返回-16，断言不是凭据拒绝、原来源不被EndSource清token/移除、不执行原请求错误重放；-16直接业务调用不降级；-15/-2/401真拒绝、503/签名/取消等回归保持",
+      "repairAuthorized": false
+    }
+  ],
+  "priorFindings": [
+    {
+      "id": "R-001",
+      "status": "已确认，未修复",
+      "note": "Emby实时握手根因，本阶段不扩大或重计"
+    },
+    {
+      "id": "R-002",
+      "status": "已确认，未修复",
+      "note": "EmbyHttp长下载等待；FnNasHttp非成功直接抛，不套用为同一飞牛错误"
+    },
+    {
+      "id": "R-003",
+      "status": "已确认，未修复",
+      "note": "共享恢复最终身份；本阶段已查飞牛明确server_guid保护，阶段6去重复核"
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "F-COV-01",
+      "status": "待验证/未接入边界",
+      "topic": "访问码校验与Cookie生命周期",
+      "reason": "引用说明需要设备根/c/code和独立Cookie；当前没有访问码配置/校验调用。缺功能本身不证明越权或泄露，开启访问码部署的兼容未验证",
+      "followup": "用户确定支持范围后再设计安全入口/DPAPI与Cookie隔离；不读取真实Cookie、不访问目标服务器"
+    },
+    {
+      "id": "F-COV-02",
+      "status": "未验证",
+      "topic": "真实版本、authx/图片免签和管理写入/播放兼容",
+      "reason": "只读取既有前端0.9.8/服务0.8.43的归档声明与签名代码，未重取HTML或sys/version；额外签名头被真实媒体入口接受与否未知",
+      "followup": "有相应授权后从当前HTML解析资源，记录版本；原生管理/播放在阶段9/13分别报告"
+    },
+    {
+      "id": "F-COV-03",
+      "status": "覆盖缺口/候选排除",
+      "topic": "注入真实handler自动重定向、malformed response和完整传输失效场景",
+      "reason": "FnNasHttp注入构造不改handler属性，生产走默认禁自动重定向，当前注入调用只用于假传输；不按未来包装假设列漏洞。既有32秒延迟在响应头前，不证明所有慢正文/五分钟边界",
+      "followup": "若引入真实包装handler先核完整边界；补测试需另授权，不放宽现有判据"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "topic": "签名是否沿用包含token的简化公式",
+      "reason": "当前pathname/正文摘要/应用常量公式与归档前端对应，重复query过滤/排序及UTF8向量已有回归；不采用二手简化算法"
+    },
+    {
+      "topic": "HTTP200等于业务成功/错误msg泄露",
+      "reason": "先HTTP再code，局部生成错误文案；不显示服务端msg/ReasonPhrase，既有脱敏断言已运行通过"
+    },
+    {
+      "topic": "成功大传输仍30秒/没有取消或大小边界",
+      "reason": "普通30秒、字节/multipart5分钟各有deadline/上限与跨源拒绝，既有32秒假响应/取消/超限用例通过；不证明所有慢正文场景"
+    },
+    {
+      "topic": "可选读取503导致全部登录/详情失败",
+      "reason": "只跳过明确可降级故障，保留已探测serverId，权限/签名/解析/取消仍向上；与R-004错误转为凭据拒绝的根因不同"
+    },
+    {
+      "topic": "R-003身份错绑泛化到已核对的飞牛登录",
+      "reason": "FnNasMediaAdapter.SignInAsync显式比较观察到的server_guid与已知serverId，不忽略不同返回ID；可选配置不可用时只保留已检测ID，未因此解除必需恢复检测"
+    },
+    {
+      "topic": "跨源凭据/同源请求正文自动改GET",
+      "reason": "默认handler禁止自动跳转；手工只同源且写请求仅307/308，按新pathname重签；当前不存在实际产品包装handler，注入未来风险另记"
+    },
+    {
+      "topic": "文件权限-16随便降级为成功",
+      "reason": "当前和最小修复方向都应保留权限错误；移除鉴权错误分类不能把-16加入可降级清单"
+    }
+  ],
+  "calibrationNote": "技能仍有历史退役/独占设置表述，按当前代码和已批准范围读，不当通用权限规则；不改规程或把文档历史漂移计产品缺陷",
+  "productBuildsOrTestsExecutedInPhase4": false,
+  "newRegressionOrInstrumentationAdded": false,
+  "applicationOrUserServerOperationsExecuted": false,
+  "systemContextCompressionExecuted": false,
+  "nextStage": 5,
+  "stop": "本轮文档检查和本地提交后停止，不进入Plex阶段或修复"
+}
