@@ -89,7 +89,10 @@ internal static partial class JellyfinProtocolTests
         public ServerProfile Server { get; }
         public AccountProfile Account { get; } = new()
         {
-            UserId = "u1", Username = "user", ProtectedAccessToken = "fixture-token", ProtectedPassword = "fixture-password"
+            UserId = "u1",
+            Username = "user",
+            ProtectedAccessToken = "fixture-token",
+            ProtectedPassword = "fixture-password"
         };
 
         public RestoreFixture(string prefix, string version)
