@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "phase": 2,
+  "status": "通过（仅本轮审查文档检查；产品测试另见阶段证据）",
+  "executedAt": "2026-10-21T03:20:02+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "4b663c425491120a4d87234d98bf20ecc9c88619",
+  "checks": [
+    {
+      "name": "完整基线、工作区与固定产品来源",
+      "status": "通过",
+      "detail": "固定审查树、分支/提交；产品与已提交来源一致，开始状态三集合为空"
+    },
+    {
+      "name": "本轮五文件差异/暂存边界",
+      "status": "通过",
+      "detail": "只改审查记录和本轮进度；临时检查器/编译产物不入库，不修改实现或规程"
+    },
+    {
+      "name": "稳定问题字段与准确源码因果链",
+      "status": "通过",
+      "detail": "两项有定位、触发、影响、防护、未验证、最小方向和验收；未授权修复"
+    },
+    {
+      "name": "运行时静态元数据与公开参考证据",
+      "status": "通过",
+      "detail": "精确 runtime DLL 哈希、默认跳转/头处理 IL；公开源码辅助解释，旧规格不冒充当前服务器"
+    },
+    {
+      "name": "文件/技能哈希、读取深度和覆盖缺口",
+      "status": "通过",
+      "detail": "36 个相关文件按实际读取深度记录，未审部分、待验证和排除项与确认 R 项分开"
+    },
+    {
+      "name": "当前 Release 编译/正式测试与日志哈希",
+      "status": "通过",
+      "detail": "本树 restore/build/run 顺序成功；2072 全过但没有新故障回归，回环与真实库分开"
+    },
+    {
+      "name": "阶段报告、总记录和新进度段链接",
+      "status": "通过",
+      "detail": "所有本轮本地路径/锚点有效，源码链接指向固定审查树"
+    },
+    {
+      "name": "历史记录/交接及 PROGRESS 逐字保留",
+      "status": "通过",
+      "detail": "仅本轮状态和新段；历史阶段 0/1 基线与通过证据未修改"
+    },
+    {
+      "name": "确认/待验证/排除及授权出口一致性",
+      "status": "通过",
+      "detail": "问题未修复，不将风险归为已泄露；真实操作和后续阶段不自动获授权"
+    },
+    {
+      "name": "UTF-8、LF、末尾换行和记录格式",
+      "status": "通过",
+      "detail": "只检查本轮新增记录与进度，不重写历史文件"
+    },
+    {
+      "name": "本轮报告凭据/内网位置形态筛查",
+      "status": "通过",
+      "detail": "不读取真实 token，仅记录公开来源/文件元数据；筛查不等于全项目凭据审计"
+    },
+    {
+      "name": "Git 工作区/暂存差异空白检查",
+      "status": "通过",
+      "detail": "git diff --check 与 git diff --cached --check"
+    }
+  ],
+  "summary": {
+    "passed": 12,
+    "failed": 0,
+    "markdownLinksChecked": 40,
+    "confirmedFindings": 2,
+    "reviewedFileRecords": 36
+  },
+  "checkedFileSha256": {
+    "docs/代码审查-分阶段审查-2026-10-21.md": "18BE4695D0D4BA1FFF1628CA5F05A756B597211FF96EB4DB3CDC960D4C5EE1E8",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段2审查.md": "F5BED8313720BAF324187B93E6FBDCB0F7981E461880B392DEA6F7E27CE8900F",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229",
+    "PROGRESS.md": "4F3B418D2D504E5E31A2DB2F77594DFA6B86A07199FCBAA0E18173884244E699"
+  },
+  "checker": {
+    "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\check_phase2.py",
+    "sha256": "599F1178EF1F82CEB78653E73916B96DC090F9872FF5FA39A705A82FD4D48579",
+    "scope": "忽略目录的临时文档检查器，不执行新产品回归、不替代源码审查"
+  },
+  "systemContextCompressionExecuted": false,
+  "newProductTestsOrInstrumentationAdded": false,
+  "productChanged": false,
+  "limitations": [
+    "两个故障仍未修复，没有新增触发运行回归",
+    "测试/Core 当前编译及2072现有测试运行证据另存，不以本文档检查冒充",
+    "真实 Emby/发布 runtime/全部 UI 和播放未覆盖",
+    "结果不含自身哈希避免自引用"
+  ]
+}
