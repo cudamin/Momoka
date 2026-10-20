@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "phase": 0,
+  "capturedAt": "2026-10-21 01:23:55 +08:00",
+  "timezone": "Asia/Shanghai",
+  "authorization": "仅规程与技能校准；未授权业务审查、修复、推送、发布、并行代理或后台续跑",
+  "workingTree": {
+    "root": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+    "branch": "codex/staged-code-review-2026-10-21",
+    "sourceCommit": "9b69e0877f59f899c9ddc6e1ebfd2baae83e445a",
+    "initialTrackedChanges": [],
+    "initialUntrackedFiles": [],
+    "scope": "规程、技能清单和操作边界；本轮报告及本树 PROGRESS 交接记录"
+  },
+  "originalTree": {
+    "root": "C:\\Users\\89400\\Momoka",
+    "branch": "master",
+    "firstObservedCommit": "2830e189aa11b984edd5c61947ed92fe6e9926f3",
+    "intermediateObservedCommit": "9b69e0877f59f899c9ddc6e1ebfd2baae83e445a",
+    "lastObservedCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "sampledStatus": [
+      "?? docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+      "?? website/"
+    ],
+    "untrackedFiles": [
+      {
+        "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "bytes": 41321,
+        "sha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F",
+        "reviewed": false,
+        "treatment": "其他任务已有文件，仅快照保护，不纳入本轮提交"
+      },
+      {
+        "path": "website/README.md",
+        "bytes": 4237,
+        "sha256": "FBECA038382C00E9004E352CB2B59514E460B6D0FA7460B666810DF86DD81092",
+        "reviewed": false,
+        "treatment": "其他任务已有文件，仅快照保护，不纳入本轮提交"
+      },
+      {
+        "path": "website/docker-compose.yml",
+        "bytes": 521,
+        "sha256": "E086CD7DE73F7F578559E4A1505C5C8BFCDAB373A21842C7CC384FBF404BDDC8",
+        "reviewed": false,
+        "treatment": "其他任务已有文件，仅快照保护，不纳入本轮提交"
+      },
+      {
+        "path": "website/index.html",
+        "bytes": 10212,
+        "sha256": "648CFA1F3F5CBC33A17FA50D937803EEAA71D9A95D53C4A7EF25D7E612537CB8",
+        "reviewed": false,
+        "treatment": "其他任务已有文件，仅快照保护，不纳入本轮提交"
+      },
+      {
+        "path": "website/nginx.conf",
+        "bytes": 1156,
+        "sha256": "43C9C8F7B41EAB282781AD21501391938A74F79C8AD9F8B021FD0537C124AED5",
+        "reviewed": false,
+        "treatment": "其他任务已有文件，仅快照保护，不纳入本轮提交"
+      }
+    ],
+    "excludedObservedIntermediateChanges": [
+      "tests/Momoka.Tests/EmbyRealtimeTests.cs",
+      "tests/Momoka.Tests/JellyfinProtocolTests.Restore.cs"
+    ],
+    "note": "原树在其他会话持续整合；上述原树变化不属于本轮审查结论，也不是阶段1基线"
+  },
+  "policyFiles": [
+    {
+      "path": "CLAUDE.md",
+      "bytes": 24962,
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "bytes": 87879,
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "bytes": 16506,
+      "sha256": "364229B10809BFC4516C27B7D08352D5AF38438ADA222181FBC92B880EF4F4C0"
+    },
+    {
+      "path": "PROGRESS.md",
+      "bytes": 1954281,
+      "sha256": "EC04D85768AB68C3B6AF61327D3961106E63E6675D62CF03597CBF202FDF640D"
+    },
+    {
+      "path": "global.json",
+      "bytes": 605,
+      "sha256": "8F24F8A5FB69CC074396296B4BFC788521C4E56288F43F03798453F69A63B6DE"
+    }
+  ],
+  "skills": [
+    {
+      "name": "momoka-audio-output",
+      "path": ".claude/skills/momoka-audio-output/SKILL.md",
+      "sha256": "59480D98060815C3902679ED83785A8C8EA2505A976102B48227C7338B8BD0D1",
+      "readDepth": "元数据和章节",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-audio-output\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "59480D98060815C3902679ED83785A8C8EA2505A976102B48227C7338B8BD0D1",
+      "copyState": "一致"
+    },
+    {
+      "name": "momoka-emby-api",
+      "path": ".claude/skills/momoka-emby-api/SKILL.md",
+      "sha256": "3B949221AC0C99E142C805B36EBE4480D9CA91B55609BE8F2969E7724ED0B4A9",
+      "readDepth": "元数据、章节和本阶段相关新增边界",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-emby-api\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "C8619C614CB7265FFEBA4990EF0F3895F8181F0FAD27258787923E9A9B639FC9",
+      "copyState": "不同（尚未据此判定语义错误）"
+    },
+    {
+      "name": "momoka-fnnas-media-api",
+      "path": ".claude/skills/momoka-fnnas-media-api/SKILL.md",
+      "sha256": "6B511DEA641BB61B536D23565C01A8CB68E411C5714BD74B10752EF473A732CE",
+      "readDepth": "元数据、章节和本阶段相关新增边界",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-fnnas-media-api\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "F17FE5D2DEA7B7C53EAF7883C946DFCB1D561F4E2B770D83DE0647FCE9303E96",
+      "copyState": "不同（尚未据此判定语义错误）"
+    },
+    {
+      "name": "momoka-jellyfin-api",
+      "path": ".claude/skills/momoka-jellyfin-api/SKILL.md",
+      "sha256": "FA8DCE71C34FE40A52D1662AA69CB4D1F700A5C6061591AF89C2BD1D29B7C8D9",
+      "readDepth": "元数据、章节和本阶段相关新增边界",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-jellyfin-api\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "E56B6353BE6B527209134E49FD8F2DFB844FCB4BF9EAC5795E674C59C72899D7",
+      "copyState": "不同（尚未据此判定语义错误）"
+    },
+    {
+      "name": "momoka-moviepilot",
+      "path": ".claude/skills/momoka-moviepilot/SKILL.md",
+      "sha256": "4818E4C6C33DF0E643DC4B0AB82FAF20467D333C233E27A3EDADB5E653F068F0",
+      "readDepth": "元数据和章节",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-moviepilot\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "4818E4C6C33DF0E643DC4B0AB82FAF20467D333C233E27A3EDADB5E653F068F0",
+      "copyState": "一致"
+    },
+    {
+      "name": "momoka-playback",
+      "path": ".claude/skills/momoka-playback/SKILL.md",
+      "sha256": "96477913D82E4A1D2BC8FD3D74418A97E96E5267FE092C7D889BE845CC2B92B9",
+      "readDepth": "元数据和章节",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-playback\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "96477913D82E4A1D2BC8FD3D74418A97E96E5267FE092C7D889BE845CC2B92B9",
+      "copyState": "一致"
+    },
+    {
+      "name": "momoka-plex-api",
+      "path": ".claude/skills/momoka-plex-api/SKILL.md",
+      "sha256": "B319844C882292C678A558944BD88C819B1C8E6B74AA902C01DDDF465404A93A",
+      "readDepth": "元数据和章节",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-plex-api\\SKILL.md",
+      "globalExists": false,
+      "globalSha256": null,
+      "copyState": "无全局副本"
+    },
+    {
+      "name": "momoka-skill-creator",
+      "path": ".claude/skills/momoka-skill-creator/SKILL.md",
+      "sha256": "A8A42C5754C8552885CF52F6EE74FF24469BD50ACE9DD50583D66A21A6C045E2",
+      "readDepth": "元数据和章节",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-skill-creator\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "A8A42C5754C8552885CF52F6EE74FF24469BD50ACE9DD50583D66A21A6C045E2",
+      "copyState": "一致"
+    },
+    {
+      "name": "momoka-subtitles",
+      "path": ".claude/skills/momoka-subtitles/SKILL.md",
+      "sha256": "F6A48D0CB0E735856D464A4954B11F3DDFC4CDC8D117A095AC93135B7370BC27",
+      "readDepth": "元数据和章节",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-subtitles\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "B6DEF47E0A9F6D303FA5F840856C7772FAAA0820710EE6277D6C5E4626AB1297",
+      "copyState": "不同（尚未据此判定语义错误）"
+    },
+    {
+      "name": "momoka-verification",
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69",
+      "readDepth": "全文",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-verification\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69",
+      "copyState": "一致"
+    },
+    {
+      "name": "momoka-video-output",
+      "path": ".claude/skills/momoka-video-output/SKILL.md",
+      "sha256": "75B3D400CBF8C98F31194A4AE0EAAC7EA46D403AD02C999D74B745890703D8C6",
+      "readDepth": "元数据和章节",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-video-output\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "75B3D400CBF8C98F31194A4AE0EAAC7EA46D403AD02C999D74B745890703D8C6",
+      "copyState": "一致"
+    },
+    {
+      "name": "momoka-winui-shell",
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA",
+      "readDepth": "全文",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\momoka-winui-shell\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA",
+      "copyState": "一致"
+    },
+    {
+      "name": "mpv-shader-quality",
+      "path": ".claude/skills/mpv-shader-quality/SKILL.md",
+      "sha256": "0B9837E5F176EB49E04501168A5A74FA598D8EAC7DE3FFECCBB97D9B7DFCAE2E",
+      "readDepth": "元数据和章节",
+      "globalPath": "C:\\Users\\89400\\.codex\\skills\\mpv-shader-quality\\SKILL.md",
+      "globalExists": true,
+      "globalSha256": "0B9837E5F176EB49E04501168A5A74FA598D8EAC7DE3FFECCBB97D9B7DFCAE2E",
+      "copyState": "一致"
+    }
+  ],
+  "runtimeObservations": {
+    "dotnet": {
+      "executable": "C:\\Users\\89400\\.dotnet\\dotnet.exe",
+      "observedVersion": "10.0.400",
+      "observation": "仅 --version；未构建、未还原"
+    },
+    "node": "v24.19.0（仅 --version）",
+    "pythonLauncher": "Python 3.13.2（仅 py --version；未核对原生位数）",
+    "winapp": "Get-Command 可定位；未启动、未检查版本或 UI 能力",
+    "nativeComputerUse": "当前工具声明禁用 native APIs；未尝试其他输入或截图途径",
+    "libmpvDllInThisTree": false,
+    "restoreAssetsInThisTree": false
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段0快照.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段0检查.json",
+    "PROGRESS.md"
+  ],
+  "systemContextCompression": {
+    "executed": false,
+    "reason": "没有可调用的明确系统上下文压缩工具；已保存交接不等于系统压缩"
+  }
+}
