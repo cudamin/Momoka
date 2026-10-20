@@ -2,6 +2,18 @@
 
 最后更新：2026-10-20
 
+## 双击 Momoka.exe 又被 SmartScreen 拦：根因是 DSH 工作区写入沙箱的常驻 Low 标签（2026-10-20 用户报）
+
+用户报（原话）：「修复这个问题」，附「Windows 已保护你的电脑／Microsoft Defender SmartScreen 阻止了无法识别的应用启动／应用：Momoka.exe／发行者：发布者未知／仍要运行·不运行」截图。桌面快捷方式指向 `artifacts/publish/win-x64/Momoka.exe`。
+
+- **读数（修复前）**：exe 未签名、无 MOTW（数据流只有 `:$DATA`）；仓库根 `C:\Users\89400\Momoka` 带 `Mandatory Label\Low Mandatory Level:(OI)(CI)(NW)`，`artifacts`、`assets`、`src`、`tests`、`tools` 与 exe 全是 `(I)` Low。与 2026-10-01、10-04 两次同因复发一致。
+- **根因（来源首次查明）**：DSH 的 Windows ACL 沙箱 `workspace-write` 用同一次 `SetNamedSecurityInfoW` 给工作区根写常驻 Low 标签（能力 SID 允许 ACE、父目录删除拒绝、Low 标签一起写，`dispose()` 有意不撤销）；组件 README 把「常驻 Low 标签会活过 DSH」列为已知限制，自带 `diagnose-windows-sandbox-acl` 技能明确不修 Low 标签。本机桌面配置默认 `danger-full-access`，只有切到「工作区写入」才写标签。ACL 上的 `SB\CodexSandboxUsers` 是 Codex 沙箱的授权条目，不是标签来源。
+- **修复（未改代码）**：`icacls C:\Users\89400\Momoka /setintegritylevel (OI)(CI)M`，60 秒完成继承扩散；复查根目录、`artifacts`、`artifacts/publish/win-x64` 与 exe 均 Medium，跨全树随机抽 20 个文件 Low 标签 0 个。
+- **验证（双击路径）**：用 `ShellExecuteW`（等同双击）起 exe 与 `桌面\Momoka.lnk` 各一次，约 1 秒出进程、`MainWindowTitle=Momoka`，随后正常关闭；修复前同一路径被拦（用户截图即证据），修复后没有 SmartScreen 框。这是第一次用本机探针直接证明修复后双击放行。
+- **防复发**：来源、默认完全权限与「用过工作区写入后先查再恢复 Medium」已写进 `docs/开发与验证.md`；ACL 上其他工具的常驻授权条目不要手动删。
+- **未验证／边界**：① 没有实测 DSH 下次切到工作区写入时会不会把标签重新写回（按组件文档「常驻、精确 ACE 跳过」推断只在首次授权时写，未验证）；② 没做代码签名，自签名对 SmartScreen 无效的既有结论不变，对外分发件仍未签；③ 本轮只改文档，没有产品改动，所以不跑构建、测试与探针。
+- **提交**：本地提交（未推送；本轮没有上传授权）。
+
 ## 收藏页聚合所有账号并支持分账号筛选（2026-10-20 用户令）
 
 用户令（原话）：「收藏页面直接聚合所有账号的收藏，支持分账号筛选」。动手前读了 `CLAUDE.md`、shell 技能与现有收藏/多来源实现。
