@@ -688,8 +688,16 @@ public sealed partial class HomeViewModel : PageViewModel
             if (!row.Visible || HomeLayout.LibraryId(row.Key) is not { Length: > 0 } id) continue;
             if (_libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == row.Key) is not { } library) continue;
 
-            perLibrary[row.Key] = FetchAsync(
-                HomeLayout.LibraryTitle(library.Name), (client, ct) => client.GetLatestAsync(id, LatestSize, ct), token, shelf.Source ?? _scope);
+            // Jellyfin 的剧集库走 /Items/Latest 会只认单集、电影：只有剧集（还没扫出单集）的库回空表，
+            // 这一排就被当成空排摘掉。改用条目查询直接列剧集，见 HomeLatest。
+            var source = shelf.Source ?? _scope;
+            perLibrary[row.Key] = HomeLatest.UsesSeriesQuery(library)
+                ? FetchAsync(HomeLayout.LibraryTitle(library.Name), async (client, ct) =>
+                    (await client.GetItemsAsync(HomeLatest.SeriesQuery(id, LatestSize), ct).ConfigureAwait(true)).Items,
+                    token, source)
+                : FetchAsync(
+                    HomeLayout.LibraryTitle(library.Name), (client, ct) => client.GetLatestAsync(id, LatestSize, ct),
+                    token, source);
         }
 
         // 定时检查（见 AutoRefreshAsync）的基线也是这一趟记下的：整页重读之后，屏上这一份就是「服务器此刻的

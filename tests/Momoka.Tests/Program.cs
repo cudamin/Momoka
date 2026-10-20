@@ -73,6 +73,7 @@ internal static class Program
         HomeFoldTests.Register();
         BackdropBlurTests.Register();
         HomeLayoutTests.Register();
+        HomeLatestTests.Register();
         ResumeRowTests.Register();
         UiLifecycleTests.Register();
         StartIntentTests.Register();
