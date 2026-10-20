@@ -370,9 +370,9 @@ public sealed class PlaybackSettings
 
     /// <summary>
     /// 音轨格式筛选规则（「给音轨新增语言优先级和格式优先级」，2026-09-22）。语言这一关选出「哪几条是这个语言」之后，
-    /// 格式这一关在那批轨里按编码／声道的关键词再挑一遍：优先＝含这个词的排前头，候补＝往后排，默认＝不生效。和字幕
-    /// 标题筛选、视频文件名筛选同一套 <see cref="KeywordRule"/>／<see cref="Playback.KeywordFilter"/>，只是打分的文本是
-    /// 轨的 Codec／Profile／ChannelLayout／标题拼起来的（TrueHD、DTS-HD、Atmos、7.1、5.1 这些词就落在那里）。
+    /// 格式这一关在那批轨里按编码／声道的关键词再挑一遍：表内越靠上的规则越优先，优先＝含这个词的排前头，候补＝往后排，
+    /// 默认＝不生效。和字幕标题筛选、视频文件名筛选同一套 <see cref="KeywordRule"/>／<see cref="Playback.KeywordFilter"/>，
+    /// 只是比较的文本是轨的 Codec／Profile／ChannelLayout／标题拼起来的（TrueHD、DTS-HD、Atmos、7.1、5.1 这些词就落在那里）。
     /// <para>
     /// 出厂给几条常见格式词、全设成中立（不生效）—— 让用户在设置页看得见能改哪些词，装机行为不变（同一语言里仍是默认
     /// 轨优先）。格式只在<em>同一语言内部</em>做取舍：语言优先级仍是第一位的，日语 TrueHD 不会因为英语是 Atmos 就输给它。
@@ -403,8 +403,8 @@ public sealed class PlaybackSettings
 
     /// <summary>
     /// 标题筛选规则（「先按语言选中文，再按标题决定不要双语/特效」，2026-09-22）。语言这一关选出「哪几条是中文」
-    /// 之后，标题这一关在那批轨里再挑一遍：每条规则一个关键词加一种态度（优先/默认/排除），见
-    /// <see cref="Playback.SubtitleTitleFilter"/>。
+    /// 之后，标题这一关在那批轨里再挑一遍：每条规则一个关键词加一种态度（优先/默认/候补），表内次序就是优先级，
+    /// 见 <see cref="Playback.KeywordFilter"/>。
     /// <para>
     /// 出厂给「双语」「特效」两个词、都设成默认（中立、不生效）—— 用户按需自己改成排除或优先，装机行为不变。
     /// 语言从此不看标题（<see cref="TrackLanguagePriority.Matches"/> 的 <c>includeTitle</c>），两件事分家。
@@ -418,8 +418,8 @@ public sealed class PlaybackSettings
 
     /// <summary>
     /// 视频文件名筛选规则（「参考标题筛选，在播放行为里新增视频文件名筛选」，2026-09-22）。一个条目有多版本（多个
-    /// 文件）时，默认播哪一个由这组规则的关键词按文件名打分决定：优先＝含这个词的版本优先，候补＝往后排，默认＝
-    /// 不生效。和字幕标题筛选同一套 <see cref="KeywordRule"/>／<see cref="Playback.KeywordFilter"/>。
+    /// 文件）时，默认播哪一个由这组规则按文件名由上到下比较决定：表内越靠上的规则越优先，优先＝含这个词的版本优先，
+    /// 候补＝往后排，默认＝不生效。和字幕标题筛选同一套 <see cref="KeywordRule"/>／<see cref="Playback.KeywordFilter"/>。
     /// <para>
     /// 出厂为空 —— 文件名里的发布组标记（REMUX、4K、枪版…）因人而异，不替用户假设，装机行为不变（默认仍是服务器
     /// 返回的第一个版本）。单版本条目一律不受影响。

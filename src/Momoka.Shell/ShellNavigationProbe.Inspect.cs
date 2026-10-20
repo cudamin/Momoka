@@ -1,6 +1,10 @@
 using Momoka.Emby;
+using Momoka.Configuration;
 using Momoka.FnNas;
 using Momoka.Playback;
+using Momoka.Infrastructure;
+using Momoka.MoviePilot;
+using Momoka.Mpv;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -42,6 +46,8 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(layout);
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var busy = false;
+        using var settingsMoviePilot = new MoviePilotClient(new RejectNetwork());
+        var animationPreference = HomeMotion.PreferenceEnabled;
         void Add(string id, string label, Func<Task> action)
         {
             var button = new Button { Content = label };
@@ -81,6 +87,28 @@ internal sealed partial class ShellNavigationProbe
         {
             frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, Episode("a")));
             return Task.CompletedTask;
+        });
+        Add("InspectSettingsMotion", "设置动画", async () =>
+        {
+            if (frame.Content is IShellContent previous) previous.Release();
+            fixture.Settings.Playback.AudioFormatRules =
+                [new("Atmos", TitlePreference.Prefer), new("FLAC", TitlePreference.Prefer), new("DTS-HD", TitlePreference.Neutral)];
+            fixture.Settings.Playback.SubtitleTitleRules =
+                [new("双语", TitlePreference.Prefer), new("SDH", TitlePreference.Exclude)];
+            fixture.Settings.Playback.VideoFileRules =
+                [new("REMUX", TitlePreference.Prefer), new("HDR", TitlePreference.Prefer)];
+            fixture.Settings.Mpv.ScreenshotFormat = "webp";
+            fixture.Settings.Mpv.ScreenshotWebpLossless = false;
+            fixture.Settings.Mpv.Pipeline = VideoPipelineKind.Standalone;
+            var paths = new AppPaths(Path.Combine(_options.Paths.Root, "inspect-settings-motion"));
+            paths.EnsureCreated();
+            var page = CreateMotionSettingsPage(fixture, settingsMoviePilot, paths);
+            frame.Content = page;
+            HomeMotion.ApplyPreference(true);
+            await page.ViewModel.ReloadAsync();
+            page.SelectedCategory = "播放行为";
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
         });
         Add("InspectNotifications", "通知", () =>
         {
@@ -157,6 +185,7 @@ internal sealed partial class ShellNavigationProbe
         await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(8)));
         if (frame.Content is IShellContent page) page.Release();
         _root.Children.Remove(layout);
+        HomeMotion.ApplyPreference(animationPreference);
     }
 
     private void ResizeInspect(int width, int height)

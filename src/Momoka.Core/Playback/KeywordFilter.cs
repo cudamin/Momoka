@@ -5,25 +5,28 @@ namespace Momoka.Playback;
 /// 名字改成候补更贴切）。<see cref="Neutral"/> 是 0，所以设置文件里没写这个字段、或写了个不认识的值时，落到「不
 /// 生效」这一档，不会平白把一条顶上去或压下去。
 /// <para>
-/// 这套关键词打分是通用的：字幕按<em>标题</em>筛（<see cref="TrackLanguagePriority"/> 之后那一关），视频版本按
-/// <em>文件名</em>筛（多版本条目默认播哪一个）。两处同一套 <see cref="KeywordRule"/>／<see cref="KeywordFilter"/>。
+/// 这套关键词优先级是通用的：字幕按<em>标题</em>筛（<see cref="TrackLanguagePriority"/> 之后那一关），视频版本按
+/// <em>文件名</em>筛（多版本条目默认播哪一个），音轨按格式筛。三处同一套 <see cref="KeywordRule"/>／<see cref="KeywordFilter"/>。
 /// </para>
 /// </summary>
 public enum TitlePreference
 {
-    /// <summary>默认：这个词不参与打分。</summary>
+    /// <summary>默认：这个词不参与筛选。</summary>
     Neutral = 0,
 
     /// <summary>优先：含这个词的排到前头。</summary>
     Prefer = 1,
 
-    /// <summary>候补：含这个词的排到最后（软排除 —— 只有当同一批里全被压低时才让一条出来，不至于没得挑）。</summary>
+    /// <summary>
+    /// 候补：轮到这条规则时，含这个词的候选排到后面（软排除 —— 同一批全是候补时仍留一条，不至于没得挑；
+    /// 它只管自己这条规则，不抵消上方的优先词）。
+    /// </summary>
     Exclude = 2
 }
 
 /// <summary>
 /// 一条关键词规则：一个词加它的态度。存进设置文件、也是设置页那张表里的一项。用类而不是 record，是因为设置页
-/// 要就地改它的 <see cref="State"/>，而 record 的值语义在这儿只会添乱。字幕标题、视频文件名两处共用。
+/// 要就地改它的 <see cref="State"/>，而 record 的值语义在这儿只会添乱。字幕标题、音轨格式、视频文件名三处共用。
 /// </summary>
 public sealed class KeywordRule
 {
@@ -43,40 +46,41 @@ public sealed class KeywordRule
 }
 
 /// <summary>
-/// 关键词打分：从一批候选里，按词的态度挑出最合意的。优先词一个 +1、候补词一个 −1、默认词不计；分高者胜。
-/// <para>
-/// 「候补」是软的 —— 一条被压低的只有在同一批全都一样低分时才轮得到它，宁可给一条不那么想要的，也不因为名字
-/// 不合意就整个挑不出东西（真要硬排是另一种取舍，届时再说）。规则为空、或文本为空时一律 0 分，等于这一关不作用。
-/// 用在两处：字幕按标题（语言筛完之后），视频版本按文件名（多版本默认播哪一个）。
-/// </para>
+/// 由上到下比较关键词规则；第一条能区分两个候选的有效规则决定先后。
+/// 默认词不参与，优先词让命中的候选胜出，候补词让未命中的候选胜出。
+/// 下方规则只负责破同分，不能靠命中更多词越过上方规则；全是候补时仍保留最佳候选。
+/// 字幕标题、音轨格式与视频文件名共用这套优先级。
 /// </summary>
 public static class KeywordFilter
 {
-    /// <summary>
-    /// 一段文本在这组规则下的分数：优先词每命中一个 +1、候补词每命中一个 −1、默认词不计。大小写不敏感、子串匹配
-    /// （「中英双语特效版」既含「双语」也含「特效」）。
-    /// </summary>
-    public static int Score(string? text, IReadOnlyList<KeywordRule>? rules)
+    /// <summary>正数表示左边更优，负数表示右边更优；零交回调用方按默认轨／服务器次序定夺。</summary>
+    public static int Compare(string? left, string? right, IReadOnlyList<KeywordRule>? rules)
     {
-        if (rules is null || rules.Count == 0 || string.IsNullOrEmpty(text)) return 0;
+        if (rules is null) return 0;
 
-        var score = 0;
         foreach (var rule in rules)
         {
-            if (rule is null || rule.State == TitlePreference.Neutral || string.IsNullOrWhiteSpace(rule.Term)) continue;
-            if (text.Contains(rule.Term, StringComparison.OrdinalIgnoreCase))
-            {
-                score += rule.State == TitlePreference.Prefer ? 1 : -1;
-            }
-        }
+            if (!IsEffective(rule)) continue;
+            var leftMatches = Matches(left, rule.Term);
+            var rightMatches = Matches(right, rule.Term);
+            if (leftMatches == rightMatches) continue;
 
-        return score;
+            var preferred = rule.State == TitlePreference.Prefer ? leftMatches : !leftMatches;
+            return preferred ? 1 : -1;
+        }
+        return 0;
     }
 
+    private static bool IsEffective(KeywordRule? rule) =>
+        rule is { State: TitlePreference.Prefer or TitlePreference.Exclude }
+        && !string.IsNullOrWhiteSpace(rule.Term);
+
+    private static bool Matches(string? text, string term) =>
+        !string.IsNullOrEmpty(text) && text.Contains(term, StringComparison.OrdinalIgnoreCase);
+
     /// <summary>
-    /// 在用户规则末尾补上几条「候补」词（同名的不重复加、也不覆盖用户已设的态度）。字幕那头用它实现「优先级里有
-    /// 简体中文时自动把标题带 繁／繁体 的压成候补」——把这条策略留在调用方（<c>TrackSelection</c>），这里只管通用的
-    /// 合并动作。
+    /// 在用户规则末尾补上候补词；不重复、不覆盖用户态度，优先级也不越过用户显式规则。
+    /// 字幕在简体中文优先时用它将繁体标题留作兜底。
     /// </summary>
     public static IReadOnlyList<KeywordRule> WithExclusions(IReadOnlyList<KeywordRule>? userRules, params string[] terms)
     {
@@ -85,32 +89,30 @@ public static class KeywordFilter
         {
             if (string.IsNullOrWhiteSpace(term)) continue;
             if (!rules.Any(rule => rule is not null && string.Equals(rule.Term, term, StringComparison.OrdinalIgnoreCase)))
-            {
                 rules.Add(new KeywordRule(term, TitlePreference.Exclude));
-            }
         }
-
         return rules;
     }
 
-    /// <summary>
-    /// 从一批候选里留下分数最高的那些 —— 优先词把它抬上来、候补词把它压下去，剩下的交回给调用方按它原来的规矩
-    /// （默认轨、服务器次序等）再定夺。规则为空或只有一个候选时原样返回，不白算一遍。<paramref name="textOf"/>
-    /// 把一个候选映射成它用来打分的文本（字幕给标题、视频给文件名）。
-    /// </summary>
+    /// <summary>保留优先级最高的所有候选及原有次序；没有有效规则或仅有一个候选时原样返回。</summary>
     public static IReadOnlyList<T> Rank<T>(IReadOnlyList<T> pool, IReadOnlyList<KeywordRule>? rules, Func<T, string?> textOf)
     {
-        if (rules is null || rules.Count == 0 || pool.Count <= 1) return pool;
+        if (rules is null || !rules.Any(IsEffective) || pool.Count <= 1) return pool;
 
-        var best = int.MinValue;
-        foreach (var item in pool) best = Math.Max(best, Score(textOf(item), rules));
-
-        var top = new List<T>(pool.Count);
-        foreach (var item in pool)
+        var bestText = textOf(pool[0]);
+        var top = new List<T>(pool.Count) { pool[0] };
+        for (var index = 1; index < pool.Count; index++)
         {
-            if (Score(textOf(item), rules) == best) top.Add(item);
+            var text = textOf(pool[index]);
+            var comparison = Compare(text, bestText, rules);
+            if (comparison < 0) continue;
+            if (comparison > 0)
+            {
+                top.Clear();
+                bestText = text;
+            }
+            top.Add(pool[index]);
         }
-
-        return top;
+        return top.Count == pool.Count ? pool : top;
     }
 }

@@ -12,6 +12,7 @@ internal static class Program
         Console.WriteLine();
 
         PlaybackTests.Register();
+        KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();
         MediaVersionDiscoveryTests.Register();
         BackendLifecycleTests.Register();

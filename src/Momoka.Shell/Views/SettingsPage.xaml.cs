@@ -61,8 +61,20 @@ public sealed partial class SettingsPage : Page, IShellContent
         InitializeComponent();
         ObserveCategoryGroups();
         CategoryGroupsSource.Source = ViewModel.CategoryGroups;
-        Loaded += (_, _) => QueueSettingsEntrance();
-        Unloaded += (_, _) => StopSettingsEntrance();
+        Loaded += (_, _) =>
+        {
+            HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
+            HomeMotion.PreferenceChanged += ApplySettingsMotionPreference;
+            ApplySettingsMotionPreference();
+            QueueSettingsEntrance();
+        };
+        Unloaded += (_, _) =>
+        {
+            if (XamlRoot is not null) return;
+            HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
+            StopSettingsEntrance();
+            DetachSettingsContentMotion();
+        };
 
         // Kept alive across navigations, which is what makes half-typed text in a box — and which card was
         // open — survive a trip to another page and back. Signing out drops the frame's content entirely, so
@@ -83,6 +95,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         {
             if (e.PropertyName == nameof(SettingsViewModel.SelectedCategory))
             {
+                StopSettingsContentMotion();
                 ShowHosted();
                 QueueSettingsEntrance();
             }
@@ -657,6 +670,7 @@ public sealed partial class SettingsPage : Page, IShellContent
     {
         StopMoviePilotMonitoring();
         StopSettingsEntrance();
+        StopSettingsContentMotion();
         (HostedFrame.Content as IShellContent)?.Release();
         if (HostedFrame.Content is Page { Content: FrameworkElement layout }) HomeMotion.Stop(layout);
     }

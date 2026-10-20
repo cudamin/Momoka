@@ -125,6 +125,10 @@ internal sealed partial class ShellNavigationProbe
             // 2026-10-11 起该用例多四帧分区截图（播放行为分类的资源筛选、截图卡滚进视口各两帧），12 秒的
             // 默认限时不够了 —— 与视频基础输出用例同款理由（多轮控件切换与截图设 45 秒）。
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
+            await CaseAsync("三处关键词拖拽优先级与弹簧（宽窗）", () => SettingsPriorityFiltersAsync(1100), 45, section: ShellProbeSections.Settings);
+            await CaseAsync("三处关键词拖拽优先级与弹簧（窄窗）", () => SettingsPriorityFiltersAsync(760), 45, section: ShellProbeSections.Settings);
+            await CaseAsync("从属设置显隐动画与偏好恢复（宽窗）", () => SettingsConditionalRowsAsync(1100), 45, section: ShellProbeSections.Settings);
+            await CaseAsync("从属设置显隐动画与偏好恢复（窄窗）", () => SettingsConditionalRowsAsync(760), 45, section: ShellProbeSections.Settings);
             // 主页卡新增一行「主页媒体库位置」（2026-10-16 从界面卡挪来、同时改名），宽窄两帧截图 + 三档写回。
             await CaseAsync("主页卡上的主页媒体库位置三档", SettingsHomeLibraryPlacementAsync, 30);
             // 设置 → 界面新增一行「开机自启」：拨开关写的是机器上的启动项（假实现），办不到时整行不显示，

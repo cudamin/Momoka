@@ -85,10 +85,10 @@ public static class TrackSelection
     }
 
     /// <summary>
-    /// 格式这一关：从同一语言（或兜底）选出的那批音轨里，按格式规则打分留下最高的那些，再交给
-    /// <see cref="TrackPreference.Best"/> 按默认轨定夺。打分的文本是轨的编码／声道信息拼起来的
-    /// （TrueHD、DTS-HD、Atmos、7.1、5.1 这些词落在那里），和字幕的 <see cref="BestByTitle"/> 同一套
-    /// <see cref="KeywordFilter"/>，只是取的字段不同。
+    /// 格式这一关：从同一语言（或兜底）选出的那批音轨里，按格式规则的次序留下最合意的那些，再交给
+    /// <see cref="TrackPreference.Best"/> 按默认轨定夺。规则从上往下比，第一条能区分两条轨的规则决定先后；
+    /// 比较的文本是轨的编码／声道信息拼起来的（TrueHD、DTS-HD、Atmos、7.1、5.1 这些词落在那里），
+    /// 和字幕的 <see cref="BestByTitle"/> 同一套 <see cref="KeywordFilter"/>，只是取的字段不同。
     /// </summary>
     private static MediaStream? BestByFormat(IReadOnlyList<MediaStream> pool, IReadOnlyList<KeywordRule>? rules, int? defaultIndex)
     {
@@ -168,9 +168,9 @@ public static class TrackSelection
     }
 
     /// <summary>
-    /// 标题这一关：从同一语言（或兜底）选出的那批轨里，按标题规则打分留下最高的那些，再交给
-    /// <see cref="TrackPreference.Best"/> 按默认轨/强制标记定夺。打分用轨的 <c>Title</c>，没有就退到 <c>DisplayTitle</c>
-    /// —— 和语言那一关分家（见 <see cref="KeywordFilter"/>）。
+    /// 标题这一关：从同一语言（或兜底）选出的那批轨里，按标题规则的次序留下最合意的那些，再交给
+    /// <see cref="TrackPreference.Best"/> 按默认轨/强制标记定夺。规则从上往下比，第一条能区分两条轨的规则决定
+    /// 先后；比较用轨的 <c>Title</c>，没有就退到 <c>DisplayTitle</c> —— 和语言那一关分家（见 <see cref="KeywordFilter"/>）。
     /// </summary>
     private static MediaStream? BestByTitle(IReadOnlyList<MediaStream> pool, IReadOnlyList<KeywordRule>? rules, int? defaultIndex, bool forcedOnly)
     {

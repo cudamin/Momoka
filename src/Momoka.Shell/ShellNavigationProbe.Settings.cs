@@ -1170,12 +1170,14 @@ internal sealed partial class ShellNavigationProbe
 
     private static Task WaitForSettingsSettledAsync(SettingsPage page) => UntilAsync(() =>
         Get<Grid>(page, "SettingsContent").Opacity == 1
+        && page.IsContentMotionSettled
         && Descendants(page).OfType<FrameworkElement>().Where(element => element.Name == "SettingsSection")
             .All(section => section.Opacity == 1 && (section.RenderTransform is not TranslateTransform drift || drift.Y == 0)));
 
     private static void AssertSettingsSettled(SettingsPage page)
     {
         Require(Get<Grid>(page, "SettingsContent").Opacity == 1, "设置内容停留在透明状态");
+        Require(page.IsContentMotionSettled, "设置行的动画未清理");
         foreach (var section in Descendants(page).OfType<FrameworkElement>().Where(element => element.Name == "SettingsSection"))
             Require(section.Opacity == 1 && (section.RenderTransform is not TranslateTransform drift || drift.Y == 0),
                 "设置分组未归位");
@@ -1203,8 +1205,8 @@ internal sealed partial class ShellNavigationProbe
             // 档位次序是 Pipelines 表的次序（集成在前、独占在后），按下标挑另一档。
             var (row, combo) = PipelineRow(page);
             combo.SelectedItem = row.Choices[integrated ? 1 : 0];
-            // 数据集合先变，XAML 容器在后续布局才替换；旧树也可能恰好处于“不在动画”的状态。
-            await UntilAsync(() => !Descendants(page).Any(element => ReferenceEquals(element, combo)));
+            // 上级选择器保持原对象；只替换从属图形接口行，避免选择时焦点丢失和整卡闪动。
+            await UntilAsync(() => fixture.Settings.Mpv.Pipeline != original);
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page); // 重建可能带分组入场动画，与别处一样等它落定再读。
             Require(fixture.Settings.Mpv.Pipeline == (integrated ? VideoPipelineKind.Standalone : VideoPipelineKind.Integrated),
@@ -1215,11 +1217,11 @@ internal sealed partial class ShellNavigationProbe
             await SaveReturnFrameAsync(page, $"settings-pipeline-switched-{width}.png");
             await SaveProbeScreenAsync($"settings-pipeline-switched-{width}-screen.png");
 
-            // 重建把整张卡的行和下拉换成了新对象，切回去要重新找；顺带证明确实换了新树。
+            // 改为原地更新后，上级选择器应保持；接口只读／可编辑的模板仍须按条件替换。
             var (restoredRow, restoredCombo) = PipelineRow(page);
-            Require(!ReferenceEquals(restoredCombo, combo), "重建没有换出新的下拉");
+            Require(ReferenceEquals(restoredCombo, combo) && ReferenceEquals(restoredRow, row), "切管线替换了上级选择器");
             restoredCombo.SelectedItem = restoredRow.Choices[integrated ? 0 : 1];
-            await UntilAsync(() => !Descendants(page).Any(element => ReferenceEquals(element, restoredCombo)));
+            await UntilAsync(() => fixture.Settings.Mpv.Pipeline == original);
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
             Require(fixture.Settings.Mpv.Pipeline == original, "切回原管线没有保存选择");

@@ -26,7 +26,8 @@ public sealed partial class SettingSection : ObservableObject
         Category = category;
         Title = title;
         Description = description;
-        Rows = rows;
+        Rows = new ObservableCollection<SettingRow>(rows);
+        Rows.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Count));
     }
 
     /// <summary>
@@ -51,7 +52,44 @@ public sealed partial class SettingSection : ObservableObject
 
     public string Description { get; }
 
-    public IReadOnlyList<SettingRow> Rows { get; }
+    public ObservableCollection<SettingRow> Rows { get; }
+
+    /// <summary>
+    /// 从属行原地增删，保留仍在场的控件和输入焦点；不整卡替换，WinUI 才能给增删与补位做过渡。
+    /// 类型变化（如可编辑选择变只读文字）必须替换；标签相同但类型不同不复用旧模板。
+    /// 同一张卡里期望行的「标签＋类型」必须唯一 —— 复用就按这两样找，重复会让两条期望行拿到同一个实例。
+    /// 隐藏行的值仍在设置里，恢复时新行从该值读取；这里不写盘。
+    /// </summary>
+    internal void UpdateRows(IReadOnlyList<SettingRow> desired)
+    {
+        var rows = desired.Select(row =>
+        {
+            var existing = Rows.FirstOrDefault(current => current.Label == row.Label && current.GetType() == row.GetType());
+            if (existing is null) return row;
+            existing.Restate(row.Note);
+            switch (existing, row)
+            {
+                case (SettingChoiceRow current, SettingChoiceRow updated):
+                    current.ReseedSelection(updated.Selected?.Label);
+                    break;
+                case (SettingToggleRow current, SettingToggleRow updated):
+                    current.Reseed(updated.IsOn);
+                    break;
+                case (SettingFactRow current, SettingFactRow updated):
+                    current.Value = updated.Value;
+                    break;
+            }
+            return existing;
+        }).ToArray();
+        for (var index = Rows.Count - 1; index >= 0; index--)
+            if (!rows.Contains(Rows[index])) Rows.RemoveAt(index);
+        for (var index = 0; index < rows.Length; index++)
+        {
+            var current = Rows.IndexOf(rows[index]);
+            if (current < 0) Rows.Insert(index, rows[index]);
+            else if (current != index) Rows.Move(current, index);
+        }
+    }
 
     /// <summary>
     /// 卡片牌子右端那个读数：这张卡管着几件事。
@@ -1197,7 +1235,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private void RefreshPlayerBackend()
     {
         var index = Sections.ToList().FindIndex(section => section.Title == "播放器");
-        if (index >= 0) Sections[index] = PlayerCard();
+        if (index >= 0) Sections[index].UpdateRows(PlayerCard().Rows);
         RefreshVideoBackend();
     }
 
@@ -1236,7 +1274,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var index = Sections.ToList().FindIndex(section => section.Title == "自定义 mpv.conf");
         if (MpvCustomConfig.IsBuiltInBackend(Settings.Mpv))
         {
-            if (index >= 0) Sections[index] = CustomMpvConfigCard();
+            if (index >= 0) Sections[index].UpdateRows(CustomMpvConfigCard().Rows);
             else Sections.Insert(Sections.ToList().FindIndex(section => section.Title == "播放器") + 1, CustomMpvConfigCard());
         }
         else if (index >= 0) Sections.RemoveAt(index);
@@ -1278,7 +1316,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         };
 
         // 各格式的画质行只在该它们在场的时候在场（用户令「开无损后下面的压缩和质量要是没用了就自动隐藏」，
-        // 同一原则顺着推到格式：不是 WebP，三行整个没用）：换格式或拨无损由各自行的 after 重建这张卡 ——
+        // 同一原则顺着推到格式：不是 WebP，三行整个没用）：换格式或拨无损由各自行的 after 原地更新从属行 ——
         // 与渲染管线行重建基础输出卡同一条机制（那条路径有探针钉着）。
         if (string.Equals(mpv.ScreenshotFormat, MpvBaseline.ScreenshotOptions.WebpFormat, StringComparison.OrdinalIgnoreCase))
         {
@@ -1308,12 +1346,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     /// <summary>截图格式或无损开关变了，当场重建这张卡：WebP 三行按条件进出场（同渲染管线行重建基础输出卡）。
-    /// 重建之外还要推一遍 —— 换成 WebP 要把三条带值发出去、拨无损要把新状态发出去，运行中的播放器上
+    /// 更新之外还要推一遍 —— 换成 WebP 要把三条带值发出去、拨无损要把新状态发出去，运行中的播放器上
     /// 「不推」就是「保持我上一分钟发的那条」。</summary>
     private void RefreshScreenshotCard()
     {
         var index = Sections.ToList().FindIndex(section => section.Title == "截图");
-        if (index >= 0) Sections[index] = ScreenshotCard();
+        if (index >= 0) Sections[index].UpdateRows(ScreenshotCard().Rows);
         ShowCategory(SelectedCategory);
         PushScreenshotOptions();
     }
@@ -1381,12 +1419,12 @@ public sealed partial class SettingsViewModel : PageViewModel
                     + "「其他字幕」这类兜底项对音轨同样代表「前面都没有时，有一条别的语言的总比没有好」。下次播放生效"),
 
             // 音轨格式筛选（「给音轨新增语言优先级和格式优先级」，2026-09-22）：语言选完之后，在同一语言那批轨里按
-            // 编码／声道的关键词再挑一遍。和字幕标题筛选、视频文件名筛选同一套控件与打分（KeywordRules），只是它看的
+            // 编码／声道的关键词再挑一遍。和字幕标题筛选、视频文件名筛选同一套控件与有序优先级（KeywordRules），只是它看的
             // 是 TrueHD／DTS-HD／Atmos／7.1／5.1 这些格式词。出厂几条常见词都设成默认（不生效）。
             KeywordRules("音轨格式筛选", () => playback.AudioFormatRules, value => playback.AudioFormatRules = value,
                 "语言选出「哪几条是这个语言」之后，再按编码／声道里的词挑一遍：优先＝含这个词的排前头，候补＝排到最后"
                     + "（同语言只剩它时仍会给一条），默认＝不生效。预置 Atmos、TrueHD、DTS-HD、DTS、FLAC、7.1、5.1，"
-                    + "输入框可自定义添加。格式只在同一语言内部作用，不会越过语言优先级。下次播放生效")
+                    + "输入框可自定义添加，拖动调整优先级。格式只在同一语言内部作用，不会越过语言优先级。下次播放生效")
         ]);
     }
 
@@ -1411,11 +1449,11 @@ public sealed partial class SettingsViewModel : PageViewModel
                     + "只有一个版本的片子不受影响。下次打开详情页或下次播放生效"),
 
             // 视频文件名筛选（「参考标题筛选，新增视频文件名筛选」，2026-09-22）：一个条目挂多版本（多个文件）时，
-            // 默认播哪一版按文件名里的关键词挑。和字幕标题筛选同一套控件与打分，只是它筛的是版本文件名。
+            // 默认播哪一版按文件名里的关键词挑。和字幕标题筛选同一套控件与有序优先级，只是它筛的是版本文件名。
             KeywordRules("视频文件名筛选", () => playback.VideoFileRules, value => playback.VideoFileRules = value,
-                "一部片子有多个版本（多个文件）时，按文件名里的词决定默认播哪一版：优先＝含这个词的版本优先，"
-                    + "候补＝往后排（只剩它时仍会用它），默认＝不生效。输入框可自定义添加，如 REMUX、4K、HDR、枪版。"
-                    + "只有一个版本的片子不受影响。下次播放生效")
+                "一部片子有多个版本（多个文件）时，按文件名里的词决定默认播哪一版：拖动调整顺序，越靠上优先级越高；"
+                    + "优先＝含这个词的版本优先，候补＝往后排（只剩它时仍会用它），默认＝不生效。"
+                    + "输入框可自定义添加，如 REMUX、4K、HDR、枪版。只有一个版本的片子不受影响。下次播放生效")
         ]);
     }
 
@@ -1455,10 +1493,10 @@ public sealed partial class SettingsViewModel : PageViewModel
                 exclude: ["普通话", "粤语"]),
 
             // 标题筛选：语言选完之后按标题里的关键词再挑一遍（「先确定哪几条是中文，再决定不要双语和特效」）。
-            // 语言和标题从此分家 —— 语言只看轨的语言字段，这里只看标题。
+            // 语言和标题从此分家 —— 语言只看轨的语言字段，这里只看标题；表内次序就是优先级。
             KeywordRules("标题筛选", () => playback.SubtitleTitleRules, value => playback.SubtitleTitleRules = value,
-                "语言选出「哪几条是中文」之后，再按标题里的词挑一遍：优先＝含这个词的排前头，候补＝排到最后（同语言"
-                    + "只剩它时仍会给一条，不至于没字幕），默认＝不生效。输入框可自定义添加词。"
+                "语言选出「哪几条是中文」之后，再按标题里的词挑一遍：拖动调整顺序，越靠上优先级越高；优先＝含这个词的排前头，"
+                    + "候补＝排到最后（同语言只剩它时仍会给一条，不至于没字幕），默认＝不生效。输入框可自定义添加词。"
                     + "另：字幕语言里选了「简体中文」时，会自动把标题带「繁 / 繁体」的排为候补。下次播放生效"),
             Choice("显示模式", SubtitleModes, () => playback.SubtitleMode, value => playback.SubtitleMode = value),
             Toggle("没有匹配语言时使用默认字幕", "只回退服务器指定或文件标记的默认字幕，不再按标题改选别的轨道；没有默认轨就不显示。"
@@ -2843,7 +2881,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         new(label, note, placeholder, read, write, Save, exclude);
 
     /// <summary>
-    /// 一张关键词规则表：一行一个词加 优先／默认／候补，可自定义添加。字幕标题筛选、视频文件名筛选两处共用同一套
+    /// 一张关键词规则表：一行一个词加 优先／默认／候补，可自定义添加。字幕标题、音轨格式与视频文件名三处共用同一套
     /// <see cref="KeywordRule"/>／<see cref="KeywordFilter"/>／<see cref="SettingTitleRulesRow"/>。
     /// </summary>
     private SettingTitleRulesRow KeywordRules(string label, Func<List<KeywordRule>> read, Action<List<KeywordRule>> write, string? note = null) =>

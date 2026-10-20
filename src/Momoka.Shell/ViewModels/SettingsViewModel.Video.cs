@@ -12,7 +12,7 @@ public sealed partial class SettingsViewModel
     private void RefreshVideoBackend()
     {
         var index = Sections.ToList().FindIndex(section => section.Title == VideoBasicsTitle);
-        if (index >= 0) Sections[index] = VideoCard();
+        if (index >= 0) Sections[index].UpdateRows(VideoCard().Rows);
         RefreshCustomMpvConfig();
     }
 
@@ -21,7 +21,7 @@ public sealed partial class SettingsViewModel
         var video = Settings.Video;
         var rows = new List<SettingRow>();
         var builtIn = Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv;
-        // 只构造当前可用的行；重建不写回偏好，切回原模式时恢复原值。
+        // 只构造当前可用的行；合并时复用在场行，不写回偏好，切回原模式时恢复原值。
         if (builtIn)
         {
             rows.Add(Pick("渲染管线", "集成模式在主窗口播放，固定使用 Direct3D 11。独占模式使用单独的视频窗口，"
@@ -87,7 +87,7 @@ public sealed partial class SettingsViewModel
                 rows.Add(Number("音频同步回退阈值（Hz）", VideoSettings.MinimumHighRefreshRateLimitHz, VideoSettings.MaximumHighRefreshRateLimitHz,
                     () => video.HighRefreshRateLimitHz, value => video.HighRefreshRateLimitHz = value,
                     "播放开始时，屏幕刷新率超过此值就改用音频同步。即使未启用插值，也会影响显示同步。",
-                    () => sync.Restate(Annotate(SyncNote(video), "video-sync")!), "video-sync、interpolation"));
+                    RefreshVideoSyncNote, "video-sync、interpolation"));
         }
         rows.AddRange(
         [
@@ -108,6 +108,14 @@ public sealed partial class SettingsViewModel
             rows.Add(Mpv("去色带强度", MpvOutputOptions.DebandStrengths, () => video.DebandStrength, value => video.DebandStrength = value,
                 "deband-iterations、deband-threshold", "越高越容易抹掉纹理和颗粒。只控制内置去色带，不影响着色器的老片源修复。"));
         return new SettingSection(VideoCategory, VideoBasicsTitle, NextPlayback, rows);
+    }
+
+    // 阈值行可能是后来插入的；不能捕获重建时未被采用的临时 sync 行。
+    private void RefreshVideoSyncNote()
+    {
+        var sync = Sections.FirstOrDefault(section => section.Title == VideoBasicsTitle)?.Rows
+            .FirstOrDefault(row => row.Label == "视频同步");
+        sync?.Restate(Annotate(SyncNote(Settings.Video), "video-sync")!);
     }
 
     private static string SyncNote(VideoSettings video)
