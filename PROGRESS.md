@@ -11,8 +11,9 @@
 - **探针**：`MoviePilotSidebarAsync` 点入口**之前**先把订阅列表那一趟扣在假传输手里（`SubscriptionProbeServer.PendingList`），读「转圈可见、`IsActive`、真画出高度、空态收着」，放行后再读两样都收起，并存 `sidebar-moviepilot-loading-screen.png`；`SubscriptionSectionVisibilityAsync` 另在视图模型上把三拍读齐（没开始读＝空态、扣在手里＝转圈、读完确实没有＝空态）。
 - **构建**：`Momoka.Shell` Release 构建 **0 错误**；4 条 `NU1900` 是离线还原拿不到 nuget.org 的噪声（用户给的代理 `192.168.31.230:8888` 对 `https://api.nuget.org` 握手失败，实测不通）。
 - **测试（如实报红，与本轮无关）**：离线测试 1995 项、通过 1973、**失败 22**。逐条归因：14 条「安全起播」是子进程管道被本会话沙箱拒（`EPERM` 边界），4 条「存储／保存」与 3 条「自检」是 `AtomicFile` 的 `File.Replace` 被拒 —— 实测本会话工具进程是 **Low 完整性**，写不进真实 `%TEMP%` 与 `%LOCALAPPDATA%`；工作区根 ACL 带 `Everyone:(CI)(DENY)(DC)`（禁删除子项），`File.Replace` 因此在工作区内也一律 `UnauthorizedAccessException`。本轮只改 Shell 的视图模型、XAML 与探针，测试工程只引用 Core，结构上够不着这些用例；4 条约定基线用例（字号／颜色／嵌套绑定／句柄）本轮全过。
-- **未验证（阻塞，未宣称交付）**：`--probe-shell --probe-section moviepilot` 与截图**没跑**——探针的数据目录固定在 `%LOCALAPPDATA%\Momoka`（`AppPaths.Default`，没有环境变量可以改道），本会话写不进去；因此「转圈真出现在屏上」目前只有编译与断言代码，没有运行证据。需要在不带 Low 沙箱的会话/终端里跑闸门 2 与这条探针。
-- **提交**：本地提交（未推送；本轮没有上传授权）。
+- **未验证（用户已知情选择照发）**：`--probe-shell --probe-section moviepilot` 与截图**没跑**——探针的数据目录固定在 `%LOCALAPPDATA%\Momoka`（`AppPaths.Default`，没有环境变量可以改道），本会话写不进去。所以「转圈真出现在屏上」目前只有编译、XAML 与断言代码，没有运行证据；用户被问到时选了「先不验证，直接发布这一版」，本批次因此**只做到闸门 1（构建）与闸门 3（发布）**，闸门 2 红 22 条、闸门 4 未跑，两项都记在上面。
+- **发布**：`tools/publish.ps1 -NoArchive` 校验通过，刷新 `artifacts/publish/win-x64`（**540 文件、283.3 MB、11 GLSL／4 HOOK 逐文件校验通过**）；发布件 `Momoka.dll` 4 651 008 字节，SHA-256 `F0576917405CC8EE7E56C6129DCC064A32297B47EEA9DB3BB7811D4283404401`，与开发构建逐字节相同；桌面快捷方式仍指向该目录，双击即这一版。
+- **提交**：`fa8f746`（本地，未推送；本轮没有上传授权）。
 
 ## 双击 Momoka.exe 又被 SmartScreen 拦：根因是 DSH 工作区写入沙箱的常驻 Low 标签（2026-10-20 用户报）
 
