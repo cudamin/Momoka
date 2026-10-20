@@ -1,0 +1,1385 @@
+{
+  "schemaVersion": 1,
+  "phase": 3,
+  "capturedAt": "2026-10-21T03:56:18+08:00",
+  "timezone": "Asia/Shanghai",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "42013cc7d387e610f7be0518cb1a3017c4db9f52",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "authorization": "继续按当前计划进行阶段3只读审查，保存交接后停止；未经明确批准不修复或执行真实服务器/发布操作",
+  "baselineStatusBeforeWriting": {
+    "trackedChanges": [],
+    "stagedChanges": [],
+    "untrackedFiles": [],
+    "productMatchesFixedSource": true
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段3审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段3证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段3检查.json",
+    "PROGRESS.md"
+  ],
+  "coverage": [
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+      "readDepth": "全文/重点恢复和登录",
+      "reviewedAspect": "匿名产品探测、同源基址、登录正文与返回身份来源；非Jellyfin适配仅读共享交界",
+      "sha256": "F5F4D11ABBB0965169318C1BD170563D6C24FB604A75E4A33CD1066BA1590DF0"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerAddress.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "Jellyfin尾斜杠、真实/emby代理路径、ToDisplayString/Rebase同源与已确认入口",
+      "sha256": "25BCFC0570D42D2D4CCCD5B0728B86B124ABF0D7CB1C90C272130BB72479152F"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+      "readDepth": "PublicSystemInfo/AuthenticationResult/EmbyConnection段",
+      "reviewedAspect": "Jellyfin Server名称识别、版本路由开关、ServerId与完整身份比较；其余DTO未穷尽",
+      "sha256": "8C6B51B1C9A53442214BA2DDBFD36D446A3764353FEE2BC83BBEEF6DB4877CD5"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/MediaServerKind.cs",
+      "readDepth": "请求头完整方法",
+      "reviewedAspect": "标准Authorization内Token和产品差异，非Emby自定义头",
+      "sha256": "715FE494275237BCEFFB304FB928D230DFE648317EF6EA4780DC3E22B17F30F8"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/DeviceIdentity.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "设备属性大小写、清洗与稳定设备身份",
+      "sha256": "E4B1B515AE2AAA66CFCE4CA5B6A5143F0C71C740094BF70C22676C5A17711938"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "10.x/12.x用户路由、Fields/SortBy过滤、产品不支持操作及Users/Me",
+      "sha256": "2049EE83DA9C0D7A357661C04C93F5536DEE2F9658B7838DE12FA8A6102C13B9"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/JellyfinQuery.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "字段/排序枚举与取回12.2规格集合一致",
+      "sha256": "4B12106EC2BBECD4D89427AF2261F9DB5FA6857230E638FB1A329A5B94A9C21C"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "readDepth": "登录/恢复/重新认证/Adopt相关段",
+      "reviewedAspect": "保存类型纠正、预先身份探测、401回退、最终持久化；其余账号全生命周期留阶段6",
+      "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "readDepth": "协议请求相关段",
+      "reviewedAspect": "浏览/详情/Resume/Latest/NextUp/Seasons/Episodes/字幕/图像编码/权限与路由；不做完整媒体功能审查",
+      "sha256": "F4F925115A61DEFE1940F34BD2B840827D72F1CE841F6D5A2CB53FF0B8B24E86"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.ServerSettings.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "插件页两产品参数差异；不启动网页管理",
+      "sha256": "6D79546C6F97BE9769BAECC979DDFAFE4AEAFEF9026C55395D703480C697CE8C"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemQuery.cs",
+      "readDepth": "EmbyFields常量与参数相关段",
+      "reviewedAspect": "实际Fields输入和枚举过滤边界；完整筛选语义留阶段8",
+      "sha256": "9BF74F84FC927A65F29B252B50E79394E48678638599281955A8F0023A54B5EB"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyWebConsole.Jellyfin.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "Root/RouteUrl/profile目录与Jellyfin localStorage种子、受信来源/Web路径守卫",
+      "sha256": "A3CE1C44511EE463EA93BB47D68B61A7E3644DB7A219B843B77C62DDEA1B18D2"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyWebConsole.cs",
+      "readDepth": "Route/OriginLiteral等共享入口",
+      "reviewedAspect": "公开来源规范、路由边界与Jellyfin调用者；未全文审查所有Emby皮肤",
+      "sha256": "CE53F33DB3001828431DE9AAEC325E32E13AEB548C31834CE4EAF550535FB020"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyWebConsole.JellyfinSkin.cs",
+      "readDepth": "相关定义与协议/凭据关键词定位",
+      "reviewedAspect": "确认皮肤与凭据脚本分离；没有全文审查视觉/所有脚本，留阶段8",
+      "sha256": "559F5A1BF02C637CFDDEE32B439CAF59907E0AD364FDBEB6D049CD77DEAF710F"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DashboardPage.xaml.cs",
+      "readDepth": "来源选择、凭据脚本注册及释放相关段",
+      "reviewedAspect": "捕获来源、缺ServerId不种凭据、先注册后导航、释放；未验证WebView2运行/导航竞态或布局",
+      "sha256": "0E4D28861C22140AE9C7789B66C94138094EE30BC394525B9851E93F138E7605"
+    },
+    {
+      "path": "tests/Momoka.Tests/JellyfinProtocolTests.cs",
+      "readDepth": "注册及相关夹具全文",
+      "reviewedAspect": "路由/标准头/权限、旧配置恢复、版本更新、Base64、缺少最终回退服务器身份用例",
+      "sha256": "C018A040E6CD505545CB3B5CD100F1CC111CB65F3F42DAA4A7CABF1E7D0BF8F2"
+    },
+    {
+      "path": "tests/Momoka.Tests/JellyfinProtocolTests.Restore.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "10.10.7/12.2假传输、反代前缀、server/user/403/503保护和匹配401回退",
+      "sha256": "14917E89D08ADD153DB15F8962A3E537ADC30241D1E5639B36385C5686F9E2D4"
+    },
+    {
+      "path": "tests/Momoka.Tests/JellyfinWebConsoleTests.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "来源/Web路径种子、服务器/用户profile隔离、缺ServerId拒绝；字符串断言不证明真实网页运行",
+      "sha256": "B871B8115EA6779FEB38C13BC4C8F55ED5BC44FA5596D01038FCD281DF8A10E6"
+    },
+    {
+      "path": "tests/Momoka.Tests/IdentityRegressionTests.cs",
+      "readDepth": "账号恢复与ServerId相关符号定位",
+      "reviewedAspect": "已有跨来源/迟到/重登回归定位，未穷尽全部集成断言",
+      "sha256": "B9BFF248CC239A3842BD0B413F3C62FC102765C9C69B17BAD510D211E10DB5AF"
+    },
+    {
+      "path": "tests/Momoka.Tests/SessionTests.cs",
+      "readDepth": "ServerId和连接身份相关测试定位",
+      "reviewedAspect": "正常在线重登有完整身份守卫，不套用为自动恢复密码回退已覆盖",
+      "sha256": "35132AB3F5681D77F0218ABDA1FF0702630CF7311DAFD00E4FBB599C45942B62"
+    }
+  ],
+  "readPoliciesAndSkills": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "sha256": "364229B10809BFC4516C27B7D08352D5AF38438ADA222181FBC92B880EF4F4C0"
+    },
+    {
+      "path": "docs/Jellyfin支持.md",
+      "sha256": "F8AB0929CADEECEA4787B06A2EE16FFA16B955D6165A4E66233F031F6057D2E3"
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA"
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/SKILL.md",
+      "sha256": "3B949221AC0C99E142C805B36EBE4480D9CA91B55609BE8F2969E7724ED0B4A9"
+    },
+    {
+      "path": ".claude/skills/momoka-jellyfin-api/SKILL.md",
+      "sha256": "FA8DCE71C34FE40A52D1662AA69CB4D1F700A5C6061591AF89C2BD1D29B7C8D9"
+    },
+    {
+      "path": ".claude/skills/momoka-jellyfin-api/references/http-and-auth.md",
+      "sha256": "BFAFD69471645EA0EB8F16FE42C9896995E07B2713848F8B343B56A194A9224F"
+    },
+    {
+      "path": ".claude/skills/momoka-jellyfin-api/references/endpoints.md",
+      "sha256": "A91C6AD76BE29891E10DD6F4324C7B7065497CB456D917E12777CFC4A3A5648A"
+    }
+  ],
+  "publicContractEvidence": {
+    "capturedAt": "2026-10-21T03:42:04+08:00",
+    "primaryReferences": [
+      {
+        "name": "Jellyfin official stable OpenAPI",
+        "versionQualifier": "12.2.0 as declared by fetched document",
+        "url": "https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json",
+        "httpStatus": 200,
+        "decodedUtf8Sha256": "BD31BB194443D1C57616FA0A8521E099B17D096B92794E471C0E0725C50949C8",
+        "bodyCharacters": 1896214,
+        "type": "匿名只读官方文档或源码，非用户服务器运行证据"
+      },
+      {
+        "name": "Jellyfin UserViews controller",
+        "versionQualifier": "v10.10.7",
+        "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/v10.10.7/Jellyfin.Api/Controllers/UserViewsController.cs",
+        "httpStatus": 200,
+        "decodedUtf8Sha256": "3F65206AC8DC059B1C7DAE9C6499FE0E361FAE20E21582B0FF96CEA14F481EE5",
+        "bodyCharacters": 6932,
+        "type": "匿名只读官方文档或源码，非用户服务器运行证据"
+      },
+      {
+        "name": "Jellyfin Items controller",
+        "versionQualifier": "v10.10.7",
+        "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/v10.10.7/Jellyfin.Api/Controllers/ItemsController.cs",
+        "httpStatus": 200,
+        "decodedUtf8Sha256": "DB02656A47886A1CA74203299123D23725D28C4FFF7CA5E3AEBF8666353E3F4E",
+        "bodyCharacters": 60343,
+        "type": "匿名只读官方文档或源码，非用户服务器运行证据"
+      },
+      {
+        "name": "Jellyfin user controller",
+        "versionQualifier": "v10.10.7",
+        "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/v10.10.7/Jellyfin.Api/Controllers/UserController.cs",
+        "httpStatus": 200,
+        "decodedUtf8Sha256": "FC4DBFC43FFA08877C687D31ABA11AECA7498D2AFDCD98D6DDCFA4C1FEA128A3",
+        "bodyCharacters": 27027,
+        "type": "匿名只读官方文档或源码，非用户服务器运行证据"
+      },
+      {
+        "name": "Jellyfin auth result model",
+        "versionQualifier": "v10.10.7",
+        "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/v10.10.7/MediaBrowser.Controller/Authentication/AuthenticationResult.cs",
+        "httpStatus": 200,
+        "decodedUtf8Sha256": "A97D4C8241655C5CC388BBE38A72C564E41F8CC60362E1E8F3AE56178C4FE435",
+        "bodyCharacters": 690,
+        "type": "匿名只读官方文档或源码，非用户服务器运行证据"
+      },
+      {
+        "name": "Jellyfin authorization parser",
+        "versionQualifier": "v10.10.7",
+        "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/v10.10.7/Jellyfin.Server.Implementations/Security/AuthorizationContext.cs",
+        "httpStatus": 200,
+        "decodedUtf8Sha256": "69164186F903FDC498039D4E7E563F852FE38848008B337ED89A8A603B50706F",
+        "bodyCharacters": 11853,
+        "type": "匿名只读官方文档或源码，非用户服务器运行证据"
+      },
+      {
+        "name": "Jellyfin authorization parser",
+        "versionQualifier": "master, not asserted to equal a release tag",
+        "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/master/Jellyfin.Server.Implementations/Security/AuthorizationContext.cs",
+        "httpStatus": 200,
+        "decodedUtf8Sha256": "6F662EDBA9E83068E93CA2E1E87922AF7026651F7C6E6FDDC57D381A0ED08F93",
+        "bodyCharacters": 12303,
+        "type": "匿名只读官方文档或源码，非用户服务器运行证据"
+      },
+      {
+        "name": "Jellyfin 12 release notes",
+        "versionQualifier": "12.0 release notes",
+        "url": "https://jellyfin.org/posts/jellyfin-release-12.0/",
+        "httpStatus": 200,
+        "decodedUtf8Sha256": "34127C7084A74C5A029327CD13F2BE7C6CE386DB86C8F9D065681C4F401909C0",
+        "bodyCharacters": 45614,
+        "type": "匿名只读官方文档或源码，非用户服务器运行证据"
+      },
+      {
+        "name": "Jellyfin current-release source-tag attempt",
+        "versionQualifier": "v12.2.0; availability not assumed",
+        "url": "https://raw.githubusercontent.com/jellyfin/jellyfin/v12.2.0/Jellyfin.Api/Controllers/UserViewsController.cs",
+        "httpStatus": 404,
+        "retrieval": "未获取，未据此推断接口不存在",
+        "failureType": "HttpResponseException"
+      }
+    ],
+    "fetchedOpenApi": {
+      "version": "12.2.0",
+      "openapi": "3.0.4",
+      "pathCount": 294,
+      "securityScheme": {
+        "CustomAuthentication": {
+          "type": "apiKey",
+          "description": "API key header parameter",
+          "name": "Authorization",
+          "in": "header"
+        }
+      },
+      "itemFields": [
+        "AirTime",
+        "CanDelete",
+        "CanDownload",
+        "ChannelInfo",
+        "Chapters",
+        "Trickplay",
+        "ChildCount",
+        "CumulativeRunTimeTicks",
+        "CustomRating",
+        "DateCreated",
+        "DateLastMediaAdded",
+        "DisplayPreferencesId",
+        "Etag",
+        "ExternalUrls",
+        "Genres",
+        "ItemCounts",
+        "MediaSourceCount",
+        "MediaSources",
+        "OriginalTitle",
+        "Overview",
+        "ParentId",
+        "Path",
+        "People",
+        "PlayAccess",
+        "ProductionLocations",
+        "ProviderIds",
+        "PrimaryImageAspectRatio",
+        "RecursiveItemCount",
+        "Settings",
+        "SeriesStudio",
+        "SortName",
+        "SpecialEpisodeNumbers",
+        "Studios",
+        "Taglines",
+        "Tags",
+        "RemoteTrailers",
+        "MediaStreams",
+        "SeasonUserData",
+        "DateLastRefreshed",
+        "DateLastSaved",
+        "RefreshState",
+        "ChannelImage",
+        "EnableMediaSourceDisplay",
+        "Width",
+        "Height",
+        "ExtraIds",
+        "LocalTrailerCount",
+        "IsHD",
+        "SpecialFeatureCount"
+      ],
+      "itemSortBy": [
+        "Default",
+        "AiredEpisodeOrder",
+        "Album",
+        "AlbumArtist",
+        "Artist",
+        "DateCreated",
+        "OfficialRating",
+        "DatePlayed",
+        "PremiereDate",
+        "StartDate",
+        "SortName",
+        "Name",
+        "Random",
+        "Runtime",
+        "CommunityRating",
+        "ProductionYear",
+        "PlayCount",
+        "CriticRating",
+        "IsFolder",
+        "IsUnplayed",
+        "IsPlayed",
+        "SeriesSortName",
+        "VideoBitRate",
+        "AirTime",
+        "Studio",
+        "IsFavoriteOrLiked",
+        "DateLastContentAdded",
+        "SeriesDatePlayed",
+        "ParentIndexNumber",
+        "IndexNumber"
+      ],
+      "authenticationResultProperties": [
+        "User",
+        "SessionInfo",
+        "AccessToken",
+        "ServerId"
+      ],
+      "selectedRoutes": [
+        {
+          "path": "/UserViews",
+          "method": "get",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "includeExternalContent",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "presetViews",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "includeHidden",
+              "location": "query",
+              "required": false
+            }
+          ],
+          "response200Schema": {
+            "$ref": "#/components/schemas/BaseItemDtoQueryResult"
+          }
+        },
+        {
+          "path": "/Items",
+          "method": "get",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "maxOfficialRating",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasThemeSong",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasThemeVideo",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasSubtitles",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasSpecialFeature",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasTrailer",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "adjacentTo",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "indexNumber",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "parentIndexNumber",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasParentalRating",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isHd",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "is4K",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "locationTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "excludeLocationTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isMissing",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isUnaired",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "minCommunityRating",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "minCriticRating",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "minPremiereDate",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "minDateLastSaved",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "minDateLastSavedForUser",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "maxPremiereDate",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasOverview",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasImdbId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasTmdbId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasTvdbId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isMovie",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isSeries",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isNews",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isKids",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isSports",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "excludeItemIds",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "startIndex",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "limit",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "recursive",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "searchTerm",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "sortOrder",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "parentId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "fields",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "excludeItemTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "includeItemTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "filters",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isFavorite",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "mediaTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "imageTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "sortBy",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isPlayed",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "genres",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "officialRatings",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "tags",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "years",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableUserData",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "imageTypeLimit",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableImageTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "person",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "personIds",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "personTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "studios",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "artists",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "excludeArtistIds",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "artistIds",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "albumArtistIds",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "contributingArtistIds",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "albums",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "albumIds",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "ids",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "videoTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "minOfficialRating",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isLocked",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isPlaceHolder",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "hasOfficialRating",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "collapseBoxSetItems",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "minWidth",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "minHeight",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "maxWidth",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "maxHeight",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "is3D",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "seriesStatus",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "nameStartsWithOrGreater",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "nameStartsWith",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "nameLessThan",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "studioIds",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "genreIds",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "audioLanguages",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "subtitleLanguages",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableTotalRecordCount",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableImages",
+              "location": "query",
+              "required": false
+            }
+          ],
+          "response200Schema": {
+            "$ref": "#/components/schemas/BaseItemDtoQueryResult"
+          }
+        },
+        {
+          "path": "/Items",
+          "method": "delete",
+          "parameters": [
+            {
+              "name": "ids",
+              "location": "query",
+              "required": false
+            }
+          ],
+          "response200Schema": null
+        },
+        {
+          "path": "/Items/{itemId}",
+          "method": "post",
+          "parameters": [
+            {
+              "name": "itemId",
+              "location": "path",
+              "required": true
+            }
+          ],
+          "response200Schema": null
+        },
+        {
+          "path": "/Items/{itemId}",
+          "method": "delete",
+          "parameters": [
+            {
+              "name": "itemId",
+              "location": "path",
+              "required": true
+            }
+          ],
+          "response200Schema": null
+        },
+        {
+          "path": "/Items/{itemId}",
+          "method": "get",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "itemId",
+              "location": "path",
+              "required": true
+            }
+          ],
+          "response200Schema": {
+            "$ref": "#/components/schemas/BaseItemDto"
+          }
+        },
+        {
+          "path": "/Items/Latest",
+          "method": "get",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "parentId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "fields",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "includeItemTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "isPlayed",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableImages",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "imageTypeLimit",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableImageTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableUserData",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "limit",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "groupItems",
+              "location": "query",
+              "required": false
+            }
+          ],
+          "response200Schema": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BaseItemDto"
+            }
+          }
+        },
+        {
+          "path": "/UserItems/Resume",
+          "method": "get",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "startIndex",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "limit",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "searchTerm",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "parentId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "fields",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "mediaTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableUserData",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "imageTypeLimit",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableImageTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "excludeItemTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "includeItemTypes",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableTotalRecordCount",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "enableImages",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "excludeActiveSessions",
+              "location": "query",
+              "required": false
+            }
+          ],
+          "response200Schema": {
+            "$ref": "#/components/schemas/BaseItemDtoQueryResult"
+          }
+        },
+        {
+          "path": "/UserPlayedItems/{itemId}",
+          "method": "post",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "itemId",
+              "location": "path",
+              "required": true
+            },
+            {
+              "name": "datePlayed",
+              "location": "query",
+              "required": false
+            }
+          ],
+          "response200Schema": {
+            "$ref": "#/components/schemas/UserItemDataDto"
+          }
+        },
+        {
+          "path": "/UserPlayedItems/{itemId}",
+          "method": "delete",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "itemId",
+              "location": "path",
+              "required": true
+            }
+          ],
+          "response200Schema": {
+            "$ref": "#/components/schemas/UserItemDataDto"
+          }
+        },
+        {
+          "path": "/UserFavoriteItems/{itemId}",
+          "method": "post",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "itemId",
+              "location": "path",
+              "required": true
+            }
+          ],
+          "response200Schema": {
+            "$ref": "#/components/schemas/UserItemDataDto"
+          }
+        },
+        {
+          "path": "/UserFavoriteItems/{itemId}",
+          "method": "delete",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "itemId",
+              "location": "path",
+              "required": true
+            }
+          ],
+          "response200Schema": {
+            "$ref": "#/components/schemas/UserItemDataDto"
+          }
+        },
+        {
+          "path": "/Users/Me",
+          "method": "get",
+          "parameters": [],
+          "response200Schema": {
+            "$ref": "#/components/schemas/UserDto"
+          }
+        },
+        {
+          "path": "/Users/AuthenticateByName",
+          "method": "post",
+          "parameters": [],
+          "response200Schema": {
+            "$ref": "#/components/schemas/AuthenticationResult"
+          }
+        },
+        {
+          "path": "/UserImage",
+          "method": "post",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            }
+          ],
+          "response200Schema": null
+        },
+        {
+          "path": "/UserImage",
+          "method": "delete",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            }
+          ],
+          "response200Schema": null
+        },
+        {
+          "path": "/UserImage",
+          "method": "get",
+          "parameters": [
+            {
+              "name": "userId",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "tag",
+              "location": "query",
+              "required": false
+            },
+            {
+              "name": "format",
+              "location": "query",
+              "required": false
+            }
+          ],
+          "response200Schema": null
+        }
+      ],
+      "declaredLegacyUserPaths": [],
+      "use": "只比规格结构/枚举，不把未登记当成实际404，不写入 servers 地址"
+    },
+    "legacyOfflineSpecification": {
+      "path": "C:\\Users\\89400\\Momoka\\work\\jellyfin\\openapi.json",
+      "sha256": "BD31BB194443D1C57616FA0A8521E099B17D096B92794E471C0E0725C50949C8",
+      "version": "12.2.0",
+      "pathCount": 294,
+      "role": "既有离线规格，只读版本/结构；不读取 servers/真实凭据，不充作真实服务行为"
+    },
+    "currentFieldsEqualFetched12_2": true,
+    "currentSortsEqualFetched12_2": true,
+    "realServerAccessed": false,
+    "interpretation": "匿名官方来源的规格/源码证据，区分10.10.7固定源码、12.2规格和未固定master；URL404不是服务器接口404"
+  },
+  "testReuse": {
+    "reusedEvidenceFile": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+    "reusedEvidenceSha256": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229",
+    "actualExecutionTime": "2026-10-21T02:59:12+08:00",
+    "actualExecutionPhase": 2,
+    "actualExecutionHead": "4b663c425491120a4d87234d98bf20ecc9c88619",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "rerunInPhase3": false,
+    "reuseReason": "当前完整产品/测试与固定来源一致，已记录源码/规程/技能/日志/测试/Core产物及运行时哈希未变；本阶段没有实现/资源改动，不机械重跑",
+    "verificationOfReusePerformed": true,
+    "summary": {
+      "total": 2072,
+      "passed": 2072,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedMilliseconds": 78960
+    },
+    "build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "logs": [
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\restore.log",
+        "sha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "purpose": "本树当前测试/Core 还原；可能读取 NuGet"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\build.log",
+        "sha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "purpose": "当前 Release 测试/Core 编译"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\tests.log",
+        "sha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "purpose": "未改现有完整测试宿主运行"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\execution.json",
+        "sha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "purpose": "退出码/源码基线/执行目录回执"
+      }
+    ],
+    "compiledBinaries": [
+      {
+        "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+        "sha256": "7E7F5C29464609675DF984C63750283A8F01A10E92C14659484813441B0480F7"
+      },
+      {
+        "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+        "sha256": "CB35FA56DB6AA41C00D4ECB9F7DD80864364056D5CBA2288760807A256763994"
+      }
+    ],
+    "jellyfinPrefixPassedCount": 39,
+    "newMismatchRegressionExecuted": false,
+    "coverageLimitation": "2072通过来自阶段2实际执行，不是阶段3新跑；R-003最终身份错配未被既有回退用例覆盖"
+  },
+  "newFindings": [
+    {
+      "id": "R-003",
+      "priority": "P1",
+      "status": "已确认",
+      "title": "自动恢复密码回退未核对最终服务器身份，可能接受不一致服务器绑定",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "discoveryPhase": 3,
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "member": "RestoreAttemptAsync",
+          "start": 395,
+          "end": 404
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+          "member": "AuthenticateAsync",
+          "start": 124,
+          "end": 151
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "member": "Adopt",
+          "start": 601,
+          "end": 608
+        }
+      ],
+      "trigger": "初步匿名探测确认服务器A后，保存令牌401或仅有保存密码，密码登录/后续公开信息返回不同服务器ID（例如反代后端切换/克隆用户ID的不同实例），但UserId仍等于保存用户；配置URL和登录代次未改变",
+      "expected": "最终自动恢复结果只能属于已确认的服务器、产品、API基址和用户；身份不同不得作为原保存来源采用/持久化",
+      "actualCausalChain": "ResolveRestoreConnectionAsync先确认原服务器；随后同一connection变量被Gateway.AuthenticateAsync结果覆盖。最终if只检查CanCommit/原配置HasAddress/用户ID；Gateway会选择result.ServerId或新公开info.Id而未与传入serverId比较，Adopt将新ServerId写入原ServerProfile并创建可用来源",
+      "actualImpact": "在上述条件下可以把不同服务器身份默默绑定到同一保存来源，覆盖服务器ID并保存新凭据；后续条目操作会指向采用的新绑定。没有证明真实服务器曾发生、没有证明用户记录被写错或凭据已泄露；身份切换必须显式重新确认",
+      "evidenceTypes": [
+        "本仓库完整静态因果链与提交使用方",
+        "官方AuthenticationResult/ServerId结构；未作为真实触发复现"
+      ],
+      "upstreamGuards": "事前knownId核对、UserId一致、URL/代次和调用者取消仍在；都不能约束新认证结果ServerId。正常在线TryReauthenticateAsync有IsSameIdentityAs，但不是这条恢复分支。显式用户登录是另一授权，不应机械套用自动恢复限制",
+      "notVerified": "未新增身份错配回归/临时插桩，未访问真实Jellyfin/Emby，未重放真实保存密码。现有server-id用例只错配事前探测，401回退只返回匹配ID",
+      "minimalFix": "保存经过产品纠正的预期连接，在密码回退成功后比对完整身份（已确认ServerId、产品、基址、用户）再落盘/Adopt；保持原配置并发守卫，不比较旧误标Emby状态去破坏合法Jellyfin纠正",
+      "acceptance": "假传输中事前公开信息A/UsersMe401、登录返回B但用户相同（包括后登录公开信息B）应拒绝并保留原服务器ID、不存新token/不创建来源；匹配A换token成功、用户/产品/基址错配拒绝、旧Emby到Jellyfin的合法纠正和403/503不回退仍通过",
+      "repairAuthorized": false
+    }
+  ],
+  "priorFindings": [
+    {
+      "id": "R-001",
+      "status": "已确认，未修复",
+      "note": "Emby自定义握手头的根因不泛化为Jellyfin标准Authorization；无实现变化，原证据保留"
+    },
+    {
+      "id": "R-002",
+      "status": "已确认，未修复",
+      "note": "共享EmbyHttp长下载对Jellyfin同样适用；根因去重，不新增计数"
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "J-COV-01",
+      "status": "未验证",
+      "topic": "真实Jellyfin协议、网页和播放",
+      "reason": "本阶段没有访问真实服务器、启动WebView2、起播或共享写入；假路由/标准头/种子断言不证明真实版本结果",
+      "followup": "阶段8/13在适用授权和工具条件下分别补覆盖，不借旧历史报告当本轮真机证据"
+    },
+    {
+      "id": "J-COV-02",
+      "status": "待验证",
+      "topic": "未知/不可解析版本及完整10.x/12.x路由矩阵",
+      "reason": "当前未知版本默认12路由，抽核10.10.7源码与12.2规格，不穷尽所有版本/别名；不可由未登记单独断言404",
+      "followup": "按实际目标版本和对应控制器/规格逐条复核；没有运行真机矩阵"
+    },
+    {
+      "id": "J-COV-03",
+      "status": "待验证",
+      "topic": "WebView导航/身份变化、凭据种子和12.x源码标签来源",
+      "reason": "种子生成和来源/Web路径静态保护已读、现有断言存在；未执行页面导航竞态。公开v12.2.0源码标签路径本次404，master只能明确作为master，不冒充该发布tag",
+      "followup": "阶段8核对实际页面/版本证据；本阶段12.2依赖官方规格，不从源码URL404推断端点不可用"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "topic": "Jellyfin 10.x保留Users前缀是否必然404",
+      "reason": "10.10.7官方UserViews/Items控制器同时存在标准和Legacy路由；不能按旧报告重列必然失败。没有断言所有未来版本仍支持"
+    },
+    {
+      "topic": "字段/排序白名单导致12.2非法枚举",
+      "reason": "当前JellyfinQuery字段/排序集合与本轮官方12.2.0枚举零差异；实际Fields来自项目常量，未见空白人为输入触发的实际错误"
+    },
+    {
+      "topic": "旧Emby配置纠正剥掉真实/emby代理前缀",
+      "reason": "按原始入口匿名检测、Rebase只接受同源确认路径，真实/emby路径保留；现有相关假回归匹配，不把修复后的旧问题重复登记"
+    },
+    {
+      "topic": "标准Authorization为Jellyfin重复计R-001头泄漏",
+      "reason": "Jellyfin标准Authorization在REST手工跨源清理；默认runtime跳转也清标准头。不能把Emby自定义头的问题泛化成同一Jellyfin泄漏，但真实握手兼容仍未验证"
+    },
+    {
+      "topic": "普通账号管理员入口/缺服务器ID种子",
+      "reason": "Policy决定管理员，Dashboard缺ServerId不注册凭据种子。字符串测试和静态守卫不证明所有UI运行，但没有据此新增已确认问题"
+    },
+    {
+      "topic": "共享长下载错误正文重复计数",
+      "reason": "Jellyfin同样调用EmbyHttp长下载，仍属于R-002同一根因，标记适用交界，不另分R编号"
+    }
+  ],
+  "calibrationStatus": "CAL-01/07等文档/技能边界保留；参考材料中历史草案用词不替代当前实现或官方版本证据，不修改规程",
+  "productBuildsOrTestsExecutedInPhase3": false,
+  "newInstrumentationOrRegressionAdded": false,
+  "applicationOrRealServerOperationsExecuted": false,
+  "systemContextCompressionExecuted": false,
+  "nextStage": 4,
+  "stop": "文档检查/本地提交后停止，不自动开始飞牛阶段、不修复、不续跑"
+}
