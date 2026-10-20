@@ -140,7 +140,7 @@ internal static class MediaVersionTests
             Assert.Null(MediaVersionSwitch.Playing(null, item.MediaSources[0]));
         });
 
-        // 默认播哪一版：按视频文件名筛选规则打分（「参考标题筛选，新增视频文件名筛选」）。
+        // 默认播哪一版：按视频文件名筛选规则的顺序比较（「参考标题筛选，新增视频文件名筛选」）。
         Test("版本：默认版本按文件名规则挑，单版本/没规则一律第一版", () =>
         {
             var item = new EmbyItem
@@ -160,10 +160,10 @@ internal static class MediaVersionTests
             // 优先 REMUX：命中版本名/文件名里的 REMUX，抬到最前。
             Assert.Equal("b", MediaVersionSwitch.Preferred(item, [new("REMUX", TitlePreference.Prefer)])?.Id);
 
-            // 候补 枪版：把枪版压到最后；同分（其余两版都 0 分）时保留服务器次序，取第一版。
+            // 候补 枪版：把枪版压到最后；其余两版规则都区分不出，保留服务器次序取第一版。
             Assert.Equal("a", MediaVersionSwitch.Preferred(item, [new("枪版", TitlePreference.Exclude)])?.Id);
 
-            // 优先 2160p、同时候补 枪版：2160p 那版 +1 胜出。
+            // 优先 2160p、同时候补 枪版：第一条能区分的规则（2160p）让 2160p 那版胜出。
             Assert.Equal("a", MediaVersionSwitch.Preferred(item,
                 [new("2160p", TitlePreference.Prefer), new("枪版", TitlePreference.Exclude)])?.Id);
 

@@ -399,7 +399,7 @@ public static class TrackLanguagePriority
     /// <paramref name="includeTitle"/> decides whether the track <em>title</em> may stand in for a
     /// missing/vague language field via the hint keywords（「简体」on a track whose Language is only
     /// <c>chi</c>）. The 字幕 side turns this off（「把 Language 和 Title 分离」，2026-09-22）so language means
-    /// language only and the title is judged separately by <see cref="SubtitleTitleFilter"/>; the 音轨 side
+    /// language only and the title is judged separately by <see cref="KeywordFilter"/>; the 音轨 side
     /// keeps it on, because a <c>chi</c>-labelled track titled 粤语 has no other way to be told from 普通话.
     /// The code and family matching never used the title, so only the hint line is gated.
     /// </para>

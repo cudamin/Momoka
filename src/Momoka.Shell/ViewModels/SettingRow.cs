@@ -239,6 +239,19 @@ public sealed partial class SettingChoiceRow : SettingRow
         }
     }
 
+    /// <summary>
+    /// 从属设置改变有效选择时沿用原选项对象，不写盘、不触发 after，也不替换控件。
+    /// 目标标签不在现有选项里（或为空）时保持原选择 —— 清空只会让下拉露出空框，看不出发生了什么。
+    /// </summary>
+    internal void ReseedSelection(string? label)
+    {
+        var selected = Choices.FirstOrDefault(choice => choice.Label == label);
+        if (selected is null || ReferenceEquals(Selected, selected)) return;
+        _refilling = true;
+        try { Selected = selected; }
+        finally { _refilling = false; }
+    }
+
     partial void OnSelectedChanged(SettingChoice? value)
     {
         if (!_seeded || _refilling || value is null) return;

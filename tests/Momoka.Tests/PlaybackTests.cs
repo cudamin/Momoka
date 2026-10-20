@@ -2372,7 +2372,7 @@ internal static class PlaybackTests
                 "只剩被排除的那条时还是给它——排除是软的");
         });
 
-        Test("标题打分：优先 +1、排除 −1、默认不计，子串大小写不敏感", () =>
+        Test("关键词优先级：上方规则先比较，默认不计，子串大小写不敏感", () =>
         {
             List<KeywordRule> rules =
             [
@@ -2380,15 +2380,12 @@ internal static class PlaybackTests
                 new("特效", TitlePreference.Exclude),
                 new("SDH", TitlePreference.Prefer)
             ];
-
-            Assert.Equal(0, KeywordFilter.Score("简体中文", rules));
-            Assert.Equal(-1, KeywordFilter.Score("中英双语", rules));
-            Assert.Equal(-2, KeywordFilter.Score("双语特效", rules), "两个候补词各扣一分");
-            Assert.Equal(1, KeywordFilter.Score("English sdh", rules), "子串、大小写不敏感");
-            Assert.Equal(0, KeywordFilter.Score("双语sdh", rules), "一候补一优先相抵");
-            Assert.Equal(0, KeywordFilter.Score(null, rules));
-            Assert.Equal(0, KeywordFilter.Score("双语", []), "没有规则时这一关不作用");
-            Assert.Equal(0, KeywordFilter.Score("双语", [new("双语", TitlePreference.Neutral)]), "默认词不计分");
+            Assert.True(KeywordFilter.Compare("简体中文", "双语sdh", rules) > 0, "上方候补不能被下方优先抵消");
+            Assert.True(KeywordFilter.Compare("English sdh", "English", rules) > 0, "子串、大小写不敏感");
+            Assert.True(KeywordFilter.Compare("双语", "双语特效", rules) > 0, "前一规则相同才比较下一规则");
+            Assert.Equal(0, KeywordFilter.Compare(null, "", rules));
+            Assert.Equal(0, KeywordFilter.Compare("双语", "简体", []));
+            Assert.Equal(0, KeywordFilter.Compare("双语", "简体", [new("双语", TitlePreference.Neutral)]));
         });
 
         Test("选轨：一个语言都对不上时按开关决定回退还是关掉", () =>
@@ -2618,7 +2615,7 @@ internal static class PlaybackTests
 
             // 7.1 命中 ChannelLayout 字段，同样有效。
             settings.AudioFormatRules = [new("7.1", TitlePreference.Prefer)];
-            Assert.Equal(2, TrackSelection.ChooseAudio(settings, source)!.Index, "声道布局也参与打分");
+            Assert.Equal(2, TrackSelection.ChooseAudio(settings, source)!.Index, "声道布局也参与关键词比较");
 
             // 语言是第一位的：英语那条虽然也是 TrueHD Atmos，却不该越过日语优先级。
             settings.AudioFormatRules = [new("Atmos", TitlePreference.Prefer)];

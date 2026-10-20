@@ -1167,76 +1167,74 @@
                 </DataTemplate>
             </local:SettingRowTemplates.Languages>
 
-            <!--
-              字幕标题筛选（「双语／特效单独设 优先／默认／排除，可自定义添加」，2026-09-22）：语言选完之后按标题
-              里的关键词再挑一遍。整幅宽的一张块（同主页版面表、开关组），因为一行是「词 ＋ 三档下拉 ＋ 删除」，
-              塞进 320 宽的控件列会挤。底下一个输入框加「添加」自定义加词。不做拖拽换位 —— 各词独立加减分，次序
-              不影响结果（见 SettingTitleRulesRow）。删除按钮和「添加」都用文字，不用 FontIcon，免得动字号基线。
-            -->
+            <!-- 字幕标题、音轨格式与视频文件名共用有序关键词表。顺序既是屏上排名，也是实际筛选优先级。 -->
             <local:SettingRowTemplates.TitleRules>
                 <DataTemplate x:DataType="vm:SettingTitleRulesRow">
                     <StackPanel Style="{StaticResource EgSettingBlockStyle}">
                         <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
-                        <TextBlock
-                            Style="{StaticResource EgSettingNote}"
-                            Text="{x:Bind Note}"
-                            TextWrapping="Wrap"
-                            Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
+                        <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Note}"
+                            TextWrapping="Wrap" Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
+                        <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind PriorityHint}" TextWrapping="Wrap" />
 
-                        <ItemsControl ItemsSource="{x:Bind Rules}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Spacing="6" />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
+                        <ListView x:Name="PriorityRulesList" Tag="{x:Bind}"
+                            ItemsSource="{x:Bind Rules}" MaxHeight="420"
+                            SelectionMode="Single" CanDragItems="True" CanReorderItems="True" AllowDrop="True"
+                            IsSwipeEnabled="False"
+                            ScrollViewer.HorizontalScrollMode="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            Loaded="OnPriorityListLoaded" Unloaded="OnPriorityListUnloaded"
+                            DragItemsStarting="OnPriorityDragStarting" DragItemsCompleted="OnPriorityDragCompleted"
+                            AutomationProperties.Name="{x:Bind Label}">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    <Setter Property="Padding" Value="6,4" />
+                                    <Setter Property="MinHeight" Value="44" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="vm:TitleRuleChoice">
-                                    <Grid ColumnSpacing="10">
+                                    <Grid x:Name="PriorityRuleRoot" ColumnSpacing="6">
+                                        <Grid.RenderTransform><TranslateTransform /></Grid.RenderTransform>
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="18" />
+                                            <ColumnDefinition Width="24" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-
-                                        <TextBlock
-                                            Text="{x:Bind Term}"
-                                            TextTrimming="CharacterEllipsis"
-                                            VerticalAlignment="Center" />
-
-                                        <!-- 优先 / 默认 / 排除 三档。SelectedIndex 双向绑到 StateIndex，映到 State。 -->
-                                        <ComboBox
-                                            Grid.Column="1"
+                                        <TextBlock Text="≡" VerticalAlignment="Center" Opacity="0.55"
+                                            ToolTipService.ToolTip="按住拖动调整优先级" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Position, Mode=OneWay}"
+                                            VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0.65" />
+                                        <TextBlock Grid.Column="2" Text="{x:Bind Term}" TextTrimming="CharacterEllipsis"
+                                            VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind Term}" />
+                                        <ComboBox x:Name="PriorityRuleState" Grid.Column="3" MinWidth="88"
                                             AutomationProperties.Name="{x:Bind Term}"
-                                            ItemsSource="{x:Bind StateLabels}"
-                                            MinWidth="120"
-                                            SelectedIndex="{x:Bind StateIndex, Mode=TwoWay}" />
-
-                                        <Button
-                                            Grid.Column="2"
-                                            AutomationProperties.Name="删除该词"
-                                            Command="{x:Bind RemoveSelfCommand}"
-                                            Content="✕"
-                                            ToolTipService.ToolTip="从标题筛选里去掉这个词" />
+                                            ItemsSource="{x:Bind StateLabels}" SelectedItem="{x:Bind SelectedState, Mode=TwoWay}" />
+                                        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="2">
+                                            <Button x:Name="PriorityRuleUp" Content="↑" MinWidth="28" Padding="4"
+                                                Command="{x:Bind UpCommand}" IsEnabled="{x:Bind CanUp, Mode=OneWay}"
+                                                AutomationProperties.Name="{x:Bind UpName}" ToolTipService.ToolTip="提高优先级" />
+                                            <Button x:Name="PriorityRuleDown" Content="↓" MinWidth="28" Padding="4"
+                                                Command="{x:Bind DownCommand}" IsEnabled="{x:Bind CanDown, Mode=OneWay}"
+                                                AutomationProperties.Name="{x:Bind DownName}" ToolTipService.ToolTip="降低优先级" />
+                                            <Button x:Name="PriorityRuleDelete" Content="✕" MinWidth="28" Padding="4"
+                                                Command="{x:Bind RemoveSelfCommand}"
+                                                AutomationProperties.Name="{x:Bind RemoveName}" ToolTipService.ToolTip="删除这个关键词" />
+                                        </StackPanel>
                                     </Grid>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-
-                        <!-- 自定义添加：敲一个词，回车或按「添加」把它加成一条中立规则。 -->
+                            </ListView.ItemTemplate>
+                        </ListView>
                         <Grid ColumnSpacing="10" Margin="0,4,0,0">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <TextBox
-                                AutomationProperties.Name="新增标题关键词"
-                                PlaceholderText="自定义词，如 中英、SDH"
+                            <TextBox x:Name="PriorityNewTerm" AutomationProperties.Name="{x:Bind NewTermName}"
+                                PlaceholderText="{x:Bind NewTermPlaceholder}"
                                 Text="{x:Bind NewTerm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                            <Button
-                                Grid.Column="1"
-                                AutomationProperties.Name="添加标题关键词"
-                                Command="{x:Bind AddCommand}"
-                                Content="添加" />
+                            <Button x:Name="PriorityAddTerm" Grid.Column="1" AutomationProperties.Name="{x:Bind AddName}"
+                                Command="{x:Bind AddCommand}" Content="添加" />
                         </Grid>
                     </StackPanel>
                 </DataTemplate>
@@ -1556,7 +1554,7 @@
                                           字号和 SemiBold、没写字体，于是每张卡片的名字比媒体库那些带子的名字大
                                           一点，而且是另一种字；那条线也没有，八张卡片全靠间距分家。
                                         -->
-                                        <local:ShelfHead Note="{x:Bind Count}" Title="{x:Bind Title, Mode=OneWay}" />
+                                        <local:ShelfHead Note="{x:Bind Count, Mode=OneWay}" Title="{x:Bind Title, Mode=OneWay}" />
                                         <TextBlock
                                             Style="{StaticResource EgSettingNote}"
                                             Text="{x:Bind Description}" />
@@ -1577,7 +1575,8 @@
                                             BorderThickness="{StaticResource EgCardBorderThickness}"
                                             CornerRadius="12"
                                             Padding="6">
-                                            <ItemsControl
+                                            <ItemsControl x:Name="SettingsRowsList" Tag="{x:Bind}"
+                                                Loaded="OnSettingsRowsLoaded" Unloaded="OnSettingsRowsUnloaded"
                                                 ItemTemplateSelector="{StaticResource EgSettingRows}"
                                                 ItemsSource="{x:Bind Rows}">
                                                 <ItemsControl.ItemsPanel>

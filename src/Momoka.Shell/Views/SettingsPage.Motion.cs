@@ -1,4 +1,6 @@
 using Momoka.Diagnostics;
+using Momoka.Shell.ViewModels;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
@@ -78,4 +80,71 @@ public sealed partial class SettingsPage
                 foreach (var descendant in SectionRoots(child)) yield return descendant;
         }
     }
+
+    private readonly Dictionary<ListView, SettingsPriorityMotion> _priorityMotions = [];
+    private readonly Dictionary<ItemsControl, SettingsRowsMotion> _rowMotions = [];
+
+    private void OnPriorityListLoaded(object sender, RoutedEventArgs args)
+    {
+        if (sender is ListView list && list.Tag is SettingTitleRulesRow row && !_priorityMotions.ContainsKey(list))
+            _priorityMotions.Add(list, new SettingsPriorityMotion(list, row));
+    }
+
+    private void OnPriorityListUnloaded(object sender, RoutedEventArgs args)
+    {
+        if (sender is ListView list && !list.IsLoaded && _priorityMotions.Remove(list, out var motion)) motion.Detach();
+    }
+
+    private void OnPriorityDragStarting(object sender, DragItemsStartingEventArgs args)
+    {
+        if (sender is ListView list && _priorityMotions.TryGetValue(list, out var motion)) motion.BeginDrag(args);
+        else args.Cancel = true;
+    }
+
+    private void OnPriorityDragCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    {
+        if (sender is ListView list && _priorityMotions.TryGetValue(list, out var motion)) motion.EndDrag();
+    }
+
+    private void OnSettingsRowsLoaded(object sender, RoutedEventArgs args)
+    {
+        if (sender is ItemsControl list && (list.Tag ?? list.DataContext) is SettingSection section && !_rowMotions.ContainsKey(list))
+            _rowMotions.Add(list, new SettingsRowsMotion(list, section));
+    }
+
+    private void OnSettingsRowsUnloaded(object sender, RoutedEventArgs args)
+    {
+        if (sender is ItemsControl list && !list.IsLoaded && _rowMotions.Remove(list, out var motion)) motion.Detach();
+    }
+
+    private void ApplySettingsMotionPreference()
+    {
+        foreach (var motion in _rowMotions.Values) motion.ApplyPreference();
+        if (!HomeMotion.AnimationsEnabled)
+        {
+            StopSettingsEntrance();
+            foreach (var motion in _priorityMotions.Values) motion.Stop();
+        }
+    }
+
+    private void StopSettingsContentMotion()
+    {
+        foreach (var motion in _rowMotions.Values) motion.Stop();
+        foreach (var motion in _priorityMotions.Values) motion.Stop();
+    }
+
+    private void DetachSettingsContentMotion()
+    {
+        foreach (var motion in _rowMotions.Values) motion.Detach();
+        foreach (var motion in _priorityMotions.Values) motion.Detach();
+        _rowMotions.Clear();
+        _priorityMotions.Clear();
+    }
+
+    internal bool IsContentMotionSettled => _rowMotions.Values.All(motion => !motion.IsAnimating)
+        && _priorityMotions.Values.All(motion => !motion.IsAnimating);
+
+    internal bool HasPrioritySpring(ListView list) => _priorityMotions.TryGetValue(list, out var motion) && motion.HasSpring;
+    internal bool HasConditionalMotion(ItemsControl list) => _rowMotions.TryGetValue(list, out var motion) && motion.IsAnimating;
+    internal bool HasConditionalTransitions(ItemsControl list) => _rowMotions.TryGetValue(list, out var motion) && motion.HasTransitions;
 }
