@@ -21,7 +21,7 @@ Jellyfin 连接使用自己的库界面，Emby、飞牛影视与 Plex 继续走�
 - **建议页**：电影建议页是「继续观看、最新电影、为你推荐」三排，分别来自 Resume、`Items/Latest` 与 `Movies/Recommendations`；电视剧建议页是「继续观看、最新剧集、接下来看」，最后一排来自按库限定的 `Shows/NextUp`。混合内容库暂不提供建议页。
 - **其它**：`GroupItemsIntoCollections` 是 Emby 参数，Jellyfin 请求不再发送；Jellyfin 的合集页通过 `IncludeItemTypes=BoxSet` 查询。
 
-主页「最近添加」的每个剧集库不走 `/Items/Latest`：Jellyfin 的 Latest 只收可播放条目，一个只有剧集、还没扫出单集的库会回空表，整排会被当成空排隐藏。Jellyfin 电视剧库改为 `IncludeItemTypes=Series`、按 `DateCreated` 倒序的条目查询（`HomeLatest`）；电影库、混合库和其它服务器保持原查询。
+主页「最近添加」的每个剧集库不走 `/Items/Latest`：Jellyfin 的 Latest 只收可播放条目，一个只有剧集、还没扫出单集的库会回空表，整排会被当成空排隐藏。Jellyfin 电视剧库改为 `IncludeItemTypes=Series`、按 `DateLastContentAdded` 倒序的条目查询（`HomeLatest`）；电影库、混合库和其它服务器保持原查询。
 
 管理入口随连接自动取舍：只有一台服务器在线时，Emby 在 Momoka 组里保留「通知」，服务器目录分「Emby Server／设备／高级」三组；Jellyfin 没有通知入口，管理员在 Momoka 组下面看到自己的五组目录。两家的「网页控制台」分类都已退役，统一落到服务器目录的第一项「控制台」；`--show-settings 网页控制台` 仅作兼容别名。Jellyfin 管理权限以用户 `Policy.IsAdministrator` 为准；普通账号、未连接和权限未确认时都不列出。切换服务器或账号后重新计算入口，失效页面会退出，切换产品时按新产品重建控制台。
 

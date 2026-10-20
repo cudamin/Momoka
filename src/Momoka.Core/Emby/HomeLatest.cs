@@ -5,8 +5,8 @@ namespace Momoka.Emby;
 /// Jellyfin 的剧集库不能走 —— 它的 Latest 只收可播放条目（单集、电影），一个只有剧集、还没扫出
 /// 单集的库会交回空表，那一排就被主页按「空排不显示」摘掉（2026-10-20 用户报「有些最近添加会被隐藏」）。
 /// <para>
-/// 剧集库改走通用条目查询：直接列剧集、按入库时间倒序。排序用 <c>DateCreated</c> 而不是推荐页「最新剧集」
-/// 的 <c>DateLastContentAdded</c>：这一排说的是「最近添加」，不是「最近有新内容」。
+/// 剧集库改走通用条目查询：直接列剧集、按最近有新内容入库倒序（<c>DateLastContentAdded</c>，与推荐页
+/// 「最新剧集」同一口径）。原来的 <c>Items/Latest</c> 按剧合并时也是这个次序，换查询不改先后。
 /// </para>
 /// </summary>
 public static class HomeLatest
@@ -22,7 +22,7 @@ public static class HomeLatest
         ParentId = parentId,
         Recursive = true,
         IncludeItemTypes = [EmbyItemType.Series],
-        SortBy = "DateCreated,SortName",
+        SortBy = "DateLastContentAdded,SortName",
         Descending = true,
         Limit = limit
     };

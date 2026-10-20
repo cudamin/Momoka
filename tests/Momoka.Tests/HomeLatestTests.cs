@@ -26,14 +26,14 @@ internal static class HomeLatestTests
             Assert.False(HomeLatest.UsesSeriesQuery(new EmbyItem { Id = "7", CollectionType = "tvshows" }), "没有来源时不改道");
         });
 
-        Test("主页最近添加：剧集查询按入库时间倒序列剧集", () =>
+        Test("主页最近添加：剧集查询按最近入库内容倒序列剧集", () =>
         {
             var query = HomeLatest.SeriesQuery("library-7", 24);
 
             Assert.Equal("library-7", query.ParentId);
             Assert.True(query.Recursive, "要递归到库内剧集");
             Assert.Equal(EmbyItemType.Series, query.IncludeItemTypes.Single());
-            Assert.Equal("DateCreated,SortName", query.SortBy);
+            Assert.Equal("DateLastContentAdded,SortName", query.SortBy);
             Assert.True(query.Descending, "最近添加要新的在前");
             Assert.Equal(24, query.Limit);
             Assert.Null(query.IsPlayed);
