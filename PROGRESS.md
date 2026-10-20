@@ -2,6 +2,19 @@
 
 最后更新：2026-10-20
 
+## 关键词优先级按表内次序、可拖动排序；设置从属行显隐加动画（2026-10-20 用户令）
+
+用户令（原话）：「1.为优先级筛选添加拖拽功能和弹簧动画，新增越靠上的优先级越高 2.给设置页面中开启或者关闭某个选项导致相关选项自动隐藏或者出现时设计ui动画」。工作区里原有这两项的半成品（未提交），本轮补齐实现、修缺陷并完成验证与交付。
+
+- **语义改了，不只是加交互**：关键词筛选从「每个词各自加减分、分高者胜」改成**有序优先级** —— Core 的 `KeywordFilter.Score` 换成 `Compare`／`Rank`，由上到下取第一条能区分两个候选的规则定先后，下方规则只破同分，不能再靠命中更多词越过上面的规则；全是候补时仍留一条兜底。字幕标题（`TrackSelection.BestByTitle`）、音轨格式（`BestByFormat`）、视频文件名（`MediaVersionSwitch.Preferred`）三处共用这一套，调用点不变、语义按新规则走；旧设置文件里的规则次序从此生效，不迁移、不写回。
+- **拖拽与弹簧**：三张关键词表统一成 `ListView`（`CanDragItems`／`CanReorderItems`／`AllowDrop`），保留上下按钮与序号；原生换位是 Remove+Add，`SettingTitleRulesRow` 的两阶段提交在拖拽期间不写盘，完成或取消后按最终顺序写一次。新增 `SettingsPriorityMotion`：只动模板根的 `TranslateTransform`，挪动项与让位项一起回弹（380ms 关键帧、幅度限到 7 DIP），关闭「界面动画」、离树、快速连续换位都会清掉旧行程并把位移归零。
+- **设置从属行动画**：`SettingSection.Rows` 由只读列表改成 `ObservableCollection`，`UpdateRows` 原地增删并复用仍在场的行（按标签＋类型，只回填说明／选择／开关／读数，不写盘、不触发 after），输入焦点和控件对象不再被整卡替换冲掉；新增 `SettingsRowsMotion` 给增删与补位挂 `AddDeleteThemeTransition`／`RepositionThemeTransition`，卡片高度用 240ms 缓动并在结束时恢复 `Auto` 高度与裁剪。WebP 无损／格式、自定义 mpv.conf、播放后端与渲染管线四条联动路径都走这一套；截图行的即时读数随之修好（`ShelfHead` 的 `Count` 原来是一次性绑定）。
+- **两处加固**（复核发现，非用户点名）：① 拖拽完成事件没来（Esc 取消、拖出窗口）时，后续任何编辑都先结束那趟拖拽再写盘，避免之后改态度／加词被静默吞掉；② `SettingsPriorityMotion` 的排队回调先确认树还在再量布局，离树后 `TransformToVisual` 不再有机会抛进未处理异常。
+- **验证**：Release 完整方案构建 **0 警告、0 错误**；离线测试 **2000 项全过、0 失败、0 跳过**（新增关键词优先级 5 条，含「下方命中再多也越不过上方规则」「全候补兜底」「音轨格式不越过语言」）；`dotnet format whitespace --verify-no-changes` 退出 0；`tools/scan-automation-ids.js` 报 **432 个可交互元素、0 个缺句柄**（新控件的 `x:Name`／`AutomationProperties.Name` 都齐）。`--probe-shell --probe-section settings` **16/16 通过、退出码 0**（`shell-probe-20261020-163013850-29600`），其中新增 4 条：三处关键词拖拽优先级与弹簧（宽 1100／窄 760）、从属设置显隐动画与偏好恢复（宽／窄）。截图 12 张关键词帧（含 `-spring-screen.png`）与 14 张从属行帧（visible／closing／hidden／restored）。
+- **发布**：`tools/publish.ps1 -NoArchive` 校验通过，刷新 `artifacts/publish/win-x64`（**540 文件、283.4 MB、11 GLSL／4 HOOK 逐文件校验通过**）；发布件 `Momoka.dll` 4 693 504 字节、SHA-256 `A76F38BACDD2D3EF347B456E539090328CBB3C462D9E03399937AEB097C2DC0D`，与开发构建逐字节相同；`Momoka.exe` FileVersion `0.1.7.0`、ProductVersion `0.1.7+d01f690`；桌面快捷方式仍指向该目录，双击即这一版。
+- **提交**：`d01f690`（本地，未推送；本轮没有上传授权）。工作区里另有与本任务无关的未跟踪文件（`website/`、`docs/代码审查-媒体库与聚合模式-2026-10-20.md`），没有夹带。
+- **未验证（如实说）**：① **真实鼠标拖拽手势没有实际驱动过** —— 本机验证规则不做合成鼠标导航，探针用与原生换位相同的 Remove+Add 两阶段路径和真控件断言覆盖了提交、保存、序号、弹簧与清理，`CanDragItems` 等接线在运行中的列表上也读了，但「按住拖动、Esc 取消、拖出窗口」这三下没有真人对得上的证据。② **截图没有读图判读**：本轮执行会话的模型不能接收图片，只做了像素级粗检（16/16 断言之外的检查：弹簧帧与落定帧确有差异、隐藏／恢复帧的卡片区域没有大段均匀空白带）；截图在 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261020-163013850-29600/logs`，仍须人眼过一遍。③ 动画进行中再次切换时，`SettingsRowsMotion` 会先停下旧高度再从中途值重起，理论上可能有一帧跳变（探针只断言落定后的状态），没有逐帧证据。④ 未跑闸门 4（自检与基线比较）：本批次不是发版、不升级依赖或分析器，按主规则不需要。
+
 ## MP 电影／电视剧订阅页：读取途中显示转圈，不再先说「暂无订阅」（2026-10-20 用户令）
 
 用户令（原话）：「给mp的电影/电视剧订阅页面添加加加载动画」。
