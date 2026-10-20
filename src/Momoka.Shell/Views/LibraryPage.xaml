@@ -95,6 +95,20 @@
             </StackPanel>
         </DataTemplate>
 
+        <!-- 收藏页的账号筛选：第一行「全部账号」，其余每行一个在线来源。 -->
+        <DataTemplate x:Key="FavoriteAccountEntryTemplate" x:DataType="vm:FavoriteAccountEntry">
+            <Grid ColumnSpacing="8" MinWidth="168">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="18" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}"
+                    VerticalAlignment="Center" Visibility="{x:Bind CheckVisibility}" />
+                <TextBlock Grid.Column="1" Style="{StaticResource EgBodyStyle}" Text="{x:Bind Label}"
+                    TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            </Grid>
+        </DataTemplate>
+
         <!-- ============================================================ 推荐页那三排货架
              2026-10-17 用户令「复刻网页端的推荐页面，三个分区 继续观看、最新集、最近发布的剧集」。
              用的就是主页那三件（CardShelf / ShelfStrip / ShelfHead / PosterCard），所以卡片的形状、
@@ -350,6 +364,40 @@
 
                         <TextBlock x:Name="LibraryItemCount" Text="{x:Bind ViewModel.TotalLabel, Mode=OneWay}"
                             FontSize="{StaticResource EgCaptionFontSize}" FontWeight="SemiBold" Margin="0,0,2,0" VerticalAlignment="Center" />
+                        <!-- 标题栏收藏页聚合所有在线账号；两个及以上可收藏账号时给一颗筛选，选择留在返回栈里。 -->
+                        <Button
+                            x:Name="FavoriteAccountButton"
+                            Style="{StaticResource LibraryPillStyle}"
+                            Visibility="{x:Bind ViewModel.FavoriteAccountFilterVisibility, Mode=OneWay}"
+                            ToolTipService.ToolTip="账号筛选"
+                            AutomationProperties.Name="账号筛选">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE77B;" />
+                                <TextBlock Text="{x:Bind ViewModel.FavoriteAccountLabel, Mode=OneWay}"
+                                    MaxWidth="180" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE70D;" />
+                            </StackPanel>
+                            <Button.Flyout>
+                                <Flyout x:Name="FavoriteAccountMenu" Placement="Bottom" Opening="OnFavoriteAccountMenuOpening">
+                                    <ListView
+                                        x:Name="FavoriteAccountList"
+                                        Width="240"
+                                        MaxHeight="360"
+                                        SelectionMode="None"
+                                        IsItemClickEnabled="True"
+                                        ItemClick="OnFavoriteAccountItemClick"
+                                        ItemTemplate="{StaticResource FavoriteAccountEntryTemplate}">
+                                        <ListView.ItemContainerStyle>
+                                            <Style TargetType="ListViewItem">
+                                                <Setter Property="MinHeight" Value="36" />
+                                                <Setter Property="Padding" Value="10,0" />
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            </Style>
+                                        </ListView.ItemContainerStyle>
+                                    </ListView>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
                         <!-- 播放全部 / 随机播放：Emby 工具栏的 btnPlay / btnShuffle。命令在视图模型里，载入
                              中自己就是灰的，与排序/筛选的即时行为一致。 -->
                         <Button

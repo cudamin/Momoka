@@ -50,6 +50,9 @@ internal sealed record LibraryRequest
 
     public int LoadedCount { get; set; }
 
+    /// <summary>标题栏收藏页筛选的账号；null 为全部在线账号。随返回栈保留，重新进入时仍看同一个账号。</summary>
+    public string? FavoriteAccountKey { get; set; }
+
     /// <summary>
     /// Whether this grid is the search page, which is a different question from whether it has anything
     /// to search for: the page opens with an empty box and nothing on it, and 「no term」 has to stay

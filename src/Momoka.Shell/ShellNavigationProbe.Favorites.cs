@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
@@ -59,6 +60,9 @@ internal sealed partial class ShellNavigationProbe
             var page = (LibraryPage)shell.Pages.Content;
             Require(page.ViewModel.Cards.Count == 1 && page.ViewModel.Cards[0].Item.Type == EmbyItemType.Season,
                 "收藏按钮未打开包含季的收藏页面");
+            Require(page.ViewModel.FavoriteAccountFilterVisibility == Visibility.Collapsed
+                && Get<Button>(page, "FavoriteAccountButton").Visibility == Visibility.Collapsed,
+                "单账号收藏页仍显示账号筛选");
             foreach (var width in new[] { 1240, 760 })
             {
                 ResizeInspect(width, 800);
@@ -123,6 +127,117 @@ internal sealed partial class ShellNavigationProbe
         signingOut.SetResult(Items(1, 1));
         await clearing;
         Require(!vm.HasItems, "登录界面被迟到响应重新显示收藏按钮");
+    }
+
+    /// <summary>两个在线账号的收藏直接聚在一页；分账号筛选只问选中账号，迟到响应不覆盖新筛选。</summary>
+    private async Task FavoriteAccountsAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync("a.invalid", "账号甲");
+        var first = fixture.Session.Capture();
+        await fixture.SelectAsync("b.invalid", "账号乙");
+        var second = fixture.Session.Capture();
+        var firstItem = new EmbyItem
+        {
+            Id = "favorite-a",
+            Name = "甲账号的收藏",
+            Type = EmbyItemType.Movie,
+            UserData = new EmbyUserData { IsFavorite = true }
+        };
+        var secondItem = new EmbyItem
+        {
+            Id = "favorite-b",
+            Name = "乙账号的收藏",
+            Type = EmbyItemType.Movie,
+            UserData = new EmbyUserData { IsFavorite = true }
+        };
+        var reads = new ConcurrentQueue<(string Host, int Offset)>();
+        var secondReply = Pending<HttpResponseMessage>();
+        var holdSecond = false;
+        fixture.Transport.Reply = (request, _) =>
+        {
+            if (Query(request, "Filters")?.Contains("IsFavorite", StringComparison.Ordinal) == true)
+            {
+                var host = request.RequestUri!.Host;
+                reads.Enqueue((host, int.Parse(Query(request, "StartIndex") ?? "0")));
+                if (host == "b.invalid" && holdSecond) return secondReply.Task;
+                var item = host == "a.invalid" ? firstItem : secondItem;
+                return Task.FromResult(Json(new { Items = new[] { item }, TotalRecordCount = 1 }));
+            }
+            return Task.FromResult(FakeTransport.Standard(request));
+        };
+        var frame = new Frame();
+        _root.Children.Add(frame);
+        LibraryPage? page = null;
+        try
+        {
+            ResizeProbeClient(1280, 900);
+            frame.Navigate(typeof(LibraryPage), LibraryRequest.Favorites(fixture.Services));
+            page = (LibraryPage)frame.Content;
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            Require(page.ViewModel.Cards.Count == 2
+                && page.ViewModel.Cards.Select(card => card.Item.Id).OrderBy(id => id, StringComparer.Ordinal)
+                    .SequenceEqual(new[] { "favorite-a", "favorite-b" })
+                && page.ViewModel.Cards.Select(card => card.Scope?.Key).Distinct().Count() == 2,
+                "收藏页没有直接聚合两个在线账号的收藏");
+            Require(page.ViewModel.FavoriteAccountFilterVisibility == Visibility.Visible, "多账号收藏页没有显示账号筛选");
+            Require(page.ViewModel.FavoriteAccountLabel == "全部账号", "账号筛选默认不是全部账号");
+            await LayoutAsync(page);
+            var button = Get<Button>(page, "FavoriteAccountButton");
+            Require(button.Visibility == Visibility.Visible, "账号筛选按钮没有显示");
+            var entries = page.BuildFavoriteAccountMenu();
+            Require(string.Join(',', entries.Select(entry => entry.Label)) == "全部账号,a.invalid · 账号甲,b.invalid · 账号乙",
+                "账号筛选菜单顺序或文字不对");
+            Require(entries.Count(entry => entry.IsChecked) == 1 && entries[0].IsChecked, "账号筛选默认勾错了");
+            page.ShowFavoriteAccountMenu();
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("favorites-accounts-menu-screen.png");
+            ((Flyout)button.Flyout).Hide();
+
+            var before = reads.Count;
+            await page.ViewModel.ChooseFavoriteAccountAsync(second.Key);
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy && page.ViewModel.Cards.Count == 1);
+            Require(page.ViewModel.Cards[0].Item.Id == "favorite-b" && page.ViewModel.Cards[0].Scope?.Key == second.Key,
+                "按账号筛选后仍混入其他账号");
+            Require(page.ViewModel.FavoriteAccountLabel == "b.invalid · 账号乙", "账号筛选按钮没有跟随选中账号");
+            Require(page.BuildFavoriteAccountMenu().Single(entry => entry.IsChecked).Key == second.Key,
+                "账号筛选菜单没有勾中选中账号");
+            Require(reads.Skip(before).All(read => read.Host == "b.invalid"), "按账号筛选后仍向其他来源发请求");
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("favorites-accounts-filtered-screen.png");
+
+            await page.ViewModel.ChooseFavoriteAccountAsync("missing");
+            Require(page.ViewModel.Cards.Count == 1 && page.ViewModel.FavoriteAccountLabel == "b.invalid · 账号乙",
+                "未知账号改变了收藏筛选");
+
+            reads.Clear();
+            holdSecond = true;
+            var switching = page.ViewModel.ChooseFavoriteAccountAsync(null);
+            await UntilAsync(() => reads.Any(read => read.Host == "b.invalid"));
+            var narrowed = page.ViewModel.ChooseFavoriteAccountAsync(first.Key);
+            holdSecond = false;
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy && page.ViewModel.Cards.Count == 1
+                && page.ViewModel.Cards[0].Item.Id == "favorite-a");
+            secondReply.SetResult(Json(new { Items = new[] { secondItem }, TotalRecordCount = 1 }));
+            await switching;
+            await narrowed;
+            Require(page.ViewModel.Cards.Count == 1 && page.ViewModel.Cards[0].Item.Id == "favorite-a"
+                && page.ViewModel.FavoriteAccountLabel == "a.invalid · 账号甲", "迟到的另一账号收藏覆盖了筛选结果");
+
+            await page.ViewModel.ChooseFavoriteAccountAsync(null);
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy && page.ViewModel.Cards.Count == 2);
+            Require(page.ViewModel.FavoriteAccountLabel == "全部账号", "回到全部账号后按钮文字没有复原");
+            Require(first.IsAvailable && second.IsAvailable, "收藏筛选改变了在线来源");
+            Require(fixture.Transport.Requests.All(value => value.StartsWith("GET ", StringComparison.Ordinal)),
+                "收藏聚合验证产生了写操作");
+        }
+        finally
+        {
+            secondReply.TrySetResult(Json(new { Items = new[] { secondItem }, TotalRecordCount = 1 }));
+            page?.Release();
+            _root.Children.Remove(frame);
+            ResizeInspect(1420, 980);
+        }
     }
 
     private async Task DeletePreservesListAsync()

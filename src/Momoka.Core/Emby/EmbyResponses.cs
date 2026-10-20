@@ -150,6 +150,9 @@ public sealed record EmbyConnection(
     public bool IsFnNas => ServerKind == MediaServerKind.FnNas;
     public bool IsPlex => ServerKind == MediaServerKind.Plex;
 
+    /// <summary>Plex 没有收藏列表；收藏页与账号筛选不把它算作来源。</summary>
+    public bool SupportsFavorites => !IsPlex;
+
     /// <summary>
     /// Whether this product's routes and identity have to be re-probed before a saved token is trusted.
     /// All three non-Emby products do, and for the same reason: what was saved is a token and an address,

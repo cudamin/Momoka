@@ -85,6 +85,12 @@ public sealed partial class FilterChipRow
     }
 }
 
+/// <summary>收藏页账号筛选浮层的一行；<see cref="Key"/> 为 null 代表全部账号。</summary>
+public sealed record FavoriteAccountEntry(string? Key, string Label, bool IsChecked)
+{
+    public Visibility CheckVisibility => IsChecked ? Visibility.Visible : Visibility.Collapsed;
+}
+
 /// <summary>
 /// A library, a folder, a season, a person's credits or a set of search results: one grid, whose only
 /// difference from the next is the <see cref="LibraryRequest"/> behind it.
@@ -148,7 +154,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     private readonly LoadGeneration _jumps = new();
     private CancellationToken _queryToken;
     private EmbySessionScope? _scope;
+    private EmbySessionScope? _defaultScope;
     private IReadOnlyList<EmbySessionScope> _sources = [];
+    private IReadOnlyList<EmbySessionScope> _favoriteAccounts = [];
     private AggregateQueryCursor? _cursor;
     private readonly HashSet<string> _resumeRead = new(StringComparer.Ordinal);
     private bool Aggregated => _sources.Count > 1;
@@ -633,6 +641,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel),
             nameof(LayoutVisibility), nameof(JellyfinLayoutVisibility), nameof(FnNasFilterVisibility), nameof(FnNasFilterTextVisibility),
             nameof(FnNasLayoutWide), nameof(FilterButtonWidth),
+            nameof(FavoriteAccountFilterVisibility), nameof(FavoriteAccountLabel),
             nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility) }) OnPropertyChanged(name);
         RefreshUpcomingState();
     }
@@ -1048,9 +1057,21 @@ public sealed partial class LibraryViewModel : PageViewModel
         Cancel();
         _active = true;
         _scope = request.Source ?? images.CaptureScope();
+        _defaultScope = _scope;
         _sources = request.Source is { } source ? [source]
             : request.ParentId is not null || request.PersonId is not null ? _scope is null ? [] : [_scope]
             : session.Sources.ToArray();
+        _favoriteAccounts = [];
+        if (request.IsFavorites)
+        {
+            _favoriteAccounts = FavoriteAccounts.Applicable(_sources);
+            if (request.FavoriteAccountKey is { } selected
+                && _favoriteAccounts.All(source => source.Key != selected))
+                request.FavoriteAccountKey = null;
+            _sources = FavoriteAccounts.Select(_favoriteAccounts, request.FavoriteAccountKey);
+            // 收藏页只问一个账号时，这一页的排序、筛选与服务器风味都换成那个账号的。
+            if (_sources.Count == 1) _scope = _sources[0];
+        }
         _request = request;
         _actions = actions;
         _settings = settings;
@@ -1313,7 +1334,22 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// </param>
     private async Task LoadAsync(bool reset)
     {
-        if (!_active || !SourcesAvailable || _request is null || _actions is null) return;
+        if (!_active || _request is null || _actions is null) return;
+        if (!SourcesAvailable)
+        {
+            // 收藏页在没有任何能列收藏的来源（例如只登录了 Plex）时给出空态，不留下永远转不完的加载。
+            if (_request.IsFavorites && _sources.Count == 0)
+            {
+                _total = 0;
+                _firstPage = true;
+                _pageFailed = false;
+                EmptyNotice = "没有可读取收藏的账号";
+                ShowEmptyNotice = true;
+                IsReady = true;
+                RowsArrived();
+            }
+            return;
+        }
         // 推荐页不是一面网格：三排货架各问一次，没有翻页、没有字母跳转、没有「共 N 项」。整条路分开走，
         // 下面那些分页与游标的账一笔都不记（见 LoadRecommendedAsync）。
         if (IsRecommendedPage)

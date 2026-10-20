@@ -926,6 +926,28 @@ public sealed partial class LibraryPage : Page, IShellContent
         BuildSortMenu();
     }
 
+    private void OnFavoriteAccountMenuOpening(object sender, object e) => BuildFavoriteAccountMenu();
+
+    /// <summary>收藏页账号筛选的菜单行；探针读它，浮层也用它。</summary>
+    internal IReadOnlyList<FavoriteAccountEntry> BuildFavoriteAccountMenu()
+    {
+        var entries = ViewModel.FavoriteAccountEntries();
+        FavoriteAccountList.ItemsSource = entries;
+        return entries;
+    }
+
+    private async void OnFavoriteAccountItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is not FavoriteAccountEntry entry) return;
+
+        FavoriteAccountMenu.Hide();
+        if (!await ViewModel.ChooseFavoriteAccountAsync(entry.Key) || _released) return;
+        _scroll?.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+    }
+
+    /// <summary>Tooling: opens the account filter where a screenshot can see it.</summary>
+    internal void ShowFavoriteAccountMenu() => FavoriteAccountButton.Flyout?.ShowAt(FavoriteAccountButton);
+
     /// <summary>Tooling: drops the sort menu open where a screenshot can see it.</summary>
     internal void ShowSortMenu() => SortButton.Flyout?.ShowAt(SortButton);
 

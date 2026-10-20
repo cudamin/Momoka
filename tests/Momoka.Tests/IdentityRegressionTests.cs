@@ -459,6 +459,19 @@ internal static class IdentityRegressionTests
                 && accountIds.Contains(account.Id), "登录第三个账号后前两个来源被挤掉了");
         });
 
+        Case("收藏聚合：分账号筛选只留下选中来源，全部与未知键各归各位", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await fixture.Session.RestoreAllAsync(None);
+            var sources = fixture.Session.Sources;
+            Assert.Equal(2, FavoriteAccounts.Applicable(sources).Count);
+
+            var selected = FavoriteAccounts.Select(sources, sources[1].Key);
+            Assert.True(selected.Count == 1 && selected[0].Key == sources[1].Key, "收藏筛选没有只留下选中账号");
+            Assert.Equal(2, FavoriteAccounts.Select(sources, null).Count);
+            Assert.Equal(0, FavoriteAccounts.Select(sources, "missing").Count);
+        });
+
         Case("聚合媒体库：不同服务器相同库编号保留两份且来源各自绑定", async () =>
         {
             using var fixture = new SessionFixture();

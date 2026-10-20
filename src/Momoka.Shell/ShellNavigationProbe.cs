@@ -115,6 +115,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("封面迟到图片不复活", CoverLateImageAsync);
             await CaseAsync("完整返回历史和主页按钮", ShellHistoryAsync);
             await CaseAsync("收藏入口显隐、跳转及取消最后一项", FavoritesNavigationAsync);
+            await CaseAsync("收藏页聚合所有在线账号与分账号筛选", FavoriteAccountsAsync, 30);
             await CaseAsync("收藏刷新、切服和退出的迟到结果隔离", FavoritesRaceAsync);
             await CaseAsync("删除确认、失败和成功保持列表位置", DeletePreservesListAsync);
             await CaseAsync("删除与分页、查询切换交错", DeletePagingRaceAsync);

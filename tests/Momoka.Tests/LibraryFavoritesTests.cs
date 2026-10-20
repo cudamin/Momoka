@@ -10,6 +10,18 @@ internal static class LibraryFavoritesTests
 {
     public static void Register()
     {
+        Test("标题栏收藏：Plex 没有收藏列表，不参与聚合与账号筛选", () =>
+        {
+            var device = DeviceIdentity.Create("favorites-accounts-fixture", "1");
+            bool Supports(MediaServerKind kind) => new EmbyConnection(
+                new Uri("https://fixture.invalid/"), "fixture-token", "user", "User", "Fixture", device)
+            { ServerKind = kind }.SupportsFavorites;
+
+            Assert.True(Supports(MediaServerKind.Emby));
+            Assert.True(Supports(MediaServerKind.Jellyfin));
+            Assert.True(Supports(MediaServerKind.FnNas));
+            Assert.False(Supports(MediaServerKind.Plex));
+        });
         Test("电视收藏：节目与集分排，只有支持的电视库采用此版式", () =>
         {
             foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })

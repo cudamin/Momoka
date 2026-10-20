@@ -107,6 +107,7 @@ internal sealed partial class ShellNavigationProbe
 
         // 收藏与删除
         [nameof(FavoritesNavigationAsync)] = ShellProbeSections.Favorites,
+        [nameof(FavoriteAccountsAsync)] = ShellProbeSections.Favorites,
         [nameof(FavoritesRaceAsync)] = ShellProbeSections.Favorites,
         [nameof(DeletePreservesListAsync)] = ShellProbeSections.Favorites,
         [nameof(DeletePagingRaceAsync)] = ShellProbeSections.Favorites,

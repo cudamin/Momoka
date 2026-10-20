@@ -19,6 +19,51 @@ public sealed partial class LibraryViewModel
     public ObservableCollection<FavoriteRow> FavoriteRows { get; } = [];
     public ObservableCollection<FavoriteRow> VisibleFavoriteRows { get; } = [];
 
+    /// <summary>标题栏收藏页的账号筛选：两个及以上可收藏的在线账号才出现。</summary>
+    public Visibility FavoriteAccountFilterVisibility => Show(_request?.IsFavorites == true && _favoriteAccounts.Count > 1);
+
+    public string FavoriteAccountLabel =>
+        _favoriteAccounts.FirstOrDefault(source => source.Key == _request?.FavoriteAccountKey)?.DisplayName ?? "全部账号";
+
+    internal IReadOnlyList<FavoriteAccountEntry> FavoriteAccountEntries()
+    {
+        var selected = _request?.FavoriteAccountKey;
+        return
+        [
+            new(null, "全部账号", selected is null),
+            .. _favoriteAccounts.Select(source => new FavoriteAccountEntry(source.Key, source.DisplayName, source.Key == selected))
+        ];
+    }
+
+    /// <summary>
+    /// 收藏页换账号：只把查询来源换成那一个或全部，重新从这里分页；返回栈里的选择也跟着留下。
+    /// </summary>
+    internal async Task<bool> ChooseFavoriteAccountAsync(string? key)
+    {
+        if (_request is not { IsFavorites: true } request || _favoriteAccounts.Count <= 1) return false;
+        if (key is not null && _favoriteAccounts.All(source => source.Key != key)) return false;
+        if (string.Equals(request.FavoriteAccountKey, key, StringComparison.Ordinal)) return false;
+
+        request.FavoriteAccountKey = key;
+        request.ScrollOffset = 0;
+        request.LoadedCount = 0;
+        _sources = FavoriteAccounts.Select(_favoriteAccounts, key);
+        _scope = _sources.Count == 1 ? _sources[0] : _defaultScope;
+        foreach (var card in Cards) card.AbandonPoster();
+        Cards.Clear();
+        _total = NotLoaded;
+        ShowEmptyNotice = false;
+        OnPropertyChanged(nameof(FavoriteAccountLabel));
+        OnPropertyChanged(nameof(SortFilterVisibility));
+        OnPropertyChanged(nameof(FilterVisibility));
+        OnPropertyChanged(nameof(LayoutVisibility));
+        OnPropertyChanged(nameof(FnNasFilterTextVisibility));
+        OnPropertyChanged(nameof(FilterButtonWidth));
+        RowsArrived();
+        await ReloadAsync().ConfigureAwait(true);
+        return true;
+    }
+
     private void EnsureFavoriteRows()
     {
         var entries = LibraryFavorites.Rows(_request!.CollectionType, _scope!.Connection.ServerKind);

@@ -41,7 +41,8 @@ public sealed partial class FavoritesViewModel : ObservableObject, IDisposable
 
     internal async Task RefreshAsync()
     {
-        var sources = _session?.Sources ?? (_scope is { IsAvailable: true } scope ? [scope] : []);
+        var sources = _session is { } session ? FavoriteAccounts.Applicable(session.Sources)
+            : _scope is { IsAvailable: true } scope ? FavoriteAccounts.Applicable([scope]) : [];
         if (sources.Count == 0) return;
         var token = _loads.Begin();
         try
