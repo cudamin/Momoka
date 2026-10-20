@@ -36,11 +36,10 @@ public sealed partial class FnNasPasswordViewModel : FnNasSessionViewModel
         if (!string.Equals(password, ConfirmPassword ?? "", StringComparison.Ordinal))
             throw new ArgumentException("两次输入的新密码不一致。");
 
-        var freshToken = await scope.ExecuteAsync(
-            (client, ct) => client.FnNas.ChangePasswordAsync(client.FnNasConnection, password, ct), token);
+        if (Session is not { } session) return;
+        await session.ChangeFnNasPasswordAsync(scope, password, token);
         if (!Current(token)) return;
 
-        Session?.ApplyPasswordChange(scope, password, freshToken);
         NewPassword = ConfirmPassword = "";
         Notify("密码已修改", "飞牛影视帐号密码已更新，下次登录请使用新密码。", InfoBarSeverity.Success);
     });

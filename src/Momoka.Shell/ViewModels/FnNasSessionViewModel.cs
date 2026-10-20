@@ -39,9 +39,9 @@ public abstract partial class FnNasSessionViewModel : PageViewModel
         Cancel();
         _active = true;
         Session = session;
-        SourceKey = sourceKey;
-        Scope = sourceKey is { Length: > 0 }
-            ? session.Sources.FirstOrDefault(source => string.Equals(source.Key, sourceKey, StringComparison.Ordinal))
+        SourceKey = string.IsNullOrEmpty(sourceKey) ? null : sourceKey;
+        Scope = SourceKey is not null
+            ? session.Sources.FirstOrDefault(source => string.Equals(source.Key, SourceKey, StringComparison.Ordinal))
             : session.IsSignedIn ? session.Capture() : null;
         ResetEditor();
         OnPropertyChanged(nameof(ContentVisibility));
@@ -62,7 +62,8 @@ public abstract partial class FnNasSessionViewModel : PageViewModel
         var token = BeginLoad();
         try
         {
-            scope.ThrowIfNotCurrent();
+            scope.ThrowIfNotAvailable();
+            if (SourceKey is null) scope.ThrowIfNotCurrent();
             await action(scope, token);
         }
         catch (OperationCanceledException) { }

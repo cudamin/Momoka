@@ -293,6 +293,27 @@ internal static class FnNasMediaTests
             Assert.Equal(3, episodeBody["episode_number"]!.GetValue<int>());
             Assert.Equal("SingleEpisode", episodeBody["scrap_tv_type"]!.GetValue<string>());
         });
+        Test("飞牛编辑元数据：发行日期是纯日期，带偏移的服务端日期也不换日", () =>
+        {
+            foreach (var value in new[] { "2024-05-01", "2024-05-01T00:00:00Z", "2024-05-01T23:00:00-07:00", "2024-05-01T00:00:00+08:00" })
+            {
+                var detail = new JsonObject { ["title"] = "电影", ["release_date"] = value };
+                var edit = FnNasMetadataEdit.Read(detail);
+                Assert.Equal("2024-05-01", edit.ReleaseDate);
+                Assert.Null(edit.Problem);
+                edit.ApplyTo(detail);
+                Assert.Equal("2024-05-01", detail["release_date"]!.GetValue<string>());
+            }
+        });
+        Test("飞牛编辑元数据：日期格式明确且不存在的日期、时刻与 NaN 都在表单内拒绝", () =>
+        {
+            var edit = new FnNasMetadataEdit("电影", "", "8.1", "2024-02-29", "release_date");
+            Assert.Null(edit.Problem);
+            foreach (var date in new[] { "2023-02-29", "2024-13-01", "05/01/2024", "2024-05-01T00:00:00Z" })
+                Assert.NotNull((edit with { ReleaseDate = date }).Problem);
+            foreach (var rating in new[] { "NaN", "Infinity", "-Infinity", "1e500" })
+                Assert.NotNull((edit with { Rating = rating }).Problem);
+        });
         Test("飞牛编辑元数据：只改四格，其余字段原样带回", () =>
         {
             var detail = JsonNode.Parse("""

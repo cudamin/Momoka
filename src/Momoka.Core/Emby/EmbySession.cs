@@ -193,6 +193,45 @@ public sealed class EmbySession : IDisposable
         }
     }
 
+    /// <summary>
+    /// 飞牛改密一旦发出就按来源寿命等待确认并保存凭据，不让页面离开丢弃已提交的结果。
+    /// 等待提交前仍接受页面取消；退出／删除账号或更新登录代次后不再落盘，也不复活来源。
+    /// </summary>
+    public async Task ChangeFnNasPasswordAsync(EmbySessionScope scope, string newPassword, CancellationToken cancellationToken)
+    {
+        var state = scope.IdentityState;
+        using var queued = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, scope.Lifetime);
+        await state.PasswordChanges.WaitAsync(queued.Token).ConfigureAwait(false);
+        try
+        {
+            long generation;
+            string savedPassword;
+            lock (_lifecycleGate)
+            {
+                queued.Token.ThrowIfCancellationRequested();
+                if (!IsAvailable(scope)) throw new OperationCanceledException("任务所属的服务器账号已退出登录");
+                if (!scope.Client.Connection.IsFnNas) throw new NotSupportedException("该账号不是飞牛影视账号");
+                generation = _attempts.GetValueOrDefault(scope.Key);
+                savedPassword = _vault.GetPassword(state.Account);
+            }
+
+            // 页面 token 只负责「是否开始提交」。发出之后必须拿到成功确认并先保存，再决定页面要不要显示。
+            await scope.ExecuteAsync(async (client, token) =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var freshToken = await client.FnNas.ChangePasswordAsync(client.FnNasConnection, newPassword, token).ConfigureAwait(false);
+                lock (_lifecycleGate)
+                {
+                    if (!CanCommit(scope.Key, generation) || !IsAvailable(scope)
+                        || _vault.GetPassword(state.Account) != savedPassword || !HasAddress(state.Server, client.Connection.ApiBase))
+                        throw new OperationCanceledException("密码提交所属的登录身份已改变");
+                    ApplyPasswordChange(scope, newPassword, freshToken);
+                }
+            }, scope.Lifetime).ConfigureAwait(false);
+        }
+        finally { state.PasswordChanges.Release(); }
+    }
+
     public Task<bool> TryRestoreAsync(ServerProfile server, AccountProfile account, CancellationToken cancellationToken) =>
         TryRestoreAsync(server, account, true, cancellationToken);
 
@@ -462,6 +501,8 @@ public sealed class EmbySession : IDisposable
                 }
                 if (error is not EmbyApiException) throw;
                 Log.Warn(Category, "一个来源自动重新登录失败", error);
+                // 明确拒绝凭据才撤销来源。网络、超时、403 或服务故障并不能证明密码无效，保留以便重试。
+                if (error is not EmbyAuthenticationException and not EmbyTokenExpiredException) throw;
                 EndSource(scope.Key, "登录状态已过期，请重新登录", stale, generation, false);
                 return null;
             }

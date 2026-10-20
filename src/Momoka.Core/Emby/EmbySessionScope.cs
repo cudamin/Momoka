@@ -67,6 +67,7 @@ public sealed class EmbySessionScope
         public AccountProfile Account { get; } = account;
         public CancellationTokenSource Lifetime { get; } = new();
         public SemaphoreSlim Reauthentication { get; } = new(1, 1);
+        public SemaphoreSlim PasswordChanges { get; } = new(1, 1);
         public List<EmbyItem>? RestoredViews { get; set; }
     }
 

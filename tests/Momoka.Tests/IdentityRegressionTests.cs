@@ -18,6 +18,7 @@ internal static class IdentityRegressionTests
     public static void Register()
     {
         RegisterPasswords();
+        RegisterFnNasPasswordChanges();
         RegisterSessionChanges();
         RegisterScopes();
         RegisterMultipleSources();
@@ -97,8 +98,155 @@ internal static class IdentityRegressionTests
         });
     }
 
+    private static void RegisterFnNasPasswordChanges()
+    {
+        foreach (var remember in new[] { false, true })
+            Case($"飞牛改密：提交后页面取消仍更新 A 令牌并保留记住密码选择 {remember}", async () =>
+            {
+                using var fixture = new SessionFixture();
+                await RestoreFnNasAsync(fixture);
+                var source = fixture.Session.Capture();
+                await fixture.Restore(fixture.B);
+                fixture.Vault.SetPassword(fixture.A.Account, "password-a", remember);
+                var entered = Signal<bool>();
+                var reply = Signal<HttpResponseMessage>();
+                fixture.Transport.Reply = (sent, _) =>
+                {
+                    if (!sent.Url.AbsolutePath.EndsWith("/user/passwd", StringComparison.Ordinal))
+                        return Task.FromResult(FnNasStandard(sent));
+                    entered.TrySetResult(true);
+                    return reply.Task;
+                };
+                using var page = new CancellationTokenSource();
+                var changing = fixture.Session.ChangeFnNasPasswordAsync(source, "new-password-a", page.Token);
+                await entered.Task;
+                page.Cancel();
+                reply.SetResult(Json("{\"code\":0,\"data\":\"new-token-a\"}"));
+                await changing;
+                Assert.Equal("new-token-a", fixture.Vault.GetAccessToken(fixture.A.Account));
+                Assert.Equal(remember ? "new-password-a" : "", fixture.Vault.GetPassword(fixture.A.Account));
+                Assert.Equal(remember, fixture.A.Account.RememberPassword);
+                Assert.Equal("new-token-a", (await source.ExecuteAsync((client, _) => Task.FromResult(client.Connection), None)).AccessToken);
+                Assert.Equal("token-b", fixture.Vault.GetAccessToken(fixture.B.Account));
+                Assert.Equal("password-b", fixture.Vault.GetPassword(fixture.B.Account));
+                Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
+                Assert.Equal(1, fixture.Transport.Sent.Count(sent => sent.Url.AbsolutePath.EndsWith("/user/passwd", StringComparison.Ordinal)));
+            });
+
+        foreach (var change in new[] { "signout", "delete", "signin" })
+            Case($"飞牛改密：提交期间 {change} 后迟到成功不复活旧来源或覆盖新凭据", async () =>
+            {
+                using var fixture = new SessionFixture();
+                await RestoreFnNasAsync(fixture);
+                var source = fixture.Session.Capture();
+                var entered = Signal<bool>();
+                var reply = Signal<HttpResponseMessage>();
+                fixture.Transport.Reply = (sent, _) =>
+                {
+                    if (!sent.Url.AbsolutePath.EndsWith("/user/passwd", StringComparison.Ordinal))
+                        return Task.FromResult(FnNasStandard(sent));
+                    entered.TrySetResult(true);
+                    return reply.Task;
+                };
+                var changing = fixture.Session.ChangeFnNasPasswordAsync(source, "late-password", None);
+                await entered.Task;
+                if (change == "signin")
+                    await fixture.Session.SignInAsync(fixture.A.Server, fixture.A.Account, "explicit-password", "a", true, None);
+                else
+                {
+                    fixture.Session.SignOut(fixture.A.Server, fixture.A.Account);
+                    if (change == "delete") fixture.A.Server.Accounts.Remove(fixture.A.Account);
+                }
+                var savedPassword = fixture.A.Account.ProtectedPassword;
+                var savedToken = fixture.A.Account.ProtectedAccessToken;
+                reply.SetResult(Json("{\"code\":0,\"data\":\"late-token\"}"));
+                await Fails<OperationCanceledException>(changing);
+                Assert.Equal(savedPassword, fixture.A.Account.ProtectedPassword);
+                Assert.Equal(savedToken, fixture.A.Account.ProtectedAccessToken);
+                Assert.Equal(change == "signin", source.IsAvailable);
+            });
+
+        Case("飞牛改密：排队／尚未发出时页面取消不提交", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await RestoreFnNasAsync(fixture);
+            var source = fixture.Session.Capture();
+            await source.IdentityState.PasswordChanges.WaitAsync();
+            using var page = new CancellationTokenSource();
+            var changing = fixture.Session.ChangeFnNasPasswordAsync(source, "not-sent-password", page.Token);
+            page.Cancel();
+            await Fails<OperationCanceledException>(changing);
+            source.IdentityState.PasswordChanges.Release();
+            Assert.False(fixture.Transport.Sent.Any(sent => sent.Url.AbsolutePath.EndsWith("/user/passwd", StringComparison.Ordinal)));
+            Assert.Equal("token-a", fixture.Vault.GetAccessToken(fixture.A.Account));
+        });
+
+        Case("飞牛改密：服务端拒绝不更新本地凭据", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await RestoreFnNasAsync(fixture);
+            var source = fixture.Session.Capture();
+            fixture.Transport.Reply = (sent, _) => Task.FromResult(sent.Url.AbsolutePath.EndsWith("/user/passwd", StringComparison.Ordinal)
+                ? Json("{\"code\":-15}") : FnNasStandard(sent));
+            await Fails<EmbyApiException>(fixture.Session.ChangeFnNasPasswordAsync(source, "rejected-password", None));
+            Assert.Equal("token-a", fixture.Vault.GetAccessToken(fixture.A.Account));
+            Assert.Equal("password-a", fixture.Vault.GetPassword(fixture.A.Account));
+        });
+    }
+
+    private static async Task RestoreFnNasAsync(SessionFixture fixture)
+    {
+        fixture.A.Server.ServerKind = MediaServerKind.FnNas;
+        fixture.A.Server.Url = "https://a.invalid/v/";
+        fixture.Transport.Reply = (sent, _) => Task.FromResult(FnNasStandard(sent));
+        await fixture.Restore(fixture.A);
+    }
+
+    private static HttpResponseMessage FnNasStandard(Sent sent)
+    {
+        if (sent.Url.Host != "a.invalid") return Standard(sent);
+        var path = sent.Url.AbsolutePath;
+        if (path.EndsWith("System/Info/Public", StringComparison.Ordinal)) return Json("", HttpStatusCode.NotFound);
+        if (path.EndsWith("/sys/version", StringComparison.Ordinal)) return Json("{\"code\":0,\"data\":{\"version\":\"0.9.8\",\"mediasrvVersion\":\"0.9.8\"}}");
+        if (path.EndsWith("/sys/config", StringComparison.Ordinal)) return Json("{\"code\":0,\"data\":{\"server_guid\":\"fn-a\",\"server_name\":\"a.invalid\"}}");
+        if (path.EndsWith("/user/info", StringComparison.Ordinal)) return Json("{\"code\":0,\"data\":{\"guid\":\"a\",\"username\":\"a\",\"is_admin\":1}}");
+        if (path.EndsWith("/mediadb/list", StringComparison.Ordinal)) return Json("{\"code\":0,\"data\":[]}");
+        if (path.EndsWith("/user/loginByPassword", StringComparison.Ordinal)) return Json("{\"code\":0,\"data\":{\"token\":\"explicit-token\"}}");
+        return Json("{\"code\":0,\"data\":{}}");
+    }
+
     private static void RegisterSessionChanges()
     {
+        foreach (var fault in new[] { "network", "timeout", "unavailable", "forbidden" })
+            Case($"重登故障：{fault} 不注销来源、不清凭据，恢复网络后仍可重试", async () =>
+            {
+                using var fixture = new SessionFixture();
+                await fixture.Restore(fixture.A);
+                var source = fixture.Session.Capture();
+                fixture.Transport.Reply = (sent, _) =>
+                {
+                    if (sent.IsWrite) return Task.FromResult(Json("", HttpStatusCode.Unauthorized));
+                    if (!sent.IsAuthentication) return Task.FromResult(Standard(sent));
+                    return fault switch
+                    {
+                        "network" => Task.FromException<HttpResponseMessage>(new HttpRequestException("synthetic network")),
+                        "timeout" => Task.FromException<HttpResponseMessage>(new TaskCanceledException("synthetic timeout")),
+                        "forbidden" => Task.FromResult(Json("", HttpStatusCode.Forbidden)),
+                        _ => Task.FromResult(Json("", HttpStatusCode.ServiceUnavailable))
+                    };
+                };
+                await Fails<EmbyApiException>(source.ExecuteAsync((client, ct) => client.MarkPlayedAsync("item", ct), None));
+                Assert.True(source.IsAvailable && source.IsCurrent);
+                Assert.Equal("token-a", fixture.Vault.GetAccessToken(fixture.A.Account));
+                Assert.Equal("password-a", fixture.Vault.GetPassword(fixture.A.Account));
+                Assert.Equal(0, fixture.SignedOut);
+                fixture.Transport.Reply = (sent, _) => Task.FromResult(sent.IsWrite && sent.Token == "token-a"
+                    ? Json("", HttpStatusCode.Unauthorized) : Standard(sent));
+                await source.ExecuteAsync((client, ct) => client.MarkPlayedAsync("item", ct), None);
+                Assert.Equal("fresh-a", fixture.Vault.GetAccessToken(fixture.A.Account));
+                Assert.Equal(0, fixture.SignedOut);
+            });
+
         foreach (var sameServer in new[] { false, true })
             foreach (var outcome in new[] { "success", "rejected", "timeout" })
                 Case($"身份回归：A 重登 {outcome} 迟到，直接恢复{(sameServer ? "同服 B 账号" : "B 服务器")}不受影响", async () =>
@@ -122,12 +270,13 @@ internal static class IdentityRegressionTests
                     var bToken = fixture.B.Account.ProtectedAccessToken;
                     if (outcome == "timeout") reply.SetException(new TaskCanceledException("synthetic timeout"));
                     else reply.SetResult(outcome == "success" ? SignedIn("a", "fresh-a") : Json("", HttpStatusCode.Unauthorized));
-                    await Fails<EmbyTokenExpiredException>(old);
+                    if (outcome == "timeout") await Fails<EmbyUnreachableException>(old);
+                    else await Fails<EmbyTokenExpiredException>(old);
 
                     Assert.True(ReferenceEquals(fixture.B.Account, fixture.Session.Account));
                     Assert.Equal(bToken, fixture.B.Account.ProtectedAccessToken);
-                    Assert.Equal(outcome == "success" ? "fresh-a" : "", fixture.Vault.GetAccessToken(fixture.A.Account),
-                        "A 的恢复结果只更新 A；失败只移除 A 的令牌");
+                    Assert.Equal(outcome == "success" ? "fresh-a" : outcome == "rejected" ? "" : "token-a",
+                        fixture.Vault.GetAccessToken(fixture.A.Account), "A 的恢复结果只更新 A；仅明确拒绝才移除 A 的令牌");
                     Assert.Equal(fixture.B.Server.Id, fixture.Settings.LastServerId);
                     Assert.Equal(fixture.B.Account.Id, fixture.Settings.LastAccountId);
                     Assert.Equal(0, fixture.SignedOut);

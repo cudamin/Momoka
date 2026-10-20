@@ -38,11 +38,11 @@ public sealed record FnNasMetadataEdit(string Name, string Overview, string Rati
             if (ratingText.Length > 0)
             {
                 if (!double.TryParse(ratingText, NumberStyles.Float, CultureInfo.InvariantCulture, out var rating)
-                    || rating < 0 || rating > 10) return "评分要填 0 到 10 之间的数字";
+                    || !double.IsFinite(rating) || rating < 0 || rating > 10) return "评分要填 0 到 10 之间的数字";
             }
 
-            if (ReleaseDate.Trim().Length > 0 && !DateTime.TryParse(ReleaseDate.Trim(), CultureInfo.InvariantCulture,
-                DateTimeStyles.AssumeUniversal, out _))
+            if (ReleaseDate.Trim().Length > 0 && !DateOnly.TryParseExact(ReleaseDate.Trim(), "yyyy-MM-dd",
+                CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
                 return "发行日期要填成 2024-05-01 这样的年-月-日";
             return null;
         }
@@ -77,7 +77,8 @@ public sealed record FnNasMetadataEdit(string Name, string Overview, string Rati
     {
         var trimmed = value.Trim();
         if (trimmed.Length == 0) return Set(detail, key, null);
-        var date = DateTime.Parse(trimmed, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal).ToString("yyyy-MM-dd");
+        var date = DateOnly.ParseExact(trimmed, "yyyy-MM-dd", CultureInfo.InvariantCulture)
+            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         return Set(detail, key, JsonValue.Create(date));
     }
 
@@ -95,9 +96,14 @@ public sealed record FnNasMetadataEdit(string Name, string Overview, string Rati
 
     private static string Number(JsonObject detail, string key) => detail[key] is JsonValue value ? value.ToString() : "";
 
-    private static string Date(JsonObject detail, string key) => detail[key] is JsonValue value
-        && value.TryGetValue<string>(out var text)
-        && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var date)
-            ? date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-            : Text(detail, key);
+    private static string Date(JsonObject detail, string key)
+    {
+        var text = Text(detail, key);
+        if (DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date))
+            return date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        // 元数据里的日期不是时间点：带时区时也保留服务端写出的日历日期，不换算成本地那一天。
+        return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var timestamp)
+            ? DateOnly.FromDateTime(timestamp.DateTime).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+            : text;
+    }
 }

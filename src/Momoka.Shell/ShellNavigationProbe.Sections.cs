@@ -29,6 +29,7 @@ internal sealed partial class ShellNavigationProbe
         [nameof(SettingsStartupRegistrationAsync)] = ShellProbeSections.Settings,
         [nameof(SettingsAdministrationGateAsync)] = ShellProbeSections.Settings,
         [nameof(MultiServerSettingsGroupsAsync)] = ShellProbeSections.Settings,
+        [nameof(FnNasExplicitSourceAsync)] = ShellProbeSections.Settings,
         [nameof(ServersPageSummaryAsync)] = ShellProbeSections.Settings,
         [nameof(JellyfinConsoleNavigationAsync)] = ShellProbeSections.Settings,
         [nameof(JellyfinDialogCapabilitiesAsync)] = ShellProbeSections.Settings,
