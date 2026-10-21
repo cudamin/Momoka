@@ -122,17 +122,15 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             var scroll = Get<ScrollView>(page, "FormScroll");
             Require(scroll.ScrollableHeight > 0, "短窗口中的错误及账号表单没有滚动空间");
-            scroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
-            await SettleAsync();
+            await ScrollProbeAsync(scroll, 0);
             await SaveProbeScreenAsync("signin-error-top.png");
-            scroll.ScrollTo(0, scroll.ScrollableHeight, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
-            await SettleAsync();
+            await ScrollProbeAsync(scroll, scroll.ScrollableHeight);
             var back = Descendants(page).OfType<Button>().Single(button =>
                 AutomationProperties.GetAutomationId(button) == "SignInBackButton");
             var top = back.TransformToVisual(scroll).TransformPoint(new Point());
             var bottom = back.TransformToVisual(scroll).TransformPoint(new Point(0, back.ActualHeight));
             Require(back.ActualHeight > 0 && top.Y >= 0 && bottom.Y <= scroll.ActualHeight + 1,
-                "短窗口滚到底部仍无法换服务器");
+                $"短窗口滚到底部仍无法换服务器：offset={scroll.VerticalOffset:0.0}/{scroll.ScrollableHeight:0.0}；viewport={scroll.ActualHeight:0.0}；button={top.Y:0.0}–{bottom.Y:0.0}");
             await SaveProbeScreenAsync("signin-error-bottom.png");
 
             vm.BackToAddressCommand.Execute(null);

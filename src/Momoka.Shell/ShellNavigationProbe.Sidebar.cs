@@ -140,8 +140,11 @@ internal sealed partial class ShellNavigationProbe
             var scroll = Get<ItemsView>(libraryPage, "CardWall").ScrollView!;
             ResizeProbeClient(760, 650);
             await LayoutAsync(shell);
-            scroll.ScrollTo(0, 120, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
-            await UntilAsync(() => scroll.VerticalOffset > 0);
+            await LayoutAsync(libraryPage);
+            Require(scroll.ScrollableHeight > 0,
+                $"侧栏滚动夹具没有可滚内容：cards={libraryPage.ViewModel.Cards.Count}；view={libraryPage.ViewModel.View}；extent={scroll.ExtentHeight:0.0}；viewport={scroll.ViewportHeight:0.0}");
+            await ScrollProbeAsync(scroll, Math.Min(120, scroll.ScrollableHeight));
+            Require(scroll.VerticalOffset > 0, $"侧栏没有滚动：offset={scroll.VerticalOffset:0.0}/{scroll.ScrollableHeight:0.0}");
             var offset = scroll.VerticalOffset;
             await ToggleAsync(false);
             await ToggleAsync(true);

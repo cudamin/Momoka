@@ -263,6 +263,28 @@ internal sealed partial class ShellNavigationProbe
         await Task.Delay(150);
     }
 
+    /// <summary>ScrollTo 是异步操作；按返回的关联号等完成，不把固定延时当成已经滚到目标。</summary>
+    private static async Task ScrollProbeAsync(ScrollView scroll, double verticalOffset)
+    {
+        var completed = Pending<bool>();
+        var seen = new HashSet<int>();
+        var correlation = -1;
+        void OnCompleted(ScrollView sender, ScrollingScrollCompletedEventArgs args)
+        {
+            seen.Add(args.CorrelationId);
+            if (args.CorrelationId == correlation) completed.TrySetResult(true);
+        }
+        scroll.ScrollCompleted += OnCompleted;
+        try
+        {
+            correlation = scroll.ScrollTo(0, verticalOffset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+            if (correlation != -1 && !seen.Contains(correlation))
+                await completed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            scroll.UpdateLayout();
+        }
+        finally { scroll.ScrollCompleted -= OnCompleted; }
+    }
+
     private void ResizeProbeClient(int width, int height)
     {
         var scale = _root.XamlRoot.RasterizationScale;
