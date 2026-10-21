@@ -2,6 +2,12 @@
 
 最后更新：2026-10-21
 
+## 分阶段续审：阶段10Plex浏览与入口裁剪（2026-10-21）
+
+- 本树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，从阶段9本地提交 `d3ff57135267682322aadfe904241b99a6e70899` 继续，产品固定 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。新增 R-028/P1 库key未转Id，R-029/R-030/P2 收藏快捷入口和题材链接未按Plex当前能力收起，见[阶段10交接](docs/代码审查-分阶段审查-2026-10-21.阶段10审查.md)。全部静态确认、未修复，不宣称真实服务器故障复现。
+- 官方公开Support和OpenAPI规格库schema、现有离线夹具共同支撑section key；公开规格1.2.3不是PMS版本。旧/search/Hub、多类型与全局NextUp前件暂待验证，不用新规格缺路径断言全部404；Plex写后补读失败归入既有R-024不新增。
+- 一只读入口代理重读CLAUDE/Plex技能并复用共享上下文，两项经主线程逐行复核后完成关闭。仅五记录内容／链接／LF／UTF8／行段／856固定文件和原树保护检查后本地提交，不运行产品／测试／探针／自检／UI／真实Plex，不发布或推送；规则原文保留，未系统压缩。下一阶段11MoviePilot只读接续，修复仍需明确授权。
+
 ## 分阶段续审：阶段9飞牛浏览与原生页面（2026-10-21）
 
 - 用户在本聊天按流程要求继续；从另一个已暂停审查聊天的阶段9入口恢复，不重做阶段0～8／七阶段独立复核。续审树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，开始HEAD `414ee4350fc6ae03caa386dfa325c8c6867bee3f`，产品仍固定 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`；原树外部删除和主目录20份观察时未跟踪文件保护，不合入或发布主树。
