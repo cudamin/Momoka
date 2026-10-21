@@ -1,0 +1,1093 @@
+{
+  "schemaVersion": 1,
+  "phase": 8,
+  "status": "已完成只读审查；未修复",
+  "reviewStartedAt": "2026-10-21T10:43:05.753+08:00",
+  "capturedAt": "2026-10-21T12:59:12.920+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "8a1a2e4d00990325c58e2e01c7ad409c237c6b32",
+  "authorization": "既定只读审查持续授权；本次出口为阶段8完成后委派独立复核阶段1～7，完成后暂停，不进入阶段9，不自动修复或推送发布",
+  "authorityCommit": "a9b7153d1fd6a6b4a537424a667c2f2dca131176",
+  "authorityDocumentSha256": "538F00E1F8981EBF7B7046C3E2D01131ECBA4F58789E39005E8EB56E52344C67",
+  "baselineAtStageStart": {
+    "trackedChanges": [
+      "D\tdocs/交接-集成播放器缩放与起播全屏-2026-09-22.md"
+    ],
+    "stagedChanges": [],
+    "untrackedFiles": [],
+    "productMatchesSource": true
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段8审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段8证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段8检查.json",
+    "PROGRESS.md"
+  ],
+  "fixedProductIntegrity": {
+    "inventory": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+    "inventorySha256": "A418852A2608C2307DCAA29CAC031E13D17FCF3626E520AD8CAD360BB19F0D49",
+    "selection": "src/tests/tools/assets/.claude及列明的顶层构建入口",
+    "topLevelPaths": [
+      "Directory.Build.props",
+      "Momoka.sln",
+      "global.json",
+      "nuget.config",
+      "smoke.ps1"
+    ],
+    "matchedFileCount": 856,
+    "changedFiles": [],
+    "sortedPathAndSha256Digest": "9EF392070C516E9E4C2CBC545596AA8BD67D039E22ACB5F567236CD952EF7144",
+    "allTrackedProductBytesMatchFixedBaseline": true
+  },
+  "externalChangesPreserved": [
+    {
+      "path": "docs/交接-集成播放器缩放与起播全屏-2026-09-22.md",
+      "change": "D",
+      "gitBlob": "2bb48e2cdaa0261abe174c2461fdeff604971566",
+      "inReviewScope": false,
+      "action": "保持删除状态，不恢复、不暂存、不提交"
+    }
+  ],
+  "originalTreeObservation": {
+    "root": "C:/Users/89400/Momoka",
+    "head": "a9b7153d1fd6a6b4a537424a667c2f2dca131176",
+    "status": [
+      "?? docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+      "?? website/"
+    ],
+    "protectedFiles": [
+      {
+        "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "sha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F"
+      },
+      {
+        "path": "website/README.md",
+        "sha256": "FBECA038382C00E9004E352CB2B59514E460B6D0FA7460B666810DF86DD81092"
+      },
+      {
+        "path": "website/docker-compose.yml",
+        "sha256": "E086CD7DE73F7F578559E4A1505C5C8BFCDAB373A21842C7CC384FBF404BDDC8"
+      },
+      {
+        "path": "website/index.html",
+        "sha256": "648CFA1F3F5CBC33A17FA50D937803EEAA71D9A95D53C4A7EF25D7E612537CB8"
+      },
+      {
+        "path": "website/nginx.conf",
+        "sha256": "43C9C8F7B41EAB282781AD21501391938A74F79C8AD9F8B021FD0537C124AED5"
+      }
+    ]
+  },
+  "coverage": [
+    {
+      "path": "src/Momoka.Core/Emby/EmbyWebConsole.cs",
+      "readDepth": "全文，分块读取",
+      "aspect": "URL与信任/路径归一/脚本注入",
+      "sha256": "CE53F33DB3001828431DE9AAEC325E32E13AEB548C31834CE4EAF550535FB020",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DashboardPage.xaml.cs",
+      "readDepth": "全文",
+      "aspect": "控制台Attach/身份/导航代次/启动、取样及释放",
+      "sha256": "0E4D28861C22140AE9C7789B66C94138094EE30BC394525B9851E93F138E7605",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DashboardPage.xaml",
+      "readDepth": "全文",
+      "aspect": "控制台错误面板/WebView显隐/刷新入口",
+      "sha256": "C9776372B97FDCFF4969A2B49812A0819C1BD4076DC4D24DF82015333BBB29CC",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyWebConsole.Jellyfin.cs",
+      "readDepth": "全文",
+      "aspect": "Jellyfin URL、隔离目录和凭据origin/web path守卫",
+      "sha256": "A3CE1C44511EE463EA93BB47D68B61A7E3644DB7A219B843B77C62DDEA1B18D2",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/JellyfinQuery.cs",
+      "readDepth": "全文",
+      "aspect": "Jellyfin字段/排序枚举过滤",
+      "sha256": "4B12106EC2BBECD4D89427AF2261F9DB5FA6857230E638FB1A329A5B94A9C21C",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/JellyfinLibrary.cs",
+      "readDepth": "全文，分块读取",
+      "aspect": "浏览页签、排序/筛选/布局范围与持久化恢复",
+      "sha256": "EC5D4C9AC3079FD0A89BB785D22AFFE58E6A647AC9DC86C5D13D9269E9C64312",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.LibraryBrowse.cs",
+      "readDepth": "全文",
+      "aspect": "Jellyfin页签请求分流",
+      "sha256": "57512842526FEB1A79E7C7C7D4E4C7AC915F942D30A97FCCBAAE96C6999A6DD7",
+      "reader": "主线程"
+    },
+    {
+      "path": "tests/Momoka.Tests/JellyfinWebConsoleTests.cs",
+      "readDepth": "全文",
+      "aspect": "URL/seed字段及身份隔离断言，非执行",
+      "sha256": "B871B8115EA6779FEB38C13BC4C8F55ED5BC44FA5596D01038FCD281DF8A10E6",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/Platform/SystemLauncher.cs",
+      "readDepth": "全文",
+      "aspect": "外链http/https守卫与启动边界",
+      "sha256": "E4EDB377A61EC2A0B4049C03D919EEACDD0556D3EAD7417D3F0AFDD87596F2F2",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "readDepth": "400～470、530～714、832～1005、1018～1146、1285～1605、1605～1795、1800～1834、1966～2005、2062～2337、2360～2397、2398～2519相关段，非全文",
+      "aspect": "Jellyfin页签/推荐/分页/排序/筛选与状态恢复；搜索输入→查询→结果/取消和既有防护",
+      "sha256": "7FDE7ED061624615513BC22B7F5B6D6E29745B15962CF3D0A37BE13A9F3E8D38",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+      "readDepth": "431～451、556～647、670～736相关段，非全文",
+      "aspect": "独立复核旧管理目录刷新、当前页分派与来源变化通知",
+      "sha256": "FAB12837C1D681B085D13F46D87E1AE9F6690A79C7944292ABB7310F7F58FADB",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsCategory.cs",
+      "readDepth": "全文",
+      "aspect": "服务器分类Key/来源与显示名分派",
+      "sha256": "070C204643FE40B80A1F982CAECFB2C1023CA324EA657DE86683B3A9A45E1436",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibrarySearch.cs",
+      "readDepth": "全文",
+      "aspect": "搜索相关性查询与筛选参数的实际构造",
+      "sha256": "152631D3CCC995C62993E01E8A3AE146D25A222215AD4DB843BB17BA40E3AAF6",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Search.cs",
+      "readDepth": "全文",
+      "aspect": "搜索分类切换、上下文与历史保存",
+      "sha256": "299BFFC507BBC3A0429242ACC7BEEA27796E38A459A0935925922D9BEE14A534",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.xaml",
+      "readDepth": "245～308、340～559、600～654、930～971相关段；非全文",
+      "aspect": "搜索父层、Jellyfin布局、筛选徽标和工具栏绑定",
+      "reader": "主线程",
+      "sha256": "6CA32DEC4EE7B066C536A57DF9161F5383E706136E93715D4F54562521A76654"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryBrowse.cs",
+      "readDepth": "全文",
+      "aspect": "Jellyfin浏览与Emby共享查询构造、类型和端点",
+      "sha256": "308E06C47D062F700588C340DF910C05FC0E5EFED2D505727FD52FF40144691A",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "readDepth": "主线程275～345、423～439、676～808、876～1030；管理代理125～1054、1166～1182；非全文",
+      "aspect": "管理目录刷新/权限及同产品换身份迟到结果；分类Key/插件分派",
+      "reader": "主线程和管理子代理",
+      "sha256": "D14DBD2F82F79F6BD6F70703BAA8817B57214C6F4AACD6303FE73B3B6AFE1559"
+    },
+    {
+      "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+      "readDepth": "64～100、114～173、189～230相关段，非全文",
+      "aspect": "主线程复核插件目录的Scope作废返回空表、当前能力与探测代次",
+      "sha256": "50E94E6B15227CCEF1E8DB821BA910518C8B5383AE18AE5C2A520BEFA464C568",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+      "readDepth": "440～490、1009～1091、1164～1280相关段及方法定位；非全文",
+      "aspect": "Attach→ApplySource搜索父层隐藏、布局/筛选/来源改变与查询回调",
+      "reader": "主线程",
+      "sha256": "877D05866B7E96CC4719439B3844B607E3D233B25705EF49DC1761825DD0E91F"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+      "readDepth": "全文",
+      "aspect": "Jellyfin版本路由、字段/排序过滤和集合分组移除",
+      "sha256": "2049EE83DA9C0D7A357661C04C93F5536DEE2F9658B7838DE12FA8A6102C13B9",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.JellyfinLibrary.cs",
+      "readDepth": "1～223全文，分块",
+      "aspect": "Jellyfin页签/排序/布局/假回复断言，不覆盖真实Web或搜索筛选可达性",
+      "reader": "主线程",
+      "sha256": "3456632BBDE32B209A9F87C8CD6391B1ED18E8895A8EAA3989995A1BCBC4B7B4"
+    },
+    {
+      "path": "tests/Momoka.Tests/LibrarySearchTests.cs",
+      "readDepth": "全文，分块读取",
+      "aspect": "搜索相关性与最近搜索身份回归，仅核既有断言",
+      "sha256": "E33FBF41C50F4BF0CF949F5CD123B6C561F00958D71EF5779FA9B59EE7BF967F",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryRecommended.cs",
+      "readDepth": "全文",
+      "aspect": "Jellyfin电影和电视剧建议货架及查询契约",
+      "sha256": "391C0F33ABB77A6679398C8628BC0482E0E570704ADA04BB777F833F8A705ABC",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/JellyfinServerSettingsMenu.cs",
+      "readDepth": "全文",
+      "aspect": "复核Jellyfin管理目录与插件显示名/路由去重",
+      "sha256": "07E6878F7C2797543A62359DCBC8BFFC864B415AE4AB2B578E6F9408435FA8A3",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FilterPanelViewModel.cs",
+      "readDepth": "全文，分块读取",
+      "aspect": "筛选面板对实际ItemFilters编辑与Changed路径",
+      "sha256": "3F593100ADD5572A000B83A35D4160B2B340E99C04C4746EFD9952611247A465",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "readDepth": "59～77、97～119、330～357、814～830相关段，非全文",
+      "aspect": "Jellyfin搜索查询入口、筛选值、建议与管理员Policy判据",
+      "sha256": "F4F925115A61DEFE1940F34BD2B840827D72F1CE841F6D5A2CB53FF0B8B24E86",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/ServersViewModel.cs",
+      "readDepth": "301～335相关段，非全文",
+      "aspect": "管理刷新候选的在线账号切换可达性",
+      "sha256": "424BA47C08E594374A2D789E007DAAD7BCCBBEC35C793399F89155F5A9427A15",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "readDepth": "416～491、532～562、649～711相关段，非全文",
+      "aspect": "当前身份切换、来源通知与已有R-011共享边界",
+      "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+      "readDepth": "全文",
+      "aspect": "作用域身份/在线判断和迟到结果Guard",
+      "sha256": "AD136E6CAC7D519BB72AB3B1A765E2F88B6BDDA53A5960F7F184C1D650F30CEB",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemQuery.cs",
+      "readDepth": "315～389相关段，非全文",
+      "aspect": "实际查询ToParameters与过滤项贡献合并",
+      "sha256": "9BF74F84FC927A65F29B252B50E79394E48678638599281955A8F0023A54B5EB",
+      "reader": "主线程"
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryBrowseTests.cs",
+      "readDepth": "1～104、300～363相关段，非全文",
+      "aspect": "库类型、独立页签、索引与查询已有断言，仅静态阅读",
+      "sha256": "BFB1550B2C6607831F316847AA3EED5C558375545A1F3D23AEA8A7F4FC785370",
+      "reader": "主线程"
+    },
+    {
+      "path": "tests/Momoka.Tests/JellyfinProtocolTests.cs",
+      "readDepth": "120～256相关段，非全文",
+      "aspect": "Jellyfin版本路由与管理员/插件请求和枚举过滤已有断言",
+      "sha256": "C018A040E6CD505545CB3B5CD100F1CC111CB65F3F42DAA4A7CABF1E7D0BF8F2",
+      "reader": "主线程"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FilterSection.cs",
+      "readDepth": "1～233；非全文",
+      "aspect": "独立勾选编辑及Changed→查询；搜索候选排除支持",
+      "reader": "主线程",
+      "sha256": "B6A7A57214BCC929880B928F8E34BFFA6FFCF7815D9CD919785B678B3E72F148"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FilterPanel.xaml.cs",
+      "readDepth": "20～48相关段；非全文",
+      "aspect": "Changed事件向页面转发",
+      "reader": "主线程",
+      "sha256": "C28C8C8F340CF9F8287EBD5C46CDCFB994E95C4F6C3A934BCF4868F40EE57453"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyWebConsole.JellyfinSkin.cs",
+      "readDepth": "1～26、450～489及方法定位，CSS样式表非全文复核",
+      "aspect": "CSS注入时机/失败隔离，不计视觉布局实测",
+      "reader": "主线程",
+      "sha256": "559F5A1BF02C637CFDDEE32B439CAF59907E0AD364FDBEB6D049CD77DEAF710F"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ServerSettingsMenu.cs",
+      "readDepth": "1～281分块",
+      "aspect": "安全Route、插件输入去重",
+      "reader": "管理子代理",
+      "sha256": "F61CDBD4C62C48CFCB6C0C059EE6B36DB03D79D6B88F05EF64A65DDBA4CEB623"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.ServerSettings.cs",
+      "readDepth": "1～25全文",
+      "aspect": "Jellyfin插件参数形状",
+      "reader": "管理子代理",
+      "sha256": "6D79546C6F97BE9769BAECC979DDFAFE4AEAFEF9026C55395D703480C697CE8C"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ServerAccess.cs",
+      "readDepth": "1～75全文；主线程也复核",
+      "aspect": "单服多账号与明确管理员规则",
+      "reader": "管理子代理",
+      "sha256": "0BA708827E799B8A4D4230276A6D929F675FE7F88FF03B9D4EC4A0F2AC0E1C47"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml",
+      "readDepth": "1351～1504、1603～1611相关段；非全文",
+      "aspect": "管理rail/HostedFrame绑定；主线程复核1603～1611",
+      "reader": "管理子代理",
+      "sha256": "CC56335743C88FD35CC3D0296C69441337DAC8B0A3954F6630678CA20BA62D0D"
+    },
+    {
+      "path": "tests/Momoka.Tests/ServerSettingsTests.cs",
+      "readDepth": "1～362分段；脚本段只核断言",
+      "aspect": "管理目录、请求和脚本断言",
+      "reader": "管理子代理",
+      "sha256": "34A4D65D93EE4AABCCF051718550C15584DEF62B3931A12FCE89D3CFDB848E83"
+    },
+    {
+      "path": "tests/Momoka.Tests/ServerAccessTests.cs",
+      "readDepth": "1～259分段；重点67～175",
+      "aspect": "管理员/目录/插件断言",
+      "reader": "管理子代理",
+      "sha256": "3BE2A4F31BAF6B45333068E2544FD50A56CC1DAE8A0F3DC1F3C87B2A2FD9A028"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Settings.cs",
+      "readDepth": "415～559、659～898及目录定位；非全文",
+      "aspect": "管理来源/页面显隐已有探针断言",
+      "reader": "管理子代理",
+      "sha256": "5E12ABC48ED493C94CC7E80DF30247A3E4292C65B8BF2F0F01BB9AAAE5138EF9"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.JellyfinDialogs.cs",
+      "readDepth": "1～117全文",
+      "aspect": "能力相关显隐夹具；不覆盖迟到刷新",
+      "reader": "管理子代理",
+      "sha256": "7445AE97F7A40130D6C2B10B27B766CAFB154D89BAB30529EE36122A0E7FA380"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.SettingsMotion.cs",
+      "readDepth": "1～78、255～269；非全文",
+      "aspect": "页面活动与重建交界",
+      "reader": "管理子代理",
+      "sha256": "90BA2564763A24845D015EBD2B47723D209BC2619FA31C90F843429E61F0744D"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.cs",
+      "readDepth": "440～462及相关声明定位；非全文",
+      "aspect": "立即完成FakeCapabilities，不能关闭竞态",
+      "reader": "管理子代理",
+      "sha256": "B04A6EAF3DC4D58F084E5EEFFB16EED5B23562E812366EB50D2118B733734DDE"
+    },
+    {
+      "path": "tests/Momoka.Tests/IdentityRegressionTests.cs",
+      "readDepth": "943～994；非全文",
+      "aspect": "能力探测迟到已防护，但非VM管理刷新",
+      "reader": "管理子代理",
+      "sha256": "B9BFF248CC239A3842BD0B413F3C62FC102765C9C69B17BAD510D211E10DB5AF"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "readDepth": "1096～1110、2064～2103、2247～2266、2310～2389；非全文",
+      "aspect": "账号切换通知和设置可达性",
+      "reader": "管理子代理",
+      "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsWindow.cs",
+      "readDepth": "160～226；非全文",
+      "aspect": "隐藏/重开释放页面",
+      "reader": "管理子代理",
+      "sha256": "E5A44D4D6C8849A63788B4DC80CA3124CAC10EE342CF53848C23A590477B650A"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ISessionScopedPage.cs",
+      "readDepth": "全文",
+      "aspect": "来源页面合同",
+      "reader": "管理子代理",
+      "sha256": "1E7706C07A34A22AEDADF174068F713630FEA62AB19E564C0620E6B2DCF85E04"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+      "readDepth": "210～239；非全文",
+      "aspect": "已有错误边界背景",
+      "reader": "管理子代理",
+      "sha256": "DD9BB68241B5DBED329FCBF0853BD8920C59DE77A316B092F05D07AD6E1DF71C"
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "readDepth": "65～81、137～145；非全文",
+      "aspect": "依赖/能力注册",
+      "reader": "管理子代理",
+      "sha256": "DEA1746847308DEE7EFC00B887A16796795908DA135BE7AD93A8738ED45408FA"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsCategoryGlyphConverter.cs",
+      "readDepth": "1～84；非全文",
+      "aspect": "目录标签显示背景",
+      "reader": "管理子代理",
+      "sha256": "721807DB4372BF2311BEEC7543A68B611D6838B7086D9D4DE462804178C464BB"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellSelfCheck.Settings.cs",
+      "readDepth": "169～231；非全文",
+      "aspect": "自检目录覆盖口径",
+      "reader": "管理子代理",
+      "sha256": "5061502674AFE2F4AF2FB17DBCEE284E28A139A2B993B710B8F8771730DA93A8"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomeMotion.cs",
+      "readDepth": "80～120、168～203及定向检索；非全文",
+      "aspect": "导航复核：仅Opacity/Transform不恢复Visibility",
+      "reader": "导航复核子代理",
+      "sha256": "D1EF16E84A99C28590D18D51110BCF770FFD713045BE1CDE37572ABBC05230EF"
+    },
+    {
+      "path": "src/Momoka.Shell/Momoka.Shell.csproj",
+      "readDepth": "SDK/包引用定位；非全文",
+      "aspect": "当前引用而非微软网页视图版本",
+      "reader": "导航复核子代理",
+      "sha256": "126F1A89C5502347F225FB835F950FE5C0D6A8F18000ADD4A19497EEC56AB9BC"
+    }
+  ],
+  "readPoliciesAndSkills": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+      "readDepth": "本阶段适用政策/产品契约与验证边界",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B",
+      "readDepth": "本阶段适用政策/产品契约与验证边界",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "sha256": "538F00E1F8981EBF7B7046C3E2D01131ECBA4F58789E39005E8EB56E52344C67",
+      "readDepth": "计划/交接、当前范围/旧问题去重相关段，非全文",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+      "sha256": "86A2C3BFD29F4639EA2F4378428FDBA5CE3E5F2906194876B1E667B72551B15B",
+      "readDepth": "计划/交接、当前范围/旧问题去重相关段，非全文",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3审查.md",
+      "sha256": "08948575FAD43E64C1A40386D89B164D1E23170DEB523E3A6CCB69CA3616D70D",
+      "readDepth": "计划/交接、当前范围/旧问题去重相关段，非全文",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md",
+      "sha256": "1AA0531231280A6C01C95C7E3795E12B1A3FA8B26E2143C75ADC624271CDE76D",
+      "readDepth": "计划/交接、当前范围/旧问题去重相关段，非全文",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7审查.md",
+      "sha256": "370115FAC4E61A9E501103E4FD321F1C87334781E0C58C4BDB8807970E5836B4",
+      "readDepth": "计划/交接、当前范围/旧问题去重相关段，非全文",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": "docs/Jellyfin支持.md",
+      "sha256": "F8AB0929CADEECEA4787B06A2EE16FFA16B955D6165A4E66233F031F6057D2E3",
+      "readDepth": "本阶段适用政策/产品契约与验证边界",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA",
+      "readDepth": "本阶段适用政策/产品契约与验证边界",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": ".claude/skills/momoka-jellyfin-api/SKILL.md",
+      "sha256": "FA8DCE71C34FE40A52D1662AA69CB4D1F700A5C6061591AF89C2BD1D29B7C8D9",
+      "readDepth": "本阶段适用政策/产品契约与验证边界",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/SKILL.md",
+      "sha256": "3B949221AC0C99E142C805B36EBE4480D9CA91B55609BE8F2969E7724ED0B4A9",
+      "readDepth": "本阶段适用政策/产品契约与验证边界",
+      "reader": "主线程和已完成子代理"
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69",
+      "readDepth": "本阶段适用政策/产品契约与验证边界",
+      "reader": "主线程和已完成子代理"
+    }
+  ],
+  "delegation": [
+    {
+      "agentId": "01a15c54-ee3c-7061-8424-9bb332d06cb4",
+      "task": "Jellyfin浏览与查询",
+      "status": "模型限流，无可用审查结论",
+      "coverageCounted": false,
+      "handling": "最初在用户新规则之前被关闭；主线程接手该范围，不计代理未完成阅读"
+    },
+    {
+      "agentId": "01a15c55-cc30-7543-84a6-8ae490a8954c",
+      "task": "管理目录/权限生命周期",
+      "status": "已完成只读审查",
+      "findings": [
+        "旧刷新同产品换身份可重现管理目录",
+        "重名插件条件性候选"
+      ],
+      "productOrTestExecuted": false,
+      "filesWritten": false,
+      "closedBecause": "任务完成"
+    },
+    {
+      "agentId": "01a15c7f-f055-7793-bd5e-2dc0544eff5f",
+      "task": "独立复核控制台导航取消遮住新页面",
+      "status": "限流后保留上下文并继续，已完成",
+      "finding": "首次整页文档未提交，新导航顶掉旧导航；旧失败Show折叠Web，后续成功未恢复",
+      "productOrTestExecuted": false,
+      "filesWritten": false,
+      "closedBecause": "任务完成",
+      "rateLimitAloneWasNotClosureReason": true
+    }
+  ],
+  "primaryReferences": [
+    {
+      "id": "webview-navigation",
+      "url": "https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events",
+      "finalUrl": "https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/navigation-events",
+      "httpStatus": 200,
+      "credentialsSent": false,
+      "method": "GET",
+      "capturedAt": "2026-10-21T12:40:30.287+08:00",
+      "bytes": 55589,
+      "sha256": "EEF8B59FE7229D8357A2D742BCC5CD13CD057D4C1EBD90778FFFEAEC05B07F95",
+      "hashScope": "UTF-8响应文本",
+      "markers": [
+        {
+          "marker": "navigation ID",
+          "utf16OffsetZeroBased": 29555,
+          "markerSha256": "EB3715C69BD7D46486FEC8833C72F6576DCC48473B1A88E88152B61613B560CA"
+        },
+        {
+          "marker": "overlap",
+          "utf16OffsetZeroBased": 30116,
+          "markerSha256": "FE55BD22D9475BDEBEC3C49D274B87F5A264B12865F4C45B03120992E726F659"
+        },
+        {
+          "marker": "NavigationCompleted",
+          "utf16OffsetZeroBased": 725,
+          "markerSha256": "FEDAFE3908615AC8D4C0AAB61C1E4F19CD3F48990879A84D5F3C74305C4D73F3"
+        }
+      ],
+      "rawBodyPersisted": false
+    },
+    {
+      "id": "webview-success",
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2navigationcompletedeventargs.issuccess?view=webview2-dotnet-1.0.1518.46",
+      "finalUrl": "https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2navigationcompletedeventargs.issuccess?view=webview2-dotnet-1.0.1518.46",
+      "httpStatus": 200,
+      "credentialsSent": false,
+      "method": "GET",
+      "capturedAt": "2026-10-21T12:40:31.599+08:00",
+      "bytes": 93824,
+      "sha256": "412FD4011DD94CD2F4E7AFA744E1EF83E5B3668F15AD8F3D65073C2CC8120B54",
+      "hashScope": "UTF-8响应文本",
+      "markers": [
+        {
+          "marker": "navigating away",
+          "utf16OffsetZeroBased": 1127,
+          "markerSha256": "2D0B24EC40047606248E50CE21E33ED1D9DD0FB17FE3F0E29C39784DC522D01E"
+        },
+        {
+          "marker": "IsSuccess",
+          "utf16OffsetZeroBased": 346,
+          "markerSha256": "29E09A4084D78CB83AAFD01A8CF0DD3AAEF8F252E06E5DFF35B639029417F15B"
+        }
+      ],
+      "rawBodyPersisted": false
+    },
+    {
+      "id": "webview-canceled",
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2weberrorstatus?view=webview2-dotnet-1.0.1518.46",
+      "finalUrl": "https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2weberrorstatus?view=webview2-dotnet-1.0.1518.46",
+      "httpStatus": 200,
+      "credentialsSent": false,
+      "method": "GET",
+      "capturedAt": "2026-10-21T12:40:32.387+08:00",
+      "bytes": 101194,
+      "sha256": "F46B5245C1756DE37B4864D9C709366E70EE62BF59B8E67BD8DFFFF7F2D71619",
+      "hashScope": "UTF-8响应文本",
+      "markers": [
+        {
+          "marker": "OperationCanceled",
+          "utf16OffsetZeroBased": 13929,
+          "markerSha256": "706929836F5BAA5F5F0FCF9696D04C2DA2994D25755BA7F717C544BEEA1DDF4C"
+        },
+        {
+          "marker": "navigation",
+          "utf16OffsetZeroBased": 630,
+          "markerSha256": "D70D5A7909ED5910FBC67667C7464F0B53FD935653AFB327E53067BB7CA578CA"
+        }
+      ],
+      "rawBodyPersisted": false
+    }
+  ],
+  "captureArtifact": {
+    "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-phase8/capture.json",
+    "sha256": "80F9B52B9F9ED8269E49418F02326723EA9C3AD4DD87185AB8B9069D579B8F25"
+  },
+  "referenceArtifact": {
+    "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-phase8/primary-references.json",
+    "sha256": "2453F18AB4172D9B0BEA730C9FB6B283A18B0C784145FC6A104039036457F680"
+  },
+  "exitArtifact": {
+    "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-phase8/latest-exit.json",
+    "sha256": "65A958CFCF02C2CB4C6CF69D074C0FB31F5E9F8EC4CC3AE712B3E445376C66C1"
+  },
+  "newFindings": [
+    {
+      "id": "R-018",
+      "priority": "P2",
+      "title": "同产品换账号后，旧管理目录刷新能覆盖新身份的显隐与插件目录",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "member": "RefreshServerAdministrationAsync",
+          "start": 723,
+          "end": 744
+        },
+        {
+          "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+          "member": "GetAdminMenuPagesAsync",
+          "start": 136,
+          "end": 152
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "member": "ApplyServerAdministration",
+          "start": 935,
+          "end": 944
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "member": "RefreshServerAdministrationAsync/OnSourceListChanged",
+          "start": 431,
+          "end": 449
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "member": "OnSourceListChanged",
+          "start": 728,
+          "end": 729
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "member": "SelectSource",
+          "start": 91,
+          "end": 103
+        }
+      ],
+      "trigger": "同一在线 Jellyfin 服务器的管理员 A 正在等待插件目录；切换到同产品普通账号 B，B 的新刷新先完成隐藏，随后 A 的旧请求结束。",
+      "expected": "管理目录只能由仍属当前身份、当前来源集合和本次有效刷新的结果提交；已经隐藏的 B 目录不能被旧调用重新打开。",
+      "causalChain": [
+        "VM 在插件请求之前保存 visible 和 kind，单服务器分支等待 GetAdminMenuPagesAsync。",
+        "能力服务能识别捕获 Scope 已非当前并返回空表，异常/取消也返回空表；空表不代表旧刷新仍有效。",
+        "等待后的 VM 仅比较产品 kind；A/B 同为 Jellyfin，旧调用仍用空表构建固定目录。",
+        "ApplyServerAdministration 使用等待前的 visible=true，重新生成五组管理目录；也可能清掉新管理员已加载的插件项。"
+      ],
+      "actualImpact": "普通账号可重新看到不适用的管理目录，或新目录被旧空表覆盖；点击入口仍有当前权限守卫，不声称实际越权写入。",
+      "upstreamGuards": [
+        "CanOpenServerCategory 会重新检查当前权限，因此“目录出现”不是服务器授权绕过。",
+        "多服务器分支核来源键集合，能力 ProbeAsync 有代次守卫；缺口限定单服务器 VM 目录结果提交。",
+        "不需要同身份重登或旧权限缓存，独立于 R-011；同服务器的多个在线账号不改变单服务器 InterfaceFlavor。"
+      ],
+      "notVerified": [
+        "没有新增或运行可控制完成顺序的 VM/WinUI 回归；未访问真实账号，未测实际出现概率。"
+      ],
+      "minimalFix": "为目录刷新结果加必要的刷新/身份与来源集合门槛，等待后重核有效活动期和权限；旧空表不能覆盖新目录。",
+      "acceptance": [
+        "假传输挂起 A 插件请求→切普通 B→B 隐藏→放行 A，目录持续隐藏。",
+        "新管理员 B 的插件先完成后不被 A 旧空表清掉；单服→多服、不同产品、离页、恢复权限和正常刷新保留。"
+      ],
+      "status": "已确认；未修复",
+      "discoveryPhase": 8,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "管理子代理提出、主线程逐行复核的固定源码静态因果链；没有新产品故障执行"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-019",
+      "priority": "P2",
+      "title": "旧整页导航的取消失败回调能持续遮住随后成功的控制台页面",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "member": "ShowHosted",
+          "start": 623,
+          "end": 640
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DashboardPage.xaml.cs",
+          "member": "TryShowRoute/NavigateToRoute",
+          "start": 156,
+          "end": 196
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DashboardPage.xaml.cs",
+          "member": "OnNavigationCompleted",
+          "start": 444,
+          "end": 462
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DashboardPage.xaml.cs",
+          "member": "Show",
+          "start": 577,
+          "end": 583
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DashboardPage.xaml.cs",
+          "member": "SampleAsync",
+          "start": 484,
+          "end": 524
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DashboardPage.xaml",
+          "member": "Web/NoticePanel",
+          "start": 66,
+          "end": 75
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DashboardPage.xaml.cs",
+          "member": "OnRefresh/Release",
+          "start": 542,
+          "end": 615
+        }
+      ],
+      "trigger": "首次控制台整页导航 A 已发出、首文档尚未提交；切到同在线来源另一管理路由 B，B 的整页导航顶掉 A，A 的取消失败晚到而 B 随后成功。",
+      "expected": "旧 NavigationId 的完成结果不改新导航状态；当前导航成功时错误面板收起、Web 内容恢复可见。",
+      "causalChain": [
+        "SettingsPage 在同 SourceKey 下复用 DashboardPage，不等待首次文档启动；_booted=false 时 B 再调用 core.Navigate。",
+        "导航 B 开始先更新 _generation/_url 并显示 Web，但 NavigationCompleted 只检查 _released，不匹配 NavigationId 或代次。",
+        "A 的取消失败用已经是 B 的 _url 调用 Show，令 NoticePanel=Visible、Web=Collapsed。",
+        "B 成功仅置 _booted、Say 并 Sample；取样也只改读数/终结状态，没有清旧错误或恢复显隐。XAML/外层只控制 HostedFrame，不补写子 Web.Visibility。"
+      ],
+      "actualImpact": "右侧可一直保留“打不开 B（OperationCanceled）”错误提示，成功网页内容仍被折叠，需再切路由或重开恢复；不泛化为任意哈希切页必错。",
+      "upstreamGuards": [
+        "Inline、取样和超时后续已有 _generation 守卫，但不覆盖 NavigationCompleted。",
+        "Live、来源键、释放取消与退订能挡失效页面；触发保持同一在线身份，因此不受其排除。",
+        "重新切路由/刷新能恢复；沉浸式管理入口隐藏页头刷新按钮，B 成功并不会自动执行刷新。文档已提交后的普通哈希导航不计此触发。"
+      ],
+      "notVerified": [
+        "仅核微软导航事件/IsSuccess/OperationCanceled 契约和固定源码；未运行本机 WebView2/WinUI 来测事件次序、概率或隐藏状态下 B 的完成。"
+      ],
+      "minimalFix": "把导航开始/完成绑定 NavigationId 和本次代次，仅接受当前导航；当前成功显式恢复内容并清除旧错误，不能把旧取消当当前加载失败。",
+      "acceptance": [
+        "隔离本地可控网页：A 首文档提交前挂起→选 B→A 取消后 B 成功，B 可见且无旧错误。",
+        "覆盖取消回调两种顺序、真实 B 失败、连续三路由、刷新、来源撤销/关闭、正常 inline 与重开；不访问真实管理页或凭据。"
+      ],
+      "status": "已确认；未修复",
+      "discoveryPhase": 8,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链；导航子代理独立复核；微软官方导航契约（非本机运行证据）"
+      ],
+      "repairAuthorized": false
+    }
+  ],
+  "priorFindings": [
+    {
+      "id": "R-001",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-002",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-003",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-004",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-005",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-006",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-007",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-008",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-009",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-010",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-011",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-012",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-013",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-014",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-015",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-016",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    },
+    {
+      "id": "R-017",
+      "status": "已确认；未修复",
+      "newCountInPhase8": false
+    }
+  ],
+  "pendingCandidates": [
+    {
+      "id": "J-CAND-01",
+      "priority": "P2（候选）",
+      "title": "插件显示名与 Momoka 内置分类重名时可能被错误分派",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/JellyfinServerSettingsMenu.cs",
+          "start": 84,
+          "end": 102
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsCategory.cs",
+          "start": 88,
+          "end": 99
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "start": 578,
+          "end": 633
+        }
+      ],
+      "reason": "给定 DisplayName=服务器/诊断/通知 的合法启用插件输入，标签优先分派静态链成立；未确认实际部署插件或用户输入条件，作为待验证候选，不新增 R 编号或计入确认数量。",
+      "acceptance": "占位安全插件单服/多服重名夹具验证唯一Key和自己的Route；保留Momoka同名入口。"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "id": "J-EX-01",
+      "title": "Jellyfin搜索有可点击但不生效的排序/筛选按钮",
+      "reason": "主线程曾怀疑 VM 仍给 FilterVisibility；完整调用链发现 LibraryPage.Attach 后 ApplySource 在1217明确隐藏搜索 ToolbarSurface，相关查询保持服务器相关性是有意设计。撤回候选，不记确认缺陷。"
+    },
+    {
+      "id": "J-EX-02",
+      "title": "读取系统信息就自动认定Jellyfin管理员",
+      "reason": "GetSystemInfoAsync 818～825先读当前用户Policy，CanAdminister要求明确true；不能以接口可读性替代权限证明。"
+    },
+    {
+      "id": "J-EX-03",
+      "title": "任意外部页面都会被注入Jellyfin令牌",
+      "reason": "SignInScript有精确origin及/web/路径前缀守卫、JSON转义；本阶段未发现可绕过这一守卫的可达链。不证明所有服务器内容或插件安全。"
+    },
+    {
+      "id": "J-EX-04",
+      "title": "所有聚合查询都按显示条目数分页",
+      "reason": "各来源AggregateQueryCursor已有独立消费与取消保护；R-013单来源Resume合成槽根因保留，不重复编号。"
+    },
+    {
+      "id": "J-EX-05",
+      "title": "Jellyfin新旧版本旧路由必然404",
+      "reason": "按阶段3固定10.10.7源码与12.2.0规格区分方言，不能从规格缺项或源文件URL404推断目标服务器。未再跑真实版本矩阵。"
+    },
+    {
+      "id": "J-EX-06",
+      "title": "R-018的错显目录等于真实越权写入",
+      "reason": "点击仍过当前权限，控制台启动又读Jellyfin Policy；确认仅目录显隐/更新错，不夸大服务端权限效果。"
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "J-COV-01",
+      "title": "两新增故障无运行回归",
+      "detail": "管理目录逆序刷新和首次文档未提交的导航取消交错均只有静态证据；未新增测试/插桩、未启动WinUI或WebView2。"
+    },
+    {
+      "id": "J-COV-02",
+      "title": "真实版本与网页/插件兼容",
+      "detail": "没有访问真实Jellyfin账号、服务器、管理插件或网页；固定10.10.7历史契约/12.2.0规格与微软事件资料不代表目标服务器运行。"
+    },
+    {
+      "id": "J-COV-03",
+      "title": "视觉与键盘行为",
+      "detail": "只读XAML、ViewModel和既有Shell探针断言；CSS样式表仅方法/注入片段，不宣称完整主题布局复核或截图。"
+    },
+    {
+      "id": "J-COV-04",
+      "title": "条件性重名插件",
+      "detail": "J-CAND-01未证实实际部署插件具备重名条件，保留候选，不计确认问题。"
+    },
+    {
+      "id": "J-COV-05",
+      "title": "其它阶段与共享代码",
+      "detail": "Jellyfin完整播放、字幕、音视频、平台和其它产品浏览留后续；R-011、R-013～R-017共享根因保留旧编号，不因共享文件片段扩充完整模块覆盖。"
+    }
+  ],
+  "testReuse": {
+    "evidenceFile": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+    "evidenceSha256": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229",
+    "actualExecutionPhase": 2,
+    "actualExecutionTime": "2026-10-21T02:59:12+08:00",
+    "actualExecutionHead": "4b663c425491120a4d87234d98bf20ecc9c88619",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "reuseConditionsChecked": true,
+    "summary": {
+      "total": 2072,
+      "passed": 2072,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedMilliseconds": 78960
+    },
+    "build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "logs": [
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\restore.log",
+        "sha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "purpose": "本树当前测试/Core 还原；可能读取 NuGet"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\build.log",
+        "sha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "purpose": "当前 Release 测试/Core 编译"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\tests.log",
+        "sha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "purpose": "未改现有完整测试宿主运行"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\execution.json",
+        "sha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "purpose": "退出码/源码基线/执行目录回执"
+      }
+    ],
+    "compiledBinaries": [
+      {
+        "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+        "sha256": "7E7F5C29464609675DF984C63750283A8F01A10E92C14659484813441B0480F7"
+      },
+      {
+        "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+        "sha256": "CB35FA56DB6AA41C00D4ECB9F7DD80864364056D5CBA2288760807A256763994"
+      }
+    ],
+    "runtimeAssemblies": [
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.WebSockets.Client.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.WebSockets.Client.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "FF5D42603B662A634857DCC6E1239547025D03794AEA4F84D624579765C23BA9",
+        "identicalToReadAssembly": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.Http.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.Http.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "8AE9F649D43F1F3FB635170784BCB753D305BC36A42703B4B0BEDB15A29729F0",
+        "identicalToReadAssembly": true
+      }
+    ],
+    "limitation": "仅复用阶段2于2026-10-21 02:59:12 +08:00的2072通过；固定产品、旧日志/输出/runtime哈希核对，不覆盖R-018/R-019或条件性重名插件候选，本阶段没有新产品、测试或UI运行。",
+    "newFindingRegressionsExecuted": false,
+    "selectedExistingPassedTitles": [
+      "Jellyfin：新版用户路由、字段与字幕路径符合当前契约",
+      "Jellyfin：不兼容排序有显隐判据且保留身份边界",
+      "Jellyfin 网页：保留代理子路径并使用自身 dashboard 路由",
+      "Jellyfin 网页：凭据格式、来源和目录边界",
+      "Jellyfin 网页：切用户与切服隔离，刷新令牌保留浏览器目录",
+      "媒体库分类：不支持的服务端入口隐藏",
+      "推荐页：Jellyfin 的电影与剧集各有一套货架",
+      "媒体库搜索：分类改变查询范围且保留服务器相关性顺序",
+      "Jellyfin 控制台菜单：照 10.10 网页端管理抽屉分五区",
+      "Jellyfin 控制台菜单：插件页接在插件分区末尾，CustomCssJS 不进来",
+      "Jellyfin 控制台菜单：按产品取目录与默认页",
+      "Jellyfin 控制台菜单：网页路由能被左栏认出来",
+      "服务器控制台插件页：Jellyfin 走它自己的参数形状",
+      "Jellyfin：旧版保留用户路由但使用标准认证",
+      "服务端管理权限：Emby 未知仍保留，Jellyfin 与飞牛须明确，Plex 没有"
+    ],
+    "rerunInPhase8": false
+  },
+  "productBuildsOrTestsExecutedInPhase8": false,
+  "productMethodExecutedForNewFindings": false,
+  "newRegressionOrInstrumentationAdded": false,
+  "applicationOrUiStarted": false,
+  "realAccountOrMediaServerAccessed": false,
+  "pushOrPublishPerformed": false,
+  "systemContextCompressionExecuted": false,
+  "nextStage": "阶段1～7独立复核（阶段0作为规程背景）",
+  "nextStage9Started": false,
+  "pauseAfterIndependentReview": true
+}
