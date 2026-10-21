@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "task": "阶段1～7独立复核汇总文档检查",
+  "status": "通过（仅文档检查，非产品回归）",
+  "executedAt": "2026-10-21T20:06:34.027+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "reviewStartCommit": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "checks": [
+    {
+      "name": "工作树、分支、复核提交与五文件范围",
+      "status": "通过",
+      "detail": "只写本轮五份记录；外部删除必须保持未暂存，提交不夹带"
+    },
+    {
+      "name": "七阶段与七名独立代理一对一",
+      "status": "通过",
+      "detail": "全阶段均完成取回，限流续接不重建；已完成结果不重做"
+    },
+    {
+      "name": "原始捕获与完成结果归档哈希",
+      "status": "通过",
+      "detail": "检查十二份原件摘要与内嵌结果，保留历史而不洗绿"
+    },
+    {
+      "name": "十九稳定编号、静态记录与待验证分开",
+      "status": "通过",
+      "detail": "十七旧问题逐项复核，无新编号；R-017候选、R-004/R-005前件限定"
+    },
+    {
+      "name": "报告逐问题字段、准确行号与代理结论一致",
+      "status": "通过",
+      "detail": "逐核十七处置与所有源码行段，不冒称产品方法执行"
+    },
+    {
+      "name": "关键源码标记及证据纠正",
+      "status": "通过",
+      "detail": "定点核身份采用、权限映射、图片解码、日期与字节阈值，非重新业务审查"
+    },
+    {
+      "name": "856固定文件逐字节与源码树对应",
+      "status": "通过",
+      "detail": "产品/测试/工具/资源/技能及列明入口不变，字节核对非业务覆盖"
+    },
+    {
+      "name": "阶段0～8历史与声明编辑反向还原",
+      "status": "通过",
+      "detail": "二十六份历史文件不改；总记录仅声明替换，进度只增一段"
+    },
+    {
+      "name": "旧测试证据时点、回执、日志及产物",
+      "status": "通过",
+      "detail": "2072通过仅阶段2历史运行，校验源/输出/runtime哈希不是本轮测试"
+    },
+    {
+      "name": "外部变化分时保存、不回滚不纳入基线",
+      "status": "通过",
+      "detail": "原主目录网站四文件变化与新目录如实保存，旧快照不覆盖"
+    },
+    {
+      "name": "本轮本地链接与Markdown锚点",
+      "status": "通过",
+      "detail": "逐个检查汇总/总记录/新增进度链接，不扩大旧全文审查范围"
+    },
+    {
+      "name": "UTF-8、LF、末尾与记录格式",
+      "status": "通过",
+      "detail": "核本轮文档和新增进度，不重写历史格式"
+    },
+    {
+      "name": "凭据和真实内网位置形态筛查",
+      "status": "通过",
+      "detail": "只查本轮记录，不读真实设置/令牌，不宣称全项目安全无误"
+    },
+    {
+      "name": "无产品执行、完整交接与用户暂停出口",
+      "status": "通过",
+      "detail": "本轮纯文档，阶段9不开始、不修复、不发布，压缩不可冒称"
+    },
+    {
+      "name": "检查器内存反例自检",
+      "status": "通过",
+      "detail": "故意重复代理ID及错误计数必须被拒绝，无文件或产品夹具改动"
+    },
+    {
+      "name": "Git工作区及暂存空白",
+      "status": "通过",
+      "detail": "实际执行git diff --check与git diff --cached --check；只提交指定五文档"
+    }
+  ],
+  "summary": {
+    "passed": 16,
+    "failed": 0,
+    "localLinks": 178,
+    "independentStages": 7,
+    "independentAgents": 7,
+    "reviewedStableIssueIds": 17,
+    "retainedAllStaticRecords": 18,
+    "pendingCandidateIds": [
+      "R-017"
+    ],
+    "totalStableIssueIds": 19,
+    "newIssueIds": 0,
+    "sourceLocationRecords": 116,
+    "sourceAnchorRecords": 10,
+    "historicalFilesCompared": 26,
+    "fixedProductByteFiles": 856,
+    "externalUnstagedDeletionsPreserved": 1
+  },
+  "checkedFileSha256": {
+    "docs/代码审查-分阶段审查-2026-10-21.md": "D0BEB6979C5E77B99426CDB5E8833968CFE9F36BCC1FAB5A0EB1028D70C798FD",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段1至7独立复核.md": "0BF48F13C405116B6BE898B43FC2453916966787C0EA3D5DE94FCCC4AE8B6264",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段1至7独立复核证据.json": "1BA196197D9BB6902E7D233A1E8249C1ED727584E2428212A6CB354907B58ACF",
+    "PROGRESS.md": "0FADDED3079A1E20B2699733A435AB21F3008DDE23EBB59FCB71466E21C54253"
+  },
+  "checker": {
+    "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/check-independent.mjs",
+    "sha256": "410A80748D24D49D55F984F8B896595691059E50AEADAB5E2FFCBCE66884C6FF",
+    "scope": "忽略目录临时文档检查器，只读文件/Git，写本结果或忽略目录失败/验证回执；无网络、产品方法或产品测试"
+  },
+  "editRecordSha256": "BEAE36B1FD5B59B2E186F67F0770513C67E2DF124AE5B70B173B7FCF53C76E67",
+  "originalTreeAtCheck": {
+    "capturedAt": "2026-10-21T20:06:33.866+08:00",
+    "scope": "原目录只读路径/字节观察；可以继续有外部变化，不是受审产品基线",
+    "root": "C:/Users/89400/Momoka",
+    "head": "a9b7153d1fd6a6b4a537424a667c2f2dca131176",
+    "status": [
+      "?? docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+      "?? vibe_images/",
+      "?? website/"
+    ],
+    "protectedFiles": [
+      {
+        "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "sha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F",
+        "unchangedSinceSavedObservation": true
+      },
+      {
+        "path": "website/README.md",
+        "sha256": "79BDFC94F9B10A094F9085C28E2A77DE1BED14320D1BA8C6965A7C4D79934347",
+        "unchangedSinceSavedObservation": true
+      },
+      {
+        "path": "website/docker-compose.yml",
+        "sha256": "EC54B409EB5E82914FE7F142F4D40D909EA55BEFE4F3F02AFA8654ACFC523CFB",
+        "unchangedSinceSavedObservation": true
+      },
+      {
+        "path": "website/index.html",
+        "sha256": "BE9214C67B06AA121E0D89EFCA1500A31C97C2EF7F8A4CCB80BC8AA90E18DC72",
+        "unchangedSinceSavedObservation": true
+      },
+      {
+        "path": "website/nginx.conf",
+        "sha256": "3D0C0044177D27F4459191946A31FF24948C3BA2003D1360D3560A1EAC66D660",
+        "unchangedSinceSavedObservation": true
+      }
+    ]
+  },
+  "productBuildOrTestsExecuted": false,
+  "systemContextCompressionExecuted": false,
+  "limitations": [
+    "文档检查通过不等于产品故障回归通过，2072通过属于阶段2旧运行",
+    "七份结构化归档内嵌结果，非原始逐字全文，未重做已完成审查",
+    "116行段及856字节核对不等于全部业务重审",
+    "原目录为外部活动树：分时记录其变化，不回滚、不暂存、不纳入产品基线",
+    "本轮只提交五份文档，外部删除保持未暂存；提交后按用户要求暂停",
+    "结果不包含自身哈希；保存后验证不重写初始检查时间"
+  ]
+}
