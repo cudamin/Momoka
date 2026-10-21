@@ -1,0 +1,1565 @@
+{
+  "schemaVersion": 1,
+  "phase": 7,
+  "status": "已完成只读审查；未修复",
+  "reviewStartedAt": "2026-10-21T07:29:34+08:00",
+  "capturedAt": "2026-10-21T09:35:50+08:00",
+  "timezone": "Asia/Shanghai",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "4d9321d2f9a7e277f6d78903fcca697b597b1ffd",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "authorization": "仅阶段7只读审查、记录校验和本地提交；不授权修复、新产品回归/插桩、UI、真实服务器或推送发布",
+  "baselineAtStageStart": {
+    "trackedChanges": [],
+    "untrackedFiles": [],
+    "productMatchesSource": true,
+    "stagedChanges": []
+  },
+  "baselineBeforeWriting": {
+    "trackedChanges": [
+      "D\tdocs/交接-集成播放器缩放与起播全屏-2026-09-22.md"
+    ],
+    "stagedChanges": [],
+    "untrackedFiles": [],
+    "productMatchesSource": true
+  },
+  "externalChangesPreserved": [
+    {
+      "path": "docs/交接-集成播放器缩放与起播全屏-2026-09-22.md",
+      "change": "D",
+      "gitBlob": "2bb48e2cdaa0261abe174c2461fdeff604971566",
+      "inReviewScope": false,
+      "action": "保持删除状态，不恢复、不暂存、不提交"
+    }
+  ],
+  "externalStateArtifact": {
+    "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase7\\external-state.json",
+    "sha256": "298E1C468782EB3C14C54BD6A65DC9ED57E6B68E7176EEC52386946B4DA64885"
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段7审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段7证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段7检查.json",
+    "PROGRESS.md"
+  ],
+  "fixedProductIntegrity": {
+    "inventory": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+    "inventorySha256": "A418852A2608C2307DCAA29CAC031E13D17FCF3626E520AD8CAD360BB19F0D49",
+    "selection": "src/tests/tools/assets/.claude及列明的顶层构建入口",
+    "topLevelPaths": [
+      "Directory.Build.props",
+      "Momoka.sln",
+      "global.json",
+      "nuget.config",
+      "smoke.ps1"
+    ],
+    "matchedFileCount": 856,
+    "changedFiles": [],
+    "sortedPathAndSha256Digest": "9EF392070C516E9E4C2CBC545596AA8BD67D039E22ACB5F567236CD952EF7144",
+    "allTrackedProductBytesMatchFixedBaseline": true
+  },
+  "originalTreeObservation": {
+    "root": "C:/Users/89400/Momoka",
+    "capturedAt": "2026-10-21T09:35:50+08:00",
+    "head": "83dcfd3c62d9baeb727486bda6218492b49dc1af",
+    "status": [
+      "?? docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+      "?? website/"
+    ],
+    "headIsNotReviewBaseline": true,
+    "protectedFiles": [
+      {
+        "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "sha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F",
+        "unchangedFromPhase1": true,
+        "readScope": "只核路径/字节哈希，不读取业务内容，不写入或暂存"
+      },
+      {
+        "path": "website/README.md",
+        "sha256": "FBECA038382C00E9004E352CB2B59514E460B6D0FA7460B666810DF86DD81092",
+        "unchangedFromPhase1": true,
+        "readScope": "只核路径/字节哈希，不读取业务内容，不写入或暂存"
+      },
+      {
+        "path": "website/docker-compose.yml",
+        "sha256": "E086CD7DE73F7F578559E4A1505C5C8BFCDAB373A21842C7CC384FBF404BDDC8",
+        "unchangedFromPhase1": true,
+        "readScope": "只核路径/字节哈希，不读取业务内容，不写入或暂存"
+      },
+      {
+        "path": "website/index.html",
+        "sha256": "648CFA1F3F5CBC33A17FA50D937803EEAA71D9A95D53C4A7EF25D7E612537CB8",
+        "unchangedFromPhase1": true,
+        "readScope": "只核路径/字节哈希，不读取业务内容，不写入或暂存"
+      },
+      {
+        "path": "website/nginx.conf",
+        "sha256": "43C9C8F7B41EAB282781AD21501391938A74F79C8AD9F8B021FD0537C124AED5",
+        "unchangedFromPhase1": true,
+        "readScope": "只核路径/字节哈希，不读取业务内容，不写入或暂存"
+      }
+    ],
+    "writesPerformed": false
+  },
+  "coverage": [
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "readDepth": "浏览/筛选/季集/用户状态/元数据/图片/删除相关段",
+      "aspect": "Emby 请求到结果；未穷尽管理、字幕与播放接口",
+      "sha256": "F4F925115A61DEFE1940F34BD2B840827D72F1CE841F6D5A2CB53FF0B8B24E86"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.LibraryBrowse.cs",
+      "readDepth": "全文",
+      "aspect": "分类路径和 ParentId/UserId/分页分派",
+      "sha256": "57512842526FEB1A79E7C7C7D4E4C7AC915F942D30A97FCCBAAE96C6999A6DD7"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+      "readDepth": "全文，重点 Emby 分支",
+      "aspect": "Emby 保持原路径，其它产品分流不套用",
+      "sha256": "2049EE83DA9C0D7A357661C04C93F5536DEE2F9658B7838DE12FA8A6102C13B9"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemQuery.cs",
+      "readDepth": "参数/类型/过滤相关段",
+      "aspect": "分页参数、过滤合并与类型边界",
+      "sha256": "9BF74F84FC927A65F29B252B50E79394E48678638599281955A8F0023A54B5EB"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemFilters.cs",
+      "readDepth": "选择/清除/克隆/贡献相关段",
+      "aspect": "互斥、未知偏好与生效条件分开",
+      "sha256": "65072AA33890DFEE8D703155D9F19A4534FE3EEDDC007ACEB02FF89C8EA3B864"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryBrowse.cs",
+      "readDepth": "分类及85～179查询/路径相关段",
+      "aspect": "电影/电视/混合分类、索引下钻和固定收藏条件",
+      "sha256": "308E06C47D062F700588C340DF910C05FC0E5EFED2D505727FD52FF40144691A"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibrarySearch.cs",
+      "readDepth": "全文",
+      "aspect": "空词不请求，分类与相关性顺序",
+      "sha256": "152631D3CCC995C62993E01E8A3AE146D25A222215AD4DB843BB17BA40E3AAF6"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/RecentSearch.cs",
+      "readDepth": "前150行及调用者相关段",
+      "aspect": "来源隔离、展示快照、历史/备份边界",
+      "sha256": "67623EA445A398E75A37E2DA2D8F06B43B71B6F71B44B15303CBD68484A14CB5"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryFavorites.cs",
+      "readDepth": "全文",
+      "aspect": "收藏节目/集独立分页查询",
+      "sha256": "8454CAD94D1B31A3334DBEFB2462074A42E9F7F72D5AE9F5C2D11427850596F8"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/AggregateQueryCursor.cs",
+      "readDepth": "全文",
+      "aspect": "每来源偏移、取消不消费、移除回退",
+      "sha256": "BA857CA51E242508F31B9EF6AF3F0CCFB3E1806378D9398E9C98DB8D546BF26D"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ResumeRow.cs",
+      "readDepth": "全文",
+      "aspect": "合成下一集与撤格规则",
+      "sha256": "B7D3CE6CC7BA32073DDA85B49E622F9A6D4A5FDAC579006A7497411B3CF2477A"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeLatest.cs",
+      "readDepth": "全文",
+      "aspect": "Emby Latest 与 Jellyfin 剧集分支区别",
+      "sha256": "413877299929FACF9914A02CEEDB8C9CB177CDB00911C2179E2123F11630FFC5"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeCarousel.cs",
+      "readDepth": "类型/Slides方法和标题定位",
+      "aspect": "选片/图候选，非所有布局算法审查",
+      "sha256": "DE839DDD9ACAB31703AE33CF87FC5BB6689576C29BE91BE50FA7476D519C7223"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryWatch.cs",
+      "readDepth": "全文",
+      "aspect": "按来源指纹和不清失败来源基线",
+      "sha256": "656D58B8C082B5B1EF350D558A2293E20FB772FF672C52A3B8332934AEBD6236"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeRefresh.cs",
+      "readDepth": "全文",
+      "aspect": "轮播轻刷新与代次规则",
+      "sha256": "7F0E63BBF3EA75987E949411ECC0C4AEBF161DC301A3555ABF2E6D0E66A7B184"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemArtwork.cs",
+      "readDepth": "候选/父剧/标签/计数相关段",
+      "aspect": "同图与备用候选，不等于实际异常回退",
+      "sha256": "D8EF51999CDE8E8566217430B5A9E098BE4490BDC470A71FD1C40CE75A8C905F"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+      "readDepth": "全文",
+      "aspect": "Scope、共享请求、磁盘缓存、重试和预算/清理",
+      "sha256": "160DE2D077AFA0ED6A7581F46D50423AAF74EEAFF21BACA99D16C36403090064"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ImageCachePolicy.cs",
+      "readDepth": "重试/冷却/淘汰相关段",
+      "aspect": "网络重试与坏缓存失效的区别",
+      "sha256": "C8BC3DDC896793EA80D126C3849CFE548623980A870EE5DB1CEA691EDF0225B9"
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/SharedWork.cs",
+      "readDepth": "全文",
+      "aspect": "任务去重、等待者取消和自身移除",
+      "sha256": "3FA35395A981220EAC8B2AEFA317762BC9066F90608338DD7E4FDA46E1D02223"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyUrl.cs",
+      "readDepth": "1～85及图片相关定位",
+      "aspect": "图片标签/宽度/索引无令牌",
+      "sha256": "C2F9591EEF9DB7D037A123A1E01AA144B22EC244217BABDC9D1671E65B1AE614"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+      "readDepth": "1～99、187～239及错误读取相关定位",
+      "aspect": "图片只取字节、普通总预算；协议全审复用阶段2",
+      "sha256": "DD9BB68241B5DBED329FCBF0853BD8920C59DE77A316B092F05D07AD6E1DF71C"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "readDepth": "444～478及Scope/Bind交界",
+      "aspect": "来源寿命和用户状态响应顺序分别检查",
+      "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+      "readDepth": "类型/能力/删除文案相关段",
+      "aspect": "服务端范围与确认，不推断真实权限",
+      "sha256": "F71A22AE2A76D75FBC9C7D7090AE6A2DCD69249F91857A11AD93D673C70711E0"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+      "readDepth": "Read/Problem/ApplyTo/Parse/Moment/SetDate相关段",
+      "aspect": "原Json就地保存、有限数值和日期UTC日误判",
+      "sha256": "454FFB2857BF3DE03F40AEE12826312BADB07F32A5A0712B9C0EDBEA943FA6D9"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyItem.cs",
+      "readDepth": "UserData/图片模型相关定位",
+      "aspect": "完整响应含Played/IsFavorite/进度，非全媒体映射",
+      "sha256": "9738CA0F43BDAA642E8B988C2B79AE5669EB5871808B903FCEF4EAC3B279444F"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/LibraryDisplay.cs",
+      "readDepth": "默认分组/参数与测试定位",
+      "aspect": "字母Count参数复制一致性留待验证",
+      "sha256": "3E45579D881DC7D302B6CCF310CA7BA3CF510593B9E199FCCE2B9F69A2E83C4A"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+      "readDepth": "Attach/读取/watch/结果/删除/已看/取消相关段",
+      "aspect": "主页来源快照、重读和通知；未穷尽布局动画",
+      "sha256": "80D608F711695695E6FAB8915E8E9A2F7D3830981CE6D2B1699E5831D1101951"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+      "readDepth": "定时器、1190～1268及1345～1362相关段",
+      "aspect": "导航/离页/条目动作到VM，非视觉运行",
+      "sha256": "81423D824C5B57A20AF5FFE9E2D5A190FF80CB1AEECC7EF1DCD6FFD49A97509D"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "readDepth": "Attach/分页/换宽/删除/查询/字母/排序筛选相关段",
+      "aspect": "重点单源Emby与聚合账；未穷尽其它产品专项",
+      "sha256": "7FDE7ED061624615513BC22B7F5B6D6E29745B15962CF3D0A37BE13A9F3E8D38"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Search.cs",
+      "readDepth": "全文",
+      "aspect": "输入取消、分类、最近搜索和保存失败提示",
+      "sha256": "299BFFC507BBC3A0429242ACC7BEEA27796E38A459A0935925922D9BEE14A534"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Favorites.cs",
+      "readDepth": "全文",
+      "aspect": "账号筛选、双排读取、去重/错误/删除",
+      "sha256": "F1395986E8E61AD6DAC38FA2BD407934E182E5402C2BA37D7E170F8DF88A2FC6"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FavoritesViewModel.cs",
+      "readDepth": "全文",
+      "aspect": "来源/代次/退出清理，瞬时故障策略另列缺口",
+      "sha256": "C687E5316A9846F9461D5C7ADACC6DADAA555E4325F3F1A7D40A8371585C0A18"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FavoriteRow.cs",
+      "readDepth": "全文",
+      "aspect": "各排读取数与加载/错误/恢复",
+      "sha256": "CE0D8114F80ECF6441D067BADD24BB01E99CEC07D8F52945AC3536D8F5E95394"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/CardShelf.cs",
+      "readDepth": "来源/构造及129～207相关段",
+      "aspect": "Fill/FillRows/旧卡取消和原来源",
+      "sha256": "CC7E9CA817DC7A4F536E01CAB58B01B52F1992BC314322A243D1EA1290F34573"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/ResumeSlot.cs",
+      "readDepth": "全文",
+      "aspect": "原Scope NextUp、同槽替换与重复拒绝",
+      "sha256": "71F94671DD3F61224901C32C7E6BA7FE8367BB3DAD9AF9613810D8D62BB1675E"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "readDepth": "身份/载入/季集/图片候选/用户操作/删除/取消相关段",
+      "aspect": "不把轨道、输出和全部布局动画计为已审",
+      "sha256": "DEE98440625EB487819B6EE6D40217A46800CD711F0876C68AD88FD53F265EDC"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+      "readDepth": "导航补页/离页、120ms换宽、菜单/删除、搜索和布局接线相关段",
+      "aspect": "入口→VM→返回，未运行输入或渲染",
+      "sha256": "877D05866B7E96CC4719439B3844B607E3D233B25705EF49DC1761825DD0E91F"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryRequest.cs",
+      "readDepth": "1～243及请求字段相关段",
+      "aspect": "Source/Parent/分类/Row/滚动返回",
+      "sha256": "718A7D6838989E850A5AA6487DE11B0DFD323ADAF77AD8141E655C1E4AF7CFFD"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailRequest.cs",
+      "readDepth": "全文",
+      "aspect": "详情适用类型与原条目传递",
+      "sha256": "BA3A28A2B5C313DBA56A1200E730E2A26A46139160AAF04F3630F0F0826F2B02"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/CardItem.cs",
+      "readDepth": "构造/来源、370～404、505～679及图/状态相关段",
+      "aspect": "Resize、Ensure、取消/持有者/缓存键",
+      "sha256": "78906CB2E2241A358FA499CE84339FAB1E60D8FF3E07EE27E108FD28AB73470A"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PosterCard.xaml.cs",
+      "readDepth": "图片/事件/Loaded/CardChanged/用户按钮相关段",
+      "aspect": "原地尺寸变化不补请求，非全控件视觉审查",
+      "sha256": "43F0655CDDBD862FD84B5F707CF9DCEC6131FE0A863083EB167DE771881DE1C5"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PosterCard.xaml",
+      "readDepth": "图片/宽高及198～218按钮相关段",
+      "aspect": "已看/收藏没有跨动作在飞守卫",
+      "sha256": "E40C7C5D6FB45F0323EF1570078112498BDCD1AA34E2AA1C78AE96E68F439F0B"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/EpisodeRow.xaml.cs",
+      "readDepth": "图片Claim/Release/动作相关定位",
+      "aspect": "列表行复用CardItem，未审整控件",
+      "sha256": "FB510EF21460CC1D1E2FD8AD45A4E3D52FE15650496EEA82834C44BB857324C9"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/PosterLoader.cs",
+      "readDepth": "全文",
+      "aspect": "字节→WinRT SetSourceAsync，坏数据可抛",
+      "sha256": "DFB65C5A522D797C2AAAF13040AF3A4DFEC145EF3255CF9279075032E4F2B897"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/PosterCache.cs",
+      "readDepth": "全文",
+      "aspect": "解码LRU键和手动Clear",
+      "sha256": "FDB8BDC1C169A60E45EEB0A1811ED6D8E9EB0F825A3C12A452CD62B2333400BD"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+      "readDepth": "Decode/Render相关段",
+      "aspect": "BitmapDecoder/缩放/取消，非模糊质量验收",
+      "sha256": "2FDC729550A4D358A62BC0E31107ECB8013BECE12A33FDF206EAA569C3164172"
+    },
+    {
+      "path": "src/Momoka.Shell/Media/BannerPictureLoader.cs",
+      "readDepth": "Decode/Render相关段与方法定位",
+      "aspect": "轮播图仍经过共同磁盘缓存",
+      "sha256": "82412C8EF36DF9AB4FBF1E94D32144E12ABF101EAE00A16DE676E04D08CAF434"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/BannerSlide.cs",
+      "readDepth": "字段/构造定位及70～194相关段",
+      "aspect": "asked/图片/徽标/取消/释放；瞬态恢复列缺口",
+      "sha256": "6AB85762269E9FA43C7FD9CD357803C9C08FD8D6ABB7D94B35C76F0B753F96DB"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "readDepth": "菜单/hover/能力与用户状态回写相关段",
+      "aspect": "独立任务和整份UserData回写顺序",
+      "sha256": "683356CC70D962BC228E53E8E15138AE9677EE54A936D5E6615115BD846DA441"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "readDepth": "Ask/Tell、元数据/合集/下载/封面/识别/刷新/删除相关段",
+      "aspect": "确认、Scope和不确定结果，不穷尽字幕",
+      "sha256": "57E97DCF4D4E0F612CE793AAEF50F5A31A1C0C697A866FEDC7435C377C150C9B"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/CoverDialog.xaml.cs",
+      "readDepth": "槽代次及132～335操作/状态相关段",
+      "aspect": "串行、不确定结果先刷新，非所有子面板审查",
+      "sha256": "5CCEE37E597B91DDC4A579902516E86FBE71E3023E1DFF2AC4B980E89B3775CA"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MetadataDialog.xaml.cs",
+      "readDepth": "16～104",
+      "aspect": "初值/Edit/Problem和保存校验",
+      "sha256": "696A82397853384288BCE8F788FAD59F50AEAAD19C8CE3EB5B6D99A9934C63F8"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "readDepth": "870～893、1889～1894及进入/来源交界相关定位",
+      "aspect": "RefreshFavorites和已看补报委托，未执行播放",
+      "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "readDepth": "2434～2469",
+      "aspect": "手动清缓存为恢复入口，不证明自动坏图恢复",
+      "sha256": "D14DBD2F82F79F6BD6F70703BAA8817B57214C6F4AACD6303FE73B3B6AFE1559"
+    },
+    {
+      "path": "tests/Momoka.Tests/ItemActionTests.cs",
+      "readDepth": "注册/前165、动作标题/正文/图片/下载相关段",
+      "aspect": "单次协议覆盖不证明Shell响应逆序正确",
+      "sha256": "7B8A0EE49BDB145B587854294BB99A1ADBB9C483332D38965A12DEA13DF2B8D0"
+    },
+    {
+      "path": "tests/Momoka.Tests/EmbyTests.cs",
+      "readDepth": "1323～1437相关段",
+      "aspect": "Z日期不改/同日回归没有偏移跨日",
+      "sha256": "A53D5359ED2A2EF12D147E49309502946517C59EB35C62D5D3EF4E7084119A9C"
+    },
+    {
+      "path": "tests/Momoka.Tests/ResumeRowTests.cs",
+      "readDepth": "全文",
+      "aspect": "槽纯规则不涵盖20/21单源分页",
+      "sha256": "B8D0684A199F0103D33A50DA3704FC9E23D9C70FF7FF8B8F3013E086D5B13160"
+    },
+    {
+      "path": "tests/Momoka.Tests/AggregateQueryTests.cs",
+      "readDepth": "取消/RemoveConsumed/身份相关段",
+      "aspect": "聚合偏移回退不能套到单来源Cards.Count",
+      "sha256": "9290F5BCE2CE8B5F13BA2E77D906ECA8D64E5F5EFB97ABBC6A1CFE69F5A0CB5C"
+    },
+    {
+      "path": "tests/Momoka.Tests/ImageCacheTests.cs",
+      "readDepth": "SharedWork/LRU/Tag相关段",
+      "aspect": "去重/失败释放，不做WinUI坏缓存解码",
+      "sha256": "740E8493940200A8D48E325EE41BD1EB976C49308010559E2B23EADE0D0B4FB4"
+    },
+    {
+      "path": "tests/Momoka.Tests/ImageIdentityTests.cs",
+      "readDepth": "1～146、165～206及夹具相关段",
+      "aspect": "身份与原始字节，文本假响应不是有效图",
+      "sha256": "0B8E053E60908C4C3FA9D09620CE07EC39C1D0F59F4CF3820A666CC568275D10"
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryBrowseTests.cs",
+      "readDepth": "Emby/混合分类/分页/作用域/协议相关段",
+      "aspect": "不把Emby断言套用其它产品",
+      "sha256": "BFB1550B2C6607831F316847AA3EED5C558375545A1F3D23AEA8A7F4FC785370"
+    },
+    {
+      "path": "tests/Momoka.Tests/LibrarySearchTests.cs",
+      "readDepth": "分类/历史/身份/保存/坏记录相关段",
+      "aspect": "不代替Shell输入运行",
+      "sha256": "E33FBF41C50F4BF0CF949F5CD123B6C561F00958D71EF5779FA9B59EE7BF967F"
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryFavoritesTests.cs",
+      "readDepth": "双排/ReadCount/类型/请求/标题相关段",
+      "aspect": "不涵盖两动作UserData逆序",
+      "sha256": "6C4D46506AD8ECFDC7B12C3DB0EF5CB33CB433F757CDED024B8DA92AE37CC6EF"
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryIndexTests.cs",
+      "readDepth": "种类/图片/路由/范围/标题相关段",
+      "aspect": "纯规则不证明挂起图换宽恢复",
+      "sha256": "3B9E91616FD1D16B6619CA8CFFC65755CF74C1F9A9B023213B75484A6393BF98"
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeLatestTests.cs",
+      "readDepth": "注册与库身份夹具相关段",
+      "aspect": "两产品Latest/SeriesQuery分开",
+      "sha256": "BB19E1212138E92F70A7CD356269E3383520686B90AFC73E2E011DD8B5A36F34"
+    },
+    {
+      "path": "tests/Momoka.Tests/ItemArtworkTests.cs",
+      "readDepth": "候选/父剧/标签用例相关段",
+      "aspect": "不证明首候选解码抛错会继续",
+      "sha256": "D8D24F4C03FB7171C61772AD409ED5707C63D3B1BB8C3A2A3BE9D317805A12D9"
+    },
+    {
+      "path": "tests/Momoka.Tests/LibraryDisplayTests.cs",
+      "readDepth": "默认分组/参数/保存标题定位",
+      "aspect": "Count分组交界待验证，不臆测服务器行为",
+      "sha256": "4C1CB1B221D5AED6E077AFBDA45F88FCB9EFDD4043B7BA81DD39127D480CB42A"
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeLayoutTests.cs",
+      "readDepth": "测试标题/规则入口定位",
+      "aspect": "未逐条全文或重新运行",
+      "sha256": "CEDEB6374E9F7C9186FC0BB569F70ED05542C3C0B20DA08AAA3584E0E789E68D"
+    },
+    {
+      "path": "tests/Momoka.Tests/HomeCarouselTests.cs",
+      "readDepth": "测试标题/规则入口定位",
+      "aspect": "不是实际轮播渲染验证",
+      "sha256": "CB7D1BF6ACBEAC75E15B1762B658C21225190D31DED3EBFEFC175B6EEA291C0C"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.State.cs",
+      "readDepth": "分页/取消/查询、详情/换季/写入及568～639相关段",
+      "aspect": "未运行，也无单源Resume分页或两状态响应回归",
+      "sha256": "B68E58D3734A11F526A818D5489C08D8E158844C4E8FE515AB301C898959EEBF"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.LibraryBrowse.cs",
+      "readDepth": "路由/尺寸/迟到/索引相关段，重点628～699",
+      "aspect": "格宽断言未扣住图片验证自动恢复",
+      "sha256": "D1E648D2171AD88D66B340A5097CA4354E41C3F3AA7A45D745B483C485F626D5"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.Favorites.cs",
+      "readDepth": "96～132、账号筛选/删除分页相关段与方法定位",
+      "aspect": "不覆盖R-013/R-016，本阶段未运行",
+      "sha256": "84874ACCECC92A253B8BD730B6A6E30FA312808DD4EB40557F349349EA144E7D"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.DetailArtwork.cs",
+      "readDepth": "图片/布局断言相关定位",
+      "aspect": "未新增坏首图/备用图运行",
+      "sha256": "3430901FD087B3B0D120C026B25BDD95111D60B32F36FED7DE7A3230D5B3364F"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.LibraryFavorites.cs",
+      "readDepth": "方法/等待/断言定位，非全文",
+      "aspect": "只记录实际深度，不冒充双排全运行",
+      "sha256": "D4B1FA29390FF676C4CBE993E6D90B114067DD070D5DD11D764F1E205FE98E9E"
+    },
+    {
+      "path": "tests/Momoka.Tests/Momoka.Tests.csproj",
+      "readDepth": "全文",
+      "aspect": "只引用Core，2072旧通过不代表Shell运行",
+      "sha256": "EC51D959BA86FCA2C59B9044416EE6E009D0FA8A87A12771CD3C82D8FEDD84A2"
+    },
+    {
+      "path": "src/Momoka.Shell/Momoka.Shell.csproj",
+      "readDepth": "目标与WinUI引用相关段",
+      "aspect": "官方API文档不是当前包实际运行证据",
+      "sha256": "126F1A89C5502347F225FB835F950FE5C0D6A8F18000ADD4A19497EEC56AB9BC"
+    }
+  ],
+  "readPoliciesAndSkills": [
+    {
+      "path": "CLAUDE.md",
+      "readDepth": "当前分层/安全/验证/Git/阶段出口",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "readDepth": "本阶段命令/业务与既有回归边界",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "readDepth": "只读/缺陷/交接/独立阶段规则",
+      "sha256": "364229B10809BFC4516C27B7D08352D5AF38438ADA222181FBC92B880EF4F4C0"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+      "readDepth": "阶段7范围及阶段8前置",
+      "sha256": "86A2C3BFD29F4639EA2F4378428FDBA5CE3E5F2906194876B1E667B72551B15B"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md",
+      "readDepth": "上阶段交接与去重",
+      "sha256": "1AA0531231280A6C01C95C7E3795E12B1A3FA8B26E2143C75ADC624271CDE76D"
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "readDepth": "当前生命周期/Scope/输入/显隐相关部分",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA"
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "readDepth": "当前安全和实际证据/复用相关部分",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/SKILL.md",
+      "readDepth": "全文",
+      "sha256": "3B949221AC0C99E142C805B36EBE4480D9CA91B55609BE8F2969E7724ED0B4A9"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/http-and-auth.md",
+      "readDepth": "错误/图片/请求/响应相关段",
+      "sha256": "9A0887986CE1DFD46517E01D7BC839E5F8104DE2D4063A9C9C9526AD1D4ED1AF"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/endpoints.md",
+      "readDepth": "浏览/用户状态/图片相关段",
+      "sha256": "E0359E9D1FC73B8C773D10BFBAFF13F20248B84040BF6E5A588AD8ADD5930090"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/official-sdk.md",
+      "readDepth": "全文相关字典和版本约束",
+      "sha256": "C140C62BC10168F76F93010C68471769ADF5AD44AC9075DFF3659B37DE344A8E"
+    }
+  ],
+  "additionalGeneralSkill": {
+    "path": "C:/Users/89400/.codex/skills/winui-design/SKILL.md",
+    "sha256": "3BD47BE91B1787DE6A4BCAE1D4A24B1F9115181E500F0AC24C5B63CDE79E158F",
+    "readDepth": "本阶段WinUI只读设计/绑定相关部分，未编写新UI或调用未验证API"
+  },
+  "primaryReferences": [
+    {
+      "credentialsSent": false,
+      "url": "https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.media.imaging.bitmapsource.setsourceasync?view=windows-app-sdk-2.0",
+      "sha256": "65C870C5EE6EDA0B8BEBBE5054A47F840D637B26EF86B19A51F5FAF262359BB3",
+      "id": "winui-setsource",
+      "capturedAt": "2026-10-21T08:46:06+08:00",
+      "bytes": 57851,
+      "markers": [
+        {
+          "marker": "0x88982F60",
+          "utf16OffsetZeroBased": 36400,
+          "markerSha256": "6C86F982CCA05F0BA964E0C446273F0DC4A9BE18742CA511C6A262545D28DA77"
+        },
+        {
+          "marker": "The image is unrecognized",
+          "utf16OffsetZeroBased": 36355,
+          "markerSha256": "C753ED161C92194B9E86455F3F9F371CEE243A7FD543C95EAC912FFE1530C710"
+        },
+        {
+          "marker": "bad data",
+          "utf16OffsetZeroBased": 36454,
+          "markerSha256": "D762D0F57532EACC685F63E7A39A97CCDE2BA2A85DB016245F928EB73A6EEE3A"
+        }
+      ],
+      "rawBodyPersisted": false,
+      "method": "GET",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "httpStatus": 200
+    },
+    {
+      "credentialsSent": false,
+      "url": "https://learn.microsoft.com/en-us/dotnet/api/system.datetimeoffset.utcdatetime?view=net-10.0",
+      "sha256": "54CF9ADB262C9BBB16DA5F3913628BD38CFC1CD0F7DC2D44AE6C34685A3340BE",
+      "id": "dotnet-utc-date",
+      "capturedAt": "2026-10-21T08:46:07+08:00",
+      "bytes": 62862,
+      "markers": [
+        {
+          "marker": "subtracting",
+          "utf16OffsetZeroBased": 37524,
+          "markerSha256": "295C580AF9BDACB3CEBB29AA4A7A20280146E10F4B3EAF8E2066727F5A3C8002"
+        },
+        {
+          "marker": "Offset",
+          "utf16OffsetZeroBased": 313,
+          "markerSha256": "B1A1E8E3CF7C522ED8606C3C3C3F35D3299ECA78CB664FEC00D9787DA111F418"
+        }
+      ],
+      "rawBodyPersisted": false,
+      "method": "GET",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "httpStatus": 200
+    },
+    {
+      "credentialsSent": false,
+      "url": "https://dev.emby.media/reference/RestAPI/ItemsService/getUsersByUseridItemsResume.html",
+      "sha256": "D580F95FC233ABE74247B90C2654E8CD4D23550209CEF26E5133BA3B28AB081A",
+      "id": "emby-resume-doc",
+      "capturedAt": "2026-10-21T08:46:07+08:00",
+      "bytes": 131133,
+      "markers": [
+        {
+          "marker": "StartIndex",
+          "utf16OffsetZeroBased": 14245,
+          "markerSha256": "4AB4CCDB2CA0582EFD5998BA912EE64A58B3EADC2166D9CA0758B86075852DF1"
+        },
+        {
+          "marker": "The record index to start at.",
+          "utf16OffsetZeroBased": 14379,
+          "markerSha256": "9B4F888C1E3122E6609A689BCBD465EE797F2509C60C444C7E1EC9B374BD1240"
+        },
+        {
+          "marker": "TotalRecordCount",
+          "utf16OffsetZeroBased": 35207,
+          "markerSha256": "1EDAC96D2B1403357D4E6AEC06417C6065C7C7D5A43F6C8AEAC15385B92F0520"
+        }
+      ],
+      "rawBodyPersisted": false,
+      "method": "GET",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "httpStatus": 200
+    },
+    {
+      "credentialsSent": false,
+      "url": "https://raw.githubusercontent.com/MediaBrowser/Emby.ApiClients/f8499bd9d0e356b8a204a27b142765494dc6f450/Clients/Version.txt",
+      "sha256": "3C2B30E8890453B8B12EFB4FBF99EB422174905EBE09FF8855CEE316B2E6A3C0",
+      "id": "emby-sdk-version",
+      "capturedAt": "2026-10-21T08:46:08+08:00",
+      "bytes": 18,
+      "markers": [
+        {
+          "marker": "4.10.2.0 Release",
+          "utf16OffsetZeroBased": 0,
+          "markerSha256": "1EE2BF26C144B9EA827250286EF9F85DDF402D6BA8214697379E212D32C8F804"
+        }
+      ],
+      "rawBodyPersisted": false,
+      "method": "GET",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "httpStatus": 200
+    },
+    {
+      "credentialsSent": false,
+      "url": "https://raw.githubusercontent.com/MediaBrowser/Emby.ApiClients/f8499bd9d0e356b8a204a27b142765494dc6f450/Clients/Emby.ApiClient/Emby.ApiClient/Api/ItemsServiceApi.cs",
+      "sha256": "BDA64A83487505F1ED306322DBAE316EF7ED085164B283983BF585AD578451E8",
+      "id": "emby-sdk-items",
+      "capturedAt": "2026-10-21T08:46:09+08:00",
+      "bytes": 99420,
+      "markers": [
+        {
+          "marker": "GetUsersByUseridItemsResume",
+          "utf16OffsetZeroBased": 79647,
+          "markerSha256": "5889729CBFCE7E51C57EA63C46AEDE4D6F58E1CD11905A4C114398D3653B9B0E"
+        },
+        {
+          "marker": "AddQueryParameter(\"StartIndex\"",
+          "utf16OffsetZeroBased": 22392,
+          "markerSha256": "504B3791D406D4399BF66ABAAB6A75EBF716470E4028410D1DAE278E55CA8325"
+        },
+        {
+          "marker": "/Users/{UserId}/Items/Resume",
+          "utf16OffsetZeroBased": 82052,
+          "markerSha256": "4D23E5B172CED4167D1DF7CEEECBBBA7DF7103513265E187BAB7FA701A1B11F8"
+        }
+      ],
+      "rawBodyPersisted": false,
+      "method": "GET",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "httpStatus": 200
+    },
+    {
+      "credentialsSent": false,
+      "url": "https://raw.githubusercontent.com/MediaBrowser/Emby.ApiClients/f8499bd9d0e356b8a204a27b142765494dc6f450/Clients/Emby.ApiClient/Emby.ApiClient/Api/UserLibraryServiceApi.cs",
+      "sha256": "EEF0F35134664B8FAE7A846E72F81849B18C1725462A313D3DD7017EC681DF6A",
+      "id": "emby-sdk-favorite",
+      "capturedAt": "2026-10-21T08:46:10+08:00",
+      "bytes": 42733,
+      "markers": [
+        {
+          "marker": "RestResponse<UserItemDataDto>> PostUsersByUseridFavoriteitemsById",
+          "utf16OffsetZeroBased": 31894,
+          "markerSha256": "A011FD7B56B877C7F70D14D9D28F25C08F59EBF3D6301B07FA50CEBA24162ECD"
+        }
+      ],
+      "rawBodyPersisted": false,
+      "method": "GET",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "httpStatus": 200
+    },
+    {
+      "credentialsSent": false,
+      "url": "https://raw.githubusercontent.com/MediaBrowser/Emby.ApiClients/f8499bd9d0e356b8a204a27b142765494dc6f450/Clients/Emby.ApiClient/Emby.ApiClient/Api/PlaystateServiceApi.cs",
+      "sha256": "235C8DB37F4ED90F51A204828B437FD70E0281539C2A7A8131D61CC17832CD54",
+      "id": "emby-sdk-played",
+      "capturedAt": "2026-10-21T08:46:11+08:00",
+      "bytes": 29979,
+      "markers": [
+        {
+          "marker": "RestResponse<UserItemDataDto>> PostUsersByUseridPlayeditemsById",
+          "utf16OffsetZeroBased": 13366,
+          "markerSha256": "DAF1A085238319012CCB27A937CD7C12D4B74749F87059A586BBD1EAC3063534"
+        }
+      ],
+      "rawBodyPersisted": false,
+      "method": "GET",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "httpStatus": 200
+    },
+    {
+      "credentialsSent": false,
+      "url": "https://raw.githubusercontent.com/MediaBrowser/Emby.ApiClients/f8499bd9d0e356b8a204a27b142765494dc6f450/Clients/Emby.ApiClient/Emby.ApiClient/Model/UserItemDataDto.cs",
+      "sha256": "4A5C9642A4E72B99347578415A6C636104F9382CB4DDA1AC2C3C54F9E9D1689D",
+      "id": "emby-sdk-userdata",
+      "capturedAt": "2026-10-21T08:46:12+08:00",
+      "bytes": 8762,
+      "markers": [
+        {
+          "marker": "IsFavorite { get; set; }",
+          "utf16OffsetZeroBased": 1886,
+          "markerSha256": "6D33BE10730BB58CB100D552DEA29111B000793724ECD717338C7E647F078EF5"
+        },
+        {
+          "marker": "Played { get; set; }",
+          "utf16OffsetZeroBased": 2300,
+          "markerSha256": "84CDCEE314CA31322C185746C47D4E8E748D7A4AF212775C9DDC67E84C499206"
+        }
+      ],
+      "rawBodyPersisted": false,
+      "method": "GET",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "httpStatus": 200
+    },
+    {
+      "credentialsSent": false,
+      "url": "https://raw.githubusercontent.com/MediaBrowser/Emby.ApiClients/f8499bd9d0e356b8a204a27b142765494dc6f450/Clients/Emby.ApiClient/Emby.ApiClient/Model/BaseItemDto.cs",
+      "sha256": "885DB0779665EFA9769C92B8BAAE2B91181E6C620FA430F997F565C6E7B369F5",
+      "id": "emby-sdk-item-date",
+      "capturedAt": "2026-10-21T08:46:13+08:00",
+      "bytes": 100927,
+      "markers": [
+        {
+          "marker": "DateTimeOffset? PremiereDate",
+          "utf16OffsetZeroBased": 7151,
+          "markerSha256": "BEC623B4B10A39D90A44CD07963EF4BABF17F5848768568B4F6238FB88FA8567"
+        }
+      ],
+      "rawBodyPersisted": false,
+      "method": "GET",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "httpStatus": 200
+    }
+  ],
+  "publicSdk": {
+    "observedVersion": "4.10.2.0 Release",
+    "codeCopiedIntoProduct": false,
+    "notTargetServerVersion": true,
+    "revision": "f8499bd9d0e356b8a204a27b142765494dc6f450",
+    "refResolution": "git ls-remote https://github.com/MediaBrowser/Emby.ApiClients.git refs/heads/master"
+  },
+  "dateTimeOffsetObservation": {
+    "scope": "只调用宿主DateTimeOffset解析/属性，输入为四个公开格式占位值；未调用ItemMetadataEdit或服务器更新",
+    "productMethodExecuted": false,
+    "hostAssembly": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Private.CoreLib.dll",
+    "newProductRegressionAdded": false,
+    "hostSha256": "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82",
+    "identical": true,
+    "productVersion": "10.0.11-servicing.26373.116+e2f47b0110ed922f21a1522da67279133ce28f32",
+    "runtimeAssembly": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Private.CoreLib.dll",
+    "observations": [
+      {
+        "originalUtcDate": "2016-08-25",
+        "input": "2016-08-26T00:00:00+09:00",
+        "displayedDate": "2016-08-26",
+        "newTimestampIfRewritten": "2016-08-26T00:00:00.0000000Z",
+        "sameUtcDate": false,
+        "formUtcDate": "2016-08-26",
+        "parseExactSucceeded": true
+      },
+      {
+        "originalUtcDate": "2016-08-27",
+        "input": "2016-08-26T23:00:00-07:00",
+        "displayedDate": "2016-08-26",
+        "newTimestampIfRewritten": "2016-08-26T00:00:00.0000000Z",
+        "sameUtcDate": false,
+        "formUtcDate": "2016-08-26",
+        "parseExactSucceeded": true
+      },
+      {
+        "originalUtcDate": "2016-08-26",
+        "input": "2016-08-26T16:00:00Z",
+        "displayedDate": "2016-08-26",
+        "newTimestampIfRewritten": "2016-08-26T00:00:00.0000000Z",
+        "sameUtcDate": true,
+        "formUtcDate": "2016-08-26",
+        "parseExactSucceeded": true
+      },
+      {
+        "originalUtcDate": "2016-08-26",
+        "input": "2016-08-26T18:00:00+09:00",
+        "displayedDate": "2016-08-26",
+        "newTimestampIfRewritten": "2016-08-26T00:00:00.0000000Z",
+        "sameUtcDate": true,
+        "formUtcDate": "2016-08-26",
+        "parseExactSucceeded": true
+      }
+    ],
+    "runtimeSha256": "ED80A1A5DD066C0407AD59686F9AF90A4F3E55DBF3E4C973B53CC8C9D0706F82"
+  },
+  "captureArtifact": {
+    "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase7\\capture.json",
+    "sha256": "DFB08E476C42854C4E58CB9B0C89A578E7045E3AF2F00F8F99B22327782E3A97",
+    "rawPrimaryBodiesPersisted": false
+  },
+  "operationalNotes": [
+    "匿名GitHub REST分支commit查询受到API限流，未使用账号或凭据；随后以公开Git ls-remote只读解析master完整提交，固定来源后读取SDK。",
+    "没有运行新故障夹具、产品方法或UI/真实服务器；公开资料GET属于资料核对，不能称真实服务验证。",
+    "阶段7开始及08:50写前观察工作树干净；长命令超过Windows进程参数长度限制，未创建脚本或写审查记录。",
+    "09:00核对发现审查树非本轮旧交接文档已删除；原目录主干更新，受审产品仍固定不随主干。",
+    "保留原capture.json的历史清洁快照，本文件单独记录后续外部变化，不重写之前证据。",
+    "分块生成临时保存器时一次JavaScript模板解析失败，未创建保存器或写正式记录；已有捕获/草稿未受影响，随后改为直接从已存草稿生成文档。"
+  ],
+  "newFindings": [
+    {
+      "id": "R-012",
+      "priority": "P2",
+      "title": "原地换宽取消未完成海报后未重新加载",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "member": "Resize",
+          "start": 370,
+          "end": 388
+        },
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "member": "EnsurePosterAsync",
+          "start": 524,
+          "end": 575
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "member": "RebuildGrid",
+          "start": 769,
+          "end": 775
+        },
+        {
+          "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+          "member": "OnWallWidthChanged/RebuildWall",
+          "start": 608,
+          "end": 623
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml.cs",
+          "member": "OnCardChanged/OnLoaded",
+          "start": 285,
+          "end": 327
+        }
+      ],
+      "trigger": "Emby 库中可见、已发起图片请求但 Poster 仍为空的卡片，在下载或解码未完成时改变窗口格宽；容器和卡片原地保留，没有再次 Loaded 或 CardChanged。",
+      "expected": "旧宽度任务撤销后，为仍在屏上需要图片的卡片按新宽度继续加载，不能等滚动回收或重新进入页面才能补图。",
+      "causalChain": [
+        "TableScroll.SizeChanged → 120ms 计时器 → RebuildWall → RebuildGrid 逐卡 Resize，新宽度只改同一个 CardItem 对象。",
+        "Resize 先取消 _loading 并清空字段，再因 _poster is null 直接返回；_wanted=true 也到不了 EnsurePosterAsync。",
+        "旧 Ensure 请求取消后不赋图，取消分支和 finally 只清理，没有补发当前宽度请求。",
+        "PosterCard 在 Loaded、CardChanged 或显式 Begin 才发起图片；原地保留容器时，宽高和图片属性更新不能补这趟请求。"
+      ],
+      "actualImpact": "慢图加载期间拖宽或缩窄窗口，部分可见封面可停在灰占位，直到滚动重用、显式重问或重进页面；不是所有换宽都失败。",
+      "upstreamGuards": [
+        "已有 Poster 时 Resize 会重启，隐藏卡片也可等容器重用；本问题只确认首图尚未完成的可见卡片。",
+        "SharedWork 取消等待者不取消共享下载，字节仍可进缓存，但当前卡片已不等它，磁盘成功不自动使当前位图出现。"
+      ],
+      "notVerified": [
+        "未新增延迟假图片或真实 WinUI 换宽回归；现有 LibraryBrowse 尺寸断言没有扣住图片请求后验证 Poster 恢复。"
+      ],
+      "minimalFix": "按卡片是否仍需要图决定重启，而不是按旧 Poster 是否非空；保留原地对象、滚动位置及旧代次取消保护。",
+      "acceptance": [
+        "扣住假图片请求 → 可见卡片换格宽 → 放行：旧宽度不得回填，当前卡片须自动得到新宽度图片。",
+        "已有图、不可见卡、重复换宽、退出来源及解码宽度/缓存键分别回归，不靠重建整页绕过。"
+      ],
+      "status": "已确认；未修复",
+      "discoveryPhase": 7,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-013",
+      "priority": "P2",
+      "title": "单来源继续观看用合成显示卡片数作为服务器分页偏移",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "member": "AfterWatchedAsync",
+          "start": 1188,
+          "end": 1214
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "member": "LoadAsync",
+          "start": 1385,
+          "end": 1408
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "member": "ReadAsync/ReadSourceAsync",
+          "start": 1477,
+          "end": 1512
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "member": "HasMore",
+          "start": 680,
+          "end": 681
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/ResumeSlot.cs",
+          "member": "Apply",
+          "start": 54,
+          "end": 75
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "member": "QueryResumeAsync",
+          "start": 238,
+          "end": 249
+        }
+      ],
+      "trigger": "单来源继续观看页尚有下一页；标已看项已从服务器 Resume 清单移除，客户端原槽补入没有续播点、不属于 Resume 结果的 NextUp 单集。",
+      "expected": "合成下一集不算消耗 Resume 服务器记录；下一页偏移应按来源实际消费且仍存在的记录，而不是显示卡片总数。",
+      "causalChain": [
+        "首次显示服务器 Resume 的前 N 条。标已看成功后 ResumeSlot 撤旧插新，显示数量仍为 N。",
+        "AfterWatched 只通过 _cursor?.RemoveConsumed 回退原项；单来源 _cursor 为空，且只在 slot 为空时减 _total，没有独立原始读取计数。",
+        "追加仍用 Cards.Count 作 StartIndex，HasMore 也按 Cards.Count 比服务器总数，显示槽与服务器消费账被混用。",
+        "每页 20、初始总数 21 的例子：前 20 条中移除一项并补合成下一集后，原未读末项前移到索引 19；客户端却从 20 问，空响应让分页结束，该末项被漏过。"
+      ],
+      "actualImpact": "单来源继续观看可漏掉后续条目，合成槽位也可能使分页提前结束；合成下一集本身属于用户期望，不应靠删除该体验修复。",
+      "upstreamGuards": [
+        "多来源 AggregateQueryCursor 已按来源 RemoveConsumed，不能泛化为所有聚合分页错误。",
+        "电影或末集只撤格、没有合成下一集时 Cards.Count 会下降，不把所有标已看操作一概记为漏页。"
+      ],
+      "notVerified": [
+        "未运行单来源 20/21 条 Resume → 标已看 → 分页组合；现有 ResumeRow 纯规则与 Shell 三条全量夹具没有覆盖分页。",
+        "追加在飞与标已看交错需补测，本轮不把尚未验证的交错另计缺陷。"
+      ],
+      "minimalFix": "单来源 Resume 独立记录服务器消费量和原条目归属，并在原项移除时调整；显示合成槽与分页账分开。",
+      "acceptance": [
+        "假服务器 20/21 条：已看后补无续播下一集，追加必须取得前移的原未读尾项，合成卡不消耗 offset。",
+        "电影撤格、合成下一集再次已看、next 已有/为空、追加在飞、刷新以及多来源回退同时回归。"
+      ],
+      "status": "已确认；未修复",
+      "discoveryPhase": 7,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链",
+        "固定 Emby 官方 SDK 4.10.2.0 字段/路由字典（非真实服务器）"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-014",
+      "priority": "P2",
+      "title": "不可解码的非空图片缓存持续命中，冷却重试无法恢复",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+          "member": "Fetch",
+          "start": 158,
+          "end": 188
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+          "member": "DownloadAsync",
+          "start": 205,
+          "end": 232
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+          "member": "ReadCachedAsync",
+          "start": 258,
+          "end": 275
+        },
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "member": "EnsurePosterAsync",
+          "start": 548,
+          "end": 568
+        },
+        {
+          "path": "src/Momoka.Shell/Media/PosterLoader.cs",
+          "member": "DecodeAsync",
+          "start": 29,
+          "end": 55
+        }
+      ],
+      "trigger": "同一图片身份、标签和宽度的 .img 文件非空但损坏，或一次 HTTP 200 非图片字节被写入缓存；之后服务器正常但缓存键未变。",
+      "expected": "确认缓存内容是坏图时应有精确失效和重新获取的恢复路径，不能把再读同一坏文件当成有效重试。",
+      "causalChain": [
+        "DownloadAsync 在图片解码之前写原始字节缓存，只检查非空；磁盘损坏也能直接形成该输入。",
+        "ReadCachedAsync 只检查文件存在和非空，Fetch 命中直接返回并 Touch，不重新读取服务器。",
+        "PosterLoader.SetSourceAsync 可因坏数据抛异常；CardItem 仅记 _failedAt，没有通知存储失效或删除对应坏文件。",
+        "冷却后重问、重新造卡或重启仍用同一缓存键，继续解同一坏字节；即使服务器已正常也不会 GET。"
+      ],
+      "actualImpact": "封面可跨重试和页面重入持续空白，要手动清缓存、自然淘汰或变标签/尺寸才可能恢复；不声称所有解码失败都是缓存损坏。",
+      "upstreamGuards": [
+        "空文件、IO 或无权限是缓存 miss，原子写防部分提交，但不能验证收到的字节真能解码。",
+        "已有手动清图片缓存入口及标签/尺寸换键，属于额外恢复条件，不是该坏键的自动恢复。",
+        "微软文档指出低内存也可能产生相同解码错误，不能把任意异常一律当损坏反复删缓存。"
+      ],
+      "notVerified": [
+        "没有新增坏 .img / 200 坏字节 → 服务器同键有效图片的 WinUI 运行；既有 ImageIdentity 返回文本假字节，只验证来源，不做解码。"
+      ],
+      "minimalFix": "明确格式或坏数据错误时精确失效缓存键，允许有界再取；区分低内存、取消、权限和传输错误，不把 UI 框架引入 Core 或全量清缓存。",
+      "acceptance": [
+        "临时同键坏非空缓存 → 服务器有效图：受控解码失败后须重新 GET 并显示，不能反复读旧坏文件。",
+        "一次 200 坏字节、正常缓存、空文件、来源撤销、非格式异常及重试上限分别检查。"
+      ],
+      "status": "已确认；未修复",
+      "discoveryPhase": 7,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链",
+        "微软 SetSourceAsync 坏数据可抛异常文档（非 WinUI 运行）"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-015",
+      "priority": "P2",
+      "title": "详情首候选图片失败会跳出整个候选循环",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "member": "LoadArtworkAsync",
+          "start": 2303,
+          "end": 2319
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "member": "HeroAsync",
+          "start": 2337,
+          "end": 2364
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "member": "StillAsync",
+          "start": 2380,
+          "end": 2404
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "member": "DecodeFirstAsync",
+          "start": 2492,
+          "end": 2537
+        },
+        {
+          "path": "src/Momoka.Shell/Media/PosterLoader.cs",
+          "member": "DecodeAsync",
+          "start": 29,
+          "end": 55
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemArtwork.cs",
+          "member": "Hero",
+          "start": 277,
+          "end": 289
+        }
+      ],
+      "trigger": "Emby 详情有多个可用图片候选，例如 Primary 坏而 Thumb 正常，或父剧背景坏而自己 Art 正常；首候选最终获取失败或不可解码。",
+      "expected": "明确坏图或允许降级的单候选失败继续下一候选；取消、身份撤销和权限仍拒绝，不全部吞成无图成功。",
+      "causalChain": [
+        "ItemArtwork.Hero 提供父层和自身的多候选；StillAsync 使用 Primary → Thumb 和父剧 → 本集备用列表。",
+        "HeroAsync 与两个 DecodeFirstAsync 仅在空字节或空解码结果时 continue，每候选 await 没有对应异常处理。",
+        "坏图解码异常或 Store 重试耗尽抛出会直接退出循环，不访问下一候选。",
+        "外层 WhenAll catch 只记录日志，无法回到失效循环；该图片分支不显示，其它独立图片分支仍可能成功。"
+      ],
+      "actualImpact": "即使有正常备用图，也可能没有主图或海报；回退只在 404/null 等路径生效，不夸大成详情数据和所有图片同时失败。",
+      "upstreamGuards": [
+        "404 由 Store 返回空能够正常 continue，候选纯规则测试只证明顺序，不能证明异常回退。",
+        "Scope 取消、身份和权限防护仍应保留；本问题与 R-014 坏缓存恢复是不同责任。"
+      ],
+      "notVerified": [
+        "未新增坏首候选/备用有效、404、取消和 403 的隔离对照运行，没有真实服务器图片故障验证。"
+      ],
+      "minimalFix": "候选级处理明确可降级错误并继续，保留取消、身份和权限传播；不改候选优先级，不吞所有错误。",
+      "acceptance": [
+        "假首候选坏字节而备用有效，Hero 与 Still 实际访问备用并显示；父层失败可用自身图。",
+        "404/null、传输故障既定降级、来源退出、调用方取消、403 及独立图片并行分别验证。"
+      ],
+      "status": "已确认；未修复",
+      "discoveryPhase": 7,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链",
+        "微软 SetSourceAsync 坏数据可抛异常文档（非 WinUI 运行）"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-016",
+      "priority": "P2",
+      "title": "卡片独立用户状态请求的迟到整份响应覆盖较新状态",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "member": "SetWatched/SetFavorite",
+          "start": 430,
+          "end": 477
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "member": "Patch/RunAsync",
+          "start": 521,
+          "end": 565
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml.cs",
+          "member": "Raise",
+          "start": 641,
+          "end": 663
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml",
+          "member": "WatchedButton/FavoriteButton",
+          "start": 198,
+          "end": 218
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "member": "MarkPlayedAsync/SetFavoriteAsync",
+          "start": 468,
+          "end": 495
+        }
+      ],
+      "trigger": "同一 Emby 卡片的已看与收藏操作并发；服务器先处理已看、再处理收藏，而收藏响应先到，旧已看整份快照后到。",
+      "expected": "旧操作的整份响应不能覆盖另一操作已确认的新状态，客户端应与最终服务器状态一致；原来源取消仍生效。",
+      "causalChain": [
+        "两颗按钮分别 Raise，ItemCommands 各启动异步 RunAsync，没有同条目的跨操作队列或状态代次。",
+        "用户状态接口可回完整 UserItemDataDto，包含 Played、IsFavorite 和进度，而非只有该操作一位。",
+        "RunAsync 成功后不核响应代次直接 applied，Patch 对非空响应整体替换 card.Item.UserData。",
+        "收藏响应先到让 Played/IsFavorite 两位为 true；较早已看响应后到，仍带 IsFavorite=false，把客户端收藏回写 false，服务器最终仍是 true。"
+      ],
+      "actualImpact": "收藏、已看或进度可能显示旧值，后续点击可能基于错误本地状态发送错误方向；不是跨账号混用，也不证明服务端状态丢失。",
+      "upstreamGuards": [
+        "Ask/Scope 保证原来源身份和退出取消，但不能决定同一来源多个用户状态响应的顺序。",
+        "204/null 仅补自身字段；问题主要非空整份快照，现有同身份 401 合并不处理卡片状态版本。"
+      ],
+      "notVerified": [
+        "未新增两操作逆序假响应或 Shell 按钮回归；现有协议测试是单次动作，401 并发只覆盖身份。",
+        "没有真实服务器处理或网络顺序验证，条件性错状态不代表所有并发必错。"
+      ],
+      "minimalFix": "按条目建立必要的用户状态顺序或字段合并策略，处理同字段版本；不能只丢旧整份响应而漏掉其它已确认字段。",
+      "acceptance": [
+        "假服务器先已看再收藏、逆序交响应，卡片最终两位 true，下一次方向正确；反序和带进度字段补测。",
+        "204/null、失败、同字段连续操作、菜单/hover 两入口、来源撤销及正常切默认保持。"
+      ],
+      "status": "已确认；未修复",
+      "discoveryPhase": 7,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链",
+        "固定 Emby 官方 SDK 4.10.2.0 字段/路由字典（非真实服务器）"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-017",
+      "priority": "P2",
+      "title": "未改动的带偏移发行日期可能在元数据保存时被重写",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+          "member": "Read",
+          "start": 74,
+          "end": 88
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+          "member": "Date/Parse",
+          "start": 161,
+          "end": 172
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+          "member": "Moment",
+          "start": 195,
+          "end": 205
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+          "member": "SetDate",
+          "start": 255,
+          "end": 264
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MetadataDialog.xaml.cs",
+          "member": "constructor/Edit",
+          "start": 36,
+          "end": 87
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+          "member": "EditAsync",
+          "start": 172,
+          "end": 189
+        }
+      ],
+      "trigger": "Emby 原 PremiereDate 有时区偏移，日历日与 UTC 日不同；用户原样保存表单，或只改名称而不改日期。",
+      "expected": "日期框未改变显示日历日期时，保留服务器原时间和偏移；只查看加保存不能产生意外日期改动。",
+      "causalChain": [
+        "Read.Date 按原 DateTimeOffset 日历日显示 yyyy-MM-dd，表单没有原偏移和时刻。",
+        "Moment 用 AssumeUniversal 把同一天重建为 UTC 午夜，SetDate 却比较原 UtcDateTime.Date 与新值 UTC 日期。",
+        "2016-08-26T00:00:00+09:00 显示 2016-08-26，原 UTC 日是 2016-08-25，新 UTC 日是 2016-08-26，因此没改日期也被判 changed。",
+        "SetDate 写成 2016-08-26T00:00:00.0000000Z，ApplyTo 返回 true，EditAsync 便 POST 整份元数据，而非无改动返回。"
+      ],
+      "actualImpact": "未碰的发行时刻和偏移被抹掉，UTC 时刻可偏移或跨天，纯查看保存也可能变成共享元数据写入；本阶段未提交任何真实修改。",
+      "upstreamGuards": [
+        "现有只看不改和同日测试用 Z 日期，UTC 日与显示日一致；不覆盖偏移跨日。",
+        "原 Json 未知字段保留是正确保护，本问题是日期主动改写自身字段，不是序列化漏字段。",
+        "飞牛使用独立 FnNasMetadataEdit，不直接套此结论；Emby/Jellyfin 共用表单留阶段 8 交界复核。"
+      ],
+      "notVerified": [
+        "没有新增 ItemMetadataEdit.Read → ApplyTo → 假 POST 回归；仅执行四个宿主 DateTimeOffset 属性/解析观察并核同 10.0.11 CoreLib，不调用产品方法或真实元数据。"
+      ],
+      "minimalFix": "按表单实际展示和修改的日历日判变化，未改时保留原值；明确真改日期的时区策略，不顺手重写其它日期。",
+      "acceptance": [
+        "正负偏移跨 UTC 日和同日：Read 后原样 ApplyTo 应 false 且原值不变；只改标题时日期保留。",
+        "真改/清日期仍生效，Z 日期、允许格式、坏值拒绝和未知 Json 字段原样回归。"
+      ],
+      "status": "已确认；未修复",
+      "discoveryPhase": 7,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链",
+        "固定 Emby 官方 SDK 4.10.2.0 字段/路由字典（非真实服务器）",
+        "相同 10.0.11 CoreLib DateTimeOffset 属性/解析观察（非产品执行）"
+      ],
+      "repairAuthorized": false
+    }
+  ],
+  "priorFindings": [
+    {
+      "id": "R-001",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false
+    },
+    {
+      "id": "R-002",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false,
+      "note": "菜单下载仍在旧R-002长错误正文等待链，未重复编号或重新执行。"
+    },
+    {
+      "id": "R-003",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false
+    },
+    {
+      "id": "R-004",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false
+    },
+    {
+      "id": "R-005",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false
+    },
+    {
+      "id": "R-006",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false
+    },
+    {
+      "id": "R-007",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false
+    },
+    {
+      "id": "R-008",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false
+    },
+    {
+      "id": "R-009",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false
+    },
+    {
+      "id": "R-010",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false,
+      "note": "共享保存失败状态归R-010，新调用者不重编缺陷。"
+    },
+    {
+      "id": "R-011",
+      "status": "已确认；未修复",
+      "newCountInPhase7": false,
+      "note": "共享权限快照/缓存归R-011，客户端入口不证明服务端越权。"
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "E-COV-01",
+      "title": "六个新增故障未执行新产品回归",
+      "detail": "挂起图片换宽、20/21 Resume、坏缓存/候选、UserData逆序和偏移日期→假POST均未新增或运行；补测试/插桩/隔离UI需相应授权。"
+    },
+    {
+      "id": "E-COV-02",
+      "title": "Emby真实服务器读写及版本兼容",
+      "detail": "未访问真实库/账号/图片，未标已看/收藏/删除/识别/改元数据/封面/下载/播放；SDK和公开文档不是目标版本实测。"
+    },
+    {
+      "id": "E-COV-03",
+      "title": "Shell输入/视觉/布局",
+      "detail": "只追源码和既有探针断言，未启动WinUI、UIA、指针或实屏；正式测试只引用Core。"
+    },
+    {
+      "id": "E-COV-04",
+      "title": "其余分页/恢复/瞬态交错",
+      "detail": "CountAsync分组参数一致性、动态增删列表、追加与已看在飞、入库watch重入、BannerSlide瞬态失败/收藏入口故障策略未逐项运行，不直接计为确认缺陷。"
+    },
+    {
+      "id": "E-COV-05",
+      "title": "其它产品/输出/平台",
+      "detail": "Jellyfin/FnNas/Plex浏览管理、完整播放/字幕/音视频、MoviePilot/AniBT及平台留后续专项；共享文件片段不意味着全模块已审。"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "id": "E-EX-01",
+      "title": "切默认必然把条目动作发给新账号",
+      "reason": "菜单Ask/Tell和图片采用原Scope并有寿命/Bind守卫；R-016是同来源状态顺序，不是凭据混用。"
+    },
+    {
+      "id": "E-EX-02",
+      "title": "所有分页都使用聚合显示数作偏移",
+      "reason": "AggregateQueryCursor按来源offset和RemoveConsumed，电视收藏有ReadCount；R-013限定单来源Resume合成槽。"
+    },
+    {
+      "id": "E-EX-03",
+      "title": "失败分页无限补页或旧搜索结果回填",
+      "reason": "queryToken/LoadGeneration、_pageFailed与导航代次阻止旧结果/失败重复追加；输入防抖有取消链。"
+    },
+    {
+      "id": "E-EX-04",
+      "title": "图片地址、账号和标签缓存键混用",
+      "reason": "CacheKey含ApiBase/UserId/item/type/tag/width，退出后磁盘命中也验证Scope；新问题不是另一跨身份缓存漏洞。"
+    },
+    {
+      "id": "E-EX-05",
+      "title": "任一等待者取消会影响所有共享图片",
+      "reason": "SharedWork隔离waiter与任务；R-012是当前等待取消后未重启，不否定共享下载保护。"
+    },
+    {
+      "id": "E-EX-06",
+      "title": "删除和封面不确定写入可无确认反复提交",
+      "reason": "删除有确认，CoverDialog串行并以_uncertain/NeedsRefresh先刷新阻止不明确重复；固定Scope，未实际写入。"
+    },
+    {
+      "id": "E-EX-07",
+      "title": "元数据保存会丢掉全部未知字段",
+      "reason": "原Json就地改具名字段，R-017是日期主动重写，不泛化为全部序列化丢字段。"
+    },
+    {
+      "id": "E-EX-08",
+      "title": "坏一张详情图片会让整页全部无响应",
+      "reason": "独立图片分支仍可完成；R-015仅确认失效候选分支未访问备用图。"
+    },
+    {
+      "id": "E-EX-09",
+      "title": "缺少真实能力证明就必须实现所有接口",
+      "reason": "类型/产品能力按范围裁剪，入口存在不证明服务端越权，缺实测不是扩大产品范围或重构授权。"
+    }
+  ],
+  "testReuse": {
+    "evidenceFile": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+    "evidenceSha256": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229",
+    "actualExecutionPhase": 2,
+    "actualExecutionTime": "2026-10-21T02:59:12+08:00",
+    "actualExecutionHead": "4b663c425491120a4d87234d98bf20ecc9c88619",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "reuseConditionsChecked": true,
+    "summary": {
+      "total": 2072,
+      "passed": 2072,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedMilliseconds": 78960
+    },
+    "build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "logs": [
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\restore.log",
+        "sha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "purpose": "本树当前测试/Core 还原；可能读取 NuGet"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\build.log",
+        "sha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "purpose": "当前 Release 测试/Core 编译"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\tests.log",
+        "sha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "purpose": "未改现有完整测试宿主运行"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\execution.json",
+        "sha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "purpose": "退出码/源码基线/执行目录回执"
+      }
+    ],
+    "compiledBinaries": [
+      {
+        "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+        "sha256": "7E7F5C29464609675DF984C63750283A8F01A10E92C14659484813441B0480F7"
+      },
+      {
+        "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+        "sha256": "CB35FA56DB6AA41C00D4ECB9F7DD80864364056D5CBA2288760807A256763994"
+      }
+    ],
+    "runtimeAssemblies": [
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.WebSockets.Client.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.WebSockets.Client.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "FF5D42603B662A634857DCC6E1239547025D03794AEA4F84D624579765C23BA9",
+        "identicalToReadAssembly": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.Http.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.Http.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "8AE9F649D43F1F3FB635170784BCB753D305BC36A42703B4B0BEDB15A29729F0",
+        "identicalToReadAssembly": true
+      }
+    ],
+    "limitation": "仅复用阶段2旧运行的2072通过；源码/日志/输出/runtime哈希未变，不覆盖R-012～R-017，本阶段没有新产品或Shell运行。",
+    "newFindingRegressionsExecuted": false,
+    "selectedExistingPassedTitles": [
+      "图片：同一张图同时被要两次，只下载一次",
+      "图片：一张卡片走开了，旁边那张照样拿到封面",
+      "图片：下载失败不会把这张图永久钉死",
+      "图片身份：不同服务器的相同条目标签不共用磁盘缓存",
+      "图片身份：同服务器换账号不读上一账号的缓存",
+      "图片身份：退出来源后停止其重试，不拿其他在线账号重发图片",
+      "图片身份：聚合条目与章节图使用固定来源，不随默认账号改写",
+      "聚合分页：取消后的迟到结果不消费任何来源的游标",
+      "聚合分页：继续观看条目移除仅回退对应来源，下一页不漏项",
+      "继续观看：单集标记已看后换成这部剧的下一集",
+      "继续观看：电影标记已看后撤掉那一格，也不去问下一集",
+      "媒体库搜索：分类改变查询范围且保留服务器相关性顺序",
+      "最近搜索：账号隔离、逐条移除及清除不影响另一个身份",
+      "电视收藏：两排只问本库中真实收藏的对应类型",
+      "电视收藏：每排有独立分页位置，不先混查再本地拆排",
+      "索引页：两种端点各自的路由与参数",
+      "更多菜单：删除只发一趟 DELETE，打在这个条目自己身上",
+      "更多菜单：编辑元数据发出去的就是改过的那份 JSON，一个字段不少",
+      "编辑元数据：只看不改就没有要发的东西",
+      "编辑元数据：日期只在天数真的动了以后才重写"
+    ],
+    "rerunInPhase7": false
+  },
+  "productBuildsOrTestsExecutedInPhase7": false,
+  "productMethodExecutedForNewFindings": false,
+  "newRegressionOrInstrumentationAdded": false,
+  "applicationOrUiStarted": false,
+  "realAccountOrMediaServerAccessed": false,
+  "pushOrPublishPerformed": false,
+  "systemContextCompressionExecuted": false,
+  "nextStage": 8,
+  "nextStageScope": "Jellyfin媒体库与管理页面；本阶段交接/提交后须用户继续，不提前启动",
+  "stop": "本轮文档校验/精确本地提交后停止，不进入阶段8，不自动修复，不创建子代理或后台续跑"
+}
