@@ -1,4 +1,4 @@
-# Momoka
+# [Momoka](https://yuanshenqidon.dpdns.org)
 
 第三方媒体库客户端，支持 Emby、Jellyfin（实服播放与写入未验证）、飞牛影视（实播未验证）和 Plex（未对真实服务器核对），界面是原生 WinUI 3，播放器内核是 libmpv。由天才程序员Claude、GPT、DeepSeek、GLM完成开发。
 telegram 发布频道：[https://t.me/Ebizuka_Tomo](https://t.me/Ebizuka_Tomo)
