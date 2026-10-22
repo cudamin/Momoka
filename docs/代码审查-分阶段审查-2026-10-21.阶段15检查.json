@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "phase": 15,
+  "status": "通过（仅文档与静态证据一致性）",
+  "executedAt": "2026-10-22T14:48:12.195300+00:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "c29283b1503b15b98ce05cb2ee3a167d46ff02f8",
+  "recordFiles": [
+    "PROGRESS.md",
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段15审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段15证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段15检查.json"
+  ],
+  "checks": [
+    {
+      "name": "差异仅五份本阶段文档，暂存区空",
+      "pass": true,
+      "detail": [
+        " M PROGRESS.md",
+        " M docs/代码审查-分阶段审查-2026-10-21.md",
+        "?? docs/代码审查-分阶段审查-2026-10-21.阶段15审查.md",
+        "?? docs/代码审查-分阶段审查-2026-10-21.阶段15检查.json",
+        "?? docs/代码审查-分阶段审查-2026-10-21.阶段15证据.json"
+      ]
+    },
+    {
+      "name": "UTF-8/LF/尾换行/尾空白及JSON",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "旧阶段正文/PROGRESS完整内容保护",
+      "pass": true,
+      "detail": {
+        "oldSections": true,
+        "progress": true
+      }
+    },
+    {
+      "name": "本地链接存在",
+      "pass": true,
+      "detail": {
+        "links": 88,
+        "missing": []
+      }
+    },
+    {
+      "name": "稳定编号及源码锚点内容",
+      "pass": true,
+      "detail": {
+        "anchors": 7,
+        "problems": []
+      }
+    },
+    {
+      "name": "866固定产品文件逐字节不变",
+      "pass": true,
+      "detail": {
+        "files": 866,
+        "mismatch": [],
+        "indexSha256": "BCC84954B6A2BED8A22F1B84994F9C590239CAABBA8D52663CA9F21A37AB5E18"
+      }
+    },
+    {
+      "name": "持续授权/压缩/运行缺口诚实边界",
+      "pass": true,
+      "detail": {
+        "nextPhase": 16,
+        "productRuns": 0,
+        "compression": false
+      }
+    }
+  ],
+  "limits": "不证明产品构建/测试/原生/UI/真实服务，不用旧2072作本轮通过"
+}
