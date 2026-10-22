@@ -1,6 +1,13 @@
 # 开发进度
 
-最后更新：2026-10-21
+最后更新：2026-10-22
+
+## 自动换版时说明换成了哪一版（2026-10-22）
+
+- 用户报：「1080p-Nekomoe kissaten 片源已删除只剩一个软链接，点击播放 1080p-Nekomoe kissaten 后会自动播放 1080p.AAC-Nekomoe kissaten@LoliHouse」。查日志（`app-20261022.log` 17:48）确认机制：Emby 仍挂着两版（`2 版已按入库时间排好`），起播先试 `mediasource_13363`（mp4，文件已删，mpv -13），约 0.4 秒后回退到 `mediasource_13364`（mkv）并播成功 —— 回退是 2026-09-16 那条设计（`PlaybackService.CandidateSources`），但全程只有日志，屏上不说话。
+- 用户选定「只提示，不记住」：每次仍先试选中/默认那一版，打不开就提示并换版，不引入「这一版坏了」的记忆。新增纯函数 `MediaVersionSwitch.FallbackNotice(requested, played)`（同一版、缺一方返回 null），提示文案直接取详情页媒体源下拉那两个名字（`ItemDetail.SourceLabel`），原因只说到「文件可能已删除」这一层 —— mpv 的 -13 分不出文件没了与网络没通。`PlayerViewModel.StartPlaybackAsync` 在起播结果回来之后、自动连播判定之前报一次，条件是这一场仍是最后一场、这一场没失败、且正在播的源与票里那版不同（换片失败退回旧播放时 `PlayingSource` 说的是上一场，不报）。
+- 测试：`MediaVersionTests` 新增两条（文案与下拉同源、同版/同 id/缺一方不提示）。Release 构建 Core＋测试与 Shell **0 警告 0 错误**，全量测试 **2074 通过、0 失败、0 跳过**。未做真实播放验证（真起播改观看记录，需授权）；提示的实际观感待用户在真实回退场景里确认。
+- 发布：`tools/publish.ps1 -NoArchive` 因 Momoka 正在运行被拦（脚本按设计不擅自杀进程），待用户关闭后刷新 `artifacts/publish/win-x64`。
 
 ## 分阶段审查流程：持续推进与子代理（2026-10-21）
 
