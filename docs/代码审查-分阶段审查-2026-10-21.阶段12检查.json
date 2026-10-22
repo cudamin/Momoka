@@ -1,0 +1,202 @@
+{
+  "schemaVersion": 1,
+  "phase": 12,
+  "status": "通过（仅本轮文档与静态证据一致性）",
+  "executedAt": "2026-10-22T07:29:23.440Z",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "branch": "codex/staged-review-continue-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "a1cae9f97e9cfe56978e3ce028d8e184d706f3af",
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段12审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段12证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段12检查.json",
+    "PROGRESS.md"
+  ],
+  "checks": [
+    {
+      "name": "阶段12工作树、固定提交、规则与暂停授权",
+      "status": "通过",
+      "detail": {
+        "head": "a1cae9f97e9cfe56978e3ce028d8e184d706f3af",
+        "branch": "codex/staged-review-continue-2026-10-21",
+        "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+        "authorization": "收尾阶段12；只读、保存检查、本地提交后暂停；不修复/不进入13/不真实服务/不推送发布",
+        "nextPhase": "13暂停，未开始"
+      }
+    },
+    {
+      "name": "五份记录文件与暂存区/工作树差异",
+      "status": "通过",
+      "detail": {
+        "recordFiles": [
+          "docs/代码审查-分阶段审查-2026-10-21.md",
+          "docs/代码审查-分阶段审查-2026-10-21.阶段12审查.md",
+          "docs/代码审查-分阶段审查-2026-10-21.阶段12证据.json",
+          "docs/代码审查-分阶段审查-2026-10-21.阶段12检查.json",
+          "PROGRESS.md"
+        ],
+        "gitStatus": [
+          "M PROGRESS.md",
+          " M docs/代码审查-分阶段审查-2026-10-21.md",
+          "?? docs/代码审查-分阶段审查-2026-10-21.阶段12审查.md",
+          "?? docs/代码审查-分阶段审查-2026-10-21.阶段12检查.json",
+          "?? docs/代码审查-分阶段审查-2026-10-21.阶段12证据.json"
+        ],
+        "numstat": "8\t0\tPROGRESS.md\n14\t4\t\"docs/\\344\\273\\243\\347\\240\\201\\345\\256\\241\\346\\237\\245-\\345\\210\\206\\351\\230\\266\\346\\256\\265\\345\\256\\241\\346\\237\\245-2026-10-21.md\"",
+        "note": "check JSON 自身为新增；五份记录均在预期集合内，暂存区在检查时为空"
+      }
+    },
+    {
+      "name": "UTF-8、LF、末尾换行与尾空白",
+      "status": "通过",
+      "detail": {
+        "textFiles": 3,
+        "problems": []
+      }
+    },
+    {
+      "name": "本轮链接、源码绝对路径行号与旧正文保护",
+      "status": "通过",
+      "detail": {
+        "localLinks": 81,
+        "sourceAnchors": 29,
+        "oldContentProtection": {
+          "masterDoc": "仅更新头部状态/授权/阶段12链接/状态表并新增第十九节；旧阶段正文未改",
+          "progress": "仅在文件头新增阶段12段；旧阶段正文未改",
+          "protectedOriginUntracked": 20,
+          "priorStageRecords": "阶段0～11记录、独立复核原件未改"
+        },
+        "problems": []
+      }
+    },
+    {
+      "name": "七问题稳定编号、优先级、字段与根因去重",
+      "status": "通过",
+      "detail": {
+        "findings": 7,
+        "p2": 3,
+        "p3": 4,
+        "ids": "R-037,R-038,R-039,R-040,R-041,R-042,R-043",
+        "rootExpansions": [
+          {
+            "id": "R-024",
+            "topic": "已确认写入 + 后续步骤失败被当成整体失败",
+            "extension": "AniBT/Emby Apply 成功 + Refresh 失败；不新增编号",
+            "reason": "阶段 9 R-024 已记录同类根因；阶段 10 Plex 有扩入先例。"
+          },
+          {
+            "id": "R-032",
+            "topic": "提交前只读失败误锁表单",
+            "extension": "AniBT 重整弹窗 _attempted 在预览前置真并锁表单；建议并入 R-032 修复范围",
+            "reason": "时间边界和用户影响同类；不重复编号。"
+          }
+        ],
+        "cumulativeStableIds": 43
+      }
+    },
+    {
+      "name": "主线程与代理声明行段、复核完成状态",
+      "status": "通过",
+      "detail": {
+        "mainReadFiles": 32,
+        "completedAgents": [
+          {
+            "name": "T1",
+            "role": "researcher",
+            "status": "done",
+            "scope": "AniBT 协议/搜索/RSS/资格/标签"
+          },
+          {
+            "name": "T2",
+            "role": "researcher",
+            "status": "done",
+            "scope": "AniBT 资源/下载确认/入口生命周期"
+          },
+          {
+            "name": "T3",
+            "role": "researcher",
+            "status": "done",
+            "scope": "AniBT 识别/跨服务整理/Emby 提交"
+          },
+          {
+            "name": "T4",
+            "role": "reviewer",
+            "status": "done",
+            "scope": "候选独立复核；PASS8/FAIL1/PARTIAL3"
+          }
+        ],
+        "reviewer": "T4：PASS8/FAIL1/PARTIAL3；FAIL项(T1大写HTTPS)已剔除，PARTIAL项按P3/待验证记录"
+      }
+    },
+    {
+      "name": "866固定产品文件及历史阶段9～11记录字节保护",
+      "status": "通过",
+      "detail": {
+        "fixedFiles": 866,
+        "matched": 866,
+        "selection": "src/tests/tools/assets/.claude/skills 851 + 15 顶层入口（排除PROGRESS.md）",
+        "allSelectedBytesMatch": true,
+        "historicalRecordsProtected": 9,
+        "note": "阶段12开始前用 git archive c34a5e5 + SHA-256 对比；本轮只写五份文档"
+      }
+    },
+    {
+      "name": "权威主规则、专项资料与公开规格",
+      "status": "通过",
+      "detail": {
+        "authorityFiles": 7,
+        "mainPolicyFullyReread": true,
+        "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+        "publicSpec": "artifacts/code-review-stage12/public/AniBT-openapi-2026-10-22.yaml",
+        "publicSpecSha256": "EFA259707B0BEFB13BA82EDD7BCB3680106B8897B502967D7F0EDB16D752E0A7",
+        "publicSpecBytes": 180210,
+        "notDeploymentVersion": true
+      }
+    },
+    {
+      "name": "七问题关键源码锚点与防护边界",
+      "status": "通过",
+      "detail": {
+        "sourceAnchors": 29,
+        "productInvocations": 0,
+        "findingsWithLocations": 7
+      }
+    },
+    {
+      "name": "主目录20保护文件与旧审查树外部删除未变化",
+      "status": "通过",
+      "detail": {
+        "protectedOriginFiles": 20,
+        "priorExternalDeletionUnchanged": true
+      }
+    },
+    {
+      "name": "无产品运行、旧测试限定与当前阶段暂停出口",
+      "status": "通过",
+      "detail": {
+        "productRuns": 0,
+        "realServerActions": 0,
+        "network": 0,
+        "push": 0,
+        "publication": 0,
+        "next": "13未开始，暂停",
+        "systemContextCompression": false
+      }
+    },
+    {
+      "name": "Git diff --check",
+      "status": "通过",
+      "detail": "退出0"
+    }
+  ],
+  "observations": [],
+  "summary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "limitations": "仅文档与静态证据一致性检查；不运行产品/测试/应用探针/UI/真实服务"
+}

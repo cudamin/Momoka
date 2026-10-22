@@ -2,6 +2,14 @@
 
 最后更新：2026-10-22
 
+## 分阶段续审：阶段12 AniBT与跨服务整理收尾（2026-10-22）
+
+- 用户要求“收尾工作区中的阶段12”并明确调用 Agent Team。本树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，开始HEAD `a1cae9f97e9cfe56978e3ce028d8e184d706f3af`，产品固定 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`；866份选择文件逐字节一致，`src tests` 无差异，暂存区为空。前一会话的未完成尝试只作线索，三路新只读复核（AniBT协议/搜索RSS、资源下载入口、跨服务整理）和一名独立复核员重新验证；T4 结果为 PASS8/FAIL1/PARTIAL3。
+- 新增R-037/P2无MP原记录时Emby搜索非空即取首条并应用，R-038/P2 accepted/skipped按完成处理、消息与全库扫描时机不准确，R-039/P2重整确认框不展示实际预览；R-040/P3聚合次级来源AniBT识别死入口，R-041/P3缺集清单补读期间断线仍显示旧搜索入口，R-042/P3 identify分支绕过canContinue，R-043/P3 episodeKey范围徽标显示合集。Apply成功+Refresh失败扩入既有R-024，不新增编号；R-032扩入AniBT重整预提交误锁。全部静态确认、未修复。
+- 强制全量替换图片交产品决定；内层`anime.bgmId`可省略、混合批次identify/transfer身份不一致、协议相对URL残余待验证/建议。T1“大写HTTPS不命中URL拦截”经复核FAIL并剔除；媒体文件删除、单集ParentId、历史ID重复、连接代次、候选归属、写入前只读检查等已排除或确认有防护。
+- 仅记录总记录、阶段12审查、证据、检查与PROGRESS五份文档；不构建、运行产品/测试/探针/自检/UI、真实AniBT/MoviePilot/Emby读写/下载/订阅/重整/播放、发布或推送。旧2072通过只属2026-10-21历史。文档检查通过后精确本地提交，未推送。
+- **阶段12完成后暂停，阶段13～19未开始**；累计43个稳定编号（42静态问题记录＋R-017条件性候选），全部未修复；未执行系统上下文压缩，规则原文保留。
+
 ## 分阶段续审：阶段11重新审查并暂停（2026-10-22）
 
 - 用户要求重新开始阶段11，随后明确完成当前阶段后暂停。本树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，开始HEAD `7027a3f58afea8835967a58ea2bf10e2b61e352e`；产品仍固定 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。旧阶段11未完成候选／阅读不沿用，旧忽略快照保留。

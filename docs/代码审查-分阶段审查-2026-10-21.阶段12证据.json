@@ -1,0 +1,1049 @@
+{
+  "schemaVersion": 1,
+  "phase": 12,
+  "status": "阶段 12 只读审查完成；记录检查后本地提交并暂停；未修复",
+  "startedAt": "2026-10-22T12:39:53.190+08:00",
+  "resumedAt": "2026-10-22T13:01:11.665+08:00",
+  "completedAt": "2026-10-22T15:29:16+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "branch": "codex/staged-review-continue-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "a1cae9f97e9cfe56978e3ce028d8e184d706f3af",
+  "authorization": "用户要求收尾工作区中的阶段 12；只读审查、保存检查并本地提交后暂停；不修复、不进入阶段 13、不访问真实服务、不构建/测试/探针/UI、不推送发布。用户明确调用 Agent Team，允许独立只读会话。",
+  "previousAttempt": {
+    "state": "前一会话启动阶段 12 后多次中断，未形成正式阶段 12 报告或提交",
+    "baselineSnapshot": "artifacts/code-review-stage12/baseline-start-2026-10-22.json",
+    "resumeSnapshot": "artifacts/code-review-stage12/resume-2026-10-22.json",
+    "reusedUncollectedAgentConclusions": false,
+    "note": "本轮从同一续审树恢复，重新组织 T1～T3 三路只读复核和 T4 独立复核；旧候选只作为线索，由新会话逐行验证。"
+  },
+  "baselineAtStart": {
+    "head": "a1cae9f97e9cfe56978e3ce028d8e184d706f3af",
+    "branch": "codex/staged-review-continue-2026-10-21",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "authorityFile": "C:/Users/89400/Momoka/CLAUDE.md",
+    "authoritySha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+    "status": "",
+    "originTreeStatus": "?? docs/代码审查-媒体库与聚合模式-2026-10-20.md\n?? vibe_images/\n?? website/",
+    "protectedOriginUntrackedCount": 20,
+    "priorTreeStatus": " D docs/交接-集成播放器缩放与起播全屏-2026-09-22.md"
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段12审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段12证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段12检查.json",
+    "PROGRESS.md"
+  ],
+  "authorityFiles": [
+    {
+      "path": "C:/Users/89400/Momoka/CLAUDE.md",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+      "read": "全文"
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "read": "按任务段"
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/SKILL.md",
+      "read": "全文/按任务段"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/SKILL.md",
+      "read": "按任务段"
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "read": "按任务段"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "read": "全文"
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/references/reorganization.md",
+      "read": "全文/按任务段"
+    }
+  ],
+  "fixedProductIntegrity": {
+    "selectedFileCount": 866,
+    "matchedFileCount": 866,
+    "changedFiles": [],
+    "allSelectedBytesMatchFixedBaseline": true,
+    "selection": "src/tests/tools/assets/.claude/skills 851 份 + 15 个顶层入口（排除 PROGRESS.md）",
+    "command": "git archive c34a5e5 + SHA-256 对比工作树"
+  },
+  "mainReadFiles": [
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtClient.cs",
+      "sha256": "3CDA5EEA0404C440B622B451505A2BE3F220347B2D1E69DEF2E79AFDBFC31358",
+      "bytes": 17377,
+      "lineCount": 288,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 288
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtModels.cs",
+      "sha256": "5DF42B2568731307EAAD6AAC5669938D9E797359338978925AC56CC374A65434",
+      "bytes": 2247,
+      "lineCount": 61,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 61
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtSearchQuery.cs",
+      "sha256": "F2225529F9423B8F20FD942138FD2981192E61177AE2D4F32B4F46D0DA6F081B",
+      "bytes": 722,
+      "lineCount": 16,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 16
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtReleaseLabels.cs",
+      "sha256": "48B852DD0726989319398D3F33D5D474E9BD0905B50F20EB6058D359E9DFB349",
+      "bytes": 2626,
+      "lineCount": 65,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 65
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtEligibility.cs",
+      "sha256": "D47627E6AF23D9FA82A4756CCEA887DA68590F5F638FD3F564DE4D446244DD08",
+      "bytes": 2617,
+      "lineCount": 48,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 48
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+      "sha256": "E454F419C2648333A654520F520EC896AE0FC33C1D8EAED5FAF4ED1929CAFBDF",
+      "bytes": 17593,
+      "lineCount": 309,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 309
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/AniBtSearchViewModel.cs",
+      "sha256": "F8B44029F79308406B6D86AA1F6217BADC5C3F1B547AA5414A065BE8C3FAB7C9",
+      "bytes": 14776,
+      "lineCount": 350,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 350
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/AniBtResourceViewModel.cs",
+      "sha256": "C2D5F044F33757584DA5334ECC71A343DD6B1A7277E70D94ADA45EE8FE0A1E6C",
+      "bytes": 12044,
+      "lineCount": 262,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 262
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/AniBtScrapeViewModel.cs",
+      "sha256": "6288E216E19BD8F959D164062B6A0C03D9AD5585F52E9E513210B05F00F32C51",
+      "bytes": 4239,
+      "lineCount": 94,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 94
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtSearchPanel.xaml",
+      "sha256": "661099C373DE6FC710F29700762CBFA2B183BDAFB8DE8C1992FC7F5D597A2228",
+      "bytes": 13218,
+      "lineCount": 177,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 177
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtSearchPanel.xaml.cs",
+      "sha256": "F200B573BDA39FC6ED3263F71043A1556F5F4E0C23441FEAD6A9C2966CF12EB0",
+      "bytes": 2956,
+      "lineCount": 88,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 88
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtResourceBrowser.xaml",
+      "sha256": "60F087180C75F008532E80410868D6FA48324CC2DB0110F3BE1CAB40C59E0163",
+      "bytes": 9647,
+      "lineCount": 135,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 135
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtScrapeDialog.xaml",
+      "sha256": "0ACE6F9781E1CE664D4ABF04B7B6BA8DC34AFD9ABBE190EBEA5309E651A1E8EC",
+      "bytes": 3507,
+      "lineCount": 47,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 47
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/AniBtScrapeDialog.xaml.cs",
+      "sha256": "F540DF23B655EC6FCC2C2BBD7EB0B5DEBE5D41800199FE4E629319377136EF9D",
+      "bytes": 1107,
+      "lineCount": 32,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 32
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.AniBt.cs",
+      "sha256": "B8F2BCA710F5710C5934E9863119173C25426F82B463B4C0A76D56FCF67471E9",
+      "bytes": 1906,
+      "lineCount": 47,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 47
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2",
+      "bytes": 116860,
+      "lineCount": 2390,
+      "ranges": [
+        {
+          "start": 1215,
+          "end": 1281
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MissingEpisodesDialog.xaml.cs",
+      "sha256": "F029ECA009830D0B1562F1FF2F909EF8CA92E106C8E43A82C9720EA28F276FC6",
+      "bytes": 10455,
+      "lineCount": 225,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 225
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+      "sha256": "F71A22AE2A76D75FBC9C7D7090AE6A2DCD69249F91857A11AD93D673C70711E0",
+      "bytes": 21480,
+      "lineCount": 404,
+      "ranges": [
+        {
+          "start": 299,
+          "end": 309
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "sha256": "683356CC70D962BC228E53E8E15138AE9677EE54A936D5E6615115BD846DA441",
+      "bytes": 27668,
+      "lineCount": 609,
+      "ranges": [
+        {
+          "start": 141,
+          "end": 185
+        },
+        {
+          "start": 272,
+          "end": 274
+        },
+        {
+          "start": 388,
+          "end": 390
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.AniBt.cs",
+      "sha256": "FFC46BCCA361BDF8CC89C7313D06258CD97ED78EF33F438B67E6449CE3F0A876",
+      "bytes": 9173,
+      "lineCount": 155,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 155
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotTransfer.cs",
+      "sha256": "0D745DBA10376F50C03F731ABDDD47AB5777CAB13F10E28792DC11A4CBF3BBF9",
+      "bytes": 20841,
+      "lineCount": 420,
+      "ranges": [
+        {
+          "start": 180,
+          "end": 410
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "sha256": "F4F925115A61DEFE1940F34BD2B840827D72F1CE841F6D5A2CB53FF0B8B24E86",
+      "bytes": 58777,
+      "lineCount": 1031,
+      "ranges": [
+        {
+          "start": 655,
+          "end": 683
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+      "sha256": "AD136E6CAC7D519BB72AB3B1A765E2F88B6BDDA53A5960F7F184C1D650F30CEB",
+      "bytes": 3487,
+      "lineCount": 80,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 80
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008",
+      "bytes": 36237,
+      "lineCount": 752,
+      "ranges": [
+        {
+          "start": 452,
+          "end": 463
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "tests/Momoka.Tests/AniBtTests.cs",
+      "sha256": "D096A4359BC12A214F365BBB1EBB9F94205112B20BF7819A8CFAF84209B42CE1",
+      "bytes": 23376,
+      "lineCount": 387,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 387
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "tests/Momoka.Tests/AniBtIntegrationTests.cs",
+      "sha256": "04FFEBE27B858A02F91E48FC035E00D16B925C6C3B330E55F638DFD75AFA996B",
+      "bytes": 31069,
+      "lineCount": 517,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 517
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.AniBt.cs",
+      "sha256": "B4E1977721C8843C1CBF668DCC6041BC57104CA89E13910EEDECBFCB097368E5",
+      "bytes": 28690,
+      "lineCount": 464,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 464
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "artifacts/code-review-stage12/public/AniBT-openapi-2026-10-22.yaml",
+      "sha256": "EFA259707B0BEFB13BA82EDD7BCB3680106B8897B502967D7F0EDB16D752E0A7",
+      "bytes": 180210,
+      "lineCount": 4555,
+      "ranges": [
+        {
+          "start": 840,
+          "end": 900
+        },
+        {
+          "start": 3103,
+          "end": 3200
+        },
+        {
+          "start": 4218,
+          "end": 4290
+        },
+        {
+          "start": 4393,
+          "end": 4460
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段11审查.md",
+      "sha256": "DAF4768AFC30860189AC5757F2BDB4861DE7CCAD6C11F80BD56E7CA8887EC15D",
+      "bytes": 21711,
+      "lineCount": 132,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 132
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段9审查.md",
+      "sha256": "3CA1D6A248CEB4989D598E4280FD2DAD14C90F4327AF3FDE66A530D0C39AD83F",
+      "bytes": 35507,
+      "lineCount": 215,
+      "ranges": [
+        {
+          "start": 80,
+          "end": 110
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+      "sha256": "86A2C3BFD29F4639EA2F4378428FDBA5CE3E5F2906194876B1E667B72551B15B",
+      "bytes": 42349,
+      "lineCount": 310,
+      "ranges": [
+        {
+          "start": 175,
+          "end": 205
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/references/reorganization.md",
+      "sha256": "86A8E311D2C21A74B216E4393A7BA5115FE3C2FB51D9CBD1CF04AF3CDCC9FD91",
+      "bytes": 4504,
+      "lineCount": 47,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 40
+        }
+      ],
+      "readingType": "本轮实际行段/文件读取；非整仓覆盖声明"
+    }
+  ],
+  "completedAgents": [
+    {
+      "name": "T1",
+      "role": "researcher",
+      "status": "done",
+      "scope": "AniBT 协议/搜索/RSS/资格/标签"
+    },
+    {
+      "name": "T2",
+      "role": "researcher",
+      "status": "done",
+      "scope": "AniBT 资源/下载确认/入口生命周期"
+    },
+    {
+      "name": "T3",
+      "role": "researcher",
+      "status": "done",
+      "scope": "AniBT 识别/跨服务整理/Emby 提交"
+    },
+    {
+      "name": "T4",
+      "role": "reviewer",
+      "status": "done",
+      "scope": "候选独立复核；PASS8/FAIL1/PARTIAL3"
+    }
+  ],
+  "agentDeclaredReadRanges": [
+    {
+      "name": "T1",
+      "files": "AniBtClient 1-288、AniBtModels 1-61、AniBtSearchQuery 1-16、AniBtReleaseLabels 1-65、AniBtEligibility 1-48、AniBtService 1-309（搜索/资源段）、AniBtSearchViewModel 1-350、AniBtSearchPanel 1-177/1-88、AniBtTests 1-387、AniBtIntegrationTests 1-517、ShellNavigationProbe.AniBt 1-464、spec 选定段",
+      "note": "收尾阶段被催收后交付；未覆盖项已在其结果中注明"
+    },
+    {
+      "name": "T2",
+      "files": "AniBtResourceViewModel 1-262、AniBtResourceBrowser 1-135/1-23、ShellPage.AniBt 1-47、AniBtSearchViewModel 1-350、ShellPage.xaml.cs 定向段、MissingEpisodesDialog 1-225/1-127、MoviePilotWindow 1-283、DownloadDialog 1-43、PageViewModel 1-209、MoviePilotResourceViewModel 1-110、ItemMenu/ItemCommands 定向段",
+      "note": "只读；未运行菜单/弹窗"
+    },
+    {
+      "name": "T3",
+      "files": "AniBtService 1-309、MoviePilotService.AniBt 1-155、MoviePilotService.Transfer 1-227、Operations 1-110、MoviePilotTransfer 1-420、History 1-116、TransferHistory 1-109、TransferCollect 1-145、MoviePilotService 1-340、Availability 1-121、EmbyClient 520-729、EmbyResponses 295-364、ItemIdentify 1-105、EmbySessionScope 1-80、EmbySession 1-140/405-505、Shell 相关文件、测试 1-517",
+      "note": "只读；AniBtTests 1-50 其余用 grep 定位"
+    },
+    {
+      "name": "T4",
+      "files": "T4.md 全文、CLAUDE 全文、MoviePilot/Shell 技能、AniBtService/Client/Labels/Models 全文、EmbyClient 540-719、ItemIdentify 全文、EmbySessionScope 全文、EmbySession 定向、ItemMenu 100-340、MoviePilotTransfer 1-420、Transfer 90-227、AniBt 全文、TransferCollect 18-98、TransferHistory 1-140、Shell 视图/VM、测试、阶段 9/11 记录、spec",
+      "note": "独立复核；未改文件"
+    }
+  ],
+  "coverageSummary": {
+    "businessChains": [
+      "AniBT 基址/搜索/匹配/RSS→解析/候选/自动决定/去重/错误映射",
+      "搜索面板→资源列表→筛选/排序→下载确认→MoviePilot 下载/防重/取消",
+      "识别准备→逐文件候选→MoviePilot 重整预览/提交→扫描",
+      "无原记录→Emby 远程搜索→识别 Apply/Refresh→结果回执",
+      "缺集清单/菜单入口→MP 可用性/来源身份→搜索窗口",
+      "测试/探针覆盖与真实服务边界"
+    ],
+    "notCompleteFileAudit": true
+  },
+  "findings": [
+    {
+      "id": "R-037",
+      "key": "anibt-identify-first-remote-result",
+      "priority": "P2",
+      "status": "已确认（静态）；未修复；未在真实 Emby 复现",
+      "title": "无原整理记录时 Emby 搜索非空即取首条并自动应用",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+          "start": 225,
+          "end": 245
+        },
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+          "start": 282,
+          "end": 301
+        },
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+          "start": 266,
+          "end": 276
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "start": 655,
+          "end": 683
+        }
+      ],
+      "trigger": "文件无 MP 原整理记录；用户选择 AniBT 候选；Emby RemoteSearch 非空但无标题精确/包含匹配，或年份全不符。",
+      "expected": "只应用可核实为同一作品的条目；否则拒绝或让用户选择。",
+      "actual": "PickIdentifyResult 精确/包含均无时返回 results[0]；ByYear 年份不符时也返回 results[0]；随后 ApplyRemoteSearchResultAsync(replaceAllImages:true) 与 RefreshItemAsync(\"all\", replaceImages:true) 落到目标。",
+      "impact": "目标条目 ProviderIds/标题/简介/图片/识别关系可能被替换；季/集操作刷新整部剧；不删除媒体文件。UI 不展示最终 Emby 条目。",
+      "guards": "候选必须属于该文件 AniBT 候选；连接戳+代次；identify 行同番剧；plan.Claim；目标类型解析；读取/预览先于 Claim。均未证明 Emby 首条就是所选番剧。",
+      "evidenceType": "固定源码因果链；AniBtTests.cs:38-47 将单个不相关结果回退固化为期望；AniBtIntegrationTests.cs:257-281 断言 ReplaceAllImages=true。",
+      "notVerified": "真实 Emby 结果排序、跨语言标题匹配、Apply 对图片的实际影响未核。",
+      "minimalFix": "去掉 results[0]/年份不符首条兜底；无可靠匹配就拒绝并提示走普通识别；传入年份，要求精确标题/年份或可核实 ProviderId；若保留自动选择，应用前展示最终条目并确认。",
+      "acceptance": "无关+精确选精确；只有无关/年份全不符时 Apply/Refresh 数为 0；精确+年份相符成功；UI 应用前显示最终条目。",
+      "userDecision": "本轮无修复授权",
+      "fixCommit": null
+    },
+    {
+      "id": "R-038",
+      "key": "anibt-transfer-accepted-skipped",
+      "priority": "P2",
+      "status": "已确认（静态）；未修复；未复现",
+      "title": "accepted/skipped 被当作已完成，消息与全库扫描时机不准确",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+          "start": 146,
+          "end": 163
+        },
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+          "start": 189,
+          "end": 223
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotTransfer.cs",
+          "start": 185,
+          "end": 195
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotTransfer.cs",
+          "start": 360,
+          "end": 382
+        }
+      ],
+      "trigger": "MoviePilot 回执出现 accepted/skipped，或旧版本空成功信封走 legacyAccepted；预览仍可通过。",
+      "expected": "按每个文件实际状态显示；只有 completed（或确认目标已存在）才扫描。",
+      "actual": "CompleteReceipt 将 completed/accepted/skipped 都算 Success；TransferMessage 对 Success+Target 说“已重新整理到”；moved 按 Success 收集，accepted/skipped 也触发全库 Library/Refresh；扫描措辞宣称旧条目会被移除。",
+      "impact": "用户可能被告知文件已移动，实际只是已接收/已跳过；全库扫描可能过早或无必要；不删数据。",
+      "guards": "预览 CanSubmit；CompleteReceipt manual_review；扫描失败不改判整理失败；逐文件结果保留。没有按状态区分消息或扫描条件。",
+      "evidenceType": "固定源码因果链；测试只覆盖 completed 成功与扫描失败，缺 accepted/skipped 夹具。",
+      "notVerified": "真实 MP 版本返回哪些状态、Emby 扫描是否移除旧条目未核。",
+      "minimalFix": "按 State 生成逐文件消息；仅 completed 触发扫描；accepted 显示已接收待完成；skipped 不宣称移动/不扫描；扫描消息改为已请求、是否移除由服务器决定。",
+      "acceptance": "skipped 不扫描；accepted 不宣称已重新整理到；completed 才扫描；copy/link 不触发不必要扫描；扫描失败仍保留整理成功并提示手动扫描。",
+      "userDecision": "本轮无修复授权",
+      "fixCommit": null
+    },
+    {
+      "id": "R-039",
+      "key": "anibt-scrape-no-preview-confirmation",
+      "priority": "P2",
+      "status": "已确认（静态）；未修复；UI 静态审阅，未运行",
+      "title": "AniBT 重整确认框不展示实际预览，点击即预览并提交",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/AniBtScrapeDialog.xaml",
+          "start": 17,
+          "end": 38
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/AniBtScrapeViewModel.cs",
+          "start": 68,
+          "end": 80
+        },
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+          "start": 111,
+          "end": 145
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotTransfer.cs",
+          "start": 386,
+          "end": 406
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotReorganizeDialog.xaml.cs",
+          "start": 199,
+          "end": 214
+        }
+      ],
+      "trigger": "任何有 MP 原整理记录的 AniBT 重整；用户点击“重新整理”。",
+      "expected": "确认前列出实际源、目标、整理方式、旧目标清理影响，并要求核对。",
+      "actual": "弹窗只显示源文件名、当前 Emby 路径和通用警告；服务内部生成预览只用于 CanSubmit；点击后预览通过即 Claim/TransferSubmitAsync，没有第二次确认。",
+      "impact": "用户可能在不知道实际新目标路径和整理方式的情况下触发移动/清理；未观察实际损失。",
+      "guards": "通用警告；预览 CanSubmit；原历史快照/文件身份/软链接依赖提交前重核。保证不整理未预览文件，不保证用户看过预览内容。",
+      "evidenceType": "源码+UI 静态；未运行弹窗/截图；真实 MP 目标路径与清理结果未核。",
+      "notVerified": "真实 MoviePilot 目标路径与清理结果未核。",
+      "minimalFix": "先预览并展示实际行（源/目标/方式/旧目标），确认后提交；或两阶段预览/确认；不要一次点击预览后立即提交。",
+      "acceptance": "弹窗显示实际源/目标/方式和旧目标；取消预览不发 preview:false；确认后才提交；预览失败无写入；普通重整弹窗不回归。",
+      "userDecision": "本轮无修复授权",
+      "fixCommit": null
+    },
+    {
+      "id": "R-040",
+      "key": "aggregate-secondary-source-anibt-scrape-dead-entry",
+      "priority": "P3",
+      "status": "已确认（静态）；未修复；未运行菜单交互",
+      "title": "聚合模式非当前来源的 AniBT 识别入口可见但静默无效",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+          "start": 299,
+          "end": 309
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "start": 141,
+          "end": 185
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "start": 272,
+          "end": 274
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "start": 388,
+          "end": 390
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.AniBt.cs",
+          "start": 33,
+          "end": 36
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/AniBtScrapeViewModel.cs",
+          "start": 42,
+          "end": 51
+        }
+      ],
+      "trigger": "聚合模式至少两个账号在线；从次级来源打开搜索/库/详情；条目为动画；MP 可用；点击 AniBT 识别。",
+      "expected": "无法执行的来源隐藏入口，或支持该来源并正常工作。",
+      "actual": "ItemMenu 只按 MP 可用+动画类型加入口；Invoke 只查 IsAvailable；ShowAniBtScrapeAsync 要求 IsCurrent 并静默返回。入口出现但无对话框/提示/读取。",
+      "impact": "确定性死菜单项；聚合次级来源无法使用 AniBT 识别；无读取/下载/写入。",
+      "guards": "IsAvailable；迟到类型补查检查 IsAvailable/卡片状态；视图模型加载/提交 IsCurrent 守卫。只保证安全，不保证显隐一致。",
+      "evidenceType": "固定源码因果链；多来源探针证明次级来源卡片携带各自 Scope；未运行菜单交互。",
+      "notVerified": "聚合模式真实菜单渲染/点击；产品是否希望仅当前账号支持；不同宿主未逐个运行。",
+      "minimalFix": "若仅当前账号：把 scope.IsCurrent 作为入口能力传入 ItemMenu/ItemCommands，不添加入口；若要支持次级来源：外壳/VM 改用 IsAvailable 并保留身份/提交守卫（较大产品变更）。",
+      "acceptance": "两账号聚合夹具，次级来源动画菜单无静默死链；当前来源入口仍可用；无写请求。",
+      "userDecision": "本轮无修复授权",
+      "fixCommit": null
+    },
+    {
+      "id": "R-041",
+      "key": "missing-episodes-stale-search-entry",
+      "priority": "P3",
+      "status": "已确认（静态）；未修复；未做隔离运行复现",
+      "title": "缺集清单补查期间断线，仍显示旧搜索入口",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          "start": 1215,
+          "end": 1281
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MissingEpisodesDialog.xaml.cs",
+          "start": 39,
+          "end": 44
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MissingEpisodesDialog.xaml.cs",
+          "start": 56,
+          "end": 82
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MissingEpisodesDialog.xaml.cs",
+          "start": 109,
+          "end": 119
+        }
+      ],
+      "trigger": "打开剧/季遗漏集；进入时 MP 可用；补读详情/父剧期间 MP 断线；读取返回后清单仍构造；用户点击 MP/AniBT 搜索。",
+      "expected": "依赖 MP 的搜索入口隐藏，或点击时提示不可用。",
+      "actual": "connection 补读前捕获；AvailabilityChanged 在 dialog 构造后订阅；canSearch 仍为 true，按钮可见；点击关闭清单，最终检查因 MP 不可用直接返回，不打开窗口、无提示。",
+      "impact": "可见无效入口；清单关闭后无后续动作；无下载/提交路径。",
+      "guards": "会话可用/页面身份检查；订阅后的断线/换连接；关闭后的完整检查；搜索入口重查 Available。",
+      "evidenceType": "固定源码因果链；未做隔离运行。",
+      "notVerified": "真实 WinUI 中 AvailabilityChanged 时序、按钮实际可见性、点击视觉反馈。",
+      "minimalFix": "补读完成后构造前重算 canSearch = connection != null && Available && IsCurrentConnection(connection)；或提前订阅并记录已失效；点击不可用可提示。",
+      "acceptance": "假 MP 延迟读取，期间断线，清单搜索按钮不可见或清单不出现，点击不打开窗口；恢复后重新打开可用；无写请求。",
+      "userDecision": "本轮无修复授权",
+      "fixCommit": null
+    },
+    {
+      "id": "R-042",
+      "key": "anibt-identify-bypasses-cancontinue",
+      "priority": "P3",
+      "status": "部分成立（静态）；未修复；未复现",
+      "title": "Emby 识别分支未检查 canContinue，来源切换后仍可能写旧会话",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+          "start": 102,
+          "end": 145
+        },
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+          "start": 172,
+          "end": 188
+        },
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtService.cs",
+          "start": 202,
+          "end": 213
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/AniBtScrapeViewModel.cs",
+          "start": 68,
+          "end": 80
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "start": 25,
+          "end": 31
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 452,
+          "end": 463
+        }
+      ],
+      "trigger": "提交期间当前来源变化且旧来源仍可用（聚合模式；独立设置窗可切换来源）。identify-only 最直接；transfer 全部成功后 identify 仍会在最后 canContinue 检查后执行。",
+      "expected": "canContinue=false 后不再发出 Emby 写请求。",
+      "actual": "canContinue 只在读取循环、transfer 循环和扫描检查；准备 identify、Apply/Refresh 不检查。scope.ExecuteAsync 只在开始检查 IsAvailable 并链接 lifetime，不保证 IsCurrent。MoviePilotDialog 只监控 MP。",
+      "impact": "用户切走后仍可能写旧来源的 Emby 条目；client 仍绑定旧来源，不会写到另一服务器；静态确认，未复现。",
+      "guards": "非聚合切换会移除旧来源并取消 lifetime；启动前 IsCurrent；模态弹窗降低切换概率；MP 连接变化关闭弹窗。聚合/旧来源仍可用时不完整。",
+      "evidenceType": "固定源码；现有批量切换测试只覆盖 transfer 路径；无 identify-only/聚合测试。",
+      "notVerified": "真实 UI 模态期间通过独立设置窗切来源的可达性；聚合模式旧 scope 是否仍可用。",
+      "minimalFix": "准备 identify、Apply 前及 Apply 后检查 canContinue；把 Emby 服务器/账号/条目身份捕获进 plan 并在 Core 校验；或在来源变化时关闭弹窗。",
+      "acceptance": "identify-only canContinue=false 时 RemoteSearch/Apply/Refresh 数为 0；transfer 全成功后切来源 identify 不执行；聚合切换不写旧会话；非聚合取消行为不变。",
+      "userDecision": "本轮无修复授权",
+      "fixCommit": null
+    },
+    {
+      "id": "R-043",
+      "key": "anibt-episodekey-range-badge",
+      "priority": "P3",
+      "status": "已确认（静态）；未修复；未运行 UI",
+      "title": "episodeKey=3-4 的徽标显示“合集”，与筛选值不一致",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/AniBt/AniBtReleaseLabels.cs",
+          "start": 17,
+          "end": 29
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/AniBtResourceViewModel.cs",
+          "start": 43,
+          "end": 43
+        },
+        {
+          "path": "src/Momoka.Shell/Views/AniBtResourceBrowser.xaml",
+          "start": 75,
+          "end": 75
+        },
+        {
+          "path": "artifacts/code-review-stage12/public/AniBT-openapi-2026-10-22.yaml",
+          "start": 860,
+          "end": 880
+        }
+      ],
+      "trigger": "RSS 发布使用范围集号（规格示例 episodeKey=3-4）或特殊集号（如 SP1）。",
+      "expected": "徽标与筛选值表达同一集号语义。",
+      "actual": "EpisodeBadge(\"3-4\") 因非全数字返回“合集”；EpisodeChoice(\"3-4\") 返回“3-4”；行内大字只显示徽标，MetaLine 不含集号，筛选下拉显示 3-4。",
+      "impact": "仅显示混淆；不影响筛选/下载/写入。",
+      "guards": "EpisodeChoice 保留原值；徽标不参与下载/整理决策。",
+      "evidenceType": "源码+公开规格示例；未运行 UI。",
+      "notVerified": "部署版是否大量使用范围集号；真实 UI 呈现。",
+      "minimalFix": "徽标支持范围/特殊集号（3-4 显示 3-4，SP1 保持），或行内副标题显示原始 EpisodeChoice；合集只用于空集号/明确 batch。",
+      "acceptance": "3-4 徽标显示 3-4；空值/batch 显示合集；SP1 保持；筛选值、行内显示与下载对象一致。",
+      "userDecision": "本轮无修复授权",
+      "fixCommit": null
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "P12-EX-01",
+      "topic": "T1 主张“URL 拦截区分大小写，大写 HTTPS:// 不命中”",
+      "decision": "复核 FAIL，剔除",
+      "reason": "Contains(\"://\", Ordinal) 匹配的是“://”本身，HTTPS://host/... 同样命中并抛错；不是只拦小写。残余仅协议相对 //host/path?token=... 不含“://”，且 Emby 文件收集要求绝对路径、把 //host 当 UNC；无证据真实路径是这种形态，只作可选加固。"
+    },
+    {
+      "id": "P12-EX-02",
+      "topic": "AniBT 识别/重整会删除媒体文件",
+      "decision": "排除",
+      "reason": "识别路径只改元数据/图片；整理路径的 reorganize=true 可能清理旧目标文件，弹窗已有通用警告，但不把元数据替换写成媒体文件删除。"
+    },
+    {
+      "id": "P12-EX-03",
+      "topic": "单集 ParentId 被误当剧",
+      "decision": "排除",
+      "reason": "IdentifyTargetAsync 明确不使用单集 ParentId；只有季才用 ParentId 回溯剧；缺少 SeriesId 时拒绝。"
+    },
+    {
+      "id": "P12-EX-04",
+      "topic": "历史 ID 重复/多候选历史",
+      "decision": "排除",
+      "reason": "FindTransferHistoriesAsync 跨页查重；Candidates 按 ID 去重；SubmitAsync 再查重复 logid；SourceName 在多条历史时抛错。"
+    },
+    {
+      "id": "P12-EX-05",
+      "topic": "MoviePilot 连接代次可被 A→B→A 绕过",
+      "decision": "排除",
+      "reason": "CaptureAniBtConnection 带 stamp+Generation；CheckAniBtConnection 在关键读取后检查；旧计划失效，现有测试覆盖。"
+    },
+    {
+      "id": "P12-EX-06",
+      "topic": "每行候选可越出该文件 AniBT 结果",
+      "decision": "排除",
+      "reason": "choice.BgmId>0 且必须在该行 Match.Candidates 中按 AnimeId+BgmId 命中。"
+    },
+    {
+      "id": "P12-EX-07",
+      "topic": "写入前没有完整只读检查",
+      "decision": "排除",
+      "reason": "MP 预览与 Emby 识别候选均在 plan.Claim() 前完成；预览 CanSubmit 不通过不会写入。"
+    },
+    {
+      "id": "P12-EX-08",
+      "topic": "逐文件失败后继续提交/重发同一文件",
+      "decision": "排除",
+      "reason": "前一文件失败后其余文件不提交、保留已写回执；未发现把失败当成功或重发同一文件。"
+    },
+    {
+      "id": "P12-EX-09",
+      "topic": "T1 的 Retry-After 未送达界面应计为缺陷",
+      "decision": "不编号，低优先建议",
+      "reason": "客户端保存 RetryAfter，界面只显示“请稍后重试”，搜索框仍可立即再提交；属 UX/限流建议，未证明造成实际数据或身份问题。"
+    },
+    {
+      "id": "P12-EX-10",
+      "topic": "内层 anime.bgmId 可省略即确认缺陷",
+      "decision": "待验证（P3 兼容性建议）",
+      "reason": "AnimePublic.required 不含 bgmId；candidate-level bgmId 必填但允许 null；代码要求正数且 inner 相等，否则丢弃。部署版是否省略未验证；建议内层缺失回退 candidate-level，保留冲突防护。"
+    },
+    {
+      "id": "P12-EX-11",
+      "topic": "混合批次 identify/transfer 番剧不一致即确认缺陷",
+      "decision": "待验证/产品语义（P3）",
+      "reason": "只检查 identify 行之间同番剧，不比较 identify 与 transfer；用户可显式逐文件选不同番剧，可能是合理产品语义；无默认/常见路径证据。若产品规定一个 Emby 条目只能一部番剧，再加一致性校验。"
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "P12-COV-01",
+      "status": "未验证",
+      "topic": "真实 AniBT 部署版本",
+      "detail": "本地公开规格不等于部署版本；内层 bgmId 是否省略、真实 429 语义、episodeKey 范围出现频率均未核。"
+    },
+    {
+      "id": "P12-COV-02",
+      "status": "未验证",
+      "topic": "真实 Emby RemoteSearch/Apply/Refresh",
+      "detail": "结果排序、跨语言标题匹配、ReplaceAllImages/ReplaceThumbnailImages 的服务器语义、Refresh 是否移除旧条目未核。"
+    },
+    {
+      "id": "P12-COV-03",
+      "status": "未验证",
+      "topic": "真实 MoviePilot 回执",
+      "detail": "background:false 下 accepted/skipped/空成功信封的实际版本与字段类型；history/transfer 的 status/mode 语义。"
+    },
+    {
+      "id": "P12-COV-04",
+      "status": "未验证",
+      "topic": "聚合模式与 UI 可达性",
+      "detail": "主窗模态期间通过独立设置窗切来源的实际可达性；旧 scope 是否仍可用；聚合菜单、缺集弹窗、资源列表真实 UI 未运行。"
+    },
+    {
+      "id": "P12-COV-05",
+      "status": "未执行",
+      "topic": "新增故障回归",
+      "detail": "R-037～R-043 与 R-024 扩展均无新增故障回归；现有测试只锁定部分当前行为，不能证明真实服务。"
+    },
+    {
+      "id": "P12-COV-06",
+      "status": "未审/后续范围",
+      "topic": "完整生成绑定、窗口主题/尺寸、播放管线",
+      "detail": "本阶段定向链路审查，不是 866 份业务文件全量审计；完整视觉、窗口布局、真实播放留后续阶段。"
+    }
+  ],
+  "rootCauseExpansion": [
+    {
+      "id": "R-024",
+      "topic": "已确认写入 + 后续步骤失败被当成整体失败",
+      "extension": "AniBT/Emby Apply 成功 + Refresh 失败；不新增编号",
+      "reason": "阶段 9 R-024 已记录同类根因；阶段 10 Plex 有扩入先例。"
+    },
+    {
+      "id": "R-032",
+      "topic": "提交前只读失败误锁表单",
+      "extension": "AniBT 重整弹窗 _attempted 在预览前置真并锁表单；建议并入 R-032 修复范围",
+      "reason": "时间边界和用户影响同类；不重复编号。"
+    }
+  ],
+  "publicPrimaryEvidence": [
+    {
+      "title": "AniBT Open API",
+      "url": "https://wiki.anibt.net/openapi.yaml",
+      "localArtifact": "artifacts/code-review-stage12/public/AniBT-openapi-2026-10-22.yaml",
+      "retrievedAt": "2026-10-22T13:25:00+08:00",
+      "sha256": "EFA259707B0BEFB13BA82EDD7BCB3680106B8897B502967D7F0EDB16D752E0A7",
+      "bytes": 180210,
+      "note": "公开规格，不等于用户部署版本，不能证明真实服务行为；未联网复核。"
+    }
+  ],
+  "historicalTests": {
+    "phase": 2,
+    "executedAt": "2026-10-21T02:59:12+08:00",
+    "passed": 2072,
+    "failed": 0,
+    "skipped": 0,
+    "usedAsCurrentExecution": false,
+    "limitation": "仅旧历史背景，本轮不运行，不覆盖阶段 12 新问题。"
+  },
+  "executions": {
+    "productBuilds": 0,
+    "productTests": 0,
+    "applicationProbes": 0,
+    "selfChecks": 0,
+    "uiRuns": 0,
+    "realServerReads": 0,
+    "realServerWrites": 0,
+    "download": 0,
+    "subscription": 0,
+    "reorganization": 0,
+    "playback": 0,
+    "publication": 0,
+    "push": 0,
+    "network": 0
+  },
+  "systemContextCompression": {
+    "executed": false,
+    "policyFullRetained": true,
+    "summaryNotCompression": true
+  },
+  "nextPhase": {
+    "phase": 13,
+    "status": "暂停，未开始",
+    "reason": "用户要求完成阶段 12 后暂停，不进入 13 或修复。"
+  },
+  "limitations": "静态审查完成不等于产品修复、运行回归或发布交付；当前阶段后按用户要求暂停。"
+}
