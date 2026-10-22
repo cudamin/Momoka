@@ -1,0 +1,338 @@
+{
+  "phase": 14,
+  "title": "视频、HDR／杜比与shader链",
+  "startCommit": "a125551f69b7cd3491e31208d602d26f2d8182b9",
+  "summary": "新增R-049～R-052四项P2静态问题，准备失败上下文候选降待验证",
+  "counts": {
+    "stable": 52,
+    "static": 49,
+    "conditional": 2,
+    "suggestion": 1
+  },
+  "nextPhase": 15,
+  "findings": [
+    {
+      "id": "R-049",
+      "priority": "P2",
+      "title": "着色器总开关关闭后从属设置仍全部显示",
+      "anchors": [
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.Video.cs",
+          184,
+          201
+        ],
+        [
+          "src/Momoka.Core/Configuration/AppSettings.cs",
+          1155,
+          1177
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          1166,
+          1174
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingRow.cs",
+          30,
+          84
+        ]
+      ],
+      "trigger": "默认着色器关闭或同页关闭总开关；显卡档位、手动档位、动画识别、老片源修复、8K关闭从属仍在。",
+      "chain": "ShaderCard无条件构造所有行，Enabled没有after重建；Resolve在!Enabled处直接返回；通用行模板/ShowCategory只管说明和卡片分类，不能收起行。",
+      "protection": "画质预设与总开关独立，必须保留；不是因当前没在播放而隐藏偏好。自动识别动画原始关键词仍供deband判断，但该开关只控制自动shader分支，此处不可生效。",
+      "acceptance": "总关仅收从属整行及说明，保留预设/启用入口；同页开关、重入、导入/默认恢复测试隐藏及原值恢复；无真实控件截图证据。"
+    },
+    {
+      "id": "R-050",
+      "priority": "P2",
+      "title": "HDR转SDR时仍显示不参与下发的HDR输出峰值行",
+      "anchors": [
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.Video.cs",
+          132,
+          140
+        ],
+        [
+          "src/Momoka.Core/Mpv/HdrOptions.cs",
+          37,
+          60
+        ]
+      ],
+      "trigger": "HdrMode=tonemap（出厂默认），打开视频输出卡；HDR峰值仍可切手动编辑。",
+      "chain": "HdrCard恒构造峰值，HDR模式无after；Build仅hdr且非sdr时发target-peak。说明虽承认SDR不套用，但不能替代规则要求整行隐藏。",
+      "protection": "hdr-reference-white对SDR目标有作用，不应一并隐藏；模式选择与其余有效卡片保留，峰值隐藏不得清偏好。",
+      "acceptance": "按HdrMode隐藏HDR峰值行；tonemap→passthrough/auto→tonemap同页刷新并恢复旧手动数；补导入/重置和可选值视觉检查。"
+    },
+    {
+      "id": "R-051",
+      "priority": "P2",
+      "title": "旧切链事务可能在同句柄换片后捕获新原生代次",
+      "anchors": [
+        [
+          "src/Momoka.Core/Playback/PlaybackService.cs",
+          464,
+          498
+        ],
+        [
+          "src/Momoka.Core/Playback/LibMpvBackend.cs",
+          700,
+          723
+        ],
+        [
+          "src/Momoka.Core/Playback/LibMpvBackend.cs",
+          1218,
+          1229
+        ],
+        [
+          "src/Momoka.Core/Playback/LibMpvBackend.cs",
+          1505,
+          1509
+        ]
+      ],
+      "trigger": "内置独占切链与兼容同句柄换片并行；旧Current通过后、命令捕获原生generation前线程切走，新片Swap结束后旧命令才进入。",
+      "chain": "服务预期代次未传到执行点；CommandAsync捕获入口当前原生代次，Swap已NextGeneration并撤handedOver，则RunFor放行旧事务至少一笔写；后续服务代次检查拒绝提交/回滚无法撤回已落到新片的写。",
+      "protection": "_shaderGate只串切链不与Swap共锁；RunFor挡已捕获旧代次、handedOver挡交接期，但不挡捕获新代次间隙。限同句柄，未运行真实线程交错。",
+      "acceptance": "把事务预期文件代次传到原生命令执行点或统一原子所有权；确定性停在服务Current后完成Swap再放行，B收到旧写/回滚0次，旧事务不提交UI。"
+    },
+    {
+      "id": "R-052",
+      "priority": "P2",
+      "title": "固定全屏自动方案与Active尺寸watcher不一致吞掉换屏切链",
+      "anchors": [
+        [
+          "src/Momoka.Shell/ViewModels/PlayerViewModel.Mpv.cs",
+          348,
+          403
+        ],
+        [
+          "src/Momoka.Core/Playback/OutputWatch.cs",
+          139,
+          179
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/PlayerViewModel.Mpv.cs",
+          469,
+          488
+        ],
+        [
+          "src/Momoka.Core/Mpv/UpscaleTier.cs",
+          212,
+          240
+        ]
+      ],
+      "trigger": "自动shader开启未钉链，源1920×1080由2560×1440屏移到2880×1800屏；窗口实际输出保持2048×1152更能排除单纯回差。",
+      "chain": "新monitor方案按1.5无current分类Sweet，watcher按Active=1.067及旧tier返回SizeOnly；Judge先SizeOnly返回，实际链仍旧Slight；随后恢复自动直接用新Sweet方案，两个自动操作不一致。全屏1.5恰在回差边界也是另一条件。",
+      "protection": "回差本身是合法设计，不报告保留旧档本身错误；只确认两处分类口径分裂。明显越界和钉链已有防护，不声称实屏画质故障。",
+      "acceptance": "统一固定monitor方案与watcher采纳口径；覆盖窗口化同Active跨屏、全屏边界及恢复自动，最终相同且不额外重编译。"
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "P14-EX-01",
+      "status": "排除整档no-op",
+      "detail": "RAVU正常Sweet下界1.45>约1.414；ArtCNN微档1.05–1.3局部关闭并有scale收尾；SSSR只服务2倍之后，真人RAVU-Zoom已移除它。"
+    },
+    {
+      "id": "P14-EX-02",
+      "status": "前置一致",
+      "detail": "Descriptor自动加入SSimDownscaler三前置和hdeband deband=no；无WHEN文件只进入指定轴，未见配置冲突。"
+    },
+    {
+      "id": "P14-EX-03",
+      "status": "切链正常防护",
+      "detail": "目标文件/默认值/旧值预检、无损列表、shader最后写、反向回滚、未知标记、UI FIFO/出队自动方案/成功补交换屏均已有；不否定R-051执行点TOCTOU。"
+    },
+    {
+      "id": "P14-EX-04",
+      "status": "HDR规范正确",
+      "detail": "四nits整数夹取、contrast小数、target转SDR/ICC优先、元数据八组合已有测试；命令成功不证明HDR显示/FEL/GLSL运行。"
+    },
+    {
+      "id": "P14-COV-01",
+      "status": "待验证，不新增号",
+      "detail": "Prepare提前覆盖旧shader上下文/钉链/快照确定，但Stop会停旧片、新请求换attempt；缺正常UI可达且旧片继续的prepare后失败前件，独立复核PARTIAL。"
+    },
+    {
+      "id": "P14-COV-02",
+      "status": "契约待确认",
+      "detail": "自定义mpv.conf覆盖后，切链恢复仍用UI request基线；已确定差异，但临时恢复有意重设UI与否未有产品契约，不直接报缺陷。"
+    },
+    {
+      "id": "P14-COV-03",
+      "status": "待验证",
+      "detail": "旧shader flyout是否跨自动换片存活未运行；不能据点击时捕获代次直接确认错片。"
+    },
+    {
+      "id": "P14-COV-04",
+      "status": "测试缺口",
+      "detail": "现有源文件契约只首HOOK/首WHEN及有无尺寸；后续pass漂移夹具未覆盖，但本轮手读未见漂移。CfL smoothing门控关闭后的LUMA_LR绑定行为无原生证据，不将缺pass当编译失败。"
+    }
+  ],
+  "coverage": [
+    "主线程追保存/规范→HDR/视频输出→显示行和复位，复核两设置问题及两个并发/换屏候选；相关源码锚点分段重读。",
+    "Erdos完成shader档位/15文件指令及终端输出核对，未新增缺陷；权重正文/第三方漏洞未穷尽。Hubble完成切链/回滚，三候选中准备失败降待验证。Beauvoir独立反证PASS/PARTIAL/PASS，全部代理已关闭。",
+    "已读既有VideoOutput/ShaderTransaction/Playback相关测试，未restore/编译/执行。历史2072不计本轮证据；纯记录不构建/探针/发布。",
+    "官方固定7b8915bc1 options.rst和vf.rst落本树忽略目录，说明只支撑参数语义；本树DLL缺失，未核当前二进制版本/原生默认值，不声称真实HDR、杜比、外部画面、shader执行或多屏运行通过。",
+    "内置集成/独占契约与外部后端分别判断；固定产品866文件校验不变，原树和旧报告未改。"
+  ],
+  "handoff": "两路子审查及一独立复核完成，主线程核候选；只五份本轮文档检查后提交，不改源码/测试/资源，不运行UI/原生/真实库/播放/发布推送。",
+  "agents": [
+    {
+      "name": "Erdos",
+      "id": "01a163eb-fea1-71e0-b92b-4845f6b6c619",
+      "status": "完成，shader无新增缺陷",
+      "closed": true
+    },
+    {
+      "name": "Hubble",
+      "id": "01a163ec-4779-7aa0-aa28-b43f96eacc9d",
+      "status": "完成，三个候选逐项复核",
+      "closed": true
+    },
+    {
+      "name": "Beauvoir",
+      "id": "01a163ff-b737-7762-aa7f-c0b99870a676",
+      "status": "完成，PASS/PARTIAL/PASS",
+      "closed": true
+    }
+  ],
+  "publicSpec": [
+    {
+      "url": "https://raw.githubusercontent.com/mpv-player/mpv/7b8915bc1/DOCS/man/options.rst",
+      "fixedCommit": "7b8915bc1",
+      "path": "C:\\Users\\89400\\.codex\\worktrees\\staged-review-continue\\Momoka\\artifacts\\staged-review\\phase14\\mpv-7b8915bc1-options.rst",
+      "sha256": "520FA10A114769B1AAFBE925B9838D22F9FB5C42968DDD6B5828F08D8CA82648",
+      "claim": "文档语义，不代表本树DLL已实测"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/mpv-player/mpv/7b8915bc1/DOCS/man/vf.rst",
+      "fixedCommit": "7b8915bc1",
+      "path": "C:\\Users\\89400\\.codex\\worktrees\\staged-review-continue\\Momoka\\artifacts\\staged-review\\phase14\\mpv-7b8915bc1-vf.rst",
+      "sha256": "AAA4114B7EE07148B1E7DE51C457ECD795F7229F48488C33EC11E071BBE0BDA1",
+      "claim": "文档语义，不代表本树DLL已实测"
+    }
+  ],
+  "schemaVersion": 1,
+  "time": "2026-10-22",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "sourceAnchors": [
+    {
+      "id": "R-049",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.Video.cs",
+      "start": 184,
+      "end": 201,
+      "sha256": "093315A2D4555A2B09578AFE164ED4D1CB8747BAF519A05CFB9DF472836CFD02"
+    },
+    {
+      "id": "R-049",
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "start": 1155,
+      "end": 1177,
+      "sha256": "71411891EC098DAF4EA342D67DA8B8B7C9EEB136F04BD8C106DAA26AFDC31289"
+    },
+    {
+      "id": "R-049",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 1166,
+      "end": 1174,
+      "sha256": "3F70B4F419813182B00C64968A2BF105E875C698C777FB10CE5F658DBAB9BFA4"
+    },
+    {
+      "id": "R-049",
+      "path": "src/Momoka.Shell/ViewModels/SettingRow.cs",
+      "start": 30,
+      "end": 84,
+      "sha256": "085FDFEF27CF064217475DD7DB63D964CBA1FA84AA7117EB41FB748B7E5DC186"
+    },
+    {
+      "id": "R-050",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.Video.cs",
+      "start": 132,
+      "end": 140,
+      "sha256": "CB79F6389C141C1769593794AF2EBA9B0C0E32D75575334BA59F8ADC40098A58"
+    },
+    {
+      "id": "R-050",
+      "path": "src/Momoka.Core/Mpv/HdrOptions.cs",
+      "start": 37,
+      "end": 60,
+      "sha256": "718183BE1EE23E5CC1CA83A762B0AF0413CD245A162C58C16BC989C82CCD83B4"
+    },
+    {
+      "id": "R-051",
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "start": 464,
+      "end": 498,
+      "sha256": "30840094E28E1115B72824D5BF72187A3DD28E8B3671731EB9DD68B186DBE509"
+    },
+    {
+      "id": "R-051",
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "start": 700,
+      "end": 723,
+      "sha256": "8CEC9B96D3D8D40278B0D69DE73EF2BCA7F495118517DA6A55304DFA782EA5D2"
+    },
+    {
+      "id": "R-051",
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "start": 1218,
+      "end": 1229,
+      "sha256": "39A3283034B86884C860BD4B7C7BDA5DFCE1ABED0F0F698205294D7B1CEC28A9"
+    },
+    {
+      "id": "R-051",
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "start": 1505,
+      "end": 1509,
+      "sha256": "A95685C03A6A62BB0CD9FD7851061410396067C56CE806EB673CDB82A4E9539D"
+    },
+    {
+      "id": "R-052",
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Mpv.cs",
+      "start": 348,
+      "end": 403,
+      "sha256": "37E91DF57426F77F47288F84027D0A77F844D9E2FBAEEA16D78AA36CB2F3E2E6"
+    },
+    {
+      "id": "R-052",
+      "path": "src/Momoka.Core/Playback/OutputWatch.cs",
+      "start": 139,
+      "end": 179,
+      "sha256": "223B1A17D824DA7D7FA8269C6D5AF4E3297EEEDB0BDEA4EA3A168F38FF2E3C5A"
+    },
+    {
+      "id": "R-052",
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Mpv.cs",
+      "start": 469,
+      "end": 488,
+      "sha256": "1A1BA66BD5782345D29F0B7E5AC9A95B9B8A59D76390FA42FC3A4973272DFDE9"
+    },
+    {
+      "id": "R-052",
+      "path": "src/Momoka.Core/Mpv/UpscaleTier.cs",
+      "start": 212,
+      "end": 240,
+      "sha256": "C47D625637EA504EA3C65FDBCF05276CB920C007B09232E22F6764DD9B7395C1"
+    }
+  ],
+  "executions": {
+    "restore": 0,
+    "build": 0,
+    "productTests": 0,
+    "native": 0,
+    "appProbes": 0,
+    "screenshots": 0,
+    "realServerCalls": 0,
+    "playbackOrWrites": 0,
+    "publish": 0,
+    "push": 0
+  },
+  "contextCompression": {
+    "requested": true,
+    "performed": false,
+    "availableTool": false,
+    "checkpointSaved": true
+  }
+}
