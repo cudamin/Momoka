@@ -1,4 +1,5 @@
 using Momoka.Configuration;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Mpv;
 
@@ -51,6 +52,8 @@ public readonly record struct AutoTracks(MediaStream? Audio, SubtitleChoice Subt
 /// </summary>
 public static class TrackSelection
 {
+    private const string Category = "playback";
+
     /// <summary>The tracks <paramref name="source"/> should start with under <paramref name="settings"/>.</summary>
     public static AutoTracks Resolve(PlaybackSettings settings, MediaSource source)
     {
@@ -157,8 +160,10 @@ public static class TrackSelection
             rules = [.. KeywordFilter.WithExclusions(rules, "繁", "繁体")];
         }
 
-        // 优先级里点了简/繁中的一种（「我要那一种写法」），而这一批候选只能靠通用的「中文」进来。
+        // 优先级里点了简/繁中的一种（「我要那一种写法」）。
         var namesVariant = languages.Any(name => TrackLanguagePriority.Canonical(name) is "简体中文" or "繁体中文");
+
+        Dump(source);
 
         foreach (var language in languages)
         {
@@ -167,15 +172,25 @@ public static class TrackSelection
             var matches = pool.Where(stream => TrackPreference.LanguageMatches(stream, language, includeTitle: false)).ToList();
             if (matches.Count == 0) continue;
 
-            var ranked = KeywordFilter.Rank(matches, rules, TitleText).ToList();
+            // 点了简体中文时，标题写着「繁」的那几条在标题规则之前就让位 —— 用户的关键词是按一种写法敲进去的
+            // （「双语」匹配不到「雙語」），把它当成一条排在最后的候补规则不够用：「双语→候补」只压住了
+            // 简日双语，繁日雙語躲过这条反而排到前头（2026-10-22 用户报的那一条）。排除仍是软的：全都写着
+            // 繁体时照旧留用。
+            var candidates = matches;
+            if (namesSimplified)
+            {
+                var withoutTraditional = matches.Where(stream => !SaysTraditional(TitleText(stream))).ToList();
+                if (withoutTraditional.Count > 0) candidates = withoutTraditional;
+            }
 
-            // 点名的是一种写法、候选却是靠通用的「中文」进来的，而标题这一关又分不开：客户端手里没有任何证据
-            // 说哪条才是那一种，按库序猜只会猜中排在前面那条。这种时候把决定交给 mpv（不传 sid，只给 slang）
-            // —— 容器自己的语言标记（zh-Hans／zh-Hant）和 default 标记只有它看得见（2026-10-22 用户报：
-            // 简日双语与繁日双语两条 Emby 都只报 Chinese，默认播的是排在前面那条繁体）。
-            // 强制字幕模式例外：那里必须落在一条 forced 轨上。
+            var ranked = KeywordFilter.Rank(candidates, rules, TitleText).ToList();
+
+            // 分不开时把决定交给 mpv（不传 sid，只给 slang）：客户端手里只有 Emby 那份元数据，而容器里的
+            // 语言标记（zh-Hans／zh-Hant）与 default 标记只有 mpv 看得见。只对「点名了简/繁」的场合这么做：
+            // 没点名时按默认轨/库序取一条仍是用户要的语义，而「其他字幕」本来就是「随便哪条都行」。
+            // 强制字幕模式也除外：那里必须落在一条 forced 轨上。
             if (namesVariant && !forcedOnly && ranked.Count > 1
-                && TrackLanguagePriority.Canonical(language) == "中文") return SubtitleChoice.None;
+                && TrackLanguagePriority.Canonical(language) != TrackLanguagePriority.Any) return SubtitleChoice.None;
 
             return new SubtitleChoice(TrackPreference.Best(ranked, source.DefaultSubtitleStreamIndex, forcedOnly), false);
         }
@@ -192,4 +207,23 @@ public static class TrackSelection
     /// （见 <see cref="KeywordFilter"/>）。两条都是空的时候，这一关对这条轨什么也说不出来。
     /// </summary>
     private static string? TitleText(MediaStream stream) => stream.Title ?? stream.DisplayTitle;
+
+    /// <summary>标题里有没有「繁」这个字：繁体、繁體、繁中、繁日雙語都算。</summary>
+    private static bool SaysTraditional(string? text) =>
+        !string.IsNullOrEmpty(text) && text.Contains('繁');
+
+    /// <summary>
+    /// 把这一版文件的字幕流原样写进日志。Emby 那份元数据是选轨的唯一依据，而它丢标题、把两条中文都写成同一个
+    /// 粗粒度码是常有的事 —— 选错的时候，日志里得有原始读数可查，否则只能对着屏幕猜（2026-10-22）。
+    /// </summary>
+    private static void Dump(MediaSource source)
+    {
+        var subtitles = source.SubtitleStreams.ToList();
+        if (subtitles.Count == 0) return;
+
+        var lines = subtitles.Select(stream =>
+            $"[{stream.Index}] lang={stream.Language} display={stream.DisplayLanguage} title={stream.Title} " +
+            $"displayTitle={stream.DisplayTitle} default={stream.IsDefault} forced={stream.IsForced} external={stream.IsExternal}");
+        Log.Debug(Category, $"字幕候选（{subtitles.Count} 条）：{string.Join("；", lines)}");
+    }
 }

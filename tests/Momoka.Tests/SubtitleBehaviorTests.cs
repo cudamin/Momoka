@@ -195,6 +195,41 @@ internal static class SubtitleBehaviorTests
             Assert.Equal(2, TrackSelection.Resolve(settings, source).Subtitle.Stream?.Index);
         });
 
+        // 2026-10-22 用户报的那一条原样复现：两条都写着双语，用户的「双语 → 候补」只压住了简体的「简日双语」，
+        // 繁体的「繁日雙語」用「雙語」躲过这条规则，反而排到前面。点了简体中文，标题写着繁体的那条必须先让位。
+        Test("字幕选择：点了简体中文时，繁体标题那条不让「双语」规则把它顶上去", () =>
+        {
+            var traditional = Subtitle(1, "chi");
+            traditional.Title = "繁日雙語";
+            var simplified = Subtitle(2, "chi");
+            simplified.Title = "简日双语";
+            var source = Source(traditional, simplified);
+            var settings = new PlaybackSettings
+            {
+                SubtitleLanguages = ["简体中文", "中文"],
+                SubtitleTitleRules = [new("双语", TitlePreference.Exclude), new("特效", TitlePreference.Prefer)]
+            };
+
+            Assert.Equal(2, TrackSelection.Resolve(settings, source).Subtitle.Stream?.Index,
+                "「双语」匹配不到「雙語」，繁体不能因此躲过简繁这一关");
+
+            // 排除是软的：整个文件只有繁体那条时照旧给它。
+            var onlyTraditional = Source(traditional);
+            Assert.Equal(1, TrackSelection.Resolve(settings, onlyTraditional).Subtitle.Stream?.Index);
+        });
+
+        // Emby 有时把两条都写成同一个具体码（例如都写 zh-Hans），客户端据此分不开 —— 这时同样交给 mpv，
+        // 容器里的 zh-Hant 只有它看得见。
+        Test("字幕选择：Emby 把两条都写成 zh-Hans 时，分不开就交给 mpv", () =>
+        {
+            var source = Source(Subtitle(1, "zh-Hans"), Subtitle(2, "zh-Hans"));
+            var settings = new PlaybackSettings { SubtitleLanguages = ["简体中文", "中文"] };
+
+            var choice = TrackSelection.Resolve(settings, source).Subtitle;
+            Assert.Null(choice.Stream);
+            Assert.False(choice.Disabled, "交给 mpv 不是「明确不要字幕」");
+        });
+
         Test("字幕元数据未知：外语模式仍关闭已知母语的字幕，未知音轨仍交给内核", () =>
         {
             var settings = new PlaybackSettings { SubtitleMode = SubtitleMode.ForeignAudioOnly, SubtitleLanguages = ["中文"] };
