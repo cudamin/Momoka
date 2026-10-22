@@ -78,21 +78,12 @@ public sealed partial class PlaybackService
             // Kept outside PlayerOptions so changing window state does not break inline compatibility.
             var fullscreen = await ReplacementFullscreenAsync(operation).ConfigureAwait(false);
             ThrowIfSuperseded(operation);
-            var candidates = CandidateSources(ticket);
-            for (var index = 0; index < candidates.Count; index++)
-            {
-                var attempt = index == 0 ? ticket : ticket with
-                {
-                    Source = candidates[index],
-                    AudioStreamIndex = null,
-                    SubtitleStreamIndex = null
-                };
-                var result = await PlayOneAsync(scope, attempt, operation, fullscreen).ConfigureAwait(false);
-                if (!result.Exit.IsFailure || result.HasStarted || index == candidates.Count - 1) return result;
-                ThrowIfSuperseded(operation);
-                Log.Info(Category, $"《{attempt.Item.ToPlaybackTitle()}》这一版打不开，改试另一版（{index + 2}/{candidates.Count}）");
-            }
-            throw new InvalidOperationException("没有可用的播放候选");
+
+            // 只放用户点的那一版（2026-10-22 用户令：「怎么自动切换了，你要提示无法播放」）。这一版打不开
+            // 就把失败如实交回去 —— 换另一版是用户的决定，播放器替他换掉，屏上放的就不是他点的那份文件，
+            // 哪怕屏上有提示也不是他要的那件事。多版本的回退（2026-09-16 为「库里挂着文件已不在的那一版」
+            // 加的）就此退场。
+            return await PlayOneAsync(scope, ticket, operation, fullscreen).ConfigureAwait(false);
         }
         finally
         {

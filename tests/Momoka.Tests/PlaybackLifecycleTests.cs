@@ -347,18 +347,27 @@ internal static class PlaybackLifecycleTests
             Assert.DoesNotContain("已标记", result.ToChinese());
         });
 
-        Test("播放候选：无编号的不同源保留，其余编号也只尝试一次", () =>
+        Case("播放失败：这一版打不开就交回失败，不替用户换另一版", async () =>
         {
-            var first = Source(null);
-            var second = Source(null);
-            var known = Source("known");
-            var repeated = Source("known");
-            var item = new EmbyItem { Id = "item", MediaSources = [first, second, known, repeated, second] };
-            var candidates = PlaybackService.CandidateSources(new PlaybackTicket { Item = item, Source = first });
-            Assert.Equal(3, candidates.Count);
-            Assert.True(ReferenceEquals(first, candidates[0]));
-            Assert.True(ReferenceEquals(second, candidates[1]));
-            Assert.True(ReferenceEquals(known, candidates[2]));
+            // 2026-10-22 用户令：「怎么自动切换了，你要提示无法播放」。多版本条目上先试选中那版、打不开
+            // 再换另一版，屏上放的就不是用户点的那份文件 —— 现在只放这一版，失败如实交回。
+            using var fixture = new Fixture();
+            var chosen = Source("chosen");
+            var other = Source("other");
+            var item = new EmbyItem { Id = "multi", Name = "multi", Type = "Movie", MediaSources = [chosen, other] };
+            fixture.Backend.Next = (_, _) =>
+            {
+                var handle = new Handle();
+                handle.End(null, PlaybackEndReason.Error);
+                return Task.FromResult<IPlaybackHandle>(handle);
+            };
+
+            var result = await fixture.Service.PlayAsync(new PlaybackTicket { Item = item, Source = chosen }, None);
+
+            Assert.True(result.Exit.IsFailure, "打不开就是失败");
+            var starts = fixture.Backend.Starts.ToArray();
+            Assert.Equal(1, starts.Length, "只起播一次，不替用户试另一版");
+            Assert.Equal("chosen", starts[0].MediaSourceId);
         });
 
         Case("播放所有权：交接等待被取消仍释放遗留实例", async () =>

@@ -6,9 +6,10 @@ namespace Momoka.Playback;
 /// <summary>
 /// 播放中换版本（Emby 一个条目下挂几个文件：4K HDR、1080p、导演剪辑版……）的那几条判据。
 /// <para>
-/// 与 <see cref="PlaybackService.CandidateSources"/> 是同一件事的两面：那一条是「这一版打不开就自动换下一版」，
-/// 这一条是「用户点名要某一版」。两条都靠着同一个事实 —— 版本之间换的是<b>文件</b>，不是片子：续播位置照旧
-/// （「看到哪儿」与版本无关，这是换版重试那条路上早就写下的规矩），上报身份照旧（同一个条目 Id）。
+/// 换版永远是<b>用户点名</b>的那一下：菜单里点一行、视频窗发一条序号消息、详情页下拉换一行。播放器不替用户
+/// 换 —— 点的那一版打不开就如实报失败（<see cref="UnplayableNotice"/>），不去试另一版（2026-10-22 用户令：
+/// 「怎么自动切换了，你要提示无法播放」）。版本之间换的是<b>文件</b>，不是片子：续播位置照旧（「看到哪儿」
+/// 与版本无关），上报身份照旧（同一个条目 Id）。
 /// </para>
 /// <para>
 /// 全是纯函数，住在 Core 而不是播放页里。四条判据各有一种「不报错的错法」：位置从零开始（白丢观众看到的地方）、
@@ -54,24 +55,22 @@ public static class MediaVersionSwitch
     }
 
     /// <summary>
-    /// 用户点的那一版打不开、播放器自己换了另一版时，屏上该说的那句话；没换版时 null。
+    /// 这一版打不开时屏上该说的那句话；没有别的版本可选、说了也没用的时候是 null。
     /// <para>
-    /// 回退本身是设计（见 <see cref="PlaybackService.CandidateSources"/>）：服务器库里常挂着一版文件已经不在的
-    /// 媒体源，不换版就只剩黑屏。但**换版这件事必须说出来** —— 用户点的是 A，屏上放的是 B，中间一句话都没有，
-    /// 读起来就是「点了播放，它自己乱放」（2026-10-22 用户报：「1080p-Nekomoe kissaten 片源已删除……点击播放
-    /// 1080p-Nekomoe kissaten 后会自动播放 1080p.AAC-Nekomoe kissaten@LoliHouse」）。
+    /// 「播放失败」四个字在多版本条目上不够用：用户点的是其中一版，得知道是<b>这一份文件</b>放不了、
+    /// 还能换一版，而不是整个条目坏了（2026-10-22 用户令：「你要提示无法播放」）。名字取的是媒体源下拉
+    /// 里那一行（<see cref="ItemDetail.SourceLabel"/>），用户才对得上号。
     /// </para>
     /// <para>
-    /// 用的是下拉里那两个名字（<see cref="ItemDetail.SourceLabel"/>）：屏上认版靠的就是那两行字，换成文件名
-    /// 全路径或画质标签，用户对不上号。原因只说到「文件可能已删除」这一层 —— 后端给的错误码（mpv 的 -13）
-    /// 分不出「文件没了」和「网络没通」，再往下断就是编。
+    /// 原因只说到「文件可能已删除」这一层 —— 后端给的错误码（mpv 的 -13）分不出「文件没了」和「网络没通」，
+    /// 再往下断就是编。只有一个版本时不给这句话：没有另一版可换，说了等于让人去点一个不存在的按钮。
     /// </para>
     /// </summary>
-    public static string? FallbackNotice(MediaSource? requested, MediaSource? played)
+    public static string? UnplayableNotice(EmbyItem? item, MediaSource? source)
     {
-        if (requested is null || played is null || Same(requested, played)) return null;
+        if (item is null || source is null || item.MediaSources.Count < 2) return null;
 
-        return $"「{ItemDetail.SourceLabel(requested)}」打不开（文件可能已删除），已改播「{ItemDetail.SourceLabel(played)}」";
+        return $"「{ItemDetail.SourceLabel(source)}」无法播放（文件可能已删除），可在媒体源里换一版再试";
     }
 
     /// <summary>

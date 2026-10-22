@@ -100,16 +100,6 @@ public sealed partial class PlaybackService(
     public void NoteAudioDevice(string? description) => AudioDeviceInUse = description;
     public string? Validate() => backendFactory().Validate();
 
-    internal static IReadOnlyList<MediaSource> CandidateSources(PlaybackTicket ticket)
-    {
-        var sources = new List<MediaSource> { ticket.Source };
-        foreach (var source in ticket.Item.MediaSources)
-        {
-            if (!sources.Any(existing => MediaVersionSwitch.Same(existing, source))) sources.Add(source);
-        }
-        return sources;
-    }
-
     private async Task<string?> ResolveAudioDeviceAsync()
     {
         var stored = settings.Audio.Device.Trim();

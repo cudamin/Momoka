@@ -342,23 +342,16 @@ public sealed partial class PlayerViewModel
             // 只有最新那一场有资格说自己结束了。
             var newest = attempt == _playbackAttempt;
 
-            // 播放器替用户换了版就说一句（2026-10-22 用户报：「点击播放 1080p-Nekomoe kissaten 后会自动播放
-            // 1080p.AAC-Nekomoe kissaten@LoliHouse」）：服务器上挂着的那一版文件没了，回退让人还有得看，
-            // 但屏上换的是另一份文件，而详情页下拉里选着的那一行仍是原来那一版 —— 不说清楚，看起来就是
-            // 播放器自己乱放。只在真换成了、且这一场仍是最后一场时说，被新请求顶掉的那一场不报；
-            // 这一场自己失败时也不报（换片失败退回旧播放那种，PlayingSource 说的是上一场，不是这一场）。
-            if (newest && _startIntent.IsCurrent(intent) && !result.Exit.IsFailure && _playback.IsPlaying
-                && MediaVersionSwitch.FallbackNotice(ticket.Source, _playback.PlayingSource) is { } fellBack)
-            {
-                Noticed?.Invoke(fellBack, InfoBarSeverity.Warning);
-            }
-
             var following = newest && _startIntent.IsCurrent(intent) ? NextEpisodeToAutoPlay(result, detail) : null;
             if (newest && following is null)
             {
-                Noticed?.Invoke(
-                    result.ToChinese(),
-                    result.Exit.IsFailure ? InfoBarSeverity.Error : InfoBarSeverity.Success);
+                // 这一版打不开就说到点子上（2026-10-22 用户令：「你要提示无法播放」）：多版本条目上「播放失败」
+                // 四个字说的是这个条目，而坏的其实只是选中那一份文件 —— 说清是哪一版、还能换一版，用户才知道
+                // 下一步点哪里。单版本、或没有别的版本可选时照旧报原来的话。
+                var message = result.Exit.IsFailure
+                    ? MediaVersionSwitch.UnplayableNotice(detail, ticket.Source) ?? result.ToChinese()
+                    : result.ToChinese();
+                Noticed?.Invoke(message, result.Exit.IsFailure ? InfoBarSeverity.Error : InfoBarSeverity.Success);
             }
 
             // The item's watched flag and resume position have just changed on the server. 换到下一场那条路

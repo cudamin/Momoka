@@ -83,36 +83,37 @@ internal static class MediaVersionTests
             Assert.False(MediaVersionSwitch.ShouldSwitch(item, other, playing), "不在这个条目的版本表里就不换");
         });
 
-        // 自动换版是回退，不是用户的选择：屏上换了另一份文件，就得说清换成了哪一版，否则读起来
-        // 就是「点了播放，它自己乱放」（2026-10-22 用户报的那一条）。
-        Test("版本：自动换版时给出提示，说的是下拉里那两个名字", () =>
+        // 打不开就说「这一版放不了」，不替用户换版（2026-10-22 用户令：「怎么自动切换了，你要提示无法播放」）。
+        // 名字取媒体源下拉那一行；「换一版再试」只在真有另一版时说 —— 只有一个版本时那是句空头支票。
+        Test("版本：这一版打不开时说出是哪一版、还能换一版", () =>
         {
             var mp4 = new MediaSource { Id = "mediasource_13363", Name = "1080p-Nekomoe kissaten" };
             var mkv = new MediaSource { Id = "mediasource_13364", Name = "1080p.AAC-Nekomoe kissaten@LoliHouse" };
+            var item = new EmbyItem { MediaSources = [mp4, mkv] };
 
-            Assert.Equal(
-                "「1080p-Nekomoe kissaten」打不开（文件可能已删除），已改播「1080p.AAC-Nekomoe kissaten@LoliHouse」",
-                MediaVersionSwitch.FallbackNotice(mp4, mkv));
+            Assert.Equal("「1080p-Nekomoe kissaten」无法播放（文件可能已删除），可在媒体源里换一版再试",
+                MediaVersionSwitch.UnplayableNotice(item, mp4));
+            Assert.Equal("「1080p.AAC-Nekomoe kissaten@LoliHouse」无法播放（文件可能已删除），可在媒体源里换一版再试",
+                MediaVersionSwitch.UnplayableNotice(item, mkv));
 
-            // 没换版就不说话：同一份对象、同 id 的另一份对象都算同一版（判据同 Same）。
-            Assert.Null(MediaVersionSwitch.FallbackNotice(mp4, mp4), "同一版不提示");
-            Assert.Null(MediaVersionSwitch.FallbackNotice(mp4, new MediaSource { Id = "mediasource_13363" }),
-                "同 id 的另一份对象也是同一版");
-            Assert.Null(MediaVersionSwitch.FallbackNotice(mp4, null), "没放起来就不提示");
-            Assert.Null(MediaVersionSwitch.FallbackNotice(null, mkv), "不知道点的是哪一版就不提示");
-            Assert.Null(MediaVersionSwitch.FallbackNotice(null, null));
+            Assert.Null(MediaVersionSwitch.UnplayableNotice(item, null), "没有媒体源就没什么可说的");
+            Assert.Null(MediaVersionSwitch.UnplayableNotice(null, mp4), "没有条目就没什么可说的");
+            Assert.Null(MediaVersionSwitch.UnplayableNotice(new EmbyItem { MediaSources = [mp4] }, mp4),
+                "只有一版时不说「换一版」");
+            Assert.Null(MediaVersionSwitch.UnplayableNotice(new EmbyItem(), mp4), "条目没有媒体源表时也不说");
         });
 
-        // 名字取的是 SourceLabel 那一份（媒体源下拉同源）：没有 Name 的源退回文件名，
-        // 两个都空的源退回画质标签 —— 提示里不能出现一个用户认不出来的东西。
-        Test("版本：换版提示里的名字与媒体源下拉同源", () =>
+        // 名字取的是 SourceLabel 那一份（媒体源下拉同源）：没有 Name 的源退回文件名 ——
+        // 提示里不能出现一个用户认不出来的东西。
+        Test("版本：打不开那句话里的名字与媒体源下拉同源", () =>
         {
             var unnamed = new MediaSource { Id = "x", Path = "/media/剧集/第 3 集.mp4" };
-            var named = new MediaSource { Id = "y", Name = "4K HDR" };
+            var other = new MediaSource { Id = "y", Name = "4K HDR" };
+            var item = new EmbyItem { MediaSources = [unnamed, other] };
 
-            Assert.Equal("「第 3 集.mp4」打不开（文件可能已删除），已改播「4K HDR」",
-                MediaVersionSwitch.FallbackNotice(unnamed, named));
-            Assert.Equal(ItemDetail.SourceLabel(unnamed), "第 3 集.mp4");
+            Assert.Equal("「第 3 集.mp4」无法播放（文件可能已删除），可在媒体源里换一版再试",
+                MediaVersionSwitch.UnplayableNotice(item, unnamed));
+            Assert.Equal("第 3 集.mp4", ItemDetail.SourceLabel(unnamed));
         });
 
         // 视频窗那条消息给的是 1 起算的序号（与推送菜单时的次序对齐）；越界与垃圾不是「第一版」。

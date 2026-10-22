@@ -6192,8 +6192,10 @@ internal static class PlaybackTests
             }
         });
 
-        Test("备用媒体源：起播失败后重试仍保留明确关闭字幕", () =>
+        Test("多版本：这一版起播失败就交回失败，不再自动试另一版", () =>
         {
+            // 2026-10-22 用户令：「怎么自动切换了，你要提示无法播放」。备用源那条回退就此退场：
+            // 选中那版打不开就报失败，换不换另一版是用户自己的决定。
             var first = new PlaybackStubHandle();
             var second = new PlaybackStubHandle();
             var (service, session) = PlayingService(first, second);
@@ -6203,16 +6205,16 @@ internal static class PlaybackTests
             var b = SourceWith(Stream(0, "Video"), Stream(1, "Audio", language: "jpn"), Stream(2, "Subtitle", codec: "srt", language: "chi"));
             a.Id = "first";
             b.Id = "second";
-            var item = Item("离线备用源");
+            var item = Item("离线多版本");
             item.MediaSources = [a, b];
             var playing = service.PlayAsync(new PlaybackTicket { Item = item, Source = a, SubtitlesDisabled = true }, cancellation.Token);
             try
             {
                 first.Started.Task.WaitAsync(cancellation.Token).GetAwaiter().GetResult();
                 first.End(reason: PlaybackEndReason.Error);
-                second.Started.Task.WaitAsync(cancellation.Token).GetAwaiter().GetResult();
-                Assert.True(second.Request!.SubtitlesDisabled);
-                Assert.Null(second.Request.SubtitleId);
+                var result = playing.WaitAsync(cancellation.Token).GetAwaiter().GetResult();
+                Assert.True(result.Exit.IsFailure, "打不开就是失败，不换版");
+                Assert.False(second.Started.Task.IsCompleted, "另一版一次都没有起播");
             }
             finally
             {
@@ -6849,42 +6851,6 @@ internal static class PlaybackTests
         Test("双管线：渲染管线的装机默认是独占模式（2026-09-20 改，集成模式全屏切换有合成层追尺寸的卡顿）", () =>
         {
             Assert.Equal(VideoPipelineKind.Standalone, new MpvSettings().Pipeline);
-        });
-
-        Test("双管线：候选版本顺序——票里那版在前，其余版本按库序跟后", () =>
-        {
-            // 服务器库里的旧条目可能挂着文件已经不在的那一版（2026-09-16 的 401/404 报告），
-            // 回退按这张顺序表换版重试。票里的排最前（用户选的），其余按条目里的库序去重补齐。
-            var mkv = new MediaSource { Id = "mediasource_9990", Container = "mkv" };
-            var mp4 = new MediaSource { Id = "mediasource_9994", Container = "mp4" };
-            var item = Watchable(EmbyItemType.Episode);
-            item.MediaSources = [mkv, mp4];
-
-            var candidates = PlaybackService.CandidateSources(new PlaybackTicket
-            {
-                Item = item,
-                Source = mkv
-            });
-
-            Assert.Equal(2, candidates.Count);
-            Assert.Equal("mediasource_9990", candidates[0].Id, "票里那一版排最前");
-            Assert.Equal("mediasource_9994", candidates[1].Id, "其余版本按库序跟后");
-        });
-
-        Test("双管线：候选版本顺序——单版条目不重复，票外无候选", () =>
-        {
-            var only = new MediaSource { Id = "mediasource_7316", Container = "mkv" };
-            var item = Watchable(EmbyItemType.Episode);
-            item.MediaSources = [only];
-
-            var candidates = PlaybackService.CandidateSources(new PlaybackTicket
-            {
-                Item = item,
-                Source = only
-            });
-
-            Assert.Equal(1, candidates.Count, "唯一的版本就是全部候选，不因 Id 相同排两遍");
-            Assert.Equal("mediasource_7316", candidates[0].Id);
         });
     }
 
