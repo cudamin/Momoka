@@ -426,6 +426,9 @@ public sealed partial class PlayerPage : UserControl
 
         _ticker.Tick += OnTick;
 
+        // 心跳的看门狗（2026-10-22）：心跳停掉时页面自己说不出话，只有另一条线程上的它能留下证据。
+        StartWatchdog();
+
         // A flyout is where the pointer went, so the chrome must not read the stillness as disinterest.
         // 倍速那一颗 2026-09-25 起开的是轮盘（SpeedWheelFlyout），不是 MenuFlyout —— Opened/Closed 是
         // FlyoutBase 上的事件，四颗照旧一起挂牌。2026-09-27 晚右下角那颗「更多」按钮撤下后，它挂的
@@ -563,6 +566,7 @@ public sealed partial class PlayerPage : UserControl
         _presentationGeneration++;
         CancelWindowChange();
         _ticker.Stop();
+        StopWatchdog();
         EndWindowDrag();
         DropTapHold();
         StopSkipCountdown();
@@ -755,6 +759,9 @@ public sealed partial class PlayerPage : UserControl
         PlaceOverlays();
         SetPinned(ViewModel.PictureInHostWindow && ViewModel.SavedPinTopmost);
         _polledKnown = false;
+
+        // 心跳的参照点跟着这一次上台立起来：看门狗从这一刻开始计时，而不是从上一次上台（或者 0）。
+        NoteTick();
         _ticker.Start();
 
         // 起播开了自动全屏时「一上来就整屏」（用户令 2026-09-25）：不在小窗里淡入再跳全屏，直接整屏，

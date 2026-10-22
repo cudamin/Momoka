@@ -4857,6 +4857,46 @@ internal static class PlaybackTests
             chrome.Pointer(y: 950, height: 1000, ChromePart.None, railNear: -1, now + 40);
             Assert.Equal(new ChromeState(true, false, false), chrome.State, "指针在底部带里，进度条照位置回来");
         });
+
+        Test("播放器控件：真手移动只解纯净闸，不重盖空闲钟", () =>
+        {
+            // 2026-10-22：闸从前只认轮询的 HandStep 过线，而那条路住在 10Hz 心跳里 —— 心跳一停，
+            // 双击之后控件就再也出不来。播放页自己的 PointerMoved 也有一份过阈值的位移判据，
+            // 于是补了 Unsilence：只解闸，光标那笔账照旧只归轮询。
+            var chrome = Chrome(out var now);
+            chrome.Pointer(y: 500, height: 1000, ChromePart.None, railNear: -1, now);
+            chrome.Silence(now + 10);
+            Assert.True(chrome.Silenced);
+            Assert.Equal(new ChromeState(false, false, false), chrome.State, "指针在画面中间，本来就没有东西可露");
+
+            var later = now + 10 + ChromeReveal.CursorIdleMilliseconds;
+            Assert.True(chrome.Unsilence(later));
+            Assert.False(chrome.Silenced);
+
+            // 空闲钟没有跟着重盖：从 Silence 那一刻算起，一秒已经走满，光标本该藏着。
+            Assert.True(chrome.CursorHidden, "解闸不是「手动了」的另一种写法，光标照旧按原来的时刻藏");
+        });
+
+        Test("播放器控件：闸没压着时 Unsilence 什么都不做", () =>
+        {
+            var chrome = Chrome(out var now);
+            chrome.Pointer(y: 950, height: 1000, ChromePart.None, railNear: -1, now);
+            Assert.True(chrome.State.Bar);
+
+            Assert.False(chrome.Unsilence(now + 10), "没有闸可解就不该要求重画");
+            Assert.True(chrome.State.Bar, "位置那一份答案一个字没动");
+        });
+
+        Test("心跳看门狗：该跳的时候没跳才报", () =>
+        {
+            Assert.False(TickWatch.Stalled(now: 10_000, lastTickAt: 9_500, watching: true), "半秒没跳不算停");
+            Assert.True(TickWatch.Stalled(now: 13_000, lastTickAt: 10_000, watching: true), "三秒没跳就是停了");
+            Assert.False(TickWatch.Stalled(now: 99_000, lastTickAt: 10_000, watching: false),
+                "页面没挂上或不在台上，心跳本来就该停着");
+            Assert.False(TickWatch.Stalled(now: 99_000, lastTickAt: 0, watching: true), "参照点还没立起来不算停");
+            Assert.True(TickWatch.Stalled(now: 12_000, lastTickAt: 10_000, watching: true, limit: 2_000),
+                "阈值由调用方给，判据本身不认识那个数");
+        });
     }
 
     /// <summary>

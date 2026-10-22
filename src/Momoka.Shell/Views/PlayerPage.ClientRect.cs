@@ -331,7 +331,12 @@ public sealed partial class PlayerPage
                 // 「同帧」，声音还会跟着「断-续-断-续」。`Pending` 还立着就继续冻着。
                 // 静默锚在这里再推一次：mpv 把 `pause=false` 报回来还要一程，那一下同样不是用户按的
                 //（见 `PlayerPage.Muted` 与 `HandoffPulseMuteMilliseconds`）。
-                if (pause.Release(Current(), Pending(window)))
+                //
+                // **放开的判据是「片子还是那一部」，不是「这趟还算不算数」**（2026-10-22）：这趟切换
+                // 半路被作废（页面退场、now-playing 更新把交互版本顶掉）时，画面那一半确实不该再动，
+                // 可暂停是另一笔账 —— 冻过就得还，否则片子停在那里再没人放开。换片／停播才不还
+                //（`IsCurrentPlayback` 为假），因为那时的 `pause=no` 会落到别人头上。
+                if (pause.Release(Pending(window), ViewModel.IsCurrentPlayback(context)))
                 {
                     _handoffMutedAt = Now;
                     ViewModel.SetPaused(false);

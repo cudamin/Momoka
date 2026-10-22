@@ -672,6 +672,11 @@ public sealed class ChromeReveal
     /// 真手这一记同时是双击纯净闸的解锁键（2026-09-18）：轮询的 HandStep 过线是唯一一条
     /// 「与位置无关的手」证据，所以只有它有权解开 <see cref="Silence"/>；位置重报
     /// （<see cref="Pointer"/> 的 moved 与否、resize 的 <c>OnRootResized</c>）都无权。
+    /// <para>
+    /// <b>2026-10-22 起多了一个只解闸、不掀藏匿的出口 <see cref="Unsilence"/></b>：播放页自己那条
+    /// <c>PointerMoved</c> 也有一份过了阈值的位移判据（与这里同一把尺），心跳停掉时它是唯一还能解闸的路。
+    /// 「位置重报无权」这一条不变 —— 它进不了那道门。
+    /// </para>
     /// </remarks>
     public bool Moved(long now)
     {
@@ -755,8 +760,9 @@ public sealed class ChromeReveal
     /// 双击全屏／还原的「画面纯净」闸（2026-09-18，用户令「双击时不得呼出或显示任何 UI 控件」）。
     /// <para>
     /// <see cref="Silence"/> 把点画面那一路给的宽限（<see cref="WakeFully"/>）连同指针所在位置的显示理由
-    /// 一并收掉 —— 控件全部离屏，指针哪怕停在边缘带里也不构成显示，直到「真手再动」才解锁。解锁只认四条路：
-    /// 轮询 HandStep 过线走的 <see cref="Moved"/>（唯一的位置无关真相源）、刻意的 <see cref="WakeFully"/> /
+    /// 一并收掉 —— 控件全部离屏，指针哪怕停在边缘带里也不构成显示，直到「真手再动」才解锁。解锁只认五条路：
+    /// 轮询 HandStep 过线走的 <see cref="Moved"/>（唯一的位置无关真相源）、播放页自己那份位移判据走的
+    /// <see cref="Unsilence"/>（只解闸、不碰空闲钟与光标，2026-10-22 补）、刻意的 <see cref="WakeFully"/> /
     /// <see cref="FlashRail"/>、以及新一播放的 <see cref="Reset"/>。<b>窗口 resize 的 moved 重报不解闸</b> ——
     /// 进退全屏自己那一下就是一次 resize（<c>OnRootResized</c> → <c>Pointer(moved: true)</c>），解了闸控件
     /// 会在切换的同一拍被位置规则摆回来，正是这个闸要挡的事。
@@ -790,6 +796,30 @@ public sealed class ChromeReveal
         _forceUntil = 0;
         _railUntil = 0;
         _lastActivity = now;
+        return Settle(now);
+    }
+
+    /// <summary>
+    /// 真手动了一下：只解开双击纯净闸，别的一概不碰。
+    /// <para>
+    /// <see cref="Moved"/> 是轮询那条路的解锁键，可它顺带重盖空闲钟，而空闲钟一盖就会结束一次光标藏匿 ——
+    /// 所以那条路只许轮询走（XAML 的 <c>PointerMoved</c> 会为没动过的指针抬事件，见
+    /// <c>PlayerPage.OnPointerMoved</c>）。解闸不需要那笔账：闸问的只是「手到底动没动」，而播放页自己那份
+    /// 位移判据（<c>Moved(point, part)</c> 里的 <see cref="Travelled"/>）与轮询是同一把尺 —— 它够格解闸，
+    /// 却不够格掀掉藏匿。
+    /// </para>
+    /// <para>
+    /// 为什么非有它不可：闸原本只认轮询的 <see cref="HandStep"/> 过线，而那条路住在播放页 10Hz 的心跳里。
+    /// 心跳一停（2026-10-22 那晚的卡死），双击之后控件就再也出不来 —— 点画面、移鼠标全都没反应，屏上只剩
+    /// 一张静止的画面。
+    /// </para>
+    /// </summary>
+    /// <returns>True 表示闸本来压着、这一下解开了，调用方要画一遍。</returns>
+    public bool Unsilence(long now)
+    {
+        if (!_silenced) return false;
+
+        _silenced = false;
         return Settle(now);
     }
 

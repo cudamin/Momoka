@@ -95,6 +95,15 @@ public sealed partial class PlayerPage : IWin32KeySink
         // 不是「有没有动」的问题，事件带的位置正合适。
         if (!Moved(point, part)) return;
 
+        // 真手这一记也解双击纯净闸（2026-10-22）。上面那道判据与轮询同一把尺（ChromeReveal.Travelled），
+        // 所以它够格回答「手动了没有」；而它**不解藏匿、不重盖空闲钟** —— 那两笔仍旧只归轮询，见
+        // ChromeReveal.Unsilence 的注释。这条路的用处只有一个：心跳停掉时，双击之后控件还能被手叫回来。
+        if (_chrome.Silenced)
+        {
+            if (_cursorHidden) _woke = "真手移动（解纯净闸）";
+            if (_chrome.Unsilence(Now)) Render();
+        }
+
         // 第十一报续（2026-09-15，重构后的最后一个洞）：藏匿期这条路**不算移动**。
         //
         // 单传感器重构把「该不该藏」整个交给了 PollPointer 对 GetCursorPos 的读数，但这一条留了下来，

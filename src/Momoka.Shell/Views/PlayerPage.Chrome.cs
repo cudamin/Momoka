@@ -1792,6 +1792,9 @@ public sealed partial class PlayerPage
     {
         if (!Attached) return;
 
+        // 看门狗要的就是这一句：这一拍真的到了（见 PlayerPage.Watchdog）。
+        NoteTick();
+
         _tickCount++;
 
         // Eagerly, not on first use: the sharing has to cover every step below equally, and a lazy read
