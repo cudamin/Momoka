@@ -2,6 +2,14 @@
 
 最后更新：2026-10-22
 
+## 字幕：两条中文轨客户端分不开时交给 mpv（2026-10-22）
+
+- 用户报「为啥默认播放的是繁体字幕」（截图：简体中文 · 简日双语（默认）与 繁体中文 · 繁日双语，播放器选了繁体；设置里字幕语言优先级是「简体中文、中文」）。用户给的 MediaInfo：Text #3 标题 简日双语／Chinese (Simplified)／Default Yes，Text #4 繁日雙語／Chinese (Traditional)／Default No —— 容器本身说得很清楚。
+- 根因：Emby 这个条目的两条字幕流都只报 `Chinese (ASS)`（没有 Title），语言也只剩粗粒度码，于是「简体中文」一档两条都匹配不上，双双从通用的「中文」进来；标题这一关的隐式「繁」候补规则没有标题可匹配，两条并列；最后由 `TrackPreference.Best` 按默认轨／库序取了排在前面那条繁体。客户端手里确实没有能分辨简繁的证据，而它仍然猜了。
+- 修法：`TrackSelection.ChooseSubtitle` 在「优先级点了简体/繁体、候选是靠通用『中文』进来的、标题也分不开」时返回 `SubtitleChoice.None`（不传 sid，只给 slang），把这条决定交回 mpv —— 容器自己的 `zh-Hans`／`zh-Hant` 与 default 标记只有它看得见。强制字幕模式、以及没点简繁的场合仍走原来的默认轨规则；`BestByTitle` 拆成 `TitleText` 访问器（标题这一关现在只做排序）。
+- 测试：`SubtitleBehaviorTests` 新增两条（两条中文轨都只有 chi、没有标题时交给 mpv 且强制模式仍落 forced 轨；标题分得开简繁时仍由客户端定、不看库序）。Release 构建 Core＋测试与 Shell **0 警告 0 错误**，全量测试 **2074 通过、0 失败、0 跳过**。真实播放未验证（需授权，会改观看记录）：按容器标记，mpv 的 `slang` 首项 `zh-Hans` 应当落在简日双语那条。
+- 发布：`tools/publish.ps1 -NoArchive` 校验通过，刷新 `artifacts/publish/win-x64`（**540 文件、283.4 MB、11 GLSL／4 HOOK 逐文件校验通过**）。
+
 ## 播放失败不再自动换版，说清是哪一版打不开（2026-10-22）
 
 - 用户报：「1080p-Nekomoe kissaten 片源已删除只剩一个软链接，点击播放 1080p-Nekomoe kissaten 后会自动播放 1080p.AAC-Nekomoe kissaten@LoliHouse」。日志（`app-20261022.log` 17:48）实证：Emby 仍挂着两版（`2 版已按入库时间排好`），起播先试 `mediasource_13363`（mp4，文件已删，mpv -13），约 0.4 秒后按 2026-09-16 那条设计（`PlaybackService.CandidateSources`）回退到 `mediasource_13364`（mkv）并播成功，全程只写日志、屏上不说话。

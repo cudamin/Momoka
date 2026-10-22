@@ -43,6 +43,11 @@ public readonly record struct AutoTracks(MediaStream? Audio, SubtitleChoice Subt
 /// titles differ, and the index the client reports back to Emby has to be the track that is actually
 /// playing. mpv still receives the language lists as a second line of defence.
 /// </para>
+/// <para>
+/// 反过来也成立：客户端这边**分不开**两条时（Emby 既没给标题、又把两条都只标成 <c>chi</c>），决定交回 mpv
+/// —— 容器自己的语言标记（<c>zh-Hans</c>／<c>zh-Hant</c>）和 default 标记只有它看得见，按库序猜一条只会
+/// 猜中排在前面那条（2026-10-22）。
+/// </para>
 /// </summary>
 public static class TrackSelection
 {
@@ -145,11 +150,15 @@ public static class TrackSelection
 
         // 用户设的标题规则，外加隐式的那条：优先级里有简体中文时，自动把标题带「繁/繁体」的压成候补。这条策略
         // 留在这儿（字幕域），通用的合并动作交给 KeywordFilter.WithExclusions。
+        var namesSimplified = languages.Any(name => TrackLanguagePriority.Canonical(name) == "简体中文");
         var rules = settings.SubtitleTitleRules;
-        if (languages.Any(name => TrackLanguagePriority.Canonical(name) == "简体中文"))
+        if (namesSimplified)
         {
             rules = [.. KeywordFilter.WithExclusions(rules, "繁", "繁体")];
         }
+
+        // 优先级里点了简/繁中的一种（「我要那一种写法」），而这一批候选只能靠通用的「中文」进来。
+        var namesVariant = languages.Any(name => TrackLanguagePriority.Canonical(name) is "简体中文" or "繁体中文");
 
         foreach (var language in languages)
         {
@@ -157,7 +166,18 @@ public static class TrackSelection
             // 交给标题这一关，那才是「决定不要双语和特效」的地方。
             var matches = pool.Where(stream => TrackPreference.LanguageMatches(stream, language, includeTitle: false)).ToList();
             if (matches.Count == 0) continue;
-            return new SubtitleChoice(BestByTitle(matches, rules, source.DefaultSubtitleStreamIndex, forcedOnly), false);
+
+            var ranked = KeywordFilter.Rank(matches, rules, TitleText).ToList();
+
+            // 点名的是一种写法、候选却是靠通用的「中文」进来的，而标题这一关又分不开：客户端手里没有任何证据
+            // 说哪条才是那一种，按库序猜只会猜中排在前面那条。这种时候把决定交给 mpv（不传 sid，只给 slang）
+            // —— 容器自己的语言标记（zh-Hans／zh-Hant）和 default 标记只有它看得见（2026-10-22 用户报：
+            // 简日双语与繁日双语两条 Emby 都只报 Chinese，默认播的是排在前面那条繁体）。
+            // 强制字幕模式例外：那里必须落在一条 forced 轨上。
+            if (namesVariant && !forcedOnly && ranked.Count > 1
+                && TrackLanguagePriority.Canonical(language) == "中文") return SubtitleChoice.None;
+
+            return new SubtitleChoice(TrackPreference.Best(ranked, source.DefaultSubtitleStreamIndex, forcedOnly), false);
         }
 
         if (languages.Count > 0 && !settings.SubtitleFallbackToDefault) return SubtitleChoice.Off;
@@ -168,13 +188,8 @@ public static class TrackSelection
     }
 
     /// <summary>
-    /// 标题这一关：从同一语言（或兜底）选出的那批轨里，按标题规则的次序留下最合意的那些，再交给
-    /// <see cref="TrackPreference.Best"/> 按默认轨/强制标记定夺。规则从上往下比，第一条能区分两条轨的规则决定
-    /// 先后；比较用轨的 <c>Title</c>，没有就退到 <c>DisplayTitle</c> —— 和语言那一关分家（见 <see cref="KeywordFilter"/>）。
+    /// 标题这一关用的文本：轨的 <c>Title</c>，没有就退到 <c>DisplayTitle</c> —— 和语言那一关分家
+    /// （见 <see cref="KeywordFilter"/>）。两条都是空的时候，这一关对这条轨什么也说不出来。
     /// </summary>
-    private static MediaStream? BestByTitle(IReadOnlyList<MediaStream> pool, IReadOnlyList<KeywordRule>? rules, int? defaultIndex, bool forcedOnly)
-    {
-        var ranked = KeywordFilter.Rank(pool, rules, stream => stream.Title ?? stream.DisplayTitle);
-        return TrackPreference.Best(ranked.ToList(), defaultIndex, forcedOnly);
-    }
+    private static string? TitleText(MediaStream stream) => stream.Title ?? stream.DisplayTitle;
 }

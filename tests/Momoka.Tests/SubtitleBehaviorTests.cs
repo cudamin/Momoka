@@ -160,6 +160,41 @@ internal static class SubtitleBehaviorTests
             Assert.Equal(2, TrackSelection.Resolve(settings, source).Subtitle.Stream?.Index);
         });
 
+        // 2026-10-22 用户报：简日双语与繁日双语两条字幕，Emby 都只报 Chinese（没有标题），默认播的是排在前面
+        // 那条繁体。客户端手里两条都只标 chi、都没有标题，没有任何证据可依；容器里的 zh-Hans／zh-Hant 和
+        // default 标记只有 mpv 看得见 —— 于是不按库序猜，把这条决定交回 mpv（不传 sid，只给 slang）。
+        Test("字幕选择：两条中文轨都只有 chi、没有标题时不按库序猜，交给 mpv", () =>
+        {
+            var traditional = Subtitle(1, "chi");
+            traditional.DisplayTitle = "Chinese (ASS)";
+            var simplified = Subtitle(2, "chi");
+            simplified.DisplayTitle = "Chinese (ASS)";
+            var source = Source(traditional, simplified);
+            source.DefaultSubtitleStreamIndex = null;
+            var settings = new PlaybackSettings { SubtitleLanguages = ["简体中文", "中文"] };
+
+            var choice = TrackSelection.Resolve(settings, source).Subtitle;
+            Assert.Null(choice.Stream);
+            Assert.False(choice.Disabled, "交给 mpv 不是「明确不要字幕」");
+
+            // 强制字幕模式仍须落在一条 forced 轨上，那里不交给 mpv。
+            simplified.IsForced = true;
+            settings.SubtitleMode = SubtitleMode.ForcedOnly;
+            Assert.Equal(2, TrackSelection.Resolve(settings, source).Subtitle.Stream?.Index);
+        });
+
+        Test("字幕选择：标题分得开简繁时由客户端定，不看库序", () =>
+        {
+            var traditional = Subtitle(1, "chi");
+            traditional.Title = "繁体中文 · 繁日双语";
+            var simplified = Subtitle(2, "chi");
+            simplified.Title = "简体中文 · 简日双语";
+            var source = Source(traditional, simplified);
+            var settings = new PlaybackSettings { SubtitleLanguages = ["简体中文", "中文"] };
+
+            Assert.Equal(2, TrackSelection.Resolve(settings, source).Subtitle.Stream?.Index);
+        });
+
         Test("字幕元数据未知：外语模式仍关闭已知母语的字幕，未知音轨仍交给内核", () =>
         {
             var settings = new PlaybackSettings { SubtitleMode = SubtitleMode.ForeignAudioOnly, SubtitleLanguages = ["中文"] };
