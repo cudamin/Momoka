@@ -54,6 +54,27 @@ public static class MediaVersionSwitch
     }
 
     /// <summary>
+    /// 用户点的那一版打不开、播放器自己换了另一版时，屏上该说的那句话；没换版时 null。
+    /// <para>
+    /// 回退本身是设计（见 <see cref="PlaybackService.CandidateSources"/>）：服务器库里常挂着一版文件已经不在的
+    /// 媒体源，不换版就只剩黑屏。但**换版这件事必须说出来** —— 用户点的是 A，屏上放的是 B，中间一句话都没有，
+    /// 读起来就是「点了播放，它自己乱放」（2026-10-22 用户报：「1080p-Nekomoe kissaten 片源已删除……点击播放
+    /// 1080p-Nekomoe kissaten 后会自动播放 1080p.AAC-Nekomoe kissaten@LoliHouse」）。
+    /// </para>
+    /// <para>
+    /// 用的是下拉里那两个名字（<see cref="ItemDetail.SourceLabel"/>）：屏上认版靠的就是那两行字，换成文件名
+    /// 全路径或画质标签，用户对不上号。原因只说到「文件可能已删除」这一层 —— 后端给的错误码（mpv 的 -13）
+    /// 分不出「文件没了」和「网络没通」，再往下断就是编。
+    /// </para>
+    /// </summary>
+    public static string? FallbackNotice(MediaSource? requested, MediaSource? played)
+    {
+        if (requested is null || played is null || Same(requested, played)) return null;
+
+        return $"「{ItemDetail.SourceLabel(requested)}」打不开（文件可能已删除），已改播「{ItemDetail.SourceLabel(played)}」";
+    }
+
+    /// <summary>
     /// 换版之后新一版从哪一刻开始：手里这一刻的位置，问得出来就用它。
     /// <para>
     /// 问不出来时（mpv 还没报过位置、后端没有控制通道）退回条目自己的续播点 —— 起播时用的就是它，

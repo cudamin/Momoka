@@ -83,6 +83,38 @@ internal static class MediaVersionTests
             Assert.False(MediaVersionSwitch.ShouldSwitch(item, other, playing), "不在这个条目的版本表里就不换");
         });
 
+        // 自动换版是回退，不是用户的选择：屏上换了另一份文件，就得说清换成了哪一版，否则读起来
+        // 就是「点了播放，它自己乱放」（2026-10-22 用户报的那一条）。
+        Test("版本：自动换版时给出提示，说的是下拉里那两个名字", () =>
+        {
+            var mp4 = new MediaSource { Id = "mediasource_13363", Name = "1080p-Nekomoe kissaten" };
+            var mkv = new MediaSource { Id = "mediasource_13364", Name = "1080p.AAC-Nekomoe kissaten@LoliHouse" };
+
+            Assert.Equal(
+                "「1080p-Nekomoe kissaten」打不开（文件可能已删除），已改播「1080p.AAC-Nekomoe kissaten@LoliHouse」",
+                MediaVersionSwitch.FallbackNotice(mp4, mkv));
+
+            // 没换版就不说话：同一份对象、同 id 的另一份对象都算同一版（判据同 Same）。
+            Assert.Null(MediaVersionSwitch.FallbackNotice(mp4, mp4), "同一版不提示");
+            Assert.Null(MediaVersionSwitch.FallbackNotice(mp4, new MediaSource { Id = "mediasource_13363" }),
+                "同 id 的另一份对象也是同一版");
+            Assert.Null(MediaVersionSwitch.FallbackNotice(mp4, null), "没放起来就不提示");
+            Assert.Null(MediaVersionSwitch.FallbackNotice(null, mkv), "不知道点的是哪一版就不提示");
+            Assert.Null(MediaVersionSwitch.FallbackNotice(null, null));
+        });
+
+        // 名字取的是 SourceLabel 那一份（媒体源下拉同源）：没有 Name 的源退回文件名，
+        // 两个都空的源退回画质标签 —— 提示里不能出现一个用户认不出来的东西。
+        Test("版本：换版提示里的名字与媒体源下拉同源", () =>
+        {
+            var unnamed = new MediaSource { Id = "x", Path = "/media/剧集/第 3 集.mp4" };
+            var named = new MediaSource { Id = "y", Name = "4K HDR" };
+
+            Assert.Equal("「第 3 集.mp4」打不开（文件可能已删除），已改播「4K HDR」",
+                MediaVersionSwitch.FallbackNotice(unnamed, named));
+            Assert.Equal(ItemDetail.SourceLabel(unnamed), "第 3 集.mp4");
+        });
+
         // 视频窗那条消息给的是 1 起算的序号（与推送菜单时的次序对齐）；越界与垃圾不是「第一版」。
         Test("版本：1 起算的序号，越界是 null", () =>
         {
