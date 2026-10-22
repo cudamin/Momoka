@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "phase": 11,
+  "status": "通过（仅本轮文档与静态证据一致性）",
+  "executedAt": "2026-10-22T11:55:59.935+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "branch": "codex/staged-review-continue-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "7027a3f58afea8835967a58ea2bf10e2b61e352e",
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段11审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段11证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段11检查.json",
+    "PROGRESS.md"
+  ],
+  "checks": [
+    {
+      "name": "阶段11工作树、固定提交、规则与暂停授权",
+      "status": "通过",
+      "detail": {
+        "phase": 11,
+        "phaseStartCommit": "7027a3f58afea8835967a58ea2bf10e2b61e352e",
+        "nextPhase": "12暂停，未开始"
+      }
+    },
+    {
+      "name": "精确五记录且暂存区为空",
+      "status": "通过",
+      "detail": {
+        "changed": [
+          "PROGRESS.md",
+          "docs/代码审查-分阶段审查-2026-10-21.md"
+        ],
+        "added": [
+          "docs/代码审查-分阶段审查-2026-10-21.阶段11审查.md",
+          "docs/代码审查-分阶段审查-2026-10-21.阶段11检查.json",
+          "docs/代码审查-分阶段审查-2026-10-21.阶段11证据.json"
+        ]
+      }
+    },
+    {
+      "name": "五记录UTF8、LF、末尾换行与尾空白",
+      "status": "通过",
+      "detail": "五文件编码和行尾均合规"
+    },
+    {
+      "name": "本轮链接、源码绝对路径行号与旧正文保护",
+      "status": "通过",
+      "detail": {
+        "localLinks": 77,
+        "sourceLocations": 21,
+        "oldProgressUnchanged": true,
+        "oldIndexHistoryUnchanged": true
+      }
+    },
+    {
+      "name": "六问题稳定编号、字段、优先级与根因去重",
+      "status": "通过",
+      "detail": {
+        "findings": 6,
+        "p1": 1,
+        "p2": 5,
+        "rootExpansions": 0,
+        "cumulativeStableIds": 36
+      }
+    },
+    {
+      "name": "60主线程与代理声明行段哈希、范围和完成状态",
+      "status": "通过",
+      "detail": {
+        "mainReadFiles": 60,
+        "declaredAgentFiles": [
+          {
+            "name": "Galileo",
+            "count": 57
+          },
+          {
+            "name": "Pasteur",
+            "count": 30
+          }
+        ],
+        "completedAgents": 2,
+        "failedAttemptExcluded": true
+      }
+    },
+    {
+      "name": "856固定产品文件及历史阶段9/10记录字节保护",
+      "status": "通过",
+      "detail": {
+        "fixedFiles": 856,
+        "historicalRecordsProtected": 6
+      }
+    },
+    {
+      "name": "权威主规则、专项资料与本轮重启时间",
+      "status": "通过",
+      "detail": {
+        "authorityFiles": 10,
+        "mainPolicyFullyReread": true,
+        "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+        "reviewDate": "2026-10-22"
+      }
+    },
+    {
+      "name": "六问题关键源码锚点与防护边界",
+      "status": "通过",
+      "detail": {
+        "markers": 16,
+        "productInvocations": 0
+      }
+    },
+    {
+      "name": "官方固定版本证据、源码哈希和传输语义限定",
+      "status": "通过",
+      "detail": {
+        "officialSourceFiles": 4,
+        "moviePilotRef": "7aa5d613b8641b94624f8879ad9596dbcd4edffa",
+        "runtimeHashMatchesStored": true,
+        "notDeploymentVersion": true
+      }
+    },
+    {
+      "name": "主目录20保护文件与旧审查树外部删除未变化",
+      "status": "通过",
+      "detail": {
+        "protectedOriginFiles": 20,
+        "priorExternalDeletionUnchanged": true
+      }
+    },
+    {
+      "name": "无产品运行、旧测试限定与当前阶段暂停出口",
+      "status": "通过",
+      "detail": {
+        "productRuns": 0,
+        "realServerActions": 0,
+        "push": 0,
+        "publication": 0,
+        "next": "12未开始，暂停",
+        "systemContextCompression": false
+      }
+    },
+    {
+      "name": "Git diff --check",
+      "status": "通过",
+      "detail": "退出0"
+    }
+  ],
+  "observations": [],
+  "summary": {
+    "total": 13,
+    "passed": 13,
+    "failed": 0
+  },
+  "limitations": "仅文档与静态证据一致性检查；不运行产品/测试/应用探针/UI/真实服务"
+}
