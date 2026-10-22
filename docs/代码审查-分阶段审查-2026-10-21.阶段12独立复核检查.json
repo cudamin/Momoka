@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "phase": 12,
+  "kind": "独立复核内容检查",
+  "time": "2026-10-22T16:52:57.750478+08:00",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "startCommit": "0f56225edd7cc7a4c8b3798e732f08da33d583ee",
+  "checks": [
+    {
+      "name": "866固定产品文件逐字节保护",
+      "status": "通过",
+      "detail": {
+        "files": 866,
+        "changed": []
+      }
+    },
+    {
+      "name": "原审查、原证据及其他已跟踪文件保护",
+      "status": "通过",
+      "detail": {
+        "protected": 926,
+        "changed": []
+      }
+    },
+    {
+      "name": "UTF-8、LF、尾空白与本地链接",
+      "status": "通过",
+      "detail": {
+        "links": 116,
+        "problems": [],
+        "scope": "本轮新增内容／新增链接无错误；PROGRESS未改历史中的六处链接失败按起始提交确认，另列观察，不称为全文件链接通过。"
+      }
+    },
+    {
+      "name": "七项问题、根因与新增候选的源码锚点",
+      "status": "通过",
+      "detail": {
+        "problems": []
+      }
+    },
+    {
+      "name": "稳定号与结论计数一致",
+      "status": "通过",
+      "detail": {
+        "reviewedStableIds": 7,
+        "retainedStatic": 5,
+        "conditional": 1,
+        "adviceExcluded": 1,
+        "newStableIds": 0,
+        "cumulativeStableIds": 43,
+        "cumulativeStaticRecords": 40,
+        "cumulativeConditionalIds": [
+          "R-017",
+          "R-042"
+        ],
+        "cumulativeAdviceExcluded": [
+          "R-043"
+        ]
+      }
+    },
+    {
+      "name": "执行边界与压缩诚实性",
+      "status": "通过",
+      "detail": {
+        "executions": {
+          "productBuilds": 0,
+          "productTests": 0,
+          "probes": 0,
+          "ui": 0,
+          "realServerReads": 0,
+          "realServerWrites": 0,
+          "downloads": 0,
+          "playback": 0,
+          "publish": 0,
+          "push": 0,
+          "network": 0
+        },
+        "compression": {
+          "requested": true,
+          "callableToolAvailable": false,
+          "executed": false,
+          "handoffIsCompression": false,
+          "rereadPolicyAfterSystemCompression": true
+        }
+      }
+    },
+    {
+      "name": "修改仅属本轮文档集合",
+      "status": "通过",
+      "detail": [
+        "PROGRESS.md",
+        "docs/代码审查-分阶段审查-2026-10-21.md",
+        "docs/代码审查-分阶段审查-2026-10-21.阶段12独立复核.md",
+        "docs/代码审查-分阶段审查-2026-10-21.阶段12独立复核证据.json"
+      ]
+    },
+    {
+      "name": "Git diff --check",
+      "status": "通过",
+      "detail": ""
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "historicalLinkFailures": 6
+  },
+  "limitations": "只检查本轮文档与源码证据一致性，不证明产品运行；未运行构建测试UI或真实服务。",
+  "observations": [
+    {
+      "name": "历史PROGRESS链接失败（本轮未引入，未修复）",
+      "status": "已知失败，保留红项",
+      "evidence": "与起始提交0f56225相同，原历史内容逐字节保留；本轮检查只验新增链接。",
+      "items": [
+        {
+          "target": "src/EmbyNian.Shell/ViewModels/PlayerViewModel.Transport.cs",
+          "preexistingInStartCommit": true
+        },
+        {
+          "target": "src/EmbyNian.Shell/ViewModels/DetailViewModel.cs",
+          "preexistingInStartCommit": true
+        },
+        {
+          "target": "src/EmbyNian.Shell/ViewModels/PlayerViewModel.Transport.cs",
+          "preexistingInStartCommit": true
+        },
+        {
+          "target": "src/EmbyNian.Shell/ShellSelfCheck.Reads.cs",
+          "preexistingInStartCommit": true
+        },
+        {
+          "target": "artifacts/技能安装-2026-09-05.md",
+          "preexistingInStartCommit": true
+        },
+        {
+          "target": "音视频输出补齐-任务书.md",
+          "preexistingInStartCommit": true
+        }
+      ]
+    }
+  ]
+}
