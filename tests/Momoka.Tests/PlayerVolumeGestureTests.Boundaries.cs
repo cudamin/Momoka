@@ -69,6 +69,7 @@ internal static partial class PlayerVolumeGestureTests
         private readonly EmbySession _session;
         private readonly PlayerVolumeDispatcherProxy _dispatcher;
         private readonly List<Handle> _handles = [];
+        private readonly List<EmbySessionScope.Identity> _trackIdentities = [];
         internal FakeSettings Settings { get; } = new();
         internal Handle Handle { get; private set; }
         internal PlaybackService Service { get; }
@@ -101,6 +102,43 @@ internal static partial class PlayerVolumeGestureTests
         }
 
         private T Field<T>(string name) => (T)_shell.ViewModel.GetField(name, Members)!.GetValue(_vm)!;
+        internal IReadOnlyList<MpvTrack> Tracks => Field<IReadOnlyList<MpvTrack>>("<Tracks>k__BackingField");
+        internal Task PopulateTracks()
+        {
+            // GetTracksAsync requires an established non-ending attempt as well as a current handle.
+            // Construct only that in-memory ownership boundary, never the startup/report path.
+            var request = new PlaybackRequest { MediaUrl = new Uri("https://fixture.invalid/never-loaded"), Title = "fixture" };
+            var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");
+            var connection = new EmbyConnection(new Uri("https://fixture.invalid/emby/"), "placeholder", "fixture", "fixture", "fixture", device);
+            var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Members)!.GetValue(_session)!;
+            var identity = new EmbySessionScope.Identity(new EmbyClient(http, connection), new ServerProfile { Id = "fixture" }, new AccountProfile { Id = "fixture" });
+            _trackIdentities.Add(identity);
+            var scope = new EmbySessionScope(_session, identity);
+            var attempt = typeof(PlaybackService).GetNestedType("PlayingAttempt", BindingFlags.NonPublic)!;
+            var active = Activator.CreateInstance(attempt, Members, binder: null,
+                [Handle, request, Service.Generation, new PlaybackTrackState(new MediaSource(), request), scope], culture: null)!;
+            SetField(Service, "_active", active);
+            return (Task)_shell.Invoke(_vm, "PopulateTracksAsync", Field<int>("_generation"))!;
+        }
+        internal void NotifyTracks(IReadOnlyList<MpvTrack> tracks, long? generation = null) =>
+            _shell.Invoke(_vm, "OnTracksChanged", new PlaybackUpdate<IReadOnlyList<MpvTrack>>(generation ?? Service.Generation, tracks));
+        internal void QueueTracks(IReadOnlyList<MpvTrack> tracks, long? generation = null)
+        {
+            _dispatcher.HoldRuns = true;
+            try { NotifyTracks(tracks, generation); }
+            finally { _dispatcher.HoldRuns = false; }
+        }
+        internal void DeliverTracks()
+        {
+            Assert.True(_dispatcher.Deferred.TryDequeue(out var work), "必须先排入真实轨道通知 UI 回调");
+            work!();
+        }
+        internal void TrackFileBoundary(bool reuse)
+        {
+            Replace(reuse, actual: 37);
+            SetField(_vm, "_generation", Field<int>("_generation") + 1);
+            _shell.ViewModel.GetProperty("Tracks", Members)!.SetValue(_vm, Array.Empty<MpvTrack>());
+        }
         internal void Nudge(double step) => _shell.Invoke(_vm, "NudgeVolume", step);
         internal void SetVolume(double value) => _shell.ViewModel.GetProperty("Volume", Members)!.SetValue(_vm, value);
         internal void Status(PlayerStatus status)
@@ -145,6 +183,7 @@ internal static partial class PlayerVolumeGestureTests
         internal void CancelAndDropHandle()
         {
             SetField(Service, "_current", null);
+            SetField(Service, "_active", null);
             Field<CancellationTokenSource>("_lifetime").Cancel();
         }
         internal void Trace(string label) => Console.WriteLine($"  {label}: commands={Handle.CommandText}; kernel={Handle.Actual}; display={Volume}; saved={Settings.SavedText}");
@@ -153,6 +192,13 @@ internal static partial class PlayerVolumeGestureTests
             CancelAndDropHandle();
             foreach (var handle in _handles) handle.ReleaseAll();
             if (Field<Task?>("_volumeSaveTask") is { } saving) await saving.WaitAsync(TimeSpan.FromSeconds(10));
+            foreach (var identity in _trackIdentities)
+            {
+                identity.Lifetime.Cancel();
+                identity.Lifetime.Dispose();
+                identity.Reauthentication.Dispose();
+                identity.PasswordChanges.Dispose();
+            }
             _session.Dispose();
         }
     }
@@ -194,9 +240,24 @@ internal static partial class PlayerVolumeGestureTests
         internal TaskCompletionSource<bool> Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
+    private sealed class TrackReadGate
+    {
+        internal TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal TaskCompletionSource<IReadOnlyList<MpvTrack>> Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+
     private sealed class Handle : IPlaybackHandle, IPlayerControl
     {
         private ReadGate? _read;
+        private TrackReadGate? _trackRead;
+        private readonly List<TrackReadGate> _trackReads = [];
+        internal int TrackReads { get; private set; }
+        internal TrackReadGate HoldTracks()
+        {
+            _trackRead = new TrackReadGate();
+            _trackReads.Add(_trackRead);
+            return _trackRead;
+        }
         private CommandGate? _command;
         private readonly List<ReadGate> _reads = [];
         private readonly List<CommandGate> _commands = [];
@@ -212,6 +273,7 @@ internal static partial class PlayerVolumeGestureTests
         internal void ReleaseAll()
         {
             foreach (var read in _reads) read.Release.TrySetResult(null);
+            foreach (var read in _trackReads) read.Release.TrySetResult(Array.Empty<MpvTrack>());
             foreach (var command in _commands) command.Release.TrySetResult(false);
         }
         public bool HasControlChannel => Control;
@@ -247,7 +309,13 @@ internal static partial class PlayerVolumeGestureTests
         }
         public Task<double?> GetPositionAsync(CancellationToken cancellationToken) => throw new AssertionException("禁止其它播放读取");
         public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken) => throw new AssertionException("禁止其它播放读取");
-        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken) => throw new AssertionException("禁止音轨读取");
+        public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken)
+        {
+            var read = Interlocked.Exchange(ref _trackRead, null) ?? throw new AssertionException("只有轨道专项可读取受控假列表");
+            TrackReads++;
+            read.Entered.TrySetResult();
+            return read.Release.Task;
+        }
         public Task SetPropertyAsync(string name, object? value, CancellationToken cancellationToken) => throw new AssertionException("只允许音量命令");
         public Task ShowMessageAsync(string text) => throw new AssertionException("禁止通知或原生消息");
         public Task<PlaybackExit> WaitForExitAsync(CancellationToken cancellationToken) => throw new AssertionException("禁止监控播放");

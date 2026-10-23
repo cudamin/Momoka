@@ -31,6 +31,8 @@ internal static class Program
             SubtitleForcedOnlyTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["player-track-readback-fixture", var trackShell, var trackRoot])
+            return PlayerVolumeGestureTests.RunTracks(trackShell, trackRoot);
         if (args is ["player-volume-gesture-fixture", var volumeShell, var volumeRoot])
             return PlayerVolumeGestureTests.Run(volumeShell, volumeRoot);
         if (args is ["audio-output-fixture"])

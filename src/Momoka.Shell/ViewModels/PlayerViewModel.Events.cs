@@ -565,7 +565,9 @@ public sealed partial class PlayerViewModel
 
     private void OnTracksChanged(PlaybackUpdate<IReadOnlyList<MpvTrack>> update) => OnUi(() =>
     {
-        if (update.Generation == _playback.Generation && _playback.IsPlaying) Tracks = update.Value;
+        if (update.Generation != _playback.Generation || !_playback.IsPlaying) return;
+        _tracksRevision++;
+        Tracks = update.Value;
     });
 
     private void OnNowPlayingChanged(PlaybackUpdate<EmbyItem?> update) => OnUi(() =>
@@ -1238,8 +1240,12 @@ public sealed partial class PlayerViewModel
     /// </summary>
     private Task PopulateTracksAsync(int generation) => PollAsync(generation, false, async () =>
     {
+        var revision = _tracksRevision;
         var tracks = await _playback.GetTracksAsync().ConfigureAwait(true);
-        if (generation != _generation) return true;
+        if (generation != _generation || _lifetime.IsCancellationRequested || !_playback.IsPlaying) return true;
+        // A newer same-file notification (including an empty list) owns the cache. Stop this old
+        // poll rather than overwriting the picker or issuing another stale initial read.
+        if (revision != _tracksRevision) return true;
 
         if (tracks.Count == 0) return false;
 
