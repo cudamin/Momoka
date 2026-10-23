@@ -141,7 +141,14 @@ internal static partial class ItemCommands
         Action<CardItem>? removed = null,
         Action<CardItem>? watched = null)
     {
-        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched);
+        var invalidated = 0;
+        bool CanContinue() => Volatile.Read(ref invalidated) == 0;
+        void InvokeCurrent(ItemCommand command)
+        {
+            if (CanContinue()) Invoke(command, shell, owner, card, siblings, changed, removed, watched);
+        }
+        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue);
+        menu.Closed += (_, _) => Interlocked.Exchange(ref invalidated, 1);
 
         if (menu.Items.Any(item => item.Tag is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape))
         {
@@ -157,6 +164,39 @@ internal static partial class ItemCommands
             menu.Closed += (_, _) => shell.MoviePilotAvailabilityChanged -= AvailabilityChanged;
         }
 
+        // AniBT identification still belongs to the default management source, unlike independent searches.
+        // Keep an open menu from advertising a now-inapplicable action; reopening recomputes the rows.
+        if (shell.MoviePilotEnabled && card.Scope is { IsAvailable: true } menuScope
+            && Momoka.AniBt.AniBtEligibility.Supports(card.Item)
+            && ItemMenu.Supports(ItemCommand.AniBtScrape, menuScope.Connection.IsJellyfin, menuScope.Connection.IsFnNas, menuScope.Connection.IsPlex))
+        {
+            var currentAtBuild = menuScope.IsCurrent;
+            var open = false;
+            void SourcesChanged(object? sender, EventArgs args)
+            {
+                // Latch ownership loss at the notification, not after a queued A -> B -> A round trip.
+                if (!menuScope.IsAvailable || menuScope.IsCurrent != currentAtBuild)
+                    Interlocked.Exchange(ref invalidated, 1);
+                owner.DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (open && !CanContinue()) menu.Hide();
+                });
+            }
+            menu.Opened += (_, _) =>
+            {
+                // An earlier Opened handler may already have closed this one-use menu on disconnect.
+                if (!CanContinue()) return;
+                open = true;
+                session.SourcesChanged += SourcesChanged;
+                SourcesChanged(null, EventArgs.Empty);
+            };
+            menu.Closed += (_, _) =>
+            {
+                open = false;
+                session.SourcesChanged -= SourcesChanged;
+            };
+        }
+
         // 季、集的 Genres 常留在所属剧集上，菜单打开后只补查这一份元数据。
         // 不把父级类型塞回 EmbyItem，且关菜单、换账号或断线后不再插入迟到的行。
         if (shell.MoviePilotEnabled && card.Scope is { IsAvailable: true } scope &&
@@ -169,20 +209,21 @@ internal static partial class ItemCommands
             {
                 try
                 {
+                    if (!CanContinue()) return;
                     var eligible = await scope.ExecuteAsync((client, token) =>
                         Momoka.AniBt.AniBtEligibility.ResolveAsync(client, original, token), lifetime.Token);
-                    if (!eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
+                    if (!CanContinue() || !eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
                     var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
                     if (versions is not null)
                     {
-                        var plan = ItemMenu.For(original, true, animeGenre: true).Single(row => row.Command == ItemCommand.MoviePilotVersions);
-                        menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, command =>
-                            Invoke(command, shell, owner, card, siblings, changed, removed, watched));
+                        var plan = ItemMenu.For(original, true, animeGenre: true, aniBtScrapeAvailable: scope.IsCurrent)
+                            .Single(row => row.Command == ItemCommand.MoviePilotVersions);
+                        menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, InvokeCurrent);
                     }
                     var anchor = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotReorganize);
-                    if (anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
+                    if (scope.IsCurrent && anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
                         menu.Items.Insert(menu.Items.IndexOf(anchor) + 1, Entry("AniBT 识别", ItemCommand.AniBtScrape,
-                            () => Invoke(ItemCommand.AniBtScrape, shell, owner, card, siblings, changed, removed, watched)));
+                            () => InvokeCurrent(ItemCommand.AniBtScrape)));
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception error) { Log.Info("anibt", $"无法核对动画类型：{Failure.Describe(error)}"); }
@@ -209,13 +250,14 @@ internal static partial class ItemCommands
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
         Action<CardItem>? removed = null,
-        Action<CardItem>? watched = null)
+        Action<CardItem>? watched = null,
+        Func<bool>? canContinue = null)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
 
         foreach (var row in ItemMenu.For(card.Item, shell.MoviePilotEnabled,
             jellyfin: card.Scope?.Connection.IsJellyfin == true, fnNas: card.Scope?.Connection.IsFnNas == true,
-            plex: card.Scope?.Connection.IsPlex == true))
+            plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true))
         {
             if (row.Command is not { } command)
             {
@@ -224,7 +266,9 @@ internal static partial class ItemCommands
             }
 
             menu.Items.Add(BuildEntry(row, selected =>
-                Invoke(selected, shell, owner, card, siblings, changed, removed, watched)));
+            {
+                if (canContinue?.Invoke() != false) Invoke(selected, shell, owner, card, siblings, changed, removed, watched);
+            }));
         }
 
         return menu;
@@ -391,6 +435,7 @@ internal static partial class ItemCommands
                 break;
 
             case ItemCommand.AniBtScrape:
+                if (!scope.IsCurrent) return;
                 shell.ShowAniBtScrape(scope, item);
                 break;
 

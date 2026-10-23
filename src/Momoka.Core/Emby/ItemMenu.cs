@@ -135,8 +135,9 @@ public static class ItemMenu
     /// 用户在设置里开没开 MoviePilot。开了才给「在 MoviePilot 搜索其他版本」那一条 —— 没开就和从前一模一样，
     /// 免得点下去弹个连不上的窗口。默认关：全新装机没有 MoviePilot，测试里不点名这一项的也照旧只看基础菜单。
     /// </param>
+    /// <param name="aniBtScrapeAvailable">识别要求当前管理来源；独立版本搜索不受此限制，Shell 传本次来源能力。</param>
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
-        bool jellyfin = false, bool fnNas = false, bool plex = false) => fnNas
+        bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true) => fnNas
         ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
         // offered and then refused.
@@ -147,7 +148,7 @@ public static class ItemMenu
         MissingEpisodes(item),
         UserState(item, jellyfin),
         Organising(item, jellyfin),
-        MoviePilotBlock(item, moviePilotEnabled, animeGenre),
+        MoviePilotBlock(item, moviePilotEnabled, animeGenre, aniBtScrapeAvailable),
         Metadata(item, jellyfin),
         Navigation(item),
         Destructive(item, jellyfin));
@@ -296,7 +297,7 @@ public static class ItemMenu
     /// 表单，不是按下去就做完的事。
     /// </para>
     /// </summary>
-    private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre)
+    private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre, bool canScrape)
     {
         if (!enabled || !MoviePilotVersionQuery.Supports(item)) return [];
         List<ItemMenuEntry> rows = [new(ItemCommand.MoviePilotVersions, "搜索其他版本"), new(ItemCommand.MoviePilotReorganize, "手动整理…")];
@@ -304,7 +305,7 @@ public static class ItemMenu
         {
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
                 [new(ItemCommand.MoviePilotVersions, "使用 MoviePilot"), new(ItemCommand.AniBtVersions, "使用 AniBT API 搜索")]);
-            rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
+            if (canScrape) rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         }
         return rows;
     }

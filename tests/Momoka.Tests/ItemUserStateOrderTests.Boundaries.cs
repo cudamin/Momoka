@@ -23,6 +23,18 @@ namespace Microsoft.UI.Xaml
     public class FrameworkElement
     {
         public object? DataContext { get; set; }
+        public FixtureDispatcherQueue DispatcherQueue { get; } = new();
+    }
+    public sealed class FixtureDispatcherQueue
+    {
+        // Only the UI scheduling endpoint: tests may hold a callback instead of creating WinUI.
+        public Func<Action, bool>? EnqueueForFixture { get; set; }
+        public bool TryEnqueue(Action callback)
+        {
+            if (EnqueueForFixture is { } enqueue) return enqueue(callback);
+            callback();
+            return true;
+        }
     }
     public sealed class RoutedEventArgs : EventArgs;
 }
@@ -80,7 +92,10 @@ namespace Microsoft.UI.Xaml.Controls
     }
     public class MenuFlyoutItemBase
     {
-        public object? Tag { get; set; }
+        public bool IsEnabled { get; set; } = true;
+        // WinUI metadata is null-oblivious here; mirror that signature for verbatim MenuRead.
+        [System.Diagnostics.CodeAnalysis.AllowNull]
+        public object Tag { get; set; } = null!;
     }
     public sealed class MenuFlyoutSeparator : MenuFlyoutItemBase;
     public sealed class MenuFlyoutItem : MenuFlyoutItemBase
@@ -102,8 +117,21 @@ namespace Microsoft.UI.Xaml.Controls
         public List<MenuFlyoutItemBase> Items { get; } = [];
         public event EventHandler? Opened;
         public event EventHandler? Closed;
-        public void Hide() => Closed?.Invoke(this, EventArgs.Empty);
-        public void ShowAt(FrameworkElement owner) => Opened?.Invoke(this, EventArgs.Empty);
+        public static Action<MenuFlyout>? ShownForFixture { get; set; }
+        public bool OpenForFixture { get; private set; }
+        public int HideCountForFixture { get; private set; }
+        public void Hide()
+        {
+            HideCountForFixture++;
+            OpenForFixture = false;
+            Closed?.Invoke(this, EventArgs.Empty);
+        }
+        public void ShowAt(FrameworkElement owner)
+        {
+            OpenForFixture = true;
+            ShownForFixture?.Invoke(this);
+            Opened?.Invoke(this, EventArgs.Empty);
+        }
         public void ShowAt(FrameworkElement owner, Controls.Primitives.FlyoutShowOptions options) => ShowAt(owner);
     }
 }

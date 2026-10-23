@@ -43,6 +43,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DetailDeleteCommandT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SubtitleDialogTests", "tests\Momoka.SubtitleDialogTests\Momoka.SubtitleDialogTests.csproj", "{56DFBC30-C535-4E02-B30B-11B0F735D694}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.AniBtEntryTests", "tests\Momoka.AniBtEntryTests\Momoka.AniBtEntryTests.csproj", "{4EBFFB87-F6DD-4E65-A2F4-7E2750AD057C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -124,8 +126,13 @@ Global
 		{56DFBC30-C535-4E02-B30B-11B0F735D694}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{56DFBC30-C535-4E02-B30B-11B0F735D694}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{56DFBC30-C535-4E02-B30B-11B0F735D694}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4EBFFB87-F6DD-4E65-A2F4-7E2750AD057C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4EBFFB87-F6DD-4E65-A2F4-7E2750AD057C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4EBFFB87-F6DD-4E65-A2F4-7E2750AD057C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4EBFFB87-F6DD-4E65-A2F4-7E2750AD057C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{4EBFFB87-F6DD-4E65-A2F4-7E2750AD057C} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{56DFBC30-C535-4E02-B30B-11B0F735D694} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{79DAE0E4-AF84-443E-9B76-C2D5D2D628E7} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{640E78C3-ECCD-4B86-9E36-547312842A71} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

@@ -1,3 +1,8 @@
+## 第五组 R-040 主树次级来源入口与旧菜单失效（2026-10-24，继续）
+
+- 当前来源才加AniBT识别，次级仍保MP/AniBT独立搜索，Build/迟Genre/Invoke和Home.MenuRead一致。主线程初20项12过8败→20绿；侧线抓A→B→A排队漏网实际32项29过3败→即时失效latch+旧click/GET共守→32全绿，复核闭环无新保留。最终当前19项目方案Core/夹具/x64ShellRelease零警告错误；order66/Plex67/page98/fold51全绿，当前Core2549全过不相加。solutionRelease/x64空白1fixture7初始化定点修后0修改/退出0无加载失败，20PS/定位零缺句柄/UTF8LF链接哈希检查过；证据batch05/r040与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计52稳定号／余21；R041源ddb0aaf5已完成clean待限定整合重验，原代理关闭；R045 Volta与R051 Euler独立默认代理继续。来源失效整个菜单收起/切回须重开，不扩secondary写权；未真实UI/窗口/dispatcher时延/配置凭据DPAPI/服务器/native/播放/发布推送，快捷方式旧版，非完整交付。不自动暂停、受限链不重试。
+
 ## 第五组51号当前离线统一重验（2026-10-24，继续）
 
 - c94bd18当前方案18项目Release零警告错误；28个离线runner独立退出0、失败0／跳过0，完整Core2549全过，实际删除命令当前源／DLL构建证明及全部专项见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。不累加重复用例/请求/断言。全方案空白初查3早期fixture格式红保留，仅11处换行定点修、去空白文本同HEAD；当前Tests重编译和完整Core2549再次全过，最终solutionRelease/x64空白0修改/退出0无加载失败。20PS编码语法过，维护13/假shader发布23/smoke14过；定位432交互/312可达/零缺句柄，模板UIA未验。证据batch05/final51与evidence-summary.json。
