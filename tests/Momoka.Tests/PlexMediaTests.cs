@@ -17,10 +17,11 @@ namespace Momoka.Tests;
 /// a Plex server answers this way. See <c>docs/Plex支持.md</c> for that boundary.
 /// </para>
 /// </summary>
-internal static class PlexMediaTests
+internal static partial class PlexMediaTests
 {
     public static void Register()
     {
+        RegisterLibraries();
         Test("Plex 媒体：登录、媒体库命名和令牌失效后同身份恢复", () =>
         {
             using var fixture = new Fixture();
