@@ -3358,6 +3358,26 @@ internal static class PlaybackTests
             Assert.False(sections[0].Certain, "章节长度只是推测");
         });
 
+        Test("跳过：有名字但不认识的章节不按长度推测成片头", () =>
+        {
+            // 实际片源：Avant（冷开场）0–90s，Opening 90–183s。冷开场也是 90 秒，以前会被
+            // 位置规则当成片头，再与 Opening 合并成 0–183s —— 播到 28 秒就弹「跳过片头」，
+            // 按下去连冷开场一起丢掉。
+            var sections = SkipSectionPlanner.Resolve(Episode(
+                Chapter(0, "Avant"),
+                Chapter(90, "Opening"),
+                Chapter(183, "正片"),
+                Chapter(1400, "片尾")));
+
+            Assert.Equal(2, sections.Count);
+            Assert.Equal(SkipSectionKind.Opening, sections[0].Kind);
+            Assert.Equal(90, sections[0].Start, "冷开场不是片头，0–90 秒不该被吞进去");
+            Assert.Equal(183, sections[0].End);
+            Assert.True(sections[0].Certain, "「Opening」是章节名给出的，不是推测");
+            Assert.False(sections[0].Covers(28), "冷开场里不该弹出跳过片头");
+            Assert.Equal(1400, sections[1].Start);
+        });
+
         Test("跳过：无名章节的长度必须落在 80–100 秒", () =>
         {
             Assert.Equal(0, SkipSectionPlanner.Resolve(Episode(Chapter(0), Chapter(420), Chapter(1200))).Count);

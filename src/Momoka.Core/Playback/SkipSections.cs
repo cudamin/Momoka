@@ -58,8 +58,8 @@ public readonly record struct SkipSection(
 /// <para>
 /// Modelled on chapterskip.lua from the mpv config this client is built around, down to its numbers:
 /// nothing at all for a file of 200 seconds or less or with a single chapter, chapter titles matched
-/// against a category table first, and — only for chapters at either end of the list, running 80 to
-/// 100 seconds, inside the first 200 or last 300 seconds — a positional guess. That is why an
+/// against a category table first, and — only for unnamed chapters at either end of the list, running
+/// 80 to 100 seconds, inside the first 200 or last 300 seconds — a positional guess. That is why an
 /// unnamed 90-second chapter is taken for a title sequence while an unnamed 4-minute one is not.
 /// </para>
 /// <para>
@@ -140,8 +140,9 @@ public static class SkipSectionPlanner
             var end = index + 1 < chapters.Count ? chapters[index + 1].Start : duration;
             if (start < 0 || end <= start) continue;
 
-            var section = FromTitle(chapters[index].Title, start, end, duration)
-                          ?? FromPosition(index, chapters.Count, start, end, duration);
+            var title = chapters[index].Title;
+            var section = FromTitle(title, start, end, duration)
+                          ?? FromPosition(index, chapters.Count, title, start, end, duration);
 
             if (section is { } match) found.Add(match);
         }
@@ -171,9 +172,17 @@ public static class SkipSectionPlanner
     /// A chapter with no name in the one place, and of the one length, that an opening or an ending
     /// can be. Applied to films as well as episodes, as in the reference: a 90-second chapter that
     /// starts a film is its title sequence and one that ends it is its credit roll.
+    /// <para>
+    /// A name that merely missed the category table still says the chapter is something else: an
+    /// 80–100 second 「Avant」 is a cold open, and inferring titles from its length would merge it
+    /// into the 「Opening」 after it — the offer then stood at the top of the episode and threw the
+    /// cold open away along with the titles.
+    /// </para>
     /// </summary>
-    private static SkipSection? FromPosition(int index, int count, double start, double end, double duration)
+    private static SkipSection? FromPosition(int index, int count, string? title, double start, double end, double duration)
     {
+        if (!string.IsNullOrWhiteSpace(title)) return null;
+
         var length = end - start;
         if (length < InferredShortest || length > InferredLongest) return null;
 
