@@ -144,7 +144,7 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
         plan.Claim();
         var outcomes = new AniBtScrapeResult[plan.Rows.Count];
-        var moved = new List<int>();
+        var scanAffected = new List<int>();
         var stopped = false;
         foreach (var (index, transfer, preview) in transfers)
         {
@@ -159,8 +159,15 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 if (canContinue?.Invoke() == false) throw new OperationCanceledException("任务所属的媒体库身份已改变");
                 var result = await moviePilot.TransferSubmitAsync(preview, background: false, cancellationToken)
                     .ConfigureAwait(false);
-                outcomes[index] = new(row.TargetPath, result.Success, TransferMessage(result));
-                if (result.Success) moved.Add(index);
+                // Success 保留「请求已处理」的原契约；accepted/skipped 不等于文件完成，也不能因此停发后续项。
+                var message = TransferMessage(result);
+                var scanReason = TransferScanReason(result, preview);
+                if (scanReason.Length > 0)
+                {
+                    message += "；" + scanReason;
+                    scanAffected.Add(index);
+                }
+                outcomes[index] = new(row.TargetPath, result.Success, message);
             }
             catch (Exception error) when (error is MoviePilotException or OperationCanceledException)
             {
@@ -186,40 +193,94 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
             foreach (var (index, _) in identify)
                 outcomes[index] = new(plan.Rows[index].TargetPath, success, message);
         }
-        if (moved.Count > 0)
+        if (scanAffected.Count > 0)
         {
             var scan = await ScanAfterTransferAsync(emby, canContinue, cancellationToken).ConfigureAwait(false);
-            foreach (var index in moved)
+            foreach (var index in scanAffected)
                 outcomes[index] = outcomes[index] with { Message = outcomes[index].Message + scan };
         }
         return [.. outcomes];
     }
 
     /// <summary>
-    /// 整理成功后文件已经换了路径；不通知媒体服务器，旧条目会一直留在库里，点开还会报文件缺失。
-    /// 用 Emby 自带的整库扫描让它按磁盘现状移除旧条目并收录新路径；扫描是异步的，结果只代表请求已发出。
+    /// 只在唯一的 completed 回执及实际请求共同证明旧媒体路径变动时扫描，不用整批 Success 猜移动。
+    /// 扫描只是异步请求；失败不撤销已完成整理，也不解除 MoviePilot 的实际发送防重账本。
     /// </summary>
     private static async Task<string> ScanAfterTransferAsync(EmbyClient emby, Func<bool>? canContinue,
         CancellationToken cancellationToken)
     {
-        if (canContinue?.Invoke() == false) return "；媒体库身份已改变，没有请求 Emby 扫描";
+        if (canContinue?.Invoke() == false)
+            return "；媒体库身份已改变，没有请求 Emby 扫描；请在正确媒体库手动扫描，勿重复整理";
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
             await emby.ScanLibraryAsync(cancellationToken).ConfigureAwait(false);
-            return "；已请求 Emby 扫描媒体库，旧条目会在扫描完成后移除";
+            return "；已请求 Emby 扫描媒体库，收录新路径和移除旧条目由服务器决定";
         }
-        catch (OperationCanceledException) { return "；Emby 扫描请求已取消，请手动扫描媒体库"; }
-        catch (Exception error) { return $"；Emby 扫描请求失败（{error.Message}），请手动扫描媒体库"; }
+        catch (OperationCanceledException) { return "；Emby 扫描请求已取消，请手动扫描媒体库，勿重复整理"; }
+        catch (Exception error) { return $"；Emby 扫描请求失败（{error.Message}），请手动扫描媒体库，勿重复整理"; }
     }
 
     private static string TransferMessage(MoviePilotTransferResult result)
     {
-        var target = result.Items.FirstOrDefault(line => line.Target.Length > 0)?.Target;
-        if (!result.Success)
-            return result.Message.Length > 0 ? result.Message : result.Summary;
-        return target is { Length: > 0 }
-            ? $"已重新整理到 {target}；完成状态与整理记录请在 MoviePilot 核对"
-            : "MoviePilot 已接收重新整理请求，请到整理历史核对";
+        if (result.Items.Count == 0)
+            return result.Success
+                ? "MoviePilot 已接收重新整理请求，完成状态待确认；请先核对整理历史，勿重复提交"
+                : "MoviePilot 没有返回逐文件回执，状态未确认；请先核对整理历史，勿重复提交";
+        var messages = result.Items.Select(line =>
+        {
+            var status = line.State switch
+            {
+                "completed" when line.Success => line.Target.Length > 0
+                    ? $"已完成整理，已重新整理到 {line.Target}"
+                    : "已完成整理，目标路径未返回，请核对",
+                "completed" => "completed 与成功标志不一致，状态待核对",
+                "accepted" => "已接收，等待整理完成（完成状态待确认）",
+                "skipped" => "已跳过整理",
+                "failed" => "整理失败",
+                "retry_wait" => "等待重试",
+                "manual_review" => "需要人工复核",
+                _ => "状态未确认，待核对"
+            };
+            // 多行或部分回执保留每个文件的状态；顶层成功信封不能覆盖 line.State。
+            var file = line.Source.Length > 0 ? line.Source : line.Target;
+            var message = $"MoviePilot 回执{(file.Length > 0 ? $"（{file}）" : "")}：{status}";
+            if (line.State != "completed" && line.Target.Length > 0) message += $"，回执目标：{line.Target}";
+            if (line.Message.Length > 0) message += " — " + line.Message;
+            return message;
+        });
+        var detail = result.Message.Length > 0 ? "；MoviePilot 说明：" + result.Message : "";
+        return string.Join("；", messages) + detail + "；请先在 MoviePilot 核对整理历史，勿重复提交";
+    }
+
+    private static string TransferScanReason(MoviePilotTransferResult result, MoviePilotTransferPreview preview)
+    {
+        var request = preview.Request;
+        if (result.IsPreview) return "";
+        var targetIsLocal = request.TargetStorage is "" or "local";
+        foreach (var expected in preview.Result.Items)
+        {
+            var matches = result.Items.Where(line => MoviePilotTransfer.SamePath(line.Source, expected.Source) ||
+                line.Source.Length == 0 && line.Target.Length > 0 && MoviePilotTransfer.SamePath(line.Target, expected.Target)).ToList();
+            // 缺行、重复或矛盾回执不能授权扫描；即便整体部分失败，唯一明确完成的文件仍可核对路径影响。
+            if (matches.Count != 1 || matches[0] is not { State: "completed", Success: true } completed ||
+                string.IsNullOrWhiteSpace(completed.Target) ||
+                targetIsLocal && !MoviePilotTransfer.IsAbsolutePath(completed.Target)) continue;
+            if (request.TransferType == "move" && (!targetIsLocal || !MoviePilotTransfer.SamePath(expected.Source, completed.Target)) &&
+                request.Files.Any(file => MoviePilotTransfer.SamePath(file.Path, expected.Source)))
+                return $"原媒体路径 {expected.Source} 已换到 {completed.Target}，需要服务器核对旧条目";
+            // 按 logid 重整成功历史会处理旧目标，不只受 Reorganize 或历史 mode 控制。
+            // copy/link/softlink 虽保留原下载源，旧入库目标被清理并换路径/存储时仍要请求服务器核对。
+            var cleaned = request.Histories.FirstOrDefault(history => history.Success &&
+                MoviePilotTransfer.SamePath(history.TransferPath, expected.Source) &&
+                MoviePilotTransfer.IsAbsolutePath(history.TargetPath) &&
+                MoviePilotTransfer.Text(history.TargetFile, "storage") is "" or "local" &&
+                (!targetIsLocal || !MoviePilotTransfer.SamePath(history.TargetPath, completed.Target)) &&
+                request.Files.Any(file => MoviePilotTransfer.SamePath(file.Path, history.TargetPath)));
+            if (cleaned is not null)
+                return $"原记录重整涉及清理旧目标 {cleaned.TargetPath}，需要服务器核对旧条目";
+        }
+        return "";
     }
 
     private static async Task<AniBtIdentifyPlan> PrepareEmbyIdentifyAsync(EmbyClient emby, EmbyItem item,

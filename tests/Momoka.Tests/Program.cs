@@ -56,6 +56,12 @@ internal static class Program
             HttpDiagnosticsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["anibt-receipt-state-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            AniBtReceiptStateTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["marked-watched-source-fixture"])
             return MarkedWatchedSourceTests.Run();
         if (args is ["moviepilot-episode-group-playback-fixture"])
@@ -175,6 +181,7 @@ internal static class Program
         MoviePilotTests.Register();
         AniBtTests.Register();
         AniBtIntegrationTests.Register();
+        AniBtReceiptStateTests.Register();
         MoviePilotSubscriptionTests.Register();
         MoviePilotEpisodeGroupPlaybackTests.Register();
         MoviePilotAuditTests.Register();
