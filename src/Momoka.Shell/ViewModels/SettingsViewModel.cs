@@ -1020,7 +1020,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     public override Task ReloadAsync()
     {
         if (_settings is null) return Task.CompletedTask;
-        HasUnsavedChanges = _settings.HasUnsavedChanges;
+        SyncSaveState();
 
         // 精简模式是页级状态（SettingRow.NotesHidden），建卡之前先对齐 —— 行的可见性在容器落到树上那一刻
         // 才求值，这里晚了才是错的。恢复默认那趟重走这里，同一句话把它拨回新文档的样子。
@@ -1186,6 +1186,15 @@ public sealed partial class SettingsViewModel : PageViewModel
     public partial bool HasUnsavedChanges { get; set; }
 
     public Visibility UnsavedVisibility => Show(HasUnsavedChanges);
+
+    /// <summary>
+    /// 缓存页重入时只对齐共享服务的保存结果；别的页面也可能保存成功或失败。
+    /// 不重建卡片、不写盘，保留半输入、分类与集合实例；属性通知同时更新提示和重试命令。
+    /// </summary>
+    internal void SyncSaveState()
+    {
+        if (_settings is { } settings) HasUnsavedChanges = settings.HasUnsavedChanges;
+    }
 
     private void Save()
     {
@@ -2231,19 +2240,18 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 关于卡「截图目录」那颗「打开」：建得起就先建再开。建目录不放进行提交那一路 —— 每敲一键提交一次，
-    /// 会把路径的每个前缀都建成文件夹 —— 归启动时和这里各一道；刚改完目录还没重开过程序的人，点按钮也有
-    /// 地方可去。
+    /// 关于卡四个目录共用这一条打开入口。建目录也归 launcher，只调用一次；磁盘或启动失败由页面提示。
+    /// 放进 Task 承接按钮动作，目录访问不阻塞 UI，失败回来仍在 UI 上更新通知。
     /// </summary>
-    private void OpenScreenshotDirectory()
+    private async Task OpenDirectoryAsync(string directory)
     {
-        var directory = ScreenshotDirectory();
-        if (directory.Length == 0) return;
+        if (_launcher is not { } launcher || string.IsNullOrWhiteSpace(directory)) return;
 
-        try { Directory.CreateDirectory(directory); }
-        catch (Exception) { /* 建不起就算了：盘不在、写不进，打开那一步资源管理器自己会说。 */ }
-
-        _launcher?.OpenFolder(directory);
+        try
+        {
+            await Task.Run(() => launcher.OpenFolder(directory)).ConfigureAwait(true);
+        }
+        catch (Exception error) { Report("打开目录失败", error); }
     }
 
     // ── 检查新版本 ────────────────────────────────────────────────────────────────────────────────────
@@ -2361,11 +2369,11 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (_paths is { } paths)
         {
             rows.Add(Fact("设置文件", "所有设置都在这一份 JSON 里，token 是 DPAPI 包过的", paths.SettingsFile,
-                "打开所在文件夹", () => _launcher?.OpenFolder(paths.Root)));
+                "打开所在文件夹", () => _ = OpenDirectoryAsync(paths.Root)));
             rows.Add(Fact("日志目录", "自检报告和界面树也在这儿", paths.LogDirectory,
-                "打开", () => _launcher?.OpenFolder(paths.LogDirectory)));
+                "打开", () => _ = OpenDirectoryAsync(paths.LogDirectory)));
             rows.Add(Fact("缓存目录", "海报和着色器缓存，删掉不会丢设置", Path.GetDirectoryName(paths.ImageCacheDirectory) ?? paths.Root,
-                "打开", () => _launcher?.OpenFolder(Path.GetDirectoryName(paths.ImageCacheDirectory) ?? paths.Root)));
+                "打开", () => _ = OpenDirectoryAsync(Path.GetDirectoryName(paths.ImageCacheDirectory) ?? paths.Root)));
 
             // 播放器右键菜单 → 截图 的落点。这一行不是装饰：截图这个功能从前根本没做，理由正是
             // 「--no-config 之下没有 screenshot-directory，文件会落到 exe 旁边而不告诉用户」——
@@ -2373,7 +2381,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             // （「截图保存目录」那一行，2026-10-11 起住播放行为分类的截图分区卡），这一行握在
             // _screenshotFact 上，那头一改它当场换。
             _screenshotFact = Fact("截图目录", "播放器右键菜单 → 截图 存到这儿，文件名是片名、播放时间和序号",
-                ScreenshotDirectory(), "打开", OpenScreenshotDirectory);
+                ScreenshotDirectory(), "打开", () => _ = OpenDirectoryAsync(ScreenshotDirectory()));
             rows.Add(_screenshotFact);
         }
 

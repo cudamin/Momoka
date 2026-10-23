@@ -390,7 +390,12 @@ public sealed partial class SettingsPage : Page, IShellContent
         // Only when the page was cached, i.e. built on an earlier visit: the fresh path's ReloadAsync
         // already fills the device row. A cached page skips ReloadAsync by design (in-progress edits are
         // the point), but the device list is a reading, not an edit — it re-enumerates on re-entry.
-        if (built) _ = ViewModel.RefreshAudioDevicesAsync();
+        if (built)
+        {
+            // 其他页面也共用设置服务：只读回保存 flag，不用整页 Reload 丢掉输入。
+            ViewModel.SyncSaveState();
+            _ = ViewModel.RefreshAudioDevicesAsync();
+        }
 
         WatchMoviePilot(request.Services.GetRequiredService<MoviePilotService>());
 

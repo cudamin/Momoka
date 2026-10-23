@@ -11,6 +11,8 @@ internal static class Program
             return TestHarnessTests.RunChild(scenario);
         if (args is ["activation-listener-fixture", var activationScenario])
             return ActivationListenerTests.RunChild(activationScenario);
+        if (args is ["settings-page-state-fixture", var shellAssembly, var sourceRoot])
+            return SettingsPageStateTests.Run(shellAssembly, sourceRoot);
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();

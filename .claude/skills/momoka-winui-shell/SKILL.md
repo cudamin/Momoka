@@ -49,6 +49,12 @@ Pages created by this project's `Frame.Navigate` path use parameterless construc
 
 Known deviation, not a template: `FilterPanelViewModel` is `new`ed with no `Attach` at all.
 
+## Cached settings and directory actions
+
+`SettingsPage`'s same-container `built` path calls `SettingsViewModel.SyncSaveState` before the existing device refresh. Initial reload uses the same method. It only reads shared `HasUnsavedChanges` and uses the generated property/command notifications; it must not save or rebuild rows just to refresh the banner. Half-typed input, categories and collection identities survive reentry.
+
+The four About directory actions call one awaited `OpenDirectoryAsync` path with a captured `ISystemLauncher`. Directory creation belongs to the launcher once, and launch/IO/permission failures return through the existing page `Report` path. A screenshot directory is read at click time. `SettingsPageStateTests` can explicitly load this tree's current Release Shell assembly with a fake settings service and launcher; the standalone test switch is documented in `docs/开发与验证.md`. Actual VM/row-command tests are not actual SettingsPage navigation, focus, WinUI input or Explorer verification.
+
 ## Startup activation lifetime
 
 `App` passes a queue delegate to the framework-free `Shell/ActivationListener.cs`; only the UI boundary knows `DispatcherQueue`. The listener's `Dispose` requests stop once and never joins on the UI thread. Its worker owns the signal handles until its `finally` releases them, including when disposal precedes the first worker instruction. Stop has priority over activation, queued callbacks check the lifetime again, and a rejected queue or worker exception ends only the listener. A startup exception releases the handles immediately. `ActivationListenerTests` compile-links that exact source and exercises it with private random named events in disposable test child processes; it does not consume the real application activation signal or prove window activation visually.

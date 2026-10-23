@@ -1,3 +1,9 @@
+## 分阶段修复：R-073／R-060设置页整合（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；限定整合支线`91c010b4287ad5073fdbb5b6d0afc733cb78c272`三题内文件。初建/cached共用只读保存flag同步，不Reload/Save、不丢草稿/集合；四目录共用异步Task，launcher只调用一次，错误进页面反馈。
+- 主树当轮Release Core/Tests与Shell零警告错误，显式真实VM/行命令套件27通过／0失败跳过、退出0；25行为＋2源码接线单列，不称SettingsPage导航/焦点/WinUI控件验收。标准测试开关和当前树x64 Release路径约束入库，不靠ignored反射runner。见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 没有真实配置/日志/凭据/网络/Explorer/产品窗口/native/播放/发布/推送，快捷方式旧版。源码/LF/文档链接/差异检查后本地提交，累计12号已主树相关回归过；接着整合R-012，继续不自动暂停。
+
 ## 分阶段修复：R-015详情图片候选失败回退（2026-10-23）
 
 - 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；共用ArtworkCandidates接头图/两个海报循环，保持原序与UI同步上下文。只明确坏格式/数据与已耗尽连接/5xx降级，取消/权限/身份/内存/程序错误传播；不碰R-014缓存失效。
