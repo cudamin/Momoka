@@ -56,6 +56,8 @@ internal static class Program
             HttpDiagnosticsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["marked-watched-source-fixture"])
+            return MarkedWatchedSourceTests.Run();
         if (args is ["moviepilot-episode-group-playback-fixture"])
             return MoviePilotEpisodeGroupPlaybackTests.Run();
         if (args is ["moviepilot-subscription-page-state-fixture", var subscriptionShell, var subscriptionRoot])
@@ -73,6 +75,7 @@ internal static class Program
         TestHarnessTests.Register();
         ActivationListenerTests.Register();
         PlaybackTests.Register();
+        MarkedWatchedSourceTests.Register();
         KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();
         MediaVersionDiscoveryTests.Register();
