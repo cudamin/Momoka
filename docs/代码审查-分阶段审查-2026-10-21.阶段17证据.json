@@ -1,0 +1,640 @@
+{
+  "phase": 17,
+  "recordDate": "2026-10-23",
+  "title": "Shell、公共基础与平台入口",
+  "startCommit": "b6b9348cdca1a65c923473a3088f46b3fff0f6a5",
+  "summary": "新增R-059～R-066：7项静态问题（6×P2、1×P3）及1项P2条件候选，旧根因不重复编号",
+  "counts": {
+    "stable": 66,
+    "static": 62,
+    "conditional": 3,
+    "suggestion": 1
+  },
+  "nextPhase": 18,
+  "findings": [
+    {
+      "id": "R-059",
+      "priority": "P2",
+      "title": "恢复默认／导入偏好后未实时推送截图画质选项",
+      "anchors": [
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          2641,
+          2654
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          1351,
+          1360
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          2502,
+          2517
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          2558,
+          2584
+        ],
+        [
+          "src/Momoka.Core/Configuration/SettingsPreferences.cs",
+          65,
+          72
+        ],
+        [
+          "src/Momoka.Core/Playback/PlaybackService.cs",
+          268,
+          280
+        ]
+      ],
+      "trigger": "同一播放稳定建立后当前JPG/WebP，或tag/质量不同；在正常设置窗完成恢复默认或导入不同偏好，不换片也不再逐行调整截图。",
+      "chain": "恢复拷Mpv并保存、Reload重建显示新值；共用收尾仅push字幕和截图目录，没有pushScreenshotOptions。建行seeded防after，ShellPrefs/保存无截图组选项通知；菜单截图命令也不重读偏好。所以本片截图仍用旧format/tag/quality，直到手改行或重新起播。",
+      "protection": "目录实时恢复和字幕push正常，不能代替画质；不需跨片或并发，因此不是R-051。仅当前片的即时承诺受影响，不声称偏好未保存。独立反证PASS、未运行后端/截图。",
+      "acceptance": "恢复共用收尾应用当前格式适用的完整组选项并等待结果；隔离同句柄假后端测JPG/WebP→PNG和同格式tag/质量/无损/压缩导入，首个截图前已收到新值，不用手改或重启。"
+    },
+    {
+      "id": "R-060",
+      "priority": "P2",
+      "title": "关于目录打开异常外溢而未进入设置页失败反馈",
+      "anchors": [
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          2238,
+          2246
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          2361,
+          2376
+        ],
+        [
+          "src/Momoka.Shell/Platform/SystemLauncher.cs",
+          34,
+          39
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingRow.cs",
+          760,
+          761
+        ]
+      ],
+      "trigger": "配置截图目录所在盘断开/目录无创建权限，或Windows拒绝打开；点击关于中的四个目录打开按钮之一。",
+      "chain": "截图入口吞第一次CreateDirectory异常后调用OpenFolder再次创建；第二次异常可在ShellExecute前外溢。另三目录也直接launcher；SettingFactRow.Run同步无catch，设置页无法可靠呈现失败，不能寄望尚未调用的资源管理器报错。",
+      "protection": "诊断页同操作已有try/catch→Report作对照；这里只确认命令异常和缺可见反馈，不推断所有平台错误都会使进程崩溃。正常创建/打开不属于故障路径，未操作真实目录或外部应用。",
+      "acceptance": "统一目录动作的失败接到设置页报告；假launcher抛权限/IO/启动异常，四按钮均不外溢、反馈具体错误，正常只开一次，不把建目录成功当打开成功。"
+    },
+    {
+      "id": "R-061",
+      "priority": "P2",
+      "title": "诊断刷新重复追加已包含在快照中的排队日志通知",
+      "anchors": [
+        [
+          "src/Momoka.Shell/ViewModels/DiagnosticsViewModel.cs",
+          330,
+          336
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/DiagnosticsViewModel.cs",
+          416,
+          426
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/DiagnosticsViewModel.cs",
+          441,
+          455
+        ],
+        [
+          "src/Momoka.Core/Diagnostics/Log.cs",
+          72,
+          104
+        ]
+      ],
+      "trigger": "诊断页Following=true/live；后台写入日志已进入缓冲，OnWritten的UI Post仍排队时用户刷新或初始ReadLog取快照，随后通知执行。",
+      "chain": "RingBuffer先入缓冲再发事件，快照已含该条；VM清旧_entries并拷Snapshot后，排队Append无序号/快照栅栏地再加一次。显示/统计/复制均重复，达容量时更早淘汰不同旧条。",
+      "protection": "live/Following检查保护离页或暂停后回调，容量/筛选修剪也有，不识别快照已含事件。已有测试验证通知时缓冲含该条，却不覆盖刷新交接；不读取真实日志。",
+      "acceptance": "按缓冲序号/快照水位交接，不按可能重复的文本去重；假dispatcher挂一通知→Snapshot刷新→放通知，该条仅一次，顺序/容量/复制与缓冲一致；补多线程写入和首读。"
+    },
+    {
+      "id": "R-062",
+      "priority": "P2",
+      "title": "读取目录未完成时提前打开主页将保留空目录快照",
+      "anchors": [
+        [
+          "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          2064,
+          2102
+        ],
+        [
+          "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          1039,
+          1044
+        ],
+        [
+          "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          2120,
+          2150
+        ],
+        [
+          "src/Momoka.Shell/Views/ShellPage.Sidebar.cs",
+          348,
+          357
+        ],
+        [
+          "src/Momoka.Shell/Views/HomePage.xaml.cs",
+          1219,
+          1226
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+          293,
+          334
+        ]
+      ],
+      "trigger": "侧栏模式开启，登录/切换来源的库目录GET仍挂起；浏览区侧栏已经可见，用户点主页，然后目录全部成功。",
+      "chain": "EnterShell先清_libraryViews并露浏览区；GoTo(home)给新主页当前空数组。成功加载只更新Shell目录和侧栏，尾部GoTo(home)被_current同页守卫短路。主页持原request数组，普通刷新也不从Shell重捕获；侧栏有库但主页媒体库/最近添加排缺失。",
+      "protection": "代次/scope守卫拒绝旧账号结果，但本次结果合法、只是未交接主页快照。_librariesFailed=false使失败重试不触发；离开再进入可恢复。不同于R018迟到旧管理目录。未真实登录/UI运行。",
+      "acceptance": "合法目录提交后更新仍属本次主页的快照或定点刷新，别抢用户已转去的页面；挂起目录→点击主页→释放成功，库/最近添加出现，与侧栏一致；已转其他页不强导航。"
+    },
+    {
+      "id": "R-063",
+      "priority": "P3",
+      "title": "订阅列表缺导航Tag使返回／前进后的同页点击重复导航",
+      "anchors": [
+        [
+          "src/Momoka.Shell/Views/MoviePilotSubscriptionsPage.xaml.cs",
+          37,
+          66
+        ],
+        [
+          "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          1918,
+          1944
+        ],
+        [
+          "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          1981,
+          1987
+        ],
+        [
+          "src/Momoka.Shell/Views/ShellPage.Sidebar.cs",
+          348,
+          366
+        ]
+      ],
+      "trigger": "MoviePilot一直可用；从侧栏电影/电视剧订阅列表进入详情返回，或订阅分类之间返回/前进，然后点当前同一订阅侧栏项。",
+      "chain": "初始Open设置_current为分类，列表Attach却不设置页面Tag；历史回落AdoptContentTag从页Tag得到null，高亮有面包屑兜底但同页短路失效，再点同项重新创建/读取并丢滚动，Open新导航清前进栈。",
+      "protection": "初次直接进入_current正确；仅历史返回/前进后触发，服务正常不受不可用历史裁剪。非R036空类无恢复入口，未运行交互。",
+      "acceptance": "列表随request.Key建立导航Tag；返回/前进后当前目的地正确，同页点击不加历史、不重新取列表、不丢前进栈及滚动。"
+    },
+    {
+      "id": "R-064",
+      "priority": "P2",
+      "title": "启动激活监听线程初始化前关闭可读到已释放的取消源",
+      "anchors": [
+        [
+          "src/Momoka.Shell/Program.cs",
+          606,
+          629
+        ],
+        [
+          "src/Momoka.Shell/App.xaml.cs",
+          183,
+          194
+        ],
+        [
+          "src/Momoka.Shell/App.xaml.cs",
+          286,
+          299
+        ],
+        [
+          "src/Momoka.Shell/Windowing/HostWindow.cs",
+          2473,
+          2487
+        ]
+      ],
+      "trigger": "普通非自检启动，ActivationListener.Start已返回，但工作线程尚未执行首次Token/WaitHandle读取；主窗正常关闭先Dispose监听器，工作线程随后初始化。",
+      "chain": "线程启动没有初始化握手，取消/释放也不等退出；关闭先Cancel并Dispose信号及CTS，worker稍后读已释放stopping.Token可抛ObjectDisposedException，专用Thread无catch。AppDomain只日志、TaskScheduler不处理专用线程，UI外层catch不跨线程；可能异常退出而非有序收尾。",
+      "protection": "正常worker先取得句柄并观察取消可以退出；不据已处于WaitAny时释放句柄推必崩。IsBackground不是异常隔离。打断播放收尾还要求异常出现时进程/收尾仍存活，不宣称启动即关闭必丢最终上报。本机net10.0参考XML明确已释放CTS.Token/Token.WaitHandle异常；未运行线程时序。",
+      "acceptance": "在释放线程依赖之前完成初始化/退出交接，离线受控调度测Start后首次Token前Dispose和已等待后Cancel，无逃逸异常且假收尾完成；不要为抓复现启动真实产品或中断用户进程。"
+    },
+    {
+      "id": "R-065",
+      "priority": "P2",
+      "title": "启动登记读取失败可能冒充确定开关状态并吞掉操作失败",
+      "status": "条件候选，权限读取/变化前件未运行验证，未修复",
+      "anchors": [
+        [
+          "src/Momoka.Shell/Platform/StartupRegistration.cs",
+          74,
+          116
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          2017,
+          2030
+        ],
+        [
+          "src/Momoka.Core/Configuration/StartupEntry.cs",
+          80,
+          86
+        ]
+      ],
+      "trigger": "Run登记存在且初次可读为开启，随后拒删且回读权限失败；或Run可读、Approval真实禁用但Approval读取失败。需要读取异常/权限变化前件，未实际核机器策略。",
+      "chain": "Run/Approval读取权限异常返回null与不存在合并；纯规则分别解释为关闭/未禁用。行忽略Apply=false，仅再次读取布尔值，若错误回读与用户目标相同就静默返回。可显示关闭而Run仍在，或禁用标记读不到却显示开启。",
+      "protection": "普通拒写但读状态准确会回拨并报错，此正常防护排除。Available只判断非打包不证明权限；不据Run仍在推断该权限条件下Windows必会自启。静态错误状态合并成立，真实拦截前件未验证，保持条件候选。",
+      "acceptance": "读失败与不存在/确定状态分开，Apply失败不能被相等布尔比较吞；假平台测拒删+Run读取失败、Run可读+Approval读取失败，展示失败/未知；保留准确回读时回拨及不可用时隐藏。"
+    },
+    {
+      "id": "R-066",
+      "priority": "P2",
+      "title": "翻档动画完成未清活动标记导致关闭轮播后旧媒体库浮层残留",
+      "anchors": [
+        [
+          "src/Momoka.Shell/Views/HomePage.xaml.cs",
+          732,
+          762
+        ],
+        [
+          "src/Momoka.Shell/Views/HomePage.xaml.cs",
+          828,
+          829
+        ],
+        [
+          "src/Momoka.Shell/Views/HomePage.xaml.cs",
+          886,
+          890
+        ],
+        [
+          "src/Momoka.Shell/Views/HomePage.xaml.cs",
+          1288,
+          1293
+        ],
+        [
+          "src/Momoka.Shell/Views/HomeFoldMotion.cs",
+          85,
+          115
+        ],
+        [
+          "src/Momoka.Shell/Views/HomePage.xaml",
+          205,
+          239
+        ]
+      ],
+      "trigger": "有轮播/库行且动效开启，成功完成一次压上轮播的翻档、越过限频期；不离主页，从正常设置窗口关闭轮播并重载成功。",
+      "chain": "动画完成内部Stop但页面_fold仍非空；关闭轮播使real/flight=false，ApplyLibraryChrome用非空误判仍在走而持续早退，跳过宿主收起/Content=null。完整重建新货架不清旧宿主引用；Banner/LibraryOverlay同级、BannerZone不联动收起，可在顶部留旧库卡带/占位而正文又有新库排。",
+      "protection": "正常完成回落HandBack撤宿主，离页/播放返回/规划失败清标记；静态初始压上或已回落不是此场景。不能直接删防早退，它还保护真实回程载体。两路独立静态复核成立，但实际画面/命中未运行。",
+      "acceptance": "只在动画当前且未完成时阻止重新落定，完成/取消清正确所有者状态并提交最终布局；隔离夹具完成压上→关轮播，宿主收起、Content为空、只保留当前横排；回程尚在跑时不提前撤载体。"
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "P17-EX-01",
+      "status": "已有根因变体归并",
+      "detail": "设置窗隐藏/来源通知与排队刷新变体属R-026或R-018；旧控制台导航回调属R-019。保持原记录和运行缺口，不将同一防护边界重复新号。"
+    },
+    {
+      "id": "P17-EX-02",
+      "status": "装配/基础设施防护已核",
+      "detail": "DI捕获UI队列、ValidateOnBuild/Scopes；IShellActions与可见Shell同实例、PlayerVM跨页驻留。AppPaths相对截图路径统一绝对、原子写临时唯一并串commit、SharedWork只共享在途且取消waiter不取消工作、Lru锁与容量清理、LoadGeneration取消/代次语义正常。迁移优先和旧备份问题已R-009，不重报。"
+    },
+    {
+      "id": "P17-EX-03",
+      "status": "字体/偏好边界不另报",
+      "detail": "字体后台进程缓存、缺目录/坏文件逐项退空；SFNT长度/数量/寻址限制；族名解析和原值Including保留。偏好原地拷、身份/音量/窗口/库筛选保留；Save失败有未保存及重试，默认/导入共门互斥。未扫描真实字体/设置。"
+    },
+    {
+      "id": "P17-EX-04",
+      "status": "主题/公共动效静态防护存在",
+      "detail": "主题画刷原地更新、根弱引用、HighContrast不重涂；Dark/Light键集对照未见差异。设置分类共选择对象、设置入场/行高/排序动效有代次取消及落定；EgPicker迟到布局/高对比资源没有运行证据，不凭API猜测记编译或视觉缺陷。"
+    },
+    {
+      "id": "P17-EX-05",
+      "status": "平台更新不扩范围",
+      "detail": "更新仅检查版本并确认打开发布页，不自动下载/安装；SystemLauncher只允许http/https网址。诊断目录/复制失败已捕获可见；启动项非打包显隐和正常准确回读回拨存在，R-065只留权限组合条件。"
+    },
+    {
+      "id": "P17-EX-06",
+      "status": "窗口关闭/几何防护已核",
+      "detail": "HostWindow关闭任务合流、BeforeClose等待后销毁、映射/主题清理；全屏/最小化/画面比例/播放自由尺寸记账有守卫。ActivationListener初始化竞态独立R-064；不因旧窗口检查正常宣称真实Chrome/DPI/收尾运行已过。"
+    },
+    {
+      "id": "P17-COV-01",
+      "status": "运行缺口",
+      "detail": "未restore/build/正式测试/探针/UI/native/真实服务器或用户数据操作；无本树DLL、测试还原输入。既有UiLifecycle/字体/Settings/日志/启动项源码只说明已有覆盖，历史2072不当本轮通过。"
+    },
+    {
+      "id": "P17-EVID-01",
+      "status": "前阶段采集表述纠正",
+      "detail": "阶段16证据JSON附带web工具无正文表述缺本线程工具日志支持：主线程实际成功记录的是PowerShell超时及Node fetch失败，没有成功重取当前内核源码。v0.41.0公开源码正文成功读取来自Arendt报告，不算当前DLL实测；本次在交接追加纠正，不悄改历史正文。"
+    }
+  ],
+  "coverage": [
+    "主线程核Program常规/诊断派发、App初始化/关闭、ShellServices全文、ShellPrefs全文、公共设置Reload/保存/默认/导入/截图及真实按钮链；来源/播放/安全专项前阶段结论按根因引用，不声称全程序穷尽。",
+    "主线程读取AppPaths/AtomicFile/SharedWork/LruCache/LoadGeneration/FontLibrary/FontFamilies/FontCatalogue全文，SFNT解析分段、CardSize/CardStrip/LibraryPanelSize/TimeFormat正文；UiLifecycle全文、Settings/字体/共享缓存/日志测试相关行段。索引为候选范围，不把全部309产品路径计为逐行覆盖。",
+    "Faraday平台/更新/诊断三候选，Godel导航/窗口两候选，Huygens主题/公共控件一候选；主线程复核全部。Socrates独立反证截图恢复、Epicurus独立反证激活/启动项、Feynman独立反证Fold；6名均默认思考等级，已完成关闭，输出非运行PASS。",
+    "相关候选行段逐段重读；R-062合法新目录结果未交接主页，不重复旧身份迟到；R-063仅历史回落缺Tag；R-066限完成压上后的关轮播，非所有折叠操作。前件不足的启动登记保持R-065条件候选。",
+    "本机net10.0引用文档System.Runtime.xml中CTS.Token 69796–69799、CancellationToken.WaitHandle 69633–69636契约仅作API反证；未使用主树程序集/DLL或真实HKCU验证。本次日期2026-10-23，历史阶段日期不改。",
+    "只有本地只读和文档一致性检查；不改C#/XAML/测试/资源，不后台自动化、不真实更新联网/外部打开/播放/鼠标/凭据/服务器写入，不发布推送。"
+  ],
+  "handoff": "六路子审查/反证完成关闭，主线程逐项复核、根因去重；8新增稳定号含1条件候选全部未修复。只五份正式记录检查后本地提交，自动18测试/检查器/交付载荷；系统压缩后全文重读CLAUDE，无主动压缩工具。",
+  "pendingCandidates": [],
+  "externalPrimaryReference": {
+    "path": "C:/Users/89400/.dotnet/packs/Microsoft.NETCore.App.Ref/10.0.11/ref/net10.0/System.Runtime.xml",
+    "segments": [
+      [
+        69633,
+        69636
+      ],
+      [
+        69796,
+        69799
+      ]
+    ],
+    "usage": "CTS释放后Token/WaitHandle契约，不是运行复现"
+  },
+  "schemaVersion": 1,
+  "time": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "sourceAnchors": [
+    {
+      "id": "R-059",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 2641,
+      "end": 2654,
+      "sha256": "ECB21BAA7570E63786F74B8E0DA441377E71969F56FEB0D3FC8EAE0560D4871A"
+    },
+    {
+      "id": "R-059",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 1351,
+      "end": 1360,
+      "sha256": "E8EF496EB76EDB9FCA7F100FE6F53EE6CA9F5D63C079189A39342C208954611E"
+    },
+    {
+      "id": "R-059",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 2502,
+      "end": 2517,
+      "sha256": "105D5A26D0AA7E899457A65DD45703DDFB3399A6C537FCFE443755173914E4B4"
+    },
+    {
+      "id": "R-059",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 2558,
+      "end": 2584,
+      "sha256": "6430B99293DA42125D9398C56CDDCFE503D5C4A49376DC831898FB1ACB54E71B"
+    },
+    {
+      "id": "R-059",
+      "path": "src/Momoka.Core/Configuration/SettingsPreferences.cs",
+      "start": 65,
+      "end": 72,
+      "sha256": "DE5A942B36FC1246DDCA9FE30737B1378C2D36A9DE53548E704F91AB5A2B5B46"
+    },
+    {
+      "id": "R-059",
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "start": 268,
+      "end": 280,
+      "sha256": "E2930DB60B1712DBECDC332A644F5C55C032B323637590EC412FE9382FCDCB16"
+    },
+    {
+      "id": "R-060",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 2238,
+      "end": 2246,
+      "sha256": "2D84C339295522F3C1E92A164D66961E3B6101C290E16658FB9218D8F2D4825F"
+    },
+    {
+      "id": "R-060",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 2361,
+      "end": 2376,
+      "sha256": "5A423D72FEA59D31668E9F1FDA5386CB7F8044BF4AB53B3D7BE0E31B9867984C"
+    },
+    {
+      "id": "R-060",
+      "path": "src/Momoka.Shell/Platform/SystemLauncher.cs",
+      "start": 34,
+      "end": 39,
+      "sha256": "979018EAEF73787229B28BDFA61FBFD7FC594E2C4FE147DB8394C4B9A8ADBDA8"
+    },
+    {
+      "id": "R-060",
+      "path": "src/Momoka.Shell/ViewModels/SettingRow.cs",
+      "start": 760,
+      "end": 761,
+      "sha256": "4300D8E5B83DAACAD78CD98DB4B199CC7423AD582D8B702127AF7BC6E547E01D"
+    },
+    {
+      "id": "R-061",
+      "path": "src/Momoka.Shell/ViewModels/DiagnosticsViewModel.cs",
+      "start": 330,
+      "end": 336,
+      "sha256": "0E02096FC792409F418D9D040D74F25B56F2CE29ED9747D97B8C1F5FA4D2CF01"
+    },
+    {
+      "id": "R-061",
+      "path": "src/Momoka.Shell/ViewModels/DiagnosticsViewModel.cs",
+      "start": 416,
+      "end": 426,
+      "sha256": "9554843ED14126A084BCBA96B7F993DBDC77F449A563CA17DD0FBBACE059F26D"
+    },
+    {
+      "id": "R-061",
+      "path": "src/Momoka.Shell/ViewModels/DiagnosticsViewModel.cs",
+      "start": 441,
+      "end": 455,
+      "sha256": "E8E3EEE6CF278677DE3BFC5D46480E4020944AD6A00C371866957E2D9DFC7743"
+    },
+    {
+      "id": "R-061",
+      "path": "src/Momoka.Core/Diagnostics/Log.cs",
+      "start": 72,
+      "end": 104,
+      "sha256": "957A2C6AE8099CA04A3B7782B0FB4B667D61702DAE74762F87CCF6E2B1ECB9CA"
+    },
+    {
+      "id": "R-062",
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "start": 2064,
+      "end": 2102,
+      "sha256": "66C31E13BC0629DE88BE6D71D85988EDE11838BA38FF4CE8C770F170150BF6E3"
+    },
+    {
+      "id": "R-062",
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "start": 1039,
+      "end": 1044,
+      "sha256": "45BD46DAB31B7D3665D437AFFFC14D61156835D5880292DF645801BB826C0D2A"
+    },
+    {
+      "id": "R-062",
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "start": 2120,
+      "end": 2150,
+      "sha256": "29B94EBFC734B764F2B426657D3FC4DC7F37649132DA0458A3B47C74FCFACDEA"
+    },
+    {
+      "id": "R-062",
+      "path": "src/Momoka.Shell/Views/ShellPage.Sidebar.cs",
+      "start": 348,
+      "end": 357,
+      "sha256": "F9C0426F28BFA0437139F14AE1F52EB333454D21ECEA2DE00B99C165DE1917DC"
+    },
+    {
+      "id": "R-062",
+      "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+      "start": 1219,
+      "end": 1226,
+      "sha256": "6FFBB84B3A08203C7603D69EEA8EF48472392D216A3D947E96E527C40E8B04DE"
+    },
+    {
+      "id": "R-062",
+      "path": "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+      "start": 293,
+      "end": 334,
+      "sha256": "9B7CC46BAF4E852F35E9405E0EFA5268EE2DA9F4FB524CB68091E58E27A012FC"
+    },
+    {
+      "id": "R-063",
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsPage.xaml.cs",
+      "start": 37,
+      "end": 66,
+      "sha256": "5B188C56B4D6ECD2D01C108C812E5021CA51A84512442A5EA12607FD678996F7"
+    },
+    {
+      "id": "R-063",
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "start": 1918,
+      "end": 1944,
+      "sha256": "EEBDE36208C70D13EB0A51A0BA5E7193E04924C019C88E0E66A9CE23A5554F3B"
+    },
+    {
+      "id": "R-063",
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "start": 1981,
+      "end": 1987,
+      "sha256": "75FB8F601B135B4CB156DD80D28E5F0B28F33F94E1A06A04C52C45733FF13219"
+    },
+    {
+      "id": "R-063",
+      "path": "src/Momoka.Shell/Views/ShellPage.Sidebar.cs",
+      "start": 348,
+      "end": 366,
+      "sha256": "EEB41E1B2E2E8C133B591FDF0677DB29D49B8B608127B10224663BA77076E0CB"
+    },
+    {
+      "id": "R-064",
+      "path": "src/Momoka.Shell/Program.cs",
+      "start": 606,
+      "end": 629,
+      "sha256": "0CA85233AA189258CC90A12926BF0D434D475F17F0137DCD3579775CCFA3431C"
+    },
+    {
+      "id": "R-064",
+      "path": "src/Momoka.Shell/App.xaml.cs",
+      "start": 183,
+      "end": 194,
+      "sha256": "12025D13504F1ABDE5B344B117C80108357B856E479492749CA199FDB548577E"
+    },
+    {
+      "id": "R-064",
+      "path": "src/Momoka.Shell/App.xaml.cs",
+      "start": 286,
+      "end": 299,
+      "sha256": "87D53BDDE0E4FAA88EA41C5F5AC1116A08258547DB688B8C24D6F162F45EB5B5"
+    },
+    {
+      "id": "R-064",
+      "path": "src/Momoka.Shell/Windowing/HostWindow.cs",
+      "start": 2473,
+      "end": 2487,
+      "sha256": "05B7B1D8CCBB36441678522497423C63ADF02D51553C1A22A1B0194560682D5D"
+    },
+    {
+      "id": "R-065",
+      "path": "src/Momoka.Shell/Platform/StartupRegistration.cs",
+      "start": 74,
+      "end": 116,
+      "sha256": "936F9FCB5917D522C5F03481B0CAB1A02D0490EFF736A1DE43DF91E7E05BBF6D"
+    },
+    {
+      "id": "R-065",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 2017,
+      "end": 2030,
+      "sha256": "9DCBBD8624108F07E67CC1ED9901949D54B54687669155581EEABFB64F7EC520"
+    },
+    {
+      "id": "R-065",
+      "path": "src/Momoka.Core/Configuration/StartupEntry.cs",
+      "start": 80,
+      "end": 86,
+      "sha256": "ABB182BB895B7EC246541EC024F60991A849B5FE12120902F3814223ABA3212D"
+    },
+    {
+      "id": "R-066",
+      "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+      "start": 732,
+      "end": 762,
+      "sha256": "47F3CC05A4418AF6071B99A9F697B496070CCB382A5F4455C8788059DBFB3D99"
+    },
+    {
+      "id": "R-066",
+      "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+      "start": 828,
+      "end": 829,
+      "sha256": "863CC8A12C9B74F9A3983A532008F66823C98EADDD46CF32CC7D77D02A068535"
+    },
+    {
+      "id": "R-066",
+      "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+      "start": 886,
+      "end": 890,
+      "sha256": "18C215E8FD0023FEC1480C0A41F27892AB3BBEF3DAFA3339CF1E439F9CACAA45"
+    },
+    {
+      "id": "R-066",
+      "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+      "start": 1288,
+      "end": 1293,
+      "sha256": "E00B9FFF44B5C24B907469883EE57D4577915BC9C24425A871A03E82A9923CAB"
+    },
+    {
+      "id": "R-066",
+      "path": "src/Momoka.Shell/Views/HomeFoldMotion.cs",
+      "start": 85,
+      "end": 115,
+      "sha256": "0288D8A15921FC458D4BE5F5435D4837CBDC3B9C7979108148676AE1D73F5CA9"
+    },
+    {
+      "id": "R-066",
+      "path": "src/Momoka.Shell/Views/HomePage.xaml",
+      "start": 205,
+      "end": 239,
+      "sha256": "A4716C8817F3CA92B72BE415A2781086EF3C32DC17B00F77DF844C47074A141B"
+    }
+  ],
+  "executions": {
+    "restore": 0,
+    "build": 0,
+    "productTests": 0,
+    "native": 0,
+    "appProbes": 0,
+    "screenshots": 0,
+    "realServerCalls": 0,
+    "playbackOrWrites": 0,
+    "publish": 0,
+    "push": 0
+  },
+  "contextCompression": {
+    "requested": true,
+    "performed": false,
+    "availableTool": false,
+    "checkpointSaved": true
+  }
+}
