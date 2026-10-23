@@ -55,8 +55,12 @@ internal static class SelfCheckTests
             using (var run = SelfCheckRun.Create(source, target, Protector))
             {
                 Assert.False(run.Settings.Ui.WindowMaximized);
-                Assert.Equal(Saved, File.ReadAllText(run.Paths.SettingsFile));
-                Assert.False(File.Exists(run.Paths.SettingsBackupFile));
+                var copied = new SettingsStore(run.Paths, Protector).LoadStrict();
+                Assert.False(copied.Ui.WindowMaximized);
+                Assert.Equal(run.Paths.ScreenshotDirectory, copied.Mpv.ScreenshotDirectory);
+                Assert.Equal("opaque-placeholder", copied.Servers[0].Accounts[0].ProtectedAccessToken);
+                Assert.Equal("opaque-password-placeholder", copied.Servers[0].Accounts[0].ProtectedPassword);
+                Assert.Equal(Saved, File.ReadAllText(run.Paths.SettingsBackupFile), "原始复制只作运行内备份");
                 Assert.Equal(0, Directory.GetFiles(run.Paths.ImageCacheDirectory).Length);
                 Assert.True(File.Exists(Path.Combine(run.Paths.LogDirectory, "selfcheck-isolation.txt")));
                 new SettingsStore(run.Paths, Protector).Save(run.Settings); // emulate self-check/UI persistence
@@ -73,7 +77,11 @@ internal static class SelfCheckTests
                 first = run.Paths.Root;
                 Assert.True(first.StartsWith(Path.Combine(root, "Momoka.SelfCheck") + Path.DirectorySeparatorChar,
                     StringComparison.OrdinalIgnoreCase));
-                Assert.Equal(Saved, File.ReadAllText(run.Paths.SettingsFile));
+                var copied = new SettingsStore(run.Paths, Protector).LoadStrict();
+                Assert.False(copied.Ui.WindowMaximized);
+                Assert.Equal(run.Paths.ScreenshotDirectory, copied.Mpv.ScreenshotDirectory);
+                Assert.Equal("opaque-placeholder", copied.Servers[0].Accounts[0].ProtectedAccessToken);
+                Assert.Equal("opaque-password-placeholder", copied.Servers[0].Accounts[0].ProtectedPassword);
             }
             using var next = SelfCheckRun.Create(source, null, Protector);
             Assert.False(first.Equals(next.Paths.Root, StringComparison.OrdinalIgnoreCase));
@@ -214,17 +222,28 @@ internal static class SelfCheckTests
         catch (InvalidOperationException) { return 13; }
     }
 
-    private static void WithFixture(Action<AppPaths, string> action)
+    internal static void WithFixture(Action<AppPaths, string> action)
     {
-        // Outputs live beside this test build, never in the real app profile.
-        var root = Path.Combine(AppContext.BaseDirectory, "selfcheck-fixtures", Guid.NewGuid().ToString("N"));
+        // Fixtures and cleanup are confined to this checkout's artifacts, never the user profile.
+        var repository = new DirectoryInfo(AppContext.BaseDirectory);
+        while (repository is not null && !File.Exists(Path.Combine(repository.FullName, "Momoka.sln")))
+            repository = repository.Parent;
+        Assert.NotNull(repository, "自检夹具必须在当前写树内运行");
+        var artifacts = Path.GetFullPath(Path.Combine(repository!.FullName, "artifacts"));
+        var root = Path.GetFullPath(Path.Combine(artifacts, "selfcheck-fixtures", Guid.NewGuid().ToString("N")));
+        Assert.True(root.StartsWith(artifacts + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(root, SelfCheckRun.ValidateLocalPath(root));
         var source = new AppPaths(Path.Combine(root, "production-fixture"));
         source.EnsureCreated();
         File.WriteAllText(source.SettingsFile, Saved, new UTF8Encoding(false));
         File.WriteAllText(source.SettingsBackupFile, "saved backup");
         File.WriteAllText(Path.Combine(source.ImageCacheDirectory, "keep"), "cached image");
         try { action(source, root); }
-        finally { Directory.Delete(root, recursive: true); }
+        finally
+        {
+            Assert.Equal(root, SelfCheckRun.ValidateLocalPath(root));
+            Directory.Delete(root, recursive: true);
+        }
     }
 
     private sealed class NoSecretsProtector : ISecretProtector

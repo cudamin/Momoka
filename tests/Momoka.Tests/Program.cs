@@ -31,6 +31,13 @@ internal static class Program
             SubtitleForcedOnlyTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["selfcheck-output-isolation-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            SelfCheckTests.Register();
+            SelfCheckOutputIsolationTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["http-download-error-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -61,6 +68,7 @@ internal static class Program
         SubtitleManagementTests.Register();
         MpvProcessTests.Register();
         SelfCheckTests.Register();
+        SelfCheckOutputIsolationTests.Register();
         SettingsTests.Register();
         StartupEntryTests.Register();
         NotificationTests.Register();

@@ -81,9 +81,11 @@ public sealed class SelfCheckRun : IDisposable
                 if (ExistsStrict(source.SettingsBackupFile))
                     throw new FileNotFoundException("自检主设置缺失但存在备份；请先通过正常启动恢复设置");
                 settings = SettingsMigration.NewDefaults();
-                store.Save(settings); // only the isolated run; never create production settings
             }
-            settings.Ui.WindowMaximized = false; // in memory only; copied DPAPI bytes stay untouched
+            // Persist the effective settings before the shell reloads them. In-memory-only overrides
+            // would leave DI, screenshot planning and directory actions pointing at the user's output.
+            IsolateSettings(paths, settings);
+            store.Save(settings); // only the isolated copy; protected credential strings are retained
             paths.EnsureCreated();
             File.WriteAllText(Path.Combine(paths.LogDirectory, "selfcheck-isolation.txt"),
                 "Momoka.SelfCheckIsolation=1\n" + paths.Root + "\n", new UTF8Encoding(false));
@@ -103,6 +105,17 @@ public sealed class SelfCheckRun : IDisposable
             }
             throw;
         }
+    }
+
+    /// <summary>
+    /// Applies the same output policy to the prepared copy and any later strict DI reload. Never
+    /// resolve the configured screenshot path: it may target the production root, a network or device.
+    /// All other application-owned outputs already come from this run's <see cref="AppPaths"/>.
+    /// </summary>
+    public static void IsolateSettings(AppPaths paths, AppSettings settings)
+    {
+        settings.Ui.WindowMaximized = false;
+        settings.Mpv.ScreenshotDirectory = paths.ScreenshotDirectory;
     }
 
     private static bool ExistsStrict(string path)

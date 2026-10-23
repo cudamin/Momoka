@@ -58,7 +58,9 @@ internal static class ShellServices
         {
             var store = provider.GetRequiredService<SettingsStore>();
             var settings = selfCheck ? store.LoadStrict() : store.Load();
-            if (selfCheck) settings.Ui.WindowMaximized = false;
+            // Reapply the run policy even if the copied settings were edited before this reload.
+            // Normal startup keeps the user's custom output directory and window preference.
+            if (selfCheck) SelfCheckRun.IsolateSettings(paths, settings);
             return settings.EnsureDeviceId();
         });
 
