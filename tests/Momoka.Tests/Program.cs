@@ -31,6 +31,14 @@ internal static class Program
             SubtitleForcedOnlyTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["player-volume-gesture-fixture", var volumeShell, var volumeRoot])
+            return PlayerVolumeGestureTests.Run(volumeShell, volumeRoot);
+        if (args is ["audio-output-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            AudioOutputTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["selfcheck-output-isolation-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

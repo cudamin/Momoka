@@ -171,7 +171,19 @@ public sealed partial class PlayerViewModel
         else Noticed?.Invoke("音频延迟未能确认，请查看日志", InfoBarSeverity.Warning);
     }
 
-    internal void NudgeVolume(double delta) => Volume = VolumeScale.Step(Volume, delta);
+    internal void NudgeVolume(double delta)
+    {
+        if (!double.IsFinite(delta) || _lifetime.IsCancellationRequested) return;
+        if (_playback.CanControl && _volumeReady && !HasVolumeSteps)
+        {
+            Volume = VolumeScale.Step(Volume, delta);
+            return;
+        }
+        // Before a real reading, the gesture owns its delta even at a display boundary. Do not let
+        // the generated setter recalculate it against an old confirmed/status baseline.
+        DisplayVolume(VolumeScale.Step(Volume, delta));
+        _ = StepVolumeAsync(delta, _playback.Generation);
+    }
 
     internal void RollVolume(double delta) => NudgeVolume(delta);
 
