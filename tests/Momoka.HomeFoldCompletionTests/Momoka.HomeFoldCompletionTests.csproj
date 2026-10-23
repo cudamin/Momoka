@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <IsPackable>false</IsPackable>
+        <StartupObject>Momoka.Tests.Program</StartupObject>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\HomeFoldMotion.cs" Link="Production\HomeFoldMotion.cs" />
+    </ItemGroup>
+    <!-- Compile the actual page methods unchanged. Missing or ambiguous boundaries fail closed;
+         only layout values, UI owners and Storyboard delivery are inert test boundaries. -->
+    <UsingTask TaskName="ExtractHomeFoldSources" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <PageSource ParameterType="System.String" Required="true" />
+            <RowsSource ParameterType="System.String" Required="true" />
+            <OutputSource ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                Func<string, string, string, string> between = (source, start, end) =>
+                {
+                    var begin = source.IndexOf(start, StringComparison.Ordinal);
+                    if (begin < 0 || source.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous production start: " + start);
+                    var finish = source.IndexOf(end, begin + start.Length, StringComparison.Ordinal);
+                    if (finish < 0 || source.IndexOf(end, finish + end.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous production end: " + end);
+                    return source.Substring(begin, finish - begin);
+                };
+                var page = File.ReadAllText(PageSource).Replace("\r\n", "\n");
+                var rows = File.ReadAllText(RowsSource).Replace("\r\n", "\n");
+                var generated = "// Extracted verbatim from this tree's current production at build time; do not edit.\n#nullable enable\n" +
+                    "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Microsoft.UI.Dispatching;\nusing Microsoft.UI.Xaml;\n" +
+                    "using Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Media;\nnamespace Momoka.Shell.Views;\n" +
+                    "public sealed partial class HomePage : Page\n{\n" +
+                    between(page, "    private bool _entranceSuppressed;", "\n    /// <summary>\n    /// Resolved on navigation") +
+                    between(page, "    private bool _foldScheduled;", "\n    public HomePage()") +
+                    between(page, "    internal void PreparePlaybackReturn()", "\n    /// <summary>\n    /// The rows the page actually drew") +
+                    between(page, "    private static long Now =>", "\n    /// <summary>\n    /// 元素顶边在「滚回顶上」") +
+                    between(page, "    private double ScreenTopAtScrollZero", "\n    /// <summary>\n    /// 自检：轮播这条带的高度") +
+                    between(page, "    public void Release()", "\n    /// <summary>\n    /// 标题栏那一行的墨") +
+                    between(rows, "    private static double RowHeightOf", "\n    private static string RowTitle") +
+                    "\n}\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+                if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+                    File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GenerateHomeFoldSources" BeforeTargets="CoreCompile">
+        <ExtractHomeFoldSources
+            PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomePage.xaml.cs"
+            RowsSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\HomePage.Rows.cs"
+            OutputSource="$(IntermediateOutputPath)HomeFoldPage.g.cs" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)HomeFoldPage.g.cs" />
+        </ItemGroup>
+    </Target>
+</Project>

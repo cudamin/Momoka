@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.FnNasDefaultPermissi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.LibMpvEndFileTests", "tests\Momoka.LibMpvEndFileTests\Momoka.LibMpvEndFileTests.csproj", "{02E1A054-FCEC-49AD-802B-1DAB02D14C04}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.HomeFoldCompletionTests", "tests\Momoka.HomeFoldCompletionTests\Momoka.HomeFoldCompletionTests.csproj", "{07E4C6D8-920E-4E6E-811F-7FE34A8512C6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -94,8 +96,13 @@ Global
 		{02E1A054-FCEC-49AD-802B-1DAB02D14C04}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{02E1A054-FCEC-49AD-802B-1DAB02D14C04}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{02E1A054-FCEC-49AD-802B-1DAB02D14C04}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07E4C6D8-920E-4E6E-811F-7FE34A8512C6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07E4C6D8-920E-4E6E-811F-7FE34A8512C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07E4C6D8-920E-4E6E-811F-7FE34A8512C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07E4C6D8-920E-4E6E-811F-7FE34A8512C6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{07E4C6D8-920E-4E6E-811F-7FE34A8512C6} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{02E1A054-FCEC-49AD-802B-1DAB02D14C04} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{C1739417-BC27-4582-9F9B-E8DA9DF407F3} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{FC013702-87D9-44E2-BE9C-8EC6CED81726} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
