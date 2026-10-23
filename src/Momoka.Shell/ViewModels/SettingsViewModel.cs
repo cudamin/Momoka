@@ -165,6 +165,9 @@ public sealed partial class SettingsViewModel : PageViewModel
     private Platform.ISystemLauncher? _launcher;
     private Platform.IStartupRegistration? _startup;
     private IServerCapabilities? _capabilities;
+    private readonly LoadGeneration _administrationLoads = new();
+    private bool _active;
+    private bool _disposed;
     private MoviePilotService? _moviePilot;
     private MoviePilotCredentials? _moviePilotCredentials;
     private SettingMoviePilotRow? _moviePilotRow;
@@ -638,6 +641,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         IServerCapabilities capabilities,
         EmbyImageStore? images = null)
     {
+        if (_disposed) return;
+        Activate();
         _settings = settings;
         _shaders = shaders;
         _fonts = fonts;
@@ -675,14 +680,28 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     internal async Task RefreshServerAdministrationAsync()
     {
-        if (_capabilities is null) return;
+        if (!_active || _capabilities is not { } capabilities) return;
+
+        var token = _administrationLoads.Begin();
+        var sources = capabilities.Sources.ToArray();
+        var keys = sources.Select(source => source.Key).Order(StringComparer.Ordinal).ToArray();
+        var identity = sources.FirstOrDefault(source => source.IsCurrent);
+        var knownKind = capabilities.ServerKind;
+
+        // 来源键只说明「谁」，捕获作用域还说明「哪一次在线身份」。同键重建、同服换默认账号、
+        // 离页或后一次刷新都不能借旧空表提交；Scope 是快照对象，不能拿新旧 Scope 引用比较。
+        bool Current() => _active
+            && ReferenceEquals(_capabilities, capabilities)
+            && _administrationLoads.IsCurrent(token)
+            && knownKind == capabilities.ServerKind
+            && sources.All(source => source.IsAvailable)
+            && (identity is null || identity.IsCurrent)
+            && keys.SequenceEqual(capabilities.Sources.Select(source => source.Key).Order(StringComparer.Ordinal));
 
         // 多服务器：Momoka 组之后每台在线服务器一组，默认全部收起。组里的入口绑定那一台自己的
         // 捕获作用域 —— 这正是从前只有独占模式才看得见的那批设置页，现在按服务器各归各的。
-        var sources = _capabilities.Sources;
         if (sources.Select(source => source.ServerProfileId).Distinct(StringComparer.Ordinal).Count() > 1)
         {
-            var keys = sources.Select(source => source.Key).Order(StringComparer.Ordinal).ToArray();
             ApplyMultiServerGroups(sources, new Dictionary<string, IReadOnlyList<ServerSettingsPluginPage>>(StringComparer.Ordinal));
 
             var pages = new Dictionary<string, IReadOnlyList<ServerSettingsPluginPage>>(StringComparer.Ordinal);
@@ -690,22 +709,19 @@ public sealed partial class SettingsViewModel : PageViewModel
                 .Where(source => source.IsAdministrator && source.Kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
                 .Select(async source =>
                 {
-                    var list = await _capabilities.GetAdminMenuPagesAsync(source.Key).ConfigureAwait(true);
+                    var list = await capabilities.GetAdminMenuPagesAsync(source.Key, token).ConfigureAwait(true);
                     lock (pages) pages[source.Key] = list;
                 })).ConfigureAwait(true);
 
-            // 等插件页的这一趟里换了服务器/账号：这一份目录属于上一批来源，下一趟会重装。
-            var current = _capabilities.Sources;
-            if (!keys.SequenceEqual(current.Select(source => source.Key).Order(StringComparer.Ordinal)))
-                return;
-            ApplyMultiServerGroups(current, pages);
+            if (!Current()) return;
+            // 等待后重读每条来源的权限，不让等待前的管理员位重新打开已收起的目录。
+            ApplyMultiServerGroups(capabilities.Sources, pages);
             return;
         }
 
         // 先同步已知状态，防止权限请求尚在等待时显示上一个账号、上一台服务器或上一个连接模式的管理页。
         // 产品一变立刻换上那一家的固定条目（插件页稍后补）；不能拿上一家的分组顶着新产品的名字。
         // 这一步也是命令行按分类打开的落点依据：OnNavigatedTo 里的 Select 紧接着同步这一段就执行。
-        var knownKind = _capabilities.ServerKind;
         if (knownKind != _administrationKind || _serverEntries.Count == 0)
         {
             SetServerMenu(knownKind switch
@@ -717,20 +733,19 @@ public sealed partial class SettingsViewModel : PageViewModel
             }, knownKind);
         }
         ApplyServerAdministration(CanShowServerAdministration, knownKind);
-        if (_capabilities.IsAdministrator is null)
-            await _capabilities.ProbeAsync().ConfigureAwait(true);
+        if (capabilities.IsAdministrator is null)
+            await capabilities.ProbeAsync(token).ConfigureAwait(true);
+        if (!Current()) return;
 
         var visible = CanShowServerAdministration;
-        var kind = _capabilities.ServerKind;
+        var kind = capabilities.ServerKind;
         if (visible && kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
         {
-            var pages = await _capabilities.GetAdminMenuPagesAsync().ConfigureAwait(true);
-            if (kind != _capabilities.ServerKind)
-            {
-                // 等插件页的这一趟里换了服务器，当前这份目录属于上一台；下一趟会把新目录装上。
-                return;
-            }
-            SetServerMenu(kind == MediaServerKind.Emby
+            var pages = await capabilities.GetAdminMenuPagesAsync(token).ConfigureAwait(true);
+            if (!Current()) return;
+
+            visible = CanShowServerAdministration;
+            SetServerMenu(!visible ? [] : kind == MediaServerKind.Emby
                 ? ServerSettingsMenu.Build(pages)
                 : JellyfinServerSettingsMenu.Build(pages), kind);
         }
@@ -742,6 +757,29 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
 
         ApplyServerAdministration(visible, kind);
+    }
+
+    /// <summary>缓存页重开只恢复读取活动期，不 Reload、保存或替换草稿集合。</summary>
+    internal void Activate()
+    {
+        if (_disposed) return;
+        _administrationLoads.Cancel();
+        _active = true;
+    }
+
+    public override void Cancel()
+    {
+        _active = false;
+        _administrationLoads.Cancel();
+        base.Cancel();
+    }
+
+    public override void Dispose()
+    {
+        _disposed = true;
+        _active = false;
+        _administrationLoads.Dispose();
+        base.Dispose();
     }
 
     /// <summary>

@@ -1,0 +1,78 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Momoka.SettingsLifetimeTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\FnNasPreferencesPage.xaml.cs" Link="Production\FnNasPreferencesPage.xaml.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+  <!-- Execute current page/window methods verbatim; rendering, HWND and unused owners are boundaries.
+       VM calls use this tree's explicitly supplied real Shell DLL, not a copied view-model. -->
+  <UsingTask TaskName="ExtractSettingsLifetimeSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <PageSource ParameterType="System.String" Required="true" />
+      <WindowSource ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, string, string> between = (source, start, end) =>
+        {
+            var begin = source.IndexOf(start, StringComparison.Ordinal);
+            if (begin < 0 || source.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous production start: " + start);
+            var finish = source.IndexOf(end, begin, StringComparison.Ordinal);
+            if (finish < 0) throw new InvalidOperationException("Missing production end: " + end);
+            return source.Substring(begin, finish - begin);
+        };
+        var page = File.ReadAllText(PageSource).Replace("\r\n", "\n");
+        var window = File.ReadAllText(WindowSource).Replace("\r\n", "\n");
+        var generated = "// Extracted verbatim from current production at build time; do not edit.\n#nullable enable\n" +
+            "using System.ComponentModel;\nusing Momoka.Infrastructure;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\n" +
+            "using Momoka.Emby;\nusing Momoka.MoviePilot;\nusing Momoka.Playback;\nusing Momoka.Services;\nusing Momoka.Updates;\n" +
+            "using Momoka.Shell.ViewModels;\nusing Microsoft.Extensions.DependencyInjection;\nusing Microsoft.UI.Xaml;\n" +
+            "using Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nusing Microsoft.UI.Windowing;\n" +
+            "using Momoka.Shell.Interop;\nnamespace Momoka.Shell.Views;\n" +
+            between(page, "internal sealed record SettingsRequest", "\n/// <summary>\n/// 设置页。") +
+            "\npublic sealed partial class SettingsPage : Page, IShellContent\n{\n" +
+            between(page, "    private const string Category = \"设置\";", "    internal bool IsReady =>") +
+            between(page, "    public object? NavigationRequest => _request;", "\n    private void UpdateCategoryGroups()") +
+            between(page, "    private void UpdateCategoryGroups()", "\n    /// <summary>\n    /// 分组表每次") +
+            between(page, "    private bool Select(string category)", "\n    /// <summary>\n    /// What is really on screen") +
+            between(page, "    internal object CurrentPage =>", "\n    /// <summary>\n    /// Drops whatever") +
+            between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Counts realised") +
+            "\n}\ninternal sealed partial class SettingsWindow\n{\n" +
+            between(window, "    private const string Category = \"设置窗口\";", "    private SettingsWindow(Window window, Frame frame)") +
+            between(window, "    internal bool IsOpen =>", "\n    /// <summary>Outer size") +
+            between(window, "    internal event Action? Hidden;", "\n    /// <summary>\n    /// What is on screen") +
+            between(window, "    internal SettingsPage? Page =>", "\n    /// <summary>\n    /// Builds the window") +
+            between(window, "    internal void Show(SettingsRequest request)", "\n    /// <summary>\n    /// Centred on the owner's monitor") +
+            "\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateSettingsLifetimeSources" BeforeTargets="CoreCompile">
+    <ExtractSettingsLifetimeSources
+      PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsPage.xaml.cs"
+      WindowSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsWindow.cs"
+      OutputSource="$(IntermediateOutputPath)SettingsLifetime.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)SettingsLifetime.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

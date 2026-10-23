@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ResourceBrowserTests
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PlexAffordanceTests", "tests\Momoka.PlexAffordanceTests\Momoka.PlexAffordanceTests.csproj", "{A926B259-29D6-4763-8327-BCCFA11C1379}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SettingsLifetimeTests", "tests\Momoka.SettingsLifetimeTests\Momoka.SettingsLifetimeTests.csproj", "{ABF0DD52-B485-4471-898A-74C592710EF1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -70,8 +72,13 @@ Global
 		{A926B259-29D6-4763-8327-BCCFA11C1379}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A926B259-29D6-4763-8327-BCCFA11C1379}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A926B259-29D6-4763-8327-BCCFA11C1379}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABF0DD52-B485-4471-898A-74C592710EF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABF0DD52-B485-4471-898A-74C592710EF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABF0DD52-B485-4471-898A-74C592710EF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABF0DD52-B485-4471-898A-74C592710EF1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{ABF0DD52-B485-4471-898A-74C592710EF1} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{A926B259-29D6-4763-8327-BCCFA11C1379} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{58F6DEAE-3C24-4647-95D0-36EBBF802D3B} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{2D195C91-5B62-49DE-A502-D14E4D851341} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
