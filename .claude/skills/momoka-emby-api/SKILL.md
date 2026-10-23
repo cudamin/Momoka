@@ -85,7 +85,7 @@ Videos/{itemId}/stream{ext}?Static=true&MediaSourceId=…
 ## 验证
 
 - 新增或修改请求路径时，先 `GET {ApiBase}openapi` 校对；规格里没有的，确认是缺口并登记进本技能。规格取不到时改查[官方 SDK 字典](references/official-sdk.md)，并写明依据的是哪一版 SDK。
-- 传输层行为（重定向、401 分类、`.part` 清理、日志脱敏）有单测覆盖，改 `EmbyHttp` / `EmbyHttpRedirect` / `EmbyUrl` 后跑测试项目，而不是只跑界面检查。
+- 传输层行为（重定向、401 分类、`.part` 清理、日志脱敏）有单测覆盖，改 `EmbyHttp` / `EmbyHttpRedirect` / `EmbyUrl` 后跑测试项目，而不是只跑界面检查。 `HttpDownloadErrorTests` 直接执行真实长下载入口，假传输覆盖 401／403／503 的空／部分错误正文、流取得等待、短截止后的状态保留、取消、释放／后项前进，以及成功下载超出该截止；不运行真实下载或 UI 队列。定向命令见开发文档。
 - 活服务器核对走只读；写操作按 CLAUDE.md 的授权档位来。
 - 报告实测、未覆盖与失败项；不把历史失败当成通过，不用改基线消除未经解决的红项。
 

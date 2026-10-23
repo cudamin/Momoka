@@ -31,6 +31,14 @@ internal static class Program
             SubtitleForcedOnlyTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["http-download-error-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            HttpDownloadErrorTests.Register();
+            HttpDeadlineTests.Register();
+            HttpDiagnosticsTests.Register();
+            return TestHarness.Run();
+        }
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();

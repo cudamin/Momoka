@@ -19,6 +19,7 @@ public sealed class EmbyHttp : IDisposable
 {
     private const string Category = "http";
     private const int MaxErrorBodyBytes = 8000;
+    private static readonly TimeSpan ErrorBodyTimeout = TimeSpan.FromSeconds(2);
 
     private readonly HttpClient _http;
 
@@ -389,6 +390,7 @@ public sealed class EmbyHttp : IDisposable
                 }
 
                 await ReadBodySafelyAsync(response, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
                 Log.Warn(Category, $"{method} {Redact(url)} -> {(int)response.StatusCode}");
                 // 资源来源的 401 不是 Emby 令牌失效，不能触发原服务器重新登录。
                 if (!authenticated && response.StatusCode == HttpStatusCode.Unauthorized)
@@ -434,16 +436,26 @@ public sealed class EmbyHttp : IDisposable
 
     private static async Task ReadBodySafelyAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
+        // Error text is optional: the status is already known. In particular, the long-download
+        // client has no request deadline, so a byte limit alone cannot bound a stalled error body.
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        deadline.CancelAfter(ErrorBodyTimeout);
+        var token = deadline.Token;
         try
         {
-            // 小错误响应读完以复用连接；正文受字节数和请求截止时间约束，不解码、不交给诊断。
-            var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            // 小错误响应读完以复用连接；最多8000字节/2秒，不解码、不交给诊断。
+            var stream = await response.Content.ReadAsStreamAsync(token).ConfigureAwait(false);
             var buffer = new byte[MaxErrorBodyBytes];
             await using (stream.ConfigureAwait(false))
             {
-                await stream.ReadAtLeastAsync(buffer, buffer.Length, throwOnEndOfStream: false, cancellationToken)
+                await stream.ReadAtLeastAsync(buffer, buffer.Length, throwOnEndOfStream: false, token)
                     .ConfigureAwait(false);
             }
+        }
+        catch (OperationCanceledException) when (deadline.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            // Only the optional drain expired: still report the original HTTP status, not a
+            // connection timeout. Caller cancellation (or the ordinary request deadline) wins.
         }
         catch (OperationCanceledException)
         {
