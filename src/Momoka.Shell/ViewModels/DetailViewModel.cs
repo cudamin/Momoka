@@ -2339,13 +2339,10 @@ public sealed partial class DetailViewModel : PageViewModel
             var source = await ArtworkCandidates.FirstAsync<ArtworkRef, HeroPictureLoader.HeroPixels>(
                 ItemArtwork.Hero(page), async (picture, candidateToken) =>
                 {
-                    var bytes = await _images!
-                        .GetAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
-                            EmbyImageStore.RequestWidth(HeroDecodeWidth), candidateToken)
+                    return await _images!.GetDecodedAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
+                        EmbyImageStore.RequestWidth(HeroDecodeWidth),
+                        bytes => HeroPictureLoader.DecodePixelsAsync(bytes, HeroDecodeWidth, candidateToken), candidateToken)
                         .ConfigureAwait(true);
-                    return bytes is null || bytes.Length == 0 ? null
-                        : await HeroPictureLoader.DecodePixelsAsync(bytes, HeroDecodeWidth, candidateToken)
-                            .ConfigureAwait(true);
                 }, token).ConfigureAwait(true);
             if (source is null || !Fresh(art, page)) return;
 
@@ -2491,10 +2488,11 @@ public sealed partial class DetailViewModel : PageViewModel
 
         return await ArtworkCandidates.FirstAsync<string, BitmapImage>(types, async (type, candidateToken) =>
         {
-            var bytes = await _images!
-                .GetAsync(item, type, EmbyImageStore.RequestWidth(width), candidateToken).ConfigureAwait(true);
-            return bytes is null || bytes.Length == 0 ? null
-                : await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
+            var tag = EmbyImageStore.TagFor(item, type);
+            if (tag is null || _images!.CaptureScope(item) is not { } scope) return null;
+            return await _images.GetDecodedAsync(scope, item.Id, type, tag,
+                EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), candidateToken)
+                .ConfigureAwait(true);
         }, token).ConfigureAwait(true);
     }
 
@@ -2514,11 +2512,9 @@ public sealed partial class DetailViewModel : PageViewModel
 
         return await ArtworkCandidates.FirstAsync<ArtworkRef, BitmapImage>(pictures, async (picture, candidateToken) =>
         {
-            var bytes = await _images!
-                .GetAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
-                    EmbyImageStore.RequestWidth(width), candidateToken).ConfigureAwait(true);
-            return bytes is null || bytes.Length == 0 ? null
-                : await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
+            return await _images!.GetDecodedAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
+                EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), candidateToken)
+                .ConfigureAwait(true);
         }, token).ConfigureAwait(true);
     }
 

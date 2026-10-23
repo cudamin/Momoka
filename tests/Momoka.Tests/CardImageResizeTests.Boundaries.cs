@@ -47,13 +47,15 @@ namespace Momoka.Shell.Media
     internal static class PosterLoader
     {
         public static bool Hold { get; set; }
+        public static Func<string, Exception?>? ErrorFor { get; set; }
         public static List<CardImageDecode> Calls { get; } = [];
 
         public static Task<BitmapImage?> DecodeAsync(byte[] bytes, int logicalWidth)
         {
             var call = new CardImageDecode(Encoding.UTF8.GetString(bytes), logicalWidth);
             Calls.Add(call);
-            if (!Hold) call.Complete();
+            if (ErrorFor?.Invoke(call.Image) is { } error) call.Fail(error);
+            else if (!Hold) call.Complete();
             return call.Result;
         }
 
@@ -62,6 +64,7 @@ namespace Momoka.Shell.Media
             foreach (var call in Calls) call.Complete();
             Calls.Clear();
             Hold = false;
+            ErrorFor = null;
         }
     }
 
@@ -71,6 +74,7 @@ namespace Momoka.Shell.Media
         public string Image { get; } = image;
         public int Width { get; } = width;
         public Task<BitmapImage?> Result => _result.Task;
+        public void Fail(Exception error) => _result.TrySetException(error);
         public void Complete() => _result.TrySetResult(new BitmapImage { DecodePixelWidth = Width, FixtureImage = Image });
     }
 }
@@ -149,6 +153,9 @@ namespace Momoka.Tests
         public CancellationToken? LoadingToken => (LoadingField.GetValue(Card) as CancellationTokenSource)?.Token;
 
         public string Key(int width) => PosterCache.Key(Scope.Connection, Item.Id, EmbyImageStore.Primary, "image-tag", width);
+
+        public string CacheFile(int width) => Path.Combine(_root, "images",
+            EmbyImageStore.CacheKey(Scope.Connection, Item.Id, EmbyImageStore.Primary, "image-tag", width));
 
         public async Task DeliverAsync(CardImageRequest request, string image)
         {

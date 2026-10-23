@@ -533,28 +533,21 @@ public sealed class CardItem : INotifyPropertyChanged
         try
         {
             if (PosterArtwork is not { } picture) return;
-            var cacheKey = PosterCache.Key(scope.Connection, picture.ItemId, picture.ImageType, picture.Tag, _width);
-            var bytes = await _images.GetAsync(scope, picture.ItemId, picture.ImageType, picture.Tag, EmbyImageStore.RequestWidth(_width), cts.Token)
+            var width = _width;
+            var cacheKey = PosterCache.Key(scope.Connection, picture.ItemId, picture.ImageType, picture.Tag, width);
+            var bitmap = await _images.GetDecodedAsync(scope, picture.ItemId, picture.ImageType, picture.Tag,
+                    EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), cts.Token)
                 .ConfigureAwait(true);
 
             if (cts.IsCancellationRequested || !scope.IsAvailable) return;
-
-            if (bytes is null || bytes.Length == 0)
+            if (bitmap is null)
             {
-                // 走到这里的一定是服务器明说的 404（取不到的那几档在 EmbyImageStore 里已经先重试过、救不回来才
-                // 抛出来），所以放心记死：滚动路过一个真没有图的条目时不必每一次都去问服务器。
-                _missing = true;
-
-                // 留一行。这一档和「加载失败」在屏上是同一种灰，而日志里从前一个字都没有 —— 「服务器没这张图」
-                // 和「有图没取到」分不开，就只能靠猜。
+                _missing = true; // 明确无图片；解码异常仍交给下方失败冷却路径。
                 Log.Debug(Category, $"服务器没有这张图（{_item.Name}，{_imageType}）");
                 return;
             }
 
-            var bitmap = await PosterLoader.DecodeAsync(bytes, _width).ConfigureAwait(true);
-            if (cts.IsCancellationRequested || !scope.IsAvailable) return;
-
-            if (bitmap is not null) PosterCache.Remember(cacheKey, bitmap);
+            PosterCache.Remember(cacheKey, bitmap);
 
             // 屏上还要不要它（见 ReleasePoster）：不要了就只留进上面那份缓存，不塞回这张卡 —— 塞回去就是一张
             // 不在屏上的卡攥着一张解出来的画面，而那正是「放开」要防的事。
@@ -565,6 +558,8 @@ public sealed class CardItem : INotifyPropertyChanged
         }
         catch (Exception error)
         {
+            // 旧解码也可能以 IO/codec 等非取消异常结束；换宽已撤销的那一趟不能污染新任务的冷却。
+            if (cts.IsCancellationRequested || !scope.IsAvailable) return;
             // 「这次没取到」不是「服务器没有」：不记死，只记下时间。等冷却过了（见开头的 WorthRetrying）、容器
             // 再把这张卡递进来的时候重新问。在屏上纹丝不动的卡不会自己触发重问，但 EmbyImageStore 那头已经先
             // 重试过两轮，短命的网络打嗝根本走不到这里；走得到的是比较长的断连，那种本来就要等下一次滚动或

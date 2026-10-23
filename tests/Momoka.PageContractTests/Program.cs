@@ -60,6 +60,7 @@ internal static class Program
         });
         DiagnosticsTests.Register();
         CardImageResizeTests.Register();
+        ImageRecoveryTests.Register();
         return TestHarness.Run();
     }
 

@@ -18,6 +18,7 @@
     <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
     <Compile Include="..\Momoka.Tests\CardImageResizeTests*.cs" Link="%(Filename)%(Extension)" />
+    <Compile Include="..\Momoka.Tests\ImageRecoveryTests.cs" Link="ImageRecoveryTests.cs" />
     <!-- Exact page control-flow source; fixtures replace XAML/framework boundaries, not Attach logic. -->
     <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotSubscriptionsPage.xaml.cs" Link="Production\MoviePilotSubscriptionsPage.xaml.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />

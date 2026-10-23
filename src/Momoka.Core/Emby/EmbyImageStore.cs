@@ -39,6 +39,7 @@ public sealed class EmbyImageStore
     /// <see cref="SharedWork{TResult}"/> for what that cost before it was written down.
     /// </summary>
     private readonly SharedWork<byte[]?> _downloads = new();
+    private readonly object _cacheGate = new();
 
     public EmbyImageStore(EmbySession session, string directory, long maxBytes = 0)
     {
@@ -131,6 +132,87 @@ public sealed class EmbyImageStore
             cancellationToken);
 
     /// <summary>
+    /// 解码在调用上下文执行。明确坏数据只失效相同字节的那个键；模糊错误无损重取一次。
+    /// 重取字节在解码成功之前不写入，失败/取消不会覆盖可能已经更新的缓存。
+    /// </summary>
+    public async Task<TImage?> GetDecodedAsync<TImage>(EmbySessionScope scope, string itemId, string imageType,
+        string tag, int width, Func<byte[], Task<TImage?>> decode, CancellationToken cancellationToken)
+        where TImage : class
+    {
+        ArgumentNullException.ThrowIfNull(scope);
+        ArgumentNullException.ThrowIfNull(decode);
+        var bytes = await GetAsync(scope, itemId, imageType, tag, width, cancellationToken).ConfigureAwait(true);
+        if (bytes is null || bytes.Length == 0) return null;
+        var rejected = bytes;
+        var key = CacheKey(scope.Connection, itemId, imageType, tag, width);
+        var path = Path.Combine(_directory, key);
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                scope.ThrowIfUnavailable();
+                cancellationToken.ThrowIfCancellationRequested();
+                var image = await decode(bytes).ConfigureAwait(true);
+                scope.ThrowIfUnavailable();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (attempt > 0 && image is not null)
+                    await UpdateRejectedCacheAsync(scope, path, rejected, bytes, cancellationToken).ConfigureAwait(true);
+                scope.ThrowIfUnavailable();
+                cancellationToken.ThrowIfCancellationRequested();
+                return image;
+            }
+            catch (Exception error) when (ImageDecodeFailure.CanRefetch(error))
+            {
+                scope.ThrowIfUnavailable();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (ImageDecodeFailure.ProvesInvalidData(error))
+                    await UpdateRejectedCacheAsync(scope, path, bytes, replacement: null, cancellationToken).ConfigureAwait(true);
+                if (attempt > 0) throw;
+            }
+
+            scope.ThrowIfUnavailable();
+            cancellationToken.ThrowIfCancellationRequested();
+            // Bypass the rejected disk value, but use the same in-flight table as a normal cache miss.
+            // A caller arriving after invalidation must join this download, not start a duplicate GET.
+            // Canceling one caller cancels only its wait; recovery bytes are persisted after decoding.
+            bytes = await _downloads.RunAsync(key, () => DownloadAsync(scope,
+                (client, token) => client.GetImageBytesAsync(itemId, imageType, tag, width, token),
+                $"{itemId}/{imageType}", path, persist: false), cancellationToken).ConfigureAwait(true);
+            scope.ThrowIfUnavailable();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (bytes is null || bytes.Length == 0) return null;
+        }
+    }
+
+    private Task UpdateRejectedCacheAsync(EmbySessionScope scope, string path, byte[] rejected,
+        byte[]? replacement, CancellationToken cancellationToken) => Task.Run(() =>
+    {
+        lock (_cacheGate)
+        {
+            scope.ThrowIfUnavailable();
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                // Coordinate our own writers; stale decodes cannot delete a newer value or overwrite it
+                // with a delayed recovery. Missing paths may receive only a successfully decoded value.
+                if (File.Exists(path))
+                {
+                    var current = File.ReadAllBytes(path);
+                    if (!current.AsSpan().SequenceEqual(rejected)) return;
+                    scope.ThrowIfUnavailable();
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (replacement is null) File.Delete(path);
+                    else AtomicFile.WriteAllBytes(path, replacement);
+                }
+                else if (replacement is not null) AtomicFile.WriteAllBytes(path, replacement);
+                if (replacement is not null) CountCachedDownload();
+            }
+            catch (IOException) { Log.Debug(Category, "图片缓存恢复无法更新文件，将保留原件"); }
+            catch (UnauthorizedAccessException) { Log.Debug(Category, "图片缓存恢复无法更新文件，将保留原件"); }
+        }
+    }, cancellationToken);
+
+    /// <summary>
     /// The still for one chapter, for the seek bar's hover preview. Cached exactly like a poster,
     /// which matters more here than for artwork: scrubbing a long episode walks over every chapter
     /// and would otherwise re-download the same frames on every pass.
@@ -192,7 +274,8 @@ public sealed class EmbyImageStore
         EmbySessionScope scope,
         Func<EmbyClient, CancellationToken, Task<byte[]>> download,
         string description,
-        string path)
+        string path,
+        bool persist = true)
     {
         for (var attempt = 0; ; attempt++)
         {
@@ -213,21 +296,17 @@ public sealed class EmbyImageStore
                 if (bytes.Length > 512 * 1024)
                     Log.Debug(Category, $"图片未被服务器缩放（{description}，{bytes.Length / 1024} KB）");
 
-                try
+                if (persist)
                 {
-                    AtomicFile.WriteAllBytes(path, bytes);
-                }
-                catch (Exception error)
-                {
-                    Log.Warn(Category, "写入图片缓存失败", error);
+                    lock (_cacheGate)
+                    {
+                        scope.ThrowIfUnavailable();
+                        try { AtomicFile.WriteAllBytes(path, bytes); }
+                        catch (Exception error) { Log.Warn(Category, "写入图片缓存失败", error); }
+                    }
                 }
 
-                // 又下了一张。攒够一批就再清一次 —— 从前只在开机清，一次长会话里缓存可以一路涨过预算。
-                if (Interlocked.Increment(ref _sincePrune) >= PruneEvery)
-                {
-                    Interlocked.Exchange(ref _sincePrune, 0);
-                    PruneInBackground();
-                }
+                if (persist) CountCachedDownload();
 
                 return bytes;
             }
@@ -253,6 +332,14 @@ public sealed class EmbyImageStore
                 await Task.Delay(delay).ConfigureAwait(false);
             }
         }
+    }
+
+    private void CountCachedDownload()
+    {
+        // 普通下载和成功恢复都遵守同一预算；缓存命中或未验证的新字节不计为一次写入。
+        if (Interlocked.Increment(ref _sincePrune) < PruneEvery) return;
+        Interlocked.Exchange(ref _sincePrune, 0);
+        PruneInBackground();
     }
 
     private static async Task<byte[]?> ReadCachedAsync(string path, CancellationToken cancellationToken)
