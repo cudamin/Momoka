@@ -51,6 +51,14 @@ Pages created by this project's `Frame.Navigate` path use parameterless construc
 
 Known deviation, not a template: `FilterPanelViewModel` is `new`ed with no `Attach` at all.
 
+## Resume paging and displayed next episodes
+
+`LibraryViewModel` uses the existing `AggregateQueryCursor` for both aggregated queries and a single-source Resume page. Resume consumption belongs to server records, not `Cards.Count`: a watched episode can be replaced by a synthetic NextUp card that the Resume route does not contain. `_resumeRead` records which item identities actually came from that route; only removing one of those identities rolls back its source cursor and server total. Record the confirmed removal before awaiting NextUp, and cancel the in-flight page without changing the page's query identity.
+
+Page reads consume a cursor `Copy()` and publish it only after the UI continuation confirms both query and load generations. Otherwise a network-complete page waiting in the dispatcher queue can consume an offset even when its displayed rows are later rejected. Removal refreshes also build their cursor privately. `allowPartialFailure: false` retains a single source's normal failure/retry behavior; multi-source reads keep the existing partial-result policy. `PlayableList.CollectAsync` accepts an optional raw start index for Resume lists containing synthetic cards and does not mutate the displayed page's cursor.
+
+`library-resume-paging-fixture` explicitly loads this tree's current Release Shell DLL and runs the real VM/CardItem/ResumeSlot with a fake HTTP handler and a single-thread queue. It installs only in-memory source identity; no login, secret IO, window, actual network or playback. Commands and runtime coverage limits are in `docs/开发与验证.md`.
+
 ## Cached settings and directory actions
 
 `SettingsPage`'s same-container `built` path calls `SettingsViewModel.SyncSaveState` before the existing device refresh. Initial reload uses the same method. It only reads shared `HasUnsavedChanges` and uses the generated property/command notifications; it must not save or rebuild rows just to refresh the banner. Half-typed input, categories and collection identities survive reentry.

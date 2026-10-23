@@ -53,6 +53,35 @@ internal static class UiLifecycleTests
             Assert.Equal(0, items.Count);
         });
 
+        Test("播放列表：续播显示含合成下一集，显式服务器偏移不漏尾项", () =>
+        {
+            var offsets = new List<int>();
+            var items = PlayableList.CollectAsync([Movie("synthetic"), Movie("read")], true,
+                (offset, _) =>
+                {
+                    offsets.Add(offset);
+                    return Task.FromResult<ItemsResult?>(new ItemsResult { Items = [Movie("tail")], TotalRecordCount = 2 });
+                }, () => true, CancellationToken.None, startIndex: 1).GetAwaiter().GetResult();
+            Assert.Equal("1", string.Join(',', offsets));
+            Assert.Equal("synthetic,read,tail", string.Join(',', items.Select(item => item.Id)));
+        });
+        Test("播放列表：显式偏移按返回原记录数推进，不按可播条数推进", () =>
+        {
+            var offsets = new List<int>();
+            var items = PlayableList.CollectAsync([Movie("synthetic")], true,
+                (offset, _) =>
+                {
+                    offsets.Add(offset);
+                    return Task.FromResult<ItemsResult?>(new ItemsResult
+                    {
+                        Items = offset == 0 ? [new EmbyItem { Id = "folder", Type = EmbyItemType.Folder }] : [Movie("tail")],
+                        TotalRecordCount = 2
+                    });
+                }, () => true, CancellationToken.None, startIndex: 0).GetAwaiter().GetResult();
+            Assert.Equal("0,1", string.Join(',', offsets));
+            Assert.Equal("synthetic,tail", string.Join(',', items.Select(item => item.Id)));
+        });
+
         Test("首页刷新：首载被轻量刷新替代仍必须请求轮播", () =>
         {
             var refresh = new HomeRefresh();

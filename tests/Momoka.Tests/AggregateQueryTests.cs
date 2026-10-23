@@ -96,6 +96,117 @@ internal static class AggregateQueryTests
             Assert.Equal("a:1,b:2", string.Join(',', positions));
         });
 
+        Case("续播消费游标：单来源20/21条回退后从19取尾项", async () =>
+        {
+            var cursor = new AggregateQueryCursor(["a"]);
+            await cursor.ReadAsync((_, offset, _) => Task.FromResult(Page(21,
+                Enumerable.Range(offset, 20).Select(index => "a" + index).ToArray())), CancellationToken.None,
+                allowPartialFailure: false);
+            Assert.Equal(20, cursor.ConsumedCount);
+            cursor.RemoveConsumed("a");
+            Assert.Equal(19, cursor.ConsumedCount);
+            var last = await cursor.ReadAsync((_, offset, _) =>
+            {
+                Assert.Equal(19, offset);
+                return Task.FromResult(Page(20, "tail"));
+            }, CancellationToken.None, allowPartialFailure: false);
+            Assert.Equal("tail", last.Result.Items.Single().Id);
+            Assert.Equal(20, cursor.ConsumedCount);
+            Assert.Equal(20, last.Result.TotalRecordCount);
+            Assert.False(cursor.HasMore);
+        });
+
+        Case("续播消费游标：单来源失败继续抛出且不消费偏移", async () =>
+        {
+            var cursor = new AggregateQueryCursor(["a"]);
+            await cursor.ReadAsync((_, _, _) => Task.FromResult(Page(3, "first")), CancellationToken.None,
+                allowPartialFailure: false);
+            var failed = false;
+            try
+            {
+                await cursor.ReadAsync((_, _, _) => Task.FromException<ItemsResult>(new IOException("fixture")),
+                    CancellationToken.None, allowPartialFailure: false);
+            }
+            catch (IOException) { failed = true; }
+            Assert.True(failed);
+            Assert.Equal(1, cursor.ConsumedCount);
+            Assert.True(cursor.HasMore);
+            await cursor.ReadAsync((_, offset, _) =>
+            {
+                Assert.Equal(1, offset);
+                return Task.FromResult(Page(3, "second", "last"));
+            }, CancellationToken.None, allowPartialFailure: false);
+            Assert.False(cursor.HasMore);
+        });
+
+        Case("续播消费游标：取消在飞读取后回退，不消费未发布页", async () =>
+        {
+            var cursor = new AggregateQueryCursor(["a", "b"]);
+            await cursor.ReadAsync((_, _, _) => Task.FromResult(Page(3, "first")), CancellationToken.None);
+            using var cancellation = new CancellationTokenSource();
+            var reply = new TaskCompletionSource<ItemsResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var pending = cursor.ReadAsync((_, _, _) => reply.Task, cancellation.Token);
+            cancellation.Cancel();
+            cursor.RemoveConsumed("a");
+            reply.SetResult(Page(3, "late"));
+            var canceled = false;
+            try { await pending; } catch (OperationCanceledException) { canceled = true; }
+            Assert.True(canceled);
+            Assert.Equal(1, cursor.ConsumedCount);
+            var positions = new List<string>();
+            await cursor.ReadAsync((key, offset, _) =>
+            {
+                positions.Add($"{key}:{offset}");
+                return Task.FromResult(Page(offset));
+            }, CancellationToken.None);
+            Assert.Equal("a:0,b:1", string.Join(',', positions));
+        });
+
+        Case("续播消费游标：未发布副本的成功页不消费原游标", async () =>
+        {
+            var cursor = new AggregateQueryCursor(["a", "b"]);
+            await cursor.ReadAsync((key, _, _) => Task.FromResult(Page(2, key + "0")), CancellationToken.None);
+            var pending = cursor.Copy();
+            await pending.ReadAsync((key, _, _) => Task.FromResult(Page(2, key + "1")), CancellationToken.None);
+            Assert.False(pending.HasMore);
+            Assert.Equal(4, pending.ConsumedCount);
+            Assert.True(cursor.HasMore);
+            Assert.Equal(2, cursor.ConsumedCount);
+            cursor.RemoveConsumed("a");
+            Assert.Equal(1, cursor.ConsumedCount);
+            Assert.Equal(4, pending.ConsumedCount);
+        });
+
+        Case("续播消费游标：副本完整保留已完成来源，不重复请求", async () =>
+        {
+            var cursor = new AggregateQueryCursor(["a", "b"]);
+            await cursor.ReadAsync((key, _, _) => Task.FromResult(Page(key == "a" ? 1 : 2, key + "0")), CancellationToken.None);
+            var pending = cursor.Copy();
+            var positions = new List<string>();
+            await pending.ReadAsync((key, offset, _) =>
+            {
+                positions.Add($"{key}:{offset}");
+                return Task.FromResult(Page(2, key + "1"));
+            }, CancellationToken.None);
+            Assert.Equal("b:1", string.Join(',', positions));
+            Assert.False(pending.HasMore);
+            Assert.True(cursor.HasMore);
+            Assert.Equal(2, cursor.ConsumedCount);
+        });
+
+        Test("续播消费游标：已完成来源移除后仍完成，未知来源不回退", () =>
+        {
+            var cursor = new AggregateQueryCursor(["a"]);
+            cursor.ReadAsync((_, _, _) => Task.FromResult(Page(1, "only")), CancellationToken.None).GetAwaiter().GetResult();
+            cursor.RemoveConsumed("unknown");
+            Assert.Equal(1, cursor.ConsumedCount);
+            cursor.RemoveConsumed("a");
+            Assert.Equal(0, cursor.ConsumedCount);
+            Assert.False(cursor.HasMore);
+            cursor.RemoveConsumed("a");
+            Assert.Equal(0, cursor.ConsumedCount);
+        });
+
         Test("聚合主页：相同库 ID 按服务器账号保留独立货架，key 可还原原始 ID", () =>
         {
             var first = Scope("a", "user").Bind(new EmbyItem { Id = "same:id", Name = "电影" });

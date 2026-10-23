@@ -10,10 +10,13 @@ public static class PlayableList
         bool hasMore,
         Func<int, CancellationToken, Task<ItemsResult?>> read,
         Func<bool> isCurrent,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? startIndex = null)
     {
+        // 继续观看可以含有不在服务器 Resume 清单中的下一集；它的显示数量不是分页位置。
+        var start = startIndex ?? loaded.Count;
+        ArgumentOutOfRangeException.ThrowIfNegative(start);
         var items = loaded.Where(item => item.IsPlayable).ToList();
-        var start = loaded.Count;
 
         try
         {
