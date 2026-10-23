@@ -61,7 +61,7 @@ Card commands first apply the acknowledged target field and callbacks, then inde
   - 外观：不新增网页外观页，落到 Momoka 自己的「界面」卡（配色、动效、侧边栏等）。
 - **影视服务器**：媒体库、用户、设置、任务计划。只对 `is_admin == 1` 的账号显示；四页是 WinUI 原生页，不是网页内嵌。
   - 媒体库：`mdb/*` 与管理端目录浏览；页面还包含 IPTV 源，但没有恢复网盘/直链。 普通库切为 IPTV 不证明旧库已有直播源；只在原文档明确是 IPTV 且 `iptv.source_type` 为 text／local_file／upload 时，改名可省略源字段保留原源。URL仍走可编辑校验，未知/缺源模式须填写新源，不强制重传已存的文本/文件。文件大小过滤校验仅用于非IPTV且开启过滤；隐藏偏好保留，切回普通库仍拒绝NaN等无效值。`fnnas-library-editor-fixture` 调真实VM与假HTTP，不能据此声明类别转换的真实服务端兼容或实际NumberBox/文件框验收。
-  - 用户：`manager/user/*` 与默认媒体库权限。
+  - 用户：`manager/user/*` 与默认媒体库权限。`FnNasUsersViewModel` 为库选项和默认模板分别记录本次读取成功，两项齐备且权限有效才允许新增／默认权限编辑与保存；未读不等于零权限。显式刷新和重附加清旧来源缓存并关闭编辑，普通保存失败保留草稿。执行入口同样守卫，不仅靠 CanExecute／按钮显隐；未知 JSON 与未知库 ID 随原模板保留。`Momoka.FnNasDefaultPermissionTests` 编译实际 Users／Session／Admin／Page／Rows 和固定 MVVM 生成器，仅展示枚举／匿名 HTTP 是边界，不代表真实用户或权限写入验收。
   - 设置：服务器名称、语言、元数据/缓存存储空间、文件监控、搜索索引重建；保存时保留未知字段。**不要**恢复网盘直链开关、GPU 转码或流解析。
   - 任务计划：`task/schedule/*` 与每日开关。
 

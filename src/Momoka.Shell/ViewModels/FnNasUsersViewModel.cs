@@ -11,7 +11,9 @@ namespace Momoka.Shell.ViewModels;
 public sealed partial class FnNasUsersViewModel : FnNasAdminViewModel
 {
     private JsonObject? _original;
-    private JsonObject _defaultPermission = new();
+    private JsonObject? _defaultPermission;
+    private bool _defaultPermissionLoaded;
+    private bool _librariesLoaded;
     private readonly Dictionary<string, string> _libraryNames = new(StringComparer.Ordinal);
     public ObservableCollection<FnNasUserRow> Users { get; } = [];
     public ObservableCollection<FnNasChoice> Libraries { get; } = [];
@@ -20,14 +22,18 @@ public sealed partial class FnNasUsersViewModel : FnNasAdminViewModel
     [ObservableProperty] public partial string UserName { get; set; } = "";
     [ObservableProperty] public partial string Password { get; set; } = "";
     [ObservableProperty] public partial string ConfirmPassword { get; set; } = "";
-    [ObservableProperty] public partial int Permission { get; set; }
+    [ObservableProperty] public partial int Permission { get; set; } = -1;
     public bool IsNew => _original is null && !EditingDefault;
     public bool IsAdministrator => _original is not null && FnNasJson.Flag(_original, "is_admin");
-    public bool CanSave => CanUse && Editing;
+    private bool PermissionDataLoaded => _defaultPermissionLoaded && _librariesLoaded && _defaultPermission is not null;
+    public bool CanOpenDefaults => CanUse && PermissionDataLoaded;
+    public bool CanBack => CanUse && Editing;
+    public bool CanSave => CanOpenDefaults && Editing && (IsAdministrator || Permission is >= 0 and <= 2);
     public bool CanDelete => CanSave && !EditingDefault && _original is not null && !IsAdministrator;
     public bool CanUnlock => CanDelete && FnNasJson.Flag(_original, "is_banned");
     public string EditorTitle => EditingDefault ? "新用户默认权限" : IsNew ? "新增用户" : "编辑用户";
     public string CountText => $"{Users.Count} 个用户";
+    public Visibility DefaultActionsVisibility => Show(Live && PermissionDataLoaded);
     public Visibility ListVisibility => Show(!Editing);
     public Visibility EditorVisibility => Show(Editing);
     public Visibility IdentityVisibility => Show(!EditingDefault);
@@ -39,24 +45,49 @@ public sealed partial class FnNasUsersViewModel : FnNasAdminViewModel
 
     protected override void ResetEditor()
     {
-        Editing = false;
+        _defaultPermission = null;
+        _defaultPermissionLoaded = _librariesLoaded = false;
+        _libraryNames.Clear();
         _original = null;
-        Password = ConfirmPassword = "";
+        Editing = EditingDefault = false;
+        UserName = Password = ConfirmPassword = "";
+        Permission = -1;
         Users.Clear();
         Libraries.Clear();
+        OnPropertyChanged(nameof(CountText));
         AnnounceEditor();
     }
 
-    public override Task ReloadAsync() => RunAsync("读取用户失败", async (scope, token) =>
+    public override Task ReloadAsync() => RunAsync("读取用户失败，请刷新重试", async (scope, token) =>
     {
-        var libraries = await scope.ExecuteAsync((client, ct) => client.FnNas.GetAdminLibrariesAsync(client.FnNasConnection, ct), token);
-        var defaults = await scope.ExecuteAsync((client, ct) => client.FnNas.GetDefaultPermissionAsync(client.FnNasConnection, ct), token);
+        // 刷新也是一次新读取：旧成功模板不能在本次失败后重新成为当前可写配置。
+        ResetEditor();
+        var libraries = ReadLibrariesAsync(scope, token);
+        var defaults = ReadDefaultsAsync(scope, token);
+        await Task.WhenAll(libraries, defaults);
         if (!Current(token)) return;
-        _libraryNames.Clear();
-        foreach (var library in libraries) _libraryNames[FnNasJson.Text(library, "guid")] = FnNasJson.Text(library, "name");
-        _defaultPermission = FnNasJson.Copy(defaults);
+        foreach (var library in await libraries) _libraryNames[FnNasJson.Text(library, "guid")] = FnNasJson.Text(library, "name");
+        _defaultPermission = await defaults;
+        AnnounceEditor();
         await ReadUsersAsync(scope, token);
     });
+
+    private async Task<IReadOnlyList<JsonObject>> ReadLibrariesAsync(EmbySessionScope scope, CancellationToken token)
+    {
+        var libraries = await scope.ExecuteAsync((client, ct) => client.FnNas.GetAdminLibrariesAsync(client.FnNasConnection, ct), token);
+        if (Current(token)) _librariesLoaded = true;
+        return libraries;
+    }
+
+    private async Task<JsonObject> ReadDefaultsAsync(EmbySessionScope scope, CancellationToken token)
+    {
+        var defaults = await scope.ExecuteAsync((client, ct) => client.FnNas.GetDefaultPermissionAsync(client.FnNasConnection, ct), token);
+        if (!Current(token)) return defaults;
+        if (FnNasJson.Number(defaults, "media_permission", -1) is < 0 or > 2)
+            throw new InvalidDataException("默认权限未返回有效配置，请刷新后重试。");
+        _defaultPermissionLoaded = true;
+        return FnNasJson.Copy(defaults);
+    }
 
     private async Task ReadUsersAsync(EmbySessionScope scope, CancellationToken token)
     {
@@ -67,46 +98,46 @@ public sealed partial class FnNasUsersViewModel : FnNasAdminViewModel
         OnPropertyChanged(nameof(CountText));
     }
 
-    [RelayCommand(CanExecute = nameof(CanUse))]
+    [RelayCommand(CanExecute = nameof(CanOpenDefaults))]
     private void NewUser() => Open(null);
 
     internal void Open(FnNasUserRow? row)
     {
-        if (!CanUse) return;
+        if (!CanOpenDefaults) return;
         EditingDefault = false;
         _original = row is null ? null : FnNasJson.Copy(row.Document);
         UserName = row?.Name ?? "";
         Password = ConfirmPassword = "";
-        PopulatePermission(_original ?? _defaultPermission);
+        PopulatePermission(_original ?? _defaultPermission!);
         Editing = true;
         AnnounceEditor();
     }
 
-    [RelayCommand(CanExecute = nameof(CanUse))]
+    [RelayCommand(CanExecute = nameof(CanOpenDefaults))]
     private void Defaults()
     {
-        if (!CanUse) return;
+        if (!CanOpenDefaults) return;
         EditingDefault = true;
         _original = null;
         Password = ConfirmPassword = "";
-        PopulatePermission(_defaultPermission);
+        PopulatePermission(_defaultPermission!);
         Editing = true;
         AnnounceEditor();
     }
 
     private void PopulatePermission(JsonObject source)
     {
-        Permission = FnNasJson.Number(source, "media_permission");
+        Permission = FnNasJson.Number(source, "media_permission", -1);
         var selected = FnNasUserRow.PermissionIds(source).ToHashSet(StringComparer.Ordinal);
         Libraries.Clear();
         foreach (var (id, name) in _libraryNames) Libraries.Add(new FnNasChoice(id, name) { Selected = selected.Contains(id) });
         foreach (var id in selected.Where(id => !_libraryNames.ContainsKey(id))) Libraries.Add(new FnNasChoice(id, "不可用媒体库") { Selected = true });
     }
 
-    [RelayCommand(CanExecute = nameof(CanSave))]
+    [RelayCommand(CanExecute = nameof(CanBack))]
     private void Back()
     {
-        if (!CanSave) return;
+        if (!CanBack) return;
         Editing = false;
         Password = ConfirmPassword = "";
     }
@@ -114,7 +145,7 @@ public sealed partial class FnNasUsersViewModel : FnNasAdminViewModel
     [RelayCommand(CanExecute = nameof(CanSave))]
     private Task SaveAsync() => !CanSave ? Task.CompletedTask : RunAsync("操作或刷新失败，请刷新列表核对后重试", async (scope, token) =>
     {
-        var draft = FnNasJson.Copy(EditingDefault ? _defaultPermission : _original ?? new JsonObject());
+        var draft = FnNasJson.Copy(EditingDefault ? _defaultPermission! : _original ?? new JsonObject());
         if (EditingDefault || !IsAdministrator)
         {
             draft["media_permission"] = Permission;
@@ -179,7 +210,11 @@ public sealed partial class FnNasUsersViewModel : FnNasAdminViewModel
 
     partial void OnEditingChanged(bool value) => AnnounceEditor();
     partial void OnEditingDefaultChanged(bool value) => AnnounceEditor();
-    partial void OnPermissionChanged(int value) => OnPropertyChanged(nameof(LibrariesVisibility));
+    partial void OnPermissionChanged(int value)
+    {
+        OnPropertyChanged(nameof(LibrariesVisibility));
+        BusyChanged();
+    }
     private void AnnounceEditor()
     {
         foreach (var name in new[] { nameof(IsNew), nameof(IsAdministrator), nameof(EditorTitle), nameof(ListVisibility), nameof(EditorVisibility), nameof(IdentityVisibility), nameof(PermissionVisibility), nameof(LibrariesVisibility), nameof(DeleteVisibility), nameof(UnlockVisibility), nameof(PasswordNote) }) OnPropertyChanged(name);
@@ -188,7 +223,7 @@ public sealed partial class FnNasUsersViewModel : FnNasAdminViewModel
     protected override void BusyChanged()
     {
         base.BusyChanged();
-        foreach (var name in new[] { nameof(CanSave), nameof(CanDelete), nameof(CanUnlock) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(CanOpenDefaults), nameof(CanBack), nameof(CanSave), nameof(CanDelete), nameof(CanUnlock), nameof(DefaultActionsVisibility) }) OnPropertyChanged(name);
         NewUserCommand.NotifyCanExecuteChanged();
         DefaultsCommand.NotifyCanExecuteChanged();
         BackCommand.NotifyCanExecuteChanged();
