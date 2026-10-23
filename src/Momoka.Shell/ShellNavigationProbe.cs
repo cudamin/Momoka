@@ -24,22 +24,23 @@ internal sealed partial class ShellNavigationProbe
 {
     internal static int ExitCode { get; private set; } = 1;
     private readonly StartupOptions _options;
-    private readonly List<Check> _checks = [];
-    private readonly List<Skipped> _skipped = [];
-    private readonly HashSet<string>? _sections;
+    private readonly ShellProbeReport _report;
     private readonly Grid _root = new();
     private HostWindow? _window;
 
     private ShellNavigationProbe(StartupOptions options)
     {
         _options = options;
-        _sections = options.ProbeSections is null ? null : new(options.ProbeSections, StringComparer.Ordinal);
+        _report = new ShellProbeReport(options.Paths.LogDirectory, options.ProbeSections, ShellProbeSections.All);
     }
     internal static Task RunAsync(StartupOptions options) => new ShellNavigationProbe(options).RunAsync();
 
     private async Task RunAsync()
     {
-        try
+        await _report.RunAsync(RunChecksAsync, _options.InspectShell,
+            () => _window?.Dispose(), () => Application.Current.Exit(), code => ExitCode = code);
+
+        async Task RunChecksAsync()
         {
             ThemeHost.Apply(_options.Theme ?? "midnight");
             _window = new HostWindow { Content = _root, FreeSizing = true };
@@ -50,8 +51,6 @@ internal sealed partial class ShellNavigationProbe
             if (_options.InspectShell)
             {
                 await InspectAsync();
-                ExitCode = 0;
-                SaveScope();
                 return;
             }
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
@@ -169,70 +168,11 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("目录首次失败可重试", ShellDirectoryRetryAsync);
             await CaseAsync("日志淘汰后显示空态", DiagnosticsEmptyAsync);
             await CaseAsync("对话框构造自检路径", DialogConstructionAsync);
-            SaveScope();
-            ExitCode = _checks.Count > 0 && _checks.All(check => check.Passed) ? 0 : 1;
-        }
-        catch (Exception error)
-        {
-            _checks.Add(new Check("探针宿主", false, error.ToString()));
-        }
-        finally
-        {
-            Save();
-            SaveScope();
-            _window?.Dispose();
-            Application.Current.Exit();
         }
     }
 
-    private async Task CaseAsync(string name, Func<Task> run, int timeoutSeconds = 12, string? section = null)
-    {
-        var area = section ?? CaseSections.GetValueOrDefault(run.Method.Name);
-        if (area is null)
-        {
-            _checks.Add(new Check("探针分区", false, $"用例「{name}」没有分区；请在 ShellNavigationProbe.Sections.cs 登记或显式传入 section"));
-            Save();
-            return;
-        }
-        if (_sections is not null && !_sections.Contains(area))
-        {
-            _skipped.Add(new Skipped(area, name));
-            SaveScope();
-            return;
-        }
-        try
-        {
-            await run().WaitAsync(TimeSpan.FromSeconds(timeoutSeconds));
-            _checks.Add(new Check(name, true, ""));
-        }
-        catch (Exception error) { _checks.Add(new Check(name, false, error.ToString())); }
-        Save();
-    }
-
-    private void Save() => File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "shell-probe.json"),
-        JsonSerializer.Serialize(_checks, new JsonSerializerOptions { WriteIndented = true }));
-
-    private void SaveScope()
-    {
-        var selected = _sections is null ? "全量" : string.Join(", ", _sections.OrderBy(section => section, StringComparer.Ordinal));
-        var unselected = _sections is null
-            ? "无"
-            : string.Join(", ", ShellProbeSections.All.Where(section => !_sections.Contains(section)));
-        if (unselected.Length == 0) unselected = "无";
-        var lines = new List<string>
-        {
-            $"执行区域：{selected}",
-            $"未执行区域：{unselected}",
-            $"未执行检查：{_skipped.Count}",
-        };
-        foreach (var group in _skipped.GroupBy(item => item.Section, StringComparer.Ordinal).OrderBy(group => group.Key, StringComparer.Ordinal))
-        {
-            lines.Add($"[{group.Key}]");
-            lines.AddRange(group.Select(item => "- " + item.Name));
-        }
-        File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "shell-probe-scope.txt"),
-            string.Join(Environment.NewLine, lines) + Environment.NewLine, new UTF8Encoding(false));
-    }
+    private Task CaseAsync(string name, Func<Task> run, int timeoutSeconds = 12, string? section = null) =>
+        _report.CaseAsync(name, run, timeoutSeconds, section ?? CaseSections.GetValueOrDefault(run.Method.Name));
 
     private Fixture CreateFixture(HttpMessageHandler? moviePilot = null, HttpMessageHandler? aniBt = null) => new(Path.Combine(_options.Paths.Root, "fixtures", Guid.NewGuid().ToString("N")), moviePilot, aniBt);
     private static TaskCompletionSource<T> Pending<T>() => new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -288,9 +228,6 @@ internal sealed partial class ShellNavigationProbe
         for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
             foreach (var child in Descendants(VisualTreeHelper.GetChild(root, index))) yield return child;
     }
-
-    private sealed record Check(string Name, bool Passed, string Detail);
-    private sealed record Skipped(string Section, string Name);
 
     private sealed class Fixture : IDisposable
     {

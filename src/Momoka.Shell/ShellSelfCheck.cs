@@ -33,8 +33,6 @@ namespace Momoka.Shell;
 /// </summary>
 internal static partial class ShellSelfCheck
 {
-    private const string Category = "自检";
-
     /// <summary>
     /// Rooted for the same reason as the window procedure: a started timer whose only reference is a
     /// local would be collectable before it ticks.
@@ -548,9 +546,6 @@ internal static partial class ShellSelfCheck
 
     private sealed record SettingsStop(string Category, int Rows, int Drawn, int Expected);
 
-    /// <summary>0 when every check passed. <c>Program</c> returns this as the process exit code.</summary>
-    public static int ExitCode { get; private set; }
-
     public static void ScheduleFor(
         HostWindow window,
         ShellPage shell,
@@ -561,7 +556,7 @@ internal static partial class ShellSelfCheck
         // leaves the previous report on disk, and a passing report from twenty minutes ago is worse than
         // no report at all: it reads as "this build is fine" when the build under test never finished.
         ExitCode = 1;
-        Write(options, "selfcheck-shell.txt", $"""
+        Write(options.Paths, "selfcheck-shell.txt", $"""
             {AppIdentity.TitleWithVersion} — WinUI 3 外壳自检
             时间：{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}
 
@@ -612,7 +607,7 @@ internal static partial class ShellSelfCheck
 
             timer.Stop();
 
-            try
+            await FinishAsync(async () =>
             {
                 // Before the report and after the walk: the only check with round trips of its own, so it
                 // cannot ride along on a synchronous tick. Never throws — see ProbeSeasonsAsync.
@@ -630,16 +625,7 @@ internal static partial class ShellSelfCheck
                     await ShootAsync(shell, options);
                     await shell.PlayerRoot.CaptureTransportSamplesAsync(options.Paths.LogDirectory);
                 }
-            }
-            catch (Exception error)
-            {
-                ExitCode = 1;
-                Log.Error(Category, "自检本身出错", error);
-            }
-            finally
-            {
-                window.Close();
-            }
+            }, window.Close);
         };
         _timer.Start();
     }

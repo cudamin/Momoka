@@ -1,4 +1,3 @@
-using System.Text;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -25,14 +24,17 @@ internal static class SubtitleSettingsProbe
     internal static async Task RunAsync(StartupOptions options)
     {
         HostWindow? window = null;
-        var report = new StringBuilder();
+        var report = new SubtitleProbeReport(options.Paths.LogDirectory);
         using var moviePilot = new MoviePilotClient(new OfflineHttp());
 
         // 「关于」卡上那颗手动「检查新版本」要的客户端。这一趟探针不按它，所以给一个拒绝真实网络的传输 ——
         // 探针跑起来之后不该有任何一条请求能落到发布页上（同 RejectNetwork 在 ShellNavigationProbe 里的用法）。
         using var updates = new UpdateClient(new OfflineHttp());
         using var stopping = new CancellationTokenSource(TimeSpan.FromMinutes(options.InspectSubtitles ? 10 : 2));
-        try
+        await report.RunAsync(RunChecksAsync, () => window?.Dispose(),
+            () => Application.Current.Exit(), code => ExitCode = code);
+
+        async Task RunChecksAsync()
         {
             options.Paths.EnsureCreated();
             var settings = new AppSettings();
@@ -143,25 +145,9 @@ internal static class SubtitleSettingsProbe
             }
             dialog.Hide();
             await shown;
-            ExitCode = 0;
-        }
-        catch (Exception error)
-        {
-            report.AppendLine($"[失败] {error}");
-        }
-        finally
-        {
-            File.WriteAllText(Path.Combine(options.Paths.LogDirectory, "subtitle-probe.txt"), report.ToString(), Encoding.UTF8);
-            window?.Dispose();
-            Application.Current.Exit();
         }
 
-        void Record(string name, bool ok, string detail)
-        {
-            report.AppendLine($"[{(ok ? "通过" : "失败")}] {name} — {detail}");
-            File.WriteAllText(Path.Combine(options.Paths.LogDirectory, "subtitle-probe.txt"), report.ToString(), Encoding.UTF8);
-            if (!ok) throw new InvalidOperationException(name);
-        }
+        void Record(string name, bool ok, string detail) => report.Record(name, ok, detail);
         void RecordResult(string name, (bool Ok, string Detail) result) => Record(name, result.Ok, result.Detail);
     }
 
