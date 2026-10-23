@@ -1249,13 +1249,15 @@ public sealed partial class ShellPage : UserControl, IShellActions
                 catch (Exception error) { Log.Info("anibt", $"无法补齐遗漏集的搜索元数据：{Failure.Describe(error)}"); }
             }
             if (!session.IsAvailable || !ReferenceEquals(ContentFrame.Content, page)) return;
+            // 补读期间原连接可能已断线或改变；只复核捕获的连接，不接管新连接。
+            var canSearch = connection is not null && moviePilot.Available && moviePilot.IsCurrentConnection(connection);
             var images = _services.GetRequiredService<EmbyImageStore>();
             var imageScope = session;
             var dialog = new MissingEpisodesDialog(item, missing, (art, token) =>
                 imageScope is { IsAvailable: true } current
                     ? images.GetAsync(current, art.ItemId, art.ImageType, art.Tag,
                         EmbyImageStore.RequestWidth(CardSize.MissingWidth), token)
-                    : Task.FromResult<byte[]?>(null), connection is not null, anime)
+                    : Task.FromResult<byte[]?>(null), canSearch, anime)
             { XamlRoot = root };
             void AvailabilityChanged(object? sender, EventArgs args)
             {

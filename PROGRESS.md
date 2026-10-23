@@ -1,3 +1,8 @@
+## 第五组 R-041 主树缺集搜索可用性重验（2026-10-24，继续）
+
+- 来源ddb0aaf5限定Shell方法／正式项目整合，构造前只重核原连接，断线／换连接保清单收搜索、不认领新连接，原scope/page/闭后守卫保留。主树fresh夹具/Core/x64ShellRelease零警告错误、58全过（源58项42过16败红留来源）；10提取边界全过，9拒绝退出1为预期不与58相加。solutionRelease/x64空白0修改/退出0无加载诊断，22PS编码语法／UTF8LF链接／源码日志哈希通过。当前源逐字同来源，证据独立在artifacts/r041-missing-search-availability与batch05/r041，具体取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计53稳定号／余20。R045源9314fe10已完成clean待限定整合、原写代理关闭；R051 Euler独立默认代理在途；主线程继续不自动暂停。原连接迟失效后恢复资格须重开清单；未真实App/WinUI像素点击/dispatcher时序/资源窗口/config凭据DPAPI/服务器/native/播放/发布推送，快捷方式旧版，非完整交付。
+
 ## 第五组 R-040 主树次级来源入口与旧菜单失效（2026-10-24，继续）
 
 - 当前来源才加AniBT识别，次级仍保MP/AniBT独立搜索，Build/迟Genre/Invoke和Home.MenuRead一致。主线程初20项12过8败→20绿；侧线抓A→B→A排队漏网实际32项29过3败→即时失效latch+旧click/GET共守→32全绿，复核闭环无新保留。最终当前19项目方案Core/夹具/x64ShellRelease零警告错误；order66/Plex67/page98/fold51全绿，当前Core2549全过不相加。solutionRelease/x64空白1fixture7初始化定点修后0修改/退出0无加载失败，20PS/定位零缺句柄/UTF8LF链接哈希检查过；证据batch05/r040与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
