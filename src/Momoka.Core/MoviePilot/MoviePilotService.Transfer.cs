@@ -141,38 +141,52 @@ public sealed partial class MoviePilotService
     public async Task<MoviePilotTransferResult> TransferSubmitAsync(
         MoviePilotTransferPreview preview, bool background, CancellationToken cancellationToken)
     {
-        var identity = CaptureIdentity();
-        CheckIdentity(identity, cancellationToken);
-        preview.ClaimSubmission(TransferConnectionStamp(identity));
-        ValidateHistoryConnection(preview.Request.Histories, identity);
-        foreach (var group in preview.Request.Histories.GroupBy(history => history.Title))
+        SessionIdentity identity;
+        Dictionary<string, object?> body;
+        try
         {
+            identity = CaptureIdentity();
             CheckIdentity(identity, cancellationToken);
-            var current = await FindTransferHistoriesAsync(group.Key, cancellationToken).ConfigureAwait(false);
-            CheckIdentity(identity, cancellationToken);
-            foreach (var history in group)
+            preview.ClaimSubmission(TransferConnectionStamp(identity));
+            ValidateHistoryConnection(preview.Request.Histories, identity);
+            foreach (var group in preview.Request.Histories.GroupBy(history => history.Title))
             {
-                var fresh = current.FirstOrDefault(item => item.Id == history.Id);
-                if (fresh is null || history.Snapshot.ValueKind != JsonValueKind.Object ||
-                    !JsonElement.DeepEquals(fresh.Snapshot, history.Snapshot))
-                    throw new MoviePilotTransferBlockedException("原整理记录已经改变，请重新查找记录和预览");
-                MoviePilotTransfer.RequireFile(fresh.TransferFile, history.TransferPath);
+                CheckIdentity(identity, cancellationToken);
+                var current = await FindTransferHistoriesAsync(group.Key, cancellationToken).ConfigureAwait(false);
+                CheckIdentity(identity, cancellationToken);
+                foreach (var history in group)
+                {
+                    var fresh = current.FirstOrDefault(item => item.Id == history.Id);
+                    if (fresh is null || history.Snapshot.ValueKind != JsonValueKind.Object ||
+                        !JsonElement.DeepEquals(fresh.Snapshot, history.Snapshot))
+                        throw new MoviePilotTransferBlockedException("原整理记录已经改变，请重新查找记录和预览");
+                    MoviePilotTransfer.RequireFile(fresh.TransferFile, history.TransferPath);
+                }
             }
+            foreach (var path in preview.Request.Histories.Select(history => history.TargetPath)
+                         .Where(path => path.Length > 0).Distinct(StringComparer.Ordinal))
+            {
+                CheckIdentity(identity, cancellationToken);
+                var current = await FindTransferHistoriesAsync(path, cancellationToken).ConfigureAwait(false);
+                CheckIdentity(identity, cancellationToken);
+                var dependents = MoviePilotTransferHistoryMatch.Dependents(preview.Request.Histories, current);
+                if (dependents.Count > 0)
+                    throw new MoviePilotTransferBlockedException("旧目标还被软链接记录引用（" +
+                        string.Join("、", dependents.Select(history => $"#{history.Id}")) +
+                        "）。重新整理可能让它们失效，请先在 MoviePilot 处理引用关系；本次没有提交。");
+            }
+            CheckIdentity(identity, cancellationToken);
+            body = preview.Request.Body(preview.Files, preview: false);
         }
-        foreach (var path in preview.Request.Histories.Select(history => history.TargetPath)
-                     .Where(path => path.Length > 0).Distinct(StringComparer.Ordinal))
+        catch (MoviePilotTransferBlockedException) { throw; }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception error)
         {
-            CheckIdentity(identity, cancellationToken);
-            var current = await FindTransferHistoriesAsync(path, cancellationToken).ConfigureAwait(false);
-            CheckIdentity(identity, cancellationToken);
-            var dependents = MoviePilotTransferHistoryMatch.Dependents(preview.Request.Histories, current);
-            if (dependents.Count > 0)
-                throw new MoviePilotTransferBlockedException("旧目标还被软链接记录引用（" +
-                    string.Join("、", dependents.Select(history => $"#{history.Id}")) +
-                    "）。重新整理可能让它们失效，请先在 MoviePilot 处理引用关系；本次没有提交。");
+            // Everything above is preparation/read-only. Keep the consumed preview invalid, but do
+            // not let a read failure masquerade as an actual request with an uncertain receipt.
+            throw new MoviePilotTransferBlockedException("提交前核验失败：" + Failure.Describe(error), error);
         }
-        CheckIdentity(identity, cancellationToken);
-        var body = preview.Request.Body(preview.Files, preview: false);
+        // WriteAsync alone owns the sent/uncertain ledger; never wrap its failures as preflight.
         var reply = await WriteAsync(identity, TransferKeys(preview), (apiBase, token) => _client.PostReplyAsync(
             apiBase, token, $"transfer/manual?background={(background ? "true" : "false")}", body, cancellationToken),
             cancellationToken).ConfigureAwait(false);

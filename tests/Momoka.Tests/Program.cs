@@ -54,6 +54,12 @@ internal static class Program
             HttpDiagnosticsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["moviepilot-transfer-submission-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            MoviePilotTransferSubmissionTests.Register();
+            return TestHarness.Run();
+        }
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();
@@ -163,6 +169,7 @@ internal static class Program
         MoviePilotSubscriptionTests.Register();
         MoviePilotAuditTests.Register();
         MoviePilotTransferTests.Register();
+        MoviePilotTransferSubmissionTests.Register();
         MoviePilotVersionQueryTests.Register();
         MoviePilotEpisodePatternTests.Register();
         AgreementsTests.Register();
