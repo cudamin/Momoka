@@ -247,7 +247,7 @@ internal static class SettingsPageStateTests
         _ => new Win32Exception(1155, "假目录启动失败")
     };
 
-    private sealed class FakeSettings : ISettingsService
+    internal sealed class FakeSettings : ISettingsService
     {
         public AppSettings Settings { get; } = new();
         public int PageSize => 50;
@@ -264,7 +264,7 @@ internal static class SettingsPageStateTests
         public AppSettings ReadBackup(string path) => throw new InvalidOperationException("禁止配置 IO");
     }
 
-    private sealed class ShellFixture
+    internal sealed class ShellFixture
     {
         private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         private readonly Assembly _shell;

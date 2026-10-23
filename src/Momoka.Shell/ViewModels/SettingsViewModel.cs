@@ -1371,7 +1371,23 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     /// <summary>截图画质各行共用的「推给正在播的那部」：整组发，没在播就是无事可做。</summary>
-    private void PushScreenshotOptions() => _ = _pushScreenshotOptions?.Invoke();
+    private void PushScreenshotOptions() => _ = PushScreenshotOptionsAsync();
+
+    private async Task<bool> PushScreenshotOptionsAsync()
+    {
+        if (_pushScreenshotOptions is null) return true;
+        try
+        {
+            await _pushScreenshotOptions().ConfigureAwait(true);
+            return true;
+        }
+        catch (OperationCanceledException) { return false; }
+        catch (Exception error)
+        {
+            Report("当前播放的截图选项未完全更新", error);
+            return false;
+        }
+    }
 
     private SettingSection PlaybackCard()
     {
@@ -2637,9 +2653,16 @@ public sealed partial class SettingsViewModel : PageViewModel
         ShellPrefs.ApplyShortcuts();
 
         await ReloadAsync().ConfigureAwait(true);
+        await ReapplyPlaybackPreferencesAsync(notice).ConfigureAwait(true);
+    }
+
+    /// <summary>恢复/导入共有的播放设置收尾；与窗口重建分开，使用同一批已恢复的内存设置。</summary>
+    private async Task ReapplyPlaybackPreferencesAsync(string notice)
+    {
         var subtitlesApplied = await PushSubtitleStyleAsync().ConfigureAwait(true);
+        var screenshotsApplied = await PushScreenshotOptionsAsync().ConfigureAwait(true);
         AnnounceScreenshotDirectory();
-        if (!subtitlesApplied) return;
+        if (!subtitlesApplied || !screenshotsApplied) return;
 
         Notify(null, HasUnsavedChanges ? "偏好已在本次运行应用，但尚未保存；请重试保存。" : notice,
             HasUnsavedChanges ? InfoBarSeverity.Warning : InfoBarSeverity.Success);

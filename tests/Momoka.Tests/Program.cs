@@ -19,6 +19,8 @@ internal static class Program
             return LibraryResumePagingTests.Run(resumeShell, resumeRoot);
         if (args is ["library-favorite-source-fixture", var favoriteShell, var favoriteRoot])
             return LibraryFavoriteSourceTests.Run(favoriteShell, favoriteRoot);
+        if (args is ["settings-screenshot-restore-fixture", var screenshotShell, var screenshotRoot])
+            return SettingsScreenshotRestoreTests.Run(screenshotShell, screenshotRoot);
         if (args is ["subtitle-forced-only-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
