@@ -39,6 +39,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PlaybackSourceRevoca
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DashboardNavigation.Tests", "tests\Momoka.DashboardNavigation.Tests\Momoka.DashboardNavigation.Tests.csproj", "{640E78C3-ECCD-4B86-9E36-547312842A71}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DetailDeleteCommandTests", "tests\Momoka.DetailDeleteCommandTests\Momoka.DetailDeleteCommandTests.csproj", "{79DAE0E4-AF84-443E-9B76-C2D5D2D628E7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -112,8 +114,13 @@ Global
 		{640E78C3-ECCD-4B86-9E36-547312842A71}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{640E78C3-ECCD-4B86-9E36-547312842A71}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{640E78C3-ECCD-4B86-9E36-547312842A71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79DAE0E4-AF84-443E-9B76-C2D5D2D628E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79DAE0E4-AF84-443E-9B76-C2D5D2D628E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79DAE0E4-AF84-443E-9B76-C2D5D2D628E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79DAE0E4-AF84-443E-9B76-C2D5D2D628E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{79DAE0E4-AF84-443E-9B76-C2D5D2D628E7} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{640E78C3-ECCD-4B86-9E36-547312842A71} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{B3463999-33F5-476C-8F7F-A61D450AC905} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{07E4C6D8-920E-4E6E-811F-7FE34A8512C6} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

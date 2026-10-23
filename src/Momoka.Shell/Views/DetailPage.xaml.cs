@@ -2026,7 +2026,8 @@ public sealed partial class DetailPage : Page, IShellContent
             card,
             position: null,
             siblings: ViewModel.Episodes,
-            changed: ViewModel.Reload);
+            changed: ViewModel.CaptureReload(),
+            removed: ViewModel.CaptureRemoval());
     }
 
     /// <summary>

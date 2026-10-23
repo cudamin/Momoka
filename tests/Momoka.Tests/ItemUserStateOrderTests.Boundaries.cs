@@ -140,7 +140,7 @@ namespace Momoka.Shell.Views
         private static Task CoverAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed) => throw Unrelated();
         private static Task SubtitlesAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed) => throw Unrelated();
         private static Task IdentifyAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed) => throw Unrelated();
-        private static Task FnNasVersionsAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed) => throw Unrelated();
+        private static Task FnNasVersionsAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed, Action<CardItem>? removed = null) => throw Unrelated();
         private static Task FnNasMatchAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed) => throw Unrelated();
         private static Task FnNasUnmatchAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card, Action? changed) => throw Unrelated();
         private static Task RefreshAsync(EmbySessionScope scope, IShellActions shell, FrameworkElement owner, CardItem card) => throw Unrelated();

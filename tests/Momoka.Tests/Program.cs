@@ -62,6 +62,8 @@ internal static class Program
             AniBtReceiptStateTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["detail-subject-removal-fixture", var removalShell, var removalRoot])
+            return DetailSubjectRemovalTests.Run(removalShell, removalRoot);
         if (args is ["marked-watched-source-fixture"])
             return MarkedWatchedSourceTests.Run();
         if (args is ["moviepilot-episode-group-playback-fixture"])

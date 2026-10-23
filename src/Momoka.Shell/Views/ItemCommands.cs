@@ -334,7 +334,7 @@ internal static partial class ItemCommands
                 break;
 
             case ItemCommand.ManageVersions:
-                _ = FnNasVersionsAsync(scope, shell, owner, card, changed);
+                _ = FnNasVersionsAsync(scope, shell, owner, card, changed, removed);
                 break;
 
             case ItemCommand.FnNasMatch:

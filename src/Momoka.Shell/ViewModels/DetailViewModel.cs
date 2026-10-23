@@ -145,6 +145,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private readonly List<EmbyItem> _episodes = [];
     private readonly HashSet<string> _deletedItems = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _deletedSourceIds = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Artwork has its own cancellation, separate from the page's load. Switching seasons deliberately
@@ -1718,6 +1719,7 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         Cancel();
         _deletedItems.Clear();
+        _deletedSourceIds.Clear();
         _active = true;
         _scope = images.CaptureScope(request.Item);
         _actions = actions;
@@ -1980,6 +1982,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private void Apply(EmbyItem item)
     {
+        if (item.Id == _seed?.Id && item.Source?.Key == _scope?.Key)
+            item.MediaSources.RemoveAll(source => _deletedSourceIds.Contains(source.Id));
         // 这一趟要不要重取那四张图：<see cref="Preview"/> 刚用卡片那一份起过一次，而完整条目回来时那几个图片标签
         // 通常一个字都没变 —— 那时候整批留着。重取的代价不是一次下载（缓存都在），是屏上的图先被清空再回来，
         // 也就是点一张封面进来看见的那一次闪。
@@ -2062,7 +2066,9 @@ public sealed partial class DetailViewModel : PageViewModel
 
         CastShelf?.Fill(ItemDetail.Cast(item).Select(credit => (credit.Card, (string?)credit.Credit)));
 
-        PlayTarget = item.IsPlayable ? item : null;
+        var knownSourceRemoved = _deletedSourceIds.Count > 0 && item.Id == _seed?.Id
+            && item.Source?.Key == _scope?.Key && item.MediaSources.Count == 0;
+        PlayTarget = item.IsPlayable && !knownSourceRemoved ? item : null;
         ShowTarget(PlayTarget);
     }
 
@@ -2087,6 +2093,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
         if (target is null)
         {
+            SelectedSource = null;
             ShowSource(null);
             return;
         }
@@ -2112,8 +2119,9 @@ public sealed partial class DetailViewModel : PageViewModel
             var result = await MediaVersionDiscovery.FindAsync(_session!, target,
                 Settings.Playback.MediaSourceOrder, cancellation.Token).ConfigureAwait(true);
             if (!Attached || generation != _versionGeneration || lifetime != _lifetime) return;
-            _versions = result.Versions;
-            foreach (var version in result.Versions.Skip(Sources.Count))
+            _versions = result.Versions.Where(version => version.Item.Id != _seed?.Id || version.Item.Source?.Key != _scope?.Key
+                || !_deletedSourceIds.Contains(version.Source.Id)).ToArray();
+            foreach (var version in _versions.Skip(Sources.Count))
                 Sources.Add(new SourceRow(version.Source, version.LabelFor(MediaVersionDiscovery.HasMultipleServers(_session!.Sources))));
             if (result.FailedSources.Count > 0)
                 _actions?.Notify($"部分来源的版本读取失败：{string.Join("、", result.FailedSources)}", InfoBarSeverity.Warning);
@@ -2665,7 +2673,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     private async Task StartAsync(bool fromStart)
     {
-        if (!Attached || _actions is null || PlayTarget is not { } target) return;
+        if (!CanPlay || _actions is null || PlayTarget is not { } target) return;
+        if (SelectedSource is { } selected && !Sources.Contains(selected)) return;
 
         var version = _versions.FirstOrDefault(version => ReferenceEquals(version.Source, SelectedSource?.Source));
         target = version?.Item ?? target;
@@ -2816,7 +2825,88 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>What a context menu calls after it has changed something on the server.</summary>
-    internal void Reload() => _ = LoadAsync();
+    internal void Reload()
+    {
+        // The version command removes only a confirmed deleted file from its captured DTO. Refresh
+        // local pickers immediately; a failed GET must not leave that vanished version executable.
+        if (Attached && _scope!.Connection.IsFnNas && PlayTarget is { } target
+            && _versions.Any(version => ReferenceEquals(version.Item, target) && !target.MediaSources.Contains(version.Source)))
+            ShowTarget(target);
+        _ = LoadAsync();
+    }
+
+    /// <summary>Capture a successful delete callback for this visit, not whichever detail is open later.</summary>
+    internal Action<CardItem> CaptureRemoval()
+    {
+        var lifetime = _lifetime;
+        var source = _scope?.Key;
+        var itemId = _seed?.Id;
+        return removed =>
+        {
+            if (!Attached || lifetime != _lifetime || source != _scope?.Key
+                || removed.Scope?.Key != source || !removed.IsCurrent) return;
+            if (removed.Item.Id != itemId) { Remove(removed); return; }
+
+            // A confirmed subject deletion is not an ordinary failed refresh. End all target/version
+            // owners before clearing their data, so a late read cannot restore executable old media.
+            _deletedItems.Add(removed.Item.Id);
+            Cancel();
+            _detail = _seed = null;
+            PlayTarget = null;
+            ShowTarget(null);
+            TitleLink = null;
+            _episodes.Clear();
+            Seasons.Clear();
+            SelectedSeason = _loadedSeason = null;
+            EpisodeShelf?.Clear();
+            SeasonShelf?.Clear();
+            CastShelf?.Clear();
+            SimilarShelf?.Clear();
+            AnnounceShape();
+            IsReady = true;
+            Notify("条目已删除", "此条目已从服务器移除，请返回媒体库查看其它内容。", InfoBarSeverity.Informational);
+        };
+    }
+
+    internal Action CaptureReload()
+    {
+        var lifetime = _lifetime;
+        var source = _scope?.Key;
+        var item = _detail;
+        var beforeSources = item?.MediaSources.Select(media => media.Id).ToArray() ?? [];
+        return () =>
+        {
+            if (!Attached || lifetime != _lifetime || source != _scope?.Key || item is null
+                || _detail?.Id != item.Id || _detail.Source?.Key != source) return;
+            // A normal same-ID read may have replaced the DTO while the delete dialog was open.
+            // Compare the captured source list to the confirmed command's edited DTO and apply only
+            // removed file IDs to this still-owned subject, including late version/detail reads.
+            if (_scope!.Connection.IsFnNas)
+            {
+                foreach (var id in beforeSources.Except(item.MediaSources.Select(media => media.Id), StringComparer.Ordinal))
+                    if (id.Length > 0) _deletedSourceIds.Add(id);
+                _detail.MediaSources.RemoveAll(media => _deletedSourceIds.Contains(media.Id));
+                // Menu entries belong to all discovered sources, not just the selected play target.
+                // Remove only this subject's confirmed file IDs and preserve a selected valid copy.
+                _versionLoad?.Cancel();
+                _versionGeneration++;
+                var discarded = _versions.Where(version => version.Item.Id == item.Id && version.Item.Source?.Key == source
+                    && _deletedSourceIds.Contains(version.Source.Id)).ToArray();
+                _versions = _versions.Except(discarded).ToArray();
+                foreach (var row in Sources.Where(row => discarded.Any(version => ReferenceEquals(version.Source, row.Source))).ToArray())
+                    Sources.Remove(row);
+                if (SelectedSource is { } selected && !Sources.Contains(selected))
+                    SelectedSource = Sources.FirstOrDefault();
+                if (PlayTarget is { } target && target.Id == item.Id && target.Source?.Key == source)
+                {
+                    target.MediaSources.RemoveAll(media => _deletedSourceIds.Contains(media.Id));
+                    if (_deletedSourceIds.Count > 0 && target.MediaSources.Count == 0) PlayTarget = null;
+                }
+                ShowSource(SelectedSource?.Source);
+            }
+            Reload();
+        };
+    }
 
     /// <summary>封面删除只移除受影响的卡片；播放目标若被删除，再读取剩余单集的目标。</summary>
     internal void Remove(CardItem removed) => _ = RemoveAsync(removed);
