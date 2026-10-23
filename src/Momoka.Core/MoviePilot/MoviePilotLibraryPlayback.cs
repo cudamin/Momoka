@@ -4,7 +4,7 @@ namespace Momoka.MoviePilot;
 
 public sealed record MoviePilotPlaybackTarget(EmbyItem Item, EmbyItem? Parent, IReadOnlyList<EmbyItem> Episodes);
 
-/// <summary>只在当前 Emby 身份下查找；媒体编号必须连同来源、类型和季集核对，不能直接信任另一台媒体服务器的 itemid。</summary>
+/// <summary>在当前 Emby/Jellyfin 身份下查找；核对主身份与类型，默认组按季集、非默认组按唯一路径定位，不直接信任外服 itemid。</summary>
 public static class MoviePilotLibraryPlayback
 {
     public static string? Provider(MoviePilotMedia media)
@@ -44,22 +44,39 @@ public static class MoviePilotLibraryPlayback
     public static async Task<IReadOnlyDictionary<int, MoviePilotPlaybackTarget>> FindAsync(EmbyClient client,
         MoviePilotSubscription subscription, MoviePilotSubscriptionFiles files, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var result = new Dictionary<int, MoviePilotPlaybackTarget>();
+        // 主提供者定位已实现 Emby 与 Jellyfin；旧文案不是移除 Jellyfin 能力的依据。
+        if (client.Connection.ServerKind is not (MediaServerKind.Emby or MediaServerKind.Jellyfin) || files.LibraryCount == 0) return result;
+        var grouped = subscription.IsSeries && !string.IsNullOrWhiteSpace(subscription.EpisodeGroup);
         var candidates = new List<MoviePilotPlaybackTarget>();
-        if (Provider(subscription.Media) is { } provider && files.LibraryCount > 0)
+        if (Provider(subscription.Media) is { } provider)
         {
             var matches = await client.FindByProviderAsync(provider, subscription.Media.MediaId!, subscription.IsSeries, cancellationToken).ConfigureAwait(false);
             foreach (var media in matches.Items.Where(item => MatchesMedia(subscription, item)))
             {
                 if (!subscription.IsSeries) { candidates.Add(new(media, null, [])); continue; }
                 var episodes = await client.GetEpisodesAsync(media.Id, null, cancellationToken, EmbyFields.Detail).ConfigureAwait(false);
-                var season = episodes.Where(item => item.ParentIndexNumber == subscription.Media.Season && item.Type == EmbyItemType.Episode).ToArray();
-                candidates.AddRange(season.Select(item => new MoviePilotPlaybackTarget(item, media, season)));
+                // 组内季号不是 Emby 原始季号；非默认组保留全剧候选及各自的原始季上下文。
+                foreach (var group in episodes.Where(item => item.Type == EmbyItemType.Episode
+                    && (grouped || item.ParentIndexNumber == subscription.Media.Season)).GroupBy(item => item.ParentIndexNumber))
+                {
+                    var season = group.ToArray();
+                    candidates.AddRange(season.Select(item => new MoviePilotPlaybackTarget(item, media, season)));
+                }
             }
         }
 
         foreach (var episode in files.Episodes.Where(episode => episode.InLibrary))
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (grouped)
+            {
+                // 非默认组只信已核主身份下的唯一路径，不能猜组内数字或借外服 itemid 绕过主媒体核对。
+                var groupedPaths = candidates.Where(candidate => MatchesPath(episode, candidate.Item)).ToArray();
+                if (groupedPaths.Length == 1) result[episode.Number] = groupedPaths[0];
+                continue;
+            }
             var matches = candidates.Where(candidate => MatchesEpisode(subscription, episode, candidate.Item)).ToArray();
             var paths = matches.Where(candidate => MatchesPath(episode, candidate.Item)).ToArray();
             if (paths.Length == 1) result[episode.Number] = paths[0];

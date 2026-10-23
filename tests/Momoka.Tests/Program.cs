@@ -56,6 +56,8 @@ internal static class Program
             HttpDiagnosticsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["moviepilot-episode-group-playback-fixture"])
+            return MoviePilotEpisodeGroupPlaybackTests.Run();
         if (args is ["moviepilot-subscription-page-state-fixture", var subscriptionShell, var subscriptionRoot])
             return MoviePilotSubscriptionPageStateTests.Run(subscriptionShell, subscriptionRoot);
         if (args is ["moviepilot-transfer-submission-fixture"])
@@ -171,6 +173,7 @@ internal static class Program
         AniBtTests.Register();
         AniBtIntegrationTests.Register();
         MoviePilotSubscriptionTests.Register();
+        MoviePilotEpisodeGroupPlaybackTests.Register();
         MoviePilotAuditTests.Register();
         MoviePilotTransferTests.Register();
         MoviePilotTransferSubmissionTests.Register();
