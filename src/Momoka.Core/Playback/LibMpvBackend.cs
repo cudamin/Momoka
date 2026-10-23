@@ -821,6 +821,10 @@ internal sealed class LibMpvHandle(
                     break;
                 }
 
+                // MPV_END_FILE_REASON_REDIRECT 是播放列表展开：mpv 会继续播放其内容，不是真正 EOF。
+                // 保留当前完成源、位置和合成输出，等后续实际文件结束或 shutdown；不改变加载/跟随策略。
+                if (end.Reason == LibMpvNative.EndFileRedirect) break;
+
                 Finish(Classify(end.Reason), end.Error);
                 break;
 
@@ -896,7 +900,7 @@ internal sealed class LibMpvHandle(
 
     private PlaybackEndReason Classify(int endFileReason) => endFileReason switch
     {
-        LibMpvNative.EndFileEof or LibMpvNative.EndFileRedirect => PlaybackEndReason.EndOfFile,
+        LibMpvNative.EndFileEof => PlaybackEndReason.EndOfFile,
         LibMpvNative.EndFileError => PlaybackEndReason.Error,
         _ => _stopRequested ? PlaybackEndReason.Stopped : PlaybackEndReason.UserQuit
     };

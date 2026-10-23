@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Momoka.LibMpvEndFileTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvNodes.cs" Link="Production\LibMpvNodes.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvFrame.cs" Link="Production\LibMpvFrame.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+  <!-- Link the entire real handle and lifetime gate; replace only the native API endpoints.
+       Constants and ABI declarations are copied verbatim, including the existing unused tail layout.
+       No DLL resolver, mpv_create/initialize, app, real account, or media loading is available here. -->
+  <UsingTask TaskName="ExtractLibMpvEndFileSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <BackendSource ParameterType="System.String" Required="true" />
+      <NativeSource ParameterType="System.String" Required="true" />
+      <VmSource ParameterType="System.String" Required="true" />
+      <OutputDirectory ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, int> unique = (source, marker) =>
+        {
+            var index = source.IndexOf(marker, StringComparison.Ordinal);
+            if (index < 0 || source.IndexOf(marker, index + marker.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous production boundary: " + marker);
+            return index;
+        };
+        var backend = File.ReadAllText(BackendSource).Replace("\r\n", "\n");
+        var native = File.ReadAllText(NativeSource).Replace("\r\n", "\n");
+        var vm = File.ReadAllText(VmSource).Replace("\r\n", "\n");
+        var imports = backend.Substring(0, unique(backend, "namespace Momoka.Playback;"));
+        var handle = backend.Substring(unique(backend, "internal sealed class LibMpvHandle("));
+        var runStart = unique(backend, "    internal static bool Run(IntPtr context, params string[] arguments)");
+        var runEnd = unique(backend, "\n}\n\n/// <summary>\n/// One in-process playback:");
+        if (runEnd <= runStart) throw new InvalidOperationException("Invalid command boundary order");
+        var formats = unique(native, "    // ---- formats and event ids");
+        var nativeEnd = native.LastIndexOf("\n}", StringComparison.Ordinal);
+        if (nativeEnd <= formats) throw new InvalidOperationException("Invalid ABI boundary order");
+        Action<string, string> save = (name, content) =>
+        {
+            Directory.CreateDirectory(OutputDirectory);
+            var path = Path.Combine(OutputDirectory, name);
+            if (!File.Exists(path) || File.ReadAllText(path) != content)
+                File.WriteAllText(path, content, new UTF8Encoding(false));
+        };
+        var header = "// Extracted verbatim from this tree's current source; do not edit.\n#nullable enable\n";
+        save("LibMpvHandle.g.cs", header + imports + "using Momoka.Playback;\nnamespace Momoka.Tests;\n\n" +
+            "using LibMpvBackend = Momoka.Tests.LibMpvCommandBoundary;\n" + handle);
+        save("LibMpvCommand.g.cs", header + imports + "namespace Momoka.Tests;\n\ninternal static class LibMpvCommandBoundary\n{\n" +
+            "    private const string Category = \"mpv\";\n" +
+            backend.Substring(runStart, runEnd - runStart) + "\n}\n");
+        var nextStart = unique(vm, "    private EpisodeDestination? NextEpisodeToAutoPlay(");
+        var nextEnd = unique(vm, "\n    /// <summary>\n    /// What 「播放」 on a series or a season poster means:");
+        if (nextEnd <= nextStart) throw new InvalidOperationException("Invalid VM boundary order");
+        save("AutoNextBoundary.g.cs", header + "using Momoka.Playback;\nusing Momoka.Emby;\nnamespace Momoka.Tests;\n" +
+            "internal sealed partial class AutoNextBoundary\n{\n" + vm.Substring(nextStart, nextEnd - nextStart) + "\n}\n");
+        save("LibMpvAbi.g.cs", header + "using System.Runtime.InteropServices;\nnamespace Momoka.Mpv;\n" +
+            "internal static partial class LibMpvNative\n{\n" + native.Substring(formats, nativeEnd - formats) + "\n}\n");
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateLibMpvEndFileSources" BeforeTargets="CoreCompile">
+    <ExtractLibMpvEndFileSources
+      BackendSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Playback\LibMpvBackend.cs"
+      NativeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Mpv\LibMpvNative.cs"
+      VmSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\PlayerViewModel.Transport.cs"
+      OutputDirectory="$(IntermediateOutputPath)R048" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)R048\LibMpvHandle.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)R048\LibMpvCommand.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)R048\LibMpvAbi.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)R048\AutoNextBoundary.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>
