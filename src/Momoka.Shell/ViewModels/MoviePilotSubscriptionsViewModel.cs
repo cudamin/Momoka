@@ -135,6 +135,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     private EmbySessionScope? _playbackScope;
     private Func<MoviePilotPlaybackTarget, Task>? _play;
     private Action<string>? _search;
+    private string? _pageCategory;
 
     public ObservableCollection<MoviePilotSubscriptionCard> Movies { get; } = [];
     public ObservableCollection<MoviePilotSubscriptionCard> Series { get; } = [];
@@ -156,14 +157,29 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     /// 空态只留给「读完了，确实一条也没有」。
     /// </para>
     /// <para>
-    /// 判据跟 <see cref="Visible"/> 是同一个：整排立起来时既不是转圈也不是空态（那时读取进度由那两排
+    /// 整页只判断宿主所选分类，主页则沿用 <see cref="Visible"/> 的任一分类语义；所选排立起来时既不是转圈也不是空态（那时读取进度由那两排
     /// 自己头顶那颗细进度条交代，见 MoviePilotSubscriptionsView）。<see cref="PageViewModel.Busy"/> 由
     /// <c>BeginLoad</c> 在每趟读取开头立起、<c>EndLoad</c> 收尾放下，所以转圈只会在真的等服务器时出现。
     /// </para>
     /// </summary>
-    public bool Loading => Busy && Visible == Visibility.Collapsed;
+    // A standalone category page owns only its selected row; the shared home Visible rule still
+    // means either category has content. Keep existing notice/error presentation as a visible row.
+    private bool HasPageContent => _pageCategory switch
+    {
+        HomeLayout.MoviePilotMovies => _service?.Available == true && (Movies.Count > 0 || NoticeOpen),
+        HomeLayout.MoviePilotSeries => _service?.Available == true && (Series.Count > 0 || NoticeOpen),
+        _ => Visible == Visibility.Visible
+    };
+
+    internal void UsePageCategory(string key)
+    {
+        _pageCategory = key is HomeLayout.MoviePilotMovies or HomeLayout.MoviePilotSeries ? key : null;
+        RaisePageState();
+    }
+
+    public bool Loading => Busy && !HasPageContent;
     public Visibility LoadingVisibility => Show(Loading);
-    public Visibility EmptyStateVisibility => Show(!Busy && Visible == Visibility.Collapsed);
+    public Visibility EmptyStateVisibility => Show(!Busy && !HasPageContent);
 
     /// <summary>
     /// 上面那三样的通知名单。它们同时挂在 <see cref="Busy"/>（读取开始与结束）和 <see cref="Visible"/>

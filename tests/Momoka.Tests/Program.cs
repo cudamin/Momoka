@@ -54,6 +54,8 @@ internal static class Program
             HttpDiagnosticsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["moviepilot-subscription-page-state-fixture", var subscriptionShell, var subscriptionRoot])
+            return MoviePilotSubscriptionPageStateTests.Run(subscriptionShell, subscriptionRoot);
         if (args is ["moviepilot-transfer-submission-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

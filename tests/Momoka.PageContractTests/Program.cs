@@ -19,6 +19,7 @@ internal static class Program
                 var request = Request(key);
                 page.Attach(request);
                 Assert.Equal(key, page.Tag as string);
+                Assert.Equal(key, page.ContractPageCategory);
                 Assert.True(ReferenceEquals(request, page.NavigationRequest));
                 Assert.Equal(HomeLayout.FixedTitle(key), page.ContractTitle);
                 Assert.Equal(1, page.ContractAttaches);
@@ -28,6 +29,7 @@ internal static class Program
                 var page = new MoviePilotSubscriptionsPage();
                 page.ContractNavigateTo(Request(key));
                 Assert.Equal(key, page.Tag as string);
+                Assert.Equal(key, page.ContractPageCategory);
                 Assert.Equal(HomeLayout.FixedTitle(key), page.ContractTitle);
             });
             Test("订阅导航 Tag：离开后历史重入更新当前目的地 " + key, () =>

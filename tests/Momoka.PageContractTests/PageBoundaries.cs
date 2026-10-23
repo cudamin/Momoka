@@ -36,6 +36,8 @@ namespace Momoka.Shell.ViewModels
 {
     public sealed class MoviePilotSubscriptionsViewModel
     {
+        public string? PageCategory { get; private set; }
+        internal void UsePageCategory(string key) => PageCategory = key;
         public int Reloads { get; private set; }
         public Task ReloadAsync() { Reloads++; return Task.CompletedTask; }
     }
@@ -45,6 +47,7 @@ namespace Momoka.Shell.Views
 {
     internal sealed class MoviePilotHomeSubscriptions
     {
+        internal ViewModels.MoviePilotSubscriptionsViewModel ViewModel { get; } = new();
         public object Movies { get; } = new();
         public object Series { get; } = new();
         public int Releases { get; private set; }
@@ -78,6 +81,7 @@ namespace Momoka.Shell.Views
         private void InitializeComponent() { }
 
         internal string ContractTitle => PageTitle.Text;
+        internal string? ContractPageCategory => _owner?.ViewModel.PageCategory;
         internal int ContractAttaches => Subscriptions.Attaches;
         internal int ContractDetaches => Subscriptions.Detaches;
         internal void ContractNavigateTo(object? request) => OnNavigatedTo(new(request));
