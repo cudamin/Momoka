@@ -1,3 +1,9 @@
+## 分阶段修复：R-068 smoke退出码（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；R-068修前新隔离helper的exit7仍被脚本返回0，修后保留非零、早退出0/启动/日志失败也非零，资源释放和新增日志保留。默认不强停，`-StopAfterCheck`仅显式清理本次保留句柄；不杀用户原有进程。
+- 新 `tools/test-smoke.ps1` 当前.NET10无包helper、假LOCALAPPDATA，14断言通过／0失败／退出0；19脚本BOM/LF/语法通过。当前Release Core/Tests当轮编译0警告错误，2086完整结果仍对应未改变的产品测试编译路径；实际日志见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 只运行隔离工具，不启动Momoka/UI/native/真实服务器/播放/发布/推送，快捷方式仍旧版。脚本help/开发文档/验证技能同步，内容／链接／字节／差异检查后提交，继续常规修复；R-006/R-007仍各自在独立树，不自动暂停。
+
 ## 分阶段修复：R-028主树整合（2026-10-23）
 
 - 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；复核独立树提交 `98aa521bded220ebe9de161b2137c5144d9b5849` 的R-028最小库映射和7项回归后，只整合相关四文件。库`Id`取section `key`，缺失/null/空白拒绝空ID入口，媒体仍`ratingKey`，不改登录或传输。
