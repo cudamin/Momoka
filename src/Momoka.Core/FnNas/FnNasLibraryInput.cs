@@ -12,6 +12,16 @@ public static class FnNasLibraryInput
     public const int MaximumPasteLines = 50000;
     public const int MaximumUploadLines = 100000;
 
+    /// <summary>
+    /// An existing IPTV document explicitly naming a stored non-URL source may retain it when renamed.
+    /// Servers need not return the original pasted bytes or an already-consumed upload temp id.
+    /// A newly selected category or a missing/unknown source descriptor cannot prove a stored playlist.
+    /// </summary>
+    public static bool HasStoredIptvSource(JsonObject? original) =>
+        original is not null && Text(original, "category") == "IPTV"
+        && original["iptv"] is JsonObject source
+        && Text(source, "source_type") is "text" or "local_file" or "upload";
+
     public static void Validate(JsonObject draft, bool editing)
     {
         var name = Text(draft, "name").Trim();

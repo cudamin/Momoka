@@ -1,3 +1,9 @@
+## 分阶段修复：R-020/R-021 IPTV源与隐藏大小校验（2026-10-23，继续中）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，上组R-016提交 `b7e91ea8d0304223e13d51741aac333db631e782`。第三组本地主线仅FnNasLibraryInput/库VM/专项：原IPTV明确text/local_file/upload才能省略源改名，普通/未知源转换必须填写；大小校验只非IPTV且开过滤，隐藏坏值保留、普通有限值规则不删，不改服务端类别转换产品策略。
+- 真VM35项先编译修前19过16败，修后35过；Core旧源判据新增10项，完整2296过，0失败/跳过/退出0；当前Core/Tests及x64 Release Shell零警告错误；空白初轮初始化3处定点修正，最终0修改/退出0。正式fnnas-library-editor-fixture/日志/边界见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。不运行真实NumberBox/源文件/文件框，假HTTP正文不是真实服务器写入。
+- 累计24稳定号主树实现+相关离线回归，余49保留。R071/R072默认代理在独立树 `C:/Users/89400/.codex/worktrees/probe-report-finalization-r071-r072/Momoka`处理最终报告IO失败码与清理；写集与IPTV分离，未交回不计通过。继续，不自动暂停；不真实配置/凭据/HTTP/native/播放/发布/推送，快捷方式旧版、非完整交付。
+
 ## 分阶段修复：R-016整合与本组五号离线收束（2026-10-23，继续下一组）
 
 - 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，前项R-059提交 `92af91062446c73a4015dcd5cace54561e347790`。R-016默认代理已关闭，独立树提交 `d0670c577261bcb872bc93a8f78ccedc7ab00b86`干净保留；主树只整合七份题内文件，6份源码/项目SHA逐字一致，不复制PROGRESS；正式solution/开发文档接独立专项，保持旧平台映射不被CLI扩展。
