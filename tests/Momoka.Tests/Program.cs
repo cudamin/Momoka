@@ -19,6 +19,12 @@ internal static class Program
             return LibraryResumePagingTests.Run(resumeShell, resumeRoot);
         if (args is ["library-favorite-source-fixture", var favoriteShell, var favoriteRoot])
             return LibraryFavoriteSourceTests.Run(favoriteShell, favoriteRoot);
+        if (args is ["subtitle-forced-only-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            SubtitleForcedOnlyTests.Register();
+            return TestHarness.Run();
+        }
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();
@@ -37,6 +43,7 @@ internal static class Program
         PlaybackTrackStateTests.Register();
         SubtitleFileTests.Register();
         SubtitleBehaviorTests.Register();
+        SubtitleForcedOnlyTests.Register();
         SubtitleManagementTests.Register();
         MpvProcessTests.Register();
         SelfCheckTests.Register();
