@@ -68,18 +68,20 @@ public sealed partial class MoviePilotResourceRow : ObservableObject
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DownloadLabel))]
     [NotifyPropertyChangedFor(nameof(CanDownload))]
+    [NotifyPropertyChangedFor(nameof(DownloadVisibility))]
     [NotifyCanExecuteChangedFor(nameof(DownloadCommand))]
     public partial MoviePilotDownloadState State { get; set; }
 
     public bool CanDownload => Resource.DownloadProblem is null &&
         State is MoviePilotDownloadState.Idle or MoviePilotDownloadState.Failed;
 
-    public string DownloadLabel => Resource.DownloadProblem is not null ? "身份待核对" : State switch
+    public string DownloadLabel => State switch
     {
         MoviePilotDownloadState.Working => "添加中…",
         MoviePilotDownloadState.Done => "已加入下载",
-        MoviePilotDownloadState.Failed => "重试下载",
         MoviePilotDownloadState.Uncertain => "请先核对",
+        MoviePilotDownloadState.Failed => Resource.DownloadProblem is null ? "重试下载" : "下载未完成",
+        _ when Resource.DownloadProblem is not null => "身份待核对",
         _ => "下载"
     };
 
@@ -90,6 +92,13 @@ public sealed partial class MoviePilotResourceRow : ObservableObject
         MoviePilotOperationState.Uncertain => MoviePilotDownloadState.Uncertain,
         _ => MoviePilotDownloadState.Idle
     };
+
+    // A mismatched result has no applicable download action. Retain actual process states so
+    // hiding an inapplicable entry never conceals a pending, failed or uncertain operation.
+    public Visibility DownloadVisibility => Resource.DownloadProblem is null || State != MoviePilotDownloadState.Idle
+        ? Visibility.Visible : Visibility.Collapsed;
+    public string DownloadProblem => Resource.DownloadProblem ?? "";
+    public Visibility DownloadProblemVisibility => Resource.DownloadProblem is null ? Visibility.Collapsed : Visibility.Visible;
 
     public string DownloadAutomationName => $"下载：{Title}";
     public string DetailsAutomationName => $"打开种子页面：{Title}";
@@ -214,12 +223,7 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
             Browser.SetResults(found.Select(resource => new MoviePilotResourceRow(resource, DownloadAsync, OpenDetails)
             {
                 State = MoviePilotResourceRow.StateOf(_service.DownloadState(resource))
-            }));
-            if (_options?.Episode is > 0 and var episode)
-            {
-                var selection = "E" + episode.ToString("00", System.Globalization.CultureInfo.InvariantCulture);
-                if (Browser.Episodes.Contains(selection)) Browser.SelectedEpisode = selection;
-            }
+            }), _options?.Episode is > 0 and var episode ? episode : null);
 
             EmptyNotice = "没找到可下载的资源，换个别的片或稍后再试";
             ShowEmptyNotice = found.Count == 0;

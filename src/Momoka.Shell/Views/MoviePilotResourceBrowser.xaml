@@ -118,12 +118,15 @@
                                                     Text="{x:Bind MetaLine}" TextWrapping="Wrap" />
                                                 <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextFaintBrush}"
                                                     Text="{x:Bind PublishedLine}" TextWrapping="Wrap" />
+                                                <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgWarningBrush}"
+                                                    Text="{x:Bind DownloadProblem, Mode=OneWay}" Visibility="{x:Bind DownloadProblemVisibility, Mode=OneWay}" TextWrapping="Wrap" />
                                             </StackPanel>
                                             <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
                                                 <Button x:Name="OpenTorrentPage" Content="种子页面" Command="{x:Bind OpenDetailsCommand}"
                                                     Style="{StaticResource EgSecondaryButtonStyle}" AutomationProperties.Name="{x:Bind DetailsAutomationName}"
                                                     ToolTipService.ToolTip="{x:Bind DetailsHint}" />
                                                 <Button x:Name="DownloadResource" Content="{x:Bind DownloadLabel, Mode=OneWay}" Command="{x:Bind DownloadCommand}"
+                                                    Visibility="{x:Bind DownloadVisibility, Mode=OneWay}"
                                                     Style="{StaticResource EgPrimaryButtonStyle}" AutomationProperties.Name="{x:Bind DownloadAutomationName}" />
                                             </StackPanel>
                                         </Grid>
