@@ -47,6 +47,8 @@ Operational details:
 - Shell owns notice/refresh subscriptions even while PlayerPage is detached. Closing keeps the dispatcher/session alive while playback drains, with a 25-second outer deadline and an explicit incomplete-report warning on timeout.
 - `PlaybackLifecycleTests` and `BackendLifecycleTests` supplement the existing suites. Local auxiliary WinUI/native probes are evidence, not clean-checkout prerequisites; ordinary self-check and real server playback remain separate acceptance steps.
 
+The captured `EmbySessionScope.Lifetime` participates in both startup and the actual running PlayOperation lifetime. Revoking that identity must cancel preparation or monitoring and reach the existing once-only Stop/Finish/release path even with progress reporting disabled. Changing the default management source alone does not revoke an available scope and must not stop its film. Do not replace this with a global source-change Stop event that can cancel a replacement from another account. `Momoka.PlaybackSourceRevocationTests` drives the real service with suspended fake handles, anonymous in-memory identities and fake HTTP; real native cleanup time, window continuity and server-side exactly-once remain unverified.
+
 ## Two rules that break on episode switches
 
 - **`_generation` is the boundary.** It increments on every change of film; every async callback compares it on the way back in and drops itself if it no longer matches. A late result from the previous episode landing in the new one is the easiest mistake to make in this area.

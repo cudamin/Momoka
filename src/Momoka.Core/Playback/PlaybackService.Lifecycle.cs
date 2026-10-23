@@ -7,10 +7,12 @@ namespace Momoka.Playback;
 
 public sealed partial class PlaybackService
 {
-    private sealed class PlayOperation(CancellationToken cancellationToken, CancellationToken startupCancellation) : IDisposable
+    private sealed class PlayOperation(CancellationToken cancellationToken, CancellationToken startupCancellation, CancellationToken sourceLifetime) : IDisposable
     {
-        public CancellationTokenSource Startup { get; } = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, startupCancellation);
-        public CancellationTokenSource Lifetime { get; } = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        // Default-source selection does not revoke this captured identity. Actual revocation must
+        // cancel both preparation and monitoring, even when server reporting is disabled.
+        public CancellationTokenSource Startup { get; } = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, startupCancellation, sourceLifetime);
+        public CancellationTokenSource Lifetime { get; } = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, sourceLifetime);
         public TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool Established { get; set; }
         public void Dispose() { Startup.Dispose(); Lifetime.Dispose(); }
@@ -65,7 +67,7 @@ public sealed partial class PlaybackService
             throw;
         }
 
-        using var operation = new PlayOperation(cancellationToken, startupCancellation);
+        using var operation = new PlayOperation(cancellationToken, startupCancellation, scope.Lifetime);
         lock (_requestGate)
         {
             if (_latestRequest is { Established: false } previous) Cancel(previous.Startup);
