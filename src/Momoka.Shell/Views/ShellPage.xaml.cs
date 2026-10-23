@@ -2097,7 +2097,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         await LoadLibrariesAsync(scope, token).ConfigureAwait(true);
         if (!_identityLoads.IsCurrent(token) || !scope.IsCurrent) return;
-        GoTo("home");
+        // The sidebar is already usable while the directory read is in flight. A home page opened
+        // during that wait owns an empty snapshot, so refresh only that current home (or fill the
+        // still-empty frame). Do not steal navigation after the user chose a different page.
+        if (ContentFrame.Content is null) GoTo("home");
+        else if (_current == "home" && ContentFrame.Content is HomePage) GoTo("home", force: true);
         _displayedSources = sourcesStamp;
         if (_librariesFailed) Notify("部分来源的媒体库未能读取，已显示可用内容；点击主页按钮可重试", InfoBarSeverity.Warning);
     }

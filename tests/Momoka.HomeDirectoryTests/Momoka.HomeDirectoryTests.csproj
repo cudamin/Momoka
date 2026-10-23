@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.HomeDirectoryTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+  <UsingTask TaskName="ExtractHomeDirectorySources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceRoot ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, string, string> between = (source, start, end) =>
+        {
+            var begin = source.IndexOf(start, StringComparison.Ordinal);
+            if (begin < 0 || source.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing/ambiguous current production start: " + start);
+            var finish = source.IndexOf(end, begin + start.Length, StringComparison.Ordinal);
+            if (finish < 0) throw new InvalidOperationException("Missing current production end: " + end);
+            return source.Substring(begin, finish - begin);
+        };
+        var shell = File.ReadAllText(Path.Combine(SourceRoot, "ShellPage.xaml.cs")).Replace("\r\n", "\n");
+        var home = File.ReadAllText(Path.Combine(SourceRoot, "HomePage.xaml.cs")).Replace("\r\n", "\n");
+        var generated = "#nullable enable\n// Current tree production control flow, extracted verbatim at every build.\n" +
+            "using Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Services;\nusing Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nnamespace Momoka.Shell.Views;\n" +
+            between(home, "internal sealed record HomeRequest(\n", "\n/// <summary>\n/// The home page's view.") +
+            "\ninternal sealed partial class ShellPage\n{\n" +
+            between(shell, "    public void GoTo(string tag, bool force = false)\n", "\n    /// <summary>\n    /// 设置 (需求 1") +
+            between(shell, "    private async Task EnterShellAsync()\n", "\n    /// <summary>\n    /// 切换服务器 / 切换用户") +
+            between(shell, "    private void Open(Type page, object parameter, string title, string tag)\n", "\n    /// <summary>\n    /// The one place the toolbar row") +
+            between(shell, "    private async Task RetryLibrariesAsync()\n", "\n    /// <summary>The row's own arrows.") +
+            between(shell, "    private void ReleaseContent()\n", "\n}") + "\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateHomeDirectorySources" BeforeTargets="CoreCompile">
+    <ExtractHomeDirectorySources SourceRoot="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views"
+                                 OutputSource="$(IntermediateOutputPath)HomeDirectorySources.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)HomeDirectorySources.g.cs" /></ItemGroup>
+  </Target>
+</Project>
