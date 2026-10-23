@@ -58,6 +58,7 @@ Card commands first apply the acknowledged target field and callbacks, then inde
 - **帐号**：修改密码、播放偏好、外观。对所有已登录的飞牛账号可见。
   - 修改密码：`POST /api/v2/user/passwd`，正文 `{password: sha256(明文)}`，`data` 是新令牌。成功后必须同时替换 `EmbySession` 里这条来源的令牌和已保存密码（`ApplyPasswordChange`），否则下一次自动重登会拿旧密码。
   - 播放偏好：读 `GET /api/v1/user/info` 的 `lan` / `audio_lan` 和 `GET /api/v1/sys/config` 的 `supported_languages`；保存 `POST /api/v1/user/info`，正文只含 `{lan, audio_lan}`，空串表示任意语言。
+  - Account-save continuations use the click-time snapshot and editor version. A confirmed password clears only its unchanged submitted draft; later password/language edits remain pending with explicit save feedback, never an automatic server replay. Editing away and back is conservatively a new draft. [Momoka.FnNasAccountEditTests](../../../tests/Momoka.FnNasAccountEditTests/README.md) executes the complete VMs and fixed generator against narrow fake confirmation endpoints; it does not run production password/token/DPAPI persistence.
   - 外观：不新增网页外观页，落到 Momoka 自己的「界面」卡（配色、动效、侧边栏等）。
 - **影视服务器**：媒体库、用户、设置、任务计划。只对 `is_admin == 1` 的账号显示；四页是 WinUI 原生页，不是网页内嵌。
   - 媒体库：`mdb/*` 与管理端目录浏览；页面还包含 IPTV 源，但没有恢复网盘/直链。 普通库切为 IPTV 不证明旧库已有直播源；只在原文档明确是 IPTV 且 `iptv.source_type` 为 text／local_file／upload 时，改名可省略源字段保留原源。URL仍走可编辑校验，未知/缺源模式须填写新源，不强制重传已存的文本/文件。文件大小过滤校验仅用于非IPTV且开启过滤；隐藏偏好保留，切回普通库仍拒绝NaN等无效值。`fnnas-library-editor-fixture` 调真实VM与假HTTP，不能据此声明类别转换的真实服务端兼容或实际NumberBox/文件框验收。

@@ -11,6 +11,8 @@ namespace Momoka.Shell.ViewModels;
 /// </summary>
 public sealed partial class FnNasPreferencesViewModel : FnNasSessionViewModel
 {
+    private long _editVersion;
+
     public ObservableCollection<FnNasChoice> Languages { get; } = [];
     [ObservableProperty] public partial string SubtitleLanguage { get; set; } = "any";
     [ObservableProperty] public partial string AudioLanguage { get; set; } = "any";
@@ -52,16 +54,37 @@ public sealed partial class FnNasPreferencesViewModel : FnNasSessionViewModel
         value.Length == 0 || string.Equals(value, "any", StringComparison.OrdinalIgnoreCase) ? "any" : value;
 
     [RelayCommand(CanExecute = nameof(CanSave))]
-    private Task SaveAsync() => !CanSave ? Task.CompletedTask : RunAsync("保存播放偏好失败", async (scope, token) =>
+    private Task SaveAsync()
     {
+        if (!CanSave) return Task.CompletedTask;
+        // 请求只发送点击时的快照；页面请求代次不变不代表当前草稿也未被修改。
+        var editVersion = _editVersion;
         var body = new System.Text.Json.Nodes.JsonObject
         {
             ["lan"] = SubtitleLanguage is null or "any" ? "" : SubtitleLanguage,
             ["audio_lan"] = AudioLanguage is null or "any" ? "" : AudioLanguage
         };
-        await scope.ExecuteAsync((client, ct) => client.FnNas.UpdateUserInfoAsync(client.FnNasConnection, body, ct), token);
-        if (Current(token)) Notify("已保存", "首选字幕和音频语言已更新到飞牛影视服务器。", InfoBarSeverity.Success);
-    });
+        return RunAsync("保存播放偏好失败", async (scope, token) =>
+        {
+            await scope.ExecuteAsync((client, ct) => client.FnNas.UpdateUserInfoAsync(client.FnNasConnection, body, ct), token);
+            if (!Current(token)) return;
+            if (editVersion == _editVersion)
+                Notify("已保存", "首选字幕和音频语言已更新到飞牛影视服务器。", InfoBarSeverity.Success);
+            else
+                Notify("本次偏好已保存", "本次提交的首选字幕和音频语言已更新；当前选择尚未保存，请点击「保存修改」再次提交。", InfoBarSeverity.Warning);
+        });
+    }
+
+    partial void OnSubtitleLanguageChanged(string value) => LanguageEdited();
+    partial void OnAudioLanguageChanged(string value) => LanguageEdited();
+
+    private void LanguageEdited()
+    {
+        _editVersion++;
+        // 保留失败原因；仅让后续编辑撤下旧的完整成功提示，读取和重附加不产生草稿提示。
+        if (Live && Loaded && !Busy && NoticeOpen && NoticeSeverity == InfoBarSeverity.Success)
+            Notify("尚未保存", "当前首选字幕和音频语言尚未保存，请点击「保存修改」提交。", InfoBarSeverity.Warning);
+    }
 
     partial void OnLoadedChanged(bool value) => BusyChanged();
 

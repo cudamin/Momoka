@@ -10,6 +10,8 @@ namespace Momoka.Shell.ViewModels;
 /// </summary>
 public sealed partial class FnNasPasswordViewModel : FnNasSessionViewModel
 {
+    private long _editVersion;
+
     [ObservableProperty] public partial string NewPassword { get; set; } = "";
     [ObservableProperty] public partial string ConfirmPassword { get; set; } = "";
     public bool CanSave => CanUse && !string.IsNullOrEmpty(NewPassword) && !string.IsNullOrEmpty(ConfirmPassword);
@@ -29,23 +31,40 @@ public sealed partial class FnNasPasswordViewModel : FnNasSessionViewModel
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
-    private Task SaveAsync() => !CanSave ? Task.CompletedTask : RunAsync("修改密码失败", async (scope, token) =>
+    private Task SaveAsync()
     {
+        if (!CanSave || Session is not { } session) return Task.CompletedTask;
+        // 点击时即捕获两个输入；BeginLoad 的同步通知与等待确认期间都可能出现后续编辑。
         var password = NewPassword ?? "";
-        if (password.Length is < 6 or > 127) throw new ArgumentException("新密码长度须为 6～127 个字符。");
-        if (!string.Equals(password, ConfirmPassword ?? "", StringComparison.Ordinal))
-            throw new ArgumentException("两次输入的新密码不一致。");
+        var confirmation = ConfirmPassword ?? "";
+        var editVersion = _editVersion;
+        return RunAsync("修改密码失败", async (scope, token) =>
+        {
+            if (password.Length is < 6 or > 127) throw new ArgumentException("新密码长度须为 6～127 个字符。");
+            if (!string.Equals(password, confirmation, StringComparison.Ordinal))
+                throw new ArgumentException("两次输入的新密码不一致。");
 
-        if (Session is not { } session) return;
-        await session.ChangeFnNasPasswordAsync(scope, password, token);
-        if (!Current(token)) return;
+            await session.ChangeFnNasPasswordAsync(scope, password, token);
+            if (!Current(token)) return;
+            if (editVersion != _editVersion)
+            {
+                Notify("本次密码已修改", "本次提交的密码已更新；当前新输入尚未保存，请点击「保存修改」再次提交。", InfoBarSeverity.Warning);
+                return;
+            }
 
-        NewPassword = ConfirmPassword = "";
-        Notify("密码已修改", "飞牛影视帐号密码已更新，下次登录请使用新密码。", InfoBarSeverity.Success);
-    });
+            NewPassword = ConfirmPassword = "";
+            Notify("密码已修改", "飞牛影视帐号密码已更新，下次登录请使用新密码。", InfoBarSeverity.Success);
+        });
+    }
 
-    partial void OnNewPasswordChanged(string value) => BusyChanged();
-    partial void OnConfirmPasswordChanged(string value) => BusyChanged();
+    partial void OnNewPasswordChanged(string value) => PasswordEdited();
+    partial void OnConfirmPasswordChanged(string value) => PasswordEdited();
+
+    private void PasswordEdited()
+    {
+        _editVersion++;
+        BusyChanged();
+    }
 
     protected override void BusyChanged()
     {

@@ -1,3 +1,8 @@
+## 第五组 R-027 主树帐号提交快照／草稿保护（2026-10-24，继续）
+
+- 源fae6539d限定两VM／正式项目合入，点击前捕获字段／编辑version，旧成功不清新密码、不误报新语言已存，显式重试不重发。主树68全过（源68项48过20败红留来源），fresh fixture/Core/x64ShellRelease零警告错误；VM/fixture及solutionRelease/x64空白0修改/退出0无加载诊断，26PS/UTF8LF链接hash过。产品逐字同来源，独立静态无保留；窄fakeSession仅确认，不走真实认证/DPAPI/保存链，不当R010完成。证据batch05/r027及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计58稳定号／余15。继续R037/R039源18c86056限定整合/独立复核/重验，R067初源feba564三项保留退回Ampere独立树补修；不自动暂停。草稿ABA保守需显式再保存；未真实App/WinUI密码输入/服务器/config凭据DPAPI/native/播放/发布推送，快捷方式旧版，非完整交付。
+
 ## 第五组 R-046 主树自然EOF同窗继任及caller收尾（2026-10-24，继续）
 
 - 显式Episode/AutoNext自然EOF才retain非custom独占实例、窄lease由caller awaitusing回收；真实context关闭fence/q前置取消哨兵与source撤销守准入，旧lease/旧取消请求handle+generation失效不碰B。有效红10项5过5败、旧lease等Btimeout、23项22过1旧清B、26项25过1Q前留、27项26过1候选retry误cancel均闭环，当前realService/native27绿。fixture-only worker58ec7779限定整合完整VM50绿/8提取拒绝后重编译50再绿，11临时产品快照不带主树，Start节点same；最终27csproj方案零警告错误、Core2549/R05137/R04431/R04827/Monitor28/拖拽74/轨道11/音量31全过不相加。solutionRelease/x64空白命名冲突初红保留、folder映射修后0修改/退出0无加载诊断；25PS/UTF8LF链接19pins哈希过，独立静态P2闭环无保留。证据batch05/r046与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
