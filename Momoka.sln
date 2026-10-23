@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.HomeFoldCompletionTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PlaybackSourceRevocationTests", "tests\Momoka.PlaybackSourceRevocationTests\Momoka.PlaybackSourceRevocationTests.csproj", "{B3463999-33F5-476C-8F7F-A61D450AC905}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DashboardNavigation.Tests", "tests\Momoka.DashboardNavigation.Tests\Momoka.DashboardNavigation.Tests.csproj", "{640E78C3-ECCD-4B86-9E36-547312842A71}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -106,8 +108,13 @@ Global
 		{B3463999-33F5-476C-8F7F-A61D450AC905}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B3463999-33F5-476C-8F7F-A61D450AC905}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B3463999-33F5-476C-8F7F-A61D450AC905}.Release|Any CPU.Build.0 = Release|Any CPU
+		{640E78C3-ECCD-4B86-9E36-547312842A71}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{640E78C3-ECCD-4B86-9E36-547312842A71}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{640E78C3-ECCD-4B86-9E36-547312842A71}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{640E78C3-ECCD-4B86-9E36-547312842A71}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{640E78C3-ECCD-4B86-9E36-547312842A71} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{B3463999-33F5-476C-8F7F-A61D450AC905} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{07E4C6D8-920E-4E6E-811F-7FE34A8512C6} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{02E1A054-FCEC-49AD-802B-1DAB02D14C04} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

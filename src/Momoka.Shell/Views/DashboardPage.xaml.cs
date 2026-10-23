@@ -62,7 +62,12 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     private ISystemLauncher? _launcher;
     private string _url = "";
     private bool _core;
-    private bool _booted;
+    private ulong? _documentNavigationId;
+    private (ulong Id, int Generation)? _navigation;
+    private (string Url, int Generation)? _pendingNavigation;
+    private (string Url, int Generation)? _queuedNavigation;
+    private bool _navigationDispatchQueued;
+    private readonly HashSet<ulong> _observedNavigationIds = [];
     private bool _seeded;
     private bool? _navigated;
     private string _error = "";
@@ -83,9 +88,9 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     /// 只看这一个字段 —— 于是那一行读数写上「15 秒内没有结果」，而新的一趟才刚发出去一秒。
     /// </para>
     /// <para>
-    /// 管不着的那一半照实写在这儿：<c>NavigationCompleted</c> 自己不带轮次（WebView2 那边只有 NavigationId，
-    /// 要接就得从 NavigationStarting 一路记下来），所以一次被顶掉的导航仍然会以「失败」的身份回来。那一下屏上
-    /// 是一句错话，下一轮真的完成时会盖回去。
+    /// 整页导航在 <c>NavigationStarting</c> 把 NavigationId 绑定到请求原有的轮次；尚未开始的请求只发一条，
+    /// 后续刷新先排队，旧取消不能认领新轮次。网页自己发起的新文档也推进轮次，作废旧取样和 inline 回调；
+    /// 同文档 hash 切页没有 Starting，继续保留已经提交的文档。
     /// </para>
     /// </summary>
     private int _generation;
@@ -124,6 +129,11 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
 
     private bool Live => !_released && _scope is { } scope
         && (SourceKey is null ? scope.IsCurrent : scope.IsAvailable);
+
+    private bool IsCurrentLoad(int generation) => Live && generation == _generation;
+
+    private bool CanNavigateInline => _documentNavigationId is not null && _navigation is null
+        && _pendingNavigation is null && _queuedNavigation is null && !_navigationDispatchQueued;
 
     /// <summary>这一页绑定的服务器身份还在线吗；设置页在切换服务器后据此重建右半边。</summary>
     public bool IsCurrentSession => Live;
@@ -168,16 +178,10 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     {
         if (!Live || _scope is not { } scope || !ServerSettingsMenu.IsSafeRoute(route)) return;
 
-        _generation++;
-        _settled = false;
-        _navigated = null;
-        _error = "";
+        BeginLoad();
         _route = route;
         _url = EmbyWebConsole.RouteUrl(scope.Connection, route);
         _address = _url;
-
-        NoticePanel.Visibility = Visibility.Collapsed;
-        Web.Visibility = Visibility.Visible;
 
         if (Web.CoreWebView2 is not { } core)
         {
@@ -189,11 +193,85 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
 
         // 首个文档已经启动好之后，切页走网页自己的路由：不重载整页，也就不会再闪一次启动画面。
         // Emby 与 Jellyfin 的网页端都提供 Emby.Page.show；首次载入（或上一趟整页还没完成）仍然用整页导航。
-        if (_booted)
+        if (CanNavigateInline)
             _ = NavigateInlineAsync(core, route, _url);
         else
-            core.Navigate(_url);
+            NavigateFullPage(core, _url);
         _ = GiveUpAsync(_generation);
+    }
+
+    private void BeginLoad()
+    {
+        _generation++;
+        _navigation = null;
+        // A request without its NavigationId is still in flight; never reassign it to this new visit.
+        _queuedNavigation = null;
+        _settled = false;
+        _navigated = null;
+        _error = "";
+        ShowWeb();
+    }
+
+    private void NavigateFullPage(CoreWebView2 core, string url)
+    {
+        _documentNavigationId = null;
+        _navigation = null;
+        if (_pendingNavigation is not null || _navigationDispatchQueued)
+        {
+            // Navigate returns no ID. Until its event arrives, even an identical URL is ambiguous.
+            // Keep only the newest request and do not issue a second unidentified navigation.
+            _queuedNavigation = (url, _generation);
+            return;
+        }
+
+        _pendingNavigation = (url, _generation);
+        try { core.Navigate(url); }
+        catch
+        {
+            _pendingNavigation = null;
+            throw;
+        }
+    }
+
+    private void DispatchQueuedNavigation()
+    {
+        if (_queuedNavigation is null || _pendingNavigation is not null || _navigationDispatchQueued) return;
+
+        _navigationDispatchQueued = true;
+        if (DispatcherQueue.TryEnqueue(() =>
+        {
+            _navigationDispatchQueued = false;
+            if (_queuedNavigation is not { } queued) return;
+            _queuedNavigation = null;
+            if (!IsCurrentLoad(queued.Generation) || Web.CoreWebView2 is not { } core) return;
+            try { NavigateFullPage(core, queued.Url); }
+            catch (Exception error)
+            {
+                if (IsCurrentLoad(queued.Generation)) FailQueuedNavigation(error.Message);
+            }
+        })) return;
+
+        _navigationDispatchQueued = false;
+        var rejected = _queuedNavigation;
+        _queuedNavigation = null;
+        if (rejected is { } request && IsCurrentLoad(request.Generation))
+            FailQueuedNavigation("内嵌浏览器无法排队导航。");
+    }
+
+    private void FailQueuedNavigation(string error)
+    {
+        _error = error;
+        _navigated = false;
+        _settled = true;
+        Log.Warn(Category, $"内嵌控制台导航失败：{error}");
+        Show($"内嵌浏览器没能导航：{error}");
+    }
+
+    private void ShowWeb()
+    {
+        Notice.Text = "";
+        NoticePanel.Visibility = Visibility.Collapsed;
+        Web.Visibility = Visibility.Visible;
     }
 
     /// <summary>
@@ -206,27 +284,28 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
         try
         {
             var result = await core.ExecuteScriptAsync(EmbyWebConsole.RouteScript(route, url));
-            if (_released || generation != _generation) return;
+            if (!IsCurrentLoad(generation)) return;
 
             if (!string.Equals(result, "true", StringComparison.OrdinalIgnoreCase))
             {
-                core.Navigate(url);
+                NavigateFullPage(core, url);
                 return;
             }
 
             // Emby.Page.show 已经把视图切过去了；等待焦点和内容落一帧再把这行读数定下来。
             _navigated = true;
             await Task.Delay(350, _lifetime.Token);
-            if (_released || generation != _generation) return;
+            if (!IsCurrentLoad(generation)) return;
             _settled = true;
+            ShowWeb();
             Say("已载入");
         }
         catch (OperationCanceledException) when (_released || _lifetime.IsCancellationRequested) { }
         catch (Exception error)
         {
-            if (_released || generation != _generation) return;
+            if (!IsCurrentLoad(generation)) return;
             Log.Debug(Category, $"网页内切页失败，改走整页：{error.Message}");
-            try { core.Navigate(url); } catch (Exception) { }
+            try { NavigateFullPage(core, url); } catch (Exception) { }
         }
     }
 
@@ -377,6 +456,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
                 : CoreWebView2PreferredColorScheme.Light;
 
             Web.NavigationCompleted += OnNavigationCompleted;
+            Web.NavigationStarting += OnNavigationStarting;
             core.NewWindowRequested += OnNewWindowRequested;
 
             // 缺少公开服务器 ID 时保留网页自己的登录流程，不构造一个猜测的 Jellyfin 身份。
@@ -422,7 +502,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
             if (!Live) return;
 
             Say("正在载入服务器设置…");
-            core.Navigate(_url);
+            NavigateFullPage(core, _url);
             _ = GiveUpAsync(_generation);
         }
         catch (OperationCanceledException) when (_released || _lifetime.IsCancellationRequested) { }
@@ -443,22 +523,74 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     /// </summary>
     private void OnNavigationCompleted(WebView2 sender, CoreWebView2NavigationCompletedEventArgs e)
     {
-        if (_released) return;
+        if (!Live || !ReferenceEquals(sender, Web)) return;
 
+        var unseen = _observedNavigationIds.Add(e.NavigationId);
+        (ulong Id, int Generation) navigation;
+        if (_navigation is { } started && started.Id == e.NavigationId)
+            navigation = started;
+        else if (unseen && _pendingNavigation is { } pending)
+        {
+            // A canceled request can finish without Starting. There is only one emitted request
+            // without an ID; IDs seen earlier must not release that slot, regardless of their order.
+            _pendingNavigation = null;
+            navigation = (e.NavigationId, pending.Generation);
+        }
+        else return;
+
+        _navigation = null;
+        DispatchQueuedNavigation();
+        if (!IsCurrentLoad(navigation.Generation)) return;
         _navigated = e.IsSuccess;
         if (e.IsSuccess)
         {
-            // 网页已经启动过一次：之后外层栏的切页就可以走 Emby.Page，不再整页重载。
-            _booted = true;
+            // 只有当前整页提交后才能走网页内路由；成功还要显式撤掉旧错误遮层。
+            _documentNavigationId = e.NavigationId;
+            _error = "";
+            ShowWeb();
             Say("已载入");
-            _ = SampleAsync(_generation);
+            _ = SampleAsync(navigation.Generation);
             return;
         }
 
+        _documentNavigationId = null;
         _error = e.WebErrorStatus.ToString();
         _settled = true;
         Log.Warn(Category, $"控制台页面没能打开：{e.WebErrorStatus}");
         Show($"打不开 {_url}\n（{e.WebErrorStatus}）");
+    }
+
+    private void OnNavigationStarting(WebView2 sender, CoreWebView2NavigationStartingEventArgs e)
+    {
+        if (!Live || !ReferenceEquals(sender, Web) || e.IsRedirected
+            || !_observedNavigationIds.Add(e.NavigationId)) return;
+
+        int generation;
+        if (_pendingNavigation is { } pending)
+        {
+            // Match the sole issued request, not the latest route or a credential/trust policy.
+            // AbsoluteUri retains the fragment; a same-URL refresh keeps the original generation.
+            if (!Uri.TryCreate(e.Uri, UriKind.Absolute, out var started)
+                || !Uri.TryCreate(pending.Url, UriKind.Absolute, out var target)
+                || !string.Equals(started.AbsoluteUri, target.AbsoluteUri, StringComparison.Ordinal)) return;
+            generation = pending.Generation;
+            _pendingNavigation = null;
+        }
+        else
+        {
+            // A queued app request has priority over late events from the document being replaced.
+            if (_queuedNavigation is not null || _navigationDispatchQueued) return;
+            // Web-side full-page fallbacks invalidate inline/render/sample work. Redirects keep
+            // the original ID/generation; hash-only routes do not enter this handler.
+            BeginLoad();
+            generation = _generation;
+            Say("正在载入服务器设置…");
+            _ = GiveUpAsync(generation);
+        }
+
+        _documentNavigationId = null;
+        _navigation = (e.NavigationId, generation);
+        DispatchQueuedNavigation();
     }
 
     /// <summary>
@@ -484,7 +616,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     private async Task SampleAsync(int generation)
     {
         await Task.Delay(SampleDelay);
-        if (_released || generation != _generation || Web.CoreWebView2 is null) return;
+        if (!IsCurrentLoad(generation) || Web.CoreWebView2 is null) return;
 
         try
         {
@@ -506,7 +638,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
                   } catch (e) { return "取样出错：" + e; }
                 })();
                 """);
-            if (_released || generation != _generation) return;
+            if (!IsCurrentLoad(generation)) return;
 
             var text = JsonSerializer.Deserialize<string>(json);
             _client = string.IsNullOrWhiteSpace(text) ? "没有取到" : text!;
@@ -514,12 +646,12 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
         }
         catch (Exception error)
         {
-            _client = $"取样失败：{error.Message}";
+            if (IsCurrentLoad(generation)) _client = $"取样失败：{error.Message}";
         }
         finally
         {
             // 上一轮的取样不许替这一轮宣布「问完了」—— 自检的 Settled 那一关读的就是这个字段。
-            if (generation == _generation) _settled = true;
+            if (IsCurrentLoad(generation)) _settled = true;
         }
     }
 
@@ -531,7 +663,7 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     private async Task GiveUpAsync(int generation)
     {
         await Task.Delay(LoadTimeout);
-        if (_released || _settled || generation != _generation) return;
+        if (!IsCurrentLoad(generation) || _settled) return;
 
         _settled = true;
         _client = $"{LoadTimeout.TotalSeconds:0} 秒内没有结果";
@@ -543,14 +675,9 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     {
         if (Web.CoreWebView2 is not { } core || _url.Length == 0 || !Live) return;
 
-        _navigated = null;
-        _settled = false;
-        _error = "";
-        _generation++;
-        NoticePanel.Visibility = Visibility.Collapsed;
-        Web.Visibility = Visibility.Visible;
+        BeginLoad();
         Say("正在重新载入…");
-        core.Navigate(_url);
+        NavigateFullPage(core, _url);
         _ = GiveUpAsync(_generation);
     }
 
@@ -592,11 +719,19 @@ public sealed partial class DashboardPage : Page, IShellContent, ISessionScopedP
     {
         if (_released) return;
         _released = true;
+        _generation++;
+        _navigation = null;
+        _documentNavigationId = null;
+        _pendingNavigation = null;
+        _queuedNavigation = null;
+        _navigationDispatchQueued = false;
+        _observedNavigationIds.Clear();
         _lifetime.Cancel();
         _lifetime.Dispose();
 
         try
         {
+            Web.NavigationStarting -= OnNavigationStarting;
             Web.NavigationCompleted -= OnNavigationCompleted;
             if (Web.CoreWebView2 is { } core)
                 core.NewWindowRequested -= OnNewWindowRequested;
