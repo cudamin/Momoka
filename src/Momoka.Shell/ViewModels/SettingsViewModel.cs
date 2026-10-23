@@ -1038,8 +1038,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(ResourceFilterCard());
         Sections.Add(ScreenshotCard());
         Sections.Add(VideoCard());
-        Sections.Add(HdrCard());
-        Sections.Add(ShaderCard());
+        Sections.Add(ApplicableHdrCard());
+        Sections.Add(ApplicableShaderCard());
         Sections.Add(AudioCard());
         Sections.Add(SubtitleCard());
         Sections.Add(ShortcutsCard());
@@ -1055,11 +1055,16 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// Re-enumerates the 音频输出设备 row on a cached page's re-entry. The page is deliberately cached
-    /// (half-typed text survives navigation), so ReloadAsync does not run again — but a device list is a
-    /// reading, not a preference, and the row's own note promises a fresh enumeration every visit. Only
-    /// this one row refreshes; every other card keeps its in-progress edits.
+    /// (half-typed text survives navigation), so ReloadAsync does not run again. The device list is a reading,
+    /// not a preference; shared settings may also change dependent rows' applicability while the page is away.
+    /// Only those dependent rows and changed controlling values update, preserving unrelated in-progress edits.
     /// </summary>
-    internal Task RefreshAudioDevicesAsync() => FillAudioDevicesAsync();
+    internal Task RefreshAudioDevicesAsync()
+    {
+        // 缓存重入只原位增删适用性变化的从属行，不整页 Reload，也不改半输入与保存状态。
+        RefreshSettingsApplicability();
+        return FillAudioDevicesAsync();
+    }
 
     /// <summary>
     /// Hands the 音频输出设备 row the machine's real devices once they have been enumerated. Same shape and same
@@ -1478,20 +1483,8 @@ public sealed partial class SettingsViewModel : PageViewModel
                 + "不是 libass 播放画面；实际尺寸还受窗口大小与字幕格式影响。", playback);
         _subtitlePreview = preview;
 
-        // 底板颜色 states which of its two jobs it is doing, so the row above it cannot be a lie: mpv
-        // shares one colour between the plate and the drop shadow, and 字幕底板 is what decides which of
-        // them gets painted. Same shape as 视频输出's 视频同步 row — one writer, and the row states the
-        // value in force — and for the same reason: this pair drew nothing at all for as long as nobody
-        // sent the style option, and 「界面在骗人」 is the bug that costs the most to find.
-        SettingColorRow? backColor = null;
-        backColor = ColorRow("底板颜色",
-            () => playback.SubtitleBackColor, Live<string>(value => playback.SubtitleBackColor = value),
-            "sub-back-color", BackColorNote(playback));
-
-        return new SettingSection("字幕", "字幕", "语言优先级和字幕外观。勾选语言并排序，越靠上越优先，"
-            + "「其他字幕」代表任何别的语言的字幕、放在最后可兜底。"
-            + "外观这一组改完立刻作用到正在播的片子；语言、显示模式和字幕编码下次播放生效。",
-        [
+        var rows = new List<SettingRow>
+        {
             preview,
 
             LanguagePriority("字幕语言优先级", "未指定，跟随文件默认字幕", () => playback.SubtitleLanguages, value => playback.SubtitleLanguages = value,
@@ -1545,25 +1538,11 @@ public sealed partial class SettingsViewModel : PageViewModel
                 () => playback.SubtitleBorderSize, Live<string>(value => playback.SubtitleBorderSize = value),
                 "文字外那一圈边的宽度，拖到 0 就是没有描边。出厂 0.5，mpv 自己是 1.65", "sub-border-size"),
             ColorRow("描边颜色", () => playback.SubtitleBorderColor, Live<string>(value => playback.SubtitleBorderColor = value), "sub-border-color"),
-            UnitSlider("阴影偏移 / 背景盒留白", 0,
-                () => playback.SubtitleShadowOffset, Live<string>(value => playback.SubtitleShadowOffset = value),
-                "普通样式和逐行盒：阴影向右下偏移；整体背景盒：控制底板留白，不另画文字阴影。"
-                    + "出厂 0.5；阴影与背景盒都使用下面的底板颜色", "sub-shadow-offset"),
+            SubtitleShadowRow(),
 
             Mpv("字幕底板", MpvOutputOptions.SubtitleBackStyles, () => playback.SubtitleBackStyle,
-                Live<string>(value =>
-                {
-                    playback.SubtitleBackStyle = value;
-
-                    // 这一项一变，下面那一行颜色画的是底板还是阴影就变了。页面没有整体刷新，只有因果关系
-                    // 明确的这一处自己去改那一行。annotate 一起带上，不然重述一次那一行末尾的
-                    // 「mpv：sub-back-color」就掉了。
-                    backColor!.Restate(Annotate(BackColorNote(playback), "sub-back-color")!);
-                }),
-                "sub-border-style", "亮画面上最管用的一项。关着的时候只有描边和阴影"),
-            backColor!,
-            Slider("底板不透明度（%）", 0, 100, 5, () => playback.SubtitleBackOpacity, Live<double>(value => playback.SubtitleBackOpacity = (int)value),
-                "控制底板颜色的透明度；颜色选「不设置」时使用黑色，透明度仍按此值。逐行盒的描边盒由描边颜色控制", "sub-back-color"),
+                Live<string>(value => playback.SubtitleBackStyle = value),
+                "sub-border-style", "亮画面上最管用的一项。关着的时候只有描边和阴影", RefreshSubtitleBackRows),
 
             Mpv("字幕编码", MpvOutputOptions.SubtitleCodepages, () => playback.SubtitleCodepage, value => playback.SubtitleCodepage = value,
                 "sub-codepage", "只对不是 UTF-8 的文本字幕有意义。选了具体编码就不再自动识别了，"
@@ -1571,7 +1550,11 @@ public sealed partial class SettingsViewModel : PageViewModel
             Toggle("拉伸图形字幕到画面", "画面比 16:9 更宽的电影，把图形字幕（PGS/VOBSUB）拉伸到画面里，"
                 + "免得字幕落到画面外头去。下次播放生效", () => playback.StretchWideImageSubtitles, value => playback.StretchWideImageSubtitles = value,
                 "stretch-image-subs-to-screen")
-        ]);
+        };
+        rows.InsertRange(rows.FindIndex(row => row.Label == "字幕底板") + 1, SubtitleBackRows());
+        return new SettingSection("字幕", "字幕", "语言优先级和字幕外观。勾选语言并排序，越靠上越优先，"
+            + "「其他字幕」代表任何别的语言的字幕、放在最后可兜底。"
+            + "外观这一组改完立刻作用到正在播的片子；语言、显示模式和字幕编码下次播放生效。", rows);
     }
 
     /// <summary>
@@ -2785,12 +2768,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 写回去的是规范数字（和 <see cref="MpvOutputOptions.ClampSubtitleUnit"/> 落盘的格式一致），范围仍是
     /// mpv 自己的 0–10，手改设置文件越界的照样在每次读盘时被它拦回来。
     /// </summary>
-    private SettingSliderRow UnitSlider(string label, double whenUnset, Func<string> read, Action<string> write, string? note = null, string mpvOption = "") =>
+    private SettingSliderRow UnitSlider(string label, double whenUnset, Func<string> read, Action<string> write, string? note = null, string mpvOption = "", Action? after = null) =>
         new(label, Annotate(note, mpvOption),
             MpvOutputOptions.SubtitleUnitMinimum, MpvOutputOptions.SubtitleUnitMaximum, 0.05,
             ParseUnit(read()) ?? whenUnset,
             value => write(value.ToString("0.###", CultureInfo.InvariantCulture)),
-            Save);
+            Save, after);
 
     private static double? ParseUnit(string? value) =>
         double.TryParse((value ?? "").Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)

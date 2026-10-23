@@ -13,6 +13,8 @@ internal static class Program
             return ActivationListenerTests.RunChild(activationScenario);
         if (args is ["settings-page-state-fixture", var shellAssembly, var sourceRoot])
             return SettingsPageStateTests.Run(shellAssembly, sourceRoot);
+        if (args is ["settings-applicability-fixture", var applicabilityShell, var applicabilityRoot])
+            return SettingsApplicabilityTests.Run(applicabilityShell, applicabilityRoot);
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();
