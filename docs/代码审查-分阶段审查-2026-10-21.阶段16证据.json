@@ -1,0 +1,577 @@
+{
+  "phase": 16,
+  "title": "字幕、轨道与外观生命周期",
+  "startCommit": "26b4ece8c6dbd7ecb9163a83f9733d3e9b5a8f89",
+  "summary": "新增R-055～R-058四项P2静态问题；R-040扩入非默认来源字幕管理，R-051扩入字幕外观执行点",
+  "counts": {
+    "stable": 58,
+    "static": 55,
+    "conditional": 2,
+    "suggestion": 1
+  },
+  "nextPhase": 17,
+  "findings": [
+    {
+      "id": "R-055",
+      "priority": "P2",
+      "title": "阴影为零且非整体背景盒时仍显示无效的底板颜色与不透明度",
+      "anchors": [
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          1539,
+          1557
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          1589,
+          1595
+        ],
+        [
+          "src/Momoka.Core/Playback/SubtitlePreviewPlan.cs",
+          30,
+          69
+        ],
+        [
+          "src/Momoka.Core/Mpv/MpvOutputOptions.cs",
+          704,
+          714
+        ],
+        [
+          "src/Momoka.Shell/Views/SettingsPage.xaml",
+          831,
+          855
+        ]
+      ],
+      "trigger": "在字幕全局偏好中把阴影偏移设为0，底板选关闭（内核outline-and-shadow）或opaque-box；支持纯文本外观的正常配置即可触发，不要求当前正在播放。",
+      "chain": "底板颜色、不透明度恒加入SubtitleCard；阴影编辑仅Live刷新预览/推送，底板切换仅改颜色说明，不重算整行显隐。固定mpv语义中0关闭阴影，普通/逐行盒唯一使用back-color的阴影均不绘制；描边盒另用outline色。因此两行可调但不会影响此配置下的字幕外观。",
+      "protection": "background-box即使留白0仍绘制统一背景，两行应保留；空底板色用黑色但透明度独立有效，并非空色就隐藏。不得因本片ASS/PGS而隐藏未来纯文本的全局偏好；保留阴影和底板模式恢复入口，隐藏不清值。未运行真实控件/内核渲染。",
+      "acceptance": "只按已确认有效的样式/阴影条件重算两行及从属说明；在同页0→正值、普通/逐行盒→整体盒及恢复默认/导入/重入断言显隐和原值保留，再核真实布局/键盘可达性。不要用禁用或说明替代隐藏。"
+    },
+    {
+      "id": "R-056",
+      "priority": "P2",
+      "title": "首笔字幕写响应不明后关闭管理框丢失父页刷新义务",
+      "anchors": [
+        [
+          "src/Momoka.Shell/Views/SubtitleDialog.xaml.cs",
+          76,
+          96
+        ],
+        [
+          "src/Momoka.Shell/Views/SubtitleDialog.xaml.cs",
+          121,
+          132
+        ],
+        [
+          "src/Momoka.Shell/Views/SubtitleDialog.xaml.cs",
+          160,
+          225
+        ],
+        [
+          "src/Momoka.Shell/Views/SubtitleDialog.xaml.cs",
+          302,
+          326
+        ],
+        [
+          "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+          454,
+          464
+        ],
+        [
+          "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+          2005,
+          2013
+        ],
+        [
+          "src/Momoka.Core/Emby/EmbyClient.cs",
+          998,
+          1012
+        ]
+      ],
+      "trigger": "本次框尚无成功写入或回读，Touched/NeedsRefresh均false；来源一直默认且在线。首笔下载或已通过确认及快照预读的删除可能被服务器落实，但响应中断/超时，用户在成功恢复GET之前直接关闭，或恢复GET尚挂起时关闭。",
+      "chain": "写委托抛普通异常时未到Touched赋值，只设_tracksStale；finally清_mutating，关闭守卫仅看_mutating而允许关闭。手动恢复SetBusy(true)不标mutating，GET也可被关闭；_closed使迟到回读不再置NeedsRefresh。父页只在两个标记之一为true时调用changed/Reload，因而继续保留写前字幕轨道，刷新欠项未跨框交接。",
+      "protection": "结果不明不等于每笔失败都已写入；仅在服务端可能落实的前件下影响轨道一致性。_tracksStale禁止盲目重发；正常确认写成功先置Touched且自动补读单独处理、关闭受mutating守卫，故正常写成功+补读失败排除，不重复R-024。已有响应中断夹具等待手动GET完成，不覆盖提前关闭。未真实下载/删除或运行窗口时序。",
+      "acceptance": "将结果不明后的恢复欠项保留并交给父页，或在受控恢复完成前限制关闭且保留失败恢复入口；不谎称Touched成功、不自动重发写。用假写委托先改夹具再抛响应中断，覆盖直接关闭和恢复GET挂起关闭，父页仅重读、不重写；保留确认前零请求及写期间互斥。"
+    },
+    {
+      "id": "R-057",
+      "priority": "P2",
+      "title": "字幕元数据为空时只显示强制字幕的限制丢失",
+      "anchors": [
+        [
+          "src/Momoka.Core/Playback/TrackSelection.cs",
+          120,
+          144
+        ],
+        [
+          "src/Momoka.Core/Playback/PlaybackPlanner.cs",
+          217,
+          230
+        ],
+        [
+          "src/Momoka.Core/Mpv/MpvArgumentBuilder.cs",
+          59,
+          67
+        ],
+        [
+          "src/Momoka.Core/Playback/LibMpvBackend.cs",
+          273,
+          280
+        ],
+        [
+          "src/Momoka.Core/Mpv/InlineSwitch.cs",
+          132,
+          142
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          153,
+          158
+        ]
+      ],
+      "trigger": "设置只显示强制字幕；可用媒体源没有提供字幕元数据，但实际容器内有匹配语言的普通字幕，且未显式选轨或关闭。元数据不完整不阻断正常起播。",
+      "chain": "ChooseSubtitle在检查ForcedOnly前因字幕列表为空返回None；规划票仅保留未指定/未禁用和slang，未携带强制过滤。内置/外部起播不设sid，InlineSwitch明确设auto，故ForcedOnly和Always在此出口相同，内核可自动显示普通字幕。客户端丢约束的静态链成立；不是说任何没有元数据的文件必有字幕。",
+      "protection": "已知字幕元数据时forced池过滤/空池Off正确；显式关闭和显式可选轨优先正确；sub-auto=no只禁旁挂自动扫描，不禁内封自动选轨。代理曾读固定v0.41.0官方源码的选轨分支作旁证，主线程未成功重取当前270367e8af源码，不冒称本树DLL实测。普通字幕是否实际选中取决于文件语言/default标记及内核，运行未覆盖。",
+      "acceptance": "缺元数据时仍保留仅强制约束，不能随意返回普通auto；需要内核发现后的受控选择或安全关闭策略，并保持显式轨/关闭的优先级。离线票/假后端测空信息与已知普通/forced，授权本地素材时分别核真实普通、forced、混合轨；不扩标题权重/外观。"
+    },
+    {
+      "id": "R-058",
+      "priority": "P2",
+      "title": "同场初始轨道补读可覆盖已应用的较新通知",
+      "anchors": [
+        [
+          "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+          566,
+          569
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+          1173,
+          1202
+        ],
+        [
+          "src/Momoka.Core/Playback/PlaybackService.cs",
+          352,
+          362
+        ],
+        [
+          "src/Momoka.Core/Mpv/MpvIpcClient.cs",
+          157,
+          175
+        ],
+        [
+          "src/Momoka.Core/Mpv/MpvIpcClient.cs",
+          248,
+          263
+        ],
+        [
+          "src/Momoka.Shell/Views/PlayerPage.Menus.cs",
+          154,
+          199
+        ],
+        [
+          "src/Momoka.Core/Playback/PlaybackTrackState.cs",
+          29,
+          50
+        ]
+      ],
+      "trigger": "外部mpv的IPC已连接、同一场播放；UI初始补读返回非空旧快照A，请求异步续体尚未排进UI时较新轨道通知B先在UI应用；A与B不同，期间不换片。",
+      "chain": "服务RaiseNowPlaying后VM启动PopulateTracksAsync；IPC回复用异步续体，读循环不等待它就处理通知B。通知与补读均只看播放代次，B不改变代次；A晚回填仍可覆盖Tracks，非空还结束轮询。菜单每次打开用Tracks列表/Selected，因此可显示旧列表或旧勾选，直到下一次通知。UI队列只保证线程，不保证按采样先后入队。",
+      "protection": "跨场句柄/代次及结束守卫存在；PlaybackTrackState修订号保护服务器报告但不保护VM.Tracks，故不宣称上报倒退或实际切轨回A。回填不发命令；内置补读同步Task.FromResult，本条IPC续体证据不外推内置/uosc。新通知可恢复但不保证马上再来，交错未运行。",
+      "acceptance": "给VM同场轨道更新增加修订或在收到通知后拒绝旧补读；挂起A→应用B→释放A，断言缓存/菜单勾选保持B，并保留停止/换片拒绝回填。应测真实VM入口，不用现有服务器上报修订测试替代。"
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "R-040扩展",
+      "status": "同根因不新增号，原P3登记保留",
+      "detail": "聚合A/B在线、B默认，从A的Emby/Jellyfin文件卡片可打开字幕框；CardItem/ItemCommands和初始GET只要求IsAvailable，ServerSubtitles各操作却要求IsCurrent，故打开后搜/下/删/刷新均拒绝。AniBT原记录是开框前静默返回，字幕是开框后可见取消提示，不能混称静默；不是越权或向B发写请求。"
+    },
+    {
+      "id": "R-051扩展",
+      "status": "同根因不新增号",
+      "detail": "ApplySubtitleStyleAsync的Current预检未把预期原生文件代次传到执行端；旧批次通过检查后若同句柄Swap完成，才进入CommandAsync可捕获新代次。串行/revision和RunFor只挡已捕获旧代次，后验不能撤回一次旧样式写。仅兼容内置独占同句柄换片；已有不同句柄/默认回读前切集测试不证明封住执行间隙。"
+    },
+    {
+      "id": "P16-EX-01",
+      "status": "外观接线及失败防护已核",
+      "detail": "Live先改内存→预览→push，行保存；push失败可见。ApplySubtitleStyle串行/revision淘汰旧批次、逐项区分不支持与未知、仍应用已知项并报部分失败。11项外观在InlineSwitch复位清单，主次选择/可见性/延迟/位置/样式也纳入；此防护存在不豁免R-051。"
+    },
+    {
+      "id": "P16-EX-02",
+      "status": "颜色/恢复不另报",
+      "detail": "RGB为精确输入权威、HSV只主动编辑反算；空底板色用黑但保留opacity；逐行盒outline/back分工与统一背景盒模型已核。导入/默认恢复Reload并push，部分失败不虚报整体成功。预览明确不是libass真帧；没有声称视觉正确。"
+    },
+    {
+      "id": "P16-EX-03",
+      "status": "写入确认/快照防护存在",
+      "detail": "服务固定scope/文件/轨道完整快照；删除内联取消优先、确认前不发DELETE。同标签无法区分、重编号或快照变化拒绝；写及自动刷新互斥，成功先保留Touched。GET/DELETE非原子，不声称防住服务器并发替换。"
+    },
+    {
+      "id": "P16-COV-01",
+      "status": "运行/测试缺口",
+      "detail": "本树无libmpv-2.dll及测试还原输入；未restore/编译正式测试/字幕Probe/UI/原生画面/独占uosc/真实服务器操作。既有源码测试及阶段15假native夹具不替代字幕入口时序验证；历史2072不作本轮通过。"
+    },
+    {
+      "id": "P16-EX-04",
+      "status": "自动选轨正常分支已核",
+      "detail": "最终显式音轨先解析；其他字幕只是候选通配而非懂该音轨，语言不依标题猜；默认回退只取明确默认；主次报告只认主角色、容器ff-index/实际外挂URI，未知不猜。已知forced池正常，空元数据另见R-057。"
+    },
+    {
+      "id": "P16-EX-05",
+      "status": "不报集成菜单主次映射缺陷",
+      "detail": "次字幕入口在uosc，内置独占摘除WinUI播放页；未取得正常UI可达的主次混用强前件。本次不为潜在代码不一致新增缺陷；R-058限外部IPC的同场初始UI快照。"
+    }
+  ],
+  "coverage": [
+    "主线程恢复后全文分段重新载入主目录CLAUDE并核与续审树哈希相同；续审树干净、HEAD26b4ece8；产品固定c34a5e5。读取Shell/播放/字幕/验证专项与字幕矩阵，通用WinUI规则仅作补充，项目规则优先。",
+    "主线程分段复读SettingsViewModel字幕卡/Live/push/导入重置、SubtitlePreviewPlan全文、MpvOutputOptions外观/清单、AppSettings相关默认、HtmlColorSelection全文、InlineSwitch清单、服务批次/LibMpv命令入口、设置颜色/滑块模板、字幕管理scope/对话框/父页回调及既有夹具行段；不声称穷尽所有XAML和测试正文。",
+    "Boyle首轮字幕管理两候选；Curie独立反证shadow0及R-051、Meitner独立反证管理两候选及R-040；Arendt自动选轨两候选；Aristotle仅反证同场补读候选（使用默认等级）。所有候选主线程按源码逐段复核；五代理均已关闭，不计未读范围为覆盖。",
+    "固定mpv底板/阴影语义采用阶段14保存的7b8915bc1手册3098–3135、3222–3226；自动选轨参考同手册23–35、98–104、154–177、2891–2899。Arendt曾读取v0.41.0固定提交41f6a645068483470267271e1d09966ca3b9f413的player/loadfile.c:461–490,560–623；主线程重取当前登记270367e8af源码及手册超时/fetch失败，不计成功证据。不因旧手册声称已查询当前DLL。",
+    "自动选轨读取清单：代理TrackSelection:1–180、MpvTrackMap:1–85/119–137、TrackLanguagePriority选定31–83/225–321/343–386/407–478、KeywordFilter:54–118、PlaybackPlanner选定61–129/217–266、PlaybackTrackState全文、InlineSwitch:46–160/190–244、PlayerViewModel.Events:561–704/1173–1202及测试SubtitleBehavior/KeywordPriority/PlaybackTrackState正文。主线程重点复读ForcedOnly空元数据和IPC补读→通知→菜单链及服务上报独立修订保护，未穷尽播放器所有代码。",
+    "本阶段从2026-10-22继续至2026-10-23；正式收尾按最新Asia/Shanghai日期2026-10-23记录，不回写此前阶段日期。最后两项候选收束完成，实际入口名为RaiseNowPlaying→OnNowPlayingChanged→PopulateTracksAsync，不沿用不存在的OnBackendEstablished/BeginPolling符号。"
+  ],
+  "rootCauseExpansions": [
+    {
+      "id": "R-040",
+      "priority": "P3",
+      "anchors": [
+        [
+          "src/Momoka.Core/Emby/ServerSubtitles.cs",
+          25,
+          77
+        ],
+        [
+          "src/Momoka.Shell/Views/ItemCommands.cs",
+          272,
+          274
+        ],
+        [
+          "src/Momoka.Shell/Views/ItemCommands.cs",
+          323,
+          325
+        ],
+        [
+          "src/Momoka.Shell/Views/CardItem.cs",
+          187,
+          190
+        ],
+        [
+          "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+          441,
+          464
+        ]
+      ],
+      "detail": "IsAvailable入口和IsCurrent下游不一致：字幕管理可开框但操作拒绝，与AniBT死入口同根；保留响应形态区别。"
+    },
+    {
+      "id": "R-051",
+      "priority": "P2",
+      "anchors": [
+        [
+          "src/Momoka.Core/Playback/PlaybackService.cs",
+          291,
+          349
+        ],
+        [
+          "src/Momoka.Core/Playback/LibMpvBackend.cs",
+          680,
+          714
+        ],
+        [
+          "src/Momoka.Core/Playback/LibMpvBackend.cs",
+          1218,
+          1229
+        ]
+      ],
+      "detail": "字幕外观预检与命令执行点的原生代次TOCTOU，扩入既有切链/音量/延迟根因。"
+    }
+  ],
+  "handoff": "第16阶段只读候选主线程复核/去重；R-055～R-058及R-040/R-051扩展全未修复。五记录内容/链接/行段/差异/固定产品检查通过后本地提交，再自动进入17公共Shell/平台入口；后续子代理使用默认思考等级，不刻意指定max。",
+  "publicSourceRead": {
+    "agentSuccessfulRead": {
+      "url": "https://raw.githubusercontent.com/mpv-player/mpv/41f6a645068483470267271e1d09966ca3b9f413/player/loadfile.c",
+      "tag": "v0.41.0",
+      "commit": "41f6a645068483470267271e1d09966ca3b9f413",
+      "segments": [
+        [
+          461,
+          490
+        ],
+        [
+          560,
+          623
+        ]
+      ],
+      "localCopy": false,
+      "reader": "Arendt"
+    },
+    "mainCurrentTargetFetch": {
+      "commitPrefix": "270367e8af",
+      "success": false,
+      "limits": "PowerShell超时、Node fetch失败；web工具已打开当前登记提交前缀和v0.41.0固定raw，但返回0行，无可复读正文，不计成功核对。仅公开上游采集，真实服务器调用为0。"
+    },
+    "localManual": {
+      "path": "artifacts/staged-review/phase14/mpv-7b8915bc1-options.rst",
+      "sha256": "520FA10A114769B1AAFBE925B9838D22F9FB5C42968DDD6B5828F08D8CA82648",
+      "notCurrentDllRun": true
+    }
+  },
+  "recordDate": "2026-10-23",
+  "schemaVersion": 1,
+  "time": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "sourceAnchors": [
+    {
+      "id": "R-055",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 1539,
+      "end": 1557,
+      "sha256": "B03049936250F3CD4B5BB3BFDC3EB30F8D8C5FF3CEC52C5CAC3AF438D1660A7F"
+    },
+    {
+      "id": "R-055",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 1589,
+      "end": 1595,
+      "sha256": "3C8CC42C8A427BFA88BE3DD72BBFD63516A1E1B1AF93F0202C78F5CBEA59B837"
+    },
+    {
+      "id": "R-055",
+      "path": "src/Momoka.Core/Playback/SubtitlePreviewPlan.cs",
+      "start": 30,
+      "end": 69,
+      "sha256": "8A5DA7116B6968B5367896065C2368EAEE201C7BEC33FFB35134E8F374EF5616"
+    },
+    {
+      "id": "R-055",
+      "path": "src/Momoka.Core/Mpv/MpvOutputOptions.cs",
+      "start": 704,
+      "end": 714,
+      "sha256": "DA863C4F91A1873966E90E6FDDE6B135D67F417C48E6B3CF17A8A76E93FD0DA1"
+    },
+    {
+      "id": "R-055",
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml",
+      "start": 831,
+      "end": 855,
+      "sha256": "5151CC9FE76B7339CAE3FF526B953EB7CACF6308F102F1894E1134293C84C97A"
+    },
+    {
+      "id": "R-056",
+      "path": "src/Momoka.Shell/Views/SubtitleDialog.xaml.cs",
+      "start": 76,
+      "end": 96,
+      "sha256": "E45B2D3489F8026F05E4FBB944997291BB0520DF0BC7F831E64EC462F55673E3"
+    },
+    {
+      "id": "R-056",
+      "path": "src/Momoka.Shell/Views/SubtitleDialog.xaml.cs",
+      "start": 121,
+      "end": 132,
+      "sha256": "DE4BDDB5AA57821757C51828C8FC47E54A9E4731AB2873633A1E7FF1A5EAC0D2"
+    },
+    {
+      "id": "R-056",
+      "path": "src/Momoka.Shell/Views/SubtitleDialog.xaml.cs",
+      "start": 160,
+      "end": 225,
+      "sha256": "D95F5D5CD3A64C9F43574039F6D8680CF9AD2A36BB22B8EBD1BD123165909C38"
+    },
+    {
+      "id": "R-056",
+      "path": "src/Momoka.Shell/Views/SubtitleDialog.xaml.cs",
+      "start": 302,
+      "end": 326,
+      "sha256": "219E2C27042D06B4DAB708C5E72D867EFFD701E2331739C808EFA23EB7B5EF8D"
+    },
+    {
+      "id": "R-056",
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "start": 454,
+      "end": 464,
+      "sha256": "2A9261C6985895FD33DDA65FE6C963AE8A6E6A07C46350E7A1C7AF9FDCC022E9"
+    },
+    {
+      "id": "R-056",
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+      "start": 2005,
+      "end": 2013,
+      "sha256": "EADB194600547B431DB20C20E1ED1D5D9EBEFEB2941DE2EA82CC1C35EF9B39A2"
+    },
+    {
+      "id": "R-056",
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "start": 998,
+      "end": 1012,
+      "sha256": "9FC8CF3427CE28ECF8A15549FB90707DA77578FFB6242DD94951E36A64821464"
+    },
+    {
+      "id": "R-057",
+      "path": "src/Momoka.Core/Playback/TrackSelection.cs",
+      "start": 120,
+      "end": 144,
+      "sha256": "C08AAF53FB41E266E05C92B637DDA79F2E0A33FBD50567BA97EDA79A59BFE171"
+    },
+    {
+      "id": "R-057",
+      "path": "src/Momoka.Core/Playback/PlaybackPlanner.cs",
+      "start": 217,
+      "end": 230,
+      "sha256": "42E136EE78488E511E6F98F69443AC1BB78980C8741EA6E480AAA98BB0E294FC"
+    },
+    {
+      "id": "R-057",
+      "path": "src/Momoka.Core/Mpv/MpvArgumentBuilder.cs",
+      "start": 59,
+      "end": 67,
+      "sha256": "9468E0C7B6153405705FC4CCF947D95B76C2AEC5D1196E210FDC453FF695560D"
+    },
+    {
+      "id": "R-057",
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "start": 273,
+      "end": 280,
+      "sha256": "CCA54772FFE193078D2D961D1382431FCB006A1187D2D5CD03AE3C8EEF1ADD42"
+    },
+    {
+      "id": "R-057",
+      "path": "src/Momoka.Core/Mpv/InlineSwitch.cs",
+      "start": 132,
+      "end": 142,
+      "sha256": "168B5C8C19B90D003022F5231FE0B2998DA419F57CE0FFC6200ED4C8D62CB3F5"
+    },
+    {
+      "id": "R-057",
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "start": 153,
+      "end": 158,
+      "sha256": "7B24BE582026715DACDB8A73FE8FDA28F54775326E25E40F46C820C516FBAFD4"
+    },
+    {
+      "id": "R-058",
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "start": 566,
+      "end": 569,
+      "sha256": "AFD17118F6E36C9FA02EF207247C220D28D98C37E9A03C5EEA9416E3D2BB9A69"
+    },
+    {
+      "id": "R-058",
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "start": 1173,
+      "end": 1202,
+      "sha256": "CC76EB3D1AA09114ED19E87E469ACC117A597A36A71AB1E661E8CDF893F7FA0B"
+    },
+    {
+      "id": "R-058",
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "start": 352,
+      "end": 362,
+      "sha256": "10F304A2D159692E2674DEF61B386964EAB6582FF3CECC31AC0BDEB9B47A89F3"
+    },
+    {
+      "id": "R-058",
+      "path": "src/Momoka.Core/Mpv/MpvIpcClient.cs",
+      "start": 157,
+      "end": 175,
+      "sha256": "E0D4B16EF2109C8180BC59D8EFD76570FF439BF11E9D506A88BF92C1668FAE96"
+    },
+    {
+      "id": "R-058",
+      "path": "src/Momoka.Core/Mpv/MpvIpcClient.cs",
+      "start": 248,
+      "end": 263,
+      "sha256": "2569C50777237A64330AE2B43229F0C5F0772C160BD808CDAAE4008994C9FFA3"
+    },
+    {
+      "id": "R-058",
+      "path": "src/Momoka.Shell/Views/PlayerPage.Menus.cs",
+      "start": 154,
+      "end": 199,
+      "sha256": "A5DD419B025B75408DA485A6F093E3952B2AF539044C3C90974F3BBECAD725FA"
+    },
+    {
+      "id": "R-058",
+      "path": "src/Momoka.Core/Playback/PlaybackTrackState.cs",
+      "start": 29,
+      "end": 50,
+      "sha256": "41BEDB6BAB90230F78487C9A913D97343DD5A3D41F1CB486B14DA1DE0E9C7485"
+    },
+    {
+      "id": "R-040",
+      "path": "src/Momoka.Core/Emby/ServerSubtitles.cs",
+      "start": 25,
+      "end": 77,
+      "sha256": "AA355AC86337613B0420B115BEC9F74CF7D0250CE0D85FC272BD261FE75E755B"
+    },
+    {
+      "id": "R-040",
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "start": 272,
+      "end": 274,
+      "sha256": "826860E984AC0A6C91E620C319F8C5D640203BDE3DC4E0895770402FCC1CCAD6"
+    },
+    {
+      "id": "R-040",
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "start": 323,
+      "end": 325,
+      "sha256": "294F026E487DD9A1566F312FE9442A9585E60C47A855BD82381CEDFE57D79303"
+    },
+    {
+      "id": "R-040",
+      "path": "src/Momoka.Shell/Views/CardItem.cs",
+      "start": 187,
+      "end": 190,
+      "sha256": "5A9BF1B762DE31BE2EF57477E3F35D73663A23E99699D1A8273D5B1AA141CEF1"
+    },
+    {
+      "id": "R-040",
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "start": 441,
+      "end": 464,
+      "sha256": "A2F0E18328458F42D764C1C06BF9C388310C949132EEA79EBB624E02918E4188"
+    },
+    {
+      "id": "R-051",
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "start": 291,
+      "end": 349,
+      "sha256": "9F27127DACA2C6CF4E3C631094AC718FCD361BC76EA7889A4BD6E151FA2A8AC3"
+    },
+    {
+      "id": "R-051",
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "start": 680,
+      "end": 714,
+      "sha256": "BFCBED7E508878ADD7D58C41A463DFBB8758D2FA544F67724781193F213A8B67"
+    },
+    {
+      "id": "R-051",
+      "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
+      "start": 1218,
+      "end": 1229,
+      "sha256": "39A3283034B86884C860BD4B7C7BDA5DFCE1ABED0F0F698205294D7B1CEC28A9"
+    }
+  ],
+  "executions": {
+    "restore": 0,
+    "build": 0,
+    "productTests": 0,
+    "native": 0,
+    "appProbes": 0,
+    "screenshots": 0,
+    "realServerCalls": 0,
+    "playbackOrWrites": 0,
+    "publish": 0,
+    "push": 0
+  },
+  "contextCompression": {
+    "requested": true,
+    "performed": false,
+    "availableTool": false,
+    "checkpointSaved": true
+  }
+}
