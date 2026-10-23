@@ -212,7 +212,7 @@
                             Click="OnFavoriteClicked"
                             Style="{StaticResource EgCardActionButtonStyle}"
                             ToolTipService.ToolTip="{x:Bind Card.FavoriteActionTip, Mode=OneWay}"
-                            Visibility="{x:Bind Card.UserStateVisibility, Mode=OneWay}">
+                            Visibility="{x:Bind Card.FavoriteActionVisibility, Mode=OneWay}">
                             <Grid>
                                 <FontIcon FontSize="20" Glyph="&#xEB52;" Visibility="{x:Bind Card.NotFavoriteVisibility, Mode=OneWay}" />
                                 <FontIcon FontSize="20" Foreground="{ThemeResource EgDangerBrush}" Glyph="&#xEB52;" Visibility="{x:Bind Card.FavoriteVisibility, Mode=OneWay}" />

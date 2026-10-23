@@ -417,7 +417,7 @@ internal static partial class ItemCommands
     /// <summary>收藏。同上。</summary>
     public static void ToggleFavorite(EmbySession session, IShellActions shell, CardItem card)
     {
-        if (card.Scope is { IsAvailable: true } scope)
+        if (card.CanFavorite && card.Scope is { } scope)
             SetFavorite(scope, shell, card, favourite: card.Item.UserData?.IsFavorite != true);
     }
 
@@ -470,6 +470,9 @@ internal static partial class ItemCommands
     /// <summary>收藏。同上。</summary>
     private static void SetFavorite(EmbySessionScope session, IShellActions shell, CardItem card, bool favourite)
     {
+        // 旧快捷/菜单入口也须在创建状态操作账之前拒绝；隐藏按钮不能代替执行守卫。
+        if (!card.CanFavorite || !session.IsAvailable || !session.Connection.SupportsFavorites) return;
+
         var item = card.Item;
         var identity = item.IdentityKey;
         var order = UserStateOrders.GetValue(item, static _ => new ItemUserStateOrder());

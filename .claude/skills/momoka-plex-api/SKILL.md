@@ -69,6 +69,12 @@ Library sections are not media entries: `Library` assigns the section's `key` to
 
 Routes and parameters, including what this client does not call, are in [endpoints.md](references/endpoints.md). Header, redirect, credential and error rules are in [http-and-auth.md](references/http-and-auth.md).
 
+## Card and detail affordances
+
+Favorites are a separate capability from watched state. `CardItem.CanFavorite` and `DetailViewModel.FavoriteActionVisibility` use the item’s captured scope and `SupportsFavorites`; they must not hide Plex scrobble/unscrobble actions with a shared UserState flag. The direct old command paths reject favorites before HTTP, state ordering, DTO updates or notices. The detail command also retains activity/Busy, seed ID and detail-source consistency during reattachment.
+
+Plex cross-library genre navigation is not implemented by this client. `DetailViewModel.CanOpenGenre` keeps its labels as plain text for Plex, rejects old clicks and never borrows the default management scope. `DetailPage` repaints after capability changes and immediately after resubscribing on reentry, even when the genre collection did not change. Emby/Jellyfin links and their routes stay intact. `Momoka.PlexAffordanceTests` executes the actual card commands, current Shell detail VM and extracted page paint/read/notification methods, with fake HTTP and inert framework values. Its template bindings and property assertions are not rendered WinUI or UIA evidence; see its repository README for commands and runtime gaps.
+
 ## Verification
 
 - `PlexProtocolTests` covers address normalisation, escape guards, token placement, redirects, error translation, the account exchange, paging headers and query building.

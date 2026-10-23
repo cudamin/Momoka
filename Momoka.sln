@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.TransferSubmissionTe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ResourceBrowserTests", "tests\Momoka.ResourceBrowserTests\Momoka.ResourceBrowserTests.csproj", "{58F6DEAE-3C24-4647-95D0-36EBBF802D3B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PlexAffordanceTests", "tests\Momoka.PlexAffordanceTests\Momoka.PlexAffordanceTests.csproj", "{A926B259-29D6-4763-8327-BCCFA11C1379}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,8 +66,13 @@ Global
 		{58F6DEAE-3C24-4647-95D0-36EBBF802D3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{58F6DEAE-3C24-4647-95D0-36EBBF802D3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{58F6DEAE-3C24-4647-95D0-36EBBF802D3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A926B259-29D6-4763-8327-BCCFA11C1379}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A926B259-29D6-4763-8327-BCCFA11C1379}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A926B259-29D6-4763-8327-BCCFA11C1379}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A926B259-29D6-4763-8327-BCCFA11C1379}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{A926B259-29D6-4763-8327-BCCFA11C1379} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{58F6DEAE-3C24-4647-95D0-36EBBF802D3B} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{2D195C91-5B62-49DE-A502-D14E4D851341} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{F1E79FC9-3593-41E3-89AC-DB6081A86F5A} = {A050ABE5-7A20-4FF0-80EA-8C5DB6C54BD7}

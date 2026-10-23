@@ -489,6 +489,12 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </summary>
     public Visibility UserStateVisibility => Show(_item.TracksUserState);
 
+    /// <summary>收藏单独按条目所属来源判断；Plex 的已看仍由 UserStateVisibility 保留。</summary>
+    internal bool CanFavorite => _item.TracksUserState
+        && Scope is { IsAvailable: true, Connection.SupportsFavorites: true };
+
+    public Visibility FavoriteActionVisibility => Show(CanFavorite);
+
     public string PlayActionTip =>
         _item.HasResumePosition ? $"继续播放（{TimeFormat.Clock(_item.ResumeTicks)}）" : "立即播放";
 

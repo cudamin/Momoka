@@ -1589,6 +1589,8 @@ public sealed partial class DetailPage : Page, IShellContent
         // 同一个实例第二次进来时 HeroArt 的值没变，不会有通知，而 OnNavigatedFrom 已经把外壳还回了黑墨。
         // 洗到哪一档也一起重来（复用的实例上是上一个条目留下的数），见 PaintWash。
         ViewModel.PropertyChanged += OnViewModelChanged;
+        // Attach 的能力通知早于这次订阅；同页重入即使题材未变/详情读取失败，也要收起旧链接。
+        PaintGenres();
         _paperCover = -1;
         _paintPhase = -1;
         _washedInk = false;
@@ -1609,7 +1611,8 @@ public sealed partial class DetailPage : Page, IShellContent
             PaintScrim();
             PaintWash(force: true);
         }
-        if (args.PropertyName == nameof(DetailViewModel.SublineGenres)) PaintGenres();
+        if (args.PropertyName is nameof(DetailViewModel.SublineGenres) or nameof(DetailViewModel.CanOpenGenre))
+            PaintGenres();
 
         // 集页那块板在不在：尾部那一段的底跟着它换。宽窄跨过 1024 那一条线时变的就是它 —— 那一趟 LayoutPage
         // 也会走，可它管不到这一支。
@@ -1642,6 +1645,13 @@ public sealed partial class DetailPage : Page, IShellContent
             return (true, $"这一条目没有类型可点（{ViewModel.ItemType} 页，那一行是「{ViewModel.Subline}」）");
 
         var links = GenreLine.Inlines.OfType<Hyperlink>().ToList();
+        if (!ViewModel.CanOpenGenre)
+        {
+            var text = string.Concat(GenreLine.Inlines.OfType<Run>().Select(run => run.Text));
+            var expected = string.Join("  ·  ", wanted);
+            return (GenreLine.Visibility == Visibility.Visible && links.Count == 0 && text == expected,
+                $"当前来源题材只作文字：{text}，{links.Count} 段可点（应为 0）");
+        }
         var texts = links
             .Select(link => string.Concat(link.Inlines.OfType<Run>().Select(run => run.Text)))
             .ToList();
@@ -1726,6 +1736,12 @@ public sealed partial class DetailPage : Page, IShellContent
         foreach (var genre in ViewModel.SublineGenres)
         {
             if (GenreLine.Inlines.Count > 0) GenreLine.Inlines.Add(new Run { Text = "  ·  " });
+
+            if (!ViewModel.CanOpenGenre)
+            {
+                GenreLine.Inlines.Add(new Run { Text = genre });
+                continue;
+            }
 
             var link = new Hyperlink
             {

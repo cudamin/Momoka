@@ -1133,11 +1133,18 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(GenreVisibility))]
     public partial IReadOnlyList<string> SublineGenres { get; set; } = [];
 
+    /// <summary>当前客户端未实现 Plex 跨库题材查询；只用详情所属 scope，不借默认管理来源。</summary>
+    internal bool CanOpenGenre => Attached && _scope?.Connection.IsPlex == false;
+
     /// <summary>
     /// 点了一个类型：交给外壳开一格「这个类型下的全部影片和剧集」（<see cref="IShellActions.OpenGenre"/>）。
     /// 视图那边把这一行的每一个类型接到这儿来，同卡片上的点击接到 <see cref="OpenCard"/>。
     /// </summary>
-    internal void OpenGenre(string genre) => _actions?.OpenGenre(genre, _scope);
+    internal void OpenGenre(string genre)
+    {
+        if (!CanOpenGenre) return;
+        _actions?.OpenGenre(genre, _scope);
+    }
 
     /// <summary>
     /// 副标题的字号. On an episode page this line is 「S2:E7 - 集名」, which is the one thing the reader
@@ -1389,6 +1396,11 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility FavoriteVisibility => Show(Favorite);
 
     public Visibility NotFavoriteVisibility => Show(!Favorite);
+
+    private bool FavoritesApplicable => Attached && _scope!.Connection.SupportsFavorites
+        && (_seed ?? _detail)?.TracksUserState == true;
+
+    public Visibility FavoriteActionVisibility => Show(FavoritesApplicable);
 
     // ---------------------------------------------------------------- 下拉
 
@@ -1655,6 +1667,9 @@ public sealed partial class DetailViewModel : PageViewModel
 
     private bool CanAct => Attached && !Busy;
 
+    private bool CanFavorite => CanAct && FavoritesApplicable && _detail is { } item
+        && item.Id == _seed?.Id && (item.Source is null || item.Source.Key == _scope!.Key);
+
     private bool CanPlay => CanAct && PlayTarget is not null;
 
     /// <summary>
@@ -1735,6 +1750,7 @@ public sealed partial class DetailViewModel : PageViewModel
         CastShelf = cast;
         SeasonShelf = seasons;
         SimilarShelf = similar;
+        AnnounceAffordances();
     }
 
     /// <inheritdoc />
@@ -1877,6 +1893,13 @@ public sealed partial class DetailViewModel : PageViewModel
         _previewed = Title;
     }
 
+    private void AnnounceAffordances()
+    {
+        OnPropertyChanged(nameof(FavoriteActionVisibility));
+        OnPropertyChanged(nameof(CanOpenGenre));
+        ToggleFavoriteCommand.NotifyCanExecuteChanged();
+    }
+
     /// <summary>
     /// 「这一页讲的是哪一类东西」变了之后要重新问一遍的那一批算得属性。<see cref="Preview"/> 和
     /// <see cref="Apply"/> 各喊一次 —— 前者是第一次（在这之前 <see cref="_detail"/> 是 null，那几个属性答的是
@@ -1894,6 +1917,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private void AnnounceShape()
     {
+        AnnounceAffordances();
         // 单集 changes shape with the kind of page this is, and that is a fact about the item rather than
         // about the shelf — no collection has changed here, so nothing else would say it. Raised right after
         // the assignment, before anything can read a visibility off the item that is no longer showing.
@@ -2717,10 +2741,11 @@ public sealed partial class DetailViewModel : PageViewModel
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanAct))]
+    [RelayCommand(CanExecute = nameof(CanFavorite))]
     private async Task ToggleFavoriteAsync()
     {
-        if (!Attached || _detail is not { } item) return;
+        // 旧命令可绕过 CanExecute；详情尚未换完时，也不能拿旧条目 ID 借新来源写入。
+        if (!CanFavorite || _detail is not { } item) return;
 
         var favorite = item.UserData?.IsFavorite == true;
         var lifetime = _lifetime;
@@ -2877,6 +2902,7 @@ public sealed partial class DetailViewModel : PageViewModel
         base.Cancel();
         _art?.Cancel();
         BusyChanged();
+        AnnounceAffordances();
     }
 
     /// <inheritdoc />
