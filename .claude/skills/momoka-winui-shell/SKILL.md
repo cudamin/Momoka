@@ -59,6 +59,8 @@ Page reads consume a cursor `Copy()` and publish it only after the UI continuati
 
 `library-resume-paging-fixture` explicitly loads this tree's current Release Shell DLL and runs the real VM/CardItem/ResumeSlot with a fake HTTP handler and a single-thread queue. It installs only in-memory source identity; no login, secret IO, window, actual network or playback. Commands and runtime coverage limits are in `docs/开发与验证.md`.
 
+Favorite account selection reuses `RestoreSort`, `RestoreFilters`, `RestoreDisplay` and `RefreshBrowseChrome` after changing `_scope`, rather than sending the old product's conditions into another adapter. The flight/selection/rows of the native FnNas filter panel belong to that source: reset and cancel them on source changes. Successful/error/finally callbacks must check their captured filter lifetime; an old completion cannot clear a new source's loading flag or replace its options. `library-favorite-source-fixture` shares the actual VM fixture and adds only fake read-only favorite/tag endpoints. Existing saved library preferences and the stable card collection are not replaced by a same-page source change.
+
 ## Cached settings and directory actions
 
 `SettingsPage`'s same-container `built` path calls `SettingsViewModel.SyncSaveState` before the existing device refresh. Initial reload uses the same method. It only reads shared `HasUnsavedChanges` and uses the generated property/command notifications; it must not save or rebuild rows just to refresh the banner. Half-typed input, categories and collection identities survive reentry.

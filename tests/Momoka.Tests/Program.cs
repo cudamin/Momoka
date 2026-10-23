@@ -17,6 +17,8 @@ internal static class Program
             return SettingsApplicabilityTests.Run(applicabilityShell, applicabilityRoot);
         if (args is ["library-resume-paging-fixture", var resumeShell, var resumeRoot])
             return LibraryResumePagingTests.Run(resumeShell, resumeRoot);
+        if (args is ["library-favorite-source-fixture", var favoriteShell, var favoriteRoot])
+            return LibraryFavoriteSourceTests.Run(favoriteShell, favoriteRoot);
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();

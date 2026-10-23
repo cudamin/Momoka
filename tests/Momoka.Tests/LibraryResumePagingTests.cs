@@ -344,7 +344,7 @@ internal static class LibraryResumePagingTests
 
     private static void Case(string name, Func<Task> body) => TestHarness.Test(name, () => SingleThread.Run(body));
 
-    private sealed class ShellFixture
+    internal sealed class ShellFixture
     {
         private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
         private readonly Type _viewModel;
@@ -373,11 +373,13 @@ internal static class LibraryResumePagingTests
             _actions = assembly.GetType("Momoka.Shell.Views.IShellActions", throwOnError: true)!;
         }
 
-        public object Create(EmbySession session, EmbyImageStore images, ISettingsService settings, EmbySessionScope? source)
+        public object Create(EmbySession session, EmbyImageStore images, ISettingsService settings, EmbySessionScope? source, bool favorites = false)
         {
             var vm = Activator.CreateInstance(_viewModel)!;
-            var request = _request.GetMethod("ForRow")!.Invoke(null,
-                [new NoServices(), HomeLayout.HomeRowTarget.Resume, source])!;
+            var request = favorites
+                ? _request.GetMethod("Favorites")!.Invoke(null, [new NoServices()])!
+                : _request.GetMethod("ForRow")!.Invoke(null, [new NoServices(), HomeLayout.HomeRowTarget.Resume, source])!;
+            if (favorites) _request.GetProperty("FavoriteAccountKey")!.SetValue(request, source?.Key);
             var actions = DispatchProxy.Create(_actions, typeof(LibraryResumeActionsProxy));
             Invoke(vm, "Attach", request, actions, settings, session, images, new ServerCapabilities(session), null);
             return vm;
@@ -395,23 +397,28 @@ internal static class LibraryResumePagingTests
             }
         }
         public T Get<T>(object target, string name) => (T)target.GetType().GetProperty(name, Members)!.GetValue(target)!;
+        public void Set(object target, string name, object value) => target.GetType().GetProperty(name, Members)!.SetValue(target, value);
     }
 
-    private sealed class Fixture : IDisposable
+    internal sealed class Fixture : IDisposable
     {
         private readonly ShellFixture _shell;
         private readonly EmbySession _session;
         private readonly Dictionary<string, EmbySessionScope> _sources = new(StringComparer.Ordinal);
         private readonly object _vm;
+        private bool _viewDisposed;
         public ResumeTransport Transport { get; } = new();
+        public FakeSettings Settings { get; } = new();
+        public object Request => _vm.GetType().GetField("_request", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_vm)!;
         public List<object> Cards => ((System.Collections.IEnumerable)Get<object>("Cards")).Cast<object>().ToList();
         public bool HasMore => Get<bool>("HasMore");
         public string TotalLabel => Get<string>("TotalLabel");
 
-        public Fixture(ShellFixture shell, int count, bool secondSource = false, bool aggregate = false)
+        public Fixture(ShellFixture shell, int count, bool secondSource = false, bool aggregate = false,
+            bool favorites = false, MediaServerKind secondKind = MediaServerKind.Emby, bool thirdSource = false)
         {
             _shell = shell;
-            var settings = new FakeSettings();
+            var settings = Settings;
             settings.Settings.AggregateMode = secondSource;
             var root = Path.Combine(shell.Root, "artifacts", "staged-repair", "batch02", "resume-fixtures", Guid.NewGuid().ToString("N"));
             var paths = new AppPaths(Path.Combine(root, "no-settings|IO-forbidden"));
@@ -419,19 +426,27 @@ internal static class LibraryResumePagingTests
             _session = new EmbySession(settings.Settings, new SettingsStore(paths, new NoSecrets()),
                 new CredentialVault(new NoSecrets()), device, Transport);
             AddSource("a", count, device);
-            if (secondSource) AddSource("b", count, device);
+            if (secondSource) AddSource("b", count, device, secondKind);
+            if (thirdSource) AddSource("c", count, device, MediaServerKind.FnNas);
             SelectDefault("a");
             var images = new EmbyImageStore(_session, Path.Combine(root, "images"));
-            _vm = shell.Create(_session, images, settings, aggregate ? null : Source("a"));
+            _vm = shell.Create(_session, images, settings, aggregate ? null : Source("a"), favorites);
             Assert.Equal(0, Transport.Requests.Count, "Attach 不能登录、读取目录或保存配置");
         }
 
-        private void AddSource(string host, int count, DeviceIdentity device)
+        private void AddSource(string host, int count, DeviceIdentity device, MediaServerKind kind = MediaServerKind.Emby)
         {
-            var server = new ServerProfile { Id = "server-" + host, Name = "fixture-" + host, Url = "https://" + host + ".invalid" };
+            var server = new ServerProfile
+            {
+                Id = "server-" + host,
+                Name = "fixture-" + host,
+                Url = "https://" + host + ".invalid",
+                ServerKind = kind
+            };
             var account = new AccountProfile { Id = "account-" + host, Username = "fixture" };
-            var connection = new EmbyConnection(new Uri("https://" + host + ".invalid/emby/"),
-                "placeholder-only", "fixture-user", "fixture", server.Name, device);
+            var connection = new EmbyConnection(new Uri("https://" + host + ".invalid/" + (kind == MediaServerKind.FnNas ? "v/" : "emby/")),
+                "placeholder-only", "fixture-user", "fixture", server.Name, device)
+            { ServerKind = kind };
             var http = (EmbyHttp)typeof(EmbySession).GetField("_http", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_session)!;
             var identity = new EmbySessionScope.Identity(new EmbyClient(http, connection), server, account);
             var scope = new EmbySessionScope(_session, identity);
@@ -448,6 +463,10 @@ internal static class LibraryResumePagingTests
         public int CursorConsumed => ((AggregateQueryCursor)_vm.GetType()
             .GetField("_cursor", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(_vm)!).ConsumedCount;
         public object? Invoke(string name, params object?[] args) => _shell.Invoke(_vm, name, args);
+        public void Set(string name, object value) => _shell.Set(_vm, name, value);
+        public T Read<T>(object target, string name) => _shell.Get<T>(target, name);
+        public ItemQuery Query() => (ItemQuery)Invoke("BuildQuery", 0)!;
+        public Task<bool> Choose(string? key) => (Task<bool>)Invoke("ChooseFavoriteAccountAsync", key)!;
         public Task Load(bool reset = true) => (Task)Invoke("LoadAsync", reset)!;
         public string[] Ids() => Cards.Select(card => _shell.Get<EmbyItem>(card, "Item").Id).ToArray();
 
@@ -473,9 +492,16 @@ internal static class LibraryResumePagingTests
             return (Task)Invoke("AfterWatchedAsync", card)!;
         }
 
+        public void DisposeView()
+        {
+            if (_viewDisposed) return;
+            _viewDisposed = true;
+            ((IDisposable)_vm).Dispose();
+        }
+
         public void Dispose()
         {
-            ((IDisposable)_vm).Dispose();
+            DisposeView();
             _session.Dispose();
         }
     }
@@ -492,24 +518,30 @@ internal static class LibraryResumePagingTests
         UserData = new EmbyUserData { PlaybackPositionTicks = resumable ? TimeSpan.FromMinutes(5).Ticks : 0 }
     };
 
-    private sealed class ResumeTransport : HttpMessageHandler
+    internal sealed class ResumeTransport : HttpMessageHandler
     {
         private Gate? _resume;
         private Gate? _next;
+        private readonly Dictionary<string, Gate> _tags = new(StringComparer.Ordinal);
         public Dictionary<string, List<EmbyItem>> Rows { get; } = new(StringComparer.Ordinal);
         public Dictionary<(string Host, string Series), EmbyItem?> Next { get; } = [];
         public ConcurrentQueue<string> Requests { get; } = new();
         public bool FailNextResume { get; set; }
+        public bool FailReleasedTag { get; set; }
+        public ConcurrentQueue<(string Host, string Body)> FavoriteBodies { get; } = new();
+        public ConcurrentQueue<string> TagHosts { get; } = new();
         private readonly ConcurrentQueue<string> _pages = new();
         public string Asked() => string.Join(',', _pages);
         public Gate HoldResume(bool captureBefore) => _resume = new Gate(captureBefore);
         public Gate HoldNext() => _next = new Gate(captureBefore: true);
+        public Gate HoldTags(string host) => _tags[host] = new Gate(captureBefore: true);
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var uri = request.RequestUri!;
-            Assert.Equal(HttpMethod.Get, request.Method, "夹具仅允许无副作用的媒体读取");
-            Assert.True(uri.Host is "a.invalid" or "b.invalid", "禁止夹具以外的来源");
+            Assert.True(request.Method == HttpMethod.Get || (request.Method == HttpMethod.Post
+                && uri.AbsolutePath.EndsWith("/favorite/list", StringComparison.Ordinal)), "夹具只允许媒体/标签读取");
+            Assert.True(uri.Host is "a.invalid" or "b.invalid" or "c.invalid", "禁止夹具以外的来源");
             Requests.Enqueue(uri.AbsolutePath);
             var host = uri.Host.Split('.')[0];
             var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries)
@@ -549,19 +581,46 @@ internal static class LibraryResumePagingTests
                 }
                 json = JsonSerializer.Serialize(new ItemsResult { Items = next is null ? [] : [next] });
             }
+            else if (uri.AbsolutePath.EndsWith("/favorite/list", StringComparison.Ordinal))
+            {
+                var body = await request.Content!.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+                FavoriteBodies.Enqueue((host, body));
+                json = JsonSerializer.Serialize(new
+                {
+                    code = 0,
+                    data = new { list = new[] { new { guid = host + "-favorite", title = host + " favorite", type = "Movie", is_favorite = 1 } }, total = 1 }
+                });
+            }
+            else if (uri.AbsolutePath.EndsWith("/tag/list", StringComparison.Ordinal))
+            {
+                TagHosts.Enqueue(host);
+                if (_tags.TryGetValue(host, out var gate))
+                {
+                    gate.Entered.TrySetResult();
+                    await gate.Release.Task.ConfigureAwait(false);
+                    _tags.Remove(host);
+                    if (FailReleasedTag) throw new IOException("fixture stale tags");
+                }
+                json = JsonSerializer.Serialize(new { code = 0, data = new { genres = new[] { host + "-genre" } } });
+            }
+            else if (uri.AbsolutePath.EndsWith("/tag/genres", StringComparison.Ordinal)
+                || uri.AbsolutePath.EndsWith("/tag/iso3166", StringComparison.Ordinal))
+                json = "{\"code\":0,\"data\":[]}";
+            else if (uri.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal))
+                json = JsonSerializer.Serialize(new ItemsResult { Items = Rows[host], TotalRecordCount = Rows[host].Count });
             else throw new AssertionException("未授权的假 HTTP 路由：" + uri.AbsolutePath);
             return new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent(json, System.Text.Encoding.UTF8, "application/json") };
         }
     }
 
-    private sealed class Gate(bool captureBefore)
+    internal sealed class Gate(bool captureBefore)
     {
         public bool CaptureBefore { get; } = captureBefore;
         public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 
-    private sealed class FakeSettings : ISettingsService
+    internal sealed class FakeSettings : ISettingsService
     {
         public AppSettings Settings { get; } = new();
         public int PageSize => 20;
@@ -585,7 +644,7 @@ internal static class LibraryResumePagingTests
         public string Unprotect(string cipherText) => throw new AssertionException("禁止任何凭据 IO");
     }
 
-    private sealed class SingleThread : SynchronizationContext
+    internal sealed class SingleThread : SynchronizationContext
     {
         private readonly BlockingCollection<(SendOrPostCallback Callback, object? State)> _work = new();
         public override void Post(SendOrPostCallback callback, object? state) => _work.Add((callback, state));

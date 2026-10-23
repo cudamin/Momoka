@@ -1102,11 +1102,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(FilterButtonWidth));
         OnPropertyChanged(nameof(LayoutVisibility));
 
-        _fnNasFilterLifetime?.Cancel();
-        _fnNasFilterLifetime = null;
-        _fnNasFilters.Clear();
-        FnNasFilterRows.Clear();
-        FnNasFilterOpen = false;
+        ResetFnNasFilters();
 
         if (IsSectionLibrary && !BrowseSections.Any(entry => entry.Section == request.Section))
         {
@@ -1464,6 +1460,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _jumps.Cancel();
         _favoriteLoads.Cancel();
         _fnNasFilterLifetime?.Cancel();
+        FnNasFilterLoading = false;
         foreach (var row in FavoriteRows) row.Loading = false;
         base.Cancel();
         RowsArrived();
@@ -1483,6 +1480,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         foreach (var shelf in RecommendedShelves) shelf.Clear();
         _favoriteLoads.Dispose();
         _fnNasFilterLifetime?.Dispose();
+        _fnNasFilterLifetime = null;
         foreach (var row in RecentSearches) row.Card.AbandonPoster();
         _queries.Dispose();
         _jumps.Dispose();
@@ -1884,18 +1882,26 @@ public sealed partial class LibraryViewModel : PageViewModel
         {
             var options = await scope.ExecuteAsync((client, ct) => client.GetFnNasFilterOptionsAsync(
                 request.ParentId, request.IsFavorites, "zh-CN", ct), token).ConfigureAwait(true);
-            if (!_active || token.IsCancellationRequested || !scope.IsAvailable) return;
+            if (!FnNasFilterLoadCurrent(token, scope, request)) return;
             BuildFnNasFilterRows(options);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (!_active) return;
+            if (!FnNasFilterLoadCurrent(token, scope, request)) return;
             Log.Warn(Category, "读取飞牛媒体库筛选项失败", error);
             Report("读取媒体库筛选项失败，请稍后重试", error);
         }
-        finally { FnNasFilterLoading = false; }
+        finally
+        {
+            // 旧来源的 finally 不能把另一个来源仍在读取的面板标为结束。
+            if (_fnNasFilterLifetime?.Token == token) FnNasFilterLoading = false;
+        }
     }
+
+    private bool FnNasFilterLoadCurrent(CancellationToken token, EmbySessionScope scope, LibraryRequest request) =>
+        _active && !token.IsCancellationRequested && _fnNasFilterLifetime?.Token == token
+        && ReferenceEquals(_scope, scope) && ReferenceEquals(_request, request) && scope.IsAvailable;
 
     private void BuildFnNasFilterRows(FnNasFilterOptions options)
     {
@@ -1974,6 +1980,10 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private void ResetFnNasFilters()
     {
+        _fnNasFilterLifetime?.Cancel();
+        _fnNasFilterLifetime?.Dispose();
+        _fnNasFilterLifetime = null;
+        FnNasFilterLoading = false;
         _fnNasFilters.Clear();
         FnNasFilterRows.Clear();
         FnNasFilterOpen = false;
