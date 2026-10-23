@@ -2,7 +2,7 @@
 
 - 遵从用户“目前正在修的bug修完了暂停一下，我要压缩上下文”：R-014 与已分配 R-049／R-050／R-055 已实现、限定整合、离线重验；代码和测试已本地提交；仅补正出处记录后暂停。没有新任务、待收代理或自动唤醒。此前“自动继续”是历史，不再适用。
 - 唯一主整合树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，分支 `codex/staged-review-continue-2026-10-21`，起点 `e11ce0b770513f77925bcc1eb5ba97c66c388e85`。R-014 提交 `ca1a48f6a9bfaab8d068c37774be3234f47b44ec`；设置三号主树提交 `89faaccaca9c6d97841ff4d78bb23c83fc5695ce`，支线源 `33023b59fb2c0dd821808d1a4a1fa796238053be`，只三份题内文件入主树，代理关闭/旧树干净保留，不写用户主目录。
-- 代码提交后补正证据：此前出处表述先于实际工具查询，不计旧描述为检索。随后本次真实 `web.run search_query` 返回官方 WIC码表、Microsoft.UI.Xaml及UWP SetSourceAsync低内存/BADIMAGE说明，增量记录只以这次可核输出为准。该纠正仅文档，不改已验证源码，不重编/播放/发布。
+- 最终出处核验以 `9b90b63` 后本次实际工具结果为准：首轮搜索为空，三次官方open为0行；随后官方关键词搜索实际返回WIC中文HRESULT表、Microsoft.UI.Xaml及UWP SetSourceAsync的低内存/BADIMAGE说明。此前各次草稿／提交的完成时间不计为证据，增量记录已更正。仅文档补核，源码和已通过测试未变，不重编／播放／发布，不继续下一问题。
 - 设置修复整行隐藏不清偏好，保留恢复开关/模式与无关草稿；缓存重入原位同步控制值及示例。不改播放语义，正式 `settings-applicability-fixture` 入测试Program和开发文档，不借ignored跑器。技术取舍/支线红绿与来源纠正见[增量修复记录](docs/代码审查-分阶段修复-2026-10-23.md)。
 - 最终主树Release Core/Tests、Shell与契约编译零警告错误；Core完整2256过、契约98过，设置适用性29过、既有设置页27过，均0失败/0跳过/退出0，分套不累计重叠覆盖。Release/x64定向solution空白无加载失败、0修改/退出0，源码UTF-8/LF/链接/开关/差异检查通过。日志本树 `artifacts/staged-repair/batch01` 的 pause-final 与 r049-r050-r055-integrated 系列。
 - 累计17号实现+相关离线回归，余56稳定号保留；条件候选/建议不擅自变确定修复。内容安全已停止的登录/凭据链路不重试、不换代理绕过。
