@@ -1,3 +1,9 @@
+## 分阶段修复：R-064监听线程安全退出（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；监听器提取为无WinUI源码并编译链接进测试，关闭只发停止请求，worker finally释放句柄，停止优先、排队旧激活失效、重复关闭幂等。App只交dispatcher委托，未新增UI布局或猜用API。
+- 修前隔离真实旧生命周期出现CTS.Token的ObjectDisposed/Unhandled异常；修后6本地命名事件／受控调度场景全退出0。当前Release Core/Tests零警告错误，2092通过／0失败／0跳过；本树Shell restore成功，完整Release Shell零警告错误、退出0，定向空白检查0，详见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 已读Shell/验证及适用WinUI构建/审查技能。没有产品窗口／真实激活信号／真实账号／UI/native/播放/发布/推送，快捷方式仍旧版。同期R-007和R-006支线提交待逐项整合，R-061另树日志水位处理中。文档／链接／源码LF／差异检查后本地提交，再继续，不自动暂停。
+
 ## 分阶段修复：R-068 smoke退出码（2026-10-23）
 
 - 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；R-068修前新隔离helper的exit7仍被脚本返回0，修后保留非零、早退出0/启动/日志失败也非零，资源释放和新增日志保留。默认不强停，`-StopAfterCheck`仅显式清理本次保留句柄；不杀用户原有进程。

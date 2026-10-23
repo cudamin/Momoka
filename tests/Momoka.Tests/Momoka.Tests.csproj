@@ -3,8 +3,8 @@
   <!--
     Hand-rolled test host instead of xUnit/NUnit, so `dotnet run` is the test runner. This began as a
     necessity — the machine's NuGet cache was empty and the build had to work offline — and is kept as
-    a preference: the test project takes no package references at all, which means the only thing it
-    can be testing is Core.
+    a preference: the test project takes no package references at all. It references Core and
+    compile-links selected framework-free Shell sources so their real lifecycle code can be tested.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -15,6 +15,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The listener has no WinUI dependency; exercise the exact production source, not a copied model. -->
+    <Compile Include="..\..\src\Momoka.Shell\ActivationListener.cs" Link="Shell\ActivationListener.cs" />
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <None Include="..\..\assets\shaders\**\*.glsl;..\..\assets\shaders\**\*.hook">
       <Link>shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>

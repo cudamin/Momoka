@@ -9,11 +9,14 @@ internal static class Program
             return SelfCheckTests.RunMutexChild(source, target);
         if (args is ["test-harness-fixture", var scenario])
             return TestHarnessTests.RunChild(scenario);
+        if (args is ["activation-listener-fixture", var activationScenario])
+            return ActivationListenerTests.RunChild(activationScenario);
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();
 
         TestHarnessTests.Register();
+        ActivationListenerTests.Register();
         PlaybackTests.Register();
         KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();

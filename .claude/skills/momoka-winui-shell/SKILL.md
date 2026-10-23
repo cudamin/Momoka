@@ -15,7 +15,7 @@ Use [momoka-playback](../momoka-playback/SKILL.md) for playback, [momoka-verific
 
 - **`src/Momoka.Core`** — no UI references; currently no packages or project references. Package-free is a lightweight default, not a prerequisite for unit testing.
 - **`src/Momoka.Shell`** — the WinUI shell. WindowsAppSDK is split into sub-packages rather than the meta-package to control payload size. The project file is authoritative for package selection and versions; review new runtime payloads during upgrades. `WindowsPackageType=None`, x64, `DISABLE_XAML_GENERATED_MAIN` with a hand-written `Program.cs`.
-- **`tests/Momoka.Tests`** — currently package-free and referencing Core, with `OutputType=Exe` and a hand-written harness. `dotnet run` is the runner. Register new suites in `Program.cs`; compilation and run order are in CLAUDE.md.
+- **`tests/Momoka.Tests`** — currently package-free and referencing Core, with `OutputType=Exe` and a hand-written harness. Selected framework-free Shell sources are compile-linked into this project; `ActivationListener.cs` is tested as actual production code, not a copied Core model. `dotnet run` is the runner. Register new suites in `Program.cs`; compilation and run order are in CLAUDE.md.
 
 ## The shell's terrain
 
@@ -42,6 +42,10 @@ Pages created by this project's `Frame.Navigate` path use parameterless construc
 **`PlayerViewModel` is the only view model in the container**: a film keeps playing behind the library page, so its state has to outlive any navigation. `ShellPage.AttachWindow` resolves it and hands it to the page. `HomePage` marks its single resolution site with a comment saying it is the one place the page resolves anything — keep that habit, because a page reaching into the container from five places is how this rule rots.
 
 Known deviation, not a template: `FilterPanelViewModel` is `new`ed with no `Attach` at all.
+
+## Startup activation lifetime
+
+`App` passes a queue delegate to the framework-free `Shell/ActivationListener.cs`; only the UI boundary knows `DispatcherQueue`. The listener's `Dispose` requests stop once and never joins on the UI thread. Its worker owns the signal handles until its `finally` releases them, including when disposal precedes the first worker instruction. Stop has priority over activation, queued callbacks check the lifetime again, and a rejected queue or worker exception ends only the listener. A startup exception releases the handles immediately. `ActivationListenerTests` compile-links that exact source and exercises it with private random named events in disposable test child processes; it does not consume the real application activation signal or prove window activation visually.
 
 ## Interfaces
 
