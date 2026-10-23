@@ -58,6 +58,7 @@ internal static class Program
             Assert.Null(page.Tag);
             Assert.Equal(0, page.ContractAttaches);
         });
+        DiagnosticsTests.Register();
         return TestHarness.Run();
     }
 

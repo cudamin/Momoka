@@ -35,7 +35,9 @@ Most non-UI capability sits in `Core/Emby`, `Core/Playback`, `Core/Mpv` and `Cor
 
 ## Source-linked page contracts
 
-`tests/Momoka.PageContractTests` compile-links selected actual page code-behind with tiny boundary substitutes for the absent XAML/WinUI controls and external owners. It runs separately from `Momoka.Tests` and is included in the solution's build. The control-flow assertions use production `Attach`/navigation/release methods, not copies of those methods. These tests cannot establish real WinUI layout, input, scroll preservation or `Frame` history interaction; those remain runtime UI coverage. Commands and limitations are in its README and `docs/开发与验证.md`.
+`tests/Momoka.PageContractTests` compile-links selected actual page code-behind and view models with tiny boundary substitutes for absent XAML/WinUI controls and external owners. It runs separately from `Momoka.Tests` and is included in the solution's build. The control-flow assertions use production `Attach`/navigation/release and diagnostic log/filter/copy methods, not copies of them. The diagnostic fixture uses the same pinned MVVM generator as Shell. Its Core cases overlap the main suite and must not be counted twice. These tests cannot establish real WinUI layout, input, scroll preservation or `Frame` history interaction; those remain runtime UI coverage. Commands and limitations are in its README and `docs/开发与验证.md`.
+
+Diagnostics treats `RingBufferLogSink.Written` as a wake-up, not ordered delivery. `SnapshotAfter` returns retained writes and a sequence watermark under the same lock; a refresh or out-of-order queued notification therefore does not replay already-displayed entries. Repeated identical log content remains distinct writes. Normal updates append the unread tail and trim rows/categories to capacity rather than rebuilding every row. Reentry resets the watermark, and both old-sink notifications and paused/detached updates retain their lifetime guards.
 
 ## Pages, view models, `Attach`
 

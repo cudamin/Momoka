@@ -2,7 +2,9 @@
 
 这个离线控制台项目编译链接实际 Shell 页面的 code-behind，不复制其 `Attach`／导航／释放逻辑。`PageBoundaries.cs` 只替代未启动的 XAML／WinUI 控件边界及外部数据属主，使这些方法可以在没有窗口和真实服务器的测试进程中运行。
 
-- 当前覆盖：MoviePilot 电影／电视剧订阅列表页的导航 `Tag`、实际 `OnNavigatedTo`、历史重入和释放契约。
+- 当前覆盖：MoviePilot 电影／电视剧订阅列表页的导航 `Tag`、实际 `OnNavigatedTo`、历史重入和释放契约；诊断 VM 的缓冲快照／排队通知交接、筛选、容量淘汰和假剪贴板复制。
+- 诊断页编译链接真实 `DiagnosticsViewModel` 与 `PageViewModel`，使用 Shell 已钉住的 `CommunityToolkit.Mvvm` 8.4.2 生成器，不升级依赖。`DIAGNOSTICS_VM_FIXTURE` 仅在本测试项目启用，主套件只登记 Core 日志测试。项目输出明确选 `Program` 为入口。
+- 本项目的诊断 Core 部分与主套件重叠；同时报告两边结果时不能把重叠项累加成不同覆盖。
 - 使用与 Core 套件相同的互斥 passed／failed／skipped 运行器；不把预期修前失败放进正常产品套件。
 - 不读取用户设置、日志或凭据，不连接 MoviePilot、不创建窗口、不消费生产激活信号。
 - **不能证明**真实 WinUI 布局、输入、滚动、Frame 返回／前进、服务可用性及渲染。此类验收仍使用适用的隔离 UI 探针，不能因为本项目通过而省略。

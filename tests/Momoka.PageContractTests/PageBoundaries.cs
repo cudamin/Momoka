@@ -6,6 +6,12 @@ namespace Microsoft.UI.Xaml
 {
     public class FrameworkElement { public object? Tag { get; set; } }
     public class RoutedEventArgs : EventArgs;
+    public enum Visibility { Visible, Collapsed }
+    public sealed class Application
+    {
+        public static Application? Current => null;
+        public Dictionary<string, object> Resources { get; } = [];
+    }
 }
 
 namespace Microsoft.UI.Xaml.Navigation
@@ -18,6 +24,7 @@ namespace Microsoft.UI.Xaml.Navigation
 
 namespace Microsoft.UI.Xaml.Controls
 {
+    public enum InfoBarSeverity { Informational, Success, Warning, Error }
     public class Page : Microsoft.UI.Xaml.FrameworkElement
     {
         protected virtual void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs args) { }
@@ -75,5 +82,33 @@ namespace Momoka.Shell.Views
         internal int ContractDetaches => Subscriptions.Detaches;
         internal void ContractNavigateTo(object? request) => OnNavigatedTo(new(request));
         internal void ContractNavigateFrom() => OnNavigatedFrom(new(null));
+    }
+}
+
+namespace Microsoft.UI.Xaml.Media
+{
+    public class Brush;
+}
+
+namespace Momoka.Shell.Platform
+{
+    public interface IUiDispatcher
+    {
+        bool Post(Action work);
+        void Run(Action work);
+    }
+    internal interface IClipboard { void SetText(string text); }
+    internal interface ISystemLauncher
+    {
+        void OpenFolder(string path);
+        void OpenUrl(string url);
+    }
+}
+
+namespace Momoka.Shell.Views
+{
+    internal interface IShellActions
+    {
+        void Notify(string message, Microsoft.UI.Xaml.Controls.InfoBarSeverity severity);
     }
 }
