@@ -335,8 +335,9 @@ public static class SettingsMigration
     /// the shipped default: <c>null</c> and <c>[]</c> are indistinguishable once deserialized, and 「一个都
     /// 不选」 is a legitimate answer for every list here. And a null <em>field</em> inside a section — a
     /// server whose <c>Url</c> is null — is not repaired at all; that would mean listing every string
-    /// property of every settings class, a list nothing keeps in step with new fields. Those land in
-    /// <see cref="SettingsStore"/>'s corrupt-file path instead, which is why that catch is as wide as it is.
+    /// property of every settings class, a list nothing keeps in step with new fields. Required profile
+    /// identity and credential fields are validated below so they cannot escape Load and fail in its
+    /// callers; other unrepairable fields land in <see cref="SettingsStore"/>'s corrupt-file path as before.
     /// </para>
     /// </summary>
     private static AppSettings Repair(AppSettings settings)
@@ -385,6 +386,17 @@ public static class SettingsMigration
         {
             if (server.Accounts is null) server.Accounts = [];
             server.Accounts.RemoveAll(account => account is null);
+
+            // These nulls otherwise survive Load and fail later in account selection / HasSaved*.
+            // Reject rather than invent an identity or clear a credential: Load can preserve the
+            // original and use its backup. Missing keys and legitimate empty strings keep working.
+            if (server.Id is null) throw new InvalidDataException("服务器档案 Id 不能为 null");
+            foreach (var account in server.Accounts)
+            {
+                if (account.Id is null || account.Username is null || account.UserId is null
+                    || account.ProtectedPassword is null || account.ProtectedAccessToken is null)
+                    throw new InvalidDataException("账号身份或凭据字段不能为 null");
+            }
         }
 
         if (settings.Ui.HomeRows is null) settings.Ui.HomeRows = [];

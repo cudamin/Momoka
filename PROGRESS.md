@@ -1,3 +1,9 @@
+## 分阶段修复：R-007读取兜底整合（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；复核并限定整合独立树提交 `950b01eca0f1e67c88db095a999fb4a62cae2e1e` 的三份源码／测试。读取拒绝六类必需字段显式null，保留原坏主文件、优先有效备份、不凭空重建身份或清凭据；合法缺键/空串/可空及旧迁移未改变，不混R-009。
+- 支线修前新增6过22败、修后新增28过；完整Settings123含新增。主树当前Release Core/Tests零警告错误、退出0，完整2120通过／0失败／0跳过、退出0，详见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)，不拿支线/历史替本次。
+- 实际只假配置Load/选择/HasSaved*/vault与隔离恢复，真实Prepare VM/WinUI/整启动/DPAPI/真实数据/UI/native/播放/发布/推送未跑，快捷方式旧版。内容／链接／LF／差异检查后提交，继续R-006共享显示往返收束与R-061，不自动暂停。
+
 ## 分阶段修复：R-064监听线程安全退出（2026-10-23）
 
 - 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；监听器提取为无WinUI源码并编译链接进测试，关闭只发停止请求，worker finally释放句柄，停止优先、排队旧激活失效、重复关闭幂等。App只交dispatcher委托，未新增UI布局或猜用API。
