@@ -7,10 +7,13 @@ internal static class Program
         if (MpvProcessTests.IsChild(args)) return MpvProcessTests.RunChildAsync(args).GetAwaiter().GetResult();
         if (args is ["selfcheck-mutex-fixture", var source, var target])
             return SelfCheckTests.RunMutexChild(source, target);
+        if (args is ["test-harness-fixture", var scenario])
+            return TestHarnessTests.RunChild(scenario);
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();
 
+        TestHarnessTests.Register();
         PlaybackTests.Register();
         KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();

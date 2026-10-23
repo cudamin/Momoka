@@ -22,6 +22,7 @@ Verification runs per delivery batch, not per small edit.
 
 - Confirm tested files and output belong to the current working tree. `--no-build` needs a successful build of the current test code and Core; `-c Release` alone can select stale output. Publishing the Shell does not refresh the test assembly.
 - Report observed counts, failures and skips separately. Missing fixtures, unavailable input and known old failures are not passes.
+- The Core test runner assigns each executed case exactly one outcome: passed, failed, or skipped. A runtime `Skip` suppresses its pass; an exception after `Skip` still fails. Repeated skip reasons within a case count once. Pre-registration skips also appear in the total. Optional skips preserve exit code 0 but never satisfy a required check. `TestHarnessTests` exercises the real runner in isolated test child processes.
 - A `--probe-shell --probe-section` run covers only the selected areas. Read `shell-probe-scope.txt` and report the skipped areas; exit code 0 is not a full-probe pass.
 - An isolated worktree's publish is not delivery to the desktop shortcut. Check the actual target as required by CLAUDE.md.
 - The local cursor, motion and composition probes select the integrated pipeline. They do not validate the standalone window, uosc, standalone switching or the external mpv backend.
