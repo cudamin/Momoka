@@ -223,9 +223,16 @@ public sealed partial class PlayerViewModel
     /// 窗口与外部 mpv.exe 的画面不在本窗口里，拖拽由 mpv 原生接住，根本走不到这里。
     /// </para>
     /// </summary>
-    internal async Task AddExternalSubtitlesAsync(IReadOnlyList<string> droppedPaths)
+    internal async Task AddExternalSubtitlesAsync(
+        IReadOnlyList<string> droppedPaths, InteractionContext context, Func<bool> isCurrentDrop)
     {
+        // Never capture again after WinRT returns: that would grant an A drop the current B file.
+        // The page predicate also rejects Detach/re-Attach or a replacement VM while a command waits.
+        bool Current() => isCurrentDrop() && IsCurrentInteraction(context) && PictureInHostWindow;
+        if (!Current()) return;
+
         var subs = SubtitleFile.Filter(droppedPaths);
+        if (!Current()) return;
         if (subs.Count == 0)
         {
             Noticed?.Invoke("拖进来的文件里没有字幕（支持 srt/ass/ssa/sub/vtt 等）", InfoBarSeverity.Warning);
@@ -242,13 +249,17 @@ public sealed partial class PlayerViewModel
         string? current = null;
         foreach (var path in subs)
         {
-            if (await _playback.CommandAsync("sub-add", path, "select").ConfigureAwait(true))
+            if (!Current() || !_playback.IsPlaying) return;
+            var accepted = await _playback.CommandAsync("sub-add", path, "select").ConfigureAwait(true);
+            if (!Current() || !_playback.IsPlaying) return;
+            if (accepted)
             {
                 added++;
                 current = path;
             }
         }
 
+        if (!Current() || !_playback.IsPlaying) return;
         if (added == 0)
         {
             Noticed?.Invoke("字幕没能加载（详见日志）", InfoBarSeverity.Error);

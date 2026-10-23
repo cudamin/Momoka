@@ -1336,18 +1336,29 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// </summary>
     private async void OnPictureDrop(object sender, DragEventArgs e)
     {
-        if (!Attached || !e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+        if (!Attached || !ViewModel.PictureInHostWindow || !e.DataView.Contains(StandardDataFormats.StorageItems)) return;
+
+        // WinRT may yield until another page, view model or file owns the picture. Keep this drop's
+        // existing page visit and interaction, including while the VM awaits each subtitle command.
+        var viewModel = ViewModel;
+        var presentation = _presentationGeneration;
+        var context = viewModel.CaptureInteraction();
+        bool Current() => Attached && presentation == _presentationGeneration && ReferenceEquals(ViewModel, viewModel)
+            && viewModel.PictureInHostWindow && viewModel.IsCurrentInteraction(context);
+        if (!Current()) return;
 
         var deferral = e.GetDeferral();
         try
         {
             var items = await e.DataView.GetStorageItemsAsync();
+            if (!Current()) return;
+
             var paths = items.OfType<StorageFile>()
                 .Select(file => file.Path)
                 .Where(path => !string.IsNullOrEmpty(path))
                 .ToList();
 
-            if (paths.Count > 0) await ViewModel.AddExternalSubtitlesAsync(paths);
+            if (paths.Count > 0 && Current()) await viewModel.AddExternalSubtitlesAsync(paths, context, Current);
         }
         catch (Exception error)
         {

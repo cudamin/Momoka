@@ -1,3 +1,8 @@
+## 第五组 R-045 主树字幕拖拽所有权限定整合（2026-10-24，继续）
+
+- 源9314fe10两产品／正式源码项目限定合入，WinRT前持原VM/访问期/InteractionContext，每条sub-add前后重核；Detach/reAttach/换VM/换文件中止旧批次、B零条旧拖拽，保过滤/deferral finally/有效反馈。主树freshCore/提取器/74专项与x64ShellRelease零警告错误；当前74全过，5提取非法输入预期退出1后默认当前源重编译74再全绿，7输入哈希逐一核实际；真VM轨道11/音量31绿，solutionRelease/x64格式0修改/退出0无加载失败、22PS/UTF8LF链接哈希通过。产品同来源，独立只读复核无保留，源74项19过55败红及取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，主树证据batch05/r045。
+- 本项提交后累计54稳定号／余19。R051 Euler默认独立代理在途，主线程继续确定问题不自动暂停。A已发命令不撤销、不重放B；未真实WinRT拖拽/WinUI消息像素/完整Connect/Lifecycle/native代次/config凭据DPAPI/服务器/媒体播放/发布推送，快捷方式旧版，非完整交付。
+
 ## 第五组 R-041 主树缺集搜索可用性重验（2026-10-24，继续）
 
 - 来源ddb0aaf5限定Shell方法／正式项目整合，构造前只重核原连接，断线／换连接保清单收搜索、不认领新连接，原scope/page/闭后守卫保留。主树fresh夹具/Core/x64ShellRelease零警告错误、58全过（源58项42过16败红留来源）；10提取边界全过，9拒绝退出1为预期不与58相加。solutionRelease/x64空白0修改/退出0无加载诊断，22PS编码语法／UTF8LF链接／源码日志哈希通过。当前源逐字同来源，证据独立在artifacts/r041-missing-search-availability与batch05/r041，具体取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。

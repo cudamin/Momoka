@@ -120,7 +120,7 @@ Use [the visibility transition checks](../momoka-verification/SKILL.md#capabilit
 
 ## Interaction ownership
 
-- `PlayerViewModel.InteractionContext` scopes delayed input to the current play attempt, playback generation and item. Opening an old menu, completing a delayed tap, speed-wheel animation or multi-command row must not target a replacement file.
+- `PlayerViewModel.InteractionContext` scopes delayed input to the current play attempt, playback generation and item. Opening an old menu, completing a delayed tap, speed-wheel animation or multi-command row must not target a replacement file. Integrated subtitle drops also hold the original page presentation generation and VM across WinRT and every `sub-add`; a detached/reused page cannot borrow the next file. See the [actual-source drop fixture](../../../tests/Momoka.SubtitleDropOwnershipTests/README.md), not a copied ownership model.
 - Native menus use `VideoMenuSnapshot` values (`snapshot-id:index`), not bare row numbers interpreted against live lists. File boundaries discard menus and pending mouse presses. The parser retains legacy integer syntax only for compatibility; it does not authorize a menu selection without a matching snapshot.
 - `VideoWindowShortcuts` translates the shared settings to mpv key names. The resident view model pushes `momoka-shortcuts`; uosc suspends its host bindings while a menu owns keyboard input. This is the built-in standalone path, not the external-process backend.
 - Page transitions and resize pause ownership need independent generations. Instant fullscreen entry cancels the old page transition; frame capture continuations recheck page, window and playback identity. A superseded resize release cannot unpause the next drag.

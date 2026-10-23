@@ -1,0 +1,21 @@
+<Project>
+    <PropertyGroup>
+        <R045ShellSourceRoot Condition="'$(R045ShellSourceRoot)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell</R045ShellSourceRoot>
+    </PropertyGroup>
+    <UsingTask TaskName="Momoka.Tests.SourceExtractor.ExtractR045Production"
+               AssemblyFile="$(MSBuildThisFileDirectory)SourceExtractor\bin\$(Configuration)\net10.0\Momoka.SubtitleDropSourceExtractor.dll" />
+    <!-- ResolveProjectReferences builds the source extractor before executing this task.
+         Complete syntax nodes are emitted verbatim; invalid/ambiguous/foreign-tree inputs fail closed. -->
+    <Target Name="GenerateR045Production" BeforeTargets="CoreCompile"
+            DependsOnTargets="ResolveReferences">
+        <ExtractR045Production
+            WorkspaceRoot="$(MSBuildProjectDirectory)\..\.."
+            ShellSourceRoot="$(R045ShellSourceRoot)"
+            OutputDirectory="$(MSBuildProjectDirectory)\$(IntermediateOutputPath)R045" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)R045\PlayerPage.g.cs" />
+            <Compile Include="$(IntermediateOutputPath)R045\PlayerViewModel.g.cs" />
+            <Compile Include="$(IntermediateOutputPath)R045\SourceManifest.g.cs" />
+        </ItemGroup>
+    </Target>
+</Project>
