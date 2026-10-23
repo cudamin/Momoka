@@ -33,6 +33,10 @@ Most non-UI capability sits in `Core/Emby`, `Core/Playback`, `Core/Mpv` and `Cor
 
 `HomeLayout` (which home rows, in what order, and only writing settings back when something really changed), `ScreenPlacement` (which monitor, restoring geometry), `ItemArtwork.SamePictures`, `CardSize`, `ImageCachePolicy` and `LruCache` (eviction), `LoadGeneration` (which load is still the current one), `HomeRefresh` (whether a light refresh may keep the carousel), `LibraryWatch` (whether anything was newly added — the home page's periodic check compares these stamps and only reloads on a real change), `ItemMenu.For` (which menu rows and their wording), `CardStrip`, `WrapLayout`, `HomeCarousel`, `ItemMetadataEdit`, `EpisodeNavigation`, `TrackSelection` / `TrackLanguagePriority`, `StartupArgs`.
 
+## Source-linked page contracts
+
+`tests/Momoka.PageContractTests` compile-links selected actual page code-behind with tiny boundary substitutes for the absent XAML/WinUI controls and external owners. It runs separately from `Momoka.Tests` and is included in the solution's build. The control-flow assertions use production `Attach`/navigation/release methods, not copies of those methods. These tests cannot establish real WinUI layout, input, scroll preservation or `Frame` history interaction; those remain runtime UI coverage. Commands and limitations are in its README and `docs/开发与验证.md`.
+
 ## Pages, view models, `Attach`
 
 Pages created by this project's `Frame.Navigate` path use parameterless constructors. **Pages construct their own view models; dependencies arrive afterwards through `Attach(...)`.** Keep guards for calls made before those dependencies arrive, and inspect the file's `Attach`, cancellation and load methods before adding work.

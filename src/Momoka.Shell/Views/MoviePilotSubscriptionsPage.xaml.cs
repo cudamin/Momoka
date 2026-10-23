@@ -50,6 +50,7 @@ public sealed partial class MoviePilotSubscriptionsPage : Page, IShellContent
     {
         Release();
         _request = request;
+        Tag = request.Key; // Back/forward adopts the page tag before the same-destination guard.
 
         // 自己持一份订阅数据（读取、刷新计时器、连接生命周期都在它身上）：这一页和主页那两排读的是同一份
         // 服务器数据，但两边的存活期不一样，共用一只计时器只会让谁先走谁把它停掉。

@@ -1,3 +1,9 @@
+## 分阶段修复：R-063订阅页导航标识（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；产品只在订阅页Attach记`Tag=request.Key`，让返回/前进AdoptContentTag与已有同页短路读同一目的地。
+- 新页面控制流契约项目入库并加方案，源链接真实code-behind和运行器，最小XAML/外部属主边界替身不复制导航/Attach/Release。修前9项1过8败，修后9过／0失败跳过、退出0；当前契约项目/Core/主测试/Shell Release零警告错误，定向空白0。Core未再改，2213完整结果仍对应当前。见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 未真实Frame/WinUI布局/滚动/网络/应用/native/播放/发布/推送，快捷方式旧版；不能把源链接当UI验收。`sln add`自生无关平台/CRLF已核diff后定点收回，仅增加项目与映射、保旧x64，文本/链接/命令/差异检查后提交。8号已主树相关回归过，R-061/073/060/012支线继续，不自动暂停。
+
 ## 分阶段修复：R-009当前备份先于旧目录（2026-10-23）
 
 - 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；新增SettingsStore.PrepareStartupData并由正常Main接入：已有主不迁移，主缺且当前备份正常可读时保留当前恢复，坏/锁备份才允许旧目录回退。复用实际TryRead规则，路径工具只复制，不只凭backup存在封死恢复。
