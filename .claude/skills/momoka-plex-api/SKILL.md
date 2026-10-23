@@ -23,6 +23,12 @@ Project rules live in [CLAUDE.md](../../../CLAUDE.md). This skill records only w
 
 Session, DI, `EmbySessionScope` and capability-dependent visibility are shared and owned by [momoka-winui-shell](../momoka-winui-shell/SKILL.md). Playback planning, mpv options and progress reporting are owned by [momoka-playback](../momoka-playback/SKILL.md). `MediaServerKind.Plex` is a branch inside `EmbyClient`, `EmbySession`, `EmbyServerGateway`, `EmbyServerAddress` and `MediaServerHeaders` — there is no per-backend factory in DI, and adding one would be a redesign, not a Plex change.
 
+## Address normalization
+
+`PlexEndpoint.TryNormalize` determines whether a port was explicitly written from the original authority, before `/`, `\`, `?` or `#`. Only a colon after an IPv6 literal's closing bracket denotes its port. `Uri.Authority` drops explicit scheme-default ports, so it cannot answer that question; let `Uri` validate and supply the numeric port instead. Pass `Uri.Host` unchanged to `UriBuilder` rather than wrapping an IPv6 host in another pair of brackets.
+
+A plain HTTP host without a port uses 32400; an explicit HTTP port, including 80, wins. HTTPS without a port keeps 443. Reverse-proxy paths survive, browser-only `/web` or `/web/index.html` suffixes are stripped, and userinfo is rejected. `PlexEndpoint.ToDisplayString` retains HTTP `:80` for a stable normalize → display → normalize round trip. `PlexProtocolTests.Endpoint` exercises these pure functions with placeholder DNS, IPv4 and IPv6 addresses, without a transport or account exchange. Shared profile-display callers in `EmbyServerAddress` delegate the Plex branch to this function, retaining HTTP `:80` there too. The endpoint suite tests both direct and shared display round trips.
+
 ## Four things that break on contact
 
 ### 1. A Plex server does not verify an account password

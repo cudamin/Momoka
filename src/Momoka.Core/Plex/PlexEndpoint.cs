@@ -38,12 +38,9 @@ public static class PlexEndpoint
         if (parsed.UserInfo.Length != 0)
         { error = "请在账户输入框填写凭据，不要写在服务器地址中"; return false; }
 
-        // An explicit port wins. `Uri.IsDefaultPort` cannot tell "host:80" from "host", so the authority
-        // is compared against the host itself — userinfo is already rejected above, which is what makes
-        // that comparison exact. The brackets are for an IPv6 literal, whose own colons are not a port.
-        var host = parsed.HostNameType == UriHostNameType.IPv6 ? "[" + parsed.Host + "]" : parsed.Host;
-        var explicitPort = !string.Equals(parsed.Authority, host, StringComparison.OrdinalIgnoreCase);
-        var port = explicitPort || parsed.Scheme == Uri.UriSchemeHttps ? parsed.Port : DefaultPort;
+        // Read port presence from the original authority: Uri.Authority drops an explicit HTTP :80.
+        // Uri still validates the syntax and supplies the numeric port; IPv6 Host already has brackets.
+        var port = HasExplicitPort(text) || parsed.Scheme == Uri.UriSchemeHttps ? parsed.Port : DefaultPort;
 
         // Pasting the address out of a browser usually brings the Web UI path with it: Plex Web lives
         // under /web, and a user who copies the address bar has /web/index.html on the end of it.
@@ -62,8 +59,25 @@ public static class PlexEndpoint
         return true;
     }
 
-    /// <summary>The display address, which is also what is written back into the saved server profile.</summary>
-    public static string ToDisplayString(Uri apiBase) => apiBase.GetLeftPart(UriPartial.Path).TrimEnd('/');
+    private static bool HasExplicitPort(string text)
+    {
+        var start = text.IndexOf("://", StringComparison.Ordinal) + 3;
+        var end = text.IndexOfAny(['/', '\\', '?', '#'], start);
+        var authority = end < 0 ? text[start..] : text[start..end];
+        var colon = authority.LastIndexOf(':');
+        var hostEnd = authority.StartsWith('[') ? authority.IndexOf(']') : -1;
+        return colon > hostEnd && colon + 1 < authority.Length;
+    }
+
+    /// <summary>The display address, retaining HTTP :80 so normalizing it again does not select 32400.</summary>
+    public static string ToDisplayString(Uri apiBase)
+    {
+        if (apiBase.Scheme != Uri.UriSchemeHttp || apiBase.Port != 80)
+            return apiBase.GetLeftPart(UriPartial.Path).TrimEnd('/');
+
+        var authority = apiBase.GetComponents(UriComponents.StrongAuthority, UriFormat.UriEscaped);
+        return (apiBase.Scheme + "://" + authority + apiBase.AbsolutePath).TrimEnd('/');
+    }
 
     public static Uri Api(Uri apiBase, string relativePath)
     {

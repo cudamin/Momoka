@@ -14,7 +14,7 @@ namespace Momoka.Tests;
 /// real Plex server answers. No live server has been used to write or verify these cases.
 /// </para>
 /// </summary>
-internal static class PlexProtocolTests
+internal static partial class PlexProtocolTests
 {
     private const string Secret = "fixture-plex-token";
     private static readonly Uri Base = new("http://plex.invalid:32400/");
@@ -22,6 +22,7 @@ internal static class PlexProtocolTests
 
     public static void Register()
     {
+        RegisterEndpoints();
         Test("Plex 地址：默认端口、https 保留 443、Web 路径与账户信息", () =>
         {
             Assert.Equal("http://nas.invalid:32400/", PlexEndpoint.Normalize("nas.invalid").AbsoluteUri);
