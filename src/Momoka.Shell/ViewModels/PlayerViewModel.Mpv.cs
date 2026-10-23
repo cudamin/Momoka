@@ -303,7 +303,7 @@ public sealed partial class PlayerViewModel
             video?.Width ?? 0,
             video?.Height ?? 0,
             _surface,
-            _shaderPlan.Measure.Tier);
+            _shaderPlan.Measure.Tier, fullMonitorTarget: true);
 
         // 退场保留那一帧要按「画面本来什么形状」摆，而这个数只有码流尺寸能给 —— 另外三个候选
         // （呈现矩形、mpv 缓冲尺寸、dwidth/dheight）在窗口与画面不同形时全都是窗口比例。详见
@@ -312,7 +312,7 @@ public sealed partial class PlayerViewModel
             ? (double)stream.Width!.Value / stream.Height!.Value
             : 0);
 
-        _launchOutput = _surface.Active;
+        _launchOutput = _surface.Monitor;
         return _launchOutput;
     }
 
@@ -324,13 +324,13 @@ public sealed partial class PlayerViewModel
         _shaderPinned = false;
         ActiveShader = plan.Group;
         var video = source.PrimaryVideoStream;
-        _outputWatch = new OutputWatch(video?.Width ?? 0, video?.Height ?? 0, _surface, plan.Measure.Tier);
+        _outputWatch = new OutputWatch(video?.Width ?? 0, video?.Height ?? 0, _surface, plan.Measure.Tier, fullMonitorTarget: true);
         SourceAspectChanged?.Invoke(video is { Width: > 0, Height: > 0 }
             ? (double)video.Width.Value / video.Height.Value : 0);
         if (_surface.Monitor != _launchOutput)
         {
             _shaderPlan = (_shaderResolver ?? _shaders).Resolve(item, source, _shaderContext?.Parent, _surface.Monitor);
-            _outputWatch = new OutputWatch(video?.Width ?? 0, video?.Height ?? 0, _surface, _shaderPlan.Measure.Tier);
+            _outputWatch = new OutputWatch(video?.Width ?? 0, video?.Height ?? 0, _surface, _shaderPlan.Measure.Tier, fullMonitorTarget: true);
             Switch(_shaderPlan, "加载期间换显示器");
         }
     }
@@ -410,21 +410,16 @@ public sealed partial class PlayerViewModel
             return;
         }
 
-        // 不跨档就只更新上下文里的输出尺寸. There is nothing to hand mpv: ravu-zoom renders to whatever OUTPUT
-        // is on the frame it is drawing, so the only things that were stale are the log line and the OSD.
+        // Watcher and resolver both classify the fixed monitor target. A same-tier observation only
+        // updates actual dimensions; fullscreen must not queue another copy of a pending transaction.
         if (verdict.Change == OutputChange.SizeOnly)
         {
             Restate(verdict);
             return;
         }
 
-        // 进 / 退全屏、换显示器：换显示器那一路已经把方案重算过了，这里换上的永远是同一个
-        // 全屏档方案 —— Switch 自己发现档位没变会直接说「档位没变」，链一动不动。
-        if (verdict.Discrete)
-        {
-            Switch(_shaderPlan, because);
-            return;
-        }
+        // Only a discrete change of the prepared monitor tier applies a different automatic plan.
+        if (verdict.Discrete) Switch(_shaderPlan, because);
     }
 
     /// <summary>Applies a prepared plan to the film that is playing, and says so in the log rather than on screen.</summary>

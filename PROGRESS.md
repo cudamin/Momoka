@@ -1,3 +1,8 @@
+## 第五组 R-052 主树固定显示器判定一致性（2026-10-24，继续）
+
+- watcher显式Monitor/fresh与resolver同口径，默认Active回差不变，实际Output仍Active；launch/Adopt用Monitor。同档仅尺寸、换屏跨档才切，初19项10过9败→19绿；追加pending/fullscreen24项23过1败抓重复3事务→恢复SizeOnly先不动后24绿，4纯Core边界最终28全绿。当前23csproj方案含显式Release提取器零警告错误，完整Core2549/R045拖拽74/轨道11/音量31全过不相加；solutionRelease/x64空白0修改/退出0无加载诊断，22PS/UTF8LF链接哈希通过。独立静态复核无保留，证据batch05/r052及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计55稳定号／余18。R051 Euler独立默认代理仍在途，主线程继续确定问题不自动暂停；未真实换屏/帧/GPU编译/WinUI/native/媒体/config凭据DPAPI/服务器/播放/发布推送，快捷方式旧版，非完整交付。
+
 ## 第五组 R-045 主树字幕拖拽所有权限定整合（2026-10-24，继续）
 
 - 源9314fe10两产品／正式源码项目限定合入，WinRT前持原VM/访问期/InteractionContext，每条sub-add前后重核；Detach/reAttach/换VM/换文件中止旧批次、B零条旧拖拽，保过滤/deferral finally/有效反馈。主树freshCore/提取器/74专项与x64ShellRelease零警告错误；当前74全过，5提取非法输入预期退出1后默认当前源重编译74再全绿，7输入哈希逐一核实际；真VM轨道11/音量31绿，solutionRelease/x64格式0修改/退出0无加载失败、22PS/UTF8LF链接哈希通过。产品同来源，独立只读复核无保留，源74项19过55败红及取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，主树证据batch05/r045。

@@ -16,7 +16,7 @@ description: "Momoka 视频输出三卡到 mpv 的选项落地、HDR/杜比语�
 - 基础输出通过 after 回调重建卡片以更新从属行：「插值」合并关闭与三种算法，关闭只改开关、保留算法偏好。用户于 2026-10-13 明确要求音频同步保留插值行，以 `SettingFactRow` 只读显示「关闭」，切回自动或显示同步恢复原选择；这是用户指定的展示例外，不覆盖保存偏好，也不把「关闭」加入真实 `tscale` 算法目录。只有有效显示同步才显示高帧率回退，回退关闭隐藏阈值；关闭抖动隐藏位深；去色带关闭或继承预设隐藏强度。内置 `fast` 的 `dither=no`，抖动继承该预设时也隐藏位深，画质预设切换须联动基础卡；外部预设内容未知，不套用此推断。隐藏不清空偏好。`ShellNavigationProbe.Settings.cs` 覆盖真实控件切换、只读展示及宽窄布局。
 - `MpvRenderCheck` 按真正会跑的值问：集成按契约强制值（pipelineOwned），独占与外部按设置存值。不建议用户修改集成模式固定的接口。hwdec 不受管线锁定；出厂默认为 `auto-copy-safe`。硬解目录合并了空值「不指定」和 `no`「关闭」；Normalize 将旧空值/未知值归一为 `no`，保持软解行为，其余合法选择保留。随包内核中 `auto-safe` 是 `auto` 的别名，`auto-copy-safe` 是 `auto-copy` 的别名，目录分别只列一个；原生与复制模式有实际差异，不合并。
 - `SettingsMigration.Choice` 大小写不敏感地匹配，但必须返回目录的规范拼法。随包内核拒绝 `YES`、`Spline` 等大小写变体，原样保留会导致起播拒绝或条件规则失效。
-- 视频三卡统一为“下次播放生效”。本次着色器偏好由 `ShaderAutomationSettings.Snapshot` 固定；候选源共用快照，换屏只重算尺寸，不顺带采用后来修改的设置。
+- 视频三卡统一为“下次播放生效”。本次着色器偏好由 `ShaderAutomationSettings.Snapshot` 固定；候选源共用快照，换屏只重算尺寸，不顺带采用后来修改的设置。 固定Monitor方案与OutputWatch必须采用同一目标／分类；launch票据和Adopt比较都用Monitor，实际OSD输出仍记Active。同档／全屏仅记尺寸，不因切链仍在飞而重复排同方案事务；[真实VM专项](../../../tests/Momoka.ShaderMonitorPolicyTests/README.md)覆盖，不冒实际换屏画质验收。
 
 ## profile 与切链恢复
 
