@@ -155,18 +155,25 @@ internal static partial class SettingsTests
     {
         var account = new AccountProfile
         {
-            Id = "account-" + identity, Username = identity, UserId = "remote-" + identity,
+            Id = "account-" + identity,
+            Username = identity,
+            UserId = "remote-" + identity,
             AutoConnect = autoConnect
         };
         var server = new ServerProfile
         {
-            Id = "server-" + identity, Name = identity, Url = "http://configuration.invalid:8096",
+            Id = "server-" + identity,
+            Name = identity,
+            Url = "http://configuration.invalid:8096",
             Accounts = [account]
         };
         return JsonSerializer.Serialize(new AppSettings
         {
-            Servers = [server], DeviceId = "device-" + identity, LastServerId = server.Id,
-            LastAccountId = account.Id, Ui = new UiSettings { PageSize = pageSize }
+            Servers = [server],
+            DeviceId = "device-" + identity,
+            LastServerId = server.Id,
+            LastAccountId = account.Id,
+            Ui = new UiSettings { PageSize = pageSize }
         });
     }
 

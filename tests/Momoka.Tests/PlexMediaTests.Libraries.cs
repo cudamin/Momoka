@@ -115,7 +115,8 @@ internal static partial class PlexMediaTests
     private static List<EmbyItem> BindLibrarySource(LibraryFixture fixture, string serverId)
     {
         var connection = new EmbyConnection(fixture.ApiBase, "library-fixture", "user", "user", "fixture",
-            DeviceIdentity.Create("plex-library-fixture", "test")) { ServerKind = MediaServerKind.Plex };
+            DeviceIdentity.Create("plex-library-fixture", "test"))
+        { ServerKind = MediaServerKind.Plex };
         var scope = new EmbySessionScope(null!, new EmbySessionScope.Identity(new EmbyClient(null!, connection),
             new ServerProfile { Id = serverId, Name = "fixture" },
             new AccountProfile { Id = "account", Username = "fixture" }));

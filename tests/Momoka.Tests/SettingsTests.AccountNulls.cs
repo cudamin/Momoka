@@ -297,8 +297,11 @@ internal static partial class SettingsTests
         };
         return new AppSettings
         {
-            DeviceId = $"device-{identity}", LastServerId = server.Id, LastAccountId = server.Accounts[1].Id,
-            Servers = [server], Ui = new UiSettings { PageSize = pageSize }
+            DeviceId = $"device-{identity}",
+            LastServerId = server.Id,
+            LastAccountId = server.Accounts[1].Id,
+            Servers = [server],
+            Ui = new UiSettings { PageSize = pageSize }
         };
     }
 
