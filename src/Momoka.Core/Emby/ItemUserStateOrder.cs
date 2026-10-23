@@ -66,6 +66,36 @@ public sealed class ItemUserStateOrder
         return state;
     }
 
+    /// <summary>
+    /// Enriches a confirmed no-body write with a later, separately-read snapshot. Only its still-current
+    /// field group may change; a newer successful edit or overlapping other group keeps its own result.
+    /// The acknowledged target bit is not undone by a potentially stale read-back.
+    /// </summary>
+    public EmbyUserData? RefreshConfirmed(Change change, EmbyUserData? current, EmbyUserData response)
+    {
+        var field = change.Watched ? _watched : _favorite;
+        var other = change.Watched ? _favorite : _watched;
+        if (change.Version != field.Confirmed) return null;
+        var state = Copy(current);
+        if (change.Watched)
+        {
+            CopyWatched(response, state);
+            state.Played = change.Value;
+            if (!change.Value)
+            {
+                state.PlaybackPositionTicks = 0;
+                state.PlayedPercentage = 0;
+            }
+        }
+        else state.IsFavorite = change.Value;
+        if (!change.OtherPending && other.Issued < change.Version)
+        {
+            if (change.Watched) state.IsFavorite = response.IsFavorite;
+            else CopyWatched(response, state);
+        }
+        return state;
+    }
+
     /// <summary>Always finish the edit, including failure/cancellation; failure does not confirm a value.</summary>
     public void Complete(Change change) => (change.Watched ? _watched : _favorite).Pending--;
 

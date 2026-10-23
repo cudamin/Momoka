@@ -11,7 +11,7 @@
 
 ## 严格离线边界
 
-synthetic .invalid 主机只由注入 HttpMessageHandler 在内存回答；只允许原假账号的 PlayedItems / FavoriteItems POST 或 DELETE。测试通过反射为新的假 session 注册来源，不调用 SignIn、Restore、Adopt、SelectSource、保存配置、真实登录、凭据交换或服务器探测。ISecretProtector 读写均抛异常。独立目录仅写在本树测试 bin/Release 输出下，不递归删除。假 IShellActions 只记录通知、已看补报和收藏刷新，不创建 PlaybackService、不加载 libmpv 或起播。
+synthetic .invalid 主机只由注入 HttpMessageHandler 在内存回答；只允许原假账号的 PlayedItems / FavoriteItems POST 或 DELETE；R-024原生场景另允许假FnNas的item/watched POST、item/favorite PUT/DELETE及独立item GET，仍全部由同一内存handler接收。测试通过反射为新的假 session 注册来源，不调用 SignIn、Restore、Adopt、SelectSource、保存配置、真实登录、凭据交换或服务器探测。ISecretProtector 读写均抛异常。独立目录仅写在本树测试 bin/Release 输出下，不递归删除。假 IShellActions 只记录通知、已看补报和收藏刷新，不创建 PlaybackService、不加载 libmpv 或起播。
 
 ## 精确运行命令
 
@@ -28,8 +28,10 @@ synthetic .invalid 主机只由注入 HttpMessageHandler 在内存回答；只�
 
 ## 覆盖和限制
 
-57 个注册用例包含 6 组四请求交错，每组 24 种响应排列、整份/混合 204 两档，共 288 次假请求场景，不能把嵌套场景额外累计为注册用例。覆盖已看/收藏两种发起顺序、逆序/顺序/旧字段整份响应、全部进度/计数/日期字段、204 / JSON null、500、同字段反向/重复/失败、两入口、共享 DTO、不同条目、身份改绑、来源撤销与正常换默认。
+原R-016的57个注册用例包含 6 组四请求交错，每组 24 种响应排列、整份/混合 204 两档，共 288 次假请求场景；新增R-024的9项原生确认写/独立补读后共66项，不能把嵌套场景额外累计为注册用例。覆盖已看/收藏两种发起顺序、逆序/顺序/旧字段整份响应、全部进度/计数/日期字段、204 / JSON null、500、同字段反向/重复/失败、两入口、共享 DTO、不同条目、身份改绑、来源撤销与正常换默认。
 
 状态按 EmbyItem 实例弱绑定，两个 CardItem 共享同一 DTO 时共用顺序；不新增跨独立 DTO 的全局条目缓存或跨页通知服务。两个字段重叠时只接受各自操作的字段组，已看组拥有进度/计数/日期；非重叠时仍保留整份响应刷新另一组的能力。失败不确认请求方向；较新成功屏蔽同字段旧成功的状态和副作用。
 
 未验证真实 WinUI 输入/渲染/视觉、原生解码、真实服务器处理顺序、播放通知传输、其它客户端同时改状态；没有 DTO 服务端版本，无法证明任意服务端同字段逆序执行的一致性。本项目不重试已停止的 R001/003/005/031 链路，也不发布、推送或升级依赖。
+
+R-024另验证原生写入确认先更新本次目标位，再做独立详情读取；503不回滚确认位或重发写，权限错误仍报错，注销后不接受迟到补读；两字段并发和新未看确认后旧已看补读不退化R-016顺序。原生场景按真实在飞状态账收尾，不以一次async回调执行代表整条异步命令已完成。

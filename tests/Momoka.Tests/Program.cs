@@ -23,6 +23,8 @@ internal static class Program
             return SettingsScreenshotRestoreTests.Run(screenshotShell, screenshotRoot);
         if (args is ["fnnas-library-editor-fixture", var editorShell, var editorRoot])
             return FnNasLibraryEditorTests.Run(editorShell, editorRoot);
+        if (args is ["fnnas-user-state-fixture", var stateShell, var stateRoot])
+            return FnNasUserStateWriteTests.Run(stateShell, stateRoot);
         if (args is ["subtitle-forced-only-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -66,6 +68,7 @@ internal static class Program
         EmbyRealtimeTests.Register();
         FnNasProtocolTests.Register();
         FnNasLibraryInputTests.Register();
+        FnNasUserStateWriteTests.Register();
         FnNasMediaTests.Register();
         PlexProtocolTests.Register();
         PlexMediaTests.Register();

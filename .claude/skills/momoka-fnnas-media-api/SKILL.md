@@ -45,6 +45,12 @@ Post-login configuration, detail stream/progress and translated genre/country la
 
 Password changes are committed by `EmbySession.ChangeFnNasPasswordAsync`: cancellation is accepted before dispatch, but leaving the page after dispatch cannot discard confirmed credentials. Source revocation, a replaced login generation, changed address or changed saved password rejects a late result. Do not revive a signed-out account or silently enable remember-password. Explicit-source native settings pages require source availability, not default-source equality.
 
+## Confirmed user-state writes and read-back
+
+Native watched/favorite endpoints acknowledge a write with `code == 0` but return no complete user-state DTO. `FnNasMediaAdapter.SetWatchedAsync` / `SetFavoriteAsync` therefore return `null` after the write, just like a successful no-body response, and do not bundle `GET item/{guid}` into the same retryable operation. `EmbyClient.GetFnNasUserDataAsync` is the separate read-back path. A read failure cannot replay or erase the acknowledged write; authentication, permission, signature, malformed responses and cancellation still retain their own error/lifetime boundaries.
+
+Card commands first apply the acknowledged target field and callbacks, then independently read supplementary user state. `ItemUserStateOrder.RefreshConfirmed` enriches only the still-current confirmed field group, preserving target bits and overlapping edits. A transient read error shows a saved-but-refresh-failed warning; hard read errors remain errors. Detail favorite changes only its confirmed flag and does not perform an unnecessary read, while detail watched preserves the target before refreshing server-derived counts/episodes. Unknown derived fields are not guessed. The native state fixtures use memory-only identities and fake HTTP, not real sign-in, mutations, stop notifications or playback.
+
 ## 原生设置目录（2026-10-16 曾退役，2026-10-19 接回）
 
 飞牛影视独占时，设置左栏照官方 0.9.8 设置抽屉分成两组：

@@ -33,14 +33,15 @@ internal sealed class ItemUserStateFixture : IAsyncDisposable
     public int WatchedCallbacks { get; private set; }
     private ItemUserStateContext Context => (ItemUserStateContext)SynchronizationContext.Current!;
 
-    public ItemUserStateFixture(EmbyUserData? initial = null, string type = EmbyItemType.Movie)
+    public ItemUserStateFixture(EmbyUserData? initial = null, string type = EmbyItemType.Movie,
+        MediaServerKind kind = MediaServerKind.Emby)
     {
         Directory.CreateDirectory(_root); // Test output only; retain it, never delete a computed tree.
         var device = new DeviceIdentity("r016-fixture", "r016-fixture", "r016-fixture", "1");
         var protector = new NoSecrets();
         Session = (EmbySession)Activator.CreateInstance(typeof(EmbySession), BindingFlags.Instance | BindingFlags.NonPublic,
             null, [new AppSettings(), new SettingsStore(new AppPaths(_root), protector), new CredentialVault(protector), device, Handler], null)!;
-        Scope = AddSource("original", device);
+        Scope = AddSource("original", device, kind);
         SetDefault(Scope);
         _images = new EmbyImageStore(Session, Path.Combine(_root, "images"));
         Card = NewCard(Scope.Bind(new EmbyItem
@@ -58,11 +59,11 @@ internal sealed class ItemUserStateFixture : IAsyncDisposable
 
     // Install synthetic available identities directly. No SignIn, Restore, Adopt, credential exchange,
     // profile persistence or server/product detection is called. All fields belong to this fake session.
-    private EmbySessionScope AddSource(string name, DeviceIdentity device)
+    private EmbySessionScope AddSource(string name, DeviceIdentity device, MediaServerKind kind = MediaServerKind.Emby)
     {
         var http = (EmbyHttp)typeof(EmbySession).GetField("_http", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Session)!;
-        var connection = new EmbyConnection(new Uri("http://item-state-" + name + ".invalid/emby/"), "",
-            name + "-user", name + "-user", "offline-" + name, device);
+        var connection = new EmbyConnection(new Uri("http://item-state-" + name + ".invalid/" + (kind == MediaServerKind.FnNas ? "v/" : "emby/")), "",
+            name + "-user", name + "-user", "offline-" + name, device) { ServerKind = kind };
         var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
         var identity = Activator.CreateInstance(identityType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
             null, [new EmbyClient(http, connection), new ServerProfile { Id = name + "-server" }, new AccountProfile { Id = name + "-account" }], null)!;
@@ -87,6 +88,20 @@ internal sealed class ItemUserStateFixture : IAsyncDisposable
     }
 
     public void RevokeSource() => _sourceLifetimes[0].Cancel();
+    public int PendingChanges
+    {
+        get
+        {
+            var table = (ConditionalWeakTable<EmbyItem, ItemUserStateOrder>)typeof(ItemCommands)
+                .GetField("UserStateOrders", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+            if (!table.TryGetValue(Card.Item, out var order)) return 0;
+            return new[] { "_watched", "_favorite" }.Sum(name =>
+            {
+                var state = typeof(ItemUserStateOrder).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(order)!;
+                return (int)state.GetType().GetField("Pending")!.GetValue(state)!;
+            });
+        }
+    }
     public CardItem NewCard(EmbyItem item)
     {
         var card = new CardItem(item, _images, 170);
@@ -122,7 +137,8 @@ internal sealed class ItemUserStateFixture : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         Handler.ReleaseAll();
-        await ItemUserStateContext.UntilAsync(() => Context.CompletedCommands >= Handler.Count, "fixture left real user-state commands running");
+        await ItemUserStateContext.UntilAsync(() => Scope.Connection.IsFnNas ? PendingChanges == 0
+            : Context.CompletedCommands >= Handler.Count, "fixture left real user-state commands running");
         Assert.Equal(0, Handler.Unexpected, "only synthetic user-state POST/DELETE may execute");
         Session.Dispose();
         foreach (var lifetime in _sourceLifetimes) lifetime.Dispose();
@@ -159,15 +175,34 @@ internal sealed class ItemUserStateHandler : HttpMessageHandler
     {
         var uri = request.RequestUri!;
         var segments = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-        if ((request.Method != HttpMethod.Post && request.Method != HttpMethod.Delete)
-            || uri.Host != "item-state-original.invalid" || segments.Length != 5
-            || segments[0] != "emby" || segments[1] != "Users" || segments[2] != "original-user"
-            || segments[3] is not ("PlayedItems" or "FavoriteItems") || !segments[4].StartsWith("state-", StringComparison.Ordinal))
+        ItemUserStateRequest pending;
+        if (uri.Host == "item-state-original.invalid" && segments.Length == 5
+            && segments[0] == "v" && segments[1] == "api" && segments[2] == "v1" && segments[3] == "item")
         {
-            Unexpected++;
-            throw new InvalidOperationException("R-016 fixture permits only in-memory original-source user-state requests");
+            var read = request.Method == HttpMethod.Get && segments[4].StartsWith("state-", StringComparison.Ordinal);
+            var write = request.Method == HttpMethod.Post && segments[4] == "watched"
+                || request.Method == HttpMethod.Put && segments[4] == "favorite"
+                || request.Method == HttpMethod.Delete && segments[4] is "watched" or "favorite";
+            if (!read && !write)
+            {
+                Unexpected++;
+                throw new InvalidOperationException("R-024 fixture permits only native state writes and independent item reads");
+            }
+            pending = new ItemUserStateRequest(request.Method, read ? "ReadUserData" : segments[4],
+                read ? segments[4] : "state-item", cancellationToken, native: true);
         }
-        var pending = new ItemUserStateRequest(request.Method, segments[3], segments[4], cancellationToken);
+        else
+        {
+            if ((request.Method != HttpMethod.Post && request.Method != HttpMethod.Delete)
+                || uri.Host != "item-state-original.invalid" || segments.Length != 5
+                || segments[0] != "emby" || segments[1] != "Users" || segments[2] != "original-user"
+                || segments[3] is not ("PlayedItems" or "FavoriteItems") || !segments[4].StartsWith("state-", StringComparison.Ordinal))
+            {
+                Unexpected++;
+                throw new InvalidOperationException("R-016 fixture permits only in-memory original-source user-state requests");
+            }
+            pending = new ItemUserStateRequest(request.Method, segments[3], segments[4], cancellationToken);
+        }
         _requests.Add(pending);
         // Deliberately ignore cancellation and return late successes: real scope/apply guards must reject them.
         return pending.Response;
@@ -179,7 +214,7 @@ internal sealed class ItemUserStateHandler : HttpMessageHandler
     }
 }
 
-internal sealed class ItemUserStateRequest(HttpMethod method, string field, string itemId, CancellationToken token)
+internal sealed class ItemUserStateRequest(HttpMethod method, string field, string itemId, CancellationToken token, bool native = false)
 {
     private readonly TaskCompletionSource<HttpResponseMessage> _response = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public HttpMethod Method { get; } = method;
@@ -190,15 +225,24 @@ internal sealed class ItemUserStateRequest(HttpMethod method, string field, stri
 
     public void Complete(EmbyUserData? data, bool noContent)
     {
-        var response = new HttpResponseMessage(noContent ? HttpStatusCode.NoContent : HttpStatusCode.OK)
+        string payload;
+        if (native && Field == "ReadUserData" && data is not null)
+            payload = JsonSerializer.Serialize(new
+            {
+                code = 0,
+                data = new { guid = ItemId, title = "fixture", type = "Movie", watched = data.Played ? 1 : 0,
+                    is_favorite = data.IsFavorite ? 1 : 0, ts = data.PlaybackPositionTicks / (double)TimeSpan.TicksPerSecond, duration = 100d }
+            });
+        else payload = native ? "{\"code\":0,\"data\":null}" : noContent ? "" : JsonSerializer.Serialize(data);
+        var response = new HttpResponseMessage(!native && noContent ? HttpStatusCode.NoContent : HttpStatusCode.OK)
         {
-            Content = new StringContent(noContent ? "" : JsonSerializer.Serialize(data), Encoding.UTF8, "application/json")
+            Content = new StringContent(payload, Encoding.UTF8, "application/json")
         };
         if (!_response.TrySetResult(response)) response.Dispose();
     }
-    public void Fail()
+    public void Fail(HttpStatusCode status = HttpStatusCode.InternalServerError)
     {
-        var response = new HttpResponseMessage(HttpStatusCode.InternalServerError)
+        var response = new HttpResponseMessage(status)
         {
             Content = new StringContent("synthetic user-state failure", Encoding.UTF8, "text/plain")
         };

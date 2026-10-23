@@ -1743,7 +1743,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public override Task ReloadAsync() => LoadAsync();
 
     /// <summary>Re-reads the item and everything hanging off it. The one entry point; every path lands here.</summary>
-    private async Task LoadAsync()
+    private async Task LoadAsync(string? committedNotice = null)
     {
         if (!Attached || _seed is not { } seed) return;
 
@@ -1801,7 +1801,15 @@ public sealed partial class DetailViewModel : PageViewModel
             Log.Warn(Category, "加载详情失败", error);
             if (!IsCurrent(token)) return;
 
-            Report("加载详情失败", error);
+            if (committedNotice is null) Report("加载详情失败", error);
+            else
+            {
+                var transient = error is EmbyUnreachableException || error is EmbyApiException { StatusCode: { } status }
+                    && (int)status is >= 500 and <= 599;
+                var severity = transient ? InfoBarSeverity.Warning : InfoBarSeverity.Error;
+                Notify(committedNotice, Failure.Describe(error), severity);
+                _actions?.Notify($"{committedNotice}：{Failure.Describe(error)}", severity);
+            }
 
             // Ready, not stuck: IsReady means the first load finished, whether it found anything or not,
             // and the startup self-check waits on it before it reads the page.
@@ -2676,6 +2684,21 @@ public sealed partial class DetailViewModel : PageViewModel
                     : client.MarkPlayedAsync(item.Id, token), CancellationToken.None)
                 .ConfigureAwait(true);
 
+            if (!scope.IsAvailable) return;
+            if (scope.Connection.IsFnNas)
+            {
+                // The native endpoint acknowledged this bit before any detail refresh. Preserve it
+                // even when the optional server-derived counts or episode list cannot be read back.
+                item.UserData ??= new EmbyUserData();
+                item.UserData.Played = !played;
+                if (played)
+                {
+                    item.UserData.PlaybackPositionTicks = 0;
+                    item.UserData.PlayedPercentage = 0;
+                }
+                if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail)) Watched = !played;
+            }
+
             // 标记为已看（played 为 false 的那一次）还要替服务器补报一趟播放停止，位置按用户令报 100%，好让
             // 服务器上那条通知立刻把 playback.stop 转发出去（用户令 2026-10-09，见 IShellActions.ReportMarkedWatched）。
             // 反过来「标记未观看」不是「看完了」，不报。
@@ -2684,7 +2707,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // Re-read rather than flipped locally: marking a season watched moves every episode's tick
             // and the show's unplayed count with it, and only the server knows what it did.
             if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail) && scope.IsAvailable)
-                await LoadAsync().ConfigureAwait(true);
+                await LoadAsync(scope.Connection.IsFnNas ? "观看状态已保存，但刷新详情失败" : null).ConfigureAwait(true);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)

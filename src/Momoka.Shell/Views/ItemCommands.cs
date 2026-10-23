@@ -443,23 +443,26 @@ internal static partial class ItemCommands
         var identity = item.IdentityKey;
         var order = UserStateOrders.GetValue(item, static _ => new ItemUserStateOrder());
         var change = order.BeginWatched(played);
-        Run(
+        RunUserState(
             session,
             shell,
             played ? "标记已观看失败" : "标记未观看失败",
             (client, token) => played
                 ? client.MarkPlayedAsync(item.Id, token)
                 : client.MarkUnplayedAsync(item.Id, token),
-            data =>
+            async data =>
             {
-                if (!Patch(card, identity, order, change, data) || !played) return;
+                if (!Patch(card, identity, order, change, data)) return;
+                if (played)
+                {
+                    // 标记为已看还要替服务器补报一趟播放停止（位置按用户令报 100%），好让服务器上那条通知立刻把
+                    // playback.stop 转发出去（用户令 2026-10-09）。只在这一位：反过来「标记未观看」不是「看完了」。
+                    shell.ReportMarkedWatched(item);
 
-                // 标记为已看还要替服务器补报一趟播放停止（位置按用户令报 100%），好让服务器上那条通知立刻把
-                // playback.stop 转发出去（用户令 2026-10-09）。只在这一位：反过来「标记未观看」不是「看完了」。
-                shell.ReportMarkedWatched(item);
-
-                // 那一格该换成下一集还是撤掉，页面比这一头清楚（见 Show 的 watched）。
-                watched?.Invoke(card);
+                    // 那一格该换成下一集还是撤掉，页面比这一头清楚（见 Show 的 watched）。
+                    watched?.Invoke(card);
+                }
+                await RefreshFnNasUserStateAsync(session, shell, card, identity, order, change).ConfigureAwait(true);
             },
             finished: () => order.Complete(change));
     }
@@ -471,14 +474,16 @@ internal static partial class ItemCommands
         var identity = item.IdentityKey;
         var order = UserStateOrders.GetValue(item, static _ => new ItemUserStateOrder());
         var change = order.BeginFavorite(favourite);
-        Run(
+        RunUserState(
             session,
             shell,
             "更新收藏失败",
             (client, token) => client.SetFavoriteAsync(item.Id, favourite, token),
-            data =>
+            async data =>
             {
-                if (Patch(card, identity, order, change, data)) shell.RefreshFavorites(item);
+                if (!Patch(card, identity, order, change, data)) return;
+                shell.RefreshFavorites(item);
+                await RefreshFnNasUserStateAsync(session, shell, card, identity, order, change).ConfigureAwait(true);
             },
             finished: () => order.Complete(change));
     }
@@ -526,12 +531,53 @@ internal static partial class ItemCommands
         return true;
     }
 
+    private static async Task RefreshFnNasUserStateAsync(EmbySessionScope scope, IShellActions shell, CardItem card,
+        string identity, ItemUserStateOrder order, ItemUserStateOrder.Change change)
+    {
+        if (!scope.Connection.IsFnNas || !card.IsCurrent || card.Item.IdentityKey != identity) return;
+        try
+        {
+            var data = await scope.ExecuteAsync((client, token) => client.GetFnNasUserDataAsync(card.Item.Id, token),
+                CancellationToken.None).ConfigureAwait(true);
+            if (!card.IsCurrent || card.Item.IdentityKey != identity || data is null) return;
+            if (order.RefreshConfirmed(change, card.Item.UserData, data) is not { } state) return;
+            card.Item.UserData = state;
+            card.RefreshUserData();
+        }
+        catch (OperationCanceledException) { }
+        catch (ObjectDisposedException) { }
+        catch (Exception error)
+        {
+            if (!card.IsCurrent || card.Item.IdentityKey != identity) return;
+            Log.Warn(Category, "用户状态已保存，但补充刷新失败", error);
+            // Permission/authentication/protocol errors stay visible as errors; they do not roll back
+            // a confirmed write. A transient server/network read failure is a refresh warning only.
+            var transient = error is EmbyUnreachableException || error is EmbyApiException { StatusCode: { } status }
+                && (int)status is >= 500 and <= 599;
+            shell.Notify($"状态已保存，但刷新失败；请刷新列表核对：{Failure.Describe(error)}",
+                transient ? InfoBarSeverity.Warning : InfoBarSeverity.Error);
+        }
+    }
+
+    // Unrelated one-step server commands keep their synchronous application contract.
     private static void Run(
         EmbySessionScope session,
         IShellActions shell,
         string failure,
         Func<EmbyClient, CancellationToken, Task<EmbyUserData?>> work,
-        Action<EmbyUserData?>? applied,
+        Action<EmbyUserData?>? applied) =>
+        _ = RunAsync(session, shell, failure, work, data =>
+        {
+            applied?.Invoke(data);
+            return Task.CompletedTask;
+        }, null);
+
+    private static void RunUserState(
+        EmbySessionScope session,
+        IShellActions shell,
+        string failure,
+        Func<EmbyClient, CancellationToken, Task<EmbyUserData?>> work,
+        Func<EmbyUserData?, Task>? applied,
         Action? finished = null) => _ = RunAsync(session, shell, failure, work, applied, finished);
 
     private static async Task RunAsync(
@@ -539,13 +585,13 @@ internal static partial class ItemCommands
         IShellActions shell,
         string failure,
         Func<EmbyClient, CancellationToken, Task<EmbyUserData?>> work,
-        Action<EmbyUserData?>? applied,
+        Func<EmbyUserData?, Task>? applied,
         Action? finished)
     {
         try
         {
             var data = await AskAsync(session, work).ConfigureAwait(true);
-            applied?.Invoke(data);
+            if (applied is not null) await applied(data).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {
