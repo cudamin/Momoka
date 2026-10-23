@@ -1,3 +1,8 @@
+## 第五组 R-046 主树自然EOF同窗继任及caller收尾（2026-10-24，继续）
+
+- 显式Episode/AutoNext自然EOF才retain非custom独占实例、窄lease由caller awaitusing回收；真实context关闭fence/q前置取消哨兵与source撤销守准入，旧lease/旧取消请求handle+generation失效不碰B。有效红10项5过5败、旧lease等Btimeout、23项22过1旧清B、26项25过1Q前留、27项26过1候选retry误cancel均闭环，当前realService/native27绿。fixture-only worker58ec7779限定整合完整VM50绿/8提取拒绝后重编译50再绿，11临时产品快照不带主树，Start节点same；最终27csproj方案零警告错误、Core2549/R05137/R04431/R04827/Monitor28/拖拽74/轨道11/音量31全过不相加。solutionRelease/x64空白命名冲突初红保留、folder映射修后0修改/退出0无加载诊断；25PS/UTF8LF链接19pins哈希过，独立静态P2闭环无保留。证据batch05/r046与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计57稳定号／余16，下一步限定整合R027源fae6539d（68支线绿、只读复核无保留），R037/R039源18c86056已交回待复核重验；R067源feba564未整合，静态P1夹具路径＋两P2退回Ampere原树补修。继续不自动暂停；未实际独占窗口/uosc/native/媒体/config凭据DPAPI/服务器/WinUI播放/发布推送，快捷方式旧版，非完整交付。
+
 ## 第五组 R-051 主树原生文件代次执行点限定整合（2026-10-24，继续）
 
 - 源ada1d3cc限定三Core／正式项目／原事务10项构造边界整合，FileGeneration在事务开始捕获，write/rollback共用预期值到真实RunFor与HandOver/Swap/Destroy共同锁核验，service/native不猜同计数，接班空档拒绝。主树当前37全绿（三B旧写全0），当前24csproj方案Core/夹具/x64ShellRelease零警告错误；完整Core2549/EndFile27/Monitor28/拖拽74全过不相加；2提取非法反例预期退出1后默认当前重编译37再绿。solutionRelease/x64空白0修改/退出0无加载失败、23PS/UTF8LF链接hash过；产品逐字同来源，独立只读静态无保留，证据batch05/r051，源37项30过7败及取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。

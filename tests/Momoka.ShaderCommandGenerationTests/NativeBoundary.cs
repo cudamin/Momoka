@@ -25,6 +25,7 @@ internal sealed class NativeBoundary
     internal List<string> Reads { get; } = [];
     internal List<string> PropertyWrites { get; } = [];
     internal Func<string[], int>? Result { get; set; }
+    internal Func<string[], int>? LoadResult { get; set; }
     internal Action? Shutdown { get; set; }
     internal Action<string>? BeforeRead { get; set; }
     internal string? Missing { get; set; }
@@ -51,9 +52,11 @@ internal sealed class NativeBoundary
                 return result;
             case "loadfile" when arguments.Length == 3 && arguments[2] == "replace"
                 && new Uri(arguments[1]).Host == "r051.invalid":
-                Commands.Add(new NativeCommand(File, [.. arguments]));
-                File = Values["force-media-title"];
-                return 0;
+                var load = new NativeCommand(File, [.. arguments]);
+                Commands.Add(load);
+                load.Result = LoadResult?.Invoke(arguments) ?? 0;
+                if (load.Result >= 0) File = Values["force-media-title"];
+                return load.Result.Value;
             case "quit" when arguments.Length == 1:
                 Commands.Add(new NativeCommand(File, [.. arguments]));
                 Shutdown?.Invoke();

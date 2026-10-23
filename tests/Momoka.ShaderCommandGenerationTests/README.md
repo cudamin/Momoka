@@ -6,7 +6,7 @@
 ## 真实生产边界
 
 - 直接引用当前 Core：运行完整的 PlaybackService 事务、Lifecycle 的 HandOver/Swap/接班/关闭路径。
-- 每次构建原样提取整个 LibMpvHandle、LibMpvLifetimeGate，以及 LibMpvBackend.Run/Describe 的 UTF-8 命令 marshalling；LibMpvNodes/LibMpvFrame/MpvListValue 链接实际源码。
+- 每次构建通过 [共享提取目标](ExtractNativeControl.targets) 原样提取整个 LibMpvHandle、LibMpvLifetimeGate，以及 LibMpvBackend.Run/Describe 的 UTF-8 命令 marshalling；LibMpvNodes/LibMpvFrame/MpvListValue 链接实际源码。自然EOF专项复用这个完整源码边界，不复制一份handle模型；本37项仍单独运行。
 - 从当前 PlayerViewModel.Mpv.cs 原样提取 QueuePictureCommand 和 ChangeShaderGroupAsync，只替换字段/反馈枚举边界；因此 UI 不提交的断言不是复制已修模型。
 - 提取标记须唯一且顺序正确，否则构建失败。编译时记录 backend/native/UI/service 的 SHA-256，测试时重新核对；不接受旧来源。
 - PausingHandle 只透明转发。命令参数的真实 ToArray 枚举停点位于服务最后 Current 检查之后、实际 handle 读取 native generation 之前；不修改生产方法、不伪造 native gate。真实 HandOver 和 Swap 各推进一次 native 代次，Service 只推进一次，两者不能比较为相同计数。

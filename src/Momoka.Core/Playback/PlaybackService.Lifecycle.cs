@@ -7,11 +7,14 @@ namespace Momoka.Playback;
 
 public sealed partial class PlaybackService
 {
-    private sealed class PlayOperation(CancellationToken cancellationToken, CancellationToken startupCancellation, CancellationToken sourceLifetime) : IDisposable
+    private sealed class PlayOperation(CancellationToken cancellationToken, CancellationToken startupCancellation, CancellationToken sourceLifetime,
+        CancellationToken continuationCancellation, Task? continuationClosed) : IDisposable
     {
         // Default-source selection does not revoke this captured identity. Actual revocation must
         // cancel both preparation and monitoring, even when server reporting is disabled.
-        public CancellationTokenSource Startup { get; } = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, startupCancellation, sourceLifetime);
+        public CancellationTokenSource Startup { get; } = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, startupCancellation, sourceLifetime, continuationCancellation);
+        public CancellationToken ContinuationCancellation { get; } = continuationCancellation;
+        public Task? ContinuationClosed { get; set; } = continuationClosed;
         public CancellationTokenSource Lifetime { get; } = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, sourceLifetime);
         public TaskCompletionSource Completed { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool Established { get; set; }
@@ -47,11 +50,14 @@ public sealed partial class PlaybackService
     /// <summary>Derived episode/version requests retain the identity that supplied their metadata.</summary>
     public async Task<PlaybackResult> PlayAsync(
         PlaybackTicket ticket, EmbySessionScope? identity, CancellationToken cancellationToken,
-        CancellationToken startupCancellation = default)
+        CancellationToken startupCancellation = default, CancellationToken continuationCancellation = default,
+        PlaybackContinuation? expectedContinuation = null)
     {
         if (!allowPlayback) throw new InvalidOperationException("自检模式禁止真实播放");
         cancellationToken.ThrowIfCancellationRequested();
         startupCancellation.ThrowIfCancellationRequested();
+        continuationCancellation.ThrowIfCancellationRequested();
+        if (expectedContinuation?.ContextClosed.IsCompleted == true) throw new OperationCanceledException("接续窗口已关闭");
         EmbySessionScope scope;
         try
         {
@@ -67,7 +73,8 @@ public sealed partial class PlaybackService
             throw;
         }
 
-        using var operation = new PlayOperation(cancellationToken, startupCancellation, scope.Lifetime);
+        using var operation = new PlayOperation(cancellationToken, startupCancellation, scope.Lifetime, continuationCancellation,
+            expectedContinuation?.ContextClosed);
         lock (_requestGate)
         {
             if (_latestRequest is { Established: false } previous) Cancel(previous.Startup);
@@ -109,6 +116,8 @@ public sealed partial class PlaybackService
 
     private void ThrowIfSuperseded(PlayOperation operation)
     {
+        operation.ContinuationCancellation.ThrowIfCancellationRequested();
+        if (operation.ContinuationClosed?.IsCompleted == true) throw new OperationCanceledException("接续窗口已关闭");
         operation.Startup.Token.ThrowIfCancellationRequested();
         lock (_requestGate)
         {
@@ -133,6 +142,7 @@ public sealed partial class PlaybackService
         PlayOperation[] operations;
         PlayingAttempt? active;
         IPlaybackHandle? handle;
+        PlaybackContinuation? continuation;
         lock (_requestGate)
         {
             _latestRequest = null;
@@ -144,15 +154,23 @@ public sealed partial class PlaybackService
             }
             active = _active;
             handle = _current;
+            continuation = _continuation?.Lease;
         }
-        return StopAndWaitAsync(operations, active, handle);
+        return StopAndWaitAsync(operations, active, handle, continuation);
     }
 
-    private static async Task StopAndWaitAsync(PlayOperation[] operations, PlayingAttempt? active, IPlaybackHandle? handle)
+    private static async Task StopAndWaitAsync(PlayOperation[] operations, PlayingAttempt? active, IPlaybackHandle? handle,
+        PlaybackContinuation? continuation)
     {
-        if (active is not null) await active.StopAsync().ConfigureAwait(false);
-        else if (handle is not null) await StopHandleAsync(handle).ConfigureAwait(false);
+        // A parked handle can be reused before a delayed stop runs. Only its lease may release it,
+        // after the holder/generation recheck; do not issue a bare stop against a possible successor.
+        if (continuation is null)
+        {
+            if (active is not null) await active.StopAsync().ConfigureAwait(false);
+            else if (handle is not null) await StopHandleAsync(handle).ConfigureAwait(false);
+        }
         await Task.WhenAll(operations.Select(operation => operation.Completed.Task)).ConfigureAwait(false);
+        if (continuation is not null) await continuation.DisposeAsync().ConfigureAwait(false);
     }
 
     private async Task<bool?> ReplacementFullscreenAsync(PlayOperation operation)
@@ -186,25 +204,52 @@ public sealed partial class PlaybackService
         ThrowIfSuperseded(operation);
         var request = planner.Plan(ticket, connection, audioDevice) with { Fullscreen = fullscreen };
         var backendKind = settings.Mpv.Backend;
-        var old = _active;
-        var live = _current;
+        PlayingAttempt? old;
+        IPlaybackHandle? live;
+        long predecessorGeneration;
+        bool parkedPredecessor;
+        lock (_requestGate)
+        {
+            old = _active;
+            live = _current;
+            predecessorGeneration = Generation;
+            parkedPredecessor = old is null && ReferenceEquals(_continuation?.Handle, live)
+                && _continuation?.Generation == predecessorGeneration;
+        }
         var takeover = backendKind == MpvBackendKind.BuiltInLibMpv && live?.CanSwapTo(request) == true ? live : null;
         ThrowIfSuperseded(operation);
         if (takeover is not null) takeover.HandOver();
-        else if (old is not null) await old.StopAsync().ConfigureAwait(false);
-        else if (live is not null) await StopHandleAsync(live).ConfigureAwait(false);
+        else if (!parkedPredecessor)
+        {
+            // An incompatible successor intentionally replaces the old context. From this point its
+            // own stop signal is cleanup, not a user-close veto against the separate new backend.
+            operation.ContinuationClosed = null;
+            ConsumeContinuation(live, predecessorGeneration);
+            if (old is not null) await old.StopAsync().ConfigureAwait(false);
+            else if (live is not null) await StopHandleAsync(live).ConfigureAwait(false);
+        }
 
         // Once an old handle has been handed over, the successor must acquire the gate even if cancelled:
         // it owns disposal of any retained instance the old run has already relinquished.
         await _gate.WaitAsync().ConfigureAwait(false);
-        IPlaybackHandle? handle = _current;
+        // An older cancelled request may finally acquire this gate after a newer file has already
+        // ended and parked the same native handle. Its cleanup authority does not include that file.
+        var ownsPredecessor = ReferenceEquals(_current, live) && Generation == predecessorGeneration;
+        IPlaybackHandle? handle = ownsPredecessor ? _current : null;
         PlayingAttempt? attempt = null;
         try
         {
+            if (ownsPredecessor) ConsumeContinuation(handle, predecessorGeneration);
             ThrowIfSuperseded(operation);
+            // A parked incompatible predecessor is stopped only while owning the player gate,
+            // so a delayed bare Stop cannot land in the next file on this same native handle.
             if (handle is not null && (!ReferenceEquals(handle, takeover)
                 || !await handle.SwapToAsync(request, operation.Startup.Token).ConfigureAwait(false)))
             {
+                // A closed context must cancel automatic admission even before its asynchronous
+                // cancellation callback runs. A merely rejected reset can still use the fallback.
+                ThrowIfSuperseded(operation);
+                operation.ContinuationClosed = null;
                 await StopHandleAsync(handle).ConfigureAwait(false);
                 await ReleaseAsync(handle).ConfigureAwait(false);
                 handle = null;
@@ -225,6 +270,9 @@ public sealed partial class PlaybackService
                         && status.Position > request.StartSeconds + 0.5
                 };
                 _active = attempt;
+                // Admission is complete. A later failed candidate destroys this context as normal
+                // cleanup; that must not look like the predecessor was closed before handoff.
+                operation.ContinuationClosed = null;
             }
             ShaderStateKnown = true;
             _launchOptions = request.PlayerOptions;
@@ -263,7 +311,8 @@ public sealed partial class PlaybackService
                 var exit = await MonitorAsync(scope, attempt, operation.Lifetime.Token).ConfigureAwait(false);
                 ended = true;
                 attempt.Ending = true;
-                return await FinishAsync(scope, attempt, exit, ticket).ConfigureAwait(false);
+                var result = await FinishAsync(scope, attempt, exit, ticket).ConfigureAwait(false);
+                return result with { Continuation = RetainAfterEndOfFile(scope, ticket, operation, attempt, result, backendKind) };
             }
             catch (Exception error)
             {
@@ -295,7 +344,8 @@ public sealed partial class PlaybackService
             lock (_requestGate)
             {
                 retain = attempt is not null && handle?.WasHandedOver == true
-                    && _latestRequest is { } next && !ReferenceEquals(next, operation) && !next.Startup.IsCancellationRequested;
+                    && (ReferenceEquals(_continuation?.Handle, handle) && _continuation.Generation == attempt.Generation
+                        || _latestRequest is { } next && !ReferenceEquals(next, operation) && !next.Startup.IsCancellationRequested);
                 operation.Established = false;
             }
             try
@@ -305,14 +355,17 @@ public sealed partial class PlaybackService
                     if (attempt is null) await StopHandleAsync(handle).ConfigureAwait(false);
                     await ReleaseAsync(handle).ConfigureAwait(false);
                 }
-                _launchOptions = [];
-                _launchGroupOptionCount = 0;
-                LaunchShaderProfile = null;
-                LaunchShaderDecision = null;
-                LaunchShaderReason = null;
-                LaunchQualityPreset = null;
-                PlayingSource = null;
-                if (attempt is not null) RaiseNowPlaying(null, attempt.Generation);
+                if (ownsPredecessor || attempt is not null)
+                {
+                    _launchOptions = [];
+                    _launchGroupOptionCount = 0;
+                    LaunchShaderProfile = null;
+                    LaunchShaderDecision = null;
+                    LaunchShaderReason = null;
+                    LaunchQualityPreset = null;
+                    PlayingSource = null;
+                    if (attempt is not null) RaiseNowPlaying(null, attempt.Generation);
+                }
             }
             finally { _gate.Release(); }
         }

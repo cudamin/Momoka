@@ -116,6 +116,8 @@ internal sealed class PausingHandle(HandleFixture owner) : IPlaybackHandle, IPla
     internal int PauseAt { get; set; } = 1;
     internal CommandPause? Pause { get; set; }
     internal CommandPause? AfterSwap { get; set; }
+    internal Action? BeforeRetention { get; set; }
+    internal Action? AfterHandOver { get; set; }
     internal List<long> ExpectedGenerations { get; } = [];
     internal IPlaybackHandle Inner => owner.Handle;
     private IPlayerControl Control => owner.Handle;
@@ -125,12 +127,23 @@ internal sealed class PausingHandle(HandleFixture owner) : IPlaybackHandle, IPla
     public bool? PictureInHostWindow => Inner.PictureInHostWindow;
     public bool IsPaused => Inner.IsPaused;
     public bool WasHandedOver => Inner.WasHandedOver;
+    public bool TryRetainAfterEndOfFile()
+    {
+        BeforeRetention?.Invoke();
+        return Inner.TryRetainAfterEndOfFile();
+    }
+    public Task ContinuationClosed => Inner.ContinuationClosed;
+    public bool ContinuationCanceled => Inner.ContinuationCanceled;
     public PlayerStatus Status => Control.Status;
     public event Action<bool>? PauseChanged { add => Inner.PauseChanged += value; remove => Inner.PauseChanged -= value; }
     public event Action<PlayerStatus>? StatusChanged { add => Control.StatusChanged += value; remove => Control.StatusChanged -= value; }
     public event Action<IReadOnlyList<MpvTrack>>? TracksChanged { add => Control.TracksChanged += value; remove => Control.TracksChanged -= value; }
     public bool CanSwapTo(PlaybackRequest request) => Inner.CanSwapTo(request);
-    public void HandOver() => Inner.HandOver();
+    public void HandOver()
+    {
+        Inner.HandOver();
+        AfterHandOver?.Invoke();
+    }
     public async Task<bool> SwapToAsync(PlaybackRequest request, CancellationToken token)
     {
         var accepted = await Inner.SwapToAsync(request, token);

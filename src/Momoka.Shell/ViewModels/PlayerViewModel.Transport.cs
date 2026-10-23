@@ -166,9 +166,11 @@ public sealed partial class PlayerViewModel
         IReadOnlyList<EmbyItem>? episodes,
         bool replaceExisting,
         EmbySessionScope? identity = null,
-        long? continuingIntent = null)
+        long? continuingIntent = null,
+        CancellationToken continuationCancellation = default, PlaybackContinuation? expectedContinuation = null)
     {
         _lifetime.Token.ThrowIfCancellationRequested();
+        continuationCancellation.ThrowIfCancellationRequested();
         if (continuingIntent is { } inherited && !_startIntent.IsCurrent(inherited)) return;
         if (!replaceExisting && _playback.IsPlaying)
         {
@@ -192,7 +194,7 @@ public sealed partial class PlayerViewModel
             episodes = episodes.Select(episode => episode.Source is null ? scope.Bind(episode) : episode).ToArray();
         var previousItem = _nowPlaying;
         FlushVolume(settled: false);
-        using var preparation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        using var preparation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, continuationCancellation);
         _preparing?.Cancel();
         _preparing = preparation;
 
@@ -311,6 +313,7 @@ public sealed partial class PlayerViewModel
                 ExactStart = choice?.ExactStart ?? false,
                 Parent = parentItem,
                 ShaderSettings = _shaderSettings,
+                RetainForAutomaticContinuation = detail.Type == EmbyItemType.Episode,
                 OutputWidth = output.Width,
                 OutputHeight = output.Height,
                 DisplayRefreshHz = MeasureRefreshHz?.Invoke() ?? 0
@@ -326,10 +329,13 @@ public sealed partial class PlayerViewModel
             // 交给后端前的最后一问：停在这一拍的话，连后端都不要碰 —— Core 那头的待启动编号
             // 也会把仍在等待闸门的旧请求作废（用户 Stop 的同一刀）。
             if (!_startIntent.IsCurrent(intent)) return;
+            preparation.Token.ThrowIfCancellationRequested();
 
             // 来源、续集与标题只在后端确认建立后一起提交；准备失败时仍保留旧播放的身份。
             _pendingPlayback = new(detail, parentItem, episodes ?? [], scope, intent);
-            var result = await _playback.PlayAsync(ticket, scope, _lifetime.Token, preparation.Token).ConfigureAwait(true);
+            var result = await _playback.PlayAsync(ticket, scope, _lifetime.Token, preparation.Token,
+                continuationCancellation, expectedContinuation).ConfigureAwait(true);
+            await using var continuation = result.Continuation;
 
             // 「播放已停止」 belongs to the end of a viewing, not to the seam between two episodes: the
             // switch already says what it is doing, and two toasts stacked over a half-built player were
@@ -365,7 +371,9 @@ public sealed partial class PlayerViewModel
                         following.Siblings,
                         replaceExisting: true,
                         identity: followingScope,
-                        continuingIntent: intent)
+                        continuingIntent: intent,
+                        continuationCancellation: continuation?.Lifetime ?? default,
+                        expectedContinuation: continuation)
                     .ConfigureAwait(true);
             }
         }

@@ -11,7 +11,7 @@ namespace Momoka.Tests;
 
 // The real service start/HandOver/Swap/attempt-generation/Stop path, with one anonymous identity.
 // No identity restore, login, authentication retry, actual HTTP, credential IO, or native Start.
-internal sealed class ServiceFixture : IAsyncDisposable
+internal sealed partial class ServiceFixture : IAsyncDisposable
 {
     private const BindingFlags Private = BindingFlags.Instance | BindingFlags.NonPublic;
     private readonly EmbySession _session;
@@ -25,6 +25,7 @@ internal sealed class ServiceFixture : IAsyncDisposable
     internal AppSettings Settings { get; } = new();
     internal EmbySessionScope Scope { get; }
     internal int BackendStarts { get; private set; }
+    internal Func<PlaybackRequest, CancellationToken, Task<IPlaybackHandle>>? NextBackendStart { get; set; }
     internal List<string?> Subjects { get; } = [];
     internal DenyHttp Http { get; } = new();
 
@@ -136,7 +137,7 @@ internal sealed class ServiceFixture : IAsyncDisposable
             token.ThrowIfCancellationRequested();
             owner.BackendStarts++;
             // This does NOT call LibMpvHandle.Start or initialize/load native media.
-            return Task.FromResult<IPlaybackHandle>(owner.Handle);
+            return owner.NextBackendStart?.Invoke(request, token) ?? Task.FromResult<IPlaybackHandle>(owner.Handle);
         }
     }
 }

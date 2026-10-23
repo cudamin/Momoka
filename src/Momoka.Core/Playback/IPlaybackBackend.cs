@@ -75,6 +75,16 @@ public interface IPlaybackHandle : IAsyncDisposable
     /// </summary>
     bool WasHandedOver => false;
 
+    /// <summary>Retains an already-completed natural EOF for a caller-owned automatic continuation.
+    /// Default false: only a live reusable standalone native context may opt in; never stop/error/quit.</summary>
+    bool TryRetainAfterEndOfFile() => false;
+
+    /// <summary>Completion means the reusable context has closed, not just that its current file reached EOF.</summary>
+    Task ContinuationClosed => Task.CompletedTask;
+
+    /// <summary>A caller-requested continuation was vetoed by actual context closure, even if EOF had completed first.</summary>
+    bool ContinuationCanceled => false;
+
     /// <summary>Shows a message on mpv's OSD; silently does nothing without a control channel.</summary>
     Task ShowMessageAsync(string text);
 
