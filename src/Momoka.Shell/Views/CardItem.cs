@@ -123,7 +123,13 @@ public sealed class CardItem : INotifyPropertyChanged
     private bool _wanted;
 
     /// <summary>
-    /// 此刻把这张卡摆在屏上的那个容器，没有就是没有。**弱引用**：卡片活在页面的清单里（<c>CardShelf.Cards</c>），
+    /// 当前换宽是否需要补图。与 _wanted 分开：容器暂时离树时可以继续等旧请求，
+    /// 但不该因窗口换宽另开请求；显式 EnsurePosterAsync（Loaded / 换卡）才重新开启。
+    /// </summary>
+    private bool _resizeWanted;
+
+    /// <summary>
+    /// 此刻装着这张卡的那个容器（可暂时离树），没有就是没有。**弱引用**：卡片活在页面的清单里（<c>CardShelf.Cards</c>），
     /// 攥着一个已经回收掉的容器不放，一页卡片就会拖着几十个容器一起活着。
     /// <para>
     /// 存在的理由是回收的那一下会认错人：同一张卡会短暂地挂在两个容器上 —— 回收池里那个还攥着它，另一个容器已经
@@ -379,12 +385,11 @@ public sealed class CardItem : INotifyPropertyChanged
         _loading?.Cancel();
         _loading = null;
 
-        if (_poster is null) return;
-
         Poster = null;
 
-        // 只有屏上这一张要立刻补回来；不在屏上的，等容器再把它递进来时按新宽度取（见 EnsurePosterAsync）。
-        if (_wanted) _ = EnsurePosterAsync();
+        // 首图尚未返回也得重启；离屏后只是继续等旧图，不因此开启新宽度请求。
+        // 容器再把它递进来时，EnsurePosterAsync 会按最新宽度取。
+        if (_resizeWanted) _ = EnsurePosterAsync();
     }
 
     /// <summary>画出来的图有多高。索引卡自带宽高比时按它算（见 <see cref="_aspect"/>），否则按两档形状。</summary>
@@ -505,6 +510,7 @@ public sealed class CardItem : INotifyPropertyChanged
     public async Task EnsurePosterAsync()
     {
         _wanted = true;
+        _resizeWanted = true;
 
         if (_imageType is null && _artwork is null || _missing || _poster is not null || _loading is not null) return;
         if (Scope is not { IsAvailable: true } scope) return;
@@ -620,8 +626,14 @@ public sealed class CardItem : INotifyPropertyChanged
         // 不是持有者就没有资格放手：它手上那张卡只是回收池留下来的旧引用，屏上这张还有人看着。
         if (!HeldBy(container)) return;
 
-        _holder = null;
-        if (!keepWaiting) _wanted = false;
+        _resizeWanted = false;
+        if (!keepWaiting)
+        {
+            _holder = null;
+            _wanted = false;
+        }
+        // 暂离树时保留弱持有者：同一容器 Loaded 只 Ensure、不重新 Claim，之后仍须认得它的 Release。
+        // 真正换卡才清持有者；新容器 Claim 会直接取代它，旧容器的迟到 Release 仍然无效。
 
         Poster = null;
     }
@@ -638,6 +650,7 @@ public sealed class CardItem : INotifyPropertyChanged
     {
         _holder = null;
         _wanted = false;
+        _resizeWanted = false;
         _loading?.Cancel();
         _loading = null;
         Poster = null;

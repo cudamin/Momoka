@@ -59,6 +59,7 @@ internal static class Program
             Assert.Equal(0, page.ContractAttaches);
         });
         DiagnosticsTests.Register();
+        CardImageResizeTests.Register();
         return TestHarness.Run();
     }
 

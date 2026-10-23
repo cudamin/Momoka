@@ -1,3 +1,9 @@
+## 分阶段修复：R-012主树收束（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；限定整合支线 `29231fa91b0ac9853ee1dd768a9d5f3bcbd88b5d`，可见首图换宽不再因Poster为空漏补请求，离屏继续等待与换宽需求分开，同容器弱持有者／旧CTS代次保持，不重建卡或页。
+- 正式页面契约源码链接真CardItem/PosterCache，额外2项泵失败/取消回归，最终70通过／0失败跳过，Release零警告错误；测试初始化空白准确定位后定点修正并重编重跑70。当前Core2256全过，Shell零警告错误；RS0030未压制。证据与覆盖限制见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本树测试输出假文件留盘，无真实Loaded/WinRT/视觉/滚动/UI/native/配置/账号/播放/发布/推送；快捷方式仍旧版。第一组13号已代码+离线回归，其余60号保留，支线全部关闭。内容/链接/字节/差异检查后本地提交再继续下一批，不自动暂停、不声称主动压缩。
+
 ## 分阶段修复：R-073／R-060设置页整合（2026-10-23）
 
 - 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；限定整合支线`91c010b4287ad5073fdbb5b6d0afc733cb78c272`三题内文件。初建/cached共用只读保存flag同步，不Reload/Save、不丢草稿/集合；四目录共用异步Task，launcher只调用一次，错误进页面反馈。

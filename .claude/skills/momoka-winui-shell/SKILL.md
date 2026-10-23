@@ -39,6 +39,8 @@ Most non-UI capability sits in `Core/Emby`, `Core/Playback`, `Core/Mpv` and `Cor
 
 Diagnostics treats `RingBufferLogSink.Written` as a wake-up, not ordered delivery. `SnapshotAfter` returns retained writes and a sequence watermark under the same lock; a refresh or out-of-order queued notification therefore does not replay already-displayed entries. Repeated identical log content remains distinct writes. Normal updates append the unread tail and trim rows/categories to capacity rather than rebuilding every row. Reentry resets the watermark, and both old-sink notifications and paused/detached updates retain their lifetime guards.
 
+Card image resizing uses a separate `_resizeWanted` flag from `_wanted`: a container may keep waiting for an old request while temporarily off-tree, but must not start a new request just because the window width changes. Explicit `EnsurePosterAsync` reopens resize demand; the current holder's release and page abandonment close it. Resize cancels the old generation and restarts a visible first image even when `Poster` is still null. Keep the weak holder for temporary off-tree releases because the same control's Loaded path only ensures the image, not claims it again. `CardImageResizeTests` compile-links actual card/cache sources with fake value/decode boundaries in the page contract project; it is not real Loaded, WinRT or scroll/render coverage.
+
 ## Pages, view models, `Attach`
 
 Pages created by this project's `Frame.Navigate` path use parameterless constructors. **Pages construct their own view models; dependencies arrive afterwards through `Attach(...)`.** Keep guards for calls made before those dependencies arrive, and inspect the file's `Attach`, cancellation and load methods before adding work.
