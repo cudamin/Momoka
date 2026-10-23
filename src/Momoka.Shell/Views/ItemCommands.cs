@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.MoviePilot;
@@ -30,6 +31,10 @@ namespace Momoka.Shell.Views;
 internal static partial class ItemCommands
 {
     private const string Category = "ui";
+
+    // Per DTO rather than per control: recycled controls and two cards sharing an item must share
+    // ordering, but a departed item must not remain in an application-lifetime ID dictionary.
+    private static readonly ConditionalWeakTable<EmbyItem, ItemUserStateOrder> UserStateOrders = new();
 
     /// <summary>
     /// The handler both grids attach. <c>ContextRequested</c> rather than a right-tap handler because it
@@ -432,49 +437,51 @@ internal static partial class ItemCommands
         IShellActions shell,
         CardItem card,
         bool played,
-        Action<CardItem>? watched = null) =>
+        Action<CardItem>? watched = null)
+    {
+        var item = card.Item;
+        var identity = item.IdentityKey;
+        var order = UserStateOrders.GetValue(item, static _ => new ItemUserStateOrder());
+        var change = order.BeginWatched(played);
         Run(
             session,
             shell,
             played ? "标记已观看失败" : "标记未观看失败",
             (client, token) => played
-                ? client.MarkPlayedAsync(card.Item.Id, token)
-                : client.MarkUnplayedAsync(card.Item.Id, token),
+                ? client.MarkPlayedAsync(item.Id, token)
+                : client.MarkUnplayedAsync(item.Id, token),
             data =>
             {
-                Patch(card, data, state =>
-                {
-                    state.Played = played;
-
-                    // 标记为未观看在服务器上连进度一起清掉 —— 服务器没回话的那一次，手上这张卡也得跟着清，否则
-                    // 底边那条进度还在，而它讲的是一个已经不存在的续播点。
-                    if (played) return;
-                    state.PlaybackPositionTicks = 0;
-                    state.PlayedPercentage = 0;
-                });
-
-                if (!played) return;
+                if (!Patch(card, identity, order, change, data) || !played) return;
 
                 // 标记为已看还要替服务器补报一趟播放停止（位置按用户令报 100%），好让服务器上那条通知立刻把
                 // playback.stop 转发出去（用户令 2026-10-09）。只在这一位：反过来「标记未观看」不是「看完了」。
-                shell.ReportMarkedWatched(card.Item);
+                shell.ReportMarkedWatched(item);
 
                 // 那一格该换成下一集还是撤掉，页面比这一头清楚（见 Show 的 watched）。
                 watched?.Invoke(card);
-            });
+            },
+            finished: () => order.Complete(change));
+    }
 
     /// <summary>收藏。同上。</summary>
-    private static void SetFavorite(EmbySessionScope session, IShellActions shell, CardItem card, bool favourite) =>
+    private static void SetFavorite(EmbySessionScope session, IShellActions shell, CardItem card, bool favourite)
+    {
+        var item = card.Item;
+        var identity = item.IdentityKey;
+        var order = UserStateOrders.GetValue(item, static _ => new ItemUserStateOrder());
+        var change = order.BeginFavorite(favourite);
         Run(
             session,
             shell,
             "更新收藏失败",
-            (client, token) => client.SetFavoriteAsync(card.Item.Id, favourite, token),
+            (client, token) => client.SetFavoriteAsync(item.Id, favourite, token),
             data =>
             {
-                Patch(card, data, state => state.IsFavorite = favourite);
-                shell.RefreshFavorites(card.Item);
-            });
+                if (Patch(card, identity, order, change, data)) shell.RefreshFavorites(item);
+            },
+            finished: () => order.Complete(change));
+    }
 
     /// <summary>
     /// The card the gesture landed on. Read off the element rather than passed in, because the sender is
@@ -508,29 +515,15 @@ internal static partial class ItemCommands
         return entry;
     }
 
-    /// <summary>
-    /// Applies the server's own answer to the card, falling back to the change we asked for.
-    /// <para>
-    /// The fallback is not laziness: marking a film played also clears its resume position, and marking
-    /// a series played empties the remaining-episode count, so the server's <c>UserItemDataDto</c> is
-    /// worth more than the one flag we flipped. But no Emby version promises that body, and a card that
-    /// refuses to show a tick because the response was empty is worse than one whose progress bar is a
-    /// refresh out of date.
-    /// </para>
-    /// </summary>
-    private static void Patch(CardItem card, EmbyUserData? data, Action<EmbyUserData> fallback)
+    /// <summary>Both entry points apply through the same per-item field ordering, with no whole-card reload.</summary>
+    private static bool Patch(CardItem card, string identity, ItemUserStateOrder order, ItemUserStateOrder.Change change, EmbyUserData? data)
     {
-        if (data is not null)
-        {
-            card.Item.UserData = data;
-        }
-        else
-        {
-            card.Item.UserData ??= new EmbyUserData();
-            fallback(card.Item.UserData);
-        }
-
+        // Ask may finish off-thread before a queued UI callback observes source revocation.
+        if (!card.IsCurrent || card.Item.IdentityKey != identity) return false;
+        if (order.Apply(change, card.Item.UserData, data) is not { } state) return false;
+        card.Item.UserData = state;
         card.RefreshUserData();
+        return true;
     }
 
     private static void Run(
@@ -538,14 +531,16 @@ internal static partial class ItemCommands
         IShellActions shell,
         string failure,
         Func<EmbyClient, CancellationToken, Task<EmbyUserData?>> work,
-        Action<EmbyUserData?>? applied) => _ = RunAsync(session, shell, failure, work, applied);
+        Action<EmbyUserData?>? applied,
+        Action? finished = null) => _ = RunAsync(session, shell, failure, work, applied, finished);
 
     private static async Task RunAsync(
         EmbySessionScope session,
         IShellActions shell,
         string failure,
         Func<EmbyClient, CancellationToken, Task<EmbyUserData?>> work,
-        Action<EmbyUserData?>? applied)
+        Action<EmbyUserData?>? applied,
+        Action? finished)
     {
         try
         {
@@ -562,6 +557,10 @@ internal static partial class ItemCommands
         {
             Log.Warn(Category, failure, error);
             shell.Notify($"{failure}：{Failure.Describe(error)}", InfoBarSeverity.Error);
+        }
+        finally
+        {
+            finished?.Invoke();
         }
     }
 

@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.ItemUserStateOrderTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <DefineConstants>$(DefineConstants);ITEM_USER_STATE_ORDER_FIXTURE</DefineConstants>
+    <StartupObject>Momoka.Tests.ItemUserStateOrderTests</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ItemCommands.cs" Link="Production\ItemCommands.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\IShellActions.cs" Link="Production\IShellActions.cs" />
+    <Compile Include="..\Momoka.Tests\ItemUserStateOrderTests*.cs" Link="%(Filename)%(Extension)" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+  <!-- Extract the unchanged shared request/lifetime helpers and event DTOs from production.
+       Unrelated server/dialog commands are fail-closed boundaries, never copied request logic. -->
+  <UsingTask TaskName="ExtractItemUserStateFixtureSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <ServerSource ParameterType="System.String" Required="true" />
+      <PosterSource ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var server = File.ReadAllText(ServerSource).Replace("\r\n", "\n");
+        var poster = File.ReadAllText(PosterSource).Replace("\r\n", "\n");
+        Func<string, string, string, string> between = (source, start, end) =>
+        {
+            var begin = source.IndexOf(start, StringComparison.Ordinal);
+            if (begin < 0) throw new InvalidOperationException("Missing production start: " + start);
+            var finish = source.IndexOf(end, begin, StringComparison.Ordinal);
+            if (finish < 0) throw new InvalidOperationException("Missing production end: " + end);
+            return source.Substring(begin, finish - begin);
+        };
+        var guard = between(server, "    private static async Task GuardAsync(", "\n    /// <summary>\n    /// 一次请求。");
+        var ask = between(server, "    private static async Task<T> AskAsync<T>(", "\n    /// <inheritdoc cref=\"AskAsync{T}\"/>");
+        var action = between(poster, "public enum CardAction\n", "\n/// <summary>\n/// The control every card");
+        var generated = "// Extracted verbatim from production at build time; do not edit.\n" +
+            "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\n" +
+            "namespace Momoka.Shell.Views;\ninternal static partial class ItemCommands\n{\n" +
+            guard + "\n" + ask + "\n}\n" + action + "\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateItemUserStateFixtureSources" BeforeTargets="CoreCompile">
+    <ExtractItemUserStateFixtureSources
+      ServerSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\ItemCommands.Server.cs"
+      PosterSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\PosterCard.xaml.cs"
+      OutputSource="$(IntermediateOutputPath)ItemUserStateHelpers.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)ItemUserStateHelpers.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>
