@@ -413,6 +413,14 @@ internal static class ItemDetailTests
             };
             Assert.Equal("视频：  8.4 GB  ·  1080p  ·  HEVC", ItemDetail.VideoLine(source));
 
+            // 名字里写明的 x264/x265 也进这一行 —— 详情页与播放页共用同一条读数。
+            var hinted = new MediaSource
+            {
+                Name = "1080p x265",
+                MediaStreams = [new MediaStream { Index = 0, Type = "Video", Height = 1080, Codec = "hevc" }]
+            };
+            Assert.Equal("视频：  1080p  ·  x265", ItemDetail.VideoLine(hinted));
+
             // A source the server sent no streams for has nothing to say, not a bare 「视频：」 label.
             Assert.Equal("", ItemDetail.VideoLine(new MediaSource()));
         });

@@ -1161,6 +1161,57 @@ internal static class EmbyTests
             Assert.Equal("8.4 GB  ·  1080p  ·  HEVC  ·  AAC  ·  Studio GreenTea", PlaybackTitles.Subline(source));
         });
 
+        Test("文件信息行：名字里写明 x264/x265 时用那个写法", () =>
+        {
+            // 文件名写了 x265：HEVC 那一格改读 x265（用户令 2026-10-23）。
+            var pathSaysX265 = new MediaSource
+            {
+                Path = @"D:\media\Show.S01E01.2160p.x265-GRP.mkv",
+                MediaStreams = { new MediaStream { Type = "Video", Codec = "hevc", Height = 2160 } }
+            };
+            Assert.Equal("4K  ·  x265  ·  GRP", PlaybackTitles.Subline(pathSaysX265));
+
+            // 媒体源名字里写的是 x264 也算；大小写不敏感。
+            var nameSaysX264 = new MediaSource
+            {
+                Name = "1080p X264",
+                MediaStreams = { new MediaStream { Type = "Video", Codec = "h264", Height = 1080 } }
+            };
+            Assert.Equal("1080p  ·  x264", PlaybackTitles.Subline(nameSaysX264));
+
+            // 只写 H265 不算 —— 那是编码名，不是 Writing library 的 x265。
+            var h265Name = new MediaSource
+            {
+                Name = "2160p H265",
+                MediaStreams = { new MediaStream { Type = "Video", Codec = "hevc", Height = 2160 } }
+            };
+            Assert.Equal("4K  ·  HEVC", PlaybackTitles.Subline(h265Name));
+
+            // 名字与编码对不上时以编码为准：x264 的名字不该把一份 HEVC 的片子写成 x264。
+            var mismatch = new MediaSource
+            {
+                Name = "x264",
+                MediaStreams = { new MediaStream { Type = "Video", Codec = "hevc" } }
+            };
+            Assert.Equal("HEVC", PlaybackTitles.Subline(mismatch));
+
+            // 记号要独立成词：x2650 不是 x265。
+            var glued = new MediaSource
+            {
+                Name = "x2650",
+                MediaStreams = { new MediaStream { Type = "Video", Codec = "hevc" } }
+            };
+            Assert.Equal("HEVC", PlaybackTitles.Subline(glued));
+
+            // 别的编码不因为名字里有 x265 就被改写。
+            var av1 = new MediaSource
+            {
+                Name = "x265",
+                MediaStreams = { new MediaStream { Type = "Video", Codec = "av1" } }
+            };
+            Assert.Equal("AV1", PlaybackTitles.Subline(av1));
+        });
+
         Test("文件信息行：缺项跳过、空源给空串", () =>
         {
             // 没有大小、没有组名（文件名里没有 -）：只剩分辨率 · 视频编码 · 音频格式。

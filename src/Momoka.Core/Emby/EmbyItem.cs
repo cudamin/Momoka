@@ -328,11 +328,71 @@ public sealed class MediaSource
 
         if (TimeFormat.FileSize(Size) is { Length: > 0 } size) parts.Add(size);
         if (video?.Height is > 0) parts.Add(DescribeHeight(video.Height.Value));
-        if (!string.IsNullOrWhiteSpace(video?.Codec)) parts.Add(video!.Codec!.ToUpperInvariant());
+        if (video is not null && VideoCodecLabel(video) is { Length: > 0 } codec) parts.Add(codec);
         if (PrimaryAudioCodec() is { Length: > 0 } audioCodec) parts.Add(audioCodec.ToUpperInvariant());
         if (ReleaseGroup.FromFileName(Path) is { Length: > 0 } group) parts.Add(group);
 
         return string.Join("  ·  ", parts);
+    }
+
+    /// <summary>
+    /// 视频编码那一格：媒体源名字或文件名里写明 x264/x265 时用那个写法，认不出仍是服务器给的编码名。
+    /// <para>
+    /// MediaInfo 的 Writing library 服务器不会发（Emby、Jellyfin、Plex、飞牛影视的媒体流里都没有这一项），
+    /// 客户端手上能核对的是媒体源名字与文件名。名字与编码对不上时以编码为准 —— 名字里的 x264 不该把一份
+    /// HEVC 的片子写成 x264。
+    /// </para>
+    /// </summary>
+    private string VideoCodecLabel(MediaStream video)
+    {
+        if (EncoderLibraryHint(video.Codec) is { } hint) return hint;
+
+        var codec = video.Codec;
+        return string.IsNullOrWhiteSpace(codec) ? "" : codec.ToUpperInvariant();
+    }
+
+    /// <summary>
+    /// 名字里写明的编码库：x264 / x265（不认 H265 这种编码名，也不是 Writing library 的口径）。两个都写着
+    /// 时按视频编码挑；编码缺失才由名字单独决定，别的编码（AV1 等）不拿名字去改它。
+    /// </summary>
+    private string? EncoderLibraryHint(string? codec)
+    {
+        var fileName = Path is { Length: > 0 } path ? System.IO.Path.GetFileName(path) : null;
+        var x264 = Mentions(Name, "x264") || Mentions(fileName, "x264");
+        var x265 = Mentions(Name, "x265") || Mentions(fileName, "x265");
+        if (!x264 && !x265) return null;
+
+        if (IsHevc(codec)) return x265 ? "x265" : null;
+        if (IsH264(codec)) return x264 ? "x264" : null;
+        if (!string.IsNullOrWhiteSpace(codec)) return null;
+        return x264 ? "x264" : "x265";
+    }
+
+    private static bool IsH264(string? codec) =>
+        string.Equals(codec, "h264", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(codec, "avc", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsHevc(string? codec) =>
+        string.Equals(codec, "hevc", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(codec, "h265", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 记号要独立成词：<c>x2650</c> 不是 <c>x265</c>，而 <c>.x265-</c>、<c>[x265]</c> 是。
+    /// </summary>
+    private static bool Mentions(string? text, string token)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+
+        for (var at = text.IndexOf(token, StringComparison.OrdinalIgnoreCase);
+             at >= 0;
+             at = text.IndexOf(token, at + token.Length, StringComparison.OrdinalIgnoreCase))
+        {
+            var before = at == 0 ? '\0' : text[at - 1];
+            var after = at + token.Length == text.Length ? '\0' : text[at + token.Length];
+            if (!char.IsLetterOrDigit(before) && !char.IsLetterOrDigit(after)) return true;
+        }
+
+        return false;
     }
 
     /// <summary>
