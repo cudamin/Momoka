@@ -69,6 +69,9 @@ public sealed partial class PlayerViewModel
     {
         if (update.Generation != _playback.Generation || !_playback.IsPlaying) return;
         var (key, value) = update.Value;
+        if (key == MpvDanmaku.Ready) { DanmakuScriptReady(long.Parse(value, CultureInfo.InvariantCulture)); return; }
+        if (key == MpvDanmaku.Loaded) { DanmakuScriptLoaded(value); return; }
+        if (key == MpvDanmaku.Menu) { RequestDanmaku(); return; }
         // 装载握手先于「在播」那一问：uosc 是在 mpv_initialize 时装上的，而文件在那之后才打开 ——
         // 握手到的时候片子往往还没开，可宿主手上已经有「这个条目有几版」了。那颗「版本」按钮要在画面
         // 出来之前就摆对，所以这一条不能让它被下面的闸挡掉（其余几条都是「播放中的请求」，照旧要闸）。
@@ -82,6 +85,7 @@ public sealed partial class PlayerViewModel
             // 副标题摆对，别等第一次 OnNowPlayingChanged。
             NoteSubline();
             _ = PushNativeShortcutsAsync(force: true);
+            _ = PushDanmakuVisibilityAsync();
             return;
         }
 
@@ -250,12 +254,13 @@ public sealed partial class PlayerViewModel
 
         // 与集成侧 OnMoreMenuOpening 同样折叠进「播放设置」，子项保留原来的宿主消息。
         items[^1] = items[^1] with { Separator = true };
-        var settings = PlayerSettingsLinks.All.Select(link => new UoscMenuItem(
+        var settings = PlayerSettingsLinks.All.Where(link => link.Token != "danmaku" || Embedded).Select(link => new UoscMenuItem(
                 link.Label,
                 $"script-message {VideoWindowContract.OpenSettings} {link.Token}",
                 true,
                 false)).ToList();
         items.Add(new UoscMenuItem(PlayerSettingsLinks.MenuLabel, null, true, false, Items: settings));
+        if (DanmakuAvailable) items.Add(new UoscMenuItem("弹幕 · 弹弹play…", $"script-message {MpvDanmaku.Menu} open", true, false));
 
         // title 传 null：画面菜单不画顶部那行「画面」（用户令 2026-09-26）；仍带 anchor 贴光标弹。
         await SendMenuAsync("picture", null, items, anchor: true).ConfigureAwait(true);
@@ -590,6 +595,7 @@ public sealed partial class PlayerViewModel
         _seekTouched = 0;
         _seekSent = null;
         _nowPlaying = item;
+        ResetDanmaku(item);
         if (item is not null
             && string.Equals(_episodeSwitchTargetId, item.IdentityKey, StringComparison.Ordinal))
             _episodeSwitchTargetId = null;

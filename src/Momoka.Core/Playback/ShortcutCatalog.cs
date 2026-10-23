@@ -53,7 +53,7 @@ public static class ShortcutCatalog
     public static readonly IReadOnlyList<string> ReservedKeys = ["Escape", "Enter"];
 
     /// <summary>
-    /// 21 个可重绑动作，次序就是设置页上从上到下的次序。前 17 个的默认值和改造前那张 switch 表一模一样。
+    /// 可重绑动作，次序就是设置页上从上到下的次序。原有动作的默认键不变；新增键冲突时优先保留用户的绑定。
     /// <para>
     /// 后 4 个动作用的是那 4 颗方向键，是 2026-09-20 那两句话加出来的：「新增键盘上的左和右设置为播放进度
     /// 快退五秒和快进五秒，上方向键和下方向键改为播放进度快进30秒和快退30秒」。四颗方向键因此各有一对步长 ——
@@ -90,7 +90,24 @@ public static class ShortcutCatalog
         new("subtitle-delay-decrease", "字幕延迟 −0.1 秒", K("Z")),
         new("subtitle-delay-increase", "字幕延迟 +0.1 秒", K("Z", shift: true)),
         new("audio-delay-decrease", "音频延迟 −0.1 秒", K("X")),
-        new("audio-delay-increase", "音频延迟 +0.1 秒", K("X", shift: true))
+        new("audio-delay-increase", "音频延迟 +0.1 秒", K("X", shift: true)),
+        new("screenshot", "截图（当前尺寸，含字幕）", K("S")),
+        new("screenshot-original", "截图（原始尺寸，不含字幕）", K("S", shift: true)),
+        new("toggle-subtitle", "字幕显示开关", K("V")),
+        new("subtitle-next", "下一条字幕轨道", K("J")),
+        new("subtitle-previous", "上一条字幕轨道", K("J", shift: true)),
+        new("audio-next", "下一条音轨", K("A")),
+        new("audio-previous", "上一条音轨", K("A", shift: true)),
+        new("frame-forward", "前进一帧（暂停）", K("E")),
+        new("frame-backward", "后退一帧（暂停）", K("E", shift: true)),
+        new("seek-start", "跳到片头", K("Home")),
+        new("revert-seek", "回到上次跳转前的位置", K("Back", shift: true)),
+        new("show-playback-info", "播放信息", K("I", ctrl: true)),
+        new("show-stats", "显示一次播放统计", K("I")),
+        new("toggle-stats", "播放／着色器统计切换", K("I", shift: true)),
+        new("toggle-danmaku", "弹幕显示开关", K("D")),
+        new("danmaku-delay-decrease", "弹幕提前 0.5 秒", K("D", ctrl: true)),
+        new("danmaku-delay-increase", "弹幕延后 0.5 秒", K("D", ctrl: true, shift: true))
     ];
 
     /// <summary>这个动作此刻真正生效的键：动过就用动过的，没动过用默认，显式解绑（空串）就是 <see cref="KeyStroke.None"/>。</summary>
@@ -105,8 +122,20 @@ public static class ShortcutCatalog
     }
 
     /// <summary>每个动作此刻生效的键。设置页刷新每一行的显示、自检核对时都用它。</summary>
-    public static IReadOnlyDictionary<string, KeyStroke> Resolve(IReadOnlyDictionary<string, string> bindings) =>
-        Actions.ToDictionary(action => action.Id, action => Effective(bindings, action), StringComparer.Ordinal);
+    public static IReadOnlyDictionary<string, KeyStroke> Resolve(IReadOnlyDictionary<string, string> bindings)
+    {
+        var result = Actions.ToDictionary(action => action.Id, _ => KeyStroke.None, StringComparer.Ordinal);
+        var used = new HashSet<KeyStroke>();
+        // 先放用户显式绑定，再放默认键。升级新增 D 等动作时不能抢走用户早已绑到 D 的旧动作。
+        foreach (var action in Actions.Where(action => bindings.ContainsKey(action.Id)))
+        {
+            var stroke = Effective(bindings, action);
+            if (!stroke.IsEmpty && used.Add(stroke)) result[action.Id] = stroke;
+        }
+        foreach (var action in Actions.Where(action => !bindings.ContainsKey(action.Id)))
+            if (used.Add(action.Default)) result[action.Id] = action.Default;
+        return result;
+    }
 
     /// <summary>
     /// 按下这个组合键该触发哪个动作，没有就返回 null。空组合键谁都不触发。
@@ -119,8 +148,8 @@ public static class ShortcutCatalog
     {
         if (stroke.IsEmpty) return null;
 
-        foreach (var action in Actions)
-            if (Effective(bindings, action) == stroke) return action.Id;
+        foreach (var (id, effective) in Resolve(bindings))
+            if (effective == stroke) return id;
 
         return null;
     }
@@ -142,10 +171,11 @@ public static class ShortcutCatalog
         var action = Actions.FirstOrDefault(a => a.Id == id);
         if (action is null || stroke.IsEmpty || IsReserved(stroke)) return new(bindings, null);
 
+        var effective = Resolve(bindings);
         foreach (var other in Actions)
         {
             if (other.Id == id) continue;
-            if (Effective(bindings, other) == stroke) return new(bindings, other.Id);
+            if (effective[other.Id] == stroke) return new(bindings, other.Id);
         }
 
         var next = new Dictionary<string, string>(bindings, StringComparer.Ordinal);

@@ -22,6 +22,26 @@ internal static partial class CompositionPlaybackProbe
         await stream.AsStreamForRead().CopyToAsync(output);
     }
 
+    /// <summary>深色界面中指定文字矩形的亮像素数；只检查实际呈现，不用控件尺寸冒充已画出文字。</summary>
+    internal static int BrightPixels(HostWindow window, Windows.Foundation.Rect bounds)
+    {
+        var screen = CapturePixels(window);
+        var left = (int)Math.Floor(bounds.Left);
+        var top = (int)Math.Floor(bounds.Top);
+        var right = (int)Math.Ceiling(bounds.Right);
+        var bottom = (int)Math.Ceiling(bounds.Bottom);
+        if (left < 0 || top < 0 || right > screen.Width || bottom > screen.Height || left >= right || top >= bottom)
+            throw new InvalidOperationException("文字像素检查的矩形不在客户区内");
+        var count = 0;
+        for (var y = top; y < bottom; y++)
+            for (var x = left; x < right; x++)
+            {
+                var index = (y * screen.Width + x) * 4;
+                if (screen.Bytes[index] >= 180 && screen.Bytes[index + 1] >= 180 && screen.Bytes[index + 2] >= 180) count++;
+            }
+        return count;
+    }
+
     // GetPixel 每问一点都会等待屏幕，连续读点既跨帧又堵住 UI 提交。
     // 一次 BitBlt 取得同一帧，后续颜色判断只读内存。
     private static ScreenPixels CapturePixels(HostWindow window)

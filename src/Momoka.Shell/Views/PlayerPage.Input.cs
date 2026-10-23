@@ -704,7 +704,12 @@ public sealed partial class PlayerPage : IWin32KeySink
 
         var stroke = new KeyStroke(token, Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
         var action = ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke);
-        if (action is null || !ShortcutHandlers.TryGetValue(action, out var run)) return false;
+        if (action is null) return false;
+        if (!ShortcutHandlers.TryGetValue(action, out var run))
+        {
+            wakeChrome = WakesChrome(action);
+            return ViewModel.RunAdditionalShortcut(action);
+        }
 
         // 这一下要不要把整套控件叫出来，由 <see cref="WakesChrome"/> 一处答。三条键路（岛内 OnKeyDown、
         // Win32 兜底、seek 滑杆自己的 KeyCommand）都从这一处过，所以判据只有一个。
@@ -745,7 +750,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     private Dictionary<string, Action>? _shortcutHandlers;
 
     /// <summary>
-    /// 动作 Id → 这一下做什么，可重绑那 21 个动作的另一半。Core 那张表（<see cref="ShortcutCatalog"/>）定
+    /// 动作 Id → 原有窗口相关动作怎么执行；新增窗口无关动作由驻留 view model 接手。Core 那张表（<see cref="ShortcutCatalog"/>）定
     /// 「键→动作」，这张表定「动作→干什么」，靠动作 Id 对上。这一头必须留在页面：音量增减和静音要顺带闪一下
     /// 音量条（走会闪条的页面包装 <see cref="NudgeVolume"/> / <see cref="ToggleMute"/>，不是直接调视图模型），
     /// 全屏和置顶是窗口的事、mpv 一无所知。<b>少一个动作没有处理器 = 那颗键按下去没反应</b>，自检

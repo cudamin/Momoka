@@ -605,6 +605,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.PlayerHidden += OnHeadlessPlaybackHidden;
         Player.ViewModel.MediaInfoRequested += OnHeadlessMediaInfoRequested;
         Player.ViewModel.SettingsRequested += OnPlayerSettingsRequested;
+        Player.ViewModel.DanmakuRequested += OnDanmakuRequested;
 
         // 详情页要认显示器多大（纸面上沿那条线跟着显示器走，见 DetailHero.PaperLineFor），挂在这一个事件上
         // 而不是 OpenDetail 里：后退/前进重建的详情页实例不走 OpenDetail，却一样要从外壳领窗口。
@@ -640,6 +641,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.PlayerHidden -= OnHeadlessPlaybackHidden;
         Player.ViewModel.MediaInfoRequested -= OnHeadlessMediaInfoRequested;
         Player.ViewModel.SettingsRequested -= OnPlayerSettingsRequested;
+        Player.ViewModel.DanmakuRequested -= OnDanmakuRequested;
         Player.ViewModel.Noticed -= Notify;
         Player.ViewModel.RefreshRequested -= RefreshActive;
         Player.ViewModel.PreparePresentation = null;
@@ -735,6 +737,28 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// 独占模式播放时播放页根本不在树上 —— 只有这条线通到外壳，而两条管线点同一行因此是同一句执行。
     /// </summary>
     private void OnPlayerSettingsRequested(PlayerSettingsLink link) => ShowSettings(link.Category);
+
+    private bool _danmakuDialogOpen;
+
+    private async void OnDanmakuRequested()
+    {
+        if (_danmakuDialogOpen || Root.XamlRoot is not { } root || !Player.ViewModel.DanmakuAvailable) return;
+        _danmakuDialogOpen = true;
+        _window?.Activate();
+        var panel = new DanmakuPanel();
+        panel.Attach(Player.ViewModel);
+        var dialog = new ContentDialog
+        {
+            XamlRoot = root,
+            Title = "弹幕设置与匹配",
+            Content = panel,
+            CloseButtonText = "关闭",
+            DefaultButton = ContentDialogButton.Close,
+        };
+        try { await dialog.ShowAsync().AsTask().ConfigureAwait(true); }
+        catch (Exception error) { Log.Warn(Category, "弹不出弹幕面板", error); }
+        finally { panel.Close(); _danmakuDialogOpen = false; }
+    }
 
     private async Task ShowMediaInfoOverShellAsync()
     {

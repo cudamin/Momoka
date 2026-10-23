@@ -262,7 +262,7 @@ internal sealed partial class ShellNavigationProbe
             _ => Task.CompletedTask, () => Task.CompletedTask,
             new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings),
             new MoviePilotCredentials(PassthroughSecretProtector.Instance), new UpdateClient(new RejectNetwork()),
-            fixture.Capabilities, fixture.Images);
+            fixture.Capabilities, fixture.Images, new DandanPlayCredentials(PassthroughSecretProtector.Instance));
         return page;
     }
 

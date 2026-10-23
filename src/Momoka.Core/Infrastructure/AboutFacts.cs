@@ -15,6 +15,9 @@ namespace Momoka.Infrastructure;
 /// </summary>
 public static class AboutFacts
 {
+    public const string StarLabel = "如果你喜欢本项目就点个星星吧";
+    public const string ProjectUrl = "https://github.com/cudamin/Momoka";
+
     /// <summary>读不到时统一说这一句，而不是留一行空白：空白读起来像「这一项还在加载」。</summary>
     public const string Unknown = "读不到";
 

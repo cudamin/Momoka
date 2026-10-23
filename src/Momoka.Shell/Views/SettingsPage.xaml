@@ -647,6 +647,29 @@
                 </DataTemplate>
             </local:SettingRowTemplates.Text>
 
+            <local:SettingRowTemplates.Secret>
+                <DataTemplate x:DataType="vm:SettingSecretRow">
+                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Note, Mode=OneWay}" TextWrapping="Wrap" Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="8">
+                            <PasswordBox Password="{x:Bind Draft, Mode=TwoWay}" PlaceholderText="输入新的 AppSecret" AutomationProperties.Name="{x:Bind Label}" />
+                            <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Status, Mode=OneWay}" TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Command="{x:Bind CommitCommand}" Content="保存密钥" AutomationProperties.Name="保存弹弹play密钥" />
+                                <Button Command="{x:Bind ClearCommand}" Content="清除密钥" AutomationProperties.Name="清除弹弹play密钥" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </local:SettingRowTemplates.Secret>
+
             <!--
               MoviePilot 接入卡（用户的话，2026-09-14：「放设置页」）：一个开关、地址、用户名、密码，加一颗测试按钮，
               底下是上一次测试的结论。和别的行不同，它是整幅宽的一张卡而不是「左边标签 + 右边控件」—— 这一件事有四个

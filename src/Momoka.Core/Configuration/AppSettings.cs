@@ -46,6 +46,8 @@ public sealed class AppSettings
 
     public ShortcutSettings Shortcuts { get; set; } = new();
 
+    public DanmakuSettings Danmaku { get; set; } = new();
+
     /// <summary>
     /// The MoviePilot service, if the user has one. Sits last because it is the newest and least central
     /// thing here — the whole app works without it, and it is off by default.

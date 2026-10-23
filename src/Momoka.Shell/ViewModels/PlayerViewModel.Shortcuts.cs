@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Momoka.Mpv;
+using Momoka.Playback;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -48,6 +49,30 @@ public sealed partial class PlayerViewModel
             case "subtitle-delay-increase": NudgeDelay(true, 0.1); break;
             case "audio-delay-decrease": NudgeDelay(false, -0.1); break;
             case "audio-delay-increase": NudgeDelay(false, 0.1); break;
+            default: RunAdditionalShortcut(action); break;
         }
+    }
+
+    internal bool RunAdditionalShortcut(string action)
+    {
+        if (!_playback.CanControl) return false;
+        switch (action)
+        {
+            case "show-playback-info": MediaInfoRequested?.Invoke(); return true;
+            case "toggle-danmaku": ToggleDanmaku(); return true;
+            case "danmaku-delay-decrease": NudgeDanmakuDelay(-0.5); return true;
+            case "danmaku-delay-increase": NudgeDanmakuDelay(0.5); return true;
+        }
+        if (AdditionalShortcuts.Command(action) is not { } command) return false;
+        var context = CaptureInteraction();
+        _ = QueuePictureCommand(async () =>
+        {
+            if (!IsCurrentPlayback(context)) return;
+            var done = await _playback.CommandAsync([.. command]).ConfigureAwait(true);
+            if (!IsCurrentPlayback(context)) return;
+            if (action.StartsWith("screenshot", StringComparison.Ordinal))
+                await _playback.CommandAsync("show-text", done ? "截图已保存到 ${screenshot-directory}" : "截图保存失败，请查看日志", "2000").ConfigureAwait(true);
+        });
+        return true;
     }
 }

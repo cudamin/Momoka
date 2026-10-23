@@ -33,6 +33,10 @@ public static class ShellPrefs
 
     public static void ApplyShortcuts() => ShortcutsChanged?.Invoke();
 
+    public static event Action? DanmakuChanged;
+
+    public static void ApplyDanmaku() => DanmakuChanged?.Invoke();
+
     /// <summary>由设置页那一头喊：这一份刚改过，请各位跟上。</summary>
     public static void Apply(UiSettings ui)
     {

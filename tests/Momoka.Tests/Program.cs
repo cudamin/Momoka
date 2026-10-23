@@ -103,6 +103,7 @@ internal static class Program
         WindowFormTests.Register();
         PinIndicatorTests.Register();
         AboutTests.Register();
+        DanmakuTests.Register();
         UpdateTests.Register();
         MoviePilotTests.Register();
         AniBtTests.Register();

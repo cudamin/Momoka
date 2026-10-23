@@ -14,6 +14,15 @@ internal static class AboutTests
 {
     internal static void Register()
     {
+        Test("关于：点星只打开本项目仓库，不自动替用户执行 Star", () =>
+        {
+            Assert.Equal("如果你喜欢本项目就点个星星吧", AboutFacts.StarLabel);
+            var uri = new Uri(AboutFacts.ProjectUrl);
+            Assert.Equal("https", uri.Scheme);
+            Assert.Equal("github.com", uri.Host);
+            Assert.Equal("/cudamin/Momoka", uri.AbsolutePath);
+            Assert.Equal("", uri.Query);
+        });
         Test("关于：版本号从程序集上来，不是写死的一句", () =>
         {
             Assert.Contains(AppIdentity.Title, AboutFacts.Client);

@@ -66,12 +66,15 @@ public sealed partial class SettingsPage : Page, IShellContent
             HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
             HomeMotion.PreferenceChanged += ApplySettingsMotionPreference;
             ApplySettingsMotionPreference();
+            ShellPrefs.DanmakuChanged -= ViewModel.OnDanmakuPreferencesChanged;
+            ShellPrefs.DanmakuChanged += ViewModel.OnDanmakuPreferencesChanged;
             QueueSettingsEntrance();
         };
         Unloaded += (_, _) =>
         {
             if (XamlRoot is not null) return;
             HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
+            ShellPrefs.DanmakuChanged -= ViewModel.OnDanmakuPreferencesChanged;
             StopSettingsEntrance();
             DetachSettingsContentMotion();
         };
@@ -93,6 +96,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         // follow the selection rather than only the navigation parameter.
         ViewModel.PropertyChanged += (_, e) =>
         {
+            if (e.PropertyName == nameof(SettingsViewModel.CategoryGroups)) UpdateCategoryGroups();
             if (e.PropertyName == nameof(SettingsViewModel.SelectedCategory))
             {
                 StopSettingsContentMotion();
@@ -383,7 +387,8 @@ public sealed partial class SettingsPage : Page, IShellContent
                 request.Services.GetRequiredService<IServerCapabilities>(),
 
                 // 「关于」卡上的图片缓存读数与清除：它数的是本机缓存目录，不是某台服务器，所以搬出了服务器页。
-                request.Services.GetRequiredService<EmbyImageStore>());
+                request.Services.GetRequiredService<EmbyImageStore>(),
+                request.Services.GetRequiredService<DandanPlayCredentials>());
             _ = ViewModel.ReloadAsync();
         }
 

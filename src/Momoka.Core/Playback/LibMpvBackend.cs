@@ -115,8 +115,8 @@ public sealed class LibMpvBackend(
             // input.conf 不读、uosc 又默认不绑键，所以这两颗必须自己补，理由见 MpvUi.MenuKeys。
             var menuKeys = uiOptions is not null ? MpvUi.MenuKeys() : null;
 
-            // ClientMessage 只在 Lua UI 在场时才值得收 —— 它是脚本与宿主的唯一通道。
-            PruneEvents(context, keepClientMessage: uiOptions is not null);
+            // uosc 请求与弹幕图层的文件序号、加载回执都经 ClientMessage；集成模式也要保留弹幕通道。
+            PruneEvents(context, keepClientMessage: uiOptions is not null || MpvDanmaku.Exists(AppContext.BaseDirectory));
 
             var (surface, pipelineOptions) = ApplyOptions(context, request, uiOptions, customConfig);
 
@@ -153,6 +153,10 @@ public sealed class LibMpvBackend(
             }
 
             LibMpvNative.mpv_request_log_messages(context, "warn");
+
+            if (MpvDanmaku.Exists(AppContext.BaseDirectory)
+                && !Run(context, "load-script", MpvDanmaku.ScriptPath(AppContext.BaseDirectory)))
+                Log.Warn(Category, "弹幕脚本装载失败，本次播放不显示弹幕");
 
             // Lua UI 只装一次，装的是 MpvUi.Build 交给 mpv 的 `scripts` 选项 —— 上面那一串选项在
             // mpv_initialize 之前就生效，脚本在 loadfile 之前已经把属性观察架好，文件一开控件就有

@@ -1,4 +1,5 @@
 using Momoka.Configuration;
+using Momoka.Danmaku;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
@@ -48,6 +49,10 @@ internal static class ShellServices
         // ---- the ground floor: where files live and how secrets are protected -------------------------
         services.AddSingleton(paths);
         services.AddSingleton<ISecretProtector>(DpapiSecretProtector.Instance);
+        services.AddSingleton<DandanPlayCredentials>();
+        services.AddSingleton(provider => new DandanPlayClient(
+            provider.GetRequiredService<AppSettings>(), provider.GetRequiredService<DandanPlayCredentials>(),
+            Path.Combine(paths.Root, "cache", "danmaku")));
         services.AddSingleton<SettingsStore>();
 
         // The settings object is loaded once and then edited in place by the settings page, so it has to

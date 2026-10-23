@@ -95,6 +95,7 @@ internal static partial class CompositionPlaybackProbe
                 var tracks = await handle.GetTracksAsync(token);
                 Check(tracks.Any(track => track.Type == "video" && track.Selected), "存在选中视频轨");
                 await AdvanceAsync("起播", 2);
+                if (round == 1) await CheckDanmakuAsync(handle, window, options.Paths.LogDirectory, token, Write);
 
                 foreach (var size in new[] { (Width: 800, Height: 500), (Width: 1120, Height: 700) })
                 {
@@ -265,7 +266,7 @@ internal static partial class CompositionPlaybackProbe
                 Write($"清理失败：{error}");
             }
             ExitCode = passed ? 0 : 1;
-            Write(passed ? "结果：自动断言通过；画面和 OSD 未作像素判定，仍需目视确认。" : "结果：失败");
+            Write(passed ? "结果：自动断言通过；弹幕已作局部像素判定，其他画面和 OSD 仍需目视确认。" : "结果：失败");
             report?.Dispose();
             Application.Current.Exit();
         }

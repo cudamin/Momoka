@@ -125,6 +125,10 @@ internal sealed partial class ShellNavigationProbe
             // 2026-10-11 起该用例多四帧分区截图（播放行为分类的资源筛选、截图卡滚进视口各两帧），12 秒的
             // 默认限时不够了 —— 与视频基础输出用例同款理由（多轮控件切换与截图设 45 秒）。
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
+            await CaseAsync("弹幕设置、凭据、显隐、快捷键与关于（宽窗）", () => SettingsDanmakuAsync(1100), 60, section: ShellProbeSections.Settings);
+            await CaseAsync("弹幕设置、凭据、显隐、快捷键与关于（窄窗）", () => SettingsDanmakuAsync(760), 60, section: ShellProbeSections.Settings);
+            await CaseAsync("播放弹幕面板与过期交互（宽窗）", () => DanmakuPanelAsync(1100), 30, section: ShellProbeSections.Playback);
+            await CaseAsync("播放弹幕面板与过期交互（窄窗）", () => DanmakuPanelAsync(360), 30, section: ShellProbeSections.Playback);
             await CaseAsync("三处关键词拖拽优先级与弹簧（宽窗）", () => SettingsPriorityFiltersAsync(1100), 45, section: ShellProbeSections.Settings);
             await CaseAsync("三处关键词拖拽优先级与弹簧（窄窗）", () => SettingsPriorityFiltersAsync(760), 45, section: ShellProbeSections.Settings);
             await CaseAsync("从属设置显隐动画与偏好恢复（宽窗）", () => SettingsConditionalRowsAsync(1100), 45, section: ShellProbeSections.Settings);

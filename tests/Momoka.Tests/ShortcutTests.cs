@@ -17,9 +17,9 @@ internal static class ShortcutTests
 
     public static void Register()
     {
-        Test("快捷键表：21 个动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
+        Test("快捷键表：38 个动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
         {
-            Assert.Equal(21, ShortcutCatalog.Actions.Count);
+            Assert.Equal(38, ShortcutCatalog.Actions.Count);
 
             var ids = ShortcutCatalog.Actions.Select(a => a.Id).ToList();
             Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count(), "动作 Id 有重复");

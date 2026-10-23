@@ -56,6 +56,7 @@ public static class SettingsPreferences
         // SchemaVersion 默认就是当前版本；写下当前版本，读回来时按同一套迁移管线走。
         var document = new AppSettings();
         CopyInto(document, settings);
+        document.Danmaku.AppId = "";
         return document;
     }
 
@@ -70,6 +71,12 @@ public static class SettingsPreferences
         Overwrite(destination.Video, source.Video);
         Overwrite(destination.Shaders, source.Shaders);
         Overwrite(destination.Shortcuts, source.Shortcuts);
+
+        // 弹幕外观属于偏好，AppId／密钥与总启用开关属于本机连接，绝不导出或被恢复覆盖。
+        var danmaku = destination.Danmaku;
+        var connection = (danmaku.Enabled, danmaku.AppId, danmaku.ProtectedAppSecret);
+        Overwrite(danmaku, source.Danmaku);
+        (danmaku.Enabled, danmaku.AppId, danmaku.ProtectedAppSecret) = connection;
 
         // 音量不是设置页上的一行，是播放器上次被留在哪儿（见 AudioSettings.Volume）—— 留目的地自己的那一份。
         var volume = destination.Audio.Volume;

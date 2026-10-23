@@ -78,6 +78,12 @@ public sealed partial class SettingSection : ObservableObject
                 case (SettingFactRow current, SettingFactRow updated):
                     current.Value = updated.Value;
                     break;
+                case (SettingSliderRow current, SettingSliderRow updated):
+                    current.Reseed(updated.Value);
+                    break;
+                case (SettingShortcutRow current, SettingShortcutRow updated):
+                    current.ComboText = updated.ComboText;
+                    break;
             }
             return existing;
         }).ToArray();
@@ -207,7 +213,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     private bool _checkingUpdates;
 
-    /// <summary>快捷键卡里那 21 行可重绑的行，握着好在重绑/清空之后逐行刷新显示（同 <see cref="HomeRows"/> 那样握着一行的理由）。</summary>
+    /// <summary>快捷键卡里当前可用的可重绑行，握着好在重绑/清空之后逐行刷新显示。</summary>
     private readonly List<SettingShortcutRow> _shortcutRows = [];
 
     /// <summary>
@@ -303,10 +309,11 @@ public sealed partial class SettingsViewModel : PageViewModel
         return groups;
     }
 
-    private static SettingsCategoryGroup MomokaGroup(bool serverAdministration, MediaServerKind kind)
+    private SettingsCategoryGroup MomokaGroup(bool serverAdministration, MediaServerKind kind)
     {
         var group = new SettingsCategoryGroup("Momoka");
-        foreach (var category in SidebarCategories(serverAdministration, kind)) group.Add(category);
+        foreach (var category in SidebarCategories(serverAdministration, kind))
+            if (category != "弹幕" || _settings is null || Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) group.Add(category);
         return group;
     }
 
@@ -347,7 +354,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 「服务器／诊断」两张内嵌页之前 —— 它仍是可选的第二服务，不是本程序自己的行为。
     /// </remarks>
     private static readonly string[] CardCategories =
-        ["主页", "界面", "播放器", "播放行为", "视频输出", "音频输出", "字幕", "快捷键", "MoviePilot", "关于"];
+        ["主页", "界面", "播放器", "播放行为", "视频输出", "音频输出", "字幕", "弹幕", "快捷键", "MoviePilot", "关于"];
 
     /// <summary>
     /// 需求 2 的后半句：「诊断和服务器移动到设置里」，加上需求 8 的网页控制台。Entries in the same list
@@ -636,7 +643,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         MoviePilotCredentials moviePilotCredentials,
         UpdateClient updates,
         IServerCapabilities capabilities,
-        EmbyImageStore? images = null)
+        EmbyImageStore? images = null,
+        DandanPlayCredentials? dandanCredentials = null)
     {
         _settings = settings;
         _shaders = shaders;
@@ -653,6 +661,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _moviePilotCredentials = moviePilotCredentials;
         _updates = updates;
         _images = images;
+        _dandanCredentials = dandanCredentials;
     }
 
     /// <summary>自检读的：管理员才看得见的那几个入口这会儿是收着的吗（非管理员账号下是）。</summary>
@@ -965,13 +974,15 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             Categories.Clear();
             foreach (var entry in desired) Categories.Add(entry);
+            // 左栏的分组 View 与紧凑下拉必须先指向同一批对象，再推选中项。
+            // 否则旧 View 不认新对象，将 TwoWay 选择退回 null，与另一颗选择器来回递归。
+            OnPropertyChanged(nameof(CategoryGroups));
             if (!string.Equals(SelectedCategory, keep.Key, StringComparison.Ordinal)) SelectedCategory = keep.Key;
             SelectedEntry = keep;
         }
         finally { _syncingSelection = false; }
 
         ShowCategory(keep.Label);
-        OnPropertyChanged(nameof(CategoryGroups));
     }
 
     /// <summary>
@@ -1042,9 +1053,11 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(ShaderCard());
         Sections.Add(AudioCard());
         Sections.Add(SubtitleCard());
+        if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) Sections.Add(DanmakuCard());
         Sections.Add(ShortcutsCard());
         Sections.Add(MoviePilotCard());
         Sections.Add(AboutCard());
+        RefreshDanmakuAvailability();
         _ = MeasureImageCacheAsync();
 
         ShowCategory(SelectedCategory);
@@ -1237,6 +1250,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         var index = Sections.ToList().FindIndex(section => section.Title == "播放器");
         if (index >= 0) Sections[index].UpdateRows(PlayerCard().Rows);
         RefreshVideoBackend();
+        RefreshDanmakuRows();
+        RefreshDanmakuAvailability();
     }
 
     /// <summary>
@@ -2049,7 +2064,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// 快捷键：播放器那些键盘动作，做成参考图那样一行一个、右边一个可重绑的方框（「参考上图在设置中新增快捷键
-    /// 功能」，2026-09-08）。21 行可改的走 <see cref="SettingShortcutRow"/>；Esc、回车两个固定键以只读行显示，
+    /// 功能」，2026-09-08）。可改的动作走 <see cref="SettingShortcutRow"/>；Esc、回车两个固定键以只读行显示，
     /// 让人看到全貌（为什么固定见 <see cref="ShortcutCatalog.ReservedKeys"/>）；末一行一颗「恢复默认快捷键」，只清
     /// 快捷键、不动别的。判断全在 Core 的 <see cref="ShortcutCatalog"/>；这里只把动作翻成行、把方框敲定的键交回去。
     /// </summary>
@@ -2061,7 +2076,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         var effective = ShortcutCatalog.Resolve(Settings.Shortcuts.Bindings);
         var rows = new List<SettingRow>();
 
-        foreach (var action in ShortcutCatalog.Actions)
+        foreach (var action in ShortcutCatalog.Actions.Where(action => !action.Id.Contains("danmaku", StringComparison.Ordinal)
+            || Momoka.Danmaku.DandanPlayMatching.IsConfigured(Settings)))
         {
             var id = action.Id;
             var row = new SettingShortcutRow(action.Label, id, ShortcutCatalog.Format(effective[id]),
@@ -2077,7 +2093,7 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         // 只清快捷键、不动别的（列表最下面那颗「恢复默认」清的是全部设置，作用域比这颗宽）。
         rows.Add(Fact("恢复默认快捷键", "把上面这些快捷键改回装机时的默认，其他设置不受影响",
-            $"{ShortcutCatalog.Actions.Count} 个可改快捷键", "恢复默认", ClearAllShortcuts));
+            $"{_shortcutRows.Count} 个可改快捷键", "恢复默认", ClearAllShortcuts));
 
         return new SettingSection("快捷键", "快捷键",
             "播放时的键盘快捷键。点一下右边的方框，再按你想要的组合键（可带 Ctrl / Alt / Shift）就改绑了，× 清除。"
@@ -2339,6 +2355,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             Fact("客户端版本", null, AboutFacts.Client),
             Fact("构建时间", null, AboutFacts.BuiltAt(Path.Combine(home, "Momoka.exe"))),
             Fact("播放内核", null, AboutFacts.PlaybackCore(home)),
+            Fact(AboutFacts.StarLabel, "你的 Star 是对项目的支持，谢谢！", "", "去 GitHub 点星", () => _launcher?.OpenUrl(AboutFacts.ProjectUrl)),
+            Fact("弹弹play 开放弹幕网络", "弹幕数据来源与服务提供方。", "", "弹弹play 官网", () => _launcher?.OpenUrl(Momoka.Danmaku.DandanPlayClient.WebsiteUrl)),
 
             // 「在设置中新增开启应用后自动检查有没有新版本的功能」。开关和下面那颗手动按钮是同一件事的两半：
             // 开关管「以后每次启动留意一下」，手动管「现在就知道结果」。装机默认开（用户令 2026-10-14），
@@ -2644,6 +2662,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         ThemeHost.Apply(ui.Theme);
         ShellPrefs.Apply(ui);
         ShellPrefs.ApplyShortcuts();
+        ShellPrefs.ApplyDanmaku();
 
         await ReloadAsync().ConfigureAwait(true);
         var subtitlesApplied = await PushSubtitleStyleAsync().ConfigureAwait(true);

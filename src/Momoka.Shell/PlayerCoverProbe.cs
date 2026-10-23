@@ -3,6 +3,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using Momoka.Configuration;
+using Momoka.Danmaku;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Playback;
@@ -47,7 +48,8 @@ internal static class PlayerCoverProbe
         var backend = new RejectBackend();
         var playback = new PlaybackService(session, settings, () => backend,
             new PlaybackPlanner(settings, shaders, paths.ShaderCacheDirectory, paths.ScreenshotDirectory), allowPlayback: false);
-        var vm = new PlayerViewModel(playback, new SettingsService(store, settings), session, images, shaders, ui);
+        using var danmaku = new DandanPlayClient(settings, new DandanPlayCredentials(PassthroughSecretProtector.Instance), Path.Combine(paths.Root, "danmaku"));
+        var vm = new PlayerViewModel(playback, new SettingsService(store, settings), session, images, shaders, ui, danmaku);
         var page = shell.PlayerRoot;
         var original = page.ViewModel;
         var originallyMaximized = window.IsMaximized;

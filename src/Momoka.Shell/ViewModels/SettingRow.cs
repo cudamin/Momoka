@@ -475,6 +475,7 @@ public sealed partial class SettingSliderRow : SettingRow
     private readonly Action _save;
     private readonly Action? _after;
     private readonly bool _seeded;
+    private bool _reseeding;
 
     internal SettingSliderRow(string label, string? note, double minimum, double maximum, double step, double value,
         Action<double> write, Action save, Action? after = null)
@@ -505,9 +506,16 @@ public sealed partial class SettingSliderRow : SettingRow
     /// </summary>
     public string ValueLabel => Value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
 
+    internal void Reseed(double value)
+    {
+        _reseeding = true;
+        try { Value = Math.Clamp(value, Minimum, Maximum); OnPropertyChanged(nameof(ValueLabel)); }
+        finally { _reseeding = false; }
+    }
+
     partial void OnValueChanged(double value)
     {
-        if (!_seeded) return;
+        if (!_seeded || _reseeding) return;
         OnPropertyChanged(nameof(ValueLabel));
         _write(value);
         _save();

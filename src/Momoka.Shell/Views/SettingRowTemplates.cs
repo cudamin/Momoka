@@ -34,6 +34,8 @@ public sealed partial class SettingRowTemplates : DataTemplateSelector
 
     public DataTemplate? Text { get; set; }
 
+    public DataTemplate? Secret { get; set; }
+
     public DataTemplate? Font { get; set; }
 
     /// <summary>一个 HTML 颜色代码，色块点开是拾色器，见 <see cref="SettingColorRow"/>。</summary>
@@ -83,6 +85,7 @@ public sealed partial class SettingRowTemplates : DataTemplateSelector
         SettingColorRow => Color,
         SettingSubtitlePreviewRow => Preview,
         SettingTextRow => Text,
+        SettingSecretRow => Secret,
         _ => null
     };
 

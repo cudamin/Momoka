@@ -166,7 +166,7 @@ public interface IPlayerControl
 }
 
 /// <summary>
-/// 独占模式视频窗里 Lua UI（uosc 嵌入版）与宿主的通道。只有内置 libmpv 的独占会话实现它；
+/// 内置播放器 Lua UI 与弹幕图层的宿主通道。内置 libmpv 的两条管线都可实现它；
 /// 外部 mpv.exe 后端没有这条通道，也不需要 —— 判据是类型测试（<c>handle is IPlayerHostMessages</c>），
 /// 不让 <see cref="IPlayerControl"/> 背上第二份「控制」含义。
 /// <para>

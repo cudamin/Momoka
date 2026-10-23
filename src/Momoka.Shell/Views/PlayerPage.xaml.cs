@@ -563,6 +563,7 @@ public sealed partial class PlayerPage : UserControl
     /// </summary>
     internal void Shutdown()
     {
+        CloseDanmakuPanel();
         _presentationGeneration++;
         CancelWindowChange();
         _ticker.Stop();
@@ -617,6 +618,7 @@ public sealed partial class PlayerPage : UserControl
     internal void Detach()
     {
         if (!Attached) return;
+        CloseDanmakuPanel();
         _presentationGeneration++;
 
         LeavePlayer();

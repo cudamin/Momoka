@@ -265,11 +265,14 @@ public sealed partial class PlayerPage
         var settings = new MenuFlyoutSubItem { Text = PlayerSettingsLinks.MenuLabel, Name = "PlaybackSettingsMenu" };
         foreach (var link in PlayerSettingsLinks.All)
         {
+            if (link.Token == "danmaku" && !ViewModel.Embedded) continue;
             var row = new MenuFlyoutItem { Text = link.Label, Tag = link, Name = $"PlaybackSettings_{link.Token}" };
             row.Click += OnPictureSettingsRow;
             settings.Items.Add(row);
         }
         menu.Items.Add(settings);
+
+        if (ViewModel.DanmakuAvailable) AddAction("弹幕 · 弹弹play…", () => ViewModel.RequestDanmaku());
 
         void AddAction(string label, Action action)
         {

@@ -2,6 +2,7 @@ using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Momoka.Configuration;
+using Momoka.Danmaku;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -278,7 +279,8 @@ public sealed partial class PlayerViewModel : ObservableObject
         EmbySession session,
         EmbyImageStore images,
         ShaderGroupResolver shaders,
-        IUiDispatcher ui)
+        IUiDispatcher ui,
+        DandanPlayClient dandanPlay)
     {
         _playback = playback;
         _settings = settings;
@@ -286,6 +288,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _images = images;
         _shaders = shaders;
         _ui = ui;
+        _dandanPlay = dandanPlay;
 
         // Every number the bar shows starts from the same empty snapshot the stop path returns it to, so
         // the clock reads 0:00 and the glyph reads 播放 before anything has ever played.
@@ -310,6 +313,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _playback.NowPlayingUpdated += OnNowPlayingChanged;
         _playback.VideoWindowUpdated += OnVideoWindowMessage;
         ShellPrefs.ShortcutsChanged += NativeShortcutsChanged;
+        ShellPrefs.DanmakuChanged += DanmakuSettingsChanged;
         _session.SourcesChanged += OnVersionSourcesChanged;
     }
 
@@ -341,6 +345,8 @@ public sealed partial class PlayerViewModel : ObservableObject
         _playback.NowPlayingUpdated -= OnNowPlayingChanged;
         _playback.VideoWindowUpdated -= OnVideoWindowMessage;
         ShellPrefs.ShortcutsChanged -= NativeShortcutsChanged;
+        ShellPrefs.DanmakuChanged -= DanmakuSettingsChanged;
+        CancelDanmakuRequests();
         _session.SourcesChanged -= OnVersionSourcesChanged;
         _lifetime.Cancel();
         _generation++;

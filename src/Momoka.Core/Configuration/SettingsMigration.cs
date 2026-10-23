@@ -348,6 +348,7 @@ public static class SettingsMigration
         if (settings.Shaders is null) settings.Shaders = new ShaderAutomationSettings();
         if (settings.Ui is null) settings.Ui = new UiSettings();
         if (settings.Shortcuts is null) settings.Shortcuts = new ShortcutSettings();
+        if (settings.Danmaku is null) settings.Danmaku = new DanmakuSettings();
         if (settings.MoviePilot is null) settings.MoviePilot = new MoviePilotSettings();
 
         if (settings.Playback.AudioLanguages is null) settings.Playback.AudioLanguages = [];
@@ -597,6 +598,8 @@ public static class SettingsMigration
         // 快捷键：认不出的动作 Id、解析不了的写法、落到保留键（Esc/Y）上的，都清掉并把写法规范化 —— 和上面
         // 每一项都被夹进合法范围是同一条规矩，手改的设置文件也拦得住。
         settings.Shortcuts.Bindings = ShortcutCatalog.Clean(settings.Shortcuts.Bindings);
+        settings.Danmaku ??= new DanmakuSettings();
+        settings.Danmaku.Normalize();
 
         foreach (var server in settings.Servers)
         {

@@ -1063,6 +1063,15 @@
                         </Button.Resources>
                         <FontIcon Glyph="&#xE9D9;" Style="{StaticResource TransportGlyphStyle}" />
                     </Button>
+                    <Button x:Name="DanmakuButton" Style="{StaticResource TransportButtonStyle}" Click="OnDanmakuClick" Visibility="{x:Bind ViewModel.DanmakuControlsVisibility, Mode=OneWay}" AutomationProperties.Name="弹幕" ToolTipService.ToolTip="弹幕 · 弹弹play">
+                        <Button.Resources>
+                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="PlayerStripPressedBrush" />
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="PlayerStripHoverInkBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="PlayerStripHoverInkBrush" />
+                        </Button.Resources>
+                        <FontIcon Glyph="&#xE8F2;" Style="{StaticResource TransportGlyphStyle}" />
+                    </Button>
                     <Button x:Name="ChapterButton"  Style="{StaticResource TransportButtonStyle}" AutomationProperties.Name="章节" ToolTipService.ToolTip="章节">
                         <Button.Resources>
                             <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="PlayerStripHoverBrush" />
