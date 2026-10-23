@@ -53,6 +53,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ShaderMonitorPolicyT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SubtitleDropSourceExtractor", "tests\Momoka.SubtitleDropOwnershipTests\SourceExtractor\SourceExtractor.csproj", "{61D3481B-C73A-4957-AC01-05EDCE1E95DA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ShaderCommandGenerationTests", "tests\Momoka.ShaderCommandGenerationTests\Momoka.ShaderCommandGenerationTests.csproj", "{5E5B37F0-D43B-411A-AE81-5B1D3E205D84}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -154,8 +156,13 @@ Global
 		{61D3481B-C73A-4957-AC01-05EDCE1E95DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61D3481B-C73A-4957-AC01-05EDCE1E95DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61D3481B-C73A-4957-AC01-05EDCE1E95DA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E5B37F0-D43B-411A-AE81-5B1D3E205D84}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E5B37F0-D43B-411A-AE81-5B1D3E205D84}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E5B37F0-D43B-411A-AE81-5B1D3E205D84}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E5B37F0-D43B-411A-AE81-5B1D3E205D84}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{5E5B37F0-D43B-411A-AE81-5B1D3E205D84} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{61D3481B-C73A-4957-AC01-05EDCE1E95DA} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{B9DB6D81-6DD6-475B-AF8F-9347C5B11F81} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{AE669B40-CF96-44F4-8312-57AA4A35C216} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

@@ -1,3 +1,8 @@
+## 第五组 R-051 主树原生文件代次执行点限定整合（2026-10-24，继续）
+
+- 源ada1d3cc限定三Core／正式项目／原事务10项构造边界整合，FileGeneration在事务开始捕获，write/rollback共用预期值到真实RunFor与HandOver/Swap/Destroy共同锁核验，service/native不猜同计数，接班空档拒绝。主树当前37全绿（三B旧写全0），当前24csproj方案Core/夹具/x64ShellRelease零警告错误；完整Core2549/EndFile27/Monitor28/拖拽74全过不相加；2提取非法反例预期退出1后默认当前重编译37再绿。solutionRelease/x64空白0修改/退出0无加载失败、23PS/UTF8LF链接hash过；产品逐字同来源，独立只读静态无保留，证据batch05/r051，源37项30过7败及取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计56稳定号／余17。R027 Hooke、R037/R039 Einstein、R067 Ampere三个默认独立代理在途；主线程继续不自动暂停。合成native接受不是真实GLSL/画面或外部IPC验收；未真实App/WinUI/native媒体/config凭据DPAPI/服务器/播放/发布推送，快捷方式旧版，非完整交付。
+
 ## 第五组 R-052 主树固定显示器判定一致性（2026-10-24，继续）
 
 - watcher显式Monitor/fresh与resolver同口径，默认Active回差不变，实际Output仍Active；launch/Adopt用Monitor。同档仅尺寸、换屏跨档才切，初19项10过9败→19绿；追加pending/fullscreen24项23过1败抓重复3事务→恢复SizeOnly先不动后24绿，4纯Core边界最终28全绿。当前23csproj方案含显式Release提取器零警告错误，完整Core2549/R045拖拽74/轨道11/音量31全过不相加；solutionRelease/x64空白0修改/退出0无加载诊断，22PS/UTF8LF链接哈希通过。独立静态复核无保留，证据batch05/r052及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。

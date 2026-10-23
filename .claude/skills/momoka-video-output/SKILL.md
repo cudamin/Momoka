@@ -34,7 +34,7 @@ description: "Momoka 视频输出三卡到 mpv 的选项落地、HDR/杜比语�
 
 UI 的切链与画面菜单按提交次序共用任务队列，不静默丢掉切换期间的操作；执行和提交时核对播放代次。“恢复自动”是请求模式，出队时读取当前方案；恢复写入中途换屏则成功后补交最新方案，失败保留原手动状态。启动后的当前档位及菜单源轴从服务最终候选的 `LaunchShaderDecision`/`PlayingSource` 采纳，不能继续沿用失败源。集成菜单静态部分可缓存，动态着色器子树每次打开重建；每棵单选组隔离，不能与其他菜单共用默认组。
 
-**成功只表示配置完整下发，不表示 GLSL 已编译或执行。** 文件缺失预检、原生日志、`vo-passes` 分别覆盖不同问题。同句柄换片还要核对后端实际执行点的代次与 `InlineSwitch` 错误传播；服务 await 前后检查不等于原生命令具备原子代次保证。
+**成功只表示配置完整下发，不表示 GLSL 已编译或执行。** 文件缺失预检、原生日志、`vo-passes` 分别覆盖不同问题。同句柄换片还要核对后端实际执行点的代次与 `InlineSwitch` 错误传播；服务 await 前后检查不等于原生命令具备原子代次保证。 内置handle的可选 `IFileScopedPlayerControl` 将事务开始捕获的FileGeneration送进每笔写和回滚的真实RunFor；它与service generation不同，不能用同计数推定同文件。服务尚未接班的native换片空档拒新事务。 [执行点专项](../../../tests/Momoka.ShaderCommandGenerationTests/README.md) 原样handle/gate及真实Service/UI选择事务只在托管native seam里运行，不代表真实mpv/GLSL/画面接受。
 
 ## HDR 与杜比
 

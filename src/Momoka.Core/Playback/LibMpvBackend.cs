@@ -488,7 +488,7 @@ internal sealed class LibMpvHandle(
     IntPtr context,
     IVideoSurface? surface,
     PlaybackLaunchSignature? signature,
-    Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages
+    Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages, IFileScopedPlayerControl
 {
     internal MpvCustomConfig? CustomConfig { get; init; }
     private const string Category = "mpv";
@@ -1219,13 +1219,23 @@ internal sealed class LibMpvHandle(
         }), CancellationToken.None);
     }
 
-    public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    public long FileGeneration => _apiGate.Generation;
+
+    public Task<bool> CommandForFileAsync(long expectedFileGeneration, IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken) => CommandAsync(expectedFileGeneration, arguments, cancellationToken);
+
+    public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken) =>
+        CommandAsync(null, arguments, cancellationToken);
+
+    private Task<bool> CommandAsync(long? expectedFileGeneration, IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
     {
         if (arguments.Count == 0) return Task.FromResult(true);
         cancellationToken.ThrowIfCancellationRequested();
 
         var copy = arguments.ToArray();
-        var generation = _apiGate.Generation;
+        // A transaction supplies its captured file generation; never rebind it to a successor.
+        var generation = expectedFileGeneration ?? _apiGate.Generation;
         return Task.Run(() => _apiGate.RunFor(generation, () =>
         {
             cancellationToken.ThrowIfCancellationRequested();

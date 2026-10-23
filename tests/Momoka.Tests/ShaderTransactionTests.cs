@@ -153,7 +153,8 @@ internal static class ShaderTransactionTests
         {
             var settings = new AppSettings();
             var store = new SettingsStore(new AppPaths(Path.Combine(Path.GetTempPath(), "stage7-shader-" + Guid.NewGuid().ToString("N"))), PassthroughSecretProtector.Instance);
-            _session = new EmbySession(settings, store, new CredentialVault(PassthroughSecretProtector.Instance), DeviceIdentity.Create("stage7", "1"), new OfflineHttp());
+            _session = (EmbySession)Activator.CreateInstance(typeof(EmbySession), BindingFlags.Instance | BindingFlags.NonPublic,
+                null, [settings, store, new CredentialVault(PassthroughSecretProtector.Instance), DeviceIdentity.Create("stage7", "1"), new OfflineHttp()], null)!;
             Service = new PlaybackService(_session, settings, () => throw new InvalidOperationException("No backend may be started"), new PlaybackPlanner(settings, new ShaderGroupResolver(settings.Shaders)));
             Field(Service, "_current", Handle);
             Field(Service, "_playbackGeneration", 1L);

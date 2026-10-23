@@ -166,6 +166,21 @@ public interface IPlayerControl
 }
 
 /// <summary>
+/// Optional control capability for a handle that reuses its native context across files.
+/// Capture <see cref="FileGeneration"/> before an asynchronous transaction, then use that same
+/// native generation for every write and rollback. It is independent of the service generation;
+/// execution must reject a stale generation atomically with native file handoff and destruction.
+/// Ordinary <see cref="IPlayerControl"/> commands and external-process handles are unchanged.
+/// </summary>
+public interface IFileScopedPlayerControl
+{
+    long FileGeneration { get; }
+
+    Task<bool> CommandForFileAsync(long expectedFileGeneration, IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>
 /// 独占模式视频窗里 Lua UI（uosc 嵌入版）与宿主的通道。只有内置 libmpv 的独占会话实现它；
 /// 外部 mpv.exe 后端没有这条通道，也不需要 —— 判据是类型测试（<c>handle is IPlayerHostMessages</c>），
 /// 不让 <see cref="IPlayerControl"/> 背上第二份「控制」含义。

@@ -1,0 +1,130 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Momoka.ShaderCommandGenerationTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <ShaderCoreProject Condition="'$(ShaderCoreProject)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Momoka.Core.csproj</ShaderCoreProject>
+    <ShaderBackendSource Condition="'$(ShaderBackendSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Playback\LibMpvBackend.cs</ShaderBackendSource>
+    <ShaderServiceSource Condition="'$(ShaderServiceSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Playback\PlaybackService.cs</ShaderServiceSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The linked synchronous TestHarness/ShaderTransactionTests have the same test-only
+         banned-awaiter exception as Momoka.Tests. Core/Shell keep every analyzer unchanged. -->
+    <PackageReference Remove="Microsoft.CodeAnalysis.BannedApiAnalyzers" />
+    <ProjectReference Include="$(ShaderCoreProject)" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvNodes.cs" Link="Production\LibMpvNodes.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvFrame.cs" Link="Production\LibMpvFrame.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\MpvListValue.cs" Link="Production\MpvListValue.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.Tests\ShaderTransactionTests.cs" Link="ShaderTransactionTests.cs" />
+    <None Include="..\..\assets\shaders\**\*.glsl;..\..\assets\shaders\**\*.hook">
+      <Link>shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <!-- Link the entire real handle and lifetime gate; replace only the native API endpoints.
+       Constants and ABI declarations are copied verbatim, including the existing unused tail layout.
+       No DLL resolver, mpv_create/initialize, app, real account, or media loading is available here. -->
+  <UsingTask TaskName="ExtractShaderCommandGenerationSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <BackendSource ParameterType="System.String" Required="true" />
+      <NativeSource ParameterType="System.String" Required="true" />
+      <UiSource ParameterType="System.String" Required="true" />
+      <ServiceSource ParameterType="System.String" Required="true" />
+      <OutputDirectory ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, int> unique = (source, marker) =>
+        {
+            var index = source.IndexOf(marker, StringComparison.Ordinal);
+            if (index < 0 || source.IndexOf(marker, index + marker.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous production boundary: " + marker);
+            return index;
+        };
+        var backend = File.ReadAllText(BackendSource).Replace("\r\n", "\n");
+        var native = File.ReadAllText(NativeSource).Replace("\r\n", "\n");
+        var ui = File.ReadAllText(UiSource).Replace("\r\n", "\n");
+        var imports = backend.Substring(0, unique(backend, "namespace Momoka.Playback;"));
+        var handleStart = unique(backend, "internal sealed class LibMpvHandle(");
+        var gateStart = unique(backend, "internal sealed class LibMpvLifetimeGate\n");
+        if (gateStart <= handleStart) throw new InvalidOperationException("Invalid handle/gate boundary order");
+        var handle = backend.Substring(handleStart);
+        var runStart = unique(backend, "    internal static bool Run(IntPtr context, params string[] arguments)");
+        var runEnd = unique(backend, "\n}\n\n/// <summary>\n/// One in-process playback:");
+        if (runEnd <= runStart) throw new InvalidOperationException("Invalid command boundary order");
+        var formats = unique(native, "    // ---- formats and event ids");
+        var nativeEnd = unique(native, "\n}");
+        if (nativeEnd <= formats) throw new InvalidOperationException("Invalid ABI boundary order");
+        Action<string, string> save = (name, content) =>
+        {
+            Directory.CreateDirectory(OutputDirectory);
+            var path = Path.Combine(OutputDirectory, name);
+            if (!File.Exists(path) || File.ReadAllText(path) != content)
+                File.WriteAllText(path, content, new UTF8Encoding(false));
+        };
+        Func<string, string> hash = file =>
+        {
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+                return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(file))).Replace("-", "");
+        };
+        var inputPaths = new[] { BackendSource, NativeSource, UiSource, ServiceSource };
+        var proofFields = new[] { "Backend", "Native", "Ui", "Service" };
+        var proofCode = "#nullable enable\nnamespace Momoka.Tests;\ninternal static class ProductionProof\n{\n";
+        var proofJson = "{\n";
+        for (var i = 0; i < inputPaths.Length; i++)
+        {
+            var sourcePath = Path.GetFullPath(inputPaths[i]).Replace("\\", "/");
+            var digest = hash(sourcePath);
+            proofCode += "    private const string " + proofFields[i] + "Path = \"" + sourcePath + "\";\n";
+            proofCode += "    private const string " + proofFields[i] + "Hash = \"" + digest + "\";\n";
+            proofJson += "  \"" + proofFields[i] + "\": { \"path\": \"" + sourcePath + "\", \"sha256\": \"" + digest + "\" }" + (i == inputPaths.Length - 1 ? "\n" : ",\n");
+        }
+        proofCode += "    internal static void Verify()\n    {\n";
+        foreach (var field in proofFields)
+        {
+            proofCode += "        Assert.Equal(" + field + "Hash, System.Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.IO.File.ReadAllBytes(" + field + "Path))), \"source hash: " + field + "\");\n";
+        }
+        proofCode += "        Console.WriteLine(\"    R051_SOURCE_HASHES: backend=\" + BackendHash + \" service=\" + ServiceHash + \" ui=\" + UiHash);\n    }\n}\n";
+        save("source-proof.json", proofJson + "}\n");
+        save("ProductionProof.g.cs", proofCode);
+        var header = "// Extracted verbatim from this tree's current source; do not edit.\n#nullable enable\n";
+        save("LibMpvHandle.g.cs", header + imports + "using Momoka.Playback;\nnamespace Momoka.Tests;\n\n" +
+            "using LibMpvBackend = Momoka.Tests.LibMpvCommandBoundary;\n" + handle);
+        save("LibMpvCommand.g.cs", header + imports + "namespace Momoka.Tests;\n\ninternal static class LibMpvCommandBoundary\n{\n" +
+            "    private const string Category = \"mpv\";\n" +
+            backend.Substring(runStart, runEnd - runStart) + "\n}\n");
+        var uiStart = unique(ui, "    private Task QueuePictureCommand(Func<Task> action)");
+        unique(ui, "    private Task ChangeShaderGroupAsync(ShaderGroup? group, bool pinned, bool automatic = false)");
+        var uiEnd = unique(ui, "\n    /// <summary>\n    /// Runs one 画面 menu row:");
+        if (uiEnd <= uiStart) throw new InvalidOperationException("Invalid shader UI boundary order");
+        save("ShaderChoice.g.cs", header + "using Momoka.Mpv;\nusing Momoka.Playback;\nnamespace Momoka.Tests;\n" +
+            "internal sealed partial class ShaderChoiceBoundary\n{\n" + ui.Substring(uiStart, uiEnd - uiStart) + "\n}\n");
+        save("LibMpvAbi.g.cs", header + "using System.Runtime.InteropServices;\nnamespace Momoka.Mpv;\n" +
+            "internal static partial class LibMpvNative\n{\n" + native.Substring(formats, nativeEnd - formats) + "\n}\n");
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateShaderCommandGenerationSources" BeforeTargets="CoreCompile">
+    <ExtractShaderCommandGenerationSources
+      BackendSource="$(ShaderBackendSource)"
+      ServiceSource="$(ShaderServiceSource)"
+      NativeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Mpv\LibMpvNative.cs"
+      UiSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\PlayerViewModel.Mpv.cs"
+      OutputDirectory="$(IntermediateOutputPath)R051" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)R051\LibMpvHandle.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)R051\LibMpvCommand.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)R051\LibMpvAbi.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)R051\ShaderChoice.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)R051\ProductionProof.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>
