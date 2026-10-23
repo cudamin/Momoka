@@ -2336,32 +2336,27 @@ public sealed partial class DetailViewModel : PageViewModel
         // （DetailHero.CompactHeight / PictureHeight）；量不成话（0 或负）就不动兜底的那 0.5625。
         async Task HeroAsync(EmbyItem page, CancellationToken token)
         {
-            foreach (var picture in ItemArtwork.Hero(page))
-            {
-                var bytes = await _images!
-                    .GetAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
-                        EmbyImageStore.RequestWidth(HeroDecodeWidth), token)
-                    .ConfigureAwait(true);
-                if (bytes is null || bytes.Length == 0) continue;
+            var source = await ArtworkCandidates.FirstAsync<ArtworkRef, HeroPictureLoader.HeroPixels>(
+                ItemArtwork.Hero(page), async (picture, candidateToken) =>
+                {
+                    var bytes = await _images!
+                        .GetAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
+                            EmbyImageStore.RequestWidth(HeroDecodeWidth), candidateToken)
+                        .ConfigureAwait(true);
+                    return bytes is null || bytes.Length == 0 ? null
+                        : await HeroPictureLoader.DecodePixelsAsync(bytes, HeroDecodeWidth, candidateToken)
+                            .ConfigureAwait(true);
+                }, token).ConfigureAwait(true);
+            if (source is null || !Fresh(art, page)) return;
 
-                var source = await HeroPictureLoader
-                    .DecodePixelsAsync(bytes, HeroDecodeWidth, token)
-                    .ConfigureAwait(true);
-                if (source is null) continue;
-                if (!Fresh(art, page)) return;
+            _heroPixels = source;
+            var radius = HeroBlurTarget;
+            var generation = ++_heroBlurGeneration;
+            _heroBlurRadius = radius;
 
-                _heroPixels = source;
-
-                var radius = HeroBlurTarget;
-                var generation = ++_heroBlurGeneration;
-                _heroBlurRadius = radius;
-
-                var rendered = await HeroPictureLoader.RenderAsync(source, radius, token).ConfigureAwait(true);
-                if (rendered is null || generation != _heroBlurGeneration) return;
-
-                ShowHero(rendered);
-                return;
-            }
+            var rendered = await HeroPictureLoader.RenderAsync(source, radius, token).ConfigureAwait(true);
+            if (rendered is null || generation != _heroBlurGeneration) return;
+            ShowHero(rendered);
         }
 
         // 头图多带一个数上屏：这张图自己的高÷宽。紧凑版式的带高和背景那张的盒高都按它算
@@ -2494,17 +2489,13 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         if (!Attached) return null;
 
-        foreach (var type in types)
+        return await ArtworkCandidates.FirstAsync<string, BitmapImage>(types, async (type, candidateToken) =>
         {
             var bytes = await _images!
-                .GetAsync(item, type, EmbyImageStore.RequestWidth(width), token).ConfigureAwait(true);
-            if (bytes is null || bytes.Length == 0) continue;
-
-            var bitmap = await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
-            if (bitmap is not null) return bitmap;
-        }
-
-        return null;
+                .GetAsync(item, type, EmbyImageStore.RequestWidth(width), candidateToken).ConfigureAwait(true);
+            return bytes is null || bytes.Length == 0 ? null
+                : await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
+        }, token).ConfigureAwait(true);
     }
 
     /// <summary>
@@ -2521,19 +2512,14 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         if (!Attached) return null;
 
-        foreach (var picture in pictures)
+        return await ArtworkCandidates.FirstAsync<ArtworkRef, BitmapImage>(pictures, async (picture, candidateToken) =>
         {
             var bytes = await _images!
                 .GetAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
-                    EmbyImageStore.RequestWidth(width), token)
-                .ConfigureAwait(true);
-            if (bytes is null || bytes.Length == 0) continue;
-
-            var bitmap = await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
-            if (bitmap is not null) return bitmap;
-        }
-
-        return null;
+                    EmbyImageStore.RequestWidth(width), candidateToken).ConfigureAwait(true);
+            return bytes is null || bytes.Length == 0 ? null
+                : await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
+        }, token).ConfigureAwait(true);
     }
 
     // ---------------------------------------------------------------- 选择

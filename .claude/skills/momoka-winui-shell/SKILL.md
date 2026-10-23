@@ -78,6 +78,10 @@ Apply [CLAUDE.md's visibility policy](../../../CLAUDE.md#功能可用性与显�
 
 Use [momoka-verification](../momoka-verification/SKILL.md#capability-dependent-visibility) for initial, hidden and restored states, real layout and keyboard checks. A property assertion or a disabled control is not evidence that the unavailable region disappeared.
 
+## Artwork candidate failures
+
+`DetailViewModel` sends its hero and both poster candidate loops through `Core/Emby/ArtworkCandidates.FirstAsync`, preserving the existing ordering and the caller's synchronization context for WinUI decoding. Only explicit bad-image/format data, a completed candidate's unreachable/5xx failure, or missing-image result can downgrade to the next candidate. Cancellation, source/identity rejection, permissions, low memory and arbitrary program/stream errors still propagate. The WIC code list is a narrow allow-list cross-checked against Microsoft's documented constants; missing codec allows another candidate, not cache eviction. This fixes candidate selection, not corrupt-cache invalidation. Core tests do not establish the actual WinRT exception shape or rendered fallback image.
+
 ## Colours: the role table, and why literal hex hides
 
 Themes are declared in `src/Momoka.Core/Theming/UiThemes.cs`. Base colors expand into role colors through `UiTheme` / `ThemeColor`; `ThemeHost.cs` publishes the runtime brushes, while `Theme/Palette.xaml` supplies the first frame and `Theme/Styles.xaml` holds shared styles.

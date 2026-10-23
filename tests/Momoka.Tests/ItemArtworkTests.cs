@@ -10,10 +10,11 @@ namespace Momoka.Tests;
 /// looks exactly like a page whose server has no artwork — and the artwork borrowed from the show (徽标,
 /// 背景图, 缩略图), where the tag that comes back belongs to a different item's id than the page is about.
 /// </summary>
-internal static class ItemArtworkTests
+internal static partial class ItemArtworkTests
 {
     public static void Register()
     {
+        RegisterCandidates();
         RegisterPlate();
         RegisterCorner();
         RegisterFooter();
