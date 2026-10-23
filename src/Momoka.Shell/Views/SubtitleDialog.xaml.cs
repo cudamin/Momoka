@@ -25,8 +25,8 @@ public sealed class SubtitleCandidate(RemoteSubtitleInfo info)
 }
 
 /// <summary>
-/// 字幕管理只持有固定文件的操作委托。写入结果确定、列表刷新结束后才允许关闭，
-/// <see cref="Touched"/> 让调用方在关闭后重读页面。
+/// 字幕管理只持有固定文件的操作委托。写入及确认后的补读在飞时不允许关闭；
+/// 响应不明时保留 <see cref="NeedsRefresh"/>，关闭也把重读义务交给父页，不重放写入。
 /// </summary>
 public sealed partial class SubtitleDialog : ContentDialog
 {
@@ -91,8 +91,10 @@ public sealed partial class SubtitleDialog : ContentDialog
         LanguageBox.SelectedIndex = 0;
     }
 
+    /// <summary>只有写委托明确完成才置位；回读成功不能追认一次未知写入。</summary>
     public bool Touched { get; private set; }
 
+    /// <summary>已读新轨道或写响应不明时欠父页一次刷新；关闭和恢复读失败都不能清除。</summary>
     public bool NeedsRefresh { get; private set; }
 
     private void FillTracks(MediaSource source)
@@ -172,11 +174,22 @@ public sealed partial class SubtitleDialog : ContentDialog
         catch (OperationCanceledException) { Say("登录身份已改变，请关闭后重新打开字幕管理。"); }
         catch (Exception error)
         {
-            _tracksStale = _reload is not null;
+            MarkUncertainMutation(error);
             Log.Warn(Category, "下载字幕失败", error);
             Say($"下载字幕未完成确认：{Failure.Describe(error)}。请刷新列表后再操作。");
         }
         finally { SetBusy(false); }
+    }
+
+    private void MarkUncertainMutation(Exception error)
+    {
+        _tracksStale = _reload is not null;
+        // Local validation and explicit permission/request rejection can happen before any write.
+        if (error is InvalidOperationException or UnauthorizedAccessException
+            || error is EmbyApiException { StatusCode: { } status } && (int)status is >= 400 and < 500) return;
+        // A lost response may follow an applied write. Record the debt before closing becomes possible;
+        // a later failed/closed recovery GET must not erase it, nor turn it into Touched success.
+        NeedsRefresh = true;
     }
 
     private async void OnRefreshTracks(object sender, RoutedEventArgs e)
@@ -315,7 +328,7 @@ public sealed partial class SubtitleDialog : ContentDialog
         catch (OperationCanceledException) { Say("登录身份已改变，请关闭后重新打开字幕管理。"); }
         catch (Exception error)
         {
-            _tracksStale = _reload is not null;
+            MarkUncertainMutation(error);
             Log.Warn(Category, "删除字幕失败", error);
             Say($"删除字幕未完成确认：{Failure.Describe(error)}。请刷新列表后重新确认。");
         }

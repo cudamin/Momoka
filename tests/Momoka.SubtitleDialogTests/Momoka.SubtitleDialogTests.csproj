@@ -1,0 +1,82 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.SubtitleDialogTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- A baseline audit may supply the exact Git blob without overwriting the working product file. -->
+    <R056DialogSource Condition="'$(R056DialogSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SubtitleDialog.xaml.cs</R056DialogSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="$(R056DialogSource)" Link="Production\SubtitleDialog.xaml.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+  <!-- Only current production control flow is extracted. Missing or duplicate boundaries fail closed.
+       Unrelated detail rendering and XAML/HTTP endpoints are inert, not copied state machines. -->
+  <UsingTask TaskName="ExtractSubtitleCallerSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceRoot ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, int> unique = (source, marker) =>
+        {
+            var index = source.IndexOf(marker, StringComparison.Ordinal);
+            if (index < 0 || source.IndexOf(marker, index + marker.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing/ambiguous production boundary: " + marker);
+            return index;
+        };
+        Func<string, string, string, string> between = (source, start, end) =>
+        {
+            var begin = unique(source, start);
+            var finish = unique(source, end);
+            if (finish <= begin) throw new InvalidOperationException("Reversed production boundary: " + start);
+            return source.Substring(begin, finish - begin);
+        };
+        Func<string, string, string> line = (source, marker) =>
+        {
+            var begin = unique(source, marker);
+            var finish = source.IndexOf('\n', begin);
+            if (finish < 0) throw new InvalidOperationException("Missing line end: " + marker);
+            return source.Substring(begin, finish - begin + 1);
+        };
+        var server = File.ReadAllText(Path.Combine(SourceRoot, "Views", "ItemCommands.Server.cs")).Replace("\r\n", "\n");
+        var detail = File.ReadAllText(Path.Combine(SourceRoot, "ViewModels", "DetailViewModel.cs")).Replace("\r\n", "\n");
+        var page = File.ReadAllText(Path.Combine(SourceRoot, "ViewModels", "PageViewModel.cs")).Replace("\r\n", "\n");
+        var generated = "#nullable enable\n// Extracted verbatim from this tree at every build; do not edit.\n" +
+            "using Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.Playback;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\n" +
+            "namespace Momoka.Shell.Views\n{\ninternal static partial class ItemCommands\n{\n" +
+            between(server, "    private static async Task GuardAsync(", "\n    /// <summary>\n    /// 一次请求。") +
+            between(server, "    private static async Task<T> AskAsync<T>(", "\n    /// <inheritdoc cref=\"AskAsync{T}\"/>") +
+            line(server, "    private static XamlRoot? Root(FrameworkElement owner)") +
+            between(server, "    private static Task SubtitlesAsync(\n", "\n    /// <summary>\n    /// 识别：打开那张表") +
+            "\n}\n}\nnamespace Momoka.Shell.ViewModels\n{\ninternal sealed partial class DetailViewModel\n{\n" +
+            line(detail, "    private bool Attached =>") +
+            line(detail, "    private AppSettings Settings =>") +
+            line(detail, "    private new bool IsCurrent(CancellationToken token) =>") +
+            between(detail, "    internal void Reload()\n", "\n    /// <summary>Capture a successful delete callback") +
+            between(detail, "    private async Task LoadAsync(string? committedNotice = null)\n", "\n    /// <summary>\n    /// 用点进来那张卡片先画一屏") +
+            between(detail, "    public override void Cancel()\n", "\n    /// <inheritdoc />\n    public override void Dispose()") +
+            "\n}\ninternal partial class PageViewModel\n{\n" +
+            between(page, "    protected CancellationToken BeginLoad()\n", "\n    /// <summary>\n    /// Whether the load this token came from") +
+            line(page, "    protected bool IsCurrent(CancellationToken token) =>") +
+            between(page, "    protected void EndLoad(CancellationToken token)\n", "\n    /// <summary>Abandons the load in flight.") +
+            between(page, "    public virtual void Cancel()\n", "\n    /// <summary>Puts one failure in front of the user") +
+            "\n}\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateSubtitleCallerSources" BeforeTargets="CoreCompile">
+    <ExtractSubtitleCallerSources SourceRoot="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell"
+                                 OutputSource="$(IntermediateOutputPath)SubtitleCallerSources.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)SubtitleCallerSources.g.cs" /></ItemGroup>
+  </Target>
+</Project>

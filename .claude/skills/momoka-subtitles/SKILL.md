@@ -74,7 +74,8 @@ description: "Audit, fix and verify Momoka subtitle settings and playback behavi
 - 保存失败须留下可见的未保存状态和重试入口。重试保存当前内存值，不重新导入、不重复删除，也不静默回滚整份真实配置。
 - 同窗换片按完整可写属性清单复位，包含 uosc 控制的主次可见性、次字幕索引/延迟/位置/样式。裸 mpv 默认不会替客户端复位全部属性。
 - 区分 `sub-remove` 的“本次卸载”与 Emby DELETE 的“服务器文件删除”。服务器删除显示媒体文件、字幕名、影响和不可撤销性，确认前请求数必须为零。`ServerSubtitles` 固定登录 scope 和文件；确认后重读完整字幕快照，变化或无法区分的同标签文件拒绝删除。GET/DELETE 不是原子操作，不宣称防住服务器并发替换。
-- 字幕写入和后续刷新期间不允许关闭、重复下载或并发删除。响应不明先刷新，刷新成功后通知父页重读，不通过重复写请求“修复”；`Touched` 与 `NeedsRefresh` 分别表达写入完成和需要更新父页。
+- Subtitle writes and their automatic confirmation reads block closing and concurrent writes. An ambiguous write records `NeedsRefresh` before closing is allowed; closing immediately, a failed recovery GET, or closing while that manual read is pending must still hand the debt to the current parent. `Touched` means an explicitly completed write, never a successful read after an unknown receipt. Recovery only reads; it must not replay the write. Local validation, permission exceptions and explicit 4xx rejections do not create a new debt. The existing caller checks `(Touched || NeedsRefresh)` and the original scope before refreshing.
+- [Momoka.SubtitleDialogTests](../../../tests/Momoka.SubtitleDialogTests/README.md) compile-links the actual dialog and extracts current caller/parent lifetime methods at each build with unique boundaries. Run it separately after a fresh Release build; it is not real WinUI input, rendered closing behavior or server processing coverage.
 - WinUI 同一 UI 线程不能叠两个 ContentDialog。已有字幕管理对话框内使用明确的内联确认或关闭后串联确认；取消优先，不让 Enter 默认执行删除。
 
 ## 参考开源项目的方式
