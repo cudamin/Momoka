@@ -111,7 +111,9 @@ public sealed class AppPaths
     /// looks like a fresh install.
     /// </para>
     /// <para>
-    /// Gated on <see cref="SettingsFile"/> being absent rather than on the root being absent:
+    /// Raw copying is gated on <see cref="SettingsFile"/> being absent. Normal startup first uses
+    /// <see cref="SettingsStore.PrepareStartupData"/> to preserve a readable current backup; this low-level
+    /// copier does not decide whether a settings document is valid. Rather than testing the root itself:
     /// <see cref="EnsureCreated"/> runs while logging starts up, so by the time anything reads
     /// settings the new directory already exists. Copies rather than moves, so rolling back to the
     /// old build is still possible, and never throws — a failed migration must not stop startup.

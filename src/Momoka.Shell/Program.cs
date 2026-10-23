@@ -403,7 +403,8 @@ internal static class Program
         // once this is installed as an MSIX, under the unpackaged build's own folder — they live
         // somewhere else. Never throws, so a failed migration cannot stop startup. The candidate order
         // and why the packaged case is first are in AppPaths.PriorRoots.
-        var migratedFrom = paths.MigrateFromAny(AppPaths.PriorRoots);
+        var migratedFrom = new Momoka.Configuration.SettingsStore(paths, DpapiSecretProtector.Instance)
+            .PrepareStartupData(AppPaths.PriorRoots);
 
         if (LegacyInstanceIsRunning() is { } legacyActivationEvent)
         {

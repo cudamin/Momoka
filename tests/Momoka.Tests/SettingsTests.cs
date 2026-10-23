@@ -28,6 +28,7 @@ internal static partial class SettingsTests
         RegisterVault();
         RegisterStore();
         RegisterAccountNulls();
+        RegisterDirectoryRecovery();
         RegisterPaths();
     }
 

@@ -1,3 +1,9 @@
+## 分阶段修复：R-009当前备份先于旧目录（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；新增SettingsStore.PrepareStartupData并由正常Main接入：已有主不迁移，主缺且当前备份正常可读时保留当前恢复，坏/锁备份才允许旧目录回退。复用实际TryRead规则，路径工具只复制，不只凭backup存在封死恢复。
+- 15个实际准备入口→Load组合修前11过4败，修后15全过；当前Release Core/Tests零警告错误，完整2213通过／0失败／0跳过、退出0；当前Release Shell零警告错误、退出0，定向空白0。证据见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)，包括坏主隔离后未保存重启、备份锁/坏JSON/新装源保留。
+- 本树假目录输出保留，不运行真实迁移/配置/WinUI启动/账号/UI/native/播放/发布/推送，快捷方式旧版。文档／链接／LF／差异检查后本地提交，累计7号主树相关回归通过；R-061、R-073/R-060各自独立树继续，不自动暂停。
+
 ## 分阶段修复：R-006纯地址与共享显示整合（2026-10-23）
 
 - 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；复核代理提交 `38eeaec0df05178e8444f63015c6f877cd1481f1` 四文件。原authority识别显式端口，HTTP80保留、IPv6不重复括号；代理明确共享显示未完后，主线程补EmbyServerAddress的Plex显示分派与36往返回归。

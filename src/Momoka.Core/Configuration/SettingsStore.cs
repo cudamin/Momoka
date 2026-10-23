@@ -16,6 +16,16 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
 
     public AppPaths Paths { get; } = paths;
 
+    /// <summary>普通启动先确定当前可恢复配置，再考虑旧产品数据目录；不用于只读自检。</summary>
+    public string? PrepareStartupData(IEnumerable<string> priorRoots)
+    {
+        if (File.Exists(Paths.SettingsFile)) return null;
+        // 复用正常 Load 的实际读取规则，而不是仅凭备份存在就封死旧目录恢复。
+        // 只读验证不消耗/改写备份，也不隔离；稍后的 Load 从同一当前目录正式恢复。
+        if (File.Exists(Paths.SettingsBackupFile) && TryRead(Paths.SettingsBackupFile, out _)) return null;
+        return Paths.MigrateFromAny(priorRoots);
+    }
+
     public AppSettings Load()
     {
         if (File.Exists(Paths.SettingsFile))
