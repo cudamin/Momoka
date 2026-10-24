@@ -1,3 +1,8 @@
+## 第五组 R-004 主树文件权限错误分类（2026-10-24，继续）
+
+- 仅错误分类移-16出身份拒绝、-5/-16排可选降级，登录/Session源码不改。有效17项14过3败→当前21全过；当前30csproj方案Core/Shell零警告错误、完整Core2549全过，solutionRelease/x64格式0修改/退出0无加载診断、29PS/UTF8LF链接哈希通过。匿名GET/纯predicate，不实际登录/恢复/DPAPI/凭据链，静态catch不再权限误当密码，端到端来源保留未运行，证据batch05/r004及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计61业务实现＋相关离线回归／余12。继续R010保存欠项、R008 Heisenberg独立默认代理；R067三保留由Ampere原独立树补修，不提前算完成。未真实服务器/configcredential/UI/native/播放/发布推送，快捷方式旧版，非完整交付；不自动暂停。
+
 ## 第五组 R-037／R-039 主树真实计划显式确认（2026-10-24，继续）
 
 - 源18c86056限定4产品／3相关测试／正式source-link项目合入，实际sealed计划先显示再独立确认写；无history只精确规范化title/year（保±1/未知year）不无关首条，history展示真实Source/Target/方式/旧清理，取消改选失效不重preview换目标、不解除未知写防重。主树53/Legacy87/Core2549全绿不相加；当前29csproj方案Core/x64ShellRelease零警告错误，solution空白1fixture10初始化定点修后0修改/退出0无加载诊断，29PS/定位零缺句柄/UTF8LF链接hash过。format清空g.cs首生成红保留，串行freshShell后实际bindings11＋6拒绝全绿不读backup。4产品same来源、R038helpers逐字不改，独立静态无保留；具体代价/证据batch05/r037-r039见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。

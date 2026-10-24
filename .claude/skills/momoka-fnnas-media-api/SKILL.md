@@ -37,6 +37,8 @@ description: "Develop or review Momoka's 飞牛影视 / fnOS media backend: Core
 
 先核 HTTP，再核 `{code,msg,data}` 的 `code == 0`；HTTP 200 不证明业务成功。data 可能是对象、列表或标量。错误文案由客户端生成，不把可能回显凭据的 msg 原样记录或展示。令牌只走 Authorization；图片进程内下载，播放器头走现有安全传递路径；重定向核来源。访问码 Cookie 与 token 分开，`/c/{code}` 在设备根路径，不在 `/v/` 下。
 
+File/operation permission code `-16` is not proof of rejected credentials; `-2`, `-15` and HTTP401 retain identity failure semantics. Explicit permission codes `-5`/`-16` must not be downgraded as optional reads even when accompanied by a transient/503 marker. [Classification tests](../../../tests/Momoka.FnNasErrorClassificationTests/README.md) run anonymous read/error boundaries, not the authentication chain.
+
 ## Optional reads and transfer budgets
 
 Ordinary API requests retain a 30-second total deadline. Byte downloads and multipart uploads use a separate five-minute total deadline; caller cancellation, response-size bounds and same-origin redirects still apply. A 32-second fake response test exercises the old deadline boundary without contacting a server.

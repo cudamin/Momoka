@@ -67,6 +67,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.FnNasAccountEditTest
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.AniBtConfirmationTests", "tests\Momoka.AniBtConfirmationTests\Momoka.AniBtConfirmationTests.csproj", "{0B506E0F-C99C-4800-B486-5811F6887D65}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.FnNasErrorClassificationTests", "tests\Momoka.FnNasErrorClassificationTests\Momoka.FnNasErrorClassificationTests.csproj", "{57BC7FE7-7C5A-4FBC-9A4C-912C9237F9E8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -192,8 +194,13 @@ Global
 		{0B506E0F-C99C-4800-B486-5811F6887D65}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0B506E0F-C99C-4800-B486-5811F6887D65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0B506E0F-C99C-4800-B486-5811F6887D65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57BC7FE7-7C5A-4FBC-9A4C-912C9237F9E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57BC7FE7-7C5A-4FBC-9A4C-912C9237F9E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57BC7FE7-7C5A-4FBC-9A4C-912C9237F9E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57BC7FE7-7C5A-4FBC-9A4C-912C9237F9E8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{57BC7FE7-7C5A-4FBC-9A4C-912C9237F9E8} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{0B506E0F-C99C-4800-B486-5811F6887D65} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{22965C04-6936-45D7-A25A-5B0A8B5DF18C} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{560927D1-C73E-408E-8421-3967FD4C9BA2} = {2EC17D10-4BCD-46C7-AB9A-0A64C31C77EB}

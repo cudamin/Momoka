@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.FnNasErrorClassificationTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
+  </ItemGroup>
+</Project>
