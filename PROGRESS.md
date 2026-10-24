@@ -1,3 +1,10 @@
+## 第六组最终收束：R-017／R-065内部纠正，R-042已由旧修复覆盖（2026-10-24）
+
+- 主树R017=987eee1、R042=cb050cc、R065=a9fc648；新增两内部支持契约纠正，累计67实现+1既有覆盖=68号当前处置、剩余5（受限R001003005031停止不重试，R043显示建议不擅改）。部署偏移/modal/ACL前件仍未验，旧69审查记录只读。[增量最终表](docs/代码审查-分阶段修复-2026-10-23.md)／[日期96](tests/Momoka.Tests/README.MetadataDate.md)／[来源31](tests/Momoka.AniBtSourceContractTests/README.md)／[启动61与共享34](tests/Momoka.Tests/StartupStateContractTests.md)。
+- 最终产品源码a9fc648，format后fresh35csproj Release零警告错误／Core2645全过0失败0跳过；30独立匿名套+16显式fixture+全Core共47入口全部exit0/失败0/跳过0、分套不累加，全部源/DLL/log hash对上。首driver帐号14绿仅因命名前缀解析停，旧失败/29结果保留，current所有pins不变核原14+续余18，未放宽守卫洗绿。Release/x64方案1793文件空白0修改/35project无实际诊断；45PS过、fresh实际日期/设置IsOn/登录/AniBT g.cs/hash与AniBT生成11过。证据artifacts/staged-repair/batch06/final-current-a9fc648，原红/工具失败/source worker work/r065均保。
+- Gibbs初R065恢复成功覆盖本次初读Error P2已来源34项18绿16红→34绿，最终无保留P1/P2；Locke/Hypatia/Gibbs已交回闭工作、独立树干净/上下文可恢复不清理归档，无自动唤醒或在途任务。本地可实施范围收束，非自动暂停新批/发布，不擅自扩大到受限链或R043体验建议。压缩后重新全文读C:/Users/89400/Momoka/CLAUDE.md，核本树HEAD及batch06最终checkpoint。
+- **不是完整交付：** libmpv缺、真实runtime门禁仍exit1红；无实际WinUI/UIA/输入/像素/Registry ACL/真实服务器元数据与调权写入/生产凭据DPAPI/登录改密重认/native/独占uosc/媒体播放，未publish/push或改快捷方式。**快捷方式仍旧版。** 三候选支持契约证据不冒充真实部署验收，等待用户新范围再继续相应工作。
+
 ## 第六组 R-065 最终来源整合与主树相关验证（2026-10-24，在途）
 
 - 来源7474269限定10份Gitblob+Program四行入口，保R017/R042当前主树提交/原tests；读取失败不等null、Applyfalse不被相等状态吞，原二态+Error回拨，不新增未知UX。Gibbs共享restore尾部P2已来源34项18绿16红→34绿：Reload清cause/同步建行记录、await前快照传原tail；启动61/截图反射caller14/设置27及源码Release零警告错误，旧39/61/工具编译红全保。actual测试/调用边界不等完整用户Reload/default/import或真实注册表/UI，主树61/34/14/27/29全绿、Tests/Shell零警告错误、10源逐字同worker，Gibbs最终闭环无P1/P2；Release/x64方案空白0改/35项目加载无诊断，format后统一fresh方案/47匿名入口待最终提交后重验，不以早期绿色销账。[增量](docs/代码审查-分阶段修复-2026-10-23.md)／[启动专项](tests/Momoka.Tests/StartupStateContractTests.md)。
