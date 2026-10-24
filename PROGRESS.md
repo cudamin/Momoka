@@ -1,5 +1,12 @@
 # 开发进度
 
+## 实时字幕翻译 Core worker（2026-10-25，在途）
+
+- 独立树：`C:\Users\89400\.codex\worktrees\subtitle-translation-core\Momoka`；分支 `codex/subtitle-translation-core`；基线 `4afca26672297aedd7725d675706d7f2b923519c`。不写父树与主目录。
+- 写入范围仅为新 `src/Momoka.Core/Translation/**`、配置新文件 `SubtitleTranslationSettings.cs` / `SubtitleTranslationCredentials.cs`、独立 `tests/Momoka.SubtitleTranslationTests/**`。父任务负责根配置/迁移/备份/重置、WinUI 卡片、DI 与实际 mpv 浮层；本 worker 不改方案或原测试入口。
+- 使用官方 Google v2 / Microsoft Translator v3 与 AI 兼容 Chat Completions；只用离线占位凭据和 stub，不登录服务、不启动 UI、不播放、不发布、不推送。保留任务约定 `gpt-4.1-mini`，官方当前标记 Deprecated，实际可用性须由用户服务配置确认。
+- 本记录独立提交，父只摘生产及独立测试的提交；交付前记录新鲜 Release restore/build/run 与安全边界。
+
 最后更新：2026-10-25
 
 ## 搜索页：输入法组字时的第一次回车也触发搜索（2026-10-25 用户令）
