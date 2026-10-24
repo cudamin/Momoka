@@ -132,7 +132,7 @@ internal sealed partial class ShellNavigationProbe
             var top = back.TransformToVisual(scroll).TransformPoint(new Point());
             var bottom = back.TransformToVisual(scroll).TransformPoint(new Point(0, back.ActualHeight));
             Require(back.ActualHeight > 0 && top.Y >= 0 && bottom.Y <= scroll.ActualHeight + 1,
-                "短窗口滚到底部仍无法换服务器");
+                $"短窗口滚到底部仍无法换服务器：back={back.ActualHeight:0.0} top={top.Y:0.0} bottom={bottom.Y:0.0} viewport={scroll.ActualHeight:0.0}/{scroll.ViewportHeight:0.0} offset={scroll.VerticalOffset:0.0}/{scroll.ScrollableHeight:0.0} state={scroll.State}");
             await SaveProbeScreenAsync("signin-error-bottom.png");
 
             vm.BackToAddressCommand.Execute(null);

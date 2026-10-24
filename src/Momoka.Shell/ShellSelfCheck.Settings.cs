@@ -318,8 +318,12 @@ internal static partial class ShellSelfCheck
         var videoSections = page.ViewModel.Sections.Where(section => section.Category == "视频输出").ToList();
         var optionalNumbers = videoSections.SelectMany(section => section.Rows).OfType<SettingOptionalNumberRow>().ToList();
         var optionalProbe = SettingOptionalNumberRow.Probe();
+        var hdrMode = videoSections.SelectMany(section => section.Rows).OfType<SettingChoiceRow>()
+            .SingleOrDefault(row => row.Label == "HDR 处理");
+        var tonemap = hdrMode?.Selected?.Label == Momoka.Mpv.MpvOutputOptions.Describe(Momoka.Mpv.MpvOutputOptions.HdrModes, "tonemap");
         check("视频输出包含 HDR 与着色器", videoSections.Count == 3 && !page.Categories.Contains("着色器")
-            && optionalNumbers.Count == 5 && optionalProbe.Ok,
+            && hdrMode?.Selected is not null && SelfCheckLayoutRules.HdrNumbers(optionalNumbers.Select(row => row.Label).ToArray(), tonemap)
+            && optionalProbe.Ok,
             $"视频输出 {videoSections.Count} 个分区、{optionalNumbers.Count} 个自动/手动数值；{optionalProbe.Detail}");
 
         // 「动态范围压缩」下发的是 ad-lavc-ac3drc，那是 AC-3 解码器的选项 —— DTS / TrueHD / AAC / FLAC 轨一律

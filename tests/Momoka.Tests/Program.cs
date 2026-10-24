@@ -11,6 +11,12 @@ internal static class Program
             return TestHarnessTests.RunChild(scenario);
         if (args is ["activation-listener-fixture", var activationScenario])
             return ActivationListenerTests.RunChild(activationScenario);
+        if (args is ["selfcheck-layout-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            SelfCheckLayoutRulesTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["startup-state-contract-fixture", var startupShell, var startupRoot])
             return StartupStateContractTests.Run(startupShell, startupRoot);
         if (args is ["startup-reapply-notice-fixture", var reapplyShell, var reapplyRoot])
@@ -233,6 +239,7 @@ internal static class Program
         MoviePilotTransferSubmissionTests.Register();
         MoviePilotVersionQueryTests.Register();
         MoviePilotEpisodePatternTests.Register();
+        SelfCheckLayoutRulesTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

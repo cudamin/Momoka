@@ -19,6 +19,7 @@
     <Compile Include="..\..\src\Momoka.Shell\ActivationListener.cs" Link="Shell\ActivationListener.cs" />
     <!-- The entire production source; test-only namespace boundaries replace registry/package endpoints, never control flow. -->
     <Compile Include="..\..\src\Momoka.Shell\Platform\StartupRegistration.cs" Link="Shell\StartupRegistration.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\SelfCheckLayoutRules.cs" Link="Shell\SelfCheckLayoutRules.cs" />
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <None Include="..\..\assets\shaders\**\*.glsl;..\..\assets\shaders\**\*.hook">
       <Link>shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>

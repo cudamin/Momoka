@@ -1,0 +1,81 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Momoka.HomeOrderProbeTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.SettingsLifetimeTests\ShellRuntime.cs" Link="ShellRuntime.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
+  </ItemGroup>
+  <!-- The shared fixture visit, actual page monitoring and changed HomeOrder call sites run verbatim. HomeCard/Rows are the
+       explicitly supplied current Shell DLL; no copied availability or home-row model. -->
+  <UsingTask TaskName="ExtractHomeOrderProbeSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <PageSource ParameterType="System.String" Required="true" />
+      <ProbeSource ParameterType="System.String" Required="true" />
+      <SettingsProbeSource ParameterType="System.String" Required="true" />
+      <UtilitiesSource ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, string, string> between = (source, start, end) =>
+        {
+            var begin = source.IndexOf(start, StringComparison.Ordinal);
+            if (begin < 0 || source.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing/ambiguous production start: " + start);
+            var finish = source.IndexOf(end, begin + start.Length, StringComparison.Ordinal);
+            if (finish < 0) throw new InvalidOperationException("Missing production end: " + end);
+            return source.Substring(begin, finish - begin);
+        };
+        var page = File.ReadAllText(PageSource).Replace("\r\n", "\n");
+        var probe = File.ReadAllText(ProbeSource).Replace("\r\n", "\n");
+        var utilities = File.ReadAllText(UtilitiesSource).Replace("\r\n", "\n");
+        var settingsProbe = File.ReadAllText(SettingsProbeSource).Replace("\r\n", "\n");
+        var generated = "#nullable enable\n// Extracted verbatim from current source at every build; do not edit.\n" +
+            "using System.Reflection;\nusing System.Collections;\nusing System.ComponentModel;\nusing Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\n" +
+            "using Momoka.Infrastructure;\nusing Momoka.MoviePilot;\nusing Momoka.Mpv;\nusing Momoka.Playback;\n" +
+            "using Momoka.Services;\nusing Momoka.Updates;\nusing Momoka.Shell.ViewModels;\nusing Momoka.Shell.Views;\n" +
+            "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\n" +
+            "using Microsoft.UI.Xaml.Navigation;\nnamespace Momoka.Shell.Views\n{\n" +
+            between(page, "internal sealed record SettingsRequest", "\n/// <summary>\n/// 设置页。") +
+            "\npublic sealed partial class SettingsPage : Page, IShellContent\n{\n" +
+            between(page, "    private const string Category = \"设置\";", "    internal bool IsReady =>") +
+            between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Counts realised") +
+            "\n}\n}\nnamespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n" +
+            between(settingsProbe, "    private static void BeginSettingsFixtureVisit(SettingsPage page)", "\n    private async Task SettingsEntranceAsync()") +
+            "\n    internal static async Task BeginHomeOrderForFixture(SettingsPage settings, MoviePilotService service)\n    {\n" +
+            between(probe, "            // Attach/Reload 不开启页面活动期", "            var table = settings.ViewModel.HomeRows!;") +
+            "    }\n    internal static async Task ReopenHomeOrderForFixture(SettingsPage settings, MoviePilotService service, IList choices)\n    {\n" +
+            between(probe, "            settings.ReleaseHosted();\n            BeginSettingsFixtureVisit(settings);", "            Require(ReferenceEquals(table, settings.ViewModel.HomeRows)") +
+            "    }\n" +
+            between(utilities, "    private static void Require(bool condition, string message)", "\n    private static object? Call") +
+            between(utilities, "    private static async Task UntilAsync(Func<bool> ready)", "\n    private static async Task LayoutAsync") +
+            "\n}\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <PropertyGroup>
+    <HomeOrderSettingsProbeSource Condition="'$(HomeOrderSettingsProbeSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.Settings.cs</HomeOrderSettingsProbeSource>
+  </PropertyGroup>
+  <Target Name="GenerateHomeOrderProbeSources" BeforeTargets="CoreCompile">
+    <ExtractHomeOrderProbeSources PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\SettingsPage.xaml.cs"
+        ProbeSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.HomeOrder.cs"
+        SettingsProbeSource="$(HomeOrderSettingsProbeSource)"
+        UtilitiesSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.cs"
+        OutputSource="$(IntermediateOutputPath)HomeOrderProbe.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)HomeOrderProbe.g.cs" /></ItemGroup>
+  </Target>
+</Project>

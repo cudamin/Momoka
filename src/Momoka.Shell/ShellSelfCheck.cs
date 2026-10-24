@@ -140,6 +140,7 @@ internal static partial class ShellSelfCheck
         string View,
         IReadOnlyList<(string Label, string Layout, double Cell, double Row)> Views,
         bool ViewRestored,
+        int GridTextHeight,
         bool AlphaShown,
         string Artwork,
         (bool Found, string Still, string Over, string Pressed) Halo);

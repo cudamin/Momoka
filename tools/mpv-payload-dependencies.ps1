@@ -1,6 +1,11 @@
 ﻿# downloadDependencies 只固定名称/版本，内容批准来自 repo 固定清单，绝不从待验 cache/metadata/ZIP 建 pin。
-function Read-RuntimepackApproval([string]$Repository,[string]$Tfm,[string]$Rid) {
-    $path=Get-ChildPath $Repository 'assets/mpv-runtime/approved-runtimepack.json'
+function Read-RuntimepackApproval([string]$Repository,[string]$Tfm,[string]$Rid,[string]$PackageId='Microsoft.Windows.SDK.NET.Ref') {
+    # Two separately reviewed packages, not a catch-all map derived from runtime deps or cache metadata.
+    $dotnet = [string]::Equals($PackageId,'Microsoft.NETCore.App.Runtime.win-x64',[StringComparison]::Ordinal)
+    if ($dotnet) { $relative='assets/mpv-runtime/approved-dotnet-runtimepack.json' }
+    elseif ([string]::Equals($PackageId,'Microsoft.Windows.SDK.NET.Ref',[StringComparison]::Ordinal)) { $relative='assets/mpv-runtime/approved-runtimepack.json' }
+    else { Fail-Payload "未知独立 runtimepack 包：$PackageId" }
+    $path=Get-ChildPath $Repository $relative
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { Fail-Payload '缺少独立 runtimepack 批准清单。' }
     try {
         $text=[Text.UTF8Encoding]::new($false,$true).GetString([IO.File]::ReadAllBytes($path)).TrimStart([char]0xFEFF)
@@ -26,7 +31,8 @@ function Read-RuntimepackApproval([string]$Repository,[string]$Tfm,[string]$Rid)
     if ($sdk -isnot [string] -or -not [string]::Equals($pin.sdkVersion,$sdk,[StringComparison]::Ordinal) -or
         -not [string]::Equals($pin.targetFramework,$Tfm,[StringComparison]::Ordinal) -or
         -not [string]::Equals($pin.runtimeIdentifier,$Rid,[StringComparison]::Ordinal)) { Fail-Payload 'runtimepack 批准 SDK/TFM/RID 与当前项目不符。' }
-    if ($pin.packageId -cnotmatch '^[A-Za-z0-9][A-Za-z0-9.]*$' -or $pin.packageVersion -cnotmatch '^[0-9]+(\.[0-9]+){2,3}$' -or
+    if (-not [string]::Equals($pin.packageId,$PackageId,[StringComparison]::Ordinal)) { Fail-Payload 'runtimepack 批准包身份与所选固定包不符。' }
+    if ($pin.packageId -cnotmatch '^[A-Za-z0-9][A-Za-z0-9.-]*$' -or $pin.packageVersion -cnotmatch '^[0-9]+(\.[0-9]+){2,3}$' -or
         $pin.contentHash -cnotmatch '^[A-Za-z0-9+/]{86}==$') { Fail-Payload 'runtimepack 包身份/内容摘要格式无效。' }
     try {$hashBytes=[Convert]::FromBase64String($pin.contentHash)} catch { Fail-Payload 'runtimepack 内容摘要不是 SHA512。' }
     if ($hashBytes.Length -ne 64 -or -not [string]::Equals([Convert]::ToBase64String($hashBytes),$pin.contentHash,[StringComparison]::Ordinal)) { Fail-Payload 'runtimepack 内容摘要不是规范 SHA512。' }
@@ -41,7 +47,14 @@ function Read-RuntimepackApproval([string]$Repository,[string]$Tfm,[string]$Rid)
         Assert-Fields $asset @('kind','path','source') 'runtimepack 批准资产'
         Assert-RelativePath $asset.path
         Assert-RelativePath $asset.source
-        if ($asset.kind -isnot [string] -or $asset.kind -cne 'runtime' -or $asset.path -cnotmatch '^[^/]+\.dll$' -or
+        if ($dotnet) {
+            $managed = $asset.kind -is [string] -and $asset.kind -ceq 'runtime' -and $asset.path -cmatch '^[^/]+\.dll$' -and
+                $asset.source -cmatch '^runtimes/win-x64/lib/net10\.0/[^/]+\.dll$'
+            $native = $asset.kind -is [string] -and $asset.kind -ceq 'native' -and
+                ($asset.path -cmatch '^[^/]+\.dll$' -or $asset.path -ceq 'createdump.exe') -and
+                $asset.source -cmatch '^runtimes/win-x64/native/(?:[^/]+\.dll|createdump\.exe)$'
+            if ((-not $managed -and -not $native) -or [IO.Path]::GetFileName($asset.source) -cne $asset.path) { Fail-Payload 'runtimepack 批准资产映射无效。' }
+        } elseif ($asset.kind -isnot [string] -or $asset.kind -cne 'runtime' -or $asset.path -cnotmatch '^[^/]+\.dll$' -or
             $asset.source -cnotmatch '^lib/net[0-9.]+/[^/]+\.dll$' -or [IO.Path]::GetFileName($asset.source) -cne $asset.path) { Fail-Payload 'runtimepack 批准资产映射无效。' }
         if (-not $paths.Add($asset.path) -or -not $sources.Add($asset.source)) { Fail-Payload 'runtimepack 批准资产路径/来源重复。' }
     }
@@ -91,6 +104,8 @@ function Assert-TrustedDependencies([string]$Repository, [string]$Publish, $Proj
     $downloadRecords=@{}
     $sources=@{}
     $keys=@{}
+    $requiredRuntimepackAssets=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $requiredRuntimepackMappings=[Collections.Generic.List[object]]::new()
     function Get-Package([string]$Library) {
         if ($packageCache.ContainsKey($Library)) { return $packageCache[$Library] }
         $record=if ($downloadRecords.ContainsKey($Library)) { $downloadRecords[$Library] } else { $assets.libraries.$Library }
@@ -174,7 +189,21 @@ function Assert-TrustedDependencies([string]$Repository, [string]$Publish, $Proj
                     $core=[xml]([IO.File]::ReadAllText($sourceProject)); $coreTfm=$core.SelectSingleNode('/Project/PropertyGroup/TargetFramework').InnerText
                     $coreName=$core.SelectSingleNode('/Project/PropertyGroup/AssemblyName').InnerText
                     if ($name -cne ($coreName+'.dll')) { Fail-Payload "项目资产名不符：$key" }
-                    Add-Dependency $name (Get-ChildPath (Split-Path -Parent $sourceProject) ('bin/Release/'+$coreTfm+'/'+$name)) $key
+                    # Publishing sets Platform=x64 while a solution build may compile Core as AnyCPU.
+                    # The reference copy in this exact Shell output must match an anchored Core output;
+                    # do not select a candidate by timestamp or trust the copy in the publish directory.
+                    $referenceCopy=Get-ChildPath $output $name
+                    $coreOutputs=@('bin/Release/','bin/x64/Release/') | ForEach-Object { Get-ChildPath (Split-Path -Parent $sourceProject) ($_+$coreTfm+'/'+$name) }
+                    $matching=@($coreOutputs | Where-Object {
+                        (Test-Path -LiteralPath $_ -PathType Leaf) -and (Test-Path -LiteralPath $referenceCopy -PathType Leaf) -and
+                        (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash -ceq (Get-FileHash -LiteralPath $referenceCopy -Algorithm SHA256).Hash
+                    })
+                    if ($matching.Count -eq 0) {
+                        # A build without a copied reference still uses its anchored project output;
+                        # a differing existing Shell copy is never allowed to select this fallback.
+                        if (Test-Path -LiteralPath $referenceCopy -PathType Leaf) { Fail-Payload '当前 Shell 引用副本与可信 Core 编译资产不符。' }
+                        Add-Dependency $name $coreOutputs[0] $key
+                    } else { Add-Dependency $name $referenceCopy $key }
                 } elseif ([string]::Equals($library.Name,($assembly+'/'+$version),[StringComparison]::Ordinal) -and $name -ceq ($assembly+'.dll')) {
                     Add-Dependency $name (Get-ChildPath $output $name) $key
                 } elseif ($library.Name.StartsWith('Microsoft.Web.WebView2.Core.Projection/',[StringComparison]::Ordinal)) {
@@ -186,11 +215,14 @@ function Assert-TrustedDependencies([string]$Repository, [string]$Publish, $Proj
                     if ($pack.Count -ne 2 -or @($downloads | Where-Object { $_.name -ceq $pack[0] -and [string]::Equals($_.version,('['+$pack[1]+', '+$pack[1]+']'),[StringComparison]::Ordinal) }).Count -ne 1) { Fail-Payload "未知可信 runtime pack：$($library.Name)" }
                     $packKey=$pack[0]+'/'+$pack[1]
                     if (-not $downloadRecords.ContainsKey($packKey)) {
-                        $pin=Read-RuntimepackApproval $Repository $tfm $rid
+                        if ($pack[0] -ceq 'Microsoft.NETCore.App.Runtime.win-x64' -and -not $SelfContained) { Fail-Payload '框架依赖发布不接受自包含 .NET runtimepack。' }
+                        $pin=Read-RuntimepackApproval $Repository $tfm $rid $pack[0]
                         if (-not [string]::Equals($pin.packageId,$pack[0],[StringComparison]::Ordinal) -or
                             -not [string]::Equals($pin.packageVersion,$pack[1],[StringComparison]::Ordinal)) { Fail-Payload "runtimepack 独立批准包/版本不符：$packKey" }
                         foreach ($approved in $pin.assets) {
                             if (-not $library.Value.($approved.kind).PSObject.Properties[$approved.path]) { Fail-Payload '可信 runtimepack 构建未完整索引批准资产。' }
+                            $null=$requiredRuntimepackAssets.Add($approved.path)
+                            $requiredRuntimepackMappings.Add([pscustomobject]@{library=$library.Name;kind=$approved.kind;path=$approved.path})
                         }
                         $downloadRecords[$packKey]=[pscustomobject]@{
                             type='package';path=($pack[0].ToLowerInvariant()+'/'+$pack[1]);sha512=$pin.contentHash
@@ -211,7 +243,10 @@ function Assert-TrustedDependencies([string]$Repository, [string]$Publish, $Proj
         }
         if ($SelfContained -and $library.Name -match '^Microsoft\.WindowsAppSDK\.(Foundation|InteractiveExperiences|WinUI|DWrite)/') {
             $package=Get-Package $library.Name
-            foreach ($relative in $package.files | Where-Object { $_ -cmatch ('^runtimes-framework/'+$rid+'/native/[^/]+\.dll$') }) {
+            foreach ($relative in $package.files | Where-Object {
+                $_ -cmatch ('^runtimes-framework/'+$rid+'/native/[^/]+\.dll$') -or
+                ($library.Name -match '^Microsoft\.WindowsAppSDK\.Foundation/' -and $_ -ceq ('runtimes-framework/'+$rid+'/native/RestartAgent.exe'))
+            }) {
                 Add-PackageAsset $library.Name $relative
             }
         }
@@ -238,9 +273,29 @@ function Assert-TrustedDependencies([string]$Repository, [string]$Publish, $Proj
             }
         }
     }
+    # A complete payload with a truncated published dependency graph is still invalid: these
+    # packages must retain every independently approved resolver mapping, not merely every file.
+    foreach ($mapping in $requiredRuntimepackMappings) {
+        $publishedLibrary=$deps.targets.$active.PSObject.Properties[$mapping.library]
+        $publishedKind=if ($null -ne $publishedLibrary) { $publishedLibrary.Value.($mapping.kind) } else { $null }
+        if ($publishedKind -isnot [pscustomobject] -or
+            $null -eq $publishedKind.PSObject.Properties[$mapping.path]) {
+            Fail-Payload "待验 runtimepack deps 未完整索引批准资产：$($mapping.library)/$($mapping.kind)/$($mapping.path)"
+        }
+    }
+    # Apphost and SDK restart helper are trusted only from current build/fixed package outputs.
+    # If no apphost was built, an executable in the publish tree still remains unapproved below.
+    $apphost=Get-ChildPath $output ($assembly+'.exe')
+    if (Test-Path -LiteralPath $apphost -PathType Leaf) { Add-Dependency ($assembly+'.exe') $apphost }
+    # Independently approved runtimepack inventories are complete requirements. Ordinary selected
+    # packages also index optional/copied-on-demand assets; retain their existing mode-specific rules.
+    foreach ($relative in $requiredRuntimepackAssets) {
+        if (-not (Test-Path -LiteralPath (Get-ChildPath $Publish $relative) -PathType Leaf)) { Fail-Payload "发布缺少可信运行时资产：$relative" }
+    }
+    # DLLs and executables both have exact locations and bytes; a basename never approves subdirectories.
     # 发布树里的每个 DLL 都核对完整相对位置；根目录的批准值不能放行 shaders/foo.dll 或旧内核副本。
     foreach ($file in @(Get-PlainFiles $Publish -Recurse)) {
-        if ($file.Extension -ine '.dll') { continue }
+        if ($file.Extension -ine '.dll' -and $file.Extension -ine '.exe') { continue }
         $relative=$file.FullName.Substring($Publish.Length+1).Replace('\','/')
         if ($relative -cin @('libmpv-2.dll','vulkan-1.dll')) { continue }
         if (-not $sources.ContainsKey($relative)) { Fail-Payload "出现清单之外的运行时载荷：$relative" }

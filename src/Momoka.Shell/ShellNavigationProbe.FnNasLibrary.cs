@@ -102,7 +102,15 @@ internal sealed partial class ShellNavigationProbe
                 $"展开筛选后封面离面板 {openGap:0} 像素，期望 24 像素左右");
             await SaveProbeScreenAsync("library-fnnas-spacing-open-screen.png");
         }
-        finally { frame.Content = null; }
+        finally
+        {
+            try { (frame.Content as IShellContent)?.Release(); }
+            finally
+            {
+                frame.Content = null;
+                _root.Children.Remove(frame);
+            }
+        }
     }
 
     private static double PosterTop(LibraryPage page) =>

@@ -26,12 +26,18 @@ Verification runs per delivery batch, not per small edit.
 `verify-mpv-payload.ps1`; the repo-fixed approved-payload manifest is not rebuilt from the tested
 DLLs. Dependency approval is separate from publish deps: selected pinned restore/package content and
 current project outputs constrain DLL bytes and relative paths. SDK download/runtimepack records lack
-content digests, so their approved identity/hash/asset mapping is explicitly pinned in
-`assets/mpv-runtime/approved-runtimepack.json`, never taken from mutable cache metadata. Official
+content digests, so the Windows SDK identity/hash/asset mapping is explicitly pinned in
+`assets/mpv-runtime/approved-runtimepack.json`; self-contained .NET uses its separate
+`assets/mpv-runtime/approved-dotnet-runtimepack.json`. Select the exact package, never a catch-all
+pin or mutable cache metadata. The .NET inventory was reviewed from the independently downloaded
+official package RuntimeList.xml, not generated from tested deps. DLLs and executables both require
+exact locations/bytes and every approved dependency must be present. Framework-dependent output
+must not silently admit the self-contained .NET runtimepack. Official
 SDK NuGet content hashing/local signed-archive integrity remains offline; no signer-chain network
 check is implied. A complete synthetic non-PE fixture tests this same verifier without proving that
-real libmpv was supplied or a real publish/native run passed. Keep the missing real-native gate red;
-changing an approved package or binary is a separate reviewed change, not automatic snapshot refresh.
+real libmpv was supplied or a real publish/native run passed. A run missing real native stays red;
+when approved native is supplied, re-run its actual affected checks and record the changed environment.
+Changing an approved package or binary is a separate reviewed change, not automatic snapshot refresh.
 
 
 - Confirm tested files and output belong to the current working tree. `--no-build` needs a successful build of the current test code and Core; `-c Release` alone can select stale output. Publishing the Shell does not refresh the test assembly.
@@ -114,6 +120,27 @@ Reference transitions:
 | WebP → PNG → WebP | All WebP-only rows disappear, then return according to the preserved lossless preference; format selection remains reachable. |
 
 These are acceptance scenarios, not a claim that every transition already has an automated assertion. A documentation-only update needs document checks under CLAUDE.md, not a desktop run solely to exercise these examples.
+
+## Current probe lifetimes and layout readings
+
+A directly mounted SettingsPage needs a fresh activity ticket, VM activation and the real motion
+preference subscription; Attach/Reload alone is not a page visit. HomeOrder uses the same visit entry.
+After ReleaseHosted, reenter with a new ticket rather than reviving an old observer. The FnNas library
+probe removes only its own Frame in finally so later root-child assertions retain their meaning.
+AniBT candidates are previewable, not immediately submit-ready; execute and cancel the actual read-only
+preview before testing the second-stage confirmation. Keep placeholder writes explicitly rejected.
+
+A current self-check still uses the established check names/baseline, but validates all nine library
+view enum entries, actual live layout MinItemHeight and independently captured selected-field text
+height. HDR optional-number labels are exact four/five according to mode. The episode surface uses
+the current card-border resource, not a retired mandatory outline. These diagnostic repairs do not
+change product UX or grant a baseline exception. The source-linked/malformed-reading fixtures do not
+substitute for final executable runtime evidence.
+
+Visible UI probes are interactive tools, not hidden helpers. Verify an actual HWND and enough screen
+space before relying on pixels. The motion probe's direct-fullscreen stage waits for its existing
+window transaction, animation and composition handover; it retains identity and geometry assertions.
+A timeout, failure, missing screenshot or crashing final process remains a failed runtime result.
 
 ## Tool changes
 

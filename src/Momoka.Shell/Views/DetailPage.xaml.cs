@@ -256,9 +256,9 @@ public sealed partial class DetailPage : Page, IShellContent
             read.Add($"{name} {box.Top:0}–{box.Bottom:0}{(inside ? "" : "（出屏）")}");
         }
 
-        // 集带那两句话：它排在音轨和剧情说明底下（纸的第一块），而且带着样式那一圈框 —— 那是「剧页面那种
-        // 样式」（他 2026-09-12 先要框，随后「集的框要和上面分开」把上面那两块内层的框撤掉、这一圈留下）。
-        // 同 BodySeal 里那两块读的 Rings。
+        // Keep the episode row below track/overview content, with its actual body-panel surface.
+        // The 2026-10-19 no-static-card-border design also applies here: compare the active theme
+        // thickness rather than restoring an obsolete visible outline just to satisfy the self-check.
         if (EpisodePanel.Visibility == Visibility.Visible)
         {
             var picker = PickerSet.Panel;
@@ -266,11 +266,16 @@ public sealed partial class DetailPage : Page, IShellContent
                 || picker.Visibility != Visibility.Visible;
             var below = OverviewPanel.Visibility != Visibility.Visible
                 || Box(EpisodePanel).Top >= Box(OverviewPanel).Bottom - 0.5;
-            var framed = Rings(EpisodePanel);
+            var actualBorder = EpisodePanel.BorderThickness;
+            var configuredBorder = Application.Current.Resources["EgCardBorderThickness"];
+            var styled = EpisodePanel.Background is SolidColorBrush { Color.A: > 0 }
+                && configuredBorder is Thickness expectedBorder
+                && SelfCheckLayoutRules.PanelBorder(actualBorder.Left, actualBorder.Top, actualBorder.Right, actualBorder.Bottom,
+                    expectedBorder.Left, expectedBorder.Top, expectedBorder.Right, expectedBorder.Bottom);
 
-            ok &= order && below && framed;
+            ok &= order && below && styled;
             read.Add(order && below ? "集带排在音轨和剧情说明底下" : "集带没排在音轨和剧情说明底下");
-            read.Add(framed ? "集带带着框" : "集带外圈没了");
+            read.Add(styled ? "集带底板与当前主题描边一致" : "集带底板或主题描边不一致");
         }
 
         return (ok, $"带高 {hero.Height:0}（内容量出来 {room:0}、其中字键那一叠 {stack.Height:0}）、"

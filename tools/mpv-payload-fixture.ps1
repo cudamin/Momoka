@@ -95,6 +95,8 @@ function New-MpvDependencyFixturePlan([string]$SourceRepository,[string]$Reposit
     Plan-Bytes $Repository 'src/Momoka.Shell/obj/project.assets.json' $encoding.GetBytes(($assets|ConvertTo-Json -Depth 16))
     Plan-Bytes $Repository ($output+'/Momoka.deps.json') $encoding.GetBytes(($deps|ConvertTo-Json -Depth 16))
     Plan-Bytes $Repository ($output+'/Momoka.dll') $encoding.GetBytes('R067 fixed synthetic compiled Momoka DLL -- never launch')
+    Plan-Bytes $Repository ($output+'/Momoka.exe') $encoding.GetBytes('R067 offline host fixture themeresources -- never launch')
+    Plan-Bytes $Repository ($output+'/Momoka.Core.dll') $encoding.GetBytes('registered dependency fixture')
     Plan-Bytes $Repository 'src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll' $encoding.GetBytes('registered dependency fixture')
     Plan-Bytes $Publish 'Momoka.deps.json' $encoding.GetBytes(($deps|ConvertTo-Json -Depth 16))
     return $files.ToArray()
