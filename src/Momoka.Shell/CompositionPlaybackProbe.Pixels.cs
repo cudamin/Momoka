@@ -81,12 +81,13 @@ internal static partial class CompositionPlaybackProbe
 
     private sealed record ScreenPixels(int Width, int Height, byte[] Bytes)
     {
+        internal string RgbAt(int column, int row) => CompositionProbePixels.Rgb(Bytes, Width, Height, column, row);
+
         internal char At(double x, double y)
         {
             var column = (int)Math.Round((Width - 1) * Math.Clamp(x, 0, 1));
             var row = (int)Math.Round((Height - 1) * Math.Clamp(y, 0, 1));
-            var index = (row * Width + column) * 4;
-            return ColorLetter((uint)(Bytes[index + 2] | Bytes[index + 1] << 8 | Bytes[index] << 16));
+            return ColorLetter(CompositionProbePixels.ColorRef(Bytes, Width, Height, column, row));
         }
     }
 

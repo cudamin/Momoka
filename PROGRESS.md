@@ -1,3 +1,9 @@
+## 第九组合成探针单帧采样与实际显示前件（2026-10-25，在途）
+
+- Atomic已提交 `b4463c9`＋`4a15f90`，最终39项目Release、Core2880、55离线入口和实际自包含publish540文件全部通过；桌面仍保旧03b5d10，等待最终原生/应用验收后才更新。
+- 最终composition首次run在启动helper为Hidden时被既有WindowFromPoint防遮挡检查正确拒绝；仅helper改Normal后窗口确认可见。正确可见run又在第二轮120秒保险退出，原GetPixel每三点约800ms、31次占25秒，采样阻塞UI且拉长验收；旧失败日志全部保留。现仅将SampleFrame改为现有CapturePixels一次真实BitBlt帧＋内存三点读色，防遮挡不改、超时不改、后台/取消/后续位置严格断言不改。新增完整source-link纯BGRA/尺寸/边界与实际caller5回归，起播9项仍保。
+- 单帧采样dev实际两轮exit0，但pixel持续底色不能算画面正确。显示器在用户离开后输入idle约2h40，短暂显示/system execution lease对照仍blank；对已核唯一Momoka PID/HWND发送一次F24无绑定键、无鼠标移动后，同一运行窗口立即变为六色真实彩条，GetPixel/BitBlt时间恢复实际帧节奏；两轮全部断言exit0、真实screen截图已目检。该对照只证明本轮空闲显示前件，未把blank数据洗绿，也不修改系统电源计划；execution state由同一线程恢复，原blank截图保留。
+- 当前额外生产写集只合成探针采样/纯像素helper，不改PlayerPage、VM、播放服务/内核/输出选项、新功能树。当前Core/Tests及Shell编译零警告错误，14项就绪/像素回归全过，实际可见run两轮exit0且真实彩条截图已目检；当前Hidden失败反例实际防遮挡拒绝/exit1，原deadline不改。Release白空全方案1851文件0修改/无加载失败、47脚本过；对应中文提交后再对最终源码收尾实际publish、settings/selfcheck/native，不把dev结果当交付。
 ## 第九组恢复剩余修复及与新功能窗口协调（2026-10-25，在途）
 
 - 用户在直接交付后明确要求“修完”，本组恢复此前记录的 AtomicFile 访问拒绝和 composition 最终原生复验；R-043 仍仅展示建议，不擅自修改。用户随后授权与新增功能窗口自行协调，并明确不要实时汇报。

@@ -312,38 +312,18 @@ internal static partial class CompositionPlaybackProbe
     /// </summary>
     private static string SampleFrame(HostWindow window, long milliseconds, (int Width, int Height) host)
     {
-        if (!Native.GetClientRect(window.Handle, out var client)) return $"{milliseconds}ms 量不到客户区";
-
-        var device = Native.GetDC(IntPtr.Zero);
-        if (device == IntPtr.Zero) return $"{milliseconds}ms 取不到屏幕 DC";
-
-        try
+        // Capture one real screen frame; three GetPixel calls synchronise presentation separately
+        // and can stall the UI thread long enough to exhaust the probe's unchanged safety deadline.
+        var frame = CapturePixels(window);
+        var spots = new (int X, int Y)[]
         {
-            var spots = new (int X, int Y)[]
-            {
-                (client.Width / 8, client.Height / 8),
-                (client.Width / 2, client.Height / 2),
-                (client.Width * 7 / 8, client.Height * 7 / 8),
-            };
-
-            var colors = new List<string>();
-            foreach (var (x, y) in spots)
-            {
-                var point = new NativePoint { X = x, Y = y };
-                Native.ClientToScreen(window.Handle, ref point);
-                var color = Native.GetPixel(device, point.X, point.Y);
-                colors.Add(color == 0xFFFFFFFF
-                    ? "?"
-                    : $"#{(color & 0xFF):X2}{((color >> 8) & 0xFF):X2}{((color >> 16) & 0xFF):X2}");
-            }
-
-            return $"{milliseconds}ms 客户区{client.Width}x{client.Height} 宿主{host.Width}x{host.Height} "
-                + string.Join("/", colors);
-        }
-        finally
-        {
-            Native.ReleaseDC(IntPtr.Zero, device);
-        }
+            (frame.Width / 8, frame.Height / 8),
+            (frame.Width / 2, frame.Height / 2),
+            (frame.Width * 7 / 8, frame.Height * 7 / 8),
+        };
+        var colors = spots.Select(spot => frame.RgbAt(spot.X, spot.Y));
+        return $"{milliseconds}ms 客户区{frame.Width}x{frame.Height} 宿主{host.Width}x{host.Height} "
+            + string.Join("/", colors);
     }
 
     /// <summary>

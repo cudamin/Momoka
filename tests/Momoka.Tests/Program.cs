@@ -15,6 +15,7 @@ internal static class Program
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             CompositionPositionReadinessTests.Register();
+            CompositionProbePixelsTests.Register();
             return TestHarness.Run();
         }
         if (args is ["selfcheck-layout-fixture"])
@@ -247,6 +248,7 @@ internal static class Program
         MoviePilotEpisodePatternTests.Register();
         SelfCheckLayoutRulesTests.Register();
         CompositionPositionReadinessTests.Register();
+        CompositionProbePixelsTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();
