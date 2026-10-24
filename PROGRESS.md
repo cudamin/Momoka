@@ -1,6 +1,14 @@
 # 开发进度
 
-最后更新：2026-10-23
+最后更新：2026-10-24
+
+## 跳过片头/片尾只认 Emby 标记（2026-10-24）
+
+- 用户令：「跳过片头/片尾直接调用 Emby 的数据，不要用 momoka 识别」。`ChapterInfo` 现在读 Emby 的 `MarkerType`：`IntroStart` 到下一个 `IntroEnd` 是片头，`CreditsStart` 到条目时长是片尾；没有这些标记就不显示跳过按钮。
+- 删掉照搬 `chapterskip.lua` 的整套本地判断 —— 章节名（OP/ED/片头/预告）、80–100 秒无名章节、位置窗口与合并规则都不再参与。`SkipCoordinator.Refine` 同步退役；`RefineChapterMarksAsync`（原 `RefineSkipSectionsAsync`）只用 mpv 的章节表升级进度条刻度和章节名，不再重算跳过区间。提示文案从「章节：/推测的」改成「服务器标记：」。
+- 测试：`ChapterInfo.MarkerType` 的 JSON 反序列化 1 条，重写跳过识别 7 条（只认三种标记、未配对标记、没有片长、多个片头、章节表原样保留、Covers），删掉 mpv 换表重算的旧用例。Release 构建 Core＋测试与 Shell **0 警告、0 错误**；全量离线测试 **2104 通过、0 失败、0 跳过**；`dotnet format whitespace --verify-no-changes` 退出 0。
+- 提交：**`b00c5f2`**（本地，未推送；本轮没有上传授权）。未发布到 `artifacts/publish/win-x64`。
+- **未验证**：没有登录真实 Emby 播放，无法确认用户服务器上这些条目确实带 `IntroStart`/`IntroEnd`/`CreditsStart` 标记；也没有实际点过跳过按钮。离线测试只证明「有这些标记时区间算得对，没有标记时什么都不给」。
 
 ## 关于点星、更多快捷键与弹弹play 弹幕（2026-10-23）
 
