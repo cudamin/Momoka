@@ -10,7 +10,7 @@
 - 测试：`--probe-shell` 的搜索用例新增两条 —— 组字回车按上屏后的词提交、一直没上屏时按框内词提交（`ShellNavigationProbe.SearchLayout.cs`）。开发文档同步了这条规则。
 - 验证：Release 构建 Shell **0 警告、0 错误**；全量离线测试 **2104 通过、0 失败、0 跳过**；`dotnet format whitespace --verify-no-changes` 退出 0；`--probe-shell --probe-section search` **13/13、退出 0**（`shell-probe-20261024-161922235-29444`），其他区域未执行。UIA 真键盘另核：组字回车在「MoviePilot 资源」得 `MoviePilot 上没搜到「xianzai」…`，在「MoviePilot 订阅」的日志恰好一条 `MoviePilot 搜「wanzheng」：1 条`（没有重复提交）；普通（非组字）回车仍恰好一条。
 - 未验证的边界：只用本机 Microsoft 拼音试过，搜狗／微信输入法、日文 IME 未验证；只改了主搜索页，MoviePilot「搜索其他版本」窗口与 AniBT 面板自带的搜索框仍只走 `QuerySubmitted`（同一个毛病若出现，需要同样的处理）。
-- 提交：**`8423f84`**（本地，未推送）。**未发布**到 `artifacts/publish/win-x64`：该目录还是 2026-10-23 的构建，发布会把上一批未交付的「跳过片头/片尾读 Emby 标记」一起带出去，等用户决定。
+- 提交：**`8423f84`**（本地，未推送）。发布：`tools/publish.ps1 -NoArchive` 退出 0、发布校验通过，已刷新 `artifacts/publish/win-x64`（**541 文件、283.5 MB、11 GLSL／4 HOOK 含许可逐文件校验**）。`Momoka.exe` FileVersion `0.1.7.0`、ProductVersion `0.1.7+6d3e557`；`Momoka.dll` 4,787,200 字节、SHA-256 `F171713B61AFFFB63F81D2C19BC15E3E4C7E18A18129F68748DBA07C6115A7B6`。**这次发布也把上一批已提交、未发布的「跳过片头/片尾读 Emby 标记」带进了交付目录** —— 那一批只做过离线验证，真实服务器上的标记还没核对过。
 
 ## 跳过片头/片尾只认 Emby 标记（2026-10-24）
 
