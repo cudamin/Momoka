@@ -336,6 +336,7 @@ internal static class DetailSubjectRemovalTests
         {
             public AppSettings Settings { get; } = new();
             public int PageSize => 20;
+            public event EventHandler? SaveStateChanged { add { } remove { } }
             public bool HasUnsavedChanges => false;
             public bool TrySave() => throw new AssertionException("不得保存设置");
             public void Save() => throw new AssertionException("不得保存设置");

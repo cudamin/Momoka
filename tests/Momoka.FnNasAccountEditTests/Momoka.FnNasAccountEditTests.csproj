@@ -16,6 +16,7 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasSessionViewModel.cs" Link="Production\FnNasSessionViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasAdminRows.cs" Link="Production\FnNasAdminRows.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Services\ISettingsPersistence.cs" Link="Production\ISettingsPersistence.cs" />
     <Compile Include="..\..\src\Momoka.Core\Infrastructure\LoadGeneration.cs" Link="Production\LoadGeneration.cs" />
     <Compile Include="..\..\src\Momoka.Core\Diagnostics\Failure.cs" Link="Production\Failure.cs" />
     <Compile Include="..\..\src\Momoka.Core\Emby\EmbyApiException.cs" Link="Production\EmbyApiException.cs" />

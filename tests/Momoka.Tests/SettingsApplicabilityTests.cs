@@ -381,6 +381,7 @@ internal static class SettingsApplicabilityTests
         public int PageSize => 50;
         public int Saves { get; private set; }
         public bool SaveSucceeds { get; set; } = true;
+        public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges { get; private set; }
         public bool TrySave() { Saves++; HasUnsavedChanges = !SaveSucceeds; return SaveSucceeds; }
         public void Save() => throw new InvalidOperationException("只允许假 TrySave");

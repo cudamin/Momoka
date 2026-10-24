@@ -136,6 +136,7 @@ internal sealed class AffordanceSettings : ISettingsService
     public AppSettings Settings { get; } = new() { AggregateMode = true };
     public int PageSize => 20;
     public int SaveCalls { get; private set; }
+    public event EventHandler? SaveStateChanged { add { } remove { } }
     public bool HasUnsavedChanges => false;
     public bool TrySave() { SaveCalls++; throw new AssertionException("禁止配置保存"); }
     public void Save() { SaveCalls++; throw new AssertionException("禁止配置保存"); }

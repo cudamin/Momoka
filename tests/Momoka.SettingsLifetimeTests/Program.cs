@@ -19,6 +19,7 @@ internal static class Program
             _ = new ShellRuntime(shellAssembly, sourceRoot);
             AdministrationLifetimeTests.Register();
             SettingsHiddenLifetimeTests.Register();
+            SaveStateLifetimeTests.Register();
             return TestHarness.Run();
         }
         catch (Exception error)

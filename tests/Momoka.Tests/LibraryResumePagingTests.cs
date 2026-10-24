@@ -624,6 +624,7 @@ internal static class LibraryResumePagingTests
     {
         public AppSettings Settings { get; } = new();
         public int PageSize => 20;
+        public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges => false;
         public bool TrySave() => throw new AssertionException("禁止保存配置");
         public void Save() => throw new AssertionException("禁止保存配置");

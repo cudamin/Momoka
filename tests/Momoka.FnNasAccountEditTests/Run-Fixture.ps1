@@ -92,6 +92,7 @@ try {
     $files = @((Join-Path $SourceRoot 'FnNasPasswordViewModel.cs'), (Join-Path $SourceRoot 'FnNasPreferencesViewModel.cs'),
         (Join-Path $root 'src\Momoka.Shell\ViewModels\FnNasSessionViewModel.cs'), (Join-Path $root 'src\Momoka.Shell\ViewModels\PageViewModel.cs'),
         (Join-Path $root 'src\Momoka.Shell\ViewModels\FnNasAdminRows.cs'),
+        (Join-Path $root 'src\Momoka.Core\Services\ISettingsPersistence.cs'),
         (Join-Path $root 'src\Momoka.Core\Infrastructure\LoadGeneration.cs'),
         (Join-Path $root 'src\Momoka.Core\Diagnostics\Failure.cs'), (Join-Path $root 'src\Momoka.Core\Emby\EmbyApiException.cs'),
         (Join-Path $root 'tests\Momoka.Tests\TestHarness.cs'), (Join-Path $root 'tests\Momoka.SubtitleDialogTests\UiQueue.cs'),

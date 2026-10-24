@@ -13,6 +13,15 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
 {
     private const string Category = "settings";
     private readonly object _gate = new();
+    private bool _hasUnsavedChanges;
+
+    /// <summary>包括会话直接保存的失败；所有页面读取同一份状态，而非各自记最后一次保存。</summary>
+    public bool HasUnsavedChanges
+    {
+        get { lock (_gate) return _hasUnsavedChanges; }
+    }
+
+    public event EventHandler? SaveStateChanged;
 
     public AppPaths Paths { get; } = paths;
 
@@ -110,10 +119,20 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
         {
             lock (_gate)
             {
-                SettingsMigration.Normalize(settings);
-                settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
-                var json = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
-                AtomicFile.WriteAllText(Paths.SettingsFile, json, new UTF8Encoding(false), Paths.SettingsBackupFile);
+                // 保存结果与文件写入在同一锁内排序；旧失败不能在另一调用者成功后才覆盖 flag。
+                try
+                {
+                    SettingsMigration.Normalize(settings);
+                    settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
+                    var json = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
+                    AtomicFile.WriteAllText(Paths.SettingsFile, json, new UTF8Encoding(false), Paths.SettingsBackupFile);
+                    _hasUnsavedChanges = false;
+                }
+                catch
+                {
+                    _hasUnsavedChanges = true;
+                    throw;
+                }
             }
             Log.Debug(Category, "设置已保存");
         }
@@ -121,6 +140,17 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
         {
             Log.Error(Category, "保存设置失败", error);
             throw;
+        }
+        finally { NotifySaveStateChanged(); }
+    }
+
+    private void NotifySaveStateChanged()
+    {
+        // 不在文件锁内调用任意 UI 订阅者；一个坏订阅者也不能把已成功落盘改判为失败。
+        foreach (var handler in SaveStateChanged?.GetInvocationList() ?? [])
+        {
+            try { ((EventHandler)handler)(this, EventArgs.Empty); }
+            catch (Exception error) { Log.Warn(Category, "保存状态通知失败", error); }
         }
     }
 

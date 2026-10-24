@@ -121,6 +121,9 @@ namespace Momoka.Emby
         internal int ConfirmedWrites { get; private set; }
         internal int UserReads { get; private set; }
         internal int ConfigurationReads { get; private set; }
+        // R-010 can attach an anonymous local-save confirmation receipt. This hook never enters
+        // production Session/token/password handling; absent in all R-027 cases.
+        internal Action? PasswordConfirmed { get; set; }
         internal string Subtitle { get; set; } = key == "source-a" ? "zh-CN" : "de-DE";
         internal string Audio { get; set; } = key == "source-a" ? "en-US" : "fr-FR";
 
@@ -156,6 +159,7 @@ namespace Momoka.Emby
             // late UI completion without reclassifying this acknowledged fake write as unsent.
             await request.Reply.Task;
             ConfirmedWrites++;
+            if (request.Kind == "password") PasswordConfirmed?.Invoke();
         }
     }
 
@@ -167,5 +171,15 @@ namespace Momoka.Emby
         internal TaskCompletionSource Reply { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal void Succeed() => Reply.SetResult();
         internal void Fail() => Reply.SetException(new InvalidOperationException("匿名确认失败"));
+    }
+}
+
+namespace Momoka.Services
+{
+    internal sealed class MemoryPersistence : ISettingsPersistence
+    {
+        public bool HasUnsavedChanges => false;
+        public bool TrySave() => true;
+        public event EventHandler? SaveStateChanged { add { } remove { } }
     }
 }

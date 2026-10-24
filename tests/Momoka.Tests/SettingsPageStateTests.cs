@@ -255,6 +255,7 @@ internal static class SettingsPageStateTests
         public bool Unsaved { get; private set; }
         public int TrySaveCalls { get; private set; }
         public int FlagReads { get; private set; }
+        public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges { get { FlagReads++; return Unsaved; } }
         public bool TrySave() { TrySaveCalls++; Unsaved = !NextSaveSucceeds; return NextSaveSucceeds; }
         public void Save() => throw new InvalidOperationException("回归仅允许显式假 TrySave");

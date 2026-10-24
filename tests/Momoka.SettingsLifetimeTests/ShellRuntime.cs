@@ -91,6 +91,13 @@ internal sealed class MemorySettings : ISettingsService
 {
     public AppSettings Settings { get; } = new();
     public int PageSize => 60;
+    public event EventHandler? SaveStateChanged;
+    public int SaveSubscribers => SaveStateChanged?.GetInvocationList().Length ?? 0;
+    public void CompleteSave(bool unsaved)
+    {
+        HasUnsavedChanges = unsaved;
+        SaveStateChanged?.Invoke(this, EventArgs.Empty);
+    }
     public bool HasUnsavedChanges { get; set; }
     public int Writes { get; private set; }
     public ServerProfile ResolveServer(string url) => throw new InvalidOperationException("禁止服务器配置操作");

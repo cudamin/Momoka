@@ -52,3 +52,7 @@ $old = Join-Path $tree 'artifacts/r027-account-edit-generation/baseline-source'
 ## 主树限定整合
 
 来源 `fae6539d8007bdf120dabfcc4648bba8cb422481`；主树只复制两产品与本正式项目，不搬来源进度/旧DLL/日志。当前主树 `artifacts/r027-account-edit-generation/run-main-integrated-20261024-073721-7591` 固定缓存restore、源码fixture和x64ShellRelease零警告错误，68项全过／0失败／0跳过／退出0；两VM及专项格式0修改、无加载诊断。主树索引/方案格式/26PS及来源哈希见 `artifacts/staged-repair/batch05/r027`。来源同68项48过20败精确blob红仍保原树，不冒主树旧产物。该项目只验证实际VM与生成器的草稿确认边界，没有进入生产认证或凭据持久化链，不替代R010。
+
+## R-010 集成后的窄依赖适配
+
+实际密码VM现在需要窄 `ISettingsPersistence` 和页面调度回调。此项目只提供始终已保存的内存替身，仍不引用生产Core/Shell；Attach helper只在实际方法存在时接窄依赖，旧R027两个精确VM仍可编译同夹具。XAML断言按命令/无Name的原反馈栏定位，不因新增恢复栏取消原绑定检查，新增依赖源码加入runner哈希清单。R010另用真实Store/Service、匿名无账号文档和文件锁验证本地欠项，见[保存专项](../Momoka.SettingsPersistenceTests/README.md)；本项目68项保持原草稿/确认职责，不能据它宣称令牌或DPAPI持久化已验。

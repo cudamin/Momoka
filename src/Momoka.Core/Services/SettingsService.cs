@@ -13,7 +13,7 @@ namespace Momoka.Services;
 /// player as well — which is not a dependency anyone declared, and not one anything can substitute.
 /// </para>
 /// </summary>
-public interface ISettingsService
+public interface ISettingsService : ISettingsPersistence
 {
     /// <summary>
     /// The live settings object, edited in place by the settings page and written out by <see cref="Save"/>.
@@ -29,10 +29,6 @@ public interface ISettingsService
     AccountProfile ResolveAccount(ServerProfile server, string username);
 
     void Save();
-
-    bool TrySave();
-
-    bool HasUnsavedChanges { get; }
 
     /// <summary>
     /// 把偏好设置导出到用户选的文件。只含偏好，不含服务器、账号、令牌和窗口位置（见
@@ -112,7 +108,13 @@ public sealed class SettingsService(SettingsStore store, AppSettings settings) :
     /// Writes the settings out, and never throws: every caller is a UI action that has already happened —
     /// a toggle flipped, a server renamed — and there is nothing for it to undo.
     /// </summary>
-    public bool HasUnsavedChanges { get; private set; }
+    public bool HasUnsavedChanges => store.HasUnsavedChanges;
+
+    public event EventHandler? SaveStateChanged
+    {
+        add => store.SaveStateChanged += value;
+        remove => store.SaveStateChanged -= value;
+    }
 
     public void Save() => TrySave();
 
@@ -121,12 +123,10 @@ public sealed class SettingsService(SettingsStore store, AppSettings settings) :
         try
         {
             store.Save(Settings);
-            HasUnsavedChanges = false;
             return true;
         }
         catch (Exception error)
         {
-            HasUnsavedChanges = true;
             Log.Warn(Category, "保存设置失败", error);
             return false;
         }

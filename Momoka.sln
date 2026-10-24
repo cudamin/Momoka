@@ -69,6 +69,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.AniBtConfirmationTes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.FnNasErrorClassificationTests", "tests\Momoka.FnNasErrorClassificationTests\Momoka.FnNasErrorClassificationTests.csproj", "{57BC7FE7-7C5A-4FBC-9A4C-912C9237F9E8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SettingsPersistenceTests", "tests\Momoka.SettingsPersistenceTests\Momoka.SettingsPersistenceTests.csproj", "{34179120-868A-4CD5-BD01-8DF2776B2BC0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -78,6 +80,10 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{34179120-868A-4CD5-BD01-8DF2776B2BC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34179120-868A-4CD5-BD01-8DF2776B2BC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34179120-868A-4CD5-BD01-8DF2776B2BC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34179120-868A-4CD5-BD01-8DF2776B2BC0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F1E79FC9-3593-41E3-89AC-DB6081A86F5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{F1E79FC9-3593-41E3-89AC-DB6081A86F5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F1E79FC9-3593-41E3-89AC-DB6081A86F5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -200,6 +206,7 @@ Global
 		{57BC7FE7-7C5A-4FBC-9A4C-912C9237F9E8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{34179120-868A-4CD5-BD01-8DF2776B2BC0} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{57BC7FE7-7C5A-4FBC-9A4C-912C9237F9E8} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{0B506E0F-C99C-4800-B486-5811F6887D65} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{22965C04-6936-45D7-A25A-5B0A8B5DF18C} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

@@ -347,6 +347,7 @@ public sealed partial class SettingsPage : Page, IShellContent
 
         StopMoviePilotMonitoring();
         StopSourceMonitoring();
+        StopSettingsSaveState();
         _activityToken = _activity.Begin();
         ViewModel.Activate();
         _request = request;
@@ -407,6 +408,7 @@ public sealed partial class SettingsPage : Page, IShellContent
             _ = ViewModel.RefreshAudioDevicesAsync();
         }
 
+        WatchSettingsSaveState(request.Services.GetRequiredService<ISettingsService>());
         WatchMoviePilot(request.Services.GetRequiredService<MoviePilotService>());
 
         // 在线来源变化也会改变界面风味（第二台服务器上线 → 通用界面；只剩一台 → 那台的界面），
@@ -692,6 +694,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         _activity.Cancel();
         ViewModel.Cancel();
         StopSourceMonitoring();
+        StopSettingsSaveState();
         HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
         StopMoviePilotMonitoring();
         StopSettingsEntrance();
@@ -719,6 +722,30 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </para>
     /// </summary>
     public void Release() => ReleaseHosted();
+
+    private ISettingsPersistence? _saveSettings;
+    private EventHandler? _saveStateChanged;
+
+    private void WatchSettingsSaveState(ISettingsPersistence settings)
+    {
+        StopSettingsSaveState();
+        var activity = _activityToken;
+        if (!_activity.IsCurrent(activity)) return;
+        _saveSettings = settings;
+        _saveStateChanged = (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_activity.IsCurrent(activity) && ReferenceEquals(_saveSettings, settings)) ViewModel.SyncSaveState();
+        });
+        settings.SaveStateChanged += _saveStateChanged;
+        ViewModel.SyncSaveState();
+    }
+
+    private void StopSettingsSaveState()
+    {
+        if (_saveSettings is { } settings && _saveStateChanged is { } handler) settings.SaveStateChanged -= handler;
+        _saveSettings = null;
+        _saveStateChanged = null;
+    }
 
     private MoviePilotService? _moviePilot;
 

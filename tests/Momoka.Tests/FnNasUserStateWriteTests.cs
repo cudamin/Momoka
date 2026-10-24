@@ -354,6 +354,7 @@ internal static class FnNasUserStateWriteTests
     {
         public AppSettings Settings { get; } = new();
         public int PageSize => 20;
+        public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges => false;
         public bool TrySave() => throw new AssertionException("不允许配置IO");
         public void Save() => throw new AssertionException("不允许配置IO");

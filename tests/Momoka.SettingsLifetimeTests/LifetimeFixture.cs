@@ -43,6 +43,7 @@ internal sealed class LifetimeFixture : IDisposable
         _moviePilotClient = new MoviePilotClient(new RejectHttp());
         _moviePilot = new MoviePilotService(_moviePilotClient, new MoviePilotCredentials(protector), Settings.Settings);
         Services.Add(Session);
+        Services.Add<ISettingsService>(Settings);
         Services.Add(_moviePilot);
         Services.Add<IServerCapabilities>(capabilities ?? Capabilities);
     }

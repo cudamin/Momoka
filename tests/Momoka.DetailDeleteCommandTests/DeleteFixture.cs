@@ -179,6 +179,7 @@ internal sealed class DeleteFixture : IDisposable
     {
         public AppSettings Settings { get; } = new();
         public int PageSize => 20;
+        public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges => false;
         public int Writes { get; private set; }
         private Exception NoWrite() { Writes++; return new AssertionException("禁止设置/账号文件操作"); }

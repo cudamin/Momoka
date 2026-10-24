@@ -34,9 +34,24 @@ internal static class Program
     private static FnNasPasswordViewModel Password(EmbySession session, string? source = null)
     {
         var vm = new FnNasPasswordViewModel();
-        vm.Attach(session, source);
+        AttachPage(vm, session, source);
         Draft(vm, P1);
         return vm;
+    }
+
+    private static void AttachPage(PageViewModel vm, EmbySession session, string? source = null)
+    {
+        if (vm is FnNasPasswordViewModel password)
+        {
+            var attach = typeof(FnNasPasswordViewModel).GetMethod("Attach", BindingFlags.Instance | BindingFlags.NonPublic,
+                null, [typeof(EmbySession), typeof(Momoka.Services.ISettingsPersistence), typeof(Action<Action>), typeof(string)], null);
+            if (attach is not null)
+            {
+                attach.Invoke(password, [session, new Momoka.Services.MemoryPersistence(), (Action<Action>)(action => action()), source]);
+                return;
+            }
+        }
+        ((FnNasSessionViewModel)vm).Attach(session, source);
     }
 
     private static async Task<FnNasPreferencesViewModel> PreferencesAsync(EmbySession session, string? source = null)
@@ -331,7 +346,7 @@ internal static class Program
             var save = SaveDirect(vm);
             session.Sources[0].Endpoint.Writes[0].Succeed();
             await save;
-            vm.Attach(session, session.Sources[1].Key);
+            AttachPage(vm, session, session.Sources[1].Key);
             await vm.ReloadAsync();
             PreferenceDraft(vm, ["de-DE", "fr-FR"]);
             Assert.False(vm.NoticeOpen);
@@ -492,7 +507,7 @@ internal static class Program
             var session = new EmbySession();
             using var vm = new FnNasPreferencesViewModel();
             var collection = vm.Languages;
-            vm.Attach(session);
+            AttachPage(vm, session);
             Assert.False(vm.Loaded);
             Assert.False(vm.CanSave);
             await SaveDirect(vm);
@@ -546,7 +561,7 @@ internal static class Program
                         case "同源重Attach":
                         case "异源重Attach":
                             var next = boundary == "同源重Attach" ? source.Key : session.Sources[1].Key;
-                            ((FnNasSessionViewModel)vm).Attach(session, next);
+                            AttachPage(vm, session, next);
                             if (vm is FnNasPasswordViewModel reattachedPassword) Draft(reattachedPassword, P2);
                             else
                             {
@@ -583,7 +598,7 @@ internal static class Program
                 var session = new EmbySession();
                 using PageViewModel vm = kind == "密码" ? Password(session) : await PreferencesAsync(session);
                 var first = SaveDirect(vm);
-                ((FnNasSessionViewModel)vm).Attach(session, session.Sources[1].Key);
+                AttachPage(vm, session, session.Sources[1].Key);
                 if (vm is FnNasPasswordViewModel p) Draft(p, P2);
                 else
                 {
@@ -625,7 +640,7 @@ internal static class Program
                     var session = new EmbySession();
                     using PageViewModel vm = kind == "密码" ? new FnNasPasswordViewModel() : new FnNasPreferencesViewModel();
                     var attached = (FnNasSessionViewModel)vm;
-                    if (boundary != "未Attach") attached.Attach(session, boundary == "未知SourceKey" ? "missing-source" : null);
+                    if (boundary != "未Attach") AttachPage(attached, session, boundary == "未知SourceKey" ? "missing-source" : null);
                     if (boundary != "空输入或未读")
                     {
                         if (vm is FnNasPasswordViewModel password) Draft(password, P1);
@@ -648,7 +663,7 @@ internal static class Program
         {
             var session = new EmbySession();
             using var vm = new FnNasPasswordViewModel();
-            vm.Attach(session);
+            AttachPage(vm, session);
             var properties = new List<string?>();
             var commandChanges = 0;
             vm.PropertyChanged += (_, e) => properties.Add(e.PropertyName);
@@ -702,16 +717,21 @@ internal static class Program
                     if (property == "Password") Assert.Contains("UpdateSourceTrigger=PropertyChanged", binding);
                     Assert.Null(element.Attribute("IsEnabled"), "本题不冻结输入；编辑版本必须处理实际双向输入");
                 }
-                var info = xaml.Descendants(presentation + "InfoBar").Single();
+                var info = xaml.Descendants(presentation + "InfoBar").Single(node => node.Attribute(x + "Name") is null);
                 foreach (var (property, member) in new[] { ("Title", "NoticeTitle"), ("Message", "NoticeMessage"), ("Severity", "NoticeSeverity"), ("IsOpen", "NoticeOpen"), ("Visibility", "NoticeVisibility") })
                 {
                     Assert.Contains("x:Bind ViewModel." + member, info.Attribute(property)!.Value);
                     Assert.Contains("Mode=OneWay", info.Attribute(property)!.Value);
                 }
-                var button = xaml.Descendants(presentation + "Button").Single();
+                var button = xaml.Descendants(presentation + "Button").Single(node => node.Attribute("Command")?.Value == "{x:Bind ViewModel.SaveCommand}");
                 Assert.Equal("{x:Bind ViewModel.SaveCommand}", button.Attribute("Command")!.Value);
                 var code = Resource(page + ".xaml.cs");
-                Assert.Contains("ViewModel.Attach(request.Services.GetRequiredService<EmbySession>(), request.SourceKey);", code);
+                if (page == "FnNasPasswordPage")
+                {
+                    Assert.Contains("request.Services.GetRequiredService<ISettingsService>()", code);
+                    Assert.Contains("DispatcherQueue.TryEnqueue(() => action())", code);
+                }
+                else Assert.Contains("ViewModel.Attach(request.Services.GetRequiredService<EmbySession>(), request.SourceKey);", code);
                 Assert.Contains("ViewModel.Cancel();", code);
                 Assert.Contains("public string? SourceKey => ViewModel.SourceKey;", code);
                 return Task.CompletedTask;

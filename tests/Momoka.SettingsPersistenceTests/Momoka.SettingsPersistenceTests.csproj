@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.SettingsPersistenceTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <DefaultItemExcludes>$(DefaultItemExcludes);BaselineCore\**</DefaultItemExcludes>
+    <PersistencePasswordSource Condition="'$(PersistencePasswordSource)' == ''">$(MSBuildThisFileDirectory)..\..\src\Momoka.Shell\ViewModels\FnNasPasswordViewModel.cs</PersistencePasswordSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Only configuration/persistence types use this explicit alias. The full password VM still
+         sees the narrow fake confirmation endpoint, never production EmbySession/authentication. -->
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" Aliases="ConfigurationCore" Condition="'$(PersistenceBaselineSourceRoot)' == ''" />
+    <ProjectReference Include="BaselineCore\Momoka.SettingsPersistenceBaselineCore.csproj" Aliases="ConfigurationCore" Condition="'$(PersistenceBaselineSourceRoot)' != ''" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Compile Include="$(PersistencePasswordSource)" Link="Production\FnNasPasswordViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasSessionViewModel.cs" Link="Production\FnNasSessionViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Services\ISettingsPersistence.cs" Link="Production\ISettingsPersistence.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Infrastructure\LoadGeneration.cs" Link="Production\LoadGeneration.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Diagnostics\Failure.cs" Link="Production\Failure.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Emby\EmbyApiException.cs" Link="Production\EmbyApiException.cs" />
+    <Compile Include="..\Momoka.FnNasAccountEditTests\Boundaries.cs" Link="Fixture\ConfirmationBoundary.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
+    <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\FnNasPasswordPage.xaml" LogicalName="Production.FnNasPasswordPage.xaml" />
+    <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\FnNasPasswordPage.xaml.cs" LogicalName="Production.FnNasPasswordPage.xaml.cs" />
+    <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\SettingsPage.xaml.cs" LogicalName="Production.SettingsPage.xaml.cs" />
+    <EmbeddedResource Include="..\..\src\Momoka.Core\Emby\EmbySession.cs" LogicalName="Production.EmbySession.cs" />
+  </ItemGroup>
+</Project>

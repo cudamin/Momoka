@@ -211,6 +211,7 @@ internal static partial class PlayerVolumeGestureTests
         public AppSettings Settings { get; } = new();
         public int PageSize => 50;
         public bool SaveSucceeds { get; set; } = true;
+        public event EventHandler? SaveStateChanged { add { } remove { } }
         public bool HasUnsavedChanges { get; private set; }
         public int SaveCalls { get; private set; }
         private readonly List<int> _saved = [];
