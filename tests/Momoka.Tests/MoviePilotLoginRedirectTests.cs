@@ -210,9 +210,12 @@ internal static class MoviePilotLoginRedirectTests
         var attempt = await LoginAsync(client, new Uri("https://127.0.0.1:18443/"), CancellationToken.None);
         Console.WriteLine("R031-POLICY " + JsonSerializer.Serialize(new
         {
-            scenario = $"https-to-http-{(int)status}", transport = "injected-response-not-TLS",
-            handlerCalls = handler.Calls, initialScheme = handler.InitialScheme,
-            sessionReturned = attempt.Session is not null, errorType = attempt.Error?.GetType().Name
+            scenario = $"https-to-http-{(int)status}",
+            transport = "injected-response-not-TLS",
+            handlerCalls = handler.Calls,
+            initialScheme = handler.InitialScheme,
+            sessionReturned = attempt.Session is not null,
+            errorType = attempt.Error?.GetType().Name
         }));
         Assert.Equal(1, handler.Calls, "响应策略不得主动发起下一跳");
         Assert.Equal("https", handler.InitialScheme);
@@ -422,9 +425,14 @@ internal static class MoviePilotLoginRedirectTests
         bool returned, Exception? error, string transport = "default-production-constructor") =>
         Console.WriteLine("R031-LOOPBACK " + JsonSerializer.Serialize(new
         {
-            scenario, transport, runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
-            source = source.Snapshot(), next = next.Snapshot(), sessionOrResultReturned = returned,
-            errorType = error?.GetType().Name, errorStatus = (int?)(error as MoviePilotException)?.Status
+            scenario,
+            transport,
+            runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+            source = source.Snapshot(),
+            next = next.Snapshot(),
+            sessionOrResultReturned = returned,
+            errorType = error?.GetType().Name,
+            errorStatus = (int?)(error as MoviePilotException)?.Status
         }));
 
     private sealed class DowngradeResponse(HttpStatusCode status) : HttpMessageHandler
@@ -486,9 +494,14 @@ internal static class MoviePilotLoginRedirectTests
 
         public object Snapshot() => new
         {
-            origin = Origin.AbsoluteUri, received = Count, accepted = AcceptedCount, completed = _requests.Count, credentialReceipts = CredentialReceipts,
+            origin = Origin.AbsoluteUri,
+            received = Count,
+            accepted = AcceptedCount,
+            completed = _requests.Count,
+            credentialReceipts = CredentialReceipts,
             usernameReceipts = _requests.Count(request => request.HasUsername),
-            passwordReceipts = _requests.Count(request => request.HasPassword), requests = Requests
+            passwordReceipts = _requests.Count(request => request.HasPassword),
+            requests = Requests
         };
 
         private async Task ServeAsync()
