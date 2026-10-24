@@ -1,0 +1,7 @@
+PASS: current31/31 exit0; historical13=7pass6fail exit1; each fresh Release0warning0error
+PASS: both final result logs/input manifests/package manifests match SHA256
+PASS: all own source files UTF8/LF/final newline; source-link/document links resolve; PS1 BOM/LF/parser
+PASS: no product/historical records/solution writes; git diff --check; own trailing whitespace/tabs0
+PASS: runner illegal label rejected before output allocation
+current-result.json : final run inputs/log hashes match
+historical-result.json : final run inputs/log hashes match

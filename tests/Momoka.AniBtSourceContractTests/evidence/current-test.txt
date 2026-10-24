@@ -1,0 +1,33 @@
+  通过  R042 实际聚合 SelectSource 保留旧 scope，普通捕获只读任务仍允许完成
+  通过  R042 有效 整剧 identify 保留实际确认目标和一次 Apply/Refresh
+  通过  R042 整剧 RemoteSearch 等待中聚合切来源，旧 scope available 仍拒绝 Apply
+  通过  R042 有效 电影 identify 保留实际确认目标和一次 Apply/Refresh
+  通过  R042 电影 RemoteSearch 等待中聚合切来源，旧 scope available 仍拒绝 Apply
+  通过  R042 identify-only 初始 canContinue=false，RemoteSearch/Apply/Refresh 全零
+  通过  R042 任意 canContinue 在 RemoteSearch 回话前失效，identify-only 不写入
+  通过  R042 identify-only Apply 已发后聚合切来源，不能再发 Refresh 或重放 Apply
+  通过  R042 两项 transfer 全成功后聚合切来源，保已成功回执且 identify/scan 全零
+  通过  R042 transfer 回话前普通 canContinue=false，末尾 identify 不执行
+  通过  R042 首 transfer 完成后切来源，后续 transfer 和 identify 不提交
+  通过  R042 非聚合切换实际 PruneOthers 撤销旧 lifetime，等待读取取消且零写入
+  通过  R042 显式取消当前 RemoteSearch 不伪造成成功，已发读保留且零写入
+  通过  R042 已展示 identify 凭证在 Submit 前 canContinue=false，零新增请求且未 Claim 原批次
+  通过  R042 mixed 提交整批历史重核等待中切来源，Claim/任何 write 前拒绝
+  通过  R042 已封存来源 A 的凭证不能交给来源 B 的实际 client
+  通过  R042 已封存来源 A 的实际相同身份 client 可跨默认切换继续，除非 caller 拒绝
+  通过  R042 当前一次计划已 Apply 后取消 Refresh，不得借相同凭证重发
+  通过  R042 外层实际 Shell 入口仍要求当前 scope 和可用 MP，源锚唯一
+  通过  R042 实际菜单分派 AniBtScrape 保 current 守卫，不把独立搜索收成同一契约
+  通过  R042 实际 MoviePilotDialog 监控 MP 连接，不据此推断 Emby 来源切换或模态可达
+  通过  R042 实际 VM identify-only 有效预览零写，显式确认 Apply/Refresh 各一次
+  通过  R042 实际 VM 初始 Load 等待中来源失效，不接纳旧行
+  通过  R042 实际 VM Load 后聚合切来源，Preview/Submit 入口零新增请求
+  通过  R042 实际 VM 已预览后聚合切来源，旧 canSubmit 不借 available 继续
+  通过  R042 实际 VM RemoteSearch 等待中切来源，Current 委托阻止回传确认凭证
+  通过  R042 实际 VM 只读预览 Cancel 撤销活动/版本/LoadGeneration，零写入
+  通过  R042 实际 VM mixed 整批 transfer 成功后切来源，Emby identify 和 scan 零条
+  通过  R042 实际 VM Apply 已发后切来源，Current 委托阻止后续 Refresh
+  通过  R042 实际 VM Apply 在途取消预览版本，即便 source 仍 current 也拒绝 Refresh
+  通过  R042 实际 Dialog 预览后聚合切来源，惰性 primary 分派不写旧库
+
+共 31 项，通过 31，失败 0，跳过 0，用时 442 ms

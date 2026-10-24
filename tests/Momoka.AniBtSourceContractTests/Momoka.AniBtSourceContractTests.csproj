@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.AniBtSourceContractTests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <R042SourceRoot Condition="'$(R042SourceRoot)' == ''">$(MSBuildProjectDirectory)\..\..</R042SourceRoot>
+        <DefineConstants Condition="'$(R042Legacy)' == 'true'">$(DefineConstants);R042_LEGACY</DefineConstants>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="Program.cs;SettingsStoreBoundary.cs;SourceFixture.cs;CoreSourceContractTests.cs" />
+        <Compile Include="CallerSourceContractTests.cs" Condition="'$(R042Legacy)' != 'true'" />
+        <!-- Current production Core, never the full Core test runner or solution. Replace only the
+             settings IO endpoint; SelectSource, scope lifetime, planning and HTTP code stay actual. -->
+        <Compile Include="..\..\src\Momoka.Core\**\*.cs"
+                 Exclude="..\..\src\Momoka.Core\bin\**;..\..\src\Momoka.Core\obj\**;..\..\src\Momoka.Core\Configuration\SettingsStore.cs;..\..\src\Momoka.Core\AniBt\AniBtService.cs"
+                 Link="Production\Core\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="$(R042SourceRoot)\src\Momoka.Core\AniBt\AniBtService.cs" Link="Production\AniBtService.cs" />
+        <Compile Include="$(R042SourceRoot)\src\Momoka.Shell\ViewModels\AniBtScrapeViewModel.cs" Link="Production\AniBtScrapeViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+        <Compile Include="$(R042SourceRoot)\src\Momoka.Shell\Views\AniBtScrapeDialog.xaml.cs" Link="Production\AniBtScrapeDialog.xaml.cs" />
+        <EmbeddedResource Include="$(R042SourceRoot)\src\Momoka.Shell\Views\AniBtScrapeDialog.xaml" LogicalName="Production.AniBtScrapeDialog.xaml" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\ShellPage.AniBt.cs" LogicalName="Production.ShellPage.AniBt.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\ItemCommands.cs" LogicalName="Production.ItemCommands.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotDialog.cs" LogicalName="Production.MoviePilotDialog.cs" />
+        <!-- Reuse existing anonymous replies and inert XAML/event endpoints, not their R037/R039 cases. -->
+        <Compile Include="..\Momoka.AniBtConfirmationTests\AnonymousFixture.cs" Link="Boundaries\AnonymousFixture.cs" />
+        <Compile Include="..\Momoka.AniBtConfirmationTests\DialogBoundary.cs" Link="Boundaries\DialogBoundary.cs" />
+        <Compile Include="..\Momoka.AniBtConfirmationTests\ThemeBoundary.cs" Link="Boundaries\ThemeBoundary.cs" />
+        <Compile Include="..\Momoka.AniBtConfirmationTests\UiControls.cs" Link="Boundaries\UiControls.cs" />
+        <Compile Include="..\Momoka.AniBtConfirmationTests\UiValues.cs" Link="Boundaries\UiValues.cs" />
+        <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="Boundaries\UiQueue.cs" />
+        <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    </ItemGroup>
+</Project>

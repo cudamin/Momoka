@@ -1,3 +1,8 @@
+## 第六组 R-042 current保护确认及专项合入（2026-10-24）
+
+- Hypatia来源4a63a69限定22测试/脚本/证据blob合入，当前真实Core/session（仅SettingsStore IO替身）/VM/Dialog31绿、35项目Release映射；R037/039既有service blob548f400与1b37ca1完全同，本题不再改产品。来源旧四exact输入+currentCore13项7绿6红仅有限对照，初工具错另保；实际聚合A→B旧scope仍可用但canContinue阻止后续Apply/Refresh，固定后台来源无委托仍继续。主树local-only restore、current单项目零警告错误/31绿，Run-Fixture current/历史反例及最终方案仍按本树重验。[增量](docs/代码审查-分阶段修复-2026-10-23.md)／[R042](tests/Momoka.AniBtSourceContractTests/README.md)。
+- R017已987eee1、最终96专项绿（补8前Core2637绿），本地实现66号；R042是旧修复已覆盖，非新增第67产品实现。R065内部启动读/Apply错误契约在独立树最后验证，Gibbs只读复核；真实部署modal/ACL/WinUI/native/播放未验，libmpv缺、快捷方式旧版，无publish/push。受限四号与R043建议继续不擅动，原历史records只读。
+
 ## 第六组候选复核：R-017 防误写／R-042 与 R-065 在途（2026-10-24，用户明确继续）
 
 - 已全文重载C:/Users/89400/Momoka/CLAUDE.md并核主树cfde3c7干净，恢复的是新候选复核，不重跑第五组。主线程R017支持契约实际Read/ApplyTo/匿名client同夹具88项46过42败→仅日历日比较一行修后原88全绿、Gibbs无可行动P1/P2，补8个宽松偏移输入后96全绿、六caller源码合同/UTF8LF/新链接过；同日保偏移时刻、真改旧UTC日/清日期/坏输入/未知字段均保原契约，不新增时区体验。部署偏移前件仍未观测、历史报告/records只读。[增量](docs/代码审查-分阶段修复-2026-10-23.md)与[专项](tests/Momoka.Tests/README.MetadataDate.md)，证据artifacts/staged-repair/batch06/r017保留原红。

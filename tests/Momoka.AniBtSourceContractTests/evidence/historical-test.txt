@@ -1,0 +1,33 @@
+  通过  R042 实际聚合 SelectSource 保留旧 scope，普通捕获只读任务仍允许完成
+  通过  R042 有效 整剧 identify 保留实际确认目标和一次 Apply/Refresh
+  失败  R042 整剧 RemoteSearch 等待中聚合切来源，旧 scope available 仍拒绝 Apply
+  通过  R042 有效 电影 identify 保留实际确认目标和一次 Apply/Refresh
+  失败  R042 电影 RemoteSearch 等待中聚合切来源，旧 scope available 仍拒绝 Apply
+  通过  R042 identify-only 初始 canContinue=false，RemoteSearch/Apply/Refresh 全零
+  失败  R042 任意 canContinue 在 RemoteSearch 回话前失效，identify-only 不写入
+  失败  R042 identify-only Apply 已发后聚合切来源，不能再发 Refresh 或重放 Apply
+  失败  R042 两项 transfer 全成功后聚合切来源，保已成功回执且 identify/scan 全零
+  失败  R042 transfer 回话前普通 canContinue=false，末尾 identify 不执行
+  通过  R042 首 transfer 完成后切来源，后续 transfer 和 identify 不提交
+  通过  R042 非聚合切换实际 PruneOthers 撤销旧 lifetime，等待读取取消且零写入
+  通过  R042 显式取消当前 RemoteSearch 不伪造成成功，已发读保留且零写入
+
+── R042 整剧 RemoteSearch 等待中聚合切来源，旧 scope available 仍拒绝 Apply
+期望 <0>，实际 <1>（实际 Apply HTTP 次数）
+
+── R042 电影 RemoteSearch 等待中聚合切来源，旧 scope available 仍拒绝 Apply
+期望 <0>，实际 <1>（实际 Apply HTTP 次数）
+
+── R042 任意 canContinue 在 RemoteSearch 回话前失效，identify-only 不写入
+期望 <0>，实际 <1>（实际 Apply HTTP 次数）
+
+── R042 identify-only Apply 已发后聚合切来源，不能再发 Refresh 或重放 Apply
+期望 <0>，实际 <1>（实际单条 Refresh HTTP 次数）
+
+── R042 两项 transfer 全成功后聚合切来源，保已成功回执且 identify/scan 全零
+期望 <0>，实际 <1>（实际 Apply HTTP 次数）
+
+── R042 transfer 回话前普通 canContinue=false，末尾 identify 不执行
+期望 <0>，实际 <1>（实际 Apply HTTP 次数）
+
+共 13 项，通过 7，失败 6，跳过 0，用时 331 ms
