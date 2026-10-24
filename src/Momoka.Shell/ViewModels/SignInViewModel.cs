@@ -65,6 +65,12 @@ public sealed partial class SignInViewModel : PageViewModel
     private EmbySession? _session;
     private CredentialVault? _vault;
     private Uri? _usersAddress;
+    private CancellationToken _signInToken;
+    private string? _signInUserId;
+    private string? _signInUsername;
+    private bool _disposed;
+    private long _inputVersion;
+    private string? _selectionUsername;
     private string _passwordAddress = "";
     private string _passwordUsername = "";
 
@@ -198,7 +204,7 @@ public sealed partial class SignInViewModel : PageViewModel
     /// parameters, so this single question answers for all of them; past this gate they are dereferenced
     /// with <c>!</c>.
     /// </summary>
-    private bool Attached => _settings is not null;
+    private bool Attached => !_disposed && _settings is not null;
 
     /// <summary>
     /// The live settings object, read through the service rather than copied: it is one instance for the
@@ -415,7 +421,9 @@ public sealed partial class SignInViewModel : PageViewModel
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanRun))]
+    // Busy still rejects duplicate submissions. A cancelled old endpoint may keep awaiting its
+    // response, but its generated command must not prevent the newly edited identity from submitting.
+    [RelayCommand(CanExecute = nameof(CanRun), AllowConcurrentExecutions = true)]
     private async Task SignInAsync()
     {
         if (!Attached || Busy) return;
@@ -434,33 +442,57 @@ public sealed partial class SignInViewModel : PageViewModel
             return;
         }
 
-        var token = BeginLoad();
-        Caption = "正在登录…";
+        // 固定点击时的输入，不能在 Busy/IsReady/提示的同步通知之后借用新草稿。
+        var address = Address;
+        var selected = SelectedUser is { } user
+            ? new EmbyUser { Id = user.Id, Name = user.Name, HasPassword = user.HasPassword } : null;
+        var usersAddress = _usersAddress;
+        var enteredPassword = Password;
+        var passwordAddress = _passwordAddress;
+        var passwordUsername = _passwordUsername;
+        var remember = Remember;
+        var detectedServer = _detectedServer;
+        var settings = _settings!;
+        var session = _session!;
+        var token = BeginLoad(started =>
+        {
+            _inputVersion++;
+            _signInToken = started;
+            _signInUserId = selected?.Id;
+            _signInUsername = username;
+        });
 
         try
         {
-            var server = _settings!.ResolveServer(Address);
-            if (_detectedServer is { ApiBase: { } detectedBase } detected
-                && EmbySignInIdentity.SameAddress(Address, detectedBase.AbsoluteUri, detected.ServerKind))
+            if (!IsCurrent(token)) return;
+            Caption = "正在登录…";
+            if (!IsCurrent(token)) return;
+            var server = settings.ResolveServer(address);
+            if (detectedServer is { ApiBase: { } detectedBase } detected
+                && EmbySignInIdentity.SameAddress(address, detectedBase.AbsoluteUri, detected.ServerKind))
             {
                 server.ServerKind = detected.ServerKind;
                 server.ServerVersion = detected.Version;
                 server.ServerId = detected.Id;
                 server.Url = EmbyServerAddress.ToDisplayString(detectedBase, detected.ServerKind);
             }
-            var account = _settings.ResolveAccount(server, username);
-            var passwordless = EmbySignInIdentity.IsPasswordless(Address, _usersAddress, username, SelectedUser, server.ServerKind);
-            var password = EmbySignInIdentity.PasswordFor(Address, username, Password, _passwordAddress, _passwordUsername, passwordless, server.ServerKind);
+            var account = settings.ResolveAccount(server, username);
+            if (!IsCurrent(token)) return;
+            var passwordless = EmbySignInIdentity.IsPasswordless(address, usersAddress, username, selected, server.ServerKind);
+            var password = EmbySignInIdentity.PasswordFor(address, username, enteredPassword, passwordAddress, passwordUsername, passwordless, server.ServerKind);
 
-            await _session!
-                .SignInAsync(server, account, password, username, Remember, token)
+            await session
+                .SignInAsync(server, account, password, username, remember, token)
                 .ConfigureAwait(true);
 
             if (!IsCurrent(token)) return;
 
-            _settings.Save();
+            settings.Save();
+            if (!IsCurrent(token)) return;
             Caption = FirstCaption;
+            if (!IsCurrent(token)) return;
             Password = "";
+            if (!IsCurrent(token)) return;
 
             SignedIn?.Invoke(this, EventArgs.Empty);
         }
@@ -473,12 +505,18 @@ public sealed partial class SignInViewModel : PageViewModel
 
             if (IsCurrent(token))
             {
-                Fail(Failure.Describe(error), "登录失败");
-                RequestFocus(SignInFocus.RejectedPassword);
+                Fail(Failure.Describe(error), "登录失败", token);
+                if (IsCurrent(token)) RequestFocus(SignInFocus.RejectedPassword);
             }
         }
         finally
         {
+            if (_signInToken == token)
+            {
+                _signInToken = default;
+                _signInUserId = null;
+                _signInUsername = null;
+            }
             EndLoad(token);
         }
     }
@@ -490,15 +528,41 @@ public sealed partial class SignInViewModel : PageViewModel
     /// </summary>
     partial void OnSelectedUserChanged(EmbyUser? value)
     {
+        var version = ++_inputVersion;
         if (_filling || value is null || !Attached || _usersAddress is null
             || !EmbySignInIdentity.SameAddress(Address, _usersAddress.AbsoluteUri, _detectedServer?.ServerKind ?? MediaServerKind.Emby)) return;
 
-        Username = value.Name;
-        var saved = EmbySignInIdentity.SavedAccount(Settings.Servers, Address, value.Name);
-        Password = value.HasPassword ? ReadSavedPassword(saved) : "";
-        Remember = saved?.RememberPassword ?? true;
+        // Compare with the submitted ID, not the previous selection: a list can write null between
+        // A and B, and default filling must not migrate the identity owned by an in-flight ticket.
+        // Same-ID copies keep that ticket; a different ID cancels even when its name is equivalent.
+        var id = value.Id;
+        var name = value.Name;
+        var hasPassword = value.HasPassword;
+        if (_signInUserId != id || !EmbySignInIdentity.SameUsername(_signInUsername, name)) CancelSignIn();
+        if (!OwnsInputTail(version)) return;
 
-        if (!value.HasPassword)
+        // Each own setter advances once. A nested input edit or new ticket advances again and
+        // revokes this fill tail, including drafts entered from the cancellation notification.
+        var expected = version + (string.Equals(Username, name, StringComparison.Ordinal) ? 0 : 1);
+        var previousSelection = _selectionUsername;
+        _selectionUsername = name;
+        try { Username = name; }
+        finally { _selectionUsername = previousSelection; }
+        version = expected;
+        if (!OwnsInputTail(version)) return;
+        var saved = EmbySignInIdentity.SavedAccount(Settings.Servers, Address, name);
+        var password = hasPassword ? ReadSavedPassword(saved) : "";
+        if (!OwnsInputTail(version)) return;
+        expected = version + (string.Equals(Password, password, StringComparison.Ordinal) ? 0 : 1);
+        Password = password;
+        version = expected;
+        if (!OwnsInputTail(version)) return;
+        var remember = saved?.RememberPassword ?? true;
+        expected = version + (Remember == remember ? 0 : 1);
+        Remember = remember;
+        if (!OwnsInputTail(expected)) return;
+
+        if (!hasPassword)
         {
             _ = SignInAsync();
             return;
@@ -509,6 +573,7 @@ public sealed partial class SignInViewModel : PageViewModel
 
     partial void OnAddressChanged(string oldValue, string newValue)
     {
+        _inputVersion++;
         if (EmbySignInIdentity.SameAddress(oldValue, newValue, _detectedServer?.ServerKind ?? MediaServerKind.Emby)) return;
         _detectedServer = null;
         Password = "";
@@ -523,11 +588,36 @@ public sealed partial class SignInViewModel : PageViewModel
 
     partial void OnUsernameChanged(string oldValue, string newValue)
     {
-        if (!EmbySignInIdentity.SameUsername(oldValue, newValue)) Password = "";
+        var version = ++_inputVersion;
+        if (EmbySignInIdentity.SameUsername(oldValue, newValue)
+            || string.Equals(_selectionUsername, newValue, StringComparison.Ordinal)) return;
+
+        if (!_filling) CancelSignIn();
+        if (OwnsInputTail(version)) Password = "";
     }
+
+    private bool OwnsInputTail(long version) => !_disposed && _inputVersion == version;
+
+    private void CancelSignIn()
+    {
+        // Cancel the actual request before Session can commit its response, not merely the VM's
+        // final notification. Do not cancel a connect/discovery load or reset the user's new draft.
+        var token = _signInToken;
+        if (!IsCurrent(token)) return;
+
+        var version = _inputVersion;
+        Cancel();
+        if (_signInToken != token || !OwnsInputTail(version)) return;
+        IsReady = true;
+        if (_signInToken != token || !OwnsInputTail(version)) return;
+        Caption = Step == SignInStep.Credential ? "选择用户并输入密码" : FirstCaption;
+    }
+
+    partial void OnRememberChanged(bool value) => _inputVersion++;
 
     partial void OnPasswordChanged(string value)
     {
+        _inputVersion++;
         _passwordAddress = Address;
         _passwordUsername = Username;
     }
@@ -544,6 +634,8 @@ public sealed partial class SignInViewModel : PageViewModel
 
     public override void Dispose()
     {
+        _disposed = true;
+        Cancel();
         Discovered.CollectionChanged -= OnDiscoveredChanged;
         Users.CollectionChanged -= OnUsersChanged;
         SavedServers.CollectionChanged -= OnSavedChanged;
@@ -621,6 +713,20 @@ public sealed partial class SignInViewModel : PageViewModel
     private void Fail(string message, string? title = null)
     {
         Notify(title, message, InfoBarSeverity.Error);
+        Caption = FirstCaption;
+    }
+
+    private void Fail(string message, string? title, CancellationToken token)
+    {
+        if (!IsCurrent(token)) return;
+        NoticeSeverity = InfoBarSeverity.Error;
+        if (!IsCurrent(token)) return;
+        NoticeTitle = title;
+        if (!IsCurrent(token)) return;
+        NoticeMessage = message;
+        if (!IsCurrent(token)) return;
+        NoticeOpen = true;
+        if (!IsCurrent(token)) return;
         Caption = FirstCaption;
     }
 

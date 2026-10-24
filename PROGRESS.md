@@ -1,3 +1,23 @@
+## 第五组 R-008 主树完成（2026-10-24，限定本批）
+
+- worker首cdfb832/补afd448最终VM限定合入后主线程同步入口及取消/失败尾部闭环：点击输入快照、token/ID/username在通知前发布、load/UI尾部守原票，draft尾部守编辑版本，sameID仅等价name免取消；不改生产Session/Gateway/vault。原77保留＋51=128，exact afd448两旧VM同夹具95过33败→当前128全绿/0跳过；全中间红保留。fresh x64Shell/fixture Release零警告错误、相关共享base8套当前绿不相加，实际bindings17+8非法生成拒绝/题内格式0修改/PSBOMLF解析/20输入hash通过，Popper最终无P1/P2。证据batch05/r008及run-resume-final128-red/green，具体见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计63号本地实现＋相关离线回归，余10。继续本批R011源907cb8d复核/限定整合，R067实际包摘要P1补修；收束后按用户指令暂停，不开下一问题。未生产Auth/凭据/DPAPI或真实WinUI输入像素/服务器/native/播放/发布推送，快捷方式旧版，非完整交付；原09:32暂停记录保留，不将恢复等同完整交付。
+
+## 第五组 R-008 取消/反馈尾部最终闭环（2026-10-24，限定本批）
+
+- Popper续审两P2补实际完整VM14反例，126项112过14败→126绿，额外sameID非等价name两护栏126过2败→最终128绿；完整afd448两旧VM配最终128夹具95过33败红保。当前请求前固定身份/密码输入、beforeNotifications先票/ID/name、通知后守票；取消hook按editVersion撤旧尾，失败逐属性与焦点前守原token，不写B草稿/反馈，原sameID/null/_filling/等价编辑保。final128普通Release/realgenerator17+8拒绝/相关SharedBase套都过，最后独立复核待回，不先提交。证据batch05/r008与本树run-resume-final128-red/green；未动态生产Auth/WinUI/cred/native/播放/发布推送，受限四号不重试。
+- R011源907cb8d已交回54/17与帐号兼容9/14及既有36/39绿，主线程复核/整合在后，不冒主树完成；R067新archive绑定P1由Ampere原树补。R010提交累计62保持，完成本批后暂停，不开别题。
+
+## 第五组恢复 R-008 同步入口补修（2026-10-24，限定本批）
+
+- 用户“恢复”解除09:32立即暂停，全文重读C:/Users/89400/Momoka/CLAUDE.md并核主树HEADe229a2d和保留dirty；继续R008/R011/R067本批，不开下一题。主线程同步前固定所有输入/票/ID、通知后守当前性及EndLoad继任，Dispose并原退订；原77＋35=112夹具，两旧VM exact afd448为93过19败→当前112绿/0跳过。首baseline20重复生成编译错、111项4Dispose红及重复Dispose编译红均保留，定点修非清理/洗绿；实际Shell binding17+8拒绝绿，原sharedbase受影响8套均current绿不相加，见batch05/r008与[专项](tests/Momoka.SignInInputGenerationTests/README.md)。
+- R008独立Popper最终闭环待交回，不提前提交/计完成；R011 Avicenna补完整帐号兼容/既有专项/Core格式，R067 Ampere新archive内容与固定restore摘要P1补修在原树，旧六保留已封仍不先计完成。R010e229a2d累计62号保持。全部不动态运行生产认证/密码令牌DPAPI链或真实WinUI/App/native/服务器/播放，不发布推送；快捷方式旧版，非完整交付。完成本批后按原指令暂停，保留用户中途再次立即暂停权。
+
+## 第五组 R-008 最终来源限定整合（2026-10-24，本批完成后暂停）
+
+- 首修cdfb832的经null改选P2由afd448469fdbd7db947668254739ee57b693bb0a补修，主树复制最终9个产品/正式fixtureblob，原VM与source基点相同、无shared进度/产物整份搬运；当前票捕获ID值，A→null→同名B撤A且保B草稿/无密码自动新票，sameID/null/_filling/等价编辑保，旧finally不清B当前token/ID，Busy仍挡重复。来源同77项59过18败红保留，主树当前77绿，fixture/x64ShellRelease零警告错误，题内format0改/无加载诊断；freshShell实际绑定17与8非法生成拒绝通过。来源run主树artifacts/r008-signin-input-generation/run-main-integrated-20261024-092417-6068及batch05/r008。最终独立只读复核待闭环，不提前算完成/提交。
+- R010已提交e229a2d累计62号，R008/R011/R067收束后按用户最新暂停，余题不启动。生产认证提交锁/Adopt/vault/凭据DPAPI/真实WinUI输入像素/native/服务器/播放/发布推送未运行，快捷方式旧版，非完整交付，受限四号停止不重试。
+
 ## 第五组 R-010 主树本地保存欠项（2026-10-24，本批完成后暂停）
 
 - Store统一所有调用者保存状态/通知，Service不再私记最后结果；改密页窄ISettingsPersistence仅重试本地，明确服务器确认与本地保存不同，不自动重发、不恢复来源/Remember、不清新草稿。父Settings活动票订阅即时同步、隐藏退订/旧回调拒绝，保缓存草稿。基点38项6过32败（含旧新增表面缺失，不冒32产品反例）→当前39全过；R02768、真实父page/currentShellVM45（新增6）绿不相加。31csproj当前方案Release与freshShell/fixture零警告错误、完整Core2549绿；Release/x64方案空白0修改/退出0无加载诊断，28PS/零无句柄/真实生成11/UTF8LF链接hash过；首R027夹具2型错误红保留定点修后绿。证据batch05/r010及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。

@@ -153,10 +153,20 @@ public abstract partial class PageViewModel : ObservableObject, IDisposable
     /// </summary>
     protected CancellationToken BeginLoad()
     {
+        return BeginLoad(null);
+    }
+
+    /// <summary>先发布请求归属，再通知绑定；同步通知取消或开启新请求后，旧入口不再写状态。</summary>
+    protected CancellationToken BeginLoad(Action<CancellationToken>? beforeNotifications)
+    {
         var token = _loads.Begin();
+        beforeNotifications?.Invoke(token);
+        if (!IsCurrent(token)) return token;
 
         Busy = true;
+        if (!IsCurrent(token)) return token;
         IsReady = false;
+        if (!IsCurrent(token)) return token;
         NoticeOpen = false;
 
         return token;
@@ -174,6 +184,7 @@ public abstract partial class PageViewModel : ObservableObject, IDisposable
         if (!IsCurrent(token)) return;
 
         Busy = false;
+        if (!IsCurrent(token)) return;
         IsReady = true;
     }
 

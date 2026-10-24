@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.SignInInputGenerationTests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+        <SignInSourcePath Condition="'$(SignInSourcePath)' == ''">$(MSBuildThisFileDirectory)..\..\src\Momoka.Shell\ViewModels\SignInViewModel.cs</SignInSourcePath>
+        <SignInPageSourcePath Condition="'$(SignInPageSourcePath)' == ''">$(MSBuildThisFileDirectory)..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs</SignInPageSourcePath>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- A runner can relocate obj/bin. Always exclude the normal project output as well,
+             so a later baseline build cannot compile its previous generated properties twice. -->
+        <Compile Remove="obj\**;bin\**" />
+        <!-- Whole actual VM and lifecycle, with the Shell's pinned real property/command generator.
+             No Core/Shell assembly reference: the sign-in endpoint is only an in-memory receipt. -->
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+        <Compile Include="$(SignInSourcePath)" Link="Production\SignInViewModel.cs" />
+        <Compile Include="$(SignInPageSourcePath)" Link="Production\PageViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Core\Infrastructure\LoadGeneration.cs" Link="Production\LoadGeneration.cs" />
+        <!-- Pure input/address functions only. No login, headers, HTTP, vault or persistence source. -->
+        <Compile Include="..\..\src\Momoka.Core\Emby\EmbySignInIdentity.cs" Link="Production\EmbySignInIdentity.cs" />
+        <Compile Include="..\..\src\Momoka.Core\Emby\EmbyServerAddress.cs" Link="Production\EmbyServerAddress.cs" />
+        <Compile Include="..\..\src\Momoka.Core\FnNas\FnNasEndpoint.cs" Link="Production\FnNasEndpoint.cs" />
+        <Compile Include="..\..\src\Momoka.Core\Plex\PlexEndpoint.cs" Link="Production\PlexEndpoint.cs" />
+        <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+        <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\SignInPage.xaml" LogicalName="Production.SignInPage.xaml" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\SignInPage.xaml.cs" LogicalName="Production.SignInPage.xaml.cs" />
+    </ItemGroup>
+</Project>
