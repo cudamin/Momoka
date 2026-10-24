@@ -1,3 +1,11 @@
+## 第七组最终收束：剩余四个P1已本地修复，72/73号实现或覆盖（2026-10-24）
+
+- R001主9c6ed2e、R003/R005/R031整合e3ba8df，R003初public空ID和R031最终收据追加闭环，95d2eab只修匿名对象空白、aa64104只同步R003已审查会话source pin。累计**71号本地实现＋1既有覆盖＝72/73号**，剩余**R043仅显示建议未实施**。以前四号“停止/不重试”不是永久禁修指令，后续澄清已正常实施；旧69审查原件SHA不改，已撤回代理参数偏好不再作为接续要求。
+- **最终验证产品/测试/source-pin HEAD=aa64104032b50d9f5d42bf9c4d900b21752e16cc**：format后fresh **35项目Release方案0警告0错误/exit0**；**Core2838过/0失败/0跳过**；47既有＋4新fixture共**51离线入口全exit0/失败0/跳过0**，有覆盖重叠不相加。R00137、R00386、R00543、R03143；R01796/R04231/R065启动61/共享34亦在该最终输出重验。1096个source/所有DLL/51日志和69历史SHA逐份重核，证据 `artifacts/staged-repair/batch07/final-current-aa64104/summary.json`／results/plan/final-evidence-audit。
+- Release/x64 solution whitespace1795文件0改/exit0，35项目加载无实际诊断；45PS＋1ignored driver编码/LF/语法过，format后actual4份g.cs非空/来源与SHA可查，Settings IsOn TwoWay/通知、日期真实TextBox接线及AniBT生成11过（非真实UI）。R04619源仅更新1份R003合法hash，其余18不变；8负例仍预期exit1，再current caller50过，不放宽来源/成员/namespace/await/hash/外树守卫。
+- 原红/工具错不清理：R001初37项20红；R003来源70的21红及主86的4红；R00543的15红/旧fixture-host错；R03141的31红、observer42的1红、半请求EOF编排错、初Copy-Item mtime增量旧DLL；solution空白exit2、首次final95d2eab旧pin拒构建/exit1且未跑旧输出、日期checker误找DatePicker（actual TextBox）、PROGRESS6个继承旧EmbyNian坏链接均单列保留，不洗绿不夸全历史链接通过。
+- **尚非完整交付：** 根libmpv仍缺，历史真实runtime/native闸门exit1红未改；无真实TLS/proxy/Emby/Jellyfin/Plex/MoviePilot登录、Plex JSON请求服务接受/2FA/PIN/legacy、生产DPAPI、Registry ACL/WinUI输入像素/native/uosc/媒体播放或发布/push/shortcut刷新。**快捷方式仍旧版**；同源跳转也拒绝的兼容取舍见专项。全部workers/reviewer交回关闭、独立树干净保留可恢复，无自动暂停/唤醒或在途任务。压缩后全文重读 `C:/Users/89400/Momoka/CLAUDE.md`，核本树最终doc-only HEAD与batch07/checkpoint-final；下一步按用户范围，不自行改R043或真实账号/发布。
+
 ## 第七组最终方案旧pin闭环（2026-10-24）
 
 - 首95d2eab方案已fresh Core/Shell/其它项目，唯R046caller19源pin的EmbySession旧SHA拒绝构建/exit1，未跑旧51入口；原失败保留。逐一核R003仅改restore身份及空public ID，不改caller Capture/Execute、Start/Next/NowPlaying/Leave或其它18源；只同步一SHA、保守卫/元数据，不整份accept快照。
