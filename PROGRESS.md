@@ -1,3 +1,8 @@
+## 第六组候选复核：R-017 防误写／R-042 与 R-065 在途（2026-10-24，用户明确继续）
+
+- 已全文重载C:/Users/89400/Momoka/CLAUDE.md并核主树cfde3c7干净，恢复的是新候选复核，不重跑第五组。主线程R017支持契约实际Read/ApplyTo/匿名client同夹具88项46过42败→仅日历日比较一行修后原88全绿、Gibbs无可行动P1/P2，补8个宽松偏移输入后96全绿、六caller源码合同/UTF8LF/新链接过；同日保偏移时刻、真改旧UTC日/清日期/坏输入/未知字段均保原契约，不新增时区体验。部署偏移前件仍未观测、历史报告/records只读。[增量](docs/代码审查-分阶段修复-2026-10-23.md)与[专项](tests/Momoka.Tests/README.MetadataDate.md)，证据artifacts/staged-repair/batch06/r017保留原红。
+- 默认Locke只写r065-startup-state-contract独立树、Hypatia只写r042-identify-source-contract独立树，各负责current支持契约/匿名边界测试后候选裁定；Gibbs主树只读R017复核。所有代理/树ID在batch06/resume.json，不刻意max。R043显示建议不擅改、受限R001003005031停止链不重试；无真实注册表/配置/凭据/服务器/UI/native/媒体/播放/publish/push/快捷方式。补8前完整Core2637全过/0失败/0跳过/退出0，Shell/Tests Release零警告错误、实际日期框g.cs完整/同Corehash；完整方案待其余候选整合后统一重验，不冒用第五组绿。**真实libmpv缺、快捷方式旧版，尚非完整交付。**
+
 ## 第五组本批收束：R-010／R-008／R-011／R-067（2026-10-24，按用户要求暂停）
 
 - 本批前三提交R010=e229a2d、R008=5fa9c96、R011=9c42989；R067最终来源0520c27限定14工具/批准数据合入，八保留全部独立闭环无P1/P2，主树最终runtimepack25/package7/layout23/boundary50/payload147/shader23全绿/0失败/0跳过/退出0；当前42依赖来源只读核验及44PS过。原native56路径/Bootstrap历史optional不改，新runtimepack独立repo pin固定SDK/TFM/RID/包内容/归档/两exact资产，不信待验cache/deps自动授信。最终证据batch05/r067/final-0520c27与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。

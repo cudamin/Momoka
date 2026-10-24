@@ -248,16 +248,17 @@ public sealed record ItemMetadataEdit
         Set(item, key, value is null ? null : JsonValue.Create(value.Value));
 
     /// <summary>
-    /// Writes a date only when the day itself moved. The server sends a full timestamp and the form only
-    /// shows the date, so rewriting it on every save would throw away a time somebody may have set on
-    /// purpose and would make an untouched form look edited.
+    /// Writes a date only when the calendar day displayed by <see cref="Date"/> moved. Comparing UTC
+    /// days instead would rewrite an untouched offset timestamp that crosses midnight, and could ignore
+    /// an actual edit to that timestamp's former UTC day. Preserve the original time and offset for the
+    /// same displayed day; a changed date keeps the existing UTC serialization policy below.
     /// </summary>
     private static bool SetDate(JsonObject item, string key, DateTimeOffset? value)
     {
         if (value is null) return Set(item, key, null);
 
         var existing = Parse(item[key]);
-        if (existing?.UtcDateTime.Date == value.Value.UtcDateTime.Date) return false;
+        if (existing?.Date == value.Value.Date) return false;
 
         var text = value.Value.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ", CultureInfo.InvariantCulture);
         return Set(item, key, JsonValue.Create(text));
