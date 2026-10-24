@@ -276,8 +276,8 @@ internal static class AniBtReceiptStateTests
         Test("R038 实际 Submit：canContinue 在扫描前拒绝，不向旧媒体库请求扫描", () =>
         {
             using var fixture = new ReceiptFixture(new FileCase());
-            var checks = 0;
-            var row = fixture.Submit(canContinue: () => ++checks < 3).Single();
+            // R037/R039 增加了只读守卫，不能再凭第三次 callback 猜已经写完；以实际write端点为界。
+            var row = fixture.Submit(canContinue: () => fixture.Writes.Count == 0).Single();
             Assert.True(row.Success);
             Assert.Contains("已完成整理", row.Message);
             Assert.Contains("媒体库身份已改变", row.Message);
@@ -289,10 +289,9 @@ internal static class AniBtReceiptStateTests
         {
             using var fixture = new ReceiptFixture(new FileCase());
             using var cancellation = new CancellationTokenSource();
-            var checks = 0;
             var row = fixture.Submit(cancellation.Token, () =>
             {
-                if (++checks == 3) cancellation.Cancel();
+                if (fixture.Writes.Count > 0) cancellation.Cancel();
                 return true;
             }).Single();
             Assert.True(row.Success);
@@ -305,8 +304,8 @@ internal static class AniBtReceiptStateTests
         Test("R038 实际 Submit：canContinue 在只读校验中拒绝，整批零写入", () =>
         {
             using var fixture = new ReceiptFixture(new FileCase(), new FileCase());
-            var checks = 0;
-            Assert.Throws<OperationCanceledException>(() => fixture.Submit(canContinue: () => ++checks < 2));
+            Assert.Throws<OperationCanceledException>(() => fixture.Submit(canContinue: () =>
+                fixture.Transport.SentTo("transfer/manual?").Count == 0));
             fixture.AssertTraffic(0, 0, 1);
         });
 
@@ -331,22 +330,19 @@ internal static class AniBtReceiptStateTests
         {
             using var fixture = new ReceiptFixture(new FileCase());
             using var cancellation = new CancellationTokenSource();
-            var checks = 0;
-            var row = fixture.Submit(cancellation.Token, () =>
+            // 只读准备完成时取消现在明确拒绝整批，而不是伪造某行write结果。
+            Assert.Throws<OperationCanceledException>(() => fixture.Submit(cancellation.Token, () =>
             {
-                if (++checks == 2) cancellation.Cancel();
+                if (fixture.Transport.SentTo("transfer/manual?").Count > 0) cancellation.Cancel();
                 return true;
-            }).Single();
-            Assert.False(row.Success);
-            Assert.Contains("取消", row.Message);
+            }));
             fixture.AssertTraffic(0, 0, 1);
         });
 
         Test("R038 实际 Submit：首文件已完成后身份改变，后续未发且不扫描旧媒体库", () =>
         {
             using var fixture = new ReceiptFixture(new FileCase(), new FileCase(), new FileCase());
-            var checks = 0;
-            var rows = fixture.Submit(canContinue: () => ++checks < 5);
+            var rows = fixture.Submit(canContinue: () => fixture.Writes.Count == 0);
             Assert.True(rows[0].Success);
             Assert.Contains("已完成整理", rows[0].Message);
             Assert.False(rows[1].Success);
@@ -445,8 +441,12 @@ internal static class AniBtReceiptStateTests
             Submit(Plan, cancellationToken, canContinue);
 
         private IReadOnlyList<AniBtScrapeResult> Submit(AniBtScrapePlan plan, CancellationToken cancellationToken = default,
-            Func<bool>? canContinue = null) => TransferSubmissionFixture.Complete(_service.SubmitAsync(_emby, plan,
+            Func<bool>? canContinue = null)
+        {
+            var prepared = TransferSubmissionFixture.Complete(_service.PrepareForConfirmationAsync(_emby, plan,
                 Enumerable.Repeat(Anime, _cases.Length).ToArray(), cancellationToken, canContinue));
+            return TransferSubmissionFixture.Complete(_service.SubmitAsync(_emby, prepared, cancellationToken, canContinue));
+        }
 
         public static string OldTarget(int index) => $"/library/old/anonymous-{index + 1}.mkv";
         public static string NewTarget(int index) => $"/library/new/anonymous-{index + 1}.mkv";

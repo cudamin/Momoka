@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 
@@ -31,12 +33,73 @@ public sealed class AniBtScrapePlan
     internal int? Season { get; }
     internal string Episode { get; }
 
+    internal void EnsureNotSubmitted()
+    {
+        if (Volatile.Read(ref _submitting) != 0)
+            throw new MoviePilotOperationBlockedException("这批识别结果已经提交，请先在 MoviePilot 核对结果");
+    }
+
     internal void Claim()
     {
         if (Interlocked.CompareExchange(ref _submitting, 1, 0) != 0)
             throw new MoviePilotOperationBlockedException("这批识别结果已经提交，请先在 MoviePilot 核对结果");
     }
 }
+
+/// <summary>只公开可核验文案，不把 MoviePilot 写入请求或可变 Emby 候选交给 UI。</summary>
+public sealed record AniBtScrapeConfirmationRow(string TargetPath, string Heading, string Details);
+
+/// <summary>
+/// 一次只读准备得到的确认凭证。提交复用其内部封存预览/候选；取消、改选和消费后不可恢复。
+/// 原批次 Claim 与 MoviePilot 的实际发送账本仍是防重边界，重新预览不能解除它们。
+/// </summary>
+public sealed class AniBtPreparedScrapePlan
+{
+    private int _state;
+    private readonly IReadOnlyList<AniBtAnime> _choices;
+
+    internal AniBtPreparedScrapePlan(AniBtService owner, AniBtScrapePlan plan, EmbyConnection connection,
+        IReadOnlyList<AniBtAnime> choices, IReadOnlyList<AniBtPreparedTransfer> transfers,
+        IReadOnlyList<int> identifyRows, AniBtPreparedIdentify? identify, IReadOnlyList<AniBtScrapeConfirmationRow> rows)
+    {
+        Owner = owner;
+        Plan = plan;
+        Connection = connection;
+        _choices = Array.AsReadOnly(choices.ToArray());
+        Transfers = Array.AsReadOnly(transfers.ToArray());
+        IdentifyRows = Array.AsReadOnly(identifyRows.ToArray());
+        Identify = identify;
+        Rows = Array.AsReadOnly(rows.ToArray());
+    }
+
+    public IReadOnlyList<AniBtScrapeConfirmationRow> Rows { get; }
+    public bool CanSubmit => Volatile.Read(ref _state) == 0;
+    public bool MatchesChoices(IReadOnlyList<AniBtAnime> choices) => _choices.SequenceEqual(choices);
+    public void Invalidate() => Interlocked.CompareExchange(ref _state, -1, 0);
+    internal AniBtService Owner { get; }
+    internal AniBtScrapePlan Plan { get; }
+    internal EmbyConnection Connection { get; }
+    internal IReadOnlyList<AniBtPreparedTransfer> Transfers { get; }
+    internal IReadOnlyList<int> IdentifyRows { get; }
+    internal AniBtPreparedIdentify? Identify { get; }
+
+    internal void CheckConnection(EmbyClient emby)
+    {
+        if (!Connection.IsSameIdentityAs(emby.Connection))
+            throw new MoviePilotOperationBlockedException("Emby 连接身份已改变，请重新识别并预览");
+    }
+
+    internal void Claim()
+    {
+        if (Interlocked.CompareExchange(ref _state, 1, 0) != 0)
+            throw new MoviePilotOperationBlockedException("此识别计划已取消、失效或提交，请重新预览；已发送的文件须先核对");
+        Plan.Claim();
+    }
+}
+
+internal sealed record AniBtPreparedTransfer(int Index, MoviePilotTransferPreview Preview);
+internal sealed record AniBtPreparedIdentify(string TargetId, string TargetType, string TargetName,
+    int? TargetYear, JsonElement Candidate);
 
 /// <summary>
 /// AniBT 只负责识别。确认后用 MoviePilot 原整理记录做一次真正的重新整理（改名、移动并刮削）；没有原记录的
@@ -99,23 +162,26 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         return MoviePilotTransfer.PathName(string.IsNullOrWhiteSpace(sourcePath) ? targetPath : sourcePath);
     }
 
-    public async Task<IReadOnlyList<AniBtScrapeResult>> SubmitAsync(EmbyClient emby, AniBtScrapePlan plan,
+    /// <summary>整批只读准备，返回必须展示并显式确认的实际计划；这里绝不 Claim 或写入。</summary>
+    public async Task<AniBtPreparedScrapePlan> PrepareForConfirmationAsync(EmbyClient emby, AniBtScrapePlan plan,
         IReadOnlyList<AniBtAnime> choices, CancellationToken cancellationToken, Func<bool>? canContinue = null)
     {
         moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
+        plan.EnsureNotSubmitted();
         if (choices.Count != plan.Rows.Count || choices.Count == 0)
-            throw new MoviePilotOperationBlockedException("请为每个文件选择识别结果后再重新整理");
+            throw new MoviePilotOperationBlockedException("请为每个文件选择识别结果后再预览");
         var selected = choices.ToArray();
-        var transfers = new List<(int Index, MoviePilotAniBtTransfer Transfer, MoviePilotTransferPreview Preview)>();
+        var connection = emby.Connection;
+        var transfers = new List<AniBtPreparedTransfer>();
         var identify = new List<(int Index, AniBtAnime Choice)>();
-        // 整批只读检查（含 MoviePilot 预览和 Emby 识别候选）全部完成后才有任何写入。
+        var rows = new AniBtScrapeConfirmationRow[plan.Rows.Count];
+        // 所有 MoviePilot 预览和最终 Emby 候选全部准备好，才把同一份凭证交回用户。
         for (var index = 0; index < plan.Rows.Count; index++)
         {
-            if (canContinue?.Invoke() == false) throw new OperationCanceledException("任务所属的媒体库身份已改变");
+            CheckContinuation(canContinue, cancellationToken);
             var row = plan.Rows[index];
             var choice = selected[index];
-            if (choice.BgmId <= 0 || !row.Match.Candidates.Any(candidate =>
-                    candidate.AnimeId == choice.AnimeId && candidate.BgmId == choice.BgmId))
+            if (choice.BgmId <= 0 || !row.Match.Candidates.Contains(choice))
                 throw new MoviePilotOperationBlockedException("所选媒体不属于此文件的 AniBT 候选结果，请重新识别");
             if (row.History is not { } history)
             {
@@ -125,16 +191,22 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
             var transfer = await moviePilot.PrepareAniBtTransferAsync(row.TargetPath, choice, plan.Type, history,
                 plan.Season, plan.Episode, plan.Connection, cancellationToken).ConfigureAwait(false);
             moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
+            CheckContinuation(canContinue, cancellationToken);
             var preview = await moviePilot.TransferPreviewAsync(transfer.Request, [transfer.File], cancellationToken)
                 .ConfigureAwait(false);
             moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
+            CheckContinuation(canContinue, cancellationToken);
             if (!preview.CanSubmit)
                 throw new MoviePilotOperationBlockedException(preview.Result.Message.Length > 0
                     ? preview.Result.Message
                     : "MoviePilot 预览没有通过，本次没有重新整理任何文件");
-            transfers.Add((index, transfer, preview));
+            transfers.Add(new(index, preview));
+            rows[index] = new(row.TargetPath, $"MoviePilot 重新整理 · {ChoiceName(choice)}",
+                $"整理方式（TransferType）：{(preview.Request.TransferType.Length > 0 ? preview.Request.TransferType : "按目录配置")}\n" +
+                MoviePilotTransfer.Confirmation(preview.Request, preview.Result, background: false) +
+                $"\n旧历史：#{history.Id}；将按原记录清理命中的成功历史及旧目标，无法在本客户端撤销。");
         }
-        if (transfers.Select(item => item.Transfer.Request.Histories[0].Id).Distinct().Count() != transfers.Count)
+        if (transfers.Select(item => item.Preview.Request.Histories[0].Id).Distinct().Count() != transfers.Count)
             throw new MoviePilotOperationBlockedException("多个文件对应同一条原整理记录，已停止，避免重复提交");
         if (identify.Select(item => (item.Choice.AnimeId, item.Choice.BgmId)).Distinct().Count() > 1)
             throw new MoviePilotOperationBlockedException("同一 Emby 条目的多个文件识别成了不同番剧，Emby 识别只能落一部；请分开操作");
@@ -142,11 +214,54 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
             ? await PrepareEmbyIdentifyAsync(emby, plan.Item, identify[0].Choice, cancellationToken).ConfigureAwait(false)
             : null;
         moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
-        plan.Claim();
+        CheckContinuation(canContinue, cancellationToken);
+        if (identifyPlan is not null)
+        {
+            var candidate = identifyPlan.Candidate.Deserialize<RemoteSearchResult>()!;
+            var type = identifyPlan.TargetType == EmbyItemType.Movie ? "电影" : "整部剧（包括所有季与集，不仅当前文件）";
+            var details = $"实际 Emby 目标：{identifyPlan.TargetName}{YearText(identifyPlan.TargetYear)}\n" +
+                $"目标 ID：{identifyPlan.TargetId}\n影响范围：{type}\n" +
+                $"最终识别候选：{candidate.Name}{YearText(candidate.ProductionYear)}\n" +
+                $"刮削源：{candidate.SearchProviderName ?? "服务器未返回"}\n" +
+                "识别将覆盖该目标的元数据与图片，并请求刷新全部元数据及图片；不移动媒体文件。";
+            foreach (var (index, _) in identify)
+                rows[index] = new(plan.Rows[index].TargetPath, "Emby 识别 · " + ChoiceName(identify[0].Choice), details);
+        }
+        return new(this, plan, connection, selected, transfers, identify.Select(item => item.Index).ToArray(), identifyPlan, rows);
+    }
+
+    /// <summary>只消费已展示并确认的凭证，不重新搜索/预览，不接受任意新请求或新目标。</summary>
+    public async Task<IReadOnlyList<AniBtScrapeResult>> SubmitAsync(EmbyClient emby, AniBtPreparedScrapePlan prepared,
+        CancellationToken cancellationToken, Func<bool>? canContinue = null)
+    {
+        var plan = prepared.Plan;
+        try
+        {
+            if (!ReferenceEquals(prepared.Owner, this))
+                throw new MoviePilotOperationBlockedException("此识别计划不属于当前服务，请重新预览");
+            moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
+            CheckContinuation(canContinue, cancellationToken);
+            prepared.CheckConnection(emby);
+            if (!prepared.CanSubmit)
+                throw new MoviePilotOperationBlockedException("此识别计划已取消、失效或提交，请先核对结果");
+            // 原服务仍在每个实际发送前重核历史/依赖；这里先核完整批次，避免后项已知读失败时先写前项。
+            await RecheckPreparedHistoriesAsync(prepared, canContinue, cancellationToken).ConfigureAwait(false);
+            moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
+            CheckContinuation(canContinue, cancellationToken);
+            prepared.CheckConnection(emby);
+            prepared.Claim();
+        }
+        catch
+        {
+            prepared.Invalidate();
+            throw;
+        }
+        var transfers = prepared.Transfers;
+        var identifyPlan = prepared.Identify;
         var outcomes = new AniBtScrapeResult[plan.Rows.Count];
         var scanAffected = new List<int>();
         var stopped = false;
-        foreach (var (index, transfer, preview) in transfers)
+        foreach (var (index, preview) in transfers)
         {
             var row = plan.Rows[index];
             if (stopped)
@@ -156,7 +271,9 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
             }
             try
             {
-                if (canContinue?.Invoke() == false) throw new OperationCanceledException("任务所属的媒体库身份已改变");
+                CheckContinuation(canContinue, cancellationToken);
+                moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
+                prepared.CheckConnection(emby);
                 var result = await moviePilot.TransferSubmitAsync(preview, background: false, cancellationToken)
                     .ConfigureAwait(false);
                 // Success 保留「请求已处理」的原契约；accepted/skipped 不等于文件完成，也不能因此停发后续项。
@@ -184,13 +301,16 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
             {
                 try
                 {
-                    message = await ApplyEmbyIdentifyAsync(emby, identifyPlan, cancellationToken).ConfigureAwait(false);
+                    moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
+                    prepared.CheckConnection(emby);
+                    CheckContinuation(canContinue, cancellationToken);
+                    message = await ApplyEmbyIdentifyAsync(emby, identifyPlan, cancellationToken, canContinue).ConfigureAwait(false);
                     success = true;
                 }
                 catch (OperationCanceledException) { message = "操作已取消，Emby 识别结果未确认"; }
                 catch (Exception error) { message = error.Message; }
             }
-            foreach (var (index, _) in identify)
+            foreach (var index in prepared.IdentifyRows)
                 outcomes[index] = new(plan.Rows[index].TargetPath, success, message);
         }
         if (scanAffected.Count > 0)
@@ -201,6 +321,43 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         }
         return [.. outcomes];
     }
+
+    private async Task RecheckPreparedHistoriesAsync(AniBtPreparedScrapePlan prepared, Func<bool>? canContinue,
+        CancellationToken cancellationToken)
+    {
+        var histories = prepared.Transfers.SelectMany(item => item.Preview.Request.Histories).ToArray();
+        foreach (var group in histories.GroupBy(history => history.Title))
+        {
+            CheckContinuation(canContinue, cancellationToken);
+            var current = await moviePilot.FindTransferHistoriesAsync(group.Key, cancellationToken).ConfigureAwait(false);
+            moviePilot.CheckAniBtConnection(prepared.Plan.Connection, cancellationToken);
+            foreach (var history in group)
+            {
+                var fresh = current.FirstOrDefault(item => item.Id == history.Id);
+                if (fresh is null || history.Snapshot.ValueKind != JsonValueKind.Object ||
+                    !JsonElement.DeepEquals(fresh.Snapshot, history.Snapshot))
+                    throw new MoviePilotTransferBlockedException("原整理记录已经改变，请重新查找记录和预览；本批次没有提交");
+                MoviePilotTransfer.RequireFile(fresh.TransferFile, history.TransferPath);
+            }
+        }
+        foreach (var path in histories.Select(history => history.TargetPath).Where(path => path.Length > 0).Distinct(StringComparer.Ordinal))
+        {
+            CheckContinuation(canContinue, cancellationToken);
+            var current = await moviePilot.FindTransferHistoriesAsync(path, cancellationToken).ConfigureAwait(false);
+            moviePilot.CheckAniBtConnection(prepared.Plan.Connection, cancellationToken);
+            if (MoviePilotTransferHistoryMatch.Dependents(histories, current).Count > 0)
+                throw new MoviePilotTransferBlockedException("旧目标还被软链接记录引用，请先在 MoviePilot 处理；本批次没有提交");
+        }
+    }
+
+    private static void CheckContinuation(Func<bool>? canContinue, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (canContinue?.Invoke() == false) throw new OperationCanceledException("任务所属的媒体库身份或选择已改变");
+    }
+
+    private static string ChoiceName(AniBtAnime choice) => choice.Title + YearText(choice.Year);
+    private static string YearText(int? year) => year is { } value ? $"（{value}）" : "（年份未返回）";
 
     /// <summary>
     /// 只在唯一的 completed 回执及实际请求共同证明旧媒体路径变动时扫描，不用整批 Success 猜移动。
@@ -283,10 +440,13 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         return "";
     }
 
-    private static async Task<AniBtIdentifyPlan> PrepareEmbyIdentifyAsync(EmbyClient emby, EmbyItem item,
+    private static async Task<AniBtPreparedIdentify> PrepareEmbyIdentifyAsync(EmbyClient emby, EmbyItem item,
         AniBtAnime choice, CancellationToken cancellationToken)
     {
         var target = await IdentifyTargetAsync(emby, item, cancellationToken).ConfigureAwait(false);
+        var actual = await emby.GetItemAsync(target.Id, cancellationToken, "Type,ProductionYear").ConfigureAwait(false);
+        if (actual.Id != target.Id || actual.Type != target.Type || string.IsNullOrWhiteSpace(actual.Name))
+            throw new MoviePilotOperationBlockedException("无法核验实际 Emby 识别目标，请关闭后使用普通识别");
         var titles = new[] { choice.Title, choice.OriginalTitle }
             .Where(title => !string.IsNullOrWhiteSpace(title)).Distinct(StringComparer.Ordinal).ToArray();
         var found = new List<RemoteSearchResult>();
@@ -295,14 +455,15 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         {
             cancellationToken.ThrowIfCancellationRequested();
             var results = await emby.SearchRemoteAsync(target.Type, ItemIdentify.SearchQuery(
-                new EmbyItem { Id = target.Id, Type = target.Type }, title, null, []), cancellationToken)
+                new EmbyItem { Id = target.Id, Type = target.Type }, title, choice.Year?.ToString(CultureInfo.InvariantCulture), []), cancellationToken)
                 .ConfigureAwait(false);
             foreach (var result in results)
                 if (seen.Add(IdentifyKey(result))) found.Add(result);
         }
         var candidate = PickIdentifyResult(found, titles, choice.Year) ?? throw new MoviePilotOperationBlockedException(
-            $"MoviePilot 没有这个文件的原整理记录，Emby 也没有找到与「{choice.Title}」匹配的条目");
-        return new(target.Id, candidate);
+            $"MoviePilot 没有这个文件的原整理记录，Emby 没有可靠匹配「{choice.Title}」的候选；本次没有写入，请关闭后使用普通识别手动核对");
+        // RemoteSearch DTO 可变，封存全字段（含扩展字段）；UI 只取得上面的字符串投影。
+        return new(actual.Id, actual.Type, actual.Name, actual.ProductionYear, JsonSerializer.SerializeToElement(candidate));
     }
 
     private static async Task<(string Id, string Type)> IdentifyTargetAsync(EmbyClient emby, EmbyItem item,
@@ -324,15 +485,18 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         return (seriesId, EmbyItemType.Series);
     }
 
-    private static async Task<string> ApplyEmbyIdentifyAsync(EmbyClient emby, AniBtIdentifyPlan plan,
-        CancellationToken cancellationToken)
+    private static async Task<string> ApplyEmbyIdentifyAsync(EmbyClient emby, AniBtPreparedIdentify plan,
+        CancellationToken cancellationToken, Func<bool>? canContinue)
     {
-        await emby.ApplyRemoteSearchResultAsync(plan.TargetId, plan.Candidate, replaceAllImages: true, cancellationToken)
+        var candidate = plan.Candidate.Deserialize<RemoteSearchResult>()!;
+        CheckContinuation(canContinue, cancellationToken);
+        await emby.ApplyRemoteSearchResultAsync(plan.TargetId, candidate, replaceAllImages: true, cancellationToken)
             .ConfigureAwait(false);
+        CheckContinuation(canContinue, cancellationToken);
         await emby.RefreshItemAsync(plan.TargetId, "all", replaceImages: true, replaceThumbnails: false,
             cancellationToken).ConfigureAwait(false);
-        var name = plan.Candidate.Name ?? "";
-        var year = plan.Candidate.ProductionYear is { } value ? $"（{value}）" : "";
+        var name = candidate.Name ?? "";
+        var year = candidate.ProductionYear is { } value ? $"（{value}）" : "";
         return $"MoviePilot 没有原整理记录，已用 Emby 识别为「{name}」{year}并刷新元数据";
     }
 
@@ -346,25 +510,22 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         if (results.Count == 0) return null;
         var wanted = titles.Select(NormalizeTitle).Where(title => title.Length > 0).ToHashSet(StringComparer.Ordinal);
         var exact = results.Where(result => wanted.Contains(NormalizeTitle(result.Name ?? ""))).ToList();
-        if (exact.Count > 0) return ByYear(exact, year);
-        var partial = results.Where(result =>
-        {
-            var name = NormalizeTitle(result.Name ?? "");
-            return name.Length > 0 && wanted.Any(title => title.Contains(name, StringComparison.Ordinal) ||
-                name.Contains(title, StringComparison.Ordinal));
-        }).ToList();
-        return partial.Count > 0 ? ByYear(partial, year) : results[0];
+        // 包含关系可能是续作、同名前缀或完全不同作品；只允许规范化后的精确中文/原文标题。
+        return ByYear(exact, year);
     }
 
-    private static RemoteSearchResult ByYear(IReadOnlyList<RemoteSearchResult> results, int? year) =>
-        year is { } value
-            ? results.FirstOrDefault(result => result.ProductionYear is not { } found || Math.Abs(found - value) <= 1) ?? results[0]
-            : results[0];
+    private static RemoteSearchResult? ByYear(IReadOnlyList<RemoteSearchResult> results, int? year)
+    {
+        if (year is not { } value) return results.FirstOrDefault();
+        // 延续原来的 ±1 年容差（首播/当地发行年份差异）和精确标题但未知年份的候选；先选同年。
+        return results.FirstOrDefault(result => result.ProductionYear == value)
+            ?? results.FirstOrDefault(result => result.ProductionYear is { } found && Math.Abs((long)found - value) <= 1)
+            ?? results.FirstOrDefault(result => result.ProductionYear is null);
+    }
 
     internal static string NormalizeTitle(string value) => string.Concat(value
         .Normalize(NormalizationForm.FormKC)
         .Where(char.IsLetterOrDigit)
         .Select(char.ToLowerInvariant));
 
-    private sealed record AniBtIdentifyPlan(string TargetId, RemoteSearchResult Candidate);
 }

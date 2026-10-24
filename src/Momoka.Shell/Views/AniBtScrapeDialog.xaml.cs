@@ -10,6 +10,7 @@ public sealed partial class AniBtScrapeDialog : ContentDialog
 {
     public AniBtScrapeViewModel ViewModel { get; } = new();
     private bool _submitting;
+    private bool _operating;
 
     internal AniBtScrapeDialog(AniBtService service, EmbySessionScope scope, EmbyItem item)
     {
@@ -24,9 +25,17 @@ public sealed partial class AniBtScrapeDialog : ContentDialog
     private async void OnSubmit(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {
         args.Cancel = true;
-        if (!ViewModel.CanSubmit || _submitting) return;
-        _submitting = true;
-        try { await ViewModel.SubmitAsync(); }
-        finally { _submitting = false; }
+        if (_operating) return;
+        if (!ViewModel.CanAct) { ViewModel.RefreshActions(); return; }
+        _operating = true;
+        _submitting = ViewModel.CanSubmit;
+        try
+        {
+            if (_submitting) await ViewModel.SubmitAsync();
+            else await ViewModel.PreviewAsync();
+        }
+        finally { _submitting = false; _operating = false; }
     }
+
+    private void OnCancelPreview(object sender, RoutedEventArgs args) => ViewModel.CancelPreview();
 }

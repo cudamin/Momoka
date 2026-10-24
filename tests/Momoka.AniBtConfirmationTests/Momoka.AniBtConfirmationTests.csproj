@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.AniBtConfirmationTests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+        <AniBtSourceRoot Condition="'$(AniBtSourceRoot)' == ''">$(MSBuildProjectDirectory)\..\..</AniBtSourceRoot>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)\obj\generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Remove="Legacy\**" />
+        <!-- Compile actual Core, not a copied planning or submission state machine. No full Core suite. -->
+        <Compile Include="..\..\src\Momoka.Core\**\*.cs"
+                 Exclude="..\..\src\Momoka.Core\bin\**;..\..\src\Momoka.Core\obj\**;..\..\src\Momoka.Core\AniBt\AniBtService.cs"
+                 Link="Production\Core\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="$(AniBtSourceRoot)\src\Momoka.Core\AniBt\AniBtService.cs" Link="Production\AniBtService.cs" />
+        <Compile Include="$(AniBtSourceRoot)\src\Momoka.Shell\ViewModels\AniBtScrapeViewModel.cs" Link="Production\AniBtScrapeViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+        <Compile Include="$(AniBtSourceRoot)\src\Momoka.Shell\Views\AniBtScrapeDialog.xaml.cs" Link="Production\AniBtScrapeDialog.xaml.cs" />
+        <EmbeddedResource Include="$(AniBtSourceRoot)\src\Momoka.Shell\Views\AniBtScrapeDialog.xaml" LogicalName="Production.AniBtScrapeDialog.xaml" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+        <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+        <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
+    </ItemGroup>
+</Project>

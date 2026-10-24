@@ -4,8 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:Momoka.Shell.ViewModels"
     xmlns:anibt="using:Momoka.AniBt"
-    PrimaryButtonText="重新整理" CloseButtonText="关闭"
-    IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}"
+    PrimaryButtonText="{x:Bind ViewModel.PrimaryButtonText, Mode=OneWay}" CloseButtonText="关闭"
+    IsPrimaryButtonEnabled="{x:Bind ViewModel.CanAct, Mode=OneWay}"
     PrimaryButtonClick="OnSubmit">
     <Grid RowSpacing="12" MinWidth="260" MaxWidth="760">
         <Grid.RowDefinitions>
@@ -14,7 +14,7 @@
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <TextBlock Text="按源文件名识别每个视频。确认后优先用 MoviePilot 原整理记录重新整理并刮削；MoviePilot 没有整理记录的文件改用 Emby 识别。重新整理会按目的目录配置移动或改名文件，并清理命中的旧记录与旧目标。" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+        <TextBlock Text="先选择 AniBT 结果，再点击“预览计划”。请核对每个文件的实际 MoviePilot 预览或最终 Emby 识别目标；只有再次点击“确认执行”才会写入。取消或更改选择会使原计划失效。" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
         <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
         <ListView x:Name="ScrapeFiles" Grid.Row="2" MaxHeight="470" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None">
             <ListView.ItemTemplate>
@@ -35,13 +35,21 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
+                        <StackPanel x:Name="PreparedPlan" Spacing="4" Visibility="{x:Bind PreviewVisibility, Mode=OneWay}">
+                            <TextBlock x:Name="PreviewHeadingText" Text="{x:Bind PreviewHeading, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" />
+                            <TextBlock x:Name="PreviewDetailsText" Text="{x:Bind PreviewDetails, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                        </StackPanel>
                         <TextBlock Text="{x:Bind Result, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
                     </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <InfoBar x:Name="ScrapeNotice" Grid.Row="3" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}"
-            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
-            Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" IsClosable="False" />
+        <StackPanel Grid.Row="3" Spacing="8">
+            <Button x:Name="CancelPreview" Content="取消预览，返回选择" HorizontalAlignment="Left" Click="OnCancelPreview"
+                Visibility="{x:Bind ViewModel.CancelPreviewVisibility, Mode=OneWay}" />
+            <InfoBar x:Name="ScrapeNotice" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}"
+                Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
+                Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" IsClosable="False" />
+        </StackPanel>
     </Grid>
 </ContentDialog>

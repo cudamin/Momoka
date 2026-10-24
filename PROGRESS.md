@@ -1,3 +1,8 @@
+## 第五组 R-037／R-039 主树真实计划显式确认（2026-10-24，继续）
+
+- 源18c86056限定4产品／3相关测试／正式source-link项目合入，实际sealed计划先显示再独立确认写；无history只精确规范化title/year（保±1/未知year）不无关首条，history展示真实Source/Target/方式/旧清理，取消改选失效不重preview换目标、不解除未知写防重。主树53/Legacy87/Core2549全绿不相加；当前29csproj方案Core/x64ShellRelease零警告错误，solution空白1fixture10初始化定点修后0修改/退出0无加载诊断，29PS/定位零缺句柄/UTF8LF链接hash过。format清空g.cs首生成红保留，串行freshShell后实际bindings11＋6拒绝全绿不读backup。4产品same来源、R038helpers逐字不改，独立静态无保留；具体代价/证据batch05/r037-r039见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计60稳定号／余13。R067初feba564三项保留退回Ampere原独立树补修，主线程继续不自动暂停；真实目标/整批预核多GET、需多一步确认，不冒服务器原子或UI/凭据DPAPI/native/播放/共享写/发布推送绿，快捷方式旧版，非完整交付。
+
 ## 第五组 R-027 主树帐号提交快照／草稿保护（2026-10-24，继续）
 
 - 源fae6539d限定两VM／正式项目合入，点击前捕获字段／编辑version，旧成功不清新密码、不误报新语言已存，显式重试不重发。主树68全过（源68项48过20败红留来源），fresh fixture/Core/x64ShellRelease零警告错误；VM/fixture及solutionRelease/x64空白0修改/退出0无加载诊断，26PS/UTF8LF链接hash过。产品逐字同来源，独立静态无保留；窄fakeSession仅确认，不走真实认证/DPAPI/保存链，不当R010完成。证据batch05/r027及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
