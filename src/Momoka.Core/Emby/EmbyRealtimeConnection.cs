@@ -106,6 +106,15 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
     {
         // 不能读捕获时的 Connection 快照：静默重登后该来源的 Client 已经持有新令牌。
         var handshake = EmbyRealtimeProtocol.Handshake(_scope.CurrentConnection);
+        // 系统默认握手会跟随跳转，并把 Emby 自定义鉴权头带到下一站。
+        // 快路径无需自动换端点：同源、跨源都拒绝，仍由原地址重连和只读轮询兜底。
+        // 保留默认代理及禁 Cookie／不复用握手连接的行为，只收紧重定向边界。
+        using var invoker = new HttpMessageInvoker(new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false,
+            PooledConnectionLifetime = TimeSpan.Zero
+        });
         using var socket = new ClientWebSocket();
         socket.Options.KeepAliveInterval = TimeSpan.FromSeconds(30);
         foreach (var header in handshake.Headers) socket.Options.SetRequestHeader(header.Key, header.Value);
@@ -113,7 +122,7 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
         using (var connect = CancellationTokenSource.CreateLinkedTokenSource(token))
         {
             connect.CancelAfter(TimeSpan.FromSeconds(15));
-            await socket.ConnectAsync(handshake.Url, connect.Token).ConfigureAwait(false);
+            await socket.ConnectAsync(handshake.Url, invoker, connect.Token).ConfigureAwait(false);
         }
 
         // 连上了：退避归零。下一次断线从头来（见 EmbyRealtimeBackoff.Reset）。

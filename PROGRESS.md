@@ -1,3 +1,8 @@
+## 第七组 R-001：实时跳转边界已本地验证（2026-10-24）
+
+- 实际唯一握手入口传受控invoker，拒绝同／跨源全部跳转，原地址重连／polling、新令牌scope／cancel与资源释放保留。真实匿名回环初37项17过20败→修后37过；observer取消已accept计1，收紧后37重过／完整Core2666全过0失败0跳过，Release Tests/Core零警告错误。Gibbs只读复核无保留P1/P2，证据 `artifacts/staged-repair/batch07/r001/`，原红和新版observer独立hash，不混同字节对照。
+- R003／R005／R031三个独立域尚在推进，未计实现；R043不改。只完成本地提交，最终统一重验待全部整合；没真实TLS／配置proxy／服务端／生产凭据链／UI/native/播放，libmpv缺的历史真实门禁红仍在，无publish/push/shortcut刷新，非完整交付。代理参数偏好已撤回，接续不再携带。
+
 ## 第七组：剩余四个 P1 的正常防护修复（2026-10-24，用户明确继续）
 
 - 已重新全文读取权威 `C:/Users/89400/Momoka/CLAUDE.md`，核主实现树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`、干净 base `8865cc4dda46da100c06f5cd7cea413a6719604e`。下方历史“停止／不重试／受限链”表述**不是用户永久禁止修复的要求**；本轮根据后续澄清与继续指令实施正常身份、登录和凭据边界保护，真实账号／服务器有副作用操作仍须相应授权。历史 69 份审查文件只读，已存逐文件 SHA256。

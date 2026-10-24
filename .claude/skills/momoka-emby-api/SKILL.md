@@ -97,6 +97,10 @@ Saved-token restore can correct an old Emby label to Jellyfin after anonymous fa
 
 `EmbyRealtimeProtocol.Handshake` builds a credential-free URL and reuses the product's request headers. Emby uses `X-Emby-Token` plus device identity; Jellyfin uses `Authorization: MediaBrowser`. `EmbyRealtimeConnection` reads the scope's current connection under the session lock on every reconnect and links the source lifetime. FnNas and Plex are excluded. Release cancels synchronously before background disposal.
 
+The realtime handshake passes a per-attempt `HttpMessageInvoker` with `SocketsHttpHandler.AllowAutoRedirect = false` to the actual `ClientWebSocket.ConnectAsync` overload. All redirects, including same-origin ones, are rejected; reconnect stays at the original endpoint and the existing read-only polling fallback remains. The handler preserves default proxy behavior, disables cookies and does not pool handshake connections. Do not replace this with the runtime's default overload: custom Emby headers can survive its redirect handling.
+
+`realtime-handshake-fixture` runs actual Core/session/WebSocket IO on anonymous `127.0.0.1` listeners, with a fake REST restore boundary. Five redirect statuses × both products × same/cross-origin locations verify zero second-hop requests and zero identity fields. The observer counts an accepted but incomplete/canceled connection as a request, not as zero. First-response cancellation and the existing 101/reconnect/source-exit tests remain covered. No TLS downgrade, configured proxy, real server endpoint or production credential chain was executed.
+
 Loopback WebSocket 101 tests verify header placement, reconnect after token replacement, source-key delivery and cancellation during receive/backoff. They do not establish real Emby support for a socket alias or header handshake. The existing Emby endpoint spelling was intentionally not changed without server evidence. A broken fast path still has the existing read-only polling fallback; never restore query-string tokens to make a handshake pass.
 
 ## 交付

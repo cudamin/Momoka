@@ -60,6 +60,12 @@ internal static class Program
             HttpDiagnosticsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["realtime-handshake-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            EmbyRealtimeTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["metadata-date-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
