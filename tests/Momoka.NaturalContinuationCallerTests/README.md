@@ -68,3 +68,9 @@ $root = (Get-Location).Path
 19份pins中6份主线程native/所有权与测试边界后续修正已逐份复核显式更新，另候选回退最终Service修改再定点更新1份；实际Start/Next/NowPlaying/Leave节点保持来源逐字一致。主树当前50动态全过／0失败／0跳过／退出0，8提取非法反例各预期退出1、随后默认当前源重编译再跑50绿。来源基点夹具编译错误不搬主树当本轮证据。主树证据 `artifacts/r046-caller/verify-20261024-071614-3335`、`extractor-20261024-071811-2846/current-reverified` 与 `artifacts/staged-repair/batch05/r046/`。当前真实Service/native seam27、完整Core2549及R051/R044/R048分别重验，FakePlayback50不替代它们。
 
 方案已显式映射两个提取器的Release配置，并将caller提取器置独立solution子文件夹，避免formatter把两个同名SourceExtractor视为冲突；原冲突日志保留。最终方案空白0修改／退出0无加载诊断，实际WinUI/窗口/native媒体仍未运行，快捷方式旧版，非完整交付。
+
+## 2026-10-24：R003合法源码变化的单项pin同步
+
+第七组R003修改 `EmbySession.RestoreAttemptAsync` 的最终身份守卫及 `ResolveRestoreConnectionAsync` 对空public ID的保留策略；自然caller只执行实际Capture／ExecuteAsync与匿名缓存scope，不执行恢复／登录／凭据保存。完整Start/Next/NowPlaying/Leave和其余18份pin字节未变，因此逐份复核后**仅更新EmbySession这一个SHA256**，不整份生成新快照、不删除来源核对、不改历史base/date元数据。
+
+首最终方案 `artifacts/staged-repair/batch07/final-current-95d2eab/solution-build.log` 因旧pin失败退出1，随后未运行旧测试。单项同步后当前caller Release零警告错误/50全绿；原提取脚本8个错误源/成员/语法/根目录/缺await-using/hash负例全部按预期退出1，再重编原current/50全绿，证据 `artifacts/staged-repair/batch07/r046-source-pin-sync/`（reviewed-pin-delta/only-one-pin-check/source-guard-positive-negative）和其指向本树新反例目录。不是播放或真实登录验收；本轮不改产品来适配fixture，最终统一方案与51入口另跑。

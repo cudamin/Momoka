@@ -1,3 +1,8 @@
+## 第七组最终方案旧pin闭环（2026-10-24）
+
+- 首95d2eab方案已fresh Core/Shell/其它项目，唯R046caller19源pin的EmbySession旧SHA拒绝构建/exit1，未跑旧51入口；原失败保留。逐一核R003仅改restore身份及空public ID，不改caller Capture/Execute、Start/Next/NowPlaying/Leave或其它18源；只同步一SHA、保守卫/元数据，不整份accept快照。
+- current caller零警告错误/50绿，原Test-SourceExtraction8负例全部预期exit1（hash/member/namespace/await/foreign root等），其后重编current/50绿。证据 `artifacts/staged-repair/batch07/r046-source-pin-sync/`；下一步新commit后完整35项目＋51入口，旧失败不删、不放宽。未新增产品变化或发布/真实native/账号/UI/播放，shortcut旧版。
+
 ## 第七组最终空白纠正后，统一51入口验证在途（2026-10-24）
 
 - 整合提交e3ba8df，相关最终Core2838全过／R00386、R00543/Plex146、R03143、R00137全过，Gibbs四域无保留P1/P2。Release/x64 solution初format在3个匿名JSON多成员同行发现13处空白，1795文件只涉及R031 test一份，旧exit2保留；仅分行，非空白tokens完全相同，再Tests/Core零警告错误与R03143绿。
