@@ -209,12 +209,17 @@ public sealed class MoviePilotClient : IDisposable
         CancellationToken cancellationToken) =>
         DataOrThrow(await PostReplyAsync(apiBase, token, path, body, cancellationToken).ConfigureAwait(false));
 
+    /// <summary>官方只读 POST（如 exists_remote）返回裸对象，不要求写操作的 success 回执。</summary>
+    public async Task<JsonElement> ReadPostAsync(Uri apiBase, string token, string path, object body, CancellationToken cancellationToken) =>
+        DataOrThrow(await PostReplyAsync(apiBase, token, path, body, cancellationToken, requireEnvelope: false).ConfigureAwait(false));
+
     internal async Task<MoviePilotReply> PostReplyAsync(
         Uri apiBase,
         string token,
         string path,
         object body,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool requireEnvelope = true)
     {
         var url = MoviePilotAddress.Combine(apiBase, BasePath + path.TrimStart('/'));
 
@@ -227,7 +232,7 @@ public sealed class MoviePilotClient : IDisposable
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
-        return await ReadReplyAsync(response, cancellationToken, requireEnvelope: true).ConfigureAwait(false);
+        return await ReadReplyAsync(response, cancellationToken, requireEnvelope).ConfigureAwait(false);
     }
 
     /// <summary>

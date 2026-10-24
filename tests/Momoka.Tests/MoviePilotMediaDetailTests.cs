@@ -109,7 +109,7 @@ internal static class MoviePilotMediaDetailTests
         Test("MP 新增季：读回明确 ID 核实真实模式，不能将重复 POST 当模式已改变", () =>
         {
             using var transport = new StubTransport().Answer("subscribe/9", Subscription(9, 1, "", 0).Data.GetRawText())
-                .Answer("subscribe/", """{"success":true,"data":{"id":9}}""");
+                .Sequence("subscribe/", (HttpStatusCode.OK, "[]"), (HttpStatusCode.OK, """{"success":true,"data":{"id":9}}"""));
             using var service = Service(transport);
             var media = Media with { ConnectionStamp = service.ConnectionStamp };
             var add = MoviePilotSubscriptionPlan.Build(media, "", [new(1, true, MoviePilotSubscribeMode.FullSeason)], []).Single();
@@ -122,13 +122,13 @@ internal static class MoviePilotMediaDetailTests
         });
         Test("MP 新增季：回执缺编号进入待核对，切换组或模式不能绕过防重", () =>
         {
-            using var transport = new StubTransport().Answer("subscribe/", """{"success":true,"data":null}""");
+            using var transport = new StubTransport().Sequence("subscribe/", (HttpStatusCode.OK, "[]"), (HttpStatusCode.OK, """{"success":true,"data":null}"""));
             using var service = Service(transport);
             var media = Media with { ConnectionStamp = service.ConnectionStamp };
             var add = MoviePilotSubscriptionPlan.Build(media, "a", [new(0, true, MoviePilotSubscribeMode.Normal)], []).Single();
             Assert.Throws<MoviePilotException>(() => service.ApplySubscriptionChangeAsync(add, CancellationToken.None).GetAwaiter().GetResult());
             Assert.Throws<MoviePilotOperationBlockedException>(() => service.ApplySubscriptionChangeAsync(add with { EpisodeGroup = "b", Mode = MoviePilotSubscribeMode.FullSeason }, CancellationToken.None).GetAwaiter().GetResult());
-            Assert.Equal(1, transport.Count("subscribe/"));
+            Assert.Equal(1, transport.SentTo("subscribe/").Count(item => item.Method == "POST"));
         });
         Test("MP 字幕：单集搜索与原始签名对象下载，回执文件数和重复保护", () =>
         {

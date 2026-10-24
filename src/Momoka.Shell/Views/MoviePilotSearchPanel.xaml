@@ -130,11 +130,15 @@
                             <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="8">
                                 <Button
                                     HorizontalAlignment="Stretch"
-                                    automation:AutomationProperties.Name="{x:Bind SubscribeAutomationName}"
+                                    automation:AutomationProperties.Name="{x:Bind SubscribeAutomationName, Mode=OneWay}"
                                     Command="{x:Bind SubscribeCommand}"
                                     Content="{x:Bind SubscribeLabel, Mode=OneWay}"
                                     Style="{StaticResource EgPrimaryButtonStyle}"
-                                    ToolTipService.ToolTip="{x:Bind SubscribeAutomationName}" />
+                                    ToolTipService.ToolTip="{x:Bind SubscribeAutomationName, Mode=OneWay}" />
+                                <Button x:Name="ReviewMovieSubscription" automation:AutomationProperties.AutomationId="ReviewMovieSubscription" HorizontalAlignment="Stretch"
+                                    Content="已在 MoviePilot 核对 · 重新读取" Command="{x:Bind ReviewCommand}"
+                                    Visibility="{x:Bind ReviewVisibility, Mode=OneWay}" Style="{StaticResource EgSecondaryButtonStyle}"
+                                    automation:AutomationProperties.Name="我已在 MoviePilot 核对订阅和下载任务，确认不会重复操作，重新读取状态" />
                                 <Button
                                     HorizontalAlignment="Stretch"
                                     automation:AutomationProperties.Name="{x:Bind SearchResourcesAutomationName}"

@@ -13,7 +13,8 @@ public sealed partial class MoviePilotSeasonPicker : ContentDialog
     internal static async Task ShowAsync(FrameworkElement owner, MoviePilotService service, MoviePilotMedia media, string group, int? season,
         CancellationToken token = default)
     {
-        if (owner.XamlRoot is null || token.IsCancellationRequested) return;
+        if (media.Type != "电视剧" || !service.Available || !service.IsCurrentConnection(media.ConnectionStamp)
+            || owner.XamlRoot is null || token.IsCancellationRequested) return;
         var dialog = new MoviePilotSeasonPicker { XamlRoot = owner.XamlRoot, RequestedTheme = owner.ActualTheme };
         dialog.ViewModel.Attach(service, media, group, picker: true, preselect: season, lifetimeToken: token);
         using var cancelled = token.Register(() => owner.DispatcherQueue.TryEnqueue(() =>

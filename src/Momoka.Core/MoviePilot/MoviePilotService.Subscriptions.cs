@@ -141,7 +141,7 @@ public sealed partial class MoviePilotService
         await MutateSubscriptionAsync(subscription, method, path, null, cancellationToken).ConfigureAwait(false);
         // 明确删除成功后才允许再次订阅；超时与失败不会清掉新增订阅的防重状态。
         if (action == MoviePilotSubscriptionAction.Delete)
-            lock (_operationGate) _operations.Remove(SubscribeKey(subscription.Media));
+            lock (_operationGate) _operations.Remove(SubscribeKey(subscription.Media, subscription.EpisodeGroup));
     }
 
     private async Task MutateSubscriptionAsync(MoviePilotSubscription subscription, HttpMethod method, string path,
