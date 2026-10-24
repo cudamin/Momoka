@@ -91,7 +91,7 @@ Videos/{itemId}/stream{ext}?Static=true&MediaSourceId=…
 
 ## Legacy product correction
 
-Saved-token restore can correct an old Emby label to Jellyfin after anonymous family-only probing of the original address and identity validation. Use the confirmed same-origin base, never strip a real proxy `/emby/` suffix by inference. A normal Emby profile retains its existing public-information failure fallback without probing unrelated products. Token/user/server mismatches and password fallback are covered by offline tests; this is not real-server verification.
+Saved-token restore can correct an old Emby label to Jellyfin after anonymous family-only probing of the original address and identity validation. Use the confirmed same-origin base, never strip a real proxy `/emby/` suffix by inference. A normal Emby profile retains its existing public-information failure fallback without probing unrelated products. Token/user/server mismatches and password fallback are covered by offline tests; this is not real-server verification. Password fallback retains the anonymously confirmed, product-corrected expected connection and checks product, API base, user and confirmed server ID before any credential save or adoption. The shared identity predicate permits a missing ID for old profiles; this restore branch additionally rejects loss of the ID confirmed in the same attempt. `restore-identity-fixture` runs 86 anonymous cases on the actual session/gateway and isolated settings IO, including auth-result/public-info mismatch and cancellation/generation/address guards. API-base-only cases exercise the production identity predicate directly, not a changed remote endpoint.
 
 ## Realtime credential boundary
 

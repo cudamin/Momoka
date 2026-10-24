@@ -7,7 +7,7 @@ description: "Develop or review Momoka's Plex backend: the Core/Plex transport, 
 
 Project rules live in [CLAUDE.md](../../../CLAUDE.md). This skill records only what is easy to get wrong about talking to a Plex Media Server. It defines no second policy.
 
-**Nothing here has been checked against a live Plex server.** Every route, field name and parameter below comes from Plex's public interface conventions, and the only evidence behind it is the offline suite (`PlexProtocolTests`, `PlexMediaTests`) driving a fake transport. Say "protocol-level, offline-verified" when describing it — never "works on Plex". The boundary is written out in [docs/Plex支持.md](../../../docs/Plex支持.md).
+**Nothing here has been checked against a live Plex server or a live plex.tv account.** The suites (`PlexProtocolTests`, `PlexMediaTests`, `PlexV2LoginTests`) drive fake transports, so their pass proves Momoka's behavior on the supplied answers, not that a service returns them. For v2 account sign-in, the [archived official static evidence](references/v2-login-official-evidence.json) separately records the official form's bare-object response consumption and the desktop UserModel's field types. The remaining routes reflect Momoka's current public-interface choices; say "protocol-level, offline-verified", never "works on Plex". The live-coverage boundary is written out in [docs/Plex支持.md](../../../docs/Plex支持.md).
 
 ## Implemented boundary
 
@@ -36,6 +36,10 @@ A plain HTTP host without a port uses 32400; an explicit HTTP port, including 80
 Sign-in is two steps and both are required. `POST https://plex.tv/api/v2/users/signin` exchanges the account credentials for an **account** token; `GET {server}` with `X-Plex-Token` then proves the account has been shared *this* server. A login that stopped after the first step looks successful and then 401s on every browse — `PlexMediaAdapter.SignInAsync` throws `EmbyAuthenticationException` for that case rather than adopting a token that cannot be used.
 
 The password goes in the JSON body, never in the query string. The account URI is built inside `PlexHttp` from the `AccountAuthority` constant so no caller can point it elsewhere, and it is the only request in that class allowed off the server's origin.
+
+**R-005 response contract:** the official v2 password form passes the JSON success object through and its completion consumes top-level `id` and `authToken`. The official desktop UserModel declares integer `id` and string `authToken`, `username` and `title`. Read one bare account object; do not join its token to an unproven nested `user` identity or reuse the PMS XML-string coercion helpers for credentials. No official evidence here establishes string-valued account ids, legacy nested signin envelopes or a PIN/2FA flow. See [the source manifest](references/v2-login-official-evidence.json) for URLs, versions, hashes and exact marker offsets.
+
+The existing Momoka request body is JSON; the official form uses jQuery form data. Static response-contract evidence and fake HTTP cannot prove the real service accepts Momoka's Content-Type. Keep JSON-body acceptance, live sign-in, target-PMS permissions, two-factor verification and PIN/link flows explicitly unverified; do not broaden this response-parser fix into speculative transport compatibility.
 
 ### 2. The token lives in `X-Plex-Token` and nowhere else
 
@@ -79,7 +83,9 @@ Plex cross-library genre navigation is not implemented by this client. `DetailVi
 
 - `PlexProtocolTests` covers address normalisation, escape guards, token placement, redirects, error translation, the account exchange, paging headers and query building.
 - `PlexMediaTests` covers sign-in, re-authentication after a 401, restore without a second account login, library filtering, search, detail mapping, seasons/episodes, next-up, playback planning, reporting and the menu — all through `EmbySession` against a fake transport.
-- Both are offline. They say what this client sends and how it reads the answers it is handed. They are not evidence that a Plex server answers this way.
+- `PlexV2LoginTests.Register()` is called by the existing `PlexMediaTests.Register()`; no shared runner edit is needed for the full Core suite. The dedicated `plex-login-fixture` driver should call `PlexV2LoginTests.Register();` followed by `TestHarness.Run()` once. It exercises the current `EmbySession`, gateway and Core/Plex path with a synthetic handler; no real socket is opened. Persistence is isolated under the current worktree's `artifacts/staged-repair/batch07/r005/fixtures`.
+- R-005 coverage includes the top-level account-to-PMS handshake, no adoption/persistence before PMS approval, 401/403, missing/wrong-type identity/token, profile-name ownership, unproven nested/string-id rejection, token headers and redirect/cancellation, reauthentication identity changes, and saved-token/password restore. Existing media/protocol account fixtures use the same bare v2 shape, not a wrapper that only makes tests green.
+- All suites are offline. They say what this client sends and how it reads the answers it is handed. Official static code corroborates the v2 response contract only; neither source reading nor fake HTTP is a live-account, PMS, DPAPI, playback, 2FA or PIN pass.
 - A live check is a new authorization question under CLAUDE.md's three tiers, and a Plex server is not the user's Emby library. Read-only first: address → 「连接」 → confirm the product and server name → then sign in. Record the server version and the observed response shapes in [docs/Plex支持.md](../../../docs/Plex支持.md).
 - Anything touching `PlexHttp` headers, redirect handling, error classification or `PlexEndpoint` needs the test project run, not only UI checks. No live-server coverage exists; report that gap as a gap.
 

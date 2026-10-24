@@ -11,7 +11,7 @@ the table as "what Momoka sends", not "what a Plex server is known to answer".
 
 | Purpose | Call | Notes |
 | --- | --- | --- |
-| Exchange account credentials for a token | `POST /api/v2/users/signin` | JSON body `{login, password}`; requires `X-Plex-Client-Identifier`; answers `{user:{id,username}, authToken}` |
+| Exchange account credentials for a token | `POST /api/v2/users/signin` | Momoka sends JSON body `{login, password}` and `X-Plex-Client-Identifier`; the official v2 form consumes one bare success object `{id, username, authToken}` (see [official evidence](v2-login-official-evidence.json)); JSON request-body acceptance is not live-verified |
 
 The password is never placed in the query string. The URI is built inside `PlexHttp` from a constant.
 

@@ -54,12 +54,15 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
             throw new EmbyAuthenticationException("Plex 账号的用户名或密码不正确");
         }
 
-        var token = Text(account, "authToken");
-        var user = account["user"] as JsonObject;
-        var accountId = user is null ? "" : Text(user, "id");
-        var accountName = user is null ? "" : Text(user, "username") is { Length: > 0 } name ? name : Text(user, "title");
-        if (token.Length == 0 || token.Any(char.IsControl) || accountId.Length == 0)
-            throw new EmbyApiException("Plex 账号服务返回的登录结果缺少访问令牌或账号标识");
+        // plex.tv v2 returns one bare account object; PMS XML-string coercion is not its contract.
+        // Official evidence: .claude/skills/momoka-plex-api/references/v2-login-official-evidence.json.
+        var token = AccountText(account, "authToken");
+        var accountName = AccountText(account, "username");
+        if (accountName is { Length: 0 }) accountName = AccountText(account, "title");
+        if (account["id"] is not JsonValue idValue || !idValue.TryGetValue<long>(out var id) || id <= 0
+            || string.IsNullOrWhiteSpace(token) || token.Any(char.IsControl) || accountName is null)
+            throw new EmbyApiException("Plex 账号服务返回的登录结果缺少访问令牌或账号标识，或字段类型无效");
+        var accountId = id.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         var native = new PlexConnection(apiBase, token, accountId, accountName, device.DeviceId, device.Version);
         JsonObject server;
@@ -81,6 +84,14 @@ public sealed partial class PlexMediaAdapter(PlexClient client, PlexConnection c
             ServerId = Text(server, "machineIdentifier") is { Length: > 0 } machine ? machine : serverId
         };
     }
+
+    // A missing display name is optional; an object/array/number is not a string account field.
+    private static string? AccountText(JsonObject account, string key) => account[key] switch
+    {
+        null => "",
+        JsonValue value when value.TryGetValue<string>(out var text) => text,
+        _ => null
+    };
 
     public static EmbyApiException Translate(PlexApiException error) => error.IsTokenExpired
         ? new EmbyTokenExpiredException()

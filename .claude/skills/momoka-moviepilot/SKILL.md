@@ -12,7 +12,7 @@ description: "Develop, review and verify Momoka's MoviePilot integration: servic
 - 当前工作树里的 `src/Momoka.Core/MoviePilot/` 是协议与业务规则；Shell 的 `MoviePilot*ViewModel` / `MoviePilot*` 视图负责界面；服务注册在 `Composition/ShellServices.cs`。
 - 先确认实际 MoviePilot 版本。过去某次连接成功不代表服务器仍是该版本。`dashboard/system` 的 `version` 是可靠入口；`openapi.json` 未必可用（在 API 基址下曾返回 404），拿不到就以对应 tag 的官方前后端源码为准，不要猜字段，也不要因此跳过版本确认。
 - 不整份输出 OpenAPI、设置或资源回话。按当前接口投影字段；`torrent_info` 可能带站点 Cookie、下载凭据和私有 URL。
-- 本仓库 ignored `work/` 的上游快照和诊断宿主只可作为经检查后的本机辅助；干净检出不能依赖它们。正式测试使用匿名夹具与 `StubTransport`。
+- 本仓库 ignored `work/` 的上游快照和诊断宿主只可作为经检查后的本机辅助；干净检出不能依赖它们。业务测试使用匿名夹具与 `StubTransport`；默认传输的登录跳转边界使用下方独立双回环测试。
 
 ## 按问题选择资料
 
@@ -33,6 +33,17 @@ description: "Develop, review and verify Momoka's MoviePilot integration: servic
 - 订阅列表页 `MoviePilotSubscriptionsPage.Attach` 把 `request.Key` 写入页面 `Tag`，让 Shell 返回／前进后的 `AdoptContentTag` 恢复当前目的地，并保持同页点击短路。不要只设置初次 `Open` 的 `_current` 而漏掉页面自己。源链接页面契约项目覆盖 Tag／重入／释放；实际 Frame 交互、滚动与前进栈仍另做 UI 验证。
 - `ShellNavigationProbe.MoviePilotAvailability.cs` 提供仅开启但未验证、连接成功、断线、恢复和关闭的假服务器场景。按当前断言核实覆盖；普通搜索及独立来源的入口按自身依赖判断，不能只因位于同一面板就一并隐藏。
 - Missing-episode metadata reads keep the original connection stamp. Recheck that stamp with `Available` and `IsCurrentConnection` after the detail/parent waits and before constructing the dialog; never adopt a replacement connection merely because it is now available. Preserve the open-dialog availability subscription and final scope/page/search checks. [Momoka.MissingEpisodesAvailabilityTests](../../../tests/Momoka.MissingEpisodesAvailabilityTests/README.md) extracts the real Shell method and links the real dialog/rows, checking visibility values and actual XAML bindings without claiming pixels or real clicks.
+
+## Login redirects and the credential boundary
+
+- `MoviePilotClient` owns its transport independently of Emby/Plex. Its default `SocketsHttpHandler` and directly injected native `SocketsHttpHandler` / `HttpClientHandler` have `AllowAutoRedirect=false`; arbitrary test handlers are response substitutes, not proof of the native transport. Do not loosen a shared boundary or add a project-wide transport abstraction to repair this path.
+- Reject every login 300–399 response at the response headers, before buffering or parsing its body. This includes same-origin, relative/absolute, missing-Location and HTTPS-to-HTTP redirects. There is no method conversion, body replay, destination trust decision or redirect chain: the follow limit is zero. The initial configured request may already have reached the server; refusal does not mean it was never submitted.
+- Keep the original redirect status and actionable `不自动跳转` / final API origin guidance, but do not attach the redirect body or echo `Location`; either can contain credentials. Users must configure the final API scheme/host/port, without a reverse-proxy path rewrite that requires a redirect. Same-origin canonicalization is deliberately not automatic. API writes and image requests share this transport refusal; do not retry a rejected or uncertain side effect for convenience.
+- Header-first login must retain the existing total client timeout and response-buffer limit for direct 200/error bodies. Preserve caller cancellation, internal-timeout classification, direct-token parsing, the dedicated login 401 message and existing 403/status/body semantics. A login rejection is not `MoviePilotTokenExpiredException` and must not enter token-refresh replay.
+- `MoviePilotLoginRedirectTests.Register()` is called by `MoviePilotTests.Register()`. A dedicated `moviepilot-login-redirect-fixture` CLI entry should register that suite and run the existing `TestHarness`, without duplicating it or changing the harness. The suite uses the production no-argument client and two atomically reserved loopback ports; assert source and next-hop request, username/password receipt counts, methods and whether a session/result was returned. Cover 301/302/303 method conversion refusal, 307/308 replay refusal, same-origin forms, finite/endless chains, direct success/401/403, cancellation, stalled redirect bodies and bounded direct-body reads.
+- The two HTTPS-to-HTTP policy cases inject only a redirect response, explicitly without TLS. They establish response refusal, not a TLS handshake, certificate validation, or real service behavior. Keep this distinction in reports. Anonymous loopback writes and placeholder credentials are not production MoviePilot login evidence.
+
+- The loopback observer counts at TCP acceptance, independently of completed HTTP parsing; pending connections invalidate zero-next-hop claims. An incomplete anonymous request canceled during cleanup remains counted. All loopback receipts are asserted only after stopping and joining both receive tasks, with pre-close pending connections retained. Two observer cases cover half-request cancellation and a late accepted request invalidating an early zero sample. Do not reuse the old 41/42-case input hashes as final 43-case evidence.
 
 ## 三种身份不要混为一谈
 

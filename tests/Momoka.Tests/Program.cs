@@ -60,6 +60,31 @@ internal static class Program
             HttpDiagnosticsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["restore-identity-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            RestoreIdentityR003Tests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["moviepilot-login-redirect-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            MoviePilotLoginRedirectTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["plex-protocol-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            PlexProtocolTests.Register();
+            PlexMediaTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["plex-login-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            PlexV2LoginTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["realtime-handshake-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

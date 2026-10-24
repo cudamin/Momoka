@@ -22,6 +22,7 @@ internal static partial class PlexMediaTests
     public static void Register()
     {
         RegisterLibraries();
+        PlexV2LoginTests.Register();
         Test("Plex 媒体：登录、媒体库命名和令牌失效后同身份恢复", () =>
         {
             using var fixture = new Fixture();
@@ -179,7 +180,7 @@ internal static partial class PlexMediaTests
         public Fixture()
         {
             Server.Accounts.Add(Account); Settings.Servers.Add(Server);
-            Session = new EmbySession(Settings, new SettingsStore(new AppPaths(Path.Combine(Path.GetTempPath(), "momoka-plex-" + Guid.NewGuid().ToString("N"))), PassthroughSecretProtector.Instance),
+            Session = new EmbySession(Settings, new SettingsStore(PlexV2LoginTests.NewFixturePaths(), PassthroughSecretProtector.Instance),
                 new CredentialVault(PassthroughSecretProtector.Instance), DeviceIdentity.Create("fixture", "test"), Transport);
         }
 
@@ -205,7 +206,7 @@ internal static partial class PlexMediaTests
                 var body = await request.Content!.ReadAsStringAsync(cancellationToken);
                 Assert.DoesNotContain("fixture-password", uri.AbsoluteUri);
                 Assert.Contains("\"password\":\"fixture-password\"", body);
-                return Raw("{\"user\":{\"id\":\"7\",\"username\":\"fixture\"},\"authToken\":\"fixture-token-" + ++Logins + "\"}");
+                return Raw("{\"id\":7,\"username\":\"fixture\",\"authToken\":\"fixture-token-" + ++Logins + "\"}");
             }
 
             // The other products' probes, and 飞牛's, all land here first and must miss.

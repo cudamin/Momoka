@@ -1,3 +1,9 @@
+## 第七组四P1限定整合，等待最终统一验证（2026-10-24）
+
+- R001主9c6ed2e；R003来源a133df8＋主追加初public空ID，86项82过4败→86绿；R031来源c114253＋observer partial/Stop+join final-count追加，43最终绿（原41/42与EOF工具失败保留）；R005来源fbab57a八blob＋43专项/146协议绿。全部workers交回关闭保独立树，Gibbs四域当前只读无保留P1/P2。源与输出、工具错误、初次R031mtime旧DLL归因严格分开，不把来源绿当主绿。
+- 四P1已具本地补丁，待本次限定commit＋最终35项目Release／51既有新离线入口统一重验后计最终代码闭环，预期71实现+1旧覆盖=72/73，R043仍显示建议不改。69历史审查原件hash未改，原停止措辞不是永久禁止已纠正；用户撤回的代理参数偏好不再携带或派工提及。
+- 产品含R003空ID后Core2752绿/R03141合后2793绿/半请求编排后2837绿，新增最终迟到计数case后当前完整Core2838全过0失败0跳过，读数不能混用。UTF8/LF/相关Core/Tests空白过，说明/命令同步。未真实TLS/proxy/Emby/Jellyfin/Plex/MoviePilot登录/PMS/JSON请求接受/生产DPAPI/UI/ACL/native/uosc/播放，根libmpv缺历史门禁exit1红，未发布推送或改快捷方式，快捷方式旧版，非完整交付。
+
 ## 第七组 R-001：实时跳转边界已本地验证（2026-10-24）
 
 - 实际唯一握手入口传受控invoker，拒绝同／跨源全部跳转，原地址重连／polling、新令牌scope／cancel与资源释放保留。真实匿名回环初37项17过20败→修后37过；observer取消已accept计1，收紧后37重过／完整Core2666全过0失败0跳过，Release Tests/Core零警告错误。Gibbs只读复核无保留P1/P2，证据 `artifacts/staged-repair/batch07/r001/`，原红和新版observer独立hash，不混同字节对照。

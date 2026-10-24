@@ -393,6 +393,9 @@ public sealed class EmbySession : IDisposable
             password = _vault.GetPassword(account);
             remember = account.RememberPassword;
         }
+        // 预期身份来自原入口的匿名确认，已经包含合法的旧 Emby → Jellyfin 产品/路径纠正。
+        // 密码登录返回的新连接只能更换凭据，不能把恢复变成另一台服务器或另一账号的登录。
+        var expectedConnection = connection;
         try
         {
             connection = await Gateway.AuthenticateAsync(connection.ApiBase, username, password, cancellationToken,
@@ -401,7 +404,10 @@ public sealed class EmbySession : IDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!CanCommit(attempt.Key, attempt.Generation) || !HasAddress(server, apiBase)
-                    || !string.Equals(connection.UserId, userId, StringComparison.Ordinal)) return false;
+                    || !connection.IsSameIdentityAs(expectedConnection)
+                    // 通用同身份规则兼容旧配置缺 ID；自动恢复不能丢掉这次已经确认的服务器 ID。
+                    || expectedConnection.ServerId is { Length: > 0 } expectedId
+                        && !string.Equals(connection.ServerId, expectedId, StringComparison.Ordinal)) return false;
                 SaveCredentials(account, connection, password, remember);
                 Adopt(server, account, connection, attempt.Selection);
                 Persist();
@@ -615,7 +621,8 @@ public sealed class EmbySession : IDisposable
             ServerKind = info.ServerKind,
             ServerName = info.ServerName is { Length: > 0 } name ? name : connection.ServerName,
             ServerVersion = info.Version ?? connection.ServerVersion,
-            ServerId = info.Id ?? connection.ServerId
+            // 同产品的公开信息可以不带 ID，但不能用空串擦掉已保存的已知身份。
+            ServerId = info.Id is { Length: > 0 } confirmedId ? confirmedId : connection.ServerId
         };
     }
 

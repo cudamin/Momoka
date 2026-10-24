@@ -58,8 +58,13 @@ Server error bodies are never surfaced, logged or used to build a message. `Plex
 
 ## Response shape
 
-- Server answers are wrapped in `MediaContainer`; `PlexClient.RootAsync` unwraps it. The account service
-  answers with a bare object.
+- Server answers are wrapped in `MediaContainer`; `PlexClient.RootAsync` unwraps it. The v2 account
+  success response is a bare object: read `id`, `authToken` and `username` (or `title`) from that same
+  object, never combine a top-level token with a nested `user`. The current official auth form passes
+  the response through; the official desktop UserModel declares integer `id` and string profile fields.
+  See [official static evidence](v2-login-official-evidence.json). Numeric XML-string coercion below
+  belongs to PMS metadata, not account authentication. String account ids / legacy signin envelopes
+  have no evidence here and are rejected rather than guessed.
 - Numeric and boolean attributes arrive as **strings** as often as numbers (`"viewCount": "0"`,
   `"default": "1"`). Read them through `Text` / `Number` / `Integer` / `Flag`, never with a typed
   deserialiser.

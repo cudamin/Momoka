@@ -105,6 +105,12 @@ A profile saved as Emby may really belong to Jellyfin. `EmbySession.ResolveResto
 
 The socket handshake follows the same standard `Authorization: MediaBrowser` credential format as REST; no token is placed in the URL. Each reconnect reads the original source's latest connection and is cancelled when that source exits. Loopback 101 tests cover actual client header transmission and reconnect/cancellation, not a live Jellyfin server or complete server compatibility. Do not fall back to `api_key` for Jellyfin 12 when legacy authentication is disabled.
 
+## Automatic restore final identity
+
+A saved profile's legacy Emby label may be corrected only by the existing anonymous original-address probe. Password fallback retains that corrected connection as the expected identity; before saving or adopting the authentication result, it compares product, API base, user ID and the server ID confirmed in this attempt. It must not compare against the old mislabeled profile or accept loss of a just-confirmed ID merely because the shared identity predicate tolerates missing IDs for legacy callers. Explicit sign-in remains a separate path; no Gateway-wide restriction was added.
+
+`restore-identity-fixture` executes the actual Core session/gateway with anonymous HTTP scripts and isolated placeholder-only settings/protection IO. It covers valid Emby→Jellyfin correction, auth/public server mismatch, missing IDs and late cancellation/generation/address changes. API-base-only cases call the actual identity predicate. This is not a real Jellyfin/Emby login, DPAPI or WinUI restore run.
+
 ## Delivery
 
 When the supported boundary changes, update this skill, the "which product" boundary in `momoka-emby-api`, [docs/开发与验证.md](../../../docs/开发与验证.md), and the domain docs that declare which server they were written against. Keep this skill from drifting into a copy of the Jellyfin specification: link the version you measured and name the route you chose.

@@ -1,0 +1,141 @@
+{
+  "schemaVersion": 1,
+  "task": "R-005 Plex v2 signin response parsing",
+  "codeBase": "8865cc4dda46da100c06f5cd7cea413a6719604e",
+  "capturedOn": "2026-10-24",
+  "sources": [
+    {
+      "url": "https://app.plex.tv/auth-form/",
+      "finalUrl": "https://app.plex.tv/auth-form/",
+      "httpStatus": 200,
+      "retrievedAt": "2026-10-24T14:53:13.3518637+08:00",
+      "method": "GET",
+      "credentialsSent": false,
+      "cookiesEnabled": false,
+      "bytes": 17729,
+      "sha256": "93B9D4A1FFC9BA698DEDA059BC38350EF1D353C6309E92E5F944C654F81E1776",
+      "role": "Official anonymous static auth-form page; no login request",
+      "discoveredFrom": "",
+      "markers": []
+    },
+    {
+      "url": "https://app.plex.tv/auth-form/js/main-792-e02bf845014d00c600e0-plex-4.161.0-e486ae4.js",
+      "finalUrl": "https://app.plex.tv/auth-form/js/main-792-e02bf845014d00c600e0-plex-4.161.0-e486ae4.js",
+      "httpStatus": 200,
+      "retrievedAt": "2026-10-24T14:53:13.6532520+08:00",
+      "method": "GET",
+      "credentialsSent": false,
+      "cookiesEnabled": false,
+      "bytes": 187221,
+      "sha256": "6DA989E89C69796125E923C4D451F8A6060F634A8EB4DEDC265707BDC543F429",
+      "role": "Official auth-form main script; v2 password success JSON is passed through, id/token are consumed from that one object",
+      "discoveredFrom": "https://app.plex.tv/auth-form/",
+      "markers": [
+        {
+          "name": "passwordResponsePassThrough",
+          "utf16OffsetZeroBased": 88872,
+          "markerLengthUtf16": 105,
+          "markerSha256": "C056A216582FF009C9B51E24F9D8230BBE43333DED542701F5D35B0D60DE031F",
+          "rawSnippetPersisted": false
+        },
+        {
+          "name": "plainAjaxHelper",
+          "utf16OffsetZeroBased": 80486,
+          "markerLengthUtf16": 91,
+          "markerSha256": "E9BF6A5AF525E66989DF8F471D46F03921E97DDE9794D15BF33DD60A533A6B3F",
+          "rawSnippetPersisted": false
+        },
+        {
+          "name": "signinV2Endpoint",
+          "utf16OffsetZeroBased": 88688,
+          "markerLengthUtf16": 149,
+          "markerSha256": "DFC00560CE992A0D01AC477B2A7BF473D3BF42F1D1A6407795FF5FBF2BDE313A",
+          "rawSnippetPersisted": false
+        },
+        {
+          "name": "topLevelAccessToken",
+          "utf16OffsetZeroBased": 86278,
+          "markerLengthUtf16": 38,
+          "markerSha256": "AD11F622FEE792E34C8699C30B4C1070A61BB5525EC7A6F0214B8F36EA67DC43",
+          "rawSnippetPersisted": false
+        },
+        {
+          "name": "topLevelAccountId",
+          "utf16OffsetZeroBased": 86228,
+          "markerLengthUtf16": 20,
+          "markerSha256": "56D967428A877C1ACFEA24759B03A684C2FD70ED87634580BB5981BACAE53CB9",
+          "rawSnippetPersisted": false
+        }
+      ]
+    },
+    {
+      "url": "https://app.plex.tv/desktop/",
+      "finalUrl": "https://app.plex.tv/desktop/",
+      "httpStatus": 200,
+      "retrievedAt": "2026-10-24T14:53:13.7428817+08:00",
+      "method": "GET",
+      "credentialsSent": false,
+      "cookiesEnabled": false,
+      "bytes": 30228,
+      "sha256": "D8108A761D145431A33D0D312CF9EFA78E5EB8ADC73454F6D637DC7701EFDDFD",
+      "role": "Official anonymous static desktop entry page; no account/PMS data",
+      "discoveredFrom": "",
+      "markers": []
+    },
+    {
+      "url": "https://app.plex.tv/desktop/js/main-8792-0fadf59092c873ab638b-plex-4.163.0-8246fd2.js",
+      "finalUrl": "https://app.plex.tv/desktop/js/main-8792-0fadf59092c873ab638b-plex-4.163.0-8246fd2.js",
+      "httpStatus": 200,
+      "retrievedAt": "2026-10-24T14:53:14.0993896+08:00",
+      "method": "GET",
+      "credentialsSent": false,
+      "cookiesEnabled": false,
+      "bytes": 3508034,
+      "sha256": "BDB3E4CE5D49B5EB6BE48E11A4AEA0F33A357561F8BF1E1303D31255F701CD97",
+      "role": "Official desktop current UserModel; numeric integer id and string authToken/username/title, with bare signIn object",
+      "discoveredFrom": "https://app.plex.tv/desktop/",
+      "markers": [
+        {
+          "name": "integerValidator",
+          "utf16OffsetZeroBased": 156718,
+          "markerLengthUtf16": 48,
+          "markerSha256": "D07E60AD09C3BCF5A143CC63E7FE4D8203632692D5D87034AECF0359C9F9F5ED",
+          "rawSnippetPersisted": false
+        },
+        {
+          "name": "signInBareObject",
+          "utf16OffsetZeroBased": 3288110,
+          "markerLengthUtf16": 184,
+          "markerSha256": "D13C89C360074F8725FCECD608E123DC8772474374115D4495283E60E64B3C53",
+          "rawSnippetPersisted": false
+        },
+        {
+          "name": "userFieldTypes",
+          "utf16OffsetZeroBased": 3279742,
+          "markerLengthUtf16": 251,
+          "markerSha256": "31CC3DDE9CA7FA096DE1A2702C1756CF8ED5E551FBDCA7BC1FB55B42EC3DB29A",
+          "rawSnippetPersisted": false
+        },
+        {
+          "name": "userModel",
+          "utf16OffsetZeroBased": 3278611,
+          "markerLengthUtf16": 83,
+          "markerSha256": "C08EB2A4D3B9F483988437E2DAF12B1FB3E78C827C968AD88CDBDBA4F459FF6E",
+          "rawSnippetPersisted": false
+        }
+      ]
+    }
+  ],
+  "conclusions": [
+    "The auth-form password callback receives JSON from POST /api/v2/users/signin and passes it unchanged as response; its completion reads response.id and response.authToken. No nested user wrapper is introduced.",
+    "The desktop UserModel for /api/v2/user defines id as an integer (Number.isInteger), and authToken, username and title as strings. Its signIn method resolves the bare object. This corroborates numeric id and string profile fields, not legacy signin or string-id response support.",
+    "Momoka continues its existing JSON request-body path. The official auth-form here uses jQuery form data; no account endpoint request was sent to prove that Momoka application/json request bodies are accepted."
+  ],
+  "notVerified": [
+    "Live plex.tv sign-in success/error response or application/json request acceptance",
+    "Live PMS authorization/sharing or server version",
+    "String-valued account ids or legacy nested user signin response compatibility",
+    "Two-factor verificationCode, Plex Home PIN, PIN/link and federated flows",
+    "Production credentials, DPAPI, real server writes, playback or WinUI"
+  ]
+}

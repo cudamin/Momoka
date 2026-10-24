@@ -95,13 +95,16 @@ internal static partial class PlexProtocolTests
                 Assert.Equal("秘密口令", body["password"]!.GetValue<string>());
                 Assert.Equal("测试账号", body["login"]!.GetValue<string>());
                 Assert.Equal("fixture-client", request.Headers["X-Plex-Client-Identifier"]);
-                return Raw("{\"user\":{\"id\":\"7\",\"username\":\"fixture\"},\"authToken\":\"fixture-plex-token\"}");
+                return Raw("{\"id\":7,\"username\":\"fixture\",\"authToken\":\"fixture-plex-token\"}");
             });
             using var http = new PlexHttp(transport, disposeHandler: false);
             var result = new PlexClient(http)
                 .SignInToAccountAsync(" 测试账号 ", "秘密口令", PlexCall.For(null, "fixture-client", "1.0"))
                 .GetAwaiter().GetResult();
             Assert.Equal("fixture-plex-token", result["authToken"]!.GetValue<string>());
+            Assert.Equal(7, result["id"]!.GetValue<int>());
+            Assert.Equal("fixture", result["username"]!.GetValue<string>());
+            Assert.False(result.ContainsKey("user"));
             Assert.Equal(1, transport.Requests.Count);
         });
         Test("Plex 浏览：分页走容器头，排序与类型走查询串", () =>
