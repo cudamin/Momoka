@@ -535,8 +535,15 @@ internal sealed partial class ShellNavigationProbe
                 Require(page.ViewModel.View == before.View && page.ViewModel.CardSize == before.CardSize
                     && page.ViewModel.Fields.SequenceEqual(before.Fields), "设置面板没有把原来的那一套还回去");
 
-                // 表格视图的横向滚动：勾满字段时一行比页面宽，从前是从右边裁掉。画布要按列宽变宽，
-                // 列头与每一行在同一个画布里，多出来的部分由外面那层滚动器滚。
+                // 表格视图的横向滚动需要比列总宽更窄的真实视口。前一段弹窗走查会停在1600宽，
+                // ResizeClient 的请求返回不等于原生窗口和 XAML 已完成尺寸交接；先核本次900宽已生效，
+                // 再切表格，不能把1560宽视口里的合法不溢出误报为不能横向滚动。
+                ResizeProbeClient(900, 700);
+                await UntilAsync(() => _window is not null && _root.XamlRoot is not null
+                    && Math.Abs(_window.ClientSize.Width / _root.XamlRoot.RasterizationScale - 900) < 1
+                    && Math.Abs(page.ActualWidth - 900) < 1);
+                await LayoutAsync(page);
+                // 画布按列宽变宽，列头与每行共用画布，多出部分由外层滚动器滚；原滚动断言不变。
                 page.ViewModel.ApplyDisplay(new LibraryDisplay
                 {
                     View = LibraryView.Table,

@@ -99,6 +99,25 @@ internal static class SelfCheckLayoutRulesTests
             Assert.False(SelfCheckLayoutRules.PanelBorder(1, 0, 1, 1, 1, 1, 1, 1));
             Assert.False(SelfCheckLayoutRules.PanelBorder(double.NaN, 0, 0, 0, 0, 0, 0, 0));
         });
+        Test("表格探针：先等待真实窄视口，再保留画布与横向偏移断言", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(Root(), "src/Momoka.Shell/ShellNavigationProbe.LibraryBrowse.cs"));
+            var marker = source.IndexOf("// 表格视图的横向滚动需要", StringComparison.Ordinal);
+            var apply = source.IndexOf("page.ViewModel.ApplyDisplay(new LibraryDisplay", marker, StringComparison.Ordinal);
+            Assert.True(marker >= 0 && apply > marker);
+            var preparation = source[marker..apply];
+            Assert.Contains("ResizeProbeClient(900, 700);", preparation);
+            Assert.Contains("await UntilAsync(() => _window is not null", preparation);
+            Assert.Contains("_window.ClientSize.Width / _root.XamlRoot.RasterizationScale - 900", preparation);
+            Assert.Contains("Math.Abs(page.ActualWidth - 900) < 1", preparation);
+            Assert.Contains("page.TableCanvas.ActualWidth > page.TableScroll.ActualWidth + 1", source);
+            Assert.Contains("page.TableScroll.HorizontalOffset > 1", source);
+            var fields = new[] { LibraryField.Title, LibraryField.Genres, LibraryField.Overview,
+                LibraryField.Director, LibraryField.Tagline, LibraryField.Studios };
+            var width = LibraryTableColumns.TotalWidth(fields);
+            Assert.True(width > 900 && width < 1560,
+                "同一表格在真实900视口应溢出，在旧1560视口不溢出是合法的，不能放宽原断言");
+        });
         Test("探针收尾：飞牛库释放页面并移除本次Frame，不污染后续服务器页", () =>
         {
             var source = File.ReadAllText(Path.Combine(Root(), "src/Momoka.Shell/ShellNavigationProbe.FnNasLibrary.cs"));
