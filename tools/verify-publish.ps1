@@ -5,10 +5,12 @@ param(
 
     [switch]$SelfContained,
 
-    [string]$RepositoryRoot = (Split-Path -Parent $PSScriptRoot)
+    [string]$RepositoryRoot
 )
 
 $ErrorActionPreference = 'Stop'
+# Windows PowerShell 5.1 的 CmdletBinding 参数默认表达式可能尚未设置 PSScriptRoot；在脚本体解析默认根。
+if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) { $RepositoryRoot = Split-Path -Parent $PSScriptRoot }
 
 function Require-File([string]$Path, [string]$Description) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -87,14 +89,9 @@ foreach ($file in @(Get-ChildItem -LiteralPath $shaderRoot -Recurse -File)) {
 $shaderCount = @($expectedShaders | Where-Object { $_.Extension -eq '.glsl' }).Count
 $hookCount = @($expectedShaders | Where-Object { $_.Extension -eq '.hook' }).Count
 
-# 独占模式视频窗的 Lua UI（uosc 嵌入版，assets\mpv-ui）。缺入口脚本时 LibMpvBackend 只会降级成
-# 「没有屏幕控件的独占播放」，而四道闸门里没有一关会真的起播，所以装箱完整性只能在这里守。
-Require-File (Join-Path $root 'mpv-ui\scripts\uosc\main.lua') '独占模式 Lua UI 入口脚本'
-Require-File (Join-Path $root 'mpv-ui\scripts\uosc\lib\utils.lua') 'uosc 工具库'
-Require-File (Join-Path $root 'mpv-ui\scripts\uosc\elements\Timeline.lua') 'uosc 时间轴控件'
-Require-File (Join-Path $root 'mpv-ui\fonts\uosc_textures.ttf') 'uosc 贴图字体'
-Require-File (Join-Path $root 'mpv-ui\fonts\MaterialIconsRound-Regular.otf') 'uosc 图标字体'
-Require-File (Join-Path $root 'mpv-ui\LICENSE.LGPL') 'uosc 许可证文本'
+# R-067：完整 shipping 清单逐路径/size/SHA256 核验 UI、原生内核及 LICENSE/NOTICE 批准来源。
+# 不从待供应 DLL 生成批准值，不影响用户外部 mpv；无真实批准载荷就拒绝真实发布。
+$mpvPayload = & (Join-Path $PSScriptRoot 'verify-mpv-payload.ps1') -PublishRoot $root -RepositoryRoot $repositoryPath -SelfContained:$SelfContained
 
 # Momoka.pri 必须把框架那几份 .pri 并进来，否则程序在 App.xaml 那一步就崩：
 # 「Cannot locate resource from 'ms-appx:///Microsoft.UI.Xaml/Themes/themeresources.xaml'」。
@@ -144,4 +141,4 @@ if (Test-Path -LiteralPath $solution -PathType Leaf) {
 
 $files = @(Get-ChildItem -LiteralPath $root -Recurse -File)
 $bytes = ($files | Measure-Object -Property Length -Sum).Sum
-Write-Output ("发布验证通过：{0} 个文件，{1:N1} MB，{2} 个 GLSL、{3} 个 HOOK 着色器（含许可逐文件校验）。" -f $files.Count, ($bytes / 1MB), $shaderCount, $hookCount)
+Write-Output ("发布验证通过：{0} 个文件，{1:N1} MB，{2} 个 GLSL、{3} 个 HOOK 着色器（含许可逐文件校验）；批准 mpv 清单 {4} 个文件（{5} 个 UI、{6} 个 native），来源 {7}。" -f $files.Count, ($bytes / 1MB), $shaderCount, $hookCount, $mpvPayload.fileCount, $mpvPayload.uiCount, $mpvPayload.nativeCount, $mpvPayload.approvalId)

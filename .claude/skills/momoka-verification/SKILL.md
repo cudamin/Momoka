@@ -20,6 +20,20 @@ Verification runs per delivery batch, not per small edit.
 
 ## Before accepting a result
 
+### Shipped runtime approval
+
+`tools/verify-publish.ps1` delegates complete mpv-ui/native/license approval to
+`verify-mpv-payload.ps1`; the repo-fixed approved-payload manifest is not rebuilt from the tested
+DLLs. Dependency approval is separate from publish deps: selected pinned restore/package content and
+current project outputs constrain DLL bytes and relative paths. SDK download/runtimepack records lack
+content digests, so their approved identity/hash/asset mapping is explicitly pinned in
+`assets/mpv-runtime/approved-runtimepack.json`, never taken from mutable cache metadata. Official
+SDK NuGet content hashing/local signed-archive integrity remains offline; no signer-chain network
+check is implied. A complete synthetic non-PE fixture tests this same verifier without proving that
+real libmpv was supplied or a real publish/native run passed. Keep the missing real-native gate red;
+changing an approved package or binary is a separate reviewed change, not automatic snapshot refresh.
+
+
 - Confirm tested files and output belong to the current working tree. `--no-build` needs a successful build of the current test code and Core; `-c Release` alone can select stale output. Publishing the Shell does not refresh the test assembly.
 - Report observed counts, failures and skips separately. Missing fixtures, unavailable input and known old failures are not passes.
 - The Core test runner assigns each executed case exactly one outcome: passed, failed, or skipped. A runtime `Skip` suppresses its pass; an exception after `Skip` still fails. Repeated skip reasons within a case count once. Pre-registration skips also appear in the total. Optional skips preserve exit code 0 but never satisfy a required check. `TestHarnessTests` exercises the real runner in isolated test child processes.

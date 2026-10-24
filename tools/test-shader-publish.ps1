@@ -4,28 +4,12 @@ param()
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path -LiteralPath (Split-Path -Parent $PSScriptRoot)).Path
 $run = Join-Path $repo ('artifacts\shader-publish-tests\' + [guid]::NewGuid().ToString('N'))
-$root = Join-Path $run 'publish'
-[System.IO.Directory]::CreateDirectory($root) | Out-Null
-$required = @(
-    'Momoka.exe', 'Momoka.deps.json', 'Momoka.runtimeconfig.json', 'libmpv-2.dll', 'vulkan-1.dll',
-    'Momoka.pri', 'mpv-ui\scripts\uosc\main.lua', 'mpv-ui\scripts\uosc\lib\utils.lua',
-    'mpv-ui\scripts\uosc\elements\Timeline.lua', 'mpv-ui\fonts\uosc_textures.ttf',
-    'mpv-ui\fonts\MaterialIconsRound-Regular.otf', 'mpv-ui\LICENSE.LGPL',
-    'LICENSE', 'LICENSE.LGPL-2.1.txt', 'LICENSE.LGPL-3.0.txt', 'LICENSE.GPL-3.0.txt',
-    'LICENSE.Apache-2.0.txt', 'THIRD-PARTY-NOTICES.md'
-)
-foreach ($relative in $required) {
-    $target = Join-Path $root $relative
-    [System.IO.Directory]::CreateDirectory((Split-Path -Parent $target)) | Out-Null
-    [System.IO.File]::WriteAllText($target, 'fixture themeresources')
-}
-# 那三份 LGPL/GPL 正文不行：verify-publish 拿它们与仓库逐字节比对，占位文本会被当场判为「与仓库不一致」，
-# 于是每条用例都变成同一种失败（假载荷自己不合格），真正的判据全被掩盖。所以从仓库真拷。
-foreach ($name in @('LICENSE.LGPL-2.1.txt', 'LICENSE.LGPL-3.0.txt', 'LICENSE.GPL-3.0.txt')) {
-    Copy-Item -LiteralPath (Join-Path $repo "assets\mpv-runtime\$name") -Destination (Join-Path $root $name) -Force
-}
-$source = Join-Path $repo 'assets\shaders'
-Copy-Item -LiteralPath $source -Destination (Join-Path $root 'shaders') -Recurse
+. (Join-Path $PSScriptRoot 'mpv-payload-fixture.ps1')
+# 使用同一生产校验路径的完整 approved 合成载荷；不再用六份 uosc / 任意 native 占位绕过新门禁。
+$fixture = New-MpvPayloadFixture $repo (Join-Path $run 'fixture')
+$root = $fixture.publish
+$fixtureRepository = $fixture.repository
+$source = Join-Path $fixtureRepository 'assets\shaders'
 $results = [System.Collections.Generic.List[object]]::new()
 $check = Join-Path $PSScriptRoot 'verify-publish.ps1'
 
@@ -33,12 +17,12 @@ function Invoke-Check([string]$Name, [bool]$Success, [string]$Needle = '') {
     $saved = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
-        $lines = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $check -PublishRoot $root -RepositoryRoot $repo 2>&1)
+        $lines = @(& powershell -NoProfile -ExecutionPolicy Bypass -File $check -PublishRoot $root -RepositoryRoot $fixtureRepository 2>&1)
         $code = $LASTEXITCODE
     } finally { $ErrorActionPreference = $saved }
     $text = $lines | Out-String
     $ok = (($code -eq 0) -eq $Success) -and ($Needle.Length -eq 0 -or $text.Contains($Needle))
-    $results.Add([pscustomobject]@{ name=$Name; passed=$ok; exitCode=$code; output=$text })
+    $results.Add([pscustomobject]@{ name=$Name; passed=$ok; exitCode=$code; output=$text; repository=$fixtureRepository; publish=$root; nativeIsSynthetic=$true })
     Write-Output ("{0}: {1}" -f $Name, $ok)
 }
 

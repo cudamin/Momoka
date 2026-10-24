@@ -1,3 +1,9 @@
+## 第五组本批收束：R-010／R-008／R-011／R-067（2026-10-24，按用户要求暂停）
+
+- 本批前三提交R010=e229a2d、R008=5fa9c96、R011=9c42989；R067最终来源0520c27限定14工具/批准数据合入，八保留全部独立闭环无P1/P2，主树最终runtimepack25/package7/layout23/boundary50/payload147/shader23全绿/0失败/0跳过/退出0；当前42依赖来源只读核验及44PS过。原native56路径/Bootstrap历史optional不改，新runtimepack独立repo pin固定SDK/TFM/RID/包内容/归档/两exact资产，不信待验cache/deps自动授信。最终证据batch05/r067/final-0520c27与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计65个稳定号业务实现＋相关离线回归，余8：受限R001/003/005/031保持停止，条件R017/042/065与显示建议R043不擅修。最终同源34csprojRelease方案0警告错误、Core2549全绿、29独立专项＋13显式匿名fixture入口全部退出0不相加，Legacy87/工具维护13/smoke14/自动化无句柄0/生成11+6拒绝等过。旧Legacy编译改Core信息版本hash后已统一current方案重编/全43入口重验且Core/Shell/Tests一致，不放宽来源hash。产品源码未因R067改变，所有旧红/中间失败/09:32接续和子代理历史/树保留。
+- **现在按用户“完成这批之后暂停”的范围收束暂停**；“恢复”只恢复本批，没有启动下一问题/代理/自动唤醒。全部子代理已交回并结束工作，上下文可恢复，工作树未归档/清理。真实libmpv未供应、runtime门禁仍exit1；无生产凭据/DPAPI/登录重认证链或真实App/WinUI像素/服务器调权共享写/native/播放验证，无发布/push/快捷方式刷新。**这不是完整产品交付，快捷方式仍旧版。** 再明确恢复前不继续；压缩后先全文读C:/Users/89400/Momoka/CLAUDE.md及本树HEAD/状态/最新checkpoint。
+
 ## 第五组 R-011 主树当前权限与组合回归完成（2026-10-24，限定本批）
 
 - 源907cb8d限定六产品/16专项复制，SettingsPage手工仅三权限hunk保R010保存监控；同身份current权限/revision与capturedConnection/令牌/播放identity/lifetime分开，能力/管理页/执行即时降升、旧await跨代拒回填。Main54/17、帐号当前14及明确R010快照14、Defaults36/SettingsLifetime45/R02768/实际保存组合42绿不相加；新Dispose派生Attach42项41过1败→只base readonly/Password首guard两行修后42绿，原Save实现逐字不变。Pasteur来源与主组合两次无P1/P2。实际19caller pins仅两文件diff复核更新，50绿及8提取拒绝后current50再绿；当前34csproj方案Release零警告错误/完整Core2549绿，solutionRelease/x64空白0改/34PS/源码合同与UTF8LF链接hash通过，证据batch05/r011与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
