@@ -1,3 +1,8 @@
+## 第六组 R-065 最终来源整合与主树相关验证（2026-10-24，在途）
+
+- 来源7474269限定10份Gitblob+Program四行入口，保R017/R042当前主树提交/原tests；读取失败不等null、Applyfalse不被相等状态吞，原二态+Error回拨，不新增未知UX。Gibbs共享restore尾部P2已来源34项18绿16红→34绿：Reload清cause/同步建行记录、await前快照传原tail；启动61/截图反射caller14/设置27及源码Release零警告错误，旧39/61/工具编译红全保。actual测试/调用边界不等完整用户Reload/default/import或真实注册表/UI，主树61/34/14/27/29全绿、Tests/Shell零警告错误、10源逐字同worker，Gibbs最终闭环无P1/P2；Release/x64方案空白0改/35项目加载无诊断，format后统一fresh方案/47匿名入口待最终提交后重验，不以早期绿色销账。[增量](docs/代码审查-分阶段修复-2026-10-23.md)／[启动专项](tests/Momoka.Tests/StartupStateContractTests.md)。
+- R017987eee1/96绿、R042cb050cc/31当前及旧13项6红；R042仅既有保护不新产品计数。本项提交后本地实现预计67（65+两内部契约纠正），部署偏移/modal/ACL仍未验，R043及受限四号不动。原历史records/既有错误日志保留，默认代理均交回结束工作且可恢复、各树保留，Gibbs最终只读闭环已回。libmpv缺、真实native红、快捷方式旧版，无真实UI/服务器/凭据DPAPI/播放/发布push，非完整交付。
+
 ## 第六组 R-042 current保护确认及专项合入（2026-10-24）
 
 - Hypatia来源4a63a69限定22测试/脚本/证据blob合入，当前真实Core/session（仅SettingsStore IO替身）/VM/Dialog31绿、35项目Release映射；R037/039既有service blob548f400与1b37ca1完全同，本题不再改产品。来源旧四exact输入+currentCore13项7绿6红仅有限对照，初工具错另保；实际聚合A→B旧scope仍可用但canContinue阻止后续Apply/Refresh，固定后台来源无委托仍继续。主树local-only restore、current单项目零警告错误/31绿，Run-Fixture current/历史反例及最终方案仍按本树重验。[增量](docs/代码审查-分阶段修复-2026-10-23.md)／[R042](tests/Momoka.AniBtSourceContractTests/README.md)。

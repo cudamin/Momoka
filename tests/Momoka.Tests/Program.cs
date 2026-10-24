@@ -11,6 +11,10 @@ internal static class Program
             return TestHarnessTests.RunChild(scenario);
         if (args is ["activation-listener-fixture", var activationScenario])
             return ActivationListenerTests.RunChild(activationScenario);
+        if (args is ["startup-state-contract-fixture", var startupShell, var startupRoot])
+            return StartupStateContractTests.Run(startupShell, startupRoot);
+        if (args is ["startup-reapply-notice-fixture", var reapplyShell, var reapplyRoot])
+            return StartupReapplyNoticeTests.Run(reapplyShell, reapplyRoot);
         if (args is ["settings-page-state-fixture", var shellAssembly, var sourceRoot])
             return SettingsPageStateTests.Run(shellAssembly, sourceRoot);
         if (args is ["settings-applicability-fixture", var applicabilityShell, var applicabilityRoot])

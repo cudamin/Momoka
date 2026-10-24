@@ -164,6 +164,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     private AppPaths? _paths;
     private Platform.ISystemLauncher? _launcher;
     private Platform.IStartupRegistration? _startup;
+    private string? _startupReloadReadFailure;
     private IServerCapabilities? _capabilities;
     private readonly LoadGeneration _administrationLoads = new();
     private bool _active;
@@ -1069,6 +1070,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     public override Task ReloadAsync()
     {
         if (_settings is null) return Task.CompletedTask;
+        _startupReloadReadFailure = null;
         SyncSaveState();
 
         // 精简模式是页级状态（SettingRow.NotesHidden），建卡之前先对齐 —— 行的可见性在容器落到树上那一刻
@@ -2067,24 +2069,78 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingToggleRow StartupRow()
     {
         SettingToggleRow? row = null;
+        bool? confirmed = null;
+        var applied = false;
+        (string? Title, string Message)? failureNotice = null;
+
+        void Failed(string? title, string message)
+        {
+            failureNotice = (title, message);
+            Notify(title, message, InfoBarSeverity.Error);
+        }
+
+        void ReadFailed(Exception error) => Failed("读取开机自启状态失败",
+            $"{Failure.Describe(error)}；无法确认当前状态，请在系统启动项中核对。");
+
+        bool Read()
+        {
+            try
+            {
+                if (_startup is not null) confirmed = _startup.IsEnabled;
+            }
+            catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+            {
+                ReadFailed(error);
+                _startupReloadReadFailure = NoticeMessage;
+            }
+
+            // 没有可信初读时只用原有二态行的默认值，不把它当事实；已有 Error 反馈明确读取失败。
+            return confirmed ?? false;
+        }
 
         row = Toggle("开机自启",
             "登录 Windows 之后自动打开 Momoka；关掉就从系统的启动项里撤掉。改完当场生效，不用重启。"
                 + "这一项不进设置文件，任务管理器「启动」页上看到的就是它。",
-            () => _startup?.IsEnabled ?? false,
-            value => _startup?.Apply(value),
+            Read,
+            value => applied = _startup?.Apply(value) ?? false,
             after: () =>
             {
                 if (row is null || _startup is null) return;
 
-                var actual = _startup.IsEnabled;
-                if (actual == row.IsOn) return;
+                var wanted = row.IsOn;
+                bool actual;
+                try
+                {
+                    actual = _startup.IsEnabled;
+                }
+                catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+                {
+                    // 仅成功读数能更新 confirmed。回读失败时撤掉未确认的用户目标，保留此前读数并报错。
+                    row.Reseed(confirmed ?? false);
+                    ReadFailed(error);
+                    return;
+                }
 
-                row.Reseed(actual);
-                Notify(null, actual
-                    ? "没能关掉开机自启：系统拒绝了这次改动，本程序仍会在登录后启动。"
-                    : "没能打开开机自启：系统拒绝了这次改动，本程序不会在登录后启动。",
-                    InfoBarSeverity.Error);
+                confirmed = actual;
+                if (actual != wanted)
+                {
+                    row.Reseed(actual);
+                    Failed(null, actual
+                        ? "没能关掉开机自启：系统拒绝了这次改动，本程序仍会在登录后启动。"
+                        : "没能打开开机自启：系统拒绝了这次改动，本程序不会在登录后启动。");
+                }
+                else if (!applied)
+                {
+                    // 两格可能只改成一格；即使当前 bool 恰好等于目标，也不能吞掉 Apply 的失败契约。
+                    Failed(null, "没能确认开机自启改动已完成，请在系统启动项中核对。");
+                }
+                else if (failureNotice is { } failure && NoticeTitle == failure.Title
+                    && NoticeMessage == failure.Message && NoticeSeverity == InfoBarSeverity.Error)
+                {
+                    // 本行后续已确认成功才撤自己的旧错误；不清掉其他操作留下的反馈。
+                    ClearNotice();
+                    failureNotice = null;
+                }
             });
 
         return row;
@@ -2701,17 +2757,26 @@ public sealed partial class SettingsViewModel : PageViewModel
         ShellPrefs.Apply(ui);
         ShellPrefs.ApplyShortcuts();
 
-        await ReloadAsync().ConfigureAwait(true);
-        await ReapplyPlaybackPreferencesAsync(notice).ConfigureAwait(true);
+        // 建行同步完成，后续 Task 只等字体/设备：在 await 前保留本次启动初读错误，不能借另一轮的读数。
+        var reload = ReloadAsync();
+        var startupReadFailure = _startupReloadReadFailure;
+        await reload.ConfigureAwait(true);
+        await ReapplyPlaybackPreferencesAsync(notice, startupReadFailure).ConfigureAwait(true);
     }
 
     /// <summary>恢复/导入共有的播放设置收尾；与窗口重建分开，使用同一批已恢复的内存设置。</summary>
-    private async Task ReapplyPlaybackPreferencesAsync(string notice)
+    private async Task ReapplyPlaybackPreferencesAsync(string notice, string? startupReadFailure = null)
     {
         var subtitlesApplied = await PushSubtitleStyleAsync().ConfigureAwait(true);
         var screenshotsApplied = await PushScreenshotOptionsAsync().ConfigureAwait(true);
         AnnounceScreenshotDirectory();
         if (!subtitlesApplied || !screenshotsApplied) return;
+
+        if (startupReadFailure is not null)
+        {
+            Notify("读取开机自启状态失败", startupReadFailure, InfoBarSeverity.Error);
+            return;
+        }
 
         Notify(null, HasUnsavedChanges ? "偏好已在本次运行应用，但尚未保存；请重试保存。" : notice,
             HasUnsavedChanges ? InfoBarSeverity.Warning : InfoBarSeverity.Success);

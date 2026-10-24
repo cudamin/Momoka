@@ -21,7 +21,10 @@ internal interface IStartupRegistration
     /// </summary>
     bool Available { get; }
 
-    /// <summary>此刻会不会开机自启 —— 读注册表当下的事实，不是读一份记下来的偏好。</summary>
+    /// <summary>
+    /// 此刻会不会开机自启 —— 读注册表当下的事实，不是读一份记下来的偏好。
+    /// 读失败抛出权限／IO异常；不能把「读不到」用 false 或缺失值冒充确定状态。
+    /// </summary>
     bool IsEnabled { get; }
 
     /// <summary>
@@ -70,16 +73,15 @@ internal sealed class StartupRegistration : IStartupRegistration
                 using var run = Registry.CurrentUser.OpenSubKey(RunKey, writable: true);
                 run?.DeleteValue(StartupEntry.ValueName, throwOnMissingValue: false);
             }
+
+            // 回读也是操作确认的一部分：没读到不能当作已关闭，失败仍通过 Apply=false 交给调用方。
+            return IsEnabled == enabled;
         }
         catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException)
         {
-            Log.Warn(Category, $"改不动开机自启那一条（{(enabled ? "写" : "删")}）：{error.Message}");
+            Log.Warn(Category, $"未能确认开机自启改动（{(enabled ? "写" : "删")}）：{error.Message}");
             return false;
         }
-
-        // 写完读回来问一句「现在真的是这样吗」，而不是假定写成功 —— 上面那几种失败之外，还有
-        // 「值写进去了但读回来不是这一份」这类环境问题。
-        return IsEnabled == enabled;
     }
 
     /// <summary>Run 那一格里存着的那一行，没有就是 null。</summary>
@@ -92,10 +94,10 @@ internal sealed class StartupRegistration : IStartupRegistration
                 using var key = Registry.CurrentUser.OpenSubKey(RunKey);
                 return key?.GetValue(StartupEntry.ValueName) as string;
             }
-            catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException)
+            catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException)
             {
                 Log.Warn(Category, $"读不到开机自启那一条：{error.Message}");
-                return null;
+                throw;
             }
         }
     }
@@ -110,10 +112,10 @@ internal sealed class StartupRegistration : IStartupRegistration
                 using var key = Registry.CurrentUser.OpenSubKey(ApprovalKey);
                 return key?.GetValue(StartupEntry.ValueName) as byte[];
             }
-            catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException)
+            catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException)
             {
                 Log.Warn(Category, $"读不到开机自启的启动状态：{error.Message}");
-                return null;
+                throw;
             }
         }
     }

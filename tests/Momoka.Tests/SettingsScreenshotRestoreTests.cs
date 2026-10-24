@@ -41,7 +41,7 @@ internal static class SettingsScreenshotRestoreTests
             var source = Regex.Replace(shell.ViewModelSource, @"/\*.*?\*/|//[^\r\n]*", "", RegexOptions.Singleline);
             Assert.Equal(3, Regex.Matches(source, @"\bReapplyAndReloadAsync\(").Count);
             Assert.Equal(2, Regex.Matches(source, @"\bReapplyPlaybackPreferencesAsync\(").Count);
-            Assert.True(source.Contains("await ReapplyPlaybackPreferencesAsync(notice)", StringComparison.Ordinal));
+            Assert.True(source.Contains("await ReapplyPlaybackPreferencesAsync(notice, startupReadFailure)", StringComparison.Ordinal));
         });
         foreach (var originalFormat in new[] { "jpg", "webp" })
             Case($"R-059 {originalFormat}恢复默认，下一截图前完整应用PNG组选项", async () =>
@@ -225,7 +225,7 @@ internal static class SettingsScreenshotRestoreTests
             await Service.ApplyScreenshotOptionsAsync();
             Handle.Writes.Clear();
         }
-        public Task Reapply() => (Task)Invoke("ReapplyPlaybackPreferencesAsync", "fixture complete")!;
+        public Task Reapply() => (Task)Invoke("ReapplyPlaybackPreferencesAsync", "fixture complete", null)!;
         public object? Invoke(string name, params object?[] args) => _shell.Invoke(_vm, name, args);
         public T Get<T>(string name) => _shell.Get<T>(_vm, name);
         public void DropHandle()
