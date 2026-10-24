@@ -94,6 +94,11 @@ internal static partial class CompositionPlaybackProbe
                     "文件已加载且真实 surface/brush/子 Visual 已挂树");
                 var tracks = await handle.GetTracksAsync(token);
                 Check(tracks.Any(track => track.Type == "video" && track.Selected), "存在选中视频轨");
+                // file-loaded/track selection may precede mpv's first time-pos. Wait only at this
+                // startup boundary; unknown positions during later progress/pause checks still fail.
+                var initialPosition = await CompositionPositionReadiness.WaitAsync(
+                    handle.GetPositionAsync, () => playbackExit.IsCompleted, token);
+                Write($"通过：首个有效播放位置已就绪 {initialPosition:F3}");
                 await AdvanceAsync("起播", 2);
 
                 foreach (var size in new[] { (Width: 800, Height: 500), (Width: 1120, Height: 700) })

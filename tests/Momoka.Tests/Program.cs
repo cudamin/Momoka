@@ -11,6 +11,12 @@ internal static class Program
             return TestHarnessTests.RunChild(scenario);
         if (args is ["activation-listener-fixture", var activationScenario])
             return ActivationListenerTests.RunChild(activationScenario);
+        if (args is ["composition-readiness-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            CompositionPositionReadinessTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["selfcheck-layout-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -240,6 +246,7 @@ internal static class Program
         MoviePilotVersionQueryTests.Register();
         MoviePilotEpisodePatternTests.Register();
         SelfCheckLayoutRulesTests.Register();
+        CompositionPositionReadinessTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

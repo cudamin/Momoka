@@ -1,3 +1,9 @@
+## 第八组合成起播首位置就绪（2026-10-24，在途）
+
+- b5bce71最终38项目Release零警告错误、Core2871/51入口全过，正式publish540文件过；actual全Shell101/101（scope全量无跳过）、字幕11/11、本地motion全部自动断言/exit0及自检186无失败/缺失/降级，6份真实profile主备字节未变。实际截图已目检，ZIP未生成、shortcut暂未改。
+- 最后补最终composition actual时，已loaded/已选视频轨后第一个time-pos仍unknown，原即时读回报失败/exit1，原日志保留。仅补probe起播边界10秒首位置等待（0合法、有限非负），getter异常/EOF/调用取消/截止均失败；后续progress/pause严格读回与0.25秒推进判据不变。实际链接就绪函数9正反例过，不改libmpv/PlayerPage/播放服务、baseline/native批准或UI体验；提交后重跑受影响composition及当前Core，其他既有actual源码未变覆盖可核source pins。
+- 用户仅要桌面快捷方式，不打压缩包、不push；最终composition未通过不宣称交付。此前AtomicFile追加压力访问拒绝诊断保留，不用正常Core绿掩盖。
+
 ## 第八组表格探针尺寸前件闭环（2026-10-24，在途）
 
 - 用户明确只交付桌面快捷方式，不打ZIP，不更改R043展示。e399967正式38项目Release0警告错误、Core2870全过、51入口全exit0及Settings23/HomeOrder11/motion15/selfcheck32附加过；实际发布540文件/283.5MB/固定native与依赖检查过。
