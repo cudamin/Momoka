@@ -57,11 +57,11 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
-      "sha256": "da0dc3e5f31325550973cf6395c1c6b7ba222230e8d5831116367a2c301e9008"
+      "sha256": "e5f40e16cf538654388b218f080a6e6a1e1fa1693cd73658c2854894eaf30e18"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
-      "sha256": "ad136e6cac7d519bb72ab3b1a765e2f88b6bdda53a5960f7f184c1d650f30ceb"
+      "sha256": "0662831e59eb35357e4bd6722c52ef2eec84aababa98aceb47f3cefbf1ae378d"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <AssemblyName>Momoka.CurrentPermissionAccountCompatibility</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+        <AccountPasswordSource Condition="'$(AccountPasswordSource)' == ''">$(MSBuildProjectDirectory)\..\..\..\src\Momoka.Shell\ViewModels\FnNasPasswordViewModel.cs</AccountPasswordSource>
+        <!-- Main-tree current password VM already has R010; compile the actual narrow interface,
+             not a copied persistence implementation. Explicit old snapshots may still override it. -->
+        <AccountPersistenceSource Condition="'$(AccountPersistenceSource)' == ''">$(MSBuildProjectDirectory)\..\..\..\src\Momoka.Core\Services\ISettingsPersistence.cs</AccountPersistenceSource>
+        <DefineConstants Condition="'$(AccountPersistenceSource)' != ''">$(DefineConstants);R010_COMPATIBILITY</DefineConstants>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)\obj\$(Configuration)\$(TargetFramework)\generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- No Core or Shell assembly reference: only full VMs and framework-free rules. A production
+             authentication/session/password/protector/persistence implementation cannot be loaded. -->
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+        <Compile Include="$(AccountPasswordSource)" Link="Production\FnNasPasswordViewModel.cs" />
+        <Compile Include="$(AccountPersistenceSource)" Condition="'$(AccountPersistenceSource)' != ''" Link="Production\ISettingsPersistence.cs" />
+        <Compile Include="..\..\..\src\Momoka.Shell\ViewModels\FnNasPreferencesViewModel.cs" Link="Production\FnNasPreferencesViewModel.cs" />
+        <Compile Include="..\..\..\src\Momoka.Shell\ViewModels\FnNasSessionViewModel.cs" Link="Production\FnNasSessionViewModel.cs" />
+        <Compile Include="..\..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+        <Compile Include="..\..\..\src\Momoka.Shell\ViewModels\FnNasAdminRows.cs" Link="Production\FnNasAdminRows.cs" />
+        <Compile Include="..\..\..\src\Momoka.Core\Infrastructure\LoadGeneration.cs" Link="Production\LoadGeneration.cs" />
+        <Compile Include="..\..\..\src\Momoka.Core\Diagnostics\Failure.cs" Link="Production\Failure.cs" />
+        <Compile Include="..\..\..\src\Momoka.Core\Emby\EmbyApiException.cs" Link="Production\EmbyApiException.cs" />
+        <Compile Include="..\UiEnums.cs" Link="UiEnums.cs" />
+        <Compile Include="..\..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+        <Compile Include="..\..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
+    </ItemGroup>
+</Project>

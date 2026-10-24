@@ -36,6 +36,7 @@ public sealed partial class FnNasPasswordViewModel : FnNasSessionViewModel
 
     internal void Attach(EmbySession session, ISettingsPersistence persistence, Action<Action> dispatch, string? sourceKey = null)
     {
+        if (IsDisposed) return;
         base.Attach(session, sourceKey);
         _persistence = persistence;
         var visit = _saveVisit = new object();

@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <AssemblyName>Momoka.CurrentPermissionSnapshotTests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+        <PermissionSourceRoot Condition="'$(PermissionSourceRoot)' == ''">$(MSBuildThisFileDirectory)..\..</PermissionSourceRoot>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>$(MSBuildProjectDirectory)\obj\$(Configuration)\$(TargetFramework)\generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Remove="AccountCompatibility\**\*.cs" />
+        <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <!-- Full production VMs and the same pinned generator as Shell; no copied permission rules. -->
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasSessionViewModel.cs" Link="Production\FnNasSessionViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasAdminViewModel.cs" Link="Production\FnNasAdminViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasLibrariesViewModel.cs" Link="Production\FnNasLibrariesViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasUsersViewModel.cs" Link="Production\FnNasUsersViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasSettingsViewModel.cs" Link="Production\FnNasSettingsViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasTasksViewModel.cs" Link="Production\FnNasTasksViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\FnNasAdminRows.cs" Link="Production\FnNasAdminRows.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+        <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    </ItemGroup>
+    <UsingTask TaskName="ExtractPermissionPageSources" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <SourceRoot ParameterType="System.String" Required="true" />
+            <OutputSource ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Using Namespace="System.Security.Cryptography" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                Func<string, string, string, string> between = (text, start, end) =>
+                {
+                    var begin = text.IndexOf(start, StringComparison.Ordinal);
+                    if (begin < 0 || text.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous production start: " + start);
+                    var finish = text.IndexOf(end, begin, StringComparison.Ordinal);
+                    if (finish < 0) throw new InvalidOperationException("Missing production end: " + end);
+                    return text.Substring(begin, finish - begin);
+                };
+                var pagePath = Path.Combine(SourceRoot, "src", "Momoka.Shell", "Views", "SettingsPage.xaml.cs");
+                var playlistPath = Path.Combine(SourceRoot, "src", "Momoka.Shell", "Views", "FnNasPlaylistFile.cs");
+                var pageBytes = File.ReadAllBytes(pagePath);
+                var page = Encoding.UTF8.GetString(pageBytes).Replace("\r\n", "\n");
+                var playlist = File.ReadAllText(playlistPath).Replace("\r\n", "\n");
+                var output = "// Extracted verbatim from current production; framework endpoints are boundaries.\n#nullable enable\n" +
+                    "using System.ComponentModel;\nusing Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\n" +
+                    "using Microsoft.Extensions.DependencyInjection;\nusing SettingsViewModel = Momoka.Tests.SettingsVmProxy;\n" +
+                    "namespace Momoka.Shell.Views;\n" +
+                    between(playlist, "internal readonly record struct PickedFnNasPlaylist", "\n\ninternal static class FnNasPlaylistFile") +
+                    "\ninternal sealed partial class PermissionPage\n{\n" +
+                    "    internal const string ProductionPageSha256 = \"" + BitConverter.ToString(SHA256.Create().ComputeHash(pageBytes)).Replace("-", "").ToLowerInvariant() + "\";\n" +
+                    "    internal void SubscribeProduction(EmbySession session)\n    {\n        var request = new PermissionRequest(new PermissionServices(session));\n" +
+                    between(page, "        _session = request.Services.GetRequiredService<EmbySession>();", "\n\n        // 每一次打开都重新核一遍账号权限") +
+                    "\n    }\n" +
+                    "    internal void ConnectSelection()\n    {\n" +
+                    between(page, "        ViewModel.PropertyChanged += (_, e) =>", "\n    }\n\n    internal SettingsViewModel ViewModel") +
+                    "\n    }\n" +
+                    between(page, "    private async Task RefreshServerAdministrationAsync()", "\n    /// <summary>\n    /// 分组表每次重算") +
+                    between(page, "    private void StopSourceMonitoring()", "\n    protected override void OnNavigatedFrom") +
+                    (page.Contains("    private void OnPermissionsChanged(")
+                        ? between(page, "    // 只刷新管理目录与已打开页；", "    private void OnSourceListChanged(") : "") +
+                    between(page, "    private void OnSourceListChanged(", "\n    /// <summary>\n    /// Counts realised") +
+                    "\n}\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+                if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != output)
+                    File.WriteAllText(OutputSource, output, new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GeneratePermissionPageSources" BeforeTargets="CoreCompile">
+        <ExtractPermissionPageSources SourceRoot="$(PermissionSourceRoot)"
+                                      OutputSource="$(IntermediateOutputPath)PermissionPage.g.cs" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)PermissionPage.g.cs" />
+        </ItemGroup>
+    </Target>
+</Project>

@@ -1,3 +1,8 @@
+## 第五组 R-011 主树当前权限与组合回归完成（2026-10-24，限定本批）
+
+- 源907cb8d限定六产品/16专项复制，SettingsPage手工仅三权限hunk保R010保存监控；同身份current权限/revision与capturedConnection/令牌/播放identity/lifetime分开，能力/管理页/执行即时降升、旧await跨代拒回填。Main54/17、帐号当前14及明确R010快照14、Defaults36/SettingsLifetime45/R02768/实际保存组合42绿不相加；新Dispose派生Attach42项41过1败→只base readonly/Password首guard两行修后42绿，原Save实现逐字不变。Pasteur来源与主组合两次无P1/P2。实际19caller pins仅两文件diff复核更新，50绿及8提取拒绝后current50再绿；当前34csproj方案Release零警告错误/完整Core2549绿，solutionRelease/x64空白0改/34PS/源码合同与UTF8LF链接hash通过，证据batch05/r011与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计64号本地实现＋相关离线回归、余9；R008提交5fa9c96已完成。仅剩本批R067源4ed5351七保留最后闭环复核/限定整合，收束后暂停；受限四号/条件候选/显示建议不另开。生产认证/恢复/重认证/改密/vaultDPAPI/configtoken链仅静态接线，无真实App/WinUI像素/native/服务器/播放/发布推送，快捷方式旧版，非完整交付。全部历史红与09:32暂停接续记录保留。
+
 ## 第五组 R-008 主树完成（2026-10-24，限定本批）
 
 - worker首cdfb832/补afd448最终VM限定合入后主线程同步入口及取消/失败尾部闭环：点击输入快照、token/ID/username在通知前发布、load/UI尾部守原票，draft尾部守编辑版本，sameID仅等价name免取消；不改生产Session/Gateway/vault。原77保留＋51=128，exact afd448两旧VM同夹具95过33败→当前128全绿/0跳过；全中间红保留。fresh x64Shell/fixture Release零警告错误、相关共享base8套当前绿不相加，实际bindings17+8非法生成拒绝/题内格式0修改/PSBOMLF解析/20输入hash通过，Popper最终无P1/P2。证据batch05/r008及run-resume-final128-red/green，具体见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。

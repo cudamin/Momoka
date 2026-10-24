@@ -25,6 +25,12 @@ public sealed class EmbySessionScope
     public bool IsCurrent => _session.IsCurrent(this);
     public bool IsAvailable => _session.IsAvailable(this);
 
+    /// <summary>该在线身份当前确认的权限；不使用捕获时的令牌/播放连接快照，撤销后返回未知。</summary>
+    public bool? IsAdministrator => _session.CurrentPermissions(this).IsAdministrator;
+
+    /// <summary>同身份客户端权限快照的代次；旧能力读取与页面操作不能跨新快照回填。</summary>
+    public long PermissionRevision => _session.CurrentPermissions(this).Revision;
+
     public void ThrowIfNotCurrent()
     {
         if (!IsCurrent) throw new OperationCanceledException("任务所属的默认登录身份已改变");
@@ -64,6 +70,7 @@ public sealed class EmbySessionScope
     internal sealed class Identity(EmbyClient client, ServerProfile server, AccountProfile account)
     {
         public EmbyClient Client { get; set; } = client;
+        public long PermissionRevision { get; set; }
         public ServerProfile Server { get; } = server;
         public AccountProfile Account { get; } = account;
         public CancellationTokenSource Lifetime { get; } = new();

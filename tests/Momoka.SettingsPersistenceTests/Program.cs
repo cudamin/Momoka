@@ -226,6 +226,52 @@ internal static class Program
             });
         }
 
+        Case("R011组合：权限降升不取消已确认后的真实Store欠项或本地订阅", async () =>
+        {
+            using var fixture = new PasswordFixture(_root);
+            Draft(fixture.Vm, P1);
+            var pending = Save(fixture.Vm);
+            fixture.Session.ConfirmPermissions(fixture.Session.Sources[0], false);
+            fixture.Session.ConfirmPermissions(fixture.Session.Sources[0], true);
+            Assert.Equal(0, fixture.Session.PermissionSubscribers, "帐号页不订阅管理员权限通知");
+            Assert.Equal(1, fixture.Persistence.Subscribers);
+            Draft(fixture.Vm, P2);
+            using (fixture.Local.Lock()) { fixture.Reply(); await pending; }
+            Assert.True(Unsaved(fixture.Vm));
+            AssertDraft(fixture.Vm, P2);
+            fixture.Session.ConfirmPermissions(fixture.Session.Sources[0], false);
+            fixture.Session.ConfirmPermissions(fixture.Session.Sources[0], true);
+            Assert.Equal(1, fixture.Persistence.Subscribers, "权限通知不退本地保存监听");
+            Retry(fixture.Vm);
+            Assert.False(Unsaved(fixture.Vm));
+            Assert.Equal(72, fixture.Local.ReadFont());
+            AssertDraft(fixture.Vm, P2);
+            Assert.Equal(1, fixture.Endpoint.Writes.Count);
+            Assert.Equal(1, fixture.Persistence.Retries);
+            Assert.Equal(0, fixture.Local.Protector.Calls);
+        });
+
+        Case("R011组合：重试Busy通知内权限变化不取消纯本地保存", () =>
+        {
+            using var fixture = new PasswordFixture(_root);
+            using (fixture.Local.Lock()) Assert.False(fixture.Local.Service.TrySave());
+            Draft(fixture.Vm, P2);
+            fixture.Vm.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName != nameof(fixture.Vm.Busy) || !fixture.Vm.Busy) return;
+                fixture.Session.ConfirmPermissions(fixture.Session.Sources[0], false);
+                fixture.Session.ConfirmPermissions(fixture.Session.Sources[0], true);
+            };
+            Retry(fixture.Vm);
+            Assert.False(Unsaved(fixture.Vm));
+            AssertDraft(fixture.Vm, P2);
+            Assert.Equal(0, fixture.Endpoint.Writes.Count);
+            Assert.Equal(1, fixture.Persistence.Retries);
+            Assert.Equal(1, fixture.Persistence.Subscribers);
+            Assert.Equal(0, fixture.Local.Protector.Calls);
+            return Task.CompletedTask;
+        });
+
         Case("真实 VM：正常本地成功保原文案/清本次草稿，无本地重试", async () =>
         {
             using var fixture = new PasswordFixture(_root);
@@ -474,6 +520,20 @@ internal static class Program
             Assert.False(Unsaved(fixture.Vm));
             queued[0]();
             Assert.False(Unsaved(fixture.Vm));
+            Assert.Equal(0, fixture.Endpoint.Writes.Count);
+            return Task.CompletedTask;
+        });
+
+        Case("R011组合：Dispose后派生帐号Attach不能重新订阅本地保存", () =>
+        {
+            using var fixture = new PasswordFixture(_root);
+            fixture.Vm.Dispose();
+            Assert.Equal(0, fixture.Persistence.Subscribers);
+            fixture.Attach();
+            Assert.Equal(0, fixture.Persistence.Subscribers, "base已拒绝附加，派生页不能偷偷恢复本地监听");
+            Assert.False(fixture.Vm.CanSave);
+            Retry(fixture.Vm);
+            Assert.Equal(0, fixture.Persistence.Retries);
             Assert.Equal(0, fixture.Endpoint.Writes.Count);
             return Task.CompletedTask;
         });

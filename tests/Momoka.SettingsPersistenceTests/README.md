@@ -43,3 +43,7 @@ $project = Join-Path $tree 'tests\Momoka.SettingsPersistenceTests\Momoka.Setting
 ## 不覆盖
 
 没有执行生产 `ChangeFnNasPasswordAsync` / `ApplyPasswordChange` / 登录、恢复、重认证、vault、令牌/密码持久化、DPAPI或真实服务器。Core程序集虽为真实配置类型加载，生产认证方法零调用，真实Session直Store接线只静态检视；非秘密字号成功落盘不能外推为凭据或改密端到端完成。没有 App/WinUI控件/真实binding消息循环、像素/焦点、native/播放器或真实库，未发布/推送/更新快捷方式。仍不重试已停止的 R-001/R-003/R-005/R-031。
+
+## R011组合增量
+
+原39用例不削减；新2例在完整密码VM和真实非秘密Store的锁文件/保存路径中穿插权限降升，确认本地监听不退、确认不取消、新草稿保留、只重试本地无第二次假改密（41全绿）。新Dispose后派生Attach回归42项41过1败，base与派生首guard两行修后42全绿。不把此增量当vault/DPAPI/实际改密链或真实UI验收；源码/日志哈希与组合后的方案输出见主树batch05/r011。

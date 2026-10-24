@@ -79,6 +79,19 @@ A retained `HomeFoldMotion` object does not mean its storyboard is still running
 
 ## Settings administration and cached-window activity
 
+Confirmed same-identity client replacements have a separate `PermissionsChanged` path; a scope's
+`Connection` remains the original token/media snapshot while `IsAdministrator` and
+`PermissionRevision` read the current online identity. Capabilities and administration results
+check that revision after awaits. FnNas administration VMs revoke only permission-owned operations;
+account/password saves do not subscribe to this administrator lifetime. Settings permission events
+and R010 local-save events keep separate handlers and the same visit guards. A released/disposed base
+must also stop a derived password Attach before it subscribes to persistence again. The integrated
+[permission fixture](../../../tests/Momoka.CurrentPermissionSnapshotTests/README.md) and
+[local-save fixture](../../../tests/Momoka.SettingsPersistenceTests/README.md) exercise anonymous
+updates, actual VMs/generators and real nonsecret file saves, not production reauthentication,
+credentials/DPAPI, rendered WinUI or server permissions.
+
+
 `SettingsViewModel` has a dedicated administration `LoadGeneration` plus activity state. A directory refresh captures the capability owner, source keys and current identity; after Probe/plugin waits it checks those owners again and rereads permissions before publishing. An empty result from an old same-product account must not clear a new account’s plugin list. `Cancel` invalidates reads, `Activate` restores only the activity of a cached page, and `Dispose` prevents reactivation; none clears half-typed settings merely to reactivate monitoring.
 
 `SettingsPage` also scopes posted source/MoviePilot callbacks to its active visit. Window Hide/X does not cause Frame navigation, so `ReleaseHosted` explicitly ends that visit and unsubscribes source, MoviePilot and motion notifications before releasing hosted content. Reopening subscribes afresh; queued work from before hiding cannot borrow the new visit. If the synchronous administration refresh already rebuilt a hosted page, the navigation tail avoids a duplicate creation/GET but still shows an unchanged or newly selected category. `Momoka.SettingsLifetimeTests` executes the real current Shell VM and verbatim page/window methods with inert UI/HTTP boundaries; its repository README documents commands and why this is not actual WinUI window/input verification.

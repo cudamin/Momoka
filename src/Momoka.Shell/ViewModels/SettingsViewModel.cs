@@ -685,6 +685,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var token = _administrationLoads.Begin();
         var sources = capabilities.Sources.ToArray();
         var keys = sources.Select(source => source.Key).Order(StringComparer.Ordinal).ToArray();
+        var revisions = sources.ToDictionary(source => source.Key, source => source.Scope.PermissionRevision, StringComparer.Ordinal);
         var identity = sources.FirstOrDefault(source => source.IsCurrent);
         var knownKind = capabilities.ServerKind;
 
@@ -694,7 +695,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             && ReferenceEquals(_capabilities, capabilities)
             && _administrationLoads.IsCurrent(token)
             && knownKind == capabilities.ServerKind
-            && sources.All(source => source.IsAvailable)
+            && sources.All(source => source.IsAvailable && source.Scope.PermissionRevision == revisions[source.Key])
             && (identity is null || identity.IsCurrent)
             && keys.SequenceEqual(capabilities.Sources.Select(source => source.Key).Order(StringComparer.Ordinal));
 
@@ -924,13 +925,21 @@ public sealed partial class SettingsViewModel : PageViewModel
         var entry = FindEntry(value);
         if (entry is not null)
         {
-            if (entry.SourceKey is not null) return true;
+            if (entry.SourceKey is { } key)
+            {
+                var source = _capabilities?.Sources.FirstOrDefault(value => string.Equals(value.Key, key, StringComparison.Ordinal));
+                if (source is null || !source.IsAvailable) return false;
+                if (source.Kind == MediaServerKind.FnNas
+                    && entry.Label is FnNasPasswordCategory or FnNasPreferencesCategory or FnNasAppearanceCategory) return true;
+                return source.IsAdministrator && source.Kind is MediaServerKind.Emby or MediaServerKind.Jellyfin or MediaServerKind.FnNas;
+            }
             return (!_fnNasAccountHosted.Contains(entry.Label, StringComparer.Ordinal) || _showsFnNasAccount)
                 && (!_serverAdministrationCategories.Contains(entry.Label, StringComparer.Ordinal)
                     || (CanShowServerAdministration
                         && AdministrationCategories(_capabilities!.ServerKind).Contains(entry.Label, StringComparer.Ordinal)));
         }
 
+        if (value.Contains('\u001f')) return false; // 已撤销/收起的显式来源键不能走普通本机分类回退。
         return (!_fnNasAccountHosted.Contains(value, StringComparer.Ordinal) || _showsFnNasAccount)
             && (!_serverAdministrationCategories.Contains(value, StringComparer.Ordinal)
                 || (CanShowServerAdministration
@@ -1003,8 +1012,10 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             Categories.Clear();
             foreach (var entry in desired) Categories.Add(entry);
-            if (!string.Equals(SelectedCategory, keep.Key, StringComparison.Ordinal)) SelectedCategory = keep.Key;
+            // 权限收走选中管理项时，页面会在SelectedCategory通知内同步读取SelectedEntry并释放/导航。
+            // 先把新落点交给它，不能让「主页」通知仍读到旧管理项而又打开一次已经降权的页面。
             SelectedEntry = keep;
+            if (!string.Equals(SelectedCategory, keep.Key, StringComparison.Ordinal)) SelectedCategory = keep.Key;
         }
         finally { _syncingSelection = false; }
 

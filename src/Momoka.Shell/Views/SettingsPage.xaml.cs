@@ -415,6 +415,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         // 设置窗口可能正开着，左栏要当场跟着收放服务端管理入口，不等下一次打开设置。
         _session = request.Services.GetRequiredService<EmbySession>();
         _session.SourcesChanged += OnSourceListChanged;
+        _session.PermissionsChanged += OnPermissionsChanged;
 
         // 每一次打开都重新核一遍账号权限 —— 和上面那一行的理由同源：这一页是缓存的，换过账号之后它不重建，
         // 不重核就会留着上一个账号的答案（管理员看过的「控制台」那一组，普通账号再进来还列着）。这一趟先于
@@ -776,7 +777,11 @@ public sealed partial class SettingsPage : Page, IShellContent
 
     private void StopSourceMonitoring()
     {
-        if (_session is not null) _session.SourcesChanged -= OnSourceListChanged;
+        if (_session is not null)
+        {
+            _session.SourcesChanged -= OnSourceListChanged;
+            _session.PermissionsChanged -= OnPermissionsChanged;
+        }
         _session = null;
     }
 
@@ -785,6 +790,9 @@ public sealed partial class SettingsPage : Page, IShellContent
         Release();
         base.OnNavigatedFrom(e);
     }
+
+    // 只刷新管理目录与已打开页；同身份权限通知不重建Shell来源、也不改设置保存状态。
+    private void OnPermissionsChanged(object? sender, EmbySessionScope source) => OnSourceListChanged(sender, EventArgs.Empty);
 
     private void OnSourceListChanged(object? sender, EventArgs e)
     {

@@ -44,6 +44,27 @@ namespace Momoka.Emby
             DefaultSource = Sources[0];
         }
 
+        private EventHandler<EmbySessionScope>? _permissionsChanged;
+        private EventHandler? _sourcesChanged;
+        public event EventHandler<EmbySessionScope>? PermissionsChanged
+        {
+            add => _permissionsChanged += value;
+            remove => _permissionsChanged -= value;
+        }
+        public event EventHandler? SourcesChanged
+        {
+            add => _sourcesChanged += value;
+            remove => _sourcesChanged -= value;
+        }
+        internal int PermissionSubscribers => _permissionsChanged?.GetInvocationList().Length ?? 0;
+        internal void ConfirmPermissions(EmbySessionScope source, bool? administrator)
+        {
+            source.IsAdministrator = administrator;
+            source.PermissionRevision++;
+            _permissionsChanged?.Invoke(this, source);
+            _sourcesChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         public IReadOnlyList<EmbySessionScope> Sources { get; }
         internal EmbySessionScope? DefaultSource { get; set; }
         public bool IsSignedIn => DefaultSource is { IsAvailable: true };
@@ -74,6 +95,8 @@ namespace Momoka.Emby
 
         public string Key { get; }
         public bool IsAvailable { get; internal set; } = true;
+        public bool? IsAdministrator { get; internal set; } = true;
+        public long PermissionRevision { get; internal set; }
         public bool IsCurrent => IsAvailable && ReferenceEquals(_owner.DefaultSource, this);
         public FixtureConnection Connection { get; internal set; } = new(true);
         internal FixtureEndpoint Endpoint { get; }
