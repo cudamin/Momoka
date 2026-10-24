@@ -55,11 +55,13 @@ internal sealed partial class ShellNavigationProbe
             service, new MoviePilotCredentials(PassthroughSecretProtector.Instance),
             new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         await settings.ViewModel.ReloadAsync();
-        settings.WatchMoviePilot(service);
         var frame = new Frame();
         _root.Children.Add(settings);
         try
         {
+            // Attach/Reload 不开启页面活动期；复用设置探针入口，不绕过正式监测的 lifetime 守卫。
+            BeginSettingsFixtureVisit(settings);
+            settings.WatchMoviePilot(service);
             settings.ViewModel.SelectedCategory = "主页";
             await LayoutAsync(settings);
             var table = settings.ViewModel.HomeRows!;
@@ -69,7 +71,8 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(settings);
             Require(choices.All(row => !HomeLayout.IsMoviePilot(row.Key)), "未连接时排序表显示 MP");
             await ConnectMoviePilotAsync(fixture);
-            await UntilAsync(() => choices.Count(row => HomeLayout.IsMoviePilot(row.Key)) == 2);
+            await UntilAsync(() => ReferenceEquals(table, settings.ViewModel.HomeRows)
+                && choices.Count(row => HomeLayout.IsMoviePilot(row.Key)) == 2);
             var series = choices.Single(row => row.Key == HomeLayout.MoviePilotSeries);
             while (series.CanUp) series.UpCommand.Execute(null);
             var movies = choices.Single(row => row.Key == HomeLayout.MoviePilotMovies);
@@ -115,12 +118,17 @@ internal sealed partial class ShellNavigationProbe
             Require(ReferenceEquals(choices, table.Rows) && !choices.Single(row => row.Key == HomeLayout.MoviePilotMovies).Visible
                 && HomeLayout.Same(hidden, HomeLayout.Plan(fixture.Settings.Ui.HomeRows, null)), "恢复连接丢失原次序或勾选");
             settings.ReleaseHosted();
+            BeginSettingsFixtureVisit(settings);
             settings.WatchMoviePilot(service);
-            Require(choices.Count == 6, "缓存设置页重入未恢复订阅排序");
+            await UntilAsync(() => choices.Count == 6);
+            Require(ReferenceEquals(table, settings.ViewModel.HomeRows)
+                && ReferenceEquals(choices, table.Rows) && choices.Count == 6,
+                "缓存设置页重入未恢复订阅排序");
             await LayoutAsync(settings);
             await SaveProbeScreenAsync("settings-home-order-restored.png");
             choices.Single(row => row.Key == HomeLayout.MoviePilotMovies).Visible = true;
 
+            settings.ReleaseHosted();
             _root.Children.Remove(settings);
             _root.Children.Add(frame);
             frame.Navigate(typeof(HomePage), new HomeRequest(fixture.Services, [library], null));
@@ -180,13 +188,28 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => home.HomeRows.OfType<MoviePilotHomeRow>().Count() == 1);
             Require(home.HomeRows.OfType<MoviePilotHomeRow>().Single().Key == HomeLayout.MoviePilotMovies, "取消电视剧勾选影响了电影排");
             fixture.Settings.MoviePilot.Enabled = false;
-            await UntilAsync(() => home.HomeRows.All(row => row is not MoviePilotHomeRow) && choices.Count == 4);
+            await UntilAsync(() => home.HomeRows.All(row => row is not MoviePilotHomeRow));
             await LayoutAsync(home);
             await SaveProbeScreenAsync("home-subscription-order-disabled.png");
+            // 离树的缓存设置页已结束活动期，不等它的旧观察者更新；重开夹具活动期后核当前那张表。
+            _root.Children.Add(settings);
+            BeginSettingsFixtureVisit(settings);
+            settings.WatchMoviePilot(service);
+            await UntilAsync(() => choices.Count == 4);
+            Require(ReferenceEquals(table, settings.ViewModel.HomeRows)
+                && ReferenceEquals(choices, table.Rows), "关闭 MP 后重入替换了排序表");
+            settings.ReleaseHosted();
+            _root.Children.Remove(settings);
             fixture.Settings.MoviePilot.Enabled = true;
             Require(await service.RefreshAvailabilityAsync(), "关闭后连接未恢复");
-            await UntilAsync(() => home.HomeRows.OfType<MoviePilotHomeRow>().Count() == 1 && choices.Count == 6);
-            Require(!choices.Single(row => row.Key == HomeLayout.MoviePilotSeries).Visible, "关闭后恢复丢失电视剧勾选");
+            await UntilAsync(() => home.HomeRows.OfType<MoviePilotHomeRow>().Count() == 1);
+            _root.Children.Add(settings);
+            BeginSettingsFixtureVisit(settings);
+            settings.WatchMoviePilot(service);
+            await UntilAsync(() => choices.Count == 6);
+            Require(ReferenceEquals(table, settings.ViewModel.HomeRows)
+                && ReferenceEquals(choices, table.Rows)
+                && !choices.Single(row => row.Key == HomeLayout.MoviePilotSeries).Visible, "关闭后恢复丢失电视剧勾选");
             Require(server.Writes.Count == 0, "主页排序触发了订阅写操作");
         }
         finally
