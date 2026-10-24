@@ -6,6 +6,11 @@
 - 写入范围仅为新 `src/Momoka.Core/Translation/**`、配置新文件 `SubtitleTranslationSettings.cs` / `SubtitleTranslationCredentials.cs`、独立 `tests/Momoka.SubtitleTranslationTests/**`。父任务负责根配置/迁移/备份/重置、WinUI 卡片、DI 与实际 mpv 浮层；本 worker 不改方案或原测试入口。
 - 使用官方 Google v2 / Microsoft Translator v3 与 AI 兼容 Chat Completions；只用离线占位凭据和 stub，不登录服务、不启动 UI、不播放、不发布、不推送。保留任务约定 `gpt-4.1-mini`，官方当前标记 Deprecated，实际可用性须由用户服务配置确认。
 - 本记录独立提交，父只摘生产及独立测试的提交；交付前记录新鲜 Release restore/build/run 与安全边界。
+- **已完成生产/测试提交**：`c51e59d683fce361d1a9ba947801a4d9ef65b627`（只包含范围内 17 个新文件；父只摘此提交）。前置范围记录 `7d4ffe8` 与本收尾记录均不摘。新增配置含 `FontSize=32` / `Position=80` 与 `Normalize()`；凭据的 Google/Microsoft/Ai 读写及通用 provider 读写公开契约在独立测试 README。
+- **新鲜离线验证**：独立项目 restore 退出 0；当前 Release Core+独立测试 build **0 警告、0 错误**；run **119 通过、0 失败、0 跳过、退出 0**。独立测试与仅新 Core 文件的 `dotnet format whitespace --verify-no-changes` 退出 0；`git diff --cached --check` 与全部新文本 LF 核验通过。测试覆盖请求/认证头、语言映射、Google HTML 实体、角色/JSON 隔离、无密钥/长句、3xx/401/403/429 不读错误 body 且不泄密、默认 handler 禁跳转、请求与读取预算/取消、凭据往返、迟到文件/A→B→A 与有界 LRU。
+- **证据位置（本树）**：`tests/Momoka.SubtitleTranslationTests/work/release-build.txt`、`work/release-run.txt`；官方完整正文在 `work/official-docs`（均 ignored），公开摘要和正文 SHA-256 已入独立测试目录 `OfficialDocs.md`。OpenAI Docs 使用用户级技能；web.run 官方限定搜索可用，直接正文页返回空，已用 Invoke-WebRequest 亲自核对 primary 官方正文。Google/Azure 文档同样只读官方站点。
+- **交接与缺口**：父仍负责根设置/迁移/偏好/重置、DI、UI、文件生命周期及独立双语 OSD，本 worker 不改其 Runtime。不占主/次 sid、不隐藏原文、不增加 display mode。默认请求总预算 15 秒、输入 4000 字符、响应 128 KiB；注入 HttpClient 必须由父提前禁自动跳转，无默认认证或敏感日志（公共 API 无法从已构造 client 修改 handler）。默认构造已安全配置并自有 Dispose。
+- **使用代价**：启用才发送字幕给用户选择的官方 API 或自定义 AI，须用户密钥/额度，可能收费；未验证真实账号、DPAPI、第三方模型、翻译质量、线上延迟/限流或实际 mpv/Lua/UI。保留可填 `gpt-4.1-mini`；当次官方模型页标 Deprecated、基础快照计划 2027-01-14 停用，不承诺未来可用或价格。不发布、不启动 UI、不播放、不推送；父树与主目录未写。
 
 最后更新：2026-10-25
 
