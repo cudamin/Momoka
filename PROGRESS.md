@@ -1,6 +1,16 @@
 # 开发进度
 
-最后更新：2026-10-24
+最后更新：2026-10-25
+
+## 搜索页：输入法组字时的第一次回车也触发搜索（2026-10-25 用户令）
+
+- 用户令：「搜索页面 在搜索栏按回车要支持触发搜索」。上一轮（2026-10-15）修的是焦点落在来源标签上的那颗回车；这次是**输入法**：用中文打字时，回车先被输入法用来上屏，`KeyDown` 与 `AutoSuggestBox.QuerySubmitted` 都被吞掉，页面只收得到 `KeyUp`，所以第一次回车只有候选上屏、搜索不动（要按第二次）。
+- 证据：本机 UIA 真键盘复现 —— `xian'zai`（组字中）按一回车后框里变成 `xianzai`、面板仍是空态；再按一次才出现结果。用户当天日志同形：23:42 打开搜索页有 `MoviePilot 搜「现在不是」`，23:45 再次打开后到离开都没有任何搜索请求。
+- 改法（`LibraryPage`）：给共享搜索框同时挂 `KeyDown`／`KeyUp`（`handledEventsToo`）。普通回车的 `KeyDown` 到得了页面，`QuerySubmitted` 已经提交，`KeyUp` 只清标记、不重复；组字回车只有 `KeyUp`，于是等组合上屏（框里的字变了，实测 60–120 ms）或最多约 0.35 秒，再用框里现在的词提交一次。Esc、失焦、离页、换来源与普通提交都会取消这次待提交。
+- 测试：`--probe-shell` 的搜索用例新增两条 —— 组字回车按上屏后的词提交、一直没上屏时按框内词提交（`ShellNavigationProbe.SearchLayout.cs`）。开发文档同步了这条规则。
+- 验证：Release 构建 Shell **0 警告、0 错误**；全量离线测试 **2104 通过、0 失败、0 跳过**；`dotnet format whitespace --verify-no-changes` 退出 0；`--probe-shell --probe-section search` **13/13、退出 0**（`shell-probe-20261024-161922235-29444`），其他区域未执行。UIA 真键盘另核：组字回车在「MoviePilot 资源」得 `MoviePilot 上没搜到「xianzai」…`，在「MoviePilot 订阅」的日志恰好一条 `MoviePilot 搜「wanzheng」：1 条`（没有重复提交）；普通（非组字）回车仍恰好一条。
+- 未验证的边界：只用本机 Microsoft 拼音试过，搜狗／微信输入法、日文 IME 未验证；只改了主搜索页，MoviePilot「搜索其他版本」窗口与 AniBT 面板自带的搜索框仍只走 `QuerySubmitted`（同一个毛病若出现，需要同样的处理）。
+- 提交：见本轮 Git 记录（本地，未推送）。**未发布**到 `artifacts/publish/win-x64`：该目录还是 2026-10-23 的构建，发布会把上一批未交付的「跳过片头/片尾读 Emby 标记」一起带出去，等用户决定。
 
 ## 跳过片头/片尾只认 Emby 标记（2026-10-24）
 

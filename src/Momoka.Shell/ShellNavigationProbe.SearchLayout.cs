@@ -188,6 +188,25 @@ internal sealed partial class ShellNavigationProbe
             var count = mp.Paths.Count;
             await page.SubmitSearchAsync("新的资源词");
             Require(mp.Paths.Count == count + 1 && mp.Paths.Last().Contains(Uri.EscapeDataString("新的资源词"), StringComparison.Ordinal), "资源没有显式提交新关键词");
+
+            // 输入法组字时的回车只留下 keyup（keydown 被输入法吞掉），页面得替这颗回车补一次提交
+            // （2026-10-24 用户报「搜索页面 在搜索栏按回车要支持触发搜索」）。两段：组合上屏后按上屏的词提交，
+            // 以及一直没上屏时按框里现有的词提交。
+            var beforeIme = Searches(mp.Paths);
+            input.Text = "组合词";
+            var committed = page.SubmitImeEnterAsync();
+            await Task.Delay(120);
+            input.Text = "组合上屏";
+            await committed;
+            Require(Searches(mp.Paths) == beforeIme + 1
+                && mp.Paths.Last().Contains(Uri.EscapeDataString("组合上屏"), StringComparison.Ordinal),
+                $"组字回车没有按上屏后的词提交：{mp.Paths.LastOrDefault()}");
+            var beforeFallback = Searches(mp.Paths);
+            input.Text = "没有上屏";
+            await page.SubmitImeEnterAsync();
+            Require(Searches(mp.Paths) == beforeFallback + 1
+                && mp.Paths.Last().Contains(Uri.EscapeDataString("没有上屏"), StringComparison.Ordinal),
+                $"组字回车在文本没变时没有按框里的词提交：{mp.Paths.LastOrDefault()}");
             quiet = Searches(mp.Paths);
             tabs.SelectedIndex = 0;
             await SettleAsync();
