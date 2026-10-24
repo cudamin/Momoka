@@ -1,3 +1,13 @@
+## worker Settings 探针最终交付候选（2026-10-24，仅独立树）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`、base `75b42f5`；独立树 `C:/Users/89400/.codex/worktrees/delivery-settings-probe/Momoka`、分支 `codex/delivery-settings-probe`。创建前状态检查：独立树/分支不存在，主树已有其他worker改动未动；本任务不覆盖/移动/合并主树。
+- 可限定整合的代码/测试提交 **`612549dd94fc8fedd3b5c280669131c939896147`**：仅 `ShellNavigationProbe.Settings.cs`、实际含ConditionalRows的 `ShellNavigationProbe.SettingsMotion.cs` 与独立 `tests/Momoka.SettingsProbeContractTests/{csproj,Program.cs,UiBoundaries.cs,README.md}`。**此 PROGRESS 后续提交只留worker，不主合；DLL/日志也不主合。** Shared Probe／SignIn／Sidebar／HomeOrder／AniBt和产品VM/控件/XAML未改，无push。
+- 根因：VM Attach/Reload 已正确await，但新R018/R026的页面活动票从未Begin；真实构造器拒绝Loaded/分类通知、管理页层刷新直接返回。仅补探针活动期/真实VM Activate/实际动效偏好订阅，Hide后新访问恢复旧票仍拒绝；管理刷新移入原try/finally。落定额外要求真Loaded、从属行等待真实_rowMotions接线，Reload后按原落定条件等待；无长sleep、不删Require/改阈值/接受信息跳过/清共享root。
+- 新契约原样执行页面/动效/快速切换断言、实际本树VM/截图行；**23过/0败/0跳过**，含缺动画仍红、旧缺接线清理仍红、合法空Sources/原多服fake输入、偏好显隐恢复、旧队列/隐藏重入/不重复订阅。UI/Storyboard/时钟只是离线边界，不能冒作实际自包含发布件像素或动画验收；没有依据归因WinUI版本。
+- 当前SDK10.0.400、固定本机cache离线restore（原pin无升级）、串行Release --no-restore：Tests/Core、Shell、新契约、SettingsLifetime、PageContract均0警告0错误；实际相关回归45/98/27/29/R06561/34/截图14均0败0跳过。Core Settings/ServerSettings/StartupEntry实际DLL选定套件154项**153过1败0跳过**：AtomicFile同目标并发Write的File.Move抛UnauthorizedAccessException；一次红日志/exit1保留、不重跑洗绿、不改产品。它尚需主线程确认，不说全Core或最终交付绿。
+- 范围外根残留证据：FnNasLibrarySpacingAsync在 `ShellNavigationProbe.FnNasLibrary.cs` Add(frame)，finally仅Content=null未Remove；其在Settings之前运行，可解释ServersPageSummary的2直接孩子。已报主线程，不动属主文件、不松唯一孩子判据；正式UI仍需主线程确认。
+- 本树证据 `artifacts/delivery-settings-probe/` 含各最终build/run.log/exit、format.exit0、source-and-results-audit.json；源/输出对应当前worker代码。主线程已报告自包含diagnostic shell11绿不构成full绿，worker未自行跑UI、真实Registry/账号/网络/播放/移动鼠标/发布/快捷方式。正式自包含Settings及最终full由主线程串行重验，本项仍是**候选交接、非完整交付**。
+
 ## 第七组最终收束：剩余四个P1已本地修复，72/73号实现或覆盖（2026-10-24）
 
 - R001主9c6ed2e、R003/R005/R031整合e3ba8df，R003初public空ID和R031最终收据追加闭环，95d2eab只修匿名对象空白、aa64104只同步R003已审查会话source pin。累计**71号本地实现＋1既有覆盖＝72/73号**，剩余**R043仅显示建议未实施**。以前四号“停止/不重试”不是永久禁修指令，后续澄清已正常实施；旧69审查原件SHA不改，已撤回代理参数偏好不再作为接续要求。
