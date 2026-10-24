@@ -52,7 +52,17 @@ namespace Microsoft.UI.Xaml.Controls
         public void Leave() => OnNavigatedFrom(new());
     }
     public sealed class Frame { public object? Content { get; set; } }
-    public sealed class CollectionViewSource { public object? Source { get; set; } }
+    public sealed class CollectionViewSource
+    {
+        private object? _source;
+        public int Writes { get; private set; }
+        internal Action? SourceAssigned { get; set; }
+        public object? Source
+        {
+            get => _source;
+            set { _source = value; Writes++; SourceAssigned?.Invoke(); }
+        }
+    }
 }
 
 namespace Momoka.Shell.ViewModels
@@ -70,6 +80,12 @@ namespace Momoka.Shell.ViewModels
         public object CategoryGroups => Runtime.Get<object>(Inner, "CategoryGroups");
         public bool IsReady => Runtime.Get<bool>(Inner, "IsReady");
         public string SelectedCategory { get => Runtime.Get<string>(Inner, "SelectedCategory"); set => Runtime.Set(Inner, "SelectedCategory", value); }
+        internal int DanmakuPreferenceCalls { get; private set; }
+        public void OnDanmakuPreferencesChanged()
+        {
+            DanmakuPreferenceCalls++;
+            Runtime.Invoke(Inner, "OnDanmakuPreferencesChanged");
+        }
         public void SyncSaveState() => Runtime.Invoke(Inner, "SyncSaveState");
         public void RefreshHomeRows() => Runtime.Invoke(Inner, "RefreshHomeRows");
         public void Cancel() => Runtime.Invoke(Inner, "Cancel");
@@ -104,6 +120,7 @@ namespace Momoka.Shell.Views
             _activityToken = default;
         }
         private void ObserveCategoryGroups() { }
+        internal void UpdateCategoryGroupsForFixture() => UpdateCategoryGroups();
         private void ApplySettingsMotionPreference() { }
         private void QueueSettingsEntrance() { }
         private void StopSettingsEntrance() { }
@@ -117,6 +134,14 @@ namespace Momoka.Shell.Views
 
 namespace Momoka.Shell
 {
+    // Event transport only: the subscriber forwards to the current real Shell VM.
+    internal static class ShellPrefs
+    {
+        internal static event Action? DanmakuChanged;
+        internal static int DanmakuSubscribers => DanmakuChanged?.GetInvocationList().Length ?? 0;
+        internal static void RaiseDanmakuChanged() => DanmakuChanged?.Invoke();
+    }
+
     internal sealed partial class ShellNavigationProbe
     {
         internal static Task UntilForFixture(Func<bool> ready) => UntilAsync(ready);

@@ -50,6 +50,7 @@
             between(page, "internal sealed record SettingsRequest", "\n/// <summary>\n/// 设置页。") +
             "\npublic sealed partial class SettingsPage : Page, IShellContent\n{\n" +
             between(page, "    private const string Category = \"设置\";", "    internal bool IsReady =>") +
+            between(page, "    private void UpdateCategoryGroups()", "\n    /// <summary>\n    /// 分组表每次") +
             between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Counts realised") +
             "\n}\n}\nnamespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n" +
             between(settingsProbe, "    private static void BeginSettingsFixtureVisit(SettingsPage page)", "\n    private async Task SettingsEntranceAsync()") +

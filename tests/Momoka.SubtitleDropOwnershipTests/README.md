@@ -67,3 +67,24 @@ Shell 只构建、不运行，使用同一隔离环境、缓存和参数；第�
 ## 主树限定整合
 
 来源 `9314fe1080aca131fea0eaaa36f2bae8d1113d5b`；主树只复制两产品与本正式项目，不带来源PROGRESS／bin／obj或缓存。当前主树 `artifacts/staged-repair/batch05/r045/main-final-build.log` Core／专项／SourceExtractor零警告错误；`main-final-tests.log` **74过／0失败／0跳过／退出0**。主树5份提取反例各预期退出1，之后默认当前源重编译再验74，未运行坏构建旧输出。当前x64Shell `main-shell-build.log` 零警告错误，实际VM轨道11／音量31相关回归通过，全方案Release/x64格式0修改／退出0、无加载诊断。来源有效红留来源树，未拿来源产物冒主树结果；当前7源码SHA256已核与生产文件一致，独立静态复核无保留。
+
+## 2026-10-25：纯合并基线的旧测试兼容
+本轮验证树为 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，基点
+`4afca26672297aedd7725d675706d7f2b923519c`，产品只来自父树
+`mp-translation-interpolation/Momoka` 已 resolved/staged 的 `48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795`
+合并差异。导入 patch SHA256：`7ef4a4592f66b219639aa0ca499427da971443a34e9b8fe0f894cc36cffcd680`。
+本树 629 份产品源的 Git blob 与父 index 逐份一致；未导入父未暂存的 translation/AppSettings 改动。
+产品快照不暂存、不提交，不改共享 Program/Agreements/方案；最终功能再验由父线程完成。
+
+测试 VM 使用本树实际重新编译的标准 x64 Release Shell（不是复制父 DLL）：
+`src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll`，
+2026-10-25 01:36:41 +08:00，4,743,168 字节，SHA256
+`b9125a7ff07a46e236603200c97dd0608fd548a84ba588d39431d99fbb5e67f5`。
+父首次合并 DLL 只作来源对照：2026-10-25 00:34:42 +08:00，SHA256
+`735c3295886cb0dce9c8e4b92aa265739290959e0c8ce5befca5f9dcd1f97f77`；没有将它称为本树输出。
+所有日志/输入清单留在本树 ignored `artifacts/verification/merged-contract-tests/`。
+
+只补完整生产 `Detach`/`Shutdown` 新邻接调用的 `CloseDanmakuPanel` 和 `StopWatchdog` 空端点。
+它们不执行字幕过滤、拖拽所有权、page generation、context 捕获、Core 命令或反馈判断，
+仍不访问 App/UI/native/设备/真实网络/配置/凭据。没有修改提取器、Program 或原断言。
+当前完整 74 项 **74 过/0 败/0 跳过**，输出仍打印真实 7 源/完整成员 hash，不借旧生成源。

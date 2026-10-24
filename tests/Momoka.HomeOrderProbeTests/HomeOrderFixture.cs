@@ -59,7 +59,7 @@ internal sealed class HomeOrderFixture : IDisposable
             "paths" => paths,
             "moviePilot" => Service,
             "capabilities" => capabilities,
-            _ => null
+            _ => parameter.HasDefaultValue ? parameter.DefaultValue : null
         }).ToArray();
         Runtime.Invoke(Vm, "Attach", args);
         // Only the actual home card is built. Whole-page Reload would construct native subtitle previews.

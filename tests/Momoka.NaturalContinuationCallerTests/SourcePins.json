@@ -5,11 +5,11 @@
   "sources": [
     {
       "path": "src/Momoka.Core/Playback/IPlaybackBackend.cs",
-      "sha256": "d2895ce4e576a334fb17b3b12e4eb2d398dd63a003075779718c360246b785c9"
+      "sha256": "0560b2e840f56795f1fb4e2971965caa708ec9d5a4dee5b8d63fb619dca4f794"
     },
     {
       "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
-      "sha256": "114e77bd11930e0cb145327e34ed0a5b21a4eec101a0684f6980ad5f331d8d86"
+      "sha256": "ab68a3fbc46d5429ff40a20317d7ab97f419176de2e8f9445187cb0c1d398ea9"
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContracts.cs",
@@ -25,11 +25,11 @@
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackService.Lifecycle.cs",
-      "sha256": "83ee2ee763e9e4f5e25990383a5715a6fe982d5635e1aa11683587e4562c3270"
+      "sha256": "82e08e51d8773faef2823f9ec80c276bb3f4d4d40711faa4d2deaf3ea2a20ba1"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
-      "sha256": "68319711dce93a7688b8d23ad81ae5f5f30beee4a4c6883a59013e60a714b739"
+      "sha256": "7ba297fa0bc50eb905adf29bb8f7d19d805337b3aa429d1373f392e89acdddd4"
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
@@ -49,11 +49,11 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
-      "sha256": "43ca86e758e25898038b41c4292bae30896424b5d968e43d70dad79c44886692"
+      "sha256": "c9a69e434441a8a3be1203fda42971988c1329eb21dc3b4de29d6b16142fb75d"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
-      "sha256": "231a99c5cf0ef18022dec288f887ee7c450b122f9e6493b09bc4d7f3984e2bbb"
+      "sha256": "48a5b3760e4c0b30b3f42f01a593716fc9abbaa4149d2af552d6c40a85ff68e1"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
@@ -65,7 +65,7 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",
-      "sha256": "9738ca0f43bdaa642e8b988c2b79ae5669eb5871808b903fcef4eac3b279444f"
+      "sha256": "ee8703797d1603c8459544d0f77c7e742af2a9436a31ccd2a7761d8c57b32341"
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",

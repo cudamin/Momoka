@@ -56,6 +56,95 @@ internal static class Program
     private static void Register(string root)
     {
         Test("HomeOrder 原case断言、截图和轮播阈值全部保留（源码契约，非像素）", () => CoverageContract(root));
+        Test("HomeOrder 实际CategoryGroups通知在活动期换绑定源，主页表与选择保持", async () =>
+        {
+            using var f = new HomeOrderFixture();
+            await f.Open();
+            var initial = f.Page.CategoryGroupsSource.Source;
+            var writes = f.Page.CategoryGroupsSource.Writes;
+            Assert.True(ReferenceEquals(initial, HomeOrderFixture.Runtime.Get<object>(f.Vm, "CategoryGroups")));
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", false, MediaServerKind.Emby);
+            var current = HomeOrderFixture.Runtime.Get<object>(f.Vm, "CategoryGroups");
+            Assert.False(ReferenceEquals(initial, current), "必须是实际VM重新构造的分组，不是假通知");
+            Assert.True(ReferenceEquals(current, f.Page.CategoryGroupsSource.Source), "必须执行真正UpdateCategoryGroups而非空stub");
+            Assert.Equal(writes + 1, f.Page.CategoryGroupsSource.Writes);
+            Assert.Equal("主页", HomeOrderFixture.Runtime.Get<string>(f.Vm, "SelectedCategory"));
+            f.Page.UpdateCategoryGroupsForFixture();
+            Assert.Equal(writes + 1, f.Page.CategoryGroupsSource.Writes, "相同分组源不可重复写绑定");
+            f.Stable();
+        });
+        Test("HomeOrder 未活动新分组通知不能借构造器绑定借权", () =>
+        {
+            using var f = new HomeOrderFixture();
+            var initial = f.Page.CategoryGroupsSource.Source;
+            var writes = f.Page.CategoryGroupsSource.Writes;
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", false, MediaServerKind.Emby);
+            Assert.False(ReferenceEquals(initial, HomeOrderFixture.Runtime.Get<object>(f.Vm, "CategoryGroups")));
+            Assert.True(ReferenceEquals(initial, f.Page.CategoryGroupsSource.Source));
+            Assert.Equal(writes, f.Page.CategoryGroupsSource.Writes);
+            f.Stable();
+        });
+        Test("HomeOrder Release后分组通知失效，新活动期收到新表才重绑", async () =>
+        {
+            using var f = new HomeOrderFixture();
+            await f.Open();
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", false, MediaServerKind.Emby);
+            var active = f.Page.CategoryGroupsSource.Source;
+            var writes = f.Page.CategoryGroupsSource.Writes;
+            f.Page.Release();
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", false, MediaServerKind.Emby);
+            Assert.True(ReferenceEquals(active, f.Page.CategoryGroupsSource.Source));
+            Assert.Equal(writes, f.Page.CategoryGroupsSource.Writes);
+            await f.Open();
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "ApplyServerAdministration", false, MediaServerKind.Emby);
+            Assert.True(ReferenceEquals(HomeOrderFixture.Runtime.Get<object>(f.Vm, "CategoryGroups"), f.Page.CategoryGroupsSource.Source));
+            Assert.Equal(writes + 1, f.Page.CategoryGroupsSource.Writes);
+            f.Stable();
+        });
+        Test("HomeOrder 真分组绑定赋值引起选择写回时立即保住原主页选择", () =>
+        {
+            using var f = new HomeOrderFixture();
+            f.Page.CategoryGroupsSource.Source = null;
+            var writes = f.Page.CategoryGroupsSource.Writes;
+            f.Page.CategoryGroupsSource.SourceAssigned = () => HomeOrderFixture.Runtime.Set(f.Vm, "SelectedCategory", "视频");
+            f.Page.UpdateCategoryGroupsForFixture();
+            Assert.Equal(writes + 1, f.Page.CategoryGroupsSource.Writes);
+            Assert.True(ReferenceEquals(HomeOrderFixture.Runtime.Get<object>(f.Vm, "CategoryGroups"), f.Page.CategoryGroupsSource.Source));
+            Assert.Equal("主页", HomeOrderFixture.Runtime.Get<string>(f.Vm, "SelectedCategory"), "不能依靠ReplaceCategories尾部把丢失选择掩盖");
+            f.Page.UpdateCategoryGroupsForFixture();
+            Assert.Equal(writes + 1, f.Page.CategoryGroupsSource.Writes);
+            f.Stable();
+        });
+        Test("HomeOrder 弹幕事件只在真实活动期订阅，重复Loaded不加倍且离树释放", async () =>
+        {
+            using var f = new HomeOrderFixture();
+            var subscribers = ShellPrefs.DanmakuSubscribers;
+            f.Page.RaiseLoaded();
+            Assert.Equal(subscribers, ShellPrefs.DanmakuSubscribers);
+            await f.Open();
+            try
+            {
+                f.Page.RaiseLoaded();
+                f.Page.RaiseLoaded();
+                Assert.Equal(subscribers + 1, ShellPrefs.DanmakuSubscribers);
+                // Native/full-page card construction is outside this fixture; the actual callback must
+                // still be invoked and obey its unready guard, not be replaced by an inert VM method.
+                HomeOrderFixture.Runtime.Set(f.Vm, "IsReady", false);
+                ShellPrefs.RaiseDanmakuChanged();
+                Assert.Equal(1, f.Page.ViewModel.DanmakuPreferenceCalls);
+                f.Page.XamlRoot = new();
+                f.Page.RaiseUnloaded();
+                Assert.Equal(subscribers + 1, ShellPrefs.DanmakuSubscribers, "暂时Unloaded不能当真正离树");
+            }
+            finally
+            {
+                f.Page.XamlRoot = null;
+                f.Page.RaiseUnloaded();
+            }
+            Assert.Equal(subscribers, ShellPrefs.DanmakuSubscribers);
+            ShellPrefs.RaiseDanmakuChanged();
+            Assert.Equal(1, f.Page.ViewModel.DanmakuPreferenceCalls);
+        });
         Test("HomeOrder 实际排序行hook验证上下移、两端禁移和单次保存", () =>
         {
             var method = HomeOrderFixture.Runtime.Type("SettingHomeLayoutRow").GetMethod("Probe",

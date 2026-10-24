@@ -75,3 +75,35 @@ if ($LASTEXITCODE -ne 0) { throw '测试定向空白检查失败' }
 原40项证据属于 `C:/Users/89400/.codex/worktrees/r038-anibt-receipt-state/Momoka`，不等同主整合树。独立只读复核发现远程存储的对象路径可为相对值，却被本地绝对路径条件提前挡住，漏掉成功历史旧本地目标的清理判断。主树追加3项：远程相对对象路径＋成功旧目标需扫描、同路径无成功历史不扩扫描、本地完成目标仍要求绝对路径。补修前43项42过1败；修后43全过。目标明确非本地时只要求非空回执路径，本地继续按原绝对路径规则；不新增真实远程存储操作。
 
 主树当前日志 `artifacts/staged-repair/batch05/r038-review-red-*.log`、`r038-fixed-*.log`，完整Core2549项通过（含43，不相加），三份C#定向Release/x64空白零修改，无工作区加载失败。来源40与主树43不累计；实际服务器文件清理／索引结果仍未验。
+
+## 2026-10-25：纯合并基线的旧测试兼容
+本轮验证树为 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，基点
+`4afca26672297aedd7725d675706d7f2b923519c`，产品只来自父树
+`mp-translation-interpolation/Momoka` 已 resolved/staged 的 `48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795`
+合并差异。导入 patch SHA256：`7ef4a4592f66b219639aa0ca499427da971443a34e9b8fe0f894cc36cffcd680`。
+本树 629 份产品源的 Git blob 与父 index 逐份一致；未导入父未暂存的 translation/AppSettings 改动。
+产品快照不暂存、不提交，不改共享 Program/Agreements/方案；最终功能再验由父线程完成。
+
+测试 VM 使用本树实际重新编译的标准 x64 Release Shell（不是复制父 DLL）：
+`src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll`，
+2026-10-25 01:36:41 +08:00，4,743,168 字节，SHA256
+`b9125a7ff07a46e236603200c97dd0608fd548a84ba588d39431d99fbb5e67f5`。
+父首次合并 DLL 只作来源对照：2026-10-25 00:34:42 +08:00，SHA256
+`735c3295886cb0dce9c8e4b92aa265739290959e0c8ce5befca5f9dcd1f97f77`；没有将它称为本树输出。
+所有日志/输入清单留在本树 ignored `artifacts/verification/merged-contract-tests/`。
+
+只补 `Momoka.Tests.csproj` 的 StartupReapplyContract.ShellPrefs.ApplyDanmaku 无 UI 边界，
+不修改正式 Program、Agreements.txt 或原用例。`ReapplyAndReloadAsync` 完整实际方法继续原样提取。
+
+本轮已离线缓存 restore，当前 Core/主Tests Release 0 警告/0 错误；主 runner **2912 全过/0 失败/0 跳过**。
+Settings 的正式显式入口：startup-state-contract 61、startup-reapply-notice 34、settings-page-state 27、
+settings-applicability 29、settings-screenshot-restore 14 均全过，互不相加为主 runner 覆盖。
+`core-settings` 独立 154 项仍 153/1/0 原子 File.Move 权限错误，原失败日志保留，不重跑洗绿。
+额外轨道读回 11 项因旧播放器构造边界少主干 DandanPlayClient 而在构造前全部失败；并非产品轨道断言已执行。
+它在初始写集外，须经父授权定点补实际匿名依赖后重新编译/运行，不减少用例或改产品构造签名。
+
+本树恢复/构建/运行仍用 `$HOME/.dotnet/dotnet.exe` 10.0.400，固定本机缓存、NuGetAudit=false 只用于
+该次离线 restore。统一 flags：Release、`--no-restore -m:1 -p:BuildInParallel=false
+-p:UseSharedCompilation=false -p:MSBuildNodeReuse=false`；`run` 只在当前编译成功后 `--no-build --no-restore`。
+整方案首轮 0 警告/2 错误仅 natural caller 缺两个新旁支端点；未以部分项目成功冒充整方案绿。
+没有启动 App/WinUI/UI、真实账号/服务器/media/libmpv、读取真实配置/密钥、发布或推送。

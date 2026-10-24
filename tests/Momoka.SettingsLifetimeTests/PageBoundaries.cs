@@ -134,6 +134,14 @@ namespace Momoka.Shell.Platform
 
 namespace Momoka.Shell
 {
+    // Event transport only: the subscriber forwards to the current real Shell VM.
+    internal static class ShellPrefs
+    {
+        internal static event Action? DanmakuChanged;
+        internal static int DanmakuSubscribers => DanmakuChanged?.GetInvocationList().Length ?? 0;
+        internal static void RaiseDanmakuChanged() => DanmakuChanged?.Invoke();
+    }
+
     internal static class ThemeHost
     {
         public static event Action<Momoka.Theming.UiTheme>? Changed;
@@ -181,6 +189,7 @@ namespace Momoka.Shell.ViewModels
         public SettingsCategoryEntry? EntryFor(string category) => Runtime.Invoke(Inner, "EntryFor", category) is { } entry ? new(entry) : null;
         public Task RefreshServerAdministrationAsync() => (Task)Runtime.Invoke(Inner, "RefreshServerAdministrationAsync")!;
         public Task RefreshAudioDevicesAsync() => (Task)Runtime.Invoke(Inner, "RefreshAudioDevicesAsync")!;
+        public void OnDanmakuPreferencesChanged() => Runtime.Invoke(Inner, "OnDanmakuPreferencesChanged");
         public void SyncSaveState() => Runtime.Invoke(Inner, "SyncSaveState");
         public void RefreshHomeRows() => Runtime.Invoke(Inner, "RefreshHomeRows");
         public void Cancel() => Runtime.Invoke(Inner, "Cancel");
@@ -190,8 +199,17 @@ namespace Momoka.Shell.ViewModels
         internal void Attach(ISettingsService settings, ShaderStaging shaders, FontLibrary fonts, AppPaths paths,
             Platform.ISystemLauncher launcher, Platform.IStartupRegistration startup, AudioDeviceCatalogue devices,
             Func<Task> subtitle, Func<string, Task> directory, Func<Task> screenshot, MoviePilotService moviePilot,
-            MoviePilotCredentials credentials, Momoka.Updates.UpdateClient updates, IServerCapabilities capabilities, EmbyImageStore images) =>
+            MoviePilotCredentials credentials, Momoka.Updates.UpdateClient updates, IServerCapabilities capabilities,
+            params object?[] optionalDependencies)
+        {
+            // Keep the original fourteen positions. Images, DandanPlay credentials and any later optional
+            // credentials retain the actual declaration order/defaults; this is still a rejected UI boundary.
+            var attach = Inner.GetType().GetMethod("Attach", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            _ = ShellRuntime.CompleteOptionalArguments(attach,
+                [settings, shaders, fonts, paths, launcher, startup, devices, subtitle, directory, screenshot,
+                    moviePilot, credentials, updates, capabilities, .. optionalDependencies]);
             throw new InvalidOperationException("本夹具只运行已构建缓存页，不允许完整 UI 重建");
+        }
         public Task ReloadAsync() => throw new InvalidOperationException("禁止整页/native Reload");
     }
 
