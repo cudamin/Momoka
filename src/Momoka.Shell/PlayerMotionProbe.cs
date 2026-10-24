@@ -813,15 +813,25 @@ internal static class PlayerMotionProbe
             Require(page.PlayerVisible && page.MotionProbeState.Active && page.MotionProbeState.Identity,
                 "反向重入没有被旧完成回调收掉");
             page.EndMotionProbe();
-            await Task.Delay(350, token);
+            await Until(() => !page.PlayerVisible && !page.MotionProbeState.Animating,
+                "反向重入退场已经完成");
 
             Write("阶段：加载页直接进入全屏再退出");
             layoutSample.Start();
             page.BeginMotionProbe(true);
-            await Task.Delay(500, token);
+            Require(page.MotionProbeState.Active && page.PlayerVisible, "直接全屏进场真实入口已经开始");
+            // BeginMotionProbe 仍走正式 EnterPlayer/SetFullscreen；停下的 10Hz ticker 不驱动进场。
+            // 窗口切换可同步占住 UI 线程，让 500ms 的旧 Delay 先于 16ms pose 完成回调恢复。
+            // 先等实际窗口事务，再等页面动效及合成交接；Identity 留给原断言，不能拿它当等待条件洗绿。
+            await page.WindowChange.WaitAsync(TimeSpan.FromSeconds(6), token);
+            await Until(() => !page.MotionProbeState.Animating && !page.StartupHandoverPending,
+                "直接全屏窗口交接与进场动效已完成");
+            Write($"直接全屏落定：Fullscreen={window.Fullscreen}，Identity={page.MotionProbeState.Identity}，"
+                + $"Animating={page.MotionProbeState.Animating}，HandoverPending={page.StartupHandoverPending}");
             Require(window.Fullscreen && page.MotionProbeState.Identity, "直接全屏进场没有第二段缩放");
             page.EndMotionProbe();
-            await Task.Delay(400, token);
+            await Until(() => !page.PlayerVisible && !page.MotionProbeState.Animating,
+                "无视频全屏退场动效已经完成");
             Require(!window.Fullscreen && !page.PlayerVisible && page.MotionProbeState.Identity,
                 "无视频全屏退场清理完整");
             Native.GetWindowRect(window.Handle, out restored);

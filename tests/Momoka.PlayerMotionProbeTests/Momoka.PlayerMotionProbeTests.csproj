@@ -1,0 +1,68 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <IsPackable>false</IsPackable>
+        <MotionProbeSource Condition="'$(MotionProbeSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\PlayerMotionProbe.cs</MotionProbeSource>
+    </PropertyGroup>
+
+    <!-- Compile the actual final-stage caller and its actual Require/Until, not a second motion model.
+         Only the page/window/timer/log endpoints are inert; ambiguous source boundaries fail closed. -->
+    <UsingTask TaskName="ExtractPlayerMotionProbeStage" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <Source ParameterType="System.String" Required="true" />
+            <SourceHash ParameterType="System.String" Required="true" />
+            <Output ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                var source = File.ReadAllText(Source).Replace("\r\n", "\n");
+                Func<string, string, string> between = (start, end) =>
+                {
+                    var begin = source.IndexOf(start, StringComparison.Ordinal);
+                    if (begin < 0 || source.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous probe start: " + start);
+                    var finish = source.IndexOf(end, begin + start.Length, StringComparison.Ordinal);
+                    if (finish < 0 || source.IndexOf(end, finish + end.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous probe end: " + end);
+                    return source.Substring(begin, finish - begin);
+                };
+                var stage = between("            Write(\"阶段：加载页直接进入全屏再退出\");",
+                    "            Write(\"阶段：自动全屏起播，首帧与窗口交接同时到达\");");
+                var assertions = between("        void Write(string message)",
+                    "        /// <summary>\n        /// 保留态那一帧摆到哪儿");
+                var sourcePath = Path.GetFullPath(Source).Replace("\"", "\"\"");
+                // The method-group reference only keeps the old stage's unused Until warning quiet;
+                // it does not invoke or replace that actual helper in either source variant.
+                var generated = "// Verbatim current probe caller/assertions; no WinUI/native/network execution.\n#nullable enable\n" +
+                    "using System.Diagnostics;\nusing Momoka.Diagnostics;\nusing Momoka.Shell.Interop;\n" +
+                    "using Momoka.Shell.Views;\nusing Momoka.Shell.Windowing;\nnamespace Momoka.Shell;\n" +
+                    "internal static class PlayerMotionProbe\n{\n" +
+                    "    internal const string SourcePath = @\"" + sourcePath + "\";\n" +
+                    "    internal const string SourceHash = \"" + SourceHash + "\";\n" +
+                    "    internal static async Task RunFullscreenStageAsync(PlayerPage page, HostWindow window,\n" +
+                    "        ProbeTimer layoutSample, NativeRect browse, TextWriter report, CancellationToken token)\n    {\n" +
+                    "        NativeRect restored;\n        _ = (Func<Func<bool>, string, Task>)Until;\n" + stage + assertions + "    }\n}\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(Output));
+                if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
+                    File.WriteAllText(Output, generated, new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GeneratePlayerMotionProbeStage" BeforeTargets="CoreCompile">
+        <GetFileHash Files="$(MotionProbeSource)" Algorithm="SHA256">
+            <Output TaskParameter="Items" ItemName="MotionProbeSourceHash" />
+        </GetFileHash>
+        <ExtractPlayerMotionProbeStage Source="$(MotionProbeSource)"
+            SourceHash="@(MotionProbeSourceHash->'%(FileHash)')"
+            Output="$(IntermediateOutputPath)PlayerMotionProbeStage.g.cs" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)PlayerMotionProbeStage.g.cs" />
+        </ItemGroup>
+    </Target>
+</Project>
