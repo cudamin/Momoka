@@ -4,11 +4,19 @@ namespace Momoka.Tests;
 
 internal static class Program
 {
-    private static int Main()
+    private static int Main(string[] args)
     {
+#if !R042_LEGACY
+        if (args is ["shell-probe"])
+        {
+            ShellProbeContractTests.Register();
+            return Run();
+        }
+#endif
         CoreSourceContractTests.Register();
 #if !R042_LEGACY
         CallerSourceContractTests.Register();
+        ShellProbeContractTests.Register();
 #endif
         return Run();
     }
