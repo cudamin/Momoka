@@ -89,7 +89,7 @@ internal static class Program
         Log("=== AtomicFile 独立真实文件系统契约 ===");
         Log(JsonSerializer.Serialize(environment, Json));
         var allProduct = AtomicWriteCases.All().Concat(BackupFailureCases.All())
-            .Concat(PressureCases.All()).Concat(ReaderCases.All()).ToArray();
+            .Concat(PressureCases.All()).Concat(ReaderCases.All()).Concat(BackupRollbackCases.All()).ToArray();
         var product = backupFailuresOnly ? BackupFailureCases.All().ToArray() : allProduct;
         var controls = ControlCases.All().ToArray();
         var results = new List<CaseResult>();

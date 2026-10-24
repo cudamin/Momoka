@@ -1,3 +1,12 @@
+## 第九组恢复剩余修复及与新功能窗口协调（2026-10-25，在途）
+
+- 用户在直接交付后明确要求“修完”，本组恢复此前记录的 AtomicFile 访问拒绝和 composition 最终原生复验；R-043 仍仅展示建议，不擅自修改。用户随后授权与新增功能窗口自行协调，并明确不要实时汇报。
+- 本组实现树：`C:/Users/89400/.codex/worktrees/delivery-atomic-completion/Momoka`，分支 `codex/delivery-atomic-completion`，从既有完整修复树 `48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795` 建独立树。旧树归属其他任务，未抢占或改写；主目录只读规则/状态，未实施本组修复。
+- 生产写集仅 `src/Momoka.Core/Infrastructure/AtomicFile.cs`；独立子代理写 `tests/Momoka.AtomicFileWriteTests`，主线程登记方案/补验证与交付文档。没有修改新功能窗口负责的 MoviePilot、字幕翻译、补帧、Settings/Player VM。双方各树构建，桌面运行串行，修复窗口先完成交付后释放给新功能窗口；无 ZIP、不 push、不改变真实媒体库。
+- AtomicFile 已用真实共享 Delete 的旧读句柄证明旧 MoveFileEx 的拒绝语义；Windows 无备份分支仅访问拒绝时使用 FileRenameInfoEx/POSIX rename，保留 CommitGate/权限/ReadOnly。真实多次带备份轮换又证明旧 File.Replace 在仍有旧 reader 时第二次返回1175；仅此已确定错误改用唯一临时前主文件备份，主提交成功后发布备份，异常用读者安全rename回滚而不提前覆盖旧备份；真实回滚拒绝保前值并Data标出恢复路径。raw UTF-16 和既有设备路径保持，未忽略元数据合并或升级依赖。
+- 剩余验证：子代理副本32生产契约/4独立对照已过；主线程本树已整合并补3项发布/回滚真实故障路径，35生产+4对照全过，四组固定预算12544次提交、两组跨提交读者各128提交/1280读取完整；旧失败报告不改绿。本树39项目Release零警告错误、当前Core2880全过；Release配置加载空白检查无加载警告且0文件修改，旧并行format导致生成文件冲突失败保留，已改串行编译闭环。仍需提交后统一入口/适用应用及原生探针、实际publish并回读桌面快捷方式。单测/开发构建通过不是交付完成。
+- 新功能窗口独立树 `C:/Users/89400/.codex/worktrees/mp-translation-interpolation/Momoka`；master与旧修复树不是祖先关系（共同源c34a5e5；review独有101提交、master独有20提交），已经告知不得只摘本轮Atomic而遗漏旧72项修复，也不得整份覆盖丢master的新功能；功能窗口将完整merge旧父链再接本组提交，最终整合另行验收发布。
+
 ## 第八组按用户要求停止修复并交付桌面快捷方式（2026-10-24）
 
 - **用户最新指令是“先别修了，记下来直接交付”。已停止继续修复、补充压力诊断和原生运行复验，只交付当前已提交版本的桌面入口，不生成压缩包、不推送。** 本节是最新状态；下方“在途／快捷方式未改／待复验”均是此前阶段的历史记录，不自动恢复那些工作。

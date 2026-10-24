@@ -92,11 +92,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tests\Momoka.AtomicFileWrite
 随后 `run -c Release --no-build --no-restore`。任一用例失败最终退出 1；
 启动/完整报告/哈希一致性失败退出 2；不会拿旧输出补成功。
 
-默认完整运行全部 32 项生产契约和 4 项对照。
+默认完整运行全部 35 项生产契约和 4 项对照。
 `-ControlsOnly` 只跑 4 项对照，报告 `contractsExecuted=false`；
 `-BackupFailuresOnly` 只用于新增两个备份拒绝前件的局部验证，报告
 `allRequiredContractsExecuted=false`、`scope=backup-failures-only`，显式列出其余
-30 项生产契约和 4 项对照未执行。二者不能混用，局部退出 0 不能作为全专项通过。
+33 项生产契约和 4 项对照未执行。二者不能混用，局部退出 0 不能作为全专项通过。
 
 证据批次包含：`preconditions.json`（HEAD/工作树状态/依赖diff/源码与测试哈希）、
 `AtomicFile.dependency-snapshot.txt`、restore/build/run 日志与退出码，
@@ -180,3 +180,24 @@ IOException / `0x80070497`，第一步成功、旧 reader 未关闭。
 
 本专项不建立 x86 ABI、其他平台、UNC/网络盘、断电/掉电持久性、真实设置持久化、
 UI/WinRT/播放器或最终发布验证；这些由对应负责人和链路分别验证。
+
+## 主线程整合后的回滚失败路径
+
+当前项目已登记本树方案，另加 `BackupRollbackCases.cs` 的3项实际生产私有
+`CommitWithIsolatedBackup` 执行测试：只替换末端发布 callback 为显式异常，
+前向 File.Replace、回滚 Move/POSIX、真实读句柄与数据保持均是当前生产方法。
+它不复制第二个提交/回滚实现，不以只测底层API冒称生产失败路径。
+
+- 发布失败、没有旧读者：恢复完整旧主文件，保持早一版备份，临时前值消费，原异常保留。
+- 发布失败、有共享 Delete 的旧主文件读者：同一文件对象可经原子rename回到主路径，
+  旧读者仍打开且完整读取原文。不能用 exclusive File.Replace 重开前值制造回滚失败。
+- 发布失败、实际新主文件另有不共享 Delete 的锁：明确抛出发布和回滚两个异常，
+  `Data["RecoveryPath"]` 指向保留的完整前主文件；旧备份保持，新主文件仍完整，
+  不清理恢复数据或把保存失败当成功。
+
+末端发布故障是人为注入；真实Windows磁盘/ACL/空间在提交中途变化、其他底层
+File.Replace部分失败和断电持久性没有全面注入，最终交付不冒称这些极端环境全覆盖。
+
+主线程本树当前整合验证：outputs/postformat35-before-commit/result.json，
+35/35生产契约、4/4对照、0失败/跳过/未执行，当前完整生产源哈希与报告一致。
+文档中的worker 32项及原red为历史阶段证据，不当当前35项覆盖替代。
