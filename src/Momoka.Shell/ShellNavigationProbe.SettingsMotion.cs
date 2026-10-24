@@ -34,6 +34,7 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(page);
         try
         {
+            BeginSettingsFixtureVisit(page);
             ResizeProbeClient(width, 900);
             await page.ViewModel.ReloadAsync();
             Require(SettingTitleRulesRow.Probe().Ok, "关键词表增删／排序／两阶段提交的离线探针失败");
@@ -157,6 +158,7 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(page);
         try
         {
+            BeginSettingsFixtureVisit(page);
             ResizeProbeClient(width, 900);
             await page.ViewModel.ReloadAsync();
             page.SelectedCategory = "播放行为";
@@ -164,6 +166,7 @@ internal sealed partial class ShellNavigationProbe
             await WaitForSettingsSettledAsync(page);
             var section = page.ViewModel.Sections.Single(item => item.Title == "截图");
             var rows = Descendants(page).OfType<ItemsControl>().Single(control => ReferenceEquals(control.ItemsSource, section.Rows));
+            await WaitForSettingsRowsLoadedAsync(page, rows); // 有尺寸/IsLoaded 不证明 Loaded 中的真实行接线已完成。
             var lossless = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "WebP 无损");
             var format = Descendants(page).OfType<ComboBox>().Single(control => AutomationProperties.GetName(control) == "截图格式");
             lossless.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.35 });
@@ -238,6 +241,7 @@ internal sealed partial class ShellNavigationProbe
             await SaveProbeScreenAsync($"settings-conditional-config-{width}-restored-screen.png");
             await page.ViewModel.ReloadAsync();
             await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
             Require(HasRow("mpv.conf 路径") && mpv.ScreenshotWebpQuality == 73, "重入没有保留开关和从属值");
         }
         finally
