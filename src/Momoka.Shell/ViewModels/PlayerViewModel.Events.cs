@@ -580,8 +580,8 @@ public sealed partial class PlayerViewModel
         if (item is not null && !_playback.IsPlaying) return;
         if (item is not null) _preparingPictureInHost = null;
         // Re-armed per playback, before anything can look at it: switching episodes comes through here,
-        // and the previous episode's opening is not this one's. The server's chapter marks are the
-        // starting point; RefineSkipSectionsAsync replaces them with mpv's once the file is open.
+        // and the previous episode's opening is not this one's. The 跳过 sections come from Emby's own
+        // IntroStart/IntroEnd/CreditsStart markers and are not recomputed from mpv's chapter list.
         ResetTimelineDrag();
         InvalidateMenuInteractions();
         FlushVolume(settled: false);
@@ -609,15 +609,15 @@ public sealed partial class PlayerViewModel
         if (item is not null) _versionSwitchTarget = null;
         Tracks = [];
 
-        // Converted once and kept: the 跳过 plan and the preview's still both read Emby's marks, and the
-        // preview reads them on every pointer move.
+        // Converted once and kept: the preview's still reads Emby's marks on every pointer move, and the
+        // 跳过 plan reads the marker kinds on the same list.
         _embyMarks = item is null ? [] : SkipSectionPlanner.FromEmby(item.Chapters);
         var runtime = TimeFormat.ToSeconds(item?.RunTimeTicks);
-        _skips.Begin(SkipSectionPlanner.Resolve(_embyMarks, runtime), runtime);
+        _skips.Begin(SkipSectionPlanner.Resolve(item), runtime);
 
-        // The server's marks are what the bar draws until mpv publishes its own, for the same reason the
-        // 跳过 offer uses them: they are available immediately, and a bar that grew its ticks two seconds
-        // in would look like a glitch rather than a refinement.
+        // The server's marks are what the bar draws until mpv publishes its own: they are available
+        // immediately, and a bar that grew its ticks two seconds in would look like a glitch rather than
+        // a refinement.
         ChapterMarks = _embyMarks;
         _chapterStills.Clear();
         ClearChapterPeek();
@@ -699,7 +699,7 @@ public sealed partial class PlayerViewModel
         _ = PushNativeShortcutsAsync(force: true);
 
         _ = PopulateTracksAsync(_generation);
-        _ = RefineSkipSectionsAsync(_generation);
+        _ = RefineChapterMarksAsync(_generation);
         _ = ApplyAspectAsync(_generation);
         _ = NoteAudioDeviceAsync(_generation);
 
@@ -902,13 +902,10 @@ public sealed partial class PlayerViewModel
     /// </summary>
     private void ApplyStatus(PlayerStatus status)
     {
-        var durationChanged = Math.Abs(Status.Duration - status.Duration) > 0.05;
         Status = status;
         if (status.Loaded && status.Chapters is { } chapters)
         {
             var chaptersChanged = !ReferenceEquals(chapters, ChapterMarks) && !chapters.SequenceEqual(ChapterMarks);
-            if (status.HasDuration && (chaptersChanged || durationChanged))
-                _skips.Refine(SkipSectionPlanner.Resolve(chapters, status.Duration), status.Duration);
             if (chaptersChanged)
             {
                 ChapterMarks = chapters;
@@ -1208,10 +1205,11 @@ public sealed partial class PlayerViewModel
     });
 
     /// <summary>
-    /// Swaps Emby's chapter marks for mpv's own, which arrive a second or two after playback starts and
-    /// are the ones a release group actually wrote 「OP」 in.
+    /// Swaps Emby's chapter marks for mpv's own on the seek bar; they arrive a second or two after
+    /// playback starts and describe the file actually being decoded. The 跳过 sections are deliberately
+    /// not recomputed here — they belong to Emby's marker data alone (see <see cref="SkipSectionPlanner"/>).
     /// </summary>
-    private Task RefineSkipSectionsAsync(int generation) => PollAsync(generation, true, async () =>
+    private Task RefineChapterMarksAsync(int generation) => PollAsync(generation, true, async () =>
     {
         var count = await _playback.GetNumberAsync("chapter-list/count").ConfigureAwait(true);
 
@@ -1232,19 +1230,11 @@ public sealed partial class PlayerViewModel
         // attempts run out, which is the same corner a stuck backend lands in.
         if (chapters.Count < count.Value) return false;
 
-        var duration = await _playback.GetNumberAsync("duration").ConfigureAwait(true)
-                       ?? _playback.Status.Duration;
-        if (generation != _generation) return true;
-
-        _skips.Refine(SkipSectionPlanner.Resolve(chapters, duration), duration);
-
-        // The ticks get the same upgrade. Emby's marks and mpv's usually agree, but a file remuxed
-        // after the library scan is exactly the case where they do not, and the picture on screen is
-        // the one to believe.
+        // Emby's marks and mpv's usually agree, but a file remuxed after the library scan is exactly
+        // the case where they do not, and the picture on screen is the one to believe. This upgrades
+        // the ticks only; the 跳过 plan keeps Emby's marker data.
         ChapterMarks = chapters;
         ChaptersChanged?.Invoke();
-
-        ApplySkipOffer();
         return true;
     });
 

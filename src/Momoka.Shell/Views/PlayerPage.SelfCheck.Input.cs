@@ -36,9 +36,9 @@ public sealed partial class PlayerPage
     {
         if (!Attached) return (false, "播放层未接线");
 
-        // 30..120s of a 25-minute episode: long enough to be recognised, and it starts late enough that
-        // the section is not simply the whole file.
-        var opening = new SkipSection(SkipSectionKind.Opening, 30, 120, "片头", true);
+        // 30..120s of a 25-minute episode: a section the server could have marked, and not simply the
+        // whole file.
+        var opening = new SkipSection(SkipSectionKind.Opening, 30, 120, "片头");
         var skips = new SkipCoordinator { Mode = SkipSectionMode.Ask };
 
         skips.Begin([opening], 1500);

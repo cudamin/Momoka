@@ -63,6 +63,10 @@
 
 正文由 `PlaybackReport` 构造 —— Emby **忽略它不认识的字段**，所以加字段比想象中安全。播放事件经 `Sessions/Playing*` 报给服务器，由服务器上装的通知服务转发出去；客户端不直接对通知服务说话。
 
+### 章节与片头标记
+
+`Fields=Chapters` 返回的 `ChapterInfo` 除 `StartPositionTicks` / `Name` / `ImageTag` 外还带 `MarkerType`，规格枚举为 `Chapter`、`IntroStart`、`IntroEnd`、`CreditsStart`。后三种是 Emby 自己识别出的片头/片尾标记项，和普通章节共用同一个数组；客户端的 跳过 offer 只读这些标记（`SkipSectionPlanner`），不靠章节名或时长推测，也不会为没有标记的条目显示跳过按钮。章节图仍按这个数组的下标取。
+
 ## 用户状态
 
 | 方法 | 路径 | 用途 |

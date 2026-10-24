@@ -27,12 +27,10 @@ public readonly record struct SkipJump(SkipSection Section, double Target)
 /// Runs the 跳过 offer for one file: which section the position is in, whether its offer still
 /// stands, and what a jump would land on.
 /// <para>
-/// Every decision is remembered against the section's own start time rather than its index, so
-/// <see cref="Refine"/> can swap Emby's chapter marks for mpv's better ones mid-file without
-/// re-offering something the viewer already answered. A decline lasts as long as the position stays
-/// in the section — seeking back into an opening is a deliberate act and gets a fresh offer — while
-/// a completed jump is remembered for the whole file, so going back to watch an opening on purpose
-/// is not thrown forward again a second time.
+/// Every decision is remembered against the section's own start time rather than its index. A decline
+/// lasts as long as the position stays in the section — seeking back into an opening is a deliberate
+/// act and gets a fresh offer — while a completed jump is remembered for the whole file, so going back
+/// to watch an opening on purpose is not thrown forward again a second time.
 /// </para>
 /// </summary>
 public sealed class SkipCoordinator
@@ -72,25 +70,6 @@ public sealed class SkipCoordinator
         _armedAt = 0;
         _answered = false;
         Prompt = SkipPrompt.None;
-    }
-
-    /// <summary>
-    /// Swaps in a better section list for the file already playing — mpv's own chapter names arrive
-    /// a second or two after playback starts, and they are the ones a release group wrote 「OP」 in.
-    /// </summary>
-    public void Refine(IReadOnlyList<SkipSection> sections, double duration)
-    {
-        _sections = sections;
-        if (duration > 0) _duration = duration;
-
-        // The armed section came from the list being replaced; whether it survived is decided by the
-        // next position update, against whatever is now in front of the viewer.
-        if (_armed is { } armed && !sections.Contains(armed))
-        {
-            _armed = null;
-            _answered = false;
-            Prompt = SkipPrompt.None;
-        }
     }
 
     /// <summary>
@@ -194,12 +173,11 @@ public sealed class SkipCoordinator
     private string Describe(SkipSection section)
     {
         var target = TimeFormat.Clock(TimeSpan.FromSeconds(TargetOf(section)));
-        var source = section.Certain ? $"章节：{section.Label}" : $"推测的{section.Label}";
         // 键名跟着 2026-09-26 的键位改动走（用户令）：确认跳过 Y→回车、关闭 N→Esc，画面提示与之一致。
-        return $"跳到 {target}（{source}） · 回车跳过 · Esc 关闭";
+        return $"跳到 {target}（服务器标记：{section.Label}） · 回车跳过 · Esc 关闭";
     }
 
-    /// <summary>The same section, allowing for two chapter lists that disagree by a rounding error.</summary>
+    /// <summary>The same section, allowing for a rounding error in the reported start.</summary>
     private static bool Same(SkipSection left, SkipSection right) =>
         left.Kind == right.Kind && Math.Abs(left.Start - right.Start) < 1;
 

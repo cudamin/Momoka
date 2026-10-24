@@ -1116,6 +1116,29 @@ internal static class EmbyTests
             Assert.Contains("Status", EmbyFields.Browse);
         });
 
+        Test("条目：章节读出 Emby 的 MarkerType，跳过区间只认这些标记", () =>
+        {
+            var item = System.Text.Json.JsonSerializer.Deserialize<EmbyItem>(
+                """
+                {"Chapters":[
+                    {"StartPositionTicks":0,"Name":"片头","MarkerType":"Chapter"},
+                    {"StartPositionTicks":50000000,"MarkerType":"IntroStart"},
+                    {"StartPositionTicks":950000000,"MarkerType":"IntroEnd"},
+                    {"StartPositionTicks":13800000000,"MarkerType":"CreditsStart"}
+                ]}
+                """,
+                EmbyHttp.Json)!;
+
+            Assert.Equal(SkipSectionPlanner.IntroStartMarker, item.Chapters[1].MarkerType);
+            Assert.Equal(95, item.Chapters[2].StartSeconds);
+            Assert.Equal(SkipSectionPlanner.CreditsStartMarker, item.Chapters[3].MarkerType);
+
+            var sections = SkipSectionPlanner.Resolve(item.Chapters, 1500);
+            Assert.Equal(2, sections.Count);
+            Assert.Equal((5d, 95d), (sections[0].Start, sections[0].End));
+            Assert.Equal((1380d, 1500d), (sections[1].Start, sections[1].End));
+        });
+
         Test("条目：单集标题带上剧名与集号", () =>
         {
             var episode = new EmbyItem

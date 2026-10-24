@@ -3290,147 +3290,95 @@ internal static class PlaybackTests
 
     private static void RegisterSkipSections()
     {
-        Test("跳过：命名章节同时给出片头和片尾", () =>
+        Test("跳过：只认 Emby 的 IntroStart/IntroEnd 与 CreditsStart", () =>
         {
             var sections = SkipSectionPlanner.Resolve(Episode(
-                Chapter(0, "片头"),
-                Chapter(88, "正片"),
-                Chapter(1380, "片尾")));
+                Chapter(0, "第一章", "Chapter"),
+                Chapter(5, null, "IntroStart"),
+                Chapter(96, "正片", "Chapter"),
+                Chapter(95, null, "IntroEnd"),
+                Chapter(1380, null, "CreditsStart")));
 
             Assert.Equal(2, sections.Count);
 
             Assert.Equal(SkipSectionKind.Opening, sections[0].Kind);
-            Assert.Equal(0, sections[0].Start);
-            Assert.Equal(88, sections[0].End);
-            Assert.True(sections[0].Certain, "章节名给出的区间不是推测");
+            Assert.Equal(5, sections[0].Start);
+            Assert.Equal(95, sections[0].End);
             Assert.Equal("跳过片头", sections[0].Caption);
 
             Assert.Equal(SkipSectionKind.Ending, sections[1].Kind);
             Assert.Equal(1380, sections[1].Start);
-            Assert.Equal(1500, sections[1].End, "最后一个章节一直放到片尾");
+            Assert.Equal(1500, sections[1].End, "片尾标记一直放到文件结束");
+            Assert.Equal("跳过片尾", sections[1].Caption);
         });
 
-        Test("跳过：冷开场时命名章节不在第一位", () =>
+        Test("跳过：章节名和长度不再参与识别", () =>
+        {
+            // 过去这些都会弹出 跳过：OP/ED 的章节名、90 秒左右的无名章节、位置推测。现在没有
+            // Emby 的标记就什么都不给 —— 片源自带的章节名不是服务器识别结果。
+            Assert.Equal(0, SkipSectionPlanner.Resolve(Episode(
+                Chapter(0, "片头"), Chapter(88, "正片"), Chapter(1380, "片尾"))).Count);
+            Assert.Equal(0, SkipSectionPlanner.Resolve(Episode(
+                Chapter(0, "Avant"), Chapter(90, "Opening"), Chapter(183, "正片"), Chapter(1400, "片尾"))).Count);
+            Assert.Equal(0, SkipSectionPlanner.Resolve(Episode(
+                Chapter(0), Chapter(92), Chapter(1200))).Count);
+            Assert.Equal(0, SkipSectionPlanner.Resolve(null).Count);
+        });
+
+        Test("跳过：有 IntroStart 没有 IntroEnd 不给片头", () =>
         {
             var sections = SkipSectionPlanner.Resolve(Episode(
-                Chapter(0, "前情提要"),
-                Chapter(65, "OP"),
-                Chapter(155, "正片")));
+                Chapter(10, null, "IntroStart"),
+                Chapter(1000, "正片", "Chapter")));
 
-            // 前情提要 紧接着 OP，合成一次跳跃：分开就要按两下才进正片。
-            Assert.Equal(1, sections.Count);
-            Assert.Equal(0, sections[0].Start);
-            Assert.Equal(155, sections[0].End);
-            Assert.Equal("跳过片头", sections[0].Caption, "合并后用落点那一段的名字");
+            Assert.Equal(0, sections.Count, "没有终点就不猜终点");
         });
 
-        Test("跳过：ED / Preview 都算片尾，并且合成一段", () =>
+        Test("跳过：没有片长就不给片尾", () =>
+        {
+            var item = Episode(
+                Chapter(10, null, "IntroStart"),
+                Chapter(100, null, "IntroEnd"),
+                Chapter(1400, null, "CreditsStart"));
+            item.RunTimeTicks = null;
+
+            var sections = SkipSectionPlanner.Resolve(item);
+
+            Assert.Equal(1, sections.Count);
+            Assert.Equal(SkipSectionKind.Opening, sections[0].Kind);
+        });
+
+        Test("跳过：多个片头标记按位置各自配对", () =>
         {
             var sections = SkipSectionPlanner.Resolve(Episode(
-                Chapter(0, "正片"),
-                Chapter(1320, "ED"),
-                Chapter(1410, "Preview")));
-
-            Assert.Equal(1, sections.Count);
-            Assert.Equal(SkipSectionKind.Ending, sections[0].Kind);
-            Assert.Equal(1320, sections[0].Start);
-            Assert.Equal(1500, sections[0].End);
-            Assert.Equal("跳过片尾", sections[0].Caption, "合并后用起点那一段的名字");
-        });
-
-        Test("跳过：电影也认命名章节", () =>
-        {
-            var sections = SkipSectionPlanner.Resolve(Watchable(
-                EmbyItemType.Movie,
-                Chapter(0, "Opening Titles"),
-                Chapter(75, "Act One")));
-
-            Assert.Equal(1, sections.Count);
-            Assert.Equal(75, sections[0].End);
-        });
-
-        Test("跳过：没有章节名时按位置和长度推测", () =>
-        {
-            var sections = SkipSectionPlanner.Resolve(Episode(Chapter(0), Chapter(92), Chapter(1200)));
-
-            Assert.Equal(1, sections.Count);
-            Assert.Equal(92, sections[0].End);
-            Assert.False(sections[0].Certain, "章节长度只是推测");
-        });
-
-        Test("跳过：有名字但不认识的章节不按长度推测成片头", () =>
-        {
-            // 实际片源：Avant（冷开场）0–90s，Opening 90–183s。冷开场也是 90 秒，以前会被
-            // 位置规则当成片头，再与 Opening 合并成 0–183s —— 播到 28 秒就弹「跳过片头」，
-            // 按下去连冷开场一起丢掉。
-            var sections = SkipSectionPlanner.Resolve(Episode(
-                Chapter(0, "Avant"),
-                Chapter(90, "Opening"),
-                Chapter(183, "正片"),
-                Chapter(1400, "片尾")));
+                Chapter(0, null, "IntroStart"),
+                Chapter(90, null, "IntroEnd"),
+                Chapter(600, null, "IntroStart"),
+                Chapter(690, null, "IntroEnd")));
 
             Assert.Equal(2, sections.Count);
-            Assert.Equal(SkipSectionKind.Opening, sections[0].Kind);
-            Assert.Equal(90, sections[0].Start, "冷开场不是片头，0–90 秒不该被吞进去");
-            Assert.Equal(183, sections[0].End);
-            Assert.True(sections[0].Certain, "「Opening」是章节名给出的，不是推测");
-            Assert.False(sections[0].Covers(28), "冷开场里不该弹出跳过片头");
-            Assert.Equal(1400, sections[1].Start);
+            Assert.Equal((0d, 90d), (sections[0].Start, sections[0].End));
+            Assert.Equal((600d, 690d), (sections[1].Start, sections[1].End));
         });
 
-        Test("跳过：无名章节的长度必须落在 80–100 秒", () =>
+        Test("跳过：章节表保持原样，标记项也要留给章节图索引", () =>
         {
-            Assert.Equal(0, SkipSectionPlanner.Resolve(Episode(Chapter(0), Chapter(420), Chapter(1200))).Count);
-            Assert.Equal(0, SkipSectionPlanner.Resolve(Episode(Chapter(0), Chapter(9), Chapter(1200))).Count);
-        });
+            var marks = SkipSectionPlanner.FromEmby(
+            [
+                Chapter(0, "片头", "Chapter"),
+                Chapter(5, null, "IntroStart")
+            ]);
 
-        Test("跳过：中间的无名章节是一场戏，不是片头片尾", () =>
-        {
-            var sections = SkipSectionPlanner.Resolve(Episode(
-                Chapter(0),
-                Chapter(300),
-                Chapter(600),
-                Chapter(690),
-                Chapter(900),
-                Chapter(1200)));
-
-            Assert.Equal(0, sections.Count, "第 690 秒那段 90 秒的章节在正片中间");
-        });
-
-        Test("跳过：位置和名字冲突时以位置为准", () =>
-        {
-            Assert.Equal(
-                0,
-                SkipSectionPlanner.Resolve(Episode(Chapter(0, "正片"), Chapter(600, "OP"), Chapter(700, "继续"))).Count,
-                "十分钟处的「OP」是标错的章节");
-
-            Assert.Equal(
-                0,
-                SkipSectionPlanner.Resolve(Episode(Chapter(0, "ED"), Chapter(120, "正片"))).Count,
-                "前半段的「ED」不是片尾");
-
-            Assert.Equal(
-                0,
-                SkipSectionPlanner.Resolve(Episode(Chapter(0, "片头"), Chapter(6, "正片"), Chapter(1200))).Count,
-                "六秒就结束的「片头」是发行商 logo");
-        });
-
-        Test("跳过：没有章节或文件太短就什么都不给", () =>
-        {
-            Assert.Equal(0, SkipSectionPlanner.Resolve(Episode()).Count, "没有章节就不猜，免得每集都冒出按钮");
-            Assert.Equal(0, SkipSectionPlanner.Resolve(Watchable(EmbyItemType.Movie)).Count);
-            Assert.Equal(0, SkipSectionPlanner.Resolve(null).Count);
-
-            var short3Minutes = Watchable(EmbyItemType.Episode, Chapter(0), Chapter(85), Chapter(150));
-            short3Minutes.RunTimeTicks = TimeSpan.FromMinutes(3).Ticks;
-            Assert.Equal(0, SkipSectionPlanner.Resolve(short3Minutes).Count, "三分钟的文件没有片头可跳");
+            Assert.Equal(2, marks.Count);
+            Assert.Equal("片头", marks[0].Title);
+            Assert.Equal(5, marks[1].Start);
         });
 
         Test("跳过：Covers 只在区间内成立", () =>
         {
-            var section = new SkipSection(SkipSectionKind.Opening, 65, 155, "片头", Certain: true);
+            var section = new SkipSection(SkipSectionKind.Opening, 65, 155, "片头");
 
-            Assert.False(section.Covers(30), "冷开场还没放完");
+            Assert.False(section.Covers(30), "区间之前");
             Assert.True(section.Covers(65));
             Assert.True(section.Covers(154));
             Assert.False(section.Covers(154.6), "临界半秒内不再提示，免得点了原地不动");
@@ -3503,6 +3451,7 @@ internal static class PlaybackTests
             Assert.Contains("回车跳过", skips.Prompt.Tip, "提示里写清回车是接受（2026-09-26 键位改动：Y→回车）");
             Assert.Contains("Esc 关闭", skips.Prompt.Tip, "提示里写清 Esc 是关闭（2026-09-26 键位改动：N→Esc）");
             Assert.Contains("1:30", skips.Prompt.Tip, "提示里写清落点");
+            Assert.Contains("服务器标记", skips.Prompt.Tip, "区间来自 Emby 的标记，不再说成推测或章节名");
 
             skips.Advance(17.5, playing: true);
             Assert.True(skips.Prompt.Visible);
@@ -3593,27 +3542,6 @@ internal static class PlaybackTests
             Assert.False(skips.Prompt.Visible);
         });
 
-        Test("跳过：换用 mpv 的章节表不会重复提问", () =>
-        {
-            var skips = Coordinator(out var sections);
-
-            skips.Advance(10, playing: true);
-            Assert.NotNull(skips.Accept());
-
-            // mpv 报回同一段片头，只差了个舍入误差；已经跳过就不该再问。
-            skips.Refine(
-                [new SkipSection(SkipSectionKind.Opening, 0.2, 90, "片头", Certain: true), sections[1]],
-                1500);
-
-            skips.Advance(20, playing: true);
-            Assert.False(skips.Prompt.Visible);
-
-            // 新表里多出来的片尾照样提示。
-            skips.Advance(1400, playing: true);
-            Assert.True(skips.Prompt.Visible);
-            Assert.Equal("跳过片尾", skips.Prompt.Caption);
-        });
-
         Test("跳过：跳到文件结尾时留半秒给 mpv 自己收尾", () =>
         {
             var skips = Coordinator(out _);
@@ -3644,8 +3572,8 @@ internal static class PlaybackTests
     {
         sections =
         [
-            new SkipSection(SkipSectionKind.Opening, 0, 90, "片头", Certain: true),
-            new SkipSection(SkipSectionKind.Ending, 1380, 1500, "片尾", Certain: true)
+            new SkipSection(SkipSectionKind.Opening, 0, 90, "片头"),
+            new SkipSection(SkipSectionKind.Ending, 1380, 1500, "片尾")
         ];
 
         var skips = new SkipCoordinator();
@@ -7350,10 +7278,11 @@ internal static class PlaybackTests
         IndexNumber = number
     };
 
-    private static ChapterInfo Chapter(double seconds, string? name = null) => new()
+    private static ChapterInfo Chapter(double seconds, string? name = null, string? marker = null) => new()
     {
         StartPositionTicks = TimeSpan.FromSeconds(seconds).Ticks,
-        Name = name
+        Name = name,
+        MarkerType = marker
     };
 
     private static (PlaybackPlanner Planner, AppSettings Settings) Planner(string? screenshots = null, string? fonts = null)

@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 
@@ -33,19 +32,16 @@ public enum SkipSectionMode
 public readonly record struct SkipChapter(double Start, string? Title);
 
 /// <summary>
-/// A stretch of the file worth jumping over: <see cref="Start"/>..<see cref="End"/>, with a label to
-/// put on the button and a note of whether a chapter name said so or the position implied it.
+/// A stretch of the file worth jumping over: <see cref="Start"/>..<see cref="End"/>, with the label the
+/// button carries.
 /// </summary>
 public readonly record struct SkipSection(
     SkipSectionKind Kind,
     double Start,
     double End,
-    string Label,
-    bool Certain)
+    string Label)
 {
-    public double Length => End - Start;
-
-    /// <summary>What the button says: 跳过片头, 跳过片尾, 跳过预告 …</summary>
+    /// <summary>What the button says: 跳过片头, 跳过片尾 …</summary>
     public string Caption => "跳过" + Label;
 
     /// <summary>Whether the section is what is playing at <paramref name="position"/> seconds.</summary>
@@ -54,69 +50,75 @@ public readonly record struct SkipSection(
 }
 
 /// <summary>
-/// Works out which parts of a file are an opening or an ending, from its chapter marks.
+/// Turns Emby's own intro and credit markers into the two sections the 跳过 offer knows about.
 /// <para>
-/// Modelled on chapterskip.lua from the mpv config this client is built around, down to its numbers:
-/// nothing at all for a file of 200 seconds or less or with a single chapter, chapter titles matched
-/// against a category table first, and — only for unnamed chapters at either end of the list, running
-/// 80 to 100 seconds, inside the first 200 or last 300 seconds — a positional guess. That is why an
-/// unnamed 90-second chapter is taken for a title sequence while an unnamed 4-minute one is not.
-/// </para>
-/// <para>
-/// A title is trusted about what a section contains but not about where it sits: 「OP」 four minutes
-/// into the file is a mislabelled chapter, and an opening that ends within fifteen seconds is a
-/// distributor logo. A file with no chapters gets nothing — the previous version guessed a flat
-/// 0–90 seconds for any episode, which put a 跳过 button on every episode in the library and jumped
-/// into the middle of the ones that had no titles to skip.
+/// This reads marker data and nothing else. Emby tags the entries it detected in the item's
+/// <c>Chapters</c> field with <see cref="ChapterInfo.MarkerType"/>: an opening is <c>IntroStart</c> to
+/// the next <c>IntroEnd</c>, and the credits run from <c>CreditsStart</c> to the end of the file.
+/// Chapter titles and lengths are not consulted — 「OP」 written in a chapter name is a release group's
+/// label, not proof that the server found titles there, and guessing from an unnamed 90-second chapter
+/// put a 跳过 button on episodes with nothing to skip. When Emby has no markers the answer is no
+/// sections, which is also what the setting means by 关闭 on that file.
 /// </para>
 /// </summary>
 public static class SkipSectionPlanner
 {
-    /// <summary>Below this run time there is no room for a title sequence (lua: intro_time_window).</summary>
-    public const double ShortestFile = 200;
+    /// <summary>Emby's marker kinds, spelled as the server sends them.</summary>
+    public const string IntroStartMarker = "IntroStart";
+    public const string IntroEndMarker = "IntroEnd";
+    public const string CreditsStartMarker = "CreditsStart";
 
-    /// <summary>How late a section can begin and still be an opening.</summary>
-    public const double IntroWindow = 200;
-
-    /// <summary>How far from the end an inferred ending has to begin.</summary>
-    public const double OutroWindow = 300;
-
-    /// <summary>A section shorter than this is a marker between two scenes, not a section.</summary>
-    private const double ShortestSection = 8;
-
-    /// <summary>An "opening" over before this is the distributor's logo; after it, the episode.</summary>
-    private const double EarliestEnd = 15;
-
-    // The window an unnamed chapter has to fall in to be taken for titles or credits. Openings and
-    // endings are cut to the music, and the music is ninety seconds long.
-    private const double InferredShortest = 80;
-    private const double InferredLongest = 100;
+    /// <summary>Every section Emby marked on <paramref name="item"/>.</summary>
+    public static IReadOnlyList<SkipSection> Resolve(EmbyItem? item) =>
+        item is null ? [] : Resolve(item.Chapters, TimeFormat.ToSeconds(item.RunTimeTicks));
 
     /// <summary>
-    /// chapterskip.lua's category table, in the same order it checks them. Word-bounded so 「OP」
-    /// matches "OP" and "OP2" without matching "Open Water", and 「ED」 matches "ED" and "The ED"
-    /// without matching "Watched".
+    /// Every section in a file of <paramref name="duration"/> seconds whose chapters carry these Emby
+    /// markers, in playing order.
+    /// <para>
+    /// Markers are paired by position rather than by list index: a marker list that arrived out of order
+    /// still gives the same answer, and a stray <c>IntroEnd</c> with no opening before it is ignored
+    /// instead of becoming a section with nowhere to jump from. Multiple detected openings are each
+    /// emitted; the button follows whichever one playback is inside.
+    /// </para>
     /// </summary>
-    private static readonly (Regex Pattern, SkipSectionKind Kind, string Label)[] Categories =
-    [
-        (Pattern(@"^op\d*\b|\bop\d*$|^opening|opening$|^intro\b|^introduction|^title\b|^titles$|^title sequence|オープニング|片头|片頭|主题曲|主題曲|开场|開場"),
-            SkipSectionKind.Opening, "片头"),
+    public static IReadOnlyList<SkipSection> Resolve(IReadOnlyList<ChapterInfo> chapters, double duration)
+    {
+        var sections = new List<SkipSection>();
+        if (chapters.Count == 0) return sections;
 
-        (Pattern(@"^ed\d*\b|\bed\d*$|^ending|ending$|^credits|credits$|^staff\b|エンディング|片尾|ED曲|工作人员"),
-            SkipSectionKind.Ending, "片尾"),
+        var markers = chapters
+            .Where(chapter => chapter.StartSeconds >= 0 && !string.IsNullOrWhiteSpace(chapter.MarkerType))
+            .OrderBy(chapter => chapter.StartSeconds)
+            .ToList();
 
-        (Pattern(@"^preview|preview$|次回予告|预告|預告"),
-            SkipSectionKind.Ending, "预告"),
+        double? introStart = null;
+        foreach (var marker in markers)
+        {
+            if (Same(marker.MarkerType, IntroStartMarker))
+            {
+                introStart ??= marker.StartSeconds;
+            }
+            else if (Same(marker.MarkerType, IntroEndMarker))
+            {
+                if (introStart is { } start && marker.StartSeconds > start)
+                    sections.Add(new SkipSection(SkipSectionKind.Opening, start, marker.StartSeconds, "片头"));
 
-        (Pattern(@"^prologue|^recap\b|前情提要|^序章|^回顾|^回顧"),
-            SkipSectionKind.Opening, "序章")
-    ];
+                introStart = null;
+            }
+            else if (Same(marker.MarkerType, CreditsStartMarker) && duration > marker.StartSeconds)
+            {
+                sections.Add(new SkipSection(SkipSectionKind.Ending, marker.StartSeconds, duration, "片尾"));
+            }
+        }
 
-    /// <summary>Every section in <paramref name="item"/>, from the chapters the server sent.</summary>
-    public static IReadOnlyList<SkipSection> Resolve(EmbyItem? item) =>
-        item is null ? [] : Resolve(FromEmby(item.Chapters), TimeFormat.ToSeconds(item.RunTimeTicks));
+        return sections;
+    }
 
-    /// <summary>Emby's chapter records as the planner's own shape.</summary>
+    /// <summary>
+    /// Emby's chapter records as the planner's own shape. The list is kept whole — marker entries
+    /// included — because the hover preview indexes chapter stills against exactly this array.
+    /// </summary>
     public static IReadOnlyList<SkipChapter> FromEmby(IReadOnlyList<ChapterInfo> chapters)
     {
         var converted = new List<SkipChapter>(chapters.Count);
@@ -124,138 +126,6 @@ public static class SkipSectionPlanner
         return converted;
     }
 
-    /// <summary>
-    /// Every section in a file of <paramref name="duration"/> seconds with these
-    /// <paramref name="chapters"/>, in playing order and with touching sections folded together.
-    /// </summary>
-    public static IReadOnlyList<SkipSection> Resolve(IReadOnlyList<SkipChapter> chapters, double duration)
-    {
-        if (duration <= ShortestFile || chapters.Count <= 1) return [];
-
-        var found = new List<SkipSection>();
-        for (var index = 0; index < chapters.Count; index++)
-        {
-            // A chapter's span runs to the next mark, or to the end of the file for the last one.
-            var start = chapters[index].Start;
-            var end = index + 1 < chapters.Count ? chapters[index + 1].Start : duration;
-            if (start < 0 || end <= start) continue;
-
-            var title = chapters[index].Title;
-            var section = FromTitle(title, start, end, duration)
-                          ?? FromPosition(index, chapters.Count, title, start, end, duration);
-
-            if (section is { } match) found.Add(match);
-        }
-
-        return Merge(found);
-    }
-
-    private static Regex Pattern(string pattern) =>
-        new(pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-
-    /// <summary>A chapter that says what it is — wherever it sits, since cold opens push it second.</summary>
-    private static SkipSection? FromTitle(string? title, double start, double end, double duration)
-    {
-        if (string.IsNullOrWhiteSpace(title)) return null;
-        var trimmed = title.Trim();
-
-        foreach (var (pattern, kind, label) in Categories)
-        {
-            if (!pattern.IsMatch(trimmed)) continue;
-            return Accept(kind, start, end, label, certain: true, duration);
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// A chapter with no name in the one place, and of the one length, that an opening or an ending
-    /// can be. Applied to films as well as episodes, as in the reference: a 90-second chapter that
-    /// starts a film is its title sequence and one that ends it is its credit roll.
-    /// <para>
-    /// A name that merely missed the category table still says the chapter is something else: an
-    /// 80–100 second 「Avant」 is a cold open, and inferring titles from its length would merge it
-    /// into the 「Opening」 after it — the offer then stood at the top of the episode and threw the
-    /// cold open away along with the titles.
-    /// </para>
-    /// </summary>
-    private static SkipSection? FromPosition(int index, int count, string? title, double start, double end, double duration)
-    {
-        if (!string.IsNullOrWhiteSpace(title)) return null;
-
-        var length = end - start;
-        if (length < InferredShortest || length > InferredLongest) return null;
-
-        // Outermost chapters only. An unnamed 90-second chapter in the middle is a scene.
-        if (index > 1 && index < count - 2) return null;
-
-        if (index < (count + 1) / 2)
-        {
-            return start < IntroWindow
-                ? Accept(SkipSectionKind.Opening, start, end, "片头", certain: false, duration)
-                : null;
-        }
-
-        return start >= duration - OutroWindow
-            ? Accept(SkipSectionKind.Ending, start, end, "片尾", certain: false, duration)
-            : null;
-    }
-
-    /// <summary>Drops a section whose position contradicts what it claims to be.</summary>
-    private static SkipSection? Accept(
-        SkipSectionKind kind,
-        double start,
-        double end,
-        string label,
-        bool certain,
-        double duration)
-    {
-        if (end - start < ShortestSection) return null;
-
-        if (kind == SkipSectionKind.Opening)
-        {
-            if (end < EarliestEnd || start >= IntroWindow) return null;
-        }
-        else if (start < duration / 2)
-        {
-            // An 「ED」 in the first half of the file is a mislabel, not a credit roll.
-            return null;
-        }
-
-        return new SkipSection(kind, start, end, label, certain);
-    }
-
-    /// <summary>
-    /// Folds sections that touch into one jump. A recap followed by the titles is one thing to get
-    /// past, and left apart it would mean pressing 跳过 twice to reach the episode. The surviving
-    /// label is the one at the destination end, so a merged opening still reads 跳过片头.
-    /// </summary>
-    private static IReadOnlyList<SkipSection> Merge(List<SkipSection> found)
-    {
-        if (found.Count < 2) return found;
-
-        found.Sort((left, right) => left.Start.CompareTo(right.Start));
-
-        var merged = new List<SkipSection> { found[0] };
-        for (var index = 1; index < found.Count; index++)
-        {
-            var next = found[index];
-            var last = merged[^1];
-
-            if (last.Kind != next.Kind || next.Start > last.End + 1)
-            {
-                merged.Add(next);
-                continue;
-            }
-
-            merged[^1] = last with
-            {
-                End = Math.Max(last.End, next.End),
-                Label = last.Kind == SkipSectionKind.Opening ? next.Label : last.Label,
-                Certain = last.Certain && next.Certain
-            };
-        }
-
-        return merged;
-    }
+    private static bool Same(string? markerType, string expected) =>
+        string.Equals(markerType, expected, StringComparison.OrdinalIgnoreCase);
 }

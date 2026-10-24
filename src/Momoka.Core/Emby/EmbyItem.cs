@@ -120,6 +120,13 @@ public sealed class ChapterInfo
     /// <summary>Image cache tag; null when the server extracted no still for this chapter.</summary>
     public string? ImageTag { get; set; }
 
+    /// <summary>
+    /// Emby's own marker kind: <c>Chapter</c>, <c>IntroStart</c>, <c>IntroEnd</c> or
+    /// <c>CreditsStart</c>. Plain chapters often omit it; the three non-chapter kinds are the intro and
+    /// credit segments Emby detected, and they are what the 跳过 offer is built from.
+    /// </summary>
+    public string? MarkerType { get; set; }
+
     [JsonIgnore]
     public bool HasImage => !string.IsNullOrEmpty(ImageTag);
 
