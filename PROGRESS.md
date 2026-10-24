@@ -1,3 +1,12 @@
+## 第九组剩余修复完成并交付，桌面已交接新功能窗口（2026-10-25）
+
+- **本次“修完”已完成。** 修复此前记录的 AtomicFile 覆盖/备份轮换访问拒绝，补齐最终 composition 原生复验，并修复探针逐点读取屏幕造成的阻塞。R-043 仍仅展示建议，未擅自实施；未把真实服务器、TLS/代理、Plex 2FA/PIN、生产 DPAPI/Registry ACL、独占/uosc/外部 mpv 等覆盖缺口冒称全面验收。
+- 实现与发布树：`C:/Users/89400/.codex/worktrees/delivery-atomic-completion/Momoka`，分支 `codex/delivery-atomic-completion`；**交付源码 `7e6e0d709b8331b0101765652c4c95585be49d6b`**。从原完整修复父链48c43fc起，三条增量为 b4463c9（独立真实文件系统测试）、4a15f90（Atomic与备份/回滚修复）、7e6e0d7（合成单帧采样）。后续本条交付记录提交仅文档，不改变已验证DLL、版本或重新发布。
+- **当前源码统一验证：** 39项目Release零警告/零错误；Core **2885通过、0失败、0跳过**；55离线入口全部退出0、失败0、跳过0，覆盖重叠不相加。Atomic **35生产契约＋4独立对照**全过，四组固定预算12544次提交、两组跨提交读者各128次提交/1280次完整读取，以及发布/回滚真实锁故障、只读/非Delete共享、原始UTF-16/设备路径全过；原红报告保持。Release空白检查1851文件0修改且无工作区加载失败，47脚本BOM/LF/语法通过。最终源码/测试/资源/工具1162份哈希未变。
+- **最终发布件运行验证：** composition两轮首位置/Resize/全屏往返/暂停恢复/停止退出0，真实彩条screen已目检；完整本地motion退出0；Shell仅settings区域 **17/17**，其他84项未执行，不冒称全量101；官方自检 **186、失败0、消失0、降级0**，基线未改。相关设置隐藏/恢复与播放screen已目检，生产和旧profile六份主备字节未变。探针均本地匿名素材/隔离目录，未真实服务器播放；普通自检可能登录并只读真实库，不称离线。
+- **已实际交付桌面入口：** [Momoka.lnk](C:/Users/89400/Desktop/Momoka.lnk)于本轮回读确认目标 `C:/Users/89400/.codex/worktrees/delivery-atomic-completion/Momoka/artifacts/publish/win-x64/Momoka.exe`、工作目录同发布目录、无额外参数；版本 `0.1.7+7e6e0d709b8331b0101765652c4c95585be49d6b`，540文件/283.5MB，固定native/依赖载荷通过。**不生成ZIP、不push、不启动用户应用**，旧shortcut及发布件保留，未归档/清理仍被桌面使用的树。
+- 证据：[最终55入口摘要](artifacts/staged-repair/batch09/final-7e6e0d7-complete-offline-v2/summary.json)、[原生composition回执](artifacts/staged-repair/batch09/final-7e6e0d7-composition/acceptance.json)、[完整motion回执](artifacts/staged-repair/batch09/final-7e6e0d7-motion-complete-fixture/process.json)、[settings范围](artifacts/staged-repair/batch09/final-7e6e0d7-settings/shell-probe-scope.txt)、[官方自检](artifacts/staged-repair/batch09/final-7e6e0d7-selfcheck.log)、[实际桌面交付回执](artifacts/staged-repair/batch09/final-desktop-delivery-receipt.json)。原Hidden遮挡、空闲显示blank/超时、缺PNG侧车、helper/编译失败均保留；明确修复实现或验证前件后闭环，未放宽原断言/保险/基线或重复求绿。
+- **两边未互相干扰，桌面已释放。** 本窗口全部子代理关闭、自己运行的产品/探针自然结束，无自动续跑；只在本树记录文档。已向“优化订阅交互并新增字幕翻译与补帧”窗口交接三条增量及证据，该窗口的独立功能树负责保留两边历史、最终功能验收和单一发布/shortcut更新。本窗口不改其树或master，不沿用对方上传授权执行本批上传。后续功能版可按其授权交付；本修复版的完成记录不代表新功能已完成。
 ## 第九组合成探针单帧采样与实际显示前件（2026-10-25，在途）
 
 - Atomic已提交 `b4463c9`＋`4a15f90`，最终39项目Release、Core2880、55离线入口和实际自包含publish540文件全部通过；桌面仍保旧03b5d10，等待最终原生/应用验收后才更新。
