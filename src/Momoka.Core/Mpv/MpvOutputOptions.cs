@@ -462,10 +462,12 @@ public static class MpvOutputOptions
         var options = new List<KeyValuePair<string, string>>(32);
 
         AddQualityPreset(options, video.QualityPreset);
+        var hasProfile = options.Any(option => option.Key == "profile");
 
         Add(options, "vo", video.Renderer);
         Add(options, "gpu-api", video.GpuApi);
-        Add(options, "hwdec", video.HardwareDecoding);
+        var frames = FrameInterpolationOptions.Resolve(video, source);
+        Add(options, "hwdec", frames.HardwareDecoding);
         Add(options, "video-output-levels", video.OutputLevels);
         if (video.DeinterlaceMode is "auto" or "yes") Add(options, "deinterlace", video.DeinterlaceMode);
 
@@ -481,21 +483,26 @@ public static class MpvOutputOptions
             // always sent before and stays the shipped default. SettingsMigration guarantees a catalogue value,
             // and a hand-built VideoSettings defaults to oversample — but a belt for "" costs one line and
             // keeps the launch from silently falling back to mpv's mitchell.
-            var kernel = video.Tscale.Trim();
+            var kernel = (video.Tscale ?? "").Trim();
             Add(options, "tscale", kernel.Length == 0 ? "oversample" : kernel);
         }
-        else if (video.Interpolation)
+        else if (video.Interpolation || frames.Mode is FrameInterpolationMode.Smooth or FrameInterpolationMode.MotionCompensated
+            || hasProfile)
         {
-            // 插值开着，但这个片源或这块屏被上面那两条规则否掉了。必须显式发 no 而不是什么都不发：
-            // 「不发」在一个复用的 mpv 实例上等于沿用上一部片子的 yes。
+            // A source/display fallback, CPU-generated frames, or an inherited profile must not
+            // leave temporal blending enabled. On an inline switch omission means the previous value.
             Add(options, "interpolation", Off);
         }
 
-        Add(options, "video-sync", sync);
+        // A selected profile must not supply a stale display-sync mode when automatic/Off
+        // no longer requests it. Default-profile launches retain the legacy omission semantics;
+        // InlineSwitch explicitly restores the running core's defaults on a same-window switch.
+        Add(options, "video-sync", sync.Length == 0 && hasProfile ? "audio" : sync);
 
         AddDither(options, video.Dither, video.DitherDepth);
         AddDeband(options, video.Deband, source, animated, video.DebandStrength);
         options.AddRange(HdrOptions.Build(video, source));
+        if (frames.Filter is { } filter) FrameInterpolationOptions.AppendVideoFilter(options, filter);
 
         // 宽于 16:9 的片源默认裁切填充. Only for a source that is actually letterboxed here — sent for a 16:9 file
         // it would crop the picture for nothing. mpv's own default is 0, and every playback is a fresh mpv, so
@@ -792,7 +799,13 @@ public static class MpvOutputOptions
         SourceProfile? source = null,
         double displayRefreshHz = 0)
     {
-        var chosen = (video.VideoSync ?? "").Trim();
+        var frames = FrameInterpolationOptions.Resolve(video, source);
+        // CPU-generated frames need no second temporal blend or display-resampling override.
+        // These effective values never replace the user's saved sync/interpolation preferences.
+        if (frames.Mode == FrameInterpolationMode.MotionCompensated) return ("audio", false, null);
+
+        var smooth = frames.Mode == FrameInterpolationMode.Smooth;
+        var chosen = smooth ? "display-resample" : (video.VideoSync ?? "").Trim();
 
         if (video.HighFrameRateAudioSync)
         {
@@ -813,11 +826,11 @@ public static class MpvOutputOptions
             }
         }
 
-        if (!video.Interpolation) return (chosen, false, null);
+        if (!smooth && !video.Interpolation) return (chosen, false, frames.StandDown);
         if (chosen.Length > 0 && !chosen.StartsWith("display-", StringComparison.Ordinal))
             return (chosen, false, "音频同步不启用插值；切换到显示同步或自动后可启用");
 
-        return (chosen.Length == 0 ? "display-resample" : chosen, true, null);
+        return (chosen.Length == 0 ? "display-resample" : chosen, true, frames.StandDown);
     }
 
     /// <summary>

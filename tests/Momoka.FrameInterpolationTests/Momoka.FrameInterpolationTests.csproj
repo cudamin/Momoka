@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Momoka.FrameInterpolationTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\MpvListValue.cs" Link="Production\MpvListValue.cs" />
+    <Compile Include="..\Momoka.Tests\VideoOutputTests.cs" Link="Regression\VideoOutputTests.cs" />
+    <Compile Include="..\Momoka.Tests\InlineSwitchTests.cs" Link="Regression\InlineSwitchTests.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\SettingsViewModel.FrameInterpolation.cs" Link="Production\SettingsViewModel.FrameInterpolation.cs" />
+  </ItemGroup>
+  <!-- Use exact current section/choice/number/factory sources with an inert UI/persistence boundary.
+       The extractor writes under this project's obj only; no product sources are generated or edited. -->
+  <UsingTask TaskName="ExtractFrameInterpolationUi" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var row = File.ReadAllText(Path.Combine(Root, "src/Momoka.Shell/ViewModels/SettingRow.cs")).Replace("\r\n", "\n");
+        var vm = File.ReadAllText(Path.Combine(Root, "src/Momoka.Shell/ViewModels/SettingsViewModel.cs")).Replace("\r\n", "\n");
+        var backend = File.ReadAllText(Path.Combine(Root, "src/Momoka.Core/Playback/LibMpvBackend.cs")).Replace("\r\n", "\n");
+        Func<string, string, string, string> between = (source, begin, finish) =>
+        {
+            var start = source.IndexOf(begin, StringComparison.Ordinal);
+            if (start < 0 || source.IndexOf(begin, start + begin.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous production start: " + begin);
+            var end = source.IndexOf(finish, start + begin.Length, StringComparison.Ordinal);
+            if (end < 0) throw new InvalidOperationException("Missing production end: " + finish);
+            return source.Substring(start, end - start);
+        };
+        var imports = "// Verbatim production setting rows/section/factories; no rendered UI or real persistence.\n" +
+            "#nullable enable\nusing System.Collections.ObjectModel;\nusing CommunityToolkit.Mvvm.ComponentModel;\n" +
+            "using CommunityToolkit.Mvvm.Input;\nusing Momoka.Configuration;\nusing Momoka.Mpv;\n" +
+            "using Microsoft.UI.Xaml;\nnamespace Momoka.Shell.ViewModels;\n";
+        var section = between(vm, "public sealed partial class SettingSection : ObservableObject", "public sealed partial class SettingsViewModel : PageViewModel");
+        var rows = between(row, "public abstract class SettingRow : ObservableObject", "public sealed partial class SettingToggleRow : SettingRow") +
+            between(row, "public sealed partial class SettingNumberRow : SettingRow", "public sealed partial class SettingSliderRow : SettingRow");
+        var factories = between(vm, "    private SettingChoiceRow Pick<T>(", "    /// <summary>\n    /// A drop-down over one of the mpv option catalogues.") +
+            between(vm, "    private SettingChoiceRow Mpv(", "    /// <summary>\n    /// One of the three 字幕颜色 rows:") +
+            between(vm, "    private SettingNumberRow Number(", "    /// <summary>\n    /// 一行滑块。") +
+            between(vm, "    private static string? Annotate(", "    /// <summary>\n    /// A searchable list of the machine's font families.");
+        var baseline = between(backend, "    internal static IReadOnlyList<KeyValuePair<string, string>> Baseline(",
+            "    /// <summary>Option errors are logged, not fatal");
+        var generated = imports + section + rows + "public sealed partial class SettingsViewModel\n{\n" + factories + "}\n";
+        var regression = "// Exact production signature slicing method; no native backend initialization.\n" +
+            "namespace Momoka.Tests;\ninternal static class LibMpvBackend\n{\n" + baseline + "}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
+            File.WriteAllText(Output, generated, new UTF8Encoding(false));
+        var regressionOutput = Path.Combine(Path.GetDirectoryName(Output), "FrameInterpolationRegression.g.cs");
+        if (!File.Exists(regressionOutput) || File.ReadAllText(regressionOutput) != regression)
+            File.WriteAllText(regressionOutput, regression, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateFrameInterpolationUi" BeforeTargets="CoreCompile">
+    <ExtractFrameInterpolationUi Root="$(MSBuildProjectDirectory)\..\.." Output="$(IntermediateOutputPath)FrameInterpolationUi.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)FrameInterpolationUi.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)FrameInterpolationRegression.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>
