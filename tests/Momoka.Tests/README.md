@@ -107,3 +107,42 @@ settings-applicability 29、settings-screenshot-restore 14 均全过，互不相
 -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false`；`run` 只在当前编译成功后 `--no-build --no-restore`。
 整方案首轮 0 警告/2 错误仅 natural caller 缺两个新旁支端点；未以部分项目成功冒充整方案绿。
 没有启动 App/WinUI/UI、真实账号/服务器/media/libmpv、读取真实配置/密钥、发布或推送。
+
+## 2026-10-25：第二轮纯合并基线测试兼容
+本轮仍在 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，产品固定为
+`4afca26672297aedd7725d675706d7f2b923519c`＋父 resolved/staged 的
+`48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795` 合并快照。629 份产品源均与上一轮清单一致；
+未导入父新增 translation/runtime/UI/provider 文件或 `4a15f90` 原子写入修复。
+本轮仅测试增量接在第一补丁 `968f2931e4d80346a649c19fd68e10ad91bd36e2` 后，
+不提交生产快照，不动共享 `Momoka.Tests/Program.cs`、`Agreements.txt`、`Momoka.sln`。
+
+使用本树实际 x64 Release Shell：
+`src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll`，
+2026-10-25 01:36:41 +08:00，SHA256
+`b9125a7ff07a46e236603200c97dd0608fd548a84ba588d39431d99fbb5e67f5`。
+本轮按固定用户 SDK 10.0.400 离线 restore，再成功 Release 编译当前 Core/相关项目后才 no-build。
+Build flags：`--no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false`。
+证据留本树 ignored `artifacts/verification/merged-contract-tests/batch02/`，不借父最终功能构建/桌面结果。
+
+统一测试支撑 `Momoka.Tests/PlayerConstructorBoundary.cs` 精确核对实际唯一公开
+PlayerViewModel 构造器的7个参数名、类型与顺序：playback/settings/session/images/shaders/ui/dandanPlay。
+两处旧6参数反射构造改为按该签名调用，不把第7参数补null。
+
+新匿名依赖使用真实 `DandanPlayClient`＋真实 `DandanPlayCredentials` 包装，偏好关闭、无密钥；
+传输与保护器任何调用均抛错并计数，缓存路径含非法文件名，Dispose断言HTTP/凭据调用均0，
+及时释放client。实际VM `_dandanPlay` 必须持有同一实例。原6个参数语义不变，images/session的
+既有无用null边界不因此打开；没有运行弹幕加载、App、WinUI、服务器、配置或密钥。
+
+新增4项构造边界反例：真实签名；旧6参数/新未审核必需参数拒绝；错名错序/错类型拒绝；
+null或非真实第7依赖在调用VM前拒绝。原测试断言均保留，各runner的4项相同边界不能累计成额外12种覆盖。
+
+本轮只修旧播放器构造和邻接caller边界，不修改共享 Program、Agreements 或方案。
+当前主Tests/Core、ShaderMonitor、NaturalEpisode、NaturalCaller/Extractor相关 Release均0警告0错误。
+定向轨道15/15、音量35/35、ShaderMonitor32/32、NaturalEpisode27/27、NaturalCaller原50/50；
+NaturalCaller原8非法提取反例预期拒绝后重新编译当前源并复验50。定向format四项目均0修改/无加载诊断。
+
+上一轮记录的独立 Core-settings 原子 File.Move权限红项不属于本补丁，仍待父应用 `4a15f90`
+并对最终合并源重验；本树未导入该修复、未重跑此红项洗绿。上一轮主runner一次2912通过是历史证据，
+不是本轮重跑；本轮没有执行完整Core、全部独立入口、最终方案、发布或桌面验收。
+父合入自己的三份feature与runtime tests后应对最终真实来源重新核hash/签名和执行适用闸门，
+不能用本轮纯合并基线证明translation/Lua/native新功能通过。

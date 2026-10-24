@@ -118,3 +118,42 @@ EpisodeNavigation、StartIntent和Versions全是本轮未变的 12 项，不借�
 端点写集获准补齐后必须重编当前完整 source 再跑原 50 项及 8 个非法提取反例；未完成前不报通过。
 
 父之后的字幕功能新增只在最终 feature commit 重新审查来源/重编/复跑，不能把本轮纯合并证据冒充新功能。
+
+## 2026-10-25：第二轮纯合并基线测试兼容
+本轮仍在 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，产品固定为
+`4afca26672297aedd7725d675706d7f2b923519c`＋父 resolved/staged 的
+`48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795` 合并快照。629 份产品源均与上一轮清单一致；
+未导入父新增 translation/runtime/UI/provider 文件或 `4a15f90` 原子写入修复。
+本轮仅测试增量接在第一补丁 `968f2931e4d80346a649c19fd68e10ad91bd36e2` 后，
+不提交生产快照，不动共享 `Momoka.Tests/Program.cs`、`Agreements.txt`、`Momoka.sln`。
+
+使用本树实际 x64 Release Shell：
+`src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll`，
+2026-10-25 01:36:41 +08:00，SHA256
+`b9125a7ff07a46e236603200c97dd0608fd548a84ba588d39431d99fbb5e67f5`。
+本轮按固定用户 SDK 10.0.400 离线 restore，再成功 Release 编译当前 Core/相关项目后才 no-build。
+Build flags：`--no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false`。
+证据留本树 ignored `artifacts/verification/merged-contract-tests/batch02/`，不借父最终功能构建/桌面结果。
+
+只将旧未调用的 `RefineSkipSectionsAsync` 邻接空端点替换为真实当前
+`RefineChapterMarksAsync`，新增无 UI/网络的 `ResetDanmaku` 邻接端点；旧 stub 没有生产调用者，
+不继续留一个会让人误认 mpv 章节仍修正 skip-plan 的别名。完整 `OnNowPlayingChanged`
+仍原样编译，实际 Core 从 Emby MarkerType 构造跳过计划；不复制 skip、所有权、接续或取消逻辑。
+弹幕网络请求与画面刷新不在本 caller 覆盖范围。
+
+原 **50 项全过／0 失败／0 跳过**，未修改 `CallerCases.cs` 或提取器。
+19 份 SourcePins 完全不变（含上一轮审查的7项更新），文件 SHA256
+`d01f0659f4b80374ddb3673912412b5ac0ae4009591bfcc0081c051eaa5a8b7f`。
+Start/Next/NowPlaying/Leave 完整节点 SHA256 仍与上一轮清单完全相同。
+
+复跑使用上文既有脚本，输出参数可明确指定：
+
+```powershell
+$root = (Get-Location).Path
+& (Join-Path $root 'tests/Momoka.NaturalContinuationCallerTests/Run-Caller.ps1') -OutputDirectory (Join-Path $root 'artifacts/r046-caller/batch02-current')
+& (Join-Path $root 'tests/Momoka.NaturalContinuationCallerTests/Test-SourceExtraction.ps1') -OutputDirectory (Join-Path $root 'artifacts/r046-caller/batch02-extractor')
+```
+
+指定目录必须尚不存在；再次复跑换新名称，不覆盖旧证据。8项原非法源码/锚点/语法/await-using/hash/外树
+反例均预期 build 退出1；之后 `current-reverified` 重新编译实际源0警告0错误并再跑原50项全绿。
+这些预期拒绝不计为8个产品失败或额外50项覆盖。

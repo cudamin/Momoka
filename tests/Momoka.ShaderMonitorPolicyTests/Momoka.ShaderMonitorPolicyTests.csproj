@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.Tests\PlayerConstructorBoundary.cs" Link="PlayerConstructorBoundary.cs" />
     <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
     <!-- Exact repository shader resources are only checked as transaction inputs, never executed. -->
     <None Include="..\..\assets\shaders\**\*.glsl;..\..\assets\shaders\**\*.hook">

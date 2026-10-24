@@ -12,6 +12,7 @@ internal static class Program
         if (args is not [var shell, var root]) throw new ArgumentException("Provide this workspace current x64 Release Shell and root");
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         _shell = new ShellRuntime(shell, root);
+        PlayerConstructorBoundary.Register(_shell.VmType, _shell.DispatcherType);
         Register();
         return Run();
     }

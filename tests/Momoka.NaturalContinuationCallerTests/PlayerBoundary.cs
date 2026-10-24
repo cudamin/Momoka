@@ -105,7 +105,10 @@ public sealed partial class PlayerViewModel
     private static Task LoadVersionsAsync(EmbyItem item, int generation, int discovery) => Task.CompletedTask;
     private static Task PushNativeShortcutsAsync(bool force) => Task.CompletedTask;
     private static Task PopulateTracksAsync(int generation) => Task.CompletedTask;
-    private static Task RefineSkipSectionsAsync(int generation) => Task.CompletedTask;
+    // These are presentation/network neighbours, not continuation or skip-plan substitutes.
+    // The complete current OnNowPlayingChanged still resolves Emby's marker plan in real Core.
+    private static void ResetDanmaku(EmbyItem? item) { }
+    private static Task RefineChapterMarksAsync(int generation) => Task.CompletedTask;
     private static Task ApplyAspectAsync(int generation) => Task.CompletedTask;
     private static Task NoteAudioDeviceAsync(int generation) => Task.CompletedTask;
 }

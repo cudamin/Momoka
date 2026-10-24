@@ -397,14 +397,17 @@ internal static class Program
             Assert.Equal(1, f.NativeHandle.Native.DestroyCalls);
             Assert.False(f.Service.IsPlaying);
         });
-        Case("R046 admitted successor startup error still tries its second candidate", async () =>
+        Case("R046 admitted successor startup error returns selected-source failure without automatic fallback", async () =>
         {
             await using var f = new ServiceFixture();
             f.Settings.Playback.AutoPlayNextEpisode = true;
             var running = f.BeginContinuable();
             await f.WaitUntilStarted();
+            var nativeBeforeRetention = f.NativeHandle.NativeGeneration;
             f.EndNative();
             var a = await running;
+            Assert.NotNull(a.Continuation);
+            Assert.Equal(nativeBeforeRetention + 1, f.NativeHandle.NativeGeneration, "EOF retention fences the completed A file");
             var replacement = new EndedHandle();
             string? requestedSource = null;
             f.NextBackendStart = (request, _) =>
@@ -413,8 +416,15 @@ internal static class Program
                 replacement.End();
                 return Task.FromResult<IPlaybackHandle>(replacement);
             };
+            var serviceGeneration = f.Service.Generation;
+            var nativeGeneration = f.NativeHandle.NativeGeneration;
             var next = f.BeginContinuable("B", retain: false, continuation: a.Continuation, alternateSource: true);
             await f.WaitUntilStarted("B");
+            Assert.Equal(serviceGeneration + 1, f.Service.Generation, "B still owns one new Service attempt");
+            // EOF retention already advanced A. HandOver is inert for an already-ended file;
+            // B's actual Swap advances once more, not two times after the retained generation.
+            Assert.Equal(nativeGeneration + 1, f.NativeHandle.NativeGeneration, "Swap advances from the retained EOF generation");
+            Assert.Equal(nativeBeforeRetention + 2, f.NativeHandle.NativeGeneration, "retention plus Swap fence both files");
             f.NativeHandle.Dispatch(LibMpvNative.EventStartFile);
             f.EndNative(LibMpvNative.EndFileError);
             PlaybackResult result;
@@ -422,14 +432,25 @@ internal static class Program
             catch (OperationCanceledException)
             {
                 f.ObservedExpectedFailure(next);
-                throw new AssertionException("normal failed-candidate cleanup was mistaken for user closing the predecessor");
+                throw new AssertionException("normal selected-source failure cleanup was mistaken for user closing the predecessor");
             }
-            Assert.Equal(PlaybackEndReason.EndOfFile, result.Exit.Reason);
-            Assert.Equal("B-alternative", requestedSource);
-            Assert.Equal(2, f.BackendStarts);
+            // ff31c732: the user, not the player, chooses another media version. The injected
+            // alternative succeeds if called, so Error/null/one-start explicitly reject auto fallback.
+            Assert.Equal(PlaybackEndReason.Error, result.Exit.Reason);
+            Assert.True(result.Exit.IsFailure);
+            Assert.Null(result.Continuation, "a failed non-retaining B cannot park another lease");
+            Assert.Null(requestedSource, "no alternative source may reach the backend factory");
+            Assert.Equal(1, f.BackendStarts, "only A starts a backend; B reuses and fails its selected source");
             Assert.Equal(1, f.NativeHandle.Native.DestroyCalls);
-            Assert.Equal(1, replacement.Disposes);
+            Assert.Equal(0, replacement.Disposes, "the unused alternative is not adopted or disposed");
+            Assert.False(replacement.Stopped);
+            Assert.False(f.Service.IsPlaying);
+            Assert.Equal(0, f.Http.Calls);
             await a.Continuation!.DisposeAsync();
+            await a.Continuation.DisposeAsync();
+            Assert.Equal(1, f.NativeHandle.Native.DestroyCalls, "late predecessor disposal remains idempotent");
+            Assert.Equal(1, f.BackendStarts);
+            Assert.Equal(0, replacement.Disposes);
         });
         return Run();
     }

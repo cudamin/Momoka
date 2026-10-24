@@ -13,10 +13,13 @@ internal sealed class ShellRuntime
 {
     private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
     internal Type VmType { get; }
-    private Type DispatcherType { get; }
+    internal Type DispatcherType { get; }
+    internal string Root { get; }
+    private readonly ConstructorInfo _constructor;
     internal ShellRuntime(string shell, string root)
     {
-        var expected = Path.Combine(Path.GetFullPath(root), "src", "Momoka.Shell", "bin", "x64", "Release",
+        Root = Path.GetFullPath(root);
+        var expected = Path.Combine(Root, "src", "Momoka.Shell", "bin", "x64", "Release",
             "net10.0-windows10.0.19041.0", "win-x64", "Momoka.dll");
         Assert.Equal(expected, Path.GetFullPath(shell), "only current workspace Release Shell may execute");
         var directory = Path.GetDirectoryName(expected)!;
@@ -30,12 +33,14 @@ internal sealed class ShellRuntime
         var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(expected);
         VmType = assembly.GetType("Momoka.Shell.ViewModels.PlayerViewModel", throwOnError: true)!;
         DispatcherType = assembly.GetType("Momoka.Shell.Platform.IUiDispatcher", throwOnError: true)!;
+        _constructor = PlayerConstructorBoundary.Require(VmType, DispatcherType);
         Console.WriteLine($"SHELL {expected} SHA256={Hash(expected)} MVID={assembly.ManifestModule.ModuleVersionId}");
         Console.WriteLine($"CORE SHA256={Hash(typeof(PlaybackService).Assembly.Location)}; real VM plus real Core transaction; no App/native/network/media/config");
     }
-    internal object Create(PlaybackService service, MonitorSettings settings, ShaderGroupResolver resolver) =>
-        Activator.CreateInstance(VmType, service, settings, null, null, resolver,
-            DispatchProxy.Create(DispatcherType, typeof(MonitorDispatcher)))!;
+    internal object Create(PlaybackService service, MonitorSettings settings, ShaderGroupResolver resolver,
+        Momoka.Danmaku.DandanPlayClient danmaku) =>
+        PlayerConstructorBoundary.Create(_constructor, service, settings, null, null, resolver,
+            DispatchProxy.Create(DispatcherType, typeof(MonitorDispatcher)), danmaku);
     internal object? Call(object vm, string name, params object?[] args)
     {
         var method = VmType.GetMethod(name, Members) ?? throw new AssertionException("actual VM method missing: " + name);
@@ -58,6 +63,7 @@ internal sealed class MonitorFixture : IDisposable
     private readonly ShellRuntime _shell;
     private readonly object _vm;
     private readonly ShaderAutomationSettings _snapshot;
+    private readonly AnonymousDanmakuDependency _danmaku;
     internal MonitorSettings Settings { get; } = new();
     internal PlaybackService Service { get; }
     internal MonitorHandle Handle { get; } = new();
@@ -83,7 +89,10 @@ internal sealed class MonitorFixture : IDisposable
         Service = new PlaybackService(null!, Settings.Settings, () => throw new AssertionException("No backend may start"),
             new PlaybackPlanner(Settings.Settings, resolver), allowPlayback: false);
         // Construct the actual VM before installing a handle, avoiding observation/persistence activity.
-        _vm = shell.Create(Service, Settings, resolver);
+        _danmaku = new AnonymousDanmakuDependency(Settings.Settings, shell.Root);
+        _vm = shell.Create(Service, Settings, resolver, _danmaku.Client);
+        Assert.True(ReferenceEquals(_danmaku.Client, shell.Get<Momoka.Danmaku.DandanPlayClient>(_vm, "_dandanPlay")),
+            "the actual VM must retain the exact anonymous client instance");
         shell.Set(_vm, "_nowPlaying", Item);
         shell.Set(_vm, "_generation", 1);
         shell.Surface(_vm, () => Surface);
@@ -135,6 +144,7 @@ internal sealed class MonitorFixture : IDisposable
         Assert.Equal(0, Settings.Writes, "monitor changes never persist preferences");
         _shell.Get<CancellationTokenSource>(_vm, "_lifetime").Cancel();
         typeof(PlaybackService).GetField("_current", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(Service, null);
+        _danmaku.Dispose();
     }
 }
 
