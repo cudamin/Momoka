@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Momoka.MoviePilot;
@@ -17,6 +18,28 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     private readonly Dictionary<MoviePilotResourceRow, MoviePilotResourceGroup> _groups = [];
     private bool _resetting;
     private int? _seededEpisode;
+
+    public MoviePilotResourceBrowserViewModel()
+    {
+        SiteFacet = new("site", "站点", "\uE968", Apply);
+        SeasonFacet = new("season", "季", "\uE787", SeasonSelectionChanged);
+        PromotionFacet = new("promotion", "促销状态", "\uE719", Apply);
+        VideoFacet = new("video", "视频编码", "\uE714", Apply);
+        EditionFacet = new("edition", "质量", "\uE7C1", Apply);
+        ResolutionFacet = new("resolution", "分辨率", "\uE7F4", Apply);
+        GroupFacet = new("group", "制作组", "\uE902", Apply);
+        Facets = [SiteFacet, SeasonFacet, PromotionFacet, VideoFacet, EditionFacet, ResolutionFacet, GroupFacet];
+    }
+
+    public MoviePilotResourceFacet SiteFacet { get; }
+    public MoviePilotResourceFacet SeasonFacet { get; }
+    public MoviePilotResourceFacet PromotionFacet { get; }
+    public MoviePilotResourceFacet VideoFacet { get; }
+    public MoviePilotResourceFacet EditionFacet { get; }
+    public MoviePilotResourceFacet ResolutionFacet { get; }
+    public MoviePilotResourceFacet GroupFacet { get; }
+    public IReadOnlyList<MoviePilotResourceFacet> Facets { get; }
+    public ObservableCollection<MoviePilotResourceChoice> ActiveChoices { get; } = [];
 
     public ObservableCollection<MoviePilotResourceRow> Rows { get; } = [];
     public ObservableCollection<MoviePilotResourceGroup> Groups { get; } = [];
@@ -40,7 +63,24 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
 
     public Visibility FiltersVisibility => _all.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
     public Visibility NoMatchesVisibility => _all.Count > 0 && Rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-    public string CountText => $"{Groups.Count} 组 · {Rows.Count} / {_all.Count} 条站点资源";
+    public string CountText => $"{Rows.Count} / {_all.Count} 个资源";
+    public Visibility ActiveChoicesVisibility => ActiveChoices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ResetVisibility => ActiveChoices.Count > 0 || Text.Length > 0 || SelectedLabel != AllLabels ||
+        SelectedEpisode != AllEpisodes || SelectedSeason != AllSeasons || PromotionIndex != 0 || DateIndex != 0 ||
+        SeededOnly || ExcludeHitAndRun ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility EpisodeVisibility => Episodes.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility LabelVisibility => Labels.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+    public string AdvancedSummary
+    {
+        get
+        {
+            var labels = new[] { SelectedEpisode == AllEpisodes ? "" : SelectedEpisode,
+                Text.Length > 0 ? "关键词" : "", SelectedLabel == AllLabels ? "" : SelectedLabel,
+                DateIndex > 0 ? "时间" : "", SeededOnly ? "有做种" : "", ExcludeHitAndRun ? "排除 HR" : "" };
+            var active = string.Join(" · ", labels.Where(label => label.Length > 0));
+            return active.Length == 0 ? "综合筛选" : $"筛选 · {active}";
+        }
+    }
 
     /// <summary>
     /// 换一批结果。<paramref name="autoEpisode"/> 是「这次搜索本来就是为某一集发的」（集页面的版本搜索，见
@@ -66,6 +106,17 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         FillChoices(Resolutions, AllResolutions, _all.Select(row => row.Resource.Resolution));
         FillChoices(Labels, AllLabels, _all.SelectMany(row => row.Resource.Labels));
         FillNumbers(Seasons, AllSeasons, "S", _all.SelectMany(row => row.Resource.Seasons));
+        SetFacet(SiteFacet, _all.Select(row => row.Resource.SiteName));
+        SetFacet(VideoFacet, _all.Select(row => row.Resource.VideoCodec));
+        SetFacet(EditionFacet, _all.Select(row => row.Resource.Edition));
+        SetFacet(ResolutionFacet, _all.Select(row => row.Resource.Resolution));
+        SetFacet(GroupFacet, _all.Select(row => row.Resource.ReleaseGroup));
+        SeasonFacet.SetChoices(_all.SelectMany(row => row.Resource.Seasons).Distinct().Order()
+            .Select(season => (season.ToString(CultureInfo.InvariantCulture), $"S{season:00}")));
+        PromotionFacet.SetChoices(_all.Where(row => row.Resource.DownloadFactor.HasValue)
+            .Select(row => row.Resource.DownloadFactor!.Value).Distinct().Order()
+            .Select(factor => (factor.ToString(CultureInfo.InvariantCulture),
+                factor == 0 ? "免费" : factor == 1 ? "普通" : $"{factor * 100:0.##}%")));
         _resetting = false;
         Reset();
         if (autoEpisode is { } episode) SelectedEpisode = EpisodeChoice(episode);
@@ -77,6 +128,8 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     {
         _resetting = true;
         Text = "";
+        foreach (var facet in Facets)
+            foreach (var choice in facet.Choices) choice.Selected = false;
         SelectedSite = AllSites;
         SelectedResolution = AllResolutions;
         SelectedLabel = AllLabels;
@@ -112,6 +165,19 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     partial void OnSeededOnlyChanged(bool value) => Apply();
     partial void OnExcludeHitAndRunChanged(bool value) => Apply();
 
+    private void SeasonSelectionChanged()
+    {
+        if (_resetting) return;
+        _resetting = true;
+        var seasons = SeasonFacet.Selected.Select(value => int.Parse(value, CultureInfo.InvariantCulture)).ToHashSet();
+        FillNumbers(Episodes, AllEpisodes, "E", EpisodeChoices(_all
+            .Where(row => seasons.Count == 0 || row.Resource.Seasons.Any(seasons.Contains))
+            .SelectMany(row => row.Resource.Episodes)));
+        SelectedEpisode = AllEpisodes;
+        _resetting = false;
+        Apply();
+    }
+
     private void Apply()
     {
         if (_resetting) return;
@@ -121,6 +187,13 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
             Site = SelectedSite == AllSites ? "" : SelectedSite ?? "",
             Resolution = SelectedResolution == AllResolutions ? "" : SelectedResolution ?? "",
             Label = SelectedLabel == AllLabels ? "" : SelectedLabel ?? "",
+            Sites = SiteFacet.Selected,
+            Resolutions = ResolutionFacet.Selected,
+            VideoCodecs = VideoFacet.Selected,
+            Editions = EditionFacet.Selected,
+            ReleaseGroups = GroupFacet.Selected,
+            Seasons = SeasonFacet.Selected.Select(value => int.Parse(value, CultureInfo.InvariantCulture)).ToArray(),
+            PromotionFactors = PromotionFacet.Selected.Select(value => double.Parse(value, CultureInfo.InvariantCulture)).ToArray(),
             Season = SelectedNumber(SelectedSeason),
             Episode = SelectedNumber(SelectedEpisode),
             Promotion = (MoviePilotPromotionFilter)PromotionIndex,
@@ -137,9 +210,20 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         var grouped = desired.GroupBy(row => _groups[row]).ToArray();
         foreach (var group in grouped) group.Key.Update(group.ToArray());
         Sync(Groups, grouped.Select(group => group.Key).ToArray());
+        Sync(ActiveChoices, Facets.SelectMany(facet => facet.Choices).Where(choice => choice.Selected).ToArray());
         OnPropertyChanged(nameof(CountText));
         OnPropertyChanged(nameof(NoMatchesVisibility));
+        OnPropertyChanged(nameof(ActiveChoicesVisibility));
+        OnPropertyChanged(nameof(ResetVisibility));
+        OnPropertyChanged(nameof(EpisodeVisibility));
+        OnPropertyChanged(nameof(LabelVisibility));
+        OnPropertyChanged(nameof(AdvancedSummary));
     }
+
+    private static void SetFacet(MoviePilotResourceFacet facet, IEnumerable<string?> values) =>
+        facet.SetChoices(values.Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!)
+            .Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase)
+            .Select(value => (value, value)));
 
     internal static void Sync<T>(ObservableCollection<T> rows, IReadOnlyList<T> desired) where T : class
     {

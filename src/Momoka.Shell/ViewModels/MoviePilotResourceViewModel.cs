@@ -57,6 +57,35 @@ public sealed partial class MoviePilotResourceRow : ObservableObject
 
     public string Title => Resource.Title;
 
+    public string DisplayTitle => Resource.DisplayTitle;
+    public string SeasonEpisode => Resource.SeasonEpisode ?? "";
+    public string Seeders => $"↑ {Resource.Seeders}";
+    public string Peers => $"↓ {Resource.Peers}";
+    public string SizeText => Resource.SizeText;
+    public string PromotionBadge => Resource.PromotionBadge;
+    public string Resolution => Resource.Resolution ?? "";
+    public string VideoCodec => Resource.VideoCodec ?? "";
+    public string Edition => Resource.Edition ?? "";
+    public string ReleaseGroup => Resource.ReleaseGroup ?? "";
+    public string ResourceType => Resource.ResourceType ?? "";
+    public string WebSource => Resource.WebSource ?? "";
+    public string ResourceEffect => Resource.ResourceEffect ?? "";
+    public Visibility PromotionVisibility => Show(PromotionBadge);
+    public Visibility SeasonEpisodeVisibility => Show(SeasonEpisode);
+    public Visibility ResolutionVisibility => Show(Resolution);
+    public Visibility VideoVisibility => Show(VideoCodec);
+    public Visibility EditionVisibility => Show(Edition);
+    public Visibility GroupVisibility => Show(ReleaseGroup);
+    public Visibility ResourceTypeVisibility => Show(ResourceType);
+    public Visibility WebSourceVisibility => Show(WebSource);
+    public Visibility EffectVisibility => Show(ResourceEffect);
+    public Visibility HitAndRunVisibility => Resource.HitAndRun ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility DetailsVisibility => CanOpenDetails ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility DownloadVisibility => Resource.DownloadProblem is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility DownloadProblemVisibility => Resource.DownloadProblem is null ? Visibility.Collapsed : Visibility.Visible;
+    public string DownloadProblem => Resource.DownloadProblem ?? "";
+    private static Visibility Show(string value) => value.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
     public string SiteName => Resource.SiteName ?? "";
 
     public Visibility SiteVisibility => string.IsNullOrWhiteSpace(Resource.SiteName) ? Visibility.Collapsed : Visibility.Visible;

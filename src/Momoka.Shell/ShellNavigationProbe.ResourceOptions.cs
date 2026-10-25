@@ -32,18 +32,23 @@ internal sealed partial class ShellNavigationProbe
             await view.SearchAsync("测试资源");
             var browser = view.ViewModel.Browser;
             var first = browser.Rows[0];
-            Require(browser.Groups.Count == 3 && browser.Groups[0].Rows.Count == 2 && !browser.Groups[0].IsExpanded,
-                "相同资源跨站点未默认折叠");
+            Require(browser.Rows.Count == 4, "跨站点资源卡片没有逐条保留");
             var list = Get<MoviePilotResourceBrowser>(view, "Browser");
             await LayoutAsync(view);
-            Get<ComboBox>(list, "SeasonFilter").SelectedItem = "S02";
+            var seasons = Get<MoviePilotResourceFacetPicker>(list, "SeasonFilter");
+            Get<Flyout>(seasons, "ChoicesFlyout").ShowAt(Get<DropDownButton>(seasons, "OpenFacet"));
+            await LayoutAsync(seasons);
+            var chooseSeason = Descendants(Get<ItemsControl>(seasons, "FacetChoices")).OfType<CheckBox>()
+                .Single(box => AutomationProperties.GetName(box) == "S02");
+            ((IToggleProvider)new CheckBoxAutomationPeer(chooseSeason).GetPattern(PatternInterface.Toggle)).Toggle();
+            seasons.ClosePopup();
             Get<ComboBox>(list, "EpisodeFilter").SelectedItem = "E02";
             Require(browser.Rows.Count == 1 && browser.Rows[0].Resource.Seasons.Contains(2), "季集控件未实际筛选结果");
             first.State = MoviePilotDownloadState.Uncertain;
             browser.ResetCommand.Execute(null);
             Require(ReferenceEquals(browser.Rows[0], first) && first.State == MoviePilotDownloadState.Uncertain,
                 "清除筛选丢失原行或下载状态");
-            Get<Expander>(list, "FilterExpander").IsExpanded = true;
+            Require(Get<ItemsView>(list, "ResourceList").ItemsSource == browser.Rows, "资源列表没有使用卡片结果集合");
             foreach (var width in new[] { 1040, 720, 520 })
             {
                 ResizeInspect(width, 980);
@@ -53,13 +58,11 @@ internal sealed partial class ShellNavigationProbe
                 await SaveProbeScreenAsync($"mp-resources-screen-{width}.png");
             }
             ResizeInspect(720, 980);
-            Get<Expander>(list, "FilterExpander").IsExpanded = false;
-            browser.Groups[0].IsExpanded = true;
             await LayoutAsync(view);
             await Task.Delay(450);
             Require(Descendants(list).OfType<Button>().Any(button => button.Name == "DownloadResource" &&
-                AutomationProperties.GetName(button).Contains(first.Title, StringComparison.Ordinal)), "展开后站点下载入口不可定位");
-            await SaveProbeScreenAsync("mp-resources-expanded-screen.png");
+                AutomationProperties.GetName(button).Contains(first.Title, StringComparison.Ordinal)), "卡片下载入口不可定位");
+            await SaveProbeScreenAsync("mp-resources-cards-screen.png");
 
             var row = browser.Rows[1];
             var cancelled = row.DownloadCommand.ExecuteAsync(null);

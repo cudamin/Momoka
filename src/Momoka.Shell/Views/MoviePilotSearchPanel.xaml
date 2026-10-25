@@ -64,9 +64,9 @@
                                     CornerRadius="0,0,12,12">
                                     <Grid.Background>
                                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                                            <GradientStop Color="Transparent" Offset="0" />
-                                            <GradientStop Color="{Binding Color, Source={StaticResource EgScrimBrush}, Mode=OneWay}" Offset="0.35" />
-                                            <GradientStop Color="{Binding Color, Source={StaticResource EgWindowBrush}, Mode=OneWay}" Offset="1" />
+                                            <GradientStop Color="{x:Bind local:MoviePilotSearchPanel.FadeStart(), Mode=OneTime}" Offset="0" />
+                                            <GradientStop Color="{x:Bind local:MoviePilotSearchPanel.FadeMiddle(), Mode=OneTime}" Offset="0.35" />
+                                            <GradientStop Color="{x:Bind local:MoviePilotSearchPanel.FadeEnd(), Mode=OneTime}" Offset="1" />
                                         </LinearGradientBrush>
                                     </Grid.Background>
                                 </Grid>

@@ -239,6 +239,7 @@ internal sealed partial class ShellNavigationProbe
     private sealed class SearchProbeServer : HttpMessageHandler
     {
         internal bool Offline { get; set; }
+        internal object[]? MediaResults { get; set; }
         internal List<string> Paths { get; } = [];
         internal TaskCompletionSource<HttpResponseMessage>? PendingSources { get; set; }
         internal TaskCompletionSource<HttpResponseMessage>? PendingResource { get; set; }
@@ -264,6 +265,7 @@ internal sealed partial class ShellNavigationProbe
                 new { id = 4, name = "已停用站点", is_active = false }
             }));
             if (path.Contains("media/source", StringComparison.Ordinal)) return PendingSources?.Task ?? Task.FromResult(Sources());
+            if (path.Contains("media/search?", StringComparison.Ordinal) && MediaResults is { } results) return Task.FromResult(Json(results));
             if (path.Contains("media/search?", StringComparison.Ordinal)) return Task.FromResult(Json(new[]
             { new { title = "测试电影", type = "电影", media_source = "themoviedb", media_id = "123", tmdb_id = 123 } }));
             if (path.Contains("search/title?", StringComparison.Ordinal) || path.Contains("search/media/", StringComparison.Ordinal))

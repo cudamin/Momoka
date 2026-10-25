@@ -17,6 +17,16 @@ namespace Momoka.Shell.Views;
 /// </summary>
 public sealed partial class MoviePilotSearchPanel : UserControl
 {
+    // 与详情页共用图片遮罩的墨色，透明端也保持相同 RGB，避免透明白插值形成亮带。
+    public static Windows.UI.Color FadeStart() => Fade(0);
+    public static Windows.UI.Color FadeMiddle() => Fade(180);
+    public static Windows.UI.Color FadeEnd() => Fade(255);
+    private static Windows.UI.Color Fade(byte alpha)
+    {
+        var ink = Momoka.Emby.DetailHero.ScrimInk;
+        return Windows.UI.Color.FromArgb(alpha, ink.R, ink.G, ink.B);
+    }
+
     private MoviePilotService? _service;
     private ISystemLauncher? _launcher;
 

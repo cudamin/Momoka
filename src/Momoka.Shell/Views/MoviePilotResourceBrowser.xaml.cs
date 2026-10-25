@@ -17,7 +17,10 @@ public sealed partial class MoviePilotResourceBrowser : UserControl
 
     internal void ClosePopups()
     {
-        foreach (var filter in new[] { SiteFilter, ResolutionFilter, LabelFilter, PromotionFilter, DateFilter, SortOrder, SeasonFilter, EpisodeFilter })
+        foreach (var facet in new[] { SiteFilter, SeasonFilter, PromotionFilter, VideoFilter, EditionFilter, ResolutionFilter, GroupFilter })
+            facet.ClosePopup();
+        AdvancedFilters.Hide();
+        foreach (var filter in new[] { LabelFilter, DateFilter, SortOrder, EpisodeFilter })
             filter.IsDropDownOpen = false;
     }
 }
