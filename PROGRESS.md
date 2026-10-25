@@ -2,6 +2,18 @@
 
 最后更新：2026-10-25
 
+## 媒体行带上 HDR/DV 角标：跟在视频编码后面，HDR 在前 DV 在后（2026-10-25 用户令）
+
+- 用户令：「片源带 HDR/DV 时标题也要带上，放在视频编码后面，HDR/DV 都有的时候 HDR 在前 DV 在后」（附详情页那行「视频：…」与播放页左上角第二行两处截图），随后补一句「包括 HDR10+、HDR10、HLG」。
+- **一处改动两处生效**：这两行本来就同源（`MediaSource.ToFileInfoLabel` → 详情页 `ItemDetail.VideoLine`、播放页 `PlaybackTitles.Subline`），角标插在视频编码与音频格式之间 —— 拼出来是「1.1 GB · 1080p · x264 · HDR/DV · FLAC · Raws」。
+- 三种字面量：只有 HDR 写 `HDR`、只有 DV 写 `DV`、两者都有写 `HDR/DV`（HDR 在前）。HDR 认 HDR10 / HDR10+（`HDR10Plus`）/ HLG；DV 认 `DOVI`、`Dolby`、独立成词的 `DV`，以及编码档位里的 `dvhe.05.06` 这类前缀。**DV 单飞只写 DV** —— `IsHdr` 那个开关也认 DOVI（色调映射要用它），不能拿它决定屏上写字。
+- 新增 `MediaStream.VideoRangeType`：Jellyfin / Emby 4.8+ 的细分档位 —— `DOVIWithHDR10` 这种既带 DV 又带 HDR10 的片源只有它说得清（粗档位 `VideoRange` 那边只写一个 `DOVI`）。Plex 折 `videoDynamicRangeType`（老版本退 `DOVIPresent`）；飞牛把 `color_range_type` 取第一项（列表接口是数组、流接口是字符串）、`dv_profile > 0` 记成 `DOVI`。顺带修掉一处：飞牛这两个字段以前整个没读进来（数组经 `Text()` 会变成 `["SDR"]` 这种字面量）。
+- 测试：`EmbyTests` 新增「文件信息行：HDR/DV 角标跟在视频编码后面，两者都有时 HDR 在前」（HDR10 / HDR10Plus / `HDR10+` / HLG / 老服务器只有粗档位 / DV 单飞 / `DOVIWithHDR10` / Plex 的 `DV HDR10` / 只有 `dvhe.05.06` / SDR 不写 / 位置在音频之前）；`PlexMediaTests` 与 `FnNasMediaTests` 各补一条映射断言。
+- 验证：闸门 1 完整 Release 构建 **0 警告、0 错误**、`dotnet format whitespace --verify-no-changes` 退出 0；闸门 2 编译后 `--no-build` 跑 **2118 项全过、0 失败、0 跳过**。
+- 提交：**`ea5f86b`**（本地，未推送）。
+- 发布：`tools/publish.ps1 -NoArchive` 退出 0、发布验证通过，已刷新 `artifacts/publish/win-x64`（**541 文件、283.5 MB、11 GLSL／4 HOOK 含许可逐文件校验**）。`Momoka.exe` FileVersion `0.1.7.0`、ProductVersion `0.1.7+ea5f86b`；`Momoka.dll` 4,813,312 字节、SHA-256 `D930FF39FB1C0A4BDBDDB32C9090A044C9743E090B431419EBB137BB0453354B`。
+- 未验证（如实说）：手上没有 HDR/DV 的真片源可放，**屏上没有看过这三个字面量**（探针与截图都没跑；详情页那行是同一个 TextBlock，版式没动，长出来的字会被裁切而不是换行）。Plex 的 `videoDynamicRangeType`、飞牛的 `dv_profile` 按官方字段语义折，本轮没有真实抓包复核。
+
 ## 飞牛主页：货架不带「最近添加」、不显示单集封面，只有飞牛时轮播站得起来（2026-10-25 用户令）
 
 - 用户三条令（后一条是追加）：「飞牛影视库不要再显示单集封面（如上图的暗蓝之月 S02E06）」「首页飞牛影视库的标题去掉最近添加」「顺便修一下只有飞牛登录时，首页没有轮播图的问题」。
