@@ -2,6 +2,17 @@
 
 最后更新：2026-10-25
 
+## 飞牛影视播放进度上报：ts 改整数秒（2026-10-25）
+
+- 现象：真实飞牛服务器上原画播放正常，但每 5 秒一次的进度上报全部失败，续播点永远是 0。交接文档 `docs/交接-实服验证-Jellyfin-飞牛-聚合-2026-10-25.md` 把它归因成「播放器让 mpv 自选轨、`audio_guid` 发了空串」。
+- **归因纠错**：日志不支持那条判断。飞牛那次起播（11:58:04.306）写的是 `自动选轨：音轨 eng · EAC3 · 5.1(side)，字幕 由 mpv 决定` —— 音轨是选出来的；交接文档引用的「音轨 由 mpv 决定」出现在 11:31/11:32，那是 **Jellyfin** 的两次尝试（Jellyfin 条目 `MediaSources` 里没有流）。
+- 真因（差分证据）：起播那条「开始」上报 `ts=0` **成功**（整份 `app-20261025.log` 里 `上报「开始」失败` 出现 0 次），后续 `ts` 是小数秒（`5.0123456`）的进度上报全部 `-4`；两次请求体**只差 `ts`**。业务码 `-4` 是「服务器内部错误」而不是参数错（那是 `-1`），飞牛按整数解析小数 `ts` 时内部抛错。官方前端的进度值来自 `Math.floor(player.currentTime)`，从不是小数。
+- 改法：`FnNasMediaAdapter.PlaybackRecord` 的 `ts` / `duration` 改整数秒（向下取整、负值钳 0、`long` 写 JSON）；`subtitle_guid` 无字幕改发官方占位符 `_no_display_`（bundle 里 `hiddenSubtitleStream={guid:"_no_display_"}`），不再发空串；`audio_guid` 索引缺失或失效时回退默认音轨、再退第一条带 GUID 的音轨；`resolution` / `bitrate` 改用实际视频流的 `resolution_type` 与 `bps`（真实抓包里 `video_streams[0]` 就有这两个字段），去掉硬编码的 `"original"` / `-1`。`MediaStream` 只多一个 `[JsonIgnore]` 的 `ResolutionType`，Emby / Jellyfin / Plex 的映射未动。
+- 测试：`FnNasMediaTests` 新增 4 条用例（`ts`/`duration` 取整与整数字面量、字幕占位符三种情况、音轨回退链、`resolution`/`bitrate` 取值与兜底），既有那条播放规划用例补了断言。Release 构建 0 警告 0 错误；全量离线测试 **2108 通过、0 失败、0 跳过**；`dotnet format whitespace --verify-no-changes` 退出 0。独立复核（另一个子代理）PASS，并自己复跑了两遍测试。
+- 提交：**`3ae4e30`**（本地，未推送）。**未发布**到 `artifacts/publish/win-x64`，桌面快捷方式仍是上一版。
+- **未验证**：没有在真实飞牛服务器上复测 —— 只证明请求体符合官方契约，没证明服务端真的把 `ts` 写进 `play/info`；`resolution` 与官方「所选 quality 的 resolution」是否语义一致也没确认。两项都要真播一次才能定。
+- 同轮顺带纠正的聚合结论：`docs/交接-实服验证-Jellyfin-飞牛-聚合-2026-10-25.md` §4 的 A2「聚合主页完全没有 jellyfin 行」是**证据误判**（那份 UI 树只覆盖 11 排里的 5 排，日志 `矮窗档旧账：在册 5/11 排`）；完整树里 `jellyfin · 电影 / 混合内容 / 节目` 三排都在。真缺陷是 Emby 与飞牛影视的服务器显示名都叫「果服」，聚合后行题字面相同，用户分不清哪排属于哪个服务器。
+
 ## 搜索页：输入法组字时的第一次回车也触发搜索（2026-10-25 用户令）
 
 - 用户令：「搜索页面 在搜索栏按回车要支持触发搜索」。上一轮（2026-10-15）修的是焦点落在来源标签上的那颗回车；这次是**输入法**：用中文打字时，回车先被输入法用来上屏，`KeyDown` 与 `AutoSuggestBox.QuerySubmitted` 都被吞掉，页面只收得到 `KeyUp`，所以第一次回车只有候选上屏、搜索不动（要按第二次）。
