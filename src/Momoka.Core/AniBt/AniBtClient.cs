@@ -11,7 +11,7 @@ namespace Momoka.AniBt;
 /// AniBT 的匿名查询。客户端不接收 MP / Emby 会话，也不下载种子；资源仅返回固定公开站点的地址。
 /// 协议以 https://wiki.anibt.net/openapi.yaml 为准。
 /// </summary>
-public sealed class AniBtClient : IDisposable
+public sealed partial class AniBtClient : IDisposable
 {
     private static readonly Uri Origin = new("https://anibt.net/");
     private static readonly XNamespace RssNamespace = "https://anibt.net/xmlns/rss/1.0/";
@@ -82,23 +82,9 @@ public sealed class AniBtClient : IDisposable
         var query = keyword?.Trim() ?? "";
         ValidateText(query, 100, "搜索词");
         if (page < 1) throw new ArgumentOutOfRangeException(nameof(page));
-        // bgm/search 只有 limit，没有 offset/page；不能反复请求第一页假装是后续结果。
+        // 旧调用仍只读第一页；目录后续页必须使用 SearchCatalogAsync 返回的 cursor。
         if (page > 1) return new AniBtSearchPage([], false);
-        using var document = ParseJson(await RequestAsync("api/bgm/search?q=" + Uri.EscapeDataString(query) + "&limit=25",
-            null, false, cancellationToken).ConfigureAwait(false));
-        var root = document.RootElement;
-        if (Field(root, "ok").ValueKind != JsonValueKind.True || Field(root, "data").ValueKind != JsonValueKind.Array)
-            throw InvalidResponse();
-        var results = new List<AniBtAnime>();
-        foreach (var item in Field(root, "data").EnumerateArray())
-        {
-            var bgmId = Number(item, "bgmId");
-            var title = FirstText(Text(item, "nameCn"), Text(item, "name"));
-            if (bgmId is not (> 0 and <= 10000000) || title.Length == 0 || results.Any(existing => existing.BgmId == bgmId)) continue;
-            results.Add(new AniBtAnime("", bgmId.Value, title, Text(item, "name"), ImageUrl(Text(item, "image")),
-                NonnegativeInt(item, "seasonYear"), NonnegativeInt(item, "totalEpisodes")));
-        }
-        return new AniBtSearchPage(results, false);
+        return await SearchCatalogAsync(query, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<AniBtRelease>> ReleasesAsync(AniBtAnime anime, CancellationToken cancellationToken)

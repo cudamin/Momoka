@@ -173,6 +173,68 @@ internal static class AniBtIntegrationTests
             Assert.Equal(1, feed.Requests);
         });
 
+        Test("AniBT 分组浏览用规范身份映射下载，完整集号不受预览条数限制", () =>
+        {
+            using var transport = BaseTransport().Answer("media/source", Sources)
+                .Answer("media/123?", Media.Replace("\"42\"", "\"123\"", StringComparison.Ordinal));
+            using var service = Service(transport);
+            using var catalog = new StubTransport().Answer("api/public/v1/anime?bgmId=42", AniBtTests.CatalogDetail)
+                .Answer("api/anime/groups?bgmId=123", AniBtTests.CatalogGroups);
+            using var client = new AniBtClient(catalog);
+            var integration = new AniBtService(client, service);
+            var result = integration.BrowseAsync(Anime, default).GetAwaiter().GetResult();
+            Assert.Equal(123L, result.Anime.BgmId);
+            Assert.Equal(4, result.Groups.Single().PublishedEpisodes.Count);
+            Assert.Equal(40, result.Groups.Single().TotalReleases);
+            var resource = result.Resources.Single();
+            Assert.Equal("123", resource.Resource.MediaId);
+            Assert.Equal("rel_one", resource.Release.ReleaseId);
+            Assert.Equal(resource.Release.Title, resource.Resource.Title);
+            Assert.Equal("bangumi", resource.Resource.MediaSource);
+            Assert.Equal(0, transport.SentTo("download/").Count);
+            Assert.Equal(2, catalog.Total);
+        });
+
+        Test("AniBT 分组浏览和目录搜索在连接改变后拒绝迟到结果", () =>
+        {
+            foreach (var search in new[] { false, true })
+            {
+                var settings = Settings();
+                using var transport = BaseTransport().Answer("media/source", Sources);
+                using var service = Service(transport, settings);
+                using var catalog = new StubTransport()
+                    .Answer("api/public/v1/anime?bgmId=42", AniBtTests.CatalogDetail)
+                    .Answer("api/anime/groups?bgmId=123", AniBtTests.CatalogGroups)
+                    .Answer("api/animes/search?", """{"page":[],"isDone":true}""")
+                    .When(search ? "api/animes/search?" : "api/anime/groups?bgmId=123", () => settings.MoviePilot.Url = "192.0.2.11:3001");
+                using var client = new AniBtClient(catalog);
+                var integration = new AniBtService(client, service);
+                Assert.Throws<MoviePilotOperationBlockedException>(() =>
+                {
+                    if (search) integration.SearchCatalogAsync("动画", null, default).GetAwaiter().GetResult();
+                    else integration.BrowseAsync(Anime, default).GetAwaiter().GetResult();
+                });
+                Assert.Equal(0, transport.SentTo("media/source").Count);
+            }
+        });
+
+        Test("AniBT 分组无种子发布仍可浏览但不可交给 MoviePilot 下载", () =>
+        {
+            using var transport = BaseTransport().Answer("media/source", "[]");
+            using var service = Service(transport);
+            using var catalog = new StubTransport().Answer("api/public/v1/anime?bgmId=42", AniBtTests.CatalogDetail)
+                .Answer("api/anime/groups?bgmId=123", AniBtTests.CatalogGroups.Replace("fixture.torrent", "", StringComparison.Ordinal));
+            using var client = new AniBtClient(catalog);
+            var integration = new AniBtService(client, service);
+            var result = integration.BrowseAsync(Anime, default).GetAwaiter().GetResult();
+            var item = result.Resources.Single();
+            Assert.False(item.Release.HasTorrent);
+            Assert.NotNull(item.Resource.DetailsUri);
+            Assert.Equal("此发布未提供种子文件", item.Resource.DownloadProblem);
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(item.Resource, default).GetAwaiter().GetResult());
+            Assert.Equal(0, transport.SentTo("download/").Count);
+        });
+
         Test("AniBT 候选：未返回的选择不能触发任何重新整理准备", () =>
         {
             using var transport = BaseTransport();

@@ -11,6 +11,22 @@ namespace Momoka.Tests;
 
 internal static class AniBtTests
 {
+    internal const string CatalogDetail = """
+        {"initialAnime":{"_id":"ani_one","bgmId":123,"title":{"chinese":"测试","native":"Test"},
+        "episodes":15,"format":"TV","description":"简介正文"},"initialExternalIds":[
+        {"source":"anidb","externalId":"42","url":"https://untrusted.invalid/"},
+        {"source":"mal","externalId":"javascript:bad","url":"https://untrusted.invalid/"}]}
+        """;
+
+    internal const string CatalogGroups = """
+        {"ok":true,"data":{"bgmId":123,"animeId":"ani_one","groups":[
+        {"groupId":"org_one","slug":"group & one","name":"字幕组","totalReleases":40,"publishedEpisodes":[4,1,2,3,3,-1,"bad"],
+        "items":[{"releaseId":"rel_one","title":"测试 - 03","size":12345,"publishedAt":1792889728859,
+        "episodeKey":"3","resolution":"1080p","format":"MP4","language":["CHT"],"subtitle":"EMBEDDED",
+        "customTags":["WEB-DL","AAC"],"url":"https://untrusted.invalid/","torrentStorageId":"fixture.torrent"},
+        {"releaseId":"../../escape","title":"拒绝"},{"releaseId":"rel_one","title":"重复"}]}]}}
+        """;
+
     private const string MatchResponse = """
         {
           "version":3,
@@ -224,10 +240,11 @@ internal static class AniBtTests
         Test("AniBT 搜索转义关键词并保留空值且不伪造翻页", () =>
         {
             using var transport = new Transport((_, _) => Json("""
-                {"ok":true,"data":[
-                  {"bgmId":123,"nameCn":"测试","name":"Test","date":null,"seasonYear":null,"totalEpisodes":null,"image":null},
-                  {"bgmId":123,"nameCn":"重复"},{"bgmId":-1,"nameCn":"无效"}
-                ]}
+                {"page":[
+                  {"_id":"ani_one","bgmId":123,"title":{"chinese":"测试","native":"Test"},"seasonYear":null,"episodes":null,"coverImage":null},
+                  {"_id":"ani_one","bgmId":123,"title":{"chinese":"重复"}},
+                  {"_id":"ani_invalid","bgmId":-1,"title":{"chinese":"无效"}}
+                ],"isDone":true,"continueCursor":""}
                 """));
             using var client = new AniBtClient(transport);
             var result = client.SearchAsync("测试 & Anime", 1, default).GetAwaiter().GetResult();
@@ -236,9 +253,100 @@ internal static class AniBtTests
             Assert.Null(result.Items[0].EpisodeCount);
             Assert.Null(result.Items[0].ImageUrl);
             Assert.False(result.HasMore);
-            Assert.Contains("q=" + Uri.EscapeDataString("测试 & Anime") + "&limit=25", transport.Requests[0].Url);
+            Assert.Contains("api/animes/search?q=" + Uri.EscapeDataString("测试 & Anime") + "&limit=24", transport.Requests[0].Url);
             Assert.Equal(0, client.SearchAsync("测试 & Anime", 2, default).GetAwaiter().GetResult().Items.Count);
             Assert.Equal(1, transport.Requests.Count);
+        });
+
+        Test("AniBT 目录保留海报字段并回传不透明游标", () =>
+        {
+            using var transport = new Transport((_, index) => Json(index == 1 ? """
+                {"page":[{"_id":"ani_one","bgmId":123,"title":{"chinese":"测试","native":"原名","english":"English"},
+                "coverImage":{"large":"https://r2.anibt.net/cover.jpg"},"format":"TV","status":"RELEASING",
+                "averageScore":75,"season":"FALL","seasonYear":2026,"episodes":15,"genres":["喜剧","校园"],
+                "officialSite":"https://example.invalid/"}],"isDone":false,"continueCursor":"opaque & page:2"}
+                """ : """{"page":[],"isDone":true,"continueCursor":""}"""));
+            using var client = new AniBtClient(transport);
+            var first = client.SearchCatalogAsync("学生会", null, default).GetAwaiter().GetResult();
+            Assert.True(first.HasMore);
+            var anime = first.Items.Single();
+            Assert.Equal(7.5, anime.Score);
+            Assert.Equal("TV", anime.Format);
+            Assert.Equal("RELEASING", anime.Status);
+            Assert.Equal("English", anime.EnglishTitle);
+            Assert.Equal("FALL", anime.Season);
+            Assert.Equal("https://r2.anibt.net/cover.jpg", anime.ImageUrl);
+            Assert.True(anime.Genres.SequenceEqual(["喜剧", "校园"]));
+            var next = client.SearchCatalogAsync("学生会", first.Cursor, default).GetAwaiter().GetResult();
+            Assert.False(next.HasMore);
+            Assert.Null(next.Cursor);
+            Assert.Contains("&cursor=opaque%20%26%20page%3A2", transport.Requests[1].Url);
+            Assert.True(transport.Requests.All(request => request.Method == "GET" && !request.HasCredentials));
+        });
+
+        Test("AniBT 目录拒绝损坏或重复游标，非法可选数据不伪造显示值", () =>
+        {
+            foreach (var response in new[]
+            {
+                """{"page":[],"isDone":false,"continueCursor":""}""",
+                """{"page":[],"isDone":false,"continueCursor":"same"}""",
+                """{"page":[],"continueCursor":"next"}"""
+            })
+            {
+                using var transport = new Transport((_, _) => Json(response));
+                using var client = new AniBtClient(transport);
+                Assert.Throws<AniBtException>(() => client.SearchCatalogAsync("动画", "same", default).GetAwaiter().GetResult());
+            }
+            using var invalidTransport = new Transport((_, _) => Json("""
+                {"page":[{"_id":"ani_one","bgmId":123,"title":{"native":"原名"},"averageScore":101,
+                "officialSite":"javascript:alert(1)","coverImage":{"large":"https://user:secret@example.invalid/a"}}],"isDone":true}
+                """));
+            using var invalidClient = new AniBtClient(invalidTransport);
+            var item = invalidClient.SearchCatalogAsync("动画", null, default).GetAwaiter().GetResult().Items.Single();
+            Assert.Null(item.Score);
+            Assert.Null(item.OfficialSite);
+            Assert.Null(item.ImageUrl);
+            Assert.Equal("", item.Status);
+        });
+
+        Test("AniBT 分组先规范化番剧身份，完整进度与最近资源分开", () =>
+        {
+            using var transport = new Transport((_, index) => Json(index == 1 ? CatalogDetail : CatalogGroups));
+            using var client = new AniBtClient(transport);
+            var result = client.GroupPageAsync(new AniBtAnime("old", 456, "旧编号"), default).GetAwaiter().GetResult();
+            Assert.Equal(123L, result.Anime.BgmId);
+            Assert.Equal("简介正文", result.Anime.Description);
+            Assert.Equal("https://anidb.net/anime/42", result.Anime.ExternalLinks.Single().Uri.AbsoluteUri);
+            Assert.True(transport.Requests[0].Url.EndsWith("api/public/v1/anime?bgmId=456", StringComparison.Ordinal));
+            Assert.True(transport.Requests[1].Url.EndsWith("api/anime/groups?bgmId=123", StringComparison.Ordinal));
+            var group = result.Groups.Single();
+            Assert.True(group.PublishedEpisodes.SequenceEqual([1, 2, 3, 4]));
+            Assert.Equal(40, group.TotalReleases);
+            Assert.Equal(1, group.Items.Count);
+            Assert.Equal("https://anibt.net/rss/anime.xml?bgmId=123&groupSlug=group%20%26%20one", group.RssUri!.AbsoluteUri);
+            var release = group.Items.Single();
+            Assert.Equal("MP4", release.Format);
+            Assert.True(release.Languages!.SequenceEqual(["CHT"]));
+            Assert.Equal("EMBEDDED", release.Subtitle);
+            Assert.True(release.Tags!.SequenceEqual(["WEB-DL", "AAC"]));
+            Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(1792889728859), release.PublishedAt);
+            Assert.Equal("https://anibt.net/api/torrent/rel_one.torrent", release.DownloadUri.AbsoluteUri);
+            Assert.True(transport.Requests.All(request => request.Method == "GET" && !request.HasCredentials));
+        });
+
+        Test("AniBT 分组拒绝跨番剧或损坏响应，不吞成空资源", () =>
+        {
+            foreach (var groups in new[]
+            {
+                CatalogGroups.Replace("\"animeId\":\"ani_one\"", "\"animeId\":\"another\"", StringComparison.Ordinal),
+                CatalogGroups.Replace("\"bgmId\":123", "\"bgmId\":456", StringComparison.Ordinal),
+                CatalogGroups.Replace("\"items\":[", "\"missingItems\":[", StringComparison.Ordinal)
+            })
+            {
+                using var transport = new Transport((_, index) => Json(index == 1 ? CatalogDetail : groups));
+                using var client = new AniBtClient(transport);
+                Assert.Throws<AniBtException>(() => client.GroupPageAsync(new AniBtAnime("ani_one", 123, "测试"), default).GetAwaiter().GetResult());
+            }
         });
 
         Test("AniBT 不把错误信封或 HTML 页面当成空搜索结果", () =>

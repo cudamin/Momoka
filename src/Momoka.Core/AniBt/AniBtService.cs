@@ -52,6 +52,27 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         return result;
     }
 
+    public async Task<AniBtSearchPage> SearchCatalogAsync(string term, string? cursor, CancellationToken cancellationToken)
+    {
+        var connection = moviePilot.CaptureAniBtConnection();
+        var result = await client.SearchCatalogAsync(term, cursor, cancellationToken).ConfigureAwait(false);
+        moviePilot.CheckAniBtConnection(connection, cancellationToken);
+        return result;
+    }
+
+    public async Task<AniBtBrowsePage> BrowseAsync(AniBtAnime anime, CancellationToken cancellationToken)
+    {
+        var connection = moviePilot.CaptureAniBtConnection();
+        var page = await client.GroupPageAsync(anime, cancellationToken).ConfigureAwait(false);
+        moviePilot.CheckAniBtConnection(connection, cancellationToken);
+        var releases = page.Groups.SelectMany(group => group.Items).DistinctBy(release => release.ReleaseId).ToArray();
+        var resources = await moviePilot.AniBtResourcesAsync(page.Anime, releases, connection, cancellationToken).ConfigureAwait(false);
+        moviePilot.CheckAniBtConnection(connection, cancellationToken);
+        return new AniBtBrowsePage(page.Anime, page.Groups,
+            [.. resources.Select((resource, index) => new AniBtResource(releases[index], releases[index].HasTorrent
+                ? resource : resource with { DownloadProblem = "此发布未提供种子文件" }))]);
+    }
+
     public async Task<IReadOnlyList<AniBtResource>> ResourcesAsync(AniBtAnime anime, CancellationToken cancellationToken, int? episode = null)
     {
         var connection = moviePilot.CaptureAniBtConnection();

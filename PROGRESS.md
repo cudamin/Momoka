@@ -2,6 +2,13 @@
 
 最后更新：2026-10-25
 
+## AniBT 搜索目录、详情和字幕组协议（2026-10-25）
+
+- 子任务独立树 `C:/Users/89400/Momoka-anibt-catalog`，范围仅 `Core/AniBt` 与 AniBT 离线测试；Shell、运行截图和最终交付由主会话整合。
+- 按公开网页实际调用核对 `api/animes/search` 的目录字段和不透明游标、`api/public/v1/anime` 的简介与规范身份、`api/anime/groups` 的字幕组完整发布集号及最近最多 30 条资源。搜索保留格式、状态、0–10 评分、季度和标签；详情外链只从已知提供方及数字 ID 构造。
+- 分组先取规范 Bangumi 身份，再核对响应 `animeId`；完整发布进度与资源条数分开，RSS 按 `groupSlug` 生成。没有 `torrentStorageId` 的发布仍展示，但下载资源带阻断原因，不伪造可下载能力。原分集 RSS 行为保留。
+- 验证：当前 Core/tests Release 构建 0 警告、0 错误；2131 项离线测试全部通过，0 失败、0 跳过（`artifacts/anibt-core-tests.txt`）；改动文件空白检查与 `git diff --check` 通过。覆盖游标、缺失字段、非法外链、规范身份、完整进度与预览条数、无种子发布和连接切换的迟到结果。未运行 UI、未下载种子、未写真实服务器、未发布或推送。
+
 ## MoviePilot 搜索页海报、资源卡片与筛选（2026-10-25）
 
 - 按用户两张参考图和本地官方前端 v3.0.1 的 MediaCard/TorrentCard/TorrentFilterBar/useTorrentFilter 实现：订阅结果为 152×228 海报网格，带类型、有效评分、来源和常驻搜索/订阅图标；无图占位、提交/已订阅/待核对状态保留，资源层打开时整个底层搜索区收起。

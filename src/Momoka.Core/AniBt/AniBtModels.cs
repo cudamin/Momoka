@@ -12,7 +12,19 @@ public sealed record AniBtAnime(
     string? ImageUrl = null,
     int? Year = null,
     int? EpisodeCount = null,
-    string Format = "");
+    string Format = "",
+    string Status = "",
+    double? Score = null,
+    string Description = "",
+    string EnglishTitle = "",
+    string Season = "",
+    string? OfficialSite = null)
+{
+    public IReadOnlyList<string> Genres { get; init; } = [];
+    public IReadOnlyList<AniBtExternalLink> ExternalLinks { get; init; } = [];
+}
+
+public sealed record AniBtExternalLink(string Label, Uri Uri);
 
 public sealed record AniBtMatch(
     IReadOnlyList<AniBtAnime> Candidates,
@@ -27,8 +39,8 @@ public sealed record AniBtMatch(
         AutomaticCandidate ?? (Candidates.Count > 0 ? Candidates[0] : null);
 }
 
-/// <summary>公开 Bangumi 搜索没有分页；HasMore 不会把达到条数上限误称为可翻页。</summary>
-public sealed record AniBtSearchPage(IReadOnlyList<AniBtAnime> Items, bool HasMore);
+/// <summary>目录搜索使用服务端返回的 opaque cursor，不从页号猜下一页。</summary>
+public sealed record AniBtSearchPage(IReadOnlyList<AniBtAnime> Items, bool HasMore, string? Cursor = null);
 
 /// <summary>资源使用最终规范化的 Bangumi 身份，避免旧编号合并后把资源交给另一份媒体元数据。</summary>
 public sealed record AniBtReleasePage(long BgmId, IReadOnlyList<AniBtRelease> Items);
@@ -42,7 +54,21 @@ public sealed record AniBtRelease(
     DateTimeOffset? PublishedAt = null,
     string GroupName = "",
     string EpisodeKey = "",
-    string Resolution = "");
+    string Resolution = "",
+    string Format = "",
+    IReadOnlyList<string>? Languages = null,
+    string Subtitle = "",
+    IReadOnlyList<string>? Tags = null,
+    bool HasTorrent = true);
+
+/// <summary>PublishedEpisodes 是服务端完整进度；Items 仅为该组最近最多 30 条发布。</summary>
+public sealed record AniBtReleaseGroup(string GroupId, string Name, string Slug,
+    IReadOnlyList<int> PublishedEpisodes, int TotalReleases, IReadOnlyList<AniBtRelease> Items, Uri? RssUri = null);
+
+public sealed record AniBtGroupPage(AniBtAnime Anime, IReadOnlyList<AniBtReleaseGroup> Groups);
+
+public sealed record AniBtBrowsePage(AniBtAnime Anime, IReadOnlyList<AniBtReleaseGroup> Groups,
+    IReadOnlyList<AniBtResource> Resources);
 
 /// <summary>
 /// 一条 AniBT 发布与交给 MoviePilot 的下载资源。两半来自同一次 RSS 读取，序号一一对应：
