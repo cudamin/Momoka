@@ -134,9 +134,9 @@ public sealed partial class ServersPage : Page, IShellContent
     }
 
     /// <summary>
-    /// Counts item containers. <c>Content</c> rather than <c>DataContext</c>: everything inside a
-    /// realised row inherits the row as its data context, including the <c>ContentPresenter</c> in every
-    /// button's own template, so a count by data context reports the number of controls in a card.
+    /// Counts the tagged roots of realised templates rather than an ItemsControl implementation's
+    /// container type or inherited DataContext. Missing templates still report zero, and child controls
+    /// cannot inflate the count simply by inheriting the same row as their data context.
     /// <para>
     /// 卡片首行那个账号不在容器里 —— 它是直接写在服务器名旁边的（2026-10-25 用户令：服务器名、账号、类型
     /// 放到一行里），所以它靠标识单独数一个，否则「绑了几个、画了几个」这一对数字从此对不上。
@@ -144,11 +144,10 @@ public sealed partial class ServersPage : Page, IShellContent
     /// </summary>
     private static void Count(DependencyObject node, ref int servers, ref int accounts)
     {
-        if (node is ContentPresenter presenter)
-        {
-            if (presenter.Content is ServerRow) servers++;
-            else if (presenter.Content is AccountRow) accounts++;
-        }
+        // Count the actual template roots, not an ItemsControl's implementation-specific wrapper.
+        // A missing template must still read zero; bound view-model counts are not evidence of paint.
+        if (node is FrameworkElement { Tag: ServerRow }) servers++;
+        else if (node is FrameworkElement { Tag: AccountRow }) accounts++;
         else if (node is TextBlock && AutomationProperties.GetAutomationId(node) == "ServerPrimaryAccount")
         {
             accounts++;

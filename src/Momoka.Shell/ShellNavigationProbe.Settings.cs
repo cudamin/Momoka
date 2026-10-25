@@ -920,6 +920,15 @@ internal sealed partial class ShellNavigationProbe
             await page.ViewModel.ReloadAsync();
             await LayoutAsync(page);
             await UntilAsync(() => page.Opacity == 1 && Get<Grid>(page, "PageLayout").Opacity == 1);
+            var expected = page.Summary;
+            var realised = page.Realised;
+            Require(realised.Servers == expected.Servers && realised.Accounts == expected.Accounts,
+                $"服务器模板实绘计数不匹配：{realised.Servers}/{expected.Servers} 台，{realised.Accounts}/{expected.Accounts} 个账号");
+            var serverRoot = Descendants(page).OfType<FrameworkElement>().First(element => element.Tag is ServerRow);
+            var serverTag = serverRoot.Tag;
+            serverRoot.Tag = null;
+            try { Require(page.Realised.Servers == expected.Servers - 1, "缺失模板标记时仍报告绑定数量，渲染检查没有独立证据"); }
+            finally { serverRoot.Tag = serverTag; }
             await Task.Delay(160);
             Require(_root.Children.Count == 1 && ReferenceEquals(_root.Children[0], page),
                 $"服务器页探针的根里还留着别的页（{_root.Children.Count} 个直接孩子）");

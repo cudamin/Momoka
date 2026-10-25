@@ -133,6 +133,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("弹幕输入栏、发送回执与截断搜索", DanmakuSendAsync, 60, section: ShellProbeSections.Playback);
             await CaseAsync("播放弹幕面板与过期交互（宽窗）", () => DanmakuPanelAsync(1100), 30, section: ShellProbeSections.Playback);
             await CaseAsync("播放弹幕面板与过期交互（窄窗）", () => DanmakuPanelAsync(360), 30, section: ShellProbeSections.Playback);
+            await CaseAsync("播放控制条宽窄布局与负向溢出", PlayerTransportAsync, 30, section: ShellProbeSections.Playback);
             await CaseAsync("集成跳过按钮单行、缩放、点击与键盘", PlayerSkipAsync, 45);
             await CaseAsync("三处关键词拖拽优先级与弹簧（宽窗）", () => SettingsPriorityFiltersAsync(1100), 45, section: ShellProbeSections.Settings);
             await CaseAsync("三处关键词拖拽优先级与弹簧（窄窗）", () => SettingsPriorityFiltersAsync(760), 45, section: ShellProbeSections.Settings);

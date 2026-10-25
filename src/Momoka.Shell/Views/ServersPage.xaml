@@ -36,7 +36,7 @@
         <!-- Declared before the server template that reaches for it: a StaticResource inside a
              DataTemplate is resolved as the dictionary is parsed, so a forward reference fails. -->
         <DataTemplate x:Key="AccountTemplate" x:DataType="vm:AccountRow">
-            <Grid ColumnSpacing="8" Margin="0,3">
+            <Grid Tag="{x:Bind}" ColumnSpacing="8" Margin="0,3">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -87,7 +87,7 @@
         </DataTemplate>
 
         <DataTemplate x:Key="ServerTemplate" x:DataType="vm:ServerRow">
-            <Border
+            <Border Tag="{x:Bind}"
                 Background="{ThemeResource EgSurfaceBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="{StaticResource EgCardBorderThickness}"
