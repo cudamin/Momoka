@@ -9,8 +9,14 @@
 - 真因（差分证据）：起播那条「开始」上报 `ts=0` **成功**（整份 `app-20261025.log` 里 `上报「开始」失败` 出现 0 次），后续 `ts` 是小数秒（`5.0123456`）的进度上报全部 `-4`；两次请求体**只差 `ts`**。业务码 `-4` 是「服务器内部错误」而不是参数错（那是 `-1`），飞牛按整数解析小数 `ts` 时内部抛错。官方前端的进度值来自 `Math.floor(player.currentTime)`，从不是小数。
 - 改法：`FnNasMediaAdapter.PlaybackRecord` 的 `ts` / `duration` 改整数秒（向下取整、负值钳 0、`long` 写 JSON）；`subtitle_guid` 无字幕改发官方占位符 `_no_display_`（bundle 里 `hiddenSubtitleStream={guid:"_no_display_"}`），不再发空串；`audio_guid` 索引缺失或失效时回退默认音轨、再退第一条带 GUID 的音轨；`resolution` / `bitrate` 改用实际视频流的 `resolution_type` 与 `bps`（真实抓包里 `video_streams[0]` 就有这两个字段），去掉硬编码的 `"original"` / `-1`。`MediaStream` 只多一个 `[JsonIgnore]` 的 `ResolutionType`，Emby / Jellyfin / Plex 的映射未动。
 - 测试：`FnNasMediaTests` 新增 4 条用例（`ts`/`duration` 取整与整数字面量、字幕占位符三种情况、音轨回退链、`resolution`/`bitrate` 取值与兜底），既有那条播放规划用例补了断言。Release 构建 0 警告 0 错误；全量离线测试 **2108 通过、0 失败、0 跳过**；`dotnet format whitespace --verify-no-changes` 退出 0。独立复核（另一个子代理）PASS，并自己复跑了两遍测试。
-- 提交：**`3ae4e30`**（本地，未推送）。**未发布**到 `artifacts/publish/win-x64`，桌面快捷方式仍是上一版。
-- **未验证**：没有在真实飞牛服务器上复测 —— 只证明请求体符合官方契约，没证明服务端真的把 `ts` 写进 `play/info`；`resolution` 与官方「所选 quality 的 resolution」是否语义一致也没确认。两项都要真播一次才能定。
+- 提交：**`3ae4e30`**（本地，未推送）。已发布到 `artifacts/publish/win-x64`（389 个文件、285 MB、`Momoka.dll` SHA-256 `03350D93…`，`verify-publish` 通过）。
+- **真机复测（2026-10-25 13:20–13:26，真实飞牛服务器，用户授权）**：
+  - 带诊断的构建播《聚焦》68 秒，每 5 秒一条上报**零失败**，停止上报也成功；
+  - 重播时第一条上报的 `ts` 直接是 **68**（上一场停下的位置），说明服务端确实存下并回读了续播点；
+  - 交付件（`artifacts/publish/win-x64`）复验：从 **1:22** 起播、播到 2:22 停止，全程 **0 次上报失败** —— 续播点写入与读取闭环成立。
+  - 诊断用的「上报正文」`Log.Debug` 是临时加的，复测后已还原，未进任何提交。
+  - 期间用户自己那次复测（13:15《牧神记》）仍报 `-4`，原因是它跑的是**另一个工作树**的旧构建（日志里 `libmpv-2.dll` 来自 `C:\Users\89400\.codex\worktrees\mp-translation-interpolation\…`），不是这份修复。
+- **未验证**：`resolution` 与官方「所选 quality 的 resolution」是否语义一致（发的是源文件档位 `1080p`）；`duration` 在 `--play`/列表起播路径下是 0（服务端接受了，但网页端进度条可能显示异常），是否需要改用 `stream/list` 的视频流时长，待真机看网页端表现再定。
 - 同轮顺带纠正的聚合结论：`docs/交接-实服验证-Jellyfin-飞牛-聚合-2026-10-25.md` §4 的 A2「聚合主页完全没有 jellyfin 行」是**证据误判**（那份 UI 树只覆盖 11 排里的 5 排，日志 `矮窗档旧账：在册 5/11 排`）；完整树里 `jellyfin · 电影 / 混合内容 / 节目` 三排都在。真缺陷是 Emby 与飞牛影视的服务器显示名都叫「果服」，聚合后行题字面相同，用户分不清哪排属于哪个服务器。
 
 ## 搜索页：输入法组字时的第一次回车也触发搜索（2026-10-25 用户令）
