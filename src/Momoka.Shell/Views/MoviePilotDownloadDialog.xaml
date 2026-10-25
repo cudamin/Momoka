@@ -2,25 +2,162 @@
 <ContentDialog x:Class="Momoka.Shell.Views.MoviePilotDownloadDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="加入下载" PrimaryButtonText="下载" CloseButtonText="取消" DefaultButton="Close"
+    xmlns:moviepilot="using:Momoka.MoviePilot"
+    PrimaryButtonText="开始下载" CloseButtonText="取消" DefaultButton="None"
+    Background="{ThemeResource EgSurfaceBrush}" Foreground="{ThemeResource EgTextBrush}"
+    BorderThickness="0" CornerRadius="{StaticResource EgCardCornerRadius}"
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Spacing="16">
-            <TextBlock Text="{x:Bind ViewModel.Confirmation, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">536</x:Double>
+        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+        <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+        <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+        <Style x:Key="DownloadPickerStyle" TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="BorderThickness" Value="0,0,0,1" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+    </ContentDialog.Resources>
+    <ContentDialog.PrimaryButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+            <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </ContentDialog.PrimaryButtonStyle>
+    <ContentDialog.CloseButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="MinHeight" Value="36" />
+        </Style>
+    </ContentDialog.CloseButtonStyle>
+    <ContentDialog.Title>
+        <Grid x:Name="DownloadTitle" ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <FontIcon Glyph="&#xE896;" Foreground="{ThemeResource EgTextDimBrush}" />
+            <StackPanel Grid.Column="1" Spacing="4">
+                <TextBlock Text="确认下载" Style="{StaticResource EgSectionTitleStyle}" />
+                <TextBlock Text="{x:Bind ViewModel.Heading, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                    Foreground="{ThemeResource EgTextDimBrush}" TextTrimming="CharacterEllipsis" MaxLines="1" />
+            </StackPanel>
+            <Button x:Name="DismissDownload" Grid.Column="2" Click="OnDismiss" Style="{StaticResource EgIconButtonStyle}"
+                AutomationProperties.Name="取消下载" ToolTipService.ToolTip="取消下载">
+                <FontIcon Glyph="&#xE8BB;" FontSize="{StaticResource EgSubheadFontSize}" />
+            </Button>
+        </Grid>
+    </ContentDialog.Title>
+    <ScrollViewer x:Name="DownloadScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="DownloadBody" Spacing="20" MinWidth="260" SizeChanged="OnBodySizeChanged">
+            <Border Style="{StaticResource EgRuleStyle}" />
+            <Grid ColumnSpacing="16" RowSpacing="12">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <FontIcon Glyph="&#xE774;" VerticalAlignment="Top" Margin="0,4,0,0" Foreground="{ThemeResource EgTextDimBrush}" />
+                <StackPanel Grid.Column="1" Spacing="4">
+                    <TextBlock x:Name="TorrentHeading" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextWrapping="Wrap" IsTextSelectionEnabled="True">
+                        <Run Text="{x:Bind ViewModel.ResourceTitle, Mode=OneWay}" /><Run Text="  " />
+                        <Run Text="{x:Bind ViewModel.SeedersText, Mode=OneWay}" Foreground="{ThemeResource EgAccentBrush}" /><Run Text="  " />
+                        <Run Text="{x:Bind ViewModel.PeersText, Mode=OneWay}" Foreground="{ThemeResource EgWarningBrush}" />
+                    </TextBlock>
+                    <TextBlock Text="{x:Bind ViewModel.SiteText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                        Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind ViewModel.SiteVisibility, Mode=OneWay}" />
+                </StackPanel>
+                <FontIcon Grid.Row="1" Glyph="&#xE8A5;" Foreground="{ThemeResource EgTextDimBrush}"
+                    Visibility="{x:Bind ViewModel.DescriptionVisibility, Mode=OneWay}" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind ViewModel.Description, Mode=OneWay}"
+                    Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                    TextWrapping="Wrap" IsTextSelectionEnabled="True" Visibility="{x:Bind ViewModel.DescriptionVisibility, Mode=OneWay}" />
+                <FontIcon Grid.Row="2" Glyph="&#xEDA2;" Foreground="{ThemeResource EgTextDimBrush}"
+                    Visibility="{x:Bind ViewModel.SizeVisibility, Mode=OneWay}" />
+                <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Border Padding="10,4" CornerRadius="4" Background="{ThemeResource EgSurfaceAltBrush}"
+                        Visibility="{x:Bind ViewModel.SizeVisibility, Mode=OneWay}">
+                        <TextBlock Text="{x:Bind ViewModel.SizeText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
+                    </Border>
+                    <Border Padding="10,4" CornerRadius="4" Background="{ThemeResource EgAccentSoftBrush}"
+                        Visibility="{x:Bind ViewModel.PromotionVisibility, Mode=OneWay}">
+                        <TextBlock Text="{x:Bind ViewModel.PromotionText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                            Foreground="{ThemeResource EgAccentBrush}" />
+                    </Border>
+                </StackPanel>
+            </Grid>
+            <TextBlock Text="{x:Bind ViewModel.RuleText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                Foreground="{ThemeResource EgWarningBrush}" TextWrapping="Wrap" Visibility="{x:Bind ViewModel.RuleVisibility, Mode=OneWay}" />
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
             <InfoBar IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" IsClosable="False"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-            <ComboBox x:Name="DownloadClient" Header="下载器" HorizontalAlignment="Stretch"
-                ItemsSource="{x:Bind ViewModel.Downloaders, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Downloader, Mode=TwoWay}"
-                IsEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}" />
-            <ComboBox x:Name="DownloadPath" Header="保存路径" HorizontalAlignment="Stretch" IsEditable="True"
-                PlaceholderText="留空使用 MoviePilot 默认路径"
-                ItemsSource="{x:Bind ViewModel.Paths, Mode=OneWay}" Text="{x:Bind ViewModel.SavePath, Mode=TwoWay}"
-                IsEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}" />
-            <TextBlock Text="可选择已有路径或输入自定义路径；请使用下载器服务器上的路径。"
-                Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
-            <Button x:Name="RefreshDownloadChoices" Content="刷新选项" Command="{x:Bind ViewModel.RefreshCommand}" HorizontalAlignment="Right" />
+            <Button x:Name="RefreshDownloadChoices" Content="刷新选项" Command="{x:Bind ViewModel.RefreshCommand}"
+                Visibility="{x:Bind ViewModel.RefreshVisibility, Mode=OneWay}" />
+            <Grid x:Name="DestinationGrid" ColumnSpacing="20" RowSpacing="12">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <ComboBox x:Name="DownloadClient" Header="下载器" Style="{StaticResource DownloadPickerStyle}"
+                    ItemsSource="{x:Bind ViewModel.Downloaders, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.Downloader, Mode=TwoWay}"
+                    IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
+                <ComboBox x:Name="DownloadPath" Grid.Column="1" Header="保存目录" Style="{StaticResource DownloadPickerStyle}" IsEditable="True"
+                    PlaceholderText="自动" ToolTipService.ToolTip="选择或输入下载器上的路径；留空自动选择"
+                    ItemsSource="{x:Bind ViewModel.Paths, Mode=OneWay}" Text="{x:Bind ViewModel.SavePath, Mode=TwoWay}"
+                    IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
+            </Grid>
+            <Button x:Name="ToggleDownloadAdvanced" Command="{x:Bind ViewModel.ToggleAdvancedCommand}"
+                Background="Transparent" BorderThickness="0" Padding="8,4" Foreground="{ThemeResource EgAccentBrush}"
+                IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="{x:Bind ViewModel.AdvancedGlyph, Mode=OneWay}" FontSize="{StaticResource EgCaptionFontSize}" />
+                    <TextBlock Text="{x:Bind ViewModel.AdvancedLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
+                </StackPanel>
+            </Button>
+            <StackPanel x:Name="DownloadAdvanced" Spacing="16" Visibility="{x:Bind ViewModel.AdvancedVisibility, Mode=OneWay}">
+                <Grid x:Name="IdentityGrid" ColumnSpacing="20" RowSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <ComboBox x:Name="DownloadMediaType" Header="类型" Style="{StaticResource DownloadPickerStyle}"
+                        PlaceholderText="自动识别" ItemsSource="{x:Bind ViewModel.Types, Mode=OneWay}"
+                        SelectedItem="{x:Bind ViewModel.MediaType, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
+                    <ComboBox x:Name="DownloadMediaSource" Grid.Column="1" Header="数据源" Style="{StaticResource DownloadPickerStyle}"
+                        PlaceholderText="选择数据源" ItemsSource="{x:Bind ViewModel.Sources, Mode=OneWay}" DisplayMemberPath="Name"
+                        SelectedItem="{x:Bind ViewModel.Source, Mode=TwoWay}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
+                </Grid>
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <TextBox x:Name="DownloadMediaId" Header="{x:Bind ViewModel.MediaIdLabel, Mode=OneWay}" PlaceholderText="输入编号"
+                        Text="{x:Bind ViewModel.MediaId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
+                    <Button x:Name="ResolveDownloadMedia" Grid.Column="1" Content="核对" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.ResolveCommand}" />
+                    <Button x:Name="SearchDownloadMedia" Grid.Column="2" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.ToggleSearchCommand}"
+                        AutomationProperties.Name="按片名查找媒体编号" ToolTipService.ToolTip="按片名查找"
+                        IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}"><FontIcon Glyph="&#xE721;" /></Button>
+                </Grid>
+                <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.IdentityVisibility, Mode=OneWay}">
+                    <TextBlock x:Name="DownloadIdentityStatus" Text="{x:Bind ViewModel.IdentityStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                    <Button x:Name="ResetDownloadIdentity" Content="恢复原识别" Command="{x:Bind ViewModel.ResetIdentityCommand}" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
+                </StackPanel>
+                <StackPanel x:Name="DownloadMediaSearch" Spacing="8" Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox x:Name="DownloadSearchText" Header="按片名查找" Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
+                        <Button x:Name="SubmitDownloadSearch" Grid.Column="1" Content="搜索" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.SearchCommand}" />
+                    </Grid>
+                    <TextBlock Text="{x:Bind ViewModel.SearchStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                    <ListView x:Name="DownloadMediaMatches" ItemsSource="{x:Bind ViewModel.Matches, Mode=OneWay}" MaxHeight="160"
+                        SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnMediaSelected" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="moviepilot:MoviePilotMedia">
+                                <StackPanel Spacing="4" Padding="0,4">
+                                    <TextBlock Text="{x:Bind Display}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{x:Bind Confirmation}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </ContentDialog>

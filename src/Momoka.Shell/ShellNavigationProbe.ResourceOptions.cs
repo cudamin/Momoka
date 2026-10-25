@@ -67,7 +67,7 @@ internal sealed partial class ShellNavigationProbe
             var row = browser.Rows[1];
             var cancelled = row.DownloadCommand.ExecuteAsync(null);
             var dialog = await DownloadDialogAsync();
-            Require(dialog.DefaultButton == ContentDialogButton.Close, "下载对话框默认按钮不是取消");
+            Require(dialog.DefaultButton == ContentDialogButton.None, "下载对话框不能由普通回车触发默认提交");
             InvokeDialog(dialog, "CloseButton");
             await cancelled;
             Require(server.Downloads.Count == 0 && row.State == MoviePilotDownloadState.Idle, "取消下载仍提交或锁住行");
@@ -75,18 +75,81 @@ internal sealed partial class ShellNavigationProbe
             var submitted = row.DownloadCommand.ExecuteAsync(null);
             dialog = await DownloadDialogAsync();
             await UntilAsync(() => !dialog.ViewModel.Busy);
+            Require(dialog.ViewModel.CanSubmit && Get<StackPanel>(dialog, "DownloadAdvanced").Visibility == Microsoft.UI.Xaml.Visibility.Collapsed,
+                "默认下载不应要求修改识别，高级选项应默认收起");
+            server.FailSources = true;
+            await dialog.ViewModel.ToggleAdvancedCommand.ExecuteAsync(null);
+            Require(dialog.ViewModel.NoticeOpen, "数据源失败未显示恢复入口");
+            server.FailSources = false;
+            server.FailPaths = true;
+            await dialog.ViewModel.RefreshCommand.ExecuteAsync(null);
+            Require(dialog.ViewModel.NoticeOpen && dialog.ViewModel.NoticeTitle?.Contains("下载选项", StringComparison.Ordinal) == true,
+                "刷新来源掩盖了下载目录加载失败");
+            server.FailPaths = false;
+            await dialog.ViewModel.RefreshCommand.ExecuteAsync(null);
+            Require(dialog.ViewModel.Sources.Count == 2 && dialog.ViewModel.MediaId == "42" && dialog.ViewModel.CanSubmit,
+                "刷新未重试数据源，改变原媒体身份或没有剔除音乐来源");
+            Get<ComboBox>(dialog, "DownloadMediaSource").SelectedItem = dialog.ViewModel.Sources.Single(source => source.Id == "anilist");
+            Require(dialog.ViewModel.MediaId.Length == 0 && !dialog.IsPrimaryButtonEnabled,
+                "切换来源没有清空旧编号并等待核对");
+            Get<TextBox>(dialog, "DownloadMediaId").Text = "999";
+            await dialog.ViewModel.ResolveCommand.ExecuteAsync(null);
+            Require(dialog.ViewModel.NoticeOpen && !dialog.IsPrimaryButtonEnabled, "错误媒体编号没有阻止下载");
+            dialog.ViewModel.ResetIdentityCommand.Execute(null);
+            Require(!dialog.ViewModel.NoticeOpen && dialog.ViewModel.CanSubmit && dialog.ViewModel.Options.Media is null &&
+                dialog.ViewModel.Source?.Id == "themoviedb" && dialog.ViewModel.MediaId == "42", "恢复原识别未清除错误或仍携带覆盖身份");
+            Get<ComboBox>(dialog, "DownloadMediaSource").SelectedItem = dialog.ViewModel.Sources.Single(source => source.Id == "anilist");
+            Get<TextBox>(dialog, "DownloadMediaId").Text = "73";
+            await dialog.ViewModel.ResolveCommand.ExecuteAsync(null);
+            Require(dialog.ViewModel.CanSubmit && dialog.ViewModel.Options.Media?.Id == "73", "手填编号未核对为完整媒体");
+            await dialog.ViewModel.ToggleAdvancedCommand.ExecuteAsync(null);
+            Require(Get<StackPanel>(dialog, "DownloadAdvanced").Visibility == Microsoft.UI.Xaml.Visibility.Collapsed &&
+                dialog.ViewModel.Options.Media?.Id == "73", "收起高级选项清空已核对身份");
+            await dialog.ViewModel.ToggleAdvancedCommand.ExecuteAsync(null);
+            dialog.ViewModel.ToggleSearchCommand.Execute(null);
+            Get<TextBox>(dialog, "DownloadSearchText").Text = "核对剧集";
+            await dialog.ViewModel.SearchCommand.ExecuteAsync(null);
+            Require(dialog.ViewModel.Matches.Count == 1, "按片名搜索没有限定来源和类型");
+            await dialog.ViewModel.SelectMatchAsync(dialog.ViewModel.Matches[0]);
+            Require(dialog.ViewModel.Options.Media?.Id == "74" && !dialog.ViewModel.SearchOpen && dialog.ViewModel.CanSubmit,
+                "选择片名结果没有核对并回填编号");
             Get<ComboBox>(dialog, "DownloadClient").SelectedItem = "下载器乙";
             Get<ComboBox>(dialog, "DownloadPath").SelectedItem = "rclone:/media/动画";
             await LayoutAsync(dialog);
             Require(Get<ComboBox>(dialog, "DownloadPath").Text == "rclone:/media/动画", "选择保存路径未进入编辑框");
             await SaveProbeScreenAsync("mp-download-options-screen.png");
+            foreach (var width in new[] { 720, 420 })
+            {
+                ResizeInspect(width, 900);
+                await LayoutAsync(dialog);
+                await Task.Delay(250);
+                Require(Get<ComboBox>(dialog, "DownloadClient").ActualWidth > 100 && Get<ComboBox>(dialog, "DownloadPath").ActualWidth > 100,
+                    "窄窗压扁下载器或保存目录");
+                await SaveProbeScreenAsync($"mp-download-{width}-screen.png");
+            }
+            ResizeInspect(720, 980);
+            var originalTheme = ThemeHost.Current.Id;
+            foreach (var theme in Momoka.Theming.UiThemes.All)
+            {
+                ThemeHost.Apply(theme.Id);
+                await LayoutAsync(dialog);
+                var primary = Descendants(dialog).OfType<Button>().Single(button => button.Name == "PrimaryButton");
+                var close = Descendants(dialog).OfType<Button>().Single(button => button.Name == "CloseButton");
+                Require(primary.Background is SolidColorBrush primaryBrush && close.Background is SolidColorBrush closeBrush &&
+                    primaryBrush.Color != closeBrush.Color, "开始下载与取消使用了相同的强调底色");
+                await Task.Delay(160);
+                await SaveProbeScreenAsync($"mp-download-{theme.Id}-screen.png");
+            }
+            ThemeHost.Apply(originalTheme);
             InvokeDialog(dialog, "PrimaryButton");
             await submitted;
             Require(server.Downloads.Count == 1 && row.State == MoviePilotDownloadState.Done, "确认未提交到假下载器");
             var body = server.Downloads[0];
             Require(body.GetProperty("downloader").GetString() == "下载器乙" &&
                 body.GetProperty("save_path").GetString() == "rclone:/media/动画" &&
-                body.GetProperty("torrent_in").GetProperty("site_name").GetString() == "站点乙", "下载选项或跨站点资源传错");
+                body.GetProperty("torrent_in").GetProperty("site_name").GetString() == "站点乙" &&
+                body.GetProperty("media_in").GetProperty("media_source").GetString() == "anilist" &&
+                body.GetProperty("media_in").GetProperty("media_id").GetString() == "74", "下载选项、核对媒体或跨站点资源传错");
 
             var custom = browser.Rows[3].DownloadCommand.ExecuteAsync(null);
             dialog = await DownloadDialogAsync();
@@ -152,6 +215,8 @@ internal sealed partial class ShellNavigationProbe
         internal int Searches { get; private set; }
         internal string LastSearch { get; private set; } = "";
         internal TaskCompletionSource<bool>? PendingChoices { get; set; }
+        internal bool FailSources { get; set; }
+        internal bool FailPaths { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
             Require(request.RequestUri!.Host == "moviepilot.invalid", "资源选项探针拒绝真实网络");
@@ -172,7 +237,26 @@ internal sealed partial class ShellNavigationProbe
             Require(request.Method == HttpMethod.Get, "未登记的资源写入请求");
             if (path.Contains("/download/", StringComparison.Ordinal) && PendingChoices is { } pending) await pending.Task;
             if (path.EndsWith("download/clients", StringComparison.Ordinal)) return Json(new[] { new { name = "下载器甲" }, new { name = "下载器乙" } });
+            if (path.EndsWith("download/paths", StringComparison.Ordinal) && FailPaths)
+                return new HttpResponseMessage(System.Net.HttpStatusCode.BadRequest);
             if (path.EndsWith("download/paths", StringComparison.Ordinal)) return Json(new[] { new { save_path = "/downloads" }, new { save_path = "rclone:/media/动画" } });
+            if (path.EndsWith("media/source", StringComparison.Ordinal) && FailSources)
+                return new HttpResponseMessage(System.Net.HttpStatusCode.BadRequest);
+            if (path.EndsWith("media/source", StringComparison.Ordinal)) return Json(new[]
+            {
+                new { name = "TMDB", media_source = "themoviedb", media_types = new[] { "电影", "电视剧" } },
+                new { name = "AniList", media_source = "anilist", media_types = new[] { "电影", "电视剧" } },
+                new { name = "音乐", media_source = "musicbrainz", media_types = new[] { "音乐" } }
+            });
+            if (path.Contains("/media/search?", StringComparison.Ordinal)) return Json(new[]
+            {
+                new { title = "核对剧集", type = "电视剧", media_source = "anilist", media_id = "74" },
+                new { title = "错来源", type = "电视剧", media_source = "themoviedb", media_id = "74" },
+                new { title = "错类型", type = "电影", media_source = "anilist", media_id = "75" }
+            });
+            if (path.Contains("/media/73?", StringComparison.Ordinal) || path.Contains("/media/74?", StringComparison.Ordinal))
+                return Json(new { title = "核对剧集", type = "电视剧", media_source = "anilist", media_id = path.Contains("/73?", StringComparison.Ordinal) ? "73" : "74" });
+            if (path.Contains("/media/999?", StringComparison.Ordinal)) return Json(new { title = "错误结果", type = "电视剧", media_source = "anilist", media_id = "998" });
             if (path.Contains("/site/", StringComparison.Ordinal)) return Json(new[] { new { id = 1, name = "站点甲", is_active = true }, new { id = 2, name = "站点乙", is_active = true } });
             if (path.Contains("/search/subtitle/", StringComparison.Ordinal)) return Json(new[] { new { title = "第一集 简体中文字幕", site_name = "站点甲", language = "简中", site = 1,
                 enclosure = "https://moviepilot.invalid/subtitle?signature=fixture", season_episode = "S01E01", description = "离线字幕夹具" } });
@@ -195,6 +279,8 @@ internal sealed partial class ShellNavigationProbe
                 site_name = site,
                 size = 2147483648L,
                 seeders = 12,
+                peers = 5,
+                description = "完整剧集 / 2026 1080p / 类型：剧情 / 简体中文字幕与原声音轨",
                 downloadvolumefactor = factor,
                 page_url = "https://site.invalid/" + site + "/" + episode
             },

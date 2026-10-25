@@ -11,6 +11,27 @@ public sealed partial class MoviePilotDownloadDialog : ContentDialog
     public MoviePilotDownloadViewModel ViewModel { get; } = new();
     public MoviePilotDownloadDialog() => InitializeComponent();
 
+    private void OnDismiss(object sender, RoutedEventArgs args) => Hide();
+
+    private async void OnMediaSelected(object sender, ItemClickEventArgs args)
+    {
+        if (args.ClickedItem is MoviePilotMedia media) await ViewModel.SelectMatchAsync(media);
+    }
+
+    private void OnBodySizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        var narrow = args.NewSize.Width < 360;
+        DownloadTitle.Width = args.NewSize.Width;
+        Place(DownloadPath, DestinationGrid);
+        Place(DownloadMediaSource, IdentityGrid);
+        void Place(FrameworkElement field, Grid grid)
+        {
+            grid.ColumnDefinitions[1].Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+            Grid.SetColumn(field, narrow ? 0 : 1);
+            Grid.SetRow(field, narrow ? 1 : 0);
+        }
+    }
+
     internal static async Task<MoviePilotDownloadOptions?> ShowAsync(FrameworkElement owner, MoviePilotService service,
         MoviePilotResource resource, CancellationToken token)
     {
@@ -21,7 +42,11 @@ public sealed partial class MoviePilotDownloadDialog : ContentDialog
             RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light
         };
         dialog.ViewModel.Attach(service, resource);
-        dialog.PrimaryButtonClick += (_, _) => dialog.ViewModel.SavePath = dialog.DownloadPath.Text;
+        dialog.PrimaryButtonClick += (_, args) =>
+        {
+            args.Cancel = !dialog.ViewModel.CanSubmit;
+            if (!args.Cancel) dialog.ViewModel.SavePath = dialog.DownloadPath.Text;
+        };
         using var registration = token.Register(() => owner.DispatcherQueue.TryEnqueue(() =>
         {
             dialog.ViewModel.Cancel();

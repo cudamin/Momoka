@@ -80,6 +80,8 @@ internal sealed partial class ShellNavigationProbe
             Require(dialog.PrimaryButtonText == "重新整理" && dialog.IsPrimaryButtonEnabled,
                 "AniBT 识别确认的主按钮没有改名为「重新整理」");
             var manualRow = dialog.ViewModel.Rows[0];
+            await LayoutAsync(dialog);
+            await UntilAsync(() => Descendants(dialog).OfType<ComboBox>().Any(box => box.Name == "AnimeChoice"));
             var manualChoice = Descendants(dialog).OfType<ComboBox>().Single(box => box.Name == "AnimeChoice");
             Require(manualRow.Selected?.BgmId == 123 && manualChoice.Items.Count == 2
                 && manualChoice.SelectedItem is AniBtAnime { BgmId: 123 },
@@ -256,8 +258,14 @@ internal sealed partial class ShellNavigationProbe
             var cancelled = row.DownloadCommand.ExecuteAsync(null);
             var dialog = await DownloadDialogAsync();
             await UntilAsync(() => !dialog.ViewModel.Busy);
-            Require(dialog.DefaultButton == ContentDialogButton.Close && !dialog.ViewModel.NoticeOpen,
-                "AniBT 下载确认未正确载入选项或默认键不是取消");
+            Require(dialog.DefaultButton == ContentDialogButton.None && !dialog.ViewModel.NoticeOpen,
+                "AniBT 下载确认未正确载入选项或普通回车会触发默认按钮");
+            Require(dialog.ViewModel.CanSubmit && dialog.ViewModel.Options.Media is null, "未识别的 AniBT 资源不能按默认方式下载");
+            await dialog.ViewModel.ToggleAdvancedCommand.ExecuteAsync(null);
+            Require(dialog.ViewModel.CanSubmit && dialog.ViewModel.MediaType == MoviePilotDownloadViewModel.AutomaticType,
+                "打开高级选项误改未识别 AniBT 资源的类型");
+            await dialog.ViewModel.ToggleAdvancedCommand.ExecuteAsync(null);
+            Require(dialog.ViewModel.CanSubmit && dialog.ViewModel.Options.Media is null, "收起高级选项误阻止默认 AniBT 下载");
             await SaveProbeScreenAsync("anibt-download-confirm.png");
             var close = Descendants(dialog).OfType<Button>().Single(button => button.Name == "CloseButton" && Equals(button.Content, dialog.CloseButtonText));
             ((IInvokeProvider)new ButtonAutomationPeer(close).GetPattern(PatternInterface.Invoke)).Invoke();
