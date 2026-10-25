@@ -742,7 +742,8 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// </summary>
     private static bool WakesChrome(string action) => action switch
     {
-        "seek-backward" or "seek-forward" or "seek-backward-long" or "seek-forward-long" => false,
+        "seek-backward" or "seek-forward" or "seek-backward-long" or "seek-forward-long"
+            or "seek-backward-fine" or "seek-forward-fine" or "subtitle-seek-previous" or "subtitle-seek-next" => false,
         "toggle-pause" => false,
         "toggle-fullscreen" => false,
         _ => true

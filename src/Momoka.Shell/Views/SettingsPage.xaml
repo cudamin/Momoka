@@ -1317,7 +1317,7 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
+                        <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" TextWrapping="Wrap" />
                         <local:ShortcutCaptureBox
                             Grid.Column="1"
                             AutomationProperties.Name="{x:Bind Label}"
@@ -1545,6 +1545,23 @@
                     VerticalScrollBarVisibility="Auto"
                     Visibility="{x:Bind ViewModel.CardsVisibility, Mode=OneWay}">
                     <StackPanel>
+                        <StackPanel Spacing="8" Margin="0,0,0,20" MaxWidth="900"
+                            Visibility="{x:Bind ViewModel.ShortcutSearchVisibility, Mode=OneWay}">
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <AutoSuggestBox x:Name="ShortcutSearchBox" PlaceholderText="搜索快捷键名称或按键，如：字幕、Ctrl + ↑"
+                                    AutomationProperties.Name="搜索快捷键" QueryIcon="Find"
+                                    Text="{x:Bind ViewModel.ShortcutSearchQuery, Mode=TwoWay}" />
+                                <Button x:Name="ClearShortcutSearchButton" Grid.Column="1" Content="清空搜索"
+                                    Command="{x:Bind ViewModel.ClearShortcutSearchCommand}"
+                                    Visibility="{x:Bind ViewModel.ClearShortcutSearchVisibility, Mode=OneWay}" />
+                            </Grid>
+                            <TextBlock x:Name="ShortcutSearchSummary" Style="{StaticResource EgSettingNote}"
+                                Text="{x:Bind ViewModel.ShortcutSearchSummary, Mode=OneWay}" />
+                        </StackPanel>
                         <ItemsControl x:Name="SettingsSections" ItemsSource="{x:Bind ViewModel.Sections, Mode=OneWay}" MaxWidth="900">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>

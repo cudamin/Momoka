@@ -17,9 +17,9 @@ internal static class ShortcutTests
 
     public static void Register()
     {
-        Test("快捷键表：38 个动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
+        Test("快捷键表：63 个动作，Id 不重复、默认键不重复、没有一个默认落在保留键上", () =>
         {
-            Assert.Equal(38, ShortcutCatalog.Actions.Count);
+            Assert.Equal(63, ShortcutCatalog.Actions.Count);
 
             var ids = ShortcutCatalog.Actions.Select(a => a.Id).ToList();
             Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count(), "动作 Id 有重复");
@@ -215,6 +215,109 @@ internal static class ShortcutTests
         Test("Clean：null 一份不炸，给回空字典", () =>
         {
             Assert.Equal(0, ShortcutCatalog.Clean(null).Count);
+        });
+
+        Test("快捷键扩展：25 个新动作都有默认键并可改绑，旧用户自定义键优先", () =>
+        {
+            Assert.Equal(Key("Left", shift: true), ShortcutCatalog.Actions.Single(action => action.Id == "seek-backward-fine").Default);
+            Assert.Equal(Key("Left", alt: true), ShortcutCatalog.Actions.Single(action => action.Id == "video-pan-left").Default);
+            Assert.Equal(Key("Z", ctrl: true), ShortcutCatalog.Actions.Single(action => action.Id == "subtitle-delay-reset").Default);
+            foreach (var action in ShortcutCatalog.Actions.Skip(38))
+            {
+                var bindings = new Dictionary<string, string> { ["toggle-mute"] = ShortcutCatalog.Serialize(action.Default) };
+                var effective = ShortcutCatalog.Resolve(bindings);
+                Assert.Equal("toggle-mute", ShortcutCatalog.Lookup(bindings, action.Default));
+                Assert.True(effective[action.Id].IsEmpty, action.Id + " 抢走了旧用户的绑定");
+                Assert.True(ShortcutCatalog.Clear(bindings, action.Id)[action.Id].Length == 0);
+            }
+        });
+
+        Test("快捷键搜索：空白显示全部，中文名称与多个关键词都能匹配", () =>
+        {
+            Assert.True(ShortcutCatalog.MatchesSearch(null, "字幕延迟归零", Key("Z", ctrl: true)));
+            Assert.True(ShortcutCatalog.MatchesSearch("  \t", "字幕延迟归零", Key("Z", ctrl: true)));
+            Assert.True(ShortcutCatalog.MatchesSearch(" 字幕  归零 ", "字幕延迟归零", Key("Z", ctrl: true)));
+            Assert.False(ShortcutCatalog.MatchesSearch("字幕 音量", "字幕延迟归零", Key("Z", ctrl: true)));
+            Assert.True(ShortcutCatalog.MatchesSearch("画面 左移", "画面左移", Key("Left", alt: true)));
+            Assert.False(ShortcutCatalog.MatchesSearch("完全不匹配", "画面左移", Key("Left", alt: true)));
+        });
+
+        Test("快捷键搜索：当前按键、英文别名、箭头与加号空白写法等价", () =>
+        {
+            foreach (var query in new[] { "ctrl+up", "Ctrl + Up", "CTRL ↑", "ctrl＋↑", "上方向键" })
+                Assert.True(ShortcutCatalog.MatchesSearch(query, "音量增大", Key("Up", ctrl: true)), query);
+            Assert.True(ShortcutCatalog.MatchesSearch("Spacebar", "播放 / 暂停", Key("Space")));
+            Assert.True(ShortcutCatalog.MatchesSearch("空格", "播放 / 暂停", Key("Space")));
+            Assert.True(ShortcutCatalog.MatchesSearch("Backspace", "恢复常速", Key("Back")));
+            Assert.True(ShortcutCatalog.MatchesSearch("回车", "确认跳过", Key("Enter")));
+            Assert.True(ShortcutCatalog.MatchesSearch("Esc", "退出全屏 / 停止", Key("Escape")));
+            Assert.True(ShortcutCatalog.MatchesSearch("Alt + [", "字幕缩小", Key("BracketLeft", alt: true)));
+        });
+
+        Test("快捷键搜索：改绑后不搜索旧默认键，解绑显示未设置", () =>
+        {
+            var rebound = ShortcutCatalog.Resolve(new Dictionary<string, string> { ["toggle-pause"] = "Ctrl+K", ["toggle-mute"] = "" });
+            Assert.True(ShortcutCatalog.MatchesSearch("Ctrl+K", "播放 / 暂停", rebound["toggle-pause"]));
+            Assert.False(ShortcutCatalog.MatchesSearch("空格", "播放 / 暂停", rebound["toggle-pause"]));
+            Assert.True(ShortcutCatalog.MatchesSearch("未设置", "静音", rebound["toggle-mute"]));
+            Assert.False(ShortcutCatalog.MatchesSearch("M", "静音", rebound["toggle-mute"]));
+        });
+
+        Test("快捷键命令：精细跳转、字幕跳转、画面与字幕调整以及循环共用计划", () =>
+        {
+            var expected = new Dictionary<string, string>
+            {
+                ["seek-backward-fine"] = "seek|-1|relative+exact",
+                ["seek-forward-fine"] = "seek|1|relative+exact",
+                ["subtitle-seek-previous"] = "sub-seek|-1",
+                ["subtitle-seek-next"] = "sub-seek|1",
+                ["video-zoom-out"] = "add|video-zoom|-0.1",
+                ["video-zoom-in"] = "add|video-zoom|0.1",
+                ["video-zoom-reset"] = "set|video-zoom|0",
+                ["video-pan-left"] = "add|video-pan-x|-0.1",
+                ["video-pan-right"] = "add|video-pan-x|0.1",
+                ["video-pan-up"] = "add|video-pan-y|-0.1",
+                ["video-pan-down"] = "add|video-pan-y|0.1",
+                ["subtitle-scale-down"] = "add|sub-scale|-0.1",
+                ["subtitle-scale-up"] = "add|sub-scale|0.1",
+                ["subtitle-position-up"] = "add|sub-pos|-1",
+                ["subtitle-position-down"] = "add|sub-pos|1",
+                ["toggle-ab-loop"] = "ab-loop",
+                ["toggle-loop"] = "cycle-values|loop-file|inf|no"
+            };
+            foreach (var (action, command) in expected)
+            {
+                var plan = AdditionalShortcuts.Plan(action)!;
+                Assert.Equal(command, string.Join('|', plan.Commands.Single()));
+                Assert.Equal(ShortcutCatalog.Label(action), plan.Label);
+            }
+            Assert.Null(AdditionalShortcuts.Plan("不存在的动作"));
+            Assert.Null(AdditionalShortcuts.Plan("speed-double"));
+            Assert.Null(AdditionalShortcuts.Plan("audio-delay-reset"));
+        });
+
+        Test("快捷键命令：复位按顺序清两轴或两个循环点，不混成分号命令", () =>
+        {
+            Assert.Equal("set|video-pan-x|0;set|video-pan-y|0", string.Join(';', AdditionalShortcuts.Plan("video-pan-reset")!.Commands.Select(command => string.Join('|', command))));
+            Assert.Equal("set|ab-loop-a|no;set|ab-loop-b|no", string.Join(';', AdditionalShortcuts.Plan("clear-ab-loop")!.Commands.Select(command => string.Join('|', command))));
+            Assert.Equal("截图已保存到 ${screenshot-directory}", AdditionalShortcuts.Plan("screenshot")!.Notice);
+        });
+
+        Test("快捷键扩展：所有默认键都能翻译给独占窗口，自定义键和解绑不被默认绑回", () =>
+        {
+            var empty = Empty();
+            var native = Momoka.Mpv.VideoWindowShortcuts.Bindings(empty);
+            foreach (var action in ShortcutCatalog.Actions)
+            {
+                var key = Momoka.Mpv.VideoWindowShortcuts.Key(action.Default);
+                Assert.True(key is not null, action.Id + " 独占模式不可达");
+                Assert.Equal(action.Id, native[key!]);
+            }
+            var changed = Momoka.Mpv.VideoWindowShortcuts.Bindings(new Dictionary<string, string>
+            { ["video-pan-left"] = "Ctrl+F9", ["toggle-ab-loop"] = "" });
+            Assert.Equal("video-pan-left", changed["Ctrl+F9"]);
+            Assert.Equal("", changed["Alt+LEFT"]);
+            Assert.Equal("", changed["l"]);
         });
 
         Test("Label：找得到给中文名，找不到把 Id 原样给回去", () =>

@@ -33,6 +33,8 @@ public sealed partial class PlayerPage
         var actions = ShortcutCatalog.Actions;
         var handlerIds = ShortcutHandlers.Keys.ToHashSet(StringComparer.Ordinal);
 
+        // 窗口无关动作由驻留 VM 执行；只认页面那 21 个处理器会把已有截图等动作也误报为缺失。
+        handlerIds.UnionWith(actions.Where(action => ViewModel.HandlesAdditionalShortcut(action.Id)).Select(action => action.Id));
         var missing = actions.Where(action => !handlerIds.Contains(action.Id)).Select(action => action.Id).ToList();
         var extra = handlerIds.Where(id => actions.All(action => action.Id != id)).ToList();
 
@@ -97,7 +99,7 @@ public sealed partial class PlayerPage
         string[] quiet =
         [
             "toggle-pause", "seek-backward", "seek-forward", "seek-backward-long", "seek-forward-long",
-            "toggle-fullscreen"
+            "toggle-fullscreen", "seek-backward-fine", "seek-forward-fine", "subtitle-seek-previous", "subtitle-seek-next"
         ];
 
         var actions = ShortcutCatalog.Actions;

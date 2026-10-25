@@ -144,6 +144,17 @@ public sealed partial class PlayerViewModel
             "1200");
     }
 
+    internal void ResetDelay(bool subtitle)
+    {
+        if (!subtitle)
+        {
+            _ = ChangeAudioDelayAsync(0, relative: false, notice: true);
+            return;
+        }
+        SetDelay(subtitle: true, 0);
+        _ = _playback.CommandAsync("show-text", "字幕延迟：${sub-delay} 秒", "1200");
+    }
+
     /// <summary>
     /// Applies a delay and remembers it. Held here rather than read back from mpv because the ⚙ menu is
     /// built synchronously as it opens, and a value that had to be awaited would arrive after the rows.
@@ -513,17 +524,15 @@ public sealed partial class PlayerViewModel
     /// </summary>
     internal Task RunMenuNodeAsync(PlayerMenuNode node)
     {
-        var generation = _generation;
-        var playbackGeneration = _playback.Generation;
-        return QueuePictureCommand(() => RunMenuCommandsAsync(node, generation, playbackGeneration));
+        var context = CaptureInteraction();
+        return QueuePictureCommand(() => RunMenuCommandsAsync(node, context));
     }
 
-    private async Task RunMenuCommandsAsync(PlayerMenuNode node, int generation, long playbackGeneration)
+    private async Task RunMenuCommandsAsync(PlayerMenuNode node, InteractionContext context)
     {
-        var context = CaptureInteraction();
         try
         {
-            if (generation != _generation || playbackGeneration != _playback.Generation) return;
+            if (!IsCurrentInteraction(context)) return;
             if (!ShaderStateKnown && node.Commands.Any(command => command.Count > 1
                 && ShaderGroupCatalog.NeutralOptions.Any(option => option.Key == command[1])))
             {

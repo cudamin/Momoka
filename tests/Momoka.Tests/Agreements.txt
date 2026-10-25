@@ -548,6 +548,7 @@ handle  Views/ServersPage.xaml  ServersDiscoveredList
 handle  Views/ServersPage.xaml  ServersRefreshButton
 handle  Views/SettingsPage.xaml  CategoryNavigation
 handle  Views/SettingsPage.xaml  CheckGlyph
+handle  Views/SettingsPage.xaml  ClearShortcutSearchButton
 handle  Views/SettingsPage.xaml  CommonStates
 handle  Views/SettingsPage.xaml  CompactCategoryNavigation
 handle  Views/SettingsPage.xaml  CompactSettings
@@ -572,6 +573,8 @@ handle  Views/SettingsPage.xaml  SettingsContent
 handle  Views/SettingsPage.xaml  SettingsLayout
 handle  Views/SettingsPage.xaml  SettingsNavColumn
 handle  Views/SettingsPage.xaml  SettingsWidthStates
+handle  Views/SettingsPage.xaml  ShortcutSearchBox
+handle  Views/SettingsPage.xaml  ShortcutSearchSummary
 handle  Views/SettingsPage.xaml  UnsavedSettingsNotice
 handle  Views/SettingsPage.xaml  UseAutomaticValue
 handle  Views/SettingsPage.xaml  WideSettings

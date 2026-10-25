@@ -65,8 +65,8 @@ public static class ShortcutCatalog
     /// </summary>
     public static IReadOnlyList<ShortcutAction> Actions { get; } = Build();
 
-    private static KeyStroke K(string key, bool ctrl = false, bool shift = false) =>
-        new(key, ctrl, false, shift);
+    private static KeyStroke K(string key, bool ctrl = false, bool shift = false, bool alt = false) =>
+        new(key, ctrl, alt, shift);
 
     private static IReadOnlyList<ShortcutAction> Build() =>
     [
@@ -107,7 +107,32 @@ public static class ShortcutCatalog
         new("toggle-stats", "播放／着色器统计切换", K("I", shift: true)),
         new("toggle-danmaku", "弹幕显示开关", K("D")),
         new("danmaku-delay-decrease", "弹幕提前 0.5 秒", K("D", ctrl: true)),
-        new("danmaku-delay-increase", "弹幕延后 0.5 秒", K("D", ctrl: true, shift: true))
+        new("danmaku-delay-increase", "弹幕延后 0.5 秒", K("D", ctrl: true, shift: true)),
+        new("seek-backward-fine", "快退 1 秒（精细）", K("Left", shift: true)),
+        new("seek-forward-fine", "快进 1 秒（精细）", K("Right", shift: true)),
+        new("subtitle-seek-previous", "跳到上一句字幕", K("Left", ctrl: true)),
+        new("subtitle-seek-next", "跳到下一句字幕", K("Right", ctrl: true)),
+        new("video-zoom-out", "画面缩小", K("BracketLeft", ctrl: true)),
+        new("video-zoom-in", "画面放大", K("BracketRight", ctrl: true)),
+        new("video-zoom-reset", "画面缩放归零", K("0", ctrl: true)),
+        new("video-pan-left", "画面左移", K("Left", alt: true)),
+        new("video-pan-right", "画面右移", K("Right", alt: true)),
+        new("video-pan-up", "画面上移", K("Up", alt: true)),
+        new("video-pan-down", "画面下移", K("Down", alt: true)),
+        new("video-pan-reset", "画面位置归零", K("Home", ctrl: true)),
+        new("subtitle-scale-down", "字幕缩小", K("BracketLeft", alt: true)),
+        new("subtitle-scale-up", "字幕放大", K("BracketRight", alt: true)),
+        new("subtitle-position-up", "字幕上移", K("Up", shift: true)),
+        new("subtitle-position-down", "字幕下移", K("Down", shift: true)),
+        new("subtitle-delay-reset", "字幕延迟归零", K("Z", ctrl: true)),
+        new("audio-delay-reset", "音频延迟归零", K("X", ctrl: true)),
+        new("toggle-ab-loop", "设置 / 清除片段循环", K("L")),
+        new("clear-ab-loop", "清除片段循环", K("L", shift: true)),
+        new("toggle-loop", "单片循环播放开关", K("L", ctrl: true)),
+        new("speed-half", "切换到 0.5 倍速", K("1", ctrl: true)),
+        new("speed-one-and-half", "切换到 1.5 倍速", K("2", ctrl: true)),
+        new("speed-double", "切换到 2 倍速", K("3", ctrl: true)),
+        new("danmaku-delay-reset", "弹幕延迟归零", K("D", shift: true))
     ];
 
     /// <summary>这个动作此刻真正生效的键：动过就用动过的，没动过用默认，显式解绑（空串）就是 <see cref="KeyStroke.None"/>。</summary>
@@ -287,6 +312,35 @@ public static class ShortcutCatalog
         "Escape" => "Esc",
         _ => key
     };
+
+    /// <summary>
+    /// 搜索操作名称和当前生效的按键。空格分隔的词都要匹配；加号、英文大小写与按键别名不影响结果。
+    /// 只传当前键而不是默认键，改绑或解绑后搜索结果才不会把旧键说成仍有效。
+    /// </summary>
+    public static bool MatchesSearch(string? query, string label, KeyStroke stroke)
+    {
+        if (string.IsNullOrWhiteSpace(query)) return true;
+        var aliases = stroke.Key switch
+        {
+            "Space" => "Spacebar 空格",
+            "Enter" => "Enter 回车",
+            "Escape" => "Escape Esc",
+            "Back" => "Backspace 退格",
+            "Left" => "Left 左方向键",
+            "Right" => "Right 右方向键",
+            "Up" => "Up 上方向键",
+            "Down" => "Down 下方向键",
+            "BracketLeft" => "[ 左方括号",
+            "BracketRight" => "] 右方括号",
+            _ => ""
+        };
+        var text = SearchText($"{label} {Format(stroke)} {Serialize(stroke)} {aliases}");
+        return query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(SearchText).All(word => text.Contains(word, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string SearchText(string text) => new(text.Where(character =>
+        !char.IsWhiteSpace(character) && character is not '+' and not '＋').ToArray());
 
     /// <summary>测试不变量：没有两个动作共用同一个默认键 —— 否则装机就带着一个 <see cref="Rebind"/> 拦不住的冲突。</summary>
     public static bool DefaultsAreUnique()

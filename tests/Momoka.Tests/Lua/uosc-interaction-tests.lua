@@ -95,7 +95,7 @@ do
 				if properties[name] ~= nil then return properties[name] end
 				return fallback or false
 			end
-			mp.add_forced_key_binding = function(key, name, callback) keys[key] = {name = name, callback = callback} end
+			mp.add_forced_key_binding = function(key, name, callback, flags) keys[key] = {name = name, callback = callback, flags = flags or {}} end
 			mp.remove_key_binding = function(name)
 				for key, binding in pairs(keys) do if binding.name == name then keys[key] = nil end end
 			end
@@ -432,6 +432,24 @@ do
 				Menu:close(true)
 				assert(keys['Ctrl+F8'], 'menu close did not restore latest bindings')
 				require_equal(keys['Ctrl+F9'], nil)
+				fixture_messages['momoka-shortcuts']('{}')
+			end)
+			test('new adjustment shortcuts repeat but reset and loop actions fire once', function()
+				fixture_messages['momoka-shortcuts'](utils.format_json({
+					['Alt+LEFT'] = 'video-pan-left', ['Ctrl+['] = 'video-zoom-out',
+					['Shift+UP'] = 'subtitle-position-up', ['Alt+]'] = 'subtitle-scale-up',
+					['Ctrl+RIGHT'] = 'subtitle-seek-next', ['Ctrl+HOME'] = 'video-pan-reset',
+					['Shift+l'] = 'clear-ab-loop', l = 'toggle-ab-loop', ['Ctrl+3'] = 'speed-double'
+				}))
+				for _, key in ipairs({'Alt+LEFT', 'Ctrl+[', 'Shift+UP', 'Alt+]', 'Ctrl+RIGHT'}) do
+					assert(keys[key] and keys[key].flags.repeatable, key .. ' cannot repeat')
+				end
+				for _, key in ipairs({'Ctrl+HOME', 'Shift+l', 'l', 'Ctrl+3'}) do
+					assert(keys[key] and not keys[key].flags.repeatable, key .. ' repeats a reset or toggle')
+				end
+				keys['Alt+LEFT'].callback()
+				require_equal(count_command('script-message', 'momoka-shortcut'), 1)
+				require_equal(commands[#commands][3], 'video-pan-left')
 				fixture_messages['momoka-shortcuts']('{}')
 			end)
 			test('closing a menu re-enables unchanged host bindings', function()

@@ -9,9 +9,12 @@ namespace Momoka.Shell;
 
 internal static partial class CompositionPlaybackProbe
 {
-    internal static async Task SaveScreenAsync(HostWindow window, string file)
+    internal static Task SaveScreenAsync(HostWindow window, string file) => SaveScreenAsync(window.Handle, file);
+
+    /// <summary>框架设置窗口与原生播放窗口共用实际客户区、遮挡守卫和屏幕取样。</summary>
+    internal static async Task SaveScreenAsync(IntPtr handle, string file)
     {
-        var screen = CapturePixels(window);
+        var screen = CapturePixels(handle);
         using var stream = new InMemoryRandomAccessStream();
         var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
         encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
@@ -23,9 +26,11 @@ internal static partial class CompositionPlaybackProbe
     }
 
     /// <summary>深色界面中指定文字矩形的亮像素数；只检查实际呈现，不用控件尺寸冒充已画出文字。</summary>
-    internal static int BrightPixels(HostWindow window, Windows.Foundation.Rect bounds)
+    internal static int BrightPixels(HostWindow window, Windows.Foundation.Rect bounds) => BrightPixels(window.Handle, bounds);
+
+    internal static int BrightPixels(IntPtr handle, Windows.Foundation.Rect bounds)
     {
-        var screen = CapturePixels(window);
+        var screen = CapturePixels(handle);
         var left = (int)Math.Floor(bounds.Left);
         var top = (int)Math.Floor(bounds.Top);
         var right = (int)Math.Ceiling(bounds.Right);
@@ -44,12 +49,14 @@ internal static partial class CompositionPlaybackProbe
 
     // GetPixel 每问一点都会等待屏幕，连续读点既跨帧又堵住 UI 提交。
     // 一次 BitBlt 取得同一帧，后续颜色判断只读内存。
-    private static ScreenPixels CapturePixels(HostWindow window)
+    private static ScreenPixels CapturePixels(HostWindow window) => CapturePixels(window.Handle);
+
+    private static ScreenPixels CapturePixels(IntPtr handle)
     {
-        if (!Native.GetClientRect(window.Handle, out var client) || client.Width <= 0 || client.Height <= 0)
+        if (!Native.GetClientRect(handle, out var client) || client.Width <= 0 || client.Height <= 0)
             throw new InvalidOperationException("像素探针无法读取客户区");
         var origin = new NativePoint();
-        if (!Native.ClientToScreen(window.Handle, ref origin))
+        if (!Native.ClientToScreen(handle, ref origin))
             throw new InvalidOperationException("像素探针无法定位客户区");
         foreach (var (x, y) in new[] { (0.05, 0.2), (0.95, 0.2), (0.05, 0.8), (0.95, 0.8) })
         {
@@ -58,7 +65,7 @@ internal static partial class CompositionPlaybackProbe
                 X = origin.X + (int)(client.Width * x),
                 Y = origin.Y + (int)(client.Height * y)
             };
-            if (Native.GetAncestor(Native.WindowFromPoint(point), 2) != window.Handle)
+            if (Native.GetAncestor(Native.WindowFromPoint(point), 2) != handle)
                 throw new InvalidOperationException("像素探针窗口被遮挡或移到屏外，不能把其他窗口的像素当作视频");
         }
 

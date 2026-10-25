@@ -53,26 +53,37 @@ public sealed partial class PlayerViewModel
         }
     }
 
+    private Dictionary<string, Action>? _additionalShortcutHandlers;
+
+    private Dictionary<string, Action> AdditionalShortcutHandlers => _additionalShortcutHandlers ??= new(StringComparer.Ordinal)
+    {
+        ["show-playback-info"] = () => MediaInfoRequested?.Invoke(),
+        ["toggle-danmaku"] = ToggleDanmaku,
+        ["danmaku-delay-decrease"] = () => NudgeDanmakuDelay(-0.5),
+        ["danmaku-delay-increase"] = () => NudgeDanmakuDelay(0.5),
+        ["danmaku-delay-reset"] = () => NudgeDanmakuDelay(-_danmakuDelay),
+        ["subtitle-delay-reset"] = () => ResetDelay(subtitle: true),
+        ["audio-delay-reset"] = () => ResetDelay(subtitle: false),
+        ["speed-half"] = () => SetSpeed(0.5),
+        ["speed-one-and-half"] = () => SetSpeed(1.5),
+        ["speed-double"] = () => SetSpeed(2)
+    };
+
+    /// <summary>自检只检查处理器在不在，不执行动作，也不接触播放后端。</summary>
+    internal bool HandlesAdditionalShortcut(string action) =>
+        AdditionalShortcutHandlers.ContainsKey(action) || AdditionalShortcuts.Plan(action) is not null;
+
     internal bool RunAdditionalShortcut(string action)
     {
         if (!_playback.CanControl) return false;
-        switch (action)
+        if (AdditionalShortcutHandlers.TryGetValue(action, out var run))
         {
-            case "show-playback-info": MediaInfoRequested?.Invoke(); return true;
-            case "toggle-danmaku": ToggleDanmaku(); return true;
-            case "danmaku-delay-decrease": NudgeDanmakuDelay(-0.5); return true;
-            case "danmaku-delay-increase": NudgeDanmakuDelay(0.5); return true;
+            run();
+            return true;
         }
-        if (AdditionalShortcuts.Command(action) is not { } command) return false;
-        var context = CaptureInteraction();
-        _ = QueuePictureCommand(async () =>
-        {
-            if (!IsCurrentPlayback(context)) return;
-            var done = await _playback.CommandAsync([.. command]).ConfigureAwait(true);
-            if (!IsCurrentPlayback(context)) return;
-            if (action.StartsWith("screenshot", StringComparison.Ordinal))
-                await _playback.CommandAsync("show-text", done ? "截图已保存到 ${screenshot-directory}" : "截图保存失败，请查看日志", "2000").ConfigureAwait(true);
-        });
+        if (AdditionalShortcuts.Plan(action) is not { } plan) return false;
+        // 在按键这一刻捕获身份；RunMenuNodeAsync 的队列会在每一条命令前复核，防止复位落到下一集。
+        _ = RunMenuNodeAsync(plan);
         return true;
     }
 }

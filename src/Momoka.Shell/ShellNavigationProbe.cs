@@ -128,6 +128,9 @@ internal sealed partial class ShellNavigationProbe
             // 2026-10-11 起该用例多四帧分区截图（播放行为分类的资源筛选、截图卡滚进视口各两帧），12 秒的
             // 默认限时不够了 —— 与视频基础输出用例同款理由（多轮控件切换与截图设 45 秒）。
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
+            await CaseAsync("快捷键搜索、改绑、空态与恢复（宽窗）", () => SettingsShortcutSearchAsync(1100), 60, section: ShellProbeSections.Shortcuts);
+            await CaseAsync("快捷键搜索、改绑、空态与恢复（窄窗）", () => SettingsShortcutSearchAsync(760), 60, section: ShellProbeSections.Shortcuts);
+            await CaseAsync("新增快捷键命令、失败回执与队列隔离", PlayerAdditionalShortcutsAsync, 30, section: ShellProbeSections.Shortcuts);
             await CaseAsync("弹幕设置、凭据、显隐、快捷键与关于（宽窗）", () => SettingsDanmakuAsync(1100), 60, section: ShellProbeSections.Settings);
             await CaseAsync("弹幕设置、凭据、显隐、快捷键与关于（窄窗）", () => SettingsDanmakuAsync(760), 60, section: ShellProbeSections.Settings);
             await CaseAsync("弹幕输入栏、发送回执与截断搜索", DanmakuSendAsync, 60, section: ShellProbeSections.Playback);
@@ -188,6 +191,7 @@ internal sealed partial class ShellNavigationProbe
         {
             Save();
             SaveScope();
+            foreach (var settingsWindow in _shortcutProbeWindows) settingsWindow.Close();
             _window?.Dispose();
             Application.Current.Exit();
         }

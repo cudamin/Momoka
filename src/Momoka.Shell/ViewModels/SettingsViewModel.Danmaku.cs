@@ -63,13 +63,7 @@ public sealed partial class SettingsViewModel
     {
         var card = Sections.FirstOrDefault(section => section.Category == "弹幕");
         card?.UpdateRows(DanmakuCard().Rows);
-        var shortcuts = Sections.FirstOrDefault(section => section.Category == "快捷键");
-        shortcuts?.UpdateRows(ShortcutsCard().Rows);
-        if (shortcuts is not null)
-        {
-            _shortcutRows.Clear();
-            _shortcutRows.AddRange(shortcuts.Rows.OfType<SettingShortcutRow>());
-        }
+        RefreshShortcutAvailability();
     }
 
     private void RefreshDanmakuAvailability()

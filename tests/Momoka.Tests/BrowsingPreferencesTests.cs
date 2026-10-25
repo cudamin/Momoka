@@ -79,6 +79,7 @@ internal static class BrowsingPreferencesTests
                 new[] { "--probe-shell", "inspect", "--screen", "1" },
                 new[] { "/probe-shell=inspect", "--theme=midnight" },
                 new[] { "--probe-shell", "--probe-section", "settings", "--screen", "1" },
+                new[] { "--probe-shell", "--probe-section", "shortcuts", "--screen", "1" },
                 new[] { "--probe-shell", "--probe-section=settings,accounts", "--theme=midnight" },
             })
             {
@@ -109,6 +110,8 @@ internal static class BrowsingPreferencesTests
         Test("Shell探针：分区筛选去重并规范化，缺省为全量", () =>
         {
             Assert.Null(StartupArgs.ShellProbeSectionFilter(new[] { "--probe-shell" }));
+            Assert.True(ShellProbeSections.IsKnown("Shortcuts"));
+            Assert.True(StartupArgs.ShellProbeSectionFilter(new[] { "--probe-shell", "--probe-section", "Shortcuts" })!.SetEquals(new[] { "shortcuts" }));
             var filter = StartupArgs.ShellProbeSectionFilter(new[] { "--probe-shell", "--probe-section", "Settings,accounts,settings" });
             Assert.NotNull(filter);
             Assert.Equal(2, filter!.Count);

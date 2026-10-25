@@ -17,7 +17,11 @@ function momoka_refresh_shortcuts()
 		active[#active + 1] = name
 		mp.add_forced_key_binding(key, name, function()
 			if action ~= '' then momoka_notify('momoka-shortcut', action) end
-		end, {repeatable = action:find('seek-', 1, true) == 1 or action:find('volume-', 1, true) == 1})
+		end, {repeatable = action:find('seek-', 1, true) == 1 or action:find('volume-', 1, true) == 1
+			or action:find('subtitle-seek-', 1, true) == 1 or action:find('subtitle-scale-', 1, true) == 1
+			or action:find('subtitle-position-', 1, true) == 1
+			or action == 'video-zoom-in' or action == 'video-zoom-out'
+			or (action:find('video-pan-', 1, true) == 1 and action ~= 'video-pan-reset')})
 	end
 end
 

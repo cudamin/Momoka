@@ -213,9 +213,6 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     private bool _checkingUpdates;
 
-    /// <summary>快捷键卡里当前可用的可重绑行，握着好在重绑/清空之后逐行刷新显示。</summary>
-    private readonly List<SettingShortcutRow> _shortcutRows = [];
-
     /// <summary>
     /// 当前账号可见的服务端管理页名单：Emby 是「通知」加上三段服务器目录（控制台、通用、用户……
     /// 以及服务器插件页），Jellyfin 是五段服务器目录（控制台、常规、用户、媒体库、插件页……），
@@ -428,6 +425,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(ShowsHosted))]
     [NotifyPropertyChangedFor(nameof(CardsVisibility))]
     [NotifyPropertyChangedFor(nameof(HostedVisibility))]
+    [NotifyPropertyChangedFor(nameof(ShortcutSearchVisibility))]
     public partial string SelectedCategory { get; set; } = CardCategories[0];
 
     /// <summary>左栏与紧凑下拉共用的那一项；<see cref="SelectedCategory"/> 是它的键。</summary>
@@ -2060,96 +2058,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         foreach (var section in Sections)
             foreach (var row in section.Rows)
                 row.RefreshNoteVisibility();
-    }
-
-    /// <summary>
-    /// 快捷键：播放器那些键盘动作，做成参考图那样一行一个、右边一个可重绑的方框（「参考上图在设置中新增快捷键
-    /// 功能」，2026-09-08）。可改的动作走 <see cref="SettingShortcutRow"/>；Esc、回车两个固定键以只读行显示，
-    /// 让人看到全貌（为什么固定见 <see cref="ShortcutCatalog.ReservedKeys"/>）；末一行一颗「恢复默认快捷键」，只清
-    /// 快捷键、不动别的。判断全在 Core 的 <see cref="ShortcutCatalog"/>；这里只把动作翻成行、把方框敲定的键交回去。
-    /// </summary>
-    private SettingSection ShortcutsCard()
-    {
-        // 每次建卡都重来一份：ReloadAsync 会被再调（恢复默认那一趟就重建整页），握着的这份行要跟着换新。
-        _shortcutRows.Clear();
-
-        var effective = ShortcutCatalog.Resolve(Settings.Shortcuts.Bindings);
-        var rows = new List<SettingRow>();
-
-        foreach (var action in ShortcutCatalog.Actions.Where(action => !action.Id.Contains("danmaku", StringComparison.Ordinal)
-            || Momoka.Danmaku.DandanPlayMatching.IsConfigured(Settings)))
-        {
-            var id = action.Id;
-            var row = new SettingShortcutRow(action.Label, id, ShortcutCatalog.Format(effective[id]),
-                token => ApplyShortcut(id, token));
-            _shortcutRows.Add(row);
-            rows.Add(row);
-        }
-
-        // 两个固定键，只读显示，让人看到全貌（为什么固定见 ShortcutCatalog.ReservedKeys）。
-        // 2026-09-26（用户令）：确认跳过 Y→回车、关闭跳过提示 N→Esc —— Esc 因此先兼「关闭提示」那一档。
-        rows.Add(Fact("退出全屏 / 停止", "固定，不可更改；跳过提示立着时先关闭提示", "Esc"));
-        rows.Add(Fact("确认跳过片头 / 片尾", "固定，不可更改；只在出现跳过提示时有效", "回车"));
-
-        // 只清快捷键、不动别的（列表最下面那颗「恢复默认」清的是全部设置，作用域比这颗宽）。
-        rows.Add(Fact("恢复默认快捷键", "把上面这些快捷键改回装机时的默认，其他设置不受影响",
-            $"{_shortcutRows.Count} 个可改快捷键", "恢复默认", ClearAllShortcuts));
-
-        return new SettingSection("快捷键", "快捷键",
-            "播放时的键盘快捷键。点一下右边的方框，再按你想要的组合键（可带 Ctrl / Alt / Shift）就改绑了，× 清除。"
-            + "这些只在播放窗口里生效。", rows);
-    }
-
-    /// <summary>
-    /// 一次重绑（方框敲定了一个键 token，空串=按了 ×）。判断在 <see cref="ShortcutCatalog"/>：冲突就拦下、提示，
-    /// 一个绑定都不改（那一行方框还显示着原来的，因为 <c>ComboText</c> 没动）；否则写回、落盘、逐行刷新显示。
-    /// 写回一份新字典即可，播放器那头每次按键现读同一个单例设置，所以已经开着的播放器也当场跟上。
-    /// </summary>
-    private void ApplyShortcut(string id, string token)
-    {
-        var bindings = Settings.Shortcuts.Bindings;
-
-        if (token.Length == 0)
-        {
-            Settings.Shortcuts.Bindings = new Dictionary<string, string>(ShortcutCatalog.Clear(bindings, id), StringComparer.Ordinal);
-        }
-        else
-        {
-            if (!ShortcutCatalog.TryParse(token, out var stroke)) return;
-
-            var result = ShortcutCatalog.Rebind(bindings, id, stroke);
-            if (result.Conflict is { } occupant)
-            {
-                Notify("快捷键冲突",
-                    $"「{ShortcutCatalog.Format(stroke)}」已经是「{ShortcutCatalog.Label(occupant)}」的快捷键了。先把那边清掉，再绑到这里。",
-                    InfoBarSeverity.Warning);
-                return;
-            }
-
-            Settings.Shortcuts.Bindings = new Dictionary<string, string>(result.Bindings, StringComparer.Ordinal);
-        }
-
-        Save();
-        RefreshShortcutRows();
-    }
-
-    /// <summary>「恢复默认快捷键」：改动全清掉（Bindings 变回空＝全默认），落盘、刷新、说一声。</summary>
-    private void ClearAllShortcuts()
-    {
-        Settings.Shortcuts.Bindings = new Dictionary<string, string>(StringComparer.Ordinal);
-        Save();
-        RefreshShortcutRows();
-        Notify(null, HasUnsavedChanges ? "快捷键已在本次运行恢复默认，但尚未保存。" : "播放器快捷键已恢复默认。其他设置没有动。",
-            HasUnsavedChanges ? InfoBarSeverity.Warning : InfoBarSeverity.Success);
-    }
-
-    /// <summary>照当前绑定把每一行的显示串重算一遍（重绑、清一个、清全部之后都走它）。</summary>
-    private void RefreshShortcutRows()
-    {
-        var effective = ShortcutCatalog.Resolve(Settings.Shortcuts.Bindings);
-        foreach (var row in _shortcutRows)
-            row.ComboText = ShortcutCatalog.Format(effective[row.Id]);
-        ShellPrefs.ApplyShortcuts();
     }
 
     /// <summary>
