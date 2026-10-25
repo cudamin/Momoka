@@ -1,6 +1,7 @@
 using Momoka.Playback;
 using Momoka.Shell.Interop;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Windows.Foundation;
@@ -17,12 +18,19 @@ namespace Momoka.Shell.Views;
 /// </summary>
 public sealed partial class PlayerPage
 {
+    /// <summary>与独占模式一样，跳过按钮的内容只能是图标和标题，不夹带提示或进度控件。</summary>
+    internal bool SkipContentIsSimple => ReferenceEquals(SkipButton.Content, SkipRow)
+        && SkipRow.Orientation == Orientation.Horizontal
+        && SkipRow.Children.Count == 2
+        && ReferenceEquals(SkipRow.Children[0], SkipGlyph)
+        && ReferenceEquals(SkipRow.Children[1], SkipText);
+
     /// <summary>
     /// The 跳过 offer and the seek bar's chapter ticks, both of which need a file to appear on their own.
     /// <para>
     /// The offer is driven through the view model's own <see cref="PlayerViewModel.ShowSkipPrompt"/> with a
     /// prompt a coordinator produced for a synthetic 片头, so what is checked is the real mapping onto the
-    /// button's four bindings rather than a copy of it written here. The coordinator is this probe's own
+    /// button's caption and visibility rather than a copy of it written here. The coordinator is this probe's own
     /// rather than the view model's: the live one is holding whatever the current file resolved to, and a
     /// self-check has no business replacing it.
     /// </para>
@@ -47,7 +55,7 @@ public sealed partial class PlayerPage
         ViewModel.ShowSkipPrompt(skips.Prompt);
         var offered = SkipButton.Visibility == Visibility.Visible
                       && SkipText.Text == "跳过片头"
-                      && SkipCountdown.Value > 0.9;
+                      && SkipContentIsSimple;
         var caption = SkipText.Text;
 
         // 自动 mode is the other half of the same coordinator, and the one that must not put a button up.

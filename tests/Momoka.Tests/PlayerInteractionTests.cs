@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using Momoka.Mpv;
 using Momoka.Playback;
 
@@ -5,8 +6,48 @@ namespace Momoka.Tests;
 
 internal static class PlayerInteractionTests
 {
+    private static XElement SkipButtonMarkup()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
+            directory = directory.Parent;
+        Assert.NotNull(directory);
+        var document = XDocument.Load(Path.Combine(directory!.FullName, "src", "Momoka.Shell", "Views", "PlayerPage.xaml"));
+        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+        return document.Descendants().Single(element => element.Name.LocalName == "Button" && element.Attribute(xaml + "Name")?.Value == "SkipButton");
+    }
+
     internal static void Register()
     {
+        TestHarness.Test("集成跳过按钮：与独占一样只有图标和标题的一行", () =>
+        {
+            var button = SkipButtonMarkup();
+            var row = button.Elements().Single(element => element.Name.LocalName == "StackPanel");
+            Assert.Equal("Horizontal", row.Attribute("Orientation")?.Value);
+            Assert.Equal("7.5", row.Attribute("Spacing")?.Value);
+            Assert.Equal("FontIcon,TextBlock", string.Join(',', row.Elements().Select(element => element.Name.LocalName)));
+            Assert.Equal("18,21", button.Attribute("Padding")?.Value);
+            Assert.Equal("2", button.Attribute("CornerRadius")?.Value);
+            Assert.Equal("Bold", row.Elements().Last().Attribute("FontWeight")?.Value);
+            Assert.False(button.Descendants().Any(element => element.Name.LocalName == "ProgressBar"));
+            Assert.False(button.Descendants().Any(element => element.Attributes().Any(attribute => attribute.Value.Contains("SkipTip", StringComparison.Ordinal))));
+        });
+
+        TestHarness.Test("集成跳过按钮：简化后保留动态文案、显隐、命令和悬停画刷", () =>
+        {
+            var button = SkipButtonMarkup();
+            Assert.Equal("{x:Bind ViewModel.TakeSkipCommand}", button.Attribute("Command")?.Value);
+            Assert.Equal("{x:Bind ViewModel.SkipVisibility, Mode=OneWay}", button.Attribute("Visibility")?.Value);
+            Assert.Equal("{x:Bind ViewModel.SkipCaption, Mode=OneWay}", button.Attribute("AutomationProperties.Name")?.Value);
+            var caption = button.Descendants().Single(element => element.Name.LocalName == "TextBlock");
+            Assert.Equal("{x:Bind ViewModel.SkipCaption, Mode=OneWay}", caption.Attribute("Text")?.Value);
+            XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var resources = button.Descendants().Where(element => element.Name.LocalName == "StaticResource")
+                .ToDictionary(element => element.Attribute(xaml + "Key")!.Value, element => element.Attribute("ResourceKey")!.Value);
+            Assert.Equal("PlayerSkipHoverBrush", resources["ButtonBackgroundPointerOver"]);
+            Assert.Equal("PlayerSkipPressedBrush", resources["ButtonBackgroundPressed"]);
+        });
+
         TestHarness.Test("独占快捷键：默认动作完整且清除旧键与新增键同时下发", () =>
         {
             var defaults = VideoWindowShortcuts.Bindings(new Dictionary<string, string>());
