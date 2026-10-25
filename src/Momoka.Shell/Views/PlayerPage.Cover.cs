@@ -25,8 +25,7 @@ public sealed partial class PlayerPage
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // 总线上现在挂两家：遮罩（CoverUp）与跳过按钮的倒计时（SkipOffered/SkipRemaining，
-        // 插值机在 PlayerPage.Skip.cs —— 「按钮上的倒计时进度条不是很顺滑」，用户令 2026-09-26）。
+        // 页面展示接线；跳过按钮的显隐和文案直接绑定，不再需要倒计时插值的页面计时器。
         switch (e.PropertyName)
         {
             case nameof(PlayerViewModel.DanmakuInputVisible):
@@ -50,13 +49,6 @@ public sealed partial class PlayerPage
                 else HideCoverPlate();
                 break;
 
-            case nameof(PlayerViewModel.SkipOffered):
-                SkipOfferChanged();
-                break;
-
-            case nameof(PlayerViewModel.SkipRemaining):
-                SkipRemainingChanged();
-                break;
         }
     }
 

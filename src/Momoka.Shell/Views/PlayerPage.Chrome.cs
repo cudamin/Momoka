@@ -386,18 +386,9 @@ public sealed partial class PlayerPage
     private const double FullscreenRailGlyph = 28.6;
 
     /// <summary>
-    /// **跳过按钮**的两档。<b>2026-09-30 用户令「缩小图标跳过按钮两倍」：整颗按钮一律减半</b>（那一批
-    /// 之前窗口档是内边距 24×28、圆角 28、右让位 28（09-26「厚度加倍」那批）、两组行距 10、
-    /// 倒计时条高 4、图标 16（＝OsdGlyphStyle 基准）、标题 16（＝EgSubheadFontSize）、提示 12
-    /// （＝EgCaptionFontSize））。<b>2026-10-01 用户令「跳过按钮太小，调大 1.5 倍」：在减半的基础上
-    /// 每一项 ×1.5 写死</b>（＝最初基准的 0.75；不是乘一个系数——两档的落点要能一眼读出「今天窗口档
-    /// 是几」）。全屏档一律 ×1.3（＝独占的 <c>scale_fullscreen</c>）——
-    /// uosc 那颗 SkipButton 同样随 state.scale 缩（<c>elements/SkipButton.lua</c> 的字号、内边距、
-    /// 让位全乘 scale，那边的基准数两轮都跟着集成走）。
-    /// <para>
-    /// 尺度跟着图标走：图标是用户两轮都点名的那个量（16→8→12），其余几项跟着图标走才不显得
-    /// 「小图标配大留白」——内边距、行距、标题、提示、倒计时条都是同一把尺上的量。
-    /// </para>
+    /// 跳过按钮沿用现有窗口档的字号、内边距与间距，全屏/最大化统一放大 1.3 倍。
+    /// 与独占的 SkipButton 一样只保留图标和加粗标题；小圆角对应 uosc 的 border_radius=2，
+    /// 不再按垂直内边距画成胶囊，也不维护已经移除的提示字号和倒计时高度。
     /// </summary>
     private const double WindowSkipPadX = 18;
     private const double FullscreenSkipPadX = 23.4;
@@ -409,10 +400,8 @@ public sealed partial class PlayerPage
     private const double FullscreenSkipGlyph = 15.6;
     private const double WindowSkipCaption = 12;
     private const double FullscreenSkipCaption = 15.6;
-    private const double WindowSkipTip = 9;
-    private const double FullscreenSkipTip = 11.7;
-    private const double WindowSkipCountdown = 3;
-    private const double FullscreenSkipCountdown = 3.9;
+    private const double WindowSkipCorner = 2;
+    private const double FullscreenSkipCorner = 2.6;
 
     /// <summary>
     /// 返回键玻璃右缘与标题玻璃左缘之间那条缝（独占的 <c>title_spacing</c>＝<c>round(1 * scale)</c>，
@@ -670,12 +659,10 @@ public sealed partial class PlayerPage
         var padY = fullscreen ? FullscreenSkipPadY : WindowSkipPadY;
         SkipButton.Margin = new Thickness(0, 0, padY, SkipButton.Margin.Bottom);
         SkipButton.Padding = new Thickness(padX, padY, padX, padY);
-        SkipButton.CornerRadius = new CornerRadius(padY);
-        SkipStack.Spacing = SkipRow.Spacing = fullscreen ? FullscreenSkipGap : WindowSkipGap;
-        SkipCountdown.Height = fullscreen ? FullscreenSkipCountdown : WindowSkipCountdown;
+        SkipButton.CornerRadius = new CornerRadius(fullscreen ? FullscreenSkipCorner : WindowSkipCorner);
+        SkipRow.Spacing = fullscreen ? FullscreenSkipGap : WindowSkipGap;
         SkipGlyph.FontSize = fullscreen ? FullscreenSkipGlyph : WindowSkipGlyph;
         SkipText.FontSize = fullscreen ? FullscreenSkipCaption : WindowSkipCaption;
-        SkipTip.FontSize = fullscreen ? FullscreenSkipTip : WindowSkipTip;
     }
 
     /// <summary>
@@ -855,6 +842,7 @@ public sealed partial class PlayerPage
         // 碰布局树 —— 而「画面多大」只有一个答主，另存一份就是又一条会发霉的手抄副本（见 PlaceOverlays
         // 里关于「重赋同一个边距会让指针事件重盖空闲钟」的那段，说的正是这件事的另一面）。
         ArrangeTransport();
+        PlaceOverlays();
         Render();
 
         // 藏匿期例外（2026-09-16 第二轮复核）：这条路同样以零路程、无见证、无累加掀掉藏匿，而它的
@@ -932,6 +920,8 @@ public sealed partial class PlayerPage
     /// </summary>
     private void OnBarResized(object sender, SizeChangedEventArgs e) => PlaceOverlays();
 
+    private void OnSkipResized(object sender, SizeChangedEventArgs e) => PlaceOverlays();
+
     /// <summary>
     /// Places the two overlays whose position is really a statement about a different overlay: 统计 sits
     /// under the title strip, and the 跳过 button sits over the transport bar.
@@ -944,9 +934,9 @@ public sealed partial class PlayerPage
     /// drawn across the seek slider, which is the one control it must never cover.
     /// </para>
     /// <para>
-    /// Only the vertical halves are computed. The left and right insets are the overlays' own — how far from
-    /// the edge of the picture they sit is a matter of taste rather than of clearance — so they stay in the
-    /// markup where they can be seen, and are read back out of the margin here rather than restated.
+    /// The skip button keeps its normal right inset unless its vertical range intersects the volume rail.
+    /// A short window reserves the rail's width and one gap, so the two controls never cover each other.
+    /// This uses the rail's layout footprint, not its pointer-driven opacity: hovering cannot move the button.
     /// </para>
     /// <para>
     /// Each margin is written only when it has actually changed, which matters more than it looks: this is
@@ -961,7 +951,16 @@ public sealed partial class PlayerPage
     {
         // 2026-09-26 起在「让开」之上再抬一段 SkipLift（用户令「上移按钮」）—— 只贴着进度条时，够按钮的
         // 手势总要擦着进度条走，而压上按钮又不再点亮它（ChromeReveal 的 Skip 支）。
-        Nudge(SkipButton, new Thickness(0, 0, SkipButton.Margin.Right, BarHeight() + OverlayGap + SkipLift));
+        var bottom = BarHeight() + OverlayGap + SkipLift;
+        var right = BigChrome ? FullscreenSkipPadY : WindowSkipPadY;
+        // 窄/矮窗里保留右缘音量条的位置；水平让位不跟着悬停显隐来回跳，底边锚点仍是控制条上方。
+        var railHeight = VolumeTrack.Height + MuteButton.Height;
+        var railTop = Rail.Margin.Top + (Root.ActualHeight - Rail.Margin.Top - Rail.Margin.Bottom - railHeight) / 2;
+        var skipBottom = Root.ActualHeight - bottom;
+        if (SkipButton.ActualHeight > 0 && RailRoom()
+            && skipBottom - SkipButton.ActualHeight < railTop + railHeight && railTop < skipBottom)
+            right = Math.Max(right, Rail.Margin.Right + Rail.Width + OverlayGap);
+        Nudge(SkipButton, new Thickness(0, 0, right, bottom));
 
         static void Nudge(FrameworkElement element, Thickness margin)
         {
