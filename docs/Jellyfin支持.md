@@ -2,7 +2,7 @@
 
 在登录页输入 Jellyfin 地址即可，包含反向代理子路径的地址也会保留。客户端通过匿名 `System/Info/Public` 识别产品，保存产品与版本；Jellyfin 使用服务根目录和 `Authorization: MediaBrowser` 请求头。**Jellyfin 10.10.7 的 `ProductName` 是 `Jellyfin Server`，不是简称 `Jellyfin`**；客户端按前缀识别，并在登录/恢复后用公开信息纠正误存为 Emby 的服务器类型与 API 基址。令牌不放入 URL、日志或播放器启动参数。
 
-接口分别适配 Jellyfin 10.x 与 12.x：12.x 用户内容路由使用 `UserViews`、`Items`、`UserItems/Resume` 等顶层路径，旧版继续使用其用户路径。恢复保存的 Jellyfin 登录时先刷新公开版本信息，避免服务端升级后沿用旧路由。主页实时通道对 Jellyfin 使用网页端同样的 `/socket?api_key=…&deviceId=…`，Emby 才走 `/embywebsocket`。协议对照来自 Jellyfin 12.2.0 OpenAPI 快照与官方 10.11 源码；离线测试不等于对真实服务器的验证。
+接口分别适配 Jellyfin 10.x 与 12.x：12.x 用户内容路由使用 `UserViews`、`Items`、`UserItems/Resume` 等顶层路径，旧版继续使用其用户路径。恢复保存的 Jellyfin 登录时先刷新公开版本信息，避免服务端升级后沿用旧路由。主页实时通道对 Jellyfin 使用 `/socket?deviceId=…`，令牌与 REST 一样只通过 `Authorization: MediaBrowser` 请求头发送，不放进 URL；Emby 才走 `/embywebsocket`。协议对照来自 Jellyfin 12.2.0 OpenAPI 快照与官方 10.11 源码；离线测试不等于对真实服务器的验证。
 
 ## 媒体库界面（Jellyfin Web 10.10）
 
@@ -44,3 +44,9 @@ MoviePilot 查找 Jellyfin 中已入库的对应条目时，分页读取当前�
 网页登录数据只写入受信服务器的 Web 路径下的本地存储，不注入其他站点；缺少服务器标识时使用网页自己的登录流程。Jellyfin 网页主题由其自身设置管理，客户端不会向它写入 Emby 专属主题键；嵌入控制台的配色只由本地皮肤覆盖。
 
 验证使用 `JellyfinProtocolTests`、`JellyfinWebConsoleTests`、`ServerAccessTests`、`ServerSettingsTests`、`LibraryBrowseTests`、`LibraryRecommendedTests`、`ItemMenuTests`，并通过 `--probe-shell` 的「非管理员账号隐藏服务器管理入口」用例检查 Jellyfin 五组目录、插件页、媒体资料管理器、非管理员隐藏、宽窄导航和切回 Emby 的恢复。Jellyfin 媒体库另有「Jellyfin 媒体库标签、排序、筛选、布局与建议」用例，使用假 Jellyfin 传输逐项检查分类栏、排序菜单与默认值、复选框筛选、布局菜单、海报卡片、合集、建议货架和剧集页，并保存界面截图；它不连接真实服务器。真实 Jellyfin 写入与真实播放按主规则的授权档另行验证；本轮在 10.10.7 服务器上以只读方式核对了公开信息、管理页路由、同文档切页和皮肤，未修改服务器设置。**新增的媒体库界面只在假传输与假数据上验证过，尚未在真实 Jellyfin 库上核对选项结果与视觉密度。**
+
+## 实服播放与续播（2026-10-26）
+
+Jellyfin **10.10.7** 已验证保存登录恢复、3 个媒体库读取、电影详情、原始媒体 Range 206，以及内置 libmpv／独占管线的真实原画播放、暂停、定位、停止进度保存和再次续播。服务端会话为 `DirectStream`，没有转码信息；两场播放的进度和停止上报零失败，第二场准确从前一场保存位置开始。此前缺少媒体文件的样例现在返回完整媒体流与可读取的文件，本轮没有更改服务器挂载或重扫库。
+
+这不等于所有版本、所有媒体或所有界面已验证：Jellyfin 12.x、外部 mpv、集成管线实播、HDR／转码、管理写入未验证，内嵌网页控制台登录仍不在本轮覆盖内。客户端实际连接和界面控件树已读取；真实界面截图出现空白，未以控件树或离线截图冒充视觉通过。详细范围与后续状态见 [实服验证记录](实服验证-飞牛与Jellyfin-2026-10-26.md)。
