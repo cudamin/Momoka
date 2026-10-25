@@ -1185,6 +1185,13 @@ mp.register_script_message('momoka-episode-count', function(value)
 	Elements:trigger('dispositions')
 end)
 
+mp.register_script_message('momoka-danmaku-input-state', function(json)
+	Elements:maybe('danmaku_input', 'set_state', json)
+end)
+mp.register_script_message('momoka-danmaku-input-result', function(json)
+	Elements:maybe('danmaku_input', 'result', json)
+end)
+
 -- Enabled/configured capability comes from the host, never guessed by Lua.
 mp.register_script_message('momoka-danmaku-visibility', function(value)
 	local available = value == 'yes'
@@ -1520,6 +1527,7 @@ require('elements/Curtain'):new()
 -- MOMOKA[skip-button] — 独占模式「跳过片头/片尾」按钮（宿主经 momoka-skip-offer 驱动，见上面的
 -- 消息处理器与 elements/SkipButton.lua）。与 Curtain 一样直接实例化：它不进 Manager 的可禁用清单。
 require('elements/SkipButton'):new()
+require('elements/DanmakuInput'):new()
 
 -- Element manager
 -- Handles creating and destroying elements based on disabled_elements user+script config.

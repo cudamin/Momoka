@@ -212,7 +212,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// </summary>
     private void OnPointerWheel(object sender, PointerRoutedEventArgs e)
     {
-        if (!Attached || e.Handled || _inputSuspended) return;
+        if (!Attached || e.Handled || _inputSuspended || DanmakuInputFocused) return;
         var point = e.GetCurrentPoint(Root);
         var delta = point.Properties.MouseWheelDelta;
         if (delta == 0) return;
@@ -372,7 +372,8 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// </summary>
     private bool OnStripControl(Point point) =>
         Covers(BackButton, point)
-        || Covers(WindowButtons, point);
+        || Covers(WindowButtons, point)
+        || Covers(DanmakuInputBar, point);
 
     /// <summary>
     /// One step of the drag, from wherever the OS says the cursor is. Asked of the OS rather than read off
@@ -615,7 +616,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// </summary>
     private void OnKeyDown(object sender, KeyRoutedEventArgs e)
     {
-        if (!Attached || _window is null || _inputSuspended) return;
+        if (!Attached || _window is null || _inputSuspended || DanmakuInputFocused) return;
 
         if (!Dispatch(e.Key, out var wake)) return;
 
@@ -806,7 +807,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// </summary>
     private void OnSpaceShortcut(object sender, KeyRoutedEventArgs e)
     {
-        if (e.Key != VirtualKey.Space || !Attached || _window is null || _inputSuspended) return;
+        if (e.Key != VirtualKey.Space || !Attached || _window is null || _inputSuspended || DanmakuInputFocused) return;
 
         var stroke = new KeyStroke("Space", Native.CtrlHeld, Native.AltHeld, Native.ShiftHeld);
         if (ShortcutCatalog.Lookup(ViewModel.ShortcutBindings, stroke) != "toggle-pause") return;
@@ -849,7 +850,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// </summary>
     private void RestoreKeyboardFocus()
     {
-        if (!Attached || _window is null || _inputSuspended) return;
+        if (!Attached || _window is null || _inputSuspended || DanmakuInputFocused) return;
         if (FocusManager.GetFocusedElement() is not null) return;
         Focus(FocusState.Programmatic);
     }
@@ -875,7 +876,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// </summary>
     bool IWin32KeySink.WantsKey(int virtualKey)
     {
-        if (!Attached || _inputSuspended) return false;
+        if (!Attached || _inputSuspended || DanmakuInputFocused) return false;
 
         // 焦点在弹层上时 Win32 焦点本来就在岛里、走不到这里；这道闸留给「弹层开着而焦点又掉出岛」
         // 这种状态机打架的时刻 —— Esc 该归 XAML 去关弹层，兜底路不越权。右键画面菜单没有挂钉住的账
@@ -934,7 +935,7 @@ public sealed partial class PlayerPage : IWin32KeySink
     /// </summary>
     private void OnSkipKeyFallback(object sender, KeyRoutedEventArgs e)
     {
-        if (!Attached || _window is null || _inputSuspended) return;
+        if (!Attached || _window is null || _inputSuspended || DanmakuInputFocused) return;
 
         if (e.Key is not (VirtualKey.Enter or VirtualKey.Escape)) return;
 

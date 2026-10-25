@@ -2,7 +2,7 @@ do
 	local native_mp = {}
 	for key, value in pairs(mp) do native_mp[key] = value end
 	local results = {}
-	local clock, timers, commands, properties, keys
+	local clock, timers, commands, properties, keys, observers
 	local original_request_render, original_tween = request_render, tween
 	local original_primary_up = {}
 	for _, callback in ipairs(cursor.handlers.primary_up) do original_primary_up[#original_primary_up + 1] = callback end
@@ -48,7 +48,8 @@ do
 	end
 	local function reset()
 		if Menu:is_open() then Menu:close(true) end
-		clock, timers, commands, properties, keys = 100, {}, {}, {}, {}
+		if Elements.danmaku_input then Elements.danmaku_input:reset() end
+		clock, timers, commands, properties, keys, observers = 100, {}, {}, {}, {}, {}
 		display.width, display.height, display.bx, display.by, display.initialized = 1280, 720, 1280, 720, true
 		state.scale, state.fullormaxed, state.pause, state.duration, state.time, state.is_video = 1, false, false, 1000, 100, true
 		state.ime_active = false
@@ -87,15 +88,18 @@ do
 			mp.get_property_native = function(name, fallback)
 				if properties[name] ~= nil then return properties[name] end
 				if name == 'input-doubleclick-time' then return 300 end
-				if name == 'input-bindings' then return {} end
+				if name == 'input-bindings' then return {{key = 'SPACE'}, {key = 'F8'}, {key = 'Ctrl+i'}} end
 				return native_mp.get_property_native(name, fallback)
 			end
-			mp.get_property_bool = function(name, fallback) return properties[name] or fallback or false end
+			mp.get_property_bool = function(name, fallback)
+				if properties[name] ~= nil then return properties[name] end
+				return fallback or false
+			end
 			mp.add_forced_key_binding = function(key, name, callback) keys[key] = {name = name, callback = callback} end
 			mp.remove_key_binding = function(name)
 				for key, binding in pairs(keys) do if binding.name == name then keys[key] = nil end end
 			end
-			mp.observe_property = function(name, _, callback) callback(name, mp.get_property_native(name)) end
+			mp.observe_property = function(name, _, callback) observers[name] = callback; callback(name, mp.get_property_native(name)) end
 			mp.unobserve_property = function() end
 			request_render = function() end
 			tween = function(_, to, setter, duration_or_callback, callback)
@@ -446,6 +450,183 @@ do
 				fixture_messages['momoka-danmaku-visibility']('yes')
 				emit('start-file')
 				assert(not state.has_danmaku, 'file switch retained previous capability')
+			end)
+			local function input_state(values)
+				local data = {visible = true, canSend = true, busy = false, context = 'fixture-episode-1'}
+				for key, value in pairs(values or {}) do data[key] = value end
+				fixture_messages['momoka-danmaku-input-state'](utils.format_json(data))
+				return Elements.danmaku_input
+			end
+			local function draw_input(width, title, scale)
+				display.width, display.bx = width or 1280, width or 1280
+				state.scale, state.has_playlist = scale or 1, false
+				options.top_bar_controls, options.top_bar_title = 'right', 'yes'
+				local bar = Elements.top_bar
+				bar.enabled, bar.forced_visibility = true, 1
+				bar.render_titles.main, bar.render_titles.alt = title or '测试标题', nil
+				bar:update_dimensions()
+				canvas()
+				bar:render()
+				local input = Elements.danmaku_input
+				local rendered = input:render()
+				return input, rendered, bar
+			end
+			local function press(key, text, event)
+				assert(keys[key], 'missing editing binding ' .. key)
+				keys[key].callback({event = event or 'press', key_text = text, key_name = key, is_mouse = false})
+			end
+			local function answer(input, success, message, changes)
+				local data = {context = input.context, requestId = input.pending.id, success = success, message = message or ''}
+				for key, value in pairs(changes or {}) do data[key] = value end
+				fixture_messages['momoka-danmaku-input-result'](utils.format_json(data))
+			end
+			test('danmaku input follows visibility and matching without exposing a send button', function()
+				local input = input_state({canSend = false})
+				local _, rendered = draw_input()
+				assert(rendered.text:find('请先选择弹幕库', 1, true))
+				for _, zone in ipairs(cursor.zones) do assert(zone.hitbox.input_owner ~= input.send_owner, 'send hitbox exists without match') end
+				input:focus(); input:insert('保留草稿')
+				input_state({visible = false})
+				require_equal(input.focused, false)
+				require_equal(input:render(), nil)
+				require_equal(input.text, '保留草稿')
+				input_state()
+				draw_input()
+				require_equal(input.text, '保留草稿')
+				input_state({context = 'fixture-episode-2'})
+				require_equal(input.text, '')
+			end)
+			test('danmaku Unicode editing owns shortcuts and restores the latest binding and IME', function()
+				fixture_messages['momoka-shortcuts'](utils.format_json({['Ctrl+F9'] = 'toggle-pause'}))
+				local input = input_state()
+				draw_input()
+				properties['input-ime'] = false
+				input:focus()
+				require_equal(properties['input-ime'], true)
+				require_equal(keys['Ctrl+F9'], nil)
+				require_equal(Elements.top_bar:get_visibility(), 1)
+				press('any_unicode', '中文'); press('SPACE'); press('any_unicode', '🙂')
+				require_equal(input.text, '中文 🙂')
+				press('BS'); require_equal(input.text, '中文 ')
+				press('LEFT'); press('DEL'); require_equal(input.text, '中文')
+				press('HOME'); press('DEL'); require_equal(input.text, '文')
+				press('END'); press('any_unicode', '字', 'up'); require_equal(input.text, '文')
+				press('F8'); press('Ctrl+i')
+				require_equal(count_command('cycle', 'pause'), 0)
+				fixture_messages['momoka-shortcuts'](utils.format_json({['Ctrl+F8'] = 'toggle-pause'}))
+				require_equal(keys['Ctrl+F8'], nil)
+				input:blur()
+				require_equal(properties['input-ime'], false)
+				assert(keys['Ctrl+F8'], 'latest host binding was not restored')
+				fixture_messages['momoka-shortcuts']('{}')
+			end)
+			test('danmaku paste and select all respect the 100 UTF16 unit bound', function()
+				local input = input_state()
+				draw_input(); input:focus()
+				local original_clipboard = get_clipboard
+				get_clipboard = function() return '第一行\n第二行\t🙂' end
+				local ok, detail = pcall(function() press('Ctrl+v') end)
+				get_clipboard = original_clipboard
+				assert(ok, detail)
+				require_equal(input.text, '第一行 第二行 🙂')
+				press('Ctrl+a'); input:insert(string.rep('🙂', 51))
+				require_equal(input.text, string.rep('🙂', 50))
+				press('Ctrl+a'); input:insert(string.rep('字', 101))
+				require_equal(input.text, string.rep('字', 100))
+				press('Ctrl+a'); press('BS'); require_equal(input.text, '')
+			end)
+			test('danmaku submit is single flight and correlated acknowledgements preserve newer drafts', function()
+				local input = input_state()
+				draw_input(); input:focus(); input:insert('第一条')
+				press('ENTER'); press('ENTER', nil, 'repeat'); input:submit()
+				require_equal(count_command('script-message', 'momoka-danmaku-send'), 1)
+				local payload
+				for _, command in ipairs(commands) do
+					if command[1] == 'script-message' and command[2] == 'momoka-danmaku-send' then payload = utils.parse_json(command[3]) end
+				end
+				require_equal(payload.text, '第一条'); require_equal(payload.context, input.context)
+				assert(payload.requestId ~= '')
+				answer(input, true, '', {requestId = 'unrelated'})
+				assert(input.pending, 'unrelated acknowledgement cleared pending request')
+				press('Ctrl+a'); input:insert('下一条')
+				answer(input, true, '已发送')
+				require_equal(input.text, '下一条')
+				local previous_id = payload.requestId
+				input:submit(); assert(input.pending.id ~= previous_id)
+				answer(input, false, '发送失败，请重试')
+				require_equal(input.text, '下一条')
+				input:submit(); answer(input, true, '已发送')
+				require_equal(input.text, '')
+				input_state({busy = true}); input:insert('忙时不能发'); input:submit()
+				require_equal(count_command('script-message', 'momoka-danmaku-send'), 3)
+			end)
+			test('danmaku context and file boundaries reject delayed acknowledgements and release input', function()
+				local input = input_state()
+				draw_input(); input:focus(); input:insert('旧集'); input:submit()
+				local old = {context = input.context, requestId = input.pending.id, success = true, message = '旧回执'}
+				input_state({context = 'fixture-episode-2'})
+				draw_input(); input:focus(); input:insert('新集草稿')
+				fixture_messages['momoka-danmaku-input-result'](utils.format_json(old))
+				require_equal(input.text, '新集草稿')
+				require_equal(input.message, '')
+				emit('start-file')
+				require_equal(input.focused, false); require_equal(input.visible, false); require_equal(input.text, '')
+				require_equal(properties['input-ime'], false)
+				input_state(); draw_input(); input:focus(); input:insert('结束清理')
+				emit('end-file')
+				require_equal(input.focused, false); require_equal(input.text, '')
+			end)
+			test('danmaku menu and native focus loss release editing without consuming a draft', function()
+				-- Recreate under mocked observers so the focused callback is captured.
+				local input = require('elements/DanmakuInput'):new()
+				input_state(); draw_input()
+				properties['input-ime'] = true
+				input:focus(); input:insert('草稿')
+				observers.focused('focused', false)
+				require_equal(input.focused, false); require_equal(input.text, '草稿')
+				require_equal(properties['input-ime'], true)
+				input:focus(); menu({search_style = 'palette', items = {{title = 'one', value = 1}}})
+				require_equal(input.focused, false)
+				require_equal(input.text, '草稿')
+				assert(Menu:is_open())
+				Menu:close(true)
+				properties['input-ime'] = false
+			end)
+			test('danmaku input and outside clicks never fall through to picture pause', function()
+				local input = input_state()
+				draw_input()
+				cursor.x, cursor.y = input.ax + 10, (input.ay + input.by) / 2
+				down(); up()
+				require_equal(input.focused, true)
+				draw_input()
+				cursor.x, cursor.y = 500, 450
+				down()
+				draw_input()
+				cursor.x, cursor.y = 500, 450
+				up(); advance(1)
+				require_equal(input.focused, false)
+				require_equal(count_command('cycle', 'pause'), 0)
+			end)
+			test('danmaku title allocation follows short titles and stays inside narrow and scaled windows', function()
+				input_state()
+				local input, _, bar = draw_input(1280, '短片名')
+				local short_x = input.ax
+				draw_input(1280, string.rep('很长的影片标题', 20))
+				assert(input.ax > short_x, 'input is not placed after the actual title')
+				for _, width in ipairs({360, 760, 1280}) do
+					for _, scale in ipairs({1, 1.3, 1.5}) do
+						draw_input(width, string.rep('长标题', 20), scale)
+						assert(input.geometry, 'input disappeared instead of shortening title')
+						if input.geometry then
+							assert(input.bx > input.ax)
+							assert(input.ax > bar.ax)
+							assert(input.bx <= bar.bx - bar.size * #bar.buttons, 'input overlaps window buttons')
+							assert(input:render())
+						end
+					end
+				end
+				input_state({visible = false}); draw_input()
+				require_equal(input.geometry, nil)
 			end)
 			test('external track reload advertises a registered F5 key', function()
 				properties['track-list'] = {{type = 'sub', id = 1, external = true, title = 'fixture.srt'}}

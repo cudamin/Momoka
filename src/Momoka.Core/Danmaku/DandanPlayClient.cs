@@ -11,7 +11,7 @@ namespace Momoka.Danmaku;
 /// 弹弹play 开放弹幕网络 v2。固定官方来源、签名鉴权、限长读取与两小时缓存；不访问媒体服务器或视频字节。
 /// comment 接口的 302 只允许官方 HTTPS 子域，跨来源不传任何鉴权头。
 /// </summary>
-public sealed class DandanPlayClient : IDisposable
+public sealed partial class DandanPlayClient : IDisposable
 {
     public const string ApiOrigin = "https://api.dandanplay.net";
     public const string DeveloperUrl = "https://dev.dandanplay.com";
@@ -41,7 +41,7 @@ public sealed class DandanPlayClient : IDisposable
         { Timeout = Timeout.InfiniteTimeSpan };
     }
 
-    public async Task<IReadOnlyList<DandanPlayEpisode>> SearchAsync(string title, string? episode,
+    public async Task<DandanPlaySearchResult> SearchAsync(string title, string? episode,
         CancellationToken cancellationToken = default)
     {
         title = title.Trim();
@@ -55,6 +55,7 @@ public sealed class DandanPlayClient : IDisposable
         var result = new List<DandanPlayEpisode>();
         if (!document.RootElement.TryGetProperty("animes", out var animes) || animes.ValueKind != JsonValueKind.Array)
             throw new DandanPlayException("弹弹play 返回了无法识别的搜索结果。");
+        var hasMore = document.RootElement.TryGetProperty("hasMore", out var more) && more.ValueKind == JsonValueKind.True;
         var ids = new HashSet<long>();
         foreach (var anime in animes.EnumerateArray())
         {
@@ -64,18 +65,18 @@ public sealed class DandanPlayClient : IDisposable
             {
                 if (entry.ValueKind != JsonValueKind.Object || !entry.TryGetProperty("episodeId", out var id)
                     || id.ValueKind != JsonValueKind.Number || !id.TryGetInt64(out var number) || number <= 0 || !ids.Add(number)) continue;
+                if (result.Count == 1000) return new(result, true);
                 result.Add(new(number, animeTitle, Text(entry, "episodeTitle")));
-                if (result.Count == 1000) return result;
             }
         }
-        return result;
+        return new(result, hasMore);
     }
 
     public async Task<IReadOnlyList<DanmakuComment>> GetCommentsAsync(long episodeId, bool withRelated,
         CancellationToken cancellationToken = default)
     {
         if (episodeId <= 0) throw new DandanPlayException("弹幕库编号无效。");
-        var path = $"/api/v2/comment/{episodeId.ToString(CultureInfo.InvariantCulture)}?withRelated={withRelated.ToString().ToLowerInvariant()}&chConvert=0";
+        var path = CommentPath(episodeId, withRelated);
         using var document = await GetAsync(path, comments: true, cancellationToken).ConfigureAwait(false);
         if (!document.RootElement.TryGetProperty("comments", out var comments) || comments.ValueKind != JsonValueKind.Array)
             throw new DandanPlayException("弹弹play 返回了无法识别的弹幕数据。");
@@ -98,24 +99,17 @@ public sealed class DandanPlayClient : IDisposable
 
     private async Task<JsonDocument> GetAsync(string path, bool comments, CancellationToken cancellationToken)
     {
-        if (!_settings.Danmaku.Enabled) throw new DandanPlayException("请先在设置 → 弹幕中开启弹弹play。");
-        var appId = _settings.Danmaku.AppId;
-        var secret = _credentials.GetSecret(_settings.Danmaku);
-        if (string.IsNullOrWhiteSpace(appId) || appId.Length > 200 || appId.Any(char.IsControl) || secret.Length == 0)
-            throw new DandanPlayException("请在设置 → 弹幕中填写有效的 AppId 和 AppSecret；复制到其他 Windows 账号的密钥需要重新输入。");
+        var (appId, secret, protectedSecret) = Connection();
 
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));
         var entered = false;
-        var protectedSecret = _settings.Danmaku.ProtectedAppSecret;
         try
         {
             await _requests.WaitAsync(deadline.Token).ConfigureAwait(false);
             entered = true;
             // 应用弹幕是私有库；缓存按应用与凭据隔离，换应用不能沿用上一份数据或成功状态。
-            var cacheKey = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(appId + "\n"
-                + protectedSecret + "\n" + path)));
-            var cache = Path.Combine(_cacheDirectory, cacheKey + ".json");
+            var cache = CachePath(appId, protectedSecret, path);
             if (TryReadCache(cache) is { } cached)
             {
                 try { return Parse(cached, comments); }
@@ -129,10 +123,7 @@ public sealed class DandanPlayClient : IDisposable
                 request.Headers.Accept.ParseAdd("application/json");
                 if (uri.IdnHost.Equals("api.dandanplay.net", StringComparison.OrdinalIgnoreCase))
                 {
-                    var timestamp = _clock().ToUnixTimeSeconds();
-                    request.Headers.Add("X-AppId", appId);
-                    request.Headers.Add("X-Timestamp", timestamp.ToString(CultureInfo.InvariantCulture));
-                    request.Headers.Add("X-Signature", Signature(appId, secret, timestamp, uri.AbsolutePath));
+                    Sign(request, appId, secret);
                 }
                 using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
                 if (response.StatusCode is HttpStatusCode.MovedPermanently or HttpStatusCode.Redirect or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect)
@@ -145,7 +136,7 @@ public sealed class DandanPlayClient : IDisposable
                 }
                 if (!response.IsSuccessStatusCode) throw new DandanPlayException(response.StatusCode switch
                 {
-                    HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "弹弹play 鉴权失败，请检查 AppId、AppSecret、应用授权和系统时间。",
+                    HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => AuthenticationError(response),
                     HttpStatusCode.TooManyRequests => "弹弹play 请求额度或频率受限，请稍后重试。",
                     _ => $"弹弹play 请求失败（HTTP {(int)response.StatusCode}），请稍后重试。",
                 });
@@ -164,6 +155,20 @@ public sealed class DandanPlayClient : IDisposable
         catch (IOException) { throw new DandanPlayException("读取弹弹play 响应失败，请检查网络后重试。"); }
         catch (UriFormatException) { throw new DandanPlayException("弹弹play 返回了无效的跳转地址。"); }
         finally { if (entered) _requests.Release(); }
+    }
+
+    private static string AuthenticationError(HttpResponseMessage response)
+    {
+        // 官方只定义这几个固定值；未知响应头和错误正文可能夹带凭据，绝不直接展示。
+        var reason = response.Headers.TryGetValues("X-Error-Message", out var values) ? values.FirstOrDefault() : null;
+        return reason switch
+        {
+            "Invalid Timestamp" => "弹弹play 鉴权失败：系统时间与服务器不一致，请同步 Windows 时间后重试。",
+            "Invalid AppId" => "弹弹play 鉴权失败：AppId 或对应密钥无效，请核对开发者中心的应用凭据。",
+            "Invalid Signature" or "Invalid AppSecret" => "弹弹play 鉴权失败：密钥或签名无效，请重新保存对应应用的 AppSecret。",
+            "Missing Authentication Headers" => "弹弹play 鉴权失败：请求缺少应用认证头，请检查代理是否移除了请求头。",
+            _ => "弹弹play 鉴权失败，请检查 AppId、AppSecret、应用授权和系统时间。",
+        };
     }
 
     private static JsonDocument Parse(byte[] bytes, bool comments)

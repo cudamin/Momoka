@@ -7374,3 +7374,18 @@ t+2s     指针本来就没动 → 又满足 ≥2000 → 又 hide → 又盖章 
 - **上架包（用户补一句「还有微软商店的包」，随后明确「直接给我不用上传」）**：`tools/publish.ps1 -Store -SkipPublish -NoArchive` 出 `artifacts/Momoka-0.1.7-win-x64-store.msix`（119 512 038 字节、546 个条目、**未签名** —— 商店自己重签，SHA-256 `1bc4f5c96fd736f1ee38395090a4f0f40ddc5d1f1efa7175b80b68ea51ffecec`）：清单身份 `Name=MOMOKA.Momoka`、`Publisher=CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`、`Version=0.1.7.0`、`ProcessorArchitecture=x64`，与 `tools/store-identity.json` 里 Partner Center 预留的那一组逐条对上；包内没有 `AppxSignature.p7x`（读包核对，不是只看脚本的话）。**这一件不上传 GitHub**（用户令），留在本地供 Partner Center 上传。
 - 未验证（如实说）：没有把安装包整份下回来重算哈希（用的是服务端 `digest`，等价但形式不同）；**安装包没有在本机安装运行过**；没有做代码签名，从网上下载的人第一次双击仍会看到 SmartScreen 提示。上架包同样只做了打包与身份核对，没在本机重装验证（0.1.5／0.1.6 两轮也是这个边界）。
 
+
+
+## 2026-10-25 弹弹play官方接入与发送输入栏
+
+独立树 `C:/Users/89400/.codex/worktrees/dandanplay-official/Momoka`，分支 `codex/dandanplay-official`；Lua子任务树 `dandanplay-input`，仅改uosc和对应Lua测试，合入1799821。主目录已有AniBT工作，未覆盖，交付前合并其80058c7。
+
+按官方文档核对签名、私有弹幕发送、缓存、错误头与基础额度。新增发送POST（普通白色、100字符、无OAuth、无重试），集成与独占标题右侧输入栏，设置独立显示开关；隐藏保留同片草稿，换片/换库拒绝旧回执，发送时间减去当前延迟。不完整搜索不自动匹配，鉴权错误只展示白名单文案。密钥仅本机DPAPI存储，未入库。登录因基础层scope与OAuth流程公开契约不足不接空壳入口。
+
+验证：Release 0警告0错误；Core 2140项通过、失败0跳过0（work/tests-send.txt）；Lua46项通过。真实只读查询葬送的芙莉莲第1话：搜索200返回2候选，comment 302→cas2.dandanplay.net 200返回7304条；重复缓存不新增请求，总计3次HTTP（搜索、comment及CDN），未执行真实POST。
+
+UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24/25，360输入框最小宽度导致2px重叠后修复；最终playback在shell-probe-20261025-145911963-16304为6/6通过，包括1000/760/360真实截图、截断搜索、发送成功/失败/迟到/换库、偏好隐藏恢复。设置开关检查及截图沿用未变更的前一轮通过。首次未指定屏幕的隐藏启动截图拒绝、主屏诊断及早期窄窗失败均保留，不作最终通过证据。
+
+独占本地窗口只在用户重新授权后使用屏2：1000×562三态实屏、中文草稿、真实libmpv按键路由和单次fixture发送均通过；760可见为760×428，输入/隐藏实拍实际687×386，0Lua错误。复制uosc仅尾追加诊断入口，源码未修改；中文由脚本注入，不证明Windows真实IME候选窗。未播放真实媒体库、未发送网络弹幕。
+
+交付：等待主目录整合后重新编译测试并发布；不上传远程。

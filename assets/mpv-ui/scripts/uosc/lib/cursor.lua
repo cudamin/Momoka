@@ -446,7 +446,7 @@ do
 
 	-- 只在结论变了的时候动 mpv 的属性（它每次改动都会唤一遍观察者与 playloop）。
 	function cursor:refresh_hold()
-		local hold = self:on_control()
+		local hold = self:on_control() or Elements:v('danmaku_input', 'focused', false)
 		if hold == self.autohide_hold then return end
 		self.autohide_hold = hold
 		mp.set_property('cursor-autohide', hold and 'no' or self.autohide_base)
@@ -457,6 +457,7 @@ function cursor:is_autohide_allowed()
 	return options.autohide and (not self.autohide_fs_only or state.fullscreen)
 		and not self.is_dragging_prevented
 		and not Menu:is_open()
+		and not Elements:v('danmaku_input', 'focused', false)
 end
 mp.observe_property('cursor-autohide-fs-only', 'bool', function(_, val) cursor.autohide_fs_only = val end)
 

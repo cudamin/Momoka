@@ -25,6 +25,7 @@ internal static class DanmakuTests
             Assert.Equal("dav282msq5", settings.Danmaku.AppId);
             Assert.Equal("", settings.Danmaku.ProtectedAppSecret);
             Assert.True(settings.Danmaku.AutoMatch);
+            Assert.True(settings.Danmaku.ShowInput);
             settings.Danmaku.Opacity = double.NaN;
             settings.Danmaku.FontSize = double.PositiveInfinity;
             settings.Danmaku.Speed = -1;
@@ -68,6 +69,7 @@ internal static class DanmakuTests
             live.Danmaku.AppId = "fixture-app";
             live.Danmaku.ProtectedAppSecret = "fixture-protected-secret";
             live.Danmaku.Opacity = 35;
+            live.Danmaku.ShowInput = false;
             live.Danmaku.BlockedWords = "测试,spoiler";
             var reference = live.Danmaku;
             var backup = SettingsPreferences.ToBackupDocument(live);
@@ -77,12 +79,14 @@ internal static class DanmakuTests
             Assert.False(backup.Danmaku.Enabled);
             Assert.Equal("", backup.Danmaku.AppId);
             Assert.Equal(35d, backup.Danmaku.Opacity);
+            Assert.False(backup.Danmaku.ShowInput);
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.True(ReferenceEquals(reference, live.Danmaku));
             Assert.True(live.Danmaku.Enabled);
             Assert.Equal("fixture-app", live.Danmaku.AppId);
             Assert.Equal("fixture-protected-secret", live.Danmaku.ProtectedAppSecret);
             Assert.Equal(70d, live.Danmaku.Opacity);
+            Assert.True(live.Danmaku.ShowInput);
         });
 
         Test("弹幕：内置两管线可用，外部播放器与未配置服务不可用且不清偏好", () =>
@@ -167,7 +171,9 @@ internal static class DanmakuTests
         Test("弹弹play：搜索路径编码、集数、签名与平展剧集都按真实规格", () => InFixture(fixture =>
         {
             fixture.Transport.Response = _ => Reply(Search);
-            var episodes = fixture.Client.SearchAsync("测试 / a&b", "2").GetAwaiter().GetResult();
+            var search = fixture.Client.SearchAsync("测试 / a&b", "2").GetAwaiter().GetResult();
+            Assert.False(search.HasMore);
+            var episodes = search.Episodes;
             Assert.Equal(2, episodes.Count);
             Assert.Equal(230001L, episodes[0].EpisodeId);
             Assert.Equal("测试作品 · 第1话", episodes[0].Label);
@@ -180,6 +186,68 @@ internal static class DanmakuTests
             Assert.False(request.Headers.ContainsKey("X-AppSecret"));
             Assert.False(request.Headers.ContainsKey("Authorization"));
             Assert.DoesNotContain("fixture-secret", request.Uri.AbsoluteUri);
+        }));
+
+        Test("弹弹play：官方截断或本地上限都不把不完整候选认作唯一", () => InFixture(fixture =>
+        {
+            fixture.Transport.Response = _ => Reply("""{"success":true,"hasMore":true,"animes":[{"animeTitle":"测试作品","episodes":[{"episodeId":230001,"episodeTitle":"第1话"}]}]}""");
+            var search = fixture.Client.SearchAsync("测试作品", "1").GetAwaiter().GetResult();
+            Assert.True(search.HasMore);
+            Assert.Equal(1, search.Episodes.Count);
+            var item = new EmbyItem { Type = EmbyItemType.Movie, Name = "测试作品" };
+            Assert.Null(DandanPlayMatching.UniqueMatch(item, search.Episodes, search.HasMore));
+            Assert.True(fixture.Client.SearchAsync("测试作品", "1").GetAwaiter().GetResult().HasMore);
+            Assert.Equal(1, fixture.Transport.Requests.Count);
+            foreach (var count in new[] { 1000, 1001 })
+            {
+                fixture.Transport.Response = _ => Reply(JsonSerializer.Serialize(new
+                {
+                    hasMore = false,
+                    animes = new[] { new { animeTitle = "测试作品", episodes = Enumerable.Range(1, count).Select(id => new { episodeId = id, episodeTitle = "第1话" }) } },
+                }));
+                search = fixture.Client.SearchAsync($"测试{count}", null).GetAwaiter().GetResult();
+                Assert.Equal(1000, search.Episodes.Count);
+                Assert.Equal(count > 1000, search.HasMore);
+            }
+        }));
+
+        Test("弹弹play：官方鉴权错误只映射白名单，未知头不会回显", () => InFixture(fixture =>
+        {
+            foreach (var pair in new[]
+            {
+                ("Invalid Timestamp", "Windows 时间"), ("Invalid AppId", "AppId 或对应密钥"),
+                ("Invalid Signature", "密钥或签名"), ("Invalid AppSecret", "密钥或签名"),
+                ("Missing Authentication Headers", "请求缺少应用认证头"), ("fixture-secret", "应用授权和系统时间"),
+            })
+            {
+                fixture.Transport.Response = _ =>
+                {
+                    var response = Reply("fixture-secret", HttpStatusCode.Forbidden);
+                    response.Headers.Add("X-Error-Message", pair.Item1);
+                    return response;
+                };
+                var error = Assert.Catch<DandanPlayException>(() => fixture.Client.SearchAsync("测试", null).GetAwaiter().GetResult());
+                Assert.Contains(pair.Item2, error.Message);
+                Assert.DoesNotContain("fixture-secret", error.Message);
+            }
+        }));
+
+        Test("弹弹play：并发重复请求复用缓存，搜索和弹幕各只发一次", () => InFixture(fixture =>
+        {
+            fixture.Transport.Response = request => Reply(request.Uri.AbsolutePath.Contains("search", StringComparison.Ordinal) ? Search : Comments);
+            using var ready = new CountdownEvent(8);
+            using var release = new ManualResetEventSlim();
+            var requests = Enumerable.Range(0, 8).Select(index => Task.Factory.StartNew(() =>
+            {
+                ready.Signal();
+                release.Wait();
+                if (index % 2 == 0) fixture.Client.SearchAsync("测试作品", "1").GetAwaiter().GetResult();
+                else fixture.Client.GetCommentsAsync(230001, true).GetAwaiter().GetResult();
+            }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default)).ToArray();
+            try { Assert.True(ready.Wait(TimeSpan.FromSeconds(10))); }
+            finally { release.Set(); }
+            Task.WhenAll(requests).GetAwaiter().GetResult();
+            Assert.Equal(2, fixture.Transport.Requests.Count);
         }));
 
         Test("弹弹play：非法关键词或集数在发请求前拒绝", () => InFixture(fixture =>
@@ -306,6 +374,98 @@ internal static class DanmakuTests
             Assert.Equal(0, fixture.Transport.Requests.Count);
         }));
 
+        Test("弹弹play：应用发送使用签名POST及官方字段，确认后清除两种关联缓存", () => InFixture(fixture =>
+        {
+            fixture.Transport.Response = request => Reply(request.Method == HttpMethod.Post ? """{"success":true,"errorCode":0,"cid":1234567890123}""" : Comments);
+            fixture.Client.GetCommentsAsync(230001, false).GetAwaiter().GetResult();
+            fixture.Client.GetCommentsAsync(230001, true).GetAwaiter().GetResult();
+            var cid = fixture.Client.SendCommentAsync(230001, 12.5, " 中文测试 ").GetAwaiter().GetResult();
+            Assert.Equal(1234567890123L, cid);
+            Assert.Equal(0, Directory.GetFiles(fixture.Cache).Length);
+            var request = fixture.Transport.Requests.Last();
+            Assert.Equal(HttpMethod.Post, request.Method);
+            Assert.Equal("/api/v2/comment/230001/app", request.Uri.AbsolutePath);
+            Assert.Equal("", request.Uri.Query);
+            Assert.Equal(DandanPlayClient.Signature("fixture-app", "fixture-secret", fixture.Now.ToUnixTimeSeconds(), request.Uri.AbsolutePath), request.Headers["X-Signature"]);
+            Assert.False(request.Headers.ContainsKey("Authorization"));
+            using var body = JsonDocument.Parse(request.Body);
+            Assert.Equal("中文测试", body.RootElement.GetProperty("comment").GetString());
+            Assert.Equal(12.5, body.RootElement.GetProperty("time").GetDouble());
+            Assert.Equal(1, body.RootElement.GetProperty("mode").GetInt32());
+            Assert.Equal(16777215, body.RootElement.GetProperty("color").GetInt32());
+            Assert.Equal("Momoka", body.RootElement.GetProperty("userName").GetString());
+            Assert.DoesNotContain("fixture-secret", request.Body);
+            fixture.Client.GetCommentsAsync(230001, true).GetAwaiter().GetResult();
+            Assert.Equal(4, fixture.Transport.Requests.Count);
+        }));
+
+        Test("弹弹play：发送拒绝非法内容时间、未选库与已关闭服务", () => InFixture(fixture =>
+        {
+            foreach (var text in new[] { "", "   ", new string('字', 101), "一\n二" })
+                Assert.Throws<DandanPlayException>(() => fixture.Client.SendCommentAsync(1, 0, text).GetAwaiter().GetResult());
+            foreach (var time in new[] { -1d, double.NaN, double.PositiveInfinity, 86401d })
+                Assert.Throws<DandanPlayException>(() => fixture.Client.SendCommentAsync(1, time, "测试").GetAwaiter().GetResult());
+            Assert.Throws<DandanPlayException>(() => fixture.Client.SendCommentAsync(0, 1, "测试").GetAwaiter().GetResult());
+            fixture.Settings.Danmaku.Enabled = false;
+            Assert.Throws<DandanPlayException>(() => fixture.Client.SendCommentAsync(1, 1, "测试").GetAwaiter().GetResult());
+            Assert.Equal(0, fixture.Transport.Requests.Count);
+        }));
+
+        Test("弹弹play：发送失败不跟随跳转、不重试且未知结果不伪装成功", () => InFixture(fixture =>
+        {
+            foreach (var response in new Func<HttpResponseMessage>[]
+            {
+                () => Redirect("https://comment.dandanplay.net/write"),
+                () => Reply("fixture-secret", HttpStatusCode.BadGateway),
+                () => Reply("fixture-secret", HttpStatusCode.TooManyRequests),
+                () => Reply("""{"success":false,"errorCode":4,"errorMessage":"fixture-secret"}"""),
+                () => Reply("""{"success":true,"errorCode":0}"""),
+                () => Reply("""{"success":true,"errorCode":"bad","cid":1}"""),
+                () => Reply("[]"),
+                () => throw new HttpRequestException("fixture-secret"),
+            })
+            {
+                fixture.Transport.Requests.Clear();
+                fixture.Transport.Response = _ => response();
+                var error = Assert.Catch<DandanPlayException>(() => fixture.Client.SendCommentAsync(1, 0, "测试").GetAwaiter().GetResult());
+                Assert.DoesNotContain("fixture-secret", error.Message);
+                Assert.Equal(1, fixture.Transport.Requests.Count);
+            }
+        }));
+
+        Test("弹幕：发送时间扣除当前延迟，负位置保持未知", () =>
+        {
+            Assert.Equal(90d, DandanPlayClient.CommentTime(100, 10));
+            Assert.Equal(110d, DandanPlayClient.CommentTime(100, -10));
+            Assert.Equal(0d, DandanPlayClient.CommentTime(5, 10));
+            Assert.True(double.IsNaN(DandanPlayClient.CommentTime(-1, 0)));
+            Assert.True(double.IsNaN(DandanPlayClient.CommentTime(1, double.NaN)));
+        });
+
+        Test("弹弹play：超大发送回执提示结果未确认且不重试", () => InFixture(fixture =>
+        {
+            fixture.Transport.Response = _ =>
+            {
+                var response = Reply("{}");
+                response.Content.Headers.ContentLength = DandanPlayClient.MaximumResponseBytes + 1L;
+                return response;
+            };
+            var error = Assert.Catch<DandanPlayException>(() => fixture.Client.SendCommentAsync(1, 0, "测试").GetAwaiter().GetResult());
+            Assert.Contains("结果未确认", error.Message);
+            Assert.Equal(1, fixture.Transport.Requests.Count);
+        }));
+
+        Test("弹幕：原生发送消息严格校验长度和上下文，不执行文本中的命令", () =>
+        {
+            var payload = JsonSerializer.Serialize(new { context = new string('a', 32), requestId = "1", text = "中文; quit" });
+            Assert.Equal("中文; quit", MpvDanmaku.ParseSend(payload)!.Text);
+            Assert.NotNull(VideoWindowContract.Parse([MpvDanmaku.Send, payload]));
+            foreach (var invalid in new[] { "[]", "{}", "bad", new string('a', 2049),
+                JsonSerializer.Serialize(new { context = "old", requestId = "1", text = "测试" }),
+                JsonSerializer.Serialize(new { context = new string('a', 32), requestId = "1", text = new string('字', 101) }) })
+                Assert.Null(MpvDanmaku.ParseSend(invalid));
+        });
+
         Test("弹幕：加载收据有文件序号、传输序号与条数，协议拒绝非法值", () =>
         {
             Assert.Equal(MpvDanmaku.Ready, VideoWindowContract.Parse([MpvDanmaku.Ready, "2"])?.Key);
@@ -382,18 +542,18 @@ internal static class DanmakuTests
         }
     }
 
-    private sealed record Request(Uri Uri, IReadOnlyDictionary<string, string> Headers);
+    private sealed record Request(Uri Uri, IReadOnlyDictionary<string, string> Headers, HttpMethod Method, string Body);
 
     private sealed class Transport : HttpMessageHandler
     {
         public List<Request> Requests { get; } = [];
         public Func<Request, HttpResponseMessage> Response { get; set; } = _ => Reply(Search);
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var snapshot = new Request(request.RequestUri!, request.Headers.ToDictionary(pair => pair.Key, pair => string.Join(',', pair.Value), StringComparer.OrdinalIgnoreCase));
+            var snapshot = new Request(request.RequestUri!, request.Headers.ToDictionary(pair => pair.Key, pair => string.Join(',', pair.Value), StringComparer.OrdinalIgnoreCase), request.Method, request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken));
             Requests.Add(snapshot);
-            return Task.FromResult(Response(snapshot));
+            return Response(snapshot);
         }
     }
 
