@@ -42,7 +42,7 @@ public sealed partial class PlayerPage
                 UpdateLayout();
                 ArrangeTransport();
                 UpdateLayout();
-                var controls = new FrameworkElement[] { PreviousButton, PlayButton, NextButton, TransportStatsButton,
+                var controls = new FrameworkElement[] { PreviousButton, PlayButton, NextButton, TransportStatsButton, DanmakuButton,
                     ChapterButton, EpisodeButton, VersionButton, PreviousChapterButton, SpeedStrip,
                     SpeedButton, NextChapterButton, SubtitleButton, AudioButton, FullscreenButton };
                 Rect? previous = null;

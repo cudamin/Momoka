@@ -91,6 +91,7 @@ internal static class PlayerInteractionTests
             Assert.Contains("var logicalWidth = width / ChromeFactor;", code);
             Assert.Contains("var compact = logicalWidth < 680;", code);
             Assert.Contains("var tiny = logicalWidth < 520;", code);
+            Assert.Contains("DanmakuButton.Visibility == Visibility.Visible ? cell + gap : 0", code);
             Assert.Contains("SpeedStrip.Width > speedRoom", code);
             Assert.Contains("SpeedStrip.Visibility = Visibility.Collapsed", code);
         });

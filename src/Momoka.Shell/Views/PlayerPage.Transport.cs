@@ -98,6 +98,7 @@ public sealed partial class PlayerPage
         var cell = BigChrome ? FullscreenTransportCell : WindowTransportCell;
         var gap = BigChrome ? FullscreenTransportGap : WindowTransportGap;
         var narrowSlots = (PlayButton.Visibility == Visibility.Visible ? cell : 0)
+            + (DanmakuButton.Visibility == Visibility.Visible ? cell + gap : 0)
             + (minimal ? cell : cell * 4) + gap * 5;
         var speedRoom = width - TransportRow.Margin.Left - TransportRow.Margin.Right - narrowSlots;
         if (tiny && SpeedStrip.Visibility == Visibility.Visible && SpeedStrip.Width > speedRoom)
