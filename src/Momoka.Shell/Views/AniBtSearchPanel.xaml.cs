@@ -13,7 +13,15 @@ public sealed partial class AniBtSearchPanel : UserControl
     private bool _observing;
     private int _attachment;
 
-    public AniBtSearchPanel() => InitializeComponent();
+    public AniBtSearchPanel()
+    {
+        InitializeComponent();
+        ViewModel.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName == nameof(ViewModel.SelectedAnime) && ViewModel.SelectedAnime is null)
+                AnimeDetailScroll.ChangeView(null, 0, null, true);
+        };
+    }
 
     internal AniBtSearchViewModel ViewModel { get; } = new();
 
@@ -75,6 +83,40 @@ public sealed partial class AniBtSearchPanel : UserControl
     }
 
     private void OnReturnToAnime(object sender, RoutedEventArgs args) => ResourceBrowser.ClosePopups();
+
+    private void OnResultsLoaded(object sender, RoutedEventArgs args) => ResizeResults();
+    private void OnResultsSizeChanged(object sender, SizeChangedEventArgs args) => ResizeResults();
+
+    private void ResizeResults()
+    {
+        if (AnimeResults.ItemsPanelRoot is not ItemsWrapGrid layout || AnimeResults.ActualWidth < 1) return;
+        var available = Math.Max(1, AnimeResults.ActualWidth - 12);
+        var columns = available is >= 240 and < 420 ? 2 : Math.Max(1, (int)(available / 168));
+        layout.ItemWidth = Math.Floor(available / columns);
+        layout.ItemHeight = (layout.ItemWidth - 18) * 1.45 + 108;
+    }
+
+    private void OnHeroSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        var narrow = args.NewSize.Width < 540;
+        Grid.SetColumn(HeroBody, narrow ? 0 : 1);
+        Grid.SetColumnSpan(HeroBody, narrow ? 2 : 1);
+        Grid.SetRowSpan(HeroPoster, narrow ? 1 : 2);
+        HeroPoster.Width = narrow ? 74 : 154;
+        HeroPoster.Height = narrow ? 108 : 224;
+        AnimeHero.ColumnSpacing = narrow ? 12 : 22;
+    }
+
+    private void OnCopyRss(object sender, RoutedEventArgs args)
+    {
+        if (ViewModel.SelectedAnime is not { } anime || !ViewModel.ConnectionMatches) return;
+        try
+        {
+            new SystemClipboard().SetText($"https://anibt.net/rss/anime.xml?bgmId={anime.BgmId}");
+            ViewModel.RssCopied();
+        }
+        catch (Exception error) { ViewModel.RssCopied(error); }
+    }
 
     private void OnSearch(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args) =>
         _ = SearchAsync(args.QueryText ?? string.Empty, ViewModel.Episode);

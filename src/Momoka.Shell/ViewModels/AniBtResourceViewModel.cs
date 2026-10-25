@@ -29,6 +29,15 @@ public sealed partial class AniBtResourceRow : ObservableObject
     public string EpisodeBadge => AniBtReleaseLabels.EpisodeBadge(Release.EpisodeKey);
     public string EpisodeChoice => AniBtReleaseLabels.EpisodeChoice(Release.EpisodeKey);
     public string GroupName => AniBtReleaseLabels.Group(Release.GroupName);
+    public string SizeText => Resource.SizeText;
+    public string TechnicalText => string.Join(" · ", new[] { Release.Format, Release.Subtitle }
+        .Concat(Release.Tags ?? []).Where(value => !string.IsNullOrWhiteSpace(value)));
+    public string LanguageText => string.Join(" + ", Release.Languages ?? []);
+    public string ResolutionText => Release.Resolution;
+    public string EpisodeText => int.TryParse(Release.EpisodeKey, out var number) ? $"第 {number} 集" : AniBtReleaseLabels.EpisodeChoice(Release.EpisodeKey);
+    public Visibility LanguageVisibility => Show(LanguageText.Length > 0);
+    public Visibility ResolutionVisibility => Show(ResolutionText.Length > 0);
+    public Visibility DownloadVisibility => Show(Release.HasTorrent);
 
     /// <summary>筛选按 RSS 原值比，不按「未标…」这些给人看的占位字比。</summary>
     public string RawName => (Title + "\n" + Release.GroupName + "\n" + Release.Resolution + "\n" + Release.EpisodeKey)
@@ -79,6 +88,69 @@ public sealed partial class AniBtResourceRow : ObservableObject
     private static Visibility Show(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
 }
 
+public sealed record AniBtProgressCell(int Episode, bool Published)
+{
+    public string Label => Episode.ToString(CultureInfo.InvariantCulture);
+    public string Description => $"第 {Episode} 集：{(Published ? "已发布" : "未发布")}";
+    public double FillOpacity => Published ? 1 : 0.12;
+}
+
+public sealed partial class AniBtResourceGroup : ObservableObject
+{
+    public AniBtResourceGroup(string name, IReadOnlyList<AniBtResourceRow> rows, AniBtReleaseGroup? source, int? episodes)
+    {
+        Name = name;
+        Rows = rows;
+        RssUri = source?.RssUri;
+        Total = source?.TotalReleases ?? rows.Count;
+        var published = source?.PublishedEpisodes.Where(episode => episode > 0 && (episodes is not > 0 || episode <= episodes)).ToHashSet();
+        PublishedText = published is null ? "" : episodes is > 0 ? $"{published.Count} / {episodes} 集" : $"已发布 {published.Count} 集";
+        if (published is not null && episodes is > 0 and <= 60)
+            foreach (var episode in Enumerable.Range(1, episodes.Value)) Cells.Add(new AniBtProgressCell(episode, published.Contains(episode)));
+        Metadata = string.Join(" · ", rows.SelectMany(row => new[] { row.LanguageText, row.Release.Format })
+            .Where(value => value.Length > 0).Distinct());
+        ApplyRows(rows);
+    }
+
+    public string Name { get; }
+    public string Initial => Name.Length == 0 ? "?" : Name[..1];
+    public IReadOnlyList<AniBtResourceRow> Rows { get; }
+    public ObservableCollection<AniBtResourceRow> VisibleRows { get; } = [];
+    public ObservableCollection<AniBtProgressCell> Cells { get; } = [];
+    public Uri? RssUri { get; }
+    public int Total { get; }
+    public string Metadata { get; }
+    public string PublishedText { get; }
+    public string CountText => $"{Total} 条";
+    public Visibility RssVisibility => RssUri is not null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility MoreVisibility => _filtered.Count > 5 ? Visibility.Visible : Visibility.Collapsed;
+    public string MoreText => Expanded ? "收起" : $"展开其余 {_filtered.Count - 5} 条";
+    public string ScopeText => Total > Rows.Count ? $"展示最近 {Rows.Count} / {Total} 条" : "";
+    public Visibility ScopeVisibility => ScopeText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    private IReadOnlyList<AniBtResourceRow> _filtered = [];
+
+    [ObservableProperty] public partial bool IsOpen { get; set; } = true;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MoreText))]
+    public partial bool Expanded { get; set; }
+
+    partial void OnExpandedChanged(bool value) => Refresh();
+    [RelayCommand] private void ToggleMore() => Expanded = !Expanded;
+    internal void ApplyRows(IReadOnlyList<AniBtResourceRow> rows)
+    {
+        _filtered = rows;
+        Refresh();
+        OnPropertyChanged(nameof(MoreVisibility));
+        OnPropertyChanged(nameof(MoreText));
+    }
+
+    private void Refresh()
+    {
+        VisibleRows.Clear();
+        foreach (var row in Expanded ? _filtered : _filtered.Take(5)) VisibleRows.Add(row);
+    }
+}
+
 /// <summary>
 /// AniBT 这一页自己的筛选与排序：集号、字幕组、清晰度和关键词都按 RSS 原值来，不借用 MoviePilot
 /// 的站点、优惠、季号与 HR 概念。集合实例稳定，改筛选用原地增删，不把行对象换掉。
@@ -91,8 +163,12 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
 
     private readonly List<AniBtResourceRow> _all = [];
     private bool _resetting;
+    private readonly List<AniBtResourceGroup> _groups = [];
+    private bool _hasProgress;
 
     public ObservableCollection<AniBtResourceRow> Rows { get; } = [];
+    public ObservableCollection<AniBtResourceGroup> ResourceGroups { get; } = [];
+    public ObservableCollection<AniBtResourceGroup> ProgressGroups { get; } = [];
     public ObservableCollection<string> Episodes { get; } = [AllEpisodes];
     public ObservableCollection<string> Resolutions { get; } = [AllResolutions];
     public ObservableCollection<string> Groups { get; } = [AllGroups];
@@ -102,6 +178,16 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
     [ObservableProperty] public partial string SelectedResolution { get; set; } = AllResolutions;
     [ObservableProperty] public partial string SelectedGroup { get; set; } = AllGroups;
     [ObservableProperty] public partial int SortIndex { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ProgressVisibility))]
+    [NotifyPropertyChangedFor(nameof(ResourcesVisibility))]
+    public partial int ViewIndex { get; set; }
+
+    public Visibility ProgressVisibility => Show(ViewIndex == 0 && _hasProgress);
+    public Visibility ResourcesVisibility => Show(ViewIndex != 0 || !_hasProgress);
+    public Visibility TabsVisibility => Show(_hasProgress);
+    public string ProgressTabText => $"发布进度  {ProgressGroups.Count} 组";
+    public string ResourcesTabText => $"资源  {_groups.Sum(group => group.Total)} 条";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyVisibility))]
@@ -115,10 +201,26 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
     private bool HasFilters => Text.Trim().Length > 0 || IsChosen(SelectedEpisode, AllEpisodes)
         || IsChosen(SelectedResolution, AllResolutions) || IsChosen(SelectedGroup, AllGroups);
 
-    internal void SetResults(IEnumerable<AniBtResourceRow> rows, string emptyMessage)
+    internal void SetResults(IEnumerable<AniBtResourceRow> rows, string emptyMessage,
+        IReadOnlyList<AniBtReleaseGroup>? groups = null, AniBtAnime? anime = null)
     {
         _all.Clear();
         _all.AddRange(rows);
+        _groups.Clear();
+        _hasProgress = groups is { Count: > 0 };
+        if (groups is not null)
+            foreach (var group in groups)
+            {
+                var ids = group.Items.Select(release => release.ReleaseId).ToHashSet();
+                _groups.Add(new AniBtResourceGroup(group.Name, _all.Where(row => ids.Contains(row.Release.ReleaseId)).ToArray(), group, anime?.EpisodeCount));
+            }
+        else
+            foreach (var group in _all.GroupBy(row => row.GroupName))
+                _groups.Add(new AniBtResourceGroup(group.Key, group.ToArray(), null, anime?.EpisodeCount));
+        ProgressGroups.Clear();
+        foreach (var group in _groups) ProgressGroups.Add(group);
+        ViewIndex = _hasProgress ? 0 : 1;
+        AnnounceGroups();
         EmptyMessage = emptyMessage;
 
         // 先把选项填好、再写选中项：绑定在 ItemsSource 换掉的那一拍会把 SelectedItem 写成空，
@@ -157,6 +259,11 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
         Groups.Clear(); Groups.Add(AllGroups);
         _resetting = false;
         Rows.Clear();
+        _groups.Clear();
+        ResourceGroups.Clear();
+        ProgressGroups.Clear();
+        _hasProgress = false;
+        AnnounceGroups();
         EmptyMessage = "";
         OnPropertyChanged(nameof(FiltersVisibility));
         OnPropertyChanged(nameof(EmptyVisibility));
@@ -208,9 +315,25 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
         };
 
         Sync(Rows, query.ToList());
+        ResourceGroups.Clear();
+        foreach (var group in _groups)
+        {
+            var visible = Rows.Where(group.Rows.Contains).ToArray();
+            group.ApplyRows(visible);
+            if (visible.Length > 0) ResourceGroups.Add(group);
+        }
         OnPropertyChanged(nameof(CountText));
         OnPropertyChanged(nameof(NoMatchesVisibility));
         OnPropertyChanged(nameof(ResetVisibility));
+    }
+
+    private void AnnounceGroups()
+    {
+        OnPropertyChanged(nameof(TabsVisibility));
+        OnPropertyChanged(nameof(ProgressVisibility));
+        OnPropertyChanged(nameof(ResourcesVisibility));
+        OnPropertyChanged(nameof(ProgressTabText));
+        OnPropertyChanged(nameof(ResourcesTabText));
     }
 
     private static void Sync(ObservableCollection<AniBtResourceRow> rows, IReadOnlyList<AniBtResourceRow> desired)
