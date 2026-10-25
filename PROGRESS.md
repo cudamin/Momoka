@@ -10,7 +10,7 @@
 - 新增 `MediaStream.VideoRangeType`：Jellyfin / Emby 4.8+ 的细分档位 —— `DOVIWithHDR10` 这种既带 DV 又带 HDR10 的片源只有它说得清（粗档位 `VideoRange` 那边只写一个 `DOVI`）。Plex 折 `videoDynamicRangeType`（老版本退 `DOVIPresent`）；飞牛把 `color_range_type` 取第一项（列表接口是数组、流接口是字符串）、`dv_profile > 0` 记成 `DOVI`。顺带修掉一处：飞牛这两个字段以前整个没读进来（数组经 `Text()` 会变成 `["SDR"]` 这种字面量）。
 - 测试：`EmbyTests` 新增「文件信息行：HDR/DV 角标跟在视频编码后面，两者都有时 HDR 在前」（HDR10 / HDR10Plus / `HDR10+` / HLG / 老服务器只有粗档位 / DV 单飞 / `DOVIWithHDR10` / Plex 的 `DV HDR10` / 只有 `dvhe.05.06` / SDR 不写 / 位置在音频之前）；`PlexMediaTests` 与 `FnNasMediaTests` 各补一条映射断言。
 - 验证：闸门 1 完整 Release 构建 **0 警告、0 错误**、`dotnet format whitespace --verify-no-changes` 退出 0；闸门 2 编译后 `--no-build` 跑 **2118 项全过、0 失败、0 跳过**。
-- 提交：**`ea5f86b`**（本地，未推送）。
+- 提交：**`ea5f86b`**（代码）、**`e8e712c`**（按服务器 JSON 的字段名再认一遍那条测试）（本地，未推送）。
 - 发布：`tools/publish.ps1 -NoArchive` 退出 0、发布验证通过，已刷新 `artifacts/publish/win-x64`（**541 文件、283.5 MB、11 GLSL／4 HOOK 含许可逐文件校验**）。`Momoka.exe` FileVersion `0.1.7.0`、ProductVersion `0.1.7+ea5f86b`；`Momoka.dll` 4,813,312 字节、SHA-256 `D930FF39FB1C0A4BDBDDB32C9090A044C9743E090B431419EBB137BB0453354B`。
 - 未验证（如实说）：手上没有 HDR/DV 的真片源可放，**屏上没有看过这三个字面量**（探针与截图都没跑；详情页那行是同一个 TextBlock，版式没动，长出来的字会被裁切而不是换行）。Plex 的 `videoDynamicRangeType`、飞牛的 `dv_profile` 按官方字段语义折，本轮没有真实抓包复核。
 
