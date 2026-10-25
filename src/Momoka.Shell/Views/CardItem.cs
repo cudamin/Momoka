@@ -426,6 +426,16 @@ public sealed class CardItem : INotifyPropertyChanged
     public string UnplayedText =>
         _item.UserData?.UnplayedItemCount is { } count and > 0 ? count.ToString() : string.Empty;
 
+    /// <summary>
+    /// 封面右上角的集数（飞牛剧集的本地集数，只写数字「14」）；别的服务器、别的类型是空串。
+    /// <para>
+    /// 与 <see cref="UnplayedText"/> 共用同一个角：Emby 那边这个角写未看集数，飞牛不给这个数，于是改说这部剧库里
+    /// 有多少集（2026-10-25 用户令「参考 Emby 库」）。取数与文案在 <see cref="LibraryCardText.EpisodeCount"/>，
+    /// 这里只决定这一排画不画角标（<see cref="_indicators"/>）。
+    /// </para>
+    /// </summary>
+    public string EpisodeCountText => _indicators ? LibraryCardText.EpisodeCount(_item) : string.Empty;
+
     // Visibility rather than bool plus a converter: these are view-model properties on a view-model
     // that only a view uses, and a converter per flag would be four more files saying less.
     //
@@ -491,6 +501,14 @@ public sealed class CardItem : INotifyPropertyChanged
 
     /// <summary>The unplayed count is suppressed once everything is watched, so the two never stack.</summary>
     public Visibility UnplayedVisibility => Show(_indicators && !Watched && UnplayedText.Length > 0);
+
+    /// <summary>
+    /// 集数角标和「已看对勾」「未看集数」抢同一个角，后两者在的时候它让位 —— 三颗叠在一起就是一团。
+    /// 飞牛不带未看数（<see cref="UnplayedText"/> 恒为空），实际争的只有已看对勾；Emby 那边没有本地集数，
+    /// 这颗根本不出现，两台的角标于是永远不会同时冒出来。
+    /// </summary>
+    public Visibility EpisodeCountVisibility =>
+        Show(EpisodeCountText.Length > 0 && !Watched && UnplayedText.Length == 0);
 
     private static Visibility Show(bool visible) => visible ? Visibility.Visible : Visibility.Collapsed;
 
@@ -665,6 +683,8 @@ public sealed class CardItem : INotifyPropertyChanged
         Raise(nameof(ProgressDone));
         Raise(nameof(ProgressLeft));
         Raise(nameof(UnplayedText));
+        Raise(nameof(EpisodeCountText));
+        Raise(nameof(EpisodeCountVisibility));
         Raise(nameof(WatchedBadgeVisibility));
         Raise(nameof(FavoriteBadgeVisibility));
         Raise(nameof(WatchedVisibility));

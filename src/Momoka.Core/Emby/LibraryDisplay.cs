@@ -625,6 +625,23 @@ public static class LibraryCardText
         !fields.Contains(LibraryField.Title) ? "" : section == LibrarySection.Episodes
             ? item.SeriesName ?? item.Name : item.Name;
 
+    /// <summary>
+    /// 封面右上角那颗角标写的集数：「14」，没有可写的数就是空串（整颗收起）。
+    /// <para>
+    /// 只给剧集，而且只认服务器明说的本地集数（<see cref="EmbyItem.LocalEpisodeCount"/>，目前只有飞牛给）。
+    /// Emby 那边同一个角写的是<b>未看集数</b>（<c>UnplayedItemCount</c>）；飞牛列表不带这个数，角上于是永远空着
+    /// —— 2026-10-25 用户令「参考 Emby 库」补上集数，位置和样式照旧，说的内容换成这部剧库里有多少集。
+    /// </para>
+    /// <para>
+    /// **不带单位**（同日用户令「不要加集字」）：角标只写数字，跟 Emby 那颗一模一样。同一个客户端里两颗数字
+    /// 各说各话的风险由来源分掉了 —— 飞牛的 <c>UnplayedItemCount</c> 恒为空，那个角在飞牛库里从来只可能是这个数。
+    /// </para>
+    /// </summary>
+    public static string EpisodeCount(EmbyItem item) =>
+        item.Type == EmbyItemType.Series && item.LocalEpisodeCount is > 0 and var count
+            ? count.ToString(CultureInfo.InvariantCulture)
+            : "";
+
     public static string Subtitle(EmbyItem item, IReadOnlyList<LibraryField> fields, LibrarySection section)
     {
         if (section != LibrarySection.Episodes) return Line(item, fields);

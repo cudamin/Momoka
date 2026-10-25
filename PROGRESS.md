@@ -2,6 +2,16 @@
 
 最后更新：2026-10-25
 
+## 飞牛电视剧库：卡片右上角显示集数（2026-10-25 用户令）
+
+- 用户令两轮：「飞牛影视库的电视剧库右上角能显示集数吗？能的话加上去」→ 追问位置与数字时答「参考 Emby 库」→ 成品出来后「不要加集字」，于是角标只写数字。
+- 现状：那颗角标在 Emby 上写的是**未看集数**（`UserData.UnplayedItemCount`），飞牛的 `item/list` 不带这个数，所以飞牛库的卡片角上一直空着。
+- 改法：`FnNasMediaAdapter.Item` 把剧集的 `local_number_of_episodes` 读进新的 `EmbyItem.LocalEpisodeCount`（季与集不读：它们那格是「这一季几集」）；`LibraryCardText.EpisodeCount`（Core 纯函数）给出角标文字 —— 只给剧集、只认这个数、只写数字；`CardItem.EpisodeCountText`／`EpisodeCountVisibility` 与 `PosterCard.xaml` 里那颗 `EgCornerBadgeStyle` 角标接上。看完的剧仍让位给已看对勾，与未看集数互斥（同一个角只放一颗）。
+- 数据依据（2026-10-25 真实服务器 `item/list` 样本，`work/verify-real/harness/out/raw/fnnas-lib-c48501a6…-sample.json`）：`local_number_of_episodes` 与 `number_of_episodes` 是两个数（《牧神记 年番1》14 vs 105），且是**跨季合计**（《JOJO的奇妙冒险》本地两季共 3 集）。角标取前者，官方前端的「共 N 集」用的也是它。
+- 测试：`FnNasMediaTests` 新增「剧集带本地集数，季与集不带」（14 / 跨季合计 3 / 季不带）；`LibraryDisplayTests` 新增「剧集角标只写本地集数」（14 / 没给 / 0 / 电影不写）；`--probe-shell --probe-section library` 新增「飞牛剧集卡片右上角的集数角标」，三张假剧集核对文字、跨季合计、看完让位与几何（那颗字真贴着卡片右上角），截图 `library-fnnas-episode-count-{1280,760}.png`。
+- 验证：Release 构建 0 警告 0 错误；离线测试 **2111 通过、0 失败、0 跳过**；`dotnet format whitespace --verify-no-changes` 无输出（通过）；发布件 `--probe-shell --probe-section library --screen 1` **16 项全过、80 项未执行**；闸门 3 已刷新 `artifacts/publish/win-x64`（389 个文件）。
+- 未验证：真实飞牛服务器上没有开应用看这颗角标（探针全程假传输）；多季剧的 `local_number_of_episodes` 语义只按一台服务器的两条样本核对过。
+
 ## 服务器页：聚合开关自动登录全部账号，版式压成一行（2026-10-25 用户令）
 
 - **用户判定的缺陷**：「拨开聚合开关不会自动登录所有已保存账号，要在服务器页逐个点『登录账号』」。真因：`EmbySession.ApplyAggregateMode` 在**打开**时什么都不做（注释还写着「其他账号仍由用户自己登录」），只有关掉时才收口；能自动登录的那条路 `RestoreAllAsync` 只在启动时走。

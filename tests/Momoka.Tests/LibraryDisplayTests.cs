@@ -153,6 +153,26 @@ internal static class LibraryDisplayTests
             Assert.Equal("2 小时 12 分", LibraryCardText.Line(movie, [LibraryField.Runtime]));
             Assert.Equal("每集 45 分钟", LibraryCardText.Line(series, [LibraryField.Runtime]));
         });
+        // 封面右上角的集数角标：只认服务器明说的本地集数，而且只给剧集；只写数字，不带「集」字
+        // （2026-10-25 用户令「参考 Emby 库」＋「不要加集字」）。
+        Test("媒体库设置：剧集角标只写本地集数", () =>
+        {
+            var series = Item(EmbyItemType.Series, year: 2024);
+            series.LocalEpisodeCount = 14;
+            Assert.Equal("14", LibraryCardText.EpisodeCount(series));
+
+            // 没给这个数（Emby / Jellyfin / Plex 都不给）就是空串，整颗角标收起。
+            Assert.Equal("", LibraryCardText.EpisodeCount(Item(EmbyItemType.Series, year: 2024)));
+
+            var zero = Item(EmbyItemType.Series, year: 2024);
+            zero.LocalEpisodeCount = 0;
+            Assert.Equal("", LibraryCardText.EpisodeCount(zero));
+
+            // 电影就算带着同一个字段也不写：电影没有「几集」可言。
+            var movie = Item(EmbyItemType.Movie, year: 2024);
+            movie.LocalEpisodeCount = 14;
+            Assert.Equal("", LibraryCardText.EpisodeCount(movie));
+        });
         Test("媒体库设置：卡片一行按字段顺序拼，单集带集号", () =>
         {
             var movie = Item(EmbyItemType.Movie, year: 2019, minutes: 132);

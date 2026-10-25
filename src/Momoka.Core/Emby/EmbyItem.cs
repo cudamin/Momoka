@@ -570,6 +570,21 @@ public sealed class EmbyItem
 
     public int? ChildCount { get; set; }
 
+    /// <summary>
+    /// 这部剧在库里有几集 —— <b>本地集数</b>，不是元数据说的总集数。只有飞牛的列表会带
+    /// （<c>local_number_of_episodes</c>），Emby / Jellyfin / Plex 一律 null。
+    /// <para>
+    /// 和 <see cref="ChildCount"/> 不是一回事：飞牛的「几季」走 <c>local_number_of_seasons</c>（→ ChildCount），
+    /// 集数是另一个字段。2026-10-25 在用户服务器上核过两条真实数据：《牧神记 年番1》元数据 105 集、库里 14 集；
+    /// 《JOJO的奇妙冒险》本地两季共 3 集 —— 所以这个数是**整部剧跨季的本地合计**，不是某一季的。
+    /// </para>
+    /// <para>
+    /// 卡片右上角那颗角标写的就是它（<see cref="LibraryCardText.EpisodeCount"/>）。飞牛不给「未看几集」，
+    /// 于是同一个位置改说这部剧库里有多少集。
+    /// </para>
+    /// </summary>
+    public int? LocalEpisodeCount { get; set; }
+
     public float? CommunityRating { get; set; }
 
     /// <summary>

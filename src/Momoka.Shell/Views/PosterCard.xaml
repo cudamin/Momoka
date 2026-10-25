@@ -141,6 +141,15 @@
                         Style="{StaticResource EgCornerBadgeTextStyle}"
                         Text="{x:Bind Card.UnplayedText, Mode=OneWay}" />
                 </Border>
+                <!-- 同一个角上的另一种说法：飞牛不给未看集数，于是这里写这部剧库里有多少集（「14 集」）。
+                     两颗互斥 —— 见 CardItem.EpisodeCountVisibility。 -->
+                <Border
+                    Style="{StaticResource EgCornerBadgeStyle}"
+                    Visibility="{x:Bind Card.EpisodeCountVisibility, Mode=OneWay}">
+                    <TextBlock
+                        Style="{StaticResource EgCornerBadgeTextStyle}"
+                        Text="{x:Bind Card.EpisodeCountText, Mode=OneWay}" />
+                </Border>
                 <FontIcon
                     Margin="8"
                     FontSize="14"

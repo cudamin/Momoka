@@ -74,6 +74,45 @@ internal static partial class FnNasMediaTests
             Assert.Equal(8.4f, item.CommunityRating);
             Assert.Equal("1080p,4k", string.Join(',', item.Resolutions));
         });
+        // 卡片右上角那颗集数角标（2026-10-25 用户令「参考 Emby 库」）：飞牛列表里 local_number_of_episodes 是
+        // 这部剧在库里的合计，local_number_of_seasons 是季数，两者各走各的字段。
+        Test("飞牛媒体：剧集带本地集数，季与集不带", () =>
+        {
+            var series = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "series",
+                ["title"] = "牧神记 年番1",
+                ["type"] = "TV",
+                ["local_number_of_seasons"] = 1,
+                ["local_number_of_episodes"] = 14
+            });
+            Assert.Equal(1, series.ChildCount);
+            Assert.Equal(14, series.LocalEpisodeCount);
+
+            // 跨季的剧（真实服务器上 JOJO 本地两季共 3 集）：角标写整部剧的合计。
+            var multi = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "jojo",
+                ["title"] = "JOJO的奇妙冒险",
+                ["type"] = "TV",
+                ["local_number_of_seasons"] = 2,
+                ["local_number_of_episodes"] = 3
+            });
+            Assert.Equal(2, multi.ChildCount);
+            Assert.Equal(3, multi.LocalEpisodeCount);
+
+            // 季自己的 local_number_of_episodes 是「这一季几集」，写在季卡上就是另一句话，所以不进这颗角标。
+            var season = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "season",
+                ["title"] = "第一季",
+                ["type"] = "Season",
+                ["season_number"] = 1,
+                ["local_number_of_episodes"] = 13
+            });
+            Assert.Equal(13, season.ChildCount);
+            Assert.Null(season.LocalEpisodeCount);
+        });
         Test("飞牛媒体：标记已看后使用季集列表选择下一集", () =>
         {
             using var fixture = new Fixture(); fixture.Login();

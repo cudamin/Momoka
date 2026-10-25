@@ -172,6 +172,9 @@ public sealed partial class FnNasMediaAdapter
             SeriesName = Text(value, "tv_title"),
             SeasonId = type == EmbyItemType.Episode ? Text(value, "parent_guid") : null,
             ChildCount = Integer(value, type == EmbyItemType.Series ? "local_number_of_seasons" : "local_number_of_episodes"),
+            // 卡片右上角的集数角标只给剧集：季/集的 local_number_of_episodes 是「这一季有几集」，写在那两张卡上
+            // 会变成一句和这一页无关的话。剧集这一格是跨季合计（JOJO 本地两季共 3 集 → 3）。
+            LocalEpisodeCount = type == EmbyItemType.Series ? Integer(value, "local_number_of_episodes") : null,
             Genres = Strings(value["genres"]).ToList(),
             UserData = new EmbyUserData
             {
