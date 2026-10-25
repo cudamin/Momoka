@@ -139,15 +139,31 @@ public static class MoviePilotMediaParser
         var published = Text(torrent, "pubdate");
         DateTimeOffset? publishedAt = DateTimeOffset.TryParse(published, CultureInfo.InvariantCulture,
             DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeLocal, out var time) ? time : null;
+        // 上游卡片读 media_info.title / meta_info.name，种子标题另行保留；候选或否决目标不能借目标片名显示。
+        var recognizedTitle = !conflicting &&
+            !(context.TryGetProperty("media_info_is_target", out var target) && target.ValueKind == JsonValueKind.False) &&
+            (Text(context, "match_status") is not { } match || match == "exact")
+            ? media?.Title : null;
+        if (string.IsNullOrWhiteSpace(recognizedTitle)) recognizedTitle = MetadataText(meta, "name");
 
         return new MoviePilotResource
         {
             Title = title!,
+            RecognizedTitle = recognizedTitle,
             Description = Text(torrent, "description"),
             SiteName = Text(torrent, "site_name"),
             Size = Long(torrent, "size"),
             Seeders = Math.Max(0, Number(torrent, "seeders") ?? 0),
+            Peers = Math.Max(0, Number(torrent, "peers") ?? 0),
             Resolution = resolution,
+            VideoCodec = MetadataText(meta, "video_encode"),
+            // “质量”筛选对应前端 edition，不能把底层 resource_type 当成它。
+            Edition = MetadataText(meta, "edition"),
+            ReleaseGroup = MetadataText(meta, "resource_team"),
+            WebSource = MetadataText(meta, "web_source"),
+            ResourceType = MetadataText(meta, "resource_type"),
+            ResourceEffect = MetadataText(meta, "resource_effect"),
+            SeasonEpisode = MetadataText(meta, "season_episode"),
             Seasons = MoviePilotResourceGrouping.Numbers(meta, "season_list", "begin_season", "end_season"),
             Episodes = MoviePilotResourceGrouping.Numbers(meta, "episode_list", "begin_episode", "end_episode"),
             PageUrl = Text(torrent, "page_url"),
@@ -247,6 +263,9 @@ public static class MoviePilotMediaParser
     private static double? Factor(JsonElement root, string name) =>
         double.TryParse(Text(root, name), NumberStyles.Float, CultureInfo.InvariantCulture, out var value) &&
         double.IsFinite(value) && value >= 0 ? value : null;
+
+    private static string? MetadataText(JsonElement root, string name) =>
+        Text(root, name)?.Trim() is { Length: > 0 } value ? value : null;
 
     private static IReadOnlyList<string> Labels(JsonElement torrent)
     {

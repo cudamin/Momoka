@@ -7,13 +7,23 @@ namespace Momoka.MoviePilot;
 public sealed record MoviePilotResource
 {
     public required string Title { get; init; }
+    public string? RecognizedTitle { get; init; }
+    public string DisplayTitle => string.IsNullOrWhiteSpace(RecognizedTitle) ? Title : RecognizedTitle;
     internal string ConnectionStamp { get; init; } = "";
     internal long? ConnectionGeneration { get; init; }
     public string? Description { get; init; }
     public string? SiteName { get; init; }
     public long Size { get; init; }
     public int Seeders { get; init; }
+    public int Peers { get; init; }
     public string? Resolution { get; init; }
+    public string? VideoCodec { get; init; }
+    public string? Edition { get; init; }
+    public string? ReleaseGroup { get; init; }
+    public string? WebSource { get; init; }
+    public string? ResourceType { get; init; }
+    public string? ResourceEffect { get; init; }
+    public string? SeasonEpisode { get; init; }
     public IReadOnlyList<int> Seasons { get; init; } = [];
     public IReadOnlyList<int> Episodes { get; init; } = [];
     public string? PageUrl { get; init; }
@@ -86,6 +96,21 @@ public sealed record MoviePilotResource
 
     public bool HasDiscount => IsFree || DownloadFactor is >= 0 and < 1 || UploadFactor > 1 ||
         (DownloadFactor is null && Promotion is { } promotion && DiscountPromotions.Contains(promotion.Trim()));
+
+    /// <summary>卡片角标只展示已知优惠；缺少倍率不能当作免费，详情仍读 PromotionText。</summary>
+    public string PromotionBadge
+    {
+        get
+        {
+            var upload = UploadFactor is > 1 and var factor
+                ? $"{factor.ToString("0.##", CultureInfo.InvariantCulture)}×" : "";
+            if (IsFree) return upload + "FREE";
+            if (DownloadFactor is >= 0 and < 1 and var download)
+                return upload + (download * 100).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+            if (upload.Length > 0) return upload;
+            return HasDiscount ? Promotion?.Trim() ?? "" : "";
+        }
+    }
 
     private static readonly HashSet<string> FreePromotions = new(StringComparer.OrdinalIgnoreCase)
         { "FREE", "2XFREE", "4XFREE", "免费", "2X免费", "4X免费" };
