@@ -6,7 +6,7 @@ namespace Momoka.Mpv;
 /// <para>
 /// The split matters because the two change for different reasons. A cell changes when someone decides a
 /// different picture is wanted; an entry here changes only when the file itself changes upstream — and when it
-/// does, the test that reads all fifteen files against these descriptions is what notices.
+/// does, the test that reads every shipped file against these descriptions is what notices.
 /// </para>
 /// <para>
 /// Where each file came from, its licence, and the one local edit are in <c>assets/shaders/README.md</c>. That
@@ -67,6 +67,24 @@ public static class ShaderLibrary
         Hook: "LUMA", ChangesResolution: true, Passes: 6,
         Gate: "", ReadsLuma: false, ReadsChroma: false);
 
+    public static readonly ShaderDescriptor KrigBilateral = new(
+        "KrigBilateral", "igv/KrigBilateral.glsl", ShaderRole.ChromaReconstruct,
+        Hook: "CHROMA", ChangesResolution: true, Passes: 3,
+        Gate: "CHROMA.w LUMA.w <", ReadsLuma: true, ReadsChroma: false);
+
+    // dyphire's [Anime4K] is same-size restoration, not Mode A or a CNN x2 upscaler. Soft M explicitly
+    // declares MAIN-sized intermediate textures but never doubles the final picture. Clamp spans MAIN
+    // statistics and PREKERNEL clamping; its three fragment passes are not //!COMPUTE dispatches.
+    public static readonly ShaderDescriptor Anime4KRestoreSoftM = new(
+        "Anime4K_Restore_CNN_Soft_M", "Anime4K/glsl/Restore/Anime4K_Restore_CNN_Soft_M.glsl", ShaderRole.Preprocess,
+        Hook: "MAIN", ChangesResolution: true, Passes: 8,
+        Gate: "", ReadsLuma: false, ReadsChroma: false);
+
+    public static readonly ShaderDescriptor Anime4KClampHighlights = new(
+        "Anime4K_Clamp_Highlights", "Anime4K/glsl/Restore/Anime4K_Clamp_Highlights.glsl", ShaderRole.Preprocess,
+        Hook: "MAIN", ChangesResolution: false, Passes: 3,
+        Gate: "", ReadsLuma: false, ReadsChroma: false);
+
     public static readonly ShaderDescriptor RavuZoom = new(
         "ravu-zoom-ar-r2", "ravu/ravu-zoom-ar-r2.hook", ShaderRole.LumaUpscale,
         Hook: "LUMA", ChangesResolution: true, Passes: 1,
@@ -112,6 +130,7 @@ public static class ShaderLibrary
         ChromaFull, ChromaLite,
         Hdeband, NonLocalMeans,
         RavuZoom, RavuLiteR2, RavuLiteR3, RavuLiteR4,
-        ArtCnnF16, ArtCnnF32, ArtCnnF32Ds, ArtCnnF32Dn
+        ArtCnnF16, ArtCnnF32, ArtCnnF32Ds, ArtCnnF32Dn,
+        KrigBilateral, Anime4KRestoreSoftM, Anime4KClampHighlights
     ];
 }

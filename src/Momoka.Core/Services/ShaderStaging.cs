@@ -28,8 +28,8 @@ public sealed class ShaderStaging(AppSettings settings)
     private bool _checked;
 
     /// <summary>
-    /// The 着色器档位 the settings page and the player's own menu offer: the eight cells of the table that
-    /// this machine's 显卡档 selects. Shipped C# data rather than something scanned off disk — the client
+    /// The settings page and player menu offer this machine's eight automatic cells plus the explicitly
+    /// selected fixed configurations. Shipped C# data rather than something scanned off disk — the client
     /// reads no mpv config file — and a projection rather than a copy, so there is no second list to keep in
     /// step when 显卡档 changes.
     /// </summary>

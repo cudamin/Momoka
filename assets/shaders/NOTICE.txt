@@ -8,6 +8,20 @@ ArtCNN/*.glsl
   Upstream: https://github.com/Artoriuz/ArtCNN
   License: MIT (full notice in each source file).
 
+Anime4K/glsl/Restore/Anime4K_Restore_CNN_Soft_M.glsl
+Anime4K/glsl/Restore/Anime4K_Clamp_Highlights.glsl
+  Author/upstream: bloc97, https://github.com/bloc97/Anime4K
+  Retrieved from dyphire/mpv-config commit b6c687b4c08144e87524a738152d07ad3735915b,
+  matching the user's 2026.08.12 local reference. Source bytes unchanged.
+  License: MIT (full notice in each source file).
+
+igv/KrigBilateral.glsl
+  Author: Shiandow.
+  Upstream: https://gist.github.com/igv/a015fc885d5c22e6891820ad89555637
+  Retrieved from dyphire/mpv-config commit b6c687b4c08144e87524a738152d07ad3735915b,
+  matching the user's 2026.08.12 local reference. Source bytes unchanged.
+  License: LGPL-3.0-or-later. See LICENSE.LGPL-3.0.txt and LICENSE.GPL-3.0.txt.
+
 CfL/*.glsl
   Upstream: https://github.com/Artoriuz/glsl-chroma-from-luma-prediction
   License: MIT (full notice in each source file).

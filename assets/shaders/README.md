@@ -1,7 +1,8 @@
 # 着色器文件的来处
 
-这十五个文件是 2026-09-03 从上游取下来入库的（当时是二十一个 —— Anime4K Mode A 那六个 2026-09-04
-出箱了，见下面「出过箱的文件」）。**从前它们不在仓库里** —— 发布脚本从
+原有十五个文件是 2026-09-03 从上游取下来入库的（当时是二十一个 —— Anime4K Mode A 那六个 2026-09-04
+出箱了，见下面「出过箱的文件」）。2026-10-25 按用户指定的 dyphire 配置新增三份源码，共十八个。
+**从前它们不在仓库里** —— 发布脚本从
 `C:\mpv_config-2026.08.12\portable_config\shaders` 现拷，也就是说这个程序发不发得出正确的画质，
 取决于另一个软件的安装目录还在不在。入库之后 `src/Momoka.Shell/Momoka.Shell.csproj` 从这里拷，
 清单由单测钉着不许和 `src/Momoka.Core/Mpv/ShaderGroupCatalog.cs` 里的档位表跑偏 —— 两个方向都钉：
@@ -15,7 +16,8 @@
 |---|---|---|
 | `ArtCNN/` | [Artoriuz/ArtCNN](https://github.com/Artoriuz/ArtCNN) 的 `GLSL/` | MIT |
 | `CfL/` | [Artoriuz/glsl-chroma-from-luma-prediction](https://github.com/Artoriuz/glsl-chroma-from-luma-prediction) | MIT |
-| `igv/` | igv 的三个 gist（见下） | LGPL-3.0（SSim 两个）、BSD-2（adaptive-sharpen） |
+| `igv/` | igv 的三个 gist（见下）和 Shiandow 的 KrigBilateral | LGPL-3.0（SSim 两个与 KrigBilateral）、BSD-2（adaptive-sharpen） |
+| `Anime4K/` | [bloc97/Anime4K](https://github.com/bloc97/Anime4K) 的 `glsl/Restore/`，经 dyphire 配置取件 | MIT |
 | `ravu/` | [bjin/mpv-prescalers](https://github.com/bjin/mpv-prescalers) 根目录 | LGPL-3.0 |
 | `an3223/` | [AN3223/dotfiles](https://github.com/AN3223/dotfiles) 的 `.config/mpv/shaders` | LGPL-2.1 |
 
@@ -24,6 +26,41 @@ igv 那三个的 gist 地址（更新时按这个取）：
 - `SSimDownscaler.glsl` — <https://gist.github.com/igv/36508af3ffc84410fe39761d6969be10>
 - `SSimSuperRes.glsl` — <https://gist.github.com/igv/2364ffa6e81540f29cb7ab4c9bc05b6b>
 - `adaptive-sharpen.glsl` — <https://gist.github.com/igv/8a77e4eb8276753b54bb94c1c50c317e>
+
+## Anime4K 固定配置组（2026-10-25）
+
+参考用户提供的 `C:\mpv_config-2026.08.12\portable_config\mpv.conf` 的 `[Anime4K]`，并逐字核对
+[dyphire/mpv-config 的 2026.08.12 版本](https://github.com/dyphire/mpv-config/tree/b6c687b4c08144e87524a738152d07ad3735915b)
+（commit `b6c687b4c08144e87524a738152d07ad3735915b`）。该版本与核对时的上游 `master` 的这段配置一致。
+配置组固定为以下次序，不是以前下架的 Mode A，也没有 Anime4K x2 倍增网络：
+
+1. `igv/KrigBilateral.glsl`：色度重建，3 个 CHROMA pass，`//!WHEN CHROMA.w LUMA.w <`。
+2. `Anime4K/glsl/Restore/Anime4K_Restore_CNN_Soft_M.glsl`：8 个 MAIN 片元 pass，柔化修复；
+   中间纹理声明原尺寸，最终输出仍为 MAIN 原尺寸；没有 `//!WHEN`，同尺寸和缩小也会修复。
+3. `Anime4K/glsl/Restore/Anime4K_Clamp_Highlights.glsl`：2 个 MAIN 统计 pass + 1 个 PREKERNEL 钳制 pass，
+   没有门控和尺寸改写。文件描述里的 `Compute-Statistics` 不是 `//!COMPUTE`。
+4. `igv/SSimDownscaler.glsl`：复用已装箱、与参考文件 SHA-256 相同的源码；只在实际缩小时运行。
+
+新增三份均保留原名、目录和全部源文件许可声明，本地文件与上述 commit 逐字节一致：
+
+| 文件 | SHA-256 |
+|---|---|
+| `Anime4K_Restore_CNN_Soft_M.glsl` | `71C0C2ECFD1EDBA74C2B35BC469D4A16B4CC1CB81FF5D055D31AD1FA2693EEE0` |
+| `Anime4K_Clamp_Highlights.glsl` | `A2A9BF7FBC1D75D09660CA2E701E4D7FB0CF5457B94DA47E1825032FA2B3671A` |
+| `KrigBilateral.glsl` | `8A4798ABB77B83646FCE0D71985DDFD14C9806E3BE486E8FC7F5A5A8BD940CB0` |
+
+Anime4K 两份声明为 bloc97 的 MIT；KrigBilateral 的源文件声明作者 Shiandow、LGPL-3.0-or-later，
+原上游 [igv gist](https://gist.github.com/igv/a015fc885d5c22e6891820ad89555637)。新增源码约 **51.0 KB**，不引入推理运行库。
+
+设置页与播放器的手动目录追加 `anime4k`，显示为「Anime4K · 柔化修复」；不改变原有八档、自动动画识别和 ArtCNN。
+它是用户手选的固定链，不随显卡、老片源或高帧率轴改写，不额外叠加 hdeband/nlmeans；着色器总开关和 8K 保护仍优先。
+选择固定链后，显卡档位、自动识别动画与老片源修复整行收起；切回自动恢复原偏好，手动选择入口保持可达。
+柔化可能损失颗粒/细节，CNN 修复在原尺寸运行，高分辨率或高帧率时需自行关闭或恢复自动，不承诺低开销。
+
+链的亮度放大仍交给 `scale=ewa_lanczossharp`。保留项目的 `cscale=spline36` 和 `sigmoid-upscaling=yes`，
+SSimDownscaler 的 `dscale=mitchell`、`linear-downscaling=no`、`correct-downscaling=yes` 由描述符自动带入。
+**不盲抄参考文件全局的 `dscale=lanczos`**：它与本项目既有 SSimDownscaler 的前置条件冲突。
+所有选项均使用原有恢复表，切换到别的链或关闭时回到本场播放的启动基线；两后端加载随包绝对路径，不再读参考安装目录。
 
 ## 唯一一处本地改动
 

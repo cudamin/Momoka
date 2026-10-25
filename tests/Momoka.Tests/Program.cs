@@ -19,6 +19,7 @@ internal static class Program
         MpvCustomConfigTests.Register();
         AudioOutputTests.Register();
         VideoOutputTests.Register();
+        Anime4KTests.Register();
         ShaderTransactionTests.Register();
         PlaybackTrackStateTests.Register();
         SubtitleFileTests.Register();

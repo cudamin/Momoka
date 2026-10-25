@@ -126,6 +126,8 @@ GPL-2.0-or-later 处理；换内核后按文件本身的许可写。
 |---|---|
 | `shaders\ArtCNN\*.glsl` | MIT |
 | `shaders\CfL\*.glsl` | MIT |
+| `shaders\Anime4K\glsl\Restore\Anime4K_Restore_CNN_Soft_M.glsl`、`Anime4K_Clamp_Highlights.glsl` | MIT（bloc97） |
+| `shaders\igv\KrigBilateral.glsl` | LGPL-3.0-or-later（Shiandow） |
 | `shaders\igv\SSimDownscaler.glsl`、`SSimSuperRes.glsl` | LGPL-3.0-or-later |
 | `shaders\igv\adaptive-sharpen.glsl` | BSD-2-Clause |
 | `shaders\ravu\*.hook` | LGPL-3.0-or-later |

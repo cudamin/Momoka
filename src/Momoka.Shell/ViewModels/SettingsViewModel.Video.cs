@@ -166,10 +166,17 @@ public sealed partial class SettingsViewModel
         new(label, Annotate(note + " 亮度按整数 nits 保存，小数四舍五入。", option)!, HdrOptions.MinimumNits, HdrOptions.MaximumNits,
             fallback, read(), write, Save, HdrOptions.ClampNits);
 
+    private void RefreshShaderCard()
+    {
+        var section = Sections.FirstOrDefault(section => section.Title == "画质与着色器");
+        section?.UpdateRows(ShaderCard().Rows);
+    }
+
     private SettingSection ShaderCard()
     {
         var shaders = Settings.Shaders;
         var video = Settings.Video;
+        var fixedChain = ShaderGroupCatalog.Find(shaders.ManualGroup, shaders.Gpu)?.NamedId.Length is > 0;
         (string Label, GpuTier Value)[] tiers =
         [
             ("低档（核显或入门显卡）", GpuTier.Low),
@@ -181,24 +188,34 @@ public sealed partial class SettingsViewModel
             ("自动（按全屏目标选择）", ""),
             .. _shaders!.Catalog.Select(group => (group.DisplayName, group.Id))
         ];
-        return new SettingSection(VideoCategory, "画质与着色器", NextPlayback + " 预设与着色器开关相互独立。",
-        [
+        var rows = new List<SettingRow>
+        {
             Mpv("画质预设", MpvOutputOptions.QualityPresets, () => video.QualityPreset, value => video.QualityPreset = value,
                 "profile", "先应用预设，再应用视频设置，最后应用着色器链的前置参数。fast 在加载较重着色器时不保证低开销。", RefreshVideoBackend),
             Toggle("启用着色器", "默认关闭。开启后按显示器全屏目标、片源类型和显卡档位选链；拖动或全屏切换不反复换链，避免冷编译卡顿。",
-                () => shaders.Enabled, value => shaders.Enabled = value, "glsl-shaders"),
-            Choice("显卡档位", tiers, () => shaders.Gpu, value => shaders.Gpu = value,
+                () => shaders.Enabled, value => shaders.Enabled = value, "glsl-shaders")
+        };
+        // A named fixed chain does not consult the GPU/source axes. Hide the complete ineffective rows,
+        // retaining their stored values and the manual selector that restores the automatic choices.
+        if (!fixedChain)
+            rows.Add(Choice("显卡档位", tiers, () => shaders.Gpu, value => shaders.Gpu = value,
                 "决定链的复杂度，不是自动测出的性能评级。集成管线固定 D3D11，动画 CNN 链较重；"
-                    + "独占模式可选择其他图形接口。卡顿时先降低档位或关闭着色器。"),
-            Choice("手动指定档位", chains, () => shaders.ManualGroup, value => shaders.ManualGroup = value,
-                "这里保存长期偏好；播放中的临时对比请用播放器的着色器菜单，不会改写这里。"),
-            Toggle("自动识别动画", "按 Emby 类型与标签匹配当前关键词：" + string.Join("、", shaders.AnimeKeywords)
+                    + "独占模式可选择其他图形接口。卡顿时先降低档位或关闭着色器。"));
+        rows.Add(Pick("手动指定档位",
+            "这里保存长期偏好；Anime4K 为固定柔化修复链，不替换自动 ArtCNN。高分辨率或高帧率可能卡顿；"
+                + "播放中的临时对比请用播放器着色器菜单，不会改写这里。",
+            chains, () => shaders.ManualGroup, value => shaders.ManualGroup = value,
+            EqualityComparer<string>.Default, after: RefreshShaderCard));
+        if (!fixedChain)
+        {
+            rows.Add(Toggle("自动识别动画", "按 Emby 类型与标签匹配当前关键词：" + string.Join("、", shaders.AnimeKeywords)
                 + "。命中后使用动画链，手动指定的档位优先。",
-                () => shaders.AutoAnimeProfile, value => shaders.AutoAnimeProfile = value),
-            Toggle("老片源修复", "高度不超过 576 的片源增加 hdeband；中高档再增加降噪。会代替上方内置去色带，也可能损失颗粒与细节。",
-                () => shaders.RestoreVintageSources, value => shaders.RestoreVintageSources = value),
-            Toggle("8K 片源关闭着色器", "宽 ≥7000 或高 ≥3000 时不自动加载任何链，避免 GPU 过载。",
-                () => shaders.DisableForUltraHighRes, value => shaders.DisableForUltraHighRes = value)
-        ]);
+                () => shaders.AutoAnimeProfile, value => shaders.AutoAnimeProfile = value));
+            rows.Add(Toggle("老片源修复", "高度不超过 576 的片源增加 hdeband；中高档再增加降噪。会代替上方内置去色带，也可能损失颗粒与细节。",
+                () => shaders.RestoreVintageSources, value => shaders.RestoreVintageSources = value));
+        }
+        rows.Add(Toggle("8K 片源关闭着色器", "宽 ≥7000 或高 ≥3000 时不自动加载任何链，避免 GPU 过载。",
+            () => shaders.DisableForUltraHighRes, value => shaders.DisableForUltraHighRes = value));
+        return new SettingSection(VideoCategory, "画质与着色器", NextPlayback + " 预设与着色器开关相互独立。", rows);
     }
 }

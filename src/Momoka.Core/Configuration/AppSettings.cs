@@ -1173,8 +1173,8 @@ public sealed class ShaderAutomationSettings
         var measure = Mpv.ShaderTier.Measure(sourceWidth, sourceHeight, outputWidth, outputHeight, current);
 
         // A hand-picked chain names the row itself, so the 动画 detection is not consulted for it — overriding
-        // the pick and then having the metadata override the override is not an override. 老片源 and 高帧率 still
-        // apply: both are about what the file is, which picking a row does not change.
+        // the pick and then having the metadata override the override is not an override. 老片源 and 高帧率
+        // still apply to automatic cells; explicitly named fixed configurations keep their own chain.
         var picked = Mpv.ShaderGroupCatalog.Find(ManualGroup, Gpu, vintage, fastMotion);
         var group = picked ?? Mpv.ShaderGroupCatalog.Resolve(animated, measure.Tier, Gpu, vintage, fastMotion);
 
@@ -1186,7 +1186,8 @@ public sealed class ShaderAutomationSettings
         if (group.FastMotion && group.Animated && group.Tier != Mpv.UpscaleTier.Shrink)
             line += $" · 高帧率片源（超过 {Mpv.ShaderTier.FastMotionFps:0} fps），已换成便宜的链";
 
-        if (picked is not null) line = $"手动指定 · {line}";
+        if (picked is not null)
+            line = group.NamedId.Length > 0 ? $"手动指定 · {group.Name} · {line}" : $"手动指定 · {line}";
 
         return (group, line, measure);
     }

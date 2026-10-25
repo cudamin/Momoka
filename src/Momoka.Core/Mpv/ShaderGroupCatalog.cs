@@ -9,7 +9,8 @@ namespace Momoka.Mpv;
 /// Eight rows and three columns, doubled by the 老片源 axis and again by the 高帧率 axis. 显卡档 is a property
 /// of the machine, so it selects a column rather than adding rows to the menus; the other two are properties
 /// of the file, so they do not appear in the menus at all. The eight the user can see and pick from are
-/// <see cref="For"/>, and their ids change with none of those three things.
+/// <see cref="For"/>, and their ids change with none of those three things. Explicit fixed configurations
+/// are appended to those choices, but are never candidates for automatic selection.
 /// </para>
 /// <para>
 /// <b>This file says which shaders each cell uses; <see cref="ShaderLibrary"/> says what each shader is.</b>
@@ -279,23 +280,49 @@ public static class ShaderGroupCatalog
     }
 
     /// <summary>
-    /// The eight chains a playback of this kind of file on this machine can use. What the settings dropdown
-    /// and the player's 着色器 submenu are projections of — there is no second list of chains anywhere.
+    /// The eight automatic cells plus explicit fixed configurations. Both settings and player menus use
+    /// this same list; fixed configurations retain their own chain regardless of GPU, source age or fps.
     /// </summary>
     public static IReadOnlyList<ShaderGroup> For(GpuTier gpu, bool vintage = false, bool fastMotion = false) =>
-        Columns[Enum.IsDefined(gpu) ? (int)gpu : 0][Kind(vintage, fastMotion)];
+        Choices[Enum.IsDefined(gpu) ? (int)gpu : 0][Kind(vintage, fastMotion)];
 
-    /// <summary>All ninety-six chains. For the tests and for <see cref="ShaderFiles"/>, not for a menu.</summary>
+    private static readonly ShaderGroup[] NamedGroups = [MakeAnime4K()];
+
+    private static ShaderGroup MakeAnime4K()
+    {
+        // Pinned dyphire/mpv-config b6c687b [Anime4K], byte-identical to the provided 2026.08.12 files.
+        // Keep Krig -> Soft M -> Clamp -> SSim, including Soft before Clamp within MAIN. It restores at
+        // source size; scale finishes enlargement. SSim's prerequisites come from its descriptor rather
+        // than copying the reference's incompatible global dscale=lanczos. No automatic repair prefixes.
+        ShaderDescriptor[] shaders =
+        [
+            ShaderLibrary.KrigBilateral, ShaderLibrary.Anime4KRestoreSoftM,
+            ShaderLibrary.Anime4KClampHighlights, ShaderLibrary.SsimDownscaler
+        ];
+        return new ShaderGroup(true, UpscaleTier.Shrink, false, false, shaders, OptionsFor(shaders))
+        {
+            NamedId = "anime4k",
+            NamedName = "Anime4K · 柔化修复"
+        };
+    }
+
+    private static readonly ShaderGroup[][][] Choices =
+    [
+        .. Columns.Select(column => column.Select(chains => chains.Concat(NamedGroups).ToArray()).ToArray())
+    ];
+
+    /// <summary>All automatic variants and each fixed configuration once, for rules and <see cref="ShaderFiles"/>.</summary>
     public static IReadOnlyList<ShaderGroup> All { get; } =
-        [.. Columns.SelectMany(column => column.SelectMany(chains => chains))];
+        [.. Columns.SelectMany(column => column.SelectMany(chains => chains)), .. NamedGroups];
 
-    /// <summary>The eight ids, in menu order. Stable across 显卡档, 老片源 and 高帧率 — see <see cref="ShaderGroup.Id"/>.</summary>
-    public static IReadOnlyList<string> Ids { get; } = [.. Columns[0][0].Select(group => group.Id)];
+    /// <summary>All selectable ids, in menu order. Stable across GPU/source axes.</summary>
+    public static IReadOnlyList<string> Ids { get; } = [.. Choices[0][0].Select(group => group.Id)];
 
     /// <summary>The chain for one cell.</summary>
     public static ShaderGroup Resolve(
         bool animated, UpscaleTier tier, GpuTier gpu, bool vintage = false, bool fastMotion = false) =>
-        For(gpu, vintage, fastMotion).First(group => group.Animated == animated && group.Tier == tier);
+        Columns[Enum.IsDefined(gpu) ? (int)gpu : 0][Kind(vintage, fastMotion)]
+            .First(group => group.Animated == animated && group.Tier == tier);
 
     /// <summary>
     /// The chain a stored id names for this machine and this file, or null for an empty id or one this table
