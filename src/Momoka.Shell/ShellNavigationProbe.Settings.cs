@@ -929,6 +929,8 @@ internal sealed partial class ShellNavigationProbe
                 "服务器页没有按设置画出聚合模式开关");
             Require(page.ViewModel.AggregateNote.Contains("同时在线", StringComparison.Ordinal),
                 $"聚合模式开着的说明不对：{page.ViewModel.AggregateNote}");
+            Require(page.ViewModel.NoteVisibility == Visibility.Collapsed,
+                "聚合模式开着的时候，开关下面那行说明还占着地方");
             Require(page.ViewModel.Subheading?.Contains("2 个账号在线", StringComparison.Ordinal) == true,
                 $"页头没有写清两个账号同时在线：{page.ViewModel.Subheading}");
             Require(page.ViewModel.Servers.SelectMany(server => server.Accounts).All(account => account.IsConnected),
@@ -950,7 +952,8 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1100, 900);
             await LayoutAsync(page);
 
-            // B 的首账号离线、第二个在线；A 是默认。按钮真调用绑定的命令，不只核对选择表达式。
+            // B 的首账号离线、第二个在线；A 是默认。卡片首行写的必须是「最该被点的那个」，按钮真调用绑定的
+            // 命令，不只核对选择表达式。
             var b = fixture.Settings.Servers[1];
             var bOnline = b.Accounts.Single();
             b.Accounts.Insert(0, new AccountProfile { Username = "离线的首账号", UserId = "offline-b" });
@@ -958,12 +961,16 @@ internal sealed partial class ShellNavigationProbe
             await page.ViewModel.ReloadAsync();
             await LayoutAsync(page);
             var row = page.ViewModel.Servers.Single(server => server.Profile.Id == b.Id);
+            Require(ReferenceEquals(row.PrimaryAccount?.Account, bOnline),
+                "服务器卡片头上写的是离线账号，而不是这台服务器上在线的那个");
+            Require(row.Others.Count == 1, $"离线账号没有排到卡片下面的账号行里（{row.Others.Count} 行）");
+            await LayoutAsync(page);
+            await SaveRenderAsync(page, "servers-summary-multi-account-render.png");
             var login = Descendants(page).OfType<Button>().Single(button =>
-                ReferenceEquals(button.Command, page.ViewModel.LoginServerCommand) && ReferenceEquals(button.CommandParameter, row));
+                ReferenceEquals(button.Command, page.ViewModel.LoginPrimaryCommand) && ReferenceEquals(button.CommandParameter, row));
             ((IInvokeProvider)new ButtonAutomationPeer(login).GetPattern(PatternInterface.Invoke)).Invoke();
-            Require(fixture.Actions.SwitchedProfile?.Account == bOnline,
-                "服务器行按钮选了 B 的离线首账号而非在线账号");
-            fixture.Session.SelectSource(fixture.Session.Sources.Single(source => source.AccountProfileId == bOnline.Id));
+            Require(ReferenceEquals(fixture.Session.Account, bOnline),
+                "服务器卡片上的登录按钮进的是离线账号，而不是在线的那个");
             b.Accounts.RemoveAt(0);
             await page.ViewModel.ReloadAsync();
 
@@ -980,11 +987,27 @@ internal sealed partial class ShellNavigationProbe
             Require(first.AutoConnect != false, "关掉聚合模式把下线账号的自动连接关掉了");
             Require(page.ViewModel.Subheading?.Contains("1 个账号在线", StringComparison.Ordinal) == true,
                 $"关掉聚合模式后页头没有改成一个账号：{page.ViewModel.Subheading}");
+            Require(page.ViewModel.NoteVisibility == Visibility.Visible,
+                "聚合模式关着的时候，开关下面那行说明不见了");
+            Require(page.ViewModel.Servers.All(server => server.OfflineVisibility == Visibility.Collapsed),
+                "独占模式下还画着下线按钮 —— 那一档里下线就是退出登录，是另一件事");
+            await LayoutAsync(page);
+            await SaveRenderAsync(page, "servers-summary-exclusive-render.png");
 
-            // 再打开：不自动重连别的账号，但开关状态写回设置，下一次登录就可以并存。
+            // 再打开：把已保存的账号都接回来。以前这里什么也不做，用户还得回列表一台台点「登录账号」，
+            // 开关看着像没生效（2026-10-25 判为缺陷）。
             page.ViewModel.AggregateMode = true;
             Require(fixture.Settings.AggregateMode, "重新打开聚合模式没有写进设置");
-            Require(fixture.Session.Sources.Count == 1, "打开聚合模式时不应擅自重连其他账号");
+            await UntilAsync(() => !page.ViewModel.Busy && fixture.Session.Sources.Count == 2);
+            Require(fixture.Session.Sources.Count == 2,
+                $"打开聚合模式没有把已保存的账号接回来（{fixture.Session.Sources.Count} 个在线）");
+            Require(fixture.Session.Sources.Any(source => source.AccountProfileId == first.Id),
+                "接回来的不是那台离线服务器上的账号");
+            await LayoutAsync(page);
+            Require(page.ViewModel.Servers.SelectMany(server => server.Accounts).All(account => account.IsConnected),
+                "打开聚合模式之后卡片上还写着有账号没连上");
+            Require(page.ViewModel.NoteVisibility == Visibility.Collapsed,
+                "打开聚合模式之后那行说明没有收起来");
         }
         finally
         {

@@ -917,14 +917,19 @@ internal static class IdentityRegressionTests
             Assert.True(fixture.B.Account.HasSavedToken && fixture.B.Account.HasSavedPassword);
         });
 
-        Case("聚合模式：打开时不擅自重连其他账号，关掉时只留当前一个来源", async () =>
+        Case("聚合模式：打开后把已保存的账号都接回来，关掉时只留当前一个来源", async () =>
         {
             using var fixture = new SessionFixture(aggregateMode: false);
             await fixture.Restore(fixture.A);
+            Assert.Equal(1, fixture.Session.Sources.Count);
 
+            // 打开聚合模式：会话层照旧只做收口（这里没有要收的），真正的「都接回来」是 RestoreAllAsync ——
+            // 服务器页拨开关时调的就是它。以前开关只改设置，用户还得回列表一台台点「登录账号」。
             fixture.Settings.AggregateMode = true;
             Assert.Equal(0, fixture.Session.ApplyAggregateMode());
-            Assert.Equal(1, fixture.Session.Sources.Count);
+            Assert.Equal(2, fixture.Session.RestorableAccounts);
+            Assert.Equal(2, await fixture.Session.RestoreAllAsync(None));
+            Assert.Equal(2, fixture.Session.Sources.Count);
 
             await fixture.Session.SignInAsync(fixture.B.Server, fixture.B.Account, "password-b", "b", true, None);
             Assert.Equal(2, fixture.Session.Sources.Count);
@@ -937,6 +942,28 @@ internal static class IdentityRegressionTests
             Assert.True(fixture.A.Account.HasSavedToken && fixture.A.Account.HasSavedPassword);
             Assert.True(fixture.A.Account.AutoConnect != false);
             Assert.Equal(0, fixture.SignedOut);
+        });
+
+        Case("聚合模式：下线只摘掉在线来源，令牌、密码与自动连接都留着", async () =>
+        {
+            using var fixture = new SessionFixture();
+            await fixture.Restore(fixture.A);
+            await fixture.Restore(fixture.B);
+            Assert.Equal(2, fixture.Session.Sources.Count);
+
+            Assert.True(fixture.Session.TakeOffline(fixture.A.Server, fixture.A.Account));
+            Assert.Equal(1, fixture.Session.Sources.Count);
+            Assert.Equal(0, fixture.SignedOut, "下线不是退出登录");
+            Assert.True(fixture.A.Account.HasSavedToken && fixture.A.Account.HasSavedPassword,
+                "下线不该动已保存的凭据");
+            Assert.True(fixture.A.Account.AutoConnect != false, "下线不该关掉自动连接");
+
+            // 点「登录」走的就是这条路：令牌还在，不需要再输密码。
+            Assert.True(await fixture.Session.TryRestoreAsync(fixture.A.Server, fixture.A.Account, None));
+            Assert.Equal(2, fixture.Session.Sources.Count);
+
+            // 已经不在线的账号没有「下线」可言，也不该重复通知。
+            Assert.False(fixture.Session.TakeOffline(new ServerProfile { Name = "没登录过的" }, fixture.A.Account));
         });
     }
 

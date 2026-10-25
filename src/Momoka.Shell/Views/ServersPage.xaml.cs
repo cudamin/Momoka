@@ -4,6 +4,7 @@ using Momoka.Services;
 using Momoka.Shell.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
@@ -136,6 +137,10 @@ public sealed partial class ServersPage : Page, IShellContent
     /// Counts item containers. <c>Content</c> rather than <c>DataContext</c>: everything inside a
     /// realised row inherits the row as its data context, including the <c>ContentPresenter</c> in every
     /// button's own template, so a count by data context reports the number of controls in a card.
+    /// <para>
+    /// 卡片首行那个账号不在容器里 —— 它是直接写在服务器名旁边的（2026-10-25 用户令：服务器名、账号、类型
+    /// 放到一行里），所以它靠标识单独数一个，否则「绑了几个、画了几个」这一对数字从此对不上。
+    /// </para>
     /// </summary>
     private static void Count(DependencyObject node, ref int servers, ref int accounts)
     {
@@ -143,6 +148,10 @@ public sealed partial class ServersPage : Page, IShellContent
         {
             if (presenter.Content is ServerRow) servers++;
             else if (presenter.Content is AccountRow) accounts++;
+        }
+        else if (node is TextBlock && AutomationProperties.GetAutomationId(node) == "ServerPrimaryAccount")
+        {
+            accounts++;
         }
 
         var children = VisualTreeHelper.GetChildrenCount(node);

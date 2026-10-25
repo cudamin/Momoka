@@ -103,15 +103,44 @@ public sealed class EmbySession : IDisposable
     }
 
     /// <summary>
-    /// 聚合模式拨完之后立刻收口：关掉时留下当前（没有当前就留第一个）在线来源，其余退出但保留已保存的
-    /// 令牌、密码与自动连接。返回这次退出了几个来源；打开聚合模式什么也不做，其他账号仍由用户自己登录。
+    /// 聚合模式关掉之后立刻收口：留下当前（没有当前就留第一个）在线来源，其余退出但保留已保存的令牌、
+    /// 密码与自动连接。返回这次退出了几个来源。
+    /// <para>
+    /// 打开聚合模式不走这里 —— 那一头要的是「把已保存的账号都接回来」，是 <see cref="RestoreAllAsync"/>，
+    /// 因为它要发网络请求、要能报出谁没连上，不是一次同步收口。
+    /// </para>
     /// </summary>
     public int ApplyAggregateMode()
     {
         var removed = PruneOthers();
-        // 来源数没变（例如打开模式或只有一个在线账号）时，登录卡的动作语义仍然变了。
+        // 来源数没变（例如只有一个在线账号）时，登录卡的动作语义仍然变了。
         NotifySourcesChanged();
         return removed;
+    }
+
+    /// <summary>
+    /// 能自动登录的账号数：与 <see cref="RestoreAllAsync"/> 用的是同一套筛选，用来告诉用户「本该有几个上线」。
+    /// 有保存的令牌，或者明确允许自动连接且存了密码 —— 关掉自动连接的账号不算。
+    /// </summary>
+    public int RestorableAccounts => _settings.Servers.Sum(server => server.Accounts.Count(CanAutoConnect));
+
+    private static bool CanAutoConnect(AccountProfile account) =>
+        account.AutoConnect != false && (account.HasSavedToken || account.AutoConnect == true && account.HasSavedPassword);
+
+    /// <summary>
+    /// 聚合模式下把一台服务器上的某个账号临时下线。只撤掉这次会话，令牌、密码与自动连接都留着 ——
+    /// 和「退出登录」不是一回事：退出是用户说别再自动进来了，下线只是这一会儿不想让它占着一个在线来源。
+    /// 返回是否真的下线了一个在线来源。
+    /// </summary>
+    public bool TakeOffline(ServerProfile server, AccountProfile account)
+    {
+        var key = EmbySessionScope.CreateKey(server.Id, account.Id);
+        lock (_lifecycleGate)
+        {
+            if (_disposed || !_sources.ContainsKey(key)) return false;
+        }
+        EndSource(key, "已下线", explicitSignOut: false, keepCredentials: true);
+        return true;
     }
 
     private bool Aggregate => _settings.AggregateMode;
@@ -258,8 +287,7 @@ public sealed class EmbySession : IDisposable
         var lastServer = _settings.LastServerId;
         var lastAccount = _settings.LastAccountId;
         var accounts = _settings.Servers.SelectMany(server => server.Accounts
-            .Where(account => account.AutoConnect != false && (account.HasSavedToken
-                || account.AutoConnect == true && account.HasSavedPassword))
+            .Where(CanAutoConnect)
             .Select(account => (Server: server, Account: account))).ToArray();
 
         if (!Aggregate)

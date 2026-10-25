@@ -47,12 +47,19 @@ public sealed partial class ServersViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AggregateNote))]
+    [NotifyPropertyChangedFor(nameof(NoteVisibility))]
     public partial bool AggregateMode { get; set; }
 
     /// <summary>当前这一档对用户意味着什么；开关旁边那一行小字。</summary>
     public string AggregateNote => AggregateMode
         ? "多台服务器、多个账号可以同时在线；主页、搜索、收藏与版本选择覆盖全部在线账号。"
         : "同一时间只保留一台服务器、一个账号在线；登录另一台或另一个账号时替换当前来源，保存的凭据不删除。";
+
+    /// <summary>
+    /// 说明只在关着的时候占地方：开着的那一档本身就是结论，再摆一句解释只是把一行工具栏撑成两行
+    /// （用户 2026-10-25：「开启…时候下方的说明要隐藏」）。
+    /// </summary>
+    public Visibility NoteVisibility => Show(!AggregateMode);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyVisibility))]
@@ -137,7 +144,7 @@ public sealed partial class ServersViewModel : PageViewModel
 
         Servers.Clear();
         foreach (var server in Settings.Servers)
-            Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account, sources));
+            Servers.Add(new ServerRow(this, server, ReferenceEquals(server, current), account, sources, AggregateMode));
 
         ShowEmpty = Servers.Count == 0;
         Subheading = Servers.Count == 0
@@ -149,8 +156,13 @@ public sealed partial class ServersViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 拨了聚合模式：先写设置，再让会话按新档位收口，最后重读一遍行上的在线状态。关掉时如果收掉了别的
+    /// 拨了聚合模式。关掉：先写设置，再让会话按新档位收口，最后重读一遍行上的在线状态；如果收掉了别的
     /// 在线来源，说一句它们只是下线、保存的账号和密码都还在，免得看起来像被删了。
+    /// <para>
+    /// 打开：把已保存的账号都接回来。这一条以前是空的 —— 开关拨过去以后什么也不发生，用户还得回这一页
+    /// 一台台点「登录账号」，于是「打开聚合模式」看着像没生效（2026-10-25 判为缺陷）。恢复要发网络请求，
+    /// 所以是异步的，进度条就挂在页面顶上。
+    /// </para>
     /// </summary>
     partial void OnAggregateModeChanged(bool value)
     {
@@ -158,21 +170,94 @@ public sealed partial class ServersViewModel : PageViewModel
 
         Settings.AggregateMode = value;
         _settings!.Save();
-        var removed = _session!.ApplyAggregateMode();
-        Refresh();
 
-        if (removed > 0)
-            Notify("已关闭聚合模式", $"其余 {removed} 个在线账号已下线；服务器、账号和保存的凭据都还在。",
-                InfoBarSeverity.Informational);
+        if (!value)
+        {
+            var removed = _session!.ApplyAggregateMode();
+            Refresh();
+
+            if (removed > 0)
+                Notify("已关闭聚合模式", $"其余 {removed} 个在线账号已下线；服务器、账号和保存的凭据都还在。",
+                    InfoBarSeverity.Informational);
+            return;
+        }
+
+        _ = RestoreSavedAccountsAsync();
     }
 
+    /// <summary>
+    /// 打开聚合模式之后把能自动登录的账号全接回来。一个都接不上也算成功 —— 这一页本来就可以什么都没有，
+    /// 提示说清楚「之后登录的账号会并存」就够了。
+    /// </summary>
+    private async Task RestoreSavedAccountsAsync()
+    {
+        if (_session is null) return;
+
+        var token = BeginLoad();
+        try
+        {
+            var online = await _session.RestoreAllAsync(token).ConfigureAwait(true);
+            if (!IsCurrent(token)) return;
+
+            Refresh();
+            var restorable = _session.RestorableAccounts;
+            if (restorable > online)
+                Notify("已开启聚合模式",
+                    $"{online} 个账号在线；{restorable - online} 个没能自动登录，可以在列表里手动登录。",
+                    InfoBarSeverity.Warning);
+            else if (online > 1)
+                Notify("已开启聚合模式", $"{online} 个账号同时在线。", InfoBarSeverity.Success);
+            else
+                Notify("已开启聚合模式", "之后登录的其他账号会与当前账号同时在线，不会再替换掉它。",
+                    InfoBarSeverity.Informational);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception error)
+        {
+            Log.Warn(Category, "打开聚合模式后自动登录账号失败", error);
+            if (IsCurrent(token)) Report("自动登录账号失败", error);
+        }
+        finally
+        {
+            EndLoad(token);
+        }
+    }
+
+    /// <summary>
+    /// 工具栏那颗「新增账号」：有服务器就加到当前这一台上，一台都没有才退回填地址那一步 —— 那一步里也有
+    /// 「已保存的服务器」菜单，所以两台服务器之间换着加账号不用先回列表。
+    /// </summary>
     [RelayCommand]
-    private void AddServer() => _actions?.OpenSignIn();
+    private void NewAccount()
+    {
+        if (!Attached) return;
+
+        var server = _session?.Server ?? Settings.Servers.FirstOrDefault();
+        if (server is null) _actions?.OpenSignIn();
+        else _actions?.OpenSignIn(server, newAccount: true);
+    }
 
     [RelayCommand]
     private void AddAccount(ServerRow? row)
     {
         if (row is not null) _actions?.OpenSignIn(row.Profile, newAccount: true);
+    }
+
+    /// <summary>
+    /// 聚合模式下的「下线」：把这个账号从在线来源里摘掉，账号本身、保存的令牌和密码都留着，点「登录」就回来。
+    /// 和「退出登录」不是一回事 —— 后者会清掉令牌并关掉自动连接。
+    /// </summary>
+    [RelayCommand]
+    private void TakeOffline(AccountRow? row)
+    {
+        if (!Attached || row is null) return;
+        if (!_session!.TakeOffline(row.Server, row.Account)) return;
+
+        Refresh();
+        Notify("已下线", $"{row.Username} 已下线；账号和保存的凭据都还在，点「登录」就能回来。",
+            InfoBarSeverity.Informational);
     }
 
     /// <summary>需求 1：find servers on this network without anyone typing an address.</summary>
@@ -298,14 +383,22 @@ public sealed partial class ServersViewModel : PageViewModel
         }
     }
 
-    /// <summary>服务器入口优先回到已在线账号，而不是随便挑该服第一个离线账号。</summary>
+    /// <summary>
+    /// 卡片头上那颗「登录」：认的就是头上写着的那个账号，写的是谁就登谁。一个账号都没有时直接去登录页，
+    /// 省得用户先想「这里为什么没反应」。
+    /// </summary>
     [RelayCommand]
-    private void LoginServer(ServerRow? row)
+    private void LoginPrimary(ServerRow? row)
     {
         if (!Attached || row is null) return;
 
-        var account = _session!.PreferredAccount(row.Profile);
-        _ = _actions!.SwitchProfileAsync(row.Profile, account);
+        if (row.PrimaryAccount is not { } account)
+        {
+            _actions?.OpenSignIn(row.Profile, newAccount: true);
+            return;
+        }
+
+        LoginAccount(account);
     }
 
     [RelayCommand]
