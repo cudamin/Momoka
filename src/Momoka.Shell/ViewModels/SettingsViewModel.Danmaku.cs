@@ -31,6 +31,8 @@ public sealed partial class SettingsViewModel
                 () => settings.Show, value => settings.Show = value, after: RefreshDanmakuRows));
             if (settings.Show)
             {
+                rows.Add(Toggle("显示弹幕输入栏", "在播放器顶部影片标题右侧显示输入栏；关闭不影响观看弹幕。",
+                    () => settings.ShowInput, value => settings.ShowInput = value, after: RefreshDanmakuRows));
                 rows.Add(Slider("不透明度（%）", 10, 100, 5, () => settings.Opacity, value => settings.Opacity = value, after: ApplyDanmakuSettings));
                 rows.Add(Slider("字号", 20, 64, 2, () => settings.FontSize, value => settings.FontSize = value,
                     "按画面高度等比例缩放，独立于字幕字号。", after: ApplyDanmakuSettings));

@@ -14,8 +14,10 @@ public static class DandanPlayMatching
         && item.ParentIndexNumber is not 0 && item.IndexNumber is > 0
             ? item.IndexNumber.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
 
-    public static DandanPlayEpisode? UniqueMatch(EmbyItem item, IReadOnlyList<DandanPlayEpisode> candidates)
+    public static DandanPlayEpisode? UniqueMatch(EmbyItem item, IReadOnlyList<DandanPlayEpisode> candidates, bool hasMore = false)
     {
+        // 官方 hasMore 或本地截断表示还有未见候选，当前页的一项不能证明唯一。
+        if (hasMore) return null;
         // 一套 SeriesName 经常覆盖多季；相同标题的 S02E01 不能悄悄挂到第一季第一集。
         if (item.Type == EmbyItemType.Episode && (item.ParentIndexNumber is null or 0 or > 1 || item.IndexNumber is not > 0)) return null;
         var title = Normalize(Title(item));

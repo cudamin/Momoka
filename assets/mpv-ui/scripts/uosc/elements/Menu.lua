@@ -32,6 +32,7 @@ local Menu = class(Element)
 ---@param callback MenuCallback
 ---@param opts? MenuOptions
 function Menu:open(data, callback, opts)
+	Elements:maybe('danmaku_input', 'blur')
 	local open_menu = Menu:is_open()
 	if open_menu then
 		open_menu.is_being_replaced = true

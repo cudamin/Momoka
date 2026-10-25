@@ -643,9 +643,14 @@
                  `scale_fullscreen=1.3` 放大（main.lua 的 state.scale），size 40→52、字号 20→26、margin 5→6
                  —— 于是全屏档返回键玻璃 40 见方、让 6，标题框 40 高，第二行上沿 47、高 31，字号 26/16.5、
                  内边距 13（照写 ApplyTitleScale，挂在 ApplyFullscreen 上）。窗口档就是本段写的这些数。 -->
+            <Grid x:Name="TitleAndDanmaku" Grid.Column="1" SizeChanged="OnDanmakuTitleSizeChanged">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="PlayerTitleColumn" Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
             <Border
                 x:Name="TitleBox"
-                Grid.Column="1"
+                Grid.Column="0"
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top"
                 Margin="1,5,0,0"
@@ -663,6 +668,29 @@
                     Text="{x:Bind ViewModel.Title, Mode=OneWay}"
                     TextTrimming="CharacterEllipsis" />
             </Border>
+                <StackPanel x:Name="DanmakuInputBar" Grid.Column="1" Orientation="Horizontal" Spacing="4"
+                    HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,5,4,0"
+                    Visibility="{x:Bind ViewModel.DanmakuInputVisibility, Mode=OneWay}"
+                    GotFocus="OnDanmakuInputGotFocus" LostFocus="OnDanmakuInputLostFocus">
+                    <TextBox x:Name="DanmakuInputBox" Width="208" MinWidth="40" Height="30" MinHeight="30" Padding="8,3"
+                        FontSize="{StaticResource EgBodyFontSize}" MaxLength="100"
+                        Background="{StaticResource PlayerGlassTopBrush}" Foreground="{StaticResource PlayerInkBrush}"
+                        Text="{x:Bind ViewModel.DanmakuDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        PlaceholderText="{x:Bind ViewModel.DanmakuInputPlaceholder, Mode=OneWay}"
+                        KeyDown="OnDanmakuInputKeyDown" TextCompositionStarted="OnDanmakuCompositionStarted"
+                        TextCompositionEnded="OnDanmakuCompositionEnded" AutomationProperties.Name="弹幕内容" />
+                    <Button x:Name="SendDanmakuButton" Height="30" MinWidth="44" Padding="8,0"
+                        Content="{x:Bind ViewModel.DanmakuSendButtonText, Mode=OneWay}"
+                        Command="{x:Bind ViewModel.SendDanmakuCommand}"
+                        IsEnabled="{x:Bind ViewModel.DanmakuSendEnabled, Mode=OneWay}"
+                        Visibility="{x:Bind ViewModel.DanmakuSendVisibility, Mode=OneWay}"
+                        AutomationProperties.Name="发送弹幕" />
+                </StackPanel>
+                <TextBlock x:Name="DanmakuInputStatus" Grid.Column="1" Margin="8,40,8,0" MaxWidth="320"
+                    VerticalAlignment="Top" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}"
+                    Text="{x:Bind ViewModel.DanmakuSendStatus, Mode=OneWay}"
+                    Visibility="{x:Bind ViewModel.DanmakuInputVisibility, Mode=OneWay}" />
+            </Grid>
 
 
             <!-- 右上角这一栏：**置顶、最小化、最大化、关闭**（用户令 2026-09-27 傍晚第三批「把统计的

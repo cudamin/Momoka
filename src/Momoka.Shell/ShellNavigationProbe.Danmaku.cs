@@ -61,6 +61,11 @@ internal sealed partial class ShellNavigationProbe
             Require(fixture.Settings.Danmaku.Opacity == 55, "真实滑块未写回偏好");
             await SaveProbeScreenAsync($"settings-danmaku-on-{width}-screen.png");
 
+            var inputToggle = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "显示弹幕输入栏");
+            Require(inputToggle.IsOn, "输入栏没有默认开启");
+            inputToggle.IsOn = false;
+            await LayoutAsync(page);
+            Require(!fixture.Settings.Danmaku.ShowInput && fixture.Settings.Danmaku.Show, "关闭输入栏影响了弹幕显示或未保存偏好");
             var show = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "显示弹幕");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(show).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => page.IsContentMotionSettled);
@@ -68,6 +73,7 @@ internal sealed partial class ShellNavigationProbe
             ((IToggleProvider)new ToggleSwitchAutomationPeer(show).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
+            Require(!fixture.Settings.Danmaku.ShowInput && card.Rows.OfType<SettingToggleRow>().Any(row => row.Label == "显示弹幕输入栏"), "恢复弹幕未保留输入栏偏好或未恢复开关");
             Require(card.Rows.OfType<SettingSliderRow>().Single(row => row.Label == "不透明度（%）").Value == 55, "恢复显示时滑块不是原值");
             enabled.IsOn = false;
             await UntilAsync(() => page.IsContentMotionSettled);

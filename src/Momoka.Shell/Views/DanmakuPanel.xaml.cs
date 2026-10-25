@@ -113,7 +113,7 @@ public sealed partial class DanmakuPanel : UserControl
             var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, EpisodeBox.Text.Trim()).ConfigureAwait(true);
             if (request != _searchRequest || !Current()) return;
             _results.Clear();
-            foreach (var match in matches) _results.Add(match);
+            foreach (var match in matches.Episodes) _results.Add(match);
             Results.Visibility = _results.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         }
         finally { if (!_closed && request == _searchRequest) SearchButton.IsEnabled = true; }

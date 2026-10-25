@@ -211,7 +211,14 @@ function TopBar:on_options()
 	self:update_dimensions()
 end
 
+function TopBar:get_visibility()
+	if Elements:v('danmaku_input', 'focused', false) then return 1 end
+	return Element.get_visibility(self)
+end
+
 function TopBar:render()
+	local input = Elements.danmaku_input
+	if input then input.geometry = nil end
 	local visibility = self:get_visibility()
 	if visibility <= 0 then return end
 	local ass = assdraw.ass_new()
@@ -219,6 +226,8 @@ function TopBar:render()
 	-- under low proximity options, so we can't use it for rendering.
 	local ax, ay, bx, by = self.ax, self.ay, self.bx, self.ay + self.size
 	local margin = math.floor((self.size - self.font_size) / 4)
+
+	if input then input:outside_zone() end
 
 	-- Window controls
 	if options.top_bar_controls then
@@ -365,7 +374,7 @@ function TopBar:render()
 		end
 
 		-- Skip rendering titles if there's not enough horizontal space
-		if title_bx - title_ax > self.font_size * 3 and options.top_bar_title ~= 'no' then
+		if title_bx > title_ax and options.top_bar_title ~= 'no' then
 			-- Main title
 			if main_title then
 				local opts = {
@@ -378,11 +387,20 @@ function TopBar:render()
 					clip = string.format('\\clip(%d, %d, %d, %d)', self.ax, ay, title_bx, by),
 				}
 				local rect_ideal_width = round(text_width(main_title, opts) + padding * 2)
-				local rect_width = math.min(rect_ideal_width, title_bx - title_ax)
-				local ax = left_aligned and title_bx - rect_width or title_ax
+				local input_gap = round(8 * state.scale)
+				local title_room = title_bx - title_ax
+				local title_minimum = math.min(self.font_size * 3, title_room * 0.3)
+				local input_width = input and input:preferred_width(math.max(0, title_room - title_minimum - input_gap)) or 0
+				local main_bx = title_bx - (input_width > 0 and input_width + input_gap or 0)
+				local rect_width = math.min(rect_ideal_width, main_bx - title_ax)
+				local ax = left_aligned and main_bx - rect_width or title_ax
 				-- MOMOKA[topbar-back-glass] — 标题玻璃下沿同样让进 margin（与参考项目「上下各让 margin」一条）。
 				local by = by - margin
 				local title_rect = {ax = ax, ay = title_ay, bx = ax + rect_width, by = by, input_owner = self}
+				if input_width > 0 then
+					input:place(title_rect.bx + input_gap, title_ay, title_rect.bx + input_gap + input_width, by, self.font_size)
+				end
+				opts.clip = string.format('\\clip(%d,%d,%d,%d)', self.ax, ay, title_rect.bx, by)
 
 				if options.top_bar_alt_title_place == 'toggle' then
 					cursor:zone('primary_click', title_rect, function() self:toggle_title() end)

@@ -337,6 +337,7 @@ public static class VideoWindowContract
         if (key == MpvDanmaku.Ready)
             return long.TryParse(value, out var serial) && serial > 0 ? new(key, value) : null;
         if (key == MpvDanmaku.Loaded) return MpvDanmaku.IsReceipt(value) ? new(key, value) : null;
+        if (key == MpvDanmaku.Send) return MpvDanmaku.ParseSend(value) is not null ? new(key, value) : null;
         if (key == MpvDanmaku.Menu) return value == "open" ? new(key, value) : null;
 
         if (key == Shortcut)

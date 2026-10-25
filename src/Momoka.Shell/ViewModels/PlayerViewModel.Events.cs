@@ -71,6 +71,7 @@ public sealed partial class PlayerViewModel
         var (key, value) = update.Value;
         if (key == MpvDanmaku.Ready) { DanmakuScriptReady(long.Parse(value, CultureInfo.InvariantCulture)); return; }
         if (key == MpvDanmaku.Loaded) { DanmakuScriptLoaded(value); return; }
+        if (key == MpvDanmaku.Send) { _ = SendNativeDanmakuAsync(value); return; }
         if (key == MpvDanmaku.Menu) { RequestDanmaku(); return; }
         // 装载握手先于「在播」那一问：uosc 是在 mpv_initialize 时装上的，而文件在那之后才打开 ——
         // 握手到的时候片子往往还没开，可宿主手上已经有「这个条目有几版」了。那颗「版本」按钮要在画面
@@ -86,6 +87,7 @@ public sealed partial class PlayerViewModel
             NoteSubline();
             _ = PushNativeShortcutsAsync(force: true);
             _ = PushDanmakuVisibilityAsync();
+            _ = PushDanmakuInputAsync();
             return;
         }
 
