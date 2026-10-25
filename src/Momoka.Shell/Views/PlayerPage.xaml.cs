@@ -570,7 +570,6 @@ public sealed partial class PlayerPage : UserControl
         StopWatchdog();
         EndWindowDrag();
         DropTapHold();
-        StopSkipCountdown();
 
         // 十八报：与 LeavePlayer 同理 —— 藏着的时候关停也是一条显示路径，挂上名再放。
         if (_cursorHidden) _woke = "播放层关停";
@@ -634,10 +633,6 @@ public sealed partial class PlayerPage : UserControl
         ViewModel.PictureAspectChanged -= OnPictureAspectChanged;
         ViewModel.SourceAspectChanged -= OnSourceAspectChanged;
         ViewModel.PropertyChanged -= OnViewModelPropertyChanged;
-
-        // 退订在先，offer 的收场通知到不了这一页了 —— 倒计时表兜底停掉（PlayerPage.Skip.cs），
-        // 别让它挂着一支没人管的计时器。
-        StopSkipCountdown();
 
         if (_window is not null)
         {

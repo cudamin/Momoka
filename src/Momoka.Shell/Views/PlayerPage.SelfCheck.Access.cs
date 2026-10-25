@@ -107,7 +107,7 @@ public sealed partial class PlayerPage
                     && !UseSystemFocusVisuals;
 
         // The pictures of things already said in words: the buffered-ahead bar, the chapter ticks, the
-        // offer's countdown, the thin line, the pause badge, the hover preview and the handover ring. Out of
+        // thin line, the pause badge, the hover preview and the handover ring. Out of
         // the accessibility tree, or a reader walking the transport gets 「进度 87%」 twice and a badge in
         // between.
         var loud = new List<string>();
@@ -115,7 +115,6 @@ public sealed partial class PlayerPage
                  {
                      ("已缓冲", CacheBar),
                      ("章节刻度", ChapterTicks),
-                     ("跳过倒计时", SkipCountdown),
                      ("细进度线", ThinLine),
                      ("暂停角标", PulseBadge),
                      ("章节预览", ChapterPeek),

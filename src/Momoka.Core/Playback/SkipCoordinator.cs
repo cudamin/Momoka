@@ -4,8 +4,8 @@ namespace Momoka.Playback;
 
 /// <summary>What the chrome should be showing, recomputed from every position update.</summary>
 /// <param name="Remaining">
-/// How much of the offer's life is left, 1 down to 0. Drawn as the countdown on the button, so an
-/// offer that is about to expire looks like one.
+/// How much of the offer's life is left, 1 down to 0. Presentation may omit this value; the
+/// coordinator still expires an unanswered offer according to playback position.
 /// </param>
 public readonly record struct SkipPrompt(bool Visible, string Caption, string Tip, double Remaining)
 {

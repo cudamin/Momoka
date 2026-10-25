@@ -469,12 +469,9 @@ handle  Views/PlayerPage.xaml  SeekHoverLine
 handle  Views/PlayerPage.xaml  SeekSlider
 handle  Views/PlayerPage.xaml  SeekTrack
 handle  Views/PlayerPage.xaml  SkipButton
-handle  Views/PlayerPage.xaml  SkipCountdown
 handle  Views/PlayerPage.xaml  SkipGlyph
 handle  Views/PlayerPage.xaml  SkipRow
-handle  Views/PlayerPage.xaml  SkipStack
 handle  Views/PlayerPage.xaml  SkipText
-handle  Views/PlayerPage.xaml  SkipTip
 handle  Views/PlayerPage.xaml  SliderContainer
 handle  Views/PlayerPage.xaml  SpeedButton
 handle  Views/PlayerPage.xaml  SpeedNotches
