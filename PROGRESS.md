@@ -28,10 +28,10 @@
 - 播放探针调用最终 Core 的 `EmbySession`、`PlaybackPlanner`、`PlaybackService` 与 `LibMpvBackend`，真实凭据只在进程内解密并走鉴权头；写入使用独立 SettingsStore，不触碰生产设置。真实播放截图已查看，临时探针与数据保存在忽略的 `work/verify-live-20261026/`；公开报告不包含地址、用户标识或凭据。
 - 下一步：整合主树、重验并刷新实际桌面交付目录；更新支持说明和官网、测试文案与发布副本一致性后推送。本条记录不是主树交付或全量界面自检已通过的声明。
 
-## Anime4K 固定着色器配置组（2026-10-25，隔离实现已验证，待主目录整合）
+## Anime4K 固定着色器配置组（2026-10-26，已合入主目录并发布）
 
 - 用户指定参考本地 `C:\mpv_config-2026.08.12` 和 dyphire/mpv-config；本轮核对上游 `b6c687b4c08144e87524a738152d07ad3735915b` 的 `[Anime4K]`，三份新增源码 SHA-256 与本地参考一致。
-- 主树存在同时推进的播放器未提交改动，按单写入规则在 `C:\Users\89400\.codex\worktrees\anime4k-profile\Momoka`、分支 `codex/anime4k-profile` 隔离实现；范围为 shader catalog/model/descriptor、相关设置说明、源码/许可、Core 测试和已有离线设置探针。未改写主树或用户设置。
+- 主树存在同时推进的播放器未提交改动，按单写入规则在 `C:\Users\89400\.codex\worktrees\anime4k-profile\Momoka`、分支 `codex/anime4k-profile` 隔离实现；范围为 shader catalog/model/descriptor、相关设置说明、源码/许可、Core 测试和已有离线设置探针。产品验证后等待其他主树工作提交再快进整合，既有未跟踪文件保留，全程未改写真实用户设置。
 - 固定链 KrigBilateral → Restore_CNN_Soft_M → Clamp_Highlights → SSimDownscaler，手动 id `anime4k`，保留八个自动档位和 ArtCNN；不混入原先 Mode A x2 链，不随显卡、老片源或高帧率换链，总开关与 8K 保护仍优先。
 - 两处容易误判：Soft M 声明原尺寸中间纹理但不是放大器；Clamp 的 Compute-Statistics 名字不是计算着色器。SSim 前置参数沿用项目的 mitchell/非线性缩小，未抄入不兼容的全局 lanczos。
 - 先红验证：当前 Release 编译 0 警告 0 错误；新增 10 项全部按预期失败（目录、偏好和路径尚未接入），既有 2150 项通过、0 跳过。最终完整 Core 测试 **2163 项通过、0 失败、0 跳过**。同桌面其他诊断曾抢占测试中的自检锁并造成 9 项红，保留失败日志；最终本地测试宿主只在同一主线程先持有现有互斥，再调用逐字节相同的已编译 `Momoka.Tests.Program.Main`，不改断言、不跳过用例，完整通过（`work/anime4k/tests-reserved-slot.log`）。
@@ -39,7 +39,10 @@
 - 中间 `settings` 探针 21 项，Anime4K 两项及视频基础宽窄均通过，已有弹幕/关于两项因“点星文字像素不足”红；保留报告，不修改这些断言。新增 `shaders` 专项分区用于本次受影响功能的独立宽窄检查，并补 CLI 分区回归，原设置检查不退役、不放宽。
 - 最终 `--probe-shell --probe-section shaders` 退出 0、宽窄两项全通过，报告 `shell-probe-20261025-173859978-10104`；真实 ComboBox 选择、固定链下无效三轴整行收起、恢复自动后偏好不丢、重新加载选中项保留，1100/760 实屏均已目视。4 行卡仍保留预设、着色器总开关、手动恢复入口和 8K 保护。
 - 最终 Release 全方案 0 警告 0 错误、空白检查通过；脚本编码/语法 18 项通过；着色器发布失败夹具 **26 项通过**，包含三份新增源码的逐文件缺失检测。新增三份源码 50,998 字节、约 51.0 KB，无新运行库。
-- 未跑真实服务器播放、外部真实 mpv 进程、完整独占/uosc窗口或真实动画/HDR片源；原普通设置探针的两项关于页像素红保留，不冒充全设置通过。主目录文档正在由另一会话写入，暂不覆盖共同发布目录或快捷方式；当前提交只属于本隔离树。
+- 主干整合：产品提交 `978ff87`，整合提交 `6b6491b`；保留主干已提交的跳过按钮、飞牛时长修复与支持文档。本项未改版本号、未推送远端。主目录当前 Core/tests 重新编译 0 警告、0 错误，**2168 项通过、0 失败、0 跳过**（`artifacts/anime4k/primary-tests-build.log`、`primary-tests.log`）；最终原测试程序集与互斥宿主加载副本逐字节相同，未改测试或放宽断言。
+- 实际交付：主目录 `tools/publish.ps1 -NoArchive` 成功刷新 `artifacts/publish/win-x64`，**545 文件、283.8 MB、14 GLSL／4 HOOK**，着色器与许可逐文件 SHA-256 校验通过（`artifacts/anime4k/primary-publish.log`）。发布与主目录开发 `Momoka.dll` 的 SHA-256 均为 `1C2DB1DE398F59C31AA9029E51DE3D688E6A4CDE0E0AD2EE66EFBFD098820EA4`；发布 exe 的 ProductVersion 为 `0.1.7+6b6491b4f8479ac4b181f299991e40ad724ba44d`。桌面 `Momoka.lnk` 已只读核对指向该实际发布 exe，未改快捷方式。
+- 实际发布版重跑 `--probe-shell --probe-section shaders` **退出 0、两项通过**，报告 `shell-probe-20261025-181348236-22908`（目录使用 UTC，当地执行日期为 2026-10-26）。报告和宽窄截图保存于 `artifacts/anime4k/published-ui`；原始本地渲染源码、日志、fixture 和先红记录复制至 `work/anime4k/isolated-evidence`，临时工作树可以回收。
+- 未跑真实服务器播放、外部真实 mpv 进程、完整独占/uosc窗口或真实动画/HDR片源；本轮不跑完整普通自检，原普通设置探针的两项关于页像素红及主树此前完整自检的五个红项保留，未处理、不冒充整项目全量自检通过。
 
 ## 下载栏主目录交付（2026-10-25）
 
