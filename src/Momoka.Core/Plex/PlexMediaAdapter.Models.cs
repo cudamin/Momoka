@@ -192,6 +192,7 @@ public sealed partial class PlexMediaAdapter
                 BitRate = Integer(stream, "bitrate"),
                 BitDepth = Integer(stream, "bitDepth"),
                 VideoRange = Blank(Text(stream, "videoRange")),
+                VideoRangeType = DynamicRangeType(stream),
                 AspectRatio = Blank(Text(stream, "displayAspectRatio")),
                 IsDefault = Flag(stream, "default"),
                 IsForced = Flag(stream, "forced"),
@@ -242,6 +243,17 @@ public sealed partial class PlexMediaAdapter
         Array.Find(values, value => value.Length > 0) ?? "";
 
     private static string? Blank(string value) => value.Length == 0 ? null : value;
+
+    /// <summary>
+    /// Plex 的动态范围细分写法，折成 Emby 那套 <c>VideoRangeType</c> 的字面量：新版本直接给
+    /// <c>videoDynamicRangeType</c>（<c>DV HDR10</c> / <c>HDR10</c> / <c>DV</c>），老版本只有一个
+    /// <c>DOVIPresent</c> 布尔。两样都没有就是 null —— 那时只剩 <c>videoRange</c> 那个粗档位可读。
+    /// </summary>
+    private static string? DynamicRangeType(JsonObject stream)
+    {
+        if (Blank(Text(stream, "videoDynamicRangeType")) is { } type) return type;
+        return Flag(stream, "DOVIPresent") ? "DOVI" : null;
+    }
 
     private static List<string> Tags(JsonObject value, string key) =>
         [.. Objects(value, key).Select(tag => Text(tag, "tag")).Where(tag => tag.Length > 0)];

@@ -193,6 +193,17 @@ public sealed class MediaStream
     /// <summary>"SDR", "HDR", "DOVI", "HDR10", "HLG"… — Emby's own spelling varies by version.</summary>
     public string? VideoRange { get; set; }
 
+    /// <summary>
+    /// 细分档位（Jellyfin 与 Emby 4.8+）：<c>SDR</c> / <c>HDR10</c> / <c>HDR10Plus</c> / <c>HLG</c> /
+    /// <c>DOVI</c> / <c>DOVIWithHDR10</c> / <c>DOVIWithHLG</c> / <c>DOVIWithSDR</c>。老服务器、Plex 与飞牛
+    /// 不写这一项，由各适配器把自家的写法折进来（Plex 的 <c>videoDynamicRangeType</c>、飞牛的 <c>dv_profile</c>）。
+    /// <para>
+    /// 与 <see cref="VideoRange"/> 一起判「HDR / DV」两个角标：<c>DOVIWithHDR10</c> 这种既带 DV 又带
+    /// HDR10 的片源只有细分档位说得清 —— 粗档位那边只写一个 <c>DOVI</c>。
+    /// </para>
+    /// </summary>
+    public string? VideoRangeType { get; set; }
+
     /// <summary>Display aspect ratio as text, e.g. "2.40:1" or "16:9"; often absent.</summary>
     public string? AspectRatio { get; set; }
 
@@ -234,6 +245,71 @@ public sealed class MediaStream
          range.Contains("DOVI", StringComparison.OrdinalIgnoreCase) ||
          range.Contains("HLG", StringComparison.OrdinalIgnoreCase) ||
          range.Contains("Dolby Vision", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// 片源自带的动态范围角标：<c>HDR</c>、<c>DV</c>、<c>HDR/DV</c>；SDR 与未知一律空串（用户令 2026-10-25
+    /// 「片源带 HDR/DV 时标题也要带上，放在视频编码后面，HDR/DV 都有的时候 HDR 在前 DV 在后」）。
+    /// <para>
+    /// HDR 这一格涵盖 <b>HDR10、HDR10+（HDR10Plus）、HLG</b> 三种（用户令 2026-10-25「包括 HDR10+、HDR10、
+    /// HLG」）—— 它们都是 HDR 片源，屏上不必再把服务器那套枚举名逐字抄一遍。
+    /// </para>
+    /// <para>
+    /// 与 <see cref="IsHdr"/> 不是一回事：那个是「要不要色调映射」的开关，DV 也算在里面；这一条只回答
+    /// 「屏上写哪几个字」，所以 DV 单飞时只写 DV、不写 HDR（profile 5 那种 DV 底子是 SDR）。判据合三个
+    /// 字段看 —— 粗档位、细分档位，以及编码档位里的 <c>dvhe.05.06</c> 这类 DV 专用前缀（见 <see cref="Profile"/>）。
+    /// </para>
+    /// </summary>
+    [JsonIgnore]
+    public string DynamicRangeLabel
+    {
+        get
+        {
+            var range = RangeText;
+            var hdr = Contains(range, "HDR") || Contains(range, "HLG");
+            var dolbyVision = Contains(range, "DOVI") || Contains(range, "Dolby") ||
+                Mentions(range, "DV") || IsDolbyVisionProfile(Profile);
+
+            return (hdr, dolbyVision) switch
+            {
+                (true, true) => "HDR/DV",
+                (true, false) => "HDR",
+                (false, true) => "DV",
+                _ => ""
+            };
+        }
+    }
+
+    /// <summary>粗档位与细分档位拼成一串，给上面那条判据读；两项都缺就是空串。</summary>
+    private string RangeText => string.Join(' ',
+        new[] { VideoRange, VideoRangeType }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
+    /// <summary>DV 的编码档位前缀：<c>dvhe.05.06</c>（HEVC）、<c>dvh1.08.07</c>、<c>dav1.10.08</c>（AV1）。</summary>
+    private static bool IsDolbyVisionProfile(string? profile) => profile is { Length: >= 4 } &&
+        (profile.StartsWith("dvhe", StringComparison.OrdinalIgnoreCase) ||
+         profile.StartsWith("dvh1", StringComparison.OrdinalIgnoreCase) ||
+         profile.StartsWith("dav1", StringComparison.OrdinalIgnoreCase));
+
+    private static bool Contains(string? text, string token) =>
+        text is { Length: > 0 } && text.Contains(token, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// 记号要独立成词：Plex 写的 <c>DV HDR10</c> 里那个 DV 是，<c>DVDRip</c> 里那个不是。
+    /// </summary>
+    private static bool Mentions(string? text, string token)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+
+        for (var at = text.IndexOf(token, StringComparison.OrdinalIgnoreCase);
+             at >= 0;
+             at = text.IndexOf(token, at + token.Length, StringComparison.OrdinalIgnoreCase))
+        {
+            var before = at == 0 ? '\0' : text[at - 1];
+            var after = at + token.Length == text.Length ? '\0' : text[at + token.Length];
+            if (!char.IsLetterOrDigit(before) && !char.IsLetterOrDigit(after)) return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// True for subtitle codecs Emby can hand over as a standalone text file. Image-based
@@ -326,10 +402,11 @@ public sealed class MediaSource
     }
 
     /// <summary>
-    /// 「417.7 MB · 1080p · HEVC · AAC · Studio GreenTea」—— 这一份文件的五项读数（文件大小、分辨率、
-    /// 视频编码、音频格式、组名），详情页那行「视频：…」与播放页左上角第二行共用同一条字符串（用户令
+    /// 「417.7 MB · 1080p · HEVC · HDR/DV · AAC · Studio GreenTea」—— 这一份文件的读数（文件大小、分辨率、
+    /// 视频编码、动态范围、音频格式、组名），详情页那行「视频：…」与播放页左上角第二行共用同一条字符串（用户令
     /// 2026-10-09「这里显示的视频信息改为 文件大小 分辨率 视频编码 音频格式 组名，播放页面标题的也改成
-    /// 一样的」）。逐项为空即跳过，全空给空串 —— 集成模式那一行空串＝副标题框收起。
+    /// 一样的」；2026-10-25 起 HDR/DV 角标跟在视频编码后面，SDR 片源不多写一个字）。逐项为空即跳过，全空给
+    /// 空串 —— 集成模式那一行空串＝副标题框收起。
     /// <para>
     /// 与 <see cref="ToQualityLabel"/> 分工不同，两条都要留着：那条是**画质**读数（分辨率·视频编码·容器·
     /// 大小），进度条中间、版本菜单右列、播放信息浮层问它；这条是**文件信息**读数，容器不写（详情页
@@ -338,12 +415,13 @@ public sealed class MediaSource
     /// </summary>
     public string ToFileInfoLabel()
     {
-        var parts = new List<string>(5);
+        var parts = new List<string>(6);
         var video = PrimaryVideoStream;
 
         if (TimeFormat.FileSize(Size) is { Length: > 0 } size) parts.Add(size);
         if (video?.Height is > 0) parts.Add(DescribeHeight(video.Height.Value));
         if (video is not null && VideoCodecLabel(video) is { Length: > 0 } codec) parts.Add(codec);
+        if (video?.DynamicRangeLabel is { Length: > 0 } range) parts.Add(range);
         if (PrimaryAudioCodec() is { Length: > 0 } audioCodec) parts.Add(audioCodec.ToUpperInvariant());
         if (ReleaseGroup.FromFileName(Path) is { Length: > 0 } group) parts.Add(group);
 

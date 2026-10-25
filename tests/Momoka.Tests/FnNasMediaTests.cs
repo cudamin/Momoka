@@ -236,6 +236,30 @@ internal static partial class FnNasMediaTests
             source.DirectStreamUrl = new Uri("https://external.invalid/file");
             Assert.Throws<InvalidOperationException>(() => planner.Plan(new PlaybackTicket { Item = item, Source = source }, fixture.Session.Connection!));
         });
+        Test("飞牛媒体：color_range_type 数组与 dv_profile 折成 HDR/DV 角标", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            // 这个字段两种形状都见过：流接口写字符串（"SDR"），条目接口写数组（["SDR"]）；dv_profile 是
+            // Dolby Vision 的档位（0＝没有 DV）。两个合起来才是 HDR/DV（用户令 2026-10-25）。
+            fixture.Transport.Override = (request, _) =>
+                request.RequestUri!.AbsolutePath.EndsWith("/stream/list/movie", StringComparison.Ordinal)
+                    ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent(
+                            "{\"code\":0,\"data\":{\"files\":[{\"guid\":\"file\",\"path\":\"/media/test.mkv\"}],"
+                            + "\"video_streams\":[{\"guid\":\"video\",\"media_guid\":\"file\",\"index\":0,"
+                            + "\"codec_name\":\"hevc\",\"height\":2160,\"color_range_type\":[\"HDR10\"],\"dv_profile\":8}],"
+                            + "\"audio_streams\":[{\"guid\":\"audio\",\"media_guid\":\"file\",\"index\":1,\"codec_name\":\"flac\"}]}}",
+                            System.Text.Encoding.UTF8, "application/json")
+                    })
+                    : null;
+
+            var item = fixture.Session.Client.GetItemAsync("movie", default).GetAwaiter().GetResult();
+            var source = item.MediaSources.Single();
+            Assert.Equal("HDR10", source.PrimaryVideoStream!.VideoRange, "数组形状要取第一项，不能把 [\"HDR10\"] 整个塞进去");
+            Assert.Equal("DOVI", source.PrimaryVideoStream!.VideoRangeType);
+            Assert.Equal("4K  ·  HEVC  ·  HDR/DV  ·  FLAC", PlaybackTitles.Subline(source));
+        });
         Test("飞牛进度：ts 与 duration 取整数秒，发的是整数字面量", () =>
         {
             var selection = Selection(90 * TimeSpan.TicksPerSecond + 7_000_000);

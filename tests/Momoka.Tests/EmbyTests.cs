@@ -1273,6 +1273,51 @@ internal static class EmbyTests
             Assert.Equal("", PlaybackTitles.Subline(null));
         });
 
+        Test("文件信息行：HDR/DV 角标跟在视频编码后面，两者都有时 HDR 在前", () =>
+        {
+            static MediaSource Video(string? range, string? rangeType, string? profile = null) => new()
+            {
+                MediaStreams =
+                {
+                    new MediaStream
+                    {
+                        Index = 1, Type = "Video", Codec = "hevc", Width = 3840, Height = 2160,
+                        VideoRange = range, VideoRangeType = rangeType, Profile = profile
+                    }
+                }
+            };
+
+            // HDR 这一格涵盖 HDR10、HDR10+、HLG（用户令 2026-10-25「包括 HDR10+、HDR10、HLG」）：
+            // 屏上要的是「这片子是 HDR 的」，不是服务器那套枚举名。
+            Assert.Equal("4K  ·  HEVC  ·  HDR", PlaybackTitles.Subline(Video("HDR", "HDR10")));
+            Assert.Equal("4K  ·  HEVC  ·  HDR", PlaybackTitles.Subline(Video("HDR", "HDR10Plus")));
+            Assert.Equal("4K  ·  HEVC  ·  HDR", PlaybackTitles.Subline(Video("HDR10+", null)));
+            Assert.Equal("4K  ·  HEVC  ·  HDR", PlaybackTitles.Subline(Video("HLG", "HLG")));
+            // 老服务器只有粗档位、连细分档位都没有：一个 HDR 照样写。
+            Assert.Equal("4K  ·  HEVC  ·  HDR", PlaybackTitles.Subline(Video("HDR", null)));
+
+            // DV 单飞（profile 5 那种，底子是 SDR）只写 DV —— 不能因为 IsHdr 也认 DOVI 就多写一个 HDR。
+            Assert.Equal("4K  ·  HEVC  ·  DV", PlaybackTitles.Subline(Video("DOVI", "DOVI")));
+
+            // 两者都有：HDR 在前、DV 在后，写成一个「HDR/DV」。
+            Assert.Equal("4K  ·  HEVC  ·  HDR/DV", PlaybackTitles.Subline(Video("DOVI", "DOVIWithHDR10")));
+
+            // Plex 那套写法（videoRange=HDR 粗档位 + videoDynamicRangeType="DV HDR10"）同样读成 HDR/DV。
+            Assert.Equal("4K  ·  HEVC  ·  HDR/DV", PlaybackTitles.Subline(Video("HDR", "DV HDR10")));
+
+            // 只有编码档位写着 dvhe.05.06 时也认得出 DV（老服务器不给档位字段）。
+            Assert.Equal("4K  ·  HEVC  ·  DV", PlaybackTitles.Subline(Video(null, null, "dvhe.05.06")));
+
+            // SDR 一个字都不多写。
+            Assert.Equal("4K  ·  HEVC", PlaybackTitles.Subline(Video("SDR", "SDR")));
+
+            // 位置：视频编码之后、音频格式之前（用户令 2026-10-25）。
+            var placed = Video("HDR", "HDR10");
+            placed.Path = @"D:\media\Show.S01E01.2160p-GRP.mkv";
+            placed.MediaStreams.Add(new MediaStream { Index = 2, Type = "Audio", Codec = "flac" });
+            Assert.Equal("4K  ·  HEVC  ·  HDR  ·  FLAC  ·  GRP", PlaybackTitles.Subline(placed));
+        });
+
         Test("条目：续播判定要排除刚开头和快结束", () =>
         {
             var item = new EmbyItem { RunTimeTicks = 72_000_000_000 };

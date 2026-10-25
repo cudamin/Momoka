@@ -258,7 +258,11 @@ public sealed partial class FnNasMediaAdapter
                 ResolutionType = Text(stream, "resolution_type") is { Length: > 0 } resolution ? resolution : null,
                 BitDepth = Integer(stream, "bit_depth"),
                 RealFrameRate = FrameRate(Text(stream, "r_frame_rate")),
-                VideoRange = Text(stream, "color_range_type"),
+                // 飞牛的动态范围是两个字段：color_range_type 写 SDR / HDR10 / HLG / DolbyVision（列表接口
+                // 里是数组、流接口里是字符串，两种都认），dv_profile 是 Dolby Vision 的档位（0＝没有 DV）。
+                // 折成 Emby 那套字面量，HDR/DV 角标才判得出来（见 MediaStream.DynamicRangeLabel）。
+                VideoRange = Strings(stream["color_range_type"]).FirstOrDefault(),
+                VideoRangeType = Integer(stream, "dv_profile") is > 0 ? "DOVI" : null,
                 AspectRatio = Text(stream, "display_aspect_ratio"),
                 IsDefault = Flag(stream, "is_default"),
                 IsForced = Flag(stream, "forced")

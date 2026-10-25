@@ -90,6 +90,11 @@ internal static class PlexMediaTests
             var video = source.PrimaryVideoStream!;
             Assert.Equal("hevc", video.Codec);
             Assert.Equal(1920, video.Width);
+            // 动态范围：Plex 的 videoRange 是粗档位（HDR/SDR），DV 只有 DOVIPresent 这个布尔 —— 两个都带上
+            // 才是「HDR/DV」，只认粗档位会把 DV 那半截丢掉（用户令 2026-10-25）。
+            Assert.Equal("HDR", video.VideoRange);
+            Assert.Equal("DOVI", video.VideoRangeType);
+            Assert.Equal("HDR/DV", video.DynamicRangeLabel);
             Assert.Equal(2, source.DefaultAudioStreamIndex);
             var subtitle = source.SubtitleStreams.Single();
             Assert.True(subtitle.IsExternal);
@@ -249,7 +254,7 @@ internal static class PlexMediaTests
             + "\"Media\":[{\"bitrate\":8000,\"duration\":5400000,\"Part\":[{"
             + "\"id\":\"20\",\"key\":\"/library/parts/20/1/file.mkv\",\"file\":\"/media/test.mkv\",\"container\":\"mkv\",\"size\":1234,"
             + "\"Stream\":["
-            + "{\"id\":\"1\",\"streamType\":\"1\",\"codec\":\"hevc\",\"width\":1920,\"height\":1080},"
+            + "{\"id\":\"1\",\"streamType\":\"1\",\"codec\":\"hevc\",\"width\":1920,\"height\":1080,\"videoRange\":\"HDR\",\"DOVIPresent\":\"1\"},"
             + "{\"id\":\"2\",\"streamType\":\"2\",\"codec\":\"aac\",\"channels\":2,\"default\":\"1\"},"
             + "{\"id\":\"3\",\"streamType\":\"3\",\"codec\":\"srt\",\"language\":\"zh\",\"key\":\"/library/streams/3\"}]}]}]}";
 
