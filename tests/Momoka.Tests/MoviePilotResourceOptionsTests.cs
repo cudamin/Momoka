@@ -276,6 +276,41 @@ internal static class MoviePilotResourceOptionsTests
             Assert.Equal(0, transport.Count("media/73"));
             Assert.Equal(0, transport.SentTo("download/").Count);
         });
+        Test("MoviePilot 下载媒体：编号不能改变媒体查询路径且非法输入零请求", () =>
+        {
+            using var transport = DownloadMediaTransport();
+            var (service, _) = Service(transport);
+            var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+            var before = transport.Total;
+            foreach (var id in new[] { ".", "..", " .. ", "a/b", "a\\b", "%2e%2e", "a?b", "a#b", "a\0b", "73\n", "\t73" })
+                Assert.Throws<MoviePilotException>(() => service.ResolveDownloadMediaAsync(resource, "anilist", id,
+                    "电视剧", CancellationToken.None).GetAwaiter().GetResult());
+            Assert.Equal(before, transport.Total);
+            Assert.Equal(0, transport.SentTo("/media/").Count);
+        });
+        Test("MoviePilot 下载媒体：IMDb 与插件的原生编号仍以单一路径段查询", () =>
+        {
+            foreach (var (source, id) in new[] { ("imdb", "tt1234567"), ("plugin-source", "series:Abc-123") })
+            {
+                var endpoint = "media/" + Uri.EscapeDataString(id);
+                using var transport = Transport().Answer(endpoint, JsonSerializer.Serialize(new
+                {
+                    media_source = source,
+                    media_id = id,
+                    type = "电视剧",
+                    title = "编号查询结果"
+                }));
+                var (service, _) = Service(transport);
+                var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+                var media = service.ResolveDownloadMediaAsync(resource, source, id, "电视剧", CancellationToken.None).GetAwaiter().GetResult();
+                Assert.Equal(id, media.Id);
+                Assert.Equal(source, media.Source);
+                var sent = transport.Only(endpoint);
+                Assert.Equal("GET", sent.Method);
+                Assert.True(sent.Url.EndsWith(endpoint + "?media_source=" + source + "&type_name=" + Uri.EscapeDataString("电视剧"), StringComparison.Ordinal));
+                Assert.Equal(0, transport.SentTo("download/").Count);
+            }
+        });
         Test("MoviePilot 下载媒体：核对快照不得给另一条资源复用", () =>
         {
             using var transport = DownloadMediaTransport();

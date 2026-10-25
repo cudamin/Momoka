@@ -47,11 +47,16 @@ public sealed partial class MoviePilotService
         var identity = RequireResultConnection(resource.ConnectionStamp);
         if (resource.ConnectionGeneration is { } generation && generation != identity.Generation)
             throw new MoviePilotOperationBlockedException("MoviePilot 配置曾发生变化，请重新搜索资源");
+        if (id.Any(char.IsControl))
+            throw new MoviePilotException("媒体编号不能包含控制字符或路径分隔符");
         source = source.Trim();
         id = id.Trim();
         type = type.Trim();
         if (source.Length == 0 || id.Length == 0 || type is not ("电影" or "电视剧"))
             throw new MoviePilotException("请选择数据源、电影或电视剧，并填写媒体编号");
+        // 编号必须保持为一个路径段；转义不会消除 . / .. 的 URI 归一化语义。
+        if (id is "." or ".." || id.IndexOfAny(['/', '\\', '%', '?', '#']) >= 0)
+            throw new MoviePilotException("媒体编号不能包含控制字符或路径分隔符");
 
         var path = $"media/{Uri.EscapeDataString(id)}?media_source={Uri.EscapeDataString(source)}&type_name={Uri.EscapeDataString(type)}";
         var media = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken),
