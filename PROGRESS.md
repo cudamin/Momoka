@@ -12,6 +12,12 @@
 - 已检查四种窗口尺寸及悬停实屏，按下态为元素树渲染帧，不冒充屏幕 Mica 合成；屏幕取样等待真实渲染回调并核对客户区尺寸。早期隐藏窗口的截图被遮挡守卫拒绝、宽度继承及过早取样造成的无效证据已保留，最终用例未放宽像素守卫。其他分区的 103 项、普通完整自检、独占 uosc 与外部 mpv 实播未运行；全程不读真实帐号、不启动媒体、不上报观看记录。
 - 产品提交 `e68c7e5` 已快进合回主目录，逐文件核对与隔离树一致；主目录当前 Core/tests 重新构建 0 警告、0 错误，2152 项测试全部通过、0 失败、0 跳过（`artifacts/skip-button/primary-tests-build.log`、`primary-tests.log`）。`tools/publish.ps1 -NoArchive` 已刷新实际交付目录，542 文件、283.8 MB、11 GLSL/4 HOOK 含许可校验通过（`artifacts/skip-button/publish.log`）；桌面 `Momoka.lnk` 指向本树发布 exe，发布与本树开发 `Momoka.dll` 的 SHA-256 均为 `2F8BFEC0B1CEEAAE18D4E7FDC7D6475D9AE98D0F8D882D00F73A2415E1F72325`。截图与运行报告已复制到主目录 `artifacts/skip-button/isolated-final`；本项未改版本号、未推送远端。
 
+## 双服务器实服复测的主树收尾状态（2026-10-26）
+
+- 产品修复 `d012a5e` 已合入 `13f6a84`。主树完整 Release 构建 0 警告／0 错误、2155 项测试通过／0 失败／0 跳过；真实播放两端通过。媒体库运行探针 library 分区 17 通过、0 失败，其余 93 项未执行；不等同全量运行通过。
+- `tools/publish.ps1 -NoArchive` 已刷新主树实际桌面目录，542 文件、283.8 MB；开发／发布 Momoka.dll SHA-256 同为 `3F5BBBDB490CFAEE6A5D9A7CC7702B043375A08D71129D6D02E4A42D2EF937FB`。
+- 主树本次完整自检仍为红：186 项中 5 项失败，消失 0、降级 5，具体是播放控制条窄窗、服务器页真实卡片计数、集页首屏边框、快捷键派发和媒体库七种视图。原始完整报告 `artifacts/selfcheck/live-20261026-9080a46e7f864e3cbc91cfe50d588755/logs/selfcheck-shell.txt`，差异结果 `artifacts/live-server-verification-20261026/selfcheck-diff.log`。尚未当作完整交付，未上传代码或新版本；继续在隔离树复核，不能改基线洗绿。
+- 原画与续播证据、未测边界已写 `docs/实服验证-飞牛与Jellyfin-2026-10-26.md`；支持说明离线守卫和 7 个失败场景检查通过。官网源／dist、JSON-LD 与真实验证范围同步，52 个 Node 文案检查和 20 个 Python 链接检查通过；宽窄预览已查看，尚未推送或宣称生产上线。
 ## 飞牛与 Jellyfin 实服可用性复测（2026-10-26，在独立树）
 
 - 独立写入树：`C:/Users/89400/.codex/worktrees/live-jellyfin-fnnas/Momoka`，分支 `codex/live-jellyfin-fnnas-20261026`；产品改动只在 `FnNasMediaAdapter.cs`、`FnNasMediaAdapter.Models.cs` 与 `FnNasMediaTests.cs`，不夹带其他窗口的播放器／着色器／快捷键工作。用户授权真实服务器验证、自动修复与 GitHub 上传；未删除媒体、修改账号、元数据、共享服务器设置或收藏／已看状态。
