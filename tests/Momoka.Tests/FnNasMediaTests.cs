@@ -211,6 +211,92 @@ internal static partial class FnNasMediaTests
             Assert.Equal("episode2", next.Single().Id);
             Assert.Equal("series", next.Single().SeriesId);
         });
+        Test("飞牛时长：详情为零且 play/info 不带时长时采用同版视频流", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            fixture.Transport.Override = (request, _) =>
+            {
+                var data = request.RequestUri!.AbsolutePath switch
+                {
+                    "/v/api/v1/item/movie" => """{"guid":"movie","title":"电影","type":"Movie","duration":0}""",
+                    "/v/api/v1/play/info" => """{"ts":142}""",
+                    "/v/api/v1/stream/list/movie" => """
+                        {"files":[{"guid":"file","path":"/media/test.mkv"}],
+                         "video_streams":[{"guid":"video","media_guid":"file","index":0,"codec_name":"h264","duration":7733.75}],
+                         "audio_streams":[{"guid":"audio","media_guid":"file","index":1,"codec_name":"aac"}]}
+                        """,
+                    _ => null
+                };
+                return data is null ? null : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                { Content = new StringContent("{\"code\":0,\"data\":" + data + "}") });
+            };
+            var item = fixture.Session.Client.GetItemAsync("movie", default).GetAwaiter().GetResult();
+            var source = item.MediaSources.Single();
+            Assert.Equal(77_337_500_000L, source.RunTimeTicks);
+            Assert.Equal(source.RunTimeTicks, item.RunTimeTicks, "电影详情时长从默认媒体版本补齐");
+            Assert.Equal(142 * TimeSpan.TicksPerSecond, item.ResumeTicks, "已有续播点保留");
+            var planner = new PlaybackPlanner(fixture.Settings, new ShaderGroupResolver(fixture.Settings.Shaders));
+            var request = planner.Plan(new PlaybackTicket { Item = item, Source = source, StartTicks = item.ResumeTicks }, fixture.Session.Connection!);
+            Assert.Equal(source.RunTimeTicks!.Value, request.RunTimeTicks);
+            var record = FnNasMediaAdapter.PlaybackRecord(new PlaybackReport
+            {
+                ItemId = item.Id,
+                MediaSourceId = source.Id,
+                PlaySessionId = "fixture",
+                PositionTicks = item.ResumeTicks,
+                FnNasSelection = request.FnNasSelection
+            });
+            Assert.Equal(7733L, record["duration"]!.GetValue<long>(), "上报仍用整数秒，不再覆写成零时长");
+        });
+        Test("飞牛时长：多版本各取自己的文件或视频流，文件时长优先", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            fixture.Transport.Override = (request, _) =>
+                request.RequestUri!.AbsolutePath.EndsWith("/stream/list/movie", StringComparison.Ordinal)
+                    ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("""
+                            {"code":0,"data":{
+                             "files":[{"guid":"file-a","path":"/media/a.mkv"},
+                                      {"guid":"file-b","path":"/media/b.mkv","duration":120},
+                                      {"guid":"file-c","path":"/media/c.mkv"}],
+                             "video_streams":[{"guid":"video-b","media_guid":"file-b","duration":100},
+                                              {"guid":"video-a","media_guid":"file-a","duration":95.25},
+                                              {"guid":"unrelated","media_guid":"missing","duration":999}],
+                             "audio_streams":[]}}
+                            """)
+                    }) : null;
+            var item = fixture.Session.Client.GetItemAsync("movie", default).GetAwaiter().GetResult();
+            Assert.Equal(95_250 * TimeSpan.TicksPerMillisecond, item.MediaSources[0].RunTimeTicks);
+            Assert.Equal(120 * TimeSpan.TicksPerSecond, item.MediaSources[1].RunTimeTicks, "文件的正时长优先于视频流");
+            Assert.Equal(90 * TimeSpan.TicksPerSecond, item.MediaSources[2].RunTimeTicks, "无流时退详情，不能借别版的 999 秒");
+            Assert.Equal(90 * TimeSpan.TicksPerSecond, item.RunTimeTicks, "已有正详情时长不被另一版覆盖");
+        });
+        Test("飞牛时长：零负值与非有限值不成为播放时长", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            fixture.Transport.Override = (request, _) =>
+            {
+                var data = request.RequestUri!.AbsolutePath switch
+                {
+                    "/v/api/v1/item/movie" => """{"guid":"movie","title":"电影","type":"Movie","duration":0}""",
+                    "/v/api/v1/play/info" => """{"ts":12,"duration":0}""",
+                    "/v/api/v1/stream/list/movie" => """
+                        {"files":[{"guid":"file","path":"/media/test.mkv","duration":"Infinity"}],
+                         "video_streams":[{"guid":"video","media_guid":"file","duration":"NaN"},
+                                          {"guid":"negative","media_guid":"file","duration":-1},
+                                          {"guid":"zero","media_guid":"file","duration":0}],
+                         "audio_streams":[]}
+                        """,
+                    _ => null
+                };
+                return data is null ? null : Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                { Content = new StringContent("{\"code\":0,\"data\":" + data + "}") });
+            };
+            var item = fixture.Session.Client.GetItemAsync("movie", default).GetAwaiter().GetResult();
+            Assert.Null(item.MediaSources.Single().RunTimeTicks, "没有正的有限时长就保持未知，不制造 0 或最大时长");
+            Assert.Equal(12 * TimeSpan.TicksPerSecond, item.ResumeTicks);
+        });
         Test("飞牛媒体：详情原画、音轨和续播进入播放规划及进度请求", () =>
         {
             using var fixture = new Fixture(); fixture.Login();

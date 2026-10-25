@@ -12,6 +12,16 @@
 - 已检查四种窗口尺寸及悬停实屏，按下态为元素树渲染帧，不冒充屏幕 Mica 合成；屏幕取样等待真实渲染回调并核对客户区尺寸。早期隐藏窗口的截图被遮挡守卫拒绝、宽度继承及过早取样造成的无效证据已保留，最终用例未放宽像素守卫。其他分区的 103 项、普通完整自检、独占 uosc 与外部 mpv 实播未运行；全程不读真实帐号、不启动媒体、不上报观看记录。
 - 产品提交 `e68c7e5` 已快进合回主目录，逐文件核对与隔离树一致；主目录当前 Core/tests 重新构建 0 警告、0 错误，2152 项测试全部通过、0 失败、0 跳过（`artifacts/skip-button/primary-tests-build.log`、`primary-tests.log`）。`tools/publish.ps1 -NoArchive` 已刷新实际交付目录，542 文件、283.8 MB、11 GLSL/4 HOOK 含许可校验通过（`artifacts/skip-button/publish.log`）；桌面 `Momoka.lnk` 指向本树发布 exe，发布与本树开发 `Momoka.dll` 的 SHA-256 均为 `2F8BFEC0B1CEEAAE18D4E7FDC7D6475D9AE98D0F8D882D00F73A2415E1F72325`。截图与运行报告已复制到主目录 `artifacts/skip-button/isolated-final`；本项未改版本号、未推送远端。
 
+## 飞牛与 Jellyfin 实服可用性复测（2026-10-26，在独立树）
+
+- 独立写入树：`C:/Users/89400/.codex/worktrees/live-jellyfin-fnnas/Momoka`，分支 `codex/live-jellyfin-fnnas-20261026`；产品改动只在 `FnNasMediaAdapter.cs`、`FnNasMediaAdapter.Models.cs` 与 `FnNasMediaTests.cs`，不夹带其他窗口的播放器／着色器／快捷键工作。用户授权真实服务器验证、自动修复与 GitHub 上传；未删除媒体、修改账号、元数据、共享服务器设置或收藏／已看状态。
+- 当前实服：Jellyfin **10.10.7**、飞牛网页 **0.9.8**／媒体服务 **0.8.43**。两端保存令牌恢复、3 个媒体库读取、电影详情和原始媒体 Range（206）通过。Jellyfin 旧失败样例现在返回完整媒体流和文件大小，不再是上次 `/Downloads_link` 缺文件现场；本轮没有修改服务器挂载。
+- 新发现并修复：飞牛条目详情 `duration=0`、`play/info` 不返回时长，但同一文件的 `video_streams[].duration=7733`。原适配丢掉流时长，播放规划与上报会发送 0。每个媒体版本先取本文件正的有限时长、再取本版视频流时长；详情时长未知时从默认版本补齐，未知版本只回退正的详情时长，不借别版流。整数秒上报与已有续播点保持不变。
+- 三个新增回归：详情零时长／缺 play/info 时长、文件优先且多版本隔离、零／负／非有限时长。修复前 **3 失败**，修复后最终 Release Core/tests **2153 通过、0 失败、0 跳过**；完整方案 **0 警告、0 错误**；完整 whitespace 检查退出 0；18 个 PowerShell 脚本 BOM／LF／语法检查通过。
+- 真实播放覆盖 **内置 libmpv + 独占管线**：Jellyfin 原画 1920×804，服务端会话 `DirectStream`、无 `TranscodingInfo`；暂停／定位通过，停后保存约 767.625 秒，再播首位置完全一致，最终回读 799.958 秒。飞牛原画 1920×1038，1 视频／2 音频／50 字幕轨，中文字幕实屏可见；142→188 秒，第二场首位置 188 秒、最终回读 221 秒。两端各两场，进度／停止上报 **0 失败**，未标记已看。验证时音量静音，证明音轨解码而非扬声器听感；不声称 HDR、转码、所有文件或外部 mpv 覆盖。
+- 播放探针调用最终 Core 的 `EmbySession`、`PlaybackPlanner`、`PlaybackService` 与 `LibMpvBackend`，真实凭据只在进程内解密并走鉴权头；写入使用独立 SettingsStore，不触碰生产设置。真实播放截图已查看，临时探针与数据保存在忽略的 `work/verify-live-20261026/`；公开报告不包含地址、用户标识或凭据。
+- 下一步：整合主树、重验并刷新实际桌面交付目录；更新支持说明和官网、测试文案与发布副本一致性后推送。本条记录不是主树交付或全量界面自检已通过的声明。
+
 ## 下载栏主目录交付（2026-10-25）
 
 - 主目录已快进到整合提交 0c7f5fc，产品提交 7be4685，保留 AniBT 与弹弹play已完成改动；未推送。

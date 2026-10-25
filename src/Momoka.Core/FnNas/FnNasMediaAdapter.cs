@@ -232,7 +232,11 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
                 if (Number(progress, "ts") is { } position) item.UserData.PlaybackPositionTicks = Ticks(position);
                 if (Number(progress, "duration") is > 0 and var duration) item.RunTimeTicks = Ticks(duration);
             }
-            foreach (var source in item.MediaSources) source.RunTimeTicks ??= item.RunTimeTicks;
+            if (item.RunTimeTicks is null or <= 0 && item.DefaultMediaSource?.RunTimeTicks is > 0 and var sourceDuration)
+                item.RunTimeTicks = sourceDuration;
+            foreach (var source in item.MediaSources)
+                if (source.RunTimeTicks is null or <= 0 && item.RunTimeTicks is > 0)
+                    source.RunTimeTicks = item.RunTimeTicks;
         }
         return item;
     }

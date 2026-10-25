@@ -221,6 +221,12 @@ public sealed partial class FnNasMediaAdapter
                 SupportsDirectPlay = true,
                 SupportsDirectStream = true
             };
+            // item/detail can report duration=0 while play/info omits it. The file's own positive
+            // duration wins; otherwise use a video stream from this file, never another version.
+            source.RunTimeTicks = PositiveDuration(Number(file, "duration"))
+                ?? Objects(value, "video_streams").Where(stream => Text(stream, "media_guid") == id)
+                    .Select(stream => PositiveDuration(Number(stream, "duration")))
+                    .FirstOrDefault(duration => duration is > 0);
             source.Container = Path.GetExtension(source.Path)?.TrimStart('.');
             AddStreams(source, value, "video_streams", "Video");
             AddStreams(source, value, "audio_streams", "Audio");
@@ -231,6 +237,9 @@ public sealed partial class FnNasMediaAdapter
         }
         return result;
     }
+
+    private static long? PositiveDuration(double? seconds) =>
+        seconds is > 0 and var duration && double.IsFinite(duration) ? Ticks(duration) : null;
 
     private static void AddStreams(MediaSource source, JsonObject value, string key, string type)
     {
