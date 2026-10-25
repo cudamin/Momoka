@@ -9,7 +9,7 @@ end
 
 function momoka_refresh_shortcuts()
 	momoka_clear_shortcuts()
-	if Menu:is_open() then return end
+	if Menu:is_open() or Elements:v('danmaku_input', 'focused', false) then return end
 	local index = 0
 	for key, action in pairs(bindings) do
 		index = index + 1
