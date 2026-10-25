@@ -105,6 +105,10 @@ A profile saved as Emby may really belong to Jellyfin. `EmbySession.ResolveResto
 
 The socket handshake follows the same standard `Authorization: MediaBrowser` credential format as REST; no token is placed in the URL. Each reconnect reads the original source's latest connection and is cancelled when that source exits. Loopback 101 tests cover actual client header transmission and reconnect/cancellation, not a live Jellyfin server or complete server compatibility. Do not fall back to `api_key` for Jellyfin 12 when legacy authentication is disabled.
 
+## Measured live playback
+
+On 2026-10-26 Jellyfin 10.10.7 passed saved-token restore, library/detail reads, original Range access, built-in libmpv standalone playback and persisted resume. The server reported `DirectStream` without transcoding; start/progress/stop reporting had no failures. This does not validate Jellyfin 12, management writes, embedded Web login, all files or integrated/external playback. UIA reads are not visual evidence when the captured screen is blank. See [the live report](../../../docs/实服验证-飞牛与Jellyfin-2026-10-26.md).
+
 ## Delivery
 
 When the supported boundary changes, update this skill, the "which product" boundary in `momoka-emby-api`, [docs/开发与验证.md](../../../docs/开发与验证.md), and the domain docs that declare which server they were written against. Keep this skill from drifting into a copy of the Jellyfin specification: link the version you measured and name the route you chose.

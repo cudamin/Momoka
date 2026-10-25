@@ -563,13 +563,6 @@ public sealed partial class PlayerViewModel : ObservableObject
     public partial string? SkipCaption { get; set; }
 
     [ObservableProperty]
-    public partial string? SkipTip { get; set; }
-
-    /// <summary>How much of the offer's fifteen seconds is left, as a fraction.</summary>
-    [ObservableProperty]
-    public partial double SkipRemaining { get; set; }
-
-    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CoverVisibility))]
     public partial bool CoverUp { get; set; }
 

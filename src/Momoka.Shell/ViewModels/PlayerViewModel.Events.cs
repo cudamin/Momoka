@@ -1268,7 +1268,7 @@ public sealed partial class PlayerViewModel
     }
 
     /// <summary>
-    /// The offer's own mapping onto the button's four bindings, split out so the self-check can drive it
+    /// The offer's own mapping onto the button's caption and visibility, split out so the self-check can drive it
     /// with a prompt it made itself. Nothing is playing during a self-check, so
     /// <see cref="ApplySkipOffer"/> would always take the 「no offer」 branch and the bindings would never
     /// be looked at.
@@ -1284,8 +1284,6 @@ public sealed partial class PlayerViewModel
         if (!prompt.Visible) return;
 
         SkipCaption = prompt.Caption;
-        SkipTip = prompt.Tip;
-        SkipRemaining = prompt.Remaining;
     }
 
     /// <summary>

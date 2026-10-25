@@ -19,6 +19,8 @@ internal static class ShaderTransactionTests
         Test("着色器事务：缺少默认基线不猜值也不开始写入", () => MissingDefault().GetAwaiter().GetResult());
         Test("着色器事务：缺少旧值不能安全回滚就不开始写入", () => MissingSnapshot().GetAwaiter().GetResult());
         Test("着色器事务：新链在全部前置参数就位后才挂入", () => ShaderLast().GetAwaiter().GetResult());
+        Test("Anime4K 事务：成功切入、切出与关闭恢复完整基线", () => Anime4KRoundTrip().GetAwaiter().GetResult());
+        Test("Anime4K 事务：中途拒绝保留旧链，不报告成功", () => Anime4KRejected().GetAwaiter().GetResult());
         Test("着色器事务：同片同时切链必须串行，最终保持完整一套", () => Serial().GetAwaiter().GetResult());
         Test("着色器事务：读取默认值时换片，停止剩余读写", () => ChangedFilm().GetAwaiter().GetResult());
         Test("着色器事务：失败回滚不能写进同句柄的新代次", () => RollbackGeneration().GetAwaiter().GetResult());
@@ -83,6 +85,34 @@ internal static class ShaderTransactionTests
         Assert.Equal("glsl-shaders", f.Handle.Commands[^1][1]);
         Assert.Equal("ewa_lanczossharp", f.Handle.Values["scale"]);
         Assert.Contains("ravu", f.Handle.Values["glsl-shaders"]);
+    }
+
+    private static async Task Anime4KRoundTrip()
+    {
+        using var f = new Fixture();
+        var preset = ShaderGroupCatalog.Find("anime4k", GpuTier.Low)!;
+        Assert.NotNull(preset);
+        Assert.True(await f.Service.SetShaderGroupAsync(preset));
+        Assert.Equal("mitchell", f.Handle.Values["dscale"]);
+        Assert.Contains("Anime4K_Restore_CNN_Soft_M", f.Handle.Values["glsl-shaders"]);
+        Assert.Equal("glsl-shaders", f.Handle.Commands[^1][1]);
+        Assert.True(await f.Service.SetShaderGroupAsync(ShaderGroupCatalog.Resolve(true, UpscaleTier.Slight, GpuTier.Low)));
+        Assert.DoesNotContain("Anime4K", f.Handle.Values["glsl-shaders"]);
+        Assert.True(await f.Service.SetShaderGroupAsync(preset));
+        Assert.True(await f.Service.SetShaderGroupAsync(null));
+        Assert.Equal("", f.Handle.Values["glsl-shaders"]);
+        foreach (var (name, value) in ShaderGroupCatalog.NeutralOptions.Where(pair => pair.Key != "glsl-shaders"))
+            Assert.Equal(value, f.Handle.Values[name], name);
+    }
+
+    private static async Task Anime4KRejected()
+    {
+        using var f = new Fixture();
+        var before = new Dictionary<string, string>(f.Handle.Values);
+        f.Handle.RejectAt = 3;
+        Assert.False(await f.Service.SetShaderGroupAsync(ShaderGroupCatalog.Find("anime4k", GpuTier.Low)));
+        Assert.True(f.Service.ShaderStateKnown);
+        foreach (var (name, value) in before) Assert.Equal(value, f.Handle.Values[name], name);
     }
 
     private static async Task Serial()

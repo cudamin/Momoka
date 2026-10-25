@@ -1261,7 +1261,7 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private async Task SettingsVideoAvailabilityAsync(int width, bool customConfigOnly = false)
+    private async Task SettingsVideoAvailabilityAsync(int width, bool customConfigOnly = false, bool anime4KOnly = false)
     {
         using var fixture = CreateFixture();
         using var moviePilot = new MoviePilotClient(new RejectNetwork());
@@ -1279,7 +1279,8 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             ResizeInspect(width, 900);
-            if (customConfigOnly) await SettingsCustomConfigAsync(page, fixture, width);
+            if (anime4KOnly) await SettingsAnime4KAsync(page, fixture, width);
+            else if (customConfigOnly) await SettingsCustomConfigAsync(page, fixture, width);
             else await SettingsVideoDependenciesAsync(page, fixture, width);
         }
         finally
@@ -1287,6 +1288,94 @@ internal sealed partial class ShellNavigationProbe
             page.Release();
             _root.Children.Remove(page);
             ResizeInspect(1420, 980);
+        }
+    }
+
+    private async Task SettingsAnime4KAsync(SettingsPage page, Fixture fixture, int width)
+    {
+        var shaders = fixture.Settings.Shaders;
+        var original = (shaders.Enabled, shaders.ManualGroup, shaders.Gpu, shaders.AutoAnimeProfile, shaders.RestoreVintageSources);
+        try
+        {
+            shaders.Enabled = true;
+            shaders.ManualGroup = "";
+            shaders.Gpu = GpuTier.Low;
+            shaders.AutoAnimeProfile = false;
+            shaders.RestoreVintageSources = false;
+            await page.ViewModel.ReloadAsync();
+            page.SelectedCategory = "视频输出";
+            // Reload replaces the row models; the matching DataTemplate is materialized on the next layout.
+            // A settled transition alone does not mean that the new ComboBox exists yet.
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            var scroll = Descendants(page).OfType<ScrollView>().Single();
+            await ScrollProbeAsync(scroll, scroll.ScrollableHeight);
+            await LayoutAsync(page);
+            var choice = page.ViewModel.Sections.Single(section => section.Title == "画质与着色器")
+                .Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "手动指定档位");
+            await UntilAsync(() => Descendants(page).OfType<ComboBox>()
+                .Any(control => AutomationProperties.GetName(control) == choice.Label));
+            var combo = Descendants(page).OfType<ComboBox>()
+                .Single(control => AutomationProperties.GetName(control) == choice.Label);
+            Require(choice.Choices.Count == 10 && combo.Items.Count == 10,
+                "手动目录应为自动入口、八个原有档位和 Anime4K");
+            var anime = choice.Choices.Single(item => item.Label == "Anime4K · 柔化修复");
+            combo.SelectedItem = anime;
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            Require(shaders.ManualGroup == "anime4k" && ReferenceEquals(combo.SelectedItem, choice.Selected),
+                "真实 ComboBox 选择 Anime4K 没有落到保存偏好");
+            AssertAxes(false);
+            Require(shaders.Gpu == GpuTier.Low && !shaders.AutoAnimeProfile && !shaders.RestoreVintageSources,
+                "隐藏无效设置时不许改写原偏好");
+            combo.SelectedItem = choice.Choices[0];
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            AssertAxes(true);
+            Require(shaders.ManualGroup == "" && shaders.Gpu == GpuTier.Low
+                && !shaders.AutoAnimeProfile && !shaders.RestoreVintageSources, "恢复自动后原值丢失");
+            combo.SelectedItem = anime;
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            AssertAxes(false);
+            shaders.Gpu = GpuTier.High;
+            await page.ViewModel.ReloadAsync();
+            page.SelectedCategory = "视频输出";
+            // Reload replaces the row models; the matching DataTemplate is materialized on the next layout.
+            // A settled transition alone does not mean that the new ComboBox exists yet.
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            await ScrollProbeAsync(scroll, scroll.ScrollableHeight);
+            await LayoutAsync(page);
+            choice = page.ViewModel.Sections.Single(section => section.Title == "画质与着色器")
+                .Rows.OfType<SettingChoiceRow>().Single(row => row.Label == "手动指定档位");
+            Require(choice.Selected?.Label == anime.Label && shaders.ManualGroup == "anime4k",
+                "换显卡档或重新加载后丢失 Anime4K 偏好");
+            var row = Descendants(page).OfType<FrameworkElement>().First(element =>
+                ReferenceEquals(element.DataContext, choice) && element.ActualHeight > 0);
+            var position = row.TransformToVisual(scroll).TransformPoint(new Windows.Foundation.Point());
+            await ScrollProbeAsync(scroll, Math.Max(0, scroll.VerticalOffset + position.Y - 240));
+            await SettleAsync();
+            await SaveReturnFrameAsync(page, $"settings-anime4k-{width}.png");
+            await SaveProbeScreenAsync($"settings-anime4k-{width}-screen.png");
+        }
+        finally
+        {
+            (shaders.Enabled, shaders.ManualGroup, shaders.Gpu, shaders.AutoAnimeProfile, shaders.RestoreVintageSources) = original;
+            await page.ViewModel.ReloadAsync();
+            await WaitForSettingsSettledAsync(page);
+        }
+
+        void AssertAxes(bool present)
+        {
+            var rows = page.ViewModel.Sections.Single(section => section.Title == "画质与着色器").Rows;
+            Require(rows.Count == (present ? 7 : 4), "固定链只保留画质预设、总开关、恢复入口和 8K 保护");
+            foreach (var label in new[] { "显卡档位", "自动识别动画", "老片源修复" })
+            {
+                Require(rows.Any(row => row.Label == label) == present, label + " 数据显隐错误");
+                Require(Descendants(page).OfType<Control>().Any(control => AutomationProperties.GetName(control) == label) == present,
+                    label + " 真实控件显隐错误");
+            }
         }
     }
 

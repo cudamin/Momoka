@@ -608,9 +608,9 @@ internal static class PlaybackTests
             Assert.False(live.Animated);
         });
 
-        Test("着色器档位：九十六格每一格都有链，路径是程序目录下的绝对路径", () =>
+        Test("着色器档位：自动格与固定配置都有链，路径是程序目录下的绝对路径", () =>
         {
-            Assert.Equal(96, ShaderGroupCatalog.All.Count, "三个显卡档 × 八个档位 × 老片源与否 × 高帧率与否");
+            Assert.Equal(97, ShaderGroupCatalog.All.Count, "96 个自动变体加一条独立固定 Anime4K 链");
 
             foreach (var group in ShaderGroupCatalog.All)
             {
@@ -628,12 +628,12 @@ internal static class PlaybackTests
             }
         });
 
-        Test("着色器档位：八个 id 稳定、不重复，而且换显卡档、换老片源、换高帧率都是同一批 id", () =>
+        Test("着色器档位：自动与固定配置的 id 稳定、不重复，跨显卡与片源轴一致", () =>
         {
             string[] expected =
             [
                 "live-shrink", "live-slight", "live-sweet", "live-large",
-                "anime-shrink", "anime-slight", "anime-sweet", "anime-large"
+                "anime-shrink", "anime-slight", "anime-sweet", "anime-large", "anime4k"
             ];
 
             Assert.Equal(string.Join("、", expected), string.Join("、", ShaderGroupCatalog.Ids), "档位 id 和次序");
@@ -645,7 +645,7 @@ internal static class PlaybackTests
                     foreach (var fast in new[] { false, true })
                     {
                         var column = ShaderGroupCatalog.For(gpu, vintage, fast);
-                        Assert.Equal(8, column.Count, $"{gpu}／老片源={vintage}／高帧率={fast} 这一列应该正好八格");
+                        Assert.Equal(9, column.Count, $"{gpu}／老片源={vintage}／高帧率={fast}：八个自动格与一条固定链");
                         Assert.Equal(
                             string.Join("、", expected),
                             string.Join("、", column.Select(group => group.Id)),
@@ -847,7 +847,7 @@ internal static class PlaybackTests
                 {
                     foreach (var fast in new[] { false, true })
                     {
-                        foreach (var group in ShaderGroupCatalog.For(gpu, vintage, fast))
+                        foreach (var group in ShaderGroupCatalog.For(gpu, vintage, fast).Where(group => group.NamedId.Length == 0))
                         {
                             var deband = group.Shaders.Any(shader => shader.Role == ShaderRole.Deband);
                             Assert.Equal(vintage, deband, $"{group.Name}：去带跟的是片源有多老，不是要放多大");
@@ -943,7 +943,7 @@ internal static class PlaybackTests
             Assert.Equal("", settings.ManualGroup, "装机默认走自动");
             Assert.False(settings.Enabled, "装机默认不开着色器 —— 用户 2026-09-05 定的，「恢复默认」交出来的也是这一档");
             Assert.True(settings.RestoreVintageSources, "DVD 那一代的片源默认要去带");
-            Assert.Equal(8, ShaderGroupCatalog.For(settings.Gpu).Count);
+            Assert.Equal(9, ShaderGroupCatalog.For(settings.Gpu).Count);
 
             // 关着的时候一条链都挑不出来，可其余几项照旧是它们的默认值 —— 开关一开就该按这几项走，
             // 不需要再设置一遍。
@@ -1611,6 +1611,12 @@ internal static class PlaybackTests
                 var sizes = directives.Any(line =>
                     line.StartsWith("//!WIDTH", StringComparison.Ordinal) || line.StartsWith("//!HEIGHT", StringComparison.Ordinal));
                 Assert.Equal(sizes, shader.ChangesResolution, $"{shader.Name} 有没有声明自己的输出尺寸");
+                if (shader.Role == ShaderRole.LumaUpscale)
+                    Assert.True(directives.Any(line =>
+                        (line.StartsWith("//!WIDTH ", StringComparison.Ordinal) || line.StartsWith("//!HEIGHT ", StringComparison.Ordinal))
+                        && !new[] { "LUMA.w", "LUMA.h", "MAIN.w", "MAIN.h", "HOOKED.w", "HOOKED.h" }
+                            .Contains(line.Split(' ', 2)[1], StringComparer.Ordinal)),
+                        $"{shader.Name}：只声明原尺寸中间纹理不能算放大器");
 
                 var when = directives.FirstOrDefault(line => line.StartsWith("//!WHEN ", StringComparison.Ordinal));
                 Assert.Equal(when is null ? "" : when["//!WHEN ".Length..], shader.Gate, $"{shader.Name} 的门控");

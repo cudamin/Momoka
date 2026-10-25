@@ -1,7 +1,7 @@
 namespace Momoka.Mpv;
 
 /// <summary>
-/// One cell of the 档位表: the shader chain for a given kind of picture, scale factor and 显卡档, plus the
+/// One cell of the automatic 档位表, or a fixed, explicitly selected configuration group, plus the
 /// scaler options that chain depends on.
 /// <para>
 /// These were named groups until 2026-09-03 — five of them, picked by hand in the settings page and chosen
@@ -61,12 +61,21 @@ public sealed record ShaderGroup(
     /// cref="Vintage"/> and <see cref="FastMotion"/> are left out for the same reason: they follow the file
     /// being played, not the choice.
     /// </summary>
-    public string Id => $"{(Animated ? "anime" : "live")}-{Tier.ToString().ToLowerInvariant()}";
+    public string Id => NamedId.Length > 0 ? NamedId : $"{(Animated ? "anime" : "live")}-{Tier.ToString().ToLowerInvariant()}";
 
-    public string Name => $"{(Animated ? "动画" : "真人")} · {ShaderTier.Describe(Tier)}";
+    /// <summary>
+    /// Stable id of an explicitly selected fixed configuration. Empty for automatic cells: the extra choice
+    /// must not replace a cell, enter auto selection, or pretend to follow its scale/GPU/source axes.
+    /// </summary>
+    public string NamedId { get; init; } = "";
+
+    public string Name => NamedId.Length > 0 ? NamedName : $"{(Animated ? "动画" : "真人")} · {ShaderTier.Describe(Tier)}";
+
+    /// <summary>The fixed configuration's user-facing name; empty for automatic cells.</summary>
+    public string NamedName { get; init; } = "";
 
     /// <summary>Row text in the settings dropdown and the player's 着色器 submenu.</summary>
-    public string DisplayName => $"{Name}（{ShaderTier.Range(Tier)}）";
+    public string DisplayName => NamedId.Length > 0 ? Name : $"{Name}（{ShaderTier.Range(Tier)}）";
 
     /// <summary>
     /// What this chain actually loads, generated from the chain rather than written by hand: a description

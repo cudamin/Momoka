@@ -14,7 +14,7 @@ Techniques and traps for the shader / 画质档位 side of the player, and the l
 
 **The current policy is in [CLAUDE.md](../../../CLAUDE.md)**: verification gates, playback authorization and probe coverage, credentials, and upgrades. This skill adds shader-specific measurements, not a second policy. `PROGRESS.md` records current work and earlier measurements; playback is `momoka-playback`, evidence is `momoka-verification`.
 
-**There are no named 配置组 any more.** Until 2026-09-03 there were five hand-named groups picked by 片源分辨率. Now a `ShaderGroup` is *one cell of the 档位表*: `live|anime` × scale tier, with 显卡档 selecting a different chain behind the same id. (Two more axes swap the chain without entering the id, because they follow the source rather than the user's choice: `Vintage` for 老片源 ≤576 lines and `FastMotion` for 高帧率 >30fps — check `ShaderGroupCatalog` for the current set.) So "make a new group" is really one of three different jobs — swapping a shader inside a cell (the usual one), bringing in a file and deciding which cells it belongs in, or letting the user assemble and save a chain of his own, which **does not exist**: that is a feature request, not an edit.
+**Automatic cells and explicitly selected fixed configurations are different choices.** The automatic table is `live|anime` × scale tier, with 显卡档 selecting a different chain behind the same id. `Vintage` and `FastMotion` change automatic chains without entering the id because they follow the source. The user-requested Anime4K fixed configuration is appended to the manual choices: `ShaderGroup.NamedId`/`NamedName` mark it, while `ShaderGroupCatalog.Resolve` reads automatic columns only. `Find`, `For`, `Ids`, `All` and the shipped-file list include fixed configurations. Never replace ArtCNN or apply automatic repair/frame-rate substitutions to a fixed chain just because a user asked for another configuration. The shader master switch and ultra-high-resolution guard still apply. User-assembled saved chains remain a separate, unimplemented feature.
 
 ## Adding or swapping a shader — the loop
 
@@ -30,7 +30,7 @@ Techniques and traps for the shader / 画质档位 side of the player, and the l
 
 Three unshipped files illustrate different checks: `FSRCNNX_x1` does not upscale at all despite being proposed as a low-resolution upscaler; `CAS` can run at native 1:1 within 缩小档 but cannot cover that whole tier (see the shader README); `Ani4Kv2_ArtCNN_C4F32_i2` is a third-party repack of upstream ArtCNN carrying a CC BY-NC weight licence. Open the file — four things are readable at the top of each pass:
 
-- `//!WIDTH` / `//!HEIGHT` — whether it changes resolution and by how much (`LUMA.w 2.0 *` is a 2× doubler). **No such directive anywhere in the file means it does not scale**, whatever the name says.
+- `//!WIDTH` / `//!HEIGHT` — inspect the expressions, not merely their presence. `LUMA.w 2.0 *` doubles size; `MAIN.w` and `MAIN.h` may only allocate same-size intermediate textures, as Anime4K Soft M does. **No such directive anywhere means it does not scale**, but their presence alone does not establish an upscaler. `ChangesResolution` records explicit size directives; the role additionally follows the final output.
 - `//!WHEN` — its gate. `OUTPUT.w LUMA.w / 1.3 >` means it silently does nothing below 1.3×.
 - `//!HOOK` — which stage and plane it runs on (`LUMA`, `CHROMA`, `MAIN`, `SCALED`, `POSTKERNEL`…).
 - the last pass — in a multi-pass network this is where the output size is actually decided.

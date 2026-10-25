@@ -8,9 +8,8 @@ namespace Momoka.Mpv;
 public enum ShaderRole
 {
     /// <summary>
-    /// Runs before anything else and changes no size: clamping, line repair. Nothing in the table has this role
-    /// since Anime4K left the box on 2026-09-04; the role stays because 「前处理」 is one of the seven 任务书 5.1
-    /// names and the next family to arrive will need it.
+    /// Same-resolution restoration, clamping or line repair before the output scaler. The fixed Anime4K
+    /// configuration uses this role without advertising its restoration network as a luma upscaler.
     /// </summary>
     Preprocess,
 
@@ -37,7 +36,7 @@ public enum ShaderRole
 /// One shader file, described by what it actually declares rather than by what its name suggests.
 /// <para>
 /// Every field except <see cref="Role"/> and <see cref="Bundle"/> is a fact stated in the file's own
-/// <c>//!</c> directives, and a unit test reads all fifteen files and fails if any of them disagrees. That
+/// <c>//!</c> directives, and a unit test reads every shipped file and fails if any of them disagrees. That
 /// test is the mechanical guard 任务书 5.1 asks for: a file with no <c>//!WIDTH</c> or <c>//!HEIGHT</c> cannot
 /// be described as <see cref="ShaderRole.LumaUpscale"/>, which is exactly the mistake that shipped for months.
 /// </para>
@@ -61,9 +60,9 @@ public enum ShaderRole
 /// <see cref="Stage"/>.
 /// </param>
 /// <param name="ChangesResolution">
-/// Whether the file declares an output size of its own (<c>//!WIDTH</c> / <c>//!HEIGHT</c>). The single most
-/// useful field here: it is the only thing that mechanically separates a real upscaler from a file that merely
-/// sharpens at the source's own resolution.
+/// Whether the file contains explicit <c>//!WIDTH</c> / <c>//!HEIGHT</c> declarations, including intermediate
+/// textures. Necessary but not sufficient for an upscaler: a same-size restoration CNN also declares these.
+/// Its role additionally follows the final output expression, not the presence of a directive or its name.
 /// </param>
 /// <param name="Passes">How many <c>//!HOOK</c> blocks the file has; &gt;1 means it is internally multi-pass.</param>
 /// <param name="Gate">
