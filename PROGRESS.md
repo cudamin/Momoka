@@ -2,6 +2,13 @@
 
 最后更新：2026-10-25
 
+## 下载栏主目录交付（2026-10-25）
+
+- 主目录已快进到整合提交 0c7f5fc，产品提交 7be4685，保留 AniBT 与弹弹play已完成改动；未推送。
+- 整合后的 Release 全方案 0 警告、0 错误，2150 项测试全部通过、0 失败、0 跳过（artifacts/download-dialog/merged-build.log、merged-tests.log）。最终 moviepilot,anibt 26 项运行检查全通过（shell-probe-20261025-152130645-22628），报告副本 artifacts/download-dialog/shell-probe.json；此前下载产品代码的五套主题和宽窄实屏已核验，最终截图无布局改动。
+- 主目录 tools/publish.ps1 -NoArchive 退出0，发布542文件、283.8MB，11 GLSL／4 HOOK含许可校验通过（artifacts/download-dialog/publish.log）。桌面 Momoka.lnk 已核实指向 C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe，发布与主目录开发输出 Momoka.dll 哈希一致。
+- 未执行真实下载、整理、播放或完整普通自检；不把本轮假传输提交与取消检查说成真实服务器下载成功。
+
 ## 下载确认窗口参考改版（2026-10-25）
 
 - 主实现树 `C:/Users/89400/.codex/worktrees/download-dialog/Momoka`；按参考图与官方 AddDownloadDialog / MediaIdSelector 实现资源摘要、做种与下载人数、简介、体积、双列下载器和保存目录，以及折叠高级类型、来源、编号核对与片名搜索选片；窄窗自动单列，颜色跟随五个存活主题。
