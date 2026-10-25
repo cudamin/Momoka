@@ -12,6 +12,7 @@ public sealed class DanmakuSettings
     public bool AutoMatch { get; set; } = true;
     public bool WithRelated { get; set; } = true;
     public bool Show { get; set; } = true;
+    public bool ShowInput { get; set; } = true;
     public double Opacity { get; set; } = 70;
     public double FontSize { get; set; } = 36;
     public double Speed { get; set; } = 1;

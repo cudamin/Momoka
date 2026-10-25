@@ -3,6 +3,11 @@ using Momoka.Configuration;
 
 namespace Momoka.Danmaku;
 
+public sealed record DandanPlaySearchResult(IReadOnlyList<DandanPlayEpisode> Episodes, bool HasMore)
+{
+    public static DandanPlaySearchResult Empty { get; } = new([], false);
+}
+
 public sealed record DanmakuComment(double Time, int Mode, int Color, string Text);
 public sealed record DandanPlayEpisode(long EpisodeId, string AnimeTitle, string EpisodeTitle)
 {

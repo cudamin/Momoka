@@ -478,6 +478,7 @@ public sealed partial class PlayerPage
         ApplyWindowGlyphScale(fullscreen);
         ApplyRailScale(fullscreen);
         ApplySkipScale(fullscreen);
+        ArrangeDanmakuInput();
 
         // 宽度分档与高度公式那两处（倍速条宽度档、音量轨上限）按新档重算一遍：形态变了但 Root 尺寸
         // 恰好没变的路（最大化↔全屏尺寸相同时）没有 SizeChanged 来替它跑。没进页面时它自己会早退，
@@ -1726,7 +1727,8 @@ public sealed partial class PlayerPage
 
         Timeline = 32,
 
-        Speed = 64
+        Speed = 64,
+        DanmakuInput = 128
     }
 
     /// <summary>

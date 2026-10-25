@@ -29,6 +29,10 @@ public sealed partial class PlayerPage
         // 插值机在 PlayerPage.Skip.cs —— 「按钮上的倒计时进度条不是很顺滑」，用户令 2026-09-26）。
         switch (e.PropertyName)
         {
+            case nameof(PlayerViewModel.DanmakuInputVisible):
+            case nameof(PlayerViewModel.DanmakuCanSend):
+                ArrangeDanmakuInput();
+                break;
             case nameof(PlayerViewModel.SpeedValue):
                 RenderSpeedNotches();
                 break;
