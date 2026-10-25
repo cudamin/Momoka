@@ -10,7 +10,7 @@
 - 最终独立树 Release 全方案构建 0 警告、0 错误；当前 Core/tests 2152 项通过、0 失败、0 跳过（`artifacts/skip-button/build.log`、`tests.log`）。新增两项 XAML 回归检查，覆盖单行内容、动态名称/显隐/命令及悬停画刷；自动化扫描 483 个交互控件、0 个无句柄，改动文件空白与差异检查通过。
 - 最终 `--probe-shell --probe-section playback` 七项全部通过：`shell-probe-20261025-165342105-13444/logs/shell-probe.json`（目录时间为 UTC，当地执行日期为 2026-10-26）。新用例实测普通 1100/760 窗口、最大化和全屏，检查图标＋标题、UIA 名称、完整单行高度、控制条/音量条避让、点击与键盘命令、十五秒过期和无播放隐藏；故意加入额外提示/竖排内容的负向夹具均被拒绝并还原。片尾仍跳到时长前半秒，自然走到 EOF。
 - 已检查四种窗口尺寸及悬停实屏，按下态为元素树渲染帧，不冒充屏幕 Mica 合成；屏幕取样等待真实渲染回调并核对客户区尺寸。早期隐藏窗口的截图被遮挡守卫拒绝、宽度继承及过早取样造成的无效证据已保留，最终用例未放宽像素守卫。其他分区的 103 项、普通完整自检、独占 uosc 与外部 mpv 实播未运行；全程不读真实帐号、不启动媒体、不上报观看记录。
-- 产品验证通过，待合回主目录后执行交付发布；本项未改版本号、未推送远端。
+- 产品提交 `e68c7e5` 已快进合回主目录，逐文件核对与隔离树一致；主目录当前 Core/tests 重新构建 0 警告、0 错误，2152 项测试全部通过、0 失败、0 跳过（`artifacts/skip-button/primary-tests-build.log`、`primary-tests.log`）。`tools/publish.ps1 -NoArchive` 已刷新实际交付目录，542 文件、283.8 MB、11 GLSL/4 HOOK 含许可校验通过（`artifacts/skip-button/publish.log`）；桌面 `Momoka.lnk` 指向本树发布 exe，发布与本树开发 `Momoka.dll` 的 SHA-256 均为 `2F8BFEC0B1CEEAAE18D4E7FDC7D6475D9AE98D0F8D882D00F73A2415E1F72325`。截图与运行报告已复制到主目录 `artifacts/skip-button/isolated-final`；本项未改版本号、未推送远端。
 
 ## 下载栏主目录交付（2026-10-25）
 
