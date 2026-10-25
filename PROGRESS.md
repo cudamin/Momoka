@@ -1,5 +1,12 @@
 # 开发进度
 
+## 双服务器验证：GitHub 上传与官网上线确认（2026-10-26）
+
+- Momoka 主仓库已推送 `master`，上传时远端／本地同为 `ec8e23d`，包含飞牛时长回退、界面自检／控制条修复、测试与支持文档。没有混入 `.qoder`、旧交接文档、图片或本地 `website` 等原有未跟踪内容，也没有创建 GitHub Release 或提交微软商店。
+- 官网仓库 `cudamin/Mmoka-web-cloudflare-` 已推送 `main`，远端／本地同为 `6c39b04`；GitHub About 的简介与官网地址已通过 API 更新并回读确认。
+- 生产域名 `https://yuanshenqidon.dpdns.org` 返回 200，已显示 Jellyfin 10.10.7 与飞牛 0.9.8／0.8.43 的两处「实服播放通过」，旧「原画播放尚未实测」文案已消失，管理写入未验证仍保留。生产正文与提交 HTML 在排除 Cloudflare 原有注入的 analytics／challenge 脚本后完全一致；不谎称原始 HTML 字节完全相同。验证摘要：`artifacts/live-server-verification-20261026/website-production.json`。
+- 发布件保持最终代码与哈希一致，2179 项测试／186 项完整自检全部通过。默认服务器和账号、聚合开关、管线与音量均核对保留原值；测试播放只留下所用影片的进度／续播变化，无残留 Momoka 进程。
+- 独立树必要的成功／失败证据与本地探针源码已分别保留到主目录忽略的 `artifacts/live-server-verification-20261026/isolated-evidence` 与 `work/verify-live-20261026/harness-sources`，未复制 DPAPI 设置档案或凭据到公开仓库；随后归档本聊天临时工作树。
 ## 双服务器验证最终交付与上传准备（2026-10-26）
 
 - 最终产品代码 `b3cd458` 已快进主干；主树完整 Release 构建 0 警告／0 错误，**2179 项测试通过、0 失败、0 跳过**；完整 whitespace 退出 0，18 个 PowerShell 脚本 BOM／LF／语法检查通过，支持文档守卫与 7 个失败场景测试通过。
