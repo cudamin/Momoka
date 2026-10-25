@@ -14,6 +14,8 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Storage.Streams;
 
 namespace Momoka.Shell;
 
@@ -142,19 +144,39 @@ internal sealed partial class ShellNavigationProbe
             Require(aniBt.SearchCount == 0, "AniBT 键入时未经提交就发出搜索");
             await page.SubmitSearchAsync("离线动画");
             Require(panel.ViewModel.Results.Count == 2 && !panel.ViewModel.Busy, "AniBT 搜索结果未进入番剧列表");
-            Require(aniBt.Requests.Any(path => path.StartsWith("/api/bgm/search?q=" + Uri.EscapeDataString("离线动画"), StringComparison.Ordinal)),
+            Require(aniBt.Requests.Any(path => path.StartsWith("/api/animes/search?q=" + Uri.EscapeDataString("离线动画"), StringComparison.Ordinal)),
                 "搜索词没有交给 AniBT");
             Require(fixture.Transport.Requests.Count == embyRequests && moviePilot.Requests.All(path =>
                 !path.Contains("/search/", StringComparison.Ordinal) && !path.Contains("/media/search", StringComparison.Ordinal)),
                 "AniBT 搜索误发 Emby 或 MoviePilot 搜索请求");
             var results = panel.ViewModel.Results;
             var firstAnime = results[0];
+            using var imageStream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(imageStream.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(await FixtureImageAsync(400, 600));
+                await writer.StoreAsync();
+            }
+            imageStream.Seek(0);
+            var poster = new BitmapImage();
+            await poster.SetSourceAsync(imageStream);
+            Field(firstAnime, "_artwork", poster);
+            panel.ViewModel.SelectedFormat = "剧场版";
+            Require(panel.ViewModel.VisibleResults.Count == 1 && panel.ViewModel.VisibleResults[0].Anime.Format == "MOVIE",
+                "番剧格式筛选没有更新海报网格");
+            panel.ViewModel.SelectedYear = "2026";
+            Require(panel.ViewModel.VisibleResults.Count == 0 && panel.ViewModel.NoFilteredResultsVisibility == Visibility.Visible,
+                "组合筛选的无结果提示没有显示");
+            panel.ViewModel.SelectedFormat = "全部格式";
+            panel.ViewModel.SelectedYear = "全部年份";
+            Require(panel.ViewModel.VisibleResults.Count == 2 && firstAnime.Description.Contains("7.5", StringComparison.Ordinal),
+                "清除筛选没有恢复海报或评分没有转为十分制");
             foreach (var width in new[] { 1040, 360 })
             {
                 await SizeAsync(page, width);
                 var search = Get<Border>(page, "SearchSurface");
                 Require(tabs.ActualWidth <= search.ActualWidth + 1, "四个搜索栏超出搜索区域");
-                var list = Get<ListView>(panel, "AnimeResults");
+                var list = Get<GridView>(panel, "AnimeResults");
                 Require(Descendants(list).OfType<Button>().Any(button => button.Name == "OpenAnimeResources"
                     && AutomationProperties.GetName(button).Contains(firstAnime.Title, StringComparison.Ordinal)),
                     "番剧行的资源按钮没有可定位的自动化名称");
@@ -164,16 +186,24 @@ internal sealed partial class ShellNavigationProbe
             }
 
             await firstAnime.OpenCommand.ExecuteAsync(null);
+            panel.ViewModel.SelectedArtwork = poster;
             var browser = panel.ViewModel.Browser;
             Require(panel.ViewModel.SelectedAnime?.BgmId == 123 && browser.Rows.Count == 3,
                 $"选择番剧后没有读取对应 AniBT 资源：Rows={browser.Rows.Count}，Empty={browser.EmptyMessage}，"
                 + $"Busy={panel.ViewModel.Busy}，提示开={panel.ViewModel.NoticeOpen}，提示={panel.ViewModel.NoticeMessage}，"
                 + $"请求={string.Join("、", aniBt.Requests)}，筛选=({browser.SelectedEpisode}|{browser.SelectedResolution}|{browser.SelectedGroup}|{browser.Text})，"
                 + $"计数={browser.CountText}");
-            Require(aniBt.Requests.Any(path => path == "/rss/anime.xml?bgmId=123"),
+            Require(aniBt.Requests.Any(path => path == "/api/anime/groups?bgmId=123"),
                 "资源查询没有绑定所选番剧的 Bangumi 编号");
             Require(panel.ViewModel.SelectedTitle == firstAnime.Title && panel.ViewModel.SelectedBgm == "Bangumi #123",
                 "番剧头部没有用上所选番剧的标题或 Bangumi 身份");
+            Require(panel.ViewModel.SummaryVisibility == Visibility.Visible && browser.ProgressGroups.Count == 2
+                && browser.ProgressGroups[0].PublishedText == "4 / 12 集"
+                && browser.ProgressGroups[0].Cells.Single(cell => cell.Episode == 5).Published
+                && !browser.ProgressGroups[0].Cells.Single(cell => cell.Episode == 2).Published,
+                "简介或完整发布进度没有显示，或按最近资源错误推断进度");
+            Require(browser.ProgressGroups[0].RssUri?.Query.Contains("groupSlug=offline", StringComparison.Ordinal) == true,
+                "字幕组 RSS 没有保持组范围");
             Require(browser.Episodes.SequenceEqual(new[] { AniBtBrowserViewModel.AllEpisodes, "01", "02", AniBtReleaseLabels.UnknownEpisode }),
                 "集号筛选没有按 RSS 集号给出选项：" + string.Join("、", browser.Episodes));
             Require(browser.Resolutions.SequenceEqual(new[] { AniBtBrowserViewModel.AllResolutions, "1080p", "720p" }),
@@ -188,6 +218,7 @@ internal sealed partial class ShellNavigationProbe
             browser.Text = "不存在的词";
             Require(browser.Rows.Count == 0 && browser.NoMatchesVisibility == Visibility.Visible,
                 "关键词与集号组合筛选没有显示无匹配状态");
+            Require(browser.ResourceGroups.Count == 0, "筛选无匹配后空字幕组仍可见");
             browser.ResetFiltersCommand.Execute(null);
             Require(browser.Rows.Count == 3 && browser.Text.Length == 0 && browser.SelectedEpisode == AniBtBrowserViewModel.AllEpisodes,
                 "清除筛选没有恢复全部发布");
@@ -198,12 +229,27 @@ internal sealed partial class ShellNavigationProbe
             Require(row.MetaLine.Contains("1080p", StringComparison.Ordinal) && row.MetaLine.Contains("离线字幕组", StringComparison.Ordinal),
                 "发布行没有显示 AniBT 的字幕组或清晰度：" + row.MetaLine);
             await LayoutAsync(panel);
-            Require(Get<ListView>(Get<AniBtResourceBrowser>(panel, "ResourceBrowser"), "ReleaseList").Items.Count == 3,
-                "AniBT 发布列表没有绑定筛选后的三行");
+            Require(ReferenceEquals(Get<ItemsRepeater>(Get<AniBtResourceBrowser>(panel, "ResourceBrowser"), "ReleaseList").ItemsSource, browser.ResourceGroups)
+                && browser.ResourceGroups.Count == 2, "AniBT 发布列表没有绑定字幕组");
             foreach (var width in new[] { 1040, 360 })
             {
                 await SizeAsync(page, width);
+                var detailScroll = Get<ScrollViewer>(panel, "AnimeDetailScroll");
+                var resourceBrowser = Get<AniBtResourceBrowser>(panel, "ResourceBrowser");
+                browser.ViewIndex = 0;
+                await LayoutAsync(panel);
+                await SaveSettledFrameAsync(page, $"anibt-detail-{width}-render.png");
+                detailScroll.ChangeView(null, width < 600 ? resourceBrowser.TransformToVisual(Get<StackPanel>(panel, "AnimeResourcesView"))
+                    .TransformPoint(new Windows.Foundation.Point()).Y : 0, null, true);
+                await LayoutAsync(panel);
+                await SaveSettledFrameAsync(page, $"anibt-progress-{width}-render.png");
+                browser.ViewIndex = 1;
+                await LayoutAsync(panel);
+                detailScroll.ChangeView(null, resourceBrowser.TransformToVisual(Get<StackPanel>(panel, "AnimeResourcesView"))
+                    .TransformPoint(new Windows.Foundation.Point()).Y, null, true);
+                await LayoutAsync(panel);
                 await SaveSettledFrameAsync(page, $"anibt-resources-{width}-render.png");
+                detailScroll.ChangeView(null, 0, null, true);
             }
 
             await SizeAsync(page, 1040);
@@ -223,6 +269,33 @@ internal sealed partial class ShellNavigationProbe
             Require(ReferenceEquals(results, panel.ViewModel.Results) && ReferenceEquals(firstAnime, results[0])
                 && panel.ViewModel.SelectedAnime is null && panel.ViewModel.Browser.Rows.Count == 0,
                 "返回番剧没有恢复原列表或残留了旧资源");
+            await firstAnime.OpenCommand.ExecuteAsync(null);
+            await LayoutAsync(panel);
+            Require(Get<ScrollViewer>(panel, "AnimeDetailScroll").VerticalOffset < 1, "重新打开番剧保留了上一页滚动位置");
+            var groupRows = Enumerable.Range(1, 7).Select(index => new AniBtResourceRow(row.Item with
+            {
+                Release = row.Release with { ReleaseId = $"rel_expand_{index}" }
+            }, _ => Task.CompletedTask)).ToArray();
+            groupRows[0].State = MoviePilotDownloadState.Done;
+            var expandGroup = new AniBtResourceGroup("展开测试组", groupRows, null, 12);
+            Require(expandGroup.VisibleRows.Count == 5 && expandGroup.MoreVisibility == Visibility.Visible, "字幕组默认未限制五条");
+            expandGroup.ToggleMoreCommand.Execute(null);
+            Require(expandGroup.VisibleRows.Count == 7 && ReferenceEquals(expandGroup.VisibleRows[0], groupRows[0])
+                && expandGroup.VisibleRows[0].State == MoviePilotDownloadState.Done, "展开字幕组丢失行对象或下载状态");
+            expandGroup.ToggleMoreCommand.Execute(null);
+            Require(expandGroup.VisibleRows.Count == 5, "字幕组不能重新收起");
+            panel.ViewModel.ReturnToResultsCommand.Execute(null);
+            await page.SubmitSearchAsync("分页");
+            var beforePage = panel.ViewModel.Results[0];
+            Require(panel.ViewModel.HasMore, "目录分页未提供加载入口");
+            aniBt.FailNextPage = true;
+            await panel.ViewModel.LoadMoreCommand.ExecuteAsync(null);
+            Require(panel.ViewModel.Results.Count == 2 && panel.ViewModel.HasMore && panel.ViewModel.NoticeOpen,
+                "分页失败丢失现有结果或重试入口");
+            await panel.ViewModel.LoadMoreCommand.ExecuteAsync(null);
+            Require(panel.ViewModel.Results.Count == 4 && !panel.ViewModel.HasMore && ReferenceEquals(beforePage, panel.ViewModel.Results[0]),
+                "分页重试没有追加结果或替换了旧行");
+            Require(aniBt.Requests.Any(path => path.Contains("cursor=next%3A2", StringComparison.Ordinal)), "分页没有回传原始游标");
             await page.SubmitSearchAsync("空结果");
             Require(panel.ViewModel.Results.Count == 0 && panel.ViewModel.ShowEmptyNotice && !panel.ViewModel.Busy,
                 "AniBT 空结果没有展示空态");
@@ -272,8 +345,10 @@ internal sealed partial class ShellNavigationProbe
                 "离开搜索页后 AniBT 查询仍回填");
             Require(moviePilot.MutationAttempts == 0 && fixture.Actions.Plays == 0,
                 "AniBT 只读与取消探针不应下载、刮削或播放");
-            Require(aniBt.Requests.All(path => path.StartsWith("/api/bgm/search?", StringComparison.Ordinal)
-                || path.StartsWith("/rss/anime.xml?", StringComparison.Ordinal)), "探针不应下载 AniBT 种子文件");
+            Require(aniBt.Requests.All(path => path.StartsWith("/api/animes/search?", StringComparison.Ordinal)
+                || path.StartsWith("/rss/anime.xml?", StringComparison.Ordinal)
+                || path.StartsWith("/api/anime/groups?", StringComparison.Ordinal)
+                || path.StartsWith("/api/public/v1/anime?", StringComparison.Ordinal)), "探针不应下载 AniBT 种子文件");
         }
         finally
         {
@@ -346,7 +421,8 @@ internal sealed partial class ShellNavigationProbe
         internal ConcurrentQueue<string> Requests { get; } = new();
         internal ConcurrentQueue<string> MatchNames { get; } = new();
         internal bool ManualCandidates { get; set; }
-        internal int SearchCount => Requests.Count(path => path.StartsWith("/api/bgm/search?", StringComparison.Ordinal));
+        internal bool FailNextPage { get; set; }
+        internal int SearchCount => Requests.Count(path => path.StartsWith("/api/animes/search?", StringComparison.Ordinal));
 
         internal DelayedSearch DelayNextSearch()
         {
@@ -370,7 +446,7 @@ internal sealed partial class ShellNavigationProbe
             if (request.RequestUri.AbsolutePath == "/api/animes/torrent-match" && request.Method == HttpMethod.Post)
                 return MatchReplyAsync(request, cancellationToken);
             Require(request.Method == HttpMethod.Get, "AniBT 探针只接受搜索、RSS 与只读识别");
-            if (request.RequestUri.AbsolutePath == "/api/bgm/search")
+            if (request.RequestUri.AbsolutePath == "/api/animes/search")
             {
                 if (_delays.TryDequeue(out var delayed))
                 {
@@ -378,13 +454,26 @@ internal sealed partial class ShellNavigationProbe
                     // Deliberately ignore cancellation until the probe releases the response, exercising stale-result guards.
                     return delayed.Response.Task;
                 }
+                if (Query(request, "cursor") is not null)
+                {
+                    if (FailNextPage)
+                    {
+                        FailNextPage = false;
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+                    }
+                    return Task.FromResult(SearchReply("分页追加番剧", 125));
+                }
                 return Task.FromResult(Query(request, "q") switch
                 {
-                    "空结果" => Json(new { ok = true, data = Array.Empty<object>() }),
+                    "空结果" => Json(new { page = Array.Empty<object>(), isDone = true, continueCursor = "" }),
                     "接口失败" => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable),
+                    "分页" => SearchReply(more: true),
                     _ => SearchReply()
                 });
             }
+            if (request.RequestUri.AbsolutePath == "/api/public/v1/anime")
+                return Task.FromResult(Json(new { initialAnime = Anime(), initialExternalIds = Array.Empty<object>() }));
+            if (request.RequestUri.AbsolutePath == "/api/anime/groups") return Task.FromResult(GroupsReply());
             if (request.RequestUri.AbsolutePath == "/rss/anime.xml")
             {
                 var requested = Query(request, "episode");
@@ -451,14 +540,60 @@ internal sealed partial class ShellNavigationProbe
                 """;
         }
 
-        internal static HttpResponseMessage SearchReply(string title = "离线示例动画 · 星光下的旅程", long bgmId = 123) => Json(new
+        private static object Anime(string title = "离线示例动画 · 星光下的旅程", long bgmId = 123, string format = "TV", int year = 2026) => new
+        {
+            _id = bgmId == 123 ? "ani_one" : "ani_two",
+            bgmId,
+            title = new { chinese = title, native = "Offline Animation: A Journey Under the Stars", english = "A Journey Under the Stars" },
+            seasonYear = year,
+            season = "FALL",
+            episodes = 12,
+            format,
+            status = "RELEASING",
+            averageScore = 75,
+            description = "一群性格各异的学生在校园中相遇，从平凡的日常走向意想不到的冒险。这是一段关于友情、勇气和成长的旅程。",
+            genres = new[] { "校园", "日常", "喜剧" },
+            officialSite = "https://example.invalid/anime"
+        };
+
+        internal static HttpResponseMessage SearchReply(string title = "离线示例动画 · 星光下的旅程", long bgmId = 123, bool more = false) => Json(new
+        {
+            page = new[] { Anime(title, bgmId), Anime("另一部同名动画", bgmId + 1, "MOVIE", 2024) },
+            isDone = !more,
+            continueCursor = more ? "next:2" : ""
+        });
+
+        private static HttpResponseMessage GroupsReply() => Json(new
         {
             ok = true,
-            data = new[]
+            data = new
             {
-                new { bgmId, nameCn = title, name = "Offline Animation: A Journey Under the Stars", seasonYear = 2026, totalEpisodes = 12 },
-                new { bgmId = bgmId + 1, nameCn = "另一部同名动画", name = "Another Animation", seasonYear = 2024, totalEpisodes = 24 }
+                bgmId = 123,
+                animeId = "ani_one",
+                title = "离线示例动画 · 星光下的旅程",
+                groups = new[]
+                {
+                    new { groupId = "group_one", name = "离线字幕组", slug = "offline", publishedEpisodes = new[] { 1, 3, 4, 5 }, totalReleases = 12,
+                        items = new[] { GroupRelease("rel_one", "01", "1080p", 1234567890, 1792296000000), GroupRelease("rel_batch", "", "1080p", 9876543210, 1791604800000) } },
+                    new { groupId = "group_two", name = "另一个字幕组", slug = "another", publishedEpisodes = new[] { 2 }, totalReleases = 1,
+                        items = new[] { GroupRelease("rel_two", "02", "720p", 456789012, 1792209600000) } }
+                }
             }
         });
+
+        private static object GroupRelease(string releaseId, string episodeKey, string resolution, long size, long publishedAt) => new
+        {
+            releaseId,
+            title = $"[离线字幕组] 离线示例动画 - {episodeKey} [{resolution}][HEVC][AAC]",
+            episodeKey,
+            resolution,
+            size,
+            publishedAt,
+            format = "MKV",
+            language = new[] { "简中", "繁中" },
+            subtitle = "内封字幕",
+            customTags = new[] { "Web", "HEVC", "AAC" },
+            torrentStorageId = "fixture-torrent"
+        };
     }
 }

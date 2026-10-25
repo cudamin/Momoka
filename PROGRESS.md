@@ -2,6 +2,15 @@
 
 最后更新：2026-10-25
 
+## AniBT 搜索页面参考改版与交付（2026-10-25）
+
+- 主写入树 `C:/Users/89400/Momoka`，整合 Core 提交 `fa111f2`。搜索改为响应式海报网格，提供已载结果格式／状态／年份筛选与目录游标加载；缺失筛选能力收起。详情补简介折叠、官方及外部条目、整番剧 RSS 复制，海报与正文随窄窗重排。
+- 发布进度按完整去重集号显示，资源按字幕组折叠，默认五条并可展开；体积、语言、容器、字幕、标签、日期与下载状态保留，每组区分已载记录和完整总数。无种子行隐藏下载。分集入口仍走独立 RSS `episode` 条件，查看全部集数后切回分组；复制字幕组 RSS 保留 `groupSlug`。
+- 回归覆盖格式／组合筛选恢复、评分、完整进度与资源数区别、组 RSS 范围、五条展开收起且下载状态不丢、分页失败重试和原游标、返回详情滚动复位、取消下载与连接隔离。子菜单截图曾因原生弹层关闭未完成而报遮挡：仅调整探针锚点并等待 Collapse、Closed 和弹层消失，再拆除旧视图；通用像素遮挡守卫保留，最终重验通过。
+- 最终 Release Shell 构建 0 警告、0 错误，当前 Core/tests 2131 项通过、0 失败、0 跳过（`artifacts/anibt-final-tests.log`）；变更 C# 空白检查和 git diff --check 通过；自动化扫描 470 个交互控件、0 个无句柄。
+- 最终 `--probe-shell --probe-section anibt` 三项全部通过：`shell-probe-20261025-125459922-29880/logs/shell-probe.json`。已人工检查 search/detail/progress/resources 各 1040/360 窗口的八张渲染帧，含本地生成海报和缺图占位；没有声称这些帧是屏幕 Mica 合成。其他 105 项／其他分区及普通完整自检未执行；未真实下载、重新整理或播放。
+- `tools/publish.ps1 -NoArchive` 刷新实际交付目录，541 文件、283.7 MB、11 GLSL／4 HOOK 含许可逐文件验证通过（`artifacts/anibt-publish.log`）。桌面 Momoka 快捷方式已核实指向本树 `artifacts/publish/win-x64/Momoka.exe`；发布与开发输出 Momoka.dll SHA-256 相同 `70EB55AFC430992B3A151F55A09C8F8E81334C3F92D6AEDC6E322CD24A610437`。本轮无版本号升级，未推送。
+
 ## AniBT 搜索目录、详情和字幕组协议（2026-10-25）
 
 - 子任务独立树 `C:/Users/89400/Momoka-anibt-catalog`，范围仅 `Core/AniBt` 与 AniBT 离线测试；Shell、运行截图和最终交付由主会话整合。

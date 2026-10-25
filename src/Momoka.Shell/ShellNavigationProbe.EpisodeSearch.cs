@@ -23,7 +23,14 @@ internal sealed partial class ShellNavigationProbe
         var service = (AniBtService)fixture.Services.GetService(typeof(AniBtService))!;
         var shell = new ShellPage();
         shell.Attach(fixture.Services);
-        var anchor = new Button { Content = "版本来源", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        // 两级原生菜单不应覆盖实屏采样的四角；固定在上方内侧，截图仍保留遮挡检查。
+        var anchor = new Button
+        {
+            Content = "版本来源",
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(120, 80, 0, 0)
+        };
         _root.Children.Add(shell);
         _root.Children.Add(anchor);
         var owner = new EmbyItem { Id = "anime", Name = "离线示例动画", Type = EmbyItemType.Series, Genres = ["日本动画"] };
@@ -54,7 +61,14 @@ internal sealed partial class ShellNavigationProbe
                 .GetPattern(PatternInterface.ExpandCollapse)).Expand();
             await LayoutAsync(anchor);
             await SaveProbeScreenAsync("anime-version-menu.png");
+            ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(versions)
+                .GetPattern(PatternInterface.ExpandCollapse)).Collapse();
+            var menuClosed = Pending<bool>();
+            menu.Closed += (_, _) => menuClosed.TrySetResult(true);
             menu.Hide();
+            await menuClosed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            await UntilAsync(() => !VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                .Any(popup => popup.Child is MenuFlyoutPresenter));
             _root.Children.Remove(anchor);
             _root.Children.Remove(shell);
 
@@ -130,7 +144,7 @@ internal sealed partial class ShellNavigationProbe
             await panel.SearchAsync("其他译名", panel.ViewModel.Episode);
             await panel.ViewModel.Results[0].OpenCommand.ExecuteAsync(null);
             await panel.ViewModel.ShowAllEpisodesCommand.ExecuteAsync(null);
-            Require(aniBt.Requests.Last() == "/rss/anime.xml?bgmId=123" && panel.ViewModel.Episode is null,
+            Require(aniBt.Requests.Last() == "/api/anime/groups?bgmId=123" && panel.ViewModel.Episode is null,
                 "查看全部集数没有移除 RSS 分集条件");
             Require(mpServer.Requests.All(path => !path.Contains("/search/", StringComparison.Ordinal)) && fixture.Actions.Plays == 0,
                 "AniBT 查询借用了 MoviePilot 搜索或触发播放");
