@@ -46,6 +46,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     {
         ResourceOverlay.Release();
         ResourceOverlay.Visibility = Visibility.Collapsed;
+        SearchContent.Visibility = Visibility.Visible;
         Results.Visibility = Visibility.Visible;
         return ViewModel.SearchAsync("");
     }
@@ -55,6 +56,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     {
         ResourceOverlay.Release();
         ResourceOverlay.Visibility = Visibility.Collapsed;
+        SearchContent.Visibility = Visibility.Visible;
         Results.Visibility = Visibility.Visible;
         return ViewModel.SearchAsync(term);
     }
@@ -66,6 +68,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         SourceFilter.IsDropDownOpen = false;
         ResourceOverlay.Release();
         ResourceOverlay.Visibility = Visibility.Collapsed;
+        SearchContent.Visibility = Visibility.Visible;
         Results.Visibility = Visibility.Visible;
     }
 
@@ -75,6 +78,8 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         if (_service is null || _launcher is null) return Task.CompletedTask;
 
         ResourceOverlay.Open(_service, media, _launcher);
+        SourceFilter.IsDropDownOpen = false;
+        SearchContent.Visibility = Visibility.Collapsed;
         Results.Visibility = Visibility.Collapsed;
         ResourceOverlay.Visibility = Visibility.Visible;
         return Task.CompletedTask;
@@ -88,6 +93,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     private void OnResourceClosed(object? sender, EventArgs e)
     {
         ResourceOverlay.Visibility = Visibility.Collapsed;
+        SearchContent.Visibility = Visibility.Visible;
         Results.Visibility = Visibility.Visible;
         ResourceOverlay.Release();
     }

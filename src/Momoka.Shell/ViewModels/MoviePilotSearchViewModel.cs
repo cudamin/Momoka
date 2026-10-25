@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Momoka.Diagnostics;
@@ -33,6 +34,7 @@ public sealed partial class MoviePilotResult : ObservableObject
     /// <summary>海报解码宽度：卡片画得比这个小，解到这个宽够清楚又不费内存。</summary>
     private const int PosterDecodeWidth = 240;
 
+    private bool _posterFailed;
     private readonly Func<MoviePilotResult, Task> _subscribe;
     private readonly Func<MoviePilotResult, Task> _searchResources;
 
@@ -48,12 +50,35 @@ public sealed partial class MoviePilotResult : ObservableObject
         // 海报是外站 URL（TMDB/豆瓣的图，或 MoviePilot 代理的），直接交给 BitmapImage 下载 —— 这一处不走
         // EmbyImageStore，那是 Emby 会话域的。只认绝对 http(s)：相对路径或空的就留空，卡片显示占位字形而不是抛。
         if (Uri.TryCreate(media.PosterUrl, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+        {
             Poster = new BitmapImage(uri) { DecodePixelWidth = PosterDecodeWidth };
+            Poster.ImageFailed += (_, _) =>
+            {
+                _posterFailed = true;
+                OnPropertyChanged(nameof(PosterVisibility));
+                OnPropertyChanged(nameof(GlyphVisibility));
+            };
+        }
     }
 
     public MoviePilotMedia Media { get; }
 
     public string Title => Media.Display;
+    public string PosterTitle => Media.Title;
+    public string RatingText => Media.Rating is > 0 and <= 10 and var rating
+        ? rating.ToString("0.#", CultureInfo.InvariantCulture) : "";
+    public Visibility RatingVisibility => RatingText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ActionsVisibility => Media.CanSubscribe ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility SubscribeActionVisibility => CanSubscribe ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility SubscribeStatusVisibility => Media.CanSubscribe && !CanSubscribe ? Visibility.Visible : Visibility.Collapsed;
+    public string SubscribeGlyph => State switch
+    {
+        MoviePilotSubscribeState.Done => "\uEB52",
+        MoviePilotSubscribeState.Working => "\uE895",
+        MoviePilotSubscribeState.Uncertain => "\uE7BA",
+        MoviePilotSubscribeState.Failed => "\uE72C",
+        _ => "\uEB51"
+    };
 
     public string TypeLabel => Media.Type ?? "";
 
@@ -75,14 +100,17 @@ public sealed partial class MoviePilotResult : ObservableObject
     /// <summary>海报，取不到就是 null；这时显示字形占位（见下面两个可见性）。构造时定好，不再变。</summary>
     public BitmapImage? Poster { get; }
 
-    public Visibility PosterVisibility => Poster is null ? Visibility.Collapsed : Visibility.Visible;
+    public Visibility PosterVisibility => Poster is null || _posterFailed ? Visibility.Collapsed : Visibility.Visible;
 
-    public Visibility GlyphVisibility => Poster is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility GlyphVisibility => Poster is null || _posterFailed ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>订阅到哪一步。改了之后那颗键的字、能不能按都跟着变。</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SubscribeLabel))]
     [NotifyPropertyChangedFor(nameof(CanSubscribe))]
+    [NotifyPropertyChangedFor(nameof(SubscribeActionVisibility))]
+    [NotifyPropertyChangedFor(nameof(SubscribeStatusVisibility))]
+    [NotifyPropertyChangedFor(nameof(SubscribeGlyph))]
     [NotifyCanExecuteChangedFor(nameof(SubscribeCommand))]
     public partial MoviePilotSubscribeState State { get; set; }
 
@@ -173,7 +201,11 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
     {
         EmptyNotice = IdlePrompt;
         ShowEmptyNotice = true;
+        Results.CollectionChanged += (_, _) => OnPropertyChanged(nameof(ResultCount));
     }
+
+    public string Heading => _lastTerm.Length == 0 ? "电影、电视剧" : $"电影、电视剧：{_lastTerm}";
+    public string ResultCount => Results.Count == 0 ? "" : $"{Results.Count} 个结果";
 
     public ObservableCollection<MoviePilotResult> Results { get; } = [];
 
@@ -260,6 +292,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
 
         var keyword = term.Trim();
         _lastTerm = keyword;
+        OnPropertyChanged(nameof(Heading));
 
         if (keyword.Length == 0)
         {

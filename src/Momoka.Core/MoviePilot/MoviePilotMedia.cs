@@ -15,6 +15,9 @@ public sealed record MoviePilotMedia
     internal string ConnectionStamp { get; init; } = "";
 
     public int? Year { get; init; }
+
+    /// <summary>上游 vote_average，0 或未知不显示评分角标。</summary>
+    public double? Rating { get; init; }
     public int? Season { get; init; }
 
     /// <summary>

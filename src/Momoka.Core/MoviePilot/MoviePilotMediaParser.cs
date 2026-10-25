@@ -212,6 +212,7 @@ public static class MoviePilotMediaParser
         {
             Title = title!,
             Year = Number(item, "year"),
+            Rating = Factor(item, "vote_average") is > 0 and <= 10 and var rating ? rating : null,
             Season = Number(item, "season") is >= 0 and var season ? season : null,
             Type = Text(item, "type"),
             Overview = Text(item, "overview"),

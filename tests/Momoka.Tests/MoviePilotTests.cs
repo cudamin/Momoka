@@ -356,6 +356,26 @@ internal static class MoviePilotTests
             Assert.Null(list[1].PosterUrl, "海报是 null 就老实是 null，别塞个空串");
         });
 
+        Test("MoviePilot 搜索：评分兼容数字和字符串，未知、零和越界不冒充真实评分", () =>
+        {
+            var media = MoviePilotMediaParser.Parse(Json("""
+                [{"title":"数字评分","vote_average":8.8},
+                 {"title":"字符串评分","vote_average":"7.6"},
+                 {"title":"满分","vote_average":10},
+                 {"title":"零分","vote_average":0},
+                 {"title":"负数","vote_average":-1},
+                 {"title":"越界","vote_average":12},
+                 {"title":"无效","vote_average":"NaN"},
+                 {"title":"未知"}]
+                """));
+            Assert.Equal<double?>(8.8, media[0].Rating);
+            Assert.Equal<double?>(7.6, media[1].Rating);
+            Assert.Equal<double?>(10, media[2].Rating);
+            foreach (var item in media.Skip(3)) Assert.Null(item.Rating, item.Title);
+            Assert.False(MoviePilotMediaParser.SubscribeBody(media[0]).ContainsKey("vote_average"),
+                "展示评分不参与订阅身份和请求");
+        });
+
         Test("MoviePilot 搜索：没有标题的当噪声跳过，认不出的整体回空", () =>
         {
             Assert.Equal(0, MoviePilotMediaParser.Parse(Json("""[{"year":2020,"media_id":"1"}]""")).Count);
