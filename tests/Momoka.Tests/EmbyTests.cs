@@ -1316,6 +1316,15 @@ internal static class EmbyTests
             placed.Path = @"D:\media\Show.S01E01.2160p-GRP.mkv";
             placed.MediaStreams.Add(new MediaStream { Index = 2, Type = "Audio", Codec = "flac" });
             Assert.Equal("4K  ·  HEVC  ·  HDR  ·  FLAC  ·  GRP", PlaybackTitles.Subline(placed));
+
+            // 字段名照服务器那份 JSON 认一遍（Emby / Jellyfin 的流对象里就叫 VideoRangeType）——
+            // 名字对不上时上面几条对象级断言照样绿，屏上却一个字都不会多。
+            var json = """
+                {"Id":"s1","MediaStreams":[{"Type":"Video","Codec":"hevc","Width":3840,"Height":2160,
+                 "VideoRange":"DOVI","VideoRangeType":"DOVIWithHDR10","Profile":"Main 10"}]}
+                """;
+            var parsed = System.Text.Json.JsonSerializer.Deserialize<MediaSource>(json, EmbyHttp.Json)!;
+            Assert.Equal("HDR/DV", parsed.PrimaryVideoStream!.DynamicRangeLabel);
         });
 
         Test("条目：续播判定要排除刚开头和快结束", () =>
