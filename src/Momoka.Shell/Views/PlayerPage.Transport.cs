@@ -66,16 +66,22 @@ public sealed partial class PlayerPage
     private void ArrangeTransport()
     {
         if (TransportRow is null || !Attached) return;
-        var width = Root.ActualWidth;
-        var compact = width < 680;
-        var tiny = width < 520;
-        var minimal = width < 300;
+        // An explicit width is used by resize/layout probes and can arrive one layout pass before
+        // ActualWidth. Use the tighter current constraint; ordinary responsive UI keeps Width=NaN.
+        var width = double.IsFinite(Root.Width) && Root.Width > 0
+            ? Math.Min(Root.ActualWidth, Root.Width) : Root.ActualWidth;
+        // The breakpoints describe window-sized controls. Fullscreen/maximized controls are
+        // 1.3x larger, so the same physical row must enter its compact mode earlier.
+        var logicalWidth = width / ChromeFactor;
+        var compact = logicalWidth < 680;
+        var tiny = logicalWidth < 520;
+        var minimal = logicalWidth < 300;
         var chapters = ViewModel.ChapterMarks.Count > 0;
         TransportStatsButton.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         ChapterButton.Visibility = compact || !chapters ? Visibility.Collapsed : Visibility.Visible;
         PreviousChapterButton.Visibility = compact || !chapters ? Visibility.Collapsed : Visibility.Visible;
         NextChapterButton.Visibility = compact || !chapters ? Visibility.Collapsed : Visibility.Visible;
-        PlayButton.Visibility = compact && width >= 188 ? Visibility.Visible : Visibility.Collapsed;
+        PlayButton.Visibility = compact && logicalWidth >= 188 ? Visibility.Visible : Visibility.Collapsed;
         PreviousButton.Visibility = tiny ? Visibility.Collapsed : ViewModel.EpisodeControlsVisibility;
         NextButton.Visibility = PreviousButton.Visibility;
         EpisodeButton.Visibility = PreviousButton.Visibility;
@@ -85,8 +91,17 @@ public sealed partial class PlayerPage
         // 倍速条宽度档 × 档位倍率（复刻独占 scale 策略的动态两处之一）：窗口档照旧 100/146，
         // 大档（全屏或最大化）×1.3。形态一变这里会被 ApplyTitleScale 与 OnRootResized 各请一遍。
         SpeedStrip.Width = (compact ? 100 : 146) * ChromeFactor;
-        SpeedStrip.Visibility = width < 220 ? Visibility.Collapsed : Visibility.Visible;
-        SpeedButton.Visibility = width is >= 160 and < 220 ? Visibility.Visible : Visibility.Collapsed;
+        SpeedStrip.Visibility = logicalWidth < 220 ? Visibility.Collapsed : Visibility.Visible;
+        SpeedButton.Visibility = logicalWidth is >= 160 and < 220 ? Visibility.Visible : Visibility.Collapsed;
+        // Automatic columns never shrink their children. Reserve the visible left/right slots
+        // before retaining the optional speed strip, including full-screen chrome's larger cells.
+        var cell = BigChrome ? FullscreenTransportCell : WindowTransportCell;
+        var gap = BigChrome ? FullscreenTransportGap : WindowTransportGap;
+        var narrowSlots = (PlayButton.Visibility == Visibility.Visible ? cell : 0)
+            + (minimal ? cell : cell * 4) + gap * 5;
+        var speedRoom = width - TransportRow.Margin.Left - TransportRow.Margin.Right - narrowSlots;
+        if (tiny && SpeedStrip.Visibility == Visibility.Visible && SpeedStrip.Width > speedRoom)
+            SpeedStrip.Visibility = Visibility.Collapsed;
         // 与 uosc 一样在顶栏和底栏之间居中，随可用高度缩短，保留静音键的完整格子。
         var top = TitleStrip.Height;
         var bottom = BarHeight();

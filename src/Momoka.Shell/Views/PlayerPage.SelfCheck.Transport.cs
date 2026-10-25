@@ -50,17 +50,17 @@ public sealed partial class PlayerPage
                 {
                     var box = BoundsOf(control);
                     if (box.Left < -1 || box.Right > width + 1 || box.Width <= 0)
-                        issues.Add($"{width}: {control.Name}越界或无尺寸");
+                        issues.Add($"{width}: {control.Name}越界或无尺寸（{box.Left:0.##}–{box.Right:0.##}，Root={Root.ActualWidth:0.##}，倍速={SpeedStrip.Visibility}/{SpeedStrip.Width:0.##}，左右={TransportLeft.ActualWidth:0.##}/{TransportRight.ActualWidth:0.##}）");
                     if (previous is { } prior && prior.Right > box.Left + 1)
                         issues.Add($"{width}: {control.Name}与前一控件重叠");
                     previous = box;
                 }
-                if (width < 680 && PlayButton.Visibility == Visibility.Visible
+                if (width / ChromeFactor < 680 && PlayButton.Visibility == Visibility.Visible
                     && string.IsNullOrWhiteSpace(FrameworkElementAutomationPeer.CreatePeerForElement(PlayButton)?.GetName()))
                     issues.Add($"{width}: 播放键无读屏名称");
                 if (Math.Abs(BoundsOf(SeekTrack).Bottom - BoundsOf(Bar).Bottom) > 1)
                     issues.Add($"{width}: 时间轴没有贴底");
-                if (width >= 680 && PlayButton.Visibility != Visibility.Collapsed)
+                if (width / ChromeFactor >= 680 && PlayButton.Visibility != Visibility.Collapsed)
                     issues.Add($"{width}: 宽窗重复播放键未隐藏");
             }
             Root.Width = 560;

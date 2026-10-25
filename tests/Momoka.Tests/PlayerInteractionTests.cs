@@ -17,6 +17,15 @@ internal static class PlayerInteractionTests
         return document.Descendants().Single(element => element.Name.LocalName == "Button" && element.Attribute(xaml + "Name")?.Value == "SkipButton");
     }
 
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
+            directory = directory.Parent;
+        Assert.NotNull(directory);
+        return directory!.FullName;
+    }
+
     internal static void Register()
     {
         TestHarness.Test("集成跳过按钮：与独占一样只有图标和标题的一行", () =>
@@ -46,6 +55,44 @@ internal static class PlayerInteractionTests
                 .ToDictionary(element => element.Attribute(xaml + "Key")!.Value, element => element.Attribute("ResourceKey")!.Value);
             Assert.Equal("PlayerSkipHoverBrush", resources["ButtonBackgroundPointerOver"]);
             Assert.Equal("PlayerSkipPressedBrush", resources["ButtonBackgroundPressed"]);
+        });
+
+        TestHarness.Test("自检媒体库视图：只轮巡 Emby 的七种，不掺入 Jellyfin 专属布局", () =>
+        {
+            var root = RepositoryRoot();
+            var text = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "LibraryPage.xaml.cs"));
+            Assert.Contains("foreach (var view in LibraryDisplayCatalog.EmbyViews)", text);
+            Assert.DoesNotContain("foreach (var view in Enum.GetValues<LibraryView>())", text);
+            Assert.Equal(7, Momoka.Emby.LibraryDisplayCatalog.EmbyViews.Count);
+        });
+        TestHarness.Test("服务器渲染计数：按实际模板根标识，不依赖框架容器类型", () =>
+        {
+            var root = RepositoryRoot();
+            var xaml = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "ServersPage.xaml"));
+            var code = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "ServersPage.xaml.cs"));
+            Assert.Contains("<Border Tag=\"{x:Bind}\"", xaml);
+            Assert.Contains("<Grid Tag=\"{x:Bind}\" ColumnSpacing", xaml);
+            Assert.Contains("FrameworkElement { Tag: ServerRow }", code);
+            Assert.Contains("FrameworkElement { Tag: AccountRow }", code);
+            Assert.Contains("ServerPrimaryAccount", code);
+        });
+        TestHarness.Test("集页首屏检查：无静止描边且仍检查内容次序与可视范围", () =>
+        {
+            var root = RepositoryRoot();
+            var code = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "DetailPage.xaml.cs"));
+            Assert.Contains("var bareFrame = !Rings(EpisodePanel);", code);
+            Assert.Contains("ok &= order && below && bareFrame;", code);
+            Assert.Contains("ok &= inside || !roomy;", code);
+        });
+        TestHarness.Test("窄窗控制条：不足以显示倍速条时保留播放和右侧操作", () =>
+        {
+            var code = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "PlayerPage.Transport.cs"));
+            Assert.Contains("FullscreenTransportCell : WindowTransportCell", code);
+            Assert.Contains("var logicalWidth = width / ChromeFactor;", code);
+            Assert.Contains("var compact = logicalWidth < 680;", code);
+            Assert.Contains("var tiny = logicalWidth < 520;", code);
+            Assert.Contains("SpeedStrip.Width > speedRoom", code);
+            Assert.Contains("SpeedStrip.Visibility = Visibility.Collapsed", code);
         });
 
         TestHarness.Test("独占快捷键：默认动作完整且清除旧键与新增键同时下发", () =>

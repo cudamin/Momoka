@@ -312,7 +312,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         var original = ViewModel.Display;
         var seen = new List<(string, string, double, double)>(7);
 
-        foreach (var view in Enum.GetValues<LibraryView>())
+        foreach (var view in LibraryDisplayCatalog.EmbyViews)
         {
             // remember: false —— 走查看过就走，不把库留在别的形状上，也不写设置文件。
             ViewModel.ApplyDisplay(
