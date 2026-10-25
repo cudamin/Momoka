@@ -9,6 +9,12 @@
 - 只读 `git ls-remote --symref` 核实当次两仓默认分支均为 `v3`；前端 HEAD `e7e196b5e47a4b591fde70c2aefd6c304ddef6d9`，后端 HEAD `2fb3890f9d8139db219fcf6961e9847371969c93`。10 个记录的源码文件以 GitHub raw HTTPS 获取均为 200。源码和本地调用链交叉核对确认：外层媒体编号不能替代 `download/` 的完整 `media_in`，网页放大镜是标题搜索选择器，AniBT 下载入口在 `AniBtSearchPanel`。
 - 文档验证：技能结构检查 0 error、0 warning；新增参考资料的本地文件、相对链接与锚点、官方 URL 清单、UTF-8/LF 和差异一致性检查通过。旧快照有变化、上游仅音乐变动、无法确认源码/服务器版本三个场景做只读人工走查，均明确区分适用同步与未验证；不是实测自动触发率。未构建应用、未跑 UI、未访问真实服务器或推送，产品验证由主会话完成。
 
+## 下载确认窗口的媒体身份核对（2026-10-25）
+
+- 子任务独立树 `C:/Users/89400/.codex/worktrees/download-media-identity`；仅修改 `Core/MoviePilot` 与 `MoviePilotResourceOptionsTests`，Shell、截图和最终发布由主会话整合。
+- 对照本地官方前端与后端 v3.0.1：高级选项按来源、原生编号和影视类型只读取得完整媒体；提交使用 `download/` 的 `media_in`，不发送后端忽略的辅助身份字段。核对结果绑定原资源实例与连接代次，保留种子、身份否决与原有防重键。
+- 验证：当前 Core/tests Release 构建 0 警告、0 错误；2139 项离线测试全部通过，0 失败、0 跳过（`artifacts/download-media-tests.txt`）；新增覆盖错身份/类型、取消、跨资源、切走再切回连接、迟到结果、否决资源和超时防重，并核实际路由、完整正文和请求次数。改动文件空白检查与 `git diff --check` 通过；未连接真实服务器、未实际下载、未运行 UI 或发布。
+
 ## AniBT 搜索目录、详情和字幕组协议（2026-10-25）
 
 - 子任务独立树 `C:/Users/89400/Momoka-anibt-catalog`，范围仅 `Core/AniBt` 与 AniBT 离线测试；Shell、运行截图和最终交付由主会话整合。

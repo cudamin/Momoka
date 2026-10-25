@@ -2,11 +2,71 @@ using System.Text.Json;
 
 namespace Momoka.MoviePilot;
 
-public sealed record MoviePilotDownloadOptions(string? Downloader = null, string? SavePath = null);
+public sealed record MoviePilotDownloadOptions(string? Downloader = null, string? SavePath = null,
+    MoviePilotDownloadMedia? Media = null);
 public sealed record MoviePilotDownloadChoices(IReadOnlyList<string> Downloaders, IReadOnlyList<string> Paths);
+
+/// <summary>服务核对过的完整媒体身份；只用于核对时的那条资源和连接代次。</summary>
+public sealed class MoviePilotDownloadMedia
+{
+    private readonly MoviePilotResource _resource;
+
+    internal MoviePilotDownloadMedia(MoviePilotResource resource, long connectionGeneration,
+        string source, string id, string type, string title, JsonElement mediaInfo)
+    {
+        _resource = resource;
+        ConnectionGeneration = connectionGeneration;
+        Source = source;
+        Id = id;
+        Type = type;
+        Title = title;
+        MediaInfo = mediaInfo.Clone();
+    }
+
+    public string Source { get; }
+    public string Id { get; }
+    public string Type { get; }
+    public string Title { get; }
+    internal long ConnectionGeneration { get; }
+    internal JsonElement MediaInfo { get; }
+
+    internal void RequireResource(MoviePilotResource resource)
+    {
+        if (!ReferenceEquals(_resource, resource))
+            throw new MoviePilotOperationBlockedException("核对的媒体信息不属于这条资源，请重新确认下载");
+    }
+}
 
 public sealed partial class MoviePilotService
 {
+    /// <summary>按明确的来源、编号与类型只读核对；下载时使用完整 media_in，避免后端忽略辅助字段。</summary>
+    public async Task<MoviePilotDownloadMedia> ResolveDownloadMediaAsync(MoviePilotResource resource,
+        string source, string id, string type, CancellationToken cancellationToken)
+    {
+        if (resource.DownloadProblem is { } problem) throw new MoviePilotOperationBlockedException(problem);
+        var identity = RequireResultConnection(resource.ConnectionStamp);
+        if (resource.ConnectionGeneration is { } generation && generation != identity.Generation)
+            throw new MoviePilotOperationBlockedException("MoviePilot 配置曾发生变化，请重新搜索资源");
+        source = source.Trim();
+        id = id.Trim();
+        type = type.Trim();
+        if (source.Length == 0 || id.Length == 0 || type is not ("电影" or "电视剧"))
+            throw new MoviePilotException("请选择数据源、电影或电视剧，并填写媒体编号");
+
+        var path = $"media/{Uri.EscapeDataString(id)}?media_source={Uri.EscapeDataString(source)}&type_name={Uri.EscapeDataString(type)}";
+        var media = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken),
+            cancellationToken, identity).ConfigureAwait(false);
+        CheckIdentity(identity, cancellationToken);
+        var title = MoviePilotTransfer.Text(media, "title");
+        if (media.ValueKind != JsonValueKind.Object ||
+            MoviePilotTransfer.Text(media, "media_source") != source ||
+            MoviePilotTransferHistory.Scalar(media, "media_id") != id ||
+            MoviePilotTransfer.Text(media, "type") != type || string.IsNullOrWhiteSpace(title))
+            throw new MoviePilotException("MoviePilot 返回的媒体身份或类型与所选内容不一致，请重新查找");
+
+        return new(resource, identity.Generation, source, id, type, title, media);
+    }
+
     /// <summary>目录与资源绑定到同一连接，只投影显示需要的名称和下载路径。</summary>
     public async Task<MoviePilotDownloadChoices> DownloadChoicesAsync(MoviePilotResource resource, CancellationToken cancellationToken)
     {

@@ -176,8 +176,10 @@ public sealed partial class MoviePilotService : IDisposable
         var identity = RequireResultConnection(resource.ConnectionStamp);
         if (resource.ConnectionGeneration is { } generation && generation != identity.Generation)
             throw new MoviePilotOperationBlockedException("MoviePilot 配置曾发生变化，请重新搜索 AniBT 资源");
+        if (options?.Media is { } media && media.ConnectionGeneration != identity.Generation)
+            throw new MoviePilotOperationBlockedException("MoviePilot 连接曾发生变化，请重新核对下载媒体");
         var body = MoviePilotMediaParser.DownloadBody(resource, options);
-        var path = resource.MediaInfo.ValueKind == System.Text.Json.JsonValueKind.Object ? "download/" : "download/add";
+        var path = body.ContainsKey("media_in") ? "download/" : "download/add";
         await WriteAsync(identity, [DownloadKey(resource)], (apiBase, token) =>
             _client.PostAsync(apiBase, token, path, body, cancellationToken), cancellationToken)
             .ConfigureAwait(false);

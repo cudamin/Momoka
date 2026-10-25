@@ -83,7 +83,12 @@ public static class MoviePilotMediaParser
             ["torrent_in"] = resource.TorrentInfo
         };
 
-        if (resource.MediaInfo.ValueKind == JsonValueKind.Object) body["media_in"] = resource.MediaInfo;
+        if (options?.Media is { } media)
+        {
+            media.RequireResource(resource);
+            body["media_in"] = media.MediaInfo;
+        }
+        else if (resource.MediaInfo.ValueKind == JsonValueKind.Object) body["media_in"] = resource.MediaInfo;
         else if (!string.IsNullOrWhiteSpace(resource.MediaSource) && !string.IsNullOrWhiteSpace(resource.MediaId))
         {
             body["media_source"] = resource.MediaSource;

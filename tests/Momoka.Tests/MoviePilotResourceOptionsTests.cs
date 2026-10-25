@@ -200,6 +200,155 @@ internal static class MoviePilotResourceOptionsTests
             Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(resource, CancellationToken.None, new("下载器", "/downloads")).GetAwaiter().GetResult());
             Assert.Equal(before, transport.Total);
         });
+        Test("MoviePilot 下载媒体：核对身份后回传完整媒体和原种子，改选项仍不能重复提交", () =>
+        {
+            foreach (var complete in new[] { false, true })
+            {
+                using var transport = DownloadMediaTransport().Answer("download/", """{"success":true}""");
+                var (service, _) = Service(transport);
+                var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+                if (complete) resource = resource with
+                {
+                    MediaSource = "themoviedb",
+                    MediaId = "42",
+                    MediaType = "电影",
+                    MediaInfo = Json("""{"title":"原识别","type":"电影","media_source":"themoviedb","media_id":"42"}""")
+                };
+                var media = service.ResolveDownloadMediaAsync(resource, " anilist ", " 73 ", " 电视剧 ", CancellationToken.None).GetAwaiter().GetResult();
+                Assert.Equal("AniList 测试剧", media.Title);
+                Assert.Equal("anilist", media.Source);
+                Assert.Equal("73", media.Id);
+                Assert.Equal("电视剧", media.Type);
+                var lookup = transport.Only("media/73");
+                Assert.Equal("GET", lookup.Method);
+                Assert.True(lookup.Url.EndsWith("media/73?media_source=anilist&type_name=" + Uri.EscapeDataString("电视剧"), StringComparison.Ordinal));
+                Assert.Equal(0, transport.Count("download/"));
+                service.DownloadAsync(resource, CancellationToken.None, new("下载器", "/downloads", media)).GetAwaiter().GetResult();
+                var sent = transport.Only("download/");
+                Assert.Equal("POST", sent.Method);
+                Assert.True(sent.Url.EndsWith("download/", StringComparison.Ordinal));
+                using var body = JsonDocument.Parse(sent.Body);
+                Assert.True(JsonElement.DeepEquals(resource.TorrentInfo, body.RootElement.GetProperty("torrent_in")));
+                var mediaInfo = body.RootElement.GetProperty("media_in");
+                Assert.Equal("anilist", mediaInfo.GetProperty("media_source").GetString());
+                Assert.Equal(73, mediaInfo.GetProperty("media_id").GetInt32());
+                Assert.Equal("服务器完整元数据", mediaInfo.GetProperty("overview").GetString());
+                Assert.Equal("下载器", body.RootElement.GetProperty("downloader").GetString());
+                Assert.Equal("/downloads", body.RootElement.GetProperty("save_path").GetString());
+                Assert.False(body.RootElement.TryGetProperty("media_source", out _));
+                Assert.False(body.RootElement.TryGetProperty("media_id", out _));
+                Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(resource,
+                    CancellationToken.None, new("另一个", "/elsewhere")).GetAwaiter().GetResult());
+                Assert.Equal(1, transport.Count("download/"));
+            }
+        });
+        Test("MoviePilot 下载媒体：错误来源编号类型或空标题不得形成核对结果", () =>
+        {
+            foreach (var response in new[]
+            {
+                """{"media_source":"themoviedb","media_id":"73","type":"电视剧","title":"错来源"}""",
+                """{"media_source":"anilist","media_id":"74","type":"电视剧","title":"错编号"}""",
+                """{"media_source":"anilist","media_id":"73","type":"电影","title":"错类型"}""",
+                """{"media_source":"anilist","media_id":"73","type":"电视剧","title":"  "}""",
+                """{"media_source":"anilist","media_id":[],"type":"电视剧","title":"畸形编号"}""",
+                "[]"
+            })
+            {
+                using var transport = Transport().Answer("media/73", response);
+                var (service, _) = Service(transport);
+                var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+                Assert.Throws<MoviePilotException>(() => service.ResolveDownloadMediaAsync(resource, "anilist", "73",
+                    "电视剧", CancellationToken.None).GetAwaiter().GetResult());
+                Assert.Equal(1, transport.Count("media/73"));
+                Assert.Equal(0, transport.SentTo("download/").Count);
+            }
+        });
+        Test("MoviePilot 下载媒体：缺来源编号或非法类型及取消不发查询", () =>
+        {
+            using var transport = DownloadMediaTransport();
+            var (service, _) = Service(transport);
+            var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+            foreach (var (source, id, type) in new[] { ("", "73", "电视剧"), ("anilist", " ", "电视剧"), ("anilist", "73", "音乐") })
+                Assert.Throws<MoviePilotException>(() => service.ResolveDownloadMediaAsync(resource, source, id,
+                    type, CancellationToken.None).GetAwaiter().GetResult());
+            Assert.Throws<OperationCanceledException>(() => service.ResolveDownloadMediaAsync(resource, "anilist", "73",
+                "电视剧", new CancellationToken(true)).GetAwaiter().GetResult());
+            Assert.Equal(0, transport.Count("media/73"));
+            Assert.Equal(0, transport.SentTo("download/").Count);
+        });
+        Test("MoviePilot 下载媒体：核对快照不得给另一条资源复用", () =>
+        {
+            using var transport = DownloadMediaTransport();
+            var (service, _) = Service(transport);
+            var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+            var media = service.ResolveDownloadMediaAsync(resource, "anilist", "73", "电视剧", CancellationToken.None).GetAwaiter().GetResult();
+            var other = resource with { Title = "另一条资源", TorrentInfo = Json("""{"title":"另一条资源","page_url":"https://site.invalid/details/2"}""") };
+            Assert.Throws<MoviePilotOperationBlockedException>(() => MoviePilotMediaParser.DownloadBody(other, new(Media: media)));
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(other,
+                CancellationToken.None, new(Media: media)).GetAwaiter().GetResult());
+            Assert.Equal(MoviePilotOperationState.Idle, service.DownloadState(resource));
+            Assert.Equal(MoviePilotOperationState.Idle, service.DownloadState(other));
+            Assert.Equal(0, transport.SentTo("download/").Count);
+        });
+        Test("MoviePilot 下载媒体：切走再切回连接仍使核对快照过期", () =>
+        {
+            using var transport = DownloadMediaTransport();
+            var (service, settings) = Service(transport);
+            var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+            var media = service.ResolveDownloadMediaAsync(resource, "anilist", "73", "电视剧", CancellationToken.None).GetAwaiter().GetResult();
+            settings.MoviePilot.Username = "另一账号";
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.ResolveDownloadMediaAsync(resource, "anilist", "73",
+                "电视剧", CancellationToken.None).GetAwaiter().GetResult());
+            settings.MoviePilot.Username = "fixture";
+            var before = transport.Total;
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(resource,
+                CancellationToken.None, new(Media: media)).GetAwaiter().GetResult());
+            Assert.Equal(before, transport.Total);
+            Assert.Equal(MoviePilotOperationState.Idle, service.DownloadState(resource));
+        });
+        Test("MoviePilot 下载媒体：查询期间连接改变丢弃迟到结果", () =>
+        {
+            using var transport = DownloadMediaTransport();
+            var (service, settings) = Service(transport);
+            var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+            transport.When("media/73", () =>
+            {
+                settings.MoviePilot.Username = "另一账号";
+                settings.MoviePilot.Username = "fixture";
+            });
+            Assert.Throws<OperationCanceledException>(() => service.ResolveDownloadMediaAsync(resource, "anilist", "73",
+                "电视剧", CancellationToken.None).GetAwaiter().GetResult());
+            Assert.Equal(1, transport.Count("media/73"));
+            Assert.Equal(0, transport.SentTo("download/").Count);
+        });
+        Test("MoviePilot 下载媒体：显式否决的资源不能靠重新识别绕过", () =>
+        {
+            using var transport = DownloadMediaTransport();
+            var (service, _) = Service(transport);
+            var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+            var media = service.ResolveDownloadMediaAsync(resource, "anilist", "73", "电视剧", CancellationToken.None).GetAwaiter().GetResult();
+            var rejected = resource with { DownloadProblem = "资源身份不匹配" };
+            var before = transport.Total;
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.ResolveDownloadMediaAsync(rejected, "anilist", "73",
+                "电视剧", CancellationToken.None).GetAwaiter().GetResult());
+            Assert.Throws<MoviePilotOperationBlockedException>(() => MoviePilotMediaParser.DownloadBody(rejected, new(Media: media)));
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(rejected,
+                CancellationToken.None, new(Media: media)).GetAwaiter().GetResult());
+            Assert.Equal(before, transport.Total);
+        });
+        Test("MoviePilot 下载媒体：提交超时后切换识别或选项不能再次发送", () =>
+        {
+            using var transport = DownloadMediaTransport().Throw("download/", new HttpRequestException("fixture timeout"));
+            var (service, _) = Service(transport);
+            var resource = service.SearchByKeywordAsync("资源", CancellationToken.None).GetAwaiter().GetResult()[0];
+            var media = service.ResolveDownloadMediaAsync(resource, "anilist", "73", "电视剧", CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Throws<MoviePilotOperationUncertainException>(() => service.DownloadAsync(resource,
+                CancellationToken.None, new(Media: media)).GetAwaiter().GetResult());
+            Assert.Equal(MoviePilotOperationState.Uncertain, service.DownloadState(resource));
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(resource,
+                CancellationToken.None, new("另一个", "/elsewhere")).GetAwaiter().GetResult());
+            Assert.Equal(1, transport.Count("download/"));
+        });
     }
 
     private static JsonElement Json(string json) { using var document = JsonDocument.Parse(json); return document.RootElement.Clone(); }
@@ -207,6 +356,8 @@ internal static class MoviePilotResourceOptionsTests
     private static StubTransport Transport() => new StubTransport()
         .Answer("login/access-token", """{"access_token":"fixture","super_user":true}""")
         .Answer("search/title", """[{"torrent_info":{"title":"资源","size":100,"site":1,"page_url":"https://site.invalid/details/1"}}]""");
+    private static StubTransport DownloadMediaTransport() => Transport()
+        .Answer("media/73", """{"media_source":"anilist","media_id":73,"type":"电视剧","title":"AniList 测试剧","overview":"服务器完整元数据"}""");
     private static (MoviePilotService Service, AppSettings Settings) Service(StubTransport transport)
     {
         var settings = new AppSettings();
