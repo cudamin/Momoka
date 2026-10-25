@@ -9,7 +9,7 @@
 - 主写入树为 C:/Users/89400/Momoka；Core 与海报子任务分别在独立树完成后整合。基线仅登记本轮新增 UIA 句柄，旧折叠列表探针改验卡片和真实多选控件，下载确认/取消/参数/迟到隔离覆盖保留。资源颜色继续引用现有主题角色，海报遮罩沿用 DetailHero.ScrimInk，消除透明白产生的亮带。
 - 验证：完整 Release 构建 0 警告、0 错误；最终 Core/tests 2124 项通过、0 失败、0 跳过（artifacts/mp-search-tests-final.txt）；自动化扫描 459 个交互控件、0 个缺少句柄；改动文件空白检查和 git diff --check 通过。
 - 最终开发输出运行 --probe-shell --probe-section search,moviepilot：36 项全部通过（shell-probe-20261025-091756966-23664）。1280/760/360 实屏与五个存活主题均已检查，图片使用临时回环 HTTP 提供的匿名 PNG；不调用真实 MoviePilot、不真实订阅/下载/播放。早期失败包括已修复的空值/布局与截图提示层遮挡；最终检查保留原采样保护并在截图夹具关闭提示，不移动用户鼠标。未执行其他分区或完整普通自检。
-- 桌面快捷方式发现指向旧 mp-translation-interpolation 工作树，本批次统一发布当前主树并更新快捷方式；发布回执另记于后续交付记录。
+- 桌面快捷方式发现指向旧 mp-translation-interpolation 工作树，本批次统一发布当前主树并更新快捷方式；发布已通过：tools/publish.ps1 -NoArchive -Shortcut 退出 0，541 文件、283.6 MB，11 GLSL／4 HOOK 含许可校验通过；桌面已指向 C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe。产品提交 5a2bfc2（另含 Core f36ec10、海报 296dc40），未推送。
 ## MoviePilot 搜索资源展示与多选筛选的 Core 支持（2026-10-25）
 
 - 子任务独立树：`C:/Users/89400/Momoka-worktrees/mp-resource-fields-20261025`，仅修改 Core 的资源模型、解析与筛选及 `MoviePilotResourceOptionsTests`；由主会话整合 Shell 并统一发布。
