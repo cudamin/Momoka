@@ -174,6 +174,14 @@ public sealed class MediaStream
 
     public int? BitRate { get; set; }
 
+    /// <summary>
+    /// 飞牛影视 <c>resolution_type</c> 那个档位字面量（<c>1080p</c> / <c>4k</c> …）。只有飞牛适配器填它
+    /// （见 <c>FnNasMediaAdapter.AddStreams</c>）；Emby / Jellyfin / Plex 的流里没有这一项，保持 null。
+    /// 播放进度上报的 <c>resolution</c> 就取这个值 —— 那是服务端自己认的档位名，比自己从 Height 推一个更准。
+    /// </summary>
+    [JsonIgnore]
+    public string? ResolutionType { get; set; }
+
     /// <summary>Bits per colour component: 8 for an ordinary encode, 10 for HDR and most anime releases.</summary>
     public int? BitDepth { get; set; }
 

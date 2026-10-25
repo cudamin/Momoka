@@ -93,14 +93,82 @@ internal static partial class FnNasMediaTests
             Assert.Equal(12d, request.StartSeconds);
             Assert.Equal("Authorization", request.HttpHeaders.Single().Key);
             Assert.Equal("audio", request.FnNasSelection!.AudioGuid(1));
+            Assert.Equal("1080p", request.FnNasSelection.Resolution, "resolution 取视频流的 resolution_type");
             var record = FnNasMediaAdapter.PlaybackRecord(new PlaybackReport
             { ItemId = item.Id, PlaySessionId = "fixture", MediaSourceId = source.Id, PositionTicks = 23 * TimeSpan.TicksPerSecond, AudioStreamIndex = 1, FnNasSelection = request.FnNasSelection });
             Assert.Equal("video", record["video_guid"]!.GetValue<string>());
             Assert.Equal("audio", record["audio_guid"]!.GetValue<string>());
-            Assert.Equal(23d, record["ts"]!.GetValue<double>());
-            Assert.Equal(90d, record["duration"]!.GetValue<double>());
+            Assert.Equal("_no_display_", record["subtitle_guid"]!.GetValue<string>(), "没选字幕要发官方那个占位符");
+            Assert.Equal("1080p", record["resolution"]!.GetValue<string>());
+            Assert.Equal(8_000_000, record["bitrate"]!.GetValue<int>());
+            Assert.Equal(23L, record["ts"]!.GetValue<long>());
+            Assert.Equal(90L, record["duration"]!.GetValue<long>());
             source.DirectStreamUrl = new Uri("https://external.invalid/file");
             Assert.Throws<InvalidOperationException>(() => planner.Plan(new PlaybackTicket { Item = item, Source = source }, fixture.Session.Connection!));
+        });
+        Test("飞牛进度：ts 与 duration 取整数秒，发的是整数字面量", () =>
+        {
+            var selection = Selection(90 * TimeSpan.TicksPerSecond + 7_000_000);
+            var record = Record(selection, 5 * TimeSpan.TicksPerSecond + 9_000_000);
+            Assert.Equal(5L, Whole(record, "ts"), "5.9 秒要发 5");
+            Assert.Equal(90L, Whole(record, "duration"), "90.7 秒要发 90");
+            Assert.Equal("5", record["ts"]!.ToJsonString());
+            Assert.Equal(0L, Whole(Record(selection, 4_000_000), "ts"), "0.4 秒要发 0");
+            Assert.Equal(0L, Whole(Record(selection, -3 * TimeSpan.TicksPerSecond), "ts"), "负值钳到 0");
+        });
+        Test("飞牛进度：没有字幕或索引失效发 _no_display_，命中索引发该轨 GUID", () =>
+        {
+            var selection = Selection();
+            Assert.Equal("subtitle", selection.SubtitleGuid(3));
+            Assert.Equal("_no_display_", selection.SubtitleGuid(null));
+            Assert.Equal("_no_display_", selection.SubtitleGuid(9), "索引在映射里找不到时不能发空串");
+            Assert.Equal("subtitle", Record(selection, 0, subtitle: 3)["subtitle_guid"]!.GetValue<string>());
+            Assert.Equal("_no_display_", Record(selection, 0)["subtitle_guid"]!.GetValue<string>());
+
+            var noTracks = FnNasPlaybackSelection.FromSource(Source(Video()), 0);
+            Assert.Equal("_no_display_", Record(noTracks, 0)["subtitle_guid"]!.GetValue<string>());
+        });
+        Test("飞牛进度：音轨索引缺失或失效时回退默认音轨", () =>
+        {
+            var selection = Selection();
+            Assert.Equal("audio-default", selection.DefaultAudioGuid);
+            Assert.Equal("audio-default", selection.AudioGuid(null), "索引为空要回退默认音轨");
+            Assert.Equal("audio-default", selection.AudioGuid(9), "索引在映射里找不到也要回退");
+            Assert.Equal("audio-second", selection.AudioGuid(2));
+            Assert.Equal("audio-default", Record(selection, 0)["audio_guid"]!.GetValue<string>());
+
+            var unnamed = Source(Video(), Audio(1, "audio-first"), Audio(2, "audio-second"));
+            Assert.Equal("audio-first", FnNasPlaybackSelection.FromSource(unnamed, 0).AudioGuid(null),
+                "服务器没点默认音轨时退到第一条带 GUID 的音轨");
+
+            var blankDefault = Source(Video(),
+                new MediaStream { Index = 1, Type = "Audio", IsDefault = true }, Audio(2, "audio-second"));
+            blankDefault.DefaultAudioStreamIndex = 1;
+            Assert.Equal("audio-second", FnNasPlaybackSelection.FromSource(blankDefault, 0).AudioGuid(null),
+                "点名的默认音轨没有 GUID 时也要退到第一条带 GUID 的");
+
+            var noAudio = FnNasPlaybackSelection.FromSource(Source(Video()), 0);
+            Assert.Equal("", noAudio.AudioGuid(null), "一条音轨都没有时播放器也没音轨可报");
+            Assert.Equal("", Record(noAudio, 0)["audio_guid"]!.GetValue<string>());
+        });
+        Test("飞牛进度：resolution 与 bitrate 取实际视频流，取不到时是空串与 0", () =>
+        {
+            var selection = Selection();
+            Assert.Equal("1080p", selection.Resolution);
+            Assert.Equal(8_000_000, selection.Bitrate);
+            var record = Record(selection, 0);
+            Assert.Equal("1080p", record["resolution"]!.GetValue<string>());
+            Assert.Equal(8_000_000, record["bitrate"]!.GetValue<int>());
+
+            var unknown = FnNasPlaybackSelection.FromSource(Source(Video(resolutionType: null, bitrate: null)), 0);
+            Assert.Equal("", unknown.Resolution);
+            Assert.Equal(0, unknown.Bitrate);
+            Assert.Equal("", Record(unknown, 0)["resolution"]!.GetValue<string>());
+            Assert.Equal(0, Record(unknown, 0)["bitrate"]!.GetValue<int>());
+
+            var audioOnly = FnNasPlaybackSelection.FromSource(Source(Audio(1, "audio")), 0);
+            Assert.Equal("", audioOnly.Resolution, "没有视频流时不能发 original");
+            Assert.Equal(0, audioOnly.Bitrate);
         });
         Test("飞牛查询：空的类型与题材不发空数组（真实服务器对空数组回 -4）", () =>
         {
@@ -366,6 +434,45 @@ internal static partial class FnNasMediaTests
         });
     }
 
+    /// <summary>飞牛 play/record 的素材：一路视频、两路音轨（1 是默认）、一路字幕（3）。</summary>
+    private static FnNasPlaybackSelection Selection(long durationTicks = 90 * TimeSpan.TicksPerSecond)
+    {
+        var source = Source(Video(), Audio(1, "audio-default", isDefault: true), Audio(2, "audio-second"),
+            Subtitle(3, "subtitle"));
+        source.DefaultAudioStreamIndex = 1;
+        return FnNasPlaybackSelection.FromSource(source, durationTicks);
+    }
+
+    private static MediaSource Source(params MediaStream[] streams) => new() { Id = "file", MediaStreams = [.. streams] };
+
+    private static MediaStream Video(string? resolutionType = "1080p", int? bitrate = 8_000_000) =>
+        new() { Index = 0, Type = "Video", ProviderId = "video", ResolutionType = resolutionType, BitRate = bitrate };
+
+    private static MediaStream Audio(int index, string guid, bool isDefault = false) =>
+        new() { Index = index, Type = "Audio", ProviderId = guid, IsDefault = isDefault };
+
+    private static MediaStream Subtitle(int index, string guid) =>
+        new() { Index = index, Type = "Subtitle", ProviderId = guid };
+
+    private static JsonObject Record(FnNasPlaybackSelection selection, long positionTicks, int? audio = null, int? subtitle = null) =>
+        FnNasMediaAdapter.PlaybackRecord(new PlaybackReport
+        {
+            ItemId = "movie",
+            PlaySessionId = "fixture",
+            MediaSourceId = "file",
+            PositionTicks = positionTicks,
+            AudioStreamIndex = audio,
+            SubtitleStreamIndex = subtitle,
+            FnNasSelection = selection
+        });
+
+    /// <summary>整数秒断言：double 支撑的节点 <c>TryGetValue&lt;long&gt;</c> 会失败，正好证明发的是整数字面量。</summary>
+    private static long Whole(JsonObject record, string key)
+    {
+        Assert.True(record[key]!.AsValue().TryGetValue<long>(out var value), $"{key} 必须是整数字面量，不能是小数");
+        return value;
+    }
+
     private sealed class Fixture : IDisposable
     {
         public AppSettings Settings { get; } = new();
@@ -426,7 +533,7 @@ internal static partial class FnNasMediaTests
                 "/v/api/v1/episode/list/season" => "[{\"guid\":\"episode1\",\"title\":\"第一集\",\"episode_number\":1,\"season_number\":1,\"watched\":1},{\"guid\":\"episode2\",\"title\":\"第二集\",\"episode_number\":2,\"season_number\":1,\"watched\":0}]",
                 "/v/api/v1/item/movie" => "{\"guid\":\"movie\",\"title\":\"电影\",\"type\":\"Movie\",\"duration\":90}",
                 "/v/api/v1/play/info" => "{\"ts\":12,\"duration\":90}",
-                "/v/api/v1/stream/list/movie" => "{\"files\":[{\"guid\":\"file\",\"path\":\"/media/test.mkv\"}],\"video_streams\":[{\"guid\":\"video\",\"media_guid\":\"file\",\"index\":0,\"codec_name\":\"h264\"}],\"audio_streams\":[{\"guid\":\"audio\",\"media_guid\":\"file\",\"index\":1,\"codec_name\":\"aac\"}]}",
+                "/v/api/v1/stream/list/movie" => "{\"files\":[{\"guid\":\"file\",\"path\":\"/media/test.mkv\"}],\"video_streams\":[{\"guid\":\"video\",\"media_guid\":\"file\",\"index\":0,\"codec_name\":\"h264\",\"resolution_type\":\"1080p\",\"bps\":8000000}],\"audio_streams\":[{\"guid\":\"audio\",\"media_guid\":\"file\",\"index\":1,\"codec_name\":\"aac\"}]}",
                 "/v/api/v1/item/list" => "",
                 _ => throw new InvalidOperationException("Unexpected fixture path: " + path)
             };

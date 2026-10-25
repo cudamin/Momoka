@@ -248,6 +248,7 @@ public sealed partial class FnNasMediaAdapter
                 Width = Integer(stream, "width"),
                 Height = Integer(stream, "height"),
                 BitRate = Integer(stream, "bps"),
+                ResolutionType = Text(stream, "resolution_type") is { Length: > 0 } resolution ? resolution : null,
                 BitDepth = Integer(stream, "bit_depth"),
                 RealFrameRate = FrameRate(Text(stream, "r_frame_rate")),
                 VideoRange = Text(stream, "color_range_type"),
@@ -264,12 +265,21 @@ public sealed partial class FnNasMediaAdapter
         ["media_guid"] = report.MediaSourceId,
         ["video_guid"] = report.FnNasSelection?.VideoGuid ?? "",
         ["audio_guid"] = report.FnNasSelection?.AudioGuid(report.AudioStreamIndex) ?? "",
-        ["subtitle_guid"] = report.FnNasSelection?.SubtitleGuid(report.SubtitleStreamIndex) ?? "",
-        ["resolution"] = "original",
-        ["bitrate"] = -1,
-        ["duration"] = (report.FnNasSelection?.DurationTicks ?? 0) / (double)TimeSpan.TicksPerSecond,
-        ["ts"] = Math.Max(0, report.PositionTicks) / (double)TimeSpan.TicksPerSecond
+        ["subtitle_guid"] = report.FnNasSelection?.SubtitleGuid(report.SubtitleStreamIndex) ?? FnNasPlaybackSelection.NoSubtitleGuid,
+        ["resolution"] = report.FnNasSelection?.Resolution ?? "",
+        ["bitrate"] = report.FnNasSelection?.Bitrate ?? 0,
+        ["duration"] = WholeSeconds(report.FnNasSelection?.DurationTicks ?? 0),
+        ["ts"] = WholeSeconds(report.PositionTicks)
     };
+
+    /// <summary>
+    /// 整数秒，向下取整、负值钳到 0。<c>ts</c> 必须走这条路：飞牛服务端按整数解析它，收到小数（<c>5.0123456</c>）
+    /// 会在内部转换时抛错、统一回业务码 <c>-4</c>（「服务器内部错误」）—— 2026-10-25「进度上报全部失败、续播点
+    /// 永远是 0」就是这么来的；起播那条 <c>ts=0</c> 反而一直成功。官方前端喂的也是
+    /// <c>Math.floor(player.currentTime)</c>，所以取整方向也照它来。<c>duration</c> 同理，别让将来某个小数时长
+    /// 把整份上报带下水。
+    /// </summary>
+    private static long WholeSeconds(long ticks) => ticks <= 0 ? 0 : ticks / TimeSpan.TicksPerSecond;
 
     private static double? FrameRate(string value)
     {
