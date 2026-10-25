@@ -131,9 +131,18 @@ public static class HomeLayout
     /// <summary>
     /// 一个媒体库那一排叫什么：「最近添加 · 电影」。带上「最近添加」这四个字是必须的 —— 一排光叫「电影」的卡片
     /// 说不清是「这个库的全部」还是「这个库最近加的」，而这一排装的是后者。
+    /// <para>
+    /// 飞牛不写这四个字：2026-10-25 用户令「首页飞牛影视库的标题去掉最近添加」，那一排的标题就是库名。
+    /// 判据按服务器分开（Emby / Jellyfin / Plex 照旧），媒体库界面的差别按各自服务器处理。
+    /// </para>
     /// </summary>
-    public static string LibraryTitle(string name) =>
-        name is { Length: > 0 } ? $"最近添加 · {name}" : "最近添加";
+    public static string LibraryTitle(string name, bool recentPrefix = true) =>
+        name is { Length: > 0 }
+            ? recentPrefix ? $"最近添加 · {name}" : name
+            : recentPrefix ? "最近添加" : "";
+
+    /// <summary>这一排的标题带不带「最近添加」—— 飞牛不带，其余服务器带（见 <see cref="LibraryTitle"/>）。</summary>
+    public static bool ShowsRecentPrefix(EmbyItem library) => library.Source?.Connection.IsFnNas != true;
 
     /// <summary>
     /// 这一次主页该排哪几排。存档里那份顺序说了算，剩下的按默认次序补在后面。
@@ -167,7 +176,7 @@ public static class HomeLayout
             var key = LibraryKey(library);
             if (names.ContainsKey(key)) continue;
 
-            names[key] = LibraryTitle(library.Name);
+            names[key] = LibraryTitle(library.Name, ShowsRecentPrefix(library));
             order.Add(key);
         }
 

@@ -303,6 +303,19 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     }
 
     /// <summary>
+    /// 轮播候选补齐宽图。飞牛的列表只发一张 2:3 海报，宽图在条目详情里（见
+    /// <see cref="Momoka.FnNas.FnNasMediaAdapter.WithCarouselArtworkAsync"/>）；其余服务器的列表本来就带背景图，
+    /// 原样交回。
+    /// </summary>
+    public Task<List<EmbyItem>> WithCarouselArtworkAsync(
+        IReadOnlyList<EmbyItem> items,
+        int slots,
+        CancellationToken cancellationToken) =>
+        Connection.IsFnNas
+            ? FnNasMedia.WithCarouselArtworkAsync(items, slots, cancellationToken)
+            : Task.FromResult(items.ToList());
+
+    /// <summary>
     /// 接下来播放. <paramref name="seriesId"/> narrows it to one show, which is what a series page's
     /// 「尚未观看」 row is: the same endpoint the home page uses, scoped, so the two can never disagree
     /// about which episode is next.

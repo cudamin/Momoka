@@ -38,6 +38,20 @@ internal static class HomeLatestTests
             Assert.Equal(24, query.Limit);
             Assert.Null(query.IsPlayed);
         });
+
+        // 2026-10-25 用户令「飞牛影视库不要再显示单集封面」：飞牛的 item/list 没有 GroupItems，不带类型时
+        // 会把剧集和单集一起发回来，货架上于是并排摆着剧和它自己的某一集。
+        Test("主页最近添加：飞牛货架按库的类型问，其余服务器不加类型", () =>
+        {
+            Assert.Equal("Series,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "tvshows")));
+            // BoxSet 飞牛没有，请求那一头会把它丢掉（FnNasMediaAdapter.Query），这里只钉「按库的类型问」。
+            Assert.Equal("Movie,Video,BoxSet", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "movies")));
+            Assert.Equal("Movie,Series,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "mixed")));
+            Assert.Null(HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, null)), "没有集合类型时不猜");
+            Assert.Null(HomeLatest.LibraryTypes(Library(MediaServerKind.Emby, "tvshows")), "Emby 照旧不加类型");
+            Assert.Null(HomeLatest.LibraryTypes(Library(MediaServerKind.Jellyfin, "tvshows")));
+            Assert.Null(HomeLatest.LibraryTypes(new EmbyItem { Id = "7", CollectionType = "tvshows" }), "没有来源时不加类型");
+        });
     }
 
     private static EmbyItem Library(MediaServerKind kind, string? collectionType)

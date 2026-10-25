@@ -26,4 +26,21 @@ public static class HomeLatest
         Descending = true,
         Limit = limit
     };
+
+    /// <summary>
+    /// 飞牛的主页货架要按库的类型问，不能空手问。飞牛的 <c>item/list</c> 没有 Emby 那个 <c>GroupItems</c>
+    /// —— 不带类型时它把剧集、单集、季一起发回来，货架上于是并排摆着「JOJO的奇妙冒险」和
+    /// 「暗蓝之月 S02E06」两张卡（2026-10-25 用户令「飞牛影视库不要再显示单集封面」）。
+    /// 带上库自己的类型之后，剧集库只回剧集，与库页问的是同一份。
+    /// <para>
+    /// 其余服务器返回 <see langword="null"/>（不加类型参数，照旧）。
+    /// </para>
+    /// </summary>
+    public static string? LibraryTypes(EmbyItem library)
+    {
+        if (library.Source?.Connection.IsFnNas != true) return null;
+
+        var types = ItemQuery.FlattenedTypes(library.CollectionType);
+        return types.Count == 0 ? null : string.Join(',', types);
+    }
 }

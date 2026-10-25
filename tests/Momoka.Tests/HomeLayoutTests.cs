@@ -34,6 +34,18 @@ internal static class HomeLayoutTests
             Assert.True(plan.All(row => row.Visible), "默认应当全部显示");
         });
 
+        Test("主页版面：飞牛那一排的标题不带「最近添加」，其余服务器照旧", () =>
+        {
+            var plan = HomeLayout.Plan(null, [Library("1", "电影"), FnNasLibrary("2", "电视节目")]);
+            var rows = plan.Where(row => HomeLayout.LibraryId(row.Key) is not null).ToArray();
+
+            Assert.Equal("最近添加 · 电影", rows[0].Title);
+            Assert.Equal("电视节目", rows[1].Title, "2026-10-25 用户令：首页飞牛影视库的标题去掉最近添加");
+            Assert.False(HomeLayout.ShowsRecentPrefix(FnNasLibrary("2", "电视节目")));
+            Assert.Equal("电视节目", HomeLayout.LibraryTitle("电视节目", recentPrefix: false));
+            Assert.Equal("最近添加", HomeLayout.LibraryTitle("", recentPrefix: true));
+        });
+
         Test("主页版面：存档里那份次序说了算", () =>
         {
             // 用户把媒体库那一排勾掉了。
@@ -311,6 +323,25 @@ internal static class HomeLayoutTests
 
     private static EmbyItem Library(string id, string name) =>
         new() { Id = id, Name = name, Type = EmbyItemType.CollectionFolder };
+
+    /// <summary>一台飞牛的库：标题那条规则按服务器分，所以这里要一个真带来源的条目。</summary>
+    private static EmbyItem FnNasLibrary(string id, string name)
+    {
+        var connection = new EmbyConnection(new Uri("https://fn.invalid/"), "fixture", "user", "user",
+            "fixture", DeviceIdentity.Create("home-layout-fixture", "test"))
+        {
+            ServerKind = MediaServerKind.FnNas
+        };
+        var scope = new EmbySessionScope(null!, new EmbySessionScope.Identity(new EmbyClient(null!, connection),
+            new ServerProfile { Id = "fn", Name = "飞牛" }, new AccountProfile { Id = "user", Username = "user" }));
+        return scope.Bind(new EmbyItem
+        {
+            Id = id,
+            Name = name,
+            Type = EmbyItemType.CollectionFolder,
+            CollectionType = "tvshows"
+        });
+    }
 
     private static HomeRowSetting Row(string key, string title, bool visible = true) =>
         new() { Key = key, Title = title, Visible = visible };

@@ -113,6 +113,97 @@ internal static partial class FnNasMediaTests
             Assert.Equal(13, season.ChildCount);
             Assert.Null(season.LocalEpisodeCount);
         });
+        // 轮播底图（2026-10-25「只有飞牛登录时，首页没有轮播图」）：列表只发一张 2:3 海报，宽图在条目详情里。
+        Test("飞牛轮播：缺宽图的条目去详情补背景图，已有宽图的不问", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            var asked = new List<string>();
+            fixture.Transport.Override = (request, _) =>
+            {
+                var path = request.RequestUri!.AbsolutePath;
+                if (path.EndsWith("/item/list", StringComparison.Ordinal)) return null;
+                var id = path[(path.LastIndexOf('/') + 1)..];
+                asked.Add(id);
+                return Task.FromResult(FnNasItem(id, backdrop: id == "movie-b" ? "" : "/b/" + id + ".webp"));
+            };
+
+            var items = new List<EmbyItem>
+            {
+                new() { Id = "movie-a", Type = EmbyItemType.Movie, ImageTags = new() { ["Primary"] = "poster" } },
+                new() { Id = "episode", Type = EmbyItemType.Episode, ImageTags = new() { ["Primary"] = "still", ["Thumb"] = "still" } },
+                new() { Id = "movie-b", Type = EmbyItemType.Movie, ImageTags = new() { ["Primary"] = "poster" } }
+            };
+            var result = fixture.Session.Client.WithCarouselArtworkAsync(items, 3, default).GetAwaiter().GetResult();
+
+            Assert.Equal("movie-a,movie-b", string.Join(',', asked), "只该给缺宽图的两条问详情（集已有 16:9 剧照）");
+            Assert.Equal("/b/movie-a.webp", result[0].BackdropImageTags.Single());
+            Assert.Equal(0, result[2].BackdropImageTags.Count, "详情没有 backdrops 时不能凭空造一张");
+            Assert.True(result[1].ImageTags.ContainsKey("Thumb"), "已有宽图的那条不该被详情结果顶掉");
+
+            // 单集已经够一张时不再问详情：一轮主页不该为已经站得住的幻灯片多花往返。
+            asked.Clear();
+            var fresh = new List<EmbyItem>
+            {
+                new() { Id = "movie-c", Type = EmbyItemType.Movie, ImageTags = new() { ["Primary"] = "poster" } },
+                new() { Id = "episode-2", Type = EmbyItemType.Episode, ImageTags = new() { ["Primary"] = "still", ["Thumb"] = "still" } }
+            };
+            _ = fixture.Session.Client.WithCarouselArtworkAsync(fresh, 1, default).GetAwaiter().GetResult();
+            Assert.Equal(0, asked.Count, "已经凑够张数时还去问详情");
+        });
+        Test("飞牛轮播：详情读不到时保留列表里的条目，不拖垮整页", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            fixture.Transport.Override = (request, _) =>
+            {
+                var path = request.RequestUri!.AbsolutePath;
+                return path.EndsWith("/item/list", StringComparison.Ordinal)
+                    ? null
+                    : Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
+            };
+
+            var items = new List<EmbyItem> { new() { Id = "movie", Type = EmbyItemType.Movie, ImageTags = new() { ["Primary"] = "poster" } } };
+            var result = fixture.Session.Client.WithCarouselArtworkAsync(items, 3, default).GetAwaiter().GetResult();
+
+            Assert.Equal("movie", result.Single().Id);
+            Assert.Equal(0, result.Single().BackdropImageTags.Count);
+        });
+        Test("飞牛媒体：集的 16:9 海报记成缩略图，竖版海报不记", () =>
+        {
+            var episode = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "ep",
+                ["title"] = "第一集",
+                ["type"] = "Episode",
+                ["poster"] = "/still.webp",
+                ["poster_width"] = 1920,
+                ["poster_height"] = 1080
+            });
+            Assert.Equal("/still.webp", episode.ImageTags["Thumb"], "集的 poster 就是这一集的 16:9 剧照");
+            Assert.Equal("/still.webp", episode.ImageTags["Primary"]);
+
+            var series = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "tv",
+                ["title"] = "剧",
+                ["type"] = "TV",
+                ["poster"] = "/poster.webp",
+                ["poster_width"] = 1920,
+                ["poster_height"] = 2560
+            });
+            Assert.False(series.ImageTags.ContainsKey("Thumb"), "竖版海报不是宽图，不能进轮播");
+
+            var still = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "ep2",
+                ["title"] = "第二集",
+                ["type"] = "Episode",
+                ["poster"] = "/poster.webp",
+                ["still_path"] = "/still2.webp",
+                ["poster_width"] = 1920,
+                ["poster_height"] = 1080
+            });
+            Assert.Equal("/still2.webp", still.ImageTags["Thumb"], "服务器给了 still_path 就用它");
+        });
         Test("飞牛媒体：标记已看后使用季集列表选择下一集", () =>
         {
             using var fixture = new Fixture(); fixture.Login();
@@ -511,6 +602,15 @@ internal static partial class FnNasMediaTests
         Assert.True(record[key]!.AsValue().TryGetValue<long>(out var value), $"{key} 必须是整数字面量，不能是小数");
         return value;
     }
+
+    /// <summary>一条详情响应：<c>backdrops</c> 为空串时不带这个键，模拟服务器没有宽图。</summary>
+    private static HttpResponseMessage FnNasItem(string id, string backdrop) => new(HttpStatusCode.OK)
+    {
+        Content = new StringContent(
+            "{\"code\":0,\"data\":{\"guid\":\"" + id + "\",\"title\":\"" + id + "\",\"type\":\"Movie\""
+            + (backdrop.Length > 0 ? ",\"backdrops\":\"" + backdrop + "\"" : "") + "}}",
+            System.Text.Encoding.UTF8, "application/json")
+    };
 
     private sealed class Fixture : IDisposable
     {

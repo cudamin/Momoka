@@ -156,6 +156,65 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
         return [.. items];
     }
 
+    /// <summary>
+    /// 轮播底图。飞牛的 <c>item/list</c> 只给一张海报（2:3），宽图（<c>backdrops</c>）只在条目详情里 ——
+    /// 官方前端和 MoviePilot 都靠详情拿它（MoviePilot 拿不到 backdrops 时退到海报）。这里照做：按清单次序
+    /// 补，最多问 <paramref name="slots"/> × 2 条，四条一批并发问。
+    /// <para>
+    /// 只给轮播用。货架上的卡画的是海报，不必为每一排多问一圈详情。列表里已经带宽图的条目（集的 16:9
+    /// 剧照，见 <see cref="Item"/>) 不再问。
+    /// </para>
+    /// </summary>
+    public async Task<List<EmbyItem>> WithCarouselArtworkAsync(IReadOnlyList<EmbyItem> items, int slots, CancellationToken ct)
+    {
+        var result = items.ToList();
+        var budget = Math.Min(result.Count, Math.Max(0, slots) * 2);
+        if (budget == 0) return result;
+
+        var missing = new List<int>(budget);
+        for (var index = 0; index < result.Count && missing.Count < budget; index++)
+            if (ItemArtwork.Banner(result[index]) is null) missing.Add(index);
+
+        for (var start = 0; start < missing.Count; start += CarouselBatch)
+        {
+            // 单集自带 16:9 剧照，凑够了就不再问 —— 一轮主页不该为一整排已经站得住的幻灯片多花十几次往返。
+            if (HomeCarousel.Slides(result, slots).Count >= slots) break;
+            var batch = missing.GetRange(start, Math.Min(CarouselBatch, missing.Count - start));
+            var details = await Task.WhenAll(batch.Select(at => DetailArtworkAsync(result[at].Id, ct))).ConfigureAwait(false);
+            for (var offset = 0; offset < batch.Count; offset++)
+                if (details[offset] is { } detail) MergeArtwork(result[batch[offset]], detail);
+        }
+
+        return result;
+    }
+
+    /// <summary>一轮并发问几条详情。轮播等这一趟，条数多了会拖慢整个主页。</summary>
+    private const int CarouselBatch = 4;
+
+    private async Task<EmbyItem?> DetailArtworkAsync(string id, CancellationToken ct)
+    {
+        try
+        {
+            return Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false));
+        }
+        catch (FnNasApiException error) when (!ct.IsCancellationRequested)
+        {
+            Log.Warn("fnnas", $"轮播底图读取失败：{id}", error);
+            return null;
+        }
+    }
+
+    /// <summary>把详情里的宽图补到列表条目上：背景图整列带走，艺术图与缩略图只在列表缺这一格时补。</summary>
+    private static void MergeArtwork(EmbyItem item, EmbyItem detail)
+    {
+        if (item.BackdropImageTags.Count == 0) item.BackdropImageTags.AddRange(detail.BackdropImageTags);
+        foreach (var kind in ArtworkKinds)
+            if (!item.ImageTags.ContainsKey(kind) && detail.ImageTags.TryGetValue(kind, out var tag) && tag.Length > 0)
+                item.ImageTags[kind] = tag;
+    }
+
+    private static readonly string[] ArtworkKinds = [EmbyImageStore.Art, EmbyImageStore.Thumb];
+
     public async Task<ItemsResult> QueryResumeAsync(int startIndex, int limit, CancellationToken ct) =>
         Page((await client.GetContinueWatchingAsync(connection, ct).ConfigureAwait(false)).Select(Item), startIndex, limit);
 

@@ -194,6 +194,10 @@ public sealed partial class FnNasMediaAdapter
         if (type == EmbyItemType.Episode && still.Length > 0) poster = still;
         if (poster.Length > 0) item.ImageTags["Primary"] = poster;
         if (still.Length > 0) item.ImageTags["Thumb"] = still;
+        // 集的 poster 是 16:9 的剧照（真实服务器 1920×1080），不是海报 —— 列表里它就是这一集能用的宽图。
+        // 记成 Thumb，宽卡（继续观看／接下来看）和轮播才认得出来；Emby 那边这个位置本来就是集的剧照。
+        // 竖版海报不进来：那正是轮播明确不要的那一种（ItemArtwork.BannerOrder 里没有 Primary）。
+        else if (width is > 0 && height is > 0 && width > height) item.ImageTags["Thumb"] = poster;
         item.BackdropImageTags = Strings(value["backdrops"]).ToList();
         // 横幅海报右下角的清晰度角标；详情页的流信息仍走 stream/list，这里只读列表已经带上的档位。
         if (value["media_stream"] is JsonObject media) item.Resolutions = Strings(media["resolutions"]).ToList();

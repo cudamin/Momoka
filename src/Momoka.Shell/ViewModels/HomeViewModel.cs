@@ -667,17 +667,23 @@ public sealed partial class HomeViewModel : PageViewModel
         var carouselMedia = carouselUi?.CarouselMedia ?? Emby.CarouselMediaType.All;
         var latestSize = Math.Max(LatestSize, carouselCount * 3);
 
-        var latest = refreshSlides && _banner ? FetchAsync("轮播", (client, ct) =>
-            carouselUi is not null && carouselUi.CarouselSource == Emby.CarouselSource.Random
-                ? client.GetRandomAsync(latestSize, Emby.HomeCarousel.RandomTypes(carouselMedia), ct)
-                : client.GetLatestAsync(
+        var latest = refreshSlides && _banner ? FetchAsync("轮播", CarouselAsync, token) : Task.FromResult(new List<EmbyItem>());
+
+        // 轮播这一趟的取数：来源和媒体类型照设置走，回来再补宽图。飞牛的列表只发 2:3 海报，宽图在条目详情里
+        // （见 EmbyClient.WithCarouselArtworkAsync）—— 不补这一手，只登录飞牛的主页一张幻灯片都站不起来。
+        async Task<List<EmbyItem>> CarouselAsync(EmbyClient client, CancellationToken ct)
+        {
+            var items = carouselUi is not null && carouselUi.CarouselSource == Emby.CarouselSource.Random
+                ? await client.GetRandomAsync(latestSize, Emby.HomeCarousel.RandomTypes(carouselMedia), ct).ConfigureAwait(true)
+                : await client.GetLatestAsync(
                     null,
                     latestSize,
                     ct,
                     Emby.HomeCarousel.LatestTypes(carouselMedia) is { Count: > 0 } types
                         ? string.Join(',', types)
-                        : null),
-            token) : Task.FromResult(new List<EmbyItem>());
+                        : null).ConfigureAwait(true);
+            return await client.WithCarouselArtworkAsync(items, carouselCount, ct).ConfigureAwait(true);
+        }
 
         // 媒体库那几排各问一次自己那个库的最近添加。只问勾着的那几排 —— 勾掉一排就是连这次请求一起省掉。
         // 整个服务器的「最近添加」那一排 2026-09-12 从版面上退役了，但它没有断请求 —— 轮播 2026-09-13 起
@@ -691,13 +697,15 @@ public sealed partial class HomeViewModel : PageViewModel
             // Jellyfin 的剧集库走 /Items/Latest 会只认单集、电影：只有剧集（还没扫出单集）的库回空表，
             // 这一排就被当成空排摘掉。改用条目查询直接列剧集，见 HomeLatest。
             var source = shelf.Source ?? _scope;
+            var title = HomeLayout.LibraryTitle(library.Name, HomeLayout.ShowsRecentPrefix(library));
+            // 飞牛的「最近添加」要带类型：不带时服务器把单集也发回来，货架上并排摆着剧和它自己的某一集
+            // （2026-10-25 用户令「不要再显示单集封面」）。见 HomeLatest.LibraryTypes。
+            var types = HomeLatest.LibraryTypes(library);
             perLibrary[row.Key] = HomeLatest.UsesSeriesQuery(library)
-                ? FetchAsync(HomeLayout.LibraryTitle(library.Name), async (client, ct) =>
+                ? FetchAsync(title, async (client, ct) =>
                     (await client.GetItemsAsync(HomeLatest.SeriesQuery(id, LatestSize), ct).ConfigureAwait(true)).Items,
                     token, source)
-                : FetchAsync(
-                    HomeLayout.LibraryTitle(library.Name), (client, ct) => client.GetLatestAsync(id, LatestSize, ct),
-                    token, source);
+                : FetchAsync(title, (client, ct) => client.GetLatestAsync(id, LatestSize, ct, types), token, source);
         }
 
         // 定时检查（见 AutoRefreshAsync）的基线也是这一趟记下的：整页重读之后，屏上这一份就是「服务器此刻的
