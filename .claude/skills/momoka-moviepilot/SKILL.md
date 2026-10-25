@@ -1,6 +1,6 @@
 ---
 name: "momoka-moviepilot"
-description: "Develop, review and verify Momoka's MoviePilot integration: service availability and dependent entry visibility, media-source identity, TMDB/Douban/IMDb searches, torrent results, subscription management, library-availability statistics and library playback entries, and history-based reorganization. Use for MoviePilot C# or WinUI changes, hiding entries when disabled or disconnected, and safe live troubleshooting in this repository; the playback pipeline itself belongs to the playback skill."
+description: "Develop, review and verify Momoka's MoviePilot integration: availability, media-source identity, searches, torrent results and download confirmation, subscriptions, library playback and reorganization. Use for MoviePilot C# or WinUI changes, upstream source comparisons, dependent-entry visibility and safe live troubleshooting. Review the official GitHub source and synchronize applicable changes with the affected local components and tests. The playback pipeline itself belongs to the playback skill."
 ---
 
 # Momoka — MoviePilot integration
@@ -14,12 +14,20 @@ description: "Develop, review and verify Momoka's MoviePilot integration: servic
 - 不整份输出 OpenAPI、设置或资源回话。按当前接口投影字段；`torrent_info` 可能带站点 Cookie、下载凭据和私有 URL。
 - 本仓库 ignored `work/` 的上游快照和诊断宿主只可作为经检查后的本机辅助；干净检出不能依赖它们。正式测试使用匿名夹具与 `StubTransport`。
 
+## Review the upstream source every time
+
+- For every MoviePilot feature review or change, open the relevant official frontend and backend source on GitHub before assessing the local implementation. Use the [source map and comparison procedure](references/upstream-download.md); the download entries are explicit, and other features follow their imports and routes in the same repositories.
+- Resolve the live branch and commit, then check the tag or revision applicable to the configured server. Record both revisions and the comparison result in the work record. A saved screenshot, local `work/` snapshot or previous review does not establish the current source.
+- If an upstream change affects the feature's visible behavior, field mapping, supported options or request/response contract, update the affected local components and regression tests in the same task. Do not stop at listing the difference or updating this skill. Trace downstream callers so the new choice takes effect in the actual request.
+- Apply changes within Momoka's supported feature and server-version scope. Record unrelated changes as such; do not add unsupported music flows, upgrade dependencies, or copy a frontend/backend mismatch merely because upstream contains it. Preserve CLAUDE.md's identity, cancellation, credential and verification boundaries.
+- If current source or the applicable server revision cannot be established, state the missing evidence and the exact affected comparison. Do not label the implementation synchronized. This procedure runs during a review; it does not create a background monitor.
+
 ## 按问题选择资料
 
 - 搜片、来源选择、跨库编号、同名结果、订阅身份：[来源与搜索](references/search-identity.md)。
 - 订阅列表与管理、文件统计（已入库／待入库／缺集）、已入库内容的播放入口：[订阅与入库](references/subscriptions.md)。
 - 原记录、路径、预览、重新整理、部分成功：[整理与副作用](references/reorganization.md)。
-- 资源列表与验证：下方规则足够；只有接口变化时再读上游 schema。
+- Download confirmation, upstream GitHub paths and local component mapping: [Upstream source and download parity](references/upstream-download.md). Review the source even when the request appears to concern layout only.
 
 ## 可用性与入口显隐
 

@@ -36,7 +36,7 @@
 - [mpv-shader-quality](.claude/skills/mpv-shader-quality/SKILL.md)：着色器档位与画质链。
 - [momoka-video-output](.claude/skills/momoka-video-output/SKILL.md)：视频输出三卡（基础输出、HDR 与杜比视界、画质与着色器）与 mpv 选项的落地。
 - [momoka-audio-output](.claude/skills/momoka-audio-output/SKILL.md)：音频输出设置的审查、修复与验证——设备核对与回退、声道、直通、响度、延迟与音量记忆，及随包 libmpv 的无声探针。
-- [momoka-moviepilot](.claude/skills/momoka-moviepilot/SKILL.md)：MoviePilot 接入的可用性与入口显隐、来源身份（TMDB／豆瓣／IMDb）、搜索、订阅管理与入库播放、原记录重整协议及验证边界。
+- [momoka-moviepilot](.claude/skills/momoka-moviepilot/SKILL.md)：MoviePilot 接入的可用性与入口显隐、来源身份、搜索与下载确认、订阅管理与入库播放、原记录重整协议及验证边界；每次审查核对 GitHub 前后端源码，适用的上游变化同步修改本地组件与测试。
 - [momoka-plex-api](.claude/skills/momoka-plex-api/SKILL.md)：接 Plex 服务器时的独立协议——令牌与客户端标识的头部规则、plex.tv 账号认证加服务器二次核对、`/library/sections` 与 `/library/metadata` 的浏览映射、`/:/scrobble` 与 `/:/timeline` 的状态与上报、分页走容器头，以及 Plex 名下没有的收藏、筛选与原生管理入口边界。**真实服务器未核对**，只有离线证据。
 - [momoka-skill-creator](.claude/skills/momoka-skill-creator/SKILL.md)：新建、改写、拆分、合并或退役项目技能时读取——先查重、英文编写与资源审查、description 触发词、正文分层、清单登记，以及区分技能场景评估和项目验证的验收方式。
 

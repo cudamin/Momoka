@@ -2,6 +2,13 @@
 
 最后更新：2026-10-25
 
+## MoviePilot 上游源码审查与组件同步技能（2026-10-25）
+
+- 子任务独立树 `C:/Users/89400/.codex/worktrees/moviepilot-upstream-skill`，范围仅 MoviePilot 项目技能、参考资料、CLAUDE 技能目录及开发文档；由下载窗口交付会话整合，不修改用户级技能副本。
+- 按用户要求记录官方 `jxxghp/MoviePilot-Frontend` 与 `jxxghp/MoviePilot` 的入口：下载确认、媒体选择、来源目录、目录查询、对应前端测试及后端 download/media/schema；要求每次功能审查先在线核对源代码和适用版本，涉及本地功能的变化同步修改组件及测试，不能只记差异。后台监控、无关依赖升级和未支持的音乐功能不从此要求推导。
+- 只读 `git ls-remote --symref` 核实当次两仓默认分支均为 `v3`；前端 HEAD `e7e196b5e47a4b591fde70c2aefd6c304ddef6d9`，后端 HEAD `2fb3890f9d8139db219fcf6961e9847371969c93`。10 个记录的源码文件以 GitHub raw HTTPS 获取均为 200。源码和本地调用链交叉核对确认：外层媒体编号不能替代 `download/` 的完整 `media_in`，网页放大镜是标题搜索选择器，AniBT 下载入口在 `AniBtSearchPanel`。
+- 文档验证：技能结构检查 0 error、0 warning；新增参考资料的本地文件、相对链接与锚点、官方 URL 清单、UTF-8/LF 和差异一致性检查通过。旧快照有变化、上游仅音乐变动、无法确认源码/服务器版本三个场景做只读人工走查，均明确区分适用同步与未验证；不是实测自动触发率。未构建应用、未跑 UI、未访问真实服务器或推送，产品验证由主会话完成。
+
 ## AniBT 搜索目录、详情和字幕组协议（2026-10-25）
 
 - 子任务独立树 `C:/Users/89400/Momoka-anibt-catalog`，范围仅 `Core/AniBt` 与 AniBT 离线测试；Shell、运行截图和最终交付由主会话整合。
