@@ -2,6 +2,18 @@
 
 最后更新：2026-10-25
 
+## 飞牛主页：货架不带「最近添加」、不显示单集封面，只有飞牛时轮播站得起来（2026-10-25 用户令）
+
+- 用户三条令（后一条是追加）：「飞牛影视库不要再显示单集封面（如上图的暗蓝之月 S02E06）」「首页飞牛影视库的标题去掉最近添加」「顺便修一下只有飞牛登录时，首页没有轮播图的问题」。
+- **单集封面**：根因是主页货架问最近添加时不带类型 —— Emby 的 `Items/Latest` 有 `GroupItems` 会把同一部剧并成一条，飞牛的 `item/list` 没有这个开关，把剧集、单集、季一起发回来。改法：`HomeLatest.LibraryTypes` 给飞牛库带上 `ItemQuery.FlattenedTypes`（剧集库 `Series,Video`、电影库 `Movie,Video,BoxSet`、混合库三种；BoxSet 飞牛没有，请求那一头会丢掉），`HomeViewModel` 把它传给 `GetLatestAsync`。库页本来就按类型问（真实服务器 `tags.type=["TV"]` 只回 44 部剧），单集只会从主页那一排漏进来。
+- **标题**：`HomeLayout.LibraryTitle(name, recentPrefix)` 多一档，`ShowsRecentPrefix(library)` 按来源判断 —— 飞牛只写库名，Emby／Jellyfin／Plex 照旧「最近添加 · 名字」。主页失败提示的标题也读同一处，不会出现「货架叫电视节目、错误说读取最近添加 · 电视节目失败」。
+- **轮播**：根因是飞牛 `item/list` 只发一张 2:3 海报，`ItemArtwork.Banner` 要的三种宽图（背景图／艺术图／缩略图）一个都没有，`HomeCarousel.Slides` 于是把候选全筛掉。官方前端与 MoviePilot 都逐条读 `item/{guid}` 拿 `backdrops`（MoviePilot 拿不到时退到海报），本轮照做：`FnNasMediaAdapter.WithCarouselArtworkAsync` 按清单次序给缺图的条目补详情，最多 `张数 × 2` 条、四条一批并发、凑够张数就停，单条失败只记日志；`EmbyClient.WithCarouselArtworkAsync` 只在飞牛上转这道手，其他服务器原样返回。另外集的 `poster` 本来就是 16:9 剧照（真实服务器 1920×1080），`Item` 把它记成 `Thumb`，单集因此不用问详情就能上带。
+- 测试：`HomeLatestTests` 新增「飞牛货架按库的类型问」（三种库、无类型、Emby／Jellyfin／无来源都不加类型）；`HomeLayoutTests` 新增「飞牛那一排的标题不带最近添加」；`FnNasMediaTests` 新增三条（详情补背景图且已有宽图的不问、凑够张数就不再问、详情失败保留列表条目、16:9 海报记成缩略图）。Release 完整构建 **0 警告、0 错误**；`dotnet format whitespace --verify-no-changes` 通过；离线测试 **2116 通过、0 失败、0 跳过**。
+- 探针：`--probe-shell --probe-section library` 新增「飞牛主页货架标题、无单集封面与轮播」—— 夹具只登录一台飞牛，`item/list` 按 `tags.type` 过滤（和真实服务器一样），核对货架标题是「电视节目」、两张卡都是剧集、请求里没有 `Episode`、轮播两张（两张剧的宽图来自详情）、每张幻灯片都有宽图，宽窄两档截图 `home-fnnas-{1280,760}-screen.png`。该分区 **17 项全过、退出 0**；`--probe-section accounts` 4 项全过（聚合主页的 Emby 标题照旧）。发布件上再跑一遍该分区同样 **17 项全过**（`shell-probe-20261025-073424967-6164`），报告与截图归档在 `work/fnnas-home-20261025/`。
+- 提交：**`20f7903`**（本地，未推送）。
+- 发布：`tools/publish.ps1 -NoArchive` 退出 0、发布验证通过，已刷新 `artifacts/publish/win-x64`（**541 文件、283.5 MB、11 GLSL／4 HOOK 含许可逐文件校验**）。`Momoka.exe` FileVersion `0.1.7.0`、ProductVersion `0.1.7+20f7903`；`Momoka.dll` 4,813,312 字节、SHA-256 `EBD88582B59DAC3A70C2AE9656848193B6D62BCDE7044B407C4072992EC925D2`。
+- 未验证：真实飞牛服务器上没有开应用看这三处（探针全程假传输）；`item/{guid}` 的 `backdrops` 形状来自官方前端／MoviePilot 的实现与飞牛协议技能里的接口表，本轮没有在真实抓包里再核一次。轮播补详情最多 20 次往返（张数 10 时），局域网里可忽略，远端慢速服务器上会拖慢首屏 —— 真实耗时未测。
+
 ## 飞牛电视剧库：卡片右上角显示集数（2026-10-25 用户令）
 
 - 用户令两轮：「飞牛影视库的电视剧库右上角能显示集数吗？能的话加上去」→ 追问位置与数字时答「参考 Emby 库」→ 成品出来后「不要加集字」，于是角标只写数字。
