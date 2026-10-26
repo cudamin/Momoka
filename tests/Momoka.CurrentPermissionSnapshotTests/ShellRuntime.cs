@@ -99,6 +99,7 @@ internal sealed class SettingsVmProxy : IDisposable, INotifyPropertyChanged
         .Where(entry => _runtime.Get<string>(entry, "Label") == label && _runtime.Get<string?>(entry, "SourceKey") == sourceKey)
         .Select(entry => _runtime.Get<string>(entry, "Key")).Single();
     internal Task RefreshServerAdministrationAsync() => (Task)_runtime.Call(Actual, nameof(RefreshServerAdministrationAsync))!;
+    internal void RefreshHomeRows() => _runtime.Call(Actual, nameof(RefreshHomeRows));
     internal bool CanOpenServerCategory(string value) => (bool)_runtime.Call(Actual, nameof(CanOpenServerCategory), value)!;
     internal void Activate() => _runtime.Call(Actual, nameof(Activate));
     internal void Cancel() => _runtime.Call(Actual, nameof(Cancel));

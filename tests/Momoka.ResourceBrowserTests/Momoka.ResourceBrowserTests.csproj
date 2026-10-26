@@ -14,6 +14,7 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceViewModel.cs" Link="Production\MoviePilotResourceViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceBrowserViewModel.cs" Link="Production\MoviePilotResourceBrowserViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceGroup.cs" Link="Production\MoviePilotResourceGroup.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceFacet.cs" Link="Production\MoviePilotResourceFacet.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSitePickerViewModel.cs" Link="Production\MoviePilotSitePickerViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Platform\SystemLauncher.cs" Link="Production\SystemLauncher.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />

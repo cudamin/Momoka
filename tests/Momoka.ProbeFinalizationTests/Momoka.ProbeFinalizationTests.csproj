@@ -65,7 +65,10 @@
                     "\n    private sealed class OfflineHttp : HttpMessageHandler\n    {\n" +
                     "        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>\n" +
                     "            throw new InvalidOperationException(\"Fixture must not send HTTP\");\n    }\n}\n" +
-                    navigationEntry + navigationRun +
+                    navigationEntry +
+                    // The run body closes the shortcut probe windows it opened; the fixture only needs a type that closes.
+                    "    private readonly System.Collections.Generic.List<FixtureProbeWindow> _shortcutProbeWindows = [];\n" +
+                    navigationRun +
                     "        async Task RunChecksAsync()\n        {\n            _window = _options.Window;\n" +
                     "            await _options.ShellBody((name, ok, section) => CaseAsync(name, () => ok ? Task.CompletedTask :\n" +
                     "                Task.FromException(new InvalidOperationException(\"ordinary assertion\")), 1, section));\n        }\n    }\n" +

@@ -41,3 +41,10 @@ public sealed class ComboBox : FrameworkElement
     public object? SelectedItem => Items.ElementAtOrDefault(SelectedIndex);
 }
 public sealed class ProgressRing : FrameworkElement { public bool IsActive { get; set; } }
+public sealed class ToggleSwitch : FrameworkElement { public bool IsOn { get; set; } }
+
+/// <summary>Attached-property boundary: the dialog only sets the tooltip text.</summary>
+public static class ToolTipService
+{
+    public static void SetToolTip(object target, object? value) { }
+}

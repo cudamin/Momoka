@@ -81,9 +81,6 @@ public sealed partial class MoviePilotResourceRow : ObservableObject
     public Visibility EffectVisibility => Show(ResourceEffect);
     public Visibility HitAndRunVisibility => Resource.HitAndRun ? Visibility.Visible : Visibility.Collapsed;
     public Visibility DetailsVisibility => CanOpenDetails ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility DownloadVisibility => Resource.DownloadProblem is null ? Visibility.Visible : Visibility.Collapsed;
-    public Visibility DownloadProblemVisibility => Resource.DownloadProblem is null ? Visibility.Collapsed : Visibility.Visible;
-    public string DownloadProblem => Resource.DownloadProblem ?? "";
     private static Visibility Show(string value) => value.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
 
     public string SiteName => Resource.SiteName ?? "";

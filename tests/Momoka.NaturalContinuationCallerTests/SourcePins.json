@@ -1,6 +1,6 @@
 {
   "baseCommit": "82176c7d57c15ddef2a312af2a6232ecb8c8897b",
-  "date": "2026-10-24",
+  "date": "2026-10-26",
   "productSnapshotsUncommitted": true,
   "sources": [
     {
@@ -49,15 +49,15 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
-      "sha256": "c9a69e434441a8a3be1203fda42971988c1329eb21dc3b4de29d6b16142fb75d"
+      "sha256": "b09d102b0a0bd9ad3b41ca12e14854a5948983c4fc46658964f2b903ade828d7"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
-      "sha256": "48a5b3760e4c0b30b3f42f01a593716fc9abbaa4149d2af552d6c40a85ff68e1"
+      "sha256": "685e35fe51da700c7f33542c446dd21691522c277c7dbea3dcaa772746495f78"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
-      "sha256": "164d76d20666c31c49bb951fa4e2376285947d2f3e51bb9b4bc0e8439d7a1413"
+      "sha256": "cf51a6759f38f5bcc5ffbd63d322ea5f425e1391fdf99a37c9948f31092ebfed"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
@@ -65,7 +65,7 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",
-      "sha256": "ee8703797d1603c8459544d0f77c7e742af2a9436a31ccd2a7761d8c57b32341"
+      "sha256": "c3b527c1da1a5028614b70b9c259c145c3e47e3c4bce371ee52a7cf37259390f"
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",

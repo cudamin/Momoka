@@ -28,6 +28,12 @@ public sealed partial class SubtitleDialog
     internal ItemsControl Tracks { get; } = new();
     internal ItemsControl Results { get; } = new();
     internal FrameworkElement NoTracks { get; } = new();
+    internal FrameworkElement NoSearchResults { get; } = new();
+    internal FrameworkElement ForcedOnlyRow { get; } = new();
+    internal ToggleSwitch ForcedOnly { get; } = new();
+    internal FrameworkElement SubtitleBody { get; } = new();
+    internal FrameworkElement SubtitleScroll { get; } = new();
+    internal TextBlock SourceFileText { get; } = new();
     internal TextBlock Status { get; } = new();
     internal ProgressRing Busy { get; } = new();
     private void InitializeComponent() { }
