@@ -138,6 +138,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("Anime4K 固定配置组选择与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, anime4KOnly: true), 30, section: ShellProbeSections.Shaders);
             await CaseAsync("Anime4K 固定配置组选择与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, anime4KOnly: true), 30, section: ShellProbeSections.Shaders);
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
+            await CaseAsync("字幕实时翻译的服务显隐、密钥及宽窄布局", SettingsTranslationAsync, 90, section: ShellProbeSections.Settings);
             await CaseAsync("快捷键搜索、改绑、空态与恢复（宽窗）", () => SettingsShortcutSearchAsync(1100), 60, section: ShellProbeSections.Shortcuts);
             await CaseAsync("快捷键搜索、改绑、空态与恢复（窄窗）", () => SettingsShortcutSearchAsync(760), 60, section: ShellProbeSections.Shortcuts);
             await CaseAsync("新增快捷键命令、失败回执与队列隔离", PlayerAdditionalShortcutsAsync, 30, section: ShellProbeSections.Shortcuts);

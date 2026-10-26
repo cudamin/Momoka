@@ -659,11 +659,11 @@
                             <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Note, Mode=OneWay}" TextWrapping="Wrap" Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="8">
-                            <PasswordBox Password="{x:Bind Draft, Mode=TwoWay}" PlaceholderText="输入新的 AppSecret" AutomationProperties.Name="{x:Bind Label}" />
+                            <PasswordBox x:Name="SecretInput" Password="{x:Bind Draft, Mode=TwoWay}" PlaceholderText="输入新密钥" AutomationProperties.Name="{x:Bind Label}" />
                             <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Status, Mode=OneWay}" TextWrapping="Wrap" />
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button Command="{x:Bind CommitCommand}" Content="保存密钥" AutomationProperties.Name="保存弹弹play密钥" />
-                                <Button Command="{x:Bind ClearCommand}" Content="清除密钥" AutomationProperties.Name="清除弹弹play密钥" />
+                                <Button x:Name="SaveSecret" Command="{x:Bind CommitCommand}" Content="保存密钥" AutomationProperties.Name="{x:Bind SaveAutomationName}" />
+                                <Button x:Name="ClearSecret" Command="{x:Bind ClearCommand}" Content="清除密钥" AutomationProperties.Name="{x:Bind ClearAutomationName}" />
                             </StackPanel>
                         </StackPanel>
                     </Grid>

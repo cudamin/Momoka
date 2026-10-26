@@ -26,6 +26,11 @@ public sealed partial class SettingSecretRow : SettingRow
 
     public string Status => _unsaved ? "尚未保存到磁盘，请重试；当前运行保留本次修改" : _stored() ? "已保存密钥；输入新值可替换" : "尚未保存密钥";
 
+    /// <summary>密钥行的两颗按钮不再写死「弹弹play」：这一行属于哪张卡，自动化名就跟着那行的标签走。</summary>
+    public string SaveAutomationName => $"保存{Label}";
+
+    public string ClearAutomationName => $"清除{Label}";
+
     [RelayCommand]
     private void Commit()
     {

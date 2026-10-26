@@ -350,6 +350,7 @@ public static class SettingsMigration
         if (settings.Ui is null) settings.Ui = new UiSettings();
         if (settings.Shortcuts is null) settings.Shortcuts = new ShortcutSettings();
         if (settings.Danmaku is null) settings.Danmaku = new DanmakuSettings();
+        if (settings.SubtitleTranslation is null) settings.SubtitleTranslation = new SubtitleTranslationSettings();
         if (settings.MoviePilot is null) settings.MoviePilot = new MoviePilotSettings();
 
         if (settings.Playback.AudioLanguages is null) settings.Playback.AudioLanguages = [];
@@ -621,6 +622,8 @@ public static class SettingsMigration
         settings.Shortcuts.Bindings = ShortcutCatalog.Clean(settings.Shortcuts.Bindings);
         settings.Danmaku ??= new DanmakuSettings();
         settings.Danmaku.Normalize();
+        settings.SubtitleTranslation ??= new SubtitleTranslationSettings();
+        settings.SubtitleTranslation.Normalize();
 
         foreach (var server in settings.Servers)
         {

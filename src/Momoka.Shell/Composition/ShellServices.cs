@@ -50,6 +50,9 @@ internal static class ShellServices
         services.AddSingleton(paths);
         services.AddSingleton<ISecretProtector>(DpapiSecretProtector.Instance);
         services.AddSingleton<DandanPlayCredentials>();
+        services.AddSingleton<SubtitleTranslationCredentials>();
+        services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());
+        services.AddSingleton<Momoka.Shell.Services.SubtitleTranslationController>();
         services.AddSingleton(provider => new DandanPlayBuiltInCredentialSource(
             provider.GetRequiredService<ISecretProtector>(),
             Path.Combine(paths.Root, "cache", "danmaku", "builtin-credential.bin")));
