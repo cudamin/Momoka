@@ -52,6 +52,15 @@
 - 来源与证据：`artifacts/staged-repair/delivery08/`；初HEAD75b42f5当前完整35项目/Core2838/51入口过，后当前38项目零警告错误与新相关回归过；1833文件空白0修改、46PS编码/LF/语法过、66本地文档链接检查过。最终commit之后仍需统一fresh源码/测试/最终publish/runtime/full UI/自检/本地motion，不借中间绿交付。
 - 追加AtomicFile访问拒绝压力前件：worker实际原方法12writer及串行同目标覆盖均复现0x80070005，File.Replace对照仍0x80070497；不凭权限码认ACL/环境免责，不盲加retry、不动Core。主树正常完整Core2869过不洗掉旧红；诊断在 `C:/Users/89400/.codex/worktrees/delivery-settings-probe/Momoka/work/atomicfile-diagnostic-20261024-d4205f73/analysis-result.md`，底层拒绝尚未闭环。新专项红记录保留、真实设置不碰。
 - Workers已交回且关闭可恢复，不删除/归档树；新方案只加Settings/HomeOrder/motion三测试项目、旧项目名/配置逐字保留；未把worker PROGRESS/DLL主合。快捷方式此刻仍指旧主目录，ZIP尚未打包；最终门禁未全绿不宣称已完成交付。没有自动暂停。
+## worker Settings 探针最终交付候选（2026-10-24，仅独立树）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`、base `75b42f5`；独立树 `C:/Users/89400/.codex/worktrees/delivery-settings-probe/Momoka`、分支 `codex/delivery-settings-probe`。创建前状态检查：独立树/分支不存在，主树已有其他worker改动未动；本任务不覆盖/移动/合并主树。
+- 可限定整合的代码/测试提交 **`612549dd94fc8fedd3b5c280669131c939896147`**：仅 `ShellNavigationProbe.Settings.cs`、实际含ConditionalRows的 `ShellNavigationProbe.SettingsMotion.cs` 与独立 `tests/Momoka.SettingsProbeContractTests/{csproj,Program.cs,UiBoundaries.cs,README.md}`。**此 PROGRESS 后续提交只留worker，不主合；DLL/日志也不主合。** Shared Probe／SignIn／Sidebar／HomeOrder／AniBt和产品VM/控件/XAML未改，无push。
+- 根因：VM Attach/Reload 已正确await，但新R018/R026的页面活动票从未Begin；真实构造器拒绝Loaded/分类通知、管理页层刷新直接返回。仅补探针活动期/真实VM Activate/实际动效偏好订阅，Hide后新访问恢复旧票仍拒绝；管理刷新移入原try/finally。落定额外要求真Loaded、从属行等待真实_rowMotions接线，Reload后按原落定条件等待；无长sleep、不删Require/改阈值/接受信息跳过/清共享root。
+- 新契约原样执行页面/动效/快速切换断言、实际本树VM/截图行；**23过/0败/0跳过**，含缺动画仍红、旧缺接线清理仍红、合法空Sources/原多服fake输入、偏好显隐恢复、旧队列/隐藏重入/不重复订阅。UI/Storyboard/时钟只是离线边界，不能冒作实际自包含发布件像素或动画验收；没有依据归因WinUI版本。
+- 当前SDK10.0.400、固定本机cache离线restore（原pin无升级）、串行Release --no-restore：Tests/Core、Shell、新契约、SettingsLifetime、PageContract均0警告0错误；实际相关回归45/98/27/29/R06561/34/截图14均0败0跳过。Core Settings/ServerSettings/StartupEntry实际DLL选定套件154项**153过1败0跳过**：AtomicFile同目标并发Write的File.Move抛UnauthorizedAccessException；一次红日志/exit1保留、不重跑洗绿、不改产品。它尚需主线程确认，不说全Core或最终交付绿。
+- 范围外根残留证据：FnNasLibrarySpacingAsync在 `ShellNavigationProbe.FnNasLibrary.cs` Add(frame)，finally仅Content=null未Remove；其在Settings之前运行，可解释ServersPageSummary的2直接孩子。已报主线程，不动属主文件、不松唯一孩子判据；正式UI仍需主线程确认。
+- 本树证据 `artifacts/delivery-settings-probe/` 含各最终build/run.log/exit、format.exit0、source-and-results-audit.json；源/输出对应当前worker代码。主线程已报告自包含diagnostic shell11绿不构成full绿，worker未自行跑UI、真实Registry/账号/网络/播放/移动鼠标/发布/快捷方式。正式自包含Settings及最终full由主线程串行重验，本项仍是**候选交接、非完整交付**。
 
 ## 第七组最终收束：剩余四个P1已本地修复，72/73号实现或覆盖（2026-10-24）
 
