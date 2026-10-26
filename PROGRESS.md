@@ -1,3 +1,12 @@
+## 补帧功能线并入主干（2026-10-26）
+
+- 工作树 `C:/Users/89400/Momoka-worktrees/frame-interpolation-finish`，分支 `codex/frame-interpolation-finish`（起点 `2fdbf99`，是 `archive/20261026/video-frame-interpolation` 与主干的合并结果）。子代理交来的规则层、设置卡与独立测试缺三样东西：`VideoSettings` 上那三个属性、父卡挂接、基础卡按有效值显示 —— 本轮补齐。
+- 补的东西：`AppSettings.cs` 加 `FrameInterpolationMode/Fps/Quality`（默认关闭／60／均衡）；`SettingsMigration.Normalize` 把认不出的枚举拨回默认、帧率用下发端同一个 `ClampFps` 夹住；`SettingsViewModel.cs` 在「基础输出」之后加「补帧」卡；`RefreshVideoBackend()` 顺手刷新补帧卡；基础卡的「插值」行与「硬件解码」说明改读有效值（`ResolveSync`／`FrameInterpolationOptions.Resolve`）——运动补偿显示只读「关闭」、平滑插值显示只读「开启」，不再只看存着的 `VideoSync`。
+- 自检那条「视频输出包含 HDR 与着色器」的分区数从 3 改成 4（补帧卡进了这个分类），检查名与基线不动。独立测试工程注册进 `Momoka.sln`；`UiBoundary.cs` 补 `SettingSliderRow`／`SettingShortcutRow` 两个替身（卡片合并那段真实源码会点到它们的名字）。
+- 顺带收了三处合并遗留：`MoviePilotService.SubscriptionSettings.cs` 一行过长的空白债（`dotnet format whitespace` 拆行，只动空白）；`PlaybackTests` 的画质预设用例改成「一个 profile、零个缩放器、两个复位」（命名预设会带出 mpv 自己的 interpolation／video-sync，客户端必须显式压回页面上的关闭／音频同步）；两处源码钉（详情页集带判据换成 `Rings`／`bareFrame`，像素探针变量名 `window.Handle` → `handle`）。三处都不是补帧带来的，是上一轮合并后闸门 2 没跑留下的红。
+- 验证（本树最终代码）：Release 完整解决方案 0 警告 0 错误；`dotnet format whitespace` 通过；主套件 3043 项全过；补帧独立测试 33 项、原回归 23 项全过。**未跑闸门 3（发布）与闸门 4（自检）**：本轮只把功能线并进主干，另一个窗口还在改同一批设置文件，桌面与发布目录留给那次收尾。
+- 共享文件写集（另一个窗口合并时会碰）：`src/Momoka.Core/Configuration/AppSettings.cs`、`SettingsMigration.cs`、`src/Momoka.Shell/ViewModels/SettingsViewModel.cs`、`SettingsViewModel.Video.cs`、`src/Momoka.Shell/ShellSelfCheck.Settings.cs`、`Momoka.sln`、`tests/Momoka.Tests/PlaybackTests.cs`、`SelfCheckLayoutRulesTests.cs`、`CompositionProbePixelsTests.cs`。
+
 ## 第九组剩余修复完成并交付，桌面已交接新功能窗口（2026-10-25）
 
 - **本次“修完”已完成。** 修复此前记录的 AtomicFile 覆盖/备份轮换访问拒绝，补齐最终 composition 原生复验，并修复探针逐点读取屏幕造成的阻塞。R-043 仍仅展示建议，未擅自实施；未把真实服务器、TLS/代理、Plex 2FA/PIN、生产 DPAPI/Registry ACL、独占/uosc/外部 mpv 等覆盖缺口冒称全面验收。

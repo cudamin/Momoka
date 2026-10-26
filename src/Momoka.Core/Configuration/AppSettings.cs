@@ -799,6 +799,25 @@ public sealed class VideoSettings
     /// </summary>
     public string Tscale { get; set; } = "oversample";
 
+    /// <summary>
+    /// 补帧模式（2026-10-26）：关闭、平滑插值、运动补偿。这张卡是独立的一组偏好，不改
+    /// <see cref="Interpolation"/> 与 <see cref="Tscale"/> —— 关掉它只关它自己，基础输出里的插值偏好原样保留。
+    /// 平滑插值仍走 mpv 的相邻帧混合，运动补偿是随包 FFmpeg 的 CPU <c>minterpolate</c>，不是 GPU／AI 补帧。
+    /// 枚举与归一化都在 <see cref="Mpv.FrameInterpolationOptions"/>。
+    /// </summary>
+    public Mpv.FrameInterpolationMode FrameInterpolationMode { get; set; } = Mpv.FrameInterpolationMode.Off;
+
+    /// <summary>
+    /// 补帧目标帧率，只在运动补偿下生效。存储端与下发端共用 <see cref="Mpv.FrameInterpolationOptions.ClampFps"/>
+    /// 那一对常量（24–120），手改的设置文件不会让 mpv 收到一个它不接受的数。
+    /// </summary>
+    public int FrameInterpolationFps { get; set; } = Mpv.FrameInterpolationOptions.DefaultFps;
+
+    /// <summary>
+    /// 运动补偿的计算质量：只决定 minterpolate 的运动估计参数取舍，不是实测性能评级，也不是画质档位。
+    /// </summary>
+    public Mpv.FrameInterpolationQuality FrameInterpolationQuality { get; set; } = Mpv.FrameInterpolationQuality.Balanced;
+
     /// <summary>抖动算法 (mpv's <c>dither</c>); see <see cref="Mpv.MpvOutputOptions.Dithers"/>.</summary>
     public string Dither { get; set; } = "fruit";
 

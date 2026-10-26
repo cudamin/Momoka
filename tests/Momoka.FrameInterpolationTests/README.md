@@ -1,8 +1,8 @@
 # 视频补帧独立测试与父集成契约
 
-本项目不修改主测试入口，也不启动 Momoka、WinUI 窗口、真实媒体或服务器。父集成会话将本项目注册到方案。
+本项目不修改主测试入口，也不启动 Momoka、WinUI 窗口、真实媒体或服务器。已随补帧功能注册进 `Momoka.sln`。
 
-## 父任务必须提供的设置契约
+## 父任务提供的设置契约（2026-10-26 已落地）
 
 枚举在 `Momoka.Mpv`，由产品文件 `FrameInterpolationOptions.cs` 定义：
 
@@ -12,9 +12,9 @@
 - `VideoSettings.FrameInterpolationFps` 为 `int`，默认 `60`，存储归一范围 `24..120`。
 - `VideoSettings.FrameInterpolationQuality` 默认 `Balanced`。
 
-worker 的基点没有三个属性；验证时在独立树临时加入，提交前定点清除，不随 worker 提交。父需在整合后重新编译，不能把临时构建当作干净检出已可直接构建。
+三个属性在 `AppSettings.cs` 的 `VideoSettings` 上；`SettingsMigration.Normalize` 把认不出的枚举拨回关闭／均衡，帧率用下发端同一个 `ClampFps` 夹住。缺键的旧设置读出来就是这三个默认值，不需要迁移版本。
 
-父挂接位置：
+挂接位置（均已接线）：
 
 1. `SettingsViewModel.cs` 的 `Sections.Add(VideoCard())` 之后加入 `FrameInterpolationCard()`。
 2. `SettingsViewModel.Video.cs` 的 `RefreshVideoBackend()` 调用 `RefreshFrameInterpolationRows()`。

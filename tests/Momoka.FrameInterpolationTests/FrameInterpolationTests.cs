@@ -46,8 +46,11 @@ internal static class FrameInterpolationTests
             {
                 var video = new VideoSettings
                 {
-                    FrameInterpolationMode = FrameInterpolationMode.Off, Interpolation = true,
-                    Tscale = kernel.Value, VideoSync = "display-vdrop", HighFrameRateAudioSync = false
+                    FrameInterpolationMode = FrameInterpolationMode.Off,
+                    Interpolation = true,
+                    Tscale = kernel.Value,
+                    VideoSync = "display-vdrop",
+                    HighFrameRateAudioSync = false
                 };
                 var output = Last(Build(video));
                 Assert.Equal("yes", output["interpolation"]);
@@ -72,8 +75,11 @@ internal static class FrameInterpolationTests
             {
                 var video = new VideoSettings
                 {
-                    FrameInterpolationMode = FrameInterpolationMode.Smooth, VideoSync = sync,
-                    Tscale = "mitchell", Interpolation = false, HighFrameRateAudioSync = false,
+                    FrameInterpolationMode = FrameInterpolationMode.Smooth,
+                    VideoSync = sync,
+                    Tscale = "mitchell",
+                    Interpolation = false,
+                    HighFrameRateAudioSync = false,
                     HardwareDecoding = "d3d11va"
                 };
                 var output = Last(Build(video));
@@ -90,8 +96,11 @@ internal static class FrameInterpolationTests
         {
             var video = new VideoSettings
             {
-                FrameInterpolationMode = FrameInterpolationMode.Smooth, Tscale = "", FrameInterpolationFps = 120,
-                FrameInterpolationQuality = FrameInterpolationQuality.High, HighFrameRateAudioSync = false
+                FrameInterpolationMode = FrameInterpolationMode.Smooth,
+                Tscale = "",
+                FrameInterpolationFps = 120,
+                FrameInterpolationQuality = FrameInterpolationQuality.High,
+                HighFrameRateAudioSync = false
             };
             var output = Last(Build(video));
             Assert.Equal("oversample", output["tscale"]);
@@ -101,8 +110,10 @@ internal static class FrameInterpolationTests
         {
             var video = new VideoSettings
             {
-                FrameInterpolationMode = FrameInterpolationMode.Smooth, Interpolation = false,
-                HighFrameRateAudioSync = true, HighRefreshRateLimitHz = 120
+                FrameInterpolationMode = FrameInterpolationMode.Smooth,
+                Interpolation = false,
+                HighFrameRateAudioSync = true,
+                HighRefreshRateLimitHz = 120
             };
             var blocked = Last(MpvOutputOptions.Build(video, new AudioSettings(), source: Sdr24, displayRefreshHz: 144));
             Assert.Equal("audio", blocked["video-sync"]);
@@ -364,9 +375,13 @@ internal static class FrameInterpolationTests
             {
                 var video = new VideoSettings
                 {
-                    FrameInterpolationMode = mode, FrameInterpolationFps = 200,
-                    FrameInterpolationQuality = (FrameInterpolationQuality)99, HardwareDecoding = "nvdec",
-                    VideoSync = "display-vdrop", Interpolation = true, Tscale = "bicubic"
+                    FrameInterpolationMode = mode,
+                    FrameInterpolationFps = 200,
+                    FrameInterpolationQuality = (FrameInterpolationQuality)99,
+                    HardwareDecoding = "nvdec",
+                    VideoSync = "display-vdrop",
+                    Interpolation = true,
+                    Tscale = "bicubic"
                 };
                 var before = JsonSerializer.Serialize(video);
                 foreach (var source in new SourceProfile?[] { null, Sdr24, new(3840, 2160, 10, 24, true) })
@@ -401,11 +416,16 @@ internal static class FrameInterpolationTests
         options.GroupBy(option => option.Key, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.Ordinal);
     private static Dictionary<string, string> Defaults() => new()
     {
-        ["vf"] = "", ["hwdec"] = "no", ["video-sync"] = "audio", ["interpolation"] = "no"
+        ["vf"] = "",
+        ["hwdec"] = "no",
+        ["video-sync"] = "audio",
+        ["interpolation"] = "no"
     };
     private static PlaybackRequest Request(IReadOnlyList<KeyValuePair<string, string>> options) => new()
     {
-        MediaUrl = new Uri("file:///C:/no-media-is-loaded.mkv"), Title = "离线规则测试", PlayerOptions = options
+        MediaUrl = new Uri("file:///C:/no-media-is-loaded.mkv"),
+        Title = "离线规则测试",
+        PlayerOptions = options
     };
     private static PlaybackLaunchSignature Signature(IReadOnlyList<KeyValuePair<string, string>> options) =>
         new(VideoPipelineKind.Standalone, [], [], [], options);

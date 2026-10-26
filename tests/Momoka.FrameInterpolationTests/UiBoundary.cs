@@ -55,4 +55,19 @@ namespace Momoka.Shell.ViewModels
         internal SettingFactRow() : base("", null) { }
         public string Value { get; internal set; } = "";
     }
+
+    // 卡片合并（SettingSection.UpdateRows）按「标签＋类型」复用在场行，因此这两类也要有替身 ——
+    // 补帧卡自己不用滑块和快捷键行，但那段真实源码的 switch 会点到它们的名字。
+    public sealed class SettingSliderRow : SettingRow
+    {
+        internal SettingSliderRow() : base("", null) { }
+        public double Value { get; internal set; }
+        internal void Reseed(double value) => Value = value;
+    }
+
+    public sealed class SettingShortcutRow : SettingRow
+    {
+        internal SettingShortcutRow() : base("", null) { }
+        public string ComboText { get; internal set; } = "";
+    }
 }

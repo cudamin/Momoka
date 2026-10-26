@@ -1088,7 +1088,8 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         // 建卡次序照左栏那份（CardCategories，用户令 2026-10-11 排的序），好让分类走查、Cards 分组这些
         // 按 Sections 次序读数的地方与屏上的次序是同一份。同一分类的多张分区卡连着排：播放行为分类三张
-        // （播放行为 / 资源筛选 / 截图），视频输出分类三张（基础输出 / HDR / 画质与着色器）。
+        // （播放行为 / 资源筛选 / 截图），视频输出分类四张（基础输出 / 补帧 / HDR / 画质与着色器）。补帧
+        // 紧跟在基础输出后面：它管的是同一条输出链上的下一段，而且它读到的基础值就是那张卡显示的那几个。
         Sections.Clear();
         Sections.Add(HomeCard());
         Sections.Add(InterfaceCard());
@@ -1098,6 +1099,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(ResourceFilterCard());
         Sections.Add(ScreenshotCard());
         Sections.Add(VideoCard());
+        Sections.Add(FrameInterpolationCard());
         Sections.Add(ApplicableHdrCard());
         Sections.Add(ApplicableShaderCard());
         Sections.Add(AudioCard());

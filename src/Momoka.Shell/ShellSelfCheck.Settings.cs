@@ -315,13 +315,15 @@ internal static partial class ShellSelfCheck
         check("视频同步那一行说的是下次播放的值", restate.Ok && liveNote.Contains("下次播放"),
             $"{restate.Detail}；屏上那一行写着「{liveNote}」");
 
+        // 视频输出四张分区卡：基础输出、补帧、HDR 与杜比视界、画质与着色器。数卡数是为了让「某张卡被顺手
+        // 挪进/挪出这个分类」留下读数；补帧卡 2026-10-26 并入，插在基础输出之后。
         var videoSections = page.ViewModel.Sections.Where(section => section.Category == "视频输出").ToList();
         var optionalNumbers = videoSections.SelectMany(section => section.Rows).OfType<SettingOptionalNumberRow>().ToList();
         var optionalProbe = SettingOptionalNumberRow.Probe();
         var hdrMode = videoSections.SelectMany(section => section.Rows).OfType<SettingChoiceRow>()
             .SingleOrDefault(row => row.Label == "HDR 处理");
         var tonemap = hdrMode?.Selected?.Label == Momoka.Mpv.MpvOutputOptions.Describe(Momoka.Mpv.MpvOutputOptions.HdrModes, "tonemap");
-        check("视频输出包含 HDR 与着色器", videoSections.Count == 3 && !page.Categories.Contains("着色器")
+        check("视频输出包含 HDR 与着色器", videoSections.Count == 4 && !page.Categories.Contains("着色器")
             && hdrMode?.Selected is not null && SelfCheckLayoutRules.HdrNumbers(optionalNumbers.Select(row => row.Label).ToArray(), tonemap)
             && optionalProbe.Ok,
             $"视频输出 {videoSections.Count} 个分区、{optionalNumbers.Count} 个自动/手动数值；{optionalProbe.Detail}");

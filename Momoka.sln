@@ -87,6 +87,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.HomeOrderProbeTests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.AtomicFileWriteTests", "tests\Momoka.AtomicFileWriteTests\Momoka.AtomicFileWriteTests.csproj", "{B17E9430-E5BD-44B8-B4C4-9BBF2A30FEB5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.FrameInterpolationTests", "tests\Momoka.FrameInterpolationTests\Momoka.FrameInterpolationTests.csproj", "{E60E6469-3D02-4A2C-AF83-B6011F8C495E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -252,6 +254,10 @@ Global
 		{B17E9430-E5BD-44B8-B4C4-9BBF2A30FEB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B17E9430-E5BD-44B8-B4C4-9BBF2A30FEB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B17E9430-E5BD-44B8-B4C4-9BBF2A30FEB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E60E6469-3D02-4A2C-AF83-B6011F8C495E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E60E6469-3D02-4A2C-AF83-B6011F8C495E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E60E6469-3D02-4A2C-AF83-B6011F8C495E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E60E6469-3D02-4A2C-AF83-B6011F8C495E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4AD193CB-4DE2-448B-85B6-BFED5335A8B6} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
@@ -291,5 +297,6 @@ Global
 		{1F67B30A-DFAF-432A-B8DA-9DC79E899D20} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{E1B9232B-94C6-48F1-9F80-0E9EC2215F15} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{B17E9430-E5BD-44B8-B4C4-9BBF2A30FEB5} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
+		{E60E6469-3D02-4A2C-AF83-B6011F8C495E} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 	EndGlobalSection
 EndGlobal

@@ -550,6 +550,15 @@ public static class SettingsMigration
         // 统一回到首项 oversample，保证旧设置、导入和播放与当前下拉选择一致。
         settings.Video.Tscale = Kernel(settings.Video.Tscale);
 
+        // 补帧（2026-10-26）。和上面那两颗枚举同一条规矩：手改的文件可能留下认不出来的整数，留着的话设置页
+        // 那颗下拉不知道显示什么 —— 模式回「关闭」、质量回「均衡」，都是这张卡出厂时的那一档。帧率夹回
+        // 设置页那一对常量，用的是下发端同一个 ClampFps，存储与下发不会各说各话。
+        if (!Enum.IsDefined(settings.Video.FrameInterpolationMode))
+            settings.Video.FrameInterpolationMode = FrameInterpolationMode.Off;
+        if (!Enum.IsDefined(settings.Video.FrameInterpolationQuality))
+            settings.Video.FrameInterpolationQuality = FrameInterpolationQuality.Balanced;
+        settings.Video.FrameInterpolationFps = FrameInterpolationOptions.ClampFps(settings.Video.FrameInterpolationFps);
+
         // 插值关闭阈值。0 是旧文件缺键（这个键 2026-09-10 才有），读成装机默认 120 —— 缺键升级的人行为一个数
         // 都不许变；其余夹回范围，上下限和设置页那一行是同一对常量（同图片缓存上限那条规矩）。
         settings.Video.HighRefreshRateLimitHz = settings.Video.HighRefreshRateLimitHz <= 0

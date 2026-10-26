@@ -18,13 +18,17 @@ internal static class NativeNoMediaProbe
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate IntPtr Create();
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int Initialize(IntPtr context);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void Destroy(IntPtr context);
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int SetOption(IntPtr context,
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int SetOption(IntPtr context,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int SetProperty(IntPtr context,
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int SetProperty(IntPtr context,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string name, [MarshalAs(UnmanagedType.LPUTF8Str)] string value);
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate IntPtr GetString(IntPtr context,
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate IntPtr GetString(IntPtr context,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string name);
-    [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate int LogMessages(IntPtr context,
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int LogMessages(IntPtr context,
         [MarshalAs(UnmanagedType.LPUTF8Str)] string level);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate IntPtr WaitEvent(IntPtr context, double timeout);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)] private delegate void Free(IntPtr value);
@@ -189,7 +193,9 @@ internal static class NativeNoMediaProbe
                     var video = new VideoSettings
                     {
                         FrameInterpolationMode = FrameInterpolationMode.MotionCompensated,
-                        FrameInterpolationQuality = quality, HardwareDecoding = "d3d11va", DolbyVisionMetadata = false
+                        FrameInterpolationQuality = quality,
+                        HardwareDecoding = "d3d11va",
+                        DolbyVisionMetadata = false
                     };
                     var options = MpvOutputOptions.Build(video, new AudioSettings(), source: new(1920, 1080, 8, 24, false));
                     foreach (var pair in options)
@@ -218,7 +224,8 @@ internal static class NativeNoMediaProbe
                         video.FrameInterpolationMode = mode;
                         var next = new PlaybackRequest
                         {
-                            MediaUrl = new Uri("file:///C:/no-media-is-loaded.mkv"), Title = "仅规则复位，不加载媒体",
+                            MediaUrl = new Uri("file:///C:/no-media-is-loaded.mkv"),
+                            Title = "仅规则复位，不加载媒体",
                             PlayerOptions = MpvOutputOptions.Build(video, new AudioSettings(), source: new(1920, 1080, 8, 24, false))
                         };
                         foreach (var pair in InlineSwitch.FilmScoped(defaults, next).Where(pair => names.Contains(pair.Key)))

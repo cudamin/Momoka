@@ -14,6 +14,9 @@ public sealed partial class SettingsViewModel
         var index = Sections.ToList().FindIndex(section => section.Title == VideoBasicsTitle);
         if (index >= 0) Sections[index].UpdateRows(VideoCard().Rows);
         RefreshCustomMpvConfig();
+        // 补帧卡读的是这张卡保存的值（模式、算法、硬解），基础值一变它就得跟着重算；它自己的行只由
+        // RefreshFrameInterpolationRows 改，两边不互相回调用。
+        RefreshFrameInterpolationRows();
     }
 
     private SettingSection VideoCard()
@@ -47,20 +50,42 @@ public sealed partial class SettingsViewModel
                 "gpu-api", "默认 Vulkan。若无法播放或画面异常，可尝试自动或 Direct3D 11；性能取决于显卡和驱动。"));
         }
 
+        // 补帧卡的有效值与这张卡说的是同一件事：运动补偿自己出帧、显式关掉相邻帧混合，并改用音频同步；
+        // 平滑插值会把本次同步改成 display-resample。基础卡因此按「此刻真正生效的值」显示，不能只看存着的
+        // VideoSync —— 否则选了补帧、屏上却写着「插值关闭」，正是这一行本来要治的那种骗人。
+        var frames = FrameInterpolationOptions.Resolve(video);
+        var (effectiveSync, effectiveInterpolation, _) = MpvOutputOptions.ResolveSync(video);
+        var hardwareNote = "推荐自动（复制回内存），兼顾硬解与滤镜兼容性。原生硬解的开销较低，但受显卡、图形接口和滤镜限制。"
+            + "无法硬解时会尝试软件解码；画面异常时可选关闭。";
+        if (!string.Equals(frames.HardwareDecoding, (video.HardwareDecoding ?? "").Trim(), StringComparison.OrdinalIgnoreCase))
+            hardwareNote += $"补帧的运动补偿需要把帧交回内存，本次播放实际使用 {frames.HardwareDecoding}；保存的偏好不变。";
+
         var sync = Mpv("视频同步", MpvOutputOptions.VideoSync, () => video.VideoSync, value => video.VideoSync = value,
             "video-sync", SyncNote(video), RefreshVideoBackend);
         rows.AddRange(
         [
-            Mpv("硬件解码", MpvOutputOptions.HardwareDecoders, () => video.HardwareDecoding, value => video.HardwareDecoding = value,
-                "hwdec", "推荐自动（复制回内存），兼顾硬解与滤镜兼容性。原生硬解的开销较低，但受显卡、图形接口和滤镜限制。"
-                    + "无法硬解时会尝试软件解码；画面异常时可选关闭。"),
+            // JSON 里的 null 会被反序列化照单收下（SettingsMigration 里同一句提醒），读的时候兜一个空串，
+            // 让下拉落回「设置文件中的值」而不是把 null 交给选项比较。
+            Mpv("硬件解码", MpvOutputOptions.HardwareDecoders, () => video.HardwareDecoding ?? "", value => video.HardwareDecoding = value,
+                "hwdec", hardwareNote),
             Mpv("色彩范围", MpvOutputOptions.OutputLevels, () => video.OutputLevels, value => video.OutputLevels = value,
                 "video-output-levels", "与显示设备的输入范围保持一致。电脑显示器通常选全范围；范围不匹配会造成灰黑或暗部细节丢失。"),
             Mpv("反交错", MpvOutputOptions.DeinterlaceModes, () => video.DeinterlaceMode, value => video.DeinterlaceMode = value,
                 "deinterlace", "用于消除隔行视频运动边缘的梳齿。老电视片源可选自动；普通逐行视频保持关闭。"),
             sync
         ]);
-        if (video.VideoSync == "audio")
+        if (frames.Mode == FrameInterpolationMode.MotionCompensated)
+        {
+            // 运动补偿替代相邻帧混合，这里的选择在本次播放不会生效；算法与质量都归补帧卡，所以只留恢复入口。
+            rows.Add(Fact("插值", Annotate("本次播放使用补帧的运动补偿，相邻帧混合已关闭；在「补帧」卡切回其他模式后可选择插值。",
+                "interpolation、tscale"), "关闭"));
+        }
+        else if (frames.Mode == FrameInterpolationMode.Smooth)
+        {
+            rows.Add(Fact("插值", Annotate("本次播放由「补帧」卡的平滑插值启用相邻帧混合，算法在那张卡里选；这里不改保存的插值偏好。",
+                "interpolation、tscale"), "开启"));
+        }
+        else if (video.VideoSync == "audio" && !effectiveInterpolation)
         {
             // 用户要求始终显示插值；只读状态展示有效值，不覆盖原来的开关与算法偏好。
             rows.Add(Fact("插值", Annotate("音频同步下插值关闭；切换视频同步后可选择插值。", "interpolation、tscale"), "关闭"));
@@ -77,7 +102,6 @@ public sealed partial class SettingsViewModel
                 "混合相邻帧以减轻顿挫，不生成运动补偿帧。过采样偏清晰；Mitchell 兼顾清晰与平滑；双三次更平滑，也更容易模糊。混合帧可能产生重影，Mitchell 还可能在运动边缘产生振铃。",
                 RefreshVideoBackend));
         }
-        var (effectiveSync, _, _) = MpvOutputOptions.ResolveSync(video);
         if (effectiveSync.StartsWith("display-", StringComparison.Ordinal))
         {
             rows.Add(Toggle("高帧率或高刷新率时使用音频同步", "片源超过 47 fps，或屏幕刷新率超过设定阈值时，停用插值并改用音频同步，以降低渲染开销。",
