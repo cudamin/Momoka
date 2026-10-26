@@ -48,7 +48,7 @@ public sealed partial class ShelfHead : UserControl
         new PropertyMetadata(false, OnScrimChanged));
 
     /// <summary>
-    /// 这一带可以进去（首页媒体库那一排），标题后面跟一个大于号、整块牌子变成按钮。
+    /// 这一带可以进去（首页媒体库那一排），标题后面跟一个大于号，标题组变成按钮。
     /// 2026-09-13：用户原话「在最近添加右边添加一个大于号，点击标题后可以进入对应媒体库」。
     /// </summary>
     public static readonly DependencyProperty OfferProperty = DependencyProperty.Register(
@@ -71,7 +71,7 @@ public sealed partial class ShelfHead : UserControl
     {
         InitializeComponent();
 
-        // 挂在 Scope 而不是标题上的原因：点击面铺开（Offer=true）时它在最上层，指针事件整个被它收走，
+        // 挂在 Scope 而不是标题上的原因：点击面可见（Offer=true）时它在标题组最上层，指针事件整个被它收走，
         // 标题上一个也见不着；而 Scope 可见 ⇔ 这块牌子可以进去 ⇔ 正是该有下划线的场合，详情页那些
         // 进不去的牌子（Scope 收着）自然一条悬停事件都没有 —— 门在哪儿，下划线就在哪儿。
         _hover = new HoverWatch(Scope, up =>
@@ -132,13 +132,13 @@ public sealed partial class ShelfHead : UserControl
     internal (Visibility Glyph, Visibility Scope) DoorState => (OpenGlyph.Visibility, Scope.Visibility);
 
     /// <summary>
-    /// 让牌子可点：大于号露出来、透明点击面铺开。
+    /// 让标题组可点：大于号露出来、透明点击面覆盖标题组。
     /// </summary>
     /// <remarks>
-    /// 点击面是 <c>Root</c> 里的一个兄弟节点，排在标题、读数、大于号**后面**（XAML 里写在最后，画在最上层），
+    /// 点击面是标题组容器里的一个兄弟节点，排在标题、读数、大于号**后面**（XAML 里写在最后，画在最上层），
     /// 只认「有没有那块地方」、不要内容。**不能把 <c>Root</c> 塞进它的 Content** —— <c>Scope</c> 自己就在
     /// <c>Root</c> 里，那样成一个环：Root → Scope → ContentPresenter → Root，XAML 要么当场抛，要么画出一棵
-    /// 自己套自己的树。压在文字上面也不会挡住什么：这一带里没有要靠悬停或拖动活着的东西。
+    /// 自己套自己的树。右端挂件在标题组外，保留自己的点击与悬停。
     /// </remarks>
     private static void OnOfferChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
     {

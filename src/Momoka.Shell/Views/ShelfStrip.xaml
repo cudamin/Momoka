@@ -11,7 +11,7 @@
             <Setter Property="Height" Value="48" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="0" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderThickness" Value="{StaticResource EgOutlineThickness}" />
             <Setter Property="BorderBrush" Value="{ThemeResource EgBorderStrongBrush}" />
             <Setter Property="CornerRadius" Value="24" />
             <Setter Property="VerticalAlignment" Value="Top" />
@@ -20,6 +20,59 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
             <Setter Property="Visibility" Value="Collapsed" />
+            <!-- 底色与描边由同一个矢量圆绘制；2 DIP 与 EgOutlineThickness 保持一致（厚度回归核对）。
+                 仍是 Button：点击、自动化、焦点和外层位移动画不变，不使用位图或额外圆角裁剪。 -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualState x:Name="Normal" />
+                                    <VisualState x:Name="PointerOver">
+                                        <VisualState.Setters>
+                                            <Setter Target="Circle.Fill" Value="{ThemeResource ButtonBackgroundPointerOver}" />
+                                            <Setter Target="Circle.Stroke" Value="{ThemeResource ButtonBorderBrushPointerOver}" />
+                                            <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPointerOver}" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Pressed">
+                                        <VisualState.Setters>
+                                            <Setter Target="Circle.Fill" Value="{ThemeResource ButtonBackgroundPressed}" />
+                                            <Setter Target="Circle.Stroke" Value="{ThemeResource ButtonBorderBrushPressed}" />
+                                            <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundPressed}" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                    <VisualState x:Name="Disabled">
+                                        <VisualState.Setters>
+                                            <Setter Target="Circle.Fill" Value="{ThemeResource ButtonBackgroundDisabled}" />
+                                            <Setter Target="Circle.Stroke" Value="{ThemeResource ButtonBorderBrushDisabled}" />
+                                            <Setter Target="ContentPresenter.Foreground" Value="{ThemeResource ButtonForegroundDisabled}" />
+                                        </VisualState.Setters>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                            <Ellipse
+                                x:Name="Circle"
+                                Fill="{TemplateBinding Background}"
+                                IsHitTestVisible="False"
+                                Stretch="Fill"
+                                Stroke="{TemplateBinding BorderBrush}"
+                                StrokeThickness="2"
+                                UseLayoutRounding="False" />
+                            <ContentPresenter
+                                x:Name="ContentPresenter"
+                                Content="{TemplateBinding Content}"
+                                ContentTemplate="{TemplateBinding ContentTemplate}"
+                                ContentTransitions="{TemplateBinding ContentTransitions}"
+                                Foreground="{TemplateBinding Foreground}"
+                                HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                Padding="{TemplateBinding Padding}"
+                                VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </UserControl.Resources>
 

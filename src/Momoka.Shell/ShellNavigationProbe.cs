@@ -108,6 +108,7 @@ internal sealed partial class ShellNavigationProbe
             // 展开态：框架在弹层打开那一拍把选中项的文本收掉，框的宽度塌回 MinWidth，右邻被弹层压住
             // （用户 2026-10-16）。这一条量的是展开态的宽度与弹层右沿。
             await CaseAsync("文件选项下拉展开的位置与宽度", PickerDropDownAsync);
+            await CaseAsync("主页标题点击范围与加粗边框", HomeHeaderAsync, 45);
             await CaseAsync("隐藏首页行不请求", HiddenHomeAsync);
             await CaseAsync("通知空态属性通知", NotificationEmptyAsync);
             await CaseAsync("离开通知页不弹旧编辑器", NotificationCancelAsync);

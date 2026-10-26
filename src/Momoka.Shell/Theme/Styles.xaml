@@ -126,6 +126,8 @@
     <!-- 卡片不要白边（2026-10-19 用户令）。描边只在指针/焦点那一下由 EgFrameActiveStyle 临时画出来；
          分隔线、输入框和徽章仍用 EgHairline，不跟着收。 -->
     <Thickness x:Key="EgCardBorderThickness">0</Thickness>
+    <!-- 封面悬停／焦点框与货架翻页圆钮统一使用 2 DIP 描边。 -->
+    <Thickness x:Key="EgOutlineThickness">2</Thickness>
 
     <!-- 胶片格右上角那颗方块的边长：一个数字或一个对勾刚好放得下。 -->
     <x:Double x:Key="EgCornerBadgeSize">20</x:Double>
@@ -381,7 +383,7 @@
 
     <!-- 指针在上面、或者键盘焦点落在上面时的同一根线。卡片静止时没有边，所以这一档把边补回来。 -->
     <Style x:Key="EgFrameActiveStyle" TargetType="Border" BasedOn="{StaticResource EgFrameStyle}">
-        <Setter Property="BorderThickness" Value="{StaticResource EgHairline}" />
+        <Setter Property="BorderThickness" Value="{StaticResource EgOutlineThickness}" />
         <Setter Property="BorderBrush" Value="{ThemeResource EgAccentBrush}" />
     </Style>
 

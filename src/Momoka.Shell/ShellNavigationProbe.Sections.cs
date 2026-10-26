@@ -48,6 +48,7 @@ internal sealed partial class ShellNavigationProbe
         [nameof(DetailWriteAsync)] = ShellProbeSections.Library,
         [nameof(DetailPickerLayoutAsync)] = ShellProbeSections.Library,
         [nameof(PickerDropDownAsync)] = ShellProbeSections.Library,
+        [nameof(HomeHeaderAsync)] = ShellProbeSections.Library,
         [nameof(HiddenHomeAsync)] = ShellProbeSections.Library,
         [nameof(SeasonTrailingPlayAsync)] = ShellProbeSections.Library,
 

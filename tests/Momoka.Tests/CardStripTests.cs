@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using Momoka.Infrastructure;
 using static Momoka.Tests.TestHarness;
 
@@ -95,7 +96,94 @@ internal static class CardStripTests
             Near(558, CardStrip.RevealFor(3, 186, 16, 0, 726, 2000), "视口再窄一点（那一像素的余量之外）就得挪");
         });
 
+        Test("卡片带：翻页圆钮由同一矢量圆绘制底色和加粗描边", () =>
+        {
+            var style = PageButtonStyle();
+            var circle = style.Descendants().Single(element => element.Name.LocalName == "Ellipse");
+            Assert.Equal("{TemplateBinding Background}", circle.Attribute("Fill")?.Value);
+            Assert.Equal("{TemplateBinding BorderBrush}", circle.Attribute("Stroke")?.Value);
+            Assert.Equal("2", circle.Attribute("StrokeThickness")?.Value);
+            Assert.Equal("False", circle.Attribute("UseLayoutRounding")?.Value);
+            Assert.Equal("False", circle.Attribute("IsHitTestVisible")?.Value);
+            Assert.False(style.Descendants().Any(element => element.Name.LocalName is "Border" or "Image"),
+                "不恢复大圆角边框、不用缩放位图画圆");
+            foreach (var property in new[] { "Width", "Height" })
+                Assert.Equal("48", style.Elements().Single(element => element.Attribute("Property")?.Value == property)
+                    .Attribute("Value")?.Value, "保持 48 DIP 圆钮与原点击范围");
+        });
+
+        Test("卡片带：圆钮各态仍使用现有按钮主题角色", () =>
+        {
+            var style = PageButtonStyle();
+            foreach (var state in new[] { "PointerOver", "Pressed", "Disabled" })
+            {
+                var visualState = style.Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == state);
+                foreach (var (target, role) in new[]
+                {
+                    ("Circle.Fill", "ButtonBackground"),
+                    ("Circle.Stroke", "ButtonBorderBrush"),
+                    ("ContentPresenter.Foreground", "ButtonForeground"),
+                })
+                    Assert.Equal("{ThemeResource " + role + state + "}",
+                        visualState.Descendants().Single(element => element.Attribute("Target")?.Value == target)
+                            .Attribute("Value")?.Value);
+            }
+            Assert.True(style.Descendants().Any(element => element.Attribute(Xaml + "Name")?.Value == "Normal"));
+            Assert.Equal("{TemplateBinding Content}", style.Descendants().Single(element =>
+                element.Name.LocalName == "ContentPresenter").Attribute("Content")?.Value);
+        });
+
+        Test("卡片带：左右圆钮共用模板且保留点击和动画句柄", () =>
+        {
+            var page = ShelfPage();
+            foreach (var (name, click, glyph) in new[]
+            {
+                ("Prev", "OnPrevClicked", "\uE76B"),
+                ("Next", "OnNextClicked", "\uE76C"),
+            })
+            {
+                var button = page.Descendants().Single(element => element.Name.LocalName == "Button"
+                    && element.Attribute(Xaml + "Name")?.Value == name);
+                Assert.Equal("{StaticResource EgShelfPageButtonStyle}", button.Attribute("Style")?.Value);
+                Assert.Equal(click, button.Attribute("Click")?.Value);
+                Assert.Equal(glyph, button.Descendants().Single(element => element.Name.LocalName == "FontIcon")
+                    .Attribute("Glyph")?.Value);
+                Assert.True(button.Descendants().Any(element => element.Name.LocalName == "TranslateTransform"
+                    && element.Attribute(Xaml + "Name")?.Value == name + "Motion"));
+            }
+        });
+
+        Test("卡片带：封面悬停框与翻页外圈同为两像素，静止封面无边框", () =>
+        {
+            var styles = XDocument.Load(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Theme", "Styles.xaml"));
+            var outline = styles.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgOutlineThickness");
+            Assert.Equal("2", outline.Value);
+            var active = styles.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgFrameActiveStyle");
+            Assert.Equal("{StaticResource EgOutlineThickness}", active.Elements().Single(element =>
+                element.Attribute("Property")?.Value == "BorderThickness").Attribute("Value")?.Value);
+            Assert.Equal("{StaticResource EgOutlineThickness}", PageButtonStyle().Elements().Single(element =>
+                element.Attribute("Property")?.Value == "BorderThickness").Attribute("Value")?.Value);
+            Assert.Equal("0", styles.Descendants().Single(element =>
+                element.Attribute(Xaml + "Key")?.Value == "EgCardBorderThickness").Value);
+        });
+
         static void Near(double expected, double actual, string message) =>
             Assert.True(Math.Abs(expected - actual) < 0.01, $"期望 {expected:0.##}，实际 {actual:0.##}（{message}）");
+    }
+
+    private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+
+    private static XElement PageButtonStyle() => ShelfPage().Descendants().Single(element =>
+        element.Name.LocalName == "Style" && element.Attribute(Xaml + "Key")?.Value == "EgShelfPageButtonStyle");
+
+    private static XDocument ShelfPage() =>
+        XDocument.Load(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "ShelfStrip.xaml"));
+
+    private static string RepositoryRoot()
+    {
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+            if (File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
+                return directory.FullName;
+        throw new DirectoryNotFoundException("未找到当前 Momoka 工作树");
     }
 }
