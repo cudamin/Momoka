@@ -184,6 +184,9 @@ public sealed partial class FnNasMediaAdapter
                 PlayedPercentage = duration is > 0 ? position / duration * 100 : null
             }
         };
+        // 官方列表、搜索和详情都带 imdb_id；trim_id 属于飞牛自己的命名空间，不能当作 TMDB ID 猜。
+        var imdb = Text(value, "imdb_id").Trim();
+        if (imdb.Length > 0) item.ProviderIds["Imdb"] = imdb;
         item.ProductionYear = item.PremiereDate?.Year;
         var width = Number(value, "poster_width"); var height = Number(value, "poster_height");
         if (width is > 0 && height is > 0) item.PrimaryImageAspectRatio = width / height;

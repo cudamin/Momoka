@@ -1,3 +1,4 @@
+using System.Net;
 using Momoka.Emby;
 
 namespace Momoka.Playback;
@@ -80,18 +81,32 @@ public static class MediaVersionDiscovery
         var own = session.Capture(item);
         own.Bind(item);
         var local = Local(item);
-        var scopes = session.Sources.Where(scope => scope.IsAvailable && scope.Key != own.Key).ToArray();
+        if (!session.Aggregate) return new(local, []);
+        // 同一账号的其他媒体库也有独立条目，不能只查「其他在线账号」。
+        var scopes = session.Sources.Where(scope => scope.IsAvailable).ToArray();
         if (scopes.Length == 0) return new(local, []);
 
         EmbyItem? parent = null;
         var parentFailed = false;
-        if (item.Type == EmbyItemType.Episode && item.SeriesId is { Length: > 0 } seriesId
-            && scopes.Any(scope => !SameServer(own.Connection, scope.Connection)))
+        if (item.Type == EmbyItemType.Episode && (!string.IsNullOrEmpty(item.SeriesId)
+            || own.Connection.IsFnNas && !string.IsNullOrEmpty(item.SeasonId ?? item.ParentId)))
         {
             try
             {
-                parent = await own.ExecuteAsync((client, token) => client.GetItemAsync(seriesId, token), cancellationToken)
-                    .ConfigureAwait(false);
+                using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                deadline.CancelAfter(TimeSpan.FromSeconds(12));
+                var seriesId = item.SeriesId;
+                if (string.IsNullOrEmpty(seriesId))
+                {
+                    // 飞牛的单集详情没有 tv_guid；parent_guid 指向季，再沿季的父编号取所属剧。
+                    var season = await own.ExecuteAsync((client, token) => client.GetItemAsync(item.SeasonId ?? item.ParentId!, token),
+                        deadline.Token).ConfigureAwait(false);
+                    if (season.Type == EmbyItemType.Season)
+                        seriesId = string.IsNullOrEmpty(season.SeriesId) ? season.ParentId : season.SeriesId;
+                }
+                if (!string.IsNullOrEmpty(seriesId))
+                    parent = await own.ExecuteAsync((client, token) => client.GetItemAsync(seriesId, token), deadline.Token)
+                        .ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
             catch (Exception) { parentFailed = true; }
@@ -104,56 +119,79 @@ public static class MediaVersionDiscovery
         var found = await Task.WhenAll(scopes.Select(async scope =>
         {
             await concurrency.WaitAsync(cancellationToken).ConfigureAwait(false);
+            var versions = new List<MediaVersion>();
             try
             {
                 using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 deadline.CancelAfter(TimeSpan.FromSeconds(12));
-                if (SameServer(own.Connection, scope.Connection))
+                string? loadedItemId = scope.Key == own.Key ? item.Id : null;
+                if (scope.Key != own.Key && SameServer(own.Connection, scope.Connection))
                 {
-                    var candidate = await scope.ExecuteAsync((client, token) => client.GetItemAsync(item.Id, token, order: order),
-                        deadline.Token).ConfigureAwait(false);
-                    if (MatchesServerItem(item, candidate)) return (Versions: Local(candidate), Failed: (string?)null);
+                    try
+                    {
+                        var candidate = await scope.ExecuteAsync((client, token) => client.GetItemAsync(item.Id, token, order: order),
+                            deadline.Token).ConfigureAwait(false);
+                        if (MatchesServerItem(item, candidate))
+                        {
+                            versions.AddRange(Local(candidate));
+                            loadedItemId = candidate.Id;
+                        }
+                    }
+                    // 另一个账号可能只能访问另一媒体库；原条目不可见不等于它没有同片版本。
+                    catch (EmbyApiException error) when (error.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden) { }
                 }
-                if (!canMatchProviders) return (Versions: (IReadOnlyList<MediaVersion>)[], Failed: (string?)null);
-                var versions = await FindInSourceAsync(scope, item, parent, order, deadline.Token).ConfigureAwait(false);
-                return (Versions: versions, Failed: (string?)null);
+                if (canMatchProviders)
+                    versions.AddRange(await FindInSourceAsync(scope, item, parent, order, loadedItemId, deadline.Token)
+                        .ConfigureAwait(false));
+                return (Versions: (IReadOnlyList<MediaVersion>)versions, Failed: (string?)null);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-            catch (Exception) { return (Versions: (IReadOnlyList<MediaVersion>)[], Failed: scope.ServerName); }
+            catch (Exception) { return (Versions: (IReadOnlyList<MediaVersion>)versions, Failed: scope.ServerName); }
             finally { concurrency.Release(); }
         })).ConfigureAwait(false);
         var failedSources = found.Where(result => result.Failed is not null).Select(result => result.Failed!).ToList();
         if (parentFailed) failedSources.Insert(0, own.ServerName);
-        return new([.. local, .. found.SelectMany(result => result.Versions)], failedSources);
+        // 本地版本必须在前且保留原对象，详情页才能增量追加，不重置用户当前选择。
+        return new([.. local, .. found.SelectMany(result => result.Versions)],
+            failedSources.Distinct(StringComparer.Ordinal).ToArray());
     }
 
     private static async Task<IReadOnlyList<MediaVersion>> FindInSourceAsync(EmbySessionScope scope,
-        EmbyItem item, EmbyItem? parent, MediaSourceOrder order, CancellationToken cancellationToken)
+        EmbyItem item, EmbyItem? parent, MediaSourceOrder order, string? loadedItemId, CancellationToken cancellationToken)
     {
         var anchor = parent ?? item;
         var candidates = new Dictionary<string, EmbyItem>(StringComparer.Ordinal);
         // Jellyfin 的 provider 兼容查询要扫描全库；常见同名/原名先走快速搜索，仍以 provider 严格复核。
         if (scope.Connection.IsJellyfin) await SearchTitlesAsync().ConfigureAwait(false);
-        // The provider query is an Emby/Jellyfin route. Plex has no equivalent, so it goes straight to
-        // the title search below — without this, every Plex source would fail this pass and be reported
-        // as a failed source in the version menu.
+        // Provider 查询只有 Emby/Jellyfin 支持；飞牛/Plex 走它们自己的标题搜索，不能发 Emby 路由。
         if (candidates.Count == 0 && scope.Connection.ServerKind is MediaServerKind.Emby or MediaServerKind.Jellyfin
             && anchor.Type is EmbyItemType.Movie or EmbyItemType.Series)
         {
             foreach (var provider in Providers)
             {
                 if (Provider(anchor, provider) is not { Length: > 0 } id) continue;
-                var result = await scope.ExecuteAsync((client, token) => client.FindByProviderAsync(provider, id,
-                    anchor.Type == EmbyItemType.Series, token), cancellationToken).ConfigureAwait(false);
-                foreach (var candidate in result.Items)
-                    if (Matches(anchor, candidate)) candidates.TryAdd(candidate.Id, candidate);
+                ItemsResult result;
+                try
+                {
+                    result = await scope.ExecuteAsync((client, token) => client.FindByProviderAsync(provider, id,
+                        anchor.Type == EmbyItemType.Series, token), cancellationToken).ConfigureAwait(false);
+                }
+                catch (EmbyApiException error) when (error.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.NotFound
+                    or HttpStatusCode.MethodNotAllowed or HttpStatusCode.NotImplemented)
+                {
+                    // 部署未提供这条兼容接口时仍可搜索，不把不支持查询误报成整台来源失败。
+                    break;
+                }
+                foreach (var candidate in result.Items) AddCandidate(candidate);
                 // Jellyfin 的兼容实现会分页扫描媒体库，找到可信候选后不再为另一个 ID 重扫全库。
-                if (candidates.Count > 0) break;
+                if (scope.Connection.IsJellyfin && candidates.Count > 0) break;
             }
         }
-        if (!scope.Connection.IsJellyfin) await SearchTitlesAsync().ConfigureAwait(false);
+        if (!scope.Connection.IsJellyfin || candidates.Count == 0) await SearchTitlesAsync().ConfigureAwait(false);
 
         var matches = new List<MediaVersion>();
+        var loadedItems = new HashSet<string>(StringComparer.Ordinal);
+        if (loadedItemId is not null) loadedItems.Add(loadedItemId);
         foreach (var candidate in candidates.Values)
         {
             if (parent is null)
@@ -168,12 +206,17 @@ public static class MediaVersionDiscovery
         }
         return matches;
 
+        void AddCandidate(EmbyItem candidate)
+        {
+            if (parent is null && string.Equals(candidate.Id, loadedItemId, StringComparison.Ordinal)) return;
+            if (Matches(anchor, candidate)) candidates.TryAdd(candidate.Id, candidate);
+        }
+
         async Task SearchTitlesAsync()
         {
             foreach (var name in new[] { anchor.Name, anchor.OriginalTitle }.Where(name => !string.IsNullOrWhiteSpace(name))
                 .Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                if (candidates.Count > 0) break;
                 var result = await scope.ExecuteAsync((client, token) => client.GetItemsAsync(new ItemQuery
                 {
                     SearchTerm = name,
@@ -182,16 +225,18 @@ public static class MediaVersionDiscovery
                     Fields = EmbyFields.Detail,
                     Limit = 100
                 }, token), cancellationToken).ConfigureAwait(false);
-                foreach (var candidate in result.Items)
-                    if (Matches(anchor, candidate)) candidates.TryAdd(candidate.Id, candidate);
+                foreach (var candidate in result.Items) AddCandidate(candidate);
             }
         }
 
         async Task AddAsync(EmbyItem candidate, EmbyItem? candidateParent)
         {
+            if (loadedItems.Contains(candidate.Id)) return;
             var detail = await scope.ExecuteAsync((client, token) => client.GetItemAsync(candidate.Id, token, order: order),
                 cancellationToken).ConfigureAwait(false);
-            if (Matches(item, detail, parent, candidateParent)) matches.AddRange(Local(detail, candidateParent));
+            // Emby 的合并版本候选可能用别名条目编号返回同一份详情；按实际详情编号再去重。
+            if (Matches(item, detail, parent, candidateParent) && loadedItems.Add(detail.Id))
+                matches.AddRange(Local(detail, candidateParent));
         }
     }
 }

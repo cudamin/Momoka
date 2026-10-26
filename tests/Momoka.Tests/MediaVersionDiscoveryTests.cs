@@ -10,11 +10,12 @@ using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-internal static class MediaVersionDiscoveryTests
+internal static partial class MediaVersionDiscoveryTests
 {
     public static void Register()
     {
         RegisterQueueCases();
+        RegisterLibraryCases();
         Test("跨来源版本：刮削 ID 确认身份，拒绝同名、年份类型或 ID 冲突", () =>
         {
             var original = Movie();
@@ -337,10 +338,10 @@ internal static class MediaVersionDiscoveryTests
                     PassthroughSecretProtector.Instance),
                 new CredentialVault(PassthroughSecretProtector.Instance), DeviceIdentity.Create("offline", "1"), Transport);
         }
-        public async Task<EmbySessionScope> AddAsync(string user, string host)
+        public async Task<EmbySessionScope> AddAsync(string user, string host, MediaServerKind kind = MediaServerKind.Emby)
         {
             if (!_servers.TryGetValue(host, out var server))
-                _servers[host] = server = new ServerProfile { Url = $"https://{host}", Name = host };
+                _servers[host] = server = new ServerProfile { Url = $"https://{host}", Name = host, ServerKind = kind };
             var account = new AccountProfile { UserId = user, Username = user, ProtectedAccessToken = $"offline-{user}" };
             Assert.True(await Session.TryRestoreAsync(server, account, default));
             return Session.Capture();
@@ -357,9 +358,11 @@ internal static class MediaVersionDiscoveryTests
         public string? WrongUser { get; set; }
         public bool EpisodeMode { get; set; }
         public bool NoProviderIds { get; set; }
+        public Func<HttpRequestMessage, HttpResponseMessage?>? Override { get; set; }
         public ConcurrentQueue<Report> Reports { get; } = new();
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (Override?.Invoke(request) is { } response) return Task.FromResult(response);
             var uri = request.RequestUri!;
             var token = request.Headers.TryGetValues("X-Emby-Token", out var values) ? values.Single() : "";
             var user = token.StartsWith("offline-", StringComparison.Ordinal) ? token[8..] : "";

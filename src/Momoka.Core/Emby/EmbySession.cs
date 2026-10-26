@@ -143,7 +143,7 @@ public sealed class EmbySession : IDisposable
         return true;
     }
 
-    private bool Aggregate => _settings.AggregateMode;
+    internal bool Aggregate => _settings.AggregateMode;
 
     /// <summary>
     /// 非聚合模式只留一个在线来源。挪走的是其它来源而不是当前这一条；令牌与密码留着 —— 用户只是切走了，
