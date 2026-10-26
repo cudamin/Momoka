@@ -471,6 +471,84 @@ internal static class ItemDetailTests
             Assert.Equal("默认媒体源", ItemDetail.SourceLabel(new MediaSource()));
         });
 
+        Test("媒体源：已知体积放在版本名或文件名前，不恢复画质尾巴", () =>
+        {
+            var named = new MediaSource
+            {
+                Name = "导演剪辑版",
+                Container = "mkv",
+                Size = (long)(8.4 * 1024 * 1024 * 1024),
+                MediaStreams = [new() { Type = "Video", Codec = "hevc", Height = 2160 }]
+            };
+            Assert.Equal("8.4 GB · 导演剪辑版", ItemDetail.SourceLabel(named));
+
+            var byPath = new MediaSource
+            {
+                Name = " ",
+                Path = @"\\nas\films\Arrival.2016.2160p.mkv",
+                Size = 256 * 1024 * 1024
+            };
+            Assert.Equal("256 MB · Arrival.2016.2160p.mkv", ItemDetail.SourceLabel(byPath));
+        });
+
+        Test("媒体源：多个服务器名称紧跟体积，原文件名及内部符号保持原样", () =>
+        {
+            var source = new MediaSource { Name = "1080p.AAC-Studio GreenTea · 原版", Size = 512L * 1024 * 1024 };
+            Assert.Equal("512 MB · 影视库 · 1080p.AAC-Studio GreenTea · 原版", ItemDetail.SourceLabel(source, "影视库"));
+            Assert.Equal("512 MB · 1080p.AAC-Studio GreenTea · 原版", ItemDetail.SourceLabel(source));
+            Assert.Equal("512 MB · 1080p.AAC-Studio GreenTea · 原版", ItemDetail.SourceLabel(source, " "));
+            source.Size = null;
+            Assert.Equal("影视库 · 1080p.AAC-Studio GreenTea · 原版", ItemDetail.SourceLabel(source, "影视库"));
+            source.Name = null;
+            source.Path = @"\\nas\films\Arrival.2016.2160p.mkv";
+            source.Size = 512L * 1024 * 1024;
+            Assert.Equal("512 MB · 影视库 · Arrival.2016.2160p.mkv", ItemDetail.SourceLabel(source, "影视库"));
+        });
+
+        Test("媒体源：缺失或无效体积不伪造零，不留下分隔符", () =>
+        {
+            foreach (var size in new long?[] { null, 0, -1 })
+            {
+                Assert.Equal("导演剪辑版", ItemDetail.SourceLabel(new() { Name = "导演剪辑版", Size = size }));
+                Assert.Equal("MP4", ItemDetail.SourceLabel(new() { Container = "mp4", Size = size }));
+                Assert.Equal("默认媒体源", ItemDetail.SourceLabel(new() { Size = size }));
+            }
+        });
+
+        Test("媒体源：无名称的画质回退只在前方报一次体积，其余画质读数不变", () =>
+        {
+            var source = new MediaSource
+            {
+                Size = 2L * 1024 * 1024 * 1024,
+                Container = "mkv",
+                MediaStreams = [new() { Type = "Video", Codec = "hevc", Height = 1080 }]
+            };
+            Assert.Equal("2 GB · 1080p  ·  HEVC  ·  MKV", ItemDetail.SourceLabel(source));
+            Assert.Equal("1080p  ·  HEVC  ·  MKV  ·  2 GB", source.ToQualityLabel());
+            Assert.Equal("1080p  ·  HEVC  ·  MKV", source.ToQualityLabel(includeSize: false));
+            Assert.Equal("512 B", ItemDetail.SourceLabel(new() { Size = 512 }));
+        });
+
+        Test("媒体源：多版本逐行显示各自体积，不改变次序、对象或默认选择", () =>
+        {
+            var item = new EmbyItem
+            {
+                MediaSources =
+                [
+                    new() { Id = "a", Name = "4K HDR", Size = 40L * 1024 * 1024 * 1024 },
+                    new() { Id = "b", Name = "1080p", Size = 4L * 1024 * 1024 * 1024 },
+                    new() { Id = "c", Name = "未提供体积" }
+                ]
+            };
+            var rows = ItemDetail.SourceRows(item);
+            Assert.Equal("40 GB · 4K HDR", rows[0].Text);
+            Assert.Equal("4 GB · 1080p", rows[1].Text);
+            Assert.Equal("未提供体积", rows[2].Text);
+            for (var index = 0; index < rows.Count; index++)
+                Assert.True(ReferenceEquals(item.MediaSources[index], rows[index].Source));
+            Assert.True(ReferenceEquals(rows[1], ItemDetail.PickSource(rows, item.MediaSources[1])));
+        });
+
         Test("媒体源：行的顺序就是服务器给的顺序", () =>
         {
             var item = new EmbyItem

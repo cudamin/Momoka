@@ -1217,7 +1217,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <para>
     /// 下拉只在有两个以上媒体源时才出现（<see cref="SourceVisibility"/>）。它的行文曾经以同一份读数结尾
     /// （<see cref="ItemDetail.SourceLabel"/> 问的也是 <c>ToQualityLabel()</c>），两样同屏就是同一句话说两遍
-    /// （2026-09-05 界面复查）；2026-09-13 起下拉只报文件名（「媒体源的选项太长了」），互斥保下来是因为多源
+    /// （2026-09-05 界面复查）；2026-09-13 起下拉不再拖画质，2026-10-26 起在文件名前补体积，互斥保下来是因为多源
     /// 条目上画质那些事实媒体信息表说得比这一行全 —— 挑中的是哪个文件，表就描述哪个文件。
     /// </para>
     /// </summary>

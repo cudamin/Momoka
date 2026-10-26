@@ -116,6 +116,14 @@ internal static class MediaVersionTests
             Assert.Equal("第 3 集.mp4", ItemDetail.SourceLabel(unnamed));
         });
 
+        Test("版本：已知体积的失败提示与版本菜单保持同一标签", () =>
+        {
+            var source = new MediaSource { Id = "x", Name = "导演剪辑版", Size = 4L * 1024 * 1024 * 1024 };
+            var item = new EmbyItem { MediaSources = [source, new() { Id = "y", Name = "1080p" }] };
+            Assert.Equal("「4 GB · 导演剪辑版」无法播放（文件可能已删除），可在媒体源里换一版再试",
+                MediaVersionSwitch.UnplayableNotice(item, source));
+        });
+
         // 视频窗那条消息给的是 1 起算的序号（与推送菜单时的次序对齐）；越界与垃圾不是「第一版」。
         Test("版本：1 起算的序号，越界是 null", () =>
         {

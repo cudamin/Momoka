@@ -438,6 +438,7 @@ internal sealed partial class ShellNavigationProbe
         {
             Id = "source-a",
             Name = "离线版本 · Extended.Directors.Cut.2160p.UHD.BluRay.REMUX.Dolby.Vision.HDR10.HEVC.TrueHD.Atmos",
+            Size = (long)(64.5 * 1024 * 1024 * 1024),
             Container = "mkv",
             MediaStreams =
             [
@@ -450,7 +451,7 @@ internal sealed partial class ShellNavigationProbe
         episode.Name = "离线单集 · 文件选项宽度验证";
         episode.SeriesName = series.Name;
         episode.ParentIndexNumber = 1;
-        episode.MediaSources = [source, new() { Id = "source-b", Name = "离线版本 · 1080p", Container = "mkv", MediaStreams = source.MediaStreams }];
+        episode.MediaSources = [source, new() { Id = "source-b", Name = "离线版本 · 1080p", Size = 512L * 1024 * 1024, Container = "mkv", MediaStreams = source.MediaStreams }];
         fixture.Transport.Reply = (request, _) =>
         {
             var path = request.RequestUri!.AbsolutePath;
@@ -482,9 +483,12 @@ internal sealed partial class ShellNavigationProbe
                 Require(vm.Sources.Count == (all ? 2 : 1) && vm.AudioVisibility == Visibility.Visible
                     && vm.SourceVisibility == (all ? Visibility.Visible : Visibility.Collapsed)
                     && vm.SubtitleVisibility == (all ? Visibility.Visible : Visibility.Collapsed), "文件选项夹具显隐状态不符");
+                Require(vm.Sources[0].Text == $"64.5 GB · {source.Name}"
+                    && (!all || vm.Sources[1].Text == "512 MB · 离线版本 · 1080p"),
+                    "版本选择没有在文件名前显示各自体积");
                 vm.SelectedAudio = vm.AudioTracks[1];
                 if (all) vm.SelectedSubtitle = vm.SubtitleTracks[2];
-                foreach (var width in new[] { 1023, 1024, 1064, 1280 })
+                foreach (var width in new[] { 760, 1023, 1024, 1064, 1280 })
                 {
                     var scale = _root.XamlRoot.RasterizationScale;
                     var pixels = (int)Math.Ceiling(width * scale);
@@ -507,6 +511,25 @@ internal sealed partial class ShellNavigationProbe
                     if (!vm.IsCompact || !all)
                         Require(fit.Detail.Contains($"摆成 {(all ? 3 : 1)} 行", StringComparison.Ordinal), "文件选项行数不符：" + fit.Detail);
                     await SaveProbeScreenAsync($"detail-pickers-{label}-{width}-screen.png");
+                    if (all && width is 760 or 1280)
+                    {
+                        var sourcePicker = Get<EgPicker>(page, vm.ColumnPickersVisibility == Visibility.Visible
+                            ? "ColumnSourcePicker" : "SourcePicker");
+                        Require(ReferenceEquals(sourcePicker.SelectedItem, vm.SelectedSource)
+                            && Descendants(sourcePicker).OfType<TextBlock>().Any(text => text.Text == vm.SelectedSource?.Text),
+                            "收起态版本选择没有显示带体积的选中项");
+                        sourcePicker.IsDropDownOpen = true;
+                        try
+                        {
+                            await SettleAsync();
+                            await SettleAsync();
+                            Require(sourcePicker.PopupPart is { IsOpen: true, Child: FrameworkElement popup }
+                                && vm.Sources.All(row => Descendants(popup).OfType<TextBlock>().Any(text => text.Text == row.Text)),
+                                "展开态版本列表没有显示每版的体积与名称");
+                            await SaveProbeScreenAsync($"detail-version-sizes-{width}-screen.png");
+                        }
+                        finally { sourcePicker.IsDropDownOpen = false; }
+                    }
                     if (width != 1064) continue;
                     var picker = Get<EgPicker>(page, "ColumnAudioPicker");
                     try

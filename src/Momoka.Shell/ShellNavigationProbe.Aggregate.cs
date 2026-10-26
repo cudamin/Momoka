@@ -266,8 +266,8 @@ internal sealed partial class ShellNavigationProbe
         RunTimeTicks = TimeSpan.FromMinutes(100).Ticks,
         MediaSources =
         [
-            new() { Id = "shared-file", Name = host == "a.invalid" ? "1080p 版本" : "4K 版本", Container = "mkv" },
-            new() { Id = "shared-file-alternative", Name = "备用版本", Container = "mkv" }
+            new() { Id = "shared-file", Name = host == "a.invalid" ? "1080p 版本" : "4K 版本", Size = 2L * 1024 * 1024 * 1024, Container = "mkv" },
+            new() { Id = "shared-file-alternative", Name = "备用版本", Size = 512L * 1024 * 1024, Container = "mkv" }
         ]
     };
 

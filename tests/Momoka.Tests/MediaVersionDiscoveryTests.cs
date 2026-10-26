@@ -89,7 +89,7 @@ internal static partial class MediaVersionDiscoveryTests
             Assert.Equal(3, result.Versions.Select(version => version.Item.IdentityKey).Distinct().Count());
             foreach (var version in result.Versions)
             {
-                Assert.Equal(ItemDetail.SourceLabel(version.Source) + " · " + version.Item.Source!.ServerName, version.Label);
+                Assert.Equal(version.Item.Source!.ServerName + " · 1080p", version.Label);
                 Assert.DoesNotContain(version.Item.Source.DisplayName, version.Label);
                 Assert.Equal(ItemDetail.SourceLabel(version.Source), version.LabelFor(showSource: false));
             }
@@ -98,7 +98,7 @@ internal static partial class MediaVersionDiscoveryTests
             Assert.Equal(0, result.FailedSources.Count);
         });
 
-        Case("版本名称：单服务器多个账号不标来源，多服务器后置名称，断开后恢复", async () =>
+        Case("版本名称：体积最前、多个服务器名称居中、单服务器多账号不标来源，断开后恢复", async () =>
         {
             using var fixture = new Fixture();
             Assert.False(MediaVersionDiscovery.HasMultipleServers(fixture.Session.Sources));
@@ -107,16 +107,17 @@ internal static partial class MediaVersionDiscoveryTests
             var second = await fixture.AddAsync("账号乙", "one.invalid");
             Assert.False(MediaVersionDiscovery.HasMultipleServers(fixture.Session.Sources));
             var version = new MediaVersion(first.Bind(Movie()), Movie().MediaSources[0]);
-            Assert.Equal(ItemDetail.SourceLabel(version.Source), version.LabelFor(MediaVersionDiscovery.HasMultipleServers(fixture.Session.Sources)));
+            version.Source.Size = 2L * 1024 * 1024 * 1024;
+            Assert.Equal("2 GB · 1080p", version.LabelFor(MediaVersionDiscovery.HasMultipleServers(fixture.Session.Sources)));
             var third = await fixture.AddAsync("账号丙", "two.invalid");
             Assert.True(MediaVersionDiscovery.HasMultipleServers(fixture.Session.Sources));
-            Assert.Equal(ItemDetail.SourceLabel(version.Source) + " · one.invalid",
+            Assert.Equal("2 GB · one.invalid · 1080p",
                 version.LabelFor(MediaVersionDiscovery.HasMultipleServers(fixture.Session.Sources)));
             Assert.DoesNotContain("账号甲", version.Label);
             fixture.Session.SignOut(third.IdentityState.Server, third.IdentityState.Account);
             Assert.False(MediaVersionDiscovery.HasMultipleServers(fixture.Session.Sources));
             Assert.True(first.IsAvailable && second.IsAvailable);
-            Assert.Equal(ItemDetail.SourceLabel(version.Source), version.LabelFor(MediaVersionDiscovery.HasMultipleServers(fixture.Session.Sources)));
+            Assert.Equal("2 GB · 1080p", version.LabelFor(MediaVersionDiscovery.HasMultipleServers(fixture.Session.Sources)));
         });
 
         Case("跨来源版本：一个来源失败仍返回其他来源，错片不并入", async () =>

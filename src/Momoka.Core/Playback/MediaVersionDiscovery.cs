@@ -8,7 +8,7 @@ public sealed record MediaVersion(EmbyItem Item, MediaSource Source, EmbyItem? P
 {
     public string Label => LabelFor(showSource: true);
 
-    public string LabelFor(bool showSource) => SourceCaption.Append(ItemDetail.SourceLabel(Source), Item.Source, showSource);
+    public string LabelFor(bool showSource) => ItemDetail.SourceLabel(Source, showSource ? Item.Source?.ServerName : null);
 
     public bool IsPlaying(EmbyItem? item, MediaSource? source) => item is not null
         && string.Equals(Item.IdentityKey, item.IdentityKey, StringComparison.Ordinal)
