@@ -2706,7 +2706,11 @@ internal static class PlaybackTests
             // 删掉的那个 HQ 是用户 mpv.conf 里手抄来的一段，会逐条展开成 scale-antiring / 光域那几项；而 2026-09-03
             // 之所以先把三个缩放器从它身上拿掉，是因为档位链最后才发出去、谁都盖不住它，于是设置页写着「画质预设 =
             // HQ」而生效的是链里的 cscale=spline36 —— 界面在骗人。现在三项预设全是 mpv 内置的 profile 名，客户端
-            // 这一侧一条选项都不再手写，那件事从根上没了地方发生。
+            // 这一侧一条缩放器选项都不再手写，那件事从根上没了地方发生。
+            //
+            // 2026-10-26 补帧并入后多两行：命名预设自己带着 mpv 的 interpolation / video-sync，客户端必须显式
+            // 压回页面上的「关闭／音频同步」，否则设置页写着关闭、mpv 却被 profile 打开 —— 同一种骗人。这两行
+            // 不是缩放器，所以这条断言改成「一个 profile、零个缩放器、两个复位」。
             foreach (var preset in MpvOutputOptions.QualityPresets.Select(choice => choice.Value))
             {
                 var options = MpvOutputOptions.Build(
@@ -2724,10 +2728,22 @@ internal static class PlaybackTests
                     },
                     new AudioSettings());
 
-                Assert.Equal(
-                    preset == "default" ? "" : "profile",
-                    string.Join("、", options.Select(pair => pair.Key)),
-                    $"画质预设 {preset} 除了一个 profile 名不该再传任何东西");
+                var names = options.Select(pair => pair.Key).ToList();
+                Assert.Equal(preset == "default" ? 0 : 1, names.Count(name => name == "profile"),
+                    $"画质预设 {preset} 只该交一个 profile 名");
+                foreach (var scaler in new[] { "scale", "cscale", "dscale", "tscale", "scale-antiring" })
+                    Assert.False(names.Contains(scaler), $"画质预设 {preset} 不该手写 {scaler}");
+
+                var sent = Options(options);
+                if (preset == "default")
+                {
+                    Assert.Equal(0, names.Count, "default 什么都不传");
+                }
+                else
+                {
+                    Assert.Equal("no", sent["interpolation"], $"{preset} 的 profile 带着插值，必须显式关掉");
+                    Assert.Equal("audio", sent["video-sync"], $"{preset} 的 profile 带着显示同步，必须显式压回音频同步");
+                }
             }
         });
 

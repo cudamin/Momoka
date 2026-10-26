@@ -49,7 +49,8 @@ internal static class CompositionProbePixelsTests
             Assert.Contains("frame.RgbAt(spot.X, spot.Y)", method);
             Assert.Contains("CancellationTokenSource(TimeSpan.FromSeconds(120))", source);
             var pixels = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/CompositionPlaybackProbe.Pixels.cs"));
-            Assert.Contains("Native.GetAncestor(Native.WindowFromPoint(point), 2) != window.Handle", pixels);
+            // 变量名跟着采样方法一起改过（window.Handle → handle），判据本身没变：屏幕点必须还落在同一个窗口上。
+            Assert.Contains("Native.GetAncestor(Native.WindowFromPoint(point), 2) != handle", pixels);
             Assert.Contains("像素探针窗口被遮挡或移到屏外", pixels);
         });
     }

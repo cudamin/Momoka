@@ -79,7 +79,10 @@ public sealed partial class MoviePilotService
                 if (id is not > 0) throw new MoviePilotException("订阅已提交，但服务器未返回订阅编号，请刷新核对");
                 var reference = new MoviePilotSubscription
                 {
-                    Id = id.Value, Media = change.Media, Data = result, ConnectionStamp = change.Media.ConnectionStamp
+                    Id = id.Value,
+                    Media = change.Media,
+                    Data = result,
+                    ConnectionStamp = change.Media.ConnectionStamp
                 };
                 var saved = await SubscriptionAsync(reference, cancellationToken).ConfigureAwait(false);
                 VerifySaved(change, saved);

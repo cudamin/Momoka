@@ -146,9 +146,11 @@ internal static class SelfCheckLayoutRulesTests
             Assert.Contains("library.ViewModel.Fields.Contains(LibraryField.Tagline)", reads);
             Assert.Contains("library.ViewModel.Fields.Contains(LibraryField.Overview)", reads);
             Assert.Contains("SelfCheckLayoutRules.HdrNumbers(", settings);
-            Assert.Contains("SelfCheckLayoutRules.PanelBorder(", detail);
-            Assert.Contains("EpisodePanel.Background is SolidColorBrush { Color.A: > 0 }", detail);
-            Assert.Contains("ok &= order && below && styled;", detail);
+            // 2026-10-25 移除了页面级卡片描边，集带那条自检从「有边框」改成「无静止描边」，判据换成 Rings；
+            // 次序与紧凑首屏仍查，所以这条接线检查还在，只是钉的源码换成了现在这一份。
+            Assert.Contains("var bareFrame = !Rings(EpisodePanel);", detail);
+            Assert.Contains("panel.Background is SolidColorBrush { Color.A: > 0 }", detail);
+            Assert.Contains("ok &= order && below && bareFrame;", detail);
             Assert.Contains("<Thickness x:Key=\"EgCardBorderThickness\">0</Thickness>", style);
             foreach (var name in new[] { "媒体库七种视图的布局", "视频输出包含 HDR 与着色器", "集页首屏（文件页）" })
                 Assert.Contains("通过  " + name, baseline);
