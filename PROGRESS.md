@@ -1,12 +1,12 @@
 # 开发进度
 
-## 主页标题点击范围与边框加粗：隔离树验证（2026-10-26）
+## 主页标题点击范围与边框加粗：主目录已交付（2026-10-26）
 
-- 写入树 `C:/Users/89400/.codex/worktrees/home-header-hit-area/Momoka`，分支 `codex/home-header-hit-area`。标题点击面随标题、数量及箭头收口，右侧空白与通栏线不接收点击；承接主树未提交的翻页矢量圆模板，并按用户追加要求把翻页外圈和封面悬停／键盘焦点框统一到 2 DIP。原有正常状态无边框、货架大小和翻页步长保留。
-- 当前 Release 方案与最终 Shell 编译均 0 警告、0 错误；串行运行 **2224/2224 测试通过，0 失败、0 跳过**。受影响文件 whitespace 与 Git 差异检查通过；没有更改约定或自检基线。初轮测试和 UI 探针并发争用同一诊断 mutex，9 项自检隔离测试失败；原日志 `artifacts/home-header-outline/tests.log` 保留，明确改为串行后全通过，未放宽锁守卫。
-- 最终开发件 `--probe-shell --probe-section library --screen 2` **18/18 通过，0 失败，退出 0**，另外 101 项明确未运行。新增用例量真实命中树，覆盖 1280／760 DIP、长短标题、数量空／非空、Offer 开关、独立尾部操作、整行命中的故意回归、键盘／UIA 调用、左右翻页和边框状态恢复。继续观看的点击面实测 194 DIP，不再是整行 1231／711 DIP。全程假传输、播放计数 0，未读取或修改真实设置。
-- 已查看最终窄窗实屏，完整悬停按钮与 2 DIP 轮廓正确；副屏 1280 DIP 窗口超出 1080 物理像素显示器，宽帧右端不完整，不能当完整宽窗视觉通过。整合主目录后在主屏补齐宽窄实屏并重验实际发布件。证据在 `artifacts/home-header-outline/probe-final/`，开发 Shell SHA-256 `42FC0B619191FA46A0E5CA492CF7E349B1ACD809AF15F9ABE66D09AD6E7B4C70`。此记录不宣称桌面快捷方式已经更新。
-
+- 隔离树 `C:/Users/89400/.codex/worktrees/home-header-hit-area/Momoka`（分支 `codex/home-header-hit-area`，提交 `fb70877`）改完，主目录 `master` 以同内容提交 `3d8b4a0` 落地，共 11 个文件。标题点击面随标题、数量及箭头收口，右侧空白与通栏线不接收点击；承接主树未提交的翻页矢量圆模板，并按用户追加要求把翻页外圈和封面悬停／键盘焦点框统一到 2 DIP。静止状态无边框、48 DIP 圆钮与翻页步长不变。
+- 主目录 Release 编译 0 警告、0 错误，串行运行 **2224/2224 测试通过、0 失败、0 跳过**（`artifacts/home-header-outline/main/tests.log`，86.7 秒）；`dotnet format whitespace` 通过；没有更改约定或自检基线。初轮测试与 UI 探针并发争用同一诊断互斥，9 项自检隔离测试失败；那份日志留在隔离树 `artifacts/home-header-outline/tests.log`，明确改为串行后全通过，没有放宽锁守卫。
+- 实际发布件 `artifacts/publish/win-x64` 由本树发布脚本刷新（545 个文件、284.0 MB，14 个 GLSL 与 4 个 HOOK 着色器逐文件校验），`Momoka.dll` SHA-256 `CD64350D90C3F7B478A86FA307DA16D2D01BB2E29DC883BFB3B70F920C6C43B0`，与本树开发构建产物逐字节一致；桌面 `Momoka.lnk` 仍指向该目录。
+- 用实发布件在主屏复跑 `--probe-shell --probe-section library --screen 1`：**18/18 通过、0 失败、退出 0**，其余 101 项不在本次分区范围、明确未运行；隔离树那次 `--screen 2` 同样是 18/18。新增用例量真实命中树，覆盖 1280／760 DIP、长短标题、数量空／非空、Offer 开关、独立尾部操作、整行命中的故意回归、键盘／UIA 调用、左右翻页和边框状态恢复。两次读数一致：「继续观看」点击面 194 DIP、长标题 381／322 DIP，整行仍是 1231／711 DIP。
+- 宽帧 1280×791 与窄帧 760×791 实屏都完整（副屏只有 1080 像素宽，宽帧右端会被截掉，改在 2560×1440 主屏上取），放大核对翻页圆钮外圈与封面悬停框都是 2 像素。证据在 `artifacts/home-header-outline/probe-main/`，隔离树早期证据在 `artifacts/home-header-outline/probe-final/`。全程假传输、播放计数 0，未读取或修改真实设置；未改版本号、未对外上传。
 
 ## 主页排序修复：主目录已更新，额外整体验收仍有红项（2026-10-26）
 
