@@ -22,6 +22,7 @@ internal static class DanmakuTests
         {
             var settings = SettingsMigration.Normalize(new AppSettings { Danmaku = null! });
             Assert.False(settings.Danmaku.Enabled);
+            Assert.Equal(DanmakuCredentialSource.BuiltIn, settings.Danmaku.CredentialSource);
             Assert.Equal("dav282msq5", settings.Danmaku.AppId);
             Assert.Equal("", settings.Danmaku.ProtectedAppSecret);
             Assert.True(settings.Danmaku.AutoMatch);
@@ -66,6 +67,7 @@ internal static class DanmakuTests
         {
             var live = new AppSettings();
             live.Danmaku.Enabled = true;
+            live.Danmaku.CredentialSource = DanmakuCredentialSource.Custom;
             live.Danmaku.AppId = "fixture-app";
             live.Danmaku.ProtectedAppSecret = "fixture-protected-secret";
             live.Danmaku.Opacity = 35;
@@ -78,32 +80,57 @@ internal static class DanmakuTests
             Assert.DoesNotContain("fixture-protected-secret", json);
             Assert.False(backup.Danmaku.Enabled);
             Assert.Equal("", backup.Danmaku.AppId);
+            Assert.Equal(DanmakuCredentialSource.Auto, backup.Danmaku.CredentialSource);
             Assert.Equal(35d, backup.Danmaku.Opacity);
             Assert.False(backup.Danmaku.ShowInput);
             SettingsPreferences.Apply(live, new AppSettings());
             Assert.True(ReferenceEquals(reference, live.Danmaku));
             Assert.True(live.Danmaku.Enabled);
+            Assert.Equal(DanmakuCredentialSource.Custom, live.Danmaku.CredentialSource);
             Assert.Equal("fixture-app", live.Danmaku.AppId);
             Assert.Equal("fixture-protected-secret", live.Danmaku.ProtectedAppSecret);
             Assert.Equal(70d, live.Danmaku.Opacity);
             Assert.True(live.Danmaku.ShowInput);
         });
 
-        Test("弹幕：内置两管线可用，外部播放器与未配置服务不可用且不清偏好", () =>
+        Test("弹幕：内置来源无需本机密钥，自定义来源必须齐备且不清偏好", () =>
         {
             var settings = new AppSettings();
             Assert.False(DandanPlayMatching.IsConfigured(settings));
             settings.Danmaku.Enabled = true;
-            settings.Danmaku.AppId = "fixture-app";
-            settings.Danmaku.ProtectedAppSecret = "fixture-secret";
+            settings.Danmaku.CredentialSource = DanmakuCredentialSource.BuiltIn;
             foreach (var pipeline in new[] { VideoPipelineKind.Integrated, VideoPipelineKind.Standalone })
             {
                 settings.Mpv.Pipeline = pipeline;
                 Assert.True(DandanPlayMatching.IsConfigured(settings));
             }
+
+            settings.Danmaku.CredentialSource = DanmakuCredentialSource.Custom;
+            settings.Danmaku.AppId = "fixture-app";
+            settings.Danmaku.ProtectedAppSecret = "";
+            Assert.False(DandanPlayMatching.IsConfigured(settings));
+            settings.Danmaku.ProtectedAppSecret = "fixture-secret";
+            Assert.True(DandanPlayMatching.IsConfigured(settings));
+
             settings.Mpv.Backend = MpvBackendKind.ExternalMpv;
             Assert.False(DandanPlayMatching.IsConfigured(settings));
             Assert.Equal("fixture-secret", settings.Danmaku.ProtectedAppSecret);
+        });
+
+        Test("弹幕：旧配置按本机密钥落到自定义，否则落到内置", () =>
+        {
+            var legacy = new AppSettings();
+            legacy.Danmaku.ProtectedAppSecret = "fixture-secret";
+            SettingsMigration.Normalize(legacy);
+            Assert.Equal(DanmakuCredentialSource.Custom, legacy.Danmaku.CredentialSource);
+
+            var fresh = SettingsMigration.Normalize(new AppSettings());
+            Assert.Equal(DanmakuCredentialSource.BuiltIn, fresh.Danmaku.CredentialSource);
+
+            var invalid = new AppSettings();
+            invalid.Danmaku.CredentialSource = (DanmakuCredentialSource)99;
+            SettingsMigration.Normalize(invalid);
+            Assert.Equal(DanmakuCredentialSource.BuiltIn, invalid.Danmaku.CredentialSource);
         });
 
         Test("弹幕：参数只认有限时间、三种普通模式、24位颜色与限长文本", () =>
@@ -374,6 +401,143 @@ internal static class DanmakuTests
             Assert.Equal(0, fixture.Transport.Requests.Count);
         }));
 
+        Test("弹弹play：无本机密钥时取内置凭据并签名，密钥不落明文", () => InBuiltInFixture(fixture =>
+        {
+            fixture.Transport.Response = request => request.Uri.Host == "credential.test"
+                ? CredentialReply("builtin-app", "builtin-secret", fixture.Now) : Reply(Search);
+            var search = fixture.Client.SearchAsync("测试", "1").GetAwaiter().GetResult();
+            Assert.Equal(2, search.Episodes.Count);
+            Assert.Equal(2, fixture.Transport.Requests.Count);
+            Assert.Equal("credential.test", fixture.Transport.Requests[0].Uri.Host);
+            var request = fixture.Transport.Requests[1];
+            Assert.Equal("builtin-app", request.Headers["X-AppId"]);
+            Assert.Equal(DandanPlayClient.Signature("builtin-app", "builtin-secret",
+                fixture.Now.ToUnixTimeSeconds(), request.Uri.AbsolutePath), request.Headers["X-Signature"]);
+            Assert.DoesNotContain("builtin-secret", request.Uri.AbsoluteUri);
+            var credentialCache = Path.Combine(Path.GetDirectoryName(fixture.Cache)!, "builtin-credential.bin");
+            Assert.True(File.Exists(credentialCache));
+            Assert.DoesNotContain("builtin-secret", File.ReadAllText(credentialCache));
+            Assert.DoesNotContain("builtin-secret", string.Join('\n', Directory.GetFiles(fixture.Cache).Select(Path.GetFileName)));
+        }));
+
+        Test("弹弹play：Worker 生成的密文能被客户端解密并使用", () => InBuiltInFixture(fixture =>
+        {
+            const long exp = 1_800_000_000;
+            const string data = "83OQe7wrl+TN/WXfNXPCIDZ8wyHNtJoXD7Xanw3DVe/4iwz6UMo4HSVejwdiKk3HD0Gs3vo35V8A1s7IirYDFQ6nu3kvchzE9V5V/oHYBU1TrLpX3thJMMrSdDEBkVGEZw==";
+            fixture.Now = DateTimeOffset.FromUnixTimeSeconds(exp - 3600);
+            fixture.Transport.Response = request => request.Uri.Host == "credential.test"
+                ? Reply(JsonSerializer.Serialize(new { v = 1, kid = "interop-kid", exp, data }))
+                : Reply(Search);
+            fixture.Client.SearchAsync("测试", null).GetAwaiter().GetResult();
+            var api = fixture.Transport.Requests.Last();
+            Assert.Equal("interop-app", api.Headers["X-AppId"]);
+            Assert.Equal(DandanPlayClient.Signature("interop-app", "interop-secret",
+                fixture.Now.ToUnixTimeSeconds(), api.Uri.AbsolutePath), api.Headers["X-Signature"]);
+        }));
+
+        Test("弹弹play：内置凭据缓存到期前不重取，到期后重取", () => InBuiltInFixture(fixture =>
+        {
+            var credentials = 0;
+            fixture.Transport.Response = request =>
+            {
+                if (request.Uri.Host != "credential.test") return Reply(Search);
+                credentials++;
+                return CredentialReply("builtin-app", "builtin-secret", fixture.Now);
+            };
+            fixture.Client.SearchAsync("测试", "1").GetAwaiter().GetResult();
+            fixture.Client.SearchAsync("测试", "1").GetAwaiter().GetResult();
+            Assert.Equal(1, credentials);
+            Assert.Equal(2, fixture.Transport.Requests.Count);
+            fixture.Now = fixture.Now.AddDays(8);
+            fixture.Client.SearchAsync("测试", "1").GetAwaiter().GetResult();
+            Assert.Equal(2, credentials);
+            Assert.Equal(4, fixture.Transport.Requests.Count);
+        }));
+
+        Test("弹弹play：内置凭据到期但端点失败时使用未过期缓存", () => InBuiltInFixture(fixture =>
+        {
+            var credentials = 0;
+            fixture.Transport.Response = request =>
+            {
+                if (request.Uri.Host != "credential.test") return Reply(Search);
+                credentials++;
+                return credentials == 1
+                    ? CredentialReply("builtin-app", "builtin-secret", fixture.Now,
+                        expires: fixture.Now.AddHours(2).ToUnixTimeSeconds())
+                    : Reply("down", HttpStatusCode.BadGateway);
+            };
+            fixture.Client.SearchAsync("测试", "1").GetAwaiter().GetResult();
+            fixture.Now = fixture.Now.AddHours(1).AddMinutes(30);
+            fixture.Client.SearchAsync("其他", "1").GetAwaiter().GetResult();
+            Assert.Equal(2, credentials);
+            Assert.Equal(4, fixture.Transport.Requests.Count);
+        }));
+
+        Test("弹弹play：内置凭据 401 换一份再试一次，发送不自动重试", () => InBuiltInFixture(fixture =>
+        {
+            var credentials = 0;
+            var apiCalls = 0;
+            fixture.Transport.Response = request =>
+            {
+                if (request.Uri.Host == "credential.test")
+                {
+                    credentials++;
+                    return CredentialReply("builtin-app", credentials == 1 ? "secret-one" : "secret-two", fixture.Now);
+                }
+                apiCalls++;
+                return apiCalls == 1 ? Reply("denied", HttpStatusCode.Unauthorized) : Reply(Search);
+            };
+            fixture.Client.SearchAsync("测试", "1").GetAwaiter().GetResult();
+            Assert.Equal(2, credentials);
+            Assert.Equal(2, apiCalls);
+            var second = fixture.Transport.Requests.Last();
+            Assert.Equal(DandanPlayClient.Signature("builtin-app", "secret-two",
+                fixture.Now.ToUnixTimeSeconds(), second.Uri.AbsolutePath), second.Headers["X-Signature"]);
+
+            fixture.Transport.Requests.Clear();
+            var posts = 0;
+            fixture.Transport.Response = request =>
+            {
+                if (request.Uri.Host == "credential.test")
+                    return CredentialReply("builtin-app", "secret-three", fixture.Now);
+                posts++;
+                return Reply("denied", HttpStatusCode.Unauthorized);
+            };
+            Assert.Throws<DandanPlayException>(() => fixture.Client.SendCommentAsync(230001, 1, "测试").GetAwaiter().GetResult());
+            Assert.Equal(1, posts);
+        }));
+
+        Test("弹弹play：内置凭据端点失败时不请求弹幕接口", () => InBuiltInFixture(fixture =>
+        {
+            fixture.Transport.Response = request => request.Uri.Host == "credential.test"
+                ? Reply("missing", HttpStatusCode.NotFound) : Reply(Search);
+            var error = Assert.Catch<DandanPlayException>(() => fixture.Client.SearchAsync("测试", null).GetAwaiter().GetResult());
+            Assert.Contains("内置弹幕凭据", error.Message);
+            Assert.Equal(1, fixture.Transport.Requests.Count);
+            Assert.Equal("credential.test", fixture.Transport.Requests[0].Uri.Host);
+        }));
+
+        Test("弹弹play：内置凭据错误密钥与过期都被拒绝，自定义凭据不访问内置端点", () => InBuiltInFixture(fixture =>
+        {
+            fixture.Transport.Response = _ => CredentialReply("builtin-app", "builtin-secret", fixture.Now,
+                key: "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=");
+            var error = Assert.Catch<DandanPlayException>(() => fixture.Client.SearchAsync("测试", null).GetAwaiter().GetResult());
+            Assert.Contains("无法解密", error.Message);
+            Assert.Equal(1, fixture.Transport.Requests.Count);
+
+            fixture.Transport.Requests.Clear();
+            fixture.BuiltIn!.Invalidate();
+            fixture.Transport.Response = _ => CredentialReply("builtin-app", "builtin-secret", fixture.Now,
+                expires: fixture.Now.AddMinutes(-1).ToUnixTimeSeconds());
+            error = Assert.Catch<DandanPlayException>(() => fixture.Client.SearchAsync("测试", null).GetAwaiter().GetResult());
+            Assert.Contains("过期", error.Message);
+
+            using var custom = new Fixture();
+            custom.Transport.Response = _ => Reply(Search);
+            custom.Client.SearchAsync("测试", null).GetAwaiter().GetResult();
+            Assert.False(custom.Transport.Requests.Any(request => request.Uri.Host == "credential.test"));
+        }));
+
         Test("弹弹play：应用发送使用签名POST及官方字段，确认后清除两种关联缓存", () => InFixture(fixture =>
         {
             fixture.Transport.Response = request => Reply(request.Method == HttpMethod.Post ? """{"success":true,"errorCode":0,"cid":1234567890123}""" : Comments);
@@ -518,6 +682,26 @@ internal static class DanmakuTests
 
     private static void InFixture(Action<Fixture> action) { using var fixture = new Fixture(); action(fixture); }
 
+    private static void InBuiltInFixture(Action<Fixture> action) { using var fixture = new Fixture(builtIn: true); action(fixture); }
+
+    private const string BuiltInKey = "yYvsbrP9o55bxzdEeh8kQVD9Gf25+rjX/BIndmDBcd8=";
+
+    private static HttpResponseMessage CredentialReply(string appId, string secret, DateTimeOffset now,
+        string key = BuiltInKey, string kid = "fixture-kid", long? expires = null)
+    {
+        var exp = expires ?? now.AddDays(7).ToUnixTimeSeconds();
+        var plain = JsonSerializer.Serialize(new { appId, appSecret = secret, exp });
+        var nonce = new byte[12];
+        RandomNumberGenerator.Fill(nonce);
+        var plainBytes = Encoding.UTF8.GetBytes(plain);
+        var cipher = new byte[plainBytes.Length];
+        var tag = new byte[16];
+        using (var aes = new AesGcm(Convert.FromBase64String(key), 16))
+            aes.Encrypt(nonce, plainBytes, cipher, tag, Encoding.UTF8.GetBytes($"momoka-danmaku-credential-v1|{kid}|{exp}"));
+        var data = Convert.ToBase64String([.. nonce, .. cipher, .. tag]);
+        return Reply(JsonSerializer.Serialize(new { v = 1, kid, exp, data }));
+    }
+
     private sealed class Fixture : IDisposable
     {
         private readonly string _root = Path.Combine(Path.GetTempPath(), "momoka-danmaku-tests-" + Guid.NewGuid().ToString("N"));
@@ -525,19 +709,31 @@ internal static class DanmakuTests
         public AppSettings Settings { get; } = new();
         public Transport Transport { get; } = new();
         public string Cache => Path.Combine(_root, "cache");
+        public DandanPlayBuiltInCredentialSource? BuiltIn { get; }
         public DandanPlayClient Client { get; }
 
-        public Fixture()
+        public Fixture(bool builtIn = false)
         {
             Settings.Danmaku.Enabled = true;
-            Settings.Danmaku.AppId = "fixture-app";
-            Settings.Danmaku.ProtectedAppSecret = "fixture-secret";
-            Client = new(Settings, new(PassthroughSecretProtector.Instance), Cache, Transport, () => Now);
+            if (builtIn)
+            {
+                Settings.Danmaku.CredentialSource = DanmakuCredentialSource.BuiltIn;
+                BuiltIn = new(new PrefixProtector(), Path.Combine(_root, "builtin-credential.bin"),
+                    "https://credential.test/credential", BuiltInKey, Transport, () => Now);
+            }
+            else
+            {
+                Settings.Danmaku.CredentialSource = DanmakuCredentialSource.Custom;
+                Settings.Danmaku.AppId = "fixture-app";
+                Settings.Danmaku.ProtectedAppSecret = "fixture-secret";
+            }
+            Client = new(Settings, new(PassthroughSecretProtector.Instance), Cache, Transport, () => Now, BuiltIn);
         }
 
         public void Dispose()
         {
             Client.Dispose();
+            BuiltIn?.Dispose();
             if (Directory.Exists(_root)) Directory.Delete(_root, true);
         }
     }

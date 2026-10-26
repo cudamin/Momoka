@@ -310,7 +310,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         var group = new SettingsCategoryGroup("Momoka");
         foreach (var category in SidebarCategories(serverAdministration, kind))
-            if (category != "弹幕" || _settings is null || Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) group.Add(category);
+            if (category != "弹弹play" || _settings is null || Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) group.Add(category);
         return group;
     }
 
@@ -351,7 +351,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 「服务器／诊断」两张内嵌页之前 —— 它仍是可选的第二服务，不是本程序自己的行为。
     /// </remarks>
     private static readonly string[] CardCategories =
-        ["主页", "界面", "播放器", "播放行为", "视频输出", "音频输出", "字幕", "弹幕", "快捷键", "MoviePilot", "关于"];
+        ["主页", "界面", "播放器", "播放行为", "视频输出", "音频输出", "字幕", "弹弹play", "快捷键", "MoviePilot", "关于"];
 
     /// <summary>
     /// 需求 2 的后半句：「诊断和服务器移动到设置里」，加上需求 8 的网页控制台。Entries in the same list

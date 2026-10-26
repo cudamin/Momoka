@@ -29,34 +29,43 @@ public sealed partial class DandanPlayClient
     {
         if (episodeId <= 0) throw new DandanPlayException("请先选择当前视频的弹幕库。");
         text = ValidateComment(text, time);
-        var (appId, secret, protectedSecret) = Connection();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));
         var entered = false;
         var dispatched = false;
+        Connection? connection = null;
         try
         {
             await _requests.WaitAsync(deadline.Token).ConfigureAwait(false);
             entered = true;
-            // 排队期间可能已关闭服务或换应用；不能再向旧应用发送。
-            if (!_settings.Danmaku.Enabled || appId != _settings.Danmaku.AppId || protectedSecret != _settings.Danmaku.ProtectedAppSecret)
+            connection = await ResolveAsync(deadline.Token).ConfigureAwait(false);
+            // 排队期间可能已关闭服务、换应用或切回内置凭据；不能再向旧连接发送。
+            if (!IsCurrent(connection))
                 throw new DandanPlayException("弹幕连接已改变，请重新选择弹幕库后发送。");
             using var request = new HttpRequestMessage(HttpMethod.Post,
                 new Uri(ApiOrigin + $"/api/v2/comment/{episodeId.ToString(CultureInfo.InvariantCulture)}/app"));
             request.Headers.Accept.ParseAdd("application/json");
-            Sign(request, appId, secret);
+            Sign(request, connection.AppId, connection.Secret);
             request.Content = new StringContent(JsonSerializer.Serialize(new
             { time, mode = 1, color = 0xFFFFFF, comment = text, userName = "Momoka" }), Encoding.UTF8, "application/json");
             deadline.Token.ThrowIfCancellationRequested();
             dispatched = true;
             using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
+            {
+                if (connection.BuiltIn is not null
+                    && response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                {
+                    _builtIn!.Invalidate();
+                    throw new DandanPlayException("内置弹幕凭据已失效，已清除缓存；请再发送一次。");
+                }
                 throw new DandanPlayException(response.StatusCode switch
                 {
                     HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => AuthenticationError(response),
                     HttpStatusCode.TooManyRequests => "弹弹play 发送额度或频率受限，请稍后再试。",
                     _ => UnconfirmedSend,
                 });
+            }
             byte[] bytes;
             try { bytes = await ReadBoundedAsync(response.Content, deadline.Token).ConfigureAwait(false); }
             catch (DandanPlayException) { throw new DandanPlayException(UnconfirmedSend); }
@@ -83,23 +92,12 @@ public sealed partial class DandanPlayClient
         finally
         {
             // 成功或结果不明都有可能写入，不能继续保留发送之前的 GET 缓存；不额外消耗一次读取额度。
-            if (dispatched)
+            if (dispatched && connection is not null)
                 foreach (var related in new[] { false, true })
-                    try { File.Delete(CachePath(appId, protectedSecret, CommentPath(episodeId, related))); }
+                    try { File.Delete(CachePath(connection.AppId, connection.Identity, CommentPath(episodeId, related))); }
                     catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
             if (entered) _requests.Release();
         }
-    }
-
-    private (string AppId, string Secret, string ProtectedSecret) Connection()
-    {
-        if (!_settings.Danmaku.Enabled) throw new DandanPlayException("请先在设置 → 弹幕中开启弹弹play。");
-        var appId = _settings.Danmaku.AppId;
-        var protectedSecret = _settings.Danmaku.ProtectedAppSecret;
-        var secret = _credentials.GetSecret(_settings.Danmaku);
-        if (string.IsNullOrWhiteSpace(appId) || appId.Length > 200 || appId.Any(char.IsControl) || secret.Length == 0)
-            throw new DandanPlayException("请在设置 → 弹幕中填写有效的 AppId 和 AppSecret；复制到其他 Windows 账号的密钥需要重新输入。");
-        return (appId, secret, protectedSecret);
     }
 
     private void Sign(HttpRequestMessage request, string appId, string secret)

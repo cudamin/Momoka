@@ -31,5 +31,6 @@ public static class DandanPlayMatching
     public static bool CanRender(MpvSettings settings) => settings.Backend == MpvBackendKind.BuiltInLibMpv;
 
     public static bool IsConfigured(AppSettings settings) => settings.Danmaku.Enabled && CanRender(settings.Mpv)
-        && !string.IsNullOrWhiteSpace(settings.Danmaku.AppId) && !string.IsNullOrEmpty(settings.Danmaku.ProtectedAppSecret);
+        && (settings.Danmaku.CredentialSource != DanmakuCredentialSource.Custom
+            || !string.IsNullOrWhiteSpace(settings.Danmaku.AppId) && settings.Danmaku.ProtectedAppSecret.Length > 0);
 }

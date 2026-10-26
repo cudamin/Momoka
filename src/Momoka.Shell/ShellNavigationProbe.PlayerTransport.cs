@@ -17,6 +17,7 @@ internal sealed partial class ShellNavigationProbe
         fixture.Settings.Danmaku.Enabled = true;
         fixture.Settings.Danmaku.AppId = "offline-transport-app";
         fixture.Settings.Danmaku.ProtectedAppSecret = "offline-transport-secret";
+        fixture.Settings.Danmaku.CredentialSource = DanmakuCredentialSource.Custom;
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, "player-transport"));
         paths.EnsureCreated();
         using var client = new DandanPlayClient(fixture.Settings, new(PassthroughSecretProtector.Instance),

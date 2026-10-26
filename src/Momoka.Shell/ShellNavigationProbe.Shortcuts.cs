@@ -27,6 +27,7 @@ internal sealed partial class ShellNavigationProbe
         fixture.Settings.Danmaku.Enabled = true;
         fixture.Settings.Danmaku.AppId = "offline-app";
         fixture.Settings.Danmaku.ProtectedAppSecret = "offline-secret";
+        fixture.Settings.Danmaku.CredentialSource = DanmakuCredentialSource.Custom;
         using var moviePilot = new MoviePilotClient(new RejectNetwork());
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, $"shortcut-search-{width}"));
         paths.EnsureCreated();

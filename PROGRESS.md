@@ -7566,3 +7566,13 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 中间 21 项 `accounts,library` UI 探针全部通过，已查看多服务器／同服务器版本下拉实屏；最终别名去重之后的运行证据将在主目录整合后重验，不拿中间产物当最终交付。一次中间全量测试遇其他窗口持有诊断 mutex，9 条自检隔离测试红；保留 `coverage-tests.log`，等锁释放后串行通过，没有修改守卫或失败基线。早期回归红与夹具修正报告亦保留。
 - 独立持久化的真实服务器只读检查中三来源在线，《聚焦》从 Emby／飞牛双方进入均列出 **2 个来源版本、0 失败来源**；真实生产 settings.json 前后 SHA-256 相同。飞牛 JOJO 单集因原始详情无 SeriesId，沿季取剧成功、0 失败，但该实服样本没有其他来源可匹配版本，不能称为真实跨服单集匹配通过。Jellyfin 未找到带可靠标识的同片样本，真实跨服匹配未覆盖；没有播放、换版、观看记录上报或共享数据写入。
 - 本条提交为可回滚的修复与测试记录，尚不宣称桌面快捷方式已更新。主树合入与最终测试／运行／发布结果由后续本批次记录补充；不升级版本号、不上传远程、不创建 GitHub Release 或商店包。
+
+## 弹弹play 内置凭据与取密钥端点（2026-10-26）
+
+- 用户确认弹弹play 应用审核已通过、应用层级为基础，并选定「抄 NipaPlay 的取密钥模式」：普通用户默认使用 Momoka 统一凭据，自己的 AppId/AppSecret 只作为高级兜底。只解决「密钥不进公开仓库」，不解决共享额度，也不宣称密钥无法被提取。
+- Core 新增 `DanmakuCredentialSource`（Auto/BuiltIn/Custom）、`DandanPlayBuiltIn` 常量、`DandanPlayBuiltInCredentialSource`：HTTPS GET 取 AES-GCM 密文，AAD 绑定版本、kid 与 exp；解密后 DPAPI 缓存到 `cache/danmaku/builtin-credential.bin`，到期前一天换新；端点暂时失败且缓存未到期时继续用；401/403 时丢掉缓存、GET 换一份重试一次，发送不自动重试。
+- 客户端在无本机密钥时走内置凭据；自定义模式保留原有 DPAPI、签名、缓存隔离、32 MiB 上限与错误白名单。设置页默认只显示「启用弹弹play」与「使用自己的应用凭据」，AppId/AppSecret/开发者中心仅在高级开关打开后出现；旧配置按有没有本机密钥自动落到 Custom/BuiltIn，备份仍不导出或覆盖凭据与来源。
+- 用户同日追加：「设置中的弹幕改名为弹弹play」。设置左栏、卡片标题、播放器「播放设置」入口、分类图标、探针与固定文案测试同步改名；内部 uosc 令牌 `danmaku` 保持不变。
+- 官网仓库 `cudamin/Mmoka-web-cloudflare-` 新增 `GET /api/danmaku/credential`：Workers 入口 `worker/index.js` 与 Pages Function `functions/api/danmaku/credential.js` 双入口，共用 `worker/credential.js`；从 `DANDANPLAY_APP_ID`、`DANDANPLAY_APP_SECRET`、`DANDANPLAY_CREDENTIAL_KEY`、`DANDANPLAY_CREDENTIAL_KID` 读取，返回 7 天有效的加密凭据；只接受 GET，静态资源回退 `ASSETS`。提交 `438ebfc` 已推送 `main`。
+- 验证：完整 Release 构建 **0 警告 0 错误**；Core/离线测试 **2220 项全过、0 失败 0 跳过**（新增 7 条内置凭据回归，含 Worker 密文在客户端解密的跨语言固定向量）；官网仓库 `node --test` **57 项全过**（新增 5 项端点测试）。真实请求 `https://yuanshenqidon.dpdns.org/api/danmaku/credential` 已返回 **503**：路由已生效、四个 Secret 尚未配置；未执行真实弹幕发送或真实 UI 探针。`DandanPlayBuiltIn.Endpoint` 已改为实际域名，AppSecret 只能通过 Cloudflare Secret 配置，不能入库。
+- 隐私政策、README、弹幕指南与官网说明已同步：内置凭据端点主要看到时间、IP 与 `Momoka/版本`（HTTP 栈可能附带标准头），不接收作品名、集数、媒体服务器信息或弹幕内容；共享额度与可提取性如实写明。官网仓库已提交推送；主仓库尚未推送（本地 7 个旧提交 + 本次改动，远端另有 2 个 README 提交待整合）。未升级版本号、未创建 Release 或商店包。

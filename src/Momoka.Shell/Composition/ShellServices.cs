@@ -50,9 +50,13 @@ internal static class ShellServices
         services.AddSingleton(paths);
         services.AddSingleton<ISecretProtector>(DpapiSecretProtector.Instance);
         services.AddSingleton<DandanPlayCredentials>();
+        services.AddSingleton(provider => new DandanPlayBuiltInCredentialSource(
+            provider.GetRequiredService<ISecretProtector>(),
+            Path.Combine(paths.Root, "cache", "danmaku", "builtin-credential.bin")));
         services.AddSingleton(provider => new DandanPlayClient(
             provider.GetRequiredService<AppSettings>(), provider.GetRequiredService<DandanPlayCredentials>(),
-            Path.Combine(paths.Root, "cache", "danmaku")));
+            Path.Combine(paths.Root, "cache", "danmaku"),
+            builtIn: provider.GetRequiredService<DandanPlayBuiltInCredentialSource>()));
         services.AddSingleton<SettingsStore>();
 
         // The settings object is loaded once and then edited in place by the settings page, so it has to

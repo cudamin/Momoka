@@ -1,10 +1,10 @@
 # Momoka 隐私政策
 
-最后更新：2026-10-23
+最后更新：2026-10-26
 
 ## 一句话
 
-Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统计或账号数据**；应用连接你配置的媒体服务、你选择的 Plex 账号服务、可关闭的发布页更新检查，以及你明确开启并配置凭据的弹弹play 弹幕服务。本机设置与凭据保存在你的电脑上；启用的第三方功能只向相应服务发送完成该功能所需的信息。
+Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统计或账号数据**；应用连接你配置的媒体服务、你选择的 Plex 账号服务、可关闭的发布页更新检查、你明确开启的弹弹play 弹幕服务，以及为该服务下发内置凭据的 Momoka 端点。本机设置与凭据保存在你的电脑上；启用的第三方功能只向相应服务发送完成该功能所需的信息。
 
 ## 1. 适用范围
 
@@ -14,7 +14,7 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 
 **没有。**
 
-应用不包含遥测、使用统计、广告、崩溃上报或任何回传开发者服务器的代码，也不访问开发者运营的任何服务。
+应用不包含遥测、使用统计、广告、崩溃上报或账号回传代码。除第 4 节第 7 项的内置弹幕凭据端点外，应用不访问开发者运营的服务；该端点只返回应用凭据，不接收作品名称、集数、播放记录、媒体服务器地址或弹幕内容。
 
 ## 3. 应用在你设备上保存的数据
 
@@ -24,7 +24,8 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 | --- | --- | --- |
 | 服务器地址、账号名、界面与播放设置 | `settings.json` | 明文保存地址、账号名和各项设置 |
 | 密码、访问令牌 | `settings.json` | **用 Windows 数据保护接口（DPAPI）加密**，只有本机当前 Windows 账户能解密；不保存明文 |
-| 弹弹play AppId 与 AppSecret | `settings.json` | AppId 为公开应用标识；AppSecret 用 DPAPI 加密，不写日志或配置备份 |
+| 弹弹play 自定义 AppId 与 AppSecret（仅在改用自定义凭据时） | `settings.json` | AppId 为公开应用标识；AppSecret 用 DPAPI 加密，不写日志或配置备份 |
+| 内置弹弹play 凭据 | `cache\danmaku\builtin-credential.bin` | 从 Momoka 凭据端点取回后用 DPAPI 加密，到期前自动换新；不是你的账号凭据 |
 | 设置备份 | `settings.backup.json` | 不含密码与令牌 |
 | 日志 | `logs\` | 请求地址只记到「协议 + 主机 + 路径」，查询参数被去掉；密码与令牌不写日志 |
 | 海报与背景图缓存 | `cache\images\` | 从你自己的服务器下载的图片 |
@@ -46,17 +47,19 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 4. **你的服务器在元数据里给出的图片地址** —— 海报与背景图可能由你的服务器指向第三方图片服务（例如 `image.tmdb.org`）。应用只是按服务器给出的地址取图，不自行决定去哪个第三方。
 5. **本项目的发布页**（可关闭，默认开启） —— 应用在每次启动时会向本项目的发布页源（`github.com/cudamin/Momoka/releases.atom`）查询有没有比当前这一版新的版本；「设置 → 关于」里的「检查新版本」按钮也会在你按下的那一刻发一次同样的请求。这个请求**不携带任何身份信息**：请求头里只有客户端名与应用版本号，不含账号、令牌、设备 ID、计算机名或你的服务器地址。不想要这个检查，把「设置 → 关于」里的「启动时自动检查新版本」关掉即可 —— 关掉之后，应用不会再向该地址发出任何请求（那一格旁边的手动按钮仍会按你的意思发一次）。
 
-6. **弹弹play 官方开放弹幕网络**（默认关闭，需填写 AppId 和 AppSecret）—— 开启后的自动匹配与手动搜索会向 `api.dandanplay.net` 发送作品名称与集数；读取弹幕发送弹幕库 ID 和关联弹幕选项。请求头是应用 ID、时间戳与签名，不直接传明文 AppSecret。官方弹幕接口可能跳转到 `dandanplay.net` 的 HTTPS 加速子域，跨来源不传鉴权头。不上传视频、媒体服务器地址、账号或访问令牌；没有启用或缺少凭据时不访问该服务。用户点击发送或在输入栏按回车时，会额外发送弹幕文字、该弹幕库中的时间、固定的白色滚动模式和应用昵称 Momoka，写入本应用的私有弹幕库；不自动重发。登录与播放历史接口没有接入。
+6. **弹弹play 官方开放弹幕网络**（默认关闭；默认使用 Momoka 内置凭据，也可以改用你自己的 AppId 和 AppSecret）—— 开启后的自动匹配与手动搜索会向 `api.dandanplay.net` 发送作品名称与集数；读取弹幕发送弹幕库 ID 和关联弹幕选项。请求头是应用 ID、时间戳与签名，不直接传明文 AppSecret。官方弹幕接口可能跳转到 `dandanplay.net` 的 HTTPS 加速子域，跨来源不传鉴权头。不上传视频、媒体服务器地址、账号或访问令牌；没有启用或凭据不可用时不访问该服务。用户点击发送或在输入栏按回车时，会额外发送弹幕文字、该弹幕库中的时间、固定的白色滚动模式和应用昵称 Momoka，写入本应用的私有弹幕库；不自动重发。登录与播放历史接口没有接入。
+
+7. **Momoka 内置弹幕凭据端点**（只在启用弹弹play且使用内置凭据时连接）—— 应用先向 Momoka 官网部署的端点 `https://yuanshenqidon.dpdns.org/api/danmaku/credential` 发一次 GET，应用只主动加上 `Momoka/版本` 的 User-Agent，HTTP 栈可能附带标准的 Accept／编码头；端点返回 AES-GCM 加密的弹弹play 应用凭据，客户端解密后在本机缓存。该端点不接收作品名称、集数、媒体服务器地址、账号、访问令牌或弹幕内容。Cloudflare 作为托管方可能按其政策记录网络层信息（IP、时间）。
 
 发往媒体服务器的请求带有这些标识：客户端名 `Momoka`、**本机计算机名**、随机生成并保存在本机的设备 ID、应用版本号，以及你的访问令牌。这些只发给**你自己的服务器**，用途是让服务器认出「这是哪台设备」。
 
-**开发者不会接收上述媒体服务凭据与使用数据。** 第 2、5、6 项是非媒体服务器地址：Plex 只在你选择登录时使用，更新源只带客户端名与版本号，弹弹play 只在明确开启并配置后使用，带作品查询与应用鉴权信息。数据由对应第三方服务处理，不是开发者运营的服务。关于页的 GitHub 点星与弹弹play 网站按钮仅在点击后交给默认浏览器打开。
+**开发者不会接收上述媒体服务凭据与使用数据。** 第 2、5、6 项是非媒体服务器地址：Plex 只在你选择登录时使用，更新源只带客户端名与版本号，弹弹play 只在明确开启后使用，带作品查询与应用鉴权信息。第 7 项是开发者运营的凭据端点，只用于下发应用凭据，不承载你的作品查询或播放数据。第 2、6 项的数据由对应第三方服务处理，不是开发者运营的服务。关于页的 GitHub 点星与弹弹play 网站按钮仅在点击后交给默认浏览器打开。
 
 ## 5. 我们不做什么
 
 - 不收集个人信息、使用统计或诊断数据
 - 不含广告、内购或用户追踪
-- 不向开发者回传任何数据
+- 不向开发者回传播放、账号或媒体数据；唯一请求是第 4 节第 7 项的凭据端点，只带客户端版本与网络层信息
 - 不读取与功能无关的文件
 
 ## 6. 儿童
@@ -87,21 +90,23 @@ Momoka 是一个本地播放客户端。**开发者不收集遥测、使用统�
 
 # Momoka Privacy Policy
 
-Last updated: 2026-10-23
+Last updated: 2026-10-26
 
 Momoka is a Windows desktop client for an Emby, Jellyfin, 飞牛影视 or Plex media server that you own or are authorized to use.
 
-**The developer collects, uploads, and shares no data.** The app contains no telemetry, analytics, advertising, or crash reporting, and does not contact any service operated by the developer.
+**The developer collects, uploads, and shares no data.** The app contains no telemetry, analytics, advertising, or crash reporting. Apart from the built-in DandanPlay credential endpoint described below — which only returns an application credential — it does not contact any service operated by the developer.
 
-Everything the app stores stays on your machine, under `%LOCALAPPDATA%\Momoka`: your server address, account name and preferences (`settings.json`); your password, access token and optional DandanPlay AppSecret, encrypted with Windows DPAPI; logs without credentials; poster/backdrop and shader caches; screenshots; and WebView2 browsing data. DandanPlay's public AppId is stored as an application identifier, not a secret. Its search/comment cache lives in `cache/danmaku`, expires after two hours, and keeps at most 16 files. Preference backups contain neither its credentials nor its enabled connection state. The local font list is only displayed locally.
+Everything the app stores stays on your machine, under `%LOCALAPPDATA%\Momoka`: your server address, account name and preferences (`settings.json`); your password, access token and optional DandanPlay AppSecret, encrypted with Windows DPAPI; logs without credentials; poster/backdrop and shader caches; screenshots; and WebView2 browsing data. The built-in DandanPlay credential is cached under `cache/danmaku/builtin-credential.bin`, encrypted with Windows DPAPI and refreshed before it expires. DandanPlay's public AppId is stored as an application identifier, not a secret. Its search/comment cache lives in `cache/danmaku`, expires after two hours, and keeps at most 16 files. Preference backups contain neither its credentials nor its enabled connection state. The local font list is only displayed locally.
 
 The app connects to these services, and the optional DandanPlay service described below: (1) your own Emby, Jellyfin, 飞牛影视 or Plex server, at the address you enter, to sign in, browse your library, report playback progress, and sync resume positions; (2) Plex's account service `plex.tv` — only when you sign in with a Plex account: a Plex server does not verify account credentials itself, the account is authenticated by Plex's account service, so when you enter a Plex server and press 登录 the app sends one request to `https://plex.tv/api/v2/users/signin` with your Plex account and password in the body and the client name, app version and this machine's device ID in its headers; that is a third-party service operated by Plex, not by the developer and not the address you entered, and no request goes there unless you choose to sign in with a Plex account; (3) a third-party library-management service that you configure yourself, if you enable that feature, at the address you enter; (4) image URLs that your own server supplies in its metadata (for example `image.tmdb.org`); and (5) the project's own releases page (on by default, can be turned off) — on each launch the app asks the project's releases feed (`github.com/cudamin/Momoka/releases.atom`) whether a newer version exists, and the 「检查新版本」 button in Settings → About sends the same request when you press it. That request carries **no identifying information**: its headers hold only the client name and the app version — no account, no token, no device ID, no machine name, no server address. To stop it, turn off 「启动时自动检查新版本」 in Settings → About; with that switch off the app sends nothing to that address (the manual button next to it still sends one request when you press it).
 
 Requests to your media server carry the client name `Momoka`, this computer's machine name, a randomly generated device ID stored locally, the app version, and your access token — sent only to your own server, so it can identify this device. The update feed in item (5) carries none of those identifiers; item (2) is also not an address you entered, but it is only reached when you choose to sign in with a Plex account, and it carries the Plex credentials you type.
 
+When the optional DandanPlay feature is enabled and set to use Momoka's built-in credential, the app also contacts Momoka's credential endpoint at `https://yuanshenqidon.dpdns.org/api/danmaku/credential`. The app adds only the `Momoka/<version>` User-Agent; the HTTP stack may add standard Accept and encoding headers. The endpoint returns an AES-GCM-encrypted application credential and receives no work title, episode number, media-server address, account, token, or comment text. Cloudflare, as the host, may log network-layer information under its own policy.
+
 Uninstalling the app does not delete the data listed above; delete the `%LOCALAPPDATA%\Momoka` folder (and any screenshot or download folders you configured) to remove it. To revoke access, remove the corresponding device or token on your media server; for a Plex account, also revoke that device's access in your Plex account.
 
-An additional optional destination is the official DandanPlay open comment network. It is off by default and requires an AppId and AppSecret. Once enabled, automatic matching and manual searches send a work title and episode number to `api.dandanplay.net`; fetching comments sends the comment-library ID and related-comment preference. Requests carry the application ID, timestamp and signature, not a plaintext AppSecret. Official HTTPS CDN redirects are allowed only within `dandanplay.net`; cross-origin requests carry no authentication headers. No video content, media-server address, media account or access token is sent. This is a third-party service, not a developer-operated endpoint. Posting is performed only when the user clicks Send or presses Enter in the comment input. It sends the text, comment-library time, fixed white scrolling mode and the application nickname Momoka to the application's private comment library, without automatic retries. DandanPlay login and playback-history APIs are not used. About-page website buttons open the default browser only when clicked.
+An additional optional destination is the official DandanPlay open comment network. It is off by default and uses Momoka's built-in application credential by default; you may instead enter your own AppId and AppSecret. Once enabled, automatic matching and manual searches send a work title and episode number to `api.dandanplay.net`; fetching comments sends the comment-library ID and related-comment preference. Requests carry the application ID, timestamp and signature, not a plaintext AppSecret. Official HTTPS CDN redirects are allowed only within `dandanplay.net`; cross-origin requests carry no authentication headers. No video content, media-server address, media account or access token is sent. The comment network itself is a third-party service; the credential endpoint described above is operated by the developer. Posting is performed only when the user clicks Send or presses Enter in the comment input. It sends the text, comment-library time, fixed white scrolling mode and the application nickname Momoka to the application's private comment library, without automatic retries. DandanPlay login and playback-history APIs are not used. The built-in credential is shared across Momoka users and is not a confidentiality mechanism: it is distributed with the client and can be extracted, but it is kept out of the public source and can be rotated server-side. About-page website buttons open the default browser only when clicked.
 
 Bundled third-party components — mpv / libmpv (LGPL-2.1-or-later, statically linked against an LGPL-3.0 FFmpeg), uosc (LGPL-2.1), the Material Icons Round font (Apache-2.0), the ArtCNN and CfL shaders (MIT), the ravu and igv SSim shaders (LGPL-3.0-or-later), the an3223 shaders (LGPL-2.1-or-later), igv's adaptive-sharpen (BSD-2-Clause), vulkan-1.dll (Apache-2.0), and the Microsoft Windows App SDK and WebView2 Runtime — follow their own licenses, with license and attribution texts shipped alongside the app (see `THIRD-PARTY-NOTICES.md`). mpv / libmpv is an LGPL build, which permits linking without the copyleft reaching this application; the application itself is distributed under MIT (see the license section of the README). They do not collect data.
 

@@ -1,12 +1,24 @@
 namespace Momoka.Configuration;
 
+/// <summary>弹弹play 凭据来源。Auto 只用于旧配置：加载时按有没有本机密钥落到内置或自定义。</summary>
+public enum DanmakuCredentialSource
+{
+    Auto = 0,
+    BuiltIn = 1,
+    Custom = 2
+}
+
 /// <summary>弹弹play 连接与弹幕偏好。服务默认关闭；密钥只存 DPAPI 密文，不随偏好备份导出。</summary>
 public sealed class DanmakuSettings
 {
-    /// <summary>用户提供的 Momoka 公开 AppId。密钥与服务授权不是这个 ID，仍需在本机配置。</summary>
+    /// <summary>Momoka 的公开 AppId。内置凭据由服务端下发 AppId 与密钥，这一项只在自定义凭据时由用户填写。</summary>
     public const string DefaultAppId = "dav282msq5";
 
     public bool Enabled { get; set; }
+
+    /// <summary>装机走内置凭据；旧配置里存过 AppSecret 的会自动落到 Custom。</summary>
+    public DanmakuCredentialSource CredentialSource { get; set; }
+
     public string AppId { get; set; } = DefaultAppId;
     public string ProtectedAppSecret { get; set; } = "";
     public bool AutoMatch { get; set; } = true;
@@ -28,7 +40,13 @@ public sealed class DanmakuSettings
     public void Normalize()
     {
         AppId = (AppId ?? "").Trim();
+        if (AppId.Length == 0) AppId = DefaultAppId;
         ProtectedAppSecret ??= "";
+        if (!Enum.IsDefined(CredentialSource)) CredentialSource = DanmakuCredentialSource.Auto;
+        if (CredentialSource == DanmakuCredentialSource.Auto)
+            CredentialSource = ProtectedAppSecret.Length > 0
+                ? DanmakuCredentialSource.Custom
+                : DanmakuCredentialSource.BuiltIn;
         var words = BlockedWords ?? "";
         BlockedWords = words[..Math.Min(words.Length, 4000)];
         Opacity = Clamp(Opacity, 10, 100, 70);

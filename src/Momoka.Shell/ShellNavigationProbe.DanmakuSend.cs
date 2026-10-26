@@ -26,6 +26,7 @@ internal sealed partial class ShellNavigationProbe
         fixture.Settings.Danmaku.Enabled = true;
         fixture.Settings.Danmaku.AppId = "offline-app";
         fixture.Settings.Danmaku.ProtectedAppSecret = "offline-secret";
+        fixture.Settings.Danmaku.CredentialSource = DanmakuCredentialSource.Custom;
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, "danmaku-send"));
         paths.EnsureCreated();
         using var transport = new DanmakuSendTransport();

@@ -135,8 +135,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("快捷键搜索、改绑、空态与恢复（宽窗）", () => SettingsShortcutSearchAsync(1100), 60, section: ShellProbeSections.Shortcuts);
             await CaseAsync("快捷键搜索、改绑、空态与恢复（窄窗）", () => SettingsShortcutSearchAsync(760), 60, section: ShellProbeSections.Shortcuts);
             await CaseAsync("新增快捷键命令、失败回执与队列隔离", PlayerAdditionalShortcutsAsync, 30, section: ShellProbeSections.Shortcuts);
-            await CaseAsync("弹幕设置、凭据、显隐、快捷键与关于（宽窗）", () => SettingsDanmakuAsync(1100), 60, section: ShellProbeSections.Settings);
-            await CaseAsync("弹幕设置、凭据、显隐、快捷键与关于（窄窗）", () => SettingsDanmakuAsync(760), 60, section: ShellProbeSections.Settings);
+            await CaseAsync("弹弹play 设置、凭据、显隐、快捷键与关于（宽窗）", () => SettingsDanmakuAsync(1100), 60, section: ShellProbeSections.Settings);
+            await CaseAsync("弹弹play 设置、凭据、显隐、快捷键与关于（窄窗）", () => SettingsDanmakuAsync(760), 60, section: ShellProbeSections.Settings);
             await CaseAsync("弹幕输入栏、发送回执与截断搜索", DanmakuSendAsync, 60, section: ShellProbeSections.Playback);
             await CaseAsync("播放弹幕面板与过期交互（宽窗）", () => DanmakuPanelAsync(1100), 30, section: ShellProbeSections.Playback);
             await CaseAsync("播放弹幕面板与过期交互（窄窗）", () => DanmakuPanelAsync(360), 30, section: ShellProbeSections.Playback);

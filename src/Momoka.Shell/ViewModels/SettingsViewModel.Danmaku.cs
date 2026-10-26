@@ -10,17 +10,28 @@ public sealed partial class SettingsViewModel
     private SettingSection DanmakuCard()
     {
         var settings = Settings.Danmaku;
+        var custom = settings.CredentialSource == DanmakuCredentialSource.Custom;
         var rows = new List<SettingRow>
         {
-            Toggle("启用弹弹play", "默认关闭。开启并填写凭据后，搜索或自动匹配会把作品名称和集数发送到弹弹play；不上传视频、媒体服务器地址或登录信息。",
+            Toggle("启用弹弹play", "默认关闭。开启后自动使用 Momoka 内置凭据；搜索或自动匹配会把作品名称和集数发送到弹弹play，不上传视频、媒体服务器地址或登录信息。内置额度用尽时可在下面改用自定义凭据。",
                 () => settings.Enabled, value => settings.Enabled = value, after: RefreshDanmakuRows),
-            new SettingTextRow("AppId", "已预填 Momoka 的公开应用 ID；应用审核通过后填写对应 AppSecret。也可以填写你自己的应用 ID。", "弹弹play 应用 ID", settings.AppId,
-                typed => { settings.AppId = typed.Trim(); return settings.AppId; }, () => { Save(); RefreshDanmakuRows(); }),
-            new SettingSecretRow("AppSecret", secret => _dandanCredentials?.SetSecret(settings, secret),
-                () => settings.ProtectedAppSecret.Length > 0, () => { Save(); return !HasUnsavedChanges; }, RefreshDanmakuRows),
-            Fact("弹弹play 开发者中心", "申请或管理 AppId 与 AppSecret。弹幕数据由弹弹play 开放弹幕网络提供。", "", "打开开发者中心",
-                () => _launcher?.OpenUrl(DandanPlayClient.DeveloperUrl)),
+            Toggle("使用自己的应用凭据", "内置凭据由 Momoka 统一提供，普通用户不需要申请；如果你有自己的弹弹play 应用，可以改用自定义的 AppId 与 AppSecret，凭据只保存在本机。",
+                () => settings.CredentialSource == DanmakuCredentialSource.Custom,
+                value =>
+                {
+                    settings.CredentialSource = value ? DanmakuCredentialSource.Custom : DanmakuCredentialSource.BuiltIn;
+                    if (value && string.IsNullOrWhiteSpace(settings.AppId)) settings.AppId = DanmakuSettings.DefaultAppId;
+                }, after: RefreshDanmakuRows),
         };
+        if (custom)
+        {
+            rows.Add(new SettingTextRow("AppId", "你的弹弹play 应用 ID；使用内置凭据时不需要填写。", "弹弹play 应用 ID", settings.AppId,
+                typed => { settings.AppId = typed.Trim(); return settings.AppId; }, () => { Save(); RefreshDanmakuRows(); }));
+            rows.Add(new SettingSecretRow("AppSecret", secret => _dandanCredentials?.SetSecret(settings, secret),
+                () => settings.ProtectedAppSecret.Length > 0, () => { Save(); return !HasUnsavedChanges; }, RefreshDanmakuRows));
+            rows.Add(Fact("弹弹play 开发者中心", "申请或管理 AppId 与 AppSecret。弹幕数据由弹弹play 开放弹幕网络提供。", "", "打开开发者中心",
+                () => _launcher?.OpenUrl(DandanPlayClient.DeveloperUrl)));
+        }
         if (DandanPlayMatching.IsConfigured(Settings))
         {
             rows.Add(Toggle("自动匹配弹幕", "只自动接受唯一的精确标题。续季、特别篇或不确定的结果在播放页手动搜索选择，避免串集。",
@@ -50,7 +61,7 @@ public sealed partial class SettingsViewModel
                     typed => { settings.BlockedWords = typed; settings.Normalize(); return settings.BlockedWords; }, () => { Save(); ApplyDanmakuSettings(); }));
             }
         }
-        return new SettingSection("弹幕", "弹幕 · 弹弹play", "参考 B 站的显示与屏蔽设置。弹幕使用独立画面叠加层，不占用字幕轨道；支持内置播放器的集成和独占模式。", rows);
+        return new SettingSection("弹弹play", "弹弹play", "参考 B 站的显示与屏蔽设置。弹幕使用独立画面叠加层，不占用字幕轨道；支持内置播放器的集成和独占模式。", rows);
     }
 
     private void RefreshDanmakuRows()
@@ -61,14 +72,14 @@ public sealed partial class SettingsViewModel
 
     private void RefreshDanmakuPresentation()
     {
-        var card = Sections.FirstOrDefault(section => section.Category == "弹幕");
+        var card = Sections.FirstOrDefault(section => section.Category == "弹弹play");
         card?.UpdateRows(DanmakuCard().Rows);
         RefreshShortcutAvailability();
     }
 
     private void RefreshDanmakuAvailability()
     {
-        var card = Sections.FirstOrDefault(section => section.Category == "弹幕");
+        var card = Sections.FirstOrDefault(section => section.Category == "弹弹play");
         if (!DandanPlayMatching.CanRender(Settings.Mpv))
         {
             if (card is not null) Sections.Remove(card);
@@ -83,12 +94,12 @@ public sealed partial class SettingsViewModel
         if (momoka is not null)
         {
             var available = DandanPlayMatching.CanRender(Settings.Mpv);
-            if (momoka.Entries.Any(entry => entry.Label == "弹幕") == available) return;
+            if (momoka.Entries.Any(entry => entry.Label == "弹弹play") == available) return;
             var rebuilt = new SettingsCategoryGroup("Momoka");
-            foreach (var entry in momoka.Entries.Where(entry => entry.Label != "弹幕"))
+            foreach (var entry in momoka.Entries.Where(entry => entry.Label != "弹弹play"))
             {
                 rebuilt.Add(entry.Label, entry.SourceKey, entry.Route, entry.CardCategory);
-                if (entry.Label == "字幕" && available) rebuilt.Add("弹幕");
+                if (entry.Label == "字幕" && available) rebuilt.Add("弹弹play");
             }
             ReplaceCategories(groups.Select(group => ReferenceEquals(group, momoka) ? rebuilt : group).ToArray());
         }
