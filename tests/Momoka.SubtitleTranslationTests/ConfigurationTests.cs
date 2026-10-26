@@ -19,7 +19,7 @@ internal static class ConfigurationTests
             Test.Equal("https://translation.googleapis.com/language/translate/v2", settings.GoogleEndpoint);
             Test.Equal("https://api.cognitive.microsofttranslator.com", settings.MicrosoftEndpoint);
             Test.Equal("https://api.openai.com/v1", settings.AiEndpoint);
-            Test.Equal("gpt-4.1-mini", settings.AiModel);
+            Test.Equal("gpt-6-luna", settings.AiModel);
             Test.Equal(32, settings.FontSize);
             Test.Equal(80, settings.Position);
             Test.True(!settings.HasGoogleApiKey && !settings.HasMicrosoftApiKey && !settings.HasAiApiKey);

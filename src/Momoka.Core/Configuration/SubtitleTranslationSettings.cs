@@ -14,7 +14,7 @@ public sealed class SubtitleTranslationSettings
     public const string DefaultGoogleEndpoint = "https://translation.googleapis.com/language/translate/v2";
     public const string DefaultMicrosoftEndpoint = "https://api.cognitive.microsofttranslator.com";
     public const string DefaultAiEndpoint = "https://api.openai.com/v1";
-    public const string DefaultAiModel = "gpt-4.1-mini";
+    public const string DefaultAiModel = "gpt-6-luna";
 
     public bool Enabled { get; set; }
     public SubtitleTranslationProvider Provider { get; set; } = SubtitleTranslationProvider.Google;

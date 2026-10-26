@@ -1,0 +1,75 @@
+local checks = {}
+local function check(name, action)
+    local ok, failure = pcall(action)
+    checks[#checks + 1] = {name = name, passed = ok, detail = ok and '' or tostring(failure)}
+end
+local function require_true(value, message) if not value then error(message or 'assertion failed') end end
+local function fire(name) for _, callback in ipairs(fixture_events[name] or {}) do callback({event = name}) end end
+local function call(name, ...) fixture_messages[name](...) end
+local function restart()
+    fixture_properties = {['sub-text'] = 'Original line', sid = 2, ['sub-visibility'] = true, ['sub-start'] = 1, ['sub-end'] = 4}
+    fixture_canvas = {1280, 720}
+    fixture_commands = {}
+    fire('start-file'); fire('file-loaded')
+end
+local function show(options)
+    local data = options or {original = 'Original line', text = '实时翻译字幕', sid = '2', start = 1, ['end'] = 4, fontSize = 32, position = 80}
+    call('momoka-subtitle-translation-show', utils.format_json(data))
+end
+check('translation occupies independent OSD without writing main or secondary subtitle', function()
+    restart(); show()
+    require_true(overlay.data:find('实时翻译字幕', 1, true), 'no translation')
+    require_true(#fixture_commands == 0, 'wrote playback commands')
+    require_true(fixture_properties.sid == 2 and fixture_properties['secondary-sid'] == nil, 'changed tracks')
+end)
+check('current cue is atomically published for a single external IPC read', function()
+    restart()
+    local cue = fixture_properties['user-data/momoka-subtitle-translation/cue']
+    require_true(type(cue) == 'table', 'cue must be a native map, not a JSON string that gets double-encoded')
+    require_true(cue.text == 'Original line' and cue.sid == '2' and cue.start == 1 and cue['end'] == 4)
+    fixture_properties['sub-visibility'] = false; fixture_observers['sub-visibility']()
+    require_true(fixture_properties['user-data/momoka-subtitle-translation/cue'] == '', 'hidden cue still published')
+end)
+check('new cue and subtitle disable clear an existing translation immediately', function()
+    restart(); show(); fixture_properties['sub-text'] = 'Next line'; fixture_observers['sub-text']()
+    require_true(overlay.removed and overlay.data == '', 'stale cue remains')
+    restart(); show(); fixture_properties['sub-visibility'] = false; fixture_observers['sub-visibility']()
+    require_true(overlay.removed, 'disabled subtitles leave translation')
+end)
+check('old HTTP reply is rejected after cue, timestamp, or track changes', function()
+    restart(); fixture_properties['sub-text'] = 'Next'; show(); require_true(overlay.data == '', 'old cue accepted')
+    restart(); fixture_properties['sub-start'] = 20; show(); require_true(overlay.data == '', 'repeated line in next scene accepted')
+    restart(); fixture_properties.sid = 3; show(); require_true(overlay.data == '', 'old track accepted')
+end)
+check('seek and same-window next file clear text without preserving original scripts', function()
+    restart(); show(); fire('seek'); require_true(overlay.removed and overlay.data == '', 'seek failed')
+    restart(); show(); fire('start-file'); show(); require_true(overlay.data == '', 'loading successor accepted reply')
+    fire('file-loaded'); show(); require_true(overlay.data ~= '', 'new file cannot receive translation')
+    fire('end-file'); require_true(overlay.data == '' and overlay.removed, 'exit failed')
+end)
+check('ASS brace and backslash payloads are literal, never formatting directives', function()
+    restart(); show({original = 'Original line', text = '{\\pos(0,0)}危险\\N文本\n新行', sid = '2', start = 1, ['end'] = 4, fontSize = 32, position = 80})
+    require_true(overlay.data:find('\\{', 1, true), 'brace unescaped')
+    require_true(overlay.data:find('\\' .. '\239\187\191', 1, true), 'slash can introduce directive')
+    require_true(overlay.data:find('\\N新行', 1, true), 'new line not preserved')
+end)
+check('font and position clamp while aspect follows current canvas', function()
+    restart(); show({original = 'Original line', text = 'Test', sid = '2', fontSize = 900, position = -100})
+    require_true(overlay.data:find('fs64', 1, true) and overlay.data:find('pos(640.0,72.0)', 1, true), 'range not clamped')
+    fixture_canvas = {1920, 800}; render()
+    require_true(math.abs(overlay.res_x - 1728) < 1, 'wide canvas not recomputed')
+end)
+check('invalid JSON, missing fields and oversized payload leave no text', function()
+    restart(); call('momoka-subtitle-translation-show', 'not json'); require_true(overlay.data == '')
+    show({text='No original',sid='2',fontSize=32,position=80}); require_true(overlay.data == '')
+    call('momoka-subtitle-translation-show', string.rep('x', 100001)); require_true(overlay.data == '')
+    show({original='Original line',text='x',sid='2',fontSize=0/0,position=80}); require_true(overlay.data == '')
+end)
+check('real native libass accepts literal translated overlay then removal', function()
+    restart(); show({original='Original line',text='中英双语 {test} \\N',sid='2',fontSize=32,position=80})
+    local native = fixture_native_overlay('ass-events')
+    native.res_x, native.res_y, native.data = overlay.res_x, overlay.res_y, overlay.data
+    native:update(); native:remove()
+end)
+clear()
+fixture_native_command('script-message', 'fixture-result', utils.format_json(checks))

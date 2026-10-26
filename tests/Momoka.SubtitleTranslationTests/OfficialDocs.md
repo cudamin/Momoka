@@ -18,3 +18,5 @@
 | openai-deprecations.txt | https://developers.openai.com/api/docs/deprecations.md | B5D1CAFEFC8A491F2C095D77359A6CA185498BAA5F65A66BAC1CB722E188855F | 2026-10-14 公告：GPT-4.1 mini 基础快照的停用日期 2027-01-14。 |
 
 核对范围：只建立协议形状与文档事实，不代表账号授权、API 启用、Google header 实际线上成功、Microsoft 区域配置、模型调用、付费额度或翻译质量已验证。部分官方 URL 返回 404（Google 旧 using-api-keys、Microsoft 旧 regions、OpenAI Chat markdown），改读不同的现行官方正文，没有循环重试同一失败 URL。
+
+主窗口最终默认模型核对：2026-10-25 官方 `https://developers.openai.com/api/docs/models/gpt-6-luna.md`，支持 Chat Completions 与 reasoning_effort=none（文档 SHA256 9e5a91be5e5a7f91d1a700907367ea7d261b57ce5b369aa8e3602b9b99239081）。不以历史 gpt-4.1-mini 价格或弃用计划作为当前默认服务可用性的证据。

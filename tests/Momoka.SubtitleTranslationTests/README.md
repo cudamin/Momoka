@@ -28,7 +28,7 @@ dotnet run --project tests/Momoka.SubtitleTranslationTests/Momoka.SubtitleTransl
 
 - 选择启用才外发字幕原文。Google Cloud Translation / Microsoft Azure Translator 需要用户开通对应官方 API 与密钥，不使用免费网页私有接口；额度和费用由服务账户决定。
 - 自定义 AI 仅 HTTPS 或 IP/localhost loopback HTTP，拒绝 URL userinfo（包括空 userinfo）、query、fragment；凭据和字幕会交给用户选中的服务。Google/Microsoft 则限定官方域（含 Microsoft 单标签 Azure 资源域），不向任意自定义站点发它们的密钥。
-- 保留约定 gpt-4.1-mini，模型仍可填。2026-10-25 读取的官方模型页标 Deprecated，官方弃用页给基础快照 2027-01-14 停用日期；用户应填写其服务可用模型，UI 应提示可能收费。当前模型页列输入 $0.40 / 输出 $1.60 每百万 tokens，仅作当次文档证据，不承诺未来或第三方价格。
+- 初始适配约定为 gpt-4.1-mini；主窗口在 2026-10-25 核对官方弃用状态后改用 gpt-6-luna 并以 reasoning_effort=none 降低逐句延迟。模型仍可填，第三方服务不会收到该特定模型选项。价格与可用性由实际服务决定，不承诺免费。
 - 未验证真实服务账号、Google/Azure 启用/地域/额度、真实 DPAPI、第三方模型、翻译质量、在线延迟与限流恢复。AI 注入测试只证明请求角色与 JSON 数据边界，不能证明模型输出可靠。
 - 父负责 AppSettings 根字段、Normalize 接入、备份/重置、Settings 卡片、DI、文件生命周期、mpv/Lua 独立译文 OSD 与迟到响应判定。始终独立译文+原文双语，不写 display mode，不占主/次 sid；本 worker 没有运行覆盖此链路。
 

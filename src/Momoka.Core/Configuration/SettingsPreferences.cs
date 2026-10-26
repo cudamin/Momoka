@@ -58,6 +58,15 @@ public static class SettingsPreferences
         CopyInto(document, settings);
         document.Danmaku.AppId = "";
         document.Danmaku.CredentialSource = DanmakuCredentialSource.Auto;
+        // 翻译密钥、端点、模型、区域和启用开关属于本机连接，不进入可分享的偏好备份。
+        var translation = document.SubtitleTranslation;
+        document.SubtitleTranslation = new SubtitleTranslationSettings
+        {
+            SourceLanguage = translation.SourceLanguage,
+            TargetLanguage = translation.TargetLanguage,
+            FontSize = translation.FontSize,
+            Position = translation.Position
+        };
         return document;
     }
 
@@ -72,6 +81,12 @@ public static class SettingsPreferences
         Overwrite(destination.Video, source.Video);
         Overwrite(destination.Shaders, source.Shaders);
         Overwrite(destination.Shortcuts, source.Shortcuts);
+
+        // 只恢复语言和译文外观，不把另一台机器的连接/密钥/开关覆盖过来。
+        destination.SubtitleTranslation.SourceLanguage = source.SubtitleTranslation.SourceLanguage;
+        destination.SubtitleTranslation.TargetLanguage = source.SubtitleTranslation.TargetLanguage;
+        destination.SubtitleTranslation.FontSize = source.SubtitleTranslation.FontSize;
+        destination.SubtitleTranslation.Position = source.SubtitleTranslation.Position;
 
         // 弹幕外观属于偏好，AppId／密钥、凭据来源与总启用开关属于本机连接，绝不导出或被恢复覆盖。
         var danmaku = destination.Danmaku;
