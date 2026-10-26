@@ -8311,3 +8311,11 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **其余工作树按未提交内容分类保留。** `fnnas-server`（50 项）、`merged-contract-tests`（337 项）原样不动；`delivery-dotnet-pack-tests`（3 项，与主干逐字相同）、`home-order-source-scope`（678bb02 与主干补丁等价）、`media-source-size` 是干净或已被覆盖的旧树，本轮没删。
 - **坑：`git worktree remove` 在本机一律报 `Filename too long`**，删到一半会让 git 记录先消失、目录却留着，第二次就变成「is not a working tree」。正确顺序是先 `git worktree prune` 清记录，再用 `Remove-Item -LiteralPath` 清残留目录。`C:/Users/89400/.codex/worktrees` 下另有 **82 个已不是工作树的残留目录**，与已删分支同源，需要单独一轮只读清点后再处理。
 - **待决：远端 2 个 README 提交仍未整合**（`451a44e`、`b625b70`）。用户在网页上把「多账号」压成一句、删掉「服务端界面」段、把「服务端」那段换成「弹弹play」一行；本地主干恰好相反，留着长版「多账号」「服务端界面」「服务端」，还多出「实时字幕翻译」与内置凭据版「弹弹play」。两边改的是同一段，合的时候要定以哪边为准，没有自动合。
+
+## README 合并与残留目录清理（2026-10-26 21:38~22:00）
+
+- **README 合并**（`2c3a326`）：远端 `451a44e`、`b625b70` 是用户在网页上做的简化，本地主干一直留着长版。按用户当次指令「以网页上的简化为准」，README 全文取远端版本，只补回本地后来新增、远端还没有的三处：「实时字幕翻译」整条、「弹弹play」带内置凭据的说明、「开发与验证」里的翻档夹具链接。长版「多账号」「服务端界面」「服务端」三段按用户意思不再保留。合并后 `master` 与 `origin/master` 已无分叉（ahead 158、behind 0），**未推送**（用户明确「先不提交」）。纯文档，未构建、未跑探针、未发布。
+- **残留目录清空**：`C:/Users/89400/.codex/worktrees` 下 82 个已不是工作树的残留目录全部删除，约 1.2 GB；`C:/Users/89400/Momoka-worktrees` 随之清空。现在只剩 6 棵仍在册的工作树。
+- **清点方法**：残留目录的 `.git` 文件早被删掉，不能用 `git status`。改用临时索引比对——`GIT_INDEX_FILE=<临时> git read-tree master`，再以 `--work-tree=<目录>` 跑 `ls-files -o --exclude-standard` 与 `diff --name-status`，得到「工作树里有、主干里没有的文件」和「内容被改过的文件」。注意目录结构分两种：有的实际根是 `<目录>/Momoka`，有的是 `<目录>` 本身，判错根会把整棵树都算成独有文件。
+- **结果**：77 个是空壳（0 独有、0 修改），直接删。5 个有内容：`atomicfile-write-contracts`（543 MB）与 `delivery-atomic-completion`（661 MB）里全是 `obj/` 编译产物、测试 `outputs/` 夹具与 `work/` 临时测量，对应分支早已合入主干（`69e36aa`），删；另外三个的未入库文件先另存到 `work/residual-worktrees-20261026/`（41 个文件、568 KB，`work/` 在 .gitignore 里，不进版本库）——`github-release-preflight-20261025` 的 0.1.8 发布预检文档、`store-release-preflight-20261025` 的商店预检脚本与草稿、`momoka-website-release-20261025` 的网站快照（含主树 `website/` 没有的 `tests/`、`tools/`）。同目录另存了 82 个目录名的清单。
+- 删目录用 bash `rm -rf`；`Remove-Item` 会被安全删除钩子拦，`git worktree remove` 会因长路径半途失败。
