@@ -21,6 +21,7 @@ internal sealed partial class ShellNavigationProbe
         [nameof(ShellSwitchRaceAsync)] = ShellProbeSections.Shell,
         [nameof(ShellDirectoryRetryAsync)] = ShellProbeSections.Shell,
         [nameof(DiagnosticsEmptyAsync)] = ShellProbeSections.Shell,
+        [nameof(DiagnosticsLayoutAsync)] = ShellProbeSections.Shell,
         [nameof(DialogConstructionAsync)] = ShellProbeSections.Shell,
 
         // 设置：设置页、服务器页、Jellyfin 控制台与对话框

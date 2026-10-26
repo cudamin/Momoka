@@ -71,10 +71,11 @@ internal static class PlayerInteractionTests
             var xaml = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "ServersPage.xaml"));
             var code = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "ServersPage.xaml.cs"));
             Assert.Contains("<Border Tag=\"{x:Bind}\"", xaml);
-            Assert.Contains("<Grid Tag=\"{x:Bind}\" ColumnSpacing", xaml);
+            Assert.Contains("<Grid Tag=\"{x:Bind}\">", xaml);
             Assert.Contains("FrameworkElement { Tag: ServerRow }", code);
             Assert.Contains("FrameworkElement { Tag: AccountRow }", code);
-            Assert.Contains("ServerPrimaryAccount", code);
+            Assert.DoesNotContain("ServerPrimaryAccount", code);
+            Assert.DoesNotContain("ItemsSource=\"{x:Bind Others}\"", xaml);
         });
         TestHarness.Test("集页首屏检查：无静止描边且仍检查内容次序与可视范围", () =>
         {

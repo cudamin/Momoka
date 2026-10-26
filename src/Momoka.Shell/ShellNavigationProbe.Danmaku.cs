@@ -120,17 +120,25 @@ internal sealed partial class ShellNavigationProbe
                 .Any(row => row.Label == AboutFacts.StarLabel), "关于没有点星行");
             var star = Descendants(page).OfType<TextBlock>().Single(text => text.Text == AboutFacts.StarLabel);
             Require(star.ActualWidth > 0 && star.ActualHeight > 0, "点星行没有实际布局到界面");
-            // 系统 ItemContainerTransitions 的呈现可能晚于 XAML 属性归位；不关闭动画，等真实屏幕落定。
-            await Task.Delay(1500);
-            await SaveProbeScreenAsync($"settings-about-star-{width}-screen.png");
-            Require(StarPixels() > 30, "点星文字在实际截图中没有足够的亮像素，不能把空白卡片判为通过");
-            star.Opacity = 0;
+            // 截图和随后的亮像素正/负采样必须共用可见窗口。SaveProbeScreenAsync 会还原置顶状态，
+            // 单独拍完就取消置顶时，其他窗口可以在两次采样之间盖上来；遮挡守卫仍保持原样。
+            var wasTopMost = _window!.TopMost;
             try
             {
-                await Task.Delay(250);
-                Require(StarPixels() == 0, "文字像素检查未能识别故意隐藏的点星文字");
+                _window.TopMost = true;
+                // 系统 ItemContainerTransitions 可能晚于 XAML 属性归位；不关闭动画，等屏幕落定。
+                await Task.Delay(1500);
+                await SaveProbeScreenAsync($"settings-about-star-{width}-screen.png");
+                Require(StarPixels() > 30, "点星文字在实际截图中没有足够的亮像素，不能把空白卡片判为通过");
+                star.Opacity = 0;
+                try
+                {
+                    await Task.Delay(250);
+                    Require(StarPixels() == 0, "文字像素检查未能识别故意隐藏的点星文字");
+                }
+                finally { star.Opacity = 1; }
             }
-            finally { star.Opacity = 1; }
+            finally { _window.TopMost = wasTopMost; }
 
             int StarPixels()
             {

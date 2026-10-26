@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  The servers page: saved servers, the accounts on each, a scan of the local network, and the aggregate-mode
-  switch.
+  The servers page: one card per saved account, a scan of the local network, and the aggregate-mode switch.
 
   Every binding here is x:Bind rather than Binding. The difference that matters is not the speed — it is
   that x:Bind is compiled against a named type, so a renamed property fails the build instead of failing
@@ -33,77 +32,21 @@
             <Setter Property="BorderThickness" Value="0" />
         </Style>
 
-        <!-- Declared before the server template that reaches for it: a StaticResource inside a
-             DataTemplate is resolved as the dictionary is parsed, so a forward reference fails. -->
+        <!-- 每个账号是独立卡片。服务器模板只分组，不再套一圈服务器卡片。 -->
         <DataTemplate x:Key="AccountTemplate" x:DataType="vm:AccountRow">
-            <Grid Tag="{x:Bind}" ColumnSpacing="8" Margin="0,3">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                    <TextBlock
-                        FontWeight="SemiBold"
-                        MaxWidth="220"
-                        Text="{x:Bind Username}"
-                        TextTrimming="CharacterEllipsis" />
-                    <TextBlock
-                        FontSize="{StaticResource EgCaptionFontSize}"
-                        Foreground="{ThemeResource EgTextDimBrush}"
-                        Text="{x:Bind Status}"
-                        VerticalAlignment="Center" />
-                </StackPanel>
-                <Button
-                    Grid.Column="1"
-                    ToolTipService.ToolTip="{x:Bind LoginLabel}"
-                    AutomationProperties.Name="{x:Bind LoginLabel}"
-                    Visibility="{x:Bind LoginVisibility}"
-                    Style="{StaticResource EgIconButtonStyle}"
-                    Command="{x:Bind Owner.LoginAccountCommand}"
-                    CommandParameter="{x:Bind}">
-                    <FontIcon Glyph="&#xE8A5;" />
-                </Button>
-                <Button
-                    Grid.Column="2"
-                    AutomationProperties.Name="下线"
-                    ToolTipService.ToolTip="下线（保留已保存的账号）"
-                    Visibility="{x:Bind OfflineVisibility}"
-                    Style="{StaticResource EgIconButtonStyle}"
-                    Command="{x:Bind Owner.TakeOfflineCommand}"
-                    CommandParameter="{x:Bind}">
-                    <FontIcon Glyph="&#xE7E8;" />
-                </Button>
-                <Button
-                    x:Uid="ServersPage_ButtonA2"
-                    Grid.Column="3"
-                    Style="{StaticResource EgIconButtonStyle}"
-                    Command="{x:Bind Owner.DeleteAccountCommand}"
-                    CommandParameter="{x:Bind}">
-                    <FontIcon Glyph="&#xE74D;" />
-                </Button>
-            </Grid>
-        </DataTemplate>
-
-        <DataTemplate x:Key="ServerTemplate" x:DataType="vm:ServerRow">
             <Border Tag="{x:Bind}"
                 Background="{ThemeResource EgSurfaceBrush}"
                 BorderBrush="{ThemeResource EgBorderBrush}"
                 BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}"
-                Margin="0,0,0,12"
-                Padding="18,14">
-                <!--
-                  右键菜单收着两颗不在主行上的动作：测试连接和新增账号都是偶尔才用的，摆在名字右边会把
-                  「登录、下线、删除」这一排挤散（用户 2026-10-25：右边只保留删除和登录）。
-                -->
+                Margin="0,0,0,10"
+                Padding="16,12">
                 <Border.ContextFlyout>
                     <MenuFlyout>
                         <MenuFlyoutItem
                             Text="测试服务器连接"
                             Command="{x:Bind Owner.TestCommand}"
-                            CommandParameter="{x:Bind}">
+                            CommandParameter="{x:Bind ServerGroup}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE72C;" />
                             </MenuFlyoutItem.Icon>
@@ -111,137 +54,139 @@
                         <MenuFlyoutItem
                             Text="新增账号"
                             Command="{x:Bind Owner.AddAccountCommand}"
-                            CommandParameter="{x:Bind}">
+                            CommandParameter="{x:Bind ServerGroup}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE710;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
-                        <!--
-                          「退出」不在主行上：它和「下线」只差一点（下线留令牌，退出清令牌并关掉自动连接），
-                          摆在一起必然点错。主行留三颗，这一颗藏在右键里，名字把后果写全。
-                        -->
                         <MenuFlyoutItem
                             Text="退出登录（清除保存的令牌）"
                             Command="{x:Bind Owner.SignOutAccountCommand}"
-                            CommandParameter="{x:Bind PrimaryAccount}"
-                            Visibility="{x:Bind PrimarySignOutVisibility}">
+                            CommandParameter="{x:Bind}"
+                            Visibility="{x:Bind SignOutVisibility}">
                             <MenuFlyoutItem.Icon>
                                 <FontIcon Glyph="&#xE8A5;" />
                             </MenuFlyoutItem.Icon>
                         </MenuFlyoutItem>
+                        <MenuFlyoutItem
+                            Text="删除此服务器及全部账号"
+                            Command="{x:Bind Owner.DeleteServerCommand}"
+                            CommandParameter="{x:Bind ServerGroup}">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE74D;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
                     </MenuFlyout>
                 </Border.ContextFlyout>
+                <Grid ColumnSpacing="12" RowSpacing="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <local:WrapRow Spacing="8" RowSpacing="4" VerticalAlignment="Center">
+                        <TextBlock
+                            Style="{StaticResource EgSectionTitleStyle}"
+                            MaxWidth="260"
+                            Text="{x:Bind ServerName}"
+                            TextTrimming="CharacterEllipsis" />
+                        <Border Background="{ThemeResource EgAccentSoftBrush}" CornerRadius="8"
+                            Padding="8,2" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource EgCaptionStyle}"
+                                Foreground="{ThemeResource EgAccentBrush}" Text="{x:Bind KindLabel}" />
+                        </Border>
+                        <TextBlock Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold"
+                            MaxWidth="220" Text="{x:Bind Username}" TextTrimming="CharacterEllipsis"
+                            VerticalAlignment="Center" />
+                        <TextBlock Style="{StaticResource EgCaptionStyle}"
+                            Text="{x:Bind Status}" VerticalAlignment="Center" />
+                        <Border Background="{ThemeResource EgAccentSoftBrush}" CornerRadius="10"
+                            Padding="8,2" VerticalAlignment="Center" Visibility="{x:Bind OnlineVisibility}">
+                            <TextBlock Style="{StaticResource EgCaptionStyle}"
+                                Foreground="{ThemeResource EgAccentBrush}" Text="在线" />
+                        </Border>
+                        <Border Background="{ThemeResource EgAccentBrush}" CornerRadius="10"
+                            Padding="8,2" VerticalAlignment="Center" Visibility="{x:Bind CurrentVisibility}">
+                            <TextBlock x:Uid="ServersPage_TextBlock1" Style="{StaticResource EgCaptionStyle}"
+                                Foreground="{ThemeResource EgTextOnAccentBrush}" />
+                        </Border>
+                    </local:WrapRow>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                        <Button x:Name="AccountLoginButton"
+                            ToolTipService.ToolTip="{x:Bind LoginLabel}"
+                            AutomationProperties.Name="{x:Bind LoginLabel}"
+                            Visibility="{x:Bind LoginVisibility}"
+                            Style="{StaticResource EgIconButtonStyle}"
+                            Command="{x:Bind Owner.LoginAccountCommand}" CommandParameter="{x:Bind}">
+                            <FontIcon Glyph="&#xE8A5;" />
+                        </Button>
+                        <Button x:Name="AccountOfflineButton"
+                            AutomationProperties.Name="下线"
+                            ToolTipService.ToolTip="下线（保留已保存的账号）"
+                            Visibility="{x:Bind OfflineVisibility}"
+                            Style="{StaticResource EgIconButtonStyle}"
+                            Command="{x:Bind Owner.TakeOfflineCommand}" CommandParameter="{x:Bind}">
+                            <FontIcon Glyph="&#xE7E8;" />
+                        </Button>
+                        <Button x:Name="AccountDeleteButton" x:Uid="ServersPage_ButtonA2"
+                            AutomationProperties.Name="{x:Bind DeleteLabel}"
+                            Style="{StaticResource EgIconButtonStyle}"
+                            Command="{x:Bind Owner.DeleteAccountCommand}" CommandParameter="{x:Bind}">
+                            <FontIcon Glyph="&#xE74D;" />
+                        </Button>
+                    </StackPanel>
+                    <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource EgCaptionStyle}"
+                        Text="{x:Bind Url}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Url}" />
+                </Grid>
+            </Border>
+        </DataTemplate>
 
-                <StackPanel>
-                    <!--
-                      一行说完这台服务器是谁：服务器名、类型、账号，右边只剩三颗。账号以前单独占一张卡片，
-                      于是同一台服务器画了两圈边框、两套图标，同一件事要说两遍。
-                    -->
-                    <Grid ColumnSpacing="12">
+        <DataTemplate x:Key="ServerTemplate" x:DataType="vm:ServerRow">
+            <Grid Tag="{x:Bind}">
+                <ItemsControl ItemTemplate="{StaticResource AccountTemplate}" ItemsSource="{x:Bind Accounts}" />
+                <!-- 空服务器仍有登录、删除入口；没有账号时不伪造一张账号卡。 -->
+                <Border Background="{ThemeResource EgSurfaceBrush}"
+                    BorderBrush="{ThemeResource EgBorderBrush}"
+                    BorderThickness="{StaticResource EgCardBorderThickness}"
+                    CornerRadius="{StaticResource EgCardCornerRadius}"
+                    Margin="0,0,0,10" Padding="16,12" Visibility="{x:Bind EmptyVisibility}">
+                    <Grid ColumnSpacing="12" RowSpacing="4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <TextBlock
-                                FontSize="{StaticResource EgTitleFontSize}"
-                                FontWeight="SemiBold"
-                                MaxWidth="260"
-                                Text="{x:Bind Name}"
-                                TextTrimming="CharacterEllipsis" />
-                            <Border
-                                Background="{ThemeResource EgAccentSoftBrush}"
-                                CornerRadius="8"
-                                Padding="8,2"
-                                VerticalAlignment="Center">
-                                <TextBlock
-                                    FontSize="{StaticResource EgCaptionFontSize}"
-                                    Foreground="{ThemeResource EgAccentBrush}"
-                                    Text="{x:Bind KindLabel}" />
-                            </Border>
-                            <TextBlock
-                                MaxWidth="220"
-                                AutomationProperties.AutomationId="{x:Bind PrimaryAccountMarker}"
-                                Text="{x:Bind AccountName}"
-                                TextTrimming="CharacterEllipsis"
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <local:WrapRow Spacing="8" RowSpacing="4" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource EgSectionTitleStyle}" Text="{x:Bind Name}"
+                                MaxWidth="260" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="{x:Bind KindLabel}"
                                 VerticalAlignment="Center" />
-                            <TextBlock
-                                FontSize="{StaticResource EgCaptionFontSize}"
-                                Foreground="{ThemeResource EgTextDimBrush}"
-                                Text="{x:Bind AccountStatus}"
+                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="未保存账号"
                                 VerticalAlignment="Center" />
-                            <!-- A pill, not an InfoBadge: that control's Value is a number for a
-                                 count, and it has no way to show a word. -->
-                            <Border
-                                Background="{ThemeResource EgAccentSoftBrush}"
-                                CornerRadius="10"
-                                Padding="8,2"
-                                VerticalAlignment="Center"
-                                Visibility="{x:Bind OnlineVisibility}">
-                                <TextBlock
-                                    FontSize="{StaticResource EgCaptionFontSize}"
-                                    Foreground="{ThemeResource EgAccentBrush}"
-                                    Text="在线" />
-                            </Border>
-                            <Border
-                                Background="{ThemeResource EgAccentBrush}"
-                                CornerRadius="10"
-                                Padding="8,2"
-                                VerticalAlignment="Center"
-                                Visibility="{x:Bind CurrentVisibility}">
-                                <TextBlock x:Uid="ServersPage_TextBlock1"
-                                    FontSize="{StaticResource EgCaptionFontSize}"
-                                    Foreground="{ThemeResource EgTextOnAccentBrush}" />
-                            </Border>
-                        </StackPanel>
-
-                        <StackPanel
-                            Grid.Column="1"
-                            HorizontalAlignment="Right"
-                            Orientation="Horizontal"
-                            Spacing="4"
-                            VerticalAlignment="Center">
-                            <Button
-                                ToolTipService.ToolTip="{x:Bind LoginLabel}"
-                                AutomationProperties.Name="{x:Bind LoginLabel}"
-                                Style="{StaticResource EgIconButtonStyle}"
-                                Command="{x:Bind Owner.LoginPrimaryCommand}"
-                                CommandParameter="{x:Bind}">
+                        </local:WrapRow>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                            <Button x:Name="ServerLoginButton" Style="{StaticResource EgIconButtonStyle}"
+                                AutomationProperties.Name="登录服务器" ToolTipService.ToolTip="登录服务器"
+                                Command="{x:Bind Owner.LoginServerCommand}" CommandParameter="{x:Bind}">
                                 <FontIcon Glyph="&#xE8A5;" />
                             </Button>
-                            <Button
-                                AutomationProperties.Name="下线"
-                                ToolTipService.ToolTip="下线（保留已保存的账号）"
-                                Visibility="{x:Bind OfflineVisibility}"
-                                Style="{StaticResource EgIconButtonStyle}"
-                                Command="{x:Bind Owner.TakeOfflineCommand}"
-                                CommandParameter="{x:Bind PrimaryAccount}">
-                                <FontIcon Glyph="&#xE7E8;" />
-                            </Button>
-                            <Button x:Uid="ServersPage_ButtonA5"
-                                Style="{StaticResource EgIconButtonStyle}"
-                                Command="{x:Bind Owner.DeleteServerCommand}"
-                                CommandParameter="{x:Bind}">
+                            <Button x:Name="ServerDeleteButton" x:Uid="ServersPage_ButtonA5"
+                                AutomationProperties.Name="删除服务器" Style="{StaticResource EgIconButtonStyle}"
+                                Command="{x:Bind Owner.DeleteServerCommand}" CommandParameter="{x:Bind}">
                                 <FontIcon Glyph="&#xE74D;" />
                             </Button>
                         </StackPanel>
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Style="{StaticResource EgCaptionStyle}"
+                            Text="{x:Bind Url}" TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Url}" />
                     </Grid>
-
-                    <TextBlock
-                        FontSize="{StaticResource EgCaptionFontSize}"
-                        Foreground="{ThemeResource EgTextDimBrush}"
-                        Margin="0,2,0,0"
-                        Text="{x:Bind Url}"
-                        TextTrimming="CharacterEllipsis" />
-
-                    <!-- 多出来的账号排在下面，没有第二圈边框：还是这张卡片，只是往下多几行。 -->
-                    <ItemsControl
-                        Margin="0,8,0,0"
-                        ItemTemplate="{StaticResource AccountTemplate}"
-                        ItemsSource="{x:Bind Others}"
-                        Visibility="{x:Bind OthersVisibility}" />
-                </StackPanel>
-            </Border>
+                </Border>
+            </Grid>
         </DataTemplate>
     </Page.Resources>
 

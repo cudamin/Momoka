@@ -4,7 +4,6 @@ using Momoka.Services;
 using Momoka.Shell.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
@@ -54,7 +53,7 @@ public sealed partial class ServersPage : Page, IShellContent
         ViewModel.Servers.Sum(server => server.Accounts.Count));
 
     /// <summary>
-    /// How many server and account cards the lists actually built, counted off the visual tree rather
+    /// How many server groups and independent account cards the lists actually built, counted off the visual tree rather
     /// than off the bound collections.
     /// <para>
     /// That difference is the whole point of the probe. A <c>DataTemplate</c> is markup the build never
@@ -134,13 +133,8 @@ public sealed partial class ServersPage : Page, IShellContent
     }
 
     /// <summary>
-    /// Counts the tagged roots of realised templates rather than an ItemsControl implementation's
-    /// container type or inherited DataContext. Missing templates still report zero, and child controls
-    /// cannot inflate the count simply by inheriting the same row as their data context.
-    /// <para>
-    /// 卡片首行那个账号不在容器里 —— 它是直接写在服务器名旁边的（2026-10-25 用户令：服务器名、账号、类型
-    /// 放到一行里），所以它靠标识单独数一个，否则「绑了几个、画了几个」这一对数字从此对不上。
-    /// </para>
+    /// 按实际模板根计数：服务器只有分组根，每张独立账号卡只有一个 AccountRow 标记。
+    /// 不从 ItemsSource 读取数量，模板没有实现出来时必须如实报告缺失。
     /// </summary>
     private static void Count(DependencyObject node, ref int servers, ref int accounts)
     {
@@ -148,10 +142,6 @@ public sealed partial class ServersPage : Page, IShellContent
         // A missing template must still read zero; bound view-model counts are not evidence of paint.
         if (node is FrameworkElement { Tag: ServerRow }) servers++;
         else if (node is FrameworkElement { Tag: AccountRow }) accounts++;
-        else if (node is TextBlock && AutomationProperties.GetAutomationId(node) == "ServerPrimaryAccount")
-        {
-            accounts++;
-        }
 
         var children = VisualTreeHelper.GetChildrenCount(node);
         for (var index = 0; index < children; index++)

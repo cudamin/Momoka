@@ -961,8 +961,7 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1100, 900);
             await LayoutAsync(page);
 
-            // B 的首账号离线、第二个在线；A 是默认。卡片首行写的必须是「最该被点的那个」，按钮真调用绑定的
-            // 命令，不只核对选择表达式。
+            // 同一服务器的两个账号必须各自有卡片和动作，离线账号不能借用在线账号的状态。
             var b = fixture.Settings.Servers[1];
             var bOnline = b.Accounts.Single();
             b.Accounts.Insert(0, new AccountProfile { Username = "离线的首账号", UserId = "offline-b" });
@@ -970,18 +969,47 @@ internal sealed partial class ShellNavigationProbe
             await page.ViewModel.ReloadAsync();
             await LayoutAsync(page);
             var row = page.ViewModel.Servers.Single(server => server.Profile.Id == b.Id);
-            Require(ReferenceEquals(row.PrimaryAccount?.Account, bOnline),
-                "服务器卡片头上写的是离线账号，而不是这台服务器上在线的那个");
-            Require(row.Others.Count == 1, $"离线账号没有排到卡片下面的账号行里（{row.Others.Count} 行）");
+            var onlineRow = row.Accounts.Single(account => ReferenceEquals(account.Account, bOnline));
+            var offlineRow = row.Accounts.Single(account => !account.IsConnected);
+            Require(row.Accounts.Count == 2, "同一服务器的两个账号没有各自建立展示行");
+            var accountCards = Descendants(page).OfType<Border>().Where(border => border.Tag is AccountRow).ToList();
+            Require(accountCards.Count == 3 && page.Realised.Accounts == 3,
+                $"一个账号一张卡没有实现出来（{accountCards.Count} 张卡，{page.Realised.Accounts} 个账号）");
+            var onlineCard = accountCards.Single(card => ReferenceEquals(card.Tag, onlineRow));
+            var offlineCard = accountCards.Single(card => ReferenceEquals(card.Tag, offlineRow));
+            Require(Bounds(onlineCard, page).Top >= Bounds(offlineCard, page).Bottom + 8,
+                "同服两个账号仍然共用一张卡片，或卡片之间没有独立间隔");
+            Require(offlineRow.OnlineVisibility == Visibility.Collapsed && onlineRow.OnlineVisibility == Visibility.Visible,
+                "离线账号借用了同服在线账号的标记");
             await LayoutAsync(page);
             await SaveRenderAsync(page, "servers-summary-multi-account-render.png");
-            var login = Descendants(page).OfType<Button>().Single(button =>
-                ReferenceEquals(button.Command, page.ViewModel.LoginPrimaryCommand) && ReferenceEquals(button.CommandParameter, row));
+            ResizeInspect(760, 900);
+            await LayoutAsync(page);
+            await SaveRenderAsync(page, "servers-summary-multi-account-760-render.png");
+            ResizeInspect(1100, 900);
+            await LayoutAsync(page);
+
+            var login = Descendants(onlineCard).OfType<Button>().Single(button =>
+                ReferenceEquals(button.Command, page.ViewModel.LoginAccountCommand) && ReferenceEquals(button.CommandParameter, onlineRow));
             ((IInvokeProvider)new ButtonAutomationPeer(login).GetPattern(PatternInterface.Invoke)).Invoke();
             Require(ReferenceEquals(fixture.Session.Account, bOnline),
-                "服务器卡片上的登录按钮进的是离线账号，而不是在线的那个");
-            b.Accounts.RemoveAt(0);
-            await page.ViewModel.ReloadAsync();
+                "账号卡片的登录按钮没有切换到卡片写明的账号");
+            var offlineLogin = Descendants(offlineCard).OfType<Button>().Single(button =>
+                ReferenceEquals(button.Command, page.ViewModel.LoginAccountCommand) && ReferenceEquals(button.CommandParameter, offlineRow));
+            ((IInvokeProvider)new ButtonAutomationPeer(offlineLogin).GetPattern(PatternInterface.Invoke)).Invoke();
+            Require(ReferenceEquals(fixture.Actions.SwitchedProfile?.Account, offlineRow.Account),
+                "离线账号卡片登录没有传入它自己的账号");
+
+            // Delete the offline card through its real command. The server and its other online account survive.
+            page.ViewModel.UseConfirm((_, _, _) => Task.FromResult(true));
+            var delete = Descendants(offlineCard).OfType<Button>().Single(button =>
+                ReferenceEquals(button.Command, page.ViewModel.DeleteAccountCommand) && ReferenceEquals(button.CommandParameter, offlineRow));
+            ((IInvokeProvider)new ButtonAutomationPeer(delete).GetPattern(PatternInterface.Invoke)).Invoke();
+            await UntilAsync(() => b.Accounts.Count == 1);
+            Require(fixture.Settings.Servers.Contains(b) && ReferenceEquals(b.Accounts[0], bOnline),
+                "删除一张账号卡片把服务器或其他账号一起删掉了");
+            Require(fixture.Session.Sources.Any(source => source.AccountProfileId == bOnline.Id),
+                "删除离线账号把同服在线账号下线了");
 
             // 关掉聚合模式：只留当前来源，另一个账号下线但保存的令牌与密码都还在。
             var first = fixture.Settings.Servers[0].Accounts[0];
@@ -998,7 +1026,7 @@ internal sealed partial class ShellNavigationProbe
                 $"关掉聚合模式后页头没有改成一个账号：{page.ViewModel.Subheading}");
             Require(page.ViewModel.NoteVisibility == Visibility.Visible,
                 "聚合模式关着的时候，开关下面那行说明不见了");
-            Require(page.ViewModel.Servers.All(server => server.OfflineVisibility == Visibility.Collapsed),
+            Require(page.ViewModel.Servers.SelectMany(server => server.Accounts).All(account => account.OfflineVisibility == Visibility.Collapsed),
                 "独占模式下还画着下线按钮 —— 那一档里下线就是退出登录，是另一件事");
             await LayoutAsync(page);
             await SaveRenderAsync(page, "servers-summary-exclusive-render.png");
@@ -1017,6 +1045,23 @@ internal sealed partial class ShellNavigationProbe
                 "打开聚合模式之后卡片上还写着有账号没连上");
             Require(page.ViewModel.NoteVisibility == Visibility.Collapsed,
                 "打开聚合模式之后那行说明没有收起来");
+
+            var emptyServer = new ServerProfile { Name = "暂无账号的服务器", Url = "https://empty.invalid" };
+            fixture.Settings.Servers.Add(emptyServer);
+            await page.ViewModel.ReloadAsync();
+            await LayoutAsync(page);
+            var empty = page.ViewModel.Servers.Single(server => ReferenceEquals(server.Profile, emptyServer));
+            Require(empty.EmptyVisibility == Visibility.Visible && empty.Accounts.Count == 0,
+                "无账号的服务器没有保留登录入口");
+            Require(page.Realised.Servers == 3 && page.Realised.Accounts == 2,
+                "无账号服务器被误算为账号卡片");
+            var emptyRoot = Descendants(page).OfType<Grid>().Single(grid => ReferenceEquals(grid.Tag, empty));
+            var emptyLogin = Descendants(emptyRoot).OfType<Button>().Single(button =>
+                ReferenceEquals(button.Command, page.ViewModel.LoginServerCommand));
+            ((IInvokeProvider)new ButtonAutomationPeer(emptyLogin).GetPattern(PatternInterface.Invoke)).Invoke();
+            Require(ReferenceEquals(fixture.Actions.SignInServer, emptyServer) && fixture.Actions.SignInNewAccount,
+                "空服务器登录入口没有打开该服务器的新账号登录页");
+            await SaveRenderAsync(page, "servers-summary-empty-server-render.png");
         }
         finally
         {
@@ -1181,6 +1226,11 @@ internal sealed partial class ShellNavigationProbe
                 && Get<Border>(player, "Rail").OpacityTransition.Duration == TimeSpan.Zero,
                 "关闭动画后播放器仍有隐式淡入");
 
+            // 分类切换会重建模板；原来的 provider 已属于卸载的开关，必须重新找到在场控件。
+            toggle = Descendants(page).OfType<ToggleSwitch>()
+                .Single(control => AutomationProperties.GetName(control) == "UI 动画");
+            Require(!toggle.IsOn && toggle.XamlRoot == page.XamlRoot, "恢复动画时没有定位到在场的开关");
+            provider = (IToggleProvider)new ToggleSwitchAutomationPeer(toggle).GetPattern(PatternInterface.Toggle);
             provider.Toggle();
             Require(toggle.IsOn && fixture.Settings.Ui.AnimationsEnabled
                 && HomeMotion.AnimationsEnabled == systemAnimations, "重新开启没有遵循系统动画设置");

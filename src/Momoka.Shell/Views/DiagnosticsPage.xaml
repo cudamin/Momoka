@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  The diagnostics page. Three cards on the left describing the session, the player and mpv; the log on the
-  right, following along live.
-
-  x:Bind throughout, with x:DataType on the log template, so a renamed view-model property fails the build
-  instead of drawing a blank row. Every button is a Command.
--->
+<!-- Compact read-only dashboard: a single header, three status summaries, and the full-width live log.
+     Paths and launch options remain available in a details flyout rather than taking space from logs. -->
 <Page
     x:Class="Momoka.Shell.Views.DiagnosticsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -13,315 +8,268 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels"
     Background="{ThemeResource EgWindowBrush}">
+    <Page.Resources>
+        <Style x:Key="DiagnosticsLogItemStyle" TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+    </Page.Resources>
 
-    <Grid x:Name="PageLayout" Margin="{StaticResource EgPageMargin}" RowSpacing="16" SizeChanged="OnLayoutSizeChanged">
+    <Grid x:Name="PageLayout" Margin="24,20" RowSpacing="12" SizeChanged="OnLayoutSizeChanged">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <Grid ColumnSpacing="16" RowSpacing="14">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-            <Border Width="48" Height="48" CornerRadius="16" Background="{ThemeResource EgAccentSoftBrush}">
-                <FontIcon Glyph="&#xE9D9;" Foreground="{ThemeResource EgAccentBrush}" FontSize="24" />
-            </Border>
-            <StackPanel Grid.Column="1" Spacing="4">
-                <TextBlock x:Uid="DiagnosticsPage_Heading" FontSize="26" FontWeight="SemiBold" />
-                <TextBlock x:Uid="DiagnosticsPage_Description" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
-            </StackPanel>
-            <CommandBar Grid.Row="1" Grid.ColumnSpan="2" HorizontalAlignment="Stretch"
-                DefaultLabelPosition="Right" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="12" IsOpen="False">
-                <AppBarButton x:Uid="DiagnosticsPage_RefreshAction" AutomationProperties.AutomationId="DiagnosticsRefreshButton"
-                    Icon="Refresh" Command="{x:Bind ViewModel.RefreshCommand}" />
-                <AppBarButton x:Uid="DiagnosticsPage_CopyAction" AutomationProperties.AutomationId="DiagnosticsCopyButton"
-                    Icon="Copy" Command="{x:Bind ViewModel.CopyCommand}" />
-                <AppBarButton x:Uid="DiagnosticsPage_OpenLogsAction" AutomationProperties.AutomationId="DiagnosticsOpenLogsButton"
-                    Icon="Folder" Command="{x:Bind ViewModel.OpenLogDirectoryCommand}" />
-            </CommandBar>
-        </Grid>
+        <!-- Commands share the title row; the platform overflow keeps them reachable in narrow panes. -->
+        <CommandBar x:Name="DiagnosticsToolbar" DefaultLabelPosition="Right" IsOpen="False"
+            Background="Transparent" HorizontalAlignment="Stretch" Padding="0" MinHeight="40">
+            <CommandBar.Content>
+                <Grid ColumnSpacing="10" VerticalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="36" Height="36" CornerRadius="12" Background="{ThemeResource EgAccentSoftBrush}">
+                        <FontIcon Glyph="&#xE9D9;" FontSize="20" Foreground="{ThemeResource EgAccentBrush}" />
+                    </Border>
+                    <TextBlock Grid.Column="1" x:Uid="DiagnosticsPage_Heading"
+                        Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+                </Grid>
+            </CommandBar.Content>
+            <AppBarButton x:Uid="DiagnosticsPage_RefreshAction" AutomationProperties.AutomationId="DiagnosticsRefreshButton"
+                Icon="Refresh" Command="{x:Bind ViewModel.RefreshCommand}" />
+            <AppBarButton x:Uid="DiagnosticsPage_CopyAction" AutomationProperties.AutomationId="DiagnosticsCopyButton"
+                Icon="Copy" Command="{x:Bind ViewModel.CopyCommand}" />
+            <AppBarButton x:Uid="DiagnosticsPage_OpenLogsAction" AutomationProperties.AutomationId="DiagnosticsOpenLogsButton"
+                Icon="Folder" Command="{x:Bind ViewModel.OpenLogDirectoryCommand}" />
+        </CommandBar>
 
-        <InfoBar
-            Grid.Row="1"
-            IsClosable="True"
-            IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
-            Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
-            Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
-            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
+        <Border Grid.Row="1" Background="{ThemeResource EgSurfaceBrush}" Padding="14,12"
+            BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
+            CornerRadius="{StaticResource EgCardCornerRadius}">
+            <Grid x:Name="StatusCards" ColumnSpacing="16" RowSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel x:Name="SessionSummary" Spacing="6">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="DiagnosticsPage_TextBlock5" Style="{StaticResource EgSubheadStyle}" />
+                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.SessionState, Mode=OneWay}"
+                            Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}"
+                            VerticalAlignment="Center" />
+                    </Grid>
+                    <TextBlock Text="{x:Bind ViewModel.Account, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
+                        FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{x:Bind ViewModel.ServerCaption, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                        TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind ViewModel.Server, Mode=OneWay}" />
+                </StackPanel>
+                <StackPanel x:Name="PlaybackSummary" Grid.Column="1" Spacing="6">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="DiagnosticsPage_TextBlock10" Style="{StaticResource EgSubheadStyle}" />
+                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.PlayerState, Mode=OneWay}"
+                            Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                    </Grid>
+                    <TextBlock Text="{x:Bind ViewModel.NowPlaying, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
+                        TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind ViewModel.NowPlaying, Mode=OneWay}" />
+                    <TextBlock Text="{x:Bind ViewModel.Position, Mode=OneWay}" Style="{StaticResource EgDataStyle}" />
+                </StackPanel>
+                <StackPanel x:Name="MpvSummary" Grid.Column="2" Spacing="6">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Uid="DiagnosticsPage_TextBlock13" Style="{StaticResource EgSubheadStyle}" />
+                        <Button x:Name="DiagnosticsDetailsButton" Grid.Column="1" Content="详情"
+                            AutomationProperties.Name="运行状态详情" Padding="6,0" MinHeight="22"
+                            Background="Transparent" BorderThickness="0" VerticalAlignment="Center">
+                            <Button.Flyout>
+                                <Flyout x:Name="DiagnosticsDetailsFlyout">
+                                    <Flyout.FlyoutPresenterStyle>
+                                        <Style TargetType="FlyoutPresenter">
+                                            <Setter Property="MaxWidth" Value="520" />
+                                            <Setter Property="Padding" Value="16" />
+                                        </Style>
+                                    </Flyout.FlyoutPresenterStyle>
+                                    <ScrollView MaxHeight="440" VerticalScrollBarVisibility="Auto">
+                                        <StackPanel Spacing="12" MaxWidth="460">
+                                            <TextBlock Text="运行详情" Style="{StaticResource EgSectionTitleStyle}" />
+                                            <Grid ColumnSpacing="12" RowSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <TextBlock x:Uid="DiagnosticsPage_TextBlock8" Style="{StaticResource EgCaptionStyle}" />
+                                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Server, Mode=OneWay}"
+                                                    Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                                <TextBlock Grid.Row="1" x:Uid="DiagnosticsPage_TextBlock9" Style="{StaticResource EgCaptionStyle}" />
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind ViewModel.ServerVersion, Mode=OneWay}"
+                                                    Style="{StaticResource EgBodyStyle}" />
+                                                <TextBlock Grid.Row="2" x:Uid="DiagnosticsPage_TextBlock14" Style="{StaticResource EgCaptionStyle}" />
+                                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind ViewModel.Backend, Mode=OneWay}"
+                                                    Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                                                <TextBlock Grid.Row="3" Text="IPC" Style="{StaticResource EgCaptionStyle}" />
+                                                <TextBlock Grid.Row="3" Grid.Column="1" Text="{x:Bind ViewModel.Ipc, Mode=OneWay}"
+                                                    Style="{StaticResource EgBodyStyle}" />
+                                                <TextBlock Grid.Row="4" x:Uid="DiagnosticsPage_TextBlock15" Style="{StaticResource EgCaptionStyle}" />
+                                                <TextBlock Grid.Row="4" Grid.Column="1" Text="{x:Bind ViewModel.MpvPath, Mode=OneWay}"
+                                                    Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                                <TextBlock Grid.Row="5" x:Uid="DiagnosticsPage_TextBlock16" Style="{StaticResource EgCaptionStyle}" />
+                                                <TextBlock Grid.Row="5" Grid.Column="1" Text="{x:Bind ViewModel.Shader, Mode=OneWay}"
+                                                    Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                                                <TextBlock Grid.Row="6" x:Uid="DiagnosticsPage_TextBlock18" Style="{StaticResource EgCaptionStyle}" />
+                                                <TextBlock Grid.Row="6" Grid.Column="1" Text="{x:Bind ViewModel.LogPath, Mode=OneWay}"
+                                                    Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                            </Grid>
+                                            <!-- Last launch survives playback ending; hide the entire group until one exists. -->
+                                            <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.LaunchVisibility, Mode=OneWay}">
+                                                <TextBlock Text="{x:Bind ViewModel.LaunchHeading, Mode=OneWay}"
+                                                    Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                                <TextBox x:Uid="DiagnosticsPage_TextBox22" AutomationProperties.AutomationId="DiagnosticsLaunchOptionsBox"
+                                                    IsReadOnly="True" IsSpellCheckEnabled="False" AcceptsReturn="True"
+                                                    MaxHeight="140" MinHeight="72" TextWrapping="Wrap"
+                                                    Text="{x:Bind ViewModel.LaunchOptions, Mode=OneWay}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </ScrollView>
+                                </Flyout>
+                            </Button.Flyout>
+                        </Button>
+                    </Grid>
+                    <TextBlock Text="{x:Bind ViewModel.Backend, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
+                        TextTrimming="CharacterEllipsis" />
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="IPC" Style="{StaticResource EgCaptionStyle}" />
+                        <TextBlock Text="{x:Bind ViewModel.Ipc, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
 
-        <Grid Grid.Row="2" ColumnSpacing="20" RowSpacing="16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="DiagnosticsSideColumn" Width="300" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Row="2">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-
-            <ScrollView x:Name="StatusCards" Grid.RowSpan="2" VerticalScrollBarVisibility="Auto">
-                <StackPanel Spacing="14">
-                    <Border
-                        Padding="20"
-                        Background="{ThemeResource EgSurfaceBrush}"
-                        BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="{StaticResource EgCardBorderThickness}"
-                        CornerRadius="{StaticResource EgCardCornerRadius}">
-                        <StackPanel Spacing="12">
-                            <TextBlock x:Uid="DiagnosticsPage_TextBlock5"
-                                FontSize="18" Foreground="{ThemeResource EgAccentBrush}"
-                                FontWeight="SemiBold" />
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Uid="DiagnosticsPage_TextBlock6" Foreground="{ThemeResource EgTextDimBrush}" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.SessionState, Mode=OneWay}" TextWrapping="Wrap" />
-                            </Grid>
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Uid="DiagnosticsPage_TextBlock7" Foreground="{ThemeResource EgTextDimBrush}" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Account, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
-                            </Grid>
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Uid="DiagnosticsPage_TextBlock8" Foreground="{ThemeResource EgTextDimBrush}" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Server, Mode=OneWay}" TextWrapping="Wrap" />
-                            </Grid>
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Uid="DiagnosticsPage_TextBlock9" Foreground="{ThemeResource EgTextDimBrush}" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.ServerVersion, Mode=OneWay}" />
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-
-                    <Border
-                        Padding="20"
-                        Background="{ThemeResource EgSurfaceBrush}"
-                        BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="{StaticResource EgCardBorderThickness}"
-                        CornerRadius="{StaticResource EgCardCornerRadius}">
-                        <StackPanel Spacing="12">
-                            <TextBlock x:Uid="DiagnosticsPage_TextBlock10"
-                                FontSize="18" Foreground="{ThemeResource EgAccentBrush}"
-                                FontWeight="SemiBold" />
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Uid="DiagnosticsPage_TextBlock11" Foreground="{ThemeResource EgTextDimBrush}" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.PlayerState, Mode=OneWay}" TextWrapping="Wrap" />
-                            </Grid>
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Uid="DiagnosticsPage_TextBlock12" Foreground="{ThemeResource EgTextDimBrush}" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Position, Mode=OneWay}" />
-                            </Grid>
-                            <TextBlock
-                                Foreground="{ThemeResource EgTextDimBrush}"
-                                Text="{x:Bind ViewModel.NowPlaying, Mode=OneWay}"
-                                TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border
-                        Padding="20"
-                        Background="{ThemeResource EgSurfaceBrush}"
-                        BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="{StaticResource EgCardBorderThickness}"
-                        CornerRadius="{StaticResource EgCardCornerRadius}">
-                        <StackPanel Spacing="12">
-                            <TextBlock x:Uid="DiagnosticsPage_TextBlock13"
-                                FontSize="18" Foreground="{ThemeResource EgAccentBrush}"
-                                FontWeight="SemiBold" />
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock x:Uid="DiagnosticsPage_TextBlock14" Foreground="{ThemeResource EgTextDimBrush}" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Backend, Mode=OneWay}" TextWrapping="Wrap" />
-                            </Grid>
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Foreground="{ThemeResource EgTextDimBrush}" Text="IPC" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.Ipc, Mode=OneWay}" />
-                            </Grid>
-                            <TextBlock x:Uid="DiagnosticsPage_TextBlock15" Foreground="{ThemeResource EgTextDimBrush}" />
-                            <TextBlock Text="{x:Bind ViewModel.MpvPath, Mode=OneWay}" TextWrapping="Wrap" />
-                            <TextBlock x:Uid="DiagnosticsPage_TextBlock16" Foreground="{ThemeResource EgTextDimBrush}" />
-                            <TextBlock Text="{x:Bind ViewModel.Shader, Mode=OneWay}" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-
-                    <Border
-                        Padding="20"
-                        Background="{ThemeResource EgSurfaceBrush}"
-                        BorderBrush="{ThemeResource EgBorderBrush}"
-                        BorderThickness="{StaticResource EgCardBorderThickness}"
-                        CornerRadius="{StaticResource EgCardCornerRadius}">
-                        <StackPanel Spacing="12">
-                            <TextBlock x:Uid="DiagnosticsPage_TextBlock17"
-                                FontSize="18" Foreground="{ThemeResource EgAccentBrush}"
-                                FontWeight="SemiBold" />
-                            <TextBlock
-                                Foreground="{ThemeResource EgTextDimBrush}"
-                                Text="{x:Bind ViewModel.LogCount, Mode=OneWay}" />
-                            <TextBlock x:Uid="DiagnosticsPage_TextBlock18" Foreground="{ThemeResource EgTextDimBrush}" />
-                            <TextBlock Text="{x:Bind ViewModel.LogPath, Mode=OneWay}" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
-            </ScrollView>
-
-            <Border
-                x:Name="LogPanel" Grid.Column="1" Grid.RowSpan="2"
-                Background="{ThemeResource EgSurfaceBrush}"
-                BorderBrush="{ThemeResource EgBorderBrush}"
-                BorderThickness="{StaticResource EgCardBorderThickness}"
+            <InfoBar IsClosable="True" Margin="0,0,0,8"
+                Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
+                IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+                Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
+                Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
+                Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
+            <Border x:Name="LogPanel" Grid.Row="1" Background="{ThemeResource EgSurfaceBrush}"
+                BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="{StaticResource EgCardBorderThickness}"
                 CornerRadius="{StaticResource EgCardCornerRadius}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-
-                    <Grid Margin="20,18,20,0" ColumnSpacing="12">
+                    <Grid Margin="14,12,14,0" ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Uid="DiagnosticsPage_TextBlock19"
-                            FontSize="20"
-                            FontWeight="SemiBold" />
-                        <TextBlock
-                            Grid.Column="1"
-                            Foreground="{ThemeResource EgTextDimBrush}"
-                            Text="{x:Bind ViewModel.UpdatedAt, Mode=OneWay}"
-                            VerticalAlignment="Center" />
+                        <local:WrapRow Spacing="10" RowSpacing="2">
+                            <TextBlock x:Uid="DiagnosticsPage_TextBlock19" Style="{StaticResource EgSubheadStyle}" />
+                            <TextBlock Text="{x:Bind ViewModel.LogCount, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                                VerticalAlignment="Center" />
+                        </local:WrapRow>
+                        <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.UpdatedAt, Mode=OneWay}"
+                            Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
                     </Grid>
-
-                    <!-- The filter bar. 实时跟随 is a switch rather than a button because it describes a
-                         state, and turning it off is how you read a stack trace without the list moving. -->
-                    <Grid Grid.Row="1" Margin="20,14" ColumnSpacing="10" RowSpacing="12">
+                    <Grid x:Name="DiagnosticsFilterBar" Grid.Row="1" Margin="14,10,14,8" ColumnSpacing="8" RowSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="168" />
+                            <ColumnDefinition Width="32" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <ComboBox x:Uid="DiagnosticsPage_ComboBoxA1"
-                            AutomationProperties.AutomationId="DiagnosticsCategoryPicker"
-                            HorizontalAlignment="Stretch"
-                            ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
-                            SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}" />
-                        <ComboBox x:Uid="DiagnosticsPage_ComboBoxA2"
-                            AutomationProperties.AutomationId="DiagnosticsLevelPicker"
-                            Grid.Column="1"
-                            ItemsSource="{x:Bind ViewModel.Levels, Mode=OneWay}"
-                            SelectedIndex="{x:Bind ViewModel.SelectedLevel, Mode=TwoWay}" />
-                        <Button x:Uid="DiagnosticsPage_ButtonA3"
-                            AutomationProperties.AutomationId="DiagnosticsClearFilterButton"
-                            Grid.Row="1"
-                            HorizontalAlignment="Left"
-                            Style="{StaticResource EgIconButtonStyle}"
-                            Command="{x:Bind ViewModel.ClearFilterCommand}">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="分类" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                            <ComboBox x:Uid="DiagnosticsPage_ComboBoxA1" AutomationProperties.AutomationId="DiagnosticsCategoryPicker"
+                                Grid.Column="1" HorizontalAlignment="Stretch" AutomationProperties.Name="日志分类"
+                                ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
+                                SelectedItem="{x:Bind ViewModel.SelectedCategory, Mode=TwoWay}" />
+                        </Grid>
+                        <Grid Grid.Column="1" ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="级别" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                            <ComboBox x:Uid="DiagnosticsPage_ComboBoxA2" AutomationProperties.AutomationId="DiagnosticsLevelPicker"
+                                Grid.Column="1" HorizontalAlignment="Stretch" AutomationProperties.Name="日志级别"
+                                ItemsSource="{x:Bind ViewModel.Levels, Mode=OneWay}"
+                                SelectedIndex="{x:Bind ViewModel.SelectedLevel, Mode=TwoWay}" />
+                        </Grid>
+                        <Button x:Uid="DiagnosticsPage_ButtonA3" AutomationProperties.AutomationId="DiagnosticsClearFilterButton"
+                            Grid.Column="2" Style="{StaticResource EgIconButtonStyle}" Width="32" MinWidth="32" Height="32"
+                            AutomationProperties.Name="清除筛选" Command="{x:Bind ViewModel.ClearFilterCommand}">
                             <FontIcon Glyph="&#xE894;" />
                         </Button>
-                        <ToggleSwitch x:Uid="DiagnosticsPage_ToggleSwitch20"
-                            AutomationProperties.AutomationId="DiagnosticsFollowSwitch"
-                            Grid.Row="1" Grid.Column="1"
-                            IsOn="{x:Bind ViewModel.Following, Mode=TwoWay}"
-                            VerticalAlignment="Center" />
+                        <ToggleSwitch x:Name="DiagnosticsFollowSwitch" x:Uid="DiagnosticsPage_ToggleSwitch20"
+                            Grid.Column="3" Width="146" MinWidth="146" HorizontalAlignment="Right" VerticalAlignment="Center"
+                            IsOn="{x:Bind ViewModel.Following, Mode=TwoWay}" />
                     </Grid>
-
-                    <ListView
-                        AutomationProperties.AutomationId="DiagnosticsLogList"
-                        Grid.Row="2"
-                        IsItemClickEnabled="False"
-                        ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
-                        SelectionMode="None">
+                    <ListView AutomationProperties.AutomationId="DiagnosticsLogList" Grid.Row="2"
+                        ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None" IsItemClickEnabled="False"
+                        ItemContainerStyle="{StaticResource DiagnosticsLogItemStyle}">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="vm:LogRow">
-                                <Border
-                                    Padding="14,12"
-                                    BorderBrush="{ThemeResource EgBorderBrush}"
-                                    BorderThickness="0,0,0,1">
-                                    <StackPanel Spacing="6">
-                                        <TextBlock
-                                            FontFamily="Consolas"
-                                            Foreground="{x:Bind LevelBrush}"
-                                            Text="{x:Bind Header}"
-                                            TextWrapping="Wrap" />
-                                        <TextBlock Text="{x:Bind Message}" TextWrapping="Wrap" />
-                                        <TextBlock
-                                            Foreground="{ThemeResource EgTextDimBrush}"
-                                            Text="{x:Bind Detail}"
-                                            TextWrapping="Wrap"
-                                            Visibility="{x:Bind DetailVisibility}" />
+                                <Border Padding="12,8" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,0,0,1">
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Style="{StaticResource EgDataStrongStyle}"
+                                            Foreground="{x:Bind LevelBrush}" Text="{x:Bind Header}" TextWrapping="Wrap" />
+                                        <TextBlock Style="{StaticResource EgBodyStyle}" Text="{x:Bind Message}" TextWrapping="Wrap" />
+                                        <TextBlock Style="{StaticResource EgCaptionStyle}" Text="{x:Bind Detail}"
+                                            TextWrapping="Wrap" Visibility="{x:Bind DetailVisibility}" />
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ListView.ItemTemplate>
                     </ListView>
-
-                    <StackPanel Grid.Row="2" HorizontalAlignment="Center" VerticalAlignment="Center"
-                        Margin="24" Spacing="14" Visibility="{x:Bind ViewModel.EmptyLogsVisibility, Mode=OneWay}">
-                        <FontIcon Glyph="&#xE9D9;" FontSize="32" Foreground="{ThemeResource EgAccentBrush}" />
-                        <TextBlock x:Uid="DiagnosticsPage_TextBlock21" Foreground="{ThemeResource EgTextDimBrush}"
+                    <StackPanel Grid.Row="2" Margin="20" Spacing="10" HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Visibility="{x:Bind ViewModel.EmptyLogsVisibility, Mode=OneWay}">
+                        <FontIcon Glyph="&#xE9D9;" FontSize="28" Foreground="{ThemeResource EgAccentBrush}" />
+                        <TextBlock x:Uid="DiagnosticsPage_TextBlock21" Style="{StaticResource EgCaptionStyle}"
                             TextWrapping="Wrap" TextAlignment="Center" />
-                    </StackPanel>
-
-                    <!-- Kept after playback ends, unlike the live Launch* properties: this box is read
-                         after something went wrong, by which time those are back to null. -->
-                    <StackPanel
-                        Grid.Row="3"
-                        Margin="12"
-                        Spacing="6"
-                        Visibility="{x:Bind ViewModel.LaunchVisibility, Mode=OneWay}">
-                        <TextBlock
-                            FontSize="{StaticResource EgCaptionFontSize}"
-                            Foreground="{ThemeResource EgTextDimBrush}"
-                            Text="{x:Bind ViewModel.LaunchHeading, Mode=OneWay}"
-                            TextTrimming="CharacterEllipsis" />
-                        <TextBox x:Uid="DiagnosticsPage_TextBox22"
-                            AcceptsReturn="True"
-                            AutomationProperties.AutomationId="DiagnosticsLaunchOptionsBox"
-                            IsReadOnly="True"
-                            IsSpellCheckEnabled="False"
-                            MaxHeight="140"
-                            MinHeight="72"
-                            Text="{x:Bind ViewModel.LaunchOptions, Mode=OneWay}"
-                            TextWrapping="Wrap" />
                     </StackPanel>
                 </Grid>
             </Border>

@@ -383,22 +383,12 @@ public sealed partial class ServersViewModel : PageViewModel
         }
     }
 
-    /// <summary>
-    /// 卡片头上那颗「登录」：认的就是头上写着的那个账号，写的是谁就登谁。一个账号都没有时直接去登录页，
-    /// 省得用户先想「这里为什么没反应」。
-    /// </summary>
+    /// <summary>没有保存账号的服务器仍可直接打开登录页。</summary>
     [RelayCommand]
-    private void LoginPrimary(ServerRow? row)
+    private void LoginServer(ServerRow? row)
     {
         if (!Attached || row is null) return;
-
-        if (row.PrimaryAccount is not { } account)
-        {
-            _actions?.OpenSignIn(row.Profile, newAccount: true);
-            return;
-        }
-
-        LoginAccount(account);
+        _actions?.OpenSignIn(row.Profile, newAccount: true);
     }
 
     [RelayCommand]

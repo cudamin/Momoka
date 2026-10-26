@@ -183,6 +183,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("切服逆序完成不退旧登录", ShellSwitchRaceAsync);
             await CaseAsync("目录首次失败可重试", ShellDirectoryRetryAsync);
             await CaseAsync("日志淘汰后显示空态", DiagnosticsEmptyAsync);
+            await CaseAsync("运行状态紧凑布局、筛选与详情", DiagnosticsLayoutAsync, 30);
             await CaseAsync("对话框构造自检路径", DialogConstructionAsync);
             SaveScope();
             ExitCode = _checks.Count > 0 && _checks.All(check => check.Passed) ? 0 : 1;
@@ -551,7 +552,13 @@ internal sealed partial class ShellNavigationProbe
         public bool TryOpenLibrary(string id, EmbySessionScope? source = null) => false;
         public void OpenGenre(string genre, EmbySessionScope? source = null) { }
         public void OpenRow(HomeLayout.HomeRowTarget target, EmbySessionScope? source = null) { }
-        public void OpenSignIn(ServerProfile? server = null, bool newAccount = false) { }
+        public ServerProfile? SignInServer { get; private set; }
+        public bool SignInNewAccount { get; private set; }
+        public void OpenSignIn(ServerProfile? server = null, bool newAccount = false)
+        {
+            SignInServer = server;
+            SignInNewAccount = newAccount;
+        }
         public (ServerProfile Server, AccountProfile? Account)? SwitchedProfile { get; private set; }
         public Task SwitchProfileAsync(ServerProfile server, AccountProfile? account)
         {

@@ -37,18 +37,24 @@ public sealed partial class DiagnosticsPage : Page, IShellContent
         Unloaded += (_, _) => HomeMotion.Stop(PageLayout);
     }
 
-    /// <summary>The settings pane can be much narrower than its window; respond to its actual width.</summary>
+    /// <summary>Respond to the actual settings content width, not the outer window.</summary>
     private void OnLayoutSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        var wide = e.NewSize.Width >= 820;
-        DiagnosticsSideColumn.Width = new GridLength(wide ? 300 : 0);
-        Grid.SetColumnSpan(StatusCards, wide ? 1 : 2);
-        Grid.SetRowSpan(StatusCards, wide ? 2 : 1);
-        StatusCards.MaxHeight = wide ? double.PositiveInfinity : Math.Clamp(e.NewSize.Height * 0.3, 120, 240);
-        Grid.SetColumn(LogPanel, wide ? 1 : 0);
-        Grid.SetRow(LogPanel, wide ? 0 : 1);
-        Grid.SetColumnSpan(LogPanel, wide ? 1 : 2);
-        Grid.SetRowSpan(LogPanel, wide ? 2 : 1);
+        // Three short summaries normally fit across the page. Narrow panes get two columns and then
+        // a single column, without the old height-capped nested scroll area hiding status cards.
+        var columns = e.NewSize.Width >= 640 ? 3 : e.NewSize.Width >= 420 ? 2 : 1;
+        for (var index = 0; index < StatusCards.ColumnDefinitions.Count; index++)
+            StatusCards.ColumnDefinitions[index].Width = index < columns ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        Grid.SetColumn(PlaybackSummary, columns > 1 ? 1 : 0);
+        Grid.SetRow(PlaybackSummary, columns > 1 ? 0 : 1);
+        Grid.SetColumn(MpvSummary, columns == 3 ? 2 : 0);
+        Grid.SetRow(MpvSummary, columns == 3 ? 0 : columns == 2 ? 1 : 2);
+        Grid.SetColumnSpan(MpvSummary, columns == 2 ? 2 : 1);
+
+        var inlineFilters = e.NewSize.Width >= 580;
+        Grid.SetRow(DiagnosticsFollowSwitch, inlineFilters ? 0 : 1);
+        Grid.SetColumn(DiagnosticsFollowSwitch, inlineFilters ? 3 : 0);
+        Grid.SetColumnSpan(DiagnosticsFollowSwitch, inlineFilters ? 1 : 3);
     }
 
     internal DiagnosticsViewModel ViewModel { get; } = new();

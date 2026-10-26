@@ -176,7 +176,11 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
     public partial string? Account { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ServerCaption))]
     public partial string? Server { get; set; }
+
+    /// <summary>摘要只显示服务器名称；完整地址在工具提示与运行详情中保留。</summary>
+    public string ServerCaption => Server?.Split('\n')[0] ?? "未连接";
 
     [ObservableProperty]
     public partial string? ServerVersion { get; set; }
@@ -490,8 +494,8 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
         var settings = Settings.Mpv;
         Backend = settings.Backend switch
         {
-            MpvBackendKind.BuiltInLibMpv => "内置 libmpv（窗口内播放）",
-            MpvBackendKind.ExternalMpv => "外部 mpv.exe（独立窗口）",
+            MpvBackendKind.BuiltInLibMpv => "内置 libmpv",
+            MpvBackendKind.ExternalMpv => "外部 mpv.exe",
             _ => settings.Backend.ToString()
         };
         Ipc = settings.EnableIpc ? "已启用" : "已关闭";
