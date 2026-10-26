@@ -24,6 +24,7 @@ internal sealed class SettingsPriorityMotion
     private bool _dragging;
     private bool _queued;
     private bool _detached;
+    private int _generation;
 
     internal SettingsPriorityMotion(ListView list, SettingTitleRulesRow row)
     {
@@ -33,6 +34,7 @@ internal sealed class SettingsPriorityMotion
         _positions = Measure();
         _row.Rules.CollectionChanged += OnChanged;
         _list.LayoutUpdated += OnLayoutUpdated;
+        HomeMotion.PreferenceChanged += OnPreferenceChanged;
     }
 
     internal bool IsAnimating => _queued || _active.Count > 0;
@@ -51,12 +53,19 @@ internal sealed class SettingsPriorityMotion
 
     private void OnLayoutUpdated(object? sender, object args)
     {
+        if (_detached || _list.XamlRoot is null) return;
+        if (!HomeMotion.AnimationsEnabled) Stop();
         if (!_queued && !_dragging && _active.Count == 0) _positions = Measure();
     }
 
     private void OnChanged(object? sender, NotifyCollectionChangedEventArgs args)
     {
         if (_dragging || _detached) return;
+        if (!HomeMotion.AnimationsEnabled || _list.XamlRoot is null)
+        {
+            Stop();
+            return;
+        }
         _before ??= _positions;
         QueueSettle();
     }
@@ -74,6 +83,7 @@ internal sealed class SettingsPriorityMotion
     // 原生 DragItemsStarting 与隔离探针共用同一套两阶段提交和动画快照。
     internal void BeginDrag()
     {
+        if (_detached) return;
         Stop();
         _before = Measure();
         _dragging = true;
@@ -90,32 +100,38 @@ internal sealed class SettingsPriorityMotion
 
     private void QueueSettle()
     {
-        if (_queued || _detached) return;
+        if (_detached) return;
+        if (!HomeMotion.AnimationsEnabled || _list.XamlRoot is null)
+        {
+            Stop();
+            return;
+        }
+        if (_queued) return;
         _queued = true;
+        var generation = _generation;
         if (!_list.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {
+            // Stop, a replacement drag or Detach may leave the delegate in the dispatcher queue.
+            // An old delegate must not consume the new run's _queued flag or _before snapshot.
+            if (generation != _generation) return;
             _queued = false;
-            // 离树后 TransformToVisual 会抛；先确认树还在，再量布局。Detach 会清掉快照，这里只管本次。
-            if (_detached || _dragging || _list.XamlRoot is null)
+            if (_detached || _dragging || _list.XamlRoot is null || !HomeMotion.AnimationsEnabled)
             {
-                _before = null;
+                Stop();
                 return;
             }
             var before = _before;
-            _before = null;
             Stop();
+            var run = _generation;
             _list.UpdateLayout();
+            if (run != _generation || _detached || _dragging || _list.XamlRoot is null || !HomeMotion.AnimationsEnabled) return;
             var after = Measure();
             _positions = after;
-            if (before is null || !HomeMotion.AnimationsEnabled) return;
+            if (before is null) return;
             foreach (var (rule, top) in after)
                 if (before.TryGetValue(rule, out var oldTop) && Root(rule) is { } root)
                     Spring(root, oldTop - top);
-        }))
-        {
-            _queued = false;
-            _before = null;
-        }
+        })) Stop();
     }
 
     private FrameworkElement? Root(TitleRuleChoice rule) =>
@@ -146,9 +162,11 @@ internal sealed class SettingsPriorityMotion
         var board = new Storyboard();
         board.Children.Add(frames);
         _active.Add(root, board);
+        var generation = _generation;
         board.Completed += (_, _) =>
         {
-            if (!_active.Remove(root)) return;
+            if (generation != _generation || !_active.TryGetValue(root, out var current) || !ReferenceEquals(current, board)) return;
+            _active.Remove(root);
             board.Stop();
             drift.Y = 0;
         };
@@ -163,8 +181,16 @@ internal sealed class SettingsPriorityMotion
             KeySpline = new KeySpline { ControlPoint1 = new Point(0.2, 0.8), ControlPoint2 = new Point(0.25, 1) }
         });
 
+    private void OnPreferenceChanged()
+    {
+        if (!HomeMotion.AnimationsEnabled) Stop();
+    }
+
     internal void Stop()
     {
+        _generation++;
+        _queued = false;
+        _before = null;
         foreach (var (root, board) in _active)
         {
             board.Stop();
@@ -175,11 +201,12 @@ internal sealed class SettingsPriorityMotion
 
     internal void Detach()
     {
+        if (_detached) return;
         _detached = true;
         _row.Rules.CollectionChanged -= OnChanged;
         _list.LayoutUpdated -= OnLayoutUpdated;
+        HomeMotion.PreferenceChanged -= OnPreferenceChanged;
         EndDrag();
-        _before = null;
         Stop();
     }
 }
