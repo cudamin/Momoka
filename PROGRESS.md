@@ -1,3 +1,11 @@
+## 补帧发布到交付目录、桌面快捷方式已更新（2026-10-26 21:00）
+
+- 用户令「跟新桌面的快捷方式」。主干 `742d884` 从主树跑 `tools/publish.ps1 -NoArchive`：**546 个文件、284.2 MB**，发布验证通过（14 GLSL／4 HOOK 逐文件校验，批准 mpv 清单 59 个文件），`Momoka.exe` ProductVersion `0.1.9+742d884736c1…`。旧发布目录先由 bash `rm -rf` 清掉（脚本自己那一步会被 safe-delete 钩子拦）。
+- 发布件里确实带着补帧：`Momoka.dll` 里有「补帧」（10 处）、「运动补偿（CPU）」、「minterpolate」；`Momoka.Core.dll` 里有 `momoka-frame-interpolation` 滤镜标签。
+- 桌面 `Momoka.lnk` 原本就指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`（上一窗口从主树发布的那一份）。按老规矩绕开「lnk 内容写不进去」：旧 lnk 改名成 `Momoka.lnk.bak-20261026-2105`，再跑 `tools/shortcut.ps1` 重建，回读目标仍是同一路径、生成时间 21:03。旧的 `Momoka.lnk.bak`（10-25）留着。
+- `--probe-shell --probe-section settings` 在发布件上跑了两次：**20/21 通过**，唯一红项是「主页排序只列当前来源、聚合切换与偏好恢复」（`UntilAsync` 2 秒等不到 6 行，停在 760 宽截图之后、聚合恢复之前）。**这不是补帧带来的**：另建 `22cfa75`（合并前的主干）对照树，同一探针同样红、同样停在那一步，三份报告都在 `%LOCALAPPDATA%\Momoka\logs\shell-probe-*`。未修，原因待查（怀疑重入或聚合那一步的表没重填，不是超时预算）。其余设置项全绿，含字幕翻译那条与视频基础输出的宽窄两项。
+- 闸门 4（完整自检与基线比较）未跑：本轮不是发版本，只把构建换到桌面。
+
 ## 补帧功能线并入主干（2026-10-26）
 
 - 工作树 `C:/Users/89400/Momoka-worktrees/frame-interpolation-finish`，分支 `codex/frame-interpolation-finish`（起点 `2fdbf99`，是 `archive/20261026/video-frame-interpolation` 与主干的合并结果）。子代理交来的规则层、设置卡与独立测试缺三样东西：`VideoSettings` 上那三个属性、父卡挂接、基础卡按有效值显示 —— 本轮补齐。
