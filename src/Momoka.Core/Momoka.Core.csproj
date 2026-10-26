@@ -14,6 +14,8 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Momoka" />
     <InternalsVisibleTo Include="Momoka.Tests" />
+    <!-- Source-linked page/card tests exercise the same internal source lifetime as production. -->
+    <InternalsVisibleTo Include="Momoka.PageContractTests" />
   </ItemGroup>
 
 </Project>

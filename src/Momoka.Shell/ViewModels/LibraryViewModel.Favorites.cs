@@ -53,12 +53,13 @@ public sealed partial class LibraryViewModel
         Cards.Clear();
         _total = NotLoaded;
         ShowEmptyNotice = false;
-        OnPropertyChanged(nameof(FavoriteAccountLabel));
-        OnPropertyChanged(nameof(SortFilterVisibility));
-        OnPropertyChanged(nameof(FilterVisibility));
-        OnPropertyChanged(nameof(LayoutVisibility));
-        OnPropertyChanged(nameof(FnNasFilterTextVisibility));
-        OnPropertyChanged(nameof(FilterButtonWidth));
+        // 同页换来源与首次 Attach 使用同一套恢复规则。通用旧条件不能继续进入飞牛查询，
+        // 标签与其在飞任务也属于旧来源；不保存、不清除其他库已记住的偏好。
+        ResetFnNasFilters();
+        RestoreSort();
+        RestoreFilters();
+        RestoreDisplay();
+        RefreshBrowseChrome();
         RowsArrived();
         await ReloadAsync().ConfigureAwait(true);
         return true;

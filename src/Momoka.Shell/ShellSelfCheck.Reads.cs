@@ -330,6 +330,8 @@ internal static partial class ShellSelfCheck
             library.ViewName,
             views,
             restored,
+            CardSize.Chrome + (library.ViewModel.Fields.Contains(LibraryField.Tagline)
+                || library.ViewModel.Fields.Contains(LibraryField.Overview) ? 18 : 0),
             library.AlphaShown,
             library.ArtworkCensus,
             library.ContainerHalo());

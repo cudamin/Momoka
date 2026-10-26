@@ -191,6 +191,10 @@ public sealed partial class PlayerViewModel : ObservableObject
     /// </summary>
     private int _generation;
 
+    // Same-file track notifications can outrun an initial IPC read; file generation alone cannot
+    // distinguish those snapshots. This revision is owned and compared on the UI continuation.
+    private long _tracksRevision;
+
     /// <summary>True while a bound property is being written from mpv rather than by the user.</summary>
     private bool _pushing;
 

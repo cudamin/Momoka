@@ -1,0 +1,1561 @@
+{
+  "schemaVersion": 1,
+  "phase": 2,
+  "capturedAt": "2026-10-21T03:16:57+08:00",
+  "timezone": "Asia/Shanghai",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "4b663c425491120a4d87234d98bf20ecc9c88619",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "authorization": "继续按候选计划启动当前阶段只读审查；后续阶段及修复/真实操作/推送/发布需另有指令",
+  "baselineStatusBeforeWriting": {
+    "trackedChanges": [],
+    "stagedChanges": [],
+    "untrackedFiles": [],
+    "productMatchesFixedSource": true
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段2审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段2检查.json",
+    "PROGRESS.md"
+  ],
+  "readPoliciesAndSkills": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "sha256": "364229B10809BFC4516C27B7D08352D5AF38438ADA222181FBC92B880EF4F4C0"
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA"
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/SKILL.md",
+      "sha256": "3B949221AC0C99E142C805B36EBE4480D9CA91B55609BE8F2969E7724ED0B4A9"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/http-and-auth.md",
+      "sha256": "9A0887986CE1DFD46517E01D7BC839E5F8104DE2D4063A9C9C9526AD1D4ED1AF"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/endpoints.md",
+      "sha256": "E0359E9D1FC73B8C773D10BFBAFF13F20248B84040BF6E5A588AD8ADD5930090"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/official-sdk.md",
+      "sha256": "C140C62BC10168F76F93010C68471769ADF5AD44AC9075DFF3659B37DE344A8E"
+    }
+  ],
+  "coverage": [
+    {
+      "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+      "readDepth": "传输关键方法全文",
+      "reviewedAspect": "构造/逐请求头、普通 deadline、错误翻译/脱敏、可选 JSON、长下载/文件清理及释放",
+      "sha256": "DD9BB68241B5DBED329FCBF0853BD8920C59DE77A316B092F05D07AD6E1DF71C"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyHttpRedirect.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "来源核对、五跳、HTTPS 降级、登录/写入重放边界",
+      "sha256": "FE782AA0D613760ACEC8F7B115650F084C41682E50F58B824586BDDCCF6925CF"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyApiException.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "状态到异常的调用语义",
+      "sha256": "F900EB479B8827FE297B5B0326225AA73A472D430A89AB2838622D3779614ABC"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyUrl.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "流/字幕/图片/章节 URL 与 query 编码；动态 ID 业务约束未穷尽",
+      "sha256": "C2F9591EEF9DB7D037A123A1E01AA144B22EC244217BABDC9D1671E65B1AE614"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerAddress.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "Emby 基址、反代路径和已确认入口的边界；Jellyfin 行为只读取交界，专项留阶段 3",
+      "sha256": "25BCFC0570D42D2D4CCCD5B0728B86B124ABF0D7CB1C90C272130BB72479152F"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/DeviceIdentity.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "稳定设备身份的头部拼装与清洗",
+      "sha256": "E4B1B515AE2AAA66CFCE4CA5B6A5143F0C71C740094BF70C22676C5A17711938"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/MediaServerKind.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "本阶段重点 Emby 请求头；其他产品只核对共享交界",
+      "sha256": "715FE494275237BCEFFB304FB928D230DFE648317EF6EA4780DC3E22B17F30F8"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "调用者到 Emby URL/Context 的分派；Jellyfin 全兼容留阶段 3",
+      "sha256": "2049EE83DA9C0D7A357661C04C93F5536DEE2F9658B7838DE12FA8A6102C13B9"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyRealtimeProtocol.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "设备号 URL、头部握手、支持产品、消息类别/解析",
+      "sha256": "4B2FA32068B813186C0215B20B545B58E78B072E703DFBA938C4CBC672D225FD"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyRealtimeConnection.cs",
+      "readDepth": "连接循环与接收/取消/释放方法",
+      "reviewedAspect": "握手超时、默认 handler、分片处理、重连与 scope 寿命",
+      "sha256": "D86B90025DB48F69E3A9860947803EE91C5054A75519E13D28F568417D92FCD4"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyRealtimeWatch.cs",
+      "readDepth": "Attach/Release/Dispose 方法",
+      "reviewedAspect": "按来源连接、同步取消与异步释放",
+      "sha256": "65F23C021B718BF8AC1730098B62B5F58F2ECC8DAA8FD25C438802A558C9F875"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyRealtimeBackoff.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "退避序列/上限/归零",
+      "sha256": "45168C4849179A7B00DB69C248CAF87E55F7C082DF0B02A951DE7044AB4EB395"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+      "readDepth": "匿名探测/Authenticate 相关段",
+      "reviewedAspect": "登录正文、IsAuthenticationAttempt、结果必需字段及同源交界",
+      "sha256": "F5F4D11ABBB0965169318C1BD170563D6C24FB604A75E4A33CD1066BA1590DF0"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "readDepth": "相关调用段，非整文件穷尽",
+      "reviewedAspect": "Context、图片转发/图片/章节/字幕/流/上传、下载入口；未深审全部媒体行为",
+      "sha256": "F4F925115A61DEFE1940F34BD2B840827D72F1CE841F6D5A2CB53FF0B8B24E86"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+      "readDepth": "来源身份/CurrentConnection/Lifetime/Execute 相关段",
+      "reviewedAspect": "scope 捕获到重连的最新连接与来源寿命，不是完整账号专项",
+      "sha256": "AD136E6CAC7D519BB72AB3B1A765E2F88B6BDDA53A5960F7F184C1D650F30CEB"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "readDepth": "CurrentConnection/Execute/重登/撤销/Dispose 相关段",
+      "reviewedAspect": "原来源与替换身份守卫、取消联动；全部持久化留阶段 6",
+      "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/DownloadPlan.cs",
+      "readDepth": "目录/文件名相关段",
+      "reviewedAspect": "核对下载可达链路，未做完整文件命名专项",
+      "sha256": "D4FD288FF6625BE511ADBEAF7BC3E0E1D810A69DBB06200A768D60BF73FDDCEA"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+      "readDepth": "图片调用/缓存边界定位",
+      "reviewedAspect": "核对 GetBytes 调用者，未做完整缓存专项",
+      "sha256": "160DE2D077AFA0ED6A7581F46D50423AAF74EEAFF21BACA99D16C36403090064"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+      "readDepth": "Attach/实时回调/泵送/Cancel 和轮询入口相关定位",
+      "reviewedAspect": "确认快路径及轮询交界；UI/业务状态完整复核留阶段 7/17",
+      "sha256": "80D608F711695695E6FAB8915E8E9A2F7D3830981CE6D2B1699E5831D1101951"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+      "readDepth": "离页释放/轮询相关定位",
+      "reviewedAspect": "生命周期调用者，不做布局审查",
+      "sha256": "81423D824C5B57A20AF5FFE9E2D5A190FF80CB1AEECC7EF1DCD6FFD49A97509D"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "readDepth": "下载动作分派相关定位",
+      "reviewedAspect": "确认 UI 命令可达",
+      "sha256": "683356CC70D962BC228E53E8E15138AE9677EE54A936D5E6615115BD846DA441"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "readDepth": "Guard/Download/FilesOf/Save 相关段",
+      "reviewedAspect": "错误日志、单队列、来源取消与下载者状态",
+      "sha256": "57E97DCF4D4E0F612CE793AAEF50F5A31A1C0C697A866FEDC7435C377C150C9B"
+    },
+    {
+      "path": "tests/Momoka.Tests/HttpRedirectTests.cs",
+      "readDepth": "注册与夹具全文",
+      "reviewedAspect": "已有 REST 逐跳、401 分类、正文/资源释放与取消",
+      "sha256": "E3E743EF37FB3CDB93AA2728976DE1A58BF83523487617F388C3C3391AAB9AC3"
+    },
+    {
+      "path": "tests/Momoka.Tests/HttpDiagnosticsTests.cs",
+      "readDepth": "注册/脱敏夹具",
+      "reviewedAspect": "错误正文/ReasonPhrase/异常链/JSON 字段不回显",
+      "sha256": "B3598343CA0EBB5F5CB668305D676BCE4BB125772C551559A7227B8D72F7F940"
+    },
+    {
+      "path": "tests/Momoka.Tests/HttpDeadlineTests.cs",
+      "readDepth": "注册与暂停正文夹具全文",
+      "reviewedAspect": "普通/错误正文截止、长成功下载和调用者取消；长下载错误正文未测",
+      "sha256": "2ECC9349FC78C5A8FBD91EBA1116D1EC8A9D737215CACA5A192CD419FDBCDEAD"
+    },
+    {
+      "path": "tests/Momoka.Tests/EmbyRealtimeTests.cs",
+      "readDepth": "注册/相关纯函数断言",
+      "reviewedAspect": "握手 URL/头、类别、退避；非跨源握手回归",
+      "sha256": "F46CB6606F6619A01995FBD19ECF87AF3BE85603003637584218943CA28AE87E"
+    },
+    {
+      "path": "tests/Momoka.Tests/EmbyRealtimeTests.Transport.cs",
+      "readDepth": "回环注册与测试夹具",
+      "reviewedAspect": "实际 Loopback 101、重连新头、来源退出/退避取消",
+      "sha256": "40E576F820F426B1B1A7A1399F718515F91E3E1C966461C715904BD2005202F2"
+    },
+    {
+      "path": "tests/Momoka.Tests/EmbyTests.cs",
+      "readDepth": "HTTP/URL/设备/缓存及注册相关段",
+      "reviewedAspect": "关联测试定位，非全部业务断言深入审查",
+      "sha256": "A53D5359ED2A2EF12D147E49309502946517C59EB35C62D5D3EF4E7084119A9C"
+    },
+    {
+      "path": "tests/Momoka.Tests/ItemActionTests.cs",
+      "readDepth": "下载三用例相关段",
+      "reviewedAspect": "成功/短流/403 立即正文返回；不是长错误正文停住",
+      "sha256": "7B8A0EE49BDB145B587854294BB99A1ADBB9C483332D38965A12DEA13DF2B8D0"
+    },
+    {
+      "path": "tests/Momoka.Tests/Program.cs",
+      "readDepth": "全文",
+      "reviewedAspect": "实际登记顺序、无套件过滤",
+      "sha256": "F11B86FD5018612CDAB1DE4E060A68C5AF3A49239A1743EB4F216C8662A1D7B6"
+    },
+    {
+      "path": "tests/Momoka.Tests/TestHarness.cs",
+      "readDepth": "运行循环/断言相关段",
+      "reviewedAspect": "计数、跳过、退出码；没有冒充新增回归",
+      "sha256": "867F06B38EA92DFD758C39FE3754DC806935C5A88A4759CAD68F151A486BE639"
+    },
+    {
+      "path": "tests/Momoka.Tests/SelfCheckTests.cs",
+      "readDepth": "隔离/子进程/junction 相关段",
+      "reviewedAspect": "核对正式测试安全运行边界；不是运行 Momoka 自检",
+      "sha256": "9CA8C8AA53060D9B2B4D2189B44794CB8A63F8AE1511CC315A533B0F42B66C29"
+    },
+    {
+      "path": "tests/Momoka.Tests/MpvProcessTests.cs",
+      "readDepth": "假进程后端与路径/IPC 相关段",
+      "reviewedAspect": "当前测试宿主作子进程，不启动真实 mpv 或联网媒体",
+      "sha256": "3794D65C1FBF38A390FB9807DEF607EC91FBA3C31975241AABFED37A348478A3"
+    },
+    {
+      "path": "tests/Momoka.Tests/BackendLifecycleTests.cs",
+      "readDepth": "预取消与假后端相关段",
+      "reviewedAspect": "确认测试运行不加载真实播放",
+      "sha256": "87393D9AE434F34189919EC278DC32C8EC2C4D1283CD7A8DED7B323746A730B5"
+    },
+    {
+      "path": "tests/Momoka.Tests/MpvUiTests.cs",
+      "readDepth": "装配/路径读取相关定位",
+      "reviewedAspect": "全量测试只核对集成声明，不作为实际 uosc 运行",
+      "sha256": "C0D8B01B28A44CD3D15D74C232C1F581BE17542548E22402249286B62D118A3C"
+    },
+    {
+      "path": "tests/Momoka.Tests/AgreementsTests.cs",
+      "readDepth": "扫描范围/基线相关段",
+      "reviewedAspect": "确认离线写本树检查结果，不改基线",
+      "sha256": "ACE8747B81D64AF0FA401356C9DFC6C2E0CE9AF50D42ADF0FDDF869E2EC60DBC"
+    }
+  ],
+  "runtimeStaticEvidence": {
+    "schemaVersion": 1,
+    "phase": 2,
+    "capturedAt": "2026-10-21T02:47:15+08:00",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "phaseStartCommit": "4b663c425491120a4d87234d98bf20ecc9c88619",
+    "type": "源码与二进制静态元数据证据，不执行被反射方法、不建立 Socket、不运行产品测试",
+    "runtimeAssemblies": [
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.WebSockets.Client.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.WebSockets.Client.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "FF5D42603B662A634857DCC6E1239547025D03794AEA4F84D624579765C23BA9",
+        "identicalToReadAssembly": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.Http.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.Http.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "8AE9F649D43F1F3FB635170784BCB753D305BC36A42703B4B0BEDB15A29729F0",
+        "identicalToReadAssembly": true
+      }
+    ],
+    "methodIL": {
+      "webSocketSetupInvoker": [
+        {
+          "offset": "IL_0001",
+          "opcode": "callvirt",
+          "operand": "Boolean AreCompatibleWithCustomInvoker()"
+        },
+        {
+          "offset": "IL_0009",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_000C",
+          "opcode": "callvirt",
+          "operand": "System.Net.IWebProxy get_Proxy()"
+        },
+        {
+          "offset": "IL_0014",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_002C",
+          "opcode": "newobj",
+          "operand": "Void .ctor()"
+        },
+        {
+          "offset": "IL_0037",
+          "opcode": "callvirt",
+          "operand": "Void set_PooledConnectionLifetime(System.TimeSpan)"
+        },
+        {
+          "offset": "IL_003E",
+          "opcode": "callvirt",
+          "operand": "Void set_UseProxy(Boolean)"
+        },
+        {
+          "offset": "IL_0044",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0045",
+          "opcode": "callvirt",
+          "operand": "Void set_UseCookies(Boolean)"
+        },
+        {
+          "offset": "IL_004A",
+          "opcode": "newobj",
+          "operand": "Void .ctor(System.Net.Http.HttpMessageHandler)"
+        },
+        {
+          "offset": "IL_0053",
+          "opcode": "call",
+          "operand": "System.Net.Http.HttpMessageInvoker CompareExchange[HttpMessageInvoker](System.Net.Http.HttpMessageInvoker ByRef, System.Net.Http.HttpMessageInvoker, System.Net.Http.HttpMessageInvoker)"
+        },
+        {
+          "offset": "IL_005B",
+          "opcode": "callvirt",
+          "operand": "Void Dispose()"
+        },
+        {
+          "offset": "IL_0064",
+          "opcode": "ldc.i4.1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0066",
+          "opcode": "newobj",
+          "operand": "Void .ctor()"
+        },
+        {
+          "offset": "IL_0072",
+          "opcode": "callvirt",
+          "operand": "Void set_PooledConnectionLifetime(System.TimeSpan)"
+        },
+        {
+          "offset": "IL_0079",
+          "opcode": "callvirt",
+          "operand": "System.Net.CookieContainer get_Cookies()"
+        },
+        {
+          "offset": "IL_007E",
+          "opcode": "callvirt",
+          "operand": "Void set_CookieContainer(System.Net.CookieContainer)"
+        },
+        {
+          "offset": "IL_0085",
+          "opcode": "callvirt",
+          "operand": "System.Net.CookieContainer get_Cookies()"
+        },
+        {
+          "offset": "IL_008D",
+          "opcode": "callvirt",
+          "operand": "Void set_UseCookies(Boolean)"
+        },
+        {
+          "offset": "IL_0093",
+          "opcode": "callvirt",
+          "operand": "System.Net.Security.SslClientAuthenticationOptions get_SslOptions()"
+        },
+        {
+          "offset": "IL_0099",
+          "opcode": "callvirt",
+          "operand": "System.Net.Security.RemoteCertificateValidationCallback get_RemoteCertificateValidationCallback()"
+        },
+        {
+          "offset": "IL_009E",
+          "opcode": "callvirt",
+          "operand": "Void set_RemoteCertificateValidationCallback(System.Net.Security.RemoteCertificateValidationCallback)"
+        },
+        {
+          "offset": "IL_00A5",
+          "opcode": "callvirt",
+          "operand": "Boolean get_UseDefaultCredentials()"
+        },
+        {
+          "offset": "IL_00AD",
+          "opcode": "callvirt",
+          "operand": "System.Net.ICredentials get_Credentials()"
+        },
+        {
+          "offset": "IL_00B4",
+          "opcode": "call",
+          "operand": "System.Net.ICredentials get_DefaultCredentials()"
+        },
+        {
+          "offset": "IL_00B9",
+          "opcode": "callvirt",
+          "operand": "Void set_Credentials(System.Net.ICredentials)"
+        },
+        {
+          "offset": "IL_00BF",
+          "opcode": "callvirt",
+          "operand": "System.Net.IWebProxy get_Proxy()"
+        },
+        {
+          "offset": "IL_00C7",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_00C8",
+          "opcode": "callvirt",
+          "operand": "Void set_UseProxy(Boolean)"
+        },
+        {
+          "offset": "IL_00D0",
+          "opcode": "callvirt",
+          "operand": "System.Net.IWebProxy get_Proxy()"
+        },
+        {
+          "offset": "IL_00D5",
+          "opcode": "call",
+          "operand": "DefaultWebProxy get_Instance()"
+        },
+        {
+          "offset": "IL_00DE",
+          "opcode": "callvirt",
+          "operand": "System.Net.IWebProxy get_Proxy()"
+        },
+        {
+          "offset": "IL_00E3",
+          "opcode": "callvirt",
+          "operand": "Void set_Proxy(System.Net.IWebProxy)"
+        },
+        {
+          "offset": "IL_00F2",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_00F5",
+          "opcode": "call",
+          "operand": "Int32 get_Count()"
+        },
+        {
+          "offset": "IL_00FA",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0100",
+          "opcode": "callvirt",
+          "operand": "System.Net.Security.SslClientAuthenticationOptions get_SslOptions()"
+        },
+        {
+          "offset": "IL_0105",
+          "opcode": "newobj",
+          "operand": "Void .ctor()"
+        },
+        {
+          "offset": "IL_010A",
+          "opcode": "callvirt",
+          "operand": "Void set_ClientCertificates(System.Security.Cryptography.X509Certificates.X509CertificateCollection)"
+        },
+        {
+          "offset": "IL_0110",
+          "opcode": "callvirt",
+          "operand": "System.Net.Security.SslClientAuthenticationOptions get_SslOptions()"
+        },
+        {
+          "offset": "IL_0115",
+          "opcode": "callvirt",
+          "operand": "System.Security.Cryptography.X509Certificates.X509CertificateCollection get_ClientCertificates()"
+        },
+        {
+          "offset": "IL_011B",
+          "opcode": "callvirt",
+          "operand": "System.Security.Cryptography.X509Certificates.X509CertificateCollection get_ClientCertificates()"
+        },
+        {
+          "offset": "IL_0120",
+          "opcode": "callvirt",
+          "operand": "Void AddRange(System.Security.Cryptography.X509Certificates.X509CertificateCollection)"
+        },
+        {
+          "offset": "IL_0126",
+          "opcode": "newobj",
+          "operand": "Void .ctor(System.Net.Http.HttpMessageHandler)"
+        }
+      ],
+      "httpConnectionSettingsConstructor": [
+        {
+          "offset": "IL_0001",
+          "opcode": "ldc.i4.1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0002",
+          "opcode": "stfld",
+          "operand": "Boolean _useCookies"
+        },
+        {
+          "offset": "IL_0008",
+          "opcode": "ldc.i4.1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_000F",
+          "opcode": "ldc.i4.1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0010",
+          "opcode": "stfld",
+          "operand": "Boolean _allowAutoRedirect"
+        },
+        {
+          "offset": "IL_0016",
+          "opcode": "ldc.i4.s",
+          "operand": "50"
+        },
+        {
+          "offset": "IL_0018",
+          "opcode": "stfld",
+          "operand": "Int32 _maxAutomaticRedirections"
+        },
+        {
+          "offset": "IL_0029",
+          "opcode": "ldc.i4",
+          "operand": "1048576"
+        },
+        {
+          "offset": "IL_003F",
+          "opcode": "ldc.i4.s",
+          "operand": "64"
+        },
+        {
+          "offset": "IL_007E",
+          "opcode": "ldc.i4.1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0090",
+          "opcode": "call",
+          "operand": "System.Diagnostics.DistributedContextPropagator get_Current()"
+        },
+        {
+          "offset": "IL_009B",
+          "opcode": "ldc.i4",
+          "operand": "65535"
+        },
+        {
+          "offset": "IL_00A6",
+          "opcode": "call",
+          "operand": "Void .ctor()"
+        },
+        {
+          "offset": "IL_00AB",
+          "opcode": "call",
+          "operand": "Boolean get_AllowHttp2()"
+        },
+        {
+          "offset": "IL_00B1",
+          "opcode": "call",
+          "operand": "Boolean get_AllowHttp3()"
+        },
+        {
+          "offset": "IL_00D9",
+          "opcode": "ldc.i4.1",
+          "operand": ""
+        }
+      ],
+      "redirectSendAsyncMoveNext": [
+        {
+          "offset": "IL_0008",
+          "opcode": "ldfld",
+          "operand": "System.Net.Http.RedirectHandler <>4__this"
+        },
+        {
+          "offset": "IL_0012",
+          "opcode": "ldc.i4.1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0030",
+          "opcode": "callvirt",
+          "operand": "System.Threading.Tasks.ValueTask`1[System.Net.Http.HttpResponseMessage] SendAsync(System.Net.Http.HttpRequestMessage, Boolean, System.Threading.CancellationToken)"
+        },
+        {
+          "offset": "IL_0039",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_003A",
+          "opcode": "call",
+          "operand": "System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable`1[System.Net.Http.HttpResponseMessage] ConfigureAwait(Boolean)"
+        },
+        {
+          "offset": "IL_0043",
+          "opcode": "call",
+          "operand": "ConfiguredValueTaskAwaiter GetAwaiter()"
+        },
+        {
+          "offset": "IL_004C",
+          "opcode": "call",
+          "operand": "Boolean get_IsCompleted()"
+        },
+        {
+          "offset": "IL_0054",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_006D",
+          "opcode": "call",
+          "operand": "Void AwaitUnsafeOnCompleted[ConfiguredValueTaskAwaiter,<SendAsync>d__4](ConfiguredValueTaskAwaiter ByRef, <SendAsync>d__4 ByRef)"
+        },
+        {
+          "offset": "IL_008C",
+          "opcode": "ldc.i4.m1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0096",
+          "opcode": "call",
+          "operand": "System.Net.Http.HttpResponseMessage GetResult()"
+        },
+        {
+          "offset": "IL_009D",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_009E",
+          "opcode": "stfld",
+          "operand": "UInt32 <redirectCount>5__2"
+        },
+        {
+          "offset": "IL_00A9",
+          "opcode": "ldfld",
+          "operand": "UInt32 <redirectCount>5__2"
+        },
+        {
+          "offset": "IL_00B3",
+          "opcode": "ldc.i4.1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_00B5",
+          "opcode": "stfld",
+          "operand": "UInt32 <redirectCount>5__2"
+        },
+        {
+          "offset": "IL_00BB",
+          "opcode": "ldfld",
+          "operand": "UInt32 <redirectCount>5__2"
+        },
+        {
+          "offset": "IL_00C2",
+          "opcode": "ldfld",
+          "operand": "Int32 _maxAutomaticRedirections"
+        },
+        {
+          "offset": "IL_00CF",
+          "opcode": "callvirt",
+          "operand": "Boolean IsEnabled()"
+        },
+        {
+          "offset": "IL_00DA",
+          "opcode": "ldc.i4.s",
+          "operand": "61"
+        },
+        {
+          "offset": "IL_00DC",
+          "opcode": "ldc.i4.2",
+          "operand": ""
+        },
+        {
+          "offset": "IL_00DD",
+          "opcode": "newobj",
+          "operand": "Void .ctor(Int32, Int32)"
+        },
+        {
+          "offset": "IL_00E6",
+          "opcode": "ldstr",
+          "operand": "Exceeded max number of redirects. Redirect from "
+        },
+        {
+          "offset": "IL_00EB",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_00F8",
+          "opcode": "callvirt",
+          "operand": "System.Uri get_RequestUri()"
+        },
+        {
+          "offset": "IL_00FD",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[Uri](System.Uri)"
+        },
+        {
+          "offset": "IL_0104",
+          "opcode": "ldstr",
+          "operand": " to "
+        },
+        {
+          "offset": "IL_0109",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_0112",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[Uri](System.Uri)"
+        },
+        {
+          "offset": "IL_0119",
+          "opcode": "ldstr",
+          "operand": " blocked."
+        },
+        {
+          "offset": "IL_011E",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_0125",
+          "opcode": "call",
+          "operand": "System.String ToStringAndClear()"
+        },
+        {
+          "offset": "IL_0130",
+          "opcode": "callvirt",
+          "operand": "Int32 GetHashCode()"
+        },
+        {
+          "offset": "IL_0135",
+          "opcode": "ldstr",
+          "operand": "SendAsync"
+        },
+        {
+          "offset": "IL_013A",
+          "opcode": "call",
+          "operand": "Void TraceError(System.String, Int32, System.String)"
+        },
+        {
+          "offset": "IL_0145",
+          "opcode": "callvirt",
+          "operand": "Void Dispose()"
+        },
+        {
+          "offset": "IL_0150",
+          "opcode": "callvirt",
+          "operand": "System.Net.Http.Headers.HttpRequestHeaders get_Headers()"
+        },
+        {
+          "offset": "IL_0156",
+          "opcode": "callvirt",
+          "operand": "Void set_Authorization(System.Net.Http.Headers.AuthenticationHeaderValue)"
+        },
+        {
+          "offset": "IL_0160",
+          "opcode": "callvirt",
+          "operand": "Boolean IsEnabled()"
+        },
+        {
+          "offset": "IL_016E",
+          "opcode": "callvirt",
+          "operand": "Void Redirect(System.Uri)"
+        },
+        {
+          "offset": "IL_0178",
+          "opcode": "callvirt",
+          "operand": "Boolean IsEnabled()"
+        },
+        {
+          "offset": "IL_0183",
+          "opcode": "ldc.i4.s",
+          "operand": "53"
+        },
+        {
+          "offset": "IL_0185",
+          "opcode": "ldc.i4.4",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0186",
+          "opcode": "newobj",
+          "operand": "Void .ctor(Int32, Int32)"
+        },
+        {
+          "offset": "IL_018F",
+          "opcode": "ldstr",
+          "operand": "Redirecting from "
+        },
+        {
+          "offset": "IL_0194",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_01A1",
+          "opcode": "callvirt",
+          "operand": "System.Uri get_RequestUri()"
+        },
+        {
+          "offset": "IL_01A6",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[Uri](System.Uri)"
+        },
+        {
+          "offset": "IL_01AD",
+          "opcode": "ldstr",
+          "operand": " to "
+        },
+        {
+          "offset": "IL_01B2",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_01BB",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[Uri](System.Uri)"
+        },
+        {
+          "offset": "IL_01C2",
+          "opcode": "ldstr",
+          "operand": " in response to status code "
+        },
+        {
+          "offset": "IL_01C7",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_01CF",
+          "opcode": "callvirt",
+          "operand": "System.Net.HttpStatusCode get_StatusCode()"
+        },
+        {
+          "offset": "IL_01D4",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[Int32](Int32)"
+        },
+        {
+          "offset": "IL_01DB",
+          "opcode": "ldstr",
+          "operand": " '"
+        },
+        {
+          "offset": "IL_01E0",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_01E8",
+          "opcode": "callvirt",
+          "operand": "System.Net.HttpStatusCode get_StatusCode()"
+        },
+        {
+          "offset": "IL_01ED",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[HttpStatusCode](System.Net.HttpStatusCode)"
+        },
+        {
+          "offset": "IL_01F4",
+          "opcode": "ldstr",
+          "operand": "'."
+        },
+        {
+          "offset": "IL_01F9",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_0200",
+          "opcode": "call",
+          "operand": "System.String ToStringAndClear()"
+        },
+        {
+          "offset": "IL_020B",
+          "opcode": "callvirt",
+          "operand": "Int32 GetHashCode()"
+        },
+        {
+          "offset": "IL_0210",
+          "opcode": "ldstr",
+          "operand": "SendAsync"
+        },
+        {
+          "offset": "IL_0215",
+          "opcode": "call",
+          "operand": "Void Trace(System.String, Int32, System.String)"
+        },
+        {
+          "offset": "IL_0222",
+          "opcode": "callvirt",
+          "operand": "Void set_RequestUri(System.Uri)"
+        },
+        {
+          "offset": "IL_0228",
+          "opcode": "callvirt",
+          "operand": "System.Net.HttpStatusCode get_StatusCode()"
+        },
+        {
+          "offset": "IL_0233",
+          "opcode": "callvirt",
+          "operand": "System.Net.Http.HttpMethod get_Method()"
+        },
+        {
+          "offset": "IL_0238",
+          "opcode": "call",
+          "operand": "Boolean RequestRequiresForceGet(System.Net.HttpStatusCode, System.Net.Http.HttpMethod)"
+        },
+        {
+          "offset": "IL_0247",
+          "opcode": "callvirt",
+          "operand": "Boolean IsEnabled()"
+        },
+        {
+          "offset": "IL_0252",
+          "opcode": "ldc.i4.s",
+          "operand": "58"
+        },
+        {
+          "offset": "IL_0254",
+          "opcode": "ldc.i4.4",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0255",
+          "opcode": "newobj",
+          "operand": "Void .ctor(Int32, Int32)"
+        },
+        {
+          "offset": "IL_025E",
+          "opcode": "ldstr",
+          "operand": "Modified request from "
+        },
+        {
+          "offset": "IL_0263",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_0270",
+          "opcode": "callvirt",
+          "operand": "System.Net.Http.HttpMethod get_Method()"
+        },
+        {
+          "offset": "IL_0275",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[HttpMethod](System.Net.Http.HttpMethod)"
+        },
+        {
+          "offset": "IL_027C",
+          "opcode": "ldstr",
+          "operand": " to "
+        },
+        {
+          "offset": "IL_0281",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_0288",
+          "opcode": "call",
+          "operand": "System.Net.Http.HttpMethod get_Get()"
+        },
+        {
+          "offset": "IL_028D",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[HttpMethod](System.Net.Http.HttpMethod)"
+        },
+        {
+          "offset": "IL_0294",
+          "opcode": "ldstr",
+          "operand": " in response to status code "
+        },
+        {
+          "offset": "IL_0299",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_02A1",
+          "opcode": "callvirt",
+          "operand": "System.Net.HttpStatusCode get_StatusCode()"
+        },
+        {
+          "offset": "IL_02A6",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[Int32](Int32)"
+        },
+        {
+          "offset": "IL_02AD",
+          "opcode": "ldstr",
+          "operand": " '"
+        },
+        {
+          "offset": "IL_02B2",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_02BA",
+          "opcode": "callvirt",
+          "operand": "System.Net.HttpStatusCode get_StatusCode()"
+        },
+        {
+          "offset": "IL_02BF",
+          "opcode": "call",
+          "operand": "Void AppendFormatted[HttpStatusCode](System.Net.HttpStatusCode)"
+        },
+        {
+          "offset": "IL_02C6",
+          "opcode": "ldstr",
+          "operand": "'."
+        },
+        {
+          "offset": "IL_02CB",
+          "opcode": "call",
+          "operand": "Void AppendLiteral(System.String)"
+        },
+        {
+          "offset": "IL_02D2",
+          "opcode": "call",
+          "operand": "System.String ToStringAndClear()"
+        },
+        {
+          "offset": "IL_02DD",
+          "opcode": "callvirt",
+          "operand": "Int32 GetHashCode()"
+        },
+        {
+          "offset": "IL_02E2",
+          "opcode": "ldstr",
+          "operand": "SendAsync"
+        },
+        {
+          "offset": "IL_02E7",
+          "opcode": "call",
+          "operand": "Void Trace(System.String, Int32, System.String)"
+        },
+        {
+          "offset": "IL_02F2",
+          "opcode": "call",
+          "operand": "System.Net.Http.HttpMethod get_Get()"
+        },
+        {
+          "offset": "IL_02F7",
+          "opcode": "callvirt",
+          "operand": "Void set_Method(System.Net.Http.HttpMethod)"
+        },
+        {
+          "offset": "IL_0303",
+          "opcode": "callvirt",
+          "operand": "Void set_Content(System.Net.Http.HttpContent)"
+        },
+        {
+          "offset": "IL_030E",
+          "opcode": "callvirt",
+          "operand": "System.Net.Http.Headers.HttpRequestHeaders get_Headers()"
+        },
+        {
+          "offset": "IL_0313",
+          "opcode": "callvirt",
+          "operand": "System.Nullable`1[System.Boolean] get_TransferEncodingChunked()"
+        },
+        {
+          "offset": "IL_031C",
+          "opcode": "call",
+          "operand": "Boolean GetValueOrDefault()"
+        },
+        {
+          "offset": "IL_0329",
+          "opcode": "callvirt",
+          "operand": "System.Net.Http.Headers.HttpRequestHeaders get_Headers()"
+        },
+        {
+          "offset": "IL_032E",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_032F",
+          "opcode": "newobj",
+          "operand": "Void .ctor(Boolean)"
+        },
+        {
+          "offset": "IL_0334",
+          "opcode": "callvirt",
+          "operand": "Void set_TransferEncodingChunked(System.Nullable`1[System.Boolean])"
+        },
+        {
+          "offset": "IL_033A",
+          "opcode": "ldfld",
+          "operand": "Boolean _disableAuthOnRedirect"
+        },
+        {
+          "offset": "IL_0347",
+          "opcode": "callvirt",
+          "operand": "Void DisableAuth()"
+        },
+        {
+          "offset": "IL_0364",
+          "opcode": "callvirt",
+          "operand": "System.Threading.Tasks.ValueTask`1[System.Net.Http.HttpResponseMessage] SendAsync(System.Net.Http.HttpRequestMessage, Boolean, System.Threading.CancellationToken)"
+        },
+        {
+          "offset": "IL_036D",
+          "opcode": "ldc.i4.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_036E",
+          "opcode": "call",
+          "operand": "System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable`1[System.Net.Http.HttpResponseMessage] ConfigureAwait(Boolean)"
+        },
+        {
+          "offset": "IL_0377",
+          "opcode": "call",
+          "operand": "ConfiguredValueTaskAwaiter GetAwaiter()"
+        },
+        {
+          "offset": "IL_0380",
+          "opcode": "call",
+          "operand": "Boolean get_IsCompleted()"
+        },
+        {
+          "offset": "IL_0388",
+          "opcode": "ldc.i4.1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_03A1",
+          "opcode": "call",
+          "operand": "Void AwaitUnsafeOnCompleted[ConfiguredValueTaskAwaiter,<SendAsync>d__4](ConfiguredValueTaskAwaiter ByRef, <SendAsync>d__4 ByRef)"
+        },
+        {
+          "offset": "IL_03BD",
+          "opcode": "ldc.i4.m1",
+          "operand": ""
+        },
+        {
+          "offset": "IL_03C7",
+          "opcode": "call",
+          "operand": "System.Net.Http.HttpResponseMessage GetResult()"
+        },
+        {
+          "offset": "IL_03D4",
+          "opcode": "callvirt",
+          "operand": "System.Uri get_RequestUri()"
+        },
+        {
+          "offset": "IL_03DA",
+          "opcode": "call",
+          "operand": "System.Uri GetUriForRedirect(System.Uri, System.Net.Http.HttpResponseMessage)"
+        },
+        {
+          "offset": "IL_03E3",
+          "opcode": "call",
+          "operand": "Boolean op_Inequality(System.Uri, System.Uri)"
+        },
+        {
+          "offset": "IL_03F4",
+          "opcode": "ldc.i4.s",
+          "operand": "254"
+        },
+        {
+          "offset": "IL_0403",
+          "opcode": "call",
+          "operand": "Void SetException(System.Exception)"
+        },
+        {
+          "offset": "IL_040B",
+          "opcode": "ldc.i4.s",
+          "operand": "254"
+        },
+        {
+          "offset": "IL_0419",
+          "opcode": "call",
+          "operand": "Void SetResult(System.Net.Http.HttpResponseMessage)"
+        }
+      ],
+      "httpRequestDisableAuth": [
+        {
+          "offset": "IL_0000",
+          "opcode": "ldarg.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0001",
+          "opcode": "ldarg.0",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0002",
+          "opcode": "ldfld",
+          "operand": "Int32 _sendStatus"
+        },
+        {
+          "offset": "IL_0007",
+          "opcode": "ldc.i4.8",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0008",
+          "opcode": "or",
+          "operand": ""
+        },
+        {
+          "offset": "IL_0009",
+          "opcode": "stfld",
+          "operand": "Int32 _sendStatus"
+        },
+        {
+          "offset": "IL_000E",
+          "opcode": "ret",
+          "operand": ""
+        }
+      ]
+    },
+    "upstreamReferences": [
+      {
+        "name": "dotnet v10.0.0 WebSocket transport",
+        "url": "https://raw.githubusercontent.com/dotnet/runtime/v10.0.0/src/libraries/System.Net.WebSockets.Client/src/System/Net/WebSockets/WebSocketHandle.Managed.cs",
+        "status": 200,
+        "utf8ContentSha256": "4B15C136AC52D0613E1DF434552ED299AA30D70AD095DE26D910150585C8594B",
+        "bodyCharacters": 25999,
+        "use": "仅核对协议或运行时实现；不代表用户服务器当前行为，完整内容不写入公开记录"
+      },
+      {
+        "name": "dotnet v10.0.0 redirect handler",
+        "url": "https://raw.githubusercontent.com/dotnet/runtime/v10.0.0/src/libraries/System.Net.Http/src/System/Net/Http/SocketsHttpHandler/RedirectHandler.cs",
+        "status": 200,
+        "utf8ContentSha256": "499404448F52107448468D679693FBBF379C83EA2348F57072F056CFCE156610",
+        "bodyCharacters": 6975,
+        "use": "仅核对协议或运行时实现；不代表用户服务器当前行为，完整内容不写入公开记录"
+      },
+      {
+        "name": "Emby official user authentication",
+        "url": "https://dev.emby.media/doc/restapi/User-Authentication.html",
+        "status": 200,
+        "utf8ContentSha256": "E96890E69BCD2BA4E8BC94EA4492286EDF821E3A22EE0B0FB132C423E19ADD1D",
+        "bodyCharacters": 10467,
+        "use": "仅核对协议或运行时实现；不代表用户服务器当前行为，完整内容不写入公开记录"
+      },
+      {
+        "name": "Emby official WebSocket reference",
+        "url": "https://dev.emby.media/doc/restapi/Web-Socket.html",
+        "status": 200,
+        "utf8ContentSha256": "22E7C6A97C9463C3AF7D5AD9C942F322E828FE23BC0BD9DD7EEEE0A1218C640C",
+        "bodyCharacters": 12457,
+        "use": "仅核对协议或运行时实现；不代表用户服务器当前行为，完整内容不写入公开记录"
+      }
+    ],
+    "legacyOfflineOpenApi": {
+      "path": "C:\\Users\\89400\\Momoka\\work\\emby-openapi.json",
+      "sha256": "22424DE2812FCAB2148F694CE3882AA53EEA861210C32C035E5BDCF7E831C8D5",
+      "openapiVersion": "3.0.1",
+      "serverSpecificationVersion": "4.10.0.40",
+      "selectedPaths": [
+        {
+          "path": "/Users/Public",
+          "methods": [
+            "summary",
+            "get"
+          ]
+        },
+        {
+          "path": "/Users/AuthenticateByName",
+          "methods": [
+            "summary",
+            "description",
+            "post"
+          ]
+        },
+        {
+          "path": "/Items/{Id}/Download",
+          "methods": [
+            "summary",
+            "get"
+          ]
+        },
+        {
+          "path": "/System/Info/Public",
+          "methods": [
+            "summary",
+            "get"
+          ]
+        },
+        {
+          "path": "/Videos/{Id}/stream.{Container}",
+          "methods": [
+            "summary",
+            "get",
+            "head"
+          ]
+        },
+        {
+          "path": "/Videos/{Id}/stream",
+          "methods": [
+            "summary",
+            "get",
+            "head"
+          ]
+        }
+      ],
+      "use": "只读既有离线规格；不读取 servers、示例凭据或真实设置，不代表当前服务器版本"
+    },
+    "systemContextCompressionExecuted": false,
+    "productionOrLoopbackNetworkStarted": false,
+    "productBuildsOrTestsExecuted": false
+  },
+  "testExecution": {
+    "execution": {
+      "schemaVersion": 1,
+      "phase": 2,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "phaseStartCommit": "4b663c425491120a4d87234d98bf20ecc9c88619",
+      "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+      "restoreExitCode": 0,
+      "buildExitCode": 0,
+      "testExitCode": 0,
+      "logDirectory": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740",
+      "restoreMayUseNuGet": true,
+      "applicationStarted": false,
+      "productionServerAccessed": false,
+      "scope": "现有完整正式测试宿主；未新增测试/插桩，无套件过滤参数",
+      "finishedAt": "2026-10-21T02:59:12+08:00"
+    },
+    "summary": {
+      "total": 2072,
+      "passed": 2072,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedMilliseconds": 78960
+    },
+    "build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "actualLoopbackNetworkUsedByExistingTests": true,
+    "applicationOrRealMpvStarted": false,
+    "productionServerAccessed": false,
+    "officialSourcesRetrievedAnonymously": true,
+    "restoreMayUseNuGet": true,
+    "prefixCounts": {
+      "HTTP": 106,
+      "实时": 21,
+      "下载到设备": 3
+    },
+    "logs": [
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\restore.log",
+        "sha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "purpose": "本树当前测试/Core 还原；可能读取 NuGet"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\build.log",
+        "sha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "purpose": "当前 Release 测试/Core 编译"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\tests.log",
+        "sha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "purpose": "未改现有完整测试宿主运行"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\execution.json",
+        "sha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "purpose": "退出码/源码基线/执行目录回执"
+      }
+    ],
+    "compiledBinaries": [
+      {
+        "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+        "sha256": "7E7F5C29464609675DF984C63750283A8F01A10E92C14659484813441B0480F7"
+      },
+      {
+        "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+        "sha256": "CB35FA56DB6AA41C00D4ECB9F7DD80864364056D5CBA2288760807A256763994"
+      }
+    ],
+    "coverageLimitation": "现有测试全过不覆盖 R-001 的握手重定向或 R-002 的长下载错误正文；未新增测试/插桩/补丁"
+  },
+  "findings": [
+    {
+      "id": "R-001",
+      "priority": "P1",
+      "status": "已确认",
+      "title": "实时 WebSocket 跨源重定向会保留 Emby 自定义鉴权头",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbyRealtimeConnection.cs",
+          "member": "ListenOnceAsync",
+          "start": 108,
+          "end": 116
+        },
+        {
+          "path": "src/Momoka.Core/Emby/MediaServerKind.cs",
+          "member": "MediaServerHeaders.Create",
+          "start": 47,
+          "end": 51
+        }
+      ],
+      "trigger": "已登录 Emby 来源的实时握手端点/反代返回指向不同 host/port/origin 的可跟随重定向",
+      "actualImpact": "在已核对 .NET 10.0.11 的默认握手实现上，自定义 X-Emby-Token/X-Emby-Authorization 保留并随下一请求发送，违反凭据仅属原来源；没有证明真实令牌已泄露",
+      "evidenceTypes": [
+        "本仓库静态完整调用链",
+        "与测试运行时逐字节相同的 .NET DLL 的方法 IL/字段默认值",
+        "官方 v10.0.0 源码用于辅助解释；不是本机版本唯一依据"
+      ],
+      "upstreamGuards": "REST 手工重定向、URL 清除凭据、15 秒握手 deadline、scope.Lifetime 均不能拦截默认 WebSocket handler 的下一跳；运行时只清标准 Authorization，DisableAuth 只改自动认证标记",
+      "notVerified": "未新增双回环重定向复现、未访问真实 Emby、未核对最终发布包的 runtime DLL；本轮已运行的回环测试只用 101/401 不覆盖 3xx",
+      "minimalFix": "显式控制 WebSocket 握手 handler，禁自动跳转或逐跳验证同源与凭据，保留原有取消/重连和非阻塞退出；不恢复查询串令牌",
+      "acceptance": "用两个本地端口和占位身份检查跨源接收端零凭据/拒绝握手；覆盖同源允许行为、降级/跳数、Jellyfin 标准头与退出；现有新令牌重连/取消回归不退化",
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-002",
+      "priority": "P2",
+      "status": "已确认",
+      "title": "长下载错误响应的正文读取无截止，阻塞错误上报和下载队列",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "member": "DownloadToFileAsync / SendAsync / ReadBodySafelyAsync",
+          "start": 260,
+          "end": 261
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "member": "SendAsync",
+          "start": 391,
+          "end": 396
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "member": "ReadBodySafelyAsync",
+          "start": 440,
+          "end": 445
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+          "member": "DownloadAsync / SaveAsync",
+          "start": 267,
+          "end": 275
+        }
+      ],
+      "trigger": "下载收到非 2xx（如 401/403/503），响应体不足 8000 字节且不结束/不继续传输，调用方没有取消来源",
+      "actualImpact": "_long 无总超时且直接传原取消令牌，先等错误正文才 Translate；状态已知仍可无限等，Guard 不收到错误、单个 DownloadGate 不释放。退出来源/调用者取消仍可解除，不是无条件永久死锁",
+      "evidenceTypes": [
+        "源码因果链与实际 UI 队列调用者"
+      ],
+      "upstreamGuards": "8000 字节只限制数量不限制等待；连接超时不覆盖已收到头的正文；普通请求 deadline 和成功下载 .part 清理不覆盖这个 await",
+      "notVerified": "未新增长下载暂停错误正文的执行回归；现有普通错误正文超时、成功长下载/取消及立即 403 断言不覆盖该路径",
+      "minimalFix": "仅对非成功响应的可选错误正文 drain 设置独立短截止或不等待；超时仍上报原 HTTP 状态，保留调用者取消语义及合法长成功下载",
+      "acceptance": "在假传输下对 _long 的 401/403/503 暂停正文，检查及时分类、响应释放、队列可前进、不覆盖旧目标/不留 part；正常长下载超过普通期限仍可完成、取消仍是取消",
+      "repairAuthorized": false
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "COV-01",
+      "status": "待验证",
+      "topic": "真实 Emby 实时端点别名、头部握手及 LibraryChanged 支持",
+      "reason": "既有规格没有 socket 路由、官方一般说明含旧 query 模式，现有代码保留别名；不能由假 101 断言真实服务器支持或必然失败",
+      "stage": "本阶段留覆盖缺口；有明确真实访问授权后再核对，禁止为了兼容回退 URL 令牌"
+    },
+    {
+      "id": "COV-02",
+      "status": "待验证",
+      "topic": "实时消息总大小、连续分片、UTF-8 边界及非顶层 MessageType",
+      "reason": "16 KiB 仅每次接收缓冲；当前 StringBuilder 无累计上限、按分片 GetString、读 MessageType 未限制深度。已见静态边界，但没有真实触发/负载影响证据，不将假设 OOM 或额外刷新列确认 R 项",
+      "stage": "后续获准补回归时测累计超限、跨边界字符、binary/nested/不完整 JSON，按实际影响再定级"
+    },
+    {
+      "id": "COV-03",
+      "status": "未覆盖",
+      "topic": "全部动态媒体/用户 ID 路径约束、图片上传编码及发布二进制 runtime",
+      "reason": "相关基本路由已查，完整业务上游约束/管理写入/播放参数跨阶段；规格中图片 summary 与 binary requestBody 的矛盾不能凭静态选一边",
+      "stage": "分别阶段 7/8、13、18 复核；未授权真实上传"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "topic": "REST 跨源返回 401 是否误清原账号",
+      "reason": "authenticated 永久 false、跨源 401 抛普通 EmbyApiException，不触发 EmbyTokenExpiredException；对应正式回归已通过"
+    },
+    {
+      "topic": "每次重连沿用旧 token 或注销后继续收消息",
+      "reason": "CurrentConnection 在会话锁下读取当前原来源、scope.Lifetime 取消联动，现有回环的新令牌/收消息/退避退出断言通过；不承诺所有竞态穷尽"
+    },
+    {
+      "topic": "下载长度不符或取消覆盖旧文件",
+      "reason": "先写 part、长度/取消检查后 Move；现有短流/取消/旧文件保持回归通过；不包含 R-002 的错误正文等待"
+    },
+    {
+      "topic": "直接 handler 包装自动跟随是否在生产路径存在",
+      "reason": "当前 EmbySession 构造传默认直接 handler；技能已提示 DelegatingHandler 不递归处理，未发现当前产品实际包装入口，不列纯未来假设缺陷"
+    }
+  ],
+  "calibrationUpdates": [
+    {
+      "id": "CAL-01",
+      "status": "仍成立",
+      "note": "实际实时代码已不把 token 写 URL，但旧开发文档说明仍冲突；R-001 是另一根因，不把文档冲突计作它的实证"
+    },
+    {
+      "id": "CAL-07",
+      "status": "文档导航漂移",
+      "note": "Emby 技能/引用仍列已不存在的 EmbyClient.Libraries/Users/Dashboard.cs 和旧行号/守卫示例。按符号定位当前源码；未根据技能臆断守卫存在，未修改技能"
+    }
+  ],
+  "systemContextCompressionExecuted": false,
+  "nextStage": 3,
+  "stop": "保存交接/文档检查/本地提交后结束；不进入阶段 3、不自动修复"
+}

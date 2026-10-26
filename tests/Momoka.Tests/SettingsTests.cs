@@ -15,7 +15,7 @@ namespace Momoka.Tests;
 /// <see cref="PassthroughSecretProtector"/> so nothing here depends on DPAPI — the real
 /// protector lives in the Windows shell project.
 /// </summary>
-internal static class SettingsTests
+internal static partial class SettingsTests
 {
     private static readonly ISecretProtector Protector = PassthroughSecretProtector.Instance;
 
@@ -27,6 +27,8 @@ internal static class SettingsTests
         RegisterBackup();
         RegisterVault();
         RegisterStore();
+        RegisterAccountNulls();
+        RegisterDirectoryRecovery();
         RegisterPaths();
     }
 

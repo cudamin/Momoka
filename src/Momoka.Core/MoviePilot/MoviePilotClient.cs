@@ -51,7 +51,17 @@ public sealed class MoviePilotClient : IDisposable
         // 每一趟 API 调用，服务器都会顺手在响应里 Set-Cookie 一枚资源令牌（v2/v3 的 verify_token 都这么做）——
         // 所以这里挂一个 CookieContainer，让订阅等 API 请求保存资源令牌，之后的取图请求就都带着它了。测试注入的
         // 假传输层不是 SocketsHttpHandler，跳过（假传输层不认 Cookie，测试也不测它）。
-        if (handler is SocketsHttpHandler sockets) sockets.CookieContainer = new CookieContainer();
+        // 登录表单的 307/308 会重发密码；301/302/303 也不能靠转成 GET 去接受另一来源的伪成功。
+        // 此客户端一律不自动跳转（包括同源），配置必须指向最终 API 来源；不重放登录或写操作。
+        if (handler is SocketsHttpHandler sockets)
+        {
+            sockets.AllowAutoRedirect = false;
+            sockets.CookieContainer = new CookieContainer();
+        }
+        else if (handler is HttpClientHandler native)
+        {
+            native.AllowAutoRedirect = false;
+        }
 
         _handler = handler;
 
@@ -87,8 +97,32 @@ public sealed class MoviePilotClient : IDisposable
             })
         };
 
-        using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
-        var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        // 只读头便拒绝 30x，不等代理的跳转正文；ResponseHeadersRead 不包含正文超时，故为登录
+        // 保留原有总期限与缓冲上限。调用方取消仍原样抛出，内部期限仍归为连接超时。
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(_http.Timeout);
+        using var response = await SendAsync(request, cancellationToken, HttpCompletionOption.ResponseHeadersRead)
+            .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        if ((int)response.StatusCode is >= 300 and <= 399)
+            throw new MoviePilotException(
+                $"登录失败：MoviePilot 返回 {(int)response.StatusCode} 跳转；为保护登录凭据，不自动跳转，请在连接配置中填写最终 API 来源",
+                response.StatusCode);
+
+        string body;
+        try
+        {
+            await response.Content.LoadIntoBufferAsync(_http.MaxResponseContentBufferSize, timeout.Token).ConfigureAwait(false);
+            body = await response.Content.ReadAsStringAsync(timeout.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException error) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new MoviePilotUnreachableException($"连接 {url.Host} 超时", error);
+        }
+        catch (HttpRequestException error)
+        {
+            throw new MoviePilotUnreachableException($"无法连接到 {url.Host}：{error.Message}", error);
+        }
 
         if (!response.IsSuccessStatusCode)
         {
@@ -265,12 +299,13 @@ public sealed class MoviePilotClient : IDisposable
 
     private async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        HttpCompletionOption completionOption = HttpCompletionOption.ResponseContentRead)
     {
         try
         {
             return await _http
-                .SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken)
+                .SendAsync(request, completionOption, cancellationToken)
                 .ConfigureAwait(false);
         }
         catch (TaskCanceledException error) when (!cancellationToken.IsCancellationRequested)

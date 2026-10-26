@@ -182,10 +182,13 @@ public partial class App : Application
 
             // A self-check must never consume the production activation signal.
             if (!_options.SelfCheck)
+            {
+                var dispatcher = DispatcherQueue.GetForCurrentThread();
                 _activation = ActivationListener.Start(
                     _options.ActivationEventName,
-                    DispatcherQueue.GetForCurrentThread(),
+                    action => dispatcher.TryEnqueue(() => action()),
                     () => _window?.Activate());
+            }
 
             if (_options.SelfCheck) ShellSelfCheck.ScheduleFor(_window, shell, services, _options);
 

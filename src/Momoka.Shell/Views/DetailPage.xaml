@@ -783,6 +783,7 @@
                                     <Button x:Uid="DetailPage_ButtonA2"
                                         AutomationProperties.AutomationId="ColumnFavoriteButton"
                                         Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
+                                        Visibility="{x:Bind ViewModel.FavoriteActionVisibility, Mode=OneWay}"
                                         Style="{StaticResource EgRoundButtonStyle}">
                                         <Grid>
                                             <FontIcon
@@ -1177,6 +1178,7 @@
                                 <Button x:Uid="DetailPage_ButtonA2"
                                     AutomationProperties.AutomationId="CompactFavoriteButton"
                                     Command="{x:Bind ViewModel.ToggleFavoriteCommand}"
+                                    Visibility="{x:Bind ViewModel.FavoriteActionVisibility, Mode=OneWay}"
                                     Style="{StaticResource EgRoundButtonStyle}">
                                     <Grid>
                                         <FontIcon

@@ -247,6 +247,13 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
             _submitted = false;
             Say($"{error.Message}。本次没有提交整理请求。");
         }
+        catch (OperationCanceledException)
+        {
+            // An actual sent write cancellation is translated to uncertain by WriteAsync. A plain
+            // cancellation therefore belongs to preparation and must not retain the form lock.
+            _submitted = false;
+            Say("提交前操作已取消。本次没有提交整理请求。");
+        }
         catch (MoviePilotOperationBlockedException error)
         {
             Say(error.Message);

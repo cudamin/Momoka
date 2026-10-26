@@ -40,6 +40,12 @@ internal sealed class HomeFoldMotion
     private readonly Storyboard _board = new();
     private readonly List<TranslateTransform> _drifts = [];
     private readonly List<FrameworkElement> _faded = [];
+    private EventHandler<object>? _completed;
+    private bool _active;
+    private bool _complete;
+
+    /// <summary>对象可留给迟一拍的归属判断；只有 Begin 到完成／取消之间才算仍在走。</summary>
+    internal bool IsActive => _active;
 
     /// <summary>系统里关掉了动画（辅助功能那一档）的机器上什么都不走：调用方量完直接落定。</summary>
     internal static bool Enabled => HomeMotion.AnimationsEnabled;
@@ -84,18 +90,32 @@ internal sealed class HomeFoldMotion
     /// </summary>
     internal void Play(Action? landed = null)
     {
+        if (_complete || _active) return;
         if (_board.Children.Count == 0)
         {
+            _complete = true;
             landed?.Invoke();
             return;
         }
 
-        _board.Completed += (_, _) =>
+        _active = true;
+        _completed = (_, _) =>
         {
+            // 取消时摘事件还不够：框架可能已经排好了旧 Completed，终态再挡一次。
+            if (!_active || _complete) return;
             Stop();
             landed?.Invoke();
         };
-        _board.Begin();
+        _board.Completed += _completed;
+        try
+        {
+            _board.Begin();
+        }
+        catch
+        {
+            Stop();
+            throw;
+        }
     }
 
     /// <summary>
@@ -107,6 +127,15 @@ internal sealed class HomeFoldMotion
     /// </summary>
     internal void Stop()
     {
+        if (_complete) return;
+        _complete = true;
+        _active = false;
+        if (_completed is { } completed)
+        {
+            _board.Completed -= completed;
+            _completed = null;
+        }
+
         _board.Stop();
         foreach (var drift in _drifts) drift.Y = 0;
         foreach (var element in _faded) element.Opacity = 1;

@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.Tests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <!-- The existing test-project name deliberately preserves Directory.Build.props' unchanged
+         test-runner analyzer policy. Production Core still compiles with all pinned analyzers;
+         no warning/baseline is suppressed to import the existing synchronous test harness. -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <Compile Include="..\..\Momoka.Tests\AniBtTests.cs" Link="Regression\AniBtTests.cs" />
+        <Compile Include="..\..\Momoka.Tests\AniBtIntegrationTests.cs" Link="Regression\AniBtIntegrationTests.cs" />
+        <Compile Include="..\..\Momoka.Tests\AniBtReceiptStateTests.cs" Link="Regression\AniBtReceiptStateTests.cs" />
+        <Compile Include="..\..\Momoka.Tests\MoviePilotTransferSubmissionTests.cs" Link="Regression\TransferSubmissionFixture.cs" />
+        <Compile Include="..\..\Momoka.Tests\StubTransport.cs" Link="StubTransport.cs" />
+        <Compile Include="..\..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    </ItemGroup>
+</Project>

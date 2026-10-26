@@ -47,7 +47,7 @@ description: "Audit, fix and verify Momoka subtitle settings and playback behavi
 - 先解析用户最终选定的音轨，再判断 `ForeignAudioOnly`。默认中文、手选日语和反方向都要测试。
 - `其他字幕` 是字幕候选通配项，不代表用户能听懂任何语言；不能参与“是否为外语”的判断。
 - 自动候选必须可加载。`MpvTrackMap` 无编号的轨道不能成为看似成功的自动结果；按 [CLAUDE.md 的显隐规则](../../../CLAUDE.md#功能可用性与显隐) 隐藏不可加载的候选入口，保留其他可用选项和必要状态说明；执行层仍拒绝不可加载轨道。
-- `SubtitleChoice.None` 与 `Off` 不可混用。未知/无候选与明确关闭有不同含义。
+- `SubtitleChoice.None` 与 `Off` 不可混用。未知/无候选与明确关闭有不同含义。 `ForcedOnly` 在元数据缺失时仍有明确限制：没有可确认且可加载的强制轨就保守返回 `Off`，不能普通 `auto`。显式有效选轨／关闭由规划器优先处理；不借此把其它模式的未知轨也一律关闭。该保守策略不会在内核发现轨道后自动追选强制字幕，用户仍可手动选择。
 - 语言、标题关键词优先级、forced/default 标记是不同维度。当前字幕语言仅看语言字段；标题关键词按表内次序定优先级（越靠上越优先），“候补”是软降权，不擅自恢复旧的标题猜语言或硬排除。
 - 明确的默认轨回退和任意语言兜底不是一回事。检查无默认、空语言表、回退关闭、强制模式及不可用默认轨的组合。
 - 更新实际选择时也更新“自动”行的说明；不能实际播日语、下拉却还说按中文音轨不显示字幕。
@@ -73,8 +73,10 @@ description: "Audit, fix and verify Momoka subtitle settings and playback behavi
 - `track-list/selected` 同时包含主次字幕；上报使用 `main-selection`（0 主、1 次）、容器 `ff-index` 或实际 `external-filename`，未知/本地外挂不猜服务器索引。`PlaybackTrackState` 保存本场读数，关闭为 -1，未知为 null。
 - 保存失败须留下可见的未保存状态和重试入口。重试保存当前内存值，不重新导入、不重复删除，也不静默回滚整份真实配置。
 - 同窗换片按完整可写属性清单复位，包含 uosc 控制的主次可见性、次字幕索引/延迟/位置/样式。裸 mpv 默认不会替客户端复位全部属性。
+- Integrated subtitle drops capture the original page visit, VM and existing `InteractionContext` before the WinRT read. Recheck before reading/handing off paths and before/after each `sub-add`; never capture the replacement file after an await. Detach/re-Attach, a replaced VM or file ends the old batch and its feedback. [Momoka.SubtitleDropOwnershipTests](../../../tests/Momoka.SubtitleDropOwnershipTests/README.md) runs verbatim production nodes and actual Core commands against in-memory WinRT/handle boundaries; it cannot prove real Windows dragging or native file-generation protection.
 - 区分 `sub-remove` 的“本次卸载”与 Emby DELETE 的“服务器文件删除”。服务器删除显示媒体文件、字幕名、影响和不可撤销性，确认前请求数必须为零。`ServerSubtitles` 固定登录 scope 和文件；确认后重读完整字幕快照，变化或无法区分的同标签文件拒绝删除。GET/DELETE 不是原子操作，不宣称防住服务器并发替换。
-- 字幕写入和后续刷新期间不允许关闭、重复下载或并发删除。响应不明先刷新，刷新成功后通知父页重读，不通过重复写请求“修复”；`Touched` 与 `NeedsRefresh` 分别表达写入完成和需要更新父页。
+- Subtitle writes and their automatic confirmation reads block closing and concurrent writes. An ambiguous write records `NeedsRefresh` before closing is allowed; closing immediately, a failed recovery GET, or closing while that manual read is pending must still hand the debt to the current parent. `Touched` means an explicitly completed write, never a successful read after an unknown receipt. Recovery only reads; it must not replay the write. Local validation, permission exceptions and explicit 4xx rejections do not create a new debt. The existing caller checks `(Touched || NeedsRefresh)` and the original scope before refreshing.
+- [Momoka.SubtitleDialogTests](../../../tests/Momoka.SubtitleDialogTests/README.md) compile-links the actual dialog and extracts current caller/parent lifetime methods at each build with unique boundaries. Run it separately after a fresh Release build; it is not real WinUI input, rendered closing behavior or server processing coverage.
 - WinUI 同一 UI 线程不能叠两个 ContentDialog。已有字幕管理对话框内使用明确的内联确认或关闭后串联确认；取消优先，不让 Enter 默认执行删除。
 
 ## 参考开源项目的方式

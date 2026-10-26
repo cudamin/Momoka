@@ -61,7 +61,12 @@ public sealed partial class PlexMediaAdapter
 
     public static EmbyItem Library(JsonObject value)
     {
+        // Library sections use key; media entries keep ratingKey in Item.
+        var id = Text(value, "key");
+        if (string.IsNullOrWhiteSpace(id)) throw new InvalidDataException("Plex 媒体库缺少 section key");
+
         var item = Item(value);
+        item.Id = id;
         item.Type = EmbyItemType.CollectionFolder;
         item.IsFolder = true;
         item.CollectionType = Text(value, "type") switch

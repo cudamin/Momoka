@@ -7,11 +7,137 @@ internal static class Program
         if (MpvProcessTests.IsChild(args)) return MpvProcessTests.RunChildAsync(args).GetAwaiter().GetResult();
         if (args is ["selfcheck-mutex-fixture", var source, var target])
             return SelfCheckTests.RunMutexChild(source, target);
+        if (args is ["test-harness-fixture", var scenario])
+            return TestHarnessTests.RunChild(scenario);
+        if (args is ["activation-listener-fixture", var activationScenario])
+            return ActivationListenerTests.RunChild(activationScenario);
+        if (args is ["composition-readiness-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            CompositionPositionReadinessTests.Register();
+            CompositionProbePixelsTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["selfcheck-layout-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            SelfCheckLayoutRulesTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["startup-state-contract-fixture", var startupShell, var startupRoot])
+            return StartupStateContractTests.Run(startupShell, startupRoot);
+        if (args is ["startup-reapply-notice-fixture", var reapplyShell, var reapplyRoot])
+            return StartupReapplyNoticeTests.Run(reapplyShell, reapplyRoot);
+        if (args is ["settings-page-state-fixture", var shellAssembly, var sourceRoot])
+            return SettingsPageStateTests.Run(shellAssembly, sourceRoot);
+        if (args is ["settings-applicability-fixture", var applicabilityShell, var applicabilityRoot])
+            return SettingsApplicabilityTests.Run(applicabilityShell, applicabilityRoot);
+        if (args is ["library-resume-paging-fixture", var resumeShell, var resumeRoot])
+            return LibraryResumePagingTests.Run(resumeShell, resumeRoot);
+        if (args is ["library-favorite-source-fixture", var favoriteShell, var favoriteRoot])
+            return LibraryFavoriteSourceTests.Run(favoriteShell, favoriteRoot);
+        if (args is ["settings-screenshot-restore-fixture", var screenshotShell, var screenshotRoot])
+            return SettingsScreenshotRestoreTests.Run(screenshotShell, screenshotRoot);
+        if (args is ["fnnas-library-editor-fixture", var editorShell, var editorRoot])
+            return FnNasLibraryEditorTests.Run(editorShell, editorRoot);
+        if (args is ["fnnas-user-state-fixture", var stateShell, var stateRoot])
+            return FnNasUserStateWriteTests.Run(stateShell, stateRoot);
+        if (args is ["subtitle-forced-only-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            SubtitleForcedOnlyTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["player-track-readback-fixture", var trackShell, var trackRoot])
+            return PlayerVolumeGestureTests.RunTracks(trackShell, trackRoot);
+        if (args is ["player-volume-gesture-fixture", var volumeShell, var volumeRoot])
+            return PlayerVolumeGestureTests.Run(volumeShell, volumeRoot);
+        if (args is ["audio-output-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            AudioOutputTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["selfcheck-output-isolation-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            SelfCheckTests.Register();
+            SelfCheckOutputIsolationTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["http-download-error-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            HttpDownloadErrorTests.Register();
+            HttpDeadlineTests.Register();
+            HttpDiagnosticsTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["restore-identity-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            RestoreIdentityR003Tests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["moviepilot-login-redirect-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            MoviePilotLoginRedirectTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["plex-protocol-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            PlexProtocolTests.Register();
+            PlexMediaTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["plex-login-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            PlexV2LoginTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["realtime-handshake-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            EmbyRealtimeTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["metadata-date-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            ItemMetadataDateTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["anibt-receipt-state-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            AniBtReceiptStateTests.Register();
+            return TestHarness.Run();
+        }
+        if (args is ["detail-subject-removal-fixture", var removalShell, var removalRoot])
+            return DetailSubjectRemovalTests.Run(removalShell, removalRoot);
+        if (args is ["marked-watched-source-fixture"])
+            return MarkedWatchedSourceTests.Run();
+        if (args is ["moviepilot-episode-group-playback-fixture"])
+            return MoviePilotEpisodeGroupPlaybackTests.Run();
+        if (args is ["moviepilot-subscription-page-state-fixture", var subscriptionShell, var subscriptionRoot])
+            return MoviePilotSubscriptionPageStateTests.Run(subscriptionShell, subscriptionRoot);
+        if (args is ["moviepilot-transfer-submission-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            MoviePilotTransferSubmissionTests.Register();
+            return TestHarness.Run();
+        }
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Console.WriteLine("Momoka Core 测试");
         Console.WriteLine();
 
+        TestHarnessTests.Register();
+        ActivationListenerTests.Register();
         PlaybackTests.Register();
+        MarkedWatchedSourceTests.Register();
         KeywordPriorityTests.Register();
         PlaybackLifecycleTests.Register();
         MediaVersionDiscoveryTests.Register();
@@ -24,9 +150,11 @@ internal static class Program
         PlaybackTrackStateTests.Register();
         SubtitleFileTests.Register();
         SubtitleBehaviorTests.Register();
+        SubtitleForcedOnlyTests.Register();
         SubtitleManagementTests.Register();
         MpvProcessTests.Register();
         SelfCheckTests.Register();
+        SelfCheckOutputIsolationTests.Register();
         SettingsTests.Register();
         SettingsLayoutTests.Register();
         StartupEntryTests.Register();
@@ -40,8 +168,11 @@ internal static class Program
         HtmlColorTests.Register();
         SubtitlePreviewTests.Register();
         EmbyTests.Register();
+        ItemMetadataDateTests.Register();
         EmbyRealtimeTests.Register();
         FnNasProtocolTests.Register();
+        FnNasLibraryInputTests.Register();
+        FnNasUserStateWriteTests.Register();
         FnNasMediaTests.Register();
         PlexProtocolTests.Register();
         PlexMediaTests.Register();
@@ -110,11 +241,17 @@ internal static class Program
         MoviePilotTests.Register();
         AniBtTests.Register();
         AniBtIntegrationTests.Register();
+        AniBtReceiptStateTests.Register();
         MoviePilotSubscriptionTests.Register();
+        MoviePilotEpisodeGroupPlaybackTests.Register();
         MoviePilotAuditTests.Register();
         MoviePilotTransferTests.Register();
+        MoviePilotTransferSubmissionTests.Register();
         MoviePilotVersionQueryTests.Register();
         MoviePilotEpisodePatternTests.Register();
+        SelfCheckLayoutRulesTests.Register();
+        CompositionPositionReadinessTests.Register();
+        CompositionProbePixelsTests.Register();
         AgreementsTests.Register();
 
         return TestHarness.Run();

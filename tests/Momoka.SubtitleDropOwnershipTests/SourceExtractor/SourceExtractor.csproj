@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <AssemblyName>Momoka.SubtitleDropSourceExtractor</AssemblyName>
+    </PropertyGroup>
+    <!-- Use the SDK already pinned by this repository; no parser NuGet or tool download. -->
+    <ItemGroup>
+        <Reference Include="Microsoft.Build.Framework">
+            <HintPath>$(MSBuildToolsPath)\Microsoft.Build.Framework.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Microsoft.Build.Utilities.Core">
+            <HintPath>$(MSBuildToolsPath)\Microsoft.Build.Utilities.Core.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+        <Reference Include="Microsoft.CodeAnalysis">
+            <HintPath>$(MSBuildToolsPath)\Roslyn\bincore\Microsoft.CodeAnalysis.dll</HintPath>
+        </Reference>
+        <Reference Include="Microsoft.CodeAnalysis.CSharp">
+            <HintPath>$(MSBuildToolsPath)\Roslyn\bincore\Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+</Project>

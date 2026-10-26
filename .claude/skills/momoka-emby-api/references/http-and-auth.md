@@ -61,14 +61,14 @@ Accept: application/json
 
 - **401 的分类只靠 `IsAuthenticationAttempt`**，只有登录请求本身传 true。别在别处复用这个标志。
 - 其他状态码**不带 ReasonPhrase、不带正文**：两者都可能回显请求凭据，而异常会被界面和日志直接使用。
-- 错误正文照读但**不解码、不交给诊断**，且只读前 8000 字节 —— 目的是让连接能复用。
+- 可选错误正文**不解码、不交给诊断**，最多读取 8000 字节并独立设 2 秒截止，及时读完才可能复用连接。仅正文短截止不覆盖已经收到的 HTTP 状态；调用方取消／普通请求总截止仍优先。正文未完时释放响应，可能舍弃该连接，不为复用而继续等。
 - 正文解析失败（`JsonException`）也是 `EmbyApiException`，带上行号和字节位置。
 - `PostForJsonAsync` / `DeleteForJsonAsync` 是例外：正文缺失或读不出来算 `null`，**不算失败**。用户状态接口会回 `UserItemDataDto`（服务器自己的续播位置和剩余集数在那儿），但没有版本承诺它一定在 —— 所以"没有正文"和"调用失败"必须分开。
 
 ## 超时、正文与下载
 
 - **普通请求 30 秒，且覆盖到正文读完。** `HttpCompletionOption.ResponseHeadersRead` 会让 `HttpClient.Timeout` 在**响应头到达时**就结束，所以 `SendAndReadAsync` 另建一个 `deadline` CTS（`EmbyHttp.cs:164-177`）。少了它，共享图片下载能永远占着连接和下载任务。
-- **下载到设备用第二个 `HttpClient`**（`_long`，`Timeout.InfiniteTimeSpan`）：影片下载可以持续更久，只受调用方取消和 handler 的连接超时约束。两个 client 共用 handler（`disposeHandler: false`），`Dispose` 里只放一次。
+- **下载到设备用第二个 `HttpClient`**（`_long`，`Timeout.InfiniteTimeSpan`）：成功影片下载可以持续更久，只受调用方取消和 handler 的连接超时约束；非成功响应的可选正文仍受上述独立短截止，不得拖住错误反馈或后续下载。两个 client 共用 handler（`disposeHandler: false`），`Dispose` 里只放一次。
 - **下载先写 `path + ".part"` 再 `File.Move` 改名。** 服务器给了 `Content-Length` 就必须收满，少了当失败并把 `.part` 删掉（`EmbyHttp.cs:255-282`）—— 否则磁盘上留下的是一个名字正确、大小不对的影片。进度每 4 MB 报一次。
 - **`PostBytesAsync` 走 `RawBody`**：正文是原样字节而不是 JSON，用 `ByteArrayContent` 保证准确的 `Content-Length` —— **Emby 对 chunked 分块传输吃不消**（`EmbyHttp.cs:90-112`）。写新的非 JSON 上传时照抄这条路。
 - JSON 选项（`EmbyHttp.Json`）：`PropertyNameCaseInsensitive`、`AllowReadingFromString`（Emby 会把数字写成字符串）、`WhenWritingNull`。

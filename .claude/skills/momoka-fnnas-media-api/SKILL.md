@@ -37,6 +37,8 @@ description: "Develop or review Momoka's 飞牛影视 / fnOS media backend: Core
 
 先核 HTTP，再核 `{code,msg,data}` 的 `code == 0`；HTTP 200 不证明业务成功。data 可能是对象、列表或标量。错误文案由客户端生成，不把可能回显凭据的 msg 原样记录或展示。令牌只走 Authorization；图片进程内下载，播放器头走现有安全传递路径；重定向核来源。访问码 Cookie 与 token 分开，`/c/{code}` 在设备根路径，不在 `/v/` 下。
 
+File/operation permission code `-16` is not proof of rejected credentials; `-2`, `-15` and HTTP401 retain identity failure semantics. Explicit permission codes `-5`/`-16` must not be downgraded as optional reads even when accompanied by a transient/503 marker. [Classification tests](../../../tests/Momoka.FnNasErrorClassificationTests/README.md) run anonymous read/error boundaries, not the authentication chain.
+
 ## Optional reads and transfer budgets
 
 Ordinary API requests retain a 30-second total deadline. Byte downloads and multipart uploads use a separate five-minute total deadline; caller cancellation, response-size bounds and same-origin redirects still apply. A 32-second fake response test exercises the old deadline boundary without contacting a server.
@@ -48,6 +50,12 @@ Duration is per media version. A live 0.9.8 / 0.8.43 response on 2026-10-26 had 
 Live token restore, library reads, original playback and persisted resume passed with the built-in libmpv standalone pipeline on that measured version. This is not validation of management mutations, every media file or other versions; see [the live report](../../../docs/实服验证-飞牛与Jellyfin-2026-10-26.md).
 Password changes are committed by `EmbySession.ChangeFnNasPasswordAsync`: cancellation is accepted before dispatch, but leaving the page after dispatch cannot discard confirmed credentials. Source revocation, a replaced login generation, changed address or changed saved password rejects a late result. Do not revive a signed-out account or silently enable remember-password. Explicit-source native settings pages require source availability, not default-source equality.
 
+## Confirmed user-state writes and read-back
+
+Native watched/favorite endpoints acknowledge a write with `code == 0` but return no complete user-state DTO. `FnNasMediaAdapter.SetWatchedAsync` / `SetFavoriteAsync` therefore return `null` after the write, just like a successful no-body response, and do not bundle `GET item/{guid}` into the same retryable operation. `EmbyClient.GetFnNasUserDataAsync` is the separate read-back path. A read failure cannot replay or erase the acknowledged write; authentication, permission, signature, malformed responses and cancellation still retain their own error/lifetime boundaries.
+
+Card commands first apply the acknowledged target field and callbacks, then independently read supplementary user state. `ItemUserStateOrder.RefreshConfirmed` enriches only the still-current confirmed field group, preserving target bits and overlapping edits. A transient read error shows a saved-but-refresh-failed warning; hard read errors remain errors. Detail favorite changes only its confirmed flag and does not perform an unnecessary read, while detail watched preserves the target before refreshing server-derived counts/episodes. Unknown derived fields are not guessed. The native state fixtures use memory-only identities and fake HTTP, not real sign-in, mutations, stop notifications or playback.
+
 ## 原生设置目录（2026-10-16 曾退役，2026-10-19 接回）
 
 飞牛影视独占时，设置左栏照官方 0.9.8 设置抽屉分成两组：
@@ -55,10 +63,20 @@ Password changes are committed by `EmbySession.ChangeFnNasPasswordAsync`: cancel
 - **帐号**：修改密码、播放偏好、外观。对所有已登录的飞牛账号可见。
   - 修改密码：`POST /api/v2/user/passwd`，正文 `{password: sha256(明文)}`，`data` 是新令牌。成功后必须同时替换 `EmbySession` 里这条来源的令牌和已保存密码（`ApplyPasswordChange`），否则下一次自动重登会拿旧密码。
   - 播放偏好：读 `GET /api/v1/user/info` 的 `lan` / `audio_lan` 和 `GET /api/v1/sys/config` 的 `supported_languages`；保存 `POST /api/v1/user/info`，正文只含 `{lan, audio_lan}`，空串表示任意语言。
+  - Account-save continuations use the click-time snapshot and editor version. A confirmed password clears only its unchanged submitted draft; later password/language edits remain pending with explicit save feedback, never an automatic server replay. Editing away and back is conservatively a new draft. [Momoka.FnNasAccountEditTests](../../../tests/Momoka.FnNasAccountEditTests/README.md) executes the complete VMs and fixed generator against narrow fake confirmation endpoints; it does not run production password/token/DPAPI persistence.
+  - Local persistence is a separate completion: every `SettingsStore.Save`, including Session direct saves, updates the shared unsaved state. The password page reports server confirmation separately and exposes **local-save-only** recovery through narrow `ISettingsPersistence`; it never replays `user/passwd`, restores a source, enables Remember or submits the current new draft. Active Settings/password pages marshal save notifications and revoke old visits on release. [Momoka.SettingsPersistenceTests](../../../tests/Momoka.SettingsPersistenceTests/README.md) uses real Store/Service and the complete VM with a fake confirmation endpoint plus NONSECRET in-memory edits; actual password/token/DPAPI persistence and production reauthentication remain unexecuted.
   - 外观：不新增网页外观页，落到 Momoka 自己的「界面」卡（配色、动效、侧边栏等）。
 - **影视服务器**：媒体库、用户、设置、任务计划。只对 `is_admin == 1` 的账号显示；四页是 WinUI 原生页，不是网页内嵌。
-  - 媒体库：`mdb/*` 与管理端目录浏览；页面还包含 IPTV 源，但没有恢复网盘/直链。
-  - 用户：`manager/user/*` 与默认媒体库权限。
+  - Administrator eligibility reads the scope's current `IsAdministrator`, not its captured
+    playback/token `Connection`. Same-identity confirmations advance `PermissionRevision`; old
+    capability reads and management operations cannot apply across it. All four current pages follow
+    downgrade/restore notifications without discarding preferences; `TracksPermissions=false`
+    account pages keep password confirmation and local-save listeners. See
+    [current permission tests](../../../tests/Momoka.CurrentPermissionSnapshotTests/README.md).
+    Production authentication success wiring is only statically inspected; anonymous no-credential
+    replacement and command guards do not prove real server writes or reauthentication.
+  - 媒体库：`mdb/*` 与管理端目录浏览；页面还包含 IPTV 源，但没有恢复网盘/直链。 普通库切为 IPTV 不证明旧库已有直播源；只在原文档明确是 IPTV 且 `iptv.source_type` 为 text／local_file／upload 时，改名可省略源字段保留原源。URL仍走可编辑校验，未知/缺源模式须填写新源，不强制重传已存的文本/文件。文件大小过滤校验仅用于非IPTV且开启过滤；隐藏偏好保留，切回普通库仍拒绝NaN等无效值。`fnnas-library-editor-fixture` 调真实VM与假HTTP，不能据此声明类别转换的真实服务端兼容或实际NumberBox/文件框验收。
+  - 用户：`manager/user/*` 与默认媒体库权限。`FnNasUsersViewModel` 为库选项和默认模板分别记录本次读取成功，两项齐备且权限有效才允许新增／默认权限编辑与保存；未读不等于零权限。显式刷新和重附加清旧来源缓存并关闭编辑，普通保存失败保留草稿。执行入口同样守卫，不仅靠 CanExecute／按钮显隐；未知 JSON 与未知库 ID 随原模板保留。`Momoka.FnNasDefaultPermissionTests` 编译实际 Users／Session／Admin／Page／Rows 和固定 MVVM 生成器，仅展示枚举／匿名 HTTP 是边界，不代表真实用户或权限写入验收。
   - 设置：服务器名称、语言、元数据/缓存存储空间、文件监控、搜索索引重建；保存时保留未知字段。**不要**恢复网盘直链开关、GPU 转码或流解析。
   - 任务计划：`task/schedule/*` 与每日开关。
 

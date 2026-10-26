@@ -15,7 +15,7 @@ Use [momoka-playback](../momoka-playback/SKILL.md) for playback, [momoka-verific
 
 - **`src/Momoka.Core`** — no UI references; currently no packages or project references. Package-free is a lightweight default, not a prerequisite for unit testing.
 - **`src/Momoka.Shell`** — the WinUI shell. WindowsAppSDK is split into sub-packages rather than the meta-package to control payload size. The project file is authoritative for package selection and versions; review new runtime payloads during upgrades. `WindowsPackageType=None`, x64, `DISABLE_XAML_GENERATED_MAIN` with a hand-written `Program.cs`.
-- **`tests/Momoka.Tests`** — currently package-free and referencing Core, with `OutputType=Exe` and a hand-written harness. `dotnet run` is the runner. Register new suites in `Program.cs`; compilation and run order are in CLAUDE.md.
+- **`tests/Momoka.Tests`** — currently package-free and referencing Core, with `OutputType=Exe` and a hand-written harness. Selected framework-free Shell sources are compile-linked into this project; `ActivationListener.cs` is tested as actual production code, not a copied Core model. `dotnet run` is the runner. Register new suites in `Program.cs`; compilation and run order are in CLAUDE.md.
 
 ## The shell's terrain
 
@@ -33,6 +33,14 @@ Most non-UI capability sits in `Core/Emby`, `Core/Playback`, `Core/Mpv` and `Cor
 
 `HomeLayout` (which home rows, in what order, and only writing settings back when something really changed), `ScreenPlacement` (which monitor, restoring geometry), `ItemArtwork.SamePictures`, `CardSize`, `ImageCachePolicy` and `LruCache` (eviction), `LoadGeneration` (which load is still the current one), `HomeRefresh` (whether a light refresh may keep the carousel), `LibraryWatch` (whether anything was newly added — the home page's periodic check compares these stamps and only reloads on a real change), `ItemMenu.For` (which menu rows and their wording), `CardStrip`, `WrapLayout`, `HomeCarousel`, `ItemMetadataEdit`, `EpisodeNavigation`, `TrackSelection` / `TrackLanguagePriority`, `StartupArgs`.
 
+## Source-linked page contracts
+
+`tests/Momoka.PageContractTests` compile-links selected actual page code-behind and view models with tiny boundary substitutes for absent XAML/WinUI controls and external owners. It runs separately from `Momoka.Tests` and is included in the solution's build. The control-flow assertions use production `Attach`/navigation/release and diagnostic log/filter/copy methods, not copies of them. The diagnostic fixture uses the same pinned MVVM generator as Shell. Its Core cases overlap the main suite and must not be counted twice. These tests cannot establish real WinUI layout, input, scroll preservation or `Frame` history interaction; those remain runtime UI coverage. Commands and limitations are in its README and `docs/开发与验证.md`.
+
+Diagnostics treats `RingBufferLogSink.Written` as a wake-up, not ordered delivery. `SnapshotAfter` returns retained writes and a sequence watermark under the same lock; a refresh or out-of-order queued notification therefore does not replay already-displayed entries. Repeated identical log content remains distinct writes. Normal updates append the unread tail and trim rows/categories to capacity rather than rebuilding every row. Reentry resets the watermark, and both old-sink notifications and paused/detached updates retain their lifetime guards.
+
+Card image resizing uses a separate `_resizeWanted` flag from `_wanted`: a container may keep waiting for an old request while temporarily off-tree, but must not start a new request just because the window width changes. Explicit `EnsurePosterAsync` reopens resize demand; the current holder's release and page abandonment close it. Resize cancels the old generation and restarts a visible first image even when `Poster` is still null. Keep the weak holder for temporary off-tree releases because the same control's Loaded path only ensures the image, not claims it again. `CardImageResizeTests` compile-links actual card/cache sources with fake value/decode boundaries in the page contract project; it is not real Loaded, WinRT or scroll/render coverage.
+
 ## Pages, view models, `Attach`
 
 Pages created by this project's `Frame.Navigate` path use parameterless constructors. **Pages construct their own view models; dependencies arrive afterwards through `Attach(...)`.** Keep guards for calls made before those dependencies arrive, and inspect the file's `Attach`, cancellation and load methods before adding work.
@@ -42,6 +50,75 @@ Pages created by this project's `Frame.Navigate` path use parameterless construc
 **`PlayerViewModel` is the only view model in the container**: a film keeps playing behind the library page, so its state has to outlive any navigation. `ShellPage.AttachWindow` resolves it and hands it to the page. `HomePage` marks its single resolution site with a comment saying it is the one place the page resolves anything — keep that habit, because a page reaching into the container from five places is how this rule rots.
 
 Known deviation, not a template: `FilterPanelViewModel` is `new`ed with no `Attach` at all.
+
+## Resume paging and displayed next episodes
+
+`LibraryViewModel` uses the existing `AggregateQueryCursor` for both aggregated queries and a single-source Resume page. Resume consumption belongs to server records, not `Cards.Count`: a watched episode can be replaced by a synthetic NextUp card that the Resume route does not contain. `_resumeRead` records which item identities actually came from that route; only removing one of those identities rolls back its source cursor and server total. Record the confirmed removal before awaiting NextUp, and cancel the in-flight page without changing the page's query identity.
+
+Page reads consume a cursor `Copy()` and publish it only after the UI continuation confirms both query and load generations. Otherwise a network-complete page waiting in the dispatcher queue can consume an offset even when its displayed rows are later rejected. Removal refreshes also build their cursor privately. `allowPartialFailure: false` retains a single source's normal failure/retry behavior; multi-source reads keep the existing partial-result policy. `PlayableList.CollectAsync` accepts an optional raw start index for Resume lists containing synthetic cards and does not mutate the displayed page's cursor.
+
+`library-resume-paging-fixture` explicitly loads this tree's current Release Shell DLL and runs the real VM/CardItem/ResumeSlot with a fake HTTP handler and a single-thread queue. It installs only in-memory source identity; no login, secret IO, window, actual network or playback. Commands and runtime coverage limits are in `docs/开发与验证.md`.
+
+Favorite account selection reuses `RestoreSort`, `RestoreFilters`, `RestoreDisplay` and `RefreshBrowseChrome` after changing `_scope`, rather than sending the old product's conditions into another adapter. The flight/selection/rows of the native FnNas filter panel belong to that source: reset and cancel them on source changes. Successful/error/finally callbacks must check their captured filter lifetime; an old completion cannot clear a new source's loading flag or replace its options. `library-favorite-source-fixture` shares the actual VM fixture and adds only fake read-only favorite/tag endpoints. Existing saved library preferences and the stable card collection are not replaced by a same-page source change.
+
+## Cached settings and directory actions
+
+`SettingsPage`'s same-container `built` path calls `SettingsViewModel.SyncSaveState` before the existing device refresh. Initial reload uses the same method. It only reads shared `HasUnsavedChanges` and uses the generated property/command notifications; it must not save or rebuild rows just to refresh the banner. Half-typed input, categories and collection identities survive reentry.
+
+The four About directory actions call one awaited `OpenDirectoryAsync` path with a captured `ISystemLauncher`. Directory creation belongs to the launcher once, and launch/IO/permission failures return through the existing page `Report` path. A screenshot directory is read at click time. `SettingsPageStateTests` can explicitly load this tree's current Release Shell assembly with a fake settings service and launcher; the standalone test switch is documented in `docs/开发与验证.md`. Actual VM/row-command tests are not actual SettingsPage navigation, focus, WinUI input or Explorer verification.
+
+Restoring defaults and importing preferences both call `ReapplyAndReloadAsync`; its shared `ReapplyPlaybackPreferencesAsync` tail awaits subtitle appearance and the current screenshot option group before success feedback. A subtitle failure does not suppress the screenshot attempt, and callback failure/cancellation must not be overwritten with success. Individual screenshot rows call the same guarded push helper. `settings-screenshot-restore-fixture` executes this actual tail and the actual service writer with an in-memory active handle; it does not run theme/full-page reload or a file picker, and source contracts separately check the two production restore callers. Actual image encoding and window interaction remain runtime verification.
+
+## Home fold completion ownership
+
+A retained `HomeFoldMotion` object does not mean its storyboard is still running. Its active/complete state and removable Completed handler retain a single run; the page clears only the matching owner on completion and releases ownership before Stop on cancellation. Keep the active return-flight carrier until handback, but a completed climb must not block later carousel disablement from clearing the overlay host. The delayed second phase uses one visit version so main completion does not discard its valid late phase, while a replacement/cancellation rejects old completion and queued work. Existing timings and easing remain unchanged. `Momoka.HomeFoldCompletionTests` uses complete production motion source and verbatim page methods with controlled Storyboard/layout values; it does not establish rendered WinUI, pointer hit testing or real frame timing.
+
+## Library directory handoff to an early home page
+
+`ShellPage.EnterShellAsync` exposes navigation while library views are loading. When the valid directory result is committed, an already-open current HomePage still owns its earlier empty HomeRequest snapshot. Fill an empty frame normally or use the existing forced-home navigation to refresh only a still-current home; do not pull a user back from another page. The identity load and captured scope guards still precede this handoff, and ordinary directory retry remains unchanged. This intentionally performs a one-time normal home reload and may reset its scroll/selection state. `Momoka.HomeDirectoryTests` executes verbatim Shell navigation/load methods, the actual SourceLibraries and request/plan values with inert Frame/HTTP boundaries; it cannot prove downstream HomeViewModel reads or rendered rows.
+
+## Settings administration and cached-window activity
+
+Confirmed same-identity client replacements have a separate `PermissionsChanged` path; a scope's
+`Connection` remains the original token/media snapshot while `IsAdministrator` and
+`PermissionRevision` read the current online identity. Capabilities and administration results
+check that revision after awaits. FnNas administration VMs revoke only permission-owned operations;
+account/password saves do not subscribe to this administrator lifetime. Settings permission events
+and R010 local-save events keep separate handlers and the same visit guards. A released/disposed base
+must also stop a derived password Attach before it subscribes to persistence again. The integrated
+[permission fixture](../../../tests/Momoka.CurrentPermissionSnapshotTests/README.md) and
+[local-save fixture](../../../tests/Momoka.SettingsPersistenceTests/README.md) exercise anonymous
+updates, actual VMs/generators and real nonsecret file saves, not production reauthentication,
+credentials/DPAPI, rendered WinUI or server permissions.
+
+
+`SettingsViewModel` has a dedicated administration `LoadGeneration` plus activity state. A directory refresh captures the capability owner, source keys and current identity; after Probe/plugin waits it checks those owners again and rereads permissions before publishing. An empty result from an old same-product account must not clear a new account’s plugin list. `Cancel` invalidates reads, `Activate` restores only the activity of a cached page, and `Dispose` prevents reactivation; none clears half-typed settings merely to reactivate monitoring.
+
+`SettingsPage` also scopes posted source/MoviePilot callbacks to its active visit. Window Hide/X does not cause Frame navigation, so `ReleaseHosted` explicitly ends that visit and unsubscribes source, MoviePilot and motion notifications before releasing hosted content. Reopening subscribes afresh; queued work from before hiding cannot borrow the new visit. If the synchronous administration refresh already rebuilt a hosted page, the navigation tail avoids a duplicate creation/GET but still shows an unchanged or newly selected category. `Momoka.SettingsLifetimeTests` executes the real current Shell VM and verbatim page/window methods with inert UI/HTTP boundaries; its repository README documents commands and why this is not actual WinUI window/input verification.
+
+## Confirmed detail subject deletion
+
+The detail More menu captures removal/reload callbacks for its visit, source and subject, rather than calling whatever page is current after a dialog finishes. A confirmed subject or final-file deletion cancels the old detail/target/version owners, clears the executable target and picker data, and leaves a readable deleted notice; an ordinary failed GET must never be treated as deletion. Non-final FnNas version removal edits only the confirmed file ID in the captured DTO. The current detail remembers those IDs per visit, filters late same-subject reads and prunes all matching discovered picker entries even when a valid foreign-source copy is selected; foreign copies with the same file ID remain independent. Direct playback rejects a stale picker row. `DetailSubjectRemovalTests` and `Momoka.DetailDeleteCommandTests` separately exercise the real VM and actual command/confirmation/HTTP callback path with inert UI and anonymous sources, not real deletion or rendered WinUI.
+
+## Hosted console navigation ownership
+
+`DashboardPage` binds full-page Starting/Completed to NavigationId and the owning load generation. Navigate returns no ID; until Starting or a completion identifies the single issued pending request, later app requests are coalesced into the newest queued route, including an identical URL refresh. Keep previously observed IDs until Release so an old completion cannot consume a new pending slot; do not assume ID order or guess cancellation from elapsed time. Dispatch the queued request through the UI queue, checking generation/source again and retaining queue/dispatch failure feedback. A current successful completion explicitly restores Web and clears the notice layer. Already committed same-document inline/hash routes remain available, while full-document starts invalidate old sample/render/inline continuations. `Momoka.DashboardNavigation.Tests` executes verbatim production control flow with inert browser/dispatcher endpoints and validates its source hash, not actual WebView2 or credential/UI behavior.
+
+`Momoka.AniBtSourceContractTests` links the current Core/session, actual scrape VM and dialog with memory settings IO and inert HTTP/UI endpoints. Aggregated SelectSource retains the old available scope; the caller continuation checks current source, connection and draft/confirmation version before further identify writes. R037/R039 already provide these guards. A fixed-source task without that callback may still continue deliberately; do not globally require IsCurrent on all scopes. Embedded outer entry anchors are source contracts, not actual modal/WinUI execution or deployment evidence. See the [R042 fixture](../../../tests/Momoka.AniBtSourceContractTests/README.md).
+
+## Verification report finalization
+
+Self-check's final report must return from its writer before exit code 0 is published. The scheduled callback uses `ShellSelfCheck.FinishAsync` to retain failure and always reach the window close. Subtitle and Shell navigation probes keep their real Record/Case and report evidence in small Shell-owned report types; their common `ProbeFinalization` independently attempts scope/report IO, then disposal and application exit. Do not put report IO before cleanup with no nested finally, or let a caught write failure leave success feedback. The independent `Momoka.ProbeFinalizationTests` project exercises the actual source and callers with UI/IO endpoint substitutes; it cannot replace real window/WinRT validation. See the verification skill and development commands.
+
+## Startup registration read failures
+
+`StartupRegistration.IsEnabled` reports registry access/IO failures as exceptions, distinct from absent Run/Approval values. Its Apply contract still returns false for an unconfirmed write/readback. The actual settings row uses the existing two-state control and Error feedback: accurate readback reseeds without a second write; unreadable state retains the last confirmed reading (or the old initial false default) with an explicit inability-to-confirm error. This fallback is not evidence of disabled startup.
+
+Reload resets a narrow startup-read failure cause. Since row construction is synchronous, `ReapplyAndReloadAsync` snapshots that cause before awaiting font/device work and passes it to the existing playback-preference tail so this reload's read failure is not replaced by restore/import success. Other push failure/cancellation and the normal successful/no-read-error path remain unchanged. `startup-state-contract-fixture` executes the full linked platform implementation and actual anonymous Shell VM/row; `startup-reapply-notice-fixture` executes verbatim shared methods with inert reload/theme boundaries then the actual VM tail. Neither performs real registry, reset/import/file picker, WinUI, native or server verification. See the [startup contract](../../../tests/Momoka.Tests/StartupStateContractTests.md).
+
+## Startup activation lifetime
+
+`App` passes a queue delegate to the framework-free `Shell/ActivationListener.cs`; only the UI boundary knows `DispatcherQueue`. The listener's `Dispose` requests stop once and never joins on the UI thread. Its worker owns the signal handles until its `finally` releases them, including when disposal precedes the first worker instruction. Stop has priority over activation, queued callbacks check the lifetime again, and a rejected queue or worker exception ends only the listener. A startup exception releases the handles immediately. `ActivationListenerTests` compile-links that exact source and exercises it with private random named events in disposable test child processes; it does not consume the real application activation signal or prove window activation visually.
 
 ## Interfaces
 
@@ -57,6 +134,12 @@ The rule — pure UI behaviour may stay there, business capability may not — i
 
 `Views/ItemCommands.cs` and `ItemCommands.Server.cs` are existing code-behind debt, not a template. They drive card commands through `EmbyClient`; some operations use `session.ExecuteAsync`, while downloads capture an `EmbySessionScope` so later work remains bound to the original identity. Inspect the relevant path rather than replacing every scope with the current session. Metadata field rules already live in `Core/Emby/ItemMetadataEdit.cs` with tests. Refactoring follows CLAUDE.md: extract a service when it improves responsibility, lifetime or testability, preserving confirmation and identity boundaries; being a large static class is not sufficient reason on its own.
 
+The metadata date box represents the timestamp's own calendar day. Its unchanged-date guard compares that same day, not the UTC day, preserving the original time/offset/precision even across UTC midnight. A changed date retains the existing parsing and UTC serialization policy. `metadata-date-fixture` exercises actual Core rules and anonymous client JSON IO with an in-memory HTTP boundary; its conditional save driver is not the real WinUI dialog or proof that a deployed server returns offset timestamps. See the [date regression](../../../tests/Momoka.Tests/README.MetadataDate.md).
+
+Card watched/favorite commands weakly bind an `ItemUserStateOrder` to their `EmbyItem` DTO, not the recycled control or a global ID cache. Watched owns Played plus position/percentage/count/date fields; favorite owns IsFavorite. An overlapping full response confirms only its own field group, while a non-overlapping sequential edit can still refresh the whole snapshot. Same-field stale successful responses cannot undo a newer success, and a failed newer edit must not suppress an earlier success. Always complete pending bookkeeping in the real command's finally; before UI patch and callbacks, check the original card's source lifetime and captured item identity. The standalone `Momoka.ItemUserStateOrderTests` project links the actual production commands/cards and fails closed if it cannot extract unchanged request guards or event DTOs. It does not establish real UI input, server processing order, stop-report transport or synchronization between independent DTOs representing the same ID.
+
+For native FnNas no-body state writes, card commands acknowledge their own field before a separate supplementary read. `RunUserState` has an awaited apply tail while unrelated one-step `Run` callers keep their old action contract. Read-back uses `RefreshConfirmed`, so an older refresh cannot undo a later same-field confirmation or another overlapping field group. Detail watched applies the confirmed target before reloading server-derived data; a refresh error is labelled saved-but-refresh-failed, with permissions/protocol errors still errors. Detail favorite remains a one-bit update without unnecessary read-back. Tests of source-linked commands and a reflected real detail VM do not prove actual WinUI feedback or server processing order.
+
 ## Capability-dependent visibility
 
 Apply [CLAUDE.md's visibility policy](../../../CLAUDE.md#功能可用性与显隐). Establish the prerequisite and the scope of each control before editing XAML: a persistent preference for a supported playback mode is not inapplicable merely because nothing is playing. Use confirmed service capabilities for service-backed actions; a saved enable flag alone need not mean that the service is usable.
@@ -67,6 +150,10 @@ Apply [CLAUDE.md's visibility policy](../../../CLAUDE.md#功能可用性与显�
 - Keep visibility separate from execution guards and effective option application. An old menu or asynchronous callback must still be rejected after its prerequisite changes. A hidden preference may still need an explicit reset or a complete option push to prevent stale backend state; follow the owning domain skill.
 
 Use [momoka-verification](../momoka-verification/SKILL.md#capability-dependent-visibility) for initial, hidden and restored states, real layout and keyboard checks. A property assertion or a disabled control is not evidence that the unavailable region disappeared.
+
+## Artwork candidate failures
+
+`DetailViewModel` sends its hero and both poster candidate loops through `Core/Emby/ArtworkCandidates.FirstAsync`, preserving the existing ordering and the caller's synchronization context for WinUI decoding. Only explicit bad-image/format data, a completed candidate's unreachable/5xx failure, or missing-image result can downgrade to the next candidate. Cancellation, source/identity rejection, permissions, low memory and arbitrary program/stream errors still propagate. The WIC code list is a narrow allow-list cross-checked against Microsoft's documented constants; missing codec allows another candidate, not cache eviction. This fixes candidate selection, not corrupt-cache invalidation. Core tests do not establish the actual WinRT exception shape or rendered fallback image.
 
 ## Colours: the role table, and why literal hex hides
 

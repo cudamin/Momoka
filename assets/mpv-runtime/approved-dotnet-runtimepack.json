@@ -1,0 +1,952 @@
+{
+  "schemaVersion": 1,
+  "approvalId": "dotnet-runtime-win-x64-10.0.11-sdk-10.0.400-approved-2026-10-24",
+  "sdkVersion": "10.0.400",
+  "targetFramework": "net10.0-windows10.0.19041.0",
+  "runtimeIdentifier": "win-x64",
+  "packageId": "Microsoft.NETCore.App.Runtime.win-x64",
+  "packageVersion": "10.0.11",
+  "contentHash": "AsqluTjZAgnSAbqh8qQ/mPOpkcuerdyhXsPYs4/iUfpBItGENdYI8g5IxLxVD3ztZG/5EbqSW8f60nz1D4VGOA==",
+  "archive": {
+    "source": "NuGet.org service-index PackageBaseAddress Microsoft.NETCore.App.Runtime.win-x64 10.0.11; independently downloaded official archive byte-equal to SDK cache, official SDK 10.0.400 GetContentHash/local signed integrity checked 2026-10-24 Asia/Shanghai. Assets from official data/RuntimeList.xml, never publish deps or mutable cache metadata.",
+    "size": 39895464,
+    "sha256": "822b247bddbd88a290a8072be89815ffeac26e5aac0d41b1eab95fda5279f443"
+  },
+  "assets": [
+    {
+      "kind": "native",
+      "path": "clretwrc.dll",
+      "source": "runtimes/win-x64/native/clretwrc.dll"
+    },
+    {
+      "kind": "native",
+      "path": "clrgc.dll",
+      "source": "runtimes/win-x64/native/clrgc.dll"
+    },
+    {
+      "kind": "native",
+      "path": "clrgcexp.dll",
+      "source": "runtimes/win-x64/native/clrgcexp.dll"
+    },
+    {
+      "kind": "native",
+      "path": "clrjit.dll",
+      "source": "runtimes/win-x64/native/clrjit.dll"
+    },
+    {
+      "kind": "native",
+      "path": "coreclr.dll",
+      "source": "runtimes/win-x64/native/coreclr.dll"
+    },
+    {
+      "kind": "native",
+      "path": "createdump.exe",
+      "source": "runtimes/win-x64/native/createdump.exe"
+    },
+    {
+      "kind": "native",
+      "path": "hostfxr.dll",
+      "source": "runtimes/win-x64/native/hostfxr.dll"
+    },
+    {
+      "kind": "native",
+      "path": "hostpolicy.dll",
+      "source": "runtimes/win-x64/native/hostpolicy.dll"
+    },
+    {
+      "kind": "native",
+      "path": "Microsoft.DiaSymReader.Native.amd64.dll",
+      "source": "runtimes/win-x64/native/Microsoft.DiaSymReader.Native.amd64.dll"
+    },
+    {
+      "kind": "native",
+      "path": "mscordaccore_amd64_amd64_10.0.1126.37416.dll",
+      "source": "runtimes/win-x64/native/mscordaccore_amd64_amd64_10.0.1126.37416.dll"
+    },
+    {
+      "kind": "native",
+      "path": "mscordaccore.dll",
+      "source": "runtimes/win-x64/native/mscordaccore.dll"
+    },
+    {
+      "kind": "native",
+      "path": "mscordbi.dll",
+      "source": "runtimes/win-x64/native/mscordbi.dll"
+    },
+    {
+      "kind": "native",
+      "path": "mscorrc.dll",
+      "source": "runtimes/win-x64/native/mscorrc.dll"
+    },
+    {
+      "kind": "native",
+      "path": "msquic.dll",
+      "source": "runtimes/win-x64/native/msquic.dll"
+    },
+    {
+      "kind": "native",
+      "path": "System.IO.Compression.Native.dll",
+      "source": "runtimes/win-x64/native/System.IO.Compression.Native.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "Microsoft.CSharp.dll",
+      "source": "runtimes/win-x64/lib/net10.0/Microsoft.CSharp.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "Microsoft.VisualBasic.Core.dll",
+      "source": "runtimes/win-x64/lib/net10.0/Microsoft.VisualBasic.Core.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "Microsoft.VisualBasic.dll",
+      "source": "runtimes/win-x64/lib/net10.0/Microsoft.VisualBasic.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "Microsoft.Win32.Primitives.dll",
+      "source": "runtimes/win-x64/lib/net10.0/Microsoft.Win32.Primitives.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "Microsoft.Win32.Registry.dll",
+      "source": "runtimes/win-x64/lib/net10.0/Microsoft.Win32.Registry.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "mscorlib.dll",
+      "source": "runtimes/win-x64/lib/net10.0/mscorlib.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "netstandard.dll",
+      "source": "runtimes/win-x64/lib/net10.0/netstandard.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.AppContext.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.AppContext.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Buffers.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Buffers.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Collections.Concurrent.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Collections.Concurrent.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Collections.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Collections.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Collections.Immutable.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Collections.Immutable.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Collections.NonGeneric.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Collections.NonGeneric.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Collections.Specialized.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Collections.Specialized.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ComponentModel.Annotations.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ComponentModel.Annotations.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ComponentModel.DataAnnotations.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ComponentModel.DataAnnotations.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ComponentModel.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ComponentModel.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ComponentModel.EventBasedAsync.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ComponentModel.EventBasedAsync.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ComponentModel.Primitives.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ComponentModel.Primitives.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ComponentModel.TypeConverter.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ComponentModel.TypeConverter.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Configuration.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Configuration.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Console.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Console.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Core.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Core.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Data.Common.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Data.Common.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Data.DataSetExtensions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Data.DataSetExtensions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Data.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Data.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.Contracts.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.Contracts.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.Debug.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.Debug.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.DiagnosticSource.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.DiagnosticSource.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.FileVersionInfo.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.FileVersionInfo.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.Process.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.Process.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.StackTrace.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.StackTrace.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.TextWriterTraceListener.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.TextWriterTraceListener.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.Tools.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.Tools.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.TraceSource.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.TraceSource.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Diagnostics.Tracing.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Diagnostics.Tracing.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Drawing.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Drawing.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Drawing.Primitives.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Drawing.Primitives.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Dynamic.Runtime.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Dynamic.Runtime.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Formats.Asn1.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Formats.Asn1.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Formats.Tar.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Formats.Tar.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Globalization.Calendars.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Globalization.Calendars.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Globalization.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Globalization.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Globalization.Extensions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Globalization.Extensions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.Compression.Brotli.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.Compression.Brotli.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.Compression.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.Compression.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.Compression.FileSystem.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.Compression.FileSystem.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.Compression.ZipFile.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.Compression.ZipFile.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.FileSystem.AccessControl.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.FileSystem.AccessControl.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.FileSystem.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.FileSystem.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.FileSystem.DriveInfo.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.FileSystem.DriveInfo.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.FileSystem.Primitives.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.FileSystem.Primitives.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.FileSystem.Watcher.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.FileSystem.Watcher.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.IsolatedStorage.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.IsolatedStorage.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.MemoryMappedFiles.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.MemoryMappedFiles.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.Pipelines.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.Pipelines.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.Pipes.AccessControl.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.Pipes.AccessControl.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.Pipes.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.Pipes.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.IO.UnmanagedMemoryStream.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.IO.UnmanagedMemoryStream.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Linq.AsyncEnumerable.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Linq.AsyncEnumerable.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Linq.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Linq.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Linq.Expressions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Linq.Expressions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Linq.Parallel.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Linq.Parallel.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Linq.Queryable.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Linq.Queryable.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Memory.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Memory.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.Http.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.Http.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.Http.Json.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.Http.Json.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.HttpListener.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.HttpListener.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.Mail.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.Mail.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.NameResolution.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.NameResolution.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.NetworkInformation.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.NetworkInformation.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.Ping.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.Ping.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.Primitives.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.Primitives.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.Quic.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.Quic.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.Requests.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.Requests.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.Security.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.Security.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.ServerSentEvents.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.ServerSentEvents.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.ServicePoint.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.ServicePoint.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.Sockets.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.Sockets.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.WebClient.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.WebClient.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.WebHeaderCollection.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.WebHeaderCollection.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.WebProxy.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.WebProxy.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.WebSockets.Client.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.WebSockets.Client.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Net.WebSockets.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Net.WebSockets.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Numerics.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Numerics.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Numerics.Vectors.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Numerics.Vectors.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ObjectModel.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ObjectModel.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Private.CoreLib.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Private.CoreLib.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Private.DataContractSerialization.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Private.DataContractSerialization.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Private.Uri.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Private.Uri.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Private.Xml.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Private.Xml.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Private.Xml.Linq.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Private.Xml.Linq.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Reflection.DispatchProxy.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Reflection.DispatchProxy.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Reflection.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Reflection.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Reflection.Emit.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Reflection.Emit.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Reflection.Emit.ILGeneration.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Reflection.Emit.ILGeneration.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Reflection.Emit.Lightweight.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Reflection.Emit.Lightweight.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Reflection.Extensions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Reflection.Extensions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Reflection.Metadata.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Reflection.Metadata.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Reflection.Primitives.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Reflection.Primitives.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Reflection.TypeExtensions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Reflection.TypeExtensions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Resources.Reader.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Resources.Reader.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Resources.ResourceManager.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Resources.ResourceManager.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Resources.Writer.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Resources.Writer.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.CompilerServices.Unsafe.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.CompilerServices.Unsafe.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.CompilerServices.VisualC.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.CompilerServices.VisualC.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Extensions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Extensions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Handles.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Handles.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.InteropServices.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.InteropServices.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.InteropServices.JavaScript.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.InteropServices.JavaScript.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.InteropServices.RuntimeInformation.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.InteropServices.RuntimeInformation.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Intrinsics.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Intrinsics.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Loader.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Loader.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Numerics.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Numerics.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Serialization.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Serialization.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Serialization.Formatters.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Serialization.Formatters.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Serialization.Json.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Serialization.Json.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Serialization.Primitives.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Serialization.Primitives.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Runtime.Serialization.Xml.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Runtime.Serialization.Xml.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.AccessControl.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.AccessControl.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Claims.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Claims.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Cryptography.Algorithms.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Cryptography.Algorithms.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Cryptography.Cng.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Cryptography.Cng.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Cryptography.Csp.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Cryptography.Csp.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Cryptography.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Cryptography.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Cryptography.Encoding.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Cryptography.Encoding.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Cryptography.OpenSsl.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Cryptography.OpenSsl.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Cryptography.Primitives.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Cryptography.Primitives.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Cryptography.X509Certificates.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Cryptography.X509Certificates.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Principal.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Principal.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.Principal.Windows.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.Principal.Windows.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Security.SecureString.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Security.SecureString.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ServiceModel.Web.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ServiceModel.Web.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ServiceProcess.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ServiceProcess.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Text.Encoding.CodePages.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Text.Encoding.CodePages.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Text.Encoding.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Text.Encoding.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Text.Encoding.Extensions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Text.Encoding.Extensions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Text.Encodings.Web.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Text.Encodings.Web.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Text.Json.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Text.Json.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Text.RegularExpressions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Text.RegularExpressions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.AccessControl.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.AccessControl.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.Channels.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.Channels.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.Overlapped.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.Overlapped.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.Tasks.Dataflow.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.Tasks.Dataflow.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.Tasks.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.Tasks.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.Tasks.Extensions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.Tasks.Extensions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.Tasks.Parallel.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.Tasks.Parallel.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.Thread.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.Thread.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.ThreadPool.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.ThreadPool.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Threading.Timer.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Threading.Timer.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Transactions.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Transactions.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Transactions.Local.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Transactions.Local.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.ValueTuple.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.ValueTuple.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Web.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Web.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Web.HttpUtility.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Web.HttpUtility.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Windows.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Windows.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Xml.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Xml.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Xml.Linq.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Xml.Linq.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Xml.ReaderWriter.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Xml.ReaderWriter.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Xml.Serialization.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Xml.Serialization.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Xml.XDocument.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Xml.XDocument.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Xml.XmlDocument.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Xml.XmlDocument.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Xml.XmlSerializer.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Xml.XmlSerializer.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Xml.XPath.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Xml.XPath.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "System.Xml.XPath.XDocument.dll",
+      "source": "runtimes/win-x64/lib/net10.0/System.Xml.XPath.XDocument.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "WindowsBase.dll",
+      "source": "runtimes/win-x64/lib/net10.0/WindowsBase.dll"
+    }
+  ]
+}

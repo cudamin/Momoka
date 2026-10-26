@@ -1,4 +1,636 @@
+## 第九组剩余修复完成并交付，桌面已交接新功能窗口（2026-10-25）
+
+- **本次“修完”已完成。** 修复此前记录的 AtomicFile 覆盖/备份轮换访问拒绝，补齐最终 composition 原生复验，并修复探针逐点读取屏幕造成的阻塞。R-043 仍仅展示建议，未擅自实施；未把真实服务器、TLS/代理、Plex 2FA/PIN、生产 DPAPI/Registry ACL、独占/uosc/外部 mpv 等覆盖缺口冒称全面验收。
+- 实现与发布树：`C:/Users/89400/.codex/worktrees/delivery-atomic-completion/Momoka`，分支 `codex/delivery-atomic-completion`；**交付源码 `7e6e0d709b8331b0101765652c4c95585be49d6b`**。从原完整修复父链48c43fc起，三条增量为 b4463c9（独立真实文件系统测试）、4a15f90（Atomic与备份/回滚修复）、7e6e0d7（合成单帧采样）。后续本条交付记录提交仅文档，不改变已验证DLL、版本或重新发布。
+- **当前源码统一验证：** 39项目Release零警告/零错误；Core **2885通过、0失败、0跳过**；55离线入口全部退出0、失败0、跳过0，覆盖重叠不相加。Atomic **35生产契约＋4独立对照**全过，四组固定预算12544次提交、两组跨提交读者各128次提交/1280次完整读取，以及发布/回滚真实锁故障、只读/非Delete共享、原始UTF-16/设备路径全过；原红报告保持。Release空白检查1851文件0修改且无工作区加载失败，47脚本BOM/LF/语法通过。最终源码/测试/资源/工具1162份哈希未变。
+- **最终发布件运行验证：** composition两轮首位置/Resize/全屏往返/暂停恢复/停止退出0，真实彩条screen已目检；完整本地motion退出0；Shell仅settings区域 **17/17**，其他84项未执行，不冒称全量101；官方自检 **186、失败0、消失0、降级0**，基线未改。相关设置隐藏/恢复与播放screen已目检，生产和旧profile六份主备字节未变。探针均本地匿名素材/隔离目录，未真实服务器播放；普通自检可能登录并只读真实库，不称离线。
+- **已实际交付桌面入口：** [Momoka.lnk](C:/Users/89400/Desktop/Momoka.lnk)于本轮回读确认目标 `C:/Users/89400/.codex/worktrees/delivery-atomic-completion/Momoka/artifacts/publish/win-x64/Momoka.exe`、工作目录同发布目录、无额外参数；版本 `0.1.7+7e6e0d709b8331b0101765652c4c95585be49d6b`，540文件/283.5MB，固定native/依赖载荷通过。**不生成ZIP、不push、不启动用户应用**，旧shortcut及发布件保留，未归档/清理仍被桌面使用的树。
+- 证据：[最终55入口摘要](artifacts/staged-repair/batch09/final-7e6e0d7-complete-offline-v2/summary.json)、[原生composition回执](artifacts/staged-repair/batch09/final-7e6e0d7-composition/acceptance.json)、[完整motion回执](artifacts/staged-repair/batch09/final-7e6e0d7-motion-complete-fixture/process.json)、[settings范围](artifacts/staged-repair/batch09/final-7e6e0d7-settings/shell-probe-scope.txt)、[官方自检](artifacts/staged-repair/batch09/final-7e6e0d7-selfcheck.log)、[实际桌面交付回执](artifacts/staged-repair/batch09/final-desktop-delivery-receipt.json)。原Hidden遮挡、空闲显示blank/超时、缺PNG侧车、helper/编译失败均保留；明确修复实现或验证前件后闭环，未放宽原断言/保险/基线或重复求绿。
+- **两边未互相干扰，桌面已释放。** 本窗口全部子代理关闭、自己运行的产品/探针自然结束，无自动续跑；只在本树记录文档。已向“优化订阅交互并新增字幕翻译与补帧”窗口交接三条增量及证据，该窗口的独立功能树负责保留两边历史、最终功能验收和单一发布/shortcut更新。本窗口不改其树或master，不沿用对方上传授权执行本批上传。后续功能版可按其授权交付；本修复版的完成记录不代表新功能已完成。
+## 第九组合成探针单帧采样与实际显示前件（2026-10-25，在途）
+
+- Atomic已提交 `b4463c9`＋`4a15f90`，最终39项目Release、Core2880、55离线入口和实际自包含publish540文件全部通过；桌面仍保旧03b5d10，等待最终原生/应用验收后才更新。
+- 最终composition首次run在启动helper为Hidden时被既有WindowFromPoint防遮挡检查正确拒绝；仅helper改Normal后窗口确认可见。正确可见run又在第二轮120秒保险退出，原GetPixel每三点约800ms、31次占25秒，采样阻塞UI且拉长验收；旧失败日志全部保留。现仅将SampleFrame改为现有CapturePixels一次真实BitBlt帧＋内存三点读色，防遮挡不改、超时不改、后台/取消/后续位置严格断言不改。新增完整source-link纯BGRA/尺寸/边界与实际caller5回归，起播9项仍保。
+- 单帧采样dev实际两轮exit0，但pixel持续底色不能算画面正确。显示器在用户离开后输入idle约2h40，短暂显示/system execution lease对照仍blank；对已核唯一Momoka PID/HWND发送一次F24无绑定键、无鼠标移动后，同一运行窗口立即变为六色真实彩条，GetPixel/BitBlt时间恢复实际帧节奏；两轮全部断言exit0、真实screen截图已目检。该对照只证明本轮空闲显示前件，未把blank数据洗绿，也不修改系统电源计划；execution state由同一线程恢复，原blank截图保留。
+- 当前额外生产写集只合成探针采样/纯像素helper，不改PlayerPage、VM、播放服务/内核/输出选项、新功能树。当前Core/Tests及Shell编译零警告错误，14项就绪/像素回归全过，实际可见run两轮exit0且真实彩条截图已目检；当前Hidden失败反例实际防遮挡拒绝/exit1，原deadline不改。Release白空全方案1851文件0修改/无加载失败、47脚本过；对应中文提交后再对最终源码收尾实际publish、settings/selfcheck/native，不把dev结果当交付。
+## 第九组恢复剩余修复及与新功能窗口协调（2026-10-25，在途）
+
+- 用户在直接交付后明确要求“修完”，本组恢复此前记录的 AtomicFile 访问拒绝和 composition 最终原生复验；R-043 仍仅展示建议，不擅自修改。用户随后授权与新增功能窗口自行协调，并明确不要实时汇报。
+- 本组实现树：`C:/Users/89400/.codex/worktrees/delivery-atomic-completion/Momoka`，分支 `codex/delivery-atomic-completion`，从既有完整修复树 `48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795` 建独立树。旧树归属其他任务，未抢占或改写；主目录只读规则/状态，未实施本组修复。
+- 生产写集仅 `src/Momoka.Core/Infrastructure/AtomicFile.cs`；独立子代理写 `tests/Momoka.AtomicFileWriteTests`，主线程登记方案/补验证与交付文档。没有修改新功能窗口负责的 MoviePilot、字幕翻译、补帧、Settings/Player VM。双方各树构建，桌面运行串行，修复窗口先完成交付后释放给新功能窗口；无 ZIP、不 push、不改变真实媒体库。
+- AtomicFile 已用真实共享 Delete 的旧读句柄证明旧 MoveFileEx 的拒绝语义；Windows 无备份分支仅访问拒绝时使用 FileRenameInfoEx/POSIX rename，保留 CommitGate/权限/ReadOnly。真实多次带备份轮换又证明旧 File.Replace 在仍有旧 reader 时第二次返回1175；仅此已确定错误改用唯一临时前主文件备份，主提交成功后发布备份，异常用读者安全rename回滚而不提前覆盖旧备份；真实回滚拒绝保前值并Data标出恢复路径。raw UTF-16 和既有设备路径保持，未忽略元数据合并或升级依赖。
+- 剩余验证：子代理副本32生产契约/4独立对照已过；主线程本树已整合并补3项发布/回滚真实故障路径，35生产+4对照全过，四组固定预算12544次提交、两组跨提交读者各128提交/1280读取完整；旧失败报告不改绿。本树39项目Release零警告错误、当前Core2880全过；Release配置加载空白检查无加载警告且0文件修改，旧并行format导致生成文件冲突失败保留，已改串行编译闭环。仍需提交后统一入口/适用应用及原生探针、实际publish并回读桌面快捷方式。单测/开发构建通过不是交付完成。
+- 新功能窗口独立树 `C:/Users/89400/.codex/worktrees/mp-translation-interpolation/Momoka`；master与旧修复树不是祖先关系（共同源c34a5e5；review独有101提交、master独有20提交），已经告知不得只摘本轮Atomic而遗漏旧72项修复，也不得整份覆盖丢master的新功能；功能窗口将完整merge旧父链再接本组提交，最终整合另行验收发布。
+
+## 第八组按用户要求停止修复并交付桌面快捷方式（2026-10-24）
+
+- **用户最新指令是“先别修了，记下来直接交付”。已停止继续修复、补充压力诊断和原生运行复验，只交付当前已提交版本的桌面入口，不生成压缩包、不推送。** 本节是最新状态；下方“在途／快捷方式未改／待复验”均是此前阶段的历史记录，不自动恢复那些工作。
+- 已实际发布源码 `03b5d103f9d9b250bcd00be331834fe479e9ecb6`，产品版本 `0.1.7+03b5d103f9d9b250bcd00be331834fe479e9ecb6`。桌面 [Momoka 快捷方式](C:/Users/89400/Desktop/Momoka.lnk)已更新并回读：目标 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/artifacts/publish/win-x64/Momoka.exe`，工作目录为同一发布目录，无额外启动参数，图标指向该程序。旧快捷方式与旧发布件保留在本树证据目录，不删除或归档实现工作树。
+- 当前源码的38项目Release构建零警告／零错误；Core **2880通过、0失败、0跳过**，51离线入口全部退出0／失败0／跳过0，重叠测试数不相加。实际自包含发布与载荷校验退出0，540文件、283.5MB；新原生运行库与批准值一致。验证证据在 `artifacts/staged-repair/batch07/final-current-03b5d10/`，不把中间输出当当前证据。
+- **按用户要求交付，不宣称最终全部运行门禁通过。** 上一代码版b5bce71已实际通过Shell全量101／字幕11／本地motion／标准自检186，范围和失败历史保留；当前03b5d10的首位置就绪修复已有9项离线正反例，尚未完成该修复后的原生composition复验。旧composition失败日志仍是失败，不因交付或单测通过改绿。用户新指令后未再次启动应用／探针，不改自检基线或真实设置。
+- 明确留待后续用户另行指示：① **AtomicFile**在额外匿名压力验证中出现覆盖文件访问拒绝，串行也可复现，底层原因未闭环，未采用吞错／泛化重试；② 当前首位置就绪修复后的**原生composition复验缺口**；③ **R-043**仅展示建议仍未实施（72/73稳定号已本地实现或既有覆盖）。真实TLS／代理、Plex实际JSON登录接受度及2FA/PIN、生产DPAPI／Registry ACL、独占窗口／外部mpv／真实服务器媒体播放等覆盖仍不冒称完成。
+- 交付与未完成项已写入[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)，[实际交付回执](artifacts/staged-repair/delivery08/user-direct-delivery-receipt.json)含目标、版本和文件SHA256。全部子代理已关闭，提交、工作树和证据保留，无后台修复、自动续跑或待处理运行进程。本次只改交付文档，内容／链接／回执一致性核对后单独提交，不重新构建或发布。
+
+## 第八组合成起播首位置就绪（2026-10-24，在途）
+
+- b5bce71最终38项目Release零警告错误、Core2871/51入口全过，正式publish540文件过；actual全Shell101/101（scope全量无跳过）、字幕11/11、本地motion全部自动断言/exit0及自检186无失败/缺失/降级，6份真实profile主备字节未变。实际截图已目检，ZIP未生成、shortcut暂未改。
+- 最后补最终composition actual时，已loaded/已选视频轨后第一个time-pos仍unknown，原即时读回报失败/exit1，原日志保留。仅补probe起播边界10秒首位置等待（0合法、有限非负），getter异常/EOF/调用取消/截止均失败；后续progress/pause严格读回与0.25秒推进判据不变。实际链接就绪函数9正反例过，不改libmpv/PlayerPage/播放服务、baseline/native批准或UI体验；提交后重跑受影响composition及当前Core，其他既有actual源码未变覆盖可核source pins。
+- 用户仅要桌面快捷方式，不打压缩包、不push；最终composition未通过不宣称交付。此前AtomicFile追加压力访问拒绝诊断保留，不用正常Core绿掩盖。
+
+## 第八组表格探针尺寸前件闭环（2026-10-24，在途）
+
+- 用户明确只交付桌面快捷方式，不打ZIP，不更改R043展示。e399967正式38项目Release0警告错误、Core2870全过、51入口全exit0及Settings23/HomeOrder11/motion15/selfcheck32附加过；实际发布540文件/283.5MB/固定native与依赖检查过。
+- e399最终全量Shell101项100过1败、scope全量无跳过，旧10失败已闭环；唯一表格失败在上一段1600宽面板走查后，实际视口1560与画布1560，所选六列总宽1284，本来不应溢出。探针改为先请求900客户区，再等待实际native及XAML均到900宽，保画布>视口、列宽完整和HorizontalOffset>1三原判据；相关33实际规则/源码接线测试过，当前普通bin实际library分区15项全过（包括表格canvas和实际横向偏移），不改产品表格或UX，不用延迟洗绿。新提交后仍需最终自包含full及自检重验，普通bin不能替代最终发布。
+- 保e399全101/100日志和所有旧失败，不改基线。最终shortcut仍未指新版本；不把文件存在当交付。AtomicFile额外匿名压力访问拒绝前件保留且未改Core；当前完整注册测试过不抹除该诊断。
+
+## 第八组实际交付收尾（2026-10-24，在途）
+
+- 用户明确要求“别停，做完然后交付”，当前主树继续单写，权威规则全文重读自 `C:/Users/89400/Momoka/CLAUDE.md`。72/73审查号代码收束不重做，R043显示建议不实施，历史69份审查只读；不push、不改真实设置、不真实起播/观看上报/写媒体库。
+- 已供应本机与批准清单完全相同的根libmpv101242880字节/SHA `fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17`，原native/Windows SDK批准及自检基线不变。首真实self-contained publish编译成功但旧唯一Windows SDK pin拒.NET10.0.11；独立下载官方NuGet归档与缓存逐字相同，经SDK10.0.400官方GetContentHash/local signed integrity核验，资产源官方RuntimeList.xml172managed+15native。增加精确独立.NET pin，不从待验deps/cache授信；published完整resolver映射和DLL/EXE字节位置均校验。旧五入口147/50/23/7/25过、新.NET141过（含21正例120预期拒绝），原拒绝/fixture缺copy/缺kind诊断/404来源端点都保留。
+- 全可见Shell首101项91过10败，隐藏启动两次无效像素失败另留；主屏/可见窗口不是放宽遮挡守卫。Settings/HomeOrder/AniBT探针旧夹具缺活动期或两阶段preview契约，分别整合612549d/09e1b5b/d536838的限定源与测试；motion末直接全屏固定500ms早判改等待实际window/pose/handover，整合acb98a6，原0xC000027B崩溃未因离线绿宣称已修。FnNas探针finally释放并只Remove自己Frame，保后续根唯一子断言。新Settings23/HomeOrder11/AniBT7/motion15契约及自检32均当前过，真实运行待最终来源重验。
+- 官方默认自检使用隔离设置副本/readonly真实库（非离线，不手动操作共享写入），首186检查3失败/降级3；实际6份生产/旧profile主备字节全未变。九视图旧count7、tonemap合法隐藏峰值后旧固定5项、用户已去静止白边后旧强制框均已核历史契约。保三原检查名/基线：读实际grid.MinItemHeight、独立选字段文字高度、精确模式4/5HDR项、当前themeThickness+不透明底板；32实际纯谓词/错读数/调用接线回归过，不改产品UX。
+- 来源与证据：`artifacts/staged-repair/delivery08/`；初HEAD75b42f5当前完整35项目/Core2838/51入口过，后当前38项目零警告错误与新相关回归过；1833文件空白0修改、46PS编码/LF/语法过、66本地文档链接检查过。最终commit之后仍需统一fresh源码/测试/最终publish/runtime/full UI/自检/本地motion，不借中间绿交付。
+- 追加AtomicFile访问拒绝压力前件：worker实际原方法12writer及串行同目标覆盖均复现0x80070005，File.Replace对照仍0x80070497；不凭权限码认ACL/环境免责，不盲加retry、不动Core。主树正常完整Core2869过不洗掉旧红；诊断在 `C:/Users/89400/.codex/worktrees/delivery-settings-probe/Momoka/work/atomicfile-diagnostic-20261024-d4205f73/analysis-result.md`，底层拒绝尚未闭环。新专项红记录保留、真实设置不碰。
+- Workers已交回且关闭可恢复，不删除/归档树；新方案只加Settings/HomeOrder/motion三测试项目、旧项目名/配置逐字保留；未把worker PROGRESS/DLL主合。快捷方式此刻仍指旧主目录，ZIP尚未打包；最终门禁未全绿不宣称已完成交付。没有自动暂停。
+
+## 第七组最终收束：剩余四个P1已本地修复，72/73号实现或覆盖（2026-10-24）
+
+- R001主9c6ed2e、R003/R005/R031整合e3ba8df，R003初public空ID和R031最终收据追加闭环，95d2eab只修匿名对象空白、aa64104只同步R003已审查会话source pin。累计**71号本地实现＋1既有覆盖＝72/73号**，剩余**R043仅显示建议未实施**。以前四号“停止/不重试”不是永久禁修指令，后续澄清已正常实施；旧69审查原件SHA不改，已撤回代理参数偏好不再作为接续要求。
+- **最终验证产品/测试/source-pin HEAD=aa64104032b50d9f5d42bf9c4d900b21752e16cc**：format后fresh **35项目Release方案0警告0错误/exit0**；**Core2838过/0失败/0跳过**；47既有＋4新fixture共**51离线入口全exit0/失败0/跳过0**，有覆盖重叠不相加。R00137、R00386、R00543、R03143；R01796/R04231/R065启动61/共享34亦在该最终输出重验。1096个source/所有DLL/51日志和69历史SHA逐份重核，证据 `artifacts/staged-repair/batch07/final-current-aa64104/summary.json`／results/plan/final-evidence-audit。
+- Release/x64 solution whitespace1795文件0改/exit0，35项目加载无实际诊断；45PS＋1ignored driver编码/LF/语法过，format后actual4份g.cs非空/来源与SHA可查，Settings IsOn TwoWay/通知、日期真实TextBox接线及AniBT生成11过（非真实UI）。R04619源仅更新1份R003合法hash，其余18不变；8负例仍预期exit1，再current caller50过，不放宽来源/成员/namespace/await/hash/外树守卫。
+- 原红/工具错不清理：R001初37项20红；R003来源70的21红及主86的4红；R00543的15红/旧fixture-host错；R03141的31红、observer42的1红、半请求EOF编排错、初Copy-Item mtime增量旧DLL；solution空白exit2、首次final95d2eab旧pin拒构建/exit1且未跑旧输出、日期checker误找DatePicker（actual TextBox）、PROGRESS6个继承旧EmbyNian坏链接均单列保留，不洗绿不夸全历史链接通过。
+- **尚非完整交付：** 根libmpv仍缺，历史真实runtime/native闸门exit1红未改；无真实TLS/proxy/Emby/Jellyfin/Plex/MoviePilot登录、Plex JSON请求服务接受/2FA/PIN/legacy、生产DPAPI、Registry ACL/WinUI输入像素/native/uosc/媒体播放或发布/push/shortcut刷新。**快捷方式仍旧版**；同源跳转也拒绝的兼容取舍见专项。全部workers/reviewer交回关闭、独立树干净保留可恢复，无自动暂停/唤醒或在途任务。压缩后全文重读 `C:/Users/89400/Momoka/CLAUDE.md`，核本树最终doc-only HEAD与batch07/checkpoint-final；下一步按用户范围，不自行改R043或真实账号/发布。
+
+## 第七组最终方案旧pin闭环（2026-10-24）
+
+- 首95d2eab方案已fresh Core/Shell/其它项目，唯R046caller19源pin的EmbySession旧SHA拒绝构建/exit1，未跑旧51入口；原失败保留。逐一核R003仅改restore身份及空public ID，不改caller Capture/Execute、Start/Next/NowPlaying/Leave或其它18源；只同步一SHA、保守卫/元数据，不整份accept快照。
+- current caller零警告错误/50绿，原Test-SourceExtraction8负例全部预期exit1（hash/member/namespace/await/foreign root等），其后重编current/50绿。证据 `artifacts/staged-repair/batch07/r046-source-pin-sync/`；下一步新commit后完整35项目＋51入口，旧失败不删、不放宽。未新增产品变化或发布/真实native/账号/UI/播放，shortcut旧版。
+
+## 第七组最终空白纠正后，统一51入口验证在途（2026-10-24）
+
+- 整合提交e3ba8df，相关最终Core2838全过／R00386、R00543/Plex146、R03143、R00137全过，Gibbs四域无保留P1/P2。Release/x64 solution初format在3个匿名JSON多成员同行发现13处空白，1795文件只涉及R031 test一份，旧exit2保留；仅分行，非空白tokens完全相同，再Tests/Core零警告错误与R03143绿。
+- 改后方案Release/x64 whitespace1795文件0修改/exit0、35项目正常加载，45PowerShell与最终ignored driver BOM/LF/语法通过。此次小提交后fresh全方案/51入口统一运行，最终绿色仍以新提交输出为准，不能将格式前真实生成或旧DLL冒作当前。产品源码四域没有额外变化；不下载libmpv、不执行真实用户账号/UI/媒体或发布推送，快捷方式旧版。
+
+## 第七组四P1限定整合，等待最终统一验证（2026-10-24）
+
+- R001主9c6ed2e；R003来源a133df8＋主追加初public空ID，86项82过4败→86绿；R031来源c114253＋observer partial/Stop+join final-count追加，43最终绿（原41/42与EOF工具失败保留）；R005来源fbab57a八blob＋43专项/146协议绿。全部workers交回关闭保独立树，Gibbs四域当前只读无保留P1/P2。源与输出、工具错误、初次R031mtime旧DLL归因严格分开，不把来源绿当主绿。
+- 四P1已具本地补丁，待本次限定commit＋最终35项目Release／51既有新离线入口统一重验后计最终代码闭环，预期71实现+1旧覆盖=72/73，R043仍显示建议不改。69历史审查原件hash未改，原停止措辞不是永久禁止已纠正；用户撤回的代理参数偏好不再携带或派工提及。
+- 产品含R003空ID后Core2752绿/R03141合后2793绿/半请求编排后2837绿，新增最终迟到计数case后当前完整Core2838全过0失败0跳过，读数不能混用。UTF8/LF/相关Core/Tests空白过，说明/命令同步。未真实TLS/proxy/Emby/Jellyfin/Plex/MoviePilot登录/PMS/JSON请求接受/生产DPAPI/UI/ACL/native/uosc/播放，根libmpv缺历史门禁exit1红，未发布推送或改快捷方式，快捷方式旧版，非完整交付。
+
+## 第七组 R-001：实时跳转边界已本地验证（2026-10-24）
+
+- 实际唯一握手入口传受控invoker，拒绝同／跨源全部跳转，原地址重连／polling、新令牌scope／cancel与资源释放保留。真实匿名回环初37项17过20败→修后37过；observer取消已accept计1，收紧后37重过／完整Core2666全过0失败0跳过，Release Tests/Core零警告错误。Gibbs只读复核无保留P1/P2，证据 `artifacts/staged-repair/batch07/r001/`，原红和新版observer独立hash，不混同字节对照。
+- R003／R005／R031三个独立域尚在推进，未计实现；R043不改。只完成本地提交，最终统一重验待全部整合；没真实TLS／配置proxy／服务端／生产凭据链／UI/native/播放，libmpv缺的历史真实门禁红仍在，无publish/push/shortcut刷新，非完整交付。代理参数偏好已撤回，接续不再携带。
+
+## 第七组：剩余四个 P1 的正常防护修复（2026-10-24，用户明确继续）
+
+- 已重新全文读取权威 `C:/Users/89400/Momoka/CLAUDE.md`，核主实现树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`、干净 base `8865cc4dda46da100c06f5cd7cea413a6719604e`。下方历史“停止／不重试／受限链”表述**不是用户永久禁止修复的要求**；本轮根据后续澄清与继续指令实施正常身份、登录和凭据边界保护，真实账号／服务器有副作用操作仍须相应授权。历史 69 份审查文件只读，已存逐文件 SHA256。
+- 用户撤回此前的代理参数偏好；后续派工消息只保留任务、写入范围、验证和协作要求，不再重复相关参数说明。接续摘要也不再携带被撤回的偏好。
+- 单写主树处理 R-001；代理 Beauvoir（R-003）、James（R-005）、Schrodinger（R-031）各在 `r003-restore-identity-final`、`r005-plex-v2-final`、`r031-login-origin-final` 独立工作树实现并留原红／后绿证据。主线程复核整合，不借旧树输出作本次验证。
+- 本轮 R-043 仍是显示建议，不擅自改变“合集”展示；不读真实明文凭据、不真实登录／播放／写库。未 push／publish／改快捷方式；缺失真实 libmpv 的历史 runtime 红仍保留，快捷方式旧版。接续证据在 `artifacts/staged-repair/batch07/`。
+
+## 第六组最终收束：R-017／R-065内部纠正，R-042已由旧修复覆盖（2026-10-24）
+
+- 主树R017=987eee1、R042=cb050cc、R065=a9fc648；新增两内部支持契约纠正，累计67实现+1既有覆盖=68号当前处置、剩余5（受限R001003005031停止不重试，R043显示建议不擅改）。部署偏移/modal/ACL前件仍未验，旧69审查记录只读。[增量最终表](docs/代码审查-分阶段修复-2026-10-23.md)／[日期96](tests/Momoka.Tests/README.MetadataDate.md)／[来源31](tests/Momoka.AniBtSourceContractTests/README.md)／[启动61与共享34](tests/Momoka.Tests/StartupStateContractTests.md)。
+- 最终产品源码a9fc648，format后fresh35csproj Release零警告错误／Core2645全过0失败0跳过；30独立匿名套+16显式fixture+全Core共47入口全部exit0/失败0/跳过0、分套不累加，全部源/DLL/log hash对上。首driver帐号14绿仅因命名前缀解析停，旧失败/29结果保留，current所有pins不变核原14+续余18，未放宽守卫洗绿。Release/x64方案1793文件空白0修改/35project无实际诊断；45PS过、fresh实际日期/设置IsOn/登录/AniBT g.cs/hash与AniBT生成11过。证据artifacts/staged-repair/batch06/final-current-a9fc648，原红/工具失败/source worker work/r065均保。
+- Gibbs初R065恢复成功覆盖本次初读Error P2已来源34项18绿16红→34绿，最终无保留P1/P2；Locke/Hypatia/Gibbs已交回闭工作、独立树干净/上下文可恢复不清理归档，无自动唤醒或在途任务。本地可实施范围收束，非自动暂停新批/发布，不擅自扩大到受限链或R043体验建议。压缩后重新全文读C:/Users/89400/Momoka/CLAUDE.md，核本树HEAD及batch06最终checkpoint。
+- **不是完整交付：** libmpv缺、真实runtime门禁仍exit1红；无实际WinUI/UIA/输入/像素/Registry ACL/真实服务器元数据与调权写入/生产凭据DPAPI/登录改密重认/native/独占uosc/媒体播放，未publish/push或改快捷方式。**快捷方式仍旧版。** 三候选支持契约证据不冒充真实部署验收，等待用户新范围再继续相应工作。
+
+## 第六组 R-065 最终来源整合与主树相关验证（2026-10-24，在途）
+
+- 来源7474269限定10份Gitblob+Program四行入口，保R017/R042当前主树提交/原tests；读取失败不等null、Applyfalse不被相等状态吞，原二态+Error回拨，不新增未知UX。Gibbs共享restore尾部P2已来源34项18绿16红→34绿：Reload清cause/同步建行记录、await前快照传原tail；启动61/截图反射caller14/设置27及源码Release零警告错误，旧39/61/工具编译红全保。actual测试/调用边界不等完整用户Reload/default/import或真实注册表/UI，主树61/34/14/27/29全绿、Tests/Shell零警告错误、10源逐字同worker，Gibbs最终闭环无P1/P2；Release/x64方案空白0改/35项目加载无诊断，format后统一fresh方案/47匿名入口待最终提交后重验，不以早期绿色销账。[增量](docs/代码审查-分阶段修复-2026-10-23.md)／[启动专项](tests/Momoka.Tests/StartupStateContractTests.md)。
+- R017987eee1/96绿、R042cb050cc/31当前及旧13项6红；R042仅既有保护不新产品计数。本项提交后本地实现预计67（65+两内部契约纠正），部署偏移/modal/ACL仍未验，R043及受限四号不动。原历史records/既有错误日志保留，代理均交回结束工作且可恢复、各树保留，Gibbs最终只读闭环已回。libmpv缺、真实native红、快捷方式旧版，无真实UI/服务器/凭据DPAPI/播放/发布push，非完整交付。
+
+## 第六组 R-042 current保护确认及专项合入（2026-10-24）
+
+- Hypatia来源4a63a69限定22测试/脚本/证据blob合入，当前真实Core/session（仅SettingsStore IO替身）/VM/Dialog31绿、35项目Release映射；R037/039既有service blob548f400与1b37ca1完全同，本题不再改产品。来源旧四exact输入+currentCore13项7绿6红仅有限对照，初工具错另保；实际聚合A→B旧scope仍可用但canContinue阻止后续Apply/Refresh，固定后台来源无委托仍继续。主树local-only restore、current单项目零警告错误/31绿，Run-Fixture current/历史反例及最终方案仍按本树重验。[增量](docs/代码审查-分阶段修复-2026-10-23.md)／[R042](tests/Momoka.AniBtSourceContractTests/README.md)。
+- R017已987eee1、最终96专项绿（补8前Core2637绿），本地实现66号；R042是旧修复已覆盖，非新增第67产品实现。R065内部启动读/Apply错误契约在独立树最后验证，Gibbs只读复核；真实部署modal/ACL/WinUI/native/播放未验，libmpv缺、快捷方式旧版，无publish/push。受限四号与R043建议继续不擅动，原历史records只读。
+
+## 第六组候选复核：R-017 防误写／R-042 与 R-065 在途（2026-10-24，用户明确继续）
+
+- 已全文重载C:/Users/89400/Momoka/CLAUDE.md并核主树cfde3c7干净，恢复的是新候选复核，不重跑第五组。主线程R017支持契约实际Read/ApplyTo/匿名client同夹具88项46过42败→仅日历日比较一行修后原88全绿、Gibbs无可行动P1/P2，补8个宽松偏移输入后96全绿、六caller源码合同/UTF8LF/新链接过；同日保偏移时刻、真改旧UTC日/清日期/坏输入/未知字段均保原契约，不新增时区体验。部署偏移前件仍未观测、历史报告/records只读。[增量](docs/代码审查-分阶段修复-2026-10-23.md)与[专项](tests/Momoka.Tests/README.MetadataDate.md)，证据artifacts/staged-repair/batch06/r017保留原红。
+- Locke只写r065-startup-state-contract独立树、Hypatia只写r042-identify-source-contract独立树，各负责current支持契约/匿名边界测试后候选裁定；Gibbs主树只读R017复核。所有代理/树ID在batch06/resume.json，R043显示建议不擅改、受限R001003005031停止链不重试；无真实注册表/配置/凭据/服务器/UI/native/媒体/播放/publish/push/快捷方式。补8前完整Core2637全过/0失败/0跳过/退出0，Shell/Tests Release零警告错误、实际日期框g.cs完整/同Corehash；完整方案待其余候选整合后统一重验，不冒用第五组绿。**真实libmpv缺、快捷方式旧版，尚非完整交付。**
+
+## 第五组本批收束：R-010／R-008／R-011／R-067（2026-10-24，按用户要求暂停）
+
+- 本批前三提交R010=e229a2d、R008=5fa9c96、R011=9c42989；R067最终来源0520c27限定14工具/批准数据合入，八保留全部独立闭环无P1/P2，主树最终runtimepack25/package7/layout23/boundary50/payload147/shader23全绿/0失败/0跳过/退出0；当前42依赖来源只读核验及44PS过。原native56路径/Bootstrap历史optional不改，新runtimepack独立repo pin固定SDK/TFM/RID/包内容/归档/两exact资产，不信待验cache/deps自动授信。最终证据batch05/r067/final-0520c27与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计65个稳定号业务实现＋相关离线回归，余8：受限R001/003/005/031保持停止，条件R017/042/065与显示建议R043不擅修。最终同源34csprojRelease方案0警告错误、Core2549全绿、29独立专项＋13显式匿名fixture入口全部退出0不相加，Legacy87/工具维护13/smoke14/自动化无句柄0/生成11+6拒绝等过。旧Legacy编译改Core信息版本hash后已统一current方案重编/全43入口重验且Core/Shell/Tests一致，不放宽来源hash。产品源码未因R067改变，所有旧红/中间失败/09:32接续和子代理历史/树保留。
+- **现在按用户“完成这批之后暂停”的范围收束暂停**；“恢复”只恢复本批，没有启动下一问题/代理/自动唤醒。全部子代理已交回并结束工作，上下文可恢复，工作树未归档/清理。真实libmpv未供应、runtime门禁仍exit1；无生产凭据/DPAPI/登录重认证链或真实App/WinUI像素/服务器调权共享写/native/播放验证，无发布/push/快捷方式刷新。**这不是完整产品交付，快捷方式仍旧版。** 再明确恢复前不继续；压缩后先全文读C:/Users/89400/Momoka/CLAUDE.md及本树HEAD/状态/最新checkpoint。
+
+## 第五组 R-011 主树当前权限与组合回归完成（2026-10-24，限定本批）
+
+- 源907cb8d限定六产品/16专项复制，SettingsPage手工仅三权限hunk保R010保存监控；同身份current权限/revision与capturedConnection/令牌/播放identity/lifetime分开，能力/管理页/执行即时降升、旧await跨代拒回填。Main54/17、帐号当前14及明确R010快照14、Defaults36/SettingsLifetime45/R02768/实际保存组合42绿不相加；新Dispose派生Attach42项41过1败→只base readonly/Password首guard两行修后42绿，原Save实现逐字不变。Pasteur来源与主组合两次无P1/P2。实际19caller pins仅两文件diff复核更新，50绿及8提取拒绝后current50再绿；当前34csproj方案Release零警告错误/完整Core2549绿，solutionRelease/x64空白0改/34PS/源码合同与UTF8LF链接hash通过，证据batch05/r011与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计64号本地实现＋相关离线回归、余9；R008提交5fa9c96已完成。仅剩本批R067源4ed5351七保留最后闭环复核/限定整合，收束后暂停；受限四号/条件候选/显示建议不另开。生产认证/恢复/重认证/改密/vaultDPAPI/configtoken链仅静态接线，无真实App/WinUI像素/native/服务器/播放/发布推送，快捷方式旧版，非完整交付。全部历史红与09:32暂停接续记录保留。
+
+## 第五组 R-008 主树完成（2026-10-24，限定本批）
+
+- worker首cdfb832/补afd448最终VM限定合入后主线程同步入口及取消/失败尾部闭环：点击输入快照、token/ID/username在通知前发布、load/UI尾部守原票，draft尾部守编辑版本，sameID仅等价name免取消；不改生产Session/Gateway/vault。原77保留＋51=128，exact afd448两旧VM同夹具95过33败→当前128全绿/0跳过；全中间红保留。fresh x64Shell/fixture Release零警告错误、相关共享base8套当前绿不相加，实际bindings17+8非法生成拒绝/题内格式0修改/PSBOMLF解析/20输入hash通过，Popper最终无P1/P2。证据batch05/r008及run-resume-final128-red/green，具体见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计63号本地实现＋相关离线回归，余10。继续本批R011源907cb8d复核/限定整合，R067实际包摘要P1补修；收束后按用户指令暂停，不开下一问题。未生产Auth/凭据/DPAPI或真实WinUI输入像素/服务器/native/播放/发布推送，快捷方式旧版，非完整交付；原09:32暂停记录保留，不将恢复等同完整交付。
+
+## 第五组 R-008 取消/反馈尾部最终闭环（2026-10-24，限定本批）
+
+- Popper续审两P2补实际完整VM14反例，126项112过14败→126绿，额外sameID非等价name两护栏126过2败→最终128绿；完整afd448两旧VM配最终128夹具95过33败红保。当前请求前固定身份/密码输入、beforeNotifications先票/ID/name、通知后守票；取消hook按editVersion撤旧尾，失败逐属性与焦点前守原token，不写B草稿/反馈，原sameID/null/_filling/等价编辑保。final128普通Release/realgenerator17+8拒绝/相关SharedBase套都过，最后独立复核待回，不先提交。证据batch05/r008与本树run-resume-final128-red/green；未动态生产Auth/WinUI/cred/native/播放/发布推送，受限四号不重试。
+- R011源907cb8d已交回54/17与帐号兼容9/14及既有36/39绿，主线程复核/整合在后，不冒主树完成；R067新archive绑定P1由Ampere原树补。R010提交累计62保持，完成本批后暂停，不开别题。
+
+## 第五组恢复 R-008 同步入口补修（2026-10-24，限定本批）
+
+- 用户“恢复”解除09:32立即暂停，全文重读C:/Users/89400/Momoka/CLAUDE.md并核主树HEADe229a2d和保留dirty；继续R008/R011/R067本批，不开下一题。主线程同步前固定所有输入/票/ID、通知后守当前性及EndLoad继任，Dispose并原退订；原77＋35=112夹具，两旧VM exact afd448为93过19败→当前112绿/0跳过。首baseline20重复生成编译错、111项4Dispose红及重复Dispose编译红均保留，定点修非清理/洗绿；实际Shell binding17+8拒绝绿，原sharedbase受影响8套均current绿不相加，见batch05/r008与[专项](tests/Momoka.SignInInputGenerationTests/README.md)。
+- R008独立Popper最终闭环待交回，不提前提交/计完成；R011 Avicenna补完整帐号兼容/既有专项/Core格式，R067 Ampere新archive内容与固定restore摘要P1补修在原树，旧六保留已封仍不先计完成。R010e229a2d累计62号保持。全部不动态运行生产认证/密码令牌DPAPI链或真实WinUI/App/native/服务器/播放，不发布推送；快捷方式旧版，非完整交付。完成本批后按原指令暂停，保留用户中途再次立即暂停权。
+
+## 第五组 R-008 最终来源限定整合（2026-10-24，本批完成后暂停）
+
+- 首修cdfb832的经null改选P2由afd448469fdbd7db947668254739ee57b693bb0a补修，主树复制最终9个产品/正式fixtureblob，原VM与source基点相同、无shared进度/产物整份搬运；当前票捕获ID值，A→null→同名B撤A且保B草稿/无密码自动新票，sameID/null/_filling/等价编辑保，旧finally不清B当前token/ID，Busy仍挡重复。来源同77项59过18败红保留，主树当前77绿，fixture/x64ShellRelease零警告错误，题内format0改/无加载诊断；freshShell实际绑定17与8非法生成拒绝通过。来源run主树artifacts/r008-signin-input-generation/run-main-integrated-20261024-092417-6068及batch05/r008。最终独立只读复核待闭环，不提前算完成/提交。
+- R010已提交e229a2d累计62号，R008/R011/R067收束后按用户最新暂停，余题不启动。生产认证提交锁/Adopt/vault/凭据DPAPI/真实WinUI输入像素/native/服务器/播放/发布推送未运行，快捷方式旧版，非完整交付，受限四号停止不重试。
+
+## 第五组 R-010 主树本地保存欠项（2026-10-24，本批完成后暂停）
+
+- Store统一所有调用者保存状态/通知，Service不再私记最后结果；改密页窄ISettingsPersistence仅重试本地，明确服务器确认与本地保存不同，不自动重发、不恢复来源/Remember、不清新草稿。父Settings活动票订阅即时同步、隐藏退订/旧回调拒绝，保缓存草稿。基点38项6过32败（含旧新增表面缺失，不冒32产品反例）→当前39全过；R02768、真实父page/currentShellVM45（新增6）绿不相加。31csproj当前方案Release与freshShell/fixture零警告错误、完整Core2549绿；Release/x64方案空白0修改/退出0无加载诊断，28PS/零无句柄/真实生成11/UTF8LF链接hash过；首R027夹具2型错误红保留定点修后绿。证据batch05/r010及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计62号业务实现＋相关离线回归／余11。用户最新“完成这批之后暂停”覆盖持续继续：仅收R008（cdfb832经null选择P2已退回Heisenberg补修）、R011（Avicenna独立树在途）、R067（758d079三新保留退回Ampere补修），主树未合它们，不另开问题。真实Session改密/重认证/密码令牌DPAPI持久化只静态接线、动态非秘密配置+窄假确认，未执行受限链、App/WinUI/UI像素/native/真实服务器/播放/发布推送；快捷方式旧版，非完整交付。本条是批内进度，非已暂停，待上述收束后暂停。
+
+## 第五组 R-004 主树文件权限错误分类（2026-10-24，继续）
+
+- 仅错误分类移-16出身份拒绝、-5/-16排可选降级，登录/Session源码不改。有效17项14过3败→当前21全过；当前30csproj方案Core/Shell零警告错误、完整Core2549全过，solutionRelease/x64格式0修改/退出0无加载診断、29PS/UTF8LF链接哈希通过。匿名GET/纯predicate，不实际登录/恢复/DPAPI/凭据链，静态catch不再权限误当密码，端到端来源保留未运行，证据batch05/r004及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计61业务实现＋相关离线回归／余12。继续R010保存欠项、R008 Heisenberg独立代理；R067三保留由Ampere原独立树补修，不提前算完成。未真实服务器/configcredential/UI/native/播放/发布推送，快捷方式旧版，非完整交付；不自动暂停。
+
+## 第五组 R-037／R-039 主树真实计划显式确认（2026-10-24，继续）
+
+- 源18c86056限定4产品／3相关测试／正式source-link项目合入，实际sealed计划先显示再独立确认写；无history只精确规范化title/year（保±1/未知year）不无关首条，history展示真实Source/Target/方式/旧清理，取消改选失效不重preview换目标、不解除未知写防重。主树53/Legacy87/Core2549全绿不相加；当前29csproj方案Core/x64ShellRelease零警告错误，solution空白1fixture10初始化定点修后0修改/退出0无加载诊断，29PS/定位零缺句柄/UTF8LF链接hash过。format清空g.cs首生成红保留，串行freshShell后实际bindings11＋6拒绝全绿不读backup。4产品same来源、R038helpers逐字不改，独立静态无保留；具体代价/证据batch05/r037-r039见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计60稳定号／余13。R067初feba564三项保留退回Ampere原独立树补修，主线程继续不自动暂停；真实目标/整批预核多GET、需多一步确认，不冒服务器原子或UI/凭据DPAPI/native/播放/共享写/发布推送绿，快捷方式旧版，非完整交付。
+
+## 第五组 R-027 主树帐号提交快照／草稿保护（2026-10-24，继续）
+
+- 源fae6539d限定两VM／正式项目合入，点击前捕获字段／编辑version，旧成功不清新密码、不误报新语言已存，显式重试不重发。主树68全过（源68项48过20败红留来源），fresh fixture/Core/x64ShellRelease零警告错误；VM/fixture及solutionRelease/x64空白0修改/退出0无加载诊断，26PS/UTF8LF链接hash过。产品逐字同来源，独立静态无保留；窄fakeSession仅确认，不走真实认证/DPAPI/保存链，不当R010完成。证据batch05/r027及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计58稳定号／余15。继续R037/R039源18c86056限定整合/独立复核/重验，R067初源feba564三项保留退回Ampere独立树补修；不自动暂停。草稿ABA保守需显式再保存；未真实App/WinUI密码输入/服务器/config凭据DPAPI/native/播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-046 主树自然EOF同窗继任及caller收尾（2026-10-24，继续）
+
+- 显式Episode/AutoNext自然EOF才retain非custom独占实例、窄lease由caller awaitusing回收；真实context关闭fence/q前置取消哨兵与source撤销守准入，旧lease/旧取消请求handle+generation失效不碰B。有效红10项5过5败、旧lease等Btimeout、23项22过1旧清B、26项25过1Q前留、27项26过1候选retry误cancel均闭环，当前realService/native27绿。fixture-only worker58ec7779限定整合完整VM50绿/8提取拒绝后重编译50再绿，11临时产品快照不带主树，Start节点same；最终27csproj方案零警告错误、Core2549/R05137/R04431/R04827/Monitor28/拖拽74/轨道11/音量31全过不相加。solutionRelease/x64空白命名冲突初红保留、folder映射修后0修改/退出0无加载诊断；25PS/UTF8LF链接19pins哈希过，独立静态P2闭环无保留。证据batch05/r046与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计57稳定号／余16，下一步限定整合R027源fae6539d（68支线绿、只读复核无保留），R037/R039源18c86056已交回待复核重验；R067源feba564未整合，静态P1夹具路径＋两P2退回Ampere原树补修。继续不自动暂停；未实际独占窗口/uosc/native/媒体/config凭据DPAPI/服务器/WinUI播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-051 主树原生文件代次执行点限定整合（2026-10-24，继续）
+
+- 源ada1d3cc限定三Core／正式项目／原事务10项构造边界整合，FileGeneration在事务开始捕获，write/rollback共用预期值到真实RunFor与HandOver/Swap/Destroy共同锁核验，service/native不猜同计数，接班空档拒绝。主树当前37全绿（三B旧写全0），当前24csproj方案Core/夹具/x64ShellRelease零警告错误；完整Core2549/EndFile27/Monitor28/拖拽74全过不相加；2提取非法反例预期退出1后默认当前重编译37再绿。solutionRelease/x64空白0修改/退出0无加载失败、23PS/UTF8LF链接hash过；产品逐字同来源，独立只读静态无保留，证据batch05/r051，源37项30过7败及取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计56稳定号／余17。R027 Hooke、R037/R039 Einstein、R067 Ampere三个独立代理在途；主线程继续不自动暂停。合成native接受不是真实GLSL/画面或外部IPC验收；未真实App/WinUI/native媒体/config凭据DPAPI/服务器/播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-052 主树固定显示器判定一致性（2026-10-24，继续）
+
+- watcher显式Monitor/fresh与resolver同口径，默认Active回差不变，实际Output仍Active；launch/Adopt用Monitor。同档仅尺寸、换屏跨档才切，初19项10过9败→19绿；追加pending/fullscreen24项23过1败抓重复3事务→恢复SizeOnly先不动后24绿，4纯Core边界最终28全绿。当前23csproj方案含显式Release提取器零警告错误，完整Core2549/R045拖拽74/轨道11/音量31全过不相加；solutionRelease/x64空白0修改/退出0无加载诊断，22PS/UTF8LF链接哈希通过。独立静态复核无保留，证据batch05/r052及[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计55稳定号／余18。R051 Euler独立代理仍在途，主线程继续确定问题不自动暂停；未真实换屏/帧/GPU编译/WinUI/native/媒体/config凭据DPAPI/服务器/播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-045 主树字幕拖拽所有权限定整合（2026-10-24，继续）
+
+- 源9314fe10两产品／正式源码项目限定合入，WinRT前持原VM/访问期/InteractionContext，每条sub-add前后重核；Detach/reAttach/换VM/换文件中止旧批次、B零条旧拖拽，保过滤/deferral finally/有效反馈。主树freshCore/提取器/74专项与x64ShellRelease零警告错误；当前74全过，5提取非法输入预期退出1后默认当前源重编译74再全绿，7输入哈希逐一核实际；真VM轨道11/音量31绿，solutionRelease/x64格式0修改/退出0无加载失败、22PS/UTF8LF链接哈希通过。产品同来源，独立只读复核无保留，源74项19过55败红及取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，主树证据batch05/r045。
+- 本项提交后累计54稳定号／余19。R051 Euler独立代理在途，主线程继续确定问题不自动暂停。A已发命令不撤销、不重放B；未真实WinRT拖拽/WinUI消息像素/完整Connect/Lifecycle/native代次/config凭据DPAPI/服务器/媒体播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-041 主树缺集搜索可用性重验（2026-10-24，继续）
+
+- 来源ddb0aaf5限定Shell方法／正式项目整合，构造前只重核原连接，断线／换连接保清单收搜索、不认领新连接，原scope/page/闭后守卫保留。主树fresh夹具/Core/x64ShellRelease零警告错误、58全过（源58项42过16败红留来源）；10提取边界全过，9拒绝退出1为预期不与58相加。solutionRelease/x64空白0修改/退出0无加载诊断，22PS编码语法／UTF8LF链接／源码日志哈希通过。当前源逐字同来源，证据独立在artifacts/r041-missing-search-availability与batch05/r041，具体取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计53稳定号／余20。R045源9314fe10已完成clean待限定整合、原写代理关闭；R051 Euler独立代理在途；主线程继续不自动暂停。原连接迟失效后恢复资格须重开清单；未真实App/WinUI像素点击/dispatcher时序/资源窗口/config凭据DPAPI/服务器/native/播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-040 主树次级来源入口与旧菜单失效（2026-10-24，继续）
+
+- 当前来源才加AniBT识别，次级仍保MP/AniBT独立搜索，Build/迟Genre/Invoke和Home.MenuRead一致。主线程初20项12过8败→20绿；侧线抓A→B→A排队漏网实际32项29过3败→即时失效latch+旧click/GET共守→32全绿，复核闭环无新保留。最终当前19项目方案Core/夹具/x64ShellRelease零警告错误；order66/Plex67/page98/fold51全绿，当前Core2549全过不相加。solutionRelease/x64空白1fixture7初始化定点修后0修改/退出0无加载失败，20PS/定位零缺句柄/UTF8LF链接哈希检查过；证据batch05/r040与[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计52稳定号／余21；R041源ddb0aaf5已完成clean待限定整合重验，原代理关闭；R045 Volta与R051 Euler独立代理继续。来源失效整个菜单收起/切回须重开，不扩secondary写权；未真实UI/窗口/dispatcher时延/配置凭据DPAPI/服务器/native/播放/发布推送，快捷方式旧版，非完整交付。不自动暂停、受限链不重试。
+
+## 第五组51号当前离线统一重验（2026-10-24，继续）
+
+- c94bd18当前方案18项目Release零警告错误；28个离线runner独立退出0、失败0／跳过0，完整Core2549全过，实际删除命令当前源／DLL构建证明及全部专项见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。不累加重复用例/请求/断言。全方案空白初查3早期fixture格式红保留，仅11处换行定点修、去空白文本同HEAD；当前Tests重编译和完整Core2549再次全过，最终solutionRelease/x64空白0修改/退出0无加载失败。20PS编码语法过，维护13/假shader发布23/smoke14过；定位432交互/312可达/零缺句柄，模板UIA未验。证据batch05/final51与evidence-summary.json。
+- 累计仍51稳定号／余22。R045 Volta独立树和R041 Dirac独立树继续；主线程下一步R040，不自动暂停。只是离线统一重验，不是完整产品交付，未App/selfcheck/真实UI/native/媒体/服务器/配置凭据DPAPI/发布推送，快捷方式旧版；比较器进程夹具当轮未重跑，不冒绿。
+
+## 第五组 R-056 主树写响应不明刷新义务收尾（2026-10-24，继续）
+
+- 源227d9ae7限定Dialog/正式夹具整合，按R-025当前完整Reload原样提取适配、未改父页产品。未知写立即NeedsRefresh，首笔直接关闭／手动恢复GET挂起关闭都交父，Touched不伪造，明确拒绝／身份取消和R024保留。主树当前36全过、Core/夹具/x64ShellRelease零警告错误；9C#solution空白匿名fixture6布局定向修后0修改/退出0无加载失败，再编译36全绿。源产品逐字一致，独立只读复核无保留；证据batch05，来源36项14过22败配对红与取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计51稳定号主树实现＋相关离线回归、余22保留。新代理Volta在独立树r045-subtitle-drop-ownership基点32178fc3修R045，主线程先做当前批次离线统一重验，再推进其它确定题；不提前计支线完成，不自动暂停。未知网络未实际写也可能多父GET；未真实字幕文件/HTTP服务器/配置凭据DPAPI/WinUI/App/native/播放/发布推送，快捷方式旧版，非完整产品交付。
+
+## 第五组 R-025 主树确认删除失效与actual命令重验（2026-10-24，继续）
+
+- 主线程4产品题内删除回调/访问源ID失效修复，动态补sameID刷新/lateApply只有旧源/选中外源三竞态，当前真VM22全过；fixture-only worker a518611c限定合入，主树fresh构建/哈希证明actualConfirm+GET/DELETE+真VM回调18全过。当前Core/Tests/fixture/x64ShellRelease零警告错误；11C#定向空白两匿名fixture13初始化布局修后0修改/退出0无加载失败，再编译22/18全绿，相关Plex67/顺序66/页面98全绿，PS BOM/LF语法通过。有效红/初fixture错/所有取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计50稳定号主树实现＋相关离线回归、余23保留；所有已分配写代理已交回并关闭，R056源227d9ae7 clean/36支线绿待主树提取Reload边界适配与重验，不提前计完成。持续继续、不自动暂停，历史/受限链不改，主体删后留提示/返回不强导航；未真实删除/发现/UI/配置凭据/服务器/native/播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-019 同URL补修主树限定整合（2026-10-24，继续）
+
+- 初9ce5d1/最终689c81fc单pending保原代次＋latestQueued＋observedIds，旧回调不能盖新导航，当前成功复显Web。主树69全过，Core/夹具/x64ShellRelease零警告错误；10C#solution空白夹具1处初始化换行修后0修改/退出0无加载失败，再编译69全过。页源逐字同来源，运行核当前SHA256，侧线只读闭环无保留；具体有效红/取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计49稳定号主树实现＋相关离线回归、余24保留；R025产品本地22真VM绿、验证worker fixture-only a518611c已完成18 actualcommand项，sourceHash与main一致，下一步限定合测试＋重验再commit。R056源227d9ae7已完成clean待当地提取边界适配；不自动暂停，历史/受限链不改，无真实browser/UI/native/config凭据/服务器/播放/发布推送，快捷方式旧版。
+
+## 第五组 R-044 主树来源撤销生命周期（2026-10-24，继续）
+
+- 限定整合a981ce2d的Lifecycle小补丁和独立actualService夹具，主树31全过，完整Core2549全过（不相加），当前Core/夹具/x64ShellRelease零警告错误；四C#定向空白两夹具布局修后0修改/退出0无加载失败，再编译31全过。产品与来源逐字相同，独立静态复核无保留，默认来源切换不停仍在线原片；取舍/有效红见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计48稳定号主树实现＋相关离线回归、余25保留；R025本地22真VM绿、命令worker最新快照17项回归在独立树收尾，不提前计完成。R019补修689c81fc已完成clean/代理关闭、复核无保留待整合；R056源227d9ae7已完成clean待当地fixture适配重验。持续继续不自动暂停，历史/受限链不改，无真实backend/WinUI/native/config凭据/服务器观看历史/播放/发布推送，快捷方式旧版。
+
+## 第五组 R-066 主树翻档活动期限定整合（2026-10-24，继续）
+
+- 源099c257c两生产与正式fixture限定整合，当前51全过，Core/夹具/x64ShellRelease零警告错误；5份C#solution空白初查框架夹具2处初始化换行修后0修改/退出0无加载失败，再编译51全过。两产品逐字一致，独立静态复核无保留；activity/owner/迟一拍归属修复保回程载体和原曲线/时长，具体红绿/取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计47稳定号主树实现＋相关离线回归、余26保留；R025本地19真VM绿仍未提交、实际删除命令worker独立补回归；R019同URL补修/R056/R044独立代理继续。持续继续不自动暂停，历史/受限链不改，无真实UI/帧时序/输入/native/config凭据/服务器/播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-048 主树不误判playlist展开为EOF（2026-10-24，继续）
+
+- 源e7e473f0相关6行backend与正式managed native fixture限定整合，主树27全过/10假HTTP，当前Core/主Tests/夹具Release零警告错误，7份C#solution空白0修改/退出0无加载失败。scope/service及VM next仅决策边界，product与来源逐字一致，独立静态侧线无保留；取舍/配对红/未验ABI尾和真实playlist安全见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计46稳定号主树实现＋相关离线回归、余27保留。R025产品仍独立在途19真VM绿，删除命令worker独立补last/nonlast/确认/actualwrite边界；R066源099c257c已完成clean/原代理关闭，静态复核无保留待整合。R019同URL补修/R056/R044独立代理继续。持续继续、不自动暂停；无真实UI/native/媒体/config凭据/服务器/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-022 主树限定整合与当前验证（2026-10-24，继续）
+
+- 源67356318两产品/正式夹具限定整合，库/模板各自已读门控和-1未知，不把半加载/旧缓存写成零；当前36全过，Core/源码项目/x64ShellRelease零警告错误，三份C#空白0修改/退出0无加载失败，自动化零缺句柄。源逐字一致，独立只读静态复核无保留；取舍/来源红/当前实测见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计45稳定号主树实现＋相关离线回归、余28保留；R019/R048/R066三个代理独立树继续，主线程推进下一组确定问题，不自动暂停或后台唤醒。显式刷新清编辑草稿，普通保存失败保留。历史/受限链不改；未真实UI/权限服务器/用户创建/config凭据/native/播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-062 主树目录快照交接（2026-10-24，继续）
+
+- EnterShell合法目录提交仅填空Frame/刷新仍当前home，不抢其它页；不动HomePage/VM或R066翻档。真Shell原样控制流＋实际SourceLibraries＋请求/库排计划有效修前13项6过7败→修后13全过，聚合恢复拓扑增至15全过；当前Core/夹具/x64ShellRelease零警告错误，三份C#定向空白1处夹具换行修后0修改/退出0无加载失败，再编译15全过。初JellyfinUserViews白名单前件timeout不充产品证据；详细代价/缺口见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计44稳定号主树实现＋相关离线回归、余29保留；R022源67356318已提交clean/写代理关闭，侧线只读复核中，下一步限定整合。R019/R048/R066三个写代理独立树继续。持续继续不自动暂停/后台唤醒，历史与受限链不改。当前主页一次正常重建可能重置滚动/选择，真实下游HomeVM读数/Frame/UI/native/服务器/config凭据/播放/发布推送未验，快捷方式旧版。
+
+## 第五组 R-038 当树整合＋远程对象路径补修（2026-10-24，持续继续）
+
+- 来源e09f4915限定整合，受限识别后缀逐字不变；状态逐行区分及扫描按实际旧路径影响，侧线指出远程相对对象路径漏扫，主树加3项有效43项42过1败，补targetIsLocal分界后43全过。当前Core／Tests／x64ShellRelease零警告错误，完整Core2549过/0失败/0跳过/退出0（含43）；三份C#定向空白0修改/退出0无加载失败，取舍/来源红绿/缺口见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，主树证据batch05。
+- 本项提交后累计43稳定号主树实现＋相关离线回归、余30保留；R019/R022/R048/R066四写代理各独立树推进，主线程下一步R062主页目录快照；持续继续、不自动暂停／后台唤醒。历史证据/受限链不改，无真实UI/配置凭据/文件整理/服务器/native/播放/发布推送，快捷方式旧版。
+
+## 第五组 R-047 目标来源补报修复与当前完整Core（2026-10-24，继续）
+
+- 手动已看先捕获条目scope而非默认产品，保持目标Emby门控，捕获一次贯穿后代/开始/停止，退出不借其它账号。82项实际来源矩阵修前66过16败、修后全过；当前完整Core2506过/0失败/0跳过/退出0（含82，不相加）。当前Core／Tests／x64 Shell Release零警告错误，三份C#空白初查6处新夹具布局→定向修后0修改/退出0无加载失败，再重编译82全过。具体取舍和有效红证据见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计42稳定号主树实现＋相关离线回归、余31保留；R038源e09f4915已提交clean/写代理关闭，独立静态侧线复核中待限定整合；R019/R022独立写代理继续。持续继续、不自动暂停，历史和受限链不改，无真实配置凭据/服务器通知/观看历史/native/播放/UI/发布推送，快捷方式旧版。
+
+## 第五组 R-018／R-026 当前主树重验并继续（2026-10-24）
+
+- 限定整合3032d857三份题内产品与正式设置活动期专项，39全过/零跳过/退出0，设置状态27全过；当前Shell／Core／专项Release零警告错误，九份C#定向空白0修改/退出0无加载失败。三生产源与来源逐字相同，独立只读静态复核无保留；旧红/重复GET37过2败与取舍详见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，主树证据batch05。
+- 本项提交后累计41稳定号主树实现＋相关离线回归、余32保留；写代理R038、R019、R022各独立树推进，主线程下一步修原条目scope手动已看补报R047；不自动暂停或后台唤醒，仍不重试受限链和条件建议。
+- 无真实WinUI/窗口焦点/Frame/输入/账号配置凭据/服务器/native/播放/发布推送，快捷方式旧版，非完整产品交付。
+
+## 第五组 R-029／R-030 主树限定整合（2026-10-24，持续继续）
+
+- 来源ce08d37六产品/独立专项限定整合，按条目scope独立收Plex收藏保已看，题材保文字/拒旧链接，重订阅后立即重画。主树当前Shell／Core／专项Release零警告错误，67项全过，顺序66／页面98／约定6全过；8份C#定向空白初查夹具14处布局→定向修后0修改/退出0无加载失败，重编译重跑67全过，源自动化零缺句柄。源码/日志/无效首绿与取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，独立侧线静态无保留，不冒动态验收。
+- 本项提交后累计39稳定号主树实现＋相关离线回归、余34保留；设置R018/26源3032d857提交clean/原代理关闭，侧线只读复核中，下一步限定整合。R038写代理独立树继续。用户持续继续不自动暂停，历史/受限链不改；未真实UI/像素/Focus/账号配置凭据/服务器/native/播放/发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-035 限定整合与当前重验（2026-10-24，继续）
+
+- 主树限定整合e0abab2（初源3c4ee85）已纠正Jellyfin门控的Core、测试、README，不拷进度/旧输出。非默认组主身份＋唯一路径定位，默认／电影保留，当前58项全过／97假请求，Core／Tests Release零警告错误。三份C#定向空白初查4处夹具初始化换行→定向改正→0修改/退出0无加载失败，再重编译重跑58全过；细节、旧门控纠正与取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计37稳定号主树实现＋相关离线回归、余36保留；R029/030源ce08d37已完成clean/代理关闭，独立只读侧线正复核，主线程下一步整合重验。R018/026与R038子树继续。历史证据与已停止认证链不改，无真实UI/native/账号配置凭据/服务器播放/发布推送，快捷方式旧版。用户持续继续、不自动暂停。
+
+## 第五组 R-058 真VM轨道时序修复（2026-10-24，继续）
+
+- 同场轨道通知UI应用推进独立修订；旧初读返回检查修订／文件代次／存活，停止旧poll，不盖新列表或发切轨命令。夹具原_current缺_active前件已纠正并保留日志，有效修前11项6过5败，当前11全过；共用音量边界31全过。当前Core／Tests／x64Shell Release零警告错误，五份C#定向空白0修改/退出0无加载失败；证据batch05，详细取舍/未覆盖见[增量](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本项提交后累计36稳定号主树实现＋相关离线回归、余37保留；R035已追加Jellyfin纠正e0abab2、R029/030源ce08d37均提交clean/代理关闭、待主树限定整合重验，不提前计完成。R018/026与R038各自默认子树继续。用户持续继续、不自动暂停，受限链和历史证据不改。
+- 无真实WinUI输入／菜单／窗口／IPC进程／native／配置凭据／服务器播放／发布推送，快捷方式旧版，非完整产品交付。
+
+## 第五组 R-036 主树实现并继续整合（2026-10-24，不暂停）
+
+- 当前订阅页以本类集合派生Loading／EmptyState，主页共用任一分类语义不改，错误和原刷新接线保留；page在AttachRow之前交入分类。真Shell VM修前10项1过9败，修后扩11项全过，页面契约98全过，当前Core／Tests／页面／x64 Shell Release零警告错误，六份C#定向空白0修改/退出0无加载失败。细节/取舍见[增量](docs/代码审查-分阶段修复-2026-10-23.md)，证据batch05。
+- 本项提交后累计35稳定号主树实现＋相关离线回归、余38保留；R035子树初提交3c4ee85待整合，主复核发现其新增排他Emby门控与已存在Jellyfin provider实现矛盾，原代理正补Jellyfin回归并纠正，不拿旧文档当删除能力授权。R018/026及R029/030独立树继续。
+- 用户指令持续继续、不自动暂停，沿子代理配置；历史证据不改、受限登录链不重试。无真实UI／Frame／输入／账号配置凭据／服务／native／播放／发布推送，快捷方式旧版，非完整交付。
+
+## 第五组 R-033／R-034 实现与离线验证（2026-10-23，继续不暂停）
+
+- 主树前项R032提交34cd631；精确搜索复用autoEpisode种子，身份否决下载整入口收起并显示原原因，已有操作过程/失败状态保留如实反馈，稳定集合不替换，具体取舍见 [增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 真VM／生成命令／模板21项修前4过17败，首修全过后新增过程文案实际3败已修；当前21全过/零跳过/退出0，当前Core／源码夹具／x64 Shell Release零警告错误。三份C#定向空白0/无加载失败，源自动化扫描零缺句柄；文本／链接／命令／注册／基线边界另核。证据batch05。
+- 本项提交后累计34稳定号主树实现＋相关离线回归、余39保留；三代理R018/026、R029/030、R035仍在独立树进行，不提前计已修。继续确定题和整合，不自动暂停／后台唤醒。无真实UI／布局截图／输入／账号配置凭据／服务器／native／播放下载／发布推送，快捷方式旧版，非完整产品交付。
+
+## 第五组 R-032 实现与当树离线验证（2026-10-23，持续继续）
+
+- 主整合树以7f18f128恢复；只读核验明确未写与写后不明分界已实现，保留消费预览／操作账本／取消规则；代价和错误夹具／初始分析器警告的完整出处见 [增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。不改历史证据和受限登录链。
+- 有效修前27项15过12败；修后扩充真实服务＋Dialog源码31全过、Core定向18全过；Core完整2366全过（含18），当前Core／Tests／源码夹具／x64 Shell Release零警告错误。七份C#定向空白0修改／退出0无加载失败；文本／链接／命令／注册检查通过。证据在 artifacts/staged-repair/batch05，独立静态复核无保留，不冒称动态代理验收。
+- 本项随本地提交后累计32稳定号主树实现＋相关离线回归、余41保留；R018/026、R029/030及R035代理各在独立树进行，尚未提前计完成。用户最新要求不自动暂停，逐项整合和重验后继续，不安排后台唤醒。无真实UI／账号配置凭据／服务器／native／播放／文件整理／发布／推送，快捷方式旧版，非完整交付。
+
+## 第五组恢复并持续修复（2026-10-23，用户要求不自动暂停）
+
+- 用户明确“继续，不要自动暂停”，覆盖第四组完成后的暂停；已全文重新读取主目录现行 CLAUDE.md，核对主整合树 HEAD `7f18f128fdefb7e4a9f94728be68701914b92052` 与干净工作区。先处理 R-032；新子代理在独立树处理 R-018／R-026 和 R-029／R-030，写集不交叉，主线程限定整合后重验。
+- 这轮批次收尾后继续剩余确定问题，不自动暂停或安排后台唤醒；实际压缩后再次全文重读现行规则。已停止登录／凭据链与条件候选／显示建议仍不擅开启。
+- 所有当前结果仍仅为离线修复；未授权真实配置／凭据／服务器／播放／发布／推送，不借其它树 native 载荷，快捷方式仍旧版。
+
+## 第四组四号收尾并暂停（2026-10-23，用户最新要求）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，本批起点54dfc415、前项R002提交9396dbb、R070提交d58c3f1。R053/054默认源7a257ca7限定整合后，主线程补真实VM滑杆读回/status/失败基准和同代成功逆序两边界；具体红/绿日志与取舍见[修复增量](docs/代码审查-分阶段修复-2026-10-23.md)。本条随最终音量源码/测试提交，不提前预测自身SHA。
+- 最终当前Release六项目零警告错误；Core2348、契约98、卡片66、报告64、HTTP38、音频23、音量真VM31、自检输出21/实际DI-App源码IO11，以及IPTV35/用户状态32/分页25/切源13/设置27/适用性29/截图14均0失败/0跳过/退出0。16套件不累加重叠覆盖。实际同代逆序失败保留并修成功版本守卫，未重试洗绿。最后14份C#定向Release/x64空白零修改/退出0无加载失败；源码/当前已测输出哈希、UTF-8/LF、注册/命令/链接/基线边界另过。
+- 两写代理＋新增只读复核代理已全部关闭，独立树干净保留、无待收结果；所有测试已结束，用户级自检mutex释放，无自动唤醒。累计31稳定号实现+相关离线回归，余42保留；历史证据不改，新残留只归R053不增稳定号。最终证据 `artifacts/staged-repair/batch04/final-evidence.json` 在提交后补最终HEAD/clean/paused。
+- **现在暂停**：最新“这批修完暂停”已落实，不下一批/新代理/后台唤醒/自动压缩。等用户明确继续，实际压缩后全文重读 `C:/Users/89400/Momoka/CLAUDE.md`，核对本树HEAD/状态/增量记录；受限登录凭据链不重试，条件候选与建议不擅当修复。
+- 无真实WinUI输入/窗口/default self-check/完整App/native/真实播放/真实配置凭据DPAPI/服务器/通知/发布/推送；本树无libmpv，快捷方式仍旧版，非完整产品交付。代价：短错误正文超时可能关闭连接；自检多一次运行副本写；没有状态序号时旧音量1.2秒保护窗内暂挡同旧值真实回调。
+
+## 第四组 R-070 限定整合及当轮离线重验（2026-10-23，继续本批）
+
+- 前项R002提交 `9396dbb120fdd9e3e3eba7533f5af1fd7a0316e3`；主树限定整合默认支线R070源 `6743ac50d80435c263360983ec2f68affdee3f14` 四份题内文件、逐字SHA一致，不拷PROGRESS/DLL。自检准备和DI重载统一重定向截图到运行根，并保存到独立副本；普通自定义目录不改，生产设置/备份/缓存只读无恢复；一次副本原子写带来的规范化/运行内备份代价已记[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本树当前Core/Tests与x64 Shell Release零警告错误，正式21项全过；主线程先读辅助runner源码、复制3份源后重新提取当前DI/App创建与真实报告writer，11项接线/真实IO失败全过；无WinUI/App launch。solution5份定向空白零修改/退出0无加载失败，UTF-8/LF、注册/命令/链接/差异检查通过。日志 `artifacts/staged-repair/batch04/r070-integrated-*.log`，实际11项证据 `artifacts/r070/fixtures/fixed-startup-2a5b0f6694464b9cb51f9a567fcbf367`。
+- R070代理已关闭、树干净保留，自检mutex已释放；累计29号主树实现+相关离线回归、余44号保留。音量代理R053/054仍进行，不提前计结果。本批4号完成后暂停，不下一批/自动唤醒；不真实配置凭据/服务器/播放/native/发布/推送，快捷方式旧版，非完整交付。
+
+## 第四组 R-002 已实现并离线验证（2026-10-23，继续本批）
+
+- 主树起始HEAD `54dfc4154ce0364ba5948c8239e0bb8b1a24afdb`；真实长下载错误正文最多8000字节/2秒，短截止保留HTTP状态，调用方取消优先，成功下载无这条期限。18新回归加既有相关20项，修前29过/9败，修后38全过；当前ReleaseCore/Tests零警告错误，完整2333全过，定向空白零修改，UTF-8/LF/差异/命令说明同步检查另过。证据在 `artifacts/staged-repair/batch04/r002-*.log`，细节见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 累计28稳定号主树实现+相关离线回归，余45号保留；R053/054默认子树与R070默认子树仍工作中、未提前计已修。主线程不重复支线写集，限定整合后当前重验。第四组四号全部收尾后暂停，不开始下一批；不真实配置凭据/服务器/播放/native/发布/推送，快捷方式旧版，不称完整交付。
+
+## 第四组四号恢复修复（2026-10-23，完成后暂停）
+
+- 用户压缩后再次明确“继续”，已全文重新读取 `C:/Users/89400/Momoka/CLAUDE.md` 并核对主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，开始HEAD `54dfc4154ce0364ba5948c8239e0bb8b1a24afdb`、工作区干净。此前27号已实现的历史记录不改写；本批限定 R-002／R-053／R-054／R-070，全部收尾后再次暂停，不自动扩张下一批或后台唤醒。
+- 主线程先修 R-002 下载错误正文截止与对应真实EmbyHttp假传输回归；子代理分别在 `C:/Users/89400/.codex/worktrees/volume-gestures-r053-r054/Momoka` 修 R-053／054 音量入口/记忆，以及 `C:/Users/89400/.codex/worktrees/selfcheck-path-r070/Momoka` 修 R-070 自检截图落点隔离。独立写树／独立输出，主树只限定整合题内文件、另作当前重验，不把代理通过先计已修。
+- 本批只离线源码/假后端/假配置与本地提交；不读取真实配置/凭据/DPAPI，不连接真实媒体服务器、不播放/native/通知，不推送/发布/升级/改快捷方式，受限登录凭据链不重试。本树无libmpv，运行/UI覆盖缺口如实保留；快捷方式仍旧版，不称完整产品交付。
+
+## 第三组五号完成并暂停（2026-10-23，用户最新要求）
+
+- 主整合树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，整合前HEAD `968366fd5702a7d0127e59d316eb6dca948e4768`。本批 R020/R021/R024/R071/R072 已实现并最终主树离线重验，本条与后两号限定整合一起本地提交；最终HEAD以 `git rev-parse HEAD` 为准。R020/21提交0d4b9d4、R024提交32c9f3b，报告收尾子树源523095b4；不预测自身SHA。
+- R071最终报告writer成功且断言0后才成功码，真实最后回调Close；R072两探针报告/范围写失败仍独立尝试Dispose/Exit，首次失败后来写成功不洗绿。12份题内文件从代理提交限定整合，11份源/项目代码逐字一致，README正式注册另更新，不拷PROGRESS；新专项入方案只增必要映射，代理关闭/树干净保留，无待收任务。
+- 最终主树完整Release方案0警告/0错误；Core2315、契约98、卡片66、报告收尾64，显式IPTV35／用户状态32／分页25／切源13／设置状态27／适用性29／截图恢复14均0失败/0跳过/退出0。不同套件重叠Core/564内部断言/288排列不累加。原官方比较器对本次完整隔离报告0、5失败/缺失报告1，仓库基线不改，非完整产品闸门4运行。
+- 最后38份本轮C#定向Release/x64 solution空白0修改/退出0无加载失败；UTF-8/LF/项目提取/命令链接/差异另过。最终证据见本树 `artifacts/staged-repair/batch03/pause-final-*` 与[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。本轮恢复后10稳定号加原17，共27实现+相关离线回归，余46保留。
+- **现在暂停**，不新开问题/子代理/自动唤醒，等用户再次明确继续。实际压缩后先全文重读 `C:/Users/89400/Momoka/CLAUDE.md` 再核对主树HEAD/状态/增量记录；受限登录凭据链路不重试。没有实际系统压缩，不冒称压缩完成。
+- 无真实WinUI/完整self-check或probe/WinRT/像素/窗口销毁/native/播放/真实配置凭据/HTTP/通知/发布/推送；本树无libmpv，快捷方式旧版，不称完整产品交付。
+
+## 当前批收尾范围：完成后暂停（2026-10-23，用户最新要求）
+
+- 用户“当前这批修完暂停”，覆盖此前自动继续。只收尾第三组 R-020／R-021／R-024（已提交）与已分配 R-071／R-072：代理题内修复完成后限定整合、当前相关验证、本地提交再暂停。不启动新问题、代理、发布、推送或自动唤醒；暂停后等用户再次授权继续。
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，当前HEAD `32c9f3b135714b52a5a90ac62f0dd62393e17914`，接到要求时工作区干净／无主树测试在飞。累计25号主树实现+相关离线回归，余48保留；R071/R072在独立树，未交回不计通过。
+- 继续保持真实配置／凭据／账号／服务器／播放保护和无libmpv运行缺口。增量记录同步最新边界，最终以本批整合后证据更新；快捷方式仍旧版，不称完整产品交付。
+
+## 分阶段修复：R-024 用户状态确认写与补读分离（2026-10-23，继续中）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，前项R020/R021提交 `0d4b9d4090569bd1b302bbcd4f46110ac982722a`。原生已看/收藏确认只返回null，不绑可失败GET；卡片先确认自己的目标再单独补读，已保存与刷新失败分开；补读核R016同/跨字段确认代次，原响应不污染。真详情收藏不多GET，已看保留目标再读派生统计，不猜季/剧子项计数。
+- 先编译修前13项5过8败，最终状态/真详情32全过（19Core重叠+13VM）、卡片66全过（原57+原生9）、Core完整2315全过，契约98/库VM35全过，0失败/跳过/退出0。完整Release方案零警告错误；实现期旧同步caller编译/夹具C#14名字/初始化空白错误均保留并已定位修正，无失败后旧输出充数。最终空白0修改/退出0，证据/正式命令/边界见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 累计25稳定号主树实现+相关离线回归，余48号保留。R071/R072子代理独立报告收尾仍进行中，主线程不重复该写集、不提前计结果。继续推进不自动暂停；无真实配置/凭据/HTTP/401重登/窗口/完整成功详情/native/播放/通知/发布/推送，快捷方式旧版，非完整交付。
+
+## 分阶段修复：R-020/R-021 IPTV源与隐藏大小校验（2026-10-23，继续中）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，上组R-016提交 `b7e91ea8d0304223e13d51741aac333db631e782`。第三组本地主线仅FnNasLibraryInput/库VM/专项：原IPTV明确text/local_file/upload才能省略源改名，普通/未知源转换必须填写；大小校验只非IPTV且开过滤，隐藏坏值保留、普通有限值规则不删，不改服务端类别转换产品策略。
+- 真VM35项先编译修前19过16败，修后35过；Core旧源判据新增10项，完整2296过，0失败/跳过/退出0；当前Core/Tests及x64 Release Shell零警告错误；空白初轮初始化3处定点修正，最终0修改/退出0。正式fnnas-library-editor-fixture/日志/边界见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。不运行真实NumberBox/源文件/文件框，假HTTP正文不是真实服务器写入。
+- 累计24稳定号主树实现+相关离线回归，余49保留。R071/R072代理在独立树 `C:/Users/89400/.codex/worktrees/probe-report-finalization-r071-r072/Momoka`处理最终报告IO失败码与清理；写集与IPTV分离，未交回不计通过。继续，不自动暂停；不真实配置/凭据/HTTP/native/播放/发布/推送，快捷方式旧版、非完整交付。
+
+## 分阶段修复：R-016整合与本组五号离线收束（2026-10-23，继续下一组）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，前项R-059提交 `92af91062446c73a4015dcd5cace54561e347790`。R-016代理已关闭，独立树提交 `d0670c577261bcb872bc93a8f78ccedc7ab00b86`干净保留；主树只整合七份题内文件，6份源码/项目SHA逐字一致，不复制PROGRESS；正式solution/开发文档接独立专项，保持旧平台映射不被CLI扩展。
+- 状态弱绑定同DTO，已看+进度/计数/日期和收藏两组重叠响应各守自己；同字段旧成功不能推翻新成功，较新失败不抹早成功，非重叠保留整份快照。原来源/捕获身份复核，finally释放在飞账；不串行请求，不增全局ID缓存，不冒跨独立DTO/外部并发一致性。
+- 主树最终完整Release方案零警告错误、Core2286过、页面契约98过、R016专项57过，分页25／收藏切源13／设置状态27／适用性29／截图恢复14过，均0失败/0跳过/退出0；分套/288嵌套场景/重叠Core不累加。定向Release/x64空白无加载失败、0修改/退出0；编码/提取边界/方案/文档检查通过，日志本树 `artifacts/staged-repair/batch02`。见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本次恢复后5号已本地实现、相关离线验证收束，累计22稳定号/余51保留。继续下一组，不自动暂停/唤醒或冒系统压缩；实际压缩后重读 `C:/Users/89400/Momoka/CLAUDE.md`。无真实配置/凭据/HTTP/窗口/native/播放/发布/推送，快捷方式仍旧版、非完整产品交付。
+
+## 分阶段修复：R-059 恢复偏好应用截图组选项（2026-10-23，继续中）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，前项R-057提交 `cc307776cd7982244667871d99c137795f42481f`。恢复／导入共用尾段等待当前截图完整适用组，字幕失败仍尝试截图；错误／取消不冒成功，单行共用守卫，不改底层截图写入代次/原生失败策略。
+- 就近抽出的真实播放收尾＋真服务假活跃句柄回归：修前等价抽取后的14项2过12败，修后14全过；既有设置状态27过、适用性29过，0失败／跳过／退出0。当前Core／Tests、x64 Release Shell零警告错误，定向空白0修改／退出0；正式fixture注册/源码接线/边界详见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。不执行Theme/完整页/文件框或实际截图/播放，不读真实配置凭据、不HTTP/native/发布/推送，快捷方式旧版。
+- 累计21稳定号主树相关离线回归过、余52号保留。R-016子代理已交回独立提交 `d0670c577261bcb872bc93a8f78ccedc7ab00b86`／专项57过，主线程准备复核题内差异、整合独立项目并主树重验，不提前计其完成。继续推进不自动暂停。
+
+## 分阶段修复：R-057 缺字幕元数据的仅强制约束（2026-10-23，继续中）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；R-023 前项提交 `0ee8041e24c5f42fd59c29c85c9ae0ec80e944c6`。R-057 只在TrackSelection空候选出口保留ForcedOnly：无法确认可加载强制轨保守Off，不降普通auto；显式有效选轨／关闭优先和其它模式不变，不新增原生发现自动追选。
+- 代价公开：服务器无轨道信息但文件有forced也不自动显示，用户需在轨道出现后手选。纯离线22项先编译后修前6过16败，修后22全过；最终Core完整2286过，0失败／跳过／退出0；当前Core／Tests及x64 Release Shell零警告错误，定向空白0修改／退出0。真实服务只交假后端和假同句柄，两管线标签不冒真实播放。正式fixture入Program／开发文档，详见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 累计20稳定号主树相关离线回归过、余53号保留；R-016子代理独立树仍进行中，不提前计数。继续推进，不自动暂停；不读真实配置／凭据，不真实HTTP／native／播放／窗口／发布／推送，快捷方式旧版、非完整交付。
+
+## 分阶段修复：R-023 收藏切来源重算查询与标签（2026-10-23，继续中）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，前项R-013已提交 `153704ce4f4cf15426562065adc014828de063b4`。本项只改同VM收藏来源恢复、飞牛标签生命周期及共享离线夹具，不写主目录或其他树，不改鉴权、协议接受条件、基线或依赖。
+- 收藏换来源复用首次Attach的排序／筛选／显示恢复和整组通知；飞牛不再携带旧Emby播放时长／题材。标签任务、选择和目录取消重建，成功／错误／finally核自己的scope/token；旧收尾不抢新请求进度。本页临时条件随范围复位，已有库偏好与Cards集合对象保留，不额外保存。
+- 真VM修前10项3过7败；修后追加新面板先完成及Dispose边界，抓到本次CTS释放异常再修，最终13全过；R-013共享fixture和当前VM25全过，0失败／跳过／退出0。当前Core／Tests和x64 Release Shell零警告错误，定向空白初始化换行定位修正后0修改／退出0。正式 `library-favorite-source-fixture` 注册Program／开发文档，证据见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 累计19稳定号主树相关离线回归过、余54号保留；R-016子代理在独立树仍进行中，不提前计数。继续推进不自动暂停；无真实配置／凭据／HTTP／窗口／native／播放／发布／推送，快捷方式旧版、未完整交付。
+
+## 分阶段修复恢复：R-013 续播分页与合成槽（2026-10-23，继续中）
+
+- 用户压缩后再次“继续”，已全文重读 `C:/Users/89400/Momoka/CLAUDE.md`；恢复主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`、`codex/staged-review-continue-2026-10-21`，HEAD `26c324acac440dde538b95eb11f4516725e036fd`／工作区干净。只本树分批修复、补测试和本地提交，不写主目录、推送、发布或重试已停止的登录／凭据链路。
+- R-013 单来源 Resume 复用现有服务器游标，原记录身份与显示合成下一集分开；已看／删除提前撤销旧页并回退所属消费量；读取副本在页面有效提交时才发布。收尾真复现 HTTP 完成／UI 排队时早消费漏页再修，不仅依赖 token 取消。清单收集用原始 offset，不触发播放。
+- 修前真VM19项8过11败，修后／追加最终25过；Core新增8项后完整2264过，0失败／0跳过／退出0，当前Core／Tests和x64 Release Shell零警告错误；定向空白首轮5处后定点修格式，最终0修改／退出0。命令、日志、取舍和未验边界见[增量修复记录](docs/代码审查-分阶段修复-2026-10-23.md)，正式 `library-resume-paging-fixture` 入Program与开发文档，不借ignored跑器。
+- R-016 子代理独立树 `C:/Users/89400/.codex/worktrees/r016-user-state-order/Momoka` 处理 `ItemCommands` 用户状态逆序与专项测试；主线R-013游标／LibraryViewModel／清单／分页测试写集与其分离。公共Program／项目／共享文档由主线程整合，未交回结果不计通过。累计18号主树相关离线回归过、余55号保留，继续推进不自动暂停。
+- 无真实配置／凭据／网络／播放／窗口／绑定／滚动／焦点／native或发布，快捷方式仍旧版，未称完整产品交付。上下文压缩后须再读现行规则与增量记录，不用旧暂停记录覆盖用户最新授权。
+
+## 暂停交接：当前四号修复已提交并停止推进（2026-10-23）
+
+- 遵从用户“目前正在修的bug修完了暂停一下，我要压缩上下文”：R-014 与已分配 R-049／R-050／R-055 已实现、限定整合、离线重验；代码和测试已本地提交；仅补正出处记录后暂停。没有新任务、待收代理或自动唤醒。此前“自动继续”是历史，不再适用。
+- 唯一主整合树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，分支 `codex/staged-review-continue-2026-10-21`，起点 `e11ce0b770513f77925bcc1eb5ba97c66c388e85`。R-014 提交 `ca1a48f6a9bfaab8d068c37774be3234f47b44ec`；设置三号主树提交 `89faaccaca9c6d97841ff4d78bb23c83fc5695ce`，支线源 `33023b59fb2c0dd821808d1a4a1fa796238053be`，只三份题内文件入主树，代理关闭/旧树干净保留，不写用户主目录。
+- 出处以 `fd791f4` 后本次实际工具结果为准：官方搜索返回WIC与UWP SetSourceAsync，随后打开分别取得3行与7行正文；WinUI3 1.8对应页为0行，不计已读。此前反复出现的检索过程／时间不作证据，增量记录已更正。此修正只有文档，已验证源码和测试不变；现在停止工具与任务推进，等待用户压缩及继续指令。
+- 设置修复整行隐藏不清偏好，保留恢复开关/模式与无关草稿；缓存重入原位同步控制值及示例。不改播放语义，正式 `settings-applicability-fixture` 入测试Program和开发文档，不借ignored跑器。技术取舍/支线红绿与来源纠正见[增量修复记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 最终主树Release Core/Tests、Shell与契约编译零警告错误；Core完整2256过、契约98过，设置适用性29过、既有设置页27过，均0失败/0跳过/退出0，分套不累计重叠覆盖。Release/x64定向solution空白无加载失败、0修改/退出0，源码UTF-8/LF/链接/开关/差异检查通过。日志本树 `artifacts/staged-repair/batch01` 的 pause-final 与 r049-r050-r055-integrated 系列。
+- 累计17号实现+相关离线回归，余56稳定号保留；条件候选/建议不擅自变确定修复。内容安全已停止的登录/凭据链路不重试、不换代理绕过。
+- 未读真实配置/凭据/日志，未联网/播放/推送/发布/升级，未验真实WinUI/WinRT解码/键盘焦点/像素/native或实际HDR/字幕；本树无libmpv，快捷方式仍旧版，非完整产品交付。压缩后先全文重读 `C:/Users/89400/Momoka/CLAUDE.md`，保护本树Git状态，等待用户继续指令再开下一批。
+
+## 分阶段修复：R-014 坏图缓存恢复收束（2026-10-23；当前四号完成后暂停）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；恢复上下文已全文重读主目录现行 CLAUDE.md。用户最新要求当前 bug 修完暂停：仅收尾 R-014 和已分配 R-049／R-050／R-055，不新建任务或代理，覆盖此前自动继续。
+- R-014 将解码委托接到真实卡片/详情候选入口，明确坏数据按相同字节精确失效，模糊 BADIMAGE 无损重取；一轮恢复、成功解码才落盘，取消/来源撤销与旧缓存代次保护。普通/恢复共用 SharedWork，成功恢复记入清理预算；旧宽度非格式解码错误不污染新失败冷却。Core 不引用 WinUI。
+- 25项恢复修前95项81过14败，修后95全过；追加3个真边界修前98项95过3败，修后98全过。最终当前Release契约98过、Core2256过，0失败/0跳过/退出0；Core/Tests/Shell零警告错误。Release/x64定向空白无加载失败、0修改/退出0，初次Debug加载警告不充数；证据及官方出处核对边界见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- R-049/50/55代理已交回 `33023b59fb2c0dd821808d1a4a1fa796238053be` 并关闭，独立树干净保留，待主线程限定整合/正式注册/重验。主线程不改已停止的登录/传输链路。
+- 无真实配置/凭据/账号/网络/native/播放/WinRT/视觉/发布/推送，快捷方式旧版；只本地代码+离线验证收束，不称完整交付。R-014 本条与对应源码/测试一起本地提交，随后只完成当前设置三号再暂停。
+
+## 分阶段修复：R-012主树收束（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；限定整合支线 `29231fa91b0ac9853ee1dd768a9d5f3bcbd88b5d`，可见首图换宽不再因Poster为空漏补请求，离屏继续等待与换宽需求分开，同容器弱持有者／旧CTS代次保持，不重建卡或页。
+- 正式页面契约源码链接真CardItem/PosterCache，额外2项泵失败/取消回归，最终70通过／0失败跳过，Release零警告错误；测试初始化空白准确定位后定点修正并重编重跑70。当前Core2256全过，Shell零警告错误；RS0030未压制。证据与覆盖限制见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 本树测试输出假文件留盘，无真实Loaded/WinRT/视觉/滚动/UI/native/配置/账号/播放/发布/推送；快捷方式仍旧版。第一组13号已代码+离线回归，其余60号保留，支线全部关闭。内容/链接/字节/差异检查后本地提交再继续下一批，不自动暂停、不声称主动压缩。
+
+## 分阶段修复：R-073／R-060设置页整合（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；限定整合支线`91c010b4287ad5073fdbb5b6d0afc733cb78c272`三题内文件。初建/cached共用只读保存flag同步，不Reload/Save、不丢草稿/集合；四目录共用异步Task，launcher只调用一次，错误进页面反馈。
+- 主树当轮Release Core/Tests与Shell零警告错误，显式真实VM/行命令套件27通过／0失败跳过、退出0；25行为＋2源码接线单列，不称SettingsPage导航/焦点/WinUI控件验收。标准测试开关和当前树x64 Release路径约束入库，不靠ignored反射runner。见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 没有真实配置/日志/凭据/网络/Explorer/产品窗口/native/播放/发布/推送，快捷方式旧版。源码/LF/文档链接/差异检查后本地提交，累计12号已主树相关回归过；接着整合R-012，继续不自动暂停。
+
+## 分阶段修复：R-015详情图片候选失败回退（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；共用ArtworkCandidates接头图/两个海报循环，保持原序与UI同步上下文。只明确坏格式/数据与已耗尽连接/5xx降级，取消/权限/身份/内存/程序错误传播；不碰R-014缓存失效。
+- 提取旧逻辑34项修前18过16败，修后35过／0失败跳过；当前Release Core/Tests零警告错误，2256完整测试过，Shell零警告错误，定向空白0，均退出0。微软官方WIC码表实际核对与早期出处描述误述纠正记录在[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)及本树证据，不计草稿为检索证据。
+- 假候选/同步上下文实际运行，实际WinRT坏图异常与Hero/Still上屏/UI/native/服务器/播放/发布未跑；快捷方式旧版。文档/链接/LF/差异检查后本地提交，已10号主树相关回归过。接着整合已收R-073/R-060/R-012支线，不自动暂停。
+
+## 分阶段修复：R-061日志水位主树整合（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；复核并整合支线 `5ae076c35ae451675243867666f21289a224ee63` 三题内文件。RingBuffer原子写入序号/快照水位，VM通知只唤醒补尾部，刷新迟到/真反序不重复；相同日志两写仍两条、容量/分类/筛选同步，旧Written兼容且订阅者锁外隔离。
+- 把真实诊断VM无窗口源链接夹具接入正式页面契约项目，沿用Shell MVVM8.4.2，不借支线DLL/旧输出。主树当前Release Core/Tests零警告错误，完整2221通过／0失败跳过；页面契约48通过（9页＋25诊断Core＋14VM，重叠不累计），当前Release Shell零警告错误，均退出0，定向空白0；证据见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 真实VM日志/过滤/复制方法执行，WinUI资源/平台为最小替身；非真实窗口/绑定/系统剪贴板，不读真实日志配置，不运行应用/native/播放/发布/推送，快捷方式旧版。文档/命令/链接/UTF-8/LF/差异检查后本地提交，已9号主树相关回归过；R-073/R-060及R-012各自独立树继续，不自动暂停。
+
+## 分阶段修复：R-063订阅页导航标识（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；产品只在订阅页Attach记`Tag=request.Key`，让返回/前进AdoptContentTag与已有同页短路读同一目的地。
+- 新页面控制流契约项目入库并加方案，源链接真实code-behind和运行器，最小XAML/外部属主边界替身不复制导航/Attach/Release。修前9项1过8败，修后9过／0失败跳过、退出0；当前契约项目/Core/主测试/Shell Release零警告错误，定向空白0。Core未再改，2213完整结果仍对应当前。见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 未真实Frame/WinUI布局/滚动/网络/应用/native/播放/发布/推送，快捷方式旧版；不能把源链接当UI验收。`sln add`自生无关平台/CRLF已核diff后定点收回，仅增加项目与映射、保旧x64，文本/链接/命令/差异检查后提交。8号已主树相关回归过，R-061/073/060/012支线继续，不自动暂停。
+
+## 分阶段修复：R-009当前备份先于旧目录（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；新增SettingsStore.PrepareStartupData并由正常Main接入：已有主不迁移，主缺且当前备份正常可读时保留当前恢复，坏/锁备份才允许旧目录回退。复用实际TryRead规则，路径工具只复制，不只凭backup存在封死恢复。
+- 15个实际准备入口→Load组合修前11过4败，修后15全过；当前Release Core/Tests零警告错误，完整2213通过／0失败／0跳过、退出0；当前Release Shell零警告错误、退出0，定向空白0。证据见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)，包括坏主隔离后未保存重启、备份锁/坏JSON/新装源保留。
+- 本树假目录输出保留，不运行真实迁移/配置/WinUI启动/账号/UI/native/播放/发布/推送，快捷方式旧版。文档／链接／LF／差异检查后本地提交，累计7号主树相关回归通过；R-061、R-073/R-060各自独立树继续，不自动暂停。
+
+## 分阶段修复：R-006纯地址与共享显示整合（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；复核代理提交 `38eeaec0df05178e8444f63015c6f877cd1481f1` 四文件。原authority识别显式端口，HTTP80保留、IPv6不重复括号；代理明确共享显示未完后，主线程补EmbyServerAddress的Plex显示分派与36往返回归。
+- 代理42纯函数修前11失败／修后全过。主树共享补测修前78项71过7败，修后78全过；当前Release Core/Tests零警告错误，完整2198通过／0失败／0跳过、退出0，详见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。定向反射跑器仅加载本轮主树程序集，不借旧输出。
+- 占位地址纯函数，无联网、真实Plex/账号实验/UI/native/播放/发布/推送，快捷方式旧版。内容／链接／LF／差异检查后提交。已通过6号，接着当前备份迁移R-009、缓存设置状态及R-061支线，不自动暂停。
+
+## 分阶段修复：R-007读取兜底整合（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；复核并限定整合独立树提交 `950b01eca0f1e67c88db095a999fb4a62cae2e1e` 的三份源码／测试。读取拒绝六类必需字段显式null，保留原坏主文件、优先有效备份、不凭空重建身份或清凭据；合法缺键/空串/可空及旧迁移未改变，不混R-009。
+- 支线修前新增6过22败、修后新增28过；完整Settings123含新增。主树当前Release Core/Tests零警告错误、退出0，完整2120通过／0失败／0跳过、退出0，详见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)，不拿支线/历史替本次。
+- 实际只假配置Load/选择/HasSaved*/vault与隔离恢复，真实Prepare VM/WinUI/整启动/DPAPI/真实数据/UI/native/播放/发布/推送未跑，快捷方式旧版。内容／链接／LF／差异检查后提交，继续R-006共享显示往返收束与R-061，不自动暂停。
+
+## 分阶段修复：R-064监听线程安全退出（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；监听器提取为无WinUI源码并编译链接进测试，关闭只发停止请求，worker finally释放句柄，停止优先、排队旧激活失效、重复关闭幂等。App只交dispatcher委托，未新增UI布局或猜用API。
+- 修前隔离真实旧生命周期出现CTS.Token的ObjectDisposed/Unhandled异常；修后6本地命名事件／受控调度场景全退出0。当前Release Core/Tests零警告错误，2092通过／0失败／0跳过；本树Shell restore成功，完整Release Shell零警告错误、退出0，定向空白检查0，详见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 已读Shell/验证及适用WinUI构建/审查技能。没有产品窗口／真实激活信号／真实账号／UI/native/播放/发布/推送，快捷方式仍旧版。同期R-007和R-006支线提交待逐项整合，R-061另树日志水位处理中。文档／链接／源码LF／差异检查后本地提交，再继续，不自动暂停。
+
+## 分阶段修复：R-068 smoke退出码（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；R-068修前新隔离helper的exit7仍被脚本返回0，修后保留非零、早退出0/启动/日志失败也非零，资源释放和新增日志保留。默认不强停，`-StopAfterCheck`仅显式清理本次保留句柄；不杀用户原有进程。
+- 新 `tools/test-smoke.ps1` 当前.NET10无包helper、假LOCALAPPDATA，14断言通过／0失败／退出0；19脚本BOM/LF/语法通过。当前Release Core/Tests当轮编译0警告错误，2086完整结果仍对应未改变的产品测试编译路径；实际日志见[增量记录](docs/代码审查-分阶段修复-2026-10-23.md)。
+- 只运行隔离工具，不启动Momoka/UI/native/真实服务器/播放/发布/推送，快捷方式仍旧版。脚本help/开发文档/验证技能同步，内容／链接／字节／差异检查后提交，继续常规修复；R-006/R-007仍各自在独立树，不自动暂停。
+
+## 分阶段修复：R-028主树整合（2026-10-23）
+
+- 主树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`；复核独立树提交 `98aa521bded220ebe9de161b2137c5144d9b5849` 的R-028最小库映射和7项回归后，只整合相关四文件。库`Id`取section `key`，缺失/null/空白拒绝空ID入口，媒体仍`ratingKey`，不改登录或传输。
+- [增量记录](docs/代码审查-分阶段修复-2026-10-23.md)与Plex支持说明同步。代理修前7红／修后7绿为支线证据；主树重新编译当前Release Core/Tests：0警告0错误、退出0；完整套件2086通过／0失败／0跳过、退出0，不复用代理或历史结果。
+- 产品/UI/native/真实Plex/播放/发布/推送仍未运行，不称完整交付；旧报告不改写，快捷方式仍旧版。差异／内容／链接／UTF-8/LF检查后本地提交；继续R-068，代理继续纯地址R-006和坏配置R-007，不自动暂停。
+
+## 分阶段修复：启动与R-069证据计数（2026-10-23）
+
+- 用户明确开始修复；主整合树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，起点 `e11ce0b770513f77925bcc1eb5ba97c66c388e85`。独立代理树并行处理R-028库映射、R-007坏配置恢复。受限登录／凭据传输部分已停止，不通过代理重试。
+- [修复记录](docs/代码审查-分阶段修复-2026-10-23.md)：R-069改为每用例passed/failed/skipped互斥；7个隔离真运行器子进程回归，修前反例已保留。本树restore、当前Release测试/Core编译0警告0错误，2079通过／0失败／0跳过、退出0；不改产品或基线。
+- 当前只是批次内修复提交，未Shell／UI／native／真实服务器／播放／发布／推送，快捷方式仍旧版。文档／链接／UTF-8/LF／差异检查后提交，接着R-068，不自动暂停；旧审查报告不改写。
+
+## 分阶段只读审查：总汇总完成（2026-10-23）
+
+- 续审树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，汇总起点HEAD `14bbffca663c1d609dbbe598f1045505e024d709`；产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04` 固定。第13～19连续提交后只读总汇总完成。
+- [总汇总](docs/代码审查-分阶段审查-2026-10-21.总汇总.md)；保留73稳定号：69静态、3条件候选、1建议，全部未修复。9建议组保留逐项触发／保护／验收；未把静态或夹具计为产品真机复现。
+- 文档／链接／行段／历史保护／UTF-8/LF／866固定产品／差异一致性检查后本地提交。审查任务完成，修复／产品验收／真实操作／发布推送未授权未开始；没有自动暂停或后台续跑。
+
+## 分阶段续审：阶段19跨模块端到端只读复核（2026-10-23）
+
+- 树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，开始HEAD `1f12132783a4a60b0c7546ad574730c599285380`；固定产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。新增R-073/P2共享保存状态重入问题，R-072扩入Shell探针同根因；三路跨模块抽样与72号旧记录复核收束；全部未修复。
+- [阶段19交接](docs/代码审查-分阶段审查-2026-10-21.阶段19审查.md)；第19阶段四代理收束关闭（额外独立反证读取未完成已明确），主线程核R073和R072扩展。五份记录文档/链接/源码锚点/866固定产品/差异检查通过后本地提交，立即做只读总汇总；73号全部未修复，真实端到端/产品/native/交付未运行。
+- 累计73稳定号：69静态、3条件候选、1建议；下一步只读汇总与最小修复建议自动继续。交接不是压缩，系统压缩后全文重读主规则。
+
+## 分阶段续审：阶段18测试、检查器与交付载荷（2026-10-23）
+
+- 树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，开始HEAD `521b347bb006695558144fc0fd7d843b2fe6ccb3`；固定产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。新增R-067～R-072六项P2静态记录；载荷两子例合并，部分PRI降覆盖缺口；维护夹具13/41/23项通过；全部未修复。
+- [阶段18交接](docs/代码审查-分阶段审查-2026-10-21.阶段18审查.md)；五代理完成并关闭，主线程核六项记录及载荷去重/PRI降覆盖。13/41/23隔离维护及18脚本检查过；产品验证0。五记录文档/链接/行段/固定产品/差异检查通过后本地提交，再自动19跨模块只读复核；不修复发布推送。
+- 累计72稳定号：68静态、3条件候选、1建议；下一步19自动继续。交接不是压缩，系统压缩后全文重读主规则。
+
+## 分阶段续审：阶段17Shell、公共基础与平台入口（2026-10-23）
+
+- 树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，开始HEAD `b6b9348cdca1a65c923473a3088f46b3fff0f6a5`；固定产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。新增R-059～R-066：7项静态问题（6×P2、1×P3）及1项P2条件候选，旧根因不重复编号；全部未修复。
+- [阶段17交接](docs/代码审查-分阶段审查-2026-10-21.阶段17审查.md)；六路子审查/反证完成关闭，主线程逐项复核、根因去重；8新增稳定号含1条件候选全部未修复。只五份正式记录检查后本地提交，自动18测试/检查器/交付载荷；系统压缩后全文重读CLAUDE，无主动压缩工具。
+- 累计66稳定号：62静态、3条件候选、1建议；下一步18自动继续。交接不是压缩，系统压缩后全文重读主规则。
+
+## 分阶段续审：阶段16字幕、轨道与外观生命周期（2026-10-23）
+
+- 树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，开始HEAD `26b4ece8c6dbd7ecb9163a83f9733d3e9b5a8f89`；固定产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。新增R-055～R-058四项P2静态问题；R-040扩入非默认来源字幕管理，R-051扩入字幕外观执行点；全部未修复。
+- [阶段16交接](docs/代码审查-分阶段审查-2026-10-21.阶段16审查.md)；第16阶段只读候选主线程复核/去重；R-055～R-058及R-040/R-051扩展全未修复。五记录内容/链接/行段/差异/固定产品检查通过后本地提交，再自动进入17公共Shell/平台入口；
+- 累计58稳定号：55静态、2条件候选、1建议；下一步17自动继续。交接不是压缩，系统压缩后全文重读主规则。
+
+## 分阶段续审：阶段15音频输出与设备／音量（2026-10-22）
+
+- 树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，开始HEAD `c29283b1503b15b98ce05cb2ee3a167d46ff02f8`；固定产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。新增R-053/R-054两项P2音量问题；R-051扩入音量／延迟执行点；全部未修复。
+- [阶段15交接](docs/代码审查-分阶段审查-2026-10-21.阶段15审查.md)；一名音量／延迟代理完成并主线程复核；无DLL维护夹具14项通过。仅五记录检查提交，不改产品／测试／资源，不运行原生或真实媒体。
+- 累计54稳定号：51静态、2条件候选、1建议；下一步16自动继续。交接不是压缩，系统压缩后全文重读主规则。
+
+## 分阶段续审：阶段14视频、HDR／杜比与shader链（2026-10-22）
+
+- 树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，开始HEAD `a125551f69b7cd3491e31208d602d26f2d8182b9`；固定产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。新增R-049～R-052四项P2静态问题，准备失败上下文候选降待验证；全部未修复。
+- [阶段14交接](docs/代码审查-分阶段审查-2026-10-21.阶段14审查.md)；两路子审查及一独立复核完成，主线程核候选；只五份本轮文档检查后提交，不改源码/测试/资源，不运行UI/原生/真实库/播放/发布推送。
+- 累计52稳定号：49静态、2条件候选、1建议；下一步15自动继续。交接不是压缩，系统压缩后全文重读主规则。
+
+## 分阶段续审：阶段13播放规划与生命周期（2026-10-22）
+
+- 树`C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，开始HEAD`92befbbdb1d9baf908feefcd0590bbf93b331b57`，产品`c34a5e545333ea4c9f12ca2573bc6034029ecc04`固定；866选择文件字节一致。
+- 新增R-044～R-048/P2：注销播放账号未停后端、字幕拖拽跨文件、自然EOF接集重建独占窗口、已看补报错按默认产品门控、列表重定向误判EOF；全为静态记录、未修复，无新运行。见[阶段13交接](docs/代码审查-分阶段审查-2026-10-21.阶段13审查.md)。
+- 两首轮限流代理无结果不计覆盖，替补UI及独立复核完成，主线程接手后端并核候选；仅五记录检查后本地提交。不构建/测试/应用或原生/UI/真实服务/播放/发布推送。
+- 最新授权继续14～19、不设暂停；累计48稳定号（45静态记录、2条件候选、1显示建议）。保存交接不是系统压缩，无主动压缩工具；系统压缩后全文读`C:/Users/89400/Momoka/CLAUDE.md`。
+
 # 开发进度
+
+## 阶段12独立复核与后续自动推进（2026-10-22）
+
+- 工作树`C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`，开始HEAD`0f56225edd7cc7a4c8b3798e732f08da33d583ee`，固定产品`c34a5e545333ea4c9f12ca2573bc6034029ecc04`；本轮866文件逐字节核对通过。无产品改动。
+- 保留R-037～R-041五静态问题；R-042改条件性，R-043留显示建议；R-038扫描建议收窄。P12-EX-08“失败后其余不提交”只对异常成立，返回false/manual_review仍继续；是否缺陷待批次策略，不新增稳定号。R-024/R-032扩展保留。
+- 三份独立复核报告／证据／检查见docs，原阶段0～12文件不覆盖；本轮只修改本段及总记录当前状态。无产品构建测试／UI／真实服务／播放／发布推送；文档检查后本地提交。
+- **用户最新指令授权自动推进阶段13～19，不逐次同意**；仍不自动修复或真实写入。阶段后压缩要求已记录，但当前无可调用压缩工具；保存交接不冒充压缩，系统压缩后完整重读`C:/Users/89400/Momoka/CLAUDE.md`。
+
+## 分阶段续审：阶段12 AniBT与跨服务整理收尾（2026-10-22）
+
+- 用户要求“收尾工作区中的阶段12”并明确调用 Agent Team。本树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，开始HEAD `a1cae9f97e9cfe56978e3ce028d8e184d706f3af`，产品固定 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`；866份选择文件逐字节一致，`src tests` 无差异，暂存区为空。前一会话的未完成尝试只作线索，三路新只读复核（AniBT协议/搜索RSS、资源下载入口、跨服务整理）和一名独立复核员重新验证；T4 结果为 PASS8/FAIL1/PARTIAL3。
+- 新增R-037/P2无MP原记录时Emby搜索非空即取首条并应用，R-038/P2 accepted/skipped按完成处理、消息与全库扫描时机不准确，R-039/P2重整确认框不展示实际预览；R-040/P3聚合次级来源AniBT识别死入口，R-041/P3缺集清单补读期间断线仍显示旧搜索入口，R-042/P3 identify分支绕过canContinue，R-043/P3 episodeKey范围徽标显示合集。Apply成功+Refresh失败扩入既有R-024，不新增编号；R-032扩入AniBT重整预提交误锁。全部静态确认、未修复。
+- 强制全量替换图片交产品决定；内层`anime.bgmId`可省略、混合批次identify/transfer身份不一致、协议相对URL残余待验证/建议。T1“大写HTTPS不命中URL拦截”经复核FAIL并剔除；媒体文件删除、单集ParentId、历史ID重复、连接代次、候选归属、写入前只读检查等已排除或确认有防护。
+- 仅记录总记录、阶段12审查、证据、检查与PROGRESS五份文档；不构建、运行产品/测试/探针/自检/UI、真实AniBT/MoviePilot/Emby读写/下载/订阅/重整/播放、发布或推送。旧2072通过只属2026-10-21历史。文档检查通过后精确本地提交，未推送。
+- **阶段12完成后暂停，阶段13～19未开始**；累计43个稳定编号（42静态问题记录＋R-017条件性候选），全部未修复；未执行系统上下文压缩，规则原文保留。
+
+## 分阶段续审：阶段11重新审查并暂停（2026-10-22）
+
+- 用户要求重新开始阶段11，随后明确完成当前阶段后暂停。本树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，开始HEAD `7027a3f58afea8835967a58ea2bf10e2b61e352e`；产品仍固定 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。旧阶段11未完成候选／阅读不沿用，旧忽略快照保留。
+- 新增R-031/P1登录跨源307/308可转发表单，R-032～R-036/P2重整前读取失败误锁、目标集筛选、否决下载入口与说明、非默认组数字匹配错集、分类空态，见[阶段11交接](docs/代码审查-分阶段审查-2026-10-21.阶段11审查.md)。源码链静态确认、全部未修复；真实跳转／组重编号未验证，不声称泄漏或误播已发生。
+- 两个全新只读代理分别完成搜索资源／订阅入库范围，主线程逐项复核后关闭；首轮订阅供应400无结果不计完成覆盖。R-024/R-027不重复编号，错误回显和非默认组资源映射缺口保留待验证。
+- 仅本轮五份文档检查后精确本地提交；856固定文件、20主树未跟踪与旧树外部删除保护。产品构建／测试／探针／自检／UI／真实服务读写／下载订阅整理播放／发布推送均0，旧2072通过不是本阶段新验证。
+- **阶段11完成后暂停，阶段12～19未开始**，无修复或后台续跑。累计36稳定编号：35静态问题记录＋R-017条件性候选，全部未修复。项目规则原文保留、未执行系统上下文压缩。
+
+## 分阶段续审：阶段10Plex浏览与入口裁剪（2026-10-21）
+
+- 本树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，从阶段9本地提交 `d3ff57135267682322aadfe904241b99a6e70899` 继续，产品固定 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。新增 R-028/P1 库key未转Id，R-029/R-030/P2 收藏快捷入口和题材链接未按Plex当前能力收起，见[阶段10交接](docs/代码审查-分阶段审查-2026-10-21.阶段10审查.md)。全部静态确认、未修复，不宣称真实服务器故障复现。
+- 官方公开Support和OpenAPI规格库schema、现有离线夹具共同支撑section key；公开规格1.2.3不是PMS版本。旧/search/Hub、多类型与全局NextUp前件暂待验证，不用新规格缺路径断言全部404；Plex写后补读失败归入既有R-024不新增。
+- 一只读入口代理重读CLAUDE/Plex技能并复用共享上下文，两项经主线程逐行复核后完成关闭。仅五记录内容／链接／LF／UTF8／行段／856固定文件和原树保护检查后本地提交，不运行产品／测试／探针／自检／UI／真实Plex，不发布或推送；规则原文保留，未系统压缩。下一阶段11MoviePilot只读接续，修复仍需明确授权。
+
+## 分阶段续审：阶段9飞牛浏览与原生页面（2026-10-21）
+
+- 用户在本聊天按流程要求继续；从另一个已暂停审查聊天的阶段9入口恢复，不重做阶段0～8／七阶段独立复核。续审树 `C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka`／`codex/staged-review-continue-2026-10-21`，开始HEAD `414ee4350fc6ae03caa386dfa325c8c6867bee3f`，产品仍固定 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`；原树外部删除和主目录20份观察时未跟踪文件保护，不合入或发布主树。
+- 新增R-020～R-027/P2八项静态问题，见[阶段9交接](docs/代码审查-分阶段审查-2026-10-21.阶段9审查.md)：IPTV源误判／隐藏校验、未读默认权限可保存、收藏切产品残留查询、确认写入后补读失败、主体删除后旧播放目标、隐藏窗来源通知重建页、保存期间新草稿丢失／误称已存。没有实际服务器或故障运行证据，不宣称真实写入／数据破坏。
+- 两只读代理分工完成并由主线程核行段后关闭；未重做。856固定文件字节一致，四份旧日志哈希一致；后者只属阶段2在2026-10-21 02:59:12 +08:00的2072通过，不抵本轮新回归。
+- 只修改本阶段五份审查记录，经内容／链接／UTF-8／LF／行段／保护及Git差异检查后本地提交；不构建、运行测试／产品／探针／自检／UI、真实服务器读写、推送或发布。项目规则原文留上下文，未主动或实际系统压缩；如系统压缩先重读CLAUDE。下一阶段10Plex浏览只读自动推进，汇总后仍需明确修复授权。
+
+## 分阶段审查：阶段1～7独立复核汇总与暂停（2026-10-21）
+
+- 阶段8提交 `24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9` 后按一阶段一名子代理完成阶段1～7独立复核，七份结果已保存；[复核汇总](docs/代码审查-分阶段审查-2026-10-21.阶段1至7独立复核.md)。本树 `C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`，产品固定 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`，没有重做已完成阶段。
+- 19个稳定编号保留、无新增、均未修复；18个静态问题记录与R-017条件性待验证候选分开，R-004实际后果/R-005账号契约仍待验证。路径提示、v12.2源码、Hero归属和错误正文阈值单位已在本轮纠正，旧报告/证据不改写。
+- 仅本轮五文档经内容/链接/行段/字节/历史/Git差异校验后本地提交，不新跑产品/测试/UI；2072通过仅属阶段2的2026-10-21 02:59:12 +08:00旧运行。外部删除、主目录网站/vibe_images改动保持原样，不夹带、不推送发布。
+- 七代理均完成后关闭，不仅因限流中断；未执行系统压缩。本轮提交后按用户要求暂停，阶段9未开始，不自动修复或后台续跑。
+
+## 分阶段代码审查：阶段 8 Jellyfin媒体库与管理页面（2026-10-21）
+
+- 本树 `C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`／`codex/staged-code-review-2026-10-21`，固定产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`，阶段开始HEAD `8a1a2e4d00990325c58e2e01c7ad409c237c6b32`。只读审查，55份实际读取记录、856份固定字节核对；原目录五文件与本轮之外未暂存删除保护。
+- 新增R-018/R-019/P2：旧管理目录刷新跨同产品账号回写、旧整页导航取消回调遮住成功内容，详见[阶段8交接](docs/代码审查-分阶段审查-2026-10-21.阶段8审查.md)。条件性重名插件待验证、搜索筛选候选排除；累计19项未修复。
+- 本阶段未编译/运行产品或UI，复用阶段2在2026-10-21 02:59:12 +08:00的2072通过、0失败/跳过与0警告/错误；15旧标题/日志/程序集/runtime核对不覆盖两新增故障。纯文档检查后仅提交本轮五份记录，不推送发布、不改真实数据。
+- 管理和导航代理已完成并经主线程复核；限流后保留上下文，不仅因限流中断。未执行系统压缩。按最新指令，接下来委派阶段1～7独立复核，汇总保存后暂停；阶段0作背景，阶段9不启动，不自动修复。
+
+## 分阶段审查：持续授权同步（2026-10-21）
+
+- 用户明确允许既定只读阶段自动推进、按需子代理和实际可用的上下文压缩；本树同步主目录政策提交 `a9b7153d1fd6a6b4a537424a667c2f2dca131176` 的[流程文档](docs/分阶段代码审查与集中修复流程.md)，不逐阶段询问。历史阶段0～7记录保留原授权时点，不改写旧证据；阶段8从同步后的HEAD开始。
+- 仅同步流程和本进度段，不合入主目录产品代码；产品受审来源仍为 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`。每阶段保存交接、检查与本地提交；不自动修复、操作真实数据、推送发布或创建定时/后台续跑。当前无系统压缩工具，不把摘要冒称已压缩。
+- 本树 `C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`／`codex/staged-code-review-2026-10-21`；五份原目录保护文件哈希不变，本轮之外旧交接删除保留未暂存。纯文档同步检查后仅提交本次两文件，不构建或启动应用。
+
+## 分阶段代码审查：阶段 7 Emby浏览、操作与图片（2026-10-21）
+
+- 本树 `C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`，分支 `codex/staged-code-review-2026-10-21`；固定产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`，阶段开始HEAD `4d9321d2f9a7e277f6d78903fcca697b597b1ffd`。856固定文件字节一致；原目录网站/其它报告五文件保护哈希未变。
+- 新增R-012～R-017/P2：挂起图换宽、单源Resume合成卡分页、坏图缓存、详情回退、用户状态旧响应和偏移日期重写，源码/防护/验收见[阶段7交接](docs/代码审查-分阶段审查-2026-10-21.阶段7审查.md)。只静态确认，无新增产品故障回归、未修复。
+- 本轮匿名资料的SDK4.10.2.0（`f8499bd9d0e356b8a204a27b142765494dc6f450`）及4个DateTimeOffset属性/解析观察只作约束；复用阶段2于2026-10-21 02:59:12 +08:00的2072全过、0失败/跳过及0警告/错误，旧源/日志/输出/runtime哈希未变，本阶段未重新编译或跑产品/UI。
+- 仅五份本轮记录经检查后本地提交，累计17项未修复；本轮之外旧交接删除保持未暂存，原目录更新不追随。未改产品/测试/规程/技能或真实数据/UI/master/共同交付，未推送发布；交接后停止，阶段8未开始，无子代理/后台续跑，未执行系统压缩。
+
+## 分阶段代码审查：阶段 6 账号、来源与持久化（2026-10-21）
+
+- 本树 `C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`，分支 `codex/staged-code-review-2026-10-21`；固定源码 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`，阶段开始HEAD `768031b19a6923f52f8b2f32f3e9f185245ce5f7`。原目录网站/其他报告保护哈希未变，未纳入或写入。
+- 新增R-007/P1、R-008～R-011/P2：null凭据启动、在飞换选账号、旧迁移遮蔽当前备份、会话保存失败漏状态、重登权限快照陈旧；完整静态因果/验收/去重与缺口见[阶段6交接](docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md)。无新增产品回归、未修复；R-003/R-004共享边界不重复计数。
+- 本阶段未重新编译或跑产品测试；复用阶段2于2026-10-21 02:59:12 +08:00的2072全过、0失败/跳过和0警告/错误，源/日志/产物/runtime哈希未变。微软官方资料/固定10.0.11源码与JSON默认选项观察只读，不冒充产品故障运行。
+- 只提交总记录、本段和阶段6三新记录，累计R-001～R-011全部未修复；未改实现/测试/技能/规程、真实数据或UI、推送发布。本阶段交接/检查/本地提交后停止，阶段7未开始；未执行系统压缩，无子代理/后台续跑。
+
+## 分阶段代码审查：阶段5 Plex独立协议与能力（2026-10-21）
+
+- 本轮记录树仍为`C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`，分支`codex/staged-code-review-2026-10-21`；固定源码`c34a5e545333ea4c9f12ca2573bc6034029ecc04`、开始HEAD`704ec7ee7c5a0b136ef9c8a2b53098e6ebc1d3ad`，产品无变化。
+- 新增R-005/P1（官方v2成功对象顶层账号id，当前只读嵌套user导致登录失败）和R-006/P2（显式HTTP80/无端口IPv6端口判断错）；官方静态GET/相同运行时URI属性与源码链见[阶段5交接](docs/代码审查-分阶段审查-2026-10-21.阶段5审查.md)，未真实登录/新增故障回归、未修复。
+- 复用阶段2在2026-10-21 02:59:12 +08:00的2072全过/编译0警告0错误，源码/日志/产物/runtime哈希未变；18个Plex标题不覆盖新边界。GET方法/分页和能力说明分歧留待验证/CAL-08，不猜改协议或扩大功能。
+- 只提交总记录、本段和阶段5三新记录，累计R-001～R-006均未修复；未改实现/测试/规程、真实账号/服务器/媒体/用户设置、推送发布。交接保存后停止，阶段6未开始；未执行系统压缩。
+
+## 分阶段代码审查：阶段 4 飞牛协议、登录与传输（2026-10-21）
+
+- 本轮仍写`C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`，分支`codex/staged-code-review-2026-10-21`；固定产品`c34a5e545333ea4c9f12ca2573bc6034029ecc04`，阶段开始HEAD`6f3122d24fb4eee315a285041c821188736e1369`，产品/规程/测试无改动。
+- 新增R-004/P2：归档前端-16表示文件权限不足，当前宽鉴权分类将它转凭据拒绝；自动重登后续读取返回该码可清token/撤销来源。静态完整链及最小验收见[阶段4交接](docs/代码审查-分阶段审查-2026-10-21.阶段4审查.md)，未新增故障运行/插桩、未真实复现、未修复。
+- authx/同源重签/响应/可选读取及30秒/5分钟预算按源码和归档核对。复用阶段2于2026-10-21 02:59:12 +08:00的2072全过/编译0警告0错误证据，源码/日志/产物/runtime哈希未变；飞牛标题81项不是新跑、不覆盖R-004。
+- 只提交总记录、本段及阶段4审查/证据/检查三新记录，累计R-001～R-004均未修复。未访问真实NAS/登录/播放/写用户设置/推送发布；已保存交接、未执行系统压缩，阶段4完成后停止，阶段5未开始。
+
+## 分阶段代码审查：阶段 3 Jellyfin 协议与版本兼容（2026-10-21）
+
+- 本轮仍写 `C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`，分支 `codex/staged-code-review-2026-10-21`；固定产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`，阶段开始HEAD `42013cc7d387e610f7be0518cb1a3017c4db9f52`，源码/规程/测试无变化。
+- 新增R-003/P1（自动恢复的密码回退未核对最终服务器身份，同用户ID但不同服务器结果可覆盖保存绑定）；完整静态因果链、触发/防护、未验证/最小验收见 [阶段3交接](docs/代码审查-分阶段审查-2026-10-21.阶段3审查.md)及证据，未新增故障回归/插桩，未修复。
+- 核对10.10.7官方源码和12.2.0官方规格；字段/排序集合零差异，不从旧路由或源码URL404推断API404。复用阶段2于2026-10-21 02:59:12 +08:00的2072全过/编译0警告0错误证据，源码/产物/日志哈希未变；不是阶段3新跑，R-003边界未覆盖。
+- 只提交总记录、本段及阶段3审查/证据/检查三新记录；累计R-001/R-002/R-003均未修复。未访问真实服务器/启动UI/播放/写用户设置，未推送发布；已保存交接、未执行系统压缩，阶段3完成后停止，阶段4未开始。
+
+## 分阶段代码审查：阶段 2 Emby 协议与凭据（2026-10-21）
+
+- 本轮写入树仍为 `C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`，分支 `codex/staged-code-review-2026-10-21`；受审产品 `c34a5e545333ea4c9f12ca2573bc6034029ecc04`，阶段开始/测试 HEAD `4b663c425491120a4d87234d98bf20ecc9c88619`，源码无变更。
+- 已确认 R-001/P1（默认实时握手跨源转发 Emby 自定义鉴权头；源码与相同 .NET 10.0.11 DLL 静态 IL 证据，未真实泄露验证）、R-002/P2（长下载拒绝后无期限等错误正文，错误上报/队列被阻塞；源码因果链）。均未修复、未新增测试/插桩。
+- 本树当前 Release 测试/Core 先还原编译 0 警告 0 错误，再运行现有正式测试 2072 通过、0 失败、0 跳过；新故障路径未被这些用例覆盖，绿结果不排除问题。日志与哈希见 [阶段 2 交接](docs/代码审查-分阶段审查-2026-10-21.阶段2审查.md)及证据 JSON；官方匿名资料/还原/本机回环网络与真实库访问分开记录。
+- 本次只写总记录、本段和阶段 2 审查/证据/检查三份新记录；未修改产品/规程/技能/测试，未访问真实服务器或播放、未推送发布。已保存交接，未执行系统上下文压缩；阶段 2 结束后停止，阶段 3 未开始。
+
+## 分阶段代码审查：阶段 1 固定基线与计划（2026-10-21）
+
+- 写入树仍为 `C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`，分支 `codex/staged-code-review-2026-10-21`；纳入已提交来源 `c34a5e545333ea4c9f12ca2573bc6034029ecc04` 的基线合并为 `2ea002b2e1745fbb49821bf73ee09fa5b25194c5`。产品源码/测试/工具/资源与来源一致，仅保留本轮审查记录；未在 master 写入。
+- 已保存完整状态与文件哈希/入口索引，候选阶段 2～19 按协议/凭据、身份、分产品浏览、集成、播放/输出、平台、工具及跨模块复核拆分。计划待用户确认，阶段 2 未开始；每阶段单独交接停止。
+- 写入范围仅总记录、本段和阶段 1 计划/基线/检查三份新记录；文档检查不代表产品验证。未还原/构建/正式测试/应用运行/真实服务器操作，未修复、推送或发布；详见 [阶段 1 计划与交接](docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md)。
+- 既有 CAL 文档/技能/工具边界保留，无已确认产品 R 项；已保存交接，未执行系统上下文压缩（无明确可调用工具）。阶段 1 结束后停止，等待计划确认。
+
+## 分阶段代码审查：阶段 0 规程与技能校准（2026-10-21）
+
+- 本次只获准规程与技能校准。原目录有其他交付会话，故本轮写入树为 `C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka`，分支 `codex/staged-code-review-2026-10-21`，来源提交 `9b69e0877f59f899c9ddc6e1ebfd2baae83e445a`；写入范围仅本段及 `docs/代码审查-分阶段审查-2026-10-21*` 三份记录，不改原树 master 或已有媒体库报告/网站。
+- 已核对现行规程和 13 个仓库技能：Shell/验证全文，其他仅元数据、章节与必要新增边界。开发文档旧实时查询串凭据说明与现行无 URL 令牌规则冲突；四个用户级技能副本漂移、Plex 仅仓库提供。只记录，不把文档冲突或哈希差异当成已确认产品缺陷。
+- 纯记录检查覆盖内容、链接、命令/工具存在性、哈希和差异；未编译、未跑正式测试/应用探针、未联网/播放/改真实数据，未推送、未发布。详见 [本轮阶段 0 交接](docs/代码审查-分阶段审查-2026-10-21.md) 及配套快照/检查 JSON。
+- 已保存交接，未执行系统上下文压缩（无明确可调用工具）；阶段 0 完成后停止。阶段 1 未开始，修复仍须单独明确授权。
 
 ## 主页标题点击范围与边框加粗：主目录已交付（2026-10-26）
 

@@ -1,0 +1,151 @@
+<Project>
+  <PropertyGroup>
+    <MissingSourceRoot>$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..'))</MissingSourceRoot>
+    <MissingShellSource Condition="'$(MissingShellSource)' == ''">$(MissingSourceRoot)\src\Momoka.Shell\Views\ShellPage.xaml.cs</MissingShellSource>
+    <MissingSourceRevision Condition="'$(MissingSourceRevision)' == ''">current-tree</MissingSourceRevision>
+  </PropertyGroup>
+  <!-- Validate the unique, balanced single-member boundary and copy its body unchanged.
+       Overrides are only anonymous, hash-checked Git-blob inputs inside this worktree. -->
+  <UsingTask TaskName="ExtractR041MissingEpisodesSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceRoot ParameterType="System.String" Required="true" />
+      <ShellSource ParameterType="System.String" Required="true" />
+      <ExpectedShellSha256 ParameterType="System.String" />
+      <SourceRevision ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Linq" />
+      <Using Namespace="System.Text" /><Using Namespace="System.Security.Cryptography" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        try
+        {
+            var root = Path.GetFullPath(SourceRoot).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            var input = Path.GetFullPath(ShellSource);
+            var output = Path.GetFullPath(OutputSource);
+            if (!input.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+                || !output.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("input/output must remain in this worktree");
+            var canonical = Path.Combine(root, "src", "Momoka.Shell", "Views", "ShellPage.xaml.cs");
+            Func<byte[], string> hash = value =>
+            {
+                using (var sha = SHA256.Create())
+                    return BitConverter.ToString(sha.ComputeHash(value)).Replace("-", "");
+            };
+            var bytes = File.ReadAllBytes(input);
+            var shellHash = hash(bytes);
+            if (!string.Equals(input, canonical, StringComparison.OrdinalIgnoreCase)
+                && string.IsNullOrWhiteSpace(ExpectedShellSha256))
+                throw new InvalidOperationException("override requires an expected Git-blob SHA256");
+            if (!string.IsNullOrWhiteSpace(ExpectedShellSha256)
+                && !string.Equals(ExpectedShellSha256, shellHash, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("input SHA256 mismatch");
+            var text = new UTF8Encoding(false, true).GetString(bytes);
+            if (text.Contains('\r') || text.StartsWith("\uFEFF", StringComparison.Ordinal))
+                throw new InvalidOperationException("production input must be UTF8 without BOM and LF");
+            Func<string, int> unique = marker =>
+            {
+                var found = text.IndexOf(marker, StringComparison.Ordinal);
+                if (found < 0 || text.IndexOf(marker, found + marker.Length, StringComparison.Ordinal) >= 0)
+                    throw new InvalidOperationException("missing/ambiguous actual boundary: " + marker.Trim());
+                return found;
+            };
+            unique("namespace Momoka.Shell.Views;");
+            unique("partial class ShellPage");
+            const string start = "    private bool _missingEpisodesShowing;\n\n    private async Task ShowMissingEpisodesAsync(EmbyItem item, IReadOnlyList<EmbyItem> missing)\n    {";
+            const string end = "    private bool _moviePilotReorganizeShowing;";
+            unique("    private bool _missingEpisodesShowing;");
+            var begin = unique(start);
+            var finish = unique(end);
+            if (finish <= begin) throw new InvalidOperationException("reversed missing-episodes boundary");
+            var methodName = unique("    private async Task ShowMissingEpisodesAsync(");
+            if (methodName <= begin || methodName >= finish)
+                throw new InvalidOperationException("unexpected missing-episodes signature owner");
+            var open = begin + start.Length - 1;
+            var depth = 0;
+            var close = -1;
+            // Only lexical braces delimit the single actual member. No rewritten predicate/model.
+            // Reject unsupported literal forms rather than accepting a wider extraction.
+            for (var pos = open; pos < finish; pos++)
+            {
+                var current = text[pos];
+                if (current == '/' && pos + 1 < finish && text[pos + 1] == '/')
+                {
+                    var newline = text.IndexOf('\n', pos + 2);
+                    if (newline < 0 || newline >= finish) throw new InvalidOperationException("unterminated line comment");
+                    pos = newline;
+                    continue;
+                }
+                if (current == '/' && pos + 1 < finish && text[pos + 1] == '*')
+                {
+                    var commentEnd = text.IndexOf("*/", pos + 2, StringComparison.Ordinal);
+                    if (commentEnd < 0 || commentEnd >= finish) throw new InvalidOperationException("unterminated block comment");
+                    pos = commentEnd + 1;
+                    continue;
+                }
+                if (current == '"' || current == '\'')
+                {
+                    if ((pos > 0 && text[pos - 1] == '@')
+                        || (current == '"' && pos + 2 < finish && text[pos + 1] == '"' && text[pos + 2] == '"'))
+                        throw new InvalidOperationException("unsupported verbatim/raw literal in extraction boundary");
+                    var quote = current;
+                    var foundQuote = false;
+                    while (++pos < finish)
+                    {
+                        if (text[pos] == '\\') { pos++; continue; }
+                        if (text[pos] == quote) { foundQuote = true; break; }
+                    }
+                    if (!foundQuote) throw new InvalidOperationException("unterminated literal");
+                    continue;
+                }
+                if (current == '{') depth++;
+                if (current == '}' && --depth == 0) { close = pos; break; }
+            }
+            if (close < 0 || depth != 0 || text.Substring(close + 1, finish - close - 1).Trim().Length != 0)
+                throw new InvalidOperationException("missing/unbalanced/expanded single-member extraction boundary");
+            var body = text.Substring(begin, finish - begin);
+            if (!(body.IndexOf("await session.ExecuteAsync", StringComparison.Ordinal) >= 0)
+                || !(body.IndexOf("new MissingEpisodesDialog", StringComparison.Ordinal) >= 0)
+                || !(body.IndexOf("moviePilot.AvailabilityChanged += AvailabilityChanged", StringComparison.Ordinal) >= 0)
+                || !(body.IndexOf("moviePilot.AvailabilityChanged -= AvailabilityChanged", StringComparison.Ordinal) >= 0))
+                throw new InvalidOperationException("missing required actual control-flow boundaries");
+            var dialog = Path.Combine(root, "src", "Momoka.Shell", "Views", "MissingEpisodesDialog.xaml.cs");
+            var xaml = Path.Combine(root, "src", "Momoka.Shell", "Views", "MissingEpisodesDialog.xaml");
+            Func<string, string> literal = value => "@\"" + value.Replace("\"", "\"\"") + "\"";
+            var generated = "#nullable enable\n// Verbatim production members. Never edit this generated file.\n"
+                + "using Microsoft.Extensions.DependencyInjection;\nusing Microsoft.UI.Xaml.Controls;\n"
+                + "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.Infrastructure;\nusing Momoka.MoviePilot;\n"
+                + "namespace Momoka.Shell.Views;\ninternal sealed partial class ShellPage\n{\n" + body + "\n}\n"
+                + "internal static class ProductionProvenance\n{\n"
+                + "    internal const string Root = " + literal(root.TrimEnd(Path.DirectorySeparatorChar)) + ";\n"
+                + "    internal const string Revision = " + literal(SourceRevision) + ";\n"
+                + "    internal const string ShellFile = " + literal(input) + ";\n"
+                + "    internal const string ShellSha256 = \"" + shellHash + "\";\n"
+                + "    internal const string MethodSha256 = \"" + hash(Encoding.UTF8.GetBytes(body)) + "\";\n"
+                + "    internal const string DialogFile = " + literal(dialog) + ";\n"
+                + "    internal const string DialogSha256 = \"" + hash(File.ReadAllBytes(dialog)) + "\";\n"
+                + "    internal const string XamlFile = " + literal(xaml) + ";\n"
+                + "    internal const string XamlSha256 = \"" + hash(File.ReadAllBytes(xaml)) + "\";\n}\n";
+            Directory.CreateDirectory(Path.GetDirectoryName(output));
+            if (!File.Exists(output) || File.ReadAllText(output) != generated)
+                File.WriteAllText(output, generated, new UTF8Encoding(false));
+            Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High,
+                "R041 source: revision={0}; shell={1}; method={2}; dialog={3}",
+                SourceRevision, shellHash, hash(Encoding.UTF8.GetBytes(body)), hash(File.ReadAllBytes(dialog)));
+        }
+        catch (Exception error)
+        {
+            Log.LogError("R041 extraction rejected: " + error.Message);
+            return false;
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateR041MissingEpisodesSources" BeforeTargets="CoreCompile">
+    <ExtractR041MissingEpisodesSources SourceRoot="$(MissingSourceRoot)" ShellSource="$(MissingShellSource)"
+        ExpectedShellSha256="$(ExpectedMissingShellSha256)" SourceRevision="$(MissingSourceRevision)"
+        OutputSource="$(MSBuildProjectDirectory)\$(IntermediateOutputPath)MissingEpisodesSources.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)MissingEpisodesSources.g.cs" /></ItemGroup>
+  </Target>
+</Project>

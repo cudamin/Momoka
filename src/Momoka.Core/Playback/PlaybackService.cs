@@ -410,7 +410,11 @@ public sealed partial class PlaybackService(
     {
         var handle = _current;
         if (handle is not IPlayerControl control || !handle.HasControlChannel) return false;
-        var generation = _playbackGeneration;
+        var generation = Generation;
+        // The native file counter is not the service counter: HandOver and Swap each advance it.
+        // Capture once before waiting/reading, and retain it for both writes and rollback.
+        var fileControl = control as IFileScopedPlayerControl;
+        var fileGeneration = fileControl?.FileGeneration;
         await _shaderGate.WaitAsync().ConfigureAwait(false);
         var before = new Dictionary<string, string>(StringComparer.Ordinal);
         var changed = new List<string>();
@@ -455,7 +459,7 @@ public sealed partial class PlaybackService(
             {
                 if (!Current()) return false;
                 changed.Add(name);
-                if (!await control.CommandAsync(["set", name, value], CancellationToken.None).ConfigureAwait(false))
+                if (!await CommandAsync(["set", name, value]).ConfigureAwait(false))
                     throw new InvalidOperationException($"播放器拒绝 {name}");
             }
             if (!Current()) return false;
@@ -471,7 +475,7 @@ public sealed partial class PlaybackService(
                 if (!Current()) return false;
                 try
                 {
-                    restored &= await control.CommandAsync(["set", name, before[name]], CancellationToken.None).ConfigureAwait(false);
+                    restored &= await CommandAsync(["set", name, before[name]]).ConfigureAwait(false);
                 }
                 catch (Exception rollbackError)
                 {
@@ -485,7 +489,14 @@ public sealed partial class PlaybackService(
         }
         finally { _shaderGate.Release(); }
 
-        bool Current() => ReferenceEquals(_current, handle) && generation == _playbackGeneration;
+        // A retained handle may already contain B while the service has not established B yet.
+        // Do not bind a new transaction in that handoff gap; normal external controls keep their contract.
+        bool Current() => ReferenceEquals(_current, handle) && generation == Generation
+            && (fileControl is null || _active is { Ending: false } && fileGeneration == fileControl.FileGeneration);
+
+        Task<bool> CommandAsync(IReadOnlyList<string> arguments) => fileControl is null
+            ? control.CommandAsync(arguments, CancellationToken.None)
+            : fileControl.CommandForFileAsync(fileGeneration!.Value, arguments, CancellationToken.None);
     }
 
     internal static int StopReportPercent(bool isDonghua, int markWatchedPercent, int donghuaMarkWatchedPercent) =>

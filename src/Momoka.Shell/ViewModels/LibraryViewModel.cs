@@ -160,6 +160,8 @@ public sealed partial class LibraryViewModel : PageViewModel
     private AggregateQueryCursor? _cursor;
     private readonly HashSet<string> _resumeRead = new(StringComparer.Ordinal);
     private bool Aggregated => _sources.Count > 1;
+    // 单来源继续观看同样按服务器消费量计数；补入的下一集只占显示槽，不占 Resume 偏移。
+    private bool UsesQueryCursor => Aggregated || IsResumePage;
     private bool SourcesAvailable => _sources.Any(source => source.IsAvailable);
     private bool _active;
     private bool _firstPage;
@@ -678,7 +680,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 「nothing has been asked」 and 「everything has arrived」 must not look the same to the pager.
     /// </summary>
     internal bool HasMore => !IsRecommendedPage && !IsFavoritesPage && !(_request?.IsSearch == true && string.IsNullOrWhiteSpace(_request.SearchTerm))
-        && (Aggregated ? _cursor?.HasMore ?? true : _total < 0 || (IsUpcomingPage ? _upcomingReadCount : Cards.Count) < _total);
+        && (UsesQueryCursor ? _cursor?.HasMore ?? true : _total < 0 || (IsUpcomingPage ? _upcomingReadCount : Cards.Count) < _total);
 
     // ---------------------------------------------------------------- 推荐页（三排货架）
 
@@ -1100,11 +1102,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(FilterButtonWidth));
         OnPropertyChanged(nameof(LayoutVisibility));
 
-        _fnNasFilterLifetime?.Cancel();
-        _fnNasFilterLifetime = null;
-        _fnNasFilters.Clear();
-        FnNasFilterRows.Clear();
-        FnNasFilterOpen = false;
+        ResetFnNasFilters();
 
         if (IsSectionLibrary && !BrowseSections.Any(entry => entry.Section == request.Section))
         {
@@ -1144,7 +1142,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     public override Task ReloadAsync() => LoadAsync(reset: true);
 
-    /// <summary>删除只改变当前集合；分页起点跟随新数量，删除前发出的分页响应作废。</summary>
+    /// <summary>删除原位改变集合并回退所属服务器的消费量，删除前发出的分页响应作废。</summary>
     internal async Task<bool> RemoveAsync(CardItem card, CancellationToken queryToken, bool deleted = true)
     {
         if (!QueryCurrent(queryToken) || !Cards.Contains(card)) return false;
@@ -1160,7 +1158,9 @@ public sealed partial class LibraryViewModel : PageViewModel
         Cards.Remove(card);
         if (IsUpcomingPage && _upcomingReadCount > 0) _upcomingReadCount--;
         UpdateUpcomingDays();
-        if (_total > 0) _total--;
+        var consumed = !IsResumePage || _resumeRead.Remove(card.Item.IdentityKey);
+        if (IsResumePage && consumed && card.Scope is { } source) _cursor?.RemoveConsumed(source.Key);
+        if (consumed && _total > 0) _total--;
         _firstPage = true;
         _pageFailed = false;
         IsReady = true;
@@ -1192,6 +1192,18 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         var watched = card.Item;
 
+        // 写入已确认后原项已经从服务器 Resume 清单移除。先撤销可能还用旧偏移读取的分页，再回退
+        // 它所属来源；不能等下一集补读完才记账，更不能把补入的无续播下一集算作原始记录。
+        if (_resumeRead.Remove(watched.IdentityKey))
+        {
+            base.Cancel();
+            _jumps.Cancel();
+            IsReady = _firstPage;
+            _cursor?.RemoveConsumed(scope.Key);
+            if (_total > 0) _total--;
+            RowsArrived();
+        }
+
         // 下一集先问回来再动屏（同主页那一排）：先撤后插会让这一格空着闪一下。问不出来（最后一集、断线、
         // 离页）都按「没有下一集」办。
         var next = ResumeRow.WantsNext(watched)
@@ -1202,13 +1214,11 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (!QueryCurrent(queryToken) || !card.IsCurrent || !Cards.Contains(card)) return;
 
         var slot = ResumeSlot.Apply(Cards, card, next, NewCard);
-        if (_resumeRead.Remove(watched.IdentityKey)) _cursor?.RemoveConsumed(scope.Key);
         Log.Info(Category, slot is null
             ? $"「{watched.Name}」标记已看，从继续观看撤下"
             : $"「{watched.Name}」标记已看，那一格换成「{slot.Name}」");
 
-        // 撤掉一格少一项、换掉那一格总数不变（同 RemoveAsync 里那份账）：分页起点跟着新数量走。
-        if (slot is null && _total > 0) _total--;
+        // 总数说的是服务器 Resume 记录，合成显示槽的撤换不再改这份账。
         ShowEmptyNotice = Cards.Count == 0;
         RowsArrived();
     }
@@ -1268,12 +1278,14 @@ public sealed partial class LibraryViewModel : PageViewModel
         var token = BeginLoad();
         try
         {
-            ResetCursor();
+            var cursor = UsesQueryCursor ? NewCursor() : null;
             var items = new List<EmbyItem>();
             var total = 0;
             do
             {
-                var result = await ReadAsync(items.Count, token).ConfigureAwait(true);
+                var result = cursor is not null
+                    ? await ReadCursorAsync(cursor, token).ConfigureAwait(true)
+                    : await ReadAsync(items.Count, token).ConfigureAwait(true);
                 if (!QueryCurrent(queryToken) || !IsCurrent(token)) return false;
                 total = result?.TotalRecordCount ?? 0;
                 if (result is null || result.Items.Count == 0) break;
@@ -1284,6 +1296,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             var retained = Cards.DistinctBy(card => card.Item.IdentityKey).ToDictionary(card => card.Item.IdentityKey, StringComparer.Ordinal);
             var desired = items.Select(item => retained.TryGetValue(item.IdentityKey, out var existing) ? existing
                 : NewCard(item)).ToArray();
+            _cursor = cursor;
+            _resumeRead.Clear();
             if (IsResumePage)
                 foreach (var item in items) _resumeRead.Add(item.IdentityKey);
             var kept = desired.ToHashSet();
@@ -1388,8 +1402,14 @@ public sealed partial class LibraryViewModel : PageViewModel
         try
         {
             var start = reset ? 0 : IsUpcomingPage ? _upcomingReadCount : Cards.Count;
-            var result = await ReadAsync(start, token).ConfigureAwait(true);
+            // HTTP 可以先完成而页面接收回调仍在队列里。读取只消费副本，在同一 UI 提交点确认
+            // 查询/载入仍有效后，才把新游标和它的卡片一起发布；已看/删除取消旧页时原账不受影响。
+            var cursor = UsesQueryCursor ? (_cursor ?? NewCursor()).Copy() : null;
+            var result = cursor is not null
+                ? await ReadCursorAsync(cursor, token).ConfigureAwait(true)
+                : await ReadAsync(start, token).ConfigureAwait(true);
             if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
+            if (cursor is not null) _cursor = cursor;
             if (reset)
             {
                 foreach (var card in Cards) card.AbandonPoster();
@@ -1400,12 +1420,12 @@ public sealed partial class LibraryViewModel : PageViewModel
             {
                 foreach (var item in result.Items)
                 {
-                    if (IsUpcomingPage && Cards.Any(card => card.Item.IdentityKey == item.IdentityKey)) continue;
-                    Cards.Add(NewCard(item));
                     if (IsResumePage) _resumeRead.Add(item.IdentityKey);
+                    if ((IsUpcomingPage || IsResumePage) && Cards.Any(card => card.Item.IdentityKey == item.IdentityKey)) continue;
+                    Cards.Add(NewCard(item));
                 }
                 if (IsUpcomingPage) _upcomingReadCount += result.Items.Count;
-                if (result.Items.Count == 0) _total = IsUpcomingPage ? _upcomingReadCount : Cards.Count;
+                if (result.Items.Count == 0 && !UsesQueryCursor) _total = IsUpcomingPage ? _upcomingReadCount : Cards.Count;
             }
             UpdateUpcomingDays();
             _firstPage = true;
@@ -1440,6 +1460,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _jumps.Cancel();
         _favoriteLoads.Cancel();
         _fnNasFilterLifetime?.Cancel();
+        FnNasFilterLoading = false;
         foreach (var row in FavoriteRows) row.Loading = false;
         base.Cancel();
         RowsArrived();
@@ -1459,6 +1480,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         foreach (var shelf in RecommendedShelves) shelf.Clear();
         _favoriteLoads.Dispose();
         _fnNasFilterLifetime?.Dispose();
+        _fnNasFilterLifetime = null;
         foreach (var row in RecentSearches) row.Card.AbandonPoster();
         _queries.Dispose();
         _jumps.Dispose();
@@ -1478,8 +1500,6 @@ public sealed partial class LibraryViewModel : PageViewModel
     {
         if (!_active || !SourcesAvailable) throw new OperationCanceledException();
         if (!IsResumePage && BuildQuery(start) is null) return null;
-        if (Aggregated)
-            return await ReadAggregatedAsync(_cursor ??= NewCursor(), token).ConfigureAwait(true);
         return await ReadSourceAsync(_sources[0], start, token).ConfigureAwait(true);
     }
 
@@ -1487,14 +1507,15 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private void ResetCursor()
     {
-        _cursor = Aggregated ? NewCursor() : null;
+        _cursor = UsesQueryCursor ? NewCursor() : null;
         _resumeRead.Clear();
     }
 
-    private async Task<ItemsResult> ReadAggregatedAsync(AggregateQueryCursor cursor, CancellationToken token)
+    private async Task<ItemsResult> ReadCursorAsync(AggregateQueryCursor cursor, CancellationToken token)
     {
         var page = await cursor.ReadAsync((key, offset, ct) =>
-            ReadSourceAsync(_sources.First(source => source.Key == key), offset, ct), token).ConfigureAwait(true);
+            ReadSourceAsync(_sources.First(source => source.Key == key), offset, ct), token,
+            allowPartialFailure: Aggregated).ConfigureAwait(true);
         if (_active && !token.IsCancellationRequested && page.Failures.Count > 0)
         {
             Notify(null, "部分来源暂时无法读取，已显示其他来源；刷新可重试。", Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning);
@@ -1705,13 +1726,15 @@ public sealed partial class LibraryViewModel : PageViewModel
             {
                 var cursor = NewCursor();
                 var all = await PlayableList.CollectAsync([], true,
-                    async (_, ct) => await ReadAggregatedAsync(cursor, ct).ConfigureAwait(true),
+                    async (_, ct) => await ReadCursorAsync(cursor, ct).ConfigureAwait(true),
                     () => IsCurrent(token), token).ConfigureAwait(true);
                 return (all, token);
             }
             var items = await PlayableList.CollectAsync(
-                loaded, hasMore, ReadAsync, () => IsCurrent(token), token).ConfigureAwait(true);
-            return (items, token);
+                loaded, hasMore,
+                IsResumePage ? async (start, ct) => await ReadSourceAsync(_sources[0], start, ct).ConfigureAwait(true) : ReadAsync,
+                () => IsCurrent(token), token, startIndex: IsResumePage ? _cursor?.ConsumedCount : null).ConfigureAwait(true);
+            return (IsResumePage ? items.DistinctBy(item => item.IdentityKey).ToList() : items, token);
         }
         finally
         {
@@ -1859,18 +1882,26 @@ public sealed partial class LibraryViewModel : PageViewModel
         {
             var options = await scope.ExecuteAsync((client, ct) => client.GetFnNasFilterOptionsAsync(
                 request.ParentId, request.IsFavorites, "zh-CN", ct), token).ConfigureAwait(true);
-            if (!_active || token.IsCancellationRequested || !scope.IsAvailable) return;
+            if (!FnNasFilterLoadCurrent(token, scope, request)) return;
             BuildFnNasFilterRows(options);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (!_active) return;
+            if (!FnNasFilterLoadCurrent(token, scope, request)) return;
             Log.Warn(Category, "读取飞牛媒体库筛选项失败", error);
             Report("读取媒体库筛选项失败，请稍后重试", error);
         }
-        finally { FnNasFilterLoading = false; }
+        finally
+        {
+            // 旧来源的 finally 不能把另一个来源仍在读取的面板标为结束。
+            if (_fnNasFilterLifetime?.Token == token) FnNasFilterLoading = false;
+        }
     }
+
+    private bool FnNasFilterLoadCurrent(CancellationToken token, EmbySessionScope scope, LibraryRequest request) =>
+        _active && !token.IsCancellationRequested && _fnNasFilterLifetime?.Token == token
+        && ReferenceEquals(_scope, scope) && ReferenceEquals(_request, request) && scope.IsAvailable;
 
     private void BuildFnNasFilterRows(FnNasFilterOptions options)
     {
@@ -1949,6 +1980,10 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     private void ResetFnNasFilters()
     {
+        _fnNasFilterLifetime?.Cancel();
+        _fnNasFilterLifetime?.Dispose();
+        _fnNasFilterLifetime = null;
+        FnNasFilterLoading = false;
         _fnNasFilters.Clear();
         FnNasFilterRows.Clear();
         FnNasFilterOpen = false;

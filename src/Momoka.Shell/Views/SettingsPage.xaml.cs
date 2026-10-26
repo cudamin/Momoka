@@ -55,6 +55,8 @@ public sealed partial class SettingsPage : Page, IShellContent
     private readonly HashSet<SettingsCategoryGroup> _observedGroups = [];
     private SettingsRequest? _request;
     private EmbySession? _session;
+    private readonly LoadGeneration _activity = new();
+    private CancellationToken _activityToken;
 
     public SettingsPage()
     {
@@ -63,6 +65,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         CategoryGroupsSource.Source = ViewModel.CategoryGroups;
         Loaded += (_, _) =>
         {
+            if (!_activity.IsCurrent(_activityToken)) return;
             HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
             HomeMotion.PreferenceChanged += ApplySettingsMotionPreference;
             ApplySettingsMotionPreference();
@@ -97,7 +100,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         ViewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(SettingsViewModel.CategoryGroups)) UpdateCategoryGroups();
-            if (e.PropertyName == nameof(SettingsViewModel.SelectedCategory))
+            if (_activity.IsCurrent(_activityToken) && e.PropertyName == nameof(SettingsViewModel.SelectedCategory))
             {
                 StopSettingsContentMotion();
                 ShowHosted();
@@ -347,7 +350,15 @@ public sealed partial class SettingsPage : Page, IShellContent
         var built = ReferenceEquals(_request?.Services, request.Services) && ViewModel.IsReady;
 
         StopMoviePilotMonitoring();
+        StopSourceMonitoring();
+        StopSettingsSaveState();
+        _activityToken = _activity.Begin();
+        ViewModel.Activate();
         _request = request;
+        // Hide 后 XAML 仍可保持 Loaded；重开不能只等另一次 Loaded 才恢复动效偏好通知。
+        HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
+        HomeMotion.PreferenceChanged += ApplySettingsMotionPreference;
+        ApplySettingsMotionPreference();
 
         if (!built)
         {
@@ -395,19 +406,26 @@ public sealed partial class SettingsPage : Page, IShellContent
         // Only when the page was cached, i.e. built on an earlier visit: the fresh path's ReloadAsync
         // already fills the device row. A cached page skips ReloadAsync by design (in-progress edits are
         // the point), but the device list is a reading, not an edit — it re-enumerates on re-entry.
-        if (built) _ = ViewModel.RefreshAudioDevicesAsync();
+        if (built)
+        {
+            // 其他页面也共用设置服务：只读回保存 flag，不用整页 Reload 丢掉输入。
+            ViewModel.SyncSaveState();
+            _ = ViewModel.RefreshAudioDevicesAsync();
+        }
 
+        WatchSettingsSaveState(request.Services.GetRequiredService<ISettingsService>());
         WatchMoviePilot(request.Services.GetRequiredService<MoviePilotService>());
 
         // 在线来源变化也会改变界面风味（第二台服务器上线 → 通用界面；只剩一台 → 那台的界面），
         // 设置窗口可能正开着，左栏要当场跟着收放服务端管理入口，不等下一次打开设置。
-        if (_session is not null) _session.SourcesChanged -= OnSourceListChanged;
         _session = request.Services.GetRequiredService<EmbySession>();
         _session.SourcesChanged += OnSourceListChanged;
+        _session.PermissionsChanged += OnPermissionsChanged;
 
         // 每一次打开都重新核一遍账号权限 —— 和上面那一行的理由同源：这一页是缓存的，换过账号之后它不重建，
         // 不重核就会留着上一个账号的答案（管理员看过的「控制台」那一组，普通账号再进来还列着）。这一趟先于
         // 下面 Select，好在两个路径上都已经发出去了：它回来得晚也只会把落点收回第一张卡，不会把选择拨乱。
+        var hostedBeforeRefresh = HostedFrame.Content;
         _ = RefreshServerAdministrationAsync();
 
         // Both paths, and after the build: the cached path used to return before reading the parameter at
@@ -419,7 +437,8 @@ public sealed partial class SettingsPage : Page, IShellContent
         // 函数里那个订阅），紧接着再喊一遍就是把内嵌页面建两次 —— 头一个刚 OnNavigatedTo 就被第二次导航
         // OnNavigatedFrom 掉。第一次打开「服务器」「诊断」「通知」「网页控制台」正是选择会动的那一次，也就是说
         // 这几页每一次头回打开都白建一个，网页控制台那一页还白起一次 WebView2。
-        if (!Select(request.Category)) ShowHosted();
+        // 同服换账号的同步刷新可能已经重建原生页；这一趟不能紧接着再重建、再起一次 GET。
+        if (!Select(request.Category) && ReferenceEquals(hostedBeforeRefresh, HostedFrame.Content)) ShowHosted();
         QueueSettingsEntrance();
     }
 
@@ -435,10 +454,14 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     private async Task RefreshServerAdministrationAsync()
     {
+        var activity = _activityToken;
+        if (!_activity.IsCurrent(activity)) return;
+
         var beforeCategory = ViewModel.SelectedCategory;
         var refresh = ViewModel.RefreshServerAdministrationAsync();
         UpdateCategoryGroups();
         await refresh;
+        if (!_activity.IsCurrent(activity)) return;
         UpdateCategoryGroups();
 
         // 切到另一台服务器、或换了一个产品时，同名分类（两家的「控制台」都叫控制台，飞牛的两台服务器
@@ -557,7 +580,7 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     private void ShowHosted()
     {
-        if (_request is null) return;
+        if (_request is null || !_activity.IsCurrent(_activityToken)) return;
 
         if (!ViewModel.CanOpenServerCategory(ViewModel.SelectedCategory))
         {
@@ -673,6 +696,12 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     internal void ReleaseHosted()
     {
+        // Hide 不触发 Frame.OnNavigatedFrom；先结束整页活动期，旧队列和 await 都不能重建内嵌页。
+        _activity.Cancel();
+        ViewModel.Cancel();
+        StopSourceMonitoring();
+        StopSettingsSaveState();
+        HomeMotion.PreferenceChanged -= ApplySettingsMotionPreference;
         StopMoviePilotMonitoring();
         StopSettingsEntrance();
         StopSettingsContentMotion();
@@ -681,9 +710,8 @@ public sealed partial class SettingsPage : Page, IShellContent
     }
 
     /// <summary>
-    /// Lets go of the hosted page. This page itself has nothing in flight and subscribes to nothing —
-    /// every row holds a closure over the settings document, which the container owns and outlives the page
-    /// anyway — but the frame on its right may be holding 服务器, 诊断 or 需求 8's console.
+    /// Ends this visit's reads and subscriptions, then lets go of the hosted page. The cached settings
+    /// rows keep their closures and draft values; only reopening starts another active visit.
     /// <para>
     /// <b>The hosted page is why this body is not empty.</b> A nested frame's content gets no
     /// <c>OnNavigatedFrom</c> when the outer page is navigated away from or dropped, so without this line the
@@ -701,20 +729,50 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// </summary>
     public void Release() => ReleaseHosted();
 
+    private ISettingsPersistence? _saveSettings;
+    private EventHandler? _saveStateChanged;
+
+    private void WatchSettingsSaveState(ISettingsPersistence settings)
+    {
+        StopSettingsSaveState();
+        var activity = _activityToken;
+        if (!_activity.IsCurrent(activity)) return;
+        _saveSettings = settings;
+        _saveStateChanged = (_, _) => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_activity.IsCurrent(activity) && ReferenceEquals(_saveSettings, settings)) ViewModel.SyncSaveState();
+        });
+        settings.SaveStateChanged += _saveStateChanged;
+        ViewModel.SyncSaveState();
+    }
+
+    private void StopSettingsSaveState()
+    {
+        if (_saveSettings is { } settings && _saveStateChanged is { } handler) settings.SaveStateChanged -= handler;
+        _saveSettings = null;
+        _saveStateChanged = null;
+    }
+
     private MoviePilotService? _moviePilot;
 
     internal void WatchMoviePilot(MoviePilotService service)
     {
         StopMoviePilotMonitoring();
+        if (!_activity.IsCurrent(_activityToken)) return;
         _moviePilot = service;
         _moviePilot.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
         ViewModel.RefreshHomeRows();
     }
 
-    private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+    private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args)
     {
-        if (ReferenceEquals(sender, _moviePilot)) ViewModel.RefreshHomeRows();
-    });
+        var activity = _activityToken;
+        if (!_activity.IsCurrent(activity) || !ReferenceEquals(sender, _moviePilot)) return;
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            if (_activity.IsCurrent(activity) && ReferenceEquals(sender, _moviePilot)) ViewModel.RefreshHomeRows();
+        });
+    }
 
     private void StopMoviePilotMonitoring()
     {
@@ -722,20 +780,46 @@ public sealed partial class SettingsPage : Page, IShellContent
         _moviePilot = null;
     }
 
+    private void StopSourceMonitoring()
+    {
+        if (_session is not null)
+        {
+            _session.SourcesChanged -= OnSourceListChanged;
+            _session.PermissionsChanged -= OnPermissionsChanged;
+        }
+        _session = null;
+    }
+
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
-        if (_session is not null) _session.SourcesChanged -= OnSourceListChanged;
-        _session = null;
         Release();
         base.OnNavigatedFrom(e);
     }
 
-    private void OnSourceListChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(async () =>
+    // 只刷新管理目录与已打开页；同身份权限通知不重建Shell来源、也不改设置保存状态。
+    private void OnPermissionsChanged(object? sender, EmbySessionScope source) => RefreshAfterSessionChange(sender, rebuildHomeRows: false);
+
+    private void OnSourceListChanged(object? sender, EventArgs e) => RefreshAfterSessionChange(sender, rebuildHomeRows: true);
+
+    private void RefreshAfterSessionChange(object? sender, bool rebuildHomeRows)
     {
-        if (!ReferenceEquals(sender, _session)) return;
-        ViewModel.RefreshHomeRows();
-        await RefreshServerAdministrationAsync();
-    });
+        var activity = _activityToken;
+        if (!_activity.IsCurrent(activity) || !ReferenceEquals(sender, _session)) return;
+        DispatcherQueue.TryEnqueue(async () =>
+        {
+            if (!_activity.IsCurrent(activity) || !ReferenceEquals(sender, _session)) return;
+            try
+            {
+                if (rebuildHomeRows) ViewModel.RefreshHomeRows();
+                await RefreshServerAdministrationAsync();
+            }
+            catch (Exception error)
+            {
+                if (_activity.IsCurrent(activity) && ReferenceEquals(sender, _session))
+                    Log.Warn(Category, "刷新服务器管理目录失败", error);
+            }
+        });
+    }
 
     /// <summary>
     /// Counts realised row containers. <c>Content</c> rather than <c>DataContext</c>, for the reason spelled

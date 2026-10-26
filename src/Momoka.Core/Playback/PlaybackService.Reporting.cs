@@ -103,41 +103,44 @@ public sealed partial class PlaybackService
     /// </summary>
     public async Task<bool> ReportMarkedWatchedAsync(EmbyItem item, CancellationToken cancellationToken = default)
     {
-        if (session.Connection?.ServerKind != MediaServerKind.Emby || !settings.Playback.StopReportEnabled || !settings.Playback.ReportProgressToServer)
+        if (!settings.Playback.StopReportEnabled || !settings.Playback.ReportProgressToServer)
         {
             Log.Debug(Category, $"《{item.Name}》标记已看：通知接管没开（或上报已关），不补报");
             return false;
         }
 
+        if (cancellationToken.IsCancellationRequested) return false;
+
+        // A card may belong to another still-online account in aggregate mode. Capture its source
+        // once, before any metadata wait; the default management product must not gate this report.
+        EmbySessionScope scope;
+        try { scope = session.Capture(item); }
+        catch (Exception error)
+        {
+            Log.Warn(Category, $"《{item.Name}》标记已看：会话不可用，没补报", error);
+            return false;
+        }
+        if (scope.Connection.ServerKind != MediaServerKind.Emby) return false;
+
         if (item.Type is EmbyItemType.Season or EmbyItemType.Series)
         {
-            if (await ResolveLastEpisodeAsync(item, cancellationToken).ConfigureAwait(false) is not { } episode)
+            if (await ResolveLastEpisodeAsync(scope, item, cancellationToken).ConfigureAwait(false) is not { } episode)
                 return false;
             item = episode;
         }
 
-        return await ReportItemWatchedAsync(item, cancellationToken).ConfigureAwait(false);
+        return await ReportItemWatchedAsync(scope, item, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// 落点已是单集（或电影）那一半：时长检查、借会话、开始加停止。从 <see cref="ReportMarkedWatchedAsync"/>
     /// 拆出来只为给整季 / 整部剧让出一个「先换落点」的位置，规矩一条没改。
     /// </summary>
-    private async Task<bool> ReportItemWatchedAsync(EmbyItem item, CancellationToken cancellationToken)
+    private async Task<bool> ReportItemWatchedAsync(EmbySessionScope scope, EmbyItem item, CancellationToken cancellationToken)
     {
         if (item.RunTimeTicks is not > 0)
         {
             Log.Debug(Category, $"《{item.Name}》标记已看：读不到时长，凑不出 100%，不补报");
-            return false;
-        }
-
-        // 未登录或会话已释放：没有身份可借，不发。调用点那边标记已看刚刚才成功过，走到这一支只说明这中间注销
-        // 了 —— 那不是错，是没有收信人。
-        EmbySessionScope scope;
-        try { scope = session.Capture(item); }
-        catch (Exception error)
-        {
-            Log.Warn(Category, $"《{item.Name}》标记已看：会话不可用，没补报", error);
             return false;
         }
 
@@ -201,17 +204,8 @@ public sealed partial class PlaybackService
     /// 宁可少一趟，不发一个指错了条目的。
     /// </para>
     /// </summary>
-    private async Task<EmbyItem?> ResolveLastEpisodeAsync(EmbyItem container, CancellationToken cancellationToken)
+    private async Task<EmbyItem?> ResolveLastEpisodeAsync(EmbySessionScope scope, EmbyItem container, CancellationToken cancellationToken)
     {
-        // 未登录或会话已释放：与单集那一支同一句话 —— 那不是错，是没有收信人。
-        EmbySessionScope scope;
-        try { scope = session.Capture(container); }
-        catch (Exception error)
-        {
-            Log.Warn(Category, $"《{container.Name}》标记已看：会话不可用，查不了它的剧集", error);
-            return null;
-        }
-
         var isSeason = container.Type == EmbyItemType.Season;
         var seriesId = isSeason ? container.SeriesId : container.Id;
         var seasonId = isSeason ? container.Id : null;

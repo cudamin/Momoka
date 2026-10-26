@@ -23,7 +23,8 @@ public class MoviePilotException : Exception
 }
 
 /// <summary>提交前校验失败，尚未发出实际整理请求。</summary>
-public sealed class MoviePilotTransferBlockedException(string message) : MoviePilotException(message);
+public sealed class MoviePilotTransferBlockedException(string message, Exception? inner = null)
+    : MoviePilotException(message, (inner as MoviePilotException)?.Status, inner: inner);
 
 public sealed class MoviePilotOperationBlockedException(string message) : MoviePilotException(message);
 

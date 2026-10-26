@@ -1,3 +1,4 @@
+using Momoka.Diagnostics;
 using System.Text;
 using Momoka.Playback;
 using Momoka.Shell.ViewModels;
@@ -317,8 +318,12 @@ internal static partial class ShellSelfCheck
         var videoSections = page.ViewModel.Sections.Where(section => section.Category == "视频输出").ToList();
         var optionalNumbers = videoSections.SelectMany(section => section.Rows).OfType<SettingOptionalNumberRow>().ToList();
         var optionalProbe = SettingOptionalNumberRow.Probe();
+        var hdrMode = videoSections.SelectMany(section => section.Rows).OfType<SettingChoiceRow>()
+            .SingleOrDefault(row => row.Label == "HDR 处理");
+        var tonemap = hdrMode?.Selected?.Label == Momoka.Mpv.MpvOutputOptions.Describe(Momoka.Mpv.MpvOutputOptions.HdrModes, "tonemap");
         check("视频输出包含 HDR 与着色器", videoSections.Count == 3 && !page.Categories.Contains("着色器")
-            && optionalNumbers.Count == 5 && optionalProbe.Ok,
+            && hdrMode?.Selected is not null && SelfCheckLayoutRules.HdrNumbers(optionalNumbers.Select(row => row.Label).ToArray(), tonemap)
+            && optionalProbe.Ok,
             $"视频输出 {videoSections.Count} 个分区、{optionalNumbers.Count} 个自动/手动数值；{optionalProbe.Detail}");
 
         // 「动态范围压缩」下发的是 ad-lavc-ac3drc，那是 AC-3 解码器的选项 —— DTS / TrueHD / AAC / FLAC 轨一律
@@ -354,16 +359,31 @@ internal static partial class ShellSelfCheck
         var startupNoteOk = startupRow is not null
             && startupRow.Note.Contains("启动项", StringComparison.Ordinal)
             && startupRow.Note.Contains("设置文件", StringComparison.Ordinal);
+        bool? startupEnabled = null;
+        string? startupReadFailure = null;
+        if (startupApplicable)
+        {
+            try
+            {
+                startupEnabled = startup.IsEnabled;
+            }
+            catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+            {
+                startupReadFailure = Failure.Describe(error);
+            }
+        }
 
         check("开机自启那一行",
             (startupRow is not null) == startupApplicable
-                && (startupRow is null || (startupRow.IsOn == startup.IsEnabled && startupNoteOk)),
-            startupRow is null
-                ? (startupApplicable
-                    ? "界面卡上没有这一行 —— 办得到的时候它本该在"
-                    : "这一档下按设计整个不显示（打包安装，启动项归包管理）")
-                : $"这一行在，读到{(startupRow.IsOn ? "开" : "关")}、机器上是{(startup.IsEnabled ? "开" : "关")}；"
-                    + $"说明{(startupNoteOk ? "写明" : "没写明")}这一项改的是机器上的启动项、不进设置文件");
+                && (startupRow is null || (startupEnabled is { } actual && startupRow.IsOn == actual && startupNoteOk)),
+            startupReadFailure is not null
+                ? $"读取开机自启状态失败：{startupReadFailure}；无法确认当前状态"
+                : startupRow is null
+                    ? (startupApplicable
+                        ? "界面卡上没有这一行 —— 办得到的时候它本该在"
+                        : "这一档下按设计整个不显示（打包安装，启动项归包管理）")
+                    : $"这一行在，读到{(startupRow.IsOn ? "开" : "关")}、机器上是{(startupEnabled == true ? "开" : "关")}；"
+                        + $"说明{(startupNoteOk ? "写明" : "没写明")}这一项改的是机器上的启动项、不进设置文件");
 
         // 安全起播已经替换旧命令行传头：保留可见提示检查，但不能继续要求屏上承诺泄露令牌。
         // 这里只验证说明与播放器、播放行为两个分类的各行；管道身份和起播顺序由 Core 的离线子进程夹具验证。

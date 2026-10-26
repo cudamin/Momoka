@@ -91,6 +91,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
     private EmbySessionScope? _scope;
     private Version? _serverVersion;
     private bool? _administrator;
+    private long _permissionRevision = -1;
     private long _generation;
 
     /// <inheritdoc />
@@ -117,33 +118,39 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
         {
             EmbySessionScope? scope;
             bool? administrator;
+            long revision;
             lock (_gate)
             {
                 scope = _scope;
                 administrator = _administrator;
+                revision = _permissionRevision;
             }
-            return scope?.IsCurrent == true ? administrator : session.Connection?.IsAdministrator;
+            return scope?.IsCurrent == true && scope.PermissionRevision == revision
+                ? administrator : session.Connection?.IsAdministrator;
         }
     }
 
     /// <inheritdoc />
     public IReadOnlyList<ServerSettingsSource> Sources => session.Sources
         .Select(scope => new ServerSettingsSource(scope, scope.Connection.ServerKind,
-            ServerAccess.CanAdminister(scope.Connection.ServerKind, scope.Connection.IsAdministrator)))
+            ServerAccess.CanAdminister(scope.Connection.ServerKind, scope.IsAdministrator)))
         .ToArray();
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<ServerSettingsPluginPage>> GetAdminMenuPagesAsync(CancellationToken token = default)
     {
         if (ServerKind is not (MediaServerKind.Emby or MediaServerKind.Jellyfin)
-            || InterfaceFlavor == ServerInterfaceFlavor.Generic) return [];
+            || InterfaceFlavor == ServerInterfaceFlavor.Generic
+            || !ServerAccess.CanAdminister(ServerKind, IsAdministrator)) return [];
 
         try
         {
             var scope = session.Capture();
+            var revision = scope.PermissionRevision;
             var pages = await scope.ExecuteAsync(
                 (client, ct) => client.GetServerSettingsPagesAsync(ct), token).ConfigureAwait(false);
-            return scope.IsCurrent ? pages : [];
+            return scope.IsCurrent && scope.PermissionRevision == revision
+                && ServerAccess.CanAdminister(scope.Connection.ServerKind, IsAdministrator) ? pages : [];
         }
         catch (Exception error)
         {
@@ -161,9 +168,11 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
 
         try
         {
+            var revision = source.Scope.PermissionRevision;
             var pages = await source.Scope.ExecuteAsync(
                 (client, ct) => client.GetServerSettingsPagesAsync(ct), token).ConfigureAwait(false);
-            return source.IsAvailable ? pages : [];
+            return source.IsAvailable && source.Scope.PermissionRevision == revision
+                && ServerAccess.CanAdminister(source.Kind, source.Scope.IsAdministrator) ? pages : [];
         }
         catch (Exception error)
         {
@@ -202,10 +211,11 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
         try
         {
             var scope = session.Capture();
+            var revision = scope.PermissionRevision;
             var info = await scope.ExecuteAsync((client, ct) => client.GetSystemInfoAsync(ct), token)
                 .ConfigureAwait(false);
 
-            if (scope.IsCurrent && !token.IsCancellationRequested)
+            if (scope.IsCurrent && scope.PermissionRevision == revision && !token.IsCancellationRequested)
             {
                 var version = Version.TryParse(info.Version, out var parsed) ? parsed : null;
                 var administrator = !info.IsRestricted;
@@ -216,6 +226,7 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
                     _scope = scope;
                     _serverVersion = version;
                     _administrator = administrator;
+                    _permissionRevision = revision;
                 }
 
                 Log.Debug(Category, $"服务器版本 {version?.ToString() ?? "未知"}，"

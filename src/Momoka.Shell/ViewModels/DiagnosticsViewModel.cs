@@ -116,7 +116,12 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
     private EmbyItem? _nowPlaying;
 
     /// <summary>True between attaching and navigating away; stops a late append touching a dead page.</summary>
-    private bool _live;
+    private volatile bool _live;
+    private volatile bool _followLog = true;
+
+    // UI-thread state. A notification only asks us to read writes beyond this atomic snapshot watermark.
+    private long _logWatermark;
+    private bool _logInitialized;
 
     public DiagnosticsViewModel()
     {
@@ -283,6 +288,8 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
     internal void Detach()
     {
         _live = false;
+        _logWatermark = 0;
+        _logInitialized = false;
 
         if (_playback is not null)
         {
@@ -333,8 +340,11 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
 
     private void ReadLog()
     {
+        var snapshot = _sink?.SnapshotAfter(0) ?? new LogSnapshot(0, []);
         _entries.Clear();
-        _entries.AddRange(_sink?.Snapshot() ?? []);
+        _entries.AddRange(snapshot.Entries);
+        _logWatermark = snapshot.Watermark;
+        _logInitialized = true;
 
         RebuildCategories();
         ApplyFilter();
@@ -368,6 +378,8 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
     partial void OnSelectedCategoryChanged(string? value) => ApplyFilter();
 
     partial void OnSelectedLevelChanged(int value) => ApplyFilter();
+
+    partial void OnFollowingChanged(bool value) => _followLog = value;
 
     private LogLevel Minimum => SelectedLevel switch
     {
@@ -409,7 +421,7 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
     }
 
     /// <summary>
-    /// A log entry, from whatever thread wrote it. Nothing here touches bound state — that happens on
+    /// A log wake-up, from whatever thread wrote it. Nothing here touches bound state — that happens on
     /// the UI queue — because this can be called from an HTTP continuation or an mpv IPC read.
     /// <para>
     /// <see cref="IUiDispatcher.Post"/> rather than <see cref="IUiDispatcher.Run"/>, and that is not an
@@ -419,8 +431,28 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
     /// </summary>
     private void OnWritten(LogEntry entry)
     {
-        if (!_live || !Following) return;
-        _ui!.Post(() => Append(entry));
+        if (!_live || !_followLog || _sink is not { } sink || _ui is not { } ui) return;
+        ui.Post(() => ReadNewLog(sink));
+    }
+
+    private void ReadNewLog(RingBufferLogSink sink)
+    {
+        // Writers read the volatile follow flag, not a generated UI property. Recheck Following here;
+        // a queued wake-up from an older attachment cannot advance this sink's watermark or append
+        // its old payload.
+        if (!_live || !Following || !ReferenceEquals(_sink, sink)) return;
+        if (!_logInitialized)
+        {
+            ReadLog();
+            return;
+        }
+
+        // The event is only a signal. The first wake-up consumes the retained tail in write order; a
+        // refresh or a later/earlier queued wake-up then reads no already-consumed entries. This also
+        // catches writes made while following was paused, without rebuilding Rows for a normal append.
+        var snapshot = sink.SnapshotAfter(_logWatermark);
+        _logWatermark = snapshot.Watermark;
+        foreach (var item in snapshot.Entries) Append(item);
     }
 
     private void Append(LogEntry entry)
@@ -443,17 +475,30 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
         // oldest there is. Passes() is asked with the current filter, which is the right one — changing
         // either filter rebuilds Rows outright.
         var capacity = _sink?.Capacity ?? 500;
+        List<string>? expiredCategories = null;
         while (_entries.Count > capacity)
         {
             var dropped = _entries[0];
             _entries.RemoveAt(0);
             if (Passes(dropped) && Rows.Count > 0) Rows.RemoveAt(Rows.Count - 1);
+            if (!string.Equals(dropped.Category, entry.Category, StringComparison.Ordinal)
+                && !_entries.Any(item => string.Equals(item.Category, dropped.Category, StringComparison.Ordinal)))
+                (expiredCategories ??= []).Add(dropped.Category);
         }
 
+        if (Passes(entry)) Rows.Insert(0, new LogRow(entry));
+
+        // Finish the row update before changing category selection: its change callback rebuilds the
+        // filtered rows, so inserting afterwards would duplicate the newly-added entry again.
         if (!Categories.Contains(entry.Category, StringComparer.Ordinal))
             InsertCategory(entry.Category);
-
-        if (Passes(entry)) Rows.Insert(0, new LogRow(entry));
+        if (expiredCategories is not null)
+        {
+            var selected = SelectedCategory;
+            foreach (var category in expiredCategories) Categories.Remove(category);
+            if (selected is not null && expiredCategories.Contains(selected, StringComparer.Ordinal))
+                SelectedCategory = AnyCategory;
+        }
         ShowEmptyLogs = Rows.Count == 0;
 
         RefreshCounts();

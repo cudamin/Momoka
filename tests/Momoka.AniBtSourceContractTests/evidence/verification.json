@@ -1,0 +1,252 @@
+{
+  "kind": "r042-current-source-contract",
+  "date": "2026-10-24",
+  "baseCommit": "cfde3c746bbdb4664122bfe3b4cbbe9096c8b13e",
+  "existingGuardCommit": "1b37ca14bbbdf5699ac686aac891a7b2e14c9bdf",
+  "decision": "当前受支持的 VM/canContinue 写入边界已被 R037/R039 覆盖；历史部署/modal 前件保持条件性，不修产品",
+  "productPatch": false,
+  "recordsEdited": false,
+  "current": {
+    "total": 31,
+    "passed": 31,
+    "failed": 0,
+    "skipped": 0,
+    "buildExit": 0,
+    "testExit": 0,
+    "warningCount": 0,
+    "errorCount": 0,
+    "coreCases": 18,
+    "callerCases": 13
+  },
+  "historical": {
+    "revision": "3f86b51f8202cac0328d9a10f9945ce9df15969a",
+    "total": 13,
+    "passed": 7,
+    "failed": 6,
+    "skipped": 0,
+    "buildExit": 0,
+    "testExit": 1,
+    "warningCount": 0,
+    "errorCount": 0,
+    "limit": "只替换四份 exact AniBtService/VM/Dialog/XAML blobs，其它 Core 是 current；这是历史服务合同对照，不是完整历史应用或真实部署复现"
+  },
+  "publicSpecification": {
+    "url": "https://wiki.anibt.net/openapi.yaml",
+    "retrievedAt": "2026-10-24T12:53:38+08:00",
+    "path": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\public\\AniBT-openapi-2026-10-24.yaml",
+    "bytes": 179513,
+    "sha256": "3ADB5D6D886F40B49529F9608010AAFC142E55040680AD130DA607CA58A503FA",
+    "policy": "公开规格只验证匿名 rawTitle/version3/candidates 形状；不请求 matcher、RSS、下载、发布或私有服务器端点，不代表用户部署"
+  },
+  "fixtureFailures": [
+    "current-initial:31项30过1失败，非聚合保存次数假设1实际2；断言提前退出导致共享UiQueue迟到Post的SafeWaitHandle异常，非产品失败",
+    "historical-red:0项执行，绝对Compile Include 未被 relative Remove 排除造成15编译错误；已改显式Compile条件，不跑旧输出",
+    "historical-red-final第一次:输入manifest误假设EmbyConnection.cs独立文件不存在，未build/run；改实际EmbyResponses.cs",
+    "一次未执行的PowerShell编辑命令有引号语法错；未写入工作区，后续脚本Parser检查通过"
+  ],
+  "executions": [
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-build.log",
+      "bytes": 285,
+      "sha256": "0EA17FE11A2E63B7AC1FDB7461C8889F343F6920A9A8DC228488648DF3F3A680"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-input-manifest.json",
+      "bytes": 6889,
+      "sha256": "B833E9CC05458FD812BD48EE0B230999854A297F1FA4CEB3634A9DE08D2734A0"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-package-manifest.json",
+      "bytes": 649,
+      "sha256": "C3318C1271CEDA9A5C0052410C5CD519F24620F4CE7D53A3C9EE717078526F81"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-restore.log",
+      "bytes": 219,
+      "sha256": "A611AB42D670E754C95D393E081F8512E10FCE08E90B90E51ECFBE76ADD6AAAF"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-result.json",
+      "bytes": 1677,
+      "sha256": "DE5201CEF131E3CC26248F43A1644BE0DB6C235FE6AE77920AE2F9B65FE29B99"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-test.log",
+      "bytes": 3031,
+      "sha256": "C727D16C7C114CBCD3411819E02ACAB565027BDF54277A1B4B583ACED145D706"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-initial-20261024-130634-152-build.log",
+      "bytes": 287,
+      "sha256": "47D080B64862C34825F0D7F8CED04E142B7B7CA2741E7AF13AA4A7C4E5AD0F5F"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-initial-20261024-130634-152-package-manifest.json",
+      "bytes": 649,
+      "sha256": "C3318C1271CEDA9A5C0052410C5CD519F24620F4CE7D53A3C9EE717078526F81"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-initial-20261024-130634-152-restore.log",
+      "bytes": 706,
+      "sha256": "5592C5DED4B94D7B7C2A3A231F955C1AECBA9141C4999B118249C795FA07D7C9"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-initial-20261024-130634-152-result.json",
+      "bytes": 1136,
+      "sha256": "160A59CFEA3DFED0BCD3616F66E200E4F5C09B170001B19267A5B474CD2586A8"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-initial-20261024-130634-152-test.log",
+      "bytes": 4151,
+      "sha256": "258C4B52D4C98D527BA8F6739B13382E38F7C884A09170CC7FC203CCEC67D25E"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-save-boundary-20261024-130744-100-build.log",
+      "bytes": 293,
+      "sha256": "706D18F0B1C72DC12BEA9D1ABE8DA65DF3E92C23176D35D5A53EFC2C960DE22E"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-save-boundary-20261024-130744-100-restore.log",
+      "bytes": 219,
+      "sha256": "00153573DB6E1E5EE8BEEFD3DA74B6C75BCA54F2346CA0F3D038CB76925F459B"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-save-boundary-20261024-130744-100-result.json",
+      "bytes": 1154,
+      "sha256": "FCBA72C65C25C1689918BD189066B65DDF2BB8C1AEEBC3DE971050E6BE286C6D"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-save-boundary-20261024-130744-100-test.log",
+      "bytes": 3031,
+      "sha256": "8AFF20F640687822E452E725A9CA1C6C4F70B24FFB1D8F1C344CBD4E0E2C4D1B"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-20261024-130813-614-build.log",
+      "bytes": 16072,
+      "sha256": "A0FF1A1D6571D95F6A0132AC85CF5F17E406D5DF18A8EB2E193428FA525D8CFF"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-20261024-130813-614-restore.log",
+      "bytes": 219,
+      "sha256": "96F2BE8E2D91E6659817A6C0E9B17E9DFECC639F5105C8735D5A00A838F1EEB7"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-20261024-130813-614-source-manifest.json",
+      "bytes": 840,
+      "sha256": "D9AE04A02513C92F5E9DDC18AC154B0AD7FE2425D54AE0F8F1F11C1F0AD7F155"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-compiled-20261024-130900-224-build.log",
+      "bytes": 295,
+      "sha256": "7838358333984E46E39E68CBEE07AC753CC587652465A41F7861273D7C45D4A6"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-compiled-20261024-130900-224-restore.log",
+      "bytes": 219,
+      "sha256": "F60B76D6849FEF89D5B9F8D25E297404D170DFD691173A023A7C5DA097D59027"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-compiled-20261024-130900-224-result.json",
+      "bytes": 1166,
+      "sha256": "3DF17C0DA2A28D351117A15836F6DC0FDFAB4D04A795606C2D86BE6B51A4ED3B"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-compiled-20261024-130900-224-source-manifest.json",
+      "bytes": 840,
+      "sha256": "D9AE04A02513C92F5E9DDC18AC154B0AD7FE2425D54AE0F8F1F11C1F0AD7F155"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-compiled-20261024-130900-224-test.log",
+      "bytes": 2216,
+      "sha256": "180D0C771DB2A0DB0BA83D2C725D3A8E31236E5092AB3FC5A9A9CFD3E8858A97"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-final-20261024-131208-182-build.log",
+      "bytes": 292,
+      "sha256": "467B4CB135BAEC6E42F2A45C425E1C92606590DE2A3C6C24E5AB331E3CE16AFC"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-final-20261024-131208-182-input-manifest.json",
+      "bytes": 7225,
+      "sha256": "1272BF7DF2BD063D6BCC9A52701829B38917FFB3F55DBFEAD61968765790C506"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-final-20261024-131208-182-package-manifest.json",
+      "bytes": 649,
+      "sha256": "C3318C1271CEDA9A5C0052410C5CD519F24620F4CE7D53A3C9EE717078526F81"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-final-20261024-131208-182-restore.log",
+      "bytes": 219,
+      "sha256": "A611AB42D670E754C95D393E081F8512E10FCE08E90B90E51ECFBE76ADD6AAAF"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-final-20261024-131208-182-result.json",
+      "bytes": 1756,
+      "sha256": "6ACF93F736617C7A825D1A007973A64051BC13DD73680137E73C82FA4BB3409F"
+    },
+    {
+      "file": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-final-20261024-131208-182-test.log",
+      "bytes": 2216,
+      "sha256": "B381728619B1B9F7F26575F72FB9191ED237DE21634E31024BDE9F6B97B368BF"
+    }
+  ],
+  "limitations": [
+    "未执行真正 ShellPage/ItemCommands 菜单运行；外层是当前源码资源断言，VM/Service/Scope/Dialog事件控制流实际链接执行",
+    "HTTP回话和来源均匿名惰性，settings持久化端点内存替代；不含登录/生产账号/凭据/DPAPI/native/WinUI/媒体写入/播放/服务器",
+    "不证明真实模态中切来源可达，也不证明服务器接受/完成/原子性",
+    "不验证A→B→A瞬时默认切换、真实线程纳秒级check-send竞态；没有产品失效语义证据不新增守卫或UX",
+    "无canContinue固定来源的后台任务按scope原合同仍可继续，不能把它作为AniBT当前VM路径漏洞",
+    "未跑全Core/全方案/selfcheck/publish/push，统一同步验证由主线程执行，快捷方式仍旧版"
+  ],
+  "committedLogCopies": [
+    {
+      "file": "tests/Momoka.AniBtSourceContractTests/evidence/current-build.txt",
+      "original": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-build.log",
+      "originalSha256": "0EA17FE11A2E63B7AC1FDB7461C8889F343F6920A9A8DC228488648DF3F3A680",
+      "committedSha256": "032607EF954C91F350C6C40F011792909687DD7491B74E489882A2FD9DB19B03",
+      "transform": "CRLF to LF only, text preserved",
+      "exitCode": 0
+    },
+    {
+      "file": "tests/Momoka.AniBtSourceContractTests/evidence/current-test.txt",
+      "original": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-test.log",
+      "originalSha256": "C727D16C7C114CBCD3411819E02ACAB565027BDF54277A1B4B583ACED145D706",
+      "committedSha256": "441B61B3AFE35977701F7E59A5A0576247748EB10C6BB49A1DBA29E12869BEF4",
+      "transform": "CRLF to LF only, text preserved",
+      "exitCode": 0
+    },
+    {
+      "file": "tests/Momoka.AniBtSourceContractTests/evidence/historical-build.txt",
+      "original": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-final-20261024-131208-182-build.log",
+      "originalSha256": "467B4CB135BAEC6E42F2A45C425E1C92606590DE2A3C6C24E5AB331E3CE16AFC",
+      "committedSha256": "7C9B7199565BD5DE86DEC2B48E7754213055AB25E6E60AE37A07D76E9E6B7D71",
+      "transform": "CRLF to LF only, text preserved",
+      "exitCode": 0
+    },
+    {
+      "file": "tests/Momoka.AniBtSourceContractTests/evidence/historical-test.txt",
+      "original": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-final-20261024-131208-182-test.log",
+      "originalSha256": "B381728619B1B9F7F26575F72FB9191ED237DE21634E31024BDE9F6B97B368BF",
+      "committedSha256": "751662AD32CF01ADFCDB6139B42909CDD748C3EDF98E8ADD7EBF0C45BFA82A55",
+      "transform": "CRLF to LF only, text preserved",
+      "exitCode": 1
+    },
+    {
+      "file": "tests/Momoka.AniBtSourceContractTests/evidence/current-initial-test.txt",
+      "original": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-initial-20261024-130634-152-test.log",
+      "originalSha256": "258C4B52D4C98D527BA8F6739B13382E38F7C884A09170CC7FC203CCEC67D25E",
+      "committedSha256": "3C1AC91E20E26BFCE349D265990AA7E920CA8A419BB873DB90A0CF7DFF35954A",
+      "transform": "CRLF to LF only, text preserved",
+      "exitCode": 1
+    },
+    {
+      "file": "tests/Momoka.AniBtSourceContractTests/evidence/historical-first-build-failure.txt",
+      "original": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\historical-red-20261024-130813-614-build.log",
+      "originalSha256": "A0FF1A1D6571D95F6A0132AC85CF5F17E406D5DF18A8EB2E193428FA525D8CFF",
+      "committedSha256": "61D43A0F17F0A052457B1D9DE920AFB87E46B68C9E65DFF0609BC8EDADB99FE9",
+      "transform": "CRLF to LF only, text preserved",
+      "exitCode": 1
+    }
+  ]
+}

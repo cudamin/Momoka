@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "kind": "只读审查总汇总文档检查",
+  "status": "通过（仅文档/固定源码/维护证据一致性）",
+  "date": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "executedAt": "2026-10-23T11:32:05.050260+08:00",
+  "summaryStartCommit": "14bbffca663c1d609dbbe598f1045505e024d709",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "recordFiles": [
+    "PROGRESS.md",
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.总汇总.md",
+    "docs/代码审查-分阶段审查-2026-10-21.总汇总证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.总汇总检查.json"
+  ],
+  "checks": [
+    {
+      "name": "差异仅五份汇总文档且暂存区空",
+      "pass": true,
+      "detail": [
+        " M PROGRESS.md",
+        " M docs/代码审查-分阶段审查-2026-10-21.md",
+        "?? docs/代码审查-分阶段审查-2026-10-21.总汇总.md",
+        "?? docs/代码审查-分阶段审查-2026-10-21.总汇总检查.json",
+        "?? docs/代码审查-分阶段审查-2026-10-21.总汇总证据.json"
+      ]
+    },
+    {
+      "name": "UTF-8/LF/尾换行/尾空白与JSON合法",
+      "pass": true,
+      "detail": []
+    },
+    {
+      "name": "历史正文/PROGRESS完整保护",
+      "pass": true,
+      "detail": {
+        "body": true,
+        "progress": true
+      }
+    },
+    {
+      "name": "所有本地链接存在",
+      "pass": true,
+      "detail": {
+        "count": 180,
+        "missing": []
+      }
+    },
+    {
+      "name": "73稳定号/当前处置/等级/分组无遗漏重复",
+      "pass": true,
+      "detail": {
+        "counts": {
+          "static": 69,
+          "conditional": 3,
+          "suggestion": 1
+        },
+        "priorityCounts": {
+          "P1": 6,
+          "P2": 62,
+          "P3": 5
+        }
+      }
+    },
+    {
+      "name": "总表编号完整/逐项验收与状态来源存在",
+      "pass": true,
+      "detail": {
+        "rows": 73
+      }
+    },
+    {
+      "name": "347规范源码/历史规格锚点内容不变",
+      "pass": true,
+      "detail": {
+        "anchors": 347,
+        "changed": []
+      }
+    },
+    {
+      "name": "历史阶段证据/正文文件哈希保护",
+      "pass": true,
+      "detail": {
+        "files": 62,
+        "changed": []
+      }
+    },
+    {
+      "name": "866固定产品文件逐字节保护",
+      "pass": true,
+      "detail": {
+        "files": 866,
+        "mismatch": [],
+        "indexSha256": "BCC84954B6A2BED8A22F1B84994F9C590239CAABBA8D52663CA9F21A37AB5E18"
+      }
+    },
+    {
+      "name": "审查提交没有产品/测试/资源/工具差异",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "维护日志/假native哈希与分开计数",
+      "pass": true,
+      "detail": {
+        "maintenanceCounts": [
+          13,
+          41,
+          23,
+          18
+        ],
+        "audioPassed": 14,
+        "bad": []
+      }
+    },
+    {
+      "name": "未修复/未运行产品/未授权交付/压缩诚实边界",
+      "pass": true,
+      "detail": {
+        "complete": "只读审查与汇总",
+        "productRuns": 0,
+        "repair": false,
+        "systemCompressionByAssistant": false
+      }
+    }
+  ],
+  "limits": "不是当前产品/.NET10测试/native/UI/真实服务或交付闸门结果；所有73号未修复"
+}

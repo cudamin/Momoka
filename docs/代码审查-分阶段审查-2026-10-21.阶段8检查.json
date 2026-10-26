@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "phase": 8,
+  "status": "通过（仅本轮文档检查，非产品新运行）",
+  "executedAt": "2026-10-21T13:08:03.510+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "8a1a2e4d00990325c58e2e01c7ad409c237c6b32",
+  "checks": [
+    {
+      "name": "固定树、分支、阶段开始提交与授权时点",
+      "status": "通过",
+      "detail": "流程同步后HEAD与固定产品来源一致；最新出口是复核后暂停"
+    },
+    {
+      "name": "本轮五文件范围与外部删除保护",
+      "status": "通过",
+      "detail": "外部旧交接删除必须保持未暂存，不夹带、恢复或宣称全树干净"
+    },
+    {
+      "name": "856份固定文件与索引逐字节一致",
+      "status": "通过",
+      "detail": "核产品/测试/工具/资源/技能与列明构建入口，非业务阅读数量"
+    },
+    {
+      "name": "两确认问题与报告字段一致",
+      "status": "通过",
+      "detail": "R-018/R-019的完整链、防护、未验证、最小方向和验收齐备"
+    },
+    {
+      "name": "准确源码因果标记与排除节点",
+      "status": "通过",
+      "detail": "核旧管理刷新/旧导航缺口与搜索父层隐藏，不调用产品方法"
+    },
+    {
+      "name": "55份读取深度与规程/技能哈希",
+      "status": "通过",
+      "detail": "主线程和已完成子代理分层记录，未完成代理不算覆盖"
+    },
+    {
+      "name": "原目录五保护文件保持",
+      "status": "通过",
+      "detail": "核路径/字节与原捕获，不将主目录当当前产品基线"
+    },
+    {
+      "name": "官方资料元数据及原捕获未改",
+      "status": "通过",
+      "detail": "匿名微软GET/短标记哈希，网页选择器不是本机运行证明"
+    },
+    {
+      "name": "旧2072测试和15标题复用",
+      "status": "通过",
+      "detail": "阶段2真实时间/日志/产物/runtime核对；非阶段8新运行"
+    },
+    {
+      "name": "条件候选、排除和覆盖缺口分开",
+      "status": "通过",
+      "detail": "一待验证、六排除、五缺口，不把测试缺失或不可达UI凑为缺陷"
+    },
+    {
+      "name": "本轮本地链接与Markdown锚点",
+      "status": "通过",
+      "detail": "总记录、报告和新增进度段逐个检查，不重审历史PROGRESS全文"
+    },
+    {
+      "name": "阶段0～7历史与编辑反向还原",
+      "status": "通过",
+      "detail": "历史阶段文件逐字节保留；总记录和进度只改已声明部分"
+    },
+    {
+      "name": "UTF-8、LF、末尾与记录格式",
+      "status": "通过",
+      "detail": "不重写历史进度格式或源码"
+    },
+    {
+      "name": "本轮凭据与真实服务器位置形态",
+      "status": "通过",
+      "detail": "不读取真实设置/明文令牌，筛查不冒称全项目安全审计"
+    },
+    {
+      "name": "委派完成与最新暂停出口",
+      "status": "通过",
+      "detail": "本次先提交阶段8，再委派前七阶段；没有提前进入阶段9或修复"
+    },
+    {
+      "name": "Git工作区及暂存空白",
+      "status": "通过",
+      "detail": "实际执行git diff --check和git diff --cached --check"
+    }
+  ],
+  "summary": {
+    "passed": 16,
+    "failed": 0,
+    "localLinks": 73,
+    "newConfirmedFindings": 2,
+    "readFileRecords": 55,
+    "fixedProductByteFiles": 856,
+    "sourceAnchors": 10,
+    "historicalFilesCompared": 23,
+    "oldPassedTitlesChecked": 15,
+    "externalUnstagedDeletion": 1
+  },
+  "checkedFileSha256": {
+    "docs/代码审查-分阶段审查-2026-10-21.md": "614AA1C29CE7D44D627BD0F7C854ACE6DB995701E56B7D95AD3CC78A13727BFF",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段8审查.md": "91CC2B3076AB40139D907A03A911F560230F99FDF1F233230DE32577202B963D",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段8证据.json": "9B22047A9331B284BA8C02A5EF110124E73DC813BED4A5CF4CE6C7D2D1B916EB",
+    "PROGRESS.md": "BAEF6F862A435DDE5F12800FFD1E66B822EF1373E3231771ECF4A3FC5641D031"
+  },
+  "checker": {
+    "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-phase8/check_phase8.mjs",
+    "sha256": "EBE4497E1D60DF968C276E4B3256B112644A3EE5AA75A43725300C4B27C22B3C",
+    "scope": "本树忽略目录文档检查器，仅读取/哈希/Git状态，保存结果或失败回执；无产品方法、联网、测试/探针"
+  },
+  "editRecordSha256": "AF05256932C95D7785EDE11D64F7FCA007D0A5A6C23640906DB3E84377147619",
+  "productBuildOrTestExecuted": false,
+  "systemContextCompressionExecuted": false,
+  "limitations": [
+    "两新增问题仅静态确认，未运行产品/WinUI/WebView2故障回归",
+    "2072通过属于阶段2，本阶段只核旧证据",
+    "只保护本轮记录与已列文件，外部删除不恢复/提交",
+    "阶段8提交后才委派阶段1～7独立复核，完成后暂停，阶段9不开始",
+    "结果不含自身哈希避免自引用；复核已保存结果不改历史时间"
+  ]
+}

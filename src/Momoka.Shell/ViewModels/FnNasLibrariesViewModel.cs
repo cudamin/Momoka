@@ -59,7 +59,7 @@ public sealed partial class FnNasLibrariesViewModel : FnNasAdminViewModel
     public Visibility ViewTypeVisibility => Show(Category == "Others");
     public Visibility MinimumSizeVisibility => Show(FilterSmallFiles);
     public Visibility DirectoryBrowserVisibility => Show(BrowsingDirectories);
-    public bool HasSavedPlaylist => _original is not null && Category == "IPTV" && FnNasJson.Text(_original["iptv"], "source_type") != "url";
+    public bool HasSavedPlaylist => Category == "IPTV" && Momoka.FnNas.FnNasLibraryInput.HasStoredIptvSource(_original);
     public Visibility KeepPlaylistVisibility => Show(HasSavedPlaylist);
     public Visibility PlaylistEditorVisibility => Show(!HasSavedPlaylist || ReplacePlaylist);
     public Visibility PlaylistUrlVisibility => Show(PlaylistMode == 0);
@@ -151,7 +151,8 @@ public sealed partial class FnNasLibrariesViewModel : FnNasAdminViewModel
     {
         if (string.IsNullOrWhiteSpace(LibraryName) || LibraryName.Trim().Length > 32) throw new ArgumentException("媒体库名称必须为 1～32 个字符。");
         if (Category != "IPTV" && Folders.Count == 0) throw new ArgumentException("请至少选择一个媒体库文件夹。");
-        if (FilterSmallFiles && (!double.IsFinite(MinimumFileSize) || MinimumFileSize is < 1 or > 1024)) throw new ArgumentException("文件过滤大小须为 1～1024 MB。");
+        // IPTV 不发送这格。隐藏保留的旧草稿可以是 NaN；切回普通库仍须按原有限值规则校验。
+        if (Category != "IPTV" && FilterSmallFiles && (!double.IsFinite(MinimumFileSize) || MinimumFileSize is < 1 or > 1024)) throw new ArgumentException("文件过滤大小须为 1～1024 MB。");
         var draft = _original is null ? new JsonObject() : FnNasJson.Copy(_original);
         draft["name"] = LibraryName.Trim();
         draft["category"] = Category;

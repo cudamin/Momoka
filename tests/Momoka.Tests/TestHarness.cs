@@ -11,32 +11,55 @@ internal static class TestHarness
 {
     private static readonly List<(string Name, Action Run)> Cases = [];
     private static readonly List<string> Skips = [];
+    private static List<string>? _currentSkipReasons;
 
     public static void Test(string name, Action run) => Cases.Add((name, run));
 
-    /// <summary>Records a skipped case instead of silently passing when a fixture is absent.</summary>
-    public static void Skip(string name, string reason) => Skips.Add($"{name} —— {reason}");
+    /// <summary>登记前记录独立跳过项；运行中归属当前用例，不把一次用例同时算作通过和跳过。</summary>
+    public static void Skip(string name, string reason)
+    {
+        if (_currentSkipReasons is { } reasons)
+        {
+            if (!reasons.Contains(reason, StringComparer.Ordinal)) reasons.Add(reason);
+            return;
+        }
+        Skips.Add($"{name} —— {reason}");
+    }
 
     public static int Run()
     {
         var failures = new List<(string Name, Exception Error)>();
+        var skipped = new List<string>(Skips);
+        var passed = 0;
         var stopwatch = Stopwatch.StartNew();
 
         foreach (var (name, run) in Cases)
         {
+            _currentSkipReasons = [];
             try
             {
                 run();
-                Console.WriteLine($"  通过  {name}");
+                if (_currentSkipReasons.Count > 0)
+                    skipped.Add($"{name} —— {string.Join("；", _currentSkipReasons)}");
+                else
+                {
+                    passed++;
+                    Console.WriteLine($"  通过  {name}");
+                }
             }
             catch (Exception error)
             {
                 failures.Add((name, error));
                 Console.WriteLine($"  失败  {name}");
             }
+            finally
+            {
+                // 失败优先：即使该用例先登记过跳过，也不能把随后的异常降级为跳过。
+                _currentSkipReasons = null;
+            }
         }
 
-        foreach (var skip in Skips) Console.WriteLine($"  跳过  {skip}");
+        foreach (var skip in skipped) Console.WriteLine($"  跳过  {skip}");
 
         Console.WriteLine();
         foreach (var (name, error) in failures)
@@ -46,7 +69,9 @@ internal static class TestHarness
             Console.WriteLine();
         }
 
-        Console.WriteLine($"共 {Cases.Count} 项，通过 {Cases.Count - failures.Count}，失败 {failures.Count}，跳过 {Skips.Count}，用时 {stopwatch.ElapsedMilliseconds} ms");
+        var total = passed + failures.Count + skipped.Count;
+        Console.WriteLine($"共 {total} 项，通过 {passed}，失败 {failures.Count}，跳过 {skipped.Count}，用时 {stopwatch.ElapsedMilliseconds} ms");
+        // 保留可选夹具缺失时退出 0 的既有契约；跳过仍必须单列，不能称为必需检查通过。
         return failures.Count == 0 ? 0 : 1;
     }
 }

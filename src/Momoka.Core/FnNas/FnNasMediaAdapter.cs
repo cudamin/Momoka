@@ -277,14 +277,19 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
     public async Task<EmbyUserData?> SetWatchedAsync(string id, bool watched, CancellationToken ct)
     {
         await client.SetWatchedAsync(connection, id, watched, ct).ConfigureAwait(false);
-        return Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false)).UserData;
+        // code==0 confirms the write, but this endpoint has no UserData body. Read-back must be a
+        // separate operation, otherwise its failure can discard success or cause the write to replay.
+        return null;
     }
 
     public async Task<EmbyUserData?> SetFavoriteAsync(string id, bool favorite, CancellationToken ct)
     {
         await client.SetFavoriteAsync(connection, id, favorite, ct).ConfigureAwait(false);
-        return Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false)).UserData;
+        return null;
     }
+
+    public async Task<EmbyUserData?> GetUserDataAsync(string id, CancellationToken ct) =>
+        Item(await client.GetItemAsync(connection, id, ct).ConfigureAwait(false)).UserData;
 
     public Task ReportPlaybackAsync(PlaybackReport report, CancellationToken ct) =>
         client.ReportPlaybackAsync(connection, PlaybackRecord(report), ct);

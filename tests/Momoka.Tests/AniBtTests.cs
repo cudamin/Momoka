@@ -58,7 +58,10 @@ internal static class AniBtTests
             var picked = AniBtService.PickIdentifyResult([wrong, exact], ["学生会也有洞!"], 2026);
             Assert.True(ReferenceEquals(exact, picked));
             Assert.Equal("学生会也有洞", AniBtService.NormalizeTitle("学生会也有洞！"));
-            Assert.True(ReferenceEquals(wrong, AniBtService.PickIdentifyResult([wrong], ["学生会也有洞!"], 2026)));
+            // R-037 改契约：非空/无关首条不再是识别授权；原来的精确标题及 ±1 年容差仍保留。
+            Assert.Null(AniBtService.PickIdentifyResult([wrong], ["学生会也有洞!"], 2026));
+            Assert.Null(AniBtService.PickIdentifyResult(
+                [new RemoteSearchResult { Name = exact.Name, ProductionYear = 2010 }], ["学生会也有洞!"], 2026));
             Assert.Null(AniBtService.PickIdentifyResult([], ["学生会也有洞!"], 2026));
         });
 

@@ -74,8 +74,8 @@ public enum OutputChange
 
 /// <param name="Discrete">
 /// True when this came from a discrete event — full screen, or the window landing on another monitor — rather
-/// than from a settled resize. The caller answers a discrete change with the plan it prepared at launch, and
-/// a settled resize by working out a new one.
+/// than from a settled resize. A caller using the fixed-monitor policy only records settled active-size
+/// changes; an active-size policy can use a Rebuild verdict to prepare a fresh chain.
 /// </param>
 public readonly record struct OutputVerdict(OutputChange Change, bool Discrete, int Width, int Height);
 
@@ -97,7 +97,9 @@ public readonly record struct OutputVerdict(OutputChange Change, bool Discrete, 
 /// </list>
 /// </para>
 /// </summary>
-public sealed class OutputWatch(int sourceWidth, int sourceHeight, ShaderSurface surface, UpscaleTier tier)
+/// <param name="fullMonitorTarget">Classify the full monitor without hysteresis, matching a fixed monitor resolver; false retains the generic active-size policy.</param>
+public sealed class OutputWatch(int sourceWidth, int sourceHeight, ShaderSurface surface, UpscaleTier tier,
+    bool fullMonitorTarget = false)
 {
     /// <summary>
     /// How long a window size has to hold still before it counts. The one place this number is written: 任务书
@@ -111,10 +113,10 @@ public sealed class OutputWatch(int sourceWidth, int sourceHeight, ShaderSurface
     private ShaderSurface? _pending;
     private DateTimeOffset _pendingSince;
 
-    /// <summary>The output size the chain in force was chosen for.</summary>
+    /// <summary>The actual active render size; a fixed-monitor plan can use a different tier target.</summary>
     public (int Width, int Height) Output => _output;
 
-    /// <summary>The tier in force, which is also the 「current tier」 the next measurement is sticky around.</summary>
+    /// <summary>The latest policy-target tier; only the active-size policy applies hysteresis around it.</summary>
     public UpscaleTier Tier => _tier;
 
     public bool Fullscreen => _surface.Fullscreen;
@@ -164,13 +166,15 @@ public sealed class OutputWatch(int sourceWidth, int sourceHeight, ShaderSurface
     }
 
     /// <summary>
-    /// Records the surface now in force and says whether the tier moved with it. The measurement is sticky
-    /// around <see cref="Tier"/>, so a size that merely crossed a boundary by a hair keeps the chain it has.
+    /// Records the actual output and measures the selected policy target. Active-size plans keep hysteresis;
+    /// fixed-monitor plans use the same fresh monitor classification as the resolver and restoring auto.
     /// </summary>
     private OutputVerdict Apply(bool discrete)
     {
         var size = _surface.Active;
-        var measure = ShaderTier.Measure(sourceWidth, sourceHeight, size.Width, size.Height, _tier);
+        var target = fullMonitorTarget ? _surface.Monitor : size;
+        var measure = ShaderTier.Measure(sourceWidth, sourceHeight, target.Width, target.Height,
+            fullMonitorTarget ? null : _tier);
         _output = size;
 
         if (measure.Tier == _tier) return Verdict(OutputChange.SizeOnly, discrete);

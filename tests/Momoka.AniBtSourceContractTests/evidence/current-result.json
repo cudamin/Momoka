@@ -1,0 +1,22 @@
+{
+  "mode": "current",
+  "head": "cfde3c746bbdb4664122bfe3b4cbbe9096c8b13e",
+  "sdk": "10.0.400",
+  "buildExit": 0,
+  "testExit": 0,
+  "historicalRevision": null,
+  "runRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\runs\\current-final-20261024-131335-245",
+  "assemblySha256": "824244690E7CE42A096D4F571F5B706F9451484CCB027A26CBEEAE22B68F2926",
+  "inputManifest": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-input-manifest.json",
+  "inputManifestSha256": "B833E9CC05458FD812BD48EE0B230999854A297F1FA4CEB3634A9DE08D2734A0",
+  "packageManifest": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-package-manifest.json",
+  "packageManifestSha256": "C3318C1271CEDA9A5C0052410C5CD519F24620F4CE7D53A3C9EE717078526F81",
+  "buildLog": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-build.log",
+  "buildLogSha256": "0EA17FE11A2E63B7AC1FDB7461C8889F343F6920A9A8DC228488648DF3F3A680",
+  "testLog": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\logs\\current-final-20261024-131335-245-test.log",
+  "testLogSha256": "C727D16C7C114CBCD3411819E02ACAB565027BDF54277A1B4B583ACED145D706",
+  "summary": [
+    "共 31 项，通过 31，失败 0，跳过 0，用时 442 ms"
+  ],
+  "limitations": "匿名 actual Core/VM 和惰性 HTTP/设置/控件端点；不是完整历史版本、真实模态 UI 或服务器/凭据可达性。"
+}

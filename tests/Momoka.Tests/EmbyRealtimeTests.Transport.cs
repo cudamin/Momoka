@@ -15,6 +15,7 @@ internal static partial class EmbyRealtimeTests
 {
     private static void RegisterTransport()
     {
+        RegisterRedirectTransport();
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
             Test($"实时握手：{kind} 回环连接只经请求头鉴权，重连读取新令牌且不换来源", () =>
                 VerifyHandshakeAsync(kind).WaitAsync(TimeSpan.FromSeconds(12)).GetAwaiter().GetResult());

@@ -1,0 +1,364 @@
+{
+  "schemaVersion": 1,
+  "approvalId": "mpv-lgpl-2026-10-14-270367e8af",
+  "native": [
+    {
+      "path": "libmpv-2.dll",
+      "source": "libmpv-2.dll",
+      "size": 101242880,
+      "sha256": "fe583af31036bf3f3adacf6659e1bd448b568091b0334675573a3e303ec89d17",
+      "version": "mpv v0.41.0-1163-g270367e8a",
+      "licenses": [
+        "LICENSE.LGPL-2.1.txt",
+        "LICENSE.LGPL-3.0.txt",
+        "LICENSE.GPL-3.0.txt"
+      ],
+      "release": "2026-10-14-270367e8af",
+      "asset": "mpv-dev-lgpl-x86_64-20261014-git-270367e8af.7z",
+      "archiveSha256": "1488b4458279561a4a0134ddf837989dcc8045308ac521657a98a284bcd8529d"
+    },
+    {
+      "path": "vulkan-1.dll",
+      "source": "assets/mpv-runtime/vulkan-1.dll",
+      "size": 581120,
+      "sha256": "13dd448a97495763b5cce84b8ade84cd2fa13c71f7e871f3c7d509eca845ad0f",
+      "version": "1.4.359.0",
+      "licenses": [
+        "LICENSE.Apache-2.0.txt"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "path": "LICENSE",
+      "source": "LICENSE",
+      "size": 1076,
+      "sha256": "9ec750013867adde9c93755d32d04d5dfe3b0b4b0772eab3024e07dccda68439"
+    },
+    {
+      "path": "THIRD-PARTY-NOTICES.md",
+      "source": "THIRD-PARTY-NOTICES.md",
+      "size": 8774,
+      "sha256": "7affe29b3a455f795356e9a6c225149e68ca17d47458a9940dc84f3c3f84e3f9"
+    },
+    {
+      "path": "LICENSE.Apache-2.0.txt",
+      "source": "assets/mpv-runtime/LICENSE.Apache-2.0.txt",
+      "size": 10280,
+      "sha256": "074e6e32c86a4c0ef8b3ed25b721ca23aca83df277cd88106ef7177c354615ff"
+    },
+    {
+      "path": "LICENSE.GPL-3.0.txt",
+      "source": "assets/mpv-runtime/LICENSE.GPL-3.0.txt",
+      "size": 34674,
+      "sha256": "fb981668c18a279e285fc4d83fba1e836cc84dd4daa73c9697d3cfd2d8aca6e0"
+    },
+    {
+      "path": "LICENSE.LGPL-2.1.txt",
+      "source": "assets/mpv-runtime/LICENSE.LGPL-2.1.txt",
+      "size": 26001,
+      "sha256": "5749785c8bdefafcb5d798270ed0a967036fe2ca63dcedade1627565dfef81d2"
+    },
+    {
+      "path": "LICENSE.LGPL-3.0.txt",
+      "source": "assets/mpv-runtime/LICENSE.LGPL-3.0.txt",
+      "size": 42098,
+      "sha256": "996af0513df21f7496288951c41428a03c174e9e4a9d63665c57d670f845ccb1"
+    },
+    {
+      "path": "NOTICE.txt",
+      "source": "assets/mpv-runtime/NOTICE.txt",
+      "size": 3621,
+      "sha256": "2d4f31a651ff331607f5f9f5211e615bcd89ac5bdc43b8e9016cbf673610ed90"
+    },
+    {
+      "path": "mpv-ui/fonts/MaterialIconsRound-Regular.otf",
+      "source": "assets/mpv-ui/fonts/MaterialIconsRound-Regular.otf",
+      "size": 400360,
+      "sha256": "a853f50913597e67f76facd269ff230c2f3038f9acadec04dd653080785dee25"
+    },
+    {
+      "path": "mpv-ui/fonts/uosc_textures.ttf",
+      "source": "assets/mpv-ui/fonts/uosc_textures.ttf",
+      "size": 37988,
+      "sha256": "c22c149d3d92b531f9460fc6af9bc6829a63a26454e53c30236cb55b77959c34"
+    },
+    {
+      "path": "mpv-ui/LICENSE-MaterialIcons.txt",
+      "source": "assets/mpv-ui/LICENSE-MaterialIcons.txt",
+      "size": 11357,
+      "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+    },
+    {
+      "path": "mpv-ui/LICENSE.LGPL",
+      "source": "assets/mpv-ui/LICENSE.LGPL",
+      "size": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+    },
+    {
+      "path": "mpv-ui/scripts/stats.lua",
+      "source": "assets/mpv-ui/scripts/stats.lua",
+      "size": 70977,
+      "sha256": "05bb05baf492b1180e7c7aebd4932cbe01ce1e05dca818326c69104f4cf11cc8"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/char-conv/zh.json",
+      "source": "assets/mpv-ui/scripts/uosc/char-conv/zh.json",
+      "size": 85097,
+      "sha256": "1e250ec50866529b57d273fa90bd8fc56f22b4371d5ea641ce3bebc832dd9889"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/BufferingIndicator.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/BufferingIndicator.lua",
+      "size": 1689,
+      "sha256": "f7ceb7c88916e49ee5aef2a8c45d53ee5a6f9931b7977898ecf96ebfa543c1c4"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/Button.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/Button.lua",
+      "size": 3634,
+      "sha256": "31d407dfc9e54295201f392d03886ef801108ead6384a2d12a620eafa38724c2"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/Controls.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/Controls.lua",
+      "size": 18322,
+      "sha256": "c28892fe028dd360081375f96aec3b861cce6cc900aa9f538f6ae7c3d0ec9a60"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/Curtain.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/Curtain.lua",
+      "size": 1016,
+      "sha256": "7f965119a6fc70d8cce70cf025db764a5d83433321da79a7734c691afdbb1e32"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/CycleButton.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/CycleButton.lua",
+      "size": 3062,
+      "sha256": "e49e20110bf84d852ce4d85f26e36a24330ef9a54f28f0886cc658352e09aa75"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/Element.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/Element.lua",
+      "size": 9591,
+      "sha256": "381141cd760a42769c0abdf7cfdf7ef26930249e133fa9800e7c8623f55bc016"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/Elements.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/Elements.lua",
+      "size": 4836,
+      "sha256": "f44e57ea4c4c60f82f3775df9337064fdbcb7cb4bc157b47a5c07a12ee8a62c7"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/ManagedButton.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/ManagedButton.lua",
+      "size": 1182,
+      "sha256": "da1c1ecf4d145e5c06fb7077a654b1c58412ae106e54b3f5946b919dabd01446"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/Menu.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/Menu.lua",
+      "size": 77500,
+      "sha256": "21cf73c7756da92e2e4df6d7078a168935c611eefce84169640816a05ba7f254"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/PauseIndicator.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/PauseIndicator.lua",
+      "size": 2706,
+      "sha256": "f2fe8f6bf894c60686e021a5faa0eebf1da940ab61dbbac109f173865a6c8664"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/SkipButton.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/SkipButton.lua",
+      "size": 11479,
+      "sha256": "8dd2b0bda5baeb51106e075fd2fcb3906e65d00a237343d3f816ca9c53d232f4"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/Speed.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/Speed.lua",
+      "size": 6093,
+      "sha256": "fee532d01e108cb4d74fbfdedaf91ea2fff81af3b4f3f4e3543fd8aaefa92326"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/Timeline.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/Timeline.lua",
+      "size": 19488,
+      "sha256": "9fd25dfb8819bd87eae51cfc9870b23dde52e5616fdb808da7e89bf0c986d8c2"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/TopBar.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/TopBar.lua",
+      "size": 22422,
+      "sha256": "7ac3105e6c3d4fc47174c37c0dfe310dce405129b1bafc56b6dfd0a82da00440"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/Volume.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/Volume.lua",
+      "size": 10558,
+      "sha256": "f5ce15bc7b3f74ecef35e2cdaa00188657867556d731d85aa5d8c353511f9d0a"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/WindowBorder.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/WindowBorder.lua",
+      "size": 1234,
+      "sha256": "c8a6a64c321732913bc8ad838a202bdca037cfab3db4dcd636cb63098dc806cb"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/de.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/de.json",
+      "size": 3126,
+      "sha256": "606d296d7d0dd010cb732722a0c9e28abc9c0d09d962e959212c29bfdf2a125e"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/es.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/es.json",
+      "size": 3843,
+      "sha256": "cc38c03c9b954c8711b23eddfedb83ba6c9653a133c3ad7e432cfecdd089a999"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/fr.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/fr.json",
+      "size": 1887,
+      "sha256": "a8ec21232c1fbb5c3de5a90f1f92ec1e4258ea9827f9eff87989f20471552c3b"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/it.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/it.json",
+      "size": 1747,
+      "sha256": "58bf14006cb8a61730ee7faabad4a7c4ea99681efd4268ffb02a26354076839f"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/pl.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/pl.json",
+      "size": 4055,
+      "sha256": "c3733a695296104618683f4b705b1e03493d1cd96ba5fe98c339020b3cd95cdd"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/pt.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/pt.json",
+      "size": 4002,
+      "sha256": "ad8539c3d8ae368a93e2cd0402ad92480aa3ea57db6430ee1bd6c34876005a1f"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/ro.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/ro.json",
+      "size": 1799,
+      "sha256": "22c90c139b53e0b417a62987baa4e46b010195df8e85bd076861b7044dd3ab1e"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/ru.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/ru.json",
+      "size": 2313,
+      "sha256": "ac86fd3ae167e79cc51aec8bd12f04dc9491613fecdba6820f3388db6671b9a6"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/tr.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/tr.json",
+      "size": 4019,
+      "sha256": "1081a7e970764e0ff438c3d8c2164543732cc10f6feb8e11fa670b741d3d896e"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/uk.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/uk.json",
+      "size": 3139,
+      "sha256": "e57d8cbc32b5b8e92b50cde0b2eb06cb405f87a138ebd88b5cb962d84be8e4a8"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/zh-hans.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/zh-hans.json",
+      "size": 3471,
+      "sha256": "d3339e658874530f4275c70d0837986746f98a9abca453d4bb2bde285c5dde31"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/intl/zh-HK.json",
+      "source": "assets/mpv-ui/scripts/uosc/intl/zh-HK.json",
+      "size": 3722,
+      "sha256": "889667e15b379bed7015fdc6bb6ac5295fba2bbb810f9392582da296d5444e5c"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/ass.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/ass.lua",
+      "size": 11546,
+      "sha256": "71bdba823b5bc3915126e471b85517febe716e80915054c0e2d5e3b878b4614b"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/buttons.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/buttons.lua",
+      "size": 1888,
+      "sha256": "f79302eda925010a8ccbfa7e960e0fc7760114b920d641897474ed91ea318f73"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/char_conv.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/char_conv.lua",
+      "size": 1584,
+      "sha256": "f6ae7a90ebce8f3af73a44f64d9817c335431a6af46936352e971713097eb1b9"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/cursor.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/cursor.lua",
+      "size": 23646,
+      "sha256": "e16693a9637f42e593f0f7567bcd4493e56f8f1575c7b464b5a0e290e461f129"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/fzy.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/fzy.lua",
+      "size": 8164,
+      "sha256": "5b1b53aaf56c8b51bd3507f6f6b76c042b92ceb55eaac8533277754158426711"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/intl.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/intl.lua",
+      "size": 1627,
+      "sha256": "0ef24395638a1f8a8839b615c901e49769d7bbb8aefcd420369494b652e405e1"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/menus.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/menus.lua",
+      "size": 30240,
+      "sha256": "e4afcf167fafda8b79a4ae9933e9650c46b2eb8f94a063feda3fd49430d320d2"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
+      "size": 1192,
+      "sha256": "1e044f357cf56b05273969d33efa5b24fa75d02dc1d53fecd1aeda4de7b73e4b"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/std.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/std.lua",
+      "size": 10538,
+      "sha256": "75bc841dfdcea0d8f8788f83e1eb1e268b4ad887bcfd788e1f851e19703a13af"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/text.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/text.lua",
+      "size": 22231,
+      "sha256": "f4e040412b2e3c2d276d8098aa1eea01e020e916123336470dd2480a5968eb07"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/lib/utils.lua",
+      "source": "assets/mpv-ui/scripts/uosc/lib/utils.lua",
+      "size": 32027,
+      "sha256": "0600988af1e5e86becef7fab8bd542bff09454d687e5e95e0b063d52b284ad6c"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/LICENSE.LGPL",
+      "source": "assets/mpv-ui/scripts/uosc/LICENSE.LGPL",
+      "size": 26530,
+      "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/main.lua",
+      "source": "assets/mpv-ui/scripts/uosc/main.lua",
+      "size": 82670,
+      "sha256": "9e84315058eb41a4e93a81ec769e71e9d53010129338f1e0a2a2992dbd807421"
+    }
+  ],
+  "evidence": [
+    {
+      "source": "assets/mpv-runtime/README.md",
+      "size": 5280,
+      "sha256": "0a5d4ed8d4aced30091973afb7a3100210da1989d8d5fb13cb14ccc9be66d8bb"
+    }
+  ]
+}

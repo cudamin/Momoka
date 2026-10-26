@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Momoka.ShaderCommandGenerationTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <ShaderCoreProject Condition="'$(ShaderCoreProject)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Momoka.Core.csproj</ShaderCoreProject>
+    <ShaderBackendSource Condition="'$(ShaderBackendSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Playback\LibMpvBackend.cs</ShaderBackendSource>
+    <ShaderServiceSource Condition="'$(ShaderServiceSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Playback\PlaybackService.cs</ShaderServiceSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The linked synchronous TestHarness/ShaderTransactionTests have the same test-only
+         banned-awaiter exception as Momoka.Tests. Core/Shell keep every analyzer unchanged. -->
+    <PackageReference Remove="Microsoft.CodeAnalysis.BannedApiAnalyzers" />
+    <ProjectReference Include="$(ShaderCoreProject)" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvNodes.cs" Link="Production\LibMpvNodes.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvFrame.cs" Link="Production\LibMpvFrame.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\MpvListValue.cs" Link="Production\MpvListValue.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.Tests\ShaderTransactionTests.cs" Link="ShaderTransactionTests.cs" />
+    <None Include="..\..\assets\shaders\**\*.glsl;..\..\assets\shaders\**\*.hook">
+      <Link>shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+  <!-- Link the entire real handle and lifetime gate; replace only the native API endpoints.
+       Constants and ABI declarations are copied verbatim, including the existing unused tail layout.
+       No DLL resolver, mpv_create/initialize, app, real account, or media loading is available here. -->
+  <Import Project="ExtractNativeControl.targets" />
+</Project>

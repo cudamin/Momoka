@@ -1,0 +1,7 @@
+  Momoka.AniBtSourceContractTests -> C:\Users\89400\.codex\worktrees\r042-identify-source-contract\Momoka\artifacts\r042\runs\current-final-20261024-131335-245\bin\Momoka.AniBtSourceContractTests.dll
+
+已成功生成。
+    0 个警告
+    0 个错误
+
+已用时间 00:00:06.67

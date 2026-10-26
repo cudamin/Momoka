@@ -65,8 +65,10 @@ public static class EmbyServerAddress
     /// <summary>The display address; Jellyfin and Plex preserve the complete reverse-proxy path.</summary>
     public static string ToDisplayString(Uri apiBase, MediaServerKind kind = MediaServerKind.Emby)
     {
+        // Plex must retain an explicit HTTP :80; its default port for a portless host is 32400.
+        if (kind == MediaServerKind.Plex) return Momoka.Plex.PlexEndpoint.ToDisplayString(apiBase);
         var text = apiBase.GetLeftPart(UriPartial.Path).TrimEnd('/');
-        if (kind == MediaServerKind.FnNas || kind == MediaServerKind.Plex) return text;
+        if (kind == MediaServerKind.FnNas) return text;
         return kind == MediaServerKind.Emby && text.EndsWith("/emby", StringComparison.OrdinalIgnoreCase) ? text[..^5] : text;
     }
 

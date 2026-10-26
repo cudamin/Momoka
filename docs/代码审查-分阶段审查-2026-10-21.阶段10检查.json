@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "phase": 10,
+  "status": "通过（仅本轮文档检查）",
+  "executedAt": "2026-10-21T23:02:54.074+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "branch": "codex/staged-review-continue-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "d3ff57135267682322aadfe904241b99a6e70899",
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段10审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段10证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段10检查.json",
+    "PROGRESS.md"
+  ],
+  "checks": [
+    {
+      "name": "阶段10树、分支、固定开始提交与只读授权",
+      "status": "通过",
+      "detail": "固定起点d3ff571，产品/测试/运行/真实Plex/发布推送为0"
+    },
+    {
+      "name": "精确五文件与空暂存区",
+      "status": "通过",
+      "detail": {
+        "changed": [
+          "PROGRESS.md",
+          "docs/代码审查-分阶段审查-2026-10-21.md"
+        ],
+        "added": [
+          "docs/代码审查-分阶段审查-2026-10-21.阶段10审查.md",
+          "docs/代码审查-分阶段审查-2026-10-21.阶段10检查.json",
+          "docs/代码审查-分阶段审查-2026-10-21.阶段10证据.json"
+        ]
+      }
+    },
+    {
+      "name": "五记录UTF8、LF、末尾和尾空白",
+      "status": "通过",
+      "detail": "全部编码、行尾和尾空白合规"
+    },
+    {
+      "name": "本轮本地链接和旧进度正文保护",
+      "status": "通过",
+      "detail": {
+        "links": 89,
+        "oldProgressUnchanged": true
+      }
+    },
+    {
+      "name": "三问题编号、优先级、字段、行段和报告一致",
+      "status": "通过",
+      "detail": "R-028/P1、R-029/R-030/P2均静态未修复；没有新增重复R-024"
+    },
+    {
+      "name": "Plex库key与UI入口关键源码锚点",
+      "status": "通过",
+      "detail": {
+        "markers": 12,
+        "productCalls": 0
+      }
+    },
+    {
+      "name": "856固定文件及历史阶段9记录未变化",
+      "status": "通过",
+      "detail": "856字节固定，阶段9报告/证据/检查原样保留"
+    },
+    {
+      "name": "主规则与专项技能/实际阅读证据哈希和行段",
+      "status": "通过",
+      "detail": {
+        "mainReadFiles": 27,
+        "agentDeclaredFiles": 34,
+        "ruleOriginalRetained": true
+      }
+    },
+    {
+      "name": "官方Plex定向证据与版本限制",
+      "status": "通过",
+      "detail": "仅官方公开字段/规格核对，不宣称目标PMS或旧/search必404"
+    },
+    {
+      "name": "原主树未跟踪与旧审查树外部删除保护",
+      "status": "通过",
+      "detail": {
+        "protectedFiles": 20,
+        "unchanged": true,
+        "externalChanges": []
+      }
+    },
+    {
+      "name": "仅记录无执行命令与修复授权，下一阶段字段有效",
+      "status": "通过",
+      "detail": "纯记录和未执行验收，旧测试只作历史"
+    },
+    {
+      "name": "Git diff --check",
+      "status": "通过",
+      "detail": "退出0"
+    }
+  ],
+  "observations": [],
+  "summary": {
+    "total": 12,
+    "passed": 12,
+    "failed": 0
+  },
+  "limitations": "不运行产品/正式测试/探针/UI/真实服务器；仅本轮文档检查，不是产品验收"
+}

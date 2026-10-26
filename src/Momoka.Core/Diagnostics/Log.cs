@@ -15,6 +15,12 @@ public readonly record struct LogEntry(DateTimeOffset Timestamp, LogLevel Level,
         + (Detail is null ? "" : Environment.NewLine + Detail);
 }
 
+/// <summary>
+/// A copy of retained entries and the last write's sequence, captured under the same ring-buffer lock.
+/// The watermark belongs to this sink, not to the text or timestamp: identical writes still advance it.
+/// </summary>
+public readonly record struct LogSnapshot(long Watermark, IReadOnlyList<LogEntry> Entries);
+
 public interface ILogSink
 {
     void Write(in LogEntry entry);
@@ -40,6 +46,7 @@ public sealed class RingBufferLogSink : ILogSink
     private readonly object _gate = new();
     private int _next;
     private int _count;
+    private long _sequence;
 
     public RingBufferLogSink(int capacity = 500)
     {
@@ -76,6 +83,7 @@ public sealed class RingBufferLogSink : ILogSink
             _buffer[_next] = entry;
             _next = (_next + 1) % _buffer.Length;
             if (_count < _buffer.Length) _count++;
+            _sequence++;
         }
 
         if (Written is not { } handler) return;
@@ -93,14 +101,28 @@ public sealed class RingBufferLogSink : ILogSink
         }
     }
 
-    public IReadOnlyList<LogEntry> Snapshot()
+    public IReadOnlyList<LogEntry> Snapshot() => SnapshotAfter(0).Entries;
+
+    /// <summary>
+    /// Returns retained writes after a previously captured watermark, oldest first. Zero reads the
+    /// whole buffer; falling behind capacity returns only the retained tail, just like <see cref="Snapshot"/>.
+    /// <para>
+    /// Written is a wake-up, not an ordered delivery channel: arbitrary subscribers run outside the
+    /// gate, so two writers can notify in reverse order. Reading the tail and its watermark atomically
+    /// means a UI can consume every retained write once, even across a refresh or an out-of-order wake-up,
+    /// without remembering an unbounded set of delivered IDs or deduplicating equal log text.
+    /// </para>
+    /// </summary>
+    public LogSnapshot SnapshotAfter(long watermark)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(watermark);
         lock (_gate)
         {
-            var result = new LogEntry[_count];
-            var start = (_next - _count + _buffer.Length) % _buffer.Length;
-            for (var i = 0; i < _count; i++) result[i] = _buffer[(start + i) % _buffer.Length];
-            return result;
+            var count = watermark < _sequence ? (int)Math.Min(_count, _sequence - watermark) : 0;
+            var result = count == 0 ? Array.Empty<LogEntry>() : new LogEntry[count];
+            var start = (_next - count + _buffer.Length) % _buffer.Length;
+            for (var i = 0; i < count; i++) result[i] = _buffer[(start + i) % _buffer.Length];
+            return new LogSnapshot(_sequence, result);
         }
     }
 }

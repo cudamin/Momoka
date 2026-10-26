@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "approvalId": "windows-sdk-net-ref-10.0.19041.57-sdk-10.0.400-approved-2026-10-24",
+  "sdkVersion": "10.0.400",
+  "targetFramework": "net10.0-windows10.0.19041.0",
+  "runtimeIdentifier": "win-x64",
+  "packageId": "Microsoft.Windows.SDK.NET.Ref",
+  "packageVersion": "10.0.19041.57",
+  "contentHash": "5I8PT7WbBvGU7kq8caXQwxm8V4/+5DD6XKpg5TfRK8QyFoxr1xvpa7Q5o+rmrdJweLAh7Dm9TqKkLTym3klvDA==",
+  "archive": {
+    "source": "NuGet.org Microsoft.Windows.SDK.NET.Ref 10.0.19041.57; existing fixed restored archive, offline official SDK 10.0.400 PackageArchiveReader.GetContentHash and local signature integrity verified 2026-10-24 Asia/Shanghai. Not generated or updated by verifier.",
+    "size": 12719136,
+    "sha256": "90b18f2cf7d7a23f5b0bfe2b86d8dda45881481f677ce36eccaf6e9ab50b6b4b"
+  },
+  "assets": [
+    {
+      "kind": "runtime",
+      "path": "Microsoft.Windows.SDK.NET.dll",
+      "source": "lib/net8.0/Microsoft.Windows.SDK.NET.dll"
+    },
+    {
+      "kind": "runtime",
+      "path": "WinRT.Runtime.dll",
+      "source": "lib/net8.0/WinRT.Runtime.dll"
+    }
+  ]
+}

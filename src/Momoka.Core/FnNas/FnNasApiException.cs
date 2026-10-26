@@ -9,10 +9,11 @@ public sealed class FnNasApiException(string message, int? code = null, HttpStat
     public int? Code { get; } = code;
     public HttpStatusCode? StatusCode { get; } = statusCode;
     public bool IsTokenExpired => Code == -2 || StatusCode == HttpStatusCode.Unauthorized;
-    public bool IsAuthenticationFailure => Code is -2 or -15 or -16 || StatusCode == HttpStatusCode.Unauthorized;
+    // -16 is a file/operation permission failure, not proof that the username/password is invalid.
+    public bool IsAuthenticationFailure => Code is -2 or -15 || StatusCode == HttpStatusCode.Unauthorized;
 
     /// <summary>仅供补充性读取降级：暂时连不上、服务故障或明确缺失／不支持；身份、签名和未知协议错误不在其中。</summary>
-    internal bool CanSkipOptionalRead => !IsAuthenticationFailure && Code is not (-3 or 5000)
+    internal bool CanSkipOptionalRead => !IsAuthenticationFailure && Code is not (-3 or -5 or -16 or 5000)
         && (isTransportFailure || Code is -4 or -6 or -8 or -13 or -60
             || StatusCode is HttpStatusCode.NotFound or HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests
             || (int?)StatusCode is >= 500 and <= 599);

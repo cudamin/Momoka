@@ -1,4 +1,3 @@
-using System.Text;
 using Momoka.Diagnostics;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -10,7 +9,7 @@ namespace Momoka.Shell;
 /// <summary>
 /// 报告怎么落地：崩在半路时那一份、<c>--dump-ui</c> 要的那棵树、那张 PNG，以及写文件本身。
 /// <para>
-/// <c>WinExe</c> 没有控制台，报告文件是唯一的出口，所以这一段坏了等于什么都没验 —— 写文件那句从来不许抛。
+/// <c>WinExe</c> 没有控制台，报告文件是唯一的出口，所以未能写出最终报告不能返回成功；失败报告仍尽力写出，不挡住关闭。
 /// 拆成几个文件的缘由见主文件 <see cref="ShellSelfCheck"/> 的类注释。
 /// </para>
 /// </summary>
@@ -38,7 +37,7 @@ internal static partial class ShellSelfCheck
             // that throws does so the first time its card is opened, and that is the card named here.
             _ => _settings.Count > 0 ? $"设置页面（「{_settings[^1].Category}」之后）" : "设置页面"
         };
-        Write(options, "selfcheck-shell.txt", $"""
+        Write(options.Paths, "selfcheck-shell.txt", $"""
             {AppIdentity.TitleWithVersion} — WinUI 3 外壳自检
             时间：{DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss zzz}
             数据目录：{options.Paths.Root}
@@ -109,19 +108,6 @@ internal static partial class ShellSelfCheck
         catch (Exception error)
         {
             Log.Warn(Category, "界面截图失败", error);
-        }
-    }
-
-    private static void Write(StartupOptions options, string name, string content)
-    {
-        try
-        {
-            options.Paths.EnsureCreated();
-            File.WriteAllText(Path.Combine(options.Paths.LogDirectory, name), content, Encoding.UTF8);
-        }
-        catch (Exception error)
-        {
-            Log.Error(Category, $"写入自检报告 {name} 失败", error);
         }
     }
 }

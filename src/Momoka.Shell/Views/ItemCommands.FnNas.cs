@@ -72,7 +72,8 @@ internal static partial class ItemCommands
         IShellActions shell,
         FrameworkElement owner,
         CardItem card,
-        Action? changed) =>
+        Action? changed,
+        Action<CardItem>? removed = null) =>
         GuardAsync(shell, "读取版本失败", async () =>
         {
             if (Root(owner) is not { } root) return;
@@ -104,8 +105,10 @@ internal static partial class ItemCommands
                     client.FnNasConnection, item.Id, FnNasItemActions.Delete(deleteFile: true, [chosen.MediaGuid]), token))
                 .ConfigureAwait(true);
 
+            item.MediaSources.RemoveAll(source => source.Id == chosen.MediaGuid);
             shell.Notify($"已删除「{item.Name}」的一个版本");
-            changed?.Invoke();
+            if (versions.Count == 1 && files.Count == 1 && removed is not null) removed(card);
+            else changed?.Invoke();
             shell.RefreshFavorites();
         });
 

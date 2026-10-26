@@ -3,8 +3,8 @@
   <!--
     Hand-rolled test host instead of xUnit/NUnit, so `dotnet run` is the test runner. This began as a
     necessity — the machine's NuGet cache was empty and the build had to work offline — and is kept as
-    a preference: the test project takes no package references at all, which means the only thing it
-    can be testing is Core.
+    a preference: the test project takes no package references at all. It references Core and
+    compile-links selected framework-free Shell sources so their real lifecycle code can be tested.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -15,6 +15,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The listener has no WinUI dependency; exercise the exact production source, not a copied model. -->
+    <Compile Include="..\..\src\Momoka.Shell\ActivationListener.cs" Link="Shell\ActivationListener.cs" />
+    <!-- The entire production source; test-only namespace boundaries replace registry/package endpoints, never control flow. -->
+    <Compile Include="..\..\src\Momoka.Shell\Platform\StartupRegistration.cs" Link="Shell\StartupRegistration.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\SelfCheckLayoutRules.cs" Link="Shell\SelfCheckLayoutRules.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\CompositionPositionReadiness.cs" Link="Shell\CompositionPositionReadiness.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\CompositionProbePixels.cs" Link="Shell\CompositionProbePixels.cs" />
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <None Include="..\..\assets\shaders\**\*.glsl;..\..\assets\shaders\**\*.hook">
       <Link>shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
@@ -22,4 +29,92 @@
     </None>
   </ItemGroup>
 
+  <!-- Execute the availability statement verbatim without constructing theme brushes or any other card.
+       The StartupRow endpoint invokes this tree's actual SettingsViewModel/SettingToggleRow. -->
+  <UsingTask TaskName="ExtractStartupAvailability" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <SelfCheck ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var source = File.ReadAllText(Source).Replace("\r\n", "\n");
+        var start = source.IndexOf("private SettingSection InterfaceCard()", StringComparison.Ordinal);
+        var end = source.IndexOf("private SettingToggleRow StartupRow()", StringComparison.Ordinal);
+        if (start < 0 || end <= start)
+            throw new InvalidOperationException("Missing startup card/row production boundaries");
+        var gates = Regex.Matches(source.Substring(start, end - start),
+            @"^\s*if \(_startup is \{ Available: true \}\) rows\.Add\(StartupRow\(\)\);$", RegexOptions.Multiline);
+        if (gates.Count != 1)
+            throw new InvalidOperationException("Missing or ambiguous production startup availability gate");
+        var selfcheck = File.ReadAllText(SelfCheck).Replace("\r\n", "\n");
+        const string checkStart = "        var startupApplicable = startup.Available;";
+        const string checkEnd = "        // 安全起播";
+        var checkBegin = selfcheck.IndexOf(checkStart, StringComparison.Ordinal);
+        var checkFinish = selfcheck.IndexOf(checkEnd, checkBegin < 0 ? 0 : checkBegin, StringComparison.Ordinal);
+        if (checkBegin < 0 || checkFinish <= checkBegin
+            || selfcheck.IndexOf(checkStart, checkBegin + checkStart.Length, StringComparison.Ordinal) >= 0)
+            throw new InvalidOperationException("Missing or ambiguous production startup selfcheck block");
+        var checkBlock = selfcheck.Substring(checkBegin, checkFinish - checkBegin);
+        Func<string, string, string> between = (begin, finish) =>
+        {
+            var first = source.IndexOf(begin, StringComparison.Ordinal);
+            if (first < 0 || source.IndexOf(begin, first + begin.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous production start: " + begin);
+            var last = source.IndexOf(finish, first + begin.Length, StringComparison.Ordinal);
+            if (last < 0) throw new InvalidOperationException("Missing production end: " + finish);
+            return source.Substring(first, last - first);
+        };
+        var reapply = between("    private async Task ReapplyAndReloadAsync(string notice)",
+            "    /// <summary>恢复/导入共有的播放设置收尾；");
+        var reload = between("    public override Task ReloadAsync()\n    {\n", "        // 精简模式是页级状态");
+        reload = reload.Substring("    public override Task ReloadAsync()\n    {\n".Length);
+        var generated = "// Verbatim current availability/selfcheck statements; anonymous endpoints, no UI/native.\n#nullable enable\n" +
+            "using Momoka.Shell.Platform;\nusing Momoka.Diagnostics;\nusing Momoka.Configuration;\nusing Momoka.Services;\nnamespace Momoka.Tests;\n" +
+            "internal sealed class StartupAvailabilityContract\n{\n" +
+            "    private readonly IStartupRegistration? _startup;\n" +
+            "    private readonly Func<object> _create;\n" +
+            "    internal StartupAvailabilityContract(IStartupRegistration? startup, Func<object> create) " +
+            "{ _startup = startup; _create = create; }\n" +
+            "    private object StartupRow() => _create();\n" +
+            "    internal List<object> Build()\n    {\n        var rows = new List<object>();\n" +
+            gates[0].Value.Trim('\n') + "\n        return rows;\n    }\n}\n" +
+            "internal sealed record StartupSelfCheckRow(bool IsOn, string Note);\n" +
+            "internal static class StartupSelfCheckContract\n{\n" +
+            "    internal static (bool Ok, string Detail) Report(StartupSelfCheckRow? startupRow, IStartupRegistration startup)\n    {\n" +
+            "        (bool Ok, string Detail) result = (false, \"missing startup check\");\n" +
+            "        void check(string name, bool ok, string detail) { Assert.Equal(\"开机自启那一行\", name); result = (ok, detail); }\n" +
+            checkBlock + "\n        return result;\n    }\n}\n" +
+            "internal sealed class StartupReapplyContract(StartupReapplyFixture fixture)\n{\n" +
+            "    private AppSettings Settings => fixture.Settings.Settings;\n" +
+            "    private ISettingsService? _settings => fixture.Settings;\n" +
+            "    private string? _startupReloadReadFailure { get => fixture.StartupReloadFailure; set => fixture.StartupReloadFailure = value; }\n" +
+            "    private void SyncSaveState() => fixture.SyncSaveState();\n" +
+            "    private Task ReloadAsync()\n    {\n" + reload +
+            "        fixture.ReloadRow();\n        return fixture.ReloadFinish;\n    }\n" +
+            "    private Task ReapplyPlaybackPreferencesAsync(string notice, string? startupReadFailure = null) => fixture.Push(notice, startupReadFailure);\n" +
+            "    private static class ThemeHost { internal static void Apply(string theme) { } }\n" +
+            "    private static class ShellPrefs { internal static void Apply(UiSettings ui) { } internal static void ApplyShortcuts() { } }\n" +
+            reapply + "\n    internal Task Run(string notice) => ReapplyAndReloadAsync(notice);\n" +
+            "    internal Task ReloadOnly() => ReloadAsync();\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
+            File.WriteAllText(Output, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateStartupAvailability" BeforeTargets="CoreCompile">
+    <ExtractStartupAvailability Source="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\SettingsViewModel.cs"
+                               SelfCheck="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Settings.cs"
+                               Output="$(IntermediateOutputPath)StartupAvailability.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)StartupAvailability.g.cs" />
+    </ItemGroup>
+  </Target>
 </Project>

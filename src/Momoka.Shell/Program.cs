@@ -403,7 +403,8 @@ internal static class Program
         // once this is installed as an MSIX, under the unpackaged build's own folder — they live
         // somewhere else. Never throws, so a failed migration cannot stop startup. The candidate order
         // and why the packaged case is first are in AppPaths.PriorRoots.
-        var migratedFrom = paths.MigrateFromAny(AppPaths.PriorRoots);
+        var migratedFrom = new Momoka.Configuration.SettingsStore(paths, DpapiSecretProtector.Instance)
+            .PrepareStartupData(AppPaths.PriorRoots);
 
         if (LegacyInstanceIsRunning() is { } legacyActivationEvent)
         {
@@ -594,43 +595,5 @@ internal static class Program
         // image paths both fire long-running tasks whose results nobody awaits.
         Log.Warn(Category, "后台任务异常未被处理", e.Exception);
         e.SetObserved();
-    }
-}
-
-/// <summary>
-/// Watches for a second launch and brings the existing window forward, instead of letting the user
-/// end up with two clients fighting over the same mpv IPC pipe.
-/// </summary>
-internal static class ActivationListener
-{
-    public static IDisposable Start(string eventName, DispatcherQueue queue, Action activate)
-    {
-        var signal = new EventWaitHandle(false, EventResetMode.AutoReset, eventName);
-        var stopping = new CancellationTokenSource();
-
-        var thread = new Thread(() =>
-        {
-            var handles = new WaitHandle[] { signal, stopping.Token.WaitHandle };
-            while (WaitHandle.WaitAny(handles) == 0)
-                queue.TryEnqueue(() => activate());
-        })
-        {
-            IsBackground = true,
-            Name = "activation-listener"
-        };
-
-        thread.Start();
-
-        return new Stopper(() =>
-        {
-            stopping.Cancel();
-            signal.Dispose();
-            stopping.Dispose();
-        });
-    }
-
-    private sealed class Stopper(Action stop) : IDisposable
-    {
-        public void Dispose() => stop();
     }
 }

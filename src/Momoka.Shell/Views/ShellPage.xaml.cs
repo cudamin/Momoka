@@ -1273,13 +1273,15 @@ public sealed partial class ShellPage : UserControl, IShellActions
                 catch (Exception error) { Log.Info("anibt", $"无法补齐遗漏集的搜索元数据：{Failure.Describe(error)}"); }
             }
             if (!session.IsAvailable || !ReferenceEquals(ContentFrame.Content, page)) return;
+            // 补读期间原连接可能已断线或改变；只复核捕获的连接，不接管新连接。
+            var canSearch = connection is not null && moviePilot.Available && moviePilot.IsCurrentConnection(connection);
             var images = _services.GetRequiredService<EmbyImageStore>();
             var imageScope = session;
             var dialog = new MissingEpisodesDialog(item, missing, (art, token) =>
                 imageScope is { IsAvailable: true } current
                     ? images.GetAsync(current, art.ItemId, art.ImageType, art.Tag,
                         EmbyImageStore.RequestWidth(CardSize.MissingWidth), token)
-                    : Task.FromResult<byte[]?>(null), connection is not null, anime)
+                    : Task.FromResult<byte[]?>(null), canSearch, anime)
             { XamlRoot = root };
             void AvailabilityChanged(object? sender, EventArgs args)
             {
@@ -2121,7 +2123,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
         await LoadLibrariesAsync(scope, token).ConfigureAwait(true);
         if (!_identityLoads.IsCurrent(token) || !scope.IsCurrent) return;
-        GoTo("home");
+        // The sidebar is already usable while the directory read is in flight. A home page opened
+        // during that wait owns an empty snapshot, so refresh only that current home (or fill the
+        // still-empty frame). Do not steal navigation after the user chose a different page.
+        if (ContentFrame.Content is null) GoTo("home");
+        else if (_current == "home" && ContentFrame.Content is HomePage) GoTo("home", force: true);
         _displayedSources = sourcesStamp;
         if (_librariesFailed) Notify("部分来源的媒体库未能读取，已显示可用内容；点击主页按钮可重试", InfoBarSeverity.Warning);
     }

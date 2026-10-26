@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.ResourceBrowserTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <!-- The pinned production MVVM generator, not a substitute for notification/command behavior. -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceViewModel.cs" Link="Production\MoviePilotResourceViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceBrowserViewModel.cs" Link="Production\MoviePilotResourceBrowserViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceGroup.cs" Link="Production\MoviePilotResourceGroup.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSitePickerViewModel.cs" Link="Production\MoviePilotSitePickerViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Platform\SystemLauncher.cs" Link="Production\SystemLauncher.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+</Project>

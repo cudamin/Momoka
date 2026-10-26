@@ -1,0 +1,2731 @@
+{
+  "schemaVersion": 1,
+  "phase": 11,
+  "status": "已完成只读审查；R-031/P1、R-032～R-036/P2未修复；提交后暂停",
+  "startedAt": "2026-10-22T10:09:21.158+08:00",
+  "completedAt": "2026-10-22T11:44:49.865+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "branch": "codex/staged-review-continue-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "7027a3f58afea8835967a58ea2bf10e2b61e352e",
+  "authorization": "用户要求重新开始阶段11；既定只读审查允许按需子代理。最新要求完成当前阶段11后暂停，不启动阶段12，无修复/真实服务操作/运行产品/推送发布授权。",
+  "previousAttempt": {
+    "state": "未完成，无正式阶段11报告或提交",
+    "restartRequestedAt": "2026-10-22",
+    "reusedCandidates": false,
+    "reusedReadLedger": false,
+    "oldIgnoredSnapshotRetained": "artifacts/code-review-stage11/baseline-start.json",
+    "restartSnapshot": "artifacts/code-review-stage11/baseline-restart-2026-10-22.json",
+    "previousAgents": "交接中两个旧代理ID当前环境不可查，未继续或收取旧结论；本次两路重新独立审查"
+  },
+  "baselineAtStart": {
+    "capturedAt": "2026-10-22T02:09:21.158Z",
+    "timezone": "Asia/Shanghai",
+    "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+    "branch": "codex/staged-review-continue-2026-10-21",
+    "phaseStartCommit": "7027a3f58afea8835967a58ea2bf10e2b61e352e",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "authorityFile": "C:/Users/89400/Momoka/CLAUDE.md",
+    "authoritySha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+    "status": "",
+    "priorTreeStatus": " D docs/交接-集成播放器缩放与起播全屏-2026-09-22.md\n",
+    "originTreeStatus": "?? docs/代码审查-媒体库与聚合模式-2026-10-20.md\n?? vibe_images/\n?? website/\n",
+    "protectedOriginUntracked": [
+      {
+        "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "sha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F",
+        "bytes": 41321,
+        "matchesPrior": true
+      },
+      {
+        "path": "vibe_images/momoka-hero-keyart_1792572845041_b3ad667c.png",
+        "sha256": "4913083F88F3E5E299BAA81B8A4E2F4DA5FA7379340572B05FB95C5B4A48DADF",
+        "bytes": 2028490,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/.Momoka.qoder.site",
+        "sha256": "10DA6A3A6FA59D8C7C6AEBBE575439DCE521F11F248F58DF6608295EFB95FC42",
+        "bytes": 33524,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/README.md",
+        "sha256": "79BDFC94F9B10A094F9085C28E2A77DE1BED14320D1BA8C6965A7C4D79934347",
+        "bytes": 6496,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/assets/app-icon.png",
+        "sha256": "0BCD8A4EF09104EBE8000BF47FEA28847372409C124E2B15617DCF0F7B3144E9",
+        "bytes": 56663,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/assets/hero-800.webp",
+        "sha256": "6826E6661A807C2BD3660ED56B867CF07D198460792A65E690EB32FFE658A14C",
+        "bytes": 11582,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/assets/hero.webp",
+        "sha256": "AEA3924D692FABFFC8E5EEE545A7E8F4FA6046C3E5FAEBAD35D9B1470DC44A62",
+        "bytes": 37064,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/dist/assets/app-icon.png",
+        "sha256": "0BCD8A4EF09104EBE8000BF47FEA28847372409C124E2B15617DCF0F7B3144E9",
+        "bytes": 56663,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/dist/assets/hero-800.webp",
+        "sha256": "6826E6661A807C2BD3660ED56B867CF07D198460792A65E690EB32FFE658A14C",
+        "bytes": 11582,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/dist/assets/hero.webp",
+        "sha256": "AEA3924D692FABFFC8E5EEE545A7E8F4FA6046C3E5FAEBAD35D9B1470DC44A62",
+        "bytes": 37064,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/dist/index.html",
+        "sha256": "BE9214C67B06AA121E0D89EFCA1500A31C97C2EF7F8A4CCB80BC8AA90E18DC72",
+        "bytes": 24795,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/dist/main.js",
+        "sha256": "4CEAD3DE72195CC8BD5D2CCEF5205805AA32316A3356F3EBB51E3C61D11782E5",
+        "bytes": 2880,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/dist/styles.css",
+        "sha256": "F81F1B646CA15673B253C5F757DC3250F14D692DDDAFB8D3B75A7F9AE52BAC24",
+        "bytes": 31064,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/docker-compose.yml",
+        "sha256": "EC54B409EB5E82914FE7F142F4D40D909EA55BEFE4F3F02AFA8654ACFC523CFB",
+        "bytes": 292,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/index.html",
+        "sha256": "BE9214C67B06AA121E0D89EFCA1500A31C97C2EF7F8A4CCB80BC8AA90E18DC72",
+        "bytes": 24795,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/main.js",
+        "sha256": "4CEAD3DE72195CC8BD5D2CCEF5205805AA32316A3356F3EBB51E3C61D11782E5",
+        "bytes": 2880,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/nginx.conf",
+        "sha256": "3D0C0044177D27F4459191946A31FF24948C3BA2003D1360D3560A1EAC66D660",
+        "bytes": 893,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/styles.css",
+        "sha256": "F81F1B646CA15673B253C5F757DC3250F14D692DDDAFB8D3B75A7F9AE52BAC24",
+        "bytes": 31064,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/worker/index.js",
+        "sha256": "85D5F8718C22C13256999875C63E15C4BE6CCBFFE090FD7CA02F190CC04F0487",
+        "bytes": 100,
+        "matchesPrior": true
+      },
+      {
+        "path": "website/wrangler.jsonc",
+        "sha256": "8F388A70EDC27BA01AB01ED8535E4F68B6EBADBDDEDF80DC83A088998B98A2FA",
+        "bytes": 165,
+        "matchesPrior": true
+      }
+    ]
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段11审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段11证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段11检查.json",
+    "PROGRESS.md"
+  ],
+  "authorityFiles": [
+    {
+      "path": "CLAUDE.md",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+      "bytes": 24962
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "sha256": "538F00E1F8981EBF7B7046C3E2D01131ECBA4F58789E39005E8EB56E52344C67",
+      "bytes": 17377
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B",
+      "bytes": 87879
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA",
+      "bytes": 27657
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69",
+      "bytes": 14588
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/SKILL.md",
+      "sha256": "4818E4C6C33DF0E643DC4B0AB82FAF20467D333C233E27A3EDADB5E653F068F0",
+      "bytes": 11539
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/references/search-identity.md",
+      "sha256": "059CE8F148675870C5D5F62C103038B63EB7BAC30B7915EAF75C50322850A6B8",
+      "bytes": 5909
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/references/subscriptions.md",
+      "sha256": "8E18FBC4B458C7C3167CFD1A7714A3E4FE244885CE3F5BDE8D9A9F9EE1E973A3",
+      "bytes": 10862
+    },
+    {
+      "path": ".claude/skills/momoka-moviepilot/references/reorganization.md",
+      "sha256": "86A8E311D2C21A74B216E4393A7BA5115FE3C2FB51D9CBD1CF04AF3CDCC9FD91",
+      "bytes": 4504
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+      "sha256": "86A2C3BFD29F4639EA2F4378428FDBA5CE3E5F2906194876B1E667B72551B15B",
+      "bytes": 42349
+    }
+  ],
+  "fixedProductIntegrity": {
+    "matchedFileCount": 856,
+    "changedFiles": [],
+    "allTrackedProductBytesMatchFixedBaseline": true
+  },
+  "mainReadFiles": [
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotClient.cs",
+      "sha256": "180F52EB8F569CC6340864FD82942C520B81EA30380B677358065B3CDC1AB816",
+      "bytes": 17243,
+      "lineCount": 354,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 109
+        },
+        {
+          "start": 110,
+          "end": 235
+        },
+        {
+          "start": 232,
+          "end": 354
+        },
+        {
+          "start": 26,
+          "end": 90
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotAddress.cs",
+      "sha256": "32B19CDE13AF3AFA25026775073788B240FB267E4D458745B752ECFD9E47EC0A",
+      "bytes": 7130,
+      "lineCount": 154,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 120
+        },
+        {
+          "start": 120,
+          "end": 154
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.cs",
+      "sha256": "CDCCC6480AD801048D0999F0411C77DAC94E97C4E52C9740DB627D870CB58DDC",
+      "bytes": 16971,
+      "lineCount": 329,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 115
+        },
+        {
+          "start": 119,
+          "end": 232
+        },
+        {
+          "start": 226,
+          "end": 329
+        },
+        {
+          "start": 97,
+          "end": 145
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Availability.cs",
+      "sha256": "2168BF166641BBCFA6D169732832B551831917B3BC709C944890788C9BB00B4B",
+      "bytes": 5416,
+      "lineCount": 122,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 122
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Operations.cs",
+      "sha256": "7FBEE2B38598A84FB1CB3C011AFA5A32FF2FA571E010DB9B10EC8481660430E0",
+      "bytes": 5174,
+      "lineCount": 111,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 111
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotProbe.cs",
+      "sha256": "26A09A3CB523BE493997C1F77D030E2EC26695D097517B39EAC8272AF738D67E",
+      "bytes": 4628,
+      "lineCount": 116,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 116
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "sha256": "DEA1746847308DEE7EFC00B887A16796795908DA135BE7AD93A8738ED45408FA",
+      "bytes": 11798,
+      "lineCount": 187,
+      "ranges": [
+        {
+          "start": 104,
+          "end": 137
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Transfer.cs",
+      "sha256": "02F772D43B1D3C4505CF91482BF6A99FD4FB769AEE47112DCE99457FEFEF3145",
+      "bytes": 13080,
+      "lineCount": 228,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 110
+        },
+        {
+          "start": 111,
+          "end": 226
+        },
+        {
+          "start": 141,
+          "end": 183
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.MoviePilot.cs",
+      "sha256": "01096BAB8FE8013E80D9BFCBF40678E91FA19397FE53F6D04B662A1F602C8AE6",
+      "bytes": 3940,
+      "lineCount": 90,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 90
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotException.cs",
+      "sha256": "8D6CF878529CDD69A76AC6FD4FFAE5BA4FC8B200C08BC56E8CC4F92304E5A36F",
+      "bytes": 1882,
+      "lineCount": 45,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 45
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingMoviePilotRow.cs",
+      "sha256": "FCB257E4FBAB44A0344FC98B118A1A18AFBE6BE21E7558720BE07B157B650124",
+      "bytes": 9754,
+      "lineCount": 240,
+      "ranges": [
+        {
+          "start": 175,
+          "end": 240
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/Diagnostics/Log.cs",
+      "sha256": "06B4FB1D71E6E253A6E87841BB568EB9618CF4C40E1684836EC2A2D69892DFF8",
+      "bytes": 8791,
+      "lineCount": 256,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 98
+        },
+        {
+          "start": 252,
+          "end": 256
+        },
+        {
+          "start": 218,
+          "end": 256
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/Diagnostics/Failure.cs",
+      "sha256": "A2148A94B0B14202A557068E38E4EF37982BAC1FF3AB1C7081BE8A5EC9CACD85",
+      "bytes": 2195,
+      "lineCount": 41,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 41
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.History.cs",
+      "sha256": "65CB0CC60CA2EEE047289C48587E81F12CA17A28FFBAC15D6AF66DDB227EF374",
+      "bytes": 6262,
+      "lineCount": 117,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 117
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotAvailabilityTests.cs",
+      "sha256": "42FE5B8FDC96698E32C0BEE3BB202B9D484BB66227D3FC7A8B8817E5D9E18713",
+      "bytes": 9836,
+      "lineCount": 186,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 84
+        },
+        {
+          "start": 77,
+          "end": 183
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Download.cs",
+      "sha256": "BE7DAD39D6C0AEF507A60CEF34A0F1F8CF98242F043EDF251F870C0F31B6506F",
+      "bytes": 1781,
+      "lineCount": 27,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 27
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotSafetyTests.cs",
+      "sha256": "A8D438D9DEF4C7522525E76FA74973CED34980918AB4A4BB71BA2ADDA0570DBF",
+      "bytes": 24311,
+      "lineCount": 401,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 108
+        },
+        {
+          "start": 105,
+          "end": 201
+        },
+        {
+          "start": 204,
+          "end": 259
+        },
+        {
+          "start": 261,
+          "end": 307
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "sha256": "D14DBD2F82F79F6BD6F70703BAA8817B57214C6F4AACD6303FE73B3B6AFE1559",
+      "bytes": 175906,
+      "lineCount": 2901,
+      "ranges": [
+        {
+          "start": 2188,
+          "end": 2213
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotReorganizeDialog.xaml.cs",
+      "sha256": "87227D44B77E947F59D5BA492722014D949E1F97A57548C891260CF96FBA442A",
+      "bytes": 17149,
+      "lineCount": 386,
+      "ranges": [
+        {
+          "start": 10,
+          "end": 94
+        },
+        {
+          "start": 96,
+          "end": 174
+        },
+        {
+          "start": 176,
+          "end": 265
+        },
+        {
+          "start": 267,
+          "end": 357
+        },
+        {
+          "start": 357,
+          "end": 386
+        },
+        {
+          "start": 229,
+          "end": 263
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotTransferHistory.cs",
+      "sha256": "A837D6BB820A497E51D051C6C734FE819C0B9790A21E5BEEFF8521C36D6E48C1",
+      "bytes": 5434,
+      "lineCount": 110,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 103
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotTransfer.cs",
+      "sha256": "0D745DBA10376F50C03F731ABDDD47AB5777CAB13F10E28792DC11A4CBF3BBF9",
+      "bytes": 20841,
+      "lineCount": 421,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 112
+        },
+        {
+          "start": 114,
+          "end": 204
+        },
+        {
+          "start": 271,
+          "end": 356
+        },
+        {
+          "start": 214,
+          "end": 276
+        },
+        {
+          "start": 354,
+          "end": 421
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.Sidebar.cs",
+      "sha256": "35CC40C517F10C0161422DE51A00B93F9D8C992ADA11C9BF246FB164771946CA",
+      "bytes": 21851,
+      "lineCount": 369,
+      "ranges": [
+        {
+          "start": 78,
+          "end": 114
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "sha256": "DD14BE6B567C2FEB35735D31463EC8879F5C4B95982F3877D7EBA5F5CC6C3DCB",
+      "bytes": 93869,
+      "lineCount": 1544,
+      "ranges": [
+        {
+          "start": 1206,
+          "end": 1281
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotTests.cs",
+      "sha256": "F7E1997ABC7FEF18F915CA8532A1B9E8C5789B5C28B5A57D9C297F6D11E34CFC",
+      "bytes": 37698,
+      "lineCount": 672,
+      "ranges": [
+        {
+          "start": 141,
+          "end": 228
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotTransferCollect.cs",
+      "sha256": "1C35948C6C96F980FD4A8651DAE9D89FFB353286AB6E8E6BD179FDADB8B02EFA",
+      "bytes": 7408,
+      "lineCount": 146,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 128
+        },
+        {
+          "start": 128,
+          "end": 146
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "sha256": "683356CC70D962BC228E53E8E15138AE9677EE54A936D5E6615115BD846DA441",
+      "bytes": 27668,
+      "lineCount": 610,
+      "ranges": [
+        {
+          "start": 368,
+          "end": 390
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2",
+      "bytes": 116860,
+      "lineCount": 2391,
+      "ranges": [
+        {
+          "start": 1164,
+          "end": 1204
+        },
+        {
+          "start": 1284,
+          "end": 1314
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/MoviePilotCredentials.cs",
+      "sha256": "E1D35AAA467A776D2E081DFD220919DBB2CBEEC67894CD74F8D24E9E4EB4AB64",
+      "bytes": 1942,
+      "lineCount": 56,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 56
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.MoviePilotAvailability.cs",
+      "sha256": "32863DC064423ADFC5856AFB09C82CA0645218917CA1904EA472BEEA74219E9A",
+      "bytes": 13560,
+      "lineCount": 244,
+      "ranges": [
+        {
+          "start": 25,
+          "end": 78
+        },
+        {
+          "start": 143,
+          "end": 236
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Subscriptions.cs",
+      "sha256": "79789EBE1138CAD3513A8A70E6515EA8F37D41BA610F4E1C69EEC671FEC39959",
+      "bytes": 9901,
+      "lineCount": 163,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 104
+        },
+        {
+          "start": 107,
+          "end": 163
+        },
+        {
+          "start": 105,
+          "end": 162
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotSubtitle.cs",
+      "sha256": "D7C5245A5417647B50D912839C8FEE72F262AD29AF5BCBF33C64EC3D3A88472D",
+      "bytes": 3623,
+      "lineCount": 50,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 50
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotDialog.cs",
+      "sha256": "692A54165FA21968A680B402D78B38DE9F1F955A8059F4B4DD9121C024E96EB8",
+      "bytes": 1324,
+      "lineCount": 32,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 32
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotTransferTests.cs",
+      "sha256": "C72C5A6F824305E499D1D974A00EA0FAFC06A0F7977ED54BA4F1D78E6CBFAFB4",
+      "bytes": 29101,
+      "lineCount": 531,
+      "ranges": [
+        {
+          "start": 287,
+          "end": 331
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "sha256": "57E97DCF4D4E0F612CE793AAEF50F5A31A1C0C697A866FEDC7435C377C150C9B",
+      "bytes": 28951,
+      "lineCount": 613,
+      "ranges": [
+        {
+          "start": 36,
+          "end": 76
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceViewModel.cs",
+      "sha256": "ACF11063F26D1F75ED2C673C913016C9299F83E594288B110971C6A504B26B74",
+      "bytes": 14063,
+      "lineCount": 321,
+      "ranges": [
+        {
+          "start": 38,
+          "end": 113
+        },
+        {
+          "start": 178,
+          "end": 242
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml",
+      "sha256": "BBD28A27AF1E176FF66CA39C01B17C8943333AA64821CA37C8D91ECFFB2D71B4",
+      "bytes": 12573,
+      "lineCount": 143,
+      "ranges": [
+        {
+          "start": 99,
+          "end": 143
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceBrowserViewModel.cs",
+      "sha256": "ED52852DAF1FDF6CCF82339FFDC4EEA90EDC291FBF725DA6E7F63F5334EDF6D5",
+      "bytes": 9450,
+      "lineCount": 185,
+      "ranges": [
+        {
+          "start": 34,
+          "end": 79
+        },
+        {
+          "start": 137,
+          "end": 177
+        },
+        {
+          "start": 75,
+          "end": 138
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotResourceFilter.cs",
+      "sha256": "6161FCFD5FF1AE1512C6A343772DBCD59FCEA12C2A7794EC8C114EAC77C9AD52",
+      "bytes": 3385,
+      "lineCount": 56,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 56
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPage.xaml.cs",
+      "sha256": "CBBDCA28657597E0D2AC85CBD506374F6727DD570A81BE1A477FB01F1301FFD5",
+      "bytes": 22288,
+      "lineCount": 399,
+      "ranges": [
+        {
+          "start": 331,
+          "end": 352
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotMediaParser.cs",
+      "sha256": "E1EFA40DA004343054A79E4887E3940DCBB15E361EA62521186E19D578277EE2",
+      "bytes": 13592,
+      "lineCount": 273,
+      "ranges": [
+        {
+          "start": 78,
+          "end": 94
+        },
+        {
+          "start": 114,
+          "end": 176
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotResource.cs",
+      "sha256": "8EB888DB11ACF3474B07DAB498E2498CA9CA28095DA14DA550ACE6364D35BB19",
+      "bytes": 4555,
+      "lineCount": 104,
+      "ranges": [
+        {
+          "start": 91,
+          "end": 104
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSeasonPicker.xaml.cs",
+      "sha256": "EB1E4594B75F53648814505161B5B3C29FD7C60360673E8F78620E2D265B4EF5",
+      "bytes": 1612,
+      "lineCount": 41,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 41
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotLibraryPlayback.cs",
+      "sha256": "A0AA47CAEE195332B337F3ED127655E5EBC906B6A1439AA5B2102FFD1A5F3849",
+      "bytes": 5463,
+      "lineCount": 88,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 88
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.MoviePilot.cs",
+      "sha256": "0A821FCE50DB6DD4DD2563B1F3BFA774FFF7EF7C59ED0DEFD7A393A2FD4E7886",
+      "bytes": 1779,
+      "lineCount": 35,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 35
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs",
+      "sha256": "66B533B48CFC8340A42087B93CA7BF9C18CC6DACB5232610C9F39FAA175E5C4D",
+      "bytes": 32798,
+      "lineCount": 607,
+      "ranges": [
+        {
+          "start": 134,
+          "end": 173
+        },
+        {
+          "start": 313,
+          "end": 348
+        },
+        {
+          "start": 505,
+          "end": 535
+        },
+        {
+          "start": 550,
+          "end": 581
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionEpisodeRow.cs",
+      "sha256": "3560B1814A704338B2582D5B4B48E57B94C2313B12726BA76AC3CB2F54F2227D",
+      "bytes": 4988,
+      "lineCount": 93,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 68
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsPage.xaml.cs",
+      "sha256": "1F2D94C5F7708C18CCDED829FF7D264351AC941873314B784A35AB094C9DA2AC",
+      "bytes": 3399,
+      "lineCount": 80,
+      "ranges": [
+        {
+          "start": 18,
+          "end": 79
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsPage.xaml",
+      "sha256": "7D97DC3121DF67337C2C69ADB88709D30EF019B580572CAF51B8E033E77748B9",
+      "bytes": 3439,
+      "lineCount": 45,
+      "ranges": [
+        {
+          "start": 17,
+          "end": 44
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml.cs",
+      "sha256": "B89809F0774FA78EE8F3AEFE63304CED2EE6DE92D923BEDD1E7061C5CF5349A9",
+      "bytes": 5215,
+      "lineCount": 104,
+      "ranges": [
+        {
+          "start": 85,
+          "end": 103
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml",
+      "sha256": "A29EBA897A1F998FC160A258D4FD2E7C4CADD32E8599B8222C955D4914D9139F",
+      "bytes": 3728,
+      "lineCount": 45,
+      "ranges": [
+        {
+          "start": 17,
+          "end": 44
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotSeasonPicker.xaml",
+      "sha256": "47B32AC129DBE2D2ABDEE5DBA055F0192027B89E015EB071BD90928B42C836F6",
+      "bytes": 7466,
+      "lineCount": 77,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 68
+        },
+        {
+          "start": 56,
+          "end": 77
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotSubscriptionTests.cs",
+      "sha256": "F40C10484A4D061376BD9CAEF09CB1CCAEBD5F83B4CC399523CDD536AAA6A518",
+      "bytes": 30392,
+      "lineCount": 392,
+      "ranges": [
+        {
+          "start": 324,
+          "end": 391
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotResponses.cs",
+      "sha256": "59EFC81FC41EA96A3887F14226CFDB5F4E4458BD1B9E7607F05D8BD8E9D99A9F",
+      "bytes": 1567,
+      "lineCount": 43,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 43
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotEpisodeGroups.cs",
+      "sha256": "2576656C0277EE9F0074F58474022B6492164AA15959083C5BEDA4AA81EFBFC1",
+      "bytes": 5282,
+      "lineCount": 95,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 95
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/MoviePilotEpisodeGroupRow.cs",
+      "sha256": "DEB98C8FAFE91D464A3834CEB91814FF102819905CA701F335DBE52697A6AF63",
+      "bytes": 2074,
+      "lineCount": 46,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 46
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotWindow.cs",
+      "sha256": "7F4F3BBF8DD5C4C4DF96BCE516EDB62AD820D6D23B4BB5C6687C42F761BD93D2",
+      "bytes": 12240,
+      "lineCount": 284,
+      "ranges": [
+        {
+          "start": 117,
+          "end": 200
+        },
+        {
+          "start": 75,
+          "end": 116
+        },
+        {
+          "start": 1,
+          "end": 75
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/MoviePilotReorganizeDialog.xaml",
+      "sha256": "949E8991C7CFF051710D3C5A64A8094C1895D9285A173D6D79EDA40C892C2B23",
+      "bytes": 9256,
+      "lineCount": 105,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 105
+        },
+        {
+          "start": 28,
+          "end": 59
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotEpisodePattern.cs",
+      "sha256": "6CF460137025A0204BE77126D833003C2643A4CB5F9EDEA65BF127A16B573C16",
+      "bytes": 4067,
+      "lineCount": 90,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 90
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "src/Momoka.Core/MoviePilot/MoviePilotService.MediaDetail.cs",
+      "sha256": "94CEC074D90C751FD4D22BB09038617C1CD55E16C9AE944019589FA6591148E0",
+      "bytes": 8066,
+      "lineCount": 111,
+      "ranges": [
+        {
+          "start": 38,
+          "end": 83
+        },
+        {
+          "start": 47,
+          "end": 83
+        },
+        {
+          "start": 83,
+          "end": 111
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    },
+    {
+      "path": "tests/Momoka.Tests/MoviePilotEpisodePatternTests.cs",
+      "sha256": "F17896B498A485192130EAA4C70CDC338BB6B43C0A14B88F4827CD3399BBDCF5",
+      "bytes": 6374,
+      "lineCount": 113,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 95
+        }
+      ],
+      "readingType": "本轮实际行段读取；非整文件覆盖声明"
+    }
+  ],
+  "completedAgents": [
+    {
+      "id": "01a1615c-c762-77f1-869c-61bf1588f481",
+      "name": "Galileo",
+      "scope": "搜索、媒体详情与资源",
+      "status": "已完成并关闭",
+      "policy": {
+        "authorityFile": "C:/Users/89400/Momoka/CLAUDE.md",
+        "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+        "fullReloaded": true
+      },
+      "productRuns": 0,
+      "filesWritten": 0
+    },
+    {
+      "id": "01a1616b-c00e-7922-be82-96dd5fae613a",
+      "name": "Pasteur",
+      "scope": "订阅管理、文件统计与入库目标",
+      "status": "已完成并关闭",
+      "policy": {
+        "authorityFile": "C:/Users/89400/Momoka/CLAUDE.md",
+        "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+        "fullReloaded": true
+      },
+      "productRuns": 0,
+      "filesWritten": 0
+    }
+  ],
+  "agentDeclaredReadRanges": [
+    {
+      "agentId": "01a1615c-c762-77f1-869c-61bf1588f481",
+      "name": "Galileo",
+      "scope": "搜索、媒体详情与资源",
+      "declaredReads": [
+        {
+          "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+          "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA",
+          "bytes": 27657,
+          "lineCount": 112,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 111
+            }
+          ]
+        },
+        {
+          "path": ".claude/skills/momoka-moviepilot/SKILL.md",
+          "sha256": "4818E4C6C33DF0E643DC4B0AB82FAF20467D333C233E27A3EDADB5E653F068F0",
+          "bytes": 11539,
+          "lineCount": 76,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 75
+            }
+          ]
+        },
+        {
+          "path": ".claude/skills/momoka-moviepilot/references/search-identity.md",
+          "sha256": "059CE8F148675870C5D5F62C103038B63EB7BAC30B7915EAF75C50322850A6B8",
+          "bytes": 5909,
+          "lineCount": 38,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 37
+            }
+          ]
+        },
+        {
+          "path": ".claude/skills/momoka-moviepilot/references/subscriptions.md",
+          "sha256": "8E18FBC4B458C7C3167CFD1A7714A3E4FE244885CE3F5BDE8D9A9F9EE1E973A3",
+          "bytes": 10862,
+          "lineCount": 78,
+          "ranges": [
+            {
+              "start": 69,
+              "end": 77
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotSearchViewModel.cs",
+          "sha256": "E86B9139E305DA9CC99961887B2BB41F2EFA224211B5BF1927F0C064FA92926F",
+          "bytes": 16343,
+          "lineCount": 360,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 359
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotMediaViewModel.cs",
+          "sha256": "039D7C6F352FCD4F7DB0CAF6B9421F2E93B999B6BB4C05A16BCD26BECCA7FA53",
+          "bytes": 30885,
+          "lineCount": 508,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 507
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotMediaViewModel.Related.cs",
+          "sha256": "4A5BF69CB029B283D288D49D04BB1813A013889E907F7D3E1CDEEB54ACB4CEF8",
+          "bytes": 4000,
+          "lineCount": 89,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 88
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceBrowserViewModel.cs",
+          "sha256": "ED52852DAF1FDF6CCF82339FFDC4EEA90EDC291FBF725DA6E7F63F5334EDF6D5",
+          "bytes": 9450,
+          "lineCount": 185,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 184
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceGroup.cs",
+          "sha256": "65B10FD042A56CDCB8B104691B9C9A823392DEB1882B19D3F3518E50EBD7DB4D",
+          "bytes": 1111,
+          "lineCount": 31,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 30
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceViewModel.cs",
+          "sha256": "ACF11063F26D1F75ED2C673C913016C9299F83E594288B110971C6A504B26B74",
+          "bytes": 14063,
+          "lineCount": 321,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 320
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotDownloadViewModel.cs",
+          "sha256": "038325C6C1AFF312536267146014911D1119A08E751B929A7D96BFB728F8CD18",
+          "bytes": 2313,
+          "lineCount": 56,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 55
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotSitePickerViewModel.cs",
+          "sha256": "D41032BCA8ED60463312C21BDB46F325B201735AC776F17F6552BDEDE0A017C9",
+          "bytes": 4865,
+          "lineCount": 130,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 129
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotVersionsViewModel.cs",
+          "sha256": "9F35040FF4CDF99E8622DF66AFF2A06782078C0C85C8F06E00B890DCEC3EE3B1",
+          "bytes": 5756,
+          "lineCount": 140,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 139
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotMediaParser.cs",
+          "sha256": "E1EFA40DA004343054A79E4887E3940DCBB15E361EA62521186E19D578277EE2",
+          "bytes": 13592,
+          "lineCount": 273,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 272
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotMedia.cs",
+          "sha256": "5D50B4D474113FEB48E6F9334747539757C75041937353AB86B19094E0077726",
+          "bytes": 4115,
+          "lineCount": 82,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 81
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotMediaDetail.cs",
+          "sha256": "85505BB93807BB97727BB83CDCF9137657AEF717282DF85138708F99F31FE7A7",
+          "bytes": 6603,
+          "lineCount": 110,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 109
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotRelatedMedia.cs",
+          "sha256": "6ED0A3AF470142431846BE3E043BB081CAE8CA4BCBA23F583B644F78D4F8DD7D",
+          "bytes": 2311,
+          "lineCount": 32,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 31
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotResource.cs",
+          "sha256": "8EB888DB11ACF3474B07DAB498E2498CA9CA28095DA14DA550ACE6364D35BB19",
+          "bytes": 4555,
+          "lineCount": 104,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 103
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotResourceFilter.cs",
+          "sha256": "6161FCFD5FF1AE1512C6A343772DBCD59FCEA12C2A7794EC8C114EAC77C9AD52",
+          "bytes": 3385,
+          "lineCount": 56,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 55
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotResourceGrouping.cs",
+          "sha256": "45DEC9886BE122981568CB25949A18911F662EEAD27D873713C6E6EA562F5842",
+          "bytes": 2621,
+          "lineCount": 51,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 50
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotSearchSites.cs",
+          "sha256": "05953C4BBCB889108A09EB5CD0478509984AD6F1D343D67DD0CC1617C17C50E7",
+          "bytes": 2201,
+          "lineCount": 50,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 49
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotVersionQuery.cs",
+          "sha256": "B9F30778A397218F72F096A67874087C6517296219F900469AD690CDA411A321",
+          "bytes": 5315,
+          "lineCount": 79,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 78
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotService.MediaDetail.cs",
+          "sha256": "94CEC074D90C751FD4D22BB09038617C1CD55E16C9AE944019589FA6591148E0",
+          "bytes": 8066,
+          "lineCount": 111,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 110
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Download.cs",
+          "sha256": "BE7DAD39D6C0AEF507A60CEF34A0F1F8CF98242F043EDF251F870C0F31B6506F",
+          "bytes": 1781,
+          "lineCount": 27,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 26
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotSubscriptionPlan.cs",
+          "sha256": "AED6CC87F26147010E21E6067C8D1BC7D06D5B76A6B52BFEB8DC1EFCE2528A66",
+          "bytes": 4295,
+          "lineCount": 67,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 30
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSearchPanel.xaml",
+          "sha256": "A864569D739CBE416AE42F24A53E2DB49C1E63BBCF32398BAEEF611B6ADE12B4",
+          "bytes": 9671,
+          "lineCount": 180,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 179
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSearchPanel.xaml.cs",
+          "sha256": "F2B4EEC07D7227E72A0415174DCF617F396B855D1E20D6196BC2DE88B74E4CCB",
+          "bytes": 3939,
+          "lineCount": 95,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 94
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotResourcePanel.xaml",
+          "sha256": "3DD969B6C2D216980689C202B8B8369980267173901F1F0974645EF4491E2B43",
+          "bytes": 3902,
+          "lineCount": 50,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 49
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotResourcePanel.xaml.cs",
+          "sha256": "1B14141224CCC27BAE844CC4898FFB706D100D07B74B346EB395CB0E16733906",
+          "bytes": 3367,
+          "lineCount": 70,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 69
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml",
+          "sha256": "BBD28A27AF1E176FF66CA39C01B17C8943333AA64821CA37C8D91ECFFB2D71B4",
+          "bytes": 12573,
+          "lineCount": 143,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 142
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml.cs",
+          "sha256": "BEDE555C38B97CE866B4283D6EAAD00547EBDD7524C7B8CF07FFBBA269F2170F",
+          "bytes": 705,
+          "lineCount": 24,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 23
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotMediaSeasonsView.xaml",
+          "sha256": "ECAC538FAB8DA5D8A583A80A9BDA2852AED51822713880919E671BB3D530C151",
+          "bytes": 15926,
+          "lineCount": 160,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 159
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotMediaSeasonsView.xaml.cs",
+          "sha256": "704DDACE8A535C755760CD07A8C8469E635C9984A78C4FE4EAB760825B502A5E",
+          "bytes": 6093,
+          "lineCount": 132,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 131
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotDownloadDialog.xaml",
+          "sha256": "2927A11B73E87BBA770DB9DA36CD047A28B7B083337845CC11478BF9A7F3BDCB",
+          "bytes": 2265,
+          "lineCount": 27,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 26
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotDownloadDialog.xaml.cs",
+          "sha256": "776DEAC9E515572752F36073ED8491252A4ABE5C5B65D02EAACA5A0B8366D5A4",
+          "bytes": 1669,
+          "lineCount": 44,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 43
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSitePicker.xaml",
+          "sha256": "5A74E625E227206452CA6B5CC618A62D5C92B6DEBBB7980D993D029067386839",
+          "bytes": 3564,
+          "lineCount": 45,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 44
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSitePicker.xaml.cs",
+          "sha256": "36BDD3D7EF297718D5ED1D7900CF9E97035EE508074E9ADF0BFF9012C2443895",
+          "bytes": 593,
+          "lineCount": 21,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 20
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotVersionsView.xaml",
+          "sha256": "EEAFE2FD60F9D4769707008D39A45BD48FA9CB7802FE4B6F39C1E2B764B4788F",
+          "bytes": 2221,
+          "lineCount": 30,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 29
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotVersionsView.xaml.cs",
+          "sha256": "81D94AAA2902C59EE8597FAF4D2CE32DCF385B00308E2891BAC83843AB930413",
+          "bytes": 2793,
+          "lineCount": 61,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 60
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotDialog.cs",
+          "sha256": "692A54165FA21968A680B402D78B38DE9F1F955A8059F4B4DD9121C024E96EB8",
+          "bytes": 1324,
+          "lineCount": 32,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 31
+            }
+          ]
+        },
+        {
+          "path": "tests/Momoka.Tests/MoviePilotQuerySafetyTests.cs",
+          "sha256": "9A2D5D8D0C81ECE7B65FD9BBFEB919893CA1DE578E0E66D76F43C82F97CEF463",
+          "bytes": 9545,
+          "lineCount": 164,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 163
+            }
+          ]
+        },
+        {
+          "path": "tests/Momoka.Tests/MoviePilotMediaDetailTests.cs",
+          "sha256": "5B34CA9C1EC7FCADE54D63640AFFFDF07A0D076C5CED23FBC20B5F1C27A73ADB",
+          "bytes": 11598,
+          "lineCount": 152,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 151
+            }
+          ]
+        },
+        {
+          "path": "tests/Momoka.Tests/MoviePilotSearchSitesTests.cs",
+          "sha256": "660D1AA80D0B49A1737CB68F72F84D3D3DF951398F040F3138B69EB83DD6B326",
+          "bytes": 5517,
+          "lineCount": 92,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 91
+            }
+          ]
+        },
+        {
+          "path": "tests/Momoka.Tests/MoviePilotResourceOptionsTests.cs",
+          "sha256": "E632547F1667C5C30D345D33894D9AEC59912C0D4C755AC829DB42983657DA9A",
+          "bytes": 8639,
+          "lineCount": 125,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 124
+            }
+          ]
+        },
+        {
+          "path": "tests/Momoka.Tests/MoviePilotVersionQueryTests.cs",
+          "sha256": "9B1DB7FEA73D0B5D8CBF55B76F776128EAD9A716A2C284C3E3517D561E3073E2",
+          "bytes": 6305,
+          "lineCount": 126,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 125
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.MediaDetail.cs",
+          "sha256": "183E2BECCACEC369585A17ABD3FE974F79EABF04977A59C035423DA61E603B70",
+          "bytes": 19227,
+          "lineCount": 293,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 292
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.ResourceOptions.cs",
+          "sha256": "DD3E5AF17F26AE9A686B1C7A753BD5C18563DE212ED265BDBF7074834888EFFC",
+          "bytes": 12099,
+          "lineCount": 203,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 202
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.SearchSites.cs",
+          "sha256": "81C5BD3F345225ED69788751AA96012D76A93DA030A915A91A7BB1C717E3561E",
+          "bytes": 5143,
+          "lineCount": 90,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 89
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.MoviePilotAvailability.cs",
+          "sha256": "32863DC064423ADFC5856AFB09C82CA0645218917CA1904EA472BEEA74219E9A",
+          "bytes": 13560,
+          "lineCount": 244,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 85
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.SearchLayout.cs",
+          "sha256": "FEF34F095E8069220DDC9EC513674496D33AF93C440E8475113E9DE5E70D7956",
+          "bytes": 16687,
+          "lineCount": 256,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 82
+            },
+            {
+              "start": 127,
+              "end": 194
+            },
+            {
+              "start": 222,
+              "end": 255
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+          "sha256": "080B599ED161F3B618B5287DF97187B1F5EFF9727BC4BB76F532A5E1FCB15A0D",
+          "bytes": 9757,
+          "lineCount": 210,
+          "ranges": [
+            {
+              "start": 141,
+              "end": 209
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotService.cs",
+          "sha256": "CDCCC6480AD801048D0999F0411C77DAC94E97C4E52C9740DB627D870CB58DDC",
+          "bytes": 16971,
+          "lineCount": 329,
+          "ranges": [
+            {
+              "start": 60,
+              "end": 185
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Operations.cs",
+          "sha256": "7FBEE2B38598A84FB1CB3C011AFA5A32FF2FA571E010DB9B10EC8481660430E0",
+          "bytes": 5174,
+          "lineCount": 111,
+          "ranges": [
+            {
+              "start": 21,
+              "end": 99
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPage.xaml.cs",
+          "sha256": "CBBDCA28657597E0D2AC85CBD506374F6727DD570A81BE1A477FB01F1301FFD5",
+          "bytes": 22288,
+          "lineCount": 399,
+          "ranges": [
+            {
+              "start": 182,
+              "end": 205
+            },
+            {
+              "start": 337,
+              "end": 355
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+          "sha256": "877D05866B7E96CC4719439B3844B607E3D233B25705EF49DC1761825DD0E91F",
+          "bytes": 67523,
+          "lineCount": 1411,
+          "ranges": [
+            {
+              "start": 1109,
+              "end": 1154
+            },
+            {
+              "start": 1190,
+              "end": 1231
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.MoviePilot.cs",
+          "sha256": "01096BAB8FE8013E80D9BFCBF40678E91FA19397FE53F6D04B662A1F602C8AE6",
+          "bytes": 3940,
+          "lineCount": 90,
+          "ranges": [
+            {
+              "start": 44,
+              "end": 69
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/LoadGeneration.cs",
+          "sha256": "32F3D773042E0C2944C5AE13E4A6F005BCCC8B617D78657C686644AFEA9E3986",
+          "bytes": 2468,
+          "lineCount": 53,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 53
+            }
+          ],
+          "note": "代理声明全文"
+        }
+      ],
+      "notCovered": [
+        "Client/Availability/Operations/Transfer完整链",
+        "订阅管理/入库完整链",
+        "SeasonPicker自身完整链（主线程补）",
+        "字幕Core完整链（主线程补）",
+        "其他Shell/实际UI/真实服务"
+      ]
+    },
+    {
+      "agentId": "01a1616b-c00e-7922-be82-96dd5fae613a",
+      "name": "Pasteur",
+      "scope": "订阅管理、文件统计与入库目标",
+      "declaredReads": [
+        {
+          "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+          "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA",
+          "bytes": 27657,
+          "lineCount": 112,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 111
+            }
+          ]
+        },
+        {
+          "path": ".claude/skills/momoka-moviepilot/SKILL.md",
+          "sha256": "4818E4C6C33DF0E643DC4B0AB82FAF20467D333C233E27A3EDADB5E653F068F0",
+          "bytes": 11539,
+          "lineCount": 76,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 75
+            }
+          ]
+        },
+        {
+          "path": ".claude/skills/momoka-moviepilot/references/subscriptions.md",
+          "sha256": "8E18FBC4B458C7C3167CFD1A7714A3E4FE244885CE3F5BDE8D9A9F9EE1E973A3",
+          "bytes": 10862,
+          "lineCount": 78,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 77
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotSubscription.cs",
+          "sha256": "3BC52DBB8F54F5E3EB98681A0085C04533F406CDE4B9E30EF735A999104923D6",
+          "bytes": 19829,
+          "lineCount": 323,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 320
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotSubscriptionPlan.cs",
+          "sha256": "AED6CC87F26147010E21E6067C8D1BC7D06D5B76A6B52BFEB8DC1EFCE2528A66",
+          "bytes": 4295,
+          "lineCount": 67,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 66
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Subscriptions.cs",
+          "sha256": "79789EBE1138CAD3513A8A70E6515EA8F37D41BA610F4E1C69EEC671FEC39959",
+          "bytes": 9901,
+          "lineCount": 163,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 162
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotEpisodeAirDates.cs",
+          "sha256": "F319751D55C6E65490EB0482B190E5F0C2D43A8E96709C4477D4B7A415F5F21D",
+          "bytes": 1773,
+          "lineCount": 35,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 34
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotLibraryPlayback.cs",
+          "sha256": "A0AA47CAEE195332B337F3ED127655E5EBC906B6A1439AA5B2102FFD1A5F3849",
+          "bytes": 5463,
+          "lineCount": 88,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 87
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.MoviePilot.cs",
+          "sha256": "0A821FCE50DB6DD4DD2563B1F3BFA774FFF7EF7C59ED0DEFD7A393A2FD4E7886",
+          "bytes": 1779,
+          "lineCount": 35,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 34
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs",
+          "sha256": "66B533B48CFC8340A42087B93CA7BF9C18CC6DACB5232610C9F39FAA175E5C4D",
+          "bytes": 32798,
+          "lineCount": 607,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 606
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionEpisodeRow.cs",
+          "sha256": "3560B1814A704338B2582D5B4B48E57B94C2313B12726BA76AC3CB2F54F2227D",
+          "bytes": 4988,
+          "lineCount": 93,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 92
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPage.xaml.cs",
+          "sha256": "CBBDCA28657597E0D2AC85CBD506374F6727DD570A81BE1A477FB01F1301FFD5",
+          "bytes": 22288,
+          "lineCount": 399,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 398
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml.cs",
+          "sha256": "F0A2C1E816E9F6228D706EFA1DFCB930B8EC5D7B6B9A6ADE5E91AAEA0FA80F87",
+          "bytes": 2687,
+          "lineCount": 58,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 57
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionEditor.xaml",
+          "sha256": "047BF3AB2EA5518A35890D9FB921EEC6EC3F12BCDB6F2E7CE5F515F31E5D657B",
+          "bytes": 1931,
+          "lineCount": 23,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 22
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionMenu.cs",
+          "sha256": "9C1B568FE1F268C095BA1B880319CBDA4DCDAD513B7495ABE4E207F930651325",
+          "bytes": 4359,
+          "lineCount": 80,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 79
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPoster.xaml.cs",
+          "sha256": "AEB81E4F7D1CAAFB698E0434396924A2F096322D1B468A1E46AE09842DFF40FA",
+          "bytes": 6791,
+          "lineCount": 152,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 151
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPoster.xaml",
+          "sha256": "4DCBF139C812D31C87098C970FD564F2DA1D0B9FB3CF40BF9E7DFA527EBC1D1F",
+          "bytes": 3189,
+          "lineCount": 41,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 40
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotHomeSubscriptions.cs",
+          "sha256": "296D6A36E0C6DE9EE316E947F9C2FACC5A8EE3230C782560C77C30BF72505257",
+          "bytes": 2932,
+          "lineCount": 73,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 72
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml.cs",
+          "sha256": "B89809F0774FA78EE8F3AEFE63304CED2EE6DE92D923BEDD1E7061C5CF5349A9",
+          "bytes": 5215,
+          "lineCount": 104,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 103
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml",
+          "sha256": "A29EBA897A1F998FC160A258D4FD2E7C4CADD32E8599B8222C955D4914D9139F",
+          "bytes": 3728,
+          "lineCount": 45,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 44
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsPage.xaml.cs",
+          "sha256": "1F2D94C5F7708C18CCDED829FF7D264351AC941873314B784A35AB094C9DA2AC",
+          "bytes": 3399,
+          "lineCount": 80,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 79
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsPage.xaml",
+          "sha256": "7D97DC3121DF67337C2C69ADB88709D30EF019B580572CAF51B8E033E77748B9",
+          "bytes": 3439,
+          "lineCount": 45,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 44
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionPage.xaml",
+          "sha256": "B9256A8C9032E82269F738554749C5BEE09DD499A2FAEC54D351C0809880F68B",
+          "bytes": 34024,
+          "lineCount": 362,
+          "ranges": [
+            {
+              "start": 175,
+              "end": 228
+            },
+            {
+              "start": 257,
+              "end": 293
+            },
+            {
+              "start": 308,
+              "end": 324
+            }
+          ],
+          "note": "代理分段取读1～361且有长输出截断，可靠重点行段列出，不据此声称全文视觉细节已审。"
+        },
+        {
+          "path": "tests/Momoka.Tests/MoviePilotSubscriptionTests.cs",
+          "sha256": "F40C10484A4D061376BD9CAEF09CB1CCAEBD5F83B4CC399523CDD536AAA6A518",
+          "bytes": 30392,
+          "lineCount": 392,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 391
+            }
+          ]
+        },
+        {
+          "path": "tests/Momoka.Tests/MoviePilotAuditTests.cs",
+          "sha256": "87484E7D3DE43695634F7D8FB0749CF8F7908A85E04D2F26E5049AFAE401FD62",
+          "bytes": 19027,
+          "lineCount": 315,
+          "ranges": [
+            {
+              "start": 195,
+              "end": 225
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.Subscriptions.cs",
+          "sha256": "26D88EB82AECA3D18161A73F452F0BDF9F270455AF727B1EE9EE2F8EB6BE5FA7",
+          "bytes": 68983,
+          "lineCount": 894,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 572
+            },
+            {
+              "start": 668,
+              "end": 744
+            },
+            {
+              "start": 775,
+              "end": 871
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.SubscriptionRecovery.cs",
+          "sha256": "60F0B261F8E73B8B8F14103B845964547EB676862CBDEED2A5BBBFB8D1E4D324",
+          "bytes": 15789,
+          "lineCount": 242,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 241
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.Sidebar.cs",
+          "sha256": "EF8EB3EF269C53000A97CFBC501E7A6DB86E94392345FA43F2771B16B9583168",
+          "bytes": 45028,
+          "lineCount": 672,
+          "ranges": [
+            {
+              "start": 566,
+              "end": 657
+            }
+          ]
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotMediaSeasonsView.xaml.cs",
+          "sha256": "704DDACE8A535C755760CD07A8C8469E635C9984A78C4FE4EAB760825B502A5E",
+          "bytes": 6093,
+          "lineCount": 132,
+          "ranges": [
+            {
+              "start": 1,
+              "end": 90
+            }
+          ]
+        },
+        {
+          "path": "docs/代码审查-分阶段审查-2026-10-21.阶段9审查.md",
+          "sha256": "3CA1D6A248CEB4989D598E4280FD2DAD14C90F4327AF3FDE66A530D0C39AD83F",
+          "bytes": 35507,
+          "lineCount": 216,
+          "ranges": [
+            {
+              "start": 94,
+              "end": 112
+            },
+            {
+              "start": 157,
+              "end": 175
+            }
+          ]
+        }
+      ],
+      "notCovered": [
+        "探针AniBT/通用季尾播放段",
+        "媒体详情响应和相关推荐夹具（搜索代理另审）",
+        "截断长输出的全部视觉细节",
+        "实际UI/真实服务/下载订阅整理播放"
+      ]
+    }
+  ],
+  "agentFailures": [
+    {
+      "id": "01a1615c-c905-72f1-86c2-8cacaeaf7517",
+      "stage": "首次子任务，未返回审查结果",
+      "cause": "供应资源HTTP400，跨Azure资源项目不可访问；确定性错误，已关闭",
+      "replacement": "01a1616b-c00e-7922-be82-96dd5fae613a"
+    }
+  ],
+  "coverageSummary": {
+    "businessChains": [
+      "连接设置/登录/令牌缓存与续期→可用性/侧栏/附属窗撤销",
+      "搜索来源/主身份/精确资源→筛选/下载确认/防重/取消",
+      "媒体详情→剧集组/季集/相关推荐/按季订阅/字幕下载",
+      "订阅列表/分类页/单条/差量编辑/管理→统计/入库目标/当前账号作用域",
+      "条目重整→收集文件/历史/目录→预览/确认/提交前重核/回执/释放"
+    ],
+    "notCompleteFileAudit": true
+  },
+  "findings": [
+    {
+      "key": "login-redirect",
+      "priority": "P1",
+      "status": "已确认（静态）；未修复",
+      "title": "MoviePilot登录跨源307/308自动重发密码表单",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotClient.cs",
+          "start": 40,
+          "end": 61
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotClient.cs",
+          "start": 80,
+          "end": 90
+        }
+      ],
+      "cause": "默认SocketsHttpHandler自动重定向；307/308不转GET也不清Content，登录POST用户名密码表单可发往Location异源；标准Authorization清理不保护正文。",
+      "guards": "地址仅HTTP(S)/去userinfo、DPAPI仅内存解开、发前/收后检查身份、超时取消、Cookie默认均不能限制快速异源正文重发。",
+      "notVerified": "未双回环/真实服务器/最终发布运行时验证，不声称真实密码已泄露。",
+      "id": "R-031",
+      "evidenceType": "固定源码因果链；未执行新增故障回归",
+      "minimalFix": "默认关闭自动跳转；若支持跳转，逐跳限制原来源并按请求方法/正文处理；不共享放宽Emby或其他客户端边界。",
+      "acceptance": "两个隔离回环服务加占位密码：跨源307/308第二站收到用户名/密码次数为0；核同源、30x方法转换、HTTPS降级/取消和无自动副作用重放；禁止真实凭据。",
+      "trigger": "合法跨源307/308，安全等级不降低、目标可达、跳数/取消未阻断",
+      "actual": "默认SocketsHttpHandler自动重定向；307/308不转GET也不清Content，登录POST用户名密码表单可发往Location异源；标准Authorization清理不保护正文。",
+      "userDecision": "本轮只读，无修复授权",
+      "fixCommit": null
+    },
+    {
+      "key": "transfer-prewrite-failure",
+      "priority": "P2",
+      "status": "已确认（静态）；未修复",
+      "title": "重整提交前只读重核失败被标为可能已提交，持续锁住本次表单",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotReorganizeDialog.xaml.cs",
+          "start": 229,
+          "end": 261
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotService.Transfer.cs",
+          "start": 144,
+          "end": 178
+        }
+      ],
+      "cause": "_submitted=true早于服务只读history重核；history读取明确404/200格式失败抛MoviePilotException，未进入WriteAsync及preview:false发送，但泛catch保留_submitted且提示可能已到服务器，最终SetBusy(false)仍禁表单和预览。",
+      "guards": "历史内容变更/依赖用TransferBlocked可解除，但HTTP/格式读取错误不是该类型；已有服务操作防重不涉及尚未调用的WriteAsync。",
+      "notVerified": "未新的故障夹具/UI运行，不声称任何文件已改。",
+      "id": "R-032",
+      "evidenceType": "固定源码因果链；未执行新增故障回归",
+      "actual": "只读history重核明确404或格式失败，尚未调用WriteAsync/preview:false提交；页面仍提示可能已到达并保持_submitted，表单与预览无法恢复，只能关闭重开。",
+      "minimalFix": "服务明确区分发出实际写请求前的校验/读取失败与已发不明；页面恢复前者编辑和重新预览，不复用消费过的预览，不解除真正不明操作账本。",
+      "acceptance": "成功预览→提交前history返回404/格式错误→实际preview:false请求数0，显示未提交且能重新查找/预览；已发后丢回执仍锁定/要求核对；历史变更与软链接依赖仍拦截。",
+      "trigger": "成功预览后提交前history明确404/格式错误、服务仍可用、未调用WriteAsync",
+      "userDecision": "本轮只读，无修复授权",
+      "fixCommit": null
+    },
+    {
+      "key": "episode-filter",
+      "priority": "P2",
+      "status": "已确认（静态）；未修复",
+      "title": "精确资源搜索缺meta集号时未按所选集筛选",
+      "originAgent": "01a1615c-c762-77f1-869c-61bf1588f481",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceViewModel.cs",
+          "start": 214,
+          "end": 221
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceBrowserViewModel.cs",
+          "start": 50,
+          "end": 71
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotResourceFilter.cs",
+          "start": 23,
+          "end": 28
+        }
+      ],
+      "cause": "第5集入口传Episode=5，SetResults未传autoEpisode，仅meta候选含E05才选；meta缺失但标题E05/E03时保持全集，已有标题兜底过滤未被激活。",
+      "guards": "连接/来源/ID/类型匹配仍有效，关键词版本已有autoEpisode；不是跨媒体误下载。",
+      "notVerified": "未缺meta回归/UI/实际部署频率；公开锁版契约不是目标版本实测。",
+      "id": "R-033",
+      "evidenceType": "固定源码因果链；未执行新增故障回归",
+      "minimalFix": "精确资源分支复用Browser.SetResults(rows, autoEpisode)，把所选正集号种入候选和初始筛选；不新建一套重复规则。",
+      "acceptance": "目标E05且meta缺集号、标题E05/E03：只展示E05；清除恢复全部并仍能重选E05；没有目标集不自动筛选，重搜保持目标。",
+      "trigger": "目标E05，完整主媒体匹配，meta缺集号而标题含E05/E03",
+      "actual": "第5集入口传Episode=5，SetResults未传autoEpisode，仅meta候选含E05才选；meta缺失但标题E05/E03时保持全集，已有标题兜底过滤未被激活。",
+      "userDecision": "本轮只读，无修复授权",
+      "fixCommit": null
+    },
+    {
+      "key": "invalid-download-ui",
+      "priority": "P2",
+      "status": "已确认（静态）；未修复",
+      "title": "资源匹配否决时下载入口仅置灰且不展示拒绝说明",
+      "originAgent": "01a1615c-c762-77f1-869c-61bf1588f481",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml",
+          "start": 122,
+          "end": 127
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotResourceViewModel.cs",
+          "start": 74,
+          "end": 83
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotMediaParser.cs",
+          "start": 119,
+          "end": 126
+        }
+      ],
+      "cause": "DownloadProblem使命令拒绝但模板仍画下载按钮，只有身份待核对文案，无独立原因行；违背项目不适用入口隐藏及保留状态说明。",
+      "guards": "DownloadBody再次拒绝，服务身份/防重有效；不认为被否决可实际发下载，Working/Submitted/Uncertain是应保留的过程状态。",
+      "notVerified": "未UI模板/UIA运行。",
+      "id": "R-034",
+      "evidenceType": "固定源码因果链；未执行新增故障回归",
+      "minimalFix": "按DownloadProblem派生下载入口显隐和独立状态说明；不隐藏Working/Submitted/Uncertain等过程状态，其他有效操作保留。",
+      "acceptance": "异源/异类型/缺快照/显式isTarget=false/非exact分别显示说明、下载控件Collapsed且不可定位执行；缺标志或空status且身份满足保正常下载；过程状态继续可见。",
+      "trigger": "精确资源异源/异类型/缺快照或显式匹配否决",
+      "actual": "DownloadProblem使命令拒绝但模板仍画下载按钮，只有身份待核对文案，无独立原因行；违背项目不适用入口隐藏及保留状态说明。",
+      "userDecision": "本轮只读，无修复授权",
+      "fixCommit": null
+    },
+    {
+      "key": "group-playback",
+      "priority": "P2",
+      "status": "已确认（静态）；未修复",
+      "title": "非默认剧集组编号不同仍接受路径不符的唯一季集候选",
+      "originAgent": "01a1616b-c00e-7922-be82-96dd5fae613a",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotLibraryPlayback.cs",
+          "start": 26,
+          "end": 34
+        },
+        {
+          "path": "src/Momoka.Core/MoviePilot/MoviePilotLibraryPlayback.cs",
+          "start": 49,
+          "end": 79
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs",
+          "start": 518,
+          "end": 522
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs",
+          "start": 554,
+          "end": 565
+        }
+      ],
+      "cause": "非默认组S01E01映射另一原始集，候选先以组季号筛再数字集号核。路径无命中仍matches.Length==1取错集，之后跳过文件itemid/路径校验；不同编号正确文件也可被拒绝。",
+      "guards": "主媒体提供者和ID、当前账号scope、行归属有效；它们不提供非默认组编号映射；错误限定相同主作品的不同集，不是跨账号越权。",
+      "notVerified": "未证实用户非默认组实际重编号，未真实误播，不宣称所有组有错。",
+      "id": "R-035",
+      "evidenceType": "固定源码因果链；未执行新增故障回归",
+      "minimalFix": "非默认组不接受仅数字唯一的猜测；在已核主媒体候选中按入库路径唯一定位，无法建立可信映射就隐藏/拒绝播放；默认组语义独立保留。",
+      "acceptance": "非默认组E01对应原始S02E01，同时存在数字同组但路径不符的S01E01：取正确路径或无目标，绝不取错数字候选；多候选/缺路径/默认组/离页与退出取消均回归。",
+      "trigger": "非默认剧集组季集编号不同，当前媒体存在数字一致但入库路径不符的唯一候选",
+      "actual": "非默认组S01E01映射另一原始集，候选先以组季号筛再数字集号核。路径无命中仍matches.Length==1取错集，之后跳过文件itemid/路径校验；不同编号正确文件也可被拒绝。",
+      "userDecision": "本轮只读，无修复授权",
+      "fixCommit": null
+    },
+    {
+      "key": "category-empty",
+      "priority": "P2",
+      "status": "已确认（静态）；未修复",
+      "title": "分类订阅页另一分类有数据时当前空分类无提示也无刷新入口",
+      "originAgent": "01a1616b-c00e-7922-be82-96dd5fae613a",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/MoviePilotSubscriptionsViewModel.cs",
+          "start": 143,
+          "end": 166
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsPage.xaml",
+          "start": 27,
+          "end": 40
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MoviePilotSubscriptionsView.xaml.cs",
+          "start": 85,
+          "end": 89
+        }
+      ],
+      "cause": "Visible按Movies或Series任一非空，整页EmptyState据它关闭；Row.Key又隐藏另一分类，空分类父区域和内部刷新一起收起，成功无提示时只剩标题。",
+      "guards": "通知/集合稳定/Row分类隔离存在，错误Notice另显恢复，本项限定成功空分类；共享主页需要原有任一分类语义。",
+      "notVerified": "未UI运行/用户订阅分布；绑定逻辑不依赖实际服务版本。",
+      "id": "R-036",
+      "evidenceType": "固定源码因果链；未执行新增故障回归",
+      "minimalFix": "整页宿主按当前分类集合派生Loading/Empty并保留错误，主页共享模型任一分类有数据语义不改。",
+      "acceptance": "电影空+电视剧非空及反向，删除当前类最后条目、旧另一类数据+扣住刷新：本类空态/刷新可见，读取中不假称空，错误恢复仍可见。",
+      "trigger": "当前分类为空，另一分类非空，读取成功且无Notice",
+      "actual": "Visible按Movies或Series任一非空，整页EmptyState据它关闭；Row.Key又隐藏另一分类，空分类父区域和内部刷新一起收起，成功无提示时只剩标题。",
+      "userDecision": "本轮只读，无修复授权",
+      "fixCommit": null
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "P11-EX-01",
+      "topic": "所有跨源跳转均泄漏Bearer头",
+      "decision": "排除该泛化",
+      "reason": "固定.NET RedirectHandler明确清除标准Authorization；本轮确认的是登录表单Content在307/308仍保留，不把两者混为一谈。"
+    },
+    {
+      "id": "P11-EX-02",
+      "topic": "MoviePilotException.Body存在所以自动进入日志",
+      "decision": "排除",
+      "reason": "Body属性未覆写ToString，Log只调用异常ToString；message/ReasonPhrase回显另列待验证，不从Body字段推导泄漏。"
+    },
+    {
+      "id": "P11-EX-03",
+      "topic": "将Generation直接加入稳定防重键",
+      "decision": "不作修复建议",
+      "reason": "既有测试明确配置往返ConnectionStamp保持稳定，保证重搜、关闭恢复仍保留不明/已提交限制；结果代次失效与操作防重身份应分别建模。"
+    },
+    {
+      "id": "P11-EX-04",
+      "topic": "超时自动切GET、自动重复下载/订阅/重整",
+      "decision": "现有防护已静态核对",
+      "reason": "WriteAsync服务级防重，已发无回执标Uncertain；重整预览一次消费，防重账本不随重搜清空；订阅方法回退由代理另核仅明确405。"
+    },
+    {
+      "id": "P11-EX-05",
+      "topic": "重整绿色预览即证明已整理完成",
+      "decision": "排除",
+      "reason": "预览/提交分开，完整文件与失败守卫，accepted与completed逐行分开；服务还核历史和软链接依赖，不真实重整。"
+    },
+    {
+      "id": "P11-EX-06",
+      "topic": "按季订阅和管理写后补读等同R-024",
+      "decision": "不新增重复根因",
+      "reason": "季新增回读失败主动标Uncertain防重并要求核对；管理写入与后续刷新分离，不把结果不明错误当全部失败重发。重整前只读校验误锁表单是不同时间边界。"
+    },
+    {
+      "id": "P11-EX-07",
+      "topic": "订阅编辑提交期间新草稿丢失（R-027）",
+      "decision": "未证实同根因，不新增",
+      "reason": "编辑回调先返回草稿再提交；季提交由Submitting和行Editable限制编辑，未看到提交后清除新的编辑。"
+    },
+    {
+      "id": "P11-EX-08",
+      "topic": "非默认组资源接口缺group一定误下载",
+      "decision": "未闭合，列待验证",
+      "reason": "公开资源接口不接受group但缺少映射证据，不能单凭缺参数报告跨媒体误下载；R-035是文件路径明确冲突仍选数字候选的独立静态链。"
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "P11-COV-01",
+      "status": "未验证",
+      "topic": "真实MoviePilot版本和兼容性",
+      "detail": "不登录用户服务，dashboard/system实际版本未读取；公开锁版源码只作为协议事实，不表示目标已升级。"
+    },
+    {
+      "id": "P11-COV-02",
+      "status": "待验证，不计缺陷",
+      "topic": "错误message/ReasonPhrase回显可能包含私有字段",
+      "detail": "Client优先服务器message，ViewModel和日志可转述异常Message；需同版本/插件实际回显字段支撑。未从Exception.Body推导泄漏，未读取真实torrent原文或凭据。"
+    },
+    {
+      "id": "P11-COV-03",
+      "status": "未执行",
+      "topic": "新增故障的离线回归和UI运行",
+      "detail": "本轮纯只读审查/文档记录，不编译或运行产品/测试/探针/自检/截图。既有断言只静态阅读，旧2072通过不是阶段11结果。"
+    },
+    {
+      "id": "P11-COV-04",
+      "status": "留后续阶段，未执行",
+      "topic": "真实资源入库到起播、AniBT及播放管线",
+      "detail": "实际下载/订阅/重整/播放未授权；跨服务AniBT阶段12尚未开始，起播生命周期和端到端留13/19；用户要求11后暂停。"
+    },
+    {
+      "id": "P11-COV-05",
+      "status": "未审/后续范围",
+      "topic": "完整视觉细节、生成绑定代码及平台窗口尺寸",
+      "detail": "代理长输出截断的部分视觉细节不算可靠全量；主线程补SeasonPicker、重整表单和窗口释放链，窗口布局/主题通用细节留17。AniBT专属桥接Service.AniBt留12，全部上游源码不穷尽。"
+    }
+  ],
+  "rootCauseExpansion": [],
+  "publicPrimaryEvidence": [
+    {
+      "title": "RedirectHandler.cs",
+      "owner": "dotnet/runtime",
+      "version": "v10.0.11",
+      "url": "https://raw.githubusercontent.com/dotnet/runtime/v10.0.11/src/libraries/System.Net.Http/src/System/Net/Http/SocketsHttpHandler/RedirectHandler.cs",
+      "retrievedAt": "2026-10-22T02:22:14.267Z",
+      "sha256": "499404448F52107448468D679693FBBF379C83EA2348F57072F056CFCE156610",
+      "lineCount": 179,
+      "readRanges": [
+        {
+          "start": 27,
+          "end": 160
+        }
+      ]
+    },
+    {
+      "title": "HttpConnectionSettings.cs",
+      "owner": "dotnet/runtime",
+      "version": "v10.0.11",
+      "url": "https://raw.githubusercontent.com/dotnet/runtime/v10.0.11/src/libraries/System.Net.Http/src/System/Net/Http/SocketsHttpHandler/HttpConnectionSettings.cs",
+      "retrievedAt": "2026-10-22T02:36:23.817Z",
+      "sha256": "D70ECCB455A49155B359DA525DB805E620DF2AAD1361147CC9390B7D980C5C61",
+      "lineCount": 158,
+      "readRanges": [
+        {
+          "start": 1,
+          "end": 50
+        },
+        {
+          "start": 85,
+          "end": 104
+        }
+      ]
+    },
+    {
+      "title": "HttpHandlerDefaults.Common.cs",
+      "owner": "dotnet/runtime",
+      "version": "v10.0.11",
+      "url": "https://raw.githubusercontent.com/dotnet/runtime/v10.0.11/src/libraries/Common/src/System/Net/Http/HttpHandlerDefaults.cs",
+      "retrievedAt": "2026-10-22T02:36:23.818Z",
+      "sha256": "0C134802433BBE2E54B8A65849052BA859580881369E07E00396052BF1ED4ED3",
+      "lineCount": 34,
+      "readRanges": [
+        {
+          "start": 1,
+          "end": 33
+        }
+      ]
+    },
+    {
+      "title": "MoviePilot search.py",
+      "owner": "jxxghp/MoviePilot",
+      "version": "v3.1.3",
+      "resolvedCommit": "7aa5d613b8641b94624f8879ad9596dbcd4edffa",
+      "url": "https://raw.githubusercontent.com/jxxghp/MoviePilot/7aa5d613b8641b94624f8879ad9596dbcd4edffa/app/api/endpoints/search.py",
+      "retrievedAt": "2026-10-22T03:22:01.501Z",
+      "sha256": "7004B09320D4214040A0518C265227FD1C6E609FBA054BA1CCF1E19D2C2F6EEE",
+      "lineCount": 872,
+      "readRanges": [
+        {
+          "start": 462,
+          "end": 502
+        }
+      ],
+      "interpretation": "精确media资源接口签名和实际转发只含season，无episode/group；字幕接口另支持episode，不混用。"
+    }
+  ],
+  "runtimeStaticCorroboration": {
+    "assemblyPath": "C:/Users/89400/.dotnet/shared/Microsoft.NETCore.App/10.0.11/System.Net.Http.dll",
+    "sha256": "8AE9F649D43F1F3FB635170784BCB753D305BC36A42703B4B0BEDB15A29729F0",
+    "mode": "本轮只重新读取文件哈希；不调用HTTP类，不运行产品或握手",
+    "previousRecord": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+    "oldEvidenceTimestamp": "2026-10-21，不冒充本轮新IL读取",
+    "sameHashAsStored": true
+  },
+  "publicFetchLimitations": [
+    "匿名GitHub ref接口403限流，公开git ls-remote锁v3.1.3提交，未调用用户服务",
+    "v3.1.3是本轮定向协议版本，不声称目标部署版本或最新稳定版"
+  ],
+  "historicalTests": {
+    "phase": 2,
+    "executedAt": "2026-10-21T02:59:12+08:00",
+    "passed": 2072,
+    "failed": 0,
+    "skipped": 0,
+    "usedAsCurrentExecution": false,
+    "limitation": "仅旧历史背景，本轮不运行，不覆盖阶段11新增问题"
+  },
+  "executions": {
+    "productBuilds": 0,
+    "productTests": 0,
+    "applicationProbes": 0,
+    "selfChecks": 0,
+    "uiRuns": 0,
+    "realServerReads": 0,
+    "realServerWrites": 0,
+    "download": 0,
+    "subscription": 0,
+    "reorganization": 0,
+    "playback": 0,
+    "publication": 0,
+    "push": 0
+  },
+  "systemContextCompression": {
+    "executed": false,
+    "policyFullRetained": true,
+    "summaryNotCompression": true
+  },
+  "nextPhase": {
+    "phase": 12,
+    "status": "暂停，未开始",
+    "reason": "用户明确要求完成当前阶段后暂停"
+  },
+  "limitations": "静态审查完成不等于产品修复、运行回归或发布交付；当前阶段后按用户要求暂停"
+}

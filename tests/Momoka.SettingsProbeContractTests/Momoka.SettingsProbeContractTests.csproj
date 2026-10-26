@@ -1,0 +1,92 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Momoka.SettingsProbeContractTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <StartupObject>Momoka.Tests.Program</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.SettingsLifetimeTests\ShellRuntime.cs" Link="Support\ShellRuntime.cs" />
+    <Compile Include="..\Momoka.SettingsLifetimeTests\LifetimeFixture.cs" Link="Support\LifetimeFixture.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\SettingsPage.Motion.cs" Link="Production\SettingsPage.Motion.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\SettingsRowsMotion.cs" Link="Production\SettingsRowsMotion.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\HomeMotion.cs" Link="Production\HomeMotion.cs" />
+  </ItemGroup>
+  <!-- Real page/probe bodies are compiled unchanged; only XAML, navigation and animation clocks
+       are boundaries. Every VM call forwards to the explicitly supplied current-tree Shell DLL. -->
+  <UsingTask TaskName="ExtractSettingsProbeContracts" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string> read = path => File.ReadAllText(Path.Combine(Root, path)).Replace("\r\n", "\n");
+        Func<string, string, string, string> between = (source, start, end) =>
+        {
+            var first = source.IndexOf(start, StringComparison.Ordinal);
+            if (first < 0 || source.IndexOf(start, first + start.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous source start: " + start);
+            var last = source.IndexOf(end, first + start.Length, StringComparison.Ordinal);
+            if (last < 0) throw new InvalidOperationException("Missing source end: " + end);
+            return source.Substring(first, last - first);
+        };
+        var page = read("src/Momoka.Shell/Views/SettingsPage.xaml.cs");
+        var probe = read("src/Momoka.Shell/ShellNavigationProbe.Settings.cs");
+        var motion = read("src/Momoka.Shell/ShellNavigationProbe.SettingsMotion.cs");
+        var shared = read("src/Momoka.Shell/ShellNavigationProbe.cs");
+        var conditional = between(motion, "    private async Task SettingsConditionalRowsAsync(int width)", "    private static SettingsPage CreateMotionSettingsPage");
+        var support = read("tests/Momoka.SettingsLifetimeTests/Program.cs");
+        var usings = "#nullable enable\nusing System.Collections.Concurrent;\nusing System.ComponentModel;\nusing System.Reflection;\n" +
+            "using Momoka.Configuration;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\nusing Momoka.Emby;\n" +
+            "using Momoka.Services;\nusing Momoka.Mpv;\nusing Momoka.Shell.ViewModels;\nusing Momoka.Shell.Views;\n" +
+            "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Media;\n" +
+            "using Microsoft.UI.Xaml.Automation.Peers;\nusing Microsoft.UI.Xaml.Automation.Provider;\nusing Microsoft.UI.Xaml.Navigation;\n";
+        var generated = "// Verbatim current-source contracts; do not edit generated output.\n" + usings +
+            "namespace Momoka.Shell.Views\n{\n" +
+            between(page, "internal sealed record SettingsRequest", "\n/// <summary>\n/// 设置页。") +
+            "\npublic sealed partial class SettingsPage : Page, IShellContent\n{\n" +
+            between(page, "    private const string Category = \"设置\";", "    internal bool IsReady =>") +
+            between(page, "    private async Task RefreshServerAdministrationAsync()", "\n    private void UpdateCategoryGroups()") +
+            between(page, "    private void UpdateCategoryGroups()", "\n    /// <summary>\n    /// 分组表每次") +
+            between(page, "    internal void ReleaseHosted()", "\n    /// <summary>\n    /// Ends this visit\u0027s reads") +
+            between(page, "    public void Release() => ReleaseHosted();", "\n") +
+            "\n}\n}\nnamespace Momoka.Shell\n{\ninternal sealed partial class ShellNavigationProbe\n{\n" +
+            between(probe, "    private static void BeginSettingsFixtureVisit(SettingsPage page)", "\n    private async Task SettingsEntranceAsync()") +
+            between(probe, "    private static Task WaitForSettingsRowsLoadedAsync(SettingsPage page, ItemsControl rows)", "    private static void AssertSettingsSettled(SettingsPage page)") +
+            between(shared, "    private static void Field(object target", "    private static async Task SettleAsync()") +
+            between(shared, "    private sealed class FakeCapabilities", "    private sealed class FakeLauncher") +
+            "\n    internal static async Task CheckEntrance(SettingsPage page, int width)\n    {\n" +
+            "        var evidence = new List<string>();\n" +
+            between(probe, "                var content = Get<Grid>(page, \"SettingsContent\");", "                await WaitForSettingsSettledAsync(page);") +
+            "\n    }\n    internal static async Task CheckRapidToggle(SettingsPage page, ItemsControl rows, ToggleSwitch lossless, MpvSettings mpv)\n    {\n" +
+            "        bool HasRow(string label) => Descendants(page).OfType<TextBlock>().Any(text => text.Text == label);\n" +
+            "        static void Toggle(ToggleSwitch control) => ((IToggleProvider)new ToggleSwitchAutomationPeer(control).GetPattern(PatternInterface.Toggle)).Toggle();\n" +
+            between(conditional, "            Toggle(lossless);\n            Toggle(lossless);\n            Toggle(lossless);\n            Toggle(lossless);", "            HomeMotion.ApplyPreference(true);") +
+            "\n    }\n}\n}\nnamespace Momoka.Tests\n{\n" +
+            between(support, "internal sealed class FixtureContext", "\n}") + "\n}\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
+            File.WriteAllText(Output, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateSettingsProbeContracts" BeforeTargets="CoreCompile">
+    <ExtractSettingsProbeContracts Root="$(MSBuildProjectDirectory)\..\.."
+                                  Output="$(IntermediateOutputPath)SettingsProbeContracts.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)SettingsProbeContracts.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

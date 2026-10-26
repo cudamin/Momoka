@@ -1,0 +1,112 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.AniBtSourceContractTests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <R042SourceRoot Condition="'$(R042SourceRoot)' == ''">$(MSBuildProjectDirectory)\..\..</R042SourceRoot>
+        <AniBtProbeSource Condition="'$(AniBtProbeSource)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.AniBt.cs</AniBtProbeSource>
+        <DefineConstants Condition="'$(R042Legacy)' == 'true'">$(DefineConstants);R042_LEGACY</DefineConstants>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)generated</CompilerGeneratedFilesOutputPath>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="Program.cs;SettingsStoreBoundary.cs;SourceFixture.cs;CoreSourceContractTests.cs" />
+        <Compile Include="CallerSourceContractTests.cs;ShellProbeContractTests.cs" Condition="'$(R042Legacy)' != 'true'" />
+        <!-- Current production Core, never the full Core test runner or solution. Replace only the
+             settings IO endpoint; SelectSource, scope lifetime, planning and HTTP code stay actual. -->
+        <Compile Include="..\..\src\Momoka.Core\**\*.cs"
+                 Exclude="..\..\src\Momoka.Core\bin\**;..\..\src\Momoka.Core\obj\**;..\..\src\Momoka.Core\Configuration\SettingsStore.cs;..\..\src\Momoka.Core\AniBt\AniBtService.cs"
+                 Link="Production\Core\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Include="$(R042SourceRoot)\src\Momoka.Core\AniBt\AniBtService.cs" Link="Production\AniBtService.cs" />
+        <Compile Include="$(R042SourceRoot)\src\Momoka.Shell\ViewModels\AniBtScrapeViewModel.cs" Link="Production\AniBtScrapeViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+        <Compile Include="$(R042SourceRoot)\src\Momoka.Shell\Views\AniBtScrapeDialog.xaml.cs" Link="Production\AniBtScrapeDialog.xaml.cs" />
+        <EmbeddedResource Include="$(R042SourceRoot)\src\Momoka.Shell\Views\AniBtScrapeDialog.xaml" LogicalName="Production.AniBtScrapeDialog.xaml" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\ShellPage.AniBt.cs" LogicalName="Production.ShellPage.AniBt.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\ItemCommands.cs" LogicalName="Production.ItemCommands.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotDialog.cs" LogicalName="Production.MoviePilotDialog.cs" />
+        <!-- Reuse existing anonymous replies and inert XAML/event endpoints, not their R037/R039 cases. -->
+        <Compile Include="..\Momoka.AniBtConfirmationTests\AnonymousFixture.cs" Link="Boundaries\AnonymousFixture.cs" />
+        <Compile Include="..\Momoka.AniBtConfirmationTests\DialogBoundary.cs" Link="Boundaries\DialogBoundary.cs" />
+        <Compile Include="..\Momoka.AniBtConfirmationTests\ThemeBoundary.cs" Link="Boundaries\ThemeBoundary.cs" />
+        <Compile Include="..\Momoka.AniBtConfirmationTests\UiControls.cs" Link="Boundaries\UiControls.cs" />
+        <Compile Include="..\Momoka.AniBtConfirmationTests\UiValues.cs" Link="Boundaries\UiValues.cs" />
+        <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="Boundaries\UiQueue.cs" />
+        <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    </ItemGroup>
+    <!-- Execute this probe's actual fixture replies and stage assertions. No Shell window or
+         shared fixture changes; the existing R042 historical-red input remains independent. -->
+    <UsingTask TaskName="ExtractAniBtShellProbe" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <SourceRoot ParameterType="System.String" Required="true" />
+            <ProbeSource ParameterType="System.String" Required="true" />
+            <OutputSource ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                Func<string, string, int> unique = (source, marker) =>
+                {
+                    var index = source.IndexOf(marker, StringComparison.Ordinal);
+                    if (index < 0 || source.IndexOf(marker, index + marker.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing/ambiguous AniBT probe boundary: " + marker);
+                    return index;
+                };
+                Func<string, string, string, string> between = (source, start, end) =>
+                {
+                    var first = unique(source, start);
+                    var last = unique(source, end);
+                    if (last <= first) throw new InvalidOperationException("Reversed AniBT probe boundary: " + start);
+                    return source.Substring(first, last - first);
+                };
+                var shell = Path.Combine(SourceRoot, "src", "Momoka.Shell");
+                var probe = File.ReadAllText(ProbeSource).Replace("\r\n", "\n");
+                var common = File.ReadAllText(Path.Combine(shell, "ShellNavigationProbe.cs")).Replace("\r\n", "\n");
+                var modal = File.ReadAllText(Path.Combine(shell, "Views", "MoviePilotDialog.cs")).Replace("\r\n", "\n");
+                var scrape = between(probe, "    private async Task AniBtScrapeAsync()", "    private async Task AniBtSearchAsync()");
+                var aniStart = unique(probe, "    private sealed class AniBtProbeServer : HttpMessageHandler");
+                var manual = between(scrape, "            aniBt.ManualCandidates = true;", "            var manualRow = ");
+                var generated = "#nullable enable\n// Verbatim current probe inputs/assertions; inert modal endpoints only. Do not edit.\n" +
+                    "using System.Collections.Concurrent;\nusing System.Net;\nusing System.Text;\nusing System.Text.Json;\n" +
+                    "using Momoka.AniBt;\nusing Momoka.Emby;\nusing Momoka.MoviePilot;\nusing Momoka.Shell.Views;\n" +
+                    "using ContentDialog = Momoka.Tests.ShellProbeDialogBoundary;\n" +
+                    "using ContentDialogResult = Momoka.Tests.ShellProbeDialogResult;\n" +
+                    "namespace Momoka.Tests;\ninternal static class AniBtShellProbeSource\n{\n" +
+                    between(common, "    private static TaskCompletionSource<T> Pending<T>()", "    private static object? Call(") +
+                    "    private sealed class InputFixture { internal FakeTransport Transport { get; } = new(); }\n" +
+                    "    internal static (EmbyItem Item, HttpMessageHandler Emby) Input()\n    {\n" +
+                    "        var fixture = new InputFixture();\n" +
+                    between(scrape, "        var item = new EmbyItem\n", "        var service = ") +
+                    "        return (item, fixture.Transport);\n    }\n" +
+                    "    internal static HttpMessageHandler AniBt(bool manual) => new AniBtProbeServer { ManualCandidates = manual };\n" +
+                    "    internal static string[] Requests(HttpMessageHandler emby) => ((FakeTransport)emby).Requests.ToArray();\n" +
+                    "    internal static string[] MatchNames(HttpMessageHandler aniBt) => ((AniBtProbeServer)aniBt).MatchNames.ToArray();\n" +
+                    "    internal static void FailPreviewRead(HttpMessageHandler emby)\n    {\n" +
+                    "        var transport = (FakeTransport)emby;\n        var reply = transport.Reply!;\n" +
+                    "        transport.Reply = (request, token) => request.RequestUri!.AbsolutePath.EndsWith(\"/Items/RemoteSearch/Series\", StringComparison.Ordinal)\n" +
+                    "            ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)) : reply(request, token);\n    }\n" +
+                    "    internal static void AssertLoaded(AniBtScrapeDialog dialog)\n    {\n" +
+                    between(scrape, "            Require(dialog.ViewModel.Rows.Count == 1", "            var row = dialog.ViewModel.Rows[0];") + "    }\n" +
+                    "    internal static void AssertManual(AniBtScrapeDialog dialog)\n    {\n" +
+                    manual.Substring(unique(manual, "            Require(dialog.PrimaryButtonText == ")) + "    }\n" +
+                    modal.Substring(unique(modal, "    internal static async Task<ContentDialogResult> ShowAsync("),
+                        modal.LastIndexOf("\n}", StringComparison.Ordinal) - unique(modal, "    internal static async Task<ContentDialogResult> ShowAsync(")) +
+                    between(common, "    private sealed class FakeTransport : HttpMessageHandler", "    private sealed class FakeCapabilities") +
+                    probe.Substring(aniStart, probe.LastIndexOf("\n}", StringComparison.Ordinal) - aniStart) + "\n}\n";
+                Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+                if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+                    File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GenerateAniBtShellProbe" BeforeTargets="CoreCompile" Condition="'$(R042Legacy)' != 'true'">
+        <ExtractAniBtShellProbe SourceRoot="$(MSBuildProjectDirectory)\..\.." ProbeSource="$(AniBtProbeSource)"
+                               OutputSource="$(IntermediateOutputPath)AniBtShellProbe.g.cs" />
+        <ItemGroup><Compile Include="$(IntermediateOutputPath)AniBtShellProbe.g.cs" /></ItemGroup>
+    </Target>
+</Project>

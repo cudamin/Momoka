@@ -20,12 +20,33 @@ Verification runs per delivery batch, not per small edit.
 
 ## Before accepting a result
 
+### Shipped runtime approval
+
+`tools/verify-publish.ps1` delegates complete mpv-ui/native/license approval to
+`verify-mpv-payload.ps1`; the repo-fixed approved-payload manifest is not rebuilt from the tested
+DLLs. Dependency approval is separate from publish deps: selected pinned restore/package content and
+current project outputs constrain DLL bytes and relative paths. SDK download/runtimepack records lack
+content digests, so the Windows SDK identity/hash/asset mapping is explicitly pinned in
+`assets/mpv-runtime/approved-runtimepack.json`; self-contained .NET uses its separate
+`assets/mpv-runtime/approved-dotnet-runtimepack.json`. Select the exact package, never a catch-all
+pin or mutable cache metadata. The .NET inventory was reviewed from the independently downloaded
+official package RuntimeList.xml, not generated from tested deps. DLLs and executables both require
+exact locations/bytes and every approved dependency must be present. Framework-dependent output
+must not silently admit the self-contained .NET runtimepack. Official
+SDK NuGet content hashing/local signed-archive integrity remains offline; no signer-chain network
+check is implied. A complete synthetic non-PE fixture tests this same verifier without proving that
+real libmpv was supplied or a real publish/native run passed. A run missing real native stays red;
+when approved native is supplied, re-run its actual affected checks and record the changed environment.
+Changing an approved package or binary is a separate reviewed change, not automatic snapshot refresh.
+
+
 - Confirm tested files and output belong to the current working tree. `--no-build` needs a successful build of the current test code and Core; `-c Release` alone can select stale output. Publishing the Shell does not refresh the test assembly.
 - Report observed counts, failures and skips separately. Missing fixtures, unavailable input and known old failures are not passes.
+- The Core test runner assigns each executed case exactly one outcome: passed, failed, or skipped. A runtime `Skip` suppresses its pass; an exception after `Skip` still fails. Repeated skip reasons within a case count once. Pre-registration skips also appear in the total. Optional skips preserve exit code 0 but never satisfy a required check. `TestHarnessTests` exercises the real runner in isolated test child processes.
 - A `--probe-shell --probe-section` run covers only the selected areas. Read `shell-probe-scope.txt` and report the skipped areas; exit code 0 is not a full-probe pass.
 - An isolated worktree's publish is not delivery to the desktop shortcut. Check the actual target as required by CLAUDE.md.
 - The local cursor, motion and composition probes select the integrated pipeline. They do not validate the standalone window, uosc, standalone switching or the external mpv backend.
-- Self-check uses copied settings and an isolated run directory, but can still sign in and read the real server. It is not an offline probe. Never inspect or print real tokens to validate redaction; use placeholders.
+- Self-check uses copied settings and an isolated run directory, but can still sign in and read the real server. It is not an offline probe. Never inspect or print real tokens to validate redaction; use placeholders. `SelfCheckRun.Create` saves the isolated screenshot directory and non-maximized preference into the run copy; `ShellServices` reapplies the same policy on a strict reload. The production settings and backup stay untouched. A stalled/failing copy is not a fresh account. `selfcheck-output-isolation-fixture` uses fake configuration and the real copy/read/output code without launching the app; its user-level mutex must not overlap another self-check or full Core run.
 - Before testing a rule, confirm the chosen probe executes it. In particular, `BeginMotionProbe` has stopped the player ticker; rules inside `OnTick` cannot be inferred from an unmodified motion run that does not tick. If temporary instrumentation is needed, separate its evidence from tests of the final uninstrumented build, and remove it before delivery.
 - Helpers under ignored `work/` are local experiments, not clean-checkout prerequisites. Verify their existence and read them before reuse. Mouse probes on the live desktop must verify that their target is this process's window (or the intended desktop) before injecting input; a window covering the target can otherwise receive the click.
 
@@ -100,6 +121,32 @@ Reference transitions:
 
 These are acceptance scenarios, not a claim that every transition already has an automated assertion. A documentation-only update needs document checks under CLAUDE.md, not a desktop run solely to exercise these examples.
 
+## Current probe lifetimes and layout readings
+
+A directly mounted SettingsPage needs a fresh activity ticket, VM activation and the real motion
+preference subscription; Attach/Reload alone is not a page visit. HomeOrder uses the same visit entry.
+After ReleaseHosted, reenter with a new ticket rather than reviving an old observer. The FnNas library
+probe removes only its own Frame in finally so later root-child assertions retain their meaning.
+AniBT candidates are previewable, not immediately submit-ready; execute and cancel the actual read-only
+preview before testing the second-stage confirmation. Keep placeholder writes explicitly rejected.
+
+A current self-check still uses the established check names/baseline, but validates all nine library
+view enum entries, actual live layout MinItemHeight and independently captured selected-field text
+height. HDR optional-number labels are exact four/five according to mode. The episode surface uses
+the current card-border resource, not a retired mandatory outline. These diagnostic repairs do not
+change product UX or grant a baseline exception. The source-linked/malformed-reading fixtures do not
+substitute for final executable runtime evidence.
+
+Visible UI probes are interactive tools, not hidden helpers. Verify an actual HWND and enough screen
+space before relying on pixels. The motion probe's direct-fullscreen stage waits for its existing
+window transaction, animation and composition handover; it retains identity and geometry assertions.
+A timeout, failure, missing screenshot or crashing final process remains a failed runtime result.
+
 ## Tool changes
 
-A verification-tool edit needs tests of its affected success and failure paths as well as the applicable gates. `tools/check-scripts.ps1` checks PowerShell encoding/line endings/syntax, not runtime correctness. `smoke.ps1` checks process survival, not successful playback. Keep their command help and messages consistent with the current policy.
+A verification-tool edit needs tests of its affected success and failure paths as well as the applicable gates. `tools/check-scripts.ps1` checks PowerShell encoding/line endings/syntax, not runtime correctness. `smoke.ps1` checks process survival, not pages, login or playback. It returns nonzero for early exit (including child code 0), launch failure or unreadable new logs, and preserves a nonzero child exit code. It does not stop the launched process by default; `-StopAfterCheck` is an explicit opt-in to clean up only that retained process handle, not permission to kill an existing user instance. `tools/test-smoke.ps1` compiles a disposable local .NET 10 console helper with fake `LOCALAPPDATA`, exercises those success/failure paths, and cleans up only its own helper receipts. It never launches Momoka or reads production logs. Keep command help and messages consistent with the current policy.
+
+
+Report completion is a distinct result boundary. `ShellSelfCheck.CompleteReport` publishes exit code 0 only after the final writer returns successfully and the check failure count is zero; the scheduled callback still closes through `FinishAsync`. `ProbeFinalization` executes report/scope attempts and disposal without allowing one IO exception to short-circuit the other report or application exit. The subtitle and Shell probes use `SubtitleProbeReport` / `ShellProbeReport` for their real Record/Case and final paths. A recovered final write must retain an earlier failure, not turn it green.
+
+`Momoka.ProbeFinalizationTests` compile-links those actual implementations and extracts the real self-check final callback and probe entry/Record/Case delegates at build time. It fails if source boundaries are missing/ambiguous; only UI readings/endpoints are substitutes. Its writer/real-lock success and failure results verify the production finalization code, not a real WinUI run or HWND destruction. The official comparator may be run separately with `-Log` and an isolated fixture baseline against this run's generated reports; do not run its default saved-account application path or modify the repository baseline. Commands and count/coverage boundaries are in `docs/开发与验证.md` and the project's README.

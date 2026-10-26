@@ -145,6 +145,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private readonly List<EmbyItem> _episodes = [];
     private readonly HashSet<string> _deletedItems = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _deletedSourceIds = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Artwork has its own cancellation, separate from the page's load. Switching seasons deliberately
@@ -1133,11 +1134,18 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(GenreVisibility))]
     public partial IReadOnlyList<string> SublineGenres { get; set; } = [];
 
+    /// <summary>当前客户端未实现 Plex 跨库题材查询；只用详情所属 scope，不借默认管理来源。</summary>
+    internal bool CanOpenGenre => Attached && _scope?.Connection.IsPlex == false;
+
     /// <summary>
     /// 点了一个类型：交给外壳开一格「这个类型下的全部影片和剧集」（<see cref="IShellActions.OpenGenre"/>）。
     /// 视图那边把这一行的每一个类型接到这儿来，同卡片上的点击接到 <see cref="OpenCard"/>。
     /// </summary>
-    internal void OpenGenre(string genre) => _actions?.OpenGenre(genre, _scope);
+    internal void OpenGenre(string genre)
+    {
+        if (!CanOpenGenre) return;
+        _actions?.OpenGenre(genre, _scope);
+    }
 
     /// <summary>
     /// 副标题的字号. On an episode page this line is 「S2:E7 - 集名」, which is the one thing the reader
@@ -1389,6 +1397,11 @@ public sealed partial class DetailViewModel : PageViewModel
     public Visibility FavoriteVisibility => Show(Favorite);
 
     public Visibility NotFavoriteVisibility => Show(!Favorite);
+
+    private bool FavoritesApplicable => Attached && _scope!.Connection.SupportsFavorites
+        && (_seed ?? _detail)?.TracksUserState == true;
+
+    public Visibility FavoriteActionVisibility => Show(FavoritesApplicable);
 
     // ---------------------------------------------------------------- 下拉
 
@@ -1655,6 +1668,9 @@ public sealed partial class DetailViewModel : PageViewModel
 
     private bool CanAct => Attached && !Busy;
 
+    private bool CanFavorite => CanAct && FavoritesApplicable && _detail is { } item
+        && item.Id == _seed?.Id && (item.Source is null || item.Source.Key == _scope!.Key);
+
     private bool CanPlay => CanAct && PlayTarget is not null;
 
     /// <summary>
@@ -1703,6 +1719,7 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         Cancel();
         _deletedItems.Clear();
+        _deletedSourceIds.Clear();
         _active = true;
         _scope = images.CaptureScope(request.Item);
         _actions = actions;
@@ -1735,6 +1752,7 @@ public sealed partial class DetailViewModel : PageViewModel
         CastShelf = cast;
         SeasonShelf = seasons;
         SimilarShelf = similar;
+        AnnounceAffordances();
     }
 
     /// <inheritdoc />
@@ -1743,7 +1761,7 @@ public sealed partial class DetailViewModel : PageViewModel
     public override Task ReloadAsync() => LoadAsync();
 
     /// <summary>Re-reads the item and everything hanging off it. The one entry point; every path lands here.</summary>
-    private async Task LoadAsync()
+    private async Task LoadAsync(string? committedNotice = null)
     {
         if (!Attached || _seed is not { } seed) return;
 
@@ -1801,7 +1819,15 @@ public sealed partial class DetailViewModel : PageViewModel
             Log.Warn(Category, "加载详情失败", error);
             if (!IsCurrent(token)) return;
 
-            Report("加载详情失败", error);
+            if (committedNotice is null) Report("加载详情失败", error);
+            else
+            {
+                var transient = error is EmbyUnreachableException || error is EmbyApiException { StatusCode: { } status }
+                    && (int)status is >= 500 and <= 599;
+                var severity = transient ? InfoBarSeverity.Warning : InfoBarSeverity.Error;
+                Notify(committedNotice, Failure.Describe(error), severity);
+                _actions?.Notify($"{committedNotice}：{Failure.Describe(error)}", severity);
+            }
 
             // Ready, not stuck: IsReady means the first load finished, whether it found anything or not,
             // and the startup self-check waits on it before it reads the page.
@@ -1869,6 +1895,13 @@ public sealed partial class DetailViewModel : PageViewModel
         _previewed = Title;
     }
 
+    private void AnnounceAffordances()
+    {
+        OnPropertyChanged(nameof(FavoriteActionVisibility));
+        OnPropertyChanged(nameof(CanOpenGenre));
+        ToggleFavoriteCommand.NotifyCanExecuteChanged();
+    }
+
     /// <summary>
     /// 「这一页讲的是哪一类东西」变了之后要重新问一遍的那一批算得属性。<see cref="Preview"/> 和
     /// <see cref="Apply"/> 各喊一次 —— 前者是第一次（在这之前 <see cref="_detail"/> 是 null，那几个属性答的是
@@ -1886,6 +1919,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private void AnnounceShape()
     {
+        AnnounceAffordances();
         // 单集 changes shape with the kind of page this is, and that is a fact about the item rather than
         // about the shelf — no collection has changed here, so nothing else would say it. Raised right after
         // the assignment, before anything can read a visibility off the item that is no longer showing.
@@ -1948,6 +1982,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     private void Apply(EmbyItem item)
     {
+        if (item.Id == _seed?.Id && item.Source?.Key == _scope?.Key)
+            item.MediaSources.RemoveAll(source => _deletedSourceIds.Contains(source.Id));
         // 这一趟要不要重取那四张图：<see cref="Preview"/> 刚用卡片那一份起过一次，而完整条目回来时那几个图片标签
         // 通常一个字都没变 —— 那时候整批留着。重取的代价不是一次下载（缓存都在），是屏上的图先被清空再回来，
         // 也就是点一张封面进来看见的那一次闪。
@@ -2030,7 +2066,9 @@ public sealed partial class DetailViewModel : PageViewModel
 
         CastShelf?.Fill(ItemDetail.Cast(item).Select(credit => (credit.Card, (string?)credit.Credit)));
 
-        PlayTarget = item.IsPlayable ? item : null;
+        var knownSourceRemoved = _deletedSourceIds.Count > 0 && item.Id == _seed?.Id
+            && item.Source?.Key == _scope?.Key && item.MediaSources.Count == 0;
+        PlayTarget = item.IsPlayable && !knownSourceRemoved ? item : null;
         ShowTarget(PlayTarget);
     }
 
@@ -2055,6 +2093,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
         if (target is null)
         {
+            SelectedSource = null;
             ShowSource(null);
             return;
         }
@@ -2080,8 +2119,9 @@ public sealed partial class DetailViewModel : PageViewModel
             var result = await MediaVersionDiscovery.FindAsync(_session!, target,
                 Settings.Playback.MediaSourceOrder, cancellation.Token).ConfigureAwait(true);
             if (!Attached || generation != _versionGeneration || lifetime != _lifetime) return;
-            _versions = result.Versions;
-            foreach (var version in result.Versions.Skip(Sources.Count))
+            _versions = result.Versions.Where(version => version.Item.Id != _seed?.Id || version.Item.Source?.Key != _scope?.Key
+                || !_deletedSourceIds.Contains(version.Source.Id)).ToArray();
+            foreach (var version in _versions.Skip(Sources.Count))
                 Sources.Add(new SourceRow(version.Source, version.LabelFor(MediaVersionDiscovery.HasMultipleServers(_session!.Sources))));
             if (result.FailedSources.Count > 0)
                 _actions?.Notify($"部分来源的版本读取失败：{string.Join("、", result.FailedSources)}", InfoBarSeverity.Warning);
@@ -2336,32 +2376,24 @@ public sealed partial class DetailViewModel : PageViewModel
         // （DetailHero.CompactHeight / PictureHeight）；量不成话（0 或负）就不动兜底的那 0.5625。
         async Task HeroAsync(EmbyItem page, CancellationToken token)
         {
-            foreach (var picture in ItemArtwork.Hero(page))
-            {
-                var bytes = await _images!
-                    .GetAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
-                        EmbyImageStore.RequestWidth(HeroDecodeWidth), token)
-                    .ConfigureAwait(true);
-                if (bytes is null || bytes.Length == 0) continue;
+            var source = await ArtworkCandidates.FirstAsync<ArtworkRef, HeroPictureLoader.HeroPixels>(
+                ItemArtwork.Hero(page), async (picture, candidateToken) =>
+                {
+                    return await _images!.GetDecodedAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
+                        EmbyImageStore.RequestWidth(HeroDecodeWidth),
+                        bytes => HeroPictureLoader.DecodePixelsAsync(bytes, HeroDecodeWidth, candidateToken), candidateToken)
+                        .ConfigureAwait(true);
+                }, token).ConfigureAwait(true);
+            if (source is null || !Fresh(art, page)) return;
 
-                var source = await HeroPictureLoader
-                    .DecodePixelsAsync(bytes, HeroDecodeWidth, token)
-                    .ConfigureAwait(true);
-                if (source is null) continue;
-                if (!Fresh(art, page)) return;
+            _heroPixels = source;
+            var radius = HeroBlurTarget;
+            var generation = ++_heroBlurGeneration;
+            _heroBlurRadius = radius;
 
-                _heroPixels = source;
-
-                var radius = HeroBlurTarget;
-                var generation = ++_heroBlurGeneration;
-                _heroBlurRadius = radius;
-
-                var rendered = await HeroPictureLoader.RenderAsync(source, radius, token).ConfigureAwait(true);
-                if (rendered is null || generation != _heroBlurGeneration) return;
-
-                ShowHero(rendered);
-                return;
-            }
+            var rendered = await HeroPictureLoader.RenderAsync(source, radius, token).ConfigureAwait(true);
+            if (rendered is null || generation != _heroBlurGeneration) return;
+            ShowHero(rendered);
         }
 
         // 头图多带一个数上屏：这张图自己的高÷宽。紧凑版式的带高和背景那张的盒高都按它算
@@ -2494,17 +2526,14 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         if (!Attached) return null;
 
-        foreach (var type in types)
+        return await ArtworkCandidates.FirstAsync<string, BitmapImage>(types, async (type, candidateToken) =>
         {
-            var bytes = await _images!
-                .GetAsync(item, type, EmbyImageStore.RequestWidth(width), token).ConfigureAwait(true);
-            if (bytes is null || bytes.Length == 0) continue;
-
-            var bitmap = await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
-            if (bitmap is not null) return bitmap;
-        }
-
-        return null;
+            var tag = EmbyImageStore.TagFor(item, type);
+            if (tag is null || _images!.CaptureScope(item) is not { } scope) return null;
+            return await _images.GetDecodedAsync(scope, item.Id, type, tag,
+                EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), candidateToken)
+                .ConfigureAwait(true);
+        }, token).ConfigureAwait(true);
     }
 
     /// <summary>
@@ -2521,19 +2550,12 @@ public sealed partial class DetailViewModel : PageViewModel
     {
         if (!Attached) return null;
 
-        foreach (var picture in pictures)
+        return await ArtworkCandidates.FirstAsync<ArtworkRef, BitmapImage>(pictures, async (picture, candidateToken) =>
         {
-            var bytes = await _images!
-                .GetAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
-                    EmbyImageStore.RequestWidth(width), token)
+            return await _images!.GetDecodedAsync(_scope!, picture.ItemId, picture.ImageType, picture.Tag,
+                EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), candidateToken)
                 .ConfigureAwait(true);
-            if (bytes is null || bytes.Length == 0) continue;
-
-            var bitmap = await PosterLoader.DecodeAsync(bytes, width).ConfigureAwait(true);
-            if (bitmap is not null) return bitmap;
-        }
-
-        return null;
+        }, token).ConfigureAwait(true);
     }
 
     // ---------------------------------------------------------------- 选择
@@ -2651,7 +2673,8 @@ public sealed partial class DetailViewModel : PageViewModel
 
     private async Task StartAsync(bool fromStart)
     {
-        if (!Attached || _actions is null || PlayTarget is not { } target) return;
+        if (!CanPlay || _actions is null || PlayTarget is not { } target) return;
+        if (SelectedSource is { } selected && !Sources.Contains(selected)) return;
 
         var version = _versions.FirstOrDefault(version => ReferenceEquals(version.Source, SelectedSource?.Source));
         target = version?.Item ?? target;
@@ -2694,6 +2717,21 @@ public sealed partial class DetailViewModel : PageViewModel
                     : client.MarkPlayedAsync(item.Id, token), CancellationToken.None)
                 .ConfigureAwait(true);
 
+            if (!scope.IsAvailable) return;
+            if (scope.Connection.IsFnNas)
+            {
+                // The native endpoint acknowledged this bit before any detail refresh. Preserve it
+                // even when the optional server-derived counts or episode list cannot be read back.
+                item.UserData ??= new EmbyUserData();
+                item.UserData.Played = !played;
+                if (played)
+                {
+                    item.UserData.PlaybackPositionTicks = 0;
+                    item.UserData.PlayedPercentage = 0;
+                }
+                if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail)) Watched = !played;
+            }
+
             // 标记为已看（played 为 false 的那一次）还要替服务器补报一趟播放停止，位置按用户令报 100%，好让
             // 服务器上那条通知立刻把 playback.stop 转发出去（用户令 2026-10-09，见 IShellActions.ReportMarkedWatched）。
             // 反过来「标记未观看」不是「看完了」，不报。
@@ -2702,7 +2740,7 @@ public sealed partial class DetailViewModel : PageViewModel
             // Re-read rather than flipped locally: marking a season watched moves every episode's tick
             // and the show's unplayed count with it, and only the server knows what it did.
             if (Attached && lifetime == _lifetime && ReferenceEquals(item, _detail) && scope.IsAvailable)
-                await LoadAsync().ConfigureAwait(true);
+                await LoadAsync(scope.Connection.IsFnNas ? "观看状态已保存，但刷新详情失败" : null).ConfigureAwait(true);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
@@ -2712,10 +2750,11 @@ public sealed partial class DetailViewModel : PageViewModel
         }
     }
 
-    [RelayCommand(CanExecute = nameof(CanAct))]
+    [RelayCommand(CanExecute = nameof(CanFavorite))]
     private async Task ToggleFavoriteAsync()
     {
-        if (!Attached || _detail is not { } item) return;
+        // 旧命令可绕过 CanExecute；详情尚未换完时，也不能拿旧条目 ID 借新来源写入。
+        if (!CanFavorite || _detail is not { } item) return;
 
         var favorite = item.UserData?.IsFavorite == true;
         var lifetime = _lifetime;
@@ -2786,7 +2825,88 @@ public sealed partial class DetailViewModel : PageViewModel
     }
 
     /// <summary>What a context menu calls after it has changed something on the server.</summary>
-    internal void Reload() => _ = LoadAsync();
+    internal void Reload()
+    {
+        // The version command removes only a confirmed deleted file from its captured DTO. Refresh
+        // local pickers immediately; a failed GET must not leave that vanished version executable.
+        if (Attached && _scope!.Connection.IsFnNas && PlayTarget is { } target
+            && _versions.Any(version => ReferenceEquals(version.Item, target) && !target.MediaSources.Contains(version.Source)))
+            ShowTarget(target);
+        _ = LoadAsync();
+    }
+
+    /// <summary>Capture a successful delete callback for this visit, not whichever detail is open later.</summary>
+    internal Action<CardItem> CaptureRemoval()
+    {
+        var lifetime = _lifetime;
+        var source = _scope?.Key;
+        var itemId = _seed?.Id;
+        return removed =>
+        {
+            if (!Attached || lifetime != _lifetime || source != _scope?.Key
+                || removed.Scope?.Key != source || !removed.IsCurrent) return;
+            if (removed.Item.Id != itemId) { Remove(removed); return; }
+
+            // A confirmed subject deletion is not an ordinary failed refresh. End all target/version
+            // owners before clearing their data, so a late read cannot restore executable old media.
+            _deletedItems.Add(removed.Item.Id);
+            Cancel();
+            _detail = _seed = null;
+            PlayTarget = null;
+            ShowTarget(null);
+            TitleLink = null;
+            _episodes.Clear();
+            Seasons.Clear();
+            SelectedSeason = _loadedSeason = null;
+            EpisodeShelf?.Clear();
+            SeasonShelf?.Clear();
+            CastShelf?.Clear();
+            SimilarShelf?.Clear();
+            AnnounceShape();
+            IsReady = true;
+            Notify("条目已删除", "此条目已从服务器移除，请返回媒体库查看其它内容。", InfoBarSeverity.Informational);
+        };
+    }
+
+    internal Action CaptureReload()
+    {
+        var lifetime = _lifetime;
+        var source = _scope?.Key;
+        var item = _detail;
+        var beforeSources = item?.MediaSources.Select(media => media.Id).ToArray() ?? [];
+        return () =>
+        {
+            if (!Attached || lifetime != _lifetime || source != _scope?.Key || item is null
+                || _detail?.Id != item.Id || _detail.Source?.Key != source) return;
+            // A normal same-ID read may have replaced the DTO while the delete dialog was open.
+            // Compare the captured source list to the confirmed command's edited DTO and apply only
+            // removed file IDs to this still-owned subject, including late version/detail reads.
+            if (_scope!.Connection.IsFnNas)
+            {
+                foreach (var id in beforeSources.Except(item.MediaSources.Select(media => media.Id), StringComparer.Ordinal))
+                    if (id.Length > 0) _deletedSourceIds.Add(id);
+                _detail.MediaSources.RemoveAll(media => _deletedSourceIds.Contains(media.Id));
+                // Menu entries belong to all discovered sources, not just the selected play target.
+                // Remove only this subject's confirmed file IDs and preserve a selected valid copy.
+                _versionLoad?.Cancel();
+                _versionGeneration++;
+                var discarded = _versions.Where(version => version.Item.Id == item.Id && version.Item.Source?.Key == source
+                    && _deletedSourceIds.Contains(version.Source.Id)).ToArray();
+                _versions = _versions.Except(discarded).ToArray();
+                foreach (var row in Sources.Where(row => discarded.Any(version => ReferenceEquals(version.Source, row.Source))).ToArray())
+                    Sources.Remove(row);
+                if (SelectedSource is { } selected && !Sources.Contains(selected))
+                    SelectedSource = Sources.FirstOrDefault();
+                if (PlayTarget is { } target && target.Id == item.Id && target.Source?.Key == source)
+                {
+                    target.MediaSources.RemoveAll(media => _deletedSourceIds.Contains(media.Id));
+                    if (_deletedSourceIds.Count > 0 && target.MediaSources.Count == 0) PlayTarget = null;
+                }
+                ShowSource(SelectedSource?.Source);
+            }
+            Reload();
+        };
+    }
 
     /// <summary>封面删除只移除受影响的卡片；播放目标若被删除，再读取剩余单集的目标。</summary>
     internal void Remove(CardItem removed) => _ = RemoveAsync(removed);
@@ -2872,6 +2992,7 @@ public sealed partial class DetailViewModel : PageViewModel
         base.Cancel();
         _art?.Cancel();
         BusyChanged();
+        AnnounceAffordances();
     }
 
     /// <inheritdoc />

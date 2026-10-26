@@ -140,12 +140,16 @@ public static class TrackSelection
             return SubtitleChoice.Off;
         }
 
+        var forcedOnly = settings.SubtitleMode == SubtitleMode.ForcedOnly;
         var map = MpvTrackMap.Build(source);
         var streams = source.SubtitleStreams.Where(stream => map.CanSelect(stream.Index)).ToList();
         if (streams.Count == 0)
-            return source.SubtitleStreams.Any() ? SubtitleChoice.Off : SubtitleChoice.None;
+        {
+            // 未提供字幕元数据不等于容器没有字幕；普通 auto 不能携带“只强制”约束。
+            // 无法确认可加载的强制轨时保守关闭，显式手选由规划器在此规则之前处理。
+            return forcedOnly || source.SubtitleStreams.Any() ? SubtitleChoice.Off : SubtitleChoice.None;
+        }
 
-        var forcedOnly = settings.SubtitleMode == SubtitleMode.ForcedOnly;
         var pool = forcedOnly ? streams.Where(stream => stream.IsForced).ToList() : streams;
 
         // 只要强制字幕，而这个文件一条都没有：什么都不选，而不是退回整轨字幕。

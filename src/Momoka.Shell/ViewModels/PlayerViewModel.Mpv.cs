@@ -182,7 +182,19 @@ public sealed partial class PlayerViewModel
         else Noticed?.Invoke("音频延迟未能确认，请查看日志", InfoBarSeverity.Warning);
     }
 
-    internal void NudgeVolume(double delta) => Volume = VolumeScale.Step(Volume, delta);
+    internal void NudgeVolume(double delta)
+    {
+        if (!double.IsFinite(delta) || _lifetime.IsCancellationRequested) return;
+        if (_playback.CanControl && _volumeReady && !HasVolumeSteps)
+        {
+            Volume = VolumeScale.Step(Volume, delta);
+            return;
+        }
+        // Before a real reading, the gesture owns its delta even at a display boundary. Do not let
+        // the generated setter recalculate it against an old confirmed/status baseline.
+        DisplayVolume(VolumeScale.Step(Volume, delta));
+        _ = StepVolumeAsync(delta, _playback.Generation);
+    }
 
     internal void RollVolume(double delta) => NudgeVolume(delta);
 
@@ -222,9 +234,16 @@ public sealed partial class PlayerViewModel
     /// 窗口与外部 mpv.exe 的画面不在本窗口里，拖拽由 mpv 原生接住，根本走不到这里。
     /// </para>
     /// </summary>
-    internal async Task AddExternalSubtitlesAsync(IReadOnlyList<string> droppedPaths)
+    internal async Task AddExternalSubtitlesAsync(
+        IReadOnlyList<string> droppedPaths, InteractionContext context, Func<bool> isCurrentDrop)
     {
+        // Never capture again after WinRT returns: that would grant an A drop the current B file.
+        // The page predicate also rejects Detach/re-Attach or a replacement VM while a command waits.
+        bool Current() => isCurrentDrop() && IsCurrentInteraction(context) && PictureInHostWindow;
+        if (!Current()) return;
+
         var subs = SubtitleFile.Filter(droppedPaths);
+        if (!Current()) return;
         if (subs.Count == 0)
         {
             Noticed?.Invoke("拖进来的文件里没有字幕（支持 srt/ass/ssa/sub/vtt 等）", InfoBarSeverity.Warning);
@@ -241,13 +260,17 @@ public sealed partial class PlayerViewModel
         string? current = null;
         foreach (var path in subs)
         {
-            if (await _playback.CommandAsync("sub-add", path, "select").ConfigureAwait(true))
+            if (!Current() || !_playback.IsPlaying) return;
+            var accepted = await _playback.CommandAsync("sub-add", path, "select").ConfigureAwait(true);
+            if (!Current() || !_playback.IsPlaying) return;
+            if (accepted)
             {
                 added++;
                 current = path;
             }
         }
 
+        if (!Current() || !_playback.IsPlaying) return;
         if (added == 0)
         {
             Noticed?.Invoke("字幕没能加载（详见日志）", InfoBarSeverity.Error);
@@ -291,7 +314,7 @@ public sealed partial class PlayerViewModel
             video?.Width ?? 0,
             video?.Height ?? 0,
             _surface,
-            _shaderPlan.Measure.Tier);
+            _shaderPlan.Measure.Tier, fullMonitorTarget: true);
 
         // 退场保留那一帧要按「画面本来什么形状」摆，而这个数只有码流尺寸能给 —— 另外三个候选
         // （呈现矩形、mpv 缓冲尺寸、dwidth/dheight）在窗口与画面不同形时全都是窗口比例。详见
@@ -300,7 +323,7 @@ public sealed partial class PlayerViewModel
             ? (double)stream.Width!.Value / stream.Height!.Value
             : 0);
 
-        _launchOutput = _surface.Active;
+        _launchOutput = _surface.Monitor;
         return _launchOutput;
     }
 
@@ -312,13 +335,13 @@ public sealed partial class PlayerViewModel
         _shaderPinned = false;
         ActiveShader = plan.Group;
         var video = source.PrimaryVideoStream;
-        _outputWatch = new OutputWatch(video?.Width ?? 0, video?.Height ?? 0, _surface, plan.Measure.Tier);
+        _outputWatch = new OutputWatch(video?.Width ?? 0, video?.Height ?? 0, _surface, plan.Measure.Tier, fullMonitorTarget: true);
         SourceAspectChanged?.Invoke(video is { Width: > 0, Height: > 0 }
             ? (double)video.Width.Value / video.Height.Value : 0);
         if (_surface.Monitor != _launchOutput)
         {
             _shaderPlan = (_shaderResolver ?? _shaders).Resolve(item, source, _shaderContext?.Parent, _surface.Monitor);
-            _outputWatch = new OutputWatch(video?.Width ?? 0, video?.Height ?? 0, _surface, _shaderPlan.Measure.Tier);
+            _outputWatch = new OutputWatch(video?.Width ?? 0, video?.Height ?? 0, _surface, _shaderPlan.Measure.Tier, fullMonitorTarget: true);
             Switch(_shaderPlan, "加载期间换显示器");
         }
     }
@@ -398,21 +421,16 @@ public sealed partial class PlayerViewModel
             return;
         }
 
-        // 不跨档就只更新上下文里的输出尺寸. There is nothing to hand mpv: ravu-zoom renders to whatever OUTPUT
-        // is on the frame it is drawing, so the only things that were stale are the log line and the OSD.
+        // Watcher and resolver both classify the fixed monitor target. A same-tier observation only
+        // updates actual dimensions; fullscreen must not queue another copy of a pending transaction.
         if (verdict.Change == OutputChange.SizeOnly)
         {
             Restate(verdict);
             return;
         }
 
-        // 进 / 退全屏、换显示器：换显示器那一路已经把方案重算过了，这里换上的永远是同一个
-        // 全屏档方案 —— Switch 自己发现档位没变会直接说「档位没变」，链一动不动。
-        if (verdict.Discrete)
-        {
-            Switch(_shaderPlan, because);
-            return;
-        }
+        // Only a discrete change of the prepared monitor tier applies a different automatic plan.
+        if (verdict.Discrete) Switch(_shaderPlan, because);
     }
 
     /// <summary>Applies a prepared plan to the film that is playing, and says so in the log rather than on screen.</summary>

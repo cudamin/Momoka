@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Momoka.AniBt;
@@ -12,10 +13,9 @@ namespace Momoka.Tests;
 internal static class AniBtIntegrationTests
 {
     private const string Target = "/library/Anime S01E01.mkv";
-    private const string Session = """{"access_token":"fixture-token","super_user":true,"user_name":"fixture-user"}""";
     private const string Sources = """[{"name":"Bangumi","media_source":"bangumi","media_types":["电影","电视剧"]}]""";
     private const string Media = """{"title":"匿名动画","media_source":"bangumi","media_id":"42","type":"电视剧"}""";
-    private static readonly AniBtAnime Anime = new("ani_fixture", 42, "匿名动画");
+    private static readonly AniBtAnime Anime = new("ani_fixture", 42, "匿名动画", Year: 2026);
 
     public static void Register()
     {
@@ -241,7 +241,7 @@ internal static class AniBtIntegrationTests
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            Assert.Throws<MoviePilotOperationBlockedException>(() => integration.SubmitAsync(Emby(transport),
+            Assert.Throws<MoviePilotOperationBlockedException>(() => SubmitConfirmed(integration, Emby(transport),
                 Plan(service, (Target, History(service, 7, Target))), [Anime with { BgmId = 99 }],
                 CancellationToken.None).GetAwaiter().GetResult());
             Assert.Equal(0, transport.SentTo("media/source").Count);
@@ -254,7 +254,7 @@ internal static class AniBtIntegrationTests
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            var result = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+            var result = SubmitConfirmed(integration, Emby(transport), Plan(service, (Target, History(service, 7, Target))),
                 [Anime], CancellationToken.None).GetAwaiter().GetResult();
             Assert.True(result.Single().Success);
             Assert.Contains("已重新整理到", result.Single().Message);
@@ -289,7 +289,7 @@ internal static class AniBtIntegrationTests
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            var result = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+            var result = SubmitConfirmed(integration, Emby(transport), Plan(service, (Target, History(service, 7, Target))),
                 [Anime], CancellationToken.None).GetAwaiter().GetResult();
             Assert.True(result.Single().Success);
             Assert.Contains("扫描请求失败", result.Single().Message);
@@ -308,7 +308,7 @@ internal static class AniBtIntegrationTests
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            Assert.Throws<MoviePilotException>(() => integration.SubmitAsync(Emby(transport),
+            Assert.Throws<MoviePilotException>(() => SubmitConfirmed(integration, Emby(transport),
                 Plan(service, (Target, History(service, 7, Target)), (next, History(service, 8, next))),
                 [Anime, Anime], CancellationToken.None).GetAwaiter().GetResult());
             Assert.Equal(2, transport.SentTo("storage/list").Count);
@@ -316,7 +316,7 @@ internal static class AniBtIntegrationTests
             Assert.Equal(0, transport.SentTo("transfer/manual?").Count(response => !Json(response.Body).GetProperty("preview").GetBoolean()));
         });
 
-        Test("AniBT 没有原整理记录：自动用 Emby 识别并刷新元数据", () =>
+        Test("AniBT 没有原整理记录：展示实际计划并确认后用 Emby 识别", () =>
         {
             using var transport = BaseTransport()
                 .Answer("Items/RemoteSearch/Series",
@@ -326,7 +326,7 @@ internal static class AniBtIntegrationTests
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            var result = integration.SubmitAsync(Emby(transport), Plan(service, (Target, null)),
+            var result = SubmitConfirmed(integration, Emby(transport), Plan(service, (Target, null)),
                 [Anime], CancellationToken.None).GetAwaiter().GetResult();
             Assert.True(result.Single().Success);
             Assert.Contains("Emby 识别", result.Single().Message);
@@ -348,7 +348,7 @@ internal static class AniBtIntegrationTests
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            Assert.Throws<MoviePilotOperationBlockedException>(() => integration.SubmitAsync(Emby(transport),
+            Assert.Throws<MoviePilotOperationBlockedException>(() => SubmitConfirmed(integration, Emby(transport),
                 Plan(service, (Target, null)), [Anime], CancellationToken.None).GetAwaiter().GetResult());
             Assert.Equal(0, transport.SentTo("RemoteSearch/Apply").Count);
             Assert.Equal(0, transport.SentTo("transfer/manual").Count);
@@ -366,7 +366,7 @@ internal static class AniBtIntegrationTests
                     new("/library/Anime S01E02.mkv", "Anime S01E02.mkv", Multiple, null)
                 ], MoviePilotTransferRequest.TypeSeries, service.CaptureAniBtConnection(),
                 IdentifyItem(), 1, "");
-            Assert.Throws<MoviePilotOperationBlockedException>(() => integration.SubmitAsync(Emby(transport), plan,
+            Assert.Throws<MoviePilotOperationBlockedException>(() => SubmitConfirmed(integration, Emby(transport), plan,
                 [Anime, OtherAnime], CancellationToken.None).GetAwaiter().GetResult());
             Assert.Equal(0, transport.SentTo("RemoteSearch").Count);
         });
@@ -377,9 +377,9 @@ internal static class AniBtIntegrationTests
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            var first = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+            var first = SubmitConfirmed(integration, Emby(transport), Plan(service, (Target, History(service, 7, Target))),
                 [Anime], CancellationToken.None).GetAwaiter().GetResult();
-            var second = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+            var second = SubmitConfirmed(integration, Emby(transport), Plan(service, (Target, History(service, 7, Target))),
                 [Anime], CancellationToken.None).GetAwaiter().GetResult();
             Assert.True(first.Single().Success);
             Assert.False(second.Single().Success);
@@ -396,11 +396,12 @@ internal static class AniBtIntegrationTests
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            var first = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+            var first = SubmitConfirmed(integration, Emby(transport), Plan(service, (Target, History(service, 7, Target))),
                 [Anime], CancellationToken.None).GetAwaiter().GetResult();
             Assert.False(first.Single().Success);
-            Assert.True(service.RefreshAvailabilityAsync().GetAwaiter().GetResult());
-            var second = integration.SubmitAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))),
+            InstallAnonymousSession(service);
+            Assert.True(service.Available);
+            var second = SubmitConfirmed(integration, Emby(transport), Plan(service, (Target, History(service, 7, Target))),
                 [Anime], CancellationToken.None).GetAwaiter().GetResult();
             Assert.False(second.Single().Success);
             Assert.Equal(3, transport.SentTo("transfer/manual?").Count);
@@ -417,7 +418,8 @@ internal static class AniBtIntegrationTests
                 .GetAwaiter().GetResult().Single();
             settings.MoviePilot.Url = "192.0.2.11:3001";
             settings.MoviePilot.Url = "192.0.2.10:3001";
-            Assert.True(service.RefreshAvailabilityAsync().GetAwaiter().GetResult());
+            InstallAnonymousSession(service);
+            Assert.True(service.Available);
             Assert.Throws<MoviePilotOperationBlockedException>(() => service.CheckAniBtConnection(connection, CancellationToken.None));
             Assert.Throws<MoviePilotOperationBlockedException>(() => service.DownloadAsync(resource, CancellationToken.None).GetAwaiter().GetResult());
             Assert.Equal(0, transport.SentTo("download/").Count);
@@ -440,7 +442,7 @@ internal static class AniBtIntegrationTests
             using var service = Service(transport);
             using var client = new AniBtClient(new StubTransport());
             var integration = new AniBtService(client, service);
-            var result = integration.SubmitAsync(Emby(transport),
+            var result = SubmitConfirmed(integration, Emby(transport),
                 Plan(service, (Target, History(service, 7, Target)), (next, History(service, 8, next))),
                 [Anime, Anime], CancellationToken.None, () => current).GetAwaiter().GetResult();
             Assert.Equal(2, result.Count);
@@ -533,8 +535,8 @@ internal static class AniBtIntegrationTests
     private static AniBtRelease Release() => new("rel_fixture", "匿名动画 - 01",
         new("https://anibt.net/api/torrent/rel_fixture.torrent"), new("https://anibt.net/resource/rel_fixture"), 1234);
 
-    private static StubTransport BaseTransport() => new StubTransport().Answer("login/access-token", Session)
-        .Answer("dashboard/system", """{"version":"v3.1.3"}""");
+    private static StubTransport BaseTransport() => new StubTransport()
+        .Answer("Users/user/Items/series-1", """{"Id":"series-1","Type":"Series","Name":"匿名库内整剧","ProductionYear":2024}""");
 
     private static EmbyClient Emby(StubTransport transport) => new(
         new EmbyHttp(transport),
@@ -550,16 +552,45 @@ internal static class AniBtIntegrationTests
         settings.MoviePilot.Enabled = true;
         settings.MoviePilot.Url = "192.0.2.10:3001";
         settings.MoviePilot.Username = "fixture-user";
-        new MoviePilotCredentials(PassthroughSecretProtector.Instance).SetPassword(settings.MoviePilot, "fixture-password");
+        settings.MoviePilot.ProtectedPassword = "non-secret-anonymous-fixture";
         return settings;
     }
 
     private static MoviePilotService Service(StubTransport transport, AppSettings? settings = null)
     {
         var service = new MoviePilotService(new MoviePilotClient(transport),
-            new MoviePilotCredentials(PassthroughSecretProtector.Instance), settings ?? Settings());
-        Assert.True(service.RefreshAvailabilityAsync().GetAwaiter().GetResult());
+            new MoviePilotCredentials(new RejectSecretAccess()), settings ?? Settings());
+        InstallAnonymousSession(service);
+        Assert.True(service.Available);
         return service;
+    }
+
+    // A test's explicit confirmation boundary. It executes both actual production phases;
+    // Momoka.AniBtConfirmationTests separately asserts zero writes between them. No compatibility
+    // write overload survives in the product.
+    private static async Task<IReadOnlyList<AniBtScrapeResult>> SubmitConfirmed(AniBtService service, EmbyClient emby,
+        AniBtScrapePlan plan, IReadOnlyList<AniBtAnime> choices, CancellationToken cancellationToken, Func<bool>? canContinue = null)
+    {
+        var prepared = await service.PrepareForConfirmationAsync(emby, plan, choices, cancellationToken, canContinue);
+        Assert.Equal(plan.Rows.Count, prepared.Rows.Count);
+        return await service.SubmitAsync(emby, prepared, cancellationToken, canContinue);
+    }
+
+    private static void InstallAnonymousSession(MoviePilotService service)
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        var identity = typeof(MoviePilotService).GetMethod("CaptureIdentity", flags)!.Invoke(service, null)!;
+        var type = typeof(MoviePilotService).GetNestedType("CachedSession", BindingFlags.NonPublic)!;
+        var cached = Activator.CreateInstance(type, flags | BindingFlags.Public, null,
+            [identity, new MoviePilotSession(new Uri("http://192.0.2.10:3001/"), "", "fixture-user", true)], null);
+        typeof(MoviePilotService).GetField("_session", flags)!.SetValue(service, cached);
+        typeof(MoviePilotService).GetField("_availableIdentity", flags)!.SetValue(service, identity);
+    }
+
+    private sealed class RejectSecretAccess : ISecretProtector
+    {
+        public string Protect(string value) => throw new AssertionException("AniBT 夹具禁止保护凭据");
+        public string Unprotect(string value) => throw new AssertionException("AniBT 夹具禁止解密或登录");
     }
 
     /// <summary>只接 AniBT RSS 的假传输；StubTransport 固定回 JSON，XML 走这条。</summary>

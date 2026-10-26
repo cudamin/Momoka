@@ -1,0 +1,22 @@
+[
+  {
+    "name": "communitytoolkit.mvvm",
+    "version": "8.4.2",
+    "sha256": "8CB4B5BE8E95F9F1EC26CF341D84FBEE8244E88102EBC7C88242E960E0E35805"
+  },
+  {
+    "name": "microsoft.visualstudio.threading.analyzers",
+    "version": "18.7.23",
+    "sha256": "2918BC29A4BBE9B515DF709496EB6EBBE2C3941307DF31445C8641605F8E661F"
+  },
+  {
+    "name": "microsoft.codeanalysis.bannedapianalyzers",
+    "version": "5.6.0",
+    "sha256": "F2EF6B5CBD7EC027D87293E51A98C91A689FC96761FA803F7A85863F379C638C"
+  },
+  {
+    "name": "roslynator.analyzers",
+    "version": "5.0.0",
+    "sha256": "E5623EC990957C5AB9FD8FF23992D63C0D4C5571F4383F913D8AF9886E18277B"
+  }
+]

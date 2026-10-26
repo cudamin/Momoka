@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.DashboardNavigation.Tests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    </ItemGroup>
+    <!-- No copied lifecycle model or WinUI runtime: compile the exact current page regions. -->
+    <UsingTask TaskName="ExtractDashboardNavigation" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <PageSource ParameterType="System.String" Required="true" />
+            <OutputSource ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Using Namespace="System.Security.Cryptography" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                PageSource = Path.GetFullPath(PageSource);
+                var source = File.ReadAllText(PageSource);
+                if (source.Contains("\r")) throw new InvalidOperationException("Dashboard source must use LF");
+                Func<string, string, string> between = (start, end) =>
+                {
+                    var first = source.IndexOf(start, StringComparison.Ordinal);
+                    if (first < 0 || source.IndexOf(start, first + start.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous dashboard start: " + start);
+                    var last = source.IndexOf(end, first + start.Length, StringComparison.Ordinal);
+                    if (last < 0 || source.IndexOf(end, last + end.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous dashboard end: " + end);
+                    return source.Substring(first, last - first);
+                };
+                var fields = between("    private const string Category", "    public DashboardPage()");
+                var properties = between("    /// <summary>当前设置页选中项的路由", "    /// <summary>\n    /// 把地址和载入状态");
+                var routes = between("    private void Say(string state)", "    protected override void OnNavigatedTo(");
+                var callbacks = between("    private void OnNavigationCompleted(", "    protected override void OnNavigatedFrom(");
+                var wiring = between("            Web.NavigationCompleted += OnNavigationCompleted;",
+                    "\n\n            // 缺少公开服务器 ID");
+                var regions = new[] { fields, properties, routes, callbacks, wiring };
+                var pathLiteral = PageSource.Replace("\\", "\\\\").Replace("\"", "\\\"");
+                var output = new StringBuilder("// Build-time verbatim page regions; do not edit.\n#nullable enable\n" +
+                    "using System.Text.Json;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\n" +
+                    "using Momoka.Shell.Platform;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\n" +
+                    "using Microsoft.Web.WebView2.Core;\nnamespace Momoka.Shell.Views;\n" +
+                    "public sealed partial class DashboardPage\n{\n");
+                for (var i = 0; i < regions.Length; i++)
+                {
+                    var region = regions[i];
+                    var offset = source.IndexOf(region, StringComparison.Ordinal);
+                    var line = 1;
+                    for (var j = 0; j < offset; j++) if (source[j] == '\n') line++;
+                    if (i == 4) output.Append("    internal void FixtureWire(CoreWebView2 core)\n    {\n");
+                    output.Append("#line " + line + " \"" + pathLiteral + "\"\n");
+                    output.Append(region);
+                    output.Append("\n#line default\n");
+                    if (i == 4) output.Append("    }\n");
+                }
+                string hash;
+                using (var sha = SHA256.Create())
+                    hash = BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(PageSource))).Replace("-", "").ToLowerInvariant();
+                output.Append("}\ninternal static class DashboardSourceEvidence\n{\n" +
+                    "    internal const string Path = \"" + pathLiteral + "\";\n" +
+                    "    internal const string Sha256 = \"" + hash + "\";\n" +
+                    "    internal const int VerbatimRegions = 5;\n}\n");
+                Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+                var generated = output.ToString();
+                if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+                    File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GenerateDashboardNavigation" BeforeTargets="CoreCompile">
+        <ExtractDashboardNavigation
+            PageSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views\DashboardPage.xaml.cs"
+            OutputSource="$(IntermediateOutputPath)DashboardPage.Lifecycle.g.cs" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)DashboardPage.Lifecycle.g.cs" />
+        </ItemGroup>
+    </Target>
+</Project>

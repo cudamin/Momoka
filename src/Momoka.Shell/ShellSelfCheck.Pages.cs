@@ -244,32 +244,10 @@ internal static partial class ShellSelfCheck
             $"卡片 {library.CardWidth}（档位宽 {CardSize.PosterWidth}），"
                 + $"网格单元 {library.CellWidth:0}×{library.CellHeight:0}（视图「{library.View}」）");
 
-        // 七种形状轮流摆到活的网格上 —— 见 LibraryPage.WalkViews 说明为什么「启动时读一次」替不了这一步。
-        // 海报是竖格、缩略图/徽标是 16:9 宽格、光盘封面是方格子、横幅图是细长条，列表与表格根本不是网格
-        // （一行占满页宽，问「格宽」就是问错了问题）。形状是从视图算出来又没告诉过任何人的，所以换形状时
-        // 缩略图把 16:9 的剧照画进了海报格、列表把整行画进格子里，标题与信息行都被裁掉。
+        // WalkViews now includes both card-surface variants. Validate every enum entry, its
+        // measured grid/text/frame dimensions and the restored selection; retain the check name.
         var walk = library.Views;
-        (string Layout, double Cell, double Row) At(int index) =>
-            walk.Count > index ? (walk[index].Layout, walk[index].Cell, walk[index].Row) : default;
-
-        var poster = At((int)LibraryView.Poster);
-        var thumb = At((int)LibraryView.Thumb);
-        var list = At((int)LibraryView.List);
-        var banner = At((int)LibraryView.Banner);
-        var disc = At((int)LibraryView.Disc);
-        var logo = At((int)LibraryView.Logo);
-        var table = At((int)LibraryView.Table);
-
-        check("媒体库七种视图的布局", walk.Count == 7
-                && poster.Layout == "UniformGridLayout" && poster.Cell == library.CardWidth && poster.Row > poster.Cell
-                && thumb.Layout == "UniformGridLayout" && thumb.Cell > library.CardWidth && thumb.Row < thumb.Cell
-                && list.Layout == "StackLayout"
-                // 行高是「画面 + 卡片底下那两行字」，所以横幅图比它的格宽窄得多、光盘封面是格宽加那两行字。
-                && banner.Layout == "UniformGridLayout" && Math.Abs(banner.Row - (banner.Cell * 0.185 + 59)) < 2
-                && disc.Layout == "UniformGridLayout" && Math.Abs(disc.Row - (disc.Cell + 59)) < 2
-                && logo.Layout == "UniformGridLayout" && logo.Row < logo.Cell
-                && table.Layout == "StackLayout"
-                && library.ViewRestored,
+        check("媒体库七种视图的布局", SelfCheckLayoutRules.LibraryViews(walk, library.ViewRestored, library.GridTextHeight),
             string.Join('；', walk.Select(one => one.Layout == "StackLayout"
                     ? $"{one.Label} {one.Layout}（整行占页宽，不吃格宽）"
                     : $"{one.Label} {one.Layout} 格 {one.Cell:0}×{one.Row:0}"))

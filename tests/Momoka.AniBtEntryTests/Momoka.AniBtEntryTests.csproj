@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.AniBtEntryTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <DefineConstants>$(DefineConstants);ITEM_USER_STATE_ORDER_FIXTURE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ItemCommands.cs" Link="Production\ItemCommands.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\IShellActions.cs" Link="Production\IShellActions.cs" />
+    <Compile Include="..\Momoka.Tests\ItemUserStateOrderTests.Boundaries.cs" Link="FrameworkBoundaries.cs" />
+    <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+  <!-- Execute the current request helpers and event DTO verbatim; no copied ownership algorithm. -->
+  <UsingTask TaskName="ExtractAniBtEntrySources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceRoot ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, int> unique = (source, marker) =>
+        {
+            var index = source.IndexOf(marker, StringComparison.Ordinal);
+            if (index < 0 || source.IndexOf(marker, index + marker.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing/ambiguous production boundary: " + marker);
+            return index;
+        };
+        Func<string, string, string, string> between = (source, start, end) =>
+        {
+            var begin = unique(source, start);
+            var finish = unique(source, end);
+            if (finish <= begin) throw new InvalidOperationException("Reversed production boundary: " + start);
+            return source.Substring(begin, finish - begin);
+        };
+        var server = File.ReadAllText(Path.Combine(SourceRoot, "Views", "ItemCommands.Server.cs")).Replace("\r\n", "\n");
+        var poster = File.ReadAllText(Path.Combine(SourceRoot, "Views", "PosterCard.xaml.cs")).Replace("\r\n", "\n");
+        var home = File.ReadAllText(Path.Combine(SourceRoot, "Views", "HomePage.xaml.cs")).Replace("\r\n", "\n");
+        var generated = "#nullable enable\n// Extracted verbatim from the current worktree; do not edit.\n" +
+            "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\n" +
+            "namespace Momoka.Shell.Views;\ninternal static partial class ItemCommands\n{\n" +
+            between(server, "    private static async Task GuardAsync(", "\n    /// <summary>\n    /// 一次请求。") + "\n" +
+            between(server, "    private static async Task<T> AskAsync<T>(", "\n    /// <inheritdoc cref=\"AskAsync{T}\"/>") + "\n}\n" +
+            between(poster, "public enum CardAction\n", "\n/// <summary>\n/// The control every card") + "\n" +
+            "internal sealed partial class HomeMenuContract : FrameworkElement\n{\n" +
+            between(home, "    internal (bool Ok, string Detail)? MenuRead()\n", "\n    private static void Collect(DependencyObject node") + "\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateAniBtEntrySources" BeforeTargets="CoreCompile">
+    <ExtractAniBtEntrySources SourceRoot="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell"
+                             OutputSource="$(IntermediateOutputPath)AniBtEntrySources.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)AniBtEntrySources.g.cs" /></ItemGroup>
+  </Target>
+</Project>

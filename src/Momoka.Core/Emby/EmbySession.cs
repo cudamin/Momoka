@@ -37,6 +37,9 @@ public sealed class EmbySession : IDisposable
     /// <summary>仅在最后一个在线来源退出时通知原单会话外壳。</summary>
     public event EventHandler<string>? SignedOut;
     public event EventHandler? SourcesChanged;
+
+    /// <summary>同一在线身份确认了新客户端/权限快照；不代表来源增删，不触发全外壳重载。</summary>
+    public event EventHandler<EmbySessionScope>? PermissionsChanged;
     public EmbyServerGateway Gateway { get; }
     public DeviceIdentity Device { get; }
     public ServerProfile? Server { get { lock (_lifecycleGate) return _current?.IdentityState.Server; } }
@@ -418,6 +421,9 @@ public sealed class EmbySession : IDisposable
             password = _vault.GetPassword(account);
             remember = account.RememberPassword;
         }
+        // 预期身份来自原入口的匿名确认，已经包含合法的旧 Emby → Jellyfin 产品/路径纠正。
+        // 密码登录返回的新连接只能更换凭据，不能把恢复变成另一台服务器或另一账号的登录。
+        var expectedConnection = connection;
         try
         {
             connection = await Gateway.AuthenticateAsync(connection.ApiBase, username, password, cancellationToken,
@@ -426,7 +432,10 @@ public sealed class EmbySession : IDisposable
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!CanCommit(attempt.Key, attempt.Generation) || !HasAddress(server, apiBase)
-                    || !string.Equals(connection.UserId, userId, StringComparison.Ordinal)) return false;
+                    || !connection.IsSameIdentityAs(expectedConnection)
+                    // 通用同身份规则兼容旧配置缺 ID；自动恢复不能丢掉这次已经确认的服务器 ID。
+                    || expectedConnection.ServerId is { Length: > 0 } expectedId
+                        && !string.Equals(connection.ServerId, expectedId, StringComparison.Ordinal)) return false;
                 SaveCredentials(account, connection, password, remember);
                 Adopt(server, account, connection, attempt.Selection);
                 Persist();
@@ -466,6 +475,30 @@ public sealed class EmbySession : IDisposable
         {
             if (!IsAvailable(scope)) throw new OperationCanceledException("实时通道所属来源已退出");
             return scope.Client.Connection;
+        }
+    }
+
+    internal (bool? IsAdministrator, long Revision) CurrentPermissions(EmbySessionScope scope)
+    {
+        lock (_lifecycleGate)
+            return IsAvailable(scope) ? (scope.Client.Connection.IsAdministrator, scope.IdentityState.PermissionRevision) : (null, -1);
+    }
+
+    /// <summary>
+    /// 仅替换已在线同身份的确认快照，无认证或持久化副作用；调用方在完成原有提交后再发权限通知。
+    /// 捕获 Scope 的 Connection 与 Lifetime 不变，执行请求仍按原身份取得最新客户端。
+    /// </summary>
+    internal EmbyClient ReplaceClient(EmbySessionScope scope, EmbyConnection connection)
+    {
+        lock (_lifecycleGate)
+        {
+            if (!IsAvailable(scope)) throw new OperationCanceledException("权限快照所属来源已退出");
+            if (!scope.Client.Connection.IsSameIdentityAs(connection))
+                throw new InvalidOperationException("权限更新不能替换服务器账号身份");
+            var state = scope.IdentityState;
+            state.Client = new EmbyClient(_http, connection);
+            state.PermissionRevision++;
+            return state.Client;
         }
     }
 
@@ -559,6 +592,7 @@ public sealed class EmbySession : IDisposable
                 EndSource(scope.Key, "登录状态已过期，请重新登录", stale, generation, false);
                 return null;
             }
+            EmbyClient? replacement = null;
             lock (_lifecycleGate)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -568,10 +602,14 @@ public sealed class EmbySession : IDisposable
                 if (connection.IsSameIdentityAs(stale.Connection))
                 {
                     SaveCredentials(state.Account, connection, password, state.Account.RememberPassword);
-                    state.Client = new EmbyClient(_http, connection);
+                    replacement = ReplaceClient(scope, connection);
                     Persist();
-                    return state.Client;
                 }
+            }
+            if (replacement is not null)
+            {
+                NotifyPermissionsChanged(scope);
+                return replacement;
             }
             EndSource(scope.Key, "登录状态已过期，请重新登录", stale, generation, false);
             return null;
@@ -611,7 +649,8 @@ public sealed class EmbySession : IDisposable
             ServerKind = info.ServerKind,
             ServerName = info.ServerName is { Length: > 0 } name ? name : connection.ServerName,
             ServerVersion = info.Version ?? connection.ServerVersion,
-            ServerId = info.Id ?? connection.ServerId
+            // 同产品的公开信息可以不带 ID，但不能用空串擦掉已保存的已知身份。
+            ServerId = info.Id is { Length: > 0 } confirmedId ? confirmedId : connection.ServerId
         };
     }
 
@@ -636,16 +675,15 @@ public sealed class EmbySession : IDisposable
         server.ServerId = connection.ServerId;
         account.AutoConnect = true;
         var key = EmbySessionScope.CreateKey(server.Id, account.Id);
-        var client = new EmbyClient(_http, connection);
         if (_sources.TryGetValue(key, out var existing) && existing.Client.Connection.IsSameIdentityAs(connection))
         {
-            existing.IdentityState.Client = client;
+            ReplaceClient(existing, connection);
             existing.IdentityState.RestoredViews = null;
         }
         else
         {
             if (existing is not null) CancelLifetime(existing.IdentityState.Lifetime);
-            existing = new EmbySessionScope(this, new EmbySessionScope.Identity(client, server, account));
+            existing = new EmbySessionScope(this, new EmbySessionScope.Identity(new EmbyClient(_http, connection), server, account));
             _sources[key] = existing;
         }
         if (_current is null || selection != 0 && selection == _selection) SetCurrent(existing);
@@ -728,6 +766,16 @@ public sealed class EmbySession : IDisposable
             if (_pendingConnections == 0) _pendingSignedOut = null;
         }
         if (reason is not null) NotifySignedOut(reason);
+    }
+
+    internal void NotifyPermissionsChanged(EmbySessionScope source)
+    {
+        if (PermissionsChanged is not { } changed) return;
+        foreach (EventHandler<EmbySessionScope> subscriber in changed.GetInvocationList())
+        {
+            try { subscriber(this, source); }
+            catch (Exception error) { Log.Warn(Category, "权限变更通知失败", error); }
+        }
     }
 
     private void NotifySourcesChanged()

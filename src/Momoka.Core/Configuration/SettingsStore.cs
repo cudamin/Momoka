@@ -13,8 +13,27 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
 {
     private const string Category = "settings";
     private readonly object _gate = new();
+    private bool _hasUnsavedChanges;
+
+    /// <summary>包括会话直接保存的失败；所有页面读取同一份状态，而非各自记最后一次保存。</summary>
+    public bool HasUnsavedChanges
+    {
+        get { lock (_gate) return _hasUnsavedChanges; }
+    }
+
+    public event EventHandler? SaveStateChanged;
 
     public AppPaths Paths { get; } = paths;
+
+    /// <summary>普通启动先确定当前可恢复配置，再考虑旧产品数据目录；不用于只读自检。</summary>
+    public string? PrepareStartupData(IEnumerable<string> priorRoots)
+    {
+        if (File.Exists(Paths.SettingsFile)) return null;
+        // 复用正常 Load 的实际读取规则，而不是仅凭备份存在就封死旧目录恢复。
+        // 只读验证不消耗/改写备份，也不隔离；稍后的 Load 从同一当前目录正式恢复。
+        if (File.Exists(Paths.SettingsBackupFile) && TryRead(Paths.SettingsBackupFile, out _)) return null;
+        return Paths.MigrateFromAny(priorRoots);
+    }
 
     public AppSettings Load()
     {
@@ -100,10 +119,20 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
         {
             lock (_gate)
             {
-                SettingsMigration.Normalize(settings);
-                settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
-                var json = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
-                AtomicFile.WriteAllText(Paths.SettingsFile, json, new UTF8Encoding(false), Paths.SettingsBackupFile);
+                // 保存结果与文件写入在同一锁内排序；旧失败不能在另一调用者成功后才覆盖 flag。
+                try
+                {
+                    SettingsMigration.Normalize(settings);
+                    settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
+                    var json = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
+                    AtomicFile.WriteAllText(Paths.SettingsFile, json, new UTF8Encoding(false), Paths.SettingsBackupFile);
+                    _hasUnsavedChanges = false;
+                }
+                catch
+                {
+                    _hasUnsavedChanges = true;
+                    throw;
+                }
             }
             Log.Debug(Category, "设置已保存");
         }
@@ -111,6 +140,17 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
         {
             Log.Error(Category, "保存设置失败", error);
             throw;
+        }
+        finally { NotifySaveStateChanged(); }
+    }
+
+    private void NotifySaveStateChanged()
+    {
+        // 不在文件锁内调用任意 UI 订阅者；一个坏订阅者也不能把已成功落盘改判为失败。
+        foreach (var handler in SaveStateChanged?.GetInvocationList() ?? [])
+        {
+            try { ((EventHandler)handler)(this, EventArgs.Empty); }
+            catch (Exception error) { Log.Warn(Category, "保存状态通知失败", error); }
         }
     }
 

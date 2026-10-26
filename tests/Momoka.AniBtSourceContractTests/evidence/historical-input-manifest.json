@@ -1,0 +1,142 @@
+[
+  {
+    "file": "src/Momoka.Core/AniBt/AniBtService.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\runs\\historical-red-final-20261024-131208-182\\historical-source",
+    "sha256": "5782B25CCEB8AC83E5EDC4FE043498764E09495C2A8CCAD6273D68A0F471F1C4"
+  },
+  {
+    "file": "src/Momoka.Shell/ViewModels/AniBtScrapeViewModel.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\runs\\historical-red-final-20261024-131208-182\\historical-source",
+    "sha256": "6288E216E19BD8F959D164062B6A0C03D9AD5585F52E9E513210B05F00F32C51"
+  },
+  {
+    "file": "src/Momoka.Shell/Views/AniBtScrapeDialog.xaml",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\runs\\historical-red-final-20261024-131208-182\\historical-source",
+    "sha256": "0ACE6F9781E1CE664D4ABF04B7B6BA8DC34AFD9ABBE190EBEA5309E651A1E8EC"
+  },
+  {
+    "file": "src/Momoka.Shell/Views/AniBtScrapeDialog.xaml.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka\\artifacts\\r042\\runs\\historical-red-final-20261024-131208-182\\historical-source",
+    "sha256": "F540DF23B655EC6FCC2C2BBD7EB0B5DEBE5D41800199FE4E629319377136EF9D"
+  },
+  {
+    "file": "src/Momoka.Core/Emby/EmbySession.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "E5F40E16CF538654388B218F080A6E6A1E1FA1693CD73658C2854894EAF30E18"
+  },
+  {
+    "file": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "0662831E59EB35357E4BD6722C52EF2EEC84AABABA98ACEB47F3CEFBF1AE378D"
+  },
+  {
+    "file": "src/Momoka.Core/Emby/EmbyResponses.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "8C6B51B1C9A53442214BA2DDBFD36D446A3764353FEE2BC83BBEEF6DB4877CD5"
+  },
+  {
+    "file": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "7BADB7077CD650519AB7451810E3203557F14ABF337EC1D0DBF8BB163D2DA36D"
+  },
+  {
+    "file": "src/Momoka.Shell/Views/ShellPage.AniBt.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "B8F2BCA710F5710C5934E9863119173C25426F82B463B4C0A76D56FCF67471E9"
+  },
+  {
+    "file": "src/Momoka.Shell/Views/ItemCommands.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "BED4215F1F429DF4969253FEC715F86C83FE3A6BFCD3484F328840BB3CBF6BAC"
+  },
+  {
+    "file": "src/Momoka.Shell/Views/MoviePilotDialog.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "692A54165FA21968A680B402D78B38DE9F1F955A8059F4B4DD9121C024E96EB8"
+  },
+  {
+    "file": "tests/Momoka.AniBtConfirmationTests/AnonymousFixture.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "825D06D3D5D5E2D3FFBF201DF293089DDCDB3020FA842DEEAA188AEE927B8BE6"
+  },
+  {
+    "file": "tests/Momoka.AniBtConfirmationTests/DialogBoundary.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "D169D1C433ECEA29CDB17C265B0BC07B2312A2E4908C9301D267B49021A01423"
+  },
+  {
+    "file": "tests/Momoka.AniBtConfirmationTests/UiControls.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "194496FF35AA85D3BEF5DDF9E79672F8A6BC97CDBA89772CF1DF389A89C92A08"
+  },
+  {
+    "file": "tests/Momoka.AniBtConfirmationTests/UiValues.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "64DE3EE2D3C6C0DC956A5F24FB25E1DA639EBBAC0CAB29512B2595F614088695"
+  },
+  {
+    "file": "tests/Momoka.AniBtConfirmationTests/ThemeBoundary.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "9187173F02C165CCFE2C7562366C4B0D5789789688FCC0C38E8BBB7412006660"
+  },
+  {
+    "file": "tests/Momoka.SubtitleDialogTests/UiQueue.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "DB471CC4C3CBAACF289A10DE8E156D53E9F05651B377FF032B5DE10F170EBAFE"
+  },
+  {
+    "file": "tests/Momoka.Tests/TestHarness.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "4C1D3FC967EB2A8CDDB728466E21ED79C0FFBB366E5EAFF44D3701BC4AA89435"
+  },
+  {
+    "file": "Directory.Build.props",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "D05B81F0AF792D70C3289F569152E847C94397FF280633B757F0F9DAC9CE9C7F"
+  },
+  {
+    "file": ".editorconfig",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "39D5DBD5C4CA2E3C5F0F3F69EA1B0FA70956F1A8781C4853A94B4998D1930E44"
+  },
+  {
+    "file": "global.json",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "8F24F8A5FB69CC074396296B4BFC788521C4E56288F43F03798453F69A63B6DE"
+  },
+  {
+    "file": "tests/Momoka.AniBtSourceContractTests/CallerSourceContractTests.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "FECB6693FEB6D14D061FD061187194CC7BD99BCBC1974C58A4712C4961B65E8A"
+  },
+  {
+    "file": "tests/Momoka.AniBtSourceContractTests/CoreSourceContractTests.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "C27720E19896AC6D2737DFA7FB0CD6612CC7A242387B2D27B8B46A25AB9234DC"
+  },
+  {
+    "file": "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "E58A83A3EA8CF5BF0C0AB82BEE0A8B7A7909CDBB2809AEF085A73CF348327BE1"
+  },
+  {
+    "file": "tests/Momoka.AniBtSourceContractTests/Program.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "B00BCAFBFDA9204FD4BC1274AB44110D18B5F8F582C3B1D41E322265EAB1D308"
+  },
+  {
+    "file": "tests/Momoka.AniBtSourceContractTests/Run-Fixture.ps1",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "F76023FB28E26459A46BACEF02863CC0A51A35A02B8C9B88E56243D4137FFC52"
+  },
+  {
+    "file": "tests/Momoka.AniBtSourceContractTests/SettingsStoreBoundary.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "819667EE15F418DCEE78759580094FE10F7694CDBA0CC955B80EC8C17CE246FB"
+  },
+  {
+    "file": "tests/Momoka.AniBtSourceContractTests/SourceFixture.cs",
+    "inputRoot": "C:\\Users\\89400\\.codex\\worktrees\\r042-identify-source-contract\\Momoka",
+    "sha256": "6F55C03A84E4A44BAE8F3441D9755C0ED238E8454BFE8B12A5A53739A14790D5"
+  }
+]

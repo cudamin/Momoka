@@ -1,0 +1,94 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <AssemblyName>Momoka.ProbeFinalizationTests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+        <StartupObject>Momoka.Tests.Program</StartupObject>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <Compile Include="..\..\src\Momoka.Shell\ProbeReports.cs" Link="Production\ProbeReports.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ShellSelfCheck.Finalization.cs" Link="Production\ShellSelfCheck.Finalization.cs" />
+    </ItemGroup>
+    <!-- The actual report tail and timer final callback are compiled unchanged, not asserted as strings.
+         Only UI readings, the window and optional capture APIs have boundary substitutes. -->
+    <UsingTask TaskName="ExtractProbeFinalizationSources" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <RunSource ParameterType="System.String" Required="true" />
+            <ScheduleSource ParameterType="System.String" Required="true" />
+            <SubtitleSource ParameterType="System.String" Required="true" />
+            <NavigationSource ParameterType="System.String" Required="true" />
+            <OutputSource ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                Func<string, string, string, string> between = (source, start, end) =>
+                {
+                    var first = source.IndexOf(start, StringComparison.Ordinal);
+                    if (first < 0 || source.IndexOf(start, first + start.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing or ambiguous production start: " + start);
+                    var last = source.IndexOf(end, first, StringComparison.Ordinal);
+                    if (last < 0) throw new InvalidOperationException("Missing production end: " + end);
+                    return source.Substring(first, last - first);
+                };
+                var run = File.ReadAllText(RunSource).Replace("\r\n", "\n");
+                var schedule = File.ReadAllText(ScheduleSource).Replace("\r\n", "\n");
+                var tail = between(run, "        report.AppendLine();\n        report.AppendLine(failures == 0", "\n    }\n}\n");
+                var callback = between(schedule, "            await FinishAsync(async () =>", "\n        };\n        _timer.Start();");
+                var generated = "// Compiled verbatim from current production at build time; do not edit.\n#nullable enable\n" +
+                    "using System.Text;\nusing Momoka.Diagnostics;\nnamespace Momoka.Shell;\ninternal static partial class ShellSelfCheck\n{\n" +
+                    "    private static void Run(ProbeWindow window, ProbeShell shell, IServiceProvider services, SelfCheckInput options)\n    {\n" +
+                    "        options.BeforeReadings?.Invoke();\n        var report = new StringBuilder(options.Readings);\n        var failures = options.Failures;\n" +
+                    tail + "\n    }\n" +
+                    "    internal static async Task RunScheduledForFixture(ProbeWindow window, SelfCheckInput options)\n    {\n" +
+                    "        var shell = new ProbeShell(options);\n        IServiceProvider services = null!;\n" +
+                    callback + "\n    }\n}\n";
+                var subtitle = File.ReadAllText(SubtitleSource).Replace("\r\n", "\n");
+                var navigation = File.ReadAllText(NavigationSource).Replace("\r\n", "\n");
+                var subtitleProperty = between(subtitle, "    internal static int ExitCode", "\n    internal static async Task RunAsync");
+                var subtitleEntry = between(subtitle, "    internal static async Task RunAsync(StartupOptions options)", "        async Task RunChecksAsync()");
+                var subtitleRecord = between(subtitle, "        void Record(string name, bool ok, string detail)", "\n    private static async Task LayoutAsync(");
+                var navigationEntry = between(navigation, "internal sealed partial class ShellNavigationProbe", "    private async Task RunAsync()");
+                var navigationRun = between(navigation, "    private async Task RunAsync()", "        async Task RunChecksAsync()");
+                var navigationCase = between(navigation, "    private Task CaseAsync(", "\n    private Fixture CreateFixture(");
+                var probeCallers = "\ninternal static class SubtitleSettingsProbe\n{\n" + subtitleProperty + "\n" + subtitleEntry +
+                    "        async Task RunChecksAsync()\n        {\n            window = options.Window;\n" +
+                    "            await options.SubtitleBody((name, ok, detail) => RecordResult(name, (ok, detail)));\n        }\n\n" +
+                    subtitleRecord +
+                    "\n    private sealed class OfflineHttp : HttpMessageHandler\n    {\n" +
+                    "        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token) =>\n" +
+                    "            throw new InvalidOperationException(\"Fixture must not send HTTP\");\n    }\n}\n" +
+                    navigationEntry + navigationRun +
+                    "        async Task RunChecksAsync()\n        {\n            _window = _options.Window;\n" +
+                    "            await _options.ShellBody((name, ok, section) => CaseAsync(name, () => ok ? Task.CompletedTask :\n" +
+                    "                Task.FromException(new InvalidOperationException(\"ordinary assertion\")), 1, section));\n        }\n    }\n" +
+                    navigationCase + "\n    private static readonly Dictionary<string, string> CaseSections = [];\n}\n";
+                generated = generated.Replace("using System.Text;\n",
+                    "using System.Text;\nusing Momoka.Infrastructure;\nusing HostWindow = Momoka.Shell.ProbeHostWindow;\n" +
+                    "using Application = Momoka.Shell.ProbeApplication;\nusing Grid = Momoka.Shell.ProbeGrid;\n" +
+                    "using MoviePilotClient = Momoka.Shell.ProbeClientResource;\nusing UpdateClient = Momoka.Shell.ProbeClientResource;\n") + probeCallers;
+                Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+                if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+                    File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GenerateProbeFinalizationSources" BeforeTargets="CoreCompile">
+        <ExtractProbeFinalizationSources
+            RunSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.Run.cs"
+            ScheduleSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellSelfCheck.cs"
+            SubtitleSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\SubtitleSettingsProbe.cs"
+            NavigationSource="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ShellNavigationProbe.cs"
+            OutputSource="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)SelfCheckFinalCallback.g.cs" />
+        </ItemGroup>
+    </Target>
+</Project>

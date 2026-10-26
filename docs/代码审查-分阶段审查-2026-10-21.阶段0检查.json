@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "phase": 0,
+  "status": "通过（仅文档，不代表产品验证）",
+  "executedAt": "2026-10-21T01:34:22+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "sourceCommit": "9b69e0877f59f899c9ddc6e1ebfd2baae83e445a",
+  "checks": [
+    {
+      "name": "工作树、分支与完整来源提交",
+      "status": "通过",
+      "detail": "校验固定隔离树，未使用原目录 master 作为写入树"
+    },
+    {
+      "name": "改动及暂存范围",
+      "status": "通过",
+      "detail": "仅三份审查记录和 PROGRESS；临时检查器在忽略目录"
+    },
+    {
+      "name": "UTF-8、LF、末尾换行与新增空白",
+      "status": "通过",
+      "detail": "仅检查本轮记录与进度新增段，不重写历史文件"
+    },
+    {
+      "name": "内容与阶段出口",
+      "status": "通过",
+      "detail": "明确只完成阶段 0，保留未覆盖与等待要求，不宣称产品验证"
+    },
+    {
+      "name": "本轮 Markdown 本地链接与锚点",
+      "status": "通过",
+      "detail": "检查报告全部链接及新进度段链接；不扫描无关历史条目"
+    },
+    {
+      "name": "快照 JSON 结构及范围",
+      "status": "通过",
+      "detail": "校验 5 规程、13 技能、4 记录和 5 个受保护的原树文件；不把原树观察变成产品基线"
+    },
+    {
+      "name": "规程来源 SHA-256 与不可修改边界",
+      "status": "通过",
+      "detail": "PROGRESS 哈希对应追加之前的提交原件，其他规程保持逐字节不变"
+    },
+    {
+      "name": "技能存在、登记、哈希及读取深度",
+      "status": "通过",
+      "detail": "仓库 13 技能均登记；副本差异仅校验当时快照，不冒充语义审查"
+    },
+    {
+      "name": "CAL-01 文档冲突与准确来源定位",
+      "status": "通过",
+      "detail": "旧说明与同文档新边界、凭据政策冲突成立；未检查运行时是否泄漏"
+    },
+    {
+      "name": "命令/工具路径与 SDK 一致性",
+      "status": "通过",
+      "detail": "只核对文档入口及 SDK 版本；未执行其构建、测试、应用或原生路径"
+    },
+    {
+      "name": "PROGRESS 历史内容逐字保留",
+      "status": "通过",
+      "detail": "只有本轮 7 行新增交接，其他会话的历史内容完全不变"
+    },
+    {
+      "name": "记录凭据形态筛查",
+      "status": "通过",
+      "detail": "只筛查本轮记录，不读取真实令牌；规则扫描不替代凭据安全审计"
+    },
+    {
+      "name": "Git 未暂存与暂存差异空白检查",
+      "status": "通过",
+      "detail": "执行 git diff --check 与 git diff --cached --check"
+    }
+  ],
+  "summary": {
+    "passed": 13,
+    "failed": 0,
+    "markdownLinksChecked": 21
+  },
+  "checkedFileSha256": {
+    "docs/代码审查-分阶段审查-2026-10-21.md": "F829C850DCC169646AB109BDE438E4CE6531CEE2BBBC55443E983350AEB4803B",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段0快照.json": "62FC1A655133F076D1ED60A5271AAF565FFFEA36BC51032DC2642D57DA793520",
+    "PROGRESS.md": "7E86085B5FD3B6926AAC0C12345555F9E0A9FDE359ABA4D46D07225A9252ED05"
+  },
+  "resultSelfHashIncluded": false,
+  "checker": {
+    "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase0\\doc-check-20261021-013421\\check_phase0.py",
+    "sha256": "C941B7DC0A7193DB6F3C81CBF66CA4572E4F629D2B2BDC727F2C58B758B24A56",
+    "scope": "本轮临时文档检查器，位于忽略目录；不是正式产品检查或新增仓库闸门"
+  },
+  "productBuildsOrTestsExecuted": false,
+  "applicationOrServerOperationsExecuted": false,
+  "systemContextCompressionExecuted": false,
+  "limitations": [
+    "原工作区其他会话可继续变化；本检查固定隔离树来源",
+    "不验证接口、真实服务器、播放、UI 或工具运行实现",
+    "检查结果文件不包含自身哈希，避免自引用"
+  ]
+}

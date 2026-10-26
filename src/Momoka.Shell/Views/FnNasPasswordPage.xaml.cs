@@ -1,4 +1,5 @@
 using Momoka.Emby;
+using Momoka.Services;
 using Momoka.Shell.ViewModels;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Controls;
@@ -30,7 +31,9 @@ public sealed partial class FnNasPasswordPage : Page, IShellContent, ISessionSco
         base.OnNavigatedTo(e);
         if (e.Parameter is not FnNasPasswordRequest request) return;
         _request = request;
-        ViewModel.Attach(request.Services.GetRequiredService<EmbySession>(), request.SourceKey);
+        ViewModel.Attach(request.Services.GetRequiredService<EmbySession>(),
+            request.Services.GetRequiredService<ISettingsService>(),
+            action => DispatcherQueue.TryEnqueue(() => action()), request.SourceKey);
         _ = ViewModel.ReloadAsync();
     }
 

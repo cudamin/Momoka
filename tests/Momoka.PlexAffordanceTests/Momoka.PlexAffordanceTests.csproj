@@ -1,0 +1,72 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>Momoka.PlexAffordanceTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <DefineConstants>$(DefineConstants);ITEM_USER_STATE_ORDER_FIXTURE</DefineConstants>
+    <StartupObject>Momoka.Tests.PlexAffordanceTests</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ItemCommands.cs" Link="Production\ItemCommands.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\IShellActions.cs" Link="Production\IShellActions.cs" />
+    <!-- Reuse only the existing fail-closed framework/unrelated-command boundaries, not its tests. -->
+    <Compile Include="..\Momoka.Tests\ItemUserStateOrderTests.Boundaries.cs" Link="FrameworkBoundaries.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.Tests\AgreementsTests.cs" Link="AgreementsTests.cs" />
+  </ItemGroup>
+  <UsingTask TaskName="ExtractPlexAffordanceSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceRoot ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string> read = file => File.ReadAllText(Path.Combine(SourceRoot, file)).Replace("\r\n", "\n");
+        Func<string, string, string, string> between = (source, start, end) =>
+        {
+            var begin = source.IndexOf(start, StringComparison.Ordinal);
+            if (begin < 0 || source.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing/ambiguous production start: " + start);
+            var finish = source.IndexOf(end, begin + start.Length, StringComparison.Ordinal);
+            if (finish < 0) throw new InvalidOperationException("Missing production end: " + end);
+            return source.Substring(begin, finish - begin);
+        };
+        var server = read("Views/ItemCommands.Server.cs");
+        var poster = read("Views/PosterCard.xaml.cs");
+        var page = read("Views/DetailPage.xaml.cs");
+        var guard = between(server, "    private static async Task GuardAsync(", "\n    /// <summary>\n    /// 一次请求。");
+        var ask = between(server, "    private static async Task<T> AskAsync<T>(", "\n    /// <inheritdoc cref=\"AskAsync{T}\"/>");
+        var action = between(poster, "public enum CardAction\n", "\n/// <summary>\n/// The control every card");
+        var changed = between(page, "    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs args)\n", "\n    /// <summary>\n    /// 自检：详情页的第一屏");
+        var enter = between(page, "        ViewModel.Attach(\n", "\n    }\n\n    private void OnViewModelChanged(");
+        var paint = between(page, "    private void PaintGenres()\n", "\n    public void Release()");
+        var reading = between(page, "    internal (bool Ok, string Detail) GenreRead()\n", "\n    /// <summary>\n    /// 评分那一格");
+        var generated = "#nullable enable\n// Extracted verbatim from this tree at every build; missing boundaries fail the build.\n" +
+            "using System.ComponentModel;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Microsoft.UI.Xaml;\n" +
+            "using Momoka.Services;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Documents;\nusing DetailViewModel = Momoka.Tests.ReflectedDetail;\n" +
+            "namespace Momoka.Shell.Views\n{\ninternal static partial class ItemCommands\n{\n" + guard + "\n" + ask + "\n}\n" + action + "\n}\n" +
+            "namespace Momoka.Tests\n{\ninternal sealed partial class GenrePageContract\n{\n" + changed + "\n" + paint + "\n" + reading + "\n" +
+            "    internal void Enter(object request, PlexActionsProxy _actions, FixtureServices services, EmbySession _session, EmbyImageStore images)\n    {\n" + enter + "\n    }\n}\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GeneratePlexAffordanceSources" BeforeTargets="CoreCompile">
+    <ExtractPlexAffordanceSources SourceRoot="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell"
+                                  OutputSource="$(IntermediateOutputPath)PlexAffordanceSources.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)PlexAffordanceSources.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

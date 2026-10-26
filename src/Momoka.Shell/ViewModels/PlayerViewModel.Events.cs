@@ -572,7 +572,9 @@ public sealed partial class PlayerViewModel
 
     private void OnTracksChanged(PlaybackUpdate<IReadOnlyList<MpvTrack>> update) => OnUi(() =>
     {
-        if (update.Generation == _playback.Generation && _playback.IsPlaying) Tracks = update.Value;
+        if (update.Generation != _playback.Generation || !_playback.IsPlaying) return;
+        _tracksRevision++;
+        Tracks = update.Value;
     });
 
     private void OnNowPlayingChanged(PlaybackUpdate<EmbyItem?> update) => OnUi(() =>
@@ -942,10 +944,11 @@ public sealed partial class PlayerViewModel
             if (_volumeMemory.Observe(status, _playback.CanControl, Now) is { } level)
             {
                 _volumeReady = true;
-                Volume = level;
+                if (HasVolumeSteps) _volumeStepDisplay = level;
+                else Volume = level;
                 ScheduleVolumeSave();
             }
-            else
+            else if (!HasVolumeSteps)
             {
                 // 加载期/暂停回声被挡时不给相对音量操作一个假的 100 基准：优先用已确认的内核值，
                 // 保护窗里停着的真实读数次之，最后才是本次起播设置——没有已证实值时显示它，
@@ -1023,30 +1026,28 @@ public sealed partial class PlayerViewModel
     }
 
     /// <summary>
-    /// 音量 under the user's own hand — the rail, the wheel and the arrow keys all land here. Sent straight
-    /// through rather than coalesced: a volume change is a single value mpv applies instantly, and the thumb and
-    /// the figure above it have to keep up with the hand rather than with the next status poll — which, until
-    /// this level settles, is not allowed to write them at all (see <see cref="ApplyStatus"/>).
+    /// The rail's own input, plus wheel/arrow targets once the volume is known. Loading-time gestures
+    /// pass their delta directly from NudgeVolume. Inputs are sent rather than coalesced; a confirmed
+    /// level, not the display guess or a pre-request echo, owns persistence (see ApplyStatus).
     /// </summary>
-    partial void OnVolumeChanged(double value)
+    partial void OnVolumeChanged(double oldValue, double newValue)
     {
-        if (_pushing) return;
-        // The displayed value may be this playback's launch volume while the kernel has not reported a
-        // real level yet; computing an absolute target from that guess would turn a 「down」 step into
-        // a jump to the displayed level. Once a real kernel reading has arrived the wheel's new value
-        // is exact and can be confirmed as before; before that the step itself goes to the kernel,
-        // like the delay does, and the reading that comes back owns the display.
-        if (!_playback.CanControl || !_volumeReady)
+        if (_pushing || _lifetime.IsCancellationRequested) return;
+        if (VolumeMemory.Level(newValue) is not { } level)
         {
-            var baseLevel = _volumeMemory.Pending ?? _volumeMemory.Queued
-                ?? VolumeMemory.Level(Status.Volume) ?? Settings.Audio.Volume;
-            _ = StepVolumeAsync(VolumeScale.Clamp(value) - baseLevel, _playback.Generation);
+            // A rejected value must not replace the still-dragged rail's baseline with a kernel
+            // reading: the next finite user value belongs to this same in-flight gesture batch.
+            DisplayVolume(HasVolumeSteps ? oldValue : _volumeMemory.Pending ?? _volumeMemory.Queued
+                ?? VolumeMemory.Level(Status.Volume) ?? Settings.Audio.Volume);
             return;
         }
-        if (VolumeMemory.Level(value) is not { } level)
+
+        // The rail's loading-time value is only a display guess. Compare this setter's two values,
+        // never the unchanged confirmed/status baseline: 100→95→90 means -5/-5, not -5/-10.
+        // Wheel/arrow entry points pass their original delta directly, even at a display boundary.
+        if (!_playback.CanControl || !_volumeReady || HasVolumeSteps)
         {
-            DisplayVolume(_volumeMemory.Pending ?? _volumeMemory.Queued
-                ?? VolumeMemory.Level(Status.Volume) ?? Settings.Audio.Volume);
+            _ = StepVolumeAsync(VolumeScale.Clamp(newValue) - VolumeScale.Clamp(oldValue), _playback.Generation);
             return;
         }
 
@@ -1055,24 +1056,62 @@ public sealed partial class PlayerViewModel
     }
 
     private bool _volumeReady;
+    private int _volumeSteps;
+    private long _volumeStepGeneration;
+    private long _volumeStepOrder;
+    private long _volumeStepConfirmedOrder;
+    private double? _volumeStepDisplay;
+    private bool HasVolumeSteps => _volumeSteps > 0 && _volumeStepGeneration == _playback.Generation;
 
     private async Task StepVolumeAsync(double step, long generation)
     {
-        var applied = await _playback.AdjustVolumeAsync(step).ConfigureAwait(true);
-        if (_lifetime.IsCancellationRequested || generation != _playback.Generation) return;
-        if (applied is { } level && VolumeMemory.Level(level) is { } confirmed)
+        if (_volumeStepGeneration != generation || _volumeSteps == 0)
         {
-            _volumeReady = true;
-            if (_volumeMemory.Observe(new PlayerStatus { Loaded = true, Volume = level, VolumeKnown = true },
-                canControl: true, Now) is { } observed)
-            {
-                DisplayVolume(observed);
-                ScheduleVolumeSave();
-            }
-            return;
+            _volumeStepGeneration = generation;
+            _volumeSteps = 0;
+            _volumeStepDisplay = null;
         }
-        if (_volumeMemory.Pending is null && _volumeMemory.Queued is null)
-            DisplayVolume(VolumeMemory.Level(_playback.Status.Volume) ?? Settings.Audio.Volume);
+        // A rail drag's consecutive values must stay on its own display baseline until this relative
+        // batch drains. Keep observing/saving real readings, but defer their UI fill: 95→90, read32,
+        // then drag85 still means -5, not 85-32. Raw wheel/arrow deltas use the same batch boundary.
+        var order = ++_volumeStepOrder;
+        _volumeSteps++;
+        try
+        {
+            var applied = await _playback.AdjustVolumeAsync(step).ConfigureAwait(true);
+            if (_lifetime.IsCancellationRequested || generation != _playback.Generation) return;
+            if (applied is { } level && VolumeMemory.Level(level) is { } confirmed
+                && order > _volumeStepConfirmedOrder)
+            {
+                // The service serializes native commands, but releasing its gate can queue the
+                // next read-back before this callback reaches UI. Only a newer successful reading
+                // can replace one already accepted here; a newer failure must not erase success.
+                _volumeStepConfirmedOrder = order;
+                _volumeReady = true;
+                if (_volumeMemory.Observe(new PlayerStatus { Loaded = true, Volume = level, VolumeKnown = true },
+                    canControl: true, Now) is { } observed)
+                {
+                    DisplayConfirmedVolume(observed);
+                    ScheduleVolumeSave();
+                }
+                return;
+            }
+        }
+        finally
+        {
+            if (_volumeStepGeneration == generation)
+            {
+                _volumeSteps--;
+                if (_volumeSteps == 0)
+                {
+                    var display = _volumeStepDisplay ?? _volumeMemory.Pending ?? _volumeMemory.Queued
+                        ?? VolumeMemory.Level(_playback.Status.Volume) ?? Settings.Audio.Volume;
+                    _volumeStepDisplay = null;
+                    if (!_lifetime.IsCancellationRequested && generation == _playback.Generation)
+                        DisplayVolume(display);
+                }
+            }
+        }
     }
 
     private async Task SendVolumeAsync(long request, int level, long generation)
@@ -1081,16 +1120,26 @@ public sealed partial class PlayerViewModel
         if (_lifetime.IsCancellationRequested || generation != _playback.Generation) return;
         if (confirmed)
         {
-            if (_volumeMemory.Accept(request, level, Now)) ScheduleVolumeSave();
+            if (_volumeMemory.Accept(request, level, Now))
+            {
+                DisplayConfirmedVolume(level);
+                ScheduleVolumeSave();
+            }
         }
         else if (_volumeMemory.Reject(request))
         {
-            DisplayVolume(_volumeMemory.Queued
+            DisplayConfirmedVolume(_volumeMemory.Queued
                 ?? VolumeMemory.Level(_playback.Status.Volume) ?? Settings.Audio.Volume);
         }
     }
 
-    private void DisplayVolume(int level)
+    private void DisplayConfirmedVolume(double level)
+    {
+        if (HasVolumeSteps) _volumeStepDisplay = level;
+        else DisplayVolume(level);
+    }
+
+    private void DisplayVolume(double level)
     {
         _pushing = true;
         try { Volume = level; }
@@ -1112,7 +1161,7 @@ public sealed partial class PlayerViewModel
             {
                 if (_volumeMemory.Pending is null && _volumeMemory.FlushQueued(Now) is { } adopted)
                 {
-                    DisplayVolume(adopted);
+                    DisplayConfirmedVolume(adopted);
                     ScheduleVolumeSave();
                     continue;
                 }
@@ -1130,12 +1179,11 @@ public sealed partial class PlayerViewModel
     /// <summary>Settles independently of the page ticker; failed writes retain the same pending revision.</summary>
     private void FlushVolume(bool settled = true)
     {
-        // A real kernel reading parked during the echo window outranks the older pending value at every
-        // settle point (stop, playback switch, save loop): saving the stale one would write back a
-        // level the kernel has already left behind.
+        // VolumeMemory excludes known pre-request echoes, including callbacks delivered after the
+        // command confirmation. Only a distinct parked kernel reading may outrank Pending here.
         if (_volumeMemory.FlushQueued(Now) is { } adopted)
         {
-            DisplayVolume(adopted);
+            DisplayConfirmedVolume(adopted);
             ScheduleVolumeSave();
         }
         if (_volumeMemory.Pending is not { } level) return;
@@ -1197,8 +1245,12 @@ public sealed partial class PlayerViewModel
     /// </summary>
     private Task PopulateTracksAsync(int generation) => PollAsync(generation, false, async () =>
     {
+        var revision = _tracksRevision;
         var tracks = await _playback.GetTracksAsync().ConfigureAwait(true);
-        if (generation != _generation) return true;
+        if (generation != _generation || _lifetime.IsCancellationRequested || !_playback.IsPlaying) return true;
+        // A newer same-file notification (including an empty list) owns the cache. Stop this old
+        // poll rather than overwriting the picker or issuing another stale initial read.
+        if (revision != _tracksRevision) return true;
 
         if (tracks.Count == 0) return false;
 

@@ -1,0 +1,4021 @@
+{
+  "schemaVersion": 1,
+  "task": "阶段1～7独立复核汇总",
+  "status": "七阶段独立复核已完成；仅文档记录；检查和本地提交后暂停",
+  "capturedAt": "2026-10-21T19:07:36.251+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "reviewStartCommit": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phase8Commit": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+  "reviewedStages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "phase0Scope": "规程背景，不作为第八个复核阶段",
+  "authorization": "一阶段一名独立子代理；不重做已完成阶段；限流原上下文续接；完成汇总、文档校验和本地提交后暂停，不进入阶段9，不实施修复、真实数据操作或推送发布",
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段1至7独立复核.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段1至7独立复核证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段1至7独立复核检查.json",
+    "PROGRESS.md"
+  ],
+  "baselineAtReviewStart": {
+    "trackedChanges": [
+      "D\tdocs/交接-集成播放器缩放与起播全屏-2026-09-22.md"
+    ],
+    "stagedChanges": [],
+    "untrackedFiles": []
+  },
+  "capture": {
+    "schemaVersion": 1,
+    "task": "阶段1～7独立复核",
+    "capturedAt": "2026-10-21T13:13:23.008+08:00",
+    "timezone": "Asia/Shanghai",
+    "workingTree": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka",
+    "branch": "codex/staged-code-review-2026-10-21",
+    "reviewStartCommit": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "stages": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "phase0Scope": "规程背景，不作为第八个复核阶段",
+    "phase8AlreadyCommitted": true,
+    "phase8Commit": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+    "latestAuthorization": "阶段8完成后委派独立复核前七阶段，汇总完成后暂停；不进入阶段9，不修产品；限流本身不作为中断子代理理由",
+    "initialTrackedChanges": [
+      "D\tdocs/交接-集成播放器缩放与起播全屏-2026-09-22.md"
+    ],
+    "initialStagedChanges": [],
+    "initialUntracked": [],
+    "fixedProductByteRecords": 856,
+    "fixedProductDigest": "9EF392070C516E9E4C2CBC545596AA8BD67D039E22ACB5F567236CD952EF7144",
+    "historicalPhaseFiles": [
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段0快照.json",
+        "sha256": "62FC1A655133F076D1ED60A5271AAF565FFFEA36BC51032DC2642D57DA793520"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段0检查.json",
+        "sha256": "63F151A4905CCB2A5AEABA2EBA035B034C9B9C550B5AC86375AD31DED8902471"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+        "sha256": "A418852A2608C2307DCAA29CAC031E13D17FCF3626E520AD8CAD360BB19F0D49"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1检查.json",
+        "sha256": "65B47BC168C357A27F38A0FE25CB847270556F965BC65774DBEF5C376039F9F5"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+        "sha256": "86A2C3BFD29F4639EA2F4378428FDBA5CE3E5F2906194876B1E667B72551B15B"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2审查.md",
+        "sha256": "F5BED8313720BAF324187B93E6FBDCB0F7981E461880B392DEA6F7E27CE8900F"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2检查.json",
+        "sha256": "A088188BDD169E9DAD490088F294148FFD8284F0BD47F6A410AF84E31330496A"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+        "sha256": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3审查.md",
+        "sha256": "08948575FAD43E64C1A40386D89B164D1E23170DEB523E3A6CCB69CA3616D70D"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3检查.json",
+        "sha256": "C7AA75BFFCB3F8555863AE3E504B533531115F1DB5AB3A150124A808BA5DA4AE"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3证据.json",
+        "sha256": "C23D9F798B40160DE35A22B282F9794EBA4DB41F3CD9D6101365EBB8ADA717A9"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段4审查.md",
+        "sha256": "FF1F16AD83EE58DEFD212F934BCC95A3FB7B2F586E546D59EC78859AD645C7A1"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段4检查.json",
+        "sha256": "23ABBF55B772C9D5774B8CE6F90F124AD79E00335CD2CF5F839442281A63BD80"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段4证据.json",
+        "sha256": "F67967A57DF38CACC6360ACACEB3EFAF36769465544A0D197021BF4D161E6D98"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5审查.md",
+        "sha256": "DBBBC1DDE448FD1808DE157FDE5265ED8F9B4EA83FF078F2A7C0047A83B90DCC"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5检查.json",
+        "sha256": "BC5EEA4D616B389E50EA4B2171A84D3BAC1378DE8446EE661972D7C6E5B25DA7"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5证据.json",
+        "sha256": "235EBC4F388AB874725C9AA82109CF50495B6130BD3F777F4743A965FE5F1B4E"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md",
+        "sha256": "1AA0531231280A6C01C95C7E3795E12B1A3FA8B26E2143C75ADC624271CDE76D"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6检查.json",
+        "sha256": "C6425B73C8F7AFCCA1F27001E48FE0BB7287E6DA95E6A0F5C7BB0611F3EC4EA3"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6证据.json",
+        "sha256": "1BE7DFF0270FE81152BDCAE09A6AF193316696CCB3450DD81F903466B9A94602"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7审查.md",
+        "sha256": "370115FAC4E61A9E501103E4FD321F1C87334781E0C58C4BDB8807970E5836B4"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7检查.json",
+        "sha256": "9DB359BBC3E303D8CB46B5BDB7DBDC40B71122730575625D1899E94B3E7585A8"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7证据.json",
+        "sha256": "F5FC60FE5BFFA15E9EB5C284276692E79D5A65E63542CFF2D185EAF6BB6455E8"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段8审查.md",
+        "sha256": "91CC2B3076AB40139D907A03A911F560230F99FDF1F233230DE32577202B963D"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段8检查.json",
+        "sha256": "85D377BAB1C4E25926FD618F88BDF5D753563FDACB663F29341A89C918CE098D"
+      },
+      {
+        "path": "docs/代码审查-分阶段审查-2026-10-21.阶段8证据.json",
+        "sha256": "9B22047A9331B284BA8C02A5EF110124E73DC813BED4A5CF4CE6C7D2D1B916EB"
+      }
+    ],
+    "originalTreeObservation": {
+      "root": "C:/Users/89400/Momoka",
+      "head": "a9b7153d1fd6a6b4a537424a667c2f2dca131176",
+      "status": [
+        "?? docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "?? website/"
+      ],
+      "protectedFiles": [
+        {
+          "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+          "sha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F"
+        },
+        {
+          "path": "website/README.md",
+          "sha256": "FBECA038382C00E9004E352CB2B59514E460B6D0FA7460B666810DF86DD81092"
+        },
+        {
+          "path": "website/docker-compose.yml",
+          "sha256": "E086CD7DE73F7F578559E4A1505C5C8BFCDAB373A21842C7CC384FBF404BDDC8"
+        },
+        {
+          "path": "website/index.html",
+          "sha256": "648CFA1F3F5CBC33A17FA50D937803EEAA71D9A95D53C4A7EF25D7E612537CB8"
+        },
+        {
+          "path": "website/nginx.conf",
+          "sha256": "43C9C8F7B41EAB282781AD21501391938A74F79C8AD9F8B021FD0537C124AED5"
+        }
+      ]
+    },
+    "productOrUiExecuted": false,
+    "pushOrPublish": false,
+    "systemContextCompressionExecuted": false
+  },
+  "dispatch": {
+    "schemaVersion": 1,
+    "capturedAt": "2026-10-21T13:28:47.907+08:00",
+    "workingTree": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka",
+    "reviewStartCommit": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "userRequirement": "一阶段一名独立子代理；先阶段8提交，随后复核阶段1～7，全部汇总后暂停；限流本身不是中断代理理由",
+    "phase0Scope": "规程背景，不作为第八个阶段",
+    "phase8Commit": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+    "pauseAfter": true,
+    "nextStage9Started": false,
+    "stages": [
+      {
+        "stage": 1,
+        "agentId": "01a15ce2-4152-74c2-b756-006b7ddc4fde",
+        "scope": "基线与计划",
+        "status": "已完成并归档；不重复审查",
+        "resultArtifact": "stage-1-result.json",
+        "closedBecause": "已完成且结果取回，不是因为限流",
+        "closed": true
+      },
+      {
+        "stage": 2,
+        "agentId": "01a15ce8-acd5-7012-bb77-c1a0ba29ce9a",
+        "scope": "Emby协议与凭据",
+        "status": "已完成并归档；不重复审查",
+        "resultArtifact": "stage-2-result.json",
+        "closed": true,
+        "closedBecause": "已完成且结果取回，不是因为限流"
+      },
+      {
+        "stage": 3,
+        "agentId": "01a15ce9-8274-76e3-9307-fa64fe228e6b",
+        "scope": "Jellyfin协议与版本兼容",
+        "status": "已完成并归档；不重复审查",
+        "resultArtifact": "stage-3-result.json",
+        "closed": true,
+        "closedBecause": "已完成且结果取回，不是因为限流"
+      },
+      {
+        "stage": 4,
+        "agentId": "01a15cea-50a1-7bd2-b366-0ffaf9c74c0f",
+        "scope": "飞牛协议、登录与传输",
+        "status": "已完成并归档；不重复审查",
+        "resultArtifact": "stage-4-result.json",
+        "closed": true,
+        "closedBecause": "已完成且结果取回，不是因为限流"
+      },
+      {
+        "stage": 5,
+        "agentId": "01a15ceb-54c2-7af1-a644-a4328f711ae9",
+        "scope": "Plex独立协议与能力",
+        "status": "已完成并归档；不重复审查",
+        "resultArtifact": "stage-5-result.json",
+        "completionConfirmedByUser": true,
+        "closed": true,
+        "closedBecause": "已完成且结果取回，不是因为限流"
+      },
+      {
+        "stage": 6,
+        "agentId": "01a15cec-233a-72b3-a5d9-af858b79046f",
+        "scope": "账号、来源与持久化",
+        "status": "已完成并归档；不重复审查",
+        "resultArtifact": "stage-6-result.json",
+        "closed": true,
+        "closedBecause": "已完成且结果取回，不是因为限流"
+      },
+      {
+        "stage": 7,
+        "agentId": "01a15d30-dadd-7a42-9f5f-157dc3db0169",
+        "scope": "Emby浏览、操作与图片",
+        "status": "已完成并归档；不重复审查",
+        "resultArtifact": "stage-7-result.json",
+        "closed": true,
+        "closedBecause": "已完成且结果取回，不是因为限流"
+      }
+    ],
+    "dispatchNotes": [
+      "阶段7首次spawn因agent thread limit reached未成功创建，未使用合并分工绕过。",
+      "等待完成代理正常关闭后释放名额；不以限流为由关闭或反复重启。",
+      "Kepler确认完成后只回传既有结果并正常关闭，释放名额后单独创建阶段7 Dalton；Rawls/Ampere不重新审查，仅接收完成结果。"
+    ],
+    "updatedAt": "2026-10-21T18:51:41.422+08:00",
+    "allSevenComplete": true
+  },
+  "reviewerResults": [
+    {
+      "schemaVersion": 1,
+      "stage": 1,
+      "agentId": "01a15ce2-4152-74c2-b756-006b7ddc4fde",
+      "agentName": "Kepler",
+      "status": "已完成，原结果直接回传；未重复审查",
+      "retrievedAt": "2026-10-21T14:46:02.429+08:00",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "reviewHead": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+      "overallDecision": "需收窄；固定基线与计划整体保留",
+      "baselineVerdict": "保留，不重定固定产品来源",
+      "evidenceCorrections": [
+        {
+          "id": "IR-1-DOC-01",
+          "decision": "撤回错误路径提示，JSON索引不修改",
+          "claim": "阶段1计划247行把MpvOutputOptions.cs写成当前未匹配，但固定源和基线JSON均已列入",
+          "locations": [
+            {
+              "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+              "start": 247,
+              "end": 247
+            },
+            {
+              "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+              "start": 1285,
+              "end": 1326,
+              "jsonFields": "stages[14].entryPatterns[2]、matchedEntryFiles[1]、unmatchedPatterns=[]"
+            },
+            {
+              "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+              "start": 2473,
+              "end": 2473,
+              "jsonFields": "trackedFileInventory[320].sourceGitBlob"
+            }
+          ],
+          "sourceGitBlob": "734c8f0c8b965a65fbbcc4c17baa8b81d872fd5d",
+          "limitation": "文件存在不是业务、测试或探针已验证"
+        },
+        {
+          "id": "IR-1-EVID-01",
+          "decision": "保留历史哈希归属",
+          "claim": "阶段1检查的checkedFileSha256四项匹配阶段1记录提交4b663c425491120a4d87234d98bf20ecc9c88619；后续总记录/PROGRESS和流程变化不等于旧证据失败",
+          "location": {
+            "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1检查.json",
+            "start": 95,
+            "end": 104
+          },
+          "sourceTimeCommit": "4b663c425491120a4d87234d98bf20ecc9c88619"
+        },
+        {
+          "id": "IR-1-COUNT-01",
+          "decision": "计数保留，含义收窄",
+          "counts": {
+            "sourceTracked": 886,
+            "reviewTrackedAtBaseline": 889,
+            "fixedByteSubset": 856,
+            "subset": {
+              "src": 600,
+              "tests": 116,
+              "tools": 27,
+              "assets": 77,
+              "skills": 31,
+              "topLevel": 5
+            }
+          },
+          "claim": "字节检查不等于856业务文件已审；当时待批准/串行文本作历史，不反向改写。当前按用户一阶段一代理及全部完成后暂停执行"
+        }
+      ],
+      "coverage": [
+        {
+          "item": "固定来源/tree/合并父关系",
+          "result": "与c34来源、阶段1开始和阶段0记录一致"
+        },
+        {
+          "item": "全量索引",
+          "result": "886/886路径、模式、Git blob与开始提交SHA-256相符，无漏项/额外/重复"
+        },
+        {
+          "item": "856固定文件",
+          "result": "源/阶段1开始/当前HEAD的模式、blob和当前实体哈希一致"
+        },
+        {
+          "item": "计划",
+          "result": "18候选阶段的字段/依赖/技能/入口匹配，882有候选归属、4历史文件不分配"
+        },
+        {
+          "item": "历史",
+          "result": "阶段1记录提交仅五文件、阶段0证据和旧进度原行保留；两测试仅去空白比较"
+        },
+        {
+          "item": "规程技能",
+          "result": "五规程历史哈希、13仓库技能吻合；现行CLAUDE/流程/验证技能读取"
+        },
+        {
+          "item": "本轮文档",
+          "result": "三阶段1文件UTF-8/LF/末尾/空白，66计划链接可解析，未来命令只语法"
+        }
+      ],
+      "limitations": [
+        "未审产品业务，未运行构建/测试/应用/UI/原生/真实服务器",
+        "未重放旧91组合链接、检查器完整15项过程；仅检查其存在与哈希",
+        "原目录五排除文件仅快照路径/哈希交叉核对，未读取内容/重观察原目录",
+        "未复核阶段2～7业务"
+      ],
+      "productOrTestsExecuted": false,
+      "filesWrittenByAgent": false,
+      "completedAgentClosed": true,
+      "closedBecause": "已完成并已取回结果，不是限流",
+      "extraReviewAfterCompletion": false
+    },
+    {
+      "stage": 2,
+      "agentId": "01a15ce8-acd5-7012-bb77-c1a0ba29ce9a",
+      "agentName": "Chandrasekhar",
+      "status": "已完成，回传原结论，没有重复审查",
+      "overallDecision": "R-001、R-002均保留；分别明确版本/触发和可取消停滞边界",
+      "decisions": [
+        {
+          "id": "R-001",
+          "decision": "保留并明确边界",
+          "priority": "P1",
+          "staticConclusion": "固定.NET10.0.11的默认ClientWebSocket握手使用允许自动重定向的默认invoker；异源安全等级不降低的下一跳清标准Authorization，但Emby自定义X-Emby-Token与X-Emby-Authorization仍随请求发送。令牌本体位于前者，后者主要携带设备身份。",
+          "trigger": "有效异源3xx（例如307）在握手15秒预算内完成下一跳发送；缺失Location、跳数耗尽、TLS失败、连通失败、及时取消和安全→非安全降级不在确认发送范围",
+          "causalChain": [
+            "实时watch仅对可用且支持实时的来源启动",
+            "初始URL不含凭据，Handshake由CurrentConnection生成头",
+            "默认ClientWebSocket设置自定义头并调用无自定义invoker的ConnectAsync",
+            "底层自动跳转发生在最终WebSocket升级检查之前；重定向改RequestUri并选新连接池，未删除Emby自定义头",
+            "最终升级成功与否不改变此前已把自定义头发给第二跳这一风险"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Core/Emby/EmbyRealtimeWatch.cs",
+              "start": 30,
+              "end": 42
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyRealtimeProtocol.cs",
+              "start": 22,
+              "end": 54
+            },
+            {
+              "path": "src/Momoka.Core/Emby/MediaServerKind.cs",
+              "start": 41,
+              "end": 51
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyRealtimeConnection.cs",
+              "start": 104,
+              "end": 117
+            }
+          ],
+          "existingGuards": [
+            "REST逐跳SameOrigin/清认证是另一条HTTP链，不覆盖默认WebSocket invoker",
+            "初始URL去凭据、输入控制字符拒绝、日志类型、15秒期限、来源退出和离页取消均存在，但不能保证快速第二跳先被取消",
+            "重连更新原来源令牌不限制重定向目的地"
+          ],
+          "notVerified": [
+            "没有双端口重定向产品运行复现",
+            "未核最终发布运行时",
+            "未证明真实服务器发生该Location或真实令牌已泄漏"
+          ],
+          "minimumDirection": "显式控制握手跳转及逐跳凭据边界，不回退URL查询令牌"
+        },
+        {
+          "id": "R-002",
+          "decision": "保留并明确可取消范围",
+          "priority": "P2",
+          "staticConclusion": "长下载使用无限Timeout的_long；ResponseHeadersRead后非成功状态先等待错误正文，ReadBodySafelyAsync没有独立截止，阻塞状态翻译与共用下载锁释放。",
+          "trigger": "长下载错误正文在达到8000字符或EOF前持续不结束，来源保持在线且未取消；不是成功下载慢流缺陷",
+          "causalChain": [
+            "ItemCommands取得静态单下载DownloadGate后await SaveAsync，finally才释放",
+            "捕获来源ExecuteAsync联合Lifetime，调用方为CancellationToken.None，没有额外总预算",
+            "GetDownloadResponseAsync用_long，不走普通SendAsync截止路径",
+            "非成功响应先读错误正文，然后日志/状态异常翻译；直到正文结束、截断或取消才退出",
+            "下一笔下载等待共用门闩，错误通知和令牌过期分类也晚于正文"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+              "start": 247,
+              "end": 277
+            },
+            {
+              "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+              "start": 314,
+              "end": 361
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 452,
+              "end": 486
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+              "start": 1020,
+              "end": 1030
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+              "start": 73,
+              "end": 106
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+              "start": 253,
+              "end": 261
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+              "start": 363,
+              "end": 396
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+              "start": 435,
+              "end": 455
+            }
+          ],
+          "existingGuards": [
+            "来源退出Lifetime和会话Dispose可以解除等待；不是无条件永久死锁",
+            "ConnectTimeout只管建连，普通请求deadline不覆盖_long错误正文",
+            "长度截断限制输出长度，不限制达到阈值之前的等待时间",
+            "大文件成功下载应继续保持长传输能力，不能改成普通短期限"
+          ],
+          "notVerified": [
+            "未运行暂停错误正文加第二笔排队下载的产品场景",
+            "不是整个UI冻结或无取消能力的死锁"
+          ],
+          "minimumDirection": "给可选错误正文独立有限预算，及时翻译已知HTTP状态，保留成功长下载能力"
+        }
+      ],
+      "evidenceCorrections": [
+        {
+          "id": "IR-2-RUNTIME",
+          "decision": "明确原DLL/固定tag/发布运行时的证据边界",
+          "detail": "保存IL对象与阶段2runtime-static-evidence一致，原记录DLL10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32；本代理未重新哈希安装目录DLL。公开该commit raw路径404不算证据，后取得v10.0.11相关源码；结论不扩大到所有.NET补丁或最终发布件。",
+          "runtimeArtifact": "artifacts/code-review-phase2/runtime-static-evidence.json",
+          "publicVersion": "dotnet/runtime v10.0.11",
+          "publicSource": "https://github.com/dotnet/runtime/tree/v10.0.11"
+        },
+        {
+          "id": "IR-2-TEST",
+          "decision": "保留旧运行时点",
+          "detail": "2072通过属于2026-10-21 02:59:12 +08:00阶段2旧运行，本轮只复读回执、日志尾部和保存日志哈希，未新跑测试"
+        }
+      ],
+      "coverage": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbyRealtimeWatch.cs",
+          "readDepth": "30～42及取消入口",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyRealtimeProtocol.cs",
+          "readDepth": "22～54",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyRealtimeConnection.cs",
+          "readDepth": "72～117、155～182",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/MediaServerKind.cs",
+          "readDepth": "41～51",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttpRedirect.cs",
+          "readDepth": "8～42",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/DeviceIdentity.cs",
+          "readDepth": "鉴权拼接/清理相关段",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "readDepth": "身份/Lifetime/CurrentConnection/Execute相关段",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "readDepth": "452～486、退出/Dispose相关段",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "readDepth": "1020～1030",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "readDepth": "73～106、215～261、363～411、435～455",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+          "readDepth": "38～54、247～277、314～361",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+          "readDepth": "275～287",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+          "readDepth": "292～325、987～995",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "readDepth": "276～323",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+          "readDepth": "Release/Cancel调用定位",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/EmbyRealtimeTests.cs",
+          "readDepth": "URL/头/输入断言",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/EmbyRealtimeTests.Transport.cs",
+          "readDepth": "16～163，无3xx夹具",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/HttpDeadlineTests.cs",
+          "readDepth": "16～121、139～190；不覆盖长下载错误正文",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/HttpRedirectTests.cs",
+          "readDepth": "REST/handler配置断言",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/ItemActionTests.cs",
+          "readDepth": "419～491",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/Program.cs",
+          "readDepth": "相关注册定位",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/EmbyTests.cs",
+          "readDepth": "相关注册定位",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "global.json",
+          "readDepth": "SDK/TFM范围",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Momoka.Core.csproj",
+          "readDepth": "构建范围",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/Momoka.Tests.csproj",
+          "readDepth": "测试范围",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.runtimeconfig.json",
+          "readDepth": "10.0.0 framework请求",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+          "readDepth": "280～1354 runtime记录与旧执行证据",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "artifacts/code-review-phase2/runtime-static-evidence.json",
+          "readDepth": "与阶段2运行时对象比较",
+          "reader": "阶段2独立子代理"
+        },
+        {
+          "path": "artifacts/code-review-phase2/tests-20261021-025740",
+          "readDepth": "旧日志/回执只读",
+          "reader": "阶段2独立子代理"
+        }
+      ],
+      "newLeads": [
+        {
+          "title": "ReadBodySafelyAsync请求截止注释不适用于_long",
+          "decision": "修复时校准注释，不单独计缺陷",
+          "location": {
+            "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+            "start": 439,
+            "end": 439
+          }
+        }
+      ],
+      "limitations": [
+        "未运行两个新增触发场景",
+        "未核发布件运行时、真实服务器行为或真实凭据流",
+        "不重审阶段3～7",
+        "公开v10.0.11适用方法是固定一手源码，不代替本机原DLLIL"
+      ],
+      "schemaVersion": 1,
+      "retrievedAt": "2026-10-21T17:02:18.324+08:00",
+      "reviewHead": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "archivalScope": "主线程据已完成子代理报告归纳的结构化归档；非原始逐字全文，不代表重新开展独立审查",
+      "productBuildOrTestsExecuted": false,
+      "applicationOrUiStarted": false,
+      "filesWrittenByAgent": false,
+      "realUserDataAccessed": false,
+      "extraReviewAfterCompletion": false
+    },
+    {
+      "stage": 3,
+      "agentId": "01a15ce9-8274-76e3-9307-fa64fe228e6b",
+      "agentName": "Rawls",
+      "status": "已完成；仅取回已有完整报告和元数据，不重复审查",
+      "overallDecision": "R-003保留并收窄，维持P1；纠正12.2源码标签与旧路由规格口径",
+      "decisions": [
+        {
+          "id": "R-003",
+          "decision": "保留并收窄",
+          "priority": "P1",
+          "staticConclusion": "同源确认后发生后端身份变化或响应不一致，保存token同源401后密码认证成功、UserId相同而ServerId不同，恢复可把新身份采用到原保存来源；Adopt的IsSameIdentityAs不是拒绝门槛。",
+          "trigger": "预期ServerId=A/UserId=u，事前公开信息=A，token验证401，密码认证和登录后公开信息均给B/UserId=u；无须地址、产品变化或跨源跳转",
+          "causalChain": [
+            "恢复匿名确认同源、产品/基址及已有非空ServerId；得到纠正后的预期连接",
+            "Jellyfin Users/Me比较用户后读取Views，同源token过期可进入密码回退；不同用户、403和普通API失败不回退",
+            "Gateway登录后公开信息可刷新产品/版本/ServerId，认证ServerId优先，但不与预期比较",
+            "原connection被新认证结果覆盖，最终提交只核取消/代次/原档案地址和UserId",
+            "SaveCredentials后Adopt先写新ServerId，再用IsSameIdentityAs决定复用还是取消旧来源并创建新来源，并非拒绝采用"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+              "start": 28,
+              "end": 43
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 323,
+              "end": 408
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 554,
+              "end": 587
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+              "start": 53,
+              "end": 56
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+              "start": 381,
+              "end": 411
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+              "start": 110,
+              "end": 153
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 601,
+              "end": 624
+            }
+          ],
+          "existingGuards": [
+            "同源确认、不同用户/普通API错误、代次/取消/地址保护成立",
+            "REST逐跳去认证与不跨源重发密码不能保证同源后端服务器身份一致",
+            "IsSameIdentityAs比较是来源替换规则，不能作为最终身份拒绝"
+          ],
+          "scopeLimit": "仅静态采用链；不能宣称真实错绑、凭据泄露或后续数据误写已发生",
+          "notVerified": [
+            "A→401→B同用户实际离线产品回归",
+            "真实部署是否后端切换",
+            "缺失/空/矛盾ServerId矩阵",
+            "完整版本矩阵"
+          ],
+          "minimumDirection": "与经匿名纠正后的预期连接比较最终身份，不能用误标旧Emby档案机械比较；拒绝采用不证明密码此前未发送"
+        }
+      ],
+      "evidenceCorrections": [
+        {
+          "id": "IR-3-SOURCE-01",
+          "decision": "撤回旧源码标签缺口，补充固定v12.2证据",
+          "tag": "v12.2",
+          "notTag": "v12.2.0",
+          "commit": "ca0f16eb7c195f720a1493ed469a27c4657db0c6",
+          "assemblyVersion": "12.2.0",
+          "versionFile": "SharedVersion.cs:3～4",
+          "legacyRoutes": [
+            {
+              "path": "Jellyfin.Api/Controllers/UserViewsController.cs",
+              "start": 107,
+              "end": 116,
+              "route": "Users/{userId}/Views"
+            },
+            {
+              "path": "Jellyfin.Api/Controllers/ItemsController.cs",
+              "start": 721,
+              "end": 726,
+              "route": "Users/{userId}/Items"
+            },
+            {
+              "path": "Jellyfin.Api/Controllers/ItemsController.cs",
+              "start": 1027,
+              "end": 1032,
+              "route": "Users/{userId}/Items/Resume"
+            }
+          ],
+          "claim": "上述旧路由在控制器仍注册，Obsolete及ApiExplorerSettings(IgnoreApi=true)隐藏于OpenAPI；规格缺项不证明目标404或200"
+        },
+        {
+          "id": "IR-3-ENUM-01",
+          "decision": "保留当前枚举未发现非法值的排除，限定证据来源",
+          "legacyTag": "v10.10.7",
+          "legacyFields": {
+            "path": "MediaBrowser.Model/Querying/ItemFields.cs",
+            "upstreamCount": 60,
+            "currentCount": 49
+          },
+          "legacySorts": {
+            "path": "Jellyfin.Data/Enums/ItemSortBy.cs",
+            "upstreamCount": 32,
+            "currentCount": 30,
+            "additional": [
+              "SimilarityScore",
+              "SearchScore"
+            ]
+          },
+          "openApiUrl": "https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json",
+          "openApiObservedVersion": "12.2.0",
+          "openApiField": "components.schemas.ItemFields.enum / components.schemas.ItemSortBy.enum",
+          "zeroDifferences": true,
+          "claim": "12.2的49/30零差异来自OpenAPI，10.10.7源码为超集；不是12.2枚举CS读取证据"
+        },
+        {
+          "id": "IR-3-UNKNOWN-01",
+          "decision": "未知版本矩阵仍待验证",
+          "claim": "不可解析版本默认顶层路由，但10.10.7也有部分顶层路由；默认本身不证明失败"
+        }
+      ],
+      "coverage": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerAddress.cs",
+          "readDepth": "全文",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+          "readDepth": "全文",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/JellyfinQuery.cs",
+          "readDepth": "全文",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/MediaServerKind.cs",
+          "readDepth": "全文",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/DeviceIdentity.cs",
+          "readDepth": "全文",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttpRedirect.cs",
+          "readDepth": "全文",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyApiException.cs",
+          "readDepth": "全文",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+          "readDepth": "共享探测/认证相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "readDepth": "恢复、采用、身份和持久化相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "readDepth": "身份相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+          "readDepth": "连接身份相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "readDepth": "REST鉴权/401分类相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "readDepth": "当前用户/Views相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+          "readDepth": "保存身份相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/CredentialVault.cs",
+          "readDepth": "凭据保存/恢复相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+          "readDepth": "恢复/持久化相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+          "readDepth": "保存类型纠正相关段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/JellyfinProtocolTests.cs",
+          "readDepth": "全文静态",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/JellyfinProtocolTests.Restore.cs",
+          "readDepth": "全文静态",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/SessionTests.cs",
+          "readDepth": "恢复/重登相关断言定位",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/IdentityRegressionTests.cs",
+          "readDepth": "恢复/身份断言相关片段",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemQuery.cs",
+          "readDepth": "常量/参数定位",
+          "reader": "阶段3独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySortBy.cs",
+          "readDepth": "常量/参数定位",
+          "reader": "阶段3独立子代理"
+        }
+      ],
+      "newLeads": [
+        {
+          "title": "空ServerId采用规则需单独定义",
+          "decision": "不编号",
+          "detail": "IsSameIdentityAs把null视作可匹配，Gateway用??不把空字符串当缺失；不排除双方非空A/B反例，但不能把该比较称为所有缺失ID严格核验"
+        },
+        {
+          "title": "密码回退成功后未重新Users/Me和Views验证",
+          "decision": "不编号，纳入后续身份验收矩阵",
+          "detail": "应区分认证ID与登录后公开ID互相矛盾；不从静态采用链断言真实写错"
+        }
+      ],
+      "limitations": [
+        "无本轮产品/测试/UI运行；2072通过只属阶段2历史时点",
+        "管理/UI/WebView/播放不在阶段3复核范围，不当成本次重验",
+        "公开API403、错误raw404与失败请求后沿用变量无效输出不作已取得证据",
+        "未做完整真实版本矩阵、后端切换或缺失身份回归"
+      ],
+      "schemaVersion": 1,
+      "retrievedAt": "2026-10-21T17:05:58.534+08:00",
+      "reviewHead": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "archivalScope": "主线程据已完成子代理报告归纳的结构化归档；非原始逐字全文，不代表重新开展独立审查",
+      "productBuildOrTestsExecuted": false,
+      "applicationOrUiStarted": false,
+      "filesWrittenByAgent": false,
+      "realUserDataAccessed": false,
+      "extraReviewAfterCompletion": false
+    },
+    {
+      "stage": 4,
+      "agentId": "01a15cea-50a1-7bd2-b366-0ffaf9c74c0f",
+      "agentName": "Ampere",
+      "status": "已完成，只取回已有报告与补充片段，不重做",
+      "overallDecision": "R-004收窄，未撤回；本地错误分类保留，误撤销为待验证条件性后果，P2仅条件成立时适用",
+      "decisions": [
+        {
+          "id": "R-004",
+          "decision": "收窄；本地分类静态保留，实际误撤销待验证",
+          "priority": "P2（条件成立时适用）",
+          "staticConclusion": "业务-16在本地文案为权限不足，却属于IsAuthenticationFailure；登录适配器的catch覆盖密码登录、user/info及可选sys/config，若这些接口的成功HTTP业务信封为-16，会被升级成EmbyAuthenticationException。",
+          "trigger": "在线来源普通请求先出现-2或同源HTTP401，已保存密码且身份/代次/旧客户端仍有效；随后的登录链在成功HTTP响应内返回code=-16。直接业务-16、-5或HTTP403本身不触发重登。",
+          "causalChain": [
+            "LibraryViewModel经来源ExecuteAsync进入会话，Invoke翻译后仅token过期触发重登",
+            "TryReauthenticate核来源/代次/保存密码，经Gateway进入飞牛密码登录",
+            "loginByPassword后读取带新令牌user/info和不带用户令牌的可选sys/config",
+            "FnNasHttp先判HTTP状态，再解析成功业务信封；-16错误由登录适配catch升级成认证拒绝",
+            "重登失败分类为认证拒绝时EndSource清原令牌、移除来源/取消Lifetime，但不删除服务器账号或发送服务器登出"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Core/FnNas/FnNasApiException.cs",
+              "start": 11,
+              "end": 26
+            },
+            {
+              "path": "src/Momoka.Core/FnNas/FnNasHttp.cs",
+              "start": 92,
+              "end": 115
+            },
+            {
+              "path": "src/Momoka.Core/FnNas/FnNasClient.cs",
+              "start": 25,
+              "end": 40
+            },
+            {
+              "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+              "start": 34,
+              "end": 81
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+              "start": 102,
+              "end": 104
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 492,
+              "end": 551
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 657,
+              "end": 691
+            },
+            {
+              "path": "src/Momoka.Core/Configuration/CredentialVault.cs",
+              "start": 26,
+              "end": 26
+            }
+          ],
+          "existingGuards": [
+            "直接权限错误不触发重登，初始前件必须token过期",
+            "登录不同server_guid拒绝；可选配置降级保留已知ID；保存令牌恢复须匿名探测",
+            "重登来源串行且核代次/可用/旧客户端；不误撤销已换来源或新客户端",
+            "权限/签名/格式/未知/调用方取消不任意降级成功",
+            "普通30秒、字节/multipart五分钟覆盖发送/正文，32MiB JSON和64MiB字节以及增量限制、逐跳同源重签、释放均存在"
+          ],
+          "scopeLimit": "不得称普通文件权限错误直接注销来源，或前端字典保证所有v1/v2接口发-16。误撤销不等于删账号、服务端登出、清保存密码或关闭AutoConnect；Persist仅尝试。",
+          "notVerified": [
+            "真实登录/user/info/sys/config返回-16的一手前件未闭合",
+            "未运行重登-16故障矩阵",
+            "失败撤销分支取消/配置并发交错未运行；不能宣称全部失败出口都有成功提交的保护"
+          ],
+          "minimumDirection": "区分登录凭据拒绝与文件权限错误，收紧错误映射；保留非认证故障的传播，不以吞错冒充登录成功"
+        }
+      ],
+      "evidenceCorrections": [
+        {
+          "id": "IR-4-ARCHIVE",
+          "decision": "明确旧归档只交叉核对记录，未重读外部bundle",
+          "artifact": "C:/Users/89400/Momoka/work/fnos-front-20261019/14a77ac952fc83b785b65592c335e16d-BGXwY7Sz.js",
+          "oldSha256": "E244E703491C58F2E354BE13A2DC00A6354AD352BB6519E90D7E28A188D9F0A6",
+          "markers": [
+            {
+              "marker": "AuthPermissionError=-16",
+              "utf16OffsetZeroBased": 146400
+            },
+            {
+              "marker": "文件权限不足",
+              "utf16OffsetZeroBased": 157335
+            },
+            {
+              "marker": "PasswordIncorrect=-15",
+              "utf16OffsetZeroBased": 146353
+            }
+          ],
+          "historyVersion": "网页0.9.8／服务0.8.43为旧来源声明，非当前版本",
+          "scope": "本代理未越界重读/重哈希主目录bundle；仅核隔离树报告/证据/检查器一致，不作接口级错误契约"
+        },
+        {
+          "id": "IR-4-OPTIONAL",
+          "decision": "收窄匿名sys/config推断",
+          "detail": "sys/config不带用户令牌，仍可有签名/访问码Cookie；不能从用户文件权限推断其返回-16。非成功HTTP403正文不进业务码解析。"
+        },
+        {
+          "id": "IR-4-TEST",
+          "decision": "旧测试范围保留缺口",
+          "detail": "既有错误矩阵无-16，多数直接调用客户端；可选配置基类异常断言也允许认证拒绝派生类，不能排除升级。32秒头前延迟不证明完整五分钟或全部慢正文。2072通过只属阶段2旧运行。"
+        }
+      ],
+      "coverage": [
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasApiException.cs",
+          "readDepth": "全文"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasHttp.cs",
+          "readDepth": "全文"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasEndpoint.cs",
+          "readDepth": "全文"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasSigner.cs",
+          "readDepth": "全文"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasClient.cs",
+          "readDepth": "登录/发送/传输相关段，非全文"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+          "readDepth": "检测/登录/翻译/可选读取相关段，非全文"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "readDepth": "重登/恢复/清理相关段，非全文"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "readDepth": "来源执行入口相关段"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "readDepth": "1506～1525，仅来源执行入口"
+        }
+      ],
+      "additionalCoverage": "飞牛协议/预算/恢复错误矩阵与登录令牌恢复夹具、共享会话重登替换相关测试只读；管理仅传输鉴权交界、模型仅可选标签；精确测试文件未在回传摘录逐一列明，不虚构逐文件覆盖。",
+      "limitations": [
+        "未独立复核原始外部bundle字节",
+        "未真实服务端接口发码契约或NAS操作",
+        "无本轮产品/测试/UI运行",
+        "未审全部传输失败边界、阶段9原生页面或播放"
+      ],
+      "newLeads": [
+        {
+          "title": "重登失败撤销分支保护差异",
+          "decision": "不编号，需后续受控交错验证",
+          "detail": "失败分支没有成功提交的地址/保存密码再核及调用方取消再核；不把未测时序当新增确认问题"
+        }
+      ],
+      "schemaVersion": 1,
+      "retrievedAt": "2026-10-21T17:12:49.897+08:00",
+      "reviewHead": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "archivalScope": "根据已完成子代理报告整理的结构化归档，非原始逐字全文；不重新审查",
+      "productBuildOrTestsExecuted": false,
+      "applicationOrUiStarted": false,
+      "filesWrittenByAgent": false,
+      "realUserDataAccessed": false,
+      "extraReviewAfterCompletion": false
+    },
+    {
+      "schemaVersion": 1,
+      "stage": 5,
+      "agentId": "01a15ceb-54c2-7af1-a644-a4328f711ae9",
+      "agentName": "Feynman",
+      "status": "已完成，直接取回原结果，不重新审查",
+      "retrievedAt": "2026-10-21T15:49:55.799+08:00",
+      "reviewHead": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "overallDecision": "R-005收窄后保留P1；R-006保留P2",
+      "decisions": [
+        {
+          "id": "R-005",
+          "decision": "收窄后保留",
+          "priority": "P1（按成功响应形状的核心登录阻断影响；实际请求契约待验证）",
+          "staticConclusion": "PlexMediaAdapter从根对象读取authToken，却从account[\"user\"]读取id/名称；顶层账号成功对象没有user时id必为空，抛本地EmbyApiException，目标PMS核对与保存采用均不执行。",
+          "trigger": "实际账号成功响应为顶层id/名称/authToken且无嵌套user；未证明Momoka的固定host/JSON正文组合收到过此形状",
+          "causalLocations": [
+            {
+              "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+              "start": 43,
+              "end": 82
+            },
+            {
+              "path": "src/Momoka.Core/Plex/PlexHttp.cs",
+              "start": 104,
+              "end": 120
+            },
+            {
+              "path": "src/Momoka.Core/Plex/PlexClient.cs",
+              "start": 122,
+              "end": 123
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+              "start": 419,
+              "end": 457
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 169,
+              "end": 186
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+              "start": 91,
+              "end": 108
+            },
+            {
+              "path": "src/Momoka.Core/Diagnostics/Failure.cs",
+              "start": 25,
+              "end": 38
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+              "start": 470,
+              "end": 482
+            }
+          ],
+          "existingGuards": "用户/服务器结果核对在账号解析后；当前混合形状夹具可通过，但不能覆盖官方顶层形状",
+          "testLocations": [
+            {
+              "path": "tests/Momoka.Tests/PlexProtocolTests.cs",
+              "start": 85,
+              "end": 104
+            },
+            {
+              "path": "tests/Momoka.Tests/PlexMediaTests.cs",
+              "start": 195,
+              "end": 207
+            }
+          ],
+          "contractCorrection": "官方固定脚本默认生产账号host为clients.plex.tv，密码调用传递表单数据并要求JSON；Momoka为plex.tv，发送application/json正文。路径相同与JSON意图不能闭合实际返回契约。",
+          "notVerified": [
+            "未真实登录",
+            "未验证Momoka固定host/编码/头组合的成功或错误响应",
+            "未运行顶层成功对象产品回归"
+          ],
+          "scopeLimit": "不表述所有真实Plex登录都已证实失败，不认定账号或服务器越权/凭据泄露已发生"
+        },
+        {
+          "id": "R-006",
+          "decision": "保留",
+          "priority": "P2",
+          "staticConclusion": "显式HTTP80和无端口HTTP IPv6的端口显式性判断错误，可把合法配置指向错误端口",
+          "evidenceBasis": "本地BCL属性、文件哈希与固定源码因果；不是产品故障回归或真实IPv6网络验证",
+          "locations": [
+            {
+              "path": "src/Momoka.Core/Plex/PlexEndpoint.cs",
+              "member": "TryNormalize",
+              "start": 41,
+              "end": 46
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyServerAddress.cs",
+              "member": "TryNormalize Plex分派",
+              "start": 18,
+              "end": 19
+            }
+          ],
+          "notVerified": [
+            "未运行端口/显示往返产品回归",
+            "未访问真实PMS/反代/IPv6网络"
+          ],
+          "scopeLimit": "合法地址特定条件功能错误；无身份越界或凭据泄露实证"
+        }
+      ],
+      "sourceIntegrity": {
+        "registeredCodeAndTestHashesMatched": 17,
+        "fixedSourceDiff": false
+      },
+      "primaryReference": {
+        "url": "https://app.plex.tv/auth-form/js/main-792-e02bf845014d00c600e0-plex-4.161.0-e486ae4.js",
+        "version": "4.161.0 / e486ae4",
+        "sha256": "6DA989E89C69796125E923C4D451F8A6060F634A8EB4DEDC265707BDC543F429",
+        "method": "匿名GET，由子代理核对；未将其当目标账号实际成功回执"
+      },
+      "coverage": [
+        {
+          "path": "src/Momoka.Core/Plex/PlexEndpoint.cs",
+          "readDepth": "1～132全文",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexHttp.cs",
+          "readDepth": "1～210全文",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexApiException.cs",
+          "readDepth": "1～31全文",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexClient.cs",
+          "readDepth": "连接/身份/账号转发/Root与协议相关段，非完整浏览",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+          "readDepth": "1～116、218～282，非全文",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.Models.cs",
+          "readDepth": "1～55、238～267与字段定位，非全文",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexPlaybackSelection.cs",
+          "readDepth": "1～39，仅地址交界",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/PlexProtocolTests.cs",
+          "readDepth": "全文静态，未运行",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/PlexMediaTests.cs",
+          "readDepth": "测试体/Fixture/Transport，未运行",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerAddress.cs",
+          "readDepth": "1～88全文",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+          "readDepth": "检测/公开用户/认证分流相关段",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "readDepth": "25～104、460～468",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "readDepth": "113～211、308～418、459～655相关段",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySignInIdentity.cs",
+          "readDepth": "1～35全文",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+          "readDepth": "137～179及能力相关段",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttpRedirect.cs",
+          "readDepth": "1～40",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "readDepth": "17～49、485～496与Plex分派定位",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+          "readDepth": "1～56",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+          "readDepth": "132～174与能力定位",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ServerAccess.cs",
+          "readDepth": "1～75全文",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/FavoriteAccounts.cs",
+          "readDepth": "规则定位",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+          "readDepth": "74～92、130～162和能力定位",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Services/SettingsService.cs",
+          "readDepth": "74～97",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Diagnostics/Failure.cs",
+          "readDepth": "18～39",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "readDepth": "315～371、418～638",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SignInPage.xaml",
+          "readDepth": "地址/凭据/命令/通知绑定段",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SignInPage.xaml.cs",
+          "readDepth": "Attach/Enter/命令转发定位",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+          "readDepth": "通知定位、190～203",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/ServersViewModel.cs",
+          "readDepth": "248～298",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "readDepth": "315～345、880～900和能力定位",
+          "reader": "阶段5独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "readDepth": "261～282与能力定位",
+          "reader": "阶段5独立子代理"
+        }
+      ],
+      "limitations": [
+        "未真实账号/PMS/共享权限/反代/IPv6/2FA/PIN、多账号验证",
+        "未运行既有产品测试、UI、播放/上报；未新增测试/插桩",
+        "旧2072通过只属阶段2历史，非本轮通过",
+        "未执行旧文档检查器",
+        "固定.NET上游源码GET404/失败不作为已取得证据",
+        "未审阶段10浏览及后续播放链"
+      ],
+      "productBuildOrTestsExecuted": false,
+      "applicationOrUiStarted": false,
+      "filesWrittenByAgent": false,
+      "realUserDataAccessed": false,
+      "extraReviewAfterCompletion": false
+    },
+    {
+      "stage": 6,
+      "agentId": "01a15cec-233a-72b3-a5d9-af858b79046f",
+      "agentName": "Linnaeus",
+      "status": "已完成；直接归档原报告及补回片段，不重做",
+      "overallDecision": "五项核心静态因果链成立：R-007～R-009保留，R-010/R-011收窄；不撤回、不新增编号",
+      "decisions": [
+        {
+          "id": "R-007",
+          "decision": "保留",
+          "priority": "P1",
+          "staticConclusion": "预选账号ProtectedPassword显式JSON null覆盖初始化器，SettingsStore成功解析后未修复该字段，启动Prepare在HasSavedPassword的.Length抛出；主窗口尚未Show，初始化catch退出，现存有效备份不被尝试。",
+          "trigger": "当前配置结构（例如v26）预选服务器/用户名/地址有效，但所选Account.ProtectedPassword为显式null，未启用运行时可空强制",
+          "causalChain": [
+            "ReadOptions未强制可空标注，属性初始化器不阻止显式null",
+            "Repair修复容器/null条目但不校验该账号凭据字段，Normalize身份流程不触碰该字段，主配置被视为读取成功",
+            "ShellPage→SignInPage.Attach→VM.Attach同步Prepare，读取账号HasSavedPassword在Vault前抛出",
+            "异常已在Load外，App.Attach在窗口Show前失败退出；坏主文件未隔离，备份不尝试"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Core/Configuration/SettingsSerializer.cs",
+              "start": 8,
+              "end": 13
+            },
+            {
+              "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+              "start": 35,
+              "end": 38
+            },
+            {
+              "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+              "start": 342,
+              "end": 388
+            },
+            {
+              "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+              "start": 601,
+              "end": 626
+            },
+            {
+              "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+              "start": 19,
+              "end": 38
+            },
+            {
+              "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+              "start": 117,
+              "end": 147
+            },
+            {
+              "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+              "start": 121,
+              "end": 150
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+              "start": 211,
+              "end": 249
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+              "start": 610,
+              "end": 611
+            },
+            {
+              "path": "src/Momoka.Shell/App.xaml.cs",
+              "start": 153,
+              "end": 200
+            }
+          ],
+          "existingGuards": [
+            "RememberPassword/AutoConnect不阻止Prepare读取",
+            "SavedAccount按规范地址/用户名匹配能防跨服取错，不能修字段null",
+            "Vault.Unwrap空/null与解密失败兜底在抛出之后不可达",
+            "旧v1凭据分支有??空串保护，不能套当前结构",
+            "URL null在Normalize抛出可走Store备份，与密码字段时机不同"
+          ],
+          "scopeLimit": "确认到预选账号密码null坏文件容错，不把任意账号字段null或正常保存生成null一概记为启动退出",
+          "notVerified": [
+            "无新增配置Load→App启动故障回归",
+            "未真实DPAPI/进程退出验证"
+          ]
+        },
+        {
+          "id": "R-008",
+          "decision": "保留",
+          "priority": "P2",
+          "staticConclusion": "A登录在飞时同址表单换选/手改为B不Cancel且没有Busy冻结；B的自动提交若Busy即返回，A原token/代次/地址仍通过并Adopt A，VM随后清密码及SignedIn导航。",
+          "trigger": "同址凭据页在A成功到达前改变用户名/密码或公共用户选择；第二次请求没有真正发出",
+          "causalChain": [
+            "公共列表/手改输入未随Busy冻结；回调只改字段不撤销旧load",
+            "B无密码触发自动登录时Busy返回，没有新load/Session代次",
+            "A旧请求通过原取消/代次/地址检查保存并Adopt，VM仅核token后清草稿导航",
+            "非聚合时后续PruneOthers可剪掉其它在线来源"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+              "start": 418,
+              "end": 465
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+              "start": 491,
+              "end": 527
+            },
+            {
+              "path": "src/Momoka.Shell/Views/SignInPage.xaml",
+              "start": 267,
+              "end": 318
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 140,
+              "end": 185
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 601,
+              "end": 625
+            }
+          ],
+          "existingGuards": [
+            "地址实质变化/返回/Detach/Dispose会取消",
+            "真实新请求及来源退出有代次防护，但不覆盖表单变了而新请求没发",
+            "_filling防程序预选；PasswordFor按输入身份绑定，不是把A密码发送给B"
+          ],
+          "scopeLimit": "身份选择与旧成功不一致，不是认证绕过；公共用户列表Emby/Jellyfin可达，FnNas/Plex列表空但手改分支仍可达",
+          "notVerified": [
+            "无延迟登录/真实UI输入组合运行回归"
+          ]
+        },
+        {
+          "id": "R-009",
+          "decision": "保留",
+          "priority": "P2",
+          "staticConclusion": "当前主配置缺失且备份有效时，Main迁移只看主文件存在，旧目录可先复制旧主；Load随后主成功即返回，遮蔽当前有效备份。",
+          "trigger": "当前主缺失、当前备份有效、旧目录可读旧主且复制成功",
+          "causalChain": [
+            "普通Main先执行MigrateFromAny，再Load",
+            "迁移门槛只看SettingsFile是否存在，不先验证当前备份",
+            "旧主复制到缺失路径，Load读成功就不尝试备份",
+            "近期账号/AutoConnect/选择/偏好可能回退；后续保存可使旧主成为新备份"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Shell/Program.cs",
+              "start": 402,
+              "end": 423
+            },
+            {
+              "path": "src/Momoka.Shell/Program.cs",
+              "start": 431,
+              "end": 445
+            },
+            {
+              "path": "src/Momoka.Shell/Program.cs",
+              "start": 501,
+              "end": 509
+            },
+            {
+              "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+              "start": 121,
+              "end": 138
+            },
+            {
+              "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+              "start": 152,
+              "end": 157
+            },
+            {
+              "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+              "start": 172,
+              "end": 183
+            },
+            {
+              "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+              "start": 280,
+              "end": 295
+            },
+            {
+              "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+              "start": 19,
+              "end": 38
+            },
+            {
+              "path": "src/Momoka.Core/Infrastructure/AtomicFile.cs",
+              "start": 23,
+              "end": 28
+            }
+          ],
+          "existingGuards": [
+            "主存在不迁移；CopyTree不覆盖已有备份或即时删除备份",
+            "旧主无效/复制失败仍可能恢复当前备份",
+            "Store单独缺主回归不经过Main迁移",
+            "正常关窗成功保存不满足缺主前件"
+          ],
+          "scopeLimit": "限定缺主+有效备份+旧主复制组合，不泛称所有迁移回退；最小修复优先当前有效备份而非路径存在",
+          "notVerified": [
+            "未运行临时目录Main迁移→Load组合"
+          ]
+        },
+        {
+          "id": "R-010",
+          "decision": "收窄后保留",
+          "priority": "P2",
+          "staticConclusion": "会话直接Persist失败只记录日志且返回，不更新共享/父页HasUnsavedChanges；飞牛改密服务端已成功，新内存凭据已保护但磁盘可能仍旧，页面未提示本地持久化欠项。",
+          "trigger": "已记住密码的飞牛来源改密获服务器确认，新凭据保护成功，本地Store.Save失败；未保存标志原为false，之后没有成功补存",
+          "causalChain": [
+            "Session已提交服务器确认的新凭据与客户端",
+            "Persist绕过SettingsService.TrySave，Store异常仅Log.Warn，正常返回",
+            "VM清草稿并报密码已修改，父设置页标志未变，没有未保存提示/重试入口",
+            "之后若无成功保存，下一次磁盘凭据仍旧"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 196,
+              "end": 249
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 732,
+              "end": 736
+            },
+            {
+              "path": "src/Momoka.Core/Services/SettingsService.cs",
+              "start": 115,
+              "end": 132
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/FnNasPasswordViewModel.cs",
+              "start": 31,
+              "end": 45
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+              "start": 1020,
+              "end": 1026
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+              "start": 1183,
+              "end": 1200
+            },
+            {
+              "path": "src/Momoka.Shell/Views/SettingsPage.xaml",
+              "start": 1359,
+              "end": 1369
+            }
+          ],
+          "existingGuards": [
+            "原子提交保护旧主备，关窗共享Save可补救",
+            "派发前取消、来源寿命/代次/地址/密码核对有效，派发后离页保持已确认改密正确",
+            "登录/删除VM另有共享Save，可能补救或置未保存标志"
+          ],
+          "scopeLimit": "服务端改密成功是真的；仅未告知本地持久化欠项，不称服务器改密失败、不自动重发、不泛称所有会话操作都不传播失败",
+          "notVerified": [
+            "未跑锁文件改密组合；共享状态与已开页通知缺口未运行"
+          ]
+        },
+        {
+          "id": "R-011",
+          "decision": "收窄后保留",
+          "priority": "P2",
+          "staticConclusion": "同server/user令牌过期后重登更换Client且保留Identity，不发SourcesChanged；旧Scope.Connection快照不变，默认权限缓存与未重新Attach管理页可能继续旧权限，实际请求取得新Client。",
+          "trigger": "已有默认权限缓存或已开的管理页，令牌过期后同身份认证返回相反管理员权限；不假定调权本身必产生401",
+          "causalChain": [
+            "重登保留Identity、更换Client并保存，但无SourcesChanged",
+            "旧Scope仍IsCurrent/Available而Connection快照不变",
+            "Capabilities返回旧缓存，已开设置页无通知，单服已知权限重入可跳Probe",
+            "FnNas.Allowed/CanUse沿旧Scope许可，本地守卫可能放行，但服务器仍独立决定权限"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 465,
+              "end": 478
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySession.cs",
+              "start": 492,
+              "end": 551
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+              "start": 10,
+              "end": 26
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+              "start": 58,
+              "end": 76
+            },
+            {
+              "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+              "start": 114,
+              "end": 133
+            },
+            {
+              "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+              "start": 191,
+              "end": 219
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+              "start": 676,
+              "end": 745
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+              "start": 880,
+              "end": 899
+            },
+            {
+              "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+              "start": 399,
+              "end": 448
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/FnNasAdminViewModel.cs",
+              "start": 6,
+              "end": 10
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+              "start": 22,
+              "end": 32
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+              "start": 59,
+              "end": 78
+            }
+          ],
+          "existingGuards": [
+            "不同Identity/退出/取消使旧Scope失效，共享新令牌是正确设计",
+            "Session.Connection与重新捕获Sources能得到新权限",
+            "显式Probe可更新默认缓存，多服目录刷新也可更新",
+            "不是所有读取永久陈旧；服务器不依赖客户端旧守卫"
+          ],
+          "scopeLimit": "保留缓存默认权限/未重新Attach页面的失效通知缺口，不声称实际服务器越权；不审R-018旧目录刷新",
+          "notVerified": [
+            "未跑权限往返与已开管理页组合"
+          ]
+        }
+      ],
+      "coverage": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "readDepth": "1～752全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "readDepth": "1～80全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "readDepth": "1～638全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Services/SettingsService.cs",
+          "readDepth": "1～140全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+          "readDepth": "1～230全文；插件接口仅权限交界",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+          "readDepth": "全文，重点主备/读取/Save",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsSerializer.cs",
+          "readDepth": "1～22全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+          "readDepth": "1～49、290～439、601～626、811～917；非全部迁移",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+          "readDepth": "1～153与身份模型",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/CredentialVault.cs",
+          "readDepth": "1～55全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AtomicFile.cs",
+          "readDepth": "1～50全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+          "readDepth": "1～184、280～295；非所有平台路径",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasPasswordViewModel.cs",
+          "readDepth": "1～62全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+          "readDepth": "1～96全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasAdminViewModel.cs",
+          "readDepth": "1～11全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "readDepth": "662～745、752～848、872～899、1020～1026、1181～1201；非全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "readDepth": "392～450、553～626、720～729；非全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml",
+          "readDepth": "1359～1369",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasPasswordPage.xaml",
+          "readDepth": "1～42",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasPasswordPage.xaml.cs",
+          "readDepth": "1～48",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasSettingsViewModel.cs",
+          "readDepth": "74～115及加载/管理员基类",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+          "readDepth": "137～178",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+          "readDepth": "82～154",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "readDepth": "814～842/当前用户定位",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+          "readDepth": "34～60、79～98及Flag定位",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasClient.cs",
+          "readDepth": "42～63改密交界",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/ServersViewModel.cs",
+          "readDepth": "254～283、321～375保存反证",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Security/DpapiSecretProtector.cs",
+          "readDepth": "1～42源码，不调用DPAPI",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+          "readDepth": "154～208 load/通知/取消片段",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.xaml",
+          "readDepth": "488附近上游输入冻结定位",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          "readDepth": "563～579、2021、2064～2101、2308～2346来源登录通知",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/App.xaml.cs",
+          "readDepth": "153～201、275～322与容器入口",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Program.cs",
+          "readDepth": "301～316、380～445、496～516",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+          "readDepth": "32～79、116～184",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/SettingsTests.cs",
+          "readDepth": "99～139、177～246、1959～2005、2029～2047、2077～2106",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/IdentityRegressionTests.cs",
+          "readDepth": "1～199、499～544、801～829、943～993",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/ServiceTests.cs",
+          "readDepth": "210～233",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/ServerAccessTests.cs",
+          "readDepth": "69～86",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/SessionTests.cs",
+          "readDepth": "关键词/用例定位，非全文",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.SignIn.cs",
+          "readDepth": "85～124源码",
+          "reader": "阶段6独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.Settings.cs",
+          "readDepth": "630～655源码",
+          "reader": "阶段6独立子代理"
+        }
+      ],
+      "evidenceCorrections": [
+        {
+          "id": "IR-6-NULL",
+          "detail": "编译Nullable开启不等于运行时JSON强制；旧CoreLib/JSON观察不冒称本轮故障方法执行"
+        },
+        {
+          "id": "IR-6-SAVE",
+          "detail": "R-010只涉及Session直接持久化欠项反馈；其他共享保存入口可补救，真实改密成功不撤回"
+        },
+        {
+          "id": "IR-6-CAPS",
+          "detail": "R-011限定旧缓存/已Attach Scope；新捕获/显式Probe可更新；客户端显示错误不是服务器越权"
+        }
+      ],
+      "newLeads": [
+        {
+          "title": "其他关键账号null/Id重复结构校验",
+          "decision": "不编号，未闭合可达链，与R-007共根变体应去重"
+        },
+        {
+          "title": "迁移部分复制失败及候选组合",
+          "decision": "不编号，未系统运行，保留有效无配置迁移能力"
+        },
+        {
+          "title": "多个Save入口内存快照及未保存通知",
+          "decision": "不编号，原子文件不证明内存一致"
+        },
+        {
+          "title": "同身份重登的版本和其他能力缓存",
+          "decision": "不编号，本轮只确认管理员链"
+        }
+      ],
+      "limitations": [
+        "R-007～R-011无新增产品故障回归",
+        "未真实DPAPI/磁盘权限故障/进程退出",
+        "未四产品真实登录恢复改密调权或服务器权限执行",
+        "未WinUI实际输入/显隐/键盘/截图",
+        "未播放生命周期、飞牛管理业务语义、阶段8异步目录/导航或其它阶段"
+      ],
+      "schemaVersion": 1,
+      "retrievedAt": "2026-10-21T17:24:35.598+08:00",
+      "reviewHead": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "archivalScope": "根据已完成子代理报告整理的结构化归档；非逐字原始全文，不是重新开展审查",
+      "productBuildOrTestsExecuted": false,
+      "applicationOrUiStarted": false,
+      "filesWrittenByAgent": false,
+      "realUserDataAccessed": false,
+      "extraReviewAfterCompletion": false
+    },
+    {
+      "schemaVersion": 1,
+      "stage": 7,
+      "agentId": "01a15d30-dadd-7a42-9f5f-157dc3db0169",
+      "agentName": "Dalton",
+      "status": "已完成，原上下文复核；只回传既有报告，不重做",
+      "retrievedAt": "2026-10-21T17:54:16.209+08:00",
+      "reviewHead": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "archivalScope": "主线程据已完成报告及补回片段整理的结构化归档；非原始逐字全文，不冒充重新审查",
+      "overallDecision": "R-012/R-013/R-016保留；R-014/R-015收窄；R-017改为条件性P2候选待验证",
+      "decisions": [
+        {
+          "id": "R-012",
+          "decision": "保留",
+          "priority": "P2",
+          "staticConclusion": "首图在途、实际换宽且容器保留时，原地Resize取消_loading后因_poster=null返回，跳过_wanted重新发起；旧任务取消清理也不补发。",
+          "trigger": "首图尚未赋值，宽度实际变化，卡片仍可见且容器没有再次Loaded或Card变更",
+          "causalChain": [
+            "宽度变化经120ms计时器RebuildGrid，对原CardItem.Resize",
+            "取消旧_loading并清字段，_poster为null时提前返回",
+            "旧请求取消检查禁止回填，catch/finally不补发",
+            "相同容器/卡引用且宽高属性无图片请求回调，共享下载成功也没有当前卡续接"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+              "start": 608,
+              "end": 633
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+              "start": 769,
+              "end": 775
+            },
+            {
+              "path": "src/Momoka.Shell/Views/CardItem.cs",
+              "start": 370,
+              "end": 388
+            },
+            {
+              "path": "src/Momoka.Shell/Views/CardItem.cs",
+              "start": 505,
+              "end": 575
+            },
+            {
+              "path": "src/Momoka.Shell/Views/PosterCard.xaml.cs",
+              "start": 285,
+              "end": 327
+            }
+          ],
+          "existingGuards": [
+            "未变宽不取消；已有Poster时会按_wanted重启",
+            "容器重新加载或换卡可恢复",
+            "共享下载waiter隔离、来源寿命和取消禁止回填有效但不补卡片请求"
+          ],
+          "notVerified": [
+            "未运行首图挂起→换宽→放行WinUI回归或实际容器事件时序"
+          ],
+          "minimumDirection": "原地换宽后仍被需要的卡片重新发起当前宽度首图请求，保留持有者和取消守卫"
+        },
+        {
+          "id": "R-013",
+          "decision": "保留",
+          "priority": "P2",
+          "staticConclusion": "单来源Resume标已看移除原记录后补入非Resume的NextUp，显示卡片数不变而仍作为服务器分页偏移，漏掉前移的未读尾项。",
+          "trigger": "原记录离开Resume，补入下一集不在Resume清单且不重复，单来源，仍有未读尾项",
+          "causalChain": [
+            "已看成功MarkedWatched→AfterWatchedAsync取得NextUp",
+            "ResumeSlot撤旧插新，显示数N不变",
+            "单来源_cursor=null不回退消费偏移，有合成槽_total也不减",
+            "N+1服务器记录读前N后删一已读，未读尾项前移N-1，客户端仍从N请求并空页结束"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+              "start": 680,
+              "end": 681
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+              "start": 1183,
+              "end": 1214
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+              "start": 1385,
+              "end": 1408
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+              "start": 1477,
+              "end": 1512
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/ResumeSlot.cs",
+              "start": 26,
+              "end": 75
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+              "start": 238,
+              "end": 249
+            }
+          ],
+          "existingGuards": [
+            "多来源独立游标RemoveConsumed有效，不算该缺陷",
+            "电影/末集/无下一集仅撤格令显示数下降，不计合成槽触发",
+            "同集/已在Cards下一集不再重复插入",
+            "代次、来源和卡片仍在集合守卫有效，RowsArrived不会重读Resume"
+          ],
+          "notVerified": [
+            "未运行单来源分页与合成槽组合回归"
+          ],
+          "minimumDirection": "独立记录原始Resume消费量，与显示合成槽分开，移除原项回退；保留下一集体验"
+        },
+        {
+          "id": "R-014",
+          "decision": "收窄后保留",
+          "priority": "P2",
+          "staticConclusion": "同键非空缓存确实不可解码、无有效内存位图可绕过且键未变/文件未清时，Store持续返回该文件，解码失败只记时间不精确失效，服务器恢复后仍可能不GET。",
+          "trigger": "确实坏图片字节且持续同键命中；不把低内存或任意解码异常等同坏缓存",
+          "causalChain": [
+            "非空ReadCached命中即返回",
+            "下载成功HTTP非空字节原子写缓存，但不验证内容可解码",
+            "PosterLoader解码失败后CardItem仅_failedAt，不失效磁盘键",
+            "冷却只允许下次加载，没有自动定时重试，重试仍读坏文件"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+              "start": 166,
+              "end": 188
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+              "start": 205,
+              "end": 254
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+              "start": 258,
+              "end": 275
+            },
+            {
+              "path": "src/Momoka.Shell/Views/CardItem.cs",
+              "start": 505,
+              "end": 522
+            },
+            {
+              "path": "src/Momoka.Shell/Views/CardItem.cs",
+              "start": 548,
+              "end": 575
+            },
+            {
+              "path": "src/Momoka.Shell/Media/PosterLoader.cs",
+              "start": 28,
+              "end": 54
+            }
+          ],
+          "existingGuards": [
+            "空文件/IO或权限读取失败按miss",
+            "原子提交防未完成文件，不证明内容有效",
+            "有效位图缓存可遮蔽，清缓存/换标签尺寸/淘汰可恢复",
+            "30秒冷却不是自动重试；低内存不能一律删缓存"
+          ],
+          "notVerified": [
+            "无坏缓存→服务器恢复的产品/UI回归"
+          ],
+          "minimumDirection": "仅明确坏内容精确失效，重试能重新获取；不要将取消/低内存等异常统统当坏缓存"
+        },
+        {
+          "id": "R-015",
+          "decision": "收窄后保留",
+          "priority": "P2",
+          "staticConclusion": "有正常备用候选，前一候选坏数据或可降级局部取图失败抛异常，候选级无catch导致退出该图片分支，不访问备用。Hero原图解码并不走PosterLoader。",
+          "trigger": "只限可降级单候选故障且存在正常备用；权限/认证/取消、来源撤销或低内存不一律吞掉",
+          "causalChain": [
+            "Hero与Still多候选仅对null/空continue",
+            "候选获取或解码异常离开循环，到并行任务外层catch",
+            "正常备用候选不访问，但其他独立图片任务可成功",
+            "Hero为HeroPictureLoader.DecodePixelsAsync→BitmapDecoder.CreateAsync/SoftwareBitmap，再RenderAsync.SetSourceAsync；Still走PosterLoader"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+              "start": 2259,
+              "end": 2326
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+              "start": 2337,
+              "end": 2404
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+              "start": 2492,
+              "end": 2537
+            },
+            {
+              "path": "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+              "start": 24,
+              "end": 63
+            },
+            {
+              "path": "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+              "start": 70,
+              "end": 95
+            },
+            {
+              "path": "src/Momoka.Core/Emby/ItemArtwork.cs",
+              "start": 277,
+              "end": 289
+            }
+          ],
+          "existingGuards": [
+            "404/空结果能回退",
+            "父剧条目读取有catch→null可退本集",
+            "独立图片任务/迟到Fresh守卫有效，不能声称整页所有图一起失败",
+            "名牌/角图/页尾只追到零或单候选，不加多候选入口"
+          ],
+          "notVerified": [
+            "未运行异常候选与正常备用对照"
+          ],
+          "minimumDirection": "按失败类型在候选边界继续适当备用，保持身份/取消/权限传播；同时纠正证据中Hero解码器归属"
+        },
+        {
+          "id": "R-016",
+          "decision": "保留",
+          "priority": "P2",
+          "staticConclusion": "同卡片独立已看/收藏非空完整UserData响应逆序提交，旧快照整体替换能覆盖较新已确认客户端状态。",
+          "trigger": "两操作针对同卡且返回非空完整快照，旧响应晚于新响应",
+          "causalChain": [
+            "各操作独立fire-and-forget请求",
+            "完整UserData由Patch整体替换，没有跨操作版本门槛",
+            "新收藏响应先把两字段true，旧已看响应含旧IsFavorite=false后到覆盖",
+            "后续显示/点击方向可能错误，不证明服务端最终数据被旧响应修改"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+              "member": "SetWatched/SetFavorite",
+              "start": 430,
+              "end": 477
+            },
+            {
+              "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+              "member": "Patch/RunAsync",
+              "start": 521,
+              "end": 565
+            },
+            {
+              "path": "src/Momoka.Shell/Views/PosterCard.xaml.cs",
+              "member": "Raise",
+              "start": 641,
+              "end": 663
+            },
+            {
+              "path": "src/Momoka.Shell/Views/PosterCard.xaml",
+              "member": "WatchedButton/FavoriteButton",
+              "start": 198,
+              "end": 218
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+              "member": "MarkPlayedAsync/SetFavoriteAsync",
+              "start": 468,
+              "end": 495
+            }
+          ],
+          "existingGuards": [
+            "Scope身份/退出取消不规定同身份响应顺序",
+            "null或无法解析响应走各字段fallback，不是该完整快照链",
+            "收藏入口刷新不校正普通库原卡版本",
+            "离页后完成已派发命令是既定行为，不单独计问题"
+          ],
+          "notVerified": [
+            "无目标服务器顺序实测或新逆序假传输回归"
+          ],
+          "minimumDirection": "必要条目状态次序或字段版本合并，防旧快照覆盖又不丢其它已确认字段"
+        },
+        {
+          "id": "R-017",
+          "decision": "待验证",
+          "priority": "P2候选",
+          "staticConclusion": "有效偏移日期若跨UTC日，Read展示原日历日、Moment重建UTC午夜而SetDate比UTC日，原样保存可意外重写；条件性源码链成立但目标Emby部署触发输入未证实。",
+          "trigger": "目标返回跨UTC日的偏移PremiereDate，例如2016-08-26T00:00:00+09:00；仅公开DTO允许DateTimeOffset不足证明实际部署会返回该值",
+          "causalChain": [
+            "原始JSON未先统一偏移，Read按自身日历日展示",
+            "原样表单Moment按AssumeUniversal纯日期成UTC午夜",
+            "旧UTC日8月25、新UTC日8月26，SetDate判changed并写新Z值",
+            "ApplyTo返回true，元数据POST可包含未碰日期；主动改为旧UTC日也可能被同日守卫吞掉"
+          ],
+          "locations": [
+            {
+              "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+              "start": 74,
+              "end": 89
+            },
+            {
+              "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+              "start": 161,
+              "end": 173
+            },
+            {
+              "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+              "start": 195,
+              "end": 205
+            },
+            {
+              "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+              "start": 255,
+              "end": 264
+            },
+            {
+              "path": "src/Momoka.Shell/Views/MetadataDialog.xaml.cs",
+              "start": 36,
+              "end": 87
+            },
+            {
+              "path": "src/Momoka.Shell/Views/MetadataDialog.xaml.cs",
+              "start": 96,
+              "end": 102
+            },
+            {
+              "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+              "start": 172,
+              "end": 189
+            },
+            {
+              "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+              "start": 519,
+              "end": 530
+            }
+          ],
+          "existingGuards": [
+            "Z日期和无UTC跨日偏移由现有同UTC日保护保留",
+            "已有原样保存测试用Z值，不覆盖跨日偏移",
+            "原JSON未知字段保留有效；合法性校验不判断编辑过",
+            "不套FnNas独立编辑器、不借此复审阶段8"
+          ],
+          "notVerified": [
+            "缺目标部署实际返回跨UTC日偏移日期证据",
+            "宿主四例不是产品Read→ApplyTo→POST回归",
+            "无真实写入或存库结果"
+          ],
+          "minimumDirection": "先核支持契约/触发输入，若成立按实际显示日历日判变化，未改保留原时间偏移"
+        }
+      ],
+      "evidenceCorrections": [
+        {
+          "id": "IR-7-DECODE",
+          "decision": "纠正Hero解码器归属",
+          "detail": "Hero原图HeroPictureLoader第39行BitmapDecoder.CreateAsync、第51～53行SoftwareBitmap；第93行SetSourceAsync仅渲染交接。Still才经PosterLoader。"
+        },
+        {
+          "id": "IR-7-CACHE",
+          "decision": "收窄冷却与异常语义",
+          "detail": "冷却不自动定时重试，低内存同类解码异常不是缓存坏内容的证明。"
+        },
+        {
+          "id": "IR-7-DATE",
+          "decision": "R-017待验证",
+          "detail": "保留条件性算法错误，部署偏移输入未证实；不把DTO能力/宿主观察作为实际服务器返回。"
+        }
+      ],
+      "newLeads": [
+        {
+          "title": "偏移日期主动改为旧UTC日可能被吞掉",
+          "decision": "不编号，共R-017未核部署前件"
+        },
+        {
+          "title": "SamePictures为真时详情刷新未重启失败图片",
+          "decision": "不编号，未运行",
+          "locations": [
+            {
+              "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+              "start": 1949,
+              "end": 1956
+            },
+            {
+              "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+              "start": 2007,
+              "end": 2028
+            }
+          ]
+        }
+      ],
+      "coverage": [
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "readDepth": "分段通读核心实现",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+          "readDepth": "分段通读核心实现",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/ResumeSlot.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ResumeRow.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/AggregateQueryCursor.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/SharedWork.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Media/PosterLoader.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Media/PosterCache.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MetadataDialog.xaml.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "readDepth": "Attach/换宽/已看/分页/取消相关段，非全文",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+          "readDepth": "模板/宽度/分页/动作相关段，非全文",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml.cs",
+          "readDepth": "依赖属性/Loaded/换卡/Begin/按钮相关段",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "readDepth": "Preview/Apply/图片任务和候选循环",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "readDepth": "用户状态相关段",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+          "readDepth": "元数据编辑相关段",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "readDepth": "相关接口/解析",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "readDepth": "相关接口解析",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "readDepth": "身份执行",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          "readDepth": "收藏刷新回调",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/ResumeRowTests.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/AggregateQueryTests.cs",
+          "readDepth": "分段通读",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/ImageCacheTests.cs",
+          "readDepth": "共享任务部分",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/ImageIdentityTests.cs",
+          "readDepth": "身份/取消/假字节部分",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/ItemArtworkTests.cs",
+          "readDepth": "Hero顺序/继承部分",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/EmbyTests.cs",
+          "readDepth": "Resume/元数据Z日期断言",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "tests/Momoka.Tests/ItemActionTests.cs",
+          "readDepth": "相关接口片段",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.State.cs",
+          "readDepth": "Resume槽回归",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.LibraryBrowse.cs",
+          "readDepth": "尺寸断言",
+          "reader": "阶段7独立子代理"
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.DetailArtwork.cs",
+          "readDepth": "有效图片夹具",
+          "reader": "阶段7独立子代理"
+        }
+      ],
+      "primaryReferences": [
+        {
+          "url": "https://learn.microsoft.com/en-us/windows/windows-app-sdk/api/winrt/microsoft.ui.xaml.media.imaging.bitmapsource.setsourceasync?view=windows-app-sdk-2.0",
+          "scope": "坏数据与低内存同类错误，不是固定WinUI包运行证明"
+        },
+        {
+          "revision": "f8499bd9d0e356b8a204a27b142765494dc6f450",
+          "version": "4.10.2.0 Release",
+          "scope": "固定官方Emby SDK模型约束，不是目标服务器版本"
+        }
+      ],
+      "limitations": [
+        "本轮产品测试执行数0，2072通过只属阶段2旧运行",
+        "六故障均无运行复现；无真实服务器返回或写入结果",
+        "UI渲染/容器时序/未列出的交错/其它阶段及播放未核",
+        "原76读取/856字节/16文档检查不代表本代理业务运行覆盖"
+      ],
+      "productBuildOrTestsExecuted": false,
+      "applicationOrUiStarted": false,
+      "filesWrittenByAgent": false,
+      "realUserDataAccessed": false,
+      "extraReviewAfterCompletion": false
+    }
+  ],
+  "originalResultArtifacts": [
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/capture.json",
+      "sha256": "B5E011D5F7372B10DB200ECEC26F76CE9C9A5F50D180AA368E0899A1546E2409"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/dispatch.json",
+      "sha256": "1FA6DB4714ECEAF9B661FEF93C6E31D68077DEB842385F95AE0D319BA29EBA0B"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/adjudication.json",
+      "sha256": "BF2DAB99BA32BD576184E051BAAC1581CBBE32CAD369B6166FED8AB54314D60F"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/final-state.json",
+      "sha256": "94557AE6DB5CF25BD8C7E0E12EF32A8219BEDB90F4F270EB03DF55C8558B0C3D"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/original-finding-inventory.json",
+      "sha256": "B87F928330F649A9F6445AB9FEB71145807FA43FE71E3F8DDB4F45636D41F6C1"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/stage-1-result.json",
+      "sha256": "7ECC365A5313CE44DDE5D1B043F90AA70B193855F7B605D8778643EE77B7A731"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/stage-2-result.json",
+      "sha256": "6FC34615B07DA09685ABC7F38A6764A49D7AE5041CBF421F8B26C88A65DE6D4A"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/stage-3-result.json",
+      "sha256": "626C7F38BFBBC58E8D58CBEA12D82517F7AFB2DDBAE2A0C9BACC03F8E28528D4"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/stage-4-result.json",
+      "sha256": "BA90896BCA7144B226D3C57F5B7BB5723E5B2B01B1A8A335A7C3A6D79ED3CAB3"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/stage-5-result.json",
+      "sha256": "790E1819A598787363B9A4F43D49E4C2BE9F40F56E85E3723C5D1A69C40203C9"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/stage-6-result.json",
+      "sha256": "3E032998C72BB962EAC3700E30472DC48F6A9FD0222694BEA04F147E0ED39D49"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka/artifacts/code-review-independent-1-7/stage-7-result.json",
+      "sha256": "E309B461DB7936F2CDF7396E5967BFE686CA361A37AF263974902A26652F91DB"
+    }
+  ],
+  "archivalScope": "七份已完成代理报告的结构化归档，非原始逐字全文；本轮汇总将原归档完整内嵌，避免只有忽略目录文件才能恢复",
+  "currentDispositions": [
+    {
+      "id": "R-001",
+      "stage": 2,
+      "agentId": "01a15ce8-acd5-7012-bb77-c1a0ba29ce9a",
+      "agentName": "Chandrasekhar",
+      "reviewerDecision": "保留并明确边界",
+      "reviewerPriority": "P1",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留并明确边界",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P1",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "固定.NET10.0.11的默认ClientWebSocket握手使用允许自动重定向的默认invoker；异源安全等级不降低的下一跳清标准Authorization，但Emby自定义X-Emby-Token与X-Emby-Authorization仍随请求发送。令牌本体位于前者，后者主要携带设备身份。",
+      "conclusion": "固定.NET10.0.11的默认ClientWebSocket握手使用允许自动重定向的默认invoker；异源安全等级不降低的下一跳清标准Authorization，但Emby自定义X-Emby-Token与X-Emby-Authorization仍随请求发送。令牌本体位于前者，后者主要携带设备身份。",
+      "trigger": "有效异源3xx（例如307）在握手15秒预算内完成下一跳发送；缺失Location、跳数耗尽、TLS失败、连通失败、及时取消和安全→非安全降级不在确认发送范围",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbyRealtimeWatch.cs",
+          "start": 30,
+          "end": 42
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyRealtimeProtocol.cs",
+          "start": 22,
+          "end": 54
+        },
+        {
+          "path": "src/Momoka.Core/Emby/MediaServerKind.cs",
+          "start": 41,
+          "end": 51
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyRealtimeConnection.cs",
+          "start": 104,
+          "end": 117
+        }
+      ],
+      "notVerified": [
+        "没有双端口重定向产品运行复现",
+        "未核最终发布运行时",
+        "未证明真实服务器发生该Location或真实令牌已泄漏"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-002",
+      "stage": 2,
+      "agentId": "01a15ce8-acd5-7012-bb77-c1a0ba29ce9a",
+      "agentName": "Chandrasekhar",
+      "reviewerDecision": "保留并明确可取消范围",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留并明确可取消范围",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "长下载使用无限Timeout的_long；ResponseHeadersRead后非成功状态先等待错误正文，ReadBodySafelyAsync没有独立截止，阻塞状态翻译与共用下载锁释放。",
+      "conclusion": "长下载使用无限Timeout的_long；ResponseHeadersRead后非成功状态先等待错误正文，ReadBodySafelyAsync没有独立截止，阻塞状态翻译与共用下载锁释放。",
+      "trigger": "长下载错误正文在达到8000字节或EOF前持续不结束，来源保持在线且未取消；不是成功下载慢流缺陷",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+          "start": 247,
+          "end": 277
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+          "start": 314,
+          "end": 361
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 452,
+          "end": 486
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "start": 1020,
+          "end": 1030
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "start": 73,
+          "end": 106
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "start": 253,
+          "end": 261
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "start": 363,
+          "end": 396
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "start": 435,
+          "end": 455
+        }
+      ],
+      "notVerified": [
+        "未运行暂停错误正文加第二笔排队下载的产品场景",
+        "不是整个UI冻结或无取消能力的死锁"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-003",
+      "stage": 3,
+      "agentId": "01a15ce9-8274-76e3-9307-fa64fe228e6b",
+      "agentName": "Rawls",
+      "reviewerDecision": "保留并收窄",
+      "reviewerPriority": "P1",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留并收窄",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P1",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "仅静态采用链；不能宣称真实错绑、凭据泄露或后续数据误写已发生",
+      "conclusion": "同源确认后发生后端身份变化或响应不一致，保存token同源401后密码认证成功、UserId相同而ServerId不同，恢复可把新身份采用到原保存来源；Adopt的IsSameIdentityAs不是拒绝门槛。",
+      "trigger": "预期ServerId=A/UserId=u，事前公开信息=A，token验证401，密码认证和登录后公开信息均给B/UserId=u；无须地址、产品变化或跨源跳转",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+          "start": 28,
+          "end": 43
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 323,
+          "end": 408
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 554,
+          "end": 587
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.Protocol.cs",
+          "start": 53,
+          "end": 56
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyHttp.cs",
+          "start": 381,
+          "end": 411
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+          "start": 110,
+          "end": 153
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 601,
+          "end": 624
+        }
+      ],
+      "notVerified": [
+        "A→401→B同用户实际离线产品回归",
+        "真实部署是否后端切换",
+        "缺失/空/矛盾ServerId矩阵",
+        "完整版本矩阵"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-004",
+      "stage": 4,
+      "agentId": "01a15cea-50a1-7bd2-b366-0ffaf9c74c0f",
+      "agentName": "Ampere",
+      "reviewerDecision": "收窄；本地分类静态保留，实际误撤销待验证",
+      "reviewerPriority": "P2（条件成立时适用）",
+      "localCausalChainEstablished": true,
+      "currentDecision": "收窄；本地分类静态保留，实际误撤销待验证",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": true,
+      "scope": "不得称普通文件权限错误直接注销来源，或前端字典保证所有v1/v2接口发-16。误撤销不等于删账号、服务端登出、清保存密码或关闭AutoConnect；Persist仅尝试。",
+      "conclusion": "业务-16在本地文案为权限不足，却属于IsAuthenticationFailure；登录适配器的catch覆盖密码登录、user/info及可选sys/config，若这些接口的成功HTTP业务信封为-16，会被升级成EmbyAuthenticationException。",
+      "trigger": "在线来源普通请求先出现-2或同源HTTP401，已保存密码且身份/代次/旧客户端仍有效；随后的登录链在成功HTTP响应内返回code=-16。直接业务-16、-5或HTTP403本身不触发重登。",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasApiException.cs",
+          "start": 11,
+          "end": 26
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasHttp.cs",
+          "start": 92,
+          "end": 115
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasClient.cs",
+          "start": 25,
+          "end": 40
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+          "start": 34,
+          "end": 81
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+          "start": 102,
+          "end": 104
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 492,
+          "end": 551
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 657,
+          "end": 691
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/CredentialVault.cs",
+          "start": 26,
+          "end": 26
+        }
+      ],
+      "notVerified": [
+        "真实登录/user/info/sys/config返回-16的一手前件未闭合",
+        "未运行重登-16故障矩阵",
+        "失败撤销分支取消/配置并发交错未运行；不能宣称全部失败出口都有成功提交的保护"
+      ],
+      "parentAdjudication": "保留本地分类矛盾；只有先令牌过期、登录链成功HTTP业务信封出现-16时才可走误撤销。接口发码前件未闭合，后果待验证。"
+    },
+    {
+      "id": "R-005",
+      "stage": 5,
+      "agentId": "01a15ceb-54c2-7af1-a644-a4328f711ae9",
+      "agentName": "Feynman",
+      "reviewerDecision": "收窄后保留",
+      "reviewerPriority": "P1（按成功响应形状的核心登录阻断影响；实际请求契约待验证）",
+      "localCausalChainEstablished": true,
+      "currentDecision": "收窄后保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P1",
+      "deploymentOrContractEvidencePending": true,
+      "scope": "不表述所有真实Plex登录都已证实失败，不认定账号或服务器越权/凭据泄露已发生",
+      "conclusion": "PlexMediaAdapter从根对象读取authToken，却从account[\"user\"]读取id/名称；顶层账号成功对象没有user时id必为空，抛本地EmbyApiException，目标PMS核对与保存采用均不执行。",
+      "trigger": "实际账号成功响应为顶层id/名称/authToken且无嵌套user；未证明Momoka的固定host/JSON正文组合收到过此形状",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+          "start": 43,
+          "end": 82
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexHttp.cs",
+          "start": 104,
+          "end": 120
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexClient.cs",
+          "start": 122,
+          "end": 123
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "start": 419,
+          "end": 457
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 169,
+          "end": 186
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+          "start": 91,
+          "end": 108
+        },
+        {
+          "path": "src/Momoka.Core/Diagnostics/Failure.cs",
+          "start": 25,
+          "end": 38
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "start": 470,
+          "end": 482
+        }
+      ],
+      "notVerified": [
+        "未真实登录",
+        "未验证Momoka固定host/编码/头组合的成功或错误响应",
+        "未运行顶层成功对象产品回归"
+      ],
+      "parentAdjudication": "保留顶层成功对象的解析错误；官方脚本与Momoka实际host/正文编码不同，不能把模型消费证据当客户端请求成功契约。"
+    },
+    {
+      "id": "R-006",
+      "stage": 5,
+      "agentId": "01a15ceb-54c2-7af1-a644-a4328f711ae9",
+      "agentName": "Feynman",
+      "reviewerDecision": "保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "合法地址特定条件功能错误；无身份越界或凭据泄露实证",
+      "conclusion": "显式HTTP80和无端口HTTP IPv6的端口显式性判断错误，可把合法配置指向错误端口",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Plex/PlexEndpoint.cs",
+          "member": "TryNormalize",
+          "start": 41,
+          "end": 46
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyServerAddress.cs",
+          "member": "TryNormalize Plex分派",
+          "start": 18,
+          "end": 19
+        }
+      ],
+      "notVerified": [
+        "未运行端口/显示往返产品回归",
+        "未访问真实PMS/反代/IPv6网络"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。",
+      "trigger": "显式 HTTP 80，或无端口的 HTTP IPv6 地址；按报告列明的端口判定条件，不泛化为所有 Plex 地址。"
+    },
+    {
+      "id": "R-007",
+      "stage": 6,
+      "agentId": "01a15cec-233a-72b3-a5d9-af858b79046f",
+      "agentName": "Linnaeus",
+      "reviewerDecision": "保留",
+      "reviewerPriority": "P1",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P1",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "确认到预选账号密码null坏文件容错，不把任意账号字段null或正常保存生成null一概记为启动退出",
+      "conclusion": "预选账号ProtectedPassword显式JSON null覆盖初始化器，SettingsStore成功解析后未修复该字段，启动Prepare在HasSavedPassword的.Length抛出；主窗口尚未Show，初始化catch退出，现存有效备份不被尝试。",
+      "trigger": "当前配置结构（例如v26）预选服务器/用户名/地址有效，但所选Account.ProtectedPassword为显式null，未启用运行时可空强制",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsSerializer.cs",
+          "start": 8,
+          "end": 13
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+          "start": 35,
+          "end": 38
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+          "start": 342,
+          "end": 388
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+          "start": 601,
+          "end": 626
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+          "start": 19,
+          "end": 38
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+          "start": 117,
+          "end": 147
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+          "start": 121,
+          "end": 150
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "start": 211,
+          "end": 249
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "start": 610,
+          "end": 611
+        },
+        {
+          "path": "src/Momoka.Shell/App.xaml.cs",
+          "start": 153,
+          "end": 200
+        }
+      ],
+      "notVerified": [
+        "无新增配置Load→App启动故障回归",
+        "未真实DPAPI/进程退出验证"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-008",
+      "stage": 6,
+      "agentId": "01a15cec-233a-72b3-a5d9-af858b79046f",
+      "agentName": "Linnaeus",
+      "reviewerDecision": "保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "身份选择与旧成功不一致，不是认证绕过；公共用户列表Emby/Jellyfin可达，FnNas/Plex列表空但手改分支仍可达",
+      "conclusion": "A登录在飞时同址表单换选/手改为B不Cancel且没有Busy冻结；B的自动提交若Busy即返回，A原token/代次/地址仍通过并Adopt A，VM随后清密码及SignedIn导航。",
+      "trigger": "同址凭据页在A成功到达前改变用户名/密码或公共用户选择；第二次请求没有真正发出",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "start": 418,
+          "end": 465
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "start": 491,
+          "end": 527
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SignInPage.xaml",
+          "start": 267,
+          "end": 318
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 140,
+          "end": 185
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 601,
+          "end": 625
+        }
+      ],
+      "notVerified": [
+        "无延迟登录/真实UI输入组合运行回归"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-009",
+      "stage": 6,
+      "agentId": "01a15cec-233a-72b3-a5d9-af858b79046f",
+      "agentName": "Linnaeus",
+      "reviewerDecision": "保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "限定缺主+有效备份+旧主复制组合，不泛称所有迁移回退；最小修复优先当前有效备份而非路径存在",
+      "conclusion": "当前主配置缺失且备份有效时，Main迁移只看主文件存在，旧目录可先复制旧主；Load随后主成功即返回，遮蔽当前有效备份。",
+      "trigger": "当前主缺失、当前备份有效、旧目录可读旧主且复制成功",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Program.cs",
+          "start": 402,
+          "end": 423
+        },
+        {
+          "path": "src/Momoka.Shell/Program.cs",
+          "start": 431,
+          "end": 445
+        },
+        {
+          "path": "src/Momoka.Shell/Program.cs",
+          "start": 501,
+          "end": 509
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+          "start": 121,
+          "end": 138
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+          "start": 152,
+          "end": 157
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+          "start": 172,
+          "end": 183
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+          "start": 280,
+          "end": 295
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+          "start": 19,
+          "end": 38
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AtomicFile.cs",
+          "start": 23,
+          "end": 28
+        }
+      ],
+      "notVerified": [
+        "未运行临时目录Main迁移→Load组合"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-010",
+      "stage": 6,
+      "agentId": "01a15cec-233a-72b3-a5d9-af858b79046f",
+      "agentName": "Linnaeus",
+      "reviewerDecision": "收窄后保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "收窄后保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "服务端改密成功是真的；仅未告知本地持久化欠项，不称服务器改密失败、不自动重发、不泛称所有会话操作都不传播失败",
+      "conclusion": "会话直接Persist失败只记录日志且返回，不更新共享/父页HasUnsavedChanges；飞牛改密服务端已成功，新内存凭据已保护但磁盘可能仍旧，页面未提示本地持久化欠项。",
+      "trigger": "已记住密码的飞牛来源改密获服务器确认，新凭据保护成功，本地Store.Save失败；未保存标志原为false，之后没有成功补存",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 196,
+          "end": 249
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 732,
+          "end": 736
+        },
+        {
+          "path": "src/Momoka.Core/Services/SettingsService.cs",
+          "start": 115,
+          "end": 132
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasPasswordViewModel.cs",
+          "start": 31,
+          "end": 45
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "start": 1020,
+          "end": 1026
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "start": 1183,
+          "end": 1200
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml",
+          "start": 1359,
+          "end": 1369
+        }
+      ],
+      "notVerified": [
+        "未跑锁文件改密组合；共享状态与已开页通知缺口未运行"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-011",
+      "stage": 6,
+      "agentId": "01a15cec-233a-72b3-a5d9-af858b79046f",
+      "agentName": "Linnaeus",
+      "reviewerDecision": "收窄后保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "收窄后保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "保留缓存默认权限/未重新Attach页面的失效通知缺口，不声称实际服务器越权；不审R-018旧目录刷新",
+      "conclusion": "同server/user令牌过期后重登更换Client且保留Identity，不发SourcesChanged；旧Scope.Connection快照不变，默认权限缓存与未重新Attach管理页可能继续旧权限，实际请求取得新Client。",
+      "trigger": "已有默认权限缓存或已开的管理页，令牌过期后同身份认证返回相反管理员权限；不假定调权本身必产生401",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 465,
+          "end": 478
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "start": 492,
+          "end": 551
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "start": 10,
+          "end": 26
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "start": 58,
+          "end": 76
+        },
+        {
+          "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+          "start": 114,
+          "end": 133
+        },
+        {
+          "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+          "start": 191,
+          "end": 219
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "start": 676,
+          "end": 745
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "start": 880,
+          "end": 899
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "start": 399,
+          "end": 448
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasAdminViewModel.cs",
+          "start": 6,
+          "end": 10
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+          "start": 22,
+          "end": 32
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+          "start": 59,
+          "end": 78
+        }
+      ],
+      "notVerified": [
+        "未跑权限往返与已开管理页组合"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-012",
+      "stage": 7,
+      "agentId": "01a15d30-dadd-7a42-9f5f-157dc3db0169",
+      "agentName": "Dalton",
+      "reviewerDecision": "保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "首图在途、实际换宽且容器保留时，原地Resize取消_loading后因_poster=null返回，跳过_wanted重新发起；旧任务取消清理也不补发。",
+      "conclusion": "首图在途、实际换宽且容器保留时，原地Resize取消_loading后因_poster=null返回，跳过_wanted重新发起；旧任务取消清理也不补发。",
+      "trigger": "首图尚未赋值，宽度实际变化，卡片仍可见且容器没有再次Loaded或Card变更",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+          "start": 608,
+          "end": 633
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 769,
+          "end": 775
+        },
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "start": 370,
+          "end": 388
+        },
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "start": 505,
+          "end": 575
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml.cs",
+          "start": 285,
+          "end": 327
+        }
+      ],
+      "notVerified": [
+        "未运行首图挂起→换宽→放行WinUI回归或实际容器事件时序"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-013",
+      "stage": 7,
+      "agentId": "01a15d30-dadd-7a42-9f5f-157dc3db0169",
+      "agentName": "Dalton",
+      "reviewerDecision": "保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "单来源Resume标已看移除原记录后补入非Resume的NextUp，显示卡片数不变而仍作为服务器分页偏移，漏掉前移的未读尾项。",
+      "conclusion": "单来源Resume标已看移除原记录后补入非Resume的NextUp，显示卡片数不变而仍作为服务器分页偏移，漏掉前移的未读尾项。",
+      "trigger": "原记录离开Resume，补入下一集不在Resume清单且不重复，单来源，仍有未读尾项",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 680,
+          "end": 681
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 1183,
+          "end": 1214
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 1385,
+          "end": 1408
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 1477,
+          "end": 1512
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/ResumeSlot.cs",
+          "start": 26,
+          "end": 75
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "start": 238,
+          "end": 249
+        }
+      ],
+      "notVerified": [
+        "未运行单来源分页与合成槽组合回归"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-014",
+      "stage": 7,
+      "agentId": "01a15d30-dadd-7a42-9f5f-157dc3db0169",
+      "agentName": "Dalton",
+      "reviewerDecision": "收窄后保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "收窄后保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "同键非空缓存确实不可解码、无有效内存位图可绕过且键未变/文件未清时，Store持续返回该文件，解码失败只记时间不精确失效，服务器恢复后仍可能不GET。",
+      "conclusion": "同键非空缓存确实不可解码、无有效内存位图可绕过且键未变/文件未清时，Store持续返回该文件，解码失败只记时间不精确失效，服务器恢复后仍可能不GET。",
+      "trigger": "确实坏图片字节且持续同键命中；不把低内存或任意解码异常等同坏缓存",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+          "start": 166,
+          "end": 188
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+          "start": 205,
+          "end": 254
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyImageStore.cs",
+          "start": 258,
+          "end": 275
+        },
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "start": 505,
+          "end": 522
+        },
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "start": 548,
+          "end": 575
+        },
+        {
+          "path": "src/Momoka.Shell/Media/PosterLoader.cs",
+          "start": 28,
+          "end": 54
+        }
+      ],
+      "notVerified": [
+        "无坏缓存→服务器恢复的产品/UI回归"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-015",
+      "stage": 7,
+      "agentId": "01a15d30-dadd-7a42-9f5f-157dc3db0169",
+      "agentName": "Dalton",
+      "reviewerDecision": "收窄后保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "收窄后保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "有正常备用候选，前一候选坏数据或可降级局部取图失败抛异常，候选级无catch导致退出该图片分支，不访问备用。Hero原图解码并不走PosterLoader。",
+      "conclusion": "有正常备用候选，前一候选坏数据或可降级局部取图失败抛异常，候选级无catch导致退出该图片分支，不访问备用。Hero原图解码并不走PosterLoader。",
+      "trigger": "只限可降级单候选故障且存在正常备用；权限/认证/取消、来源撤销或低内存不一律吞掉",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 2259,
+          "end": 2326
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 2337,
+          "end": 2404
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 2492,
+          "end": 2537
+        },
+        {
+          "path": "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+          "start": 24,
+          "end": 63
+        },
+        {
+          "path": "src/Momoka.Shell/Media/HeroPictureLoader.cs",
+          "start": 70,
+          "end": 95
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemArtwork.cs",
+          "start": 277,
+          "end": 289
+        }
+      ],
+      "notVerified": [
+        "未运行异常候选与正常备用对照"
+      ],
+      "parentAdjudication": "采纳范围收窄与Hero原图解码器归属纠正；Hero原图走BitmapDecoder，不走PosterLoader。"
+    },
+    {
+      "id": "R-016",
+      "stage": 7,
+      "agentId": "01a15d30-dadd-7a42-9f5f-157dc3db0169",
+      "agentName": "Dalton",
+      "reviewerDecision": "保留",
+      "reviewerPriority": "P2",
+      "localCausalChainEstablished": true,
+      "currentDecision": "保留",
+      "currentStatus": "静态问题记录保留；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": false,
+      "scope": "同卡片独立已看/收藏非空完整UserData响应逆序提交，旧快照整体替换能覆盖较新已确认客户端状态。",
+      "conclusion": "同卡片独立已看/收藏非空完整UserData响应逆序提交，旧快照整体替换能覆盖较新已确认客户端状态。",
+      "trigger": "两操作针对同卡且返回非空完整快照，旧响应晚于新响应",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "member": "SetWatched/SetFavorite",
+          "start": 430,
+          "end": 477
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "member": "Patch/RunAsync",
+          "start": 521,
+          "end": 565
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml.cs",
+          "member": "Raise",
+          "start": 641,
+          "end": 663
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml",
+          "member": "WatchedButton/FavoriteButton",
+          "start": 198,
+          "end": 218
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "member": "MarkPlayedAsync/SetFavoriteAsync",
+          "start": 468,
+          "end": 495
+        }
+      ],
+      "notVerified": [
+        "无目标服务器顺序实测或新逆序假传输回归"
+      ],
+      "parentAdjudication": "采纳独立结论并保留明确触发和未运行边界。"
+    },
+    {
+      "id": "R-017",
+      "stage": 7,
+      "agentId": "01a15d30-dadd-7a42-9f5f-157dc3db0169",
+      "agentName": "Dalton",
+      "reviewerDecision": "待验证",
+      "reviewerPriority": "P2候选",
+      "localCausalChainEstablished": true,
+      "currentDecision": "待验证",
+      "currentStatus": "条件性候选；待验证；未修复",
+      "priority": "P2",
+      "deploymentOrContractEvidencePending": true,
+      "scope": "有效偏移日期若跨UTC日，Read展示原日历日、Moment重建UTC午夜而SetDate比UTC日，原样保存可意外重写；条件性源码链成立但目标Emby部署触发输入未证实。",
+      "conclusion": "有效偏移日期若跨UTC日，Read展示原日历日、Moment重建UTC午夜而SetDate比UTC日，原样保存可意外重写；条件性源码链成立但目标Emby部署触发输入未证实。",
+      "trigger": "目标返回跨UTC日的偏移PremiereDate，例如2016-08-26T00:00:00+09:00；仅公开DTO允许DateTimeOffset不足证明实际部署会返回该值",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+          "start": 74,
+          "end": 89
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+          "start": 161,
+          "end": 173
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+          "start": 195,
+          "end": 205
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMetadataEdit.cs",
+          "start": 255,
+          "end": 264
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MetadataDialog.xaml.cs",
+          "start": 36,
+          "end": 87
+        },
+        {
+          "path": "src/Momoka.Shell/Views/MetadataDialog.xaml.cs",
+          "start": 96,
+          "end": 102
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+          "start": 172,
+          "end": 189
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "start": 519,
+          "end": 530
+        }
+      ],
+      "notVerified": [
+        "缺目标部署实际返回跨UTC日偏移日期证据",
+        "宿主四例不是产品Read→ApplyTo→POST回归",
+        "无真实写入或存库结果"
+      ],
+      "parentAdjudication": "采用更保守的产品级待验证状态；条件性日期算法因果保留。待核的是Emby相关接口允许/实际输出跨UTC日偏移原值，不以“没有现场复现”否定源码链。"
+    }
+  ],
+  "parentCorrections": [
+    {
+      "id": "IR-DOC-01",
+      "decision": "撤回历史计划的未匹配提示，不改写历史原文件",
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+      "start": 247,
+      "end": 247,
+      "detail": "MpvOutputOptions.cs 在固定源码及阶段1基线的阶段16入口中已经匹配。JSON索引无需因此修改，文件存在不等于业务或测试已验证。"
+    },
+    {
+      "id": "IR-EVID-02",
+      "decision": "补充正确版本源码，不据规格缺项断言404",
+      "detail": "Rawls 已核 v12.2 / ca0f16eb7c195f720a1493ed469a27c4657db0c6，程序集版本12.2.0；部分Legacy用户路由仍注册但IgnoreApi隐藏于OpenAPI。此处保存独立复核取证结果，不宣称目标服务器实际200或404。"
+    },
+    {
+      "id": "IR-EVID-03",
+      "decision": "收窄R-004后果证据",
+      "detail": "本地-16分类矛盾保留；实际误撤销需先令牌过期且登录链特定接口成功HTTP业务信封返回-16，该发码前件尚未闭合。外部bundle仅核旧记录，未在本轮独立重读。"
+    },
+    {
+      "id": "IR-EVID-04",
+      "decision": "收窄R-005账号请求契约",
+      "detail": "顶层账号对象被错误拒绝的解析链保留；官方脚本clients.plex.tv/表单与Momoka plex.tv/JSON组合不同，实际成功响应契约未验证，不能宣称所有真实Plex登录均失败。"
+    },
+    {
+      "id": "IR-EVID-05",
+      "decision": "纠正Hero解码器归属",
+      "detail": "Hero原图使用HeroPictureLoader.DecodePixelsAsync和BitmapDecoder；Still才使用PosterLoader。R-015仅保留可降级单候选失败、有正常备用却不访问的情形。"
+    },
+    {
+      "id": "IR-EVID-06",
+      "decision": "R-017保守列为条件性待验证候选",
+      "detail": "偏移跨UTC日的日期算法因果保留，不因没有现场复现否定源码链；待核的是相关Emby接口的偏移输入契约/部署前件。DTO允许DateTimeOffset和宿主四例不代表真实服务器返回或产品回归。"
+    },
+    {
+      "id": "IR-EVID-07",
+      "decision": "校准错误正文阈值单位",
+      "detail": "ReadBodySafelyAsync使用byte[]及ReadAtLeastAsync，阈值单位是字节，不是字符；原结构化归纳中的字符表述在本汇总校正，不改写已保存代理记录。"
+    }
+  ],
+  "summary": {
+    "independentStages": 7,
+    "independentAgents": 7,
+    "reviewedStableIssueIds": 17,
+    "retainedReviewedStaticRecords": 16,
+    "reviewedPendingCandidateIds": [
+      "R-017"
+    ],
+    "unchangedStage8StaticRecords": [
+      "R-018",
+      "R-019"
+    ],
+    "retainedAllStaticRecords": 18,
+    "totalStableIssueIds": 19,
+    "newIssueIds": 0,
+    "conditionOrConsequencePendingIds": [
+      "R-004",
+      "R-005",
+      "R-017"
+    ],
+    "fixedProductByteFiles": 856
+  },
+  "unchangedPhase8Findings": [
+    {
+      "id": "R-018",
+      "priority": "P2",
+      "title": "同产品换账号后，旧管理目录刷新能覆盖新身份的显隐与插件目录",
+      "state": "保留阶段8原静态结论；不属于本次独立复核范围；未修复"
+    },
+    {
+      "id": "R-019",
+      "priority": "P2",
+      "title": "旧整页导航的取消失败回调能持续遮住随后成功的控制台页面",
+      "state": "保留阶段8原静态结论；不属于本次独立复核范围；未修复"
+    }
+  ],
+  "fixedProductIntegrity": {
+    "inventory": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+    "inventorySha256": "A418852A2608C2307DCAA29CAC031E13D17FCF3626E520AD8CAD360BB19F0D49",
+    "selection": "src/tests/tools/assets/.claude及列明的顶层构建入口",
+    "topLevelPaths": [
+      "Directory.Build.props",
+      "Momoka.sln",
+      "global.json",
+      "nuget.config",
+      "smoke.ps1"
+    ],
+    "matchedFileCount": 856,
+    "changedFiles": [],
+    "sortedPathAndSha256Digest": "9EF392070C516E9E4C2CBC545596AA8BD67D039E22ACB5F567236CD952EF7144",
+    "allTrackedProductBytesMatchFixedBaseline": true
+  },
+  "historicalPhaseFiles": [
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段0快照.json",
+      "sha256": "62FC1A655133F076D1ED60A5271AAF565FFFEA36BC51032DC2642D57DA793520"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段0检查.json",
+      "sha256": "63F151A4905CCB2A5AEABA2EBA035B034C9B9C550B5AC86375AD31DED8902471"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+      "sha256": "A418852A2608C2307DCAA29CAC031E13D17FCF3626E520AD8CAD360BB19F0D49"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1检查.json",
+      "sha256": "65B47BC168C357A27F38A0FE25CB847270556F965BC65774DBEF5C376039F9F5"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+      "sha256": "86A2C3BFD29F4639EA2F4378428FDBA5CE3E5F2906194876B1E667B72551B15B"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2审查.md",
+      "sha256": "F5BED8313720BAF324187B93E6FBDCB0F7981E461880B392DEA6F7E27CE8900F"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2检查.json",
+      "sha256": "A088188BDD169E9DAD490088F294148FFD8284F0BD47F6A410AF84E31330496A"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+      "sha256": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3审查.md",
+      "sha256": "08948575FAD43E64C1A40386D89B164D1E23170DEB523E3A6CCB69CA3616D70D"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3检查.json",
+      "sha256": "C7AA75BFFCB3F8555863AE3E504B533531115F1DB5AB3A150124A808BA5DA4AE"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段3证据.json",
+      "sha256": "C23D9F798B40160DE35A22B282F9794EBA4DB41F3CD9D6101365EBB8ADA717A9"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段4审查.md",
+      "sha256": "FF1F16AD83EE58DEFD212F934BCC95A3FB7B2F586E546D59EC78859AD645C7A1"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段4检查.json",
+      "sha256": "23ABBF55B772C9D5774B8CE6F90F124AD79E00335CD2CF5F839442281A63BD80"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段4证据.json",
+      "sha256": "F67967A57DF38CACC6360ACACEB3EFAF36769465544A0D197021BF4D161E6D98"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5审查.md",
+      "sha256": "DBBBC1DDE448FD1808DE157FDE5265ED8F9B4EA83FF078F2A7C0047A83B90DCC"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5检查.json",
+      "sha256": "BC5EEA4D616B389E50EA4B2171A84D3BAC1378DE8446EE661972D7C6E5B25DA7"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5证据.json",
+      "sha256": "235EBC4F388AB874725C9AA82109CF50495B6130BD3F777F4743A965FE5F1B4E"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md",
+      "sha256": "1AA0531231280A6C01C95C7E3795E12B1A3FA8B26E2143C75ADC624271CDE76D"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6检查.json",
+      "sha256": "C6425B73C8F7AFCCA1F27001E48FE0BB7287E6DA95E6A0F5C7BB0611F3EC4EA3"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6证据.json",
+      "sha256": "1BE7DFF0270FE81152BDCAE09A6AF193316696CCB3450DD81F903466B9A94602"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7审查.md",
+      "sha256": "370115FAC4E61A9E501103E4FD321F1C87334781E0C58C4BDB8807970E5836B4"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7检查.json",
+      "sha256": "9DB359BBC3E303D8CB46B5BDB7DBDC40B71122730575625D1899E94B3E7585A8"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段7证据.json",
+      "sha256": "F5FC60FE5BFFA15E9EB5C284276692E79D5A65E63542CFF2D185EAF6BB6455E8"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段8审查.md",
+      "sha256": "91CC2B3076AB40139D907A03A911F560230F99FDF1F233230DE32577202B963D"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段8检查.json",
+      "sha256": "85D377BAB1C4E25926FD618F88BDF5D753563FDACB663F29341A89C918CE098D"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段8证据.json",
+      "sha256": "9B22047A9331B284BA8C02A5EF110124E73DC813BED4A5CF4CE6C7D2D1B916EB"
+    }
+  ],
+  "externalChangesPreserved": [
+    {
+      "path": "docs/交接-集成播放器缩放与起播全屏-2026-09-22.md",
+      "change": "D",
+      "scope": "本轮之外",
+      "action": "保持未暂存，不恢复，不夹带提交"
+    }
+  ],
+  "externalObservation": {
+    "schemaVersion": 1,
+    "capturedAt": "2026-10-21T18:54:26.277+08:00",
+    "workingTree": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka",
+    "head": "24e0e72625cb2f03e0ae6786e00cbbbab5eff9f9",
+    "trackedChanges": [
+      "D\tdocs/交接-集成播放器缩放与起播全屏-2026-09-22.md"
+    ],
+    "stagedChanges": [],
+    "untrackedFiles": [],
+    "originalTree": {
+      "root": "C:/Users/89400/Momoka",
+      "head": "a9b7153d1fd6a6b4a537424a667c2f2dca131176",
+      "status": [
+        "?? docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "?? vibe_images/",
+        "?? website/"
+      ],
+      "protectedFiles": [
+        {
+          "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+          "initialSha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F",
+          "observedSha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F",
+          "unchanged": true
+        },
+        {
+          "path": "website/README.md",
+          "initialSha256": "FBECA038382C00E9004E352CB2B59514E460B6D0FA7460B666810DF86DD81092",
+          "observedSha256": "79BDFC94F9B10A094F9085C28E2A77DE1BED14320D1BA8C6965A7C4D79934347",
+          "unchanged": false
+        },
+        {
+          "path": "website/docker-compose.yml",
+          "initialSha256": "E086CD7DE73F7F578559E4A1505C5C8BFCDAB373A21842C7CC384FBF404BDDC8",
+          "observedSha256": "EC54B409EB5E82914FE7F142F4D40D909EA55BEFE4F3F02AFA8654ACFC523CFB",
+          "unchanged": false
+        },
+        {
+          "path": "website/index.html",
+          "initialSha256": "648CFA1F3F5CBC33A17FA50D937803EEAA71D9A95D53C4A7EF25D7E612537CB8",
+          "observedSha256": "BE9214C67B06AA121E0D89EFCA1500A31C97C2EF7F8A4CCB80BC8AA90E18DC72",
+          "unchanged": false
+        },
+        {
+          "path": "website/nginx.conf",
+          "initialSha256": "43C9C8F7B41EAB282781AD21501391938A74F79C8AD9F8B021FD0537C124AED5",
+          "observedSha256": "3D0C0044177D27F4459191946A31FF24948C3BA2003D1360D3560A1EAC66D660",
+          "unchanged": false
+        }
+      ],
+      "readScope": "只核路径、Git状态和字节哈希，不读网站/其他报告业务内容，不写入或暂存"
+    },
+    "notes": [
+      "原目录新增未跟踪vibe_images/并出现网站保护文件字节变化，保留外部改动，不回滚不夹带。",
+      "初始capture.json及七份代理完成结果不重写；本文件单独保存后续观察，不重定固定受审产品。",
+      "上次保护校验发现website/README.md变化后停止该断言，没有恢复/改写该文件；如实记录变化不冒称保护哈希全未变。"
+    ]
+  },
+  "testEvidence": {
+    "actualExecutionTime": "2026-10-21T02:59:12+08:00",
+    "actualExecutionHead": "4b663c425491120a4d87234d98bf20ecc9c88619",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "summary": {
+      "total": 2072,
+      "passed": 2072,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedMilliseconds": 78960
+    },
+    "build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "logs": [
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\restore.log",
+        "sha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "purpose": "本树当前测试/Core 还原；可能读取 NuGet"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\build.log",
+        "sha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "purpose": "当前 Release 测试/Core 编译"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\tests.log",
+        "sha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "purpose": "未改现有完整测试宿主运行"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\execution.json",
+        "sha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "purpose": "退出码/源码基线/执行目录回执"
+      }
+    ],
+    "compiledBinaries": [
+      {
+        "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+        "sha256": "7E7F5C29464609675DF984C63750283A8F01A10E92C14659484813441B0480F7"
+      },
+      {
+        "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+        "sha256": "CB35FA56DB6AA41C00D4ECB9F7DD80864364056D5CBA2288760807A256763994"
+      }
+    ],
+    "runtimeAssemblies": [
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.WebSockets.Client.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.WebSockets.Client.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "FF5D42603B662A634857DCC6E1239547025D03794AEA4F84D624579765C23BA9",
+        "identicalToReadAssembly": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.Http.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.Http.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "8AE9F649D43F1F3FB635170784BCB753D305BC36A42703B4B0BEDB15A29729F0",
+        "identicalToReadAssembly": true
+      }
+    ],
+    "evidenceFile": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+    "evidenceSha256": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229",
+    "executedInIndependentReview": false,
+    "limitation": "2072通过仅属阶段2在2026-10-21 02:59:12 +08:00的旧运行；本轮只复核旧证据和源码，不覆盖新增触发场景或替代产品回归。"
+  },
+  "productBuildOrTestsExecuted": false,
+  "applicationOrUiStarted": false,
+  "realAccountOrServerAccessed": false,
+  "productCodeOrTestsModified": false,
+  "pushOrPublishPerformed": false,
+  "systemContextCompressionExecuted": false,
+  "allDelegatesCompletedAndClosed": true,
+  "pauseRequestedAfterClose": true,
+  "nextStage9Started": false,
+  "nextAction": "本轮文档检查与本地提交完成后暂停，等待用户新的范围指令",
+  "generationNormalization": [
+    {
+      "id": "R-002",
+      "field": "trigger",
+      "before": "长下载错误正文在达到8000字符或EOF前持续不结束，来源保持在线且未取消；不是成功下载慢流缺陷",
+      "after": "长下载错误正文在达到8000字节或EOF前持续不结束，来源保持在线且未取消；不是成功下载慢流缺陷",
+      "reason": "IR-EVID-07：ReadAtLeastAsync阈值单位为字节"
+    },
+    {
+      "id": "R-006",
+      "field": "trigger",
+      "after": "显式 HTTP 80，或无端口的 HTTP IPv6 地址；按报告列明的端口判定条件，不泛化为所有 Plex 地址。",
+      "reason": "归档未单列trigger，将已保存的同一地址条件显式整理，不新增业务结论"
+    }
+  ],
+  "recordGeneratedAt": "2026-10-21T19:44:22.481+08:00"
+}

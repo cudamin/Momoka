@@ -16,7 +16,7 @@ description: "Momoka 视频输出三卡到 mpv 的选项落地、HDR/杜比语�
 - 基础输出通过 after 回调重建卡片以更新从属行：「插值」合并关闭与三种算法，关闭只改开关、保留算法偏好。用户于 2026-10-13 明确要求音频同步保留插值行，以 `SettingFactRow` 只读显示「关闭」，切回自动或显示同步恢复原选择；这是用户指定的展示例外，不覆盖保存偏好，也不把「关闭」加入真实 `tscale` 算法目录。只有有效显示同步才显示高帧率回退，回退关闭隐藏阈值；关闭抖动隐藏位深；去色带关闭或继承预设隐藏强度。内置 `fast` 的 `dither=no`，抖动继承该预设时也隐藏位深，画质预设切换须联动基础卡；外部预设内容未知，不套用此推断。隐藏不清空偏好。`ShellNavigationProbe.Settings.cs` 覆盖真实控件切换、只读展示及宽窄布局。
 - `MpvRenderCheck` 按真正会跑的值问：集成按契约强制值（pipelineOwned），独占与外部按设置存值。不建议用户修改集成模式固定的接口。hwdec 不受管线锁定；出厂默认为 `auto-copy-safe`。硬解目录合并了空值「不指定」和 `no`「关闭」；Normalize 将旧空值/未知值归一为 `no`，保持软解行为，其余合法选择保留。随包内核中 `auto-safe` 是 `auto` 的别名，`auto-copy-safe` 是 `auto-copy` 的别名，目录分别只列一个；原生与复制模式有实际差异，不合并。
 - `SettingsMigration.Choice` 大小写不敏感地匹配，但必须返回目录的规范拼法。随包内核拒绝 `YES`、`Spline` 等大小写变体，原样保留会导致起播拒绝或条件规则失效。
-- 视频三卡统一为“下次播放生效”。本次着色器偏好由 `ShaderAutomationSettings.Snapshot` 固定；候选源共用快照，换屏只重算尺寸，不顺带采用后来修改的设置。
+- 视频三卡统一为“下次播放生效”。本次着色器偏好由 `ShaderAutomationSettings.Snapshot` 固定；候选源共用快照，换屏只重算尺寸，不顺带采用后来修改的设置。 固定Monitor方案与OutputWatch必须采用同一目标／分类；launch票据和Adopt比较都用Monitor，实际OSD输出仍记Active。同档／全屏仅记尺寸，不因切链仍在飞而重复排同方案事务；[真实VM专项](../../../tests/Momoka.ShaderMonitorPolicyTests/README.md)覆盖，不冒实际换屏画质验收。
 
 ## profile 与切链恢复
 
@@ -34,7 +34,7 @@ description: "Momoka 视频输出三卡到 mpv 的选项落地、HDR/杜比语�
 
 UI 的切链与画面菜单按提交次序共用任务队列，不静默丢掉切换期间的操作；执行和提交时核对播放代次。“恢复自动”是请求模式，出队时读取当前方案；恢复写入中途换屏则成功后补交最新方案，失败保留原手动状态。启动后的当前档位及菜单源轴从服务最终候选的 `LaunchShaderDecision`/`PlayingSource` 采纳，不能继续沿用失败源。集成菜单静态部分可缓存，动态着色器子树每次打开重建；每棵单选组隔离，不能与其他菜单共用默认组。
 
-**成功只表示配置完整下发，不表示 GLSL 已编译或执行。** 文件缺失预检、原生日志、`vo-passes` 分别覆盖不同问题。同句柄换片还要核对后端实际执行点的代次与 `InlineSwitch` 错误传播；服务 await 前后检查不等于原生命令具备原子代次保证。
+**成功只表示配置完整下发，不表示 GLSL 已编译或执行。** 文件缺失预检、原生日志、`vo-passes` 分别覆盖不同问题。同句柄换片还要核对后端实际执行点的代次与 `InlineSwitch` 错误传播；服务 await 前后检查不等于原生命令具备原子代次保证。 内置handle的可选 `IFileScopedPlayerControl` 将事务开始捕获的FileGeneration送进每笔写和回滚的真实RunFor；它与service generation不同，不能用同计数推定同文件。服务尚未接班的native换片空档拒新事务。 [执行点专项](../../../tests/Momoka.ShaderCommandGenerationTests/README.md) 原样handle/gate及真实Service/UI选择事务只在托管native seam里运行，不代表真实mpv/GLSL/画面接受。
 
 ## HDR 与杜比
 

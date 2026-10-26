@@ -197,6 +197,7 @@ internal sealed class SettingsWindow
     {
         _closing = true;
         _open = false;
+        Page?.ReleaseHosted();
         ThemeHost.Changed -= _repaint;
 
         try
@@ -219,10 +220,7 @@ internal sealed class SettingsWindow
         if (_closing) return;
 
         e.Cancel = true;
-        _open = false;
-        Page?.ReleaseHosted();
-        sender.Hide();
-        Hidden?.Invoke();
+        Hide();
     }
 
     /// <summary>

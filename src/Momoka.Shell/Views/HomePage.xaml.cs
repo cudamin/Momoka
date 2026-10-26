@@ -86,8 +86,8 @@ public sealed partial class HomePage : Page, IShellContent
     private long _foldPlacedAt;
 
     /// <summary>
-    /// 矮窗档那一段行程（见 <see cref="HomeFoldMotion"/>）：正在走的那一趟，没有就是 null。它同时是「这会儿屏上
-    /// 正有东西在走」的记号 —— 在走的这一段里不要再摆档，见 <see cref="ApplyLibraryChrome"/>。
+    /// 矮窗档那一段行程（见 <see cref="HomeFoldMotion"/>）：当前认领的宿主动画，完成／取消时只清自己的这一笔。
+    /// 对象存在不等于仍在走；保留回程载体的早退看 <see cref="HomeFoldMotion.IsActive"/>。
     /// </summary>
     private HomeFoldMotion? _fold;
 
@@ -96,6 +96,9 @@ public sealed partial class HomePage : Page, IShellContent
     /// 晚起步：翻档翻得快的时候，宿主那一趟收了它还得活着。
     /// </summary>
     private HomeFoldMotion? _foldLate;
+
+    /// <summary>迟一拍的摆放归哪一趟；主动画先完成也不丢它，取消／新翻档才作废。</summary>
+    private long _foldVersion;
 
     /// <summary>上一次摆到屏上的是哪一档（true ＝ 媒体库那一排压在轮播上）。</summary>
     private bool _foldOn;
@@ -205,11 +208,7 @@ public sealed partial class HomePage : Page, IShellContent
     {
         _entranceSuppressed = true;
         HomeMotion.StopEnter(ShelfRepeater);
-        _fold?.Stop();
-        _fold = null;
-        _foldLate?.Stop();
-        _foldLate = null;
-        _foldRetry?.Stop();
+        CancelFold();
         _foldPlacedAt = 0;
         _foldReal = false;
         _before = null;
@@ -731,29 +730,24 @@ public sealed partial class HomePage : Page, IShellContent
         // 是个假档（数据回来时还要再翻一次）—— 拿假档当起点会凭空飞一趟，而自检正是在那几拍上读坐标的。
         var real = Banner.Visibility == Visibility.Visible && ViewModel.Slides.Count > 0 && Scroller.ActualHeight > 0;
         // 返回后的数据与尺寸变化直接落定，不能等异步刷新回来后再补一趟媒体库位移。
-        var flight = !_entranceSuppressed && _foldReal && real && on != _foldOn && _before is not null
+        var changed = on != _foldOn;
+        var flight = !_entranceSuppressed && _foldReal && real && changed && _before is not null
             && HomeFoldMotion.Enabled && XamlRoot is not null;
 
         _foldOn = on;
         _foldReal = real;
 
-        if (_fold is not null && !flight)
+        if (_fold is { IsActive: true } && !flight)
         {
             // 上一趟还在走，而这一档没翻：什么都不摆。回默认那一趟里宿主自己就是动画的载体，把它收起来等于把托着的
             // 那一排卡从屏上撤掉 —— 让它走完，下一次翻档（或者它自己落地）自然会对上。
             return;
         }
 
-        if (flight)
-        {
-            _fold?.Stop();
-            _foldLate?.Stop();
-            _foldLate = null;
-            _fold = new HomeFoldMotion();
-        }
-
         var before = _before;
         _before = null;
+        if (flight || changed || _fold is not null) CancelFold();
+        if (flight) _fold = new HomeFoldMotion();
 
         // 翻档那一趟宿主是动画的载体：回默认时它还得站在原地托着那一排卡滑下去（走完由 <see cref="HandBack"/>
         // 收掉），所以这一拍不能先把内容清掉 —— 清了就是「载体先没了，然后什么都没有发生」。
@@ -779,11 +773,13 @@ public sealed partial class HomePage : Page, IShellContent
 
         UpdateLayout();
 
-        if (_fold is null) return;
+        if (_fold is not { } motion) return;
 
         if (shelf is null || before is null)
         {
             Log.Warn(Category, $"矮窗档这一趟没走成：排在={shelf is not null} 旧账在={before is not null}");
+            motion.Stop();
+            CompleteFold(motion, on);
             return;
         }
 
@@ -807,26 +803,34 @@ public sealed partial class HomePage : Page, IShellContent
             Log.Warn(Category, $"矮窗档这一趟规划不成：位移={(hostDrift is null ? "拿不到" : $"{distance:0} 像素")}"
                 + $"（宿主变换={LibraryOverlay.RenderTransform?.GetType().Name ?? "空"}）"
                 + $" 排卡线={(before.Strip.HasValue ? before.Strip.Value.ToString("0") : "量不到")} 压上={on}");
-            if (!on) HandBack();
-            _fold = null;
+            motion.Stop();
+            CompleteFold(motion, on);
             return;
         }
-        _fold.Slide(hostDrift, on ? distance : 0, on ? 0 : distance);
+        motion.Slide(hostDrift, on ? distance : 0, on ? 0 : distance);
 
         // 回默认那一趟：宿主的淡出压在最后一百来毫秒里 —— 它要一路托着那一排卡滑到横排，落点上那一份
         // （迟一拍才实到）从暗里浮出来，两头在落点上换手。
-        if (!on) _fold.FadeLate(LibraryOverlay);
+        if (!on) motion.FadeLate(LibraryOverlay);
 
         // 轮播里那块字：矮窗档要它让出底下一段（HomeBanner.PlaceInfo 整段换掉底边距），那一下同样是硬切，
         // 同样补一趟「先待在旧位置、再滑到新位置」。它的布局不归 Repeater 管，当场量当场动。
         if (before.Info is { } info && HomeFoldMotion.DriftOf(Banner.InfoBlock) is { } infoDrift)
         {
             var delta = info - TopIn(Banner.InfoBlock, Banner);
-            if (Math.Abs(delta) > 0.5) _fold.Slide(infoDrift, delta, 0);
+            if (Math.Abs(delta) > 0.5) motion.Slide(infoDrift, delta, 0);
         }
 
-        if (on) _fold.Play();
-        else _fold.Play(HandBack);
+        var flightVersion = _foldVersion;
+        try
+        {
+            motion.Play(() => CompleteFold(motion, on));
+        }
+        catch
+        {
+            CompleteFold(motion, on);
+            throw;
+        }
 
         Log.Info(Category,
             $"矮窗档{(on ? "：媒体库那一排升上轮播" : "：媒体库那一排落回横排")}"
@@ -839,13 +843,12 @@ public sealed partial class HomePage : Page, IShellContent
         var book = before.Rows;
         var flowIndex = _homeLibraryFlowIndex;
         var flyingIn = on;
-        var flightOwner = _fold;
 
         if (DispatcherQueue is not { } queue) return;
 
         queue.TryEnqueue(() =>
         {
-            if (!ReferenceEquals(_fold, flightOwner)) return;
+            if (_foldVersion != flightVersion) return;
 
             var late = new HomeFoldMotion();
             var moved = 0;
@@ -873,7 +876,18 @@ public sealed partial class HomePage : Page, IShellContent
             }
 
             _foldLate = late;
-            late.Play();
+            try
+            {
+                late.Play(() =>
+                {
+                    if (ReferenceEquals(_foldLate, late)) _foldLate = null;
+                });
+            }
+            catch
+            {
+                if (ReferenceEquals(_foldLate, late)) _foldLate = null;
+                throw;
+            }
             Log.Info(Category, $"矮窗档补位（迟一拍）：{moved} 排");
         });
     }
@@ -887,6 +901,27 @@ public sealed partial class HomePage : Page, IShellContent
     {
         LibraryOverlay.Visibility = Visibility.Collapsed;
         LibraryHost.Content = null;
+    }
+
+    private void CompleteFold(HomeFoldMotion owner, bool on)
+    {
+        if (!ReferenceEquals(_fold, owner)) return;
+        _fold = null;
+        if (!on) HandBack();
+    }
+
+    private void CancelFold()
+    {
+        // 先交出当前认领，再 Stop：旧完成或框架重入不能清掉随后认领的新动画。
+        _foldVersion++;
+        var motion = _fold;
+        var late = _foldLate;
+        _fold = null;
+        _foldLate = null;
+        _before = null;
+        _foldRetry?.Stop();
+        motion?.Stop();
+        late?.Stop();
     }
 
     /// <summary>
@@ -1048,7 +1083,7 @@ public sealed partial class HomePage : Page, IShellContent
         var plan = ItemMenu.For(card.Item, _actions.MoviePilotEnabled,
             jellyfin: card.Scope?.Connection.IsJellyfin == true,
             fnNas: card.Scope?.Connection.IsFnNas == true,
-            plex: card.Scope?.Connection.IsPlex == true);
+            plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true);
         var menu = ItemCommands.Build(_session, _actions, this, card);
         var labels = new List<string>(menu.Items.Count);
         var ok = menu.Items.Count == plan.Count;
@@ -1253,11 +1288,7 @@ public sealed partial class HomePage : Page, IShellContent
         _actions?.SetTitleStrip(TitleStrip.Plain);
 
         // 走到一半的那一趟也收掉：Storyboard 还握着这一页的元素，留着就是一间关了灯还在跑的屋子。
-        _fold?.Stop();
-        _fold = null;
-        _foldLate?.Stop();
-        _foldLate = null;
-        _before = null;
+        CancelFold();
 
         ViewModel.Cancel();
     }

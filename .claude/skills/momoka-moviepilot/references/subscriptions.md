@@ -48,12 +48,12 @@
 
 ## 入库播放
 
-"MoviePilot 说已入库"和"当前 Emby 能播"是两件事，中间隔着一次跨服务器匹配：
+"MoviePilot 说已入库"和"当前媒体服务器能播"是两件事，中间隔着一次跨服务器匹配；当前定位实现支持 Emby 与 Jellyfin，FnNas／Plex 没有这条主 Provider 定位实现，不能按旧文案推导为 Emby 排他：
 
 - **文件统计里的 `itemid` 属于 MoviePilot 配置的那台媒体服务器，不是当前 Emby 的条目 ID。** 一条订阅可能关联多台服务器；直接拿它当 Emby 条目导航会播错内容。只在 `server_type` 是当前服务器类型、`itemid` 只含字母数字与连字符时才尝试，并且**必须再用文件路径核对**才接受。
 - 主路径是按主身份在当前账号下重查：`Users/{userId}/Items?AnyProviderIdEquals=<provider>.<mediaId>&Recursive=true&IncludeItemTypes=<电影|剧集>`。provider 只认 `themoviedb`→`Tmdb`、`douban`→`Douban`、`imdb`→`Imdb`、`tvdb`→`Tvdb`，且编号格式要合法（IMDb 必须 `tt` 开头）；认不出来就不匹配，不按标题猜。
-- 电视剧还要核季号与集号（含 `IndexNumberEnd` 区间），电影要求零号条目对电影类型。
-- 多条候选时**先按入库文件路径筛**，路径唯一命中才用它；否则候选唯一才接受。路径只做字符串比较，不访问、不启动路径；Windows 驱动器／UNC 路径不区分大小写，Unix 路径区分。
+- 默认剧集组仍核原始季号与集号（含 `IndexNumberEnd` 区间），电影要求零号条目对电影类型。非默认 `episode_group` 的组季集不是原始编号，只在主 Provider／ID／Series 身份已核的全剧候选中按唯一入库路径定位，返回原始季的 `Item／Parent／Episodes`，字典键仍是组内集号。
+- 默认组多条候选先按入库路径筛，路径唯一命中才用它；否则数字候选唯一才接受。非默认组缺可信路径或多候选命中时不给目标，不凭数字唯一猜测，也不以文件 `itemid` 逃出主媒体核对。路径只做字符串比较，不访问、不启动路径；Windows 驱动器／反斜线 UNC 忽略大小写，Unix 区分大小写。
 - 找不到、无权读取、待入库、缺集都不启用播放入口。页面本身只读取，点播放才起播。
 
 ## 夹具与验证要覆盖

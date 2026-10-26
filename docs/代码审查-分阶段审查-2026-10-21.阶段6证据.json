@@ -1,0 +1,1131 @@
+{
+  "schemaVersion": 1,
+  "phase": 6,
+  "status": "已完成只读审查；未修复",
+  "reviewStartedAt": "2026-10-21T05:26:13+08:00",
+  "capturedAt": "2026-10-21T07:17:13+08:00",
+  "timezone": "Asia/Shanghai",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "768031b19a6923f52f8b2f32f3e9f185245ce5f7",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "authorization": "仅阶段6账号/来源/持久化只读审查、纯记录检查与本地提交；未授权修复/新产品测试/真实账号/服务器/UI/推送发布",
+  "baselineBeforeWriting": {
+    "stagedChanges": [],
+    "trackedChanges": [],
+    "untrackedFiles": [],
+    "productMatchesSource": true
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段6证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段6检查.json",
+    "PROGRESS.md"
+  ],
+  "fixedProductIntegrity": {
+    "inventory": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+    "inventorySha256": "A418852A2608C2307DCAA29CAC031E13D17FCF3626E520AD8CAD360BB19F0D49",
+    "selection": "src/tests/tools/assets/.claude及列明的顶层构建入口",
+    "topLevelPaths": [
+      "Directory.Build.props",
+      "Momoka.sln",
+      "global.json",
+      "nuget.config",
+      "smoke.ps1"
+    ],
+    "matchedFileCount": 856,
+    "changedFiles": [],
+    "sortedPathAndSha256Digest": "9EF392070C516E9E4C2CBC545596AA8BD67D039E22ACB5F567236CD952EF7144",
+    "allTrackedProductBytesMatchFixedBaseline": true
+  },
+  "originalTreeObservation": {
+    "root": "C:\\Users\\89400\\Momoka",
+    "commit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "status": [
+      "?? docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+      "?? website/"
+    ],
+    "protectedFiles": [
+      {
+        "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "sha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F",
+        "unchangedFromPhase1": true,
+        "readScope": "只读字节哈希，不读取业务内容，不写入或暂存"
+      },
+      {
+        "path": "website/README.md",
+        "sha256": "FBECA038382C00E9004E352CB2B59514E460B6D0FA7460B666810DF86DD81092",
+        "unchangedFromPhase1": true,
+        "readScope": "只读字节哈希，不读取业务内容，不写入或暂存"
+      },
+      {
+        "path": "website/docker-compose.yml",
+        "sha256": "E086CD7DE73F7F578559E4A1505C5C8BFCDAB373A21842C7CC384FBF404BDDC8",
+        "unchangedFromPhase1": true,
+        "readScope": "只读字节哈希，不读取业务内容，不写入或暂存"
+      },
+      {
+        "path": "website/index.html",
+        "sha256": "648CFA1F3F5CBC33A17FA50D937803EEAA71D9A95D53C4A7EF25D7E612537CB8",
+        "unchangedFromPhase1": true,
+        "readScope": "只读字节哈希，不读取业务内容，不写入或暂存"
+      },
+      {
+        "path": "website/nginx.conf",
+        "sha256": "43C9C8F7B41EAB282781AD21501391938A74F79C8AD9F8B021FD0537C124AED5",
+        "unchangedFromPhase1": true,
+        "readScope": "只读字节哈希，不读取业务内容，不写入或暂存"
+      }
+    ],
+    "writeOrStagePerformed": false
+  },
+  "coverage": [
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "readDepth": "全文",
+      "aspect": "登录/恢复/退出/聚合、selection与attempt代次、来源寿命/同身份重登、改密落盘及异常；旧R-003/R-004去重",
+      "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+      "readDepth": "全文",
+      "aspect": "捕获Connection快照、共享Identity客户端、来源键、Bind/可用性/执行取消边界",
+      "sha256": "AD136E6CAC7D519BB72AB3B1A765E2F88B6BDDA53A5960F7F184C1D650F30CEB"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySignInIdentity.cs",
+      "readDepth": "全文",
+      "aspect": "规范化地址和用户名、保存密码归属/无密码用户/输入快照",
+      "sha256": "8C49A03248DEC81798C4FBEE164EAF0B4A6FCDDD535F00EAABF39EAB90ED2854"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+      "readDepth": "137～178行",
+      "aspect": "EmbyConnection产品/服务器/用户身份，令牌及权限不属于同一身份比较",
+      "sha256": "8C6B51B1C9A53442214BA2DDBFD36D446A3764353FEE2BC83BBEEF6DB4877CD5"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+      "readDepth": "1～153及1236～1259行；其余只枚举类型",
+      "aspect": "当前schema、服务器/账号/自动连接/凭据字段；不声称穷尽输出/字幕等偏好模型",
+      "sha256": "DD14BE6B567C2FEB35735D31463EC8879F5C4B95982F3877D7EBA5F5CC6C3DCB"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/CredentialVault.cs",
+      "readDepth": "全文",
+      "aspect": "DPAPI边界接口、加密/解密异常不回退明文，账号null字段交界",
+      "sha256": "8E7D6B2F936597F6D5A68029AF066F409301588BABB81DAAE9C14565E98089D1"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/ISecretProtector.cs",
+      "readDepth": "全文",
+      "aspect": "平台接口与仅测试Passthrough替身；生产DI未注册明文替身",
+      "sha256": "3CE5B666AC35998A1C287A49502045F257BA5FB96EDFAD2DDD637820AB265858"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+      "readDepth": "全文",
+      "aspect": "主文件/备份/隔离/默认、严格诊断和偏好备份、序列化与保存异常",
+      "sha256": "796975ED974B98931F96114A38D8E9BC992C6098F1FF983F36CB22691286F290"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsSerializer.cs",
+      "readDepth": "全文",
+      "aspect": "读选项未启用可空标注强制；WriteOptions/中文编码",
+      "sha256": "D67632EA0A443B16212FB0C0A92AAA01C074918EF2542ADB5A7DC011AB8AAF83"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+      "readDepth": "1～49、290～439、601～626、811～917及相关定位",
+      "aspect": "Repair/Normalize/legacy/current身份与凭据；未逐条复核视频/字幕/音频版本升级",
+      "sha256": "4066A0D09B6EDEC7E2343D23AE42162C8DC172846E28375AB823F748BDC6D171"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsPreferences.cs",
+      "readDepth": "全文",
+      "aspect": "偏好分区、就地覆盖、身份/凭据/窗口/音量/MP连接排除",
+      "sha256": "F4C802586FF6B21FF4CCF06157F7112DB2EE32929CBF3FF2DD0E4E2668A0F691"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/SettingsReset.cs",
+      "readDepth": "全文",
+      "aspect": "恢复默认复用偏好分区，不退出当前账号",
+      "sha256": "07956CEA1473826919DDD5D507DB5D6635D8304D8DDC38E392DFD939B03EBCBA"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/MoviePilotCredentials.cs",
+      "readDepth": "全文（配置交界）",
+      "aspect": "独立凭据加解密与无明文回退；MP登录/JWT全链留阶段11",
+      "sha256": "E1D35AAA467A776D2E081DFD220919DBB2CBEEC67894CD74F8D24E9E4EB4AB64"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/TypedPath.cs",
+      "readDepth": "全文",
+      "aspect": "路径清洗，不触及真实文件或设置",
+      "sha256": "C93B123939B897C584B7594FFE7942E3CF34C6803B312362944CC2CB72C6572A"
+    },
+    {
+      "path": "src/Momoka.Core/Configuration/StartupEntry.cs",
+      "readDepth": "全文（纯规则）",
+      "aspect": "自启命令/approval纯规则；注册表执行与平台全链留阶段17",
+      "sha256": "D2313315E72CB5D4555E87E58B2D65A05689BD2A9EB72AF2C49D49EB39AC83A1"
+    },
+    {
+      "path": "src/Momoka.Core/Services/SettingsService.cs",
+      "readDepth": "全文",
+      "aspect": "服务器/账号解析、TrySave/HasUnsavedChanges与会话直接Store保存分离",
+      "sha256": "BB68C0B91E17F64145253261EE6AA5A01DB98BD7559B33FA828D2219FC1B044E"
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/AtomicFile.cs",
+      "readDepth": "全文",
+      "aspect": "同目录唯一临时文件、全局commit锁、主备Replace与失败清理",
+      "sha256": "F02A37106727993D9CF379F187D81C102F7ACE02D0A674CF59ADC58DF0424ED0"
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/LoadGeneration.cs",
+      "readDepth": "全文",
+      "aspect": "Begin/Cancel/IsCurrent/Dispose，取消与代次判断",
+      "sha256": "32F3D773042E0C2944C5AE13E4A6F005BCCC8B617D78657C686644AFEA9E3986"
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+      "readDepth": "1～184、280～295及设置/自检定位",
+      "aspect": "旧目录复制先于主备读取，当前主文件缺失时迁移门；不穷尽平台路径解析",
+      "sha256": "E5442588BF77F7CF44F08DEBC34246C04720F2FED9F4C126CC51FA945B3A354A"
+    },
+    {
+      "path": "src/Momoka.Shell/Composition/ShellServices.cs",
+      "readDepth": "42～76、114～186及生命周期相关段",
+      "aspect": "同一AppSettings/Store/Vault/Session/SettingsService/Capabilities、平台保护器及UI线程DI；播放工厂全链不在本阶段",
+      "sha256": "DEA1746847308DEE7EFC00B887A16796795908DA135BE7AD93A8738ED45408FA"
+    },
+    {
+      "path": "src/Momoka.Shell/Security/DpapiSecretProtector.cs",
+      "readDepth": "全文",
+      "aspect": "CurrentUser/固定legacy entropy/UTF8 Base64；未运行真实DPAPI",
+      "sha256": "69AA6A4811DB669E07DCAF60C4428BD7734762867928D0B224A842E5EF98F489"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+      "readDepth": "全文",
+      "aspect": "Prepare/Connect/登录/Users选择/输入回调/取消/Attach/SignedIn结果完整链",
+      "sha256": "E134859480A84FC495E54529B0C0FBAE1552D78EBE5FB51AE5CD345CDA5CF1C6"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SignInPage.xaml",
+      "readDepth": "1～16、167～328及绑定/祖先状态定位",
+      "aspect": "登录输入和列表仍可编辑，Busy仅约束提交命令；非视觉审查",
+      "sha256": "F1D4875B8278E52A28493BEB8F8675B77F89C8A19A6FD2FAB4B2886988D591DC"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SignInPage.xaml.cs",
+      "readDepth": "Attach/SignedIn/用户名及密码键盘/菜单相关定位",
+      "aspect": "视图到VM入口/事件转发；未审模板/布局全文",
+      "sha256": "4E3916053D4F96EBCE62761743926D61BA403C56F025313833B63D065C5A426A"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/ServersViewModel.cs",
+      "readDepth": "全文",
+      "aspect": "聚合/测试/登录/切源/退出/确认删除与存储顺序",
+      "sha256": "424BA47C08E594374A2D789E007DAAD7BCCBBEC35C793399F89155F5A9427A15"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/ServerRow.cs",
+      "readDepth": "行和账号集合/来源选择相关段",
+      "aspect": "已保存身份与在线来源分离；不将存档计入在线",
+      "sha256": "B6C9B83561C34C11D927210D0B5704624FD1F70F16D53391E8ADCAED9814E67F"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+      "readDepth": "144～185及通知相关定位",
+      "aspect": "BeginLoad/IsCurrent/EndLoad/Cancel，VM输入是否取消在飞任务",
+      "sha256": "080B599ED161F3B618B5287DF97187B1F5EFF9727BC4BB76F532A5E1FCB15A0D"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "readDepth": "563～579、925～947、1215～1248、2064～2122、2247～2359相关段",
+      "aspect": "注册登录/来源事件，启动恢复/EnterShell/切源/显示登录页/用户退出，非全Shell审查",
+      "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2"
+    },
+    {
+      "path": "src/Momoka.Shell/App.xaml.cs",
+      "readDepth": "149～201及295～320行",
+      "aspect": "登录Attach在Show窗口前，初始化失败Exit；关窗最终保存可挽回临时失败",
+      "sha256": "4A93B943887B5626D23EC020572E89C3C99DD10323F9F77DCB50FEC9C85C7644"
+    },
+    {
+      "path": "src/Momoka.Shell/Program.cs",
+      "readDepth": "307～406启动/诊断分支相关定位",
+      "aspect": "普通启动旧目录迁移优先，自检/探针绕开生产迁移；未启动应用",
+      "sha256": "F54AE12518C2931802D63E27505946B3A46998A5A27D6CAB70A725D2D521C1FC"
+    },
+    {
+      "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+      "readDepth": "身份/权限/来源/菜单/Probe相关段",
+      "aspect": "当前身份缓存与Connection快照、探测代次、权限重登后的失效缺口",
+      "sha256": "50E94E6B15227CCEF1E8DB821BA910518C8B5383AE18AE5C2A520BEFA464C568"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "readDepth": "676～906、1017～1029、1181～1200、2490～2594、2641～2654相关段",
+      "aspect": "管理权限显隐/只在unknown探测、保存标志同步、偏好备份恢复；非所有设置审查",
+      "sha256": "D14DBD2F82F79F6BD6F70703BAA8817B57214C6F4AACD6303FE73B3B6AFE1559"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+      "readDepth": "393～449、720～729行",
+      "aspect": "来源事件刷新/缓存页面替换/离页清理，权限通知与代次交界",
+      "sha256": "FAB12837C1D681B085D13F46D87E1AE9F6690A79C7944292ABB7310F7F58FADB"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml",
+      "readDepth": "1351～1370行",
+      "aspect": "未保存提示绑定VM状态，而不是SettingsStore状态；非布局运行证据",
+      "sha256": "CC56335743C88FD35CC3D0296C69441337DAC8B0A3954F6630678CA20BA62D0D"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+      "readDepth": "全文",
+      "aspect": "来源显式/默认、CanUse/Live/Current/Run/取消与错误显示",
+      "sha256": "1F68E0F3D462F29DF68085247B2C44B13426B485AACCAB8C3A2779112A560795"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasAdminViewModel.cs",
+      "readDepth": "全文",
+      "aspect": "管理员Allowed读捕获Connection而非新客户端权限",
+      "sha256": "0767420DE786328480F5A2A956F206BA213F6D8D1A094586551BE06F5A1C4CA1"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasPasswordViewModel.cs",
+      "readDepth": "全文",
+      "aspect": "改密发出后保存、页面取消、成功清草稿/提示与落盘失败交界",
+      "sha256": "200A337511317C6CC5B23A27FF1066C40BECB44E142A601A59B23FAA81D0939D"
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasLibrariesViewModel.cs",
+      "readDepth": "230～251行（权限执行交界）",
+      "aspect": "Scan/ScanAll经RunAsync守卫；管理功能全链留阶段9",
+      "sha256": "77C4B8544B2FA8F42759F8F0D5722137D5E14B3E2944BF2B0F9733C8C59BB1F2"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasLibrariesPage.xaml.cs",
+      "readDepth": "13～49行",
+      "aspect": "Attach捕获来源和扫库调用者；未执行任何真实动作",
+      "sha256": "B017061889391DF4D61F9F21ECC9D74338B563ECFB0121A428D8B3B4338A1402"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasLibrariesPage.xaml",
+      "readDepth": "ContentVisibility绑定定位",
+      "aspect": "管理内容可见性依赖旧VM权限快照；未做实屏/键盘验证",
+      "sha256": "F1D621B8AE93B70B35E6AABE24495803089BA5EBEDC66691AF4C40F697943C69"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsFile.cs",
+      "readDepth": "全文",
+      "aspect": "备份/导入文件框委托到服务，不调用文件选择器",
+      "sha256": "D84561B560CCFA4BE6E0E87370CD42DDC249F41725F8530B60224FA2F83A75C8"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/SourceLibraries.cs",
+      "readDepth": "全文",
+      "aspect": "恢复目录只消费一次、聚合失败保留其他源及最终可用性过滤；浏览其余链留后续阶段",
+      "sha256": "FE51740EAB4EB11060FD1DC0457D6D94B6D49C28472EB5736FB1FF3B5F7FD603"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ServerAccess.cs",
+      "readDepth": "全文",
+      "aspect": "四产品/在线服务器/权限的纯规则和Emby unknown回退",
+      "sha256": "0BA708827E799B8A4D4230276A6D929F675FE7F88FF03B9D4EC4A0F2AC0E1C47"
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyServerGateway.cs",
+      "readDepth": "产品检测与91～152认证分派相关段",
+      "aspect": "R-003最终身份来源及Jellyfin权限；协议全链复用阶段2～5而非重新审完",
+      "sha256": "F5F4D11ABBB0965169318C1BD170563D6C24FB604A75E4A33CD1066BA1590DF0"
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+      "readDepth": "34～57、83～98行",
+      "aspect": "认证最终server_guid守卫和用户is_admin刷新，R-004交界；媒体映射全链留阶段9",
+      "sha256": "F45E3B8F7C2835407882212E7F60A4CC1158EC88C68043BA1DB1A073025F7BEE"
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.Server.cs",
+      "readDepth": "1～87行",
+      "aspect": "Ask/Tell使用EmbySessionScope而非当前session，导航取消不等于来源取消",
+      "sha256": "57E97DCF4D4E0F612CE793AAEF50F5A31A1C0C697A866FEDC7435C377C150C9B"
+    },
+    {
+      "path": "tests/Momoka.Tests/SessionTests.cs",
+      "readDepth": "恢复/401/取消/故障用例及帮助器相关段",
+      "aspect": "已有会话行为/来源切换回归，未逐条全文或重新运行",
+      "sha256": "35132AB3F5681D77F0218ABDA1FF0702630CF7311DAFD00E4FBB599C45942B62"
+    },
+    {
+      "path": "tests/Momoka.Tests/IdentityRegressionTests.cs",
+      "readDepth": "密码/改密/来源代次/Scope/聚合/能力及SessionFixture相关段",
+      "aspect": "已有红风险守卫用例和假传输；未把测试名字当新故障已覆盖",
+      "sha256": "B9BFF248CC239A3842BD0B413F3C62FC102765C9C69B17BAD510D211E10DB5AF"
+    },
+    {
+      "path": "tests/Momoka.Tests/SettingsTests.cs",
+      "readDepth": "数据目录/迁移null/凭据/主备/原子保存/备份偏好相关段",
+      "aspect": "已有临时目录与占位保护器覆盖；缺少null账号和迁移与备份组合用例",
+      "sha256": "7C3D171A615696CAF5DF7D0E547E19934F91785C7EE2CC5AD1F86757E21DEE69"
+    },
+    {
+      "path": "tests/Momoka.Tests/ServiceTests.cs",
+      "readDepth": "210～233行及服务注册/解析定位",
+      "aspect": "TrySave失败状态与重试用例仅覆盖服务路径，不覆盖会话Persist",
+      "sha256": "940D32CA727E3FDCDA930F20712F7636EF246A3F0CF2B30CEF7F878A9552635B"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.SignIn.cs",
+      "readDepth": "外观探针/登录错误/返回及断言相关段",
+      "aspect": "现有假登录探针未包含在飞换选用户回归；未运行UI",
+      "sha256": "A8957FC2A42E64A2BB05684F908CB612BB4C2813855B85480E4E2AFB1F52BECA"
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.MultiSourceSession.cs",
+      "readDepth": "函数/断言定位（非全文）",
+      "aspect": "登录卡文案/多来源持有/未保存草稿已有断言，仅作覆盖线索",
+      "sha256": "D95DBED7A690D223B39F285B1CBBB479C655E95735273882EEE8E8FA0E9F6570"
+    },
+    {
+      "path": "src/Momoka.Core/Momoka.Core.csproj",
+      "readDepth": "全文",
+      "aspect": "net10目标和Tests/Shell内部友元；不更改编译参数",
+      "sha256": "76BC37459C20E9B9485ED543F3DD76BBF688FE34E7247101F965B8FBC4EA3049"
+    },
+    {
+      "path": "Directory.Build.props",
+      "readDepth": "全局配置与feature switch搜索",
+      "aspect": "未设置RespectNullableAnnotations默认开关；不作为所有分析器/工具审查",
+      "sha256": "D05B81F0AF792D70C3289F569152E847C94397FF280633B757F0F9DAC9CE9C7F"
+    }
+  ],
+  "readPoliciesAndSkills": [
+    {
+      "path": "CLAUDE.md",
+      "readDepth": "当前规程/范围/出口",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86"
+    },
+    {
+      "path": "docs/开发与验证.md",
+      "readDepth": "当前规程/范围/出口",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B"
+    },
+    {
+      "path": "docs/分阶段代码审查与集中修复流程.md",
+      "readDepth": "当前规程/范围/出口",
+      "sha256": "364229B10809BFC4516C27B7D08352D5AF38438ADA222181FBC92B880EF4F4C0"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md",
+      "readDepth": "当前规程/范围/出口",
+      "sha256": "86A2C3BFD29F4639EA2F4378428FDBA5CE3E5F2906194876B1E667B72551B15B"
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5审查.md",
+      "readDepth": "当前规程/范围/出口",
+      "sha256": "DBBBC1DDE448FD1808DE157FDE5265ED8F9B4EA83FF078F2A7C0047A83B90DCC"
+    },
+    {
+      "path": ".claude/skills/momoka-winui-shell/SKILL.md",
+      "readDepth": "仓库专项全文/当前安全验证相关部分",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA"
+    },
+    {
+      "path": ".claude/skills/momoka-verification/SKILL.md",
+      "readDepth": "仓库专项全文/当前安全验证相关部分",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/SKILL.md",
+      "readDepth": "仓库专项全文/当前安全验证相关部分",
+      "sha256": "3B949221AC0C99E142C805B36EBE4480D9CA91B55609BE8F2969E7724ED0B4A9"
+    },
+    {
+      "path": ".claude/skills/momoka-jellyfin-api/SKILL.md",
+      "readDepth": "仓库专项全文/当前安全验证相关部分",
+      "sha256": "FA8DCE71C34FE40A52D1662AA69CB4D1F700A5C6061591AF89C2BD1D29B7C8D9"
+    },
+    {
+      "path": ".claude/skills/momoka-fnnas-media-api/SKILL.md",
+      "readDepth": "仓库专项全文/当前安全验证相关部分",
+      "sha256": "6B511DEA641BB61B536D23565C01A8CB68E411C5714BD74B10752EF473A732CE"
+    },
+    {
+      "path": ".claude/skills/momoka-plex-api/SKILL.md",
+      "readDepth": "仓库专项全文/当前安全验证相关部分",
+      "sha256": "B319844C882292C678A558944BD88C819B1C8E6B74AA902C01DDDF465404A93A"
+    },
+    {
+      "path": ".claude/skills/momoka-emby-api/references/http-and-auth.md",
+      "readDepth": "错误分类/身份/凭据交界相关段",
+      "sha256": "9A0887986CE1DFD46517E01D7BC839E5F8104DE2D4063A9C9C9526AD1D4ED1AF"
+    },
+    {
+      "path": ".claude/skills/momoka-jellyfin-api/references/http-and-auth.md",
+      "readDepth": "错误分类/身份/凭据交界相关段",
+      "sha256": "BFAFD69471645EA0EB8F16FE42C9896995E07B2713848F8B343B56A194A9224F"
+    },
+    {
+      "path": ".claude/skills/momoka-fnnas-media-api/references/http-and-auth.md",
+      "readDepth": "错误分类/身份/凭据交界相关段",
+      "sha256": "574F143EF18D4192F606E11810018365A9A231C3D43785F439713E790C2EA10A"
+    }
+  ],
+  "additionalGeneralSkill": {
+    "path": "C:\\Users\\89400\\.codex\\skills\\winui-design\\SKILL.md",
+    "sha256": "3BD47BE91B1787DE6A4BCAE1D4A24B1F9115181E500F0AC24C5B63CDE79E158F",
+    "readDepth": "只读WinUI设计/绑定/错误状态相关部分；未编写UI或调用新API"
+  },
+  "primaryReferences": [
+    {
+      "method": "GET",
+      "credentialsSent": false,
+      "rawBodyPersisted": false,
+      "markers": [
+        {
+          "marker": "RespectNullableAnnotationsDefault",
+          "utf16OffsetZeroBased": 30973,
+          "markerSha256": "9CEA03D7C992F8316636D410F9715E59DEA53F39DEB3F6FCDE68C5BDB9A6962F"
+        },
+        {
+          "marker": "opt-in flag",
+          "utf16OffsetZeroBased": 31414,
+          "markerSha256": "6254CAAD9AB249FEE59332D6D0D1C2F3286A1471631D30985B7BB4F094FCDEE0"
+        }
+      ],
+      "bytes": 60803,
+      "capturedAt": "2026-10-21T07:02:14+08:00",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "id": "dotnet-nullable-guidance",
+      "sha256": "CAA7C86A776CB62B7759E0BBC5F4E29D16F5CF212F22396DFA0B28AE3E887F4A",
+      "httpStatus": 200,
+      "url": "https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/nullable-annotations"
+    },
+    {
+      "method": "GET",
+      "credentialsSent": false,
+      "rawBodyPersisted": false,
+      "markers": [
+        {
+          "marker": "private bool _respectNullableAnnotations = AppContextSwitchHelper.RespectNullableAnnotationsDefault;",
+          "utf16OffsetZeroBased": 5037,
+          "markerSha256": "618065A7CD8969B36A36F8896844B9CA607A19BB572DD358B0DB69D6F02906C5"
+        },
+        {
+          "marker": "public bool RespectNullableAnnotations",
+          "utf16OffsetZeroBased": 35179,
+          "markerSha256": "FBC1ADBCBFF81C168DA685958709F8A77D7A082C3F9D38B9E3EC1C25BFA205FF"
+        }
+      ],
+      "bytes": 51030,
+      "capturedAt": "2026-10-21T07:02:15+08:00",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "id": "dotnet-options-10.0.11",
+      "sha256": "3816FC86352AA4FE5ACDE50BE61C939DBC356A28AE5503DAAFBC6B941529AA25",
+      "httpStatus": 200,
+      "url": "https://raw.githubusercontent.com/dotnet/runtime/v10.0.11/src/libraries/System.Text.Json/src/System/Text/Json/Serialization/JsonSerializerOptions.cs"
+    },
+    {
+      "method": "GET",
+      "credentialsSent": false,
+      "rawBodyPersisted": false,
+      "markers": [
+        {
+          "marker": "public static bool RespectNullableAnnotationsDefault",
+          "utf16OffsetZeroBased": 512,
+          "markerSha256": "3BACB22C0DFC091E6BBB20CE01AD40E548EB959FBEF866F7BB29A6DAFAB70777"
+        },
+        {
+          "marker": "? value : false;",
+          "utf16OffsetZeroBased": 486,
+          "markerSha256": "4C505C6A8DC29CD345EC0F83FF145B8A456850C71BB30361E163D0EE3A837A00"
+        }
+      ],
+      "bytes": 1089,
+      "capturedAt": "2026-10-21T07:02:16+08:00",
+      "hashScope": "响应解码文本按UTF-8重编码",
+      "id": "dotnet-switch-10.0.11",
+      "sha256": "1488166DFA0B6A85FEDF6C910270C3884B6171E031317DDEB74E0636950C29CC",
+      "httpStatus": 200,
+      "url": "https://raw.githubusercontent.com/dotnet/runtime/v10.0.11/src/libraries/System.Text.Json/src/System/Text/Json/AppContextSwitchHelper.cs"
+    }
+  ],
+  "jsonOptionsObservation": {
+    "runtimeAssembly": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Text.Json.dll",
+    "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+    "scope": "仅当前宿主System.Text.Json选项读数和相同DLL哈希；没有调用产品反序列化/设置读取/故障方法",
+    "runtimeSha256": "ED5F0F3773C89948471E3691F31963EA00D3577E17296AC4DFB97772E78B6FA3",
+    "capturedAt": "2026-10-21T07:02:16+08:00",
+    "hostSha256": "ED5F0F3773C89948471E3691F31963EA00D3577E17296AC4DFB97772E78B6FA3",
+    "identical": true,
+    "newRegressionAdded": false,
+    "productMethodExecuted": false,
+    "defaultRespectNullableAnnotations": false,
+    "hostAssembly": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Text.Json.dll"
+  },
+  "captureArtifact": {
+    "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase6\\capture.json",
+    "sha256": "34B112864EF96D4E0948DEF6324FA21E4C0B1F55B5A5C4F704346C89E1E2D0D4",
+    "rawPrimaryBodiesPersisted": false
+  },
+  "operationalNotes": [
+    "取证保存命令首次因PowerShell只读Host变量名失败，未生成捕获文件也未触及产品；核对本轮空目录后改变量名，重新匿名GET并成功保存。",
+    "无产品程序集加载执行、故障脚本/新回归或真实设置内容读取；System.Text.Json选项观察仅内置宿主属性与同DLL哈希。",
+    "首轮文档检查有两项失败：Scope记录行段漏了第19行Connection属性、覆盖限制断言只认未穷尽字样而实际记录为不声称穷尽/未逐条。核实后将Scope定位细化为10～19，覆盖检查改为核对具体未逐条复核的迁移边界；未改产品结论或弱化产品测试。"
+  ],
+  "newFindings": [
+    {
+      "id": "R-007",
+      "priority": "P1",
+      "status": "已确认；未修复",
+      "title": "null账号凭据绕过Load兜底并阻断启动",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+          "member": "Repair",
+          "start": 384,
+          "end": 388
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsMigration.cs",
+          "member": "Normalize",
+          "start": 601,
+          "end": 605
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/AppSettings.cs",
+          "member": "AccountProfile.HasSavedPassword/HasSavedToken",
+          "start": 130,
+          "end": 150
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "member": "Prepare",
+          "start": 243,
+          "end": 250
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "member": "ReadSavedPassword",
+          "start": 610,
+          "end": 611
+        },
+        {
+          "path": "src/Momoka.Shell/App.xaml.cs",
+          "member": "OnLaunched",
+          "start": 153,
+          "end": 200
+        }
+      ],
+      "trigger": "v26文档有有效服务器URL和用户名，默认预选账号的ProtectedPassword被手改/损坏成JSON null；其余字段有效且未启用JSON可空强制。",
+      "expected": "Load修复/拒绝坏账号字段并走安全备份/隔离/重新输入；局部坏值不能让正常启动退出。",
+      "causalChain": [
+        "ReadCurrent的ReadOptions不强制可空标注，显式null覆盖属性初始化器；10.0.11官方源码与相同宿主DLL默认false支撑该条件。",
+        "Repair只修Servers/Accounts列表和null条目，Normalize只整理服务器Name/Url及记住的Id；未读取账号ProtectedPassword而TryRead返回成功。",
+        "ShellPage.Attach在HostWindow.Show前执行SignIn.Attach→Prepare→ReadSavedPassword，HasSavedPassword在null.Length抛NullReferenceException。",
+        "异常已离开SettingsStore.Load兜底；App.OnLaunched外层catch记录创建主窗口失败并Exit。"
+      ],
+      "actualImpact": "该坏账号配置每次启动可使主窗口不出现；已有可用backup也不会被读取，因为主文档被认作成功。",
+      "upstreamGuards": [
+        "Url=null已有Normalize抛出后Load隔离/默认覆盖；列表null与条目null已有Repair，但不覆盖该账号字段。",
+        "生产DPAPI解密失败会返回空，且凭据不回退明文；这里在解密调用之前已因HasSavedPassword抛出。"
+      ],
+      "notVerified": [
+        "没有运行新JSON产品读取/WinUI启动故障夹具；没有读取真实设置或真实凭据。",
+        "其他账号字段null/重复profile Id只列覆盖缺口，不扩大已确认影响。"
+      ],
+      "minimalFix": "在读取阶段对账号身份/凭据字段做有边界的修复或有效性校验；保持Load的备份/隔离契约，避免全面重写所有字符串模型。",
+      "acceptance": [
+        "临时v26主文档预选账号ProtectedPassword=null：不崩，明确修复/隔离并保留可恢复内容。",
+        "ProtectedAccessToken=null/关键身份字段和有有效backup的组合补回归；验证HasSaved*和启动Prepare可调用。",
+        "保留现有空节/空列表/Url=null、旧DPAPI熵和legacy迁移行为。"
+      ],
+      "discoveryPhase": 6,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链",
+        ".NET 10.0.11一手源码/微软文档",
+        "相同JSON DLL默认选项只读观察（非产品执行）"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-008",
+      "priority": "P2",
+      "status": "已确认；未修复",
+      "title": "登录在飞时换选账号未撤销旧登录",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "member": "SignInAsync",
+          "start": 451,
+          "end": 465
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SignInViewModel.cs",
+          "member": "OnSelectedUserChanged/OnUsernameChanged",
+          "start": 491,
+          "end": 526
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SignInPage.xaml",
+          "member": "SignInUserList/UserBox/PasswordInput",
+          "start": 275,
+          "end": 311
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "member": "SignInAttemptAsync",
+          "start": 175,
+          "end": 185
+        }
+      ],
+      "trigger": "在凭据页提交A且网络仍等待时，选Users列表中的B或改Username为B；输入/列表未被Busy约束，地址不变且未点击返回。",
+      "expected": "账号切换后旧登录结果被作废，不能在B表单上采用A的凭据/会话或清掉B草稿并导航。",
+      "causalChain": [
+        "提交捕获A账户/密码/Remember和token；OnSelectedUserChanged改为B并读取B保存密码，OnUsernameChanged只清Password，没有Cancel。",
+        "若B无密码会调用SignInAsync，但Busy=true立即return，未开启新BeginLoad/EmbySession attempt；B有密码则仅聚焦。",
+        "A成功时原token仍IsCurrent、服务器HasAddress/attempt generation仍相符，Session保存并Adopt A。",
+        "VM只核IsCurrent(token)，不核当前Username，之后清Password并SignedIn；ShellPage接事件进入A。"
+      ],
+      "actualImpact": "表单已切B，最终仍进入A（非聚合还替换旧在线来源）；B的新草稿可被清掉。不是把A密码发给B，也不声称服务器鉴权绕过。",
+      "upstreamGuards": [
+        "地址真正变化的OnAddressChanged会Cancel，返回/Detach也取消；同账号新提交有代次守卫。",
+        "已在Busy时换选B但未发出第二次请求，不会触发以上防护。"
+      ],
+      "notVerified": [
+        "无新增延迟假登录/实际列表输入UI运行；当前测试覆盖地址/密码函数或已发两次请求，未覆盖这条UI空档。"
+      ],
+      "minimalFix": "在用户改变登录身份时同步取消在飞代次（保留等价地址/用户名），或明确冻结身份输入；结果再核输入快照不能代替Session提交前取消。",
+      "acceptance": [
+        "延迟A登录→真实VM/列表选择B→释放A成功：不得Adopt A/导航，不覆盖B草稿。",
+        "B无密码时A旧操作不能抢回身份；Busy收尾并可提交B。",
+        "同一身份等价编辑、返回地址/Detach和两次真实请求逆序回归仍有效。"
+      ],
+      "discoveryPhase": 6,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-009",
+      "priority": "P2",
+      "status": "已确认；未修复",
+      "title": "旧目录迁移优先于当前可用备份",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Program.cs",
+          "member": "Main",
+          "start": 402,
+          "end": 406
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+          "member": "MigrateFrom",
+          "start": 125,
+          "end": 133
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+          "member": "PriorRoots",
+          "start": 172,
+          "end": 183
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/AppPaths.cs",
+          "member": "CopyTree",
+          "start": 280,
+          "end": 295
+        },
+        {
+          "path": "src/Momoka.Core/Configuration/SettingsStore.cs",
+          "member": "Load",
+          "start": 19,
+          "end": 35
+        }
+      ],
+      "trigger": "当前Momoka目录主settings.json缺失但有有效settings.backup.json；保留的旧产品目录仍有旧主设置（迁移本来就是copy不消耗旧目录）。例如坏主文件被隔离后，在首次成功重存前进程异常终止；正常关窗成功保存不满足此条件。",
+      "expected": "已有当前有效备份优先恢复；不能把旧目录保留副本当成当前目录从未初始化。",
+      "causalChain": [
+        "普通Main在创建服务并Load前执行MigrateFromAny。",
+        "MigrateFrom仅以File.Exists(SettingsFile)挡迁移，未判断当前备份；CopyTree可将旧settings.json填入当前目录。",
+        "之后Load读刚迁来的旧主文档成功立即return，34行当前backup路径不执行。",
+        "当代本地偏好/账号/AutoConnect退回旧快照；之后保存还可让旧主成为新的backup。"
+      ],
+      "actualImpact": "当前备份本可恢复却被旧配置遮蔽，可能重现旧账号、恢复过时自动连接选择或丢近期偏好；现有backup并非在复制时立刻删除。",
+      "upstreamGuards": [
+        "有当前主文件时迁移确实不会覆盖；CopyTree也不覆盖已有文件。",
+        "Load单独的缺主有备份回归通过，但它跳过Main.MigrateFromAny；真实启动先迁移。"
+      ],
+      "notVerified": [
+        "未运行新的临时目录“迁移→Load”组合回归；未操作任何真实新旧数据目录。",
+        "不可读取的backup如何判为无效后再尝试迁移需修复时明确，不能一律封死恢复。"
+      ],
+      "minimalFix": "协调启动迁移和Store恢复顺序/门槛，让当前可用backup优先；保留新装/确无可恢复配置时的旧目录迁移。",
+      "acceptance": [
+        "临时当前只有新backup+旧目录旧main→完整启动数据准备/Load，应取得新backup且不被旧main遮蔽。",
+        "坏主隔离后立即重启、不同行为的AutoConnect/Last选择与偏好值补组合断言。",
+        "新装无主无backup仍迁移、有当前main不覆盖、损坏backup边界保留。"
+      ],
+      "discoveryPhase": 6,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-010",
+      "priority": "P2",
+      "status": "已确认；未修复",
+      "title": "会话保存失败未传递未保存状态，飞牛改密仍报完整成功",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "member": "ApplyPasswordChange",
+          "start": 196,
+          "end": 210
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "member": "Persist",
+          "start": 732,
+          "end": 736
+        },
+        {
+          "path": "src/Momoka.Core/Services/SettingsService.cs",
+          "member": "TrySave/HasUnsavedChanges",
+          "start": 115,
+          "end": 131
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasPasswordViewModel.cs",
+          "member": "SaveAsync",
+          "start": 38,
+          "end": 45
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml",
+          "member": "UnsavedSettingsNotice",
+          "start": 1359,
+          "end": 1368
+        }
+      ],
+      "trigger": "已记住密码的飞牛账号改密由服务器确认新令牌，但本地原子保存因锁/权限/磁盘失败；ISettingsService此前处于已保存状态，且退出前没有一次后续成功Save。",
+      "expected": "服务器成功和本地持久化分别说明；内存保留新凭据、共享未保存标志和重试入口可见，不能回滚已确认密码或自动再发改密。",
+      "causalChain": [
+        "ApplyPasswordChange更新Vault字段/来源客户端后Persist直接调用SettingsStore.Save。",
+        "Store异常会抛，Persist catch仅Log.Warn并返回；既不返回失败，也不经过ISettingsService.TrySave，所以HasUnsavedChanges仍false。",
+        "ChangeFnNasPasswordAsync正常完成，VM清草稿并提示密码已修改；父SettingsPage提示绑定SettingsViewModel.HasUnsavedChanges，没有Store通知。",
+        "同样的直接Persist也覆盖自动恢复/重登/退出，失败只留日志；明确改密为用户可见例子。"
+      ],
+      "actualImpact": "内存用新密码/令牌但磁盘仍旧值，用户看不到尚未保存或重试；若后续未成功保存便退出，重启用旧凭据可能失去自动登录。",
+      "upstreamGuards": [
+        "AtomicFile保证失败时旧主备仍完整，现有锁文件回归支撑；不是部分文件损坏。",
+        "App.OnWindowClosed再次SettingsService.Save可能挽回短时失败，因此不宣称每次保存失败都必然丢失。",
+        "页面取消后仍保存已确认改密的设计正确，不建议把成功丢掉或重发改密。"
+      ],
+      "notVerified": [
+        "现有ServiceTests只验证SettingsService路径，改密测试只测正常保存/页面取消；本阶段未跑新增锁文件改密夹具。",
+        "真实DPAPI失败和磁盘故障未演练。"
+      ],
+      "minimalFix": "把会话Store保存失败反映到共享未保存状态并可安全重试；保留已确认新凭据的内存态和服务端提交成功，用户提示明确持久化欠项。",
+      "acceptance": [
+        "已记住密码的假飞牛账号→锁临时settings→确认改密：内存新凭据、磁盘旧完整、可见未保存标志且有保存重试。",
+        "释放锁后仅重试本地Save即落新凭据，不再发送user/passwd；失败不复活来源、不隐式开启Remember。",
+        "恢复/重登/退出直接Persist失败能被检测，现有取消/来源代次与关窗保存保持。"
+      ],
+      "discoveryPhase": 6,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链"
+      ],
+      "repairAuthorized": false
+    },
+    {
+      "id": "R-011",
+      "priority": "P2",
+      "status": "已确认；未修复",
+      "title": "同身份重登更新权限后仍沿用旧权限缓存和页面快照",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "member": "TryReauthenticateAsync",
+          "start": 534,
+          "end": 545
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "member": "constructor/Connection",
+          "start": 10,
+          "end": 19
+        },
+        {
+          "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+          "member": "IsAdministrator",
+          "start": 114,
+          "end": 125
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "member": "RefreshServerAdministrationAsync",
+          "start": 719,
+          "end": 725
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasAdminViewModel.cs",
+          "member": "Allowed",
+          "start": 6,
+          "end": 10
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "member": "OnSourceListChanged",
+          "start": 728,
+          "end": 729
+        }
+      ],
+      "trigger": "当前Jellyfin/飞牛账号已有已知权限，服务端调整同一user权限后令牌401触发成功重登；服务器/用户身份不变但新connection.IsAdministrator与旧值不同。",
+      "expected": "身份与播放来源继续有效，但确认过的新权限须当场更新能力/管理入口与执行守卫；恢复可用时不必退出再登录。",
+      "causalChain": [
+        "AuthenticateAsync能带回新的User.Policy/is_admin；IsSameIdentityAs故意不比权限。TryReauthenticate只换state.Client并Persist，未发SourcesChanged。",
+        "旧EmbySessionScope.Connection是构造时快照，但scope.IsCurrent只看Identity引用；ServerCapabilities.IsAdministrator因此继续返回旧_administrator而不取新Session.Connection值。",
+        "SettingsViewModel重入时仅IsAdministrator=null才Probe，旧true/false不会重核；设置页只监听SourcesChanged，不知此次权限改变。",
+        "已有FnNasAdminViewModel.Allowed还读旧scope.Connection.IsAdministrator，Live/CanUse仍可能准许旧管理命令；服务器自身权限仍是最后防线。"
+      ],
+      "actualImpact": "权限降为普通用户后管理入口/本地命令守卫仍可保持管理员态；升权时旧隐藏入口也不自动恢复。只确认客户端状态/守卫错，不声称突破服务端权限。",
+      "upstreamGuards": [
+        "切换不同Identity会使旧scope.IsCurrent=false，退出寿命取消和Probe代次已覆盖；问题是同Identity换客户端。",
+        "Source快照保持令牌和原播放身份是有意设计，不应为更新权限撤销整个播放来源。",
+        "服务器403仍拒绝写入，不能把客户端可见入口直接计成实际越权写成功。"
+      ],
+      "notVerified": [
+        "没有新增假重登权限true→false→true/打开页面的运行断言，也没有真实服务器调权。",
+        "协议字段已存在于固定代码，本阶段不替服务器断言每次权限更新必然伴随401。"
+      ],
+      "minimalFix": "为同身份的新客户端/权限建立失效与通知路径，能力缓存和管理执行读取当前来源权限；保持token更新的Scope寿命与播放身份连续。",
+      "acceptance": [
+        "假传输同server/user重登返回相反管理员值：Session、Capabilities、已打开Settings/飞牛管理页一致更新。",
+        "降权时收完整区域/既有命令拒绝，升权时入口恢复；同页、重入、显式sourceKey分别核。",
+        "不能靠SignOut/重建所有来源解决；保存旧Connection快照的令牌/播放/取消回归保持。"
+      ],
+      "discoveryPhase": 6,
+      "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+      "evidenceTypes": [
+        "固定源码静态因果链"
+      ],
+      "repairAuthorized": false
+    }
+  ],
+  "priorFindings": [
+    {
+      "id": "R-001",
+      "status": "已确认；未修复",
+      "newCountInPhase6": false
+    },
+    {
+      "id": "R-002",
+      "status": "已确认；未修复",
+      "newCountInPhase6": false
+    },
+    {
+      "id": "R-003",
+      "status": "已确认；未修复",
+      "newCountInPhase6": false,
+      "note": "共享RestoreAttemptAsync密码回退最终服务器身份缺口仍成立；Plex最终machineIdentifier未比已确认值的同根因入口去重，FnNas有server_guid比较，不泛化为四产品均缺失。"
+    },
+    {
+      "id": "R-004",
+      "status": "已确认；未修复",
+      "newCountInPhase6": false,
+      "note": "飞牛-16权限误归凭据拒绝导致撤销来源的旧根因仍成立；本阶段只核共享调用者，不重复编号。"
+    },
+    {
+      "id": "R-005",
+      "status": "已确认；未修复",
+      "newCountInPhase6": false
+    },
+    {
+      "id": "R-006",
+      "status": "已确认；未修复",
+      "newCountInPhase6": false
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "A-COV-01",
+      "title": "五个新增故障未执行回归",
+      "detail": "R-007～R-011为静态确认；新临时JSON/延迟登录/迁移组合/锁文件改密/权限重登夹具需另获测试或插桩授权。"
+    },
+    {
+      "id": "A-COV-02",
+      "title": "真实DPAPI及系统故障",
+      "detail": "仅源码与ThrowingProtector旧用例；未读取真实密文或明文，未模拟真实DPAPI/磁盘/权限故障。"
+    },
+    {
+      "id": "A-COV-03",
+      "title": "四产品真实账号生命周期",
+      "detail": "未真实登录/恢复/退出/改密/调权/访问媒体；Plex现有顶层响应问题R-005仍阻挡真实支持结论。"
+    },
+    {
+      "id": "A-COV-04",
+      "title": "Shell运行与渲染",
+      "detail": "输入可编辑、管理区域、未保存提示只追XAML/VM/事件；未运行WinUI/操作指针/UIA/截图，不把已有探针源码说成通过。"
+    },
+    {
+      "id": "A-COV-05",
+      "title": "剩余并发和结构边界",
+      "detail": "RestoreAll在飞时拨聚合、不同保存者并发修改活对象、其它null身份字段/重复profile Id/旧目录复制失败组合未逐项复现；不按未来假设直接计缺陷。"
+    }
+  ],
+  "excludedCandidates": [
+    {
+      "id": "A-EX-01",
+      "title": "同用户名跨服务器保存密码串用",
+      "reason": "SavedAccount按各产品规范化地址和用户名，PasswordFor绑定输入来源；旧静态/函数回归支撑。R-008是新UI切换时未取消而非该函数串用。"
+    },
+    {
+      "id": "A-EX-02",
+      "title": "来源切换必然串账号请求",
+      "reason": "当前产品Ask/Tell/聚合目录经EmbySessionScope执行，旧来源IsAvailable/寿命与item.Source守卫；默认Session.ExecuteAsync缺少自身source链接只有测试/诊断用法，未找到另一实际产品危险入口，不另计。"
+    },
+    {
+      "id": "A-EX-03",
+      "title": "退出仍自动采用迟到登录/改密",
+      "reason": "attempt generation/selection与CanCommit、撤销寿命、预期client检查已覆盖；改密提交后页面取消不等于来源退出，保留已确认结果正确。"
+    },
+    {
+      "id": "A-EX-04",
+      "title": "每次保存失败都破坏主文件/备份",
+      "reason": "AtomicFile临时路径唯一、提交锁和Replace使失败留旧完整文件；旧用例确认失败不能提前改备份。R-010是状态传播，不是部分文件破坏。"
+    },
+    {
+      "id": "A-EX-05",
+      "title": "加密失败回退明文",
+      "reason": "Vault/Dpapi生产接线与Wrap失败返回空，Passthrough只测；DPAPI真实故障未执行。"
+    },
+    {
+      "id": "A-EX-06",
+      "title": "偏好备份/重置泄露或清空账号",
+      "reason": "CopyInto不覆盖AppSettings身份层与MP连接，子对象就地复制；SaveBackup只序列化偏好形状，未运行新备份动作。"
+    },
+    {
+      "id": "A-EX-07",
+      "title": "所有产品最终服务器身份都缺守卫",
+      "reason": "正常在线重登有IsSameIdentityAs，FnNas认证有server_guid比较；仅R-003共享恢复/Plex入口去重，不按统一架构批评所有后端。"
+    },
+    {
+      "id": "A-EX-08",
+      "title": "权限入口错误证明服务端越权成功",
+      "reason": "R-011只确认本地能力/页面/执行守卫陈旧；未执行请求，服务器403与真实权限校验未被绕过。"
+    }
+  ],
+  "testReuse": {
+    "evidenceFile": "docs/代码审查-分阶段审查-2026-10-21.阶段2证据.json",
+    "evidenceSha256": "75DAB129D1B0353B9B206A50E4B45D62F20B2856CFB6362BCA7C0ED07780D229",
+    "actualExecutionPhase": 2,
+    "actualExecutionTime": "2026-10-21T02:59:12+08:00",
+    "actualExecutionHead": "4b663c425491120a4d87234d98bf20ecc9c88619",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "reuseConditionsChecked": true,
+    "summary": {
+      "total": 2072,
+      "passed": 2072,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedMilliseconds": 78960
+    },
+    "build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "logs": [
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\restore.log",
+        "sha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "purpose": "本树当前测试/Core 还原；可能读取 NuGet"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\build.log",
+        "sha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "purpose": "当前 Release 测试/Core 编译"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\tests.log",
+        "sha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "purpose": "未改现有完整测试宿主运行"
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\execution.json",
+        "sha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "purpose": "退出码/源码基线/执行目录回执"
+      }
+    ],
+    "compiledBinaries": [
+      {
+        "path": "tests/Momoka.Tests/bin/Release/net10.0/Momoka.Tests.dll",
+        "sha256": "7E7F5C29464609675DF984C63750283A8F01A10E92C14659484813441B0480F7"
+      },
+      {
+        "path": "src/Momoka.Core/bin/Release/net10.0/Momoka.Core.dll",
+        "sha256": "CB35FA56DB6AA41C00D4ECB9F7DD80864364056D5CBA2288760807A256763994"
+      }
+    ],
+    "runtimeAssemblies": [
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.WebSockets.Client.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.WebSockets.Client.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "FF5D42603B662A634857DCC6E1239547025D03794AEA4F84D624579765C23BA9",
+        "identicalToReadAssembly": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.dotnet\\shared\\Microsoft.NETCore.App\\10.0.11\\System.Net.Http.dll",
+        "metadataReadFrom": "C:\\Users\\89400\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\System.Net.Http.dll",
+        "productVersion": "10.0.11+e2f47b0110ed922f21a1522da67279133ce28f32",
+        "sha256": "8AE9F649D43F1F3FB635170784BCB753D305BC36A42703B4B0BEDB15A29729F0",
+        "identicalToReadAssembly": true
+      }
+    ],
+    "limitation": "2072通过明确来自阶段2的旧运行。当前源码/日志/测试Core产物/runtime字节未变，仅复用；不覆盖R-007～R-011新故障。",
+    "rerunInPhase6": false,
+    "newFindingRegressionsExecuted": false,
+    "selectedExistingPassedTitles": [
+      "身份回归：同名账号的保存密码只按当前规范化服务器查找",
+      "身份回归：无密码账号的认证正文明确为空，忽略残留密码",
+      "身份回归：尚无 client 时退出登录也撤销正在登录的结果",
+      "身份回归：并发同身份 401 合并一次登录，重试都用已核对的 client",
+      "身份 Scope：同身份刷新共享给已捕获 scope，快照不变且切 B 后仍用 A 新令牌",
+      "多来源：退出 A 仅撤销 A，保留 B 及 A 保存密码但不自动重登",
+      "多来源：同账号连续登录的旧成功不能覆盖新凭据",
+      "聚合模式关闭：启动只恢复上次那一个来源，其余账号保留凭据与自动连接",
+      "聚合模式：打开时不擅自重连其他账号，关掉时只留当前一个来源",
+      "迁移：文件里某一节写成 null 也照样开得起来",
+      "存储：结构对不上的设置文件也走「坏文件」那条路，不是拖着程序一起死",
+      "存储：主文件缺失时仍恢复已有备份",
+      "存储：主文件替换失败不能提前改写上一次备份",
+      "保存：失败保留内存值和未保存状态，重试成功清除标记",
+      "凭据：换台机器解不开时只是要求重新登录",
+      "飞牛改密：提交后页面取消仍更新 A 令牌并保留记住密码选择 True"
+    ]
+  },
+  "productBuildsOrTestsExecutedInPhase6": false,
+  "productMethodExecutedForNewFindings": false,
+  "newRegressionOrInstrumentationAdded": false,
+  "applicationOrUiStarted": false,
+  "realAccountOrMediaServerAccessed": false,
+  "pushOrPublishPerformed": false,
+  "systemContextCompressionExecuted": false,
+  "nextStage": 7,
+  "nextStageScope": "Emby浏览、操作与图片；阶段6记录结束后需用户继续指令，不提前开始",
+  "stop": "纯记录检查/本地精确提交后停止，不进入阶段7，不自动修复或创建后台续跑"
+}

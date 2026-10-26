@@ -1,0 +1,17 @@
+<Project>
+    <PropertyGroup>
+        <R046SourceRoot Condition="'$(R046SourceRoot)' == ''">$(MSBuildProjectDirectory)\..\..</R046SourceRoot>
+        <R046SourcePins Condition="'$(R046SourcePins)' == ''">$(MSBuildProjectDirectory)\SourcePins.json</R046SourcePins>
+    </PropertyGroup>
+    <UsingTask TaskName="Momoka.NaturalContinuationSourceExtractor.ExtractCaller"
+               AssemblyFile="$(MSBuildThisFileDirectory)SourceExtractor\bin\$(Configuration)\net10.0\Momoka.NaturalContinuationSourceExtractor.dll" />
+    <Target Name="GenerateR046Caller" BeforeTargets="CoreCompile" DependsOnTargets="ResolveReferences">
+        <ExtractCaller WorkspaceRoot="$(MSBuildProjectDirectory)\..\.."
+                       SourceRoot="$(R046SourceRoot)" PinsPath="$(R046SourcePins)"
+                       OutputDirectory="$(MSBuildProjectDirectory)\$(IntermediateOutputPath)R046" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)R046\PlayerViewModel.g.cs" />
+            <Compile Include="$(IntermediateOutputPath)R046\SourceFacts.g.cs" />
+        </ItemGroup>
+    </Target>
+</Project>

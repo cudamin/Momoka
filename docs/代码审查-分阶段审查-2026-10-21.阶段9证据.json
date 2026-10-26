@@ -1,0 +1,2343 @@
+{
+  "schemaVersion": 1,
+  "phase": 9,
+  "status": "已完成只读审查；八项新静态问题未修复",
+  "startedAt": "2026-10-21T21:11:10.535+08:00",
+  "completedAt": "2026-10-21T22:05:58.096+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "branch": "codex/staged-review-continue-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "414ee4350fc6ae03caa386dfa325c8c6867bee3f",
+  "authorization": "用户在当前聊天以流程文档要求继续；从既有阶段9恢复只读审查；项目规则原文保留，不主动压缩；无产品修复、真实数据操作、推送或发布授权",
+  "baselineAtStart": {
+    "capturedAt": "2026-10-21T21:11:10.535+08:00",
+    "timezone": "Asia/Shanghai",
+    "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+    "branch": "codex/staged-review-continue-2026-10-21",
+    "phaseStartCommit": "414ee4350fc6ae03caa386dfa325c8c6867bee3f",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "authorityFile": "C:/Users/89400/Momoka/CLAUDE.md",
+    "authoritySha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+    "status": "",
+    "priorTreeStatus": " D docs/交接-集成播放器缩放与起播全屏-2026-09-22.md\n",
+    "protectedOriginUntracked": [
+      {
+        "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "sha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F",
+        "bytes": 41321
+      },
+      {
+        "path": "vibe_images/momoka-hero-keyart_1792572845041_b3ad667c.png",
+        "sha256": "4913083F88F3E5E299BAA81B8A4E2F4DA5FA7379340572B05FB95C5B4A48DADF",
+        "bytes": 2028490
+      },
+      {
+        "path": "website/.Momoka.qoder.site",
+        "sha256": "10DA6A3A6FA59D8C7C6AEBBE575439DCE521F11F248F58DF6608295EFB95FC42",
+        "bytes": 33524
+      },
+      {
+        "path": "website/README.md",
+        "sha256": "79BDFC94F9B10A094F9085C28E2A77DE1BED14320D1BA8C6965A7C4D79934347",
+        "bytes": 6496
+      },
+      {
+        "path": "website/assets/app-icon.png",
+        "sha256": "0BCD8A4EF09104EBE8000BF47FEA28847372409C124E2B15617DCF0F7B3144E9",
+        "bytes": 56663
+      },
+      {
+        "path": "website/assets/hero-800.webp",
+        "sha256": "6826E6661A807C2BD3660ED56B867CF07D198460792A65E690EB32FFE658A14C",
+        "bytes": 11582
+      },
+      {
+        "path": "website/assets/hero.webp",
+        "sha256": "AEA3924D692FABFFC8E5EEE545A7E8F4FA6046C3E5FAEBAD35D9B1470DC44A62",
+        "bytes": 37064
+      },
+      {
+        "path": "website/dist/assets/app-icon.png",
+        "sha256": "0BCD8A4EF09104EBE8000BF47FEA28847372409C124E2B15617DCF0F7B3144E9",
+        "bytes": 56663
+      },
+      {
+        "path": "website/dist/assets/hero-800.webp",
+        "sha256": "6826E6661A807C2BD3660ED56B867CF07D198460792A65E690EB32FFE658A14C",
+        "bytes": 11582
+      },
+      {
+        "path": "website/dist/assets/hero.webp",
+        "sha256": "AEA3924D692FABFFC8E5EEE545A7E8F4FA6046C3E5FAEBAD35D9B1470DC44A62",
+        "bytes": 37064
+      },
+      {
+        "path": "website/dist/index.html",
+        "sha256": "BE9214C67B06AA121E0D89EFCA1500A31C97C2EF7F8A4CCB80BC8AA90E18DC72",
+        "bytes": 24795
+      },
+      {
+        "path": "website/dist/main.js",
+        "sha256": "4CEAD3DE72195CC8BD5D2CCEF5205805AA32316A3356F3EBB51E3C61D11782E5",
+        "bytes": 2880
+      },
+      {
+        "path": "website/dist/styles.css",
+        "sha256": "F81F1B646CA15673B253C5F757DC3250F14D692DDDAFB8D3B75A7F9AE52BAC24",
+        "bytes": 31064
+      },
+      {
+        "path": "website/docker-compose.yml",
+        "sha256": "EC54B409EB5E82914FE7F142F4D40D909EA55BEFE4F3F02AFA8654ACFC523CFB",
+        "bytes": 292
+      },
+      {
+        "path": "website/index.html",
+        "sha256": "BE9214C67B06AA121E0D89EFCA1500A31C97C2EF7F8A4CCB80BC8AA90E18DC72",
+        "bytes": 24795
+      },
+      {
+        "path": "website/main.js",
+        "sha256": "4CEAD3DE72195CC8BD5D2CCEF5205805AA32316A3356F3EBB51E3C61D11782E5",
+        "bytes": 2880
+      },
+      {
+        "path": "website/nginx.conf",
+        "sha256": "3D0C0044177D27F4459191946A31FF24948C3BA2003D1360D3560A1EAC66D660",
+        "bytes": 893
+      },
+      {
+        "path": "website/styles.css",
+        "sha256": "F81F1B646CA15673B253C5F757DC3250F14D692DDDAFB8D3B75A7F9AE52BAC24",
+        "bytes": 31064
+      },
+      {
+        "path": "website/worker/index.js",
+        "sha256": "85D5F8718C22C13256999875C63E15C4BE6CCBFFE090FD7CA02F190CC04F0487",
+        "bytes": 100
+      },
+      {
+        "path": "website/wrangler.jsonc",
+        "sha256": "8F388A70EDC27BA01AB01ED8535E4F68B6EBADBDDEDF80DC83A088998B98A2FA",
+        "bytes": 165
+      }
+    ],
+    "originHead": "a9b7153d1fd6a6b4a537424a667c2f2dca131176",
+    "authorization": "用户在当前聊天以流程文档要求继续；从既有阶段9恢复只读审查；项目规则原文保留，不主动压缩；无产品修复、真实数据操作、推送或发布授权"
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段9审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段9证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段9检查.json",
+    "PROGRESS.md"
+  ],
+  "authorityFiles": [
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/CLAUDE.md",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+      "bytes": 24962,
+      "loadedInMainContext": true,
+      "readDepth": "完整原文已在本轮上下文读取，未摘要替代"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/docs/开发与验证.md",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B",
+      "bytes": 87879,
+      "loadedInMainContext": true,
+      "readDepth": "读取本阶段适用章节和标准命令，不宣称全文业务覆盖"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/docs/分阶段代码审查与集中修复流程.md",
+      "sha256": "538F00E1F8981EBF7B7046C3E2D01131ECBA4F58789E39005E8EB56E52344C67",
+      "bytes": 17377,
+      "loadedInMainContext": true,
+      "readDepth": "原文按本阶段适用范围读取，补读截断长行"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/.claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA",
+      "bytes": 27657,
+      "loadedInMainContext": true,
+      "readDepth": "原文按本阶段适用范围读取，补读截断长行"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/.claude/skills/momoka-verification/SKILL.md",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69",
+      "bytes": 14588,
+      "loadedInMainContext": true,
+      "readDepth": "原文按本阶段适用范围读取，补读截断长行"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/.claude/skills/momoka-fnnas-media-api/SKILL.md",
+      "sha256": "6B511DEA641BB61B536D23565C01A8CB68E411C5714BD74B10752EF473A732CE",
+      "bytes": 8128,
+      "loadedInMainContext": true,
+      "readDepth": "原文按本阶段适用范围读取，补读截断长行"
+    }
+  ],
+  "fixedProductIntegrity": {
+    "inventory": "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json",
+    "inventorySha256": "A418852A2608C2307DCAA29CAC031E13D17FCF3626E520AD8CAD360BB19F0D49",
+    "matchedFileCount": 856,
+    "changedFiles": [],
+    "allTrackedProductBytesMatchFixedBaseline": true,
+    "limitation": "字节一致不等于这些业务已审"
+  },
+  "mainReadFiles": [
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+      "sha256": "1F68E0F3D462F29DF68085247B2C44B13426B485AACCAB8C3A2779112A560795",
+      "bytes": 3702,
+      "lineCount": 97,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 97
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasAdminViewModel.cs",
+      "sha256": "0767420DE786328480F5A2A956F206BA213F6D8D1A094586551BE06F5A1C4CA1",
+      "bytes": 559,
+      "lineCount": 12,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 12
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasFilters.cs",
+      "sha256": "D6A8BA6D873C19D13EEDFE5F6898B6A499ED58053655F68DEDCB5170F3B62942",
+      "bytes": 5196,
+      "lineCount": 153,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 153
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasSortCatalog.cs",
+      "sha256": "61E2823EA2ADADDD45162EDC74C54BE6DF10E397D60A449E719D358A6BBFCD33",
+      "bytes": 1088,
+      "lineCount": 24,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 24
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasSettingsViewModel.cs",
+      "sha256": "F0E52EA97BF51631912D4FA5B92D24C01CE4FD54E54F0716519C1FEE5657B8ED",
+      "bytes": 6170,
+      "lineCount": 116,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 116
+        },
+        {
+          "start": 90,
+          "end": 116
+        },
+        {
+          "start": 1,
+          "end": 89
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasTasksViewModel.cs",
+      "sha256": "E86951A48DACBB4B7CE4F4D2A9A88F94529B3AC07C5F45830091CC588BD9895B",
+      "bytes": 1971,
+      "lineCount": 48,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 48
+        },
+        {
+          "start": 1,
+          "end": 48
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasClient.Management.cs",
+      "sha256": "AC0169E49A225FE1E99CB8B55B40D9935E0672FC9A3958F9FB33969512687ECF",
+      "bytes": 9043,
+      "lineCount": 155,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 155
+        },
+        {
+          "start": 1,
+          "end": 64
+        },
+        {
+          "start": 64,
+          "end": 97
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasUsersViewModel.cs",
+      "sha256": "CF66A4B21F8F57B41A05787CEB9AB28AB29E004C95074AC970F7369ED5D9D37F",
+      "bytes": 10311,
+      "lineCount": 205,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 105
+        },
+        {
+          "start": 106,
+          "end": 166
+        },
+        {
+          "start": 167,
+          "end": 205
+        },
+        {
+          "start": 35,
+          "end": 59
+        },
+        {
+          "start": 85,
+          "end": 105
+        },
+        {
+          "start": 114,
+          "end": 151
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasLibrariesViewModel.cs",
+      "sha256": "77C4B8544B2FA8F42759F8F0D5722137D5E14B3E2944BF2B0F9733C8C59BB1F2",
+      "bytes": 21598,
+      "lineCount": 396,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 145
+        },
+        {
+          "start": 145,
+          "end": 235
+        },
+        {
+          "start": 236,
+          "end": 345
+        },
+        {
+          "start": 1,
+          "end": 48
+        },
+        {
+          "start": 343,
+          "end": 396
+        },
+        {
+          "start": 386,
+          "end": 395
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasLibrariesPage.xaml",
+      "sha256": "F1D621B8AE93B70B35E6AABE24495803089BA5EBEDC66691AF4C40F697943C69",
+      "bytes": 16568,
+      "lineCount": 162,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 120
+        },
+        {
+          "start": 121,
+          "end": 162
+        },
+        {
+          "start": 1,
+          "end": 71
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+      "sha256": "080B599ED161F3B618B5287DF97187B1F5EFF9727BC4BB76F532A5E1FCB15A0D",
+      "bytes": 9757,
+      "lineCount": 210,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 210
+        },
+        {
+          "start": 100,
+          "end": 190
+        },
+        {
+          "start": 118,
+          "end": 159
+        },
+        {
+          "start": 169,
+          "end": 209
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasLibrariesPage.xaml.cs",
+      "sha256": "B017061889391DF4D61F9F21ECC9D74338B563ECFB0121A428D8B3B4338A1402",
+      "bytes": 3646,
+      "lineCount": 99,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 99
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasPlaylistFile.cs",
+      "sha256": "E380E71B8387BB8D09C1F94D7CA15A553E2ABA69D700C37F07E3BCC4CD025D7C",
+      "bytes": 1539,
+      "lineCount": 31,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 31
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasLibraryInput.cs",
+      "sha256": "0E22CCE812A8609ED233BF6D9310CF50358626EC9815C6E87D26193DD922346C",
+      "bytes": 4435,
+      "lineCount": 84,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 84
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasAdminRows.cs",
+      "sha256": "F90EE10DEE517598C1BCCCB57719E6AF56280AFD95098A9591E35A2C94A1308E",
+      "bytes": 5954,
+      "lineCount": 105,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 84
+        },
+        {
+          "start": 85,
+          "end": 105
+        },
+        {
+          "start": 85,
+          "end": 104
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasUsersPage.xaml",
+      "sha256": "AAC259CD9409F0BC6F273DCEDFE777CB7ABDBED558F1B6FBB86967CCDB6B4570",
+      "bytes": 8332,
+      "lineCount": 97,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 76
+        },
+        {
+          "start": 76,
+          "end": 97
+        },
+        {
+          "start": 76,
+          "end": 92
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasUsersPage.xaml.cs",
+      "sha256": "86D35364C3944A571B6298B6836AED71C85954781C1836179629D1CA9136D4A6",
+      "bytes": 2663,
+      "lineCount": 78,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 78
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasSettingsPage.xaml.cs",
+      "sha256": "D5F893A89D1B38DDB14FCBD1EE9B59DBA98B29EC5FFB258F3E2301B0E1A20380",
+      "bytes": 2538,
+      "lineCount": 74,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 74
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasTasksPage.xaml.cs",
+      "sha256": "10DB1E1058CC878DB67A0F9C1D78E99D6CFAD4E65BD888EA2781335387B02BEE",
+      "bytes": 2517,
+      "lineCount": 74,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 74
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasTasksPage.xaml",
+      "sha256": "DDAD6D11634EE34F29B27CFD3AF47489314584776893502A4B2C33CCC8AC1F34",
+      "bytes": 4583,
+      "lineCount": 64,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 64
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.FnNasLibrary.cs",
+      "sha256": "D8841F103D0465E60E4B38E632E4FCF8079E2104B21EB4DCF10E70B222D193FC",
+      "bytes": 6395,
+      "lineCount": 115,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 90
+        }
+      ]
+    },
+    {
+      "path": "tests/Momoka.Tests/FnNasProtocolTests.Transfer.cs",
+      "sha256": "8EE49419CB4EDAD9E7C7E8528EF353BFBDF2445983BEBD65E2E8A782F23FD647",
+      "bytes": 4958,
+      "lineCount": 91,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 91
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ShellNavigationProbe.FnNasSettings.cs",
+      "sha256": "2C0E238F7C1322374692966A64011204FF0D9FA9370B0F857115CB2BC9B925F1",
+      "bytes": 6141,
+      "lineCount": 103,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 85
+        }
+      ]
+    },
+    {
+      "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md",
+      "sha256": "1AA0531231280A6C01C95C7E3795E12B1A3FA8B26E2143C75ADC624271CDE76D",
+      "bytes": 25624,
+      "lineCount": 159,
+      "ranges": [
+        {
+          "start": 92,
+          "end": 128
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasClient.cs",
+      "sha256": "748012C3E82E60871DC6D4753728CB6D7FFEBC763CF5160B848AD4A26F359ED4",
+      "bytes": 12284,
+      "lineCount": 198,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 63
+        },
+        {
+          "start": 168,
+          "end": 197
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Infrastructure/LoadGeneration.cs",
+      "sha256": "32F3D773042E0C2944C5AE13E4A6F005BCCC8B617D78657C686644AFEA9E3986",
+      "bytes": 2468,
+      "lineCount": 53,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 53
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Favorites.cs",
+      "sha256": "F1395986E8E61AD6DAC38FA2BD407934E182E5402C2BA37D7E170F8DF88A2FC6",
+      "bytes": 10956,
+      "lineCount": 252,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 96
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+      "sha256": "F45E3B8F7C2835407882212E7F60A4CC1158EC88C68043BA1DB1A073025F7BEE",
+      "bytes": 13458,
+      "lineCount": 243,
+      "ranges": [
+        {
+          "start": 98,
+          "end": 120
+        },
+        {
+          "start": 211,
+          "end": 239
+        },
+        {
+          "start": 209,
+          "end": 224
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.Models.cs",
+      "sha256": "37DB483FDFAF63A4812BF590E6186AC1A673A5A14D1015DA4EE92B695755F08B",
+      "bytes": 15504,
+      "lineCount": 301,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 76
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "sha256": "7FDE7ED061624615513BC22B7F5B6D6E29745B15962CF3D0A37BE13A9F3E8D38",
+      "bytes": 125329,
+      "lineCount": 2520,
+      "ranges": [
+        {
+          "start": 1335,
+          "end": 1430
+        },
+        {
+          "start": 2117,
+          "end": 2154
+        },
+        {
+          "start": 2280,
+          "end": 2308
+        },
+        {
+          "start": 2404,
+          "end": 2424
+        },
+        {
+          "start": 1016,
+          "end": 1037
+        },
+        {
+          "start": 1558,
+          "end": 1585
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "sha256": "683356CC70D962BC228E53E8E15138AE9677EE54A936D5E6615115BD846DA441",
+      "bytes": 27668,
+      "lineCount": 610,
+      "ranges": [
+        {
+          "start": 430,
+          "end": 478
+        },
+        {
+          "start": 521,
+          "end": 566
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "sha256": "DEE98440625EB487819B6EE6D40217A46800CD711F0876C68AD88FD53F265EDC",
+      "bytes": 162483,
+      "lineCount": 2888,
+      "ranges": [
+        {
+          "start": 2681,
+          "end": 2749
+        },
+        {
+          "start": 1746,
+          "end": 1809
+        },
+        {
+          "start": 1648,
+          "end": 1662
+        },
+        {
+          "start": 1820,
+          "end": 1842
+        },
+        {
+          "start": 2027,
+          "end": 2040
+        },
+        {
+          "start": 2647,
+          "end": 2672
+        },
+        {
+          "start": 2785,
+          "end": 2814
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+      "sha256": "5A804CD5C41ECEEDDF34385ED9295B717A923815E6E0CA0F7CAFBC9FB3A827A7",
+      "bytes": 117479,
+      "lineCount": 2041,
+      "ranges": [
+        {
+          "start": 1993,
+          "end": 2017
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.FnNas.cs",
+      "sha256": "6194902F983B2EBD77199AB8DD1EC26FB41A0C425EDB6E991523E68EC783E09E",
+      "bytes": 8370,
+      "lineCount": 194,
+      "ranges": [
+        {
+          "start": 70,
+          "end": 111
+        },
+        {
+          "start": 169,
+          "end": 194
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+      "sha256": "877D05866B7E96CC4719439B3844B607E3D233B25705EF49DC1761825DD0E91F",
+      "bytes": 67523,
+      "lineCount": 1411,
+      "ranges": [
+        {
+          "start": 935,
+          "end": 949
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsWindow.cs",
+      "sha256": "E5A44D4D6C8849A63788B4DC80CA3124CAC10EE342CF53848C23A590477B650A",
+      "bytes": 19024,
+      "lineCount": 379,
+      "ranges": [
+        {
+          "start": 175,
+          "end": 226
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+      "sha256": "FAB12837C1D681B085D13F46D87E1AE9F6690A79C7944292ABB7310F7F58FADB",
+      "bytes": 39606,
+      "lineCount": 780,
+      "ranges": [
+        {
+          "start": 378,
+          "end": 450
+        },
+        {
+          "start": 548,
+          "end": 568
+        },
+        {
+          "start": 588,
+          "end": 606
+        },
+        {
+          "start": 638,
+          "end": 678
+        },
+        {
+          "start": 716,
+          "end": 735
+        },
+        {
+          "start": 426,
+          "end": 449
+        },
+        {
+          "start": 678,
+          "end": 698
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasPasswordViewModel.cs",
+      "sha256": "200A337511317C6CC5B23A27FF1066C40BECB44E142A601A59B23FAA81D0939D",
+      "bytes": 2469,
+      "lineCount": 63,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 63
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/FnNasPreferencesViewModel.cs",
+      "sha256": "01C7CB1120C7E811D01AC664F85E7CC153E423B3781F24B552B89D1DE73B97C7",
+      "bytes": 3530,
+      "lineCount": 75,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 75
+        },
+        {
+          "start": 54,
+          "end": 74
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasPasswordPage.xaml",
+      "sha256": "DCB491E8FB3ACBD7D0ABEC2E3396F505AB2AF00A849AFCA421E31583996B1AA6",
+      "bytes": 3132,
+      "lineCount": 43,
+      "ranges": [
+        {
+          "start": 22,
+          "end": 42
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasPreferencesPage.xaml",
+      "sha256": "BE1EA0DADB75F2F8CB868865991E779AE8A3CB2B430E01FEDAB771EA8C79D76A",
+      "bytes": 4100,
+      "lineCount": 54,
+      "ranges": [
+        {
+          "start": 24,
+          "end": 53
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/FnNasPreferencesPage.xaml.cs",
+      "sha256": "48B79AF8EB5D824BCDAA70106217995411947A0C01EEBF581292BC0511E11DF9",
+      "bytes": 1437,
+      "lineCount": 49,
+      "ranges": [
+        {
+          "start": 21,
+          "end": 48
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+      "sha256": "D14DBD2F82F79F6BD6F70703BAA8817B57214C6F4AACD6303FE73B3B6AFE1559",
+      "bytes": 175906,
+      "lineCount": 2901,
+      "ranges": [
+        {
+          "start": 719,
+          "end": 768
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySession.cs",
+      "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008",
+      "bytes": 36237,
+      "lineCount": 753,
+      "ranges": [
+        {
+          "start": 206,
+          "end": 244
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2",
+      "bytes": 116860,
+      "lineCount": 2391,
+      "ranges": [
+        {
+          "start": 1112,
+          "end": 1148
+        }
+      ]
+    }
+  ],
+  "agentAssignments": [
+    {
+      "id": "01a15e97-aeae-7631-bc56-2a114e186237",
+      "name": "Herschel",
+      "scope": "飞牛媒体映射/浏览查询/条目动作",
+      "readOnly": true,
+      "status": "已完成并关闭；未重做"
+    },
+    {
+      "id": "01a15e98-18e5-7c63-b90d-361121ba1b8a",
+      "name": "Aquinas",
+      "scope": "帐号/播放偏好与原生设置入口寿命",
+      "readOnly": true,
+      "status": "已完成并关闭"
+    }
+  ],
+  "completedAgents": [
+    {
+      "id": "01a15e97-aeae-7631-bc56-2a114e186237",
+      "name": "Herschel",
+      "status": "已完成并关闭",
+      "retrievedAt": "2026-10-21T22:00:59.689+08:00",
+      "scope": "飞牛浏览映射与条目动作",
+      "newCandidates": 3,
+      "notes": "前两项完整回传；长输出第三项截断后只收回已完成第三项/排除项，没有重做；主线程已逐行核对入口/查询/回调",
+      "productRuns": false,
+      "filesWritten": false
+    },
+    {
+      "id": "01a15e98-18e5-7c63-b90d-361121ba1b8a",
+      "name": "Aquinas",
+      "status": "已完成并关闭",
+      "retrievedAt": "2026-10-21T22:04:02.123+08:00",
+      "scope": "帐号/播放偏好与设置原生入口",
+      "newCandidates": 2,
+      "notes": "主线程重读准确入口、隐藏/回调路径和保存快照；与R-010/R-011/R-018/R-019及R-022去重",
+      "productRuns": false,
+      "filesWritten": false
+    }
+  ],
+  "agentDeclaredReadRanges": [
+    {
+      "agentId": "01a15e97-aeae-7631-bc56-2a114e186237",
+      "name": "Herschel",
+      "scope": "飞牛浏览映射与条目动作",
+      "declaredReads": [
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+          "ranges": [
+            [
+              1,
+              242
+            ]
+          ],
+          "sha256": "F45E3B8F7C2835407882212E7F60A4CC1158EC88C68043BA1DB1A073025F7BEE"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.Models.cs",
+          "ranges": [
+            [
+              1,
+              300
+            ]
+          ],
+          "sha256": "37DB483FDFAF63A4812BF590E6186AC1A673A5A14D1015DA4EE92B695755F08B"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasFilters.cs",
+          "ranges": [
+            [
+              1,
+              152
+            ]
+          ],
+          "sha256": "D6A8BA6D873C19D13EEDFE5F6898B6A499ED58053655F68DEDCB5170F3B62942"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasSortCatalog.cs",
+          "ranges": [
+            [
+              1,
+              23
+            ]
+          ],
+          "sha256": "61E2823EA2ADADDD45162EDC74C54BE6DF10E397D60A449E719D358A6BBFCD33"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasItemActions.cs",
+          "ranges": [
+            [
+              1,
+              169
+            ]
+          ],
+          "sha256": "FC8083F6C20F747E74316776E313420A430BEFF305A1628ECE282D8EC229A526"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasMetadataEdit.cs",
+          "ranges": [
+            [
+              1,
+              109
+            ]
+          ],
+          "sha256": "469955A9C1D8F66B7C8E503C6D87448893BA4FCDFCB6B2E7D8218B36339DFD9F"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasLibraryInput.cs",
+          "ranges": [
+            [
+              1,
+              83
+            ]
+          ],
+          "sha256": "0E22CCE812A8609ED233BF6D9310CF50358626EC9815C6E87D26193DD922346C"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasClient.cs",
+          "ranges": [
+            [
+              50,
+              197
+            ]
+          ],
+          "other": "成员定向检索",
+          "sha256": "748012C3E82E60871DC6D4753728CB6D7FFEBC763CF5160B848AD4A26F359ED4"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasClient.Management.cs",
+          "ranges": [
+            [
+              8,
+              40
+            ]
+          ],
+          "other": "只核输入边界，不审管理实现",
+          "sha256": "AC0169E49A225FE1E99CB8B55B40D9935E0672FC9A3958F9FB33969512687ECF"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasMatchDialog.xaml.cs",
+          "ranges": [
+            [
+              1,
+              121
+            ]
+          ],
+          "sha256": "6B76365761BD3016A0FFD564A205BB09275C02D114ABCB324F6F2E3F50D4FFDD"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasMatchDialog.xaml",
+          "ranges": [
+            [
+              1,
+              90
+            ]
+          ],
+          "sha256": "E70B7B2CAEA1FFB425D4485F5BBA48E92A4DCF45BB869D1A95328DE435783B0C"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasMetadataDialog.xaml.cs",
+          "ranges": [
+            [
+              1,
+              46
+            ]
+          ],
+          "sha256": "45DDF4456249DB122FD8F2188AEF41C12B0494495C1DEE2A8C33E66D9A558724"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasMetadataDialog.xaml",
+          "ranges": [
+            [
+              1,
+              44
+            ]
+          ],
+          "sha256": "CDC51408E4B580E039D7A6DC003CE609CD8D287949B06731DA67033829094F00"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasVersionsDialog.xaml.cs",
+          "ranges": [
+            [
+              1,
+              22
+            ]
+          ],
+          "sha256": "C407852B99C693C9F4F859FFA9AE3F85A92D9AC80BE46B5E37AC957B918DD30E"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasVersionsDialog.xaml",
+          "ranges": [
+            [
+              1,
+              56
+            ]
+          ],
+          "sha256": "7E017FA616A62DDB96CE2FED377EFD4976B1029B9C48AA8B7FF4D5F57B5D1B50"
+        },
+        {
+          "path": "tests/Momoka.Tests/FnNasMediaTests.cs",
+          "ranges": [
+            [
+              1,
+              241
+            ],
+            [
+              255,
+              461
+            ]
+          ],
+          "other": "242～254仅检索排序测试",
+          "sha256": "9C622FE4D7FB7C15D5C08AEB4CBC0EEC9F6F87B0D5A5EDFCFD5600F5AF46C5C4"
+        },
+        {
+          "path": "tests/Momoka.Tests/FnNasMediaTests.Recovery.cs",
+          "ranges": [
+            [
+              1,
+              132
+            ]
+          ],
+          "sha256": "490638750953F4854056359A2191135CB0FC11F78BAECA3EAD13EEB649775FF7"
+        },
+        {
+          "path": "tests/Momoka.Tests/FnNasProtocolTests.cs",
+          "ranges": [
+            [
+              129,
+              188
+            ]
+          ],
+          "sha256": "1B139D157BF834EBCBB181A51670583F0A3DC3CD2912557F45369F99E2610506"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "ranges": [
+            [
+              440,
+              460
+            ],
+            [
+              530,
+              561
+            ],
+            [
+              600,
+              650
+            ],
+            [
+              1010,
+              1039
+            ],
+            [
+              1050,
+              1122
+            ],
+            [
+              1270,
+              1430
+            ],
+            [
+              1436,
+              1465
+            ],
+            [
+              1470,
+              1539
+            ],
+            [
+              1558,
+              1628
+            ],
+            [
+              1790,
+              1858
+            ],
+            [
+              1860,
+              1961
+            ],
+            [
+              2080,
+              2194
+            ],
+            [
+              2200,
+              2385
+            ],
+            [
+              2404,
+              2518
+            ]
+          ],
+          "other": "不是全文",
+          "sha256": "7FDE7ED061624615513BC22B7F5B6D6E29745B15962CF3D0A37BE13A9F3E8D38"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "ranges": [
+            [
+              1635,
+              1718
+            ],
+            [
+              1746,
+              1808
+            ],
+            [
+              1811,
+              1856
+            ],
+            [
+              1948,
+              2040
+            ],
+            [
+              2049,
+              2087
+            ],
+            [
+              2137,
+              2195
+            ],
+            [
+              2214,
+              2245
+            ],
+            [
+              2649,
+              2746
+            ],
+            [
+              2789,
+              2882
+            ]
+          ],
+          "other": "不是全文",
+          "sha256": "DEE98440625EB487819B6EE6D40217A46800CD711F0876C68AD88FD53F265EDC"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "ranges": [
+            [
+              430,
+              477
+            ],
+            [
+              521,
+              565
+            ]
+          ],
+          "sha256": "683356CC70D962BC228E53E8E15138AE9677EE54A936D5E6615115BD846DA441"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.FnNas.cs",
+          "ranges": [
+            [
+              70,
+              109
+            ],
+            [
+              171,
+              191
+            ]
+          ],
+          "sha256": "6194902F983B2EBD77199AB8DD1EC26FB41A0C425EDB6E991523E68EC783E09E"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+          "ranges": [
+            [
+              1996,
+              2014
+            ]
+          ],
+          "sha256": "5A804CD5C41ECEEDDF34385ED9295B717A923815E6E0CA0F7CAFBC9FB3A827A7"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Favorites.cs",
+          "ranges": [
+            [
+              41,
+              64
+            ]
+          ],
+          "sha256": "F1395986E8E61AD6DAC38FA2BD407934E182E5402C2BA37D7E170F8DF88A2FC6"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "ranges": [
+            [
+              1,
+              80
+            ]
+          ],
+          "sha256": "AD136E6CAC7D519BB72AB3B1A765E2F88B6BDDA53A5960F7F184C1D650F30CEB"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "ranges": [
+            [
+              452,
+              485
+            ]
+          ],
+          "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/FavoriteAccounts.cs",
+          "ranges": [
+            [
+              1,
+              12
+            ]
+          ],
+          "sha256": "7CC2B6FB889BE657AC7BF47905EF3FDFFD1CC855AF6CCA6FB6DBB09EF68571DF"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/LibraryFavorites.cs",
+          "ranges": [
+            [
+              1,
+              57
+            ]
+          ],
+          "sha256": "8454CAD94D1B31A3334DBEFB2462074A42E9F7F72D5AE9F5C2D11427850596F8"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+          "ranges": [
+            [
+              135,
+              199
+            ]
+          ],
+          "sha256": "F71A22AE2A76D75FBC9C7D7090AE6A2DCD69249F91857A11AD93D673C70711E0"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+          "ranges": [
+            [
+              640,
+              662
+            ],
+            [
+              710,
+              791
+            ],
+            [
+              958,
+              986
+            ]
+          ],
+          "sha256": "80D608F711695695E6FAB8915E8E9A2F7D3830981CE6D2B1699E5831D1101951"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          "ranges": [
+            [
+              1889,
+              1910
+            ],
+            [
+              2024,
+              2044
+            ]
+          ],
+          "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/LibraryPage.xaml",
+          "ranges": [
+            [
+              656,
+              701
+            ],
+            [
+              950,
+              968
+            ]
+          ],
+          "sha256": "6CA32DEC4EE7B066C536A57DF9161F5383E706136E93715D4F54562521A76654"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+          "ranges": [
+            [
+              939,
+              945
+            ]
+          ],
+          "sha256": "877D05866B7E96CC4719439B3844B607E3D233B25705EF49DC1761825DD0E91F"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "ranges": [
+            [
+              180,
+              191
+            ],
+            [
+              222,
+              231
+            ]
+          ],
+          "sha256": "78906CB2E2241A358FA499CE84339FAB1E60D8FF3E07EE27E108FD28AB73470A"
+        }
+      ],
+      "notCovered": [
+        "管理VM/页面内部",
+        "帐号/偏好页",
+        "完整播放器",
+        "图片缓存/解码实现",
+        "所有浏览VM/XAML",
+        "当前部署协议和真实服务器",
+        "新故障回归/UI"
+      ],
+      "source": "代理已完成结果，不再派发重做；主线程重读关键问题定位"
+    },
+    {
+      "agentId": "01a15e98-18e5-7c63-b90d-361121ba1b8a",
+      "name": "Aquinas",
+      "scope": "账号/偏好与原生设置入口",
+      "declaredReads": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+          "ranges": [
+            [
+              1,
+              96
+            ]
+          ],
+          "sha256": "1F68E0F3D462F29DF68085247B2C44B13426B485AACCAB8C3A2779112A560795"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasAdminViewModel.cs",
+          "ranges": [
+            [
+              1,
+              11
+            ]
+          ],
+          "sha256": "0767420DE786328480F5A2A956F206BA213F6D8D1A094586551BE06F5A1C4CA1"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasPasswordViewModel.cs",
+          "ranges": [
+            [
+              1,
+              62
+            ]
+          ],
+          "sha256": "200A337511317C6CC5B23A27FF1066C40BECB44E142A601A59B23FAA81D0939D"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasPreferencesViewModel.cs",
+          "ranges": [
+            [
+              1,
+              74
+            ]
+          ],
+          "sha256": "01C7CB1120C7E811D01AC664F85E7CC153E423B3781F24B552B89D1DE73B97C7"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasAdminRows.cs",
+          "ranges": [
+            [
+              1,
+              42
+            ]
+          ],
+          "sha256": "F90EE10DEE517598C1BCCCB57719E6AF56280AFD95098A9591E35A2C94A1308E"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasPasswordPage.xaml.cs",
+          "ranges": [
+            [
+              1,
+              48
+            ]
+          ],
+          "sha256": "39B45744CC3F07F79E0047E82F5EBB45CC445D195AD51A1C60EAB25F68428D59"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasPreferencesPage.xaml.cs",
+          "ranges": [
+            [
+              1,
+              48
+            ]
+          ],
+          "sha256": "48B79AF8EB5D824BCDAA70106217995411947A0C01EEBF581292BC0511E11DF9"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasPasswordPage.xaml",
+          "ranges": [
+            [
+              1,
+              42
+            ]
+          ],
+          "sha256": "DCB491E8FB3ACBD7D0ABEC2E3396F505AB2AF00A849AFCA421E31583996B1AA6"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasPreferencesPage.xaml",
+          "ranges": [
+            [
+              1,
+              53
+            ]
+          ],
+          "sha256": "BE1EA0DADB75F2F8CB868865991E779AE8A3CB2B430E01FEDAB771EA8C79D76A"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "ranges": [
+            [
+              1,
+              132
+            ],
+            [
+              330,
+              779
+            ]
+          ],
+          "sha256": "FAB12837C1D681B085D13F46D87E1AE9F6690A79C7944292ABB7310F7F58FADB"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.Motion.cs",
+          "ranges": [
+            [
+              1,
+              80
+            ]
+          ],
+          "sha256": "924C3A45C6F50A62A9CD876F255A127C099240603F8FC339016AD9DEE815A676"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml",
+          "ranges": [
+            [
+              1600,
+              1608
+            ]
+          ],
+          "sha256": "CC56335743C88FD35CC3D0296C69441337DAC8B0A3954F6630678CA20BA62D0D"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsWindow.cs",
+          "ranges": [
+            [
+              1,
+              105
+            ],
+            [
+              110,
+              226
+            ]
+          ],
+          "sha256": "E5A44D4D6C8849A63788B4DC80CA3124CAC10EE342CF53848C23A590477B650A"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          "ranges": [
+            [
+              620,
+              644
+            ],
+            [
+              1020,
+              1045
+            ],
+            [
+              1084,
+              1155
+            ],
+            [
+              2060,
+              2107
+            ],
+            [
+              2310,
+              2390
+            ]
+          ],
+          "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "ranges": [
+            [
+              35,
+              100
+            ],
+            [
+              411,
+              534
+            ],
+            [
+              644,
+              994
+            ]
+          ],
+          "sha256": "D14DBD2F82F79F6BD6F70703BAA8817B57214C6F4AACD6303FE73B3B6AFE1559"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/PageViewModel.cs",
+          "ranges": [
+            [
+              1,
+              209
+            ]
+          ],
+          "sha256": "080B599ED161F3B618B5287DF97187B1F5EFF9727BC4BB76F532A5E1FCB15A0D"
+        },
+        {
+          "path": "src/Momoka.Core/Infrastructure/LoadGeneration.cs",
+          "ranges": [
+            [
+              1,
+              52
+            ]
+          ],
+          "sha256": "32F3D773042E0C2944C5AE13E4A6F005BCCC8B617D78657C686644AFEA9E3986"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+          "ranges": [
+            [
+              1,
+              80
+            ]
+          ],
+          "sha256": "AD136E6CAC7D519BB72AB3B1A765E2F88B6BDDA53A5960F7F184C1D650F30CEB"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbySession.cs",
+          "ranges": [
+            [
+              1,
+              110
+            ],
+            [
+              129,
+              185
+            ],
+            [
+              190,
+              283
+            ],
+            [
+              435,
+              548
+            ],
+            [
+              575,
+              738
+            ]
+          ],
+          "sha256": "DA0DC3E5F31325550973CF6395C1C6B7BA222230E8D5831116367A2C301E9008"
+        },
+        {
+          "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+          "ranges": [
+            [
+              57,
+              134
+            ]
+          ],
+          "sha256": "50E94E6B15227CCEF1E8DB821BA910518C8B5383AE18AE5C2A520BEFA464C568"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasClient.cs",
+          "ranges": [
+            [
+              1,
+              71
+            ]
+          ],
+          "sha256": "748012C3E82E60871DC6D4753728CB6D7FFEBC763CF5160B848AD4A26F359ED4"
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.FnNasSettings.cs",
+          "ranges": [
+            [
+              1,
+              102
+            ]
+          ],
+          "sha256": "2C0E238F7C1322374692966A64011204FF0D9FA9370B0F857115CB2BC9B925F1"
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.cs",
+          "ranges": [
+            [
+              136,
+              148
+            ]
+          ],
+          "sha256": "B04A6EAF3DC4D58F084E5EEFFB16EED5B23562E812366EB50D2118B733734DDE"
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.Sections.cs",
+          "ranges": [
+            [
+              24,
+              35
+            ]
+          ],
+          "sha256": "1F030E2FB602F6F679F3BC55340C4814ADE06F85FA25CC4B4DB4D7FA12238B65"
+        },
+        {
+          "path": "src/Momoka.Shell/ShellNavigationProbe.Settings.cs",
+          "ranges": [
+            [
+              88,
+              155
+            ],
+            [
+              530,
+              686
+            ]
+          ],
+          "sha256": "5E12ABC48ED493C94CC7E80DF30247A3E4292C65B8BF2F0F01BB9AAAE5138EF9"
+        },
+        {
+          "path": "tests/Momoka.Tests/IdentityRegressionTests.cs",
+          "ranges": [
+            [
+              101,
+              200
+            ]
+          ],
+          "sha256": "B9BFF248CC239A3842BD0B413F3C62FC102765C9C69B17BAD510D211E10DB5AF"
+        },
+        {
+          "path": "tests/Momoka.Tests/FnNasProtocolTests.cs",
+          "ranges": [
+            [
+              65,
+              108
+            ]
+          ],
+          "sha256": "1B139D157BF834EBCBB181A51670583F0A3DC3CD2912557F45369F99E2610506"
+        },
+        {
+          "path": "tests/Momoka.Tests/FnNasMediaTests.cs",
+          "ranges": [
+            [
+              25,
+              61
+            ]
+          ],
+          "sha256": "9C622FE4D7FB7C15D5C08AEB4CBC0EEC9F6F87B0D5A5EDFCFD5600F5AF46C5C4"
+        }
+      ],
+      "notCovered": [
+        "四管理页内部",
+        "Core媒体映射",
+        "完整HTTP/签名/错误协议",
+        "播放器和进度",
+        "全部Shell导航/设置卡片",
+        "完整测试或任何运行/UI/截图"
+      ],
+      "source": "代理声明的实际行段，定向检索不计全文；主线程重读关键路径"
+    }
+  ],
+  "findings": [
+    {
+      "id": "R-020",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "普通媒体库切成IPTV后误判已有直播源并隐藏源编辑区",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasLibrariesViewModel.cs",
+          "start": 62,
+          "end": 64,
+          "member": "HasSavedPlaylist/PlaylistEditorVisibility"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasLibrariesViewModel.cs",
+          "start": 116,
+          "end": 124,
+          "member": "OpenAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasLibrariesViewModel.cs",
+          "start": 184,
+          "end": 186,
+          "member": "WriteIptvAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasLibrariesPage.xaml",
+          "start": 78,
+          "end": 78,
+          "member": "FnNasLibraryCategory"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasLibrariesPage.xaml",
+          "start": 99,
+          "end": 103,
+          "member": "FnNasReplacePlaylist/PlaylistEditor"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasLibraryInput.cs",
+          "start": 29,
+          "end": 32,
+          "member": "Validate"
+        }
+      ],
+      "trigger": "管理员打开没有iptv字段的既有Movie/TV/Mix/Others媒体库，类型下拉改为IPTV，未主动开启更换当前播放列表",
+      "actual": "_original非空且iptv.source_type缺失被Text读为\"\"，不等于url，因此误判有已保存源；源编辑区收起。保存进入WriteIptvAsync删除iptv并返回，核心editing=true对缺源允许通过，因此能够发送类别IPTV但不带任何新源的更新请求",
+      "guards": "新建库_original=null不触发；开启更换开关能恢复编辑；既有file/text/upload源的保留设计应保持，不能一律强制重传；服务器最终拒绝/如何处理未验证",
+      "minimalFix": "已保存源必须基于原文档确有IPTV及有效可保留来源，而不是新选Category和空串!=url；若不支持类别转换则在UI/命令中明确拒绝，需产品决定",
+      "acceptance": "假原文档Movie无iptv→改IPTV应显示新源区域；空源不得发更新；四源模式各验证，既有IPTV文本/文件源仅改名仍不重发/清源",
+      "evidenceType": "固定源码因果链；未驱动产品、未真实更新服务器"
+    },
+    {
+      "id": "R-021",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "IPTV保存仍被已隐藏的文件大小过滤输入阻断",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasLibrariesViewModel.cs",
+          "start": 33,
+          "end": 34,
+          "member": "FilterSmallFiles/MinimumFileSize"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasLibrariesViewModel.cs",
+          "start": 152,
+          "end": 158,
+          "member": "SaveAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasLibrariesViewModel.cs",
+          "start": 354,
+          "end": 356,
+          "member": "OnCategoryChanged"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasLibrariesPage.xaml",
+          "start": 136,
+          "end": 141,
+          "member": "FilesVisibility/FnNasMinimumFileSize"
+        }
+      ],
+      "trigger": "普通库编辑开启过滤较小文件，清空大小框使绑定值NaN，再切IPTV并填写有效直播源",
+      "actual": "FilesVisibility随IPTV收起整个高级设置卡但不清偏好；SaveAsync仍无条件检查FilterSmallFiles/MinimumFileSize并报1～1024MB错误；IPTV分支不会用skip_filesize，因此有效源也被无效隐藏字段阻断",
+      "guards": "Minimum/Maximum限制有限数值不等于不允许空值；FilterSmallFiles=false不触发。NaN拒绝在普通库是正确防护，不应删除；Current/Live不解决适用性校验。官方公开NumberBox源码空文本设NaN是补充证据，公开main不是本包相同版本",
+      "minimalFix": "文件大小校验与实际写入一样只在非IPTV且启用过滤时生效；保留隐藏偏好及普通库有限值防护",
+      "acceptance": "真实离线NumberBox清空→切IPTV→有效源保存应仅发IPTV正文；切回普通库后原NaN仍能报错且不发写请求；有限边界和关闭过滤保留",
+      "evidenceType": "固定源码因果链；一手公开NumberBox空值语义补充；未驱动当前控件/产品运行"
+    },
+    {
+      "id": "R-022",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "默认权限尚未读成功时仍可把空或旧缓存当配置保存",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasUsersViewModel.cs",
+          "start": 13,
+          "end": 15,
+          "member": "_defaultPermission/_libraryNames"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasUsersViewModel.cs",
+          "start": 40,
+          "end": 58,
+          "member": "ResetEditor/ReloadAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasUsersViewModel.cs",
+          "start": 85,
+          "end": 103,
+          "member": "Defaults/PopulatePermission"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasUsersViewModel.cs",
+          "start": 114,
+          "end": 125,
+          "member": "SaveAsync"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasClient.Management.cs",
+          "start": 79,
+          "end": 83,
+          "member": "Get/UpdateDefaultPermissionAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+          "start": 59,
+          "end": 78,
+          "member": "RunAsync"
+        }
+      ],
+      "trigger": "在线管理员首次进用户页，读取媒体库或默认模板遇到非鉴权网络/5xx错误，读未成功；随后点新用户默认权限并保存",
+      "actual": "默认权限初始new()无Loaded门控；读失败后EndLoad恢复CanUse，Defaults仍可把空对象解读为media_permission=0，无媒体库；保存直接发模板更新，不先读当前配置。相同实例Attach也不清_defaultPermission/_libraryNames，失败重附加可沿用旧缓存",
+      "guards": "客户端RequireAdmin重新核管理员，只保护权限不保证模板已读取；真实服务端是否接受/合并未读正文未验证，不宣称已经覆盖真实配置；网络失败不撤销在线来源，鉴权失败可能令来源无效并阻止命令；Tasks.Loaded和Settings._original门控作为既有正确对照",
+      "minimalFix": "为默认权限/库选项建立成功加载门控，Reset时清旧来源缓存；读取失败只保留刷新恢复，不把未读状态当零权限；写入前保持当前模板未知字段与原来源",
+      "acceptance": "假传输模板/库首读网络或5xx失败→默认权限按钮/命令不得提交模板正文；刷新成功后显示真实2/1配置和库；同VM不同source重Attach失败不沿用旧值；保存失败草稿可恢复",
+      "evidenceType": "固定源码入口→读取失败→命令/正文因果链；未运行该故障、未真实改权限"
+    },
+    {
+      "id": "R-023",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "收藏页换到飞牛来源仍携带旧产品的排序和筛选导致读取失败",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Favorites.cs",
+          "start": 41,
+          "end": 64,
+          "member": "ChooseFavoriteAccountAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 2117,
+          "end": 2137,
+          "member": "RestoreSort"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 2292,
+          "end": 2304,
+          "member": "RestoreFilters"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 2404,
+          "end": 2422,
+          "member": "BuildQuery/BuildQueryCore"
+        },
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.Models.cs",
+          "start": 11,
+          "end": 23,
+          "member": "Query"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+          "start": 939,
+          "end": 945,
+          "member": "OnFavoriteAccountItemClick"
+        }
+      ],
+      "trigger": "同屏收藏页在Emby来源选播放时长等飞牛不支持排序或非空Emby筛选，随后用收藏账号菜单选择飞牛来源",
+      "actual": "_sources/_scope换新来源但不RestoreSort/RestoreFilters，收藏查询仍带旧SortKey和_filters；飞牛Query在发送favorite/list前抛不支持条件或排序；加载失败。飞牛面板只处理_fnNasFilters，无法去除隐藏的通用旧条件",
+      "guards": "来源绑定/账号键校验/查询代次与取消守卫有效；飞牛拒绝不支持条件正确，缺口在切源后查询状态没有重算；正常Attach已Restore，当前同VM切账号没有；不称凭据越界",
+      "minimalFix": "在切收藏来源后恢复或按新产品裁剪排序/筛选，取消旧标签读取并按来源重建飞牛标签状态；保持返回记录和可用偏好",
+      "acceptance": "Emby收藏选播放时长及非空筛选→同VM切飞牛：查询合法、不带旧条件、可读；来回切源后排序菜单、过滤文字及正文一致，不需重开页",
+      "evidenceType": "独立代理与主线程复核的固定源码链；未运行双来源UI夹具",
+      "originAgent": "Herschel"
+    },
+    {
+      "id": "R-024",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "已看/收藏写入确认成功后详情补读失败被当成整个操作失败",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/FnNas/FnNasMediaAdapter.cs",
+          "start": 214,
+          "end": 223,
+          "member": "SetWatchedAsync/SetFavoriteAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "start": 430,
+          "end": 477,
+          "member": "SetWatched/SetFavorite"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "start": 543,
+          "end": 564,
+          "member": "RunAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 2681,
+          "end": 2745,
+          "member": "ToggleWatchedAsync/ToggleFavoriteAsync"
+        }
+      ],
+      "trigger": "item/watched或item/favorite已通过HTTP和业务code==0确认，紧接GET item/{guid}返回503等读回错误",
+      "actual": "两步作为一个任务，补读抛错丢掉已确认写入状态；卡片成功Patch/RefreshFavorites/已看后处理不运行，详情成功回写亦不运行，提示整体失败且旧状态仍在；下一次点击仍按旧值决定方向",
+      "guards": "本轮只断言已确认写入后补读失败，不把写入本身不明确的超时当成功；原Scope/取消有效；共享R-016是并发响应逆序，和该顺序补读耦合不同；权限/鉴权等硬错误不能普遍吞掉",
+      "minimalFix": "分离确认写入和补充读回，确认后可回写本次明确字段；补读失败单列刷新欠项，权限/取消/身份错误保持硬边界；重试只对所需阶段，不重发已确认写入",
+      "acceptance": "假写成功+详情503：已看/收藏目标位更新，用户能区分已提交与刷新失败；写失败不乐观宣称成功；身份/取消/读回鉴权失败和季集派生状态明确处理",
+      "evidenceType": "独立代理与主线程复核的固定源码链；未运行新故障或服务器状态写入",
+      "originAgent": "Herschel"
+    },
+    {
+      "id": "R-025",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "详情更多删除当前条目成功后仍保留可执行的旧播放目标",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+          "start": 1996,
+          "end": 2013,
+          "member": "OnMoreClicked"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.FnNas.cs",
+          "start": 98,
+          "end": 108,
+          "member": "FnNasVersionsAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.FnNas.cs",
+          "start": 171,
+          "end": 190,
+          "member": "FnNasDeleteAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 1746,
+          "end": 1808,
+          "member": "LoadAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 1826,
+          "end": 1836,
+          "member": "Preview"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 1656,
+          "end": 1658,
+          "member": "CanAct/CanPlay"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 2652,
+          "end": 2670,
+          "member": "StartAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 2789,
+          "end": 2803,
+          "member": "Reload/RemoveAsync"
+        }
+      ],
+      "trigger": "已加载飞牛详情，更多删除当前条目或最后版本得到业务成功，随后重载该条目GET返回不存在/读取失败",
+      "actual": "当前主体临时卡只传changed:Reload、不传主体删除回调；重载失败不Apply，Preview因_detail已有直接返回；未清_detail/PlayTarget/媒体源/版本选择，EndLoad解除Busy，CanPlay仍真，播放命令可提交已删资源的旧目标",
+      "guards": "删除前确认/版本GUID/原Scope/请求后可用性已有；列表页有removed。当前Detail.RemoveAsync只处理货架卡片，临时主体不在任何货架，简单接它仍无效；未真删/未播放，不能说实际播放成功。共享接线根因可能波及其他产品，当前仅飞牛链已复核",
+      "minimalFix": "新增按来源与条目身份处理主体成功删除的状态失效/安全返回，取消该主体的目标与版本加载代次；非最后版本重新选择存活目标；不要把普通网络刷新失败都等同删除",
+      "acceptance": "假确认删除+后续GET不存在→播放/重播不可执行且不提交旧源；取消不变；删除非最后版本保留存活目标；迟到删除/读取不能清新条目；共享产品回归单列",
+      "evidenceType": "独立代理与主线程固定源码复核；未运行删除后UI/播放或真实写入",
+      "originAgent": "Herschel"
+    },
+    {
+      "id": "R-026",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "设置窗隐藏后来源通知仍能重建原生账号页并启动读取",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/SettingsWindow.cs",
+          "start": 182,
+          "end": 189,
+          "member": "Hide"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsWindow.cs",
+          "start": 217,
+          "end": 225,
+          "member": "OnClosing"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "start": 397,
+          "end": 401,
+          "member": "OnNavigatedTo来源订阅"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "start": 431,
+          "end": 449,
+          "member": "RefreshServerAdministrationAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "start": 553,
+          "end": 566,
+          "member": "ShowHosted"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "start": 598,
+          "end": 601,
+          "member": "FnNasPreferencesPage导航"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "start": 669,
+          "end": 675,
+          "member": "ReleaseHosted"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/SettingsPage.xaml.cs",
+          "start": 720,
+          "end": 729,
+          "member": "OnNavigatedFrom/OnSourceListChanged"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasPreferencesPage.xaml.cs",
+          "start": 28,
+          "end": 34,
+          "member": "OnNavigatedTo"
+        }
+      ],
+      "trigger": "同一飞牛服务器A/B两个在线账号，A的播放偏好页加载后用X或HideSettings隐藏设置窗；主窗随后切默认账号B",
+      "actual": "Hide仅ReleaseHosted并隐藏AppWindow，外层SettingsPage仍订阅SourcesChanged；通知排队刷新，同名分类可保持，旧隐式来源页不当前→ShowHosted无隐藏/活动代次守卫→新偏好Page.Attach/Reload立即读取B资料和配置；已隐藏窗重新持有活动原生页",
+      "guards": "子页Release.Cancel取消当时加载，外层真正OnNavigatedFrom退订，但隐藏不导航；只确认隐藏后新读取/重建，不说自动写入、重新显示窗或越权；不是R-018旧目录晚到，而是正常新来源事件",
+      "minimalFix": "设置页隐藏/释放结束活动代次并退订通知；刷新开始/await后/ShowHosted前均核活动代次；重开恢复订阅并刷新，拒绝已排队旧回调",
+      "acceptance": "假A偏好→X/Hide分别隐藏→切同服B：无新页和新增GET；排队后隐藏/等待中隐藏也拒绝；显式页、注销及正常重开均覆盖",
+      "evidenceType": "代理与主线程固定源码复核；未运行WinUI隐藏/通知事件或真实资料读取",
+      "originAgent": "Aquinas"
+    },
+    {
+      "id": "R-027",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "保存期间再次编辑的账号草稿被清除或误标为已保存",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasPasswordViewModel.cs",
+          "start": 31,
+          "end": 48,
+          "member": "SaveAsync/OnNewPasswordChanged"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasPasswordPage.xaml",
+          "start": 30,
+          "end": 36,
+          "member": "双向密码框/保存按钮"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasPreferencesViewModel.cs",
+          "start": 54,
+          "end": 63,
+          "member": "SaveAsync"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/FnNasPreferencesPage.xaml",
+          "start": 34,
+          "end": 49,
+          "member": "语言选择和保存按钮"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+          "start": 22,
+          "end": 29,
+          "member": "CanUse/ContentVisibility"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FnNasSessionViewModel.cs",
+          "start": 57,
+          "end": 78,
+          "member": "Current/RunAsync"
+        }
+      ],
+      "trigger": "提交密码P1或语言L1后请求延迟，未离页/切身份但在仍可编辑控件中改P2/L2，随后第一次保存返回成功",
+      "actual": "Busy只禁保存按钮，输入仍可编辑；编辑不换请求token。密码成功仅Current就清两个字段，P2丢失；偏好页仍显示L2但通知全部已保存，实际确认仅L1",
+      "guards": "Current拒绝旧请求/离页/身份失效，Busy防重复提交；缺编辑版本/提交快照，不是R-010磁盘保存失败或R-008身份切换。Core改密确认必须保留提交后离页仍保存已确认凭据",
+      "minimalFix": "保存捕获编辑版本/提交快照；只清仍对应这次提交的密码草稿，保留后续编辑；偏好区分已确认快照和当前草稿/未保存状态，或明确锁定提交期间编辑但不改变服务端确认边界",
+      "acceptance": "延迟假POST P1/L1→真实控件编辑P2/L2→第一次成功：请求仍首次快照，P2保留，L2不被称已保存，无额外写入；正常/失败/离页/注销/显式非默认源均覆盖",
+      "evidenceType": "代理与主线程固定源码复核；未运行延迟控件夹具或真实改密/偏好写入",
+      "originAgent": "Aquinas"
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "F9-EX-01",
+      "topic": "删除/索引重建离页后迟到确认继续写入",
+      "decision": "排除",
+      "reason": "四管理页Release先Cancel加载，再Hide确认框；写入前Current(token)，Core SendAsync再查来源/取消，未发现此绕过"
+    },
+    {
+      "id": "F9-EX-02",
+      "topic": "服务器设置覆盖不展示的转码/未来字段",
+      "decision": "排除",
+      "reason": "UpdateServerSettingsAsync先重读当前完整配置，再仅合并name/lan/file_monitor/meta_dir_vol_index/mediasrv_cache_vol_index五字段；页面副本和DeepClone，不以大对象复制直接判覆盖"
+    },
+    {
+      "id": "F9-EX-03",
+      "topic": "同身份重登后的管理权限入口残留",
+      "decision": "已有R-011，不新增",
+      "reason": "FnNasAdmin Allowed读取捕获权限快照且未收到同Identity客户端变化通知，阶段6/独立复核已记录；本轮仅复核依赖"
+    },
+    {
+      "id": "F9-EX-04",
+      "topic": "创建成功但列表刷新失败会重复创建",
+      "decision": "排除",
+      "reason": "媒体库/用户在响应成功且Current后先关闭Editing、清用户密码/提示，再刷新列表；失败后不留可再提交的同一新增草稿。提交结果不明确的网络失败仅列覆盖缺口"
+    },
+    {
+      "id": "F9-EX-05",
+      "topic": "排序失败显示成功顺序",
+      "decision": "排除",
+      "reason": "MoveAsync在写失败且仍Current时退回原顺序并UpdateMoveState，RunAsync保留失败报告；网络不明确已提交风险不称零回归"
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "F9-COV-01",
+      "status": "未运行",
+      "topic": "阶段9新增故障回归、真实UI与视觉",
+      "reason": "当前只读审查，不改测试或产品、不启动应用；记录源码因果链与现有测试接线，正式产品修复需授权后补回归"
+    },
+    {
+      "id": "F9-COV-02",
+      "status": "待验证",
+      "topic": "媒体库类别转换的官方服务端允许范围",
+      "reason": "当前代码允许类别任意切换；本轮未核指定部署或真实写入。R-020只确认本地误判/隐藏和能发缺源正文，不宣称服务器会接受损坏库"
+    },
+    {
+      "id": "F9-COV-03",
+      "status": "待验证",
+      "topic": "未读取默认模板直接更新的真实处理",
+      "reason": "R-022确认未读模板可提交0权限/空库正文；未访问真实服务器，不证明服务端完整覆盖还是merge/reject"
+    },
+    {
+      "id": "F9-COV-04",
+      "status": "未运行",
+      "topic": "当前WinUI包空NumberBox在真实控件中的路径",
+      "reason": "官方固定公开源码确空文本设NaN、CoerceValue绕过NaN；非本树包对应版本，未驱动本树控件。R-021主要证据为绑定和保存适用性守卫"
+    }
+  ],
+  "historicalTestEvidence": {
+    "actualExecutionPhase": 2,
+    "actualExecutionTime": "2026-10-21T02:59:12+08:00",
+    "actualExecutionHead": "4b663c425491120a4d87234d98bf20ecc9c88619",
+    "executionTree": "C:/Users/89400/.codex/worktrees/code-review-phase0/Momoka",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "summary": {
+      "total": 2072,
+      "passed": 2072,
+      "failed": 0,
+      "skipped": 0,
+      "elapsedMilliseconds": 78960
+    },
+    "logHashChecks": [
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\restore.log",
+        "actualSha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "expectedSha256": "25851EBC654A102E1277211658BF111AC39FEC44D046A5A3AFEFE0BB90FA6D11",
+        "matched": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\build.log",
+        "actualSha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "expectedSha256": "83305150251046D6D1EC6112A6054D92D59AE08711034F292CBD8C1C485D4484",
+        "matched": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\tests.log",
+        "actualSha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "expectedSha256": "61685A6938B8DE9A421B4C2079EE79EF72DCB4155FFF1F3B1AB9A2C1C894EC5D",
+        "matched": true
+      },
+      {
+        "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase2\\tests-20261021-025740\\execution.json",
+        "actualSha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "expectedSha256": "C2AEB4CE4959D2B752630FDBBD4CF3FDDB22C69B7C4B15CD90018E0B050249A8",
+        "matched": true
+      }
+    ],
+    "rereadInPhase9": true,
+    "executedInPhase9": false,
+    "claim": "仅核对原树历史运行回执和日志完整性；新树未编译或运行产品/测试，不以旧2072通过证明阶段9新增边界"
+  },
+  "publicPrimaryEvidence": [
+    {
+      "sourceUri": "https://raw.githubusercontent.com/microsoft/microsoft-ui-xaml/9427b7216337ea3d7b19ac32d48c327286ee7138/controls/dev/NumberBox/NumberBox.cpp",
+      "priorAttempts": [
+        "GitHub匿名API速率限制；未使用凭据",
+        "旧src/controls/dev和dev路径404；最终按controls/dev取得源码"
+      ],
+      "capturedAt": "2026-10-21T21:32:23.4677056+08:00",
+      "sourceCommit": "9427b7216337ea3d7b19ac32d48c327286ee7138",
+      "sourceSha256": "E7401353AD2AF3CBA1FA1AA71BECC564C534E69808D6C794A4D1DFD0D9F73A56",
+      "limitation": "固定公开main不等于本树WinUI 2.3.9载荷对应源码；补充空文本/NaN语义，未驱动当前NumberBox",
+      "type": "官方公开控件源码只读核对，非当前产品运行",
+      "relativeLocalArtifact": "artifacts/code-review-stage9/numberbox-public-source.cpp",
+      "lineRange": [
+        459,
+        488
+      ],
+      "scope": "R-021输入前件补充，不是当前包或运行"
+    }
+  ],
+  "executions": {
+    "productBuilds": 0,
+    "productTests": 0,
+    "applicationProbes": 0,
+    "selfChecks": 0,
+    "uiRuns": 0,
+    "realServerReads": 0,
+    "realServerWrites": 0,
+    "playback": 0,
+    "publication": 0,
+    "push": 0
+  },
+  "systemContextCompression": {
+    "executed": false,
+    "reason": "用户要求原文留上下文且不主动压缩；若系统压缩先全文重注CLAUDE"
+  },
+  "nextPhase": {
+    "phase": 10,
+    "title": "Plex浏览与入口裁剪",
+    "scope": "按阶段1既定计划只读核Core/Plex适配、模型分页、能力和主页/详情选择",
+    "authorization": "本聊天继续既定只读阶段；不自动修复"
+  },
+  "limitations": "仅阶段9只读审查完成与本轮文档检查通过，不宣称当前产品修复或全部测试验证通过"
+}

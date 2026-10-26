@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Momoka.NaturalEpisodeContinuationTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <ShaderBackendSource>$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Playback\LibMpvBackend.cs</ShaderBackendSource>
+    <ShaderServiceSource>$(MSBuildProjectDirectory)\..\..\src\Momoka.Core\Playback\PlaybackService.cs</ShaderServiceSource>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Remove="Microsoft.CodeAnalysis.BannedApiAnalyzers" />
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvNodes.cs" Link="Production\LibMpvNodes.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\LibMpvFrame.cs" Link="Production\LibMpvFrame.cs" />
+    <Compile Include="..\..\src\Momoka.Core\Mpv\MpvListValue.cs" Link="Production\MpvListValue.cs" />
+    <Compile Include="..\Momoka.ShaderCommandGenerationTests\HandleFixture.cs;..\Momoka.ShaderCommandGenerationTests\ServiceFixture.cs;..\Momoka.ShaderCommandGenerationTests\NativeBoundary.cs;..\Momoka.ShaderCommandGenerationTests\NativeSeam.cs;..\Momoka.ShaderCommandGenerationTests\ShaderChoiceBoundary.cs" Link="%(Filename)%(Extension)" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+  </ItemGroup>
+  <Import Project="..\Momoka.ShaderCommandGenerationTests\ExtractNativeControl.targets" />
+</Project>

@@ -1,0 +1,1506 @@
+{
+  "schemaVersion": 1,
+  "phase": 10,
+  "status": "已完成只读审查；R-028/P1、R-029/R-030/P2未修复",
+  "startedAt": "2026-10-21T22:23:40.784+08:00",
+  "completedAt": "2026-10-21T22:57:16.505+08:00",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "branch": "codex/staged-review-continue-2026-10-21",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phaseStartCommit": "d3ff57135267682322aadfe904241b99a6e70899",
+  "authorization": "用户本聊天按流程继续既定只读阶段，阶段9已提交；项目规则原文保留，不主动压缩，若系统压缩先重新完整读CLAUDE；无产品修复/真实Plex/推送发布授权",
+  "baselineAtStart": {
+    "capturedAt": "2026-10-21T22:23:40.784+08:00",
+    "timezone": "Asia/Shanghai",
+    "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+    "branch": "codex/staged-review-continue-2026-10-21",
+    "phaseStartCommit": "d3ff57135267682322aadfe904241b99a6e70899",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "authorityFile": "C:/Users/89400/Momoka/CLAUDE.md",
+    "authoritySha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+    "status": "",
+    "priorTreeStatus": " D docs/交接-集成播放器缩放与起播全屏-2026-09-22.md\n",
+    "protectedOriginUntracked": [
+      {
+        "path": "docs/代码审查-媒体库与聚合模式-2026-10-20.md",
+        "sha256": "F46BDBDEEC4EED994BCFD8A87DC7D818F1D28D044F92A10BE91E36360DE1057F",
+        "bytes": 41321
+      },
+      {
+        "path": "vibe_images/momoka-hero-keyart_1792572845041_b3ad667c.png",
+        "sha256": "4913083F88F3E5E299BAA81B8A4E2F4DA5FA7379340572B05FB95C5B4A48DADF",
+        "bytes": 2028490
+      },
+      {
+        "path": "website/.Momoka.qoder.site",
+        "sha256": "10DA6A3A6FA59D8C7C6AEBBE575439DCE521F11F248F58DF6608295EFB95FC42",
+        "bytes": 33524
+      },
+      {
+        "path": "website/README.md",
+        "sha256": "79BDFC94F9B10A094F9085C28E2A77DE1BED14320D1BA8C6965A7C4D79934347",
+        "bytes": 6496
+      },
+      {
+        "path": "website/assets/app-icon.png",
+        "sha256": "0BCD8A4EF09104EBE8000BF47FEA28847372409C124E2B15617DCF0F7B3144E9",
+        "bytes": 56663
+      },
+      {
+        "path": "website/assets/hero-800.webp",
+        "sha256": "6826E6661A807C2BD3660ED56B867CF07D198460792A65E690EB32FFE658A14C",
+        "bytes": 11582
+      },
+      {
+        "path": "website/assets/hero.webp",
+        "sha256": "AEA3924D692FABFFC8E5EEE545A7E8F4FA6046C3E5FAEBAD35D9B1470DC44A62",
+        "bytes": 37064
+      },
+      {
+        "path": "website/dist/assets/app-icon.png",
+        "sha256": "0BCD8A4EF09104EBE8000BF47FEA28847372409C124E2B15617DCF0F7B3144E9",
+        "bytes": 56663
+      },
+      {
+        "path": "website/dist/assets/hero-800.webp",
+        "sha256": "6826E6661A807C2BD3660ED56B867CF07D198460792A65E690EB32FFE658A14C",
+        "bytes": 11582
+      },
+      {
+        "path": "website/dist/assets/hero.webp",
+        "sha256": "AEA3924D692FABFFC8E5EEE545A7E8F4FA6046C3E5FAEBAD35D9B1470DC44A62",
+        "bytes": 37064
+      },
+      {
+        "path": "website/dist/index.html",
+        "sha256": "BE9214C67B06AA121E0D89EFCA1500A31C97C2EF7F8A4CCB80BC8AA90E18DC72",
+        "bytes": 24795
+      },
+      {
+        "path": "website/dist/main.js",
+        "sha256": "4CEAD3DE72195CC8BD5D2CCEF5205805AA32316A3356F3EBB51E3C61D11782E5",
+        "bytes": 2880
+      },
+      {
+        "path": "website/dist/styles.css",
+        "sha256": "F81F1B646CA15673B253C5F757DC3250F14D692DDDAFB8D3B75A7F9AE52BAC24",
+        "bytes": 31064
+      },
+      {
+        "path": "website/docker-compose.yml",
+        "sha256": "EC54B409EB5E82914FE7F142F4D40D909EA55BEFE4F3F02AFA8654ACFC523CFB",
+        "bytes": 292
+      },
+      {
+        "path": "website/index.html",
+        "sha256": "BE9214C67B06AA121E0D89EFCA1500A31C97C2EF7F8A4CCB80BC8AA90E18DC72",
+        "bytes": 24795
+      },
+      {
+        "path": "website/main.js",
+        "sha256": "4CEAD3DE72195CC8BD5D2CCEF5205805AA32316A3356F3EBB51E3C61D11782E5",
+        "bytes": 2880
+      },
+      {
+        "path": "website/nginx.conf",
+        "sha256": "3D0C0044177D27F4459191946A31FF24948C3BA2003D1360D3560A1EAC66D660",
+        "bytes": 893
+      },
+      {
+        "path": "website/styles.css",
+        "sha256": "F81F1B646CA15673B253C5F757DC3250F14D692DDDAFB8D3B75A7F9AE52BAC24",
+        "bytes": 31064
+      },
+      {
+        "path": "website/worker/index.js",
+        "sha256": "85D5F8718C22C13256999875C63E15C4BE6CCBFFE090FD7CA02F190CC04F0487",
+        "bytes": 100
+      },
+      {
+        "path": "website/wrangler.jsonc",
+        "sha256": "8F388A70EDC27BA01AB01ED8535E4F68B6EBADBDDEDF80DC83A088998B98A2FA",
+        "bytes": 165
+      }
+    ],
+    "originHead": "a9b7153d1fd6a6b4a537424a667c2f2dca131176",
+    "authorization": "用户本聊天按流程继续既定只读阶段，阶段9已提交；项目规则原文保留，不主动压缩，若系统压缩先重新完整读CLAUDE；无产品修复/真实Plex/推送发布授权"
+  },
+  "recordFiles": [
+    "docs/代码审查-分阶段审查-2026-10-21.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段10审查.md",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段10证据.json",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段10检查.json",
+    "PROGRESS.md"
+  ],
+  "authorityFiles": [
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/CLAUDE.md",
+      "sha256": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86",
+      "readDepth": "原文完整读取保留本轮上下文、阶段开始重核哈希未变"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/docs/开发与验证.md",
+      "sha256": "1AF3BF81CAAE8441D52F3F91081CE60A453722E48443C48AE35E718802E7D31B",
+      "readDepth": "本轮适用章节和标准命令"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/docs/分阶段代码审查与集中修复流程.md",
+      "sha256": "538F00E1F8981EBF7B7046C3E2D01131ECBA4F58789E39005E8EB56E52344C67",
+      "readDepth": "本阶段所需原文已读取，非业务覆盖"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/.claude/skills/momoka-winui-shell/SKILL.md",
+      "sha256": "7D28D892E5B596DDE91B86C2B9B77880774A70A7B8F83126333DF66F15D1E1BA",
+      "readDepth": "本阶段所需原文已读取，非业务覆盖"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/.claude/skills/momoka-verification/SKILL.md",
+      "sha256": "45BC0D0C03D1CCDCFBE45101B1EE778C172595851BCDEA3EB835D4C1E8411B69",
+      "readDepth": "本阶段所需原文已读取，非业务覆盖"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/.claude/skills/momoka-plex-api/SKILL.md",
+      "sha256": "B319844C882292C678A558944BD88C819B1C8E6B74AA902C01DDDF465404A93A",
+      "readDepth": "本阶段所需原文已读取，非业务覆盖"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/.claude/skills/momoka-plex-api/references/endpoints.md",
+      "sha256": "9AB145AF2646301800E9292E7EF8FCF778060379B37923ED0697910504E8715A",
+      "readDepth": "本阶段所需原文已读取，非业务覆盖"
+    },
+    {
+      "path": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka/.claude/skills/momoka-plex-api/references/http-and-auth.md",
+      "sha256": "EDA620BB40C7CE5B436EB26B7E95F100CB6FC9BBFEEB11EC2070D7AE2D9C0C20",
+      "readDepth": "本阶段所需原文已读取，非业务覆盖"
+    }
+  ],
+  "fixedProductIntegrity": {
+    "matchedFileCount": 856,
+    "changedFiles": [],
+    "allTrackedProductBytesMatchFixedBaseline": true
+  },
+  "mainReadFiles": [
+    {
+      "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+      "sha256": "6178EE81995CE825B8AC521A7A2E02BF82A3EAFD4571A117AA486FB74C0DBD7B",
+      "bytes": 15019,
+      "lineCount": 283,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 126
+        },
+        {
+          "start": 127,
+          "end": 219
+        },
+        {
+          "start": 111,
+          "end": 127
+        },
+        {
+          "start": 219,
+          "end": 282
+        },
+        {
+          "start": 98,
+          "end": 112
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexMediaAdapter.Models.cs",
+      "sha256": "F2BEF56591DEFC9922CCD8D04768627CF9953F9B040CA33D521A9EE345F4460D",
+      "bytes": 13032,
+      "lineCount": 268,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 110
+        },
+        {
+          "start": 111,
+          "end": 215
+        },
+        {
+          "start": 111,
+          "end": 164
+        },
+        {
+          "start": 211,
+          "end": 267
+        },
+        {
+          "start": 124,
+          "end": 215
+        },
+        {
+          "start": 60,
+          "end": 103
+        },
+        {
+          "start": 1,
+          "end": 60
+        },
+        {
+          "start": 164,
+          "end": 203
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexClient.cs",
+      "sha256": "46802E839CEFA6371D87D9428D871855817F74B10FE00BDC9A1EAA6D5FA2B3FA",
+      "bytes": 9460,
+      "lineCount": 174,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 117
+        },
+        {
+          "start": 117,
+          "end": 160
+        },
+        {
+          "start": 158,
+          "end": 174
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Plex/PlexPlaybackSelection.cs",
+      "sha256": "96459643957D0DFD40D9876D3CA0523D9863813EE39B71428BC81DCE2F94E43E",
+      "bytes": 1968,
+      "lineCount": 40,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 40
+        }
+      ]
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexMediaTests.cs",
+      "sha256": "D0977C0F47D7EB40B1B6F67BF382834D1034956DDA64156F15494C4DB9C82DAE",
+      "bytes": 15654,
+      "lineCount": 259,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 149
+        },
+        {
+          "start": 24,
+          "end": 118
+        },
+        {
+          "start": 119,
+          "end": 212
+        },
+        {
+          "start": 213,
+          "end": 258
+        },
+        {
+          "start": 114,
+          "end": 169
+        }
+      ]
+    },
+    {
+      "path": "tests/Momoka.Tests/PlexProtocolTests.cs",
+      "sha256": "C35A14A38FCAD533E8E865626DCFEE4F94EC501248F1842FD22AA5C5B7A72179",
+      "bytes": 12195,
+      "lineCount": 198,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 124
+        },
+        {
+          "start": 125,
+          "end": 171
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+      "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2",
+      "bytes": 116860,
+      "lineCount": 2391,
+      "ranges": [
+        {
+          "start": 2110,
+          "end": 2165
+        },
+        {
+          "start": 506,
+          "end": 520
+        },
+        {
+          "start": 2027,
+          "end": 2042
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
+      "sha256": "AD136E6CAC7D519BB72AB3B1A765E2F88B6BDDA53A5960F7F184C1D650F30CEB",
+      "bytes": 3487,
+      "lineCount": 81,
+      "ranges": [
+        {
+          "start": 38,
+          "end": 58
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/SourceLibraries.cs",
+      "sha256": "FE51740EAB4EB11060FD1DC0457D6D94B6D49C28472EB5736FB1FF3B5F7FD603",
+      "bytes": 1584,
+      "lineCount": 36,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 36
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+      "sha256": "F4F925115A61DEFE1940F34BD2B840827D72F1CE841F6D5A2CB53FF0B8B24E86",
+      "bytes": 58777,
+      "lineCount": 1032,
+      "ranges": [
+        {
+          "start": 47,
+          "end": 69
+        },
+        {
+          "start": 298,
+          "end": 344
+        },
+        {
+          "start": 483,
+          "end": 498
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/HomeLayout.cs",
+      "sha256": "1CF5A033E5461B9C7DDCE56CAD3E0E1DD2B402384690A849997316EF89F04D70",
+      "bytes": 14849,
+      "lineCount": 265,
+      "ranges": [
+        {
+          "start": 148,
+          "end": 174
+        },
+        {
+          "start": 45,
+          "end": 57
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/LibraryRequest.cs",
+      "sha256": "718A7D6838989E850A5AA6487DE11B0DFD323ADAF77AD8141E655C1E4AF7CFFD",
+      "bytes": 10192,
+      "lineCount": 225,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 148
+        },
+        {
+          "start": 142,
+          "end": 164
+        },
+        {
+          "start": 197,
+          "end": 209
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+      "sha256": "7FDE7ED061624615513BC22B7F5B6D6E29745B15962CF3D0A37BE13A9F3E8D38",
+      "bytes": 125329,
+      "lineCount": 2520,
+      "ranges": [
+        {
+          "start": 2417,
+          "end": 2485
+        },
+        {
+          "start": 2485,
+          "end": 2519
+        },
+        {
+          "start": 1506,
+          "end": 1533
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+      "sha256": "80D608F711695695E6FAB8915E8E9A2F7D3830981CE6D2B1699E5831D1101951",
+      "bytes": 55750,
+      "lineCount": 1044,
+      "ranges": [
+        {
+          "start": 678,
+          "end": 705
+        },
+        {
+          "start": 644,
+          "end": 681
+        },
+        {
+          "start": 710,
+          "end": 776
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemQuery.cs",
+      "sha256": "9BF74F84FC927A65F29B252B50E79394E48678638599281955A8F0023A54B5EB",
+      "bytes": 20980,
+      "lineCount": 398,
+      "ranges": [
+        {
+          "start": 277,
+          "end": 294
+        }
+      ]
+    },
+    {
+      "path": "docs/Plex支持.md",
+      "sha256": "57AC6F22C0E7484FFD57BBA58048D92B4516E07611090314E5218C740EC04391",
+      "bytes": 3860,
+      "lineCount": 24,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 24
+        }
+      ]
+    },
+    {
+      "path": ".claude/skills/momoka-plex-api/references/http-and-auth.md",
+      "sha256": "EDA620BB40C7CE5B436EB26B7E95F100CB6FC9BBFEEB11EC2070D7AE2D9C0C20",
+      "bytes": 4292,
+      "lineCount": 69,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 69
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/CardItem.cs",
+      "sha256": "78906CB2E2241A358FA499CE84339FAB1E60D8FF3E07EE27E108FD28AB73470A",
+      "bytes": 36885,
+      "lineCount": 711,
+      "ranges": [
+        {
+          "start": 469,
+          "end": 487
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/PosterCard.xaml",
+      "sha256": "E40C7C5D6FB45F0323EF1570078112498BDCD1AA34E2AA1C78AE96E68F439F0B",
+      "bytes": 15777,
+      "lineCount": 275,
+      "ranges": [
+        {
+          "start": 202,
+          "end": 226
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+      "sha256": "683356CC70D962BC228E53E8E15138AE9677EE54A936D5E6615115BD846DA441",
+      "bytes": 27668,
+      "lineCount": 610,
+      "ranges": [
+        {
+          "start": 79,
+          "end": 104
+        },
+        {
+          "start": 409,
+          "end": 418
+        },
+        {
+          "start": 264,
+          "end": 288
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml",
+      "sha256": "5965EC0FF24966FFA4642F54B3047F6ED35741EF87C7C39958302EA0D9040398",
+      "bytes": 123333,
+      "lineCount": 1499,
+      "ranges": [
+        {
+          "start": 779,
+          "end": 803
+        },
+        {
+          "start": 1175,
+          "end": 1197
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+      "sha256": "DEE98440625EB487819B6EE6D40217A46800CD711F0876C68AD88FD53F265EDC",
+      "bytes": 162483,
+      "lineCount": 2888,
+      "ranges": [
+        {
+          "start": 1124,
+          "end": 1141
+        },
+        {
+          "start": 1967,
+          "end": 1981
+        },
+        {
+          "start": 2715,
+          "end": 2746
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+      "sha256": "5A804CD5C41ECEEDDF34385ED9295B717A923815E6E0CA0F7CAFBC9FB3A827A7",
+      "bytes": 117479,
+      "lineCount": 2041,
+      "ranges": [
+        {
+          "start": 1722,
+          "end": 1744
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyItem.cs",
+      "sha256": "9738CA0F43BDAA642E8B988C2B79AE5669EB5871808B903FCEF4EAC3B279444F",
+      "bytes": 30788,
+      "lineCount": 708,
+      "ranges": [
+        {
+          "start": 45,
+          "end": 61
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+      "sha256": "8C6B51B1C9A53442214BA2DDBFD36D446A3764353FEE2BC83BBEEF6DB4877CD5",
+      "bytes": 14266,
+      "lineCount": 365,
+      "ranges": [
+        {
+          "start": 137,
+          "end": 168
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/FavoriteAccounts.cs",
+      "sha256": "7CC2B6FB889BE657AC7BF47905EF3FDFFD1CC855AF6CCA6FB6DBB09EF68571DF",
+      "bytes": 699,
+      "lineCount": 13,
+      "ranges": [
+        {
+          "start": 1,
+          "end": 13
+        }
+      ]
+    },
+    {
+      "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+      "sha256": "F71A22AE2A76D75FBC9C7D7090AE6A2DCD69249F91857A11AD93D673C70711E0",
+      "bytes": 21480,
+      "lineCount": 405,
+      "ranges": [
+        {
+          "start": 119,
+          "end": 155
+        }
+      ]
+    }
+  ],
+  "completedAgents": [
+    {
+      "id": "01a15e98-18e5-7c63-b90d-361121ba1b8a",
+      "name": "Aquinas",
+      "phase": 10,
+      "status": "已完成并关闭",
+      "retrievedAt": "2026-10-21T22:57:16.505+08:00",
+      "scope": "Plex UI能力与入口裁剪",
+      "newCandidates": 2,
+      "productRuns": false,
+      "filesWritten": false,
+      "policyFullReloaded": true,
+      "notes": "复用阶段9共享Shell上下文，不重做阶段9；两候选经主线程逐行复核；库key问题仅反馈上游无补救"
+    }
+  ],
+  "agentDeclaredReadRanges": [
+    {
+      "agentId": "01a15e98-18e5-7c63-b90d-361121ba1b8a",
+      "name": "Aquinas",
+      "scope": "Plex UI能力、显隐与快捷入口",
+      "declaredReads": [
+        {
+          "path": ".claude/skills/momoka-plex-api/SKILL.md",
+          "ranges": [
+            [
+              1,
+              74
+            ]
+          ],
+          "sha256": "B319844C882292C678A558944BD88C819B1C8E6B74AA902C01DDDF465404A93A"
+        },
+        {
+          "path": ".claude/skills/momoka-plex-api/references/endpoints.md",
+          "ranges": [
+            [
+              1,
+              70
+            ]
+          ],
+          "sha256": "9AB145AF2646301800E9292E7EF8FCF778060379B37923ED0697910504E8715A"
+        },
+        {
+          "path": ".claude/skills/momoka-plex-api/references/http-and-auth.md",
+          "ranges": [
+            [
+              1,
+              68
+            ]
+          ],
+          "sha256": "EDA620BB40C7CE5B436EB26B7E95F100CB6FC9BBFEEB11EC2070D7AE2D9C0C20"
+        },
+        {
+          "path": "docs/Plex支持.md",
+          "ranges": [
+            [
+              1,
+              23
+            ]
+          ],
+          "sha256": "57AC6F22C0E7484FFD57BBA58048D92B4516E07611090314E5218C740EC04391"
+        },
+        {
+          "path": "docs/代码审查-分阶段审查-2026-10-21.阶段5审查.md",
+          "ranges": [
+            [
+              27,
+              57
+            ]
+          ],
+          "sha256": "DBBBC1DDE448FD1808DE157FDE5265ED8F9B4EA83FF078F2A7C0047A83B90DCC"
+        },
+        {
+          "path": "docs/代码审查-分阶段审查-2026-10-21.阶段6审查.md",
+          "ranges": [
+            [
+              111,
+              127
+            ]
+          ],
+          "sha256": "1AA0531231280A6C01C95C7E3795E12B1A3FA8B26E2143C75ADC624271CDE76D"
+        },
+        {
+          "path": "src/Momoka.Core/Services/ServerCapabilities.cs",
+          "ranges": [
+            [
+              1,
+              87
+            ],
+            [
+              114,
+              219
+            ]
+          ],
+          "sha256": "50E94E6B15227CCEF1E8DB821BA910518C8B5383AE18AE5C2A520BEFA464C568"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ServerAccess.cs",
+          "ranges": [
+            [
+              1,
+              75
+            ]
+          ],
+          "sha256": "0BA708827E799B8A4D4230276A6D929F675FE7F88FF03B9D4EC4A0F2AC0E1C47"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/FavoriteAccounts.cs",
+          "ranges": [
+            [
+              1,
+              12
+            ]
+          ],
+          "sha256": "7CC2B6FB889BE657AC7BF47905EF3FDFFD1CC855AF6CCA6FB6DBB09EF68571DF"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyResponses.cs",
+          "ranges": [
+            [
+              137,
+              168
+            ]
+          ],
+          "sha256": "8C6B51B1C9A53442214BA2DDBFD36D446A3764353FEE2BC83BBEEF6DB4877CD5"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemMenu.cs",
+          "ranges": [
+            [
+              119,
+              178
+            ],
+            [
+              249,
+              314
+            ]
+          ],
+          "sha256": "F71A22AE2A76D75FBC9C7D7090AE6A2DCD69249F91857A11AD93D673C70711E0"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "ranges": [
+            [
+              69,
+              122
+            ],
+            [
+              192,
+              225
+            ],
+            [
+              264,
+              382
+            ],
+            [
+              413,
+              418
+            ],
+            [
+              467,
+              478
+            ],
+            [
+              543,
+              565
+            ]
+          ],
+          "sha256": "683356CC70D962BC228E53E8E15138AE9677EE54A936D5E6615115BD846DA441"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "ranges": [
+            [
+              181,
+              193
+            ],
+            [
+              224,
+              229
+            ],
+            [
+              451,
+              487
+            ]
+          ],
+          "sha256": "78906CB2E2241A358FA499CE84339FAB1E60D8FF3E07EE27E108FD28AB73470A"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml",
+          "ranges": [
+            [
+              182,
+              230
+            ]
+          ],
+          "sha256": "E40C7C5D6FB45F0323EF1570078112498BDCD1AA34E2AA1C78AE96E68F439F0B"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml.cs",
+          "ranges": [
+            [
+              635,
+              650
+            ]
+          ],
+          "sha256": "43F0655CDDBD862FD84B5F707CF9DCEC6131FE0A863083EB167DE771881DE1C5"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "ranges": [
+            [
+              1124,
+              1141
+            ],
+            [
+              1350,
+              1393
+            ],
+            [
+              1654,
+              1690
+            ],
+            [
+              1696,
+              1723
+            ],
+            [
+              1967,
+              1981
+            ],
+            [
+              2678,
+              2748
+            ]
+          ],
+          "sha256": "DEE98440625EB487819B6EE6D40217A46800CD711F0876C68AD88FD53F265EDC"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DetailPage.xaml",
+          "ranges": [
+            [
+              778,
+              803
+            ],
+            [
+              1172,
+              1195
+            ]
+          ],
+          "sha256": "5965EC0FF24966FFA4642F54B3047F6ED35741EF87C7C39958302EA0D9040398"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+          "ranges": [
+            [
+              1600,
+              1620
+            ],
+            [
+              1722,
+              1743
+            ],
+            [
+              1996,
+              2014
+            ]
+          ],
+          "sha256": "5A804CD5C41ECEEDDF34385ED9295B717A923815E6E0CA0F7CAFBC9FB3A827A7"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "ranges": [
+            [
+              404,
+              459
+            ],
+            [
+              561,
+              641
+            ],
+            [
+              1018,
+              1119
+            ],
+            [
+              1330,
+              1534
+            ],
+            [
+              2117,
+              2138
+            ],
+            [
+              2186,
+              2197
+            ],
+            [
+              2292,
+              2310
+            ],
+            [
+              2404,
+              2467
+            ],
+            [
+              2470,
+              2516
+            ]
+          ],
+          "sha256": "7FDE7ED061624615513BC22B7F5B6D6E29745B15962CF3D0A37BE13A9F3E8D38"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.Favorites.cs",
+          "ranges": [
+            [
+              1,
+              70
+            ]
+          ],
+          "sha256": "F1395986E8E61AD6DAC38FA2BD407934E182E5402C2BA37D7E170F8DF88A2FC6"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/LibraryRequest.cs",
+          "ranges": [
+            [
+              140,
+              155
+            ],
+            [
+              197,
+              209
+            ]
+          ],
+          "sha256": "718A7D6838989E850A5AA6487DE11B0DFD323ADAF77AD8141E655C1E4AF7CFFD"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/LibraryPage.xaml.cs",
+          "ranges": [
+            [
+              806,
+              830
+            ]
+          ],
+          "sha256": "877D05866B7E96CC4719439B3844B607E3D233B25705EF49DC1761825DD0E91F"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/SettingsViewModel.cs",
+          "ranges": [
+            [
+              309,
+              336
+            ],
+            [
+              810,
+              848
+            ],
+            [
+              876,
+              899
+            ]
+          ],
+          "note": "其他共享目录段复用阶段9上下文，非本阶段新读",
+          "sha256": "D14DBD2F82F79F6BD6F70703BAA8817B57214C6F4AACD6303FE73B3B6AFE1559"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/FavoritesViewModel.cs",
+          "ranges": [
+            [
+              1,
+              82
+            ]
+          ],
+          "sha256": "C687E5316A9846F9461D5C7ADACC6DADAA555E4325F3F1A7D40A8371585C0A18"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/SourceLibraries.cs",
+          "ranges": [
+            [
+              1,
+              35
+            ]
+          ],
+          "sha256": "FE51740EAB4EB11060FD1DC0457D6D94B6D49C28472EB5736FB1FF3B5F7FD603"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          "ranges": [
+            [
+              508,
+              518
+            ],
+            [
+              1051,
+              1062
+            ],
+            [
+              1310,
+              1338
+            ],
+            [
+              2027,
+              2041
+            ],
+            [
+              2130,
+              2148
+            ]
+          ],
+          "sha256": "BCFAB0772CC80CA144B776E156478827758FC5C68CBAB5958BB9413171903BD2"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.Sidebar.cs",
+          "ranges": [
+            [
+              69,
+              90
+            ]
+          ],
+          "sha256": "35CC40C517F10C0161422DE51A00B93F9D8C992ADA11C9BF246FB164771946CA"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/HomeViewModel.cs",
+          "ranges": [
+            [
+              298,
+              315
+            ],
+            [
+              916,
+              939
+            ]
+          ],
+          "sha256": "80D608F711695695E6FAB8915E8E9A2F7D3830981CE6D2B1699E5831D1101951"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/HomePage.xaml.cs",
+          "ranges": [
+            [
+              1342,
+              1354
+            ]
+          ],
+          "sha256": "81423D824C5B57A20AF5FFE9E2D5A190FF80CB1AEECC7EF1DCD6FFD49A97509D"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "ranges": [
+            [
+              483,
+              503
+            ]
+          ],
+          "sha256": "F4F925115A61DEFE1940F34BD2B840827D72F1CE841F6D5A2CB53FF0B8B24E86"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/ItemDetail.cs",
+          "ranges": [
+            [
+              174,
+              183
+            ]
+          ],
+          "sha256": "6B6DFF62B63D0065B1B2768C420D3CC147B0F53F5B60B0D98A0A1C74300B8753"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyItem.cs",
+          "ranges": [
+            [
+              46,
+              60
+            ]
+          ],
+          "sha256": "9738CA0F43BDAA642E8B988C2B79AE5669EB5871808B903FCEF4EAC3B279444F"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+          "ranges": [
+            [
+              127,
+              147
+            ]
+          ],
+          "note": "仅拒绝门，非完整模型/分页复核",
+          "sha256": "6178EE81995CE825B8AC521A7A2E02BF82A3EAFD4571A117AA486FB74C0DBD7B"
+        },
+        {
+          "path": "tests/Momoka.Tests/PlexMediaTests.cs",
+          "ranges": [
+            [
+              68,
+              90
+            ],
+            [
+              154,
+              173
+            ]
+          ],
+          "sha256": "D0977C0F47D7EB40B1B6F67BF382834D1034956DDA64156F15494C4DB9C82DAE"
+        }
+      ],
+      "policy": {
+        "authorityFile": "C:/Users/89400/Momoka/CLAUDE.md",
+        "fullReloaded": true,
+        "sourceHash": "14FFEB7EA4051C1BF9478BE599772E46146690056616C0061BD2A0F379EB3D86"
+      },
+      "notCovered": [
+        "Plex模型和分页完整实现",
+        "完整播放选择/上报寿命",
+        "其余设置/ItemCommands.Server/跨服务搜索",
+        "真实Plex/测试/探针/UI/截图"
+      ],
+      "runs": 0
+    }
+  ],
+  "findings": [
+    {
+      "id": "R-028",
+      "priority": 1,
+      "status": "已确认（静态）；未修复",
+      "title": "Plex媒体库仅映射ratingKey而丢失section key，库导航全部使用空ID",
+      "locations": [
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+          "start": 114,
+          "end": 124,
+          "member": "GetViewsAsync"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.Models.cs",
+          "start": 62,
+          "end": 73,
+          "member": "Library"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.Models.cs",
+          "start": 91,
+          "end": 98,
+          "member": "Item"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          "start": 2125,
+          "end": 2147,
+          "member": "LoadLibrariesAsync导航登记"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/HomeLayout.cs",
+          "start": 163,
+          "end": 171,
+          "member": "Plan"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+          "start": 142,
+          "end": 148,
+          "member": "GetItemsAsync"
+        },
+        {
+          "path": "tests/Momoka.Tests/PlexMediaTests.cs",
+          "start": 223,
+          "end": 226,
+          "member": "Transport库夹具"
+        }
+      ],
+      "trigger": "Plex按官方文档及现有离线夹具返回库Directory.key/type/title，不带媒体条目ratingKey",
+      "actual": "GetViewsAsync将Directory交Library；Library调用Item，Id只取ratingKey，缺失变空，未回填key；同来源不同库HomeLayout.LibraryKey重复，导航字典被后库覆盖，ParentId空；库卡仍可出现但进入查询被需要指定媒体库守卫拒绝，逐库最近添加计划因空ID被跳过；随机轮播遍历库也使用空ParentId而失败",
+      "guards": "EmbySessionScope.Bind只绑定来源，不修补ID；SourceLibraries保留来源不校验库标识；测试只断言名称/库数/CollectionType，查询测试另手填section1不追映射→查询；Plex官方公开Support和OpenAPI库schema均使用key，非猜测实际所有版本；不声称真实Plex运行已复现",
+      "minimalFix": "在Plex Library映射显式以section key赋Id并校验非空，保留Item.ratingKey用于媒体条目；测试从GetViews输出直连库导航/最近添加/随机查询，含两库同来源和跨来源",
+      "acceptance": "假官方形状movie key1/show key2无ratingKey：返回库Id分别1/2；两导航键不同且ParentId合法；从真实映射产物发/library/sections/1/all和2/all；逐库最近添加和随机轮播有正确section，缺key异常不默造可点击空库；不跑真实Plex",
+      "evidenceType": "固定源码完整链；官方公开库字段约束；现有测试源码反证，未运行新增故障或真实Plex"
+    },
+    {
+      "id": "R-029",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "Plex收藏菜单已裁剪但卡片快捷按钮和详情按钮仍可执行收藏",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/Views/CardItem.cs",
+          "start": 474,
+          "end": 485,
+          "member": "UserStateVisibility"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/PosterCard.xaml",
+          "start": 209,
+          "end": 219,
+          "member": "FavoriteButton"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "start": 84,
+          "end": 98,
+          "member": "Handle"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ItemCommands.cs",
+          "start": 413,
+          "end": 416,
+          "member": "ToggleFavorite"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DetailPage.xaml",
+          "start": 783,
+          "end": 798,
+          "member": "ColumnFavoriteButton"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DetailPage.xaml",
+          "start": 1177,
+          "end": 1192,
+          "member": "CompactFavoriteButton"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 2715,
+          "end": 2745,
+          "member": "ToggleFavoriteAsync"
+        },
+        {
+          "path": "src/Momoka.Core/Emby/EmbyClient.cs",
+          "start": 486,
+          "end": 495,
+          "member": "SetFavoriteAsync"
+        }
+      ],
+      "trigger": "已经登录Plex且有已加载电影/集卡片或详情；条目类型有UserState，无需由R-028的库导航打开",
+      "actual": "卡片快捷收藏与已看共用仅类型判断的UserStateVisibility，详情宽窄收藏按钮亦无产品显隐；快捷Handle直接ToggleFavorite，详情命令仅活动期/Busy检查，绕过更多菜单ItemMenu.Supports；调用Plex收藏到Core时在HTTP前抛不支持，用户看见可点但每次失败的入口",
+      "guards": "菜单ItemMenu.For/Supports、FavoriteAccounts、Core SupportsFavorites拒绝均正确，服务端未收到收藏请求，不是身份越界或真实写入；必须按条目所属Scope，不能用当前默认账号通用能力或一并隐藏有效已看",
+      "minimalFix": "为收藏单独使用条目所属Scope的SupportsFavorites显隐和执行守卫；保留已看按钮和受支持来源收藏；旧快捷/详情命令也无副作用拒绝",
+      "acceptance": "假Plex电影主页卡/列表卡/宽窄详情无可定位收藏按钮，直接旧命令无请求/错误；聚合Emby仍有收藏、Plex隐藏，切来源/返回/重入恢复正确",
+      "evidenceType": "只读代理与主线程核准确路径/字段/拒绝门；现有菜单测试不覆盖快捷/详情UI，未运行真实Plex或UI",
+      "originAgent": "Aquinas"
+    },
+    {
+      "id": "R-030",
+      "priority": 2,
+      "status": "已确认（静态）；未修复",
+      "title": "Plex详情题材链接进入当前客户端必然拒绝的跨库浏览页",
+      "locations": [
+        {
+          "path": "src/Momoka.Shell/ViewModels/DetailViewModel.cs",
+          "start": 1124,
+          "end": 1140,
+          "member": "SublineGenres/OpenGenre"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/DetailPage.xaml.cs",
+          "start": 1722,
+          "end": 1741,
+          "member": "PaintGenres"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/ShellPage.xaml.cs",
+          "start": 2030,
+          "end": 2039,
+          "member": "OpenGenre"
+        },
+        {
+          "path": "src/Momoka.Shell/Views/LibraryRequest.cs",
+          "start": 197,
+          "end": 203,
+          "member": "ForGenre"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 2473,
+          "end": 2492,
+          "member": "BuildQueryCore题材分支"
+        },
+        {
+          "path": "src/Momoka.Shell/ViewModels/LibraryViewModel.cs",
+          "start": 1506,
+          "end": 1526,
+          "member": "ReadSourceAsync"
+        },
+        {
+          "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+          "start": 127,
+          "end": 145,
+          "member": "GetItemsAsync"
+        }
+      ],
+      "trigger": "Plex详情有Genre题材值（现有电影夹具本就有动画），用户点击被PaintGenres生成的Hyperlink",
+      "actual": "链接无产品能力门控；ForGenre携带原来源但有意无ParentId，LibraryViewModel创建全库题材查询，Plex适配器没有SearchTerm/Resume分支且ParentId空，在HTTP前拒绝；界面落入读失败/刷新仍同条件的死页",
+      "guards": "Scope保留正确，筛选/字母条已收起，代次/取消和错误展示有效；ParentId空是ForGenre跨库设计，不是R-028的key丢失，修R-028后仍失败；只说当前客户端未实现/拒绝，不说Plex官方没有题材浏览API",
+      "minimalFix": "按当前产品能力保留题材文字、不生成Plex可点击链接，OpenGenre补来源能力守卫；不能随意填某库ID改变跨库语义；若要实现需另获范围决定",
+      "acceptance": "假Plex有题材详情文字可读但无Hyperlink，直接入口不导航/不请求；Emby等支持来源仍保链接和原Scope；修库ID后也持续覆盖，回退/切源恢复",
+      "evidenceType": "代理与主线程静态入口→查询→本地拒绝链，现有夹具含题材；未运行UI或真实PMS",
+      "originAgent": "Aquinas"
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "P10-EX-01",
+      "topic": "Plex已看确认写入后补读失败",
+      "decision": "已有R-024，不新增",
+      "reason": "Plex SetWatchedAsync同样把写入和详情补读绑定一个委托；与阶段9R-024同根因，只记录Plex受影响入口，后续修复验收取两个产品并集"
+    },
+    {
+      "id": "P10-EX-02",
+      "topic": "Plex音乐/照片库显示",
+      "decision": "排除",
+      "reason": "GetViewsAsync仅movie/show，Shell再屏蔽Music；本轮未绕过该实现。不同问题R-028是允许库的ID丢失"
+    },
+    {
+      "id": "P10-EX-03",
+      "topic": "旧/search不在新官方规格所以必然404",
+      "decision": "不确证；待验证",
+      "reason": "官方当前公开规格列/hubs/search，而客户端使用旧/search；不能从未列出推出删除或所有版本404，没有真实目标或同版本证据"
+    }
+  ],
+  "coverageGaps": [
+    {
+      "id": "P10-COV-01",
+      "status": "待验证",
+      "topic": "Plex旧/search与Hub数组兼容",
+      "reason": "当前Items仅三直接数组，不读Hub嵌套；实际调用旧/search，官方规格/hubs/search不能直接证明旧路径返回Hub，保留契约缺口，不立即确认兼容失败"
+    },
+    {
+      "id": "P10-COV-02",
+      "status": "待验证",
+      "topic": "Type多原类型只一个可映射类型被收窄",
+      "reason": "Type先丢弃不识别类型再Distinct，Movie/Video/BoxSet映成只1而发送type=1，和本地说明多类型应省略存在差异；真实Plex电影库对未匹配clip/collection的返回需要一手闭环，不能仅套EmbyVideo语义断言漏片"
+    },
+    {
+      "id": "P10-COV-03",
+      "status": "待验证",
+      "topic": "全服接下来看与超20项的单剧OnDeck查询",
+      "reason": "GetNextUpAsync拒绝空seriesId且单剧只读首max(limit,20)，主页默认seriesId为空；需区分产品意图与服务端能力，暂不当新增已确认缺陷或承诺全局条目"
+    },
+    {
+      "id": "P10-COV-04",
+      "status": "未执行",
+      "topic": "当前Plex运行、模型→导航夹具、所有真实读写和播放",
+      "reason": "阶段10只读，未改或运行测试/产品/UI，不使用旧18个Plex标题或2072通过覆盖新问题"
+    }
+  ],
+  "rootCauseExpansion": [
+    {
+      "existingId": "R-024",
+      "addedProduct": "Plex",
+      "location": {
+        "path": "src/Momoka.Core/Plex/PlexMediaAdapter.cs",
+        "start": 241,
+        "end": 244
+      },
+      "reason": "确认已看写入后强制详情补读，失败耦合与飞牛同根因；后续验收取两个产品，不改写阶段9历史"
+    }
+  ],
+  "publicPrimaryEvidence": [
+    {
+      "capturedAt": "2026-10-21T22:30:54.1909782+08:00",
+      "sourceType": "Plex官方Support公开文档，只读匿名GET",
+      "uri": "https://support.plex.tv/articles/201638786-plex-media-server-url-commands/",
+      "sha256": "43EDFC8C4C9B47850AC99914D3D674FD283D46FFB67666C41E56C523C3D8D821",
+      "libraryAttributeObservations": [
+        {
+          "key": "29",
+          "type": "movie",
+          "title": "Movies"
+        },
+        {
+          "key": "31",
+          "type": "artist",
+          "title": "Music"
+        },
+        {
+          "key": "30",
+          "type": "show",
+          "title": "Television"
+        }
+      ],
+      "assertion": "公开媒体库Directory使用key/type/title，未含ratingKey；只作字段约束，不证明真实服务器兼容或运行",
+      "limitations": [
+        "示例服务版本历史，不等于用户部署版本",
+        "不采用官方文档URL查询凭据建议，仍遵守项目令牌头部规则",
+        "没有访问用户Plex服务器或账号"
+      ],
+      "localArtifact": "artifacts/code-review-stage10/plex-sections-official.json"
+    },
+    {
+      "capturedAt": "2026-10-21T22:41:57.864+08:00",
+      "sourceUri": "https://developer.plex.tv/pms/",
+      "sourceType": "Plex官方开发文档的内嵌OpenAPI，只读匿名读取",
+      "htmlSha256": "0765B6645BEBFC740CA9DEA93FCD43DAE8CF62FBAED238D194DA6FF6B697A71C",
+      "specVersion": "1.2.3",
+      "librarySectionSchema": {
+        "path": "#/components/schemas/librarySection",
+        "properties": [
+          "allowSync",
+          "art",
+          "composite",
+          "filters",
+          "refreshing",
+          "thumb",
+          "key",
+          "type",
+          "title",
+          "agent",
+          "scanner",
+          "language",
+          "updatedAt",
+          "createdAt",
+          "scannedAt",
+          "content",
+          "directory",
+          "contentChangedAt",
+          "hidden",
+          "Location"
+        ],
+        "idField": "key",
+        "ratingKeyPresent": false
+      },
+      "paginationConstraint": "官方说明响应分页必须检查，offset/size/totalSize可能只部分存在；本轮不从缺某字段推断全部服务器失败",
+      "searchPaths": [
+        "/hubs/search",
+        "/hubs/search/voice"
+      ],
+      "limitations": [
+        "官方文档规格版本不是目标媒体服务版本",
+        "未执行真实服务器请求",
+        "未把官方兼容URL凭据写法作为Momoka授权",
+        "未修改产品/测试或新增协议映射"
+      ],
+      "localArtifact": "artifacts/code-review-stage10/plex-official-spec-observation.json"
+    }
+  ],
+  "historicalTests": {
+    "actualExecutionPhase": 2,
+    "actualExecutionTime": "2026-10-21T02:59:12+08:00",
+    "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+    "total": 2072,
+    "passed": 2072,
+    "failed": 0,
+    "skipped": 0,
+    "newRunInPhase10": false,
+    "claim": "仅背景；本阶段不跑旧二进制，不以旧Plex标题销新缺陷"
+  },
+  "executions": {
+    "productBuilds": 0,
+    "productTests": 0,
+    "applicationProbes": 0,
+    "selfChecks": 0,
+    "uiRuns": 0,
+    "realServerReads": 0,
+    "realServerWrites": 0,
+    "playback": 0,
+    "publication": 0,
+    "push": 0
+  },
+  "systemContextCompression": {
+    "executed": false,
+    "reason": "规则原文保留上下文，不主动压缩；若发生系统压缩先重读全文"
+  },
+  "nextPhase": {
+    "phase": 11,
+    "title": "MoviePilot搜索、资源与订阅",
+    "authorization": "既定只读计划自动推进，不授权实际下载/订阅/重整/播放或修改产品"
+  },
+  "limitations": "本阶段记录完成，不是产品修复或测试运行交付"
+}

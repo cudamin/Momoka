@@ -1,3 +1,4 @@
+using System.Reflection;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -22,6 +23,23 @@ namespace Momoka.Shell;
 
 internal sealed partial class ShellNavigationProbe
 {
+    /// <summary>
+    /// 这些夹具直接挂 SettingsPage，并刻意不走会解析播放服务、监听真实导航属主的 OnNavigatedTo。
+    /// Attach/Reload 只准备 VM，不会开启页面活动期；这里补齐真实导航的活动期与动效偏好接线。
+    /// 隐藏后仍 Loaded 的缓存页重入也走同一入口，不能靠再次 Loaded 或整页 Reload 恢复通知。
+    /// </summary>
+    private static void BeginSettingsFixtureVisit(SettingsPage page)
+    {
+        Field(page, "_activityToken", Get<LoadGeneration>(page, "_activity").Begin());
+        page.ViewModel.Activate();
+        var applyPreference = typeof(SettingsPage)
+            .GetMethod("ApplySettingsMotionPreference", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .CreateDelegate<Action>(page);
+        HomeMotion.PreferenceChanged -= applyPreference;
+        HomeMotion.PreferenceChanged += applyPreference;
+        applyPreference();
+    }
+
     private async Task SettingsEntranceAsync()
     {
         using var fixture = CreateFixture();
@@ -43,10 +61,13 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(page);
         try
         {
+            BeginSettingsFixtureVisit(page);
             await LayoutAsync(page);
+            await UntilAsync(() => page.IsLoaded); // 有布局尺寸不等于 Loaded/页面事件接线已经完成。
             await SettingsAnimationToggleAsync(page, fixture);
             foreach (var width in new[] { 1100, 760 })
             {
+                BeginSettingsFixtureVisit(page);
                 ResizeInspect(width, 900);
                 await LayoutAsync(page);
                 var content = Get<Grid>(page, "SettingsContent");
@@ -136,6 +157,7 @@ internal sealed partial class ShellNavigationProbe
                 await Task.Delay(80);
                 AssertSettingsSettled(page);
                 Require(Get<List<FrameworkElement>>(page, "_enteringSections").Count == 0, "隐藏后迟到回调重新播放动画");
+                BeginSettingsFixtureVisit(page); // 真实 Hide 已结束活动期；重开先恢复接线，不手动复活旧访问。
                 Call(page, "QueueSettingsEntrance");
                 await UntilAsync(() => Get<Grid>(page, "SettingsContent").Opacity == 1);
                 page.ReleaseHosted();
@@ -143,6 +165,7 @@ internal sealed partial class ShellNavigationProbe
             }
 
             // 真实托管 Frame 的父层不参与动画；无需构造播放服务或访问真实服务器。
+            BeginSettingsFixtureVisit(page);
             Field(page, "_request", new SettingsRequest(fixture.Services));
             page.SelectedCategory = "服务器";
             await LayoutAsync(page);
@@ -151,6 +174,9 @@ internal sealed partial class ShellNavigationProbe
             page.ReleaseHosted();
             if (page.CurrentPage is Page { Content: FrameworkElement hosted })
                 Require(hosted.Opacity == 1, "隐藏后托管页仍半透明");
+
+            BeginSettingsFixtureVisit(page);
+            Field(page, "_request", null); // 后续只走本机设置卡，别把临时托管请求留到别的分类。
 
             // 渲染管线行住进基础输出卡之后，切管线重建的就是这一行自己住的卡 —— 祖先容器压在
             // SelectionChanged 的传播路上被换掉，从前没有这条路径（此前的重建都发生在别的卡上）。
@@ -230,6 +256,7 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(page);
         try
         {
+            BeginSettingsFixtureVisit(page);
             page.SelectedCategory = "主页";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
@@ -318,6 +345,7 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(page);
         try
         {
+            BeginSettingsFixtureVisit(page);
             page.SelectedCategory = "界面";
             await SettleAsync();
 
@@ -437,12 +465,12 @@ internal sealed partial class ShellNavigationProbe
             new MoviePilotCredentials(PassthroughSecretProtector.Instance),
             new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         await page.ViewModel.ReloadAsync();
-        // 探针直接挂页面，不经过 SettingsPage.OnNavigatedTo；这里走页面那一层刷新，
-        // 它除了 ViewModel 还会把分组用的 CollectionViewSource 换到新表。
-        await (Task)Call(page, "RefreshServerAdministrationAsync")!;
         _root.Children.Add(page);
         try
         {
+            BeginSettingsFixtureVisit(page);
+            // 直接挂页面也必须开启页面活动期；页面刷新还会重指 CollectionViewSource 的分组源。
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             await LayoutAsync(page);
             var rail = Get<ListView>(page, "CategoryNavigation");
             var picker = Get<ComboBox>(page, "CompactCategoryNavigation");
@@ -729,10 +757,11 @@ internal sealed partial class ShellNavigationProbe
             new MoviePilotCredentials(PassthroughSecretProtector.Instance),
             new UpdateClient(new RejectNetwork()), fixture.Capabilities, fixture.Images);
         await page.ViewModel.ReloadAsync();
-        await (Task)Call(page, "RefreshServerAdministrationAsync")!;
         _root.Children.Add(page);
         try
         {
+            BeginSettingsFixtureVisit(page);
+            await (Task)Call(page, "RefreshServerAdministrationAsync")!;
             ResizeInspect(1100, 900);
             await LayoutAsync(page);
 
@@ -1250,8 +1279,12 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
+    private static Task WaitForSettingsRowsLoadedAsync(SettingsPage page, ItemsControl rows) => UntilAsync(() =>
+        rows.IsLoaded && Get<Dictionary<ItemsControl, SettingsRowsMotion>>(page, "_rowMotions").ContainsKey(rows));
+
     private static Task WaitForSettingsSettledAsync(SettingsPage page) => UntilAsync(() =>
-        Get<Grid>(page, "SettingsContent").Opacity == 1
+        page.IsLoaded
+        && Get<Grid>(page, "SettingsContent").Opacity == 1
         && page.IsContentMotionSettled
         && Descendants(page).OfType<FrameworkElement>().Where(element => element.Name == "SettingsSection")
             .All(section => section.Opacity == 1 && (section.RenderTransform is not TranslateTransform drift || drift.Y == 0)));
@@ -1337,6 +1370,7 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(page);
         try
         {
+            BeginSettingsFixtureVisit(page);
             ResizeInspect(width, 900);
             if (anime4KOnly) await SettingsAnime4KAsync(page, fixture, width);
             else if (customConfigOnly) await SettingsCustomConfigAsync(page, fixture, width);

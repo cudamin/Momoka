@@ -115,7 +115,7 @@ internal sealed partial class ShellNavigationProbe
             await ToggleAsync(true);
             await LayoutAsync(shell);
             Require(host.Visibility == Visibility.Visible && nav.IsPaneOpen && Math.Abs(host.ActualWidth - 220) < 1,
-                "宽窗侧栏未展开");
+                $"宽窗侧栏未展开：shown={host.Visibility} pane={nav.IsPaneOpen} host={host.ActualWidth:0.0}/{host.Width:0.0} shell={shell.ActualWidth:0.0} mode={fixture.Settings.Ui.SidebarMode} live={fixture.Session.IsSignedIn} loaded={shell.IsLoaded}");
             Require(ReferenceEquals(home, frame.Content) && shelves.SequenceEqual(home.ViewModel.Shelves)
                 && DataRequests() == requests, "切换侧栏重建主页货架或重新请求了数据");
             Require(shell.LibraryViews.Count == 2 && nav.MenuItems.OfType<NavigationViewItem>().Count(item =>

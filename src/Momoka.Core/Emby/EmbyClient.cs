@@ -508,6 +508,11 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
             : http.DeleteForJsonAsync<EmbyUserData>(url, Context, cancellationToken);
     }
 
+    /// <summary>飞牛状态写入确认后的独立补读；只取条目用户状态，不重新提交已确认的操作。</summary>
+    public Task<EmbyUserData?> GetFnNasUserDataAsync(string itemId, CancellationToken cancellationToken) =>
+        Connection.IsFnNas ? FnNasMedia.GetUserDataAsync(itemId, cancellationToken)
+            : throw new NotSupportedException("当前服务器不是飞牛影视");
+
     /// <summary>
     /// 从继续观看中移除。**进度留着** —— 服务器只是给这个条目按下一位「不要列进继续观看」，下次打开它照旧从
     /// 上次的地方接着播。想连进度一起清掉的是 <see cref="MarkUnplayedAsync"/>，那是另一条菜单。

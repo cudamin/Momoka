@@ -26,6 +26,9 @@ public sealed record PlaybackTicket
     /// <summary>Explicitly start with subtitles off, which is not the same as "no preference".</summary>
     public bool SubtitlesDisabled { get; init; }
 
+    /// <summary>Allows only a natural EOF to keep a reusable context until this caller resumes or disposes the lease.</summary>
+    public bool RetainForAutomaticContinuation { get; init; }
+
     public long StartTicks { get; init; }
 
     /// <summary>播放中换版本使用当前读数，不重复应用从保存位置续播的回退秒数。</summary>
@@ -422,6 +425,9 @@ public sealed record MpvTrack(int Id, string Type, string? Language, string? Tit
 public sealed record PlaybackResult(PlaybackExit Exit, long PositionTicks, bool MarkedWatched, bool ProgressReported)
 {
     public bool HasStarted { get; init; }
+
+    /// <summary>Caller must await-dispose even when no successor is chosen or successor preparation fails.</summary>
+    public PlaybackContinuation? Continuation { get; init; }
 
     public string ToChinese() => Exit.Reason switch
     {

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "phase": 1,
+  "status": "通过（仅阶段 1 文档，不代表业务审查或产品验证）",
+  "executedAt": "2026-10-21T02:11:29+08:00",
+  "timezone": "Asia/Shanghai",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "phase1StartCommit": "2ea002b2e1745fbb49821bf73ee09fa5b25194c5",
+  "workingTree": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka",
+  "branch": "codex/staged-code-review-2026-10-21",
+  "checks": [
+    {
+      "name": "固定工作树、来源和合并关系",
+      "status": "通过",
+      "detail": "完整提交/tree 与两父关系一致；记录树复用，不修改主目录"
+    },
+    {
+      "name": "五文件改动范围和产品内容不变",
+      "status": "通过",
+      "detail": "仅总记录、PROGRESS 与阶段 1 三记录；未改产品/规程/测试实现"
+    },
+    {
+      "name": "基线结构、授权和初始状态",
+      "status": "通过",
+      "detail": "提交版本审查与原目录观察分开；初始三集合为空，计划尚未批准"
+    },
+    {
+      "name": "完整来源索引、Git blob 和 SHA-256",
+      "status": "通过",
+      "detail": "来源 886 文件逐项比对；PROGRESS 初始哈希按开始提交校验，非当前新增段"
+    },
+    {
+      "name": "目录计数与来源/本树区别",
+      "status": "通过",
+      "detail": "数值仅本次观察，不成为验收门槛；来源 docs 19，本树额外含本轮记录"
+    },
+    {
+      "name": "规程/技能恢复与校准项",
+      "status": "通过",
+      "detail": "13 技能及非 PROGRESS 规程保持阶段 0 来源；文档冲突保留，不冒充产品已审"
+    },
+    {
+      "name": "18 个候选阶段字段、依赖和实际入口",
+      "status": "通过",
+      "detail": "阶段 2～19 每阶段单独出口，所有模式匹配实际来源，不等于已审"
+    },
+    {
+      "name": "计划、总记录和新进度段本地链接",
+      "status": "通过",
+      "detail": "所有本轮 Markdown 链接目标/锚点存在；不把历史全文链接算本轮覆盖"
+    },
+    {
+      "name": "历史交接与进度逐字保留",
+      "status": "通过",
+      "detail": "只增加阶段 1 进度和当前状态；阶段 0 两证据 JSON 不改，历史交接事实保留"
+    },
+    {
+      "name": "范围、授权与证据状态一致性",
+      "status": "通过",
+      "detail": "全已跟踪范围是候选，不包括网站/真实操作；后端/管线分开，审查/修复/发布分开"
+    },
+    {
+      "name": "标准命令参数、路径及 PowerShell 语法",
+      "status": "通过",
+      "detail": "与现行三条命令完全对应，仅调用 Parser，不执行还原/编译/测试"
+    },
+    {
+      "name": "原目录已有工作排除与保护快照",
+      "status": "通过",
+      "detail": "已有报告/网站 5 文件仅哈希记录，受审对象不包括它们；不重读原树内容"
+    },
+    {
+      "name": "来源变化和基线合并事实",
+      "status": "通过",
+      "detail": "仅两份已提交测试排版变化，未以字符比较替代产品验证"
+    },
+    {
+      "name": "UTF-8、LF、末尾换行与记录格式",
+      "status": "通过",
+      "detail": "仅检查本轮记录和 PROGRESS 新段，不归一化无关历史内容"
+    },
+    {
+      "name": "Git 工作区及暂存差异空白",
+      "status": "通过",
+      "detail": "git diff --check 与 git diff --cached --check"
+    }
+  ],
+  "summary": {
+    "passed": 15,
+    "failed": 0,
+    "markdownLinksChecked": 91,
+    "trackedSourceFilesVerified": 886,
+    "candidateStagesVerified": 18
+  },
+  "checkedFileSha256": {
+    "docs/代码审查-分阶段审查-2026-10-21.md": "54299EA9167A27455AEEB3F95826C99EFE196C81002555CD8DA176C00F2D0645",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段1计划.md": "86A2C3BFD29F4639EA2F4378428FDBA5CE3E5F2906194876B1E667B72551B15B",
+    "docs/代码审查-分阶段审查-2026-10-21.阶段1基线.json": "A418852A2608C2307DCAA29CAC031E13D17FCF3626E520AD8CAD360BB19F0D49",
+    "PROGRESS.md": "5B7071492798F6152E87CCE6DEAEE88641D62C17777B4C326FD2C0FBDFF864E7"
+  },
+  "checker": {
+    "path": "C:\\Users\\89400\\.codex\\worktrees\\code-review-phase0\\Momoka\\artifacts\\code-review-phase1\\check_phase1.py",
+    "sha256": "C459D059580E153E252AB71E0F27AA0A60FBC652EC0C134A0627C95CC92C7EBE",
+    "scope": "本轮忽略目录中的临时文档检查器，不是新增产品闸门"
+  },
+  "productBuildsOrTestsExecuted": false,
+  "applicationOrServerOperationsExecuted": false,
+  "systemContextCompressionExecuted": false,
+  "limitations": [
+    "计划待用户确认；入口归属不是已审覆盖",
+    "阶段 0 证据保留对应历史提交，不冒充阶段 1 通过",
+    "未运行 restore/build/正式测试/应用/原生/真实服务器",
+    "结果不包含自身哈希，避免自引用"
+  ]
+}

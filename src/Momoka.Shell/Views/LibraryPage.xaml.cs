@@ -345,9 +345,10 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private (string Label, string Layout, double Cell, double Row) Shape() => CardWall.Layout switch
     {
-        // 格宽取视图模型算出来的那一份，不取版面的 MinItemWidth：2026-10-18 起版面的最小宽是「图像大小」那一档，
-        // 摊出来的格宽比它宽一点（列数由版面定，剩下的宽度平摊给这几列）。行高同源。
-        UniformGridLayout => (ViewModel.ViewLabel, nameof(UniformGridLayout), ViewModel.CellWidth, ViewModel.RowHeight),
+        // MinItemWidth is only the minimum image-size choice; the fitted cell width still comes from
+        // the responsive grid model. Read row height from the actual live layout, not back from the
+        // model that supplied its binding: a stale MinItemHeight must remain observable to self-check.
+        UniformGridLayout grid => (ViewModel.ViewLabel, nameof(UniformGridLayout), ViewModel.CellWidth, grid.MinItemHeight),
         { } other => (ViewModel.ViewLabel, other.GetType().Name, 0, 0),
         _ => (ViewModel.ViewLabel, "没有布局", 0, 0)
     };

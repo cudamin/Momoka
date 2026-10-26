@@ -11,18 +11,24 @@ public sealed class VolumeMemory
     private int? _requested;
     private long _requestedAt;
     private long _request;
+    private readonly HashSet<int> _echoes = [];
 
     public int? Pending { get; private set; }
     public long DueAt { get; private set; }
     public long Revision { get; private set; }
 
-    /// <summary>During the echo-protection window the kernel's real reading is parked here, not discarded.</summary>
+    /// <summary>Distinct kernel readings are parked here; known pre-request echoes cannot replace them.</summary>
     public int? Queued { get; private set; }
 
     public static int? Level(double value) => double.IsFinite(value)
         ? (int)Math.Clamp(Math.Round(value), 0, AudioSettings.MaxVolume) : null;
     public long Request(int level, long now)
     {
+        if (_requested is null || now - _requestedAt >= SettleMilliseconds) _echoes.Clear();
+        // Consecutive local requests can leave several old levels in the UI queue. Retain their
+        // known predecessors until a target observation or expiry ends this echo window.
+        if (_observed is { } observed) _echoes.Add(observed);
+        if (Queued is { } queued) _echoes.Add(queued);
         _requested = level;
         _requestedAt = now;
         return ++_request;
@@ -31,6 +37,7 @@ public sealed class VolumeMemory
     public bool Accept(long request, int level, long now)
     {
         if (request != _request || _requested != level) return false;
+        if (Queued is { } queued && _echoes.Contains(queued)) Queued = null;
         Remember(level, now);
         return true;
     }
@@ -39,6 +46,7 @@ public sealed class VolumeMemory
     {
         if (request != _request) return false;
         _requested = null;
+        _echoes.Clear();
         return true;
     }
 
@@ -49,13 +57,14 @@ public sealed class VolumeMemory
 
         if (_requested is { } wanted && level != wanted && now - _requestedAt < SettleMilliseconds)
         {
-            // The protection window exists to swallow the pre-request echo, not the kernel's later
-            // reading. Park the real value; the save loop or the window's expiry adopts it.
-            Queued = level;
+            // Matching a known predecessor is still an old echo when it is delivered after command
+            // confirmation. Do not queue it, or let it overwrite a distinct later reading (e.g. 70).
+            if (!_echoes.Contains(level)) Queued = level;
             return null;
         }
 
         _requested = null;
+        _echoes.Clear();
         Queued = null;
         Remember(level, now);
         return level;
@@ -67,6 +76,7 @@ public sealed class VolumeMemory
         if (Queued is not { } level) return null;
         Queued = null;
         _requested = null;
+        _echoes.Clear();
         Remember(level, now);
         return level;
     }
@@ -81,6 +91,7 @@ public sealed class VolumeMemory
     {
         _request++;
         _requested = null;
+        _echoes.Clear();
         _observed = null;
     }
 

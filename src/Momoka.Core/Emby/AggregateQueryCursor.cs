@@ -10,6 +10,22 @@ public sealed class AggregateQueryCursor(IEnumerable<string> sourceKeys)
 
     public bool HasMore => _sources.Any(source => !source.Complete);
 
+    /// <summary>已经消费且仍留在服务器清单内的记录数，不包含调用方合成的显示卡片。</summary>
+    public int ConsumedCount => (int)Math.Min(int.MaxValue, _sources.Sum(source => (long)source.Offset));
+
+    /// <summary>读取用的独立副本；调用方接收页面后再发布，不让未接收的响应消费当前游标。</summary>
+    public AggregateQueryCursor Copy()
+    {
+        var copy = new AggregateQueryCursor(_sources.Select(source => source.Key));
+        for (var index = 0; index < _sources.Length; index++)
+        {
+            copy._sources[index].Offset = _sources[index].Offset;
+            copy._sources[index].Total = _sources[index].Total;
+            copy._sources[index].Complete = _sources[index].Complete;
+        }
+        return copy;
+    }
+
     /// <summary>已消费的条目从服务器清单移除后，只回退它所属来源的偏移。</summary>
     public void RemoveConsumed(string sourceKey)
     {
@@ -20,7 +36,8 @@ public sealed class AggregateQueryCursor(IEnumerable<string> sourceKeys)
 
     public async Task<AggregateQueryPage> ReadAsync(
         Func<string, int, CancellationToken, Task<ItemsResult>> read,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool allowPartialFailure = true)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var pending = _sources.Where(source => !source.Complete).ToArray();
@@ -30,7 +47,7 @@ public sealed class AggregateQueryCursor(IEnumerable<string> sourceKeys)
             {
                 return (Source: source, Result: await read(source.Key, source.Offset, cancellationToken).ConfigureAwait(false), Error: (Exception?)null);
             }
-            catch (Exception error) when (!cancellationToken.IsCancellationRequested)
+            catch (Exception error) when (allowPartialFailure && !cancellationToken.IsCancellationRequested)
             {
                 return (Source: source, Result: (ItemsResult?)null, Error: error);
             }

@@ -446,16 +446,16 @@ internal static partial class ShellSelfCheck
         report.AppendLine();
         report.AppendLine(failures == 0 ? "结果：全部通过" : $"结果：{failures} 项失败");
 
-        ExitCode = failures == 0 ? 0 : 1;
-        Write(options, "selfcheck-shell.txt", report.ToString());
+        var reportWritten = CompleteReport(options.Paths, report.ToString(), failures);
 
         if (options.DumpUi)
         {
             var tree = new StringBuilder();
             Dump(shell, tree, 0);
-            Write(options, "selfcheck-shell-tree.txt", tree.ToString());
+            Write(options.Paths, "selfcheck-shell-tree.txt", tree.ToString());
         }
 
-        Log.Info(Category, failures == 0 ? "自检全部通过" : $"自检有 {failures} 项失败");
+        Log.Info(Category, !reportWritten ? "自检报告未能写出"
+            : failures == 0 ? "自检全部通过" : $"自检有 {failures} 项失败");
     }
 }

@@ -492,7 +492,7 @@ internal sealed class LibMpvHandle(
     IntPtr context,
     IVideoSurface? surface,
     PlaybackLaunchSignature? signature,
-    Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages
+    Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages, IFileScopedPlayerControl
 {
     internal MpvCustomConfig? CustomConfig { get; init; }
     private const string Category = "mpv";
@@ -548,6 +548,10 @@ internal sealed class LibMpvHandle(
 
     /// <summary>换片交接（见 <see cref="HandOver"/>）—— 收尾据此不拆实例。</summary>
     private volatile bool _handedOver;
+    private PlaybackEndReason? _finishedReason;
+    private readonly TaskCompletionSource _contextClosed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public Task ContinuationClosed => _contextClosed.Task;
+    public bool ContinuationCanceled => _contextClosed.Task.IsCompleted;
 
     /// <summary>刚发过一条 <c>loadfile</c> 换片：事件线程在 file-loaded 那一拍清掉上一集的读数。</summary>
     private volatile bool _swapping;
@@ -668,7 +672,7 @@ internal sealed class LibMpvHandle(
     public bool WasHandedOver => _handedOver;
 
     public bool CanSwapTo(PlaybackRequest request) => Guard(() =>
-        Swapable && _status.Loaded && !_swapping
+        Swapable && _status.Loaded && !_swapping && !_contextClosed.Task.IsCompleted
         && InlineSwitch.CanTakeOver(_stopRequested, _handedOver, _exit.Task.IsCompleted, _apiGate.IsDestroyed)
         && InlineSwitch.SameSignature(signature!, signatureFor!(request)));
 
@@ -677,7 +681,18 @@ internal sealed class LibMpvHandle(
         if (_stopRequested || _exit.Task.IsCompleted) return false;
         _handedOver = true;
         _apiGate.NextGeneration();
-        _exit.TrySetResult(new PlaybackExit(PlaybackEndReason.Stopped, LastPosition, 0, null));
+        if (_exit.TrySetResult(new PlaybackExit(PlaybackEndReason.Stopped, LastPosition, 0, null)))
+            _finishedReason = PlaybackEndReason.Stopped;
+        return true;
+    });
+
+    public bool TryRetainAfterEndOfFile() => Guard(() =>
+    {
+        if (!Swapable || signature!.UsesCustomConfig || !_status.Loaded || _swapping || _stopRequested || _apiGate.IsDestroyed
+            || _contextClosed.Task.IsCompleted || _finishedReason != PlaybackEndReason.EndOfFile || !_exit.Task.IsCompleted) return false;
+        if (_handedOver) return true;
+        _handedOver = true;
+        _apiGate.NextGeneration();
         return true;
     });
 
@@ -690,7 +705,7 @@ internal sealed class LibMpvHandle(
     private bool Swap(PlaybackRequest request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!Swapable || !InlineSwitch.SameSignature(signature!, signatureFor!(request))
+        if (!Swapable || _contextClosed.Task.IsCompleted || !InlineSwitch.SameSignature(signature!, signatureFor!(request))
             || !InlineSwitch.CanTakeOver(_stopRequested, _handedOver, _exit.Task.IsCompleted, _apiGate.IsDestroyed)) return false;
 
         IReadOnlyList<KeyValuePair<string, string>> filmOptions;
@@ -715,6 +730,7 @@ internal sealed class LibMpvHandle(
         cancellationToken.ThrowIfCancellationRequested();
         _swapping = true;
         _exit = new TaskCompletionSource<PlaybackExit>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _finishedReason = null;
         _handedOver = false;
         Interlocked.Exchange(ref _lastPositionMs, -1);
         if (!Command("loadfile", request.MediaUrl.AbsoluteUri, "replace"))
@@ -808,6 +824,7 @@ internal sealed class LibMpvHandle(
         switch (mpvEvent.EventId)
         {
             case LibMpvNative.EventShutdown:
+                _contextClosed.TrySetResult();
                 Log.Info(Category, "内置播放器已关闭");
                 Finish(_stopRequested ? PlaybackEndReason.Stopped : PlaybackEndReason.UserQuit, 0);
                 return true;
@@ -824,6 +841,10 @@ internal sealed class LibMpvHandle(
                     Log.Debug(Category, "（这条属于被换掉的那个文件，不计入本次播放）");
                     break;
                 }
+
+                // MPV_END_FILE_REASON_REDIRECT 是播放列表展开：mpv 会继续播放其内容，不是真正 EOF。
+                // 保留当前完成源、位置和合成输出，等后续实际文件结束或 shutdown；不改变加载/跟随策略。
+                if (end.Reason == LibMpvNative.EndFileRedirect) break;
 
                 Finish(Classify(end.Reason), end.Error);
                 break;
@@ -900,7 +921,7 @@ internal sealed class LibMpvHandle(
 
     private PlaybackEndReason Classify(int endFileReason) => endFileReason switch
     {
-        LibMpvNative.EndFileEof or LibMpvNative.EndFileRedirect => PlaybackEndReason.EndOfFile,
+        LibMpvNative.EndFileEof => PlaybackEndReason.EndOfFile,
         LibMpvNative.EndFileError => PlaybackEndReason.Error,
         _ => _stopRequested ? PlaybackEndReason.Stopped : PlaybackEndReason.UserQuit
     };
@@ -1219,13 +1240,23 @@ internal sealed class LibMpvHandle(
         }), CancellationToken.None);
     }
 
-    public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken)
+    public long FileGeneration => _apiGate.Generation;
+
+    public Task<bool> CommandForFileAsync(long expectedFileGeneration, IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken) => CommandAsync(expectedFileGeneration, arguments, cancellationToken);
+
+    public Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken) =>
+        CommandAsync(null, arguments, cancellationToken);
+
+    private Task<bool> CommandAsync(long? expectedFileGeneration, IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken)
     {
         if (arguments.Count == 0) return Task.FromResult(true);
         cancellationToken.ThrowIfCancellationRequested();
 
         var copy = arguments.ToArray();
-        var generation = _apiGate.Generation;
+        // A transaction supplies its captured file generation; never rebind it to a successor.
+        var generation = expectedFileGeneration ?? _apiGate.Generation;
         return Task.Run(() => _apiGate.RunFor(generation, () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1395,7 +1426,7 @@ internal sealed class LibMpvHandle(
     {
         StopComposition();
         var message = reason == PlaybackEndReason.Error ? DescribeFailure(error) : null;
-        _exit.TrySetResult(new PlaybackExit(reason, LastPosition, error, message));
+        if (_exit.TrySetResult(new PlaybackExit(reason, LastPosition, error, message))) _finishedReason = reason;
     }
 
     private static string DescribeFailure(int error) => $"内置播放器未能播放该文件（错误 {error}）";
@@ -1414,6 +1445,7 @@ internal sealed class LibMpvHandle(
 
     private async Task StopCoreAsync()
     {
+        _contextClosed.TrySetResult();
         _stopRequested = true;
         await Task.Run(() =>
         {
@@ -1440,6 +1472,7 @@ internal sealed class LibMpvHandle(
 
     private void DisposeCore()
     {
+        _contextClosed.TrySetResult();
         StopComposition();
         Guard(() =>
         {

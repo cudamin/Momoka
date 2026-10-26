@@ -75,6 +75,16 @@ public interface IPlaybackHandle : IAsyncDisposable
     /// </summary>
     bool WasHandedOver => false;
 
+    /// <summary>Retains an already-completed natural EOF for a caller-owned automatic continuation.
+    /// Default false: only a live reusable standalone native context may opt in; never stop/error/quit.</summary>
+    bool TryRetainAfterEndOfFile() => false;
+
+    /// <summary>Completion means the reusable context has closed, not just that its current file reached EOF.</summary>
+    Task ContinuationClosed => Task.CompletedTask;
+
+    /// <summary>A caller-requested continuation was vetoed by actual context closure, even if EOF had completed first.</summary>
+    bool ContinuationCanceled => false;
+
     /// <summary>Shows a message on mpv's OSD; silently does nothing without a control channel.</summary>
     Task ShowMessageAsync(string text);
 
@@ -163,6 +173,21 @@ public interface IPlayerControl
     /// </para>
     /// </summary>
     Task<bool> CommandAsync(IReadOnlyList<string> arguments, CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Optional control capability for a handle that reuses its native context across files.
+/// Capture <see cref="FileGeneration"/> before an asynchronous transaction, then use that same
+/// native generation for every write and rollback. It is independent of the service generation;
+/// execution must reject a stale generation atomically with native file handoff and destruction.
+/// Ordinary <see cref="IPlayerControl"/> commands and external-process handles are unchanged.
+/// </summary>
+public interface IFileScopedPlayerControl
+{
+    long FileGeneration { get; }
+
+    Task<bool> CommandForFileAsync(long expectedFileGeneration, IReadOnlyList<string> arguments,
+        CancellationToken cancellationToken);
 }
 
 /// <summary>

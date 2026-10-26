@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.MoviePilot;
@@ -30,6 +31,10 @@ namespace Momoka.Shell.Views;
 internal static partial class ItemCommands
 {
     private const string Category = "ui";
+
+    // Per DTO rather than per control: recycled controls and two cards sharing an item must share
+    // ordering, but a departed item must not remain in an application-lifetime ID dictionary.
+    private static readonly ConditionalWeakTable<EmbyItem, ItemUserStateOrder> UserStateOrders = new();
 
     /// <summary>
     /// The handler both grids attach. <c>ContextRequested</c> rather than a right-tap handler because it
@@ -136,7 +141,14 @@ internal static partial class ItemCommands
         Action<CardItem>? removed = null,
         Action<CardItem>? watched = null)
     {
-        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched);
+        var invalidated = 0;
+        bool CanContinue() => Volatile.Read(ref invalidated) == 0;
+        void InvokeCurrent(ItemCommand command)
+        {
+            if (CanContinue()) Invoke(command, shell, owner, card, siblings, changed, removed, watched);
+        }
+        var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue);
+        menu.Closed += (_, _) => Interlocked.Exchange(ref invalidated, 1);
 
         if (menu.Items.Any(item => item.Tag is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape))
         {
@@ -152,6 +164,39 @@ internal static partial class ItemCommands
             menu.Closed += (_, _) => shell.MoviePilotAvailabilityChanged -= AvailabilityChanged;
         }
 
+        // AniBT identification still belongs to the default management source, unlike independent searches.
+        // Keep an open menu from advertising a now-inapplicable action; reopening recomputes the rows.
+        if (shell.MoviePilotEnabled && card.Scope is { IsAvailable: true } menuScope
+            && Momoka.AniBt.AniBtEligibility.Supports(card.Item)
+            && ItemMenu.Supports(ItemCommand.AniBtScrape, menuScope.Connection.IsJellyfin, menuScope.Connection.IsFnNas, menuScope.Connection.IsPlex))
+        {
+            var currentAtBuild = menuScope.IsCurrent;
+            var open = false;
+            void SourcesChanged(object? sender, EventArgs args)
+            {
+                // Latch ownership loss at the notification, not after a queued A -> B -> A round trip.
+                if (!menuScope.IsAvailable || menuScope.IsCurrent != currentAtBuild)
+                    Interlocked.Exchange(ref invalidated, 1);
+                owner.DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (open && !CanContinue()) menu.Hide();
+                });
+            }
+            menu.Opened += (_, _) =>
+            {
+                // An earlier Opened handler may already have closed this one-use menu on disconnect.
+                if (!CanContinue()) return;
+                open = true;
+                session.SourcesChanged += SourcesChanged;
+                SourcesChanged(null, EventArgs.Empty);
+            };
+            menu.Closed += (_, _) =>
+            {
+                open = false;
+                session.SourcesChanged -= SourcesChanged;
+            };
+        }
+
         // 季、集的 Genres 常留在所属剧集上，菜单打开后只补查这一份元数据。
         // 不把父级类型塞回 EmbyItem，且关菜单、换账号或断线后不再插入迟到的行。
         if (shell.MoviePilotEnabled && card.Scope is { IsAvailable: true } scope &&
@@ -164,20 +209,21 @@ internal static partial class ItemCommands
             {
                 try
                 {
+                    if (!CanContinue()) return;
                     var eligible = await scope.ExecuteAsync((client, token) =>
                         Momoka.AniBt.AniBtEligibility.ResolveAsync(client, original, token), lifetime.Token);
-                    if (!eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
+                    if (!CanContinue() || !eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
                     var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
                     if (versions is not null)
                     {
-                        var plan = ItemMenu.For(original, true, animeGenre: true).Single(row => row.Command == ItemCommand.MoviePilotVersions);
-                        menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, command =>
-                            Invoke(command, shell, owner, card, siblings, changed, removed, watched));
+                        var plan = ItemMenu.For(original, true, animeGenre: true, aniBtScrapeAvailable: scope.IsCurrent)
+                            .Single(row => row.Command == ItemCommand.MoviePilotVersions);
+                        menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, InvokeCurrent);
                     }
                     var anchor = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotReorganize);
-                    if (anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
+                    if (scope.IsCurrent && anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
                         menu.Items.Insert(menu.Items.IndexOf(anchor) + 1, Entry("AniBT 识别", ItemCommand.AniBtScrape,
-                            () => Invoke(ItemCommand.AniBtScrape, shell, owner, card, siblings, changed, removed, watched)));
+                            () => InvokeCurrent(ItemCommand.AniBtScrape)));
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception error) { Log.Info("anibt", $"无法核对动画类型：{Failure.Describe(error)}"); }
@@ -204,13 +250,14 @@ internal static partial class ItemCommands
         IReadOnlyList<EmbyItem>? siblings = null,
         Action? changed = null,
         Action<CardItem>? removed = null,
-        Action<CardItem>? watched = null)
+        Action<CardItem>? watched = null,
+        Func<bool>? canContinue = null)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
 
         foreach (var row in ItemMenu.For(card.Item, shell.MoviePilotEnabled,
             jellyfin: card.Scope?.Connection.IsJellyfin == true, fnNas: card.Scope?.Connection.IsFnNas == true,
-            plex: card.Scope?.Connection.IsPlex == true))
+            plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true))
         {
             if (row.Command is not { } command)
             {
@@ -219,7 +266,9 @@ internal static partial class ItemCommands
             }
 
             menu.Items.Add(BuildEntry(row, selected =>
-                Invoke(selected, shell, owner, card, siblings, changed, removed, watched)));
+            {
+                if (canContinue?.Invoke() != false) Invoke(selected, shell, owner, card, siblings, changed, removed, watched);
+            }));
         }
 
         return menu;
@@ -329,7 +378,7 @@ internal static partial class ItemCommands
                 break;
 
             case ItemCommand.ManageVersions:
-                _ = FnNasVersionsAsync(scope, shell, owner, card, changed);
+                _ = FnNasVersionsAsync(scope, shell, owner, card, changed, removed);
                 break;
 
             case ItemCommand.FnNasMatch:
@@ -386,6 +435,7 @@ internal static partial class ItemCommands
                 break;
 
             case ItemCommand.AniBtScrape:
+                if (!scope.IsCurrent) return;
                 shell.ShowAniBtScrape(scope, item);
                 break;
 
@@ -412,7 +462,7 @@ internal static partial class ItemCommands
     /// <summary>收藏。同上。</summary>
     public static void ToggleFavorite(EmbySession session, IShellActions shell, CardItem card)
     {
-        if (card.Scope is { IsAvailable: true } scope)
+        if (card.CanFavorite && card.Scope is { } scope)
             SetFavorite(scope, shell, card, favourite: card.Item.UserData?.IsFavorite != true);
     }
 
@@ -432,49 +482,59 @@ internal static partial class ItemCommands
         IShellActions shell,
         CardItem card,
         bool played,
-        Action<CardItem>? watched = null) =>
-        Run(
+        Action<CardItem>? watched = null)
+    {
+        var item = card.Item;
+        var identity = item.IdentityKey;
+        var order = UserStateOrders.GetValue(item, static _ => new ItemUserStateOrder());
+        var change = order.BeginWatched(played);
+        RunUserState(
             session,
             shell,
             played ? "标记已观看失败" : "标记未观看失败",
             (client, token) => played
-                ? client.MarkPlayedAsync(card.Item.Id, token)
-                : client.MarkUnplayedAsync(card.Item.Id, token),
-            data =>
+                ? client.MarkPlayedAsync(item.Id, token)
+                : client.MarkUnplayedAsync(item.Id, token),
+            async data =>
             {
-                Patch(card, data, state =>
+                if (!Patch(card, identity, order, change, data)) return;
+                if (played)
                 {
-                    state.Played = played;
+                    // 标记为已看还要替服务器补报一趟播放停止（位置按用户令报 100%），好让服务器上那条通知立刻把
+                    // playback.stop 转发出去（用户令 2026-10-09）。只在这一位：反过来「标记未观看」不是「看完了」。
+                    shell.ReportMarkedWatched(item);
 
-                    // 标记为未观看在服务器上连进度一起清掉 —— 服务器没回话的那一次，手上这张卡也得跟着清，否则
-                    // 底边那条进度还在，而它讲的是一个已经不存在的续播点。
-                    if (played) return;
-                    state.PlaybackPositionTicks = 0;
-                    state.PlayedPercentage = 0;
-                });
-
-                if (!played) return;
-
-                // 标记为已看还要替服务器补报一趟播放停止（位置按用户令报 100%），好让服务器上那条通知立刻把
-                // playback.stop 转发出去（用户令 2026-10-09）。只在这一位：反过来「标记未观看」不是「看完了」。
-                shell.ReportMarkedWatched(card.Item);
-
-                // 那一格该换成下一集还是撤掉，页面比这一头清楚（见 Show 的 watched）。
-                watched?.Invoke(card);
-            });
+                    // 那一格该换成下一集还是撤掉，页面比这一头清楚（见 Show 的 watched）。
+                    watched?.Invoke(card);
+                }
+                await RefreshFnNasUserStateAsync(session, shell, card, identity, order, change).ConfigureAwait(true);
+            },
+            finished: () => order.Complete(change));
+    }
 
     /// <summary>收藏。同上。</summary>
-    private static void SetFavorite(EmbySessionScope session, IShellActions shell, CardItem card, bool favourite) =>
-        Run(
+    private static void SetFavorite(EmbySessionScope session, IShellActions shell, CardItem card, bool favourite)
+    {
+        // 旧快捷/菜单入口也须在创建状态操作账之前拒绝；隐藏按钮不能代替执行守卫。
+        if (!card.CanFavorite || !session.IsAvailable || !session.Connection.SupportsFavorites) return;
+
+        var item = card.Item;
+        var identity = item.IdentityKey;
+        var order = UserStateOrders.GetValue(item, static _ => new ItemUserStateOrder());
+        var change = order.BeginFavorite(favourite);
+        RunUserState(
             session,
             shell,
             "更新收藏失败",
-            (client, token) => client.SetFavoriteAsync(card.Item.Id, favourite, token),
-            data =>
+            (client, token) => client.SetFavoriteAsync(item.Id, favourite, token),
+            async data =>
             {
-                Patch(card, data, state => state.IsFavorite = favourite);
-                shell.RefreshFavorites(card.Item);
-            });
+                if (!Patch(card, identity, order, change, data)) return;
+                shell.RefreshFavorites(item);
+                await RefreshFnNasUserStateAsync(session, shell, card, identity, order, change).ConfigureAwait(true);
+            },
+            finished: () => order.Complete(change));
+    }
 
     /// <summary>
     /// The card the gesture landed on. Read off the element rather than passed in, because the sender is
@@ -508,49 +568,78 @@ internal static partial class ItemCommands
         return entry;
     }
 
-    /// <summary>
-    /// Applies the server's own answer to the card, falling back to the change we asked for.
-    /// <para>
-    /// The fallback is not laziness: marking a film played also clears its resume position, and marking
-    /// a series played empties the remaining-episode count, so the server's <c>UserItemDataDto</c> is
-    /// worth more than the one flag we flipped. But no Emby version promises that body, and a card that
-    /// refuses to show a tick because the response was empty is worse than one whose progress bar is a
-    /// refresh out of date.
-    /// </para>
-    /// </summary>
-    private static void Patch(CardItem card, EmbyUserData? data, Action<EmbyUserData> fallback)
+    /// <summary>Both entry points apply through the same per-item field ordering, with no whole-card reload.</summary>
+    private static bool Patch(CardItem card, string identity, ItemUserStateOrder order, ItemUserStateOrder.Change change, EmbyUserData? data)
     {
-        if (data is not null)
-        {
-            card.Item.UserData = data;
-        }
-        else
-        {
-            card.Item.UserData ??= new EmbyUserData();
-            fallback(card.Item.UserData);
-        }
-
+        // Ask may finish off-thread before a queued UI callback observes source revocation.
+        if (!card.IsCurrent || card.Item.IdentityKey != identity) return false;
+        if (order.Apply(change, card.Item.UserData, data) is not { } state) return false;
+        card.Item.UserData = state;
         card.RefreshUserData();
+        return true;
     }
 
+    private static async Task RefreshFnNasUserStateAsync(EmbySessionScope scope, IShellActions shell, CardItem card,
+        string identity, ItemUserStateOrder order, ItemUserStateOrder.Change change)
+    {
+        if (!scope.Connection.IsFnNas || !card.IsCurrent || card.Item.IdentityKey != identity) return;
+        try
+        {
+            var data = await scope.ExecuteAsync((client, token) => client.GetFnNasUserDataAsync(card.Item.Id, token),
+                CancellationToken.None).ConfigureAwait(true);
+            if (!card.IsCurrent || card.Item.IdentityKey != identity || data is null) return;
+            if (order.RefreshConfirmed(change, card.Item.UserData, data) is not { } state) return;
+            card.Item.UserData = state;
+            card.RefreshUserData();
+        }
+        catch (OperationCanceledException) { }
+        catch (ObjectDisposedException) { }
+        catch (Exception error)
+        {
+            if (!card.IsCurrent || card.Item.IdentityKey != identity) return;
+            Log.Warn(Category, "用户状态已保存，但补充刷新失败", error);
+            // Permission/authentication/protocol errors stay visible as errors; they do not roll back
+            // a confirmed write. A transient server/network read failure is a refresh warning only.
+            var transient = error is EmbyUnreachableException || error is EmbyApiException { StatusCode: { } status }
+                && (int)status is >= 500 and <= 599;
+            shell.Notify($"状态已保存，但刷新失败；请刷新列表核对：{Failure.Describe(error)}",
+                transient ? InfoBarSeverity.Warning : InfoBarSeverity.Error);
+        }
+    }
+
+    // Unrelated one-step server commands keep their synchronous application contract.
     private static void Run(
         EmbySessionScope session,
         IShellActions shell,
         string failure,
         Func<EmbyClient, CancellationToken, Task<EmbyUserData?>> work,
-        Action<EmbyUserData?>? applied) => _ = RunAsync(session, shell, failure, work, applied);
+        Action<EmbyUserData?>? applied) =>
+        _ = RunAsync(session, shell, failure, work, data =>
+        {
+            applied?.Invoke(data);
+            return Task.CompletedTask;
+        }, null);
+
+    private static void RunUserState(
+        EmbySessionScope session,
+        IShellActions shell,
+        string failure,
+        Func<EmbyClient, CancellationToken, Task<EmbyUserData?>> work,
+        Func<EmbyUserData?, Task>? applied,
+        Action? finished = null) => _ = RunAsync(session, shell, failure, work, applied, finished);
 
     private static async Task RunAsync(
         EmbySessionScope session,
         IShellActions shell,
         string failure,
         Func<EmbyClient, CancellationToken, Task<EmbyUserData?>> work,
-        Action<EmbyUserData?>? applied)
+        Func<EmbyUserData?, Task>? applied,
+        Action? finished)
     {
         try
         {
             var data = await AskAsync(session, work).ConfigureAwait(true);
-            applied?.Invoke(data);
+            if (applied is not null) await applied(data).ConfigureAwait(true);
         }
         catch (OperationCanceledException)
         {
@@ -562,6 +651,10 @@ internal static partial class ItemCommands
         {
             Log.Warn(Category, failure, error);
             shell.Notify($"{failure}：{Failure.Describe(error)}", InfoBarSeverity.Error);
+        }
+        finally
+        {
+            finished?.Invoke();
         }
     }
 

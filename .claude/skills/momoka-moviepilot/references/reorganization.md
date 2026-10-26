@@ -30,6 +30,7 @@ Emby 的 `Path` 常是 MoviePilot 已整理后的目标，甚至是软链接。�
 - 检查其他软链接是否以旧目标为源：按旧目标路径查询完整历史，不能只按原片名查；同一批次内存在这种依赖也先停。提交前重核原历史快照，包括 FileItem 的存储、类型、路径及复用的媒体身份，路径字符串相同不代表仍是同一个文件。客户端重核无法代替服务端原子提交，检查与执行之间仍有竞态。
 - 清理一个链接可能让未点名的另一个链接失效；不自动级联重整、删除或修复。
 - 确认必须列明实际源、目标、方式、清理/覆盖影响。同一个 WinUI XamlRoot 不能同时显示两张 ContentDialog；用同窗确认或正确结束前一弹窗，不能把弹框异常吞成“用户取消”。
+- AniBT uses `PrepareForConfirmationAsync` to collect the complete read-only batch and return a sealed confirmation token. Show its actual MoviePilot source/target/method/old-history effects or final Emby movie/whole-series target and candidate before the separate confirmation click. Submit consumes that token without replacing it with a new search/preview; changed choices, cancellation and connection loss invalidate it. Without an original history, normalized exact title plus the existing year policy is required; unrelated/substring/year-mismatched first results never authorize Apply. [Actual-source confirmation tests](../../../../tests/Momoka.AniBtConfirmationTests/README.md) cover the sealed plan and inline dialog, not real pixels or shared-server mutations.
 - 提交中锁住再次提交，拿不到明确回执不自动再发一次。只有鉴权在副作用前明确拒绝时，才可按客户端契约重登一次；超时不证明服务器没做。
 - 预览使用文件集合和回执快照并只消费一次；实际发出过的历史/文件在本进程内不能靠重新预览绕过防重。accepted、部分成功和不明回执后保留逐项结果，先去 MoviePilot 核对。当前没有自动核对后解锁的流程，不能把重启客户端当成安全重试证明。
 
@@ -39,7 +40,7 @@ Emby 的 `Path` 常是 MoviePilot 已整理后的目标，甚至是软链接。�
 - `completed`：对应文件完成。
 - `failed/retry_wait/manual_review/skipped` 各自如实显示；部分成功保留逐文件回执，不能把整批重新发出。
 - 若老版本只返回空成功信封，报告“服务器已接收，完成状态待确认”，不能伪造 completed。
-- 核对整理历史新记录及目标文件；源文件保留与否要符合所选整理方式。需要刷新 Emby 时按已授权范围操作，不把单集整理扩大成全库重扫。
+- 核对整理历史新记录及目标文件；源文件保留与否要符合所选整理方式。AniBT 的既有扫描尾段只由唯一明确 `completed` 文件和不可变提交请求／历史共同判断旧媒体路径搬离或旧目标清理；`accepted`／`skipped` 不触发，普通 copy／link／softlink 保留源且无成功旧目标清理时不扫描。目标存储不同，即使路径字符串相同也不能当旧目标未变；非本地对象路径只要求非空，不套本地绝对路径规则。扫描只说已请求，收录／移除由服务器决定；失败保留已完成整理与手动恢复，不能据此解除重整防重。真实刷新仍须按授权范围，不把离线回归当真实全库重扫授权。
 - Emby 可能在刷新后重新命名条目，旧 ID 也可能失效；以季集、路径和媒体身份验证，不只对标题。没有播放就不能报告播放通过。
 
 ## 夹具优先覆盖

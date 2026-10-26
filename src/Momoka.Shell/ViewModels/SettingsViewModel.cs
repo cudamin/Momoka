@@ -170,7 +170,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     private AppPaths? _paths;
     private Platform.ISystemLauncher? _launcher;
     private Platform.IStartupRegistration? _startup;
+    private string? _startupReloadReadFailure;
     private IServerCapabilities? _capabilities;
+    private readonly LoadGeneration _administrationLoads = new();
+    private bool _active;
+    private bool _disposed;
     private MoviePilotService? _moviePilot;
     private MoviePilotCredentials? _moviePilotCredentials;
     private SettingMoviePilotRow? _moviePilotRow;
@@ -644,6 +648,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         EmbyImageStore? images = null,
         DandanPlayCredentials? dandanCredentials = null)
     {
+        if (_disposed) return;
+        Activate();
         _settings = settings;
         _shaders = shaders;
         _fonts = fonts;
@@ -682,14 +688,29 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     internal async Task RefreshServerAdministrationAsync()
     {
-        if (_capabilities is null) return;
+        if (!_active || _capabilities is not { } capabilities) return;
+
+        var token = _administrationLoads.Begin();
+        var sources = capabilities.Sources.ToArray();
+        var keys = sources.Select(source => source.Key).Order(StringComparer.Ordinal).ToArray();
+        var revisions = sources.ToDictionary(source => source.Key, source => source.Scope.PermissionRevision, StringComparer.Ordinal);
+        var identity = sources.FirstOrDefault(source => source.IsCurrent);
+        var knownKind = capabilities.ServerKind;
+
+        // 来源键只说明「谁」，捕获作用域还说明「哪一次在线身份」。同键重建、同服换默认账号、
+        // 离页或后一次刷新都不能借旧空表提交；Scope 是快照对象，不能拿新旧 Scope 引用比较。
+        bool Current() => _active
+            && ReferenceEquals(_capabilities, capabilities)
+            && _administrationLoads.IsCurrent(token)
+            && knownKind == capabilities.ServerKind
+            && sources.All(source => source.IsAvailable && source.Scope.PermissionRevision == revisions[source.Key])
+            && (identity is null || identity.IsCurrent)
+            && keys.SequenceEqual(capabilities.Sources.Select(source => source.Key).Order(StringComparer.Ordinal));
 
         // 多服务器：Momoka 组之后每台在线服务器一组，默认全部收起。组里的入口绑定那一台自己的
         // 捕获作用域 —— 这正是从前只有独占模式才看得见的那批设置页，现在按服务器各归各的。
-        var sources = _capabilities.Sources;
         if (sources.Select(source => source.ServerProfileId).Distinct(StringComparer.Ordinal).Count() > 1)
         {
-            var keys = sources.Select(source => source.Key).Order(StringComparer.Ordinal).ToArray();
             ApplyMultiServerGroups(sources, new Dictionary<string, IReadOnlyList<ServerSettingsPluginPage>>(StringComparer.Ordinal));
 
             var pages = new Dictionary<string, IReadOnlyList<ServerSettingsPluginPage>>(StringComparer.Ordinal);
@@ -697,22 +718,19 @@ public sealed partial class SettingsViewModel : PageViewModel
                 .Where(source => source.IsAdministrator && source.Kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
                 .Select(async source =>
                 {
-                    var list = await _capabilities.GetAdminMenuPagesAsync(source.Key).ConfigureAwait(true);
+                    var list = await capabilities.GetAdminMenuPagesAsync(source.Key, token).ConfigureAwait(true);
                     lock (pages) pages[source.Key] = list;
                 })).ConfigureAwait(true);
 
-            // 等插件页的这一趟里换了服务器/账号：这一份目录属于上一批来源，下一趟会重装。
-            var current = _capabilities.Sources;
-            if (!keys.SequenceEqual(current.Select(source => source.Key).Order(StringComparer.Ordinal)))
-                return;
-            ApplyMultiServerGroups(current, pages);
+            if (!Current()) return;
+            // 等待后重读每条来源的权限，不让等待前的管理员位重新打开已收起的目录。
+            ApplyMultiServerGroups(capabilities.Sources, pages);
             return;
         }
 
         // 先同步已知状态，防止权限请求尚在等待时显示上一个账号、上一台服务器或上一个连接模式的管理页。
         // 产品一变立刻换上那一家的固定条目（插件页稍后补）；不能拿上一家的分组顶着新产品的名字。
         // 这一步也是命令行按分类打开的落点依据：OnNavigatedTo 里的 Select 紧接着同步这一段就执行。
-        var knownKind = _capabilities.ServerKind;
         if (knownKind != _administrationKind || _serverEntries.Count == 0)
         {
             SetServerMenu(knownKind switch
@@ -724,20 +742,19 @@ public sealed partial class SettingsViewModel : PageViewModel
             }, knownKind);
         }
         ApplyServerAdministration(CanShowServerAdministration, knownKind);
-        if (_capabilities.IsAdministrator is null)
-            await _capabilities.ProbeAsync().ConfigureAwait(true);
+        if (capabilities.IsAdministrator is null)
+            await capabilities.ProbeAsync(token).ConfigureAwait(true);
+        if (!Current()) return;
 
         var visible = CanShowServerAdministration;
-        var kind = _capabilities.ServerKind;
+        var kind = capabilities.ServerKind;
         if (visible && kind is MediaServerKind.Emby or MediaServerKind.Jellyfin)
         {
-            var pages = await _capabilities.GetAdminMenuPagesAsync().ConfigureAwait(true);
-            if (kind != _capabilities.ServerKind)
-            {
-                // 等插件页的这一趟里换了服务器，当前这份目录属于上一台；下一趟会把新目录装上。
-                return;
-            }
-            SetServerMenu(kind == MediaServerKind.Emby
+            var pages = await capabilities.GetAdminMenuPagesAsync(token).ConfigureAwait(true);
+            if (!Current()) return;
+
+            visible = CanShowServerAdministration;
+            SetServerMenu(!visible ? [] : kind == MediaServerKind.Emby
                 ? ServerSettingsMenu.Build(pages)
                 : JellyfinServerSettingsMenu.Build(pages), kind);
         }
@@ -749,6 +766,29 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
 
         ApplyServerAdministration(visible, kind);
+    }
+
+    /// <summary>缓存页重开只恢复读取活动期，不 Reload、保存或替换草稿集合。</summary>
+    internal void Activate()
+    {
+        if (_disposed) return;
+        _administrationLoads.Cancel();
+        _active = true;
+    }
+
+    public override void Cancel()
+    {
+        _active = false;
+        _administrationLoads.Cancel();
+        base.Cancel();
+    }
+
+    public override void Dispose()
+    {
+        _disposed = true;
+        _active = false;
+        _administrationLoads.Dispose();
+        base.Dispose();
     }
 
     /// <summary>
@@ -893,13 +933,21 @@ public sealed partial class SettingsViewModel : PageViewModel
         var entry = FindEntry(value);
         if (entry is not null)
         {
-            if (entry.SourceKey is not null) return true;
+            if (entry.SourceKey is { } key)
+            {
+                var source = _capabilities?.Sources.FirstOrDefault(value => string.Equals(value.Key, key, StringComparison.Ordinal));
+                if (source is null || !source.IsAvailable) return false;
+                if (source.Kind == MediaServerKind.FnNas
+                    && entry.Label is FnNasPasswordCategory or FnNasPreferencesCategory or FnNasAppearanceCategory) return true;
+                return source.IsAdministrator && source.Kind is MediaServerKind.Emby or MediaServerKind.Jellyfin or MediaServerKind.FnNas;
+            }
             return (!_fnNasAccountHosted.Contains(entry.Label, StringComparer.Ordinal) || _showsFnNasAccount)
                 && (!_serverAdministrationCategories.Contains(entry.Label, StringComparer.Ordinal)
                     || (CanShowServerAdministration
                         && AdministrationCategories(_capabilities!.ServerKind).Contains(entry.Label, StringComparer.Ordinal)));
         }
 
+        if (value.Contains('\u001f')) return false; // 已撤销/收起的显式来源键不能走普通本机分类回退。
         return (!_fnNasAccountHosted.Contains(value, StringComparer.Ordinal) || _showsFnNasAccount)
             && (!_serverAdministrationCategories.Contains(value, StringComparer.Ordinal)
                 || (CanShowServerAdministration
@@ -975,8 +1023,10 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 左栏的分组 View 与紧凑下拉必须先指向同一批对象，再推选中项。
             // 否则旧 View 不认新对象，将 TwoWay 选择退回 null，与另一颗选择器来回递归。
             OnPropertyChanged(nameof(CategoryGroups));
-            if (!string.Equals(SelectedCategory, keep.Key, StringComparison.Ordinal)) SelectedCategory = keep.Key;
+            // 权限收走选中管理项时，页面会在 SelectedCategory 通知内同步读取 SelectedEntry 并释放／导航。
+            // 先把新落点交给它，不能让「主页」通知仍读到旧管理项而又打开一次已经降权的页面。
             SelectedEntry = keep;
+            if (!string.Equals(SelectedCategory, keep.Key, StringComparison.Ordinal)) SelectedCategory = keep.Key;
         }
         finally { _syncingSelection = false; }
 
@@ -1029,7 +1079,8 @@ public sealed partial class SettingsViewModel : PageViewModel
     public override Task ReloadAsync()
     {
         if (_settings is null) return Task.CompletedTask;
-        HasUnsavedChanges = _settings.HasUnsavedChanges;
+        _startupReloadReadFailure = null;
+        SyncSaveState();
 
         // 精简模式是页级状态（SettingRow.NotesHidden），建卡之前先对齐 —— 行的可见性在容器落到树上那一刻
         // 才求值，这里晚了才是错的。恢复默认那趟重走这里，同一句话把它拨回新文档的样子。
@@ -1047,8 +1098,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(ResourceFilterCard());
         Sections.Add(ScreenshotCard());
         Sections.Add(VideoCard());
-        Sections.Add(HdrCard());
-        Sections.Add(ShaderCard());
+        Sections.Add(ApplicableHdrCard());
+        Sections.Add(ApplicableShaderCard());
         Sections.Add(AudioCard());
         Sections.Add(SubtitleCard());
         if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) Sections.Add(DanmakuCard());
@@ -1066,11 +1117,16 @@ public sealed partial class SettingsViewModel : PageViewModel
 
     /// <summary>
     /// Re-enumerates the 音频输出设备 row on a cached page's re-entry. The page is deliberately cached
-    /// (half-typed text survives navigation), so ReloadAsync does not run again — but a device list is a
-    /// reading, not a preference, and the row's own note promises a fresh enumeration every visit. Only
-    /// this one row refreshes; every other card keeps its in-progress edits.
+    /// (half-typed text survives navigation), so ReloadAsync does not run again. The device list is a reading,
+    /// not a preference; shared settings may also change dependent rows' applicability while the page is away.
+    /// Only those dependent rows and changed controlling values update, preserving unrelated in-progress edits.
     /// </summary>
-    internal Task RefreshAudioDevicesAsync() => FillAudioDevicesAsync();
+    internal Task RefreshAudioDevicesAsync()
+    {
+        // 缓存重入只原位增删适用性变化的从属行，不整页 Reload，也不改半输入与保存状态。
+        RefreshSettingsApplicability();
+        return FillAudioDevicesAsync();
+    }
 
     /// <summary>
     /// Hands the 音频输出设备 row the machine's real devices once they have been enumerated. Same shape and same
@@ -1197,6 +1253,15 @@ public sealed partial class SettingsViewModel : PageViewModel
     public partial bool HasUnsavedChanges { get; set; }
 
     public Visibility UnsavedVisibility => Show(HasUnsavedChanges);
+
+    /// <summary>
+    /// 缓存页重入时只对齐共享服务的保存结果；别的页面也可能保存成功或失败。
+    /// 不重建卡片、不写盘，保留半输入、分类与集合实例；属性通知同时更新提示和重试命令。
+    /// </summary>
+    internal void SyncSaveState()
+    {
+        if (_settings is { } settings) HasUnsavedChanges = settings.HasUnsavedChanges;
+    }
 
     private void Save()
     {
@@ -1370,7 +1435,23 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     /// <summary>截图画质各行共用的「推给正在播的那部」：整组发，没在播就是无事可做。</summary>
-    private void PushScreenshotOptions() => _ = _pushScreenshotOptions?.Invoke();
+    private void PushScreenshotOptions() => _ = PushScreenshotOptionsAsync();
+
+    private async Task<bool> PushScreenshotOptionsAsync()
+    {
+        if (_pushScreenshotOptions is null) return true;
+        try
+        {
+            await _pushScreenshotOptions().ConfigureAwait(true);
+            return true;
+        }
+        catch (OperationCanceledException) { return false; }
+        catch (Exception error)
+        {
+            Report("当前播放的截图选项未完全更新", error);
+            return false;
+        }
+    }
 
     private SettingSection PlaybackCard()
     {
@@ -1482,20 +1563,8 @@ public sealed partial class SettingsViewModel : PageViewModel
                 + "不是 libass 播放画面；实际尺寸还受窗口大小与字幕格式影响。", playback);
         _subtitlePreview = preview;
 
-        // 底板颜色 states which of its two jobs it is doing, so the row above it cannot be a lie: mpv
-        // shares one colour between the plate and the drop shadow, and 字幕底板 is what decides which of
-        // them gets painted. Same shape as 视频输出's 视频同步 row — one writer, and the row states the
-        // value in force — and for the same reason: this pair drew nothing at all for as long as nobody
-        // sent the style option, and 「界面在骗人」 is the bug that costs the most to find.
-        SettingColorRow? backColor = null;
-        backColor = ColorRow("底板颜色",
-            () => playback.SubtitleBackColor, Live<string>(value => playback.SubtitleBackColor = value),
-            "sub-back-color", BackColorNote(playback));
-
-        return new SettingSection("字幕", "字幕", "语言优先级和字幕外观。勾选语言并排序，越靠上越优先，"
-            + "「其他字幕」代表任何别的语言的字幕、放在最后可兜底。"
-            + "外观这一组改完立刻作用到正在播的片子；语言、显示模式和字幕编码下次播放生效。",
-        [
+        var rows = new List<SettingRow>
+        {
             preview,
 
             LanguagePriority("字幕语言优先级", "未指定，跟随文件默认字幕", () => playback.SubtitleLanguages, value => playback.SubtitleLanguages = value,
@@ -1549,25 +1618,11 @@ public sealed partial class SettingsViewModel : PageViewModel
                 () => playback.SubtitleBorderSize, Live<string>(value => playback.SubtitleBorderSize = value),
                 "文字外那一圈边的宽度，拖到 0 就是没有描边。出厂 0.5，mpv 自己是 1.65", "sub-border-size"),
             ColorRow("描边颜色", () => playback.SubtitleBorderColor, Live<string>(value => playback.SubtitleBorderColor = value), "sub-border-color"),
-            UnitSlider("阴影偏移 / 背景盒留白", 0,
-                () => playback.SubtitleShadowOffset, Live<string>(value => playback.SubtitleShadowOffset = value),
-                "普通样式和逐行盒：阴影向右下偏移；整体背景盒：控制底板留白，不另画文字阴影。"
-                    + "出厂 0.5；阴影与背景盒都使用下面的底板颜色", "sub-shadow-offset"),
+            SubtitleShadowRow(),
 
             Mpv("字幕底板", MpvOutputOptions.SubtitleBackStyles, () => playback.SubtitleBackStyle,
-                Live<string>(value =>
-                {
-                    playback.SubtitleBackStyle = value;
-
-                    // 这一项一变，下面那一行颜色画的是底板还是阴影就变了。页面没有整体刷新，只有因果关系
-                    // 明确的这一处自己去改那一行。annotate 一起带上，不然重述一次那一行末尾的
-                    // 「mpv：sub-back-color」就掉了。
-                    backColor!.Restate(Annotate(BackColorNote(playback), "sub-back-color")!);
-                }),
-                "sub-border-style", "亮画面上最管用的一项。关着的时候只有描边和阴影"),
-            backColor!,
-            Slider("底板不透明度（%）", 0, 100, 5, () => playback.SubtitleBackOpacity, Live<double>(value => playback.SubtitleBackOpacity = (int)value),
-                "控制底板颜色的透明度；颜色选「不设置」时使用黑色，透明度仍按此值。逐行盒的描边盒由描边颜色控制", "sub-back-color"),
+                Live<string>(value => playback.SubtitleBackStyle = value),
+                "sub-border-style", "亮画面上最管用的一项。关着的时候只有描边和阴影", RefreshSubtitleBackRows),
 
             Mpv("字幕编码", MpvOutputOptions.SubtitleCodepages, () => playback.SubtitleCodepage, value => playback.SubtitleCodepage = value,
                 "sub-codepage", "只对不是 UTF-8 的文本字幕有意义。选了具体编码就不再自动识别了，"
@@ -1575,7 +1630,11 @@ public sealed partial class SettingsViewModel : PageViewModel
             Toggle("拉伸图形字幕到画面", "画面比 16:9 更宽的电影，把图形字幕（PGS/VOBSUB）拉伸到画面里，"
                 + "免得字幕落到画面外头去。下次播放生效", () => playback.StretchWideImageSubtitles, value => playback.StretchWideImageSubtitles = value,
                 "stretch-image-subs-to-screen")
-        ]);
+        };
+        rows.InsertRange(rows.FindIndex(row => row.Label == "字幕底板") + 1, SubtitleBackRows());
+        return new SettingSection("字幕", "字幕", "语言优先级和字幕外观。勾选语言并排序，越靠上越优先，"
+            + "「其他字幕」代表任何别的语言的字幕、放在最后可兜底。"
+            + "外观这一组改完立刻作用到正在播的片子；语言、显示模式和字幕编码下次播放生效。", rows);
     }
 
     /// <summary>
@@ -2024,24 +2083,78 @@ public sealed partial class SettingsViewModel : PageViewModel
     private SettingToggleRow StartupRow()
     {
         SettingToggleRow? row = null;
+        bool? confirmed = null;
+        var applied = false;
+        (string? Title, string Message)? failureNotice = null;
+
+        void Failed(string? title, string message)
+        {
+            failureNotice = (title, message);
+            Notify(title, message, InfoBarSeverity.Error);
+        }
+
+        void ReadFailed(Exception error) => Failed("读取开机自启状态失败",
+            $"{Failure.Describe(error)}；无法确认当前状态，请在系统启动项中核对。");
+
+        bool Read()
+        {
+            try
+            {
+                if (_startup is not null) confirmed = _startup.IsEnabled;
+            }
+            catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+            {
+                ReadFailed(error);
+                _startupReloadReadFailure = NoticeMessage;
+            }
+
+            // 没有可信初读时只用原有二态行的默认值，不把它当事实；已有 Error 反馈明确读取失败。
+            return confirmed ?? false;
+        }
 
         row = Toggle("开机自启",
             "登录 Windows 之后自动打开 Momoka；关掉就从系统的启动项里撤掉。改完当场生效，不用重启。"
                 + "这一项不进设置文件，任务管理器「启动」页上看到的就是它。",
-            () => _startup?.IsEnabled ?? false,
-            value => _startup?.Apply(value),
+            Read,
+            value => applied = _startup?.Apply(value) ?? false,
             after: () =>
             {
                 if (row is null || _startup is null) return;
 
-                var actual = _startup.IsEnabled;
-                if (actual == row.IsOn) return;
+                var wanted = row.IsOn;
+                bool actual;
+                try
+                {
+                    actual = _startup.IsEnabled;
+                }
+                catch (Exception error) when (error is UnauthorizedAccessException or System.Security.SecurityException or IOException)
+                {
+                    // 仅成功读数能更新 confirmed。回读失败时撤掉未确认的用户目标，保留此前读数并报错。
+                    row.Reseed(confirmed ?? false);
+                    ReadFailed(error);
+                    return;
+                }
 
-                row.Reseed(actual);
-                Notify(null, actual
-                    ? "没能关掉开机自启：系统拒绝了这次改动，本程序仍会在登录后启动。"
-                    : "没能打开开机自启：系统拒绝了这次改动，本程序不会在登录后启动。",
-                    InfoBarSeverity.Error);
+                confirmed = actual;
+                if (actual != wanted)
+                {
+                    row.Reseed(actual);
+                    Failed(null, actual
+                        ? "没能关掉开机自启：系统拒绝了这次改动，本程序仍会在登录后启动。"
+                        : "没能打开开机自启：系统拒绝了这次改动，本程序不会在登录后启动。");
+                }
+                else if (!applied)
+                {
+                    // 两格可能只改成一格；即使当前 bool 恰好等于目标，也不能吞掉 Apply 的失败契约。
+                    Failed(null, "没能确认开机自启改动已完成，请在系统启动项中核对。");
+                }
+                else if (failureNotice is { } failure && NoticeTitle == failure.Title
+                    && NoticeMessage == failure.Message && NoticeSeverity == InfoBarSeverity.Error)
+                {
+                    // 本行后续已确认成功才撤自己的旧错误；不清掉其他操作留下的反馈。
+                    ClearNotice();
+                    failureNotice = null;
+                }
             });
 
         return row;
@@ -2156,19 +2269,18 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 关于卡「截图目录」那颗「打开」：建得起就先建再开。建目录不放进行提交那一路 —— 每敲一键提交一次，
-    /// 会把路径的每个前缀都建成文件夹 —— 归启动时和这里各一道；刚改完目录还没重开过程序的人，点按钮也有
-    /// 地方可去。
+    /// 关于卡四个目录共用这一条打开入口。建目录也归 launcher，只调用一次；磁盘或启动失败由页面提示。
+    /// 放进 Task 承接按钮动作，目录访问不阻塞 UI，失败回来仍在 UI 上更新通知。
     /// </summary>
-    private void OpenScreenshotDirectory()
+    private async Task OpenDirectoryAsync(string directory)
     {
-        var directory = ScreenshotDirectory();
-        if (directory.Length == 0) return;
+        if (_launcher is not { } launcher || string.IsNullOrWhiteSpace(directory)) return;
 
-        try { Directory.CreateDirectory(directory); }
-        catch (Exception) { /* 建不起就算了：盘不在、写不进，打开那一步资源管理器自己会说。 */ }
-
-        _launcher?.OpenFolder(directory);
+        try
+        {
+            await Task.Run(() => launcher.OpenFolder(directory)).ConfigureAwait(true);
+        }
+        catch (Exception error) { Report("打开目录失败", error); }
     }
 
     // ── 检查新版本 ────────────────────────────────────────────────────────────────────────────────────
@@ -2288,11 +2400,11 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (_paths is { } paths)
         {
             rows.Add(Fact("设置文件", "所有设置都在这一份 JSON 里，token 是 DPAPI 包过的", paths.SettingsFile,
-                "打开所在文件夹", () => _launcher?.OpenFolder(paths.Root)));
+                "打开所在文件夹", () => _ = OpenDirectoryAsync(paths.Root)));
             rows.Add(Fact("日志目录", "自检报告和界面树也在这儿", paths.LogDirectory,
-                "打开", () => _launcher?.OpenFolder(paths.LogDirectory)));
+                "打开", () => _ = OpenDirectoryAsync(paths.LogDirectory)));
             rows.Add(Fact("缓存目录", "海报和着色器缓存，删掉不会丢设置", Path.GetDirectoryName(paths.ImageCacheDirectory) ?? paths.Root,
-                "打开", () => _launcher?.OpenFolder(Path.GetDirectoryName(paths.ImageCacheDirectory) ?? paths.Root)));
+                "打开", () => _ = OpenDirectoryAsync(Path.GetDirectoryName(paths.ImageCacheDirectory) ?? paths.Root)));
 
             // 播放器右键菜单 → 截图 的落点。这一行不是装饰：截图这个功能从前根本没做，理由正是
             // 「--no-config 之下没有 screenshot-directory，文件会落到 exe 旁边而不告诉用户」——
@@ -2300,7 +2412,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             // （「截图保存目录」那一行，2026-10-11 起住播放行为分类的截图分区卡），这一行握在
             // _screenshotFact 上，那头一改它当场换。
             _screenshotFact = Fact("截图目录", "播放器右键菜单 → 截图 存到这儿，文件名是片名、播放时间和序号",
-                ScreenshotDirectory(), "打开", OpenScreenshotDirectory);
+                ScreenshotDirectory(), "打开", () => _ = OpenDirectoryAsync(ScreenshotDirectory()));
             rows.Add(_screenshotFact);
         }
 
@@ -2573,10 +2685,26 @@ public sealed partial class SettingsViewModel : PageViewModel
         ShellPrefs.ApplyShortcuts();
         ShellPrefs.ApplyDanmaku();
 
-        await ReloadAsync().ConfigureAwait(true);
+        // 建行同步完成，后续 Task 只等字体/设备：在 await 前保留本次启动初读错误，不能借另一轮的读数。
+        var reload = ReloadAsync();
+        var startupReadFailure = _startupReloadReadFailure;
+        await reload.ConfigureAwait(true);
+        await ReapplyPlaybackPreferencesAsync(notice, startupReadFailure).ConfigureAwait(true);
+    }
+
+    /// <summary>恢复/导入共有的播放设置收尾；与窗口重建分开，使用同一批已恢复的内存设置。</summary>
+    private async Task ReapplyPlaybackPreferencesAsync(string notice, string? startupReadFailure = null)
+    {
         var subtitlesApplied = await PushSubtitleStyleAsync().ConfigureAwait(true);
+        var screenshotsApplied = await PushScreenshotOptionsAsync().ConfigureAwait(true);
         AnnounceScreenshotDirectory();
-        if (!subtitlesApplied) return;
+        if (!subtitlesApplied || !screenshotsApplied) return;
+
+        if (startupReadFailure is not null)
+        {
+            Notify("读取开机自启状态失败", startupReadFailure, InfoBarSeverity.Error);
+            return;
+        }
 
         Notify(null, HasUnsavedChanges ? "偏好已在本次运行应用，但尚未保存；请重试保存。" : notice,
             HasUnsavedChanges ? InfoBarSeverity.Warning : InfoBarSeverity.Success);
@@ -2705,12 +2833,12 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 写回去的是规范数字（和 <see cref="MpvOutputOptions.ClampSubtitleUnit"/> 落盘的格式一致），范围仍是
     /// mpv 自己的 0–10，手改设置文件越界的照样在每次读盘时被它拦回来。
     /// </summary>
-    private SettingSliderRow UnitSlider(string label, double whenUnset, Func<string> read, Action<string> write, string? note = null, string mpvOption = "") =>
+    private SettingSliderRow UnitSlider(string label, double whenUnset, Func<string> read, Action<string> write, string? note = null, string mpvOption = "", Action? after = null) =>
         new(label, Annotate(note, mpvOption),
             MpvOutputOptions.SubtitleUnitMinimum, MpvOutputOptions.SubtitleUnitMaximum, 0.05,
             ParseUnit(read()) ?? whenUnset,
             value => write(value.ToString("0.###", CultureInfo.InvariantCulture)),
-            Save);
+            Save, after);
 
     private static double? ParseUnit(string? value) =>
         double.TryParse((value ?? "").Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)

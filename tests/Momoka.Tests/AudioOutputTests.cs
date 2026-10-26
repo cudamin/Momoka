@@ -166,6 +166,115 @@ internal static class AudioOutputTests
             Assert.Equal(70, next.Pending, "结算前必须把已收到的真实读数转成待保存值");
         });
 
+        Test("R-054 音量记忆：确认后强制结算不能把旧37保存回去", () =>
+        {
+            var memory = new VolumeMemory();
+            memory.Observe(Status(37), true, 0);
+            memory.Saved(memory.Revision);
+            var request = memory.Request(60, 10);
+            Assert.Null(memory.Observe(Status(37), true, 20));
+            Assert.True(memory.Accept(request, 60, 30));
+            var revision = memory.Revision;
+            var adopted = memory.FlushQueued(31);
+            Console.WriteLine($"  R054强制结算: adopted={adopted}; pending={memory.Pending}; revision={memory.Revision}");
+            Assert.Null(adopted, "已确认请求之前的37不是确认后的新读数");
+            Assert.Equal(60, memory.Pending);
+            Assert.Equal(revision, memory.Revision);
+        });
+
+        Test("R-054 音量记忆：旧37在确认后送到也不能强制结算", () =>
+        {
+            var memory = new VolumeMemory();
+            memory.Observe(Status(37), true, 0);
+            memory.Saved(memory.Revision);
+            var request = memory.Request(60, 10);
+            Assert.True(memory.Accept(request, 60, 30));
+            Assert.Null(memory.Observe(Status(37), true, 40));
+            Assert.Null(memory.FlushQueued(41));
+            Assert.Equal(60, memory.Pending);
+        });
+
+        Test("R-054 音量记忆：确认后真实70不能被随后旧37挤掉", () =>
+        {
+            var memory = new VolumeMemory();
+            memory.Observe(Status(37), true, 0);
+            var request = memory.Request(60, 10);
+            Assert.True(memory.Accept(request, 60, 30));
+            Assert.Null(memory.Observe(Status(70), true, 40));
+            Assert.Null(memory.Observe(Status(37), true, 50));
+            Assert.Equal(70, memory.Queued);
+            Assert.Equal(70, memory.FlushQueued(51));
+            Assert.Equal(70, memory.Pending);
+        });
+
+        Test("R-054 音量记忆：目标观察或保护过期后真实回到37仍保留", () =>
+        {
+            foreach (var targetSeen in new[] { true, false })
+            {
+                var memory = new VolumeMemory();
+                memory.Observe(Status(37), true, 0);
+                var request = memory.Request(60, 10);
+                Assert.True(memory.Accept(request, 60, 30));
+                if (targetSeen) Assert.Equal(60, memory.Observe(Status(60), true, 40));
+                Assert.Equal(37, memory.Observe(Status(37), true, targetSeen ? 50 : 1211));
+                Assert.Equal(37, memory.Pending);
+            }
+        });
+
+        Test("R-054 音量记忆：失败保存及换片不丢确认版本或真实暂存70", () =>
+        {
+            var memory = new VolumeMemory();
+            memory.Observe(Status(37), true, 0);
+            memory.Saved(memory.Revision);
+            var request = memory.Request(60, 10);
+            memory.Observe(Status(37), true, 20);
+            Assert.True(memory.Accept(request, 60, 30));
+            memory.FlushQueued(31);
+            var revision = memory.Revision;
+            memory.ResetObservation();
+            Assert.Equal(60, memory.Pending);
+            Assert.Equal(revision, memory.Revision);
+            var failed = memory.Request(80, 40);
+            Assert.Null(memory.Observe(Status(70), true, 50));
+            Assert.True(memory.Reject(failed));
+            memory.ResetObservation();
+            Assert.Equal(60, memory.Pending);
+            Assert.Equal(70, memory.Queued);
+            Assert.Equal(70, memory.FlushQueued(60));
+            memory.Saved(revision);
+            Assert.Equal(70, memory.Pending, "旧保存完成不能清掉新真实读数");
+            memory.Saved(memory.Revision);
+            Assert.Null(memory.Pending);
+        });
+
+        Test("R-054 音量记忆：确认前不同真实70不能随旧回声一起丢弃", () =>
+        {
+            var memory = new VolumeMemory();
+            memory.Observe(Status(37), true, 0);
+            var request = memory.Request(60, 10);
+            Assert.Null(memory.Observe(Status(70), true, 20));
+            Assert.True(memory.Accept(request, 60, 30));
+            Assert.Equal(70, memory.Queued);
+            Assert.Equal(70, memory.FlushQueued(31));
+            Assert.Equal(70, memory.Pending);
+        });
+
+        Test("R-054 音量记忆：连续本地请求保留各个已知旧回声，但不吞新70", () =>
+        {
+            var memory = new VolumeMemory();
+            memory.Observe(Status(37), true, 0);
+            var first = memory.Request(50, 10);
+            Assert.True(memory.Accept(first, 50, 20));
+            var next = memory.Request(60, 30);
+            Assert.True(memory.Accept(next, 60, 40));
+            Assert.Null(memory.Observe(Status(70), true, 50));
+            Assert.Null(memory.Observe(Status(50), true, 60));
+            Assert.Null(memory.Observe(Status(37), true, 70));
+            Assert.Equal(70, memory.Queued);
+            Assert.Equal(70, memory.FlushQueued(80));
+            Assert.Equal(70, memory.Pending);
+        });
+
         Test("设置清洗：空文档的空设备不抛且起播走系统默认", () =>
         {
             using var paths = new TempPaths();

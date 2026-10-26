@@ -1,0 +1,227 @@
+{
+  "phase": 15,
+  "title": "音频输出与设备／音量",
+  "startCommit": "c29283b1503b15b98ce05cb2ee3a167d46ff02f8",
+  "summary": "新增R-053/R-054两项P2音量问题；R-051扩入音量／延迟执行点",
+  "counts": {
+    "stable": 54,
+    "static": 51,
+    "conditional": 2,
+    "suggestion": 1
+  },
+  "nextPhase": 16,
+  "findings": [
+    {
+      "id": "R-053",
+      "priority": "P2",
+      "title": "首次确认前连续调音量重复累计步长",
+      "anchors": [
+        [
+          "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+          1026,
+          1070
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/PlayerViewModel.Mpv.cs",
+          174,
+          176
+        ],
+        [
+          "src/Momoka.Core/Playback/PlaybackService.cs",
+          169,
+          185
+        ]
+      ],
+      "trigger": "集成页音量未确认_volumeReady=false；显示/基准100，第一次减5确认及属性事件尚未回来，第二次减5。",
+      "chain": "NudgeVolume同步显示100→95→90；OnVolumeChanged每次减旧基准100得到add -5/add -10；服务gate只串已算步长，累计降15而非10。",
+      "protection": "_pushing只防回填、命令gate不锁用户输入；异步原生命令和UI派发不保证第二输入前确认。已知音量的绝对分支不属于此触发；未运行UI交错。",
+      "acceptance": "按每个手势保留相对delta而非显示累计值减旧读数；真实VM+挂起假后端覆盖两次-5、反转、旧回声、读回失败，不能只直接服务传两次-5代替入口。"
+    },
+    {
+      "id": "R-054",
+      "priority": "P2",
+      "title": "停止／换片结算将旧音量回声当最新值保存",
+      "anchors": [
+        [
+          "src/Momoka.Core/Playback/VolumeMemory.cs",
+          24,
+          71
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+          1073,
+          1084
+        ],
+        [
+          "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+          1126,
+          1150
+        ],
+        [
+          "tests/Momoka.Tests/AudioOutputTests.cs",
+          92,
+          104
+        ]
+      ],
+      "trigger": "旧37已观察/保存→请求60→旧回声37在保护窗Queued→60获命令确认，但状态60尚未到；此时停止/换片强制结算。",
+      "chain": "Accept仅Remember(60)不区分/清旧Queued37；FlushVolume先无条件FlushQueued，Remember37覆盖Pending60再写设置，回退到请求前音量。",
+      "protection": "同代次不被播放generation排除；Saved revision防旧保存清新pending但不识别回声顺序；状态60先到会清Queued，故该次排除。不是保存未确认目标值。",
+      "acceptance": "区分确认前旧回声和确认后真实读数；补37→60确认→强制结算不得保存37，以及真实70随后调整仍可记，避免一律扔Queued。"
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "P15-EX-01",
+      "status": "设备回退守卫存在",
+      "detail": "每次LoadAsync重枚举，仅共享在途；空/异常不沿用旧名单；内置起播重核、null未核对/空本次省略区分、外部明确不拿内置表回退。"
+    },
+    {
+      "id": "P15-EX-02",
+      "status": "音频选项接线确认",
+      "detail": "声道/直通列表规范、同源滤镜常量、DRC编码范围、下混归一化说明、毫秒→秒、0/100/130音量约束已核；不因部分codec直通就将所有PCM偏好判无效。"
+    },
+    {
+      "id": "P15-EX-03",
+      "status": "失败保存/独占时钟不另报",
+      "detail": "VM保存循环独立于页ticker，失败保留pending/revision并5秒重试；Detach不注销VM订阅。未运行独占真实保存和失败时钟。"
+    },
+    {
+      "id": "P15-EX-04",
+      "status": "延迟守卫/备份保留",
+      "detail": "相对延迟内核基准/有限读回/请求序号及代次检查；不同句柄替换回归已有；SettingsPreferences留目的地音量、偏好原地覆盖。"
+    },
+    {
+      "id": "R-051扩展",
+      "status": "同根因不新增号",
+      "detail": "服务Current后执行端才捕获原生代次的间隙也影响add/set volume及audio-delay；gate不与Swap共锁，后验拒绝不能撤回已经串入新片的写。"
+    },
+    {
+      "id": "P15-COV-01",
+      "status": "测试缺口",
+      "detail": "现有AudioOutputTests不覆盖真实VM StepVolume/AdjustVolume连续手势和旧Queued强制结算；静态正常测试不能覆盖本轮两问题。"
+    },
+    {
+      "id": "P15-COV-02",
+      "status": "运行缺口",
+      "detail": "无DLL，原生设备采集/共享AO/失效端点/null滤镜/独占热拔插和直通听感均未运行。空目录加载过程和真实设备UI均未实屏核对。"
+    }
+  ],
+  "coverage": [
+    "主线程核设备枚举/下发/设置保存与直通范围；Dirac只读核运行期音量/延迟，两候选经主线程分段重读，已完成关闭。",
+    "本轮实际运行既有无DLL安全夹具：14项通过、0失败、退出0；load_dll/media调用均假替换，不加载libmpv/音频端点。日志含missing.dll预期失败报告，这是测试用例预期，不是本轮原生采集失败。",
+    "14项通过只证明采集器安全/失败证据契约，不是C#测试、听感、声道、真实设备、uosc保存或直通验证。本树无DLL，未从主树复制，不restore/编译/运行产品。",
+    "固定产品866文件及旧正文保护；没有真实服务器/用户设置/音频系统/播放、UI输入、发布推送，历史2072不当新证据。"
+  ],
+  "handoff": "一名音量／延迟代理完成并主线程复核；无DLL维护夹具14项通过。仅五记录检查提交，不改产品／测试／资源，不运行原生或真实媒体。",
+  "agents": [
+    {
+      "id": "01a16409-7f97-7392-a3ac-839ba8ced47f",
+      "name": "Dirac",
+      "status": "完成，两候选并R-051扩展",
+      "closed": true
+    }
+  ],
+  "maintenanceFixture": {
+    "command": "py .claude/skills/momoka-audio-output/scripts/test-probe-audio-native.py",
+    "passed": 14,
+    "failed": 0,
+    "exitCode": 0,
+    "log": "artifacts/staged-review/phase15/audio-safe-fixture.log",
+    "logSha256": "A067248CD37837254193E20C2E12ED57715D639554E2DADF49A52D81F392AE0C",
+    "testSourceSha256": "9C19547EE6E1451A2E19746D828F8B474371EF740AAE6D6D918268E7288503EE",
+    "probeSourceSha256": "8C282871770EA3C96FE57919676BFDEFC5E97A38D6D80A9A628B978E6DA25649",
+    "limits": "纯Python假native，不加载DLL，不是产品测试"
+  },
+  "rootCauseExpansions": [
+    {
+      "id": "R-051",
+      "anchors": [
+        [
+          "src/Momoka.Core/Playback/PlaybackService.cs",
+          179,
+          241
+        ],
+        [
+          "src/Momoka.Core/Playback/LibMpvBackend.cs",
+          1218,
+          1229
+        ]
+      ],
+      "detail": "音量/延迟预检到原生入口TOCTOU"
+    }
+  ],
+  "schemaVersion": 1,
+  "time": "2026-10-22",
+  "timezone": "Asia/Shanghai",
+  "workingTree": "C:/Users/89400/.codex/worktrees/staged-review-continue/Momoka",
+  "sourceCommit": "c34a5e545333ea4c9f12ca2573bc6034029ecc04",
+  "sourceAnchors": [
+    {
+      "id": "R-053",
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "start": 1026,
+      "end": 1070,
+      "sha256": "7330B3327063DD6A9A6A12A9A7079F7B506C51DCBA55DA7786A58B9A621DB1AE"
+    },
+    {
+      "id": "R-053",
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Mpv.cs",
+      "start": 174,
+      "end": 176,
+      "sha256": "88A459174DD872886D5BD21D49ACFD672FC1D93BB34F8EAE48C72A895B048203"
+    },
+    {
+      "id": "R-053",
+      "path": "src/Momoka.Core/Playback/PlaybackService.cs",
+      "start": 169,
+      "end": 185,
+      "sha256": "F687903BF380B23EE03902F138938F49434B8B5C94C2E8692D38111577A95041"
+    },
+    {
+      "id": "R-054",
+      "path": "src/Momoka.Core/Playback/VolumeMemory.cs",
+      "start": 24,
+      "end": 71,
+      "sha256": "B64B5F1109A274B9B84ABE25AB5065789BDE40ABBB89080E5DBDE4801C2D5839"
+    },
+    {
+      "id": "R-054",
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "start": 1073,
+      "end": 1084,
+      "sha256": "2E5B88CE5D73B0862A0A8DB1C0C11C8D4AE9F7489E1B9268C0E9166882487886"
+    },
+    {
+      "id": "R-054",
+      "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+      "start": 1126,
+      "end": 1150,
+      "sha256": "D881ACFEA72B02A6670FBB20939A38B9DF2EA61C228F867D5DE6F3D588705587"
+    },
+    {
+      "id": "R-054",
+      "path": "tests/Momoka.Tests/AudioOutputTests.cs",
+      "start": 92,
+      "end": 104,
+      "sha256": "A6F1D8CE11DACF15EE83F8D9A847634D89E438C5B0531E37A12F9740FE9173DF"
+    }
+  ],
+  "executions": {
+    "restore": 0,
+    "build": 0,
+    "productTests": 0,
+    "native": 0,
+    "appProbes": 0,
+    "screenshots": 0,
+    "realServerCalls": 0,
+    "playbackOrWrites": 0,
+    "publish": 0,
+    "push": 0
+  },
+  "contextCompression": {
+    "requested": true,
+    "performed": false,
+    "availableTool": false,
+    "checkpointSaved": true
+  }
+}
