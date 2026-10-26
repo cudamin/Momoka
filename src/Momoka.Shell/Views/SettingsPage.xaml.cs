@@ -730,8 +730,12 @@ public sealed partial class SettingsPage : Page, IShellContent
         base.OnNavigatedFrom(e);
     }
 
-    private void OnSourceListChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(
-        async () => await RefreshServerAdministrationAsync());
+    private void OnSourceListChanged(object? sender, EventArgs e) => DispatcherQueue.TryEnqueue(async () =>
+    {
+        if (!ReferenceEquals(sender, _session)) return;
+        ViewModel.RefreshHomeRows();
+        await RefreshServerAdministrationAsync();
+    });
 
     /// <summary>
     /// Counts realised row containers. <c>Content</c> rather than <c>DataContext</c>, for the reason spelled

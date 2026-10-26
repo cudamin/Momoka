@@ -222,7 +222,24 @@ public static class HomeLayout
         return plan;
     }
 
-    /// <summary>只替换本次编辑的行；暂时不可用的订阅保留原位置和勾选状态。</summary>
+    /// <summary>
+    /// 当前浏览范围内的版面。完整存档还保留其它服务器账号的排序，但主页与设置表不能把那些记录当成可用货架。
+    /// 在线来源取自会话：非聚合模式只有当前账号，聚合模式包含所有在线账号；没有在线来源时不显示媒体库排。
+    /// 未带来源的旧版库键只在有在线账号时保留，随后由 <see cref="Plan"/> 按实时库列表迁移。
+    /// </summary>
+    public static IReadOnlyList<HomeRowPlan> ForSources(
+        IReadOnlyList<HomeRowPlan> plan,
+        IEnumerable<string> sourceKeys,
+        bool moviePilotAvailable = true)
+    {
+        var sources = sourceKeys.ToHashSet(StringComparer.Ordinal);
+        return plan.Where(row => IsAvailable(row.Key, moviePilotAvailable)
+            && (LibraryId(row.Key) is null
+                || sources.Count > 0 && (LibrarySourceKey(row.Key) is not { } source || sources.Contains(source))))
+            .ToArray();
+    }
+
+    /// <summary>只替换本次编辑的行；暂时不可用的订阅和其它来源的媒体库保留原位置和勾选状态。</summary>
     public static IReadOnlyList<HomeRowPlan> MergeEdits(IReadOnlyList<HomeRowPlan> plan, IReadOnlyList<HomeRowPlan> edits)
     {
         // 设置页可能仍缓存着已被服务器删除的库；队列和替换槽位必须来自同一份有效键。

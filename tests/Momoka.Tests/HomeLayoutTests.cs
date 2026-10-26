@@ -46,6 +46,114 @@ internal static class HomeLayoutTests
             Assert.Equal("最近添加", HomeLayout.LibraryTitle("", recentPrefix: true));
         });
 
+        Test("主页排序范围：单服务器三个库只显示六排，不混入其它来源记录", () =>
+        {
+            var movies = ScopedLibrary("current", "user", "movies", "电影");
+            var series = ScopedLibrary("current", "user", "series", "电视节目");
+            var mixed = ScopedLibrary("current", "user", "mixed", "混合内容");
+            var otherServer = ScopedLibrary("other", "user", "movies", "电影");
+            var otherAccount = ScopedLibrary("current", "other", "series", "电视节目");
+            var saved = HomeLayout.Save(HomeLayout.Plan(null, [movies, series, mixed, otherServer, otherAccount]));
+            saved.Single(row => row.Key == HomeLayout.LibraryKey(otherServer)).Visible = false;
+
+            // 主页归一化仍保留切走来源的偏好，屏上列表单独按当前在线身份筛选。
+            var full = HomeLayout.Plan(saved, [movies, series, mixed]);
+            var shown = HomeLayout.ForSources(full, [movies.Source!.Key], moviePilotAvailable: false);
+            Assert.Equal(6, shown.Count);
+            Assert.True(shown.Where(row => HomeLayout.LibraryId(row.Key) is not null).Select(row => row.Key)
+                .SequenceEqual(new[] { movies, series, mixed }.Select(HomeLayout.LibraryKey)));
+            Assert.False(shown.Any(row => row.Key == HomeLayout.LibraryKey(otherServer)
+                || row.Key == HomeLayout.LibraryKey(otherAccount)));
+            Assert.False(full.Single(row => row.Key == HomeLayout.LibraryKey(otherServer)).Visible,
+                "不显示其它来源，不等于清空它的偏好");
+        });
+
+        Test("主页排序范围：聚合模式只列在线来源，同号库和同服不同账号分别保留", () =>
+        {
+            var first = ScopedLibrary("server", "user", "same:id", "电影");
+            var second = ScopedLibrary("server", "other", "same:id", "电影");
+            var offline = ScopedLibrary("offline", "user", "same:id", "电影");
+            var plan = HomeLayout.Plan(null, [first, second, offline]);
+            var shown = HomeLayout.ForSources(plan, [first.Source!.Key, second.Source!.Key, first.Source.Key],
+                moviePilotAvailable: false);
+            var libraries = shown.Where(row => HomeLayout.LibraryId(row.Key) is not null).ToArray();
+            Assert.Equal(5, shown.Count);
+            Assert.Equal(2, libraries.Length);
+            Assert.Equal(2, libraries.Select(row => row.Key).Distinct(StringComparer.Ordinal).Count());
+            Assert.True(libraries.All(row => HomeLayout.LibraryId(row.Key) == "same:id"));
+            Assert.False(shown.Any(row => row.Key == HomeLayout.LibraryKey(offline)));
+        });
+
+        Test("主页排序范围：没有在线来源不显示缓存库，固定排和可用订阅仍保留", () =>
+        {
+            var library = ScopedLibrary("server", "user", "library", "电影");
+            var plan = HomeLayout.Plan([
+                Row(HomeLayout.LibraryKey("legacy"), "最近添加 · 旧库"),
+                Row(HomeLayout.LibraryKey(library), "最近添加 · 电影")], null);
+            var disconnected = HomeLayout.ForSources(plan, [], moviePilotAvailable: false);
+            Assert.Equal(3, disconnected.Count);
+            Assert.True(disconnected.All(row => HomeLayout.FixedTitle(row.Key) is not null
+                && !HomeLayout.IsMoviePilot(row.Key)));
+            var subscriptions = HomeLayout.ForSources(plan, [], moviePilotAvailable: true);
+            Assert.Equal(5, subscriptions.Count);
+            Assert.Equal(2, subscriptions.Count(row => HomeLayout.IsMoviePilot(row.Key)));
+        });
+
+        Test("主页排序范围：只拿缓存库名也按账号筛选，旧版无来源键在迁移前保留", () =>
+        {
+            var current = ScopedLibrary("server", "user", "library", "电影");
+            var other = ScopedLibrary("server", "other", "library", "电影");
+            var cached = HomeLayout.Plan([
+                Row(HomeLayout.LibraryKey(other), "最近添加 · 电影", visible: false),
+                Row(HomeLayout.LibraryKey("legacy"), "最近添加 · 旧库", visible: false),
+                Row(HomeLayout.LibraryKey(current), "最近添加 · 电影", visible: false)], null);
+            var shown = HomeLayout.ForSources(cached, [current.Source!.Key], moviePilotAvailable: false);
+            Assert.Equal(5, shown.Count);
+            Assert.Equal(HomeLayout.LibraryKey("legacy"), shown[0].Key);
+            Assert.Equal(HomeLayout.LibraryKey(current), shown[1].Key);
+            Assert.False(shown[0].Visible);
+            Assert.False(shown[1].Visible);
+            Assert.False(shown.Any(row => row.Key == HomeLayout.LibraryKey(other)));
+        });
+
+        Test("主页排序范围：隐藏来源的排序和勾选不被当前编辑覆盖，切回后原样恢复", () =>
+        {
+            var first = ScopedLibrary("first", "user", "same", "电影");
+            var second = ScopedLibrary("second", "user", "same", "电影");
+            var full = HomeLayout.Plan([
+                Row(HomeLayout.LibraryKey(second), "最近添加 · 电影", visible: false),
+                Row(HomeLayout.Resume, "继续观看"),
+                Row(HomeLayout.LibraryKey(first), "最近添加 · 电影", visible: false),
+                Row(HomeLayout.MoviePilotSeries, "MP 电视剧订阅", visible: false)], [first, second]);
+            var shown = HomeLayout.ForSources(full, [first.Source!.Key], moviePilotAvailable: false);
+            var edits = shown.Reverse().Select(row => row.Key == HomeLayout.LibraryKey(first)
+                ? row with { Visible = true } : row).ToArray();
+            var merged = HomeLayout.MergeEdits(full, edits);
+            Assert.Equal(full.Count, merged.Count);
+            Assert.Equal(full[0], merged[0], "隐藏来源原来的位置、库名和勾选都要留着");
+            Assert.Equal(full[3], merged[3], "不可用订阅的偏好也不能被覆盖");
+            Assert.True(HomeLayout.ForSources(merged, [first.Source.Key], moviePilotAvailable: false)
+                .SequenceEqual(edits));
+            var restored = HomeLayout.Plan(HomeLayout.Save(merged), [first, second]);
+            Assert.Equal(full[0], restored[0]);
+            Assert.False(HomeLayout.ForSources(restored, [second.Source!.Key], moviePilotAvailable: false)[0].Visible);
+            Assert.True(restored.Single(row => row.Key == HomeLayout.LibraryKey(first)).Visible);
+        });
+
+        Test("主页排序范围：各后端分别保留标题，范围筛选不改变飞牛库名", () =>
+        {
+            foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.FnNas, MediaServerKind.Plex })
+            {
+                var current = ScopedLibrary("server", "user", "library", "电影", kind);
+                var other = ScopedLibrary("other", "user", "library", "电影", kind);
+                var full = HomeLayout.Plan(null, [other, current]);
+                var shown = HomeLayout.ForSources(full, [current.Source!.Key], moviePilotAvailable: false);
+                Assert.Equal(4, shown.Count);
+                Assert.Equal(kind == MediaServerKind.FnNas ? "电影" : "最近添加 · 电影", shown[3].Title);
+                Assert.Equal(HomeLayout.LibraryKey(current), shown[3].Key);
+            }
+        });
+
         Test("主页版面：存档里那份次序说了算", () =>
         {
             // 用户把媒体库那一排勾掉了。
@@ -323,6 +431,17 @@ internal static class HomeLayoutTests
 
     private static EmbyItem Library(string id, string name) =>
         new() { Id = id, Name = name, Type = EmbyItemType.CollectionFolder };
+
+    private static EmbyItem ScopedLibrary(string server, string account, string id, string name,
+        MediaServerKind kind = MediaServerKind.Emby)
+    {
+        var connection = new EmbyConnection(new Uri("https://fixture.invalid/"), "fixture", account, account,
+            server, DeviceIdentity.Create("home-layout-fixture", "test"))
+        { ServerKind = kind };
+        var scope = new EmbySessionScope(null!, new EmbySessionScope.Identity(new EmbyClient(null!, connection),
+            new ServerProfile { Id = server, Name = server }, new AccountProfile { Id = account, Username = account }));
+        return scope.Bind(Library(id, name));
+    }
 
     /// <summary>一台飞牛的库：标题那条规则按服务器分，所以这里要一个真带来源的条目。</summary>
     private static EmbyItem FnNasLibrary(string id, string name)

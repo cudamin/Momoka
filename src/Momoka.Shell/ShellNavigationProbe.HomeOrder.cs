@@ -23,6 +23,7 @@ internal sealed partial class ShellNavigationProbe
         var transport = new HomeOrderTransport(server);
         using var fixture = CreateFixture(transport);
         await fixture.SelectAsync();
+        fixture.Capabilities.Sources = [new(fixture.Session.Capture(), MediaServerKind.Emby, true)];
         var service = (MoviePilotService)fixture.Services.GetService(typeof(MoviePilotService))!;
         var library = new EmbyItem { Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder };
         fixture.Session.Capture().Bind(library);

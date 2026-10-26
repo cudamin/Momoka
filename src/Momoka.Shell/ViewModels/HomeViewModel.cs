@@ -331,15 +331,18 @@ public sealed partial class HomeViewModel : PageViewModel
 
         _refresh.Invalidate();
         var ui = _settings?.Settings.Ui;
-        var plan = HomeLayout.Plan(ui?.HomeRows, _libraryViews);
+        var savedPlan = HomeLayout.Plan(ui?.HomeRows, _libraryViews);
 
         _banner = ui?.ShowHomeBanner ?? true;
 
-        if (ui is not null && !HomeLayout.Same(ui.HomeRows, plan))
+        if (ui is not null && !HomeLayout.Same(ui.HomeRows, savedPlan))
         {
-            ui.HomeRows = HomeLayout.Save(plan);
+            ui.HomeRows = HomeLayout.Save(savedPlan);
             _settings?.Save();
         }
+
+        // 存档保留切走或离线来源的顺序，但当前主页只造在线来源的货架，不能把隐藏记录变成空排。
+        var plan = HomeLayout.ForSources(savedPlan, _sources.Where(source => source.IsAvailable).Select(source => source.Key));
 
         // 继续观看、媒体库、接下来看走 16:9 的宽卡（那三排讲的是「你在看的那一格画面」）；每个媒体库自己那一排
         // 走海报 —— 一整排新片的封面比一整排剧照读得快。媒体库那一排不上角标：一个库没有「已看」。

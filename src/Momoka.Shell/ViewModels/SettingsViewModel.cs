@@ -1713,27 +1713,29 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 主页：那几排的次序和显示与否 —— 「把媒体库的列表也添加到主页之中，新增页里拖拽决定这些列表的顺序，勾选
     /// 显示或者不勾选取消显示」。
     /// <para>
-    /// 表里那几项从设置文件里那份版面读（<see cref="Emby.HomeLayout"/> 归一化过的那一份，主页每次读完都写回来），
-    /// 所以这一头不用问服务器有哪几个媒体库 —— 设置窗口连不上服务器时这张卡照样写得出每一排叫什么。改一下（拖过
-    /// 或者点过勾）就立刻写回设置并喊一声（<see cref="ShellPrefs"/>），主页那一头照新的重排。
+    /// 库名从设置文件里归一化过的版面读，排序表只取当前在线来源；切走的服务器偏好留在存档，不混入可选项。
+    /// 不再请求库列表，所以服务器暂时读不到时仍能显示当前来源的缓存标题。拖拽或勾选只替换当前可用行，
+    /// 然后立刻保存并通知 <see cref="ShellPrefs"/>，不会清空隐藏来源或不可用订阅的偏好。
     /// </para>
     /// </summary>
     private SettingSection HomeCard()
     {
         var ui = Settings.Ui;
-        var plan = Emby.HomeLayout.Plan(ui.HomeRows, null);
+        var plan = CurrentHomeRows();
 
         HomeRows = new SettingHomeLayoutRow(
             "媒体库顺序",
             "按住一行往上下拖、或者按右边那两颗箭头决定次序，取消勾选就不显示。媒体库那一排是进各媒体库的入口"
                 + "（点上面的卡片打开那个库），那几排装的是每个库最近添加的内容。",
-            plan.Where(row => Emby.HomeLayout.IsAvailable(row.Key, _moviePilot?.Available == true))
-                .Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible)),
+            plan.Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible)),
             rows =>
             {
+                // 来源切换与刷新之间，旧列表也可能交来一次编辑；只接收此刻仍适用的键。
+                var available = CurrentHomeRows().Select(row => row.Key).ToHashSet(StringComparer.Ordinal);
                 ui.HomeRows = Emby.HomeLayout.Save(Emby.HomeLayout.MergeEdits(
                     Emby.HomeLayout.Plan(ui.HomeRows, null),
-                    rows.Select(row => new Emby.HomeRowPlan(row.Key, row.Title, row.Visible)).ToArray()));
+                    rows.Where(row => available.Contains(row.Key))
+                        .Select(row => new Emby.HomeRowPlan(row.Key, row.Title, row.Visible)).ToArray()));
 
                 Save();
                 ShellPrefs.Apply(ui);
@@ -1836,6 +1838,11 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>自检用：那张可拖拽的表这一次建出来的那一行。</summary>
     internal SettingHomeLayoutRow? HomeRows { get; private set; }
 
+    private IReadOnlyList<Emby.HomeRowPlan> CurrentHomeRows() => Emby.HomeLayout.ForSources(
+        Emby.HomeLayout.Plan(Settings.Ui.HomeRows, null),
+        _capabilities?.Sources.Where(source => source.IsAvailable).Select(source => source.Key) ?? [],
+        _moviePilot?.Available == true);
+
     internal void RefreshHomeRows()
     {
         if (_settings is null || HomeRows is null) return;
@@ -1846,8 +1853,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 把这一页摆到前面时会再喊一次。
         if (!string.Equals(SelectedCategory, FirstCardCategory, StringComparison.Ordinal)) return;
 
-        var wanted = Emby.HomeLayout.Plan(Settings.Ui.HomeRows, null)
-            .Where(row => Emby.HomeLayout.IsAvailable(row.Key, _moviePilot?.Available == true))
+        var wanted = CurrentHomeRows()
             .Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible))
             .ToList();
 
@@ -1910,24 +1916,19 @@ public sealed partial class SettingsViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 自检：那张表和设置文件里那一份对得上没有 —— 存着几排，表里就该有几排，钥匙和次序都一样。
-    /// <para>
-    /// 这一条盯的是设置窗口这一头拿不到服务器那份媒体库列表：媒体库那几排的名字只能从存档里记着的那句标题来
-    /// （见 <see cref="Emby.HomeLayout.Plan"/> 里那一手）。那一手断掉的样子是屏上一张只有四行固定排的表 ——
-    /// 看着完全正常，而用户在上面随手拖一下，就把媒体库那几排从设置文件里抹掉了。
-    /// </para>
+    /// 自检：排序表与存档中当前可用的版面对账。当前来源的缓存库名应保留，其它来源不应进入可选项；
+    /// 隐藏记录仍留在完整存档，所以不能再拿全局行数当作屏上行数。
     /// </summary>
     internal (bool Ok, string Detail)? MeasureHomeRows()
     {
         if (HomeRows is not { } row) return null;
 
-        var saved = Emby.HomeLayout.Plan(Settings.Ui.HomeRows, null)
-            .Where(entry => Emby.HomeLayout.IsAvailable(entry.Key, _moviePilot?.Available == true)).ToArray();
+        var saved = CurrentHomeRows();
         var keys = row.Rows.Select(choice => choice.Key).ToList();
-        var ok = keys.Count == saved.Length
+        var ok = keys.Count == saved.Count
             && saved.Select(entry => entry.Key).SequenceEqual(keys, StringComparer.Ordinal);
 
-        return (ok, $"表里 {keys.Count} 排、当前可用 {saved.Length} 排"
+        return (ok, $"表里 {keys.Count} 排、当前可用 {saved.Count} 排"
             + $"：{(keys.Count == 0 ? "无" : string.Join('、', row.Rows.Select(choice =>
                 $"{choice.Title}{(choice.Visible ? "✓" : "✗")}")))}");
     }
