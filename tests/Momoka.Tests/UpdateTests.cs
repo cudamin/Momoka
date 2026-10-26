@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Xml.Linq;
 using Momoka.Configuration;
 using Momoka.Updates;
 using static Momoka.Tests.TestHarness;
@@ -133,6 +135,48 @@ internal static class UpdateTests
             Assert.Null(UpdateClient.Parse("Not Found"), "仓库改名后 GitHub 回的就是这段纯文本");
             Assert.Null(UpdateClient.Parse("<html><body>Not Found</body></html>"), "错误页是 HTML，不是 feed");
             Assert.Equal(0, UpdateClient.Parse("""<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"/>""")!.Count, "空 feed 是「一版都没有」");
+        });
+
+        Test("发布版本：程序集和文件版本只认共享属性中的版本", () =>
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
+                directory = directory.Parent;
+            Assert.NotNull(directory, "测试输出必须属于当前工作树");
+
+            var props = XDocument.Load(Path.Combine(directory!.FullName, "Directory.Build.props"));
+            var group = props.Root!.Elements("PropertyGroup").Single(value => value.Element("Version") is not null);
+            var version = group.Element("Version")!.Value;
+            var packageVersion = $"{version}.0";
+            Assert.Equal(packageVersion, group.Element("AssemblyVersion")!.Value, "程序集四段版本与发行号一致");
+            Assert.Equal(packageVersion, group.Element("FileVersion")!.Value, "文件四段版本与商店包版本一致");
+
+            var assembly = typeof(AppSettings).Assembly;
+            Assert.Equal(packageVersion, assembly.GetName().Version!.ToString(), "实际构建不能沿用旧程序集版本");
+            Assert.Equal(packageVersion, FileVersionInfo.GetVersionInfo(assembly.Location).FileVersion,
+                "实际文件版本必须更新，不能只改源码中的声明");
+        });
+
+        Test("检查更新：0.1.7 升至 0.1.9 后不重复提示同一发行版", () =>
+        {
+            const string feed = """
+                <feed xmlns="http://www.w3.org/2005/Atom">
+                  <entry><title>Momoka 0.1.7</title>
+                    <link rel="alternate" type="text/html" href="https://github.com/cudamin/Momoka/releases/tag/v0.1.7"/>
+                  </entry>
+                  <entry><title>Momoka 0.1.9</title>
+                    <link rel="alternate" type="text/html" href="https://github.com/cudamin/Momoka/releases/tag/v0.1.9"/>
+                  </entry>
+                </feed>
+                """;
+            var releases = UpdateClient.Parse(feed);
+            Assert.NotNull(releases, "新发行版仍使用既有 Atom 发布源");
+            var newest = UpdateVersion.NewestNewer(releases!, new Version(0, 1, 7, 0));
+            Assert.NotNull(newest, "0.1.7 必须能发现 0.1.9");
+            Assert.Equal("v0.1.9", newest!.Tag);
+            Assert.Equal("0.1.9", newest.VersionText);
+            Assert.Null(UpdateVersion.NewestNewer(releases!, new Version(0, 1, 9)), "三段本地版本不重复提示");
+            Assert.Null(UpdateVersion.NewestNewer(releases!, new Version(0, 1, 9, 0)), "商店四段版本不重复提示");
         });
 
         Test("检查更新：这一格装机默认开着，恢复默认也回到开", () =>
