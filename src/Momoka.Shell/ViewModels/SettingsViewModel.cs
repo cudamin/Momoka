@@ -646,7 +646,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         UpdateClient updates,
         IServerCapabilities capabilities,
         EmbyImageStore? images = null,
-        DandanPlayCredentials? dandanCredentials = null)
+        DandanPlayCredentials? dandanCredentials = null,
+        SubtitleTranslationCredentials? translationCredentials = null)
     {
         if (_disposed) return;
         Activate();
@@ -666,6 +667,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _updates = updates;
         _images = images;
         _dandanCredentials = dandanCredentials;
+        _translationCredentials = translationCredentials;
     }
 
     /// <summary>自检读的：管理员才看得见的那几个入口这会儿是收着的吗（非管理员账号下是）。</summary>
@@ -1102,6 +1104,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(ApplicableShaderCard());
         Sections.Add(AudioCard());
         Sections.Add(SubtitleCard());
+        if (Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || Settings.Mpv.EnableIpc) Sections.Add(SubtitleTranslationCard());
         if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) Sections.Add(DanmakuCard());
         Sections.Add(ShortcutsCard());
         Sections.Add(MoviePilotCard());
@@ -1299,7 +1302,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "只有「外部 mpv.exe」后端需要它。访问令牌通过核验进程身份的管道传递，不放进命令行或临时文件；"
                     + "无法建立安全通道就停止起播。请只选择可信的 mpv.exe，同一 Windows 用户下的恶意程序仍可能窃取凭据。"));
 
-            rows.Add(Toggle("启用 IPC 进度通道", "关掉后不读取或上报进度，也不提供客户端控制；安全起播和退出仍需管道", () => Settings.Mpv.EnableIpc, value => Settings.Mpv.EnableIpc = value));
+            rows.Add(Toggle("启用 IPC 进度通道", "关掉后不读取或上报进度，也不提供客户端控制；安全起播和退出仍需管道", () => Settings.Mpv.EnableIpc, value => Settings.Mpv.EnableIpc = value, after: RefreshSubtitleTranslationAvailability));
         }
         return new SettingSection("播放器", "播放器", "用程序里内置的播放器播，还是调起独立的 mpv.exe 来播。", rows);
     }
@@ -1315,6 +1318,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         RefreshVideoBackend();
         RefreshDanmakuRows();
         RefreshDanmakuAvailability();
+        RefreshSubtitleTranslationAvailability();
     }
 
     /// <summary>
@@ -2684,6 +2688,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         ShellPrefs.Apply(ui);
         ShellPrefs.ApplyShortcuts();
         ShellPrefs.ApplyDanmaku();
+        ShellPrefs.ApplySubtitleTranslation();
 
         // 建行同步完成，后续 Task 只等字体/设备：在 await 前保留本次启动初读错误，不能借另一轮的读数。
         var reload = ReloadAsync();

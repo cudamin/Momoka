@@ -594,6 +594,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
         Player.ViewModel.Noticed += Notify;
         Player.ViewModel.RefreshRequested += RefreshActive;
         Player.ViewModel.PreparePresentation = PreparePlaybackPresentation;
+        if (_services.GetService<Momoka.Shell.Services.SubtitleTranslationController>() is { } translation)
+        {
+            translation.Noticed += OnSubtitleTranslationNotice;
+            translation.Attach();
+        }
 
         // 独占模式无页面播放的两条对账（2026-09-19 用户令删掉独立控制窗）：开播那一拍页面不在场，
         // 「开始播放后自动全屏」由这里直达 mpv 的视频窗；收场那一拍（放完、停止、mpv 窗被关、起播失败）
@@ -633,6 +638,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
     private async Task ShutdownPlaybackAsync()
     {
         _identityLoads.Cancel();
+        if (_services?.GetService<Momoka.Shell.Services.SubtitleTranslationController>() is { } translation)
+        {
+            translation.Noticed -= OnSubtitleTranslationNotice;
+            await translation.StopAsync().ConfigureAwait(true);
+        }
         StopMoviePilotMonitoring();
         Favorites.Dispose();
         ReleaseContent();
@@ -870,6 +880,11 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _detailScrollBeforePlayer = null;
         SyncSidebar();
     }
+
+    private void OnSubtitleTranslationNotice(string message) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (_shutdownTask is null) Notify(message, InfoBarSeverity.Warning);
+    });
 
     /// <summary>
     /// The shell's one notification channel. Replaces the WinForms toast window, which was a layered

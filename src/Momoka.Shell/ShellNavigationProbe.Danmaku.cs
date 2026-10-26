@@ -56,7 +56,7 @@ internal sealed partial class ShellNavigationProbe
             await SettleAsync();
             var secret = card.Rows.OfType<SettingSecretRow>().Single();
             Require(secret.Draft == "offline-fixture-secret", "PasswordBox 未绑定密钥草稿");
-            var save = Descendants(page).OfType<Button>().Single(control => AutomationProperties.GetName(control) == "保存弹弹play密钥");
+            var save = Descendants(page).OfType<Button>().Single(control => AutomationProperties.GetName(control) == secret.SaveAutomationName);
             ((IInvokeProvider)new ButtonAutomationPeer(save).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(page);
             await UntilAsync(() => page.IsContentMotionSettled);

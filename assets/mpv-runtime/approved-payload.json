@@ -96,6 +96,18 @@
       "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
     },
     {
+      "path": "mpv-ui/scripts/momoka_danmaku.lua",
+      "source": "assets/mpv-ui/scripts/momoka_danmaku.lua",
+      "size": 9756,
+      "sha256": "660a4a4dd1c2d617f3f79a56d9e07e667e27c5fe7a72e7a5741d1f3c102a985c"
+    },
+    {
+      "path": "mpv-ui/scripts/momoka_subtitle_translation.lua",
+      "source": "assets/mpv-ui/scripts/momoka_subtitle_translation.lua",
+      "size": 4948,
+      "sha256": "303f72c2488c58e4f194611795339d2d117cbba590d251506a29cb8c2f0c6f95"
+    },
+    {
       "path": "mpv-ui/scripts/stats.lua",
       "source": "assets/mpv-ui/scripts/stats.lua",
       "size": 70977,
@@ -136,6 +148,12 @@
       "source": "assets/mpv-ui/scripts/uosc/elements/CycleButton.lua",
       "size": 3062,
       "sha256": "e49e20110bf84d852ce4d85f26e36a24330ef9a54f28f0886cc658352e09aa75"
+    },
+    {
+      "path": "mpv-ui/scripts/uosc/elements/DanmakuInput.lua",
+      "source": "assets/mpv-ui/scripts/uosc/elements/DanmakuInput.lua",
+      "size": 11358,
+      "sha256": "059888cb2a564d37f234e5905a29a42f962ff99316c3e6b8e7caa317851e5921"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/Element.lua",

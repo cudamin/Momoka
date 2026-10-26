@@ -37,6 +37,10 @@ public static class ShellPrefs
 
     public static void ApplyDanmaku() => DanmakuChanged?.Invoke();
 
+    public static event Action? SubtitleTranslationChanged;
+
+    public static void ApplySubtitleTranslation() => SubtitleTranslationChanged?.Invoke();
+
     /// <summary>由设置页那一头喊：这一份刚改过，请各位跟上。</summary>
     public static void Apply(UiSettings ui)
     {
