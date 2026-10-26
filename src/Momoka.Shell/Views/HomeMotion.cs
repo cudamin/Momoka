@@ -77,7 +77,17 @@ internal static class HomeMotion
         }
     }
 
-    internal static void Reveal(FrameworkElement element) => Reveal(element, 0);
+    internal static void Reveal(FrameworkElement element)
+    {
+        // 设置窗口内的所有原生托管页共用短促页面刷新；别的媒体页面保留原来的入场节奏。
+        for (var parent = VisualTreeHelper.GetParent(element); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+            if (parent is SettingsPage)
+            {
+                Reveal(element, 0, SettingsPage.PageTransitionDurationMs, SettingsPage.PageTransitionDistance);
+                return;
+            }
+        Reveal(element, 0);
+    }
 
     /// <summary>播放返回时结束本页的入场，包括稍后实现货架与等待 Loaded 的动画。</summary>
     internal static void StopEnter(ItemsRepeater repeater)

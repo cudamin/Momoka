@@ -9,6 +9,53 @@ internal static class SettingsLayoutTests
 
     internal static void Register()
     {
+        TestHarness.Test("设置布局：左上搜索与原分类共用无卡片侧栏", () =>
+        {
+            var document = Page("SettingsPage.xaml");
+            var navigation = Named(document, "SettingsNavigation");
+            var search = Named(document, "SettingsSearchBox");
+            var list = Named(document, "CategoryNavigation");
+            Assert.True(search.Ancestors().Contains(navigation) && list.Ancestors().Contains(navigation));
+            Assert.Equal("Transparent", list.Attribute("Background")?.Value);
+            Assert.True(list.Attribute("CornerRadius") is null);
+            var header = document.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "SettingsGroupHeader");
+            Assert.False(header.Descendants().Any(element => element.Name.LocalName == "Rectangle"));
+            Assert.True(header.Descendants().Any(element => element.Name.LocalName == "ControlTemplate"), "框架默认分组头仍会画一条细线");
+            Assert.Equal("{x:Bind CategoryGroupsSource.View, Mode=OneWay}", list.Attribute("ItemsSource")?.Value);
+            Assert.Equal("{x:Bind ViewModel.SettingsSearchResults, Mode=OneWay}", search.Attribute("ItemsSource")?.Value);
+            Assert.Equal("{x:Bind ViewModel.SettingsSearchQuery, Mode=TwoWay}", search.Attribute("Text")?.Value);
+            Assert.Equal("False", search.Attribute("UpdateTextOnSelect")?.Value);
+            Assert.Equal("OnSettingsSearchSubmitted", search.Attribute("QuerySubmitted")?.Value);
+            Assert.True(Named(document, "CompactCategoryNavigation").Ancestors().Contains(navigation));
+        });
+        TestHarness.Test("设置布局：正文没有重复分类标题、数量或分隔线", () =>
+        {
+            var document = Page("SettingsPage.xaml");
+            Assert.Equal("设置", Named(document, "SettingsPageTitle").Attribute("Text")?.Value);
+            var section = Named(document, "SettingsSection");
+            Assert.False(section.Descendants().Any(element => element.Name.LocalName == "ShelfHead"));
+            Assert.False(section.Descendants().Any(element => element.Attribute("Text")?.Value == "{x:Bind Count, Mode=OneWay}"));
+            var heading = Named(Page("SettingsPage.xaml"), "SettingsSectionTitle");
+            Assert.Equal("{x:Bind HeadingVisibility, Mode=OneWay}", heading.Attribute("Visibility")?.Value);
+            Assert.Equal("{x:Bind Title, Mode=OneWay}", heading.Attribute("Text")?.Value);
+            var list = section.Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == "SettingsRowsList");
+            var panel = list.Descendants().Single(element => element.Name.LocalName == "StackPanel");
+            Assert.Equal("0", panel.Attribute("Spacing")?.Value);
+            Assert.True(panel.Attribute("Background") is null, "不得用底色和 1px 缝重新制造选项分隔线");
+            Assert.Equal("0", list.Parent?.Attribute("BorderThickness")?.Value);
+        });
+        TestHarness.Test("设置布局：卡片右侧保留独立滚动条槽位", () =>
+        {
+            var document = Page("SettingsPage.xaml");
+            var scroll = Named(document, "SettingsScroll");
+            var cards = Named(document, "SettingsCardsContent");
+            Assert.Equal("0,0,20,0", cards.Attribute("Margin")?.Value);
+            Assert.True(cards.Ancestors().Contains(scroll));
+            Assert.Equal("Auto", scroll.Attribute("VerticalScrollBarVisibility")?.Value);
+            Assert.Equal("Hidden", scroll.Attribute("HorizontalScrollBarVisibility")?.Value);
+            Assert.Equal("Stretch", scroll.Attribute("HorizontalContentAlignment")?.Value);
+            Assert.Equal("Left", Named(document, "SettingsSections").Attribute("HorizontalAlignment")?.Value);
+        });
         TestHarness.Test("服务器账号：每个账号是独立表面，服务器只负责分组", () =>
         {
             var document = Page("ServersPage.xaml");

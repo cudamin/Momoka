@@ -42,11 +42,26 @@ internal sealed partial class ShellNavigationProbe
         _shortcutProbeWindows.Add(settingsWindow); // 最后一个框架窗口关闭会终止应用，整轮结束后统一关闭。
         var handle = Microsoft.UI.Win32Interop.GetWindowFromWindowId(settingsWindow.AppWindow.Id);
         var ownerWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window!.Handle));
-        settingsWindow.AppWindow.Move(new Windows.Graphics.PointInt32(ownerWindow.Position.X + 20, ownerWindow.Position.Y + 20));
+        var workArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(ownerWindow.Id,
+            Microsoft.UI.Windowing.DisplayAreaFallback.Nearest).WorkArea;
+        // 检查窗摆在所选屏幕左上工作区，不沿用主窗居中偏移；窄窗才不会跨进用户的置顶聊天窗口。
+        settingsWindow.AppWindow.Move(new Windows.Graphics.PointInt32(workArea.X + 24, workArea.Y + 24));
         settingsWindow.Activate();
         settingsWindow.AppWindow.ResizeClient(new Windows.Graphics.SizeInt32(width, 900));
+        var presenter = settingsWindow.AppWindow.Presenter as Microsoft.UI.Windowing.OverlappedPresenter
+            ?? throw new InvalidOperationException("设置探针窗口不是可核对置顶状态的普通窗口");
+        var wasTopMost = presenter.IsAlwaysOnTop;
+        presenter.IsAlwaysOnTop = true;
         try
         {
+            BeginSettingsFixtureVisit(page);
+            await LayoutAsync(page);
+            // WinUI 的第二扇 Window 初始化会先送一次紧凑内容尺寸；等首帧后提交目标客户区，
+            // 不能把仅有导航行的临时 154px 画面当作 900px 窄窗截图。
+            await WaitForDiagnosticsFrameAsync();
+            settingsWindow.AppWindow.ResizeClient(new Windows.Graphics.SizeInt32(width, 900));
+            await UntilAsync(() => Momoka.Shell.Interop.Native.GetClientRect(handle, out var rect)
+                && Math.Abs(rect.Width - width) < 2 && Math.Abs(rect.Height - 900) < 2);
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
             var card = page.ViewModel.Sections.Single(section => section.Category == "快捷键");
@@ -164,7 +179,26 @@ internal sealed partial class ShellNavigationProbe
                 await SaveReturnFrameAsync(page, name.Replace("-screen.png", "-render.png", StringComparison.Ordinal));
                 await SettleShortcutPictureAsync();
                 settingsWindow.Activate();
+                // 激活后再次提升本轮自己的窗口：系统可能让刚激活的非置顶主窗挡住新建的紧凑窗口。
+                if (!Momoka.Shell.Interop.Native.SetWindowPos(handle, Momoka.Shell.Interop.Native.HwndTopMost,
+                    0, 0, 0, 0, Momoka.Shell.Interop.Native.SwpNoMove | Momoka.Shell.Interop.Native.SwpNoSize | Momoka.Shell.Interop.Native.SwpNoActivate))
+                    throw new System.ComponentModel.Win32Exception();
                 await Task.Delay(80);
+                Momoka.Shell.Interop.Native.GetClientRect(handle, out var client);
+                var origin = new Momoka.Shell.Interop.NativePoint();
+                Momoka.Shell.Interop.Native.ClientToScreen(handle, ref origin);
+                var readings = new List<string>();
+                foreach (var (x, y) in new[] { (0.05, 0.2), (0.95, 0.2), (0.05, 0.8), (0.95, 0.8) })
+                {
+                    var at = new Momoka.Shell.Interop.NativePoint { X = origin.X + (int)(client.Width * x), Y = origin.Y + (int)(client.Height * y) };
+                    var actual = Momoka.Shell.Interop.Native.GetAncestor(Momoka.Shell.Interop.Native.WindowFromPoint(at), Momoka.Shell.Interop.Native.GaRoot);
+                    Momoka.Shell.Interop.Native.GetWindowThreadProcessId(actual, out var owner);
+                    var classBuffer = new char[256];
+                    var classLength = Momoka.Shell.Interop.Native.GetClassName(actual, classBuffer, classBuffer.Length);
+                    readings.Add($"{at.X},{at.Y}=0x{actual:X} pid={owner} class={new string(classBuffer, 0, Math.Max(0, classLength))}");
+                }
+                File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, name.Replace(".png", "-window.txt", StringComparison.Ordinal)),
+                    $"HWND=0x{handle:X}; client={client.Width}x{client.Height}; root={content.ActualWidth}x{content.ActualHeight}; page={page.ActualWidth}x{page.ActualHeight}; " + string.Join("; ", readings));
                 await CompositionPlaybackProbe.SaveScreenAsync(handle, Path.Combine(_options.Paths.LogDirectory, name));
             }
             IEnumerable<SettingShortcutRow> Shown() => card.Rows.OfType<SettingShortcutRow>();
@@ -175,7 +209,16 @@ internal sealed partial class ShellNavigationProbe
                 Require(page.ViewModel.ShortcutSearchQuery == text, "搜索输入没有经绑定传给 ViewModel");
             }
         }
-        finally { settingsWindow.AppWindow.Hide(); }
+        finally
+        {
+            page.Release();
+            // 保留框架 Window 以免最后一扇窗关闭退出应用，但不保留旧 XamlRoot 的弹层/焦点。
+            if (content.XamlRoot is { } root)
+                foreach (var popup in Microsoft.UI.Xaml.Media.VisualTreeHelper.GetOpenPopupsForXamlRoot(root)) popup.IsOpen = false;
+            presenter.IsAlwaysOnTop = wasTopMost;
+            settingsWindow.AppWindow.Hide();
+            settingsWindow.Content = null;
+        }
     }
 
     private async Task PlayerAdditionalShortcutsAsync()

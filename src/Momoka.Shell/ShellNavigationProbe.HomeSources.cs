@@ -88,6 +88,8 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(settings);
         try
         {
+            // 直接挂载的页面也必须开启真实访问票据；否则正式来源变更回调会拒绝此夹具。
+            BeginSettingsFixtureVisit(settings);
             var table = settings.ViewModel.HomeRows!;
             var choices = table.Rows;
             async Task CheckTableAsync(int count, string state)

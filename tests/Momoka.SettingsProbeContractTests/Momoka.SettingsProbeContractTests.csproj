@@ -7,17 +7,18 @@
     <RootNamespace>Momoka.Tests</RootNamespace>
     <IsPackable>false</IsPackable>
     <StartupObject>Momoka.Tests.Program</StartupObject>
+    <SettingsProbeSourceRoot Condition="'$(SettingsProbeSourceRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..'))</SettingsProbeSourceRoot>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\ShellRuntime.cs" Link="Support\ShellRuntime.cs" />
     <Compile Include="..\Momoka.SettingsLifetimeTests\LifetimeFixture.cs" Link="Support\LifetimeFixture.cs" />
-    <Compile Include="..\..\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
-    <Compile Include="..\..\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
-    <Compile Include="..\..\src\Momoka.Shell\Views\SettingsPage.Motion.cs" Link="Production\SettingsPage.Motion.cs" />
-    <Compile Include="..\..\src\Momoka.Shell\Views\SettingsRowsMotion.cs" Link="Production\SettingsRowsMotion.cs" />
-    <Compile Include="..\..\src\Momoka.Shell\Views\HomeMotion.cs" Link="Production\HomeMotion.cs" />
+    <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
+    <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
+    <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\SettingsPage.Motion.cs" Link="Production\SettingsPage.Motion.cs" />
+    <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\SettingsRowsMotion.cs" Link="Production\SettingsRowsMotion.cs" />
+    <Compile Include="$(SettingsProbeSourceRoot)\src\Momoka.Shell\Views\HomeMotion.cs" Link="Production\HomeMotion.cs" />
   </ItemGroup>
   <!-- Real page/probe bodies are compiled unchanged; only XAML, navigation and animation clocks
        are boundaries. Every VM call forwards to the explicitly supplied current-tree Shell DLL. -->
@@ -31,8 +32,16 @@
       <Using Namespace="System" />
       <Using Namespace="System.IO" />
       <Using Namespace="System.Text" />
+      <Using Namespace="System.Security.Cryptography" />
       <Code Type="Fragment" Language="cs"><![CDATA[
-        Func<string, string> read = path => File.ReadAllText(Path.Combine(Root, path)).Replace("\r\n", "\n");
+        var hashes = new System.Collections.Generic.SortedDictionary<string, string>(StringComparer.Ordinal);
+        Func<string, string> read = path =>
+        {
+            var bytes = File.ReadAllBytes(Path.Combine(Root, path));
+            using (var sha = SHA256.Create())
+                hashes[path] = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "");
+            return Encoding.UTF8.GetString(bytes).Replace("\r\n", "\n");
+        };
         Func<string, string, string, string> between = (source, start, end) =>
         {
             var first = source.IndexOf(start, StringComparison.Ordinal);
@@ -76,6 +85,14 @@
             between(conditional, "            Toggle(lossless);\n            Toggle(lossless);\n            Toggle(lossless);\n            Toggle(lossless);", "            HomeMotion.ApplyPreference(true);") +
             "\n    }\n}\n}\nnamespace Momoka.Tests\n{\n" +
             between(support, "internal sealed class FixtureContext", "\n}") + "\n}\n}\n";
+        foreach (var file in new[] { "IShellContent.cs", "ISessionScopedPage.cs", "SettingsPage.Motion.cs", "SettingsRowsMotion.cs", "HomeMotion.cs" })
+            read("src/Momoka.Shell/Views/" + file);
+        generated += "\nnamespace Momoka.Tests\n{\ninternal static class SettingsProbeInputs\n{\n" +
+            "    internal const string SourceRoot = @\"" + Path.GetFullPath(Root).Replace("\"", "\"\"") + "\";\n" +
+            "    internal static readonly System.Collections.Generic.Dictionary<string, string> Sha256 = new()\n    {\n";
+        foreach (var entry in hashes)
+            generated += "        [\"" + entry.Key + "\"] = \"" + entry.Value + "\",\n";
+        generated += "    };\n}\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(Output));
         if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
             File.WriteAllText(Output, generated, new UTF8Encoding(false));
@@ -83,7 +100,7 @@
     </Task>
   </UsingTask>
   <Target Name="GenerateSettingsProbeContracts" BeforeTargets="CoreCompile">
-    <ExtractSettingsProbeContracts Root="$(MSBuildProjectDirectory)\..\.."
+    <ExtractSettingsProbeContracts Root="$(SettingsProbeSourceRoot)"
                                   Output="$(IntermediateOutputPath)SettingsProbeContracts.g.cs" />
     <ItemGroup>
       <Compile Include="$(IntermediateOutputPath)SettingsProbeContracts.g.cs" />

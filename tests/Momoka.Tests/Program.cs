@@ -28,6 +28,8 @@ internal static class Program
             return StartupStateContractTests.Run(startupShell, startupRoot);
         if (args is ["startup-reapply-notice-fixture", var reapplyShell, var reapplyRoot])
             return StartupReapplyNoticeTests.Run(reapplyShell, reapplyRoot);
+        if (args is ["settings-search-fixture", var searchShell, var searchRoot])
+            return SettingsSearchTests.Run(searchShell, searchRoot);
         if (args is ["settings-page-state-fixture", var shellAssembly, var sourceRoot])
             return SettingsPageStateTests.Run(shellAssembly, sourceRoot);
         if (args is ["settings-applicability-fixture", var applicabilityShell, var applicabilityRoot])

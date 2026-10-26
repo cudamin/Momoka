@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text;
 using Momoka.Configuration;
 using Momoka.Emby;
@@ -7,6 +8,9 @@ using Momoka.Shell;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using static Momoka.Tests.TestHarness;
@@ -24,7 +28,12 @@ internal static class Program
             Console.Error.WriteLine("需要本树当前 Release Shell DLL 与工作树绝对路径；不运行 App 或桌面 UI。");
             return 2;
         }
-        _ = new ShellRuntime(shell, root);
+        VerifyProductionInputs();
+        var runtimeShell = ShellFixtureInput(shell, root);
+        Console.WriteLine("离线 VM 来源：" + Path.GetFullPath(shell) + "；SHA256=" + HashFile(shell));
+        Console.WriteLine("生产源码输入：" + SettingsProbeInputs.SourceRoot);
+        foreach (var input in SettingsProbeInputs.Sha256) Console.WriteLine(input.Key + " SHA256=" + input.Value);
+        _ = new ShellRuntime(runtimeShell, root);
         Console.WriteLine("Settings 探针活动期／动效契约；实际 VM 和原样页面／行方法，无真实 UI／网络／注册表／播放。");
         Register();
         return TestHarness.Run();
@@ -199,10 +208,17 @@ internal static class Program
             }));
             Test($"旧未接线夹具的原快速开关判据仍失败（契约宽{width}）", () => WithScreenshot((context, fixture, page, _, rows) =>
             {
+                // Rows now owns its preference observer. Missing the page visit alone is no
+                // longer an unwired driver: omit the actual rows Loaded handler and keep the
+                // stale layout readings that the original production Require must still reject.
+                Assert.False(page.HasConditionalTransitions(rows));
+                var surface = (Border)VisualTreeHelper.GetParent(rows)!;
+                surface.Height = 100;
+                surface.Clip = new();
                 var toggle = new ToggleSwitch { Toggled = () => ToggleLossless(fixture.Vm) };
                 var error = Assert.Catch<InvalidOperationException>(() => context.Await(ShellNavigationProbe.CheckRapidToggle(page, rows, toggle, fixture.Settings.Settings.Mpv)));
-                Assert.Contains("快速切换或关闭动画没有清理动画", error.Message);
-            }));
+                Assert.Contains("卡片没有恢复自适应高度或裁剪残留", error.Message);
+            }, attachRows: false));
         }
         Test("实际落定等待不会把有尺寸但未Loaded的页算完成", () => WithPage((context, _, page) =>
         {
@@ -266,6 +282,36 @@ internal static class Program
             Assert.Equal(count + 1, page.HostedReads);
             Assert.True(ReferenceEquals(sections, ShellRuntime.Current.Get<object>(fixture.Vm, "Sections")));
         }));
+        Test("分类切换复位滚动，同页重开保留位置，托管页也使用短促刷新", () => WithPage((_, _, page) =>
+        {
+            page.RaiseLoaded();
+            ShellNavigationProbe.BeginVisitForContract(page);
+            page.AddEntranceSection();
+            page.SelectedCategory = "界面";
+            page.DispatcherQueue.Drain();
+            var resets = page.SettingsScroll.ScrollResets;
+            Assert.True(resets > 0);
+            page.QueueEntranceForContract();
+            page.DispatcherQueue.Drain();
+            Assert.Equal(resets, page.SettingsScroll.ScrollResets);
+            page.SelectedCategory = "字幕";
+            page.DispatcherQueue.Drain();
+            Assert.Equal(resets + 1, page.SettingsScroll.ScrollResets);
+            Assert.True(SettingsPage.PageTransitionDurationMs <= 200);
+            var hosted = new FrameworkElement { XamlRoot = new() };
+            page.AddVisual(hosted);
+            HomeMotion.Reveal(hosted);
+            Assert.True(hosted.RenderTransform is TranslateTransform { Y: SettingsPage.PageTransitionDistance });
+            var hostedBoard = Storyboard.Active.Single(board => board.Children.Any(animation => ReferenceEquals(animation.Target, hosted)));
+            Assert.True(hostedBoard.Children.All(animation => animation.Duration.TimeSpan == TimeSpan.FromMilliseconds(180) && animation.BeginTime == TimeSpan.Zero));
+            HomeMotion.Stop(hosted);
+            var ordinary = new FrameworkElement { XamlRoot = new() };
+            HomeMotion.Reveal(ordinary);
+            var ordinaryBoard = Storyboard.Active.Single(board => board.Children.Any(animation => ReferenceEquals(animation.Target, ordinary)));
+            Assert.True(ordinaryBoard.Children.All(animation => animation.Duration.TimeSpan == TimeSpan.FromMilliseconds((int)typeof(HomeMotion).GetField("DurationMs", BindingFlags.Static | BindingFlags.NonPublic)!.GetRawConstantValue()!)));
+            HomeMotion.Stop(ordinary);
+            page.ReleaseHosted();
+        }));
         Test("隐藏前排队分类动画在Hide后失效；重入新分类正常开始", () => WithPage((_, _, page) =>
         {
             page.RaiseLoaded();
@@ -282,6 +328,161 @@ internal static class Program
             Assert.Equal(0d, section.Opacity);
             Assert.True(section.RenderTransform is TranslateTransform { Y: > 0 });
         }));
+        Test("Drain前重复排队和Loaded仍保留唯一分类滚动复位", () => WithPage((_, _, page) =>
+        {
+            ShellNavigationProbe.BeginVisitForContract(page);
+            page.AddEntranceSection();
+            page.SelectedCategory = "界面";
+            page.RaiseLoaded();
+            page.QueueEntranceForContract();
+            page.RaiseLoaded();
+            Assert.Equal(0, page.SettingsScroll.ScrollResets);
+            Assert.True(page.DispatcherQueue.Count >= 3);
+            page.DispatcherQueue.Drain();
+            Assert.Equal(1, page.SettingsScroll.ScrollResets);
+            Assert.Equal(ScrollingAnimationMode.Disabled, page.SettingsScroll.LastOptions!.AnimationMode);
+            Assert.Equal(ScrollingSnapPointsMode.Ignore, page.SettingsScroll.LastOptions.SnapPointsMode);
+            page.RaiseLoaded();
+            page.QueueEntranceForContract();
+            page.DispatcherQueue.Drain();
+            Assert.Equal(1, page.SettingsScroll.ScrollResets, "同页Loaded不能再次复位");
+            page.SelectedCategory = "字幕";
+            page.QueueEntranceForContract();
+            page.RaiseLoaded();
+            page.DispatcherQueue.Drain();
+            Assert.Equal(2, page.SettingsScroll.ScrollResets);
+        }));
+        Test("分类队列拒绝或Layout失败不记完成，重试仍复位", () => WithPage((_, _, page) =>
+        {
+            ShellNavigationProbe.BeginVisitForContract(page);
+            page.RaiseLoaded();
+            page.DispatcherQueue.Drain();
+            var resets = page.SettingsScroll.ScrollResets;
+            page.DispatcherQueue.RejectEnqueue = true;
+            page.SelectedCategory = "界面";
+            Assert.Equal(1d, page.SettingsContent.Opacity);
+            page.DispatcherQueue.RejectEnqueue = false;
+            page.SettingsContent.OnUpdateLayout = () => throw new InvalidOperationException("离线Layout失败");
+            page.QueueEntranceForContract();
+            page.DispatcherQueue.Drain();
+            Assert.Equal(resets, page.SettingsScroll.ScrollResets);
+            Assert.Equal(1d, page.SettingsContent.Opacity);
+            page.SettingsContent.OnUpdateLayout = null;
+            page.QueueEntranceForContract();
+            page.DispatcherQueue.Drain();
+            Assert.Equal(resets + 1, page.SettingsScroll.ScrollResets);
+        }));
+        Test("Rows wrapper稳定枚举真实身份与类型，容器不因显隐重建", () => WithScreenshot((_, fixture, page, section, rows) =>
+        {
+            var wrapper = (Momoka.Shell.ViewModels.SettingSection)rows.Tag!;
+            var actual = ShellRuntime.Current.Get<IList>(section, "Rows");
+            var collection = wrapper.Rows;
+            Assert.True(ReferenceEquals(actual, collection.Inner));
+            Assert.Equal(actual.Count, collection.Count);
+            for (var index = 0; index < actual.Count; index++)
+            {
+                Assert.True(ReferenceEquals(actual[index], collection[index].Inner));
+                Assert.True(ReferenceEquals(collection[index], collection.ElementAt(index)));
+                Assert.Equal(actual[index]!.GetType(), collection[index].GetType().GenericTypeArguments.Single());
+                Assert.Equal(ShellRuntime.Current.Get<string>(actual[index]!, "Label"), collection[index].Label);
+                Assert.True(ReferenceEquals(rows.ContainerFromItem(actual[index]!), rows.ContainerFromItem(collection[index])));
+            }
+            var control = collection.Single(row => row.Label == "WebP 无损");
+            var container = rows.ContainerFromItem(control);
+            ToggleLossless(fixture.Vm);
+            ToggleLossless(fixture.Vm);
+            Assert.True(ReferenceEquals(collection, wrapper.Rows));
+            Assert.True(ReferenceEquals(control, collection.Single(row => row.Label == "WebP 无损")));
+            Assert.True(ReferenceEquals(container, rows.ContainerFromItem(control)));
+            Assert.Equal(actual.Count, collection.Count);
+        }));
+        Test("实际删除淡出补位与高度请求同为160ms，Completed直接落定", () => WithScreenshot((_, _, page, section, rows) =>
+        {
+            var actual = ShellRuntime.Current.Get<IList>(section, "Rows");
+            var removed = actual[0]!;
+            var survivor = actual[1]!;
+            var container = rows.ContainerFromItem(survivor)!;
+            var target = (FrameworkElement)VisualTreeHelper.GetChild(container, 0);
+            Assert.True(ReferenceEquals(DependencyProperty.UnsetValue, target.ReadLocalValue(UIElement.RenderTransformProperty)));
+            actual.RemoveAt(0);
+            Assert.True(page.HasConditionalMotion(rows));
+            rows.DispatcherQueue.Drain();
+            Assert.True(ReferenceEquals(container, rows.ContainerFromItem(survivor)));
+            Assert.True(rows.ItemContainerTransitions is { Count: 0 });
+            Assert.True(page.HasConditionalTransitions(rows), "兼容名字表示可控动画可用，不是系统Transition");
+            var board = Storyboard.Active.Single();
+            Assert.True(board.Children.Any(animation => animation.Property == "Opacity"));
+            Assert.True(board.Children.Any(animation => animation.Property == "Y"));
+            Assert.True(board.Children.Any(animation => animation.Property == "Height" && animation.EnableDependentAnimation));
+            Assert.True(board.Children.All(animation => animation.Duration.TimeSpan == TimeSpan.FromMilliseconds(160) && animation.BeginTime == TimeSpan.Zero));
+            var popup = Popup.Created.Last();
+            Assert.True(popup.IsOpen);
+            var copy = ((Canvas)popup.Child!).Children.OfType<ContentPresenter>().Single();
+            Assert.True(ReferenceEquals(removed, ((Momoka.Shell.ViewModels.SettingRow)copy.Content!).Inner));
+            foreach (var element in Elements(popup).OfType<UIElement>())
+            {
+                Assert.False(element.IsHitTestVisible);
+                Assert.False(element.IsTabStop);
+                if (!ReferenceEquals(element, popup)) Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(element));
+            }
+            Storyboard.Advance(159);
+            Assert.True(page.HasConditionalMotion(rows));
+            Storyboard.Advance(1);
+            Assert.True(page.IsContentMotionSettled);
+            Assert.Equal(0, board.CompletionSubscriptions);
+            Assert.False(popup.IsOpen);
+            Assert.Null(popup.Child);
+            Assert.True(ReferenceEquals(DependencyProperty.UnsetValue, target.ReadLocalValue(UIElement.RenderTransformProperty)));
+            var surface = (Border)VisualTreeHelper.GetParent(rows)!;
+            Assert.True(double.IsNaN(surface.Height));
+            Assert.Null(surface.Clip);
+        }));
+        Test("替换行动画不受旧Completed清理，Release取消副本和队列", () => WithScreenshot((_, _, page, section, rows) =>
+        {
+            var actual = ShellRuntime.Current.Get<IList>(section, "Rows");
+            var first = actual[0]!;
+            actual.RemoveAt(0);
+            rows.DispatcherQueue.Drain();
+            var old = Storyboard.Active.Single();
+            var posted = old.CapturePostedCompletion();
+            actual.Insert(0, first);
+            rows.DispatcherQueue.Drain();
+            var current = Storyboard.Active.Single();
+            Assert.False(ReferenceEquals(old, current));
+            posted();
+            Assert.True(page.HasConditionalMotion(rows));
+            Assert.True(ReferenceEquals(current, Storyboard.Active.Single()));
+            page.ReleaseHosted();
+            Assert.Equal(0, Storyboard.Count);
+            Assert.Equal(0, current.CompletionSubscriptions);
+            Assert.True(Popup.Created.All(popup => !popup.IsOpen && popup.Child is null));
+            rows.DispatcherQueue.Drain();
+            Assert.True(page.IsContentMotionSettled);
+        }));
+        Test("祖先隐藏和后台系统减少动画及时取消真实行队列", () => WithScreenshot((_, fixture, page, _, rows) =>
+        {
+            ToggleLossless(fixture.Vm);
+            Assert.True(page.HasConditionalMotion(rows));
+            page.SettingsLayout.Visibility = Visibility.Collapsed;
+            Assert.False(page.HasConditionalMotion(rows));
+            rows.DispatcherQueue.Drain();
+            Assert.Equal(0, Storyboard.Count);
+            page.SettingsLayout.Visibility = Visibility.Visible;
+            ToggleLossless(fixture.Vm);
+            rows.DispatcherQueue.HasThreadAccess = false;
+            Windows.UI.ViewManagement.UISettings.SystemAnimations = false;
+            Assert.True(rows.DispatcherQueue.Count >= 2);
+            rows.DispatcherQueue.DrainOne(); // 系统High通知必须先于Low行动画。
+            Assert.False(page.HasConditionalMotion(rows));
+            Assert.False(page.HasConditionalTransitions(rows));
+            rows.DispatcherQueue.Drain();
+            Assert.Equal(0, Storyboard.Count);
+            page.ReleaseHosted();
+            Assert.False(page.HasConditionalMotion(rows));
+            rows.RaiseUnloaded(); // 缓存页Hide只Stop；真实离树才Detach并移除系统/祖先订阅。
+            Assert.Equal(0, Windows.UI.ViewManagement.UISettings.Subscribers);
+            Assert.Equal(0, rows.PropertySubscriptions);
+        }));
         Test("屏外分组不入场；系统关动画仍按原系统偏好不播", () => WithPage((_, _, page) =>
         {
             page.RaiseLoaded();
@@ -296,6 +497,32 @@ internal static class Program
             Assert.Equal(1d, page.SettingsContent.Opacity);
             Assert.Equal(0, Storyboard.Count);
         }));
+    }
+
+    private static string HashFile(string file) => Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(file)));
+
+    private static void VerifyProductionInputs()
+    {
+        foreach (var input in SettingsProbeInputs.Sha256)
+            Assert.Equal(input.Value, HashFile(Path.Combine(SettingsProbeInputs.SourceRoot, input.Key)), "生产输入已变，必须重新编译：" + input.Key);
+    }
+
+    private static string ShellFixtureInput(string supplied, string root)
+    {
+        var shell = Path.GetFullPath(supplied);
+        var local = Path.Combine(Path.GetFullPath(root), "src", "Momoka.Shell", "bin", "x64", "Release", "net10.0-windows10.0.19041.0", "win-x64", "Momoka.dll");
+        if (string.Equals(shell, local, StringComparison.OrdinalIgnoreCase)) return shell;
+        var expectedSuffix = Path.Combine("src", "Momoka.Shell", "bin", "x64", "Release", "net10.0-windows10.0.19041.0", "win-x64", "Momoka.dll");
+        Assert.True(Path.IsPathFullyQualified(supplied) && shell.EndsWith(Path.DirectorySeparatorChar + expectedSuffix, StringComparison.OrdinalIgnoreCase), "外部输入只能是明确主树的标准Release输出");
+        Assert.Equal(HashFile(shell), HashFile(local), "本树离线VM副本必须与主树current output字节一致");
+        return local; // 保留共享ShellRuntime的本树标准路径验证，不改其控制流。
+    }
+
+    private static IEnumerable<DependencyObject> Elements(DependencyObject root)
+    {
+        yield return root;
+        for (var index = 0; index < VisualTreeHelper.GetChildrenCount(root); index++)
+            foreach (var child in Elements(VisualTreeHelper.GetChild(root, index))) yield return child;
     }
 
     private static void WithPage(Action<FixtureContext, LifetimeFixture, SettingsPage> run, MediaServerKind kind = MediaServerKind.Jellyfin)
@@ -320,7 +547,7 @@ internal static class Program
         }
     }
 
-    private static void WithScreenshot(Action<FixtureContext, LifetimeFixture, SettingsPage, object, ItemsControl> run)
+    private static void WithScreenshot(Action<FixtureContext, LifetimeFixture, SettingsPage, object, ItemsControl> run, bool attachRows = true)
     {
         WithPage((context, fixture, page) =>
         {
@@ -332,7 +559,7 @@ internal static class Program
             var section = runtime.Invoke(fixture.Vm, "ScreenshotCard")!;
             runtime.List(fixture.Vm, "Sections").Add(section);
             page.SelectedCategory = "播放行为";
-            var rows = page.AddRows(section);
+            var rows = page.AddRows(section, attachRows);
             run(context, fixture, page, section, rows);
         });
     }

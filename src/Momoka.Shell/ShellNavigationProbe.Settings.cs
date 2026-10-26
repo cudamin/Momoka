@@ -98,6 +98,8 @@ internal sealed partial class ShellNavigationProbe
                 {
                     Require(entering.Length > 0 && began, "设置分组没有实际淡入和上浮：" + startReading);
                     Require(entering.All(section => section.RenderTransform is TranslateTransform), "入场没有使用模板根位移");
+                    Require(SettingsPage.PageTransitionDurationMs <= 200 && SettingsPage.PageTransitionDistance <= 12,
+                        "分类切换动画不是短促、短距离的页面刷新");
                     Require(Get<Grid>(page, "SettingsLayout").Opacity == 1
                         && Get<Grid>(page, "SettingsContent").RenderTransform is not TranslateTransform,
                         "父层仍有叠加动画");
@@ -119,11 +121,11 @@ internal sealed partial class ShellNavigationProbe
                 await WaitForSettingsSettledAsync(page);
                 AssertSettingsSettled(page);
                 // ScrollView 在合成提交后才按新 extent 钳制偏移；分组动画结束不代表滚动操作已结束。
-                await UntilAsync(() => scroll.VerticalOffset <= scroll.ScrollableHeight + 1);
+                await UntilAsync(() => scroll.VerticalOffset < 1);
                 var visible = Descendants(page).OfType<FrameworkElement>()
                     .Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible).ToArray();
                 Require(visible.Length == 1 && visible[0].ActualHeight > 0, "长页切短页没有实现目标分组");
-                Require(scroll.VerticalOffset <= scroll.ScrollableHeight + 1, "切短页后滚动位置超出内容");
+                Require(scroll.VerticalOffset < 1, "切换分类没有回到页面顶部");
 
                 // 「设置 → 关于」新增的两行（「启动时自动检查新版本」那一格与那颗手动「检查新版本」按钮，
                 // 2026-10-14）拍下来：这一页是另一扇窗口，而设置窗口的原生 Title 是空的，tools/shot.ps1 够不着它

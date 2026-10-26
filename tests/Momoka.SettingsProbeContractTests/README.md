@@ -1,3 +1,86 @@
+# Settings 探针契约：160ms Rows 适配（2026-10-27）
+
+本节是当前用法；下方 2026-10-24／25 内容为历史记录，不代表这次验证结果。
+本轮独立 managed worktree 从 `60414a7` 起步：
+`C:\Users\89400\.codex\worktrees\settings-probe-adaptation\Momoka`。
+四个测试文件以主树当时的未提交内容为种子，包括滚动选项边界、同页复位和托管页短动画用例。
+提交仅包含 `UiBoundaries.cs`、`Program.cs`、项目文件和本 README；
+最新主树生产源码及 Release DLL 的副本只是本树未提交／ignored 验证输入。
+
+## 当前契约与迁移边界
+
+- 保留原 24 项，包括无活动票、缺动画、未 Loaded／未注册和原快速开关的失败夹具；新增 6 项，
+  本轮共 **30 项，通过 30、失败 0、跳过 0**。没有删除 Require、延长等待或复制 VM 显隐算法。
+- 完整源码链接当前 `SettingsPage.Motion.cs`、`SettingsRowsMotion.cs`、`HomeMotion.cs`，
+  页面构造／活动票／Release、探针等待／入场采样／快速切换块仍由构建任务原样提取。
+  起止标记缺失或重复仍失败；`SettingsProbeSourceRoot` 默认本树，显式传值时所有生产链接和提取统一用该根。
+  构建嵌入输入 SHA-256，运行前逐项检查，源码变化后不能拿旧测试输出冒充当前证据。
+- `SettingSection.Rows` 是稳定的可枚举 wrapper，按真实 row 对象缓存包装；Count／Label 和事件均转发。
+  封闭泛型携带实际生产 row 类型，保留 `SameRow` 的类型区分；ContainerFromItem 映射回真实 identity，
+  幸存行容器不随显隐重建。没有复制 VM setters、属性过滤或偏好恢复逻辑。
+- 新边界只提供本地 DependencyProperty、祖先 Visibility、Popup／Canvas／ContentPresenter、
+  UISettings 事件、TransformGroup、Rect／相对坐标和可控 Storyboard 时钟。
+  `CompleteRows` 只调用 `Storyboard.CompleteAll()`；不再读 `_settling` 或伪造 timer 完成。
+- `HasConditionalTransitions` 保留兼容名字，表示可控行动画可用，不表示固定系统 Transition 存在。
+  新断言要求 ItemContainerTransitions 为空，真实淡出／补位／Height 请求同为 160ms、无延迟，
+  159ms 仍运行、160ms 实际 Completed 落定；还查副本 identity／不可点击／无 Tab／Raw 树、
+  旧 Completed 不清理替换动画、Release 清理、祖先隐藏、后台系统 High 优先取消和真实离树退订。
+- 旧快速开关反例的**缺接线前件**随新实现迁移：Rows 自己订阅偏好后，仅没有页面活动票不再算缺接线。
+  现在省去实际 Rows Loaded handler 并注入未清理的高度／Clip，原生产快速开关块的
+  “卡片没有恢复自适应高度或裁剪残留”仍必须抛错；宽窄两项失败夹具均保留。
+  缓存页 Hide／Release 只 Stop，真实行 Unloaded 才 Detach，不能把两个生命周期混为一谈。
+- 同页分类复位包含 Drain 前重复 Queue／Loaded 不取消唯一复位；拒绝入队或 Layout 抛错不记分类完成，
+  重试仍复位。设置页祖先下默认 Reveal 为 180ms／12px，其他媒体页默认时长保持原生产常量。
+
+## 定向离线命令
+
+在本树运行，使用用户级 SDK；只构建相关项目／引用 Core，不执行全 Core／共享自检 mutex、
+App、GUI、probe、发布或 push。先成功 restore 和当前 Release build，再用 --no-build：
+
+```powershell
+$root = 'C:\Users\89400\.codex\worktrees\settings-probe-adaptation\Momoka'
+$dotnet = 'C:\Users\89400\.dotnet\dotnet.exe'
+$project = Join-Path $root 'tests\Momoka.SettingsProbeContractTests\Momoka.SettingsProbeContractTests.csproj'
+$env:TEMP = Join-Path $root 'work\settings-probe-contract-tmp'
+$env:TMP = $env:TEMP
+New-Item -ItemType Directory -Path $env:TEMP -Force | Out-Null
+& $dotnet restore $project --disable-parallel -m:1 -p:BuildInParallel=false
+if ($LASTEXITCODE -ne 0) { throw 'restore失败，停止' }
+& $dotnet build $project -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false -p:SettingsProbeSourceRoot=$root
+if ($LASTEXITCODE -ne 0) { throw '当前Release构建失败，禁止运行旧DLL' }
+# 独立树的标准输出目录须预先有主线程确认成功后的current Shell及依赖DLL副本。
+$shell = 'C:\Users\89400\Momoka\src\Momoka.Shell\bin\x64\Release\net10.0-windows10.0.19041.0\win-x64\Momoka.dll'
+& $dotnet run --project $project -c Release --no-build --no-restore -- $shell $root
+if ($LASTEXITCODE -ne 0) { throw '契约失败，停止' }
+```
+
+普通本树验证可把 `$shell` 换成本树已成功编译的标准 Release 路径。
+显式主树输入须与本树副本 SHA-256 一致；仍由共享 ShellRuntime 验证并加载**本树标准路径**，
+日志明确注明实际来源为主树 current output，不把复制的 DLL 说成本树 Shell build。
+本轮只运行上面的契约，不运行下方历史 `core-settings` 命令。
+
+## 本轮生产输入与结果
+
+相关项目／引用 Core 的 fresh Release build：**0 警告、0 错误**；契约 **30／30**。
+源码使用主树当前 resetScroll race 与 LayoutCycle 修复，运行日志和完整输入 SHA-256 清单在：
+`C:\Users\89400\.codex\worktrees\settings-probe-adaptation\Momoka\artifacts\settings-probe-adaptation\contract-run.log`。
+关键 SHA-256：
+
+| 输入 | SHA-256 |
+| --- | --- |
+| SettingsRowsMotion.cs | `A0951808F9E82002AC50B0A6B6AE38CCD7FC56FB8910EE9E01515E51DCEF8604` |
+| SettingsPage.Motion.cs | `A77211C946A7F3115D33B57E4A3A28E0DAEA53BD91407978CE3D4DE9BDB7F868` |
+| HomeMotion.cs | `CD0783443D2AB1F6C36D9BBE8E0A9BA558319195AB243000271F01C54DB0D515` |
+| 主树 current Momoka.dll（用户确认新 Release build 成功） | `E44CDB35C6777942E4527F4C6EB5D5F744ECCAB2A03FE513B97E7590D90FDAF3` |
+
+这些是实际控制流、请求时长、边界值与取消行为的离线证据，不是 WinUI 帧时间／真实模板、
+滚动像素／焦点或 LayoutCycle 消失的 UI 证明。页面与副本的真实布局／输入仍由主线程串行验证；
+不把本轮结果与其他 Rows／Priority 专项累加，也不宣称全 Core 或发布通过。
+
+---
+
+## 历史 worker 记录（保留原失败证据）
+
 > 主线程整合（2026-10-24）：本项目已加入实际方案，与 HomeOrder／motion 专项一起当前编译；下面 worker 数字与前件描述保留历史边界，不代表最终发布已通过。最终 full UI 和自检状态见主树 PROGRESS 及 delivery08 证据，主线程已定点清理 FnNas 所属 Frame。
 
 # 最终交付 Settings 探针契约回归（worker，2026-10-24）

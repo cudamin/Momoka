@@ -29,6 +29,20 @@
             <Setter Property="MinHeight" Value="0" />
             <Setter Property="Margin" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <!-- 默认 HeaderItem 模板自带 Rectangle 分隔线；局部模板仅保留分组文字与折叠按钮。 -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListViewHeaderItem">
+                        <ContentPresenter
+                            Margin="{TemplateBinding Padding}"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            ContentTransitions="{TemplateBinding ContentTransitions}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style x:Key="SettingsGroupToggle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Background" Value="Transparent" />
@@ -65,41 +79,17 @@
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
 
-        <!--
-          **行不再自带卡皮**（2026-09-25 复刻 QQ 设置的分区框，换掉 09-06 那套「一行一卡」）。QQ 的分法是
-          「分区标题 ＋ 一整张卡，行和行之间一条细线」；行的外观于是收敛到「不透明底色 ＋ 内边距」，
-          边框、圆角全部交给分组那张卡（见下面分区模板里的 Border）。
-
-          **底色必须是不透明的卡底色**，这是行间细线的付账方式：细线不画在行上（末行会多出一条），而是
-          ItemsPanel 垫一层 EgBorderBrush、行与行之间只留 1px 缝，缝里露出来的就是线 —— 行一透明，
-          整行都会被那层垫底染了色。所以这个 Background 不许换成 ThemeResource 之外的半透明画刷。
-
-          控件那一列多宽（上面的 EgSettingControlWidth）跟卡皮无关，六种行（开关、下拉、数字、滑块、输入、
-          字体）照旧共用，控件落在同一条竖线上。行高顺 QQ 收了一档：MinHeight 68 → 60；2026-09-26 再收到
-          40（用户的话：「设置页面的极简模式字体要放在上下线条的中间，上下空位间距参考下图进行修改」，附一张
-          QQ 文件设置区的截图）：精简模式把说明收走之后一行只剩标签，60 的下限把标签顶在上头（上空 11、
-          下空约 30）；40 让行高回落到「一行标签 ＋ 上下各 11」的天然高度（约 42），标签正好落在上下两条
-          细线的正中间，空位就是截图上那个分量。说明开着的行内容本来就 ≥60，这个下限碰不到它们。
-          行内「标签＋说明」那层 StackPanel 统一 VerticalAlignment=Center：说明收起后标签要跟右边那颗
-          Center 的控件同一条中线；说明开着时内容撑满整行，Center 不生效 —— 两种模式共用一句，不用分。
-          两处例外照旧：字体行保持 Top（列表展开时行被拉到三百多高，居中会把标签吊在半空），MoviePilot
-          卡的标签列跟着一整列控件走，不动。
-        -->
+        <!-- 设置行共用整组卡片的底色，留白区分选项，不再铺底色制造分隔线。 -->
         <Style x:Key="EgSettingRowStyle" TargetType="Grid">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="Padding" Value="20,11,20,11" />
             <Setter Property="MinHeight" Value="40" />
             <Setter Property="ColumnSpacing" Value="24" />
         </Style>
 
-        <!--
-          高一档的行（主题色板、开关组、主页版面那张表，后来字幕标题筛选也是）从前自己是一张小卡；进了
-          分区卡之后边框和圆角撤掉，底色留下 —— 不是忘了撤：它们和普通行一样得是不透明的卡底色，行间
-          那条 1px 细线才只在缝里露出来（见 EgSettingRowStyle 上头那段）。
-          没有 `MinHeight`：它们本来就比 40 高得多，写上去只是一句永远成立的话。
-        -->
+        <!-- 主题色板、语言和规则列表等较高的行也使用同一张无分隔线的卡片。 -->
         <Style x:Key="EgSettingBlockStyle" TargetType="StackPanel">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
+            <Setter Property="Background" Value="Transparent" />
             <Setter Property="Padding" Value="20,12,20,12" />
             <Setter Property="Spacing" Value="8" />
         </Style>
@@ -1331,7 +1321,7 @@
         </local:SettingRowTemplates>
     </Page.Resources>
 
-    <Grid x:Name="SettingsLayout" Margin="{StaticResource EgPageMargin}">
+    <Grid x:Name="SettingsLayout" Margin="16,8,16,16">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="SettingsWidthStates">
                 <VisualState x:Name="CompactSettings">
@@ -1343,6 +1333,8 @@
                         <Setter Target="SettingsNavColumn.Width" Value="0" />
                         <Setter Target="SettingsBody.ColumnSpacing" Value="0" />
                         <Setter Target="SettingsBody.RowSpacing" Value="16" />
+                        <Setter Target="SettingsNavigation.(Grid.RowSpan)" Value="1" />
+                        <Setter Target="SettingsNavigation.(Grid.ColumnSpan)" Value="2" />
                         <Setter Target="CategoryNavigation.Visibility" Value="Collapsed" />
                         <Setter Target="CompactCategoryNavigation.Visibility" Value="Visible" />
                         <Setter Target="SettingsContent.(Grid.Row)" Value="1" />
@@ -1393,9 +1385,9 @@
             </InfoBar>
         </StackPanel>
 
-        <Grid x:Name="SettingsBody" Grid.Row="1" Margin="0,12,0,0" ColumnSpacing="24">
+        <Grid x:Name="SettingsBody" Grid.Row="1" ColumnSpacing="28">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition x:Name="SettingsNavColumn" Width="180" />
+                <ColumnDefinition x:Name="SettingsNavColumn" Width="200" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
@@ -1403,27 +1395,58 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <!-- Both navigation controls share the same category selection. Compact windows reclaim the
-                 side rail's width while the standard ComboBox keeps every hosted page reachable. -->
-            <ComboBox
-                x:Name="CompactCategoryNavigation"
-                x:Uid="SettingsPage_CategoryPicker"
-                AutomationProperties.AutomationId="SettingsCategoryPicker"
-                Grid.ColumnSpan="2"
-                HorizontalAlignment="Stretch"
-                MinWidth="0"
-                ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
-                DisplayMemberPath="PickerLabel"
-                SelectedItem="{x:Bind ViewModel.SelectedEntry, Mode=TwoWay}"
-                Visibility="Collapsed" />
+            <!-- 搜索和分类共用这一列；窄窗只换分类选择器，不增删或过滤侧栏分区。 -->
+            <Grid x:Name="SettingsNavigation" Grid.RowSpan="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <AutoSuggestBox
+                    x:Name="SettingsSearchBox"
+                    Margin="0,0,0,12"
+                    PlaceholderText="搜索设置项"
+                    AutomationProperties.Name="搜索设置项"
+                    QueryIcon="Find"
+                    Text="{x:Bind ViewModel.SettingsSearchQuery, Mode=TwoWay}"
+                    ItemsSource="{x:Bind ViewModel.SettingsSearchResults, Mode=OneWay}"
+                    TextMemberPath="Label"
+                    UpdateTextOnSelect="False"
+                    MaxSuggestionListHeight="420"
+                    QuerySubmitted="OnSettingsSearchSubmitted">
+                    <AutoSuggestBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SettingsSearchResult">
+                            <StackPanel Spacing="2" Padding="0,4">
+                                <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                                <TextBlock Text="{x:Bind Location}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </AutoSuggestBox.ItemTemplate>
+                </AutoSuggestBox>
+                <TextBlock x:Name="SettingsSearchEmpty" Grid.Row="1" Margin="4,0,4,12"
+                    Text="未找到匹配的设置项" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap"
+                    automation:AutomationProperties.LiveSetting="Polite"
+                    Visibility="{x:Bind ViewModel.SettingsSearchEmptyVisibility, Mode=OneWay}" />
+                <ComboBox
+                    x:Name="CompactCategoryNavigation"
+                    x:Uid="SettingsPage_CategoryPicker"
+                    AutomationProperties.AutomationId="SettingsCategoryPicker"
+                    Grid.Row="2"
+                    Margin="0,0,0,8"
+                    HorizontalAlignment="Stretch"
+                    MinWidth="0"
+                    ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}"
+                    DisplayMemberPath="PickerLabel"
+                    SelectedItem="{x:Bind ViewModel.SelectedEntry, Mode=TwoWay}"
+                    Visibility="Collapsed" />
 
             <ListView
                 x:Name="CategoryNavigation"
                 AutomationProperties.AutomationId="SettingsCategoryList"
-                Grid.RowSpan="2"
-                Background="{ThemeResource EgSurfaceBrush}"
-                CornerRadius="16"
-                Padding="8"
+                Grid.Row="3"
+                Background="Transparent"
+                Padding="0"
                 IsItemClickEnabled="False"
                 ItemsSource="{x:Bind CategoryGroupsSource.View, Mode=OneWay}"
                 SelectedItem="{x:Bind ViewModel.SelectedEntry, Mode=TwoWay}"
@@ -1525,6 +1548,7 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
+            </Grid>
 
             <!--
               需求 2 的后半句：「诊断和服务器移动到设置里」. The left-hand list also holds entries that are not
@@ -1535,6 +1559,13 @@
               （「恢复默认」曾是这份名单末尾的第四项，2026-09-24 搬进了「关于」卡，见 SettingsViewModel.AboutCard。）
             -->
             <Grid x:Name="SettingsContent" Grid.Column="1" Grid.RowSpan="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <!-- 保留页面本身的标题；去掉的是下方与分类重复的「主页 · 7 项」牌子。 -->
+                <TextBlock x:Name="SettingsPageTitle" Text="设置" Margin="8,0,0,16"
+                    Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
                 <!--
                   Every card is built and kept, and picking a category only changes which one is shown — the
                   same as before. There is no server data on this page, so building all of them costs nothing
@@ -1542,9 +1573,15 @@
                   category list.
                 -->
                 <ScrollView
+                    x:Name="SettingsScroll"
+                    Grid.Row="1"
+                    HorizontalContentAlignment="Stretch"
+                    HorizontalScrollMode="Disabled"
+                    HorizontalScrollBarVisibility="Hidden"
                     VerticalScrollBarVisibility="Auto"
                     Visibility="{x:Bind ViewModel.CardsVisibility, Mode=OneWay}">
-                    <StackPanel>
+                    <!-- 右侧 20 DIP 是滚动条的独立槽位；卡片不伸进滚动指示器区域。 -->
+                    <StackPanel x:Name="SettingsCardsContent" Margin="0,0,20,0">
                         <StackPanel Spacing="8" Margin="0,0,0,20" MaxWidth="900"
                             Visibility="{x:Bind ViewModel.ShortcutSearchVisibility, Mode=OneWay}">
                             <Grid ColumnSpacing="8">
@@ -1562,7 +1599,7 @@
                             <TextBlock x:Name="ShortcutSearchSummary" Style="{StaticResource EgSettingNote}"
                                 Text="{x:Bind ViewModel.ShortcutSearchSummary, Mode=OneWay}" />
                         </StackPanel>
-                        <ItemsControl x:Name="SettingsSections" ItemsSource="{x:Bind ViewModel.Sections, Mode=OneWay}" MaxWidth="900">
+                        <ItemsControl x:Name="SettingsSections" ItemsSource="{x:Bind ViewModel.Sections, Mode=OneWay}" MaxWidth="900" HorizontalAlignment="Left">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <!--
@@ -1577,42 +1614,20 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="vm:SettingSection">
-                                    <!--
-                                      **一个分组一张卡**（2026-09-25 复刻 QQ 设置的分区框，换掉 09-06 那套
-                                      「外层只剩牌子、行各自成卡」的摆法）。QQ 的分区是「小标题 ＋ 一整张圆角卡，
-                                      行和行之间一条细线」；现在牌子、说明站在卡外，底下这张 Border 把整组的行
-                                      全装进去。行自己的卡皮撤了（EgSettingRowStyle / EgSettingBlockStyle），
-                                      卡皮由这里的 Border 一处画。
-                                    -->
-                                    <StackPanel x:Name="SettingsSection" Spacing="12" Margin="0,0,0,36" Visibility="{x:Bind SectionVisibility, Mode=OneWay}">
+                                    <!-- 整组卡片保留，重复标题与选项分隔线取消。 -->
+                                    <StackPanel x:Name="SettingsSection" Spacing="0" Margin="0,0,0,16" Visibility="{x:Bind SectionVisibility, Mode=OneWay}">
                                         <StackPanel.RenderTransform>
                                             <TranslateTransform />
                                         </StackPanel.RenderTransform>
-                                        <!--
-                                          设置分组的牌子和卡片带的牌子是同一块木头（local:ShelfHead）：分区标题、
-                                          右端一个等宽读数、底下一条通栏发丝线。这一页原先自己写了个标题 —— 只有
-                                          字号和 SemiBold、没写字体，于是每张卡片的名字比媒体库那些带子的名字大
-                                          一点，而且是另一种字；那条线也没有，八张卡片全靠间距分家。
-                                        -->
-                                        <local:ShelfHead Note="{x:Bind Count, Mode=OneWay}" Title="{x:Bind Title, Mode=OneWay}" />
-                                        <TextBlock
-                                            Style="{StaticResource EgSettingNote}"
-                                            Text="{x:Bind Description}" />
-                                        <!--
-                                          **Padding 6 是给行的方角留的**：Border 的圆角剪不动里面的内容（色板那
-                                          六块留方是同一个道理），行的方角要是顶到卡角，就会从圆弧外面戳出去。
-                                          行整体缩进 6 之后，方角落在圆弧以内（半径 12、缩进 6，方角离圆心的
-                                          距离不到半径），圆角才真的是圆的。
-
-                                          **行间的细线**不画在任何一行上（末行会多出一条收不了尾）：行的底色是
-                                          不透明的卡底色（见 EgSettingRowStyle 上头那段），ItemsPanel 垫一层
-                                          EgBorderBrush，行与行之间只留 1px 的缝 —— 缝里露出来的就是线，首行
-                                          之上、末行之下自然是空的。QQ 卡里那条线就是这个站法。
-                                        -->
+                                        <!-- 仅取消与侧栏重复的分类标题和数量，真正的子分组标题继续显示。 -->
+                                        <TextBlock x:Name="SettingsSectionTitle" Margin="8,0,0,12"
+                                            Text="{x:Bind Title, Mode=OneWay}" Style="{StaticResource EgSubheadStyle}"
+                                            AutomationProperties.HeadingLevel="Level2"
+                                            Visibility="{x:Bind HeadingVisibility, Mode=OneWay}" />
                                         <Border
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                            BorderThickness="{StaticResource EgCardBorderThickness}"
+                                            BorderThickness="0"
                                             CornerRadius="12"
                                             Padding="6">
                                             <ItemsControl x:Name="SettingsRowsList" Tag="{x:Bind}"
@@ -1621,7 +1636,7 @@
                                                 ItemsSource="{x:Bind Rows}">
                                                 <ItemsControl.ItemsPanel>
                                                     <ItemsPanelTemplate>
-                                                        <StackPanel Background="{ThemeResource EgBorderBrush}" Spacing="1" />
+                                                        <StackPanel Spacing="0" />
                                                     </ItemsPanelTemplate>
                                                 </ItemsControl.ItemsPanel>
                                             </ItemsControl>
@@ -1643,6 +1658,7 @@
                 <!-- Transitions cleared for the same reason the shell's frame clears them (requirement 9). -->
                 <Frame
                     x:Name="HostedFrame"
+                    Grid.Row="1"
                     Transitions="{x:Null}"
                     Visibility="{x:Bind ViewModel.HostedVisibility, Mode=OneWay}" />
             </Grid>

@@ -22,6 +22,31 @@ internal static class Program
             Assert.Equal(0, fixture.List.ItemContainerTransitions!.Count);
             fixture.AssertClean();
         }));
+        Test("隐藏缓存分组的全局LayoutUpdated不重复写Height或触发布局循环", () => With(fixture =>
+        {
+            fixture.Section.IsVisible = false;
+            var writes = fixture.Surface.SetValueCalls;
+            for (var index = 0; index < 100; index++) fixture.List.RaiseLayout();
+            Assert.Equal(writes, fixture.Surface.SetValueCalls);
+            fixture.AssertClean();
+        }));
+        Test("静止淡出副本的全局布局通知不重建Clip或反复安排Popup", () => With(fixture =>
+        {
+            fixture.RemoveDependencies();
+            fixture.Start();
+            var popup = Popup.Created.Single();
+            var canvas = (Canvas)popup.Child!;
+            // The board first locks the card to its starting height; one geometry notification
+            // updates that slice. Identical later layout notifications must then be no-ops.
+            fixture.List.RaiseLayout();
+            var clip = canvas.Clip;
+            var writes = fixture.Surface.SetValueCalls;
+            for (var index = 0; index < 100; index++) fixture.List.RaiseLayout();
+            Assert.True(ReferenceEquals(clip, canvas.Clip));
+            Assert.Equal(writes, fixture.Surface.SetValueCalls);
+            fixture.Finish();
+            fixture.AssertClean();
+        }));
         Test("关闭动画的首次构造和后续数据更新均即时落定", () =>
         {
             using var fixture = new MotionFixture(enabled: false);

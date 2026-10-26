@@ -38,6 +38,9 @@ internal sealed class SettingsRowsMotion : IDisposable
     private readonly List<(ContentPresenter Copy, Rect Bounds)> _ghostPositions = [];
     private bool _queued;
     private bool _arranging;
+    private bool _handlingLayout;
+    private Rect? _ghostBounds;
+    private Point? _ghostOrigin;
     private bool _detached;
     private int _generation;
     private double _fromHeight;
@@ -296,6 +299,11 @@ internal sealed class SettingsRowsMotion : IDisposable
         }
         // Give the popup only the visible slice, not the whole old card. Otherwise its default
         // root-bounds constraint can relocate a partially offscreen card and misalign the copies.
+        // LayoutUpdated is global. Rewriting identical bounds/clip there schedules another layout,
+        // so stable geometry must be a genuine no-op (especially for hidden cached sections).
+        if (_ghostBounds == bounds && _ghostOrigin == origin) return;
+        _ghostBounds = bounds;
+        _ghostOrigin = origin;
         _ghost.HorizontalOffset = origin.X + bounds.Left;
         _ghost.VerticalOffset = origin.Y + bounds.Top;
         _ghostRows.Width = bounds.Width;
@@ -325,10 +333,18 @@ internal sealed class SettingsRowsMotion : IDisposable
 
     private void OnLayoutUpdated(object? sender, object args)
     {
-        if (_arranging || _detached) return;
-        if (!CanAnimate) Stop();
-        else if (IsAnimating) PositionRemovedRows();
-        else RememberRows();
+        if (_arranging || _handlingLayout || _detached) return;
+        _handlingLayout = true;
+        try
+        {
+            if (!CanAnimate)
+            {
+                if (IsAnimating || _ghost is not null || _clip is not null) Stop();
+            }
+            else if (IsAnimating) PositionRemovedRows();
+            else RememberRows();
+        }
+        finally { _handlingLayout = false; }
     }
 
     private void OnSurfaceSizeChanged(object sender, SizeChangedEventArgs args)
@@ -383,10 +399,12 @@ internal sealed class SettingsRowsMotion : IDisposable
         _ghostPositions.Clear();
         _ghost = null;
         _ghostRows = null;
+        _ghostBounds = null;
+        _ghostOrigin = null;
         if (_surface is not null)
         {
-            _surface.Height = double.NaN;
-            _surface.Clip = null;
+            if (!double.IsNaN(_surface.Height)) _surface.Height = double.NaN;
+            if (_surface.Clip is not null) _surface.Clip = null;
         }
         _clip = null;
         _fromRows = [];

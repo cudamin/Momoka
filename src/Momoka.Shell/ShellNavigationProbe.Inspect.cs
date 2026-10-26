@@ -104,6 +104,7 @@ internal sealed partial class ShellNavigationProbe
             paths.EnsureCreated();
             var page = CreateMotionSettingsPage(fixture, settingsMoviePilot, paths);
             frame.Content = page;
+            BeginSettingsFixtureVisit(page);
             HomeMotion.ApplyPreference(true);
             await page.ViewModel.ReloadAsync();
             page.SelectedCategory = "播放行为";

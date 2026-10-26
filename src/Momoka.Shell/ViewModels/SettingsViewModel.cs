@@ -48,7 +48,13 @@ public sealed partial class SettingSection : ObservableObject
         if (string.Equals(Title, title, StringComparison.Ordinal)) return;
         Title = title;
         OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(HeadingVisibility));
     }
+
+    /// <summary>侧栏已经说明分类名；只保留真正区分同页多个分组的标题，不再重复分类和项数。</summary>
+    public Visibility HeadingVisibility => string.Equals(Title, Category, StringComparison.Ordinal)
+        || Category == "界面" && Title == SettingsViewModel.FnNasAppearanceCategory
+        ? Visibility.Collapsed : Visibility.Visible;
 
     public string Description { get; }
 
@@ -266,6 +272,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// </summary>
     public SettingsViewModel()
     {
+        InitializeSettingsSearch();
         _categoryGroups = BuildCategoryGroups(serverAdministration: false, MediaServerKind.Emby, fnNasAccount: false);
 
         Categories.Clear();

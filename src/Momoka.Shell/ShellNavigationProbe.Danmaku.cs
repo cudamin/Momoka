@@ -27,6 +27,7 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(page);
         try
         {
+            BeginSettingsFixtureVisit(page);
             ResizeProbeClient(width, 900);
             await page.ViewModel.ReloadAsync();
             page.SelectedCategory = "弹弹play";
@@ -134,14 +135,17 @@ internal sealed partial class ShellNavigationProbe
             try
             {
                 _window.TopMost = true;
-                // 系统 ItemContainerTransitions 可能晚于 XAML 属性归位；不关闭动画，等屏幕落定。
-                await Task.Delay(1500);
+                // 树有尺寸不代表合成器已绘制当前分类；先渲染当前页并等两帧，再做正/负实屏采样。
+                await SaveReturnFrameAsync(page, $"settings-about-star-{width}-render.png");
+                await WaitForDiagnosticsFrameAsync();
                 await SaveProbeScreenAsync($"settings-about-star-{width}-screen.png");
                 Require(StarPixels() > 30, "点星文字在实际截图中没有足够的亮像素，不能把空白卡片判为通过");
                 star.Opacity = 0;
                 try
                 {
-                    await Task.Delay(250);
+                    await SaveReturnFrameAsync(page, $"settings-about-star-{width}-hidden-render.png");
+                    await WaitForDiagnosticsFrameAsync();
+                    await SaveProbeScreenAsync($"settings-about-star-{width}-hidden-screen.png");
                     Require(StarPixels() == 0, "文字像素检查未能识别故意隐藏的点星文字");
                 }
                 finally { star.Opacity = 1; }
@@ -156,7 +160,7 @@ internal sealed partial class ShellNavigationProbe
                     bounds.Width * scale, bounds.Height * scale));
             }
         }
-        finally { _root.Children.Remove(page); }
+        finally { page.Release(); _root.Children.Remove(page); }
     }
 
     private async Task DanmakuPanelAsync(int width)

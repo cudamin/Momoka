@@ -90,6 +90,7 @@ namespace Microsoft.UI.Xaml
         private readonly Dictionary<string, (object Owner, double Value)> _animated = [];
         private readonly Dictionary<long, (DependencyProperty Property, DependencyPropertyChangedCallback Callback)> _callbacks = [];
         private long _token;
+        public int SetValueCalls { get; private set; }
         public Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; set; } = new();
         public DependencyObject? VisualParent { get; internal set; }
         public List<DependencyObject> VisualChildren { get; } = [];
@@ -103,6 +104,7 @@ namespace Microsoft.UI.Xaml
         }
         public void SetValue(DependencyProperty property, object? value)
         {
+            SetValueCalls++;
             var before = GetValue(property);
             _locals[property] = value;
             Notify(property, before);
