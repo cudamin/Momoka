@@ -1,3 +1,44 @@
+# MoviePilot 按季订阅 worker（2026-10-25）
+
+- 工作树：C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka
+- 分支：codex/mp-subscription-settings；基址：48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795。
+- 写集：Core/MoviePilot 订阅 plan/service/client/data；Shell/MoviePilot 视图和 ViewModel；LibraryPage 搜索订阅事件局部；独立 tests/Momoka.MoviePilotSubscribeSettingsTests；tests/Momoka.Tests/MoviePilotMediaDetailTests.cs 两个订阅夹具同步写前读取合同（不改 Program 注册）。
+- 边界：不改主树或父树；不改主测试 Program、AppSettings、SettingsViewModel、PlayerViewModel、Momoka.sln；不读真实账号、不连真实服务器、不订阅/取消/播放、不启动桌面。
+- PROGRESS 仅留本树，不包含在交付提交；父负责注册和桌面验收。
+- 交接提交：c873a9e83c09f608818d6ef0fbf47c1d0bf72de3；提交22个源码/测试文件，未含本PROGRESS。分支未push，工作树仅PROGRESS保留未提交。
+- 父注册：tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj 加方案和适用闸门；Regression与Core重叠可保持手动；产品无需新增DI注册。
+- 提交实际绝对路径：
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotClient.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotService.MediaDetail.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotService.Operations.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotService.SubscriptionSettings.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotService.Subscriptions.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotSubscriptionPlan.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\ViewModels\MoviePilotMediaViewModel.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\ViewModels\MoviePilotSearchViewModel.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSeasonPicker.xaml
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSeasonPicker.xaml.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSubscriptionPage.xaml.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Boundaries.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Fixture.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Momoka.MoviePilotSubscribeSettingsTests.csproj
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Program.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\README.md
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Regression\Momoka.Tests.csproj
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Regression\Program.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\SubscribeSettingsTests.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.Tests\MoviePilotMediaDetailTests.cs
+- 最终离线：新专项 62/62（实际Core/完整VM/Toolkit/对话源码+匿名内存HTTP）、既有相关回归 160/160（含占位双回环登录重定向），失败0、跳过0。
+- 当前Release：Core、Shell、主测试、独立专项与Regression均0警告0错误；本次文件 whitespace --verify-no-changes 与 git diff --check 通过（format工作区载入提示单列，不是编译告警）。
+- 本树证据：work-mp-subscription-settings.log / work-mp-subscription-regression.log / work-mp-subscription-shell-build.log（ignored）。
+- 用户要求的无二次确认是电影；电视剧使用可取消的按季设置。额外严格写前GET使两个旧匿名新增夹具需同步回话序列，不改主Program。
+- 待父：注册独立专项、完整批次闸门、实际WinUI宽窄/主题/输入/UIA截图与最终发布。未读真实账号/服务器、未真实订阅/取消/播放、未启动桌面、未push/发布。
+- 已知：上游按RECOGNIZE_SOURCE可将非TMDB身份转TMDB；本实现身份不匹配保守锁住待核对，绝不按相同数字取消异来源。真实转换/下载/像素未验；readonly统计裸响应已按固定官方源码修复。
+
+---
+
 ## 第八组按用户要求停止修复并交付桌面快捷方式（2026-10-24）
 
 - **用户最新指令是“先别修了，记下来直接交付”。已停止继续修复、补充压力诊断和原生运行复验，只交付当前已提交版本的桌面入口，不生成压缩包、不推送。** 本节是最新状态；下方“在途／快捷方式未改／待复验”均是此前阶段的历史记录，不自动恢复那些工作。
