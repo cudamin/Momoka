@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <IsPackable>false</IsPackable>
+        <SourceRoot Condition="'$(SourceRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildProjectDirectory)\..\..'))</SourceRoot>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- This isolated boundary runner needs only the installed SDK, not Core or new packages. -->
+        <PackageReference Remove="@(PackageReference)" />
+        <Compile Include="$(SourceRoot)\src\Momoka.Shell\Views\SettingsPage.Search.cs" Link="Production\SettingsPage.Search.cs" />
+        <EmbeddedResource Include="$(SourceRoot)\src\Momoka.Shell\Views\SettingsPage.Search.cs" LogicalName="SettingsPage.Search.cs" />
+    </ItemGroup>
+</Project>
