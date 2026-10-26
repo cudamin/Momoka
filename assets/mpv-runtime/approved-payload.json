@@ -38,8 +38,8 @@
     {
       "path": "THIRD-PARTY-NOTICES.md",
       "source": "THIRD-PARTY-NOTICES.md",
-      "size": 8774,
-      "sha256": "7affe29b3a455f795356e9a6c225149e68ca17d47458a9940dc84f3c3f84e3f9"
+      "size": 8964,
+      "sha256": "0828a33eeff2babd7f1b82f02cb9915eb8eb8ae0517a64ca23edc0d96fb2729c"
     },
     {
       "path": "LICENSE.Apache-2.0.txt",
@@ -134,8 +134,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/Controls.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/Controls.lua",
-      "size": 18322,
-      "sha256": "c28892fe028dd360081375f96aec3b861cce6cc900aa9f538f6ae7c3d0ec9a60"
+      "size": 18426,
+      "sha256": "48207f0d97ade98185391372d3e2c46597c84f2ca5e71fdd2543302d17403998"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/Curtain.lua",
@@ -176,8 +176,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/Menu.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/Menu.lua",
-      "size": 77500,
-      "sha256": "21cf73c7756da92e2e4df6d7078a168935c611eefce84169640816a05ba7f254"
+      "size": 77541,
+      "sha256": "bb782f73152c688f484862977c1021054175f7590473b3fc2584527c41c0e479"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/PauseIndicator.lua",
@@ -206,8 +206,8 @@
     {
       "path": "mpv-ui/scripts/uosc/elements/TopBar.lua",
       "source": "assets/mpv-ui/scripts/uosc/elements/TopBar.lua",
-      "size": 22422,
-      "sha256": "7ac3105e6c3d4fc47174c37c0dfe310dce405129b1bafc56b6dfd0a82da00440"
+      "size": 23254,
+      "sha256": "00897c39ac66c7ad77b89c4f8312b4e41cea1b1c8b4caffefc18a86f96740905"
     },
     {
       "path": "mpv-ui/scripts/uosc/elements/Volume.lua",
@@ -314,8 +314,8 @@
     {
       "path": "mpv-ui/scripts/uosc/lib/cursor.lua",
       "source": "assets/mpv-ui/scripts/uosc/lib/cursor.lua",
-      "size": 23646,
-      "sha256": "e16693a9637f42e593f0f7567bcd4493e56f8f1575c7b464b5a0e290e461f129"
+      "size": 23751,
+      "sha256": "1bf48756d7b1df674a4389155856ade25ccb8af16b0ceaf7e55c2de9d0db0735"
     },
     {
       "path": "mpv-ui/scripts/uosc/lib/fzy.lua",
@@ -338,8 +338,8 @@
     {
       "path": "mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
       "source": "assets/mpv-ui/scripts/uosc/lib/momoka_shortcuts.lua",
-      "size": 1192,
-      "sha256": "1e044f357cf56b05273969d33efa5b24fa75d02dc1d53fecd1aeda4de7b73e4b"
+      "size": 1535,
+      "sha256": "1faa728ab2e20f388d4a0145952bcd7fb64b2555024bffcca09b790acd620375"
     },
     {
       "path": "mpv-ui/scripts/uosc/lib/std.lua",
@@ -368,8 +368,8 @@
     {
       "path": "mpv-ui/scripts/uosc/main.lua",
       "source": "assets/mpv-ui/scripts/uosc/main.lua",
-      "size": 82670,
-      "sha256": "9e84315058eb41a4e93a81ec769e71e9d53010129338f1e0a2a2992dbd807421"
+      "size": 83627,
+      "sha256": "ee6d4fbad45153021e85778feb3a4b9b91575755f51f9997b3b4ef651b75bc3e"
     }
   ],
   "evidence": [
