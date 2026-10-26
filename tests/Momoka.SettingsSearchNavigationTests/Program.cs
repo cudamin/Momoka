@@ -31,7 +31,8 @@ internal static class Program
             ("Release取消完成等待并清理事件，重入只聚焦新任务", CancelScrollAsync),
             ("dispatcher拒绝及仅分类结果不保留pending", DispatcherRefusedAsync),
             ("ScrollTo异常仍退订并记录失败、不聚焦", ScrollFailureAsync),
-            ("完成超时退订并记录失败、不聚焦", CompletionTimeoutAsync)
+            ("完成超时退订并记录失败、不聚焦", CompletionTimeoutAsync),
+            ("焦点自动滚动不能覆盖搜索位置，完成后解除专属守卫", FocusBringIntoViewAsync)
         ];
         var failed = 0;
         foreach (var (name, run) in tests)
@@ -246,6 +247,24 @@ internal static class Program
         Check(f.Focus.FocusCalls == 0 && Log.Warnings.Single().Message == "scroll boundary failure");
     }
 
+    private static async Task FocusBringIntoViewAsync()
+    {
+        using var f = new Fixture();
+        var canceled = false;
+        f.Focus.Focused = () => canceled = f.Page.SettingsScroll.RaiseBringIntoView();
+        f.Page.SettingsScroll.OnScroll = request => f.Page.SettingsScroll.Complete(request.CorrelationId);
+        f.Start();
+        await f.CleanAsync();
+        Check(canceled, "搜索焦点提交的自动滚动没有被当前事务取消");
+        Check(f.Page.SettingsScroll.BringSubscribers == 0);
+        Check(!f.Page.SettingsScroll.RaiseBringIntoView(), "搜索结束后不得阻止普通控件滚动");
+        using var failed = new Fixture();
+        failed.Page.SettingsScroll.OnScroll = _ => throw new InvalidOperationException("expected scroll failure");
+        failed.Start();
+        await failed.CleanAsync();
+        Check(failed.Page.SettingsScroll.BringSubscribers == 0, "失败时遗留自动滚动守卫");
+    }
+
     private static async Task CompletionTimeoutAsync()
     {
         using var f = new Fixture();
@@ -310,7 +329,7 @@ internal static class Program
             Check(Page.NavigateSettingsSearchResult(Result) && Page.Pending);
             Page.DispatcherQueue.RunOne();
         }
-        public Task CleanAsync() => UntilAsync(() => !Page.HasPendingOwner && Page.SettingsScroll.Subscribers == 0);
+        public Task CleanAsync() => UntilAsync(() => !Page.HasPendingOwner && Page.SettingsScroll.Subscribers == 0 && Page.SettingsScroll.BringSubscribers == 0);
         public void Dispose() => Page.Dispose();
     }
 }

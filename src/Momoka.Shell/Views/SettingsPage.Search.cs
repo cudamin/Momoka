@@ -39,6 +39,13 @@ public sealed partial class SettingsPage
         bool IsCurrent() => generation == _searchNavigationGeneration && _activity.IsCurrent(activity)
             && ViewModel.SelectedCategory == result.CategoryKey
             && result.Section is { } section && result.Row is { } row && section.Rows.Contains(row);
+        void CancelStaleBringIntoView(ScrollView sender, ScrollingBringingIntoViewEventArgs args)
+        {
+            // 聚焦/分类变化还会投递框架自己的 bring-into-view 请求。搜索事务负责最终位置，
+            // 不能让这一轮自动请求在 ScrollTo 完成后把页面拉回旧焦点。
+            if (IsCurrent()) args.Cancel = true;
+        }
+        SettingsScroll.BringingIntoView += CancelStaleBringIntoView;
         try
         {
             FrameworkElement? target = null;
@@ -77,7 +84,12 @@ public sealed partial class SettingsPage
                     await complete.Task.WaitAsync(TimeSpan.FromSeconds(2), activity);
             }
             finally { SettingsScroll.ScrollCompleted -= OnCompleted; }
-            if (IsCurrent()) FirstFocusable(target)?.Focus(FocusState.Programmatic);
+            if (IsCurrent())
+            {
+                FirstFocusable(target)?.Focus(FocusState.Programmatic);
+                // 留过当前焦点提交帧，自动 bring-into-view 仍由上面的事务守卫收口。
+                await Task.Delay(16, activity);
+            }
         }
         catch (OperationCanceledException) when (activity.IsCancellationRequested) { }
         catch (Exception error)
@@ -86,6 +98,7 @@ public sealed partial class SettingsPage
         }
         finally
         {
+            SettingsScroll.BringingIntoView -= CancelStaleBringIntoView;
             if (generation == _searchNavigationGeneration) _pendingSearchNavigation = null;
         }
     }

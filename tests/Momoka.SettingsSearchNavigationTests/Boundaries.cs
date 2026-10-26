@@ -93,12 +93,29 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public int CorrelationId { get; } = correlationId;
     }
+    public sealed class ScrollingBringingIntoViewEventArgs
+    {
+        public bool Cancel { get; set; }
+    }
     public sealed record ScrollRequest(int CorrelationId, double X, double Y, ScrollingScrollOptions Options);
 
     public sealed class ScrollView : FrameworkElement
     {
         private Action<ScrollView, ScrollingScrollCompletedEventArgs>? _completed;
         private int _correlation;
+        private Action<ScrollView, ScrollingBringingIntoViewEventArgs>? _bringing;
+        public int BringSubscribers { get; private set; }
+        public event Action<ScrollView, ScrollingBringingIntoViewEventArgs> BringingIntoView
+        {
+            add { _bringing += value; BringSubscribers++; }
+            remove { _bringing -= value; BringSubscribers--; }
+        }
+        public bool RaiseBringIntoView()
+        {
+            var args = new ScrollingBringingIntoViewEventArgs();
+            _bringing?.Invoke(this, args);
+            return args.Cancel;
+        }
         public double ExtentHeight { get; set; } = 2000;
         public int Subscribers { get; private set; }
         public List<ScrollRequest> Requests { get; } = [];
