@@ -390,14 +390,15 @@ public sealed class MediaSource
     public MediaStream? PrimaryVideoStream => MediaStreams.FirstOrDefault(stream => stream.IsVideo);
 
     /// <summary>"1080p · HEVC · MKV · 8.4 GB" for the progress bar, the version menu and the 播放信息 overlay.</summary>
-    public string ToQualityLabel()
+    /// <param name="includeSize">False when the media-source label already puts the file size before its name.</param>
+    public string ToQualityLabel(bool includeSize = true)
     {
         var parts = new List<string>(4);
         var video = PrimaryVideoStream;
         if (video?.Height is > 0) parts.Add(DescribeHeight(video.Height.Value));
         if (!string.IsNullOrWhiteSpace(video?.Codec)) parts.Add(video!.Codec!.ToUpperInvariant());
         if (!string.IsNullOrWhiteSpace(Container)) parts.Add(Container!.ToUpperInvariant());
-        if (TimeFormat.FileSize(Size) is { Length: > 0 } size) parts.Add(size);
+        if (includeSize && TimeFormat.FileSize(Size) is { Length: > 0 } size) parts.Add(size);
         return string.Join("  ·  ", parts);
     }
 

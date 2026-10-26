@@ -285,9 +285,10 @@ internal sealed partial class ShellNavigationProbe
                 Require(detail.ViewModel.Sources.All(row =>
                 {
                     var owner = versions.Single(version => ReferenceEquals(version.Source, row.Source)).Item.Source!;
-                    var expected = ItemDetail.SourceLabel(row.Source) + (showServer ? $" · {owner.ServerName}" : "");
+                    var size = row.Source.Id == "shared-file" ? "2 GB" : "512 MB";
+                    var expected = $"{size} · " + (showServer ? $"{owner.ServerName} · " : "") + row.Source.Name;
                     return row.Text == expected && !row.Text.Contains(owner.Connection.UserName, StringComparison.Ordinal);
-                }), "版本选择只应在多服务器时追加末尾服务器名，不能显示用户名");
+                }), "版本选择应为体积、服务器名、原文件名；单服务器（含多账号）不显示服务器名或用户名");
                 if (source.Key == sources[0].Key)
                 {
                     var picker = Get<EgPicker>(detail, detail.ViewModel.ColumnPickersVisibility == Visibility.Visible

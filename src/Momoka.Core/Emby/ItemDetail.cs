@@ -374,7 +374,7 @@ public static class ItemDetail
     }
 
     /// <summary>
-    /// A media source as the picker lists it: the name, and nothing after it. The name is what Emby
+    /// A media source as the picker lists it: file size first, then the name (2026-10-26). The name is what Emby
     /// calls the file, which for a multi-version film is 「4K HDR」 or 「导演剪辑版」 and elsewhere is the
     /// release name the file ships under — the whole reason the picker exists. The filename is the
     /// fallback, because a source with no name is still a distinguishable file.
@@ -385,7 +385,8 @@ public static class ItemDetail
     /// falls back to the quality label, so a container-only file reads as something rather than nothing.
     /// </para>
     /// </summary>
-    public static string SourceLabel(MediaSource source)
+    /// <param name="serverName">Only supplied for multiple logged-in servers; follows size and precedes the unchanged filename.</param>
+    public static string SourceLabel(MediaSource source, string? serverName = null)
     {
         var name = string.IsNullOrWhiteSpace(source.Name)
             ? System.IO.Path.GetFileName(source.Path ?? "")
@@ -393,11 +394,14 @@ public static class ItemDetail
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            var quality = source.ToQualityLabel();
-            return quality.Length > 0 ? quality : "默认媒体源";
+            // The quality fallback must not repeat the size already shown at the front.
+            name = source.ToQualityLabel(includeSize: false);
         }
 
-        return name;
+        var size = TimeFormat.FileSize(source.Size);
+        if (string.IsNullOrWhiteSpace(name) && size.Length == 0) name = "默认媒体源";
+        return string.Join(" · ", new[] { size, serverName, name }
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
     }
 
     /// <summary>
