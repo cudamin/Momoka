@@ -50,61 +50,35 @@ public sealed partial class MoviePilotService
         var identity = RequireResultConnection(detail.Media.ConnectionStamp);
         var body = detail.Data.EnumerateObject().ToDictionary(property => property.Name, property => (object?)property.Value.Clone());
         body["episode_group"] = group;
-        var data = await CallAsync((address, token) => _client.PostAsync(address, token, "mediaserver/exists_remote", body, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await CallAsync((address, token) => _client.ReadPostAsync(address, token, "mediaserver/exists_remote", body, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         if (data.ValueKind != JsonValueKind.Object) throw new MoviePilotException("媒体库没有返回有效的季集统计");
         var result = new Dictionary<int, IReadOnlySet<int>>();
         foreach (var property in data.EnumerateObject())
-            if (int.TryParse(property.Name, CultureInfo.InvariantCulture, out var season) && season >= 0 && property.Value.ValueKind == JsonValueKind.Array)
-                result[season] = property.Value.EnumerateArray().Select(value => int.TryParse(value.ToString(), out var episode) ? episode : -1)
-                    .Where(episode => episode > 0).ToHashSet();
+        {
+            if (!int.TryParse(property.Name, CultureInfo.InvariantCulture, out var season) || season < 0 || property.Value.ValueKind != JsonValueKind.Array)
+                throw new MoviePilotException("媒体库季集统计格式不正确，入库状态未知");
+            result[season] = property.Value.EnumerateArray().Select(value => int.TryParse(value.ToString(), out var episode) ? episode : -1)
+                .Where(episode => episode > 0).ToHashSet();
+        }
         return result;
     }
 
-    public MoviePilotOperationState SeasonSubscribeState(MoviePilotMedia media) => SubscribeState(media);
+    public MoviePilotOperationState SeasonSubscribeState(MoviePilotMedia media, string group = "") => SubscriptionSettingsState(media, group);
 
-    /// <summary>每一项都有独立回执与防重键。中途失败由调用者保留已成功项，不重放整个批次。</summary>
-    public async Task ApplySubscriptionChangeAsync(MoviePilotSubscribeChange change, CancellationToken cancellationToken)
-    {
-        var identity = RequireResultConnection(change.Media.ConnectionStamp);
-        if (change.Kind == MoviePilotSubscribeChangeKind.Add)
-        {
-            var result = await WriteAsync(identity, [SubscribeKey(change.Media)], (address, token) =>
-                _client.PostAsync(address, token, "subscribe/", MoviePilotSubscriptionPlan.Body(change), cancellationToken), cancellationToken).ConfigureAwait(false);
-            try
-            {
-                var id = MoviePilotSubscription.Number(result, "id");
-                if (id is not > 0) throw new MoviePilotException("订阅已提交，但服务器未返回订阅编号，请刷新核对");
-                var reference = new MoviePilotSubscription { Id = id.Value, Media = change.Media, Data = result, ConnectionStamp = change.Media.ConnectionStamp };
-                var saved = await SubscriptionAsync(reference, cancellationToken).ConfigureAwait(false);
-                if (!MoviePilotSubscriptionPlan.SameMedia(saved.Media, change.Media) || saved.Media.Season != change.Media.Season
-                    || saved.EpisodeGroup != change.EpisodeGroup || MoviePilotSubscriptionPlan.Mode(saved) != change.Mode)
-                    throw new MoviePilotException("服务器返回的订阅与所选模式或剧集组不同，请刷新核对原有订阅");
-            }
-            catch
-            {
-                lock (_operationGate) _operations[SubscribeKey(change.Media)] = MoviePilotOperationState.Uncertain;
-                throw;
-            }
-            // 已由读回的明确 ID 核实成功，此后新增仍先由季选择读取现有记录；不明回执永远不会走到这里。
-            lock (_operationGate) _operations.Remove(SubscribeKey(change.Media));
-            return;
-        }
-        var original = change.Original ?? throw new MoviePilotException("订阅已失效");
-        var current = await SubscriptionAsync(original, cancellationToken).ConfigureAwait(false);
-        if (!MoviePilotSubscriptionPlan.SameMedia(current.Media, change.Media) || current.Media.Season != change.Media.Season
-            || MoviePilotSubscriptionPlan.Mode(current) != MoviePilotSubscriptionPlan.Mode(original) || current.EpisodeGroup != original.EpisodeGroup)
-            throw new MoviePilotException("服务器上的订阅已改变，请关闭后重新打开季选择");
-        if (change.Kind == MoviePilotSubscribeChangeKind.Delete)
-            await ManageSubscriptionAsync(current, MoviePilotSubscriptionAction.Delete, cancellationToken).ConfigureAwait(false);
-        else
-            await MutateSubscriptionAsync(current, HttpMethod.Put, "subscribe/", MoviePilotSubscriptionPlan.Body(change), cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>仅在用户明确核对后解除不明回执；刷新与切换剧集组不会解除。</summary>
-    public void ConfirmSeasonSubscriptionReviewed(MoviePilotMedia media)
+    /// <summary>仅在用户明确核对后解除当前身份的不明回执；读取和切换组不自动解除。</summary>
+    public void ConfirmSeasonSubscriptionReviewed(MoviePilotMedia media, string group = "")
     {
         RequireResultConnection(media.ConnectionStamp);
+        var key = SubscribeKey(media, group);
+        var scope = SubscriptionReviewKey(media);
         lock (_operationGate)
-            if (_operations.GetValueOrDefault(SubscribeKey(media)) == MoviePilotOperationState.Uncertain) _operations.Remove(SubscribeKey(media));
+        {
+            if (_operations.GetValueOrDefault(key) == MoviePilotOperationState.Uncertain) _operations.Remove(key);
+            if (_subscriptionReviews.TryGetValue(scope, out var keys))
+            {
+                keys.Remove(key);
+                if (keys.Count == 0) _subscriptionReviews.Remove(scope);
+            }
+        }
     }
 }

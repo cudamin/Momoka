@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <!-- Match the existing Core friend assembly without widening production internals.
+             All outputs remain in this independent project's own bin/obj directories. -->
+        <AssemblyName>Momoka.Tests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Remove="Regression\**\*.cs" />
+        <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchViewModel.cs" Link="Production\MoviePilotSearchViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotMediaViewModel.cs" Link="Production\MoviePilotMediaViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotMediaViewModel.Related.cs" Link="Production\MoviePilotMediaViewModel.Related.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotEpisodeGroupRow.cs" Link="Production\MoviePilotEpisodeGroupRow.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotSeasonPicker.xaml.cs" Link="Production\MoviePilotSeasonPicker.xaml.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotDialog.cs" Link="Production\MoviePilotDialog.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSeasonPicker.xaml" LogicalName="Production.MoviePilotSeasonPicker.xaml" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml" LogicalName="Production.MoviePilotSearchPanel.xaml" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml.cs" LogicalName="Production.MoviePilotSearchPanel.xaml.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSubscriptionPage.xaml.cs" LogicalName="Production.MoviePilotSubscriptionPage.xaml.cs" />
+    </ItemGroup>
+</Project>

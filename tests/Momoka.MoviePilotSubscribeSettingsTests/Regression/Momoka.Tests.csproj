@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.Tests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <!-- Exact legacy anonymous suites. Project name uses the existing synchronous-harness
+             analyzer boundary from Directory.Build.props, not new production suppressions. -->
+        <Compile Include="..\..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+        <Compile Include="..\..\Momoka.Tests\StubTransport.cs" Link="StubTransport.cs" />
+        <Compile Include="..\..\Momoka.Tests\MoviePilotTests.cs" Link="MoviePilotTests.cs" />
+        <Compile Include="..\..\Momoka.Tests\MoviePilotLoginRedirectTests.cs" Link="MoviePilotLoginRedirectTests.cs" />
+        <Compile Include="..\..\Momoka.Tests\MoviePilotMediaDetailTests.cs" Link="MoviePilotMediaDetailTests.cs" />
+        <Compile Include="..\..\Momoka.Tests\MoviePilotAvailabilityTests.cs" Link="MoviePilotAvailabilityTests.cs" />
+        <Compile Include="..\..\Momoka.Tests\MoviePilotSubscriptionTests.cs" Link="MoviePilotSubscriptionTests.cs" />
+        <Compile Include="..\..\Momoka.Tests\MoviePilotSafetyTests.cs" Link="MoviePilotSafetyTests.cs" />
+        <Compile Include="..\..\Momoka.Tests\MoviePilotQuerySafetyTests.cs" Link="MoviePilotQuerySafetyTests.cs" />
+    </ItemGroup>
+</Project>

@@ -362,11 +362,28 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         _choosingSeasons = true;
         try
         {
-            await MoviePilotSeasonPicker.ShowAsync(this, request.Service, detail.Media, MediaViewModel.GroupId, season, _pageLifetime!.Token);
+            if (detail.Media.Type == "电影")
+            {
+                var subscriptions = await request.Service.SubscriptionsAsync(_pageLifetime!.Token);
+                if (!ReferenceEquals(_request, request) || !MediaViewModel.CanInteract) return;
+                var current = MoviePilotSubscriptionPlan.Find(detail.Media with { Season = null }, "", subscriptions);
+                await request.Service.ApplyMovieSubscriptionAsync(detail.Media, current, _pageLifetime.Token);
+            }
+            else await MoviePilotSeasonPicker.ShowAsync(this, request.Service, detail.Media, MediaViewModel.GroupId, season, _pageLifetime!.Token);
             if (!ReferenceEquals(_request, request)) return;
             await RefreshSubscriptionStateAsync();
         }
-        catch (Exception error) { if (_request is not null) MediaViewModel.OperationFailed(error); }
+        catch (Exception error)
+        {
+            if (!ReferenceEquals(_request, request)) return;
+            if (request.Service.Available)
+            {
+                try { await RefreshSubscriptionStateAsync(); }
+                catch (OperationCanceledException) { }
+                catch (Exception) { /* 保留原失败；未取得新状态时不冒充成功。 */ }
+            }
+            if (ReferenceEquals(_request, request)) MediaViewModel.OperationFailed(error);
+        }
         finally { _choosingSeasons = false; }
     }
 

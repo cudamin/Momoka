@@ -8,11 +8,11 @@ namespace Momoka.Shell.Views;
 
 /// <summary>
 /// 搜索页里 MoviePilot 那一段的视图。全部内容都是 <see cref="MoviePilotSearchViewModel"/> 的；这里留的只有
-/// 视图才做得了的几件事：把连接服务和确认对话框接进视图模型、把页面共享的搜索框提交转成一次搜索、以及点某条
+/// 视图才做得了的几件事：把连接服务和按季设置接进视图模型、把页面共享的搜索框提交转成一次搜索、以及点某条
 /// 结果的「搜索资源」时把资源覆盖面板盖上来（那要 <c>XamlRoot</c>，只有在树里的控件给得出）。
 /// <para>
-/// 和别的页一样自建视图模型、构造时就建好（<c>x:Bind</c> 不许有 null 根，见 <see cref="FilterPanel"/>）；确认
-/// 对话框走 <see cref="ConfirmDialog.For"/>，和其它页问「不可撤销的事」是同一条路。
+/// 和别的页一样自建视图模型、构造时就建好（<c>x:Bind</c> 不许有 null 根，见 <see cref="FilterPanel"/>）；季选择
+/// 对话框使用 MoviePilot 的统一失效守卫；电影按钮按明确状态直接执行，不再二次确认。
 /// </para>
 /// </summary>
 public sealed partial class MoviePilotSearchPanel : UserControl
@@ -38,16 +38,17 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     internal MoviePilotSearchViewModel ViewModel { get; } = new();
 
     /// <summary>
-    /// 由 <see cref="LibraryPage"/> 在它那唯一一处解析块里调一次：把连接服务交给视图模型、把「订阅前二次确认」
+    /// 由 <see cref="LibraryPage"/> 在它那唯一一处解析块里调一次：把连接服务交给视图模型、把「电视剧订阅季设置」
     /// 接到本控件的 <c>XamlRoot</c> 上，并把「搜索资源」的入口交给视图模型（它只把媒体递回来，开面板归这里）。
     /// </summary>
     internal void Attach(MoviePilotService service, ISystemLauncher launcher)
     {
         _service = service;
         _launcher = launcher;
-        ViewModel.Attach(service);
+        ViewModel.Attach(service, action => DispatcherQueue.TryEnqueue(() => action()));
         ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
         ViewModel.UseResourceOpener(ShowResourcesAsync);
+        ViewModel.UseSeasonPicker((media, token) => MoviePilotSeasonPicker.ShowAsync(this, service, media, "", media.Season, token));
     }
 
     internal void LoadSources() => _ = ViewModel.LoadSourcesAsync();

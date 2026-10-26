@@ -19,7 +19,7 @@ public sealed partial class MoviePilotService
     private readonly Dictionary<string, MoviePilotOperationState> _operations = new(StringComparer.Ordinal);
 
     public MoviePilotOperationState DownloadState(MoviePilotResource resource) => OperationState(DownloadKey(resource));
-    public MoviePilotOperationState SubscribeState(MoviePilotMedia media) => OperationState(SubscribeKey(media));
+    public MoviePilotOperationState SubscribeState(MoviePilotMedia media) => SubscriptionSettingsState(media, "");
 
     public string ConnectionStamp => Enabled ? TransferConnectionStamp(CaptureIdentity()) : "";
 
@@ -84,8 +84,12 @@ public sealed partial class MoviePilotService
         }
     }
 
-    private static string SubscribeKey(MoviePilotMedia media) => OperationKey(
-        media.ConnectionStamp, "subscribe", media.MediaSource ?? "", media.MediaId ?? "", media.Type ?? "",
+    private static string SubscribeKey(MoviePilotMedia media, string group = "") => OperationKey(
+        media.ConnectionStamp, "subscribe", (media.MediaSource ?? "").ToLowerInvariant(), media.MediaId ?? "", media.Type ?? "",
+        media.Season?.ToString(CultureInfo.InvariantCulture) ?? "", group);
+
+    private static string SubscriptionReviewKey(MoviePilotMedia media) => OperationKey(
+        media.ConnectionStamp, "subscribe-review", (media.MediaSource ?? "").ToLowerInvariant(), media.MediaId ?? "", media.Type ?? "",
         media.Season?.ToString(CultureInfo.InvariantCulture) ?? "");
 
     private static string DownloadKey(MoviePilotResource resource)

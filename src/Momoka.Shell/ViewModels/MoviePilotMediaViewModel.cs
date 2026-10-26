@@ -32,8 +32,8 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     public bool IsMovie { get; init; }
     public string Title => IsMovie ? Season.Name : Season.Label;
     public string Summary => (IsMovie ? "电影" : $"{Season.EpisodeCount} 集") + (Season.AirDate.Length > 0 ? $" · 首播于 {Season.AirDate}" : "") + (Season.Vote is > 0 ? $" · ★ {Season.Vote:0.0}" : "");
-    public string SubscribeLabel => Subscription is null ? "订阅" : "已订阅 · " + MoviePilotSubscriptionPlan.ModeLabel(MoviePilotSubscriptionPlan.Mode(Subscription));
-    public string HeartGlyph => Subscription is null ? "\uEB51" : "\uEB52";
+    public string SubscribeLabel => CurrentSubscription is null ? "未订阅" : "已订阅 · " + MoviePilotSubscriptionPlan.ModeLabel(MoviePilotSubscriptionPlan.Mode(CurrentSubscription));
+    public string HeartGlyph => CurrentSubscription is null ? "\uEB51" : "\uEB52";
     public ObservableCollection<MoviePilotMediaEpisodeRow> Episodes { get; } = [];
     [ObservableProperty] public partial BitmapImage? Poster { get; set; }
     [ObservableProperty]
@@ -79,6 +79,10 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     partial void OnModeIndexChanged(int value) { OnPropertyChanged(nameof(NormalMode)); OnPropertyChanged(nameof(EpisodesMode)); OnPropertyChanged(nameof(FullMode)); }
     [ObservableProperty] public partial bool Editable { get; set; } = true;
     public Visibility SelectedVisibility => Selected ? Visibility.Visible : Visibility.Collapsed;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SubscribeLabel))]
+    [NotifyPropertyChangedFor(nameof(HeartGlyph))]
+    public partial MoviePilotSubscription? CurrentSubscription { get; set; } = subscription;
     partial void OnSelectedChanged(bool value) => OnPropertyChanged(nameof(SelectedVisibility));
     partial void OnExpandedChanged(bool value) { if (value) expand(this); }
     public IRelayCommand SubscribeCommand => new RelayCommand(() => subscribe(this));
@@ -98,6 +102,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     private Action<int?>? _subscribe;
     private bool _picker;
     private int? _preselect;
+    private bool _initialSelection;
+    private readonly Dictionary<(string Group, int Season), MoviePilotSeasonChoice> _seasonDrafts = [];
     private bool Live => _service is { Available: true } && _media is not null && _lifetime is { IsCancellationRequested: false }
         && _service.IsCurrentConnection(_media.ConnectionStamp);
 
@@ -220,8 +226,17 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [ObservableProperty] public partial bool Submitted { get; set; }
     [ObservableProperty] public partial bool ReviewConfirmed { get; set; }
     [ObservableProperty] public partial string SubmitSummary { get; set; } = "选择季和订阅模式，提交后 MoviePilot 将按配置处理订阅。取消订阅会保留已入库文件。";
-    public bool CanInteract => Live && !Busy && !Submitting && !Submitted;
-    public bool CanSubmit => CanInteract && Detail is not null && Seasons.Count > 0;
+    public bool CanInteract => Live && !Busy && _groupLoad is null && !Submitting && !Submitted;
+    public bool CanSubmit
+    {
+        get
+        {
+            if (!CanInteract || Detail is null || Seasons.Count == 0) return false;
+            try { return Plan().Count > 0; }
+            catch (MoviePilotException) { return false; }
+        }
+    }
+    public Visibility SubscribeProgressVisibility => Show(Busy || _groupLoad is not null || Submitting);
 
     /// <summary>
     /// 订阅详情页上「在 AniBT 中搜索」那一颗。只有订阅详情（不是从搜索或推荐打开的纯媒体页）
@@ -232,11 +247,11 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public Visibility AniBtVisibility => Show(AniBtSearch && Live && Detail is not null && AniBtEligibility.IsJapaneseAnime(Detail));
     public bool CanSearchAniBt => CanInteract && AniBtVisibility == Visibility.Visible;
     public Visibility SeasonsVisibility => Show(Detail?.SupportsSeasons == true);
-    public Visibility GroupsVisibility => Show(Groups.Count > 1);
+    public Visibility GroupsVisibility => Show(Groups.Count > 1 || _picker && Detail?.SupportsEpisodeGroups == true && Groups.Count > 0);
     public Visibility SubmitReviewVisibility => Show(Submitted);
-    public Visibility ReviewVisibility => Show(Submitted || Seasons.Any(row => _service?.SeasonSubscribeState(Detail!.Media with
-    { Season = Detail.Media.Type == "电视剧" ? row.Season.Number : null }) == MoviePilotOperationState.Uncertain
-        || row.Subscription is { } subscription && _service?.SubscriptionNeedsReview(subscription) == true));
+    public Visibility ReviewVisibility => Show(Submitted || Detail is { } detail && Seasons.Any(row => _service?.SeasonSubscribeState(detail.Media with
+    { Season = detail.Media.Type == "电视剧" ? row.Season.Number : null }, GroupId) == MoviePilotOperationState.Uncertain
+        || row.CurrentSubscription is { } subscription && _service?.SubscriptionNeedsReview(subscription) == true));
     partial void OnSubmittingChanged(bool value) => NotifyState();
     partial void OnSubmittedChanged(bool value) => NotifyState();
     partial void OnAniBtSearchChanged(bool value) => NotifyState();
@@ -245,6 +260,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     {
         OnPropertyChanged(nameof(CanInteract)); OnPropertyChanged(nameof(CanSubmit)); OnPropertyChanged(nameof(SubmitReviewVisibility));
         OnPropertyChanged(nameof(ReviewVisibility)); OnPropertyChanged(nameof(AniBtVisibility)); OnPropertyChanged(nameof(CanSearchAniBt));
+        OnPropertyChanged(nameof(SubscribeProgressVisibility));
         foreach (var row in Groups) row.Refresh();
         foreach (var row in Seasons) row.Editable = CanInteract;
     }
@@ -255,6 +271,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         Cancel();
         _service = service; _media = media; GroupId = group; _picker = picker; _preselect = preselect;
         _search = search; _subscribe = subscribe; _lifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetimeToken);
+        _initialSelection = picker;
+        _seasonDrafts.Clear();
         Title = media.Display; Overview = media.Overview ?? ""; Meta = media.SourceLabel + " · " + media.MediaId + " · " + media.Type;
         Submitted = false;
         AniBtSearch = false;
@@ -263,8 +281,12 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public override async Task ReloadAsync()
     {
         if (!Live || _media is null || _service is null || Submitting) return;
+        var lifetime = _lifetime!;
         var load = BeginLoad();
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(load, _lifetime!.Token);
+        if (!ReferenceEquals(lifetime, _lifetime) || !Live || !IsCurrent(load)) return;
+        Detail = null;
+        Seasons.Clear();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(load, lifetime.Token);
         try
         {
             var detail = await _service.MediaDetailAsync(_media, linked.Token);
@@ -279,7 +301,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             Facts.Clear(); foreach (var fact in detail.Facts) Facts.Add(fact);
             Links.Clear(); foreach (var link in detail.Links) Links.Add(link);
             SubscribeLabel = detail.Media.Type == "电视剧" ? (_subscriptions.Count > 0 ? $"已订阅 {_subscriptions.Count} 季" : "选择订阅季")
-                : _subscriptions.Count > 0 ? "取消订阅" : "订阅";
+                : MoviePilotSubscriptionPlan.Find(detail.Media with { Season = null }, "", _subscriptions) is not null ? "取消订阅" : "订阅";
             var groups = new List<MoviePilotEpisodeGroup>();
             if (detail.SupportsEpisodeGroups)
             {
@@ -327,6 +349,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     internal async Task SelectGroupAsync(MoviePilotEpisodeGroupRow row)
     {
         if (!Live || Submitting || Submitted || !Groups.Contains(row) || row.IsCurrent) return;
+        if (_picker)
+            foreach (var season in Seasons) _seasonDrafts[(GroupId, season.Season.Number)] = new(season.Season.Number, season.Selected, (MoviePilotSubscribeMode)season.ModeIndex);
         GroupId = row.Group.Id;
         FillGroups(Groups.Select(item => item.Group).ToArray());
         await LoadSeasonsAsync(_lifetime!.Token);
@@ -340,6 +364,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         _groupLoad = pending;
         var group = GroupId;
         Seasons.Clear(); _existing = null; _loadingEpisodes.Clear();
+        NotifyState();
         SeasonNotice = "正在读取季信息…";
         try
         {
@@ -348,16 +373,22 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             if (!Live || pending.IsCancellationRequested || !ReferenceEquals(_groupLoad, pending)) return;
             foreach (var season in seasons)
             {
-                var subscription = _subscriptions.FirstOrDefault(item => item.Media.Season == (Detail.Media.Type == "电视剧" ? season.Number : null) && item.EpisodeGroup == group);
+                var subscription = MoviePilotSubscriptionPlan.Find(Detail.Media with { Season = Detail.Media.Type == "电视剧" ? season.Number : null }, group, _subscriptions);
                 var row = new MoviePilotMediaSeasonRow(season, subscription, row => _ = LoadEpisodesAsync(row), row =>
                 { if (CanInteract && Seasons.Contains(row)) _subscribe?.Invoke(row.Season.Number); })
-                { IsMovie = Detail.Media.Type == "电影" };
-                if (_picker && _preselect == season.Number) row.Selected = true;
+                { IsMovie = Detail.Media.Type == "电影", Editable = CanInteract };
+                if (_picker && _seasonDrafts.TryGetValue((group, season.Number), out var draft))
+                {
+                    row.Selected = draft.Selected;
+                    row.ModeIndex = (int)draft.Mode;
+                }
+                else if (_picker && _initialSelection && (_preselect == season.Number || _preselect is null && _subscriptions.Count == 0
+                    && season.Number == (seasons.FirstOrDefault(item => item.Number > 0) ?? seasons.FirstOrDefault())?.Number)) row.Selected = true;
                 Seasons.Add(row);
                 row.PropertyChanged += (_, args) => { if (_picker && args.PropertyName is nameof(row.Selected) or nameof(row.ModeIndex)) UpdatePlanSummary(); };
                 _ = LoadSeasonImageAsync(row, pending.Token);
             }
-            _preselect = null;
+            _preselect = null; _initialSelection = false;
             if (_picker) UpdatePlanSummary();
             SeasonNotice = seasons.Count > 0 ? "" : "此剧集组没有可用的季信息。";
             if (Detail.SupportsSeasons)
@@ -377,7 +408,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             }
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { if (Live && ReferenceEquals(_groupLoad, pending)) { SeasonNotice = "季列表读取失败，请重新选择或刷新。"; Report("季列表读取失败", error); } }
+        catch (Exception error) { if (Live && ReferenceEquals(_groupLoad, pending)) { Seasons.Clear(); SeasonNotice = "季列表读取失败，请重新选择或刷新。"; Report("季列表读取失败", error); } }
         finally { if (ReferenceEquals(_groupLoad, pending)) _groupLoad = null; NotifyState(); }
     }
 
@@ -441,19 +472,21 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             SubmitSummary = plan.Count == 0 ? "订阅没有变化。" : "提交后将执行：\n" + string.Join("\n", plan.Select(change => change.Description));
         }
         catch (Exception error) { SubmitSummary = error.Message; }
+        OnPropertyChanged(nameof(CanSubmit));
     }
 
     internal async Task<bool> SubmitAsync()
     {
         if (!CanSubmit || _service is null) return false;
+        var plan = Plan();
         var lifetime = _lifetime!;
         var token = lifetime.Token;
         Submitting = true;
         var completed = new List<string>();
         try
         {
-            var plan = Plan();
-            if (plan.Count == 0) { SubmitSummary = "订阅没有变化。"; return true; }
+            if (!ReferenceEquals(lifetime, _lifetime) || !Live || token.IsCancellationRequested) return false;
+            if (plan.Count == 0) { SubmitSummary = "订阅没有变化。"; return false; }
             foreach (var change in plan)
             {
                 token.ThrowIfCancellationRequested();
@@ -472,11 +505,43 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         {
             if (!ReferenceEquals(lifetime, _lifetime) || !Live) return false;
             Submitted = true;
-            SubmitSummary = string.Join("\n", completed.Select(value => "已提交：" + value)) + (completed.Count > 0 ? "\n\n" : "") + error.Message + "\n未继续提交后续季。关闭后重新打开可读取服务器现状。";
+            SubmitSummary = string.Join("\n", completed.Select(value => "已提交：" + value)) + (completed.Count > 0 ? "\n\n" : "") + error.Message + "\n未继续提交后续季。";
+            await RefreshFailedSubscriptionStateAsync(lifetime, token);
             if (Live) Report("部分订阅未提交", error);
             return false;
         }
         finally { if (ReferenceEquals(lifetime, _lifetime)) Submitting = false; }
+    }
+
+    private async Task RefreshFailedSubscriptionStateAsync(CancellationTokenSource lifetime, CancellationToken token)
+    {
+        if (_service is null || Detail is null || !Live) return;
+        var group = GroupId;
+        var summary = SubmitSummary;
+        try
+        {
+            var subscriptions = await _service.SubscriptionsAsync(token);
+            if (!ReferenceEquals(lifetime, _lifetime) || !Live || group != GroupId) return;
+            _subscriptions = subscriptions.Where(item => MoviePilotSubscriptionPlan.SameMedia(Detail.Media, item.Media)).ToArray();
+            _seasonDrafts.Clear();
+            foreach (var row in Seasons)
+            {
+                var current = MoviePilotSubscriptionPlan.Find(Detail.Media with { Season = row.IsMovie ? null : row.Season.Number }, group, _subscriptions);
+                row.CurrentSubscription = current;
+                row.Selected = current is not null;
+                row.ModeIndex = (int)(current is null ? MoviePilotSubscribeMode.Normal : MoviePilotSubscriptionPlan.Mode(current));
+            }
+            var uncertain = Seasons.Any(row => _service.SeasonSubscribeState(Detail.Media with { Season = row.IsMovie ? null : row.Season.Number }, group)
+                == MoviePilotOperationState.Uncertain || row.CurrentSubscription is { } current && _service.SubscriptionNeedsReview(current));
+            Submitted = uncertain;
+            SubmitSummary = summary + "\n已重新读取服务器实际订阅状态；已完成季不会重发。";
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception)
+        {
+            if (ReferenceEquals(lifetime, _lifetime) && Live) SubmitSummary = summary + "\n状态读取失败，未解除提交限制；请关闭后重新读取。";
+        }
+        NotifyState();
     }
 
     internal async Task ReviewAsync()
@@ -485,9 +550,10 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         foreach (var row in Seasons)
         {
             var media = Detail.Media with { Season = Detail.Media.Type == "电视剧" ? row.Season.Number : null };
-            _service.ConfirmSeasonSubscriptionReviewed(media);
-            if (row.Subscription is { } subscription) _service.ConfirmSubscriptionReviewed(subscription);
+            _service.ConfirmSeasonSubscriptionReviewed(media, GroupId);
+            if (row.CurrentSubscription is { } subscription) _service.ConfirmSubscriptionReviewed(subscription);
         }
+        _seasonDrafts.Clear();
         Submitted = false; ReviewConfirmed = false; ClearNotice();
         await ReloadAsync();
     }
