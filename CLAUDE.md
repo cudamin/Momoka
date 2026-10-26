@@ -32,6 +32,7 @@
 - [momoka-fnnas-media-api](.claude/skills/momoka-fnnas-media-api/SKILL.md)：飞牛影视（fnOS 影视／trim.media，非 fnOS 系统 WebSocket API）的独立协议、v2 登录、已由官方前端核对的 authx、浏览与播放适配，以及独占时的原生「帐号／影视服务器」设置目录（2026-10-16 曾退役，2026-10-19 接回）；区分前端证据、离线测试和真实服务器覆盖。
 - [momoka-playback](.claude/skills/momoka-playback/SKILL.md)：播放后端、进度上报、字幕音轨、换片，以及 `assets/mpv-ui` 中的 Lua/uosc 独占控件。
 - [momoka-subtitles](.claude/skills/momoka-subtitles/SKILL.md)：字幕设置的审查、修复与验证——语言选择、强制/外语音轨、ASS/SRT/PGS 样式、双语/次字幕、颜色输入、预览与服务器字幕管理。
+- [momoka-dandanplay](.claude/skills/momoka-dandanplay/SKILL.md)：弹弹play 开放弹幕网络的接入——应用签名、标题搜索与唯一精确匹配、弹幕获取与发送、内置凭据端点与共享额度、设置页显隐，以及离线与真实服务的验证边界。
 - [momoka-verification](.claude/skills/momoka-verification/SKILL.md)：验证读数、截图、功能显隐与恢复、指针移动及其证据。
 - [mpv-shader-quality](.claude/skills/mpv-shader-quality/SKILL.md)：着色器档位与画质链。
 - [momoka-video-output](.claude/skills/momoka-video-output/SKILL.md)：视频输出三卡（基础输出、HDR 与杜比视界、画质与着色器）与 mpv 选项的落地。
