@@ -21,6 +21,46 @@
 - AtomicFile 已用真实共享 Delete 的旧读句柄证明旧 MoveFileEx 的拒绝语义；Windows 无备份分支仅访问拒绝时使用 FileRenameInfoEx/POSIX rename，保留 CommitGate/权限/ReadOnly。真实多次带备份轮换又证明旧 File.Replace 在仍有旧 reader 时第二次返回1175；仅此已确定错误改用唯一临时前主文件备份，主提交成功后发布备份，异常用读者安全rename回滚而不提前覆盖旧备份；真实回滚拒绝保前值并Data标出恢复路径。raw UTF-16 和既有设备路径保持，未忽略元数据合并或升级依赖。
 - 剩余验证：子代理副本32生产契约/4独立对照已过；主线程本树已整合并补3项发布/回滚真实故障路径，35生产+4对照全过，四组固定预算12544次提交、两组跨提交读者各128提交/1280读取完整；旧失败报告不改绿。本树39项目Release零警告错误、当前Core2880全过；Release配置加载空白检查无加载警告且0文件修改，旧并行format导致生成文件冲突失败保留，已改串行编译闭环。仍需提交后统一入口/适用应用及原生探针、实际publish并回读桌面快捷方式。单测/开发构建通过不是交付完成。
 - 新功能窗口独立树 `C:/Users/89400/.codex/worktrees/mp-translation-interpolation/Momoka`；master与旧修复树不是祖先关系（共同源c34a5e5；review独有101提交、master独有20提交），已经告知不得只摘本轮Atomic而遗漏旧72项修复，也不得整份覆盖丢master的新功能；功能窗口将完整merge旧父链再接本组提交，最终整合另行验收发布。
+# MoviePilot 按季订阅 worker（2026-10-25）
+
+- 工作树：C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka
+- 分支：codex/mp-subscription-settings；基址：48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795。
+- 写集：Core/MoviePilot 订阅 plan/service/client/data；Shell/MoviePilot 视图和 ViewModel；LibraryPage 搜索订阅事件局部；独立 tests/Momoka.MoviePilotSubscribeSettingsTests；tests/Momoka.Tests/MoviePilotMediaDetailTests.cs 两个订阅夹具同步写前读取合同（不改 Program 注册）。
+- 边界：不改主树或父树；不改主测试 Program、AppSettings、SettingsViewModel、PlayerViewModel、Momoka.sln；不读真实账号、不连真实服务器、不订阅/取消/播放、不启动桌面。
+- PROGRESS 仅留本树，不包含在交付提交；父负责注册和桌面验收。
+- 交接提交：c873a9e83c09f608818d6ef0fbf47c1d0bf72de3；提交22个源码/测试文件，未含本PROGRESS。分支未push，工作树仅PROGRESS保留未提交。
+- 父注册：tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj 加方案和适用闸门；Regression与Core重叠可保持手动；产品无需新增DI注册。
+- 提交实际绝对路径：
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotClient.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotService.MediaDetail.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotService.Operations.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotService.SubscriptionSettings.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotService.Subscriptions.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Core\MoviePilot\MoviePilotSubscriptionPlan.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\ViewModels\MoviePilotMediaViewModel.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\ViewModels\MoviePilotSearchViewModel.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSeasonPicker.xaml
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSeasonPicker.xaml.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\src\Momoka.Shell\Views\MoviePilotSubscriptionPage.xaml.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Boundaries.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Fixture.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Momoka.MoviePilotSubscribeSettingsTests.csproj
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Program.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\README.md
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Regression\Momoka.Tests.csproj
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\Regression\Program.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.MoviePilotSubscribeSettingsTests\SubscribeSettingsTests.cs
+  - C:\Users\89400\.codex\worktrees\mp-subscription-settings\Momoka\tests\Momoka.Tests\MoviePilotMediaDetailTests.cs
+- 最终离线：新专项 62/62（实际Core/完整VM/Toolkit/对话源码+匿名内存HTTP）、既有相关回归 160/160（含占位双回环登录重定向），失败0、跳过0。
+- 当前Release：Core、Shell、主测试、独立专项与Regression均0警告0错误；本次文件 whitespace --verify-no-changes 与 git diff --check 通过（format工作区载入提示单列，不是编译告警）。
+- 本树证据：work-mp-subscription-settings.log / work-mp-subscription-regression.log / work-mp-subscription-shell-build.log（ignored）。
+- 用户要求的无二次确认是电影；电视剧使用可取消的按季设置。额外严格写前GET使两个旧匿名新增夹具需同步回话序列，不改主Program。
+- 待父：注册独立专项、完整批次闸门、实际WinUI宽窄/主题/输入/UIA截图与最终发布。未读真实账号/服务器、未真实订阅/取消/播放、未启动桌面、未push/发布。
+- 已知：上游按RECOGNIZE_SOURCE可将非TMDB身份转TMDB；本实现身份不匹配保守锁住待核对，绝不按相同数字取消异来源。真实转换/下载/像素未验；readonly统计裸响应已按固定官方源码修复。
+
+---
 
 ## 第八组按用户要求停止修复并交付桌面快捷方式（2026-10-24）
 
