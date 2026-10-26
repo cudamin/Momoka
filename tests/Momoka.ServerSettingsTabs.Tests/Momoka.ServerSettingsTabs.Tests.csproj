@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <!-- The source-linked ServerSettingsTests uses GetAwaiter only at its existing fake-HTTP
+         boundary (lines 253/270). Like Momoka.Tests in Directory.Build.props, this console fixture
+         is outside the production banned-API policy; Core still builds with all its analyzers. -->
+    <NoWarn>$(NoWarn);RS0030</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <!-- Run only the server-settings contracts, never the same-user SelfCheckRun mutex suite. -->
+    <Compile Include="..\Momoka.Tests\ServerSettingsTests.cs" Link="ServerSettingsTests.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.Tests\StubTransport.cs" Link="StubTransport.cs" />
+  </ItemGroup>
+</Project>

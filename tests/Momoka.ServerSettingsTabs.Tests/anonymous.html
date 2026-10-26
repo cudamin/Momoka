@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; style-src 'unsafe-inline'; connect-src 'none'; img-src data:">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Momoka 匿名离线页签夹具</title>
+<style>
+/* Minimal upstream-shaped layout, not a copy of a logged-in server page. */
+* { box-sizing: border-box; }
+body { margin: 0; background: #15191d; color: #eef0f2; font: 14px "Segoe UI", sans-serif; }
+.hide, [hidden] { display: none !important; }
+.hiddenViewMenuBar .skinHeader { display: none !important; }
+.skinHeader { position: fixed; inset: 0 0 auto; z-index: 10; display: flex; flex-direction: column; background: #353a40; }
+.headerTop { display: flex; align-items: center; min-height: 64px; padding: 10px 16px; }
+.headerLeft, .headerRight { display: flex; gap: 16px; }
+.headerMiddle { min-width: 0; }
+.headerTop .headerMiddle { flex: 1; }
+@media (min-width: 1600px) { .headerTabs { margin-top: -4.3em; align-self: center; } }
+.tabs-viewmenubar { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+.emby-tabs-slider { display: flex; white-space: nowrap; width: max-content; min-width: 100%; }
+.emby-tab-button { flex: 0 0 auto; padding: 14px 24px; background: transparent; color: inherit; border: 0; font: inherit; text-decoration: none; cursor: pointer; }
+.emby-tab-button-active { border-bottom: 2px solid #6ee7c5; }
+.MuiAppBar-root { position: fixed; top: 0; right: 0; width: calc(100% - 240px); margin-left: 240px; z-index: 10; }
+.MuiToolbar-root { display: flex; flex-wrap: wrap; align-items: center; min-height: 64px; padding: 8px 24px; }
+.MuiTabs-root { width: 100%; min-width: 0; min-height: 48px; }
+.MuiTabs-scroller { overflow-x: auto; overflow-y: hidden; }
+.MuiTabs-flexContainer { display: flex; white-space: nowrap; width: max-content; min-width: 100%; }
+.MuiTab-root { flex: 0 0 auto; padding: 14px 24px; background: transparent; color: inherit; text-decoration: none; }
+.Mui-selected { border-bottom: 2px solid #6ee7c5; }
+button:focus-visible, a:focus-visible { outline: 2px solid #6ee7c5; outline-offset: -3px; }
+main { width: 100%; }
+body.dashboardDocument main { padding-top: 128px; }
+/* AppBody also hosts old absolute-positioned views: main padding cannot move these. */
+.mainAnimatedPage { position: absolute; top: 0; left: 0; right: 0; }
+.dashboardDocument .mainAnimatedPage .content-primary { padding-top: 6.5rem; }
+.padded-top-page { padding-top: 128px; }
+.scrollSlider { min-width: 0; }
+.pageTitle { margin: 0 0 16px; }
+.tabPanel { padding: 20px; background: #262b30; border-radius: 12px; }
+.tabPanel:not(.is-active) { display: none; }
+.mainDrawer, .MuiDrawer-root { position: fixed; top: 0; left: 0; width: 240px; height: 100%; background: #454b52; z-index: 20; }
+.drawer-backdrop, .MuiBackdrop-root { position: fixed; inset: 0; background: #0006; }
+.appfooter, .dashboardFooter { position: fixed; bottom: 0; width: 100%; background: #454b52; padding: 12px; }
+#localToolbar { margin-top: 12px; padding: 12px; position: relative; width: 100%; }
+#dialogBackdrop { position: relative; height: 10px; background: #52675b; }
+</style>
+</head>
+<body>
+<script>
+(() => {
+  const options = new URLSearchParams(location.search);
+  const product = options.get('product') || 'emby';
+  const nested = options.get('nested') !== 'false';
+  const legacy = options.get('legacy') === 'true';
+  const absolute = options.get('absolute') === 'true';
+  const isMui = product === 'jellyfin' && !legacy;
+  document.body.classList.toggle('dashboardDocument', product === 'jellyfin');
+  const header = isMui
+    ? '<header id="globalHeader" class="MuiPaper-root MuiAppBar-root"><div class="MuiToolbar-root"><button id="globalMenu">服务器网页菜单</button><h1 id="globalTitle">服务器全局标题</h1><div id="tabsHost"></div><div id="globalUser">用户导航</div></div></header>'
+    : '<div id="globalHeader" class="skinHeader skinHeader-withBackground"><div class="headerTop"><div class="headerLeft"><button id="globalMenu" class="btnOpenNavDrawer">服务器网页菜单</button><h1 id="globalTitle">服务器全局标题</h1></div>' +
+      (nested && !legacy ? '<div id="tabsHost" class="headerMiddle"></div>' : '') +
+      '<div id="globalUser" class="headerRight">用户导航</div></div>' +
+      (!nested || legacy ? '<div id="tabsHost" class="' + (legacy ? 'headerTabs hide' : 'headerMiddle') + '"></div>' : '') + '</div>';
+  document.body.insertAdjacentHTML('afterbegin', header +
+    '<div id="serverDrawer" class="' + (isMui ? 'MuiDrawer-root' : 'mainDrawer') + '"><div class="MuiBackdrop-root">网页抽屉遮罩</div></div>' +
+    '<div class="drawer-backdrop">网页抽屉遮罩</div><footer id="serverFooter" class="appfooter dashboardFooter">服务器全局底栏</footer>' +
+    '<main><div class="view' + (absolute ? ' mainAnimatedPage withTabs' : '') + '"><div id="pageContent" class="scrollSlider padded-top-page content-primary"><h2 class="pageTitle">页面设置内容</h2><div id="panels"></div></div></div></main>');
+  if (isMui) {
+    document.body.insertAdjacentHTML('beforeend', '<div id="legacyMirror" style="display:none"><div class="skinHeader"><div class="headerTabs"><div is="emby-tabs" class="tabs-viewmenubar"><button class="emby-tab-button">隐藏的旧布局镜像</button></div></div></div></div>');
+  }
+  const host = document.getElementById('tabsHost');
+  const headerNode = document.getElementById('globalHeader');
+  const panels = document.getElementById('panels');
+  let manager;
+  let owner;
+  let changes = 0;
+  const bound = new WeakSet();
+  const makePanels = labels => {
+    panels.innerHTML = labels.map((label, index) => '<section class="tabPanel' + (index === 0 ? ' is-active' : '') + '" data-panel-index="' + index + '"><strong>' + label + '</strong><p>匿名内容：原网页事件处理切换到此页，没有网络或配置写入。</p></section>').join('');
+  };
+  function activate(list, index) {
+    const buttons = [...list.querySelectorAll('.emby-tab-button, [role="tab"]')];
+    const current = buttons.findIndex(button => button.classList.contains(isMui ? 'Mui-selected' : 'emby-tab-button-active'));
+    buttons.forEach((button, i) => {
+      button.classList.toggle(isMui ? 'Mui-selected' : 'emby-tab-button-active', i === index);
+      if (isMui) button.setAttribute('aria-selected', String(i === index));
+    });
+    list.dispatchEvent(new CustomEvent('beforetabchange', { detail: { previousIndex: current, selectedTabIndex: index } }));
+    if (!manager) {
+      [...panels.children].forEach((panel, i) => panel.classList.toggle('is-active', i === index));
+      changes++;
+    }
+    list.dispatchEvent(new CustomEvent('tabchange', { detail: { previousIndex: current, selectedTabIndex: index } }));
+  }
+  // Test boundary for the unavailable server tab web component/MUI library. The actual upstream
+  // maintabs manager (when supplied) still creates its nodes and handles beforetabchange itself.
+  function bind(list) {
+    if (bound.has(list)) return;
+    bound.add(list);
+    list.selectedIndex = index => {
+      if (index !== undefined) activate(list, index);
+      return Number(list.querySelector('.emby-tab-button-active')?.dataset.index || 0);
+    };
+    list.triggerTabChange = () => list.dispatchEvent(new CustomEvent('tabchange', { detail: { selectedTabIndex: list.selectedIndex() } }));
+    list.addEventListener('click', event => {
+      const button = event.target.closest('.emby-tab-button, [role="tab"]');
+      if (!button || !list.contains(button)) return;
+      event.preventDefault();
+      activate(list, Number(button.dataset.index ?? button.dataset.tabIndex));
+    });
+    list.addEventListener('focusin', event => {
+      const button = event.target.closest('.emby-tab-button, [role="tab"]');
+      if (button) button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    });
+    if (isMui) list.addEventListener('keydown', event => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      const buttons = [...list.querySelectorAll('[role="tab"]')].filter(button => getComputedStyle(button).display !== 'none');
+      const index = buttons.indexOf(document.activeElement);
+      buttons[(index + (event.key === 'ArrowRight' ? 1 : buttons.length - 1)) % buttons.length]?.focus();
+      event.preventDefault();
+    });
+    list.selectedIndex(0);
+  }
+  function setTabs(labels = ['下载', '设置'], disabled = []) {
+    makePanels(labels);
+    owner = document.createElement('div');
+    if (manager) {
+      manager.setTabs(owner, 0, () => labels.map((name, index) => ({ name, enabled: !disabled.includes(index) })), () => [...panels.children], () => changes++, false);
+    } else {
+      host.classList.toggle('MuiTabs-root', isMui && labels.length > 0);
+      host.classList.remove('hide');
+      host.innerHTML = labels.length ? (isMui
+        ? '<div class="MuiTabs-scroller"><div class="MuiTabs-flexContainer" role="tablist">' + labels.map((label, index) => '<a href="#local-' + index + '" role="tab" class="MuiTab-root' + (disabled.includes(index) ? ' hide' : '') + '" data-tab-index="' + index + '">' + label + '</a>').join('') + '</div><span class="MuiTabs-indicator"></span></div>'
+        : '<div is="emby-tabs" class="tabs-viewmenubar"><div class="emby-tabs-slider">' + labels.map((label, index) => '<button type="button" is="emby-button" class="emby-tab-button main-tab-button' + (disabled.includes(index) ? ' hide' : '') + '" data-index="' + index + '">' + label + '</button>').join('') + '</div></div>') : '';
+      document.documentElement.classList.toggle('withHeaderTabs', labels.length > 0 && !legacy);
+      document.body.classList.toggle('withSectionTabs', labels.length > 0 && legacy);
+      headerNode.querySelector('.headerTop')?.classList.toggle('headerTop-withSectionTabs', labels.length > 0);
+      host.classList.toggle('headerMiddle-withSectionTabs', labels.length > 0 && !isMui && !legacy);
+    }
+    const list = host.querySelector('.tabs-viewmenubar, [role="tablist"]');
+    if (list) bind(list);
+  }
+  window.fixture = {
+    product, isMui, setTabs,
+    clear() { if (manager) manager.setTabs(null); else setTabs([]); panels.replaceChildren(); },
+    get changes() { return changes; },
+    get list() { return host.querySelector('.tabs-viewmenubar, [role="tablist"]'); },
+    get tabs() { return [...host.querySelectorAll('.emby-tab-button, [role="tab"]')]; },
+    get manager() { return manager; },
+    installManager(source) {
+      if (product !== 'emby') throw new Error('The supplied snapshot is only for Emby');
+      const exports = {};
+      const define = (_names, factory) => factory(exports,
+        { default: { tv: false } }, { default: { allowBackdropFilter: () => false } }, {}, {},
+        { default: { focus: node => node.focus(), autoFocus: node => node.querySelector('.emby-tab-button:not(.hide)')?.focus() } });
+      new Function('define', source)(define);
+      manager = exports.default;
+    }
+  };
+  setTabs([]);
+})();
+</script>
+</body>
+</html>

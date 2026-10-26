@@ -293,6 +293,56 @@ internal static class ServerSettingsTests
             Assert.DoesNotContain("http", script, "脚本只认网页端自己的类名，不需要服务器地址");
         });
 
+        Test("服务器控制台：页签宿主判断共用且不以路由/页名打补丁", () =>
+        {
+            var emby = EmbyWebConsole.HideDrawerScript();
+            var jellyfin = EmbyWebConsole.HideJellyfinDrawerScript();
+            var sharedEnd = emby.IndexOf("\n(function () {", StringComparison.Ordinal);
+            Assert.True(sharedEnd > 0, "共用页签策略必须在抽屉脚本之前安装");
+            Assert.Equal(emby[..sharedEnd], jellyfin[..sharedEnd], "两种服务器使用同一条父容器判定");
+            foreach (var script in new[] { emby, jellyfin })
+            {
+                Assert.Contains(".tabs-viewmenubar", script);
+                Assert.Contains(".MuiTabs-root", script);
+                Assert.Contains("[role='tablist']", script);
+                Assert.Contains("data-momoka-tabs-branch", script, "只保留通向原页签的父级分支");
+                Assert.Contains("MutationObserver", script, "SPA 动态插入/撤销不能只依靠启动定时器");
+                Assert.Contains("ResizeObserver", script, "窄窗和页签高度变化后重测内容偏移");
+                Assert.Contains("getComputedStyle", script, "保留服务器的真实 CSS/父容器显隐");
+                Assert.Contains("--momoka-page-tabs-height", script);
+                Assert.DoesNotContain("conversions", script);
+                Assert.DoesNotContain("tonemapping", script);
+                Assert.DoesNotContain("downloadsettings", script);
+                Assert.DoesNotContain("innerHTML", script, "不能重建/复制页签与其事件");
+                Assert.DoesNotContain("cloneNode", script);
+                Assert.DoesNotContain("removeChild", script);
+                Assert.DoesNotContain("classList.remove", script, "不能解除 upstream 的 hide/权限类");
+                Assert.DoesNotContain("display: block", script, "不能强制显示服务器自己隐藏的页签父级");
+                Assert.DoesNotContain("display: flex", script);
+                Assert.DoesNotContain("api_key", script);
+                Assert.DoesNotContain("localStorage", script, "页签修复不进入凭据链");
+            }
+        });
+
+        Test("服务器控制台：皮肤不重复整段隐藏页签的顶栏或所有 MUI 弹层", () =>
+        {
+            var emby = EmbyWebConsole.NativeSkinScript(UiThemes.Default.Colors);
+            var jellyfin = EmbyWebConsole.JellyfinNativeSkinScript(UiThemes.Default.Colors);
+            Assert.DoesNotContain(".skinHeader, .skinHeader-withBackground", emby);
+            Assert.DoesNotContain(".skinHeader, .appfooter", jellyfin);
+            Assert.DoesNotContain("header.MuiAppBar-root", jellyfin, "全局 AppBar 按内容判定，不整段隐藏");
+            Assert.DoesNotContain(".MuiPaper-root.MuiAppBar-root", jellyfin, "页面自己的 AppBar 必须保留");
+            Assert.DoesNotContain("body.dashboardDocument .MuiBackdrop-root", jellyfin, "对话框遮罩不是重复抽屉");
+            Assert.Contains(".MuiDrawer-root .MuiBackdrop-root", jellyfin);
+            Assert.Contains("body.dashboardDocument .mainAnimatedPage", jellyfin, "绝对定位的旧路由视图也须避开页签");
+            foreach (var script in new[] { emby, jellyfin })
+            {
+                Assert.Contains(".appfooter", script);
+                Assert.Contains(".dashboardFooter", script);
+                Assert.Contains("--momoka-page-tabs-height", script, "内容需要预留可见页签的实际高度");
+            }
+        });
+
         Test("服务器控制台：Momoka 主题换算成网页的颜色变量", () =>
         {
             var mint = ThemeColor.Parse("#6EE7C5");
@@ -347,7 +397,7 @@ internal static class ServerSettingsTests
             Assert.Contains("--momoka-window", jellyfin);
             Assert.Contains("#6EE7C5", jellyfin, "皮肤要带当前主题的强调色");
             Assert.Contains("MuiDrawer-root", jellyfin, "网页自己的抽屉要收起");
-            Assert.Contains("MuiAppBar-root", jellyfin, "React 外壳的顶栏要收起");
+            Assert.Contains("MuiAppBar-root", EmbyWebConsole.HideJellyfinDrawerScript(), "React 顶栏按共用页签策略判定，不由皮肤整段隐藏");
             Assert.Contains("fieldset", jellyfin, "旧版设置分组要变成卡片");
             Assert.Contains(".emby-input", jellyfin);
             Assert.Contains("MuiButton-containedPrimary", jellyfin);

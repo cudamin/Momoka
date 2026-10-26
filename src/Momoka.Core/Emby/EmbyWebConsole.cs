@@ -185,23 +185,152 @@ public static partial class EmbyWebConsole
     }
 
     /// <summary>
+    /// 顶栏同时承载全局导航和页面级页签，不能整段隐藏。只保留通向原网页页签的父容器分支，
+    /// 不复制/搬动节点、不覆盖 display，不取消服务器的 hide、权限和隐藏父级；没有可用页签时收起宿主。
+    /// Emby 的 headerMiddle、旧 Jellyfin 的 headerTabs 与 React/MUI AppBar 共用这条规则，和路由无关。
+    /// </summary>
+    private static string PageTabsScript() => """
+        (function () {
+          try {
+            if (window.__momokaPageTabs) { window.__momokaPageTabs(); return; }
+            var css = `
+              :root { --momoka-page-tabs-height: 0px; }
+              .skinHeader:not([data-momoka-page-tabs]),
+              [data-momoka-tabs-header="mui"]:not([data-momoka-page-tabs]) { display: none !important; }
+              [data-momoka-tabs-parent] > :not([data-momoka-tabs-branch]) { display: none !important; }
+              [data-momoka-tabs-header][data-momoka-page-tabs] {
+                position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important;
+                width: 100% !important; height: auto !important; min-height: 0 !important;
+                margin: 0 !important; padding: 0 !important; transform: none !important;
+                background: var(--momoka-window, transparent) !important;
+                border-radius: 0 !important; box-shadow: none !important;
+              }
+              [data-momoka-tabs-parent] {
+                min-width: 0 !important; min-height: 0 !important; height: auto !important;
+                padding-top: 0 !important; padding-bottom: 0 !important;
+              }
+              [data-momoka-tabs-branch] { min-width: 0 !important; max-width: 100% !important; }
+              /* Legacy wide layouts lift headerTabs over the global title row. That row is gone. */
+              .skinHeader [data-momoka-tabs-branch] { margin-top: 0 !important; margin-bottom: 0 !important; }
+            `;
+            var frame = 0;
+            var resize = typeof ResizeObserver === "function" ? new ResizeObserver(schedule) : null;
+            var watched = [];
+
+            function branches(header, containers) {
+              var old = header.querySelectorAll("[data-momoka-tabs-branch], [data-momoka-tabs-parent]");
+              for (var i = 0; i < old.length; i++) {
+                old[i].removeAttribute("data-momoka-tabs-branch");
+                old[i].removeAttribute("data-momoka-tabs-parent");
+              }
+              header.removeAttribute("data-momoka-tabs-parent");
+              for (var c = 0; c < containers.length; c++) {
+                for (var child = containers[c]; child && child !== header; child = child.parentElement) {
+                  child.setAttribute("data-momoka-tabs-branch", "");
+                  child.parentElement.setAttribute("data-momoka-tabs-parent", "");
+                }
+              }
+            }
+
+            function available(tab) {
+              // The policy opens only its own header/branch hiding while measuring. Upstream CSS,
+              // inline styles, hidden ancestors and React's invisible legacy mirror still apply.
+              for (var node = tab; node; node = node.parentElement) {
+                var style = getComputedStyle(node);
+                if (style.display === "none" || style.visibility === "hidden" ||
+                    style.visibility === "collapse" || style.contentVisibility === "hidden") return false;
+              }
+              var rect = tab.getBoundingClientRect();
+              return rect.width > 0 && rect.height > 0;
+            }
+
+            function apply() {
+              frame = 0;
+              var root = document.documentElement;
+              if (!root) return;
+              var style = document.getElementById("momoka-page-tabs");
+              if (!style) {
+                style = document.createElement("style");
+                style.id = "momoka-page-tabs";
+                style.textContent = css;
+                (document.head || root).appendChild(style);
+              }
+              var headers = document.querySelectorAll(".skinHeader, body.dashboardDocument .MuiAppBar-root");
+              var height = 0;
+              var targets = [];
+              for (var h = 0; h < headers.length; h++) {
+                var header = headers[h];
+                var mui = header.classList.contains("MuiAppBar-root");
+                // A content toolbar or dialog AppBar is not the dashboard's global navigation.
+                if (mui && header.closest("main, .view, .mainAnimatedPages, .content-primary, [role='dialog']")) continue;
+                header.setAttribute("data-momoka-tabs-header", mui ? "mui" : "legacy");
+                var groups = header.querySelectorAll(".tabs-viewmenubar, .MuiTabs-root, [role='tablist']");
+                var containers = [];
+                for (var g = 0; g < groups.length; g++) {
+                  // Keep MUI's scroller, indicators and scroll buttons together, not just its tablist.
+                  if (!groups[g].matches(".MuiTabs-root") && groups[g].closest(".MuiTabs-root")) continue;
+                  containers.push(groups[g]);
+                }
+                header.setAttribute("data-momoka-page-tabs", "");
+                branches(header, containers);
+                var usable = [];
+                for (var c = 0; c < containers.length; c++) {
+                  var tabs = containers[c].querySelectorAll(".emby-tab-button, [role='tab']");
+                  for (var t = 0; t < tabs.length; t++) {
+                    if (available(tabs[t])) { usable.push(containers[c]); break; }
+                  }
+                }
+                branches(header, usable);
+                if (!usable.length) header.removeAttribute("data-momoka-page-tabs");
+                else height = Math.max(height, Math.ceil(header.getBoundingClientRect().bottom));
+                targets.push(header);
+                for (var c = 0; c < containers.length; c++) targets.push(containers[c]);
+              }
+              var value = height + "px";
+              if (root.style.getPropertyValue("--momoka-page-tabs-height") !== value)
+                root.style.setProperty("--momoka-page-tabs-height", value);
+              if (resize) {
+                for (var i = 0; i < watched.length; i++) if (targets.indexOf(watched[i]) < 0) resize.unobserve(watched[i]);
+                for (var i = 0; i < targets.length; i++) if (watched.indexOf(targets[i]) < 0) resize.observe(targets[i]);
+                watched = targets;
+              }
+            }
+
+            function schedule() { if (!frame) frame = requestAnimationFrame(apply); }
+            window.__momokaPageTabs = schedule;
+            // One debounced observer survives SPA changes and permission/visibility updates after
+            // startup retries. Our data attributes are deliberately outside the attribute filter.
+            new MutationObserver(schedule).observe(document, {
+              subtree: true, childList: true, characterData: true,
+              attributes: true, attributeFilter: ["class", "style", "hidden"]
+            });
+            document.addEventListener("DOMContentLoaded", schedule, { once: true });
+            window.addEventListener("load", schedule, { once: true });
+            window.addEventListener("resize", schedule);
+            schedule();
+          } catch (e) {
+            // A changed upstream header must not break the rest of the settings console.
+          }
+        })();
+        """;
+
+    /// <summary>
     /// 一段文档开始脚本：把网页端自己的抽屉导航、顶栏和底部标签栏收起来。控制台的左栏已经由设置窗口
-    /// 画了一份（三段服务器目录），网页再画一份就是两条并排的同一个菜单；顶栏与底部标签栏也一起收掉，
-    /// 只留设置内容本身。脚本只认网页端自己的类名，不碰设置页的内容、对话框和播放器。
+    /// 画了一份（三段服务器目录），网页再画一份就是两条并排的同一个菜单；全局顶栏导航与底部标签栏也一起收掉，
+    /// 只留设置内容和原网页的页面级页签。脚本不碰设置内容、对话框和播放器。
     /// <para>
-    /// 隐藏顶栏和底栏之后，网页原本给它们留的上下内边距一并归零，页面才真正铺满 WebView。
+    /// 全局栏原有空白收起，顶部只为当前可用的原网页页签预留实测高度，内容不被固定页签遮挡。
     /// </para>
     /// </summary>
-    public static string HideDrawerScript() => """
+    public static string HideDrawerScript() => PageTabsScript() + "\n" + """
         (function () {
           try {
             var css = [
               ".mainDrawer { display: none !important; }",
               ".drawer-backdrop { display: none !important; }",
-              ".skinHeader { display: none !important; }",
               ".appfooter { display: none !important; }",
               ".btnOpenNavDrawer, .btnToggleNavDrawer, .btnPinNavDrawer { display: none !important; }",
-              ".padded-top-page { padding-top: 0 !important; }",
+              ".padded-top-page { padding-top: var(--momoka-page-tabs-height, 0px) !important; }",
               ".padded-bottom-page { padding-bottom: 0 !important; }",
               ".dashboardContainer, .dashboardGeneralForm, .fieldsets, .settingsContainer, .configPage { max-width: none !important; width: 100% !important; }",
               ".dashboardSections { column-gap: 1em !important; }",
@@ -239,11 +368,11 @@ public static partial class EmbyWebConsole
     /// 原生左栏已经是一份同样的目录，两份并排就是两条导航；这段脚本把网页那份收起来，并把被它让出的
     /// 240 像素还回去 —— 抽屉是永久档时布局用内联样式写了左边距，光藏抽屉会留下一条空白带。
     /// <para>
-    /// 旧版 Jellyfin Web 用 <c>.mainDrawer</c>，一起处理。只动抽屉与它造成的偏移，不碰页面自己的其它
+    /// 旧版 Jellyfin Web 用 <c>.mainDrawer</c>，一起处理；全局顶栏仍保留可用的原网页页签，不碰页面其它
     /// MUI 弹层与对话框。
     /// </para>
     /// </summary>
-    public static string HideJellyfinDrawerScript() => """
+    public static string HideJellyfinDrawerScript() => PageTabsScript() + "\n" + """
         (function () {
           try {
             var css = [
@@ -252,7 +381,7 @@ public static partial class EmbyWebConsole
               ".btnOpenNavDrawer, .btnToggleNavDrawer, .btnPinNavDrawer { display: none !important; }",
               "body.dashboardDocument .MuiDrawer-root { display: none !important; }",
               "body.dashboardDocument .MuiDrawer-root .MuiBackdrop-root { display: none !important; }",
-              "body.dashboardDocument header.MuiAppBar-root { width: 100% !important; margin-left: 0 !important; }"
+              "body.dashboardDocument [data-momoka-tabs-header='mui'] { width: 100% !important; margin-left: 0 !important; }"
             ].join("\n");
 
             function addStyle() {

@@ -55,8 +55,8 @@ public static partial class EmbyWebConsole
               -webkit-font-smoothing: antialiased;
             }
 
-            /* 网页端自己的顶栏、底栏和页脚都不属于 WinUI 的这一页。 */
-            .skinHeader, .skinHeader-withBackground, .appfooter, .dashboardFooter {
+            /* 全局顶栏与页面页签的显隐统一由 HideDrawerScript 判断；这里只收起底栏。 */
+            .appfooter, .dashboardFooter {
               display: none !important;
             }
 
@@ -88,9 +88,12 @@ public static partial class EmbyWebConsole
               font-weight: 600 !important;
             }
 
-            /* 页面边距：HideDrawerScript 为了去掉顶栏把 padded-* 归零了，这里按 WinUI 的页面边距补回来。 */
+            /* 原网页页签仍固定在顶部；页面没有外层 padded-top-page 时，内容自身预留实测页签高度。 */
             .view > .scrollSlider {
               padding: 24px 28px 32px !important;
+            }
+            .view:not(.padded-top-page) > .scrollSlider {
+              padding-top: calc(24px + var(--momoka-page-tabs-height, 0px)) !important;
             }
             .settingsContainer, .dashboardContainer {
               padding: 24px 32px 32px !important;

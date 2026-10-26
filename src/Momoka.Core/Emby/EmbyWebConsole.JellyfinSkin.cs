@@ -10,7 +10,7 @@ public static partial class EmbyWebConsole
     /// 一半仍是旧版 jQuery 表单，类名和主题机制都不一样；两套皮肤混用只会互相盖错。
     /// <para>
     /// 只改这个 WebView 里的 CSS，不写服务器主题，也不改用户其他设备上的 Jellyfin。React 外壳的
-    /// 顶栏与抽屉在这一页没有意义（左栏已经是 Momoka 设置页的），一起收起；内容页自己的标题、
+    /// 全局导航与抽屉由 Momoka 设置页替代，页签宿主则由共用规则判断；内容页自己的标题、
     /// 标签页、保存按钮都留着，网页的交互不变。
     /// </para>
     /// </summary>
@@ -56,20 +56,19 @@ public static partial class EmbyWebConsole
               -webkit-font-smoothing: antialiased;
             }
 
-            /* 设置页自己的左栏已经在 Momoka 设置窗口里；网页的抽屉与顶栏不参与这一页。 */
-            .mainDrawer, .drawer-backdrop, .skinHeader, .appfooter,
+            /* 只隐藏重复抽屉/底栏；顶栏内的原页面页签由 HideJellyfinDrawerScript 保留。 */
+            .mainDrawer, .drawer-backdrop, .appfooter, .dashboardFooter,
             .btnOpenNavDrawer, .btnToggleNavDrawer, .btnPinNavDrawer {
               display: none !important;
             }
             body.dashboardDocument .MuiDrawer-root,
-            body.dashboardDocument .MuiBackdrop-root,
-            body.dashboardDocument header.MuiAppBar-root {
+            body.dashboardDocument .MuiDrawer-root .MuiBackdrop-root {
               display: none !important;
             }
             body.dashboardDocument main {
               width: 100% !important;
               margin-left: 0 !important;
-              padding-top: 0 !important;
+              padding-top: var(--momoka-page-tabs-height, 0px) !important;
             }
 
             h1, h2, h3, .sectionTitle, .pageTitle, .MuiTypography-h4, .MuiTypography-h5, .MuiTypography-h6 {
@@ -100,6 +99,17 @@ public static partial class EmbyWebConsole
             .view > .scrollSlider {
               padding: 24px 28px 32px !important;
             }
+            .padded-top-page { padding-top: var(--momoka-page-tabs-height, 0px) !important; }
+            .view:not(.padded-top-page) > .scrollSlider {
+              padding-top: calc(24px + var(--momoka-page-tabs-height, 0px)) !important;
+            }
+            /* AppBody 的旧路由视图是绝对定位，main 的 padding 不会推开它；用同一实测偏移。 */
+            body.dashboardDocument .mainAnimatedPage {
+              top: var(--momoka-page-tabs-height, 0px) !important;
+            }
+            /* React main 或旧 mainAnimatedPage 已预留宿主高度；嵌套表单不要再留一份。 */
+            body.dashboardDocument main .padded-top-page { padding-top: 0 !important; }
+            body.dashboardDocument main .view > .scrollSlider { padding-top: 24px !important; }
             .settingsContainer, .dashboardContainer, .configPage, .readOnlyContent, .content-primary {
               box-sizing: border-box !important;
               max-width: none !important;
@@ -360,7 +370,7 @@ public static partial class EmbyWebConsole
               border-radius: 12px !important;
               box-shadow: none !important;
             }
-            .MuiPaper-root.MuiAppBar-root, .MuiPaper-root.MuiDrawer-paper { display: none !important; }
+            body.dashboardDocument .MuiDrawer-root .MuiDrawer-paper { display: none !important; }
             .dashboardSections { display: flex !important; flex-wrap: wrap !important; gap: 12px !important; }
             .dashboardSection { padding: 16px 20px !important; }
             .dashboardSection:not(:has(*)) { display: none !important; }
