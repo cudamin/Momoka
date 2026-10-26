@@ -352,6 +352,20 @@ internal static class Program
             page.DispatcherQueue.Drain();
             Assert.Equal(2, page.SettingsScroll.ScrollResets);
         }));
+        Test("搜索负责滚动时分类入场不再抢零偏移，正常分类仍复位", () => WithPage((_, _, page) =>
+        {
+            ShellNavigationProbe.BeginVisitForContract(page);
+            page.RaiseLoaded();
+            page.AddEntranceSection();
+            page.PendingSearchForContract = true;
+            page.SelectedCategory = "界面";
+            page.DispatcherQueue.Drain();
+            Assert.Equal(0, page.SettingsScroll.ScrollResets);
+            page.PendingSearchForContract = false;
+            page.SelectedCategory = "字幕";
+            page.DispatcherQueue.Drain();
+            Assert.Equal(1, page.SettingsScroll.ScrollResets);
+        }));
         Test("分类队列拒绝或Layout失败不记完成，重试仍复位", () => WithPage((_, _, page) =>
         {
             ShellNavigationProbe.BeginVisitForContract(page);

@@ -546,6 +546,8 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.Controls.CollectionViewSource CategoryGroupsSource { get; } = new();
         internal readonly Microsoft.UI.Xaml.Controls.Grid SettingsContent = new();
         internal readonly Microsoft.UI.Xaml.Controls.ScrollView SettingsScroll = new();
+        internal bool PendingSearchForContract { get; set; }
+        private bool HasPendingSearchNavigation => PendingSearchForContract; // Real navigation is source-linked in its dedicated fixture.
         internal readonly Microsoft.UI.Xaml.Controls.Grid SettingsLayout = new();
         internal readonly Microsoft.UI.Xaml.Controls.Grid SettingsSections = new();
         internal Microsoft.UI.Xaml.Controls.Frame HostedFrame { get; } = new();

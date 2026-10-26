@@ -1,3 +1,4 @@
+using Momoka.Diagnostics;
 using Momoka.Shell.ViewModels;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -9,6 +10,10 @@ namespace Momoka.Shell.Views;
 public sealed partial class SettingsPage
 {
     private int _searchNavigationGeneration;
+    private SettingsSearchResult? _pendingSearchNavigation;
+
+    // 分类入场不能抢走搜索的目标位置；两个滚动请求只允许搜索这一份负责。
+    private bool HasPendingSearchNavigation => _pendingSearchNavigation?.CategoryKey == ViewModel.SelectedCategory;
 
     private void OnSettingsSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
@@ -22,24 +27,67 @@ public sealed partial class SettingsPage
         if (!_activity.IsCurrent(_activityToken) || !ViewModel.SelectSettingsSearchResult(result)) return false;
         var generation = ++_searchNavigationGeneration;
         var activity = _activityToken;
-        if (result.Section is not { } section || result.Row is not { } row) return true;
-        DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
-        {
-            if (generation != _searchNavigationGeneration || !_activity.IsCurrent(activity)
-                || ViewModel.SelectedCategory != result.CategoryKey || !section.Rows.Contains(row)) return;
-            SettingsSections.UpdateLayout();
-            var list = RowLists(SettingsSections).FirstOrDefault(list => ReferenceEquals(list.ItemsSource, section.Rows));
-            if (list?.ContainerFromItem(row) is not FrameworkElement container) return;
-            var target = VisualTreeHelper.GetChildrenCount(container) > 0
-                ? VisualTreeHelper.GetChild(container, 0) as FrameworkElement ?? container : container;
-            FirstFocusable(target)?.Focus(FocusState.Programmatic);
-            // 分类刷新也排了异步 ScrollTo(0)。最后用内容坐标提交明确位置，不依赖
-            // StartBringIntoView 与先前复位的时序，输入焦点引起的滚动也由这次请求收口。
-            var top = target.TransformToVisual(SettingsCardsContent).TransformPoint(new Windows.Foundation.Point()).Y;
-            SettingsScroll.ScrollTo(0, Math.Max(0, top - SettingsScroll.ActualHeight * 0.2),
-                new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
-        });
+        _pendingSearchNavigation = result.Section is not null && result.Row is not null ? result : null;
+        if (_pendingSearchNavigation is null) return true;
+        if (!DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => _ = PositionSearchResultAsync(result, generation, activity)))
+            _pendingSearchNavigation = null;
         return true;
+    }
+
+    private async Task PositionSearchResultAsync(SettingsSearchResult result, int generation, CancellationToken activity)
+    {
+        bool IsCurrent() => generation == _searchNavigationGeneration && _activity.IsCurrent(activity)
+            && ViewModel.SelectedCategory == result.CategoryKey
+            && result.Section is { } section && result.Row is { } row && section.Rows.Contains(row);
+        try
+        {
+            FrameworkElement? target = null;
+            // UpdateLayout 完成不等于 ScrollPresenter 已接收新 extent。等实际滚动内容与目标
+            // 同时就绪，避免窄窗/发布版把目标偏移钳在上一分类的短内容范围内。
+            for (var attempt = 0; attempt < 120 && IsCurrent(); attempt++)
+            {
+                SettingsContent.UpdateLayout();
+                var list = RowLists(SettingsSections).FirstOrDefault(list => ReferenceEquals(list.ItemsSource, result.Section!.Rows));
+                if (list?.ContainerFromItem(result.Row) is FrameworkElement container)
+                {
+                    target = VisualTreeHelper.GetChildrenCount(container) > 0
+                        ? VisualTreeHelper.GetChild(container, 0) as FrameworkElement ?? container : container;
+                    if (target.ActualHeight > 0 && SettingsScroll.ActualHeight > 0
+                        && SettingsScroll.ExtentHeight + 1 >= SettingsCardsContent.ActualHeight) break;
+                    target = null;
+                }
+                await Task.Delay(16, activity);
+            }
+            if (!IsCurrent() || target is null) return;
+            var top = target.TransformToVisual(SettingsCardsContent).TransformPoint(new Windows.Foundation.Point()).Y;
+            var complete = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var seen = new HashSet<int>();
+            var correlation = -1;
+            void OnCompleted(ScrollView sender, ScrollingScrollCompletedEventArgs args)
+            {
+                seen.Add(args.CorrelationId);
+                if (args.CorrelationId == correlation) complete.TrySetResult();
+            }
+            SettingsScroll.ScrollCompleted += OnCompleted;
+            try
+            {
+                correlation = SettingsScroll.ScrollTo(0, Math.Max(0, top - SettingsScroll.ActualHeight * 0.2),
+                    new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                if (correlation != -1 && !seen.Contains(correlation))
+                    await complete.Task.WaitAsync(TimeSpan.FromSeconds(2), activity);
+            }
+            finally { SettingsScroll.ScrollCompleted -= OnCompleted; }
+            if (IsCurrent()) FirstFocusable(target)?.Focus(FocusState.Programmatic);
+        }
+        catch (OperationCanceledException) when (activity.IsCancellationRequested) { }
+        catch (Exception error)
+        {
+            if (IsCurrent()) Log.Warn(Category, "定位设置搜索结果失败", error);
+        }
+        finally
+        {
+            if (generation == _searchNavigationGeneration) _pendingSearchNavigation = null;
+        }
     }
 
     private static Control? FirstFocusable(DependencyObject root)

@@ -72,7 +72,12 @@ internal sealed partial class ShellNavigationProbe
                 var rows = Descendants(page).OfType<ItemsControl>().Single(list => ReferenceEquals(list.ItemsSource, result.Section!.Rows));
                 Require(rows.ContainerFromItem(result.Row) is FrameworkElement, "搜索目标行没有实际实现");
                 var target = (FrameworkElement)rows.ContainerFromItem(result.Row);
-                await UntilAsync(() => Box(scroll, target).Bottom > 0 && Box(scroll, target).Top < scroll.ActualHeight);
+                try { await UntilAsync(() => Box(scroll, target).Bottom > 0 && Box(scroll, target).Top < scroll.ActualHeight); }
+                catch (TimeoutException)
+                {
+                    var missed = Box(scroll, target);
+                    throw new InvalidOperationException($"搜索定位未完成：宽{width}，分类{page.SelectedCategory}，目标{missed.Top:0.0}..{missed.Bottom:0.0}，视口{scroll.ActualHeight:0.0}，offset{scroll.VerticalOffset:0.0}，extent{scroll.ExtentHeight:0.0}");
+                }
                 var rowBox = Box(scroll, target);
                 Require(rowBox.Bottom > 0 && rowBox.Top < scroll.ActualHeight, "搜索后目标仍在可视区外");
                 Require(page.ViewModel.Categories.SequenceEqual(categories), "搜索过滤或重建了侧栏分区");
@@ -86,7 +91,8 @@ internal sealed partial class ShellNavigationProbe
                 page.SelectedCategory = "字幕";
                 scroll.VerticalScrollBarVisibility = ScrollingScrollBarVisibility.Visible;
                 await LayoutAsync(page);
-                await UntilAsync(() => scroll.VerticalOffset < 1);
+                try { await UntilAsync(() => scroll.VerticalOffset < 1); }
+                catch (TimeoutException) { throw new InvalidOperationException($"分类复位未完成：宽{width}，offset{scroll.VerticalOffset:0.0}，extent{scroll.ExtentHeight:0.0}"); }
                 var bar = Descendants(scroll).OfType<ScrollBar>().Single(bar => bar.Name == "PART_VerticalScrollBar");
                 var barBox = Box(scroll, bar);
                 var cards = Descendants(page).OfType<FrameworkElement>().Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible);
