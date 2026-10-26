@@ -74,3 +74,86 @@ $root = (Get-Location).Path
 第七组R003修改 `EmbySession.RestoreAttemptAsync` 的最终身份守卫及 `ResolveRestoreConnectionAsync` 对空public ID的保留策略；自然caller只执行实际Capture／ExecuteAsync与匿名缓存scope，不执行恢复／登录／凭据保存。完整Start/Next/NowPlaying/Leave和其余18份pin字节未变，因此逐份复核后**仅更新EmbySession这一个SHA256**，不整份生成新快照、不删除来源核对、不改历史base/date元数据。
 
 首最终方案 `artifacts/staged-repair/batch07/final-current-95d2eab/solution-build.log` 因旧pin失败退出1，随后未运行旧测试。单项同步后当前caller Release零警告错误/50全绿；原提取脚本8个错误源/成员/语法/根目录/缺await-using/hash负例全部按预期退出1，再重编原current/50全绿，证据 `artifacts/staged-repair/batch07/r046-source-pin-sync/`（reviewed-pin-delta/only-one-pin-check/source-guard-positive-negative）和其指向本树新反例目录。不是播放或真实登录验收；本轮不改产品来适配fixture，最终统一方案与51入口另跑。
+
+## 2026-10-25：纯合并基线的旧测试兼容
+本轮验证树为 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，基点
+`4afca26672297aedd7725d675706d7f2b923519c`，产品只来自父树
+`mp-translation-interpolation/Momoka` 已 resolved/staged 的 `48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795`
+合并差异。导入 patch SHA256：`7ef4a4592f66b219639aa0ca499427da971443a34e9b8fe0f894cc36cffcd680`。
+本树 629 份产品源的 Git blob 与父 index 逐份一致；未导入父未暂存的 translation/AppSettings 改动。
+产品快照不暂存、不提交，不改共享 Program/Agreements/方案；最终功能再验由父线程完成。
+
+测试 VM 使用本树实际重新编译的标准 x64 Release Shell（不是复制父 DLL）：
+`src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll`，
+2026-10-25 01:36:41 +08:00，4,743,168 字节，SHA256
+`b9125a7ff07a46e236603200c97dd0608fd548a84ba588d39431d99fbb5e67f5`。
+父首次合并 DLL 只作来源对照：2026-10-25 00:34:42 +08:00，SHA256
+`735c3295886cb0dce9c8e4b92aa265739290959e0c8ce5befca5f9dcd1f97f77`；没有将它称为本树输出。
+所有日志/输入清单留在本树 ignored `artifacts/verification/merged-contract-tests/`。
+
+19 份 pins 的历史源全部与 `48c43fc` 的实际 blob/hash 逐份吻合。本轮只更新下列 **7** 项，
+其余 **12** 项逐份确认字节不变，保留旧 baseCommit/date（提取器仍严格核它），不整份重生成 pins。
+逐份完整 diff 存 `artifacts/verification/merged-contract-tests/review-pin-*.diff` 与 `pin-review.json`。
+
+| 更新源 | 本次审查的实际变化及覆盖界限 |
+| --- | --- |
+| IPlaybackBackend.cs | 只改宿主通信的注释口径：弹幕通道适用于两条内置管线；所有接口/所有权契约未改。 |
+| LibMpvBackend.cs | ClientMessage 在弹幕脚本存在时保留，并 load-script 弹幕；caller不初始化实际 native。完整生命周期/handle 提取原样，另由 ShaderCommandGeneration 37 项核控制/事务边界。 |
+| PlaybackService.Lifecycle.cs | 主干 `ff31c732ff13876551119011c7270a2ccb3551cd` 按 2026-10-22 用户令取消自动换版，只执行所选 ticket；不是借新hash恢复旧 candidate-loop。自然 native专项的一条旧第二候选预期已作为实际兼容失败单列。 |
+| PlayerViewModel.Transport.cs | 完整 Start 中起播失败改为实际 `MediaVersionSwitch.UnplayableNotice`；await using、intent、取消、expected lease、递归与finally不删减。 |
+| PlayerViewModel.cs | 增加 DandanPlayClient、DanmakuChanged订退和请求取消；本 caller不构造完整产品VM，提取的原所有权字段仍原样。 |
+| PlayerViewModel.Events.cs | 宿主弹幕握手/菜单、完整 NowPlaying 新 ResetDanmaku；跳过改只读 Emby MarkerType，mpv仅刷新章节刻度不改跳过计划。只接受两处实际旁支端点补齐，不删除完整 NowPlaying 或弱化 source guard。 |
+| EmbyItem.cs | 新 ChapterInfo.MarkerType，以及 x264/x265 标签只读呈现；不改来源 identity/id、自动接集/lease规则。 |
+
+特别核对 ActivityToken：PageViewModel 相对 `48c43fc` 字节未变，合并中保留旧修复的活动期/取消语义，
+SettingsPage与VM依然依真实活动票拒绝迟到结果；没有将新默认票/假模型写入 pins 来掩盖寿命变化。
+PlaybackContracts/Continuation/Service.Continuation、ShaderCommand四个边界源、EmbySession/Scope、
+EpisodeNavigation、StartIntent和Versions全是本轮未变的 12 项，不借改变来源放宽它们。
+
+完整节点当前 hash：StartPlaybackAsync `7342e327ec6dd358c1066567456b9cb8b5b648ce5a5b7969d8b218e4555eba8b`
+（12108 字符）；OnNowPlayingChanged `23e462851607aac5e1665a31c83df34600cd928a93b4a582c42bfb4f5daedc47`
+（6434 字符）；NextEpisodeToAutoPlay 与 LeavePlayer hash 未变（见原清单）。
+初次更新 pins 后真实构建依然以 0 警告/2 错误拒绝旧 PlayerBoundary 的 ResetDanmaku/RefineChapterMarksAsync
+缺口，留 `build-natural-reviewed-pins.log` 与 `build-solution-01.log`，没有运行失败构建的旧 caller。
+端点写集获准补齐后必须重编当前完整 source 再跑原 50 项及 8 个非法提取反例；未完成前不报通过。
+
+父之后的字幕功能新增只在最终 feature commit 重新审查来源/重编/复跑，不能把本轮纯合并证据冒充新功能。
+
+## 2026-10-25：第二轮纯合并基线测试兼容
+本轮仍在 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，产品固定为
+`4afca26672297aedd7725d675706d7f2b923519c`＋父 resolved/staged 的
+`48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795` 合并快照。629 份产品源均与上一轮清单一致；
+未导入父新增 translation/runtime/UI/provider 文件或 `4a15f90` 原子写入修复。
+本轮仅测试增量接在第一补丁 `968f2931e4d80346a649c19fd68e10ad91bd36e2` 后，
+不提交生产快照，不动共享 `Momoka.Tests/Program.cs`、`Agreements.txt`、`Momoka.sln`。
+
+使用本树实际 x64 Release Shell：
+`src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll`，
+2026-10-25 01:36:41 +08:00，SHA256
+`b9125a7ff07a46e236603200c97dd0608fd548a84ba588d39431d99fbb5e67f5`。
+本轮按固定用户 SDK 10.0.400 离线 restore，再成功 Release 编译当前 Core/相关项目后才 no-build。
+Build flags：`--no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false`。
+证据留本树 ignored `artifacts/verification/merged-contract-tests/batch02/`，不借父最终功能构建/桌面结果。
+
+只将旧未调用的 `RefineSkipSectionsAsync` 邻接空端点替换为真实当前
+`RefineChapterMarksAsync`，新增无 UI/网络的 `ResetDanmaku` 邻接端点；旧 stub 没有生产调用者，
+不继续留一个会让人误认 mpv 章节仍修正 skip-plan 的别名。完整 `OnNowPlayingChanged`
+仍原样编译，实际 Core 从 Emby MarkerType 构造跳过计划；不复制 skip、所有权、接续或取消逻辑。
+弹幕网络请求与画面刷新不在本 caller 覆盖范围。
+
+原 **50 项全过／0 失败／0 跳过**，未修改 `CallerCases.cs` 或提取器。
+19 份 SourcePins 完全不变（含上一轮审查的7项更新），文件 SHA256
+`d01f0659f4b80374ddb3673912412b5ac0ae4009591bfcc0081c051eaa5a8b7f`。
+Start/Next/NowPlaying/Leave 完整节点 SHA256 仍与上一轮清单完全相同。
+
+复跑使用上文既有脚本，输出参数可明确指定：
+
+```powershell
+$root = (Get-Location).Path
+& (Join-Path $root 'tests/Momoka.NaturalContinuationCallerTests/Run-Caller.ps1') -OutputDirectory (Join-Path $root 'artifacts/r046-caller/batch02-current')
+& (Join-Path $root 'tests/Momoka.NaturalContinuationCallerTests/Test-SourceExtraction.ps1') -OutputDirectory (Join-Path $root 'artifacts/r046-caller/batch02-extractor')
+```
+
+指定目录必须尚不存在；再次复跑换新名称，不覆盖旧证据。8项原非法源码/锚点/语法/await-using/hash/外树
+反例均预期 build 退出1；之后 `current-reverified` 重新编译实际源0警告0错误并再跑原50项全绿。
+这些预期拒绝不计为8个产品失败或额外50项覆盖。

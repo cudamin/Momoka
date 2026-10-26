@@ -11,6 +11,7 @@ internal static partial class PlayerVolumeGestureTests
         try
         {
             using var shell = new ShellFixture(shellPath, sourceRoot);
+            PlayerConstructorBoundary.Register(shell.ViewModel, shell.Dispatcher);
             RegisterTracks(shell);
             return TestHarness.Run();
         }

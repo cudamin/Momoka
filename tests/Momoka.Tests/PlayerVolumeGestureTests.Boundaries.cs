@@ -19,6 +19,7 @@ internal static partial class PlayerVolumeGestureTests
     private sealed class ShellFixture : IDisposable
     {
         private readonly Func<AssemblyLoadContext, AssemblyName, Assembly?> _resolve;
+        private readonly ConstructorInfo _constructor;
         internal Type ViewModel { get; }
         internal Type Dispatcher { get; }
         internal string Root { get; }
@@ -41,10 +42,13 @@ internal static partial class PlayerVolumeGestureTests
             var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyFile);
             ViewModel = assembly.GetType("Momoka.Shell.ViewModels.PlayerViewModel", throwOnError: true)!;
             Dispatcher = assembly.GetType("Momoka.Shell.Platform.IUiDispatcher", throwOnError: true)!;
+            _constructor = PlayerConstructorBoundary.Require(ViewModel, Dispatcher);
             Console.WriteLine("Shell=" + assemblyFile);
             Console.WriteLine("Shell SHA256=" + Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(assemblyFile))));
             Console.WriteLine("Core=" + typeof(PlaybackService).Assembly.Location);
         }
+
+        internal object Create(params object?[] arguments) => PlayerConstructorBoundary.Create(_constructor, arguments);
 
         internal object? Invoke(object vm, string name, params object?[] arguments)
         {
@@ -68,6 +72,7 @@ internal static partial class PlayerVolumeGestureTests
         private readonly object _vm;
         private readonly EmbySession _session;
         private readonly PlayerVolumeDispatcherProxy _dispatcher;
+        private readonly AnonymousDanmakuDependency _danmaku;
         private readonly List<Handle> _handles = [];
         private readonly List<EmbySessionScope.Identity> _trackIdentities = [];
         internal FakeSettings Settings { get; } = new();
@@ -95,7 +100,10 @@ internal static partial class PlayerVolumeGestureTests
             _dispatcher = (PlayerVolumeDispatcherProxy)dispatcher;
             _dispatcher.Queue = work => VolumeContext.Current!.Post(_ => work(), null);
             // Image service is not used by these entry points; constructing it would create a cache directory.
-            _vm = Activator.CreateInstance(shell.ViewModel, Service, Settings, _session, null, shaders, dispatcher)!;
+            _danmaku = new AnonymousDanmakuDependency(Settings.Settings, shell.Root);
+            _vm = shell.Create(Service, Settings, _session, null, shaders, dispatcher, _danmaku.Client);
+            Assert.True(ReferenceEquals(_danmaku.Client, Field<Momoka.Danmaku.DandanPlayClient>("_dandanPlay")),
+                "the actual constructor must retain the exact anonymous client instance");
             Assert.Equal(100.0, Volume);
             Assert.False(Ready);
             Assert.Null(Memory.Pending);
@@ -200,6 +208,7 @@ internal static partial class PlayerVolumeGestureTests
                 identity.PasswordChanges.Dispose();
             }
             _session.Dispose();
+            _danmaku.Dispose();
         }
     }
 

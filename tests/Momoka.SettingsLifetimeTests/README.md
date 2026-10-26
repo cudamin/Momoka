@@ -57,3 +57,31 @@ $env:Configuration = 'Release'
 & $dotnet format whitespace .\tests\Momoka.SettingsLifetimeTests\Momoka.SettingsLifetimeTests.csproj --no-restore --include 'tests/Momoka.SettingsLifetimeTests/AdministrationLifetimeTests.cs' 'tests/Momoka.SettingsLifetimeTests/SettingsHiddenLifetimeTests.cs' 'tests/Momoka.SettingsLifetimeTests/LifetimeFixture.cs' 'tests/Momoka.SettingsLifetimeTests/PageBoundaries.cs' 'tests/Momoka.SettingsLifetimeTests/ShellRuntime.cs' 'tests/Momoka.SettingsLifetimeTests/Program.cs' --verify-no-changes --verbosity diagnostic
 git diff --check
 ```
+
+## 2026-10-25：纯合并基线的旧测试兼容
+本轮验证树为 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，基点
+`4afca26672297aedd7725d675706d7f2b923519c`，产品只来自父树
+`mp-translation-interpolation/Momoka` 已 resolved/staged 的 `48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795`
+合并差异。导入 patch SHA256：`7ef4a4592f66b219639aa0ca499427da971443a34e9b8fe0f894cc36cffcd680`。
+本树 629 份产品源的 Git blob 与父 index 逐份一致；未导入父未暂存的 translation/AppSettings 改动。
+产品快照不暂存、不提交，不改共享 Program/Agreements/方案；最终功能再验由父线程完成。
+
+测试 VM 使用本树实际重新编译的标准 x64 Release Shell（不是复制父 DLL）：
+`src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll`，
+2026-10-25 01:36:41 +08:00，4,743,168 字节，SHA256
+`b9125a7ff07a46e236603200c97dd0608fd548a84ba588d39431d99fbb5e67f5`。
+父首次合并 DLL 只作来源对照：2026-10-25 00:34:42 +08:00，SHA256
+`735c3295886cb0dce9c8e4b92aa265739290959e0c8ce5befca5f9dcd1f97f77`；没有将它称为本树输出。
+所有日志/输入清单留在本树 ignored `artifacts/verification/merged-contract-tests/`。
+
+保留原 45 项 R018/R026/R010，新增 5 项 Attach 边界检查，当前 **50 过/0 败/0 跳过**。
+三个页面夹具的弹幕 callback 都只转发当前真实 Shell VM；ShellPrefs 是内存事件通道。
+
+页面 wrapper 保留原 14 个必需参数及顺序，images/dandan/后来可选凭据按原声明尾序列传入；
+反射补齐读取实际 `GetParameters()` 的默认值，不硬编码 16 或 17，也不把非 null 默认强行改 null。
+缺少必需值/多余参数仍 fail-closed，显式传入值（包括 null）不被覆盖。新增用例核真实参数名称、
+images/dandan 的位置、任意可选尾部默认值以及非 null 默认值反例。
+
+完整页面 `Attach` 仍明确拒绝 UI 重建，`ReloadAsync` 仍拒绝整页/native Reload；实际缓存 VM 的
+Attach 则走当前真实 DLL 方法，不为兼容新凭据开放 UI/native 或 Protect/Unprotect 边界。
+复跑命令与上文相同，额外测试自动注册到本专项而不碰共享 Program。

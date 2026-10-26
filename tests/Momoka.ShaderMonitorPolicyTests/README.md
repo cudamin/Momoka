@@ -49,3 +49,36 @@ if ($LASTEXITCODE -ne 0) { throw '固定Monitor方案回归失败' }
 主树基点9033af4上19项实际10过9败→统一target19全绿。补在途/fullscreen至24项23过1败：先处理所有Discrete导致相同方案排3笔事务；恢复同档SizeOnly不动后24全绿。最后加入四纯Core策略项28全过。分阶段用例重叠，不相加；失败与初夹具两个缺接口编译错误、当前Core/Shell来源不一致拒绝分别保留，不算产品有效红。
 
 证据 `artifacts/staged-repair/batch05/r052`：baseline-solution-build／red-tests-03、expanded-build／expanded-tests-01、green-solution-build-02／green-tests-02、final-solution-build／final-monitor／final-core／final-subtitle-drop与current-whitespace。全程无实际显示器换屏、帧时序、GPU编译成本、视觉或native行为覆盖；只验证实际控制流与假事务，快捷方式旧版，非完整产品交付。
+
+## 2026-10-25：第二轮纯合并基线测试兼容
+本轮仍在 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，产品固定为
+`4afca26672297aedd7725d675706d7f2b923519c`＋父 resolved/staged 的
+`48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795` 合并快照。629 份产品源均与上一轮清单一致；
+未导入父新增 translation/runtime/UI/provider 文件或 `4a15f90` 原子写入修复。
+本轮仅测试增量接在第一补丁 `968f2931e4d80346a649c19fd68e10ad91bd36e2` 后，
+不提交生产快照，不动共享 `Momoka.Tests/Program.cs`、`Agreements.txt`、`Momoka.sln`。
+
+使用本树实际 x64 Release Shell：
+`src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll`，
+2026-10-25 01:36:41 +08:00，SHA256
+`b9125a7ff07a46e236603200c97dd0608fd548a84ba588d39431d99fbb5e67f5`。
+本轮按固定用户 SDK 10.0.400 离线 restore，再成功 Release 编译当前 Core/相关项目后才 no-build。
+Build flags：`--no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false`。
+证据留本树 ignored `artifacts/verification/merged-contract-tests/batch02/`，不借父最终功能构建/桌面结果。
+
+统一测试支撑 `Momoka.Tests/PlayerConstructorBoundary.cs` 精确核对实际唯一公开
+PlayerViewModel 构造器的7个参数名、类型与顺序：playback/settings/session/images/shaders/ui/dandanPlay。
+两处旧6参数反射构造改为按该签名调用，不把第7参数补null。
+
+新匿名依赖使用真实 `DandanPlayClient`＋真实 `DandanPlayCredentials` 包装，偏好关闭、无密钥；
+传输与保护器任何调用均抛错并计数，缓存路径含非法文件名，Dispose断言HTTP/凭据调用均0，
+及时释放client。实际VM `_dandanPlay` 必须持有同一实例。原6个参数语义不变，images/session的
+既有无用null边界不因此打开；没有运行弹幕加载、App、WinUI、服务器、配置或密钥。
+
+新增4项构造边界反例：真实签名；旧6参数/新未审核必需参数拒绝；错名错序/错类型拒绝；
+null或非真实第7依赖在调用VM前拒绝。原测试断言均保留，各runner的4项相同边界不能累计成额外12种覆盖。
+
+此项目显式compile-link共用构造边界文件，不增加package、不加载完整main runner。
+原28项全部保留，本轮 **32过／0失败／0跳过**＝原28＋4构造边界；真实Core事务仍与Shell Core哈希一致。
+复跑按上文 `$shell $root`；本轮仅需当前专项/主Tests/Core相关Release成功，不把本轮结果叫完整方案/桌面通过。
+实际monitor/窗口/GPU/Lua画面仍由父最终验收。

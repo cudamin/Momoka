@@ -50,12 +50,27 @@ internal sealed class ShellRuntime
     {
         var method = target.GetType().GetMethod(name, Members)
             ?? throw new AssertionException("真实 Shell 缺少入口 " + name);
-        try { return method.Invoke(target, args); }
+        try { return method.Invoke(target, CompleteOptionalArguments(method, args)); }
         catch (TargetInvocationException error) when (error.InnerException is not null)
         {
             System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error.InnerException).Throw();
             throw;
         }
+    }
+
+    internal static object?[] CompleteOptionalArguments(MethodInfo method, IReadOnlyList<object?> supplied)
+    {
+        var parameters = method.GetParameters();
+        if (supplied.Count > parameters.Length)
+            throw new AssertionException("真实 Shell 入口参数过多：" + method.Name);
+        var completed = new object?[parameters.Length];
+        for (var index = 0; index < parameters.Length; index++)
+        {
+            if (index < supplied.Count) completed[index] = supplied[index];
+            else if (parameters[index].HasDefaultValue) completed[index] = parameters[index].DefaultValue;
+            else throw new AssertionException("真实 Shell 缺少必需参数：" + parameters[index].Name);
+        }
+        return completed;
     }
 
     public T Get<T>(object target, string name) => (T)target.GetType().GetProperty(name, Members)!.GetValue(target)!;
@@ -69,7 +84,7 @@ internal sealed class ShellRuntime
             "settings" => (object)settings,
             "paths" => paths,
             "capabilities" => capabilities,
-            _ => null
+            _ => parameter.HasDefaultValue ? parameter.DefaultValue : null
         }).ToArray();
         Invoke(vm, "Attach", args);
     }

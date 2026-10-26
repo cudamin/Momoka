@@ -131,3 +131,29 @@ finally 仅 `frame.Content = null`，没有 Remove(frame)。该用例位于 Sett
 替代正式最终 full。当前无法凭证据归因 runtime 版本；首窗口显示／布局负载的时序解释
 仍只是待验证推测。真实自包含 Settings 动画／宽窄导航／截图，以及最终 full 由主线程
 串行完成；worker 没有运行这些 UI，也没有发布／改快捷方式／push。
+
+## 2026-10-25：纯合并基线的旧测试兼容
+本轮验证树为 `C:/Users/89400/.codex/worktrees/merged-contract-tests/Momoka`，基点
+`4afca26672297aedd7725d675706d7f2b923519c`，产品只来自父树
+`mp-translation-interpolation/Momoka` 已 resolved/staged 的 `48c43fc20d5827fe5f5f147eb73e1d1ca7aa2795`
+合并差异。导入 patch SHA256：`7ef4a4592f66b219639aa0ca499427da971443a34e9b8fe0f894cc36cffcd680`。
+本树 629 份产品源的 Git blob 与父 index 逐份一致；未导入父未暂存的 translation/AppSettings 改动。
+产品快照不暂存、不提交，不改共享 Program/Agreements/方案；最终功能再验由父线程完成。
+
+测试 VM 使用本树实际重新编译的标准 x64 Release Shell（不是复制父 DLL）：
+`src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll`，
+2026-10-25 01:36:41 +08:00，4,743,168 字节，SHA256
+`b9125a7ff07a46e236603200c97dd0608fd548a84ba588d39431d99fbb5e67f5`。
+父首次合并 DLL 只作来源对照：2026-10-25 00:34:42 +08:00，SHA256
+`735c3295886cb0dce9c8e4b92aa265739290959e0c8ce5befca5f9dcd1f97f77`；没有将它称为本树输出。
+所有日志/输入清单留在本树 ignored `artifacts/verification/merged-contract-tests/`。
+
+构造器新增弹幕事件边界；VM 的 `OnDanmakuPreferencesChanged` 转发实际方法，不复制逻辑。
+复用 SettingsLifetime 的真实签名适配；原活动票、来源/权限、类别源和动效断言均保留。
+当前本专项 **23 过/0 败/0 跳过**；SettingsLifetime 50、HomeOrder 16 分别报告，不相加为本专项。
+
+纯合并主 runner 一次当前结果为 **2912 过/0 败/0 跳过**。单独 `core-settings` 按上文命令复跑
+当前 154 项得到 **153 过/1 败/0 跳过**，仍是 README 已记录的
+`原子写入：同目标并发文本和字节写入不争用临时文件`，`AtomicFile.Write` 的 `File.Move`
+抛 `UnauthorizedAccessException`。保存 `run-core-settings-current.log` 的失败，不重复跑洗绿，
+不换失败断言、不改 AtomicFile、不以主 runner 的单次通过掩盖此独立红项；本轮不能宣称最终全套交付绿。

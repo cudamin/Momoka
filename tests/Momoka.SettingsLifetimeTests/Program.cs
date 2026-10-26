@@ -20,6 +20,7 @@ internal static class Program
             AdministrationLifetimeTests.Register();
             SettingsHiddenLifetimeTests.Register();
             SaveStateLifetimeTests.Register();
+            BoundaryCompatibilityTests.Register();
             return TestHarness.Run();
         }
         catch (Exception error)

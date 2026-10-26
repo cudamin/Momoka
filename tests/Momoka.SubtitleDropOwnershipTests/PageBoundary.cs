@@ -25,6 +25,8 @@ public sealed partial class PlayerPage
     private void StopPlayerMotion() { }
     private void CompletePlayerExit() { }
     private void StopSkipCountdown() { }
+    private void CloseDanmakuPanel() { }
+    private void StopWatchdog() { }
     private void ArrangeTransport() { }
     private void ShowCoverPlate() { }
     private void OnPlaybackStarted() { }

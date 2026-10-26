@@ -399,6 +399,7 @@ namespace Momoka.Shell.ViewModels
         public string SelectedCategory { get => Runtime.Get<string>(Inner, "SelectedCategory"); set => Runtime.Set(Inner, "SelectedCategory", value); }
         public bool ShowsHosted => Runtime.Get<bool>(Inner, "ShowsHosted");
         public string? SelectedSourceKey => Runtime.Get<string?>(Inner, "SelectedSourceKey");
+        public void OnDanmakuPreferencesChanged() => Runtime.Invoke(Inner, "OnDanmakuPreferencesChanged");
         public void Activate() => Runtime.Invoke(Inner, "Activate");
         public void Cancel() => Runtime.Invoke(Inner, "Cancel");
         public Task RefreshServerAdministrationAsync() => (Task)Runtime.Invoke(Inner, "RefreshServerAdministrationAsync")!;
@@ -409,6 +410,14 @@ namespace Momoka.Shell.ViewModels
 
 namespace Momoka.Shell
 {
+    // Event transport only: the subscriber forwards to the current real Shell VM.
+    internal static class ShellPrefs
+    {
+        internal static event Action? DanmakuChanged;
+        internal static int DanmakuSubscribers => DanmakuChanged?.GetInvocationList().Length ?? 0;
+        internal static void RaiseDanmakuChanged() => DanmakuChanged?.Invoke();
+    }
+
     internal sealed partial class ShellNavigationProbe
     {
         internal static void BeginVisitForContract(Momoka.Shell.Views.SettingsPage page) => BeginSettingsFixtureVisit(page);
