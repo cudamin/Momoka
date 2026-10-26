@@ -1,5 +1,15 @@
 # 开发进度
 
+## 聚合版本列表修复：主目录最终交付（2026-10-26）
+
+- 修复提交已从 `codex/aggregate-versions` 以 cherry-pick 整合到主树 `master`，主树提交 `5623f1b`；保留另一窗口完成的 `1df8134` 账号独立卡片／紧凑运行状态页，未覆盖任何未跟踪目录。仅本会话串行完成最终测试、桌面探针和发布。
+- 当前主树 Core／测试先编译成功后执行 **2206 项测试，全部通过，0 失败、0 跳过**；比独立树 2200 项多出的 6 项来自已合入的设置布局回归。测试证据 `artifacts/aggregate-versions-20261026/main-tests-build.log`、`main-tests.log`。最终主树 whitespace 退出 0，815 文件中修改 0；Git 差异、相关源文件 LF 与末尾换行通过，未改变约定或自检基线。
+- `tools/publish.ps1 -NoArchive` 已刷新桌面快捷方式目标 `artifacts/publish/win-x64`：**545 文件、283.9 MB**，14 GLSL／4 HOOK 和许可逐文件校验通过。发布日志 `main-publish.log` 无构建警告／错误；没有生成新的 ZIP／MSIX、公开发行版或上传 GitHub／商店。
+- 最终实际发布件执行 `--probe-shell --probe-section accounts,library --screen 2`：**21/21 通过，0 失败**，其余 96 项明确未执行，不能称完整探针。报告、范围与实屏截图在 `artifacts/aggregate-versions-20261026/published-ui-probe/`，启动回执 `published-probe-launch.json` 记录提交和 DLL 哈希；实际查看多服务器、同服务器多账号与单来源三张下拉实屏，以及文件选项展开边界帧。所有本轮探针窗口已正常退出。
+- 用**实际发布 Core DLL**再次只读核对真实服务器：三来源在线，《聚焦》从 Emby／飞牛双方进入都列出两来源版本、0 失败来源；保留本地源对象和账号身份，生产 settings.json 前后哈希不变，核验器复制的 DLL 与发布 DLL SHA-256 一致。真实飞牛单集缺少 SeriesId 仍能沿季读取所属剧且 0 失败，但没有跨服同集候选；Jellyfin 未找到可信同片样本。对应 `published-readonly-run.log`／`published-readonly-server/readonly-results.json`，不把后两项未覆盖当真实跨服通过。
+- 发布 Shell SHA-256 `B9A98FF5C8CC0825529BB5962F8F196D4EB57630E2660C1B38C7C5D825EE35BE`；Core `F26560C652547F85F630EDDAA55696DF8150BF95ED8523A40834834792C2D211`。同目录构建／发布字节一致。保存中间失败报告，不重试洗绿：mutex 争用已等待锁释放后串行解决，未放宽守卫；独立树记录为中间证据，最终交付以本节为准。
+- 本轮只验证版本发现与列表呈现，不启动真实媒体播放、不切换真实版本、不上报观看记录、不修改元数据；播放器共享发现函数已由 Core 回归覆盖，集成／独占／外部 mpv 的真实换版均未执行。已复制所需本地证据到主树忽略目录，再归档临时工作树，不删除用户数据。
+
 ## 账号独立卡片与运行状态紧凑布局（2026-10-26）
 
 - 本次写入树为 `C:/Users/89400/Momoka`，保护原有未跟踪目录／交接文档，未上传 GitHub 或制作新的安装包。
