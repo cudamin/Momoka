@@ -453,7 +453,7 @@ internal static partial class ItemCommands
 
             var subtitles = new ServerSubtitles(session, full, source);
             var dialog = new SubtitleDialog(full, source,
-                subtitles.SearchAsync, subtitles.DownloadAsync, subtitles.DeleteAsync, subtitles.ReloadAsync)
+                subtitles.SearchAsync, subtitles.DownloadAsync, subtitles.DeleteAsync, subtitles.ReloadAsync, subtitles.SupportsForcedOnly)
             {
                 XamlRoot = root
             };

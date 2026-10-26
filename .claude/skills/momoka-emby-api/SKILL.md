@@ -82,6 +82,10 @@ Videos/{itemId}/stream{ext}?Static=true&MediaSourceId=…
 
 细节：[传输层与鉴权](references/http-and-auth.md)、[接口清单](references/endpoints.md)。
 
+## Subtitle search filters
+
+For the More menu's subtitle editor, pass an immutable `ServerSubtitleSearch` through `ServerSubtitles` to `EmbyClient.SearchSubtitlesAsync`. Keep `MediaSourceId` bound to the file captured when the dialog opened. Send `IsForced=true` only when “仅强制字幕” is on; omit the query when it is off, rather than excluding forced subtitles with `false`. The current Emby web editor has no hash-match toggle: do not restore it from the older screenshots in the manual-download article or send `IsPerfectMatch` from this editor. See [the subtitle endpoint notes](references/endpoints.md#字幕) for the dated protocol evidence and the Jellyfin difference.
+
 ## 验证
 
 - 新增或修改请求路径时，先 `GET {ApiBase}openapi` 校对；规格里没有的，确认是缺口并登记进本技能。规格取不到时改查[官方 SDK 字典](references/official-sdk.md)，并写明依据的是哪一版 SDK。

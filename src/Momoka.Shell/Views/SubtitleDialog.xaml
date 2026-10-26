@@ -1,11 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  「搜索和修改字幕」。一张表上两件事：这个文件现在挂着哪几条外挂字幕（可以删），和按语言去刮削源上搜一批
-  （可以下）。
-
-  没有「确定」键，只有「关闭」：删和下都是按下那一行的按钮当场就做的，没有一个「保存」时刻。表关掉之后
-  ItemCommands 才决定要不要让这一页重读（见 Touched）。
--->
+<!-- 字幕文件的搜索、下载与删除即时生效；关闭后由调用方按 Touched / NeedsRefresh 重读。 -->
 <ContentDialog x:Uid="SubtitleDialog_ContentDialog1"
     x:Class="Momoka.Shell.Views.SubtitleDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -16,131 +10,121 @@
         <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
     </ContentDialog.Resources>
 
-    <!-- MinWidth 而不是 Width：这张表里两个列表本身没有宽度，光靠内容撑的话整张表会缩成三百来像素宽，
-         而写死一个宽度在小窗口上会被裁掉右边那颗按钮。 -->
-    <StackPanel MinWidth="560" Spacing="12">
-        <Grid ColumnSpacing="12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock x:Uid="SubtitleDialog_TextBlock2" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
-            <Button x:Name="RefreshTracksButton" Grid.Column="1" Content="刷新字幕列表" Click="OnRefreshTracks" />
-        </Grid>
+    <!-- 整张表可滚动；正文宽高按 XamlRoot 收缩，不让小窗口裁掉搜索和关闭按钮。 -->
+    <ScrollViewer x:Name="SubtitleScroll"
+        HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
+        VerticalScrollBarVisibility="Auto">
+        <StackPanel x:Name="SubtitleBody" MinWidth="260" Spacing="16">
+            <TextBlock x:Name="SourceFileText" Style="{StaticResource EgDataStyle}"
+                TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
 
-        <TextBlock
-            x:Name="NoTracks"
-                x:Uid="SubtitleDialog_NoTracks"
-            Style="{StaticResource EgDataStyle}"
-            TextWrapping="Wrap"
-            Visibility="Collapsed" />
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Uid="SubtitleDialog_TextBlock2" Style="{StaticResource EgSubheadStyle}"
+                    TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button x:Name="RefreshTracksButton" Grid.Column="1" Content="刷新字幕列表" Click="OnRefreshTracks" />
+            </Grid>
 
-        <ItemsControl x:Name="Tracks">
-            <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="views:SubtitleTrack">
-                    <Grid ColumnSpacing="12" Margin="0,0,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+            <TextBlock x:Name="NoTracks" x:Uid="SubtitleDialog_NoTracks"
+                Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
 
-                        <TextBlock
-                            MaxLines="1"
-                            Style="{StaticResource EgBodyStyle}"
-                            Text="{x:Bind Label}"
-                            TextTrimming="CharacterEllipsis"
-                            VerticalAlignment="Center" />
+            <ItemsControl x:Name="Tracks">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="views:SubtitleTrack">
+                        <Grid ColumnSpacing="12" Margin="0,0,0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock MaxLines="2" Style="{StaticResource EgBodyStyle}"
+                                Text="{x:Bind Label}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis"
+                                VerticalAlignment="Center" />
+                            <Button x:Name="DeleteSubtitleButton" x:Uid="SubtitleDialog_Button3"
+                                Click="OnDelete" Grid.Column="1" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
-                        <Button x:Name="DeleteSubtitleButton" x:Uid="SubtitleDialog_Button3"
-                            Click="OnDelete"
-                            Grid.Column="1" />
-                    </Grid>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
-
-        <Border x:Name="DeleteConfirmation" Visibility="Collapsed" BorderBrush="{ThemeResource EgBorderBrush}"
-            BorderThickness="1" Padding="12">
-            <StackPanel Spacing="8">
-                <TextBlock Text="删除服务器字幕文件？" Style="{StaticResource EgSectionTitleStyle}" />
-                <TextBlock x:Name="DeleteConfirmationText" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
-                <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button x:Name="CancelDeleteButton" Content="取消" Click="OnCancelDelete" />
-                    <Button x:Name="ConfirmDeleteButton" Content="删除服务器文件" Click="OnConfirmDelete" />
+            <Border x:Name="DeleteConfirmation" Visibility="Collapsed" BorderBrush="{ThemeResource EgBorderBrush}"
+                BorderThickness="1" Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="删除服务器字幕文件？" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="DeleteConfirmationText" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+                    <StackPanel Spacing="8">
+                        <Button x:Name="CancelDeleteButton" Content="取消" Click="OnCancelDelete" />
+                        <Button x:Name="ConfirmDeleteButton" Content="删除服务器文件" Click="OnConfirmDelete" />
+                    </StackPanel>
                 </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource EgRuleStyle}" />
+            <StackPanel Spacing="16">
+                <TextBlock Text="搜索字幕" Style="{StaticResource EgSubheadStyle}" />
+                <!-- 不叫 Language，避免隐藏 FrameworkElement.Language。 -->
+                <ComboBox x:Name="LanguageBox" x:Uid="SubtitleDialog_LanguageBox"
+                    HorizontalAlignment="Stretch" SelectionChanged="OnSearchConditionsChanged"
+                    AutomationProperties.Name="字幕语言" />
+
+                <Grid x:Name="ForcedOnlyRow" ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Spacing="4">
+                        <TextBlock x:Uid="SubtitleDialog_ForcedOnlyLabel" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                        <TextBlock x:Uid="SubtitleDialog_ForcedOnlyHelp" Style="{StaticResource EgDataStyle}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <ToggleSwitch x:Name="ForcedOnly" Grid.Column="1" OnContent="" OffContent=""
+                        MinWidth="0" HorizontalAlignment="Right" VerticalAlignment="Top" Toggled="OnSearchConditionsChanged" AutomationProperties.Name="仅强制字幕" />
+                </Grid>
+
+                <Button x:Name="SearchButton" x:Uid="SubtitleDialog_SearchButton"
+                    Click="OnSearch" Style="{StaticResource EgPrimaryButtonStyle}"
+                    HorizontalAlignment="Stretch" Margin="0,8,0,0" AutomationProperties.Name="搜索字幕" />
             </StackPanel>
-        </Border>
 
-        <Border Style="{StaticResource EgRuleStyle}" />
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <ProgressRing x:Name="Busy" Width="20" Height="20" IsActive="False" Visibility="Collapsed" />
+                <TextBlock x:Name="Status" Grid.Column="1" Style="{StaticResource EgDataStyle}"
+                    TextWrapping="Wrap" Visibility="Collapsed" VerticalAlignment="Center" />
+            </Grid>
 
-        <Grid ColumnSpacing="12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="NoSearchResults" Visibility="Collapsed" Style="{StaticResource EgBodyStyle}"
+                TextWrapping="Wrap" TextAlignment="Center">
+                <Run Text="未找到结果。您是否已配置" /><Hyperlink x:Name="SubtitleDownloadHelp"
+                    NavigateUri="https://emby.media/support/articles/Manual-Subtitle-Downloads.html"
+                    AutomationProperties.Name="字幕下载配置帮助"><Run Text="字幕下载" /></Hyperlink><Run Text="？" />
+            </TextBlock>
 
-            <!-- 名字不叫 Language：那和 FrameworkElement.Language 撞名，生成的字段会隐藏基类那个属性
-                 （CS0108）。 -->
-            <ComboBox
-                x:Name="LanguageBox"
-                x:Uid="SubtitleDialog_LanguageBox"
-                MinWidth="140" />
-
-            <Button
-                x:Name="SearchButton"
-                x:Uid="SubtitleDialog_SearchButton"
-                Click="OnSearch"
-                Grid.Column="1"
-                Style="{StaticResource AccentButtonStyle}"
-                VerticalAlignment="Bottom" />
-
-            <ProgressRing
-                x:Name="Busy"
-                Grid.Column="2"
-                HorizontalAlignment="Left"
-                IsActive="False"
-                VerticalAlignment="Bottom" />
-        </Grid>
-
-        <TextBlock
-            x:Name="Status"
-            Style="{StaticResource EgDataStyle}"
-            TextWrapping="Wrap"
-            Visibility="Collapsed" />
-
-        <ListView
-            x:Name="Results"
-            MaxHeight="260"
-            SelectionMode="None">
-            <ListView.ItemTemplate>
-                <DataTemplate x:DataType="views:SubtitleCandidate">
-                    <Grid ColumnSpacing="12" Padding="0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel>
-                            <TextBlock
-                                MaxLines="1"
-                                Style="{StaticResource EgBodyStyle}"
-                                Text="{x:Bind Name}"
-                                TextTrimming="CharacterEllipsis" />
-                            <TextBlock
-                                MaxLines="1"
-                                Style="{StaticResource EgDataStyle}"
-                                Text="{x:Bind Detail}"
-                                TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-
-                        <Button x:Name="DownloadSubtitleButton" x:Uid="SubtitleDialog_Button4"
-                            Click="OnDownload"
-                            Grid.Column="1"
-                            VerticalAlignment="Center" />
-                    </Grid>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
-    </StackPanel>
+            <ListView x:Name="Results" MaxHeight="280" SelectionMode="None" Visibility="Collapsed"
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Disabled"
+                AutomationProperties.Name="字幕搜索结果">
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="views:SubtitleCandidate">
+                        <Grid ColumnSpacing="12" Padding="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4">
+                                <TextBlock MaxLines="2" Style="{StaticResource EgBodyStyle}" Text="{x:Bind Name}"
+                                    TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Style="{StaticResource EgDataStyle}" Text="{x:Bind Detail}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button x:Name="DownloadSubtitleButton" x:Uid="SubtitleDialog_Button4"
+                                Click="OnDownload" Grid.Column="1" VerticalAlignment="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackPanel>
+    </ScrollViewer>
 </ContentDialog>

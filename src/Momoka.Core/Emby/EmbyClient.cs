@@ -996,11 +996,37 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string mediaSourceId,
         string language,
         CancellationToken cancellationToken) =>
-        http.GetJsonAsync<List<RemoteSubtitleInfo>>(
-            Url($"Items/{itemId}/RemoteSearch/Subtitles/{Uri.EscapeDataString(language)}",
-                ("MediaSourceId", mediaSourceId)),
+        SearchSubtitlesAsync(itemId, mediaSourceId, new ServerSubtitleSearch(language), cancellationToken);
+
+    /// <summary>
+    /// 与当前网页端一样，仅强制字幕开启时发送 true，关闭时省略参数，不排除普通或强制字幕。
+    /// Jellyfin 的字幕搜索没有 IsForced，不能发一个服务器会静默忽略的开关。
+    /// </summary>
+    public Task<List<RemoteSubtitleInfo>> SearchSubtitlesAsync(
+        string itemId,
+        string mediaSourceId,
+        ServerSubtitleSearch search,
+        CancellationToken cancellationToken)
+    {
+        if (Connection.IsJellyfin && search.ForcedOnly)
+            throw new NotSupportedException("Jellyfin 不支持仅强制字幕搜索");
+        ArgumentException.ThrowIfNullOrWhiteSpace(mediaSourceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(search.Language);
+        return http.GetJsonAsync<List<RemoteSubtitleInfo>>(
+            Url($"Items/{SubtitleItemId(itemId)}/RemoteSearch/Subtitles/{Uri.EscapeDataString(search.Language)}",
+                ("MediaSourceId", mediaSourceId),
+                ("IsForced", search.ForcedOnly ? "true" : null)),
             Context,
             cancellationToken);
+    }
+
+    private static string SubtitleItemId(string itemId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(itemId);
+        if (itemId is "." or ".." || itemId.IndexOfAny(['/', '\\', '?', '#']) >= 0)
+            throw new ArgumentException("字幕操作缺少有效的条目标识", nameof(itemId));
+        return Uri.EscapeDataString(itemId);
+    }
 
     /// <summary>
     /// 下载一条字幕挂到这个文件上，答案是它成了第几条轨道。
@@ -1014,7 +1040,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
         string subtitleId,
         CancellationToken cancellationToken) =>
         http.PostForJsonAsync<SubtitleDownloadResult>(
-            Url($"Items/{itemId}/RemoteSearch/Subtitles/{Uri.EscapeDataString(subtitleId)}",
+            Url($"Items/{SubtitleItemId(itemId)}/RemoteSearch/Subtitles/{Uri.EscapeDataString(subtitleId)}",
                 ("MediaSourceId", mediaSourceId)),
             null,
             Context,
@@ -1022,7 +1048,7 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
 
     /// <summary>删掉一条外挂字幕。内嵌在容器里的那些删不掉，服务器会拒绝。</summary>
     public Task DeleteSubtitleAsync(string itemId, int index, CancellationToken cancellationToken) =>
-        http.DeleteAsync(Url($"{(Connection.IsJellyfin ? "Videos" : "Items")}/{itemId}/Subtitles/{index}"), Context, cancellationToken);
+        http.DeleteAsync(Url($"{(Connection.IsJellyfin ? "Videos" : "Items")}/{SubtitleItemId(itemId)}/Subtitles/{index}"), Context, cancellationToken);
 
     // ---- 下载到设备 -----------------------------------------------------------
 

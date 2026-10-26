@@ -67,6 +67,31 @@ internal static class SubtitleSettingsProbe
             RecordResult("字幕预览模型", SettingSubtitlePreviewRow.Probe());
             RecordResult("字幕删除确认", await SubtitleDialog.ProbeDeleteConfirmationAsync());
             RecordResult("字幕操作收尾", await SubtitleDialog.ProbeOperationsAsync(page.XamlRoot));
+            RecordResult("网页端字幕搜索", await SubtitleDialog.ProbeSearchAsync(page.XamlRoot, async (state, searchDialog) =>
+            {
+                var host = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(window.Handle));
+                var scale = page.XamlRoot.RasterizationScale;
+                var topMost = window.TopMost;
+                try
+                {
+                    window.TopMost = true;
+                    foreach (var width in new[] { 1160, 680 })
+                    {
+                        host.ResizeClient(new Windows.Graphics.SizeInt32((int)Math.Round(width * scale), (int)Math.Round(760 * scale)));
+                        await LayoutAsync(searchDialog);
+                        await Task.Delay(350);
+                        Record($"字幕搜索布局 {state} {width}", searchDialog.ProbeSearchLayoutFits(), "宽窄客户区、整宽搜索按钮与可滚动内容");
+                        await CaptureAsync((UIElement)searchDialog.Content, options.Paths, $"subtitle-search-{state}-{width}-render.png");
+                        await CompositionPlaybackProbe.SaveScreenAsync(window, Path.Combine(options.Paths.LogDirectory, $"subtitle-search-{state}-{width}-screen.png"));
+                    }
+                }
+                finally
+                {
+                    window.TopMost = topMost;
+                    host.ResizeClient(new Windows.Graphics.SizeInt32((int)Math.Round(1160 * scale), (int)Math.Round(940 * scale)));
+                    await LayoutAsync(page);
+                }
+            }));
 
             var check = new EgPicker { DisplayMemberPath = "Text", Width = 400 };
             var unavailable = new TrackRow("无法加载", null, false) { IsAvailable = false };

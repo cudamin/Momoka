@@ -389,6 +389,66 @@ internal static class ItemActionTests
             Assert.Contains("MediaSourceId=src-1", sent.Url, "一个条目可能有几个文件，字幕挂在文件上");
         });
 
+        Test("更多菜单：仅强制字幕开时传 true，关闭不排除普通或强制字幕", () =>
+        {
+            foreach (var forced in new[] { false, true })
+            {
+                var stub = new StubTransport().Answer("RemoteSearch/Subtitles", "[]");
+                Wait(Client(stub).SearchSubtitlesAsync("m1", "src-1", new ServerSubtitleSearch("eng", forced), CancellationToken.None));
+                var sent = stub.Only("RemoteSearch/Subtitles");
+                Assert.Contains("MediaSourceId=src-1", sent.Url);
+                Assert.DoesNotContain("IsPerfectMatch", sent.Url, "当前网页端没有哈希匹配筛选，不能残留其请求参数");
+                Assert.Equal(forced, sent.Url.Contains("IsForced=true", StringComparison.Ordinal));
+                Assert.DoesNotContain("=false", sent.Url);
+                Assert.DoesNotContain("IsHearingImpaired", sent.Url);
+            }
+        });
+
+        Test("更多菜单：Jellyfin 保留语言搜索，不发送或假装支持强制字幕筛选", () =>
+        {
+            var stub = new StubTransport().Answer("RemoteSearch/Subtitles", "[]");
+            using var http = new EmbyHttp(stub);
+            var client = new EmbyClient(http, new EmbyConnection(new Uri("https://jellyfin.invalid/"), "fixture-token", "u1", "fixture", "fixture",
+                DeviceIdentity.Create("fixture", "1"))
+            { ServerKind = MediaServerKind.Jellyfin });
+            Wait(client.SearchSubtitlesAsync("m1", "src-1", new ServerSubtitleSearch("eng"), CancellationToken.None));
+            var sent = stub.Only("RemoteSearch/Subtitles");
+            Assert.Contains("Items/m1/RemoteSearch/Subtitles/eng", sent.Url);
+            Assert.DoesNotContain("IsPerfectMatch", sent.Url);
+            Assert.DoesNotContain("IsForced", sent.Url);
+            Assert.Throws<NotSupportedException>(() => Wait(client.SearchSubtitlesAsync("m1", "src-1", new ServerSubtitleSearch("eng", ForcedOnly: true), CancellationToken.None)));
+            Assert.Equal(sent, stub.Only("RemoteSearch/Subtitles"), "不支持的筛选必须在 HTTP 前拒绝");
+        });
+
+        Test("更多菜单：字幕路由拒绝空条目与路径穿越，三种操作均不发请求", () =>
+        {
+            foreach (var id in new[] { "", " ", ".", "..", "../m1", "m1/m2", "m1\\m2", "m1?other", "m1#other" })
+            {
+                var stub = new StubTransport();
+                var client = Client(stub);
+                Assert.Throws<ArgumentException>(() => Wait(client.SearchSubtitlesAsync(id, "source", "chi", CancellationToken.None)));
+                Assert.Throws<ArgumentException>(() => Wait(client.DownloadSubtitleAsync(id, "source", "candidate", CancellationToken.None)));
+                Assert.Throws<ArgumentException>(() => Wait(client.DeleteSubtitleAsync(id, 3, CancellationToken.None)));
+            }
+            var invalid = Client(new StubTransport());
+            Assert.Throws<ArgumentException>(() => Wait(invalid.SearchSubtitlesAsync("m1", " ", "chi", CancellationToken.None)));
+            Assert.Throws<ArgumentException>(() => Wait(invalid.SearchSubtitlesAsync("m1", "source", " ", CancellationToken.None)));
+        });
+
+        Test("字幕候选：结果行显示提供方、格式、哈希匹配及强制字幕标记", () =>
+        {
+            var candidate = JsonSerializer.Deserialize<RemoteSubtitleInfo>("""
+                {"Id":"provider/1","ProviderName":"OpenSubtitles","Language":"eng","Format":"srt",
+                 "IsHashMatch":true,"IsForced":true,"DownloadCount":15,"CommunityRating":8.5}
+                """)!;
+            var detail = candidate.Describe();
+            Assert.Contains("OpenSubtitles", detail);
+            Assert.Contains("SRT", detail);
+            Assert.Contains("文件精确匹配", detail);
+            Assert.Contains("强制", detail);
+            Assert.Contains("15 次下载", detail);
+        });
+
         Test("更多菜单：下字幕那个 id 要转义 —— 它是插件自己造的记号", () =>
         {
             // 字幕插件的 id 里出现斜杠是常事（opensubtitles 那种「provider/12345」），不转义就把路由整条

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Xml.Linq;
 using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.Infrastructure;
@@ -11,6 +12,43 @@ internal static class SubtitleManagementTests
 {
     public static void Register()
     {
+        Test("字幕管理界面：删除哈希匹配整行，保留语言、强制字幕与下载配置帮助", () =>
+        {
+            var root = RepositoryRoot();
+            var file = Path.Combine(root, "src", "Momoka.Shell", "Views", "SubtitleDialog.xaml");
+            var text = File.ReadAllText(file);
+            var markup = XDocument.Parse(text);
+            XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+            XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+            var names = markup.Descendants().Attributes(xaml + "Name").Select(attribute => attribute.Value).ToArray();
+            Assert.True(names.Contains("LanguageBox") && names.Contains("ForcedOnly") && names.Contains("ForcedOnlyRow"));
+            Assert.False(names.Any(name => name.Contains("Hash", StringComparison.OrdinalIgnoreCase)));
+            Assert.DoesNotContain("要求哈希匹配", text);
+            Assert.DoesNotContain("HashMatch", text);
+            var search = markup.Descendants(presentation + "Button").Single(button => (string?)button.Attribute(xaml + "Name") == "SearchButton");
+            Assert.Equal("Stretch", (string?)search.Attribute("HorizontalAlignment"));
+            var help = markup.Descendants(presentation + "Hyperlink").Single();
+            Assert.Equal("https://emby.media/support/articles/Manual-Subtitle-Downloads.html", (string?)help.Attribute("NavigateUri"));
+            var resources = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Strings", "zh-Hans", "Resources.resw"));
+            Assert.False(resources.Descendants("data").Any(data => ((string?)data.Attribute("name"))?.StartsWith("SubtitleDialog_Hash", StringComparison.Ordinal) == true));
+        });
+
+        Test("字幕管理：搜索条件完整传递且仍绑定本次打开的服务器和媒体文件", () => Run(async () =>
+        {
+            using var fixture = new Fixture();
+            await fixture.SignIn("a");
+            var operations = new ServerSubtitles(fixture.Session.Capture(), fixture.Item, fixture.Source);
+            Assert.True(operations.SupportsForcedOnly);
+            await operations.SearchAsync(new ServerSubtitleSearch("jpn", ForcedOnly: true));
+            var request = fixture.Transport.Requests.Single(request => request.Path.Contains("RemoteSearch", StringComparison.Ordinal));
+            Assert.Equal("a.invalid", request.Host);
+            Assert.Equal("/emby/Items/fixture/RemoteSearch/Subtitles/jpn", request.Path);
+            Assert.Contains("MediaSourceId=source", request.Query);
+            Assert.DoesNotContain("IsPerfectMatch", request.Query);
+            Assert.Contains("IsForced=true", request.Query);
+            Assert.False(fixture.Transport.Requests.Any(request => request.Method != "GET"));
+        }));
+
         Test("字幕管理：切服后不把旧文件的搜索、下载和删除发给新身份", () => Run(async () =>
         {
             using var fixture = new Fixture();
@@ -121,6 +159,13 @@ internal static class SubtitleManagementTests
         }));
     }
 
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln"))) directory = directory.Parent;
+        return directory?.FullName ?? throw new InvalidOperationException("找不到字幕界面回归所需的仓库根目录");
+    }
+
     private static void Run(Func<Task> work) => work().WaitAsync(TimeSpan.FromSeconds(10)).GetAwaiter().GetResult();
 
     private static async Task Cancelled(Func<Task> work)
@@ -183,7 +228,7 @@ internal static class SubtitleManagementTests
         }
     }
 
-    private sealed record Request(string Host, string Path, string Method);
+    private sealed record Request(string Host, string Path, string Method, string Query);
 
     private sealed class Transport : HttpMessageHandler
     {
@@ -194,7 +239,7 @@ internal static class SubtitleManagementTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var uri = request.RequestUri!;
-            Requests.Add(new Request(uri.Host, uri.AbsolutePath, request.Method.Method));
+            Requests.Add(new Request(uri.Host, uri.AbsolutePath, request.Method.Method, uri.Query));
             if (uri.AbsolutePath.EndsWith("/Views", StringComparison.Ordinal)) return Task.FromResult(Json("{\"Items\":[]}"));
             if (uri.AbsolutePath.EndsWith("/System/Info/Public", StringComparison.Ordinal)) return Task.FromResult(Json("{}"));
             if (uri.AbsolutePath.Contains("RemoteSearch", StringComparison.Ordinal)) return SearchReply ?? Task.FromResult(Json("[]"));

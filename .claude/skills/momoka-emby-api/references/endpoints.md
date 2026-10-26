@@ -45,12 +45,14 @@
 
 | 方法 | 路径 | 用途 |
 | --- | --- | --- |
-| GET | `/Items/{Id}/RemoteSearch/Subtitles/{Language}` | 按三字母语言码搜字幕，带 `MediaSourceId` |
+| GET | `/Items/{Id}/RemoteSearch/Subtitles/{Language}` | 按三字母语言码搜字幕，带 `MediaSourceId`；仅强制字幕开启时另带 `IsForced=true` |
 | POST | `/Items/{Id}/RemoteSearch/Subtitles/{SubtitleId}` | 下载并挂上，带 `MediaSourceId` |
 | DELETE | `/Items/{Id}/Subtitles/{Index}` | 删外挂字幕轨（内嵌的删不掉，服务器会拒） |
 | GET | `/Videos/{Id}/{MediaSourceId}/Subtitles/{Index}/Stream.{Format}` | 取外挂字幕文件 |
 
-**`{SubtitleId}` 必须 `Uri.EscapeDataString`**：那是字幕插件自己造的记号，含斜杠时不转义会把整条路由打断（`EmbyClient.cs:686-688`）。语言码同理。
+Subtitle search was rechecked anonymously on 2026-10-26 against the server's **4.10.1.0** OpenAPI and web editor (`modules/subtitleeditor`). The route declares optional nullable `IsForced`, `IsPerfectMatch` and `IsHearingImpaired`, but the current web editor exposes only language and forced-only filtering; Momoka follows that visible scope. The older help-article image still shows hash matching and is not evidence that the current web editor has that toggle. Search sends no `IsPerfectMatch` or `IsHearingImpaired`; forced-only off omits `IsForced`. This is a subtitle-specific protocol check, not a refresh of the other endpoint tables or a live download/delete test. Jellyfin's `SubtitleController.SearchRemoteSubtitles` has no `IsForced` query parameter, so the dialog hides the whole forced-only row and the client rejects a forced-only request before HTTP.
+
+**`{SubtitleId}` 必须 `Uri.EscapeDataString`**：那是字幕插件自己造的记号，含斜杠时不转义会把整条路由打断（见 `EmbyClient.DownloadSubtitleAsync`）。语言码同理；字幕操作的条目路径由 `SubtitleItemId` 先拒绝空白、点路径和路由分隔符，再编码。
 
 ## 播放
 

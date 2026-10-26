@@ -724,7 +724,13 @@
     <value>这个文件上没有外挂字幕（内嵌在视频文件里的那些不能在这里删）。</value>
   </data>
   <data name="SubtitleDialog_SearchButton.Content" xml:space="preserve">
-    <value>搜索字幕</value>
+    <value>搜索</value>
+  </data>
+  <data name="SubtitleDialog_ForcedOnlyLabel.Text" xml:space="preserve">
+    <value>仅强制字幕</value>
+  </data>
+  <data name="SubtitleDialog_ForcedOnlyHelp.Text" xml:space="preserve">
+    <value>要求强制字幕会将结果限制在标记为具有外语的字幕上。</value>
   </data>
   <data name="SubtitleDialog_TextBlock2.Text" xml:space="preserve">
     <value>现有的外挂字幕</value>

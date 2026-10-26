@@ -40,10 +40,12 @@ public sealed partial class SubtitleDialog : ContentDialog
         ("韩语", "kor")
     ];
 
-    private readonly Func<string, Task<List<RemoteSubtitleInfo>>> _search;
+    private readonly Func<ServerSubtitleSearch, Task<List<RemoteSubtitleInfo>>> _search;
     private readonly Func<RemoteSubtitleInfo, Task> _download;
     private readonly Func<MediaStream, Task> _delete;
     private readonly Func<Task<MediaSource>>? _reload;
+    private readonly bool _supportsForcedOnly;
+    private XamlRoot? _dialogRoot;
     private string _sourceLabel;
     private SubtitleTrack? _pendingDelete;
     private Button? _deleteButton;
@@ -59,10 +61,11 @@ public sealed partial class SubtitleDialog : ContentDialog
     public SubtitleDialog(
         EmbyItem item,
         MediaSource source,
-        Func<string, Task<List<RemoteSubtitleInfo>>> search,
+        Func<ServerSubtitleSearch, Task<List<RemoteSubtitleInfo>>> search,
         Func<RemoteSubtitleInfo, Task> download,
         Func<MediaStream, Task> delete,
-        Func<Task<MediaSource>>? reload = null)
+        Func<Task<MediaSource>>? reload = null,
+        bool supportsForcedOnly = true)
     {
         InitializeComponent();
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
@@ -71,6 +74,10 @@ public sealed partial class SubtitleDialog : ContentDialog
         _download = download;
         _delete = delete;
         _reload = reload;
+        _supportsForcedOnly = supportsForcedOnly;
+        ForcedOnlyRow.Visibility = supportsForcedOnly ? Visibility.Visible : Visibility.Collapsed;
+        Loaded += OnLoaded;
+        Unloaded += OnUnloaded;
         _sourceLabel = ItemDetail.SourceLabel(source);
         RefreshTracksButton.Visibility = reload is null ? Visibility.Collapsed : Visibility.Visible;
         Closing += (_, args) =>
@@ -98,6 +105,8 @@ public sealed partial class SubtitleDialog : ContentDialog
     private void FillTracks(MediaSource source)
     {
         _sourceLabel = ItemDetail.SourceLabel(source);
+        SourceFileText.Text = $"媒体文件：{_sourceLabel}";
+        ToolTipService.SetToolTip(SourceFileText, _sourceLabel);
         _tracks.Clear();
         foreach (var stream in source.SubtitleStreams.Where(stream => stream.IsExternal))
             _tracks.Add(new SubtitleTrack(stream));
@@ -125,11 +134,46 @@ public sealed partial class SubtitleDialog : ContentDialog
         SearchButton.IsEnabled = !busy;
         RefreshTracksButton.IsEnabled = !busy;
         LanguageBox.IsEnabled = !busy;
+        ForcedOnly.IsEnabled = !busy;
         Results.IsEnabled = !busy && !_tracksStale;
         Tracks.IsEnabled = !busy && !_tracksStale;
         ConfirmDeleteButton.IsEnabled = !busy && !_tracksStale;
         CancelDeleteButton.IsEnabled = !busy;
         Busy.IsActive = busy;
+        Busy.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void OnLoaded(object sender, RoutedEventArgs args)
+    {
+        _dialogRoot = XamlRoot;
+        if (_dialogRoot is not null) _dialogRoot.Changed += OnRootChanged;
+        FitLayout();
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs args)
+    {
+        if (_dialogRoot is not null) _dialogRoot.Changed -= OnRootChanged;
+        _dialogRoot = null;
+    }
+
+    private void OnRootChanged(XamlRoot sender, XamlRootChangedEventArgs args) => FitLayout();
+
+    private void FitLayout()
+    {
+        if (_dialogRoot is not { } root) return;
+        var width = Math.Max(1, Math.Min(660, root.Size.Width - 96));
+        SubtitleBody.MinWidth = Math.Min(260, width);
+        SubtitleBody.Width = width;
+        SubtitleScroll.MaxHeight = Math.Max(1, root.Size.Height - 220);
+    }
+
+    private void OnSearchConditionsChanged(object sender, RoutedEventArgs args)
+    {
+        if (_busy || _closed) return;
+        _results.Clear();
+        Results.Visibility = Visibility.Collapsed;
+        NoSearchResults.Visibility = Visibility.Collapsed;
+        if (!_tracksStale) Say("");
     }
 
     private async void OnSearch(object sender, RoutedEventArgs e)
@@ -139,14 +183,17 @@ public sealed partial class SubtitleDialog : ContentDialog
         SetBusy(true);
         Say("正在搜索…");
         _results.Clear();
+        Results.Visibility = Visibility.Collapsed;
+        NoSearchResults.Visibility = Visibility.Collapsed;
+        var search = new ServerSubtitleSearch(code, _supportsForcedOnly && ForcedOnly.IsOn);
         try
         {
-            var found = await _search(code).ConfigureAwait(true);
+            var found = await _search(search).ConfigureAwait(true);
             if (_closed) return;
             foreach (var candidate in found) _results.Add(new SubtitleCandidate(candidate));
-            Say(_results.Count > 0
-                ? $"找到 {_results.Count} 条，点「下载」挂到这个文件上。"
-                : "没有找到字幕。服务器上要装并启用字幕刮削插件（如 OpenSubtitles）才搜得到。");
+            Results.Visibility = _results.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            NoSearchResults.Visibility = _results.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            Say(_results.Count > 0 ? $"找到 {_results.Count} 条字幕，点击「下载」添加到这个媒体文件。" : "");
         }
         catch (OperationCanceledException) { Say("登录身份已改变，请关闭后重新打开字幕管理。"); }
         catch (Exception error)

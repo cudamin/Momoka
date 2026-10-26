@@ -1,5 +1,8 @@
 namespace Momoka.Emby;
 
+/// <summary>一次字幕搜索的条件；开关关闭表示不筛选，不是只搜索未标记的字幕。</summary>
+public sealed record ServerSubtitleSearch(string Language, bool ForcedOnly = false);
+
 /// <summary>一次字幕管理对话固定的登录身份、媒体文件和轨道快照。</summary>
 public sealed class ServerSubtitles
 {
@@ -24,11 +27,15 @@ public sealed class ServerSubtitles
 
     public bool IsCurrent => _scope.IsCurrent;
 
-    public async Task<List<RemoteSubtitleInfo>> SearchAsync(string language)
+    public bool SupportsForcedOnly => !_scope.Connection.IsJellyfin;
+
+    public Task<List<RemoteSubtitleInfo>> SearchAsync(string language) => SearchAsync(new ServerSubtitleSearch(language));
+
+    public async Task<List<RemoteSubtitleInfo>> SearchAsync(ServerSubtitleSearch search)
     {
         _scope.ThrowIfNotCurrent();
         var result = await _scope.ExecuteAsync((client, token) =>
-            client.SearchSubtitlesAsync(_itemId, _sourceId, language, token), CancellationToken.None).ConfigureAwait(false);
+            client.SearchSubtitlesAsync(_itemId, _sourceId, search, token), CancellationToken.None).ConfigureAwait(false);
         _scope.ThrowIfNotCurrent();
         return result;
     }

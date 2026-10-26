@@ -89,6 +89,12 @@ description: "Audit, fix and verify Momoka subtitle settings and playback behavi
 
 不要把本地 `sub-auto=fuzzy`／字幕目录扫描直接套到 Emby HTTP 流；不要默认固定 GB18030 处理所有非 UTF-8 字幕。
 
+## Current web subtitle editor
+
+Use the current Emby web editor, not only the older image in the manual-download article, as evidence for the visible search form. Keep language, “仅强制字幕”, a full-width search button and the empty-result configuration-help link. Do not reintroduce the removed “要求哈希匹配” row. Collapse the entire forced-only row on Jellyfin, which cannot apply that search filter. Clearing stale results when conditions change must not clear the user's selected language or forced-only preference.
+
+`SubtitleDialog.ProbeSearchAsync` uses real controls with fake operations to check conditions, empty/results/error/retry states, mutual exclusion and late-result rejection. Its capture callback covers the wide and narrow client layouts and saves `subtitle-search-*-render.png` separately from `subtitle-search-*-screen.png`. Launch this screen-checking probe as a visible window; hidden process startup cannot provide screen-pixel evidence. See [the matrix](references/test-matrix.md#网页端字幕搜索) for the required cases.
+
 ## 验证阶梯
 
 1. **纯规则测试。** 先编译当前 Core＋测试，再跑 runner。相关套件位于 `tests/Momoka.Tests/`：`SubtitleBehaviorTests`、[SubtitleManagementTests](../../../tests/Momoka.Tests/SubtitleManagementTests.cs)（切服、注销与删除前快照核对）、`SubtitlePreviewTests`、`HtmlColorTests`、`ServiceTests`、`PlaybackTests`、`InlineSwitchTests`。
