@@ -77,7 +77,7 @@ internal sealed partial class ShellNavigationProbe
                     "标题移除后正文仍留有空白带");
                 Require(Descendants(page).OfType<ShelfHead>().Count() == 0, "设置正文仍有重复分类与数量徽标");
                 var homeTitle = Descendants(page).OfType<TextBlock>().Single(title => title.Name == "SettingsSectionTitle" && title.Text == "主页");
-                Require(homeTitle.Visibility == Visibility.Collapsed, "主页重复分类标题未移除");
+                Require(homeTitle.Visibility == Visibility.Visible, "卡片标题没有显示");
                 foreach (var list in Descendants(page).OfType<ItemsControl>().Where(list => list.Name == "SettingsRowsList"
                     && list.Tag is SettingSection { IsVisible: true }))
                 {

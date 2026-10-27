@@ -27,7 +27,7 @@ public sealed class SettingsCategoryGlyphConverter : IValueConverter
         ["播放器"] = 0xE768,       // Play
         ["播放行为"] = 0xE81C,     // History（续播、进度）
         ["字幕"] = 0xE8D2,         // Font（字）
-        ["弹弹play"] = 0xE8F2,     // Message
+        ["弹幕"] = 0xE8F2,     // Message
         ["视频输出"] = 0xE7F4,     // TVMonitor
         ["音频输出"] = 0xE767,     // Volume
         ["主页"] = 0xE80F,         // Home

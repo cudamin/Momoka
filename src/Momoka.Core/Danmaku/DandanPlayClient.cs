@@ -153,7 +153,7 @@ public sealed partial class DandanPlayClient : IDisposable
                         throw new DandanPlayException(response.StatusCode switch
                         {
                             HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden when connection.BuiltIn is not null =>
-                                "内置弹幕凭据鉴权失败，请稍后重试；如果持续失败，请在设置 → 弹弹play 中改用你自己的应用凭据。",
+                                "内置弹幕凭据鉴权失败，请稍后重试；如果持续失败，请在设置 → 弹幕 中改用你自己的应用凭据。",
                             HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => AuthenticationError(response),
                             HttpStatusCode.TooManyRequests => "弹弹play 请求额度或频率受限，请稍后重试。",
                             _ => $"弹弹play 请求失败（HTTP {(int)response.StatusCode}），请稍后重试。",
@@ -183,7 +183,7 @@ public sealed partial class DandanPlayClient : IDisposable
     private async Task<Connection> ResolveAsync(CancellationToken cancellationToken)
     {
         var danmaku = _settings.Danmaku;
-        if (!danmaku.Enabled) throw new DandanPlayException("请先在设置 → 弹弹play 中开启弹弹play。");
+        if (!danmaku.Enabled) throw new DandanPlayException("请先在设置 → 弹幕 中开启弹弹play。");
 
         if (danmaku.CredentialSource == DanmakuCredentialSource.Custom)
         {
@@ -191,12 +191,12 @@ public sealed partial class DandanPlayClient : IDisposable
             var protectedSecret = danmaku.ProtectedAppSecret ?? "";
             var secret = _credentials.GetSecret(danmaku);
             if (string.IsNullOrWhiteSpace(appId) || appId.Length > 200 || appId.Any(char.IsControl) || secret.Length == 0)
-                throw new DandanPlayException("请在设置 → 弹弹play 中填写有效的 AppId 和 AppSecret；复制到其他 Windows 账号的密钥需要重新输入。");
+                throw new DandanPlayException("请在设置 → 弹幕 中填写有效的 AppId 和 AppSecret；复制到其他 Windows 账号的密钥需要重新输入。");
             return new(appId, secret, protectedSecret, null);
         }
 
         if (_builtIn is null)
-            throw new DandanPlayException("内置弹幕凭据尚未配置，请在设置 → 弹弹play 中改用你自己的应用凭据。");
+            throw new DandanPlayException("内置弹幕凭据尚未配置，请在设置 → 弹幕 中改用你自己的应用凭据。");
         var credential = await _builtIn.GetAsync(cancellationToken).ConfigureAwait(false);
         var identity = "builtin:" + credential.KeyId + ":" + Convert.ToHexStringLower(
             SHA256.HashData(Encoding.UTF8.GetBytes(credential.Secret)));

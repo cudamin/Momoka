@@ -15,10 +15,12 @@ internal static class SettingsSearchTests
 
     private static void Register(SettingsPageStateTests.ShellFixture fixture)
     {
-        TestHarness.Test("设置标题：保留子分组标题，折叠重复分类名与项数", () =>
+        TestHarness.Test("设置标题：每张卡都保留自己的标题", () =>
         {
-            Assert.Equal("Collapsed", fixture.Get<object>(fixture.NewRow("SettingSection", "主页", "主页", "说明", Rows(Fact("主页选项"))), "HeadingVisibility").ToString());
-            Assert.Equal("Visible", fixture.Get<object>(fixture.NewRow("SettingSection", "播放器", "自定义 mpv.conf", "说明", Rows(Fact("路径"))), "HeadingVisibility").ToString());
+            var home = fixture.NewRow("SettingSection", "主页", "主页", "说明", Rows(Fact("主页选项")));
+            Assert.Equal("主页", fixture.Get<string>(home, "Title"));
+            var player = fixture.NewRow("SettingSection", "播放器", "自定义 mpv.conf", "说明", Rows(Fact("路径")));
+            Assert.Equal("自定义 mpv.conf", fixture.Get<string>(player, "Title"));
         });
         TestHarness.Test("设置搜索：未附加依赖可读目录，空白输入没有结果", () =>
         {

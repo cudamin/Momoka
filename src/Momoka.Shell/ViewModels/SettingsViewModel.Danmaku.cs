@@ -61,7 +61,7 @@ public sealed partial class SettingsViewModel
                     typed => { settings.BlockedWords = typed; settings.Normalize(); return settings.BlockedWords; }, () => { Save(); ApplyDanmakuSettings(); }));
             }
         }
-        return new SettingSection("弹弹play", "弹弹play", "参考 B 站的显示与屏蔽设置。弹幕使用独立画面叠加层，不占用字幕轨道；支持内置播放器的集成和独占模式。", rows);
+        return new SettingSection("弹幕", "弹幕", "参考 B 站的显示与屏蔽设置。弹幕使用独立画面叠加层，不占用字幕轨道；支持内置播放器的集成和独占模式。", rows);
     }
 
     private void RefreshDanmakuRows()
@@ -72,14 +72,14 @@ public sealed partial class SettingsViewModel
 
     private void RefreshDanmakuPresentation()
     {
-        var card = Sections.FirstOrDefault(section => section.Category == "弹弹play");
+        var card = Sections.FirstOrDefault(section => section.Category == "弹幕");
         card?.UpdateRows(DanmakuCard().Rows);
         RefreshShortcutAvailability();
     }
 
     private void RefreshDanmakuAvailability()
     {
-        var card = Sections.FirstOrDefault(section => section.Category == "弹弹play");
+        var card = Sections.FirstOrDefault(section => section.Category == "弹幕");
         if (!DandanPlayMatching.CanRender(Settings.Mpv))
         {
             if (card is not null) Sections.Remove(card);
@@ -94,12 +94,12 @@ public sealed partial class SettingsViewModel
         if (momoka is not null)
         {
             var available = DandanPlayMatching.CanRender(Settings.Mpv);
-            if (momoka.Entries.Any(entry => entry.Label == "弹弹play") == available) return;
+            if (momoka.Entries.Any(entry => entry.Label == "弹幕") == available) return;
             var rebuilt = new SettingsCategoryGroup("Momoka");
-            foreach (var entry in momoka.Entries.Where(entry => entry.Label != "弹弹play"))
+            foreach (var entry in momoka.Entries.Where(entry => entry.Label != "弹幕"))
             {
                 rebuilt.Add(entry.Label, entry.SourceKey, entry.Route, entry.CardCategory);
-                if (entry.Label == "字幕" && available) rebuilt.Add("弹弹play");
+                if (entry.Label == "字幕" && available) rebuilt.Add("弹幕");
             }
             ReplaceCategories(groups.Select(group => ReferenceEquals(group, momoka) ? rebuilt : group).ToArray());
         }

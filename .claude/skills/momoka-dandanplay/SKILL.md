@@ -1,6 +1,6 @@
 ---
 name: "momoka-dandanplay"
-description: "Momoka 的弹弹play（DandanPlay）开放弹幕网络接入：应用签名、标题搜索与唯一精确匹配、弹幕获取与发送、内置凭据端点与 Cloudflare Secret、设置页「弹弹play」显隐，以及离线与真实服务验证边界。Use when touching src/Momoka.Core/Danmaku/*, DandanPlayClient*.cs, DandanPlayBuiltIn*.cs, DanmakuSettings.cs, SettingsViewModel.Danmaku.cs, PlayerViewModel.Danmaku*.cs, assets/mpv-ui/scripts/momoka_danmaku.lua, uosc DanmakuInput, or the website credential endpoint. Not for general subtitle rendering or the mpv pipeline itself."
+description: "Momoka 的弹弹play（DandanPlay）开放弹幕网络接入：应用签名、标题搜索与唯一精确匹配、弹幕获取与发送、内置凭据端点与 Cloudflare Secret、设置页「弹幕」卡片显隐，以及离线与真实服务验证边界。Use when touching src/Momoka.Core/Danmaku/*, DandanPlayClient*.cs, DandanPlayBuiltIn*.cs, DanmakuSettings.cs, SettingsViewModel.Danmaku.cs, PlayerViewModel.Danmaku*.cs, assets/mpv-ui/scripts/momoka_danmaku.lua, uosc DanmakuInput, or the website credential endpoint. Not for general subtitle rendering or the mpv pipeline itself."
 metadata: {agent_created: true}
 ---
 
@@ -29,7 +29,7 @@ metadata: {agent_created: true}
 | `src/Momoka.Core/Danmaku/DandanPlayBuiltInCredentialSource.cs` | 取密文、解密、DPAPI 缓存、过期与失败回退 |
 | `src/Momoka.Core/Configuration/DanmakuSettings.cs` | 偏好默认值、`Auto/BuiltIn/Custom` 归一化 |
 | `src/Momoka.Core/Configuration/DandanPlayCredentials.cs` | 自定义 AppSecret 的 DPAPI 存取 |
-| `src/Momoka.Shell/ViewModels/SettingsViewModel.Danmaku.cs` | 「弹弹play」卡片、内置/自定义显隐、重载 |
+| `src/Momoka.Shell/ViewModels/SettingsViewModel.Danmaku.cs` | 「弹幕」卡片、内置/自定义显隐、重载 |
 | `src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku.cs` + `.DanmakuSend.cs` | 自动匹配、加载、分块推送、发送状态 |
 | `src/Momoka.Shell/Views/PlayerPage.Danmaku.cs`、`Views/DanmakuPanel.xaml(.cs)` | 集成页与独占面板的入口 |
 | `src/Momoka.Core/Mpv/MpvDanmaku.cs`、`assets/mpv-ui/scripts/momoka_danmaku.lua` | 两条内置管线共用的脚本消息契约与独立 OSD 图层 |
@@ -68,7 +68,7 @@ metadata: {agent_created: true}
 
 - 自动匹配只接受**唯一且标题精确**的候选：`SeriesName` 优先，Unicode 归一化后只比较字母数字并忽略大小写。`hasMore`、多个结果、续季（`ParentIndexNumber` 不是 1）或特别篇都不猜，留给播放页手动搜索。
 - `IsConfigured` = 服务开启 + 内置 libmpv +（内置来源或自定义凭据齐全）。外部 mpv 后端不接入弹幕：设置卡片、分类入口、播放器按钮和快捷键行一起隐藏，但偏好保留，同一视频的草稿不因隐藏清空；切回内置后可继续。
-- 设置分类名 `弹弹play` 是跨文件契约：`SettingsViewModel.CardCategories`、`SettingsCategoryGlyphConverter`、`PlayerSettingsLinks`（令牌仍是 `danmaku`）、探针断言和 `MpvUiTests` 的固定表都要一起改。只改一处会出现「点设置入口落在别的卡」或自检红项。
+- 设置分类名 `弹幕` 是跨文件契约：`SettingsViewModel.CardCategories`、`SettingsCategoryGlyphConverter`、`PlayerSettingsLinks`（令牌仍是 `danmaku`，菜单行文案仍写产品名 `弹弹play`）、探针断言和 `MpvUiTests` 的固定表都要一起改。只改一处会出现「点设置入口落在别的卡」或自检红项。侧栏与卡片标题只写「弹幕」；产品名、开关文案和错误提示里的「弹弹play」指服务本身，不是分类名。
 - 默认只显示「启用弹弹play」「使用自己的应用凭据」两行；自定义开关打开后才出现 AppId、AppSecret 与开发者中心。服务关闭或不可用时收起从属控件，但不重置偏好。
 
 ## 渲染与发送边界

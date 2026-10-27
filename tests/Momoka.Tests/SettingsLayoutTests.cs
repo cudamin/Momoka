@@ -37,7 +37,7 @@ internal static class SettingsLayoutTests
             Assert.Equal(search.Parent, searchButton.Parent);
             Assert.True(Named(document, "CompactCategoryNavigation").Ancestors().Contains(navigation));
         });
-        TestHarness.Test("设置布局：正文没有重复分类标题、数量或分隔线", () =>
+        TestHarness.Test("设置布局：正文卡片标题、数量与分隔线规则", () =>
         {
             var document = Page("SettingsPage.xaml");
             var content = Named(document, "SettingsContent");
@@ -52,8 +52,9 @@ internal static class SettingsLayoutTests
             Assert.False(section.Descendants().Any(element => element.Name.LocalName == "ShelfHead"));
             Assert.False(section.Descendants().Any(element => element.Attribute("Text")?.Value == "{x:Bind Count, Mode=OneWay}"));
             var heading = Named(Page("SettingsPage.xaml"), "SettingsSectionTitle");
-            Assert.Equal("{x:Bind HeadingVisibility, Mode=OneWay}", heading.Attribute("Visibility")?.Value);
+            Assert.True(heading.Attribute("Visibility") is null, "每张卡片都显示自己的标题，不再按分类名折叠");
             Assert.Equal("{x:Bind Title, Mode=OneWay}", heading.Attribute("Text")?.Value);
+            Assert.Equal("{StaticResource EgSettingsSectionTitle}", heading.Attribute("Style")?.Value);
             var list = section.Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == "SettingsRowsList");
             var panel = list.Descendants().Single(element => element.Name.LocalName == "StackPanel");
             Assert.Equal("0", panel.Attribute("Spacing")?.Value);
