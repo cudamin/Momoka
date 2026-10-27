@@ -1559,13 +1559,6 @@
               （「恢复默认」曾是这份名单末尾的第四项，2026-09-24 搬进了「关于」卡，见 SettingsViewModel.AboutCard。）
             -->
             <Grid x:Name="SettingsContent" Grid.Column="1" Grid.RowSpan="2">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <!-- 保留页面本身的标题；去掉的是下方与分类重复的「主页 · 7 项」牌子。 -->
-                <TextBlock x:Name="SettingsPageTitle" Text="设置" Margin="8,0,0,16"
-                    Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
                 <!--
                   Every card is built and kept, and picking a category only changes which one is shown — the
                   same as before. There is no server data on this page, so building all of them costs nothing
@@ -1574,7 +1567,6 @@
                 -->
                 <ScrollViewer
                     x:Name="SettingsScroll"
-                    Grid.Row="1"
                     HorizontalContentAlignment="Stretch"
                     HorizontalScrollMode="Disabled"
                     HorizontalScrollBarVisibility="Disabled"
@@ -1658,7 +1650,6 @@
                 <!-- Transitions cleared for the same reason the shell's frame clears them (requirement 9). -->
                 <Frame
                     x:Name="HostedFrame"
-                    Grid.Row="1"
                     Transitions="{x:Null}"
                     Visibility="{x:Bind ViewModel.HostedVisibility, Mode=OneWay}" />
             </Grid>

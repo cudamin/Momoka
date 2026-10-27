@@ -48,7 +48,10 @@ internal sealed partial class ShellNavigationProbe
                 var navigation = Get<ListView>(page, "CategoryNavigation");
                 Require(navigation.CornerRadius == new CornerRadius(0), "分类列表仍有卡片圆角");
                 Require(navigation.Background is SolidColorBrush { Color.A: 0 }, "分类列表仍有卡片底色");
-                Require(Get<TextBlock>(page, "SettingsPageTitle") is { Text: "设置", Visibility: Visibility.Visible }, "设置页面标题被误删");
+                var content = Get<Grid>(page, "SettingsContent");
+                Require(!content.Children.OfType<TextBlock>().Any(title => title.Text == "设置"), "正文顶部仍有设置标题");
+                Require(Math.Abs(Box(content, scroll).Top) < 1 && Math.Abs(scroll.ActualHeight - content.ActualHeight) < 1,
+                    "标题移除后正文仍留有空白带");
                 Require(Descendants(page).OfType<ShelfHead>().Count() == 0, "设置正文仍有重复分类与数量徽标");
                 var homeTitle = Descendants(page).OfType<TextBlock>().Single(title => title.Name == "SettingsSectionTitle" && title.Text == "主页");
                 Require(homeTitle.Visibility == Visibility.Collapsed, "主页重复分类标题未移除");

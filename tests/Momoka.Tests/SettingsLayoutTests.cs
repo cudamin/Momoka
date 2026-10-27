@@ -31,7 +31,14 @@ internal static class SettingsLayoutTests
         TestHarness.Test("设置布局：正文没有重复分类标题、数量或分隔线", () =>
         {
             var document = Page("SettingsPage.xaml");
-            Assert.Equal("设置", Named(document, "SettingsPageTitle").Attribute("Text")?.Value);
+            var content = Named(document, "SettingsContent");
+            Assert.False(content.Elements().Any(element => element.Name.LocalName == "TextBlock"), "正文顶部不再显示设置标题");
+            Assert.False(content.Elements().Any(element => element.Name.LocalName == "Grid.RowDefinitions"), "标题移除后不保留空白行");
+            foreach (var name in new[] { "SettingsScroll", "HostedFrame" })
+            {
+                var body = Named(document, name);
+                Assert.True(body.Parent == content && body.Attribute("Grid.Row") is null, "卡片与内嵌页面均占满正文区域");
+            }
             var section = Named(document, "SettingsSection");
             Assert.False(section.Descendants().Any(element => element.Name.LocalName == "ShelfHead"));
             Assert.False(section.Descendants().Any(element => element.Attribute("Text")?.Value == "{x:Bind Count, Mode=OneWay}"));
