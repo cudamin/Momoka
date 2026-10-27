@@ -8388,3 +8388,12 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **全量探针**：`--probe-shell --screen 1` 121 项 **120 通过、1 失败**，三项原有红项已全部转绿；唯一失败是未改动的「文件选项长名称、断点与隐藏行」在窗口尺寸竞态下没到达目标宽度（首轮 1064→1088，单独复跑 `library` 又在另一条用例 1280→1024），与本次修复路径无关，**如实记为未绿**，打包前需处理或复验，不拿重复运行洗绿。
 - **合并**：在 `C:/Users/89400/Momoka-worktrees/settings-merge` 以 `--no-ff` 合入 `qoder/kuaijiejian`；除本文件外，合并结果与已验证的 `eb1a035` 逐字节一致。只合并，未推送 origin、未建 Release、未生成商店包。
 
+
+## 设置页：精简模式行间画线、弹幕拆四卡（2026-10-27 15:05~15:55）
+
+- **用户当次三条要求**：①设置里开启「隐藏功能下方说明」之后用线条分割每个功能；②同一个页面里有必要分区的功能单独弄一个卡片；③AppId、AppSecret、开发者中心（截图给的就是弹幕卡里那三行）移到最下方单独一张卡。
+- **分隔线**：`SettingRow.DividerThickness` 在 `NotesHidden` 时给行一个 1px 上边框，**每张卡的第一行不画**（卡片上沿就是分界，画了就是贴边的双线）；18 个行模板根（14 个 Grid 行 + 4 个 StackPanel 块）OneWay 绑它，线色由 `EgSettingRowStyle`／`EgSettingBlockStyle` 一处给出。`SettingSection` 在 `Rows` 变动时重排 `IsFirstRow`（行会原地增删，首行会换人）。自检的 `ProbeCompactMode` 一并量这条线（首行不画、其余行画、拨回撤掉）。
+- **弹幕分区**：`DanmakuSections()` 把原来一张二十来行的长卡拆成「弹幕」（启用／自动匹配／包含关联）、「显示与外观」（显示开关、输入栏、五个滑块）、「类型与屏蔽」（滚动／顶部／底部／彩色／合并、屏蔽词）、「应用凭据」（使用自己的应用凭据＋AppId／AppSecret／开发者中心）四张。凭据三行**连同它们的上级开关**一起进最后一张 —— 开关留在上一张、它控制的三个字段在下一张，是拆开之后最容易出的错。`SectionVisibility` 改成 `IsVisible && Rows.Count > 0`，服务关着时屏上只剩两张有内容的卡；四张卡实例一直保留、行原地 `UpdateRows`，切换后端时整组收走再重建。
+- **探针与测试**：弹幕探针改按 `DanmakuCards`／`DanmakuRows` 读数（不再 `Single(Category == "弹幕")`），新增精简模式实测（在「界面」卡拨真开关，回弹幕量行容器模板根上的 `BorderThickness`，宽窄两档各拍一张）与「应用凭据」卡截图；新增三条回归：设置行分隔线（真实 `SettingRow`／`SettingSection`，含行表增删后首行换人）、弹幕四卡源码接线、XAML 契约（18 个模板根都绑了 `DividerThickness`，线色在样式里）。
+- **验证**：Release Shell 与测试项目编译 **0 警告 0 错误**；完整离线套件 **3049/3049、0 失败 0 跳过**；`settings-page-state` **29/29**、`settings-search` **14/14**；`format whitespace` 退出 0。交付件 `tools/publish.ps1 -NoArchive`（389 个顶层条目、286 MB）跑 `--probe-shell --probe-section settings --screen 1` **22/22 通过**（`shell-probe-20261027-075007734-10712`）。人眼核对四张实屏：`settings-danmaku-compact-{1100,760}`（四张卡、行间细线、每卡首行无线）、`settings-danmaku-on-1100`（四卡带说明、无线）、`settings-danmaku-off-1100`（只剩「弹幕」「应用凭据」两张）、`settings-danmaku-credentials-1100`（凭据三行在最下面那张卡里）、`settings-interface-compact-1100`（色板那种 StackPanel 行同样有线）。其余 99 项探针未跑，未验证真实服务器与播放（本轮不动这两条链）。
+- **发布**：`artifacts/publish/win-x64` 已刷新，桌面快捷方式指向的就是这一份。中途踩到两次「发布时还在改源码」：第一次 `publish.ps1` 跑到一半我又改了 `RefreshDanmakuPresentation`（`RefreshShortcutAvailability` 不能因为弹幕卡不存在就跳过），第二次又补了探针截图；两次都停掉重发，最终这份发布件的 `Momoka.dll` 时间戳晚于所有源码改动。未升级版本号、未推送 origin、未建 Release 或商店包。

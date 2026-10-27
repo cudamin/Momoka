@@ -123,9 +123,9 @@ public sealed partial class SettingsViewModel
     private void RefreshDanmakuPresentation()
     {
         var existing = Sections.Where(section => section.Category == DanmakuCategory).ToArray();
-        if (existing.Length == 0) return;
-        foreach (var section in DanmakuSections())
-            existing.FirstOrDefault(current => current.Title == section.Title)?.UpdateRows(section.Rows);
+        if (existing.Length > 0)
+            foreach (var section in DanmakuSections())
+                existing.FirstOrDefault(current => current.Title == section.Title)?.UpdateRows(section.Rows);
         RefreshShortcutAvailability();
     }
 

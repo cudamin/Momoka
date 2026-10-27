@@ -12,6 +12,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace Momoka.Shell;
 
@@ -100,6 +101,41 @@ internal sealed partial class ShellNavigationProbe
             block.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.9 });
             await LayoutAsync(block);
             await SaveProbeScreenAsync($"settings-danmaku-bottom-{width}-screen.png");
+
+            // 最下面那张「应用凭据」卡：上级开关和三行凭据都在这一张里（用户 2026-10-27 指定）。
+            // 这一行的按钮没有 AutomationId／Name，按它显示的字找（Fact 行的按钮内容就是动作名）。
+            var developer = Descendants(page).OfType<Button>().Single(control => control.Content as string == "打开开发者中心");
+            developer.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.9 });
+            await LayoutAsync(developer);
+            await SaveProbeScreenAsync($"settings-danmaku-credentials-{width}-screen.png");
+
+            // 2026-10-27「开启隐藏下方说明之后用线条分割每个功能」：说明收起后，同一张卡里除首行外每行顶上
+            // 一条 1px 细线；说明放回来就撤掉。拨的是「界面」卡上那颗真开关，量的是行容器模板根上的
+            // BorderThickness —— 自检的 ProbeCompactMode 量的是同一条规则的模型那一侧。
+            page.SelectedCategory = "界面";
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            var compact = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "隐藏功能下方说明");
+            Require(!compact.IsOn, "「隐藏功能下方说明」默认应关闭");
+            compact.IsOn = true;
+            await UntilAsync(() => page.IsContentMotionSettled);
+            await LayoutAsync(page);
+            // 「界面」卡里是色板那一种行（StackPanel 模板根），跟弹幕那几种形状不是同一个模板：精简模式下
+            // 它也必须有分隔线，所以在这里另拍一张。
+            await SaveProbeScreenAsync($"settings-interface-compact-{width}-screen.png");
+            page.SelectedCategory = "弹幕";
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            var compactCard = DanmakuCards(page).First(section => section.Rows.Count > 1);
+            var rowsList = Descendants(page).OfType<ItemsControl>()
+                .Single(control => control.Name == "SettingsRowsList" && ReferenceEquals(control.ItemsSource, compactCard.Rows));
+            Require((await RowBorderAsync(rowsList, compactCard.Rows[0])).Top == 0, "精简模式下第一行仍画了分隔线");
+            Require((await RowBorderAsync(rowsList, compactCard.Rows[1])).Top == 1, "精简模式下其余行没有分隔线");
+            await SaveProbeScreenAsync($"settings-danmaku-compact-{width}-screen.png");
+            compact.IsOn = false;
+            await UntilAsync(() => page.IsContentMotionSettled);
+            await LayoutAsync(page);
+            Require((await RowBorderAsync(rowsList, compactCard.Rows[1])).Top == 0, "关掉精简模式后分隔线没有撤掉");
 
             page.SelectedCategory = "播放器";
             await LayoutAsync(page);
@@ -253,4 +289,21 @@ internal sealed partial class ShellNavigationProbe
 
     private static SettingRow[] DanmakuRows(SettingsPage page) =>
         [.. DanmakuCards(page).SelectMany(section => section.Rows)];
+
+    /// <summary>
+    /// 一行容器模板根上的边框粗细。设置行的分隔线是行模板根上的 1px 上边框（见 SettingRow.DividerThickness），
+    /// 容器要等模板落定才拿得到 —— 所以等它，超时就是失败，不返回一个「看起来像 0」的默认值。
+    /// </summary>
+    private static async Task<Thickness> RowBorderAsync(ItemsControl list, object row)
+    {
+        for (var attempt = 0; attempt < 120; attempt++)
+        {
+            if (list.ContainerFromItem(row) is FrameworkElement container
+                && VisualTreeHelper.GetChildrenCount(container) > 0
+                && VisualTreeHelper.GetChild(container, 0) is Grid root) return root.BorderThickness;
+            list.UpdateLayout();
+            await Task.Delay(16);
+        }
+        throw new InvalidOperationException("设置行容器没有落到模板根上");
+    }
 }
