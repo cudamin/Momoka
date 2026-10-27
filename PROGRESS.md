@@ -1,3 +1,16 @@
+## 发版 0.1.9：GitHub Release 与微软商店包（2026-10-27）
+
+- 用户令「提交代码到github，打包发布到github和生成一个微软商店安装包（我自己上传），版本号为0.1.9」。版本号 `e877181` 早已改成 0.1.9，本轮只做发版。起点 `e807426`，master 领先 origin 25 个提交，先推。
+- **闸门 1 第一次跑就红**：`tests/Momoka.FrameInterpolationTests` 编译失败 CS0246（找不到 `Thickness`）。`d8925be` 给 `SettingRow` 加了 `DividerThickness`（返回 `Microsoft.UI.Xaml.Thickness`），而那个离线边界的 `UiBoundary.cs` 只替身了 `Visibility` —— 当时只构建 Shell 与 Tests，这个在 sln 里的夹具漏了。补一个按值语义实现的 `Thickness` 替身（`e33f19b`）：struct、四个只读边、两个构造、按四边相等。之后完整构建 0 警 0 错、空白检查通过、48 个脚本编码语法通过。
+- 闸门 2：Core **3053/3053**、0 失败 0 跳过（`work/release-0.1.9/gate2-tests2.log`）。
+- 闸门 3：`publish.ps1 -NoArchive` 通过，`artifacts/publish/win-x64` **546 文件／284.3 MB**，14 GLSL／4 HOOK 与批准 mpv 清单 59 文件逐项校验；`Momoka.exe` ProductVersion `0.1.9+7b86a8a…`，与当时的 HEAD 一致。
+- **闸门 4 第一次红 1 项**：「mpv.exe 路径那一行写明安全通道要求」判降级。`725447a` 把播放行为拆成五张卡（播放行为／跳转与步长／音轨／资源筛选／截图），自检那条还拿三张去比。按拆完的五张改判据（`7b86a8a`），覆盖不变（分区数与次序、资源筛选那两行、截图那三行）。重跑 **186 项全过**（161 通过、25 信息、0 失败），`selfcheck-diff` 判绿（失败 0、消失 0、降级 0、新增 0），基线无需变更（报告 `%LOCALAPPDATA%\Momoka\SelfCheck\2eb0de81…\logs\selfcheck-shell.txt`）。
+- 远端多了一条用户在网页上改的 README（`37399fa`，精简主要功能那几条），rebase 到它之上再推，没有冲突。
+- 打包：`installer.ps1 -SkipPublish` → `artifacts/Momoka_windows-x64_0.1.9.exe`（79.7 MB）；`publish.ps1 -Msix -Store -SkipPublish -NoArchive` → `artifacts/Momoka-0.1.9-win-x64-store.msix`（114.5 MB，未签名），清单身份 `MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.1.9.0`／`MOMOKA`。
+- **`-Msix -Store` 一开始报失败，真因不是打包**：winapp 0.7.0 把「v0.7.1 is available」写到 stderr，而脚本开头 `$ErrorActionPreference='Stop'` 会把 native 命令的 stderr 变成终止错误 —— 包其实已经打出来了（退出码 0、文件也在）。三处 winapp 调用（cert generate／package／sign）改走 `Invoke-WinApp` 包装，调用期间降级到 Continue，成败仍只看 `$LASTEXITCODE`（`8a180aa`），check-scripts 48 个通过。
+- GitHub Release `v0.1.9` 已建（tag → `8a180aa`，pre-release），资产 `Momoka_windows-x64_0.1.9.exe`（83543959 字节）与 `SHA256SUMS.txt`（95 字节）均 uploaded。`SHA256SUMS.txt` 回传比对一致；**安装包本体由用户自己下到 `C:\Users\89400\Downloads\` 后交回来比对**（「你别下载了，我帮你下」），`sha256` 三者一致：`cb1b58a201f609a98e39ade78648baa14a451c161ef8d622c4952e3175b4658b`（下载件＝本地产物＝Release 公布的）。
+- 商店包没有上传任何地方，由用户自己在 Partner Center → 产品版本 → 包 提交。未做：真实服务器播放验收、商店审核提交。
+
 ## 动画自动启用 Anime4K 的开关（2026-10-27）
 
 - 用户令：「新增功能开关，播放动漫时自动启用 anime4k」。设置 → 视频输出 → 画质与着色器新增「动画自动使用 Anime4K」，提交 `a7aafa9`。命中自动识别动画的片源改用固定的 Anime4K 柔化修复链（Krig + Restore Soft M + Clamp + SSim），真人片源仍走自动档位；手动指定的档位优先，自动识别动画关掉时这一行收起、也不再选得中任何片源，总开关与 8K 保护照旧先说话。
