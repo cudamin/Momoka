@@ -198,6 +198,13 @@ internal sealed partial class ShellNavigationProbe
             Require(page.SkipContentIsSimple && row.ActualHeight > 0, "按钮不是有尺寸的图标/标题单行");
             Require(peer.GetName() == text.Text && peer.GetAutomationId() == "SkipButton", "按钮动态读屏名称或自动化句柄丢失");
             Require(bounds.Left >= 0 && bounds.Right <= page.ActualWidth + 0.5 && bounds.Bottom <= bar.Top + 0.5, "跳过按钮超出画面或压住控制条");
+            // 位置与独占一致（elements/SkipButton.lua）：底边离**控制行上沿**一个 padY，右边离画面右沿也是这个数
+            // （窄窗为让开音量条会左移，那一支由下面那条避让检查兜住）。量的是行顶而不是控制条顶 ——
+            // 行顶上还压着这一行自己的内缩（窗口 8 / 大档 10）。
+            var rowTop = Bounds(Get<Grid>(page, "TransportRow")).Top;
+            var gap = rowTop - bounds.Bottom;
+            Require(Math.Abs(gap - padY) <= 0.5, $"跳过按钮离控制行的距离不是独占的 {padY}（实测 {gap:0.##}）");
+            Require(bounds.Right <= page.ActualWidth - padY + 0.5, "跳过按钮比独占模式更靠右");
             var rail = Bounds(Get<FrameworkElement>(page, "Rail"));
             Require(!(bounds.Left < rail.Right && rail.Left < bounds.Right && bounds.Top < rail.Bottom && rail.Top < bounds.Bottom),
                 "窄/矮窗口的跳过按钮压住音量条");
@@ -205,7 +212,7 @@ internal sealed partial class ShellNavigationProbe
             Require(Math.Abs(button.CornerRadius.TopLeft - (fullscreen ? 2.6 : 2)) < 0.01, "没有使用独占模式的小圆角");
             Require(Math.Abs(button.ActualHeight - row.ActualHeight - 2 * padY - button.BorderThickness.Top - button.BorderThickness.Bottom) < 1,
                 "删掉提示和倒计时后仍留下第二行空白");
-            report.Add($"{page.ActualWidth:0}×{page.ActualHeight:0} {(fullscreen ? "大档" : "窗口")} {text.Text} 按钮 {bounds.Width:0.##}×{bounds.Height:0.##}；单行、避让、圆角、缩放和 UIA 名称通过。");
+            report.Add($"{page.ActualWidth:0}×{page.ActualHeight:0} {(fullscreen ? "大档" : "窗口")} {text.Text} 按钮 {bounds.Width:0.##}×{bounds.Height:0.##} 离控制行 {gap:0.##}；单行、位置、避让、圆角、缩放和 UIA 名称通过。");
         }
 
         Rect Bounds(FrameworkElement element)

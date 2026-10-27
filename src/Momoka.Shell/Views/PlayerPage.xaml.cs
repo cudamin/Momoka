@@ -54,20 +54,11 @@ public sealed partial class PlayerPage : UserControl
     /// <summary>How wide one chapter tick is drawn, in pixels. Odd, so it can sit centred on its mark.</summary>
 
     /// <summary>
-    /// The gap the two overlays that must clear another overlay leave between themselves and it: the 统计
-    /// panel under the title strip, and the 跳过 button over the transport bar. See
-    /// <see cref="PlaceOverlays"/> for why that is all this needs to say — the two distances themselves are
-    /// measured off what they have to clear rather than written down here.
+    /// The gap an overlay leaves between itself and the one it has to clear: today that is the 跳过 button
+    /// and the right-edge volume rail — a short window pushes the button left by the rail's width plus this,
+    /// so the two never cover each other. See <see cref="PlaceOverlays"/>.
     /// </summary>
     private const double OverlayGap = 8;
-
-    /// <summary>
-    /// 跳过按钮再往上让出的那一段（用户令 2026-09-26「上移按钮」，配合「鼠标移到按钮上的时候不会唤出进度条」）：
-    /// 只贴着进度条上方（OverlayGap）时，够按钮的手势从进度条上一滑而过；抬高一段，按钮离控制条远一截、
-    /// 也离底部的唤出带远一截。加在 <see cref="OverlayGap"/> 之上而不是改它 —— 那一格的语义是「让开」，这一格
-    /// 是「再抬」，两句话分开写。探针的间距断言读的是两者的和（ProbeClearance）。
-    /// </summary>
-    private const double SkipLift = 24;
 
     private readonly ChromeReveal _chrome = new();
     private readonly SeekClockConverter _seekClock;

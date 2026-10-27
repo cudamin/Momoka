@@ -8454,3 +8454,12 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **文案与合规**：鉴权失败不再指路「改用你自己的应用凭据」，改为「内置应用凭据无效」；`DeveloperUrl` 常量随入口一起删。`PRIVACY.md` 删掉「自定义 AppId 与 AppSecret」那一行，并把两处「也可以改用你自己的 AppId」「凭据不可用时不访问」改成「凭据由 Momoka 统一提供」「没有启用时不访问」。`docs/弹幕与快捷键.md`、dandanplay 技能、三份测试说明同步。
 - **验证**：Release 全方案构建 **0 警告 0 错误**；`format whitespace` 退出 0；完整离线套件 **3051 项全过、0 失败、0 跳过**（删掉三条自定义凭据用例、新增一条旧配置忽略用例）；`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（546 文件、284.3 MB、载荷验证通过），对这份交付件跑 `--probe-shell --probe-section settings --screen 1` **22/22 通过**（`shell-probe-20261027-115159052-1596`），弹幕那条用例宽窄两档都过。人眼核对 `settings-danmaku-on-1100`（三张卡、无凭据行）、`settings-danmaku-off-1100`（只剩总开关一张卡、没有空卡）。其余 99 项探针未跑；未验证真实服务器与真实播放（本轮不碰这两条链）。
 - 未升级版本号、未推送 origin、未建 Release 或商店包。
+
+## 集成模式跳过按钮挪到独占模式那个落点（2026-10-27 20:00~20:20）
+
+- **用户当次要求**：「集成模式的跳过片头片尾按钮的位置改成跟独占模式一样」。
+- **两边的位置差在哪**：独占那颗（`assets/mpv-ui/scripts/uosc/elements/SkipButton.lua` 的 `layout`）把按钮右下角摆在 `display.width - margin` / `controls.ay - margin`，`margin = round(21 × scale)` —— **同一个数同时管右边距和底边距**，锚点是控制行（uosc 的 controls 元件）上沿。集成那颗从 2026-09-26「上移按钮」起是 `BarHeight + OverlayGap(8) + SkipLift(24) = 32`，锚点还是**控制条顶**（Bar 顶），而控制行顶上还压着这一行自己的内缩（窗口 8 / 大档 10）；两边叠起来，集成那颗比独占高出 19px（实测 1100×711：旧 589、新 608，控制行顶 629）。
+- **改法**（`PlayerPage.Chrome.cs` 的 `PlaceOverlays`）：底边改成 `BarHeight() - TransportRow.Margin.Top + inset`，`inset` 就是那颗按钮自己的右让位（`WindowSkipPadY` 21 / `FullscreenSkipPadY` 27.3），右边距仍用同一个数；`SkipLift` 常量连同它的说明从 `PlayerPage.xaml.cs` 删掉，`OverlayGap` 只剩「窄窗让开右缘音量条」那一处用途，说明改成实际那件事。两边的控制行都是 32 高（uosc `controls_size`），行顶只差时间轴那一档的 1 / 1.3px（集成 31/40 对独占 30/39），所以这一改两模式的落点重合：实测窗口档离控制行 21、大档 27（独占 `round(21×1.3)=27`）。
+- **没有照搬的一处**：窄/矮窗里那颗按钮仍会在竖直范围撞上右缘音量条时左移一格（`RailRoom` 那段，2026-10-26 刚加的），独占那边没有这条 —— 这条是「别盖住另一个控件」的避让，不是位置口径，去掉会让窄窗退回按钮压音量条。
+- **验证**：Release Shell 与测试项目编译 **0 警告 0 错误**；`format whitespace` 退出 0；完整离线套件 **3051/3051、0 失败 0 跳过**。自检那一关（`ProbeClearance`）的间距断言从「量 Bar 顶」改成「量控制行上沿、期望值就是那个 SkipInset」，报告文字改成「离控制行」。`--probe-shell --probe-section playback --screen 1` **8/8 通过**（`shell-probe-20261027-121037370-25228`），`player-skip-layout.txt` 四档读数：1100×711 与 760×531 都是**离控制行 21**，2560×1392 与 2560×1440 都是 **27**，避让/圆角/缩放/UIA 名称同时通过。人眼核对 `player-skip-1100-screen`：按钮从「悬在音量条下方一大截」落到贴着控制行上沿，与独占同一个观感。其余分区探针未跑；未验证独占模式实机（需要真实播放，未获授权），独占那一侧的数是从 Lua 与 uosc 选项（`controls_size=32`、`timeline_size=30`、`controls_margin=8`）算出来的。
+- 未升级版本号、未推送 origin、未建 Release 或商店包。

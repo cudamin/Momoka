@@ -934,6 +934,14 @@ public sealed partial class PlayerPage
     /// drawn across the seek slider, which is the one control it must never cover.
     /// </para>
     /// <para>
+    /// The 跳过 button's distance above the control row is not a number of its own: it is the button's own
+    /// right inset (窗口 21 / 大档 27.3), the same one written on its right margin, which is also the number
+    /// the standalone mode's <c>elements/SkipButton.lua</c> puts above its control row and from the right
+    /// edge. The bar's top is not that row's top — the row carries its own top inset (窗口 8 / 大档 10, see
+    /// <see cref="ApplyTransportScale"/>) — so the row's margin is taken back out below; uosc has no such
+    /// layer and its <c>controls.ay</c> is the row top itself.
+    /// </para>
+    /// <para>
     /// The skip button keeps its normal right inset unless its vertical range intersects the volume rail.
     /// A short window reserves the rail's width and one gap, so the two controls never cover each other.
     /// This uses the rail's layout footprint, not its pointer-driven opacity: hovering cannot move the button.
@@ -949,10 +957,16 @@ public sealed partial class PlayerPage
     /// </summary>
     private void PlaceOverlays()
     {
-        // 2026-09-26 起在「让开」之上再抬一段 SkipLift（用户令「上移按钮」）—— 只贴着进度条时，够按钮的
-        // 手势总要擦着进度条走，而压上按钮又不再点亮它（ChromeReveal 的 Skip 支）。
-        var bottom = BarHeight() + OverlayGap + SkipLift;
-        var right = BigChrome ? FullscreenSkipPadY : WindowSkipPadY;
+        // 2026-10-27 用户令「集成模式的跳过片头片尾按钮的位置改成跟独占模式一样」：底边锚点从控制条顶
+        // （Bar 顶，再让开 OverlayGap + SkipLift＝32）改成**控制行上沿**再让开一个 SkipInset —— 也就是那颗
+        // 按钮自己的右让位（21 / 全屏 27.3），独占 elements/SkipButton.lua 用的就是同一个数（`margin`）
+        // 同时管右边与底边。两边的控制行都是 32 高（uosc 的 controls_size），行顶只差时间轴那一档的
+        // 1 / 1.3px（集成 31/40 对独占 30/39），所以这一改两模式的落点就重合了。
+        // 减掉 TransportRow.Margin.Top 是因为集成的控制行顶上还压着一层内缩（8 / 10），uosc 没有这一层，
+        // 它的 controls.ay 本身就是行顶；不减就会比独占高出一整层。
+        var inset = BigChrome ? FullscreenSkipPadY : WindowSkipPadY;
+        var bottom = BarHeight() - TransportRow.Margin.Top + inset;
+        var right = inset;
         // 窄/矮窗里保留右缘音量条的位置；水平让位不跟着悬停显隐来回跳，底边锚点仍是控制条上方。
         var railHeight = VolumeTrack.Height + MuteButton.Height;
         var railTop = Rail.Margin.Top + (Root.ActualHeight - Rail.Margin.Top - Rail.Margin.Bottom - railHeight) / 2;

@@ -519,9 +519,12 @@ public sealed partial class PlayerPage
         Brush? Ink(Button button) =>
             PartNamed(button, "ContentPresenter") is ContentPresenter presenter ? presenter.Foreground : null;
 
-        var below = bar.Top - skip.Bottom;
+        // 量的锚点与 PlaceOverlays 摆的是同一个：**控制行上沿**（不是控制条顶 —— 行顶上还压着这一行自己的
+        // 内缩）。按钮底边离它正好一个 SkipInset，与独占 SkipButton.lua 的落点同一个数。
+        var rowTop = BoundsOf(TransportRow).Top;
+        var below = rowTop - skip.Bottom;
 
-        report.Add($"进度条高 {bar.Height:F0}，跳过按钮 {skip.Width:F0}×{skip.Height:F0} 让开 {below:F1}");
+        report.Add($"进度条高 {bar.Height:F0}，跳过按钮 {skip.Width:F0}×{skip.Height:F0} 离控制行 {below:F1}");
 
         Want("三样都得有尺寸", strip.Height > 0 && bar.Height > 0 && skip.Height > 0);
 
@@ -1105,8 +1108,10 @@ public sealed partial class PlayerPage
         // The distances themselves, which is what says they were derived rather than typed: each overlay
         // sits exactly one gap off the edge of what it clears. A margin re-hardcoded to some number that
         // happens not to overlap today would pass the two checks above and fail these two.
-        // 2026-09-26 起按钮在「让开」之上再抬 SkipLift（用户令「上移按钮」），量出来的间距是两者的和。
-        Want("跳过按钮的间距是量出来的", Math.Abs(below - (OverlayGap + SkipLift)) < GeometrySlack);
+        // 2026-10-27 起那颗按钮离的是**控制行上沿**一个 SkipInset（＝它自己的右让位，独占 SkipButton.lua 用
+        // 同一个数管右边与底边），不再叠加 OverlayGap + SkipLift；量的仍是行顶而不是控制条顶 ——
+        // 行顶上还压着这一行自己的内缩，见 PlaceOverlays。
+        Want("跳过按钮的间距是量出来的", Math.Abs(below - WindowSkipPadY) < GeometrySlack);
 
         // 单行展示取代原倒计时插值检查；时限和暂停语义继续由 SkipCoordinator 的测试覆盖。
         Want("跳过按钮只有图标和标题", SkipContentIsSimple);
