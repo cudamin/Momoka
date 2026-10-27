@@ -7,6 +7,49 @@ using Momoka.Configuration;
 namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
+
+    /// <summary>
+    /// 生产 <see cref="Momoka.Shell.ViewModels.SettingRow.DividerThickness"/> 的返回类型，也是行模板
+    /// <c>BorderThickness</c> 绑定的那个值。真类型在 WinUI 里，这个项目不引 Windows App SDK，只能替身；
+    /// 值语义照着来（struct、四个只读边、两个构造、按四边相等），否则抽取出来的生产判断在这边量不到同一件事。
+    /// 2026-10-27 精简模式行间画线之前，这个边界只需要 <see cref="Visibility"/>。
+    /// </summary>
+    public readonly struct Thickness : IEquatable<Thickness>
+    {
+        public Thickness(double uniformLength)
+            : this(uniformLength, uniformLength, uniformLength, uniformLength)
+        {
+        }
+
+        public Thickness(double left, double top, double right, double bottom)
+        {
+            Left = left;
+            Top = top;
+            Right = right;
+            Bottom = bottom;
+        }
+
+        public double Left { get; }
+
+        public double Top { get; }
+
+        public double Right { get; }
+
+        public double Bottom { get; }
+
+        public bool Equals(Thickness other) =>
+            Left == other.Left && Top == other.Top && Right == other.Right && Bottom == other.Bottom;
+
+        public override bool Equals(object? obj) => obj is Thickness other && Equals(other);
+
+        public override int GetHashCode() => HashCode.Combine(Left, Top, Right, Bottom);
+
+        public static bool operator ==(Thickness left, Thickness right) => left.Equals(right);
+
+        public static bool operator !=(Thickness left, Thickness right) => !left.Equals(right);
+
+        public override string ToString() => $"{Left},{Top},{Right},{Bottom}";
+    }
 }
 
 namespace Momoka.Shell.ViewModels
