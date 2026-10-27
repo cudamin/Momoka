@@ -236,6 +236,17 @@ if ($Msix) {
         throw '请求了 -Msix，但 PATH 上没有 winapp（WinApp CLI 0.6+）。装它见 winui-setup 那份技能；这台机器上没有 Windows SDK，所以没有第二条路。'
     }
 
+    # winapp 0.7.0 起会把「vX.Y.Z is available. To update, visit …」写到 stderr。本脚本开头是
+    # $ErrorActionPreference = 'Stop'，PowerShell 5.1 会把 native 命令的 stderr 变成终止错误 ——
+    # 打包其实成功（退出码 0、包也生成了），脚本却停在那一行更新提示上，报出来的还不是真因。
+    # native 工具的成败只认退出码，所以这三处调用统一摘出 Stop 的作用范围。
+    function Invoke-WinApp {
+        param([string[]]$Arguments)
+        $previous = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        try { & $winapp.Path @Arguments } finally { $ErrorActionPreference = $previous }
+    }
+
     New-Item -ItemType Directory -Path (Join-Path $stageRoot 'Assets') -Force | Out-Null
     Copy-Item -Path (Join-Path $publishRoot '*') -Destination $stageRoot -Recurse -Force
 
@@ -301,7 +312,7 @@ if ($Msix) {
             # 自签证书放进 artifacts，跟别的生成物一起 —— 它带私钥，不该进仓库（artifacts 已被忽略）。
             # --if-exists skip 让重复发布不至于每次换一张新证书：换了的话上次信任过的那张就白信任了。
             $cert = Join-Path $outputRootResolved 'devcert.pfx'
-            & $winapp.Path cert generate --manifest $manifestPath --output $cert --if-exists skip --quiet
+            Invoke-WinApp @('cert', 'generate', '--manifest', $manifestPath, '--output', $cert, '--if-exists', 'skip', '--quiet')
             if ($LASTEXITCODE -ne 0) { throw "winapp cert generate 失败，退出码 $LASTEXITCODE。" }
         }
         if (-not (Test-Path -LiteralPath $cert -PathType Leaf)) { throw "找不到证书：$cert" }
@@ -319,7 +330,7 @@ if ($Msix) {
     if ($cert) {
         $packArgs += @('--cert', $cert, '--cert-password', $CertPassword)
     }
-    & $winapp.Path @packArgs
+    Invoke-WinApp $packArgs
     if ($LASTEXITCODE -ne 0) { throw "winapp package 失败，退出码 $LASTEXITCODE。" }
 
     if ($Store) {
@@ -332,7 +343,7 @@ if ($Msix) {
         Write-Output '未签名的包装不上。加 -Sign 让脚本自签，或者用 -CertPath 指一张真证书。'
     } else {
         if (-not [string]::IsNullOrWhiteSpace($Timestamp)) {
-            & $winapp.Path sign $msixPath $cert --password $CertPassword --timestamp $Timestamp
+            Invoke-WinApp @('sign', $msixPath, $cert, '--password', $CertPassword, '--timestamp', $Timestamp)
             if ($LASTEXITCODE -ne 0) { throw "winapp sign（加时间戳）失败，退出码 $LASTEXITCODE。" }
         }
         Write-Output "MSIX 已生成并签名：$msixPath"
