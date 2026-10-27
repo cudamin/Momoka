@@ -22,6 +22,9 @@
 
     <Page.Resources>
         <CollectionViewSource x:Name="CategoryGroupsSource" IsSourceGrouped="True" />
+        <Style x:Key="SettingsSearchTextBox" TargetType="TextBox" BasedOn="{StaticResource AutoSuggestBoxTextBoxStyle}">
+            <Setter Property="Padding" Value="32,6,8,6" />
+        </Style>
         <!-- 分组头：默认的 ListViewHeaderItem 会垫一层底、留一段内边距；多服务器折叠头要的是一行小标题。 -->
         <Style x:Key="SettingsGroupHeader" TargetType="ListViewHeaderItem">
             <Setter Property="Background" Value="Transparent" />
@@ -1403,27 +1406,41 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <AutoSuggestBox
-                    x:Name="SettingsSearchBox"
-                    Margin="0,0,0,12"
-                    PlaceholderText="搜索设置项"
-                    AutomationProperties.Name="搜索设置项"
-                    QueryIcon="Find"
-                    Text="{x:Bind ViewModel.SettingsSearchQuery, Mode=TwoWay}"
-                    ItemsSource="{x:Bind ViewModel.SettingsSearchResults, Mode=OneWay}"
-                    TextMemberPath="Label"
-                    UpdateTextOnSelect="False"
-                    MaxSuggestionListHeight="420"
-                    QuerySubmitted="OnSettingsSearchSubmitted">
-                    <AutoSuggestBox.ItemTemplate>
-                        <DataTemplate x:DataType="vm:SettingsSearchResult">
-                            <StackPanel Spacing="2" Padding="0,4">
-                                <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
-                                <TextBlock Text="{x:Bind Location}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </AutoSuggestBox.ItemTemplate>
-                </AutoSuggestBox>
+                <Grid x:Name="SettingsSearchField" Margin="0,0,0,12"
+                    Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="8">
+                    <AutoSuggestBox
+                        x:Name="SettingsSearchBox"
+                        Background="Transparent" BorderThickness="0" CornerRadius="8"
+                        TextBoxStyle="{StaticResource SettingsSearchTextBox}"
+                        PlaceholderText="搜索设置项"
+                        AutomationProperties.Name="搜索设置项"
+                        Text="{x:Bind ViewModel.SettingsSearchQuery, Mode=TwoWay}"
+                        ItemsSource="{x:Bind ViewModel.SettingsSearchResults, Mode=OneWay}"
+                        TextMemberPath="Label"
+                        UpdateTextOnSelect="False"
+                        MaxSuggestionListHeight="420"
+                        QuerySubmitted="OnSettingsSearchSubmitted">
+                        <AutoSuggestBox.Resources>
+                            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+                            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+                        </AutoSuggestBox.Resources>
+                        <AutoSuggestBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SettingsSearchResult">
+                                <StackPanel Spacing="2" Padding="0,4">
+                                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{x:Bind Location}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </AutoSuggestBox.ItemTemplate>
+                    </AutoSuggestBox>
+                    <Button x:Name="SettingsSearchButton" Width="32" Height="32" MinWidth="0" MinHeight="0"
+                        HorizontalAlignment="Left" VerticalAlignment="Top" Padding="0" CornerRadius="8"
+                        Background="Transparent" BorderThickness="0" AutomationProperties.Name="搜索设置项"
+                        Click="OnSettingsSearchClick">
+                        <FontIcon Glyph="&#xE721;" FontSize="{StaticResource EgBodyFontSize}"
+                            Foreground="{ThemeResource EgTextDimBrush}" />
+                    </Button>
+                </Grid>
                 <TextBlock x:Name="SettingsSearchEmpty" Grid.Row="1" Margin="4,0,4,12"
                     Text="未找到匹配的设置项" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap"
                     automation:AutomationProperties.LiveSetting="Polite"

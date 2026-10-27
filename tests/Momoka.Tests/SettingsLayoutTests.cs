@@ -26,6 +26,11 @@ internal static class SettingsLayoutTests
             Assert.Equal("{x:Bind ViewModel.SettingsSearchQuery, Mode=TwoWay}", search.Attribute("Text")?.Value);
             Assert.Equal("False", search.Attribute("UpdateTextOnSelect")?.Value);
             Assert.Equal("OnSettingsSearchSubmitted", search.Attribute("QuerySubmitted")?.Value);
+            Assert.True(search.Attribute("QueryIcon") is null, "搜索图标已移到左侧，右侧不再重复显示");
+            var searchButton = Named(document, "SettingsSearchButton");
+            Assert.Equal("OnSettingsSearchClick", searchButton.Attribute("Click")?.Value);
+            Assert.Equal("Left", searchButton.Attribute("HorizontalAlignment")?.Value);
+            Assert.Equal(search.Parent, searchButton.Parent);
             Assert.True(Named(document, "CompactCategoryNavigation").Ancestors().Contains(navigation));
         });
         TestHarness.Test("设置布局：正文没有重复分类标题、数量或分隔线", () =>

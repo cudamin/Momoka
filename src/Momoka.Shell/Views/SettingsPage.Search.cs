@@ -18,8 +18,11 @@ public sealed partial class SettingsPage
     private bool HasPendingSearchNavigation => _pendingSearchNavigation?.CategoryKey == ViewModel.SelectedCategory;
 
     private void OnSettingsSearchSubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+        => SubmitSettingsSearch(sender, args.ChosenSuggestion as SettingsSearchResult);
+
+    private void SubmitSettingsSearch(AutoSuggestBox sender, SettingsSearchResult? suggestion)
     {
-        var result = args.ChosenSuggestion as SettingsSearchResult ?? ViewModel.SettingsSearchResults.FirstOrDefault();
+        var result = suggestion ?? ViewModel.SettingsSearchResults.FirstOrDefault();
         if (result is not null) NavigateSettingsSearchResult(result);
         sender.IsSuggestionListOpen = false;
     }

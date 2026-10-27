@@ -66,7 +66,9 @@ internal sealed partial class ShellNavigationProbe
                 }
                 await QueryAsync("WebP 质量");
                 Require(page.ViewModel.SettingsSearchResults.Any(result => result.Label == "WebP 质量"), "未搜索到具体设置行");
-                var submit = Descendants(search).OfType<Button>().Single(button => button.Name == "QueryButton");
+                var submit = Get<Button>(page, "SettingsSearchButton");
+                Require(Box(search, submit).Left >= 0 && Box(search, submit).Right < search.ActualWidth / 2,
+                    "搜索图标没有位于输入框左侧");
                 ((IInvokeProvider)new ButtonAutomationPeer(submit).GetPattern(PatternInterface.Invoke)).Invoke();
                 await LayoutAsync(page);
                 await WaitForSettingsSettledAsync(page);

@@ -113,6 +113,8 @@ public sealed partial class SettingsPage : Page, IShellContent
 
     internal bool IsReady => ViewModel.IsReady;
 
+    private void OnSettingsSearchClick(object sender, RoutedEventArgs args) => SubmitSettingsSearch(SettingsSearchBox, null);
+
     /// <summary>
     /// Whether the 字幕 card's font picker holds the machine's families yet. Read by the self-check only:
     /// the scan lands a moment after the page does, and a report written in that moment would be a report

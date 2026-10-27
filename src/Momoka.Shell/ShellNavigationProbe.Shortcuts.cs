@@ -5,6 +5,7 @@ using Momoka.Infrastructure;
 using Momoka.Mpv;
 using Momoka.MoviePilot;
 using Momoka.Playback;
+using Momoka.Shell.Interop;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
@@ -38,7 +39,7 @@ internal sealed partial class ShellNavigationProbe
         var content = new Grid();
         content.Children.Add(page);
         ThemeHost.Register(content);
-        var settingsWindow = new Window { Content = content, Title = string.Empty };
+        var settingsWindow = SettingsWindow.CreateCaptionedWindow(content);
         _shortcutProbeWindows.Add(settingsWindow); // 最后一个框架窗口关闭会终止应用，整轮结束后统一关闭。
         var handle = Microsoft.UI.Win32Interop.GetWindowFromWindowId(settingsWindow.AppWindow.Id);
         var ownerWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window!.Handle));
@@ -64,6 +65,32 @@ internal sealed partial class ShellNavigationProbe
                 && Math.Abs(rect.Width - width) < 2 && Math.Abs(rect.Height - 900) < 2);
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
+            var globalSearch = Get<AutoSuggestBox>(page, "SettingsSearchBox");
+            var searchBounds = globalSearch.TransformToVisual(content).TransformBounds(
+                new Windows.Foundation.Rect(0, 0, globalSearch.ActualWidth, globalSearch.ActualHeight));
+            var clientOrigin = new NativePoint();
+            Require(Native.ClientToScreen(handle, ref clientOrigin), "无法读取设置窗口客户区起点");
+            Require(Native.GetVisibleFrame(handle, out var windowBounds), "无法读取设置窗口边框");
+            Require(!settingsWindow.ExtendsContentIntoTitleBar && !settingsWindow.AppWindow.TitleBar.ExtendsContentIntoTitleBar,
+                "设置正文仍延伸到标题栏");
+            var scale = content.XamlRoot.RasterizationScale;
+            var captionMiddle = windowBounds.Top + (clientOrigin.Y - windowBounds.Top) / 2;
+            Require(clientOrigin.Y > windowBounds.Top && Hit(windowBounds.Left + windowBounds.Width / 2, captionMiddle) == Native.HitCaption,
+                "设置窗口顶部未保留可拖动标题栏");
+            Require(Hit(windowBounds.Right - (int)Math.Round(20 * scale), captionMiddle) == Native.HitClose,
+                "设置窗口关闭按钮被正文覆盖");
+            foreach (var x in new[] { searchBounds.Left + 4, searchBounds.Right - 4 })
+            {
+                var px = clientOrigin.X + (int)Math.Round(x * scale);
+                var py = clientOrigin.Y + (int)Math.Round((searchBounds.Top + 4) * scale);
+                var hit = Hit(px, py);
+                Require(hit == Native.HitClient, $"搜索框被窗口标题栏截获：宽{width}，命中{hit}");
+            }
+            File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, $"settings-caption-{width}-evidence.txt"),
+                $"标题栏高度={settingsWindow.AppWindow.TitleBar.Height}；客户区顶端={clientOrigin.Y}；窗口顶端={windowBounds.Top}；"
+                + $"搜索框={searchBounds}；缩放={scale}；搜索框左右上缘均命中客户区。\n");
+            int Hit(int x, int y) => (int)(long)Native.SendMessage(handle, Native.WmNcHitTest, IntPtr.Zero,
+                new IntPtr(((y & 0xFFFF) << 16) | (x & 0xFFFF)));
             var card = page.ViewModel.Sections.Single(section => section.Category == "快捷键");
             var originalRows = card.Rows.OfType<SettingShortcutRow>().ToDictionary(row => row.Id);
             var source = card.Rows;

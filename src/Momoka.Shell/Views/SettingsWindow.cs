@@ -133,7 +133,7 @@ internal sealed class SettingsWindow
             // 兜底显示「WinUI Desktop」（当天截图为证）。写一个空串进去，左上角才是真的没有字。图标那
             // 一半在 <see cref="PaintCaption"/>。任务栏上那一格照旧有字有图（进程名和应用图标兜着），
             // 只有标题栏是空的。
-            var window = new Window { Content = frame, Title = string.Empty };
+            var window = CreateCaptionedWindow(frame);
 
             Place(window, owner);
             var created = new SettingsWindow(window, frame);
@@ -148,6 +148,14 @@ internal sealed class SettingsWindow
             return null;
         }
     }
+
+    /// <summary>设置正文从系统标题栏下方开始；显式关闭内容延伸，避免搜索框覆盖窗口按钮。</summary>
+    internal static Window CreateCaptionedWindow(UIElement content) => new()
+    {
+        ExtendsContentIntoTitleBar = false,
+        Content = content,
+        Title = string.Empty
+    };
 
     /// <summary>
     /// Shows the window on a category, building or re-pointing the page inside it.
