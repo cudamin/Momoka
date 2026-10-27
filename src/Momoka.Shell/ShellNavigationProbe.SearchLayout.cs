@@ -168,19 +168,24 @@ internal sealed partial class ShellNavigationProbe
             // 迟到的来源目录不能把用户选的那一个重置掉：目录还在飞的时候搜一次，目录回来之后再搜一次，
             // 两次都必须用用户选的来源（从前这一条靠「切回订阅时自动搜一次」顺手量到，换来源不自动搜之后
             // 改成显式提交）。
+            //
+            // 一次提交会先发 media/search（带来源筛选）、再发 subscribe/ 读订阅状态，最后一条不是媒体搜索，
+            // 所以来源只能按这次提交新增的那条 media/search 量，不拿整份历史的末尾当判据。
             mp.PendingSources = Pending<HttpResponseMessage>();
+            var beforeInFlightSearch = mp.Paths.Count;
             tabs.SelectedIndex = 1;
             await page.SubmitSearchAsync("订阅关键词");
-            Require(mp.Paths.Last().Contains("media_source=douban", StringComparison.Ordinal),
-                $"来源目录在飞时的搜索没有沿用用户选的来源：last={mp.Paths.Last()}");
+            var inFlightSearches = NewMediaSearches(mp.Paths, beforeInFlightSearch);
+            Require(inFlightSearches.Count > 0 && inFlightSearches[^1].Contains("media_source=douban", StringComparison.Ordinal),
+                $"来源目录在飞时的搜索没有沿用用户选的来源：new={string.Join(';', mp.Paths.Skip(beforeInFlightSearch))}");
             mp.PendingSources.TrySetResult(SearchProbeServer.Sources());
             await SettleAsync();
             Require(subscriptionPanel.ViewModel.SelectedSource?.Id == "douban", "迟到的来源目录重置了用户选择");
             var afterCatalogue = mp.Paths.Count;
             await page.SubmitSearchAsync("订阅关键词");
-            await UntilAsync(() => mp.Paths.Count > afterCatalogue);
-            Require(mp.Paths.Last().Contains("media_source=douban", StringComparison.Ordinal),
-                $"来源目录回来后的搜索没有沿用用户选的来源：last={mp.Paths.Last()}");
+            var catalogueReturnedSearches = NewMediaSearches(mp.Paths, afterCatalogue);
+            Require(catalogueReturnedSearches.Count > 0 && catalogueReturnedSearches[^1].Contains("media_source=douban", StringComparison.Ordinal),
+                $"来源目录回来后的搜索没有沿用用户选的来源：new={string.Join(';', mp.Paths.Skip(afterCatalogue))}");
             mp.PendingSources = null;
             tabs.SelectedIndex = 2;
             await UntilAsync(() => !Get<MoviePilotVersionsView>(page, "MoviePilotResources").ViewModel.Busy);
@@ -235,6 +240,14 @@ internal sealed partial class ShellNavigationProbe
         path.Contains("media/search", StringComparison.Ordinal)
         || path.Contains("search/title", StringComparison.Ordinal)
         || path.Contains("search/media/", StringComparison.Ordinal));
+
+    /// <summary>
+    /// 从 <paramref name="from"/> 之后新增的媒体搜索请求。一次提交在 <c>media/search</c> 后面还要发一条
+    /// <c>subscribe/</c> 读订阅状态（结果拿去标注已订阅），所以一次提交的最后一条路径不是媒体搜索；
+    /// 量「这次提交用没用用户选的来源」只能看这一条。
+    /// </summary>
+    private static List<string> NewMediaSearches(IReadOnlyList<string> paths, int from) =>
+        paths.Skip(from).Where(path => path.Contains("media/search?", StringComparison.Ordinal)).ToList();
 
     private sealed class SearchProbeServer : HttpMessageHandler
     {
