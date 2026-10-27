@@ -261,17 +261,27 @@ internal static partial class ShellSelfCheck
                 ? "字幕卡上没有预览那一行"
                 : $"屏上那条画的是「{previewRow.Model.Text}」（{previewRow.Model.FontFamily}）；{previewProbe.Detail}");
 
-        // 快捷键那张卡（「参考上图在设置中新增快捷键功能」，2026-09-08）：问两件事 —— 卡上真有那 19 行可重绑的行
-        // （数得对），以及行本身那根「抓到键 → 交回 VM」的线通不通（假行拨两下，SettingShortcutRow.Probe）。真正的
-        // 判断（键归谁、冲不冲突）在 Core 的 ShortcutCatalog、单测钉着；派发那一头（每个动作都有处理器、默认键都拼
-        // 得回来）由播放页的 ProbeShortcuts 另外一关盯。
+        // 快捷键那张卡（「参考上图在设置中新增快捷键功能」，2026-09-08）：问两件事 —— 卡上真有那些可重绑的行
+        // （一条不多一条不少），以及行本身那根「抓到键 → 交回 VM」的线通不通（假行拨两下，SettingShortcutRow.Probe）。
+        // 真正的判断（键归谁、冲不冲突）在 Core 的 ShortcutCatalog、单测钉着；派发那一头（每个动作都有处理器、默认键
+        // 都拼得回来）由播放页的 ProbeShortcuts 另外一关盯。
+        //
+        // **该有几行是跟着设置走的**：弹幕那四条只在弹幕能画出来时才排出来（ShortcutCatalog.Available）。原先这里拿
+        // 整张表 Actions 去比，2026-10-27 本机把弹幕关掉之后当场红成「59 行（应当 63 行）」—— 卡片是对的，判据错了。
+        // 现在按同一份 Core 判据取期望值，并逐条核 Id：少一条别的、混进一条弹幕的都还是红。
         var shortcutRows = page.ViewModel.Sections
             .FirstOrDefault(section => section.Category == "快捷键")?.Rows ?? [];
-        var shortcutCount = shortcutRows.OfType<SettingShortcutRow>().Count();
+        var danmakuReady = page.ViewModel.DanmakuReady;
+        var expectedShortcuts = ShortcutCatalog.Available(danmakuReady);
+        var shortcutIds = shortcutRows.OfType<SettingShortcutRow>().Select(row => row.Id).ToHashSet(StringComparer.Ordinal);
+        var expectedIds = expectedShortcuts.Select(action => action.Id).ToHashSet(StringComparer.Ordinal);
         var shortcutProbe = SettingShortcutRow.Probe();
 
-        check("快捷键行", shortcutCount == ShortcutCatalog.Actions.Count && shortcutProbe.Ok,
-            $"{shortcutCount} 行可重绑（应当 {ShortcutCatalog.Actions.Count} 行）；{shortcutProbe.Detail}");
+        check("快捷键行", shortcutIds.SetEquals(expectedIds) && shortcutProbe.Ok,
+            $"{shortcutIds.Count} 行可重绑（应当 {expectedIds.Count} 行，弹幕可用={danmakuReady}）；"
+            + (shortcutIds.SetEquals(expectedIds) ? "" : $"差集：{string.Join('、', expectedIds.Except(shortcutIds))}；"
+                + $"多的：{string.Join('、', shortcutIds.Except(expectedIds))}；")
+            + shortcutProbe.Detail);
 
         // 主题那一行的色板。什么都不点：这一行只在点中一块时写盘，而量它不需要真换一次主题 —— 角标落在存着
         // 的那一套上、几块颜色互不相同、屏上块数对得上，坏法就都在这三句里了（见 MeasureThemeSwatches）。

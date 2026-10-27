@@ -65,6 +65,18 @@ public static class ShortcutCatalog
     /// </summary>
     public static IReadOnlyList<ShortcutAction> Actions { get; } = Build();
 
+    /// <summary>
+    /// 此刻设置页该列出的动作：弹幕那四条只在弹幕真的能画出来的时候才排得动 —— 服务关着、或者播放后端
+    /// 画不了弹幕时按下去什么都不会发生，所以跟着入口一起收起（CLAUDE.md「功能可用性与显隐」）。
+    /// 绑定本身留着不动：条件恢复后照旧显示用户改过的键。
+    /// </summary>
+    public static IReadOnlyList<ShortcutAction> Available(bool danmakuReady) => danmakuReady
+        ? Actions
+        : Actions.Where(action => !IsDanmaku(action)).ToList();
+
+    /// <summary>这条动作是不是弹幕那一组（Id 里带 danmaku 的那四条）。</summary>
+    public static bool IsDanmaku(ShortcutAction action) => action.Id.Contains("danmaku", StringComparison.Ordinal);
+
     private static KeyStroke K(string key, bool ctrl = false, bool shift = false, bool alt = false) =>
         new(key, ctrl, alt, shift);
 
