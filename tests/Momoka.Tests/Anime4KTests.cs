@@ -141,6 +141,82 @@ internal static class Anime4KTests
                             }
         });
 
+        // 「新增功能开关，播放动漫时自动启用 anime4k」（用户的话，2026-10-27）。开关是自动选择的一个分支，
+        // 不是第二个手动指定：手选优先，识别关掉就不生效，总开关和 8K 保护照旧先说话。
+        Test("Anime4K：动画自动开关只换识别为动画的片源，真人、手选与各道保护各归各位", () =>
+        {
+            var settings = new ShaderAutomationSettings
+            {
+                Enabled = true,
+                AutoAnimeProfile = true,
+                AutoAnime4K = true,
+                Gpu = GpuTier.Low
+            };
+
+            var animated = settings.Resolve(true, 1920, 1080, 2560, 1440);
+            Assert.Equal(ShaderGroupCatalog.Anime4KId, animated.Group?.Id);
+            Assert.Contains("动画自动", animated.Reason);
+            Assert.Contains("Anime4K", animated.Reason);
+            Assert.Equal(string.Join("|", Group().Files), string.Join("|", animated.Group!.Files),
+                "自动挑中的就是手动那条固定链本身，不是另一份近似的链");
+
+            var live = settings.Resolve(false, 1920, 1080, 2560, 1440);
+            Assert.Equal("live-slight", live.Group?.Id, "真人片源仍走自动档位");
+
+            // 关掉自动识别动画之后没有「动画」可言，这个开关也就不该挑中任何片源。
+            settings.AutoAnimeProfile = false;
+            var unidentified = settings.Resolve(true, 1920, 1080, 2560, 1440);
+            Assert.Equal("live-slight", unidentified.Group?.Id);
+            Assert.DoesNotContain("Anime4K", unidentified.Reason);
+
+            // 手选一条链之后，自动开关不许把它顶掉。
+            settings.AutoAnimeProfile = true;
+            settings.ManualGroup = "anime-sweet";
+            var picked = settings.Resolve(true, 1920, 1080, 2560, 1440);
+            Assert.Equal("anime-sweet", picked.Group?.Id);
+            Assert.Contains("手动指定", picked.Reason);
+
+            settings.ManualGroup = "";
+            settings.Enabled = false;
+            Assert.Null(settings.Resolve(true, 1920, 1080, 2560, 1440).Group);
+
+            settings.Enabled = true;
+            Assert.Null(settings.Resolve(true, 7680, 4320, 2560, 1440).Group);
+
+            settings.DisableForUltraHighRes = false;
+            settings.AutoAnime4K = false;
+            Assert.Equal("anime-slight", settings.Resolve(true, 1920, 1080, 2560, 1440).Group?.Id,
+                "关掉开关就回到动画半表的 ArtCNN 自动链");
+        });
+
+        Test("Anime4K：自动挑中的固定链不随帧率与老片源换链，理由里写明代价", () =>
+        {
+            var settings = new ShaderAutomationSettings { Enabled = true, AutoAnime4K = true, Gpu = GpuTier.High };
+
+            var dvd = settings.Resolve(true, 720, 480, 2560, 1440, 24);
+            Assert.Equal(ShaderGroupCatalog.Anime4KId, dvd.Group?.Id);
+            Assert.Contains("固定链不含老片源修复", dvd.Reason);
+            Assert.DoesNotContain("老片源修复", dvd.Group!.Name);
+            Assert.False(dvd.Group.Vintage);
+
+            var fast = settings.Resolve(true, 1920, 1080, 2560, 1440, 60);
+            Assert.Equal(ShaderGroupCatalog.Anime4KId, fast.Group?.Id);
+            Assert.Contains("仍用固定链", fast.Reason);
+            Assert.DoesNotContain("已换成便宜的链", fast.Reason, "固定链不做自动降级替换");
+        });
+
+        Test("Anime4K：动画自动开关缺键读成关，打开后往返保留", () =>
+        {
+            var defaults = SettingsMigration.NewDefaults();
+            Assert.False(defaults.Shaders.AutoAnime4K, "装机默认关，缺键读出来也是关");
+            defaults.Shaders.AutoAnime4K = true;
+            var loaded = SettingsMigration.FromJson(
+                JsonSerializer.Serialize(defaults, SettingsSerializer.WriteOptions), PassthroughSecretProtector.Instance);
+            Assert.True(loaded.Shaders.AutoAnime4K);
+            Assert.True(defaults.Shaders.Snapshot().AutoAnime4K, "快照要带上它，否则播放期读到的还是旧值");
+            Assert.False(new ShaderAutomationSettings().AutoAnime4K);
+        });
+
         Test("Anime4K：启动、切到其他链、返回和关闭都恢复本场播放的参数", () =>
         {
             var preset = Group();

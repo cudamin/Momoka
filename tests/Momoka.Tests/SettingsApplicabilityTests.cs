@@ -67,6 +67,26 @@ internal static class SettingsApplicabilityTests
             Assert.Equal(1, state.Settings.Saves);
             Assert.Equal(0, state.Pushes);
         });
+        // 「新增功能开关，播放动漫时自动启用 anime4k」（用户的话，2026-10-27）。这一行只在「自动识别动画」
+        // 打开时才有片源可选，所以跟着它收放；收起时不改存着的偏好，恢复后原值回来。
+        TestHarness.Test("R-049 动画自动使用 Anime4K 跟随自动识别动画显隐，隐藏不清空偏好", () =>
+        {
+            var state = shell.Create(settings => settings.Shaders.AutoAnimeProfile = true);
+            Assert.True(state.Labels(ShaderTitle).Contains("动画自动使用 Anime4K"));
+            state.Toggle(ShaderTitle, "动画自动使用 Anime4K", true);
+            Assert.True(state.Settings.Settings.Shaders.AutoAnime4K);
+
+            state.Toggle(ShaderTitle, "自动识别动画", false);
+            Assert.False(state.Labels(ShaderTitle).Contains("动画自动使用 Anime4K"),
+                "识别关掉后这一行选不中任何片源，应当收起");
+            Assert.True(state.Settings.Settings.Shaders.AutoAnime4K, "隐藏不清空偏好");
+
+            state.Toggle(ShaderTitle, "自动识别动画", true);
+            Assert.True(state.Labels(ShaderTitle).Contains("动画自动使用 Anime4K"));
+            Assert.True(state.Get<bool>(state.Row(ShaderTitle, "动画自动使用 Anime4K"), "IsOn"),
+                "条件恢复后重新显示原值");
+            Assert.Equal(3, state.Settings.Saves);
+        });
 
         foreach (var mode in new[] { "tonemap", "", "passthrough" })
         {

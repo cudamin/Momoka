@@ -190,11 +190,12 @@ public sealed partial class SettingsViewModel
         new(label, Annotate(note + " 亮度按整数 nits 保存，小数四舍五入。", option)!, HdrOptions.MinimumNits, HdrOptions.MaximumNits,
             fallback, read(), write, Save, HdrOptions.ClampNits);
 
-    private void RefreshShaderCard()
-    {
-        var section = Sections.FirstOrDefault(section => section.Title == "画质与着色器");
-        section?.UpdateRows(ShaderCard().Rows);
-    }
+    /// <summary>
+    /// 重建这张卡的行。走 <see cref="ApplicableShaderCard"/> 而不是 <see cref="ShaderCard"/>：真实页面挂的是
+    /// 前者（「启用着色器」那一行的 after 已经接成刷新显隐），用后者重建会把那一行换回只保存、不刷新的版本，
+    /// 总开关的显隐从此当场失灵。2026-10-27 新增的「动画自动使用 Anime4K」要靠同一条链跟着「自动识别动画」收放。
+    /// </summary>
+    private void RefreshShaderCard() => RefreshShaderApplicability();
 
     private SettingSection ShaderCard()
     {
@@ -232,10 +233,18 @@ public sealed partial class SettingsViewModel
             EqualityComparer<string>.Default, after: RefreshShaderCard));
         if (!fixedChain)
         {
+            // 自动识别动画决定「这片算不算动画」，下面那条 Anime4K 只在它打开时才有意义，所以跟着它显隐：
+            // 关掉识别，Anime4K 也选不中任何片源（见 ShaderAutomationSettings.Resolve 的 animated 判据）。
             rows.Add(Toggle("自动识别动画", "按 Emby 类型与标签匹配当前关键词：" + string.Join("、", shaders.AnimeKeywords)
-                + "。命中后使用动画链，手动指定的档位优先。",
-                () => shaders.AutoAnimeProfile, value => shaders.AutoAnimeProfile = value));
-            rows.Add(Toggle("老片源修复", "高度不超过 576 的片源增加 hdeband；中高档再增加降噪。会代替上方内置去色带，也可能损失颗粒与细节。",
+                + "。命中后按下方选择使用动画链或 Anime4K，手动指定的档位优先。",
+                () => shaders.AutoAnimeProfile, value => shaders.AutoAnimeProfile = value, after: RefreshShaderCard));
+            if (shaders.AutoAnimeProfile)
+                rows.Add(Toggle("动画自动使用 Anime4K", "识别为动画的片源改用 Anime4K 柔化修复链（Krig + Restore Soft M + Clamp + SSim），"
+                    + "不再按放大倍数选 ArtCNN。这条链固定不变，不随显卡档位、老片源与帧率调整；"
+                    + "高帧率或大倍数片源会比自动链更容易卡顿。手动指定的档位仍然优先。",
+                    () => shaders.AutoAnime4K, value => shaders.AutoAnime4K = value, "glsl-shaders"));
+            rows.Add(Toggle("老片源修复", "高度不超过 576 的片源增加 hdeband；中高档再增加降噪。会代替上方内置去色带，也可能损失颗粒与细节。"
+                + "Anime4K 是固定链，动画自动使用它时这一项不叠加。",
                 () => shaders.RestoreVintageSources, value => shaders.RestoreVintageSources = value));
         }
         rows.Add(Toggle("8K 片源关闭着色器", "宽 ≥7000 或高 ≥3000 时不自动加载任何链，避免 GPU 过载。",

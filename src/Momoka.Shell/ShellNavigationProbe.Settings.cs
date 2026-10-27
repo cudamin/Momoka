@@ -1390,7 +1390,8 @@ internal sealed partial class ShellNavigationProbe
     private async Task SettingsAnime4KAsync(SettingsPage page, Fixture fixture, int width)
     {
         var shaders = fixture.Settings.Shaders;
-        var original = (shaders.Enabled, shaders.ManualGroup, shaders.Gpu, shaders.AutoAnimeProfile, shaders.RestoreVintageSources);
+        var original = (shaders.Enabled, shaders.ManualGroup, shaders.Gpu, shaders.AutoAnimeProfile,
+            shaders.RestoreVintageSources, shaders.AutoAnime4K);
         try
         {
             shaders.Enabled = true;
@@ -1454,10 +1455,31 @@ internal sealed partial class ShellNavigationProbe
             await SettleAsync();
             await SaveReturnFrameAsync(page, $"settings-anime4k-{width}.png");
             await SaveProbeScreenAsync($"settings-anime4k-{width}-screen.png");
+
+            // 「动画自动使用 Anime4K」（2026-10-27）：只在自动识别动画打开时出现，打开后显示已保存的值。
+            // 固定链的手动选择把这一行藏起来，所以先把手动档位退回自动。
+            shaders.ManualGroup = "";
+            shaders.AutoAnimeProfile = true;
+            shaders.AutoAnime4K = true;
+            await page.ViewModel.ReloadAsync();
+            page.SelectedCategory = "视频输出";
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            await ScrollProbeAsync(scroll, scroll.ScrollableHeight);
+            await LayoutAsync(page);
+            var autoRow = page.ViewModel.Sections.Single(section => section.Title == "画质与着色器")
+                .Rows.OfType<SettingToggleRow>().SingleOrDefault(row => row.Label == "动画自动使用 Anime4K");
+            Require(autoRow is not null && autoRow.IsOn, "自动识别动画打开后应出现 Anime4K 自动行并显示已保存的值");
+            var autoSwitch = Descendants(page).OfType<ToggleSwitch>()
+                .SingleOrDefault(control => AutomationProperties.GetName(control) == "动画自动使用 Anime4K");
+            Require(autoSwitch is not null && autoSwitch.IsOn, "真实开关未按预期出现或状态不对");
+            await SaveReturnFrameAsync(page, $"settings-anime4k-auto-{width}.png");
+            await SaveProbeScreenAsync($"settings-anime4k-auto-{width}-screen.png");
         }
         finally
         {
-            (shaders.Enabled, shaders.ManualGroup, shaders.Gpu, shaders.AutoAnimeProfile, shaders.RestoreVintageSources) = original;
+            (shaders.Enabled, shaders.ManualGroup, shaders.Gpu, shaders.AutoAnimeProfile,
+                shaders.RestoreVintageSources, shaders.AutoAnime4K) = original;
             await page.ViewModel.ReloadAsync();
             await WaitForSettingsSettledAsync(page);
         }

@@ -1106,6 +1106,27 @@ public sealed class ShaderAutomationSettings
     public bool AutoAnimeProfile { get; set; } = true;
 
     /// <summary>
+    /// 动画自动使用 Anime4K —— 用户 2026-10-27 要的那个开关（「新增功能开关，播放动漫时自动启用 anime4k」）。
+    /// 命中 <see cref="AutoAnimeProfile"/> 的片源不再按放大倍数选动画半表的 ArtCNN 链，而是换成
+    /// <see cref="Mpv.ShaderGroupCatalog.Anime4KId"/> 那条固定柔化修复链；真人片源仍走自动档位。
+    /// <para>
+    /// <b>它是「自动选择」的一个分支，不是第二个手动指定。</b>优先级从高到低：<see cref="ManualGroup"/>（用户手选，
+    /// 连动画识别都不问）、本开关、<see cref="Mpv.ShaderGroupCatalog.Resolve"/> 的自动档位。所以手选一条链之后
+    /// 再打开它不会把用户的选择顶掉 —— 顶掉用户的选择正是 <see cref="ManualGroup"/> 注释里说的那种「覆盖被覆盖」。
+    /// </para>
+    /// <para>
+    /// <b>固定链就是固定链：</b>Anime4K 这一条不看显卡档位、放大倍数、老片源与帧率，这是
+    /// <see cref="Mpv.ShaderGroupCatalog"/> 里固定配置的定义，本开关只决定「什么时候挑它」，不改变「它是什么」。
+    /// 代价写进了设置页那一行的说明：高帧率或大倍数时它比自动链更容易卡，而且不会像自动链那样退成便宜的链。
+    /// </para>
+    /// <para>
+    /// 装机默认关，与 <see cref="Enabled"/> 同一个理由：它换的是画面而不只是锐度，该由用户自己开。缺这个键的旧
+    /// 设置文件读出来就是关，所以不需要一条迁移。
+    /// </para>
+    /// </summary>
+    public bool AutoAnime4K { get; set; }
+
+    /// <summary>
     /// 老片源修复: whether a source of 576 lines or fewer gets <c>hdeband</c> — and, above the low column,
     /// <c>nlmeans_light</c> — in front of its chain. On by default, because a DVD transfer has banding and
     /// grain whatever it is being scaled to, and off is here because denoising is the one thing on this list
@@ -1134,6 +1155,7 @@ public sealed class ShaderAutomationSettings
         Gpu = Gpu,
         ManualGroup = ManualGroup,
         AutoAnimeProfile = AutoAnimeProfile,
+        AutoAnime4K = AutoAnime4K,
         RestoreVintageSources = RestoreVintageSources,
         DisableForUltraHighRes = DisableForUltraHighRes,
         AnimeKeywords = [.. AnimeKeywords]
@@ -1197,7 +1219,17 @@ public sealed class ShaderAutomationSettings
         // the pick and then having the metadata override the override is not an override. 老片源 and 高帧率
         // still apply to automatic cells; explicitly named fixed configurations keep their own chain.
         var picked = Mpv.ShaderGroupCatalog.Find(ManualGroup, Gpu, vintage, fastMotion);
-        var group = picked ?? Mpv.ShaderGroupCatalog.Resolve(animated, measure.Tier, Gpu, vintage, fastMotion);
+
+        // 动画自动使用 Anime4K: a branch of the automatic choice, not a second override. It sits below
+        // ManualGroup (a hand-picked chain asks no questions about the picture) and above the 档位表, and it
+        // only applies when 自动识别动画 left <c>animated</c> true. The 老片源/高帧率 axes are
+        // deliberately not consulted: Anime4K is a fixed configuration, so it keeps its own chain whatever the
+        // source turns out to be — see the property's remarks for why that is not a substitution.
+        var autoAnime4K = picked is null && animated && AutoAnime4K
+            ? Mpv.ShaderGroupCatalog.Find(Mpv.ShaderGroupCatalog.Anime4KId, Gpu, vintage, fastMotion)
+            : null;
+
+        var group = picked ?? autoAnime4K ?? Mpv.ShaderGroupCatalog.Resolve(animated, measure.Tier, Gpu, vintage, fastMotion);
 
         var line = Mpv.ShaderTier.Explain(measure, group.Animated, Gpu, outputWidth, outputHeight, group);
         if (group.Vintage) line += " · 老片源修复";
@@ -1207,8 +1239,18 @@ public sealed class ShaderAutomationSettings
         if (group.FastMotion && group.Animated && group.Tier != Mpv.UpscaleTier.Shrink)
             line += $" · 高帧率片源（超过 {Mpv.ShaderTier.FastMotionFps:0} fps），已换成便宜的链";
 
+        // 固定链不跟这两根轴，所以它真发生时要把代价说出来 —— 否则日志里「老动画没去带」「60fps 卡顿」会像是
+        // 没人想过，而不是一个被接受的取舍。
+        if (autoAnime4K is not null)
+        {
+            if (vintage) line += " · 固定链不含老片源修复";
+            if (fastMotion) line += $" · 高帧率片源（超过 {Mpv.ShaderTier.FastMotionFps:0} fps）仍用固定链，可能卡顿";
+        }
+
         if (picked is not null)
             line = group.NamedId.Length > 0 ? $"手动指定 · {group.Name} · {line}" : $"手动指定 · {line}";
+        else if (autoAnime4K is not null)
+            line = $"动画自动 · {group.Name} · {line}";
 
         return (group, line, measure);
     }

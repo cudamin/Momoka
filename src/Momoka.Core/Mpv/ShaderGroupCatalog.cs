@@ -288,6 +288,14 @@ public static class ShaderGroupCatalog
 
     private static readonly ShaderGroup[] NamedGroups = [MakeAnime4K()];
 
+    /// <summary>
+    /// The fixed Anime4K restoration chain's stable id. Also what 动画自动使用 Anime4K
+    /// (<see cref="Momoka.Configuration.ShaderAutomationSettings.AutoAnime4K"/>) selects for an animated source, which
+    /// is why it is a constant rather than a literal in two places: a typo there would be a switch that silently
+    /// chooses nothing, and the fallback would be the ArtCNN chain it was meant to replace.
+    /// </summary>
+    public const string Anime4KId = "anime4k";
+
     private static ShaderGroup MakeAnime4K()
     {
         // Pinned dyphire/mpv-config b6c687b [Anime4K], byte-identical to the provided 2026.08.12 files.
@@ -301,7 +309,7 @@ public static class ShaderGroupCatalog
         ];
         return new ShaderGroup(true, UpscaleTier.Shrink, false, false, shaders, OptionsFor(shaders))
         {
-            NamedId = "anime4k",
+            NamedId = Anime4KId,
             NamedName = "Anime4K · 柔化修复"
         };
     }
