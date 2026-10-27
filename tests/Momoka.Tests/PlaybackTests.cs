@@ -5090,6 +5090,71 @@ internal static class PlaybackTests
             }
         });
 
+        Test("画面菜单：带快捷键的行都指着一个真动作", () =>
+        {
+            var actions = ShortcutCatalog.Actions.Select(action => action.Id).ToHashSet(StringComparer.Ordinal);
+            var rows = PlayerMenuCatalog.Flatten(PlayerMenuCatalog.Root)
+                .Where(node => node.Shortcut is not null).ToList();
+
+            Assert.True(rows.Count >= 20, $"带快捷键的行只有 {rows.Count} 行");
+            foreach (var node in rows)
+            {
+                Assert.Equal(PlayerMenuKind.Command, node.Kind);
+                Assert.True(actions.Contains(node.Shortcut!), $"「{node.Label}」指向不存在的动作 {node.Shortcut}");
+            }
+
+            // 抽几条人工对过的：目录搬自 input.conf，动作表是设置页那份，两边靠 Shortcut 这个 Id 对上。
+            Assert.Equal("chapter-previous", Row("上一章节").Shortcut);
+            Assert.Equal("screenshot", Row("截图 — 当前尺寸（含字幕和着色器）").Shortcut);
+            Assert.Equal("subtitle-seek-next", Row("跳转下一条字幕").Shortcut);
+            Assert.Equal("toggle-loop", Row("开/关 循环播放").Shortcut);
+
+            // 没有等价按键的行不许硬凑：裁切填充、宽高比子菜单都没有快捷键。
+            Assert.Null(Row("开/关 裁切填充").Shortcut);
+            Assert.Null(PlayerMenuCatalog.Root.Single(node => node.Label == "画面").Children
+                .Single(node => node.Label == "切换 宽高比").Shortcut);
+
+            static PlayerMenuNode Row(string label) =>
+                PlayerMenuCatalog.Flatten(PlayerMenuCatalog.Root)
+                    .Single(node => node.Kind == PlayerMenuKind.Command && node.Label == label);
+        });
+
+        Test("画面菜单：右列快捷键跟着当前绑定走", () =>
+        {
+            var defaults = PlayerMenuCatalog.ShortcutTexts(new Dictionary<string, string>());
+            Assert.Equal("PageUp", defaults.GetValueOrDefault("chapter-previous"));
+            Assert.Equal("Ctrl + I", defaults.GetValueOrDefault(PlayerMenuCatalog.PlaybackInfoShortcut));
+
+            // 重绑显示新键；显式解绑后那一行不显示右列，而不是继续报默认键。
+            var rebound = PlayerMenuCatalog.ShortcutTexts(
+                new Dictionary<string, string> { ["chapter-previous"] = "Tab" });
+            Assert.Equal("Tab", rebound.GetValueOrDefault("chapter-previous"));
+
+            var unbound = PlayerMenuCatalog.ShortcutTexts(
+                new Dictionary<string, string> { ["chapter-previous"] = "" });
+            Assert.False(unbound.ContainsKey("chapter-previous"), "解绑后不该还显示默认键");
+        });
+
+        Test("画面菜单：显示的快捷键与该行命令做同一件事", () =>
+        {
+            foreach (var node in PlayerMenuCatalog.Flatten(PlayerMenuCatalog.Root)
+                .Where(node => node.Shortcut is not null))
+            {
+                if (AdditionalShortcuts.Command(node.Shortcut!) is not { } command) continue;
+
+                if (node.Shortcut is "seek-backward-fine" or "seek-forward-fine")
+                {
+                    // mpv 的 seek 不带 absolute/relative 时默认 relative —— 「exact」与「relative+exact」同义。
+                    Assert.Equal(command[1], node.Commands[0][1]);
+                    Assert.Equal("relative+exact", command[^1]);
+                    Assert.Equal("exact", node.Commands[0][^1]);
+                    continue;
+                }
+
+                Assert.Equal(string.Join(' ', command), string.Join(' ', node.Commands[0]));
+            }
+        });
+
         Test("画面菜单：同一层里没有两行同名", () =>
         {
             Check(PlayerMenuCatalog.Root, "根");
