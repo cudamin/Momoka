@@ -10,29 +10,30 @@ namespace Momoka.Danmaku;
 /// <summary>
 /// 弹弹play 开放弹幕网络 v2。固定官方来源、签名鉴权、限长读取与两小时缓存；不访问媒体服务器或视频字节。
 /// comment 接口的 302 只允许官方 HTTPS 子域，跨来源不传任何鉴权头。
+/// <para>
+/// 应用凭据只有一个来源：Momoka 内置端点。2026-10-27 起不再支持用户自己的 AppId／AppSecret，所以这里
+/// 没有「自定义凭据」的分支，<see cref="IDandanPlayCredentialSource"/> 只是给离线夹具留的替换点。
+/// </para>
 /// </summary>
 public sealed partial class DandanPlayClient : IDisposable
 {
     public const string ApiOrigin = "https://api.dandanplay.net";
-    public const string DeveloperUrl = "https://dev.dandanplay.com";
     public const string WebsiteUrl = "https://www.dandanplay.com";
     public const int MaximumResponseBytes = 32 * 1024 * 1024;
     private static readonly TimeSpan CacheLifetime = TimeSpan.FromHours(2);
     private readonly AppSettings _settings;
-    private readonly DandanPlayCredentials _credentials;
-    private readonly DandanPlayBuiltInCredentialSource? _builtIn;
+    private readonly IDandanPlayCredentialSource? _credentials;
     private readonly string _cacheDirectory;
     private readonly HttpClient _http;
     private readonly Func<DateTimeOffset> _clock;
     private readonly SemaphoreSlim _requests = new(1, 1);
 
-    public DandanPlayClient(AppSettings settings, DandanPlayCredentials credentials, string cacheDirectory,
+    public DandanPlayClient(AppSettings settings, string cacheDirectory,
         HttpMessageHandler? handler = null, Func<DateTimeOffset>? clock = null,
-        DandanPlayBuiltInCredentialSource? builtIn = null)
+        IDandanPlayCredentialSource? credentials = null)
     {
         _settings = settings;
         _credentials = credentials;
-        _builtIn = builtIn;
         _cacheDirectory = cacheDirectory;
         _clock = clock ?? (() => DateTimeOffset.UtcNow);
         _http = new HttpClient(handler ?? new SocketsHttpHandler
@@ -110,7 +111,7 @@ public sealed partial class DandanPlayClient : IDisposable
             await _requests.WaitAsync(deadline.Token).ConfigureAwait(false);
             entered = true;
 
-            // 内置凭据可能已被轮换：401/403 时丢掉缓存、换一份新凭据再试一次；自定义凭据不重试。
+            // 内置凭据可能已被轮换：401/403 时丢掉缓存、换一份新凭据再试一次。
             for (var attempt = 0; ; attempt++)
             {
                 var connection = await ResolveAsync(deadline.Token).ConfigureAwait(false);
@@ -143,17 +144,15 @@ public sealed partial class DandanPlayClient : IDisposable
                     }
                     if (!response.IsSuccessStatusCode)
                     {
-                        if (connection.BuiltIn is not null && attempt == 0
+                        if (attempt == 0
                             && response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                         {
-                            _builtIn!.Invalidate();
+                            _credentials?.Invalidate();
                             retryAuthentication = true;
                             break;
                         }
                         throw new DandanPlayException(response.StatusCode switch
                         {
-                            HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden when connection.BuiltIn is not null =>
-                                "内置弹幕凭据鉴权失败，请稍后重试；如果持续失败，请在设置 → 弹幕 中改用你自己的应用凭据。",
                             HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => AuthenticationError(response),
                             HttpStatusCode.TooManyRequests => "弹弹play 请求额度或频率受限，请稍后重试。",
                             _ => $"弹弹play 请求失败（HTTP {(int)response.StatusCode}），请稍后重试。",
@@ -178,39 +177,20 @@ public sealed partial class DandanPlayClient : IDisposable
         finally { if (entered) _requests.Release(); }
     }
 
-    private sealed record Connection(string AppId, string Secret, string Identity, DandanPlayCredential? BuiltIn);
+    private sealed record Connection(string AppId, string Secret, string Identity);
 
     private async Task<Connection> ResolveAsync(CancellationToken cancellationToken)
     {
-        var danmaku = _settings.Danmaku;
-        if (!danmaku.Enabled) throw new DandanPlayException("请先在设置 → 弹幕 中开启弹弹play。");
-
-        if (danmaku.CredentialSource == DanmakuCredentialSource.Custom)
-        {
-            var appId = (danmaku.AppId ?? "").Trim();
-            var protectedSecret = danmaku.ProtectedAppSecret ?? "";
-            var secret = _credentials.GetSecret(danmaku);
-            if (string.IsNullOrWhiteSpace(appId) || appId.Length > 200 || appId.Any(char.IsControl) || secret.Length == 0)
-                throw new DandanPlayException("请在设置 → 弹幕 中填写有效的 AppId 和 AppSecret；复制到其他 Windows 账号的密钥需要重新输入。");
-            return new(appId, secret, protectedSecret, null);
-        }
-
-        if (_builtIn is null)
-            throw new DandanPlayException("内置弹幕凭据尚未配置，请在设置 → 弹幕 中改用你自己的应用凭据。");
-        var credential = await _builtIn.GetAsync(cancellationToken).ConfigureAwait(false);
+        if (!_settings.Danmaku.Enabled) throw new DandanPlayException("请先在设置 → 弹幕 中开启弹弹play。");
+        if (_credentials is null) throw new DandanPlayException("内置弹幕凭据尚未配置，请稍后重试。");
+        var credential = await _credentials.GetAsync(cancellationToken).ConfigureAwait(false);
+        // 缓存按凭据身份隔离：端点换了一枚密钥，旧的搜索结果与成功状态不能继续沿用。
         var identity = "builtin:" + credential.KeyId + ":" + Convert.ToHexStringLower(
             SHA256.HashData(Encoding.UTF8.GetBytes(credential.Secret)));
-        return new(credential.AppId, credential.Secret, identity, credential);
+        return new(credential.AppId, credential.Secret, identity);
     }
 
-    private bool IsCurrent(Connection connection)
-    {
-        if (!_settings.Danmaku.Enabled) return false;
-        if (connection.BuiltIn is not null) return _settings.Danmaku.CredentialSource != DanmakuCredentialSource.Custom;
-        return _settings.Danmaku.CredentialSource == DanmakuCredentialSource.Custom
-            && string.Equals(connection.AppId, (_settings.Danmaku.AppId ?? "").Trim(), StringComparison.Ordinal)
-            && string.Equals(connection.Identity, _settings.Danmaku.ProtectedAppSecret ?? "", StringComparison.Ordinal);
-    }
+    private bool IsCurrent() => _settings.Danmaku.Enabled;
 
     private static string AuthenticationError(HttpResponseMessage response)
     {
@@ -219,10 +199,10 @@ public sealed partial class DandanPlayClient : IDisposable
         return reason switch
         {
             "Invalid Timestamp" => "弹弹play 鉴权失败：系统时间与服务器不一致，请同步 Windows 时间后重试。",
-            "Invalid AppId" => "弹弹play 鉴权失败：AppId 或对应密钥无效，请核对开发者中心的应用凭据。",
-            "Invalid Signature" or "Invalid AppSecret" => "弹弹play 鉴权失败：密钥或签名无效，请重新保存对应应用的 AppSecret。",
+            "Invalid AppId" => "弹弹play 鉴权失败：内置应用凭据无效，请稍后重试。",
+            "Invalid Signature" or "Invalid AppSecret" => "弹弹play 鉴权失败：内置密钥或签名无效，请稍后重试。",
             "Missing Authentication Headers" => "弹弹play 鉴权失败：请求缺少应用认证头，请检查代理是否移除了请求头。",
-            _ => "弹弹play 鉴权失败，请检查 AppId、AppSecret、应用授权和系统时间。",
+            _ => "弹弹play 鉴权失败，请检查系统时间后重试。",
         };
     }
 

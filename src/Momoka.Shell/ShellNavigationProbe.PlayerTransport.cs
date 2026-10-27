@@ -15,12 +15,9 @@ internal sealed partial class ShellNavigationProbe
         using var fixture = CreateFixture();
         fixture.Settings.Mpv.Pipeline = VideoPipelineKind.Integrated;
         fixture.Settings.Danmaku.Enabled = true;
-        fixture.Settings.Danmaku.AppId = "offline-transport-app";
-        fixture.Settings.Danmaku.ProtectedAppSecret = "offline-transport-secret";
-        fixture.Settings.Danmaku.CredentialSource = DanmakuCredentialSource.Custom;
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, "player-transport"));
         paths.EnsureCreated();
-        using var client = new DandanPlayClient(fixture.Settings, new(PassthroughSecretProtector.Instance),
+        using var client = new DandanPlayClient(fixture.Settings,
             Path.Combine(paths.Root, "cache"), new RejectNetwork());
         var shaders = new ShaderGroupResolver(fixture.Settings.Shaders);
         var playback = new PlaybackService(fixture.Session, fixture.Settings,

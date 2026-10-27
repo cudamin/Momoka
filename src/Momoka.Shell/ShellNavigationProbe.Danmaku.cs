@@ -34,42 +34,21 @@ internal sealed partial class ShellNavigationProbe
             page.SelectedCategory = "弹幕";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
-            // 2026-10-27 起「弹幕」分类是四张卡：弹幕（开关与匹配）、显示与外观、类型与屏蔽、应用凭据。
+            // 2026-10-27 起「弹幕」分类是三张卡：弹幕（开关与匹配）、显示与外观、类型与屏蔽。同日删掉了原来
+            // 最下面的第四张「应用凭据」卡 —— 应用凭据一律由内置端点下发，设置里不再有 AppId／AppSecret。
             var cards = DanmakuCards(page);
-            Require(cards.Length == 4, "弹幕分类应分成四张卡");
+            Require(cards.Length == 3, "弹幕分类应分成三张卡");
             var first = cards[0];
-            Require(DanmakuRows(page).Length == 2 && !fixture.Settings.Danmaku.Enabled, "初始应只显示启用与凭据来源");
-            Require(cards.Count(section => section.SectionVisibility == Visibility.Visible) == 2, "服务关着时应只显示两张有内容的卡");
+            Require(DanmakuRows(page).Length == 1 && !fixture.Settings.Danmaku.Enabled, "初始应只显示总开关");
+            Require(cards.Count(section => section.SectionVisibility == Visibility.Visible) == 1, "服务关着时应只显示一张有内容的卡");
             await SaveProbeScreenAsync($"settings-danmaku-off-{width}-screen.png");
             var enabled = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "启用弹弹play");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(enabled).GetPattern(PatternInterface.Toggle)).Toggle();
             await LayoutAsync(page);
-            Require(DanmakuRows(page).OfType<SettingSliderRow>().Count() == 5, "内置凭据开启后没有显示外观设置");
-            Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "AppId"), "内置凭据下仍显示开发者配置");
-
-            var custom = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "使用自己的应用凭据");
-            ((IToggleProvider)new ToggleSwitchAutomationPeer(custom).GetPattern(PatternInterface.Toggle)).Toggle();
-            await LayoutAsync(page);
-            Require(fixture.Settings.Danmaku.CredentialSource == DanmakuCredentialSource.Custom
-                && DanmakuRows(page).Length == 5 && !DanmakuRows(page).OfType<SettingSliderRow>().Any(),
-                "切到自定义凭据后没有收起外观或显示三行配置");
-            Require(cards[3].Rows.Count == 4 && cards[3].Title == "应用凭据", "凭据三行应连同上级开关一起落在最下面那张卡");
-
-            var app = DanmakuRows(page).OfType<SettingTextRow>().Single(row => row.Label == "AppId");
-            app.Text = "offline-fixture-app";
-            await LayoutAsync(page);
-            var password = Descendants(page).OfType<PasswordBox>().Single();
-            password.Password = "offline-fixture-secret";
-            await SettleAsync();
-            var secret = DanmakuRows(page).OfType<SettingSecretRow>().Single();
-            Require(secret.Draft == "offline-fixture-secret", "PasswordBox 未绑定密钥草稿");
-            var save = Descendants(page).OfType<Button>().Single(control => AutomationProperties.GetName(control) == secret.SaveAutomationName);
-            ((IInvokeProvider)new ButtonAutomationPeer(save).GetPattern(PatternInterface.Invoke)).Invoke();
-            await LayoutAsync(page);
-            await UntilAsync(() => page.IsContentMotionSettled);
-            Require(password.Password.Length == 0 && secret.Draft.Length == 0, "成功保存后仍在界面保留明文");
-            Require(DanmakuRows(page).OfType<SettingSliderRow>().Count() == 5, "配置后没有显示五个外观滑块");
-            Require(ReferenceEquals(first, DanmakuCards(page)[0]), "配置变更替换了卡片");
+            Require(DanmakuRows(page).OfType<SettingSliderRow>().Count() == 5, "开启后没有显示外观设置");
+            Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "AppId"), "应用凭据已退役，设置里仍出现 AppId");
+            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "应用凭据已退役，设置里仍出现密钥行");
+            Require(ReferenceEquals(first, DanmakuCards(page)[0]), "开关变更替换了卡片");
             var opacity = Descendants(page).OfType<Slider>().Single(control => control.DataContext is SettingSliderRow row && row.Label == "不透明度（%）");
             opacity.Value = 55;
             await LayoutAsync(page);
@@ -93,7 +72,7 @@ internal sealed partial class ShellNavigationProbe
             Require(DanmakuRows(page).OfType<SettingSliderRow>().Single(row => row.Label == "不透明度（%）").Value == 55, "恢复显示时滑块不是原值");
             enabled.IsOn = false;
             await UntilAsync(() => page.IsContentMotionSettled);
-            Require(DanmakuRows(page).Length == 5 && fixture.Settings.Danmaku.Opacity == 55, "关闭服务未隐藏从属区域或清空偏好");
+            Require(DanmakuRows(page).Length == 1 && fixture.Settings.Danmaku.Opacity == 55, "关闭服务未隐藏从属区域或清空偏好");
             enabled.IsOn = true;
             await UntilAsync(() => page.IsContentMotionSettled);
             Require(DanmakuRows(page).OfType<SettingSliderRow>().Any(), "重新启用没有恢复外观设置");
@@ -101,13 +80,6 @@ internal sealed partial class ShellNavigationProbe
             block.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.9 });
             await LayoutAsync(block);
             await SaveProbeScreenAsync($"settings-danmaku-bottom-{width}-screen.png");
-
-            // 最下面那张「应用凭据」卡：上级开关和三行凭据都在这一张里（用户 2026-10-27 指定）。
-            // 这一行的按钮没有 AutomationId／Name，按它显示的字找（Fact 行的按钮内容就是动作名）。
-            var developer = Descendants(page).OfType<Button>().Single(control => control.Content as string == "打开开发者中心");
-            developer.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.9 });
-            await LayoutAsync(developer);
-            await SaveProbeScreenAsync($"settings-danmaku-credentials-{width}-screen.png");
 
             // 2026-10-27「开启隐藏下方说明之后用线条分割每个功能」：说明收起后，同一张卡里除首行外每行顶上
             // 一条 1px 细线；说明放回来就撤掉。拨的是「界面」卡上那颗真开关，量的是行容器模板根上的
@@ -154,7 +126,7 @@ internal sealed partial class ShellNavigationProbe
             picker.SelectedItem = backend.Choices.Single(choice => choice.Label.StartsWith("外部", StringComparison.Ordinal));
             await LayoutAsync(page);
             Require(!page.ViewModel.Categories.Any(entry => entry.Label == "弹幕") && !page.ViewModel.Sections.Any(section => section.Category == "弹幕"), "外部后端没有隐藏弹幕入口及卡片");
-            Require(fixture.Settings.Danmaku.Opacity == 55 && fixture.Settings.Danmaku.ProtectedAppSecret.Length > 0, "外部后端清空了偏好或密钥");
+            Require(fixture.Settings.Danmaku.Opacity == 55, "外部后端清空了弹幕偏好");
             picker.SelectedItem = backend.Choices.Single(choice => choice.Label.StartsWith("内置", StringComparison.Ordinal));
             await LayoutAsync(page);
             Require(page.ViewModel.Categories.Any(entry => entry.Label == "弹幕") && page.ViewModel.Sections.Any(section => section.Category == "弹幕"), "内置后端没有恢复弹幕入口及卡片");
@@ -221,12 +193,9 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         fixture.Settings.Danmaku.Enabled = true;
-        fixture.Settings.Danmaku.AppId = "offline-fixture-app";
-        fixture.Settings.Danmaku.ProtectedAppSecret = "offline-fixture-secret";
-        fixture.Settings.Danmaku.CredentialSource = DanmakuCredentialSource.Custom;
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, $"danmaku-panel-{width}"));
         paths.EnsureCreated();
-        using var client = new DandanPlayClient(fixture.Settings, new(PassthroughSecretProtector.Instance), Path.Combine(paths.Root, "cache"), new RejectNetwork());
+        using var client = new DandanPlayClient(fixture.Settings, Path.Combine(paths.Root, "cache"), new RejectNetwork());
         var shaders = new ShaderGroupResolver(fixture.Settings.Shaders);
         var playback = new PlaybackService(fixture.Session, fixture.Settings, () => throw new InvalidOperationException("离线面板不创建播放后端"),
             new PlaybackPlanner(fixture.Settings, shaders, paths.ShaderCacheDirectory, paths.ScreenshotDirectory), allowPlayback: false);
@@ -293,7 +262,7 @@ internal sealed partial class ShellNavigationProbe
     }
 
     /// <summary>
-    /// 「弹幕」分类下的四张卡，按屏上次序。拆卡之后不能再拿 <c>Single(Category == "弹幕")</c> 找它 —— 那是
+    /// 「弹幕」分类下的三张卡，按屏上次序。拆卡之后不能再拿 <c>Single(Category == "弹幕")</c> 找它 —— 那是
     /// 2026-10-27 之前的形状。
     /// </summary>
     private static SettingSection[] DanmakuCards(SettingsPage page) =>

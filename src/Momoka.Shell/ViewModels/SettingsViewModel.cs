@@ -131,7 +131,7 @@ public sealed partial class SettingSection : ObservableObject
     /// server data in it, so building all of them costs nothing measurable, and a card that stays alive
     /// keeps any half-typed text across a trip through the category list.
     /// <para>
-    /// 一行都不剩的卡整张收起（2026-10-27，弹幕拆成四张之后）：分类选中不等于这张卡有话说 —— 服务关着时
+    /// 一行都不剩的卡整张收起（2026-10-27，弹幕拆成三张之后）：分类选中不等于这张卡有话说 —— 服务关着时
     /// 「显示与外观」「类型与屏蔽」两卡的行会全部收走，留着就是屏上两张只有标题的空卡。
     /// </para>
     /// </summary>
@@ -668,7 +668,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         UpdateClient updates,
         IServerCapabilities capabilities,
         EmbyImageStore? images = null,
-        DandanPlayCredentials? dandanCredentials = null,
         SubtitleTranslationCredentials? translationCredentials = null)
     {
         if (_disposed) return;
@@ -688,7 +687,6 @@ public sealed partial class SettingsViewModel : PageViewModel
         _moviePilotCredentials = moviePilotCredentials;
         _updates = updates;
         _images = images;
-        _dandanCredentials = dandanCredentials;
         _translationCredentials = translationCredentials;
     }
 
@@ -1114,7 +1112,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 按 Sections 次序读数的地方与屏上的次序是同一份。同一分类的多张分区卡连着排：主页两张（轮播图 /
         // 主页版面）、播放行为五张（播放行为 / 跳转与步长 / 音轨 / 资源筛选 / 截图）、视频输出四张（基础输出 /
         // 补帧 / HDR / 画质与着色器）、音频输出三张（输出设备 / 响度 / 直通）、字幕四张（字幕 / 字幕外观 /
-        // 编码与画面 / 实时字幕翻译）、弹幕四张、关于四张。补帧紧跟在基础输出后面：它管的是同一条输出链上的
+        // 编码与画面 / 实时字幕翻译）、弹幕三张、关于四张。补帧紧跟在基础输出后面：它管的是同一条输出链上的
         // 下一段，而且它读到的基础值就是那张卡显示的那几个。
         Sections.Clear();
         AddCards(HomeSections());
@@ -1131,7 +1129,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         AddCards(AudioSections());
         AddCards(SubtitleSections());
         if (Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || Settings.Mpv.EnableIpc) AddCards(SubtitleTranslationSections());
-        // 弹幕分类四张卡（2026-10-27 拆卡）：开关与匹配、显示与外观、类型与屏蔽、应用凭据，见 DanmakuSections。
+        // 弹幕分类三张卡（2026-10-27 拆卡，同日删掉「应用凭据」那张）：开关与匹配、显示与外观、类型与屏蔽，
+        // 见 DanmakuSections。
         if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) AddCards(DanmakuSections());
         Sections.Add(ShortcutsCard());
         Sections.Add(MoviePilotCard());

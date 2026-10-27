@@ -28,7 +28,7 @@ internal sealed partial class ShellNavigationProbe
         fixture.Settings.Playback.SkipSections = SkipSectionMode.Ask;
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, "player-skip"));
         paths.EnsureCreated();
-        using var client = new DandanPlayClient(fixture.Settings, new(PassthroughSecretProtector.Instance), Path.Combine(paths.Root, "cache"), new RejectNetwork());
+        using var client = new DandanPlayClient(fixture.Settings, Path.Combine(paths.Root, "cache"), new RejectNetwork());
         var shaders = new ShaderGroupResolver(fixture.Settings.Shaders);
         var playback = new PlaybackService(fixture.Session, fixture.Settings, () => throw new InvalidOperationException("跳过探针禁止创建播放后端"),
             new PlaybackPlanner(fixture.Settings, shaders, paths.ShaderCacheDirectory, paths.ScreenshotDirectory), allowPlayback: false);

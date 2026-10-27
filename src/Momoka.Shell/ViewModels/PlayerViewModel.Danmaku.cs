@@ -88,7 +88,8 @@ public sealed partial class PlayerViewModel
         _danmakuStylePush = null;
     }
 
-    private string DanmakuConnection() => $"{DanmakuAvailable}\n{Settings.Danmaku.AppId}\n{Settings.Danmaku.ProtectedAppSecret}\n{Settings.Danmaku.WithRelated}";
+    // 换片、切后端与开关服务要重载弹幕；应用凭据 2026-10-27 起全部内置，设置里已经没有需要跟着重载的密钥。
+    private string DanmakuConnection() => $"{DanmakuAvailable}\n{Settings.Danmaku.WithRelated}";
 
     private void RefreshDanmakuProperties()
     {

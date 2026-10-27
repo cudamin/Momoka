@@ -61,7 +61,7 @@ public sealed class SubtitleTranslationCredentials
         try { return _protector.Unprotect(value) ?? ""; }
         catch (Exception)
         {
-            // 和 DandanPlayCredentials 一样静默退回待输入；不删除用户保存的密文。
+            // 静默退回待输入；不删除用户保存的密文（跨 Windows 账号复制的密文只能重新输入）。
             return "";
         }
     }

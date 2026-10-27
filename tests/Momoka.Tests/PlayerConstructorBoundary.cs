@@ -74,19 +74,17 @@ internal static class PlayerConstructorBoundary
     }
 }
 
-/// <summary>Real client, disabled anonymous preferences, rejecting HTTP/secrets and invalid cache path.</summary>
+/// <summary>Real client, disabled anonymous preferences, rejecting HTTP and an invalid cache path.</summary>
 internal sealed class AnonymousDanmakuDependency : IDisposable
 {
     private readonly RejectHttp _http = new();
-    private readonly RejectSecrets _secrets = new();
     internal DandanPlayClient Client { get; }
 
     internal AnonymousDanmakuDependency(AppSettings settings, string sourceRoot)
     {
         Assert.False(settings.Danmaku.Enabled, "this constructor fixture must not enable a real Danmaku request");
-        Assert.True(string.IsNullOrEmpty(settings.Danmaku.ProtectedAppSecret), "no configured secret belongs in this fixture");
         var cache = Path.Combine(sourceRoot, "work", "player-constructor", "no-danmaku-IO|fixture");
-        Client = new DandanPlayClient(settings, new DandanPlayCredentials(_secrets), cache, _http);
+        Client = new DandanPlayClient(settings, cache, _http);
     }
 
     public void Dispose()
@@ -94,7 +92,6 @@ internal sealed class AnonymousDanmakuDependency : IDisposable
         try
         {
             Assert.Equal(0, _http.Calls, "unrelated player tests must never issue Danmaku HTTP");
-            Assert.Equal(0, _secrets.Calls, "unrelated player tests must never read/write credentials");
         }
         finally { Client.Dispose(); }
     }
@@ -107,12 +104,5 @@ internal sealed class AnonymousDanmakuDependency : IDisposable
             Calls++;
             throw new AssertionException("anonymous player constructor forbids all HTTP");
         }
-    }
-
-    private sealed class RejectSecrets : ISecretProtector
-    {
-        internal int Calls { get; private set; }
-        public string Protect(string text) { Calls++; throw new AssertionException("anonymous player constructor forbids secret writes"); }
-        public string Unprotect(string text) { Calls++; throw new AssertionException("anonymous player constructor forbids secret reads/DPAPI"); }
     }
 }

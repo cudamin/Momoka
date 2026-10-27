@@ -56,8 +56,6 @@ public static class SettingsPreferences
         // SchemaVersion 默认就是当前版本；写下当前版本，读回来时按同一套迁移管线走。
         var document = new AppSettings();
         CopyInto(document, settings);
-        document.Danmaku.AppId = "";
-        document.Danmaku.CredentialSource = DanmakuCredentialSource.Auto;
         // 翻译密钥、端点、模型、区域和启用开关属于本机连接，不进入可分享的偏好备份。
         var translation = document.SubtitleTranslation;
         document.SubtitleTranslation = new SubtitleTranslationSettings
@@ -88,11 +86,12 @@ public static class SettingsPreferences
         destination.SubtitleTranslation.FontSize = source.SubtitleTranslation.FontSize;
         destination.SubtitleTranslation.Position = source.SubtitleTranslation.Position;
 
-        // 弹幕外观属于偏好，AppId／密钥、凭据来源与总启用开关属于本机连接，绝不导出或被恢复覆盖。
+        // 弹幕外观属于偏好；总启用开关属于本机连接，绝不导出，也不被恢复配置覆盖。应用凭据 2026-10-27 起
+        // 一律由内置端点下发，设置里已经没有 AppId／密钥字段要在这里豁免。
         var danmaku = destination.Danmaku;
-        var connection = (danmaku.Enabled, danmaku.AppId, danmaku.ProtectedAppSecret, danmaku.CredentialSource);
+        var danmakuEnabled = danmaku.Enabled;
         Overwrite(danmaku, source.Danmaku);
-        (danmaku.Enabled, danmaku.AppId, danmaku.ProtectedAppSecret, danmaku.CredentialSource) = connection;
+        danmaku.Enabled = danmakuEnabled;
 
         // 音量不是设置页上的一行，是播放器上次被留在哪儿（见 AudioSettings.Volume）—— 留目的地自己的那一份。
         var volume = destination.Audio.Volume;

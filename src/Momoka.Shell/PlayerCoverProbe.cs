@@ -48,7 +48,7 @@ internal static class PlayerCoverProbe
         var backend = new RejectBackend();
         var playback = new PlaybackService(session, settings, () => backend,
             new PlaybackPlanner(settings, shaders, paths.ShaderCacheDirectory, paths.ScreenshotDirectory), allowPlayback: false);
-        using var danmaku = new DandanPlayClient(settings, new DandanPlayCredentials(PassthroughSecretProtector.Instance), Path.Combine(paths.Root, "danmaku"));
+        using var danmaku = new DandanPlayClient(settings, Path.Combine(paths.Root, "danmaku"));
         var vm = new PlayerViewModel(playback, new SettingsService(store, settings), session, images, shaders, ui, danmaku);
         var page = shell.PlayerRoot;
         var original = page.ViewModel;

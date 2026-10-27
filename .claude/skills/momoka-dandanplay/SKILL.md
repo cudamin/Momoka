@@ -27,9 +27,9 @@ metadata: {agent_created: true}
 | `src/Momoka.Core/Danmaku/DanmakuComment.cs` | `p`/`m` 解析、模式/颜色/文本限制、屏蔽与去重 |
 | `src/Momoka.Core/Danmaku/DandanPlayBuiltIn.cs` | 端点、AES 密钥、响应上限、提前换新间隔 |
 | `src/Momoka.Core/Danmaku/DandanPlayBuiltInCredentialSource.cs` | 取密文、解密、DPAPI 缓存、过期与失败回退 |
-| `src/Momoka.Core/Configuration/DanmakuSettings.cs` | 偏好默认值、`Auto/BuiltIn/Custom` 归一化 |
-| `src/Momoka.Core/Configuration/DandanPlayCredentials.cs` | 自定义 AppSecret 的 DPAPI 存取 |
-| `src/Momoka.Shell/ViewModels/SettingsViewModel.Danmaku.cs` | 「弹幕」卡片、内置/自定义显隐、重载 |
+| `src/Momoka.Core/Configuration/DanmakuSettings.cs` | 偏好默认值与归一化（没有凭据字段：应用凭据全部内置） |
+| `src/Momoka.Core/Danmaku/IDandanPlayCredentialSource.cs` | 取凭据的替换点：产品只接内置端点，离线夹具接固定凭据 |
+| `src/Momoka.Shell/ViewModels/SettingsViewModel.Danmaku.cs` | 「弹幕」三张卡、行显隐、重载 |
 | `src/Momoka.Shell/ViewModels/PlayerViewModel.Danmaku.cs` + `.DanmakuSend.cs` | 自动匹配、加载、分块推送、发送状态 |
 | `src/Momoka.Shell/Views/PlayerPage.Danmaku.cs`、`Views/DanmakuPanel.xaml(.cs)` | 集成页与独占面板的入口 |
 | `src/Momoka.Core/Mpv/MpvDanmaku.cs`、`assets/mpv-ui/scripts/momoka_danmaku.lua` | 两条内置管线共用的脚本消息契约与独立 OSD 图层 |
@@ -50,16 +50,16 @@ metadata: {agent_created: true}
 - **重定向**：取弹幕允许 302，但只接受 `dandanplay.net` 的 HTTPS 443 子域、无 URL 用户信息；同源跳转按新路径重签，跨来源不带鉴权头。搜索不跟随跳转。发送不跟随、不自动重试。
 - **错误**：401/403 只映射 `X-Error-Message` 的已知值；未知响应头和正文一律不回显（可能夹带凭据）。429 是额度/频率受限。所有 GET 共用 30 秒排队+读取预算，响应上限 32 MiB。
 - **缓存**：成功结果按「应用 + 凭据身份 + 路径」隔离，两小时有效、最多 16 份；失败不缓存。发送一旦发出，成功或结果不明都删掉该库的两种关联缓存，不额外消耗一次读取额度。
-- **内置凭据的 401/403**：GET 会丢掉缓存、换一份再试一次；POST 不自动重试，避免重复写入。自定义凭据不访问内置端点。
+- **内置凭据的 401/403**：GET 会丢掉缓存、换一份再试一次；POST 不自动重试，避免重复写入。
 
 ## 凭据模型
 
-- 默认 `CredentialSource = BuiltIn`：首次使用向 Momoka 端点取 AES-GCM 密文，解密后用 DPAPI 缓存。`Auto` 只用于旧配置迁移：本机有可保护的 AppSecret 就落 Custom，否则 BuiltIn。
-- `Custom` 必须同时有 AppId 和可解密的 AppSecret；输入成功后不回填明文，备份不导出凭据，恢复偏好不覆盖这四项。
+- **只有内置凭据一种。** 首次使用向 Momoka 端点取 AES-GCM 密文，解密后用 DPAPI 缓存。2026-10-27 起用户自己的 AppId／AppSecret 整条退役：设置页没有「应用凭据」卡，`DanmakuSettings` 没有凭据字段，`DandanPlayCredentials` 与 `DanmakuCredentialSource` 已删除，旧 settings.json 里的 `appId`／`protectedAppSecret`／`credentialSource` 反序列化时被忽略。不要再把自定义凭据作为「额度用尽时的兜底」写进文档或界面文案。
+- `DandanPlayClient` 只依赖 `IDandanPlayCredentialSource`；产品注册 `DandanPlayBuiltInCredentialSource`，离线探针与单元测试塞固定凭据（`DanmakuProbeCredentials`／测试内 `FixedCredentialSource`），这样「发了几次请求」的判据不会被多出来的假端点请求带偏。
 - 端点信封是 `{v:1, kid, exp, data}`；`data` = 12 字节 nonce + 密文 + 16 字节 tag，AAD 为 `momoka-danmaku-credential-v1|kid|exp`。客户端校验 `v`、`kid`、`exp`、载荷内 `exp` 与解密结果，有效期必须在 1 分钟到 30 天之间。缓存到期前一天换新；端点暂时失败时，未过期缓存继续用。
 - 生产端四个 Secret：`DANDANPLAY_APP_ID`、`DANDANPLAY_APP_SECRET`、`DANDANPLAY_CREDENTIAL_KEY`、`DANDANPLAY_CREDENTIAL_KID`。`DANDANPLAY_CREDENTIAL_KEY` 必须等于 `DandanPlayBuiltIn.Key`；换 key 必须发客户端新版，不能只改服务器。
 - 秘钥轮换：换 AppId/AppSecret 后，旧缓存会在下一次 401/403 被客户端丢弃并重取；换 `kid` 只改缓存隔离与诊断；换加密 key 需要同步改客户端常量并发版。
-- **这不是保密方案，也不是服务端代理。** 加密 key 随客户端分发，能提取；它只把 AppSecret 移出公开仓库并允许服务端轮换。所有内置用户共享额度，额度耗尽时提示改用自定义凭据。
+- **这不是保密方案，也不是服务端代理。** 加密 key 随客户端分发，能提取；它只把 AppSecret 移出公开仓库并允许服务端轮换。所有内置用户共享额度，额度耗尽时只能等恢复，不再有「改用自定义凭据」的出路。
 - 端点只看到时间、IP 和 `Momoka/<version>` User-Agent；作品名、集数、媒体服务器信息与弹幕内容仍直接发往 `api.dandanplay.net`。
 
 部署、密钥表、轮换矩阵与排查见 [内置凭据端点](references/credential-endpoint.md)。
@@ -69,8 +69,8 @@ metadata: {agent_created: true}
 - 自动匹配只接受**唯一且标题精确**的候选：`SeriesName` 优先，Unicode 归一化后只比较字母数字并忽略大小写。`hasMore`、多个结果、续季（`ParentIndexNumber` 不是 1）或特别篇都不猜，留给播放页手动搜索。
 - `IsConfigured` = 服务开启 + 内置 libmpv +（内置来源或自定义凭据齐全）。外部 mpv 后端不接入弹幕：设置卡片、分类入口、播放器按钮和快捷键行一起隐藏，但偏好保留，同一视频的草稿不因隐藏清空；切回内置后可继续。
 - 设置分类名 `弹幕` 是跨文件契约：`SettingsViewModel.CardCategories`、`SettingsCategoryGlyphConverter`、`PlayerSettingsLinks`（令牌仍是 `danmaku`，菜单行文案仍写产品名 `弹弹play`）、探针断言和 `MpvUiTests` 的固定表都要一起改。只改一处会出现「点设置入口落在别的卡」或自检红项。侧栏与卡片标题只写「弹幕」；产品名、开关文案和错误提示里的「弹弹play」指服务本身，不是分类名。
-- 分类下是**四张卡**（2026-10-27 拆卡，`SettingsViewModel.Danmaku.cs` 的 `DanmakuSections`）：`弹幕`（启用、自动匹配、包含关联）、`显示与外观`（显示开关、输入栏、五个外观滑块）、`类型与屏蔽`（滚动/顶部/底部/彩色/合并、屏蔽词）、`应用凭据`（使用自己的应用凭据＋AppId／AppSecret／开发者中心）。行数归零的卡由 `SettingSection.SectionVisibility` 整张收起；四张卡的实例一直保留，`RefreshDanmakuPresentation` 按标题对号原地 `UpdateRows`。**不要再按 `Single(Category == "弹幕")` 找这张卡**，探针用的是 `DanmakuCards`／`DanmakuRows`。
-- 服务关闭时只剩「启用弹弹play」与「使用自己的应用凭据」两行（分属第一张和最后一张卡）；自定义开关打开后才出现 AppId、AppSecret 与开发者中心。服务关闭或不可用时收起从属控件，但不重置偏好。
+- 分类下是**三张卡**（2026-10-27 拆卡，`SettingsViewModel.Danmaku.cs` 的 `DanmakuSections`）：`弹幕`（启用、自动匹配、包含关联）、`显示与外观`（显示开关、输入栏、五个外观滑块）、`类型与屏蔽`（滚动/顶部/底部/彩色/合并、屏蔽词）。同一天用户又令删掉第四张 `应用凭据` 卡，它连同 AppId／AppSecret／开发者中心一起退役。行数归零的卡由 `SettingSection.SectionVisibility` 整张收起；三张卡的实例一直保留，`RefreshDanmakuPresentation` 按标题对号原地 `UpdateRows`。**不要再按 `Single(Category == "弹幕")` 找这张卡**，探针用的是 `DanmakuCards`／`DanmakuRows`。
+- 服务关闭时只剩「启用弹弹play」一行（第一张卡），另外两张卡整张收起。服务关闭或不可用时收起从属控件，但不重置偏好。
 
 ## 渲染与发送边界
 

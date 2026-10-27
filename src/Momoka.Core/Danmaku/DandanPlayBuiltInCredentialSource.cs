@@ -18,7 +18,7 @@ public sealed record DandanPlayCredential(string AppId, string Secret, string Ke
 /// <see cref="Invalidate"/> 后重取一次。
 /// </para>
 /// </summary>
-public sealed class DandanPlayBuiltInCredentialSource : IDisposable
+public sealed class DandanPlayBuiltInCredentialSource : IDandanPlayCredentialSource, IDisposable
 {
     private readonly ISecretProtector _protector;
     private readonly string _cacheFile;

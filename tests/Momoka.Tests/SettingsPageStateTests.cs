@@ -99,23 +99,24 @@ internal static class SettingsPageStateTests
             Assert.Equal(0, Top(fixture.Get<object>(second, "DividerThickness")));
         });
 
-        // 2026-10-27 用户令：弹幕一页拆成四张卡，AppId／AppSecret／开发者中心连同上级开关落到最下面一张。
-        // 整页 Reload 要碰字体、音频设备与预览（native），所以这里只量源码里的建卡接线：四张卡的次序与标题、
-        // 凭据三行加在哪一份行表里、建卡入口是否把四张都加进 Sections。屏上的行由 settings 探针量。
-        TestHarness.Test("弹幕设置：四张卡分区，凭据三行只进最下面那张（源码接线）", () =>
+        // 2026-10-27 用户令：弹幕一页先拆成四张卡，同日又令「删除这个」，最下面那张「应用凭据」整张退役。
+        // 整页 Reload 要碰字体、音频设备与预览（native），所以这里只量源码里的建卡接线：三张卡的次序与标题、
+        // 凭据行是否彻底离开这份行表、建卡入口是否把三张都加进 Sections。屏上的行由 settings 探针量。
+        TestHarness.Test("弹幕设置：三张卡分区，凭据行已退役（源码接线）", () =>
         {
             var source = File.ReadAllText(Path.Combine(fixture.Root, "src", "Momoka.Shell", "ViewModels",
                 "SettingsViewModel.Danmaku.cs"));
             var titles = Regex.Matches(source, @"new SettingSection\(DanmakuCategory, ""(?<title>[^""]+)""")
                 .Select(match => match.Groups["title"].Value).ToArray();
-            Assert.True(titles.SequenceEqual(new[] { "弹幕", "显示与外观", "类型与屏蔽", "应用凭据" }),
-                "弹幕分类的四张卡次序或标题变了：" + string.Join('、', titles));
-            foreach (var label in new[] { "AppId", "AppSecret", "弹弹play 开发者中心" })
-                Assert.True(Regex.IsMatch(source, $@"credentialRows\.Add\([^;]*""{Regex.Escape(label)}""", RegexOptions.Singleline),
-                    $"{label} 没有加进凭据卡的行表");
-            Assert.False(Regex.IsMatch(source, @"rows\.Add\([^;]*""AppId""", RegexOptions.Singleline), "AppId 又加回了上面那张卡");
+            Assert.True(titles.SequenceEqual(new[] { "弹幕", "显示与外观", "类型与屏蔽" }),
+                "弹幕分类的三张卡次序或标题变了：" + string.Join('、', titles));
+            // 退役判据看的是「还有没有建出这张卡和这几行」，不是注释里提没提这件事：源码注释会一直解释
+            // 这张卡为什么被删。行的标题在源码里是带引号的字面量，注释里没有引号。
+            foreach (var gone in new[] { "应用凭据", "使用自己的应用凭据", "AppId", "AppSecret", "弹弹play 开发者中心" })
+                Assert.False(Regex.IsMatch(source, "\"" + Regex.Escape(gone) + "\""),
+                    $"{gone} 已经退役，不该再出现在弹幕设置的行表里");
             Assert.True(fixture.ViewModelSource.Contains("AddCards(DanmakuSections());", StringComparison.Ordinal),
-                "ReloadAsync 没有把四张弹幕卡都加进 Sections");
+                "ReloadAsync 没有把三张弹幕卡都加进 Sections");
         });
 
         // 2026-10-27 用户令「其他页也拆一下」：主页、播放行为、音频输出、字幕、实时字幕翻译、关于各自拆成多张卡。

@@ -8443,3 +8443,14 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **验证**：Release Shell 与测试项目编译 **0 警告 0 错误**；`format whitespace` 退出 0；完整离线套件 **3050/3050、0 失败 0 跳过**（比上轮 +1 就是这条新回归）；`tools/publish.ps1 -NoArchive` 刷新交付目录（546 个文件、284.3 MB，verify-publish 通过）后 `--probe-shell --probe-section settings --screen 1` **22/22 通过**（`shell-probe-20261027-093319671-22452`）。实屏核对 `settings-playback-screenshot-1100`：三处新说明按原样上屏、不截断、不糊。其余 99 项探针未跑；未验证真实服务器与播放（本轮不碰这两条链）。
 - **留给用户的一个产品问题**：卡片说明（`SettingSection.Description`）自 `97d8015` 起不渲染 —— 每张卡建卡时写的那段话在屏上根本看不到，代码里却还在维护（本轮只改了截图那张卡的，为了同一个菜单名）。要么把渲染加回来，要么把这些死字符串删掉；这轮没自作主张。
 - 未升级版本号、未推送 origin、未建 Release 或商店包。
+
+## 设置页：删掉「应用凭据」卡，自定义弹幕凭据整条退役（2026-10-27 19:30~20:00）
+
+- **用户当次要求**：发来「应用凭据」卡（使用自己的应用凭据＋AppId＋AppSecret＋弹弹play 开发者中心）的截图，只说「删除这个」。确认范围时选定「整张卡删掉」—— 弹幕一律走 Momoka 内置凭据，代码里自定义凭据这条能力一起退役，旧配置里的自定义密钥失效。
+- **设置页**：`DanmakuSections()` 从四张卡变三张（弹幕 / 显示与外观 / 类型与屏蔽），「使用自己的应用凭据」「AppId」「AppSecret」「弹弹play 开发者中心」四行连同它们所在的卡一起删掉；服务关着时只剩「启用弹弹play」一行、一张卡。`SettingsViewModel.Attach` 与 `SettingsPage` 不再注入 `DandanPlayCredentials`。
+- **Core**：`DanmakuSettings` 删掉 `CredentialSource`／`AppId`／`ProtectedAppSecret`／`DefaultAppId` 与对应的 `Auto→BuiltIn/Custom` 归一化；`DandanPlayCredentials.cs` 删除；`DandanPlayClient` 只走内置端点（`ResolveAsync` 不再分支，401/403 一律换一份重试，`Connection` 去掉 `BuiltIn` 字段），`DandanPlayMatching.IsConfigured` 只看服务开关与内置后端，`SettingsPreferences` 不再豁免 AppId／凭据来源（启用开关仍属本机连接、不进备份）。
+- **取凭据的替换点**：新增 `IDandanPlayCredentialSource`（`GetAsync`／`Invalidate`）。产品里只有 `DandanPlayBuiltInCredentialSource` 一种实现；单元测试与离线探针塞固定凭据（测试内 `FixedCredentialSource`、Shell 里 `DanmakuProbeCredentials`），否则每条请求前都会多一次假端点请求，把「发了几次」的判据全带偏。
+- **旧配置**：`appId`／`protectedAppSecret`／`credentialSource` 不在当前模型里，反序列化时被忽略（`SettingsSerializer.ReadOptions` 默认忽略未知成员），下次保存即从文件里消失；新增回归用一份带这三个键的 v2 文档钉住「读得回来、不再影响可用性、序列化后不再出现」。用户本机那份自定义密钥从此不再被读取。
+- **文案与合规**：鉴权失败不再指路「改用你自己的应用凭据」，改为「内置应用凭据无效」；`DeveloperUrl` 常量随入口一起删。`PRIVACY.md` 删掉「自定义 AppId 与 AppSecret」那一行，并把两处「也可以改用你自己的 AppId」「凭据不可用时不访问」改成「凭据由 Momoka 统一提供」「没有启用时不访问」。`docs/弹幕与快捷键.md`、dandanplay 技能、三份测试说明同步。
+- **验证**：Release 全方案构建 **0 警告 0 错误**；`format whitespace` 退出 0；完整离线套件 **3051 项全过、0 失败、0 跳过**（删掉三条自定义凭据用例、新增一条旧配置忽略用例）；`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（546 文件、284.3 MB、载荷验证通过），对这份交付件跑 `--probe-shell --probe-section settings --screen 1` **22/22 通过**（`shell-probe-20261027-115159052-1596`），弹幕那条用例宽窄两档都过。人眼核对 `settings-danmaku-on-1100`（三张卡、无凭据行）、`settings-danmaku-off-1100`（只剩总开关一张卡、没有空卡）。其余 99 项探针未跑；未验证真实服务器与真实播放（本轮不碰这两条链）。
+- 未升级版本号、未推送 origin、未建 Release 或商店包。

@@ -26,9 +26,6 @@ internal sealed partial class ShellNavigationProbe
         fixture.Settings.Shortcuts.Bindings["toggle-pause"] = "Ctrl+F9";
         fixture.Settings.Shortcuts.Bindings["video-pan-left"] = "";
         fixture.Settings.Danmaku.Enabled = true;
-        fixture.Settings.Danmaku.AppId = "offline-app";
-        fixture.Settings.Danmaku.ProtectedAppSecret = "offline-secret";
-        fixture.Settings.Danmaku.CredentialSource = DanmakuCredentialSource.Custom;
         using var moviePilot = new MoviePilotClient(new RejectNetwork());
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, $"shortcut-search-{width}"));
         paths.EnsureCreated();
@@ -275,7 +272,7 @@ internal sealed partial class ShellNavigationProbe
         fixture.Settings.Mpv.Pipeline = VideoPipelineKind.Integrated;
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, "player-shortcuts"));
         paths.EnsureCreated();
-        using var client = new DandanPlayClient(fixture.Settings, new(PassthroughSecretProtector.Instance), Path.Combine(paths.Root, "cache"), new RejectNetwork());
+        using var client = new DandanPlayClient(fixture.Settings, Path.Combine(paths.Root, "cache"), new RejectNetwork());
         var shaders = new ShaderGroupResolver(fixture.Settings.Shaders);
         var playback = new PlaybackService(fixture.Session, fixture.Settings, () => throw new InvalidOperationException("快捷键探针禁止创建真实后端"),
             new PlaybackPlanner(fixture.Settings, shaders, paths.ShaderCacheDirectory, paths.ScreenshotDirectory), allowPlayback: false);

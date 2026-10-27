@@ -49,7 +49,6 @@ internal static class ShellServices
         // ---- the ground floor: where files live and how secrets are protected -------------------------
         services.AddSingleton(paths);
         services.AddSingleton<ISecretProtector>(DpapiSecretProtector.Instance);
-        services.AddSingleton<DandanPlayCredentials>();
         services.AddSingleton<SubtitleTranslationCredentials>();
         services.AddSingleton(_ => new Momoka.Translation.SubtitleTranslationClient());
         services.AddSingleton<Momoka.Shell.Services.SubtitleTranslationController>();
@@ -57,9 +56,9 @@ internal static class ShellServices
             provider.GetRequiredService<ISecretProtector>(),
             Path.Combine(paths.Root, "cache", "danmaku", "builtin-credential.bin")));
         services.AddSingleton(provider => new DandanPlayClient(
-            provider.GetRequiredService<AppSettings>(), provider.GetRequiredService<DandanPlayCredentials>(),
+            provider.GetRequiredService<AppSettings>(),
             Path.Combine(paths.Root, "cache", "danmaku"),
-            builtIn: provider.GetRequiredService<DandanPlayBuiltInCredentialSource>()));
+            credentials: provider.GetRequiredService<DandanPlayBuiltInCredentialSource>()));
         services.AddSingleton<SettingsStore>();
 
         // The settings object is loaded once and then edited in place by the settings page, so it has to

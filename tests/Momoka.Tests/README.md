@@ -128,8 +128,8 @@ Build flags：`--no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilatio
 PlayerViewModel 构造器的7个参数名、类型与顺序：playback/settings/session/images/shaders/ui/dandanPlay。
 两处旧6参数反射构造改为按该签名调用，不把第7参数补null。
 
-新匿名依赖使用真实 `DandanPlayClient`＋真实 `DandanPlayCredentials` 包装，偏好关闭、无密钥；
-传输与保护器任何调用均抛错并计数，缓存路径含非法文件名，Dispose断言HTTP/凭据调用均0，
+新匿名依赖使用真实 `DandanPlayClient`，偏好关闭、不接凭据来源（应用凭据 2026-10-27 起全部内置）；
+传输任何调用均抛错并计数，缓存路径含非法文件名，Dispose断言HTTP调用为0，
 及时释放client。实际VM `_dandanPlay` 必须持有同一实例。原6个参数语义不变，images/session的
 既有无用null边界不因此打开；没有运行弹幕加载、App、WinUI、服务器、配置或密钥。
 

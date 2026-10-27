@@ -39,8 +39,8 @@ public sealed partial class DandanPlayClient
             await _requests.WaitAsync(deadline.Token).ConfigureAwait(false);
             entered = true;
             connection = await ResolveAsync(deadline.Token).ConfigureAwait(false);
-            // 排队期间可能已关闭服务、换应用或切回内置凭据；不能再向旧连接发送。
-            if (!IsCurrent(connection))
+            // 排队期间可能已关闭服务；不能再向已关闭的服务发送。
+            if (!IsCurrent())
                 throw new DandanPlayException("弹幕连接已改变，请重新选择弹幕库后发送。");
             using var request = new HttpRequestMessage(HttpMethod.Post,
                 new Uri(ApiOrigin + $"/api/v2/comment/{episodeId.ToString(CultureInfo.InvariantCulture)}/app"));
@@ -53,10 +53,9 @@ public sealed partial class DandanPlayClient
             using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, deadline.Token).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
-                if (connection.BuiltIn is not null
-                    && response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
                 {
-                    _builtIn!.Invalidate();
+                    _credentials?.Invalidate();
                     throw new DandanPlayException("内置弹幕凭据已失效，已清除缓存；请再发送一次。");
                 }
                 throw new DandanPlayException(response.StatusCode switch
