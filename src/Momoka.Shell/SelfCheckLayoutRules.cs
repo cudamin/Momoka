@@ -9,12 +9,19 @@ internal static class SelfCheckLayoutRules
     internal static bool LibraryViews(IReadOnlyList<(string Label, string Layout, double Cell, double Row)> walk,
         bool restored, int textHeight)
     {
-        var views = Enum.GetValues<LibraryView>();
-        if (!restored || walk.Count != views.Length
+        // The walk covers Emby's original seven shapes in this order (LibraryPage.WalkViews walks the same
+        // list), not every LibraryView value: 海报卡片/缩略图卡片 are Jellyfin's card layouts an Emby library
+        // never draws, so demanding nine readings would fail on every Emby library. Those two are covered by
+        // Jellyfin's own library probes (PROGRESS.md, 自检过期断言与控制条窄窗复核 2026-10-26).
+        var views = LibraryDisplayCatalog.EmbyViews;
+        if (!restored || walk.Count != views.Count
             || textHeight != CardSize.Chrome && textHeight != CardSize.Chrome + 18) return false;
-        foreach (var view in views)
+        for (var index = 0; index < views.Count; index++)
         {
-            var reading = walk[(int)view];
+            var view = views[index];
+            // Indexed by the walk's own order rather than by the enum value: equal today, but the walk
+            // iterates EmbyViews, so a reading is at its position there.
+            var reading = walk[index];
             if (reading.Label != LibraryDisplayCatalog.LabelOf(view)) return false;
             if (view is LibraryView.List or LibraryView.Table)
             {
@@ -24,8 +31,7 @@ internal static class SelfCheckLayoutRules
             if (reading.Layout != "UniformGridLayout" || !double.IsFinite(reading.Cell)
                 || !double.IsFinite(reading.Row) || reading.Cell <= 0 || reading.Cell > int.MaxValue
                 || reading.Cell != Math.Round(reading.Cell)) return false;
-            var frame = view is LibraryView.PosterCard or LibraryView.ThumbCard ? LibraryCardMetrics.CardFrameChrome : 0;
-            var extra = reading.Row - LibraryCardMetrics.Height(view, (int)reading.Cell) - frame;
+            var extra = reading.Row - LibraryCardMetrics.Height(view, (int)reading.Cell);
             // Expected text height is captured from the selected fields, not inferred from the first
             // reading. Row is the actual layout MinItemHeight, so a stale binding cannot self-approve.
             if (extra != textHeight) return false;

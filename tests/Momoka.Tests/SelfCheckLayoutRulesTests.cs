@@ -10,7 +10,7 @@ internal static class SelfCheckLayoutRulesTests
 {
     public static void Register()
     {
-        Test("自检布局：九种真实视图与原选择恢复", () =>
+        Test("自检布局：七种真实视图与原选择恢复", () =>
         {
             Assert.True(SelfCheckLayoutRules.LibraryViews(Views(), true, CardSize.Chrome));
             Assert.False(SelfCheckLayoutRules.LibraryViews(Views(), false, CardSize.Chrome));
@@ -19,25 +19,27 @@ internal static class SelfCheckLayoutRulesTests
         {
             Assert.True(SelfCheckLayoutRules.LibraryViews(Views(18), true, CardSize.Chrome + 18));
             var readings = Views();
-            readings[(int)LibraryView.Thumb] = (readings[(int)LibraryView.Thumb].Label, readings[(int)LibraryView.Thumb].Layout, readings[(int)LibraryView.Thumb].Cell, readings[(int)LibraryView.Thumb].Row + 18);
+            var thumb = readings[Slot(LibraryView.Thumb)];
+            readings[Slot(LibraryView.Thumb)] = (thumb.Label, thumb.Layout, thumb.Cell, thumb.Row + 18);
             Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
         });
-        foreach (var view in Enum.GetValues<LibraryView>())
+        foreach (var view in LibraryDisplayCatalog.EmbyViews)
         {
             Test($"自检布局：缺少或错序的 {view} 不能通过", () =>
             {
                 var readings = Views();
-                Assert.False(SelfCheckLayoutRules.LibraryViews(readings.Where((_, index) => index != (int)view).ToArray(), true, CardSize.Chrome));
-                readings[(int)view] = ("错误视图", readings[(int)view].Layout, readings[(int)view].Cell, readings[(int)view].Row);
+                Assert.False(SelfCheckLayoutRules.LibraryViews(
+                    readings.Where((_, index) => index != Slot(view)).ToArray(), true, CardSize.Chrome));
+                readings[Slot(view)] = ("错误视图", readings[Slot(view)].Layout, readings[Slot(view)].Cell, readings[Slot(view)].Row);
                 Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
             });
             Test($"自检布局：{view} 布局类型或行高损坏不能通过", () =>
             {
                 var readings = Views();
-                var original = readings[(int)view];
-                readings[(int)view] = (original.Label, "错误布局", original.Cell, original.Row);
+                var original = readings[Slot(view)];
+                readings[Slot(view)] = (original.Label, "错误布局", original.Cell, original.Row);
                 Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
-                readings[(int)view] = (original.Label, original.Layout, original.Cell, original.Row + 4);
+                readings[Slot(view)] = (original.Label, original.Layout, original.Cell, original.Row + 4);
                 Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
             });
         }
@@ -52,28 +54,35 @@ internal static class SelfCheckLayoutRulesTests
                 Assert.False(SelfCheckLayoutRules.LibraryViews(changed, true, CardSize.Chrome));
             }
         });
-        Test("自检布局：两种卡片视图必须保留16像素底板空间", () =>
+        Test("自检布局：九值枚举下七条读数通过，多一条或按九值计数判为失败", () =>
         {
-            foreach (var view in new[] { LibraryView.PosterCard, LibraryView.ThumbCard })
-            {
-                var readings = Views();
-                readings[(int)view] = (readings[(int)view].Label, readings[(int)view].Layout, readings[(int)view].Cell, readings[(int)view].Row - LibraryCardMetrics.CardFrameChrome);
-                Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
-            }
+            // LibraryView 有九个值：Emby 的七种之外，还有 Jellyfin 的 海报卡片/缩略图卡片。Emby 库的视图
+            // 走查只排七条（见 LibraryPage.WalkViews），所以判据要按 EmbyViews 计数 —— 按九值枚举要求数量，
+            // 每一台 Emby 库都会红。这一条钉的正是那次实际失败，不删。
+            var readings = Views();
+            Assert.Equal(9, Enum.GetValues<LibraryView>().Length);
+            Assert.Equal(7, LibraryDisplayCatalog.EmbyViews.Count);
+            Assert.Equal(LibraryDisplayCatalog.EmbyViews.Count, readings.Length);
+            Assert.True(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
+            Assert.False(readings.Length == Enum.GetValues<LibraryView>().Length,
+                "七条读数与九值枚举等长，说明读数又按整个枚举生成");
+
+            // 多一条（例如把 Jellyfin 的 海报卡片 也排进走查）不能通过。
+            var extra = readings.Append((LibraryDisplayCatalog.LabelOf(LibraryView.PosterCard), "UniformGridLayout",
+                192d, LibraryCardMetrics.Height(LibraryView.PosterCard, 192) + CardSize.Chrome)).ToArray();
+            Assert.False(SelfCheckLayoutRules.LibraryViews(extra, true, CardSize.Chrome));
+
+            // 连 缩略图卡片 一起排满九条，正好是「按九值枚举要求数量」的那一份，同样不能通过。
+            var nine = extra.Append((LibraryDisplayCatalog.LabelOf(LibraryView.ThumbCard), "UniformGridLayout",
+                330d, LibraryCardMetrics.Height(LibraryView.ThumbCard, 330) + CardSize.Chrome)).ToArray();
+            Assert.Equal(Enum.GetValues<LibraryView>().Length, nine.Length);
+            Assert.False(SelfCheckLayoutRules.LibraryViews(nine, true, CardSize.Chrome));
         });
         Test("自检布局：模型正确但实际MinItemHeight仍旧时拒绝", () =>
         {
             var readings = Views(18);
             Assert.False(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome));
             Assert.True(SelfCheckLayoutRules.LibraryViews(readings, true, CardSize.Chrome + 18));
-            foreach (var view in new[] { LibraryView.PosterCard, LibraryView.ThumbCard })
-            {
-                var stale = Views();
-                var current = stale[(int)view];
-                stale[(int)view] = (current.Label, current.Layout, current.Cell,
-                    current.Row - LibraryCardMetrics.CardFrameChrome);
-                Assert.False(SelfCheckLayoutRules.LibraryViews(stale, true, CardSize.Chrome));
-            }
         });
         Test("自检HDR：SDR映射精确四项，HDR和自动精确五项", () =>
         {
@@ -158,15 +167,22 @@ internal static class SelfCheckLayoutRulesTests
     }
 
     private static (string Label, string Layout, double Cell, double Row)[] Views(int noteHeight = 0) =>
-        Enum.GetValues<LibraryView>().Select(view =>
+        LibraryDisplayCatalog.EmbyViews.Select(view =>
         {
             if (view is LibraryView.List or LibraryView.Table)
                 return (LibraryDisplayCatalog.LabelOf(view), "StackLayout", 0d, 0d);
-            var width = view is LibraryView.Poster or LibraryView.PosterCard or LibraryView.Disc ? 192 : 330;
-            var frame = view is LibraryView.PosterCard or LibraryView.ThumbCard ? LibraryCardMetrics.CardFrameChrome : 0;
-            var height = LibraryCardMetrics.Height(view, width) + CardSize.Chrome + noteHeight + frame;
+            var width = view is LibraryView.Poster or LibraryView.Disc ? 192 : 330;
+            var height = LibraryCardMetrics.Height(view, width) + CardSize.Chrome + noteHeight;
             return (LibraryDisplayCatalog.LabelOf(view), "UniformGridLayout", (double)width, height);
         }).ToArray();
+
+    /// <summary>七条读数里 <paramref name="view"/> 那一条的位置：真实的走查看按 EmbyViews 的顺序排。</summary>
+    private static int Slot(LibraryView view)
+    {
+        for (var slot = 0; slot < LibraryDisplayCatalog.EmbyViews.Count; slot++)
+            if (LibraryDisplayCatalog.EmbyViews[slot] == view) return slot;
+        throw new InvalidOperationException($"{view} 不在 Emby 的七种视图里");
+    }
 
     private static string[] Hdr(bool peak) => peak
         ? ["HDR 输出峰值亮度", "HDR 参考白亮度", "文字字幕与 OSD 亮度", "图形字幕亮度", "HDR 对比度恢复"]
