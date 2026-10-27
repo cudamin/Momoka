@@ -90,10 +90,12 @@ internal sealed partial class ShellNavigationProbe
             fixture.Settings.Mpv.Backend = MpvBackendKind.ExternalMpv;
             fixture.Settings.Mpv.EnableIpc = false;
             Call(page.ViewModel, "RefreshPlayerBackend");
-            Require(page.ViewModel.Sections.All(section => section.Title != "实时字幕翻译"), "外部播放器无 IPC 仍显示不会生效的翻译卡");
+            Require(page.ViewModel.Sections.All(section => section.Title is not ("实时字幕翻译" or "服务与密钥" or "译文外观")),
+                "外部播放器无 IPC 仍显示不会生效的翻译卡");
             fixture.Settings.Mpv.EnableIpc = true;
             Call(page.ViewModel, "RefreshPlayerBackend");
-            Require(page.ViewModel.Sections.Any(section => section.Title == "实时字幕翻译"), "恢复 IPC 后没有恢复翻译卡");
+            Require(page.ViewModel.Sections.Any(section => section.Title == "实时字幕翻译")
+                && page.ViewModel.Sections.Any(section => section.Title == "服务与密钥"), "恢复 IPC 后没有恢复翻译卡");
             Require(fixture.Settings.SubtitleTranslation.TargetLanguage == "ja" && fixture.Settings.SubtitleTranslation.HasAiApiKey,
                 "能力显隐删除了翻译偏好");
         }
@@ -103,7 +105,10 @@ internal sealed partial class ShellNavigationProbe
             page.Release(); _root.Children.Remove(page); ResizeInspect(1420, 980);
         }
 
-        SettingRow[] TranslationRows() => page.ViewModel.Sections.Single(section => section.Title == "实时字幕翻译").Rows.ToArray();
+        // 2026-10-27 起翻译分类是三张卡（实时字幕翻译 / 服务与密钥 / 译文外观），行按屏上次序合起来读。
+        SettingRow[] TranslationRows() => [.. page.ViewModel.Sections
+            .Where(section => section.Title is "实时字幕翻译" or "服务与密钥" or "译文外观")
+            .SelectMany(section => section.Rows)];
         async Task SettlePageAsync() { await LayoutAsync(page); await WaitForSettingsSettledAsync(page); await Task.Delay(80); }
         async Task ToggleAsync(string label)
         {

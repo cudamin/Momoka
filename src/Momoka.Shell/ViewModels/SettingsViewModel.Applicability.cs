@@ -53,7 +53,8 @@ public sealed partial class SettingsViewModel
     private void SyncSubtitleBackControls()
     {
         if (_settings is null) return;
-        var section = Sections.FirstOrDefault(card => card.Title == "字幕");
+        // 2026-10-27 起字幕分类拆成三张卡，底板那几行住「字幕外观」那一张。
+        var section = Sections.FirstOrDefault(card => card.Title == "字幕外观");
         if (section is null) return;
         var playback = Settings.Playback;
         var changed = false;
@@ -94,7 +95,7 @@ public sealed partial class SettingsViewModel
     private void RefreshSubtitleBackRows()
     {
         if (_settings is null) return;
-        var section = Sections.FirstOrDefault(card => card.Title == "字幕");
+        var section = Sections.FirstOrDefault(card => card.Title == "字幕外观");
         if (section is null) return;
         var rows = section.Rows.Where(row => row.Label is not ("底板颜色" or "底板不透明度（%）")).ToList();
         var anchor = rows.FindIndex(row => row.Label == "字幕底板");

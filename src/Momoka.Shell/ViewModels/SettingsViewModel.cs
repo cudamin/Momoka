@@ -1111,30 +1111,31 @@ public sealed partial class SettingsViewModel : PageViewModel
         SettingRow.NotesHidden = Settings.Ui.CompactMode;
 
         // 建卡次序照左栏那份（CardCategories，用户令 2026-10-11 排的序），好让分类走查、Cards 分组这些
-        // 按 Sections 次序读数的地方与屏上的次序是同一份。同一分类的多张分区卡连着排：播放行为分类三张
-        // （播放行为 / 资源筛选 / 截图），视频输出分类四张（基础输出 / 补帧 / HDR / 画质与着色器）。补帧
-        // 紧跟在基础输出后面：它管的是同一条输出链上的下一段，而且它读到的基础值就是那张卡显示的那几个。
+        // 按 Sections 次序读数的地方与屏上的次序是同一份。同一分类的多张分区卡连着排：主页两张（轮播图 /
+        // 主页版面）、播放行为五张（播放行为 / 跳转与步长 / 音轨 / 资源筛选 / 截图）、视频输出四张（基础输出 /
+        // 补帧 / HDR / 画质与着色器）、音频输出三张（输出设备 / 响度 / 直通）、字幕四张（字幕 / 字幕外观 /
+        // 编码与画面 / 实时字幕翻译）、弹幕四张、关于四张。补帧紧跟在基础输出后面：它管的是同一条输出链上的
+        // 下一段，而且它读到的基础值就是那张卡显示的那几个。
         Sections.Clear();
-        Sections.Add(HomeCard());
+        AddCards(HomeSections());
         Sections.Add(InterfaceCard());
         Sections.Add(PlayerCard());
         if (MpvCustomConfig.IsBuiltInBackend(Settings.Mpv)) Sections.Add(CustomMpvConfigCard());
-        Sections.Add(PlaybackCard());
+        AddCards(PlaybackSections());
         Sections.Add(ResourceFilterCard());
         Sections.Add(ScreenshotCard());
         Sections.Add(VideoCard());
         Sections.Add(FrameInterpolationCard());
         Sections.Add(ApplicableHdrCard());
         Sections.Add(ApplicableShaderCard());
-        Sections.Add(AudioCard());
-        Sections.Add(SubtitleCard());
-        if (Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || Settings.Mpv.EnableIpc) Sections.Add(SubtitleTranslationCard());
+        AddCards(AudioSections());
+        AddCards(SubtitleSections());
+        if (Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || Settings.Mpv.EnableIpc) AddCards(SubtitleTranslationSections());
         // 弹幕分类四张卡（2026-10-27 拆卡）：开关与匹配、显示与外观、类型与屏蔽、应用凭据，见 DanmakuSections。
-        if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv))
-            foreach (var section in DanmakuSections()) Sections.Add(section);
+        if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) AddCards(DanmakuSections());
         Sections.Add(ShortcutsCard());
         Sections.Add(MoviePilotCard());
-        Sections.Add(AboutCard());
+        AddCards(AboutSections());
         RefreshDanmakuAvailability();
         _ = MeasureImageCacheAsync();
 
@@ -1142,6 +1143,12 @@ public sealed partial class SettingsViewModel : PageViewModel
         IsReady = true;
 
         return Task.WhenAll(FillFontsAsync(), FillAudioDevicesAsync());
+    }
+
+    /// <summary>把一份建好的卡按次序加进 Sections。拆成多张的分类各有一个 XxxSections()，不在这里逐张写。</summary>
+    private void AddCards(IReadOnlyList<SettingSection> sections)
+    {
+        foreach (var section in sections) Sections.Add(section);
     }
 
     /// <summary>
@@ -1483,11 +1490,14 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
     }
 
-    private SettingSection PlaybackCard()
+    private IReadOnlyList<SettingSection> PlaybackSections()
     {
         var playback = Settings.Playback;
-        return new SettingSection("播放行为", "播放行为", "断点续播、进度上报、片头片尾和音轨选择。",
-        [
+
+        // 2026-10-27 拆卡（用户令「其他页也拆一下」）：原来十四行挤在一张卡里，「一集放完接不接下一集」和
+        // 「→ 键跳几秒」隔着半屏。现在按「这一行在回答哪个问题」分成播放行为、跳转与步长、音轨三张。
+        var behaviorRows = new List<SettingRow>
+        {
             Toggle("向服务器汇报播放进度", "关闭后服务器不再记录本次播放进度", () => playback.ReportProgressToServer, value => playback.ReportProgressToServer = value),
             Toggle("从服务器保存的位置继续", "关掉后每次都从片头放起", () => playback.ResumeFromSavedPosition, value => playback.ResumeFromSavedPosition = value),
             Toggle("自动播放下一集", "一集放完自动接下一集，本季放完退出播放", () => playback.AutoPlayNextEpisode, value => playback.AutoPlayNextEpisode = value),
@@ -1519,6 +1529,13 @@ public sealed partial class SettingsViewModel : PageViewModel
             // DonghuaRule（类型：动画 ∧ 发行公司带腾讯/哔哩哔哩），这里只管数值。现读设置，下一次播放结束就认。
             Number("国漫标记已观看阈值（%）", 50, 100, () => playback.DonghuaMarkWatchedPercent, value => playback.DonghuaMarkWatchedPercent = value,
                 "类型为动画、发行公司带腾讯、哔哩哔哩、优酷或爱奇艺的片子单独按这一档算，不吃上面那行的值"),
+            Number("续播自动快退（秒）", 0, 120, () => playback.ResumeRewindSeconds, value => playback.ResumeRewindSeconds = value),
+            Number("进度上报间隔（秒）", 1, 60, () => playback.ProgressReportIntervalSeconds, value => playback.ProgressReportIntervalSeconds = value),
+            Choice("跳过片头片尾", SkipModes, () => playback.SkipSections, value => playback.SkipSections = value)
+        };
+
+        var seekRows = new List<SettingRow>
+        {
             // 四颗方向键、两对步长（2026-09-20 用户令）：← / → 用上面这两行，↑ / ↓ 用下面那两行。两对都印在
             // 设置页上，因为两个管线各有一套输入处理 —— 集成模式的键盘归 shell 的快捷键表，独占模式的键盘是
             // mpv 自己那层（keybind，见 <c>MpvSeekKeys</c>）—— 而两套都从这几个字段取值。屏上印的数字与按下
@@ -1530,10 +1547,11 @@ public sealed partial class SettingsViewModel : PageViewModel
             Number("大步快进跨度（秒）", 1, 600, () => playback.SeekForwardLongSeconds, value => playback.SeekForwardLongSeconds = value,
                 "↑ 键跳这么多秒"),
             Number("大步快退跨度（秒）", 1, 600, () => playback.SeekBackwardLongSeconds, value => playback.SeekBackwardLongSeconds = value,
-                "↓ 键跳这么多秒"),
-            Number("续播自动快退（秒）", 0, 120, () => playback.ResumeRewindSeconds, value => playback.ResumeRewindSeconds = value),
-            Number("进度上报间隔（秒）", 1, 60, () => playback.ProgressReportIntervalSeconds, value => playback.ProgressReportIntervalSeconds = value),
-            Choice("跳过片头片尾", SkipModes, () => playback.SkipSections, value => playback.SkipSections = value),
+                "↓ 键跳这么多秒")
+        };
+
+        var trackRows = new List<SettingRow>
+        {
             // 音轨语言优先级, the same drop-down as the 字幕 card's since 2026-09-22（「给音轨新增语言优先级和格式
             // 优先级」——语言这栏跟字幕一样改成勾选下拉）. It was a single-pick up to v9, which could not express
             // 「日语 > 粤语 > 英语」 at all; an empty list is 「跟随服务器默认音轨」. Unlike 字幕, 音轨 keeps 普通话／粤语
@@ -1549,7 +1567,17 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "语言选出「哪几条是这个语言」之后，再按编码／声道里的词挑一遍：优先＝含这个词的排前头，候补＝排到最后"
                     + "（同语言只剩它时仍会给一条），默认＝不生效。预置 Atmos、TrueHD、DTS-HD、DTS、FLAC、7.1、5.1，"
                     + "输入框可自定义添加，拖动调整优先级。格式只在同一语言内部作用，不会越过语言优先级。下次播放生效")
-        ]);
+        };
+
+        return
+        [
+            new SettingSection("播放行为", "播放行为",
+                "断点续播、进度上报、连播与全屏、看过多少算看完。", behaviorRows),
+            new SettingSection("播放行为", "跳转与步长",
+                "四颗方向键一次跳多少秒。集成模式与独占模式共用这几个数，屏上印的和按下去的永远对得上。", seekRows),
+            new SettingSection("播放行为", "音轨",
+                "选哪条音轨：先按语言挑，再在同一语言里按编码与声道挑。", trackRows)
+        ];
     }
 
     /// <summary>
@@ -1581,22 +1609,21 @@ public sealed partial class SettingsViewModel : PageViewModel
         ]);
     }
 
-    private SettingSection SubtitleCard()
+    private IReadOnlyList<SettingSection> SubtitleSections()
     {
         var playback = Settings.Playback;
 
-        // 「参考图2新增字幕外观功能」（2026-09-06）：卡顶这条「字幕示例」，照下面外观各行的当前值实时画。
-        // 它是行列表的第一行，重画的线只有 Live<T> 那一条 —— 外观每一行写完设置都从那儿过，所以预览
-        // 不可能停在旧样子上。
+        // 「参考图2新增字幕外观功能」（2026-09-06）：外观卡顶上这条「字幕示例」，照外观各行的当前值实时画。
+        // 重画的线只有 Live<T> 那一条 —— 外观每一行写完设置都从那儿过，所以预览不可能停在旧样子上。
         var preview = new SettingSubtitlePreviewRow("字幕示例",
             "纯文本字幕的样式示意：两行文字可比较逐行盒与整体背景盒，大小会跟随字号和缩放。"
                 + "不是 libass 播放画面；实际尺寸还受窗口大小与字幕格式影响。", playback);
         _subtitlePreview = preview;
 
-        var rows = new List<SettingRow>
+        // 2026-10-27 拆卡（用户令「其他页也拆一下」）：语言怎么挑、外观长什么样、编码与图形字幕怎么处理，
+        // 原来二十行挤在一张卡里。挑轨的三行和「这条字幕长什么样」本来就不是同一个问题。
+        var languageRows = new List<SettingRow>
         {
-            preview,
-
             LanguagePriority("字幕语言优先级", "未指定，跟随文件默认字幕", () => playback.SubtitleLanguages, value => playback.SubtitleLanguages = value,
                 "点开勾语言，越靠上越优先，按住或用箭头换次序。「其他字幕」是一个预设项，代表任何别的语言的字幕 —— "
                     + "排在最后就是「前面都不匹配时，有一条别的语言的总比没有好」。空列表只跟随明确的默认轨；"
@@ -1612,7 +1639,12 @@ public sealed partial class SettingsViewModel : PageViewModel
                     + "另：字幕语言里选了「简体中文」时，会自动把标题带「繁 / 繁体」的排为候补。下次播放生效"),
             Choice("显示模式", SubtitleModes, () => playback.SubtitleMode, value => playback.SubtitleMode = value),
             Toggle("没有匹配语言时使用默认字幕", "只回退服务器指定或文件标记的默认字幕，不再按标题改选别的轨道；没有默认轨就不显示。"
-                + "允许任意语言兜底请在语言列表末尾加入「其他字幕」。空语言列表不受本开关影响", () => playback.SubtitleFallbackToDefault, value => playback.SubtitleFallbackToDefault = value),
+                + "允许任意语言兜底请在语言列表末尾加入「其他字幕」。空语言列表不受本开关影响", () => playback.SubtitleFallbackToDefault, value => playback.SubtitleFallbackToDefault = value)
+        };
+
+        var appearanceRows = new List<SettingRow>
+        {
+            preview,
 
             // 这一行管着它下面那一整组。放在这儿而不是外观末尾：番剧和压制组的内封字幕大量是 ASS，
             // 而 mpv 默认让 ASS 自己的样式说话 —— 也就是说下面九行对那些文件一个字都改不动。
@@ -1652,8 +1684,12 @@ public sealed partial class SettingsViewModel : PageViewModel
 
             Mpv("字幕底板", MpvOutputOptions.SubtitleBackStyles, () => playback.SubtitleBackStyle,
                 Live<string>(value => playback.SubtitleBackStyle = value),
-                "sub-border-style", "亮画面上最管用的一项。关着的时候只有描边和阴影", RefreshSubtitleBackRows),
+                "sub-border-style", "亮画面上最管用的一项。关着的时候只有描边和阴影", RefreshSubtitleBackRows)
+        };
+        appearanceRows.InsertRange(appearanceRows.FindIndex(row => row.Label == "字幕底板") + 1, SubtitleBackRows());
 
+        var encodingRows = new List<SettingRow>
+        {
             Mpv("字幕编码", MpvOutputOptions.SubtitleCodepages, () => playback.SubtitleCodepage, value => playback.SubtitleCodepage = value,
                 "sub-codepage", "只对不是 UTF-8 的文本字幕有意义。选了具体编码就不再自动识别了，"
                     + "所以简体那一档会把 Big5 的繁体字幕读成乱码。下次播放生效"),
@@ -1661,10 +1697,19 @@ public sealed partial class SettingsViewModel : PageViewModel
                 + "免得字幕落到画面外头去。下次播放生效", () => playback.StretchWideImageSubtitles, value => playback.StretchWideImageSubtitles = value,
                 "stretch-image-subs-to-screen")
         };
-        rows.InsertRange(rows.FindIndex(row => row.Label == "字幕底板") + 1, SubtitleBackRows());
-        return new SettingSection("字幕", "字幕", "语言优先级和字幕外观。勾选语言并排序，越靠上越优先，"
-            + "「其他字幕」代表任何别的语言的字幕、放在最后可兜底。"
-            + "外观这一组改完立刻作用到正在播的片子；语言、显示模式和字幕编码下次播放生效。", rows);
+
+        return
+        [
+            new SettingSection("字幕", "字幕",
+                "挑哪条字幕轨：先按语言，再按标题里的词。勾选语言并排序，越靠上越优先；「其他字幕」代表任何别的"
+                    + "语言的字幕、放在最后可兜底。这几行下次播放生效。", languageRows),
+            new SettingSection("字幕", "字幕外观",
+                "字幕长什么样。这一组改完立刻作用到正在播的片子；ASS/SSA 字幕要不要被覆盖由第一行说了算。",
+                appearanceRows),
+            new SettingSection("字幕", "编码与画面",
+                "不是 UTF-8 的老字幕读成乱码时改这里；图形字幕跑到画面外头也在这儿拉回来。下次播放生效。",
+                encodingRows)
+        ];
     }
 
     /// <summary>
@@ -1712,7 +1757,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         }
     }
 
-    private SettingSection AudioCard()
+    private IReadOnlyList<SettingSection> AudioSections()
     {
         var audio = Settings.Audio;
 
@@ -1744,17 +1789,28 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "audio-spdif"))
             .ToList();
 
-        // 生效时机写在页头而不是每行重复：这一页的行只改设置并保存，没有字幕外观那种实时推送 —— 正在放
-        // 的片子不因这里而变（2026-09-30 审查补的说明，免得「改了却听不出变化」被当成坏了）。
-        return new SettingSection("音频输出", "音频输出", "输出设备、声道布局、响度、独占模式和功放直通。"
-            + "这一页的改动保存后从下一次播放开始生效，正在放的片子不受影响；播放中的临时调整在画面菜单里，不保存。",
+        // 2026-10-27 拆卡（用户令「其他页也拆一下」）：设备与独占、响度、直通三件事原来挤在一张十二行的卡里。
+        // 生效时机写在分类说明那一句上，不逐行重复：这一页的行只改设置并保存，没有字幕外观那种实时推送 ——
+        // 正在放的片子不因这里而变（2026-09-30 审查补的说明，免得「改了却听不出变化」被当成坏了）。
+        // 音频输出设备. Built from whatever has already been enumerated — nothing on the first frame — and
+        // refilled by FillAudioDevicesAsync a moment later. Held in a field for exactly that. 单列一句 Add：
+        // 写进下面的集合初始化器会被当成对象初始化器的成员（「名字 = 值」那副样子）。
+        var deviceRows = new List<SettingRow>();
+        _audioDevice = DeviceRow(audio);
+        deviceRows.Add(_audioDevice);
+        deviceRows.AddRange(
         [
-            // 音频输出设备. Built from whatever has already been enumerated — nothing on the first frame — and
-            // refilled by FillAudioDevicesAsync a moment later. Held in a field for exactly that.
-            _audioDevice = DeviceRow(audio),
             Mpv("扬声器布局", MpvOutputOptions.Channels, () => audio.Channels, value => audio.Channels = value,
                 "audio-channels"),
+            Toggle("音频独占模式", "播放时把声卡占下来、绕过系统混音，声音更原样；代价是放片的时候别的程序出不了声",
+                () => audio.ExclusiveMode, value => audio.ExclusiveMode = value,
+                "audio-exclusive"),
+            Number("全局音频延迟（毫秒）", -5000, 5000, () => audio.DelayMilliseconds, value => audio.DelayMilliseconds = value,
+                "正值＝声音推迟，负值＝声音提前；清空输入框不会归零，灰字是仍在生效的值", null, "audio-delay")
+        ]);
 
+        var loudnessRows = new List<SettingRow>
+        {
             // 「只对 AC-3 / E-AC-3 有效」 is the whole point of this note. The option itself is fine and stays —
             // it really does work on an AC-3 track that carries DRC metadata — but the row used to read as the
             // general 「让对白清楚一点」 control, and on a DTS or TrueHD track it does exactly nothing. That is
@@ -1769,14 +1825,25 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "多声道下混时防削波：把混音系数整体压到不超载，代价是整体变轻。它不单独抬高对白 —— "
                 + "想要对白清楚请用上面的「音量均衡」。只在下混由 mpv 完成时有效，这台机器上量过确实如此",
                 () => audio.NormalizeDownmix, value => audio.NormalizeDownmix = value,
-                "audio-normalize-downmix"),
-            Toggle("音频独占模式", "播放时把声卡占下来、绕过系统混音，声音更原样；代价是放片的时候别的程序出不了声",
-                () => audio.ExclusiveMode, value => audio.ExclusiveMode = value,
-                "audio-exclusive"),
-            Number("全局音频延迟（毫秒）", -5000, 5000, () => audio.DelayMilliseconds, value => audio.DelayMilliseconds = value,
-                "正值＝声音推迟，负值＝声音提前；清空输入框不会归零，灰字是仍在生效的值", null, "audio-delay"),
+                "audio-normalize-downmix")
+        };
+
+        var passthroughRows = new List<SettingRow>
+        {
             new SettingToggleGroupRow("直通格式", passthrough)
-        ]);
+        };
+
+        return
+        [
+            new SettingSection("音频输出", "输出设备",
+                "声音从哪张声卡出来、几个声道、独占还是共享，以及整体的音画对齐。这一页的改动保存后从下一次播放开始生效。",
+                deviceRows),
+            new SettingSection("音频输出", "响度",
+                "对白太轻、爆炸太响时调这里。这几行对解码后的音频生效，直通的音轨不受影响。", loudnessRows),
+            new SettingSection("音频输出", "直通",
+                "把原样码流交给功放或电视解码。直通之后音量均衡、下混归一化和音量条都不再作用于这条音轨。",
+                passthroughRows)
+        ];
     }
 
     /// <summary>
@@ -1807,7 +1874,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 然后立刻保存并通知 <see cref="ShellPrefs"/>，不会清空隐藏来源或不可用订阅的偏好。
     /// </para>
     /// </summary>
-    private SettingSection HomeCard()
+    private IReadOnlyList<SettingSection> HomeSections()
     {
         var ui = Settings.Ui;
         var plan = CurrentHomeRows();
@@ -1847,9 +1914,10 @@ public sealed partial class SettingsViewModel : PageViewModel
             ("随机挑选", Emby.CarouselSource.Random)
         ];
 
-        return new SettingSection("主页", "主页", "顶上那张轮播大图、媒体库那一排摆在哪，以及主页上那几排的次序和"
-            + "显示与否，包括每个媒体库自己那一排。",
-        [
+        // 2026-10-27 拆卡（用户令「其他页也拆一下」）：轮播图那五行自己一张，主页版面（媒体库那一排摆在哪、
+        // 各排什么次序）一张。原来七行挤在一张卡里，两种问题（大图怎么走 / 版面怎么排）各读一半。
+        var carouselRows = new List<SettingRow>
+        {
             // 「在设置中新增关闭轮播图的功能」（用户的话，2026-09-05）。摆在四行轮播设置和拖拽表上面，
             // 因为它管的是整个第一屏：关掉之后顶上那张大图整个没有，那张表里的每一排照旧横着排在各自的
             // 位置上。改完当场喊一声（ShellPrefs），主页那一头照新的重排 —— 和下面几行走同一条路。
@@ -1900,7 +1968,10 @@ public sealed partial class SettingsViewModel : PageViewModel
                     ShellPrefs.Apply(ui);
                 },
                 "一张封面站多少秒再换下一张，指针停在带上的时候不计时"),
+        };
 
+        var layoutRows = new List<SettingRow>
+        {
             // 「主页媒体库位置」（用户 2026-10-12 令，当时叫「首页媒体库位置」、摆在界面卡上；2026-10-16 令改名
             // 并挪进主页卡）。三档的判定在 Core（<see cref="Emby.HomeFold.LibraryOnBanner"/>），主页那一头只管量
             // 几何和搬那一排。改完当场喊一声（ShellPrefs）：主页在另一个窗口里，它照这一档重新摆一次，不等回到
@@ -1921,7 +1992,16 @@ public sealed partial class SettingsViewModel : PageViewModel
                 after: () => ShellPrefs.Apply(ui)),
 
             HomeRows
-        ]);
+        };
+
+        return
+        [
+            new SettingSection("主页", "轮播图",
+                "主页最上面那条会自己走的大图：摆不摆、放哪一类、几张、一张站几秒。", carouselRows),
+            new SettingSection("主页", "主页版面",
+                "媒体库那一排摆在第一屏的哪儿，以及主页上那几排的次序和显示与否，包括每个媒体库自己那一排。",
+                layoutRows)
+        ];
     }
 
     /// <summary>自检用：那张可拖拽的表这一次建出来的那一行。</summary>
@@ -2392,26 +2472,30 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// 按钮不画：一张空卡比一张会抛的卡好，而「这一版是哪一版」不该因为拿不到路径就说不出来。
     /// </para>
     /// </summary>
-    private SettingSection AboutCard()
+    private IReadOnlyList<SettingSection> AboutSections()
     {
         var home = AppContext.BaseDirectory;
-        var rows = new List<SettingRow>
+
+        // 三行读数不带说明行（他 2026-09-14：「不要显示这些字」）。原来那三句 ——「改动记在 PROGRESS.md 里，
+        // 版本号不随每次改动走」「这份 exe 落到磁盘上的时间」「这个文件的版本不要换」—— 是写给做这个程序的
+        // 人看的：它们讲的是版本号怎么走、构建时间取的是哪个时间、那个 dll 的版本为什么别动，不是读这张卡
+        // 的人关心的事。规矩没丢，它们本来就在别处（版本号在 Directory.Build.props 与 PROGRESS.md，
+        // 构建时间的取法在 AboutFacts.BuiltAt 的注释里）。
+        // 底下四行目录的说明留着：那几句说的是「点开这颗按钮会看到什么」，本来就是给用它的人读的。
+        var infoRows = new List<SettingRow>
         {
-            // 三行读数不带说明行（他 2026-09-14：「不要显示这些字」）。原来那三句 ——「改动记在 PROGRESS.md 里，
-            // 版本号不随每次改动走」「这份 exe 落到磁盘上的时间」「这个文件的版本不要换」—— 是写给做这个程序的
-            // 人看的：它们讲的是版本号怎么走、构建时间取的是哪个时间、那个 dll 的版本为什么别动，不是读这张卡
-            // 的人关心的事。规矩没丢，它们本来就在别处（版本号在 Directory.Build.props 与 PROGRESS.md，
-            // 构建时间的取法在 AboutFacts.BuiltAt 的注释里）。
-            // 底下四行目录的说明留着：那几句说的是「点开这颗按钮会看到什么」，本来就是给用它的人读的。
             Fact("客户端版本", null, AboutFacts.Client),
             Fact("构建时间", null, AboutFacts.BuiltAt(Path.Combine(home, "Momoka.exe"))),
             Fact("播放内核", null, AboutFacts.PlaybackCore(home)),
             Fact(AboutFacts.StarLabel, "你的 Star 是对项目的支持，谢谢！", "", "去 GitHub 点星", () => _launcher?.OpenUrl(AboutFacts.ProjectUrl)),
-            Fact("弹弹play 开放弹幕网络", "弹幕数据来源与服务提供方。", "", "弹弹play 官网", () => _launcher?.OpenUrl(Momoka.Danmaku.DandanPlayClient.WebsiteUrl)),
+            Fact("弹弹play 开放弹幕网络", "弹幕数据来源与服务提供方。", "", "弹弹play 官网", () => _launcher?.OpenUrl(Momoka.Danmaku.DandanPlayClient.WebsiteUrl))
+        };
 
-            // 「在设置中新增开启应用后自动检查有没有新版本的功能」。开关和下面那颗手动按钮是同一件事的两半：
-            // 开关管「以后每次启动留意一下」，手动管「现在就知道结果」。装机默认开（用户令 2026-10-14），
-            // 关掉就不再联网检查 —— 这一格是那件事唯一的开关。拨一下下一次启动生效，不在这里顺手查一次。
+        // 「在设置中新增开启应用后自动检查有没有新版本的功能」。开关和下面那颗手动按钮是同一件事的两半：
+        // 开关管「以后每次启动留意一下」，手动管「现在就知道结果」。装机默认开（用户令 2026-10-14），
+        // 关掉就不再联网检查 —— 这一格是那件事唯一的开关。拨一下下一次启动生效，不在这里顺手查一次。
+        var updateRows = new List<SettingRow>
+        {
             Toggle(UpdateNotice.ToggleLabel,
                 "打开之后，每次启动会去发布页问一句有没有比这一版新的，有新版本就弹一条提示，带一颗「打开下载页」；"
                     + "关掉就不再联网检查。默认开，拨一下下一次启动生效。",
@@ -2425,15 +2509,16 @@ public sealed partial class SettingsViewModel : PageViewModel
             "现在就去发布页问一句有没有比这一版新的，结果写在这一行；有新版本会再弹一条提示，带一颗「打开下载页」。"
                 + "这一颗不受上面那个开关管 —— 它是你按的。",
             "", "检查更新", () => _ = CheckForUpdatesAsync());
-        rows.Add(_updateRow);
+        updateRows.Add(_updateRow);
 
+        var fileRows = new List<SettingRow>();
         if (_paths is { } paths)
         {
-            rows.Add(Fact("设置文件", "所有设置都在这一份 JSON 里，token 是 DPAPI 包过的", paths.SettingsFile,
+            fileRows.Add(Fact("设置文件", "所有设置都在这一份 JSON 里，token 是 DPAPI 包过的", paths.SettingsFile,
                 "打开所在文件夹", () => _ = OpenDirectoryAsync(paths.Root)));
-            rows.Add(Fact("日志目录", "自检报告和界面树也在这儿", paths.LogDirectory,
+            fileRows.Add(Fact("日志目录", "自检报告和界面树也在这儿", paths.LogDirectory,
                 "打开", () => _ = OpenDirectoryAsync(paths.LogDirectory)));
-            rows.Add(Fact("缓存目录", "海报和着色器缓存，删掉不会丢设置", Path.GetDirectoryName(paths.ImageCacheDirectory) ?? paths.Root,
+            fileRows.Add(Fact("缓存目录", "海报和着色器缓存，删掉不会丢设置", Path.GetDirectoryName(paths.ImageCacheDirectory) ?? paths.Root,
                 "打开", () => _ = OpenDirectoryAsync(Path.GetDirectoryName(paths.ImageCacheDirectory) ?? paths.Root)));
 
             // 播放器右键菜单 → 截图 的落点。这一行不是装饰：截图这个功能从前根本没做，理由正是
@@ -2443,7 +2528,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             // _screenshotFact 上，那头一改它当场换。
             _screenshotFact = Fact("截图目录", "播放器右键菜单 → 截图 存到这儿，文件名是片名、播放时间和序号",
                 ScreenshotDirectory(), "打开", () => _ = OpenDirectoryAsync(ScreenshotDirectory()));
-            rows.Add(_screenshotFact);
+            fileRows.Add(_screenshotFact);
         }
 
         // 图片缓存 2026-10-20 从「服务器」页与「界面」卡搬进关于：它是这台机器上的痕迹，不是某台服务器的属性。
@@ -2451,7 +2536,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _imageCache = Fact("图片缓存",
             "海报和剧照已经下载到本机的部分；清除后下次浏览会重新下载，不影响服务器、账号和任何设置",
             "正在统计…", "清除", () => _ = ClearImageCacheAsync());
-        rows.Add(_imageCache);
+        fileRows.Add(_imageCache);
 
         ImageBudget = Number("图片缓存上限（MB）",
             Emby.ImageCachePolicy.MinMegabytes,
@@ -2462,7 +2547,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                 + "不是用箭头拨的；填小了当场就会把最久没看过的那些删到新上限以下。缓存删掉不影响任何设置，"
                 + "只是下次看到那些封面时要重新下载一遍。",
             after: () => ShellPrefs.Apply(Settings.Ui));
-        rows.Add(ImageBudget);
+        fileRows.Add(ImageBudget);
 
         // 「把恢复默认设置移动到关于中，在关于中新增配置文件备份和恢复配置的功能」（用户令 2026-09-24）。三行都是
         // 动作行：只有标签、说明和一颗按钮，没有值（Value 空 → SettingFactRow.ValueVisibility 收起那一行）。三件事
@@ -2470,19 +2555,33 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 不动。破坏性的「恢复默认设置」摆在最末，是从上读到下的人最后才遇到的东西（同它从前在左边名单末尾那会儿）。
         // 备份 / 恢复配置要弹文件框，文件框由页面交进来（UseFilePickers）；没有页面（测试路径）时那两颗按下去
         // 什么都不发生，恢复默认仍能走（它只用确认框，不用文件框）。
-        rows.Add(Fact("备份配置文件",
-            "把你的偏好设置（播放、字幕、画质、音频、快捷键、主题、界面等）导出成一个文件；不含服务器、账号和登录信息，"
-                + "可以带到别的机器或重装之后用来恢复", "",
-            "备份到文件…", () => _ = BackupAsync()));
-        rows.Add(Fact("恢复配置",
-            "从之前备份的文件里读回偏好设置，覆盖当前这些设置。服务器、账号和登录不受影响；这一步不能撤销", "",
-            "从文件恢复…", () => _ = RestoreFromFileAsync()));
-        rows.Add(Fact("恢复默认设置",
-            "把设置页管的每一项改回装机时的样子。服务器、账号、登录状态和窗口位置都不动；这一步不能撤销", "",
-            "恢复默认", () => _ = RestoreDefaultsAsync()));
+        var backupRows = new List<SettingRow>
+        {
+            Fact("备份配置文件",
+                "把你的偏好设置（播放、字幕、画质、音频、快捷键、主题、界面等）导出成一个文件；不含服务器、账号和登录信息，"
+                    + "可以带到别的机器或重装之后用来恢复", "",
+                "备份到文件…", () => _ = BackupAsync()),
+            Fact("恢复配置",
+                "从之前备份的文件里读回偏好设置，覆盖当前这些设置。服务器、账号和登录不受影响；这一步不能撤销", "",
+                "从文件恢复…", () => _ = RestoreFromFileAsync()),
+            Fact("恢复默认设置",
+                "把设置页管的每一项改回装机时的样子。服务器、账号、登录状态和窗口位置都不动；这一步不能撤销", "",
+                "恢复默认", () => _ = RestoreDefaultsAsync())
+        };
 
-        return new SettingSection("关于", "关于",
-            "版本、检查新版本、播放内核，这个程序在磁盘上的几个位置，图片缓存，以及配置的备份、恢复和恢复默认。", rows);
+        // 2026-10-27 拆卡（用户令「其他页也拆一下」）：关于原来一张卡十六行，版本号、检查更新、磁盘位置、
+        // 备份恢复四件事混在一起。现在四张卡，破坏性的「恢复默认设置」仍在最后一行的最后。
+        return
+        [
+            new SettingSection("关于", "关于",
+                "这份程序是哪一版、拿哪个内核在放，以及弹幕数据从哪来。", infoRows),
+            new SettingSection("关于", "更新",
+                "启动时要不要顺路问一句有没有新版本，以及现在就想知道结果时按这里。", updateRows),
+            new SettingSection("关于", "文件与缓存",
+                "设置、日志、缓存和截图在这台机器上的位置，以及海报缓存占了多少地方。", fileRows),
+            new SettingSection("关于", "备份与恢复",
+                "把偏好设置导出带走，或者从备份里读回来；恢复默认只动设置页管的那些项。", backupRows)
+        ];
     }
 
     /// <summary>

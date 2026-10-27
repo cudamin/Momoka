@@ -123,7 +123,10 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => scroll.VerticalOffset < 1);
                 var visible = Descendants(page).OfType<FrameworkElement>()
                     .Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible).ToArray();
-                Require(visible.Length == 1 && visible[0].ActualHeight > 0, "长页切短页没有实现目标分组");
+                // 关于 2026-10-27 拆成四张卡：这一页该把四张都画出来，不能只认一张。
+                var aboutCards = page.ViewModel.Sections.Count(section => section.IsVisible);
+                Require(visible.Length == aboutCards && visible.All(element => element.ActualHeight > 0),
+                    $"长页切短页没有实现目标分组：可见 {visible.Length} / 应有 {aboutCards}");
                 Require(scroll.VerticalOffset < 1, "切换分类没有回到页面顶部");
 
                 // 「设置 → 关于」新增的两行（「启动时自动检查新版本」那一格与那颗手动「检查新版本」按钮，

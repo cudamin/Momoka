@@ -114,8 +114,41 @@ internal static class SettingsPageStateTests
                 Assert.True(Regex.IsMatch(source, $@"credentialRows\.Add\([^;]*""{Regex.Escape(label)}""", RegexOptions.Singleline),
                     $"{label} 没有加进凭据卡的行表");
             Assert.False(Regex.IsMatch(source, @"rows\.Add\([^;]*""AppId""", RegexOptions.Singleline), "AppId 又加回了上面那张卡");
-            Assert.True(fixture.ViewModelSource.Contains("foreach (var section in DanmakuSections()) Sections.Add(section);",
-                StringComparison.Ordinal), "ReloadAsync 没有把四张弹幕卡都加进 Sections");
+            Assert.True(fixture.ViewModelSource.Contains("AddCards(DanmakuSections());", StringComparison.Ordinal),
+                "ReloadAsync 没有把四张弹幕卡都加进 Sections");
+        });
+
+        // 2026-10-27 用户令「其他页也拆一下」：主页、播放行为、音频输出、字幕、实时字幕翻译、关于各自拆成多张卡。
+        // 和上面那条同一个理由 —— 整页 Reload 要碰字体、音频设备与预览（native），这里只钉住建卡入口里的卡名；
+        // 屏上的行由 settings 探针按分类逐个打开量。
+        TestHarness.Test("设置分区：六个分类各自拆成多张卡（源码接线）", () =>
+        {
+            var translation = File.ReadAllText(Path.Combine(fixture.Root, "src", "Momoka.Shell", "ViewModels",
+                "SettingsViewModel.Translation.cs"));
+            foreach (var (category, title) in new[]
+            {
+                ("主页", "轮播图"), ("主页", "主页版面"),
+                ("播放行为", "播放行为"), ("播放行为", "跳转与步长"), ("播放行为", "音轨"),
+                ("音频输出", "输出设备"), ("音频输出", "响度"), ("音频输出", "直通"),
+                ("字幕", "字幕"), ("字幕", "字幕外观"), ("字幕", "编码与画面"),
+                ("关于", "关于"), ("关于", "更新"), ("关于", "文件与缓存"), ("关于", "备份与恢复")
+            })
+            {
+                Assert.True(fixture.ViewModelSource.Contains($"new SettingSection(\"{category}\", \"{title}\"", StringComparison.Ordinal),
+                    $"{category} 分类少了「{title}」那张卡");
+            }
+            // 主卡用的是 TranslationCardTitle 常量（探针与刷新都按它找），另外两张写的是字面量。
+            Assert.True(translation.Contains("new SettingSection(\"字幕\", TranslationCardTitle", StringComparison.Ordinal),
+                "实时字幕翻译少了主开关那张卡");
+            foreach (var title in new[] { "服务与密钥", "译文外观" })
+                Assert.True(translation.Contains($"new SettingSection(\"字幕\", \"{title}\"", StringComparison.Ordinal),
+                    $"实时字幕翻译少了「{title}」那张卡");
+            Assert.True(fixture.ViewModelSource.Contains("AddCards(HomeSections());", StringComparison.Ordinal)
+                && fixture.ViewModelSource.Contains("AddCards(PlaybackSections());", StringComparison.Ordinal)
+                && fixture.ViewModelSource.Contains("AddCards(AudioSections());", StringComparison.Ordinal)
+                && fixture.ViewModelSource.Contains("AddCards(SubtitleSections());", StringComparison.Ordinal)
+                && fixture.ViewModelSource.Contains("AddCards(AboutSections());", StringComparison.Ordinal),
+                "ReloadAsync 没有把拆开的分区卡都加进 Sections");
         });
 
         TestHarness.Test("R-060 关于四目录共用 Task 入口，截图不再自行建目录（源码接线）", () =>
@@ -241,8 +274,10 @@ internal static class SettingsPageStateTests
         var launcher = fixture.NewLauncher(error);
         var vm = fixture.NewViewModel();
         fixture.Attach(vm, settings, launcher);
-        var about = fixture.Invoke(vm, "AboutCard")!;
-        var row = fixture.List(about, "Rows").Cast<object>().Single(row => fixture.Get<string>(row, "Label") == label);
+        // 关于 2026-10-27 拆成四张卡：建卡入口返回一份列表，目录行都在「文件与缓存」那张里。
+        var aboutCards = ((IEnumerable)fixture.Invoke(vm, "AboutSections")!).Cast<object>().ToArray();
+        var row = aboutCards.SelectMany(card => fixture.List(card, "Rows").Cast<object>())
+            .Single(row => fixture.Get<string>(row, "Label") == label);
         var expected = fixture.DirectoryFor(label, settings);
         if (changeScreenshot)
         {
@@ -352,7 +387,8 @@ internal static class SettingsPageStateTests
             _shell = AssemblyLoadContext.Default.LoadFromAssemblyPath(shellPath);
             _viewModel = _shell.GetType("Momoka.Shell.ViewModels.SettingsViewModel", throwOnError: true)!;
             ViewModelSource = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ViewModels", "SettingsViewModel.cs"));
-            var aboutStart = ViewModelSource.IndexOf("private SettingSection AboutCard()", StringComparison.Ordinal);
+            // 2026-10-27 起关于卡拆成四张，建卡入口改名 AboutSections()；取的是这一整段（四张卡都在里面）。
+            var aboutStart = ViewModelSource.IndexOf("private IReadOnlyList<SettingSection> AboutSections()", StringComparison.Ordinal);
             var aboutEnd = ViewModelSource.IndexOf("private async Task MeasureImageCacheAsync()", aboutStart, StringComparison.Ordinal);
             AboutSource = ViewModelSource[aboutStart..aboutEnd];
             var page = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "SettingsPage.xaml.cs"));

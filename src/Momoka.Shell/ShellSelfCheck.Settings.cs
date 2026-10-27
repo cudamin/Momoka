@@ -229,8 +229,12 @@ internal static partial class ShellSelfCheck
         // 三行字幕颜色（文字/描边/底板）现在装的是任意 HTML 颜色代码。这一关问三件事：三行都在、每一行
         // 存的都是 #RRGGBB 或者「不设置」的空串、以及那一行选个颜色真的写一次盘（SettingColorRow.Probe
         // 在假行上拨）。写盘那根线断了的样子是：拾色器里色块跟着变、设置文件停在旧值上，屏上什么都说。
+        // 2026-10-27 起字幕分类拆成三张卡（字幕 / 字幕外观 / 编码与画面，实时字幕翻译另有三张），
+        // 这里要的是整个分类的行，不能再只拿第一张。
         var subtitleRows = page.ViewModel.Sections
-            .FirstOrDefault(section => section.Category == "字幕")?.Rows ?? [];
+            .Where(section => section.Category == "字幕")
+            .SelectMany(section => section.Rows)
+            .ToArray();
         var colorRows = subtitleRows.OfType<SettingColorRow>().ToList();
         var colorsValid = colorRows.Count == 3
             && colorRows.All(row => row.Color.Length == 0
@@ -332,14 +336,17 @@ internal static partial class ShellSelfCheck
         // 没有反应。而那一行读起来像是通用的「让对白清楚一点」，所以说明里必须写着适用范围，否则它就是在骗人。
         // 单测进不到外壳这个程序集，而这句话最可能的坏法是哪天被人「整理」掉，所以由自检钉着。同一关顺带确认
         // 「音量均衡」那一行真的在这张卡上 —— 它是那句话里指向的去处，指了个不存在的地方比不指更糟。
+        // 音频输出 2026-10-27 拆成三张卡（输出设备 / 响度 / 直通），这两行都在「响度」那一张里。
         var audioRows = page.ViewModel.Sections
-            .FirstOrDefault(section => section.Category == "音频输出")?.Rows ?? [];
+            .Where(section => section.Category == "音频输出")
+            .SelectMany(section => section.Rows)
+            .ToArray();
         var drcNote = audioRows.FirstOrDefault(row => row.Label == "动态范围压缩")?.Note ?? "";
         var hasNormalize = audioRows.Any(row => row.Label == "音量均衡");
 
         check("动态范围压缩那一行写明只对 AC-3 有效", drcNote.Contains("AC-3") && hasNormalize,
             $"说明里{(drcNote.Contains("AC-3") ? "有" : "没有")}「AC-3」字样、"
-                + $"{(hasNormalize ? "并且" : "但是没有")}「音量均衡」那一行；这张卡 {audioRows.Count} 行");
+                + $"{(hasNormalize ? "并且" : "但是没有")}「音量均衡」那一行；这个分类 {audioRows.Length} 行");
 
         // 精简模式（「在设置中新增一个精简模式，开启后隐藏各项功能下方的说明」，2026-09-25）：假行拨一遍
         // （SettingRow.Probe），不碰屏上这一页 —— 这台机器注不进鼠标事件，拨不了真的开关；而收/放任何一档
@@ -467,8 +474,10 @@ internal static partial class ShellSelfCheck
         // 什么都不发生、行数模板渲染读数一个不差；文件框那根断了，点「备份/恢复」弹不出框。单测进不到外壳、这台
         // 机器也注不进鼠标事件，所以这是那几件事唯一验得到的形式。「哪些回默认、哪些被覆盖、哪些不动」在 Core
         // （SettingsReset.Restore / SettingsPreferences.Apply，单测钉着）。
+        // 关于 2026-10-27 拆成四张卡，三颗动作按钮都在最后一张「备份与恢复」里；这里按整个分类读。
         var aboutActions = (page.ViewModel.Sections
-                .FirstOrDefault(section => section.Category == "关于")?.Rows ?? [])
+                .Where(section => section.Category == "关于")
+                .SelectMany(section => section.Rows))
             .OfType<SettingFactRow>()
             .Where(row => row.ActionLabel.Length > 0)
             .Select(row => row.Label)
@@ -491,7 +500,9 @@ internal static partial class ShellSelfCheck
         // 和上面那一关同一个理由 —— 开关没建出来、或者按钮那一头没接上，屏上只是一行不在，而单测进不到外壳。
         // 这里**不真按**：按下去是一次真实网络请求，而自检在隔离目录里跑、也不该替用户去发布页问一句。
         var aboutRows = page.ViewModel.Sections
-            .FirstOrDefault(section => section.Category == "关于")?.Rows ?? [];
+            .Where(section => section.Category == "关于")
+            .SelectMany(section => section.Rows)
+            .ToArray();
         var autoCheck = aboutRows.OfType<SettingToggleRow>()
             .FirstOrDefault(row => row.Label == UpdateNotice.ToggleLabel);
         var manualCheck = aboutActions.Contains(UpdateNotice.RowLabel);

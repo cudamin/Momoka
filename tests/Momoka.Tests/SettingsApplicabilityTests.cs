@@ -18,6 +18,9 @@ internal static class SettingsApplicabilityTests
     private const string ShaderTitle = "画质与着色器";
     private const string HdrTitle = "HDR 与杜比视界";
     private const string SubtitleTitle = "字幕";
+
+    /// <summary>2026-10-27 起字幕分类拆成三张卡：字体、预览、底板那几行都在「字幕外观」这一张。</summary>
+    private const string SubtitleAppearanceTitle = "字幕外观";
     private static readonly string[] ShaderDependents = ["显卡档位", "手动指定档位", "自动识别动画", "老片源修复", "8K 片源关闭着色器"];
     private static readonly string[] BackRows = ["底板颜色", "底板不透明度（%）"];
 
@@ -98,15 +101,15 @@ internal static class SettingsApplicabilityTests
         TestHarness.Test("R-055 零留白时普通→整体盒→逐行盒→整体盒，恢复入口与原值保留", () =>
         {
             var state = shell.Create(settings => settings.Playback.SubtitleShadowOffset = "0");
-            var font = state.Row(SubtitleTitle, "字体");
+            var font = state.Row(SubtitleAppearanceTitle, "字体");
             state.Set(font, "BoxText", "未完成字体检索");
             foreach (var style in new[] { "background-box", "opaque-box", "background-box", "" })
             {
-                state.Choose(SubtitleTitle, "字幕底板", style);
+                state.Choose(SubtitleAppearanceTitle, "字幕底板", style);
                 BackVisibility(state, style == "background-box");
                 Assert.Equal("#123456", state.Settings.Settings.Playback.SubtitleBackColor);
                 Assert.Equal(37, state.Settings.Settings.Playback.SubtitleBackOpacity);
-                Assert.True(ReferenceEquals(font, state.Row(SubtitleTitle, "字体")));
+                Assert.True(ReferenceEquals(font, state.Row(SubtitleAppearanceTitle, "字体")));
                 Assert.Equal("未完成字体检索", state.Get<string>(font, "BoxText"));
             }
             Assert.Equal(4, state.Settings.Saves);
@@ -115,15 +118,15 @@ internal static class SettingsApplicabilityTests
         TestHarness.Test("R-055 底板色空不隐藏透明度；正阴影切盒型更新在场真颜色行说明", () =>
         {
             var state = shell.Create(settings => settings.Playback.SubtitleBackColor = "");
-            var color = state.Row(SubtitleTitle, "底板颜色");
-            var opacity = state.Row(SubtitleTitle, "底板不透明度（%）");
-            state.Choose(SubtitleTitle, "字幕底板", "opaque-box");
-            Assert.True(ReferenceEquals(color, state.Row(SubtitleTitle, "底板颜色")));
+            var color = state.Row(SubtitleAppearanceTitle, "底板颜色");
+            var opacity = state.Row(SubtitleAppearanceTitle, "底板不透明度（%）");
+            state.Choose(SubtitleAppearanceTitle, "字幕底板", "opaque-box");
+            Assert.True(ReferenceEquals(color, state.Row(SubtitleAppearanceTitle, "底板颜色")));
             Assert.Contains("逐行盒", state.Get<string>(color, "Note"));
-            state.Choose(SubtitleTitle, "字幕底板", "background-box");
-            Assert.True(ReferenceEquals(color, state.Row(SubtitleTitle, "底板颜色")));
+            state.Choose(SubtitleAppearanceTitle, "字幕底板", "background-box");
+            Assert.True(ReferenceEquals(color, state.Row(SubtitleAppearanceTitle, "底板颜色")));
             Assert.Contains("所有文字行", state.Get<string>(color, "Note"));
-            Assert.True(ReferenceEquals(opacity, state.Row(SubtitleTitle, "底板不透明度（%）")));
+            Assert.True(ReferenceEquals(opacity, state.Row(SubtitleAppearanceTitle, "底板不透明度（%）")));
             state.Set(opacity, "Value", 61d);
             Assert.Equal("", state.Settings.Settings.Playback.SubtitleBackColor);
             Assert.Equal(61, state.Settings.Settings.Playback.SubtitleBackOpacity);
@@ -223,28 +226,28 @@ internal static class SettingsApplicabilityTests
     private static void SubtitleTransitions(ShellFixture shell, string style)
     {
         var state = shell.Create(settings => settings.Playback.SubtitleBackStyle = style);
-        var card = state.Card(SubtitleTitle);
+        var card = state.Card(SubtitleAppearanceTitle);
         var rows = state.Rows(card);
-        var font = state.Row(SubtitleTitle, "字体");
-        var preview = state.Row(SubtitleTitle, "字幕示例");
+        var font = state.Row(SubtitleAppearanceTitle, "字体");
+        var preview = state.Row(SubtitleAppearanceTitle, "字幕示例");
         state.Set(font, "BoxText", "字体草稿未选定");
         var matches = state.List(font, "Matches");
         foreach (var shadow in new[] { 0d, 1d, 0d, 0.5d })
         {
             state.Shadow(shadow);
             BackVisibility(state, shadow > 0);
-            Assert.True(ReferenceEquals(card, state.Card(SubtitleTitle)));
+            Assert.True(ReferenceEquals(card, state.Card(SubtitleAppearanceTitle)));
             Assert.True(ReferenceEquals(rows, state.Rows(card)));
-            Assert.True(ReferenceEquals(font, state.Row(SubtitleTitle, "字体")));
-            Assert.True(ReferenceEquals(preview, state.Row(SubtitleTitle, "字幕示例")));
+            Assert.True(ReferenceEquals(font, state.Row(SubtitleAppearanceTitle, "字体")));
+            Assert.True(ReferenceEquals(preview, state.Row(SubtitleAppearanceTitle, "字幕示例")));
             Assert.True(ReferenceEquals(matches, state.List(font, "Matches")));
             Assert.Equal("字体草稿未选定", state.Get<string>(font, "BoxText"));
             Assert.Equal("#123456", state.Settings.Settings.Playback.SubtitleBackColor);
             Assert.Equal(37, state.Settings.Settings.Playback.SubtitleBackOpacity);
             if (shadow > 0)
             {
-                Assert.Equal("#123456", state.Get<string>(state.Row(SubtitleTitle, "底板颜色"), "Color"));
-                Assert.Equal(37d, state.Get<double>(state.Row(SubtitleTitle, "底板不透明度（%）"), "Value"));
+                Assert.Equal("#123456", state.Get<string>(state.Row(SubtitleAppearanceTitle, "底板颜色"), "Color"));
+                Assert.Equal(37d, state.Get<double>(state.Row(SubtitleAppearanceTitle, "底板不透明度（%）"), "Value"));
             }
         }
         Assert.Equal(4, state.Settings.Saves);
@@ -261,7 +264,7 @@ internal static class SettingsApplicabilityTests
         state.Set(state.Vm, "SelectedCategory", SubtitleTitle);
         state.Set(state.Vm, "IsReady", true);
         var selected = state.Get<object>(state.Vm, "SelectedEntry");
-        var font = state.Row(SubtitleTitle, "字体");
+        var font = state.Row(SubtitleAppearanceTitle, "字体");
         state.Set(font, "BoxText", "跨页仍未选定");
         state.Settings.Settings.Shaders.Enabled = false;
         state.Settings.Settings.Video.HdrMode = "tonemap";
@@ -270,7 +273,7 @@ internal static class SettingsApplicabilityTests
         ShaderVisibility(state, false);
         HdrVisibility(state, false);
         BackVisibility(state, false);
-        Assert.False(state.Get<Momoka.Playback.SubtitlePreviewPlan>(state.Row(SubtitleTitle, "字幕示例"), "Model")
+        Assert.False(state.Get<Momoka.Playback.SubtitlePreviewPlan>(state.Row(SubtitleAppearanceTitle, "字幕示例"), "Model")
             .Layers.Any(layer => layer.Color == "#123456"), "共享阴影归零后，示意模型也不能保留旧阴影");
         Assert.True(ReferenceEquals(sections, state.List(state.Vm, "Sections")));
         Assert.True(sections.Cast<object>().SequenceEqual(cards, ReferenceEqualityComparer.Instance));
@@ -279,7 +282,7 @@ internal static class SettingsApplicabilityTests
         Assert.True(ReferenceEquals(selected, state.Get<object>(state.Vm, "SelectedEntry")));
         Assert.Equal(SubtitleTitle, state.Get<string>(state.Vm, "SelectedCategory"));
         Assert.Equal("跨页仍未选定", state.Get<string>(font, "BoxText"));
-        Assert.Equal(0d, state.Get<double>(state.Row(SubtitleTitle, "阴影偏移 / 背景盒留白"), "Value"),
+        Assert.Equal(0d, state.Get<double>(state.Row(SubtitleAppearanceTitle, "阴影偏移 / 背景盒留白"), "Value"),
             "共享条件已变，重入控制入口不能仍显示旧阴影");
         var changes = 0;
         foreach (var list in rows) ((INotifyCollectionChanged)list).CollectionChanged += (_, _) => changes++;
@@ -292,21 +295,21 @@ internal static class SettingsApplicabilityTests
         ShaderVisibility(state, true);
         HdrVisibility(state, true);
         BackVisibility(state, true);
-        Assert.True(state.Get<Momoka.Playback.SubtitlePreviewPlan>(state.Row(SubtitleTitle, "字幕示例"), "Model").Plate,
+        Assert.True(state.Get<Momoka.Playback.SubtitlePreviewPlan>(state.Row(SubtitleAppearanceTitle, "字幕示例"), "Model").Plate,
             "重入采用整体背景盒时，示意模型也须同步；不是实际 libass 渲染验收");
         Assert.Equal(MpvOutputOptions.SubtitleBackStyles.Single(option => option.Value == "background-box").Label,
-            state.SelectedLabel(SubtitleTitle, "字幕底板"), "恢复入口须显示共享偏好的当前模式");
+            state.SelectedLabel(SubtitleAppearanceTitle, "字幕底板"), "恢复入口须显示共享偏好的当前模式");
         Assert.Equal(0, state.Settings.Saves);
         Assert.Equal(0, state.Pushes);
         Assert.Equal("跨页仍未选定", state.Get<string>(font, "BoxText"));
         // 重入同步不能把回调接到未采用的临时行：随后真实控制入口仍可恢复/关闭两行。
-        state.Choose(SubtitleTitle, "字幕底板", "");
+        state.Choose(SubtitleAppearanceTitle, "字幕底板", "");
         BackVisibility(state, false);
         state.Shadow(1);
         BackVisibility(state, true);
         Assert.Equal(2, state.Settings.Saves);
         Assert.Equal(2, state.Pushes);
-        Assert.Equal(1d, state.Get<double>(state.Row(SubtitleTitle, "阴影偏移 / 背景盒留白"), "Value"),
+        Assert.Equal(1d, state.Get<double>(state.Row(SubtitleAppearanceTitle, "阴影偏移 / 背景盒留白"), "Value"),
             "重入后真实滑块编辑应显示新值，不被旧重入值覆盖");
     }
 
@@ -341,8 +344,8 @@ internal static class SettingsApplicabilityTests
             state.Choose(HdrTitle, "HDR 处理", "passthrough");
             state.Shadow(1);
             Assert.Equal(823d, state.Get<double>(state.Row(HdrTitle, "HDR 输出峰值亮度"), "Value"));
-            Assert.Equal("#AC5D5D", state.Get<string>(state.Row(SubtitleTitle, "底板颜色"), "Color"));
-            Assert.Equal(61d, state.Get<double>(state.Row(SubtitleTitle, "底板不透明度（%）"), "Value"));
+            Assert.Equal("#AC5D5D", state.Get<string>(state.Row(SubtitleAppearanceTitle, "底板颜色"), "Color"));
+            Assert.Equal(61d, state.Get<double>(state.Row(SubtitleAppearanceTitle, "底板不透明度（%）"), "Value"));
             Assert.Equal(3, state.Settings.Saves);
         }
     }
@@ -366,11 +369,14 @@ internal static class SettingsApplicabilityTests
 
     private static void BackVisibility(State state, bool visible)
     {
-        foreach (var row in BackRows) Assert.Equal(visible, state.Labels(SubtitleTitle).Contains(row), row);
-        Assert.NotNull(state.Row(SubtitleTitle, "阴影偏移 / 背景盒留白"));
-        Assert.NotNull(state.Row(SubtitleTitle, "字幕底板"));
-        Assert.NotNull(state.Row(SubtitleTitle, "字幕编码"));
-        Assert.Equal(visible ? 19 : 17, state.Labels(SubtitleTitle).Length);
+        foreach (var row in BackRows) Assert.Equal(visible, state.Labels(SubtitleAppearanceTitle).Contains(row), row);
+        Assert.NotNull(state.Row(SubtitleAppearanceTitle, "阴影偏移 / 背景盒留白"));
+        Assert.NotNull(state.Row(SubtitleAppearanceTitle, "字幕底板"));
+        // 字幕编码 2026-10-27 起在「编码与画面」那张卡上，不在外观卡里。
+        Assert.NotNull(state.Row("编码与画面", "字幕编码"));
+        // 外观卡：示例、外观应用范围、字体、字号、缩放、加粗、文字颜色、描边大小、描边颜色、阴影、字幕底板
+        // = 11 行；底板打开时多出「底板颜色」「底板不透明度」两行。
+        Assert.Equal(visible ? 13 : 11, state.Labels(SubtitleAppearanceTitle).Length);
     }
 
     private static string ModeName(string mode) => mode.Length == 0 ? "未指定" : mode;
@@ -464,8 +470,10 @@ internal static class SettingsApplicabilityTests
             sections.Clear();
             // 修前用原真实卡，修后使用 Reload 已接入的适用性卡；静态接线测试另外核对正式调用。
             foreach (var method in new[] { "VideoCard", _shell.Builder("ApplicableShaderCard", "ShaderCard"),
-                _shell.Builder("ApplicableHdrCard", "HdrCard"), "SubtitleCard" })
+                _shell.Builder("ApplicableHdrCard", "HdrCard") })
                 sections.Add(_shell.Invoke(Vm, method)!);
+            // 字幕 2026-10-27 拆成三张卡，建卡入口返回一份列表，逐张加。
+            foreach (var section in (IEnumerable)_shell.Invoke(Vm, "SubtitleSections")!) sections.Add(section);
         }
         public object Card(string title) => _shell.List(Vm, "Sections").Cast<object>().Single(card => Get<string>(card, "Title") == title);
         public IList Rows(object card) => _shell.List(card, "Rows");
@@ -475,7 +483,7 @@ internal static class SettingsApplicabilityTests
         public void Set(object target, string name, object value) => _shell.Set(target, name, value);
         public IList List(object target, string name) => _shell.List(target, name);
         public void Toggle(string title, string label, bool value) => Set(Row(title, label), "IsOn", value);
-        public void Shadow(double value) => Set(Row(SubtitleTitle, "阴影偏移 / 背景盒留白"), "Value", value);
+        public void Shadow(double value) => Set(Row(SubtitleAppearanceTitle, "阴影偏移 / 背景盒留白"), "Value", value);
         public string SelectedLabel(string title, string label) => Get<string>(Get<object>(Row(title, label), "Selected"), "Label");
         public void Choose(string title, string label, string value)
         {

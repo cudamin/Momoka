@@ -8397,3 +8397,17 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **探针与测试**：弹幕探针改按 `DanmakuCards`／`DanmakuRows` 读数（不再 `Single(Category == "弹幕")`），新增精简模式实测（在「界面」卡拨真开关，回弹幕量行容器模板根上的 `BorderThickness`，宽窄两档各拍一张）与「应用凭据」卡截图；新增三条回归：设置行分隔线（真实 `SettingRow`／`SettingSection`，含行表增删后首行换人）、弹幕四卡源码接线、XAML 契约（18 个模板根都绑了 `DividerThickness`，线色在样式里）。
 - **验证**：Release Shell 与测试项目编译 **0 警告 0 错误**；完整离线套件 **3049/3049、0 失败 0 跳过**；`settings-page-state` **29/29**、`settings-search` **14/14**；`format whitespace` 退出 0。交付件 `tools/publish.ps1 -NoArchive`（389 个顶层条目、286 MB）跑 `--probe-shell --probe-section settings --screen 1` **22/22 通过**（`shell-probe-20261027-075007734-10712`）。人眼核对四张实屏：`settings-danmaku-compact-{1100,760}`（四张卡、行间细线、每卡首行无线）、`settings-danmaku-on-1100`（四卡带说明、无线）、`settings-danmaku-off-1100`（只剩「弹幕」「应用凭据」两张）、`settings-danmaku-credentials-1100`（凭据三行在最下面那张卡里）、`settings-interface-compact-1100`（色板那种 StackPanel 行同样有线）。其余 99 项探针未跑，未验证真实服务器与播放（本轮不动这两条链）。
 - **发布**：`artifacts/publish/win-x64` 已刷新，桌面快捷方式指向的就是这一份。中途踩到两次「发布时还在改源码」：第一次 `publish.ps1` 跑到一半我又改了 `RefreshDanmakuPresentation`（`RefreshShortcutAvailability` 不能因为弹幕卡不存在就跳过），第二次又补了探针截图；两次都停掉重发，最终这份发布件的 `Momoka.dll` 时间戳晚于所有源码改动。未升级版本号、未推送 origin、未建 Release 或商店包。
+
+## 设置页：其余长分类也拆成多张卡（2026-10-27 16:00~16:45）
+
+- **用户当次要求**：「你别只拆弹幕这一页啊，其他页也拆一下」—— 上一轮只拆了弹幕，其余长卡照旧一张到底。
+- **拆开的六个分类**（建卡入口改成 `XxxSections()` 返回 `IReadOnlyList<SettingSection>`，`ReloadAsync` 用 `AddCards` 加）：
+  - **主页** 两张：「轮播图」（显示大图 + 媒体 / 来源 / 张数 / 秒数）／「主页版面」（媒体库那一排摆哪 + 各排次序表）。
+  - **播放行为** 五张：「播放行为」（进度上报、续播、连播、自动全屏、拖窗口继续、两个已看阈值、续播快退、上报间隔、跳过片头片尾）／「跳转与步长」（四颗方向键的跨度）／「音轨」（语言与格式优先级）＋原有「资源筛选」「截图」。
+  - **音频输出** 三张：「输出设备」（设备、扬声器布局、独占模式、全局延迟）／「响度」（动态范围压缩、音量均衡、下混归一化）／「直通」（五个直通格式开关）。
+  - **字幕** 三张：「字幕」（语言优先级、标题筛选、显示模式、默认轨兜底）／「字幕外观」（示例预览、外观应用范围、字体、字号、缩放、加粗、三色、阴影、底板及其两行从属）／「编码与画面」（字幕编码、拉伸图形字幕）；**实时字幕翻译**另三张：「实时字幕翻译」（开关）／「服务与密钥」（服务、语言、地址 / 区域 / 模型、密钥）／「译文外观」（字号、位置）。
+  - **关于** 四张：「关于」（版本、构建时间、内核、点星、弹弹play）／「更新」（自动检查 + 手动检查）／「文件与缓存」（四行目录、图片缓存读数与上限）／「备份与恢复」（备份、恢复配置、恢复默认）。
+  - **界面没有拆**：只有六行，而且这张卡被飞牛「外观」入口复用 —— `ShowCategory` 会把**所有** `界面` 分类的卡改标题，拆开就变成两张同名卡。要拆得先改那条改名规则，收益不抵复杂度。
+- **配套改动**：`RefreshSubtitleBackRows`／`SyncSubtitleBackControls` 改挂「字幕外观」；翻译分类的可用性切换与行刷新改成三张一起收放；自检的「字幕颜色」「字幕示例」「动态范围压缩」「关于卡备份恢复 / 检查新版本」四处改成按分类 `SelectMany` 读行（原来只读第一张）；弹幕、字幕、翻译、设置搜索四个探针里按分类 / 标题找卡的地方一并改成跨卡读。`SettingSection.SectionVisibility` 早在上一轮已改成「行数归零整张收起」，所以实时字幕翻译关着时只显示一张主卡。
+- **验证**：Release Shell 与测试项目编译 **0 警告 0 错误**；完整离线套件 **3049/3049**；`settings-page-state` **30/30**（新增「六个分类各自拆成多张卡」源码接线）、`settings-search` **14/14**、`settings-applicability` **29/29**；`tools/publish.ps1 -NoArchive` 刷新交付目录（389 个顶层条目、286 MB）后 `--probe-shell --probe-section settings --screen 1` **22/22 通过**（`shell-probe-20261027-084259615-20972`）。实屏核对 `settings-split-{home,playback,audio,subtitle}-{1100,760}`、`settings-clean-emby-dark-1100`（字幕）、`settings-about-1100`、`settings-danmaku-*`：四张 / 三张卡各自带标题，行没有被拆散。其余 99 项探针未跑，未验证真实服务器与播放。
+- **过程教训**：这一轮探针修了三处「只认一张卡」的旧断言（长页切短页数可见分组、主页卡标题、按 `Category` 取 `Single`），每修一次都要重发一次；两次在 `publish.ps1` 跑着的时候又改了源码，都停掉重发。最终发布件的 `Momoka.dll`（16:42:16）晚于所有源码改动（最新 16:38:28）。未升级版本号、未推送 origin、未建 Release 或商店包。

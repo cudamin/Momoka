@@ -76,8 +76,13 @@ internal sealed partial class ShellNavigationProbe
                 Require(Math.Abs(Box(content, scroll).Top) < 1 && Math.Abs(scroll.ActualHeight - content.ActualHeight) < 1,
                     "标题移除后正文仍留有空白带");
                 Require(Descendants(page).OfType<ShelfHead>().Count() == 0, "设置正文仍有重复分类与数量徽标");
-                var homeTitle = Descendants(page).OfType<TextBlock>().Single(title => title.Name == "SettingsSectionTitle" && title.Text == "主页");
-                Require(homeTitle.Visibility == Visibility.Visible, "卡片标题没有显示");
+                // 主页 2026-10-27 拆成两张卡（轮播图 / 主页版面）：每张卡都该显示自己的标题。
+                // 按 DataContext 认「这张卡此刻是可见的那一组」—— 没选中的卡也建着，标题的 Visibility 仍是 Visible。
+                var cardTitles = Descendants(page).OfType<TextBlock>()
+                    .Where(title => title.Name == "SettingsSectionTitle" && title.DataContext is SettingSection { IsVisible: true })
+                    .Select(title => title.Text).ToArray();
+                Require(cardTitles.SequenceEqual(["轮播图", "主页版面"]),
+                    "主页分类的卡片标题不对：" + string.Join('、', cardTitles));
                 foreach (var list in Descendants(page).OfType<ItemsControl>().Where(list => list.Name == "SettingsRowsList"
                     && list.Tag is SettingSection { IsVisible: true }))
                 {

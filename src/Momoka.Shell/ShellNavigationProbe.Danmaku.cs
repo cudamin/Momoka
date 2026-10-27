@@ -137,6 +137,16 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require((await RowBorderAsync(rowsList, compactCard.Rows[1])).Top == 0, "关掉精简模式后分隔线没有撤掉");
 
+            // 2026-10-27 拆卡的另外四个分类各拍一张：主页、播放行为、音频输出、字幕。自检走查量的是行容器
+            // 数量，看不出「卡分得对不对」；这几张是给人看的证据，宽窄两档都拍。
+            foreach (var (category, name) in new[] { ("主页", "home"), ("播放行为", "playback"), ("音频输出", "audio"), ("字幕", "subtitle") })
+            {
+                page.SelectedCategory = category;
+                await LayoutAsync(page);
+                await WaitForSettingsSettledAsync(page);
+                await SaveProbeScreenAsync($"settings-split-{name}-{width}-screen.png");
+            }
+
             page.SelectedCategory = "播放器";
             await LayoutAsync(page);
             var backend = page.ViewModel.Sections.Single(section => section.Title == "播放器").Rows.OfType<SettingChoiceRow>().Single();
@@ -167,7 +177,9 @@ internal sealed partial class ShellNavigationProbe
             await WaitForSettingsSettledAsync(page);
             await ScrollProbeAsync(scroll, 0);
             await LayoutAsync(page);
-            Require(page.ViewModel.Sections.Single(section => section.Category == "关于").Rows.OfType<SettingFactRow>()
+            // 关于 2026-10-27 拆成四张卡，点星行在第一张。
+            Require(page.ViewModel.Sections.Where(section => section.Category == "关于")
+                .SelectMany(section => section.Rows).OfType<SettingFactRow>()
                 .Any(row => row.Label == AboutFacts.StarLabel), "关于没有点星行");
             var star = Descendants(page).OfType<TextBlock>().Single(text => text.Text == AboutFacts.StarLabel);
             Require(star.ActualWidth > 0 && star.ActualHeight > 0, "点星行没有实际布局到界面");

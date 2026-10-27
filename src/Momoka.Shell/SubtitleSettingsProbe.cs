@@ -108,7 +108,8 @@ internal static class SubtitleSettingsProbe
             window.Content = page;
             await LayoutAsync(page);
 
-            var rows = page.ViewModel.Sections.Single(section => section.Category == "字幕").Rows;
+            // 2026-10-27 起字幕分类拆成三张卡：字号、缩放、底板颜色这些都在「字幕外观」那一张。
+            var rows = page.ViewModel.Sections.Single(section => section.Title == "字幕外观").Rows;
             var fontSize = rows.OfType<SettingSliderRow>().Single(row => row.Label == "字号");
             fontSize.Value = 55;
             Record("外观实时委托", pushes > 0 && settings.Playback.SubtitleFontSize == 55, "改变真实设置行后写入临时文件并调用实时外观委托");
@@ -124,7 +125,7 @@ internal static class SubtitleSettingsProbe
             var restore = await page.ViewModel.ProbeSubtitleRestoreAsync();
             Record("恢复同步字幕", restore, "恢复默认与导入备份均推送外观，仍是临时设置");
             Record("字幕应用失败可见", await page.ViewModel.ProbeSubtitlePushFailureAsync(), "假应用委托失败显示提示，不伪装全部成功");
-            rows = page.ViewModel.Sections.Single(section => section.Category == "字幕").Rows;
+            rows = page.ViewModel.Sections.Single(section => section.Title == "字幕外观").Rows;
             var preview = rows.OfType<SettingSubtitlePreviewRow>().Single();
             var sizeRow = rows.OfType<SettingSliderRow>().Single(row => row.Label == "字号");
             var scaleRow = rows.OfType<SettingSliderRow>().Single(row => row.Label == "字幕缩放（%）");
