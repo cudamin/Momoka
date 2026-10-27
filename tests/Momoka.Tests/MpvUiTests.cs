@@ -686,7 +686,7 @@ internal static class MpvUiTests
 
             // 文案就是用户点名的四个词，落点就是设置页那四张卡 —— 写死一遍，免得改表时两边一起悄悄漂开。
             Assert.Equal(
-                "字幕/subtitle/字幕、视频输出/video/视频输出、音频输出/audio/音频输出、弹弹play/danmaku/弹弹play",
+                "字幕/subtitle/字幕、视频输出/video/视频输出、音频输出/audio/音频输出、弹弹play/danmaku/弹幕",
                 string.Join('、', links.Select(link => $"{link.Label}/{link.Token}/{link.Category}")));
 
             foreach (var link in links)

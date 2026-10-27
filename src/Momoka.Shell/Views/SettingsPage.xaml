@@ -75,11 +75,38 @@
           正文字和小字两档都从词表里来（Theme/Styles.xaml）—— 这两个样式以前只写了字号和颜色，没写字体，
           于是整页六十行标签落回框架默认那支字，比界面里别处的正文大一点也不是同一种字。
         -->
+        <!--
+          设置页整页比别处大半格：正文 14 → 15、小字 12 → 13、卡片标题 16 → 18。
+          三个数只写在这里，是因为词表的七级（11/12/14/16/18/20…）没有 15 和 13 这两档，而这里要的正是
+          「比正文大一点点」—— 跳到 16 就不是一点点了。所以不动全局刻度，只在设置页定义这一档；
+          改这里就是改整页，别在行里再写内联字号（约定测试盯着内联数字）。
+        -->
+        <x:Double x:Key="EgSettingsLabelFontSize">15</x:Double>
+        <x:Double x:Key="EgSettingsNoteFontSize">13</x:Double>
+        <x:Double x:Key="EgSettingsTitleFontSize">18</x:Double>
         <Style x:Key="EgSettingLabel" TargetType="TextBlock" BasedOn="{StaticResource EgBodyStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgSettingsLabelFontSize}" />
+            <Setter Property="FontWeight" Value="Medium" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
         <Style x:Key="EgSettingNote" TargetType="TextBlock" BasedOn="{StaticResource EgCaptionStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgSettingsNoteFontSize}" />
             <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+        <!-- 左栏分类与搜索建议里的条目名：和行标签同一档，不再比正文小。 -->
+        <Style x:Key="EgSettingsNavLabel" TargetType="TextBlock" BasedOn="{StaticResource EgBodyStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgSettingsLabelFontSize}" />
+            <Setter Property="FontWeight" Value="Medium" />
+        </Style>
+        <!-- 左栏分组小标题（Momoka／Emby Server 等）。 -->
+        <Style x:Key="EgSettingsGroupHeader" TargetType="TextBlock" BasedOn="{StaticResource EgCaptionStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgSettingsNoteFontSize}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <!-- 每张卡片自己的标题：比正文大一档，和卡片内容拉开层次。 -->
+        <Style x:Key="EgSettingsSectionTitle" TargetType="TextBlock" BasedOn="{StaticResource EgSubheadStyle}">
+            <Setter Property="FontSize" Value="{StaticResource EgSettingsTitleFontSize}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
         <!-- 设置行共用整组卡片的底色，留白区分选项，不再铺底色制造分隔线。 -->
@@ -1427,8 +1454,8 @@
                         <AutoSuggestBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:SettingsSearchResult">
                                 <StackPanel Spacing="2" Padding="0,4">
-                                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
-                                    <TextBlock Text="{x:Bind Location}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgSettingsNavLabel}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{x:Bind Location}" Style="{StaticResource EgSettingNote}" TextWrapping="Wrap" />
                                 </StackPanel>
                             </DataTemplate>
                         </AutoSuggestBox.ItemTemplate>
@@ -1442,7 +1469,7 @@
                     </Button>
                 </Grid>
                 <TextBlock x:Name="SettingsSearchEmpty" Grid.Row="1" Margin="4,0,4,12"
-                    Text="未找到匹配的设置项" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap"
+                    Text="未找到匹配的设置项" Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
                     automation:AutomationProperties.LiveSetting="Polite"
                     Visibility="{x:Bind ViewModel.SettingsSearchEmptyVisibility, Mode=OneWay}" />
                 <ComboBox
@@ -1479,7 +1506,7 @@
                             <DataTemplate x:DataType="vm:SettingsCategoryGroup">
                                 <Grid Margin="4,12,4,4">
                                     <TextBlock Text="{x:Bind Name}" Margin="12,4,0,4"
-                                        Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold"
+                                        Style="{StaticResource EgSettingsGroupHeader}"
                                         AutomationProperties.HeadingLevel="Level2"
                                         Visibility="{x:Bind CollapsedHeaderVisibility}" />
                                     <Button
@@ -1490,7 +1517,7 @@
                                         Visibility="{x:Bind CollapsibleHeaderVisibility}"
                                         AutomationProperties.Name="{x:Bind Name}">
                                         <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <TextBlock Text="{x:Bind Name}" Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Text="{x:Bind Name}" Style="{StaticResource EgSettingsGroupHeader}" TextWrapping="Wrap" />
                                             <FontIcon
                                                 FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                                 FontSize="{StaticResource EgCaptionFontSize}"
@@ -1519,9 +1546,8 @@
                             <TextBlock
                                 VerticalAlignment="Center"
                                 AutomationProperties.HeadingLevel="Level3"
-                                FontWeight="SemiBold"
                                 Foreground="{ThemeResource EgTextDimBrush}"
-                                Style="{StaticResource EgCaptionStyle}"
+                                Style="{StaticResource EgSettingsGroupHeader}"
                                 Text="{x:Bind Label}"
                                 Visibility="{x:Bind SectionVisibility}" />
                             <StackPanel
@@ -1559,7 +1585,7 @@
                                         </Canvas>
                                     </Viewbox>
                                 </Grid>
-                                <TextBlock Text="{x:Bind Label}" VerticalAlignment="Center" />
+                                <TextBlock Text="{x:Bind Label}" VerticalAlignment="Center" Style="{StaticResource EgSettingsNavLabel}" />
                             </StackPanel>
                         </Grid>
                     </DataTemplate>
@@ -1632,11 +1658,10 @@
                                         <StackPanel.RenderTransform>
                                             <TranslateTransform />
                                         </StackPanel.RenderTransform>
-                                        <!-- 仅取消与侧栏重复的分类标题和数量，真正的子分组标题继续显示。 -->
+                                        <!-- 每张卡都写自己的标题：与侧栏同名也保留，卡片因此自成一段。 -->
                                         <TextBlock x:Name="SettingsSectionTitle" Margin="8,0,0,12"
-                                            Text="{x:Bind Title, Mode=OneWay}" Style="{StaticResource EgSubheadStyle}"
-                                            AutomationProperties.HeadingLevel="Level2"
-                                            Visibility="{x:Bind HeadingVisibility, Mode=OneWay}" />
+                                            Text="{x:Bind Title, Mode=OneWay}" Style="{StaticResource EgSettingsSectionTitle}"
+                                            AutomationProperties.HeadingLevel="Level2" />
                                         <Border
                                             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"

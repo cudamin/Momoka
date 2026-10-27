@@ -30,10 +30,10 @@ internal sealed partial class ShellNavigationProbe
             BeginSettingsFixtureVisit(page);
             ResizeProbeClient(width, 900);
             await page.ViewModel.ReloadAsync();
-            page.SelectedCategory = "弹弹play";
+            page.SelectedCategory = "弹幕";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
-            var card = page.ViewModel.Sections.Single(section => section.Category == "弹弹play");
+            var card = page.ViewModel.Sections.Single(section => section.Category == "弹幕");
             Require(card.Rows.Count == 2 && !fixture.Settings.Danmaku.Enabled, "初始应只显示启用与凭据来源");
             await SaveProbeScreenAsync($"settings-danmaku-off-{width}-screen.png");
             var enabled = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "启用弹弹play");
@@ -63,7 +63,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.IsContentMotionSettled);
             Require(password.Password.Length == 0 && secret.Draft.Length == 0, "成功保存后仍在界面保留明文");
             Require(card.Rows.OfType<SettingSliderRow>().Count() == 5, "配置后没有显示五个外观滑块");
-            Require(ReferenceEquals(card, page.ViewModel.Sections.Single(section => section.Category == "弹弹play")), "配置变更替换了整张卡");
+            Require(ReferenceEquals(card, page.ViewModel.Sections.Single(section => section.Category == "弹幕")), "配置变更替换了整张卡");
             var opacity = Descendants(page).OfType<Slider>().Single(control => control.DataContext is SettingSliderRow row && row.Label == "不透明度（%）");
             opacity.Value = 55;
             await LayoutAsync(page);
@@ -101,11 +101,11 @@ internal sealed partial class ShellNavigationProbe
             var picker = Descendants(page).OfType<ComboBox>().Single(control => AutomationProperties.GetName(control) == "播放后端");
             picker.SelectedItem = backend.Choices.Single(choice => choice.Label.StartsWith("外部", StringComparison.Ordinal));
             await LayoutAsync(page);
-            Require(!page.ViewModel.Categories.Any(entry => entry.Label == "弹弹play") && !page.ViewModel.Sections.Any(section => section.Category == "弹弹play"), "外部后端没有隐藏弹幕入口及卡片");
+            Require(!page.ViewModel.Categories.Any(entry => entry.Label == "弹幕") && !page.ViewModel.Sections.Any(section => section.Category == "弹幕"), "外部后端没有隐藏弹幕入口及卡片");
             Require(fixture.Settings.Danmaku.Opacity == 55 && fixture.Settings.Danmaku.ProtectedAppSecret.Length > 0, "外部后端清空了偏好或密钥");
             picker.SelectedItem = backend.Choices.Single(choice => choice.Label.StartsWith("内置", StringComparison.Ordinal));
             await LayoutAsync(page);
-            Require(page.ViewModel.Categories.Any(entry => entry.Label == "弹弹play") && page.ViewModel.Sections.Any(section => section.Category == "弹弹play"), "内置后端没有恢复弹幕入口及卡片");
+            Require(page.ViewModel.Categories.Any(entry => entry.Label == "弹幕") && page.ViewModel.Sections.Any(section => section.Category == "弹幕"), "内置后端没有恢复弹幕入口及卡片");
 
             page.SelectedCategory = "快捷键";
             await LayoutAsync(page);
