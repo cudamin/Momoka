@@ -400,7 +400,10 @@ internal static partial class ShellSelfCheck
         // 在场），同日用户令「截图分区移到播放行为里」：那一类三张分区卡（播放行为／资源筛选／截图），媒体源排序与
         // 视频文件名筛选凑成「资源筛选」—— 各自搬回了或落错卡都要当场报红。内置后端时外置两行必须整个缺席，说明
         // 留着的空行也算红。2026-10-16 用户令「内置播放器时自定义 mpv.conf 不自动隐藏，集成模式下这一项固定为关」：
-        // 那张卡改随内置后端在场，集成模式下开关换成值为「关」的只读文字。
+        // 那张卡改随内置后端在场，集成模式下开关换成值为「关」的只读文字。2026-10-27 用户令「播放行为也拆成多张
+        // 卡」（`725447a`）：这一类从三张变五张 —— 播放行为／跳转与步长／音轨／资源筛选／截图，截图卡仍是这一类的
+        // 末张。拆卡没同步这条判据，于是它拿三张去比五张报红；这里按拆完的五张改，覆盖仍是同一件事：分区数、分区
+        // 次序、资源筛选那两行、截图那三行在不在。落错卡或谁被搬走了照样当场红。
         var playerSections = page.ViewModel.Sections
             .Where(section => section.Category == "播放器").ToList();
         var playerRows = playerSections.SelectMany(section => section.Rows).ToList();
@@ -437,7 +440,8 @@ internal static partial class ShellSelfCheck
                 && playerRows.Any(row => row.Label == "播放后端") && playerSections.Count == (customAvailable ? 2 : 1)
                 && playerSections.Any(section => section.Title == "自定义 mpv.conf") == customAvailable
                 && customShapeOk
-                && playbackSections.Select(section => section.Title).SequenceEqual(new[] { "播放行为", "资源筛选", "截图" })
+                && playbackSections.Select(section => section.Title)
+                    .SequenceEqual(new[] { "播放行为", "跳转与步长", "音轨", "资源筛选", "截图" })
                 && resourceRows.Select(row => row.Label).SequenceEqual(new[] { "媒体源排序", "视频文件名筛选" })
                 && fixedPlaybackRows.All(label => playbackRows.Any(row => row.Label == label))
                 && screenshotNote.Contains("留空用装机落点", StringComparison.Ordinal),
@@ -446,7 +450,8 @@ internal static partial class ShellSelfCheck
                 + $"截图那行{(screenshotNote.Contains("留空用装机落点") ? "写明" : "没写明")}留空时的落点；"
                 + $"播放器分类 {playerSections.Count} 个分区共 {playerRows.Count} 行、"
                 + $"播放行为分类 {playbackSections.Count} 个分区共 {playbackRows.Count} 行"
-                + "（播放行为／资源筛选／截图三张分区；外置两行仅外部后端在场，自定义 mpv.conf 随内置后端在场、集成模式下那一项固定为关，WebP 的无损、质量和压缩行随当前设置变化）");
+                + "（播放行为／跳转与步长／音轨／资源筛选／截图五张分区；外置两行仅外部后端在场，"
+                + "自定义 mpv.conf 随内置后端在场、集成模式下那一项固定为关，WebP 的无损、质量和压缩行随当前设置变化）");
 
         // 音频输出设备那一行必须始终可用。设备列表要从 mpv 读（临时开一个 libmpv 句柄只为枚举），而那一趟可能
         // 答不上来 —— 找不到 libmpv、没装 WASAPI 输出、机器上没有声卡。那时候这一行必须还剩「跟随系统默认设备」
