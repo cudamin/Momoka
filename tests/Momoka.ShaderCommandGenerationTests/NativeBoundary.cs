@@ -23,6 +23,9 @@ internal sealed class NativeBoundary
     };
     internal List<NativeCommand> Commands { get; } = [];
     internal List<string> Reads { get; } = [];
+
+    /// <summary>哪条线程真的进了原生端点 —— 「读取不许占住调用线程」那条检查的唯一读数。</summary>
+    internal int LastReadThread { get; private set; }
     internal List<string> PropertyWrites { get; } = [];
     internal Func<string[], int>? Result { get; set; }
     internal Func<string[], int>? LoadResult { get; set; }
@@ -71,10 +74,17 @@ internal sealed class NativeBoundary
         }
     }
 
-    internal string? Read(string name)
+    /// <summary>Every native read lands here first: it records the name, the thread, and any fixture hold.</summary>
+    internal void NoteRead(string name)
     {
         Reads.Add(name);
+        LastReadThread = Environment.CurrentManagedThreadId;
         BeforeRead?.Invoke(name);
+    }
+
+    internal string? Read(string name)
+    {
+        NoteRead(name);
         if (name == Missing) return null;
         if (name == "profile-list") return "[]";
         if (name == "fullscreen") return "no";
@@ -105,7 +115,7 @@ internal sealed class NativeBoundary
 
     internal IReadOnlyList<string>? ShaderList()
     {
-        Reads.Add("glsl-shaders");
+        NoteRead("glsl-shaders");
         if (Missing == "glsl-shaders") return null;
         var parts = new List<string>();
         var part = new System.Text.StringBuilder();

@@ -1,20 +1,21 @@
 # R-051：切链事务的原生文件代次
 
-本项目只验证 R-051 的控制所有权：**同一个 libmpv handle 换片后，旧切链事务和旧回滚不能写进新片**。
+本项目验证 R-051 的两件事：**同一个 libmpv handle 换片后，旧切链事务和旧回滚不能写进新片**；以及**原生调用只许落在线程池上，不许占住调用线程**（后者是 2026-10-27「开着色器、GPU 跟不上时卡住」那条修复的回归）。
 它是独立控制台跑器，已最小注册到方案构建，仍需单独运行；不加入共享 Program，不启动产品。
 
 ## 真实生产边界
 
 - 直接引用当前 Core：运行完整的 PlaybackService 事务、Lifecycle 的 HandOver/Swap/接班/关闭路径。
-- 每次构建通过 [共享提取目标](ExtractNativeControl.targets) 原样提取整个 LibMpvHandle、LibMpvLifetimeGate，以及 LibMpvBackend.Run/Describe 的 UTF-8 命令 marshalling；LibMpvNodes/LibMpvFrame/MpvListValue 链接实际源码。自然EOF专项复用这个完整源码边界，不复制一份handle模型；本37项仍单独运行。
+- 每次构建通过 [共享提取目标](ExtractNativeControl.targets) 原样提取整个 LibMpvHandle、LibMpvLifetimeGate，以及 LibMpvBackend.Run/Describe 的 UTF-8 命令 marshalling；LibMpvNodes/LibMpvFrame/MpvListValue 链接实际源码。自然EOF专项复用这个完整源码边界，不复制一份handle模型；本42项仍单独运行。
 - 从当前 PlayerViewModel.Mpv.cs 原样提取 QueuePictureCommand 和 ChangeShaderGroupAsync，只替换字段/反馈枚举边界；因此 UI 不提交的断言不是复制已修模型。
 - 提取标记须唯一且顺序正确，否则构建失败。编译时记录 backend/native/UI/service 的 SHA-256，测试时重新核对；不接受旧来源。
 - PausingHandle 只透明转发。命令参数的真实 ToArray 枚举停点位于服务最后 Current 检查之后、实际 handle 读取 native generation 之前；不修改生产方法、不伪造 native gate。真实 HandOver 和 Swap 各推进一次 native 代次，Service 只推进一次，两者不能比较为相同计数。
 - 原来的 10 项 ShaderTransactionTests 直接链接，不重写其事务。仅把测试构造器改为反射，使无 Core friend 权限的独立跑器也能使用拒绝 HTTP 的原构造边界。独立项目对该同步 TestHarness 采用与 Momoka.Tests 相同的 banned-awaiter 测试专属例外；生产分析器/基线不变，未压制 native 类型冲突。
+- 线程纪律那三项（2026-10-27）用同一个合成端点记「哪条线程真的进了原生端点」：`NativeBoundary.NoteRead` 记录 `Environment.CurrentManagedThreadId` 并转交夹具的暂停钩子，`BeforeRead` 可以把端点按住。它们证明的是**线程归属与等待边界**，不启动真实 mpv、不编译 GLSL。
 
 ## 覆盖
 
-37 项（含上述 10 项，不与完整 Core 数量相加）：
+42 项（含上述 10 项，不与完整 Core 数量相加）：
 
 - 正常切链、关闭、缺文件、缺默认、缺快照、无损文件列表、链末项排序。
 - 拒绝/异常/部分失败的严格逆序恢复；回滚失败时 ShaderStateKnown=false，下一次完整成功恢复已知；真实 UI 的成功/失败反馈及钉选提交。
@@ -22,6 +23,7 @@
 - native 已 Swap、Service 尚未接班的两种时序（旧事务恢复、新事务刚开始）；同句柄多次交换、交接中、关闭、销毁、新 handle。
 - 普通命令已捕获 A 后在真实 RunFor 排队，换 B 后拒绝；命令原参数/结果/空命令；入口、枚举停点与执行点取消。
 - 可选 IFileScopedPlayerControl 的旧捕获拒绝/新捕获接受、销毁和取消；仅普通 IPlayerControl 的外部后端契约仍可切链及控制。
+- **线程纪律（3 项）**：五条原生读取（`GetTextAsync`／`GetNumberAsync`／`GetTracksAsync`／`GetChaptersAsync`／`GetStringListAsync`）都跑在调用线程之外；一条被按住的原生读取当场交回未完成的任务，不占住调用线程；闸门被那条读取占着时，`CanSwapTo`／`HandOver` 照样当场有答案。2026-10-27 用户报「开着色器、GPU 跟不上时 Momoka 卡住」，这三项是那条修复的回归。`SwapToAsync` 不在其中：它按契约留在调用线程上（只在独占管线可达，且必须紧跟 `HandOver` 同步发出），见 `LibMpvBackend.SwapToAsync` 的注释。
 
 ## 运行
 

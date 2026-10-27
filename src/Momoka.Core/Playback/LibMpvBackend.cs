@@ -538,7 +538,16 @@ internal sealed class LibMpvHandle(
 
     /// <summary>Serialises control/property calls and composition handoff against destruction. The event
     /// reader is joined separately before destruction; queued callers then see the destroyed
-    /// flag and walk away instead of touching freed memory.</summary>
+    /// flag and walk away instead of touching freed memory.
+    /// <para>
+    /// <b>Nothing on the UI thread may wait inside it.</b> A native call holds it while mpv is busy, and
+    /// mpv is busy for the whole of a shader compile on a GPU that cannot keep up (2026-10-27: 23.7 s for
+    /// the first frame). Every call that reaches the context is issued from the thread pool —
+    /// <see cref="ReadAsync{T}"/>, <see cref="CommandAsync(IReadOnlyList{string}, CancellationToken)"/>,
+    /// <see cref="SetPropertyAsync"/>, capture, stop and dispose — and the questions that answer from this
+    /// class's own fields (<see cref="CanSwapTo"/>, <see cref="HandOver"/>,
+    /// <see cref="TryRetainAfterEndOfFile"/>) stay outside the gate entirely.
+    /// </para></summary>
     private readonly LibMpvLifetimeGate _apiGate = new();
 
     private Thread? _eventThread;
@@ -671,22 +680,25 @@ internal sealed class LibMpvHandle(
 
     public bool WasHandedOver => _handedOver;
 
-    public bool CanSwapTo(PlaybackRequest request) => Guard(() =>
+    // These three answer from this class's own fields and never call into mpv, so they stay outside the
+    // API gate: inside it they would queue behind a native call that is waiting on the renderer, and the
+    // question 「may the next file reuse this window」 would then hang the caller for as long as the GPU
+    // takes (2026-10-27). Nothing here can touch freed memory — the only shared state is a flag.
+    public bool CanSwapTo(PlaybackRequest request) =>
         Swapable && _status.Loaded && !_swapping && !_contextClosed.Task.IsCompleted
         && InlineSwitch.CanTakeOver(_stopRequested, _handedOver, _exit.Task.IsCompleted, _apiGate.IsDestroyed)
-        && InlineSwitch.SameSignature(signature!, signatureFor!(request)));
+        && InlineSwitch.SameSignature(signature!, signatureFor!(request));
 
-    public void HandOver() => Guard(() =>
+    public void HandOver()
     {
-        if (_stopRequested || _exit.Task.IsCompleted) return false;
+        if (_stopRequested || _exit.Task.IsCompleted) return;
         _handedOver = true;
         _apiGate.NextGeneration();
         if (_exit.TrySetResult(new PlaybackExit(PlaybackEndReason.Stopped, LastPosition, 0, null)))
             _finishedReason = PlaybackEndReason.Stopped;
-        return true;
-    });
+    }
 
-    public bool TryRetainAfterEndOfFile() => Guard(() =>
+    public bool TryRetainAfterEndOfFile()
     {
         if (!Swapable || signature!.UsesCustomConfig || !_status.Loaded || _swapping || _stopRequested || _apiGate.IsDestroyed
             || _contextClosed.Task.IsCompleted || _finishedReason != PlaybackEndReason.EndOfFile || !_exit.Task.IsCompleted) return false;
@@ -694,8 +706,17 @@ internal sealed class LibMpvHandle(
         _handedOver = true;
         _apiGate.NextGeneration();
         return true;
-    });
+    }
 
+    /// <summary>
+    /// 独占模式的同窗换片。<b>这一笔留在调用线程上，是上面那条规则唯一的例外。</b>
+    /// <para>
+    /// 它只在独占管线里可达 —— 集成管线的画面挂在宿主合成树上，<see cref="Swapable"/> 为假 —— 而且它是
+    /// 「换一集」的一次性动作，不是每秒都跑的轮询。更要紧的是时序：<see cref="HandOver"/> 会当场解开
+    /// <see cref="_exit"/>，收尾那一头可能已经排上了；这一笔必须紧跟着同步发出去，改成线程池排队就会
+    /// 给「退出已经宣布、换片还没发」留出一段窗口。R-051 钉着它同步完成，不是顺手写的。
+    /// </para>
+    /// </summary>
     public Task<bool> SwapToAsync(PlaybackRequest request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
@@ -1267,7 +1288,10 @@ internal sealed class LibMpvHandle(
     public Task<IReadOnlyList<MpvTrack>> GetTracksAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(Guard(ReadTrackList) ?? []);
+        return TracksAsync();
+
+        async Task<IReadOnlyList<MpvTrack>> TracksAsync() =>
+            await ReadAsync(ReadTrackList).ConfigureAwait(false) ?? [];
     }
 
     /// <summary>
@@ -1278,7 +1302,10 @@ internal sealed class LibMpvHandle(
     public Task<IReadOnlyList<SkipChapter>> GetChaptersAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(Guard(ReadChapterList) ?? []);
+        return ChaptersAsync();
+
+        async Task<IReadOnlyList<SkipChapter>> ChaptersAsync() =>
+            await ReadAsync(ReadChapterList).ConfigureAwait(false) ?? [];
     }
 
     private IReadOnlyList<SkipChapter>? ReadChapterList() =>
@@ -1302,19 +1329,16 @@ internal sealed class LibMpvHandle(
     public Task<double?> GetNumberAsync(string name, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        var value = Guard(() =>
+        return ReadAsync<double?>(() =>
             LibMpvNative.mpv_get_property_double(context, name, LibMpvNative.FormatDouble, out var number) < 0
                 ? null
-                : (double?)number);
-
-        return Task.FromResult(value);
+                : number);
     }
 
     public Task<bool?> HasOptionAsync(string name, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var value = Guard<bool?>(() =>
+        return ReadAsync<bool?>(() =>
         {
             var buffer = Marshal.AllocHGlobal(Marshal.SizeOf<LibMpvNative.MpvNode>());
             try
@@ -1329,14 +1353,12 @@ internal sealed class LibMpvHandle(
                 Marshal.FreeHGlobal(buffer);
             }
         });
-        return Task.FromResult(value);
     }
 
     public Task<string?> GetTextAsync(string name, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-
-        var value = Guard(() =>
+        return ReadAsync(() =>
         {
             // mpv hands back a copy it allocated, so the string has to be marshalled out and the
             // copy released before the gate is dropped — nothing else will ever free it.
@@ -1352,15 +1374,12 @@ internal sealed class LibMpvHandle(
                 LibMpvNative.mpv_free(pointer);
             }
         });
-
-        return Task.FromResult(value);
     }
 
     public Task<IReadOnlyList<string>?> GetStringListAsync(string name, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(Guard(() =>
-            LibMpvNodes.Read<IReadOnlyList<string>?>(context, name, LibMpvNodes.Strings, null)));
+        return ReadAsync(() => LibMpvNodes.Read<IReadOnlyList<string>?>(context, name, LibMpvNodes.Strings, null));
     }
 
     private static string ToMpvString(object value) => value switch
@@ -1373,8 +1392,37 @@ internal sealed class LibMpvHandle(
     };
 
     /// <summary>
+    /// Runs one native read <b>off the caller's thread</b>, under the API gate and the file generation it
+    /// was asked for.
+    /// <para>
+    /// <b>Why this exists.</b> Every call into libmpv waits for mpv's core thread, and that thread is
+    /// blocked for as long as the video output takes to reconfigure. On a GPU that cannot keep up with the
+    /// chain, the first frame of a film is exactly that reconfig: 2026-10-27's log shows 23.7 s between
+    /// 「遮罩收起」 and 「遮罩揭开」 with ArtCNN at 2560×1440 on the integrated D3D11 pipeline — and the
+    /// same 23.4 s gap in the page's 10 Hz heartbeat, because the aspect poll's
+    /// <c>video-params/w</c> read ran on the UI thread and waited for the renderer. Reads are therefore
+    /// queued like writes: the answer can be late, the caller never blocks on the picture.
+    /// </para>
+    /// <para>
+    /// The generation is captured here, on the calling thread, for the same reason
+    /// <see cref="CommandAsync(IReadOnlyList{string}, CancellationToken)"/> captures it: a read that has
+    /// not started yet must not answer about the file that replaced it, so it returns the default instead.
+    /// </para>
+    /// </summary>
+    private Task<T?> ReadAsync<T>(Func<T> work)
+    {
+        var generation = _apiGate.Generation;
+        return Task.Run(() => _apiGate.RunFor(generation, work), CancellationToken.None);
+    }
+
+    /// <summary>
     /// Runs one native call under the API gate. Returns the default value when the handle is
     /// already destroyed, so callers never touch a freed mpv context.
+    /// <para>
+    /// <b>Only for calls that reach the context.</b> Anything that answers from this class's own fields
+    /// stays outside the gate — see <see cref="LibMpvLifetimeGate"/> — because the gate can be held for as
+    /// long as the renderer takes.
+    /// </para>
     /// </summary>
     private T? Guard<T>(Func<T> work) => _apiGate.Run(work);
 
@@ -1531,6 +1579,15 @@ internal sealed class LibMpvHandle(
 /// Synchronous lifetime boundary shared by native calls, composition handoff and teardown.
 /// No disposable semaphore: queued workers may arrive after teardown and must safely do nothing.
 /// Kept separate from native calls so these ordering rules can be tested without loading mpv.
+/// <para>
+/// <b>The lock means 「inside mpv」, so only code that touches the context may take it.</b> A native call
+/// holds it for as long as mpv takes to answer, and mpv answers slowly exactly when the machine is busy —
+/// the first frame of a shader chain on a GPU that cannot keep up is one reconfig of tens of seconds
+/// (2026-10-27: 23.7 s, 2560×1440, ArtCNN on D3D11). Anything that only reads this class's own flags
+/// must therefore <b>not</b> queue behind it: <see cref="Generation"/>, <see cref="IsDestroyed"/> and
+/// <see cref="NextGeneration"/> are lock-free on purpose, which is what keeps a stuck renderer from
+/// turning a switch-episode or a 「can I reuse this handle」 question into a frozen window.
+/// </para>
 /// </summary>
 internal sealed class LibMpvLifetimeGate
 {
@@ -1539,18 +1596,18 @@ internal sealed class LibMpvLifetimeGate
     private bool _destroyed;
     private long _generation;
 
-    internal long Generation { get { lock (_sync) return _generation; } }
-    internal void NextGeneration() { lock (_sync) _generation++; }
+    /// <summary>Lock-free on purpose — see the class remarks. Written under the lock, read anywhere.</summary>
+    internal long Generation => Volatile.Read(ref _generation);
+
+    internal void NextGeneration() => Interlocked.Increment(ref _generation);
+
     internal T? RunFor<T>(long generation, Func<T> work)
     {
         lock (_sync) return _destroyed || generation != _generation ? default : work();
     }
 
-    /// <summary>实例是否已销毁 —— 换片快路的入口据此拒绝一个已经不存在的上下文。</summary>
-    internal bool IsDestroyed
-    {
-        get { lock (_sync) return _destroyed; }
-    }
+    /// <summary>实例是否已销毁 —— 换片快路的入口据此拒绝一个已经不存在的上下文。锁外读，见类注释。</summary>
+    internal bool IsDestroyed => Volatile.Read(ref _destroyed);
 
     internal T? Run<T>(Func<T> work, bool composition = false)
     {

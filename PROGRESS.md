@@ -1,3 +1,15 @@
+## 开着色器、GPU 跟不上时窗口卡住：原生读取搬离调用线程（2026-10-27）
+
+- 用户令：「修复开启着色器之后gpu性能不足会导致momoka卡住的问题」。
+- **病根是量出来的，不是猜的。** `%LOCALAPPDATA%/Momoka/logs/app-20261027.log` 19:18:49–19:19:13 那一趟：集成管线（固定 D3D11）开着 `ArtCNN_C4F16 + CfL_Prediction_Lite`、输出 2560×1440，遮罩从收起起到揭开等了 **23672 ms**；同一段里播放页 10Hz 心跳一拍都没有 —— 看门狗 19:18:53.426 报「3141ms 没有一拍」，直到 19:19:13.692 才把计时器重挂，**23.4 秒里 UI 线程完全停摆**。mpv 自己也在 19:19:13.680 才报 `playback-restart`（首帧已交给视频输出），两个时刻对得上：第一帧那次 reconfig 就是着色器在 D3D11 上的冷编译。
+- **机制。** `LibMpvHandle` 的读取接口返回的是 `Task.FromResult(Guard(...))` —— 原生调用在**调用线程**上执行，而 `Guard` 拿的是与所有原生调用同一把锁。播放页的比例轮询（`video-params/w`／`dwidth`／`dheight`）、轨道轮询、章节轮询都从 UI 线程发起，第一帧 reconfig 期间 mpv 的核心线程正卡在视频输出上，UI 线程就跟着卡满整段编译时间。同一把锁还让 `CanSwapTo`／`HandOver` 这类只读自己字段的问题排在卡住的读取后面 —— 换集也会一起冻住。
+- **改法。**
+  - 新增 `ReadAsync<T>`：六条读取（`GetTextAsync`／`GetNumberAsync`／`GetTracksAsync`／`GetChaptersAsync`／`GetStringListAsync`／`HasOptionAsync`）一律 `Task.Run` + 在调用线程捕获文件代次，与 `CommandAsync`／`SetPropertyAsync` 同一条纪律。答案可以晚到，调用方不再等画面。
+  - `CanSwapTo`／`HandOver`／`TryRetainAfterEndOfFile` 只读 handle 自己的字段，退出闸门；`LibMpvLifetimeGate` 的 `Generation`／`IsDestroyed`／`NextGeneration` 改成锁外读写（`Volatile`／`Interlocked`）。规则一句话：**闸门只保护真正进 context 的调用**。
+  - **两处例外写进了代码注释**：`SwapToAsync` 留在调用线程（只在独占管线可达，且必须紧跟 `HandOver` 同步发出 —— 排队会给「退出已宣布、换片还没发」留出窗口，R-051 原本就钉着它同步完成）；`StartAsync` 建 context 那一段也留在调用方（新 context，还没有任何渲染）。
+- **验证。** R-051 **42/42**（新增 3 项线程纪律：五条读取都不在调用线程上、卡住的读取当场交回任务、闸门被占着时换片问题不等它）；对照证据：同一套夹具指到修改前的 `LibMpvBackend.cs`（`-p:ShaderBackendSource=`）跑同一份 42 项，**39 过 3 败**，败的正是这三项。R-048 EndFile **27/27**。Core **3051/3051**、0 失败 0 跳过。全方案 `format whitespace` 通过（退出 0）。
+- **没有验证到的。** 真实 GPU 上的重编译现场（要真实播放，未获授权）；三条播放探针固定走集成管线，不覆盖独占/uosc；`SwapToAsync` 与 `StartAsync` 那两处留在调用线程上的原生调用，本次没有为它们构造红绿。掉帧本身没有治 —— 慢 GPU 应该掉帧，不该冻窗口；要不要再加「持续掉帧自动降档/关链」是产品决定，等用户定。
+
 ## 发版 0.1.9：GitHub Release 与微软商店包（2026-10-27）
 
 - 用户令「提交代码到github，打包发布到github和生成一个微软商店安装包（我自己上传），版本号为0.1.9」。版本号 `e877181` 早已改成 0.1.9，本轮只做发版。起点 `e807426`，master 领先 origin 25 个提交，先推。

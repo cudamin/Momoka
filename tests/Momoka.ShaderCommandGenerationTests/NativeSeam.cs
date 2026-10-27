@@ -28,7 +28,7 @@ internal static partial class LibMpvNative
         var owner = For(context);
         if (name is "track-list" or "chapter-list" or "demuxer-cache-state")
         {
-            owner.Reads.Add(name);
+            owner.NoteRead(name);
             return -10;
         }
         if (name != "glsl-shaders" || format != FormatNode)
@@ -55,13 +55,13 @@ internal static partial class LibMpvNative
     }
     internal static int mpv_get_property_double(IntPtr context, string name, int format, out double data)
     {
-        For(context).Reads.Add(name);
+        For(context).NoteRead(name);
         data = 0;
         return -10;
     }
     internal static int mpv_get_property_int64(IntPtr context, string name, int format, out long data)
     {
-        For(context).Reads.Add(name);
+        For(context).NoteRead(name);
         data = 0;
         return -10;
     }
