@@ -3,7 +3,8 @@
 - 用户令：「新增功能开关，播放动漫时自动启用 anime4k」。设置 → 视频输出 → 画质与着色器新增「动画自动使用 Anime4K」，提交 `a7aafa9`。命中自动识别动画的片源改用固定的 Anime4K 柔化修复链（Krig + Restore Soft M + Clamp + SSim），真人片源仍走自动档位；手动指定的档位优先，自动识别动画关掉时这一行收起、也不再选得中任何片源，总开关与 8K 保护照旧先说话。
 - 固定链不随显卡档位、老片源与帧率换链；播放判定那一行在真的失去老片源修复或遇上高帧率时把代价写出来。设置项 `AutoAnime4K` 默认关、缺键读成关，快照与设置往返一并覆盖。
 - 顺手修掉 `RefreshShaderCard` 走旧 `ShaderCard()` 的隐患：真实页面挂的是 `ApplicableShaderCard`，用旧卡重建会把「启用着色器」的显隐回调换回只保存、不刷新的版本。
-- 验证：Core **3053/3053**、设置适用性 **30/30**、`--probe-section settings` **22/22**、`--probe-section shaders` **2/2**（新增自动行与真实开关断言，宽窄截图 `settings-anime4k-auto-{1100,760}.png` 已看，报告 `shell-probe-20261027-100600867-4776`）。未刷新 `artifacts/publish/win-x64`，未跑闸门 1／4，未做真实服务器播放验收。
+- 验证：Core **3053/3053**、设置适用性 **30/30**、开发件 `--probe-section settings` **22/22**、`--probe-section shaders` **2/2**（新增自动行与真实开关断言，宽窄截图 `settings-anime4k-auto-{1100,760}.png` 已看，报告 `shell-probe-20261027-100600867-4776`）。
+- 用户回「好」后按批次收尾发布：`tools/publish.ps1 -NoArchive` 通过，`artifacts/publish/win-x64` **546 文件／284.3 MB**，14 GLSL／4 HOOK 与批准 mpv 清单 59 文件逐项校验；桌面 `Momoka.lnk` 指向该 exe（未改动）。发布件复查 `--probe-section shaders` **2/2**（`shell-probe-20261027-101157468-1636`）、`--probe-section settings` **22/22**（`shell-probe-20261027-101217696-20880`），均 0 失败。未跑闸门 1／4（format whitespace、自检与基线比较），未做真实服务器播放验收，未推 origin。
 
 ## 更多菜单文案压缩到七个字以内（2026-10-27）
 
