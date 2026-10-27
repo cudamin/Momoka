@@ -293,7 +293,17 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public Microsoft.UI.Xaml.Thickness Padding { get; set; }
     }
-    public sealed class ScrollViewer : Microsoft.UI.Xaml.FrameworkElement;
+    public sealed class ScrollViewer : Microsoft.UI.Xaml.FrameworkElement
+    {
+        public int ScrollResets { get; private set; }
+        public bool LastDisableAnimation { get; private set; }
+        public bool ChangeView(double? x, double? y, float? zoom, bool disableAnimation)
+        {
+            LastDisableAnimation = disableAnimation;
+            ScrollResets++;
+            return true;
+        }
+    }
     public sealed class ContentPresenter : Microsoft.UI.Xaml.FrameworkElement
     {
         public object? Content { get; set; }
@@ -545,7 +555,7 @@ namespace Momoka.Shell.Views
     {
         internal Microsoft.UI.Xaml.Controls.CollectionViewSource CategoryGroupsSource { get; } = new();
         internal readonly Microsoft.UI.Xaml.Controls.Grid SettingsContent = new();
-        internal readonly Microsoft.UI.Xaml.Controls.ScrollView SettingsScroll = new();
+        internal readonly Microsoft.UI.Xaml.Controls.ScrollViewer SettingsScroll = new();
         internal bool PendingSearchForContract { get; set; }
         private bool HasPendingSearchNavigation => PendingSearchForContract; // Real navigation is source-linked in its dedicated fixture.
         internal readonly Microsoft.UI.Xaml.Controls.Grid SettingsLayout = new();

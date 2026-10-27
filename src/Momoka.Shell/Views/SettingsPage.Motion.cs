@@ -48,7 +48,7 @@ public sealed partial class SettingsPage
                 // 先提交新分类的测量，再复位；旧 extent 下的 ScrollTo 可能被下一轮锚定抵消。
                 SettingsContent.UpdateLayout();
                 if (resetScroll && !HasPendingSearchNavigation)
-                    SettingsScroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                    SettingsScroll.ChangeView(0, 0, null, disableAnimation: true);
                 // 只有有效队列真正处理了滚动才记录分类，重复 Loaded / 快速选择不能取消唯一的复位。
                 _entranceCategory = category;
                 if (!HomeMotion.AnimationsEnabled) return;

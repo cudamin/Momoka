@@ -11,6 +11,8 @@ public sealed partial class SettingsPage
 {
     private int _searchNavigationGeneration;
     private SettingsSearchResult? _pendingSearchNavigation;
+    private bool? _searchFocusScrolling;
+    internal string SearchNavigationReading { get; private set; } = "尚未搜索";
 
     // 分类入场不能抢走搜索的目标位置；两个滚动请求只允许搜索这一份负责。
     private bool HasPendingSearchNavigation => _pendingSearchNavigation?.CategoryKey == ViewModel.SelectedCategory;
@@ -25,9 +27,11 @@ public sealed partial class SettingsPage
     internal bool NavigateSettingsSearchResult(SettingsSearchResult result)
     {
         if (!_activity.IsCurrent(_activityToken) || !ViewModel.SelectSettingsSearchResult(result)) return false;
+        RestoreSearchFocusScrolling();
         var generation = ++_searchNavigationGeneration;
         var activity = _activityToken;
         _pendingSearchNavigation = result.Section is not null && result.Row is not null ? result : null;
+        SearchNavigationReading = $"代次{generation} 排队";
         if (_pendingSearchNavigation is null) return true;
         if (!DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => _ = PositionSearchResultAsync(result, generation, activity)))
             _pendingSearchNavigation = null;
@@ -39,18 +43,9 @@ public sealed partial class SettingsPage
         bool IsCurrent() => generation == _searchNavigationGeneration && _activity.IsCurrent(activity)
             && ViewModel.SelectedCategory == result.CategoryKey
             && result.Section is { } section && result.Row is { } row && section.Rows.Contains(row);
-        void CancelStaleBringIntoView(ScrollView sender, ScrollingBringingIntoViewEventArgs args)
-        {
-            // 聚焦/分类变化还会投递框架自己的 bring-into-view 请求。搜索事务负责最终位置，
-            // 不能让这一轮自动请求在 ScrollTo 完成后把页面拉回旧焦点。
-            if (IsCurrent()) args.Cancel = true;
-        }
-        SettingsScroll.BringingIntoView += CancelStaleBringIntoView;
         try
         {
             FrameworkElement? target = null;
-            // UpdateLayout 完成不等于 ScrollPresenter 已接收新 extent。等实际滚动内容与目标
-            // 同时就绪，避免窄窗/发布版把目标偏移钳在上一分类的短内容范围内。
             for (var attempt = 0; attempt < 120 && IsCurrent(); attempt++)
             {
                 SettingsContent.UpdateLayout();
@@ -67,29 +62,31 @@ public sealed partial class SettingsPage
             }
             if (!IsCurrent() || target is null) return;
             var top = target.TransformToVisual(SettingsCardsContent).TransformPoint(new Windows.Foundation.Point()).Y;
+            var desired = Math.Clamp(top - SettingsScroll.ActualHeight * 0.2, 0, SettingsScroll.ScrollableHeight);
+            SearchNavigationReading = $"代次{generation} top={top:0.0} 目标={desired:0.0} 范围={SettingsScroll.ExtentHeight:0.0}";
             var complete = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            var seen = new HashSet<int>();
-            var correlation = -1;
-            void OnCompleted(ScrollView sender, ScrollingScrollCompletedEventArgs args)
+            void OnChanged(object? sender, ScrollViewerViewChangedEventArgs args)
             {
-                seen.Add(args.CorrelationId);
-                if (args.CorrelationId == correlation) complete.TrySetResult();
+                if (!args.IsIntermediate && Math.Abs(SettingsScroll.VerticalOffset - desired) < 1) complete.TrySetResult();
             }
-            SettingsScroll.ScrollCompleted += OnCompleted;
+            SettingsScroll.ViewChanged += OnChanged;
             try
             {
-                correlation = SettingsScroll.ScrollTo(0, Math.Max(0, top - SettingsScroll.ActualHeight * 0.2),
-                    new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
-                if (correlation != -1 && !seen.Contains(correlation))
+                var accepted = SettingsScroll.ChangeView(0, desired, null, disableAnimation: true);
+                if (Math.Abs(SettingsScroll.VerticalOffset - desired) >= 1)
+                {
+                    if (!accepted) throw new InvalidOperationException("设置搜索滚动请求未受理");
                     await complete.Task.WaitAsync(TimeSpan.FromSeconds(2), activity);
+                }
             }
-            finally { SettingsScroll.ScrollCompleted -= OnCompleted; }
-            if (IsCurrent())
-            {
-                FirstFocusable(target)?.Focus(FocusState.Programmatic);
-                // 留过当前焦点提交帧，自动 bring-into-view 仍由上面的事务守卫收口。
-                await Task.Delay(16, activity);
-            }
+            finally { SettingsScroll.ViewChanged -= OnChanged; }
+            if (!IsCurrent()) return;
+            SearchNavigationReading += $" 完成={SettingsScroll.VerticalOffset:0.0}";
+            // 搜索已明确决定位置，聚焦只负责键盘可达，不让它再发第二份自动滚动。
+            _searchFocusScrolling ??= SettingsScroll.BringIntoViewOnFocusChange;
+            SettingsScroll.BringIntoViewOnFocusChange = false;
+            FirstFocusable(target)?.Focus(FocusState.Programmatic);
+            await Task.Delay(16, activity);
         }
         catch (OperationCanceledException) when (activity.IsCancellationRequested) { }
         catch (Exception error)
@@ -98,9 +95,19 @@ public sealed partial class SettingsPage
         }
         finally
         {
-            SettingsScroll.BringingIntoView -= CancelStaleBringIntoView;
-            if (generation == _searchNavigationGeneration) _pendingSearchNavigation = null;
+            if (generation == _searchNavigationGeneration)
+            {
+                RestoreSearchFocusScrolling();
+                _pendingSearchNavigation = null;
+            }
         }
+    }
+
+    private void RestoreSearchFocusScrolling()
+    {
+        if (_searchFocusScrolling is not { } original) return;
+        _searchFocusScrolling = null;
+        SettingsScroll.BringIntoViewOnFocusChange = original;
     }
 
     private static Control? FirstFocusable(DependencyObject root)

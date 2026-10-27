@@ -1572,12 +1572,12 @@
                   measurable, and a card that stays alive keeps half-typed text across a trip through the
                   category list.
                 -->
-                <ScrollView
+                <ScrollViewer
                     x:Name="SettingsScroll"
                     Grid.Row="1"
                     HorizontalContentAlignment="Stretch"
                     HorizontalScrollMode="Disabled"
-                    HorizontalScrollBarVisibility="Hidden"
+                    HorizontalScrollBarVisibility="Disabled"
                     VerticalScrollBarVisibility="Auto"
                     Visibility="{x:Bind ViewModel.CardsVisibility, Mode=OneWay}">
                     <!-- 右侧 20 DIP 是滚动条的独立槽位；卡片不伸进滚动指示器区域。 -->
@@ -1653,7 +1653,7 @@
                           没有它。
                         -->
                     </StackPanel>
-                </ScrollView>
+                </ScrollViewer>
 
                 <!-- Transitions cleared for the same reason the shell's frame clears them (requirement 9). -->
                 <Frame

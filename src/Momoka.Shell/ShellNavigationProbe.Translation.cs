@@ -122,10 +122,10 @@ internal sealed partial class ShellNavigationProbe
         {
             Require(page.SelectedCategory == "字幕" && page.ViewModel.Sections.Where(section => section.IsVisible)
                 .All(section => section.Category == "字幕"), "截图前实际分类与目标不同，不能把上一页截图当验收");
-            var scroll = Descendants(page).OfType<ScrollView>().Single();
-            scroll.ScrollTo(0, scroll.ScrollableHeight, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+            var scroll = Descendants(page).OfType<ScrollViewer>().Single(view => view.Name == "SettingsScroll");
+            scroll.ChangeView(0, scroll.ScrollableHeight, null, disableAnimation: true);
             await SettlePageAsync(); await SaveProbeScreenAsync(name + "-screen.png");
-            scroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+            scroll.ChangeView(0, 0, null, disableAnimation: true);
         }
     }
 }

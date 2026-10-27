@@ -48,11 +48,13 @@ internal static class SettingsLayoutTests
         {
             var document = Page("SettingsPage.xaml");
             var scroll = Named(document, "SettingsScroll");
+            Assert.Equal("ScrollViewer", scroll.Name.LocalName, "设置页不使用发布版位置钳制异常的合成滚动器");
             var cards = Named(document, "SettingsCardsContent");
             Assert.Equal("0,0,20,0", cards.Attribute("Margin")?.Value);
             Assert.True(cards.Ancestors().Contains(scroll));
             Assert.Equal("Auto", scroll.Attribute("VerticalScrollBarVisibility")?.Value);
-            Assert.Equal("Hidden", scroll.Attribute("HorizontalScrollBarVisibility")?.Value);
+            Assert.Equal("Disabled", scroll.Attribute("HorizontalScrollBarVisibility")?.Value,
+                "横向滚动必须禁用并按视口约束内容宽度，Hidden仍会无限测量");
             Assert.Equal("Stretch", scroll.Attribute("HorizontalContentAlignment")?.Value);
             Assert.Equal("Left", Named(document, "SettingsSections").Attribute("HorizontalAlignment")?.Value);
         });

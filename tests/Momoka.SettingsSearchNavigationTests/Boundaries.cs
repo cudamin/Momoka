@@ -34,6 +34,26 @@ namespace Microsoft.UI.Xaml.Media
         public Windows.Foundation.Point TransformPoint(Windows.Foundation.Point point) => new(point.X, point.Y + top);
     }
 
+    public static class CompositionTarget
+    {
+        public static int Subscribers { get; private set; }
+        public static event EventHandler<object> Rendering
+        {
+            add
+            {
+                Subscribers++;
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(1);
+                    value(null, new());
+                    await Task.Delay(1);
+                    value(null, new());
+                });
+            }
+            remove { Subscribers--; }
+        }
+    }
+
     public static class VisualTreeHelper
     {
         public static int GetChildrenCount(Xaml.DependencyObject root) => root.Children.Count;
@@ -86,56 +106,50 @@ namespace Microsoft.UI.Xaml.Controls
         public object? ChosenSuggestion { get; init; }
     }
 
-    public enum ScrollingAnimationMode { Disabled }
-    public enum ScrollingSnapPointsMode { Ignore }
-    public sealed record ScrollingScrollOptions(ScrollingAnimationMode AnimationMode, ScrollingSnapPointsMode SnapPointsMode);
-    public sealed class ScrollingScrollCompletedEventArgs(int correlationId)
+    public sealed class ScrollViewerViewChangedEventArgs(bool intermediate) : EventArgs
     {
-        public int CorrelationId { get; } = correlationId;
+        public bool IsIntermediate { get; } = intermediate;
     }
-    public sealed class ScrollingBringingIntoViewEventArgs
+    public sealed record ScrollRequest(int CorrelationId, double X, double Y, bool DisableAnimation);
+    public sealed class ScrollViewer : FrameworkElement
     {
-        public bool Cancel { get; set; }
-    }
-    public sealed record ScrollRequest(int CorrelationId, double X, double Y, ScrollingScrollOptions Options);
-
-    public sealed class ScrollView : FrameworkElement
-    {
-        private Action<ScrollView, ScrollingScrollCompletedEventArgs>? _completed;
-        private int _correlation;
-        private Action<ScrollView, ScrollingBringingIntoViewEventArgs>? _bringing;
-        public int BringSubscribers { get; private set; }
-        public event Action<ScrollView, ScrollingBringingIntoViewEventArgs> BringingIntoView
-        {
-            add { _bringing += value; BringSubscribers++; }
-            remove { _bringing -= value; BringSubscribers--; }
-        }
-        public bool RaiseBringIntoView()
-        {
-            var args = new ScrollingBringingIntoViewEventArgs();
-            _bringing?.Invoke(this, args);
-            return args.Cancel;
-        }
+        private EventHandler<ScrollViewerViewChangedEventArgs>? _changed;
+        private int _request;
         public double ExtentHeight { get; set; } = 2000;
+        public double ScrollableHeight => Math.Max(0, ExtentHeight - ActualHeight);
+        public double VerticalOffset { get; set; }
+        public bool BringIntoViewOnFocusChange { get; set; } = true;
         public int Subscribers { get; private set; }
         public List<ScrollRequest> Requests { get; } = [];
         public Action<ScrollRequest>? OnScroll { get; set; }
         public bool NoOperation { get; set; }
-        public event Action<ScrollView, ScrollingScrollCompletedEventArgs> ScrollCompleted
+        public bool Reject { get; set; }
+        public event EventHandler<ScrollViewerViewChangedEventArgs> ViewChanged
         {
-            add { _completed += value; Subscribers++; }
-            remove { _completed -= value; Subscribers--; }
+            add { _changed += value; Subscribers++; }
+            remove { _changed -= value; Subscribers--; }
         }
-        public int ScrollTo(double x, double y, ScrollingScrollOptions options)
+        public bool ChangeView(double? x, double? y, float? zoom, bool disableAnimation)
         {
-            var id = NoOperation ? -1 : ++_correlation;
-            var request = new ScrollRequest(id, x, y, options);
+            var request = new ScrollRequest(++_request, x ?? 0, y ?? VerticalOffset, disableAnimation);
             Requests.Add(request);
             OnScroll?.Invoke(request);
-            return id;
+            if (NoOperation) VerticalOffset = Math.Clamp(request.Y, 0, ScrollableHeight);
+            return !NoOperation && !Reject;
         }
-        public void Complete(int correlationId) => _completed?.Invoke(this, new(correlationId));
+        public void Complete(int requestId)
+        {
+            if (Requests.LastOrDefault(request => request.CorrelationId == requestId) is { } request)
+                VerticalOffset = Math.Clamp(request.Y, 0, ScrollableHeight);
+            _changed?.Invoke(this, new(false));
+        }
+        public void RaiseViewChanged(double offset, bool intermediate)
+        {
+            VerticalOffset = offset;
+            _changed?.Invoke(this, new(intermediate));
+        }
     }
+
 }
 
 namespace Momoka.Diagnostics
@@ -188,7 +202,7 @@ namespace Momoka.Shell.Views
         public Microsoft.UI.Xaml.FrameworkElement SettingsContent { get; } = new();
         public Microsoft.UI.Xaml.FrameworkElement SettingsCardsContent { get; } = new() { ActualHeight = 2000 };
         public Microsoft.UI.Xaml.FrameworkElement SettingsSections { get; } = new();
-        public Microsoft.UI.Xaml.Controls.ScrollView SettingsScroll { get; } = new() { ActualHeight = 400 };
+        public Microsoft.UI.Xaml.Controls.ScrollViewer SettingsScroll { get; } = new() { ActualHeight = 400 };
         public bool Pending => HasPendingSearchNavigation;
         public bool HasPendingOwner => _pendingSearchNavigation is not null;
         public SettingsPage() => _activityToken = _activity.Begin();

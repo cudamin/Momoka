@@ -19,9 +19,9 @@ internal static class Program
         Console.WriteLine($"SettingsPage.Search.cs SHA256: {Convert.ToHexString(SHA256.HashData(source))}");
         (string Name, Func<Task> Run)[] tests =
         [
-            ("同步完成先处理关联号并退订，随后才聚焦", SynchronousCompletionAsync),
-            ("延迟完成只接受匹配关联号，等待期间不聚焦", CorrelatedCompletionAsync),
-            ("旧extent不能提前ScrollTo，实际extent到达后定位", DelayedExtentAsync),
+            ("同步位置完成并退订，随后才聚焦", SynchronousCompletionAsync),
+            ("仅最终目标位置完成可聚焦，中途和错误位置均继续等待", CorrelatedCompletionAsync),
+            ("旧extent不能提前ChangeView，实际extent到达后定位", DelayedExtentAsync),
             ("小窗口容器迟到及零高度时继续等待", LateContainerAsync),
             ("坏suggestion拒绝且不回退，空提交使用首个结果", SuggestionAsync),
             ("快速二次搜索使旧队列不布局不滚动不聚焦", ReplacedQueueAsync),
@@ -30,9 +30,10 @@ internal static class Program
             ("Release取消布局等待及已排队导航", CancelLayoutAsync),
             ("Release取消完成等待并清理事件，重入只聚焦新任务", CancelScrollAsync),
             ("dispatcher拒绝及仅分类结果不保留pending", DispatcherRefusedAsync),
-            ("ScrollTo异常仍退订并记录失败、不聚焦", ScrollFailureAsync),
+            ("ChangeView异常仍退订并记录失败、不聚焦", ScrollFailureAsync),
             ("完成超时退订并记录失败、不聚焦", CompletionTimeoutAsync),
-            ("焦点自动滚动不能覆盖搜索位置，完成后解除专属守卫", FocusBringIntoViewAsync)
+            ("焦点自动滚动不能覆盖搜索位置，完成后解除专属守卫", FocusBringIntoViewAsync),
+            ("滚动请求拒绝时不聚焦、退订且不保留临时偏好", ClampedOffsetAsync)
         ];
         var failed = 0;
         foreach (var (name, run) in tests)
@@ -52,19 +53,19 @@ internal static class Program
         {
             Check(f.Page.SettingsScroll.Subscribers == 1 && f.Focus.FocusCalls == 0);
             f.Page.SettingsScroll.Complete(request.CorrelationId);
-            Check(f.Focus.FocusCalls == 0, "同步事件发生在ScrollTo返回之前，不应提前聚焦");
+            Check(f.Focus.FocusCalls == 0, "同步事件发生在ChangeView返回之前，不应提前聚焦");
         };
         f.Start();
         await f.CleanAsync();
         Check(f.Focus.FocusCalls == 1 && f.SubscribersAtFocus == 0);
         var request = f.Page.SettingsScroll.Requests.Single();
         Check(request.X == 0 && request.Y == 820);
-        Check(request.Options.AnimationMode == ScrollingAnimationMode.Disabled && request.Options.SnapPointsMode == ScrollingSnapPointsMode.Ignore);
+        Check(request.DisableAnimation);
         using var noOp = new Fixture();
         noOp.Page.SettingsScroll.NoOperation = true;
         noOp.Start();
         await noOp.CleanAsync();
-        Check(noOp.Focus.FocusCalls == 1 && noOp.Page.SettingsScroll.Requests.Single().CorrelationId == -1);
+        Check(noOp.Focus.FocusCalls == 1 && noOp.Page.SettingsScroll.Requests.Count == 1);
     }
 
     private static async Task CorrelatedCompletionAsync()
@@ -73,9 +74,12 @@ internal static class Program
         f.Start();
         var id = await f.Started.Task;
         Check(f.Page.Pending && f.Focus.FocusCalls == 0 && f.Page.SettingsScroll.Subscribers == 1);
-        f.Page.SettingsScroll.Complete(id + 100);
+        f.Page.SettingsScroll.RaiseViewChanged(100, false);
         await Task.Delay(16);
-        Check(f.Page.Pending && f.Focus.FocusCalls == 0 && f.Page.SettingsScroll.Subscribers == 1);
+        Check(f.Page.Pending && f.Focus.FocusCalls == 0);
+        f.Page.SettingsScroll.RaiseViewChanged(820, true);
+        await Task.Delay(16);
+        Check(f.Page.Pending && f.Focus.FocusCalls == 0);
         f.Page.SettingsScroll.Complete(id);
         await f.CleanAsync();
         Check(f.Focus.FocusCalls == 1 && f.SubscribersAtFocus == 0);
@@ -162,6 +166,7 @@ internal static class Program
         var (next, focus) = f.AddResult(1400);
         Check(f.Page.NavigateSettingsSearchResult(next));
         f.Page.DispatcherQueue.RunOne();
+        await UntilAsync(() => f.Page.SettingsScroll.Requests.Count == 2);
         Check(f.Page.SettingsScroll.Subscribers == 2);
         var second = f.Page.SettingsScroll.Requests.Last().CorrelationId;
         f.Page.SettingsScroll.Complete(first);
@@ -182,8 +187,9 @@ internal static class Program
         Check(layout.Page.SettingsScroll.Requests.Count == 0 && layout.Focus.FocusCalls == 0);
         using var scroll = new Fixture();
         scroll.Start();
+        var active = await scroll.Started.Task;
         scroll.Page.ViewModel.SelectedCategory = "other";
-        scroll.Page.SettingsScroll.Complete(await scroll.Started.Task);
+        scroll.Page.SettingsScroll.Complete(active);
         await scroll.CleanAsync();
         Check(scroll.Focus.FocusCalls == 0 && Log.Warnings.Count == 0);
     }
@@ -215,13 +221,17 @@ internal static class Program
         f.Page.SettingsScroll.Complete(old);
         Check(f.Focus.FocusCalls == 0 && Log.Warnings.Count == 0);
         f.Page.Reenter();
-        f.Start();
+        var (newResult, newFocus) = f.AddResult(1400);
+        Check(f.Page.NavigateSettingsSearchResult(newResult));
+        f.Page.DispatcherQueue.RunOne();
+        await UntilAsync(() => f.Page.SettingsScroll.Requests.Count == 2);
         var next = f.Page.SettingsScroll.Requests.Last().CorrelationId;
+        // ScrollViewer 没有关联号回执，旧位置若不同于新目标不能完成当前导航。
         f.Page.SettingsScroll.Complete(old);
-        Check(f.Focus.FocusCalls == 0 && f.Page.Pending);
+        Check(f.Focus.FocusCalls == 0 && newFocus.FocusCalls == 0 && f.Page.Pending);
         f.Page.SettingsScroll.Complete(next);
         await f.CleanAsync();
-        Check(f.Focus.FocusCalls == 1);
+        Check(f.Focus.FocusCalls == 0 && newFocus.FocusCalls == 1);
     }
 
     private static async Task DispatcherRefusedAsync()
@@ -247,22 +257,32 @@ internal static class Program
         Check(f.Focus.FocusCalls == 0 && Log.Warnings.Single().Message == "scroll boundary failure");
     }
 
+    private static async Task ClampedOffsetAsync()
+    {
+        using var f = new Fixture();
+        f.Page.SettingsScroll.Reject = true;
+        f.Start();
+        await f.CleanAsync();
+        Check(f.Page.SettingsScroll.Requests.Count == 1 && f.Focus.FocusCalls == 0);
+        Check(Log.Warnings.Single() is InvalidOperationException);
+        Check(f.Page.SettingsScroll.BringIntoViewOnFocusChange);
+    }
+
     private static async Task FocusBringIntoViewAsync()
     {
         using var f = new Fixture();
-        var canceled = false;
-        f.Focus.Focused = () => canceled = f.Page.SettingsScroll.RaiseBringIntoView();
+        var suppressed = false;
+        f.Focus.Focused = () => suppressed = !f.Page.SettingsScroll.BringIntoViewOnFocusChange;
         f.Page.SettingsScroll.OnScroll = request => f.Page.SettingsScroll.Complete(request.CorrelationId);
         f.Start();
         await f.CleanAsync();
-        Check(canceled, "搜索焦点提交的自动滚动没有被当前事务取消");
-        Check(f.Page.SettingsScroll.BringSubscribers == 0);
-        Check(!f.Page.SettingsScroll.RaiseBringIntoView(), "搜索结束后不得阻止普通控件滚动");
-        using var failed = new Fixture();
-        failed.Page.SettingsScroll.OnScroll = _ => throw new InvalidOperationException("expected scroll failure");
-        failed.Start();
-        await failed.CleanAsync();
-        Check(failed.Page.SettingsScroll.BringSubscribers == 0, "失败时遗留自动滚动守卫");
+        Check(suppressed && f.Page.SettingsScroll.BringIntoViewOnFocusChange);
+        using var originalOff = new Fixture();
+        originalOff.Page.SettingsScroll.BringIntoViewOnFocusChange = false;
+        originalOff.Page.SettingsScroll.OnScroll = request => originalOff.Page.SettingsScroll.Complete(request.CorrelationId);
+        originalOff.Start();
+        await originalOff.CleanAsync();
+        Check(!originalOff.Page.SettingsScroll.BringIntoViewOnFocusChange, "不得把原本关闭的自动滚动偏好改为开启");
     }
 
     private static async Task CompletionTimeoutAsync()
@@ -329,7 +349,7 @@ internal static class Program
             Check(Page.NavigateSettingsSearchResult(Result) && Page.Pending);
             Page.DispatcherQueue.RunOne();
         }
-        public Task CleanAsync() => UntilAsync(() => !Page.HasPendingOwner && Page.SettingsScroll.Subscribers == 0 && Page.SettingsScroll.BringSubscribers == 0);
+        public Task CleanAsync() => UntilAsync(() => !Page.HasPendingOwner && Page.SettingsScroll.Subscribers == 0);
         public void Dispose() => Page.Dispose();
     }
 }

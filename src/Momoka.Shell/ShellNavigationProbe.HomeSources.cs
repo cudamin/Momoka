@@ -97,8 +97,8 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => choices.Count == count);
                 await LayoutAsync(settings);
                 await WaitForSettingsSettledAsync(settings);
-                var scroll = Descendants(settings).OfType<ScrollView>().Single();
-                scroll.ScrollTo(0, 650, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                var scroll = Descendants(settings).OfType<ScrollViewer>().Single(view => view.Name == "SettingsScroll");
+                scroll.ChangeView(0, 650, null, disableAnimation: true);
                 await LayoutAsync(settings);
                 await Task.Delay(450); // 真实 ListView 换位与主题过渡结束后再保存可见行。
                 var list = Descendants(settings).OfType<ListView>().Single(view => ReferenceEquals(view.ItemsSource, choices));

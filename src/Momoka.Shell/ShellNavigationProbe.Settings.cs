@@ -113,9 +113,8 @@ internal sealed partial class ShellNavigationProbe
                 await SaveReturnFrameAsync(page, $"settings-motion-{width}.png");
 
                 // 长页滚到底后切短页，不能留下空内容；只检查视口真正画到的分组。
-                var scroll = Descendants(page).OfType<ScrollView>().Single();
-                scroll.ScrollTo(0, scroll.ScrollableHeight,
-                    new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                var scroll = Descendants(page).OfType<ScrollViewer>().Single(view => view.Name == "SettingsScroll");
+                scroll.ChangeView(0, scroll.ScrollableHeight, null, disableAnimation: true);
                 await Task.Delay(100);
                 page.SelectedCategory = "关于";
                 await WaitForSettingsSettledAsync(page);
@@ -130,7 +129,7 @@ internal sealed partial class ShellNavigationProbe
                 // 「设置 → 关于」新增的两行（「启动时自动检查新版本」那一格与那颗手动「检查新版本」按钮，
                 // 2026-10-14）拍下来：这一页是另一扇窗口，而设置窗口的原生 Title 是空的，tools/shot.ps1 够不着它
                 // （见 docs/开发与验证.md），所以宽窄两张只能由探针自己拍。摆在切到「关于」之后、回「播放器」之前。
-                scroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                scroll.ChangeView(0, 0, null, disableAnimation: true);
                 await LayoutAsync(page);
                 await SaveProbeScreenAsync($"settings-about-{width}-screen.png");
 
@@ -145,12 +144,11 @@ internal sealed partial class ShellNavigationProbe
                     "界面卡仍然留着图片缓存上限行");
                 Require(!page.ViewModel.ImageCacheSummary.Contains("正在", StringComparison.Ordinal),
                     $"图片缓存读数没有数完：{page.ViewModel.ImageCacheSummary}");
-                scroll.ScrollTo(0, scroll.ScrollableHeight,
-                    new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                scroll.ChangeView(0, scroll.ScrollableHeight, null, disableAnimation: true);
                 await LayoutAsync(page);
                 await Task.Delay(100);
                 await SaveProbeScreenAsync($"settings-about-cache-{width}-screen.png");
-                scroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                scroll.ChangeView(0, 0, null, disableAnimation: true);
                 await LayoutAsync(page);
 
                 // 窗口隐藏调用的释放入口，在排队或播放中都必须作废回调；之后仍能重新入场。
@@ -1403,7 +1401,7 @@ internal sealed partial class ShellNavigationProbe
             // A settled transition alone does not mean that the new ComboBox exists yet.
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
-            var scroll = Descendants(page).OfType<ScrollView>().Single();
+            var scroll = Descendants(page).OfType<ScrollViewer>().Single(view => view.Name == "SettingsScroll");
             await ScrollProbeAsync(scroll, scroll.ScrollableHeight);
             await LayoutAsync(page);
             var choice = page.ViewModel.Sections.Single(section => section.Title == "画质与着色器")
@@ -1726,14 +1724,14 @@ internal sealed partial class ShellNavigationProbe
         }
         async Task CaptureAsync(string state)
         {
-            var scroll = Descendants(page).OfType<ScrollView>().Single();
+            var scroll = Descendants(page).OfType<ScrollViewer>().Single(view => view.Name == "SettingsScroll");
             foreach (var offset in new[] { 0d, 650d })
             {
-                scroll.ScrollTo(0, offset, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+                scroll.ChangeView(0, offset, null, disableAnimation: true);
                 await LayoutAsync(page);
                 await SaveProbeScreenAsync($"settings-video-{state}-{width}-{offset:0}-screen.png");
             }
-            scroll.ScrollTo(0, 0, new ScrollingScrollOptions(ScrollingAnimationMode.Disabled, ScrollingSnapPointsMode.Ignore));
+            scroll.ChangeView(0, 0, null, disableAnimation: true);
         }
     }
 

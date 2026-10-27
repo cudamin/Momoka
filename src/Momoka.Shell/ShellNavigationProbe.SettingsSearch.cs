@@ -38,7 +38,7 @@ internal sealed partial class ShellNavigationProbe
             await page.ViewModel.ReloadAsync();
             var categories = page.ViewModel.Categories.ToArray();
             var search = Get<AutoSuggestBox>(page, "SettingsSearchBox");
-            var scroll = Get<ScrollView>(page, "SettingsScroll");
+            var scroll = Get<ScrollViewer>(page, "SettingsScroll");
             foreach (var width in new[] { 1100, 760 })
             {
                 ResizeInspect(width, 900);
@@ -76,7 +76,7 @@ internal sealed partial class ShellNavigationProbe
                 catch (TimeoutException)
                 {
                     var missed = Box(scroll, target);
-                    throw new InvalidOperationException($"搜索定位未完成：宽{width}，分类{page.SelectedCategory}，目标{missed.Top:0.0}..{missed.Bottom:0.0}，视口{scroll.ActualHeight:0.0}，offset{scroll.VerticalOffset:0.0}，extent{scroll.ExtentHeight:0.0}");
+                    throw new InvalidOperationException($"搜索定位未完成：宽{width}，分类{page.SelectedCategory}，目标{missed.Top:0.0}..{missed.Bottom:0.0}，视口{scroll.ActualHeight:0.0}，offset{scroll.VerticalOffset:0.0}，extent{scroll.ExtentHeight:0.0}；{page.SearchNavigationReading}");
                 }
                 var rowBox = Box(scroll, target);
                 Require(rowBox.Bottom > 0 && rowBox.Top < scroll.ActualHeight, "搜索后目标仍在可视区外");
@@ -89,11 +89,11 @@ internal sealed partial class ShellNavigationProbe
                 await QueryAsync("");
                 Require(Get<TextBlock>(page, "SettingsSearchEmpty").Visibility == Visibility.Collapsed, "清空后仍残留搜索空态");
                 page.SelectedCategory = "字幕";
-                scroll.VerticalScrollBarVisibility = ScrollingScrollBarVisibility.Visible;
+                scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Visible;
                 await LayoutAsync(page);
                 try { await UntilAsync(() => scroll.VerticalOffset < 1); }
                 catch (TimeoutException) { throw new InvalidOperationException($"分类复位未完成：宽{width}，offset{scroll.VerticalOffset:0.0}，extent{scroll.ExtentHeight:0.0}"); }
-                var bar = Descendants(scroll).OfType<ScrollBar>().Single(bar => bar.Name == "PART_VerticalScrollBar");
+                var bar = Descendants(scroll).OfType<ScrollBar>().Single(bar => bar.Name == "VerticalScrollBar" && IsOwnScrollBar(scroll, bar));
                 var barBox = Box(scroll, bar);
                 var cards = Descendants(page).OfType<FrameworkElement>().Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible);
                 Require(Descendants(page).OfType<TextBlock>().Any(title => title.Name == "SettingsSectionTitle"
@@ -109,7 +109,7 @@ internal sealed partial class ShellNavigationProbe
                     await WaitForDiagnosticsFrameAsync();
                     await SaveProbeScreenAsync($"settings-clean-{current.Id}-{width}-screen.png");
                 }
-                scroll.VerticalScrollBarVisibility = ScrollingScrollBarVisibility.Auto;
+                scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
             }
         }
         finally
@@ -129,6 +129,12 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(page.ViewModel.SettingsSearchQuery == text,
                 $"设置搜索事件未接通：输入框={input.Text}，搜索状态={page.ViewModel.SettingsSearchQuery}");
+        }
+        static bool IsOwnScrollBar(ScrollViewer owner, DependencyObject bar)
+        {
+            for (var parent = VisualTreeHelper.GetParent(bar); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+                if (parent is ScrollViewer viewer) return ReferenceEquals(viewer, owner);
+            return false;
         }
         static Rect Box(UIElement anchor, FrameworkElement element) => element.TransformToVisual(anchor)
             .TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));

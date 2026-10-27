@@ -340,8 +340,7 @@ internal static class Program
             Assert.True(page.DispatcherQueue.Count >= 3);
             page.DispatcherQueue.Drain();
             Assert.Equal(1, page.SettingsScroll.ScrollResets);
-            Assert.Equal(ScrollingAnimationMode.Disabled, page.SettingsScroll.LastOptions!.AnimationMode);
-            Assert.Equal(ScrollingSnapPointsMode.Ignore, page.SettingsScroll.LastOptions.SnapPointsMode);
+            Assert.True(page.SettingsScroll.LastDisableAnimation);
             page.RaiseLoaded();
             page.QueueEntranceForContract();
             page.DispatcherQueue.Drain();

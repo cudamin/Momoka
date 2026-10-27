@@ -1,3 +1,11 @@
+## 设置页滚动器最终修复与本轮收尾（2026-10-27）
+
+- 发布版复查证实 `ScrollView` 在自包含形态会给完成回执但实际偏移停在旧范围（0／100），`dc9902a` 的焦点守卫并未消除它。匿名诊断、旧红报告原样保留；未靠增加超时、删除用例或放宽遮挡／像素检查洗绿。
+- 设置正文改标准 `ScrollViewer`，横向 `Disabled` 让内容按视口测量，保留20 DIP滚动条槽和原设置控件；分类复位用 `ChangeView`，搜索确认实际目标偏移和非中间 `ViewChanged` 后聚焦，临时关闭焦点自动滚动并恢复原值。同步更新设置相关运行探针和实际源码链接边界；外部媒体页面的滚动器不改。子列表自带滚动条按最近ScrollViewer祖先排除，实际卡片与主滚动条仍做几何断言。
+- 最终自包含诊断发布（不是桌面交付）在 `artifacts/settings-search-diagnostic/publish/win-x64/`，原生产构建选项不变；`settings,shortcuts` **25/25**、0失败，报告 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261026-235308888-28384/logs/shell-probe.json`，五主题1100与760实屏已逐张核对。
+- 串行fresh Core **3048/3048**、SettingsProbeContract **31/31**、SearchNavigation **15/15**、SettingsLifetime **50/50**，各套0失败／0跳过；相关Release构建0警告／0错误，源文件空白、LF和diff检查通过。Core曾与Shell探针争同用户mutex的16项红结果原样保留，停止UI并单独串行运行后当前全过，没有修改mutex边界。
+- 前四个并行子树都已集成并关闭／归档；本轮不再改侧栏分区，待用户指定的新聊天把「弹弹play」改为「弹幕」、跑全量探针／四道闸门、完成GitHub与微软商店0.1.9。当前先提交、推master、刷新真正桌面目录，再对最终发布件做25项复查；不把诊断目录冒充已交付。
+
 ## 设置搜索窄窗发布版滚动时序补修（2026-10-27）
 
 - `97d8015` 主树提交已推 origin/master，本地 `tools/publish.ps1 -NoArchive` 发布校验通过546文件/284.2MB，但实际发布版 `settings,shortcuts` 探针24/25：搜索一项在完成1100五主题截图后760流程等待滚动超时。不能拿开发bin22/22替代发布件通过；尚不宣称本批次交付完成。

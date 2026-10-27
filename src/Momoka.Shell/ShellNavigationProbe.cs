@@ -252,6 +252,29 @@ internal sealed partial class ShellNavigationProbe
         finally { scroll.ScrollCompleted -= OnCompleted; }
     }
 
+    /// <summary>设置页使用标准 ScrollViewer；复验实际最终偏移，不把 ChangeView 受理当作完成。</summary>
+    private static async Task ScrollProbeAsync(ScrollViewer scroll, double verticalOffset)
+    {
+        var target = Math.Clamp(verticalOffset, 0, scroll.ScrollableHeight);
+        var complete = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnChanged(object? sender, ScrollViewerViewChangedEventArgs args)
+        {
+            if (!args.IsIntermediate && Math.Abs(scroll.VerticalOffset - target) < 1) complete.TrySetResult();
+        }
+        scroll.ViewChanged += OnChanged;
+        try
+        {
+            var accepted = scroll.ChangeView(0, target, null, disableAnimation: true);
+            if (Math.Abs(scroll.VerticalOffset - target) >= 1)
+            {
+                if (!accepted) throw new InvalidOperationException("设置页滚动请求未受理");
+                await complete.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            scroll.UpdateLayout();
+        }
+        finally { scroll.ViewChanged -= OnChanged; }
+    }
+
     private void ResizeProbeClient(int width, int height)
     {
         var scale = _root.XamlRoot.RasterizationScale;

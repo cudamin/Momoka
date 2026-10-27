@@ -110,7 +110,7 @@ internal sealed partial class ShellNavigationProbe
             page.SelectedCategory = "快捷键";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
-            var scroll = Descendants(page).OfType<ScrollView>().Single();
+            var scroll = Descendants(page).OfType<ScrollViewer>().Single(view => view.Name == "SettingsScroll");
             await ScrollProbeAsync(scroll, 0);
             await LayoutAsync(page);
             var shortcuts = page.ViewModel.Sections.Single(section => section.Category == "快捷键");
