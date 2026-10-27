@@ -1413,7 +1413,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             {
                 mpv.ScreenshotDirectory = value;
                 AnnounceScreenshotDirectory();
-            }, "播放器「画面」菜单里三档截图存到这儿，文件名是片名、播放时间和序号。留空用装机落点（数据目录下的 "
+            }, "播放器右键菜单 →「截屏」里三档截图存到这儿，文件名是片名、播放时间和序号。留空用装机落点（数据目录下的 "
                 + "screenshots 文件夹）；改完当场生效，正播着的那部也从下一张截图起落进新目录"),
 
             // 截图画质是参考 mpv 配置里那组参数（webp 质量 85／压缩 6、jpg 质量 100、不标记色彩空间），默认格式按
@@ -1424,8 +1424,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                 value => mpv.ScreenshotFormat = value, "screenshot-format",
                 "装机默认 png。选 WebP 出现无损、质量与压缩，选 JPG 出现质量；其余格式用 mpv 自己的默认。",
                 RefreshScreenshotCard),
-            Toggle("色彩空间标记", "把画面的色彩空间写进文件。默认关：关着或格式不支持时 mpv 把画面转成 sRGB 再落盘，"
-                + "HDR 片源的截图因此是 sRGB 图。",
+            Toggle("色彩空间标记", "默认关。关着或格式不支持时，mpv 把画面转成 sRGB 再落盘，HDR 片源的截图因此是 sRGB 图。",
                 () => mpv.ScreenshotTagColorspace, value => mpv.ScreenshotTagColorspace = value,
                 "screenshot-tag-colorspace", PushScreenshotOptions),
         };
@@ -1435,28 +1434,28 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 与渲染管线行重建基础输出卡同一条机制（那条路径有探针钉着）。
         if (string.Equals(mpv.ScreenshotFormat, MpvBaseline.ScreenshotOptions.WebpFormat, StringComparison.OrdinalIgnoreCase))
         {
-            rows.Add(Toggle("WebP 无损", "无损截图文件大得多，画质一点不损；开启时下面两行收起来。",
+            rows.Add(Toggle("WebP 无损", "画质一点不损，文件大得多；开启时下面两行收起来。",
                 () => mpv.ScreenshotWebpLossless, value => mpv.ScreenshotWebpLossless = value,
                 "screenshot-webp-lossless", RefreshScreenshotCard));
             if (!mpv.ScreenshotWebpLossless)
             {
                 rows.Add(Slider("WebP 质量", MpvBaseline.ScreenshotOptions.MinimumQuality, MpvBaseline.ScreenshotOptions.MaximumQuality, 5,
                     () => mpv.ScreenshotWebpQuality, value => mpv.ScreenshotWebpQuality = (int)value,
-                    "有损 WebP 的质量，越高越接近原画面、文件越大。", "screenshot-webp-quality", PushScreenshotOptions));
+                    "越高越接近原画面、文件越大。", "screenshot-webp-quality", PushScreenshotOptions));
                 rows.Add(Slider("WebP 压缩", MpvBaseline.ScreenshotOptions.MinimumCompression, MpvBaseline.ScreenshotOptions.MaximumCompression, 1,
                     () => mpv.ScreenshotWebpCompression, value => mpv.ScreenshotWebpCompression = (int)value,
-                    "压缩等级，越高编码越慢；有损 WebP 时它也影响画质。", "screenshot-webp-compression", PushScreenshotOptions));
+                    "越高编码越慢，也影响画质。", "screenshot-webp-compression", PushScreenshotOptions));
             }
         }
         else if (string.Equals(mpv.ScreenshotFormat, MpvBaseline.ScreenshotOptions.JpegFormat, StringComparison.OrdinalIgnoreCase))
         {
             rows.Add(Slider("JPG 质量", MpvBaseline.ScreenshotOptions.MinimumQuality, MpvBaseline.ScreenshotOptions.MaximumQuality, 5,
                 () => mpv.ScreenshotJpegQuality, value => mpv.ScreenshotJpegQuality = (int)value,
-                "JPEG 压缩质量，mpv 自己的默认是 90。", "screenshot-jpeg-quality", PushScreenshotOptions));
+                "越高越接近原画面；mpv 自己的默认是 90。", "screenshot-jpeg-quality", PushScreenshotOptions));
         }
 
         return new SettingSection("播放行为", "截图",
-            "播放器「画面」菜单里三档截图的落点与画质。改完当场生效：正播着的那部从下一张截图起照新值落盘。",
+            "播放器右键菜单 →「截屏」里三档截图的落点与画质。改完当场生效：正播着的那部从下一张截图起照新值落盘。",
             rows);
     }
 
@@ -1509,8 +1508,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 「用独立窗口播放」那一行曾在这附近（2026-09-13～2026-09-19）：行为并入独占模式后开关随令
             // 删除；同日独立控制窗也随令退场，独占模式以视频窗里的 uosc 为唯一控制面 ——
             // 见 PlayerViewModel.HeadlessPlayback。
-            Toggle("开始播放后自动全屏", "每开始放一部片子就自动进全屏，不用再按 F。只在开始播放那一下进，"
-                + "连播的下一集不会把你从全屏里顶出来，按 F 退出后也不会被下一集顶回去",
+            Toggle("开始播放后自动全屏", "起播时自动进全屏，不用再按 F。只在起播那一下：连播的下一集不会把你顶出全屏，"
+                + "按 F 退出后也不会被下一集顶回去",
                 () => playback.AutoFullscreenOnPlayback, value => playback.AutoFullscreenOnPlayback = value),
 
             // 「调整窗口大小后继续播放」（用户令 2026-09-23）：拖窗口边沿那一趟会先把 mpv 冻住再抓帧（同
@@ -1518,8 +1517,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 冻那一半没有开关；而且用户自己按下的暂停一根手指都不碰，与这一档无关。
             // 现读设置，不走任何通知管道：下一次拖边收尾就认新的值。
             Toggle("调整窗口大小后继续播放",
-                "拖窗口边沿改大小的时候画面会先停住，松开鼠标后自动接着放。关掉它就停在暂停，要自己按播放。"
-                + "只对集成模式有效（画面嵌在本窗口里的那种）；独占模式的窗口归 mpv 自己管，拖动不经过这里",
+                "拖窗口边沿改大小时画面会先停住，松手后自动接着放；关掉就停在暂停，要自己按播放。"
+                + "只对集成模式有效，独占模式的窗口归 mpv 自己管，拖动不经过这里",
                 () => playback.ResumeAfterWindowResize, value => playback.ResumeAfterWindowResize = value),
 
             Number("标记已观看阈值（%）", 50, 100, () => playback.MarkWatchedPercent, value => playback.MarkWatchedPercent = value,
@@ -1557,7 +1556,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 「日语 > 粤语 > 英语」 at all; an empty list is 「跟随服务器默认音轨」. Unlike 字幕, 音轨 keeps 普通话／粤语
             // in the menu —— they name a spoken variant, which is exactly an 音轨 distinction.
             LanguagePriority("音轨语言优先级", "未指定，跟随服务器默认音轨", () => playback.AudioLanguages, value => playback.AudioLanguages = value,
-                "点开勾语言，越靠上越优先，按住或用箭头换次序。空着就是「跟随服务器默认音轨」。"
+                "勾选语言并排序（拖动或箭头换次序），越靠上越优先。空着就是「跟随服务器默认音轨」。"
                     + "「其他字幕」这类兜底项对音轨同样代表「前面都没有时，有一条别的语言的总比没有好」。下次播放生效"),
 
             // 音轨格式筛选（「给音轨新增语言优先级和格式优先级」，2026-09-22）：语言选完之后，在同一语言那批轨里按
@@ -1566,7 +1565,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             KeywordRules("音轨格式筛选", () => playback.AudioFormatRules, value => playback.AudioFormatRules = value,
                 "语言选出「哪几条是这个语言」之后，再按编码／声道里的词挑一遍：优先＝含这个词的排前头，候补＝排到最后"
                     + "（同语言只剩它时仍会给一条），默认＝不生效。预置 Atmos、TrueHD、DTS-HD、DTS、FLAC、7.1、5.1，"
-                    + "输入框可自定义添加，拖动调整优先级。格式只在同一语言内部作用，不会越过语言优先级。下次播放生效")
+                    + "可自定义添加、拖动调次序。格式只在同一语言内部作用，不越过语言优先级。下次播放生效")
         };
 
         return
@@ -1595,17 +1594,17 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 没挑到规则时默认播哪一版。现读设置 —— 下一次打开详情页或下一次起播就认新的值，没有已经摆着的
             // 东西要重排。
             Choice("媒体源排序", MediaSourceOrders, () => playback.MediaSourceOrder, value => playback.MediaSourceOrder = value,
-                "一部片子有多个版本（多个文件）时，详情页「媒体源」那一行和播放器里「版本」菜单的次序："
-                    + "默认＝服务器给的次序；新入库在前＝最新入库的那一版排最前（按服务器记的入库时间，"
-                    + "每一版要多问一次服务器）。没有文件名规则可依时，默认播的也是排在最前的那一版。"
+                "一部片子有多个版本（多个文件）时，详情页「媒体源」那一行和播放器「版本」菜单的次序："
+                    + "默认＝服务器给的次序；新入库在前＝按入库时间把最新那一版排最前（每一版要多问一次服务器）。"
+                    + "没有文件名规则可依时，默认播的也是排在最前的那一版。"
                     + "只有一个版本的片子不受影响。下次打开详情页或下次播放生效"),
 
             // 视频文件名筛选（「参考标题筛选，新增视频文件名筛选」，2026-09-22）：一个条目挂多版本（多个文件）时，
             // 默认播哪一版按文件名里的关键词挑。和字幕标题筛选同一套控件与有序优先级，只是它筛的是版本文件名。
             KeywordRules("视频文件名筛选", () => playback.VideoFileRules, value => playback.VideoFileRules = value,
-                "一部片子有多个版本（多个文件）时，按文件名里的词决定默认播哪一版：拖动调整顺序，越靠上优先级越高；"
-                    + "优先＝含这个词的版本优先，候补＝往后排（只剩它时仍会用它），默认＝不生效。"
-                    + "输入框可自定义添加，如 REMUX、4K、HDR、枪版。只有一个版本的片子不受影响。下次播放生效")
+                "一部片子有多个版本（多个文件）时，按文件名里的词决定默认播哪一版：越靠上优先级越高；"
+                    + "优先＝含这个词的版本排前头，候补＝往后排（只剩它时仍会用它），默认＝不生效。"
+                    + "可自定义添加词，如 REMUX、4K、HDR、枪版。只有一个版本的片子不受影响。下次播放生效")
         ]);
     }
 
@@ -1616,8 +1615,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 「参考图2新增字幕外观功能」（2026-09-06）：外观卡顶上这条「字幕示例」，照外观各行的当前值实时画。
         // 重画的线只有 Live<T> 那一条 —— 外观每一行写完设置都从那儿过，所以预览不可能停在旧样子上。
         var preview = new SettingSubtitlePreviewRow("字幕示例",
-            "纯文本字幕的样式示意：两行文字可比较逐行盒与整体背景盒，大小会跟随字号和缩放。"
-                + "不是 libass 播放画面；实际尺寸还受窗口大小与字幕格式影响。", playback);
+            "纯文本字幕的样式示意，两行文字可比较逐行盒与整体背景盒。不是 libass 播放画面；"
+                + "实际尺寸还受窗口大小与字幕格式影响。", playback);
         _subtitlePreview = preview;
 
         // 2026-10-27 拆卡（用户令「其他页也拆一下」）：语言怎么挑、外观长什么样、编码与图形字幕怎么处理，
@@ -1625,7 +1624,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var languageRows = new List<SettingRow>
         {
             LanguagePriority("字幕语言优先级", "未指定，跟随文件默认字幕", () => playback.SubtitleLanguages, value => playback.SubtitleLanguages = value,
-                "点开勾语言，越靠上越优先，按住或用箭头换次序。「其他字幕」是一个预设项，代表任何别的语言的字幕 —— "
+                "勾选语言并排序（拖动或箭头换次序），越靠上越优先。「其他字幕」是一个预设项，代表任何别的语言的字幕 —— "
                     + "排在最后就是「前面都不匹配时，有一条别的语言的总比没有好」。空列表只跟随明确的默认轨；"
                     + "仍服从显示模式，没有默认轨就不显示。下次播放生效",
                 // 普通话、粤语是「说的是哪种」，那是音轨的区分，字幕轨不按这个标；字幕表不列它们（音轨那份仍可用）。
@@ -1634,12 +1633,12 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 标题筛选：语言选完之后按标题里的关键词再挑一遍（「先确定哪几条是中文，再决定不要双语和特效」）。
             // 语言和标题从此分家 —— 语言只看轨的语言字段，这里只看标题；表内次序就是优先级。
             KeywordRules("标题筛选", () => playback.SubtitleTitleRules, value => playback.SubtitleTitleRules = value,
-                "语言选出「哪几条是中文」之后，再按标题里的词挑一遍：拖动调整顺序，越靠上优先级越高；优先＝含这个词的排前头，"
-                    + "候补＝排到最后（同语言只剩它时仍会给一条，不至于没字幕），默认＝不生效。输入框可自定义添加词。"
+                "语言选出「哪几条是中文」之后，再按标题里的词挑一遍：越靠上优先级越高；优先＝含这个词的排前头，"
+                    + "候补＝排到最后（同语言只剩它时仍会给一条，不至于没字幕），默认＝不生效。可自定义添加词。"
                     + "另：字幕语言里选了「简体中文」时，会自动把标题带「繁 / 繁体」的排为候补。下次播放生效"),
             Choice("显示模式", SubtitleModes, () => playback.SubtitleMode, value => playback.SubtitleMode = value),
             Toggle("没有匹配语言时使用默认字幕", "只回退服务器指定或文件标记的默认字幕，不再按标题改选别的轨道；没有默认轨就不显示。"
-                + "允许任意语言兜底请在语言列表末尾加入「其他字幕」。空语言列表不受本开关影响", () => playback.SubtitleFallbackToDefault, value => playback.SubtitleFallbackToDefault = value)
+                + "要任意语言兜底，请在语言列表末尾加入「其他字幕」。空语言列表不受本开关影响", () => playback.SubtitleFallbackToDefault, value => playback.SubtitleFallbackToDefault = value)
         };
 
         var appearanceRows = new List<SettingRow>
@@ -1651,8 +1650,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             Mpv("外观应用范围", MpvOutputOptions.SubtitleStyleScopes,
                 () => playback.SubtitleAssOverride, Live<string>(value => playback.SubtitleAssOverride = value),
                 "sub-ass-override",
-                "ASS/SSA 字幕自带字体和颜色，默认由它自己说了算，下面这些外观只对纯文本字幕（srt/vtt）生效。"
-                    + "强制覆盖可能破坏 ASS 的定位与特效。蓝光原盘的图形字幕（PGS/VOBSUB）是图片，字体和文字颜色无法改变它"),
+                "ASS/SSA 字幕自带字体和颜色，默认由它自己说了算，下面这些外观只对纯文本字幕（srt/vtt）生效；"
+                    + "强制覆盖可能破坏 ASS 的定位与特效。图形字幕（PGS/VOBSUB）是图片，改不了它的字体和文字颜色"),
 
             Font("字体", "列出这台机器装的字体和程序自带的字体，可搜索；mpv 认的是字体族名，不是文件路径",
                 () => playback.SubtitleFontFamily, Live<string>(value => playback.SubtitleFontFamily = value), "sub-font"),
@@ -1665,20 +1664,19 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "字幕文字的大小，出厂 50；mpv 自己是 38", "sub-font-size"),
             Slider("字幕缩放（%）", PlaybackSettings.MinimumSubtitleScale, PlaybackSettings.MaximumSubtitleScale, 5,
                 () => playback.SubtitleScalePercent, Live<double>(value => playback.SubtitleScalePercent = (int)value),
-                "在字号之上再乘一次。ASS/SSA 字幕不用「强制」也认这一项，是唯一能把它们调大的旋钮。"
-                    + "出厂默认 100，就是「不缩放」；想回去就拖回 100", "sub-scale"),
+                "在字号之上再乘一次，100 就是不缩放。ASS/SSA 字幕不用「强制」也认这一项，是唯一能把它们调大的旋钮", "sub-scale"),
 
             // 字幕加粗（2026-09-22「删掉字重选项，改为 sub-bold」）。mpv 没有连续字重可调，能开关的只有
             // sub-bold 这一个，所以早先那个三档字重（v18–v19）退回成一个开关：开了字体用粗体、没真粗体的由
             // libmpv 合成。选值经 Live 走，一改就把整套字幕外观重发给正在播的片子（sub-bold 在
             // SubtitleStyleOptions 里，一起被重推）。
-            Toggle("字幕加粗", "开了字幕用粗体：字体有真粗体就用真的，没有的由 libmpv 合成加粗",
+            Toggle("字幕加粗", "开了字幕用粗体：字体有真粗体就用真的，没有的由 libmpv 合成",
                 () => playback.SubtitleBold, Live<bool>(value => playback.SubtitleBold = value), "sub-bold"),
             ColorRow("文字颜色", () => playback.SubtitleColor, Live<string>(value => playback.SubtitleColor = value), "sub-color",
-                "HTML 颜色代码（#RRGGBB），点色块从拾色器里挑，随便什么颜色都能给"),
+                "HTML 颜色代码（#RRGGBB），点色块从拾色器里挑"),
             UnitSlider("描边大小", SubtitlePreviewPlan.MpvDefaultBorderSize,
                 () => playback.SubtitleBorderSize, Live<string>(value => playback.SubtitleBorderSize = value),
-                "文字外那一圈边的宽度，拖到 0 就是没有描边。出厂 0.5，mpv 自己是 1.65", "sub-border-size"),
+                "文字外那一圈边的宽度，0 就是没有描边。出厂 0.5，mpv 自己是 1.65", "sub-border-size"),
             ColorRow("描边颜色", () => playback.SubtitleBorderColor, Live<string>(value => playback.SubtitleBorderColor = value), "sub-border-color"),
             SubtitleShadowRow(),
 
@@ -1823,7 +1821,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "af", "对解码后的音频有效（直通除外），代价是动态范围被压窄；播放器右键菜单里可以当场试听这三档"),
             Toggle("5.1 下混到两声道时归一化",
                 "多声道下混时防削波：把混音系数整体压到不超载，代价是整体变轻。它不单独抬高对白 —— "
-                + "想要对白清楚请用上面的「音量均衡」。只在下混由 mpv 完成时有效，这台机器上量过确实如此",
+                + "想要对白清楚请用上面的「音量均衡」。只在下混由 mpv 完成时有效",
                 () => audio.NormalizeDownmix, value => audio.NormalizeDownmix = value,
                 "audio-normalize-downmix")
         };
@@ -1857,9 +1855,9 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         return new SettingChoiceRow(
             "音频输出设备",
-            Annotate("每次打开设置会重新读取内置 libmpv 的设备名单；内置后端起播前再次核对，"
-                + "未找到时本次尝试系统默认，不改已保存的选择。外部 mpv 使用自己的设备表，不保证这些名称可用，也不执行此回退。"
-                + "播放中拔插或设备无法打开仍可能无声", "audio-device"),
+            Annotate("每次打开设置重新读取内置 libmpv 的设备名单，起播前再核对一次；未找到时本次用系统默认，"
+                + "不改已保存的选择。外部 mpv 用自己的设备表，不保证这些名称可用，也不回退。"
+                + "播放中拔插或设备打不开仍可能无声", "audio-device"),
             choices,
             selected,
             Save);
@@ -1881,8 +1879,8 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         HomeRows = new SettingHomeLayoutRow(
             "媒体库顺序",
-            "按住一行往上下拖、或者按右边那两颗箭头决定次序，取消勾选就不显示。媒体库那一排是进各媒体库的入口"
-                + "（点上面的卡片打开那个库），那几排装的是每个库最近添加的内容。",
+            "拖动一行或用右边那两颗箭头决定次序，取消勾选就不显示。「媒体库」那一排是进各媒体库的入口"
+                + "（点上面的卡片打开那个库），其余各排装的是那个库最近添加的内容。",
             plan.Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible)),
             rows =>
             {
@@ -1922,9 +1920,8 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 因为它管的是整个第一屏：关掉之后顶上那张大图整个没有，那张表里的每一排照旧横着排在各自的
             // 位置上。改完当场喊一声（ShellPrefs），主页那一头照新的重排 —— 和下面几行走同一条路。
             Toggle("显示主页轮播大图",
-                "主页最上面那张会自己走的大图。开着的时候它是一块四边留白的大卡片，剧照铺满整张卡、下面那几排"
-                    + "接在它下面（第一屏里就看得见）；关掉之后这张图整个没有，整页就是一叠横着排的普通货架。"
-                    + "大图上放哪些条目，由下面四行轮播设置说了算。",
+                "主页最上面那张会自己走的大图，剧照铺满整张卡、下面那几排接在它下面。关掉之后这张图整个没有，"
+                    + "整页就是一叠横着排的普通货架。大图上放哪些条目，由下面四行轮播设置说了算。",
                 () => ui.ShowHomeBanner,
                 value =>
                 {
@@ -1939,7 +1936,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                     ui.CarouselMedia = value;
                     ShellPrefs.Apply(ui);
                 },
-                "顶上那张大图站哪一类。音乐类从不出现在轮播里"),
+                "顶上那张大图站哪一类；音乐类从不出现在轮播里"),
 
             Choice("轮播图条目来源", carouselSource,
                 () => ui.CarouselSource,
@@ -1957,7 +1954,7 @@ public sealed partial class SettingsViewModel : PageViewModel
                     ui.CarouselCount = value;
                     ShellPrefs.Apply(ui);
                 },
-                $"这条带最多摆几张，{Emby.HomeCarousel.MinSlots}–{Emby.HomeCarousel.MaxSlots}。"
+                $"这条带最多摆几张，{Emby.HomeCarousel.MinSlots}–{Emby.HomeCarousel.MaxSlots}；"
                     + "筛掉没有宽图的条目之后可能不足这个数"),
 
             Number("封面轮换秒数", Emby.HomeCarousel.MinDwellSeconds, Emby.HomeCarousel.MaxDwellSeconds,
@@ -1979,7 +1976,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             Pick("主页媒体库位置",
                 "媒体库那一排（进各媒体库的入口）摆在主页第一屏的哪儿。「随窗口高度变换」是装机默认：窗口矮到"
                     + "快看不见下面那几排时，它自己压到轮播封面的左下角，窗口拉高又落回轮播下面；另两档钉死，"
-                    + "不看窗口高矮。轮播收起来的时候（关掉大图，或者一张幻灯片都没有）没有轮播可依，"
+                    + "不看窗口高矮。轮播收起来时（关掉大图，或一张幻灯片都没有）没有轮播可依，"
                     + "「固定在轮播图中」按「在下方」显示。",
                 [
                     ("随窗口高度变换", Emby.HomeLibraryPlacement.Auto),
@@ -2111,12 +2108,12 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             Themes,
 
-            Toggle("UI 动画", "控制页面切换、卡片悬停等界面动效，修改后立即生效；开启时仍遵循 Windows 动画设置",
+            Toggle("UI 动画", "页面切换、卡片悬停等界面动效，改完立即生效；开启时仍遵循 Windows 动画设置",
                 () => ui.AnimationsEnabled,
                 value => ui.AnimationsEnabled = value,
                 after: () => ShellPrefs.Apply(ui)),
 
-            Toggle("侧边栏模式", "在主窗口左侧显示主页、搜索、收藏和媒体库导航；默认关闭，修改后立即生效",
+            Toggle("侧边栏模式", "在主窗口左侧显示主页、搜索、收藏和媒体库导航；默认关闭，改完立即生效",
                 () => ui.SidebarMode,
                 value => ui.SidebarMode = value,
                 after: () => ShellPrefs.ApplySidebar(ui)),
@@ -2159,7 +2156,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 那行小字一起收走 —— 趁它还显示着，把这句话读完再拨。
             // 屏上的名字改成新话：「把极简模式改名为隐藏功能下方说明」（用户的话，2026-09-26）—— 名字
             // 直接说它干什么；键名 CompactMode、自检里的 ProbeCompactMode 不动，改的只是给人看的字。
-            Toggle("隐藏功能下方说明", "开启后，这一页每一条设置下面的小字说明都收起来，只留标签和控件；想看某条是"
+            Toggle("隐藏功能下方说明", "开启后这一页每一条设置下面的小字说明都收起来，只留标签和控件；想看某条是"
                 + "什么意思，把它关掉就放回来",
                 () => ui.CompactMode,
                 value => ui.CompactMode = value,
@@ -2309,7 +2306,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 存下来的是密文，所以包一层 —— 行永远只见到明文，包和拆都在 MoviePilotCredentials 里。
         _moviePilotRow = new SettingMoviePilotRow(
             "MoviePilot",
-            "接上你自己的 MoviePilot，之后就能在库里查缺集、直接订阅还搜得到资源的那一部。"
+            "接上你自己的 MoviePilot，之后就能在库里查缺集、订阅和搜资源。"
                 + "协议选 http 或 https，地址填 MoviePilot 的主机，端口填它的 API 端口（默认 3001），"
                 + "不是网页界面那个端口。",
             moviePilot.Enabled,
@@ -2498,7 +2495,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             Toggle(UpdateNotice.ToggleLabel,
                 "打开之后，每次启动会去发布页问一句有没有比这一版新的，有新版本就弹一条提示，带一颗「打开下载页」；"
-                    + "关掉就不再联网检查。默认开，拨一下下一次启动生效。",
+                    + "关掉就不再联网检查。默认开，拨一下下一次启动生效",
                 () => Settings.Ui.AutoCheckUpdates,
                 value => Settings.Ui.AutoCheckUpdates = value)
         };
@@ -2507,7 +2504,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 单列一句 Add 而不是写进上面的初始化器：那里出现一个赋值，整个大括号会被当成对象初始化器。
         _updateRow = Fact(UpdateNotice.RowLabel,
             "现在就去发布页问一句有没有比这一版新的，结果写在这一行；有新版本会再弹一条提示，带一颗「打开下载页」。"
-                + "这一颗不受上面那个开关管 —— 它是你按的。",
+                + "这一颗不受上面那个开关管 —— 它是你按的",
             "", "检查更新", () => _ = CheckForUpdatesAsync());
         updateRows.Add(_updateRow);
 
@@ -2526,7 +2523,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             // 所以「告诉用户落在哪儿」和截图本身是同一件事的两半。2026-09-29 起这个落点跟着设置走
             // （「截图保存目录」那一行，2026-10-11 起住播放行为分类的截图分区卡），这一行握在
             // _screenshotFact 上，那头一改它当场换。
-            _screenshotFact = Fact("截图目录", "播放器右键菜单 → 截图 存到这儿，文件名是片名、播放时间和序号",
+            _screenshotFact = Fact("截图目录", "播放器右键菜单 →「截屏」存到这儿，文件名是片名、播放时间和序号",
                 ScreenshotDirectory(), "打开", () => _ = OpenDirectoryAsync(ScreenshotDirectory()));
             fileRows.Add(_screenshotFact);
         }
@@ -2544,8 +2541,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             () => Settings.Ui.ImageCacheMegabytes,
             value => Settings.Ui.ImageCacheMegabytes = value,
             $"海报和剧照在磁盘上最多占多少，装机是 {Emby.ImageCachePolicy.DefaultMegabytes} MB。这一行是填进去的，"
-                + "不是用箭头拨的；填小了当场就会把最久没看过的那些删到新上限以下。缓存删掉不影响任何设置，"
-                + "只是下次看到那些封面时要重新下载一遍。",
+                + "不是用箭头拨的；填小了当场就会把最久没看过的那些删到新上限以下。",
             after: () => ShellPrefs.Apply(Settings.Ui));
         fileRows.Add(ImageBudget);
 
@@ -2558,7 +2554,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         var backupRows = new List<SettingRow>
         {
             Fact("备份配置文件",
-                "把你的偏好设置（播放、字幕、画质、音频、快捷键、主题、界面等）导出成一个文件；不含服务器、账号和登录信息，"
+                "把偏好设置（播放、字幕、画质、音频、快捷键、主题、界面等）导出成一个文件；不含服务器、账号和登录信息，"
                     + "可以带到别的机器或重装之后用来恢复", "",
                 "备份到文件…", () => _ = BackupAsync()),
             Fact("恢复配置",

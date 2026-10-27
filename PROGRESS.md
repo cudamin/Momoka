@@ -8411,3 +8411,14 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **配套改动**：`RefreshSubtitleBackRows`／`SyncSubtitleBackControls` 改挂「字幕外观」；翻译分类的可用性切换与行刷新改成三张一起收放；自检的「字幕颜色」「字幕示例」「动态范围压缩」「关于卡备份恢复 / 检查新版本」四处改成按分类 `SelectMany` 读行（原来只读第一张）；弹幕、字幕、翻译、设置搜索四个探针里按分类 / 标题找卡的地方一并改成跨卡读。`SettingSection.SectionVisibility` 早在上一轮已改成「行数归零整张收起」，所以实时字幕翻译关着时只显示一张主卡。
 - **验证**：Release Shell 与测试项目编译 **0 警告 0 错误**；完整离线套件 **3049/3049**；`settings-page-state` **30/30**（新增「六个分类各自拆成多张卡」源码接线）、`settings-search` **14/14**、`settings-applicability` **29/29**；`tools/publish.ps1 -NoArchive` 刷新交付目录（389 个顶层条目、286 MB）后 `--probe-shell --probe-section settings --screen 1` **22/22 通过**（`shell-probe-20261027-084259615-20972`）。实屏核对 `settings-split-{home,playback,audio,subtitle}-{1100,760}`、`settings-clean-emby-dark-1100`（字幕）、`settings-about-1100`、`settings-danmaku-*`：四张 / 三张卡各自带标题，行没有被拆散。其余 99 项探针未跑，未验证真实服务器与播放。
 - **过程教训**：这一轮探针修了三处「只认一张卡」的旧断言（长页切短页数可见分组、主页卡标题、按 `Category` 取 `Single`），每修一次都要重发一次；两次在 `publish.ps1` 跑着的时候又改了源码，都停掉重发。最终发布件的 `Momoka.dll`（16:42:16）晚于所有源码改动（最新 16:38:28）。未升级版本号、未推送 origin、未建 Release 或商店包。
+
+## 设置页：行说明精简与截图菜单名纠错（2026-10-27 17:00~17:40）
+
+- **用户当次要求**：「简化设置页面中各项功能的说明，只简化你认为有价值的，不必每一项都简化，有你觉得写的不好的地方可以重写」。
+- **只动行说明（`SettingRow.Note`），不动标签、控件与行为**。删的是四类废话：重述标签的开头（「启用实时字幕翻译：开启后……」这种）、开发视角旁白（「这台机器上量过确实如此」）、同卡内重复（图片缓存上限那行把上一行图片缓存的话又说一遍）、句尾空句号。**事实一律保留**，两条硬理由：①卡片说明（`SettingSection.Description`）自 `97d8015` 起就不渲染了，行说明是屏上唯一的解释，砍事实等于砍功能说明；②设置搜索索引读 `row.Note`，所以 Atmos/TrueHD/DTS-HD 与 REMUX/4K/HDR/枪版 这类词表一个没删 —— 删了这些词就搜不到了。
+- **顺手修的错误**：三处截图说明（截图保存目录行、截图卡、关于卡那行读数）还写着「播放器『画面』菜单」，而菜单标题 2026-09-26 就撤了、三档实际住在「截屏」组（`PlayerMenuCatalog`）—— 照着屏上找不到的名字找，就找不到存图的地方。统一成「播放器右键菜单 →『截屏』」。弹弹play 四处：删「使用内置凭据时不需要填写」（AppId 那行只在自定义凭据开着时才存在，是死话）、删与关于卡重复的归属句；**隐私说明（发什么、不发什么）原样保留**。
+- **没动的**：`BackColorNote`（`SettingsApplicabilityTests` 钉着）、补帧卡说明（`FrameInterpolationUiTests` 钉着）、视频/HDR/着色器/翻译/快捷键那些本来就短的说明 —— 不必每句都改。
+- **新回归**（`MpvUiTests`）：「截图说明指着右键菜单里真有的那一组」—— 从 `PlayerMenuCatalog.Root` 里找出跑 `screenshot` 命令的那一组，钉名字是「截屏」、三行；再读 `SettingsViewModel` 源码，断言不再出现「画面」菜单、且「播放器右键菜单 →『截屏』」恰好三处。菜单改名或说明再漂，这条就红。
+- **验证**：Release Shell 与测试项目编译 **0 警告 0 错误**；`format whitespace` 退出 0；完整离线套件 **3050/3050、0 失败 0 跳过**（比上轮 +1 就是这条新回归）；`tools/publish.ps1 -NoArchive` 刷新交付目录（546 个文件、284.3 MB，verify-publish 通过）后 `--probe-shell --probe-section settings --screen 1` **22/22 通过**（`shell-probe-20261027-093319671-22452`）。实屏核对 `settings-playback-screenshot-1100`：三处新说明按原样上屏、不截断、不糊。其余 99 项探针未跑；未验证真实服务器与播放（本轮不碰这两条链）。
+- **留给用户的一个产品问题**：卡片说明（`SettingSection.Description`）自 `97d8015` 起不渲染 —— 每张卡建卡时写的那段话在屏上根本看不到，代码里却还在维护（本轮只改了截图那张卡的，为了同一个菜单名）。要么把渲染加回来，要么把这些死字符串删掉；这轮没自作主张。
+- 未升级版本号、未推送 origin、未建 Release 或商店包。

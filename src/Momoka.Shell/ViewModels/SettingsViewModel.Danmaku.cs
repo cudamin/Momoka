@@ -35,7 +35,7 @@ public sealed partial class SettingsViewModel
 
         var rows = new List<SettingRow>
         {
-            Toggle("启用弹弹play", "默认关闭。开启后自动使用 Momoka 内置凭据；搜索或自动匹配会把作品名称和集数发送到弹弹play，不上传视频、媒体服务器地址或登录信息。内置额度用尽时可在最下面的「应用凭据」里改用自定义凭据。",
+            Toggle("启用弹弹play", "默认关闭，开启后自动使用 Momoka 内置凭据。搜索或自动匹配会把作品名称和集数发送到弹弹play，不上传视频、媒体服务器地址或登录信息。内置额度用尽时可在「应用凭据」里改用自己的。",
                 () => settings.Enabled, value => settings.Enabled = value, after: RefreshDanmakuRows),
         };
         if (configured)
@@ -77,7 +77,7 @@ public sealed partial class SettingsViewModel
 
         var credentialRows = new List<SettingRow>
         {
-            Toggle("使用自己的应用凭据", "内置凭据由 Momoka 统一提供，普通用户不需要申请；如果你有自己的弹弹play 应用，可以改用自定义的 AppId 与 AppSecret，凭据只保存在本机。",
+            Toggle("使用自己的应用凭据", "内置凭据由 Momoka 统一提供，普通用户不需要申请；有自己的弹弹play 应用时改用自定义的 AppId 与 AppSecret，凭据只保存在本机。",
                 () => settings.CredentialSource == DanmakuCredentialSource.Custom,
                 value =>
                 {
@@ -87,11 +87,11 @@ public sealed partial class SettingsViewModel
         };
         if (custom)
         {
-            credentialRows.Add(new SettingTextRow("AppId", "你的弹弹play 应用 ID；使用内置凭据时不需要填写。", "弹弹play 应用 ID", settings.AppId,
+            credentialRows.Add(new SettingTextRow("AppId", "你的弹弹play 应用 ID。", "弹弹play 应用 ID", settings.AppId,
                 typed => { settings.AppId = typed.Trim(); return settings.AppId; }, () => { Save(); RefreshDanmakuRows(); }));
             credentialRows.Add(new SettingSecretRow("AppSecret", secret => _dandanCredentials?.SetSecret(settings, secret),
                 () => settings.ProtectedAppSecret.Length > 0, () => { Save(); return !HasUnsavedChanges; }, RefreshDanmakuRows));
-            credentialRows.Add(Fact("弹弹play 开发者中心", "申请或管理 AppId 与 AppSecret。弹幕数据由弹弹play 开放弹幕网络提供。", "", "打开开发者中心",
+            credentialRows.Add(Fact("弹弹play 开发者中心", "申请或管理 AppId 与 AppSecret。", "", "打开开发者中心",
                 () => _launcher?.OpenUrl(DandanPlayClient.DeveloperUrl)));
         }
 

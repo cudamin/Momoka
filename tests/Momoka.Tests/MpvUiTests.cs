@@ -723,6 +723,37 @@ internal static class MpvUiTests
                     $"「{link.Label}」指向的设置卡「{link.Category}」不在卡片名单里（{string.Join('、', cards)}）");
         });
 
+        // 设置页那几处截图说明指的菜单名，必须就是右键菜单里真有那一组的名字。菜单早就不叫「画面」了
+        // （用户令 2026-09-26 把标题撤掉，那三档住在「截屏」组里，见 PlayerMenuCatalog），说明却还写着
+        // 「画面」菜单 —— 用户照着屏上找不到的名字找，就找不到存图的地方。名字以 Core 这张表为准，
+        // 说明跟着它走；两边一起改才对得上，单改一边这条就红。
+        TestHarness.Test("截图说明指着右键菜单里真有的那一组", () =>
+        {
+            var group = PlayerMenuCatalog.Root.Single(node => node.Kind == PlayerMenuKind.Group
+                && node.Children.Any(child => child.Commands.Any(command =>
+                    command.Contains("screenshot", StringComparer.Ordinal))));
+
+            Assert.Equal("截屏", group.Label);
+            Assert.Equal(3, group.Children.Count);
+
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Momoka.sln")))
+                directory = directory.Parent;
+            Assert.NotNull(directory);
+
+            var settings = File.ReadAllText(Path.Combine(
+                directory!.FullName, "src", "Momoka.Shell", "ViewModels", "SettingsViewModel.cs"));
+            Assert.DoesNotContain("「画面」菜单", settings, "右键菜单里没有叫「画面」的那一组了");
+
+            // 三处：截图保存目录那一行、截图那张卡、关于卡上印着落点的那一行。
+            var needle = $"播放器右键菜单 →「{group.Label}」";
+            var mentions = 0;
+            for (var at = settings.IndexOf(needle, StringComparison.Ordinal); at >= 0;
+                at = settings.IndexOf(needle, at + needle.Length, StringComparison.Ordinal))
+                mentions++;
+            Assert.Equal(3, mentions, $"设置页里指着那一组的说明应有三处（{needle}）");
+        });
+
         // 跳过按钮在 uosc 侧的四头都在（升级 uosc 时最容易漏打的补丁，对着源码钉住）：宿主消息处理器、
         // 元件实例化、元件本体里的点击回推、以及 start-file 收摊。都是运行期观感（三条离线探针固定走集成
         // 管线、不覆盖 uosc），这里只保证补丁没被 uosc 升级冲掉。
