@@ -30,6 +30,13 @@ public sealed partial class PlayerPage
     /// once. <see cref="RefreshPictureChecksAsync"/> walks this on every open to set each tick from mpv.
     /// </summary>
     private readonly List<(MenuFlyoutItem Item, PlayerMenuNode Node)> _pictureChecks = [];
+
+    /// <summary>
+    /// The catalogue rows that show a shortcut in their right-hand column, collected as the menu is built once.
+    /// The text is refreshed on every open rather than written at build time, because 设置 can rebind a key
+    /// while the film keeps playing — a hint frozen at build time would keep naming the old key.
+    /// </summary>
+    private readonly List<(MenuFlyoutItem Item, PlayerMenuNode Node)> _pictureShortcuts = [];
     private int _pictureStaticCount;
 
     // ---- 选集 --------------------------------------------------------------------
@@ -255,7 +262,14 @@ public sealed partial class PlayerPage
         menu.Items.Add(BuildAutoPlayRow());
         menu.Items.Add(new MenuFlyoutSeparator());
 
-        var info = new MenuFlyoutItem { Text = "播放信息…" };
+        // 这一行也有一份快捷键（Ctrl+I），与目录行同一条取法 —— 重绑后右列跟着走。
+        var info = new MenuFlyoutItem
+        {
+            Text = "播放信息…",
+            KeyboardAcceleratorTextOverride = PlayerMenuCatalog
+                .ShortcutTexts(ViewModel.ShortcutBindings)
+                .GetValueOrDefault(PlayerMenuCatalog.PlaybackInfoShortcut)
+        };
         info.Click += (_, _) => _ = ShowMediaInfoAsync();
         menu.Items.Add(info);
 
@@ -398,6 +412,7 @@ public sealed partial class PlayerPage
         if (PictureMenu.Items.Count == 0)
         {
             _pictureChecks.Clear();
+            _pictureShortcuts.Clear();
 
             // 画面目录（PlayerMenuCatalog）在前，下面接一段分隔与「更多」那一棵 —— 2026-09-27 晚右下角那颗
             // 「更多」按钮撤下后，着色器/跳过/自动连播/播放信息这几行只有这一处入口，整棵并进右键菜单里。
@@ -418,6 +433,13 @@ public sealed partial class PlayerPage
             more.Items.RemoveAt(0);
             PictureMenu.Items.Add(row);
         }
+
+        // 快捷键右列每开一次重读一次绑定：设置页可以边放边重绑，构建时写死的文字会一直报旧键。
+        var shortcutTexts = PlayerMenuCatalog.ShortcutTexts(ViewModel.ShortcutBindings);
+        foreach (var (item, node) in _pictureShortcuts)
+            item.KeyboardAcceleratorTextOverride = node.Shortcut is { } action
+                ? shortcutTexts.GetValueOrDefault(action)
+                : null;
 
         _ = RefreshPictureChecksAsync();
     }
@@ -491,6 +513,7 @@ public sealed partial class PlayerPage
                     };
 
                     if (node.State is not null) _pictureChecks.Add((row, node));
+                    if (node.Shortcut is not null) _pictureShortcuts.Add((row, node));
 
                     yield return row;
                     break;

@@ -1,3 +1,5 @@
+using Momoka.Playback;
+
 namespace Momoka.Mpv;
 
 /// <summary>What one row of the 画面菜单 is.</summary>
@@ -43,6 +45,13 @@ public sealed record PlayerMenuNode(
     /// derived from <see cref="Commands"/>: see <see cref="PlayerMenuState"/>.
     /// </summary>
     public PlayerMenuState? State { get; init; }
+
+    /// <summary>
+    /// The rebindable action（<see cref="ShortcutCatalog"/>）that does exactly what this row does, or null for
+    /// the rows no key reaches. Display only — the row still runs <see cref="Commands"/>. Both menus draw the
+    /// action's current key in their right-hand column, so rebinding it in 设置 moves this hint with it.
+    /// </summary>
+    public string? Shortcut { get; init; }
 
     /// <summary>
     /// Whether to tick this row, given the values read for <see cref="PlayerMenuCatalog.CheckProperties"/>.
@@ -109,13 +118,13 @@ public static class PlayerMenuCatalog
     public static IReadOnlyList<PlayerMenuNode> Root { get; } =
     [
         Group("导航",
-            Item("上一章节", "章节:${chapter}", "add", "chapter", "-1"),
-            Item("下一章节", "章节:${chapter}", "add", "chapter", "1"),
+            Item("上一章节", "章节:${chapter}", "add", "chapter", "-1") with { Shortcut = "chapter-previous" },
+            Item("下一章节", "章节:${chapter}", "add", "chapter", "1") with { Shortcut = "chapter-next" },
             Rule,
-            Item("精准后退 1 秒", "后退 1 秒", "seek", "-1", "exact"),
-            Item("精准前进 1 秒", "前进 1 秒", "seek", "1", "exact"),
-            Item("上一帧", "当前帧:${estimated-frame-number}", "frame-back-step"),
-            Item("下一帧", "当前帧:${estimated-frame-number}", "frame-step")),
+            Item("精准后退 1 秒", "后退 1 秒", "seek", "-1", "exact") with { Shortcut = "seek-backward-fine" },
+            Item("精准前进 1 秒", "前进 1 秒", "seek", "1", "exact") with { Shortcut = "seek-forward-fine" },
+            Item("上一帧", "当前帧:${estimated-frame-number}", "frame-back-step") with { Shortcut = "frame-backward" },
+            Item("下一帧", "当前帧:${estimated-frame-number}", "frame-step") with { Shortcut = "frame-forward" }),
 
         Group("画面",
             Group("切换 宽高比",
@@ -128,12 +137,12 @@ public static class PlayerMenuCatalog
             Item("左旋转", "视频旋转:${video-rotate}", "cycle-values", "video-rotate", "0", "270", "180", "90"),
             Item("右旋转", "视频旋转:${video-rotate}", "cycle-values", "video-rotate", "0", "90", "180", "270"),
             Group("画面缩放",
-                Item("画面缩小", "画面缩小:${video-zoom}", "add", "video-zoom", "-0.1"),
-                Item("画面放大", "画面放大:${video-zoom}", "add", "video-zoom", "0.1"),
-                Item("画面左移动", "画面左移动:${video-pan-x}", "add", "video-pan-x", "-0.1"),
-                Item("画面右移动", "画面右移动:${video-pan-x}", "add", "video-pan-x", "0.1"),
-                Item("画面上移动", "画面上移动:${video-pan-y}", "add", "video-pan-y", "-0.1"),
-                Item("画面下移动", "画面下移动:${video-pan-y}", "add", "video-pan-y", "0.1")),
+                Item("画面缩小", "画面缩小:${video-zoom}", "add", "video-zoom", "-0.1") with { Shortcut = "video-zoom-out" },
+                Item("画面放大", "画面放大:${video-zoom}", "add", "video-zoom", "0.1") with { Shortcut = "video-zoom-in" },
+                Item("画面左移动", "画面左移动:${video-pan-x}", "add", "video-pan-x", "-0.1") with { Shortcut = "video-pan-left" },
+                Item("画面右移动", "画面右移动:${video-pan-x}", "add", "video-pan-x", "0.1") with { Shortcut = "video-pan-right" },
+                Item("画面上移动", "画面上移动:${video-pan-y}", "add", "video-pan-y", "-0.1") with { Shortcut = "video-pan-up" },
+                Item("画面下移动", "画面下移动:${video-pan-y}", "add", "video-pan-y", "0.1") with { Shortcut = "video-pan-down" }),
             // README's 缩放窗口时按画面比例联动 keeps the window the shape of the picture, so there is
             // normally nothing to crop. This row is for the times that is not what someone wants: a 2.35:1
             // film on a 16:9 screen, filled rather than letterboxed.
@@ -235,8 +244,10 @@ public static class PlayerMenuCatalog
             // not read the manual. 「带着色器」 matters here more than in most players — this client's whole
             // 画质档位 scheme is shaders, so 「what the chain did to this frame」 is a real question, and only
             // the first row answers it.
-            Item("截图 — 当前尺寸（含字幕和着色器）", "已保存到 ${screenshot-directory}", "screenshot", "scaled+subtitles"),
-            Item("截图 — 原始尺寸（不带字幕）", "已保存到 ${screenshot-directory}", "screenshot", "video"),
+            Item("截图 — 当前尺寸（含字幕和着色器）", "已保存到 ${screenshot-directory}", "screenshot", "scaled+subtitles")
+                with { Shortcut = "screenshot" },
+            Item("截图 — 原始尺寸（不带字幕）", "已保存到 ${screenshot-directory}", "screenshot", "video")
+                with { Shortcut = "screenshot-original" },
             Item("截图 — 整个播放窗口（含控件）", "已保存到 ${screenshot-directory}", "screenshot", "window")),
 
         Group("音频",
@@ -268,13 +279,13 @@ public static class PlayerMenuCatalog
             Flag("切换 音频独占模式", "音频独占模式:${audio-exclusive}", "audio-exclusive", "cycle", "audio-exclusive")),
 
         Group("字幕",
-            Item("字幕上移", "字幕上移:${sub-pos}", "add", "sub-pos", "-1"),
-            Item("字幕下移", "字幕下移:${sub-pos}", "add", "sub-pos", "1"),
-            Item("字号 -0.1", "字幕缩小:${sub-scale}", "add", "sub-scale", "-0.1"),
-            Item("字号 +0.1", "字幕放大:${sub-scale}", "add", "sub-scale", "0.1"),
+            Item("字幕上移", "字幕上移:${sub-pos}", "add", "sub-pos", "-1") with { Shortcut = "subtitle-position-up" },
+            Item("字幕下移", "字幕下移:${sub-pos}", "add", "sub-pos", "1") with { Shortcut = "subtitle-position-down" },
+            Item("字号 -0.1", "字幕缩小:${sub-scale}", "add", "sub-scale", "-0.1") with { Shortcut = "subtitle-scale-down" },
+            Item("字号 +0.1", "字幕放大:${sub-scale}", "add", "sub-scale", "0.1") with { Shortcut = "subtitle-scale-up" },
             Rule,
-            Item("跳转上一条字幕", "上一条字幕", "sub-seek", "-1"),
-            Item("跳转下一条字幕", "下一条字幕", "sub-seek", "1"),
+            Item("跳转上一条字幕", "上一条字幕", "sub-seek", "-1") with { Shortcut = "subtitle-seek-previous" },
+            Item("跳转下一条字幕", "下一条字幕", "sub-seek", "1") with { Shortcut = "subtitle-seek-next" },
             Rule,
             Group("兼容性",
                 Item("切换 渲染样式", "字幕渲染样式:${sub-ass-override}", "cycle", "sub-ass-override"),
@@ -292,8 +303,10 @@ public static class PlayerMenuCatalog
                 ["set", "sub-delay", "0"])),
 
         Group("片段循环",
-            Item("设定/清除 片段循环", "片段循环:${ab-loop-a} - ${ab-loop-b}", "ab-loop"),
-            Toggle("开/关 循环播放", "循环播放:${loop-file}", "loop-file", "inf", "cycle-values", "loop-file", "inf", "no"))
+            Item("设定/清除 片段循环", "片段循环:${ab-loop-a} - ${ab-loop-b}", "ab-loop")
+                with { Shortcut = "toggle-ab-loop" },
+            Toggle("开/关 循环播放", "循环播放:${loop-file}", "loop-file", "inf", "cycle-values", "loop-file", "inf", "no")
+                with { Shortcut = "toggle-loop" })
     ];
 
     /// <summary>
@@ -323,6 +336,21 @@ public static class PlayerMenuCatalog
     /// </summary>
     public static IReadOnlyList<PlayerMenuNode> Commands { get; } =
         [.. Flatten(Root).Where(node => node.Kind == PlayerMenuKind.Command)];
+
+    /// <summary>
+    /// 「更多」里「播放信息…」那一行执行的快捷键动作。那一行不在目录树里，而集成侧与独占侧的「更多」都要
+    /// 从同一个 Id 取当前键，所以它留在这里，和目录行的 <see cref="PlayerMenuNode.Shortcut"/> 是同一份词汇。
+    /// </summary>
+    public const string PlaybackInfoShortcut = "show-playback-info";
+
+    /// <summary>
+    /// 目录行右列要显示的快捷键文字：动作 Id → 当前生效键的屏上写法。取自 <see cref="ShortcutCatalog.Resolve"/>，
+    /// 所以设置页重绑后这里跟着变；显式解绑的动作不进表，那一行就不显示右列，而不是显示一个按下去没用的键。
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> ShortcutTexts(IReadOnlyDictionary<string, string> bindings) =>
+        ShortcutCatalog.Resolve(bindings)
+            .Where(pair => !pair.Value.IsEmpty)
+            .ToDictionary(pair => pair.Key, pair => ShortcutCatalog.Format(pair.Value), StringComparer.Ordinal);
 
     /// <summary>
     /// The distinct mpv properties any row's <see cref="PlayerMenuNode.State"/> reads, deduplicated — 解码方式's

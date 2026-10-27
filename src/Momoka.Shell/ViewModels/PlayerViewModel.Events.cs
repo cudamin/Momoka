@@ -234,7 +234,8 @@ public sealed partial class PlayerViewModel
         _pictureMenuContext = context;
 
         var command = 0;
-        var items = BuildPictureMenuItems(PlayerMenuCatalog.Root, checks, snapshot, ref command);
+        var shortcutTexts = PlayerMenuCatalog.ShortcutTexts(ShortcutBindings);
+        var items = BuildPictureMenuItems(PlayerMenuCatalog.Root, checks, snapshot, shortcutTexts, ref command);
 
         // 目录与「更多」之间的一条分隔线（集成侧 OnPictureMenuOpening 插的那条 MenuFlyoutSeparator）。
         // uosc 的分隔线是「这一行之后画条线」的行属性而不是独立行，落在前一行上（与目录里的分隔同款）。
@@ -252,7 +253,8 @@ public sealed partial class PlayerViewModel
         items.Add(BuildUoscSkipMenu());
         items.Add(new UoscMenuItem("自动播放下一集",
             $"script-message {VideoWindowContract.AutoPlayNext} toggle", true, AutoPlayNextEpisode, Separator: true));
-        items.Add(new UoscMenuItem("播放信息…", $"script-message {VideoWindowContract.MediaInfo} open", true, false));
+        items.Add(new UoscMenuItem("播放信息…", $"script-message {VideoWindowContract.MediaInfo} open", true, false,
+            shortcutTexts.GetValueOrDefault(PlayerMenuCatalog.PlaybackInfoShortcut)));
 
         // 与集成侧 OnMoreMenuOpening 同样折叠进「播放设置」，子项保留原来的宿主消息。
         items[^1] = items[^1] with { Separator = true };
@@ -337,7 +339,8 @@ public sealed partial class PlayerViewModel
     /// </summary>
     private static List<UoscMenuItem> BuildPictureMenuItems(
         IReadOnlyList<PlayerMenuNode> nodes, IReadOnlyDictionary<string, string?> checks,
-        VideoMenuSnapshot<PlayerMenuNode> snapshot, ref int command)
+        VideoMenuSnapshot<PlayerMenuNode> snapshot, IReadOnlyDictionary<string, string> shortcutTexts,
+        ref int command)
     {
         var items = new List<UoscMenuItem>(nodes.Count);
 
@@ -353,7 +356,7 @@ public sealed partial class PlayerViewModel
                     break;
 
                 case PlayerMenuKind.Group:
-                    var children = BuildPictureMenuItems(node.Children, checks, snapshot, ref command);
+                    var children = BuildPictureMenuItems(node.Children, checks, snapshot, shortcutTexts, ref command);
                     // 子菜单那一行必须可选中（selectable 默认真、这里显式给真）——否则 uosc 里点不开它；
                     // 它没有 value（点它是进子菜单，不是跑命令），items 一有值 uosc 就当它是子菜单。
                     items.Add(new UoscMenuItem(node.Label, null, true, false, Items: children));
@@ -361,11 +364,14 @@ public sealed partial class PlayerViewModel
 
                 default:
                     command++;
+                    // 右列（uosc 的 hint）写这一行对应的当前键，和集成模式右列同一句话；没有对应键的行留空，
+                    // 与版本菜单的画质、着色器的链名占同一列。
                     items.Add(new UoscMenuItem(
                         node.Label,
                         $"script-message {VideoWindowContract.MenuIndex} {snapshot.ValueAt(command - 1)}",
                         true,
-                        node.IsCheckedBy(checks)));
+                        node.IsCheckedBy(checks),
+                        node.Shortcut is { } action ? shortcutTexts.GetValueOrDefault(action) : null));
                     break;
             }
         }

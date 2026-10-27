@@ -75,13 +75,24 @@ public sealed partial class PlayerPage
         // PlayerSettingsLinks 没跟上，症状都是「点『字幕』开在播放器卡上」—— 菜单看着一切正常，只有这条读数看得见。
         var settings = ProbeSettingsRows(PictureMenu.Items);
 
+        // 快捷键右列：目录里每个点名了快捷键的行都要登记进 _pictureShortcuts，且屏上的文字等于**当前**绑定
+        // 算出来的那一句。期望值用菜单自己那一份 Core 连接（ShortcutTexts）现算 —— 重绑过的键、显式解绑的
+        // 动作都跟着同一个答案走；若只在构建时写死文字，重绑之后这条读数会红。
+        var shortcutTexts = PlayerMenuCatalog.ShortcutTexts(ViewModel.ShortcutBindings);
+        var wantShortcuts = catalogue.Count(node => node.Shortcut is not null);
+        var shownShortcuts = _pictureShortcuts.Count(pair => string.Equals(
+            pair.Item.KeyboardAcceleratorTextOverride,
+            pair.Node.Shortcut is { } action ? shortcutTexts.GetValueOrDefault(action) : null,
+            StringComparison.Ordinal));
+
         var ok = rows == wantRows && groups == wantGroups && rules == wantRules && panscan
-            && checks == wantChecks && settings.Ok;
+            && checks == wantChecks && settings.Ok
+            && _pictureShortcuts.Count == wantShortcuts && shownShortcuts == wantShortcuts;
 
         return (ok, $"{rows}/{wantRows} 行、{groups}/{wantGroups} 个子菜单、{rules}/{wantRules} 条分隔线"
                     + $"（含并进来的「更多」{moreRows} 行）"
                     + $"，裁切填充={(panscan ? "在" : "缺")}、可打勾 {checks}/{wantChecks} 行"
-                    + $"，设置三行 {settings.Detail}");
+                    + $"，快捷键 {shownShortcuts}/{wantShortcuts} 行、设置三行 {settings.Detail}");
     }
 
     /// <summary>
