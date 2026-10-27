@@ -166,3 +166,20 @@ fixture 提取的 `OnNowPlayingChanged`、`LeavePlayer` 等成员未变。逐份
 `49f145e7eb68784bfcedd2bd4302a5c2400a8ac39659e63f405eb4759704fc10`，其余 18 份、baseCommit 与 date 不动。
 `Run-Caller.ps1` 50/0/0、`Test-SourceExtraction.ps1` 8/8 预期拒绝后当前源重编译 50/0/0；本树方案构建与空白检查通过。
 本机 PowerShell 5.1 默认 GBK 时，脚本对 dotnet 的 UTF-8 输出会误读警告数，需先把控制台设为 UTF-8（`chcp 65001`）再跑。
+
+## 2026-10-27：UI 线程纪律修复的单项 pin 同步
+
+`33569fd`（开着色器、GPU 跟不上时窗口卡死）把 `LibMpvHandle` 的六条读取搬到 `Task.Run`、
+把 `CanSwapTo`／`HandOver`／`TryRetainAfterEndOfFile` 移出闸门，并给 `LibMpvLifetimeGate` 的
+代次与销毁标志改成锁外读写；改动全在 `src/Momoka.Core/Playback/LibMpvBackend.cs` 里。
+fixture 提取的 `PlayerViewModel` 成员（`StartPlaybackAsync`、`NextEpisodeToAutoPlay`、
+`OnNowPlayingChanged`、`LeavePlayer`）与其余 18 份 pin 的字节都未变，本 fixture 也不构造真实
+`LibMpvHandle`（`FakePlayback` 只对齐 `PlayAsync` 的六参边界），因此逐份复核后**仅更新
+LibMpvBackend.cs 这一个 SHA256** 为 `a154d0d9b4c2dba82a478f70d8956f5a1d50834b0757b1916fc974f767973b11`，
+不整份重生成 pins，baseCommit 与 date 不动。该文件在本 fixture 里是「调用方语义是针对哪一版原生
+后端复核的」这条来源记录；线程纪律本身由 R-051 的 42 项与 `Momoka.ShaderCommandGenerationTests`
+钉着，不靠这里放宽。
+
+`Run-Caller.ps1` **50/0/0**（`artifacts/r046-caller/sync-20261027-2120`）、
+`Test-SourceExtraction.ps1` **8/8** 预期拒绝后当前源重新编译并再跑 **50/0/0**
+（`artifacts/r046-caller/extractor-20261027-2120`）。

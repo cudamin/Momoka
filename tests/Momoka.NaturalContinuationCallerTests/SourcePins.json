@@ -9,7 +9,7 @@
     },
     {
       "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
-      "sha256": "ab68a3fbc46d5429ff40a20317d7ab97f419176de2e8f9445187cb0c1d398ea9"
+      "sha256": "a154d0d9b4c2dba82a478f70d8956f5a1d50834b0757b1916fc974f767973b11"
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContracts.cs",
