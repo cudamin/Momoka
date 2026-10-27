@@ -62,6 +62,62 @@ internal static class SettingsPageStateTests
             Assert.Equal(0, fixture.List(vm, "Sections").Count);
         });
 
+        // 2026-10-27 用户令「开启隐藏下方说明之后用线条分割每个功能」：说明收起时每行顶上画一条细线，
+        // 每张卡的第一行不画。这里量的是真实的 SettingRow/SettingSection 接线（首行身份、行表增删后换人），
+        // 屏上那条线由 settings 探针和自检的 ProbeCompactMode 另外量。
+        TestHarness.Test("设置行：说明收起后行间画线，首行不画且随行表换人", () =>
+        {
+            static double Top(object thickness) =>
+                (double)thickness.GetType().GetProperty("Top")!.GetValue(thickness)!;
+
+            var first = fixture.NewRow("SettingFactRow", "第一行", "说明", "值", null, null);
+            var second = fixture.NewRow("SettingFactRow", "第二行", "说明", "值", null, null);
+            var section = fixture.NewSection(first, second);
+            Assert.Equal(0, Top(fixture.Get<object>(first, "DividerThickness")));
+            Assert.Equal(0, Top(fixture.Get<object>(second, "DividerThickness")));
+
+            fixture.SetStatic("SettingRow", "NotesHidden", true);
+            try
+            {
+                Assert.Equal(0, Top(fixture.Get<object>(first, "DividerThickness")));
+                Assert.Equal(1, Top(fixture.Get<object>(second, "DividerThickness")));
+
+                var rows = fixture.List(section, "Rows");
+                rows.Remove(first);
+                Assert.Equal(0, Top(fixture.Get<object>(second, "DividerThickness")));
+
+                var third = fixture.NewRow("SettingFactRow", "第三行", "说明", "值", null, null);
+                rows.Add(third);
+                Assert.Equal(1, Top(fixture.Get<object>(third, "DividerThickness")));
+                Assert.Equal(0, Top(fixture.Get<object>(second, "DividerThickness")));
+            }
+            finally
+            {
+                fixture.SetStatic("SettingRow", "NotesHidden", false);
+            }
+
+            Assert.Equal(0, Top(fixture.Get<object>(second, "DividerThickness")));
+        });
+
+        // 2026-10-27 用户令：弹幕一页拆成四张卡，AppId／AppSecret／开发者中心连同上级开关落到最下面一张。
+        // 整页 Reload 要碰字体、音频设备与预览（native），所以这里只量源码里的建卡接线：四张卡的次序与标题、
+        // 凭据三行加在哪一份行表里、建卡入口是否把四张都加进 Sections。屏上的行由 settings 探针量。
+        TestHarness.Test("弹幕设置：四张卡分区，凭据三行只进最下面那张（源码接线）", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(fixture.Root, "src", "Momoka.Shell", "ViewModels",
+                "SettingsViewModel.Danmaku.cs"));
+            var titles = Regex.Matches(source, @"new SettingSection\(DanmakuCategory, ""(?<title>[^""]+)""")
+                .Select(match => match.Groups["title"].Value).ToArray();
+            Assert.True(titles.SequenceEqual(new[] { "弹幕", "显示与外观", "类型与屏蔽", "应用凭据" }),
+                "弹幕分类的四张卡次序或标题变了：" + string.Join('、', titles));
+            foreach (var label in new[] { "AppId", "AppSecret", "弹弹play 开发者中心" })
+                Assert.True(Regex.IsMatch(source, $@"credentialRows\.Add\([^;]*""{Regex.Escape(label)}""", RegexOptions.Singleline),
+                    $"{label} 没有加进凭据卡的行表");
+            Assert.False(Regex.IsMatch(source, @"rows\.Add\([^;]*""AppId""", RegexOptions.Singleline), "AppId 又加回了上面那张卡");
+            Assert.True(fixture.ViewModelSource.Contains("foreach (var section in DanmakuSections()) Sections.Add(section);",
+                StringComparison.Ordinal), "ReloadAsync 没有把四张弹幕卡都加进 Sections");
+        });
+
         TestHarness.Test("R-060 关于四目录共用 Task 入口，截图不再自行建目录（源码接线）", () =>
         {
             Assert.Equal(typeof(Task), fixture.Method(OpenDirectoryMethod).ReturnType);
@@ -274,10 +330,13 @@ internal static class SettingsPageStateTests
         public string AboutSource { get; }
         public string[] CachedCalls { get; }
         public Infrastructure.AppPaths Paths { get; }
+        /// <summary>当前工作树根：源码级接线检查按它找别的分部文件。</summary>
+        public string Root { get; }
 
         public ShellFixture(string shellAssemblyPath, string sourceRoot)
         {
             var root = Path.GetFullPath(sourceRoot);
+            Root = root;
             var shellPath = Path.GetFullPath(shellAssemblyPath);
             var releaseRoot = Path.Combine(root, "src", "Momoka.Shell", "bin", "x64", "Release") + Path.DirectorySeparatorChar;
             if (!File.Exists(Path.Combine(root, "Momoka.sln"))
@@ -343,6 +402,11 @@ internal static class SettingsPageStateTests
         public object NewRow(string type, params object?[] args) =>
             Activator.CreateInstance(_shell.GetType("Momoka.Shell.ViewModels." + type, throwOnError: true)!, Members,
                 binder: null, args, culture: null)!;
+
+        /// <summary>页级静态状态（如 <c>SettingRow.NotesHidden</c>）：只在测试里拨，拨完由调用方放回。</summary>
+        public void SetStatic(string type, string name, object value) =>
+            _shell.GetType("Momoka.Shell.ViewModels." + type, throwOnError: true)!
+                .GetProperty(name, Members | BindingFlags.Static)!.SetValue(null, value);
 
         public object NewSection(params object[] rows)
         {

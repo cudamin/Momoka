@@ -61,6 +61,28 @@ internal static class SettingsLayoutTests
             Assert.True(panel.Attribute("Background") is null, "不得用底色和 1px 缝重新制造选项分隔线");
             Assert.Equal("0", list.Parent?.Attribute("BorderThickness")?.Value);
         });
+        TestHarness.Test("设置布局：说明收起时行顶画细线，首行不画", () =>
+        {
+            var document = Page("SettingsPage.xaml");
+
+            // 线色由行样式一处给出，模板只管画不画；写进模板就会漂成十几种灰。
+            foreach (var key in new[] { "EgSettingRowStyle", "EgSettingBlockStyle" })
+            {
+                var style = document.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == key);
+                Assert.True(style.Elements().Any(setter => setter.Attribute("Property")?.Value == "BorderBrush"
+                        && setter.Attribute("Value")?.Value == "{ThemeResource EgBorderBrush}"),
+                    $"{key} 没给出分隔线颜色");
+            }
+
+            var roots = document.Descendants()
+                .Where(element => element.Attribute("Style")?.Value
+                    is "{StaticResource EgSettingRowStyle}" or "{StaticResource EgSettingBlockStyle}")
+                .ToArray();
+            // 模板增减时同步这个数：这里是复核提醒，不是禁止重构 —— 少一条就是某一种行在精简模式下没有分隔线。
+            Assert.Equal(18, roots.Length);
+            Assert.True(roots.All(element => element.Attribute("BorderThickness")?.Value == "{x:Bind DividerThickness, Mode=OneWay}"),
+                "行模板根要 OneWay 绑 DividerThickness：行会在原地增删，首行身份跟着换人");
+        });
         TestHarness.Test("设置布局：卡片右侧保留独立滚动条槽位", () =>
         {
             var document = Page("SettingsPage.xaml");

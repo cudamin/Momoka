@@ -109,9 +109,14 @@
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
 
-        <!-- 设置行共用整组卡片的底色，留白区分选项，不再铺底色制造分隔线。 -->
+        <!--
+          设置行共用整组卡片的底色，留白区分选项。顶上那条线只在「隐藏功能下方说明」开着时画（行的
+          DividerThickness，见 SettingRow）—— 说明还在时留白就是分隔，多一条线只是噪音。
+          BorderBrush 写在这里而不是每个模板各写一遍：线色是整页一条规则，模板只管画不画。
+        -->
         <Style x:Key="EgSettingRowStyle" TargetType="Grid">
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
             <Setter Property="Padding" Value="20,11,20,11" />
             <Setter Property="MinHeight" Value="40" />
             <Setter Property="ColumnSpacing" Value="24" />
@@ -120,6 +125,7 @@
         <!-- 主题色板、语言和规则列表等较高的行也使用同一张无分隔线的卡片。 -->
         <Style x:Key="EgSettingBlockStyle" TargetType="StackPanel">
             <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
             <Setter Property="Padding" Value="20,12,20,12" />
             <Setter Property="Spacing" Value="8" />
         </Style>
@@ -356,7 +362,7 @@
           窄、该窄的地方宽是同一件事的两头。
         -->
         <DataTemplate x:Key="EgSettingToggleRow" x:DataType="vm:SettingToggleRow">
-            <Grid Style="{StaticResource EgSettingRowStyle}">
+            <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -381,7 +387,7 @@
 
             <local:SettingRowTemplates.Choice>
                 <DataTemplate x:DataType="vm:SettingChoiceRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -417,7 +423,7 @@
             -->
             <local:SettingRowTemplates.ToggleGroup>
                 <DataTemplate x:DataType="vm:SettingToggleGroupRow">
-                    <StackPanel Style="{StaticResource EgSettingBlockStyle}">
+                    <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
                         <!-- 词表里的小标题（Theme/Styles.xaml 的 EgSubheadStyle）：以前这里只写了 SemiBold，
                              没写字体也没写字号，一组开关的标题于是比同一张卡片上的别的字都大一点。 -->
                         <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind Label}" />
@@ -444,7 +450,7 @@
             -->
             <local:SettingRowTemplates.Theme>
                 <DataTemplate x:DataType="vm:SettingThemeRow">
-                    <StackPanel Style="{StaticResource EgSettingBlockStyle}">
+                    <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
                         <TextBlock Style="{StaticResource EgSubheadStyle}" Text="{x:Bind Label}" />
                         <TextBlock
                             Style="{StaticResource EgSettingNote}"
@@ -525,7 +531,7 @@
 
             <local:SettingRowTemplates.Number>
                 <DataTemplate x:DataType="vm:SettingNumberRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -559,7 +565,7 @@
 
             <local:SettingRowTemplates.OptionalNumber>
                 <DataTemplate x:DataType="vm:SettingOptionalNumberRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -593,7 +599,7 @@
 
             <local:SettingRowTemplates.Slider>
                 <DataTemplate x:DataType="vm:SettingSliderRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -643,7 +649,7 @@
             -->
             <local:SettingRowTemplates.Text>
                 <DataTemplate x:DataType="vm:SettingTextRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -669,7 +675,7 @@
 
             <local:SettingRowTemplates.Secret>
                 <DataTemplate x:DataType="vm:SettingSecretRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -703,7 +709,7 @@
                       （2026-09-14 自检在「界面 → MoviePilot」这一步就是这么倒的）。所以卡片外观由 Grid 承载，
                       竖排交给里面那个 StackPanel。MinHeight 的 40 是给一行的下限，这张卡比它高得多，不冲突。
                     -->
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <StackPanel Spacing="10">
                             <StackPanel Spacing="2">
                                 <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
@@ -812,7 +818,7 @@
             -->
             <local:SettingRowTemplates.Font>
                 <DataTemplate x:DataType="vm:SettingFontRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -873,7 +879,7 @@
             -->
             <local:SettingRowTemplates.Color>
                 <DataTemplate x:DataType="vm:SettingColorRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -937,7 +943,7 @@
             -->
             <local:SettingRowTemplates.Preview>
                 <DataTemplate x:DataType="vm:SettingSubtitlePreviewRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <StackPanel Spacing="8">
                             <Grid
                                 Height="{x:Bind StripHeight, Mode=OneWay}"
@@ -1019,7 +1025,7 @@
             -->
             <local:SettingRowTemplates.HomeLayout>
                 <DataTemplate x:DataType="vm:SettingHomeLayoutRow">
-                    <StackPanel Style="{StaticResource EgSettingBlockStyle}">
+                    <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
                         <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
                         <TextBlock
                             Style="{StaticResource EgSettingNote}"
@@ -1111,7 +1117,7 @@
             -->
             <local:SettingRowTemplates.Languages>
                 <DataTemplate x:DataType="vm:SettingLanguagesRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -1213,7 +1219,7 @@
             <!-- 字幕标题、音轨格式与视频文件名共用有序关键词表。顺序既是屏上排名，也是实际筛选优先级。 -->
             <local:SettingRowTemplates.TitleRules>
                 <DataTemplate x:DataType="vm:SettingTitleRulesRow">
-                    <StackPanel Style="{StaticResource EgSettingBlockStyle}">
+                    <StackPanel BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingBlockStyle}">
                         <TextBlock Style="{StaticResource EgSettingLabel}" Text="{x:Bind Label}" />
                         <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Note}"
                             TextWrapping="Wrap" Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
@@ -1295,7 +1301,7 @@
             -->
             <local:SettingRowTemplates.Fact>
                 <DataTemplate x:DataType="vm:SettingFactRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />
@@ -1332,7 +1338,7 @@
             -->
             <local:SettingRowTemplates.Shortcut>
                 <DataTemplate x:DataType="vm:SettingShortcutRow">
-                    <Grid Style="{StaticResource EgSettingRowStyle}">
+                    <Grid BorderThickness="{x:Bind DividerThickness, Mode=OneWay}" Style="{StaticResource EgSettingRowStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="{StaticResource EgSettingControlWidth}" />

@@ -84,6 +84,35 @@ public abstract class SettingRow : ObservableObject
     internal static bool NotesHidden { get; set; }
 
     /// <summary>
+    /// 「隐藏功能下方说明」开着时，这一行顶上那条细线；说明还在时不画 —— 说明本身就是分隔，多一条线只是噪音。
+    /// <para>
+    /// 说明一收，每行只剩标签和右边那颗控件，行与行挨在一起就看不出哪一行是一条设置（用户的话，2026-10-27：
+    /// 「开启隐藏下方说明之后用线条分割每个功能」）。线画在行的上沿，铺满卡片内宽，和卡片曾经那条 QQ 式分隔线
+    /// 同一个站法；每张卡的**第一行不画** —— 卡片自己的上沿就是分界，再画一条就成了贴着卡片边的双线。
+    /// </para>
+    /// <para>
+    /// 第一行由 <see cref="SettingSection"/> 在行表变动时对齐（<see cref="IsFirstRow"/>）。绑定这条属性的是行
+    /// 模板根上的 <c>BorderThickness</c>，所以它必须 OneWay：行会在原地增删，首行身份跟着换人。
+    /// </para>
+    /// </summary>
+    public Thickness DividerThickness =>
+        NotesHidden && !IsFirstRow ? new Thickness(0, 1, 0, 0) : new Thickness(0);
+
+    private bool _isFirstRow;
+
+    /// <summary>这一行是不是所在卡片的第一行。只由 <see cref="SettingSection"/> 维护，别处不要写。</summary>
+    internal bool IsFirstRow
+    {
+        get => _isFirstRow;
+        set
+        {
+            if (_isFirstRow == value) return;
+            _isFirstRow = value;
+            OnPropertyChanged(nameof(DividerThickness));
+        }
+    }
+
+    /// <summary>
     /// 「隐藏功能下方说明」开着时说明收起，否则显示 —— 给设置行模板之外的**手写卡片**用（规则一条，消费方两个，
     /// 所以它在这儿，不抄进卡片的视图模型）。设置 → 通知里那张「通知接管」就是这样一个消费方：2026-09-30
     /// 用户报「我不是开启了 隐藏功能下方说明 为什么下面的说明不隐藏？」—— 手写卡片不经过行的模板，这条开关
@@ -98,7 +127,11 @@ public abstract class SettingRow : ObservableObject
     /// sense the page forbids: nothing is recomputed, this only repeats for every row what the Note setter
     /// already does for one.
     /// </summary>
-    internal void RefreshNoteVisibility() => OnPropertyChanged(nameof(NoteVisibility));
+    internal void RefreshNoteVisibility()
+    {
+        OnPropertyChanged(nameof(NoteVisibility));
+        OnPropertyChanged(nameof(DividerThickness));
+    }
 
     /// <summary>
     /// 自检：精简模式收得下、放得出。就地造一行假开关行拨一遍 —— 单元测试进不到外壳这个程序集，这一条非有
@@ -108,6 +141,11 @@ public abstract class SettingRow : ObservableObject
     /// 拨的是两处：行自己的 <see cref="NoteVisibility"/>（模板那条路），与手写卡片读的
     /// <see cref="NotesVisibility"/>（2026-09-30 补 —— 手写卡片漏接这条开关正是那一天用户报的 bug，
     /// 两条路一起量，将来谁再接一张卡片也不会只接一半）。
+    /// </para>
+    /// <para>
+    /// 2026-10-27 起还量第三处：说明收起后每行顶上那条分隔线（<see cref="DividerThickness"/>）。第一行不画、
+    /// 其余行画，说明放回来就撤掉 —— 三条读数一起量，因为「说明收了但线没出来」和「线出来了但第一行也画了」
+    /// 都是屏上看得见、别处读数一个都不动的错。
     /// </para>
     /// <para>
     /// 叫 <c>ProbeCompactMode</c> 而不是 <c>Probe</c>：好几行类型各自有一个自己的静态 <c>Probe</c>，基类再挂
@@ -120,21 +158,31 @@ public abstract class SettingRow : ObservableObject
         try
         {
             var row = new SettingToggleRow("探针", "一行说明", true, _ => { }, () => { });
+            var second = new SettingToggleRow("探针二", "一行说明", true, _ => { }, () => { });
+            row.IsFirstRow = true;
+            second.IsFirstRow = false;
 
             NotesHidden = false;
             var shown = row.NoteVisibility == Visibility.Visible;
             var cardsShown = NotesVisibility == Visibility.Visible;
+            var noLines = row.DividerThickness.Top == 0 && second.DividerThickness.Top == 0;
             NotesHidden = true;
             var taken = row.NoteVisibility == Visibility.Collapsed;
             var cardsTaken = NotesVisibility == Visibility.Collapsed;
+            var firstLine = row.DividerThickness.Top;
+            var secondLine = second.DividerThickness.Top;
             NotesHidden = false;
             var given = row.NoteVisibility == Visibility.Visible;
+            var linesGone = second.DividerThickness.Top == 0;
 
             if (!cardsShown || !cardsTaken) return (false, "手写卡片那条说明的收放没跟上「隐藏功能下方说明」");
 
-            return (shown && taken && given && cardsShown && cardsTaken,
+            var dividers = firstLine == 0 && secondLine == 1 && noLines && linesGone;
+            return (shown && taken && given && cardsShown && cardsTaken && dividers,
                 $"说明默认{(shown ? "显示" : "没显示")}、精简拨上{(taken ? "收起" : "还在")}、拨回{(given ? "放出来" : "没放出来")}"
-                + $"；手写卡片那条同此（{(cardsShown ? "默认显示" : "默认就没显示")}、{(cardsTaken ? "拨上收起" : "拨上没收")}）");
+                + $"；手写卡片那条同此（{(cardsShown ? "默认显示" : "默认就没显示")}、{(cardsTaken ? "拨上收起" : "拨上没收")}）"
+                + $"；分隔线默认{(noLines ? "不画" : "还在")}、精简拨上时首行{(firstLine == 0 ? "不画" : "画了")}"
+                + $"其余行{(secondLine == 1 ? "画" : "没画")}、拨回{(linesGone ? "撤掉" : "还在")}");
         }
         finally
         {

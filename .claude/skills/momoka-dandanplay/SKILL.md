@@ -69,7 +69,8 @@ metadata: {agent_created: true}
 - 自动匹配只接受**唯一且标题精确**的候选：`SeriesName` 优先，Unicode 归一化后只比较字母数字并忽略大小写。`hasMore`、多个结果、续季（`ParentIndexNumber` 不是 1）或特别篇都不猜，留给播放页手动搜索。
 - `IsConfigured` = 服务开启 + 内置 libmpv +（内置来源或自定义凭据齐全）。外部 mpv 后端不接入弹幕：设置卡片、分类入口、播放器按钮和快捷键行一起隐藏，但偏好保留，同一视频的草稿不因隐藏清空；切回内置后可继续。
 - 设置分类名 `弹幕` 是跨文件契约：`SettingsViewModel.CardCategories`、`SettingsCategoryGlyphConverter`、`PlayerSettingsLinks`（令牌仍是 `danmaku`，菜单行文案仍写产品名 `弹弹play`）、探针断言和 `MpvUiTests` 的固定表都要一起改。只改一处会出现「点设置入口落在别的卡」或自检红项。侧栏与卡片标题只写「弹幕」；产品名、开关文案和错误提示里的「弹弹play」指服务本身，不是分类名。
-- 默认只显示「启用弹弹play」「使用自己的应用凭据」两行；自定义开关打开后才出现 AppId、AppSecret 与开发者中心。服务关闭或不可用时收起从属控件，但不重置偏好。
+- 分类下是**四张卡**（2026-10-27 拆卡，`SettingsViewModel.Danmaku.cs` 的 `DanmakuSections`）：`弹幕`（启用、自动匹配、包含关联）、`显示与外观`（显示开关、输入栏、五个外观滑块）、`类型与屏蔽`（滚动/顶部/底部/彩色/合并、屏蔽词）、`应用凭据`（使用自己的应用凭据＋AppId／AppSecret／开发者中心）。行数归零的卡由 `SettingSection.SectionVisibility` 整张收起；四张卡的实例一直保留，`RefreshDanmakuPresentation` 按标题对号原地 `UpdateRows`。**不要再按 `Single(Category == "弹幕")` 找这张卡**，探针用的是 `DanmakuCards`／`DanmakuRows`。
+- 服务关闭时只剩「启用弹弹play」与「使用自己的应用凭据」两行（分属第一张和最后一张卡）；自定义开关打开后才出现 AppId、AppSecret 与开发者中心。服务关闭或不可用时收起从属控件，但不重置偏好。
 
 ## 渲染与发送边界
 

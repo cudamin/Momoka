@@ -27,7 +27,23 @@ public sealed partial class SettingSection : ObservableObject
         Title = title;
         Description = description;
         Rows = new ObservableCollection<SettingRow>(rows);
-        Rows.CollectionChanged += (_, _) => OnPropertyChanged(nameof(Count));
+        Rows.CollectionChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(Count));
+            OnPropertyChanged(nameof(SectionVisibility));
+            UpdateFirstRow();
+        };
+        UpdateFirstRow();
+    }
+
+    /// <summary>
+    /// 每张卡的第一行不画顶上那条分隔线（见 <see cref="SettingRow.DividerThickness"/>）。行表原地增删之后
+    /// 首行会换人，所以每次变动都重排一遍 —— 一张卡最多几十行，重排一遍比记住「谁曾经是第一行」便宜得多，
+    /// 也不会出现两行都当自己不是首行、或者一行都不画线的空档。
+    /// </summary>
+    private void UpdateFirstRow()
+    {
+        for (var index = 0; index < Rows.Count; index++) Rows[index].IsFirstRow = index == 0;
     }
 
     /// <summary>
@@ -114,8 +130,13 @@ public sealed partial class SettingSection : ObservableObject
     /// Every card is built and kept; picking a category only changes which one is shown. The page has no
     /// server data in it, so building all of them costs nothing measurable, and a card that stays alive
     /// keeps any half-typed text across a trip through the category list.
+    /// <para>
+    /// 一行都不剩的卡整张收起（2026-10-27，弹幕拆成四张之后）：分类选中不等于这张卡有话说 —— 服务关着时
+    /// 「显示与外观」「类型与屏蔽」两卡的行会全部收走，留着就是屏上两张只有标题的空卡。
+    /// </para>
     /// </summary>
-    public Visibility SectionVisibility => IsVisible ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility SectionVisibility =>
+        IsVisible && Rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 }
 
 /// <summary>
@@ -1108,7 +1129,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(AudioCard());
         Sections.Add(SubtitleCard());
         if (Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || Settings.Mpv.EnableIpc) Sections.Add(SubtitleTranslationCard());
-        if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv)) Sections.Add(DanmakuCard());
+        // 弹幕分类四张卡（2026-10-27 拆卡）：开关与匹配、显示与外观、类型与屏蔽、应用凭据，见 DanmakuSections。
+        if (Momoka.Danmaku.DandanPlayMatching.CanRender(Settings.Mpv))
+            foreach (var section in DanmakuSections()) Sections.Add(section);
         Sections.Add(ShortcutsCard());
         Sections.Add(MoviePilotCard());
         Sections.Add(AboutCard());

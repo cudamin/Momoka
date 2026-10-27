@@ -33,37 +33,42 @@ internal sealed partial class ShellNavigationProbe
             page.SelectedCategory = "弹幕";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
-            var card = page.ViewModel.Sections.Single(section => section.Category == "弹幕");
-            Require(card.Rows.Count == 2 && !fixture.Settings.Danmaku.Enabled, "初始应只显示启用与凭据来源");
+            // 2026-10-27 起「弹幕」分类是四张卡：弹幕（开关与匹配）、显示与外观、类型与屏蔽、应用凭据。
+            var cards = DanmakuCards(page);
+            Require(cards.Length == 4, "弹幕分类应分成四张卡");
+            var first = cards[0];
+            Require(DanmakuRows(page).Length == 2 && !fixture.Settings.Danmaku.Enabled, "初始应只显示启用与凭据来源");
+            Require(cards.Count(section => section.SectionVisibility == Visibility.Visible) == 2, "服务关着时应只显示两张有内容的卡");
             await SaveProbeScreenAsync($"settings-danmaku-off-{width}-screen.png");
             var enabled = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "启用弹弹play");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(enabled).GetPattern(PatternInterface.Toggle)).Toggle();
             await LayoutAsync(page);
-            Require(card.Rows.OfType<SettingSliderRow>().Count() == 5, "内置凭据开启后没有显示外观设置");
-            Require(!card.Rows.OfType<SettingTextRow>().Any(row => row.Label == "AppId"), "内置凭据下仍显示开发者配置");
+            Require(DanmakuRows(page).OfType<SettingSliderRow>().Count() == 5, "内置凭据开启后没有显示外观设置");
+            Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "AppId"), "内置凭据下仍显示开发者配置");
 
             var custom = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "使用自己的应用凭据");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(custom).GetPattern(PatternInterface.Toggle)).Toggle();
             await LayoutAsync(page);
             Require(fixture.Settings.Danmaku.CredentialSource == DanmakuCredentialSource.Custom
-                && card.Rows.Count == 5 && !card.Rows.OfType<SettingSliderRow>().Any(),
+                && DanmakuRows(page).Length == 5 && !DanmakuRows(page).OfType<SettingSliderRow>().Any(),
                 "切到自定义凭据后没有收起外观或显示三行配置");
+            Require(cards[3].Rows.Count == 4 && cards[3].Title == "应用凭据", "凭据三行应连同上级开关一起落在最下面那张卡");
 
-            var app = card.Rows.OfType<SettingTextRow>().Single(row => row.Label == "AppId");
+            var app = DanmakuRows(page).OfType<SettingTextRow>().Single(row => row.Label == "AppId");
             app.Text = "offline-fixture-app";
             await LayoutAsync(page);
             var password = Descendants(page).OfType<PasswordBox>().Single();
             password.Password = "offline-fixture-secret";
             await SettleAsync();
-            var secret = card.Rows.OfType<SettingSecretRow>().Single();
+            var secret = DanmakuRows(page).OfType<SettingSecretRow>().Single();
             Require(secret.Draft == "offline-fixture-secret", "PasswordBox 未绑定密钥草稿");
             var save = Descendants(page).OfType<Button>().Single(control => AutomationProperties.GetName(control) == secret.SaveAutomationName);
             ((IInvokeProvider)new ButtonAutomationPeer(save).GetPattern(PatternInterface.Invoke)).Invoke();
             await LayoutAsync(page);
             await UntilAsync(() => page.IsContentMotionSettled);
             Require(password.Password.Length == 0 && secret.Draft.Length == 0, "成功保存后仍在界面保留明文");
-            Require(card.Rows.OfType<SettingSliderRow>().Count() == 5, "配置后没有显示五个外观滑块");
-            Require(ReferenceEquals(card, page.ViewModel.Sections.Single(section => section.Category == "弹幕")), "配置变更替换了整张卡");
+            Require(DanmakuRows(page).OfType<SettingSliderRow>().Count() == 5, "配置后没有显示五个外观滑块");
+            Require(ReferenceEquals(first, DanmakuCards(page)[0]), "配置变更替换了卡片");
             var opacity = Descendants(page).OfType<Slider>().Single(control => control.DataContext is SettingSliderRow row && row.Label == "不透明度（%）");
             opacity.Value = 55;
             await LayoutAsync(page);
@@ -78,18 +83,19 @@ internal sealed partial class ShellNavigationProbe
             var show = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "显示弹幕");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(show).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => page.IsContentMotionSettled);
-            Require(!card.Rows.OfType<SettingSliderRow>().Any() && fixture.Settings.Danmaku.Opacity == 55, "关闭显示未完整隐藏或丢失偏好");
+            Require(!DanmakuRows(page).OfType<SettingSliderRow>().Any() && fixture.Settings.Danmaku.Opacity == 55, "关闭显示未完整隐藏或丢失偏好");
+            Require(cards[1].Rows.Count == 1 && cards[2].Rows.Count == 0, "关闭显示后「类型与屏蔽」应整张收起");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(show).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
-            Require(!fixture.Settings.Danmaku.ShowInput && card.Rows.OfType<SettingToggleRow>().Any(row => row.Label == "显示弹幕输入栏"), "恢复弹幕未保留输入栏偏好或未恢复开关");
-            Require(card.Rows.OfType<SettingSliderRow>().Single(row => row.Label == "不透明度（%）").Value == 55, "恢复显示时滑块不是原值");
+            Require(!fixture.Settings.Danmaku.ShowInput && DanmakuRows(page).OfType<SettingToggleRow>().Any(row => row.Label == "显示弹幕输入栏"), "恢复弹幕未保留输入栏偏好或未恢复开关");
+            Require(DanmakuRows(page).OfType<SettingSliderRow>().Single(row => row.Label == "不透明度（%）").Value == 55, "恢复显示时滑块不是原值");
             enabled.IsOn = false;
             await UntilAsync(() => page.IsContentMotionSettled);
-            Require(card.Rows.Count == 5 && fixture.Settings.Danmaku.Opacity == 55, "关闭服务未隐藏从属区域或清空偏好");
+            Require(DanmakuRows(page).Length == 5 && fixture.Settings.Danmaku.Opacity == 55, "关闭服务未隐藏从属区域或清空偏好");
             enabled.IsOn = true;
             await UntilAsync(() => page.IsContentMotionSettled);
-            Require(card.Rows.OfType<SettingSliderRow>().Any(), "重新启用没有恢复外观设置");
+            Require(DanmakuRows(page).OfType<SettingSliderRow>().Any(), "重新启用没有恢复外观设置");
             var block = Descendants(page).OfType<TextBox>().Single(control => AutomationProperties.GetName(control) == "屏蔽词");
             block.StartBringIntoView(new BringIntoViewOptions { VerticalAlignmentRatio = 0.9 });
             await LayoutAsync(block);
@@ -237,4 +243,14 @@ internal sealed partial class ShellNavigationProbe
         }
         finally { panel.Close(); _root.Children.Remove(panel); await vm.ShutdownAsync(); }
     }
+
+    /// <summary>
+    /// 「弹幕」分类下的四张卡，按屏上次序。拆卡之后不能再拿 <c>Single(Category == "弹幕")</c> 找它 —— 那是
+    /// 2026-10-27 之前的形状。
+    /// </summary>
+    private static SettingSection[] DanmakuCards(SettingsPage page) =>
+        [.. page.ViewModel.Sections.Where(section => section.Category == "弹幕")];
+
+    private static SettingRow[] DanmakuRows(SettingsPage page) =>
+        [.. DanmakuCards(page).SelectMany(section => section.Rows)];
 }
