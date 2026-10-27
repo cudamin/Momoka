@@ -54,7 +54,7 @@ internal sealed partial class ShellNavigationProbe
             menu = ItemCommands.Build(fixture.Session, shell, anchor, new CardItem(owner, fixture.Images, 170));
             var versions = menu.Items.OfType<MenuFlyoutSubItem>().Single();
             Require(versions.Text == "搜索不同版本" && versions.Items.OfType<MenuFlyoutItem>()
-                .Select(item => item.Text).SequenceEqual(new[] { "使用 MoviePilot", "使用 AniBT API 搜索" }), "动画版本入口未折叠为两个来源");
+                .Select(item => item.Text).SequenceEqual(new[] { "MoviePilot", "AniBT" }), "动画版本入口未折叠为两个来源");
             menu.ShowAt(anchor);
             await LayoutAsync(anchor);
             ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(versions)

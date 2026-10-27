@@ -7,7 +7,7 @@ namespace Momoka.Tests;
 /// 卡片上「更多」那颗按钮点开之后有哪几条 —— 用户按三处提的那三张单子（继续观看、电视媒体库、电影媒体库），
 /// 在这里变成三条断言。
 /// <para>
-/// 这一族值得钉住，是因为它错起来屏上看着完全正常：一部剧上冒出「搜索和修改字幕」（剧集不是一个文件，那一条
+/// 这一族值得钉住，是因为它错起来屏上看着完全正常：一部剧上冒出「搜索字幕」（剧集不是一个文件，那一条
 /// 点下去只能报错）、一张媒体库卡片上冒出「删除」（那会去删整个库的目录），都得有人一条条盯着菜单才看得出来。
 /// 而分隔线摆错的样子更轻 —— 两条线挨在一起，或者一条线孤零零地开头 —— 谁都不会为它开一个缺陷单，却正是
 /// 「哪几条这次没出现」留下的唯一痕迹。
@@ -21,6 +21,7 @@ internal static class ItemMenuTests
         RegisterSeries();
         RegisterMovie();
         RegisterShape();
+        RegisterWording();
         RegisterMoviePilot();
         RegisterDownloadPlan();
         RegisterJellyfin();
@@ -69,7 +70,7 @@ internal static class ItemMenuTests
                 .Single(row => row.Command == ItemCommand.Delete).Label);
 
             // Emby's own wording is untouched by the Jellyfin branch.
-            Assert.Contains("编辑元数据信息…", Labels(movie));
+            Assert.Contains("编辑元数据…", Labels(movie));
             Assert.Contains("识别", Labels(movie));
             Assert.Contains("删除", Labels(movie));
         });
@@ -86,13 +87,13 @@ internal static class ItemMenuTests
                 "添加到合集…",
                 "添加到收藏",
                 "下载到设备",
-                "编辑元数据信息…",
-                "修改媒体封面图…",
-                "搜索和修改字幕…",
+                "编辑元数据…",
+                "修改封面图…",
+                "搜索字幕…",
                 "标记为未观看",
-                "刷新元数据信息",
+                "刷新元数据",
                 "重新扫描媒体库",
-                "从继续观看中移除",
+                "从继续观看移除",
                 "删除"])
                 Assert.Contains(wanted, labels);
         });
@@ -106,14 +107,14 @@ internal static class ItemMenuTests
             Assert.Contains("标记为未观看", labels);
         });
 
-        Test("更多菜单：没看过、也没进度的条目不给「未观看」，也不给「从继续观看中移除」", () =>
+        Test("更多菜单：没看过、也没进度的条目不给「未观看」，也不给「从继续观看移除」", () =>
         {
             var fresh = new EmbyItem { Id = "m2", Name = "新片", Type = EmbyItemType.Movie };
             var labels = Labels(fresh);
 
             Assert.Contains("标记为已观看", labels);
             Assert.DoesNotContain("标记为未观看", labels);
-            Assert.DoesNotContain("从继续观看中移除", labels);
+            Assert.DoesNotContain("从继续观看移除", labels);
         });
 
         Test("更多菜单：看过的条目不给「已观看」", () =>
@@ -130,12 +131,12 @@ internal static class ItemMenuTests
             Assert.Contains("标记为未观看", Labels(watched));
         });
 
-        Test("更多菜单：继续观看那张卡的第一条写着接着播的位置", () =>
+        Test("更多菜单：继续观看那张卡的第一条是「继续播放」", () =>
         {
             var menu = ItemMenu.For(Resuming());
 
             Assert.Equal(ItemCommand.Play, menu[0].Command);
-            Assert.Contains("继续播放", menu[0].Label);
+            Assert.Equal("继续播放", menu[0].Label);
         });
     }
 
@@ -151,11 +152,11 @@ internal static class ItemMenuTests
                 "添加到收藏",
                 "查看遗漏集",
                 "下载到设备",
-                "编辑元数据信息…",
-                "修改媒体封面图…",
+                "编辑元数据…",
+                "修改封面图…",
                 "识别",
                 "标记为已观看",
-                "刷新元数据信息",
+                "刷新元数据",
                 "重新扫描媒体库",
                 "删除"])
                 Assert.Contains(wanted, labels);
@@ -172,11 +173,11 @@ internal static class ItemMenuTests
             Assert.DoesNotContain("查看遗漏集", Labels(Resuming()));
         });
 
-        Test("更多菜单：剧集上没有「搜索和修改字幕」", () =>
+        Test("更多菜单：剧集上没有「搜索字幕」", () =>
         {
             // 字幕挂在文件上，而一部剧是一叠文件 —— 服务器上没有一个「这部剧的字幕」可放。用户那张单子里
             // 电视媒体库也正好没有这一条。
-            Assert.DoesNotContain("搜索和修改字幕", Labels(new EmbyItem { Id = "s1", Type = EmbyItemType.Series }));
+            Assert.DoesNotContain("搜索字幕", Labels(new EmbyItem { Id = "s1", Type = EmbyItemType.Series }));
         });
 
         Test("更多菜单：剧集给的是「打开」，不是「立即播放」加「详细信息」", () =>
@@ -208,12 +209,12 @@ internal static class ItemMenuTests
                 "添加到合集…",
                 "添加到收藏",
                 "下载到设备",
-                "编辑元数据信息…",
-                "修改媒体封面图…",
-                "搜索和修改字幕…",
+                "编辑元数据…",
+                "修改封面图…",
+                "搜索字幕…",
                 "识别",
                 "标记为已观看",
-                "刷新元数据信息",
+                "刷新元数据",
                 "重新扫描媒体库",
                 "删除"])
                 Assert.Contains(wanted, labels);
@@ -241,7 +242,7 @@ internal static class ItemMenuTests
             Assert.DoesNotContain("识别", labels);
             Assert.DoesNotContain("添加到合集", labels);
             Assert.Contains("打开", labels);
-            Assert.Contains("编辑元数据信息…", labels);
+            Assert.Contains("编辑元数据…", labels);
             Assert.Contains("重新扫描媒体库", labels);
         });
 
@@ -252,7 +253,7 @@ internal static class ItemMenuTests
 
             Assert.DoesNotContain("删除", labels);
             Assert.DoesNotContain("重新扫描媒体库", labels);
-            Assert.DoesNotContain("修改媒体封面图", labels);
+            Assert.DoesNotContain("修改封面图", labels);
             Assert.DoesNotContain("添加到收藏", labels);
         });
 
@@ -489,6 +490,47 @@ internal static class ItemMenuTests
             var film = ItemMenu.For(new EmbyItem { Id = "m1", Type = EmbyItemType.Movie }, moviePilotEnabled: true);
             Assert.Equal(ItemCommand.Delete, film[^1].Command);
         });
+    }
+
+    /// <summary>菜单的宽度：中文措辞压到七个字以内，品牌名不受这条限制。</summary>
+    private static void RegisterWording()
+    {
+        Test("更多菜单：中文项都在七个字以内", () =>
+        {
+            foreach (var menu in WordingMenus())
+            {
+                foreach (var row in menu.Where(row => !row.IsRule))
+                {
+                    if (row.Children is { } children)
+                        foreach (var child in children) AssertShort(child.Label);
+                    AssertShort(row.Label);
+                }
+            }
+
+            static void AssertShort(string label)
+            {
+                // 品牌名（MoviePilot、AniBT）不按汉字算；中文项连省略号一起不超过七个字。
+                if (label.Any(ch => ch is not '…' && (ch < '\u4e00' || ch > '\u9fff'))) return;
+                Assert.True(label.Length <= 7, $"「{label}」超过七个字");
+            }
+        });
+    }
+
+    /// <summary>每一类条目、每一种服务器和 MoviePilot 开关各取一张菜单，覆盖所有会出现的文案。</summary>
+    private static IEnumerable<IReadOnlyList<ItemMenuEntry>> WordingMenus()
+    {
+        yield return ItemMenu.For(Resuming());
+        yield return ItemMenu.For(new EmbyItem { Id = "s1", Type = EmbyItemType.Series });
+        yield return ItemMenu.For(new EmbyItem { Id = "n1", Type = EmbyItemType.Season });
+        yield return ItemMenu.For(new EmbyItem { Id = "m1", Type = EmbyItemType.Movie });
+        yield return ItemMenu.For(new EmbyItem { Id = "b1", Type = EmbyItemType.BoxSet });
+        yield return ItemMenu.For(new EmbyItem { Id = "l1", Type = EmbyItemType.CollectionFolder });
+        yield return ItemMenu.For(new EmbyItem { Id = "p1", Type = EmbyItemType.Person });
+        yield return ItemMenu.For(Resuming(), moviePilotEnabled: true);
+        yield return ItemMenu.For(new EmbyItem { Id = "a1", Type = EmbyItemType.Movie, Genres = ["动画"] },
+            moviePilotEnabled: true, animeGenre: true);
+        yield return ItemMenu.For(new EmbyItem { Id = "j1", Type = EmbyItemType.Series }, jellyfin: true);
+        yield return ItemMenu.For(new EmbyItem { Id = "f1", Type = EmbyItemType.Movie }, fnNas: true);
     }
 
     /// <summary>继续观看那一排上的一张卡：一集看了三成，没看完。</summary>

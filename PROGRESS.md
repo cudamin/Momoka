@@ -1,3 +1,9 @@
+## 更多菜单文案压缩到七个字以内（2026-10-27）
+
+- 用户令：更多菜单里的选项全部压缩到七个字以内。Emby 侧改成「继续播放」「从继续观看移除」「编辑元数据…」「修改封面图…」「搜索字幕…」「刷新元数据」；续播时间不再写进菜单（卡片仍画进度）。动画入口的来源子菜单只留品牌名「MoviePilot」「AniBT」。Jellyfin 与飞牛原有文案已在七个字以内，命令、顺序、分隔线和删除确认均不变。
+- 新增菜单文案上限回归，覆盖 Emby/Jellyfin/飞牛、MoviePilot 开关和各类条目；`AniBtIntegrationTests` 与 EpisodeSearch 探针同步钉住两个来源名。
+- 最终代码 Release 构建 Shell 与 Tests 均 0 警告/0 错误；Core **3052/3052**，0 失败/0 跳过。未运行 UI 探针、未刷新 `artifacts/publish/win-x64`，也没有真实服务器或播放验收；菜单实际宽度留到本批次收尾的 UI 检查。
+
 ## 移除设置正文左上角标题（2026-10-27）
 
 - 最终代码`e055033`已推origin/master并通过`tools/publish.ps1 -NoArchive`更新实际桌面目标`artifacts/publish/win-x64/Momoka.exe`，ProductVersion `0.1.9+e055033c8330db96ba56d5c24844f74d9f864f3c`；546文件／284.3MB，14 GLSL、4 HOOK、批准mpv载荷59文件校验通过。实际发布件settings,shortcuts **25/25**、0失败，报告`%LOCALAPPDATA%/Momoka/logs/shell-probe-20261027-024944366-27488/logs/shell-probe.json`；1100五主题、1440及760完整窗口实屏已核对，包含32DIP空白标题栏与仅关闭按钮、等粗搜索焦点线、卡片扩展、贴右滚动条，未再用主播放器窗口的画面冒充设置窗。

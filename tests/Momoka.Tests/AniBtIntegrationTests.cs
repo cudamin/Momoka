@@ -29,6 +29,7 @@ internal static class AniBtIntegrationTests
                 Assert.DoesNotContain("重新刮削", scrape.Label);
                 var versions = ItemMenu.For(item, true).Single(row => row.Command == ItemCommand.MoviePilotVersions);
                 Assert.Equal("搜索不同版本", versions.Label);
+                Assert.True(versions.Children!.Select(row => row.Label).SequenceEqual(new[] { "MoviePilot", "AniBT" }));
                 Assert.True(versions.Children!.Select(row => row.Command!.Value)
                     .SequenceEqual(new[] { ItemCommand.MoviePilotVersions, ItemCommand.AniBtVersions }));
                 Assert.False(ItemMenu.For(item).Any(row => row.Command == ItemCommand.AniBtScrape));

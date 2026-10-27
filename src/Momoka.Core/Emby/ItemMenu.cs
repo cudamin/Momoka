@@ -1,11 +1,10 @@
-using Momoka.Infrastructure;
 using Momoka.MoviePilot;
 
 namespace Momoka.Emby;
 
 /// <summary>
 /// 「更多」菜单上的一条命令。每一行都是其中一个，行上写什么字由 <see cref="ItemMenu"/> 定 —— 有几条的字跟着
-/// 条目自己的状态走（「继续播放（12:34）」还是「立即播放」、「标记为已观看」还是「标记为未观看」）。
+/// 条目自己的状态走（「继续播放」还是「立即播放」、「标记为已观看」还是「标记为未观看」）。
 /// </summary>
 public enum ItemCommand
 {
@@ -124,6 +123,11 @@ public readonly record struct ItemMenuEntry(ItemCommand? Command, string Label, 
 /// 而「它是不是一个文件」「它有没有看到一半」在三处是同一个答案。按页面分菜单的下场是同一张卡在两个地方点开
 /// 来不一样，而两边都说不出道理。
 /// </para>
+/// <para>
+/// <b>每一行的中文措辞不超过七个字（2026-10-27 用户令）</b>，弹表的那几条以「…」收尾；品牌名保持原样，
+/// 版本来源的子菜单只留「MoviePilot」和「AniBT」两个名字。菜单宽度由最长的一行决定，一条长的就把整张菜单
+/// 撑宽 —— 续播位置不再写进「继续播放」那一条，卡片自己画着进度。
+/// </para>
 /// </summary>
 public static class ItemMenu
 {
@@ -237,9 +241,7 @@ public static class ItemMenu
 
     private static List<ItemMenuEntry> Opening(EmbyItem item, bool jellyfin) => item.IsPlayable
         ? [
-            new(ItemCommand.Play, jellyfin ? "播放" : item.HasResumePosition
-                ? $"继续播放（{TimeFormat.Clock(item.ResumeTicks)}）"
-                : "立即播放"),
+            new(ItemCommand.Play, jellyfin ? "播放" : item.HasResumePosition ? "继续播放" : "立即播放"),
             new(ItemCommand.Details, "详细信息")
         ]
         : [new(ItemCommand.Open, "打开")];
@@ -272,7 +274,7 @@ public static class ItemMenu
                 : new(ItemCommand.Favorite, jellyfin ? "加入收藏" : "添加到收藏"));
 
         if (item.HasResumePosition && Supports(ItemCommand.HideFromResume, jellyfin))
-            rows.Add(new(ItemCommand.HideFromResume, "从继续观看中移除"));
+            rows.Add(new(ItemCommand.HideFromResume, "从继续观看移除"));
 
         return rows;
     }
@@ -295,6 +297,9 @@ public static class ItemMenu
     /// 发出去的搜索词上（季带 <c>S0x</c>、集带 <c>S0x E0x</c>），那套拼法由
     /// <see cref="MoviePilotVersionQuery.Keyword"/> 定，不在标题里重复。「手动整理」带省略号：它弹的是一张
     /// 表单，不是按下去就做完的事。
+    /// <para>
+    /// 动画条目的来源子菜单只写品牌名（2026-10-27 用户令：每一行压到七个字以内）：父项已经说了「搜索不同版本」，
+    /// 子项再带「使用……」和「搜索」只是把那句话重复两遍。
     /// </para>
     /// </summary>
     private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre, bool canScrape)
@@ -304,7 +309,7 @@ public static class ItemMenu
         if (AniBt.AniBtEligibility.Supports(item) && (animeGenre || AniBt.AniBtEligibility.HasGenre(item)))
         {
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
-                [new(ItemCommand.MoviePilotVersions, "使用 MoviePilot"), new(ItemCommand.AniBtVersions, "使用 AniBT API 搜索")]);
+                [new(ItemCommand.MoviePilotVersions, "MoviePilot"), new(ItemCommand.AniBtVersions, "AniBT")]);
             if (canScrape) rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         }
         return rows;
@@ -324,15 +329,15 @@ public static class ItemMenu
         // 编辑元数据对媒体库自己也成立（库有名字、简介和封面），所以它不看 IsCatalogue。
         var rows = new List<ItemMenuEntry>
         {
-            new(ItemCommand.EditMetadata, jellyfin ? "编辑元数据" : "编辑元数据信息…")
+            new(ItemCommand.EditMetadata, jellyfin ? "编辑元数据" : "编辑元数据…")
         };
 
         if (IsCatalogue(item))
         {
-            rows.Add(new(ItemCommand.ChangeCover, jellyfin ? "修改图片" : "修改媒体封面图…"));
-            if (IsFile(item)) rows.Add(new(ItemCommand.Subtitles, jellyfin ? "修改字幕" : "搜索和修改字幕…"));
+            rows.Add(new(ItemCommand.ChangeCover, jellyfin ? "修改图片" : "修改封面图…"));
+            if (IsFile(item)) rows.Add(new(ItemCommand.Subtitles, jellyfin ? "修改字幕" : "搜索字幕…"));
             if (ItemIdentify.Supports(item)) rows.Add(new(ItemCommand.Identify, jellyfin ? "刮削元数据" : "识别"));
-            rows.Add(new(ItemCommand.RefreshMetadata, jellyfin ? "刷新元数据" : "刷新元数据信息"));
+            rows.Add(new(ItemCommand.RefreshMetadata, "刷新元数据"));
         }
 
         // 扫库是服务器整体的一件事，跟这个条目是什么关系不大 —— 演职人员那一排除外，那不是库里的东西。
