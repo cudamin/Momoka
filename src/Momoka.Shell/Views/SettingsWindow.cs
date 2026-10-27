@@ -60,7 +60,7 @@ internal sealed class SettingsWindow
         _frame = frame;
         _blankIcon = CreateBlankIcon();
 
-        // 标题栏那一条是 Win32 的非客户区，画刷改不到它，只能收到消息之后自己再设一遍。
+        // 自绘空白标题栏和系统关闭按钮一起随主题更新。
         _repaint = _ => PaintCaption();
         ThemeHost.Changed += _repaint;
 
@@ -149,13 +149,27 @@ internal sealed class SettingsWindow
         }
     }
 
-    /// <summary>设置正文从系统标题栏下方开始；显式关闭内容延伸，避免搜索框覆盖窗口按钮。</summary>
-    internal static Window CreateCaptionedWindow(UIElement content) => new()
+    /// <summary>空白标题栏独占顶部一行；设置正文始终在下一行，系统只保留关闭按钮。</summary>
+    internal static Window CreateCaptionedWindow(FrameworkElement content)
     {
-        ExtendsContentIntoTitleBar = false,
-        Content = content,
-        Title = string.Empty
-    };
+        var root = new Grid { Background = new SolidColorBrush(ThemeHost.ToColor(ThemeHost.Current.Colors.Window)) };
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(32) });
+        root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+        var caption = new Border { Name = "SettingsWindowTitleBar", Background = new SolidColorBrush(Colors.Transparent) };
+        root.Children.Add(caption);
+        Grid.SetRow(content, 1);
+        root.Children.Add(content);
+        ThemeHost.Register(root);
+        var window = new Window { ExtendsContentIntoTitleBar = true, Content = root, Title = string.Empty };
+        window.AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Standard;
+        if (window.AppWindow.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.IsMinimizable = false;
+            presenter.IsMaximizable = false;
+        }
+        window.SetTitleBar(caption);
+        return window;
+    }
 
     /// <summary>
     /// Shows the window on a category, building or re-pointing the page inside it.
@@ -306,11 +320,10 @@ internal sealed class SettingsWindow
             if (titleBar is null) return;
 
             titleBar.BackgroundColor = ThemeHost.ToColor(theme.Colors.Window);
+            if (_window.Content is Grid root) root.Background = new SolidColorBrush(titleBar.BackgroundColor.Value);
             titleBar.ForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
 
-            // 不透明，和 HostWindow 那份故意相反：那个窗口把内容铺进了标题栏，所以按键底色透明是让底下的
-            // XAML 透出来；这个窗口没铺，透明背后什么都没有，DWM 就拿自己那套默认色填 —— 深色主题下看不出
-            // 来，浅色主题下就是浅色标题栏右端一块黑。「--theme daylight 拍一张」找出来的就是这一块。
+            // 系统关闭按钮与空白标题栏使用同一不透明底色，避免失焦时露出默认背景。
             titleBar.ButtonBackgroundColor = titleBar.BackgroundColor;
             titleBar.ButtonForegroundColor = ThemeHost.ToColor(theme.Colors.Text);
             titleBar.ButtonHoverBackgroundColor = theme.IsDark

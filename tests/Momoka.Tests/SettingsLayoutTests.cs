@@ -27,6 +27,10 @@ internal static class SettingsLayoutTests
             Assert.Equal("False", search.Attribute("UpdateTextOnSelect")?.Value);
             Assert.Equal("OnSettingsSearchSubmitted", search.Attribute("QuerySubmitted")?.Value);
             Assert.True(search.Attribute("QueryIcon") is null, "搜索图标已移到左侧，右侧不再重复显示");
+            Assert.Equal("1", search.Attribute("BorderThickness")?.Value);
+            Assert.True(search.Descendants().Any(element => element.Attribute(Xaml + "Key")?.Value == "TextControlBorderThemeThicknessFocused"
+                && element.Value == "1"), "焦点边框四边应等粗");
+            Assert.True(search.Parent?.Attribute("CornerRadius") is null, "搜索框圆角只绘制一层，不叠加外层裁剪");
             var searchButton = Named(document, "SettingsSearchButton");
             Assert.Equal("OnSettingsSearchClick", searchButton.Attribute("Click")?.Value);
             Assert.Equal("Left", searchButton.Attribute("HorizontalAlignment")?.Value);
@@ -60,6 +64,10 @@ internal static class SettingsLayoutTests
         {
             var document = Page("SettingsPage.xaml");
             var scroll = Named(document, "SettingsScroll");
+            Assert.Equal("16,8,0,16", Named(document, "SettingsLayout").Attribute("Margin")?.Value,
+                "滚动器所在正文应贴右边，卡片自身留内侧间距");
+            Assert.True(scroll.Descendants().Any(element => element.Attribute(Xaml + "Key")?.Value == "ScrollViewerScrollBarMargin"
+                && element.Value == "0"), "滚动条框架模板不再额外缩进");
             Assert.Equal("ScrollViewer", scroll.Name.LocalName, "设置页不使用发布版位置钳制异常的合成滚动器");
             var cards = Named(document, "SettingsCardsContent");
             Assert.Equal("0,0,20,0", cards.Attribute("Margin")?.Value);
@@ -68,7 +76,10 @@ internal static class SettingsLayoutTests
             Assert.Equal("Disabled", scroll.Attribute("HorizontalScrollBarVisibility")?.Value,
                 "横向滚动必须禁用并按视口约束内容宽度，Hidden仍会无限测量");
             Assert.Equal("Stretch", scroll.Attribute("HorizontalContentAlignment")?.Value);
-            Assert.Equal("Left", Named(document, "SettingsSections").Attribute("HorizontalAlignment")?.Value);
+            var sections = Named(document, "SettingsSections");
+            Assert.Equal("Stretch", sections.Attribute("HorizontalAlignment")?.Value);
+            Assert.Equal("Stretch", sections.Attribute("HorizontalContentAlignment")?.Value);
+            Assert.True(sections.Attribute("MaxWidth") is null, "放大窗口时卡片应跟随可用宽度展开");
         });
         TestHarness.Test("服务器账号：每个账号是独立表面，服务器只负责分组", () =>
         {

@@ -1324,7 +1324,7 @@
         </local:SettingRowTemplates>
     </Page.Resources>
 
-    <Grid x:Name="SettingsLayout" Margin="16,8,16,16">
+    <Grid x:Name="SettingsLayout" Margin="16,8,0,16">
         <VisualStateManager.VisualStateGroups>
             <VisualStateGroup x:Name="SettingsWidthStates">
                 <VisualState x:Name="CompactSettings">
@@ -1332,7 +1332,8 @@
                         <AdaptiveTrigger MinWindowWidth="0" />
                     </VisualState.StateTriggers>
                     <VisualState.Setters>
-                        <Setter Target="SettingsLayout.Margin" Value="16,16,16,16" />
+                        <Setter Target="SettingsLayout.Margin" Value="16,16,0,16" />
+                        <Setter Target="SettingsNavigation.Margin" Value="0,0,16,0" />
                         <Setter Target="SettingsNavColumn.Width" Value="0" />
                         <Setter Target="SettingsBody.ColumnSpacing" Value="0" />
                         <Setter Target="SettingsBody.RowSpacing" Value="16" />
@@ -1406,11 +1407,10 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
-                <Grid x:Name="SettingsSearchField" Margin="0,0,0,12"
-                    Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="8">
+                <Grid x:Name="SettingsSearchField" Margin="0,0,0,12">
                     <AutoSuggestBox
                         x:Name="SettingsSearchBox"
-                        Background="Transparent" BorderThickness="0" CornerRadius="8"
+                        Background="{ThemeResource EgSurfaceAltBrush}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="8"
                         TextBoxStyle="{StaticResource SettingsSearchTextBox}"
                         PlaceholderText="搜索设置项"
                         AutomationProperties.Name="搜索设置项"
@@ -1421,8 +1421,8 @@
                         MaxSuggestionListHeight="420"
                         QuerySubmitted="OnSettingsSearchSubmitted">
                         <AutoSuggestBox.Resources>
-                            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
-                            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+                            <!-- 同一层原生圆角边框绘制背景与焦点线，避免外层裁剪；四边统一1 DIP。 -->
+                            <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
                         </AutoSuggestBox.Resources>
                         <AutoSuggestBox.ItemTemplate>
                             <DataTemplate x:DataType="vm:SettingsSearchResult">
@@ -1589,9 +1589,12 @@
                     HorizontalScrollBarVisibility="Disabled"
                     VerticalScrollBarVisibility="Auto"
                     Visibility="{x:Bind ViewModel.CardsVisibility, Mode=OneWay}">
+                    <ScrollViewer.Resources>
+                        <Thickness x:Key="ScrollViewerScrollBarMargin">0</Thickness>
+                    </ScrollViewer.Resources>
                     <!-- 右侧 20 DIP 是滚动条的独立槽位；卡片不伸进滚动指示器区域。 -->
                     <StackPanel x:Name="SettingsCardsContent" Margin="0,0,20,0">
-                        <StackPanel Spacing="8" Margin="0,0,0,20" MaxWidth="900"
+                        <StackPanel Spacing="8" Margin="0,0,0,20"
                             Visibility="{x:Bind ViewModel.ShortcutSearchVisibility, Mode=OneWay}">
                             <Grid ColumnSpacing="8">
                                 <Grid.ColumnDefinitions>
@@ -1608,7 +1611,8 @@
                             <TextBlock x:Name="ShortcutSearchSummary" Style="{StaticResource EgSettingNote}"
                                 Text="{x:Bind ViewModel.ShortcutSearchSummary, Mode=OneWay}" />
                         </StackPanel>
-                        <ItemsControl x:Name="SettingsSections" ItemsSource="{x:Bind ViewModel.Sections, Mode=OneWay}" MaxWidth="900" HorizontalAlignment="Left">
+                        <ItemsControl x:Name="SettingsSections" ItemsSource="{x:Bind ViewModel.Sections, Mode=OneWay}"
+                            HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <!--
@@ -1667,6 +1671,7 @@
                 <!-- Transitions cleared for the same reason the shell's frame clears them (requirement 9). -->
                 <Frame
                     x:Name="HostedFrame"
+                    Margin="0,0,16,0"
                     Transitions="{x:Null}"
                     Visibility="{x:Bind ViewModel.HostedVisibility, Mode=OneWay}" />
             </Grid>

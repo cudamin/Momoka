@@ -40,6 +40,7 @@ internal sealed partial class ShellNavigationProbe
         content.Children.Add(page);
         ThemeHost.Register(content);
         var settingsWindow = SettingsWindow.CreateCaptionedWindow(content);
+        var windowRoot = (Grid)settingsWindow.Content;
         _shortcutProbeWindows.Add(settingsWindow); // 最后一个框架窗口关闭会终止应用，整轮结束后统一关闭。
         var handle = Microsoft.UI.Win32Interop.GetWindowFromWindowId(settingsWindow.AppWindow.Id);
         var ownerWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window!.Handle));
@@ -60,22 +61,23 @@ internal sealed partial class ShellNavigationProbe
             // WinUI 的第二扇 Window 初始化会先送一次紧凑内容尺寸；等首帧后提交目标客户区，
             // 不能把仅有导航行的临时 154px 画面当作 900px 窄窗截图。
             await WaitForDiagnosticsFrameAsync();
-            settingsWindow.AppWindow.ResizeClient(new Windows.Graphics.SizeInt32(width, 900));
-            await UntilAsync(() => Momoka.Shell.Interop.Native.GetClientRect(handle, out var rect)
-                && Math.Abs(rect.Width - width) < 2 && Math.Abs(rect.Height - 900) < 2);
+            await ResizeSettingsProbeWindowAsync(settingsWindow, width, 900);
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
             var globalSearch = Get<AutoSuggestBox>(page, "SettingsSearchBox");
-            var searchBounds = globalSearch.TransformToVisual(content).TransformBounds(
+            var searchBounds = globalSearch.TransformToVisual(windowRoot).TransformBounds(
                 new Windows.Foundation.Rect(0, 0, globalSearch.ActualWidth, globalSearch.ActualHeight));
             var clientOrigin = new NativePoint();
             Require(Native.ClientToScreen(handle, ref clientOrigin), "无法读取设置窗口客户区起点");
             Require(Native.GetVisibleFrame(handle, out var windowBounds), "无法读取设置窗口边框");
-            Require(!settingsWindow.ExtendsContentIntoTitleBar && !settingsWindow.AppWindow.TitleBar.ExtendsContentIntoTitleBar,
-                "设置正文仍延伸到标题栏");
+            var caption = windowRoot.Children.OfType<Border>().Single(child => child.Name == "SettingsWindowTitleBar");
+            var captionBounds = caption.TransformToVisual(windowRoot).TransformBounds(
+                new Windows.Foundation.Rect(0, 0, caption.ActualWidth, caption.ActualHeight));
+            Require(caption.ActualHeight > 0 && searchBounds.Top >= captionBounds.Bottom,
+                "搜索框与独立标题栏重叠");
             var scale = content.XamlRoot.RasterizationScale;
-            var captionMiddle = windowBounds.Top + (clientOrigin.Y - windowBounds.Top) / 2;
-            Require(clientOrigin.Y > windowBounds.Top && Hit(windowBounds.Left + windowBounds.Width / 2, captionMiddle) == Native.HitCaption,
+            var captionMiddle = clientOrigin.Y + (int)Math.Round((captionBounds.Top + captionBounds.Height / 2) * scale);
+            Require(Hit(windowBounds.Left + windowBounds.Width / 2, captionMiddle) == Native.HitCaption,
                 "设置窗口顶部未保留可拖动标题栏");
             Require(Hit(windowBounds.Right - (int)Math.Round(20 * scale), captionMiddle) == Native.HitClose,
                 "设置窗口关闭按钮被正文覆盖");
@@ -180,7 +182,7 @@ internal sealed partial class ShellNavigationProbe
 
             int EmptyPixels()
             {
-                var bounds = emptyText.TransformToVisual(content).TransformBounds(new Windows.Foundation.Rect(0, 0, emptyText.ActualWidth, emptyText.ActualHeight));
+                var bounds = emptyText.TransformToVisual(windowRoot).TransformBounds(new Windows.Foundation.Rect(0, 0, emptyText.ActualWidth, emptyText.ActualHeight));
                 var scale = content.XamlRoot.RasterizationScale;
                 return CompositionPlaybackProbe.BrightPixels(handle, new Windows.Foundation.Rect(bounds.X * scale, bounds.Y * scale,
                     bounds.Width * scale, bounds.Height * scale));
@@ -246,6 +248,24 @@ internal sealed partial class ShellNavigationProbe
             settingsWindow.AppWindow.Hide();
             settingsWindow.Content = null;
         }
+    }
+
+    private async Task ResizeSettingsProbeWindowAsync(Window window, int width, int height)
+    {
+        var handle = Microsoft.UI.Win32Interop.GetWindowFromWindowId(window.AppWindow.Id);
+        window.AppWindow.ResizeClient(new Windows.Graphics.SizeInt32(width, height));
+        await WaitForDiagnosticsFrameAsync();
+        Require(Native.GetClientRect(handle, out var client), "无法读取设置窗口客户区");
+        File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "settings-window-resize.txt"),
+            $"ResizeClient目标={width}x{height}；实际={client.Width}x{client.Height}；外框={window.AppWindow.Size}\n");
+        if (client.Width != width || client.Height != height)
+        {
+            var outer = window.AppWindow.Size;
+            window.AppWindow.Resize(new Windows.Graphics.SizeInt32(
+                outer.Width + width - client.Width, outer.Height + height - client.Height));
+        }
+        await UntilAsync(() => Native.GetClientRect(handle, out var actual)
+            && Math.Abs(actual.Width - width) < 2 && Math.Abs(actual.Height - height) < 2);
     }
 
     private async Task PlayerAdditionalShortcutsAsync()

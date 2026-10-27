@@ -1,6 +1,7 @@
 using Momoka.Configuration;
 using Momoka.Infrastructure;
 using Momoka.MoviePilot;
+using Momoka.Shell.Interop;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
 using Momoka.Theming;
@@ -30,7 +31,19 @@ internal sealed partial class ShellNavigationProbe
         var theme = ThemeHost.Current.Id;
         var preference = HomeMotion.PreferenceEnabled;
         HomeMotion.ApplyPreference(false);
-        _root.Children.Add(page);
+        var settingsWindow = SettingsWindow.CreateCaptionedWindow(page);
+        _shortcutProbeWindows.Add(settingsWindow);
+        var windowRoot = (Grid)settingsWindow.Content;
+        var handle = Microsoft.UI.Win32Interop.GetWindowFromWindowId(settingsWindow.AppWindow.Id);
+        var ownerWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window!.Handle));
+        var workArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(ownerWindow.Id,
+            Microsoft.UI.Windowing.DisplayAreaFallback.Nearest).WorkArea;
+        settingsWindow.AppWindow.Move(new Windows.Graphics.PointInt32(workArea.X + 24, workArea.Y + 24));
+        settingsWindow.Activate();
+        var presenter = settingsWindow.AppWindow.Presenter as Microsoft.UI.Windowing.OverlappedPresenter
+            ?? throw new InvalidOperationException("设置探针窗口不是普通窗口");
+        var wasTopMost = presenter.IsAlwaysOnTop;
+        presenter.IsAlwaysOnTop = true;
         ThemeHost.Register(page);
         try
         {
@@ -39,15 +52,25 @@ internal sealed partial class ShellNavigationProbe
             var categories = page.ViewModel.Categories.ToArray();
             var search = Get<AutoSuggestBox>(page, "SettingsSearchBox");
             var scroll = Get<ScrollViewer>(page, "SettingsScroll");
-            foreach (var width in new[] { 1100, 760 })
+            foreach (var width in new[] { 1100, 1440, 760 })
             {
-                ResizeInspect(width, 900);
+                await ResizeSettingsProbeWindowAsync(settingsWindow, width, 900);
                 page.SelectedCategory = "主页";
                 await LayoutAsync(page);
                 await WaitForSettingsSettledAsync(page);
                 var navigation = Get<ListView>(page, "CategoryNavigation");
+                var caption = windowRoot.Children.OfType<Border>().Single(child => child.Name == "SettingsWindowTitleBar");
+                Require(caption.ActualHeight >= 32 && Box(windowRoot, search).Top >= Box(windowRoot, caption).Bottom,
+                    "搜索框没有排在独立标题栏下方");
+                Require(!presenter.IsMinimizable && !presenter.IsMaximizable, "设置窗口仍有最小化或最大化按钮");
+                if (width >= 1100) Require(Math.Abs(search.ActualWidth - 200) < 1, "放大窗口后侧栏搜索宽度发生变化");
                 Require(navigation.CornerRadius == new CornerRadius(0), "分类列表仍有卡片圆角");
                 Require(navigation.Background is SolidColorBrush { Color.A: 0 }, "分类列表仍有卡片底色");
+                var searchInput = Descendants(search).OfType<TextBox>().Single(input => input.Name == "TextBox");
+                Require(searchInput.Focus(FocusState.Programmatic), "搜索框无法取得焦点");
+                await LayoutAsync(page);
+                var searchBorder = Descendants(searchInput).OfType<Border>().Single(border => border.Name == "BorderElement");
+                Require(searchBorder.BorderThickness == new Thickness(1), "搜索框聚焦边框四边不等粗");
                 var content = Get<Grid>(page, "SettingsContent");
                 Require(!content.Children.OfType<TextBlock>().Any(title => title.Text == "设置"), "正文顶部仍有设置标题");
                 Require(Math.Abs(Box(content, scroll).Top) < 1 && Math.Abs(scroll.ActualHeight - content.ActualHeight) < 1,
@@ -90,7 +113,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(Get<TextBlock>(page, "SettingsSearchEmpty").Visibility == Visibility.Visible, "无结果提示未显示");
                 await SaveReturnFrameAsync(page, $"settings-search-empty-{width}-render.png");
                 await WaitForDiagnosticsFrameAsync();
-                await SaveProbeScreenAsync($"settings-search-empty-{width}-screen.png");
+                await CompositionPlaybackProbe.SaveScreenAsync(handle, Path.Combine(_options.Paths.LogDirectory, $"settings-search-empty-{width}-screen.png"));
                 await QueryAsync("");
                 Require(Get<TextBlock>(page, "SettingsSearchEmpty").Visibility == Visibility.Collapsed, "清空后仍残留搜索空态");
                 page.SelectedCategory = "字幕";
@@ -100,19 +123,25 @@ internal sealed partial class ShellNavigationProbe
                 catch (TimeoutException) { throw new InvalidOperationException($"分类复位未完成：宽{width}，offset{scroll.VerticalOffset:0.0}，extent{scroll.ExtentHeight:0.0}"); }
                 var bar = Descendants(scroll).OfType<ScrollBar>().Single(bar => bar.Name == "VerticalScrollBar" && IsOwnScrollBar(scroll, bar));
                 var barBox = Box(scroll, bar);
+                Require(Math.Abs(Box(windowRoot, bar).Right - windowRoot.ActualWidth) < 1,
+                    "设置滚动条未贴窗口右侧");
                 var cards = Descendants(page).OfType<FrameworkElement>().Where(element => element.Name == "SettingsSection" && element.Visibility == Visibility.Visible);
                 Require(Descendants(page).OfType<TextBlock>().Any(title => title.Name == "SettingsSectionTitle"
                     && title.Visibility == Visibility.Visible && title.Text == "实时字幕翻译"), "字幕翻译分组标题被错误删除");
                 Require(cards.Any() && barBox.Width > 0 && cards.All(card => Box(scroll, card).Right <= barBox.X - 3),
                     $"滚动条覆盖设置卡片：指示器 x={barBox.X:0.0} 宽={barBox.Width:0.0}，卡片右边="
                     + string.Join(",", cards.Select(card => Box(scroll, card).Right.ToString("0.0"))));
+                var cardsContent = Get<StackPanel>(page, "SettingsCardsContent");
+                Require(cards.All(card => Math.Abs(card.ActualWidth - cardsContent.ActualWidth) < 1),
+                    "设置卡片没有随可用正文宽度展开");
                 foreach (var current in width == 1100 ? UiThemes.All : [UiThemes.Default])
                 {
                     ThemeHost.Apply(current.Id);
+                    windowRoot.Background = new SolidColorBrush(ThemeHost.ToColor(current.Colors.Window));
                     await LayoutAsync(page);
                     await SaveReturnFrameAsync(page, $"settings-clean-{current.Id}-{width}-render.png");
                     await WaitForDiagnosticsFrameAsync();
-                    await SaveProbeScreenAsync($"settings-clean-{current.Id}-{width}-screen.png");
+                    await CompositionPlaybackProbe.SaveScreenAsync(handle, Path.Combine(_options.Paths.LogDirectory, $"settings-clean-{current.Id}-{width}-screen.png"));
                 }
                 scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
             }
@@ -120,7 +149,11 @@ internal sealed partial class ShellNavigationProbe
         finally
         {
             page.Release();
-            _root.Children.Remove(page);
+            if (page.XamlRoot is { } root)
+                foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(root)) popup.IsOpen = false;
+            presenter.IsAlwaysOnTop = wasTopMost;
+            settingsWindow.AppWindow.Hide();
+            settingsWindow.Content = null;
             ThemeHost.Apply(theme);
             HomeMotion.ApplyPreference(preference);
             ResizeInspect(1420, 980);
