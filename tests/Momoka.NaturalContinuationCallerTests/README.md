@@ -157,3 +157,12 @@ $root = (Get-Location).Path
 指定目录必须尚不存在；再次复跑换新名称，不覆盖旧证据。8项原非法源码/锚点/语法/await-using/hash/外树
 反例均预期 build 退出1；之后 `current-reverified` 重新编译实际源0警告0错误并再跑原50项全绿。
 这些预期拒绝不计为8个产品失败或额外50项覆盖。
+
+## 2026-10-27：右键菜单快捷键提交的单项 pin 同步
+
+`449d468`（播放页右键菜单显示快捷键）只改 `PlayerViewModel.Events.cs` 的菜单构造：`BuildPictureMenuItems`
+增加 `shortcutTexts` 参数并递归传递、`ShortcutTexts(ShortcutBindings)` 与两处 `UoscMenuItem` 的 hint 参数；
+fixture 提取的 `OnNowPlayingChanged`、`LeavePlayer` 等成员未变。逐份复核后仅更新该文件 SHA256 为
+`49f145e7eb68784bfcedd2bd4302a5c2400a8ac39659e63f405eb4759704fc10`，其余 18 份、baseCommit 与 date 不动。
+`Run-Caller.ps1` 50/0/0、`Test-SourceExtraction.ps1` 8/8 预期拒绝后当前源重编译 50/0/0；本树方案构建与空白检查通过。
+本机 PowerShell 5.1 默认 GBK 时，脚本对 dotnet 的 UTF-8 输出会误读警告数，需先把控制台设为 UTF-8（`chcp 65001`）再跑。

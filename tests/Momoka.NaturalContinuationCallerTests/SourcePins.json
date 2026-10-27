@@ -53,7 +53,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
-      "sha256": "685e35fe51da700c7f33542c446dd21691522c277c7dbea3dcaa772746495f78"
+      "sha256": "49f145e7eb68784bfcedd2bd4302a5c2400a8ac39659e63f405eb4759704fc10"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",

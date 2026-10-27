@@ -8380,4 +8380,11 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 主干工作树重跑：restore 后 Release 全方案 **0 警告 0 错误**，完整离线套件 **3049 项全过、0 失败、0 跳过**（比分支那次多 1 项，是 `449d468` 自带的那条用例不在主干）。`tools/publish.ps1 -NoArchive -OutputRoot C:\Users\89400\Momoka\artifacts` 从主干工作树发布到共同交付目录，**546 文件、284.3 MB、载荷验证通过**；对这份交付件再跑 `--probe-shell --probe-section settings` 为 **22/22 通过**（`shell-probe-20261027-041723312-24528`），其余 99 项未执行。交付件里的代码现在只含主干内容，不再带 `449d468`。
 - 遗留：`qoder/kuaijiejian` 上那笔 `63cfed3` 没有回退（那是别的会话正在用的分支，改它等于在他们脚下换文件）；将来那条分支并主干时这 15 个文件会重复一次，届时以主干这份为准即可。临时工作树 `settings-merge` 与 `artifacts/verify-settings-ui{,2}` 仍在，可清。
 
+## 全量探针红项修复并合入主干（2026-10-27 13:00~15:00）
+
+- **用户当次要求**：修掉 [全量探针与四道闸门-2026-10-27](docs/全量探针与四道闸门-2026-10-27.md) 记录的红项，一个 bug 一个子代理，主窗口负责验收；修完先合并到主树，**只合并、先不打包**。
+- **五项修复**（均在 `qoder/kuaijiejian`）：`240573f` R046 来源 pin 随 `449d468` 只同步 `PlayerViewModel.Events.cs` 一份，其余 18 份与 base/date 不动；`6dc3dcf` 搜索探针改按本次提交新增的 `media/search` 量来源（一次提交末尾是 `subscribe/`）；`1635227` 多账号探针等 `TitleRow`/`CaptionRow` 淡入落定再截图（上限 5 秒，超时仍失败）；`c175345` 季选择探针按 `CloseButton` 身份关闭弹窗（文案已从「关闭」改「取消」）；`eb1a035` 自检媒体库判据改按 `LibraryDisplayCatalog.EmbyViews` 七种校验，测试补 9 值枚举/7 条读数回归。
+- **验证**：Release 全方案构建 **0 警告 0 错误**；完整离线套件 **3048/3048、0 失败 0 跳过**；`format whitespace` 退出 0；48 个脚本的 BOM/LF/末尾换行/语法检查通过；R046 `Run-Caller` 50/0/0、提取器 8/8 反例按预期退出 1 后当前源重编译再跑 50/0/0。分区探针：`search` 13/13、`accounts` 4/4、`moviepilot` 23/23。闸门 4 **186 项、0 失败、0 消失、0 降级、0 新增**（`artifacts/selfcheck/run-b6064a213920496eb9b625912ce7e772`）。
+- **全量探针**：`--probe-shell --screen 1` 121 项 **120 通过、1 失败**，三项原有红项已全部转绿；唯一失败是未改动的「文件选项长名称、断点与隐藏行」在窗口尺寸竞态下没到达目标宽度（首轮 1064→1088，单独复跑 `library` 又在另一条用例 1280→1024），与本次修复路径无关，**如实记为未绿**，打包前需处理或复验，不拿重复运行洗绿。
+- **合并**：在 `C:/Users/89400/Momoka-worktrees/settings-merge` 以 `--no-ff` 合入 `qoder/kuaijiejian`；除本文件外，合并结果与已验证的 `eb1a035` 逐字节一致。只合并，未推送 origin、未建 Release、未生成商店包。
 

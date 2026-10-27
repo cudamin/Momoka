@@ -244,8 +244,10 @@ internal static partial class ShellSelfCheck
             $"卡片 {library.CardWidth}（档位宽 {CardSize.PosterWidth}），"
                 + $"网格单元 {library.CellWidth:0}×{library.CellHeight:0}（视图「{library.View}」）");
 
-        // WalkViews now includes both card-surface variants. Validate every enum entry, its
-        // measured grid/text/frame dimensions and the restored selection; retain the check name.
+        // WalkViews covers Emby's seven shapes — 海报、缩略图、列表、横幅图、光盘封面、徽标、表格 — in
+        // LibraryDisplayCatalog.EmbyViews order; Jellyfin's two card layouts belong to its own library
+        // probe. Validate each of the seven readings, its measured grid/text dimensions and the restored
+        // selection; retain the check name.
         var walk = library.Views;
         check("媒体库七种视图的布局", SelfCheckLayoutRules.LibraryViews(walk, library.ViewRestored, library.GridTextHeight),
             string.Join('；', walk.Select(one => one.Layout == "StackLayout"

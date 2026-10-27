@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using Momoka.Configuration;
 using Momoka.Emby;
@@ -229,10 +230,29 @@ internal sealed partial class ShellNavigationProbe
                 await Task.WhenAll(home.ViewModel.LibraryShelf!.Cards.Select(card => card.EnsurePosterAsync()));
                 var banner = Get<HomeBanner>(home, "Banner");
                 await UntilAsync(() => banner.Current?.Picture is not null);
-                await Task.Delay(1000);
-                Require(Get<FrameworkElement>(banner, "TitleRow").Opacity > 0.99
-                    && Get<FrameworkElement>(banner, "CaptionRow").Opacity > 0.99,
-                    "首页截图不能在轮播文字仍然淡入时拍摄");
+
+                // 字块是从 Opacity 0 用 600 毫秒抬起来的，第二行再晚 70 毫秒（HomeBanner.Rise），而 Show、Apply 和
+                // OnLoaded 都会重新起一遍 —— 账号退出后主页重建时，一次晚到的幻灯片重设可能正好落进这段窗口，所以
+                // 定死的 1 秒证明不了动画已经收尾。这里改成盯着两行字的透明度直到落定，等的时候让钟和动画照常跑；
+                // 上限 5 秒够正常一轮加一次迟到的重放，超时仍按失败处理：截图不得在淡入时拍摄，不能靠等得更久或
+                // 放宽阈值来兑现。
+                var titleRow = Get<FrameworkElement>(banner, "TitleRow");
+                var captionRow = Get<FrameworkElement>(banner, "CaptionRow");
+                var limit = TimeSpan.FromSeconds(5);
+                var waited = Stopwatch.StartNew();
+                while (titleRow.Opacity <= 0.99 || captionRow.Opacity <= 0.99)
+                {
+                    if (waited.Elapsed >= limit)
+                    {
+                        var index = Get<int>(banner, "_index");
+                        throw new InvalidOperationException(
+                            $"首页截图不能在轮播文字仍然淡入时拍摄：阶段 {stage}、宽 {width}，等满 {limit.TotalSeconds:0} 秒仍未落定"
+                            + $"（TitleRow {titleRow.Opacity:0.000}、CaptionRow {captionRow.Opacity:0.000}，"
+                            + $"当前第 {index + 1}/{home.ViewModel.Slides.Count} 张「{banner.Current?.Title}」）");
+                    }
+
+                    await Task.Delay(25);
+                }
                 AssertAggregateLabels(home, sources);
                 await SaveProbeScreenAsync($"aggregate-home-{stage}-{width}-screen.png");
 
