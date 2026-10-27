@@ -1,3 +1,13 @@
+## 发版 0.2.0：GitHub Release 与微软商店包（2026-10-27 21:12~22:25）
+
+- 用户令「提交代码，更新版本，打包发布到github，生成微软商店安装包」；中途指定版本号是 **0.2.0**（先按 0.1.10 改过一次，随即改成 0.2.0），并明确「不要从github下载然后校验」—— 本轮没有回传比对，改看 GitHub 自己算的 digest。起点：master 领先 origin 5 个提交（`9e07a73`、`e8f2e9a`、`761b2a5`、`33569fd`、`59b0658`），工作树干净。
+- **闸门 1 第一次红**：完整方案构建在 `Momoka.NaturalContinuationCallerTests` 报 `R046 SOURCE_HASH_MISMATCH`（`LibMpvBackend.cs`）。`33569fd` 改了那个文件，而该夹具 pin 着它的 SHA256 —— 上一轮只构建 Shell 与 Tests，sln 里其他测试工程的红一直藏着。复核后只更新这一个 pin（其余 18 份字节未变，fixture 提取的四个 `PlayerViewModel` 成员也未变），重跑 `Run-Caller.ps1` **50/0/0**、`Test-SourceExtraction.ps1` **8/8** 预期拒绝后当前源重编译再跑 **50/0/0**，复核过程写进该目录 README。提交 `ccb54fb`。
+- **闸门 4 第一次红 1 项**：「快捷键行 — 59 行可重绑（应当 63 行）」。本机 21:24 把弹幕关掉（生产 settings.json `Danmaku.Enabled=false`），卡片按能力隐藏四条弹幕快捷键是对的（`docs/弹幕与快捷键.md` 一直这么写），错的是自检拿整张 `ShortcutCatalog.Actions` 去比。改法：Core 新增 `ShortcutCatalog.Available(danmakuReady)`／`IsDanmaku`，`SettingsViewModel.DanmakuReady` 成为唯一判据，弹幕卡片、快捷键卡片与自检共用；自检改成按 Id 集合比对（少一条别的、混进一条弹幕的仍然红），读数带上「弹幕可用=」。`ShortcutTests` 新增一条（63／59、收起哪四条、次序照旧）。提交 `388f7d5`。
+- 闸门 1~4 最终全绿：完整构建 **0 警告 0 错误**、`format whitespace` 退出 0、48 个脚本检查通过、Core **3052/3052**（比上轮 +1 就是新加的那条）、发布 **546 文件／284.3 MB**（14 GLSL／4 HOOK／批准 mpv 清单 59 文件逐项校验）、自检 **186 项全过（161 通过／25 信息／0 失败）**、diff 判绿（`artifacts/selfcheck/run-450987a6918d4a30b58ffab12b9d1f9f`）。
+- 产物：`artifacts/Momoka_windows-x64_0.2.0.exe`（83,541,546 字节，79.7 MB，sha256 `7d287525348b3a7405cac5ecfd2feed7d04a775642c1dde1a9f63004aef36e10`）、`artifacts/Momoka-0.2.0-win-x64-store.msix`（120,061,338 字节，未签名，清单身份 `MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.2.0.0`／x64，552 个文件）。商店包没有放进 Release —— 由用户自己上传 Partner Center。
+- 远端：fetch 后 origin 没动，`fee874b..388f7d5` 直接推 master；Release `v0.2.0`（tag → `388f7d5`，pre-release）两件资产 uploaded。**没有下载回传比对**（用户令）；GitHub 对安装包算出的 digest 是 `7d287525…`，与本地一致，可当完整性证据。
+- 两个版本号提交都留在历史里：`95bd7be`（0.1.10）与 `edec661`（0.2.0）。前者是用户改口前的那一步，已经推上去，不 reset 改写。
+
 ## 开着色器、GPU 跟不上时窗口卡住：原生读取搬离调用线程（2026-10-27）
 
 - 用户令：「修复开启着色器之后gpu性能不足会导致momoka卡住的问题」。
