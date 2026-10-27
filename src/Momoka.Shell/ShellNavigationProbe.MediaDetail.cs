@@ -87,7 +87,11 @@ internal sealed partial class ShellNavigationProbe
             cancelled.ViewModel.Seasons[0].Selected = false;
             ResizeInspect(360, 900); await LayoutAsync(cancelled);
             await SaveProbeScreenAsync("mp-subscribe-season-picker-360.png");
-            InvokeSubscriptionButton(Descendants(cancelled).OfType<Button>().Single(button => button.Name == "CloseButton" && button.Content as string == "关闭"));
+            // 关闭按钮的文案会随产品改（2026-10-25 起是「取消」，之前是「关闭」），探针不钉文案：
+            // 只按 ContentDialog 模板里的 CloseButton 名字定位，再与对话框自己的 CloseButtonText 核对一次，
+            // 确认挑中的是这颗按钮而不是别处的同名控件。
+            var close = Descendants(cancelled).OfType<Button>().Single(button => button.Name == "CloseButton" && Equals(button.Content, cancelled.CloseButtonText));
+            InvokeSubscriptionButton(close);
             await showing;
             cancelled.ViewModel.Cancel();
             Require(server.Writes.Count == 2 && server.Items.ContainsKey(4), "关闭弹窗仍取消了订阅");
