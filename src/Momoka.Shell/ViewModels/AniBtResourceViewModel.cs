@@ -59,6 +59,8 @@ public sealed partial class AniBtResourceRow : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(DownloadLabel))]
+    [NotifyPropertyChangedFor(nameof(DownloadGlyph))]
+    [NotifyPropertyChangedFor(nameof(DownloadAutomationName))]
     [NotifyPropertyChangedFor(nameof(CanDownload))]
     [NotifyCanExecuteChangedFor(nameof(DownloadCommand))]
     public partial MoviePilotDownloadState State { get; set; }
@@ -75,7 +77,16 @@ public sealed partial class AniBtResourceRow : ObservableObject
         _ => "下载"
     };
 
-    public string DownloadAutomationName => $"下载：{Title}";
+    public string DownloadGlyph => Resource.DownloadProblem is not null ? "\uE7BA" : State switch
+    {
+        MoviePilotDownloadState.Working => "\uE895",
+        MoviePilotDownloadState.Done => "\uE73E",
+        MoviePilotDownloadState.Failed => "\uE72C",
+        MoviePilotDownloadState.Uncertain => "\uE7BA",
+        _ => "\uE896"
+    };
+
+    public string DownloadAutomationName => $"{DownloadLabel}：{Title}";
     public string DetailsAutomationName => $"打开 AniBT 发布页：{Title}";
     public bool CanOpenDetails => Resource.DetailsUri is not null && _openDetails is not null;
 
@@ -102,6 +113,7 @@ public sealed partial class AniBtResourceGroup : ObservableObject
         Name = name;
         Rows = rows;
         RssUri = source?.RssUri;
+        LogoUrl = source?.LogoUrl;
         Total = source?.TotalReleases ?? rows.Count;
         var published = source?.PublishedEpisodes.Where(episode => episode > 0 && (episodes is not > 0 || episode <= episodes)).ToHashSet();
         PublishedText = published is null ? "" : episodes is > 0 ? $"{published.Count} / {episodes} 集" : $"已发布 {published.Count} 集";
@@ -113,6 +125,17 @@ public sealed partial class AniBtResourceGroup : ObservableObject
     }
 
     public string Name { get; }
+    public string? LogoUrl { get; }
+    public Visibility LogoVisibility => !_logoFailed && !string.IsNullOrWhiteSpace(LogoUrl)
+        ? Visibility.Visible : Visibility.Collapsed;
+    private bool _logoFailed;
+
+    internal void MarkLogoFailed()
+    {
+        if (_logoFailed) return;
+        _logoFailed = true;
+        OnPropertyChanged(nameof(LogoVisibility));
+    }
     public string Initial => Name.Length == 0 ? "?" : Name[..1];
     public IReadOnlyList<AniBtResourceRow> Rows { get; }
     public ObservableCollection<AniBtResourceRow> VisibleRows { get; } = [];

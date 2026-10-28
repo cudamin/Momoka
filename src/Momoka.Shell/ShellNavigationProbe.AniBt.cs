@@ -287,6 +287,24 @@ internal sealed partial class ShellNavigationProbe
             await firstAnime.OpenCommand.ExecuteAsync(null);
             panel.ViewModel.SelectedArtwork = poster;
             var browser = panel.ViewModel.Browser;
+            // 图片绑定不走 HTTP handler；只给实际模板本地夹具图，拒绝触发外站下载。
+            var logoFile = Path.Combine(_options.Paths.LogDirectory, "anibt-group-logo.png");
+            await File.WriteAllBytesAsync(logoFile, await FixtureImageAsync(48, 48));
+            using var logoStream = new InMemoryRandomAccessStream();
+            using (var writer = new DataWriter(logoStream.GetOutputStreamAt(0)))
+            {
+                writer.WriteBytes(await File.ReadAllBytesAsync(logoFile));
+                await writer.StoreAsync();
+            }
+            logoStream.Seek(0);
+            var logoBitmap = new BitmapImage();
+            await logoBitmap.SetSourceAsync(logoStream);
+            var fixtureRows = browser.Rows.ToArray();
+            var fixtureGroups = browser.ProgressGroups.Select((group, index) => new AniBtReleaseGroup(
+                "group_" + index, group.Name, "offline", group.Cells.Where(cell => cell.Published).Select(cell => cell.Episode).ToArray(),
+                group.Total, group.Rows.Select(release => release.Release).ToArray(), group.RssUri,
+                index == 0 ? new Uri(logoFile).AbsoluteUri : null)).ToArray();
+            browser.SetResults(fixtureRows, "", fixtureGroups, panel.ViewModel.SelectedAnime);
             Require(panel.ViewModel.SelectedAnime?.BgmId == 123 && browser.Rows.Count == 3,
                 $"选择番剧后没有读取对应 AniBT 资源：Rows={browser.Rows.Count}，Empty={browser.EmptyMessage}，"
                 + $"Busy={panel.ViewModel.Busy}，提示开={panel.ViewModel.NoticeOpen}，提示={panel.ViewModel.NoticeMessage}，"
@@ -337,6 +355,7 @@ internal sealed partial class ShellNavigationProbe
                 var resourceBrowser = Get<AniBtResourceBrowser>(panel, "ResourceBrowser");
                 browser.ViewIndex = 0;
                 await LayoutAsync(panel);
+                SetProbeGroupLogos(resourceBrowser, logoBitmap);
                 await SaveSettledFrameAsync(page, $"anibt-detail-{width}-render.png");
                 detailScroll.ChangeView(null, width < 600 ? resourceBrowser.TransformToVisual(Get<StackPanel>(panel, "AnimeResourcesView"))
                     .TransformPoint(new Windows.Foundation.Point()).Y : 0, null, true);
@@ -347,11 +366,51 @@ internal sealed partial class ShellNavigationProbe
                 detailScroll.ChangeView(null, resourceBrowser.TransformToVisual(Get<StackPanel>(panel, "AnimeResourcesView"))
                     .TransformPoint(new Windows.Foundation.Point()).Y, null, true);
                 await LayoutAsync(panel);
+                SetProbeGroupLogos(resourceBrowser, logoBitmap);
+                await LayoutAsync(panel);
+                var releaseList = Get<ItemsRepeater>(resourceBrowser, "ReleaseList");
+                var releaseRows = Descendants(releaseList).OfType<Grid>().Where(grid => grid.Name == "ReleaseRow").ToArray();
+                Require(releaseRows.Length == 3, "AniBT 行尾按钮检查没有取得全部发布行");
+                foreach (var releaseRow in releaseRows) CheckReleaseRow(releaseRow);
+                var logos = Descendants(releaseList).OfType<Image>().Where(image => image.Name == "GroupLogo").ToArray();
+                var shownLogo = logos.Single(image => image.Tag is AniBtResourceGroup { LogoUrl: not null });
+                Require(browser.ResourceGroups[0].LogoVisibility == Visibility.Visible
+                    && browser.ResourceGroups[1].LogoVisibility == Visibility.Collapsed,
+                    "AniBT 有头像和无头像的小组没有分别显示与收起");
+                await UntilAsync(() => shownLogo.Source is BitmapImage { PixelWidth: > 0 });
+                Require(shownLogo.ActualWidth == 24 && shownLogo.ActualHeight == 24,
+                    $"AniBT 小组头像没有保持紧凑的正方形：{shownLogo.ActualWidth}×{shownLogo.ActualHeight}");
+                var stateButton = Descendants(releaseList).OfType<Button>().Single(button =>
+                    button.Name == "DownloadResource" && ReferenceEquals(button.Command, row.DownloadCommand));
+                foreach (var state in new[] { MoviePilotDownloadState.Working, MoviePilotDownloadState.Done,
+                    MoviePilotDownloadState.Failed, MoviePilotDownloadState.Uncertain, MoviePilotDownloadState.Idle })
+                {
+                    row.State = state;
+                    await LayoutAsync(panel);
+                    Require(Equals(ToolTipService.GetToolTip(stateButton), row.DownloadLabel)
+                        && stateButton.Content is FontIcon icon && icon.Glyph == row.DownloadGlyph
+                        && AutomationProperties.GetName(stateButton) == row.DownloadAutomationName,
+                        "AniBT 下载图标、悬停说明或辅助名称没有跟随状态更新");
+                    Require(stateButton.ActualWidth == 36 && stateButton.ActualHeight == 36,
+                        "AniBT 下载状态变化改变了方钮尺寸");
+                }
                 await SaveSettledFrameAsync(page, $"anibt-resources-{width}-render.png");
+                await SaveProbeScreenAsync($"anibt-resources-{width}-screen.png");
                 detailScroll.ChangeView(null, 0, null, true);
             }
 
             await SizeAsync(page, 1040);
+            var avatarBrowser = Get<AniBtResourceBrowser>(panel, "ResourceBrowser");
+            browser.ViewIndex = 1;
+            await LayoutAsync(panel);
+            var logoToFail = Descendants(Get<ItemsRepeater>(avatarBrowser, "ReleaseList")).OfType<Image>()
+                .Single(image => image.Tag is AniBtResourceGroup { LogoUrl: not null });
+            logoToFail.Source = new BitmapImage(new Uri(Path.Combine(_options.Paths.LogDirectory, "missing-anibt-group-logo.png")));
+            await UntilAsync(() => browser.ResourceGroups[0].LogoVisibility == Visibility.Collapsed);
+            await LayoutAsync(panel);
+            Require(Descendants(avatarBrowser).OfType<Border>().Where(border => border.Name == "GroupLogoSurface")
+                .All(border => border.Visibility == Visibility.Collapsed),
+                "AniBT 头像加载失败后没有完整收起头像容器");
             var cancelled = row.DownloadCommand.ExecuteAsync(null);
             var dialog = await DownloadDialogAsync();
             await UntilAsync(() => !dialog.ViewModel.Busy);
@@ -463,6 +522,33 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(frame);
             ResizeInspect(1420, 980);
             _window?.Activate();
+        }
+
+        static void SetProbeGroupLogos(AniBtResourceBrowser resourceBrowser, BitmapImage bitmap)
+        {
+            foreach (var image in Descendants(resourceBrowser).OfType<Image>().Where(image => image.Name == "GroupLogo"
+                && image.Tag is AniBtResourceGroup { LogoUrl: not null })) image.Source = bitmap;
+        }
+
+        void CheckReleaseRow(Grid releaseRow)
+        {
+            var actions = Descendants(releaseRow).OfType<StackPanel>().Single(panel => panel.Name == "ReleaseActions");
+            var text = Descendants(releaseRow).OfType<StackPanel>().Single(panel => panel.Name == "ReleaseText");
+            var actionX = actions.TransformToVisual(releaseRow).TransformPoint(new Windows.Foundation.Point()).X;
+            Require(Math.Abs(actionX + actions.ActualWidth - releaseRow.ActualWidth) < 1
+                && text.ActualWidth + 11 <= actionX, "AniBT 行尾操作没有靠右或遮住标题规格");
+            var buttons = actions.Children.OfType<Button>().ToArray();
+            Require(buttons.Select(button => button.Name).SequenceEqual(new[] { "OpenTorrentPage", "DownloadResource" }),
+                "AniBT 发布页和下载按钮顺序或局部句柄不正确");
+            foreach (var button in buttons)
+            {
+                Require(button.ActualWidth == 36 && button.ActualHeight == 36
+                    && button.CornerRadius.TopLeft > 0 && button.CornerRadius.TopLeft < 18,
+                    "AniBT 行尾按钮不是圆角正方形");
+                var peer = FrameworkElementAutomationPeer.CreatePeerForElement(button);
+                Require(peer is not null && peer.GetName().Length > 0 && peer.GetAutomationId() == button.Name,
+                    "AniBT 图标按钮没有可定位的 UIA 句柄或辅助名称");
+            }
         }
 
         async Task SizeAsync(LibraryPage page, int width)
