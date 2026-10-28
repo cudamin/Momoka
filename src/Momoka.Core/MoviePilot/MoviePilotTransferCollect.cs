@@ -8,7 +8,7 @@ namespace Momoka.MoviePilot;
 /// <para>
 /// 菜单里的条目来自列表查询，只有名字和类型 —— 路径、媒体源、TMDB 号都是 Fields 点名才有的，这里按
 /// <c>Files + ProviderIds</c> 那一档现问一遍。季和整部剧不带自己的文件：下面每一集才是一个文件，季号/
-/// 剧号另从条目上读。单集和季的 TMDB 号不可信（那是「这一季」的号），一律回溯到剧集本身 —— MoviePilot
+/// 剧号另从条目上读。整部剧只收集身份，资源清单从 MoviePilot 的整理历史中选择。单集和季的 TMDB 号不可信（那是「这一季」的号），一律回溯到剧集本身 —— MoviePilot
 /// 认的是剧，季集另算。
 /// </para>
 /// <para>
@@ -51,6 +51,12 @@ public static class MoviePilotTransferCollect
             EmbyItemType.Episode => detail.ParentIndexNumber,
             _ => null
         };
+
+        if (detail.Type == EmbyItemType.Series)
+        {
+            return new MoviePilotTransferContext(detail.Name, MoviePilotTransferRequest.TypeSeries,
+                mediaId ?? "", null, "", []) { BrowseSeriesHistory = true };
+        }
 
         var files = await FilesOf(client, detail, cancellationToken).ConfigureAwait(false);
         return new MoviePilotTransferContext(

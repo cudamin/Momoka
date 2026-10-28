@@ -5,6 +5,15 @@ namespace Momoka.MoviePilot;
 
 public sealed partial class MoviePilotService
 {
+    /// <summary>与网页端相同的 tmdbid 路径文字筛选；查询本身不证明身份，分页收齐后核对当前剧。</summary>
+    public async Task<IReadOnlyList<MoviePilotTransferHistory>> FindSeriesTransferHistoriesAsync(
+        string tmdbId, CancellationToken cancellationToken)
+    {
+        var histories = await FindTransferHistoriesAsync(MoviePilotSeriesTransfer.Query(tmdbId),
+            cancellationToken).ConfigureAwait(false);
+        return histories.Where(history => MoviePilotSeriesTransfer.Matches(history, tmdbId)).ToList();
+    }
+
     public async Task<MoviePilotTransferHistoryPage> TransferHistoryAsync(
         string title, int page, CancellationToken cancellationToken)
     {
