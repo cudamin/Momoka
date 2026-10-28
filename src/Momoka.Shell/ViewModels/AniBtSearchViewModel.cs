@@ -279,6 +279,8 @@ public sealed partial class AniBtSearchViewModel : PageViewModel
         if (!_active || SelectedAnime is not { } anime || _launcher is null || !ConnectionMatches) return;
         var address = site switch
         {
+            "anibt" => $"https://anibt.net/anime/{anime.BgmId.ToString(CultureInfo.InvariantCulture)}"
+                + (Browser.ViewIndex == 1 ? "?tab=releases" : ""),
             "bangumi" => $"https://bgm.tv/subject/{anime.BgmId}",
             "official" => anime.OfficialSite,
             "AniDB" or "AniList" or "MyAnimeList" => anime.ExternalLinks.FirstOrDefault(link => link.Label == site)?.Uri.AbsoluteUri,

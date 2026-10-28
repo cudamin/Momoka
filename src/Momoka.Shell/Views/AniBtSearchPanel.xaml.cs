@@ -45,13 +45,11 @@ public sealed partial class AniBtSearchPanel : UserControl
     internal Task SearchAsync(string keyword, int? episode = null)
     {
         ObserveAvailability();
-        ResourceBrowser.ClosePopups();
         return ViewModel.SearchAsync(keyword, episode);
     }
 
     internal void PrepareSearch()
     {
-        ResourceBrowser.ClosePopups();
         ViewModel.PrepareSearch();
     }
 
@@ -61,7 +59,6 @@ public sealed partial class AniBtSearchPanel : UserControl
         if (_observing && _moviePilot is { } service) service.AvailabilityChanged -= OnAvailabilityChanged;
         _observing = false;
         ViewModel.Cancel();
-        ResourceBrowser.ClosePopups();
     }
 
     private void ObserveAvailability()
@@ -81,8 +78,6 @@ public sealed partial class AniBtSearchPanel : UserControl
             if (_observing && attachment == _attachment && ReferenceEquals(sender, _moviePilot)) Release();
         });
     }
-
-    private void OnReturnToAnime(object sender, RoutedEventArgs args) => ResourceBrowser.ClosePopups();
 
     private void OnResultsLoaded(object sender, RoutedEventArgs args) => ResizeResults();
     private void OnResultsSizeChanged(object sender, SizeChangedEventArgs args) => ResizeResults();
@@ -113,7 +108,6 @@ public sealed partial class AniBtSearchPanel : UserControl
     private void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
-        ResourceBrowser.ClosePopups();
         ViewModel.PrepareSearch(preserveEpisode: true);
     }
 }

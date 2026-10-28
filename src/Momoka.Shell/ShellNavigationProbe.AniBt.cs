@@ -7,6 +7,7 @@ using Momoka.AniBt;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.ViewModels;
+using Momoka.Shell.Platform;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -224,6 +225,7 @@ internal sealed partial class ShellNavigationProbe
         await ConnectMoviePilotAsync(fixture);
         var service = (MoviePilotService)fixture.Services.GetService(typeof(MoviePilotService))!;
         var frame = new Frame();
+        var launcher = new AniBtRecordingLauncher();
         _root.Children.Add(frame);
         try
         {
@@ -234,6 +236,9 @@ internal sealed partial class ShellNavigationProbe
             Require(tabs.Visibility == Visibility.Visible && tabs.Items.Count == 4, "连接后未显示 AniBT 搜索栏");
             tabs.SelectedIndex = 3;
             var panel = Get<AniBtSearchPanel>(page, "AniBtPanel");
+            Field(panel.ViewModel, "_launcher", launcher);
+            panel.ViewModel.OpenAnimeSiteCommand.Execute("anibt");
+            Require(launcher.Urls.Count == 0, "未选番剧时不应打开 AniBT");
             await UntilAsync(() => panel.Visibility == Visibility.Visible);
             Require(Get<Grid>(page, "EmbyContent").Visibility == Visibility.Collapsed
                 && Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Collapsed
@@ -310,7 +315,7 @@ internal sealed partial class ShellNavigationProbe
             Require(panel.ViewModel.SelectedAnime?.BgmId == 123 && browser.Rows.Count == 3,
                 $"选择番剧后没有读取对应 AniBT 资源：Rows={browser.Rows.Count}，Empty={browser.EmptyMessage}，"
                 + $"Busy={panel.ViewModel.Busy}，提示开={panel.ViewModel.NoticeOpen}，提示={panel.ViewModel.NoticeMessage}，"
-                + $"请求={string.Join("、", aniBt.Requests)}，筛选=({browser.SelectedEpisode}|{browser.SelectedResolution}|{browser.SelectedGroup})");
+                + $"请求={string.Join("、", aniBt.Requests)}");
             Require(aniBt.Requests.Any(path => path == "/api/anime/groups?bgmId=123"),
                 "资源查询没有绑定所选番剧的 Bangumi 编号");
             Require(panel.ViewModel.SelectedTitle == firstAnime.Title && panel.ViewModel.SelectedBgm == "Bangumi #123",
@@ -322,25 +327,22 @@ internal sealed partial class ShellNavigationProbe
                 "简介或完整发布进度没有显示，或按最近资源错误推断进度");
             Require(browser.ProgressGroups[0].RssUri?.Query.Contains("groupSlug=offline", StringComparison.Ordinal) == true,
                 "字幕组 RSS 没有保持组范围");
-            Require(browser.Episodes.SequenceEqual(new[] { AniBtBrowserViewModel.AllEpisodes, "01", "02", AniBtReleaseLabels.UnknownEpisode }),
-                "集号筛选没有按 RSS 集号给出选项：" + string.Join("、", browser.Episodes));
-            Require(browser.Resolutions.SequenceEqual(new[] { AniBtBrowserViewModel.AllResolutions, "1080p", "720p" }),
-                "清晰度筛选没有按 RSS 清晰度给出选项：" + string.Join("、", browser.Resolutions));
-            Require(browser.Groups.Contains("离线字幕组") && browser.Groups.Contains("另一个字幕组"),
-                "字幕组筛选没有按 RSS 字幕组给出选项：" + string.Join("、", browser.Groups));
-
-            browser.SelectedEpisode = "02";
-            await LayoutAsync(panel);
-            Require(browser.Rows.Count == 1 && browser.Rows[0].EpisodeChoice == "02",
-                "按集筛选没有只留下第 2 集");
-            browser.SelectedResolution = "1080p";
-            Require(browser.Rows.Count == 0 && browser.NoMatchesVisibility == Visibility.Visible,
-                "清晰度与集号组合筛选没有显示无匹配状态");
-            Require(browser.ResourceGroups.Count == 0, "筛选无匹配后空字幕组仍可见");
-            browser.ResetFiltersCommand.Execute(null);
-            Require(browser.Rows.Count == 3 && browser.SelectedResolution == AniBtBrowserViewModel.AllResolutions
-                && browser.SelectedEpisode == AniBtBrowserViewModel.AllEpisodes,
-                "清除筛选没有恢复全部发布");
+            Require(browser.Rows.Select(row => row.Release.ReleaseId).SequenceEqual(["rel_one", "rel_two", "rel_batch"]),
+                "移除筛选后没有完整保留按最新发布排序的资源");
+            var selected = panel.ViewModel.SelectedAnime!;
+            foreach (var id in new[] { selected.BgmId, 505550L })
+            {
+                panel.ViewModel.SelectedAnime = selected with { BgmId = id };
+                foreach (var view in new[] { 0, 1 })
+                {
+                    browser.ViewIndex = view;
+                    panel.ViewModel.OpenAnimeSiteCommand.Execute("anibt");
+                    var expected = $"https://anibt.net/anime/{id}" + (view == 1 ? "?tab=releases" : "");
+                    Require(launcher.Urls.LastOrDefault() == expected, "打开 AniBT 没有使用当前番剧及页签地址");
+                }
+            }
+            panel.ViewModel.SelectedAnime = selected;
+            panel.ViewModel.SelectedArtwork = poster;
 
             var row = browser.Rows[0];
             Require(row.CanDownload && row.Resource.MediaInfo.ValueKind != System.Text.Json.JsonValueKind.Object,
@@ -357,18 +359,30 @@ internal sealed partial class ShellNavigationProbe
                 var resourceBrowser = Get<AniBtResourceBrowser>(panel, "ResourceBrowser");
                 CheckCompactSearch(page, panel);
                 Require(!Descendants(panel).OfType<FrameworkElement>().Any(element => element.Name is
-                    "ReleaseFilter" or "CopyAnimeRss" or "CopyGroupRss" or "CopyGroupProgressRss" or "RssNotice"),
-                    "AniBT 搜索仍保留已删除的 RSS 或二次文本筛选组件");
+                    "ReleaseFilter" or "CopyAnimeRss" or "CopyGroupRss" or "CopyGroupProgressRss" or "RssNotice"
+                    or "EpisodeFilter" or "GroupFilter" or "ResolutionFilter" or "SortOrder" or "ResetFilters"),
+                    "AniBT 搜索仍保留已删除的 RSS 或资源筛选组件");
+                var openAniBt = Get<Button>(panel, "OpenAniBtSite");
+                var returnToAnime = Get<Button>(panel, "ReturnToAnime");
+                var heroActions = (WrapRow)VisualTreeHelper.GetParent(openAniBt);
+                Require(heroActions.Children.IndexOf(openAniBt) < heroActions.Children.IndexOf(returnToAnime)
+                    && Equals(openAniBt.Content, "打开 AniBT"), "打开 AniBT 没有放在返回番剧之前");
                 browser.ViewIndex = 0;
                 await LayoutAsync(panel);
+                CheckReleaseTabs(resourceBrowser, 0);
+                await InvokeOpenAniBtAsync(openAniBt, false);
                 SetProbeGroupLogos(resourceBrowser, logoBitmap);
                 await SaveSettledFrameAsync(page, $"anibt-detail-{width}-render.png");
+                await SaveProbeScreenAsync($"anibt-detail-{width}-screen.png");
                 detailScroll.ChangeView(null, width < 600 ? resourceBrowser.TransformToVisual(Get<StackPanel>(panel, "AnimeResourcesView"))
                     .TransformPoint(new Windows.Foundation.Point()).Y : 0, null, true);
                 await LayoutAsync(panel);
                 await SaveSettledFrameAsync(page, $"anibt-progress-{width}-render.png");
-                browser.ViewIndex = 1;
+                Get<Segmented>(resourceBrowser, "ReleaseTabs").SelectedIndex = 1;
                 await LayoutAsync(panel);
+                Require(browser.ViewIndex == 1, "资源页签选择没有回写视图模型");
+                CheckReleaseTabs(resourceBrowser, 1);
+                await InvokeOpenAniBtAsync(openAniBt, true);
                 detailScroll.ChangeView(null, resourceBrowser.TransformToVisual(Get<StackPanel>(panel, "AnimeResourcesView"))
                     .TransformPoint(new Windows.Foundation.Point()).Y, null, true);
                 await LayoutAsync(panel);
@@ -378,11 +392,10 @@ internal sealed partial class ShellNavigationProbe
                 var releaseRows = Descendants(releaseList).OfType<Grid>().Where(grid => grid.Name == "ReleaseRow").ToArray();
                 Require(releaseRows.Length == 3, "AniBT 行尾按钮检查没有取得全部发布行");
                 foreach (var releaseRow in releaseRows) CheckReleaseRow(releaseRow);
-                var filters = Get<WrapRow>(resourceBrowser, "ReleaseFilters");
-                var filterY = filters.TransformToVisual(resourceBrowser).TransformPoint(default).Y;
                 var listY = releaseList.TransformToVisual(resourceBrowser).TransformPoint(default).Y;
-                Require(listY - filterY - filters.ActualHeight is >= 0 and <= 9,
-                    "AniBT 筛选行与资源列表之间仍留大块空白");
+                var tabsElement = Get<Segmented>(resourceBrowser, "ReleaseTabs");
+                var tabsBottom = tabsElement.TransformToVisual(resourceBrowser).TransformPoint(default).Y + tabsElement.ActualHeight;
+                Require(listY - tabsBottom is >= 0 and <= 9, "删除筛选后页签和资源列表之间仍有空槽");
                 if (width == 1040)
                     Require(releaseRows.All(release => release.ActualHeight <= 70), "AniBT 宽窗发布行仍不够紧凑");
                 var logos = Descendants(releaseList).OfType<Image>().Where(image => image.Name == "GroupLogo").ToArray();
@@ -415,15 +428,7 @@ internal sealed partial class ShellNavigationProbe
                     {
                         ThemeHost.Apply(theme);
                         await LayoutAsync(panel);
-                        foreach (var name in new[] { "EpisodeFilter", "GroupFilter", "ResolutionFilter", "SortOrder" })
-                        {
-                            var filter = Get<EgPicker>(resourceBrowser, name);
-                            Require(filter.Background is SolidColorBrush background
-                                && background.Color == ThemeHost.ToColor(theme.Colors.AccentSoft)
-                                && filter.Foreground is SolidColorBrush foreground
-                                && foreground.Color == ThemeHost.ToColor(theme.Colors.Accent),
-                                "AniBT 筛选没有采用当前主题的 MP 资源角色色");
-                        }
+                        CheckReleaseTabs(resourceBrowser, 1);
                         foreach (var action in releaseRows.SelectMany(release => Descendants(release).OfType<Button>()))
                             Require(action.Background is SolidColorBrush background
                                 && background.Color == ThemeHost.ToColor(theme.Colors.AccentSoft)
@@ -469,6 +474,9 @@ internal sealed partial class ShellNavigationProbe
                 "取消 AniBT 下载仍然发送写请求或锁住结果行");
 
             panel.ViewModel.ReturnToResultsCommand.Execute(null);
+            var openedBeforeReturn = launcher.Urls.Count;
+            panel.ViewModel.OpenAnimeSiteCommand.Execute("anibt");
+            Require(launcher.Urls.Count == openedBeforeReturn, "返回番剧列表后旧网页命令仍打开链接");
             Require(ReferenceEquals(results, panel.ViewModel.Results) && ReferenceEquals(firstAnime, results[0])
                 && panel.ViewModel.SelectedAnime is null && panel.ViewModel.Browser.Rows.Count == 0,
                 "返回番剧没有恢复原列表或残留了旧资源");
@@ -531,6 +539,9 @@ internal sealed partial class ShellNavigationProbe
             Require(panel.Visibility == Visibility.Collapsed && panel.ViewModel.Results.Count == 0
                 && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Visible,
                 "MP 断线后 AniBT 未收起、查询未清空或媒体库未恢复");
+            var openedBeforeOffline = launcher.Urls.Count;
+            panel.ViewModel.OpenAnimeSiteCommand.Execute("anibt");
+            Require(launcher.Urls.Count == openedBeforeOffline, "断线后旧网页命令仍打开链接");
             await SaveProbeScreenAsync("anibt-offline.png");
 
             moviePilot.Offline = false;
@@ -562,6 +573,38 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(frame);
             ResizeInspect(1420, 980);
             _window?.Activate();
+        }
+
+        static void CheckReleaseTabs(AniBtResourceBrowser resourceBrowser, int selectedIndex)
+        {
+            var releaseTabs = Get<Segmented>(resourceBrowser, "ReleaseTabs");
+            Require(releaseTabs.SelectedIndex == selectedIndex && releaseTabs.BorderThickness == new Thickness(0)
+                && (releaseTabs.Background is null || releaseTabs.Background is SolidColorBrush { Color.A: 0 }),
+                "发布进度和资源页签仍有外框或背景");
+            foreach (var item in releaseTabs.Items.OfType<SegmentedItem>())
+            {
+                // Pivot item 继承的边框属性不参与绘制，检查实际模板的 Grid。
+                var templateRoot = Descendants(item).OfType<Grid>().Single(grid => grid.Name == "PART_Root");
+                Require(templateRoot.BorderThickness == new Thickness(0)
+                    && (templateRoot.Background is null || templateRoot.Background is SolidColorBrush { Color.A: 0 }),
+                    "页签实际模板仍有外框或背景");
+            }
+            var selectedItem = (SegmentedItem)releaseTabs.Items[selectedIndex];
+            var underline = Descendants(selectedItem).OfType<Microsoft.UI.Xaml.Shapes.Rectangle>()
+                .Single(shape => shape.Name == "PART_Pill");
+            Require(underline.ActualHeight > 0 && underline.Fill is SolidColorBrush brush
+                && brush.Color == ThemeHost.ToColor(ThemeHost.Current.Colors.Accent),
+                "无框页签没有当前主题的下划线");
+        }
+
+        async Task InvokeOpenAniBtAsync(Button button, bool releases)
+        {
+            var before = launcher.Urls.Count;
+            var peer = new ButtonAutomationPeer(button);
+            ((IInvokeProvider)peer.GetPattern(PatternInterface.Invoke)).Invoke();
+            await UntilAsync(() => launcher.Urls.Count == before + 1);
+            Require(launcher.Urls[^1] == "https://anibt.net/anime/123" + (releases ? "?tab=releases" : ""),
+                "打开 AniBT 按钮没有执行当前页签网页路径");
         }
 
         static void CheckCompactSearch(LibraryPage page, AniBtSearchPanel panel)
@@ -629,6 +672,13 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(dialog!);
             return dialog!;
         }
+    }
+
+    private sealed class AniBtRecordingLauncher : ISystemLauncher
+    {
+        internal List<string> Urls { get; } = [];
+        public void OpenFolder(string path) => throw new InvalidOperationException("AniBT 链接探针不打开目录");
+        public void OpenUrl(string url) => Urls.Add(url);
     }
 
     private sealed class AniBtMoviePilotProbeServer : HttpMessageHandler

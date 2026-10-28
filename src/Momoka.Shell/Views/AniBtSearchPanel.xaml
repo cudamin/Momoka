@@ -117,9 +117,9 @@
                                 <Button x:Name="ToggleAnimeSummary" Content="{x:Bind ViewModel.SummaryToggleText, Mode=OneWay}" Command="{x:Bind ViewModel.ToggleSummaryCommand}"
                                     Style="{StaticResource EgResourceButtonStyle}" Visibility="{x:Bind ViewModel.SummaryVisibility, Mode=OneWay}" />
                                 <local:WrapRow Spacing="8" RowSpacing="8">
-                                    <Button x:Name="ReturnToAnime" Style="{StaticResource EgResourceButtonStyle}" Content="返回番剧" Command="{x:Bind ViewModel.ReturnToResultsCommand}" Click="OnReturnToAnime" />
-
-                                    <Button x:Name="OpenAniBtSite" Style="{StaticResource EgResourceButtonStyle}" Content="AniBT 条目" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="anibt" />
+                                    <Button x:Name="OpenAniBtSite" Style="{StaticResource EgResourceButtonStyle}" Content="打开 AniBT"
+                                        Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="anibt" ToolTipService.ToolTip="在浏览器打开当前番剧" />
+                                    <Button x:Name="ReturnToAnime" Style="{StaticResource EgResourceButtonStyle}" Content="返回番剧" Command="{x:Bind ViewModel.ReturnToResultsCommand}" />
                                     <Button x:Name="OpenAniDbSite" Style="{StaticResource EgResourceButtonStyle}" Content="AniDB" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="AniDB"
                                         Visibility="{x:Bind ViewModel.AniDbVisibility, Mode=OneWay}" />
                                     <Button x:Name="OpenAniListSite" Style="{StaticResource EgResourceButtonStyle}" Content="AniList" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="AniList"

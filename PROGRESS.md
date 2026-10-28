@@ -1,3 +1,11 @@
+### AniBT 打开网页入口与资源页精简（2026-10-28）
+
+- 本会话继续在 `C:/Users/89400/.codex/worktrees/anibt-search-layout/Momoka`／`codex/anibt-search-layout` 修改 AniBT 搜索与资源组件、相关 VM、定向界面探针、资源回归及说明。操作排复用现有入口并改为“打开 AniBT”，放在“返回番剧”前；当前 Bangumi 编号按进度／资源页签生成 `https://anibt.net/anime/{id}`／`?tab=releases`，保留活动、连接与网址守卫，不写死示例编号。
+- 资源区删除集数、字幕组、清晰度、排序四项筛选及清除／无匹配区域，保留完整资源最新排序、完整字幕组进度、稳定集合及五条展开。页签使用局部 Toolkit Pivot 样式，透明背景、无绘制边框和主题下划线；保留搜索初始番剧列表筛选、头像与行尾 36 DIP 圆角方钮。
+- 当前 Release Shell 编译 0 警告／0 错误；主测试 3109/3109、资源回归 53/53，0 失败／0 跳过。记录型 launcher 经实际按钮与命令验证 123／505550 两编号及两页签，未选择、返回与断线后拒绝打开。实际 `--probe-shell --probe-section anibt --screen 1` 3/3、退出 0，报告 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-093419818-11920/logs`；宽窄详情／资源及五主题实屏截图已保存，宽窗已核对。
+- Shell 与资源测试定向空白检查退出 0、0 文件修改且无加载诊断，`git diff --check` 通过。方案级定向 format 的两项缺失 SourceExtractor 加载警告仅属未构建的无关测试项目，不当作全方案通过；诊断日志保留。format 同 shell 使用 x64 环境后误运行资源夹具找错输出路径的启动失败已保留，移除该环境变量后使用原 Release 输出重跑 53/53（文档修正已覆盖）。
+- 最终交付前合入 master 已交付 SVP，再对整合代码编译、主测试、资源专项及 `anibt,svp` 界面检查；不带入主树其他会话未提交内容。原缺样式字典与错误 item 属性检查的两份探针失败报告保留，成功证据只采用 093419818 当前模板实际绘制检查。未启动真实浏览器、下载／整理写入或播放，没有上传远端。
+
 ### AniBT 精简界面实际交付完成（2026-10-28）
 
 - 最终产品整合提交 `7b48443`。从本会话整合树运行 `tools/publish.ps1 -NoArchive -Shortcut -OutputRoot C:/Users/89400/Momoka/artifacts` 成功，实际程序为 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`，ProductVersion `0.2.0+7b48443920654c5d6fe0e8a813161caeeee02d54`；桌面快捷方式已读回核实指向同一程序。发布校验 546 文件／284.4 MB，14 GLSL、4 HOOK 和批准 mpv 59 文件通过。

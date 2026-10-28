@@ -16,12 +16,6 @@ public sealed partial class AniBtResourceBrowser : UserControl
         Bindings.Update();
     }
 
-    internal void ClosePopups()
-    {
-        foreach (var picker in new[] { EpisodeFilter, GroupFilter, ResolutionFilter, SortOrder })
-            picker.IsDropDownOpen = false;
-    }
-
     // 直接绑定空 URL 会让 WinUI 的 string → ImageSource 转换抛异常；明确返回可空图片对象。
     public static Microsoft.UI.Xaml.Media.Imaging.BitmapImage? CreateGroupLogo(string? address)
         => AniBtArtwork.Create(address, 24);
@@ -30,5 +24,4 @@ public sealed partial class AniBtResourceBrowser : UserControl
     {
         if (sender is Image { Tag: AniBtResourceGroup group }) group.MarkLogoFailed();
     }
-
 }
