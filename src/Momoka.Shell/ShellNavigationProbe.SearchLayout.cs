@@ -40,6 +40,22 @@ internal sealed partial class ShellNavigationProbe
                 var header = Get<Grid>(page, "HeaderLayout");
                 var search = Get<Border>(page, "SearchSurface");
                 var box = Bounds(search, header);
+                RequireSearchHeader(page);
+                var pageBox = Bounds(search, page);
+                await File.AppendAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "search-title-upshift.txt"),
+                    $"width={width}; title={Get<TextBlock>(page, "LibraryTitle").Visibility}; row={Grid.GetRow(search)}; searchTop={pageBox.Top:F1}; searchBottom={pageBox.Bottom:F1}\n");
+                if (width == 1040)
+                {
+                    var title = Get<TextBlock>(page, "LibraryTitle");
+                    title.Visibility = Visibility.Visible;
+                    var rejected = false;
+                    try { RequireSearchHeader(page); }
+                    catch (InvalidOperationException) { rejected = true; }
+                    finally { title.Visibility = Visibility.Collapsed; }
+                    Require(rejected, "搜索标题重新显示的反例未被检测");
+                    await LayoutAsync(page);
+                    RequireSearchHeader(page);
+                }
                 Require(Math.Abs(box.Left + box.Width / 2 - header.ActualWidth / 2) <= 1, "搜索未居中");
                 Require(box.Left >= -1 && box.Right <= header.ActualWidth + 1, "搜索超出内容区");
                 Require(Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Collapsed, "搜索页仍显示浏览工具栏");
@@ -48,6 +64,52 @@ internal sealed partial class ShellNavigationProbe
                 Require(categoryBox.Left >= -1 && categoryBox.Right <= page.ActualWidth + 1, "搜索分类被裁切");
                 var tabs = Get<Segmented>(page, "SourceTabs");
                 Require(tabs.ActualWidth <= search.ActualWidth, "来源切换超出搜索区");
+                Require(tabs.CornerRadius == new CornerRadius(18) && tabs.BorderThickness == new Thickness(0)
+                    && Colour(tabs.Background) == Role("EgSurfaceHoverBrush"), "来源栏仍是长方形边框");
+                var selected = (SegmentedItem)tabs.Items[tabs.SelectedIndex];
+                RequirePill(selected, selected: true);
+                foreach (var item in tabs.Items.OfType<SegmentedItem>())
+                {
+                    var itemBox = Bounds(item, tabs);
+                    Require(item.CornerRadius == new CornerRadius(14) && item.ActualHeight == 28
+                        && itemBox.Left >= 0 && itemBox.Right <= tabs.ActualWidth,
+                        $"{width} 来源胶囊不是圆角或超出切换栏");
+                    var label = (TextBlock)item.Content;
+                    Require(label.TextWrapping == TextWrapping.NoWrap && !label.IsTextTrimmed,
+                        $"{width} 来源胶囊标签换行或被截断：{label.Text}");
+                }
+                // 原生辅助功能选择必须触发真实 SelectionChanged，不只直接修改索引。
+                if (width == 1040)
+                {
+                    foreach (var index in new[] { 1, 2, 3, 0 })
+                    {
+                        var item = (SegmentedItem)tabs.Items[index];
+                        var parentPeer = Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(tabs);
+                        var name = Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(item);
+                        var children = parentPeer?.GetChildren();
+                        var peer = children?.SingleOrDefault(child => child.GetName() == name)
+                            ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(item);
+                        var selection = peer?.GetPattern(Microsoft.UI.Xaml.Automation.Peers.PatternInterface.SelectionItem)
+                            as Microsoft.UI.Xaml.Automation.Provider.ISelectionItemProvider;
+                        await File.AppendAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "search-pill-uia.txt"),
+                            $"index={index}; parent={parentPeer?.GetType().Name}; children={children?.Count}; itemPeer={peer?.GetType().Name}; name={peer?.GetName()}; selection={selection is not null}\n");
+                        Require(selection is not null && !string.IsNullOrWhiteSpace(peer!.GetName()), "来源胶囊缺少辅助功能选择入口");
+                        selection!.Select();
+                        await LayoutAsync(page);
+                        Require(tabs.SelectedIndex == index && item.IsSelected, "来源胶囊辅助功能未切换实际来源");
+                        RequirePill(item, selected: true);
+                    }
+                    var probeItem = (SegmentedItem)tabs.Items[0];
+                    var radius = probeItem.CornerRadius;
+                    probeItem.CornerRadius = new CornerRadius(0);
+                    var rejected = false;
+                    try { RequirePill(probeItem, selected: true); }
+                    catch (InvalidOperationException) { rejected = true; }
+                    finally { probeItem.CornerRadius = radius; }
+                    Require(rejected, "来源胶囊被改成方形的反例未被检测");
+                    await LayoutAsync(page);
+                }
+
                 var input = Get<AutoSuggestBox>(page, "SearchInput");
                 var field = Descendants(input).OfType<TextBox>().First();
                 Require(field.Focus(FocusState.Programmatic), "搜索框不能获得焦点");
@@ -66,6 +128,7 @@ internal sealed partial class ShellNavigationProbe
                             await LayoutAsync(page);
                             Require(Colour(edge.BorderBrush) == Role("EgBorderBrush") && edge.BorderThickness == new Thickness(1),
                                 $"主题 {theme.Id} 搜索框出现强调色边框");
+                            RequirePill((SegmentedItem)tabs.Items[tabs.SelectedIndex], selected: true);
                             await SaveProbeScreenAsync($"search-focus-neutral-{theme.Id}-screen.png");
                         }
                     }
@@ -116,12 +179,37 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(Get<Border>(page, "SearchSurface").Visibility == Visibility.Collapsed
                 && Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Visible, "普通媒体库工具栏被移除");
+            Require(Get<TextBlock>(page, "LibraryTitle").Visibility == Visibility.Visible
+                && Get<TextBlock>(page, "LibraryTitle").Text == page.ViewModel.Heading,
+                "普通媒体库标题没有恢复");
         }
         finally
         {
             (frame.Content as IShellContent)?.Release();
             _root.Children.Remove(frame);
             ResizeInspect(1420, 980);
+        }
+
+        void RequireSearchHeader(LibraryPage page)
+        {
+            var surface = Get<Border>(page, "SearchSurface");
+            var box = Bounds(surface, Get<Grid>(page, "HeaderLayout"));
+            Require(Get<TextBlock>(page, "LibraryTitle").Visibility == Visibility.Collapsed,
+                "搜索页左上标题仍可见");
+            Require(surface.Padding == new Thickness(0) && surface.BorderThickness == new Thickness(0)
+                && surface.Background is null && surface.BorderBrush is null, "搜索框仍套在长方形外卡中");
+            Require(Grid.GetRow(surface) == 0 && Math.Abs(box.Top - surface.Margin.Top) <= 1,
+                "搜索标题收起后仍占一行空白");
+            Require(Get<Grid>(page, "PageRoot").Margin.Top == 40 && Bounds(surface, page).Top >= 32,
+                "搜索组件没有整体上移或侵入窗口按钮区域");
+        }
+
+        void RequirePill(SegmentedItem item, bool selected)
+        {
+            var shape = Descendants(item).OfType<Grid>().Single(node => node.Name == "PART_Root");
+            Require(shape.CornerRadius == new CornerRadius(14), "来源项仍是长方形");
+            if (selected)
+                Require(Colour(shape.Background) == Role("EgAccentSoftBrush"), "来源胶囊选中底色未跟随主题");
         }
 
         Windows.UI.Color Role(string key) => Colour(Application.Current.Resources[key] as Brush);
