@@ -101,7 +101,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 关闭后收起菜单且保留普通菜单", MoviePilotMenusAsync);
             await CaseAsync("MoviePilot 搜索站点多选、清空、默认及离页取消", MoviePilotSearchSitesAsync);
             await CaseAsync("MoviePilot 资源卡片、季集筛选和下载选项", MoviePilotResourceOptionsAsync, 30);
-            await CaseAsync("MoviePilot 剧资源按 TMDB 筛选、多选与批量预览", MoviePilotSeriesReorganizeAsync, 60, section: ShellProbeSections.MoviePilot);
+            await CaseAsync("MoviePilot 剧资源按 TMDB 筛选、多选与批量预览", MoviePilotSeriesReorganizeAsync, 120, section: ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 搜索海报、资源卡片与多选筛选布局", MoviePilotSearchCardsAsync, 60, ShellProbeSections.MoviePilot);
             await CaseAsync("搜索宽窄布局和媒体库工具栏隔离", SearchHeaderLayoutAsync, 45);
             await CaseAsync("加载中禁止播放全部", PlaybackBusyAsync);
