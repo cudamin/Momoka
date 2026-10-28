@@ -1443,6 +1443,13 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     void IShellActions.OpenItem(EmbyItem item) => OpenItem(item);
 
+    void IShellActions.OpenMoviePilotMedia(MoviePilotMedia media, MoviePilotSubscription? subscription)
+    {
+        // 唯一对上的订阅（电影，或只有一季的电视剧）直接进订阅详情；其余进同一页的媒体模式。
+        if (subscription is not null) OpenSubscription(subscription);
+        else OpenMoviePilotMedia(media);
+    }
+
     bool IShellActions.MoviePilotEnabled =>
         _services?.GetService<Momoka.MoviePilot.MoviePilotService>()?.Available ?? false;
 

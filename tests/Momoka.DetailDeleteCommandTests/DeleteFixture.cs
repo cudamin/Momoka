@@ -227,6 +227,7 @@ internal sealed class CommandActions(DetailActionsProxy proxy) : IShellActions
     public void OpenSignIn(ServerProfile? server = null, bool newAccount = false) => throw Reject();
     public Task SwitchProfileAsync(ServerProfile server, AccountProfile? account) => throw Reject();
     public void SetTitleStrip(TitleStrip strip) => throw Reject();
+    public void OpenMoviePilotMedia(Momoka.MoviePilot.MoviePilotMedia media, Momoka.MoviePilot.MoviePilotSubscription? subscription = null) => throw Reject();
     public void SearchMoviePilotVersions(EmbyItem item) => throw Reject();
     public void SearchAniBtVersions(EmbyItem item) => throw Reject();
     public void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) => throw Reject();

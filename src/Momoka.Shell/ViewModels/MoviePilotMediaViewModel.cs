@@ -137,6 +137,25 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public ObservableCollection<MoviePilotSubscriptionFact> Facts { get; } = [];
     public ObservableCollection<MoviePilotMediaLink> Links { get; } = [];
     public MoviePilotMediaDetail? Detail { get; private set; }
+
+    /// <summary>
+    /// 首次读取媒体详情时这一页要不要摆加载动画（2026-10-28 用户令「点击进入订阅页面时候需要时间加载，
+    /// 添加动画过渡」）。读完了（不论成败）或详情已到就收起；刷新既有内容时不显示 —— 屏上已经有读得出的
+    /// 东西，再盖一颗转圈只会挡着它。转圈本身不是那条被撤掉的细进度条（见订阅页 XAML 顶上那段）。
+    /// </summary>
+    public bool InitialLoading => Busy && _firstDetailLoad && Detail is null;
+    public Visibility InitialLoadingVisibility => Show(InitialLoading);
+
+    /// <summary>这一趟是不是这台媒体的头一次详情读取；<see cref="InitialLoading"/> 只认头一次。</summary>
+    private bool _firstDetailLoad;
+
+    /// <summary>首次加载状态的两个自变量：<see cref="PageViewModel.Busy"/> 与详情是否已到。</summary>
+    private void AnnounceInitialLoading()
+    {
+        OnPropertyChanged(nameof(InitialLoading));
+        OnPropertyChanged(nameof(InitialLoadingVisibility));
+    }
+
     [ObservableProperty] public partial string Title { get; set; } = "";
     [ObservableProperty] public partial string Overview { get; set; } = "";
     [ObservableProperty] public partial string Tagline { get; set; } = "";
@@ -296,7 +315,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     partial void OnSubmittingChanged(bool value) => NotifyState();
     partial void OnSubmittedChanged(bool value) => NotifyState();
     partial void OnAniBtSearchChanged(bool value) => NotifyState();
-    protected override void BusyChanged() => NotifyState();
+    protected override void BusyChanged() { AnnounceInitialLoading(); NotifyState(); }
     private void NotifyState()
     {
         OnPropertyChanged(nameof(CanInteract)); OnPropertyChanged(nameof(CanSubmit)); OnPropertyChanged(nameof(SubmitReviewVisibility));
@@ -325,7 +344,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         var lifetime = _lifetime!;
         var load = BeginLoad();
         if (!ReferenceEquals(lifetime, _lifetime) || !Live || !IsCurrent(load)) return;
+        _firstDetailLoad = Detail is null;
         Detail = null;
+        AnnounceInitialLoading();
         Seasons.Clear();
         _libraryStatesKnown = false;
         _defaultSubscribeMode = MoviePilotSubscribeMode.Normal;
@@ -336,6 +357,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             var subscriptions = await _service.SubscriptionsAsync(linked.Token);
             if (!Live || !IsCurrent(load)) return;
             Detail = detail; _subscriptions = subscriptions.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, _media)).ToArray();
+            _firstDetailLoad = false;
+            AnnounceInitialLoading();
             if (_picker && detail.Media.Type == "电视剧")
             {
                 try { _defaultSubscribeMode = await _service.DefaultTvSubscribeModeAsync(detail.Media, linked.Token); }
@@ -672,6 +695,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         _lifetime?.Cancel(); _lifetime?.Dispose(); _lifetime = null;
         _groupLoad?.Cancel(); _groupLoad = null;
         Seasons.Clear(); Groups.Clear(); Facts.Clear(); Links.Clear(); Detail = null;
+        _firstDetailLoad = false;
+        AnnounceInitialLoading();
         Poster = Backdrop = null; ClearRelated(); Submitting = false;
         _loadingEpisodes.Clear();
         base.Cancel(); NotifyState();

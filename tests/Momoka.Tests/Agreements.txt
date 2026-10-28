@@ -738,6 +738,8 @@ handle  Views/MoviePilotSubscriptionPage.xaml  BackdropFadeBrush
 handle  Views/MoviePilotSubscriptionPage.xaml  BodySheet
 handle  Views/MoviePilotSubscriptionPage.xaml  DetailBackdropFade
 handle  Views/MoviePilotSubscriptionPage.xaml  DetailBackdropScrim
+handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoading
+handle  Views/MoviePilotSubscriptionPage.xaml  DetailLoadingRing
 handle  Views/MoviePilotSubscriptionPage.xaml  HeroBlock
 handle  Views/MoviePilotSubscriptionPage.xaml  HeroSection
 handle  Views/MoviePilotResourceBrowser.xaml  ActiveFilters

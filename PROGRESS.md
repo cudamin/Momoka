@@ -1,3 +1,12 @@
+## MoviePilot 订阅搜索点封面进订阅页、首次读取转圈（2026-10-28）
+
+- 用户令「订阅的搜索页面要支持点击封面进入对应媒体的订阅页面」；随后补充「点击进入订阅页面时候需要时间加载，添加动画过度」，并选定方案 A（唯一对上的订阅随行，其余进媒体页）与「只做转圈」。本轮只动这两件事，不碰真实服务器、订阅写入或播放。
+- **上游对照**：官方前端 `jxxghp/MoviePilot-Frontend` 当前 `v3` = `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2`（`git ls-remote`，2026-10-28）。该提交的 `src/components/cards/MediaCard.vue` 在卡片被激活/悬停后 `router.push` 到 `/media` 媒体页；`src/views/discover/MediaDetailView.vue` 在 `!isRefreshed` 时显示 `LoadingBanner`，海报占位用 `VSkeletonLoader`。没有连接真实 MoviePilot 服务器，本轮结论只来自源码与本地匿名夹具。
+- **点封面进订阅页**：搜索结果的 `ItemsView` 打开 `ItemInvoked`（键盘回车同样生效），`MoviePilotSearchPanel` 把被调用的卡交给 `MoviePilotSearchViewModel.Open`；它只接受当前结果集、当前连接里的卡，旧查询/断线/迟到点击不导航。`IShellActions` 新增 `OpenMoviePilotMedia(media, subscription)`，由 `ShellPage` 转到既有的 `OpenSubscription` 或 `OpenMoviePilotMedia`。`RefreshResult` 现在也为电视剧记下「恰好一条」的订阅：电影或单季电视剧点封面直接进那条订阅详情（文件统计、入库徽标、订阅管理齐全），没有订阅或同一部剧有多季订阅时进同一页的媒体模式（列季、显示每季订阅状态）。三颗小按钮仍只做自己的动作。
+- **首次读取转圈**：`MoviePilotMediaViewModel` 新增 `InitialLoading`（`Busy && 头一次详情读取 && Detail is null`）与 `InitialLoadingVisibility`，在 Busy、详情到达、失败收尾和离页时发通知；只认这台媒体的头一次详情读取，刷新已有内容不显示。订阅页在根层加一层 `EgScrimBrush` 暗罩＋居中浮层（`DetailLoading`：28 像素 `ProgressRing` +「正在读取媒体详情…」），`IsHitTestVisible=False`，读完或失败随状态收起。位置选视口中央而不是正文纸面：默认 800 高的窗口上图下沿正好在首屏底边，纸面顶上的东西要滚动才看得见。2026-10-12 撤掉的细进度条没有复活，探针继续断言整页 0 个 `ProgressBar`。
+- **验证**：Solution Release 构建 **0 警告 0 错误**；`Momoka.MoviePilotSubscribeSettingsTests` **69/69**（新增打开路由、唯一订阅/多季/断线、首次加载与失败收起、XAML 合同共 4 条）；Core `Momoka.Tests` **3057/3057**；`Momoka.AniBtEntryTests` **32/32**、`Momoka.ItemUserStateOrderTests` **66/66**、`Momoka.PageContractTests` **98/98**、`Momoka.PlexAffordanceTests` **67/67**（IShellActions 新方法编译边界）。开发件 `--probe-shell --probe-section moviepilot --screen 1` 退出码 0，MoviePilot 分区 **23/23**；加载帧 `mp-subscription-loading-1240.png` 与默认窗口 `mp-subscription-loading-1422.png` 在该次日志目录，断言浮层落在视口内、读完后收起。改动的 C# 文件通过定向 `format whitespace`，`git diff --check` 干净，自动化扫描 0 个无句柄交互控件；`Agreements.txt` 的 handle 基线补了 `DetailLoading`／`DetailLoadingRing`。
+- **未完成／边界**：工作树里另有一批不属于本任务的未提交改动（搜索站点与搜索头收起等），全解决方案 `format whitespace` 仍会在 `ShellNavigationProbe.SearchLayout.cs` 报该批的空白问题；本轮只做定向空白检查，不替它改文件。未运行 `Momoka.DetailDeleteCommandTests` 的 Run-Fixture（IShellActions 新方法不在其执行路径，只有全解决方案编译覆盖）。**未发布**：交付目录与桌面快捷方式仍是旧版，因为当前树包含另一批未提交工作，不能把它们一起发出去。
+
 ## MoviePilot 季选择弹窗按网页端界面同步（2026-10-28）
 
 - 用户令「参考网页端源码，修改本项目的订阅设置窗口」，并附「未选季」与「已选中、右侧出现三档」两张网页截图；同时要求把「审查代码时检查源码对应界面有没有新增或减少功能，本项目同步更改」记进 MoviePilot 技能。本轮只改这一扇窗，不碰播放或真实订阅写入。

@@ -7,9 +7,10 @@ using Microsoft.UI.Xaml.Controls;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 搜索页里 MoviePilot 那一段的视图。全部内容都是 <see cref="MoviePilotSearchViewModel"/> 的；这里留的只有
-/// 视图才做得了的几件事：把连接服务和按季设置接进视图模型、把页面共享的搜索框提交转成一次搜索、以及点某条
-/// 结果的「搜索资源」时把资源覆盖面板盖上来（那要 <c>XamlRoot</c>，只有在树里的控件给得出）。
+/// MoviePilot 搜索页里那一段的视图。全部内容都是 <see cref="MoviePilotSearchViewModel"/> 的；这里留的只有
+/// 视图才做得了的几件事：把连接服务和按季设置接进视图模型、把页面共享的搜索框提交转成一次搜索、点某条
+/// 结果的「搜索资源」时把资源覆盖面板盖上来（那要 <c>XamlRoot</c>，只有在树里的控件给得出），以及把卡片
+/// 被调用（点封面/片名/回车）转给视图模型的打开动作。
 /// <para>
 /// 和别的页一样自建视图模型、构造时就建好（<c>x:Bind</c> 不许有 null 根，见 <see cref="FilterPanel"/>）；季选择
 /// 对话框使用 MoviePilot 的统一失效守卫；电影按钮按明确状态直接执行，不再二次确认。
@@ -41,7 +42,8 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     /// 由 <see cref="LibraryPage"/> 在它那唯一一处解析块里调一次：把连接服务交给视图模型、把「电视剧订阅季设置」
     /// 接到本控件的 <c>XamlRoot</c> 上，并把「搜索资源」的入口交给视图模型（它只把媒体递回来，开面板归这里）。
     /// </summary>
-    internal void Attach(MoviePilotService service, ISystemLauncher launcher)
+    internal void Attach(MoviePilotService service, ISystemLauncher launcher,
+        Action<MoviePilotMedia, MoviePilotSubscription?>? openMedia = null)
     {
         _service = service;
         _launcher = launcher;
@@ -49,6 +51,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
         ViewModel.UseResourceOpener(ShowResourcesAsync);
         ViewModel.UseSeasonPicker((media, token) => MoviePilotSeasonPicker.ShowAsync(this, service, media, "", media.Season, token));
+        if (openMedia is not null) ViewModel.UseMediaOpener(openMedia);
     }
 
     internal void LoadSources() => _ = ViewModel.LoadSourcesAsync();
@@ -99,6 +102,16 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     /// <summary>来源下拉换选：交给视图模型，有上一次的词就按新来源重搜。</summary>
     private void OnSourceChanged(object sender, SelectionChangedEventArgs e) =>
         _ = ViewModel.ApplySourceFilterAsync();
+
+    /// <summary>点一张结果卡：进这部媒体的订阅页（唯一对上的订阅随行，见视图模型的 <c>Open</c>）。</summary>
+    private void OnResultInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)
+    {
+        if (args.InvokedItem is not MoviePilotResult result) return;
+        OpenResult(result);
+    }
+
+    /// <summary>探针：绕开真实指针，直接走「卡片被调用」这一支。</summary>
+    internal void OpenResult(MoviePilotResult result) => ViewModel.Open(result);
 
     /// <summary>资源面板的返回键：收起它，回到片子列表。</summary>
     private void OnResourceClosed(object? sender, EventArgs e)

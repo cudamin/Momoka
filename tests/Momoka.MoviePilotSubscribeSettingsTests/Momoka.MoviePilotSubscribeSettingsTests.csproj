@@ -23,6 +23,7 @@
         <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSeasonPicker.xaml" LogicalName="Production.MoviePilotSeasonPicker.xaml" />
         <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml" LogicalName="Production.MoviePilotSearchPanel.xaml" />
         <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml.cs" LogicalName="Production.MoviePilotSearchPanel.xaml.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSubscriptionPage.xaml" LogicalName="Production.MoviePilotSubscriptionPage.xaml" />
         <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotSubscriptionPage.xaml.cs" LogicalName="Production.MoviePilotSubscriptionPage.xaml.cs" />
     </ItemGroup>
 </Project>

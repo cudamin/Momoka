@@ -496,7 +496,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         // MoviePilot 那半的连接服务，交给面板（它自己接确认对话框）。只有搜索页且接了 MoviePilot 时那个分段
         // 才出现，但服务无条件拿——构造它不花什么，也省得这里再判一次设置。
         MoviePilotPanel.Attach(services.GetRequiredService<MoviePilotService>(),
-            services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>());
+            services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), _actions.OpenMoviePilotMedia);
         MoviePilotResources.Attach(services.GetRequiredService<MoviePilotService>(),
             services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), sharedInput: true);
         AniBtPanel.Attach(services.GetRequiredService<Momoka.AniBt.AniBtService>(), _moviePilot,

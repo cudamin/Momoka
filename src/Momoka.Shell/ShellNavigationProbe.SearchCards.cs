@@ -38,8 +38,9 @@ internal sealed partial class ShellNavigationProbe
         var panel = new MoviePilotSearchPanel { Margin = new Thickness(24) };
         var resourceView = new MoviePilotResourceBrowser { Margin = new Thickness(24) };
         var browser = new MoviePilotResourceBrowserViewModel();
+        var opened = new List<(MoviePilotMedia Media, MoviePilotSubscription? Subscription)>();
         resourceView.Attach(browser);
-        panel.Attach(service, fixture.Launcher);
+        panel.Attach(service, fixture.Launcher, (media, subscription) => opened.Add((media, subscription)));
         await panel.ViewModel.LoadSourcesAsync();
         await panel.SearchAsync("一念永恒");
         _root.Children.Add(panel);
@@ -49,6 +50,16 @@ internal sealed partial class ShellNavigationProbe
         await UntilAsync(() => panel.ViewModel.Results.Count == 8 && panel.ViewModel.Results[0].Poster?.PixelWidth > 0);
         panel.ViewModel.Results[1].State = MoviePilotSubscribeState.Done;
         panel.ViewModel.Results[3].State = MoviePilotSubscribeState.Uncertain;
+        // 点卡片=进这部媒体的订阅页（2026-10-28 用户令）；这里没有订阅列表，走的正是媒体页那一支。
+        var firstResult = panel.ViewModel.Results[0];
+        panel.OpenResult(firstResult);
+        Require(Get<ItemsView>(panel, "Results").IsItemInvokedEnabled
+            && opened.Count == 1 && ReferenceEquals(opened[0].Media, firstResult.Media) && opened[0].Subscription is null,
+            "点卡片没有打开对应媒体的订阅页");
+        var alien = new MoviePilotResult(firstResult.Media with { MediaId = "999" },
+            _ => Task.CompletedTask, _ => Task.CompletedTask);
+        panel.OpenResult(alien);
+        Require(opened.Count == 1, "不在当前结果集的卡片仍能打开订阅页");
         _root.Children.Remove(panel);
         var rows = Enumerable.Range(0, 12).Select(index => new MoviePilotResourceRow(new MoviePilotResource
         {

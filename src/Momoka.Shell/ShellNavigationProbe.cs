@@ -538,6 +538,7 @@ internal sealed partial class ShellNavigationProbe
         public void SetTitleStrip(TitleStrip strip) { }
         public bool MoviePilotEnabled => false;
         public event EventHandler? MoviePilotAvailabilityChanged { add { } remove { } }
+        public void OpenMoviePilotMedia(Momoka.MoviePilot.MoviePilotMedia media, Momoka.MoviePilot.MoviePilotSubscription? subscription = null) { }
         public void SearchMoviePilotVersions(EmbyItem item) { }
         public void SearchAniBtVersions(EmbyItem item) { }
         public void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) { }

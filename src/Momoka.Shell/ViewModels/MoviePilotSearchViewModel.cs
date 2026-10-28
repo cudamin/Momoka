@@ -223,6 +223,9 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
     /// <summary>「搜资源」交给视图去开那层覆盖面板（要 XamlRoot），视图模型只管把媒体递出去。</summary>
     private Func<MoviePilotMedia, Task>? _openResources;
     private Func<MoviePilotMedia, CancellationToken, Task>? _openSeasonPicker;
+
+    /// <summary>点一张卡：把媒体交给页面去开订阅页；唯一对上的订阅一起带过去（见 <see cref="RefreshResult"/>）。</summary>
+    private Action<MoviePilotMedia, MoviePilotSubscription?>? _openMedia;
     private readonly HashSet<MoviePilotSubscriptionIdentity> _subscriptionActions = [];
 
     internal void UseSeasonPicker(Func<MoviePilotMedia, CancellationToken, Task> open) => _openSeasonPicker = open;
@@ -337,6 +340,20 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
     /// <summary>视图交给它的「开资源面板」入口，见 <see cref="SearchResourcesAsync"/>。</summary>
     internal void UseResourceOpener(Func<MoviePilotMedia, Task> open) => _openResources = open;
 
+    /// <summary>视图交给它的「打开订阅页」入口；外壳负责真正的导航。</summary>
+    internal void UseMediaOpener(Action<MoviePilotMedia, MoviePilotSubscription?> open) => _openMedia = open;
+
+    /// <summary>
+    /// 点一张结果卡（封面或标题）。只认当前结果集与当前连接 —— 旧查询、离页后的迟到点击不开新页面；
+    /// 唯一对上的订阅随行，其余交给媒体页（见 <see cref="RefreshResult"/>）。
+    /// </summary>
+    internal void Open(MoviePilotResult result)
+    {
+        if (_service is null || !_service.Available || !Results.Contains(result)
+            || !_service.IsCurrentConnection(result.Media.ConnectionStamp)) return;
+        _openMedia?.Invoke(result.Media, result.Subscription);
+    }
+
     /// <summary>外壳刷新会调这一条；这一页的刷新就是把上一次的词重搜一遍。</summary>
     public override Task ReloadAsync() => SearchAsync(_lastTerm);
 
@@ -414,9 +431,13 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         if (subscriptions is null) { result.Subscription = null; result.State = MoviePilotSubscribeState.Unknown; return; }
         try
         {
-            result.Subscription = result.Media.Type == "电影" ? MoviePilotSubscriptionPlan.Find(result.Media with { Season = null }, "", subscriptions) : null;
-            var subscribed = result.Media.Type == "电影" ? result.Subscription is not null
-                : subscriptions.Any(item => MoviePilotSubscriptionPlan.SameMedia(result.Media, item.Media));
+            var matches = subscriptions.Where(item => MoviePilotSubscriptionPlan.SameMedia(result.Media, item.Media)).ToArray();
+            // 电影按完整身份取那一条；电视剧没有唯一身份（同一部剧可以按季订阅多条），
+            // 只有恰好一条时才把它交给打开动作，多条或没有都进媒体页。
+            result.Subscription = result.Media.Type == "电影"
+                ? MoviePilotSubscriptionPlan.Find(result.Media with { Season = null }, "", subscriptions)
+                : matches.Length == 1 ? matches[0] : null;
+            var subscribed = result.Media.Type == "电影" ? result.Subscription is not null : matches.Length > 0;
             var operation = _service.SubscribeState(result.Media);
             result.State = operation is MoviePilotOperationState.Uncertain or MoviePilotOperationState.Working
                 ? MoviePilotResult.StateOf(operation) : subscribed ? MoviePilotSubscribeState.Done : MoviePilotSubscribeState.Idle;
