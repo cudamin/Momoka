@@ -1,3 +1,22 @@
+## 搜索紧凑交付分支合入主干（2026-10-28）
+
+- 用户本轮仅要求合入 `codex/search-compact-delivery`，不上传、不发布、不改桌面快捷方式。隔离整合树为 `C:/Users/89400/.codex/worktrees/merge-search-compact/Momoka`，基于主干 `a8a286c` 合入分支 `a6083f3`；主树35份受保护文件（原33修改、1新文件及PROGRESS）已备份至本树 `work/20261028-search-compact/main-before/` 并记录SHA256。
+- 保留已提交的 SVP、中性反馈、滚动条车道、排序菜单和来源筛选退役；五处合并冲突逐段整合，进度两边保留。新增搜索合并契约测试，覆盖搜索栏与中性焦点、来源收起、既有点击/滚动条入口及探针兼容。仅将本分支及其兼容处理纳入提交，不夹带其它主树在途改动。
+- 本轮重新核实 MoviePilot 官方前端 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 和后端 `be65e047b0e64b216420ba38bec7a087409552ff`，只读复核 SearchBarDialog、SearchSiteDialog 与 search.py；仍是分支核对的版本。未读取真实服务器或更改全局 IndexerSites。
+- 最终整合版 Shell/Core/主Tests/ResourceBrowserTests/PageContractTests Release 构建均0警告/0错误；主测试3110/3110、资源专项54/54（含6条本轮合并回归与2个拒绝错误合并的反例）、页面契约98/98，均退出0、失败0/跳过0。原始编译失败日志保留：重复焦点读数/局部函数及测试断言名称已修正后重新编译和运行，不使用失败构建后的旧输出。
+- 当前整合版实际运行 `--probe-shell --probe-section search,moviepilot,anibt --screen 1`，报告 `shell-probe-20261028-093953443-11928/logs/shell-probe.json` 39/39、失败0，应用日志正常退出；84条其它分区未执行。1040/360收起/恢复、来源退役与五主题中性焦点的11张实屏已核对；仅匿名假传输，不登录真实服务器，不播放或提交真实下载/整理写入。Shell/Core/资源测试的定向空白检查退出0；Shell format提示工作区加载警告已保留，不能代替编译证据。自动化扫描361个普通范围可定位、0缺句柄；差异/行尾和文档一致性另核。
+- 同步前主树HEAD和35份受保护文件仍与快照一致；三方同步计划只额外写PROGRESS、文档、资源测试登记/说明及新合并测试，不改已有产品源码字节。主树原搜索探针含额外中性反馈检查和不同执行顺序，继续保留为未提交在途改动，不夹带到合并提交；同步后须在主树重新编译/运行受影响测试与search探针，不能以隔离树报告冒充主树验证。本轮仅合并，不结束交付批次，发布目录/快捷方式保持原样，不上传。
+
+## 搜索页紧凑布局、来源收起与站点记忆（2026-10-28）
+
+- 用户要求减少搜索页尤其 MP 资源上方空白；搜索后收起四个来源选项、点击输入框恢复；站点选择移入搜索栏，放在原生放大镜前，且只在 MP 资源显示。默认、自选与明确清空按服务地址、账号、目录类型分别持久化，恢复时先核对可用站点目录。
+- 实现位于 LibraryPage 的纯界面事件与已有 MoviePilotService/SitePicker VM；使用同步 GettingFocus，避免迟到 GotFocus 把搜索完成后的来源栏再次撑开。保持原生 AutoSuggestBox 模板的输入、清除和查询键，在清除键与查询键之间插入站点一列；普通媒体库、订阅、AniBT 的无效行随隐藏消除空白。最近关键词统一走提交入口。
+- 上游只读核对：MoviePilot-Frontend v3 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 的 SearchBarDialog/SearchSiteDialog 与 MoviePilot v3 `be65e047b0e64b216420ba38bec7a087409552ff` 的 search.py。默认省略 sites、自选使用逗号 ID，与现有请求一致；不改 MP 服务器的 IndexerSites。未访问真实服务器确认部署版本。
+- 主树持续出现其他会话在途修改，收尾固定到 `C:/Users/89400/.codex/worktrees/search-compact-delivery/Momoka`，基于已提交的 `3d75ce6`，仅带本次改动与已有的搜索框聚焦边框修复。没有覆盖主树的在途代码。保留完整独立构建与临时诊断日志于该树 `work/search-compact`。
+- 最终固定树 Shell/Core/测试 Release 编译均 0 警告 0 错误；Core 3057/3057（0 跳过）、资源源码专项 34/34（含站点13项）、自动化句柄缺失0；相关 Shell 探针 search/moviepilot/anibt 39/39，日志 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-044553664-4212/logs`。宽窄收起/恢复实屏已核对；其余区域未执行，不宣称全量 Shell 探针。
+- 探针修正：AniBT 测来源宽度前实际展开；订阅集的虚拟化容器按当前 Episodes 的第0项定位，保留原有宽度阈值，旧的 First 遍历曾读到非当前行。负向事件包括迟到搜索、断连、清空站点和离页取消均执行。早期与UI探针并行导致自检mutex争用的16项失败已通过串行全量重跑消除；没有改失败基线。
+- 原生回车稳定收起、已聚焦输入框再次鼠标点击展开已在主树最终同版搜索代码中实测；放大镜点击步骤被用户 Escape 中止，未继续鼠标操作。未播放媒体、未向真实 MoviePilot 发下载或订阅写入。用户随后明确要求交付桌面快捷方式，使用隔离源码发布到主目录实际交付路径；提交后未上传远程。
+- 交付完成：2026-10-28 12:50 自包含发布至 `C:/Users/89400/Momoka/artifacts/publish/win-x64`，验证546文件/284.3MB及批准载荷全部通过；桌面 `C:/Users/89400/Desktop/Momoka.lnk` 的目标和工作目录已核对。实际发布件搜索探针13/13、退出0，日志 `shell-probe-20261028-045151109-3972`；产品提交 `f30dc12`。发布 Momoka.dll SHA256 `612249A44769D5888704C07072BAF6C688E6DA85E31651793C48C0DC06A3C7CA`，Core SHA256 `49C4694A22BEA92582E64CE430965B50BDF72FE6E631C7CFA67BD4AEABFFD65C`。本次仅更新可运行目录，不生成ZIP或MSIX，不上传远程。
 ## 可选 SVP 接入已合入主干并交付（2026-10-28）
 
 - 产品提交 `9ce30ee`，整合提交 `ee68235` 已进入本地 `master`。视频输出顺序按用户最终要求为「基础输出 → 画质与着色器 → HDR 与杜比视界 → 补帧」，补帧卡新增默认关闭的「接入 SVP」。用户自行安装 SVP／64 位 Python、VapourSynth 及可选 RIFE 模型；算法与目标帧率由 SVP 管理。

@@ -56,7 +56,7 @@ internal sealed partial class ShellNavigationProbe
             await SaveProbeScreenAsync("moviepilot-connected.png");
             tabs.SelectedIndex = 2;
             var versions = Get<MoviePilotVersionsView>(page, "MoviePilotResources");
-            var picker = Get<MoviePilotSitePicker>(versions, "SearchSitePicker");
+            var picker = Get<MoviePilotSitePicker>(page, "SearchSitePicker");
             var chooseSites = Get<DropDownButton>(picker, "ChooseSites");
             chooseSites.Flyout.ShowAt(chooseSites);
             await UntilAsync(() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Count > 0);

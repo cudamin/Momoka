@@ -16,5 +16,11 @@ public sealed partial class MoviePilotSitePicker : UserControl
 
     private void OnOpening(object? sender, object args) => _ = ViewModel.EnsureLoadedAsync();
 
+    internal void SetCompact(double maxWidth = 180)
+    {
+        SiteLabel.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+        ChooseSites.MaxWidth = maxWidth;
+    }
+
     internal void ClosePopup() => SitesFlyout.Hide();
 }

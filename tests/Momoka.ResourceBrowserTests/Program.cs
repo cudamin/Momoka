@@ -18,19 +18,23 @@ internal static class Program
     private static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
-        if (args is not [var sourceRoot] || !File.Exists(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml")))
+        if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] != "search-sites")
+            || !File.Exists(Path.Combine(args[0], "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml")))
         {
             Console.Error.WriteLine("请提供当前本树根目录；本夹具不猜测其它树的模板或输出。");
             return 2;
         }
-        sourceRoot = Path.GetFullPath(sourceRoot);
+        var sourceRoot = Path.GetFullPath(args[0]);
         var outputRoot = Path.Combine(sourceRoot, "tests", "Momoka.ResourceBrowserTests", "bin") + Path.DirectorySeparatorChar;
         if (!typeof(Program).Assembly.Location.StartsWith(outputRoot, StringComparison.OrdinalIgnoreCase))
         {
             Console.Error.WriteLine("模板根目录必须与本夹具实际编译输出属于同一工作树。");
             return 2;
         }
-        Console.WriteLine("资源搜索真实源码/生成命令与模板契约；无窗口、配置、登录、网络或下载副作用");
+        Console.WriteLine("资源搜索真实源码/生成命令与模板契约；只用匿名内存HTTP及隔离临时设置，无窗口、登录、联网或下载副作用");
+        SearchSitePreferenceTests.Register();
+        if (args.Length == 2) return Run();
+        SearchCompactMergeTests.Register(sourceRoot);
         ResourceSortMenuTests.Register(sourceRoot);
         foreach (var meta in new[] { false, true })
         {
@@ -163,6 +167,7 @@ internal static class Program
             var reason = xml.Descendants().Single(node => node.Attribute("Text")?.Value == "身份待核对"
                 && node.Attribute("ToolTipService.ToolTip")?.Value == "{x:Bind DownloadProblem}");
             Assert.Equal("TextBlock", reason.Name.LocalName);
+            Assert.Equal("身份待核对", reason.Attribute("Text")?.Value);
             Assert.Equal("{x:Bind DownloadProblemVisibility, Mode=OneWay}", reason.Attribute("Visibility")?.Value);
             Assert.Equal("{StaticResource EgCaptionStyle}", reason.Attribute("Style")?.Value);
             Assert.NotNull(xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "OpenTorrentPage"));

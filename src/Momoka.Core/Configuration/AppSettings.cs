@@ -1327,8 +1327,17 @@ public sealed class MoviePilotSettings
     /// </summary>
     public DateTimeOffset? LastConnected { get; set; }
 
+    /// <summary>按服务地址、账号和目录类型隔离的站点选择；键不含凭据或运行期连接代次。</summary>
+    public Dictionary<string, MoviePilotSearchSitePreference> SearchSitePreferences { get; set; } = new(StringComparer.Ordinal);
+
     [JsonIgnore]
     public bool HasSavedPassword => ProtectedPassword.Length > 0;
+}
+
+public sealed class MoviePilotSearchSitePreference
+{
+    public bool UseDefault { get; set; } = true;
+    public List<int> SiteIds { get; set; } = [];
 }
 
 public sealed class UiSettings

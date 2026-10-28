@@ -108,16 +108,20 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => Math.Abs(page.ActualWidth - width) < 2);
                 seasons.StartBringIntoView();
                 await LayoutAsync(page);
-                var picture = Descendants(seasons).OfType<Border>().First(border => border.Name == "EpisodeArtwork");
+                var statistics = Descendants(seasons).OfType<ItemsRepeater>().Single(repeater =>
+                    repeater.Name == "EpisodeStatistics" && ReferenceEquals(repeater.ItemsSource, vm.Episodes));
+                var episode = (FrameworkElement)statistics.GetOrCreateElement(0);
+                var picture = Descendants(episode).OfType<Border>().Single(border => border.Name == "EpisodeArtwork");
                 picture.StartBringIntoView();
                 await LayoutAsync(page);
                 var row = (Grid)picture.Parent;
                 var content = (StackPanel)row.Children[1];
                 var actions = (StackPanel)row.Children[2];
-                Require(content.ActualWidth >= (width == 600 ? 250 : 150), "集名、日期和状态被固定海报挤窄");
+                await SaveSettledFrameAsync(page, $"mp-subscription-files-recovery-{width}.png");
+                Require(content.ActualWidth >= (width == 600 ? 250 : 150),
+                    $"集名、日期和状态被固定海报挤窄：page={page.ActualWidth}, row={row.ActualWidth}, content={content.ActualWidth}, picture={picture.ActualWidth}, actions={actions.ActualWidth}, contentRow={Grid.GetRow(content)}");
                 Require(Grid.GetRow(content) == (width == 600 ? 1 : 0), "紧凑布局没有随窗口恢复");
                 Require(actions.TransformToVisual(row).TransformPoint(default).X + actions.ActualWidth <= row.ActualWidth + 1, "播放或搜索按钮超出行宽");
-                await SaveSettledFrameAsync(page, $"mp-subscription-files-recovery-{width}.png");
             }
             vm.FilterIndex = 1;
             var files = vm.Episodes;
