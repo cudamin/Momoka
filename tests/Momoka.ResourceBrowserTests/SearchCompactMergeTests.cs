@@ -51,6 +51,12 @@ internal static class SearchCompactMergeTests
             Assert.Contains("pageRoot.Margin.Top == 40", aniBt);
             Assert.Contains("TransformToVisual(page).TransformPoint(default).Y >= 32", aniBt);
             Assert.Contains("gap is >= 7 and <= 9", aniBt);
+            Assert.Contains("focusResults.Focus(FocusState.Programmatic)", aniBt);
+            var inputGuard = aniBt.IndexOf("selectionInput == \"离线动画\"", StringComparison.Ordinal);
+            var identityGuard = aniBt.IndexOf("panel.ViewModel.Results.Contains(firstAnime)", StringComparison.Ordinal);
+            var open = aniBt.IndexOf("await firstAnime.OpenCommand.ExecuteAsync(null)", StringComparison.Ordinal);
+            Assert.True(inputGuard >= 0 && identityGuard > inputGuard && open > identityGuard,
+                "番剧资源验证必须先核当前输入与原行身份，不得绕过结果守卫");
         });
 
         Test("搜索合并：焦点契约拒绝误恢复强调色", () =>

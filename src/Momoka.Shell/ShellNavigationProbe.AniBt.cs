@@ -249,6 +249,13 @@ internal sealed partial class ShellNavigationProbe
             Require(aniBt.SearchCount == 0, "AniBT 键入时未经提交就发出搜索");
             await page.SubmitSearchAsync("离线动画");
             Require(panel.ViewModel.Results.Count == 2 && !panel.ViewModel.Busy, "AniBT 搜索结果未进入番剧列表");
+            // The VM completes before the enabled/visible bindings reach the list. Settle
+            // that real layout before moving focus out of the submitted search field.
+            await LayoutAsync(page);
+            var focusResults = Get<GridView>(panel, "AnimeResults");
+            Require(focusResults.IsEnabled && focusResults.ActualHeight > 0
+                && focusResults.Focus(FocusState.Programmatic),
+                "搜索完成并布局后番剧列表无法接收验证焦点");
             Require(aniBt.Requests.Any(path => path.StartsWith("/api/animes/search?q=" + Uri.EscapeDataString("离线动画"), StringComparison.Ordinal)),
                 "搜索词没有交给 AniBT");
             Require(fixture.Transport.Requests.Count == embyRequests && moviePilot.Requests.All(path =>
@@ -293,6 +300,13 @@ internal sealed partial class ShellNavigationProbe
                 await SaveSettledFrameAsync(page, $"anibt-search-{width}-render.png");
             }
 
+            var selectionInput = Get<AutoSuggestBox>(page, "SearchInput").Text;
+            Require(selectionInput == "离线动画" && page.ViewModel.SearchText == "离线动画"
+                && panel.ViewModel.Results.Count == 2 && panel.ViewModel.Results.Contains(firstAnime)
+                && panel.ViewModel.CanChooseAnime,
+                $"打开资源前搜索状态已变化：输入={selectionInput}，VM输入={page.ViewModel.SearchText}，"
+                + $"结果={panel.ViewModel.Results.Count}，原行仍在={panel.ViewModel.Results.Contains(firstAnime)}，"
+                + $"可选择={panel.ViewModel.CanChooseAnime}");
             await firstAnime.OpenCommand.ExecuteAsync(null);
             panel.ViewModel.SelectedArtwork = poster;
             var browser = panel.ViewModel.Browser;
@@ -482,6 +496,13 @@ internal sealed partial class ShellNavigationProbe
             Require(ReferenceEquals(results, panel.ViewModel.Results) && ReferenceEquals(firstAnime, results[0])
                 && panel.ViewModel.SelectedAnime is null && panel.ViewModel.Browser.Rows.Count == 0,
                 "返回番剧没有恢复原列表或残留了旧资源");
+            var searchText = Get<AutoSuggestBox>(page, "SearchInput").Text;
+            Require(searchText == "离线动画" && page.ViewModel.SearchText == "离线动画"
+                && panel.ViewModel.Results.Count == 2 && panel.ViewModel.Results.Contains(firstAnime)
+                && panel.ViewModel.CanChooseAnime,
+                $"打开资源前搜索状态已变化：输入={searchText}，VM输入={page.ViewModel.SearchText}，"
+                + $"结果={panel.ViewModel.Results.Count}，原行仍在={panel.ViewModel.Results.Contains(firstAnime)}，"
+                + $"可选择={panel.ViewModel.CanChooseAnime}");
             await firstAnime.OpenCommand.ExecuteAsync(null);
             await LayoutAsync(panel);
             Require(Get<ScrollViewer>(panel, "AnimeDetailScroll").VerticalOffset < 1, "重新打开番剧保留了上一页滚动位置");
