@@ -1,7 +1,7 @@
 namespace Momoka.MoviePilot;
 
 public enum MoviePilotPromotionFilter { All, Free, Discount }
-public enum MoviePilotResourceSort { Original, Seeders, Newest, Smallest, Largest }
+public enum MoviePilotResourceSort { Original, Site, Size, Seeders, PublishedAt }
 
 /// <summary>过滤只作用于本次返回的资源，不重新访问站点，也不改变下载所用的原始身份。</summary>
 public sealed record MoviePilotResourceFilter
@@ -27,6 +27,7 @@ public sealed record MoviePilotResourceFilter
     public int? Episode { get; init; }
     public MoviePilotPromotionFilter Promotion { get; init; }
     public MoviePilotResourceSort Sort { get; init; }
+    public bool SortDescending { get; init; } = true;
     public bool SeededOnly { get; init; }
     public bool ExcludeHitAndRun { get; init; }
     public int? PublishedWithinDays { get; init; }
@@ -61,12 +62,24 @@ public sealed record MoviePilotResourceFilter
     public IEnumerable<MoviePilotResource> Apply(IEnumerable<MoviePilotResource> resources, DateTimeOffset now)
     {
         var filtered = resources.Where(resource => Matches(resource, now));
+        // 与网页卡片视图一致：默认顺序保留服务器的分组位置；字段与方向独立。
+        // 缺失的体积、时间或站点留在末尾，同值使用 LINQ 的稳定排序，不翻转整个列表。
         return Sort switch
         {
-            MoviePilotResourceSort.Seeders => filtered.OrderByDescending(resource => resource.Seeders),
-            MoviePilotResourceSort.Newest => filtered.OrderByDescending(resource => resource.PublishedAt),
-            MoviePilotResourceSort.Smallest => filtered.OrderBy(resource => resource.Size <= 0).ThenBy(resource => resource.Size),
-            MoviePilotResourceSort.Largest => filtered.OrderByDescending(resource => resource.Size),
+            MoviePilotResourceSort.Site => SortDescending
+                ? filtered.OrderBy(resource => string.IsNullOrWhiteSpace(resource.SiteName))
+                    .ThenByDescending(resource => resource.SiteName, StringComparer.CurrentCultureIgnoreCase)
+                : filtered.OrderBy(resource => string.IsNullOrWhiteSpace(resource.SiteName))
+                    .ThenBy(resource => resource.SiteName, StringComparer.CurrentCultureIgnoreCase),
+            MoviePilotResourceSort.Size => SortDescending
+                ? filtered.OrderBy(resource => resource.Size <= 0).ThenByDescending(resource => resource.Size)
+                : filtered.OrderBy(resource => resource.Size <= 0).ThenBy(resource => resource.Size),
+            MoviePilotResourceSort.Seeders => SortDescending
+                ? filtered.OrderByDescending(resource => resource.Seeders)
+                : filtered.OrderBy(resource => resource.Seeders),
+            MoviePilotResourceSort.PublishedAt => SortDescending
+                ? filtered.OrderBy(resource => resource.PublishedAt is null).ThenByDescending(resource => resource.PublishedAt)
+                : filtered.OrderBy(resource => resource.PublishedAt is null).ThenBy(resource => resource.PublishedAt),
             _ => filtered
         };
     }

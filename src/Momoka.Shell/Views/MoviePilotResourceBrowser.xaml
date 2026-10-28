@@ -30,10 +30,43 @@
                         <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextOnAccentBrush}"
                             Text="{x:Bind ViewModel.CountText, Mode=OneWay}" />
                     </Border>
-                    <ComboBox x:Name="SortOrder" Width="132" MinHeight="30" Padding="8,4"
-                        AutomationProperties.Name="资源排序" SelectedIndex="{x:Bind ViewModel.SortIndex, Mode=TwoWay}">
-                        <x:String>默认排序</x:String><x:String>做种数</x:String><x:String>发布时间</x:String><x:String>体积从小到大</x:String><x:String>体积从大到小</x:String>
-                    </ComboBox>
+                    <DropDownButton x:Name="SortOrder" Height="32" MinWidth="0" Padding="12,4,6,4" CornerRadius="4"
+                        Background="{ThemeResource ControlFillColorTransparentBrush}" Foreground="{ThemeResource EgTextDimBrush}" BorderThickness="0"
+                        VerticalAlignment="Center" AutomationProperties.Name="{x:Bind ViewModel.SortAutomationName, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <!-- 每颗图标持有自己的 Geometry；不能把另一个 PathIcon 的 Data 再挂到本控件。 -->
+                            <Grid Width="14" Height="14">
+                                <PathIcon x:Name="SortAscendingIcon" Width="14" Height="14" Foreground="{ThemeResource EgTextDimBrush}"
+                                    Data="M1,2 H4 V3.5 H1 Z M1,6 H7 V7.5 H1 Z M1,10 H10 V11.5 H1 Z M11.5,1 L9,4 H11 V13 H12.5 V4 H14 Z"
+                                    Visibility="{x:Bind local:MoviePilotResourceBrowser.AscendingIconVisibility(ViewModel.SortDescending), Mode=OneWay}" />
+                                <PathIcon x:Name="SortDescendingIcon" Width="14" Height="14" Foreground="{ThemeResource EgTextDimBrush}"
+                                    Data="M1,2 H4 V3.5 H1 Z M1,6 H7 V7.5 H1 Z M1,10 H10 V11.5 H1 Z M11.5,13 L9,10 H11 V1 H12.5 V10 H14 Z"
+                                    Visibility="{x:Bind local:MoviePilotResourceBrowser.DescendingIconVisibility(ViewModel.SortDescending), Mode=OneWay}" />
+                            </Grid>
+                            <TextBlock x:Name="SortLabel" Text="{x:Bind ViewModel.SortLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                                FontWeight="SemiBold" Foreground="{ThemeResource EgTextDimBrush}" />
+                        </StackPanel>
+                        <DropDownButton.Flyout>
+                            <!-- RadioMenuFlyoutItem 的空 GroupName 也是共享组；方向与字段用每个浏览器自己的组名。 -->
+                            <MenuFlyout x:Name="SortMenu" Placement="Bottom" Opening="OnSortMenuOpening">
+                                <RadioMenuFlyoutItem x:Name="SortAscending" Text="升序" GroupName="{x:Bind SortDirectionGroup}"
+                                    Click="OnSortDirectionClick" />
+                                <RadioMenuFlyoutItem x:Name="SortDescending" Text="降序" GroupName="{x:Bind SortDirectionGroup}"
+                                    Click="OnSortDirectionClick" />
+                                <MenuFlyoutSeparator />
+                                <RadioMenuFlyoutItem x:Name="SortDefault" Text="默认排序" Tag="0" GroupName="{x:Bind SortFieldGroup}"
+                                    Click="OnSortFieldClick" />
+                                <RadioMenuFlyoutItem x:Name="SortSite" Text="站点" Tag="1" GroupName="{x:Bind SortFieldGroup}"
+                                    Click="OnSortFieldClick" />
+                                <RadioMenuFlyoutItem x:Name="SortSize" Text="体积" Tag="2" GroupName="{x:Bind SortFieldGroup}"
+                                    Click="OnSortFieldClick" />
+                                <RadioMenuFlyoutItem x:Name="SortSeeders" Text="做种数" Tag="3" GroupName="{x:Bind SortFieldGroup}"
+                                    Click="OnSortFieldClick" />
+                                <RadioMenuFlyoutItem x:Name="SortPublishedAt" Text="发布时间" Tag="4" GroupName="{x:Bind SortFieldGroup}"
+                                    Click="OnSortFieldClick" />
+                            </MenuFlyout>
+                        </DropDownButton.Flyout>
+                    </DropDownButton>
                     <local:MoviePilotResourceFacetPicker x:Name="SiteFilter" Facet="{x:Bind ViewModel.SiteFacet, Mode=OneWay}" />
                     <local:MoviePilotResourceFacetPicker x:Name="SeasonFilter" Facet="{x:Bind ViewModel.SeasonFacet, Mode=OneWay}" />
                     <local:MoviePilotResourceFacetPicker x:Name="PromotionFilter" Facet="{x:Bind ViewModel.PromotionFacet, Mode=OneWay}" />
