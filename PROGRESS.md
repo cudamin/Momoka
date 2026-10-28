@@ -1,3 +1,12 @@
+## 可选 SVP 接入已合入主干并交付（2026-10-28）
+
+- 产品提交 `9ce30ee`，整合提交 `ee68235` 已进入本地 `master`。视频输出顺序按用户最终要求为「基础输出 → 画质与着色器 → HDR 与杜比视界 → 补帧」，补帧卡新增默认关闭的「接入 SVP」。用户自行安装 SVP／64 位 Python、VapourSynth 及可选 RIFE 模型；算法与目标帧率由 SVP 管理。
+- 主树合入前逐文件备份并三方合并，保留全部33个已有修改文件及1个新文件，不将它们夹带进本任务提交。合入、构建、测试、发布和运行检查前后34份用户文件 SHA256 一致，Git暂存区保持干净。备份与合入证据位于独立树 `work/main-svp-integration-bf970f133b/`；当前主树验证证据在 `work/svp-main-delivery/`。
+- 最终主树 Release：Shell、Tests、ResourceBrowserTests 构建均0警告／0错误；完整Core **3110/3110**、资源 **48/48**、真实设置VM **31/31**，全部0失败／0跳过；随包内核无媒体检查24项全部通过。此前独立树SVP **29/29**、补帧真实行 **36/36**、服务／句柄／着色器 **44/44**、自然接续caller **50/50**。源码pin逐项复核，改动文本LF、差异检查及空白检查通过；formatter的工作区加载提示单列保留。
+- `tools/publish.ps1 -NoArchive -Shortcut` 退出0，实际交付目录 `C:/Users/89400/Momoka/artifacts/publish/win-x64`：546文件／284.4MB，14 GLSL、4 HOOK及批准mpv清单59文件／许可逐项验证通过。产品版本为 `0.2.0+ee682353ab1f1f64b74db3c2f46c67283fd13fec`；桌面 `Momoka.lnk` 已指向本主树目录。主程序SHA256 `ae58f6fab2ab764b6c2e702bbc0f0c4f4ac16293358f2a8d4582f5c98aff15e0`，Shell `8a5c8bafd48a04d0cd056f52265380dc0db09552cc857e074caaa2f8df4d59d0`，Core `13ea3ec50d1a9dbeb35befdc61ef32995ac3645e23eecd0e96d83bd593c78217`。
+- 实际发布件执行 `--probe-shell --probe-section svp --screen 1`，宽／窄 **2/2**、退出0。报告 `shell-probe-20261028-085459208-11080/logs/shell-probe.json`；已查看760与1100真实屏幕截图，验证最终卡片顺序、开关、路径失焦保存、缺失组件状态、自定义配置即时切换及后端恢复。其余121项探针未运行，不当作全量通过。
+- 本轮交付完成；真实SVP接管与帧生成、GPU实时性能、HDR保持、独占实片换集、真实服务器播放未验证，未安装组件或试播真实媒体库，未推送origin／创建新Release。独立分支和工作树保留可恢复的本地证据，桌面发布不依赖它。
+
 ## 可选 SVP 接入验证与收尾（2026-10-28）
 
 - 与主干 `f376c9a` 整合后完整方案构建 0 警告／0 错误，串行完整 Core **3093/3093**、0失败／0跳过，证据 `work/svp-integrated-build.log`、`work/svp-integrated-core-tests.log`；进度冲突保留两边记录，SVP 产品代码与已通过宽窄检查的最终版本一致。
