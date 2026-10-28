@@ -51,10 +51,38 @@ public sealed partial class MoviePilotService
             .Where(source => source.IsVideo).ToList();
         CheckIdentity(identity, cancellationToken);
 
+        var defaultSource = "themoviedb";
+        try
+        {
+            var global = await CallAsync((apiBase, token) => _client.GetAsync(apiBase, token,
+                "system/global/user", cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+            var configured = MoviePilotTransfer.Text(global, "RECOGNIZE_SOURCE");
+            if (sources.Any(source => source.Id == configured)) defaultSource = configured;
+        }
+        catch (MoviePilotException error) when (error.Status == System.Net.HttpStatusCode.NotFound)
+        {
+            // Older servers without the user-global read retain the webpage's TMDB fallback.
+        }
+        CheckIdentity(identity, cancellationToken);
+        if (!sources.Any(source => source.Id == defaultSource)) defaultSource = "";
         if (storages.Count == 0) storages.Add(new MoviePilotStorage("本地", "local"));
 
         Log.Info(Category, $"MoviePilot 整理选项：{storages.Count} 个存储、{directories.Count} 个媒体库目录、{sources.Count} 个数据源");
-        return new MoviePilotTransferOptions(storages, directories, sources);
+        return new MoviePilotTransferOptions(storages, directories, sources, defaultSource);
+    }
+
+    /// <summary>手动整理只读查询 TMDB 剧集组；表单负责检查类型及拒绝过期回话。</summary>
+    public async Task<IReadOnlyList<MoviePilotEpisodeGroup>> TransferEpisodeGroupsAsync(
+        string mediaId, CancellationToken cancellationToken)
+    {
+        if (!long.TryParse(mediaId, System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture, out var id) || id <= 0)
+            return [];
+        var identity = CaptureIdentity();
+        var groups = await CallAsync((address, token) => _client.GetAsync(address, token,
+            "media/groups/" + Uri.EscapeDataString(mediaId), cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        CheckIdentity(identity, cancellationToken);
+        return MoviePilotEpisodeGroups.Build(groups, default);
     }
 
     /// <summary>

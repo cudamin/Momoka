@@ -16,3 +16,7 @@
 ```
 
 `MoviePilotTransferSubmissionTests` 的 Core 场景另注册在主测试中，定向入口为 `moviepilot-transfer-submission-fixture`，重叠覆盖不累加。当前程序不需要 Shell DLL，不启动 App／WinUI；布局、输入、完整弹框生命周期与真实 MoviePilot 整理均没有运行覆盖。
+
+## 手动整理窗口回归
+
+同一项目也编译实际 `MoviePilotReorganizeDialog.Form.cs`，覆盖自动路径匹配只展示、显式使用/清空的整组配置、可空分类/刮削覆盖、自动来源、类型/历史切换的身份保留、季集定位/偏移/剧集组进入真实请求、编辑撤销确认，以及取消零写入。XAML接线用当前工作树文件检查三个操作在滚动区外、主要选项不藏在Expander。边界控件不是WinUI，不能证明渲染/事件时序；实际窗口由 `--probe-shell --probe-section moviepilot --screen 1` 的独立手动整理用例检查，匿名假HTTP、不操作真实文件或媒体库。运行须等待新PID所属完整报告，不取“最近一个目录”充当这轮证据。

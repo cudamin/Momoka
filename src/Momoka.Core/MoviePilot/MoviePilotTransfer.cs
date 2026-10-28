@@ -21,7 +21,7 @@ public sealed record MoviePilotDirectory(string Storage, string Path, string? Tr
 public sealed record MoviePilotTransferOptions(
     IReadOnlyList<MoviePilotStorage> Storages,
     IReadOnlyList<MoviePilotDirectory> Directories,
-    IReadOnlyList<MoviePilotMediaSource> MediaSources);
+    IReadOnlyList<MoviePilotMediaSource> MediaSources, string DefaultMediaSource = "themoviedb");
 
 /// <summary>要整理的一个文件：Emby 侧的名字加完整路径，路径必须是 MoviePilot 看得见的那一份。</summary>
 public sealed record MoviePilotTransferFile(string Name, string Path);
@@ -62,11 +62,14 @@ public sealed record MoviePilotTransferRequest
     public string MediaId { get; init; } = "";
     public string Season { get; init; } = "";
     public string Episode { get; init; } = "";
+    public string EpisodeFormat { get; init; } = "";
+    public string EpisodeOffset { get; init; } = "";
+    public string EpisodeGroup { get; init; } = "";
     public string Part { get; init; } = "";
     public string MinimumSize { get; init; } = "0";
-    public bool TypeFolder { get; init; }
-    public bool CategoryFolder { get; init; }
-    public bool Scrape { get; init; }
+    public bool? TypeFolder { get; init; } = false;
+    public bool? CategoryFolder { get; init; } = false;
+    public bool? Scrape { get; init; } = false;
     public bool FromHistory { get; init; }
     public bool Reorganize { get; init; }
 
@@ -91,7 +94,10 @@ public sealed record MoviePilotTransferRequest
                 return "目标路径须为 MoviePilot 上的本地绝对路径，不能是网址或磁盘根目录";
             if (TransferType is not ("" or "copy" or "move" or "link" or "softlink"))
                 return "请选择有效的整理方式";
-            if (Type is not (TypeMovie or TypeSeries)) return "请选择电影或电视剧";
+            if (Type is not ("" or TypeMovie or TypeSeries)) return "请选择自动、电影或电视剧";
+            if (Type.Length == 0 && MediaId.Length > 0) return "指定媒体编号时，请先选择电影或电视剧";
+            if (EpisodeGroup.Length > 0 && (Type != TypeSeries || MediaSource != "themoviedb" || MediaId.Length == 0))
+                return "剧集组只适用于已指定 TMDB 编号的电视剧";
             if (MediaId.Length > 0 && MediaSource.Length == 0) return "指定媒体编号时，请选择数据源";
             if (MediaId.Length > 0 && MediaSource == "themoviedb" &&
                 (!long.TryParse(MediaId, NumberStyles.None, CultureInfo.InvariantCulture, out var id) || id <= 0))
@@ -105,7 +111,8 @@ public sealed record MoviePilotTransferRequest
                 Histories.Select(history => history.Id).Distinct().Count() != Histories.Count))
                 return "原整理记录和文件清单对不上，请重新查找记录";
             if (FromHistory && Histories.Count == 0) return "请先找到原整理记录，再复用历史识别信息";
-            if (FromHistory && (MediaId.Length > 0 || Season.Length > 0 || Episode.Length > 0))
+            if (FromHistory && (MediaId.Length > 0 || Season.Length > 0 || Episode.Length > 0 ||
+                EpisodeFormat.Length > 0 || EpisodeOffset.Length > 0 || EpisodeGroup.Length > 0))
                 return "复用历史识别会覆盖手填的媒体编号和季集号；修改季集时请关闭它";
             return null;
         }
@@ -161,6 +168,9 @@ public sealed record MoviePilotTransferRequest
         {
             if (Season.Length > 0) body["season"] = int.Parse(Season, CultureInfo.InvariantCulture);
             if (Episode.Length > 0) body["episode_detail"] = Episode;
+            if (EpisodeFormat.Length > 0) body["episode_format"] = EpisodeFormat;
+            if (EpisodeOffset.Length > 0) body["episode_offset"] = EpisodeOffset;
+            if (EpisodeGroup.Length > 0) body["episode_group"] = EpisodeGroup;
         }
 
         return body;

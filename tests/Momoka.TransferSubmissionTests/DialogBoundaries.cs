@@ -5,11 +5,24 @@ namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
     public enum ElementTheme { Dark, Light }
+    public enum HorizontalAlignment { Stretch, Right }
+    public enum GridUnitType { Star }
+    public readonly record struct GridLength(double Value, GridUnitType Unit = default);
+    public readonly record struct FixtureSize(double Width, double Height);
+    public sealed class XamlRoot { public FixtureSize Size { get; set; } = new(800, 900); }
+    public sealed class SizeChangedEventArgs : RoutedEventArgs { public FixtureSize NewSize { get; init; } }
     public class RoutedEventArgs : EventArgs;
     public class FrameworkElement
     {
         public bool IsEnabled { get; set; } = true;
         public Visibility Visibility { get; set; } = Visibility.Visible;
+        public double Width { get; set; }
+        public double MaxHeight { get; set; }
+        public HorizontalAlignment HorizontalAlignment { get; set; }
+        public XamlRoot? XamlRoot { get; set; }
+        internal int GridRow { get; set; }
+        internal int GridColumn { get; set; }
+        internal int GridColumnSpan { get; set; } = 1;
     }
 }
 
@@ -37,6 +50,7 @@ namespace Microsoft.UI.Xaml.Controls
         public event DialogEvent? Closed;
         public void EmitOpened() => Opened?.Invoke(this, EventArgs.Empty);
         public void EmitClosed() => Closed?.Invoke(this, EventArgs.Empty);
+        public void Hide() => EmitClosed();
         public bool EmitClosing()
         {
             var args = new ContentDialogClosingEventArgs();
@@ -48,7 +62,7 @@ namespace Microsoft.UI.Xaml.Controls
     {
         public bool TryEnqueue(Action callback) { callback(); return true; }
     }
-    public class TextBox : Microsoft.UI.Xaml.FrameworkElement { public string Text { get; set; } = ""; }
+    public class TextBox : Microsoft.UI.Xaml.FrameworkElement { public virtual string Text { get; set; } = ""; public object? Header { get; set; } }
     public class TextBlock : TextBox;
     public class AutoSuggestBox : TextBox { public object? ItemsSource { get; set; } }
     public class AutoSuggestBoxTextChangedEventArgs : EventArgs { public AutoSuggestionBoxTextChangeReason Reason { get; set; } }
@@ -65,13 +79,33 @@ namespace Microsoft.UI.Xaml.Controls
         public List<object> Items { get; } = [];
         public object? ItemsSource { get; set; }
         public object? SelectedItem { get; set; }
+        private IReadOnlyList<object> Choices => ItemsSource is System.Collections.IEnumerable source ? source.Cast<object>().ToList() : Items;
+        private Action<object, object>? _textChanged;
+        public override string Text
+        {
+            get => base.Text;
+            set { if (base.Text == value) return; base.Text = value; _textChanged?.Invoke(this, TextProperty); }
+        }
         public int SelectedIndex
         {
-            get => SelectedItem is null ? -1 : Items.IndexOf(SelectedItem);
-            set => SelectedItem = value >= 0 && value < Items.Count ? Items[value] : null;
+            get => SelectedItem is null ? -1 : Choices.ToList().IndexOf(SelectedItem);
+            set => SelectedItem = value >= 0 && value < Choices.Count ? Choices[value] : null;
         }
-        public void RegisterPropertyChangedCallback(object property, Action<object, object> callback) { }
+        public void RegisterPropertyChangedCallback(object property, Action<object, object> callback) => _textChanged = callback;
     }
+    public class Button : Microsoft.UI.Xaml.FrameworkElement;
+    public class StackPanel : Microsoft.UI.Xaml.FrameworkElement;
+    public class Expander : Microsoft.UI.Xaml.FrameworkElement { public bool IsExpanded { get; set; } }
+    public class ColumnDefinition { public Microsoft.UI.Xaml.GridLength Width { get; set; } }
+    public class Grid : Microsoft.UI.Xaml.FrameworkElement
+    {
+        public double ColumnSpacing { get; set; }
+        public List<ColumnDefinition> ColumnDefinitions { get; } = [new(), new()];
+        public static void SetRow(Microsoft.UI.Xaml.FrameworkElement field, int value) => field.GridRow = value;
+        public static void SetColumn(Microsoft.UI.Xaml.FrameworkElement field, int value) => field.GridColumn = value;
+        public static void SetColumnSpan(Microsoft.UI.Xaml.FrameworkElement field, int value) => field.GridColumnSpan = value;
+    }
+    public class ToggleSwitch : Microsoft.UI.Xaml.FrameworkElement { public bool IsOn { get; set; } }
     public class CheckBox : Microsoft.UI.Xaml.FrameworkElement { public bool? IsChecked { get; set; } }
     public class ProgressRing : Microsoft.UI.Xaml.FrameworkElement { public bool IsActive { get; set; } }
     public class InfoBar : Microsoft.UI.Xaml.FrameworkElement
@@ -112,10 +146,10 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.Controls.TextBlock HistorySummary { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox PartBox { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox MinSizeBox { get; } = new() { Text = "0" };
-        internal Microsoft.UI.Xaml.Controls.CheckBox TypeFolderToggle { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.CheckBox CategoryFolderToggle { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.CheckBox ScrapeToggle { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.CheckBox FromHistoryToggle { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.ToggleSwitch TypeFolderToggle { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.ToggleSwitch CategoryFolderToggle { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.ToggleSwitch ScrapeToggle { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.ToggleSwitch FromHistoryToggle { get; } = new();
         internal Microsoft.UI.Xaml.Controls.CheckBox ConfirmChanges { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBlock PreviewSummary { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBlock ConfirmationText { get; } = new();
@@ -128,8 +162,39 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.FrameworkElement PreviewButton { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ScrollViewer FormScroll { get; } = new();
 
+        internal Microsoft.UI.Xaml.Controls.TextBlock ReorganizeSubtitle { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid ReorganizeTitle { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Expander AdvancedOptions { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Button DismissReorganize { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Button QueueButton { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Button ReorganizeButton { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid DestinationGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid IdentityGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid SeasonGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid EpisodeFormatGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid FileOptionsGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid FolderOptionsGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid ScrapeOptionsGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid ActionsGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel TransferMethodField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel MediaSourceField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel EpisodeOffsetField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel MinimumSizeField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel CategoryFolderField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel FromHistoryField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel IdentityPanel { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel MediaIdPanel { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel EpisodeGroupPanel { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.ComboBox EpisodeGroupBox { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.TextBox EpisodeFormatBox { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.TextBox EpisodeOffsetBox { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.TextBlock EpisodeGroupHint { get; } = new();
+        internal Microsoft.UI.Xaml.FrameworkElement MatchedPathPanel { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.TextBlock MatchedPathText { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Button UseMatchedPathButton { get; } = new();
         private void InitializeComponent()
         {
+            TypeBox.Items.Add(new Microsoft.UI.Xaml.Controls.ComboBoxItem { Tag = "" });
             TypeBox.Items.Add(new Microsoft.UI.Xaml.Controls.ComboBoxItem { Tag = MoviePilotTransferRequest.TypeMovie });
             TypeBox.Items.Add(new Microsoft.UI.Xaml.Controls.ComboBoxItem { Tag = MoviePilotTransferRequest.TypeSeries });
             foreach (var tag in new[] { "", "copy", "move", "link", "softlink" })
@@ -137,16 +202,50 @@ namespace Momoka.Shell.Views
         }
         internal void FixturePrepare(MoviePilotTransferPreview preview)
         {
+            _updating = true;
             _histories = preview.Request.Histories;
+            _typeFolder = preview.Request.TypeFolder;
+            _categoryFolder = preview.Request.CategoryFolder;
+            _scrape = preview.Request.Scrape;
             TargetStorageBox.SelectedItem = new MoviePilotStorage("fixture", preview.Request.TargetStorage);
             TargetPathBox.Text = preview.Request.TargetPath;
             TransferTypeBox.SelectedIndex = 4;
             SourceBox.SelectedItem = new MoviePilotMediaSource("fixture", preview.Request.MediaSource, ["电影"]);
+            _updating = false;
             _preview = preview;
             ConfirmChanges.IsChecked = true;
             UpdateSubmit();
         }
         internal Task FixtureSubmitAsync(bool background = false) => SubmitAsync(background);
+        internal Task FixtureLoadAsync() => LoadAsync();
+        internal MoviePilotTransferRequest FixtureRequest => Request;
+        internal void FixtureApplyMatch() => OnUseMatchedPath(this, new Microsoft.UI.Xaml.RoutedEventArgs());
+        internal void FixtureFromHistory(bool enabled)
+        {
+            FromHistoryToggle.IsOn = enabled;
+            OnFromHistoryChanged(FromHistoryToggle, new Microsoft.UI.Xaml.RoutedEventArgs());
+        }
+        internal void FixtureType(int index)
+        {
+            TypeBox.SelectedIndex = index;
+            OnTypeChanged(TypeBox, new Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs());
+        }
+        internal void FixtureSource(int index)
+        {
+            SourceBox.SelectedIndex = index;
+            OnSourceChanged(SourceBox, new Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs());
+        }
+        internal void FixtureFolderToggle(bool value)
+        {
+            TypeFolderToggle.IsOn = value;
+            OnFolderOptionChanged(TypeFolderToggle, new Microsoft.UI.Xaml.RoutedEventArgs());
+        }
+        internal void FixtureEdited() => Edited();
+        internal void FixtureConfirm()
+        {
+            ConfirmChanges.IsChecked = true;
+            OnConfirmed(ConfirmChanges, new Microsoft.UI.Xaml.RoutedEventArgs());
+        }
         internal Task FixturePreviewAsync()
         {
             OnPreview(this, new Microsoft.UI.Xaml.RoutedEventArgs());

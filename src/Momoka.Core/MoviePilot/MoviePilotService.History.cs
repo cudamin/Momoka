@@ -80,7 +80,7 @@ public sealed partial class MoviePilotService
     }
 
     public async Task<MoviePilotTransferOptions> TransferHistoryTargetAsync(
-        IReadOnlyList<MoviePilotTransferHistory> histories, CancellationToken cancellationToken)
+        IReadOnlyList<MoviePilotTransferHistory> histories, CancellationToken cancellationToken, string targetStorage = "")
     {
         if (histories.Count == 0) throw new MoviePilotException("请先选择原整理记录");
         var identity = CaptureIdentity();
@@ -90,6 +90,7 @@ public sealed partial class MoviePilotService
             [histories.Count == 1 ? "logid" : "logids"] = histories.Count == 1
                 ? histories[0].Id : histories.Select(history => history.Id).ToArray()
         };
+        if (targetStorage.Length > 0) body["target_storage"] = targetStorage;
         var data = await CallAsync((apiBase, token) => _client.PostAsync(apiBase, token,
             "transfer/manual/target-path", body, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
         CheckIdentity(identity, cancellationToken);
