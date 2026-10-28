@@ -1,3 +1,11 @@
+## 剧资源整理最终交付（2026-10-28）
+
+- 最终产品提交 `e9b6247`（含自动TMDB路径文字筛选、原记录多选、批量预览、灰竖带修正），交付树 `C:/Users/89400/.codex/worktrees/series-reorganize/Momoka` / `codex/series-reorganize`；此前合入 master 截至 `d5c4d58` 的已提交修复，不复制主目录未提交工作。
+- 当前 Core最终 **3072/3072**、源码链接原整理Dialog **33/33**、合入搜索来源退役的实际VM专项 **72/72**；Release Core／Tests／Shell编译0警告0错误，新增控件扫描无句柄0，13个新句柄逐行记录，定向空白及LF／差异检查通过。
+- `tools/publish.ps1 -NoArchive` 当前自包含发布退出0，载荷校验 **546文件／284.4 MB／14 GLSL／4 HOOK**，批准mpv59文件逐一匹配。发布后程序再次运行 MoviePilot 分区 `shell-probe-20261028-064226867-25316` **24/24**，正常退出；实际勾选/清空/全选、原生选择同步、顶部复选框、透明行背景、宽窄／五主题、批量仅所选logids预览、取消、单集默认值、失败/空/迟到/撤销全部通过，截图已人眼检查。
+- 桌面 `Momoka.lnk` 已更新并读回核对，指向本树 `artifacts/publish/win-x64/Momoka.exe`；主目录原发布未覆盖。交付树仍被快捷方式使用，不能归档。最终 `Momoka.dll` SHA256 `F4FC62D9FE6D2A125871A46EF12D9AF813C5CA77E66CA3291A8FD120347F9BBE`，源码与报告在本树，截图／报告副本 `artifacts/verification/series-reorganize/`。
+- 仅真实MoviePilot登录／版本／筛选字段投影为只读核对，没有真实重新整理、媒体写入或播放。TMDB条件沿用网页端标题/路径文字匹配，自定义命名没有该标记时可能查不到记录，用户说明已记录。未运行无关播放探针／全量Shell和自检；本批次未升级版本、依赖或分析器，不以部分MoviePilot分区冒完整Shell验证。
+
 ## 剧资源整理清单 UI（2026-10-28，独立工作树）
 
 - 工作树：`C:/Users/89400/.codex/worktrees/series-history-ui/Momoka`，基于 `f4d8476`，挑入 Core `3932e5d`、v3.2.1 字节大小 `6a4a1ae`。写入范围仅本树的新增 `MoviePilotSeries*` VM/行/清单、Shell 交接、旧整理表单可选预选参数、主题注册、Shell 假服务器探针和相关测试/句柄基线。未复制主树的搜索未提交工作。
