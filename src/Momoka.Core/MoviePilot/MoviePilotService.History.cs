@@ -5,6 +5,15 @@ namespace Momoka.MoviePilot;
 
 public sealed partial class MoviePilotService
 {
+    /// <summary>与网页端媒体整理相同的 TMDB 搜索语法，分页收齐后再次核对剧身份。</summary>
+    public async Task<IReadOnlyList<MoviePilotTransferHistory>> FindSeriesTransferHistoriesAsync(
+        string tmdbId, CancellationToken cancellationToken)
+    {
+        var histories = await FindTransferHistoriesAsync(MoviePilotSeriesTransfer.Query(tmdbId),
+            cancellationToken).ConfigureAwait(false);
+        return histories.Where(history => MoviePilotSeriesTransfer.Matches(history, tmdbId)).ToList();
+    }
+
     public async Task<MoviePilotTransferHistoryPage> TransferHistoryAsync(
         string title, int page, CancellationToken cancellationToken)
     {

@@ -12,6 +12,11 @@ public sealed record MoviePilotTransferHistory
     public string Type { get; init; } = "";
     public string MediaSource { get; init; } = "";
     public string MediaId { get; init; } = "";
+    public string TmdbId { get; init; } = "";
+    public string Image { get; init; } = "";
+    public long? Size { get; init; }
+    public string SourceStorage { get; init; } = "";
+    public string TargetStorage { get; init; } = "";
     public string Seasons { get; init; } = "";
     public string Episodes { get; init; } = "";
     public string Mode { get; init; } = "";
@@ -40,6 +45,14 @@ public sealed record MoviePilotTransferHistory
             Type = Scalar(item, "type"),
             MediaSource = Scalar(item, "media_source"),
             MediaId = Scalar(item, "media_id"),
+            TmdbId = Scalar(item, "tmdbid"),
+            Image = Scalar(item, "image"),
+            Size = long.TryParse(Scalar(item, "filesize"), NumberStyles.None,
+                CultureInfo.InvariantCulture, out var size) && size >= 0 ? size : null,
+            SourceStorage = Scalar(item, "src_storage") is { Length: > 0 } sourceStorage
+                ? sourceStorage : MoviePilotTransfer.Text(sourceFile, "storage"),
+            TargetStorage = Scalar(item, "dest_storage") is { Length: > 0 } targetStorage
+                ? targetStorage : MoviePilotTransfer.Text(targetFile, "storage"),
             Seasons = Scalar(item, "seasons"),
             Episodes = Scalar(item, "episodes"),
             Mode = Scalar(item, "mode"),

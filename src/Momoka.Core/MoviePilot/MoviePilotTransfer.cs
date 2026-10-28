@@ -38,6 +38,9 @@ public sealed record MoviePilotTransferContext(
     string Episode,
     IReadOnlyList<MoviePilotTransferFile> Files)
 {
+    /// <summary>整部剧先按剧的 TMDB 编号浏览 MoviePilot 历史，再由用户勾选具体资源。</summary>
+    public bool BrowseSeriesHistory { get; init; }
+
     public static bool Supports(EmbyItem item) =>
         item.Type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
 }

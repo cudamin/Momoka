@@ -7,6 +7,13 @@
 - **验证**：Solution Release 构建 **0 警告 0 错误**；`Momoka.MoviePilotSubscribeSettingsTests` **69/69**（新增打开路由、唯一订阅/多季/断线、首次加载与失败收起、XAML 合同共 4 条）；Core `Momoka.Tests` **3057/3057**；`Momoka.AniBtEntryTests` **32/32**、`Momoka.ItemUserStateOrderTests` **66/66**、`Momoka.PageContractTests` **98/98**、`Momoka.PlexAffordanceTests` **67/67**（IShellActions 新方法编译边界）。开发件 `--probe-shell --probe-section moviepilot --screen 1` 退出码 0，MoviePilot 分区 **23/23**；加载帧 `mp-subscription-loading-1240.png` 与默认窗口 `mp-subscription-loading-1422.png` 在该次日志目录，断言浮层落在视口内、读完后收起。改动的 C# 文件通过定向 `format whitespace`，`git diff --check` 干净，自动化扫描 0 个无句柄交互控件；`Agreements.txt` 的 handle 基线补了 `DetailLoading`／`DetailLoadingRing`。
 - **未完成／边界**：工作树里另有一批不属于本任务的未提交改动（搜索站点与搜索头收起等），全解决方案 `format whitespace` 仍会在 `ShellNavigationProbe.SearchLayout.cs` 报该批的空白问题；本轮只做定向空白检查，不替它改文件。未运行 `Momoka.DetailDeleteCommandTests` 的 Run-Fixture（IShellActions 新方法不在其执行路径，只有全解决方案编译覆盖）。**未发布**：交付目录与桌面快捷方式仍是旧版，因为当前树包含另一批未提交工作，不能把它们一起发出去。
 
+## 剧页面 MoviePilot 资源多选重新整理（2026-10-28）
+
+- 用户令：只重做剧页面重新整理，参考网页端媒体整理，自动 `tmdbid=xxxx` 筛选当前剧资源，支持多选批量；电影／季／单集保持原文件流程。
+- 工作树：`C:/Users/89400/.codex/worktrees/series-reorganize/Momoka`，基于 `f4d8476`；主树已有未提交搜索／资源界面工作，本任务未混入。Core 与入口由主代理维护，UI 代理使用独立树，上游与本地审查只读。
+- 第一轮：剧入口只补读剧身份，不再收集媒体库全部集文件；MoviePilot 以 `title=tmdbid%3D<id>` 分页收齐历史，再核对类型与 TMDB 身份。选择清单按原 `logid/logids` 建批次，成功移动使用原目标，其余使用原源；重复文件、另一部剧、目录及不支持的源存储整批拒绝。批量不预填季集号，保留文件各自识别。
+- 当前 Release Core／Tests／Shell 编译均 0 警告 0 错误；整理专项 `moviepilot-series-transfer-fixture` **117/117**，含新增14项与现有电影／季／单集、历史重核、依赖链、预览和写后不明回归。不是最终交付证据：清单 UI、真实窗口截图、全套测试和发布仍在本批次内完成。没有真实整理、媒体写入或播放。
+
 ## MoviePilot 季选择弹窗按网页端界面同步（2026-10-28）
 
 - 用户令「参考网页端源码，修改本项目的订阅设置窗口」，并附「未选季」与「已选中、右侧出现三档」两张网页截图；同时要求把「审查代码时检查源码对应界面有没有新增或减少功能，本项目同步更改」记进 MoviePilot 技能。本轮只改这一扇窗，不碰播放或真实订阅写入。
