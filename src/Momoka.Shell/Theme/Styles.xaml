@@ -121,6 +121,56 @@
     -->
     <Style TargetType="local:EgPicker" BasedOn="{StaticResource DefaultComboBoxStyle}" />
 
+    <!--
+      ===================== 对话框的表面（2026-10-28） =====================
+
+      用户指着「请选择订阅季」那张表说圆角和背景都不对，并把下载确认弹窗（MoviePilotDownloadDialog）
+      指名当样板。源码上这是两套皮：框架默认那张是 ContentDialogBackground 的纯灰底、1 像素边框、
+      OverlayCornerRadius（8）；下载弹窗自己写成了 EgSurfaceBrush 底、EgCardCornerRadius（16）圆角、
+      无边框。所以这里把下载弹窗那四样收成一条共享样式，弹窗不再各写一遍。
+
+      为什么不是只写一条 TargetType="ContentDialog" 的隐式样式：隐式样式按类型精确匹配（同上面
+      EgPicker 那条的理由，2026-10-28 实拍复核过一次 —— 季选择弹窗仍是框架灰底），从 ContentDialog
+      派生的每一张表都匹配不上。所以每个具体弹窗类型各接一行；新增弹窗类型时在这里补一行，
+      DialogChromeTests 会数源码里的派生类清单。
+
+      基础样式必须 BasedOn DefaultContentDialogStyle：派生类型那一行只接样式、不另给模板，模板由这里
+      进来。CornerRadius 由模板里 BackgroundElement 那颗 Border 用 TemplateBinding 吃下，Border 按圆角
+      剪孩子，所以底部按钮区跟着圆；底色同时画到正文和按钮区（CommandSpace 也 TemplateBinding
+      Background）。
+
+      下载弹窗不在名单里：它头上那四个本地属性原样保留（本地值优先），图二的样子一个像素不动。
+      以后哪张表要有例外，在它自己头上写属性即可，不用拆这条。
+    -->
+    <Style x:Key="EgDialogSurfaceStyle" TargetType="ContentDialog" BasedOn="{StaticResource DefaultContentDialogStyle}">
+        <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+    </Style>
+
+    <!-- 代码里 new 的普通 ContentDialog（确认框、播放信息、通知服务挑选等）。 -->
+    <Style TargetType="ContentDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+
+    <!-- XAML 里定义的各张表，按类型各接一行；MoviePilotDownloadDialog 保留自己那一份。 -->
+    <Style TargetType="local:AniBtScrapeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:ArtworkViewer" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:CollectionDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:CoverDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:CoverPickerDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:FnNasMatchDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:FnNasMetadataDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:FnNasVersionsDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:IdentifyDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:MetadataDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:MissingEpisodesDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:MoviePilotReorganizeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:MoviePilotSeasonPicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:NotificationEditDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:NotificationServicePicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:RefreshMetadataDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:SubtitleDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+
     <!-- 发丝线的粗细。结构靠它，不靠色块 —— 所以只有一档，加粗只发生在框线变强调色的时候。 -->
     <Thickness x:Key="EgHairline">1</Thickness>
     <!-- 卡片不要白边（2026-10-19 用户令）。描边只在指针/焦点那一下由 EgFrameActiveStyle 临时画出来；

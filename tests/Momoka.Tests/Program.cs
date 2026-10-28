@@ -220,6 +220,7 @@ internal static class Program
         WrapLayoutTests.Register();
         StartupArgsTests.Register();
         ThemeTests.Register();
+        DialogChromeTests.Register();
         PlayerPaletteTests.Register();
         PlayerMotionTests.Register();
         PlayerInteractionTests.Register();

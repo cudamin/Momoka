@@ -8507,3 +8507,12 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **验证**：Release Shell 与测试项目编译 **0 警告 0 错误**；`format whitespace` 退出 0；完整离线套件 **3051/3051、0 失败 0 跳过**。自检那一关（`ProbeClearance`）的间距断言从「量 Bar 顶」改成「量控制行上沿、期望值就是那个 SkipInset」，报告文字改成「离控制行」。`--probe-shell --probe-section playback --screen 1` **8/8 通过**（`shell-probe-20261027-121037370-25228`），`player-skip-layout.txt` 四档读数：1100×711 与 760×531 都是**离控制行 21**，2560×1392 与 2560×1440 都是 **27**，避让/圆角/缩放/UIA 名称同时通过。人眼核对 `player-skip-1100-screen`：按钮从「悬在音量条下方一大截」落到贴着控制行上沿，与独占同一个观感。其余分区探针未跑；未验证独占模式实机（需要真实播放，未获授权），独占那一侧的数是从 Lua 与 uosc 选项（`controls_size=32`、`timeline_size=30`、`controls_margin=8`）算出来的。
 - **交付**：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（546 文件、284.3 MB、verify-publish 通过），对这份交付件再跑 `--probe-shell --probe-section playback --screen 1` **8/8 通过**（`shell-probe-20261027-121730458-8968`），`player-skip-layout.txt` 四档读数与开发件一致（21 / 27）。
 - 未升级版本号、未推送 origin、未建 Release 或商店包。
+
+## 弹窗表面统一：EgSurface 底、16 圆角（2026-10-28 11:00~11:50）
+
+- **用户当次要求**：图一「请选择订阅季」弹窗圆角和背景都不对，所有弹出的选择窗口都要圆角；图二的 MoviePilot 下载确认弹窗不要改，其他弹窗都参考它改。
+- **源码上的差异**：框架 `DefaultContentDialogStyle` 给的是 `ContentDialogBackground`（深色纯灰）、`BorderThickness=1`、`OverlayCornerRadius=8`；下载确认弹窗（`MoviePilotDownloadDialog.xaml`）自己写了 `EgSurfaceBrush` 底、`BorderThickness=0`、`EgCardCornerRadius=16`。其余 15 张 XAML 弹窗与 8 处代码创建的 `ContentDialog` 这四项都没写，吃的是框架默认。
+- **改法**：`Theme/Styles.xaml` 新增共享样式 `EgDialogSurfaceStyle`（BasedOn `DefaultContentDialogStyle`，四个 Setter），再给每个具体弹窗类型各接一行隐式样式。**只写一条 `TargetType="ContentDialog"` 不够**：WinUI 隐式样式按类型精确匹配（同 `EgPicker` 那条老经验），派生弹窗匹配不上 —— 第一次实拍复核时季选择弹窗仍是框架灰底，因此改成「基础样式 + 每型一行」。代码里 `new ContentDialog` 的确认框、播放信息、通知服务挑选等由普通 `ContentDialog` 那行覆盖；下载弹窗不在名单里，本地四值原样保留。
+- **测试**：新增 `tests/Momoka.Tests/DialogChromeTests.cs` 三条——基础样式的四个 Setter；源码里每个 `: ContentDialog` 派生类（除下载弹窗）都有对应样式行；只有下载弹窗保留本地四值，其余 XAML 根不另写。
+- **验证**：Release 全方案构建 **0 警告 0 错误**；完整离线套件 **3057/3057、0 失败 0 跳过**；隔离发布（`work/dialog-chrome`，未碰交付目录）后 `--probe-shell --probe-section moviepilot --screen 1` **23/23 通过**（`shell-probe-20261028-034301980-23352`）。实拍核对 `mp-subscribe-season-picker-{760,360,none-760,failed-760}` 已是 EgSurface 底 + 16 圆角，`mp-download-{options,720}-screen` 与改前一致。第一次探针跑完后确认了「派生类型没吃到隐式样式」这一条，返工后重发重跑才全绿。
+- **交付**：按用户当次选择**只提交、不刷新 `artifacts/publish/win-x64`** —— 工作区另有上一批未提交改动（LibraryPage／PosterCard／MoviePilot 资源浏览等，最后修改 10:15），不把未收尾的工作一起发布；桌面快捷方式仍是旧版。未升级版本号、未推送 origin、未建 Release 或商店包。
