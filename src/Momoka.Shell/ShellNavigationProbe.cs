@@ -69,6 +69,10 @@ internal sealed partial class ShellNavigationProbe
             // 两档上的紧凑度：四档宽度各量一遍，截图 `detail-episode-band-<宽度>.png`。
             await CaseAsync("集页封面与窄窗背景图和尾部间距", EpisodeBandAsync, 30);
             await CaseAsync("电视媒体库封面显示网页版年份", SeriesCardDatesAsync, 30);
+            await CaseAsync("Emby 元数据表单字段、锁定和宽窄布局", MetadataLayoutAsync, 75, section: ShellProbeSections.Metadata);
+            await CaseAsync("Emby 元数据列表编辑、重排和取消", MetadataListsAsync, 45, section: ShellProbeSections.Metadata);
+            await CaseAsync("Emby 元数据保存失败、取消和重试", MetadataSaveAsync, 45, section: ShellProbeSections.Metadata);
+            await CaseAsync("媒体库弹窗五主题圆角和侧栏底色，MP保持原样", LibraryDialogChromeAsync, 120, section: ShellProbeSections.Metadata);
             await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
             await CaseAsync("Jellyfin 媒体库标签、排序、筛选、布局与建议", JellyfinLibraryAsync, 90);
             await CaseAsync("飞牛媒体库工具栏到封面的间距与筛选面板", FnNasLibrarySpacingAsync, 45);

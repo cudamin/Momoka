@@ -99,7 +99,7 @@ internal static partial class ItemCommands
             var (title, body) = ("删除这个版本",
                 $"将从服务器磁盘删除「{chosen.Path}」。此操作无法撤销。"
                     + (versions.Count == 1 ? "这是这个条目的最后一个版本，删除后条目会一起移除。" : ""));
-            if (!await ConfirmDialog.For(owner)(title, body, "删除").ConfigureAwait(true)) return;
+            if (!await ConfirmDialog.ForLibrary(owner)(title, body, "删除").ConfigureAwait(true)) return;
 
             await TellAsync(session, (client, token) => client.FnNas.DeleteItemAsync(
                     client.FnNasConnection, item.Id, FnNasItemActions.Delete(deleteFile: true, [chosen.MediaGuid]), token))
@@ -158,7 +158,7 @@ internal static partial class ItemCommands
         GuardAsync(shell, "解除匹配失败", async () =>
         {
             var item = card.Item;
-            var agreed = await ConfirmDialog.For(owner)("解除匹配",
+            var agreed = await ConfirmDialog.ForLibrary(owner)("解除匹配",
                 $"将清除「{item.Name}」现有的元数据，并断开与当前匹配影片的关联。此操作无法撤销。", "解除匹配")
                 .ConfigureAwait(true);
             if (!agreed) return;
@@ -182,7 +182,7 @@ internal static partial class ItemCommands
         {
             var item = card.Item;
             var (title, body) = ItemMenu.DeletePrompt(item);
-            if (!await ConfirmDialog.For(owner)(title, body, "删除").ConfigureAwait(true)) return;
+            if (!await ConfirmDialog.ForLibrary(owner)(title, body, "删除").ConfigureAwait(true)) return;
 
             await TellAsync(session, (client, token) => client.FnNas.DeleteItemAsync(
                     client.FnNasConnection, item.Id, FnNasItemActions.Delete(deleteFile: true, []), token))

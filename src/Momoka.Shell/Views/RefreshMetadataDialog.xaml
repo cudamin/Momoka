@@ -18,6 +18,8 @@
     PrimaryButtonText="刷新">
 
     <ContentDialog.Resources>
+        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
         <!-- 网页端那张表是窄的：一档下拉加两颗开关，撑到默认那 548 只会让说明那一行拉得太长。 -->
         <x:Double x:Key="ContentDialogMaxWidth">480</x:Double>
     </ContentDialog.Resources>

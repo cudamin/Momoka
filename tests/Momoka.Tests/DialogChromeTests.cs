@@ -4,21 +4,17 @@ using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-/// <summary>
-/// 弹窗的表面只由 Theme/Styles.xaml 的 <c>EgDialogSurfaceStyle</c> 决定（2026-10-28 用户令）。
-/// <para>
-/// 起因是「请选择订阅季」那张表还是框架默认的灰底、8 圆角、1 像素边框，而下载确认弹窗已经是
-/// EgSurfaceBrush 底、EgCardCornerRadius 16 圆角、无边框；用户把后者点名当样板，要求其余弹窗照它统一。
-/// 隐式样式按类型精确匹配，派生弹窗不吃 ContentDialog 那一条，所以每个具体类型各接一行 —— 这份合同
-/// 盯三件事：基础样式在、每个派生弹窗都接了那一行、下载弹窗保留自己的本地四值不被波及。
-/// </para>
-/// <para>
-/// 这里只读源码文本：证明不了样式的实际应用、渲染圆角或遮罩颜色，那些由真实弹窗探针的屏幕截图覆盖。
-/// </para>
-/// </summary>
+/// <summary>Source contracts for separate library and MP/default surfaces; rendering is covered by native probes.</summary>
 internal static class DialogChromeTests
 {
     private const string SurfaceStyle = "EgDialogSurfaceStyle";
+    private const string LibraryStyle = "EgLibraryDialogSurfaceStyle";
+    private static readonly HashSet<string> LibraryDialogs = new(StringComparer.Ordinal)
+    {
+        "AniBtScrapeDialog", "ArtworkViewer", "CollectionDialog", "CoverDialog", "CoverPickerDialog", "EmbyMetadataDialog",
+        "FnNasMatchDialog", "FnNasMetadataDialog", "FnNasVersionsDialog", "IdentifyDialog", "MetadataDialog",
+        "MissingEpisodesDialog", "RefreshMetadataDialog", "SubtitleDialog"
+    };
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
     private static readonly Regex Subclass = new(@"class\s+(\w+)\s*:\s*ContentDialog\b", RegexOptions.CultureInvariant);
 
@@ -38,34 +34,92 @@ internal static class DialogChromeTests
             Assert.Equal("{StaticResource EgCardCornerRadius}", setters.GetValueOrDefault("CornerRadius"));
         });
 
-        Test("弹窗表面：每个 ContentDialog 派生类型都接了那一行，下载确认弹窗除外", () =>
+        Test("媒体库弹窗：与设置侧栏同一底色角色并继承圆角", () =>
+        {
+            var style = Styles().Single(element => element.Attribute(Xaml + "Key")?.Value == LibraryStyle);
+            Assert.Equal("{StaticResource " + SurfaceStyle + "}", style.Attribute("BasedOn")?.Value);
+            Assert.Equal("{ThemeResource LayerFillColorDefaultBrush}", Setters(style).GetValueOrDefault("Background"));
+            var settings = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml")).Root!;
+            Assert.Equal(settings.Attribute("Background")?.Value, Setters(style).GetValueOrDefault("Background"));
+        });
+
+        Test("弹窗表面：媒体库与MP及普通窗口按明确范围接各自样式", () =>
         {
             var styles = Styles();
-            var rooted = styles
-                .Where(element => element.Name.LocalName == "Style" && element.Attribute(Xaml + "Key") is null)
-                .Where(element => element.Attribute("BasedOn")?.Value == "{StaticResource " + SurfaceStyle + "}")
-                .Select(element => element.Attribute("TargetType")?.Value ?? "")
-                .ToHashSet(StringComparer.Ordinal);
-
-            Assert.True(rooted.Contains("ContentDialog"), "代码里 new 的普通 ContentDialog 没有接基础样式");
-
+            var rooted = styles.Where(element => element.Name.LocalName == "Style" && element.Attribute(Xaml + "Key") is null)
+                .ToDictionary(element => element.Attribute("TargetType")?.Value ?? "", element => element.Attribute("BasedOn")?.Value);
+            Assert.Equal("{StaticResource " + SurfaceStyle + "}", rooted.GetValueOrDefault("ContentDialog"),
+                "普通/MP动态窗口不得改成媒体库底色");
             var folder = Path.Combine(Root(), "src", "Momoka.Shell");
             var subclasses = Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories)
                 .SelectMany(file => Subclass.Matches(File.ReadAllText(file)).Select(match => match.Groups[1].Value))
-                .Distinct(StringComparer.Ordinal)
-                .Order(StringComparer.Ordinal)
-                .ToArray();
-
-            Assert.True(subclasses.Length >= 15, $"只找到 {subclasses.Length} 个 ContentDialog 派生类，清单不完整");
+                .Distinct(StringComparer.Ordinal).ToArray();
+            Assert.True(subclasses.Length >= 15);
             foreach (var type in subclasses)
             {
                 if (type == "MoviePilotDownloadDialog") continue;
-                Assert.True(rooted.Contains("local:" + type),
-                    $"{type} 没有 EgDialogSurfaceStyle 那行 —— 隐式样式按类型精确匹配，它会停在框架默认灰底方角");
+                var expected = LibraryDialogs.Contains(type) ? LibraryStyle : SurfaceStyle;
+                Assert.Equal("{StaticResource " + expected + "}", rooted.GetValueOrDefault("local:" + type),
+                    $"{type} 的弹窗表面越过媒体库/MP边界");
             }
         });
 
-        Test("弹窗表面：只有下载确认弹窗保留本地四值，其余 ContentDialog 不另写", () =>
+        Test("媒体库弹窗：正文叠色局部绑定侧栏颜色而MP保持框架原样", () =>
+        {
+            var folder = Path.Combine(Root(), "src", "Momoka.Shell", "Views");
+            foreach (var type in LibraryDialogs)
+            {
+                var alias = XDocument.Load(Path.Combine(folder, type + ".xaml")).Descendants().Single(element =>
+                    element.Attribute(Xaml + "Key")?.Value == "ContentDialogTopOverlay");
+                Assert.Equal("LayerFillColorDefaultBrush", alias.Attribute("ResourceKey")?.Value);
+            }
+            foreach (var file in Directory.GetFiles(folder, "MoviePilot*.xaml"))
+                Assert.False(File.ReadAllText(file).Contains("ContentDialogTopOverlay", StringComparison.Ordinal), "MP叠色被修改");
+            Assert.False(Styles().Any(element => element.Attribute(Xaml + "Key")?.Value == "ContentDialogTopOverlay"),
+                "不能全局覆盖正文叠色");
+        });
+
+        Test("媒体库弹窗：筛选和库设置也用相同主题底色与圆角刻度", () =>
+        {
+            foreach (var file in new[] { "FilterPanel.xaml", "LibrarySettingsPanel.xaml" })
+            {
+                var surface = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", file)).Descendants()
+                    .Single(element => element.Attribute(Xaml + "Name")?.Value == "LibraryDialogSurface");
+                Assert.Equal("{ThemeResource LayerFillColorDefaultBrush}", surface.Attribute("Background")?.Value);
+                Assert.Equal("{StaticResource EgCardCornerRadius}", surface.Attribute("CornerRadius")?.Value);
+            }
+        });
+
+        Test("媒体库弹窗：编辑子浮层同色圆角但不污染全局Flyout", () =>
+        {
+            var style = Styles().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgLibraryFlyoutSurfaceStyle");
+            Assert.Equal("FlyoutPresenter", style.Attribute("TargetType")?.Value);
+            Assert.Equal("{ThemeResource LayerFillColorDefaultBrush}", Setters(style).GetValueOrDefault("Background"));
+            Assert.Equal("{StaticResource EgCardCornerRadius}", Setters(style).GetValueOrDefault("CornerRadius"));
+            foreach (var file in new[] { "EmbyMetadataDialog.xaml", "MetadataListEditor.xaml" })
+                foreach (var flyout in XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", file)).Descendants()
+                    .Where(element => element.Name.LocalName == "Flyout"))
+                    Assert.Equal("{StaticResource EgLibraryFlyoutSurfaceStyle}", flyout.Attribute("FlyoutPresenterStyle")?.Value);
+        });
+
+        Test("媒体库弹窗：删除等确认只从库操作使用库样式入口", () =>
+        {
+            var folder = Path.Combine(Root(), "src", "Momoka.Shell", "Views");
+            foreach (var file in new[] { "ItemCommands.Server.cs", "ItemCommands.FnNas.cs" })
+            {
+                var text = File.ReadAllText(Path.Combine(folder, file));
+                Assert.Contains("ConfirmDialog.ForLibrary(owner)", text);
+                Assert.False(text.Contains("ConfirmDialog.For(owner)", StringComparison.Ordinal));
+            }
+            foreach (var file in Directory.GetFiles(folder, "MoviePilot*.cs"))
+                Assert.False(File.ReadAllText(file).Contains("EgLibrary", StringComparison.Ordinal), "MP窗口被库样式污染");
+            var confirm = File.ReadAllText(Path.Combine(folder, "ConfirmDialog.cs"));
+            Assert.Contains("if (library)", confirm);
+            Assert.Contains("""dialog.Style = (Style)Application.Current.Resources["EgLibraryDialogSurfaceStyle"]""", confirm);
+            Assert.Contains("""dialog.Resources["ContentDialogTopOverlay"]""", confirm);
+        });
+
+        Test("弹窗表面：MP下载样板保持本地四值，其余表面集中在样式", () =>
         {
             var folder = Path.Combine(Root(), "src", "Momoka.Shell", "Views");
             var dialogs = Directory.GetFiles(folder, "*.xaml")

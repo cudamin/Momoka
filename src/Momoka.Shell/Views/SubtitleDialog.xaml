@@ -7,6 +7,8 @@
     xmlns:views="using:Momoka.Shell.Views">
 
     <ContentDialog.Resources>
+        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
         <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
     </ContentDialog.Resources>
 

@@ -17,6 +17,8 @@ internal static class StartupArgsTests
         Test("SVP 离线探针分区：正确解析和重复归一，非法分区仍拒绝", () =>
         {
             Assert.True(ShellProbeSections.IsKnown("SVP"));
+            Assert.True(ShellProbeSections.IsKnown("metadata"));
+            Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "metadata"])!.SetEquals([ShellProbeSections.Metadata]));
             var sections = StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "svp,SVP,settings"]);
             Assert.True(sections is { Count: 2 } && sections.Contains("svp") && sections.Contains("settings"));
             Assert.Throws<ArgumentException>(() => StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "svp,unknown-section"]));

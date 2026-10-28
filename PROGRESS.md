@@ -8626,3 +8626,21 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **整合**：隔离代码提交 `348bc33`，主树对应提交 `657db6c`，只暂存该任务差异；保留主树已有搜索紧凑布局、站点偏好、滚动条等未提交内容，冲突逐段合并不回退它们。主树实际整合内容重新 Release 构建 0 警告 / 0 错误、主测试 3063/3063、资源浏览专项 34/34、空白检查退出 0；library,search,moviepilot 运行 54/54（shell-probe-20261028-072109352-8800），现有 AniBT 布局补核 3/3（shell-probe-20261028-072923199-4180）。验证和发布前后最终源码 1291 项哈希未改变。
 - **发布与最终证据**：`tools/publish.ps1 -NoArchive` 已更新主树 `artifacts/publish/win-x64`，校验 546 文件 / 284.3 MB，批准 mpv 载荷及着色器逐项通过。对这个最终发布程序再次运行 library,search,moviepilot 54/54（shell-probe-20261028-073502736-26172），已核对五主题实屏与默认灰色 / 按钮指针主题色；主程序集 SHA-256 `E8141A830756C68774C4A1C88E1C70A6876CDEB810F5D3ABFD9B51076872C894`。未覆盖其它探针分区、完整默认自检、真实服务器播放或读屏 / 高对比主题。
 - **桌面入口与协作**：验证期间另一用户任务把 `Desktop/Momoka.lnk` 改指向 series-reorganize 工作树的发布程序；本轮没有覆盖该快捷方式或那个独立程序，用户要体验本次修改须启动 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`。主树其它未提交工作原样保留；隔离日志 / 指针证据已复制到主树 ignored `work/neutral-feedback-integration/isolated-evidence`；尝试归档临时树时工具指出它仍是本聊天的主工作区，拒绝移除，因此保留该树，不手工绕过保护。不推送 origin、不改版本、不建 Release 或商店包。
+
+## 2026-10-28 — Emby 编辑元数据与媒体库弹窗（进行中）
+
+- 工作树：`C:/Users/89400/.codex/worktrees/emby-metadata-editor/Momoka`，分支 `codex/emby-metadata-editor`，基于主树 `c9b68df`；不复制或覆盖主树已有未提交布局/主题改动。
+- 范围：Emby 独立元数据表单、Core 编辑与保存服务、对应离线测试及原生运行探针；按追加要求统一媒体库相关弹窗的圆角与设置页侧栏背景。Jellyfin／飞牛元数据业务保持原样；MoviePilot 窗口和共享默认样式不改，不动播放、依赖、版本或真实共享元数据。
+- 协议依据：用户四张网页截图；只读核对官方 Emby.ApiClients `4.10.2.0 Release` 的 MetadataEditorInfo/BaseItemDto/BaseItemPerson 和现有 `4.10.0.40` OpenAPI 快照。新增 GET Items/{ItemId}/MetadataEditor；全项锁定实际字段为 LockData，不误写查询字段 IsLocked。
+- 安全：默认只用匿名内存 HTTP 和独立运行目录；不登录真实服务器、不播放、不执行真实元数据保存、不推送 origin。
+
+- 阶段证据：Emby新增45项匿名Core回归全过；当前Shell构建0警告0错误。真实窗口1100／760／540布局及列表编辑已通过；保存／重试探针因InfoBar与ContentDialog重复CloseButton句柄待收窄定位。截图拒绝Hidden启动和屏外采样后已用Normal可见窗口、主屏重验，不放宽遮挡守卫。最终表面样式、全部适用验证、对应产品提交、合入主树和主树重验／发布仍待完成。
+
+### 2026-10-28 — Emby 元数据与库窗口隔离实现已验证，待主树整合
+
+- 产品：Emby 独立表单补齐加入日期、自定义分级、3D、外部 ID、类型／人物／工作室／标签列表、字段锁和整项 LockData；保存服务检查固定身份与当前权限，在原 JSON 副本写草稿，原样不 POST，失败保输入重试。现有 Jellyfin／飞牛业务保留。
+- 追加外观：媒体库相关弹窗／编辑子浮层、筛选／显示设置与库确认使用 16 DIP 圆角及设置侧栏 LayerFillColorDefaultBrush。局部去掉 ContentDialogTopOverlay 的增亮叠层，正文和底部同色；EgDialogSurfaceStyle 和所有 MoviePilot 文件未修改。普通/MP动态弹窗不走库确认入口。
+- 测试：当前 Release Core／Tests、Shell、实际确认夹具构建均0警告0错误；主套件3162/3162，元数据／表面专项55/55（与主套件重叠），实际确认／删除匿名回归19/19（含新入口分离断言）。Shell／Core／Tests及确认夹具定向空白均通过；Shell格式工具报告已有工作区加载警告，未将其当编译证据。自动化扫描普通控件缺句柄0，复用模板按钮按所属列表项定位。
+- 原生最终检查：metadata分区4/4，PID2340，运行目录 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261028-133056180-2340`；实际1100／760／540表单、列表增改删与上下移动、校验、失败重试和取消执行。五套主题85张库弹窗/筛选/设置/MP对照实屏，以及表单宽窄/状态截图已经复核；正文采样与侧栏角色吻合。范围外123项未运行，非完整Shell自检。
+- 安全与覆盖：无真实登录／共享元数据写入／播放／外部网站启动；无真实鼠标拖拽、读屏和高对比覆盖。两次Hidden启动不能实屏的失败保留；可见Normal窗口、主屏与实际事件完成等待后重验，不放宽遮挡／输入／权限守卫。
+- 收尾待办：本产品提交合入master，保留主树本来11份未提交工作；合并后的Core/测试/运行/截图重新执行并发布主树实际目录、核对快捷方式。独立树目前未发布，不声称已交付；不推origin、不改版本或发布Release。临时树待确认主树验证与交付完成再清理。

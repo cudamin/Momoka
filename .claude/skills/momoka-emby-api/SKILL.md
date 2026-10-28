@@ -86,6 +86,12 @@ Videos/{itemId}/stream{ext}?Static=true&MediaSourceId=…
 
 For the More menu's subtitle editor, pass an immutable `ServerSubtitleSearch` through `ServerSubtitles` to `EmbyClient.SearchSubtitlesAsync`. Keep `MediaSourceId` bound to the file captured when the dialog opened. Send `IsForced=true` only when “仅强制字幕” is on; omit the query when it is off, rather than excluding forced subtitles with `false`. The current Emby web editor has no hash-match toggle: do not restore it from the older screenshots in the manual-download article or send `IsPerfectMatch` from this editor. See [the subtitle endpoint notes](references/endpoints.md#字幕) for the dated protocol evidence and the Jellyfin difference.
 
+## Native Emby metadata editor
+
+`EmbyMetadataEditor` owns scope-bound full JSON reads and saves; `EmbyClient.Metadata.cs` owns the Emby-only `Items/{ItemId}/MetadataEditor` catalog endpoint. Reuse `ExternalIdInfo` rather than guessing provider IDs or cloning the SDK model. `EmbyMetadataEdit` preserves untouched JSON, date precision, unknown locks and original credit/studio identity across list edits. The whole-item lock is `LockData`, not the `IsLocked` query filter. Saving is administrator-gated and a true no-op sends no POST. Details and dated evidence are in [the endpoint notes](references/endpoints.md#emby-原生元数据编辑目录2026-10-28).
+
+The focused `emby-metadata-fixture` uses anonymous in-memory HTTP and is a subset of the full Core suite. `--probe-shell --probe-section metadata` uses real native controls with offline samples and inert save delegates. Neither proves real server write success. Library dialog colors are locally scoped so MoviePilot/default dialog surfaces remain unchanged; command and screenshot boundaries are in the development document.
+
 ## 验证
 
 - 新增或修改请求路径时，先 `GET {ApiBase}openapi` 校对；规格里没有的，确认是缺口并登记进本技能。规格取不到时改查[官方 SDK 字典](references/official-sdk.md)，并写明依据的是哪一版 SDK。

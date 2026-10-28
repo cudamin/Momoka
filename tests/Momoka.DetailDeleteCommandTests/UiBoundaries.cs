@@ -23,6 +23,15 @@ namespace Microsoft.UI.Xaml
         public Thickness(double value) : this(value, value, value, value) { }
     }
     public sealed class XamlRoot;
+    public sealed class Style;
+    public sealed class Application
+    {
+        public static Application Current { get; } = new();
+        public Dictionary<string, object> Resources { get; } = new()
+        {
+            ["EgLibraryDialogSurfaceStyle"] = new Style(), ["LayerFillColorDefaultBrush"] = new object()
+        };
+    }
     public class FrameworkElement
     {
         public object? DataContext { get; set; }
@@ -53,6 +62,8 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class Button : ContentControl;
     public class ContentDialog : ContentControl
     {
+        public Style? Style { get; set; }
+        public Dictionary<string, object> Resources { get; } = [];
         public ElementTheme RequestedTheme { get; set; }
         public object? Title { get; set; }
         public string PrimaryButtonText { get; set; } = "";
