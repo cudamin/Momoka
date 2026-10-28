@@ -36,7 +36,10 @@
       简介这几行字则照电影详情页那样直接落在剧照上，不画外圈也不画底色。
       没有订阅（从搜索／推荐打开的纯媒体详情）时评分星与订阅那几行一起收起，卡上只剩媒体信息。加载条
       一条都不画（用户令 2026-10-12：「不要显示那个加载条」；此前是两份数据合并成的一条进度）：进度状态
-      由头部与各段自己的说明交代。原先那颗 ProgressBar 的来由与去掉的代价写在它原来所在的那一处。
+      由头部与各段自己的说明交代。2026-10-28 起，首次读取媒体详情时页面中央另有一颗转圈和一句
+      「正在读取媒体详情…」（用户令「点击进入订阅页面时候需要时间加载，添加动画过渡」），读完即收起；
+      它不压内容、不替代任何一段的说明，也不是先前撤掉的那条进度线。原先那颗 ProgressBar 的来由与
+      去掉的代价写在它原来所在的那一处。
 
       「订阅信息」那一栏的字段取舍在 Core（MoviePilotSubscriptionFacts），这里只负责排。
       媒体身份（来源／编号／类型／季号）不重复进这张卡 —— 它就在片名下面那一行。
@@ -280,12 +283,13 @@
                 </StackPanel>
             </Grid>
 
-            <!-- 这一页不画加载条（用户令 2026-10-12：「不要显示那个加载条」）。原先这里是全页唯一的一条
+            <!-- 这一页不画细进度条（用户令 2026-10-12：「不要显示那个加载条」）。原先这里是全页唯一的一条
                  ProgressBar（订阅与媒体详情两份数据谁在读取都算页面在读取）—— 它排在头部那一行的下面，
                  而头部的高度由右上角那张资料卡撑出来，于是那条细线落在「简介」与「演职员」之间那块
                  本来就空着的地方，看着像那一块在加载东西。去掉之后这里只剩间距：进度状态改由头部与
                  各段自己的说明交代（入库徽标、文件统计那句「正在读取文件统计…」、季信息那句），
-                 失败仍走下面两条 InfoBar，不靠隐藏掩盖。 -->
+                 失败仍走下面两条 InfoBar，不靠隐藏掩盖。首次读取媒体详情的那颗转圈浮在页面中央
+                 （见本页末尾的 DetailLoading），不是这条线。 -->
             <InfoBar Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" />
 
@@ -356,6 +360,25 @@
             </StackPanel>
         </StackPanel>
     </ScrollViewer>
+    <!-- 首次读取媒体详情时的加载动画（2026-10-28 用户令「点击进入订阅页面时候需要时间加载，添加动画
+         过渡」）：整页压一层暗罩，中央一颗转圈加一句话，只在读第一份详情时出现，读完或失败随状态收起。
+         放在视口中央而不是正文纸面里 —— 默认 800 高的窗口上图下沿正好落在首屏底边，纸面顶上的东西要
+         滚动才看得见；暗罩同时把只读了一半的头部压下去，转圈不会和简介、资料卡的字叠在一起。
+         IsActive 跟显隐同一判据：转圈是合成器动画，祖先收起它也不会停（同订阅列表页那颗 LoadingRing）。
+         这不是 2026-10-12 撤掉的那条细进度条：它不占布局、不挡输入，也不代表某一段内容在加载。 -->
+    <Grid x:Name="DetailLoading" Background="{ThemeResource EgScrimBrush}" IsHitTestVisible="False"
+        Visibility="{x:Bind MediaViewModel.InitialLoadingVisibility, Mode=OneWay}">
+        <Border HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24,16"
+            Background="{ThemeResource EgSurfaceElevatedBrush}" CornerRadius="{StaticResource EgCardCornerRadius}">
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource EgSpaceM}" VerticalAlignment="Center">
+                <ProgressRing x:Name="DetailLoadingRing" Width="28" Height="28"
+                    IsActive="{x:Bind MediaViewModel.InitialLoading, Mode=OneWay}"
+                    Foreground="{ThemeResource EgAccentBrush}" AutomationProperties.Name="正在读取媒体详情" />
+                <TextBlock Text="正在读取媒体详情…" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center"
+                    AutomationProperties.LiveSetting="Polite" />
+            </StackPanel>
+        </Border>
+    </Grid>
     <local:MoviePilotResourcePanel x:Name="MediaResources" Visibility="Collapsed" Closed="OnResourcesClosed" />
 </Grid>
 </Page>

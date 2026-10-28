@@ -269,6 +269,7 @@ internal sealed class ItemUserStateShell : IShellActions
     public void OpenSignIn(ServerProfile? server = null, bool newAccount = false) => throw Unrelated();
     public Task SwitchProfileAsync(ServerProfile server, AccountProfile? account) => throw Unrelated();
     public void SetTitleStrip(TitleStrip strip) => throw Unrelated();
+    public void OpenMoviePilotMedia(Momoka.MoviePilot.MoviePilotMedia media, Momoka.MoviePilot.MoviePilotSubscription? subscription = null) => throw Unrelated();
     public void SearchMoviePilotVersions(EmbyItem item) => throw Unrelated();
     public void SearchAniBtVersions(EmbyItem item) => throw Unrelated();
     public void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) => throw Unrelated();

@@ -5,6 +5,18 @@ public sealed partial class MoviePilotService
     private readonly HashSet<string> _pendingSubscriptionSettings = new(StringComparer.Ordinal);
     private readonly Dictionary<string, HashSet<string>> _subscriptionReviews = new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// 网页端「选择订阅季」在打开时读取的公开默认电视剧订阅模式。未设置时服务端给 <c>value:null</c>，按普通订阅；
+    /// 旧服务器没有这个公开入口时由调用方回退，不阻断季选择。
+    /// </summary>
+    public async Task<MoviePilotSubscribeMode> DefaultTvSubscribeModeAsync(MoviePilotMedia media, CancellationToken cancellationToken)
+    {
+        var identity = RequireResultConnection(media.ConnectionStamp);
+        var data = await CallAsync((address, token) => _client.GetAsync(address, token,
+            "system/setting/public/DefaultTvSubscribeConfig", cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        return MoviePilotSubscriptionPlan.DefaultMode(data);
+    }
+
     private MoviePilotOperationState SubscriptionSettingsState(MoviePilotMedia media, string group)
     {
         lock (_operationGate)

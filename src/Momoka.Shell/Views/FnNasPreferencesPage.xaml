@@ -25,7 +25,7 @@
                 Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         </StackPanel>
         <ScrollView Grid.Row="1" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
-            <StackPanel Spacing="16" Padding="0,0,0,20" MaxWidth="720" HorizontalAlignment="Left">
+            <StackPanel Spacing="16" Padding="0,0,20,20" MaxWidth="720" HorizontalAlignment="Left">
                 <TextBlock Text="播放偏好" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />
                 <TextBlock Text="偏好保存在飞牛影视服务器上，作为服务器播放与字幕选择的默认语言；Momoka 自己的播放语言仍按「设置 → 字幕」执行。"
                     Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />

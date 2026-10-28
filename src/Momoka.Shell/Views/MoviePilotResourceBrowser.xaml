@@ -92,6 +92,7 @@
         </ItemsControl>
         <Grid Grid.Row="2">
             <ItemsView x:Name="ResourceList" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
+                Padding="{StaticResource EgScrollBarLane}"
                 SelectionMode="None" IsItemInvokedEnabled="False" ItemTransitionProvider="{x:Null}">
                 <ItemsView.Layout>
                     <UniformGridLayout MinItemWidth="236" MinItemHeight="364" MinRowSpacing="12" MinColumnSpacing="12"

@@ -30,6 +30,23 @@ internal static class ShortcutTests
                 Assert.False(ShortcutCatalog.IsReserved(action.Default), $"{action.Id} 的默认键是保留键");
         });
 
+        Test("快捷键表：弹幕不可用时收起那四条，可用时一条不少，次序照旧", () =>
+        {
+            // 设置页卡片与自检都读这一个判据（ShortcutCatalog.Available）。两处各写一份时，
+            // 2026-10-27 本机把弹幕关掉就红成「59 行（应当 63 行）」—— 卡片是对的，判据错了。
+            var all = ShortcutCatalog.Available(danmakuReady: true);
+            var withoutDanmaku = ShortcutCatalog.Available(danmakuReady: false);
+
+            Assert.Equal(63, all.Count);
+            Assert.Equal(59, withoutDanmaku.Count);
+            Assert.Equal("toggle-danmaku,danmaku-delay-decrease,danmaku-delay-increase,danmaku-delay-reset",
+                string.Join(',', all.Except(withoutDanmaku).Select(action => action.Id)));
+            Assert.True(withoutDanmaku.All(action => !ShortcutCatalog.IsDanmaku(action)), "收起之后还留着弹幕动作");
+            Assert.Equal(
+                string.Join(',', all.Where(action => !ShortcutCatalog.IsDanmaku(action)).Select(action => action.Id)),
+                string.Join(',', withoutDanmaku.Select(action => action.Id)));
+        });
+
         Test("快捷键表：默认键就是改造前那张 switch 表 —— 空格暂停、F 全屏、Shift+Z 字幕延迟增大", () =>
         {
             KeyStroke Default(string id) => ShortcutCatalog.Actions.First(a => a.Id == id).Default;

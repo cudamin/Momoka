@@ -102,7 +102,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 搜索站点多选、清空、默认及离页取消", MoviePilotSearchSitesAsync);
             await CaseAsync("MoviePilot 资源卡片、季集筛选和下载选项", MoviePilotResourceOptionsAsync, 30);
             await CaseAsync("MoviePilot 搜索海报、资源卡片与多选筛选布局", MoviePilotSearchCardsAsync, 60, ShellProbeSections.MoviePilot);
-            await CaseAsync("搜索宽窄布局和媒体库工具栏隔离", SearchHeaderLayoutAsync);
+            await CaseAsync("搜索宽窄布局和媒体库工具栏隔离", SearchHeaderLayoutAsync, 45);
             await CaseAsync("加载中禁止播放全部", PlaybackBusyAsync);
             await CaseAsync("字母查询过期不继续", JumpCancelAsync);
             await CaseAsync("切季回到原季撤销旧请求", SeasonCancelAsync);
@@ -113,7 +113,7 @@ internal sealed partial class ShellNavigationProbe
             // 展开态：框架在弹层打开那一拍把选中项的文本收掉，框的宽度塌回 MinWidth，右邻被弹层压住
             // （用户 2026-10-16）。这一条量的是展开态的宽度与弹层右沿。
             await CaseAsync("文件选项下拉展开的位置与宽度", PickerDropDownAsync);
-            await CaseAsync("主页标题点击范围与加粗边框", HomeHeaderAsync, 45);
+            await CaseAsync("主页标题点击范围与加粗边框", HomeHeaderAsync, 60);
             await CaseAsync("隐藏首页行不请求", HiddenHomeAsync);
             await CaseAsync("通知空态属性通知", NotificationEmptyAsync);
             await CaseAsync("离开通知页不弹旧编辑器", NotificationCancelAsync);
@@ -540,6 +540,7 @@ internal sealed partial class ShellNavigationProbe
         public void SetTitleStrip(TitleStrip strip) { }
         public bool MoviePilotEnabled => false;
         public event EventHandler? MoviePilotAvailabilityChanged { add { } remove { } }
+        public void OpenMoviePilotMedia(Momoka.MoviePilot.MoviePilotMedia media, Momoka.MoviePilot.MoviePilotSubscription? subscription = null) { }
         public void SearchMoviePilotVersions(EmbyItem item) { }
         public void SearchAniBtVersions(EmbyItem item) { }
         public void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) { }

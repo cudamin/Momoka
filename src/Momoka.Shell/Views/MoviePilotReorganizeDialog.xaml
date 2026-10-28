@@ -14,7 +14,7 @@
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
         <InfoBar x:Name="Problem" IsClosable="False" IsOpen="False" Severity="Error" />
         <ScrollViewer x:Name="FormScroll" Grid.Row="1" HorizontalScrollMode="Disabled" VerticalScrollBarVisibility="Auto" MaxHeight="600">
-            <StackPanel Padding="0,0,12,0" Spacing="12">
+            <StackPanel Padding="0,0,20,0" Spacing="12">
                 <ContentControl x:Name="FormPanel" HorizontalContentAlignment="Stretch">
                 <StackPanel Spacing="12">
                     <TextBlock Style="{StaticResource EgSubheadStyle}" Text="1. 找到原整理记录" />

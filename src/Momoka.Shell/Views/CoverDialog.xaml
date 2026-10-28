@@ -26,7 +26,7 @@
             Click="OnRefreshArtwork"
             Content="刷新图片列表"
             Style="{StaticResource EgSecondaryButtonStyle}" />
-        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="2" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="{StaticResource EgSpaceXL}">
                 <ItemsControl x:Name="Slots" ItemsSource="{x:Bind Groups}">
                     <ItemsControl.ItemsPanel>

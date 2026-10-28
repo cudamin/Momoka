@@ -62,6 +62,12 @@ internal sealed partial class ShellNavigationProbe
             poster.SetHovered(false);
             Require(more.Visibility == Visibility.Collapsed, "未悬停封面时订阅管理按钮仍然显示");
             poster.SetHovered(true); await LayoutAsync(poster);
+            var subscriptionArt = Get<Border>(poster, "Art");
+            Require(subscriptionArt.BorderThickness == new Thickness(0), "主页订阅海报悬停仍有主题色外圈");
+            var subscriptionCover = Get<Button>(poster, "SubscriptionCover");
+            Require(subscriptionCover.Focus(FocusState.Keyboard), "主页订阅海报无法接受键盘焦点");
+            await LayoutAsync(poster);
+            Require(subscriptionArt.BorderThickness == new Thickness(0), "主页订阅海报聚焦仍有主题色外圈");
             var morePosition = more.TransformToVisual(poster).TransformPoint(default);
             Require(more.Visibility == Visibility.Visible && more.ActualWidth == 32 && more.ActualHeight == 32
                 && Math.Abs(poster.ActualWidth - morePosition.X - more.ActualWidth - 7) < 1
@@ -130,14 +136,37 @@ internal sealed partial class ShellNavigationProbe
         var searched = new List<string>();
         // 下方三段的读数（板底、带高、内层滚动面）—— 断言只说出「不对」，这几行说出屏上到底是什么。
         var relatedReadings = new List<string>();
+        // 首次读取媒体详情那一趟扣在手里：加载转圈该在，放开后该收（2026-10-28）。
+        var detailGate = Pending<bool>();
+        server.DetailGate = detailGate;
         var page = new MoviePilotSubscriptionPage();
+        ResizeInspect(1240, 1000);
         _root.Children.Add(page);
         page.Attach(new(service, subscription, fixture.Session.Capture(),
             target => { played.Add(target); return Task.CompletedTask; }, keyword => searched.Add(keyword)));
         try
         {
             var vm = page.ViewModel;
+            await UntilAsync(() => page.MediaViewModel.InitialLoading);
+            await LayoutAsync(page);
+            var loadingPanel = Get<Grid>(page, "DetailLoading");
+            var loadingRing = Get<ProgressRing>(page, "DetailLoadingRing");
+            Require(loadingPanel.Visibility == Visibility.Visible && loadingRing.IsActive,
+                "首次读取媒体详情时没有加载动画");
+            await SaveSettledFrameAsync(page, "mp-subscription-loading-1240.png");
+            // 默认窗口 1422×800：图下沿正好在首屏底边，加载浮层必须仍然落在视口里。
+            ResizeInspect(1422, 800);
+            await UntilAsync(() => page.ActualWidth >= 1400 && page.ActualHeight >= 700);
+            await LayoutAsync(page);
+            var loadingOrigin = loadingPanel.TransformToVisual(page).TransformPoint(default);
+            Require(loadingOrigin.Y >= 0 && loadingOrigin.Y + loadingPanel.ActualHeight <= page.ActualHeight + 1,
+                $"默认窗口里加载浮层落到视口外：Y {loadingOrigin.Y:0.0}，高 {loadingPanel.ActualHeight:0.0}，页高 {page.ActualHeight:0.0}");
+            await SaveSettledFrameAsync(page, "mp-subscription-loading-1422.png");
+            detailGate.SetResult(true);
+            server.DetailGate = null;
             await UntilAsync(() => vm.IsReady && page.MediaViewModel.IsReady);
+            Require(!page.MediaViewModel.InitialLoading && loadingPanel.Visibility == Visibility.Collapsed && !loadingRing.IsActive,
+                "媒体详情读取完成后加载动画没有收起");
             Require(page.MediaViewModel.Detail is not null, "媒体详情读取失败：" + page.MediaViewModel.NoticeMessage);
             Require(vm.Episodes.Count == 4 && vm.Episodes.Count(episode => episode.InLibrary) == 1, "入库和下载被混为一谈：" + vm.NoticeMessage);
             Require(vm.Episodes[1].Status == "已下载 · 待入库", "待入库集状态丢失");
@@ -712,6 +741,7 @@ internal sealed partial class ShellNavigationProbe
         internal TaskCompletionSource<HttpResponseMessage>? PendingGroup { get; set; }
         internal TaskCompletionSource<HttpResponseMessage>? PendingExists { get; set; }
         internal bool FailSubscriptionCreate { get; set; }
+        internal bool FailExists { get; set; }
         internal bool UncertainNextWrite { get; set; }
         internal string? FailedImageUrl { get; set; }
         internal List<string> ImageRequests { get; } = [];
@@ -728,6 +758,9 @@ internal sealed partial class ShellNavigationProbe
 
         internal byte[] Poster { get; set; } = [];
         internal TaskCompletionSource<HttpResponseMessage>? PendingList { get; set; }
+
+        /// <summary>把电视剧媒体详情那一趟扣在手里，用来读「首次读取中的加载动画」。</summary>
+        internal TaskCompletionSource<bool>? DetailGate { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Require(request.RequestUri!.Host == "moviepilot.invalid", "订阅探针拒绝真实网络");
@@ -740,34 +773,42 @@ internal sealed partial class ShellNavigationProbe
             }
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Json(new { access_token = "fixture-token" });
             if (path.EndsWith("dashboard/system", StringComparison.Ordinal)) return Json(new { version = "fixture" });
-            if (path == "/api/v1/mediaserver/exists_remote") return PendingExists is { } exists ? await exists.Task : Json(new { success = true, data = new Dictionary<string, int[]> { ["1"] = [1] } });
+            if (path == "/api/v1/system/setting/public/DefaultTvSubscribeConfig")
+                return Json(new { success = true, data = new { value = new { best_version = 0, best_version_full = 0 } } });
+            if (path == "/api/v1/mediaserver/exists_remote")
+                return FailExists ? new HttpResponseMessage(HttpStatusCode.Forbidden) { Content = new StringContent("{\"detail\":\"fixture forbidden\"}") }
+                    : PendingExists is { } exists ? await exists.Task : Json(new { success = true, data = new Dictionary<string, int[]> { ["1"] = [1] } });
             // 演职员／相关推荐／相似作品：默认空 —— 这三段只有订阅详情页会读，别的用例不必凭空多三段内容。
             // 要看这三段的用例把 Related 打开（订阅详情那一条就是这么做的）：夹具给六个人、推荐与相似各六部，
             // 每一条都带一张图（走 /system/cache/image 那张假图）。
             if (path.StartsWith("/api/v1/tmdb/credits/", StringComparison.Ordinal)) return Json(Related ? RelatedPeople() : Array.Empty<object>());
             if (path.StartsWith("/api/v1/tmdb/recommend/", StringComparison.Ordinal) || path.StartsWith("/api/v1/tmdb/similar/", StringComparison.Ordinal)) return Json(Related ? RelatedMedia() : Array.Empty<object>());
-            if (path == "/api/v1/media/4") return Json(new
+            if (path == "/api/v1/media/4" || path == "/api/v1/media/9")
             {
-                title = "漫长的旅途",
-                year = "2026",
-                type = "电视剧",
-                media_source = "themoviedb",
-                media_id = "4",
-                tmdb_id = 4,
-                original_name = "The Long Journey",
-                status = "Returning Series",
-                first_air_date = "2026-01-01",
-                original_language = "ja",
-                vote_average = 8.5,
-                poster_path = "https://poster.invalid/4.png",
-                backdrop_path = "https://poster.invalid/backdrop-4.png",
-                overview = "一段关于相遇、离别与重逢的故事。",
-                tagline = "下一次相遇，在旅途的尽头。",
-                genres = Anime ? new[] { new { name = "动画" } } : Array.Empty<object>(),
-                production_countries = new[] { new { name = "日本" } },
-                production_companies = new[] { new { name = "Example Studio" } },
-                season_info = new[] { new { season_number = 1, episode_count = 4, air_date = "2026-01-01", poster_path = "https://poster.invalid/4.png" }, new { season_number = 2, episode_count = 4, air_date = "2027-01-01", poster_path = "https://poster.invalid/4.png" } }
-            });
+                if (path.EndsWith("/4", StringComparison.Ordinal) && DetailGate is { } gate) await gate.Task;
+                return Json(new
+                {
+                    title = "漫长的旅途",
+                    year = "2026",
+                    type = "电视剧",
+                    media_source = "themoviedb",
+                    media_id = path.EndsWith("/9", StringComparison.Ordinal) ? "9" : "4",
+                    tmdb_id = path.EndsWith("/9", StringComparison.Ordinal) ? 9 : 4,
+                    original_name = "The Long Journey",
+                    status = "Returning Series",
+                    first_air_date = "2026-01-01",
+                    original_language = "ja",
+                    vote_average = 8.5,
+                    poster_path = "https://poster.invalid/4.png",
+                    backdrop_path = "https://poster.invalid/backdrop-4.png",
+                    overview = "一段关于相遇、离别与重逢的故事。",
+                    tagline = "下一次相遇，在旅途的尽头。",
+                    genres = Anime ? new[] { new { name = "动画" } } : Array.Empty<object>(),
+                    production_countries = new[] { new { name = "日本" } },
+                    production_companies = new[] { new { name = "Example Studio" } },
+                    season_info = new[] { new { season_number = 1, episode_count = 4, air_date = "2026-01-01", poster_path = "https://poster.invalid/4.png" }, new { season_number = 2, episode_count = 4, air_date = "2027-01-01", poster_path = "https://poster.invalid/4.png" } }
+                });
+            }
             // 媒体详情另给电影那一部一份像样的回话（id 1）。订阅列表里的条目用 name，媒体详情用 title，
             // 只回订阅对象的话 MoviePilotMediaParser.ToMedia 认不出标题、整趟会被判成「身份不匹配」。
             if (path == "/api/v1/media/1") return Json(new

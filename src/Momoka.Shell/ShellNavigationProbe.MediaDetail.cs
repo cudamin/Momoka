@@ -70,6 +70,7 @@ internal sealed partial class ShellNavigationProbe
             Descendants(second).OfType<ToggleSwitch>().Single().IsOn = true;
             Descendants(second).OfType<RadioButton>().Single(button => button.Name == "EpisodeUpgradeMode").IsChecked = true;
             await LayoutAsync(dialog);
+            Require(dialog.PrimaryButtonText == "提交订阅" && dialog.IsPrimaryButtonEnabled, "选中季后提交按钮没有恢复");
             Require(dialog.ViewModel.Plan().Count == 2 && server.Writes.Count == 0, "季选择或模式草稿提前写入服务器");
             await SaveProbeScreenAsync("mp-subscribe-season-picker-760.png");
             InvokeSubscriptionButton(Descendants(dialog).OfType<Button>().Single(button => button.Name == "PrimaryButton"));
@@ -95,6 +96,42 @@ internal sealed partial class ShellNavigationProbe
             await showing;
             cancelled.ViewModel.Cancel();
             Require(server.Writes.Count == 2 && server.Items.ContainsKey(4), "关闭弹窗仍取消了订阅");
+            var emptyMedia = subscription.Media with { MediaId = "9", Season = null };
+            var empty = new MoviePilotSeasonPicker { XamlRoot = _root.XamlRoot };
+            empty.ViewModel.Attach(service, emptyMedia, picker: true);
+            await empty.ViewModel.ReloadAsync();
+            ResizeInspect(760, 1000);
+            showing = empty.ShowAsync();
+            await LayoutAsync(empty);
+            var emptyModeRows = Descendants(empty).OfType<WrapRow>().Where(panel => Descendants(panel).OfType<RadioButton>().Any()).ToArray();
+            Require(emptyModeRows.Length == 2 && emptyModeRows.All(panel => panel.Visibility == Visibility.Collapsed), "未选季仍显示模式选择");
+            Require(!empty.IsPrimaryButtonEnabled && empty.PrimaryButtonText == "请选择订阅季", "未选季时提交按钮没有禁用或没有改为「请选择订阅季」");
+            await SaveProbeScreenAsync("mp-subscribe-season-picker-none-760.png");
+            empty.Hide(); await showing; empty.ViewModel.Cancel();
+            server.FailExists = true;
+            var failed = new MoviePilotSeasonPicker { XamlRoot = _root.XamlRoot };
+            failed.ViewModel.Attach(service, emptyMedia, picker: true);
+            await failed.ViewModel.ReloadAsync();
+            showing = failed.ShowAsync();
+            await LayoutAsync(failed);
+            var retry = Get<Button>(failed, "RetrySeasonStates");
+            Require(retry.Visibility == Visibility.Visible, "入库状态失败没有重试入口");
+            var failedList = Get<ItemsRepeater>(failed, "SubscribeSeasons");
+            Descendants((FrameworkElement)failedList.GetOrCreateElement(0)).OfType<ToggleSwitch>().Single().IsOn = true;
+            await LayoutAsync(failed);
+            Require(!failed.ViewModel.CanSubmit, "入库状态未知且未显式选择模式时仍可提交");
+            failed.ViewModel.Seasons[0].EpisodesMode = true;
+            failed.ViewModel.Seasons[0].MarkModePicked();
+            await LayoutAsync(failed);
+            Require(failed.ViewModel.CanSubmit, "显式选择模式后仍不能提交");
+            Require(failed.IsPrimaryButtonEnabled, "显式选择模式后提交按钮仍禁用");
+            await SaveProbeScreenAsync("mp-subscribe-season-picker-failed-760.png");
+            server.FailExists = false;
+            InvokeSubscriptionButton(retry);
+            await UntilAsync(() => failed.ViewModel.Seasons[0].Status != "入库状态未知");
+            Require(failed.ViewModel.Seasons[0].Status == "部分入库 · 1 / 4 集", "重试没有恢复入库状态");
+            Require(failed.ViewModel.SeasonStateRetryVisibility == Visibility.Collapsed, "重试成功后仍保留重试入口");
+            failed.Hide(); await showing; failed.ViewModel.Cancel();
         }
         finally { dialog.Hide(); dialog.ViewModel.Cancel(); ResizeInspect(1420, 980); }
     }

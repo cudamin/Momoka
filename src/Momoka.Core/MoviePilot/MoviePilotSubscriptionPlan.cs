@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Momoka.MoviePilot;
 
 public enum MoviePilotSubscribeMode { Normal, Episodes, FullSeason }
@@ -43,6 +45,31 @@ public static class MoviePilotSubscriptionPlan
         MoviePilotSubscribeMode.Episodes => "分集洗版",
         _ => "全集洗版"
     };
+
+    /// <summary>
+    /// 网页端公开设置 <c>DefaultTvSubscribeConfig</c> 的默认模式：未设置、无 <c>best_version</c> 或字段不可辨认
+    /// 时按普通订阅。布尔、数字和字符串三种开关形态都认，和网页端 <c>isEnabledFlag</c> 一致。
+    /// </summary>
+    public static MoviePilotSubscribeMode DefaultMode(JsonElement setting)
+    {
+        var value = setting.ValueKind == JsonValueKind.Object && setting.TryGetProperty("value", out var wrapped)
+            ? wrapped : setting;
+        if (value.ValueKind != JsonValueKind.Object || !Enabled(value, "best_version")) return MoviePilotSubscribeMode.Normal;
+        return Enabled(value, "best_version_full") ? MoviePilotSubscribeMode.FullSeason : MoviePilotSubscribeMode.Episodes;
+    }
+
+    /// <summary>网页端规则：整季已入库的新订阅默认全集洗版，其余季按服务端默认模式。</summary>
+    public static MoviePilotSubscribeMode DefaultSeasonMode(bool libraryComplete, MoviePilotSubscribeMode configured) =>
+        libraryComplete ? MoviePilotSubscribeMode.FullSeason : configured;
+
+    private static bool Enabled(JsonElement value, string name) =>
+        value.TryGetProperty(name, out var flag) && flag.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.Number => flag.TryGetDouble(out var number) && number == 1,
+            JsonValueKind.String => flag.GetString() == "1",
+            _ => false
+        };
 
     public static IReadOnlyList<MoviePilotSubscribeChange> Build(MoviePilotMedia media, string group,
         IReadOnlyList<MoviePilotSeasonChoice> choices, IReadOnlyList<MoviePilotSubscription> existing)

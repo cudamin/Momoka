@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Momoka.Danmaku;
 using Momoka.Playback;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -30,8 +29,9 @@ public sealed partial class SettingsViewModel
     [RelayCommand]
     private void ClearShortcutSearch() => ShortcutSearchQuery = "";
 
-    private IEnumerable<ShortcutAction> AvailableShortcutActions() => ShortcutCatalog.Actions.Where(action =>
-        !action.Id.Contains("danmaku", StringComparison.Ordinal) || DandanPlayMatching.IsConfigured(Settings));
+    // 弹幕那四条的显隐判据在 Core（自检也读同一份），别在这里另写一遍 —— 两处各写一份时，
+    // 自检那条「应当几行」就会和卡片各说各话。
+    private IEnumerable<ShortcutAction> AvailableShortcutActions() => ShortcutCatalog.Available(DanmakuReady);
 
     private SettingShortcutRow ShortcutRow(ShortcutAction action, KeyStroke stroke) => new(action.Label, action.Id,
         ShortcutCatalog.Format(stroke), token => ApplyShortcut(action.Id, token));

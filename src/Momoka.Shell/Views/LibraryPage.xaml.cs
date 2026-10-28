@@ -136,9 +136,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 量的是外面这层滚动器而不是卡片墙自己：墙的宽度是算出来钉上去的（见 ApplyWallMetrics），
         // 量它自己等于拿上一帧的答案算这一帧。
         TableScroll.SizeChanged += (_, _) => OnWallWidthChanged();
-        UpcomingScroll.SizeChanged += (_, _) => ViewModel.ResizeUpcoming(UpcomingScroll.ActualWidth);
+        UpcomingScroll.SizeChanged += (_, _) => ViewModel.ResizeUpcoming(UpcomingScroll.ActualWidth - UpcomingScroll.Padding.Right);
         UpcomingScroll.ViewChanged += OnUpcomingViewChanged;
-        FavoritesScroll.SizeChanged += (_, _) => ViewModel.ResizeFavorites(FavoritesScroll.ActualWidth);
+        FavoritesScroll.SizeChanged += (_, _) => ViewModel.ResizeFavorites(FavoritesScroll.ActualWidth - FavoritesScroll.Padding.Right);
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -496,7 +496,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         // MoviePilot 那半的连接服务，交给面板（它自己接确认对话框）。只有搜索页且接了 MoviePilot 时那个分段
         // 才出现，但服务无条件拿——构造它不花什么，也省得这里再判一次设置。
         MoviePilotPanel.Attach(services.GetRequiredService<MoviePilotService>(),
-            services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>());
+            services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), _actions.OpenMoviePilotMedia);
         MoviePilotResources.Attach(services.GetRequiredService<MoviePilotService>(),
             services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), sharedInput: true);
         AniBtPanel.Attach(services.GetRequiredService<Momoka.AniBt.AniBtService>(), _moviePilot,
@@ -649,7 +649,9 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void ApplyWallMetrics()
     {
-        var width = TableScroll.ActualWidth;
+        // 卡片墙在右边让出一条滚动条车道（见 CardWall 的 Padding）；版面按让完以后的宽度铺格子，
+        // 量外面那层滚动器之后要减掉这条带子，否则格宽是按多出 20 像素算的、卡片对不上格子。
+        var width = TableScroll.ActualWidth - CardWall.Padding.Right;
         if (width <= 0 || !double.IsFinite(width)) return;
         ViewModel.ResizeGrid(width);
     }
@@ -1314,7 +1316,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         ViewModel.NoticeOpen = false;
         if (_released) return;
         if (source == 0) ViewModel.Resume(reload: false);
-        if (source == 1) MoviePilotPanel.LoadSources();
     }
 
     private void OnSearchCategoryChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)

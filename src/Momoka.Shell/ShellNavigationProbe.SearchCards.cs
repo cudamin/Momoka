@@ -9,6 +9,7 @@ using Momoka.Theming;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 
 namespace Momoka.Shell;
@@ -38,9 +39,9 @@ internal sealed partial class ShellNavigationProbe
         var panel = new MoviePilotSearchPanel { Margin = new Thickness(24) };
         var resourceView = new MoviePilotResourceBrowser { Margin = new Thickness(24) };
         var browser = new MoviePilotResourceBrowserViewModel();
+        var opened = new List<(MoviePilotMedia Media, MoviePilotSubscription? Subscription)>();
         resourceView.Attach(browser);
-        panel.Attach(service, fixture.Launcher);
-        await panel.ViewModel.LoadSourcesAsync();
+        panel.Attach(service, fixture.Launcher, (media, subscription) => opened.Add((media, subscription)));
         await panel.SearchAsync("一念永恒");
         _root.Children.Add(panel);
         await LayoutAsync(panel);
@@ -49,6 +50,16 @@ internal sealed partial class ShellNavigationProbe
         await UntilAsync(() => panel.ViewModel.Results.Count == 8 && panel.ViewModel.Results[0].Poster?.PixelWidth > 0);
         panel.ViewModel.Results[1].State = MoviePilotSubscribeState.Done;
         panel.ViewModel.Results[3].State = MoviePilotSubscribeState.Uncertain;
+        // 点卡片=进这部媒体的订阅页（2026-10-28 用户令）；这里没有订阅列表，走的正是媒体页那一支。
+        var firstResult = panel.ViewModel.Results[0];
+        panel.OpenResult(firstResult);
+        Require(Get<ItemsView>(panel, "Results").IsItemInvokedEnabled
+            && opened.Count == 1 && ReferenceEquals(opened[0].Media, firstResult.Media) && opened[0].Subscription is null,
+            "点卡片没有打开对应媒体的订阅页");
+        var alien = new MoviePilotResult(firstResult.Media with { MediaId = "999" },
+            _ => Task.CompletedTask, _ => Task.CompletedTask);
+        panel.OpenResult(alien);
+        Require(opened.Count == 1, "不在当前结果集的卡片仍能打开订阅页");
         _root.Children.Remove(panel);
         var rows = Enumerable.Range(0, 12).Select(index => new MoviePilotResourceRow(new MoviePilotResource
         {
@@ -103,6 +114,7 @@ internal sealed partial class ShellNavigationProbe
                 Require(cards.Length > 0 && cards.All(card => Math.Abs(card.ActualHeight / card.ActualWidth - 1.5) < 0.02), "海报未保持 2:3");
                 var action = Descendants(panel).OfType<Button>().First(button => button.Name == "SearchResources" && button.Visibility == Visibility.Visible);
                 Require(action.Focus(FocusState.Keyboard) && AutomationProperties.GetName(action).Contains("搜索资源", StringComparison.Ordinal), "海报操作不能键盘聚焦或缺少名称");
+                RequireScrollBarLane(Get<ItemsView>(panel, "Results"), "MediaPoster", $"订阅结果 {width}", requireBar: false);
                 await SaveReturnFrameAsync(panel, $"mp-search-posters-{width}-render.png");
                 await SaveProbeScreenAsync($"mp-search-posters-{width}-screen.png");
                 _root.Children.Remove(panel);
@@ -115,6 +127,7 @@ internal sealed partial class ShellNavigationProbe
                 var paintedCards = resourceCards.Where(card => card.ActualWidth > 0 && card.ActualHeight > 0).ToArray();
                 Require(paintedCards.Length > 0 && paintedCards.All(card => card.ActualWidth >= 235),
                     $"资源卡宽度不足：window={width}, cards={string.Join(',', resourceCards.Select(card => card.ActualWidth.ToString("0.##")))}");
+                RequireScrollBarLane(Get<ItemsView>(resourceView, "ResourceList"), "ResourceCard", $"资源结果 {width}", requireBar: true);
                 var toolbar = Get<WrapRow>(resourceView, "FilterToolbar");
                 foreach (var child in toolbar.Children.OfType<FrameworkElement>().Where(child => child.Visibility == Visibility.Visible))
                 {
@@ -153,6 +166,32 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(resourceView);
             ThemeHost.Apply(_options.Theme ?? "midnight");
             ResizeInspect(1420, 980);
+        }
+
+        static void RequireScrollBarLane(ItemsView list, string cardName, string label, bool requireBar)
+        {
+            // 滚动条是 Framework 模板里的覆盖层：它贴右还不够，卡片也不能伸到它底下
+            //（2026-10-28 用户令「资源搜索页面的滚动条要靠右，别跟卡片重叠」）。这里量的就是
+            // 两者在同一个坐标系里的右缘／左缘，宽度档每次重排后都要成立。
+            var scroll = list.ScrollView;
+            Require(scroll is not null, $"{label}：取不到 ItemsView 的 ScrollView");
+            var bar = Descendants(scroll!).OfType<ScrollBar>()
+                .FirstOrDefault(candidate => candidate.Orientation == Orientation.Vertical && candidate.ActualWidth > 0);
+            // 海报间距固定、条数少时这一档可能根本不滚（没有滚动条可量）；资源卡是拉伸铺满的，
+            // 调用方用 requireBar 把「这一档必须有滚动条」钉死。
+            if (bar is null && !requireBar) return;
+            Require(bar is not null, $"{label}：找不到竖向滚动条");
+            var barBox = bar!.TransformToVisual(list)
+                .TransformBounds(new Windows.Foundation.Rect(0, 0, bar.ActualWidth, bar.ActualHeight));
+            Require(barBox.Right >= list.ActualWidth - 2,
+                $"{label}：滚动条没有贴右（右缘 {barBox.Right:0.#}，容器 {list.ActualWidth:0.#}）");
+            var cards = Descendants(scroll!).OfType<FrameworkElement>()
+                .Where(element => element.Name == cardName && element.ActualWidth > 0).ToArray();
+            Require(cards.Length > 0, $"{label}：没有可量的卡片");
+            var cardRight = cards.Max(card => card.TransformToVisual(list)
+                .TransformBounds(new Windows.Foundation.Rect(0, 0, card.ActualWidth, card.ActualHeight)).Right);
+            Require(cardRight <= barBox.Left + 0.5,
+                $"{label}：卡片伸进滚动条（卡片右缘 {cardRight:0.#}，滚动条左缘 {barBox.Left:0.#}）");
         }
 
         static void QuietTooltips(DependencyObject view)

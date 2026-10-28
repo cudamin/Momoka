@@ -3,10 +3,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:Momoka.Shell.ViewModels"
     xmlns:local="using:Momoka.Shell.Views"
-    Title="请选择订阅季" PrimaryButtonText="提交订阅" CloseButtonText="取消" DefaultButton="Close"
+    Title="请选择订阅季" PrimaryButtonText="{x:Bind ViewModel.SubmitButtonText, Mode=OneWay}" CloseButtonText="取消" DefaultButton="Close"
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}" PrimaryButtonClick="OnSubmit">
     <ContentDialog.Resources><x:Double x:Key="ContentDialogMaxWidth">740</x:Double></ContentDialog.Resources>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="16">
             <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}" TextWrapping="Wrap" />
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.SubscribeProgressVisibility, Mode=OneWay}" />
@@ -20,9 +20,12 @@
                         <DataTemplate x:DataType="vm:MoviePilotEpisodeGroupRow">
                             <Button x:Name="PickEpisodeGroup" AutomationProperties.AutomationId="PickEpisodeGroup" Command="{x:Bind SwitchCommand}" Style="{StaticResource EgArtworkTileStyle}" AutomationProperties.Name="{x:Bind SwitchName}">
                                 <Grid>
-                                    <StackPanel Padding="12,8" Spacing="4">
-                                        <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" />
-                                        <TextBlock Text="{x:Bind Summary}" Style="{StaticResource EgCaptionStyle}" />
+                                    <StackPanel Orientation="Horizontal" Padding="12,8" Spacing="10">
+                                        <FontIcon Glyph="&#xE8F1;" Foreground="{ThemeResource EgAccentBrush}" />
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{x:Bind Label}" Style="{StaticResource EgBodyStyle}" />
+                                            <TextBlock Text="{x:Bind Summary}" Style="{StaticResource EgCaptionStyle}" />
+                                        </StackPanel>
                                     </StackPanel>
                                     <Border Style="{StaticResource EgFrameActiveStyle}" Background="Transparent" IsHitTestVisible="False" Visibility="{x:Bind CurrentVisibility}" />
                                 </Grid>
@@ -32,32 +35,48 @@
                 </ItemsRepeater>
                 <TextBlock Text="{x:Bind ViewModel.GroupSummary, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
             </StackPanel>
-            <TextBlock Visibility="{x:Bind ViewModel.SeasonNoticeVisibility, Mode=OneWay}" Text="{x:Bind ViewModel.SeasonNotice, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+            <Grid ColumnSpacing="8" Visibility="{x:Bind ViewModel.SeasonNoticeVisibility, Mode=OneWay}">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <TextBlock Text="{x:Bind ViewModel.SeasonNotice, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                <Button x:Name="RetrySeasonStates" Grid.Column="1" AutomationProperties.AutomationId="RetrySeasonStates" Content="重试入库状态"
+                    VerticalAlignment="Center" Visibility="{x:Bind ViewModel.SeasonStateRetryVisibility, Mode=OneWay}" Click="OnRetrySeasonStates" />
+            </Grid>
             <ItemsRepeater x:Name="SubscribeSeasons" ItemsSource="{x:Bind ViewModel.Seasons, Mode=OneWay}">
                 <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="vm:MoviePilotMediaSeasonRow">
-                        <Border Style="{StaticResource EgFrameStyle}" Padding="16">
-                            <Grid ColumnSpacing="12" RowSpacing="12">
-                                <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                <Border Width="54" Height="81" CornerRadius="4" VerticalAlignment="Top">
-                                    <Border.Background><ImageBrush ImageSource="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
-                                </Border>
-                                <StackPanel Grid.Column="1" Spacing="6">
-                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                                    <TextBlock Text="{x:Bind Summary}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                                    <TextBlock Text="{x:Bind Status, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
-                                    <TextBlock Text="{x:Bind SubscribeLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                                </StackPanel>
-                                <ToggleSwitch x:Name="SelectSubscribeSeason" AutomationProperties.AutomationId="SelectSubscribeSeason" Grid.Column="2" IsOn="{x:Bind Selected, Mode=TwoWay}" MinWidth="0"
-                                    OnContent="" OffContent="" IsEnabled="{x:Bind Editable, Mode=OneWay}" AutomationProperties.Name="{x:Bind Title}" AutomationProperties.HelpText="开启订阅此季；关闭后提交会取消该季订阅，保留已入库文件" />
-                                <local:WrapRow Grid.Row="1" Grid.ColumnSpan="3" Spacing="12" RowSpacing="8"
-                                    Visibility="{x:Bind SelectedVisibility, Mode=OneWay}">
-                                    <RadioButton x:Name="NormalSubscribeMode" AutomationProperties.AutomationId="NormalSubscribeMode" Content="普通订阅" GroupName="{x:Bind ModeGroup}" IsChecked="{x:Bind NormalMode, Mode=TwoWay}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
-                                    <RadioButton x:Name="EpisodeUpgradeMode" AutomationProperties.AutomationId="EpisodeUpgradeMode" Content="分集洗版" GroupName="{x:Bind ModeGroup}" IsChecked="{x:Bind EpisodesMode, Mode=TwoWay}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
-                                    <RadioButton x:Name="FullSeasonUpgradeMode" AutomationProperties.AutomationId="FullSeasonUpgradeMode" Content="全集洗版" GroupName="{x:Bind ModeGroup}" IsChecked="{x:Bind FullMode, Mode=TwoWay}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
-                                </local:WrapRow>
+                        <Border Style="{StaticResource EgFrameStyle}">
+                            <Grid>
+                                <Border Background="{ThemeResource EgAccentMutedBrush}" CornerRadius="{StaticResource EgPosterCornerRadius}"
+                                    Visibility="{x:Bind SelectedVisibility, Mode=OneWay}" IsHitTestVisible="False" />
+                                <Grid Padding="16" ColumnSpacing="12" RowSpacing="12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="54" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <Border Width="54" Height="81" CornerRadius="4" VerticalAlignment="Top">
+                                        <Border.Background><ImageBrush ImageSource="{x:Bind Poster, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" Spacing="6">
+                                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                        <TextBlock Text="{x:Bind Summary}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{x:Bind Status, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" Foreground="{x:Bind StatusBrush, Mode=OneWay}" />
+                                        <TextBlock Text="{x:Bind SubscribeLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap"
+                                            Foreground="{ThemeResource EgAccentBrush}" Visibility="{x:Bind SubscriptionVisibility, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <ToggleSwitch x:Name="SelectSubscribeSeason" AutomationProperties.AutomationId="SelectSubscribeSeason" Grid.Column="2" VerticalAlignment="Top"
+                                        IsOn="{x:Bind Selected, Mode=TwoWay}" MinWidth="0" OnContent="" OffContent="" IsEnabled="{x:Bind Editable, Mode=OneWay}" AutomationProperties.Name="{x:Bind Title}"
+                                        AutomationProperties.HelpText="开启订阅此季；关闭后提交会取消该季订阅，保留已入库文件" />
+                                    <local:WrapRow Grid.Row="1" Grid.ColumnSpan="3" Spacing="12" RowSpacing="8" HorizontalAlignment="Right"
+                                        Visibility="{x:Bind SelectedVisibility, Mode=OneWay}">
+                                        <RadioButton x:Name="NormalSubscribeMode" AutomationProperties.AutomationId="NormalSubscribeMode" GroupName="{x:Bind ModeGroup}"
+                                            Content="普通订阅" Tag="{x:Bind}" Click="OnSeasonModePicked" IsChecked="{x:Bind NormalMode, Mode=TwoWay}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
+                                        <RadioButton x:Name="EpisodeUpgradeMode" AutomationProperties.AutomationId="EpisodeUpgradeMode" GroupName="{x:Bind ModeGroup}"
+                                            Content="分集洗版" Tag="{x:Bind}" Click="OnSeasonModePicked" IsChecked="{x:Bind EpisodesMode, Mode=TwoWay}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
+                                        <RadioButton x:Name="FullSeasonUpgradeMode" AutomationProperties.AutomationId="FullSeasonUpgradeMode" GroupName="{x:Bind ModeGroup}"
+                                            Content="全集洗版" Tag="{x:Bind}" Click="OnSeasonModePicked" IsChecked="{x:Bind FullMode, Mode=TwoWay}" IsEnabled="{x:Bind Editable, Mode=OneWay}" />
+                                    </local:WrapRow>
+                                </Grid>
+                                <Border Style="{StaticResource EgFrameActiveStyle}" Background="Transparent"
+                                    Visibility="{x:Bind SelectedVisibility, Mode=OneWay}" IsHitTestVisible="False" />
                             </Grid>
                         </Border>
                     </DataTemplate>

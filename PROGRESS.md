@@ -1,5 +1,7 @@
 ## 可选 SVP 接入验证与收尾（2026-10-28）
 
+- 与主干 `f376c9a` 整合后完整方案构建 0 警告／0 错误，串行完整 Core **3093/3093**、0失败／0跳过，证据 `work/svp-integrated-build.log`、`work/svp-integrated-core-tests.log`；进度冲突保留两边记录，SVP 产品代码与已通过宽窄检查的最终版本一致。
+
 - 本聊天写入树：`C:/Users/89400/.codex/worktrees/optional-svp/Momoka`，分支 `codex/optional-svp`，已快进同步主干的 UI 线程纪律修复；不覆盖其他聊天的主树工作。
 - 范围：内置 libmpv 的集成／独占管线，默认关闭；用户自行安装 SVP、Python／VapourSynth 与可选 RIFE 模型。只开放 SVP 官方固定 `mpvpipe`，启动前检查本进程管道身份；不下载／复制第三方运行时、不更换随包内核、不改全局环境。
 - 首版由 SVP 管理算法与目标帧率；有效接入时暂停本页 CPU／平滑补帧和相邻帧混合，复制硬解只作用于本次播放。自定义 mpv.conf 暂不与 SVP 共用滤镜所有权，隐藏从属项且保留恢复入口与偏好；SVP 换片重建上下文，不让旧文件的异步滤镜命令接到下一集。
@@ -11,6 +13,49 @@
 - 最终排序与即时联动版本：完整方案 Release 构建 0 警告／0 错误；SVP 29/29、真实设置VM 31/31、补帧 36/36、服务/句柄/着色器专项 44/44、自然接续caller 50/50。`work/svp-final-*.log` 保留本树证据；四份受影响源码 pin 已逐项审阅并与最终字节一致。
 - 最新实际屏幕／控件检查为 `shell-probe-20261028-074022182-14520`，仅 svp 分区 2/2，通过基础输出→着色器→HDR→补帧顺序、路径失焦保存、自定义配置即时切换与内置/外部恢复；121项其他分区未运行。PID相同的2026-10-18历史报告不是本轮结果。
 - 一次并发完整Core复跑因另一聊天占桌面互斥而16项失败，日志 `work/svp-final-core-tests.log` 保留；最终收尾仍须串行重跑，不能将旧3081全过充当最新整合验证。
+
+## 滚动条让出卡片：资源搜索页先改、全站页面扫查（2026-10-28）
+
+- 用户令「资源搜索页面的滚动条要靠右，别跟卡片重叠」，随后要求「检查项目所有页面的滚动条」。本轮只动布局留白与探针，不改滚动行为、数据、下载或播放。
+- **统一车道**：`Theme/Styles.xaml` 新增 `EgScrollBarLane`（`0,0,20,0`）。WinUI 的竖向滚动条压在滚动内容右缘（`ScrollBarSize` 12 + 两边各 1），20 = 12 + 2 + 6 的空隙，与设置页 2026-10-27 那个「滚动条独立槽位」同一个数。ItemsView 的 `Padding` 落在 ItemsRepeater 的 Margin 上，ScrollViewer / ListView / GridView 的 `Padding` 落在内容或 ItemsPresenter 上，所以都只收内容、不动滚动条；滚动条仍贴滚动区右缘。
+- **搜索与卡片墙**：MoviePilot 资源结果（搜索页「MoviePilot 资源」与一部片的资源覆盖层）、MoviePilot 订阅搜索海报、媒体库卡片墙、推荐／收藏／预告三张滚动页、最近搜索、AniBT 番剧网格与番剧详情滚动、资源覆盖层的字幕列表都补了车道。媒体库卡片墙另在 `LibraryPage.ApplyWallMetrics` 与预告／收藏的宽度回调里减掉 `Padding.Right`，否则版面按多出 20 像素算格宽、卡片对不上格子（library 探针当场红，修正后 18/18）。
+- **其余页面**：服务器、通知、诊断日志与运行详情浮层、登录页发现服务器列表、飞牛媒体库／用户／任务／设置／偏好／改密、MoviePilot 季选择／下载确认／编辑订阅／整理、字幕／识别／元数据／合集／封面／通知编辑／遗漏集／AniBT 整理／飞牛匹配与版本、弹幕面板都补了同一车道。主页（13 像素窄条槽）、设置页（20 像素槽）、详情页与两张订阅页（纸张／页边距 28–32，滚动条落在留白里）本来就不压内容，未改。弹出式下拉（站点、分面、高级筛选、排序与筛选值）保持框架自带的小浮层，不在此列。
+- **探针**：`MoviePilotSearchCardsAsync` 新增 `RequireScrollBarLane`，在 1280／760／360 三档量滚动条右缘与卡片右缘——滚动条贴右（与 ItemsView 右缘差 ≤2），卡片不得伸进滚动条左侧；资源卡是拉伸铺满的，`requireBar: true` 把三档都钉死，海报结果没有溢出时不强求有滚动条。
+- **验证**：Shell Release **0 警告 0 错误**；探针 search **13/13**（`%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-051752881-9076`）、moviepilot **23/23**（`…051807127-20128`）、library **18/18**（`…051113611-3844`，含卡片墙格宽与卡片对格）、settings **22/22**（`…051417585-10096`）、shell **12/12**（`…051349624-10088`）、anibt **3/3**（`…051324438-10888`），全部 0 失败；Core `Momoka.Tests` **3057/3057**、`Momoka.PageContractTests` **98/98**，0 失败 0 跳过；改动的 C# 文件定向 `format whitespace` 退出 0、`git diff --check` 干净。实图核对 `mp-search-resources-{1280,760,360}-screen.png`、`search-compact-resources-{1040,360}-screen.png`、`anibt-resources-360-render.png`、`mp-subscribe-season-picker-760.png`、`servers-summary-render.png` 等：滚动条在右缘车道、卡片与开关让开。
+- **未做／边界**：没有真实媒体库的多卡截图（假库夹具每类只有一张卡，卡片墙的格宽由 library 探针几何读数覆盖，车道与资源页是同一种 ItemsView Padding）。完整闸门 1／4、自检、发布未跑。工作树里另有搜索站点／搜索头那一批未提交改动，本轮只提交本任务的文件与差异；交付目录与桌面快捷方式仍是旧版。
+
+## MoviePilot 订阅搜索点封面进订阅页、首次读取转圈（2026-10-28）
+
+- 用户令「订阅的搜索页面要支持点击封面进入对应媒体的订阅页面」；随后补充「点击进入订阅页面时候需要时间加载，添加动画过度」，并选定方案 A（唯一对上的订阅随行，其余进媒体页）与「只做转圈」。本轮只动这两件事，不碰真实服务器、订阅写入或播放。
+- **上游对照**：官方前端 `jxxghp/MoviePilot-Frontend` 当前 `v3` = `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2`（`git ls-remote`，2026-10-28）。该提交的 `src/components/cards/MediaCard.vue` 在卡片被激活/悬停后 `router.push` 到 `/media` 媒体页；`src/views/discover/MediaDetailView.vue` 在 `!isRefreshed` 时显示 `LoadingBanner`，海报占位用 `VSkeletonLoader`。没有连接真实 MoviePilot 服务器，本轮结论只来自源码与本地匿名夹具。
+- **点封面进订阅页**：搜索结果的 `ItemsView` 打开 `ItemInvoked`（键盘回车同样生效），`MoviePilotSearchPanel` 把被调用的卡交给 `MoviePilotSearchViewModel.Open`；它只接受当前结果集、当前连接里的卡，旧查询/断线/迟到点击不导航。`IShellActions` 新增 `OpenMoviePilotMedia(media, subscription)`，由 `ShellPage` 转到既有的 `OpenSubscription` 或 `OpenMoviePilotMedia`。`RefreshResult` 现在也为电视剧记下「恰好一条」的订阅：电影或单季电视剧点封面直接进那条订阅详情（文件统计、入库徽标、订阅管理齐全），没有订阅或同一部剧有多季订阅时进同一页的媒体模式（列季、显示每季订阅状态）。三颗小按钮仍只做自己的动作。
+- **首次读取转圈**：`MoviePilotMediaViewModel` 新增 `InitialLoading`（`Busy && 头一次详情读取 && Detail is null`）与 `InitialLoadingVisibility`，在 Busy、详情到达、失败收尾和离页时发通知；只认这台媒体的头一次详情读取，刷新已有内容不显示。订阅页在根层加一层 `EgScrimBrush` 暗罩＋居中浮层（`DetailLoading`：28 像素 `ProgressRing` +「正在读取媒体详情…」），`IsHitTestVisible=False`，读完或失败随状态收起。位置选视口中央而不是正文纸面：默认 800 高的窗口上图下沿正好在首屏底边，纸面顶上的东西要滚动才看得见。2026-10-12 撤掉的细进度条没有复活，探针继续断言整页 0 个 `ProgressBar`。
+- **验证**：Solution Release 构建 **0 警告 0 错误**；`Momoka.MoviePilotSubscribeSettingsTests` **69/69**（新增打开路由、唯一订阅/多季/断线、首次加载与失败收起、XAML 合同共 4 条）；Core `Momoka.Tests` **3057/3057**；`Momoka.AniBtEntryTests` **32/32**、`Momoka.ItemUserStateOrderTests` **66/66**、`Momoka.PageContractTests` **98/98**、`Momoka.PlexAffordanceTests` **67/67**（IShellActions 新方法编译边界）。开发件 `--probe-shell --probe-section moviepilot --screen 1` 退出码 0，MoviePilot 分区 **23/23**；加载帧 `mp-subscription-loading-1240.png` 与默认窗口 `mp-subscription-loading-1422.png` 在该次日志目录，断言浮层落在视口内、读完后收起。改动的 C# 文件通过定向 `format whitespace`，`git diff --check` 干净，自动化扫描 0 个无句柄交互控件；`Agreements.txt` 的 handle 基线补了 `DetailLoading`／`DetailLoadingRing`。
+- **未完成／边界**：工作树里另有一批不属于本任务的未提交改动（搜索站点与搜索头收起等），全解决方案 `format whitespace` 仍会在 `ShellNavigationProbe.SearchLayout.cs` 报该批的空白问题；本轮只做定向空白检查，不替它改文件。未运行 `Momoka.DetailDeleteCommandTests` 的 Run-Fixture（IShellActions 新方法不在其执行路径，只有全解决方案编译覆盖）。**未发布**：交付目录与桌面快捷方式仍是旧版，因为当前树包含另一批未提交工作，不能把它们一起发出去。
+
+## MoviePilot 季选择弹窗按网页端界面同步（2026-10-28）
+
+- 用户令「参考网页端源码，修改本项目的订阅设置窗口」，并附「未选季」与「已选中、右侧出现三档」两张网页截图；同时要求把「审查代码时检查源码对应界面有没有新增或减少功能，本项目同步更改」记进 MoviePilot 技能。本轮只改这一扇窗，不碰播放或真实订阅写入。
+- **上游版本**：官方前端 `jxxghp/MoviePilot-Frontend` 当前 `v3` = `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2`；官方后端 `jxxghp/MoviePilot` 当前 `v3` = `be65e047b0e64b216420ba38bec7a087409552ff`。前端 `src/components/dialog/SubscribeSeasonDialog.vue`、其 spec 与 `src/composables/useMediaSubscribe.ts` 是界面事实来源；后端 `app/api/endpoints/system.py` 的 `GET system/setting/public/{key}` 把 `DefaultTvSubscribeConfig` 列为公开读取。没有连接真实服务器。
+- **对照出的缺口**：本地一直没读公开默认模式（新季固定普通）；没有入口季时擅自预选第一季；主按钮固定「提交订阅」；选中卡片没有高亮；模式单选在卡片下方而不是跟随选择出现在右侧；入库状态未知时仍直接拿默认模式提交。上游当前版本还增加了「状态未就绪时，新选季必须亲手点过模式」门禁和「重试入库状态」，一并同步。
+- **改法**：
+  - Core：`MoviePilotSubscriptionPlan.DefaultMode` 解析公开配置（布尔／数字／字符串开关，`value:null` 回退普通），`DefaultSeasonMode` 在整季已入库时返回全集洗版；`MoviePilotService.DefaultTvSubscribeModeAsync` 走公开设置读取，旧服务器 404 由视图模型回退普通、不阻断弹窗。
+  - 视图模型：只在入口明确季号或已有订阅时预选；新季按公开默认与入库状态初始化模式；`ModeTouched` 只在用户点击模式时置位（入库状态未知时的提交门禁）；状态失败显示未知并支持只重读状态的「重试入库状态」；主按钮文案按「有无选择/差量」在「请选择订阅季」与「提交订阅」间切换；已订阅季才显示订阅标记；切组草稿带上模式是否亲手选过。
+  - XAML：去掉卡片内边距外的平铺布局，改为选中底色＋强调边框、开关置顶右侧、模式单选右对齐并只在选中时出现；状态用缺失红／部分入库黄／已入库强调色；提示行改成两列网格，避免「重试」被横向 `StackPanel` 挤出屏幕。
+- **探针抓到的真问题**：第一版在模式属性 setter 里置 `ModeTouched`，真实 XAML 初始化会回写绑定，把从未点过的季也当成「亲手选过」，导致状态未知时门禁失效；探针「入库状态未知且未显式选择模式时仍可提交」当场红。改成只由 `RadioButton.Click` 标记，属性 setter 只改索引，探针与专项测试补齐。
+- **验证**：专项 `Momoka.MoviePilotSubscribeSettingsTests` **66/66**、0 失败 0 跳过；Core 全套 **3054/3054**（含新增默认模式两条纯函数测试）；Shell Release 构建 0 警告 0 错误。开发件跑 `--probe-shell --probe-section moviepilot --screen 1` 退出码 0，MoviePilot 分区 23 项全过；实屏截图 `mp-subscribe-season-picker-none-760.png`（未选季禁用「请选择订阅季」、模式行收起）、`mp-subscribe-season-picker-760.png`（选中季、右侧三档、提交恢复）、`mp-subscribe-season-picker-failed-760.png`（状态失败、门禁与重试）、`mp-subscribe-season-picker-360.png`（窄窗滚动）。截图目录 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-015125042-17948/logs/`。
+- **技能与文档**：`momoka-moviepilot` 技能新增「审查必须对照上游组件与测试的可见控件/状态，缺一补一，不能只看请求」；`references/subscriptions.md` 记录季弹窗的网页规则、本地映射、有意保留的原生控件与按组草稿差异；同步 `docs/MoviePilot订阅.md`、`docs/开发与验证.md` 与专项 README。
+- **没有做的**：未跑完整方案构建、`format whitespace`、自检与基线比较、发布、真实 MoviePilot 写入；本批次尚未收尾。高对比/读屏和逐控件鼠标键盘操作没有单独验收；窄窗内容靠弹窗滚动区承载。
+
+## 发版 0.2.0：GitHub Release 与微软商店包（2026-10-27 21:12~22:25）
+
+- 用户令「提交代码，更新版本，打包发布到github，生成微软商店安装包」；中途指定版本号是 **0.2.0**（先按 0.1.10 改过一次，随即改成 0.2.0），并明确「不要从github下载然后校验」—— 本轮没有回传比对，改看 GitHub 自己算的 digest。起点：master 领先 origin 5 个提交（`9e07a73`、`e8f2e9a`、`761b2a5`、`33569fd`、`59b0658`），工作树干净。
+- **闸门 1 第一次红**：完整方案构建在 `Momoka.NaturalContinuationCallerTests` 报 `R046 SOURCE_HASH_MISMATCH`（`LibMpvBackend.cs`）。`33569fd` 改了那个文件，而该夹具 pin 着它的 SHA256 —— 上一轮只构建 Shell 与 Tests，sln 里其他测试工程的红一直藏着。复核后只更新这一个 pin（其余 18 份字节未变，fixture 提取的四个 `PlayerViewModel` 成员也未变），重跑 `Run-Caller.ps1` **50/0/0**、`Test-SourceExtraction.ps1` **8/8** 预期拒绝后当前源重编译再跑 **50/0/0**，复核过程写进该目录 README。提交 `ccb54fb`。
+- **闸门 4 第一次红 1 项**：「快捷键行 — 59 行可重绑（应当 63 行）」。本机 21:24 把弹幕关掉（生产 settings.json `Danmaku.Enabled=false`），卡片按能力隐藏四条弹幕快捷键是对的（`docs/弹幕与快捷键.md` 一直这么写），错的是自检拿整张 `ShortcutCatalog.Actions` 去比。改法：Core 新增 `ShortcutCatalog.Available(danmakuReady)`／`IsDanmaku`，`SettingsViewModel.DanmakuReady` 成为唯一判据，弹幕卡片、快捷键卡片与自检共用；自检改成按 Id 集合比对（少一条别的、混进一条弹幕的仍然红），读数带上「弹幕可用=」。`ShortcutTests` 新增一条（63／59、收起哪四条、次序照旧）。提交 `388f7d5`。
+- 闸门 1~4 最终全绿：完整构建 **0 警告 0 错误**、`format whitespace` 退出 0、48 个脚本检查通过、Core **3052/3052**（比上轮 +1 就是新加的那条）、发布 **546 文件／284.3 MB**（14 GLSL／4 HOOK／批准 mpv 清单 59 文件逐项校验）、自检 **186 项全过（161 通过／25 信息／0 失败）**、diff 判绿（`artifacts/selfcheck/run-450987a6918d4a30b58ffab12b9d1f9f`）。
+- 产物：`artifacts/Momoka_windows-x64_0.2.0.exe`（83,541,546 字节，79.7 MB，sha256 `7d287525348b3a7405cac5ecfd2feed7d04a775642c1dde1a9f63004aef36e10`）、`artifacts/Momoka-0.2.0-win-x64-store.msix`（120,061,338 字节，未签名，清单身份 `MOMOKA.Momoka`／`CN=1AA8C022-887D-4E5B-BB1D-970781A617A5`／`0.2.0.0`／x64，552 个文件）。商店包没有放进 Release —— 由用户自己上传 Partner Center。
+- 远端：fetch 后 origin 没动，`fee874b..388f7d5` 直接推 master；Release `v0.2.0`（tag → `388f7d5`，pre-release）两件资产 uploaded。**没有下载回传比对**（用户令）；GitHub 对安装包算出的 digest 是 `7d287525…`，与本地一致，可当完整性证据。
+- 两个版本号提交都留在历史里：`95bd7be`（0.1.10）与 `edec661`（0.2.0）。前者是用户改口前的那一步，已经推上去，不 reset 改写。
 
 ## 开着色器、GPU 跟不上时窗口卡住：原生读取搬离调用线程（2026-10-27）
 
@@ -8498,3 +8543,40 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **验证**：Release Shell 与测试项目编译 **0 警告 0 错误**；`format whitespace` 退出 0；完整离线套件 **3051/3051、0 失败 0 跳过**。自检那一关（`ProbeClearance`）的间距断言从「量 Bar 顶」改成「量控制行上沿、期望值就是那个 SkipInset」，报告文字改成「离控制行」。`--probe-shell --probe-section playback --screen 1` **8/8 通过**（`shell-probe-20261027-121037370-25228`），`player-skip-layout.txt` 四档读数：1100×711 与 760×531 都是**离控制行 21**，2560×1392 与 2560×1440 都是 **27**，避让/圆角/缩放/UIA 名称同时通过。人眼核对 `player-skip-1100-screen`：按钮从「悬在音量条下方一大截」落到贴着控制行上沿，与独占同一个观感。其余分区探针未跑；未验证独占模式实机（需要真实播放，未获授权），独占那一侧的数是从 Lua 与 uosc 选项（`controls_size=32`、`timeline_size=30`、`controls_margin=8`）算出来的。
 - **交付**：`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`（546 文件、284.3 MB、verify-publish 通过），对这份交付件再跑 `--probe-shell --probe-section playback --screen 1` **8/8 通过**（`shell-probe-20261027-121730458-8968`），`player-skip-layout.txt` 四档读数与开发件一致（21 / 27）。
 - 未升级版本号、未推送 origin、未建 Release 或商店包。
+
+## 弹窗表面统一：EgSurface 底、16 圆角（2026-10-28 11:00~11:50）
+
+- **用户当次要求**：图一「请选择订阅季」弹窗圆角和背景都不对，所有弹出的选择窗口都要圆角；图二的 MoviePilot 下载确认弹窗不要改，其他弹窗都参考它改。
+- **源码上的差异**：框架 `DefaultContentDialogStyle` 给的是 `ContentDialogBackground`（深色纯灰）、`BorderThickness=1`、`OverlayCornerRadius=8`；下载确认弹窗（`MoviePilotDownloadDialog.xaml`）自己写了 `EgSurfaceBrush` 底、`BorderThickness=0`、`EgCardCornerRadius=16`。其余 15 张 XAML 弹窗与 8 处代码创建的 `ContentDialog` 这四项都没写，吃的是框架默认。
+- **改法**：`Theme/Styles.xaml` 新增共享样式 `EgDialogSurfaceStyle`（BasedOn `DefaultContentDialogStyle`，四个 Setter），再给每个具体弹窗类型各接一行隐式样式。**只写一条 `TargetType="ContentDialog"` 不够**：WinUI 隐式样式按类型精确匹配（同 `EgPicker` 那条老经验），派生弹窗匹配不上 —— 第一次实拍复核时季选择弹窗仍是框架灰底，因此改成「基础样式 + 每型一行」。代码里 `new ContentDialog` 的确认框、播放信息、通知服务挑选等由普通 `ContentDialog` 那行覆盖；下载弹窗不在名单里，本地四值原样保留。
+- **测试**：新增 `tests/Momoka.Tests/DialogChromeTests.cs` 三条——基础样式的四个 Setter；源码里每个 `: ContentDialog` 派生类（除下载弹窗）都有对应样式行；只有下载弹窗保留本地四值，其余 XAML 根不另写。
+- **验证**：Release 全方案构建 **0 警告 0 错误**；完整离线套件 **3057/3057、0 失败 0 跳过**；隔离发布（`work/dialog-chrome`，未碰交付目录）后 `--probe-shell --probe-section moviepilot --screen 1` **23/23 通过**（`shell-probe-20261028-034301980-23352`）。实拍核对 `mp-subscribe-season-picker-{760,360,none-760,failed-760}` 已是 EgSurface 底 + 16 圆角，`mp-download-{options,720}-screen` 与改前一致。第一次探针跑完后确认了「派生类型没吃到隐式样式」这一条，返工后重发重跑才全绿。
+- **交付**：按用户当次选择**只提交、不刷新 `artifacts/publish/win-x64`** —— 工作区另有上一批未提交改动（LibraryPage／PosterCard／MoviePilot 资源浏览等，最后修改 10:15），不把未收尾的工作一起发布；桌面快捷方式仍是旧版。未升级版本号、未推送 origin、未建 Release 或商店包。
+
+
+## 删除订阅搜索页右下角来源筛选（2026-10-28）
+
+- **用户要求**：删除截图中 MoviePilot 订阅搜索面板右侧的「来源」标签和「全部来源」下拉框；上方媒体库 / MoviePilot 订阅 / MoviePilot 资源 / AniBT 四个标签保持不变。
+- **改动**：删除 SourceFilter 及其右侧 Auto 列，将标题和结果计数直接铺满该行；退役这个面板独有的来源目录读取、选中项、自动重搜和下拉关闭接线。搜索不传 media_source，沿用服务器默认范围；结果卡的来源身份、来源文字及下载确认中的来源选择保持原样。对应 UIA 基线只删除已退役的 SourceFilter 一行，保留其余句柄检查。
+- **上游对照**：读取官方前端 v3 HEAD `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 的 SearchBarDialog.vue 与 SearchBarDialog.spec.ts、后端 v3 HEAD `be65e047b0e64b216420ba38bec7a087409552ff` 的 app/api/endpoints/media.py；前端未勾选来源时省略 media_source，后端空选择转为 None 交给搜索链。本次依用户要求有意不保留前端的手动多来源选择。未连接真实 MoviePilot，未核定部署版本，不声称全功能同步。
+- **新增覆盖**：订阅专项新增三项，检查来源控件和空列退役、首次 / 刷新 / 清空重搜不带来源参数或来源目录请求、同编号跨来源结果仍独立。搜索探针改为核默认范围与切回 / 重复提交，新拍 1040 / 360 两档真实屏幕；来源栏布局后的 IME 夹具先实际聚焦并等待布局落定，仍保留组合上屏、未上屏回退和离页取消覆盖。
+- **开发验证**：Release 全方案 0 警告 / 0 错误，主测试 3057/3057、订阅专项 72/72、页面源码契约 98/98、资源浏览专项 34/34，均 0 失败 / 0 跳过；完整空白检查通过。最终开发件 `--probe-shell --probe-section search,moviepilot --screen 1` 36/36 通过（shell-probe-20261028-055331358-3416），已目视核对 search-subscription-no-source-{1040,360}-screen.png。
+- **验证返工**：第一次重复传 probe-section 被启动守卫拒绝，未运行产品；隐藏启动导致实屏取样被遮挡检查拒绝，未放宽守卫。改为可见诊断后 IME 夹具揭示前序布局的迟到 LostFocus；先聚焦并等待布局后重跑才 36/36 全绿。其余探针分区与真实服务器播放未执行。
+- **提交后隔离验收**：代码提交 `b07340f`，导出该提交到本树 ignored `work/remove-search-source-20261028/clean-source`，逐项核对本次 8 个代码 / 测试文件与提交完全一致，未导入其他未提交改动。该源码 Release 全方案 0 警告 / 0 错误，空白检查退出 0（首次加载工作区有工具警告）；主测试串行重跑 3057/3057、订阅专项 72/72、页面源码契约 98/98，均 0 失败 / 0 跳过。第一次主测试与诊断共用互斥出现 16 项失败，结束诊断后串行重跑才全部通过，不采用那份红报告。
+- **隔离运行证据与红项**：隔离源码 `--probe-shell --probe-section search,moviepilot --screen 1` 35/36（shell-probe-20261028-060725201-19316），所有搜索分区检查及搜索海报检查通过；下载确认实屏取样因遮挡失败，未放宽守卫。已目视核对该提交的 search-subscription-no-source-{1040,360}-screen.png，来源标签 / 下拉框和空列均已退役。资源浏览专项 20/21，既有 MoviePilotResourceBrowser.xaml 的 DownloadVisibility / DownloadProblemVisibility 缺显式 Mode=OneWay，而现存测试已要求它；该模板和测试并非本次改动，主树另一个在途批次已有未提交修复，未夹带进本次提交。试图单独再跑搜索分区时发现另一棵树的诊断已启动，未抢占桌面。
+- **协作与交付**：主树另有搜索紧凑布局、站点偏好等未提交工作，本次仅提交来源筛选退役及其测试。由于隔离验收仍有上述红项，未运行发布脚本、未刷新 `artifacts/publish/win-x64`，桌面快捷方式仍是旧版；本次只完成代码和直接相关验证，不能宣称整批交付完成。未升级版本号、未推送 origin、未建 Release 或商店包。
+
+
+## 搜索与主页封面的中性反馈（2026-10-28）
+
+- **用户要求**：搜索框不要主题色外圈；主页封面不要主题色外圈；封面中央播放键默认中性色，只在指针进入播放按钮本身时换成主题色。
+- **隔离范围**：工作树 `C:/Users/89400/.codex/worktrees/neutral-search-card-feedback/Momoka`，分支 `codex/neutral-search-card-feedback`，从主干 d5c4d58 建树；未复制主树搜索紧凑布局、站点偏好等未提交改动。改动限搜索框、普通 / MoviePilot 订阅封面、实际自检谓词和相关测试 / 探针。
+- **实现**：SearchInput 自己覆盖焦点边框为 EgBorderBrush、四边 1 DIP，不改应用其他输入框；普通与订阅封面三态均使用无描边 EgFrameStyle，外层可点击控件保留中性键盘焦点提示；中央播放键改用框架默认 Button 模板，停着是 EgSurfaceHoverBrush + EgTextBrush，按钮局部 PointerOver / Pressed 才用主题强调色及对比文字。保留图片推近、遮罩、角落操作、真实播放命令、媒体库和订阅导航。
+- **检查修订**：新增 NeutralFeedbackTests 六项，更新卡片带的旧描边断言；实际 ReadCards 谓词仍使用相同自检检查名，但改为核三态无外圈与播放键灰→主题色，隔离探针直接调用这个生产谓词，并注入 2 DIP 外圈验证它确实拒绝错误。既有句柄与基线未删；没有为通过检查放宽遮挡、取消、凭据或播放边界。
+- **上游证据**：MoviePilot 官方 v3 前端 HEAD `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 的 SubscribeCard.vue / spec 与后端 HEAD `be65e047b0e64b216420ba38bec7a087409552ff` 的 subscribe.py 已定点读取。主页订阅点击、管理菜单、进度与状态投影不改；本轮边框按用户要求采用原生无外圈样式，不跟随上游状态 tint。未连接真实 MoviePilot，未核实用户部署版本，不声称全功能对齐。
+- **验证**：最终 Release Shell / 当前 Tests 构建 0 警告 0 错误；主测试 3063/3063、0 失败 0 跳过；空白检查退出 0（工具有工作区加载警告）。`--probe-shell --probe-section library,search,moviepilot --screen 1` 54/54 通过（shell-probe-20261028-065159832-28228），范围外 67 项未运行。实际自检谓词的正常、五主题与注入错误路径都执行，不运行会登录真实账号的默认完整自检。
+- **截图**：五套存活主题各有 search-focus-neutral、home-card-play-normal 与 home-card-play-hover 实屏，普通主页封面另有 1280 / 760 两档；看到的白色矩形仅是主动 Keyboard focus 下的中性定位，不是主题色悬停描边。没有合成 Mica 或用渲染帧冒充屏幕。
+- **真实鼠标**：隔离 `--probe-shell inspect --screen 1` PID 25832，用 winapp ui hover 进入匿名测试卡片、中央播放键、移出；UIA 验证 PlayButton 从不可见→出现→收起，实际移动坐标分别 696,747 / 697,718 / 682,323。只悬停不调用播放；检查台经 InspectDone 正常退出，指针恢复并读回为 3111,840。颜色与状态截图由可重复的视觉状态入口完成，真实 hover 只证明输入到达及移出收起，不冒称真实播放覆盖。
+- **整合**：隔离代码提交 `348bc33`，主树对应提交 `657db6c`，只暂存该任务差异；保留主树已有搜索紧凑布局、站点偏好、滚动条等未提交内容，冲突逐段合并不回退它们。主树实际整合内容重新 Release 构建 0 警告 / 0 错误、主测试 3063/3063、资源浏览专项 34/34、空白检查退出 0；library,search,moviepilot 运行 54/54（shell-probe-20261028-072109352-8800），现有 AniBT 布局补核 3/3（shell-probe-20261028-072923199-4180）。验证和发布前后最终源码 1291 项哈希未改变。
+- **发布与最终证据**：`tools/publish.ps1 -NoArchive` 已更新主树 `artifacts/publish/win-x64`，校验 546 文件 / 284.3 MB，批准 mpv 载荷及着色器逐项通过。对这个最终发布程序再次运行 library,search,moviepilot 54/54（shell-probe-20261028-073502736-26172），已核对五主题实屏与默认灰色 / 按钮指针主题色；主程序集 SHA-256 `E8141A830756C68774C4A1C88E1C70A6876CDEB810F5D3ABFD9B51076872C894`。未覆盖其它探针分区、完整默认自检、真实服务器播放或读屏 / 高对比主题。
+- **桌面入口与协作**：验证期间另一用户任务把 `Desktop/Momoka.lnk` 改指向 series-reorganize 工作树的发布程序；本轮没有覆盖该快捷方式或那个独立程序，用户要体验本次修改须启动 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`。主树其它未提交工作原样保留；隔离日志 / 指针证据已复制到主树 ignored `work/neutral-feedback-integration/isolated-evidence`；尝试归档临时树时工具指出它仍是本聊天的主工作区，拒绝移除，因此保留该树，不手工绕过保护。不推送 origin、不改版本、不建 Release 或商店包。

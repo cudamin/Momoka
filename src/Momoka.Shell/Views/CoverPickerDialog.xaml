@@ -31,6 +31,7 @@
         <GridView
             x:Name="Grid"
             Height="380"
+            Padding="{StaticResource EgScrollBarLane}"
             SelectionChanged="OnPicked"
             SelectionMode="Single">
             <GridView.ItemTemplate>

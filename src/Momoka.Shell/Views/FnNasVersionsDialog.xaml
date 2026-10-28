@@ -26,6 +26,7 @@
         <ListView
             x:Name="Files"
             AutomationProperties.Name="版本列表"
+            Padding="{StaticResource EgScrollBarLane}"
             MaxHeight="320"
             SelectionChanged="OnSelectionChanged"
             SelectionMode="Single">

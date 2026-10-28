@@ -1,5 +1,6 @@
 using Momoka.Configuration;
 using Momoka.Emby;
+using Momoka.MoviePilot;
 using Momoka.Playback;
 using Microsoft.UI.Xaml.Controls;
 namespace Momoka.Shell.Views;
@@ -84,6 +85,12 @@ internal interface IShellActions
     bool MoviePilotEnabled { get; }
 
     event EventHandler? MoviePilotAvailabilityChanged;
+
+    /// <summary>
+    /// 打开一部 MoviePilot 媒体的订阅页（搜索结果、相关推荐）。给了订阅就开那条订阅的详情，
+    /// 没给就开同一页的媒体模式（列季、按季订阅）。走外壳 —— 面包屑、返回栈和标题条只有外壳知道。
+    /// </summary>
+    void OpenMoviePilotMedia(MoviePilotMedia media, MoviePilotSubscription? subscription = null);
 
     /// <summary>
     /// 「在 MoviePilot 搜索其他版本」：新开一个窗口，按条目算好的关键字（见

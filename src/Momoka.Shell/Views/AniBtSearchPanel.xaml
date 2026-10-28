@@ -33,7 +33,7 @@
                 <Grid Grid.Row="1">
                     <GridView x:Name="AnimeResults" SelectionMode="None" IsItemClickEnabled="False"
                         IsEnabled="{x:Bind ViewModel.CanChooseAnime, Mode=OneWay}" ItemsSource="{x:Bind ViewModel.VisibleResults, Mode=OneWay}"
-                        SizeChanged="OnResultsSizeChanged" Loaded="OnResultsLoaded" Padding="0,0,0,8" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        SizeChanged="OnResultsSizeChanged" Loaded="OnResultsLoaded" Padding="0,0,20,8" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <GridView.ItemsPanel><ItemsPanelTemplate><ItemsWrapGrid Orientation="Horizontal" ItemWidth="170" ItemHeight="336" /></ItemsPanelTemplate></GridView.ItemsPanel>
                         <GridView.ItemContainerStyle>
                             <Style TargetType="GridViewItem">
@@ -85,7 +85,7 @@
             </Grid>
             <ScrollViewer x:Name="AnimeDetailScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                 Visibility="{x:Bind ViewModel.ResourcesVisibility, Mode=OneWay}">
-                <StackPanel x:Name="AnimeResourcesView" Spacing="16" Padding="0,0,12,16">
+                <StackPanel x:Name="AnimeResourcesView" Spacing="16" Padding="0,0,20,16">
                     <Border Background="{ThemeResource EgSurfaceBrush}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="20">
                         <Grid x:Name="AnimeHero" ColumnSpacing="22" RowSpacing="12" SizeChanged="OnHeroSizeChanged">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>

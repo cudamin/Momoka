@@ -8,6 +8,16 @@ public sealed partial class SettingsViewModel
     private const string DanmakuCategory = "弹幕";
 
     /// <summary>
+    /// 弹幕此刻能不能真的画出来：服务开关开着、而且当前播放后端画得了弹幕。
+    /// <para>
+    /// 设置页弹幕那几张卡、快捷键里那四条动作都按它显隐；自检也读这一个（原先自检拿整张
+    /// <see cref="Momoka.Playback.ShortcutCatalog.Actions"/> 去比，本机把弹幕关掉之后当场红成
+    /// 「59 行（应当 63 行）」—— 卡片是对的，判据错了）。未附加时按不可用算，别在这里读 <c>_settings!</c>。
+    /// </para>
+    /// </summary>
+    public bool DanmakuReady => _settings is not null && DandanPlayMatching.IsConfigured(Settings);
+
+    /// <summary>
     /// 「弹幕」分类下的三张卡：开关与匹配、显示与外观、类型与屏蔽。
     /// <para>
     /// 2026-10-27 用户令：「同一个页面，有必要分区的功能给他分区，单独弄一个卡片」。原来是一张二十来行的
@@ -27,7 +37,7 @@ public sealed partial class SettingsViewModel
     private IReadOnlyList<SettingSection> DanmakuSections()
     {
         var settings = Settings.Danmaku;
-        var configured = DandanPlayMatching.IsConfigured(Settings);
+        var configured = DanmakuReady;
 
         var rows = new List<SettingRow>
         {
