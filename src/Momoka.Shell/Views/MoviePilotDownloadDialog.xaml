@@ -51,7 +51,7 @@
             </Button>
         </Grid>
     </ContentDialog.Title>
-    <ScrollViewer x:Name="DownloadScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer x:Name="DownloadScroll" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel x:Name="DownloadBody" Spacing="20" MinWidth="260" SizeChanged="OnBodySizeChanged">
             <Border Style="{StaticResource EgRuleStyle}" />
             <Grid ColumnSpacing="16" RowSpacing="12">
@@ -146,6 +146,7 @@
                     </Grid>
                     <TextBlock Text="{x:Bind ViewModel.SearchStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                     <ListView x:Name="DownloadMediaMatches" ItemsSource="{x:Bind ViewModel.Matches, Mode=OneWay}" MaxHeight="160"
+                        Padding="{StaticResource EgScrollBarLane}"
                         SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnMediaSelected" IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}">
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="moviepilot:MoviePilotMedia">

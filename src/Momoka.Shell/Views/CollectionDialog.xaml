@@ -24,6 +24,7 @@
         <ListView
             x:Name="List"
             DisplayMemberPath="Name"
+            Padding="{StaticResource EgScrollBarLane}"
             MaxHeight="260"
             SelectionChanged="OnPicked"
             SelectionMode="Single" />

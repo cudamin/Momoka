@@ -313,6 +313,7 @@
             ItemClick="OnDiscoveredPicked"
             ItemsSource="{x:Bind ViewModel.Discovered, Mode=OneWay}"
             Margin="0,4,0,0"
+            Padding="{StaticResource EgScrollBarLane}"
             MaxHeight="184"
             Visibility="{x:Bind ViewModel.DiscoveredVisibility, Mode=OneWay}">
             <ListView.ItemTemplate>
@@ -340,7 +341,7 @@
             </ListView.ItemTemplate>
         </ListView>
 
-        <ScrollView Grid.Row="4" VerticalScrollBarVisibility="Auto">
+        <ScrollView Grid.Row="4" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <Border Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
                     BorderThickness="{StaticResource EgCardBorderThickness}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="32"

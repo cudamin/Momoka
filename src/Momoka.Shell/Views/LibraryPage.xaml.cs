@@ -136,9 +136,9 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 量的是外面这层滚动器而不是卡片墙自己：墙的宽度是算出来钉上去的（见 ApplyWallMetrics），
         // 量它自己等于拿上一帧的答案算这一帧。
         TableScroll.SizeChanged += (_, _) => OnWallWidthChanged();
-        UpcomingScroll.SizeChanged += (_, _) => ViewModel.ResizeUpcoming(UpcomingScroll.ActualWidth);
+        UpcomingScroll.SizeChanged += (_, _) => ViewModel.ResizeUpcoming(UpcomingScroll.ActualWidth - UpcomingScroll.Padding.Right);
         UpcomingScroll.ViewChanged += OnUpcomingViewChanged;
-        FavoritesScroll.SizeChanged += (_, _) => ViewModel.ResizeFavorites(FavoritesScroll.ActualWidth);
+        FavoritesScroll.SizeChanged += (_, _) => ViewModel.ResizeFavorites(FavoritesScroll.ActualWidth - FavoritesScroll.Padding.Right);
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -649,7 +649,9 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void ApplyWallMetrics()
     {
-        var width = TableScroll.ActualWidth;
+        // 卡片墙在右边让出一条滚动条车道（见 CardWall 的 Padding）；版面按让完以后的宽度铺格子，
+        // 量外面那层滚动器之后要减掉这条带子，否则格宽是按多出 20 像素算的、卡片对不上格子。
+        var width = TableScroll.ActualWidth - CardWall.Padding.Right;
         if (width <= 0 || !double.IsFinite(width)) return;
         ViewModel.ResizeGrid(width);
     }

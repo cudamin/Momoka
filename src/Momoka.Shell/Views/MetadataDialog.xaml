@@ -23,7 +23,7 @@
         HorizontalScrollMode="Disabled"
         MaxHeight="520"
         VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="0,0,12,0" Spacing="12">
+        <StackPanel Padding="0,0,20,0" Spacing="12">
 
             <!-- Only ever the reason the 保存 button is off, so it stays out of the way until there
                  is one rather than sitting empty above every field. -->

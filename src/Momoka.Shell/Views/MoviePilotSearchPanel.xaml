@@ -43,6 +43,7 @@
             <!-- 整张卡都可调用：点封面或片名进这部媒体的订阅页（键盘回车同样生效），与媒体库卡片墙同一套。
                  卡上三颗小按钮自己吃掉指针事件，不会顺带触发打开。 -->
             <ItemsView x:Name="Results" Grid.Row="3" IsItemInvokedEnabled="True" ItemInvoked="OnResultInvoked"
+                Padding="{StaticResource EgScrollBarLane}"
                 ItemTransitionProvider="{x:Null}" ItemsSource="{x:Bind ViewModel.Results, Mode=OneWay}"
                 SelectionMode="None">
                 <ItemsView.Layout>

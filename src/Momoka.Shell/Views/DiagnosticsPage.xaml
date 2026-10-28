@@ -109,7 +109,7 @@
                                             <Setter Property="Padding" Value="16" />
                                         </Style>
                                     </Flyout.FlyoutPresenterStyle>
-                                    <ScrollView MaxHeight="440" VerticalScrollBarVisibility="Auto">
+                                    <ScrollView MaxHeight="440" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
                                         <StackPanel Spacing="12" MaxWidth="460">
                                             <TextBlock Text="运行详情" Style="{StaticResource EgSectionTitleStyle}" />
                                             <Grid ColumnSpacing="12" RowSpacing="8">
@@ -249,6 +249,7 @@
                             IsOn="{x:Bind ViewModel.Following, Mode=TwoWay}" />
                     </Grid>
                     <ListView AutomationProperties.AutomationId="DiagnosticsLogList" Grid.Row="2"
+                        Padding="{StaticResource EgScrollBarLane}"
                         ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None" IsItemClickEnabled="False"
                         ItemContainerStyle="{StaticResource DiagnosticsLogItemStyle}">
                         <ListView.ItemTemplate>

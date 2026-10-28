@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:dm="using:Momoka.Danmaku"
     MinWidth="280" MaxWidth="440">
-    <ScrollViewer MaxHeight="600" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer MaxHeight="600" Padding="{StaticResource EgScrollBarLane}" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="16">
             <Grid ColumnSpacing="12">
                 <Grid.ColumnDefinitions>
@@ -28,7 +28,7 @@
                     <TextBox x:Name="EpisodeBox" Grid.Column="1" PlaceholderText="集数" MaxLength="6" AutomationProperties.Name="弹幕集数，留空搜索全部" />
                 </Grid>
                 <Button x:Name="SearchButton" Content="搜索弹弹play" Click="OnSearch" HorizontalAlignment="Stretch" />
-                <ListView x:Name="Results" MaxHeight="200" SelectionMode="Single" SelectionChanged="OnResultSelected" Visibility="Collapsed" AutomationProperties.Name="弹弹play剧集搜索结果">
+                <ListView x:Name="Results" MaxHeight="200" Padding="{StaticResource EgScrollBarLane}" SelectionMode="Single" SelectionChanged="OnResultSelected" Visibility="Collapsed" AutomationProperties.Name="弹弹play剧集搜索结果">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="dm:DandanPlayEpisode">
                             <StackPanel Spacing="2">

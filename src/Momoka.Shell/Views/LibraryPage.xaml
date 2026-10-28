@@ -764,6 +764,7 @@
                     <ItemsView
                         x:Name="CardWall"
                         Grid.Row="1"
+                        Padding="{StaticResource EgScrollBarLane}"
                         Visibility="{x:Bind ViewModel.SearchResultsVisibility, Mode=OneWay}"
                         IsItemInvokedEnabled="True"
                         ItemInvoked="OnItemInvoked"
@@ -802,7 +803,7 @@
                 x:FieldModifier="internal"
                 Grid.Row="1"
                 Grid.RowSpan="2"
-                Padding="0,0,0,32"
+                Padding="0,0,20,32"
                 HorizontalScrollBarVisibility="Disabled"
                 HorizontalScrollMode="Disabled"
                 VerticalScrollBarVisibility="Auto"
@@ -821,7 +822,7 @@
             </ScrollViewer>
 
             <ScrollViewer x:Name="FavoritesScroll" x:FieldModifier="internal"
-                Grid.Row="1" Grid.RowSpan="2" Padding="0,0,0,32"
+                Grid.Row="1" Grid.RowSpan="2" Padding="0,0,20,32"
                 HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
                 VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto"
                 Visibility="{x:Bind ViewModel.FavoritesVisibility, Mode=OneWay}">
@@ -834,7 +835,7 @@
             </ScrollViewer>
 
             <ScrollViewer x:Name="UpcomingScroll" x:FieldModifier="internal"
-                Grid.Row="1" Grid.RowSpan="2" Padding="0,0,0,32"
+                Grid.Row="1" Grid.RowSpan="2" Padding="0,0,20,32"
                 HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
                 VerticalScrollBarVisibility="Auto" VerticalScrollMode="Auto"
                 Visibility="{x:Bind ViewModel.UpcomingVisibility, Mode=OneWay}">
@@ -889,7 +890,7 @@
                         Visibility="{x:Bind ViewModel.ClearRecentVisibility, Mode=OneWay}" />
                 </Grid>
                 <ListView x:Name="RecentSearchList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.RecentSearches, Mode=OneWay}"
-                    SelectionMode="None" HorizontalContentAlignment="Stretch">
+                    Padding="{StaticResource EgScrollBarLane}" SelectionMode="None" HorizontalContentAlignment="Stretch">
                     <ListView.ItemContainerStyle><Style TargetType="ListViewItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="0" /></Style></ListView.ItemContainerStyle>
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="vm:RecentSearchRow">
