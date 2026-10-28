@@ -76,8 +76,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private readonly DispatcherQueueTimer _gridResize;
 
-    public static string HeaderTitle(Visibility search, string heading) => search == Visibility.Visible ? "搜索" : heading;
-
     public LibraryPage()
     {
         InitializeComponent();
@@ -670,10 +668,13 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 这一档把这些间距改由元素自己的外边距表达：行收起就一个像素不占，显示时仍是原来的 12／16。
         var headerByMargin = sectionLibrary && !contentPage;
         var contentGap = new Thickness(0, 20, 0, 0);
-        PageRoot.Margin = sectionLibrary ? new Thickness(20) : (Thickness)Application.Current.Resources["EgPageMargin"];
-        PageRoot.RowSpacing = search ? 8 : contentPage ? 4 : headerByMargin ? 0 : 20;
+        var pageMargin = (Thickness)Application.Current.Resources["EgPageMargin"];
+        // 顶部 32 DIP 供原生窗口按钮使用，再留 8 DIP；去掉搜索标题后内容仍整体上移。
+        PageRoot.Margin = search ? new Thickness(pageMargin.Left, 40, pageMargin.Right, pageMargin.Bottom)
+            : sectionLibrary ? new Thickness(20) : pageMargin;
+        PageRoot.RowSpacing = search ? 0 : contentPage ? 4 : headerByMargin ? 0 : 20;
         HeaderGrid.RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
-        HeaderLayout.RowSpacing = search ? 16 : headerByMargin ? 0 : sectionLibrary ? 12 : 20;
+        HeaderLayout.RowSpacing = search || headerByMargin ? 0 : sectionLibrary ? 12 : 20;
         ((Grid)UpcomingScroll.Parent).RowSpacing = contentPage || headerByMargin ? 0 : 16;
         LibrarySectionsSurface.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
         ToolbarSurface.Margin = headerByMargin ? new Thickness(0, 12, 0, 0) : new Thickness(0);
@@ -682,10 +683,12 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 飞牛的筛选面板也在头部那一列里，但它有自己的 4 像素下边距；展开时补 16 上边距，
         // 收起时整行不占位置。
         FnNasFilterPanel.Margin = headerByMargin ? new Thickness(0, 16, 0, 4) : new Thickness(0, 0, 0, 4);
-        EmbyContent.Margin = headerByMargin ? contentGap : new Thickness(0);
-        LibraryBusyBar.Margin = headerByMargin ? contentGap : new Thickness(0);
-        LibraryNoticeBar.Margin = headerByMargin ? contentGap : new Thickness(0);
-        LibraryTitle.Visibility = Visibility.Visible;
+        // 搜索页没有标题和外卡；间距放在可见内容上，收起状态行不会留下空槽。
+        var searchGap = search ? new Thickness(0, 8, 0, 0) : new Thickness(0);
+        EmbyContent.Margin = headerByMargin ? contentGap : searchGap;
+        MoviePilotPanel.Margin = MoviePilotResources.Margin = AniBtPanel.Margin = searchGap;
+        LibraryBusyBar.Margin = LibraryNoticeBar.Margin = headerByMargin ? contentGap : searchGap;
+        LibraryTitle.Visibility = search ? Visibility.Collapsed : Visibility.Visible;
         LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
         LibrarySectionsSurface.MaxWidth = width;
         LibrarySectionsSurface.HorizontalAlignment = HorizontalAlignment.Center;
@@ -694,7 +697,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         Grid.SetColumnSpan(LibrarySectionsSurface, 2);
         ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right : sectionLibrary ? HorizontalAlignment.Center : HorizontalAlignment.Left;
         Toolbar.CenterRows = sectionLibrary;
-        Grid.SetRow(SearchSurface, 1);
+        Grid.SetRow(SearchSurface, search ? 0 : 1);
         Grid.SetRow(LibraryTitle, 0);
         Grid.SetColumnSpan(LibraryTitle, search ? 1 : 2);
         Grid.SetRow(ToolbarSurface, search ? 0 : sectionLibrary ? 2 : 1);
@@ -705,12 +708,12 @@ public sealed partial class LibraryPage : Page, IShellContent
         var formWidth = Math.Min(900, width);
         SearchSurface.Width = formWidth;
         SearchSurface.MaxWidth = width;
-        SearchInput.Width = Math.Max(0, formWidth - 22);
+        SearchInput.Width = formWidth;
         SearchForm.ColumnSpacing = 0;
         SearchForm.RowSpacing = SourceTabs.Visibility == Visibility.Visible ? 8 : 0;
         foreach (var item in SourceTabs.Items.OfType<CommunityToolkit.WinUI.Controls.SegmentedItem>())
         {
-            item.MaxWidth = Math.Max(0, (formWidth - 22) / Math.Max(1, SourceTabs.Items.Count));
+            item.MaxWidth = Math.Max(0, formWidth / Math.Max(1, SourceTabs.Items.Count));
             item.Padding = new Thickness(8, 4, 8, 4);
             if (item.Content is TextBlock label)
             {

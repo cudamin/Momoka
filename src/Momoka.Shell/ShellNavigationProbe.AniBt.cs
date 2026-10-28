@@ -216,6 +216,7 @@ internal sealed partial class ShellNavigationProbe
 
     private async Task AniBtSearchAsync()
     {
+        var originalTheme = ThemeHost.Current;
         var moviePilot = new AniBtMoviePilotProbeServer();
         var aniBt = new AniBtProbeServer();
         using var fixture = CreateFixture(moviePilot, aniBt);
@@ -273,6 +274,7 @@ internal sealed partial class ShellNavigationProbe
             foreach (var width in new[] { 1040, 360 })
             {
                 await SizeAsync(page, width);
+                CheckCompactSearch(page, panel);
                 var search = Get<Border>(page, "SearchSurface");
                 Require(tabs.ActualWidth <= search.ActualWidth + 1, "四个搜索栏超出搜索区域");
                 var list = Get<GridView>(panel, "AnimeResults");
@@ -308,8 +310,7 @@ internal sealed partial class ShellNavigationProbe
             Require(panel.ViewModel.SelectedAnime?.BgmId == 123 && browser.Rows.Count == 3,
                 $"选择番剧后没有读取对应 AniBT 资源：Rows={browser.Rows.Count}，Empty={browser.EmptyMessage}，"
                 + $"Busy={panel.ViewModel.Busy}，提示开={panel.ViewModel.NoticeOpen}，提示={panel.ViewModel.NoticeMessage}，"
-                + $"请求={string.Join("、", aniBt.Requests)}，筛选=({browser.SelectedEpisode}|{browser.SelectedResolution}|{browser.SelectedGroup}|{browser.Text})，"
-                + $"计数={browser.CountText}");
+                + $"请求={string.Join("、", aniBt.Requests)}，筛选=({browser.SelectedEpisode}|{browser.SelectedResolution}|{browser.SelectedGroup})");
             Require(aniBt.Requests.Any(path => path == "/api/anime/groups?bgmId=123"),
                 "资源查询没有绑定所选番剧的 Bangumi 编号");
             Require(panel.ViewModel.SelectedTitle == firstAnime.Title && panel.ViewModel.SelectedBgm == "Bangumi #123",
@@ -330,14 +331,15 @@ internal sealed partial class ShellNavigationProbe
 
             browser.SelectedEpisode = "02";
             await LayoutAsync(panel);
-            Require(browser.Rows.Count == 1 && browser.CountText.Contains("1 / 3", StringComparison.Ordinal),
-                "按集筛选没有只留下第 2 集：" + browser.CountText);
-            browser.Text = "不存在的词";
+            Require(browser.Rows.Count == 1 && browser.Rows[0].EpisodeChoice == "02",
+                "按集筛选没有只留下第 2 集");
+            browser.SelectedResolution = "1080p";
             Require(browser.Rows.Count == 0 && browser.NoMatchesVisibility == Visibility.Visible,
-                "关键词与集号组合筛选没有显示无匹配状态");
+                "清晰度与集号组合筛选没有显示无匹配状态");
             Require(browser.ResourceGroups.Count == 0, "筛选无匹配后空字幕组仍可见");
             browser.ResetFiltersCommand.Execute(null);
-            Require(browser.Rows.Count == 3 && browser.Text.Length == 0 && browser.SelectedEpisode == AniBtBrowserViewModel.AllEpisodes,
+            Require(browser.Rows.Count == 3 && browser.SelectedResolution == AniBtBrowserViewModel.AllResolutions
+                && browser.SelectedEpisode == AniBtBrowserViewModel.AllEpisodes,
                 "清除筛选没有恢复全部发布");
 
             var row = browser.Rows[0];
@@ -353,6 +355,10 @@ internal sealed partial class ShellNavigationProbe
                 await SizeAsync(page, width);
                 var detailScroll = Get<ScrollViewer>(panel, "AnimeDetailScroll");
                 var resourceBrowser = Get<AniBtResourceBrowser>(panel, "ResourceBrowser");
+                CheckCompactSearch(page, panel);
+                Require(!Descendants(panel).OfType<FrameworkElement>().Any(element => element.Name is
+                    "ReleaseFilter" or "CopyAnimeRss" or "CopyGroupRss" or "CopyGroupProgressRss" or "RssNotice"),
+                    "AniBT 搜索仍保留已删除的 RSS 或二次文本筛选组件");
                 browser.ViewIndex = 0;
                 await LayoutAsync(panel);
                 SetProbeGroupLogos(resourceBrowser, logoBitmap);
@@ -372,6 +378,13 @@ internal sealed partial class ShellNavigationProbe
                 var releaseRows = Descendants(releaseList).OfType<Grid>().Where(grid => grid.Name == "ReleaseRow").ToArray();
                 Require(releaseRows.Length == 3, "AniBT 行尾按钮检查没有取得全部发布行");
                 foreach (var releaseRow in releaseRows) CheckReleaseRow(releaseRow);
+                var filters = Get<WrapRow>(resourceBrowser, "ReleaseFilters");
+                var filterY = filters.TransformToVisual(resourceBrowser).TransformPoint(default).Y;
+                var listY = releaseList.TransformToVisual(resourceBrowser).TransformPoint(default).Y;
+                Require(listY - filterY - filters.ActualHeight is >= 0 and <= 9,
+                    "AniBT 筛选行与资源列表之间仍留大块空白");
+                if (width == 1040)
+                    Require(releaseRows.All(release => release.ActualHeight <= 70), "AniBT 宽窗发布行仍不够紧凑");
                 var logos = Descendants(releaseList).OfType<Image>().Where(image => image.Name == "GroupLogo").ToArray();
                 var shownLogo = logos.Single(image => image.Tag is AniBtResourceGroup { LogoUrl: not null });
                 Require(browser.ResourceGroups[0].LogoVisibility == Visibility.Visible
@@ -396,6 +409,32 @@ internal sealed partial class ShellNavigationProbe
                 }
                 await SaveSettledFrameAsync(page, $"anibt-resources-{width}-render.png");
                 await SaveProbeScreenAsync($"anibt-resources-{width}-screen.png");
+                if (width == 1040)
+                {
+                    foreach (var theme in Momoka.Theming.UiThemes.All)
+                    {
+                        ThemeHost.Apply(theme);
+                        await LayoutAsync(panel);
+                        foreach (var name in new[] { "EpisodeFilter", "GroupFilter", "ResolutionFilter", "SortOrder" })
+                        {
+                            var filter = Get<EgPicker>(resourceBrowser, name);
+                            Require(filter.Background is SolidColorBrush background
+                                && background.Color == ThemeHost.ToColor(theme.Colors.AccentSoft)
+                                && filter.Foreground is SolidColorBrush foreground
+                                && foreground.Color == ThemeHost.ToColor(theme.Colors.Accent),
+                                "AniBT 筛选没有采用当前主题的 MP 资源角色色");
+                        }
+                        foreach (var action in releaseRows.SelectMany(release => Descendants(release).OfType<Button>()))
+                            Require(action.Background is SolidColorBrush background
+                                && background.Color == ThemeHost.ToColor(theme.Colors.AccentSoft)
+                                && action.Foreground is SolidColorBrush foreground
+                                && foreground.Color == ThemeHost.ToColor(theme.Colors.Accent),
+                                "AniBT 行尾方钮没有采用当前主题的 MP 资源角色色");
+                        await SaveProbeScreenAsync($"anibt-resources-{theme.Id}-1040-screen.png");
+                    }
+                    ThemeHost.Apply(originalTheme);
+                    await LayoutAsync(panel);
+                }
                 detailScroll.ChangeView(null, 0, null, true);
             }
 
@@ -516,12 +555,34 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
+            ThemeHost.Apply(originalTheme);
             aniBt.CancelDelays();
             foreach (var dialog in OpenDownloads()) dialog.Hide();
             (frame.Content as IShellContent)?.Release();
             _root.Children.Remove(frame);
             ResizeInspect(1420, 980);
             _window?.Activate();
+        }
+
+        static void CheckCompactSearch(LibraryPage page, AniBtSearchPanel panel)
+        {
+            var surface = Get<Border>(page, "SearchSurface");
+            var pageRoot = Get<Grid>(page, "PageRoot");
+            Require(Get<TextBlock>(page, "LibraryTitle").Visibility == Visibility.Collapsed
+                && surface.BorderThickness == new Thickness(0) && surface.Padding == new Thickness(0)
+                && surface.Background is null, "搜索标题或外层卡片未删除");
+            var top = surface.TransformToVisual(pageRoot).TransformPoint(default).Y;
+            Require(Math.Abs(top) <= 1 && pageRoot.Margin.Top is >= 32 and <= 40,
+                "搜索组件没有整体上移或侵入窗口按钮区域");
+            Require(surface.TransformToVisual(page).TransformPoint(default).Y >= 32,
+                "搜索输入与原生窗口按钮重叠");
+            var bottom = surface.TransformToVisual(page).TransformPoint(default).Y + surface.ActualHeight;
+            var gap = panel.TransformToVisual(page).TransformPoint(default).Y - bottom;
+            Require(gap is >= 7 and <= 9, $"搜索区到 AniBT 内容仍有空槽：{gap:F1}");
+            var content = Get<Grid>(panel, "AnimeContent");
+            var root = Get<Grid>(panel, "AnimeSearchRoot");
+            Require(Math.Abs(content.TransformToVisual(root).TransformPoint(default).Y) <= 1,
+                "AniBT 内置输入、进度或提示收起后仍占空行间距");
         }
 
         static void SetProbeGroupLogos(AniBtResourceBrowser resourceBrowser, BitmapImage bitmap)

@@ -104,18 +104,7 @@ public sealed partial class AniBtSearchPanel : UserControl
         Grid.SetRowSpan(HeroPoster, narrow ? 1 : 2);
         HeroPoster.Width = narrow ? 74 : 154;
         HeroPoster.Height = narrow ? 108 : 224;
-        AnimeHero.ColumnSpacing = narrow ? 12 : 22;
-    }
-
-    private void OnCopyRss(object sender, RoutedEventArgs args)
-    {
-        if (ViewModel.SelectedAnime is not { } anime || !ViewModel.ConnectionMatches) return;
-        try
-        {
-            new SystemClipboard().SetText($"https://anibt.net/rss/anime.xml?bgmId={anime.BgmId}");
-            ViewModel.RssCopied();
-        }
-        catch (Exception error) { ViewModel.RssCopied(error); }
+        AnimeHero.ColumnSpacing = narrow ? 12 : 16;
     }
 
     private void OnSearch(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args) =>

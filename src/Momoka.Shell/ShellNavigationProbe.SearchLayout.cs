@@ -38,6 +38,12 @@ internal sealed partial class ShellNavigationProbe
                 var header = Get<Grid>(page, "HeaderLayout");
                 var search = Get<Border>(page, "SearchSurface");
                 var box = Bounds(search, header);
+                Require(Get<TextBlock>(page, "LibraryTitle").Visibility == Visibility.Collapsed
+                    && search.Padding == new Thickness(0) && search.BorderThickness == new Thickness(0)
+                    && search.Background is null, "搜索标题或搜索外卡仍可见");
+                Require(Math.Abs(box.Top) <= 1 && Get<Grid>(page, "PageRoot").Margin.Top is >= 32 and <= 40,
+                    "搜索组件没有整体上移或侵入窗口按钮区域");
+                Require(Bounds(search, page).Top >= 32, "搜索输入与原生窗口按钮重叠");
                 Require(Math.Abs(box.Left + box.Width / 2 - header.ActualWidth / 2) <= 1, "搜索未居中");
                 Require(box.Left >= -1 && box.Right <= header.ActualWidth + 1, "搜索超出内容区");
                 Require(Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Collapsed, "搜索页仍显示浏览工具栏");
@@ -89,6 +95,9 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(Get<Border>(page, "SearchSurface").Visibility == Visibility.Collapsed
                 && Get<Grid>(page, "ToolbarSurface").Visibility == Visibility.Visible, "普通媒体库工具栏被移除");
+            Require(Get<TextBlock>(page, "LibraryTitle").Visibility == Visibility.Visible
+                && Get<TextBlock>(page, "LibraryTitle").Text == page.ViewModel.Heading,
+                "普通媒体库标题没有恢复");
         }
         finally
         {

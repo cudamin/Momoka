@@ -307,10 +307,9 @@
                     HorizontalAlignment="Center" Content="{x:Bind ViewModel.BrowseGroupLabel, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.BrowseGroupVisibility, Mode=OneWay}"
                     ToolTipService.ToolTip="返回分类列表" Click="OnBrowseGroupBack" />
-                <TextBlock x:Name="LibraryTitle" Text="{x:Bind local:LibraryPage.HeaderTitle(ViewModel.SearchVisibility, ViewModel.Heading), Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />
+                <TextBlock x:Name="LibraryTitle" Text="{x:Bind ViewModel.Heading, Mode=OneWay}" Visibility="{x:Bind local:LibraryPage.BrowseHintVisibility(ViewModel.SearchVisibility), Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />
 
-                <Border x:Name="SearchSurface" Grid.ColumnSpan="2" Padding="10,8" CornerRadius="14"
-                    Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1"
+                <Border x:Name="SearchSurface" Grid.ColumnSpan="2" Padding="0" BorderThickness="0"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
                     <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>

@@ -205,12 +205,6 @@ public sealed partial class AniBtSearchViewModel : PageViewModel
 
     internal int? Episode => _episode;
 
-    internal void RssCopied(Exception? error = null)
-    {
-        if (error is null) Notify(null, "已复制番剧 RSS 链接", InfoBarSeverity.Success);
-        else Report("复制 RSS 链接失败", error);
-    }
-
     internal void PrepareSearch(bool preserveEpisode = false)
     {
         var episode = preserveEpisode ? _episode : null;

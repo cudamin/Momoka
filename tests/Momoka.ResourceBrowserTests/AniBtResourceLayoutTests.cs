@@ -50,7 +50,7 @@ internal static class AniBtResourceLayoutTests
             var browser = new AniBtBrowserViewModel();
             browser.SetResults([first, second], "", [source], new AniBtAnime("anime", 123, "动画", EpisodeCount: 12));
             var group = browser.ResourceGroups.Single();
-            browser.Text = "不存在";
+            browser.SelectedEpisode = "99";
             Assert.Equal(0, browser.ResourceGroups.Count);
             browser.ResetFiltersCommand.Execute(null);
             Assert.True(ReferenceEquals(group, browser.ResourceGroups.Single()));
@@ -133,6 +133,92 @@ internal static class AniBtResourceLayoutTests
                 .Attribute("Value")!.Value, CultureInfo.InvariantCulture);
             Assert.Equal(Value("Width"), Value("Height"));
             Assert.True(Value("CornerRadius") > 0 && Value("CornerRadius") < Value("Width") / 2);
+        });
+
+        Test("AniBT 删除 RSS 复制和二次文本筛选，保留单选分面及分组列表", () =>
+        {
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var browser = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/AniBtResourceBrowser.xaml"));
+            var panel = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/AniBtSearchPanel.xaml"));
+            foreach (var retired in new[] { "CopyAnimeRss", "CopyGroupRss", "CopyGroupProgressRss", "RssNotice", "ReleaseFilter" })
+                Assert.False(browser.Descendants().Concat(panel.Descendants()).Any(node => node.Attribute(x + "Name")?.Value == retired));
+            Assert.False(browser.Descendants().Any(node => node.Attribute("Text")?.Value == "{x:Bind ViewModel.CountText, Mode=OneWay}"));
+            Assert.False(browser.Descendants().Any(node => node.Name.LocalName == "TextBox"));
+            foreach (var name in new[] { "EpisodeFilter", "GroupFilter", "ResolutionFilter", "SortOrder" })
+            {
+                var filter = browser.Descendants().Single(node => node.Attribute(x + "Name")?.Value == name);
+                Assert.Equal("EgPicker", filter.Name.LocalName);
+                Assert.Equal("{StaticResource EgResourceFilterStyle}", filter.Attribute("Style")?.Value);
+            }
+            Assert.NotNull(browser.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "ReleaseList"));
+            Assert.NotNull(browser.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "ReleaseGroup"));
+        });
+
+        Test("AniBT 筛选与操作样式采用 MP 资源的角色色和紧凑尺寸", () =>
+        {
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var styles = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Theme/Styles.xaml"));
+            var facet = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotResourceFacetPicker.xaml"))
+                .Descendants().Single(node => node.Attribute(x + "Name")?.Value == "OpenFacet");
+            foreach (var key in new[] { "EgResourceFilterStyle", "EgResourceButtonStyle" })
+            {
+                var style = styles.Descendants().Single(node => node.Attribute(x + "Key")?.Value == key);
+                foreach (var property in new[] { "MinHeight", "Padding", "CornerRadius", "BorderThickness", "Background", "Foreground" })
+                    Assert.Equal(facet.Attribute(property)?.Value, style.Elements().Single(node => node.Attribute("Property")?.Value == property).Attribute("Value")?.Value);
+            }
+            var browser = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/AniBtResourceBrowser.xaml"));
+            var action = browser.Descendants().Single(node => node.Attribute(x + "Key")?.Value == "ReleaseActionButtonStyle");
+            Assert.Equal("{StaticResource EgResourceButtonStyle}", action.Attribute("BasedOn")?.Value);
+            var resolution = browser.Descendants().Single(node => node.Attribute("Text")?.Value == "{x:Bind ResolutionText}");
+            Assert.Equal("{ThemeResource EgInfoBrush}", resolution.Attribute("Foreground")?.Value);
+            Assert.Equal("{ThemeResource EgSurfaceAltBrush}", resolution.Parent!.Attribute("Background")?.Value);
+            var size = browser.Descendants().Single(node => node.Attribute("Text")?.Value == "{x:Bind SizeText}");
+            Assert.Equal("{ThemeResource EgAccentBrush}", size.Attribute("Foreground")?.Value);
+        });
+
+        Test("AniBT 隐藏状态行没有固定行距，资源行保留两列且更紧凑", () =>
+        {
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var panel = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/AniBtSearchPanel.xaml"));
+            var root = panel.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "AnimeSearchRoot");
+            Assert.Equal("0", root.Attribute("RowSpacing")?.Value);
+            Assert.Equal("Collapsed", root.Elements().Single(node => node.Attribute(x + "Name")?.Value == "AnimeSearchInput").Attribute("Visibility")?.Value);
+            foreach (var status in root.Elements().Where(node => node.Name.LocalName is "ProgressBar" or "InfoBar"))
+            {
+                Assert.NotNull(status.Attribute("Margin"));
+                Assert.NotNull(status.Attribute("Visibility"));
+            }
+            var resources = panel.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "AnimeResourcesView");
+            Assert.Equal("8", resources.Attribute("Spacing")?.Value);
+            var browser = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/AniBtResourceBrowser.xaml"));
+            var release = browser.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "ReleaseRow");
+            Assert.Equal("0,6", release.Attribute("Padding")?.Value);
+            Assert.Equal("8", browser.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "ReleaseContent").Attribute("Spacing")?.Value);
+        });
+
+        Test("搜索页移除外卡和标题，保留库页标题与搜索来源组件", () =>
+        {
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            var xml = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml"));
+            var surface = xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "SearchSurface");
+            Assert.Equal("0", surface.Attribute("Padding")?.Value);
+            Assert.Equal("0", surface.Attribute("BorderThickness")?.Value);
+            Assert.Null(surface.Attribute("Background"));
+            Assert.Null(surface.Attribute("BorderBrush"));
+            Assert.NotNull(surface.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "SearchInput"));
+            Assert.NotNull(surface.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "SourceTabs"));
+            var title = xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "LibraryTitle");
+            Assert.Equal("{x:Bind ViewModel.Heading, Mode=OneWay}", title.Attribute("Text")?.Value);
+            Assert.Equal("{x:Bind local:LibraryPage.BrowseHintVisibility(ViewModel.SearchVisibility), Mode=OneWay}", title.Attribute("Visibility")?.Value);
+        });
+
+        Test("AniBT 页面说明与删除控件、筛选和紧凑样式一致", () =>
+        {
+            var guide = File.ReadAllText(Path.Combine(sourceRoot, "docs/MoviePilot订阅.md"));
+            Assert.Contains("页面移除 RSS 复制按钮及资源二次文本筛选栏", guide);
+            Assert.DoesNotContain("番剧与字幕组各有复制 RSS 链接", guide);
+            Assert.Contains("资源仍可按集号、字幕组、清晰度筛选", guide);
+            Assert.Contains("资源继续按字幕组列表展示", guide);
         });
 
         Test("AniBT 进度和资源标题的头像容器随失败完整收起", () =>

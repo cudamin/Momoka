@@ -39,10 +39,6 @@ public sealed partial class AniBtResourceRow : ObservableObject
     public Visibility ResolutionVisibility => Show(ResolutionText.Length > 0);
     public Visibility DownloadVisibility => Show(Release.HasTorrent);
 
-    /// <summary>筛选按 RSS 原值比，不按「未标…」这些给人看的占位字比。</summary>
-    public string RawName => (Title + "\n" + Release.GroupName + "\n" + Release.Resolution + "\n" + Release.EpisodeKey)
-        .ToLowerInvariant();
-
     public string PublishedText => AniBtReleaseLabels.Published(Release.PublishedAt, DateTimeOffset.Now);
     public bool IsRecent => Release.PublishedAt is { } published
         && DateTimeOffset.Now - published is { Ticks: > 0 } elapsed && elapsed < TimeSpan.FromDays(1);
@@ -145,7 +141,6 @@ public sealed partial class AniBtResourceGroup : ObservableObject
     public string Metadata { get; }
     public string PublishedText { get; }
     public string CountText => $"{Total} 条";
-    public Visibility RssVisibility => RssUri is not null ? Visibility.Visible : Visibility.Collapsed;
     public Visibility MoreVisibility => _filtered.Count > 5 ? Visibility.Visible : Visibility.Collapsed;
     public string MoreText => Expanded ? "收起" : $"展开其余 {_filtered.Count - 5} 条";
     public string ScopeText => Total > Rows.Count ? $"展示最近 {Rows.Count} / {Total} 条" : "";
@@ -175,7 +170,7 @@ public sealed partial class AniBtResourceGroup : ObservableObject
 }
 
 /// <summary>
-/// AniBT 这一页自己的筛选与排序：集号、字幕组、清晰度和关键词都按 RSS 原值来，不借用 MoviePilot
+/// AniBT 这一页自己的筛选与排序：集号、字幕组、清晰度都按发布原值来，不借用 MoviePilot
 /// 的站点、优惠、季号与 HR 概念。集合实例稳定，改筛选用原地增删，不把行对象换掉。
 /// </summary>
 public sealed partial class AniBtBrowserViewModel : ObservableObject
@@ -196,7 +191,6 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
     public ObservableCollection<string> Resolutions { get; } = [AllResolutions];
     public ObservableCollection<string> Groups { get; } = [AllGroups];
 
-    [ObservableProperty] public partial string Text { get; set; } = "";
     [ObservableProperty] public partial string SelectedEpisode { get; set; } = AllEpisodes;
     [ObservableProperty] public partial string SelectedResolution { get; set; } = AllResolutions;
     [ObservableProperty] public partial string SelectedGroup { get; set; } = AllGroups;
@@ -219,9 +213,8 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
     public Visibility EmptyVisibility => Show(_all.Count == 0 && EmptyMessage.Length > 0);
     public Visibility FiltersVisibility => Show(_all.Count > 0);
     public Visibility NoMatchesVisibility => Show(_all.Count > 0 && Rows.Count == 0);
-    public string CountText => _all.Count == 0 ? "" : $"{Rows.Count} / {_all.Count}";
     public Visibility ResetVisibility => Show(HasFilters);
-    private bool HasFilters => Text.Trim().Length > 0 || IsChosen(SelectedEpisode, AllEpisodes)
+    private bool HasFilters => IsChosen(SelectedEpisode, AllEpisodes)
         || IsChosen(SelectedResolution, AllResolutions) || IsChosen(SelectedGroup, AllGroups);
 
     internal void SetResults(IEnumerable<AniBtResourceRow> rows, string emptyMessage,
@@ -256,7 +249,6 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
         FillChoices(Groups, AllGroups, _all
             .Where(row => row.Release.GroupName.Trim().Length > 0)
             .Select(row => row.GroupName), StringComparer.CurrentCultureIgnoreCase);
-        Text = "";
         SelectedEpisode = AllEpisodes;
         SelectedResolution = AllResolutions;
         SelectedGroup = AllGroups;
@@ -272,7 +264,6 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
     {
         _all.Clear();
         _resetting = true;
-        Text = "";
         SelectedEpisode = AllEpisodes;
         SelectedResolution = AllResolutions;
         SelectedGroup = AllGroups;
@@ -291,7 +282,6 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
         OnPropertyChanged(nameof(FiltersVisibility));
         OnPropertyChanged(nameof(EmptyVisibility));
         OnPropertyChanged(nameof(NoMatchesVisibility));
-        OnPropertyChanged(nameof(CountText));
         OnPropertyChanged(nameof(ResetVisibility));
     }
 
@@ -299,7 +289,6 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
     private void ResetFilters()
     {
         _resetting = true;
-        Text = "";
         SelectedEpisode = AllEpisodes;
         SelectedResolution = AllResolutions;
         SelectedGroup = AllGroups;
@@ -307,7 +296,6 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
         Apply();
     }
 
-    partial void OnTextChanged(string value) => Apply();
     partial void OnSelectedEpisodeChanged(string value) => Apply();
     partial void OnSelectedResolutionChanged(string value) => Apply();
     partial void OnSelectedGroupChanged(string value) => Apply();
@@ -318,9 +306,6 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
         if (_resetting) return;
 
         IEnumerable<AniBtResourceRow> query = _all;
-        var terms = Text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (terms.Length > 0)
-            query = query.Where(row => terms.All(term => row.RawName.Contains(term, StringComparison.OrdinalIgnoreCase)));
         // 下拉在 ItemsSource 换掉时会把 SelectedItem 写成空；空就是「全部」，不能当成一条必须匹配的值。
         if (IsChosen(SelectedEpisode, AllEpisodes))
             query = query.Where(row => row.EpisodeChoice == SelectedEpisode);
@@ -345,7 +330,6 @@ public sealed partial class AniBtBrowserViewModel : ObservableObject
             group.ApplyRows(visible);
             if (visible.Length > 0) ResourceGroups.Add(group);
         }
-        OnPropertyChanged(nameof(CountText));
         OnPropertyChanged(nameof(NoMatchesVisibility));
         OnPropertyChanged(nameof(ResetVisibility));
     }
