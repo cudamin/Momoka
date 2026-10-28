@@ -340,6 +340,7 @@ handle  Views/MoviePilotSeriesReorganizeDialog.xaml  ResourceProblem
 handle  Views/MoviePilotSeriesReorganizeDialog.xaml  ResourcesEmpty
 handle  Views/MoviePilotSeriesReorganizeDialog.xaml  ResourcesLoading
 handle  Views/MoviePilotSeriesReorganizeDialog.xaml  SelectAllResources
+handle  Views/MoviePilotSeriesReorganizeDialog.xaml  SelectSeriesResource
 handle  Views/MoviePilotSeriesReorganizeDialog.xaml  SelectedResourcesCount
 handle  Views/MoviePilotSeriesReorganizeDialog.xaml  SeriesQuery
 handle  Views/MoviePilotSeriesReorganizeDialog.xaml  SeriesResources

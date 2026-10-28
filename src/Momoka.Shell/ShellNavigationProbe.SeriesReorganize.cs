@@ -12,7 +12,6 @@ using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
-using Momoka.Theming;
 
 namespace Momoka.Shell;
 
@@ -38,8 +37,17 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(picker);
             Require(Get<TextBlock>(picker, "SeriesQuery").Text == "tmdbid=283938", "当前剧筛选条件未固定显示");
             var list = Get<ListView>(picker, "SeriesResources");
-            Require(list.SelectionMode == ListViewSelectionMode.Multiple && list.IsMultiSelectCheckBoxEnabled,
-                "清单没有原生多选复选框");
+            Require(list.SelectionMode == ListViewSelectionMode.Multiple && !list.IsMultiSelectCheckBoxEnabled,
+                "清单没有保留原生多选或还显示框架的灰条复选区");
+            var selectionBox = Descendants(list).OfType<CheckBox>().First(box => box.Name == "SelectSeriesResource");
+            Require(selectionBox.VerticalAlignment == VerticalAlignment.Top &&
+                AutomationProperties.GetName(selectionBox).Contains("学生会也有洞", StringComparison.Ordinal), "资源复选框没有顶部对齐或无法定位");
+            var toggle = (IToggleProvider)new CheckBoxAutomationPeer(selectionBox).GetPattern(PatternInterface.Toggle);
+            toggle.Toggle();
+            Require(list.SelectedItems.Count == 1 && picker.ViewModel.Rows[0].Selected && picker.ViewModel.SelectedCount == 1,
+                "复选框勾选未同步列表选择或重复切换");
+            toggle.Toggle();
+            Require(list.SelectedItems.Count == 0 && !picker.ViewModel.Rows[0].Selected, "取消勾选未同步列表选择");
             Require(list.SelectedItems.Count == 0 && !picker.IsPrimaryButtonEnabled, "清单不能默认授权整理所有文件");
             list.SelectedItems.Add(picker.ViewModel.Rows[0]);
             list.SelectedItems.Add(picker.ViewModel.Rows[1]);
@@ -49,7 +57,8 @@ internal sealed partial class ShellNavigationProbe
             Require(list.SelectedItems.Count == 0 && !picker.IsPrimaryButtonEnabled && ReferenceEquals(retained, picker.ViewModel.Rows[0]),
                 "清空选择丢失行对象或没有关闭继续入口");
             InvokeSeriesButton(picker, "SelectAllResources");
-            Require(list.SelectedItems.Count == 6 && picker.ViewModel.SelectedCount == 6, "全选未选齐当前剧资源");
+            Require(list.SelectedItems.Count == 6 && picker.ViewModel.SelectedCount == 6 && picker.ViewModel.Rows.All(row => row.Selected),
+                "全选未选齐当前剧资源或没有同步复选框");
             foreach (var width in new[] { 1120, 760, 420 })
             {
                 ResizeInspect(width, 960);
@@ -65,10 +74,12 @@ internal sealed partial class ShellNavigationProbe
             {
                 ThemeHost.Apply(theme.Id);
                 await LayoutAsync(picker);
-                var check = Descendants(list).OfType<ListViewItemPresenter>().First().CheckBrush as SolidColorBrush;
-                Require(check is not null && ThemeColor.Contrast(
-                    new ThemeColor(check.Color.A, check.Color.R, check.Color.G, check.Color.B), theme.Colors.SurfaceAlt) >= 3,
-                    "选中对勾在资源卡片上对比不足");
+                var presenter = Descendants(list).OfType<ListViewItemPresenter>().First();
+                Require(presenter.SelectedBackground is SolidColorBrush selectedBrush && selectedBrush.Color.A == 0 &&
+                    presenter.SelectedPointerOverBackground is SolidColorBrush hoverBrush && hoverBrush.Color.A == 0,
+                    "资源选择区仍残留原生方形灰色竖带");
+                Require(Descendants(list).OfType<CheckBox>().Where(box => box.Name == "SelectSeriesResource")
+                    .All(box => box.IsChecked == true && box.VerticalAlignment == VerticalAlignment.Top), "主题切换丢失复选框选中或顶部对齐");
                 var primary = Descendants(picker).OfType<Button>().Single(button => button.Name == "PrimaryButton");
                 var close = Descendants(picker).OfType<Button>().Single(button => button.Name == "CloseButton");
                 Require(primary.Background is SolidColorBrush actionBrush && close.Background is SolidColorBrush closeBrush &&

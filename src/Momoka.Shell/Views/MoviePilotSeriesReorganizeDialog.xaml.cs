@@ -11,6 +11,7 @@ public sealed partial class MoviePilotSeriesReorganizeDialog : ContentDialog
     public MoviePilotSeriesReorganizeViewModel ViewModel { get; } = new();
     internal IReadOnlyList<MoviePilotTransferHistory> SelectedHistories { get; private set; } = [];
     private XamlRoot? _layoutRoot;
+    private bool _syncingSelection;
 
     internal MoviePilotSeriesReorganizeDialog(MoviePilotService service, MoviePilotTransferContext context)
     {
@@ -36,7 +37,25 @@ public sealed partial class MoviePilotSeriesReorganizeDialog : ContentDialog
     private async void OnReload(object sender, RoutedEventArgs args) => await ViewModel.ReloadAsync().ConfigureAwait(true);
     private void OnSelectAll(object sender, RoutedEventArgs args) => SeriesResources.SelectAll();
     private void OnClearSelection(object sender, RoutedEventArgs args) => SeriesResources.SelectedItems.Clear();
-    private void OnSelectionChanged(object sender, SelectionChangedEventArgs args) => ViewModel.SelectedCount = SeriesResources.SelectedItems.Count;
+    private void OnSelectionChanged(object sender, SelectionChangedEventArgs args)
+    {
+        _syncingSelection = true;
+        try
+        {
+            foreach (var row in args.RemovedItems.OfType<MoviePilotSeriesTransferRow>()) row.Selected = false;
+            foreach (var row in args.AddedItems.OfType<MoviePilotSeriesTransferRow>()) row.Selected = true;
+        }
+        finally { _syncingSelection = false; }
+        ViewModel.SelectedCount = SeriesResources.SelectedItems.Count;
+    }
+    private void OnResourceCheckChanged(object sender, RoutedEventArgs args)
+    {
+        if (_syncingSelection || sender is not CheckBox { DataContext: MoviePilotSeriesTransferRow row } box ||
+            !ViewModel.Rows.Contains(row)) return;
+        if (box.IsChecked == true && !SeriesResources.SelectedItems.Contains(row)) SeriesResources.SelectedItems.Add(row);
+        else if (box.IsChecked != true) SeriesResources.SelectedItems.Remove(row);
+    }
+    private void OnSelectionTapped(object sender, Microsoft.UI.Xaml.Input.TappedRoutedEventArgs args) => args.Handled = true;
     private void OnContinue(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {
         try { SelectedHistories = ViewModel.Select(SeriesResources.SelectedItems.OfType<MoviePilotSeriesTransferRow>()); }

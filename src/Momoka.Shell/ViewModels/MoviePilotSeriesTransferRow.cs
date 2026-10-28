@@ -36,7 +36,12 @@ public sealed partial class MoviePilotSeriesTransferRow(MoviePilotTransferHistor
     };
     public string Details => string.Join(" · ", new[] { Mode, TimeFormat.FileSize(History.Size), History.Date }
         .Where(value => value.Length > 0));
+    [ObservableProperty]
+    public partial bool Selected { get; set; }
+
     public string AutomationName => $"{Title} {EpisodeLabel}，{Status}，记录 {History.Id}";
+
+    public string SelectionName => "选择 " + AutomationName;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyArtworkVisibility))]

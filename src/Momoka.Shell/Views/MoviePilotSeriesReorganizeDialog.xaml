@@ -11,9 +11,6 @@
     CloseButtonText="取消" DefaultButton="None" PrimaryButtonClick="OnContinue">
     <ContentDialog.Resources>
         <x:Double x:Key="ContentDialogMaxWidth">1040</x:Double>
-        <!-- 原生列表的选中对勾在深色卡片上使用强调色，避免套用强调底上的黑字。 -->
-        <StaticResource x:Key="ListViewItemCheckBrush" ResourceKey="EgAccentBrush" />
-        <StaticResource x:Key="ListViewItemCheckBoxBrush" ResourceKey="EgTextDimBrush" />
         <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
         <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
         <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
@@ -70,9 +67,19 @@
         </Grid>
         <Grid Grid.Row="3" MinHeight="120">
             <ListView x:Name="SeriesResources" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="Multiple"
-                IsMultiSelectCheckBoxEnabled="True" SelectionChanged="OnSelectionChanged" HorizontalContentAlignment="Stretch"
+                IsMultiSelectCheckBoxEnabled="False" SelectionChanged="OnSelectionChanged" HorizontalContentAlignment="Stretch"
                 IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="当前剧的整理资源">
+                <ListView.Resources>
+                    <!-- 卡片自己绘制表面，原生行背景不能在复选框旁留下方形灰色竖带。 -->
+                    <SolidColorBrush x:Key="ListViewItemBackgroundSelected" Color="Transparent" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedPressed" Color="Transparent" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundSelectedDisabled" Color="Transparent" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="ListViewItemBackgroundPressed" Color="Transparent" />
+                    <x:Boolean x:Key="ListViewItemSelectionIndicatorVisualEnabled">False</x:Boolean>
+                </ListView.Resources>
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -82,7 +89,13 @@
                 </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="vm:MoviePilotSeriesTransferRow">
-                        <Border Padding="12" Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <CheckBox x:Name="SelectSeriesResource" IsChecked="{x:Bind Selected, Mode=TwoWay}"
+                                MinWidth="24" MinHeight="24" Padding="0" Margin="4,12,0,0" VerticalAlignment="Top"
+                                Checked="OnResourceCheckChanged" Unchecked="OnResourceCheckChanged" Tapped="OnSelectionTapped"
+                                AutomationProperties.Name="{x:Bind SelectionName}" />
+                        <Border Grid.Column="1" Padding="12" Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
                             AutomationProperties.Name="{x:Bind AutomationName}" Loaded="OnResourceLoaded" DataContextChanged="OnResourceContextChanged">
                             <Grid ColumnSpacing="12" RowSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="48" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
@@ -119,6 +132,7 @@
                                 <TextBlock Grid.Column="1" Grid.Row="2" Text="{x:Bind Details}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
                             </Grid>
                         </Border>
+                        </Grid>
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
