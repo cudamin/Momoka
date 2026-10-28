@@ -55,6 +55,7 @@
         <ListView
             x:Name="Results"
             AutomationProperties.Name="匹配结果"
+            Padding="{StaticResource EgScrollBarLane}"
             MaxHeight="300"
             SelectionChanged="OnSelectionChanged"
             SelectionMode="Single">

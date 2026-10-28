@@ -114,7 +114,7 @@
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
         </StackPanel>
 
-        <ScrollView Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ScrollView Grid.Row="2" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <!--
                   通知接管（这一格做的事：进度到阈值、或者手动点「标记为已看」，补报播放停止。用户令 2026-09-29：

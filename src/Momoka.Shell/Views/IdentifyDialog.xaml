@@ -34,7 +34,7 @@
             HorizontalScrollBarVisibility="Disabled"
             HorizontalScrollMode="Disabled"
             VerticalScrollBarVisibility="Auto">
-            <StackPanel Padding="0,0,12,0" Spacing="{StaticResource EgSpaceL}">
+            <StackPanel Padding="0,0,20,0" Spacing="{StaticResource EgSpaceL}">
 
                 <!-- 只在真出错时才占位置，平时收着。 -->
                 <InfoBar

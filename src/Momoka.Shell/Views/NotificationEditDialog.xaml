@@ -27,7 +27,7 @@
             <Setter Property="Foreground" Value="{ThemeResource EgTextFaintBrush}" />
         </Style>
     </ContentDialog.Resources>
-    <ScrollViewer MaxHeight="560" VerticalScrollBarVisibility="Auto">
+    <ScrollViewer MaxHeight="560" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="16" MinWidth="440">
             <StackPanel Spacing="8">
                 <TextBox

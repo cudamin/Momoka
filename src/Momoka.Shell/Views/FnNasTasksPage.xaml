@@ -29,7 +29,7 @@
         </StackPanel>
         <Grid Grid.Row="1" Visibility="{x:Bind ViewModel.ContentVisibility, Mode=OneWay}">
             <ScrollView x:Name="FnNasTasksScroll">
-                <StackPanel Spacing="16" Padding="0,0,0,20">
+                <StackPanel Spacing="16" Padding="0,0,20,20">
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                         <TextBlock Text="任务计划" Style="{StaticResource EgSectionTitleStyle}" AutomationProperties.HeadingLevel="Level1" />

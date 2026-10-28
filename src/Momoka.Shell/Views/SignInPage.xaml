@@ -234,6 +234,7 @@
                                 IsItemClickEnabled="True"
                                 ItemClick="OnDiscoveredServerPicked"
                                 ItemsSource="{x:Bind ViewModel.Discovered, Mode=OneWay}"
+                                Padding="{StaticResource EgScrollBarLane}"
                                 MaxHeight="196"
                                 Visibility="{x:Bind ViewModel.DiscoveredVisibility, Mode=OneWay}">
                                 <ListView.ItemTemplate>

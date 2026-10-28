@@ -8,7 +8,7 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels">
     <Grid>
-        <!-- 资源层打开时整块收起，包括来源选择和空态，避免键盘落进被遮住的内容。 -->
+        <!-- 资源层打开时整块收起，包括搜索结果和空态，避免键盘落进被遮住的内容。 -->
         <Grid x:Name="SearchContent" RowSpacing="12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -23,26 +23,16 @@
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
                 Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-            <Grid Grid.Row="2" ColumnSpacing="16" Margin="0,0,0,2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Spacing="4" VerticalAlignment="Center">
-                    <TextBlock Text="{x:Bind ViewModel.Heading, Mode=OneWay}"
-                        Style="{StaticResource EgSubheadStyle}" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{x:Bind ViewModel.ResultCount, Mode=OneWay}"
-                        Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
-                </StackPanel>
-                <ComboBox x:Name="SourceFilter" Grid.Column="1" Header="来源" Width="150"
-                    HorizontalAlignment="Right" DisplayMemberPath="Name"
-                    ItemsSource="{x:Bind ViewModel.SourceChoices, Mode=OneWay}"
-                    SelectedItem="{x:Bind ViewModel.SelectedSource, Mode=TwoWay}"
-                    SelectionChanged="OnSourceChanged" />
-            </Grid>
+            <StackPanel Grid.Row="2" Spacing="4" Margin="0,0,0,2">
+                <TextBlock Text="{x:Bind ViewModel.Heading, Mode=OneWay}"
+                    Style="{StaticResource EgSubheadStyle}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{x:Bind ViewModel.ResultCount, Mode=OneWay}"
+                    Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
+            </StackPanel>
             <!-- 整张卡都可调用：点封面或片名进这部媒体的订阅页（键盘回车同样生效），与媒体库卡片墙同一套。
                  卡上三颗小按钮自己吃掉指针事件，不会顺带触发打开。 -->
             <ItemsView x:Name="Results" Grid.Row="3" IsItemInvokedEnabled="True" ItemInvoked="OnResultInvoked"
+                Padding="{StaticResource EgScrollBarLane}"
                 ItemTransitionProvider="{x:Null}" ItemsSource="{x:Bind ViewModel.Results, Mode=OneWay}"
                 SelectionMode="None">
                 <ItemsView.Layout>
