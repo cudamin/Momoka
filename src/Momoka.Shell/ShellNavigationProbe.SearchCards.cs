@@ -42,7 +42,6 @@ internal sealed partial class ShellNavigationProbe
         var opened = new List<(MoviePilotMedia Media, MoviePilotSubscription? Subscription)>();
         resourceView.Attach(browser);
         panel.Attach(service, fixture.Launcher, (media, subscription) => opened.Add((media, subscription)));
-        await panel.ViewModel.LoadSourcesAsync();
         await panel.SearchAsync("一念永恒");
         _root.Children.Add(panel);
         await LayoutAsync(panel);

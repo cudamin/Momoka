@@ -1316,7 +1316,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         ViewModel.NoticeOpen = false;
         if (_released) return;
         if (source == 0) ViewModel.Resume(reload: false);
-        if (source == 1) MoviePilotPanel.LoadSources();
     }
 
     private void OnSearchCategoryChanged(SelectorBar sender, SelectorBarSelectionChangedEventArgs args)

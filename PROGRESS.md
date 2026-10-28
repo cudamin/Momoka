@@ -8535,3 +8535,14 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **测试**：新增 `tests/Momoka.Tests/DialogChromeTests.cs` 三条——基础样式的四个 Setter；源码里每个 `: ContentDialog` 派生类（除下载弹窗）都有对应样式行；只有下载弹窗保留本地四值，其余 XAML 根不另写。
 - **验证**：Release 全方案构建 **0 警告 0 错误**；完整离线套件 **3057/3057、0 失败 0 跳过**；隔离发布（`work/dialog-chrome`，未碰交付目录）后 `--probe-shell --probe-section moviepilot --screen 1` **23/23 通过**（`shell-probe-20261028-034301980-23352`）。实拍核对 `mp-subscribe-season-picker-{760,360,none-760,failed-760}` 已是 EgSurface 底 + 16 圆角，`mp-download-{options,720}-screen` 与改前一致。第一次探针跑完后确认了「派生类型没吃到隐式样式」这一条，返工后重发重跑才全绿。
 - **交付**：按用户当次选择**只提交、不刷新 `artifacts/publish/win-x64`** —— 工作区另有上一批未提交改动（LibraryPage／PosterCard／MoviePilot 资源浏览等，最后修改 10:15），不把未收尾的工作一起发布；桌面快捷方式仍是旧版。未升级版本号、未推送 origin、未建 Release 或商店包。
+
+
+## 删除订阅搜索页右下角来源筛选（2026-10-28）
+
+- **用户要求**：删除截图中 MoviePilot 订阅搜索面板右侧的「来源」标签和「全部来源」下拉框；上方媒体库 / MoviePilot 订阅 / MoviePilot 资源 / AniBT 四个标签保持不变。
+- **改动**：删除 SourceFilter 及其右侧 Auto 列，将标题和结果计数直接铺满该行；退役这个面板独有的来源目录读取、选中项、自动重搜和下拉关闭接线。搜索不传 media_source，沿用服务器默认范围；结果卡的来源身份、来源文字及下载确认中的来源选择保持原样。对应 UIA 基线只删除已退役的 SourceFilter 一行，保留其余句柄检查。
+- **上游对照**：读取官方前端 v3 HEAD `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 的 SearchBarDialog.vue 与 SearchBarDialog.spec.ts、后端 v3 HEAD `be65e047b0e64b216420ba38bec7a087409552ff` 的 app/api/endpoints/media.py；前端未勾选来源时省略 media_source，后端空选择转为 None 交给搜索链。本次依用户要求有意不保留前端的手动多来源选择。未连接真实 MoviePilot，未核定部署版本，不声称全功能同步。
+- **新增覆盖**：订阅专项新增三项，检查来源控件和空列退役、首次 / 刷新 / 清空重搜不带来源参数或来源目录请求、同编号跨来源结果仍独立。搜索探针改为核默认范围与切回 / 重复提交，新拍 1040 / 360 两档真实屏幕；来源栏布局后的 IME 夹具先实际聚焦并等待布局落定，仍保留组合上屏、未上屏回退和离页取消覆盖。
+- **开发验证**：Release 全方案 0 警告 / 0 错误，主测试 3057/3057、订阅专项 72/72、页面源码契约 98/98、资源浏览专项 34/34，均 0 失败 / 0 跳过；完整空白检查通过。最终开发件 `--probe-shell --probe-section search,moviepilot --screen 1` 36/36 通过（shell-probe-20261028-055331358-3416），已目视核对 search-subscription-no-source-{1040,360}-screen.png。
+- **验证返工**：第一次重复传 probe-section 被启动守卫拒绝，未运行产品；隐藏启动导致实屏取样被遮挡检查拒绝，未放宽守卫。改为可见诊断后 IME 夹具揭示前序布局的迟到 LostFocus；先聚焦并等待布局后重跑才 36/36 全绿。其余探针分区与真实服务器播放未执行。
+- **协作与交付**：主树另有搜索紧凑布局、站点偏好等未提交工作，仅暂存本次差异，不夹带那些改动；实际交付采用本次提交的隔离构建再验，进度在验证完毕后补记。未升级版本号、未推送 origin、未建 Release 或商店包。

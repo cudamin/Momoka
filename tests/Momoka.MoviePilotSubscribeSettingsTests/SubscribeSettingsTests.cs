@@ -703,6 +703,52 @@ internal static class SubscribeSettingsTests
             f.Settings.MoviePilot.Enabled = true; await f.ConnectAsync(); hold.SetResult(ContentDialogResult.Primary); await pending;
             Check.False(active.ViewModel.CanSubmit); Check.Equal(0, f.Http.Writes); ContentDialog.Reset();
         });
+        Test("订阅搜索：移除来源筛选与空列，保留标题和结果计数", () =>
+        {
+            var xaml = XDocument.Parse(Resource("Production.MoviePilotSearchPanel.xaml"));
+            XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+            Check.False(xaml.Descendants().Any(item => (string?)item.Attribute(x + "Name") == "SourceFilter"));
+            Check.False(xaml.Descendants().Any(item => (string?)item.Attribute("Header") == "来源"));
+            var content = xaml.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "SearchContent");
+            var heading = content.Elements().Single(item => (string?)item.Attribute("Grid.Row") == "2");
+            Check.Equal("StackPanel", heading.Name.LocalName);
+            Check.Equal(2, heading.Elements().Count());
+            Check.True(heading.Elements().Any(item => ((string?)item.Attribute("Text"))?.Contains("ViewModel.Heading", StringComparison.Ordinal) == true));
+            Check.True(heading.Elements().Any(item => ((string?)item.Attribute("Text"))?.Contains("ViewModel.ResultCount", StringComparison.Ordinal) == true));
+            var code = Resource("Production.MoviePilotSearchPanel.xaml.cs");
+            Check.False(code.Contains("SourceFilter", StringComparison.Ordinal));
+            Check.False(code.Contains("OnSourceChanged", StringComparison.Ordinal));
+            return Task.CompletedTask;
+        });
+        Test("订阅搜索：首次、刷新和清空重搜不发送来源筛选或来源目录请求", async () =>
+        {
+            using var f = new SubscriptionFixture();
+            using var vm = new MoviePilotSearchViewModel();
+            vm.Attach(f.Service);
+            await vm.SearchAsync(" 匿名 ");
+            await vm.ReloadAsync();
+            await vm.SearchAsync("");
+            Check.Equal(0, vm.Results.Count);
+            await vm.SearchAsync("再次");
+            var searches = f.Http.Requests.Where(item => item.Method == "GET" && item.Path == "media/search").ToArray();
+            Check.Equal(3, searches.Length);
+            Check.True(searches.All(item => !item.Query.Contains("media_source", StringComparison.Ordinal)));
+            Check.Equal(0, f.Http.Count("GET", "media/source"));
+            Check.Equal(0, f.Http.Writes);
+        });
+        Test("订阅搜索：默认范围返回的同号跨来源结果保持独立身份", async () =>
+        {
+            using var f = new SubscriptionFixture();
+            f.Http.SearchResults = Json("""[{"title":"匿名示例","type":"电影","media_source":"themoviedb","media_id":"42"},{"title":"匿名示例","type":"电影","media_source":"douban","media_id":"42"}]""");
+            using var vm = new MoviePilotSearchViewModel();
+            vm.Attach(f.Service);
+            await vm.SearchAsync("匿名");
+            Check.Equal(2, vm.Results.Count);
+            Check.Equal("themoviedb", vm.Results[0].Media.MediaSource);
+            Check.Equal("douban", vm.Results[1].Media.MediaSource);
+            Check.True(vm.Results.All(item => item.Media.MediaId == "42" && item.SourceLabel.Length > 0));
+            Check.Equal(0, f.Http.Writes);
+        });
         Test("实际XAML合同：取消/下方提交/季开关/三个模式/状态海报可定位", () =>
         {
             var xaml = XDocument.Parse(Resource("Production.MoviePilotSeasonPicker.xaml"));

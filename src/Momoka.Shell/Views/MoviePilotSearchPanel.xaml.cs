@@ -54,8 +54,6 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         if (openMedia is not null) ViewModel.UseMediaOpener(openMedia);
     }
 
-    internal void LoadSources() => _ = ViewModel.LoadSourcesAsync();
-
     internal Task PrepareSearchAsync()
     {
         ResourceOverlay.Release();
@@ -79,7 +77,6 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     internal void Release()
     {
         ViewModel.Cancel();
-        SourceFilter.IsDropDownOpen = false;
         ResourceOverlay.Release();
         ResourceOverlay.Visibility = Visibility.Collapsed;
         SearchContent.Visibility = Visibility.Visible;
@@ -92,16 +89,11 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         if (_service is null || _launcher is null) return Task.CompletedTask;
 
         ResourceOverlay.Open(_service, media, _launcher);
-        SourceFilter.IsDropDownOpen = false;
         SearchContent.Visibility = Visibility.Collapsed;
         Results.Visibility = Visibility.Collapsed;
         ResourceOverlay.Visibility = Visibility.Visible;
         return Task.CompletedTask;
     }
-
-    /// <summary>来源下拉换选：交给视图模型，有上一次的词就按新来源重搜。</summary>
-    private void OnSourceChanged(object sender, SelectionChangedEventArgs e) =>
-        _ = ViewModel.ApplySourceFilterAsync();
 
     /// <summary>点一张结果卡：进这部媒体的订阅页（唯一对上的订阅随行，见视图模型的 <c>Open</c>）。</summary>
     private void OnResultInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)
