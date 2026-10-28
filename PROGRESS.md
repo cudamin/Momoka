@@ -8634,3 +8634,6 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 
 - 隔离树最终主测试（尚未合并）3141/3141 通过、0 失败／0 跳过；全方案 Release 0 警告／0 错误。新增文件型守卫拒绝目录／云盘 FileItem，相关专项待重跑后提交。当前 HEAD 为 detached，完成后以对应 commit 整合 master，不把独立树结果当主树交付。
 - UI：设置＋MoviePilot 分区 46/46 通过（shell-probe-20261028-130951574-32452）；新版白色 MP 实际菜单／四子项、剧“智能批量整理”与媒体库无 MP 操作已用匿名 inspect 台 UIA 检查。五主题直接窗口／popup 拼接截图在 work/ui-evidence/mp-white-menu-*.png；明确不是宿主实屏，宿主 BitBlt 不能显示 native PopupWindowSiteBridge，故用外部 UIA 的窗口捕捉补核图标。原生确认／取消／写请求以新增实际对话框运行用例核对，未删除或整理真实媒体。
+
+- 部署只读核对：当前 MP 报告 v3.2.1、管理权限 true、智能助手总开关 true；仅内存登录并读取 dashboard/system、user/current、system/global/user 三项，0 整理／删除写请求，不打印地址、用户名、密码或 token。相应官方后端 tag daa9212ba161d4573baf3744e2f13b99c2a90516、前端 tag 4797eda16252fb6590e36f2b9ede5fb535d9df04 的四档删除／ai-redo 页面与接口均与本轮 v3 HEAD 相同。
+- 产品提交 eedcfab156a15179c4b820925ff977de151d76b6 已保存；主树有另一会话暂存 Emby 元数据编辑（43 文件），Styles.xaml 正在整合冲突。全文件预合并检查在任何写入主树源码前停止；不得覆盖别人的 index，待该提交收尾后再合入本产品、重验最终 master 并刷新主树发布目录。当前桌面快捷方式仍指向主树既有版本。

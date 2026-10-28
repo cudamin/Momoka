@@ -34,3 +34,5 @@ $exe = Join-Path (Get-Location) 'src/Momoka.Shell/bin/x64/Release/net10.0-window
 新增 `MoviePilotMediaManagementAsync` 在 1280／760 宽度实际打开菜单、展开四项，检查 MP 图标在文字右侧并保存实屏；通过 WinUI UIA 调用同一真实确认／取消按钮，假 MP 记录调用次数、方法、正文和分项回执。普通电影取消不写；确认删除和剧集 batch ai-redo 只写匿名传输。验证界限：不证明真实 MP 权限、助手配置、文件处理最终完成、真实删除、服务器刷新或播放；也不声称读屏、高对比或所有服务器原生视图均已实测。
 
 人工／外部 UIA 检查台沿用 `--probe-shell inspect --screen 1`，点击 `InspectMoviePilotMediaManagement` 后，在匿名媒体管理台可打开电影、剧、媒体库菜单以及确认对话框。普通 `inspect` 与 `--probe-section` 仍互斥；没有新增或放宽命令行开关。
+
+部署只读核对（2026-10-28）：MP v3.2.1；管理权限及 AI_AGENT_ENABLE 均为 true，未发整理或删除请求。对应官方后端 tag `daa9212ba161d4573baf3744e2f13b99c2a90516`、前端 tag `4797eda16252fb6590e36f2b9ede5fb535d9df04` 已定点复核，本轮四档删除／ai-redo 相关源码与上述实时 v3 HEAD 相同。该读取不能证明真实文件处理成功。
