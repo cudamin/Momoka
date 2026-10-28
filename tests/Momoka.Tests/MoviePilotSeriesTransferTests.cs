@@ -59,6 +59,15 @@ internal static class MoviePilotSeriesTransferTests
             }
             Assert.Equal(0L, MoviePilotTransferHistory.Parse(Json("""{"id":1,"filesize":"0"}"""))!.Size);
         });
+        Test("剧重新整理：v3.2.1 的大小来自原 FileItem，主 TMDB 身份不依赖旧字段", () =>
+        {
+            var history = MoviePilotTransferHistory.Parse(Json("""{"id":6,"type":"电视剧","title":"测试剧","year":"2026","media_source":"themoviedb","media_id":"283938","src_storage":"local","dest_storage":"local","src_fileitem":{"storage":"local","type":"file","path":"/downloads/source.mkv","size":374980214},"dest_fileitem":{"storage":"local","type":"file","path":"/library/episode.mkv","size":1}}"""))!;
+            Assert.Equal(374980214L, history.Size);
+            Assert.Equal("2026", history.Year);
+            Assert.True(MoviePilotSeriesTransfer.Matches(history, "283938"));
+            var targetOnly = MoviePilotTransferHistory.Parse(Json("""{"id":7,"dest_fileitem":{"size":"123456"}}"""))!;
+            Assert.Equal(123456L, targetOnly.Size);
+        });
         Test("剧重新整理：只收剧身份，不读取或截断媒体库所有单集", () =>
         {
             using var transport = new StubTransport().Answer("Items/series", """{"Id":"series","Type":"Series","Name":"测试剧","Path":"/library/series","ProviderIds":{"Tmdb":"283938"}}""");

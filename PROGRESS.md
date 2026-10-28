@@ -12,6 +12,7 @@
 - 用户令：只重做剧页面重新整理，参考网页端媒体整理，自动 `tmdbid=xxxx` 筛选当前剧资源，支持多选批量；电影／季／单集保持原文件流程。
 - 工作树：`C:/Users/89400/.codex/worktrees/series-reorganize/Momoka`，基于 `f4d8476`；主树已有未提交搜索／资源界面工作，本任务未混入。Core 与入口由主代理维护，UI 代理使用独立树，上游与本地审查只读。
 - 第一轮：剧入口只补读剧身份，不再收集媒体库全部集文件；MoviePilot 以 `title=tmdbid%3D<id>` 分页收齐历史，再核对类型与 TMDB 身份。选择清单按原 `logid/logids` 建批次，成功移动使用原目标，其余使用原源；重复文件、另一部剧、目录及不支持的源存储整批拒绝。批量不预填季集号，保留文件各自识别。
+- 当前服务只读核实：`dashboard/system` 为 **v3.2.1**；截图 TMDB 查询返回 **6/6** 条。身份为 `media_source=themoviedb` 与 `media_id`，没有旧顶层 `tmdbid/filesize`；体积为 `src_fileitem.size` 整数 bytes。模型兼容新主身份，大小取原 FileItem，保留目的 FileItem／旧字段回退；新增对应匿名回归，专项 **118/118**。只输出公开身份与字段投影，不输出配置、凭据或原路径。
 - 当前 Release Core／Tests／Shell 编译均 0 警告 0 错误；整理专项 `moviepilot-series-transfer-fixture` **117/117**，含新增14项与现有电影／季／单集、历史重核、依赖链、预览和写后不明回归。不是最终交付证据：清单 UI、真实窗口截图、全套测试和发布仍在本批次内完成。没有真实整理、媒体写入或播放。
 
 ## MoviePilot 季选择弹窗按网页端界面同步（2026-10-28）

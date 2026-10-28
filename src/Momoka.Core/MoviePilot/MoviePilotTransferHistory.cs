@@ -14,6 +14,7 @@ public sealed record MoviePilotTransferHistory
     public string MediaId { get; init; } = "";
     public string TmdbId { get; init; } = "";
     public string Image { get; init; } = "";
+    public string Year { get; init; } = "";
     public long? Size { get; init; }
     public string SourceStorage { get; init; } = "";
     public string TargetStorage { get; init; } = "";
@@ -47,8 +48,8 @@ public sealed record MoviePilotTransferHistory
             MediaId = Scalar(item, "media_id"),
             TmdbId = Scalar(item, "tmdbid"),
             Image = Scalar(item, "image"),
-            Size = long.TryParse(Scalar(item, "filesize"), NumberStyles.None,
-                CultureInfo.InvariantCulture, out var size) && size >= 0 ? size : null,
+            Year = Scalar(item, "year"),
+            Size = FileSize(sourceFile) ?? FileSize(targetFile) ?? ScalarSize(item, "filesize"),
             SourceStorage = Scalar(item, "src_storage") is { Length: > 0 } sourceStorage
                 ? sourceStorage : MoviePilotTransfer.Text(sourceFile, "storage"),
             TargetStorage = Scalar(item, "dest_storage") is { Length: > 0 } targetStorage
@@ -64,6 +65,11 @@ public sealed record MoviePilotTransferHistory
             TargetFile = targetFile
         };
     }
+
+    private static long? FileSize(JsonElement file) => ScalarSize(file, "size");
+
+    private static long? ScalarSize(JsonElement item, string name) =>
+        long.TryParse(Scalar(item, name), NumberStyles.None, CultureInfo.InvariantCulture, out var size) && size >= 0 ? size : null;
 
     internal static string Scalar(JsonElement item, string name)
     {
