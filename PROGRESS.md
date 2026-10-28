@@ -8620,3 +8620,17 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **整合**：隔离代码提交 `348bc33`，主树对应提交 `657db6c`，只暂存该任务差异；保留主树已有搜索紧凑布局、站点偏好、滚动条等未提交内容，冲突逐段合并不回退它们。主树实际整合内容重新 Release 构建 0 警告 / 0 错误、主测试 3063/3063、资源浏览专项 34/34、空白检查退出 0；library,search,moviepilot 运行 54/54（shell-probe-20261028-072109352-8800），现有 AniBT 布局补核 3/3（shell-probe-20261028-072923199-4180）。验证和发布前后最终源码 1291 项哈希未改变。
 - **发布与最终证据**：`tools/publish.ps1 -NoArchive` 已更新主树 `artifacts/publish/win-x64`，校验 546 文件 / 284.3 MB，批准 mpv 载荷及着色器逐项通过。对这个最终发布程序再次运行 library,search,moviepilot 54/54（shell-probe-20261028-073502736-26172），已核对五主题实屏与默认灰色 / 按钮指针主题色；主程序集 SHA-256 `E8141A830756C68774C4A1C88E1C70A6876CDEB810F5D3ABFD9B51076872C894`。未覆盖其它探针分区、完整默认自检、真实服务器播放或读屏 / 高对比主题。
 - **桌面入口与协作**：验证期间另一用户任务把 `Desktop/Momoka.lnk` 改指向 series-reorganize 工作树的发布程序；本轮没有覆盖该快捷方式或那个独立程序，用户要体验本次修改须启动 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`。主树其它未提交工作原样保留；隔离日志 / 指针证据已复制到主树 ignored `work/neutral-feedback-integration/isolated-evidence`；尝试归档临时树时工具指出它仍是本聊天的主工作区，拒绝移除，因此保留该树，不手工绕过保护。不推送 origin、不改版本、不建 Release 或商店包。
+
+## 在途：MP 媒体管理、智能整理与菜单品牌（2026-10-28）
+
+- 工作树：`C:/Users/89400/.codex/worktrees/mp-media-management/Momoka`，起点 `c9b68df`；主树已有未提交海报、滚动及搜索改动，不覆盖、不混入本次提交。
+- 范围：Core 整理历史操作与防重、公共媒体更多菜单、确认对话框、MP 右侧品牌、相关离线与渲染探针。单会话写入；不启动真实播放、不对真实服务器删除或整理。
+- 上游：官方前端 v3 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 的 TransferHistoryView.vue / TransferHistoryDeleteDialog.vue / 测试，后端 v3 `be65e047b0e64b216420ba38bec7a087409552ff` 的 history.py / schemas/history.py / history/mutation.py；网页端四档 DELETE 标志和单条 / 批量 ai-redo 接口已核。用户部署版本待只读核对，不声称全版本同步。
+
+- 实现决定：菜单与弹窗是局部 UI 组装，留 code-behind；收集、历史身份核对、权限、确认封存与副作用防重在 Core Service。MP 与 AniBT 跨服务器共用菜单块，保留各服务器自己的原生管理项。官方 v2 删除没有分项回执，明确待核对，不以空成功假装删除完成。
+- 初次全 Core 3136 项中 MP 新增 26 项全部通过；无关 SVP 外进程零命令观察一项首次失败，随后定向 29/29 通过。未改 SVP、不忽略红项，最终完整测试仍须重新跑。
+
+- 用户补充：菜单 MP 图标必须用设置页面那一款，不用紫色标志。已提取设置页原三条路径为共享 EgMoviePilotMarkTemplate，菜单／设置页共用白色文字角色；删除本轮新增紫色 SVG 与资产拷贝，不改设置页外观。
+
+- 隔离树最终主测试（尚未合并）3141/3141 通过、0 失败／0 跳过；全方案 Release 0 警告／0 错误。新增文件型守卫拒绝目录／云盘 FileItem，相关专项待重跑后提交。当前 HEAD 为 detached，完成后以对应 commit 整合 master，不把独立树结果当主树交付。
+- UI：设置＋MoviePilot 分区 46/46 通过（shell-probe-20261028-130951574-32452）；新版白色 MP 实际菜单／四子项、剧“智能批量整理”与媒体库无 MP 操作已用匿名 inspect 台 UIA 检查。五主题直接窗口／popup 拼接截图在 work/ui-evidence/mp-white-menu-*.png；明确不是宿主实屏，宿主 BitBlt 不能显示 native PopupWindowSiteBridge，故用外部 UIA 的窗口捕捉补核图标。原生确认／取消／写请求以新增实际对话框运行用例核对，未删除或整理真实媒体。

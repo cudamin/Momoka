@@ -24,8 +24,10 @@ public static class MoviePilotTransferCollect
     private const string Fields = EmbyFields.Files + ",ProviderIds,IndexNumber,ParentIndexNumber,SeriesId,SeriesName";
 
     public static async Task<MoviePilotTransferContext> CollectAsync(
-        EmbyClient client, EmbyItem item, CancellationToken cancellationToken)
+        EmbyClient client, EmbyItem item, CancellationToken cancellationToken, int maxFiles = MaxFiles)
     {
+        if (maxFiles is < 1 or > MoviePilotHistoryPlan.MaxFiles)
+            throw new ArgumentOutOfRangeException(nameof(maxFiles));
         var detail = await client.GetItemAsync(item.Id, cancellationToken, Fields).ConfigureAwait(false);
 
         var series = detail;
@@ -52,7 +54,7 @@ public static class MoviePilotTransferCollect
             _ => null
         };
 
-        var files = await FilesOf(client, detail, cancellationToken).ConfigureAwait(false);
+        var files = await FilesOf(client, detail, cancellationToken, maxFiles).ConfigureAwait(false);
         return new MoviePilotTransferContext(
             television ? series.Name is { Length: > 0 } ? series.Name : detail.SeriesName ?? detail.Name : detail.Name,
             television ? MoviePilotTransferRequest.TypeSeries : MoviePilotTransferRequest.TypeMovie,
@@ -68,13 +70,13 @@ public static class MoviePilotTransferCollect
             string.Equals(pair.Key, "Tmdb", StringComparison.OrdinalIgnoreCase)).Value;
 
     private static async Task<IReadOnlyList<MoviePilotTransferFile>> FilesOf(
-        EmbyClient client, EmbyItem detail, CancellationToken cancellationToken)
+        EmbyClient client, EmbyItem detail, CancellationToken cancellationToken, int maxFiles)
     {
         List<EmbyItem> leaves = detail.Type switch
         {
             EmbyItemType.Movie or EmbyItemType.Episode => [detail],
-            EmbyItemType.Season => await Children(client, detail.Id, recursive: false, cancellationToken).ConfigureAwait(false),
-            EmbyItemType.Series => await Children(client, detail.Id, recursive: true, cancellationToken).ConfigureAwait(false),
+            EmbyItemType.Season => await Children(client, detail.Id, recursive: false, cancellationToken, maxFiles).ConfigureAwait(false),
+            EmbyItemType.Series => await Children(client, detail.Id, recursive: true, cancellationToken, maxFiles).ConfigureAwait(false),
             _ => []
         };
 
@@ -88,8 +90,8 @@ public static class MoviePilotTransferCollect
             {
                 if (files.Any(existing => MoviePilotTransfer.SamePath(existing.Path, file.Path))) continue;
                 files.Add(file);
-                if (files.Count > MaxFiles)
-                    throw new MoviePilotException($"此条目超过 {MaxFiles} 个文件，请按季或单集整理；不会只提交前 {MaxFiles} 个文件");
+                if (files.Count > maxFiles)
+                    throw new MoviePilotException($"此条目超过 {maxFiles} 个文件，请按季或单集整理；不会只提交前 {maxFiles} 个文件");
             }
         }
         return files;
@@ -109,12 +111,12 @@ public static class MoviePilotTransferCollect
             .Select(file => file!);
 
     private static async Task<List<EmbyItem>> Children(
-        EmbyClient client, string parentId, bool recursive, CancellationToken cancellationToken)
+        EmbyClient client, string parentId, bool recursive, CancellationToken cancellationToken, int maxFiles)
     {
         var episodes = new List<EmbyItem>();
         var ids = new HashSet<string>(StringComparer.Ordinal);
         int? total = null;
-        for (var page = 0; page <= MaxFiles; page++)
+        for (var page = 0; page <= maxFiles; page++)
         {
             var result = await client.GetItemsAsync(new ItemQuery
             {
@@ -123,10 +125,10 @@ public static class MoviePilotTransferCollect
                 IncludeItemTypes = [EmbyItemType.Episode],
                 Fields = Fields,
                 StartIndex = episodes.Count,
-                Limit = MaxFiles + 1
+                Limit = maxFiles + 1
             }, cancellationToken).ConfigureAwait(false);
-            if (result.TotalRecordCount > MaxFiles)
-                throw new MoviePilotException($"此条目超过 {MaxFiles} 个文件，请按季或单集整理；不会只提交前 {MaxFiles} 个文件");
+            if (result.TotalRecordCount > maxFiles)
+                throw new MoviePilotException($"此条目超过 {maxFiles} 个文件，请按季或单集整理；不会只提交前 {maxFiles} 个文件");
             if (total is { } expected && expected != result.TotalRecordCount)
                 throw new MoviePilotException("剧集在收集文件期间发生变化，请重新操作");
             total ??= result.TotalRecordCount;

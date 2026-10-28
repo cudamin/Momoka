@@ -11,6 +11,11 @@ internal static class Program
             return TestHarnessTests.RunChild(scenario);
         if (args is ["activation-listener-fixture", var activationScenario])
             return ActivationListenerTests.RunChild(activationScenario);
+        if (args is ["moviepilot-media-management-fixture"])
+        {
+            MoviePilotMediaManagementTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["composition-readiness-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -260,6 +265,7 @@ internal static class Program
         MoviePilotSubscriptionTests.Register();
         MoviePilotEpisodeGroupPlaybackTests.Register();
         MoviePilotAuditTests.Register();
+        MoviePilotMediaManagementTests.Register();
         MoviePilotTransferTests.Register();
         MoviePilotTransferSubmissionTests.Register();
         MoviePilotVersionQueryTests.Register();

@@ -91,6 +91,16 @@ public enum ItemCommand
     /// </summary>
     MoviePilotReorganize,
 
+    /// <summary>折叠的 MoviePilot 媒体管理菜单；父项本身不执行删除。</summary>
+    MoviePilotMediaManagement,
+    MoviePilotDeleteRecord,
+    MoviePilotDeleteSource,
+    MoviePilotDeleteDestination,
+    MoviePilotDeleteAll,
+
+    /// <summary>二次确认后交给 MoviePilot 智能助手按原整理记录重整。</summary>
+    MoviePilotSmartReorganize,
+
     /// <summary>用原文件名交 AniBT 识别；确认后按 MoviePilot 原记录重新整理，没有记录时用 Emby 识别。</summary>
     AniBtScrape,
 
@@ -103,7 +113,7 @@ public enum ItemCommand
 /// <summary>
 /// 菜单上的一行：一条命令加它这一次该写的字，或者一条分隔线（<see cref="Command"/> 为空）。
 /// </summary>
-public readonly record struct ItemMenuEntry(ItemCommand? Command, string Label, IReadOnlyList<ItemMenuEntry>? Children = null)
+public readonly record struct ItemMenuEntry(ItemCommand? Command, string Label, IReadOnlyList<ItemMenuEntry>? Children = null, bool MoviePilot = false)
 {
     /// <summary>一条分隔线。</summary>
     public static ItemMenuEntry Rule { get; } = new(null, "");
@@ -141,18 +151,21 @@ public static class ItemMenu
     /// </param>
     /// <param name="aniBtScrapeAvailable">识别要求当前管理来源；独立版本搜索不受此限制，Shell 传本次来源能力。</param>
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
-        bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true) => fnNas
-        ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item), Navigation(item))
+        bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true,
+        bool moviePilotManagementAvailable = false, bool moviePilotSmartAvailable = false) => fnNas
+        ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item),
+            MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
         // offered and then refused.
         : plex
-        ? Join(Opening(item, false), UserState(item, true, favorites: false), Navigation(item))
+        ? Join(Opening(item, false), UserState(item, true, favorites: false),
+            MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable), Navigation(item))
         : Join(
         Opening(item, jellyfin),
         MissingEpisodes(item),
         UserState(item, jellyfin),
         Organising(item, jellyfin),
-        MoviePilotBlock(item, moviePilotEnabled, animeGenre, aniBtScrapeAvailable),
+        MoviePilotBlock(item, moviePilotEnabled, animeGenre, aniBtScrapeAvailable, moviePilotManagementAvailable, moviePilotSmartAvailable),
         Metadata(item, jellyfin),
         Navigation(item),
         Destructive(item, jellyfin));
@@ -163,6 +176,7 @@ public static class ItemMenu
     /// </summary>
     public static bool Supports(ItemCommand command, bool jellyfin, bool fnNas = false, bool plex = false)
     {
+        if (IsMoviePilot(command) || command == ItemCommand.AniBtVersions) return true;
         if (fnNas) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
             or ItemCommand.MarkUnplayed or ItemCommand.Favorite or ItemCommand.Unfavorite or ItemCommand.OpenSeries
             or ItemCommand.ManageVersions or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch
@@ -288,32 +302,41 @@ public static class ItemMenu
         return rows;
     }
 
-    /// <summary>
-    /// 「搜索其他版本」和「手动整理」—— 用户开了 MoviePilot 才有，且只在能对上一部片的那四种条目上（电影、剧、
-    /// 季、单集，见 <see cref="MoviePilotVersionQuery.Supports"/>）。合集、媒体库、演职人员没有对应的一部片，
-    /// 不给这两条。
-    /// <para>
-    /// 四种条目同一句措辞（用户 2026-09-24：措辞别太长，去掉「在 MoviePilot」和「本季/本集」）；范围的区别落在
-    /// 发出去的搜索词上（季带 <c>S0x</c>、集带 <c>S0x E0x</c>），那套拼法由
-    /// <see cref="MoviePilotVersionQuery.Keyword"/> 定，不在标题里重复。「手动整理」带省略号：它弹的是一张
-    /// 表单，不是按下去就做完的事。
-    /// <para>
-    /// 动画条目的来源子菜单只写品牌名（2026-10-27 用户令：每一行压到七个字以内）：父项已经说了「搜索不同版本」，
-    /// 子项再带「使用……」和「搜索」只是把那句话重复两遍。
-    /// </para>
-    /// </summary>
-    private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre, bool canScrape)
+    /// <summary>MoviePilot 跨媒体服务器共用一组；媒体库、合集和演员没有一部作品的整理范围。</summary>
+    private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre, bool canScrape,
+        bool canManage, bool canSmartReorganize)
     {
         if (!enabled || !MoviePilotVersionQuery.Supports(item)) return [];
-        List<ItemMenuEntry> rows = [new(ItemCommand.MoviePilotVersions, "搜索其他版本"), new(ItemCommand.MoviePilotReorganize, "手动整理…")];
+        List<ItemMenuEntry> rows =
+        [
+            new(ItemCommand.MoviePilotVersions, "搜索其他版本", MoviePilot: true),
+            new(ItemCommand.MoviePilotReorganize, "手动整理…", MoviePilot: true)
+        ];
+        if (canManage)
+            rows.Add(new(ItemCommand.MoviePilotMediaManagement, "媒体管理",
+            [
+                new(ItemCommand.MoviePilotDeleteRecord, "仅删除转移记录", MoviePilot: true),
+                new(ItemCommand.MoviePilotDeleteSource, "删除转移记录和源文件", MoviePilot: true),
+                new(ItemCommand.MoviePilotDeleteDestination, "删除转移记录和媒体库文件", MoviePilot: true),
+                new(ItemCommand.MoviePilotDeleteAll, "删除转移记录、源文件和媒体库文件", MoviePilot: true)
+            ], MoviePilot: true));
+        if (canManage && canSmartReorganize)
+            rows.Add(new(ItemCommand.MoviePilotSmartReorganize,
+                item.Type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理", MoviePilot: true));
         if (AniBt.AniBtEligibility.Supports(item) && (animeGenre || AniBt.AniBtEligibility.HasGenre(item)))
         {
+            // 混合来源父项不是 MP 专属；只给其中 MoviePilot 子项品牌标记。
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
-                [new(ItemCommand.MoviePilotVersions, "MoviePilot"), new(ItemCommand.AniBtVersions, "AniBT")]);
+                [new(ItemCommand.MoviePilotVersions, "MoviePilot", MoviePilot: true), new(ItemCommand.AniBtVersions, "AniBT")]);
             if (canScrape) rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         }
         return rows;
     }
+
+    public static bool IsMoviePilot(ItemCommand command) => command is ItemCommand.MoviePilotVersions
+        or ItemCommand.MoviePilotReorganize or ItemCommand.MoviePilotMediaManagement
+        or ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource
+        or ItemCommand.MoviePilotDeleteDestination or ItemCommand.MoviePilotDeleteAll or ItemCommand.MoviePilotSmartReorganize;
 
     /// <summary>
     /// 元数据那一叠。<see cref="ItemCommand.Identify"/> 和 <see cref="ItemCommand.RefreshMetadata"/> 是两条不同的话：

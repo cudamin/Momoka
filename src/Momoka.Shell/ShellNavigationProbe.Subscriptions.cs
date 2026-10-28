@@ -773,6 +773,8 @@ internal sealed partial class ShellNavigationProbe
             }
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Json(new { access_token = "fixture-token" });
             if (path.EndsWith("dashboard/system", StringComparison.Ordinal)) return Json(new { version = "fixture" });
+            if (path.EndsWith("user/current", StringComparison.Ordinal)) return Json(new { is_active = true, is_superuser = true });
+            if (path.EndsWith("system/global/user", StringComparison.Ordinal)) return Json(new { AI_AGENT_ENABLE = true });
             if (path == "/api/v1/system/setting/public/DefaultTvSubscribeConfig")
                 return Json(new { success = true, data = new { value = new { best_version = 0, best_version_full = 0 } } });
             if (path == "/api/v1/mediaserver/exists_remote")

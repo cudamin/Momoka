@@ -150,11 +150,18 @@ internal static partial class ItemCommands
         var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue);
         menu.Closed += (_, _) => Interlocked.Exchange(ref invalidated, 1);
 
-        if (menu.Items.Any(item => item.Tag is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape))
+        if (menu.Items.Any(item => item.Tag is ItemCommand command && (ItemMenu.IsMoviePilot(command) || command == ItemCommand.AniBtScrape)))
         {
+            var hadManagement = shell.MoviePilotMediaManagementEnabled;
+            var hadSmart = shell.MoviePilotSmartReorganizeEnabled;
             void AvailabilityChanged(object? sender, EventArgs args)
             {
-                if (!shell.MoviePilotEnabled) menu.Hide();
+                if (!shell.MoviePilotEnabled || hadManagement != shell.MoviePilotMediaManagementEnabled ||
+                    hadSmart != shell.MoviePilotSmartReorganizeEnabled)
+                {
+                    Interlocked.Exchange(ref invalidated, 1);
+                    menu.Hide();
+                }
             }
             menu.Opened += (_, _) =>
             {
@@ -220,7 +227,8 @@ internal static partial class ItemCommands
                             .Single(row => row.Command == ItemCommand.MoviePilotVersions);
                         menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, InvokeCurrent);
                     }
-                    var anchor = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotReorganize);
+                    var anchor = menu.Items.LastOrDefault(row => row.Tag is ItemCommand.MoviePilotSmartReorganize
+                        or ItemCommand.MoviePilotMediaManagement or ItemCommand.MoviePilotReorganize);
                     if (scope.IsCurrent && anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
                         menu.Items.Insert(menu.Items.IndexOf(anchor) + 1, Entry("AniBT 识别", ItemCommand.AniBtScrape,
                             () => InvokeCurrent(ItemCommand.AniBtScrape)));
@@ -257,7 +265,9 @@ internal static partial class ItemCommands
 
         foreach (var row in ItemMenu.For(card.Item, shell.MoviePilotEnabled,
             jellyfin: card.Scope?.Connection.IsJellyfin == true, fnNas: card.Scope?.Connection.IsFnNas == true,
-            plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true))
+            plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true,
+            moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
+            moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled))
         {
             if (row.Command is not { } command)
             {
@@ -277,9 +287,11 @@ internal static partial class ItemCommands
     private static MenuFlyoutItemBase BuildEntry(ItemMenuEntry row, Action<ItemCommand> invoke)
     {
         if (row.Children is not { } children)
-            return Entry(row.Label, row.Command!.Value, () => invoke(row.Command.Value));
+            return Entry(row.Label, row.Command!.Value, () => invoke(row.Command.Value), row.MoviePilot);
         var submenu = new MenuFlyoutSubItem { Text = row.Label, Tag = row.Command, Icon = new FontIcon { Glyph = Glyph.Of(row.Command!.Value) } };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(submenu, "SearchVersionSources");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(submenu,
+            row.Command == ItemCommand.MoviePilotMediaManagement ? "MoviePilotMediaManagement" : "SearchVersionSources");
+        MoviePilotMenuBrand.Apply(submenu, row.MoviePilot);
         foreach (var child in children) submenu.Items.Add(BuildEntry(child, invoke));
         return submenu;
     }
@@ -320,7 +332,10 @@ internal static partial class ItemCommands
     {
         if (card.Scope is not { IsAvailable: true } scope) return;
         if (!ItemMenu.Supports(command, scope.Connection.IsJellyfin, scope.Connection.IsFnNas, scope.Connection.IsPlex)) return;
-        if (command is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape or ItemCommand.AniBtVersions && !shell.MoviePilotEnabled) return;
+        if ((ItemMenu.IsMoviePilot(command) || command is ItemCommand.AniBtScrape or ItemCommand.AniBtVersions) && !shell.MoviePilotEnabled) return;
+        if (command is ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource or ItemCommand.MoviePilotDeleteDestination
+            or ItemCommand.MoviePilotDeleteAll or ItemCommand.MoviePilotSmartReorganize && !shell.MoviePilotMediaManagementEnabled) return;
+        if (command == ItemCommand.MoviePilotSmartReorganize && !shell.MoviePilotSmartReorganizeEnabled) return;
         var item = card.Item;
 
         switch (command)
@@ -431,6 +446,21 @@ internal static partial class ItemCommands
                     }
 
                     shell.ShowMoviePilotReorganize(context);
+                });
+                break;
+
+            case ItemCommand.MoviePilotDeleteRecord:
+            case ItemCommand.MoviePilotDeleteSource:
+            case ItemCommand.MoviePilotDeleteDestination:
+            case ItemCommand.MoviePilotDeleteAll:
+            case ItemCommand.MoviePilotSmartReorganize:
+                shell.ShowMoviePilotHistoryAction(scope, item, command switch
+                {
+                    ItemCommand.MoviePilotDeleteRecord => MoviePilotHistoryAction.DeleteRecord,
+                    ItemCommand.MoviePilotDeleteSource => MoviePilotHistoryAction.DeleteSource,
+                    ItemCommand.MoviePilotDeleteDestination => MoviePilotHistoryAction.DeleteDestination,
+                    ItemCommand.MoviePilotDeleteAll => MoviePilotHistoryAction.DeleteAll,
+                    _ => MoviePilotHistoryAction.SmartReorganize
                 });
                 break;
 
@@ -555,7 +585,7 @@ internal static partial class ItemCommands
     /// 菜单上的一行。<c>Tag</c> 上带着它是哪一条命令 —— 自检靠它认出搭出来的这一行是不是该在的那一行，见
     /// <see cref="Build"/>。
     /// </summary>
-    private static MenuFlyoutItem Entry(string text, ItemCommand command, Action invoke)
+    private static MenuFlyoutItem Entry(string text, ItemCommand command, Action invoke, bool moviePilot = false)
     {
         var entry = new MenuFlyoutItem
         {
@@ -564,6 +594,8 @@ internal static partial class ItemCommands
             Tag = command
         };
 
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(entry, "Item" + command);
+        MoviePilotMenuBrand.Apply(entry, moviePilot);
         entry.Click += (_, _) => invoke();
         return entry;
     }
@@ -690,6 +722,10 @@ internal static partial class ItemCommands
             ItemCommand.MoviePilotVersions => 0xE721,
             ItemCommand.AniBtVersions => 0xE721,
             ItemCommand.MoviePilotReorganize => 0xE8B5,
+            ItemCommand.MoviePilotMediaManagement => 0xE8F1,
+            ItemCommand.MoviePilotSmartReorganize => 0xE945,
+            ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource
+                or ItemCommand.MoviePilotDeleteDestination or ItemCommand.MoviePilotDeleteAll => 0xE74D,
             ItemCommand.AniBtScrape => 0xE8B5,
             ItemCommand.Delete => 0xE74D,
 

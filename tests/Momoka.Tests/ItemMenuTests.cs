@@ -502,7 +502,13 @@ internal static class ItemMenuTests
                 foreach (var row in menu.Where(row => !row.IsRule))
                 {
                     if (row.Children is { } children)
-                        foreach (var child in children) AssertShort(child.Label);
+                        foreach (var child in children)
+                        {
+                            // 用户截图指定四种完整删除范围，必须写清源／媒体库文件，不能为七字上限省掉破坏范围。
+                            if (child.Command is ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource
+                                or ItemCommand.MoviePilotDeleteDestination or ItemCommand.MoviePilotDeleteAll) continue;
+                            AssertShort(child.Label);
+                        }
                     AssertShort(row.Label);
                 }
             }
@@ -527,6 +533,7 @@ internal static class ItemMenuTests
         yield return ItemMenu.For(new EmbyItem { Id = "l1", Type = EmbyItemType.CollectionFolder });
         yield return ItemMenu.For(new EmbyItem { Id = "p1", Type = EmbyItemType.Person });
         yield return ItemMenu.For(Resuming(), moviePilotEnabled: true);
+        yield return ItemMenu.For(Resuming(), moviePilotEnabled: true, moviePilotManagementAvailable: true, moviePilotSmartAvailable: true);
         yield return ItemMenu.For(new EmbyItem { Id = "a1", Type = EmbyItemType.Movie, Genres = ["动画"] },
             moviePilotEnabled: true, animeGenre: true);
         yield return ItemMenu.For(new EmbyItem { Id = "j1", Type = EmbyItemType.Series }, jellyfin: true);

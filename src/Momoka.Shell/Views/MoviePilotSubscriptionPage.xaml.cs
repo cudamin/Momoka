@@ -259,6 +259,7 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
             var item = new MenuFlyoutItem { Text = text, Icon = new FontIcon { Glyph = glyph }, IsEnabled = enabled };
             // 句柄跟封面更多键上那一份同一个写法：这两处从前共用 Fill，摊平之后各自建项，读屏名不能跟着丢。
             AutomationProperties.SetAutomationId(item, "Subscription" + text);
+            MoviePilotMenuBrand.Apply(item);
             item.Click += handler;
             menu.Items.Add(item);
         }

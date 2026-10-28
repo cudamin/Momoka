@@ -245,6 +245,11 @@ public sealed class MoviePilotClient : IDisposable
     /// </para>
     /// </summary>
     internal async Task<JsonElement> MutateAsync(Uri apiBase, string token, HttpMethod method, string path,
+        object? body, CancellationToken cancellationToken) =>
+        DataOrThrow(await MutateReplyAsync(apiBase, token, method, path, body, cancellationToken).ConfigureAwait(false));
+
+    // 删除历史允许部分文件已删、记录仍保留；必须保留 success:false 中的分项回执。
+    internal async Task<MoviePilotReply> MutateReplyAsync(Uri apiBase, string token, HttpMethod method, string path,
         object? body, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(method, MoviePilotAddress.Combine(apiBase, BasePath + path));
@@ -252,7 +257,7 @@ public sealed class MoviePilotClient : IDisposable
             request.Content = new StringContent(JsonSerializer.Serialize(body, Emby.EmbyHttp.Json), Encoding.UTF8, "application/json");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         using var response = await SendAsync(request, cancellationToken).ConfigureAwait(false);
-        return DataOrThrow(await ReadReplyAsync(response, cancellationToken, requireEnvelope: true).ConfigureAwait(false));
+        return await ReadReplyAsync(response, cancellationToken, requireEnvelope: true).ConfigureAwait(false);
     }
 
     private static async Task<JsonElement> ReadDataAsync(

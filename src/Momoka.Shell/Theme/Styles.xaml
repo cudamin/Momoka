@@ -164,6 +164,7 @@
     <Style TargetType="local:IdentifyDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MetadataDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MissingEpisodesDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:MoviePilotMediaManagementDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MoviePilotReorganizeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MoviePilotSeasonPicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:NotificationEditDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />

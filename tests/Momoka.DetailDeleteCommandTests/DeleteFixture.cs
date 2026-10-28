@@ -204,7 +204,9 @@ public class DetailActionsProxy : DispatchProxy
             case "Notify": Notices.Add(((string)args![0]!, args[1]!.ToString()!)); return null;
             case "RefreshFavorites": Refreshes++; return null;
             case "PlayAsync": Plays++; return Task.CompletedTask;
-            case "get_MoviePilotEnabled": return false;
+            case "get_MoviePilotEnabled":
+            case "get_MoviePilotMediaManagementEnabled":
+            case "get_MoviePilotSmartReorganizeEnabled": return false;
             default: throw new AssertionException("禁止外部shell操作：" + method?.Name);
         }
     }
@@ -230,6 +232,9 @@ internal sealed class CommandActions(DetailActionsProxy proxy) : IShellActions
     public void OpenMoviePilotMedia(Momoka.MoviePilot.MoviePilotMedia media, Momoka.MoviePilot.MoviePilotSubscription? subscription = null) => throw Reject();
     public void SearchMoviePilotVersions(EmbyItem item) => throw Reject();
     public void SearchAniBtVersions(EmbyItem item) => throw Reject();
+    public bool MoviePilotMediaManagementEnabled => false;
+    public bool MoviePilotSmartReorganizeEnabled => false;
+    public void ShowMoviePilotHistoryAction(Momoka.Emby.EmbySessionScope scope, Momoka.Emby.EmbyItem item, Momoka.MoviePilot.MoviePilotHistoryAction action) { }
     public void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) => throw Reject();
     public void ShowAniBtScrape(EmbySessionScope scope, EmbyItem item) => throw Reject();
     public void ShowMissingEpisodes(EmbyItem item, IReadOnlyList<EmbyItem> missing) => throw Reject();

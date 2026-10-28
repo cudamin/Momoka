@@ -260,7 +260,9 @@ public class PlexActionsProxy : DispatchProxy
             case "RefreshFavorites": FavoriteRefreshes.Add((EmbyItem)args![0]!); return null;
             case "ReportMarkedWatched": WatchedReports.Add((EmbyItem)args![0]!); return null;
             case "OpenGenre": Navigation.Add(((string)args![0]!, (EmbySessionScope?)args[1])); return null;
-            case "get_MoviePilotEnabled": return false;
+            case "get_MoviePilotEnabled":
+            case "get_MoviePilotMediaManagementEnabled":
+            case "get_MoviePilotSmartReorganizeEnabled": return false;
             case "add_MoviePilotAvailabilityChanged":
             case "remove_MoviePilotAvailabilityChanged": return null;
             default: throw new AssertionException("不允许窗口/native/播放动作：" + targetMethod?.Name);

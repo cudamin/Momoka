@@ -373,7 +373,9 @@ public class DetailDeleteActionsProxy : DispatchProxy
             case "PlayAsync": Plays++; return Task.CompletedTask;
             case "Notify": return null;
             case "RefreshFavorites": return null;
-            case "get_MoviePilotEnabled": return false;
+            case "get_MoviePilotEnabled":
+            case "get_MoviePilotMediaManagementEnabled":
+            case "get_MoviePilotSmartReorganizeEnabled": return false;
             default: throw new AssertionException("禁止未登记外部操作：" + targetMethod?.Name);
         }
     }
