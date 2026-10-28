@@ -18,19 +18,24 @@ internal static class Program
     private static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
-        if (args is not [var sourceRoot] || !File.Exists(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml")))
+        if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] != "search-sites")
+            || !File.Exists(Path.Combine(args[0], "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml")))
         {
             Console.Error.WriteLine("请提供当前本树根目录；本夹具不猜测其它树的模板或输出。");
             return 2;
         }
-        sourceRoot = Path.GetFullPath(sourceRoot);
+        var sourceRoot = Path.GetFullPath(args[0]);
         var outputRoot = Path.Combine(sourceRoot, "tests", "Momoka.ResourceBrowserTests", "bin") + Path.DirectorySeparatorChar;
         if (!typeof(Program).Assembly.Location.StartsWith(outputRoot, StringComparison.OrdinalIgnoreCase))
         {
             Console.Error.WriteLine("模板根目录必须与本夹具实际编译输出属于同一工作树。");
             return 2;
         }
-        Console.WriteLine("资源搜索真实源码/生成命令与模板契约；无窗口、配置、登录、网络或下载副作用");
+        Console.WriteLine("资源搜索真实源码/生成命令与模板契约；只用匿名内存HTTP及隔离临时设置，无窗口、登录、联网或下载副作用");
+        SearchSitePreferenceTests.Register();
+        if (args.Length == 2) return Run();
+        SearchCompactMergeTests.Register(sourceRoot);
+        ResourceSortMenuTests.Register(sourceRoot);
         foreach (var meta in new[] { false, true })
         {
             Test("R-033 精确E05初筛、清除和重新选择 meta=" + meta, () =>
@@ -158,10 +163,12 @@ internal static class Program
             var button = xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "DownloadResource");
             Assert.Equal("{x:Bind DownloadVisibility, Mode=OneWay}", button.Attribute("Visibility")?.Value);
             Assert.Equal("{x:Bind DownloadCommand}", button.Attribute("Command")?.Value);
-            var reason = xml.Descendants().Single(node => node.Attribute("Text")?.Value == "{x:Bind DownloadProblem, Mode=OneWay}");
+            // 卡片重做后拒绝原因放到独立标签的 Tooltip；仍断言真实原因与动态显隐，不能只检查文案。
+            var reason = xml.Descendants().Single(node => node.Attribute("Text")?.Value == "身份待核对"
+                && node.Attribute("ToolTipService.ToolTip")?.Value == "{x:Bind DownloadProblem}");
             Assert.Equal("TextBlock", reason.Name.LocalName);
+            Assert.Equal("身份待核对", reason.Attribute("Text")?.Value);
             Assert.Equal("{x:Bind DownloadProblemVisibility, Mode=OneWay}", reason.Attribute("Visibility")?.Value);
-            Assert.Equal("Wrap", reason.Attribute("TextWrapping")?.Value);
             Assert.Equal("{StaticResource EgCaptionStyle}", reason.Attribute("Style")?.Value);
             Assert.NotNull(xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "OpenTorrentPage"));
         });

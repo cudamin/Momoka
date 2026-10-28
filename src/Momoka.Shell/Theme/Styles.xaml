@@ -174,10 +174,10 @@
 
     <!-- 发丝线的粗细。结构靠它，不靠色块 —— 所以只有一档，加粗只发生在框线变强调色的时候。 -->
     <Thickness x:Key="EgHairline">1</Thickness>
-    <!-- 卡片不要白边（2026-10-19 用户令）。描边只在指针/焦点那一下由 EgFrameActiveStyle 临时画出来；
-         分隔线、输入框和徽章仍用 EgHairline，不跟着收。 -->
+    <!-- 封面不画外圈（2026-10-28 用户令）：PosterCard 与主页订阅海报不再切换 EgFrameActiveStyle。
+         分隔线、输入框和徽章仍用 EgHairline；键盘容器保留中性焦点提示。 -->
     <Thickness x:Key="EgCardBorderThickness">0</Thickness>
-    <!-- 封面悬停／焦点框与货架翻页圆钮统一使用 2 DIP 描边。 -->
+    <!-- 货架翻页圆钮和仍需标识选中状态的独立控件使用 2 DIP 描边；不用于主页封面。 -->
     <Thickness x:Key="EgOutlineThickness">2</Thickness>
 
     <!-- 胶片格右上角那颗方块的边长：一个数字或一个对勾刚好放得下。 -->

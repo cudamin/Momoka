@@ -3,12 +3,12 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views" xmlns:vm="using:Momoka.Shell.ViewModels">
-    <Grid RowSpacing="10">
+    <Grid>
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-        <AutoSuggestBox x:Name="AnimeSearchInput" Header="搜索 AniBT 番剧" PlaceholderText="输入番剧名称或原名"
+        <AutoSuggestBox x:Name="AnimeSearchInput" Header="搜索 AniBT 番剧" Margin="0,0,0,10" PlaceholderText="输入番剧名称或原名"
             QueryIcon="Find" QuerySubmitted="OnSearch" TextChanged="OnSearchTextChanged" Visibility="Collapsed" />
-        <ProgressBar Grid.Row="1" Height="2" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
-        <InfoBar Grid.Row="2" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+        <ProgressBar Grid.Row="1" Height="2" Margin="0,0,0,10" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+        <InfoBar Grid.Row="2" Margin="0,0,0,10" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
             Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         <Grid Grid.Row="3">

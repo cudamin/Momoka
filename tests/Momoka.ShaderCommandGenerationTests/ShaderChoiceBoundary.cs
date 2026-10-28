@@ -16,6 +16,7 @@ internal sealed partial class ShaderChoiceBoundary
     private Task _shaderSwitchTask = Task.CompletedTask;
     internal ShaderGroup? ActiveShader { get; private set; }
     private bool ShaderStateKnown => _playback.ShaderStateKnown;
+    private bool PlayingWithSvp => _playback.PlayingWithSvp;
     private event Action<string, InfoBarSeverity>? Noticed;
     internal List<(string Message, InfoBarSeverity Severity)> Notices { get; } = [];
     internal int Pending => _shaderPending;

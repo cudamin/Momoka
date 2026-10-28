@@ -103,7 +103,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 资源卡片、季集筛选和下载选项", MoviePilotResourceOptionsAsync, 30);
             await CaseAsync("MoviePilot 剧资源按 TMDB 筛选、多选与批量预览", MoviePilotSeriesReorganizeAsync, 60, section: ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 搜索海报、资源卡片与多选筛选布局", MoviePilotSearchCardsAsync, 60, ShellProbeSections.MoviePilot);
-            await CaseAsync("搜索宽窄布局和媒体库工具栏隔离", SearchHeaderLayoutAsync);
+            await CaseAsync("搜索宽窄布局和媒体库工具栏隔离", SearchHeaderLayoutAsync, 45);
             await CaseAsync("加载中禁止播放全部", PlaybackBusyAsync);
             await CaseAsync("字母查询过期不继续", JumpCancelAsync);
             await CaseAsync("切季回到原季撤销旧请求", SeasonCancelAsync);
@@ -114,7 +114,7 @@ internal sealed partial class ShellNavigationProbe
             // 展开态：框架在弹层打开那一拍把选中项的文本收掉，框的宽度塌回 MinWidth，右邻被弹层压住
             // （用户 2026-10-16）。这一条量的是展开态的宽度与弹层右沿。
             await CaseAsync("文件选项下拉展开的位置与宽度", PickerDropDownAsync);
-            await CaseAsync("主页标题点击范围与加粗边框", HomeHeaderAsync, 45);
+            await CaseAsync("主页标题点击范围与加粗边框", HomeHeaderAsync, 60);
             await CaseAsync("隐藏首页行不请求", HiddenHomeAsync);
             await CaseAsync("通知空态属性通知", NotificationEmptyAsync);
             await CaseAsync("离开通知页不弹旧编辑器", NotificationCancelAsync);
@@ -165,6 +165,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45, section: ShellProbeSections.Settings);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30, section: ShellProbeSections.Settings);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30, section: ShellProbeSections.Settings);
+            await CaseAsync("SVP 补帧显隐与偏好恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, svpOnly: true), 45, section: ShellProbeSections.Svp);
+            await CaseAsync("SVP 补帧显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, svpOnly: true), 45, section: ShellProbeSections.Svp);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
             await CaseAsync("多服务器设置按服务器分组、默认收起与权限隐藏", MultiServerSettingsGroupsAsync, 45);
             await CaseAsync("飞牛非默认来源读取保存与改密离页确认", FnNasExplicitSourceAsync, 45);

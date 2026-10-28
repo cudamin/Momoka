@@ -47,11 +47,17 @@
             "using Microsoft.UI.Xaml;\nnamespace Momoka.Shell.ViewModels;\n";
         var section = between(vm, "public sealed partial class SettingSection : ObservableObject", "public sealed partial class SettingsViewModel : PageViewModel");
         var rows = between(row, "public abstract class SettingRow : ObservableObject", "public sealed partial class SettingToggleRow : SettingRow") +
-            between(row, "public sealed partial class SettingNumberRow : SettingRow", "public sealed partial class SettingSliderRow : SettingRow");
+            between(row, "public sealed partial class SettingToggleRow : SettingRow", "public sealed partial class SettingNumberRow : SettingRow") +
+            between(row, "public sealed partial class SettingNumberRow : SettingRow", "public sealed partial class SettingSliderRow : SettingRow") +
+            between(row, "public sealed partial class SettingTextRow : SettingRow", "public sealed partial class SettingColorRow : SettingRow") +
+            between(row, "public sealed partial class SettingFactRow : SettingRow", "public sealed partial class SettingHomeLayoutRow : SettingRow");
         var factories = between(vm, "    private SettingChoiceRow Pick<T>(", "    /// <summary>\n    /// A drop-down over one of the mpv option catalogues.") +
             between(vm, "    private SettingChoiceRow Mpv(", "    /// <summary>\n    /// One of the three 字幕颜色 rows:") +
             between(vm, "    private SettingNumberRow Number(", "    /// <summary>\n    /// 一行滑块。") +
-            between(vm, "    private static string? Annotate(", "    /// <summary>\n    /// A searchable list of the machine's font families.");
+            between(vm, "    private static string? Annotate(", "    /// <summary>\n    /// A searchable list of the machine's font families.") +
+            between(vm, "    private SettingToggleRow Toggle(", "    private SettingNumberRow Number(") +
+            between(vm, "    private static SettingFactRow Fact(", "    /// <summary>\n    /// A text box holding a filesystem path.") +
+            between(vm, "    private SettingTextRow PathBox(", "    /// <summary>\n    /// A comma-separated list in a text box");
         var baseline = between(backend, "    internal static IReadOnlyList<KeyValuePair<string, string>> Baseline(",
             "    /// <summary>Option errors are logged, not fatal");
         var generated = imports + section + rows + "public sealed partial class SettingsViewModel\n{\n" + factories + "}\n";

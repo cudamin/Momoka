@@ -128,6 +128,11 @@ public sealed record PlaybackRequest
     /// <summary>Native window state retained across a replacement; null uses the normal launch preference.</summary>
     public bool? Fullscreen { get; init; }
 
+    /// <summary>本次是否接入用户安装的 SVP；不交给外部 mpv 的安全启动通道。</summary>
+    public bool SvpEnabled { get; init; }
+
+    public string SvpVapourSynthPath { get; init; } = "";
+
     /// <summary>Shown by mpv as the media title instead of the opaque stream URL.</summary>
     public required string Title { get; init; }
 

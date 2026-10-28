@@ -104,6 +104,8 @@ public sealed class PlaybackPlanner(
                 ? Momoka.Plex.PlexPlaybackSelection.FromSource(item.Id, connection.ApiBase, source,
                     source.RunTimeTicks ?? item.RunTimeTicks ?? 0) : null,
             Title = title,
+            SvpEnabled = MpvSvp.IsEnabled(settings.Mpv),
+            SvpVapourSynthPath = settings.Mpv.SvpVapourSynthPath ?? "",
             HttpHeaders = BuildHeaders(connection),
             StartSeconds = TimeFormat.ToSeconds(ticket.ExactStart ? Math.Max(0, ticket.StartTicks) : ResumeFrom(ticket.StartTicks)),
             AudioId = map.AudioId(tracks.AudioIndex),
@@ -154,7 +156,8 @@ public sealed class PlaybackPlanner(
             MpvBaseline.ScreenshotOptions.From(settings.Mpv),
             shaderCacheDirectory, ScreenshotDirectory, fontsDirectory));
         options.AddRange(MpvOutputOptions.Build(
-            settings.Video, settings.Audio, settings.Playback, source, decision.Animated, displayRefreshHz, audioDevice));
+            settings.Video, settings.Audio, settings.Playback, source, decision.Animated, displayRefreshHz, audioDevice,
+            MpvSvp.IsEnabled(settings.Mpv)));
         options.AddRange(chainOptions);
 
         // 「设置里开着的东西这次没生效」 has to be visible somewhere other than the settings page, which is not open

@@ -4,8 +4,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:Momoka.Shell.ViewModels">
     <StackPanel Orientation="Horizontal" Spacing="10">
-        <TextBlock Text="搜索站点" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
-        <DropDownButton x:Name="ChooseSites" AutomationProperties.Name="选择搜索站点" MaxWidth="180">
+        <TextBlock x:Name="SiteLabel" Text="搜索站点" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+        <DropDownButton x:Name="ChooseSites" AutomationProperties.Name="选择搜索站点" ToolTipService.ToolTip="选择搜索站点" MaxWidth="180">
             <TextBlock Text="{x:Bind ViewModel.Summary, Mode=OneWay}" TextTrimming="CharacterEllipsis" />
             <DropDownButton.Flyout>
                 <Flyout x:Name="SitesFlyout" Opening="OnOpening">

@@ -62,6 +62,12 @@ internal sealed partial class ShellNavigationProbe
             poster.SetHovered(false);
             Require(more.Visibility == Visibility.Collapsed, "未悬停封面时订阅管理按钮仍然显示");
             poster.SetHovered(true); await LayoutAsync(poster);
+            var subscriptionArt = Get<Border>(poster, "Art");
+            Require(subscriptionArt.BorderThickness == new Thickness(0), "主页订阅海报悬停仍有主题色外圈");
+            var subscriptionCover = Get<Button>(poster, "SubscriptionCover");
+            Require(subscriptionCover.Focus(FocusState.Keyboard), "主页订阅海报无法接受键盘焦点");
+            await LayoutAsync(poster);
+            Require(subscriptionArt.BorderThickness == new Thickness(0), "主页订阅海报聚焦仍有主题色外圈");
             var morePosition = more.TransformToVisual(poster).TransformPoint(default);
             Require(more.Visibility == Visibility.Visible && more.ActualWidth == 32 && more.ActualHeight == 32
                 && Math.Abs(poster.ActualWidth - morePosition.X - more.ActualWidth - 7) < 1

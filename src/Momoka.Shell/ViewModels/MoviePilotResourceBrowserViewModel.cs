@@ -56,7 +56,16 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     [ObservableProperty] public partial string SelectedSeason { get; set; } = AllSeasons;
     [ObservableProperty] public partial string SelectedEpisode { get; set; } = AllEpisodes;
     [ObservableProperty] public partial int PromotionIndex { get; set; }
-    [ObservableProperty] public partial int SortIndex { get; set; }
+    public static IReadOnlyList<string> SortLabels { get; } = ["默认排序", "站点", "体积", "做种数", "发布时间"];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SortLabel), nameof(SortAutomationName))]
+    public partial int SortIndex { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SortAutomationName))]
+    public partial bool SortDescending { get; set; } = true;
+    public string SortLabel => SortLabels[SortIndex >= 0 && SortIndex < SortLabels.Count ? SortIndex : 0];
+    public string SortAutomationName => $"资源排序：{SortLabel}，{(SortDescending ? "降序" : "升序")}";
     [ObservableProperty] public partial int DateIndex { get; set; }
     [ObservableProperty] public partial bool SeededOnly { get; set; }
     [ObservableProperty] public partial bool ExcludeHitAndRun { get; set; }
@@ -117,6 +126,8 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
             .Select(row => row.Resource.DownloadFactor!.Value).Distinct().Order()
             .Select(factor => (factor.ToString(CultureInfo.InvariantCulture),
                 factor == 0 ? "免费" : factor == 1 ? "普通" : $"{factor * 100:0.##}%")));
+        SortIndex = 0;
+        SortDescending = true;
         _resetting = false;
         Reset();
         if (autoEpisode is { } episode) SelectedEpisode = EpisodeChoice(episode);
@@ -136,7 +147,8 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         SelectedSeason = AllSeasons;
         FillNumbers(Episodes, AllEpisodes, "E", EpisodeChoices(_all.SelectMany(row => row.Resource.Episodes)));
         SelectedEpisode = AllEpisodes;
-        PromotionIndex = SortIndex = DateIndex = 0;
+        // 网页的“清除筛选”不改排序；新搜索才在 SetResults 中恢复默认。
+        PromotionIndex = DateIndex = 0;
         SeededOnly = ExcludeHitAndRun = false;
         _resetting = false;
         Apply();
@@ -161,6 +173,7 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     partial void OnSelectedEpisodeChanged(string value) => Apply();
     partial void OnPromotionIndexChanged(int value) => Apply();
     partial void OnSortIndexChanged(int value) => Apply();
+    partial void OnSortDescendingChanged(bool value) => Apply();
     partial void OnDateIndexChanged(int value) => Apply();
     partial void OnSeededOnlyChanged(bool value) => Apply();
     partial void OnExcludeHitAndRunChanged(bool value) => Apply();
@@ -198,6 +211,7 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
             Episode = SelectedNumber(SelectedEpisode),
             Promotion = (MoviePilotPromotionFilter)PromotionIndex,
             Sort = (MoviePilotResourceSort)SortIndex,
+            SortDescending = SortDescending,
             SeededOnly = SeededOnly,
             ExcludeHitAndRun = ExcludeHitAndRun,
             PublishedWithinDays = DateIndex switch { 1 => 1, 2 => 7, 3 => 30, 4 => 90, _ => null }

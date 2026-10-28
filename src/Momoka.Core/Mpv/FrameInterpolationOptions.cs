@@ -52,12 +52,17 @@ public static class FrameInterpolationOptions
         _ => FrameInterpolationQuality.Balanced
     };
 
-    public static FrameInterpolationDecision Resolve(VideoSettings video, SourceProfile? source = null)
+    public static FrameInterpolationDecision Resolve(VideoSettings video, SourceProfile? source = null, bool svp = false)
     {
         var mode = NormalizeMode(video.FrameInterpolationMode);
         var fps = ClampFps(video.FrameInterpolationFps);
         var quality = NormalizeQuality(video.FrameInterpolationQuality);
         var hardware = video.HardwareDecoding ?? "";
+
+        // SVP supplies its own VapourSynth filter. Do not stack CPU motion compensation or
+        // temporal blending on it; copy-back/software decoding is still required by the bridge.
+        if (svp)
+            return new(FrameInterpolationMode.Off, fps, quality, CopyCompatibleHardwareDecoder(hardware), null, null);
 
         if (mode != FrameInterpolationMode.MotionCompensated)
             return new(mode, fps, quality, hardware, null, null);

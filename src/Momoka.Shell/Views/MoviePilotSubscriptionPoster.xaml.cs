@@ -108,7 +108,8 @@ public sealed partial class MoviePilotSubscriptionPoster : UserControl
         var enabled = HomeMotion.AnimationsEnabled;
         var zoom = enabled && active ? 1.045 : 1;
         var press = enabled && _pressed ? 0.985 : 1;
-        Art.Style = (Style)Application.Current.Resources[active ? "EgFrameActiveStyle" : "EgFrameStyle"];
+        // 主页订阅封面同样不画主题色外圈；悬停仍靠框内图片推近和更多按钮反馈。
+        Art.Style = (Style)Application.Current.Resources["EgFrameStyle"];
         void Settle()
         {
             PosterMotion.ScaleX = PosterMotion.ScaleY = zoom;

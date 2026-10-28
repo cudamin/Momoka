@@ -48,6 +48,31 @@ internal static class SettingsApplicabilityTests
             Assert.Contains("Sections.Add(ApplicableHdrCard());", shell.Source);
             Assert.Contains("RefreshSettingsApplicability();", shell.Source);
         });
+        TestHarness.Test("SVP 实际设置VM：缓存重入更新补帧及基础输出，偏好不被隐藏清空", () =>
+        {
+            var state = shell.Create(settings =>
+            {
+                settings.Mpv.Backend = MpvBackendKind.BuiltInLibMpv;
+                settings.Mpv.SvpVapourSynthPath = "retained-anonymous-component";
+                settings.Video.FrameInterpolationMode = FrameInterpolationMode.MotionCompensated;
+                settings.Video.FrameInterpolationFps = 72;
+            });
+            var card = state.Card("补帧");
+            var rows = state.Rows(card);
+            state.Settings.Settings.Mpv.SvpEnabled = true;
+            state.Reenter();
+            Assert.False(state.Labels("补帧").Contains("模式"));
+            Assert.True(state.Labels("补帧").Contains("VapourSynth 组件"));
+            Assert.Equal("音频同步（SVP）", state.Get<string>(state.Row("基础输出", "视频同步"), "Value"));
+            state.Settings.Settings.Mpv.SvpEnabled = false;
+            state.Reenter();
+            Assert.True(state.Labels("补帧").Contains("模式"));
+            Assert.False(state.Labels("补帧").Contains("VapourSynth 组件"));
+            Assert.Equal(72, state.Settings.Settings.Video.FrameInterpolationFps);
+            Assert.Equal("retained-anonymous-component", state.Settings.Settings.Mpv.SvpVapourSynthPath);
+            Assert.True(ReferenceEquals(card, state.Card("补帧")) && ReferenceEquals(rows, state.Rows(card)));
+            Assert.Equal(0, state.Settings.Saves);
+        });
         foreach (var enabled in new[] { false, true })
         {
             TestHarness.Test($"R-049 初建 shader={enabled} 的真实行集合/整行说明", () =>
@@ -490,7 +515,7 @@ internal static class SettingsApplicabilityTests
             sections.Clear();
             // 修前用原真实卡，修后使用 Reload 已接入的适用性卡；静态接线测试另外核对正式调用。
             foreach (var method in new[] { "VideoCard", _shell.Builder("ApplicableShaderCard", "ShaderCard"),
-                _shell.Builder("ApplicableHdrCard", "HdrCard") })
+                _shell.Builder("ApplicableHdrCard", "HdrCard"), "FrameInterpolationCard" })
                 sections.Add(_shell.Invoke(Vm, method)!);
             // 字幕 2026-10-27 拆成三张卡，建卡入口返回一份列表，逐张加。
             foreach (var section in (IEnumerable)_shell.Invoke(Vm, "SubtitleSections")!) sections.Add(section);
