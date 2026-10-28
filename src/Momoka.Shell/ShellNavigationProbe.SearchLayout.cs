@@ -3,6 +3,8 @@ using Momoka.Configuration;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 using Momoka.Shell.Views;
+using Momoka.Theming;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Foundation;
@@ -46,6 +48,29 @@ internal sealed partial class ShellNavigationProbe
                 Require(categoryBox.Left >= -1 && categoryBox.Right <= page.ActualWidth + 1, "搜索分类被裁切");
                 var tabs = Get<Segmented>(page, "SourceTabs");
                 Require(tabs.ActualWidth <= search.ActualWidth, "来源切换超出搜索区");
+                var input = Get<AutoSuggestBox>(page, "SearchInput");
+                var field = Descendants(input).OfType<TextBox>().First();
+                Require(field.Focus(FocusState.Programmatic), "搜索框不能获得焦点");
+                await LayoutAsync(page);
+                var edge = Descendants(field).OfType<Border>().Single(border => border.Name == "BorderElement");
+                Require(Colour(edge.BorderBrush) == Role("EgBorderBrush") && edge.BorderThickness == new Thickness(1),
+                    $"{width} 搜索框聚焦仍有主题色外圈或加粗底边");
+                if (width == 1040)
+                {
+                    var themeBefore = ThemeHost.Current;
+                    try
+                    {
+                        foreach (var theme in UiThemes.All)
+                        {
+                            ThemeHost.Apply(theme);
+                            await LayoutAsync(page);
+                            Require(Colour(edge.BorderBrush) == Role("EgBorderBrush") && edge.BorderThickness == new Thickness(1),
+                                $"主题 {theme.Id} 搜索框出现强调色边框");
+                            await SaveProbeScreenAsync($"search-focus-neutral-{theme.Id}-screen.png");
+                        }
+                    }
+                    finally { ThemeHost.Apply(themeBefore); }
+                }
                 await SaveReturnFrameAsync(page, $"search-layout-{width}.png");
                 if (width is 1040 or 360)
                     await SaveProbeScreenAsync($"search-screen-{width}.png");
@@ -96,6 +121,9 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(frame);
             ResizeInspect(1420, 980);
         }
+
+        Windows.UI.Color Role(string key) => Colour(Application.Current.Resources[key] as Brush);
+        static Windows.UI.Color Colour(Brush? brush) => brush is SolidColorBrush solid ? solid.Color : default;
 
         static Rect Bounds(FrameworkElement element, UIElement relative)
         {

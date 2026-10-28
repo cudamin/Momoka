@@ -225,10 +225,12 @@ internal static partial class ShellSelfCheck
     /// up over a cover the pointer left minutes ago with nothing on screen to say why.
     /// </para>
     /// </summary>
-    private static (bool Ok, string Detail)? ReadCards(ShellPage shell)
-    {
-        if (shell.Pages.Content is not HomePage home) return null;
+    private static (bool Ok, string Detail)? ReadCards(ShellPage shell) =>
+        shell.Pages.Content is HomePage home ? ReadCards(home) : null;
 
+    // 同一条读数在隔离 Shell 探针里运行，避免为测封面样式登录真实媒体库。
+    internal static (bool Ok, string Detail)? ReadCards(HomePage home)
+    {
         var cards = home.RealisedCards();
         if (cards.Count == 0) return null;
 
@@ -250,9 +252,8 @@ internal static partial class ShellSelfCheck
         // 底色则要三个态都问过才算数 —— 悬停那一态的灰片是框架给的，不在这张卡的标记里。指针那一问是第三件：
         // 那十赫兹的一拍要是量不到光标和封面的相对位置，它就是白跑，而白跑没有任何症状。
         //
-        // 后三问是胶片格那圈线（重绘单元 4）：静止不是强调色、指针上来正好是调色板里那个强调色、键盘那一半
-        // 找到了外层容器。三样都是看不出来的 —— 1 像素的线在截图里认不出色号，而焦点那一半在自检里根本没有
-        // 焦点可看。
+        // 封面在静止／指针／焦点三态都不画外圈；播放键停着是中性色，只在按钮自身的指针态变强调色。
+        // 颜色与实际描边厚度都从已实现的控件读回，保留外层按钮的键盘焦点检查。
         var accent = ColorOf("EgAccentBrush");
 
         foreach (var group in new[] { library, playable })
@@ -264,10 +265,13 @@ internal static partial class ShellSelfCheck
                 && corner.InsetRight is > 0 and <= 16
                 && corner.InsetBottom is > 0 and <= 16
                 && corner.Watch
-                && Format(corner.FrameActive) == accent
+                && corner.FrameBorderless
+                && Format(corner.FrameActive) == Format(corner.FrameRest)
                 && Format(corner.FrameRest) != accent
                 && corner.FrameRest.A > 0
-                && corner.FrameFocus;
+                && corner.FrameFocus
+                && (!corner.Play || Format(corner.PlayRest) == ColorOf("EgSurfaceHoverBrush")
+                    && Format(corner.PlayHover) == accent);
         }
 
         return (ok, $"{Describe("媒体库卡片", library)}；{Describe("可播放卡片", playable)}");
@@ -291,7 +295,8 @@ internal static partial class ShellSelfCheck
                 + (card.Chrome ? "仍有按钮画底色" : "三态都不画底色")
                 + (card.HostSurfaceTransparent ? "、外层按钮三态透明" : "、外层按钮底色检查失败")
                 + (card.Watch ? "、指针位置查得出来" : "、查不到指针位置")
-                + $"，胶片格 {Format(card.FrameRest)} → 指针 {Format(card.FrameActive)}"
+                + $"，封面无外圈 {Had(card.FrameBorderless)}，框线角色 {Format(card.FrameRest)} → 指针 {Format(card.FrameActive)}"
+                + $"，播放键 {Format(card.PlayRest)} → 按钮指针 {Format(card.PlayHover)}"
                 + (card.FrameFocus ? "、焦点接在外层容器上" : "、找不到能接焦点的容器");
 
         static string Had(bool present) => present ? "有" : "无";

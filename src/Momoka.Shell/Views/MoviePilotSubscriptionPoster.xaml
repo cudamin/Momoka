@@ -5,6 +5,7 @@
         PointerEntered="OnPointerEntered" PointerExited="OnPointerExited" GotFocus="OnGotFocus" LostFocus="OnLostFocus">
         <Grid.RenderTransform><CompositeTransform x:Name="PressMotion" /></Grid.RenderTransform>
         <Button x:Name="SubscriptionCover" Style="{StaticResource EgArtworkTileStyle}" BorderThickness="0"
+            FocusVisualPrimaryBrush="{ThemeResource EgTextBrush}" FocusVisualSecondaryBrush="{ThemeResource EgWindowBrush}"
             Click="OnOpen" ContextRequested="OnContext" Tag="{x:Bind Card, Mode=OneWay}" AutomationProperties.Name="{x:Bind Card.Title, Mode=OneWay}">
             <Border x:Name="Art" Style="{StaticResource EgFrameStyle}">
                 <Grid>

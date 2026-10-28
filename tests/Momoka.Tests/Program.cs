@@ -216,6 +216,7 @@ internal static class Program
         DiagnosticsTests.Register();
         ScreenTests.Register();
         CardStripTests.Register();
+        NeutralFeedbackTests.Register();
         CardSizeTests.Register();
         WrapLayoutTests.Register();
         StartupArgsTests.Register();

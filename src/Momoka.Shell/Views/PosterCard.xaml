@@ -22,13 +22,18 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <Style x:Key="EgCardPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+        <!-- 播放键停着是中性色；只有指针实际进入这颗按钮时才用强调色，不随整张封面的悬停换色。 -->
+        <Style x:Key="EgCardPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="48" />
             <Setter Property="Height" Value="48" />
             <Setter Property="MinWidth" Value="0" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="CornerRadius" Value="24" />
             <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
+            <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource EgTextBrush}" />
+            <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource EgSurfaceBrush}" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
@@ -185,6 +190,12 @@
                         ToolTipService.ToolTip="{x:Bind Card.PlayActionTip, Mode=OneWay}"
                         VerticalAlignment="Center"
                         Visibility="{x:Bind Card.PlayVisibility, Mode=OneWay}">
+                        <Button.Resources>
+                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="EgAccentBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
+                        </Button.Resources>
                         <Button.RenderTransform>
                             <ScaleTransform x:Name="PlayMotion" ScaleX="0.92" ScaleY="0.92" />
                         </Button.RenderTransform>

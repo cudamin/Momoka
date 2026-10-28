@@ -39,6 +39,8 @@
             <Button
                 Background="Transparent"
                 BorderThickness="0"
+                FocusVisualPrimaryBrush="{ThemeResource EgTextBrush}"
+                FocusVisualSecondaryBrush="{ThemeResource EgWindowBrush}"
                 Click="OnCardClicked"
                 ContextRequested="OnCardContextRequested"
                 Padding="0">

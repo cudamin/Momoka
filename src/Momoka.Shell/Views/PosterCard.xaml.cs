@@ -18,10 +18,10 @@ namespace Momoka.Shell.Views;
 /// <paramref name="Watch"/> is whether the card can tell where the cursor really is, which is what takes
 /// the buttons back down when the pointer leaves the window without saying so.
 /// <para>
-/// 最后三个说的是胶片格那圈线（重绘单元 4）：<paramref name="FrameRest"/> 是静止时的色，
-/// <paramref name="FrameActive"/> 是指针上来之后的色 —— 「整圈变强调色」是个颜色的说法，而颜色对不对，
-/// 截图里 1 像素宽的一根线看不出来。<paramref name="FrameFocus"/> 是键盘那一半接上了没有：卡片自己接不到
-/// 焦点，得往上找到外层容器，找不到的话这条状态整个不存在，而那是完全没有症状的。
+/// <paramref name="FrameRest"/> 与 <paramref name="FrameActive"/> 记录封面框线的同一支中性色，
+/// <paramref name="FrameBorderless"/> 同时核对静止／指针／焦点都不画线；<paramref name="FrameFocus"/>
+/// 检查外层键盘容器仍可定位。<paramref name="PlayRest"/> 与 <paramref name="PlayHover"/> 则是播放键
+/// 默认和按钮自身指针态的实际颜色，不把整张卡片的悬停误认为播放按钮悬停。
 /// </para>
 /// </summary>
 internal sealed record CardHoverProbe(
@@ -42,7 +42,10 @@ internal sealed record CardHoverProbe(
     bool Watch,
     Windows.UI.Color FrameRest,
     Windows.UI.Color FrameActive,
-    bool FrameFocus);
+    bool FrameFocus,
+    bool FrameBorderless,
+    Windows.UI.Color PlayRest,
+    Windows.UI.Color PlayHover);
 
 /// <summary>需求 6：which of the card's hover buttons was pressed.</summary>
 public enum CardAction
@@ -465,23 +468,12 @@ public sealed partial class PosterCard : UserControl
     }
 
     /// <summary>
-    /// 胶片格那圈线：静止是发丝灰，指针在上面或者键盘焦点落上来就整圈换强调色。
-    /// <para>
-    /// 换的是整个 Style 而不是 BorderBrush 一个属性 —— 「亮起来的框」是什么样，词表里那两个 Style 说了算，
-    /// 这里只负责挑哪一个。哪天亮的时候还要加粗一档，改词表就够了，这一行不动。
-    /// </para>
-    /// <para>
-    /// 两个来处共用同一根线：屏上「这一张」只需要一种说法。它们是两个旗子或、不是各画各的。
-    /// </para>
-    /// <para>
-    /// 两个 Style 都在应用级（Theme/Styles.xaml，App.xaml 里并进来的），所以 Application.Current.Resources
-    /// 取得到；它们内部引用的 EgBorderBrush/EgAccentBrush 是 ThemeResource，套到元素上的时候才解析，跟着
-    /// 主题走。
-    /// </para>
+    /// 封面本体在指针和焦点状态都不画外圈；键盘定位保留在外层按钮的中性焦点提示中。
+    /// 文件夹仍使用自己的底色，不改图片布局或点击范围。
     /// </summary>
     private void Paint() =>
         Art.Style = Card?.FolderFrame == true ? (Style)Resources["FolderFrameStyle"]
-            : (Style)Application.Current.Resources[_hovered || _focused ? "EgFrameActiveStyle" : "EgFrameStyle"];
+            : (Style)Application.Current.Resources["EgFrameStyle"];
 
     /// <summary>
     /// Deliberately not awaited: a container coming into view must not block the layout pass on a
@@ -539,7 +531,8 @@ public sealed partial class PosterCard : UserControl
             .TransformToVisual(Art)
             .TransformPoint(new Windows.Foundation.Point(Actions.ActualWidth, Actions.ActualHeight));
 
-        var (rest, active) = ProbeFrame();
+        var (rest, active, borderless) = ProbeFrame();
+        var (playRest, playHover) = ProbePlay();
 
         var probe = new CardHoverProbe(
             Card?.Title ?? "",
@@ -559,7 +552,10 @@ public sealed partial class PosterCard : UserControl
             _watch.Probe(),
             rest,
             active,
-            _focus.Probe());
+            _focus.Probe(),
+            borderless,
+            playRest,
+            playHover);
 
         Hover.Visibility = restore;
         UpdateLayout();
@@ -568,7 +564,7 @@ public sealed partial class PosterCard : UserControl
     }
 
     /// <summary>
-    /// 自检：胶片格那圈线的两种颜色，静止的和亮起来的，都是照实读回来的。
+    /// 自检：静止、指针与焦点三态都没有封面外圈，颜色与厚度照实读回。
     /// <para>
     /// 自检既没有指针也没有焦点，所以两个旗子是摆出来的 —— 而且是先摆再读，包括静止那一次：真有指针停在
     /// 这张卡上的时候（自检跑起来鼠标就在屏幕上某处），不摆的话读到的「静止」就是亮的。读完照原样放回去。
@@ -577,24 +573,45 @@ public sealed partial class PosterCard : UserControl
     /// <remarks>
     /// 元组的第一个名字不叫 <c>Rest</c>：那是 <c>ValueTuple</c> 给第八个字段留的名字，编译器不让用。
     /// </remarks>
-    private (Windows.UI.Color Still, Windows.UI.Color Active) ProbeFrame()
+    private (Windows.UI.Color Still, Windows.UI.Color Active, bool Borderless) ProbeFrame()
     {
         var (hovered, focused) = (_hovered, _focused);
 
         (_hovered, _focused) = (false, false);
         Paint();
         var rest = Colour(Art.BorderBrush);
+        var borderless = Art.BorderThickness == new Thickness(0);
 
         _hovered = true;
         Paint();
         var active = Colour(Art.BorderBrush);
+        borderless &= Art.BorderThickness == new Thickness(0);
+        (_hovered, _focused) = (false, true);
+        Paint();
+        borderless &= Art.BorderThickness == new Thickness(0);
 
         (_hovered, _focused) = (hovered, focused);
         Paint();
 
-        return (rest, active);
+        return (rest, active, borderless);
 
         // 一支不是纯色的画刷（渐变、图片）在这里就是「没读到颜色」，而全透明的黑正好是自检要判红的东西。
+        static Windows.UI.Color Colour(Brush? brush) =>
+            brush is SolidColorBrush solid ? solid.Color : default;
+    }
+
+    /// <summary>读回播放键默认和按钮自身的指针态；只切视觉状态，不调用播放命令。</summary>
+    private (Windows.UI.Color Still, Windows.UI.Color Active) ProbePlay()
+    {
+        PlayButton.ApplyTemplate();
+        var still = Colour(PlayButton.Background);
+        var applied = VisualStateManager.GoToState(PlayButton, "PointerOver", false);
+        var root = VisualTreeHelper.GetChildrenCount(PlayButton) > 0
+            ? VisualTreeHelper.GetChild(PlayButton, 0) as ContentPresenter : null;
+        var active = applied ? Colour(root?.Background) : default;
+        VisualStateManager.GoToState(PlayButton, "Normal", false);
+        return (still, active);
+
         static Windows.UI.Color Colour(Brush? brush) =>
             brush is SolidColorBrush solid ? solid.Color : default;
     }

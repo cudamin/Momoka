@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Momoka.Emby;
 using Momoka.Shell.ViewModels;
 using Momoka.Shell.Views;
+using Momoka.Theming;
 using Windows.Foundation;
 
 namespace Momoka.Shell;
@@ -43,6 +44,7 @@ internal sealed partial class ShellNavigationProbe
         var frame = new Frame();
         _root.Children.Add(frame);
         HomePage? home = null;
+        var originalTheme = ThemeHost.Current;
         var readings = new List<string>();
         try
         {
@@ -139,6 +141,8 @@ internal sealed partial class ShellNavigationProbe
                 VisualStateManager.GoToState(next, "PointerOver", false);
                 var card = Descendants(strip).OfType<PosterCard>().First();
                 var art = Get<Border>(card, "Art");
+                var play = Get<Button>(card, "PlayButton");
+                var host = Ancestors(card).OfType<Button>().First();
                 var cardWidth = art.ActualWidth;
                 Field(card, "_hovered", true);
                 Call(card, "Paint");
@@ -147,9 +151,46 @@ internal sealed partial class ShellNavigationProbe
                 Field(head, "_hovered", true);
                 Call(head, "PaintUnderline");
                 await LayoutAsync(home);
-                Require(art.BorderThickness == new Thickness(2) && Math.Abs(art.ActualWidth - cardWidth) < 1,
-                    "封面悬停框未加粗或改变外部尺寸");
-                await SaveProbeScreenAsync($"home-header-outline-{width}-screen.png");
+                Require(art.BorderThickness == new Thickness(0) && Math.Abs(art.ActualWidth - cardWidth) < 1,
+                    "封面悬停仍有描边或改变了尺寸");
+                Require(host.Focus(FocusState.Keyboard), "主页卡片无法接受键盘焦点");
+                await LayoutAsync(home);
+                Require(art.BorderThickness == new Thickness(0), "键盘焦点仍让封面出现主题色外圈");
+                Require(Colour(host.FocusVisualPrimaryBrush) == Role("EgTextBrush")
+                    && Colour(host.FocusVisualSecondaryBrush) == Role("EgWindowBrush"), "主页卡片焦点提示不是中性色");
+                Require(Colour(play.Background) == Role("EgSurfaceHoverBrush"), "封面悬停把播放键提前变成强调色");
+                await SaveProbeScreenAsync($"home-card-neutral-{width}-screen.png");
+                if (width == 1280)
+                {
+                    foreach (var theme in UiThemes.All)
+                    {
+                        ThemeHost.Apply(theme);
+                        await LayoutAsync(home);
+                        Require(VisualStateManager.GoToState(play, "Normal", false), "播放按钮缺少默认状态");
+                        await LayoutAsync(play);
+                        Require(Colour(Presenter(play)?.Background) == Role("EgSurfaceHoverBrush"), "播放键默认不是中性面色");
+                        await SaveProbeScreenAsync($"home-card-play-normal-{theme.Id}-screen.png");
+                        Require(VisualStateManager.GoToState(play, "PointerOver", false), "播放按钮缺少指针状态");
+                        await LayoutAsync(play);
+                        Require(Colour(Presenter(play)?.Background) == Role("EgAccentBrush"), "播放键指针态不是主题色");
+                        Require(Colour(Presenter(play)?.Foreground) == Role("EgTextOnAccentBrush"), "播放键指针态文字对比色错误");
+                        await SaveProbeScreenAsync($"home-card-play-hover-{theme.Id}-screen.png");
+                        Require(VisualStateManager.GoToState(play, "Pressed", false), "播放按钮缺少按下状态");
+                        await LayoutAsync(play);
+                        Require(Colour(Presenter(play)?.Background) == Role("EgAccentPressedBrush"), "播放键按下状态没有使用主题色");
+                        VisualStateManager.GoToState(play, "Normal", false);
+                        await LayoutAsync(play);
+                        Require(Colour(Presenter(play)?.Background) == Role("EgSurfaceHoverBrush"), "播放键离开后未恢复中性色");
+                        var check = ShellSelfCheck.ReadCards(home);
+                        Require(check is { Ok: true }, "实际封面自检不通过：" + check?.Detail);
+                    }
+                    ThemeHost.Apply(originalTheme);
+                    await LayoutAsync(home);
+                    art.BorderThickness = new Thickness(2);
+                    try { Require(ShellSelfCheck.ReadCards(home) is { Ok: false }, "实际封面自检没有拒绝重新出现的外圈"); }
+                    finally { art.ClearValue(Border.BorderThicknessProperty); }
+                    Require(ShellSelfCheck.ReadCards(home) is { Ok: true }, "移除注入外圈后自检未恢复");
+                }
                 Field(head, "_hovered", false);
                 Call(head, "PaintUnderline");
                 Field(card, "_hovered", false);
@@ -174,9 +215,19 @@ internal sealed partial class ShellNavigationProbe
             Point Center(FrameworkElement element) => element.TransformToVisual(_root)
                 .TransformPoint(new Point(element.ActualWidth / 2, element.ActualHeight / 2));
             bool HitsScope(Point point) => VisualTreeHelper.FindElementsInHostCoordinates(point, _root).Contains(scope);
+            Windows.UI.Color Role(string key) => Colour(Application.Current.Resources[key] as Brush);
+            static Windows.UI.Color Colour(Brush? brush) => brush is SolidColorBrush solid ? solid.Color : default;
+            static ContentPresenter? Presenter(Button button) => VisualTreeHelper.GetChildrenCount(button) > 0
+                ? VisualTreeHelper.GetChild(button, 0) as ContentPresenter : null;
+            static IEnumerable<DependencyObject> Ancestors(DependencyObject element)
+            {
+                for (var parent = VisualTreeHelper.GetParent(element); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+                    yield return parent;
+            }
         }
         finally
         {
+            ThemeHost.Apply(originalTheme);
             home?.Release();
             _root.Children.Remove(frame);
         }
