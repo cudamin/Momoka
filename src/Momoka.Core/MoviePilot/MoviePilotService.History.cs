@@ -5,7 +5,7 @@ namespace Momoka.MoviePilot;
 
 public sealed partial class MoviePilotService
 {
-    /// <summary>与网页端媒体整理相同的 TMDB 搜索语法，分页收齐后再次核对剧身份。</summary>
+    /// <summary>与网页端相同的 tmdbid 路径文字筛选；查询本身不证明身份，分页收齐后核对当前剧。</summary>
     public async Task<IReadOnlyList<MoviePilotTransferHistory>> FindSeriesTransferHistoriesAsync(
         string tmdbId, CancellationToken cancellationToken)
     {

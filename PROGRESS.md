@@ -13,6 +13,7 @@
 - 工作树：`C:/Users/89400/.codex/worktrees/series-reorganize/Momoka`，基于 `f4d8476`；主树已有未提交搜索／资源界面工作，本任务未混入。Core 与入口由主代理维护，UI 代理使用独立树，上游与本地审查只读。
 - 第一轮：剧入口只补读剧身份，不再收集媒体库全部集文件；MoviePilot 以 `title=tmdbid%3D<id>` 分页收齐历史，再核对类型与 TMDB 身份。选择清单按原 `logid/logids` 建批次，成功移动使用原目标，其余使用原源；重复文件、另一部剧、目录及不支持的源存储整批拒绝。批量不预填季集号，保留文件各自识别。
 - 当前服务只读核实：`dashboard/system` 为 **v3.2.1**；截图 TMDB 查询返回 **6/6** 条。身份为 `media_source=themoviedb` 与 `media_id`，没有旧顶层 `tmdbid/filesize`；体积为 `src_fileitem.size` 整数 bytes。模型兼容新主身份，大小取原 FileItem，保留目的 FileItem／旧字段回退；新增对应匿名回归，专项 **118/118**。只输出公开身份与字段投影，不输出配置、凭据或原路径。
+- 官方源码核对：当前前端 `v3` `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2`、后端 `v3` `be65e047b0e64b216420ba38bec7a087409552ff`；服务对应前端 `v3.2.1` `4797eda16252fb6590e36f2b9ede5fb535d9df04`、后端 `daa9212ba161d4573baf3744e2f13b99c2a90516`。`TransferHistoryView.vue`／`ReorganizeDialog.vue`、`history`／`transferhistory`／`transfer` 相关文件版本间相同。`tmdbid=` 实为 `title` 对标题和源／目标路径的文字查询，需客户端身份核对；自定义路径不含标记时可能漏查，已写用户说明。批量 `logids`、移动源选旧目标、默认关闭 `from_history` 与目录整体匹配均沿用上游；不增加无关音乐／插件字段。
 - 当前 Release Core／Tests／Shell 编译均 0 警告 0 错误；整理专项 `moviepilot-series-transfer-fixture` **117/117**，含新增14项与现有电影／季／单集、历史重核、依赖链、预览和写后不明回归。不是最终交付证据：清单 UI、真实窗口截图、全套测试和发布仍在本批次内完成。没有真实整理、媒体写入或播放。
 
 ## MoviePilot 季选择弹窗按网页端界面同步（2026-10-28）
