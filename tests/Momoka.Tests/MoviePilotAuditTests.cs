@@ -12,6 +12,7 @@ internal static class MoviePilotAuditTests
     {
         MoviePilotSafetyTests.Register();
         MoviePilotQuerySafetyTests.Register();
+        MoviePilotResourceSortTests.Register();
 
         Test("MoviePilot 资源：标签优惠时间与浮点体积完整解析", () =>
         {
@@ -73,7 +74,7 @@ internal static class MoviePilotAuditTests
         Test("MoviePilot 资源排序：未知体积与时间排后，最新按时间而非字符串", () =>
         {
             var rows = new[] { Resource("unknown"), Resource("small") with { Size = 2 }, Resource("large") with { Size = 10 } };
-            var sorted = (new MoviePilotResourceFilter { Sort = MoviePilotResourceSort.Smallest }).Apply(rows, DateTimeOffset.Now).ToList();
+            var sorted = (new MoviePilotResourceFilter { Sort = MoviePilotResourceSort.Size, SortDescending = false }).Apply(rows, DateTimeOffset.Now).ToList();
             Assert.Equal("small", sorted[0].Title);
             Assert.Equal("unknown", sorted[2].Title);
         });

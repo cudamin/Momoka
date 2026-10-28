@@ -31,6 +31,7 @@ internal static class Program
             return 2;
         }
         Console.WriteLine("资源搜索真实源码/生成命令与模板契约；无窗口、配置、登录、网络或下载副作用");
+        ResourceSortMenuTests.Register(sourceRoot);
         foreach (var meta in new[] { false, true })
         {
             Test("R-033 精确E05初筛、清除和重新选择 meta=" + meta, () =>
@@ -158,10 +159,11 @@ internal static class Program
             var button = xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "DownloadResource");
             Assert.Equal("{x:Bind DownloadVisibility, Mode=OneWay}", button.Attribute("Visibility")?.Value);
             Assert.Equal("{x:Bind DownloadCommand}", button.Attribute("Command")?.Value);
-            var reason = xml.Descendants().Single(node => node.Attribute("Text")?.Value == "{x:Bind DownloadProblem, Mode=OneWay}");
+            // 卡片重做后拒绝原因放到独立标签的 Tooltip；仍断言真实原因与动态显隐，不能只检查文案。
+            var reason = xml.Descendants().Single(node => node.Attribute("Text")?.Value == "身份待核对"
+                && node.Attribute("ToolTipService.ToolTip")?.Value == "{x:Bind DownloadProblem}");
             Assert.Equal("TextBlock", reason.Name.LocalName);
             Assert.Equal("{x:Bind DownloadProblemVisibility, Mode=OneWay}", reason.Attribute("Visibility")?.Value);
-            Assert.Equal("Wrap", reason.Attribute("TextWrapping")?.Value);
             Assert.Equal("{StaticResource EgCaptionStyle}", reason.Attribute("Style")?.Value);
             Assert.NotNull(xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "OpenTorrentPage"));
         });

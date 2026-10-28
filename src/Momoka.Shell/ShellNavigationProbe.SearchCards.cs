@@ -121,7 +121,7 @@ internal sealed partial class ShellNavigationProbe
                 _root.Children.Add(resourceView);
                 await LayoutAsync(resourceView);
                 QuietTooltips(resourceView);
-                Get<ComboBox>(resourceView, "SortOrder").Focus(FocusState.Programmatic);
+                Get<DropDownButton>(resourceView, "SortOrder").Focus(FocusState.Keyboard);
                 await Task.Delay(250);
                 var resourceCards = Descendants(resourceView).OfType<Grid>().Where(grid => grid.Name == "ResourceCard").ToArray();
                 var paintedCards = resourceCards.Where(card => card.ActualWidth > 0 && card.ActualHeight > 0).ToArray();
@@ -136,6 +136,7 @@ internal sealed partial class ShellNavigationProbe
                 }
                 await SaveReturnFrameAsync(resourceView, $"mp-search-resources-{width}-render.png");
                 await SaveProbeScreenAsync($"mp-search-resources-{width}-screen.png");
+                await MoviePilotResourceSortMenuAsync(resourceView, browser, rows, width);
                 Get<Flyout>(resourceView, "AdvancedFilters").ShowAt(Get<DropDownButton>(resourceView, "FilterExpander"));
                 await LayoutAsync(resourceView);
                 await SaveProbeScreenAsync($"mp-search-filters-{width}-screen.png");
