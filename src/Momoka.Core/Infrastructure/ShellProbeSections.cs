@@ -19,10 +19,11 @@ public static class ShellProbeSections
     public const string Covers = "covers";
     public const string Favorites = "favorites";
     public const string Playback = "playback";
+    public const string Metadata = "metadata";
 
     public static readonly IReadOnlyList<string> All =
     [
-        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback,
+        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback, Metadata,
     ];
 
     public static bool IsKnown(string name) =>

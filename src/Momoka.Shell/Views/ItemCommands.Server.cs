@@ -169,6 +169,21 @@ internal static partial class ItemCommands
             if (Root(owner) is not { } root) return;
 
             var item = card.Item;
+            if (session.Connection.ServerKind == MediaServerKind.Emby)
+            {
+                var editor = new EmbyMetadataEditor(session);
+                var document = await editor.LoadAsync(item.Id, CancellationToken.None).ConfigureAwait(true);
+                var embyDialog = new EmbyMetadataDialog(item.Name, document.Edit, document.Info,
+                    edit => editor.SaveAsync(document, edit, CancellationToken.None)) { XamlRoot = root };
+                embyDialog.SetItemType(item.Type);
+                if (await embyDialog.ShowAsync() == ContentDialogResult.Primary && embyDialog.Changed)
+                {
+                    shell.Notify($"已保存「{embyDialog.Edit.Basic.Name}」的元数据");
+                    changed?.Invoke();
+                }
+                return;
+            }
+
             var json = await AskAsync(session, (client, token) => client.GetItemJsonAsync(item.Id, token))
                 .ConfigureAwait(true);
 
@@ -598,7 +613,7 @@ internal static partial class ItemCommands
             // 说一句「里面的所有单集都会被删除」—— 少了它，一次点击和用户以为的事情差着二十四个文件。
             var (title, body) = ItemMenu.DeletePrompt(item);
 
-            var agreed = await ConfirmDialog.For(owner)(title, body, "删除").ConfigureAwait(true);
+            var agreed = await ConfirmDialog.ForLibrary(owner)(title, body, "删除").ConfigureAwait(true);
 
             if (!agreed) return;
 

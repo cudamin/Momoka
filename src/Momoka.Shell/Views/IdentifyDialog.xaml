@@ -20,6 +20,8 @@
     DefaultButton="Primary">
 
     <ContentDialog.Resources>
+        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
         <!-- 比默认的 548 宽一档：一屏结果要排得下三张海报，标识符那几格也不至于挤成一列。 -->
         <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
     </ContentDialog.Resources>
