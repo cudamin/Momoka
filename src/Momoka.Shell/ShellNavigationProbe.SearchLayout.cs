@@ -333,15 +333,26 @@ internal sealed partial class ShellNavigationProbe
             // 以及一直没上屏时按框里现有的词提交。
             // 输入法回车来自当前持有焦点的输入框。前面的来源栏布局与异步选择通知先落定，
             // 不把它们迟到引发的 LostFocus 当成这一趟组字回车（离焦按产品规则会取消补提交）。
-            Require(input.Focus(FocusState.Programmatic), "组字回车夹具无法聚焦搜索框");
-            await LayoutAsync(page);
-            var beforeIme = Searches(mp.Paths);
+            var imeField = Descendants(input).OfType<TextBox>().First();
             input.Text = "组合词";
-            await SettleAsync();
+            await LayoutAsync(page);
+            Require(imeField.Focus(FocusState.Programmatic), "组字回车夹具无法聚焦实际输入框");
+            await UntilAsync(() => ReferenceEquals(
+                Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(page.XamlRoot), imeField));
+            await LayoutAsync(page);
+            Require(ReferenceEquals(Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(page.XamlRoot), imeField),
+                "组字回车开始前焦点已离开实际输入框");
+            var imeFocus = new List<string>();
+            input.LostFocus += (_, _) => imeFocus.Add(
+                $"lost:{(Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(page.XamlRoot) as FrameworkElement)?.Name}");
+            var beforeIme = Searches(mp.Paths);
             var committed = page.SubmitImeEnterAsync();
             await Task.Delay(120);
             input.Text = "组合上屏";
             await committed;
+            await File.WriteAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "search-ime-focus.txt"),
+                $"focused={(Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(page.XamlRoot) as FrameworkElement)?.Name}; "
+                + $"events={string.Join(',', imeFocus)}; searches={Searches(mp.Paths) - beforeIme}; text={input.Text}\n");
             Require(Searches(mp.Paths) == beforeIme + 1
                 && mp.Paths.Last().Contains(Uri.EscapeDataString("组合上屏"), StringComparison.Ordinal),
                 $"组字回车没有按上屏后的词提交：{mp.Paths.LastOrDefault()}");
