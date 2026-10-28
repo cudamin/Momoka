@@ -121,6 +121,27 @@
     -->
     <Style TargetType="local:EgPicker" BasedOn="{StaticResource DefaultComboBoxStyle}" />
 
+    <!-- 与 MP 资源分面相同的紧凑圆角与角色色，保留框架的焦点和下拉模板。 -->
+    <Style x:Key="EgResourceFilterStyle" TargetType="local:EgPicker" BasedOn="{StaticResource DefaultComboBoxStyle}">
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="{ThemeResource EgAccentSoftBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource EgAccentBrush}" />
+        <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="EgResourceButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="{ThemeResource EgAccentSoftBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource EgAccentBrush}" />
+        <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
+    </Style>
+
     <!--
       ===================== 对话框的表面（2026-10-28） =====================
 
@@ -165,6 +186,7 @@
     <Style TargetType="local:MetadataDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MissingEpisodesDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MoviePilotReorganizeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:MoviePilotSeriesReorganizeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MoviePilotSeasonPicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:NotificationEditDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:NotificationServicePicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />

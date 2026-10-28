@@ -680,8 +680,10 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 这一档把这些间距改由元素自己的外边距表达：行收起就一个像素不占，显示时仍是原来的 12／16。
         var headerByMargin = sectionLibrary && !contentPage;
         var contentGap = new Thickness(0, 20, 0, 0);
-        // 搜索标题收起后首行直接放搜索框；保留顶部 32 DIP 窗口按钮区，再留 8 DIP 安全间隔。
-        PageRoot.Margin = search ? new Thickness(32, 40, 32, 20) : sectionLibrary ? new Thickness(20) : (Thickness)Application.Current.Resources["EgPageMargin"];
+        var pageMargin = (Thickness)Application.Current.Resources["EgPageMargin"];
+        // 顶部 32 DIP 供原生窗口按钮使用，再留 8 DIP；去掉搜索标题后内容仍整体上移。
+        PageRoot.Margin = search ? new Thickness(pageMargin.Left, 40, pageMargin.Right, pageMargin.Bottom)
+            : sectionLibrary ? new Thickness(20) : pageMargin;
         PageRoot.RowSpacing = search ? 0 : contentPage ? 4 : headerByMargin ? 0 : 20;
         HeaderGrid.RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
         HeaderLayout.RowSpacing = search || headerByMargin ? 0 : sectionLibrary ? 12 : 20;
@@ -694,9 +696,11 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 飞牛的筛选面板也在头部那一列里，但它有自己的 4 像素下边距；展开时补 16 上边距，
         // 收起时整行不占位置。
         FnNasFilterPanel.Margin = headerByMargin ? new Thickness(0, 16, 0, 4) : new Thickness(0, 0, 0, 4);
-        EmbyContent.Margin = search ? new Thickness(0, 12, 0, 0) : headerByMargin ? contentGap : new Thickness(0);
-        LibraryBusyBar.Margin = search ? new Thickness(0, 8, 0, 0) : headerByMargin ? contentGap : new Thickness(0);
-        LibraryNoticeBar.Margin = search ? new Thickness(0, 8, 0, 0) : headerByMargin ? contentGap : new Thickness(0);
+        // 搜索页没有标题和外卡；间距放在可见内容上，收起状态行不会留下空槽。
+        var searchGap = search ? new Thickness(0, 8, 0, 0) : new Thickness(0);
+        EmbyContent.Margin = headerByMargin ? contentGap : searchGap;
+        MoviePilotPanel.Margin = MoviePilotResources.Margin = AniBtPanel.Margin = searchGap;
+        LibraryBusyBar.Margin = LibraryNoticeBar.Margin = headerByMargin ? contentGap : searchGap;
         LibraryTitle.Visibility = search ? Visibility.Collapsed : Visibility.Visible;
         LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
         LibrarySectionsSurface.MaxWidth = width;
@@ -720,7 +724,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSitePicker.MaxWidth = formWidth < 520 ? 108 : 180;
         SearchSitePicker.SetCompact(SearchSitePicker.MaxWidth);
         SearchSurface.Margin = new Thickness(0, _searchOptionsCollapsed ? 4 : 8, 0, 0);
-        MoviePilotPanel.Margin = MoviePilotResources.Margin = AniBtPanel.Margin = new Thickness(0, 12, 0, 0);
+        MoviePilotPanel.Margin = MoviePilotResources.Margin = AniBtPanel.Margin = searchGap;
         SearchSurface.Width = formWidth;
         SearchSurface.MaxWidth = width;
         SearchEntry.Width = formWidth;

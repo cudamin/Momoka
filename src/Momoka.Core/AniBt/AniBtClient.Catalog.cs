@@ -45,6 +45,15 @@ public sealed partial class AniBtClient
         var detailRoot = detailDocument.RootElement;
         var detail = ParseCatalogAnime(Field(detailRoot, "initialAnime")) ?? throw InvalidResponse();
         detail = detail with { ExternalLinks = ParseExternalLinks(Field(detailRoot, "initialExternalIds")) };
+        // 小组头像只在详情里给出；用组织 ID 对齐分组，不按名称或响应顺序猜。
+        var groupLogos = new Dictionary<string, string?>(StringComparer.Ordinal);
+        if (Field(detailRoot, "initialGroups") is { ValueKind: JsonValueKind.Array } initialGroups)
+            foreach (var group in initialGroups.EnumerateArray())
+            {
+                var id = Text(group, "organizationId");
+                if (id.Length == 0) continue;
+                if (!groupLogos.TryAdd(id, ImageUrl(Text(group, "logoUrl")))) groupLogos[id] = null;
+            }
         using var groupsDocument = ParseJson(await RequestAsync("api/anime/groups?bgmId="
             + detail.BgmId.ToString(CultureInfo.InvariantCulture), null, false, cancellationToken).ConfigureAwait(false));
         var root = groupsDocument.RootElement;
@@ -88,7 +97,7 @@ public sealed partial class AniBtClient
                 ? new Uri(Origin, "rss/anime.xml?bgmId=" + detail.BgmId.ToString(CultureInfo.InvariantCulture)
                     + "&groupSlug=" + Uri.EscapeDataString(slug)) : null;
             results.Add(new AniBtReleaseGroup(id, name, slug, publishedEpisodes,
-                NonnegativeInt(group, "totalReleases") ?? items.Count, items, rss));
+                NonnegativeInt(group, "totalReleases") ?? items.Count, items, rss, groupLogos.GetValueOrDefault(id)));
         }
         return new AniBtGroupPage(detail, results);
     }

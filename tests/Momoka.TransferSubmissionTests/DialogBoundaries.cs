@@ -122,6 +122,8 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.Controls.InfoBar Problem { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ProgressRing PreviewRing { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement FormPanel { get; } = new();
+        internal Microsoft.UI.Xaml.FrameworkElement HistoryLookupPanel { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.TextBlock BatchSelectionSummary { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement EpisodeRow { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement PreviewList { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement ConfirmationPanel { get; } = new();

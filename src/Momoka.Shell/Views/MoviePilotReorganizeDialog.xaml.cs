@@ -11,6 +11,7 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
 {
     private readonly MoviePilotService _service;
     private readonly MoviePilotTransferContext _context;
+    private readonly IReadOnlyList<MoviePilotTransferHistory>? _initialHistories;
     private readonly CancellationTokenSource _lifetime = new();
     private IReadOnlyList<MoviePilotTransferHistory> _histories = [];
     private IReadOnlyList<MoviePilotTransferHistory> _relatedHistories = [];
@@ -26,10 +27,12 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
 
     public ObservableCollection<MoviePilotTransferLine> Lines { get; } = [];
 
-    internal MoviePilotReorganizeDialog(MoviePilotService service, MoviePilotTransferContext context)
+    internal MoviePilotReorganizeDialog(MoviePilotService service, MoviePilotTransferContext context,
+        IReadOnlyList<MoviePilotTransferHistory>? initialHistories = null)
     {
         _service = service;
         _context = context;
+        _initialHistories = initialHistories is null ? null : Array.AsReadOnly(initialHistories.ToArray());
         InitializeComponent();
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
         Title = $"手动重新整理 — {context.Title}";
@@ -49,6 +52,13 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
         Closed += (_, _) => _lifetime.Cancel();
         _initialized = true;
         EpisodeRow.Visibility = context.Type == MoviePilotTransferRequest.TypeSeries ? Visibility.Visible : Visibility.Collapsed;
+        if (_initialHistories is not null)
+        {
+            Title = $"批量重新整理 — {context.Title}（{_initialHistories.Count} 条）";
+            HistoryLookupPanel.Visibility = Visibility.Collapsed;
+            BatchSelectionSummary.Visibility = Visibility.Visible;
+            BatchSelectionSummary.Text = $"已选 {_initialHistories.Count} 条整理记录。季号与集数留空时，按每份资源的文件名识别。";
+        }
         UpdateSubmit();
     }
 
@@ -87,7 +97,14 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
             if (tmdb is null) MediaIdBox.Text = "";
             TargetPathBox.ItemsSource = _options.Directories.Select(directory => directory.Path).Distinct().ToList();
             _updating = false;
-            await FindHistoryAsync().ConfigureAwait(true);
+            if (_initialHistories is null) await FindHistoryAsync().ConfigureAwait(true);
+            else
+            {
+                MoviePilotSeriesTransfer.CreateContext(_context with { BrowseSeriesHistory = true }, _initialHistories);
+                _histories = _initialHistories;
+                _relatedHistories = _initialHistories;
+                await ApplyHistoryAsync().ConfigureAwait(true);
+            }
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { Say(Failure.Describe(error)); }

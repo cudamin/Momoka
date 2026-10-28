@@ -135,6 +135,14 @@ internal static class Program
             return MoviePilotEpisodeGroupPlaybackTests.Run();
         if (args is ["moviepilot-subscription-page-state-fixture", var subscriptionShell, var subscriptionRoot])
             return MoviePilotSubscriptionPageStateTests.Run(subscriptionShell, subscriptionRoot);
+        if (args is ["moviepilot-series-transfer-fixture"])
+        {
+            MoviePilotSeriesTransferTests.Register();
+            MoviePilotTransferTests.Register();
+            MoviePilotAuditTests.Register();
+            MoviePilotTransferSubmissionTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["moviepilot-transfer-submission-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -261,6 +269,7 @@ internal static class Program
         MoviePilotEpisodeGroupPlaybackTests.Register();
         MoviePilotAuditTests.Register();
         MoviePilotTransferTests.Register();
+        MoviePilotSeriesTransferTests.Register();
         MoviePilotTransferSubmissionTests.Register();
         MoviePilotVersionQueryTests.Register();
         MoviePilotEpisodePatternTests.Register();

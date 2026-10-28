@@ -45,13 +45,11 @@ public sealed partial class AniBtSearchPanel : UserControl
     internal Task SearchAsync(string keyword, int? episode = null)
     {
         ObserveAvailability();
-        ResourceBrowser.ClosePopups();
         return ViewModel.SearchAsync(keyword, episode);
     }
 
     internal void PrepareSearch()
     {
-        ResourceBrowser.ClosePopups();
         ViewModel.PrepareSearch();
     }
 
@@ -61,7 +59,6 @@ public sealed partial class AniBtSearchPanel : UserControl
         if (_observing && _moviePilot is { } service) service.AvailabilityChanged -= OnAvailabilityChanged;
         _observing = false;
         ViewModel.Cancel();
-        ResourceBrowser.ClosePopups();
     }
 
     private void ObserveAvailability()
@@ -81,8 +78,6 @@ public sealed partial class AniBtSearchPanel : UserControl
             if (_observing && attachment == _attachment && ReferenceEquals(sender, _moviePilot)) Release();
         });
     }
-
-    private void OnReturnToAnime(object sender, RoutedEventArgs args) => ResourceBrowser.ClosePopups();
 
     private void OnResultsLoaded(object sender, RoutedEventArgs args) => ResizeResults();
     private void OnResultsSizeChanged(object sender, SizeChangedEventArgs args) => ResizeResults();
@@ -104,18 +99,7 @@ public sealed partial class AniBtSearchPanel : UserControl
         Grid.SetRowSpan(HeroPoster, narrow ? 1 : 2);
         HeroPoster.Width = narrow ? 74 : 154;
         HeroPoster.Height = narrow ? 108 : 224;
-        AnimeHero.ColumnSpacing = narrow ? 12 : 22;
-    }
-
-    private void OnCopyRss(object sender, RoutedEventArgs args)
-    {
-        if (ViewModel.SelectedAnime is not { } anime || !ViewModel.ConnectionMatches) return;
-        try
-        {
-            new SystemClipboard().SetText($"https://anibt.net/rss/anime.xml?bgmId={anime.BgmId}");
-            ViewModel.RssCopied();
-        }
-        catch (Exception error) { ViewModel.RssCopied(error); }
+        AnimeHero.ColumnSpacing = narrow ? 12 : 16;
     }
 
     private void OnSearch(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args) =>
@@ -124,7 +108,6 @@ public sealed partial class AniBtSearchPanel : UserControl
     private void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
     {
         if (args.Reason != AutoSuggestionBoxTextChangeReason.UserInput) return;
-        ResourceBrowser.ClosePopups();
         ViewModel.PrepareSearch(preserveEpisode: true);
     }
 }

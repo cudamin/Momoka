@@ -63,7 +63,7 @@ public sealed record AniBtRelease(
 
 /// <summary>PublishedEpisodes 是服务端完整进度；Items 仅为该组最近最多 30 条发布。</summary>
 public sealed record AniBtReleaseGroup(string GroupId, string Name, string Slug,
-    IReadOnlyList<int> PublishedEpisodes, int TotalReleases, IReadOnlyList<AniBtRelease> Items, Uri? RssUri = null);
+    IReadOnlyList<int> PublishedEpisodes, int TotalReleases, IReadOnlyList<AniBtRelease> Items, Uri? RssUri = null, string? LogoUrl = null);
 
 public sealed record AniBtGroupPage(AniBtAnime Anime, IReadOnlyList<AniBtReleaseGroup> Groups);
 

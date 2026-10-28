@@ -17,6 +17,8 @@
             <StackPanel Padding="0,0,20,0" Spacing="12">
                 <ContentControl x:Name="FormPanel" HorizontalContentAlignment="Stretch">
                 <StackPanel Spacing="12">
+                    <TextBlock x:Name="BatchSelectionSummary" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
+                    <StackPanel x:Name="HistoryLookupPanel" Spacing="12">
                     <TextBlock Style="{StaticResource EgSubheadStyle}" Text="1. 找到原整理记录" />
                     <TextBlock Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
                         Text="先核对 MoviePilot 原记录，再修改识别信息。不会把 Emby 中的软链接当成新的下载文件。" TextWrapping="Wrap" />
@@ -27,6 +29,7 @@
                         DisplayMemberPath="Display" SelectionChanged="OnHistoryChanged" />
                     <TextBlock x:Name="HistorySummary" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                     <TextBox x:Name="OriginalSourceBox" Header="本次真正使用的源文件" IsReadOnly="True" TextWrapping="Wrap" />
+                    </StackPanel>
                     <TextBlock Style="{StaticResource EgSubheadStyle}" Text="2. 设置正确的媒体与季集" />
                     <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>

@@ -417,14 +417,14 @@ internal static partial class ItemCommands
                 shell.SearchAniBtVersions(item);
                 break;
 
-            // MoviePilot 手动整理：先把这个条目背后的文件和身份收齐（列表里的卡片没有路径），再交给外壳弹表单。
+            // 剧先带身份去 MoviePilot 选择历史资源；其他条目仍收齐原文件，再交给外壳弹表单。
             case ItemCommand.MoviePilotReorganize:
                 _ = GuardAsync(shell, "手动整理失败", async () =>
                 {
                     var context = await AskAsync(scope, (client, token) =>
                         MoviePilotTransferCollect.CollectAsync(client, item, token)).ConfigureAwait(true);
 
-                    if (context.Files.Count == 0)
+                    if (!context.BrowseSeriesHistory && context.Files.Count == 0)
                     {
                         shell.Notify($"「{item.Name}」背后没有找到可整理的文件", InfoBarSeverity.Warning);
                         return;

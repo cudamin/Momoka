@@ -368,6 +368,7 @@ internal static class MoviePilotTransferTests
 
             var context = Collect(transport, new EmbyItem { Id = "m1", Type = EmbyItemType.Movie, Name = "星际穿越" });
 
+            Assert.False(context.BrowseSeriesHistory);
             Assert.Equal("电影", context.Type);
             Assert.Equal("星际穿越", context.Title);
             Assert.Equal("157336", context.MediaId);
@@ -384,6 +385,7 @@ internal static class MoviePilotTransferTests
 
             Assert.Equal("电视剧", context.Type);
             Assert.Equal("某剧", context.Title);
+            Assert.False(context.BrowseSeriesHistory, "单集仍使用原文件整理表单");
             Assert.Equal("100", context.MediaId, "单集的 TMDB 号不能冒充剧的");
             Assert.Equal(1, context.Season);
             Assert.Equal("2", context.Episode);

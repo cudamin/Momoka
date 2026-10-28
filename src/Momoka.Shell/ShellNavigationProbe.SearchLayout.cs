@@ -192,15 +192,16 @@ internal sealed partial class ShellNavigationProbe
 
         void RequireSearchHeader(LibraryPage page)
         {
-            var surface = Get<Border>(page, "SearchSurface");
-            var box = Bounds(surface, Get<Grid>(page, "HeaderLayout"));
+            var search = Get<Border>(page, "SearchSurface");
+            var box = Bounds(search, Get<Grid>(page, "HeaderLayout"));
             Require(Get<TextBlock>(page, "LibraryTitle").Visibility == Visibility.Collapsed,
                 "搜索页左上标题仍可见");
-            Require(surface.Padding == new Thickness(0) && surface.BorderThickness == new Thickness(0)
-                && surface.Background is null && surface.BorderBrush is null, "搜索框仍套在长方形外卡中");
-            Require(Grid.GetRow(surface) == 0 && Math.Abs(box.Top - surface.Margin.Top) <= 1,
+            Require(search.Padding == new Thickness(0) && search.BorderThickness == new Thickness(0)
+                && search.Background is null && search.BorderBrush is null, "搜索框仍套在长方形外卡中");
+            Require(search.Margin.Top is 4 or 8 && Grid.GetRow(search) == 0
+                && Math.Abs(box.Top - search.Margin.Top) <= 1,
                 "搜索标题收起后仍占一行空白");
-            Require(Get<Grid>(page, "PageRoot").Margin.Top == 40 && Bounds(surface, page).Top >= 32,
+            Require(Get<Grid>(page, "PageRoot").Margin.Top == 40 && Bounds(search, page).Top >= 32,
                 "搜索组件没有整体上移或侵入窗口按钮区域");
         }
 

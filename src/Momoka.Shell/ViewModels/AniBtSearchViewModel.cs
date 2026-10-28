@@ -205,12 +205,6 @@ public sealed partial class AniBtSearchViewModel : PageViewModel
 
     internal int? Episode => _episode;
 
-    internal void RssCopied(Exception? error = null)
-    {
-        if (error is null) Notify(null, "已复制番剧 RSS 链接", InfoBarSeverity.Success);
-        else Report("复制 RSS 链接失败", error);
-    }
-
     internal void PrepareSearch(bool preserveEpisode = false)
     {
         var episode = preserveEpisode ? _episode : null;
@@ -285,6 +279,8 @@ public sealed partial class AniBtSearchViewModel : PageViewModel
         if (!_active || SelectedAnime is not { } anime || _launcher is null || !ConnectionMatches) return;
         var address = site switch
         {
+            "anibt" => $"https://anibt.net/anime/{anime.BgmId.ToString(CultureInfo.InvariantCulture)}"
+                + (Browser.ViewIndex == 1 ? "?tab=releases" : ""),
             "bangumi" => $"https://bgm.tv/subject/{anime.BgmId}",
             "official" => anime.OfficialSite,
             "AniDB" or "AniList" or "MyAnimeList" => anime.ExternalLinks.FirstOrDefault(link => link.Label == site)?.Uri.AbsoluteUri,

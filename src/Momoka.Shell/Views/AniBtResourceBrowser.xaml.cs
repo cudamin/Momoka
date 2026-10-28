@@ -1,5 +1,4 @@
 using Momoka.Shell.ViewModels;
-using Momoka.Shell.Platform;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
@@ -17,27 +16,12 @@ public sealed partial class AniBtResourceBrowser : UserControl
         Bindings.Update();
     }
 
-    internal void ClosePopups()
-    {
-        RssNotice.IsOpen = false;
-        foreach (var picker in new[] { EpisodeFilter, GroupFilter, ResolutionFilter, SortOrder })
-            picker.IsDropDownOpen = false;
-    }
+    // 直接绑定空 URL 会让 WinUI 的 string → ImageSource 转换抛异常；明确返回可空图片对象。
+    public static Microsoft.UI.Xaml.Media.Imaging.BitmapImage? CreateGroupLogo(string? address)
+        => AniBtArtwork.Create(address, 24);
 
-    private void OnCopyGroupRss(object sender, RoutedEventArgs args)
+    private void OnGroupLogoFailed(object sender, ExceptionRoutedEventArgs args)
     {
-        if (sender is not Button { Tag: AniBtResourceGroup { RssUri: { } uri } }) return;
-        try
-        {
-            new SystemClipboard().SetText(uri.AbsoluteUri);
-            RssNotice.Message = "已复制字幕组 RSS 链接";
-            RssNotice.Severity = InfoBarSeverity.Success;
-        }
-        catch (Exception error)
-        {
-            RssNotice.Message = "复制 RSS 链接失败：" + error.Message;
-            RssNotice.Severity = InfoBarSeverity.Error;
-        }
-        RssNotice.IsOpen = true;
+        if (sender is Image { Tag: AniBtResourceGroup group }) group.MarkLogoFailed();
     }
 }

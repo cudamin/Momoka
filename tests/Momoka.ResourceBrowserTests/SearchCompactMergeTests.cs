@@ -39,6 +39,24 @@ internal static class SearchCompactMergeTests
             Assert.Contains("NewMediaSearches(mp.Paths, beforeReturnSearch)", source);
             Assert.Contains("NewMediaSearches(mp.Paths, beforeRepeatSearch)", source);
             Assert.DoesNotContain("subscriptionPanel.ViewModel.SourceChoices", source);
+            // The merged selector adds 4/8 DIP at the top; probes must read that live margin
+            // while keeping the caption-button clearance and tight content gap strict.
+            Assert.Contains("Math.Abs(box.Top - search.Margin.Top) <= 1", source);
+            Assert.Contains("search.Margin.Top is 4 or 8", source);
+            Assert.Contains("Get<Grid>(page, \"PageRoot\").Margin.Top == 40", source);
+            Assert.Contains("Bounds(search, page).Top >= 32", source);
+            var aniBt = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/ShellNavigationProbe.AniBt.cs"));
+            Assert.Contains("Math.Abs(top - surface.Margin.Top) <= 1", aniBt);
+            Assert.Contains("surface.Margin.Top is 4 or 8", aniBt);
+            Assert.Contains("pageRoot.Margin.Top == 40", aniBt);
+            Assert.Contains("TransformToVisual(page).TransformPoint(default).Y >= 32", aniBt);
+            Assert.Contains("gap is >= 7 and <= 9", aniBt);
+            Assert.Contains("focusResults.Focus(FocusState.Programmatic)", aniBt);
+            var inputGuard = aniBt.IndexOf("selectionInput == \"离线动画\"", StringComparison.Ordinal);
+            var identityGuard = aniBt.IndexOf("panel.ViewModel.Results.Contains(firstAnime)", StringComparison.Ordinal);
+            var open = aniBt.IndexOf("await firstAnime.OpenCommand.ExecuteAsync(null)", StringComparison.Ordinal);
+            Assert.True(inputGuard >= 0 && identityGuard > inputGuard && open > identityGuard,
+                "番剧资源验证必须先核当前输入与原行身份，不得绕过结果守卫");
         });
 
         Test("搜索胶囊：隐藏搜索标题但保留普通媒体库标题绑定", () =>

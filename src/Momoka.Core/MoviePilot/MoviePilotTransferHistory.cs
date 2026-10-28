@@ -12,6 +12,12 @@ public sealed record MoviePilotTransferHistory
     public string Type { get; init; } = "";
     public string MediaSource { get; init; } = "";
     public string MediaId { get; init; } = "";
+    public string TmdbId { get; init; } = "";
+    public string Image { get; init; } = "";
+    public string Year { get; init; } = "";
+    public long? Size { get; init; }
+    public string SourceStorage { get; init; } = "";
+    public string TargetStorage { get; init; } = "";
     public string Seasons { get; init; } = "";
     public string Episodes { get; init; } = "";
     public string Mode { get; init; } = "";
@@ -40,6 +46,14 @@ public sealed record MoviePilotTransferHistory
             Type = Scalar(item, "type"),
             MediaSource = Scalar(item, "media_source"),
             MediaId = Scalar(item, "media_id"),
+            TmdbId = Scalar(item, "tmdbid"),
+            Image = Scalar(item, "image"),
+            Year = Scalar(item, "year"),
+            Size = FileSize(sourceFile) ?? FileSize(targetFile) ?? ScalarSize(item, "filesize"),
+            SourceStorage = Scalar(item, "src_storage") is { Length: > 0 } sourceStorage
+                ? sourceStorage : MoviePilotTransfer.Text(sourceFile, "storage"),
+            TargetStorage = Scalar(item, "dest_storage") is { Length: > 0 } targetStorage
+                ? targetStorage : MoviePilotTransfer.Text(targetFile, "storage"),
             Seasons = Scalar(item, "seasons"),
             Episodes = Scalar(item, "episodes"),
             Mode = Scalar(item, "mode"),
@@ -51,6 +65,11 @@ public sealed record MoviePilotTransferHistory
             TargetFile = targetFile
         };
     }
+
+    private static long? FileSize(JsonElement file) => ScalarSize(file, "size");
+
+    private static long? ScalarSize(JsonElement item, string name) =>
+        long.TryParse(Scalar(item, name), NumberStyles.None, CultureInfo.InvariantCulture, out var size) && size >= 0 ? size : null;
 
     internal static string Scalar(JsonElement item, string name)
     {
