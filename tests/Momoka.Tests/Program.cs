@@ -11,6 +11,13 @@ internal static class Program
             return TestHarnessTests.RunChild(scenario);
         if (args is ["activation-listener-fixture", var activationScenario])
             return ActivationListenerTests.RunChild(activationScenario);
+        if (args is ["input-focus-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            InputFocusThemeTests.Register();
+            NeutralFeedbackTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["composition-readiness-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -226,6 +233,7 @@ internal static class Program
         ScreenTests.Register();
         CardStripTests.Register();
         NeutralFeedbackTests.Register();
+        InputFocusThemeTests.Register();
         CardSizeTests.Register();
         WrapLayoutTests.Register();
         StartupArgsTests.Register();
