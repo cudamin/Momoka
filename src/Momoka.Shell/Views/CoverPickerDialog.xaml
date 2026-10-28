@@ -17,6 +17,8 @@
     DefaultButton="Primary">
 
     <ContentDialog.Resources>
+        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
         <!-- 默认的 548 只放得下两列封面。 -->
         <x:Double x:Key="ContentDialogMaxWidth">860</x:Double>
     </ContentDialog.Resources>

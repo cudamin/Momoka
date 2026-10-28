@@ -309,7 +309,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.ViewModel.Cards.Count == before.Length - 1);
             await LayoutAsync(page);
             Require(writes == 1 && reads == count && page.ViewModel.Cards.SequenceEqual(before.Where(card => card != removed)),
-                "删除重读分页或重建了未删除卡片");
+                $"删除重读分页或重建了未删除卡片：writes={writes}，reads={count}→{reads}，rows={before.Length}→{page.ViewModel.Cards.Count}，retained={page.ViewModel.Cards.SequenceEqual(before.Where(card => card != removed))}，offset={offset:0}→{scroll.VerticalOffset:0}，extent={scroll.ExtentHeight:0}，viewport={scroll.ViewportHeight:0}");
             Require(Math.Abs(scroll.VerticalOffset - offset) <= 1, $"删除跳动：{offset} → {scroll.VerticalOffset}");
             await SaveReturnFrameAsync(page, "delete-after.png");
             await SaveProbeScreenAsync("delete-after-screen.png");

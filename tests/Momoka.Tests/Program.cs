@@ -115,6 +115,13 @@ internal static class Program
             EmbyRealtimeTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["emby-metadata-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            EmbyMetadataEditorTests.Register();
+            DialogChromeTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["metadata-date-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -188,6 +195,7 @@ internal static class Program
         SubtitlePreviewTests.Register();
         EmbyTests.Register();
         ItemMetadataDateTests.Register();
+        EmbyMetadataEditorTests.Register();
         EmbyRealtimeTests.Register();
         FnNasProtocolTests.Register();
         FnNasLibraryInputTests.Register();

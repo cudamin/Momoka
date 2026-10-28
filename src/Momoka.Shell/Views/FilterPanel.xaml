@@ -170,7 +170,7 @@
         </local:FilterSectionTemplates>
     </UserControl.Resources>
 
-    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="12">
+    <Border x:Name="LibraryDialogSurface" Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />

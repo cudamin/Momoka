@@ -308,7 +308,7 @@ public sealed class ExternalIdInfo
     /// </summary>
     public string? Website { get; set; }
 
-    /// <summary>带占位符的网址模板（<c>https://www.imdb.com/title/{0}</c>）。这一版用不上，留着说明形状。</summary>
+    /// <summary>带占位符的网址模板；原生 Emby 元数据编辑器经 EmbyMetadataLink 转义并验证后使用。</summary>
     public string? UrlFormatString { get; set; }
 }
 

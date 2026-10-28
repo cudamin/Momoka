@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl x:Class="Momoka.Shell.Views.MetadataListEditor"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Momoka.Shell.Views">
+    <StackPanel Spacing="8">
+        <StackPanel.Resources>
+        <Flyout x:Name="DraftFlyout" x:Key="DraftFlyoutResource" Closed="OnDraftClosed" FlyoutPresenterStyle="{StaticResource EgLibraryFlyoutSurfaceStyle}">
+            <StackPanel Width="300" Spacing="12">
+                <TextBlock x:Name="DraftTitle" Style="{StaticResource EgSubheadStyle}" />
+                <TextBox x:Name="EntryNameBox" Header="名称" TextChanged="OnDraftEdited" KeyDown="OnDraftKeyDown" />
+                <TextBox x:Name="EntryRoleBox" Header="角色" KeyDown="OnDraftKeyDown" />
+                <ComboBox x:Name="EntryTypeBox" Header="人物类型" HorizontalAlignment="Stretch" />
+                <InfoBar x:Name="DraftProblem" IsClosable="False" IsOpen="False" Severity="Error" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="ApplyEntryButton" Content="确定" Click="OnApplyEntry" Style="{StaticResource EgPrimaryButtonStyle}" />
+                    <Button x:Name="CancelEntryButton" Content="取消" Click="OnCancelEntry" />
+                </StackPanel>
+            </StackPanel>
+        </Flyout>
+        </StackPanel.Resources>
+        <Grid ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="HeaderText" VerticalAlignment="Center" Style="{StaticResource EgSectionTitleStyle}" />
+            <Button x:Name="AddButton" Grid.Column="1" Content="添加" Click="OnAdd" />
+            <ToggleButton x:Name="LockToggle" Grid.Column="2" Width="36"
+                Checked="OnLockChanged" Unchecked="OnLockChanged" AutomationProperties.Name="锁定此组元数据">
+                <FontIcon x:Name="LockIcon" Glyph="&#xE785;" />
+            </ToggleButton>
+        </Grid>
+        <TextBlock x:Name="EmptyText" Text="尚未添加" Style="{StaticResource EgCaptionStyle}" />
+        <ListView x:Name="Entries" ItemsSource="{x:Bind Rows}" SelectionMode="Single"
+            CanDragItems="True" CanReorderItems="True" AllowDrop="True" ReorderMode="Enabled"
+            SelectionChanged="OnSelectionChanged" KeyDown="OnListKeyDown"
+            ScrollViewer.VerticalScrollMode="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Padding" Value="0" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="local:MetadataEntry">
+                    <Grid Padding="8" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{x:Bind Name}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+                            <TextBlock Text="{x:Bind Description}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}"
+                                Visibility="{x:Bind DescriptionVisibility}" />
+                        </StackPanel>
+                        <Button x:Name="EditEntry" Grid.Column="1" Tag="{x:Bind}" Click="OnEdit"
+                            Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="编辑此项" ToolTipService.ToolTip="编辑">
+                            <FontIcon Glyph="&#xE70F;" />
+                        </Button>
+                        <Button x:Name="RemoveEntry" Grid.Column="2" Tag="{x:Bind}" Click="OnRemove"
+                            Style="{StaticResource EgIconButtonStyle}" AutomationProperties.Name="移除此项" ToolTipService.ToolTip="移除">
+                            <FontIcon Glyph="&#xE738;" />
+                        </Button>
+                        <FontIcon Grid.Column="3" Glyph="&#xE700;" VerticalAlignment="Center"
+                            Foreground="{ThemeResource EgTextDimBrush}" AutomationProperties.Name="拖动调整顺序" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button x:Name="MoveUpButton" Content="上移" Click="OnMoveUp" Visibility="Collapsed" />
+            <Button x:Name="MoveDownButton" Content="下移" Click="OnMoveDown" Visibility="Collapsed" />
+        </StackPanel>
+
+    </StackPanel>
+</UserControl>

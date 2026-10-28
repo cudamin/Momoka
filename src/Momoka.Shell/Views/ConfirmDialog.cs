@@ -33,12 +33,17 @@ internal static class ConfirmDialog
     internal static ConfirmRequest For(FrameworkElement owner, Func<ContentDialog, Task<ContentDialogResult>>? show = null) =>
         (title, message, primary) => AskAsync(owner, title, message, primary, show);
 
+    /// <summary>Library-only confirmations; the ordinary/MP confirmation surface remains unchanged.</summary>
+    internal static ConfirmRequest ForLibrary(FrameworkElement owner, Func<ContentDialog, Task<ContentDialogResult>>? show = null) =>
+        (title, message, primary) => AskAsync(owner, title, message, primary, show, library: true);
+
     private static async Task<bool> AskAsync(
         FrameworkElement owner,
         string title,
         string message,
         string primary,
-        Func<ContentDialog, Task<ContentDialogResult>>? show)
+        Func<ContentDialog, Task<ContentDialogResult>>? show,
+        bool library = false)
     {
         // Read when the question is asked, not when the delegate was made: a page hands this out in its
         // constructor, which is long before it is in a tree with a root to put a dialog in.
@@ -64,6 +69,11 @@ internal static class ConfirmDialog
 
         try
         {
+            if (library)
+            {
+                dialog.Style = (Style)Application.Current.Resources["EgLibraryDialogSurfaceStyle"];
+                dialog.Resources["ContentDialogTopOverlay"] = Application.Current.Resources["LayerFillColorDefaultBrush"];
+            }
             var result = show is null ? await dialog.ShowAsync() : await show(dialog);
             return result == ContentDialogResult.Primary;
         }
