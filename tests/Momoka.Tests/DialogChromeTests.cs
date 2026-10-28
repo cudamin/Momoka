@@ -90,6 +90,28 @@ internal static class DialogChromeTests
             }
         });
 
+        Test("Emby元数据图标按钮：锁定和日期小格不继承文字按钮内边距", () =>
+        {
+            var folder = Path.Combine(Root(), "src", "Momoka.Shell", "Views");
+            var count = 0;
+            foreach (var file in new[] { "EmbyMetadataDialog.xaml", "MetadataListEditor.xaml" })
+            {
+                var buttons = XDocument.Load(Path.Combine(folder, file)).Descendants()
+                    .Where(element => element.Name.LocalName is "ToggleButton" or "Button"
+                        && element.Attribute("Width")?.Value == "36").ToArray();
+                foreach (var button in buttons)
+                {
+                    Assert.Equal("0", button.Attribute("Padding")?.Value, "小图标按钮不能用文字按钮的11 DIP内边距");
+                    Assert.Equal("32", button.Attribute("Height")?.Value, "去掉文字内边距后仍须保持正常按钮高度");
+                    Assert.Equal("Center", button.Attribute("HorizontalContentAlignment")?.Value);
+                    Assert.Equal("Center", button.Attribute("VerticalContentAlignment")?.Value);
+                    Assert.True(button.Elements().Any(element => element.Name.LocalName == "FontIcon"));
+                    count++;
+                }
+            }
+            Assert.Equal(9, count, "七个字段锁、列表锁和加入日期按钮应全部覆盖");
+        });
+
         Test("媒体库弹窗：编辑子浮层同色圆角但不污染全局Flyout", () =>
         {
             var style = Styles().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgLibraryFlyoutSurfaceStyle");

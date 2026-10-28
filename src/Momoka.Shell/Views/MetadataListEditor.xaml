@@ -27,7 +27,7 @@
             </Grid.ColumnDefinitions>
             <TextBlock x:Name="HeaderText" VerticalAlignment="Center" Style="{StaticResource EgSectionTitleStyle}" />
             <Button x:Name="AddButton" Grid.Column="1" Content="添加" Click="OnAdd" />
-            <ToggleButton x:Name="LockToggle" Grid.Column="2" Width="36"
+            <ToggleButton x:Name="LockToggle" Grid.Column="2" Width="36" Height="32" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                 Checked="OnLockChanged" Unchecked="OnLockChanged" AutomationProperties.Name="锁定此组元数据">
                 <FontIcon x:Name="LockIcon" Glyph="&#xE785;" />
             </ToggleButton>

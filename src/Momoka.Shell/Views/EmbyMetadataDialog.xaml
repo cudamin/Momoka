@@ -25,10 +25,11 @@
             HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Padding="0,0,16,8" Spacing="16">
                 <TextBlock x:Name="ItemPathText" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                <!-- Icon-only 36 DIP buttons cannot inherit the text-button's 11 DIP side padding. -->
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBox x:Name="NameBox" Header="标题"  TextChanged="OnEdited" />
-                    <ToggleButton x:Name="NameLock" Grid.Column="1" Tag="Name" Width="36" VerticalAlignment="Bottom"
+                    <ToggleButton x:Name="NameLock" Grid.Column="1" Tag="Name" Width="36" Height="32" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Bottom"
                         Checked="OnLockChanged" Unchecked="OnLockChanged" AutomationProperties.Name="锁定此字段，阻止自动刷新覆盖">
                         <FontIcon Glyph="&#xE785;" />
                     </ToggleButton>
@@ -36,7 +37,7 @@
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBox x:Name="SortNameBox" Header="排序标题" PlaceholderText="留空则由服务器自动生成" TextChanged="OnEdited" />
-                    <ToggleButton x:Name="SortNameLock" Grid.Column="1" Tag="SortName" Width="36" VerticalAlignment="Bottom"
+                    <ToggleButton x:Name="SortNameLock" Grid.Column="1" Tag="SortName" Width="36" Height="32" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Bottom"
                         Checked="OnLockChanged" Unchecked="OnLockChanged" AutomationProperties.Name="锁定此字段，阻止自动刷新覆盖">
                         <FontIcon Glyph="&#xE785;" />
                     </ToggleButton>
@@ -44,7 +45,7 @@
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBox x:Name="DateCreatedBox" Header="加入日期" PlaceholderText="2026-10-28 17:33:45" TextChanged="OnEdited" />
-                    <Button x:Name="PickCreatedDateButton" Grid.Column="1" Width="36" VerticalAlignment="Bottom"
+                    <Button x:Name="PickCreatedDateButton" Grid.Column="1" Width="36" Height="32" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Bottom"
                         AutomationProperties.Name="选择加入日期和时间" ToolTipService.ToolTip="选择日期和时间">
                         <FontIcon Glyph="&#xE787;" />
                         <Button.Flyout>
@@ -68,7 +69,7 @@
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBox x:Name="CommunityRatingBox" Header="社区评分" PlaceholderText="0 – 10" TextChanged="OnEdited" />
-                    <ToggleButton x:Name="CommunityRatingLock" Grid.Column="1" Tag="CommunityRating" Width="36" VerticalAlignment="Bottom"
+                    <ToggleButton x:Name="CommunityRatingLock" Grid.Column="1" Tag="CommunityRating" Width="36" Height="32" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Bottom"
                         Checked="OnLockChanged" Unchecked="OnLockChanged" AutomationProperties.Name="锁定此字段，阻止自动刷新覆盖">
                         <FontIcon Glyph="&#xE785;" />
                     </ToggleButton>
@@ -76,7 +77,7 @@
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBox x:Name="OverviewBox" Header="概要" AcceptsReturn="True" Height="156" TextWrapping="Wrap" TextChanged="OnEdited" />
-                    <ToggleButton x:Name="OverviewLock" Grid.Column="1" Tag="Overview" Width="36" VerticalAlignment="Bottom"
+                    <ToggleButton x:Name="OverviewLock" Grid.Column="1" Tag="Overview" Width="36" Height="32" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Bottom"
                         Checked="OnLockChanged" Unchecked="OnLockChanged" AutomationProperties.Name="锁定此字段，阻止自动刷新覆盖">
                         <FontIcon Glyph="&#xE785;" />
                     </ToggleButton>
@@ -88,7 +89,7 @@
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <ComboBox x:Name="OfficialRatingBox" Header="家长评分" HorizontalAlignment="Stretch" SelectionChanged="OnChoiceChanged" />
-                    <ToggleButton x:Name="OfficialRatingLock" Grid.Column="1" Tag="OfficialRating" Width="36" VerticalAlignment="Bottom"
+                    <ToggleButton x:Name="OfficialRatingLock" Grid.Column="1" Tag="OfficialRating" Width="36" Height="32" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Bottom"
                         Checked="OnLockChanged" Unchecked="OnLockChanged" AutomationProperties.Name="锁定此字段，阻止自动刷新覆盖">
                         <FontIcon Glyph="&#xE785;" />
                     </ToggleButton>
@@ -102,7 +103,7 @@
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBox x:Name="OriginalTitleBox" Header="原始标题"  TextChanged="OnEdited" />
-                    <ToggleButton x:Name="OriginalTitleLock" Grid.Column="1" Tag="OriginalTitle" Width="36" VerticalAlignment="Bottom"
+                    <ToggleButton x:Name="OriginalTitleLock" Grid.Column="1" Tag="OriginalTitle" Width="36" Height="32" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Bottom"
                         Checked="OnLockChanged" Unchecked="OnLockChanged" AutomationProperties.Name="锁定此字段，阻止自动刷新覆盖">
                         <FontIcon Glyph="&#xE785;" />
                     </ToggleButton>
@@ -110,7 +111,7 @@
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                     <TextBox x:Name="CriticRatingBox" Header="影评指数" PlaceholderText="0 – 100" TextChanged="OnEdited" />
-                    <ToggleButton x:Name="CriticRatingLock" Grid.Column="1" Tag="CriticRating" Width="36" VerticalAlignment="Bottom"
+                    <ToggleButton x:Name="CriticRatingLock" Grid.Column="1" Tag="CriticRating" Width="36" Height="32" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" VerticalAlignment="Bottom"
                         Checked="OnLockChanged" Unchecked="OnLockChanged" AutomationProperties.Name="锁定此字段，阻止自动刷新覆盖">
                         <FontIcon Glyph="&#xE785;" />
                     </ToggleButton>

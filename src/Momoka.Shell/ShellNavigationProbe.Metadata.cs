@@ -27,6 +27,21 @@ internal sealed partial class ShellNavigationProbe
                 var scroll = Get<ScrollViewer>(dialog, "EditorScroll");
                 Require(!dialog.Edit.ApplyTo((JsonObject)json.DeepClone()), "打开完整表单不应改变任何字段");
                 Require(Get<TextBlock>(dialog, "ItemPathText").Text.Contains("E04", StringComparison.Ordinal), "文件路径未展示");
+                Get<Expander>(dialog, "AdditionalFields").IsExpanded = true;
+                await LayoutAsync(dialog);
+                MetadataIconButtonsFit(dialog);
+                Get<Expander>(dialog, "AdditionalFields").IsExpanded = false;
+                // A negative control on the real template proves the check catches text-button padding.
+                var lockButton = Get<ToggleButton>(dialog, "NameLock");
+                lockButton.Padding = new Thickness(11, 5, 11, 6);
+                await LayoutAsync(dialog);
+                var rejected = false;
+                try { MetadataIconButtonsFit(dialog); }
+                catch (InvalidOperationException) { rejected = true; }
+                finally { lockButton.Padding = new Thickness(0); }
+                Require(rejected, "锁图标内边距负对照未被识别");
+                await LayoutAsync(dialog);
+                MetadataIconButtonsFit(dialog);
                 Require(Get<TextBox>(dialog, "NameBox").Text == "正因为我全裸两次，才领悟到一个道理……",
                     "标题未从服务器整份元数据读入");
                 Require(Get<ToggleButton>(dialog, "NameLock").IsChecked == true
@@ -219,6 +234,33 @@ internal sealed partial class ShellNavigationProbe
             { ["Id"] = $"person-{i}", ["Name"] = names[i], ["Role"] = roles[i], ["Type"] = "Actor", ["Future"] = "preserved" });
         return item;
     }
+
+    private static void MetadataIconButtonsFit(EmbyMetadataDialog dialog)
+    {
+        foreach (var control in Descendants(dialog).OfType<Control>().Where(control =>
+            control is Button or ToggleButton && IconOf(control) is not null && control.Width == 36))
+        {
+            var icon = IconOf(control)!;
+            var reference = new FontIcon { Glyph = icon.Glyph, FontFamily = icon.FontFamily, FontSize = icon.FontSize };
+            reference.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+            var size = reference.DesiredSize;
+            var bounds = icon.TransformToVisual(control).TransformBounds(new(0, 0, icon.ActualWidth, icon.ActualHeight));
+            Require(control.Padding == new Thickness(0) && control.HorizontalContentAlignment == HorizontalAlignment.Center
+                && control.VerticalContentAlignment == VerticalAlignment.Center, "图标小格仍继承了文字按钮内边距");
+            Require(icon.ActualWidth + 0.5 >= size.Width && icon.ActualHeight + 0.5 >= size.Height,
+                $"{control.Name} 图标自然尺寸 {size.Width:0.0}×{size.Height:0.0} 被裁成 {icon.ActualWidth:0.0}×{icon.ActualHeight:0.0}");
+            Require(bounds.Left >= 0 && bounds.Top >= 0 && bounds.Right <= control.ActualWidth + 0.5
+                && bounds.Bottom <= control.ActualHeight + 0.5,
+                $"{control.Name} 图标越出按钮：{bounds}，按钮 {control.ActualWidth:0.0}×{control.ActualHeight:0.0}");
+        }
+    }
+
+    private static FontIcon? IconOf(Control control) => control switch
+    {
+        Button button => button.Content as FontIcon,
+        ToggleButton toggle => toggle.Content as FontIcon,
+        _ => null
+    };
 
     private static Button MetadataButton(ContentDialog dialog, string name) => Descendants(dialog).OfType<Button>().Single(button =>
         button.Name == name && Equals(button.Content, name == "PrimaryButton" ? dialog.PrimaryButtonText : dialog.CloseButtonText));
