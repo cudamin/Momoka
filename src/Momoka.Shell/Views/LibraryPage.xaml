@@ -333,7 +333,13 @@
                             QuerySubmitted="OnSearchSubmitted"
                             TextChanged="OnSearchTextChanged"
                             Text="{x:Bind ViewModel.SearchText, Mode=OneWay}"
-                            Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}" />
+                            Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
+                            <!-- 只收起搜索框的强调色焦点描边；保留输入光标、框架模板与其他输入框的焦点反馈。 -->
+                            <AutoSuggestBox.Resources>
+                                <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
+                                <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                            </AutoSuggestBox.Resources>
+                        </AutoSuggestBox>
 
                         <!-- 结果来源：库里的 Emby，还是去 MoviePilot 找新片。见 LibraryPage.OnSourceChanged。 -->
                         <tkcontrols:Segmented

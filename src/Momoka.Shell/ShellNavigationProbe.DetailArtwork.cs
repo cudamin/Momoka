@@ -72,6 +72,14 @@ internal sealed partial class ShellNavigationProbe
                         });
                     }
                     await LayoutAsync(page);
+                    // 图片移除和断点切换可能保留旧滚动锚点。这里测页顶按钮，先等待实际回到页顶。
+                    var scroll = Get<ScrollView>(page, "Body");
+                    await ScrollProbeAsync(scroll, 0);
+                    await UntilAsync(() =>
+                    {
+                        page.UpdateLayout();
+                        return scroll.VerticalOffset < 1;
+                    });
                     Require(width == 0 || Math.Abs(page.ViewModel.PageWidth - width) < 0.6,
                         $"没有到达目标页面宽度 {width}，实际 {page.ViewModel.PageWidth:0.0}");
 
