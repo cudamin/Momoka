@@ -322,24 +322,27 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <AutoSuggestBox
-                            x:Name="SearchInput"
-                            Grid.ColumnSpan="2"
-                            x:Uid="LibrarySearchBox"
-                            HorizontalAlignment="Stretch"
-                            CornerRadius="12"
-                            VerticalAlignment="Center"
-                            QueryIcon="Find"
-                            QuerySubmitted="OnSearchSubmitted"
-                            TextChanged="OnSearchTextChanged"
-                            Text="{x:Bind ViewModel.SearchText, Mode=OneWay}"
-                            Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
-                            <!-- 只收起搜索框的强调色焦点描边；保留输入光标、框架模板与其他输入框的焦点反馈。 -->
-                            <AutoSuggestBox.Resources>
-                                <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
-                                <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
-                            </AutoSuggestBox.Resources>
-                        </AutoSuggestBox>
+                        <Grid x:Name="SearchEntry" Grid.ColumnSpan="2">
+                            <AutoSuggestBox
+                                x:Name="SearchInput"
+                                x:Uid="LibrarySearchBox"
+                                HorizontalAlignment="Stretch"
+                                CornerRadius="12"
+                                VerticalAlignment="Center"
+                                QueryIcon="Find"
+                                QuerySubmitted="OnSearchSubmitted"
+                                TextChanged="OnSearchTextChanged"
+                                Text="{x:Bind ViewModel.SearchText, Mode=OneWay}"
+                                Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
+                                <!-- 只收起搜索框的强调色焦点描边；保留输入光标、框架模板与其他输入框的焦点反馈。 -->
+                                <AutoSuggestBox.Resources>
+                                    <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
+                                    <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                                </AutoSuggestBox.Resources>
+                            </AutoSuggestBox>
+                            <local:MoviePilotSitePicker x:Name="SearchSitePicker"
+                                VerticalAlignment="Center" Visibility="Collapsed" />
+                        </Grid>
 
                         <!-- 结果来源：库里的 Emby，还是去 MoviePilot 找新片。见 LibraryPage.OnSourceChanged。 -->
                         <tkcontrols:Segmented
@@ -349,7 +352,7 @@
                             SelectedIndex="0"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
-                            Visibility="{x:Bind ViewModel.MoviePilotTabsVisibility, Mode=OneWay}">
+                            Visibility="Collapsed">
                             <tkcontrols:SegmentedItem AutomationProperties.Name="媒体库搜索"><TextBlock Text="媒体库" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                             <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 订阅搜索"><TextBlock Text="MoviePilot 订阅" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                             <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 资源搜索"><TextBlock Text="MoviePilot 资源" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>

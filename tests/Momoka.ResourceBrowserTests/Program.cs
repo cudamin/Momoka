@@ -18,7 +18,7 @@ internal static class Program
     private static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
-        if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] != "anibt-layout")
+        if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] is not ("anibt-layout" or "search-sites"))
             || !File.Exists(Path.Combine(args[0], "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml")))
         {
             Console.Error.WriteLine("请提供当前本树根目录；本夹具不猜测其它树的模板或输出。");
@@ -36,7 +36,10 @@ internal static class Program
             AniBtResourceLayoutTests.Register(sourceRoot);
             return Run();
         }
-        Console.WriteLine("资源搜索真实源码/生成命令与模板契约；无窗口、配置、登录、网络或下载副作用");
+        Console.WriteLine("资源搜索真实源码/生成命令与模板契约；只用匿名内存HTTP及隔离临时设置，无窗口、登录、联网或下载副作用");
+        SearchSitePreferenceTests.Register();
+        if (args is [_, "search-sites"]) return Run();
+        SearchCompactMergeTests.Register(sourceRoot);
         ResourceSortMenuTests.Register(sourceRoot);
         foreach (var meta in new[] { false, true })
         {

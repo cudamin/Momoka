@@ -71,6 +71,7 @@ public sealed class LibMpvBackend(
         cancellationToken.ThrowIfCancellationRequested();
         IntPtr context = IntPtr.Zero;
         MpvCustomConfig? customConfig = null;
+        IDisposable? svpLease = null;
         try
         {
             var dllPath = ResolveLibMpv() ?? throw new InvalidOperationException(Validate() ?? $"找不到 {LibraryName}");
@@ -84,6 +85,11 @@ public sealed class LibMpvBackend(
             var dllFolder = Path.GetDirectoryName(dllPath) ?? "";
             LibMpvNative.UseLibrary(dllPath);
             LibMpvNative.EnsureDependencyDirectories(dllFolder, AppContext.BaseDirectory);
+            if (request.SvpEnabled)
+            {
+                if (customConfig is not null) throw new InvalidOperationException("SVP 接入不能与自定义 mpv.conf 同时启用");
+                svpLease = MpvSvpRuntime.Prepare(request.SvpVapourSynthPath);
+            }
 
             context = LibMpvNative.mpv_create();
             if (context == IntPtr.Zero) throw new InvalidOperationException("mpv_create 返回了空句柄");
@@ -119,9 +125,17 @@ public sealed class LibMpvBackend(
             PruneEvents(context, keepClientMessage: uiOptions is not null || MpvDanmaku.Exists(AppContext.BaseDirectory));
 
             var (surface, pipelineOptions) = ApplyOptions(context, request, uiOptions, customConfig);
+            if (request.SvpEnabled)
+            {
+                var ipcError = LibMpvNative.mpv_set_option_string(context, "input-ipc-server", MpvSvp.PipePath);
+                if (ipcError < 0) throw new InvalidOperationException("内置播放器拒绝了 SVP 接入通道，未启动播放");
+            }
 
             var error = LibMpvNative.mpv_initialize(context);
             if (error < 0) throw new InvalidOperationException($"mpv 初始化失败：{Describe(error)}");
+            if (request.SvpEnabled)
+                // Continue on the caller's UI context: handle.Start attaches the WinUI surface.
+                await MpvSvpRuntime.VerifyPipeAsync(cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
 
             // 四条 keybind 得等 mpv 起来之后再发：它们不是启动选项（没有 initialize 之前的写法），而是输入层
@@ -174,8 +188,9 @@ public sealed class LibMpvBackend(
             var signature = Signature(settings, playback, request, uiOptions ?? []) with { UsesCustomConfig = customConfig is not null };
             var handle = new LibMpvHandle(context, surface, signature,
                 next => Signature(settings, playback, next, uiOptions ?? []))
-            { CustomConfig = customConfig };
+            { CustomConfig = customConfig, SvpLease = svpLease };
             customConfig = null;
+            svpLease = null;
             context = IntPtr.Zero;
             try { handle.Start(request, cancellationToken); }
             catch
@@ -194,8 +209,15 @@ public sealed class LibMpvBackend(
         }
         finally
         {
-            if (context != IntPtr.Zero) LibMpvNative.mpv_terminate_destroy(context);
-            customConfig?.Dispose();
+            try
+            {
+                if (context != IntPtr.Zero) LibMpvNative.mpv_terminate_destroy(context);
+            }
+            finally
+            {
+                try { customConfig?.Dispose(); }
+                finally { svpLease?.Dispose(); }
+            }
         }
     }
 
@@ -373,7 +395,11 @@ public sealed class LibMpvBackend(
             [.. uiOptions],
             settings.Pipeline == VideoPipelineKind.Standalone ? [.. MpvSeekKeys.Bindings(playback)] : [],
             Baseline(request.PlayerOptions, request.ShaderOptionCount))
-        { Backend = settings.Backend, UsesCustomConfig = MpvCustomConfig.IsAvailable(settings) && settings.CustomConfigEnabled };
+        {
+            Backend = settings.Backend,
+            UsesCustomConfig = MpvCustomConfig.IsAvailable(settings) && settings.CustomConfigEnabled,
+            UsesSvp = request.SvpEnabled || MpvSvp.IsEnabled(settings)
+        };
 
     internal static IReadOnlyList<int> UnusedEvents { get; } =
     [
@@ -495,6 +521,7 @@ internal sealed class LibMpvHandle(
     Func<PlaybackRequest, PlaybackLaunchSignature>? signatureFor) : IPlaybackHandle, IPlayerControl, IPlayerHostMessages, IFileScopedPlayerControl
 {
     internal MpvCustomConfig? CustomConfig { get; init; }
+    internal IDisposable? SvpLease { get; init; }
     private const string Category = "mpv";
     private const int ClientMessageMaxArgs = 32;
 
@@ -1537,7 +1564,11 @@ internal sealed class LibMpvHandle(
     private void Destroy() => _apiGate.Destroy(() =>
     {
         try { LibMpvNative.mpv_terminate_destroy(context); }
-        finally { CustomConfig?.Dispose(); }
+        finally
+        {
+            try { CustomConfig?.Dispose(); }
+            finally { SvpLease?.Dispose(); }
+        }
     });
 
     private void JoinWorker(TimeSpan timeout)

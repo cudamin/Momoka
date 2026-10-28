@@ -54,6 +54,15 @@ internal static class Program
             return PlayerVolumeGestureTests.RunTracks(trackShell, trackRoot);
         if (args is ["player-volume-gesture-fixture", var volumeShell, var volumeRoot])
             return PlayerVolumeGestureTests.Run(volumeShell, volumeRoot);
+        if (args is ["svp-pipe-child", var svpPipe]) return SvpRuntimeTests.RunPipeChild(svpPipe);
+        if (args is ["svp-native-fixture", var svpNative]) return SvpRuntimeTests.RunNative(svpNative);
+        if (args is ["svp-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            SvpTests.Register();
+            SvpRuntimeTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["audio-output-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -245,6 +254,8 @@ internal static class Program
         MediaVersionTests.Register();
         ReleaseGroupTests.Register();
         InlineSwitchTests.Register();
+        SvpTests.Register();
+        SvpRuntimeTests.Register();
         WindowFormTests.Register();
         PinIndicatorTests.Register();
         AboutTests.Register();

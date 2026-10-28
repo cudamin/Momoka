@@ -77,11 +77,11 @@ internal sealed partial class ShellNavigationProbe
             frame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, item));
             return Task.CompletedTask;
         });
-        Add("InspectResources", "资源搜索", () =>
+        Add("InspectResources", "资源搜索", async () =>
         {
+            await ConnectMoviePilotAsync(fixture);
             frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services));
             Get<CommunityToolkit.WinUI.Controls.Segmented>((LibraryPage)frame.Content, "SourceTabs").SelectedIndex = 2;
-            return Task.CompletedTask;
         });
         Add("InspectFile", "单集文件", () =>
         {

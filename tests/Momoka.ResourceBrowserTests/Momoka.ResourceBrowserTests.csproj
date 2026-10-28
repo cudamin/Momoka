@@ -13,6 +13,7 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\AniBtResourceViewModel.cs" Link="Production\AniBtResourceViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceViewModel.cs" Link="Production\MoviePilotResourceViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotVersionsViewModel.cs" Link="Production\MoviePilotVersionsViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceBrowserViewModel.cs" Link="Production\MoviePilotResourceBrowserViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceGroup.cs" Link="Production\MoviePilotResourceGroup.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceFacet.cs" Link="Production\MoviePilotResourceFacet.cs" />

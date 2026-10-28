@@ -225,16 +225,17 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
         Subtitles.Clear();
         ShowEmptyNotice = false;
 
-        if (!SearchSites.HasSelection)
-        {
-            EmptyNotice = "请先选择搜索站点，或使用 MoviePilot 默认站点";
-            ShowEmptyNotice = true;
-            EndLoad(token);
-            return;
-        }
-
         try
         {
+            await SearchSites.PrepareSelectionAsync().ConfigureAwait(true);
+            if (!IsCurrent(token)) return;
+            if (!SearchSites.HasSelection)
+            {
+                EmptyNotice = "请先选择搜索站点，或使用 MoviePilot 默认站点";
+                ShowEmptyNotice = true;
+                EndLoad(token);
+                return;
+            }
             if (_options?.Subtitles == true)
             {
                 Subtitles.Clear();

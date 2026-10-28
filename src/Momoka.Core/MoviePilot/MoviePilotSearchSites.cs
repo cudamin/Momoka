@@ -1,5 +1,8 @@
 using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using Momoka.Configuration;
 
 namespace Momoka.MoviePilot;
 
@@ -18,6 +21,41 @@ public sealed record MoviePilotSiteSelection(string ConnectionStamp, IReadOnlyLi
 
 public sealed partial class MoviePilotService
 {
+    public MoviePilotSearchSitePreference SearchSitePreference(string? mediaType = null)
+    {
+        var key = SearchSitePreferenceKey(mediaType);
+        var saved = key is null ? null : _settings.MoviePilot.SearchSitePreferences?.GetValueOrDefault(key);
+        return new()
+        {
+            UseDefault = saved?.UseDefault ?? true,
+            SiteIds = CleanSiteIds(saved?.SiteIds)
+        };
+    }
+
+    public void SaveSearchSitePreference(string connectionStamp, string? mediaType, bool useDefault, IEnumerable<int> siteIds)
+    {
+        RequireResultConnection(connectionStamp);
+        var key = SearchSitePreferenceKey(mediaType);
+        if (key is null) return;
+        _settings.MoviePilot.SearchSitePreferences ??= new(StringComparer.Ordinal);
+        _settings.MoviePilot.SearchSitePreferences[key] = new()
+        {
+            UseDefault = useDefault,
+            SiteIds = CleanSiteIds(siteIds)
+        };
+        _saveSettings?.Invoke();
+    }
+
+    private string? SearchSitePreferenceKey(string? mediaType)
+    {
+        if (!MoviePilotAddress.TryNormalize(_settings.MoviePilot.Url, out var address, out _) || address is null) return null;
+        // Password rotation and reconnects must keep choices; another server/account must not inherit IDs.
+        var identity = JsonSerializer.Serialize(new[] { address.AbsoluteUri, _settings.MoviePilot.Username?.Trim() ?? "", mediaType ?? "" });
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(identity)));
+    }
+
+    private static List<int> CleanSiteIds(IEnumerable<int>? ids) => ids?.Where(id => id > 0).Distinct().Order().ToList() ?? [];
+
     public async Task<IReadOnlyList<MoviePilotSearchSite>> SearchSitesAsync(string? mediaType, CancellationToken cancellationToken)
     {
         var path = mediaType switch

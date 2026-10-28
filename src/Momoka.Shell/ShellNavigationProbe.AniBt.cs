@@ -281,6 +281,8 @@ internal sealed partial class ShellNavigationProbe
                 await SizeAsync(page, width);
                 CheckCompactSearch(page, panel);
                 var search = Get<Border>(page, "SearchSurface");
+                page.ExpandSearchOptions();
+                await LayoutAsync(page);
                 Require(tabs.ActualWidth <= search.ActualWidth + 1, "四个搜索栏超出搜索区域");
                 var list = Get<GridView>(panel, "AnimeResults");
                 Require(Descendants(list).OfType<Button>().Any(button => button.Name == "OpenAnimeResources"
@@ -615,7 +617,8 @@ internal sealed partial class ShellNavigationProbe
                 && surface.BorderThickness == new Thickness(0) && surface.Padding == new Thickness(0)
                 && surface.Background is null, "搜索标题或外层卡片未删除");
             var top = surface.TransformToVisual(pageRoot).TransformPoint(default).Y;
-            Require(Math.Abs(top) <= 1 && pageRoot.Margin.Top is >= 32 and <= 40,
+            Require(surface.Margin.Top is 4 or 8 && Math.Abs(top - surface.Margin.Top) <= 1
+                && pageRoot.Margin.Top == 40,
                 "搜索组件没有整体上移或侵入窗口按钮区域");
             Require(surface.TransformToVisual(page).TransformPoint(default).Y >= 32,
                 "搜索输入与原生窗口按钮重叠");

@@ -26,6 +26,7 @@ public sealed partial class RecentSearchRow
 
 public sealed partial class LibraryViewModel
 {
+    internal Func<string, Task>? SubmitRecentSearch { get; set; }
     public ObservableCollection<RecentSearchRow> RecentSearches { get; } = [];
     public Visibility RecentSearchVisibility => Show(_request?.IsSearch == true && SearchText.Length == 0);
     public Visibility ClearRecentVisibility => Show(RecentSearches.Count > 0);
@@ -104,7 +105,7 @@ public sealed partial class LibraryViewModel
     {
         if (!_active || row.Card.Scope is not { IsAvailable: true } scope || !row.Card.IsCurrent) return;
         if (row.Entry.ItemId is null)
-            await SearchAsync(row.Entry.Term).ConfigureAwait(true);
+            await (SubmitRecentSearch?.Invoke(row.Entry.Term) ?? SearchAsync(row.Entry.Term)).ConfigureAwait(true);
         else
         {
             RecentSearch.Remember(_settings!.Settings.Ui, scope.Connection, row.Entry.Term, row.Card.Item);

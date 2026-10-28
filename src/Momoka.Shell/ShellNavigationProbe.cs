@@ -165,6 +165,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("视频基础输出显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760), 45, section: ShellProbeSections.Settings);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, true), 30, section: ShellProbeSections.Settings);
             await CaseAsync("自定义 mpv.conf 显隐与恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, true), 30, section: ShellProbeSections.Settings);
+            await CaseAsync("SVP 补帧显隐与偏好恢复（宽窗）", () => SettingsVideoAvailabilityAsync(1100, svpOnly: true), 45, section: ShellProbeSections.Svp);
+            await CaseAsync("SVP 补帧显隐与偏好恢复（窄窗）", () => SettingsVideoAvailabilityAsync(760, svpOnly: true), 45, section: ShellProbeSections.Svp);
             await CaseAsync("非管理员账号隐藏服务器管理入口", SettingsAdministrationGateAsync, 45);
             await CaseAsync("多服务器设置按服务器分组、默认收起与权限隐藏", MultiServerSettingsGroupsAsync, 45);
             await CaseAsync("飞牛非默认来源读取保存与改密离页确认", FnNasExplicitSourceAsync, 45);

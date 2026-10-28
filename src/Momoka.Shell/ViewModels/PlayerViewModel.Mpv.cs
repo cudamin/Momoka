@@ -540,6 +540,8 @@ public sealed partial class PlayerViewModel
     /// rather than claiming the whole row did nothing.
     /// </para>
     /// </summary>
+    internal bool PlayingWithSvp => _playback.PlayingWithSvp;
+
     internal Task RunMenuNodeAsync(PlayerMenuNode node)
     {
         var context = CaptureInteraction();
@@ -551,6 +553,7 @@ public sealed partial class PlayerViewModel
         try
         {
             if (!IsCurrentInteraction(context)) return;
+            if (PlayingWithSvp && node.Commands.Any(MpvSvp.BlocksCommand)) return;
             if (!ShaderStateKnown && node.Commands.Any(command => command.Count > 1
                 && ShaderGroupCatalog.NeutralOptions.Any(option => option.Key == command[1])))
             {

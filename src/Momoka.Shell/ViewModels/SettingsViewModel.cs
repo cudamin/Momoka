@@ -1111,9 +1111,8 @@ public sealed partial class SettingsViewModel : PageViewModel
         // 建卡次序照左栏那份（CardCategories，用户令 2026-10-11 排的序），好让分类走查、Cards 分组这些
         // 按 Sections 次序读数的地方与屏上的次序是同一份。同一分类的多张分区卡连着排：主页两张（轮播图 /
         // 主页版面）、播放行为五张（播放行为 / 跳转与步长 / 音轨 / 资源筛选 / 截图）、视频输出四张（基础输出 /
-        // 补帧 / HDR / 画质与着色器）、音频输出三张（输出设备 / 响度 / 直通）、字幕四张（字幕 / 字幕外观 /
-        // 编码与画面 / 实时字幕翻译）、弹幕三张、关于四张。补帧紧跟在基础输出后面：它管的是同一条输出链上的
-        // 下一段，而且它读到的基础值就是那张卡显示的那几个。
+        // 画质与着色器 / HDR / 补帧）、音频输出三张（输出设备 / 响度 / 直通）、字幕四张（字幕 / 字幕外观 /
+        // 编码与画面 / 实时字幕翻译）、弹幕三张、关于四张。视频输出按用户指定次序：着色器在 HDR 上方，补帧在最后。
         Sections.Clear();
         AddCards(HomeSections());
         Sections.Add(InterfaceCard());
@@ -1123,9 +1122,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         Sections.Add(ResourceFilterCard());
         Sections.Add(ScreenshotCard());
         Sections.Add(VideoCard());
-        Sections.Add(FrameInterpolationCard());
-        Sections.Add(ApplicableHdrCard());
         Sections.Add(ApplicableShaderCard());
+        Sections.Add(ApplicableHdrCard());
+        Sections.Add(FrameInterpolationCard());
         AddCards(AudioSections());
         AddCards(SubtitleSections());
         if (Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv || Settings.Mpv.EnableIpc) AddCards(SubtitleTranslationSections());
@@ -1366,7 +1365,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         {
             rows.Add(Toggle("启用自定义 mpv.conf", "读取指定文件中的音视频参数，覆盖本程序的常规播放设置；窗口与播放控制仍由 Momoka 管理。",
                 () => Settings.Mpv.CustomConfigEnabled, value => Settings.Mpv.CustomConfigEnabled = value,
-                after: RefreshCustomMpvConfig));
+                after: RefreshVideoBackend));
             if (Settings.Mpv.CustomConfigEnabled)
                 rows.Add(PathBox("mpv.conf 路径", "选择并粘贴 mpv.conf 的完整路径",
                     () => Settings.Mpv.CustomConfigPath, value => Settings.Mpv.CustomConfigPath = value,

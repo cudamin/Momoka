@@ -66,6 +66,7 @@ public sealed partial class PlaybackService(
     public bool IsPlaying => _current is not null;
     public bool? PictureInHostWindow => _current?.PictureInHostWindow;
     public MpvBackendKind? PlayingBackend => _active?.BackendKind;
+    public bool PlayingWithSvp => _active?.Request.SvpEnabled == true;
     public PlayerStatus Status => (_current as IPlayerControl)?.Status ?? new PlayerStatus();
     public bool CanControl => _current is IPlayerControl and IPlaybackHandle { HasControlChannel: true };
     public bool ReadsOverlap => _current?.ReadsOverlap ?? false;
@@ -252,6 +253,8 @@ public sealed partial class PlaybackService(
     public Task SetPropertyAsync(string name, object? value)
     {
         var handle = _current;
+        if (PlayingWithSvp && MpvSvp.BlocksCommand(["set", name,
+            Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? ""])) return Task.CompletedTask;
         return handle is null ? Task.CompletedTask : SetPropertyAsync(handle, Generation, name, value);
     }
 
@@ -397,7 +400,7 @@ public sealed partial class PlaybackService(
 
     public async Task<bool> CommandAsync(params string[] arguments)
     {
-        if (_current is not IPlayerControl control) return false;
+        if (_current is not IPlayerControl control || PlayingWithSvp && MpvSvp.BlocksCommand(arguments)) return false;
         try { return await control.CommandAsync(arguments, CancellationToken.None).ConfigureAwait(false); }
         catch (Exception error)
         {

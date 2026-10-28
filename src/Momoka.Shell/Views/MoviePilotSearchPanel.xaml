@@ -9,21 +9,21 @@
     xmlns:vm="using:Momoka.Shell.ViewModels">
     <Grid>
         <!-- 资源层打开时整块收起，包括搜索结果和空态，避免键盘落进被遮住的内容。 -->
-        <Grid x:Name="SearchContent" RowSpacing="12">
+        <Grid x:Name="SearchContent">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
-            <ProgressBar Height="2" IsIndeterminate="True"
+            <ProgressBar Height="2" Margin="0,0,0,8" IsIndeterminate="True"
                 Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
-            <InfoBar Grid.Row="1" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+            <InfoBar Grid.Row="1" Margin="0,0,0,8" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
                 Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
                 Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-            <StackPanel Grid.Row="2" Spacing="4" Margin="0,0,0,2">
+            <StackPanel Grid.Row="2" Spacing="4" Margin="0,0,0,12">
                 <TextBlock Text="{x:Bind ViewModel.Heading, Mode=OneWay}"
                     Style="{StaticResource EgSubheadStyle}" TextTrimming="CharacterEllipsis" />
                 <TextBlock Text="{x:Bind ViewModel.ResultCount, Mode=OneWay}"
