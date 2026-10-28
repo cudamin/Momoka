@@ -39,6 +39,30 @@ internal static class Program
                 Assert.False(secondary.Any(row => row.Command == ItemCommand.AniBtScrape));
                 Assert.Equal(2, secondary.Single(row => row.Command == ItemCommand.MoviePilotVersions).Children!.Count);
             });
+        foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+            foreach (var type in new[] { EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
+                Case(kind + "非动漫" + type + "菜单直接调用内置识别，保留可用性及当前来源守卫", () =>
+                {
+                    using var f = new EntryFixture(_root, knownAnime: false, kind: kind);
+                    f.Card.Item.Type = type;
+                    f.Card.Item.Genres.Add("剧情");
+                    var menu = f.Build();
+                    Assert.Equal("AniBT 识别", menu.Items.OfType<MenuFlyoutItem>()
+                        .Single(row => row.Tag is ItemCommand.AniBtScrape).Text);
+                    Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions));
+                    menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
+                    Assert.Equal(1, f.Actions.Scrapes);
+                    Assert.Equal(0, f.Transport.Reads + f.Transport.Writes + f.Transport.Unexpected);
+                    f.Actions.SetMoviePilot(false);
+                    Assert.False(f.HasScrape(f.Build()));
+                    f.Actions.SetMoviePilot(true);
+                    Assert.True(f.HasScrape(f.Build()));
+                    f.Select(f.B);
+                    Assert.False(f.HasScrape(f.Build()));
+                    f.DirectScrape();
+                    Assert.Equal(1, f.Actions.Scrapes);
+                    return Task.CompletedTask;
+                });
         Case("打开时MP同步断线不留下后续来源监听", () =>
         {
             using var f = new EntryFixture(_root);
@@ -210,7 +234,10 @@ internal static class Program
             f.Transport.Release();
             await SynchronizationContextIdle();
             Assert.True(wasClosed);
-            Assert.False(f.HasScrape(menu));
+            Assert.True(f.HasScrape(menu));
+            Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any());
+            menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
+            Assert.Equal(0, f.Actions.Scrapes);
             Assert.Equal(0, f.SourceListeners);
         });
         Case("来源切走切回GET先于Hide回调也不能增加旧识别", async () =>
@@ -224,7 +251,10 @@ internal static class Program
             f.Select(f.A);
             f.Transport.Release();
             await SynchronizationContextIdle();
-            Assert.False(f.HasScrape(menu));
+            Assert.True(f.HasScrape(menu));
+            Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any());
+            menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
+            Assert.Equal(0, f.Actions.Scrapes);
             while (held.TryDequeue(out var action)) action();
             Assert.False(menu.OpenForFixture);
         });
@@ -252,14 +282,17 @@ internal static class Program
             Assert.Equal(1, f.Transport.Reads);
             Assert.Equal(0, f.Transport.Writes + f.Transport.Unexpected);
         });
-        Case("当前延迟动画补读正常增加识别", async () =>
+        Case("当前非动漫识别即时显示，延迟动画补读只增加搜索不重复识别", async () =>
         {
             using var f = new EntryFixture(_root, knownAnime: false);
             var menu = f.Show();
+            Assert.True(f.HasScrape(menu));
             await f.Transport.Started.Task;
             f.Transport.Release();
             await SynchronizationContextIdle();
             Assert.True(f.HasScrape(menu));
+            Assert.Equal(1, menu.Items.Count(row => row.Tag is ItemCommand.AniBtScrape));
+            Assert.True(menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions));
             Assert.Equal(1, f.Transport.Reads);
         });
         foreach (var change in new[] { "switch", "revoke", "close", "disconnect" })
@@ -277,7 +310,9 @@ internal static class Program
                 }
                 f.Transport.Release();
                 await SynchronizationContextIdle();
-                Assert.False(f.HasScrape(menu));
+                Assert.True(f.HasScrape(menu));
+                Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any());
+                menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
                 Assert.Equal(0, f.Actions.Scrapes);
                 Assert.Equal(0, f.Transport.Writes + f.Transport.Unexpected);
             });

@@ -34,7 +34,8 @@ internal sealed partial class ShellNavigationProbe
             Name = "离线示例动画 · 第一集",
             Type = EmbyItemType.Episode,
             SeriesId = "anime-series",
-            Genres = ["动画"],
+            // Deliberately misclassified: identification must not depend on an anime genre.
+            Genres = ["剧情"],
             Path = "/library/Test.S01E01.mkv",
             IndexNumber = 1,
             ParentIndexNumber = 1
@@ -45,7 +46,7 @@ internal sealed partial class ShellNavigationProbe
             Name = "离线库内整剧",
             Type = EmbyItemType.Series,
             ProductionYear = 2024,
-            Genres = ["动画"]
+            Genres = ["剧情"]
         };
         fixture.Transport.Reply = async (request, token) =>
         {
@@ -77,8 +78,49 @@ internal sealed partial class ShellNavigationProbe
         var scope = fixture.Session.Capture();
         AniBtScrapeDialog? dialog = null;
         Task<ContentDialogResult>? shown = null;
+        MenuFlyout? menu = null;
+        var shell = new ShellPage();
+        shell.Attach(fixture.Services);
+        var anchor = new Button
+        {
+            Content = "非动漫剧集菜单",
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(120, 80, 0, 0)
+        };
+        _root.Children.Add(shell);
+        _root.Children.Add(anchor);
+        var topMost = _window!.TopMost;
         try
         {
+            _window.TopMost = true;
+            foreach (var width in new[] { 1040, 760 })
+            {
+                ResizeProbeClient(width, 800);
+                await LayoutAsync(anchor);
+                foreach (var type in new[] { EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
+                {
+                    var subject = scope.Bind(new EmbyItem { Id = "non-anime-menu", Type = type, Genres = ["剧情"] });
+                    menu = ItemCommands.Build(fixture.Session, shell, anchor, new CardItem(subject, fixture.Images, 170));
+                    var entry = menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape);
+                    Require(entry.Text == "AniBT 识别"
+                        && !menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions),
+                        "非动漫剧、季或单集没有直接识别入口，或误放宽 AniBT 版本搜索");
+                    menu.ShowAt(anchor);
+                    await LayoutAsync(anchor);
+                    Require(FrameworkElementAutomationPeer.CreatePeerForElement(entry).GetName() == "AniBT 识别",
+                        "非动漫识别菜单没有可定位的 UIA 名称");
+                    await SaveProbeScreenAsync($"anibt-non-anime-menu-{type}-{width}.png");
+                    var closed = Pending<bool>();
+                    menu.Closed += (_, _) => closed.TrySetResult(true);
+                    menu.Hide();
+                    await closed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                    await UntilAsync(() => !VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                        .Any(popup => popup.Child is MenuFlyoutPresenter));
+                }
+            }
+            _root.Children.Remove(anchor);
+            _root.Children.Remove(shell);
             dialog = new AniBtScrapeDialog(service, scope, item) { XamlRoot = _root.XamlRoot };
             shown = MoviePilotDialog.ShowAsync(dialog, mp);
             await UntilAsync(() => dialog.ViewModel.IsReady);
@@ -162,6 +204,13 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
+            menu?.Hide();
+            _window.TopMost = topMost;
+            _root.Children.Remove(anchor);
+            _root.Children.Remove(shell);
+            Call(shell, "StopMoviePilotMonitoring");
+            Call(shell, "ReleaseContent");
+            shell.SignInRoot.Detach();
             aniBt.CancelDelays();
             dialog?.Hide();
             if (shown is not null) await shown;

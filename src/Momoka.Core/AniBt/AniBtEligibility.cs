@@ -9,6 +9,11 @@ public static class AniBtEligibility
     public static bool Supports(EmbyItem item) =>
         item.Type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode;
 
+    /// <summary>识别可用于修正误分类的剧、季和单集；电影仍只对动漫开放，不放宽版本搜索的类型条件。</summary>
+    public static bool CanIdentify(EmbyItem item, bool animeGenre = false) =>
+        Supports(item) && (item.Type is EmbyItemType.Series or EmbyItemType.Season or EmbyItemType.Episode
+            || animeGenre || HasGenre(item));
+
     public static bool HasGenre(EmbyItem item) => item.Genres.Any(genre =>
         genre.Contains("动画", StringComparison.Ordinal) || genre.Contains("动漫", StringComparison.Ordinal));
 

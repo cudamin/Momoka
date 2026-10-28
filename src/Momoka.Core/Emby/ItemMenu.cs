@@ -310,8 +310,9 @@ public static class ItemMenu
         {
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
                 [new(ItemCommand.MoviePilotVersions, "MoviePilot"), new(ItemCommand.AniBtVersions, "AniBT")]);
-            if (canScrape) rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         }
+        if (canScrape && AniBt.AniBtEligibility.CanIdentify(item, animeGenre))
+            rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         return rows;
     }
 
