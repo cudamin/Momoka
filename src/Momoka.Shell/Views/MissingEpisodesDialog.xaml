@@ -62,6 +62,7 @@
 
         <ListView x:Name="List"
             Grid.Row="1"
+            Padding="{StaticResource EgScrollBarLane}"
             MaxHeight="440"
             IsItemClickEnabled="False"
             SelectionMode="None">

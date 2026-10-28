@@ -92,6 +92,7 @@
         </ItemsControl>
         <Grid Grid.Row="2">
             <ItemsView x:Name="ResourceList" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
+                Padding="{StaticResource EgScrollBarLane}"
                 SelectionMode="None" IsItemInvokedEnabled="False" ItemTransitionProvider="{x:Null}">
                 <ItemsView.Layout>
                     <UniformGridLayout MinItemWidth="236" MinItemHeight="364" MinRowSpacing="12" MinColumnSpacing="12"
@@ -142,9 +143,9 @@
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock Text="{x:Bind SizeText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" VerticalAlignment="Center" />
                                     <TextBlock Text="身份待核对" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center"
-                                        Visibility="{x:Bind DownloadProblemVisibility}" ToolTipService.ToolTip="{x:Bind DownloadProblem}" />
+                                        Visibility="{x:Bind DownloadProblemVisibility, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind DownloadProblem}" />
                                     <Button x:Name="DownloadResource" Grid.Column="1" Content="{x:Bind DownloadLabel, Mode=OneWay}" Command="{x:Bind DownloadCommand}"
-                                        Visibility="{x:Bind DownloadVisibility}" AutomationProperties.Name="{x:Bind DownloadAutomationName}" Padding="8,4" MinHeight="30"
+                                        Visibility="{x:Bind DownloadVisibility, Mode=OneWay}" AutomationProperties.Name="{x:Bind DownloadAutomationName}" Padding="8,4" MinHeight="30"
                                         FontSize="{StaticResource EgCaptionFontSize}" />
                                     <Button x:Name="OpenTorrentPage" Grid.Column="2" Command="{x:Bind OpenDetailsCommand}" Width="30" Height="30" Padding="0"
                                         AutomationProperties.Name="{x:Bind DetailsAutomationName}" Visibility="{x:Bind DetailsVisibility}" ToolTipService.ToolTip="{x:Bind DetailsHint}">

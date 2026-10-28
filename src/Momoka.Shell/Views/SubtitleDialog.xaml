@@ -12,6 +12,7 @@
 
     <!-- 整张表可滚动；正文宽高按 XamlRoot 收缩，不让小窗口裁掉搜索和关闭按钮。 -->
     <ScrollViewer x:Name="SubtitleScroll"
+        Padding="{StaticResource EgScrollBarLane}"
         HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
         VerticalScrollBarVisibility="Auto">
         <StackPanel x:Name="SubtitleBody" MinWidth="260" Spacing="16">
@@ -105,6 +106,7 @@
             </TextBlock>
 
             <ListView x:Name="Results" MaxHeight="280" SelectionMode="None" Visibility="Collapsed"
+                Padding="{StaticResource EgScrollBarLane}"
                 ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollMode="Disabled"
                 AutomationProperties.Name="字幕搜索结果">
                 <ListView.ItemTemplate>

@@ -250,6 +250,18 @@
     <Thickness x:Key="EgPageMargin">32,28,32,28</Thickness>
 
     <!--
+      页面级滚动条的车道。WinUI 的竖向滚动条压在滚动内容的右缘上（ScrollBarSize 12 +
+      ScrollViewerScrollBarsMargin / ScrollViewScrollBarsMargin 两边各 1），内容不留出这条带子，
+      卡片、行尾按钮和开关就被它盖住。20 = 12 + 2 + 6 的空隙，和设置页 2026-10-27 那个
+      「滚动条独立槽位」是同一个数。
+
+      用法：滚动容器的 Padding 右值，或滚动内容的 Margin 右值 —— ItemsView 的 Padding 落在
+      ItemsRepeater 的 Margin 上，ScrollViewer / ListView 的 Padding 落在内容或 ItemsPresenter 的
+      Margin 上，两种都只收内容、不动滚动条。滚动条随后仍贴着滚动区右缘，只是内容不再伸到它底下。
+    -->
+    <Thickness x:Key="EgScrollBarLane">0,0,20,0</Thickness>
+
+    <!--
       一块板／一张卡里面留多宽。和页边同一个数（XL），所以页边、框线、内边距叠起来是 24 + 1 + 24 —— 板上的
       字和页头的字差 25，看起来是「缩进了一格」而不是「差了几像素」。
       单独一个键而不是直接引 <c>EgSpaceXL</c>：<c>Padding</c> 要的是 Thickness，而刻度那六个是 Double，

@@ -6,7 +6,7 @@
     Title="请选择订阅季" PrimaryButtonText="{x:Bind ViewModel.SubmitButtonText, Mode=OneWay}" CloseButtonText="取消" DefaultButton="Close"
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}" PrimaryButtonClick="OnSubmit">
     <ContentDialog.Resources><x:Double x:Key="ContentDialogMaxWidth">740</x:Double></ContentDialog.Resources>
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <ScrollViewer Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="16">
             <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}" TextWrapping="Wrap" />
             <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.SubscribeProgressVisibility, Mode=OneWay}" />

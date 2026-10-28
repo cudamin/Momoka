@@ -7,6 +7,22 @@
 - 当前开发件 `--probe-shell --probe-section anibt --screen 1` 三项全过，退出 0：`%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-054558597-26700/logs/shell-probe.json`。1040／360 DIP 的真实屏幕截图 `anibt-resources-*-screen.png` 与渲染帧均已查看；方钮靠右、宽高与状态更新、头像解码、缺失与真实 ImageFailed 收起通过。使用本地头像及匿名假传输，不执行真实下载、整理写入或播放。
 - 独立树完整资源测试另有既有 R034 模板不一致（30/31），主树已有另一任务的对应模板和测试修正；未修改该任务文件来洗绿，整合时须对主树最终模板重验完整资源测试。主树仍有另一会话写入，本提交仅封存本次实现；实际交付目录待该会话结束写入后整合、重验并发布，不能把独立树开发件算作快捷方式交付。
 
+### AniBT 最终整合验证（2026-10-28）
+
+- 已整合主干 `b07340f` 的已提交改动，保留滚动条车道和订阅搜索来源移除；主工作区其他未提交内容未带入。仅在实际资源模板补充 `DownloadVisibility`／`DownloadProblemVisibility` 的 OneWay，并将既有 R034 测试与现行短标签＋完整原因 tooltip 对齐；完整资源测试 31/31，0 失败／0 跳过。
+- MoviePilot 最小修复对照官方前端 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 的 AddDownloadDialog.vue／spec 与后端 `be65e047b0e64b216420ba38bec7a087409552ff` 的 download.py：保留状态更新、具体失败原因和来源身份拒绝，不改下载流程；真实部署版本未核定。
+- 最终代码的当前 Release Shell／主测试／资源测试编译均为 0 警告、0 错误；主测试 3070/3070，0 失败／0 跳过。`--probe-shell --probe-section anibt,moviepilot,search --screen 1` 39/39，退出 0，报告 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-061540165-26564/logs/shell-probe.json`；1040／360 DIP 实屏截图已核对。本会话负责用该整合树刷新实际 `C:/Users/89400/Momoka/artifacts/publish/win-x64`，刷新前再次确认目标程序未运行。
+
+## 滚动条让出卡片：资源搜索页先改、全站页面扫查（2026-10-28）
+
+- 用户令「资源搜索页面的滚动条要靠右，别跟卡片重叠」，随后要求「检查项目所有页面的滚动条」。本轮只动布局留白与探针，不改滚动行为、数据、下载或播放。
+- **统一车道**：`Theme/Styles.xaml` 新增 `EgScrollBarLane`（`0,0,20,0`）。WinUI 的竖向滚动条压在滚动内容右缘（`ScrollBarSize` 12 + 两边各 1），20 = 12 + 2 + 6 的空隙，与设置页 2026-10-27 那个「滚动条独立槽位」同一个数。ItemsView 的 `Padding` 落在 ItemsRepeater 的 Margin 上，ScrollViewer / ListView / GridView 的 `Padding` 落在内容或 ItemsPresenter 上，所以都只收内容、不动滚动条；滚动条仍贴滚动区右缘。
+- **搜索与卡片墙**：MoviePilot 资源结果（搜索页「MoviePilot 资源」与一部片的资源覆盖层）、MoviePilot 订阅搜索海报、媒体库卡片墙、推荐／收藏／预告三张滚动页、最近搜索、AniBT 番剧网格与番剧详情滚动、资源覆盖层的字幕列表都补了车道。媒体库卡片墙另在 `LibraryPage.ApplyWallMetrics` 与预告／收藏的宽度回调里减掉 `Padding.Right`，否则版面按多出 20 像素算格宽、卡片对不上格子（library 探针当场红，修正后 18/18）。
+- **其余页面**：服务器、通知、诊断日志与运行详情浮层、登录页发现服务器列表、飞牛媒体库／用户／任务／设置／偏好／改密、MoviePilot 季选择／下载确认／编辑订阅／整理、字幕／识别／元数据／合集／封面／通知编辑／遗漏集／AniBT 整理／飞牛匹配与版本、弹幕面板都补了同一车道。主页（13 像素窄条槽）、设置页（20 像素槽）、详情页与两张订阅页（纸张／页边距 28–32，滚动条落在留白里）本来就不压内容，未改。弹出式下拉（站点、分面、高级筛选、排序与筛选值）保持框架自带的小浮层，不在此列。
+- **探针**：`MoviePilotSearchCardsAsync` 新增 `RequireScrollBarLane`，在 1280／760／360 三档量滚动条右缘与卡片右缘——滚动条贴右（与 ItemsView 右缘差 ≤2），卡片不得伸进滚动条左侧；资源卡是拉伸铺满的，`requireBar: true` 把三档都钉死，海报结果没有溢出时不强求有滚动条。
+- **验证**：Shell Release **0 警告 0 错误**；探针 search **13/13**（`%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-051752881-9076`）、moviepilot **23/23**（`…051807127-20128`）、library **18/18**（`…051113611-3844`，含卡片墙格宽与卡片对格）、settings **22/22**（`…051417585-10096`）、shell **12/12**（`…051349624-10088`）、anibt **3/3**（`…051324438-10888`），全部 0 失败；Core `Momoka.Tests` **3057/3057**、`Momoka.PageContractTests` **98/98**，0 失败 0 跳过；改动的 C# 文件定向 `format whitespace` 退出 0、`git diff --check` 干净。实图核对 `mp-search-resources-{1280,760,360}-screen.png`、`search-compact-resources-{1040,360}-screen.png`、`anibt-resources-360-render.png`、`mp-subscribe-season-picker-760.png`、`servers-summary-render.png` 等：滚动条在右缘车道、卡片与开关让开。
+- **未做／边界**：没有真实媒体库的多卡截图（假库夹具每类只有一张卡，卡片墙的格宽由 library 探针几何读数覆盖，车道与资源页是同一种 ItemsView Padding）。完整闸门 1／4、自检、发布未跑。工作树里另有搜索站点／搜索头那一批未提交改动，本轮只提交本任务的文件与差异；交付目录与桌面快捷方式仍是旧版。
+
 ## MoviePilot 订阅搜索点封面进订阅页、首次读取转圈（2026-10-28）
 
 - 用户令「订阅的搜索页面要支持点击封面进入对应媒体的订阅页面」；随后补充「点击进入订阅页面时候需要时间加载，添加动画过度」，并选定方案 A（唯一对上的订阅随行，其余进媒体页）与「只做转圈」。本轮只动这两件事，不碰真实服务器、订阅写入或播放。
@@ -8534,3 +8550,14 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **测试**：新增 `tests/Momoka.Tests/DialogChromeTests.cs` 三条——基础样式的四个 Setter；源码里每个 `: ContentDialog` 派生类（除下载弹窗）都有对应样式行；只有下载弹窗保留本地四值，其余 XAML 根不另写。
 - **验证**：Release 全方案构建 **0 警告 0 错误**；完整离线套件 **3057/3057、0 失败 0 跳过**；隔离发布（`work/dialog-chrome`，未碰交付目录）后 `--probe-shell --probe-section moviepilot --screen 1` **23/23 通过**（`shell-probe-20261028-034301980-23352`）。实拍核对 `mp-subscribe-season-picker-{760,360,none-760,failed-760}` 已是 EgSurface 底 + 16 圆角，`mp-download-{options,720}-screen` 与改前一致。第一次探针跑完后确认了「派生类型没吃到隐式样式」这一条，返工后重发重跑才全绿。
 - **交付**：按用户当次选择**只提交、不刷新 `artifacts/publish/win-x64`** —— 工作区另有上一批未提交改动（LibraryPage／PosterCard／MoviePilot 资源浏览等，最后修改 10:15），不把未收尾的工作一起发布；桌面快捷方式仍是旧版。未升级版本号、未推送 origin、未建 Release 或商店包。
+
+
+## 删除订阅搜索页右下角来源筛选（2026-10-28）
+
+- **用户要求**：删除截图中 MoviePilot 订阅搜索面板右侧的「来源」标签和「全部来源」下拉框；上方媒体库 / MoviePilot 订阅 / MoviePilot 资源 / AniBT 四个标签保持不变。
+- **改动**：删除 SourceFilter 及其右侧 Auto 列，将标题和结果计数直接铺满该行；退役这个面板独有的来源目录读取、选中项、自动重搜和下拉关闭接线。搜索不传 media_source，沿用服务器默认范围；结果卡的来源身份、来源文字及下载确认中的来源选择保持原样。对应 UIA 基线只删除已退役的 SourceFilter 一行，保留其余句柄检查。
+- **上游对照**：读取官方前端 v3 HEAD `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 的 SearchBarDialog.vue 与 SearchBarDialog.spec.ts、后端 v3 HEAD `be65e047b0e64b216420ba38bec7a087409552ff` 的 app/api/endpoints/media.py；前端未勾选来源时省略 media_source，后端空选择转为 None 交给搜索链。本次依用户要求有意不保留前端的手动多来源选择。未连接真实 MoviePilot，未核定部署版本，不声称全功能同步。
+- **新增覆盖**：订阅专项新增三项，检查来源控件和空列退役、首次 / 刷新 / 清空重搜不带来源参数或来源目录请求、同编号跨来源结果仍独立。搜索探针改为核默认范围与切回 / 重复提交，新拍 1040 / 360 两档真实屏幕；来源栏布局后的 IME 夹具先实际聚焦并等待布局落定，仍保留组合上屏、未上屏回退和离页取消覆盖。
+- **开发验证**：Release 全方案 0 警告 / 0 错误，主测试 3057/3057、订阅专项 72/72、页面源码契约 98/98、资源浏览专项 34/34，均 0 失败 / 0 跳过；完整空白检查通过。最终开发件 `--probe-shell --probe-section search,moviepilot --screen 1` 36/36 通过（shell-probe-20261028-055331358-3416），已目视核对 search-subscription-no-source-{1040,360}-screen.png。
+- **验证返工**：第一次重复传 probe-section 被启动守卫拒绝，未运行产品；隐藏启动导致实屏取样被遮挡检查拒绝，未放宽守卫。改为可见诊断后 IME 夹具揭示前序布局的迟到 LostFocus；先聚焦并等待布局后重跑才 36/36 全绿。其余探针分区与真实服务器播放未执行。
+- **协作与交付**：主树另有搜索紧凑布局、站点偏好等未提交工作，仅暂存本次差异，不夹带那些改动；实际交付采用本次提交的隔离构建再验，进度在验证完毕后补记。未升级版本号、未推送 origin、未建 Release 或商店包。

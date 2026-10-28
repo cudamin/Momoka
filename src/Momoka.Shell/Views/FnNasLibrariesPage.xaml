@@ -40,7 +40,7 @@
                         <Button x:Name="FnNasLibrariesRefresh" Content="刷新" Command="{x:Bind ViewModel.RefreshCommand}" />
                     </StackPanel>
                 </StackPanel>
-                <ListView x:Name="FnNasLibrariesList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.Libraries, Mode=OneWay}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnLibraryClick" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}" HorizontalContentAlignment="Stretch">
+                <ListView x:Name="FnNasLibrariesList" Grid.Row="1" ItemsSource="{x:Bind ViewModel.Libraries, Mode=OneWay}" Padding="{StaticResource EgScrollBarLane}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnLibraryClick" IsEnabled="{x:Bind ViewModel.CanUse, Mode=OneWay}" HorizontalContentAlignment="Stretch">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="vm:FnNasLibraryRow">
                             <Grid ColumnSpacing="16" Padding="8,12">
@@ -72,7 +72,7 @@
                     <TextBlock Text="{x:Bind ViewModel.EditorTitle, Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
                 </StackPanel>
                 <ScrollView x:Name="FnNasLibraryEditorScroll" Grid.Row="1">
-                    <StackPanel Spacing="16" Padding="0,0,0,16">
+                    <StackPanel Spacing="16" Padding="0,0,20,16">
                         <Border Style="{StaticResource FnNasCard}">
                             <StackPanel Spacing="16">
                                 <ComboBox x:Name="FnNasLibraryCategory" Header="媒体库类型" HorizontalAlignment="Stretch" ItemsSource="{x:Bind ViewModel.Categories, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectedValuePath="Id" SelectedValue="{x:Bind ViewModel.Category, Mode=TwoWay}" />
@@ -125,7 +125,7 @@
                             <StackPanel Spacing="10">
                                 <TextBlock Text="NAS 已授权的文件夹" Style="{StaticResource EgSubheadStyle}" />
                                 <TextBlock Text="{x:Bind ViewModel.DirectoryPath, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
-                                <ListView x:Name="FnNasDirectoryList" Height="220" ItemsSource="{x:Bind ViewModel.DirectoryItems, Mode=OneWay}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnDirectoryClick" />
+                                <ListView x:Name="FnNasDirectoryList" Height="220" ItemsSource="{x:Bind ViewModel.DirectoryItems, Mode=OneWay}" Padding="{StaticResource EgScrollBarLane}" ItemTemplate="{StaticResource FnNasChoiceTemplate}" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnDirectoryClick" />
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <Button x:Name="FnNasDirectoryRoots" Content="授权根目录" Command="{x:Bind ViewModel.RootsCommand}" />
                                     <Button x:Name="FnNasDirectoryChoose" Content="使用此文件夹" Command="{x:Bind ViewModel.ChooseDirectoryCommand}" Visibility="{x:Bind ViewModel.FilesVisibility, Mode=OneWay}" />

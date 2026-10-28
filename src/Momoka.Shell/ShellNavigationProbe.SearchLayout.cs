@@ -59,6 +59,24 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1040, 880);
             await LayoutAsync(page);
             await SaveProbeScreenAsync("search-recent-screen-wide.png");
+            Get<Segmented>(page, "SourceTabs").SelectedIndex = 1;
+            await page.SearchTypingAsync("");
+            var subscriptionPanel = Get<MoviePilotSearchPanel>(page, "MoviePilotPanel");
+            foreach (var width in new[] { 1040, 360 })
+            {
+                var scale = _root.XamlRoot.RasterizationScale;
+                ResizeInspect((int)(width * scale), (int)(800 * scale));
+                await LayoutAsync(page);
+                Require(subscriptionPanel.Visibility == Visibility.Visible, "订阅搜索面板未显示");
+                Require(!Descendants(subscriptionPanel).OfType<ComboBox>().Any(picker => picker.Name == "SourceFilter"),
+                    $"{width} 订阅搜索仍保留来源筛选");
+                var heading = Get<Grid>(subscriptionPanel, "SearchContent").Children.OfType<StackPanel>()
+                    .Single(panel => Grid.GetRow(panel) == 2);
+                Require(Math.Abs(heading.ActualWidth - subscriptionPanel.ActualWidth) <= 1,
+                    $"{width} 搜索标题仍给已删除的来源筛选留空列");
+                await SaveReturnFrameAsync(page, $"search-subscription-no-source-{width}.png");
+                await SaveProbeScreenAsync($"search-subscription-no-source-{width}-screen.png");
+            }
             page.Release();
             fixture.Settings.MoviePilot.Enabled = false;
             frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services));
@@ -124,7 +142,7 @@ internal sealed partial class ShellNavigationProbe
             var tabs = Get<Segmented>(page, "SourceTabs");
 
             // 换来源只换面板，不替用户搜一次（2026-10-15 用户令「切换时不要自动触发搜索」）：切过去之后
-            // 搜索请求数必须原封不动（来源目录 media/source 不是搜索），搜不搜由回车或搜索图标决定。
+            // 搜索请求数必须原封不动，搜不搜由回车或搜索图标决定。
             var quiet = Searches(mp.Paths);
             tabs.SelectedIndex = 1;
             await SettleAsync();
@@ -146,15 +164,11 @@ internal sealed partial class ShellNavigationProbe
             var subscriptionPanel = Get<MoviePilotSearchPanel>(page, "MoviePilotPanel");
             await UntilAsync(() => subscriptionPanel.ViewModel.Results.Count == 1);
             Require(mp.Paths.Any(path => path.Contains("media/search?title=", StringComparison.Ordinal)), "订阅未走媒体搜索");
-            Require(subscriptionPanel.ViewModel.SourceChoices.Count > 1, "MoviePilot 来源目录被取消");
             await LayoutAsync(subscriptionPanel);
-            var sourceFilter = Get<ComboBox>(subscriptionPanel, "SourceFilter");
-            sourceFilter.SelectedItem = subscriptionPanel.ViewModel.SourceChoices.Single(source => source.Id == "douban");
-            try { await UntilAsync(() => subscriptionPanel.ViewModel.SelectedSource?.Id == "douban"); }
-            catch (TimeoutException)
-            {
-                throw new InvalidOperationException($"来源选择没有落入视图模型：items={sourceFilter.Items.Count}, index={sourceFilter.SelectedIndex}, selected={sourceFilter.SelectedItem}, vm={subscriptionPanel.ViewModel.SelectedSource?.Id}");
-            }
+            Require(!Descendants(subscriptionPanel).OfType<ComboBox>().Any(picker => picker.Name == "SourceFilter"),
+                "MoviePilot 订阅搜索仍显示右侧来源筛选");
+            Require(NewMediaSearches(mp.Paths, 0).All(path => !path.Contains("media_source=", StringComparison.Ordinal)),
+                "MoviePilot 订阅搜索未使用服务器默认来源范围");
             await SettleAsync();
             quiet = Searches(mp.Paths);
             tabs.SelectedIndex = 2;
@@ -165,28 +179,18 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => !Get<MoviePilotVersionsView>(page, "MoviePilotResources").ViewModel.Busy);
             Require(Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Collapsed, "资源与订阅面板重叠");
 
-            // 迟到的来源目录不能把用户选的那一个重置掉：目录还在飞的时候搜一次，目录回来之后再搜一次，
-            // 两次都必须用用户选的来源（从前这一条靠「切回订阅时自动搜一次」顺手量到，换来源不自动搜之后
-            // 改成显式提交）。
-            //
-            // 一次提交会先发 media/search（带来源筛选）、再发 subscribe/ 读订阅状态，最后一条不是媒体搜索，
-            // 所以来源只能按这次提交新增的那条 media/search 量，不拿整份历史的末尾当判据。
-            mp.PendingSources = Pending<HttpResponseMessage>();
-            var beforeInFlightSearch = mp.Paths.Count;
+            // 移除来源筛选后，切回订阅和重复提交仍由服务器决定搜索范围，不携带隐蔽的来源限制。
+            var beforeReturnSearch = mp.Paths.Count;
             tabs.SelectedIndex = 1;
             await page.SubmitSearchAsync("订阅关键词");
-            var inFlightSearches = NewMediaSearches(mp.Paths, beforeInFlightSearch);
-            Require(inFlightSearches.Count > 0 && inFlightSearches[^1].Contains("media_source=douban", StringComparison.Ordinal),
-                $"来源目录在飞时的搜索没有沿用用户选的来源：new={string.Join(';', mp.Paths.Skip(beforeInFlightSearch))}");
-            mp.PendingSources.TrySetResult(SearchProbeServer.Sources());
-            await SettleAsync();
-            Require(subscriptionPanel.ViewModel.SelectedSource?.Id == "douban", "迟到的来源目录重置了用户选择");
-            var afterCatalogue = mp.Paths.Count;
+            var returnedSearches = NewMediaSearches(mp.Paths, beforeReturnSearch);
+            Require(returnedSearches.Count == 1 && !returnedSearches[0].Contains("media_source=", StringComparison.Ordinal),
+                "切回订阅后仍携带已移除的来源筛选");
+            var beforeRepeatSearch = mp.Paths.Count;
             await page.SubmitSearchAsync("订阅关键词");
-            var catalogueReturnedSearches = NewMediaSearches(mp.Paths, afterCatalogue);
-            Require(catalogueReturnedSearches.Count > 0 && catalogueReturnedSearches[^1].Contains("media_source=douban", StringComparison.Ordinal),
-                $"来源目录回来后的搜索没有沿用用户选的来源：new={string.Join(';', mp.Paths.Skip(afterCatalogue))}");
-            mp.PendingSources = null;
+            var repeatedSearches = NewMediaSearches(mp.Paths, beforeRepeatSearch);
+            Require(repeatedSearches.Count == 1 && !repeatedSearches[0].Contains("media_source=", StringComparison.Ordinal),
+                "重复提交订阅搜索改变了默认来源范围");
             tabs.SelectedIndex = 2;
             await UntilAsync(() => !Get<MoviePilotVersionsView>(page, "MoviePilotResources").ViewModel.Busy);
             await page.SearchTypingAsync("新的资源词");
@@ -197,8 +201,13 @@ internal sealed partial class ShellNavigationProbe
             // 输入法组字时的回车只留下 keyup（keydown 被输入法吞掉），页面得替这颗回车补一次提交
             // （2026-10-24 用户报「搜索页面 在搜索栏按回车要支持触发搜索」）。两段：组合上屏后按上屏的词提交，
             // 以及一直没上屏时按框里现有的词提交。
+            // 输入法回车来自当前持有焦点的输入框。前面的来源栏布局与异步选择通知先落定，
+            // 不把它们迟到引发的 LostFocus 当成这一趟组字回车（离焦按产品规则会取消补提交）。
+            Require(input.Focus(FocusState.Programmatic), "组字回车夹具无法聚焦搜索框");
+            await LayoutAsync(page);
             var beforeIme = Searches(mp.Paths);
             input.Text = "组合词";
+            await SettleAsync();
             var committed = page.SubmitImeEnterAsync();
             await Task.Delay(120);
             input.Text = "组合上屏";
@@ -254,7 +263,6 @@ internal sealed partial class ShellNavigationProbe
         internal bool Offline { get; set; }
         internal object[]? MediaResults { get; set; }
         internal List<string> Paths { get; } = [];
-        internal TaskCompletionSource<HttpResponseMessage>? PendingSources { get; set; }
         internal TaskCompletionSource<HttpResponseMessage>? PendingResource { get; set; }
         internal static HttpResponseMessage Sources() => Json(new[]
         {
@@ -277,7 +285,7 @@ internal sealed partial class ShellNavigationProbe
                 new { id = 3, name = "站点丙 · 用于检查较长站点名称的显示", is_active = true },
                 new { id = 4, name = "已停用站点", is_active = false }
             }));
-            if (path.Contains("media/source", StringComparison.Ordinal)) return PendingSources?.Task ?? Task.FromResult(Sources());
+            if (path.Contains("media/source", StringComparison.Ordinal)) return Task.FromResult(Sources());
             if (path.Contains("media/search?", StringComparison.Ordinal) && MediaResults is { } results) return Task.FromResult(Json(results));
             if (path.Contains("media/search?", StringComparison.Ordinal)) return Task.FromResult(Json(new[]
             { new { title = "测试电影", type = "电影", media_source = "themoviedb", media_id = "123", tmdb_id = 123 } }));

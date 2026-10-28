@@ -16,7 +16,7 @@
         </Grid.RowDefinitions>
         <TextBlock Text="先选择 AniBT 结果，再点击“预览计划”。请核对每个文件的实际 MoviePilot 预览或最终 Emby 识别目标；只有再次点击“确认执行”才会写入。取消或更改选择会使原计划失效。" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
         <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
-        <ListView x:Name="ScrapeFiles" Grid.Row="2" MaxHeight="470" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None">
+        <ListView x:Name="ScrapeFiles" Grid.Row="2" MaxHeight="470" Padding="{StaticResource EgScrollBarLane}" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="vm:AniBtScrapeRowViewModel">
                     <StackPanel Spacing="6" Margin="0,8" HorizontalAlignment="Stretch">

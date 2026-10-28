@@ -24,6 +24,7 @@
         <Grid Grid.Row="3">
             <local:MoviePilotResourceBrowser x:Name="ResourceList" Visibility="{x:Bind ViewModel.TorrentsVisibility, Mode=OneWay}" />
             <ListView x:Name="SubtitleResults" ItemsSource="{x:Bind ViewModel.Subtitles, Mode=OneWay}" SelectionMode="None"
+                Padding="{StaticResource EgScrollBarLane}"
                 Visibility="{x:Bind ViewModel.SubtitlesVisibility, Mode=OneWay}">
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="vm:MoviePilotSubtitleRow">
