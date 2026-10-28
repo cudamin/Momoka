@@ -18,7 +18,7 @@ internal static class Program
     private static int Main(string[] args)
     {
         Console.OutputEncoding = Encoding.UTF8;
-        if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] != "search-sites")
+        if (args.Length is < 1 or > 2 || (args.Length == 2 && args[1] is not ("anibt-layout" or "search-sites"))
             || !File.Exists(Path.Combine(args[0], "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml")))
         {
             Console.Error.WriteLine("请提供当前本树根目录；本夹具不猜测其它树的模板或输出。");
@@ -31,9 +31,14 @@ internal static class Program
             Console.Error.WriteLine("模板根目录必须与本夹具实际编译输出属于同一工作树。");
             return 2;
         }
+        if (args is [_, "anibt-layout"])
+        {
+            AniBtResourceLayoutTests.Register(sourceRoot);
+            return Run();
+        }
         Console.WriteLine("资源搜索真实源码/生成命令与模板契约；只用匿名内存HTTP及隔离临时设置，无窗口、登录、联网或下载副作用");
         SearchSitePreferenceTests.Register();
-        if (args.Length == 2) return Run();
+        if (args is [_, "search-sites"]) return Run();
         SearchCompactMergeTests.Register(sourceRoot);
         ResourceSortMenuTests.Register(sourceRoot);
         SeriesResourceViewTests.Register(sourceRoot);
@@ -173,6 +178,7 @@ internal static class Program
             Assert.Equal("{StaticResource EgCaptionStyle}", reason.Attribute("Style")?.Value);
             Assert.NotNull(xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "OpenTorrentPage"));
         });
+        AniBtResourceLayoutTests.Register(sourceRoot);
         return Run();
     }
 

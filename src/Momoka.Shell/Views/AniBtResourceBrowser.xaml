@@ -5,48 +5,81 @@
     xmlns:local="using:Momoka.Shell.Views" xmlns:vm="using:Momoka.Shell.ViewModels"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls">
     <UserControl.Resources>
-        <DataTemplate x:Key="ReleaseTemplate" x:DataType="vm:AniBtResourceRow">
-            <Grid Padding="0,12" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,1,0,0" RowSpacing="8">
-                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="3"
-                    TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
-                <local:WrapRow Grid.Row="1" Spacing="8" RowSpacing="8">
-                    <TextBlock Text="{x:Bind EpisodeText}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
-                    <Border Padding="5,2" CornerRadius="4" Background="{ThemeResource EgAccentSoftBrush}" Visibility="{x:Bind ResolutionVisibility}">
-                        <TextBlock Text="{x:Bind ResolutionText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
-                    </Border>
-                    <Border Padding="5,2" CornerRadius="4" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind LanguageVisibility}">
-                        <TextBlock Text="{x:Bind LanguageText}" Style="{StaticResource EgCaptionStyle}" />
-                    </Border>
-                    <TextBlock Text="{x:Bind TechnicalText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="{x:Bind SizeText}" Style="{StaticResource EgDataStyle}" VerticalAlignment="Center" />
-                    <TextBlock Text="{x:Bind PublishedText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextFaintBrush}" VerticalAlignment="Center" />
-                    <Button x:Name="OpenTorrentPage" Content="发布页" Command="{x:Bind OpenDetailsCommand}" Style="{StaticResource EgSecondaryButtonStyle}"
-                        Padding="10,4" AutomationProperties.Name="{x:Bind DetailsAutomationName}" />
-                    <Button x:Name="DownloadResource" Content="{x:Bind DownloadLabel, Mode=OneWay}" Command="{x:Bind DownloadCommand}"
-                        Style="{StaticResource EgPrimaryButtonStyle}" Padding="12,4" AutomationProperties.Name="{x:Bind DownloadAutomationName}"
-                        Visibility="{x:Bind DownloadVisibility}" />
-                </local:WrapRow>
-            </Grid>
-        </DataTemplate>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.Segmented/Themes/Generic.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <Style x:Key="ReleaseActionButtonStyle" TargetType="Button" BasedOn="{StaticResource EgResourceButtonStyle}">
+                <Setter Property="Width" Value="36" />
+                <Setter Property="Height" Value="36" />
+                <Setter Property="MinWidth" Value="36" />
+                <Setter Property="MinHeight" Value="36" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="8" />
+            </Style>
+            <DataTemplate x:Key="ReleaseTemplate" x:DataType="vm:AniBtResourceRow">
+                <Grid x:Name="ReleaseRow" Padding="0,6" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,1,0,0" ColumnSpacing="12">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                    <StackPanel x:Name="ReleaseText" Spacing="4" VerticalAlignment="Center">
+                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextWrapping="Wrap" MaxLines="3"
+                            TextTrimming="CharacterEllipsis" ToolTipService.ToolTip="{x:Bind Title}" />
+                        <local:WrapRow Spacing="8" RowSpacing="6">
+                            <TextBlock Text="{x:Bind EpisodeText}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                            <Border Padding="5,2" CornerRadius="3" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind ResolutionVisibility}">
+                                <TextBlock Text="{x:Bind ResolutionText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgInfoBrush}" />
+                            </Border>
+                            <Border Padding="5,2" CornerRadius="3" Background="{ThemeResource EgSurfaceAltBrush}" Visibility="{x:Bind LanguageVisibility}">
+                                <TextBlock Text="{x:Bind LanguageText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
+                            </Border>
+                            <TextBlock Text="{x:Bind TechnicalText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Bind SizeText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Bind PublishedText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextFaintBrush}" VerticalAlignment="Center" />
+                        </local:WrapRow>
+                    </StackPanel>
+                    <StackPanel x:Name="ReleaseActions" Grid.Column="1" Orientation="Horizontal" Spacing="8"
+                        HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button x:Name="OpenTorrentPage" Command="{x:Bind OpenDetailsCommand}" Style="{StaticResource ReleaseActionButtonStyle}"
+                            ToolTipService.ToolTip="打开发布页" AutomationProperties.Name="{x:Bind DetailsAutomationName}">
+                            <FontIcon Glyph="&#xE71B;" FontSize="{StaticResource EgBodyFontSize}" />
+                        </Button>
+                        <Button x:Name="DownloadResource" Command="{x:Bind DownloadCommand}" Style="{StaticResource ReleaseActionButtonStyle}"
+                            ToolTipService.ToolTip="{x:Bind DownloadLabel, Mode=OneWay}" AutomationProperties.Name="{x:Bind DownloadAutomationName, Mode=OneWay}"
+                            Visibility="{x:Bind DownloadVisibility}">
+                            <FontIcon Glyph="{x:Bind DownloadGlyph, Mode=OneWay}" FontSize="{StaticResource EgBodyFontSize}" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>
+        </ResourceDictionary>
     </UserControl.Resources>
-    <StackPanel Spacing="12">
-        <toolkit:Segmented x:Name="ReleaseTabs" SelectedIndex="{x:Bind ViewModel.ViewIndex, Mode=TwoWay}"
+    <StackPanel x:Name="ReleaseContent" Spacing="8">
+        <toolkit:Segmented x:Name="ReleaseTabs" Style="{StaticResource PivotSegmentedStyle}"
+            SelectedIndex="{x:Bind ViewModel.ViewIndex, Mode=TwoWay}"
             HorizontalAlignment="Left" Visibility="{x:Bind ViewModel.TabsVisibility, Mode=OneWay}">
-            <toolkit:SegmentedItem Content="{x:Bind ViewModel.ProgressTabText, Mode=OneWay}" />
-            <toolkit:SegmentedItem Content="{x:Bind ViewModel.ResourcesTabText, Mode=OneWay}" />
+            <toolkit:Segmented.Resources>
+                <StaticResource x:Key="PivotItemPillBackground" ResourceKey="EgAccentBrush" />
+                <StaticResource x:Key="PivotItemPillBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+                <StaticResource x:Key="PivotItemPillBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+                <StaticResource x:Key="PivotItemPillBackgroundDisabled" ResourceKey="EgTextFaintBrush" />
+            </toolkit:Segmented.Resources>
+            <toolkit:SegmentedItem x:Name="ProgressTab" Style="{StaticResource PivotSegmentedItemStyle}" Content="{x:Bind ViewModel.ProgressTabText, Mode=OneWay}" />
+            <toolkit:SegmentedItem x:Name="ResourcesTab" Style="{StaticResource PivotSegmentedItemStyle}" Content="{x:Bind ViewModel.ResourcesTabText, Mode=OneWay}" />
         </toolkit:Segmented>
         <ItemsRepeater x:Name="ProgressList" ItemsSource="{x:Bind ViewModel.ProgressGroups, Mode=OneWay}" Visibility="{x:Bind ViewModel.ProgressVisibility, Mode=OneWay}">
             <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
             <ItemsRepeater.ItemTemplate>
                 <DataTemplate x:DataType="vm:AniBtResourceGroup">
-                    <Border Padding="16" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="{StaticResource EgCardCornerRadius}">
-                        <StackPanel Spacing="10">
+                    <Border Padding="12" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="{StaticResource EgCardCornerRadius}">
+                        <StackPanel Spacing="6">
                             <local:WrapRow Spacing="14" RowSpacing="8">
+                                <Border x:Name="GroupLogoSurface" Width="24" Height="24" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}"
+                                    VerticalAlignment="Center" Visibility="{x:Bind LogoVisibility, Mode=OneWay}">
+                                    <Image x:Name="GroupLogo" Source="{x:Bind local:AniBtResourceBrowser.CreateGroupLogo(LogoUrl), Mode=OneWay}" Stretch="UniformToFill" Tag="{x:Bind}"
+                                        ImageFailed="OnGroupLogoFailed" AutomationProperties.AccessibilityView="Raw" />
+                                </Border>
                                 <TextBlock Text="{x:Bind Name}" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
                                 <TextBlock Text="{x:Bind PublishedText}" Style="{StaticResource EgDataStyle}" VerticalAlignment="Center" />
-                                <Button x:Name="CopyGroupProgressRss" Content="复制 RSS 链接" Click="OnCopyGroupRss" Tag="{x:Bind}"
-                                    Style="{StaticResource EgSecondaryButtonStyle}" Visibility="{x:Bind RssVisibility}" />
+
                             </local:WrapRow>
                             <ItemsRepeater ItemsSource="{x:Bind Cells}">
                                 <ItemsRepeater.Layout><UniformGridLayout MinItemWidth="30" MinItemHeight="30" MinColumnSpacing="4" MinRowSpacing="4" ItemsStretch="Fill" /></ItemsRepeater.Layout>
@@ -65,61 +98,39 @@
                 </DataTemplate>
             </ItemsRepeater.ItemTemplate>
         </ItemsRepeater>
-        <StackPanel x:Name="ResourcesContent" Spacing="10" Visibility="{x:Bind ViewModel.ResourcesVisibility, Mode=OneWay}">
-            <Grid ColumnSpacing="12" Visibility="{x:Bind ViewModel.FiltersVisibility, Mode=OneWay}">
-                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                <TextBox x:Name="ReleaseFilter" PlaceholderText="筛选资源标题、字幕组或清晰度" MinWidth="0"
-                    Text="{x:Bind ViewModel.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="筛选 AniBT 发布" />
-                <TextBlock Grid.Column="1" Text="{x:Bind ViewModel.CountText, Mode=OneWay}" Style="{StaticResource EgDataStyle}" VerticalAlignment="Center" />
-            </Grid>
-            <local:WrapRow Spacing="8" RowSpacing="8" Visibility="{x:Bind ViewModel.FiltersVisibility, Mode=OneWay}">
-                <local:EgPicker x:Name="EpisodeFilter" MinWidth="112" AutomationProperties.Name="按集筛选"
-                    ItemsSource="{x:Bind ViewModel.Episodes, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedEpisode, Mode=TwoWay}" />
-                <local:EgPicker x:Name="GroupFilter" MinWidth="136" AutomationProperties.Name="按字幕组筛选"
-                    ItemsSource="{x:Bind ViewModel.Groups, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedGroup, Mode=TwoWay}" />
-                <local:EgPicker x:Name="ResolutionFilter" MinWidth="120" AutomationProperties.Name="按清晰度筛选"
-                    ItemsSource="{x:Bind ViewModel.Resolutions, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedResolution, Mode=TwoWay}" />
-                <local:EgPicker x:Name="SortOrder" MinWidth="128" AutomationProperties.Name="发布排序" SelectedIndex="{x:Bind ViewModel.SortIndex, Mode=TwoWay}">
-                    <x:String>最新发布</x:String><x:String>最早发布</x:String><x:String>体积最大</x:String><x:String>体积最小</x:String>
-                </local:EgPicker>
-                <Button x:Name="ResetFilters" Content="清除筛选" Command="{x:Bind ViewModel.ResetFiltersCommand}"
-                    Style="{StaticResource EgSecondaryButtonStyle}" Visibility="{x:Bind ViewModel.ResetVisibility, Mode=OneWay}" />
-            </local:WrapRow>
+        <StackPanel x:Name="ResourcesContent" Spacing="8" Visibility="{x:Bind ViewModel.ResourcesVisibility, Mode=OneWay}">
             <ItemsRepeater x:Name="ReleaseList" ItemsSource="{x:Bind ViewModel.ResourceGroups, Mode=OneWay}">
-                <ItemsRepeater.Layout><StackLayout Spacing="10" /></ItemsRepeater.Layout>
+                <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="vm:AniBtResourceGroup">
                         <Expander x:Name="ReleaseGroup" IsExpanded="{x:Bind IsOpen, Mode=TwoWay}" HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Stretch" AutomationProperties.Name="{x:Bind Name}">
+                            HorizontalContentAlignment="Stretch" Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}"
+                            AutomationProperties.Name="{x:Bind Name}">
                             <Expander.Header>
                                 <local:WrapRow Spacing="10" RowSpacing="8">
+                                    <Border x:Name="GroupLogoSurface" Width="24" Height="24" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}"
+                                        VerticalAlignment="Center" Visibility="{x:Bind LogoVisibility, Mode=OneWay}">
+                                        <Image x:Name="GroupLogo" Source="{x:Bind local:AniBtResourceBrowser.CreateGroupLogo(LogoUrl), Mode=OneWay}" Stretch="UniformToFill" Tag="{x:Bind}"
+                                            ImageFailed="OnGroupLogoFailed" AutomationProperties.AccessibilityView="Raw" />
+                                    </Border>
                                     <TextBlock Text="{x:Bind Name}" Style="{StaticResource EgSubheadStyle}" VerticalAlignment="Center" />
                                     <TextBlock Text="{x:Bind CountText}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
                                     <TextBlock Text="{x:Bind Metadata}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" />
                                 </local:WrapRow>
                             </Expander.Header>
-                            <StackPanel Spacing="6">
-                                <local:WrapRow Spacing="12" RowSpacing="6">
-                                    <Button x:Name="CopyGroupRss" Content="复制本组 RSS" Click="OnCopyGroupRss" Tag="{x:Bind}"
-                                        Style="{StaticResource EgSecondaryButtonStyle}" Visibility="{x:Bind RssVisibility}" />
-                                    <TextBlock Text="{x:Bind ScopeText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
-                                        VerticalAlignment="Center" Visibility="{x:Bind ScopeVisibility}" />
-                                </local:WrapRow>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="{x:Bind ScopeText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                                    Visibility="{x:Bind ScopeVisibility}" />
                                 <ItemsRepeater ItemsSource="{x:Bind VisibleRows}" ItemTemplate="{StaticResource ReleaseTemplate}" />
                                 <Button x:Name="ExpandGroupResources" Content="{x:Bind MoreText, Mode=OneWay}" Command="{x:Bind ToggleMoreCommand}"
-                                    HorizontalAlignment="Center" Style="{StaticResource EgSecondaryButtonStyle}" Visibility="{x:Bind MoreVisibility, Mode=OneWay}" />
+                                    HorizontalAlignment="Center" Style="{StaticResource EgResourceButtonStyle}" Visibility="{x:Bind MoreVisibility, Mode=OneWay}" />
                             </StackPanel>
                         </Expander>
                     </DataTemplate>
                 </ItemsRepeater.ItemTemplate>
             </ItemsRepeater>
-            <StackPanel x:Name="NoMatches" Margin="16,24" Spacing="8" Visibility="{x:Bind ViewModel.NoMatchesVisibility, Mode=OneWay}">
-                <TextBlock Text="没有符合筛选条件的发布" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
-                <TextBlock Text="可清除筛选后查看全部发布。" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
-            </StackPanel>
             <TextBlock x:Name="NoReleases" Text="{x:Bind ViewModel.EmptyMessage, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" Margin="16,24"
                 TextWrapping="Wrap" Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" />
         </StackPanel>
-        <InfoBar x:Name="RssNotice" IsOpen="False" IsClosable="True" />
     </StackPanel>
 </UserControl>

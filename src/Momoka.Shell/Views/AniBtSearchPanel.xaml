@@ -3,29 +3,29 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:Momoka.Shell.Views" xmlns:vm="using:Momoka.Shell.ViewModels">
-    <Grid>
+    <Grid x:Name="AnimeSearchRoot" RowSpacing="0">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
-        <AutoSuggestBox x:Name="AnimeSearchInput" Header="搜索 AniBT 番剧" Margin="0,0,0,10" PlaceholderText="输入番剧名称或原名"
-            QueryIcon="Find" QuerySubmitted="OnSearch" TextChanged="OnSearchTextChanged" Visibility="Collapsed" />
-        <ProgressBar Grid.Row="1" Height="2" Margin="0,0,0,10" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
-        <InfoBar Grid.Row="2" Margin="0,0,0,10" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+        <AutoSuggestBox x:Name="AnimeSearchInput" Header="搜索 AniBT 番剧" PlaceholderText="输入番剧名称或原名"
+            QueryIcon="Find" QuerySubmitted="OnSearch" TextChanged="OnSearchTextChanged" Margin="0,0,0,8" Visibility="Collapsed" />
+        <ProgressBar Grid.Row="1" Margin="0,0,0,6" Height="2" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+        <InfoBar Grid.Row="2" Margin="0,0,0,8" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
             Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-        <Grid Grid.Row="3">
-            <Grid x:Name="AnimeResultsView" Visibility="{x:Bind ViewModel.ListVisibility, Mode=OneWay}" RowSpacing="12">
+        <Grid x:Name="AnimeContent" Grid.Row="3">
+            <Grid x:Name="AnimeResultsView" Visibility="{x:Bind ViewModel.ListVisibility, Mode=OneWay}" RowSpacing="8">
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                 <local:WrapRow Spacing="12" RowSpacing="8">
                     <TextBlock Text="番剧" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
                     <TextBlock Text="{x:Bind ViewModel.ResultCountText, Mode=OneWay}" Style="{StaticResource EgDataStyle}"
                         Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" Margin="0,0,12,0" />
                     <local:WrapRow Spacing="8" RowSpacing="8" Visibility="{x:Bind ViewModel.SearchFiltersVisibility, Mode=OneWay}">
-                        <local:EgPicker x:Name="AnimeFormatFilter" MinWidth="112" AutomationProperties.Name="番剧格式"
+                        <local:EgPicker x:Name="AnimeFormatFilter" Style="{StaticResource EgResourceFilterStyle}" MinWidth="112" AutomationProperties.Name="番剧格式"
                             ItemsSource="{x:Bind ViewModel.Formats, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedFormat, Mode=TwoWay}"
                             Visibility="{x:Bind ViewModel.FormatFilterVisibility, Mode=OneWay}" />
-                        <local:EgPicker x:Name="AnimeStatusFilter" MinWidth="112" AutomationProperties.Name="番剧状态"
+                        <local:EgPicker x:Name="AnimeStatusFilter" Style="{StaticResource EgResourceFilterStyle}" MinWidth="112" AutomationProperties.Name="番剧状态"
                             ItemsSource="{x:Bind ViewModel.Statuses, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedStatus, Mode=TwoWay}"
                             Visibility="{x:Bind ViewModel.StatusFilterVisibility, Mode=OneWay}" />
-                        <local:EgPicker x:Name="AnimeYearFilter" MinWidth="112" AutomationProperties.Name="番剧年份"
+                        <local:EgPicker x:Name="AnimeYearFilter" Style="{StaticResource EgResourceFilterStyle}" MinWidth="112" AutomationProperties.Name="番剧年份"
                             ItemsSource="{x:Bind ViewModel.Years, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedYear, Mode=TwoWay}"
                             Visibility="{x:Bind ViewModel.YearFilterVisibility, Mode=OneWay}" />
                     </local:WrapRow>
@@ -80,14 +80,14 @@
                     <TextBlock Text="没有符合筛选条件的番剧" Style="{StaticResource EgBodyStyle}" Margin="24,48" HorizontalAlignment="Center"
                         VerticalAlignment="Top" TextWrapping="Wrap" Visibility="{x:Bind ViewModel.NoFilteredResultsVisibility, Mode=OneWay}" />
                 </Grid>
-                <Button x:Name="LoadMoreAnime" Grid.Row="2" Content="加载更多番剧" HorizontalAlignment="Center" Command="{x:Bind ViewModel.LoadMoreCommand}"
+                <Button x:Name="LoadMoreAnime" Style="{StaticResource EgResourceButtonStyle}" Grid.Row="2" Content="加载更多番剧" HorizontalAlignment="Center" Command="{x:Bind ViewModel.LoadMoreCommand}"
                     Visibility="{x:Bind ViewModel.MoreVisibility, Mode=OneWay}" />
             </Grid>
             <ScrollViewer x:Name="AnimeDetailScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                 Visibility="{x:Bind ViewModel.ResourcesVisibility, Mode=OneWay}">
-                <StackPanel x:Name="AnimeResourcesView" Spacing="16" Padding="0,0,20,16">
-                    <Border Background="{ThemeResource EgSurfaceBrush}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="20">
-                        <Grid x:Name="AnimeHero" ColumnSpacing="22" RowSpacing="12" SizeChanged="OnHeroSizeChanged">
+                <StackPanel x:Name="AnimeResourcesView" Spacing="8" Padding="0,0,20,8">
+                    <Border Background="{ThemeResource EgSurfaceBrush}" CornerRadius="{StaticResource EgCardCornerRadius}" Padding="12">
+                        <Grid x:Name="AnimeHero" ColumnSpacing="16" RowSpacing="8" SizeChanged="OnHeroSizeChanged">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Border x:Name="HeroPoster" Grid.RowSpan="2" Width="154" Height="224" CornerRadius="{StaticResource EgPosterCornerRadius}"
@@ -98,7 +98,7 @@
                                     <Image Source="{x:Bind ViewModel.SelectedArtwork, Mode=OneWay}" Stretch="UniformToFill" />
                                 </Grid>
                             </Border>
-                            <StackPanel x:Name="HeroText" Grid.Column="1" Spacing="8">
+                            <StackPanel x:Name="HeroText" Grid.Column="1" Spacing="6">
                                 <TextBlock Text="{x:Bind ViewModel.SelectedTitle, Mode=OneWay}" Style="{StaticResource EgSectionTitleStyle}"
                                     TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
                                 <TextBlock Text="{x:Bind ViewModel.SelectedOriginalTitle, Mode=OneWay}" Style="{StaticResource EgBodyStyle}"
@@ -110,28 +110,28 @@
                                         Foreground="{ThemeResource EgTextFaintBrush}" Visibility="{x:Bind ViewModel.SelectedBgmVisibility, Mode=OneWay}" />
                                 </local:WrapRow>
                             </StackPanel>
-                            <StackPanel x:Name="HeroBody" Grid.Row="1" Grid.Column="1" Spacing="8">
+                            <StackPanel x:Name="HeroBody" Grid.Row="1" Grid.Column="1" Spacing="6">
                                 <TextBlock Text="{x:Bind ViewModel.SelectedSummary, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
                                     TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxLines="{x:Bind ViewModel.SummaryLines, Mode=OneWay}"
                                     Visibility="{x:Bind ViewModel.SummaryVisibility, Mode=OneWay}" />
                                 <Button x:Name="ToggleAnimeSummary" Content="{x:Bind ViewModel.SummaryToggleText, Mode=OneWay}" Command="{x:Bind ViewModel.ToggleSummaryCommand}"
-                                    Style="{StaticResource EgSecondaryButtonStyle}" Visibility="{x:Bind ViewModel.SummaryVisibility, Mode=OneWay}" />
+                                    Style="{StaticResource EgResourceButtonStyle}" Visibility="{x:Bind ViewModel.SummaryVisibility, Mode=OneWay}" />
                                 <local:WrapRow Spacing="8" RowSpacing="8">
-                                    <Button x:Name="ReturnToAnime" Content="返回番剧" Command="{x:Bind ViewModel.ReturnToResultsCommand}" Click="OnReturnToAnime" />
-                                    <Button x:Name="CopyAnimeRss" Content="复制 RSS 链接" Click="OnCopyRss" />
-                                    <Button x:Name="OpenAniBtSite" Content="AniBT 条目" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="anibt" />
-                                    <Button x:Name="OpenAniDbSite" Content="AniDB" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="AniDB"
+                                    <Button x:Name="OpenAniBtSite" Style="{StaticResource EgResourceButtonStyle}" Content="打开 AniBT"
+                                        Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="anibt" ToolTipService.ToolTip="在浏览器打开当前番剧" />
+                                    <Button x:Name="ReturnToAnime" Style="{StaticResource EgResourceButtonStyle}" Content="返回番剧" Command="{x:Bind ViewModel.ReturnToResultsCommand}" />
+                                    <Button x:Name="OpenAniDbSite" Style="{StaticResource EgResourceButtonStyle}" Content="AniDB" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="AniDB"
                                         Visibility="{x:Bind ViewModel.AniDbVisibility, Mode=OneWay}" />
-                                    <Button x:Name="OpenAniListSite" Content="AniList" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="AniList"
+                                    <Button x:Name="OpenAniListSite" Style="{StaticResource EgResourceButtonStyle}" Content="AniList" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="AniList"
                                         Visibility="{x:Bind ViewModel.AniListVisibility, Mode=OneWay}" />
-                                    <Button x:Name="OpenMyAnimeListSite" Content="MyAnimeList" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="MyAnimeList"
+                                    <Button x:Name="OpenMyAnimeListSite" Style="{StaticResource EgResourceButtonStyle}" Content="MyAnimeList" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="MyAnimeList"
                                         Visibility="{x:Bind ViewModel.MyAnimeListVisibility, Mode=OneWay}" />
-                                    <Button x:Name="OpenBangumiSite" Content="Bangumi 条目" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="bangumi" />
-                                    <Button x:Name="OpenAnimeOfficialSite" Content="官方网站" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="official"
+                                    <Button x:Name="OpenBangumiSite" Style="{StaticResource EgResourceButtonStyle}" Content="Bangumi 条目" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="bangumi" />
+                                    <Button x:Name="OpenAnimeOfficialSite" Style="{StaticResource EgResourceButtonStyle}" Content="官方网站" Command="{x:Bind ViewModel.OpenAnimeSiteCommand}" CommandParameter="official"
                                         Visibility="{x:Bind ViewModel.OfficialSiteVisibility, Mode=OneWay}" />
-                                    <Button x:Name="ShowAllAnimeEpisodes" Content="查看全部集数" Command="{x:Bind ViewModel.ShowAllEpisodesCommand}"
+                                    <Button x:Name="ShowAllAnimeEpisodes" Style="{StaticResource EgResourceButtonStyle}" Content="查看全部集数" Command="{x:Bind ViewModel.ShowAllEpisodesCommand}"
                                         Visibility="{x:Bind ViewModel.EpisodeScopeVisibility, Mode=OneWay}" />
-                                    <Button x:Name="ReloadAnimeResources" Content="刷新" Command="{x:Bind ViewModel.ReloadResourcesCommand}" />
+                                    <Button x:Name="ReloadAnimeResources" Style="{StaticResource EgResourceButtonStyle}" Content="刷新" Command="{x:Bind ViewModel.ReloadResourcesCommand}" />
                                 </local:WrapRow>
                                 <TextBlock Text="{x:Bind ViewModel.SelectedTags, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextFaintBrush}"
                                     TextWrapping="Wrap" Visibility="{x:Bind ViewModel.TagsVisibility, Mode=OneWay}" />

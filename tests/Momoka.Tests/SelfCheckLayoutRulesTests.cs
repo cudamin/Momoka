@@ -140,6 +140,18 @@ internal static class SelfCheckLayoutRulesTests
             Assert.True(method.IndexOf("_root.Children.Remove(frame);", StringComparison.Ordinal)
                 > method.IndexOf("finally", StringComparison.Ordinal));
         });
+        Test("详情页按钮探针：图片移除和宽窄切换后先回页顶，不放宽裁切断言", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(Root(), "src/Momoka.Shell/ShellNavigationProbe.DetailArtwork.cs"));
+            var layout = source.IndexOf("await LayoutAsync(page);", StringComparison.Ordinal);
+            var scroll = source.IndexOf("await ScrollProbeAsync(scroll, 0);", layout, StringComparison.Ordinal);
+            var readback = source.IndexOf("return scroll.VerticalOffset < 1;", scroll, StringComparison.Ordinal);
+            var capture = source.IndexOf("await SaveProbeScreenAsync", readback, StringComparison.Ordinal);
+            var bounds = source.IndexOf("point.X >= 0 && point.Y >= 0", capture, StringComparison.Ordinal);
+            Assert.True(layout >= 0 && scroll > layout && readback > scroll && capture > readback && bounds > capture);
+            Assert.Contains("VisualTreeHelper.FindElementsInHostCoordinates(center, _root).Contains(button)", source);
+        });
+
         Test("自检接线：真实调用者使用当前判据且基线检查名未退役", () =>
         {
             var root = Root();

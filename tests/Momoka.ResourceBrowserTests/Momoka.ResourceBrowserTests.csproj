@@ -10,6 +10,7 @@
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <!-- The pinned production MVVM generator, not a substitute for notification/command behavior. -->
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\AniBtResourceViewModel.cs" Link="Production\AniBtResourceViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceViewModel.cs" Link="Production\MoviePilotResourceViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotVersionsViewModel.cs" Link="Production\MoviePilotVersionsViewModel.cs" />

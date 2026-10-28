@@ -307,10 +307,10 @@
                     HorizontalAlignment="Center" Content="{x:Bind ViewModel.BrowseGroupLabel, Mode=OneWay}"
                     Visibility="{x:Bind ViewModel.BrowseGroupVisibility, Mode=OneWay}"
                     ToolTipService.ToolTip="返回分类列表" Click="OnBrowseGroupBack" />
-                <TextBlock x:Name="LibraryTitle" Text="{x:Bind local:LibraryPage.HeaderTitle(ViewModel.SearchVisibility, ViewModel.Heading), Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />
+                <TextBlock x:Name="LibraryTitle" Text="{x:Bind ViewModel.Heading, Mode=OneWay}" Visibility="{x:Bind local:LibraryPage.BrowseHintVisibility(ViewModel.SearchVisibility), Mode=OneWay}" Style="{StaticResource EgPageTitleStyle}" TextTrimming="CharacterEllipsis" HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="{x:Bind ViewModel.Heading, Mode=OneWay}" />
 
-                <Border x:Name="SearchSurface" Grid.ColumnSpan="2" Padding="10,8" CornerRadius="14"
-                    Background="{ThemeResource EgSurfaceBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1"
+                <!-- 搜索框与来源胶囊各自成形；这个布局载体不再画外卡或留内边距。 -->
+                <Border x:Name="SearchSurface" Grid.ColumnSpan="2" Padding="0" BorderThickness="0"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
                     Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
                     <Border.RenderTransform><TranslateTransform /></Border.RenderTransform>
@@ -328,7 +328,7 @@
                                 x:Name="SearchInput"
                                 x:Uid="LibrarySearchBox"
                                 HorizontalAlignment="Stretch"
-                                CornerRadius="12"
+                                MinHeight="40" CornerRadius="20"
                                 VerticalAlignment="Center"
                                 QueryIcon="Find"
                                 QuerySubmitted="OnSearchSubmitted"
@@ -346,7 +346,7 @@
                         </Grid>
 
                         <!-- 结果来源：库里的 Emby，还是去 MoviePilot 找新片。见 LibraryPage.OnSourceChanged。 -->
-                        <tkcontrols:Segmented
+                        <local:SearchSourceTabs
                             x:Name="SourceTabs"
                             Grid.Row="1"
                             Grid.ColumnSpan="2"
@@ -354,11 +354,50 @@
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
                             Visibility="Collapsed">
-                            <tkcontrols:SegmentedItem AutomationProperties.Name="媒体库搜索"><TextBlock Text="媒体库" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
-                            <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 订阅搜索"><TextBlock Text="MoviePilot 订阅" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
-                            <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 资源搜索"><TextBlock Text="MoviePilot 资源" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
-                            <tkcontrols:SegmentedItem AutomationProperties.Name="AniBT 搜索"><TextBlock Text="AniBT" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
-                        </tkcontrols:Segmented>
+                            <local:SearchSourceTabs.Resources>
+                                <ResourceDictionary>
+                                    <!-- 显式载入当前 Toolkit 的按钮模板，保留原生单选、键盘与辅助功能。 -->
+                                    <ResourceDictionary.MergedDictionaries>
+                                        <ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.Segmented/SegmentedItem/SegmentedItem.xaml" />
+                                        <ResourceDictionary Source="ms-appx:///CommunityToolkit.WinUI.Controls.Segmented/Segmented/Segmented.xaml" />
+                                    </ResourceDictionary.MergedDictionaries>
+                                    <StaticResource x:Key="ButtonItemBackground" ResourceKey="SubtleFillColorTransparentBrush" />
+                                    <StaticResource x:Key="ButtonItemBackgroundPointerOver" ResourceKey="EgSurfaceBrush" />
+                                    <StaticResource x:Key="ButtonItemBackgroundPressed" ResourceKey="EgSurfaceAltBrush" />
+                                    <StaticResource x:Key="ButtonItemBackgroundSelected" ResourceKey="EgAccentSoftBrush" />
+                                    <StaticResource x:Key="ButtonItemBackgroundSelectedPointerOver" ResourceKey="EgAccentSoftBrush" />
+                                    <StaticResource x:Key="ButtonItemBackgroundSelectedPressed" ResourceKey="EgAccentSoftBrush" />
+                                    <StaticResource x:Key="ButtonItemForeground" ResourceKey="EgTextDimBrush" />
+                                    <StaticResource x:Key="ButtonItemForegroundPointerOver" ResourceKey="EgTextBrush" />
+                                    <StaticResource x:Key="ButtonItemForegroundPressed" ResourceKey="EgTextBrush" />
+                                    <StaticResource x:Key="ButtonItemForegroundSelected" ResourceKey="EgAccentBrush" />
+                                    <StaticResource x:Key="ButtonItemForegroundSelectedPointerOver" ResourceKey="EgAccentBrush" />
+                                    <StaticResource x:Key="ButtonItemForegroundSelectedPressed" ResourceKey="EgAccentBrush" />
+                                </ResourceDictionary>
+                            </local:SearchSourceTabs.Resources>
+                            <local:SearchSourceTabs.Style>
+                                <Style TargetType="local:SearchSourceTabs" BasedOn="{StaticResource ButtonSegmentedStyle}">
+                                    <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
+                                    <Setter Property="Padding" Value="4" />
+                                    <Setter Property="CornerRadius" Value="18" />
+                                </Style>
+                            </local:SearchSourceTabs.Style>
+                            <local:SearchSourceTabs.ItemContainerStyle>
+                                <Style TargetType="tkcontrols:SegmentedItem" BasedOn="{StaticResource ButtonSegmentedItemStyle}">
+                                    <Setter Property="CornerRadius" Value="14" />
+                                    <Setter Property="MinWidth" Value="0" />
+                                    <Setter Property="MinHeight" Value="28" />
+                                    <Setter Property="Height" Value="28" />
+                                    <Setter Property="Padding" Value="8,4" />
+                                    <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                </Style>
+                            </local:SearchSourceTabs.ItemContainerStyle>
+                            <tkcontrols:SegmentedItem AutomationProperties.Name="媒体库搜索"><TextBlock Text="媒体库" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 订阅搜索"><TextBlock Text="MoviePilot 订阅" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 资源搜索"><TextBlock Text="MoviePilot 资源" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem AutomationProperties.Name="AniBT 搜索"><TextBlock Text="AniBT" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                        </local:SearchSourceTabs>
                     </Grid>
                 </Border>
 

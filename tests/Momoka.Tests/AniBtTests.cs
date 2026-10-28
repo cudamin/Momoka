@@ -325,6 +325,7 @@ internal static class AniBtTests
             var group = result.Groups.Single();
             Assert.True(group.PublishedEpisodes.SequenceEqual([1, 2, 3, 4]));
             Assert.Equal(40, group.TotalReleases);
+            Assert.Null(group.LogoUrl, "没有初始头像字段时保持资源可用");
             Assert.Equal(1, group.Items.Count);
             Assert.Equal("https://anibt.net/rss/anime.xml?bgmId=123&groupSlug=group%20%26%20one", group.RssUri!.AbsoluteUri);
             var release = group.Items.Single();
@@ -336,6 +337,53 @@ internal static class AniBtTests
             Assert.Equal("https://anibt.net/api/torrent/rel_one.torrent", release.DownloadUri.AbsoluteUri);
             Assert.True(transport.Requests.All(request => request.Method == "GET" && !request.HasCredentials));
         });
+
+        Test("AniBT 小组头像按组织 ID 匹配，不按同名或顺序猜测", () =>
+        {
+            var detail = CatalogDetail.Replace("\"initialExternalIds\":", "\"initialGroups\":" +
+                "[{\"organizationId\":\"org_other\",\"name\":\"字幕组\",\"logoUrl\":\"https://r2.anibt.net/other.webp\"}," +
+                "{\"organizationId\":\"org_one\",\"name\":\"不同显示名\",\"logoUrl\":\"https://r2.anibt.net/one.webp\"}],\"initialExternalIds\":",
+                StringComparison.Ordinal);
+            using var transport = new Transport((_, index) => Json(index == 1 ? detail : CatalogGroups));
+            using var client = new AniBtClient(transport);
+            var group = client.GroupPageAsync(new AniBtAnime("ani_one", 123, "测试"), default).GetAwaiter().GetResult().Groups.Single();
+            Assert.Equal("https://r2.anibt.net/one.webp", group.LogoUrl);
+            Assert.Equal(2, transport.Requests.Count, "头像使用已有详情，不额外请求小组");
+        });
+
+        foreach (var logo in new[] { "", "http://r2.anibt.net/one.webp", "https://user:pass@r2.anibt.net/one.webp",
+            "javascript:bad", "/relative.webp", "not a url" })
+        {
+            Test("AniBT 无效头像地址不影响资源：" + logo, () =>
+            {
+                var initial = JsonSerializer.Serialize(new[] { new { organizationId = "org_one", logoUrl = logo } });
+                var detail = CatalogDetail.Replace("\"initialExternalIds\":", "\"initialGroups\":" + initial + ",\"initialExternalIds\":",
+                    StringComparison.Ordinal);
+                using var transport = new Transport((_, index) => Json(index == 1 ? detail : CatalogGroups));
+                using var client = new AniBtClient(transport);
+                var group = client.GroupPageAsync(new AniBtAnime("ani_one", 123, "测试"), default).GetAwaiter().GetResult().Groups.Single();
+                Assert.Null(group.LogoUrl);
+                Assert.Equal(1, group.Items.Count);
+                Assert.Equal(40, group.TotalReleases);
+            });
+        }
+
+        foreach (var initial in new[] { "null", "{}", "[]", "[{\"organizationId\":\"org_one\"}]",
+            "[{\"organizationId\":\"org_other\",\"logoUrl\":\"https://r2.anibt.net/one.webp\"}]",
+            "[{\"organizationId\":\"org_one\",\"logoUrl\":\"https://r2.anibt.net/a.webp\"}," +
+                "{\"organizationId\":\"org_one\",\"logoUrl\":\"https://r2.anibt.net/b.webp\"}]" })
+        {
+            Test("AniBT 缺失或不明确的初始小组头像仍可读资源：" + initial, () =>
+            {
+                var detail = CatalogDetail.Replace("\"initialExternalIds\":", "\"initialGroups\":" + initial + ",\"initialExternalIds\":",
+                    StringComparison.Ordinal);
+                using var transport = new Transport((_, index) => Json(index == 1 ? detail : CatalogGroups));
+                using var client = new AniBtClient(transport);
+                var group = client.GroupPageAsync(new AniBtAnime("ani_one", 123, "测试"), default).GetAwaiter().GetResult().Groups.Single();
+                Assert.Null(group.LogoUrl);
+                Assert.Equal(1, group.Items.Count);
+            });
+        }
 
         Test("AniBT 分组拒绝跨番剧或损坏响应，不吞成空资源", () =>
         {
