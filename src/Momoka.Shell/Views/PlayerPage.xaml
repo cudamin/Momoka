@@ -673,7 +673,23 @@
                         Text="{x:Bind ViewModel.DanmakuDraft, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                         PlaceholderText="{x:Bind ViewModel.DanmakuInputPlaceholder, Mode=OneWay}"
                         KeyDown="OnDanmakuInputKeyDown" TextCompositionStarted="OnDanmakuCompositionStarted"
-                        TextCompositionEnded="OnDanmakuCompositionEnded" AutomationProperties.Name="弹幕内容" />
+                        TextCompositionEnded="OnDanmakuCompositionEnded" AutomationProperties.Name="弹幕内容">
+                        <TextBox.Resources>
+                            <ResourceDictionary>
+                                <ResourceDictionary.ThemeDictionaries>
+                                    <!-- 画面上的输入区沿用播放器玻璃，不让普通表单底色在悬停或聚焦时盖住它。 -->
+                                    <ResourceDictionary x:Key="Dark">
+                                        <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="PlayerGlassTopBrush" />
+                                        <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="PlayerGlassTopBrush" />
+                                    </ResourceDictionary>
+                                    <ResourceDictionary x:Key="Light">
+                                        <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="PlayerGlassTopBrush" />
+                                        <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="PlayerGlassTopBrush" />
+                                    </ResourceDictionary>
+                                </ResourceDictionary.ThemeDictionaries>
+                            </ResourceDictionary>
+                        </TextBox.Resources>
+                    </TextBox>
                     <Button x:Name="SendDanmakuButton" Height="30" MinWidth="44" Padding="8,0"
                         Content="{x:Bind ViewModel.DanmakuSendButtonText, Mode=OneWay}"
                         Command="{x:Bind ViewModel.SendDanmakuCommand}"

@@ -132,28 +132,8 @@ public static class ThemeHost
         // 的话，自检「主题角色覆盖」那条红：调色板里有了，ThemeHost 却不涂。
         ("EgPickerGlassBrush", theme => theme.Colors.SurfaceElevated),
 
-        // 闭合态的五件套（同轮他指「没有展开的时候颜色和背景不一样」——框架那档是 4% 透明白，压在卡上
-        // 色相不亲）。停着/聚焦/失焦都在抬升档，悬停/按下抬到 hover 档给反馈；选完落回来跟停着一样，
-        // 是 QQ 那张图的样子。
-        ("ComboBoxBackground", theme => theme.Colors.SurfaceElevated),
-        ("ComboBoxBackgroundPointerOver", theme => theme.Colors.SurfaceHover),
-        ("ComboBoxBackgroundPressed", theme => theme.Colors.SurfaceHover),
-        ("ComboBoxBackgroundFocused", theme => theme.Colors.SurfaceElevated),
-        ("ComboBoxBackgroundUnfocused", theme => theme.Colors.SurfaceElevated),
-
-        // 输入框一族的皮（2026-09-26，原话：「这些输入框里面怎么是白色的，改成快捷键设置界面的那种」）：
-        // TextBox／PasswordBox 共用的 TextControl* 是框架皮肤里最后一块没接角色表的底，两成透明白压在深色
-        // 卡上就是发白的那一块。参考快捷键抓键框那张皮：四态底全部坐卡面色（SurfaceAlt），边线停着/禁用走
-        // 默认档、悬停抬 strong 档、聚焦换强调色 —— 抓键框「抓键中整圈强调」是同一句话。字与占位字不用接，
-        // 它们引用的 TextFillColor 两族已经在表里。
-        ("TextControlBackground", theme => theme.Colors.SurfaceAlt),
-        ("TextControlBackgroundPointerOver", theme => theme.Colors.SurfaceAlt),
-        ("TextControlBackgroundFocused", theme => theme.Colors.SurfaceAlt),
-        ("TextControlBackgroundDisabled", theme => theme.Colors.SurfaceAlt),
-        ("TextControlBorderBrush", theme => theme.Colors.Border),
-        ("TextControlBorderBrushPointerOver", theme => theme.Colors.BorderStrong),
-        ("TextControlBorderBrushFocused", theme => theme.Colors.Accent),
-        ("TextControlBorderBrushDisabled", theme => theme.Colors.Border)
+        // 与 Palette.xaml 的首帧资源配对；独立表供离线测试编译链接真实选色规则。
+        .. InputControlTheme.Brushes
     ];
 
     /// <summary>

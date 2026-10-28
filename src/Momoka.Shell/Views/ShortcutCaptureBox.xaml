@@ -29,8 +29,8 @@
                 <VisualState x:Name="Normal" />
                 <VisualState x:Name="Capturing">
                     <VisualState.Setters>
-                        <!-- 抓键中整圈变强调色，和胶片格那套「上焦点整圈强调」一个规矩，颜色走角色表不写死。 -->
-                        <Setter Target="ComboBorder.BorderBrush" Value="{ThemeResource EgAccentBrush}" />
+                        <!-- 抓键中加强中性边线；文字仍显示正在等待按键，不额外包一圈主题色。 -->
+                        <Setter Target="ComboBorder.BorderBrush" Value="{ThemeResource EgBorderStrongBrush}" />
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
@@ -38,7 +38,7 @@
 
         <Border
             x:Name="ComboBorder"
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+            Background="{ThemeResource EgWindowBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
             BorderThickness="{StaticResource EgHairline}"
             CornerRadius="4"

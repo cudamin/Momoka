@@ -9,7 +9,7 @@ internal static class NeutralFeedbackTests
 
     public static void Register()
     {
-        Test("中性反馈：搜索框聚焦保持中性细边，其他输入框仍有主题色焦点", () =>
+        Test("中性反馈：搜索框保留局部中性细边，其他输入框也不包主题色", () =>
         {
             var search = View("LibraryPage.xaml").Descendants().Single(element => Name(element) == "SearchInput");
             var resources = search.Elements().Single(element => element.Name.LocalName == "AutoSuggestBox.Resources");
@@ -22,7 +22,7 @@ internal static class NeutralFeedbackTests
             var palette = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "Palette.xaml"));
             Assert.True(palette.Descendants().Where(element =>
                 element.Attribute(Xaml + "Key")?.Value == "TextControlBorderBrushFocused").All(element =>
-                element.Attribute("Color")?.Value == "{StaticResource EgAccentColor}"));
+                element.Attribute("Color")?.Value == "{StaticResource EgBorderStrongColor}"));
         });
 
         Test("中性反馈：主页卡片保留中性的键盘焦点提示", () =>

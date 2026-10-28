@@ -147,6 +147,7 @@ internal sealed partial class ShellNavigationProbe
                     await SaveReturnFrameAsync(page, $"settings-clean-{current.Id}-{width}-render.png");
                     await WaitForDiagnosticsFrameAsync();
                     await CompositionPlaybackProbe.SaveScreenAsync(handle, Path.Combine(_options.Paths.LogDirectory, $"settings-clean-{current.Id}-{width}-screen.png"));
+                    await InputThemeControlsAsync(settingsWindow, page, handle, current, width);
                 }
                 scroll.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
             }
