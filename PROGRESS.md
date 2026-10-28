@@ -13,6 +13,12 @@
 - MoviePilot 最小修复对照官方前端 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 的 AddDownloadDialog.vue／spec 与后端 `be65e047b0e64b216420ba38bec7a087409552ff` 的 download.py：保留状态更新、具体失败原因和来源身份拒绝，不改下载流程；真实部署版本未核定。
 - 最终代码的当前 Release Shell／主测试／资源测试编译均为 0 警告、0 错误；主测试 3070/3070，0 失败／0 跳过。`--probe-shell --probe-section anibt,moviepilot,search --screen 1` 39/39，退出 0，报告 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-061540165-26564/logs/shell-probe.json`；1040／360 DIP 实屏截图已核对。本会话负责用该整合树刷新实际 `C:/Users/89400/Momoka/artifacts/publish/win-x64`，刷新前再次确认目标程序未运行。
 
+### AniBT 实际交付完成（2026-10-28）
+
+- 实现提交 `538ae17`、最终代码整合提交 `130bd26`。2026-10-28 14:25 已从本会话的整合树通过 `tools/publish.ps1 -NoArchive -OutputRoot C:/Users/89400/Momoka/artifacts` 刷新实际交付目录；桌面 `Momoka.lnk` 已核实指向 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`，程序 ProductVersion 为 `0.2.0+130bd262cc133ac5fd608b96ca5c68b64dfbdc11`。发布校验 546 文件／284.3 MB、14 GLSL／4 HOOK 与批准 mpv 清单全部通过。
+- 从上述实际发布目录运行 `--probe-shell --probe-section anibt --screen 1`，3/3 全过、退出 0。报告 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-062701550-15176/logs/shell-probe.json`，1040／360 DIP 的 `anibt-resources-*-screen.png` 均已查看；方钮靠右、头像可用与缺失、图像失败收起、下载状态与取消确认通过。本轮仅本地图片／匿名假传输，无真实下载、整理写入或播放。
+- 本节只是交付证据记录，不修改已验证的产品代码、不重复发布。主工作区其他会话的未提交内容保留；没有推送 GitHub，也没有重新生成安装包。
+
 ## 滚动条让出卡片：资源搜索页先改、全站页面扫查（2026-10-28）
 
 - 用户令「资源搜索页面的滚动条要靠右，别跟卡片重叠」，随后要求「检查项目所有页面的滚动条」。本轮只动布局留白与探针，不改滚动行为、数据、下载或播放。
