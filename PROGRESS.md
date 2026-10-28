@@ -1,3 +1,9 @@
+### AniBT 精简界面实际交付完成（2026-10-28）
+
+- 最终产品整合提交 `7b48443`。从本会话整合树运行 `tools/publish.ps1 -NoArchive -Shortcut -OutputRoot C:/Users/89400/Momoka/artifacts` 成功，实际程序为 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`，ProductVersion `0.2.0+7b48443920654c5d6fe0e8a813161caeeee02d54`；桌面快捷方式已读回核实指向同一程序。发布校验 546 文件／284.4 MB，14 GLSL、4 HOOK 和批准 mpv 59 文件通过。
+- 实际发布版运行 `--probe-shell --probe-section anibt,search --screen 1`，16/16、退出 0，报告 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-083230307-20876/logs/shell-probe.json`。宽窄实屏截图已查看，五主题截图保存；标题／外卡／RSS／二次筛选移除、紧凑间距、窗口按钮避让、头像与行尾方钮正常。最终开发件 58/58 页面检查、3109 主测试、50 资源回归、33 整理专项均通过，0 失败／0 跳过。
+- 本节仅记录交付证据，不改已验证产品、不重复发布。其他工作树原发布件及主树在途内容保留，没有推送 GitHub、重生成安装包或执行真实下载／整理写入／播放。
+
 ### AniBT 精简界面的最终交付整合（2026-10-28）
 
 - 本会话完成精简实现 `f529f8b`，保留已交付剧资源整理、中性搜索框／封面反馈及 MP 排序菜单，合入主干截至 `e6aae46` 的已提交代码；主工作区在途文件未带入。最终当前 Release Shell、Core 及测试编译 0 警告／0 错误，主测试 3109/3109、资源回归 50/50、整理专项 33/33，0 失败／0 跳过。
