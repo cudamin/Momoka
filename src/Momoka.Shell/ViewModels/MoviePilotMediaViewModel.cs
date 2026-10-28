@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.AniBt;
 using Momoka.Emby;
@@ -25,7 +26,8 @@ public sealed partial class MoviePilotMediaEpisodeRow(MoviePilotMediaEpisode epi
 }
 
 public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason season, MoviePilotSubscription? subscription,
-    Action<MoviePilotMediaSeasonRow> expand, Action<MoviePilotMediaSeasonRow> subscribe) : ObservableObject
+    Action<MoviePilotMediaSeasonRow> expand, Action<MoviePilotMediaSeasonRow> subscribe,
+    MoviePilotSubscribeMode defaultMode = MoviePilotSubscribeMode.Normal) : ObservableObject
 {
     public MoviePilotMediaSeason Season { get; } = season;
     public MoviePilotSubscription? Subscription { get; } = subscription;
@@ -33,12 +35,24 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     public string Title => IsMovie ? Season.Name : Season.Label;
     public string Summary => (IsMovie ? "电影" : $"{Season.EpisodeCount} 集") + (Season.AirDate.Length > 0 ? $" · 首播于 {Season.AirDate}" : "") + (Season.Vote is > 0 ? $" · ★ {Season.Vote:0.0}" : "");
     public string SubscribeLabel => CurrentSubscription is null ? "未订阅" : "已订阅 · " + MoviePilotSubscriptionPlan.ModeLabel(MoviePilotSubscriptionPlan.Mode(CurrentSubscription));
+    public Visibility SubscriptionVisibility => CurrentSubscription is null ? Visibility.Collapsed : Visibility.Visible;
     public string HeartGlyph => CurrentSubscription is null ? "\uEB51" : "\uEB52";
     public ObservableCollection<MoviePilotMediaEpisodeRow> Episodes { get; } = [];
     [ObservableProperty] public partial BitmapImage? Poster { get; set; }
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HeaderStatus))]
+    [NotifyPropertyChangedFor(nameof(StatusBrush))]
     public partial string Status { get; set; } = "入库状态未知";
+
+    /// <summary>缺失／部分入库／已入库分别用错误、警告和强调色；状态未知用暗字。</summary>
+    public Brush? StatusBrush => Status switch
+    {
+        "缺失" => Paint("EgDangerBrush"),
+        "已入库" => Paint("EgAccentBrush"),
+        _ when Status.StartsWith("部分入库", StringComparison.Ordinal) => Paint("EgWarningBrush"),
+        _ => Paint("EgTextDimBrush")
+    };
+    private static Brush? Paint(string key) => Application.Current?.Resources.TryGetValue(key, out var found) == true ? found as Brush : null;
 
     /// <summary>
     /// 订阅季的折叠栏直接装这条订阅的文件统计（用户令 2026-10-12）。订阅详情的视图模型由
@@ -71,7 +85,15 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     public Visibility EpisodeNoticeVisibility => EpisodeNotice.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     [ObservableProperty] public partial bool Expanded { get; set; }
     [ObservableProperty] public partial bool Selected { get; set; } = subscription is not null;
-    [ObservableProperty] public partial int ModeIndex { get; set; } = (int)(subscription is null ? MoviePilotSubscribeMode.Normal : MoviePilotSubscriptionPlan.Mode(subscription));
+    [ObservableProperty] public partial int ModeIndex { get; set; } = (int)(subscription is null ? defaultMode : MoviePilotSubscriptionPlan.Mode(subscription));
+    /// <summary>用户亲手点过这一季的模式；入库状态迟到或不可用时，只有这种选择才不需要状态背书。</summary>
+    public bool ModeTouched { get; private set; }
+    internal void MarkModePicked()
+    {
+        if (ModeTouched) return;
+        ModeTouched = true;
+        OnPropertyChanged(nameof(ModeTouched));
+    }
     public string ModeGroup => "mode-" + GetHashCode().ToString(System.Globalization.CultureInfo.InvariantCulture);
     public bool NormalMode { get => ModeIndex == 0; set { if (value) ModeIndex = 0; } }
     public bool EpisodesMode { get => ModeIndex == 1; set { if (value) ModeIndex = 1; } }
@@ -81,6 +103,7 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     public Visibility SelectedVisibility => Selected ? Visibility.Visible : Visibility.Collapsed;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(SubscribeLabel))]
+    [NotifyPropertyChangedFor(nameof(SubscriptionVisibility))]
     [NotifyPropertyChangedFor(nameof(HeartGlyph))]
     public partial MoviePilotSubscription? CurrentSubscription { get; set; } = subscription;
     partial void OnSelectedChanged(bool value) => OnPropertyChanged(nameof(SelectedVisibility));
@@ -103,7 +126,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     private bool _picker;
     private int? _preselect;
     private bool _initialSelection;
-    private readonly Dictionary<(string Group, int Season), MoviePilotSeasonChoice> _seasonDrafts = [];
+    private bool _libraryStatesKnown;
+    private MoviePilotSubscribeMode _defaultSubscribeMode = MoviePilotSubscribeMode.Normal;
+    private readonly Dictionary<(string Group, int Season), (MoviePilotSeasonChoice Choice, bool Touched)> _seasonDrafts = [];
     private bool Live => _service is { Available: true } && _media is not null && _lifetime is { IsCancellationRequested: false }
         && _service.IsCurrentConnection(_media.ConnectionStamp);
 
@@ -232,10 +257,26 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         get
         {
             if (!CanInteract || Detail is null || Seasons.Count == 0) return false;
+            if (!_libraryStatesKnown && Seasons.Any(row => row.Selected && !ExplicitMode(row))) return false;
             try { return Plan().Count > 0; }
             catch (MoviePilotException) { return false; }
         }
     }
+
+    /// <summary>网页端按钮文案：没有任何选择且没有差量时是「请选择订阅季」，其余时候是「提交订阅」。</summary>
+    public string SubmitButtonText
+    {
+        get
+        {
+            try { return Seasons.Any(row => row.Selected) || Plan().Count > 0 ? "提交订阅" : "请选择订阅季"; }
+            catch (MoviePilotException) { return "提交订阅"; }
+        }
+    }
+
+    private static bool ExplicitMode(MoviePilotMediaSeasonRow row) => row.ModeTouched
+        || row.CurrentSubscription is { } subscription
+        && MoviePilotSubscriptionPlan.Mode(subscription) == (MoviePilotSubscribeMode)row.ModeIndex;
+    public Visibility SeasonStateRetryVisibility => Show(!_libraryStatesKnown && _groupLoad is null && Detail is not null && Seasons.Count > 0);
     public Visibility SubscribeProgressVisibility => Show(Busy || _groupLoad is not null || Submitting);
 
     /// <summary>
@@ -260,7 +301,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     {
         OnPropertyChanged(nameof(CanInteract)); OnPropertyChanged(nameof(CanSubmit)); OnPropertyChanged(nameof(SubmitReviewVisibility));
         OnPropertyChanged(nameof(ReviewVisibility)); OnPropertyChanged(nameof(AniBtVisibility)); OnPropertyChanged(nameof(CanSearchAniBt));
-        OnPropertyChanged(nameof(SubscribeProgressVisibility));
+        OnPropertyChanged(nameof(SubscribeProgressVisibility)); OnPropertyChanged(nameof(SeasonStateRetryVisibility)); OnPropertyChanged(nameof(SubmitButtonText));
         foreach (var row in Groups) row.Refresh();
         foreach (var row in Seasons) row.Editable = CanInteract;
     }
@@ -286,6 +327,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         if (!ReferenceEquals(lifetime, _lifetime) || !Live || !IsCurrent(load)) return;
         Detail = null;
         Seasons.Clear();
+        _libraryStatesKnown = false;
+        _defaultSubscribeMode = MoviePilotSubscribeMode.Normal;
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(load, lifetime.Token);
         try
         {
@@ -293,6 +336,13 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             var subscriptions = await _service.SubscriptionsAsync(linked.Token);
             if (!Live || !IsCurrent(load)) return;
             Detail = detail; _subscriptions = subscriptions.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, _media)).ToArray();
+            if (_picker && detail.Media.Type == "电视剧")
+            {
+                try { _defaultSubscribeMode = await _service.DefaultTvSubscribeModeAsync(detail.Media, linked.Token); }
+                catch (OperationCanceledException) { throw; }
+                catch (Exception) { _defaultSubscribeMode = MoviePilotSubscribeMode.Normal; }
+            }
+            if (!Live || !IsCurrent(load)) return;
             OnPropertyChanged(nameof(AniBtVisibility)); OnPropertyChanged(nameof(CanSearchAniBt));
             _ = LoadHeroImagesAsync(detail, linked.Token);
             Title = detail.Media.Display; Overview = detail.Media.Overview ?? ""; Tagline = detail.Tagline;
@@ -350,7 +400,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     {
         if (!Live || Submitting || Submitted || !Groups.Contains(row) || row.IsCurrent) return;
         if (_picker)
-            foreach (var season in Seasons) _seasonDrafts[(GroupId, season.Season.Number)] = new(season.Season.Number, season.Selected, (MoviePilotSubscribeMode)season.ModeIndex);
+            foreach (var season in Seasons)
+                _seasonDrafts[(GroupId, season.Season.Number)] =
+                    (new(season.Season.Number, season.Selected, (MoviePilotSubscribeMode)season.ModeIndex), season.ModeTouched);
         GroupId = row.Group.Id;
         FillGroups(Groups.Select(item => item.Group).ToArray());
         await LoadSeasonsAsync(_lifetime!.Token);
@@ -363,7 +415,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         using var pending = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _groupLoad = pending;
         var group = GroupId;
-        Seasons.Clear(); _existing = null; _loadingEpisodes.Clear();
+        Seasons.Clear(); _existing = null; _libraryStatesKnown = false; _loadingEpisodes.Clear();
         NotifyState();
         SeasonNotice = "正在读取季信息…";
         try
@@ -375,42 +427,92 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             {
                 var subscription = MoviePilotSubscriptionPlan.Find(Detail.Media with { Season = Detail.Media.Type == "电视剧" ? season.Number : null }, group, _subscriptions);
                 var row = new MoviePilotMediaSeasonRow(season, subscription, row => _ = LoadEpisodesAsync(row), row =>
-                { if (CanInteract && Seasons.Contains(row)) _subscribe?.Invoke(row.Season.Number); })
+                { if (CanInteract && Seasons.Contains(row)) _subscribe?.Invoke(row.Season.Number); }, _defaultSubscribeMode)
                 { IsMovie = Detail.Media.Type == "电影", Editable = CanInteract };
                 if (_picker && _seasonDrafts.TryGetValue((group, season.Number), out var draft))
                 {
-                    row.Selected = draft.Selected;
-                    row.ModeIndex = (int)draft.Mode;
+                    row.Selected = draft.Choice.Selected;
+                    row.ModeIndex = (int)draft.Choice.Mode;
+                    if (draft.Touched) row.MarkModePicked();
                 }
-                else if (_picker && _initialSelection && (_preselect == season.Number || _preselect is null && _subscriptions.Count == 0
-                    && season.Number == (seasons.FirstOrDefault(item => item.Number > 0) ?? seasons.FirstOrDefault())?.Number)) row.Selected = true;
+                else if (_picker && _initialSelection && _preselect == season.Number) row.Selected = true;
                 Seasons.Add(row);
-                row.PropertyChanged += (_, args) => { if (_picker && args.PropertyName is nameof(row.Selected) or nameof(row.ModeIndex)) UpdatePlanSummary(); };
+                row.PropertyChanged += (_, args) => { if (_picker && args.PropertyName is nameof(row.Selected) or nameof(row.ModeIndex) or nameof(row.ModeTouched)) UpdatePlanSummary(); };
                 _ = LoadSeasonImageAsync(row, pending.Token);
             }
             _preselect = null; _initialSelection = false;
             if (_picker) UpdatePlanSummary();
             SeasonNotice = seasons.Count > 0 ? "" : "此剧集组没有可用的季信息。";
-            if (Detail.SupportsSeasons)
-            {
-                IReadOnlyDictionary<int, IReadOnlySet<int>>? existing = null;
-                try { existing = await _service.MediaExistingEpisodesAsync(Detail, group, pending.Token); }
-                catch (OperationCanceledException) { throw; }
-                catch (Exception) { SeasonNotice = "入库状态暂不可用；仍可浏览季集与管理订阅。"; }
-                if (!Live || pending.IsCancellationRequested || !ReferenceEquals(_groupLoad, pending)) return;
-                _existing = existing;
-                foreach (var row in Seasons)
-                {
-                    var count = _existing?.GetValueOrDefault(row.Season.Number)?.Count ?? 0;
-                    row.Status = _existing is null ? "入库状态未知" : count == 0 ? "缺失" : count >= row.Season.EpisodeCount && row.Season.EpisodeCount > 0 ? "已入库" : $"部分入库 · {count} / {row.Season.EpisodeCount} 集";
-                    foreach (var episode in row.Episodes) episode.Exists = _existing is null ? null : _existing.GetValueOrDefault(row.Season.Number)?.Contains(episode.Episode.Number) == true;
-                }
-            }
+            if (Detail.SupportsSeasons) await LoadSeasonStatesAsync(group, Seasons.ToArray(), pending.Token);
+            else _libraryStatesKnown = true;
+            if (!Live || pending.IsCancellationRequested || !ReferenceEquals(_groupLoad, pending)) return;
+            if (_picker) UpdatePlanSummary();
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { if (Live && ReferenceEquals(_groupLoad, pending)) { Seasons.Clear(); SeasonNotice = "季列表读取失败，请重新选择或刷新。"; Report("季列表读取失败", error); } }
         finally { if (ReferenceEquals(_groupLoad, pending)) _groupLoad = null; NotifyState(); }
     }
+
+    private async Task LoadSeasonStatesAsync(string group, IReadOnlyList<MoviePilotMediaSeasonRow> rows, CancellationToken token)
+    {
+        if (_service is null || Detail is null) return;
+        IReadOnlyDictionary<int, IReadOnlySet<int>>? existing = null;
+        try { existing = await _service.MediaExistingEpisodesAsync(Detail, group, token); }
+        catch (OperationCanceledException) { throw; }
+        catch (Exception)
+        {
+            if (!Live || token.IsCancellationRequested || group != GroupId || !SameRows(rows)) return;
+            _existing = null; _libraryStatesKnown = false;
+            foreach (var row in rows)
+            {
+                row.Status = "入库状态未知";
+                foreach (var episode in row.Episodes) episode.Exists = null;
+            }
+            if (rows.Count > 0) SeasonNotice = "入库状态暂不可用；仍可浏览季集，选择模式后提交。";
+            NotifyState();
+            return;
+        }
+        if (!Live || token.IsCancellationRequested || group != GroupId || !SameRows(rows)) return;
+        _existing = existing; _libraryStatesKnown = true;
+        if (rows.Count > 0) SeasonNotice = "";
+        foreach (var row in rows)
+        {
+            var count = existing.GetValueOrDefault(row.Season.Number)?.Count ?? 0;
+            row.Status = count == 0 ? "缺失" : count >= row.Season.EpisodeCount && row.Season.EpisodeCount > 0 ? "已入库" : $"部分入库 · {count} / {row.Season.EpisodeCount} 集";
+            foreach (var episode in row.Episodes) episode.Exists = existing.GetValueOrDefault(row.Season.Number)?.Contains(episode.Episode.Number) == true;
+            // 网页端按入库状态给新订阅预选模式：整季都在库里时默认全集洗版，否则用公开默认配置。
+            if (_picker && row.CurrentSubscription is null && !row.ModeTouched)
+                row.ModeIndex = (int)MoviePilotSubscriptionPlan.DefaultSeasonMode(IsComplete(row, existing), _defaultSubscribeMode);
+        }
+        if (_picker) UpdatePlanSummary();
+        NotifyState();
+    }
+
+    /// <summary>入库状态读取失败后的显式重试；不重读季列表，也不清掉用户已经点过的模式。</summary>
+    internal async Task RetrySeasonStatesAsync()
+    {
+        if (!Live || _groupLoad is not null || _service is null || Detail is null || Seasons.Count == 0) return;
+        var group = GroupId;
+        var rows = Seasons.ToArray();
+        using var pending = CancellationTokenSource.CreateLinkedTokenSource(_lifetime!.Token);
+        _groupLoad = pending;
+        NotifyState();
+        SeasonNotice = "正在读取入库状态…";
+        try { await LoadSeasonStatesAsync(group, rows, pending.Token); }
+        catch (OperationCanceledException) { }
+        finally
+        {
+            if (ReferenceEquals(_groupLoad, pending)) _groupLoad = null;
+            if (Live) { UpdatePlanSummary(); NotifyState(); }
+        }
+    }
+
+    private bool SameRows(IReadOnlyList<MoviePilotMediaSeasonRow> rows) =>
+        rows.Count == Seasons.Count && rows.SequenceEqual(Seasons);
+
+    private static bool IsComplete(MoviePilotMediaSeasonRow row, IReadOnlyDictionary<int, IReadOnlySet<int>> existing) =>
+        row.Season.EpisodeCount > 0 && existing.GetValueOrDefault(row.Season.Number) is { } episodes
+        && episodes.Count >= row.Season.EpisodeCount;
 
     private async Task LoadSeasonImageAsync(MoviePilotMediaSeasonRow row, CancellationToken token)
     {
@@ -473,6 +575,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         }
         catch (Exception error) { SubmitSummary = error.Message; }
         OnPropertyChanged(nameof(CanSubmit));
+        OnPropertyChanged(nameof(SubmitButtonText));
     }
 
     internal async Task<bool> SubmitAsync()
@@ -529,7 +632,11 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
                 var current = MoviePilotSubscriptionPlan.Find(Detail.Media with { Season = row.IsMovie ? null : row.Season.Number }, group, _subscriptions);
                 row.CurrentSubscription = current;
                 row.Selected = current is not null;
-                row.ModeIndex = (int)(current is null ? MoviePilotSubscribeMode.Normal : MoviePilotSubscriptionPlan.Mode(current));
+                row.ModeIndex = (int)(current is null
+                    ? _libraryStatesKnown && _existing is not null
+                        ? MoviePilotSubscriptionPlan.DefaultSeasonMode(IsComplete(row, _existing), _defaultSubscribeMode)
+                        : _defaultSubscribeMode
+                    : MoviePilotSubscriptionPlan.Mode(current));
             }
             var uncertain = Seasons.Any(row => _service.SeasonSubscribeState(Detail.Media with { Season = row.IsMovie ? null : row.Season.Number }, group)
                 == MoviePilotOperationState.Uncertain || row.CurrentSubscription is { } current && _service.SubscriptionNeedsReview(current));

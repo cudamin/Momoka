@@ -14,14 +14,26 @@ namespace Microsoft.UI.Xaml
     public enum ElementTheme { Default, Light, Dark }
     public readonly record struct Thickness(double Left, double Top, double Right, double Bottom);
     public sealed class XamlRoot;
+    public sealed class ResourceDictionary : System.Collections.Generic.Dictionary<object, object>;
+    public sealed class Application
+    {
+        public static Application? Current { get; set; }
+        public ResourceDictionary Resources { get; } = new();
+    }
     public class RoutedEventArgs : EventArgs;
     public class FrameworkElement
     {
+        public object? Tag { get; set; }
         public XamlRoot? XamlRoot { get; set; } = new();
         public ElementTheme ActualTheme { get; set; }
         public ElementTheme RequestedTheme { get; set; }
         public Microsoft.UI.Dispatching.DispatcherQueue DispatcherQueue { get; } = new();
     }
+}
+
+namespace Microsoft.UI.Xaml.Media
+{
+    public class Brush;
 }
 
 namespace Microsoft.UI.Xaml.Media.Imaging
@@ -30,6 +42,7 @@ namespace Microsoft.UI.Xaml.Media.Imaging
     {
         public BitmapImage() { }
         public BitmapImage(Uri uri) { Uri = uri; }
+        public event EventHandler<object>? ImageFailed { add { } remove { } }
         public Uri? Uri { get; }
         public int DecodePixelWidth { get; set; }
         public int PixelWidth { get; set; }

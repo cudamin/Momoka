@@ -38,4 +38,9 @@ public sealed partial class MoviePilotSeasonPicker : ContentDialog
         finally { deferral.Complete(); }
     }
     private async void OnReview(object sender, RoutedEventArgs args) => await ViewModel.ReviewAsync();
+    private void OnSeasonModePicked(object sender, RoutedEventArgs args)
+    {
+        if (sender is FrameworkElement { Tag: MoviePilotMediaSeasonRow row }) row.MarkModePicked();
+    }
+    private async void OnRetrySeasonStates(object sender, RoutedEventArgs args) => await ViewModel.RetrySeasonStatesAsync();
 }

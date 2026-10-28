@@ -56,6 +56,14 @@
 - 默认组多条候选先按入库路径筛，路径唯一命中才用它；否则数字候选唯一才接受。非默认组缺可信路径或多候选命中时不给目标，不凭数字唯一猜测，也不以文件 `itemid` 逃出主媒体核对。路径只做字符串比较，不访问、不启动路径；Windows 驱动器／反斜线 UNC 忽略大小写，Unix 区分大小写。
 - 找不到、无权读取、待入库、缺集都不启用播放入口。页面本身只读取，点播放才起播。
 
+## 季选择弹窗的界面对照（2026-10-28）
+
+- **界面事实来源是上游组件，不只是 `subscribe` 接口。** 季选择弹窗读 `jxxghp/MoviePilot-Frontend` 的 `src/components/dialog/SubscribeSeasonDialog.vue`、同目录 `__tests__/SubscribeSeasonDialog.spec.ts`，以及 `src/composables/useMediaSubscribe.ts` 的 `queryDefaultSubscribeConfig`。每次审查这些文件与本地 `MoviePilotSeasonPicker.xaml(.cs)` / `MoviePilotMediaViewModel` 的控件、默认值、禁用条件和显隐规则一起对照；后端只证明请求契约。
+- **网页端可见规则。** 没有明确入口季、也没有已有订阅时不预选任何季，主按钮是禁用的「请选择订阅季」；选中季后每季出现开关和普通订阅／分集洗版／全集洗版三档，已订阅季另有标记。新订阅的默认模式：整季已入库用全集洗版，其余用公开的 `DefaultTvSubscribeConfig`；未设置、不可读或旧服务器没有这个入口时回退普通订阅，不阻断季选择。
+- **入库状态是提交门禁。** 入库状态还没回来或读取失败时，新选季只显示「入库状态未知」；用户必须亲手点过一次模式（包括已选中的那一档）才允许提交，并提供「重试入库状态」入口。已有同模式订阅不要求重新点。状态失败不能显示成「缺失」或「已全部入库」。
+- **本地保留的差异。** WinUI 原生开关与单选替代网页端 VSwitch／VBtnToggle；剧集组草稿按组保留，网页端切组会清空。两处都不改变提交请求，属于外观和本地交互差异。状态色用 `EgDangerBrush` / `EgWarningBrush` / `EgAccentBrush` 表达缺失、部分入库、已入库。
+- 本地读取入口是 `MoviePilotService.DefaultTvSubscribeModeAsync`，纯解析在 `MoviePilotSubscriptionPlan.DefaultMode`，按入库状态选默认在 `DefaultSeasonMode`。测试覆盖公开配置的三档、布尔／数字／字符串开关、旧入口 404 回退、已入库季默认全集洗版，以及状态失败时的显式模式门禁。
+
 ## 夹具与验证要覆盖
 
 - **方法差异**：POST 成功、POST 405 才改 GET、POST 超时不得改发、PUT / DELETE 结果不明后锁定且不重发。

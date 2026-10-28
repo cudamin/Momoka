@@ -66,6 +66,8 @@ internal sealed class SubscriptionFixture : IDisposable
         internal JsonElement GroupSeasons { get; set; } = Json("""[{"season_number":7,"name":"组第七季","episode_count":10,"air_date":"2026-10-01","poster_path":""}]""");
         internal JsonElement Groups { get; set; } = Json("""[{"id":"group-a","name":"A 组","group_count":1,"episode_count":10},{"id":"group-b","name":"B 组","group_count":1,"episode_count":10}]""");
         internal JsonElement SearchResults { get; set; } = Json("""[{"title":"匿名示例","type":"电影","media_source":"themoviedb","media_id":"42"}]""");
+        internal JsonElement DefaultTvSubscribeConfig { get; set; } =
+            Json("""{"success":true,"data":{"value":{"best_version":0,"best_version_full":0}}}""");
         internal Func<Request, CancellationToken, Task<HttpResponseMessage?>>? Before { get; set; }
         internal int Writes => Requests.Count(item => IsWrite(item));
         internal static bool IsWrite(Request request) => request.Path.StartsWith("subscribe", StringComparison.Ordinal) && request.Method != "GET";
@@ -88,6 +90,7 @@ internal sealed class SubscriptionFixture : IDisposable
             {
                 if (path == "login/access-token") return Reply(new { access_token = "placeholder-token" });
                 if (path == "dashboard/system") return Reply(new { version = "fixed-source-fixture" });
+                if (path == "system/setting/public/DefaultTvSubscribeConfig") return Reply(DefaultTvSubscribeConfig);
                 if (path == "media/search") return Reply(SearchResults);
                 if (path == "media/source") return Reply(Json("""[{"id":"themoviedb","name":"TMDB","media_types":["电影","电视剧"]}]"""));
                 if (path.StartsWith("media/groups/", StringComparison.Ordinal)) return Reply(Groups);

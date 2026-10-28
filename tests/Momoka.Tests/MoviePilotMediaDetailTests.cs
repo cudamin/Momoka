@@ -76,6 +76,22 @@ internal static class MoviePilotMediaDetailTests
             Assert.Equal(3, patch.Count); Assert.Equal(7, (int)patch["id"]!); Assert.False(patch.ContainsKey("episode_group"));
             Assert.Equal(0, MoviePilotSubscriptionPlan.Build(Media, "group", [new(1, true, MoviePilotSubscribeMode.Normal)], [Subscription(7, 1, "group")]).Count);
         });
+        Test("MP 默认订阅模式：公开配置三档与布尔/数字/字符串开关", () =>
+        {
+            Assert.Equal(MoviePilotSubscribeMode.Normal, MoviePilotSubscriptionPlan.DefaultMode(Json("""{"value":null}""")));
+            Assert.Equal(MoviePilotSubscribeMode.Normal, MoviePilotSubscriptionPlan.DefaultMode(Json("""{"value":{}}""")));
+            Assert.Equal(MoviePilotSubscribeMode.Normal, MoviePilotSubscriptionPlan.DefaultMode(Json("""{}""")));
+            Assert.Equal(MoviePilotSubscribeMode.Episodes, MoviePilotSubscriptionPlan.DefaultMode(Json("""{"value":{"best_version":true,"best_version_full":false}}""")));
+            Assert.Equal(MoviePilotSubscribeMode.Episodes, MoviePilotSubscriptionPlan.DefaultMode(Json("""{"value":{"best_version":1,"best_version_full":0}}""")));
+            Assert.Equal(MoviePilotSubscribeMode.FullSeason, MoviePilotSubscriptionPlan.DefaultMode(Json("""{"value":{"best_version":"1","best_version_full":"1"}}""")));
+            Assert.Equal(MoviePilotSubscribeMode.FullSeason, MoviePilotSubscriptionPlan.DefaultMode(Json("""{"best_version":1,"best_version_full":1}""")));
+        });
+        Test("MP 已入库季默认全集洗版，其余沿用公开默认", () =>
+        {
+            Assert.Equal(MoviePilotSubscribeMode.FullSeason, MoviePilotSubscriptionPlan.DefaultSeasonMode(true, MoviePilotSubscribeMode.Normal));
+            Assert.Equal(MoviePilotSubscribeMode.FullSeason, MoviePilotSubscriptionPlan.DefaultSeasonMode(true, MoviePilotSubscribeMode.Episodes));
+            Assert.Equal(MoviePilotSubscribeMode.Episodes, MoviePilotSubscriptionPlan.DefaultSeasonMode(false, MoviePilotSubscribeMode.Episodes));
+        });
         Test("MP 季订阅：电影空季号和非法选择保护", () =>
         {
             var movie = Media with { Type = "电影" };

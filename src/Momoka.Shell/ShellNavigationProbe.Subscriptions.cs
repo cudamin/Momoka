@@ -712,6 +712,7 @@ internal sealed partial class ShellNavigationProbe
         internal TaskCompletionSource<HttpResponseMessage>? PendingGroup { get; set; }
         internal TaskCompletionSource<HttpResponseMessage>? PendingExists { get; set; }
         internal bool FailSubscriptionCreate { get; set; }
+        internal bool FailExists { get; set; }
         internal bool UncertainNextWrite { get; set; }
         internal string? FailedImageUrl { get; set; }
         internal List<string> ImageRequests { get; } = [];
@@ -740,20 +741,24 @@ internal sealed partial class ShellNavigationProbe
             }
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Json(new { access_token = "fixture-token" });
             if (path.EndsWith("dashboard/system", StringComparison.Ordinal)) return Json(new { version = "fixture" });
-            if (path == "/api/v1/mediaserver/exists_remote") return PendingExists is { } exists ? await exists.Task : Json(new { success = true, data = new Dictionary<string, int[]> { ["1"] = [1] } });
+            if (path == "/api/v1/system/setting/public/DefaultTvSubscribeConfig")
+                return Json(new { success = true, data = new { value = new { best_version = 0, best_version_full = 0 } } });
+            if (path == "/api/v1/mediaserver/exists_remote")
+                return FailExists ? new HttpResponseMessage(HttpStatusCode.Forbidden) { Content = new StringContent("{\"detail\":\"fixture forbidden\"}") }
+                    : PendingExists is { } exists ? await exists.Task : Json(new { success = true, data = new Dictionary<string, int[]> { ["1"] = [1] } });
             // 演职员／相关推荐／相似作品：默认空 —— 这三段只有订阅详情页会读，别的用例不必凭空多三段内容。
             // 要看这三段的用例把 Related 打开（订阅详情那一条就是这么做的）：夹具给六个人、推荐与相似各六部，
             // 每一条都带一张图（走 /system/cache/image 那张假图）。
             if (path.StartsWith("/api/v1/tmdb/credits/", StringComparison.Ordinal)) return Json(Related ? RelatedPeople() : Array.Empty<object>());
             if (path.StartsWith("/api/v1/tmdb/recommend/", StringComparison.Ordinal) || path.StartsWith("/api/v1/tmdb/similar/", StringComparison.Ordinal)) return Json(Related ? RelatedMedia() : Array.Empty<object>());
-            if (path == "/api/v1/media/4") return Json(new
+            if (path == "/api/v1/media/4" || path == "/api/v1/media/9") return Json(new
             {
                 title = "漫长的旅途",
                 year = "2026",
                 type = "电视剧",
                 media_source = "themoviedb",
-                media_id = "4",
-                tmdb_id = 4,
+                media_id = path.EndsWith("/9", StringComparison.Ordinal) ? "9" : "4",
+                tmdb_id = path.EndsWith("/9", StringComparison.Ordinal) ? 9 : 4,
                 original_name = "The Long Journey",
                 status = "Returning Series",
                 first_air_date = "2026-01-01",

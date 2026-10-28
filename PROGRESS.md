@@ -1,3 +1,17 @@
+## MoviePilot 季选择弹窗按网页端界面同步（2026-10-28）
+
+- 用户令「参考网页端源码，修改本项目的订阅设置窗口」，并附「未选季」与「已选中、右侧出现三档」两张网页截图；同时要求把「审查代码时检查源码对应界面有没有新增或减少功能，本项目同步更改」记进 MoviePilot 技能。本轮只改这一扇窗，不碰播放或真实订阅写入。
+- **上游版本**：官方前端 `jxxghp/MoviePilot-Frontend` 当前 `v3` = `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2`；官方后端 `jxxghp/MoviePilot` 当前 `v3` = `be65e047b0e64b216420ba38bec7a087409552ff`。前端 `src/components/dialog/SubscribeSeasonDialog.vue`、其 spec 与 `src/composables/useMediaSubscribe.ts` 是界面事实来源；后端 `app/api/endpoints/system.py` 的 `GET system/setting/public/{key}` 把 `DefaultTvSubscribeConfig` 列为公开读取。没有连接真实服务器。
+- **对照出的缺口**：本地一直没读公开默认模式（新季固定普通）；没有入口季时擅自预选第一季；主按钮固定「提交订阅」；选中卡片没有高亮；模式单选在卡片下方而不是跟随选择出现在右侧；入库状态未知时仍直接拿默认模式提交。上游当前版本还增加了「状态未就绪时，新选季必须亲手点过模式」门禁和「重试入库状态」，一并同步。
+- **改法**：
+  - Core：`MoviePilotSubscriptionPlan.DefaultMode` 解析公开配置（布尔／数字／字符串开关，`value:null` 回退普通），`DefaultSeasonMode` 在整季已入库时返回全集洗版；`MoviePilotService.DefaultTvSubscribeModeAsync` 走公开设置读取，旧服务器 404 由视图模型回退普通、不阻断弹窗。
+  - 视图模型：只在入口明确季号或已有订阅时预选；新季按公开默认与入库状态初始化模式；`ModeTouched` 只在用户点击模式时置位（入库状态未知时的提交门禁）；状态失败显示未知并支持只重读状态的「重试入库状态」；主按钮文案按「有无选择/差量」在「请选择订阅季」与「提交订阅」间切换；已订阅季才显示订阅标记；切组草稿带上模式是否亲手选过。
+  - XAML：去掉卡片内边距外的平铺布局，改为选中底色＋强调边框、开关置顶右侧、模式单选右对齐并只在选中时出现；状态用缺失红／部分入库黄／已入库强调色；提示行改成两列网格，避免「重试」被横向 `StackPanel` 挤出屏幕。
+- **探针抓到的真问题**：第一版在模式属性 setter 里置 `ModeTouched`，真实 XAML 初始化会回写绑定，把从未点过的季也当成「亲手选过」，导致状态未知时门禁失效；探针「入库状态未知且未显式选择模式时仍可提交」当场红。改成只由 `RadioButton.Click` 标记，属性 setter 只改索引，探针与专项测试补齐。
+- **验证**：专项 `Momoka.MoviePilotSubscribeSettingsTests` **66/66**、0 失败 0 跳过；Core 全套 **3054/3054**（含新增默认模式两条纯函数测试）；Shell Release 构建 0 警告 0 错误。开发件跑 `--probe-shell --probe-section moviepilot --screen 1` 退出码 0，MoviePilot 分区 23 项全过；实屏截图 `mp-subscribe-season-picker-none-760.png`（未选季禁用「请选择订阅季」、模式行收起）、`mp-subscribe-season-picker-760.png`（选中季、右侧三档、提交恢复）、`mp-subscribe-season-picker-failed-760.png`（状态失败、门禁与重试）、`mp-subscribe-season-picker-360.png`（窄窗滚动）。截图目录 `%LOCALAPPDATA%/Momoka/logs/shell-probe-20261028-015125042-17948/logs/`。
+- **技能与文档**：`momoka-moviepilot` 技能新增「审查必须对照上游组件与测试的可见控件/状态，缺一补一，不能只看请求」；`references/subscriptions.md` 记录季弹窗的网页规则、本地映射、有意保留的原生控件与按组草稿差异；同步 `docs/MoviePilot订阅.md`、`docs/开发与验证.md` 与专项 README。
+- **没有做的**：未跑完整方案构建、`format whitespace`、自检与基线比较、发布、真实 MoviePilot 写入；本批次尚未收尾。高对比/读屏和逐控件鼠标键盘操作没有单独验收；窄窗内容靠弹窗滚动区承载。
+
 ## 发版 0.2.0：GitHub Release 与微软商店包（2026-10-27 21:12~22:25）
 
 - 用户令「提交代码，更新版本，打包发布到github，生成微软商店安装包」；中途指定版本号是 **0.2.0**（先按 0.1.10 改过一次，随即改成 0.2.0），并明确「不要从github下载然后校验」—— 本轮没有回传比对，改看 GitHub 自己算的 digest。起点：master 领先 origin 5 个提交（`9e07a73`、`e8f2e9a`、`761b2a5`、`33569fd`、`59b0658`），工作树干净。
