@@ -1356,7 +1356,7 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private async Task SettingsVideoAvailabilityAsync(int width, bool customConfigOnly = false, bool anime4KOnly = false)
+    private async Task SettingsVideoAvailabilityAsync(int width, bool customConfigOnly = false, bool anime4KOnly = false, bool svpOnly = false)
     {
         using var fixture = CreateFixture();
         using var moviePilot = new MoviePilotClient(new RejectNetwork());
@@ -1375,7 +1375,8 @@ internal sealed partial class ShellNavigationProbe
         {
             BeginSettingsFixtureVisit(page);
             ResizeInspect(width, 900);
-            if (anime4KOnly) await SettingsAnime4KAsync(page, fixture, width);
+            if (svpOnly) await SettingsSvpAsync(page, fixture, width);
+            else if (anime4KOnly) await SettingsAnime4KAsync(page, fixture, width);
             else if (customConfigOnly) await SettingsCustomConfigAsync(page, fixture, width);
             else await SettingsVideoDependenciesAsync(page, fixture, width);
         }

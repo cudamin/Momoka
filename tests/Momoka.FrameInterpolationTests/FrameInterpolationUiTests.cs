@@ -15,8 +15,8 @@ internal static class FrameInterpolationUiTests
             var card = vm.BuildCard();
             Assert.Equal("视频输出", card.Category);
             Assert.Equal("补帧", card.Title);
-            Assert.Equal(1, card.Rows.Count);
-            var mode = (SettingChoiceRow)card.Rows.Single();
+            Assert.Equal(vm.Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv ? 2 : 1, card.Rows.Count);
+            var mode = (SettingChoiceRow)card.Rows[0];
             Assert.Equal("关闭|平滑插值（轻量）|运动补偿（CPU）", string.Join('|', mode.Choices.Select(choice => choice.Label)));
             Assert.Equal("关闭", mode.Selected?.Label);
             Assert.Contains("下次播放生效", card.Description);
@@ -33,13 +33,13 @@ internal static class FrameInterpolationUiTests
             var mode = (SettingChoiceRow)card.Rows[0];
             mode.Selected = mode.Choices.Single(choice => choice.Label == "运动补偿（CPU）");
             Assert.Equal(FrameInterpolationMode.MotionCompensated, vm.Settings.Video.FrameInterpolationMode);
-            Assert.Equal(3, card.Rows.Count);
+            Assert.Equal(4, card.Rows.Count);
             Assert.Equal(1, vm.SaveCount);
             Assert.Equal(1, vm.BackendRefreshCount);
             Assert.True(ReferenceEquals(rows, card.Rows));
             Assert.True(ReferenceEquals(mode, card.Rows[0]));
             mode.Selected = mode.Choices.Single(choice => choice.Label == "平滑插值（轻量）");
-            Assert.Equal(2, card.Rows.Count);
+            Assert.Equal(vm.Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv ? 3 : 2, card.Rows.Count);
             Assert.Equal("平滑算法", card.Rows[1].Label);
             Assert.Equal(2, vm.SaveCount);
             Assert.Equal(2, vm.BackendRefreshCount);
@@ -55,7 +55,7 @@ internal static class FrameInterpolationUiTests
             var card = vm.BuildCard();
             var mode = (SettingChoiceRow)card.Rows[0];
             mode.Selected = mode.Choices.Single(choice => choice.Label == "关闭");
-            Assert.Equal(1, card.Rows.Count);
+            Assert.Equal(vm.Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv ? 2 : 1, card.Rows.Count);
             Assert.Equal(120, vm.Settings.Video.FrameInterpolationFps);
             Assert.Equal(FrameInterpolationQuality.High, vm.Settings.Video.FrameInterpolationQuality);
             Assert.True(vm.Settings.Video.Interpolation);
@@ -103,10 +103,10 @@ internal static class FrameInterpolationUiTests
             vm.Settings.Mpv.Backend = MpvBackendKind.ExternalMpv;
             vm.Settings.Video.Renderer = "null";
             var card = vm.BuildCard();
-            Assert.Equal(1, card.Rows.Count);
+            Assert.Equal(vm.Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv ? 2 : 1, card.Rows.Count);
             vm.Settings.Video.Renderer = "gpu-next";
             vm.RefreshCard();
-            Assert.Equal(2, card.Rows.Count);
+            Assert.Equal(vm.Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv ? 3 : 2, card.Rows.Count);
             Assert.Equal(FrameInterpolationMode.Smooth, vm.Settings.Video.FrameInterpolationMode);
             Assert.Equal(0, vm.SaveCount);
         });
@@ -123,6 +123,73 @@ internal static class FrameInterpolationUiTests
             vm.RefreshCard();
             Assert.DoesNotContain("不保证", card.Rows[0].Note);
             Assert.True(ReferenceEquals(mode, card.Rows[0]));
+        });
+        Test("SVP 设置：开关切换隐藏 CPU 行，恢复原模式／帧率／质量并保持集合", () =>
+        {
+            var vm = new SettingsViewModel();
+            vm.Settings.Video.FrameInterpolationMode = FrameInterpolationMode.MotionCompensated;
+            vm.Settings.Video.FrameInterpolationFps = 72;
+            vm.Settings.Video.FrameInterpolationQuality = FrameInterpolationQuality.High;
+            vm.Settings.Mpv.SvpVapourSynthPath = "unavailable-anonymous-component";
+            var card = vm.BuildCard();
+            var rows = card.Rows;
+            var toggle = (SettingToggleRow)card.Rows.Single(row => row.Label == "接入 SVP");
+            toggle.IsOn = true;
+            Assert.True(vm.Settings.Mpv.SvpEnabled);
+            Assert.False(card.Rows.Any(row => row.Label is "模式" or "目标帧率" or "计算质量" or "平滑算法"));
+            Assert.True(card.Rows.Any(row => row.Label == "VapourSynth 组件"));
+            Assert.Contains("缺少", ((SettingFactRow)card.Rows.Single(row => row.Label == "SVP 接入状态")).Value);
+            Assert.True(ReferenceEquals(rows, card.Rows));
+            Assert.True(ReferenceEquals(toggle, card.Rows.Single(row => row.Label == "接入 SVP")));
+            toggle.IsOn = false;
+            Assert.False(card.Rows.Any(row => row.Label.StartsWith("SVP 接入状态", StringComparison.Ordinal) || row.Label == "VapourSynth 组件"));
+            Assert.Equal("运动补偿（CPU）", ((SettingChoiceRow)card.Rows[0]).Selected?.Label);
+            Assert.Equal(72.0, ((SettingNumberRow)card.Rows[1]).Value);
+            Assert.Equal("细节优先（更重）", ((SettingChoiceRow)card.Rows[2]).Selected?.Label);
+            Assert.Equal("unavailable-anonymous-component", vm.Settings.Mpv.SvpVapourSynthPath);
+            Assert.Equal(2, vm.SaveCount);
+            Assert.Equal(2, vm.BackendRefreshCount);
+        });
+        Test("SVP 设置：外部后端／自定义配置收起从属项，条件恢复不清空偏好", () =>
+        {
+            var vm = new SettingsViewModel();
+            vm.Settings.Mpv.SvpEnabled = true;
+            vm.Settings.Mpv.SvpVapourSynthPath = "retained-anonymous-component";
+            vm.Settings.Video.FrameInterpolationMode = FrameInterpolationMode.Smooth;
+            var card = vm.BuildCard();
+            vm.Settings.Mpv.CustomConfigEnabled = true;
+            vm.RefreshCard();
+            Assert.True(card.Rows.Any(row => row.Label == "接入 SVP"));
+            Assert.False(card.Rows.Any(row => row.Label == "VapourSynth 组件"));
+            Assert.True(card.Rows.Any(row => row.Label == "模式"));
+            Assert.Contains("自定义", ((SettingFactRow)card.Rows.Single(row => row.Label == "SVP 接入状态")).Value);
+            vm.Settings.Mpv.Backend = MpvBackendKind.ExternalMpv;
+            vm.RefreshCard();
+            Assert.False(card.Rows.Any(row => row.Label.Contains("SVP", StringComparison.Ordinal) || row.Label == "VapourSynth 组件"));
+            vm.Settings.Mpv.Backend = MpvBackendKind.BuiltInLibMpv;
+            vm.Settings.Mpv.Pipeline = VideoPipelineKind.Integrated;
+            vm.RefreshCard();
+            Assert.True(card.Rows.Any(row => row.Label == "VapourSynth 组件"));
+            Assert.False(card.Rows.Any(row => row.Label == "平滑算法"));
+            Assert.True(vm.Settings.Mpv.SvpEnabled);
+            Assert.Equal("retained-anonymous-component", vm.Settings.Mpv.SvpVapourSynthPath);
+            Assert.Equal(0, vm.SaveCount);
+        });
+        Test("SVP 设置：真实文本行清理路径并更新状态，重新检测不保存", () =>
+        {
+            var vm = new SettingsViewModel();
+            vm.Settings.Mpv.SvpEnabled = true;
+            vm.Settings.Mpv.SvpVapourSynthPath = "initial-anonymous-component";
+            var card = vm.BuildCard();
+            var text = (SettingTextRow)card.Rows.Single(row => row.Label == "VapourSynth 组件");
+            text.Text = " \"unavailable-anonymous-component\" ";
+            Assert.Equal("unavailable-anonymous-component", text.Text);
+            Assert.Equal(text.Text, vm.Settings.Mpv.SvpVapourSynthPath);
+            Assert.True(ReferenceEquals(text, card.Rows.Single(row => row.Label == "VapourSynth 组件")));
+            Assert.Equal(1, vm.SaveCount);
+            ((SettingFactRow)card.Rows.Single(row => row.Label == "SVP 接入状态")).RunCommand.Execute(null);
+            Assert.Equal(1, vm.SaveCount);
+            Assert.Equal(2, vm.BackendRefreshCount);
         });
         Test("补帧卡：未挂卡刷新安全，重新构建和未知值不写入设置", () =>
         {

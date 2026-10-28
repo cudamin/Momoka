@@ -182,6 +182,12 @@ public sealed class MpvSettings
     /// </summary>
     public VideoPipelineKind Pipeline { get; set; } = VideoPipelineKind.Standalone;
 
+    /// <summary>可选 SVP Manager 接入，仅内置播放器；默认关闭，下次播放生效。</summary>
+    public bool SvpEnabled { get; set; }
+
+    /// <summary>用户安装的 64 位 VSScript.dll；空值自动查找，不随包安装或下载。</summary>
+    public string SvpVapourSynthPath { get; set; } = "";
+
     /// <summary>仅内置独占模式读取自定义 mpv.conf；切换模式保留偏好，下次起播生效。</summary>
     public bool CustomConfigEnabled { get; set; }
 

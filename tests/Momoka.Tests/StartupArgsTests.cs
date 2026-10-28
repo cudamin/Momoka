@@ -14,6 +14,13 @@ internal static class StartupArgsTests
 {
     public static void Register()
     {
+        Test("SVP 离线探针分区：正确解析和重复归一，非法分区仍拒绝", () =>
+        {
+            Assert.True(ShellProbeSections.IsKnown("SVP"));
+            var sections = StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "svp,SVP,settings"]);
+            Assert.True(sections is { Count: 2 } && sections.Contains("svp") && sections.Contains("settings"));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "svp,unknown-section"]));
+        });
         Test("字幕离线探针：独立入口与非法组合不落入正常启动", () =>
         {
             foreach (var args in new[]

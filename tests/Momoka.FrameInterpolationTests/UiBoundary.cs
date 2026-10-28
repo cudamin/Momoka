@@ -79,26 +79,6 @@ namespace Momoka.Shell.ViewModels
         internal void RefreshCard() => RefreshFrameInterpolationRows();
     }
 
-    public sealed class SettingToggleRow : SettingRow
-    {
-        internal SettingToggleRow(string label, string note, bool value, Action<bool> write, Action save)
-            : base(label, note) => IsOn = value;
-        public bool IsOn { get; private set; }
-        internal void Reseed(bool value) => IsOn = value;
-    }
-
-    public sealed class SettingToggleGroupRow : SettingRow
-    {
-        internal SettingToggleGroupRow() : base("", null) { }
-        public IReadOnlyList<SettingToggleRow> Toggles { get; } = [];
-    }
-
-    public sealed class SettingFactRow : SettingRow
-    {
-        internal SettingFactRow() : base("", null) { }
-        public string Value { get; internal set; } = "";
-    }
-
     // 卡片合并（SettingSection.UpdateRows）按「标签＋类型」复用在场行，因此这两类也要有替身 ——
     // 补帧卡自己不用滑块和快捷键行，但那段真实源码的 switch 会点到它们的名字。
     public sealed class SettingSliderRow : SettingRow

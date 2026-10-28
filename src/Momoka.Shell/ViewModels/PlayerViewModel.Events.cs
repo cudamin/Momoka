@@ -229,13 +229,15 @@ public sealed partial class PlayerViewModel
         var request = ++_pictureMenuRequest;
         var checks = await ReadMenuChecksAsync().ConfigureAwait(true);
         if (!IsCurrentInteraction(context) || request != _pictureMenuRequest) return;
-        var snapshot = new VideoMenuSnapshot<PlayerMenuNode>(PlayerMenuCatalog.Commands);
+        var catalogue = MpvSvp.Menu(PlayingWithSvp);
+        var snapshot = new VideoMenuSnapshot<PlayerMenuNode>([.. PlayerMenuCatalog.Flatten(catalogue)
+            .Where(node => node.Kind == PlayerMenuKind.Command)]);
         _pictureMenuSnapshot = snapshot;
         _pictureMenuContext = context;
 
         var command = 0;
         var shortcutTexts = PlayerMenuCatalog.ShortcutTexts(ShortcutBindings);
-        var items = BuildPictureMenuItems(PlayerMenuCatalog.Root, checks, snapshot, shortcutTexts, ref command);
+        var items = BuildPictureMenuItems(catalogue, checks, snapshot, shortcutTexts, ref command);
 
         // 目录与「更多」之间的一条分隔线（集成侧 OnPictureMenuOpening 插的那条 MenuFlyoutSeparator）。
         // uosc 的分隔线是「这一行之后画条线」的行属性而不是独立行，落在前一行上（与目录里的分隔同款）。

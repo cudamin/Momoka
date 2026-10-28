@@ -457,7 +457,8 @@ public static class MpvOutputOptions
         SourceProfile? source = null,
         bool animated = false,
         double displayRefreshHz = 0,
-        string? audioDevice = null)
+        string? audioDevice = null,
+        bool svp = false)
     {
         var options = new List<KeyValuePair<string, string>>(32);
 
@@ -466,14 +467,14 @@ public static class MpvOutputOptions
 
         Add(options, "vo", video.Renderer);
         Add(options, "gpu-api", video.GpuApi);
-        var frames = FrameInterpolationOptions.Resolve(video, source);
+        var frames = FrameInterpolationOptions.Resolve(video, source, svp);
         Add(options, "hwdec", frames.HardwareDecoding);
         Add(options, "video-output-levels", video.OutputLevels);
         if (video.DeinterlaceMode is "auto" or "yes") Add(options, "deinterlace", video.DeinterlaceMode);
 
         // 视频同步 and 插值 are decided together by ResolveSync — one writer, so 「设置页显示的值」 and
         // 「真正发出去的值」 cannot drift apart.
-        var (sync, interpolation, _) = ResolveSync(video, source, displayRefreshHz);
+        var (sync, interpolation, _) = ResolveSync(video, source, displayRefreshHz, svp);
 
         if (interpolation)
         {
@@ -487,7 +488,7 @@ public static class MpvOutputOptions
             Add(options, "tscale", kernel.Length == 0 ? "oversample" : kernel);
         }
         else if (video.Interpolation || frames.Mode is FrameInterpolationMode.Smooth or FrameInterpolationMode.MotionCompensated
-            || hasProfile)
+            || hasProfile || svp)
         {
             // A source/display fallback, CPU-generated frames, or an inherited profile must not
             // leave temporal blending enabled. On an inline switch omission means the previous value.
@@ -498,6 +499,7 @@ public static class MpvOutputOptions
         // no longer requests it. Default-profile launches retain the legacy omission semantics;
         // InlineSwitch explicitly restores the running core's defaults on a same-window switch.
         Add(options, "video-sync", sync.Length == 0 && hasProfile ? "audio" : sync);
+        if (svp) Add(options, "hr-seek-framedrop", "no");
 
         AddDither(options, video.Dither, video.DitherDepth);
         AddDeband(options, video.Deband, source, animated, video.DebandStrength);
@@ -797,9 +799,11 @@ public static class MpvOutputOptions
     public static (string Sync, bool Interpolation, string? StandDown) ResolveSync(
         VideoSettings video,
         SourceProfile? source = null,
-        double displayRefreshHz = 0)
+        double displayRefreshHz = 0,
+        bool svp = false)
     {
-        var frames = FrameInterpolationOptions.Resolve(video, source);
+        if (svp) return ("audio", false, null);
+        var frames = FrameInterpolationOptions.Resolve(video, source, svp);
         // CPU-generated frames need no second temporal blend or display-resampling override.
         // These effective values never replace the user's saved sync/interpolation preferences.
         if (frames.Mode == FrameInterpolationMode.MotionCompensated) return ("audio", false, null);

@@ -407,8 +407,16 @@ public sealed partial class PlayerPage
     /// table of labels, mpv commands and — for the checkable ones — the property that ticks them, which is why
     /// adding one is a line of data rather than a handler.
     /// </summary>
+    private bool _pictureMenuUsesSvp;
+
     private void OnPictureMenuOpening(object sender, object e)
     {
+        var svp = ViewModel.PlayingWithSvp;
+        if (_pictureMenuUsesSvp != svp)
+        {
+            PictureMenu.Items.Clear();
+            _pictureMenuUsesSvp = svp;
+        }
         if (PictureMenu.Items.Count == 0)
         {
             _pictureChecks.Clear();
@@ -418,7 +426,7 @@ public sealed partial class PlayerPage
             // 「更多」按钮撤下后，着色器/跳过/自动连播/播放信息这几行只有这一处入口，整棵并进右键菜单里。
             // **`ProbePictureMenu` 那一条自检把这几行也数进去**（它按目录算期望行数），所以它两侧的计数
             // 同步加上了这一棵 —— 见那条判据旁的注释。
-            foreach (var item in BuildMenuItems(PlayerMenuCatalog.Root)) PictureMenu.Items.Add(item);
+            foreach (var item in BuildMenuItems(MpvSvp.Menu(svp))) PictureMenu.Items.Add(item);
             PictureMenu.Items.Add(new MenuFlyoutSeparator());
             _pictureStaticCount = PictureMenu.Items.Count;
         }

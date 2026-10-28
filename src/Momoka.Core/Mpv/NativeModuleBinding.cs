@@ -7,13 +7,13 @@ internal sealed class NativeModuleBinding
     private string? _path;
     private IntPtr _module;
 
-    internal void Select(string path)
+    internal void Select(string path, string? changedModuleMessage = null)
     {
         var fullPath = Path.GetFullPath(path);
         lock (_gate)
         {
             if (_module != IntPtr.Zero && !string.Equals(_path, fullPath, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("内置播放器已绑定另一份原生库，请重启应用后切换");
+                throw new InvalidOperationException(changedModuleMessage ?? "内置播放器已绑定另一份原生库，请重启应用后切换");
             _path = fullPath;
         }
     }

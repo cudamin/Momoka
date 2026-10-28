@@ -30,6 +30,9 @@ public sealed record PlaybackLaunchSignature(
 
     // 自定义文件及其条件配置可能在两次起播间变化，重建实例才能重新读取全部配置。
     public bool UsesCustomConfig { get; init; }
+
+    /// <summary>SVP owns asynchronous per-file filters; the first integration recreates the context on each file.</summary>
+    public bool UsesSvp { get; init; }
 }
 
 /// <summary>
@@ -50,6 +53,7 @@ public static class InlineSwitch
     /// </summary>
     public static bool SameSignature(PlaybackLaunchSignature running, PlaybackLaunchSignature next) =>
         !running.UsesCustomConfig && !next.UsesCustomConfig
+        && !running.UsesSvp && !next.UsesSvp
         && running.Backend == next.Backend
         && running.Pipeline == next.Pipeline
         && Same(running.PipelineOptions, next.PipelineOptions)

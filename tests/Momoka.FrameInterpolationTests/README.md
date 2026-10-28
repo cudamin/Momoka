@@ -16,7 +16,7 @@
 
 挂接位置（均已接线）：
 
-1. `SettingsViewModel.cs` 的 `Sections.Add(VideoCard())` 之后加入 `FrameInterpolationCard()`。
+1. `SettingsViewModel.cs` 的视频输出顺序为基础输出 → 画质与着色器 → HDR 与杜比视界 → 补帧；`FrameInterpolationCard()` 始终放在本分类最后。
 2. `SettingsViewModel.Video.cs` 的 `RefreshVideoBackend()` 调用 `RefreshFrameInterpolationRows()`。
 3. 新方法 `RefreshFrameInterpolationRows()` 只更新本卡；新模式回调 `RefreshFrameInterpolationMode()` 先刷新本卡，再调用基础卡刷新，不互相递归。
 4. 基础卡展示的有效同步从 `MpvOutputOptions.ResolveSync(video)` 读取；有效硬解从 `FrameInterpolationOptions.Resolve(video)` 读取。不能仍只按保存的 `VideoSync == "audio"` 显示“插值关闭”：新 Smooth 会为本次播放强制 display-resample，新 Motion 则采用 audio 并关闭相邻帧混合。
@@ -78,3 +78,9 @@
 - 固定 v0.41.0 的同步／插值／copy硬解说明：https://github.com/mpv-player/mpv/blob/v0.41.0/DOCS/man/options.rst
 - 固定 v0.41.0 的lavfi图引用语法：https://github.com/mpv-player/mpv/blob/v0.41.0/DOCS/man/vf.rst
 - 原生选项与帮助查询区别：https://github.com/mpv-player/mpv/blob/v0.41.0/player/client.c 、https://github.com/mpv-player/mpv/blob/v0.41.0/player/command.c
+
+## 可选 SVP 接入
+
+设置卡同时提供默认关闭的「接入 SVP」，只在内置后端显示。有效启用时隐藏原有模式／目标帧率／质量，保留偏好；用户安装的 VapourSynth 组件路径、检测状态和 SVP 管理说明随总开关显隐。自定义 mpv.conf 生效时暂停 SVP 接入并收起组件路径，保留两个恢复入口。
+
+本项目的真实源码 fixture 额外覆盖 SVP 开关、路径去引号／保存、重新检测、后端与自定义配置转换；播放规则与匿名管道另在 `Momoka.Tests` 的 `svp-fixture`，实际内核无媒体检查为 `svp-native-fixture`。真实宽窄设置与卡片顺序用 `--probe-shell --probe-section svp --screen 1`。这些检查不启动 SVP Manager 或真实媒体，不证明实际补帧画面／实时性能。

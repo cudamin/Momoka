@@ -554,6 +554,8 @@ public static class SettingsMigration
         // 补帧（2026-10-26）。和上面那两颗枚举同一条规矩：手改的文件可能留下认不出来的整数，留着的话设置页
         // 那颗下拉不知道显示什么 —— 模式回「关闭」、质量回「均衡」，都是这张卡出厂时的那一档。帧率夹回
         // 设置页那一对常量，用的是下发端同一个 ClampFps，存储与下发不会各说各话。
+        settings.Mpv.SvpVapourSynthPath = TypedPath.Clean(settings.Mpv.SvpVapourSynthPath ?? "");
+
         if (!Enum.IsDefined(settings.Video.FrameInterpolationMode))
             settings.Video.FrameInterpolationMode = FrameInterpolationMode.Off;
         if (!Enum.IsDefined(settings.Video.FrameInterpolationQuality))

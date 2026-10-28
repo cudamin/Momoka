@@ -183,3 +183,7 @@ LibMpvBackend.cs 这一个 SHA256** 为 `a154d0d9b4c2dba82a478f70d8956f5a1d50834
 `Run-Caller.ps1` **50/0/0**（`artifacts/r046-caller/sync-20261027-2120`）、
 `Test-SourceExtraction.ps1` **8/8** 预期拒绝后当前源重新编译并再跑 **50/0/0**
 （`artifacts/r046-caller/extractor-20261027-2120`）。
+
+## SVP 接入后的来源复核（2026-10-28）
+
+本轮只更新四份受影响来源的固定哈希：内置后端增加可选组件／管道生命周期与换片禁止标志；播放票据增加默认关闭的 SVP 字段；画面菜单按实际播放状态筛选；HandleFixture 增加可选 SVP 签名参数。自然接续的提取方法、所有权字段及原验证边界保持不变，原 caller 测试继续执行，不接受整份新快照或降低拒绝条件。

@@ -110,6 +110,12 @@ public sealed partial class SettingsViewModel
     {
         RefreshShaderApplicability();
         RefreshHdrApplicability();
+        if (_settings is not null)
+        {
+            var basic = Sections.FirstOrDefault(card => card.Title == VideoBasicsTitle);
+            basic?.UpdateRows(VideoCard().Rows);
+            RefreshFrameInterpolationRows();
+        }
         SyncSubtitleBackControls();
         RefreshSubtitleBackRows();
     }

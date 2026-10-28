@@ -53,15 +53,17 @@ public sealed partial class SettingsViewModel
         // 补帧卡的有效值与这张卡说的是同一件事：运动补偿自己出帧、显式关掉相邻帧混合，并改用音频同步；
         // 平滑插值会把本次同步改成 display-resample。基础卡因此按「此刻真正生效的值」显示，不能只看存着的
         // VideoSync —— 否则选了补帧、屏上却写着「插值关闭」，正是这一行本来要治的那种骗人。
-        var frames = FrameInterpolationOptions.Resolve(video);
-        var (effectiveSync, effectiveInterpolation, _) = MpvOutputOptions.ResolveSync(video);
+        var svp = MpvSvp.IsEnabled(Settings.Mpv);
+        var frames = FrameInterpolationOptions.Resolve(video, svp: svp);
+        var (effectiveSync, effectiveInterpolation, _) = MpvOutputOptions.ResolveSync(video, svp: svp);
         var hardwareNote = "推荐自动（复制回内存），兼顾硬解与滤镜兼容性。原生硬解的开销较低，但受显卡、图形接口和滤镜限制。"
             + "无法硬解时会尝试软件解码；画面异常时可选关闭。";
         if (!string.Equals(frames.HardwareDecoding, (video.HardwareDecoding ?? "").Trim(), StringComparison.OrdinalIgnoreCase))
             hardwareNote += $"补帧的运动补偿需要把帧交回内存，本次播放实际使用 {frames.HardwareDecoding}；保存的偏好不变。";
 
-        var sync = Mpv("视频同步", MpvOutputOptions.VideoSync, () => video.VideoSync, value => video.VideoSync = value,
-            "video-sync", SyncNote(video), RefreshVideoBackend);
+        SettingRow sync = Mpv("视频同步", MpvOutputOptions.VideoSync, () => video.VideoSync, value => video.VideoSync = value,
+            "video-sync", SyncNote(video, svp), RefreshVideoBackend);
+        if (svp) sync = Fact("视频同步", "SVP 接入时使用音频同步；关闭 SVP 后恢复原有同步偏好。", "音频同步（SVP）");
         rows.AddRange(
         [
             // JSON 里的 null 会被反序列化照单收下（SettingsMigration 里同一句提醒），读的时候兜一个空串，
@@ -74,7 +76,11 @@ public sealed partial class SettingsViewModel
                 "deinterlace", "用于消除隔行视频运动边缘的梳齿。老电视片源可选自动；普通逐行视频保持关闭。"),
             sync
         ]);
-        if (frames.Mode == FrameInterpolationMode.MotionCompensated)
+        if (svp)
+        {
+            rows.Add(Fact("插值", "本次补帧交给 SVP；相邻帧混合关闭，保存的插值偏好保留。", "关闭（SVP）"));
+        }
+        else if (frames.Mode == FrameInterpolationMode.MotionCompensated)
         {
             // 运动补偿替代相邻帧混合，这里的选择在本次播放不会生效；算法与质量都归补帧卡，所以只留恢复入口。
             rows.Add(Fact("插值", Annotate("本次播放使用补帧的运动补偿，相邻帧混合已关闭；在「补帧」卡切回其他模式后可选择插值。",
@@ -139,12 +145,12 @@ public sealed partial class SettingsViewModel
     {
         var sync = Sections.FirstOrDefault(section => section.Title == VideoBasicsTitle)?.Rows
             .FirstOrDefault(row => row.Label == "视频同步");
-        sync?.Restate(Annotate(SyncNote(Settings.Video), "video-sync")!);
+        sync?.Restate(Annotate(SyncNote(Settings.Video, MpvSvp.IsEnabled(Settings.Mpv)), "video-sync")!);
     }
 
-    private static string SyncNote(VideoSettings video)
+    private static string SyncNote(VideoSettings video, bool svp = false)
     {
-        var (sync, interpolation, reason) = MpvOutputOptions.ResolveSync(video);
+        var (sync, interpolation, reason) = MpvOutputOptions.ResolveSync(video, svp: svp);
         var label = sync.Length == 0 ? "音频同步" : MpvOutputOptions.Describe(MpvOutputOptions.VideoSync, sync);
         var note = $"下次播放：{label}；插值{(interpolation ? "开启" : "关闭")}。";
         if (reason is not null) note += reason + "。";

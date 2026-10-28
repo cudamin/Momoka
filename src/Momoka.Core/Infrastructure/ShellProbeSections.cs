@@ -10,6 +10,7 @@ public static class ShellProbeSections
     public const string Settings = "settings";
     public const string Shortcuts = "shortcuts";
     public const string Shaders = "shaders";
+    public const string Svp = "svp";
     public const string Library = "library";
     public const string Search = "search";
     public const string MoviePilot = "moviepilot";
@@ -21,7 +22,7 @@ public static class ShellProbeSections
 
     public static readonly IReadOnlyList<string> All =
     [
-        Shell, Settings, Shortcuts, Shaders, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback,
+        Shell, Settings, Shortcuts, Shaders, Svp, Library, Search, MoviePilot, AniBt, Accounts, Covers, Favorites, Playback,
     ];
 
     public static bool IsKnown(string name) =>

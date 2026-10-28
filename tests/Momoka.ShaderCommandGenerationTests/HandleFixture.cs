@@ -16,9 +16,9 @@ internal sealed class HandleFixture : IAsyncDisposable
     internal LibMpvLifetimeGate Gate => Field<LibMpvLifetimeGate>("_apiGate");
     internal long NativeGeneration => Gate.Generation;
 
-    internal HandleFixture()
+    internal HandleFixture(bool svp = false)
     {
-        var signature = new PlaybackLaunchSignature(VideoPipelineKind.Standalone, [], [], [], []);
+        var signature = new PlaybackLaunchSignature(VideoPipelineKind.Standalone, [], [], [], []) { UsesSvp = svp };
         Handle = new LibMpvHandle(Native.Context, null, signature, _ => signature);
         typeof(LibMpvHandle).GetField("_filmDefaults", Private)!.SetValue(Handle,
             InlineSwitch.PerFilmNames.ToDictionary(name => name,
