@@ -11,7 +11,28 @@
     CloseButtonText="取消" DefaultButton="None" PrimaryButtonClick="OnContinue">
     <ContentDialog.Resources>
         <x:Double x:Key="ContentDialogMaxWidth">1040</x:Double>
+        <!-- 原生列表的选中对勾在深色卡片上使用强调色，避免套用强调底上的黑字。 -->
+        <StaticResource x:Key="ListViewItemCheckBrush" ResourceKey="EgAccentBrush" />
+        <StaticResource x:Key="ListViewItemCheckBoxBrush" ResourceKey="EgTextDimBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+        <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+        <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
     </ContentDialog.Resources>
+    <ContentDialog.PrimaryButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+            <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </ContentDialog.PrimaryButtonStyle>
+    <ContentDialog.CloseButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+    </ContentDialog.CloseButtonStyle>
     <Grid x:Name="ResourcePanel" Width="940" MaxHeight="660" RowSpacing="12" SizeChanged="OnPanelSizeChanged">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />

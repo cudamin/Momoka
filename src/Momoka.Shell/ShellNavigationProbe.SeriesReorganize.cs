@@ -10,6 +10,9 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
+using Momoka.Theming;
 
 namespace Momoka.Shell;
 
@@ -62,6 +65,14 @@ internal sealed partial class ShellNavigationProbe
             {
                 ThemeHost.Apply(theme.Id);
                 await LayoutAsync(picker);
+                var check = Descendants(list).OfType<ListViewItemPresenter>().First().CheckBrush as SolidColorBrush;
+                Require(check is not null && ThemeColor.Contrast(
+                    new ThemeColor(check.Color.A, check.Color.R, check.Color.G, check.Color.B), theme.Colors.SurfaceAlt) >= 3,
+                    "选中对勾在资源卡片上对比不足");
+                var primary = Descendants(picker).OfType<Button>().Single(button => button.Name == "PrimaryButton");
+                var close = Descendants(picker).OfType<Button>().Single(button => button.Name == "CloseButton");
+                Require(primary.Background is SolidColorBrush actionBrush && close.Background is SolidColorBrush closeBrush &&
+                    actionBrush.Color != closeBrush.Color, "批量整理与取消使用相同背景，主要操作不清晰");
                 await SaveProbeScreenAsync($"mp-series-reorganize-{theme.Id}-screen.png");
             }
             list.SelectedItems.Clear();
