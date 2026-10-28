@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Momoka.Shell.Views.MoviePilotSeriesReorganizeDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:Momoka.Shell.ViewModels"
+    xmlns:local="using:Momoka.Shell.Views"
+    Title="重新整理剧资源"
+    PrimaryButtonText="{x:Bind ViewModel.SubmitLabel, Mode=OneWay}"
+    IsPrimaryButtonEnabled="{x:Bind ViewModel.CanContinue, Mode=OneWay}"
+    CloseButtonText="取消" DefaultButton="None" PrimaryButtonClick="OnContinue">
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">1040</x:Double>
+    </ContentDialog.Resources>
+    <Grid x:Name="ResourcePanel" Width="940" MaxHeight="660" RowSpacing="12" SizeChanged="OnPanelSizeChanged">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Spacing="8">
+            <TextBlock Text="{x:Bind ViewModel.Title, Mode=OneWay}" Style="{StaticResource EgSubheadStyle}" TextWrapping="Wrap" />
+            <local:WrapRow Spacing="8">
+                <Border Padding="10,5" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Background="{ThemeResource EgAccentMutedBrush}">
+                    <TextBlock x:Name="SeriesQuery" Text="{x:Bind ViewModel.Query, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                        Foreground="{ThemeResource EgAccentBrush}" IsTextSelectionEnabled="True" AutomationProperties.Name="当前剧的 TMDB 筛选条件" />
+                </Border>
+                <TextBlock Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+            </local:WrapRow>
+        </StackPanel>
+        <Grid Grid.Row="1" ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <InfoBar x:Name="ResourceProblem" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}" IsClosable="False"
+                Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
+                Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
+            <Button x:Name="ReloadResources" Grid.Column="1" Content="刷新" Click="OnReload" VerticalAlignment="Center"
+                IsEnabled="{x:Bind local:MoviePilotSeriesReorganizeDialog.CanReload(ViewModel.Busy), Mode=OneWay}" Style="{StaticResource EgSecondaryButtonStyle}" />
+        </Grid>
+        <Grid Grid.Row="2" ColumnSpacing="12" Visibility="{x:Bind ViewModel.SelectionVisibility, Mode=OneWay}">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="SelectAllResources" Content="全选" Click="OnSelectAll" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
+                <Button x:Name="ClearResourceSelection" Content="清空选择" Click="OnClearSelection" IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" />
+            </StackPanel>
+            <TextBlock x:Name="SelectedResourcesCount" Grid.Column="1" Text="{x:Bind ViewModel.SelectionLabel, Mode=OneWay}"
+                Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
+        </Grid>
+        <Grid Grid.Row="3" MinHeight="120">
+            <ListView x:Name="SeriesResources" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="Multiple"
+                IsMultiSelectCheckBoxEnabled="True" SelectionChanged="OnSelectionChanged" HorizontalContentAlignment="Stretch"
+                IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="当前剧的整理资源">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="0" />
+                        <Setter Property="Margin" Value="0,0,0,8" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:MoviePilotSeriesTransferRow">
+                        <Border Padding="12" Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
+                            AutomationProperties.Name="{x:Bind AutomationName}" Loaded="OnResourceLoaded" DataContextChanged="OnResourceContextChanged">
+                            <Grid ColumnSpacing="12" RowSpacing="8">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="48" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                <Border Grid.RowSpan="3" Style="{StaticResource EgFrameStyle}" Width="48" Height="72" VerticalAlignment="Top">
+                                    <Grid>
+                                        <FontIcon Glyph="&#xE8B2;" Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind EmptyArtworkVisibility, Mode=OneWay}" />
+                                        <Border><Border.Background><ImageBrush ImageSource="{x:Bind Artwork, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background></Border>
+                                    </Grid>
+                                </Border>
+                                <local:WrapRow Grid.Column="1" Spacing="8">
+                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{x:Bind EpisodeLabel}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{x:Bind YearLabel}" Style="{StaticResource EgCaptionStyle}" Visibility="{x:Bind YearVisibility}" Foreground="{ThemeResource EgTextDimBrush}" VerticalAlignment="Center" />
+                                    <Border Padding="7,2" CornerRadius="{StaticResource EgCornerBadgeCornerRadius}" Background="{ThemeResource EgSurfaceBrush}">
+                                        <Grid>
+                                            <TextBlock Text="成功" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" Visibility="{x:Bind SuccessVisibility}" />
+                                            <TextBlock Text="失败" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgDangerBrush}" Visibility="{x:Bind FailureVisibility}" />
+                                        </Grid>
+                                    </Border>
+                                </local:WrapRow>
+                                <StackPanel Grid.Column="1" Grid.Row="1" Spacing="5">
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind SourceStorage}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind SourcePath}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                    </Grid>
+                                    <Grid ColumnSpacing="8">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <TextBlock Text="{x:Bind TargetStorage}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind TargetPath}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                    </Grid>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Grid.Row="2" Text="{x:Bind Details}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <ProgressRing x:Name="ResourcesLoading" Width="32" Height="32" IsActive="{x:Bind ViewModel.Busy, Mode=OneWay}"
+                Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <StackPanel x:Name="ResourcesEmpty" Spacing="8" Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="没有找到当前剧的整理记录" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                <TextBlock Text="可刷新重试，或在 MoviePilot 媒体整理中核对这部剧的 TMDB 编号。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxWidth="360" />
+            </StackPanel>
+        </Grid>
+        <TextBlock Grid.Row="4" Text="选择资源后继续核对整理设置与预览，再确认提交。" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />
+    </Grid>
+</ContentDialog>

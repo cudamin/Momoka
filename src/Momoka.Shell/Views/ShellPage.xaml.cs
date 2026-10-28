@@ -1335,10 +1335,27 @@ public sealed partial class ShellPage : UserControl, IShellActions
         _moviePilotReorganizeShowing = true;
         try
         {
-            var dialog = new MoviePilotReorganizeDialog(service, context) { XamlRoot = root };
+            IReadOnlyList<MoviePilotTransferHistory>? selected = null;
+            var connection = service.ConnectionStamp;
+            if (context.BrowseSeriesHistory)
+            {
+                var picker = new MoviePilotSeriesReorganizeDialog(service, context) { XamlRoot = root };
+                _moviePilotDialog = picker;
+                var result = await MoviePilotDialog.ShowAsync(picker, service).ConfigureAwait(true);
+                if (result != ContentDialogResult.Primary || !service.Available || !service.IsCurrentConnection(connection)) return;
+                selected = picker.SelectedHistories;
+                context = MoviePilotSeriesTransfer.CreateContext(context, selected);
+            }
+            if (!service.Available || !service.IsCurrentConnection(connection)) return;
+            var dialog = new MoviePilotReorganizeDialog(service, context, selected) { XamlRoot = root };
             _moviePilotDialog = dialog;
-            await dialog.ShowAsync().AsTask().ConfigureAwait(true);
+            await MoviePilotDialog.ShowAsync(dialog, service).ConfigureAwait(true);
         }
+        catch (MoviePilotException error)
+        {
+            Notify(error.Message, InfoBarSeverity.Warning);
+        }
+        catch (OperationCanceledException) { }
         catch (Exception error)
         {
             Log.Warn("moviepilot窗口", "弹不出手动整理表单", error);
