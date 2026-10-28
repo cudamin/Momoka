@@ -274,6 +274,8 @@ internal sealed partial class ShellNavigationProbe
             {
                 await SizeAsync(page, width);
                 var search = Get<Border>(page, "SearchSurface");
+                page.ExpandSearchOptions();
+                await LayoutAsync(page);
                 Require(tabs.ActualWidth <= search.ActualWidth + 1, "四个搜索栏超出搜索区域");
                 var list = Get<GridView>(panel, "AnimeResults");
                 Require(Descendants(list).OfType<Button>().Any(button => button.Name == "OpenAnimeResources"

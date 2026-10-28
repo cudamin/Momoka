@@ -43,6 +43,8 @@ public sealed partial class MoviePilotVersionsView : UserControl
         SearchSitePicker.Attach(ViewModel.SearchSites);
         ViewModel.UseDownloadPicker((resource, token) => MoviePilotDownloadDialog.ShowAsync(this, service, resource, token));
         SearchInput.Visibility = sharedInput ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+        SearchSitePicker.Visibility = SearchInput.Visibility;
+        VersionsLayout.Padding = new Microsoft.UI.Xaml.Thickness(sharedInput ? 0 : 16);
     }
 
     internal Task SearchAsync(string keyword) => ViewModel.SearchAsync(keyword);

@@ -49,6 +49,24 @@ internal sealed partial class ShellNavigationProbe
                 await SaveReturnFrameAsync(page, $"search-layout-{width}.png");
                 if (width is 1040 or 360)
                     await SaveProbeScreenAsync($"search-screen-{width}.png");
+
+                // 2026-10-27 用户令：点进搜索栏后不要那圈绿框。聚焦之后框线仍是发丝线本色、粗细仍是 1；
+                // 只量一颗，宽帧上量得清楚就够了。
+                if (width == 1040)
+                {
+                    var input = Get<AutoSuggestBox>(page, "SearchInput");
+                    var field = Descendants(input).OfType<TextBox>().First();
+                    Require(field.Focus(FocusState.Programmatic), "搜索框拿不到焦点");
+                    await LayoutAsync(page);
+                    var edge = Descendants(field).OfType<Border>()
+                        .FirstOrDefault(value => value.Name == "BorderElement");
+                    Require(edge is not null, "搜索框模板里找不到边框元素");
+                    Require(Colour(edge!.BorderBrush) == Role("EgBorderBrush"),
+                        "搜索框聚焦后的框线不是发丝线本色");
+                    Require(edge.BorderThickness == new Thickness(1),
+                        $"搜索框聚焦后的框线粗细是 {edge.BorderThickness}，期望 1");
+                    await SaveProbeScreenAsync($"search-focus-{width}-screen.png");
+                }
             }
             page.ViewModel.RememberSearch(sample);
             await page.ViewModel.SearchAsync("");
@@ -59,6 +77,7 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1040, 880);
             await LayoutAsync(page);
             await SaveProbeScreenAsync("search-recent-screen-wide.png");
+            await CompactSearchHeaderAsync(page);
             page.Release();
             fixture.Settings.MoviePilot.Enabled = false;
             frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services));
@@ -84,6 +103,15 @@ internal sealed partial class ShellNavigationProbe
             var origin = element.TransformToVisual(relative).TransformPoint(default);
             return new Rect(origin, new Size(element.ActualWidth, element.ActualHeight));
         }
+
+        // 角色表里那一支现在是什么色。ThemeHost 换主题改的是同一支画刷的 Color，所以每次现问。
+        Windows.UI.Color Role(string key) =>
+            Application.Current.Resources[key] is Microsoft.UI.Xaml.Media.SolidColorBrush brush
+                ? brush.Color
+                : default;
+
+        static Windows.UI.Color Colour(Microsoft.UI.Xaml.Media.Brush? brush) =>
+            brush is Microsoft.UI.Xaml.Media.SolidColorBrush solid ? solid.Color : default;
     }
 
     private async Task SearchInteractionAsync()
@@ -147,6 +175,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => subscriptionPanel.ViewModel.Results.Count == 1);
             Require(mp.Paths.Any(path => path.Contains("media/search?title=", StringComparison.Ordinal)), "订阅未走媒体搜索");
             Require(subscriptionPanel.ViewModel.SourceChoices.Count > 1, "MoviePilot 来源目录被取消");
+            Require(tabs.Visibility == Visibility.Collapsed, "提交搜索后来源选项未收起");
             await LayoutAsync(subscriptionPanel);
             var sourceFilter = Get<ComboBox>(subscriptionPanel, "SourceFilter");
             sourceFilter.SelectedItem = subscriptionPanel.ViewModel.SourceChoices.Single(source => source.Id == "douban");
@@ -193,6 +222,15 @@ internal sealed partial class ShellNavigationProbe
             var count = mp.Paths.Count;
             await page.SubmitSearchAsync("新的资源词");
             Require(mp.Paths.Count == count + 1 && mp.Paths.Last().Contains(Uri.EscapeDataString("新的资源词"), StringComparison.Ordinal), "资源没有显式提交新关键词");
+            Require(tabs.Visibility == Visibility.Collapsed && tabs.SelectedIndex == 2, "收起来源选项丢失 MP 资源选择");
+            // 用户重新编辑期间到达的旧结果不能再次收起来源栏。
+            mp.PendingResource = Pending<HttpResponseMessage>();
+            var delayedSearch = page.SubmitSearchAsync("等待资源");
+            page.ExpandSearchOptions();
+            mp.PendingResource.TrySetResult(Json(Array.Empty<object>()));
+            await delayedSearch;
+            Require(tabs.Visibility == Visibility.Visible, "迟到结果收起了用户重新展开的选项");
+            mp.PendingResource = null;
 
             // 输入法组字时的回车只留下 keyup（keydown 被输入法吞掉），页面得替这颗回车补一次提交
             // （2026-10-24 用户报「搜索页面 在搜索栏按回车要支持触发搜索」）。两段：组合上屏后按上屏的词提交，
@@ -229,6 +267,79 @@ internal sealed partial class ShellNavigationProbe
         {
             (frame.Content as IShellContent)?.Release();
             _root.Children.Remove(frame);
+        }
+    }
+
+    private async Task CompactSearchHeaderAsync(LibraryPage page)
+    {
+        var tabs = Get<Segmented>(page, "SourceTabs");
+        var input = Get<AutoSuggestBox>(page, "SearchInput");
+        var search = Get<Border>(page, "SearchSurface");
+        var sites = Get<MoviePilotSitePicker>(page, "SearchSitePicker");
+        var submit = Descendants(input).OfType<Button>().Single(button => button.Name == "QueryButton");
+        var resources = Get<MoviePilotVersionsView>(page, "MoviePilotResources");
+        foreach (var width in new[] { 1040, 360 })
+        {
+            var scale = _root.XamlRoot.RasterizationScale;
+            ResizeInspect((int)(width * scale), (int)(880 * scale));
+            page.ExpandSearchOptions();
+            tabs.SelectedIndex = 2;
+            await LayoutAsync(page);
+            Require(tabs.Visibility == Visibility.Visible, $"{width} 宽帧的来源栏未展开");
+            var expanded = search.ActualHeight;
+            await page.SubmitSearchAsync("离线资源布局");
+            Require(tabs.Visibility == Visibility.Collapsed, "资源搜索结束后来源栏仍显示");
+            Require(sites.Visibility == Visibility.Visible, "MP 资源收起来源栏后站点入口消失");
+            Require(Get<MoviePilotSitePicker>(resources, "SearchSitePicker").Visibility == Visibility.Collapsed,
+                "资源结果上方仍有重复站点入口");
+            resources.ViewModel.Browser.SetResults(Enumerable.Range(1, 6).Select(index => new ViewModels.MoviePilotResourceRow(
+                new MoviePilotResource
+                {
+                    Title = $"离线资源 S01E{index:00} 1080p WEB-DL",
+                    SiteName = "站点甲",
+                    Seeders = 12,
+                    Size = 2147483648,
+                    Resolution = "1080p",
+                    Seasons = [1],
+                    Episodes = [index],
+                    TorrentInfo = System.Text.Json.JsonSerializer.SerializeToElement(new { title = "fixture" })
+                }, _ => Task.CompletedTask, _ => { })));
+            resources.ViewModel.ShowEmptyNotice = false;
+            await LayoutAsync(page);
+            Require(tabs.Visibility == Visibility.Collapsed && search.ActualHeight <= expanded - 28,
+                $"{width} 收起来源栏后仍保留空白高度：expanded={expanded}, collapsed={search.ActualHeight}, tabs={tabs.ActualHeight}, form={Get<Grid>(page, "SearchForm").ActualHeight}");
+            var inputBox = Box(Descendants(input).OfType<ScrollViewer>().Single(element => element.Name == "ContentElement"));
+            var sitesBox = Box(sites);
+            var submitBox = Box(submit);
+            Require(inputBox.Width >= 70 && inputBox.Right <= sitesBox.Left && sitesBox.Right <= submitBox.Left,
+                "搜索框、站点、搜索按钮的横向次序或窄窗可用宽度错误");
+            Require(submitBox.Right <= Box(input).Right && sitesBox.Left >= Box(input).Left,
+                "站点选择没有与搜索框同行或已裁切");
+            var resourceBox = Box(Get<MoviePilotResourceBrowser>(resources, "Browser"));
+            Require(resourceBox.Top - Box(search).Bottom <= 16, "资源结果与搜索栏之间仍有过大空白");
+            await SaveProbeScreenAsync($"search-compact-resources-{width}-screen.png");
+            Require(Get<ItemsView>(Get<MoviePilotResourceBrowser>(resources, "Browser"), "ResourceList").Focus(FocusState.Programmatic),
+                "资源列表无法接收恢复前的焦点");
+            var field = Descendants(input).OfType<TextBox>().First();
+            Require(field.Focus(FocusState.Keyboard), "搜索栏无法通过键盘重新聚焦");
+            await LayoutAsync(page);
+            Require(tabs.Visibility == Visibility.Visible && search.ActualHeight >= expanded - 1,
+                "重新聚焦搜索栏未展开来源选项");
+            await SaveProbeScreenAsync($"search-expanded-resources-{width}-screen.png");
+            foreach (var source in new[] { 0, 1, 3, 2 })
+            {
+                tabs.SelectedIndex = source;
+                await LayoutAsync(page);
+                Require(sites.Visibility == (source == 2 ? Visibility.Visible : Visibility.Collapsed),
+                    "站点入口没有只随 MP 资源显示和恢复");
+            }
+        }
+        tabs.SelectedIndex = 0;
+
+        Rect Box(FrameworkElement element)
+        {
+            var origin = element.TransformToVisual(page).TransformPoint(default);
+            return new Rect(origin, new Size(element.ActualWidth, element.ActualHeight));
         }
     }
 

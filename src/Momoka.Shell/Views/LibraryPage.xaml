@@ -323,18 +323,30 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        <AutoSuggestBox
-                            x:Name="SearchInput"
-                            Grid.ColumnSpan="2"
-                            x:Uid="LibrarySearchBox"
-                            HorizontalAlignment="Stretch"
-                            CornerRadius="12"
-                            VerticalAlignment="Center"
-                            QueryIcon="Find"
-                            QuerySubmitted="OnSearchSubmitted"
-                            TextChanged="OnSearchTextChanged"
-                            Text="{x:Bind ViewModel.SearchText, Mode=OneWay}"
-                            Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}" />
+                        <Grid x:Name="SearchEntry" Grid.ColumnSpan="2">
+                            <AutoSuggestBox
+                                x:Name="SearchInput"
+                                x:Uid="LibrarySearchBox"
+                                HorizontalAlignment="Stretch"
+                                CornerRadius="12"
+                                VerticalAlignment="Center"
+                                QueryIcon="Find"
+                                QuerySubmitted="OnSearchSubmitted"
+                                TextChanged="OnSearchTextChanged"
+                                Text="{x:Bind ViewModel.SearchText, Mode=OneWay}"
+                                Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
+                                <!-- 2026-10-27 用户令：点进搜索栏后不要那圈绿框。聚焦时框线保持停着那根发丝线
+                                     （同一支 EgBorderBrush 画刷，换主题时跟着变），粗细也回到 1 —— 框架那档是
+                                     1,1,1,2，底边还会再加粗一档。只在这一页这一颗上收，设置页那些输入框的
+                                     强调框照旧。 -->
+                                <AutoSuggestBox.Resources>
+                                    <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
+                                    <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
+                                </AutoSuggestBox.Resources>
+                            </AutoSuggestBox>
+                            <local:MoviePilotSitePicker x:Name="SearchSitePicker"
+                                VerticalAlignment="Center" Visibility="Collapsed" />
+                        </Grid>
 
                         <!-- 结果来源：库里的 Emby，还是去 MoviePilot 找新片。见 LibraryPage.OnSourceChanged。 -->
                         <tkcontrols:Segmented
@@ -344,7 +356,7 @@
                             SelectedIndex="0"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center"
-                            Visibility="{x:Bind ViewModel.MoviePilotTabsVisibility, Mode=OneWay}">
+                            Visibility="Collapsed">
                             <tkcontrols:SegmentedItem AutomationProperties.Name="媒体库搜索"><TextBlock Text="媒体库" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                             <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 订阅搜索"><TextBlock Text="MoviePilot 订阅" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                             <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 资源搜索"><TextBlock Text="MoviePilot 资源" TextWrapping="Wrap" TextAlignment="Center" /></tkcontrols:SegmentedItem>

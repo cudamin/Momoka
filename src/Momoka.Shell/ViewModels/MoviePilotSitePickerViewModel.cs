@@ -21,6 +21,8 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     private string _connectionStamp = "";
     private bool _loaded;
     private bool _updating;
+    private HashSet<int> _preferredIds = [];
+    private Task? _catalogueLoad;
 
     public ObservableCollection<MoviePilotSearchSiteRow> Sites { get; } = [];
     internal event Action? SelectionChanged;
@@ -48,10 +50,13 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         {
             _updating = true;
             Sites.Clear();
-            UseDefault = true;
+            var preference = service.SearchSitePreference(mediaType);
+            UseDefault = preference.UseDefault;
+            _preferredIds = preference.SiteIds.ToHashSet();
             _updating = false;
             _loaded = false;
-            _connectionStamp = "";
+            _connectionStamp = service.Available ? service.ConnectionStamp : "";
+            _catalogueLoad = null;
         }
         _service = service;
         _mediaType = mediaType;
@@ -59,9 +64,19 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     }
 
     internal Task EnsureLoadedAsync() => _loaded && _service?.IsCurrentConnection(_connectionStamp) == true
-        ? Task.CompletedTask : ReloadAsync();
+        ? Task.CompletedTask : _catalogueLoad is { IsCompleted: false } ? _catalogueLoad : ReloadAsync();
 
-    public override async Task ReloadAsync()
+    internal Task PrepareSelectionAsync() => UseDefault ? Task.CompletedTask : EnsureLoadedAsync();
+
+    public override void Cancel()
+    {
+        _catalogueLoad = null;
+        base.Cancel();
+    }
+
+    public override Task ReloadAsync() => _catalogueLoad = LoadCatalogueAsync();
+
+    private async Task LoadCatalogueAsync()
     {
         if (_service is null) return;
         var token = BeginLoad();
@@ -76,16 +91,21 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
             _updating = true;
             try
             {
+                if (!sameIdentity)
+                {
+                    var preference = _service.SearchSitePreference(_mediaType);
+                    UseDefault = preference.UseDefault;
+                    _preferredIds = preference.SiteIds.ToHashSet();
+                }
                 Sites.Clear();
                 foreach (var site in sites)
-                    Sites.Add(new MoviePilotSearchSiteRow(site, Changed) { Selected = sameIdentity && selected.Contains(site.Id) });
-                if (hadCatalogue && !sameIdentity) UseDefault = true;
+                    Sites.Add(new MoviePilotSearchSiteRow(site, Changed) { Selected = _preferredIds.Contains(site.Id) });
                 _connectionStamp = stamp;
                 _loaded = true;
             }
             finally { _updating = false; }
             AnnounceSelection();
-            if ((hadCatalogue && !sameIdentity) || (!UseDefault && !selected.SetEquals(Sites.Where(site => site.Selected).Select(site => site.Id))))
+            if (hadCatalogue && (!sameIdentity || (!UseDefault && !selected.SetEquals(Sites.Where(site => site.Selected).Select(site => site.Id)))))
                 SelectionChanged?.Invoke();
         }
         catch (OperationCanceledException) { }
@@ -106,6 +126,7 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         try
         {
             UseDefault = false;
+            _preferredIds.Clear();
             foreach (var site in Sites) site.Selected = selected;
         }
         finally { _updating = false; }
@@ -116,6 +137,13 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     private void Changed()
     {
         if (_updating) return;
+        _preferredIds.ExceptWith(Sites.Select(site => site.Id));
+        _preferredIds.UnionWith(Sites.Where(site => site.Selected).Select(site => site.Id));
+        if (_service?.IsCurrentConnection(_connectionStamp) == true)
+        {
+            try { _service.SaveSearchSitePreference(_connectionStamp, _mediaType, UseDefault, _preferredIds); }
+            catch (Exception error) { Report("搜索站点已更改，但未能保存，下次启动可能恢复原选择", error); }
+        }
         AnnounceSelection();
         SelectionChanged?.Invoke();
     }

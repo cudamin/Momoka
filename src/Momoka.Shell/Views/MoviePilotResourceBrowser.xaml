@@ -16,13 +16,13 @@
             <Setter Property="Foreground" Value="{ThemeResource EgAccentBrush}" />
         </Style>
     </UserControl.Resources>
-    <Grid RowSpacing="12">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <StackPanel Spacing="12" Visibility="{x:Bind ViewModel.FiltersVisibility, Mode=OneWay}">
+        <StackPanel Spacing="8" Margin="0,0,0,8" Visibility="{x:Bind ViewModel.FiltersVisibility, Mode=OneWay}">
             <TextBlock Text="资源搜索结果" Style="{StaticResource EgSubheadStyle}" />
             <Border Padding="10" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="8">
                 <local:WrapRow x:Name="FilterToolbar" Spacing="8" RowSpacing="8">
@@ -79,7 +79,7 @@
                 </local:WrapRow>
             </Border>
         </StackPanel>
-        <ItemsControl x:Name="ActiveFilters" Grid.Row="1" ItemsSource="{x:Bind ViewModel.ActiveChoices, Mode=OneWay}"
+        <ItemsControl x:Name="ActiveFilters" Grid.Row="1" Margin="0,0,0,8" ItemsSource="{x:Bind ViewModel.ActiveChoices, Mode=OneWay}"
             Visibility="{x:Bind ViewModel.ActiveChoicesVisibility, Mode=OneWay}">
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:WrapRow Spacing="6" RowSpacing="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
@@ -142,9 +142,9 @@
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock Text="{x:Bind SizeText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" VerticalAlignment="Center" />
                                     <TextBlock Text="身份待核对" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center"
-                                        Visibility="{x:Bind DownloadProblemVisibility}" ToolTipService.ToolTip="{x:Bind DownloadProblem}" />
+                                        Visibility="{x:Bind DownloadProblemVisibility, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind DownloadProblem}" />
                                     <Button x:Name="DownloadResource" Grid.Column="1" Content="{x:Bind DownloadLabel, Mode=OneWay}" Command="{x:Bind DownloadCommand}"
-                                        Visibility="{x:Bind DownloadVisibility}" AutomationProperties.Name="{x:Bind DownloadAutomationName}" Padding="8,4" MinHeight="30"
+                                        Visibility="{x:Bind DownloadVisibility, Mode=OneWay}" AutomationProperties.Name="{x:Bind DownloadAutomationName}" Padding="8,4" MinHeight="30"
                                         FontSize="{StaticResource EgCaptionFontSize}" />
                                     <Button x:Name="OpenTorrentPage" Grid.Column="2" Command="{x:Bind OpenDetailsCommand}" Width="30" Height="30" Padding="0"
                                         AutomationProperties.Name="{x:Bind DetailsAutomationName}" Visibility="{x:Bind DetailsVisibility}" ToolTipService.ToolTip="{x:Bind DetailsHint}">

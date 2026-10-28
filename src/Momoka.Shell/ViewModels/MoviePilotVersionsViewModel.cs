@@ -64,15 +64,16 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
             EndLoad(token);
             return;
         }
-        if (!SearchSites.HasSelection)
-        {
-            EmptyNotice = "请先选择搜索站点，或使用 MoviePilot 默认站点";
-            ShowEmptyNotice = true;
-            EndLoad(token);
-            return;
-        }
         try
         {
+            await SearchSites.PrepareSelectionAsync().ConfigureAwait(true);
+            if (!IsCurrent(token)) return;
+            if (!SearchSites.HasSelection)
+            {
+                EmptyNotice = "请先选择搜索站点，或使用 MoviePilot 默认站点";
+                ShowEmptyNotice = true;
+                return;
+            }
             var found = await _service.SearchByKeywordAsync(text, token, SearchSites.Selection).ConfigureAwait(true);
             if (!IsCurrent(token)) return;
             Browser.SetResults(found.Select(resource => new MoviePilotResourceRow(resource, DownloadAsync, OpenDetails)
