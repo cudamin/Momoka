@@ -10,6 +10,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     DefaultButton="Primary">
+    <ContentDialog.Resources>
+        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+    </ContentDialog.Resources>
+
 
     <StackPanel Spacing="12">
         <TextBlock

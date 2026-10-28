@@ -10,6 +10,34 @@ internal static class DeleteCommandTests
     private const string TwoFiles = """{"code":0,"msg":"","data":[{"media_guid":"version-1","file_path":"/anonymous/1.mkv","file_size":1048576,"height":1080},{"media_guid":"version-2","path":"/anonymous/2.mkv","size":2097152,"resolution":"4K"}]}""";
     public static void Register()
     {
+        Test("真实确认入口：库样式与普通/MP样式分离，关闭仍不代表同意", () =>
+        {
+            using var context = new FixtureContext();
+            context.Await(CheckAsync());
+            async Task CheckAsync()
+            {
+                var owner = new Microsoft.UI.Xaml.FrameworkElement();
+                var inspected = 0;
+                var library = await Momoka.Shell.Views.ConfirmDialog.ForLibrary(owner, dialog =>
+                {
+                    Assert.True(ReferenceEquals(dialog.Style, Microsoft.UI.Xaml.Application.Current.Resources["EgLibraryDialogSurfaceStyle"]));
+                    Assert.True(ReferenceEquals(dialog.Resources["ContentDialogTopOverlay"], Microsoft.UI.Xaml.Application.Current.Resources["LayerFillColorDefaultBrush"]));
+                    Assert.Equal(ContentDialogButton.Close, dialog.DefaultButton);
+                    inspected++;
+                    return Task.FromResult(ContentDialogResult.None);
+                })("离线库确认", "不删除媒体", "删除");
+                var ordinary = await Momoka.Shell.Views.ConfirmDialog.For(owner, dialog =>
+                {
+                    Assert.Null(dialog.Style);
+                    Assert.False(dialog.Resources.ContainsKey("ContentDialogTopOverlay"));
+                    inspected++;
+                    return Task.FromResult(ContentDialogResult.None);
+                })("普通确认", "不修改任何数据", "确定");
+                Assert.False(library);
+                Assert.False(ordinary);
+                Assert.Equal(2, inspected, "确认框安全吞异常不能伪装检查通过");
+            }
+        });
         Test("实际FnNasVersions最后版本确认DELETE→removed→真VM清主体", () =>
         {
             using var f = new DeleteFixture();

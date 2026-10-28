@@ -20,12 +20,19 @@
 | GET | `/Shows/Upcoming` | 电视节目「预告」：本库 upcoming 单集，带 `UserId` / `ParentId` / 分页，按 `PremiereDate,SortName` 升序；不发库筛选或合集分组 |
 | GET | `/Trailers` | 电影库「预告片」，与电视 upcoming 单集不同 |
 | GET | `/Shows/{Id}/Seasons` · `/Shows/{Id}/Episodes` | 季 / 集列表 |
+| GET | `/Items/{ItemId}/MetadataEditor` | Emby 原生编辑器目录：家长评分、语言、国家与当前条目支持的外部 ID；`GetMetadataEditorInfoAsync`，非 Emby 拒绝 |
 | POST | `/Items/{Id}` | 更新条目（元数据编辑） |
 | POST | `/Items/{Id}/Refresh` | 刷新元数据 / 图片 |
 | DELETE | `/Items/{Id}` | 删除条目；`DeleteItemAsync` |
 | GET | `/Items/{Id}/Download` | 下载到设备 |
 | POST | `/Collections` | 新建合集并加入条目；`CreateCollectionAsync` |
 | POST | `/Collections/{Id}/Items` | 加入已有合集；`AddToCollectionAsync` |
+
+### Emby 原生元数据编辑目录（2026-10-28）
+
+此端点与 `MetadataEditorInfo` 已登记在上方 4.10.0.40 快照；本轮同时只读核对官方 Emby.ApiClients `4.10.2.0 Release` 的 ItemUpdateServiceApi、BaseItemDto 与 BaseItemPerson。目录以 `ParentalRatingOptions`、`Cultures`、`Countries`、`ExternalIdInfos` 返回，不硬编码插件的外部 ID 清单。更新整项锁用 `LockData`；`IsLocked` 是查询过滤字段，不拿它作为编辑写字段。逐字段锁使用 `LockedFields`，人物对应 `Cast`，排序标题对应 `SortName`，标题覆盖写 `ForcedSortName`。原生保存仍是现有 POST `/Items/{Id}`，携带原始整份 JSON 的副本，只更新草稿真正涉及的值。
+
+字段名／形状依据官方规格和 SDK，只用于查字典，没有引入或复制 SDK 代码；没有读写真实服务器来确认部署版本。离线 `emby-metadata-fixture` 覆盖真实 Client／Service 与匿名内存 HTTP，运行 UI `metadata` 分区使用惰性保存委托，不冒称真实共享元数据写入证据。
 
 ## 图片
 

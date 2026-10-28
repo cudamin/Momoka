@@ -15,7 +15,7 @@
 
     <!-- 面板自己铺一层实底：浮层默认是亚克力的，底下的卡片墙会透上来，读起来像没画完。
          网页端那颗齿轮打开的是一块实心面板，这里跟着它。 -->
-    <Border Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="12">
+    <Border x:Name="LibraryDialogSurface" Background="{ThemeResource LayerFillColorDefaultBrush}" BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="1" CornerRadius="{StaticResource EgCardCornerRadius}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />

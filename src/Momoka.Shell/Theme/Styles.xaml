@@ -149,28 +149,41 @@
         <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
     </Style>
 
+    <!-- 媒体库弹窗（2026-10-28）：只覆盖库管理相关类型，背景与设置侧栏使用同一个主题角色。
+         不改 EgDialogSurfaceStyle：MoviePilot、普通确认框和设置窗口仍维持原来的表面。 -->
+    <Style x:Key="EgLibraryDialogSurfaceStyle" TargetType="ContentDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}">
+        <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />
+    </Style>
+    <Style x:Key="EgLibraryFlyoutSurfaceStyle" TargetType="FlyoutPresenter">
+        <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+    </Style>
+
     <!-- 代码里 new 的普通 ContentDialog（确认框、播放信息、通知服务挑选等）。 -->
     <Style TargetType="ContentDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
 
     <!-- XAML 里定义的各张表，按类型各接一行；MoviePilotDownloadDialog 保留自己那一份。 -->
-    <Style TargetType="local:AniBtScrapeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:ArtworkViewer" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:CollectionDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:CoverDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:CoverPickerDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:FnNasMatchDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:FnNasMetadataDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:FnNasVersionsDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:IdentifyDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:MetadataDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:MissingEpisodesDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:AniBtScrapeDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:ArtworkViewer" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:CollectionDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:CoverDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:CoverPickerDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:EmbyMetadataDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:FnNasMatchDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:FnNasMetadataDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:FnNasVersionsDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:IdentifyDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:MetadataDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:MissingEpisodesDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
     <Style TargetType="local:MoviePilotReorganizeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MoviePilotSeriesReorganizeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MoviePilotSeasonPicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:NotificationEditDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:NotificationServicePicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:RefreshMetadataDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
-    <Style TargetType="local:SubtitleDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:RefreshMetadataDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+    <Style TargetType="local:SubtitleDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
 
     <!-- 发丝线的粗细。结构靠它，不靠色块 —— 所以只有一档，加粗只发生在框线变强调色的时候。 -->
     <Thickness x:Key="EgHairline">1</Thickness>

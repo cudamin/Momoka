@@ -346,6 +346,36 @@ internal static class Program
 
     private static void RegisterShellScope()
     {
+        Test("shell-explicit-time-budget-completes-long-step", async () =>
+        {
+            var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "shell-explicit-budget"));
+            await run.ExecuteAsync(() => run.RecordTimedAsync(() => Task.Delay(1200), 3));
+            run.Verify(0);
+            Equal(1, run.ShellChecks.Count, "longer configured step still executes exactly one assertion");
+        });
+        Test("shell-explicit-time-budget-still-fails-on-deadline", async () =>
+        {
+            var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "shell-budget-deadline"));
+            var pending = Task.Delay(1600);
+            await run.ExecuteAsync(() => run.RecordTimedAsync(() => pending, 1));
+            run.Verify(1);
+            Ensure(run.ShellChecks.Single().Detail.Contains(nameof(TimeoutException), StringComparison.Ordinal),
+                "deadline failure must remain a failed check, never an ignored step");
+            await pending;
+        });
+        Test("shell-file-picker-budget-is-bounded-and-layout-assertions-retained", () =>
+        {
+            var root = Path.GetFullPath(Environment.CurrentDirectory);
+            var caller = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ShellNavigationProbe.cs"));
+            Ensure(caller.Contains("\"文件选项长名称、断点与隐藏行\", DetailPickerLayoutAsync, 45)", StringComparison.Ordinal),
+                "multi-size rendered check must retain its explicit finite budget");
+            var layout = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ShellNavigationProbe.State.cs"));
+            Ensure(layout.Contains("Require(fit.Ok, fit.Detail)", StringComparison.Ordinal)
+                && layout.Contains("Require(!overflow.Ok", StringComparison.Ordinal)
+                && layout.Contains("恢复下拉宽度后仍失败", StringComparison.Ordinal),
+                "budget change cannot discard fit, overflow negative control or restoration assertions");
+            return Task.CompletedTask;
+        });
         Test("shell-final-scope-persistent", async () =>
         {
             var run = new ProbeRun(ProbeKind.Shell, Path.Combine(_output, "shell-final-scope-persistent"));
@@ -597,6 +627,8 @@ internal static class Program
         }
 
         internal Task RecordSectionAsync(string? section) => _shell!.CaseAsync("section case", () => Task.CompletedTask, 1, section);
+        internal Task RecordTimedAsync(Func<Task> run, int seconds) =>
+            _shell!.CaseAsync("timed case", run, seconds, ShellProbeSections.Library);
 
         internal Task ExecuteAsync(Func<Task> run, bool inspect = false)
         {
