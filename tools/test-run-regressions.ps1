@@ -88,14 +88,34 @@ Invoke-Case 'case-skip' 'skip' @('-Suite', $suite) 1 @('--version', 'restore', '
 Invoke-Case 'unknown' 'ok' @('-Suite', 'Momoka.DoesNotExist') 1 @()
 Invoke-Case 'external' 'ok' @('-Suite', 'Momoka.ServerSettingsTabs.Tests') 1 @('--version')
 Invoke-Case 'wrapper-failure' 'ok' @('-Suite', 'Momoka.DetailDeleteCommandTests') 1 @('--version')
+$deleteSource = [IO.File]::ReadAllText((Join-Path $root 'tests/Momoka.DetailDeleteCommandTests/Run-Fixture.ps1')).TrimStart([char]0xFEFF)
+$deleteBoundary = '$commands = [Collections.Generic.List[string]]::new()'
+$deleteEnd = $deleteSource.IndexOf($deleteBoundary, [StringComparison]::Ordinal)
+Check ($deleteEnd -gt 0 -and $deleteSource.IndexOf($deleteBoundary, $deleteEnd + $deleteBoundary.Length, [StringComparison]::Ordinal) -lt 0) 'Delete 预检提取边界缺失或不唯一。'
 $wrapper = @'
-param([string]$Dotnet, [string]$Packages, [string]$EvidenceRoot)
-if (-not $EvidenceRoot.EndsWith('/delete')) { throw 'Wrapper argument was not expanded.' }
-[IO.Directory]::CreateDirectory($EvidenceRoot) | Out-Null
+[IO.File]::WriteAllText((Join-Path $root 'delete-output.txt'), $evidence)
 Write-Output '共 2 项，通过 2，失败 0，跳过 0'
 '@
-Write-Fixture 'tests/Momoka.DetailDeleteCommandTests/Run-Fixture.ps1' $wrapper
+Write-Fixture 'tests/Momoka.DetailDeleteCommandTests/Run-Fixture.ps1' ($deleteSource.Substring(0, $deleteEnd) + $wrapper)
 Invoke-Case 'wrapper-success' 'ok' @('-Suite', 'Momoka.DetailDeleteCommandTests') 0 @('--version')
+Check ([IO.File]::ReadAllText((Join-Path $fixture 'delete-output.txt')) -eq [IO.Path]::GetFullPath((Join-Path $fixture 'artifacts/wrapper-success/Momoka.DetailDeleteCommandTests/delete'))) 'Delete 未采用原允许范围内的统一证据目录。'
+
+# Execute the actual caller wrapper's complete path preflight, with only the build/run tail inert.
+# The previous manifest supplied artifacts/regressions/... and this unchanged guard rejects it.
+$callerSource = [IO.File]::ReadAllText((Join-Path $root 'tests/Momoka.NaturalContinuationCallerTests/Run-Caller.ps1')).TrimStart([char]0xFEFF)
+$callerBoundary = '$utf8 = [Text.UTF8Encoding]::new($false)'
+$callerEnd = $callerSource.IndexOf($callerBoundary, [StringComparison]::Ordinal)
+Check ($callerEnd -gt 0 -and $callerSource.IndexOf($callerBoundary, $callerEnd + $callerBoundary.Length, [StringComparison]::Ordinal) -lt 0) 'Caller 预检提取边界缺失或不唯一。'
+$callerTail = @'
+[IO.File]::WriteAllText((Join-Path $root 'caller-output.txt'), $output)
+Write-Output ('Caller evidence: ' + $output)
+Write-Output '共 2 项，通过 2，失败 0，跳过 0'
+'@
+Write-Fixture 'tests/Momoka.NaturalContinuationCallerTests/Run-Caller.ps1' ($callerSource.Substring(0, $callerEnd) + $callerTail)
+Invoke-Case 'caller-output-preflight' 'ok' @('-Suite', 'Momoka.NaturalContinuationCallerTests') 0 @('--version')
+$callerOutput = [IO.File]::ReadAllText((Join-Path $fixture 'caller-output.txt'))
+Check ($callerOutput.StartsWith((Join-Path $fixture 'artifacts/r046-caller') + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -and
+    (Test-Path -LiteralPath $callerOutput -PathType Container)) 'Caller 未采用原允许目录内的实际新输出。'
 
 # -File transports scalar CLI values; use a separate script to exercise PowerShell's actual array
 # binding, including a valid selection followed by an invalid one before any SDK call.

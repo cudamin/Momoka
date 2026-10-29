@@ -205,13 +205,10 @@
       "project": "tests/Momoka.NaturalContinuationCallerTests/Momoka.NaturalContinuationCallerTests.csproj",
       "mode": "wrapper",
       "requiresShell": false,
-      "arguments": [
-        "-OutputDirectory",
-        "{output}/caller"
-      ],
+      "arguments": [],
       "wrapper": "tests/Momoka.NaturalContinuationCallerTests/Run-Caller.ps1",
       "readme": "tests/Momoka.NaturalContinuationCallerTests/README.md",
-      "notes": "原 wrapper 核对 SourcePins、离线还原和当前编译；另有提取器反例，见 README。"
+      "notes": "原 wrapper 核对 SourcePins、离线还原和当前编译，使用其默认 artifacts/r046-caller 新目录；另有提取器反例，见 README。"
     },
     {
       "id": "Momoka.NaturalEpisodeContinuationTests",

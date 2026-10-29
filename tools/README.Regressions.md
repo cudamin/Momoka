@@ -15,7 +15,7 @@
 
 所有选择在任何构建前完成校验，未知项目不会导致前面的有效项目先执行。默认用用户目录下 `.dotnet/dotnet.exe` 和 `.nuget/packages`；可用 `-Dotnet`、`-Packages` 指定现有本机路径，不下载工具或替代包。SDK 与 `global.json` 精确匹配。普通项目逐一执行本机缓存 restore、当前 Release 单节点 build，成功后才 `--no-build --no-restore` 运行；还原或编译失败不会运行旧产物。一个专项失败后继续记录其余选择，最后总体退出非零。
 
-需要 Shell 的托管夹具先构建本树标准 Release Shell，当前一次成功构建可供后续同批夹具使用，程序本身不启动。`DetailDeleteCommandTests` 保留原 wrapper 的源码和 DLL 构建证明；`NaturalContinuationCallerTests` 保留原 wrapper 的 pins、固定缓存和构建要求，用户指定 SDK/缓存不会覆盖后者内部已有固定约束。原 wrapper 失败不会退回裸运行。
+需要 Shell 的托管夹具先构建本树标准 Release Shell，当前一次成功构建可供后续同批夹具使用，程序本身不启动。`DetailDeleteCommandTests` 保留原 wrapper 的源码和 DLL 构建证明，其证据允许位于本树 artifacts 下，因此沿用统一报告内的子目录。`NaturalContinuationCallerTests` 保留原 wrapper 的 pins、固定缓存和构建要求，并使用其默认 `artifacts/r046-caller/verify-*` 新目录，不传统一输出目录越过原约束；完整证据路径保留在统一 `run.log`。用户指定 SDK/缓存不会覆盖后者内部已有固定约束。原 wrapper 失败不会退回裸运行。
 
 `ServerSettingsTabs.Tests` 的完整 DOM 测试需显式 Node、Playwright 和浏览器参数，本入口登记为外部前置项，选择它或 `-All` 时报告 **skipped 并总体非零**。按该项目 README 另行运行完整 `Run-Fixture.ps1`；不会将 `contracts` 子集冒充整套通过。`FrameInterpolationTests` 登记的是无参规则入口，原生无媒体探针另按 README 执行；各项目额外的提取器失败场景、真实 UI 或播放探针也不由本脚本冒称覆盖。
 
@@ -30,4 +30,4 @@
 & ./tools/check-scripts.ps1 -Path @('./tools/run-regressions.ps1', './tools/test-run-regressions.ps1')
 ```
 
-自测复制真实 runner/manifest 到本树 artifacts 下的匿名 Git 目录，使用假 SDK 端点，不编译或运行产品。覆盖默认/List 零调用、成功、restore/build/run 失败停止次序、case skip、外部前置 skip、wrapper 成败、混合未知选择零构建、多套 Shell 依赖只编一次，以及遗漏新项目即拒绝。日志和匿名目录保留，不递归清理用户文件。
+自测复制真实 runner/manifest 到本树 artifacts 下的匿名 Git 目录，使用假 SDK 端点，不编译或运行产品。覆盖默认/List 零调用、成功、restore/build/run 失败停止次序、case skip、外部前置 skip、wrapper 成败、混合未知选择零构建、多套 Shell 依赖只编一次，以及遗漏新项目即拒绝。NaturalContinuationCaller 的目录回归原样执行其真实 wrapper 预检前缀，只替换后续构建端点；核对默认证据实际位于 `artifacts/r046-caller`，不放宽原守卫。日志和匿名目录保留，不递归清理用户文件。
