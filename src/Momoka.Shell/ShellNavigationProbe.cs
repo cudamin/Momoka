@@ -73,6 +73,9 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("Emby 元数据列表编辑、重排和取消", MetadataListsAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("Emby 元数据保存失败、取消和重试", MetadataSaveAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("媒体库弹窗五主题圆角和侧栏底色，MP保持原样", LibraryDialogChromeAsync, 120, section: ShellProbeSections.Metadata);
+            // 2026-10-29 用户令：所有弹窗点外面就关，字幕管理右上角一颗 ✕、右下角那颗去掉。真模板真弹窗，
+            // 但按下事件那一层没有注入真实指针（见 DialogDismissAsync 头上那段）。
+            await CaseAsync("弹窗点外面关闭与字幕弹窗右上角关闭钮", DialogDismissAsync, 45, section: ShellProbeSections.Metadata);
             await CaseAsync("电影与电视剧网页分类、工具栏、作用域及主题", LibraryBrowseAsync, 120);
             await CaseAsync("Jellyfin 媒体库标签、排序、筛选、布局与建议", JellyfinLibraryAsync, 90);
             await CaseAsync("飞牛媒体库工具栏到封面的间距与筛选面板", FnNasLibrarySpacingAsync, 45);
@@ -104,7 +107,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("继续观看标记已看后换成下一集或撤掉", WatchedResumeSlotAsync, 30);
             await CaseAsync("MoviePilot 关闭后清理历史与操作弹窗", MoviePilotUnavailableNavigationAsync);
             await CaseAsync("MoviePilot 关闭后收起菜单且保留普通菜单", MoviePilotMenusAsync);
-            await CaseAsync("MoviePilot 媒体管理四档、智能整理确认与 MP 右侧品牌", MoviePilotMediaManagementAsync, 90, section: ShellProbeSections.MoviePilot);
+            await CaseAsync("MoviePilot 媒体管理四档、智能整理确认与条目菜单无品牌图标", MoviePilotMediaManagementAsync, 90, section: ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 搜索站点多选、清空、默认及离页取消", MoviePilotSearchSitesAsync);
             await CaseAsync("MoviePilot 资源卡片、季集筛选和下载选项", MoviePilotResourceOptionsAsync, 30);
             await CaseAsync("MoviePilot 剧资源按 TMDB 筛选、多选与批量预览", MoviePilotSeriesReorganizeAsync, 120, section: ShellProbeSections.MoviePilot);

@@ -124,17 +124,21 @@
             </ItemsControl.ItemTemplate>
         </ItemsControl>
         <Grid Grid.Row="2">
+            <!-- 整张卡就是下载入口（2026-10-29 用户令，对齐网页端 TorrentCard）：点卡片打开下载选择栏，
+                 卡上不再有下载按钮。右下角那颗方钮只负责打开站点网页，自己吃掉指针事件，不会顺带下载。 -->
             <ItemsView x:Name="ResourceList" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}"
                 Padding="{StaticResource EgScrollBarLane}"
-                SelectionMode="None" IsItemInvokedEnabled="False" ItemTransitionProvider="{x:Null}">
+                SelectionMode="None" IsItemInvokedEnabled="True" ItemInvoked="OnResourceInvoked" ItemTransitionProvider="{x:Null}">
                 <ItemsView.Layout>
                     <UniformGridLayout MinItemWidth="236" MinItemHeight="364" MinRowSpacing="12" MinColumnSpacing="12"
                         ItemsStretch="Fill" ItemsJustification="Start" />
                 </ItemsView.Layout>
                 <ItemsView.ItemTemplate>
                     <DataTemplate x:DataType="vm:MoviePilotResourceRow">
-                        <ItemContainer AutomationProperties.Name="{x:Bind Title}">
-                            <Grid x:Name="ResourceCard" Height="364" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="8">
+                        <ItemContainer AutomationProperties.Name="{x:Bind CardAutomationName, Mode=OneWay}"
+                            AutomationProperties.HelpText="{x:Bind CardHint, Mode=OneWay}">
+                            <Grid x:Name="ResourceCard" Height="364" Background="{ThemeResource EgSurfaceBrush}" CornerRadius="8"
+                                ToolTipService.ToolTip="{x:Bind CardHint, Mode=OneWay}">
                                 <Grid.RowDefinitions><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                                 <Grid Padding="14,14,14,8" RowSpacing="6">
                                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -172,18 +176,23 @@
                                     Background="{ThemeResource EgWarningBrush}" Visibility="{x:Bind PromotionVisibility}" ToolTipService.ToolTip="{x:Bind PromotionText}">
                                     <TextBlock Text="{x:Bind PromotionBadge}" Style="{StaticResource EgCaptionStyle}" FontWeight="SemiBold" Foreground="{ThemeResource EgTextOnAccentBrush}" />
                                 </Border>
-                                <Grid Grid.Row="1" Padding="12,8" ColumnSpacing="6" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource EgBorderBrush}">
-                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <!-- 已加入下载：整圈强调色，和网页端「已下载」的绿框同一个意思；只是读的状态，不接指针。 -->
+                                <Border BorderBrush="{ThemeResource EgAccentBrush}" BorderThickness="{StaticResource EgOutlineThickness}"
+                                    CornerRadius="8" IsHitTestVisible="False" Visibility="{x:Bind SubmittedVisibility, Mode=OneWay}" />
+                                <Grid Grid.Row="1" Padding="12,8" ColumnSpacing="8" BorderThickness="0,1,0,0" BorderBrush="{ThemeResource EgBorderBrush}">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock Text="{x:Bind SizeText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" VerticalAlignment="Center" />
-                                    <TextBlock Text="身份待核对" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center"
-                                        Visibility="{x:Bind DownloadProblemVisibility, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind DownloadProblem}" />
-                                    <Button x:Name="DownloadResource" Grid.Column="1" Content="{x:Bind DownloadLabel, Mode=OneWay}" Command="{x:Bind DownloadCommand}"
-                                        Visibility="{x:Bind DownloadVisibility, Mode=OneWay}" AutomationProperties.Name="{x:Bind DownloadAutomationName}" Padding="8,4" MinHeight="30"
-                                        FontSize="{StaticResource EgCaptionFontSize}" />
-                                    <Button x:Name="OpenTorrentPage" Grid.Column="2" Command="{x:Bind OpenDetailsCommand}" Width="30" Height="30" Padding="0"
-                                        AutomationProperties.Name="{x:Bind DetailsAutomationName}" Visibility="{x:Bind DetailsVisibility}" ToolTipService.ToolTip="{x:Bind DetailsHint}">
-                                        <FontIcon Glyph="&#xE946;" FontSize="{StaticResource EgBodyFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
-                                    </Button>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                        <!-- 身份待核对与过程状态各说各的：前者不因后者出现或消失而收起来。 -->
+                                        <TextBlock Text="身份待核对" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" Foreground="{ThemeResource EgWarningBrush}"
+                                            Visibility="{x:Bind DownloadProblemVisibility, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind DownloadProblem}" />
+                                        <TextBlock Text="{x:Bind StatusText, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center"
+                                            Foreground="{ThemeResource EgTextDimBrush}" Visibility="{x:Bind StatusVisibility, Mode=OneWay}" />
+                                        <Button x:Name="OpenTorrentPage" Command="{x:Bind OpenDetailsCommand}" Width="30" Height="30" Padding="0"
+                                            AutomationProperties.Name="{x:Bind DetailsAutomationName}" Visibility="{x:Bind DetailsVisibility}" ToolTipService.ToolTip="{x:Bind DetailsHint}">
+                                            <FontIcon Glyph="&#xE946;" FontSize="{StaticResource EgBodyFontSize}" Foreground="{ThemeResource EgAccentBrush}" />
+                                        </Button>
+                                    </StackPanel>
                                 </Grid>
                             </Grid>
                         </ItemContainer>

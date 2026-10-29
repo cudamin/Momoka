@@ -174,6 +174,54 @@ internal static class DialogChromeTests
                     $"{Path.GetFileName(file)} 自己写了弹窗表面属性，样式会漂开：{string.Join(" / ", values)}");
             }
         });
+
+        Test("弹窗表面：每张表都接上「点外面关闭」，新增的也不例外", () =>
+        {
+            var styles = Styles();
+            var byKey = styles.Where(style => style.Attribute(Xaml + "Key") is not null)
+                .ToDictionary(style => style.Attribute(Xaml + "Key")!.Value, style => style);
+            var rooted = styles.Where(style => style.Attribute(Xaml + "Key") is null)
+                .ToDictionary(style => style.Attribute("TargetType")?.Value ?? "", style => style);
+
+            Assert.Equal("True", Setters(byKey[SurfaceStyle]).GetValueOrDefault("local:DialogDismiss.ClosesOnOutsideClick"),
+                "共享基础样式没有打开点外面关闭，派生出来的表一个都不会有");
+
+            // 隐式样式按类型精确匹配，所以「所有弹窗」这句话只能靠每张表各接一行来落实；
+            // 这里按源码里的派生类清单逐个数，新增一张表却忘了接样式就在这儿红。
+            var folder = Path.Combine(Root(), "src", "Momoka.Shell");
+            var subclasses = Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories)
+                .SelectMany(file => Subclass.Matches(File.ReadAllText(file)).Select(match => match.Groups[1].Value))
+                .Distinct(StringComparer.Ordinal).ToArray();
+            Assert.True(subclasses.Length >= 15, $"只找到 {subclasses.Length} 张 ContentDialog，弹窗清单不完整");
+            foreach (var type in subclasses)
+            {
+                Assert.True(rooted.TryGetValue("local:" + type, out var style), $"{type} 没有自己的弹窗样式行");
+                Assert.True(CarriesOutsideClick(style!, byKey), $"{type} 的弹窗样式没有接上「点外面关闭」");
+            }
+
+            // 探针能走几何判定与 Hide，按下的接线只有源码看得见。
+            var dismiss = File.ReadAllText(Path.Combine(folder, "Views", "DialogDismiss.cs"));
+            Assert.Contains("dialog.PointerPressed += OnPointerPressed", dismiss);
+            Assert.Contains("dialog.Hide()", dismiss);
+        });
+    }
+
+    /// <summary>顺着 <c>BasedOn</c> 往上找，看这条样式（或它的祖先）有没有打开点外面关闭。</summary>
+    private static bool CarriesOutsideClick(XElement style, Dictionary<string, XElement> byKey)
+    {
+        for (var current = style; current is not null;)
+        {
+            var carries = current.Elements().Any(setter => setter.Name.LocalName == "Setter"
+                && setter.Attribute("Property")?.Value == "local:DialogDismiss.ClosesOnOutsideClick"
+                && setter.Attribute("Value")?.Value == "True");
+            if (carries) return true;
+            var basedOn = current.Attribute("BasedOn")?.Value;
+            var key = basedOn is not null && basedOn.StartsWith("{StaticResource ", StringComparison.Ordinal)
+                ? basedOn["{StaticResource ".Length..^1]
+                : null;
+            current = key is not null && byKey.TryGetValue(key, out var parent) ? parent : null;
+        }
+        return false;
     }
 
     private static XElement[] Styles() =>

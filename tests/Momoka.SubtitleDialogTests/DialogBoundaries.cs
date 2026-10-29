@@ -36,6 +36,10 @@ public sealed partial class SubtitleDialog
     internal TextBlock SourceFileText { get; } = new();
     internal TextBlock Status { get; } = new();
     internal ProgressRing Busy { get; } = new();
+    // 标题行（文字 + 右上角关闭钮）是 2026-10-29 那批搬进 XAML 的；夹具只编译 .xaml.cs，字段在这里补上。
+    internal FrameworkElement DialogTitleRow { get; } = new();
+    internal TextBlock DialogTitleText { get; } = new();
+    internal Button HeaderCloseButton { get; } = new();
     private void InitializeComponent() { }
 
     internal bool FixtureBusy => _busy;

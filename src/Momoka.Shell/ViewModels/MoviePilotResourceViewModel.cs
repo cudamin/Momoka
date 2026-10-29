@@ -37,8 +37,13 @@ public enum MoviePilotDownloadState
 }
 
 /// <summary>
-/// 资源列表里的一行（一个种子）：包一条 <see cref="MoviePilotResource"/>，加上下载键要的可见性和命令。
+/// 资源列表里的一行（一个种子）：包一条 <see cref="MoviePilotResource"/>，加上卡片点击要的状态与命令。
 /// 下载逻辑不在这儿（要服务和确认），回调给视图模型 —— 同 <see cref="MoviePilotResult"/> 的路子。
+/// <para>
+/// 卡片本身就是下载入口（2026-10-29 用户令，对齐网页端 TorrentCard）：点卡片打开下载选择栏，卡上不再有
+/// 下载按钮。卡片给读屏和悬停的说明必须跟着状态走 —— 已加入、请先核对、身份待核对时点下去什么也不会发生，
+/// 那句话得提前说清楚，不能让人以为坏了。
+/// </para>
 /// </summary>
 public sealed partial class MoviePilotResourceRow : ObservableObject
 {
@@ -92,24 +97,45 @@ public sealed partial class MoviePilotResourceRow : ObservableObject
     public Visibility MetaVisibility => Resource.MetaLine.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DownloadLabel))]
+    [NotifyPropertyChangedFor(nameof(StatusText))]
+    [NotifyPropertyChangedFor(nameof(StatusVisibility))]
+    [NotifyPropertyChangedFor(nameof(SubmittedVisibility))]
+    [NotifyPropertyChangedFor(nameof(CardAutomationName))]
+    [NotifyPropertyChangedFor(nameof(CardHint))]
     [NotifyPropertyChangedFor(nameof(CanDownload))]
-    [NotifyPropertyChangedFor(nameof(DownloadVisibility))]
     [NotifyCanExecuteChangedFor(nameof(DownloadCommand))]
     public partial MoviePilotDownloadState State { get; set; }
 
     public bool CanDownload => Resource.DownloadProblem is null &&
         State is MoviePilotDownloadState.Idle or MoviePilotDownloadState.Failed;
 
-    public string DownloadLabel => State switch
+    /// <summary>卡片这一次点下去会做什么。不能下载时名字照实说「资源」，不假装还有下载入口。</summary>
+    public string CardAutomationName => CanDownload ? $"下载资源：{Title}" : $"资源：{Title}";
+
+    /// <summary>悬停与读屏共用的那句说明：能下载时告诉人点卡片，其余状态说清为什么点不动。</summary>
+    public string CardHint => Resource.DownloadProblem is not null ? Resource.DownloadProblem
+        : State switch
+        {
+            MoviePilotDownloadState.Working => "正在添加下载，等 MoviePilot 回话",
+            MoviePilotDownloadState.Done => "已加入下载；要换下载器或目录请先在 MoviePilot 核对",
+            MoviePilotDownloadState.Uncertain => "结果不明，请先在 MoviePilot 核对，确认不会重复下载",
+            MoviePilotDownloadState.Failed => "上次添加未完成，点击卡片重试",
+            _ => "点击卡片打开下载设置"
+        };
+
+    public string StatusText => State switch
     {
         MoviePilotDownloadState.Working => "添加中…",
         MoviePilotDownloadState.Done => "已加入下载",
         MoviePilotDownloadState.Uncertain => "请先核对",
-        MoviePilotDownloadState.Failed => Resource.DownloadProblem is null ? "重试下载" : "下载未完成",
-        _ when Resource.DownloadProblem is not null => "身份待核对",
-        _ => "下载"
+        MoviePilotDownloadState.Failed => "下载未完成 · 点击重试",
+        _ => ""
     };
+
+    public Visibility StatusVisibility => State == MoviePilotDownloadState.Idle ? Visibility.Collapsed : Visibility.Visible;
+
+    /// <summary>已加入下载的卡片围一圈强调色：和网页端「已下载」的绿框同一个意思，不另加文案。</summary>
+    public Visibility SubmittedVisibility => State == MoviePilotDownloadState.Done ? Visibility.Visible : Visibility.Collapsed;
 
     internal static MoviePilotDownloadState StateOf(MoviePilotOperationState state) => state switch
     {
@@ -119,14 +145,9 @@ public sealed partial class MoviePilotResourceRow : ObservableObject
         _ => MoviePilotDownloadState.Idle
     };
 
-    // A mismatched result has no applicable download action. Retain actual process states so
-    // hiding an inapplicable entry never conceals a pending, failed or uncertain operation.
-    public Visibility DownloadVisibility => Resource.DownloadProblem is null || State != MoviePilotDownloadState.Idle
-        ? Visibility.Visible : Visibility.Collapsed;
+    // 身份不匹配与操作过程是两件事：过程状态照实显示，拒绝原因也一直看得见，点卡片仍被拒绝。
     public string DownloadProblem => Resource.DownloadProblem ?? "";
     public Visibility DownloadProblemVisibility => Resource.DownloadProblem is null ? Visibility.Collapsed : Visibility.Visible;
-
-    public string DownloadAutomationName => $"下载：{Title}";
     public string DetailsAutomationName => $"打开种子页面：{Title}";
     public bool CanOpenDetails => Resource.DetailsUri is not null && _openDetails is not null;
     public string DetailsHint => CanOpenDetails ? "在浏览器打开站点详情，不会开始下载" : "站点未提供可打开的种子页面";
@@ -159,6 +180,19 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
     private MoviePilotMedia? _media;
     private MoviePilotMediaSearchOptions? _options;
     private CancellationToken _query;
+
+    /// <summary>
+    /// 这一层面板的这次“活跃期”，不是某一次搜索的生命周期。下载确认可以横跨一次站点改动（改站点不收起结果），
+    /// 所以它不能跟着搜索代次作废；页面收起时取消，让对话框和请求一起停，下一次操作再开一段新的。
+    /// </summary>
+    private CancellationTokenSource _life = new();
+
+    private CancellationToken BeginAction()
+    {
+        if (_life.IsCancellationRequested) { _life.Dispose(); _life = new(); }
+        return _life.Token;
+    }
+
     private Func<MoviePilotResource, CancellationToken, Task<MoviePilotDownloadOptions?>>? _chooseDownload;
 
     internal void UseDownloadPicker(Func<MoviePilotResource, CancellationToken, Task<MoviePilotDownloadOptions?>> choose) => _chooseDownload = choose;
@@ -192,6 +226,7 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
 
     internal void Attach(MoviePilotService service, MoviePilotMedia media, ISystemLauncher launcher, MoviePilotMediaSearchOptions? options = null)
     {
+        _ = BeginAction();
         _service = service;
         _launcher = launcher;
         _media = media;
@@ -274,42 +309,57 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
 
     private async Task DownloadSubtitleAsync(MoviePilotSubtitleRow row)
     {
-        if (_service is null || !IsCurrent(_query) || !Subtitles.Contains(row) || ChooseSubtitlePath is null || !row.CanDownload) return;
-        var query = _query;
+        if (_service is null || !Subtitles.Contains(row) || ChooseSubtitlePath is null || !row.CanDownload) return;
+        var query = BeginAction();
         row.State = MoviePilotOperationState.Working;
         try
         {
             var paths = await _service.SubtitlePathsAsync(row.Subtitle, query);
-            if (!IsCurrent(query)) return;
+            if (query.IsCancellationRequested) return;
             var path = await ChooseSubtitlePath(row.Subtitle, paths, query);
-            if (path is null || !IsCurrent(query)) { row.State = MoviePilotOperationState.Idle; return; }
+            if (path is null || query.IsCancellationRequested) { row.State = MoviePilotOperationState.Idle; return; }
             var count = await _service.DownloadSubtitleAsync(row.Subtitle, path, query);
-            if (!IsCurrent(query)) return;
+            if (query.IsCancellationRequested) return;
             row.State = MoviePilotOperationState.Submitted;
             Notify("字幕下载", count > 0 ? $"MoviePilot 已保存 {count} 个字幕文件。" : "请求已提交，请在 MoviePilot 核对保存结果。", InfoBarSeverity.Success);
         }
         catch (Exception error)
         {
             row.State = _service.SubtitleState(row.Subtitle);
-            if (IsCurrent(query)) Report("字幕下载失败", error);
+            if (!query.IsCancellationRequested) Report("字幕下载失败", error);
         }
     }
 
+    /// <summary>
+    /// 站点范围只影响下一次搜索（2026-10-29 用户令：取消勾选默认站点时不许把眼前的结果清空）。
+    /// 在飞的旧搜索仍然作废 —— 它请求的是改选之前那个站点范围；已经铺出来的卡片和字幕留在原地，
+    /// 下一次「搜索资源」才换掉它们，留在原地的卡片照样能打开下载确认。
+    /// </summary>
     private void OnSearchSitesChanged()
     {
         base.Cancel();
         IsReady = true;
-        Browser.SetResults([]);
+        if (Browser.HasResults || Subtitles.Count > 0)
+        {
+            Notify("搜索站点已更改", "当前结果仍是刚才那次搜索的；点“搜索资源”后才会按新站点重搜。", InfoBarSeverity.Informational);
+            return;
+        }
         EmptyNotice = SearchSites.HasSelection ? "搜索站点已更改，点击“搜索资源”应用" : "请至少选择一个站点，或使用 MoviePilot 默认站点";
-        Subtitles.Clear();
         ShowEmptyNotice = true;
     }
 
     public override void Cancel()
     {
+        if (!_life.IsCancellationRequested) _life.Cancel();
         SearchSites.Cancel();
         Subtitles.Clear();
         base.Cancel();
+    }
+
+    public override void Dispose()
+    {
+        _life.Dispose();
+        base.Dispose();
     }
 
     private void OpenDetails(MoviePilotResourceRow row)
@@ -320,28 +370,32 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 一行的「下载」按下去：先二次确认（对外副作用 —— 真的把种子加进 MoviePilot 的下载器、开始下载），确认了
+    /// 点一张资源卡：先二次确认（对外副作用 —— 真的把种子加进 MoviePilot 的下载器、开始下载），确认了
     /// 才下单。成功置「已加入下载」，失败置「重试下载」，那句话已是给人看的。
+    /// <para>
+    /// 这里认的是「这张卡还在当前结果里、面板还开着」，不是某一次搜索的代次：改站点会作废在飞的搜索，
+    /// 但留下的卡仍然是用户眼前这一批，点开下载确认不该因此失效。
+    /// </para>
     /// </summary>
     private async Task DownloadAsync(MoviePilotResourceRow row)
     {
-        if (_service is null || !row.CanDownload || !IsCurrent(_query)) return;
-        var token = _query;
+        if (_service is null || !row.CanDownload || !Browser.Rows.Contains(row)) return;
+        var token = BeginAction();
         if (_chooseDownload is null) return;
         var options = await _chooseDownload(row.Resource, token).ConfigureAwait(true);
-        if (options is null || !IsCurrent(token)) return;
+        if (options is null || token.IsCancellationRequested) return;
 
         row.State = MoviePilotDownloadState.Working;
         try
         {
             await _service.DownloadAsync(row.Resource, token, options).ConfigureAwait(true);
-            if (!IsCurrent(token)) return;
+            if (token.IsCancellationRequested) return;
             row.State = MoviePilotDownloadState.Done;
             Notify(null, $"已加入下载：{row.Title}", InfoBarSeverity.Success);
         }
         catch (Exception error)
         {
-            if (!IsCurrent(token)) return;
+            if (token.IsCancellationRequested) return;
             row.State = error is MoviePilotOperationUncertainException or MoviePilotOperationBlockedException
                 ? MoviePilotDownloadState.Uncertain : MoviePilotDownloadState.Failed;
             Log.Warn(Category, $"下载「{row.Title}」未完成", error);

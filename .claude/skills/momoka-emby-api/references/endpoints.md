@@ -34,6 +34,8 @@
 
 字段名／形状依据官方规格和 SDK，只用于查字典，没有引入或复制 SDK 代码；没有读写真实服务器来确认部署版本。离线 `emby-metadata-fixture` 覆盖真实 Client／Service 与匿名内存 HTTP，运行 UI `metadata` 分区使用惰性保存委托，不冒称真实共享元数据写入证据。
 
+这两个端点要求管理员。Emby 的登录结果和令牌恢复都不写用户策略，连接快照里的 `IsAdministrator` 常态是「还没问到」的 null（只有 Jellyfin／飞牛在登录时读 `Policy`）；权限判断走 `ServerAccess.CanAdminister`，只有服务器明确答「不是管理员」才在本地拒绝，未知时放行、真没权限由服务器以 403 拒绝（2026-10-29 修：此前要求 `== true`，管理员也打不开这张表）。
+
 ## 图片
 
 | 方法 | 路径 | 用途 |

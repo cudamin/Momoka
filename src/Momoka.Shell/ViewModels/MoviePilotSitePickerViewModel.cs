@@ -38,6 +38,8 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         1 => Sites.First(site => site.Selected).Name,
         var count => $"已选 {count} 个站点"
     };
+    /// <summary>面板抬头右端那行读数；目录没读出来时收起，不显示「0 个站点」冒充读到了。</summary>
+    public string CatalogueText => _loaded ? $"{Sites.Count} 个站点" : "";
     public bool CanPick => !UseDefault && !Busy;
     public Visibility EmptyVisibility => Show(_loaded && Sites.Count == 0 && !Busy);
     internal bool HasSelection => UseDefault || (_service?.IsCurrentConnection(_connectionStamp) == true && Sites.Any(site => site.Selected));
@@ -134,22 +136,29 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     }
 
     partial void OnUseDefaultChanged(bool value) => Changed();
+    /// <summary>
+    /// 勾选变了。保存失败的那句提示要最后说 —— 消费者收到 <see cref="SelectionChanged"/> 后会写一句
+    /// 「站点已更改」的信息条，先报错就会被它盖掉，用户只看到一句「已更改」而不知道没存进去。
+    /// </summary>
     private void Changed()
     {
         if (_updating) return;
         _preferredIds.ExceptWith(Sites.Select(site => site.Id));
         _preferredIds.UnionWith(Sites.Where(site => site.Selected).Select(site => site.Id));
+        Exception? saveError = null;
         if (_service?.IsCurrentConnection(_connectionStamp) == true)
         {
             try { _service.SaveSearchSitePreference(_connectionStamp, _mediaType, UseDefault, _preferredIds); }
-            catch (Exception error) { Report("搜索站点已更改，但未能保存，下次启动可能恢复原选择", error); }
+            catch (Exception error) { saveError = error; }
         }
         AnnounceSelection();
         SelectionChanged?.Invoke();
+        if (saveError is not null) Report("搜索站点已更改，但未能保存，下次启动可能恢复原选择", saveError);
     }
     private void AnnounceSelection()
     {
         OnPropertyChanged(nameof(Summary));
+        OnPropertyChanged(nameof(CatalogueText));
         OnPropertyChanged(nameof(CanPick));
         OnPropertyChanged(nameof(EmptyVisibility));
     }

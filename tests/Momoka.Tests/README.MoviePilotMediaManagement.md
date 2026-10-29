@@ -11,7 +11,7 @@
 - 源／目标和记录编号在二次确认前展示；默认 Enter 关闭。确认后再次核对历史快照、权限、MP 连接、源账号与页面所有者；软链接依赖（包括本批次内引用）直接拒绝，不级联处理。
 - 四档仅以 `DELETE history/transfer?deletesrc=...&deletedest=...` 和 `{ id }` 提交。智能单条为无正文 `POST history/transfer/{id}/ai-redo`；剧集／多个文件为 `POST history/transfer/ai-redo`、`{ history_ids }`，不拼聊天提示词、不回退普通手动整理。
 - 本进程防重与手动整理共用历史／文件键。部分删除逐项保留并停止后续；响应不明、确认重复、换档或重开菜单不重发。批量中后续 401 不重放前面已执行 DELETE。任务进度键是接收证明，不是文件整理完成证明。
-- 右侧设置页同款白色 MP 图标 保留左侧动作图标、真实菜单 Text、框架命名视觉状态、加速键和子菜单箭头；混合 MoviePilot／AniBT 来源只标记 MP 子项。MP 订阅菜单也使用同一品牌样式。菜单与设置页共用 `EgMoviePilotMarkTemplate` 的三个路径和正文颜色角色，不再复制紫色 SVG。
+- 条目更多菜单保留左侧动作图标、真实菜单 Text、框架命名视觉状态、加速键和子菜单箭头，右侧不再画 MP 图标（2026-10-29 用户令）。MP 订阅菜单仍使用同一品牌样式。菜单与设置页共用 `EgMoviePilotMarkTemplate` 的三个路径和正文颜色角色，不再复制紫色 SVG。
 
 ## 命令
 
@@ -31,7 +31,7 @@ $exe = Join-Path (Get-Location) 'src/Momoka.Shell/bin/x64/Release/net10.0-window
 & $exe --probe-shell --probe-section moviepilot --screen 1
 ```
 
-新增 `MoviePilotMediaManagementAsync` 在 1280／760 宽度实际打开菜单、展开四项，检查 MP 图标在文字右侧并保存实屏；通过 WinUI UIA 调用同一真实确认／取消按钮，假 MP 记录调用次数、方法、正文和分项回执。普通电影取消不写；确认删除和剧集 batch ai-redo 只写匿名传输。验证界限：不证明真实 MP 权限、助手配置、文件处理最终完成、真实删除、服务器刷新或播放；也不声称读屏、高对比或所有服务器原生视图均已实测。
+新增 `MoviePilotMediaManagementAsync` 在 1280／760 宽度实际打开菜单、展开四项，检查条目菜单与四个子项都不再出现 MP 品牌标记并保存实屏；通过 WinUI UIA 调用同一真实确认／取消按钮，假 MP 记录调用次数、方法、正文和分项回执。普通电影取消不写；确认删除和剧集 batch ai-redo 只写匿名传输。验证界限：不证明真实 MP 权限、助手配置、文件处理最终完成、真实删除、服务器刷新或播放；也不声称读屏、高对比或所有服务器原生视图均已实测。
 
 人工／外部 UIA 检查台沿用 `--probe-shell inspect --screen 1`，点击 `InspectMoviePilotMediaManagement` 后，在匿名媒体管理台可打开电影、剧、媒体库菜单以及确认对话框。普通 `inspect` 与 `--probe-section` 仍互斥；没有新增或放宽命令行开关。
 
@@ -43,7 +43,7 @@ $exe = Join-Path (Get-Location) 'src/Momoka.Shell/bin/x64/Release/net10.0-window
 - 本轮实时官方前端仍为 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2`，后端 `87561a90d16e9bc087225c72bbfebe16865b3baa`；GitHub history接口、模型与mutation三个文件和已记录部署v3.2.1 tag逐字相同。前端TransferHistoryView／删除对话框／相关测试已重新读取；不依赖旧截图来证明当前主树验收。
 - 当轮没有重新读取真实部署版本、权限或助手配置，v3.2.1仅为前次记录；当前UI会在真实使用时安全读取能力。匿名本地验证不能证明真实文件删除／智能助手最终完成。
 
-- 主树实际菜单在1280／760窗口逐一检查全部五主题，保存 `mp-media-menu-<theme>-<width>.png`／`mp-media-submenu-<theme>-<width>.png`；删除确认窗另存五主题图。锚点置于顶部避免长菜单越出宿主，保持图标右侧、句柄和原确认／零写断言。
+- 主树实际菜单在1280／760窗口逐一检查全部五主题，保存 `mp-media-menu-<theme>-<width>.png`／`mp-media-submenu-<theme>-<width>.png`；删除确认窗另存五主题图。锚点置于顶部避免长菜单越出宿主，保持无品牌标记、句柄和原确认／零写断言。
 - 异步连接后订阅分区的Visible读数先过实际标题布局，再守原正高度／图标完整裁切检查；不把还没排版的0当产品失败，不改原失败阈值。首轮隐藏启动被实屏保护拒绝，保留原报告；后续用直接前台诊断启动，不改变像素保护。
 
 - 发布件首轮moviepilot25/26，仅旧订阅悬停固定80ms进度读数失败；原红报告单独保留。探针先证明外部焦点、结束物理watch残留并确认归一化初态，再在原UntilAsync截止内等真实Storyboard进度；缩放 `(1,1.045]`、离开0.001容差与更多隐藏阈值不变。不修改订阅海报产品动画或用户偏好。

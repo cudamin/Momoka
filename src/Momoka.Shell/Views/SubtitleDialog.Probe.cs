@@ -1,6 +1,7 @@
 using Momoka.Emby;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Windows.Foundation;
 
 namespace Momoka.Shell.Views;
 
@@ -192,6 +193,46 @@ public sealed partial class SubtitleDialog
     internal bool ProbeSearchLayoutFits() => XamlRoot is { } root && SubtitleBody.ActualWidth > 0
         && SubtitleBody.ActualWidth <= root.Size.Width - 48 && SubtitleScroll.ActualHeight <= root.Size.Height - 160
         && Math.Abs(SearchButton.ActualWidth - SubtitleBody.ActualWidth) < 2;
+
+    /// <summary>探针用：写入是否还在飞（等收尾用）。</summary>
+    internal bool ProbeBusy => _busy;
+
+    /// <summary>探针用：按右上角那颗 ✕（与用户点它是同一条 <see cref="OnClose"/>）。</summary>
+    internal void OnCloseForProbe() => OnClose(HeaderCloseButton, new RoutedEventArgs());
+
+    /// <summary>探针用：点一次「下载」，走真控件那条 <see cref="OnDownload"/>，委托由夹具决定。</summary>
+    internal void OnDownloadForProbe() => OnDownload(
+        new Button { DataContext = new SubtitleCandidate(new RemoteSubtitleInfo { Id = "probe", Name = "离线候选" }) },
+        new RoutedEventArgs());
+
+    /// <summary>
+    /// 探针用：2026-10-29 用户令那一条 —— 右下角的关闭没了、右上角那颗 ✕ 真的在右上角（与正文右沿对齐、
+    /// 在正文上方、落在弹窗表面里）。读的是排过版的真实控件，不是 XAML 字面量。
+    /// </summary>
+    internal (bool Ok, string Detail, bool CloseEnabled) ProbeHeader()
+    {
+        var close = HeaderCloseButton;
+        var commandSpace = DialogDismiss.TemplatePart(this, "CommandSpace");
+        if (DialogDismiss.Surface(this) is not { } surface || commandSpace is null)
+            return (false, "找不到弹窗模板部件（BackgroundElement / CommandSpace）", close.IsEnabled);
+        var closeBounds = Bounds(close);
+        var bodyBounds = Bounds(SubtitleBody);
+        var surfaceBounds = Bounds(surface);
+        // 一个按钮都不给的时候模板落到 NoneVisible，整条按钮区连同它 24 DIP 的上边距一起收起。
+        var noBottom = string.IsNullOrEmpty(CloseButtonText) && commandSpace.ActualHeight <= 0;
+        var visible = close.Visibility == Visibility.Visible && close.ActualWidth > 0;
+        var aligned = Math.Abs(closeBounds.Right - bodyBounds.Right) <= 2;
+        var above = closeBounds.Top < bodyBounds.Top;
+        var contained = closeBounds.Left >= surfaceBounds.Left && closeBounds.Right <= surfaceBounds.Right
+            && closeBounds.Top >= surfaceBounds.Top && closeBounds.Bottom <= surfaceBounds.Bottom;
+        return (noBottom && visible && aligned && above && contained,
+            $"右下角关闭={(noBottom ? "已收起" : "还在")}、✕ 可见={visible}、✕ 右沿与正文差 {closeBounds.Right - bodyBounds.Right:0.#} DIP、"
+                + $"✕ 顶 {closeBounds.Top:0.#} / 正文顶 {bodyBounds.Top:0.#}、在弹窗表面内={contained}",
+            close.IsEnabled);
+
+        Rect Bounds(FrameworkElement element) =>
+            element.TransformToVisual(this).TransformBounds(new Rect(0, 0, element.ActualWidth, element.ActualHeight));
+    }
 
     private static async Task SettledAsync(SubtitleDialog dialog)
     {

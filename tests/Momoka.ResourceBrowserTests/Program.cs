@@ -96,17 +96,19 @@ internal static class Program
         });
         foreach (var invalid in new[] { "other-source", "other-id", "other-type", "no-snapshot", "false-target", "non-exact" })
         {
-            Test("R-034 匹配否决无下载入口且原原因可见 " + invalid, () =>
+            Test("R-034 匹配否决不许从卡片下载且原原因可见 " + invalid, () =>
             {
                 using var fixture = new ResourceFixture(invalid: invalid);
                 var vm = fixture.Create(null);
                 ResourceFixture.Complete(vm.SearchAsync());
                 var row = vm.Resources.First();
                 Assert.NotNull(row.Resource.DownloadProblem);
-                Assert.Equal("Collapsed", Read(row, "DownloadVisibility")?.ToString());
+                Assert.False(row.CanDownload);
+                Assert.Equal("Collapsed", Read(row, "StatusVisibility")?.ToString());
                 Assert.Equal("Visible", Read(row, "DownloadProblemVisibility")?.ToString());
                 Assert.Equal(row.Resource.DownloadProblem, Read(row, "DownloadProblem") as string);
-                Assert.False(row.CanDownload);
+                Assert.Equal(row.Resource.DownloadProblem, row.CardHint, "不能下载时卡片说明必须说出原因");
+                Assert.Equal("资源：" + row.Title, row.CardAutomationName);
                 Assert.False(row.DownloadCommand.CanExecute(null));
                 var choose = 0;
                 vm.UseDownloadPicker((_, _) => { choose++; return Task.FromResult<MoviePilotDownloadOptions?>(new("fixture", "/fixture")); });
@@ -121,17 +123,19 @@ internal static class Program
         }
         foreach (var status in new[] { "missing", "empty", "exact" })
         {
-            Test("R-034 缺标志或空status的可信资源仍可下载 " + status, () =>
+            Test("R-034 缺标志或空status的可信资源仍可从卡片下载 " + status, () =>
             {
                 using var fixture = new ResourceFixture(status: status);
                 var vm = fixture.Create(null);
                 ResourceFixture.Complete(vm.SearchAsync());
                 var row = vm.Resources.First();
                 Assert.Null(row.Resource.DownloadProblem);
-                Assert.Equal("Visible", Read(row, "DownloadVisibility")?.ToString());
+                Assert.Equal("Collapsed", Read(row, "StatusVisibility")?.ToString());
                 Assert.Equal("Collapsed", Read(row, "DownloadProblemVisibility")?.ToString());
                 Assert.True(row.CanDownload);
                 Assert.True(row.DownloadCommand.CanExecute(null));
+                Assert.Equal("下载资源：" + row.Title, row.CardAutomationName);
+                Assert.Equal("点击卡片打开下载设置", row.CardHint);
                 Assert.True(MoviePilotMediaParser.DownloadBody(row.Resource).ContainsKey("media_in"));
                 Assert.Equal(0, fixture.Transport.Writes, "观察可用性不是真的下载");
             });
@@ -147,34 +151,69 @@ internal static class Program
                 var changed = new List<string>();
                 ((INotifyPropertyChanged)row).PropertyChanged += (_, e) => changed.Add(e.PropertyName ?? "");
                 row.State = state;
-                Assert.Equal(state == MoviePilotDownloadState.Idle ? "Collapsed" : "Visible", Read(row, "DownloadVisibility")?.ToString());
-                if (state != MoviePilotDownloadState.Idle) Assert.True(changed.Contains("DownloadVisibility"));
+                Assert.Equal(state == MoviePilotDownloadState.Idle ? "Collapsed" : "Visible", Read(row, "StatusVisibility")?.ToString());
+                if (state != MoviePilotDownloadState.Idle) Assert.True(changed.Contains("StatusVisibility"));
+                Assert.Equal(state == MoviePilotDownloadState.Done ? "Visible" : "Collapsed", Read(row, "SubmittedVisibility")?.ToString());
                 Assert.Equal("Visible", Read(row, "DownloadProblemVisibility")?.ToString());
                 Assert.Equal(state switch
                 {
                     MoviePilotDownloadState.Working => "添加中…",
                     MoviePilotDownloadState.Done => "已加入下载",
                     MoviePilotDownloadState.Uncertain => "请先核对",
-                    MoviePilotDownloadState.Failed => "下载未完成",
-                    _ => "身份待核对"
-                }, row.DownloadLabel, "身份拒绝原因不能覆盖已经存在的操作过程状态");
+                    MoviePilotDownloadState.Failed => "下载未完成 · 点击重试",
+                    _ => ""
+                }, row.StatusText, "身份拒绝原因不能覆盖已经存在的操作过程状态");
+                Assert.Equal(row.Resource.DownloadProblem, row.CardHint, "身份问题优先于过程状态出现在卡片说明里");
+                Assert.Equal("资源：" + row.Title, row.CardAutomationName);
                 Assert.False(row.DownloadCommand.CanExecute(null));
                 Assert.Equal(0, fixture.Transport.Writes);
             });
         }
-        Test("R-034 模板将下载显隐和独立拒绝原因接到真实row", () =>
+        Test("R-035 站点变化保留已显示结果且卡片仍能打开下载确认", () =>
+        {
+            using var fixture = new ResourceFixture();
+            var vm = fixture.Create(null);
+            ResourceFixture.Complete(vm.SearchAsync());
+            Assert.Equal(2, vm.Resources.Count);
+            var first = vm.Resources[0];
+            var chosen = new List<MoviePilotResource>();
+            vm.UseDownloadPicker((resource, _) => { chosen.Add(resource); return Task.FromResult<MoviePilotDownloadOptions?>(null); });
+
+            vm.SearchSites.UseDefault = false;
+            Assert.Equal(2, vm.Resources.Count);
+            Assert.True(vm.NoticeOpen && vm.NoticeTitle == "搜索站点已更改" && vm.NoticeMessage?.Contains("重搜") == true,
+                "改站点没有说明要重新搜索才生效");
+            ResourceFixture.Complete(first.DownloadCommand.ExecuteAsync(null));
+            Assert.Equal(1, chosen.Count);
+            Assert.True(ReferenceEquals(chosen[0], first.Resource));
+            Assert.Equal(0, fixture.Transport.Writes, "只打开确认不是下载");
+
+            vm.SearchSites.UseDefault = true;
+            ResourceFixture.Complete(vm.SearchAsync());
+            Assert.Equal(2, vm.Resources.Count);
+            Assert.False(vm.ShowEmptyNotice);
+            Assert.Equal(0, fixture.Transport.Writes);
+        });
+        Test("R-035 模板将卡片点击和状态接到真实row", () =>
         {
             var xml = XDocument.Load(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotResourceBrowser.xaml"));
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
-            var button = xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "DownloadResource");
-            Assert.Equal("{x:Bind DownloadVisibility, Mode=OneWay}", button.Attribute("Visibility")?.Value);
-            Assert.Equal("{x:Bind DownloadCommand}", button.Attribute("Command")?.Value);
+            var list = xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "ResourceList");
+            Assert.Equal("True", list.Attribute("IsItemInvokedEnabled")?.Value);
+            Assert.Equal("OnResourceInvoked", list.Attribute("ItemInvoked")?.Value);
+            Assert.True(xml.Descendants().All(node => node.Attribute(x + "Name")?.Value != "DownloadResource"),
+                "资源卡不该再画下载按钮");
             var reason = xml.Descendants().Single(node => node.Attribute("ToolTipService.ToolTip")?.Value == "{x:Bind DownloadProblem}");
             Assert.Equal("TextBlock", reason.Name.LocalName);
             Assert.Equal("身份待核对", reason.Attribute("Text")?.Value);
             Assert.Equal("{x:Bind DownloadProblemVisibility, Mode=OneWay}", reason.Attribute("Visibility")?.Value);
             Assert.Equal("{StaticResource EgCaptionStyle}", reason.Attribute("Style")?.Value);
+            var status = xml.Descendants().Single(node => node.Attribute("Text")?.Value == "{x:Bind StatusText, Mode=OneWay}");
+            Assert.Equal("{x:Bind StatusVisibility, Mode=OneWay}", status.Attribute("Visibility")?.Value);
             Assert.NotNull(xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "OpenTorrentPage"));
+            var card = xml.Descendants().First(node => node.Name.LocalName == "ItemContainer");
+            Assert.Equal("{x:Bind CardAutomationName, Mode=OneWay}", card.Attribute("AutomationProperties.Name")?.Value);
+            Assert.Equal("{x:Bind CardHint, Mode=OneWay}", card.Attribute("AutomationProperties.HelpText")?.Value);
         });
         AniBtResourceLayoutTests.Register(sourceRoot);
         return Run();

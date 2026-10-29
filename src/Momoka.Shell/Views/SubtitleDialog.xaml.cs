@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell.Views;
@@ -69,7 +70,11 @@ public sealed partial class SubtitleDialog : ContentDialog
     {
         InitializeComponent();
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
-        Title = $"搜索和修改字幕 — {item.Name}";
+        // 标题是这张表自己画的一行（右上角那颗 ✕ 就在它右边）：文字交给行里的 TextBlock，读屏名字另给一份，
+        // 因为 Title 这一格现在装的是界面元素而不是字符串。
+        var title = $"搜索和修改字幕 — {item.Name}";
+        DialogTitleText.Text = title;
+        AutomationProperties.SetName(this, title);
         _search = search;
         _download = download;
         _delete = delete;
@@ -141,6 +146,8 @@ public sealed partial class SubtitleDialog : ContentDialog
         Tracks.IsEnabled = !busy && !_tracksStale;
         ConfirmDeleteButton.IsEnabled = !busy && !_tracksStale;
         CancelDeleteButton.IsEnabled = !busy;
+        // 写入在飞时关不掉（Closing 也会拦），右上角那颗跟着一起暗，不让它看着能按却没反应。
+        HeaderCloseButton.IsEnabled = !_mutating;
         Busy.IsActive = busy;
         Busy.Visibility = busy ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -166,7 +173,16 @@ public sealed partial class SubtitleDialog : ContentDialog
         var width = Math.Max(1, Math.Min(660, root.Size.Width - 96));
         SubtitleBody.MinWidth = Math.Min(260, width);
         SubtitleBody.Width = width;
+        // 标题行和正文同宽：✕ 才落在右上角，而不是紧跟标题字（同 MoviePilotDownloadDialog 的 DownloadTitle）。
+        DialogTitleRow.Width = width;
         SubtitleScroll.MaxHeight = Math.Max(1, root.Size.Height - 220);
+    }
+
+    /// <summary>右上角那颗 ✕：与「关闭」同一条出口（<see cref="ContentDialog.Hide"/>），Closing 里的拦截照样有效。</summary>
+    private void OnClose(object sender, RoutedEventArgs e)
+    {
+        if (_mutating) return;
+        Hide();
     }
 
     private void OnSearchConditionsChanged(object sender, RoutedEventArgs args)

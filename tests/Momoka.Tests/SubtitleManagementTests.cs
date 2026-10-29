@@ -33,6 +33,41 @@ internal static class SubtitleManagementTests
             Assert.False(resources.Descendants("data").Any(data => ((string?)data.Attribute("name"))?.StartsWith("SubtitleDialog_Hash", StringComparison.Ordinal) == true));
         });
 
+        Test("字幕管理界面：关闭钮在标题行右上角，右下角不再有第二颗", () =>
+        {
+            var root = RepositoryRoot();
+            var file = Path.Combine(root, "src", "Momoka.Shell", "Views", "SubtitleDialog.xaml");
+            var text = File.ReadAllText(file);
+            var markup = XDocument.Parse(text);
+            XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+            XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+
+            // 右下角那颗是模板按 CloseButtonText 画出来的；这张表不能再给它，资源里那两条也随之退休。
+            Assert.True(markup.Root?.Attribute("CloseButtonText") is null, "弹窗还留着 CloseButtonText");
+            var resources = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Strings", "zh-Hans", "Resources.resw"));
+            Assert.False(resources.Descendants("data").Any(data =>
+                ((string?)data.Attribute("name"))?.StartsWith("SubtitleDialog_ContentDialog1", StringComparison.Ordinal) == true));
+
+            // 标题交给这张表自己搭：一行两列，左边是字，右边是 ✕。
+            var title = markup.Descendants(presentation + "ContentDialog.Title").Single();
+            var row = title.Elements().Single(element => element.Name.LocalName == "Grid");
+            Assert.Equal("DialogTitleRow", (string?)row.Attribute(xaml + "Name"));
+            var heading = row.Descendants(presentation + "TextBlock").Single();
+            Assert.Equal("DialogTitleText", (string?)heading.Attribute(xaml + "Name"));
+            var close = row.Descendants(presentation + "Button").Single();
+            Assert.Equal("HeaderCloseButton", (string?)close.Attribute(xaml + "Name"));
+            Assert.Equal("1", (string?)close.Attribute("Grid.Column"));
+            Assert.Equal("OnClose", (string?)close.Attribute("Click"));
+            Assert.Contains("关闭", (string?)close.Attribute("AutomationProperties.Name") ?? "");
+            Assert.Equal("\uE711", close.Descendants(presentation + "FontIcon").Single().Attribute("Glyph")?.Value);
+
+            // 行宽跟着正文走，✕ 才落在右上角而不是紧贴标题字；两处宽度在同一处一起写。
+            var code = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "SubtitleDialog.xaml.cs"));
+            Assert.Contains("SubtitleBody.Width = width;", code);
+            Assert.Contains("DialogTitleRow.Width = width;", code);
+            Assert.Contains("DialogTitleText.Text = title;", code);
+        });
+
         Test("字幕管理：搜索条件完整传递且仍绑定本次打开的服务器和媒体文件", () => Run(async () =>
         {
             using var fixture = new Fixture();

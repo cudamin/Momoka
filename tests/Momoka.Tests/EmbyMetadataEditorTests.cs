@@ -243,13 +243,24 @@ internal static class EmbyMetadataEditorTests
             Assert.True(Wait(fixture.Editor.SaveAsync(document, edit, default)));
             Assert.Equal("PG-13", document.Edit.CustomRating);
         });
-        foreach (var admin in new bool?[] { false, null })
-            Test($"Emby元数据服务：权限{admin?.ToString() ?? "未知"}不允许读取或写入", () =>
-            {
-                using var fixture = new Fixture(admin: admin);
-                Assert.Throws<UnauthorizedAccessException>(() => Wait(fixture.Editor.LoadAsync("item", default)));
-                Assert.Equal(0, fixture.Transport.Requests);
-            });
+        Test("Emby元数据服务：明确不是管理员时不允许读取或写入", () =>
+        {
+            using var fixture = new Fixture(admin: false);
+            Assert.Throws<UnauthorizedAccessException>(() => Wait(fixture.Editor.LoadAsync("item", default)));
+            Assert.Equal(0, fixture.Transport.Requests);
+        });
+        // Emby 的登录结果与令牌恢复都不写用户策略，连接快照里的管理员标记常态是 null。2026-10-29 的
+        // 「点编辑元数据就说没有权限」正是把它当成了「不是管理员」—— 管理员账号也打不开这张表。
+        Test("Emby元数据服务：权限未知（Emby 常态）照常读取和保存", () =>
+        {
+            using var fixture = new Fixture(admin: null);
+            var document = Wait(fixture.Editor.LoadAsync("item", default));
+            Assert.Equal(2, fixture.Transport.Requests);
+            var edit = document.Edit with { Basic = document.Edit.Basic with { Name = "未知权限也能改" } };
+            Assert.True(Wait(fixture.Editor.SaveAsync(document, edit, default)));
+            Assert.Equal(1, fixture.Transport.Writes);
+            Assert.Equal("未知权限也能改", fixture.Transport.Submitted!["Name"]!.GetValue<string>());
+        });
         Test("Emby元数据服务：打开后权限撤销不允许保存", () =>
         {
             using var fixture = new Fixture();

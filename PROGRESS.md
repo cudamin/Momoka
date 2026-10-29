@@ -1,3 +1,49 @@
+## 编辑元数据对管理员报「没有权限」（2026-10-29）
+
+- 用户报：「点击编辑元数据后回显示没有权限」。`app-20261029.log` 里 19:32:47 与 20:12:43 两次都是 `System.UnauthorizedAccessException: 只有 Emby 管理员可以编辑元数据`（栈顶 `EmbyMetadataEditor.CheckAccess`），同一份日志里 `/System/Info` 读回「服务器版本 4.10.1.0，管理员账号」——账号确实是管理员，判断本身错了。
+- 根因：`CheckAccess` 要求 `scope.IsAdministrator == true`，但 Emby 的连接快照里这一位常态是 null。登录（`EmbyServerGateway.AuthenticateAsync`）只给 Jellyfin 读 `result.User.Policy`；令牌恢复（`EmbySession.RestoreAttemptAsync`）只在 `IsProbedProduct` 时补读 `Users/Me`，而 Emby 不在 `IsProbedProduct` 里；`ServerCapabilities.ProbeAsync` 用 `/System/Info` 判出的管理员身份只存在它自己字段里，不回写连接。于是 null 被当成「不是管理员」，这张表对任何 Emby 账号都打不开 —— 而 `ServerAccess.CanAdminister` 的既有约定正是「Emby 不把还没问到当成没有权限」。
+- 改法：`CheckAccess` 改用 `ServerAccess.CanAdminister(kind, IsAdministrator)`：只有服务器明确答「不是管理员」才本地拒绝；未知时照常读取与保存，真没权限由服务器以 403 拒绝（`EmbyHttp` 已把 403 译成「当前账户没有访问该内容的权限」，不再被压成笼统的「没有访问权限」）。不新增请求，不改登录与恢复语义 —— Emby 的登录响应是否带 Policy 没有源码可核对，不据此下判断。
+- 测试：`EmbyMetadataEditorTests` 把原来「false 与 null 都拒绝」拆成两条 —— 明确 false 仍拒绝且零请求；**权限未知（Emby 常态）照常读取和保存**（2 次 GET、1 次 POST，提交的是改后的名字），这条就是本次回归。主测试 **3315/3315、0 失败 0 跳过**，`emby-metadata-fixture` **57/57**。
+- 顺带修完整构建：上一批 `7c90465` 给 `SubtitleDialog.xaml.cs` 加了 `using Microsoft.UI.Xaml.Automation`、标题行三个字段与 `Hide()`，而 `Momoka.SubtitleDialogTests` 直接编译这份生产文件却没有对应替身，HEAD 上整套 sln 构建 CS0234／CS0103 红（只构建 Shell 与主测试时看不见，正是记忆里那条坑）。补 `AutomationBoundaries.cs`、`DialogTitleRow`／`DialogTitleText`／`HeaderCloseButton` 三个字段与 `ContentDialog.Hide()`（与真实控件一样走 Closing，被拦下就留在原地），单独提交 `59690d2`；夹具 **36/36**，整套 Release 构建 **0 警告 0 错误**。
+- 闸门 3：`tools/publish.ps1 -NoArchive` 通过，**546 文件／284.8 MB**、14 GLSL／4 HOOK／批准 mpv 59 文件逐项校验，ProductVersion `0.2.0+4a996a3d783b3f5999bda07a18f94017b4d92747`；桌面 `Momoka.lnk` 未动，内嵌路径仍含 `publish\win-x64`。（第一次发布在提交前跑，版本戳落在夹具提交 `59690d2` 上，已清目录、按提交后的代码重发，那一份作废。）
+- 没做的：真实服务器上点开与保存（真实共享元数据写入需另行授权，留给用户复验）；本轮不是发版，未跑闸门 1 的空白检查与闸门 4 自检（改动是 Core 判定，运行检查以 Core 套件为准）；Emby 编辑器没有 UI 探针覆盖，这一点与从前相同。
+
+## 弹窗点外面关闭与字幕弹窗右上角关闭钮（2026-10-29）
+
+- 用户令两条（附截图）：①「在搜索字幕弹窗右上角新增关闭按钮，移除右下方的关闭」；②「项目中所有的弹窗和以后新增的弹窗，都要支持点击弹窗外部主窗口内时自动退出」。本批直接在 master 开发，只改弹窗外壳、字幕管理那一张表、样式表、探针、测试与文档。
+- 模板事实先读源码核对（WinUI `dxaml/xcp/dxaml/themes/generic.xaml` 的 `DefaultContentDialogStyle`）：`ContentDialog` 元素本身铺满整个窗口，模板根 `LayoutRoot` 画的才是遮罩，底色与圆角在居中的 `BackgroundElement` 上（两者都是 TemplateBinding），标题是 `ContentScrollViewer` 里一颗左对齐、按内容定宽的 `ContentControl`，`CloseButtonText` 为空时 `ButtonsVisibilityStates` 落到 `NoneVisible` 收起整条按钮区。
+- 点外面关闭：新增 `Views/DialogDismiss.cs`，一条附加属性 `ClosesOnOutsideClick`；判「外面」取模板里 `BackgroundElement` 的矩形（弹窗元素自己的边界是整个窗口，不能当表面），指针落在表面外就 `Hide()`，与关闭按钮同一条出口，所以表自己写在 `Closing` 里的拦截照样有效（字幕管理写入在飞时点外面关不掉）。行为挂在 `EgDialogSurfaceStyle` 上：隐式样式按类型精确匹配，每张表各接一行样式，从这条基础样式继承即自动带上；`MoviePilotDownloadDialog` 是全项目唯一没有样式行的一张（表面写在它头上），为它补了一行只带这一项的样式，本地四值原样保留。忘了接样式的新表由 `DialogChromeTests` 判红，不靠谁记得。
+- 字幕弹窗：`ContentDialog.Title` 改成这张表自己搭的一行（文字 + 右上角 ✕），`FitLayout` 把正文宽度同时写给这一行，✕ 才落在右上角而不是紧贴标题；去掉 `CloseButtonText` 与 resw 里 `SubtitleDialog_ContentDialog1` 两条（右下角那颗随之收起）；写入在飞时 ✕ 跟着变灰。`Title` 从此装的是界面元素，自检 `ReadDialogs` 的备注改成「不是字符串就记标签」，不再把元素读成文字。
+- 测试：主测试 **3315/3315、0 失败 0 跳过**（新增「弹窗表面：每张表都接上『点外面关闭』，新增的也不例外」按源码派生类清单逐个查样式链，和「字幕管理界面：关闭钮在标题行右上角，右下角不再有第二颗」）。未整份接受新快照，`Agreements.txt` 未改（新句柄只增不减，基线仍全绿）。
+- 探针：开发件 `--probe-shell --probe-section metadata --screen 1` **5/5、退出 0**（`shell-probe-20261029-125021895-20648`），新增用例「弹窗点外面关闭与字幕弹窗右上角关闭钮」在真模板真弹窗上量表面矩形、判里面/外面、按外面关表、写入在飞时关不掉，并留 `dialog-dismiss-subtitle-screen.png`；已查看该帧与五主题 `library-dialog-SubtitleDialog-*`。**「外面」那个点还额外钉了两条可达性**：它必须落在弹窗元素自己的范围内、且落在模板根那颗画遮罩的 `LayoutRoot` 上（指针事件从遮罩冒泡到弹窗元素，这两条不成立真实按下就到不了处理它的地方）。发布件 `--probe-subtitles --screen 1` **18/18、退出 0**（`subtitle-probe-20261029-124034680-3176`），1160／680 两档六张布局检查全过，已看 `subtitle-search-results-680-screen.png` 的右上角 ✕ 与长标题换行。
+- **没有注入真实指针**：探针调的是指针处理里同一个 `TryDismiss`（几何判定与 `Hide` 都在里面），按下事件那一层的接线由源码契约盯着；真实鼠标按下那一下仍属未覆盖，不拿合成鼠标事件冒充。`MoviePilotDownloadDialog` 本轮没有重拍截图（表面值一个没动，只多了一行只带附加属性的样式）。
+- 闸门 4：`tools/selfcheck-diff.ps1` 对发布件 **绿｜186 项、失败 0、消失 0、降级 0、新增 0**（`artifacts/selfcheck/run-636eacd7517c4e619c44174240cdc97d`，登录状态「已登录 donxuelian @ 果服」，不是降级跑法）。
+- 闸门 3：`tools/publish.ps1 -NoArchive` 通过，546 文件／284.8 MB、14 GLSL／4 HOOK／批准 mpv 59 文件逐项校验（`-Shortcut` 那一步仍被桌面 `Momoka.lnk` 的拒绝写入挡住，本批已按既有绕法改名→重建→删备份把快捷方式重做一次并读回 `artifacts\publish\win-x64\Momoka.exe`，第二次发布目标不变故未再动它）。
+- 已知背景红项：`dotnet format whitespace ./Momoka.sln --verify-no-changes` 在当前 HEAD 上仍有 171 行既有空白问题（`ShellNavigationProbe.Accessibility`、`FocusWatchTests`、`ResourceSortMenuTests` 等），本批改动文件一行未命中，未修改这些无关文件、未放宽基线。本批不是发版，未跑完整构建与分析器哈希检查。
+- 未推送 origin、未改版本、无真实媒体写入或播放。产品提交 `7c90465`。
+
+## 项目规则新增「参考与复刻先读源码」（2026-10-29）
+
+- 用户令：更新项目规则，参考或复刻时一定要先查源码，不自己猜。
+- 规则：`CLAUDE.md` 顶部两条硬性要求扩为三条（Git 提交、测试与验证、参考复刻先读源码），新增「参考与复刻先读源码」一节——读可执行实现而不是二手描述，说到文件与条件，复刻界面同样读上游组件源码，验收看同样输入得到同样行为，引用记版本或提交，拿不到源码就标未核对，源码是依据但不是运行证据。
+- 同步：`docs/开发与验证.md` 总述加规则链接，`momoka-verification` 的取证清单加一条源码判据，`momoka-moviepilot` 的上游核对段标明它是该规则在本项目上的具体做法。未新增命令、脚本或探针，故无脚本帮助与运行提示改动。
+- 验证：纯文档改动，按改动类型表只核内容、链接与差异一致性；未构建、未跑探针、未发布。
+
+## MP 资源卡片点击下载、站点入口去底色与站点面板（2026-10-29）
+
+- 用户令三条：①「MP 资源页面去掉下载按钮，参考网页端源码改为点击卡片触发下载选择栏」；②去掉搜索栏「默认站点」的底色胶囊并美化站点多选面板；③「取消勾选使用 MoviePilot 默认站点时不要自动清空搜索内容」。本批直接在 master 开发，只改 MoviePilot 资源卡片、站点选择器、相关视图模型、探针、测试与文档。
+- 上游核对：官方前端 `jxxghp/MoviePilot-Frontend` 默认分支 v3，HEAD `3d8f54656f6f94a0f6fee83767076f9ccc92b931`（本轮 `git ls-remote --symref` 实读）。`src/components/cards/TorrentCard.vue` 的整卡 `@click` 打开 `AddDownloadDialog`、卡上无下载键，详情是 `@click.stop` 的方钮，已下载卡片加边框；`src/pages/resource.vue` 的站点筛选只筛已取回结果、不重发搜索。本地据此把下载入口搬到卡片，并让站点改动保留已显示结果。后端 `download/` 与 `search/media`、`search/title` 契约本批未改，也没有读取真实服务器版本或发起真实下载。
+- 卡片交互：`MoviePilotResourceRow` 以 `CardAutomationName`/`CardHint` 说明「点卡片打开下载设置」，底栏改为「体积 + 过程状态 + 身份待核对 + 详情方钮」，`State=Done` 时整圈强调色；`ItemsView` 打开 `IsItemInvokedEnabled` 并接 `ItemInvoked`，`MoviePilotResourceBrowser.OpenDownload` 是事件与探针共用的一支。身份待核对、已加入、结果不明时命令不可执行，点卡片无副作用并保留原因。
+- 站点选择器：`ChooseSites` 改为透明无边框（搜索框内只剩文字与箭头，悬停/按下仍由原生状态反馈）；弹出面板重排为「抬头 + 站点数、默认站点卡、目录列表、底栏全选/清空/刷新」，保留全部原句柄与 `Tag` 供探针。
+- 站点改动保留结果：`MoviePilotResourceViewModel`／`MoviePilotVersionsViewModel` 的 `OnSearchSitesChanged` 只作废在飞搜索，不清 `Browser`／字幕；有结果时用信息条说明「当前结果仍是上次搜索的，下一次搜索才按新站点重搜」。下载确认改用页面活跃期令牌（`BeginAction`），改站点不再让眼前卡片点不动；页面收起仍取消在飞对话框与请求，下次操作再开一段。目录读取/保存失败那句提示改为最后写入，避免被「站点已更改」信息条盖掉。
+- 测试：主测试 3313/3313、资源夹具 97/97（新增 R-035「站点变化保留结果且卡片仍能打开下载确认」「模板将卡片点击和状态接到真实 row」，站点偏好两条：更改站点不清空关键词结果、离页后重新进入仍可下载留下的卡片），0 失败 0 跳过。`Agreements.txt` 只删掉已退役的 `handle Views/MoviePilotResourceBrowser.xaml DownloadResource`（按钮整体移除，卡片点击替代该入口，`ResourceList` 句柄仍在），未整份接受新快照。
+- 探针：开发件 `--probe-shell --probe-section moviepilot,search --screen 1` 40/40、退出 0（`shell-probe-20261029-105307607-13376`）；补真实屏幕帧与「已加入下载」卡片后 moviepilot 26/26、退出 0（`shell-probe-20261029-110344490-7864`）。已查看：搜索框内无底色的站点入口、站点面板实屏、1040/720 卡片去下载键与状态底栏、120/760/360 资源布局与排序菜单。未执行区域按 scope 回执保留，非全量 Shell 自检。
+- 已知背景红项：`dotnet format whitespace ./Momoka.sln --verify-no-changes` 在当前 HEAD 上已有 17 个文件的空白问题（Core 的 `EmbyMetadataEdit`／`MoviePilotTransferCollect`、Shell 的 `ShellNavigationProbe.Accessibility` 等），本批改动文件均不在其中，未修改这些无关文件、未放宽基线。本批不是发版，未跑闸门 1/4。
+- 产品提交 `94ccdc2`；主树 `tools/publish.ps1 -NoArchive -Shortcut` 通过：546 文件／284.8 MB、14 GLSL／4 HOOK／批准 mpv 载荷 59 文件逐项校验，ProductVersion `0.2.0+94ccdc23c9e8ab5693b94c678f94934c41600bf8`，桌面 `Momoka.lnk` 的 Target／WorkingDirectory 读回为 `artifacts/publish/win-x64`。
+- 发布件首次 `--probe-shell --probe-section moviepilot,search --screen 1` 39/40：本批四区用例全过，红项是「全站输入框五主题中性焦点与窄窗」在 `oled-black/text` 判到非中性描边（`shell-probe-20261029-111526433-32268`）。该用例自建裸 TextBox／ComboBox，不读本批任何资源卡、站点选择器或资源视图模型；同二进制立即重跑 **40/40、退出 0**（`shell-probe-20261029-111837265-8156`），发布件真实屏幕帧 `search-sites-picker-screen.png`、`mp-resources-screen-1040.png`、`search-compact-resources-1040-screen.png` 已查看。两次报告都保留，不把重跑当作该红项从未发生，也不判定为本批回归。
+- 未推送 origin、未改版本、无真实媒体下载／播放／整理或账号写入；未执行区域按 scope 回执保留（92 项），不是全量 Shell 自检。
+- 临时分支已收尾：`qoder/mp资源搜索临时`（顶端 `d21eaf2`）以 fast-forward 合入 master，临时分支删除，本地开发线只剩 master（其他 `codex/*` 树属于并行聊天，未触碰）。master 上重编译 Shell／Tests／资源夹具 0 警告 0 错误，主测试 3313/3313、资源 97/97、0 失败 0 跳过；由 master 重新发布（546 文件／284.8 MB、载荷校验通过），ProductVersion `0.2.0+d21eaf2bdf0060df1c57191fc37dd602c08a9463`，快捷方式读回同上。发布件 `--probe-shell --probe-section moviepilot,search --screen 1` **40/40、退出 0**（`shell-probe-20261029-112835490-29480`）。未执行区域仍为 92 项，非全量 Shell 自检。
+
 ## 旧工作树最终结果（2026-10-29，主树交付完成，清理有三个限制）
 
 - 有用的MP媒体管理37份产品差异全部进入master，合并链 `20f719b`／`e3473f1`，表面与全主题／布局验证修正 `0dbe237`、订阅动画探针前置修正 `a72b5e23d195d8ac7428643d9ef905701d032503`。最终主树Core3313/3313、媒体管理35/35及相关八组专项全部通过；开发件moviepilot/settings49/49、订阅探针修后moviepilot26/26均通过。未执行区域明确保留，不冒充全量Shell或四道闸门发版。
@@ -9065,3 +9111,17 @@ native追加验证：批准libmpv SHA256逐字匹配后，实际当前Core DLL�
 - 已完成的父树验证：主测试3313/3313（失败0/跳过0，仅当时父树、不含子草稿）；native/EOF37、shader/线程44、caller54全部通过，提取器10拒绝反例通过，正式native无媒体空闲上下文12轮通过。完整方案曾因固定SHA漂移失败并留证，定点复核后相关专项通过，但本轮不声称最终整合方案/WinUI/播放闸门全过。
 - 暂停时 master 为 `8d62cb173134d95faa1486184788f1c545263f47`，有其它会话10份未提交界面/主题源码；仅记录状态，不吸收或覆盖。未刷新主树发布目录、桌面快捷方式，未上传origin，桌面交付不含本轮性能修复。
 - 恢复先完整重读 `C:\Users\89400\Momoka\CLAUDE.md`（主树规则已在别的会话更新），重查Git/进程/草稿哈希，接手原树补测并review后提交；逐项集成source pins、新测试清单与Lua批准项，再安全整合master并按最终代码重验交付。原拟新增 `ShellNavigationProbe.Performance.cs` 尚未创建，不得声称已做真实Frame/对话框/性能UI检查。
+
+### 2026-10-29 条目更多菜单移除 MoviePilot 图标
+
+- 用户令（附菜单截图）：移除条目「更多」菜单里的 MP 图标。范围按截图为条目更多菜单；MoviePilot 订阅菜单与设置页的白色 MP 标志保留，未改。
+- 改动：`ItemCommands` 不再给 `MenuFlyoutItem`／`MenuFlyoutSubMenu` 套 MP 品牌模板；删除只服务于条目菜单、已无消费者的 `EgMoviePilotMenuSubItemStyle`；`ItemMenuEntry` 去掉纯品牌用途的 `MoviePilot` 标记，`MoviePilotMenuBrand` 收窄为只接受订阅菜单项。产品提交 `2b92a8c`。
+- 验证：Release 全方案编译 0 警告／0 错误；完整 Core 3315/3315、0 失败／0 跳过；直接编译 `ItemCommands` 的夹具 ItemUserStateOrder 73/73、AniBtEntry 40/40、PlexAffordance 67/67、AniBtSourceContract 39/39 全过。开发件 `--probe-section moviepilot` 26/26（`C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261029-145739513-10900`），菜单与四子项运行断言确认无 `MoviePilotBrandMark`；已逐张查看 1280／760 菜单与子菜单实屏，`手动整理…／媒体管理／智能整理` 右侧不再有 MP 图标。
+- 发布：`tools/publish.ps1 -NoArchive` 刷新 `C:\Users\89400\Momoka\artifacts\publish\win-x64`，546 文件／284.8 MB，发布校验通过；桌面 `Momoka.lnk` 目标与工作目录读回均指向该目录。
+- 发布件探针未完成：启动后进程在约第 8 项前退出，终端留下 UI 线程异常栈，报告 `shell-probe-20261029-150324571-9852` 的 8 项均非通过。用户随即明确「直接交付别跑探针」，按指示未重跑；本轮发布件证据是同一源码的 Release 构建与发布校验，不声称发布件在同一探针下完整通过。
+- 未覆盖：真实 Emby 菜单、真实 MP 订阅菜单视觉、真实播放；未推 origin、未改版本。此前的条目更多菜单 MP 图标要求（2026-10-28）以本节用户令为准作废。
+
+
+## 2026-10-30 性能与资源修复：恢复
+
+用户明确“继续”，撤销上节暂停。恢复六个原子代理和原独立树，不重建/覆盖已保存草稿；先重读主树已更新的CLAUDE与Git/进程状态。父树合入master已提交至8d62cb1的规则/弹窗/资源卡与权限等改动，PROGRESS仅并列保留双方历史；master大量未提交主题/对话框改动与主树进程仍由其他会话/用户持有，不吸收、不覆盖、不擅关。父写实际离线WinUI性能检查和集成/反证，六代理仅各自领域定向测试。未验证草稿仍不算完成；最终主树整合、全批次重验与实际交付仍待。

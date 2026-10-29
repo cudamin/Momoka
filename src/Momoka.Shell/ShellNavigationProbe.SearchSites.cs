@@ -34,13 +34,28 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => view.ViewModel.SearchSites.Sites.Count == 3);
             var flyout = Get<Flyout>(picker, "SitesFlyout");
             await LayoutAsync((FrameworkElement)flyout.Content);
+            // 取消勾选默认站点、改站点都不清空已经铺出来的资源（2026-10-29 用户令）；下一次搜索才换掉它们。
+            view.ViewModel.Browser.SetResults([new MoviePilotResourceRow(new MoviePilotResource
+            {
+                Title = "站点切换前的资源", SiteName = "站点甲", Size = 2147483648,
+                TorrentInfo = System.Text.Json.JsonSerializer.SerializeToElement(new { title = "fixture" })
+            }, _ => Task.CompletedTask, _ => { })]);
+            view.ViewModel.ShowEmptyNotice = false;
             Get<CheckBox>(picker, "UseDefaultSites").IsChecked = false;
+            Require(view.ViewModel.Versions.Count == 1, "取消勾选默认站点清空了已有结果");
+            Require(view.ViewModel.NoticeOpen && view.ViewModel.NoticeMessage?.Contains("重搜", StringComparison.Ordinal) == true,
+                "取消勾选默认站点后没有说明要重新搜索才生效");
             var rows = Descendants(flyout.Content).OfType<CheckBox>().Where(box => box.Tag is MoviePilotSearchSiteRow).ToArray();
             Require(rows.Length == 3, "站点勾选控件未加载或包含已停用站点");
             rows[0].IsChecked = true;
+            Require(view.ViewModel.Versions.Count == 1, "勾选站点清空了已有结果");
             rows[1].IsChecked = true;
             await UntilAsync(() => view.ViewModel.SearchSites.Selection?.Ids.Count == 2);
+            Require(view.ViewModel.Versions.Count == 1, "多选站点清空了已有结果");
             Require(dropdown.Content is TextBlock { Text: "已选 2 个站点" }, "站点选择未显示在下拉按钮上");
+            await LayoutAsync((FrameworkElement)flyout.Content);
+            // RenderTargetBitmap 抓弹层拿不到主题与文字（见上一轮那张空白的返帧），面板外观另存真实屏幕帧。
+            await SaveProbeScreenAsync("search-sites-picker-screen.png");
             await SaveReturnFrameAsync((FrameworkElement)flyout.Content, "search-sites-picker.png");
             flyout.Hide();
             await view.SearchAsync("测试资源");

@@ -113,7 +113,7 @@ public enum ItemCommand
 /// <summary>
 /// 菜单上的一行：一条命令加它这一次该写的字，或者一条分隔线（<see cref="Command"/> 为空）。
 /// </summary>
-public readonly record struct ItemMenuEntry(ItemCommand? Command, string Label, IReadOnlyList<ItemMenuEntry>? Children = null, bool MoviePilot = false)
+public readonly record struct ItemMenuEntry(ItemCommand? Command, string Label, IReadOnlyList<ItemMenuEntry>? Children = null)
 {
     /// <summary>一条分隔线。</summary>
     public static ItemMenuEntry Rule { get; } = new(null, "");
@@ -316,26 +316,23 @@ public static class ItemMenu
         if (!enabled || !MoviePilotVersionQuery.Supports(item)) return [];
         List<ItemMenuEntry> rows =
         [
-            new(ItemCommand.MoviePilotVersions, "搜索其他版本", MoviePilot: true)
+            new(ItemCommand.MoviePilotVersions, "搜索其他版本")
         ];
-        if (manualReorganize) rows.Add(new(ItemCommand.MoviePilotReorganize, "手动整理…", MoviePilot: true));
+        if (manualReorganize) rows.Add(new(ItemCommand.MoviePilotReorganize, "手动整理…"));
         if (canManage)
             rows.Add(new(ItemCommand.MoviePilotMediaManagement, "媒体管理",
             [
-                new(ItemCommand.MoviePilotDeleteRecord, "仅删除记录", MoviePilot: true),
-                new(ItemCommand.MoviePilotDeleteSource, "删记录和源文件", MoviePilot: true),
-                new(ItemCommand.MoviePilotDeleteDestination, "删记录和库文件", MoviePilot: true),
-                new(ItemCommand.MoviePilotDeleteAll, "删除记录及两端", MoviePilot: true)
-            ], MoviePilot: true));
+                new(ItemCommand.MoviePilotDeleteRecord, "仅删除记录"),
+                new(ItemCommand.MoviePilotDeleteSource, "删记录和源文件"),
+                new(ItemCommand.MoviePilotDeleteDestination, "删记录和库文件"),
+                new(ItemCommand.MoviePilotDeleteAll, "删除记录及两端")
+            ]));
         if (canManage && canSmartReorganize)
             rows.Add(new(ItemCommand.MoviePilotSmartReorganize,
-                item.Type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理", MoviePilot: true));
+                item.Type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理"));
         if (AniBt.AniBtEligibility.Supports(item) && (animeGenre || AniBt.AniBtEligibility.HasGenre(item)))
-        {
-            // 混合来源父项不是 MP 专属；只给其中 MoviePilot 子项品牌标记。
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
-                [new(ItemCommand.MoviePilotVersions, "MoviePilot", MoviePilot: true), new(ItemCommand.AniBtVersions, "AniBT")]);
-        }
+                [new(ItemCommand.MoviePilotVersions, "MoviePilot"), new(ItemCommand.AniBtVersions, "AniBT")]);
         if (canScrape && AniBt.AniBtEligibility.CanIdentify(item, animeGenre))
             rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         return rows;

@@ -23,6 +23,23 @@ public sealed partial class MoviePilotResourceBrowser : UserControl
     private static Visibility AscendingIconVisibility(bool descending) => descending ? Visibility.Collapsed : Visibility.Visible;
     private static Visibility DescendingIconVisibility(bool descending) => descending ? Visibility.Visible : Visibility.Collapsed;
 
+    /// <summary>
+    /// 点卡片（指针单击或键盘回车）：打开下载选择栏。卡片上的详情方钮自己处理指针，不会走到这里。
+    /// 身份待核对、已加入下载或结果不明的行按钮不可执行，这一次点按什么也不做 —— 卡片说明里已经写清原因。
+    /// </summary>
+    private void OnResourceInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)
+    {
+        if (args.InvokedItem is MoviePilotResourceRow row) OpenDownload(row);
+    }
+
+    /// <summary>卡片的下载入口；探针绕开真实指针时也走这一支。</summary>
+    internal bool OpenDownload(MoviePilotResourceRow row)
+    {
+        if (!row.DownloadCommand.CanExecute(null)) return false;
+        row.DownloadCommand.Execute(null);
+        return true;
+    }
+
     private void OnSortMenuOpening(object sender, object e)
     {
         // 原生单选在模板初始化/组名落地时会重算；每次打开从当前 VM 读回，不与编译绑定抢选中状态。

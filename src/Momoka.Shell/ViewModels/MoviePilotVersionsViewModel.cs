@@ -17,6 +17,19 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
     private string _lastKeyword = "";
     private int? _lastAutoEpisode;
     private CancellationToken _query;
+
+    /// <summary>
+    /// 这一页的这次活跃期，不是某一次搜索：改站点会作废在飞的搜索，但留下的卡片仍可打开下载确认。
+    /// 窗口收起时取消，下一次操作再开一段新的。
+    /// </summary>
+    private CancellationTokenSource _life = new();
+
+    private CancellationToken BeginAction()
+    {
+        if (_life.IsCancellationRequested) { _life.Dispose(); _life = new(); }
+        return _life.Token;
+    }
+
     private Func<MoviePilotResource, CancellationToken, Task<MoviePilotDownloadOptions?>>? _chooseDownload;
 
     internal void UseDownloadPicker(Func<MoviePilotResource, CancellationToken, Task<MoviePilotDownloadOptions?>> choose) => _chooseDownload = choose;
@@ -35,6 +48,7 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
 
     internal void Attach(MoviePilotService service, ISystemLauncher launcher)
     {
+        _ = BeginAction();
         _service = service;
         _launcher = launcher;
         SearchSites.Attach(service);
@@ -92,19 +106,34 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
         finally { EndLoad(token); }
     }
 
+    /// <summary>
+    /// 站点范围只影响下一次搜索（2026-10-29 用户令：取消勾选默认站点时不许把眼前的结果清空）。
+    /// 在飞的旧搜索仍然作废 —— 它的站点范围已经变了；已经铺出来的卡片留在原地，下一次搜索才换掉它们。
+    /// </summary>
     private void OnSearchSitesChanged()
     {
         base.Cancel();
         IsReady = true;
-        Browser.SetResults([]);
+        if (Browser.HasResults)
+        {
+            Notify("搜索站点已更改", "当前结果仍是刚才那次搜索的；按回车或点搜索图标后才会按新站点重搜。", InfoBarSeverity.Informational);
+            return;
+        }
         EmptyNotice = SearchSites.HasSelection ? "搜索站点已更改，按回车或点击搜索图标重新搜索" : "请至少选择一个站点，或使用 MoviePilot 默认站点";
         ShowEmptyNotice = true;
     }
 
     public override void Cancel()
     {
+        if (!_life.IsCancellationRequested) _life.Cancel();
         SearchSites.Cancel();
         base.Cancel();
+    }
+
+    public override void Dispose()
+    {
+        _life.Dispose();
+        base.Dispose();
     }
 
     private void OpenDetails(MoviePilotResourceRow row)
@@ -116,22 +145,22 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
 
     private async Task DownloadAsync(MoviePilotResourceRow row)
     {
-        if (_service is null || !row.CanDownload || !IsCurrent(_query)) return;
-        var token = _query;
+        if (_service is null || !row.CanDownload || !Browser.Rows.Contains(row)) return;
+        var token = BeginAction();
         if (_chooseDownload is null) return;
         var options = await _chooseDownload(row.Resource, token).ConfigureAwait(true);
-        if (options is null || !IsCurrent(token)) return;
+        if (options is null || token.IsCancellationRequested) return;
         row.State = MoviePilotDownloadState.Working;
         try
         {
             await _service.DownloadAsync(row.Resource, token, options).ConfigureAwait(true);
-            if (!IsCurrent(token)) return;
+            if (token.IsCancellationRequested) return;
             row.State = MoviePilotDownloadState.Done;
             Notify(null, $"已加入下载：{row.Title}", InfoBarSeverity.Success);
         }
         catch (Exception error)
         {
-            if (!IsCurrent(token)) return;
+            if (token.IsCancellationRequested) return;
             row.State = error is MoviePilotOperationUncertainException or MoviePilotOperationBlockedException
                 ? MoviePilotDownloadState.Uncertain : MoviePilotDownloadState.Failed;
             Report($"加入下载未完成：{row.Title}", error);

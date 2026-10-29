@@ -66,12 +66,12 @@ internal sealed partial class ShellNavigationProbe
                     menu.ShowAt(anchor);
                     await LayoutAsync(anchor);
                     foreach (var row in menu.Items.Where(row => row.Tag is ItemCommand cmd && ItemMenu.IsMoviePilot(cmd)))
-                        AssertRightBrand((FrameworkElement)row);
+                        AssertNoBrand((FrameworkElement)row);
                     await Task.Delay(350);
                     await SaveProbeScreenAsync($"mp-media-menu-{theme.Id}-{width}.png");
                     ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(management).GetPattern(PatternInterface.ExpandCollapse)).Expand();
                     await LayoutAsync(anchor);
-                    foreach (var row in management.Items) AssertRightBrand((FrameworkElement)row);
+                    foreach (var row in management.Items) AssertNoBrand((FrameworkElement)row);
                     Require(management.Items.OfType<MenuFlyoutItem>().Select(row => row.Text).SequenceEqual(new[]
                     { "仅删除记录", "删记录和源文件", "删记录和库文件", "删除记录及两端" }), "删除范围文案不一致");
                     await Task.Delay(350);
@@ -158,16 +158,11 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(shell);
         }
 
-        void AssertRightBrand(FrameworkElement item)
+        void AssertNoBrand(FrameworkElement item)
         {
             if (item is Control control) control.ApplyTemplate();
-            var brand = Descendants(item).OfType<Viewbox>().Single(mark => mark.Name == "MoviePilotBrandMark");
-            var text = Descendants(item).OfType<TextBlock>().Single(block => block.Name == "TextBlock");
-            Require(brand.ActualWidth > 0 && brand.ActualHeight > 0 && Descendants(brand).OfType<Microsoft.UI.Xaml.Shapes.Path>().Count() == 3,
-                "设置页同款 MP 图标未实际呈现");
-            var logoPoint = brand.TransformToVisual(item).TransformPoint(new Windows.Foundation.Point(0, 0));
-            var textPoint = text.TransformToVisual(item).TransformPoint(new Windows.Foundation.Point(0, 0));
-            Require(logoPoint.X >= textPoint.X + text.ActualWidth - 1, "MP 图标不在文字右侧");
+            Require(!Descendants(item).OfType<Viewbox>().Any(mark => mark.Name == "MoviePilotBrandMark"),
+                "条目菜单仍套用 MP 品牌模板");
             Require(AutomationProperties.GetAutomationId(item).Length > 0, "菜单控件没有自动化句柄");
         }
 
