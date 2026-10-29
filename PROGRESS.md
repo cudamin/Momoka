@@ -1,3 +1,13 @@
+## 待合并分支合入主树并交付（2026-10-29）
+
+- 本轮把 5 个真正待整合的临时分支合入 master：剧资源搜索 `codex/mp-batch-resource-search`、AniBT 非动漫菜单 `codex/anibt-non-anime-series-menu`、手动整理窗口 `codex/mp-manual-organize-dialog`、输入框中性焦点 `codex/neutral-input-focus`、输入框侧栏底色 `codex/neutral-input-surfaces`。在隔离树逐个合并后再快进主树；合并提交 `f2410c2`、`472879e`、`7ebaefb`（清理冲突标记残留）、`31d7924`、`3444a1f`、`8f123f9`，最终 HEAD `3219cba`。
+- `codex/mp-resource-sort-pill` 与 `codex/neutral-search-card-feedback` 未合并：两者的产品内容早已随 `f529f8b`／`657db6c` 等整合进入 master，分支上只剩旧版探针和测试，直接合并会回退主树；按用户当轮修正保持原样，未删除分支或工作树。
+- 主树原有 11 份未提交改动逐份保留：8 份哈希前后一致，`docs/开发与验证.md`、`ShellNavigationProbe.cs`、`ResourceBrowserTests/Program.cs` 三份与合并内容交叠，逐段人工核对后两份意图都在。快照与哈希在 ignored `work/merge-pending-20261029/dirty-backup/`。
+- 合并需要两处产品适配：AniBT 识别整剧时显式要求展开剧下文件（`57022ef`，主树整剧手动整理只收身份）；输入角色表统一到 `InputControlTheme.Brushes`，中性底色与边线语义不变。探针补上手动整理新增的 `system/global/user` 默认来源读取，未确认时的提交守卫改读“重新整理”按钮（`3219cba`）。
+- 主树 Release 完整方案编译 **0 警告 0 错误**；主测试 **3244/3244**、资源 **90/90**、页面 **98/98**、AniBT 入口 **38/38**、整理提交 **41/41**、设置页状态 **30/30**、设置适用性 **31/31**、设置搜索 **14/14**、输入角色 **8/8**、输入焦点 **17/17**，失败 0、跳过 0。
+- 开发件探针：moviepilot **25/25**（`shell-probe-20261029-021622099-26644`）、library+playback **26/26**（`...-022818437-30644`）、search **14/14**（`...-023110043-12712`）。合并运行 `...-021829731-32472` 的 library 宽度与 search 输入遮挡两项首轮红项属窗口前置，原报告保留，单独重跑全过；实屏抽查批量整理预览、手动整理宽窄/五主题、非动漫 AniBT 菜单、输入中性焦点与主页封面播放键。
+- 已发布到实际交付目录 `artifacts/publish/win-x64`：546 文件／284.7 MB、14 GLSL／4 HOOK／批准 mpv 59 文件校验通过；ProductVersion `0.2.0+3219cbaf2d2bd3e9c3442328b992101988e51a66`，桌面快捷方式目标与工作目录已读回。发布件再跑 moviepilot,search,anibt,settings **64/64**（`...-023602087-26672`）。未推送 origin；真实服务器播放、下载、整理写入与高对比度运行未验。
+
 ## 剧资源搜索最终交接：代码已提交，延后合并，视觉验收未完成
 
 - 本节覆盖前面各阶段的交付状态。产品提交 `6e05a3a`，最终整合源码检查点 `9d6c6ca`，分支 `codex/mp-batch-resource-search`，工作树 `C:/Users/89400/.codex/worktrees/mp-batch-resource-search/Momoka`。自定义搜索、全部/成功/失败状态、默认/标题/路径/转移方式/大小/时间/状态排序及升降序、列表/精确标题分组均已实现；搜索只过滤收齐且属于当前剧的原历史。筛掉的选择撤销，排序/折叠保留有效选择，全选仅覆盖当前结果，不改电影/季/单集原表单。
