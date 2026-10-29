@@ -1,6 +1,8 @@
 ## 架构分支清理（2026-10-29）
 
 - 按“分支收尾即删”规则核对三个架构分支，删除本地分支与对应工作树。`codex/architecture-state`（顶端 `93da012`）已是 master 祖先，直接删除。`codex/architecture-ui`（顶端 `9a3aa92`，领先2）的14个改动文件在 master 中字节一致，仅 `ShellNavigationProbe.Accessibility.cs` 与 `ShellNavigationProbe.cs` 两处已被 master 更晚的 `93da012`（真实 WinUI 拒绝 ItemContainer.Child 置 null）和 `14e26f0`（用例名改回“封面悬停态”）取代，不合并。`codex/architecture-settings`（顶端 `1b6a1ed`，领先6）的代码与工具已由 `bf95b9b`、`0232cf6`、`4f97a98` 等效落地，文件全部一致；仅有 PROGRESS 三节与开发文档两行旧描述未进 master，属已被主树交付记录覆盖的待整合状态，不挑拣。三个工作树删除前 `git status` 均干净。
+- 顺带清理 13 个旧 detached 工作树：12 个（`anibt-non-anime-series-menu` `2b3b917`、`anibt-search-layout` `196639b`、`architecture-playback` `d3c2061`、`emby-metadata-editor` `3cd9712`、`merge-search-compact` `e1976f7`、`mp-batch-resource-search` `854bd3c`、`mp-manual-organize-dialog` `a84929e`、`neutral-input-focus` `bb9a53c`、`neutral-input-surfaces` `333f6b7`、`optional-svp` `ee68235`、`search-compact-delivery` `a6083f3`、`series-reorganize` `8d3e180`）工作区干净，且自基点起的每个改动文件与 master 字节一致；`series-history-ui`（`63cc778`）的三项功能已由主树的体积读取、原记录多选与批量预览实现覆盖，master 版本更新更全。以上均只保留 Git 提交，不再保留工作树。`architecture-state` 空目录被进程占用未能删除，已从 worktree 注销。
+- 保留待定：`mp-media-management`（`4b9aaac`）含 master 没有的媒体管理／智能整理整套实现（37 个改动文件、10 个新文件），分支记录仍写“待整合”；`fnnas-server`（`2e07881`，未提交54处差异）、`merged-contract-tests`（`4afca26`，未提交208处）、`delivery-dotnet-pack-tests`（`3b21b74`）有未提交改动，其中 delivery 树的3份差异内容与 master 相同。删树前须由用户确认是否放弃这些改动。
 
 ## 收尾已有未提交的中性反馈与探针改动（2026-10-29，已提交并交付）
 
