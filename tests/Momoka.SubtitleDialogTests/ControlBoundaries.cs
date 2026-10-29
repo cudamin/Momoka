@@ -28,6 +28,9 @@ public class ContentDialog : FrameworkElement
         _closed.SetResult();
         return true;
     }
+
+    /// <summary>同真实 ContentDialog：Hide 也走 Closing，被拦下就留在原地（右上角那颗 ✕ 走这条路）。</summary>
+    public void Hide() => FixtureClose();
 }
 
 public sealed class Button : FrameworkElement;
