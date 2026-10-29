@@ -107,7 +107,7 @@ internal static class Program
             Assert.Equal(Microsoft.UI.Xaml.Visibility.Visible, dialog.EpisodeRow.Visibility);
             Assert.Equal("1", dialog.SeasonBox.Text);
             Assert.Equal("4", dialog.EpisodeBox.Text);
-            Assert.Equal("手动重新整理 — 单集", (string)dialog.Title!);
+            Assert.Equal("单集 · 共 1 项", dialog.ReorganizeSubtitle.Text);
             Assert.Equal(0, fixture.Transport.Writes);
         });
         Test("真实对话框：剧多选交接仅收起历史查找且没有写请求", () =>

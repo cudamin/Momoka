@@ -109,8 +109,20 @@ internal sealed partial class ShellNavigationProbe
             var selectedContext = MoviePilotSeriesTransfer.CreateContext(context, chosen);
             var form = new MoviePilotReorganizeDialog(service, selectedContext, chosen) { XamlRoot = _root.XamlRoot };
             var editing = MoviePilotDialog.ShowAsync(form, service);
-            await UntilAsync(() => !Get<ProgressRing>(form, "PreviewRing").IsActive &&
-                Get<ContentControl>(form, "FormPanel").IsEnabled && Get<Button>(form, "PreviewButton").IsEnabled);
+            try
+            {
+                await UntilAsync(() => !Get<ProgressRing>(form, "PreviewRing").IsActive &&
+                    Get<ContentControl>(form, "FormPanel").IsEnabled && Get<Button>(form, "PreviewButton").IsEnabled);
+            }
+            catch (TimeoutException)
+            {
+                throw new TimeoutException("批量表单未就绪："
+                    + $"ring={Get<ProgressRing>(form, "PreviewRing").IsActive}"
+                    + $"，form={Get<ContentControl>(form, "FormPanel").IsEnabled}"
+                    + $"，preview={Get<Button>(form, "PreviewButton").IsEnabled}"
+                    + $"，行数={form.Lines.Count}"
+                    + $"，问题={Get<InfoBar>(form, "Problem").Message}");
+            }
             await LayoutAsync(form);
             Require(Get<StackPanel>(form, "HistoryLookupPanel").Visibility == Visibility.Collapsed &&
                 Get<TextBlock>(form, "BatchSelectionSummary").Text.Contains("2", StringComparison.Ordinal),
@@ -121,7 +133,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => !Get<ProgressRing>(form, "PreviewRing").IsActive &&
                 Get<Border>(form, "ConfirmationPanel").Visibility == Visibility.Visible);
             Require(server.PreviewIds.SequenceEqual(chosen.Select(history => history.Id)), "预览没有仅带选中的 logids");
-            Require(form.Lines.Count == 2 && !form.IsPrimaryButtonEnabled, "批量预览不完整或未经确认直接可提交");
+            Require(form.Lines.Count == 2 && !Get<Button>(form, "ReorganizeButton").IsEnabled,
+                "批量预览不完整或未经确认直接可提交");
             await SaveProbeScreenAsync("mp-series-reorganize-preview-screen.png");
             form.Hide();
             await editing;
@@ -236,6 +249,7 @@ internal sealed partial class ShellNavigationProbe
             }
             if (path.EndsWith("storage/options", StringComparison.Ordinal)) OptionReads++;
             if (path.EndsWith("storage/options", StringComparison.Ordinal)) return Json(new[] { new { name = "本地", type = "local" } });
+            if (path.EndsWith("system/global/user", StringComparison.Ordinal)) return Json(new { RECOGNIZE_SOURCE = "themoviedb" });
             if (path.EndsWith("media/source", StringComparison.Ordinal)) return Json(new[] { new { media_source = "themoviedb", name = "TheMovieDb", media_types = new[] { "电影", "电视剧" } } });
             if (path.EndsWith("storage/directories", StringComparison.Ordinal)) return Json(new[] { new { library_storage = "local", library_path = "/Downloads_link", transfer_type = "softlink", scraping = true, library_type_folder = true } });
             if (path.EndsWith("transfer/manual/target-path", StringComparison.Ordinal)) return Json(new
