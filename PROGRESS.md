@@ -1,3 +1,13 @@
+## 架构审查修复：主树验证与桌面交付完成（2026-10-29）
+
+- 本节覆盖下方本批的“待主树整合／待运行／快捷方式仍旧”阶段记录。用户授权自行决定修复后，8项确认问题已实现、提交并合入 master；产品最终提交 `93da012`，包括卡片状态同步与读取版本、已看后续回填、跨季查询取消、手动补报关闭排空、跨服务器独立搜索、焦点宿主与具体无障碍名称。统一专项入口登记42个顶层项目，默认只列清单，显式选择后先还原／编译再运行。
+- 主树完整方案 Release 编译0警告0错误；适用14套专项最终全部通过、失败0／跳过0：主Tests3257、状态命令73、AniBT入口40、页面契约107、保存反馈42、设置生命周期52、来源撤销31、自然接续caller54、Plex67、资源90、提交41、删除19、当前权限54、AniBT来源38，各套有重叠不累加。Home／Library实际VM续播专项29/29；runner正反自测16/16。首轮14套中的旧Attach参数假设失败保留，修正后52/52；PageContract中断报告只记录原已完成套件，最终107/107由另一次当前编译补足。
+- 最终测试证据：`artifacts/regressions/20261029-040907459-5faaf28b3bc8405a9ee29a669b19700d`（首轮14套），`.../20261029-042541049-0faf4c5a39e345daa42942b747c84567`（生命周期52/52），`.../20261029-043045022-d27c21eb950941c9b4200e9e85236161`（页面107/107）。编译及续播／runner日志在 `work/architecture-main-*.log`、`work/architecture-runner-selftests.log`；最终索引 `work/architecture-main-delivery.json`。
+- 开发件 settings/playback/library/moviepilot 首轮74项72过2败，报告 `shell-probe-20261029-035525074-31108` 保留；临时ItemContainer清理null与输入主题探针的语义目标／视口／Focused前置已修，不放宽颜色或厚度。settings重跑 `shell-probe-20261029-041935512-29636` 23/23，原两项均通过。真实截图抽查宽窄设置、卡片与主题；四种PosterCard／EpisodeRow宿主的键盘进入／离开及四个UIA具体名称均核对。分区探针不能宣称完整Shell自检，未选区域按各自scope回执记录。
+- 已发布到主树实际目录 `artifacts/publish/win-x64`，546文件／284.7MB，14GLSL／4HOOK及59项批准mpv载荷通过；ProductVersion `0.2.0+93da012b59a6ea62895b8043c2d9c7cdf85d0f57`，发布DLL SHA256 `8878531dc67a72aae2c10ccaad461c3f1f42eba1fb951f36df8087f5c1f0e944`。桌面Momoka.lnk目标和工作目录均读回；发布件settings/playback复验 `shell-probe-20261029-043557936-11768` 31/31、退出0，四种焦点宿主／设置名称与宽窄图再次通过。本次不生成ZIP/MSIX、不上传GitHub。
+- 主树原11份未提交差异完整保留：9份文件字节不变，开发文档及ShellNavigationProbe入口因整合发生行号／索引变化，前后diff正文一致。备份与差异在 `work/architecture-main-preserve`。临时树的失败／成功日志、源码证明、未提交差异及提交索引已保存到 `work/architecture-worker-evidence`，仅在确认产品进入主树、验证与交付完成后归档本轮临时树；不处理其他聊天工作树。
+- 范围与代价：保存新增独立JSON快照，不保证全部设置编辑的全局事务；卡片共享状态仍限本机已确认命令，详情主按钮及跨设备变化沿原刷新流程。手动补报仍受单次5秒与退出25秒截止，网络失败不保证远端已收下。未执行真实服务器播放／写入、原生后端换集、uosc窗口或高对比度运行；公开MoviePilot源码核对不等于用户实服版本同步。本节只记录最终交付，不重建或重发已验证应用。
+
 ## 架构审查修复：卡片状态与通用搜索（2026-10-29）
 
 - 工作树 `C:/Users/89400/.codex/worktrees/architecture-state/Momoka`，分支 `codex/architecture-state`，基点 `b167c62`；范围为来源读取版本、卡片状态共享/弱引用、Home/Library 已看后续回填及飞牛/Plex 独立版本搜索。主树既有11项改动未碰。
