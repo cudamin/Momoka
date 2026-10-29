@@ -63,6 +63,8 @@ internal static class Program
         DiagnosticsTests.Register();
         CardImageResizeTests.Register();
         ImageRecoveryTests.Register();
+        FocusWatchTests.Register();
+        SettingsControlNameTests.Register();
         return TestHarness.Run();
     }
 

@@ -22,6 +22,7 @@
     <!-- Exact page control-flow source; fixtures replace XAML/framework boundaries, not Attach logic. -->
     <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotSubscriptionsPage.xaml.cs" Link="Production\MoviePilotSubscriptionsPage.xaml.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\FocusWatch.cs" Link="Production\FocusWatch.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
   </ItemGroup>
 </Project>

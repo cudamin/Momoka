@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 
 namespace Momoka.Shell.Views;
@@ -10,12 +11,11 @@ namespace Momoka.Shell.Views;
 /// <para>
 /// 键盘焦点永远落不到 <see cref="PosterCard"/> 或 <see cref="EpisodeRow"/> 上：能接焦点的是外面那个容器
 /// —— 媒体库里是 <c>ItemContainer</c>，主页和详情页里是包着卡片的 <c>Button</c>。页面各写一遍等于同一件
-/// 事写三遍，所以卡片自己往上找一层：视觉树上第一个 <see cref="Control"/> 就是那个容器。
+/// 事写三遍，所以先越过卡片自己的 <see cref="UserControl"/>，再找外面的单项容器。
 /// </para>
 /// <para>
-/// 往上找「第一个」而不是「第一个可 Tab 停靠的」，是因为找错的代价不对称。找窄了最多是某个模板在中间
-/// 塞了别的控件、框线跟着那一层亮；找宽了 —— 比如跳过容器一路找到 <c>ItemsView</c> 或 <c>ScrollView</c>
-/// —— 列表里任何一个东西拿到焦点，满屏的卡片会一起亮起来。
+/// 只接 <see cref="ButtonBase"/> 或 <see cref="ItemContainer"/>；中间的布局元素可跳过，遇到其他控件就
+/// 停止，不能把 <c>ItemsView</c> 或 <c>ScrollView</c> 当单项宿主，否则别的卡片拿到焦点也会一起亮。
 /// </para>
 /// <para>
 /// <c>GotFocus</c>/<c>LostFocus</c> 是冒泡事件，所以焦点落到容器内部（悬浮层那三个按钮）也算数，这正是
@@ -66,8 +66,8 @@ internal sealed class FocusWatch(FrameworkElement inside, Action<bool> paint)
         paint(false);
     }
 
-    /// <summary>自检：找到容器了没有 —— 找不到就是这条状态整个不存在，而那是看不出来的。</summary>
-    public bool Probe() => _host is not null;
+    /// <summary>自检：监听对象仍是这张卡当前的外层单项容器。</summary>
+    public bool Probe() => _host is not null && ReferenceEquals(_host, Host(inside));
 
     private void OnGot(object sender, RoutedEventArgs e) => paint(true);
 
@@ -75,8 +75,17 @@ internal sealed class FocusWatch(FrameworkElement inside, Action<bool> paint)
 
     private static Control? Host(DependencyObject start)
     {
-        for (var node = VisualTreeHelper.GetParent(start); node is not null; node = VisualTreeHelper.GetParent(node))
-            if (node is Control control) return control;
+        // Root 的父节点就是卡片自身；UserControl 也继承 Control，不能把它误当外层焦点宿主。
+        DependencyObject? card = start;
+        while (card is not null && card is not (PosterCard or EpisodeRow))
+            card = VisualTreeHelper.GetParent(card);
+        if (card is null) return null;
+
+        for (var node = VisualTreeHelper.GetParent(card); node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            if (node is ButtonBase or ItemContainer) return (Control)node;
+            if (node is Control) return null;
+        }
 
         return null;
     }

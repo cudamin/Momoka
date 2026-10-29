@@ -621,7 +621,7 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <Slider
-                                x:Uid="SettingsPage_SliderA1"
+                                AutomationProperties.Name="{x:Bind Label}"
                                 HorizontalAlignment="Stretch"
                                 Maximum="{x:Bind Maximum}"
                                 Minimum="{x:Bind Minimum}"
@@ -899,6 +899,7 @@
                             VerticalAlignment="Center">
                             <Button
                                 x:Uid="SettingsPage_ColorSwatch"
+                                AutomationProperties.Name="{x:Bind Label}"
                                 Background="{x:Bind Swatch, Mode=OneWay}"
                                 BorderBrush="{StaticResource EgBorderBrush}"
                                 BorderThickness="1"

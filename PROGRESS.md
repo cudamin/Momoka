@@ -7,6 +7,13 @@
 - 证据：`artifacts/r046-caller/marked-watched-final.log`、`architecture-extractor-final/counterexamples.json`、`architecture-extractor-final/current-reverified/`。仅本次改动三份生产源的 SourcePins 定点更新，其余保留。变更 C# 格式、LF／PS BOM与语法、Git 空白检查通过。
 - 未运行 UI／真实服务器／实际媒体或原生后端，不发布、不推送；应用外层与真实传输退出行为仍待主会话适用验证。此次提交须由主会话合并、最终重新验证并刷新主树交付目录；快捷方式仍为本轮前交付件。
 
+## 设计架构修复：卡片焦点与设置名称（2026-10-29，待主树整合）
+
+- 专用树 `C:/Users/89400/.codex/worktrees/architecture-ui/Momoka`，临时分支 `codex/architecture-ui`，基于 `b167c62`。范围仅 `FocusWatch`、设置滑块／色块名称、对应离线测试及隔离 UI 探针；主树已有未提交改动未修改。
+- 焦点宿主先越过 PosterCard／EpisodeRow 自身，只接受外层 ButtonBase／ItemContainer，遇到其他 Control 停止；诊断复核当前父子归属。设置滑块／色块使用各行 Label，删除会覆盖它们的通用名称资源，颜色提示仍保留。
+- 当前树 Shell/Core Release 编译、页面契约项目编译均 **0 警告 0 错误**；页面契约 **106/106**，失败 0、跳过 0。新增 6 个实际 FocusWatch 源码行为用例与 2 个真实模板／资源契约，覆盖父子选择、焦点回调、退订／重挂及错误宿主／通用名称负向场景。
+- 新增 `--probe-shell --probe-section settings` 用例「卡片焦点宿主与设置控件具体名称」：实际 WinUI 控件焦点、宿主身份、UIA peer 名称及旧名称负向检查；证据文件 `card-focus-setting-names.txt`、`card-focus-setting-names-screen.png`。本树未启动 UI，由主交付会话在最终主树串行运行；尚未合并、运行验证或发布，不能据离线结果宣称交付完成。
+
 ## 待合并分支合入主树并交付（2026-10-29）
 
 - 本轮把 5 个真正待整合的临时分支合入 master：剧资源搜索 `codex/mp-batch-resource-search`、AniBT 非动漫菜单 `codex/anibt-non-anime-series-menu`、手动整理窗口 `codex/mp-manual-organize-dialog`、输入框中性焦点 `codex/neutral-input-focus`、输入框侧栏底色 `codex/neutral-input-surfaces`。在隔离树逐个合并后再快进主树；合并提交 `f2410c2`、`472879e`、`7ebaefb`（清理冲突标记残留）、`31d7924`、`3444a1f`、`8f123f9`，最终 HEAD `3219cba`。
