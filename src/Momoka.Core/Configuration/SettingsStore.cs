@@ -122,9 +122,15 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
                 // 保存结果与文件写入在同一锁内排序；旧失败不能在另一调用者成功后才覆盖 flag。
                 try
                 {
-                    SettingsMigration.Normalize(settings);
-                    settings.SchemaVersion = AppSettings.CurrentSchemaVersion;
-                    var json = JsonSerializer.Serialize(settings, SettingsSerializer.WriteOptions);
+                    // 会话可在线程池保存，UI 同时仍在编辑这份活对象。文件锁只排序保存，不能授权
+                    // Normalize 把捕获的旧列表写回 UI。只整理独立文档，加载/显式恢复仍负责就地归一化。
+                    // 直接反序列化当前形状，不经过 FromJson 的历史迁移；快照失败沿原欠项反馈处理。
+                    var document = JsonSerializer.SerializeToElement(settings, SettingsSerializer.WriteOptions)
+                        .Deserialize<AppSettings>(SettingsSerializer.ReadOptions)
+                        ?? throw new InvalidDataException("无法创建设置保存快照");
+                    SettingsMigration.Normalize(document);
+                    document.SchemaVersion = AppSettings.CurrentSchemaVersion;
+                    var json = JsonSerializer.Serialize(document, SettingsSerializer.WriteOptions);
                     AtomicFile.WriteAllText(Paths.SettingsFile, json, new UTF8Encoding(false), Paths.SettingsBackupFile);
                     _hasUnsavedChanges = false;
                 }

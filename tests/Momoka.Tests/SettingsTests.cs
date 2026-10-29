@@ -27,6 +27,7 @@ internal static partial class SettingsTests
         RegisterBackup();
         RegisterVault();
         RegisterStore();
+        SettingsSaveSnapshotTests.Register();
         RegisterAccountNulls();
         RegisterDirectoryRecovery();
         RegisterPaths();
