@@ -127,6 +127,40 @@ internal static class MoviePilotTransferTests
             Assert.False((bool)body["preview"]!);
         });
 
+        Test("手动整理正文：自动类型与可空目录开关保持后端匹配语义", () =>
+        {
+            var request = Request(type: "", targetStorage: "", targetPath: "", transferType: "") with
+            { TypeFolder = null, CategoryFolder = null, Scrape = null };
+            Assert.Null(request.Problem);
+            var body = request.Body([File("/x/a.mkv")], preview: true);
+            Assert.Equal("", body["type_name"]);
+            Assert.Null(body["library_type_folder"]);
+            Assert.Null(body["library_category_folder"]);
+            Assert.Null(body["scrape"]);
+            var disabled = request with { TypeFolder = false, Scrape = false };
+            var pinned = disabled.Body([File("/x/a.mkv")], preview: true);
+            Assert.Equal(false, pinned["library_type_folder"]);
+            Assert.Equal(false, pinned["scrape"]);
+            Assert.Contains("先选择", Problem(request with { MediaId = "1" }));
+        });
+
+        Test("手动整理正文：剧集组、集数定位与偏移仅在有效电视剧请求下发送", () =>
+        {
+            var request = Request(type: "电视剧", mediaId: "123") with
+            { EpisodeGroup = "group-1", EpisodeFormat = "第{ep}集", EpisodeOffset = "EP*2" };
+            var body = request.Body([File("/x/a.mkv")], preview: true);
+            Assert.Equal("group-1", body["episode_group"]);
+            Assert.Equal("第{ep}集", body["episode_format"]);
+            Assert.Equal("EP*2", body["episode_offset"]);
+            Assert.Contains("剧集组", Problem(request with { MediaSource = "douban" }));
+            Assert.Contains("剧集组", Problem(request with { Type = "电影" }));
+            Assert.Contains("复用历史", Problem(request with { FromHistory = true }));
+            var movie = Request() with { EpisodeFormat = "第{ep}集", EpisodeOffset = "-10" };
+            var movieBody = movie.Body([File("/x/a.mkv")], preview: true);
+            Assert.False(movieBody.ContainsKey("episode_format"));
+            Assert.False(movieBody.ContainsKey("episode_offset"));
+        });
+
         Test("手动整理正文：文件和 MoviePilot 认的对不上就停", () =>
         {
             var request = Request();
@@ -333,7 +367,8 @@ internal static class MoviePilotTransferTests
                 .Answer("login/access-token", Session)
                 .Answer("storage/options", """{"success":true,"data":[{"name":"本地","type":"local"},{"name":"Rclone","type":"rclone"}]}""")
                 .Answer("storage/directories", """{"success":true,"data":[{"library_storage":"local","library_path":"/media/library","transfer_type":"copy","overwrite_mode":"latest"}]}""")
-                .Answer("media/source", """{"success":true,"data":[{"name":"TheMovieDb","media_source":"themoviedb","media_types":["电影","电视剧"]}]}""");
+                .Answer("media/source", """{"success":true,"data":[{"name":"TheMovieDb","media_source":"themoviedb","media_types":["电影","电视剧"]}]}""")
+                .Answer("system/global/user", """{"success":true,"data":{"RECOGNIZE_SOURCE":"themoviedb"}}""");
 
             var options = ServiceOn(transport).TransferOptionsAsync(CancellationToken.None).GetAwaiter().GetResult();
 
@@ -351,13 +386,41 @@ internal static class MoviePilotTransferTests
                 .Answer("login/access-token", Session)
                 .Answer("storage/options", """{"success":true,"data":[]}""")
                 .Answer("storage/directories", """{"success":true,"data":[]}""")
-                .Answer("media/source", """{"success":true,"data":[]}""");
+                .Answer("media/source", """{"success":true,"data":[]}""")
+                .Answer("system/global/user", """{"success":true,"data":{"RECOGNIZE_SOURCE":"themoviedb"}}""");
 
             var options = ServiceOn(transport).TransferOptionsAsync(CancellationToken.None).GetAwaiter().GetResult();
 
             Assert.Equal(1, options.Storages.Count);
             Assert.Equal("local", options.Storages[0].Type);
             Assert.Equal(0, options.MediaSources.Count);
+        });
+
+        Test("手动整理选项：自动数据源来自后端当前识别设置", () =>
+        {
+            var transport = new StubTransport().Answer("login/access-token", Session)
+                .Answer("storage/options", """{"success":true,"data":[]}""")
+                .Answer("storage/directories", """{"success":true,"data":[]}""")
+                .Answer("media/source", """{"success":true,"data":[{"media_source":"themoviedb","media_types":["电影","电视剧"]},{"media_source":"douban","media_types":["电影","电视剧"]}]}""")
+                .Answer("system/global/user", """{"success":true,"data":{"RECOGNIZE_SOURCE":"douban"}}""");
+            var options = ServiceOn(transport).TransferOptionsAsync(CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Equal("douban", options.DefaultMediaSource);
+            Assert.Equal(1, transport.SentTo("system/global/user").Count);
+        });
+
+        Test("手动整理服务：有效编号查询剧集组，空与坏编号不联网", () =>
+        {
+            var transport = new StubTransport().Answer("login/access-token", Session)
+                .Answer("media/groups/123", """{"success":true,"data":[{"id":"group-1","name":"播出顺序","group_count":2,"episode_count":24}]}""");
+            var service = ServiceOn(transport);
+            var groups = service.TransferEpisodeGroupsAsync("123", CancellationToken.None).GetAwaiter().GetResult();
+            Assert.Equal(2, groups.Count);
+            Assert.True(groups[0].IsDefault);
+            Assert.Equal("group-1", groups[1].Id);
+            Assert.Equal(24, groups[1].EpisodeCount);
+            foreach (var id in new[] { "", "abc", "-1", "0", "+123" })
+                Assert.Equal(0, service.TransferEpisodeGroupsAsync(id, CancellationToken.None).GetAwaiter().GetResult().Count);
+            Assert.Equal(1, transport.SentTo("media/groups").Count);
         });
 
         Test("手动整理收集：电影用自己的 TMDB 号和自己的文件", () =>

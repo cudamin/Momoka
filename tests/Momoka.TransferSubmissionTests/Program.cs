@@ -12,6 +12,7 @@ internal static class Program
         Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine("整理提交界限：实际 Core 服务和源码链接 Dialog；无 WinUI、真实服务器或文件操作");
         MoviePilotTransferSubmissionTests.Register();
+        ManualDialogTests.Register();
         foreach (var failure in new[] { "history-404", "history-json", "history-schema", "history-timeout", "history-500", "dependency-404" })
         {
             Test("真实对话框：只读失败恢复编辑／重新预览 " + failure, () =>
@@ -33,7 +34,7 @@ internal static class Program
                 TransferSubmissionFixture.Complete(dialog.FixturePreviewAsync());
                 Assert.NotNull(dialog.FixturePreview);
                 Assert.True(dialog.FixturePreview!.CanSubmit);
-                Assert.False(dialog.IsPrimaryButtonEnabled, "新预览必须重新明确确认");
+                Assert.False(dialog.ReorganizeButton.IsEnabled, "新预览必须重新明确确认");
                 dialog.ConfirmChanges.IsChecked = true;
                 TransferSubmissionFixture.Complete(dialog.FixtureSubmitAsync());
                 Assert.Equal(1, fixture.Transport.Writes);

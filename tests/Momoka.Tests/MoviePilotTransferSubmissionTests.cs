@@ -208,6 +208,7 @@ internal sealed class TransferSubmissionTransport : HttpMessageHandler
     public int Writes { get; private set; }
     public int LoginRequests { get; private set; }
     public bool LastBackground { get; private set; }
+    public JsonElement LastBody { get; private set; }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
@@ -234,6 +235,18 @@ internal sealed class TransferSubmissionTransport : HttpMessageHandler
             return Reply("{\"success\":true,\"data\":{\"total\":" + (Failure == "dependency-present" && dependency ? "2" : "1") +
                 ",\"list\":[" + history + (Failure == "dependency-present" && dependency ? "," + HistoryJson(dependent: true) : "") + "]}}");
         }
+        if (url.AbsolutePath == "/api/v1/storage/options")
+            return Reply("""{"success":true,"data":[{"name":"本地","type":"local"}]}""");
+        if (url.AbsolutePath == "/api/v1/storage/directories")
+            return Reply("""{"success":true,"data":[{"library_storage":"local","library_path":"/library","transfer_type":"softlink","scraping":true,"library_type_folder":true,"library_category_folder":false}]}""");
+        if (url.AbsolutePath == "/api/v1/media/source")
+            return Reply("""{"success":true,"data":[{"name":"TheMovieDb","media_source":"themoviedb","media_types":["电影","电视剧"]},{"name":"豆瓣","media_source":"douban","media_types":["电影","电视剧"]}]}""");
+        if (url.AbsolutePath == "/api/v1/system/global/user")
+            return Reply("""{"success":true,"data":{"RECOGNIZE_SOURCE":"douban"}}""");
+        if (url.AbsolutePath == "/api/v1/transfer/manual/target-path")
+            return Reply("""{"success":true,"data":{"target_storage":"local","target_path":"/library","transfer_type":"softlink","scrape":true,"library_type_folder":true,"library_category_folder":false}}""");
+        if (url.AbsolutePath.StartsWith("/api/v1/media/groups/", StringComparison.Ordinal))
+            return Reply("""{"success":true,"data":[{"id":"group-1","name":"播出顺序","group_count":1,"episode_count":12}]}""");
         if (url.AbsolutePath == "/api/v1/storage/list")
         {
             Assert.Equal(HttpMethod.Post, request.Method);
@@ -243,6 +256,7 @@ internal sealed class TransferSubmissionTransport : HttpMessageHandler
         {
             Assert.Equal(HttpMethod.Post, request.Method);
             using var body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken).ConfigureAwait(false));
+            LastBody = body.RootElement.Clone();
             var preview = body.RootElement.GetProperty("preview").GetBoolean();
             if (preview) Previews++;
             else
