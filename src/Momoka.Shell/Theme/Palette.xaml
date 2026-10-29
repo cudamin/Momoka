@@ -249,31 +249,24 @@
                 TintOpacity="0.15"
                 Opacity="0.6" />
 
-            <!-- 下拉框闭合态的皮（同轮他指「没有展开的时候颜色和背景不一样」）：框架那一档是 4% 的透明白
-                 压在卡上，色相跟卡不亲。照 QQ 的分法换成抬升一档的面色（比卡亮半档、同一色相），悬停/按下
-                 再抬到 hover 档给反馈；打开/聚焦那几态跟闭合同档 —— QQ 那张图里选完落回来就是
-                 「什么都没发生过」的样子。框线走框架自己的 ControlStrokeColorSecondary（已接到边线角色）。 -->
-            <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource EgSurfaceElevatedColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource EgSurfaceHoverColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource EgSurfaceHoverColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource EgSurfaceElevatedColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource EgSurfaceElevatedColor}" />
+            <!-- 闭合下拉与输入框沿用页面背景色，跟卡片区分；各态不换成卡片/悬停底色。
+                 只用边线与文字提示焦点，展开浮层仍保留自己的材质。 -->
+            <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="{StaticResource EgWindowColor}" />
 
-            <!-- 输入框的皮（2026-09-26，他指设置页 MoviePilot 卡上那三个发白的框，原话：「这些输入框里面怎么是
-                 白色的，改成快捷键设置界面的那种」）。白的来历：TextBox／PasswordBox 共用的这一族 TextControl*
-                 是框架皮肤里最后一块没接到角色表上的底，框架自己的底色是两成透明白，压在深色卡上就是画面里
-                 发白的一块 —— 和上一条 ComboBox 是同一个病。参考的「快捷键设置界面的那种」＝抓键框
-                 （ShortcutCaptureBox）那张皮：底坐卡面色、外圈一根发丝线。于是停着/悬停/聚焦/禁用四态的底全部
-                 坐卡面色（QQ 那条的老规矩：选完落回来像什么都没发生过），边线停着与禁用走默认档、悬停抬到
-                 strong 档给反馈、聚焦换强调色 —— 和抓键框「抓键中整圈强调」是同一句话。字与占位字不用接：
-                 它们引用的 TextFillColor 两族表里已经接着角色。 -->
-            <SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource EgSurfaceAltColor}" />
-            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource EgSurfaceAltColor}" />
-            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource EgSurfaceAltColor}" />
-            <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="{StaticResource EgSurfaceAltColor}" />
+            <!-- TextBox、PasswordBox、AutoSuggestBox 与 NumberBox 共用的四态底色。
+                 输入区跟页面背景同色，不跟卡片同色；悬停/焦点使用中性边线，不包主题色。 -->
+            <SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{StaticResource EgBorderStrongColor}" />
-            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource EgAccentColor}" />
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="{StaticResource EgBorderColor}" />
         </ResourceDictionary>
 
@@ -421,23 +414,22 @@
                 TintOpacity="0.3"
                 Opacity="0.75" />
 
-            <!-- 闭合态的五件套同 Dark 那条，色值落在浅色这边的同名字角色上（抬升档比卡面暗半档，
-                 方向跟深色那边相反、道理相同）。 -->
-            <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource EgSurfaceElevatedColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource EgSurfaceHoverColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource EgSurfaceHoverColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource EgSurfaceElevatedColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource EgSurfaceElevatedColor}" />
+            <!-- 闭合下拉各态也用这一边的页面背景色，弹层材质保留。 -->
+            <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="{StaticResource EgWindowColor}" />
 
-            <!-- 输入框的皮同 Dark 那条（2026-09-26）：四态底坐这一边的卡面色、边线两档加聚焦强调色，
-                 色值都落在浅色这边的同名字角色上。 -->
-            <SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource EgSurfaceAltColor}" />
-            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource EgSurfaceAltColor}" />
-            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource EgSurfaceAltColor}" />
-            <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="{StaticResource EgSurfaceAltColor}" />
+            <!-- 输入区四态跟浅色页面背景同色，焦点保持中性边线。 -->
+            <SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{StaticResource EgBorderStrongColor}" />
-            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource EgAccentColor}" />
+            <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="{StaticResource EgBorderColor}" />
         </ResourceDictionary>
 

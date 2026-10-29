@@ -1443,7 +1443,7 @@
                 <Grid x:Name="SettingsSearchField" Margin="0,0,0,12">
                     <AutoSuggestBox
                         x:Name="SettingsSearchBox"
-                        Background="{ThemeResource EgSurfaceAltBrush}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="8"
+                        Background="{ThemeResource EgWindowBrush}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="8"
                         TextBoxStyle="{StaticResource SettingsSearchTextBox}"
                         PlaceholderText="搜索设置项"
                         AutomationProperties.Name="搜索设置项"
