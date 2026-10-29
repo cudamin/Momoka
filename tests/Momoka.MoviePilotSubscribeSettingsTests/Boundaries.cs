@@ -21,6 +21,8 @@ namespace Microsoft.UI.Xaml
         public ResourceDictionary Resources { get; } = new();
     }
     public class RoutedEventArgs : EventArgs;
+    public sealed class ExceptionRoutedEventArgs : RoutedEventArgs;
+    public delegate void ExceptionRoutedEventHandler(object sender, ExceptionRoutedEventArgs args);
     public class FrameworkElement
     {
         public object? Tag { get; set; }
@@ -42,7 +44,7 @@ namespace Microsoft.UI.Xaml.Media.Imaging
     {
         public BitmapImage() { }
         public BitmapImage(Uri uri) { Uri = uri; }
-        public event EventHandler<object>? ImageFailed { add { } remove { } }
+        public event Microsoft.UI.Xaml.ExceptionRoutedEventHandler? ImageFailed { add { } remove { } }
         public Uri? Uri { get; }
         public int DecodePixelWidth { get; set; }
         public int PixelWidth { get; set; }

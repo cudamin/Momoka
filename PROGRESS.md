@@ -9125,3 +9125,11 @@ native追加验证：批准libmpv SHA256逐字匹配后，实际当前Core DLL�
 ## 2026-10-30 性能与资源修复：恢复
 
 用户明确“继续”，撤销上节暂停。恢复六个原子代理和原独立树，不重建/覆盖已保存草稿；先重读主树已更新的CLAUDE与Git/进程状态。父树合入master已提交至8d62cb1的规则/弹窗/资源卡与权限等改动，PROGRESS仅并列保留双方历史；master大量未提交主题/对话框改动与主树进程仍由其他会话/用户持有，不吸收、不覆盖、不擅关。父写实际离线WinUI性能检查和集成/反证，六代理仅各自领域定向测试。未验证草稿仍不算完成；最终主树整合、全批次重验与实际交付仍待。
+
+### 2026-10-30 PERF-01 / PERF-12 独立树修复待父集成
+
+- 工作树 `C:\Users\89400\.codex\worktrees\perf-page-lifetimes\Momoka`，分支 `codex/perf-page-lifetimes`，基点 `e3473f10a072058eb11363f89c11e376dbfa6ed9`；只改 MoviePilotSearchPanel/VM、FnNasMatchDialog/ItemCommands.FnNas、LibraryPage 一处生命周期接线及自己的定向回归。保留原草稿继续，没有写主/父树、push、合并、发布、真实库/设置/凭据/播放或 UI；真实桌面与主注册由父代理串行。
+- MoviePilot `Release` 可重入退订，解除 UI 回调/旧行图片事件与动作；访问/查询守卫拒绝迟到及同步绑定重入，弱队列不保留页面；同页来源切换改用 `CancelSearch`，重接 `Attach` 不自动搜索。飞牛搜索委托带 CancellationToken，Closed 取消只读与 UI 等待，旧 success/error/finally 不抢新访问/查询；Primary 已选候选保留，确认后 Rescrap 写入不挂搜索令牌。复用 LoadGeneration；内部两参数构造仅兼容匿名取景探针，前置文件读取仍属于原命令身份，不声称被尚未显示的对话框取消。
+- 当前 Release Shell/Core、新 `Momoka.SearchLifetimeTests` 及相关订阅测试项目编译均 0 警告0错误；新的生产源码定向回归 32/32，连续三次相同结果，0失败0跳过；包含 LibraryPage 原样离页/切来源、50次弱引用回收、旧事件/闭包/同步重入/取消/队列与独立写所有权。帮助及4个拒绝参数进程分支均按0/2退出且不运行夹具/不回显敏感值。新项目README/严格参数一致性有回归；不改主Program/csproj/sln或共享开发文档，solution/regression/source pins由父补。
+- 改动范围空白检查退出0，Shell格式工作区加载提示单列，不冒充完整方案0警告；15个产品/测试文本的LF/末尾换行与diff检查通过。初轮Shell旧匿名调用者委托不匹配、测试friend/类型边界及弱引用JIT临时根失败已分别修复，原日志保留，未放宽断言；早期72项相关回归是10月29日草稿证据，10月30日按父约定只重编相关项目、不复跑它或full Core/selfcheck/UI。
+- 全部证据在本树 `artifacts/perf-page-lifetimes/`（含初失败、最终编译/32项/参数/哈希及两路只读子代理重试结论）；外部源码初次核查因网络/限流失败，不宣称部署协议同步，本题不改协议且未反复穷举上游。当前产品与本节同提交，留树待父集成后重验真实 Frame/对话框/WinRT 图片及批次闸门，尚未主树交付或刷新快捷方式。
