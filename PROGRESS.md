@@ -8992,3 +8992,12 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 主树最新产品`07dd0f1`与交付记录`68311b6`已完成；其聊天已idle，主树干净。隔离树合入该产品且逐项保留AniBT功能、文档与交付记录，正在验证整合代码后快进主树并重验交付；本轮产品`f15a51dec85d34dcf8d5df9d6b67aef75c48026e`仍待进入master。
 
 - 整合后的当前Release编译0警告0错误，资源94/94、真实VM30/30、完整Core3278/3278（0失败0跳过，107944ms）。合并说明仅保存master已提交内容和本轮已验证变更，无冲突。主树最终重验/发布待后续记录。
+
+### 2026-10-29 搜索与继续观看主树交付完成
+
+- 产品提交 `f15a51dec85d34dcf8d5df9d6b67aef75c48026e` 已进入 master，经 `87b4dad` 保留 AniBT 已完成产品与 `5646852` 保留交付记录；此前“待合并／快捷方式旧版”仅描述当时状态，以本节最终回执为准。最终 master 保留另一聊天 `07dd0f1` 的全部产品内容，无覆盖未提交工作；主树接管前核实该聊天已idle及工作区干净。
+- 主树最终代码重新Release编译Shell、Core及相关测试：0警告0错误；主测试3278/3278（114260ms）、资源/搜索契约94/94、真实Shell VM继续观看30/30，0失败0跳过。变更范围空白检查退出0（工作区加载提示单列）、LF、diff及文档政策21负例通过。自动化扫描547项、0缺句柄，来源项原生UIA选择实际运行通过。
+- 主树实际交付 `C:\Users\89400\Momoka\artifacts\publish\win-x64` 发布验证546文件／284.7MB，14GLSL／4HOOK／批准mpv59项逐项哈希核对通过。发布程序ProductVersion `0.2.0+5646852582aa03878da39e409b1abc2efa586cdb`（未改版本）；DLL SHA256 `E56D58D3A742DA9EECD5D07A3243D765ADD2D1C76CAD0A05B24D16799BB57535`。`C:\Users\89400\Desktop\Momoka.lnk`目标和工作目录均已读回，指向该主树发布件；使用-NoArchive不另造ZIP，本轮不上传origin。
+- 对该最终发布件的真实进程23940复验报告 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261029-080635619-23940\logs\shell-probe.json`：search/accounts/playback26/26、0失败、退出0，105项未选区域单列；不是全量自检或真实播放验收。宽1040／窄360的占位和输入文字、来源标签不截断、五主题中性焦点和760首页的剧名／`S01E29 - 父亲`已检查实屏，换集格式与恢复默认的回归通过。匿名假HTTP/播放请求未启动真实媒体，真实用户设置SHA256前后保持一致。
+- 保留25份隔离树日志（包括路径拒绝与格式首轮失败）于 `work/search-home-compact-20261029/temporary-tree-evidence`。用户可见截图裁自最终实屏且未合成像素，存于同目录`screenshots/search-centered-header.png`与`home-resume-title.png`。
+- 临时分支 `codex/search-home-compact` 顶端 `5646852582aa03878da39e409b1abc2efa586cdb` 已逐文件核对master不缺内容，临时树干净且无他人工作；已detach同一提交并删除本地分支，本地仅master。管理工具拒绝归档本聊天当前primary checkout（The task primary checkout cannot be removed），未绕过保护强删；该无分支干净树仅因聊天cwd仍占用暂留，后续切离后归档，不作为第二开发或交付线。其余聊天工作树不动。
