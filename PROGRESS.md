@@ -1,3 +1,7 @@
+## 架构分支清理（2026-10-29）
+
+- 按“分支收尾即删”规则核对三个架构分支，删除本地分支与对应工作树。`codex/architecture-state`（顶端 `93da012`）已是 master 祖先，直接删除。`codex/architecture-ui`（顶端 `9a3aa92`，领先2）的14个改动文件在 master 中字节一致，仅 `ShellNavigationProbe.Accessibility.cs` 与 `ShellNavigationProbe.cs` 两处已被 master 更晚的 `93da012`（真实 WinUI 拒绝 ItemContainer.Child 置 null）和 `14e26f0`（用例名改回“封面悬停态”）取代，不合并。`codex/architecture-settings`（顶端 `1b6a1ed`，领先6）的代码与工具已由 `bf95b9b`、`0232cf6`、`4f97a98` 等效落地，文件全部一致；仅有 PROGRESS 三节与开发文档两行旧描述未进 master，属已被主树交付记录覆盖的待整合状态，不挑拣。三个工作树删除前 `git status` 均干净。
+
 ## 收尾已有未提交的中性反馈与探针改动（2026-10-29，已提交并交付）
 
 - 用户本轮明确要求处理工作区已有的11份差异；全部原始文件和完整diff先保存到 `artifacts/verification/pending-neutral-feedback-20261029/before`、`before.patch`，未用reset／restore丢弃。保留封面和搜索的中性反馈、正常播放／焦点／动画路由及资源身份拒绝断言，不改变版本、不对外上传。
