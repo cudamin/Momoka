@@ -28,6 +28,8 @@
         <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\ShellPage.AniBt.cs" LogicalName="Production.ShellPage.AniBt.cs" />
         <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\ItemCommands.cs" LogicalName="Production.ItemCommands.cs" />
         <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\MoviePilotDialog.cs" LogicalName="Production.MoviePilotDialog.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\ShellNavigationProbe.cs" LogicalName="Production.ShellNavigationProbe.cs" />
+        <EmbeddedResource Include="..\..\src\Momoka.Shell\ShellNavigationProbe.EpisodeSearch.cs" LogicalName="Production.ShellNavigationProbe.EpisodeSearch.cs" />
         <!-- Reuse existing anonymous replies and inert XAML/event endpoints, not their R037/R039 cases. -->
         <Compile Include="..\Momoka.AniBtConfirmationTests\AnonymousFixture.cs" Link="Boundaries\AnonymousFixture.cs" />
         <Compile Include="..\Momoka.AniBtConfirmationTests\DialogBoundary.cs" Link="Boundaries\DialogBoundary.cs" />

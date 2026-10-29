@@ -28,6 +28,10 @@
     Background="{ThemeResource LayerFillColorDefaultBrush}">
 
     <Page.Resources>
+        <!-- 原生文本框的上下内边距会让 40 DIP 搜索框里的文字偏上；保留模板，只居中输入与占位文字。 -->
+        <Style x:Key="LibrarySearchTextBox" TargetType="TextBox" BasedOn="{StaticResource AutoSuggestBoxTextBoxStyle}">
+            <Setter Property="Padding" Value="10,0,6,0" />
+        </Style>
         <Style x:Key="LibraryPillStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="0" />
@@ -330,6 +334,8 @@
                                 HorizontalAlignment="Stretch"
                                 MinHeight="40" CornerRadius="20"
                                 VerticalAlignment="Center"
+                                VerticalContentAlignment="Center"
+                                TextBoxStyle="{StaticResource LibrarySearchTextBox}"
                                 QueryIcon="Find"
                                 QuerySubmitted="OnSearchSubmitted"
                                 TextChanged="OnSearchTextChanged"
@@ -380,17 +386,17 @@
                                 <Style TargetType="local:SearchSourceTabs" BasedOn="{StaticResource ButtonSegmentedStyle}">
                                     <Setter Property="Background" Value="{ThemeResource EgSurfaceHoverBrush}" />
                                     <Setter Property="Padding" Value="4" />
-                                    <Setter Property="CornerRadius" Value="18" />
+                                    <Setter Property="CornerRadius" Value="16" />
                                 </Style>
                             </local:SearchSourceTabs.Style>
                             <local:SearchSourceTabs.ItemContainerStyle>
                                 <Style TargetType="tkcontrols:SegmentedItem" BasedOn="{StaticResource ButtonSegmentedItemStyle}">
-                                    <Setter Property="CornerRadius" Value="14" />
+                                    <Setter Property="CornerRadius" Value="12" />
                                     <Setter Property="MinWidth" Value="0" />
-                                    <Setter Property="MinHeight" Value="28" />
-                                    <Setter Property="Height" Value="28" />
-                                    <Setter Property="Padding" Value="8,4" />
-                                    <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
+                                    <Setter Property="MinHeight" Value="24" />
+                                    <Setter Property="Height" Value="24" />
+                                    <Setter Property="Padding" Value="8,2" />
+                                    <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
                                     <Setter Property="FontWeight" Value="SemiBold" />
                                 </Style>
                             </local:SearchSourceTabs.ItemContainerStyle>

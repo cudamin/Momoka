@@ -50,6 +50,8 @@ internal sealed partial class ShellNavigationProbe
         {
             // 在展开菜单之前置顶；截图时才抬高宿主会把原生弹出层压到宿主后面。
             _window.TopMost = true;
+            // 上一个分区可能留在360 DIP；原生两级菜单需要宽窗，不能让菜单覆盖像素采样角点。
+            ResizeProbeClient(1040, 800);
             await LayoutAsync(anchor);
             menu = ItemCommands.Build(fixture.Session, shell, anchor, new CardItem(owner, fixture.Images, 170));
             var versions = menu.Items.OfType<MenuFlyoutSubItem>().Single(item => item.Tag is ItemCommand.MoviePilotVersions);

@@ -31,6 +31,13 @@ internal sealed partial class ShellNavigationProbe
         {
             frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services));
             var page = (LibraryPage)frame.Content;
+            foreach (var width in new[] { 1040, 360 })
+            {
+                ResizeProbeClient(width, 800);
+                await LayoutAsync(page);
+                RequireSearchTextCentered(page);
+                await SaveProbeScreenAsync($"search-placeholder-centered-{width}-screen.png");
+            }
             await page.ViewModel.SearchAsync("离线测试");
             foreach (var width in new[] { 1600, 1040, 760, 520, 360 })
             {
@@ -64,17 +71,21 @@ internal sealed partial class ShellNavigationProbe
                 Require(categoryBox.Left >= -1 && categoryBox.Right <= page.ActualWidth + 1, "搜索分类被裁切");
                 var tabs = Get<Segmented>(page, "SourceTabs");
                 Require(tabs.ActualWidth <= search.ActualWidth, "来源切换超出搜索区");
-                Require(tabs.CornerRadius == new CornerRadius(18) && tabs.BorderThickness == new Thickness(0)
+                Require(tabs.CornerRadius == new CornerRadius(16) && tabs.BorderThickness == new Thickness(0)
                     && Colour(tabs.Background) == Role("EgSurfaceHoverBrush"), "来源栏仍是长方形边框");
+                Require(tabs.ActualWidth <= 480 && tabs.ActualHeight == 32,
+                    $"{width} 来源栏没有缩小到 480 DIP 内、32 DIP 高");
                 var selected = (SegmentedItem)tabs.Items[tabs.SelectedIndex];
                 RequirePill(selected, selected: true);
                 foreach (var item in tabs.Items.OfType<SegmentedItem>())
                 {
                     var itemBox = Bounds(item, tabs);
-                    Require(item.CornerRadius == new CornerRadius(14) && item.ActualHeight == 28
+                    Require(item.CornerRadius == new CornerRadius(12) && item.ActualHeight == 24
                         && itemBox.Left >= 0 && itemBox.Right <= tabs.ActualWidth,
                         $"{width} 来源胶囊不是圆角或超出切换栏");
                     var label = (TextBlock)item.Content;
+                    Require(item.FontSize == (double)Application.Current.Resources["EgCaptionFontSize"],
+                        $"{width} 来源胶囊没有使用紧凑字号");
                     Require(label.TextWrapping == TextWrapping.NoWrap && !label.IsTextTrimmed,
                         $"{width} 来源胶囊标签换行或被截断：{label.Text}");
                 }
@@ -113,6 +124,19 @@ internal sealed partial class ShellNavigationProbe
                 // 每个尺寸只聚焦和核对一次；宽帧另外覆盖全部存活主题。
                 var focusInput = Get<AutoSuggestBox>(page, "SearchInput");
                 var focusField = Descendants(focusInput).OfType<TextBox>().First();
+                RequireSearchTextCentered(page);
+                if (width == 1040)
+                {
+                    focusInput.VerticalContentAlignment = VerticalAlignment.Top;
+                    await LayoutAsync(page);
+                    var rejected = false;
+                    try { RequireSearchTextCentered(page); }
+                    catch (InvalidOperationException) { rejected = true; }
+                    finally { focusInput.VerticalContentAlignment = VerticalAlignment.Center; }
+                    Require(rejected, "搜索文字退回顶部的反例未被检测");
+                    await LayoutAsync(page);
+                    RequireSearchTextCentered(page);
+                }
                 Require(focusField.Focus(FocusState.Programmatic), "搜索框不能获得焦点");
                 await LayoutAsync(page);
                 var focusEdge = Descendants(focusField).OfType<Border>().Single(border => border.Name == "BorderElement");
@@ -206,10 +230,29 @@ internal sealed partial class ShellNavigationProbe
                 "搜索组件没有整体上移或侵入窗口按钮区域");
         }
 
+        void RequireSearchTextCentered(LibraryPage page)
+        {
+            var input = Get<AutoSuggestBox>(page, "SearchInput");
+            var field = Descendants(input).OfType<TextBox>().Single();
+            var content = Descendants(field).OfType<ScrollViewer>().Single(node => node.Name == "ContentElement");
+            var placeholder = Descendants(field).OfType<ContentControl>()
+                .Single(node => node.Name == "PlaceholderTextContentPresenter");
+            Require(input.VerticalContentAlignment == VerticalAlignment.Center
+                && field.VerticalContentAlignment == VerticalAlignment.Center
+                && content.VerticalAlignment == VerticalAlignment.Center
+                && placeholder.VerticalContentAlignment == VerticalAlignment.Center,
+                "搜索输入与占位文字没有采用原生垂直居中");
+            Require(field.Padding.Top == 0 && field.Padding.Bottom == 0,
+                "搜索输入仍有上下内边距偏移");
+            var contentBox = Bounds(content, field);
+            Require(Math.Abs(contentBox.Top + contentBox.Height / 2 - field.ActualHeight / 2) <= 1,
+                "搜索输入文字内容区域没有垂直居中");
+        }
+
         void RequirePill(SegmentedItem item, bool selected)
         {
             var shape = Descendants(item).OfType<Grid>().Single(node => node.Name == "PART_Root");
-            Require(shape.CornerRadius == new CornerRadius(14), "来源项仍是长方形");
+            Require(shape.CornerRadius == new CornerRadius(12), "来源项仍是长方形");
             if (selected)
                 Require(Colour(shape.Background) == Role("EgAccentSoftBrush"), "来源胶囊选中底色未跟随主题");
         }

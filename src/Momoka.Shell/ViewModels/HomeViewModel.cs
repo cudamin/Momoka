@@ -772,10 +772,12 @@ public sealed partial class HomeViewModel : PageViewModel
             // 词（同 CardItem 那个 subtitle 参数上写的演职人员那条 —— 一整排卡片底下重复一遍排名，一个字的信息
             // 都不多）。空串而不是 null：null 是「按条目自己算」。多账号时卡片标题前面写服务器名，和货架标题
             // 同一份来源。
-            shelf.Fill(Items(row.Key), row.Key == HomeLayout.Libraries ? _ => "" : null,
+            // 继续观看的剧名在上、季集与集名在下；同一排换成下一集时沿用这两个选择器。
+            shelf.Fill(Items(row.Key), row.Key == HomeLayout.Libraries ? _ => ""
+                : row.Key == HomeLayout.Resume ? HomeResumeText.Subtitle : null,
                 row.Key == HomeLayout.Libraries
                     ? item => SourceCaption.Prefix(item.Name, item.Source, ShowServerNames)
-                    : null);
+                    : row.Key == HomeLayout.Resume ? HomeResumeText.Title : null);
         }
 
         // 装到了东西的排一律横着排。媒体库也在其中 —— 2026-09-08「移除轮播图右边的媒体库」之后不再单挑出来当

@@ -59,6 +59,16 @@ internal static class SearchCompactMergeTests
                 "番剧资源验证必须先核当前输入与原行身份，不得绕过结果守卫");
         });
 
+        Test("搜索输入：占位与实际输入垂直居中，保留原生文本框模板", () =>
+            CheckSearchTextAlignment(Load(sourceRoot, "LibraryPage.xaml")));
+
+        Test("搜索输入：居中契约拒绝退回顶部对齐", () =>
+        {
+            var xml = Load(sourceRoot, "LibraryPage.xaml");
+            Named(xml, "SearchInput").SetAttributeValue("VerticalContentAlignment", "Top");
+            Assert.Throws<AssertionException>(() => CheckSearchTextAlignment(xml));
+        });
+
         Test("搜索胶囊：隐藏搜索标题但保留普通媒体库标题绑定", () =>
         {
             var xml = Load(sourceRoot, "LibraryPage.xaml");
@@ -74,6 +84,17 @@ internal static class SearchCompactMergeTests
 
         Test("搜索胶囊：外卡不绘制也不占内边距", () =>
             CheckSearchCapsules(Load(sourceRoot, "LibraryPage.xaml")));
+
+        Test("搜索胶囊：更紧凑的卡片保留标准字号与原搜索框尺寸", () =>
+            CheckSourceTabSize(Load(sourceRoot, "LibraryPage.xaml")));
+
+        Test("搜索胶囊：尺寸契约拒绝恢复旧高度", () =>
+        {
+            var xml = Load(sourceRoot, "LibraryPage.xaml");
+            Named(xml, "SourceTabs").Descendants().Single(node => node.Name.LocalName == "Setter"
+                && node.Attribute("Property")?.Value == "Height").SetAttributeValue("Value", "28");
+            Assert.Throws<AssertionException>(() => CheckSourceTabSize(xml));
+        });
 
         Test("搜索胶囊：保留原生模板与四个稳定来源入口", () =>
         {
@@ -99,9 +120,10 @@ internal static class SearchCompactMergeTests
         {
             var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
             Assert.Contains("SearchEntry.Width = formWidth", source);
-            Assert.Contains("SourceTabs.Width = Math.Min(600, formWidth)", source);
+            Assert.Contains("SourceTabs.Width = Math.Min(480, formWidth)", source);
             Assert.Contains("(SourceTabs.Width - 14) / Math.Max(1, SourceTabs.Items.Count)", source);
             Assert.Contains("horizontalPadding = formWidth < 520 ? 4 : 8", source);
+            Assert.Contains("item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2)", source);
             Assert.Contains("item.MaxWidth - horizontalPadding * 2", source);
             Assert.Contains("1 => formWidth < 520 ? \"MP 订阅\" : \"MoviePilot 订阅\"", source);
             Assert.Contains("2 => formWidth < 520 ? \"MP 资源\" : \"MoviePilot 资源\"", source);
@@ -129,7 +151,7 @@ internal static class SearchCompactMergeTests
         {
             var xml = Load(sourceRoot, "LibraryPage.xaml");
             Named(xml, "SourceTabs").Descendants().Single(node => node.Name.LocalName == "Setter"
-                && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "18")
+                && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "16")
                 .SetAttributeValue("Value", "0");
             Assert.Throws<AssertionException>(() => CheckSearchCapsules(xml));
         });
@@ -173,6 +195,19 @@ internal static class SearchCompactMergeTests
             node.Attribute(Xaml + "Key")?.Value == "TextControlBorderThemeThicknessFocused").Value);
     }
 
+    private static void CheckSearchTextAlignment(XDocument xml)
+    {
+        var input = Named(xml, "SearchInput");
+        Assert.Equal("Center", input.Attribute("VerticalContentAlignment")?.Value);
+        Assert.Equal("{StaticResource LibrarySearchTextBox}", input.Attribute("TextBoxStyle")?.Value);
+        var style = xml.Descendants().Single(node => node.Attribute(Xaml + "Key")?.Value == "LibrarySearchTextBox");
+        Assert.Equal("TextBox", style.Attribute("TargetType")?.Value);
+        Assert.Equal("{StaticResource AutoSuggestBoxTextBoxStyle}", style.Attribute("BasedOn")?.Value);
+        Assert.Equal("10,0,6,0", style.Elements().Single(node =>
+            node.Attribute("Property")?.Value == "Padding").Attribute("Value")?.Value);
+        Assert.False(style.Descendants().Any(node => node.Name.LocalName == "ControlTemplate"));
+    }
+
     private static void CheckSearchCapsules(XDocument xml)
     {
         var surface = Named(xml, "SearchSurface");
@@ -184,9 +219,22 @@ internal static class SearchCompactMergeTests
         Assert.Equal("20", input.Attribute("CornerRadius")?.Value);
         var tabs = Named(xml, "SourceTabs");
         Assert.True(tabs.Descendants().Any(node => node.Name.LocalName == "Setter"
-            && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "18"));
+            && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "16"));
         Assert.True(tabs.Descendants().Any(node => node.Name.LocalName == "Setter"
-            && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "14"));
+            && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "12"));
+    }
+
+    private static void CheckSourceTabSize(XDocument xml)
+    {
+        var style = Named(xml, "SourceTabs").Elements().Single(node =>
+            node.Name.LocalName == "SearchSourceTabs.ItemContainerStyle");
+        string? Setter(string property) => style.Descendants().Single(node => node.Name.LocalName == "Setter"
+            && node.Attribute("Property")?.Value == property).Attribute("Value")?.Value;
+        Assert.Equal("24", Setter("MinHeight"));
+        Assert.Equal("24", Setter("Height"));
+        Assert.Equal("8,2", Setter("Padding"));
+        Assert.Equal("{StaticResource EgCaptionFontSize}", Setter("FontSize"));
+        Assert.Equal("40", Named(xml, "SearchInput").Attribute("MinHeight")?.Value);
     }
 
     private static void CheckSubscriptionPanel(XDocument xml)

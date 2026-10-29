@@ -90,7 +90,8 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("搜索分类、最近搜索和三种来源分流", SearchInteractionAsync);
             await CaseAsync("AniBT 搜索、资源、取消下载和连接隔离", AniBtSearchAsync, 45);
             await CaseAsync("遗漏集来源菜单、AniBT 分集查询与下载选项", AniBtEpisodeSearchAsync);
-            await CaseAsync("AniBT 逐文件识别、候选绑定和取消重新整理", AniBtScrapeAsync);
+            // 多候选恢复加五套真实主题截图已超过原12秒单场景预算；与其他多主题UI用例同为45秒。
+            await CaseAsync("AniBT 逐文件识别、候选绑定和取消重新整理", AniBtScrapeAsync, 45);
             await CaseAsync("MoviePilot 连接控制入口、断线回退与恢复", MoviePilotAvailabilityAsync);
             await CaseAsync("主页媒体库与订阅混排、显隐及偏好恢复", HomeOrderAsync, 45);
             await CaseAsync("主页排序只列当前来源、聚合切换与偏好恢复", HomeSourcesAsync, 60,

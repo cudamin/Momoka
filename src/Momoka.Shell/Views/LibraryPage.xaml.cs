@@ -730,13 +730,13 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchEntry.Width = formWidth;
         SearchForm.ColumnSpacing = 0;
         SearchForm.RowSpacing = SourceTabs.Visibility == Visibility.Visible ? 8 : 0;
-        SourceTabs.Width = Math.Min(600, formWidth);
+        SourceTabs.Width = Math.Min(480, formWidth);
         foreach (var item in SourceTabs.Items.OfType<CommunityToolkit.WinUI.Controls.SegmentedItem>())
         {
             // 4 DIP 容器内边距和三个 2 DIP 间隔；四颗胶囊始终在搜索框宽度内。
             item.Width = item.MaxWidth = Math.Max(0, (SourceTabs.Width - 14) / Math.Max(1, SourceTabs.Items.Count));
             var horizontalPadding = formWidth < 520 ? 4 : 8;
-            item.Padding = new Thickness(horizontalPadding, 4, horizontalPadding, 4);
+            item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2);
             if (item.Content is TextBlock label)
             {
                 label.MaxWidth = Math.Max(0, item.MaxWidth - horizontalPadding * 2);

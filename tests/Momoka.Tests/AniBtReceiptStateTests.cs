@@ -158,14 +158,14 @@ internal static class AniBtReceiptStateTests
 
         foreach (var mode in new[] { "copy", "link", "softlink" })
         {
-            Test("R038 实际 Submit：" + mode + " 保留原源且没有成功旧目标清理，不全扫", () =>
+            Test("R038 实际 Submit：" + mode + " 保留原源且没有成功旧目标清理，明确完成后自动重扫一次", () =>
             {
                 using var fixture = new ReceiptFixture(new FileCase(Mode: mode, HistorySuccess: false, TransferType: mode));
                 var row = fixture.Submit().Single();
                 Assert.True(row.Success);
                 Assert.Contains("已完成整理", row.Message);
-                Assert.DoesNotContain("已请求 Emby 扫描", row.Message);
-                fixture.AssertTraffic(1, 0, 1);
+                Assert.Contains("已请求 Emby 扫描", row.Message);
+                fixture.AssertTraffic(1, 1, 1);
             });
 
             Test("R038 实际 Submit：成功 " + mode + " 原记录重整清理旧目标，不能只按方式略过扫描", () =>
@@ -178,19 +178,19 @@ internal static class AniBtReceiptStateTests
                 fixture.AssertTraffic(1, 1, 1);
             });
 
-            Test("R038 实际 Submit：" + mode + " 重整回原路径且保留源，不作不必要全扫", () =>
+            Test("R038 实际 Submit：" + mode + " 重整回原路径且保留源，明确完成后自动重扫一次", () =>
             {
                 using var fixture = new ReceiptFixture(new FileCase(Mode: mode, TransferType: mode, Target: ReceiptFixture.OldTarget(0)));
                 Assert.True(fixture.Submit().Single().Success);
-                fixture.AssertTraffic(1, 0, 1);
+                fixture.AssertTraffic(1, 1, 1);
             });
         }
 
-        Test("R038 实际 Submit：原 mode=move 但本次 copy，不按旧 mode 猜源被移走", () =>
+        Test("R038 实际 Submit：原 mode=move 但本次 copy，明确完成后自动重扫一次", () =>
         {
             using var fixture = new ReceiptFixture(new FileCase(HistorySuccess: false, TransferType: "copy"));
             Assert.True(fixture.Submit().Single().Success);
-            fixture.AssertTraffic(1, 0, 1);
+            fixture.AssertTraffic(1, 1, 1);
         });
 
         Test("R038 实际 Submit：目的目录未指定方式，成功旧目标的清理仍需核对", () =>
@@ -200,11 +200,11 @@ internal static class AniBtReceiptStateTests
             fixture.AssertTraffic(1, 1, 1);
         });
 
-        Test("R038 实际 Submit：move 在原路径完成，不宣称旧路径需要移除", () =>
+        Test("R038 实际 Submit：move 在原路径完成，明确完成后自动重扫一次", () =>
         {
             using var fixture = new ReceiptFixture(new FileCase(Target: ReceiptFixture.OldTarget(0)));
             Assert.True(fixture.Submit().Single().Success);
-            fixture.AssertTraffic(1, 0, 1);
+            fixture.AssertTraffic(1, 1, 1);
         });
 
         Test("R038 实际 Submit：目标是远程存储也不能漏掉本地成功旧目标的清理扫描", () =>
@@ -226,12 +226,12 @@ internal static class AniBtReceiptStateTests
             fixture.AssertTraffic(1, 1, 1);
         });
 
-        Test("R038 实际 Submit：远程目标但复制保留源且无成功旧目标清理，不扫描", () =>
+        Test("R038 实际 Submit：远程目标但复制保留源且无成功旧目标清理，明确完成后自动重扫一次", () =>
         {
             using var fixture = new ReceiptFixture(new FileCase(Mode: "copy", TransferType: "copy",
                 HistorySuccess: false, TargetStorage: "remote"));
             Assert.True(fixture.Submit().Single().Success);
-            fixture.AssertTraffic(1, 0, 1);
+            fixture.AssertTraffic(1, 1, 1);
         });
 
         Test("R038 远程对象相对路径完成仍核本地成功旧目标清理", () =>
@@ -245,12 +245,12 @@ internal static class AniBtReceiptStateTests
             fixture.AssertTraffic(1, 1, 1);
             fixture.AssertReplayBlocked();
         });
-        Test("R038 远程对象相对路径无成功旧目标时不扩大扫描", () =>
+        Test("R038 远程对象相对路径无成功旧目标时不扩大扫描，明确完成后自动重扫一次", () =>
         {
             using var fixture = new ReceiptFixture(new FileCase(Mode: "copy", TransferType: "copy",
                 HistorySuccess: false, TargetStorage: "remote", Target: "folder/anonymous-1.mkv"));
             Assert.True(fixture.Submit().Single().Success);
-            fixture.AssertTraffic(1, 0, 1);
+            fixture.AssertTraffic(1, 1, 1);
         });
         Test("R038 本地完成目标仍须是绝对路径才确认扫描影响", () =>
         {
@@ -259,6 +259,19 @@ internal static class AniBtReceiptStateTests
             Assert.True(fixture.Submit().Single().Success);
             fixture.AssertTraffic(1, 0, 1);
         });
+        Test("AniBT 多种方式全部完成，一批只重扫一次且简短结果明确", () =>
+        {
+            using var fixture = new ReceiptFixture(
+                new FileCase(Mode: "copy", HistorySuccess: false, TransferType: "copy"),
+                new FileCase(Mode: "link", HistorySuccess: false, TransferType: "link"),
+                new FileCase(Mode: "softlink", HistorySuccess: false, TransferType: "softlink"));
+            var rows = fixture.Submit();
+            Assert.True(rows.All(row => row.Success));
+            Assert.True(rows.All(row => row.DisplayMessage == "整理完成 · 已请求媒体库重扫"));
+            fixture.AssertTraffic(3, 1, 3);
+            fixture.AssertReplayBlocked();
+        });
+
         Test("R038 实际 Submit：扫描失败仍保留完成整理与手动恢复，不能许可整理重试", () =>
         {
             using var fixture = new ReceiptFixture(new FileCase());
@@ -267,6 +280,7 @@ internal static class AniBtReceiptStateTests
             Assert.True(row.Success);
             Assert.Contains("已完成整理", row.Message);
             Assert.Contains("扫描请求失败", row.Message);
+            Assert.Contains("重扫未完成", row.DisplayMessage);
             Assert.Contains("手动扫描媒体库", row.Message);
             Assert.Contains("勿重复", row.Message);
             fixture.AssertTraffic(1, 1, 1);

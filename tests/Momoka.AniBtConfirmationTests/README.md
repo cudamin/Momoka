@@ -7,7 +7,7 @@
 - 默认项目直接 compile-link 本树 Core、实际 AniBtScrapeViewModel、PageViewModel、AniBtScrapeDialog code-behind；使用与 Shell 相同的 CommunityToolkit.Mvvm **8.4.2** 生成器。
 - 实际 Dialog XAML 作为资源输入；边界只替代控件值、InitializeComponent 与事件投递。通用绑定求值不包含预览/确认业务状态机，全部状态转移仍执行生产源码。
 - AnonymousFixture 安装内存 EmbySessionScope 和无密钥 cached MoviePilot 身份；请求由虚拟 HttpMessageHandler 白名单接收。NoSecrets 的保护/解密入口一律抛错。不登录、不测试连接、不恢复/重认证、不读取配置/DPAPI、不创建或触碰 JSON 中的媒体路径，无实际网络/服务器操作。
-- 默认 **53 项**覆盖精确/无关/年份候选、实际预览零写入、取消/改选/迟到读取、实际 Emby 电影/整剧目标、sealed MoviePilot source/target/方式/旧目标、混合批次提前准备、历史变化、连接变化、unknown/停止/防重，以及 R-024 的原 Apply+Refresh 欠项不被重发掩盖。
+- 默认 **54 项**覆盖精确/无关/年份候选、自动显示目标零写入、取消/改选/迟到读取、实际 Emby 电影/整剧目标、sealed MoviePilot source/target/方式/旧目标的一句风险提示与结构化主题色字段、混合批次提前准备、历史变化、连接变化、unknown/停止/防重，以及 R-024 的原 Apply+Refresh 欠项不被重发掩盖。
 - [Legacy 专项项目](Legacy/Momoka.Tests.csproj) 只注册实际 AniBtTests、AniBtIntegrationTests、AniBtReceiptStateTests（**87 项**），引用实际 Core。项目名沿用仓库对同步测试运行器的既有分析器条件；不加 NoWarn、不更新约定基线，不运行 full Core、自检或用户级 mutex。
 - 确认提交前增加整批历史快照/旧目标依赖只读重核；既有 MoviePilot TransferSubmit 的逐文件临发送核验也保留。所有规划/预览先于第一个 write；临发送核验仍可以在已处理前项之后拒绝后项并保留原逐项结果。客户端重核不是服务器原子事务，不能把 preview、accepted 或 Emby Refresh 请求当完成/回读证明。
 
@@ -40,8 +40,8 @@ $root = (Get-Location).Path
 ## 取舍与不声称通过的范围
 
 - 只自动准备规范化精确中文/原文标题；同年优先，保留原有 ±1 年发行/首播差异及精确标题但未知年份候选。全部明确年份不符、仅包含标题、无关首条都拒绝，引导普通识别；不猜 ProviderId。
-- 用户每次先点“预览计划”，核对真实内容后再点“确认执行”。更改选择或取消使原凭证永久失效。确认后的提交/read failure 沿原保守策略锁住本次界面，需核对服务器后关闭重开，不能靠改选或重新预览解锁已发送文件。
-- 额外真实目标详情读取和确认前整批历史/依赖重核增加只读请求；它们不改变已确认候选、路径或方式。MoviePilot 原逐项临发送核验、账本、unknown、半成功、停止和 R-038 扫描判定没有被替代。
+- 打开对话框或更改识别结果时自动只读准备并显示实际目标；核对后只需点击一次“重新整理”。更改选择或关闭使原凭证永久失效。提交后的写入/read failure 沿原保守策略锁住本次界面，需核对服务器后关闭重开，不能靠改选或重新预览解锁已发送文件。
+- 额外真实目标详情读取和确认前整批历史/依赖重核增加只读请求；它们不改变已确认候选、路径或方式。MoviePilot 原逐项临发送核验、账本、unknown、半成功、停止和 R-038 完成回执、当前身份、单批一次扫描及失败不重整的边界仍保留；用户要求的复制／链接／原路径完成后自动重扫同样覆盖。
 - **未运行**真实应用/窗口、WinUI 输入/布局/滚动/焦点/UIA/像素/主题截图、服务器、媒体文件、凭据、播放、libmpv、系统配置、发布或推送。模板内地址仍需主线程在获授权的运行环境核验。
 - R-042 条件、次级来源写权限、R-024 完成后回读不在本题修复范围。主线程整合后串行 full Core/SelfCheck/UI/发布另验；桌面快捷方式仍是旧版。
 

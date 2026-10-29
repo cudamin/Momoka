@@ -329,20 +329,19 @@ internal static class Program
 
     private static void DialogCases()
     {
-        AsyncCase("R037 实际Dialog第一击显示最终整剧候选和覆盖影响，第二击才write", async queue =>
+        AsyncCase("R037 实际Dialog自动显示最终整剧候选和覆盖影响，一击才write", async queue =>
         {
             using var f = new AnonymousFixture();
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            Assert.Equal("预览计划", dialog.PrimaryButtonText);
-            await dialog.PrimaryForFixtureAsync(queue);
+            Assert.Equal("重新整理", dialog.PrimaryButtonText);
             f.AssertZeroWrites();
-            Assert.Equal("确认执行", dialog.PrimaryButtonText);
+            Assert.Equal("重新整理", dialog.PrimaryButtonText);
             var row = dialog.ViewModel.Rows.Single();
             var text = PreviewText(dialog, row);
             Assert.Contains("实际库内整剧", text);
-            Assert.Contains("series-1", text);
+            Assert.Contains("series-1", row.PreviewDetails);
             Assert.Contains("整部剧", text);
             Assert.Contains("匿名动画", text);
             Assert.Contains("2026", text);
@@ -361,11 +360,10 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             var text = PreviewText(dialog, dialog.ViewModel.Rows.Single());
             Assert.Contains("实际库内电影", text);
-            Assert.Contains("movie-1", text);
+            Assert.Contains("movie-1", dialog.ViewModel.Rows.Single().PreviewDetails);
             Assert.Contains("电影", text);
         });
         AsyncCase("R039 实际Dialog history真实Source Target方式旧目标均可核验", async queue =>
@@ -375,31 +373,31 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             var text = PreviewText(dialog, dialog.ViewModel.Rows.Single());
-            Assert.Contains(AnonymousHandler.OldPath(0), text);
             Assert.Contains(AnonymousHandler.NewPath(0), text);
-            Assert.Contains("softlink", text);
+            Assert.Contains("软链接", text);
             Assert.Contains("旧目标", text);
-            Assert.Contains("旧历史", text);
-            Assert.Contains("清理", text);
-            Assert.Contains("#1", text);
+            Assert.Contains("保留源文件", text);
+            Assert.DoesNotContain("TransferType", text);
+            Assert.DoesNotContain("旧历史", text);
+            Assert.DoesNotContain("#1", text);
+            Assert.DoesNotContain("预览", text);
+            Assert.True(text.Length < 350, "整理目标不再堆重复路径和日志说明");
             Assert.Equal(1, f.Handler.Previews);
         });
-        AsyncCase("R039 实际Dialog取消预览使绑定收起且0preview:false", async queue =>
+        AsyncCase("R039 自动目标没有取消预览二次流程，关闭仍零写", async queue =>
         {
             using var f = new AnonymousFixture(1);
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
-            Assert.True(dialog.HasControl("CancelPreview"));
-            dialog.ClickForFixture("CancelPreview");
-            Assert.Equal("预览计划", dialog.PrimaryButtonText);
-            Assert.Equal(Visibility.Collapsed, dialog.BoundValue("PreparedPlan", "Visibility", dialog.ViewModel.Rows.Single()));
-            Assert.Equal(Visibility.Collapsed, dialog.BoundValue("CancelPreview", "Visibility"));
+            Assert.False(dialog.HasControl("CancelPreview"));
+            Assert.Equal("重新整理", dialog.PrimaryButtonText);
+            Assert.Equal(Visibility.Collapsed, dialog.BoundValue("RetryPrepare", "Visibility"));
+            Assert.True(dialog.CloseForFixture());
+            Assert.False(dialog.IsPrimaryButtonEnabled);
             f.AssertZeroWrites();
         });
         AsyncCase("R039 实际Dialog关闭取消整个VM，不能再submit", async queue =>
@@ -408,42 +406,41 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             Assert.True(dialog.CloseForFixture());
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             Assert.False(dialog.IsPrimaryButtonEnabled);
         });
-        AsyncCase("R039 实际VM更改AniBT选择使原preview失效，下一击仅重新预览", async queue =>
+        AsyncCase("R039 更改识别结果立即撤销旧目标并自动读取新目标，零写", async queue =>
         {
             using var f = new AnonymousFixture(1);
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
-            f.AssertZeroWrites();
             var row = dialog.ViewModel.Rows.Single();
             row.Selected = row.Candidates.Single(choice => choice.BgmId == 43);
-            Assert.Equal("预览计划", dialog.PrimaryButtonText);
-            Assert.Equal(Visibility.Collapsed, dialog.BoundValue("PreparedPlan", "Visibility", row));
-            await dialog.PrimaryForFixtureAsync(queue);
+            await queue.IdleAsync();
             f.AssertZeroWrites();
             Assert.Equal(2, f.Handler.Previews);
-            Assert.Equal("确认执行", dialog.PrimaryButtonText);
+            Assert.Equal("重新整理", dialog.PrimaryButtonText);
+            Assert.True(dialog.IsPrimaryButtonEnabled);
+            Assert.Contains("另一部动画", PreviewText(dialog, row));
         });
-        AsyncCase("R037 实际VM读取失败不显示确认按钮且0write", async queue =>
+        AsyncCase("R037 自动读取失败显示恢复入口，主按钮不写", async queue =>
         {
             using var f = new AnonymousFixture();
+            f.Handler.ReadFailure = true;
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            f.Handler.ReadFailure = true;
+            f.AssertZeroWrites();
+            Assert.Equal("重新整理", dialog.PrimaryButtonText);
+            Assert.False(dialog.IsPrimaryButtonEnabled);
+            Assert.True(dialog.ViewModel.NoticeOpen);
+            Assert.Equal(Visibility.Visible, dialog.BoundValue("RetryPrepare", "Visibility"));
+            Assert.Equal(Visibility.Collapsed, dialog.BoundValue("PreparedPlan", "Visibility", dialog.ViewModel.Rows.Single()));
             await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
-            Assert.Equal("预览计划", dialog.PrimaryButtonText);
-            Assert.True(dialog.ViewModel.NoticeOpen);
-            Assert.Equal(Visibility.Collapsed, dialog.BoundValue("PreparedPlan", "Visibility", dialog.ViewModel.Rows.Single()));
         });
         AsyncCase("R039 实际Dialog scope变更后确认0write", async queue =>
         {
@@ -451,7 +448,6 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             f.SetCurrent(f.OtherScope);
             await dialog.PrimaryForFixtureAsync(queue);
@@ -463,7 +459,6 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             f.ChangeEmbyConnection();
             await dialog.PrimaryForFixtureAsync(queue);
@@ -475,45 +470,50 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             f.Settings.MoviePilot.Enabled = false;
             await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             Assert.True(dialog.ViewModel.NoticeOpen);
         });
-        AsyncCase("R037 实际VM预览等待中变更选择拒绝迟到preview", async queue =>
+        AsyncCase("R037 改选取消在途只读目标，迟到回话不恢复旧结果", async queue =>
         {
             using var f = new AnonymousFixture();
+            f.Handler.PauseNextSearch();
             var dialog = f.Dialog();
             dialog.OpenForFixture();
-            await queue.IdleAsync();
-            f.Handler.PauseNextSearch();
-            var click = dialog.PrimaryForFixtureAsync(queue);
             await f.Handler.PauseStarted!.Task;
             var row = dialog.ViewModel.Rows.Single();
-            row.Selected = row.Candidates.Single(choice => choice.BgmId == 43);
+            row.Selected = null;
             f.Handler.ResumeSearch();
-            await click;
+            await queue.IdleAsync();
             f.AssertZeroWrites();
-            Assert.Equal("预览计划", dialog.PrimaryButtonText);
+            Assert.False(dialog.IsPrimaryButtonEnabled);
             Assert.Equal(Visibility.Collapsed, dialog.BoundValue("PreparedPlan", "Visibility", row));
+            f.Handler.SearchReply = "[{\"Name\":\"另一部动画\",\"ProductionYear\":2025,\"ProviderIds\":{\"Tmdb\":\"verified-43\"},\"SearchProviderName\":\"TheMovieDb\"}]";
+            row.Selected = row.Candidates.Single(choice => choice.BgmId == 43);
+            await queue.IdleAsync();
+            Assert.Contains("另一部动画", PreviewText(dialog, row));
+            Assert.True(dialog.IsPrimaryButtonEnabled);
+            f.AssertZeroWrites();
         });
-        AsyncCase("R039 实际VM失败preview不可确认，恢复后须重新只读", async queue =>
+        AsyncCase("R039 整理目标校验失败不可提交，恢复按钮只重读一次不写", async queue =>
         {
             using var f = new AnonymousFixture(1);
+            f.Handler.BadPreview = true;
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            f.Handler.BadPreview = true;
-            await dialog.PrimaryForFixtureAsync(queue);
+            Assert.False(dialog.IsPrimaryButtonEnabled);
+            Assert.Equal(Visibility.Visible, dialog.BoundValue("RetryPrepare", "Visibility"));
             f.AssertZeroWrites();
-            Assert.Equal("预览计划", dialog.PrimaryButtonText);
             f.Handler.BadPreview = false;
-            await dialog.PrimaryForFixtureAsync(queue);
+            dialog.ClickForFixture("RetryPrepare");
+            await queue.IdleAsync();
             f.AssertZeroWrites();
-            Assert.Equal("确认执行", dialog.PrimaryButtonText);
+            Assert.True(dialog.IsPrimaryButtonEnabled);
             Assert.Equal(2, f.Handler.Previews);
+            Assert.Equal(Visibility.Collapsed, dialog.BoundValue("RetryPrepare", "Visibility"));
         });
         AsyncCase("R039 实际Dialog unknown回执保锁，直接按钮和新预览均不再write", async queue =>
         {
@@ -521,7 +521,6 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             f.Handler.LostReceipt = true;
             await dialog.PrimaryForFixtureAsync(queue);
@@ -540,7 +539,7 @@ internal static class Program
             await queue.IdleAsync();
             Assert.True(ReferenceEquals(dialog.ViewModel.Rows, dialog.BoundValue("ScrapeFiles", "ItemsSource")));
             Assert.True(dialog.HasControl("AnimeChoice"));
-            Assert.True(dialog.HasControl("CancelPreview"));
+            Assert.True(dialog.HasControl("RetryPrepare"));
             foreach (var element in dialog.Markup.Descendants().Where(element => element.Attributes().Any(attribute => attribute.Value.Contains("Preview", StringComparison.Ordinal))))
                 foreach (var attribute in element.Attributes().Where(attribute => attribute.Value.StartsWith("{x:Bind", StringComparison.Ordinal)))
                     Assert.Contains("Mode=OneWay", attribute.Value);
@@ -555,22 +554,40 @@ internal static class Program
                 Assert.True(text.Attribute("Foreground") is null || text.Attribute("Foreground")!.Value.StartsWith("{ThemeResource Eg", StringComparison.Ordinal));
             }
             Assert.True(typeof(AniBtScrapeRowViewModel).GetProperty("Selected")!.SetMethod is not null, "真实8.4.2生成器setter");
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
-            Assert.Equal(Visibility.Visible, dialog.BoundValue("CancelPreview", "Visibility"));
+            Assert.Equal(Visibility.Collapsed, dialog.BoundValue("RetryPrepare", "Visibility"));
         });
-        AsyncCase("R039 实际Dialog只读preview在途关闭立即撤销且0write", async queue =>
+        AsyncCase("AniBT 精简目标字段有独立绑定，重点使用当前主题角色", async queue =>
         {
-            using var f = new AnonymousFixture();
+            using var f = new AnonymousFixture(1);
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
+            var row = dialog.ViewModel.Rows.Single();
+            Assert.Equal("AniBT 重新整理", dialog.Title);
+            Assert.False(dialog.HasControl("PreviewDetailsText"));
+            var primaryStyle = dialog.Markup.Descendants().Single(element => element.Name.LocalName == "ContentDialog.PrimaryButtonStyle");
+            Assert.Equal("{ThemeResource EgAccentBrush}", primaryStyle.Descendants().Single(element => element.Name.LocalName == "Setter" && element.Attribute("Property")?.Value == "Background").Attribute("Value")!.Value);
+            foreach (var name in new[] { "PreviewHeadingText", "EpisodeLabelText", "DestinationFileText", "ScrapeResultText" })
+                Assert.Equal("{ThemeResource EgAccentBrush}", dialog.BoundValue(name, "Foreground", row));
+            Assert.Equal("匿名动画", dialog.BoundValue("PreviewHeadingText", "Text", row));
+            Assert.True(row.DestinationDirectory.Length > 0);
+            Assert.True(row.DestinationFile.Length > 0);
+            Assert.DoesNotContain("TransferType", PreviewText(dialog, row));
+            Assert.DoesNotContain("确认执行", dialog.Markup.ToString());
+            f.AssertZeroWrites();
+        });
+
+        AsyncCase("R039 自动只读目标在途关闭立即撤销且0write", async queue =>
+        {
+            using var f = new AnonymousFixture();
             f.Handler.PauseNextSearch();
-            var click = dialog.PrimaryForFixtureAsync(queue);
+            var dialog = f.Dialog();
+            dialog.OpenForFixture();
             await f.Handler.PauseStarted!.Task;
-            Assert.True(dialog.CloseForFixture(), "只读阶段必须可关闭/取消；不能拿写入锁挡取消");
+            Assert.True(dialog.CloseForFixture(), "只读阶段必须可关闭，不拿写入锁挡取消");
             f.Handler.ResumeSearch();
-            await click;
+            await queue.IdleAsync();
             f.AssertZeroWrites();
             Assert.False(dialog.IsPrimaryButtonEnabled);
         });
@@ -588,37 +605,36 @@ internal static class Program
             Assert.False(dialog.IsPrimaryButtonEnabled);
             f.AssertZeroWrites();
         });
-        AsyncCase("R039 实际Dialog预览期双击不会误转提交", async queue =>
+        AsyncCase("R039 自动读取中主按钮双击不提交，读取后仍只读", async queue =>
         {
             using var f = new AnonymousFixture();
+            f.Handler.PauseNextSearch();
             var dialog = f.Dialog();
             dialog.OpenForFixture();
-            await queue.IdleAsync();
-            f.Handler.PauseNextSearch();
-            var first = dialog.PrimaryForFixtureAsync(queue);
             await f.Handler.PauseStarted!.Task;
+            var first = dialog.PrimaryForFixtureAsync(queue);
             var second = dialog.PrimaryForFixtureAsync(queue);
             f.Handler.ResumeSearch();
             await Task.WhenAll(first, second);
             f.AssertZeroWrites();
-            Assert.Equal("确认执行", dialog.PrimaryButtonText);
+            Assert.True(dialog.IsPrimaryButtonEnabled);
+            Assert.Equal("重新整理", dialog.PrimaryButtonText);
         });
-        AsyncCase("R039 实际Dialog选择A到B到A仍清除旧preview", async queue =>
+        AsyncCase("R039 选择A到B到A撤销旧凭证并自动读取，不能复用旧目标", async queue =>
         {
             using var f = new AnonymousFixture(1);
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
-            f.AssertZeroWrites();
             var row = dialog.ViewModel.Rows.Single();
             var original = row.Selected;
             row.Selected = row.Candidates.Single(choice => choice.BgmId == 43);
             row.Selected = original;
-            Assert.Equal("预览计划", dialog.PrimaryButtonText);
-            Assert.Equal(Visibility.Collapsed, dialog.BoundValue("PreparedPlan", "Visibility", row));
-            await dialog.PrimaryForFixtureAsync(queue);
-            Assert.Equal(2, f.Handler.Previews);
+            await queue.IdleAsync();
+            Assert.Equal("重新整理", dialog.PrimaryButtonText);
+            Assert.True(dialog.IsPrimaryButtonEnabled);
+            Assert.Contains("匿名动画", PreviewText(dialog, row));
+            Assert.True(f.Handler.Previews >= 2);
             f.AssertZeroWrites();
         });
         AsyncCase("R039 实际Dialog确认后结果不明改选取消不能解锁", async queue =>
@@ -627,7 +643,6 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             f.Handler.UnknownReceipt = true;
             await dialog.PrimaryForFixtureAsync(queue);
@@ -646,7 +661,6 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             f.Handler.OnRequest = request =>
             {
@@ -663,7 +677,6 @@ internal static class Program
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
             f.Handler.OnRequest = request =>
             {
@@ -674,17 +687,17 @@ internal static class Program
             Assert.Equal(0, f.Handler.Requests.Count(request => request.Path.Contains("Library/Refresh", StringComparison.Ordinal)));
             Assert.Contains("取消或连接改变", dialog.ViewModel.Rows[1].Result);
         });
-        AsyncCase("R037 初始计划后Emby连接变化不得借新连接预览旧文件", async queue =>
+        AsyncCase("R037 自动目标后Emby连接变化不得借新连接读旧文件或写入", async queue =>
         {
             using var f = new AnonymousFixture();
             var dialog = f.Dialog();
             dialog.OpenForFixture();
             await queue.IdleAsync();
+            var reads = f.Handler.Requests.Count(request => request.Path.Contains("RemoteSearch/Series", StringComparison.Ordinal));
             f.ChangeEmbyConnection();
             await dialog.PrimaryForFixtureAsync(queue);
             f.AssertZeroWrites();
-            Assert.Equal(0, f.Handler.Requests.Count(request => request.Path.Contains("RemoteSearch/Series", StringComparison.Ordinal)),
-                "旧文件计划不能从新连接读取/确认另一个实际目标");
+            Assert.Equal(reads, f.Handler.Requests.Count(request => request.Path.Contains("RemoteSearch/Series", StringComparison.Ordinal)));
             Assert.False(dialog.IsPrimaryButtonEnabled);
         });
     }
@@ -692,7 +705,15 @@ internal static class Program
     private static string PreviewText(AniBtScrapeDialog dialog, AniBtScrapeRowViewModel row)
     {
         Assert.Equal(Visibility.Visible, dialog.BoundValue("PreparedPlan", "Visibility", row));
-        return dialog.BoundValue("PreviewHeadingText", "Text", row) + "\n" + dialog.BoundValue("PreviewDetailsText", "Text", row);
+        return string.Join("\n", new[]
+        {
+            dialog.BoundValue("PreviewHeadingText", "Text", row),
+            dialog.BoundValue("EpisodeLabelText", "Text", row),
+            dialog.BoundValue("TransferMethodText", "Text", row),
+            dialog.BoundValue("SourceDirectoryText", "Text", row),
+            dialog.BoundValue("DestinationDirectoryText", "Text", row) + "/" + dialog.BoundValue("DestinationFileText", "Text", row),
+            dialog.BoundValue("TargetWarningText", "Text", row)
+        });
     }
 
     private static async Task<Exception?> CaptureAsync(Func<Task> action)
