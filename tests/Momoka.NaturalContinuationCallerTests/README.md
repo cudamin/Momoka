@@ -193,3 +193,10 @@ LibMpvBackend.cs 这一个 SHA256** 为 `a154d0d9b4c2dba82a478f70d8956f5a1d50834
 ## SVP 接入后的来源复核（2026-10-28）
 
 本轮只更新四份受影响来源的固定哈希：内置后端增加可选组件／管道生命周期与换片禁止标志；播放票据增加默认关闭的 SVP 字段；画面菜单按实际播放状态筛选；HandleFixture 增加可选 SVP 签名参数。自然接续的提取方法、所有权字段及原验证边界保持不变，原 caller 测试继续执行，不接受整份新快照或降低拒绝条件。
+
+
+## 2026-10-29 性能修复来源复核
+
+`57d0aa7` 只修改内置后端的事件线程迟到回收与 speed 绝对值队列；本专项实际提取的 PlayerViewModel 方法、捕获来源、接续 await-using 及其余18份来源均逐一核对未变。本专项不构造 LibMpvHandle，native/gate控制流另由37项完整handle资源/EOF与44项shader/线程测试验证。仅将这一份 `src/Momoka.Core/Playback/LibMpvBackend.cs` 的固定 SHA256 从 `a1cbc7ec4ff5523baa36844592943197846d08f755c6ccaaa9a8eafbf2d5383c` 更新为 `c26eebec5280e0ee1e647a733cd713164c6c9b195d04b84f5596a7dbc8a0611e`；baseCommit/date、提取规则、失败条件与其它pin不动。原SOURCE_HASH_MISMATCH日志保留在父树 `artifacts/performance-repair/native/solution-build.txt`。更新后须运行原caller与全部反例，并在最终图片回填改动集成后复核Events.cs那一份来源，而非整份自动刷新。
+
+此次1项来源同步后，实际caller54项0失败0跳过；`Test-SourceExtraction.ps1`原10反例逐个按预期退出1，最后当前源重新0警告0错误构建并54项全过。证据：`artifacts/performance-repair/native/caller.txt`、`caller-negative.txt`及`artifacts/r046-caller/native-perf-extractor-20261029-181031-184`。一次忘传参数被入口拒绝，未回退主程序或旧测试，失败输出保留。

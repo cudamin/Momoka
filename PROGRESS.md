@@ -9030,3 +9030,5 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 用户授权由实现方决定修复已确认问题。父树 `codex/performance-resource-repair` / `C:\Users\89400\.codex\worktrees\performance-resource-repair\Momoka` 基于 `e3473f10`，主代理写 libmpv 迟到回收、speed 绝对值待办及集成文件；六个子代理各用独立树，页面生命周期、设置、图片、弹幕/Lua、列表/诊断、消息/日志预算写范围分离。保护 master 其他会话改动，不直接并行写主树，不 push、不真实播放/凭据，不刷新共享发布目录。待各项回归、独立复核、安全整合 master 后重新验证和交付；当前不能把审查证据视为修复验收。
 
 父树 native 首轮：PERF-02 生产 EventLoop 发完成信号，超时后单异步回收者等待并 Join 真线程再 Destroy；PERF-08 只针对高频 speed 绝对值，用单 worker/单待办合并，保留所有其他属性与相对命令契约。补 10 项真实全 handle/gate 回归（含旧入口不能覆盖新代 pending），和 27 项既有 EOF/REDIRECT 合计37全过0跳过；ShaderCommandGeneration 当前44全过0跳过，Core/测试0警告0错误。均为匿名托管native seam，未加载DLL/媒体，真实管线与最终整合尚待。
+
+native追加验证：批准libmpv SHA256逐字匹配后，实际当前Core DLL在独立子进程跑12轮空闲context（video/audio/vo/ao关闭、无窗口/脚本/媒体/网络/账号）；真实最终speed=2.28，reader已退出，SVP假租约一次回收，重复Dispose不重复。常规收尾1.93～8.22ms仅空闲环境，不代表实播GPU或故障超时。完整方案首次因R046 LibMpvBackend固定源SHA漂移失败；逐份核对19pin，仅该1份改动，更新后原caller54/54，提取器10拒绝反例均按预期退出1再当前源54/54。日志保留在artifacts/performance-repair和artifacts/r046-caller；未放宽检查、未宣称最终整合构建已绿。
