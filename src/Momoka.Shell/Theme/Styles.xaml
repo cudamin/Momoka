@@ -162,12 +162,17 @@
 
       下载弹窗不在名单里：它头上那四个本地属性原样保留（本地值优先），图二的样子一个像素不动。
       以后哪张表要有例外，在它自己头上写属性即可，不用拆这条。
+
+      2026-10-29 起这条样式还负责「点弹窗外面就关掉它」（DialogDismiss.ClosesOnOutsideClick）：
+      用户要的是项目里所有弹窗、以及以后新增的弹窗都有这一下，所以它跟表面属性放在同一条基础样式上，
+      派生类型那一行只接样式就一起带上。不想有这一下的表在自己头上写 False，不用改这里。
     -->
     <Style x:Key="EgDialogSurfaceStyle" TargetType="ContentDialog" BasedOn="{StaticResource DefaultContentDialogStyle}">
         <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
         <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="CornerRadius" Value="{StaticResource EgCardCornerRadius}" />
+        <Setter Property="local:DialogDismiss.ClosesOnOutsideClick" Value="True" />
     </Style>
 
     <!-- 媒体库弹窗（2026-10-28）：只覆盖库管理相关类型，背景与设置侧栏使用同一个主题角色。
@@ -206,6 +211,12 @@
     <Style TargetType="local:NotificationServicePicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:RefreshMetadataDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
     <Style TargetType="local:SubtitleDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />
+
+    <!-- 下载弹窗自己的表面写在它头上（见上一条），这里只给它「点外面就关」那一项：不接这一行，它是
+         全项目唯一一张点了外面没反应的弹窗。 -->
+    <Style TargetType="local:MoviePilotDownloadDialog" BasedOn="{StaticResource DefaultContentDialogStyle}">
+        <Setter Property="local:DialogDismiss.ClosesOnOutsideClick" Value="True" />
+    </Style>
 
     <!-- 发丝线的粗细。结构靠它，不靠色块 —— 所以只有一档，加粗只发生在框线变强调色的时候。 -->
     <Thickness x:Key="EgHairline">1</Thickness>

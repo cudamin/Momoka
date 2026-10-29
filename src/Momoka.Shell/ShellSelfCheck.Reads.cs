@@ -847,7 +847,9 @@ internal static partial class ShellSelfCheck
             try
             {
                 var dialog = build();
-                notes.Add($"{what}「{dialog.Title}」");
+                // 有的表把标题画成一行界面元素（字幕管理右上角那颗 ✕ 就在标题行里），Title 便不是字符串；
+                // 这一关问的是「搭得起来吗」，那种情况记标签本身即可，不把元素读成文字。
+                notes.Add(dialog.Title is string title ? $"{what}「{title}」" : what);
             }
             catch (Exception error)
             {

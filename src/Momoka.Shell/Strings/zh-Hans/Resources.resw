@@ -705,12 +705,6 @@
   <data name="SubtitleDialog_Button4.Content" xml:space="preserve">
     <value>下载</value>
   </data>
-  <data name="SubtitleDialog_ContentDialog1.CloseButtonText" xml:space="preserve">
-    <value>关闭</value>
-  </data>
-  <data name="SubtitleDialog_ContentDialog1.Title" xml:space="preserve">
-    <value>搜索和修改字幕</value>
-  </data>
   <data name="SubtitleDialog_LanguageBox.Header" xml:space="preserve">
     <value>语言</value>
   </data>

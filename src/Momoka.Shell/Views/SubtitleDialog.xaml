@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 字幕文件的搜索、下载与删除即时生效；关闭后由调用方按 Touched / NeedsRefresh 重读。 -->
-<ContentDialog x:Uid="SubtitleDialog_ContentDialog1"
+<!-- 字幕文件的搜索、下载与删除即时生效；关闭后由调用方按 Touched / NeedsRefresh 重读。
+
+     2026-10-29 用户令：关闭钮搬到右上角、右下那颗去掉。模板的标题区只画正文（它是 ContentPresenter，
+     左边对齐、宽度由内容定），所以标题交给这张表自己搭一行：文字在左、✕ 在右，行宽跟着正文走
+     （FitLayout 把 SubtitleBody 的宽度同时写给这一行），✕ 才真的落在右上角而不是紧贴着标题字。
+     去掉 CloseButtonText 之后模板的 ButtonsVisibilityStates 会落到 NoneVisible，底部按钮区连那条
+     24 DIP 的上边距一起收起。 -->
+<ContentDialog
     x:Class="Momoka.Shell.Views.SubtitleDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -12,7 +18,26 @@
         <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
     </ContentDialog.Resources>
 
-    <!-- 整张表可滚动；正文宽高按 XamlRoot 收缩，不让小窗口裁掉搜索和关闭按钮。 -->
+    <ContentDialog.Title>
+        <Grid x:Name="DialogTitleRow" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="DialogTitleText" Style="{StaticResource EgSectionTitleStyle}"
+                TextWrapping="Wrap" VerticalAlignment="Center" />
+            <!-- 尺寸与筛选面板那颗 ✕ 同一套：透明底、8 DIP 内边距、E711；字号取次标题那档，
+                 压在 20 号标题右边才不至于显得是个小点（同下载弹窗的取消下载）。 -->
+            <Button x:Name="HeaderCloseButton" Grid.Column="1" Click="OnClose"
+                AutomationProperties.Name="关闭字幕管理" Background="Transparent" BorderThickness="0"
+                Padding="8" ToolTipService.ToolTip="关闭" VerticalAlignment="Center">
+                <FontIcon FontSize="{StaticResource EgSubheadFontSize}" Glyph="&#xE711;" />
+            </Button>
+        </Grid>
+    </ContentDialog.Title>
+
+    <!-- 整张表可滚动；正文宽高按 XamlRoot 收缩，不让小窗口裁掉搜索按钮。标题行在滚动区外面，
+         所以滚到哪儿 ✕ 都在右上角。 -->
     <ScrollViewer x:Name="SubtitleScroll"
         Padding="{StaticResource EgScrollBarLane}"
         HorizontalScrollBarVisibility="Disabled" HorizontalScrollMode="Disabled"
