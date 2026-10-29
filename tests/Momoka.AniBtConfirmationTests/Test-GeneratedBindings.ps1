@@ -38,17 +38,17 @@ function Get-ActualMethod([string]$Name) {
 }
 Assert-Contract ($text.Contains('GeneratedCodeAttribute("Microsoft.UI.Xaml.Markup.Compiler"')) '真实WinUI生成器来源'
 Assert-Contract ($text.Contains('private global::Momoka.Shell.ViewModels.AniBtScrapeRowViewModel dataRoot;')) '行模板绑定真实行VM'
-foreach ($member in @('PreviewHeading', 'PreviewDetails')) {
+foreach ($member in @('DestinationTitle', 'EpisodeLabel', 'TransferMethod', 'SourceDirectory', 'DestinationDirectory', 'DestinationFile', 'TargetWarning', 'DisplayResult')) {
     $body = Get-ActualMethod ('Update_' + $member)
     Assert-Contract ($body.Contains('Set_Microsoft_UI_Xaml_Controls_TextBlock_Text(') -and $body.Contains('DATA_CHANGED')) "$member 绑定实际TextBlock动态更新"
 }
 Assert-Contract ((Get-ActualMethod 'Update_PreviewVisibility').Contains('Set_Microsoft_UI_Xaml_UIElement_Visibility(')) '实际内联计划Visibility'
-Assert-Contract ((Get-ActualMethod 'Update_ViewModel_PrimaryButtonText').Contains('Set_Microsoft_UI_Xaml_Controls_ContentDialog_PrimaryButtonText(')) '实际主按钮预览/确认文本'
+Assert-Contract ((Get-ActualMethod 'Update_ViewModel_PrimaryButtonText').Contains('Set_Microsoft_UI_Xaml_Controls_ContentDialog_PrimaryButtonText(')) '实际重新整理主按钮文本'
 Assert-Contract ((Get-ActualMethod 'Update_ViewModel_CanAct').Contains('Set_Microsoft_UI_Xaml_Controls_ContentDialog_IsPrimaryButtonEnabled(')) '实际主按钮CanAct'
-Assert-Contract ((Get-ActualMethod 'Update_ViewModel_CancelPreviewVisibility').Contains('Set_Microsoft_UI_Xaml_UIElement_Visibility(')) '实际取消预览按钮显隐'
-$notifications = @('PreviewHeading', 'PreviewDetails', 'PreviewVisibility', 'PrimaryButtonText', 'CanAct', 'CancelPreviewVisibility')
+Assert-Contract ((Get-ActualMethod 'Update_ViewModel_RetryPrepareVisibility').Contains('Set_Microsoft_UI_Xaml_UIElement_Visibility(')) '实际读取失败恢复按钮显隐'
+$notifications = @('DestinationTitle', 'EpisodeLabel', 'TransferMethod', 'SourceDirectory', 'DestinationDirectory', 'DestinationFile', 'TargetWarning', 'DisplayResult', 'PreviewVisibility', 'PrimaryButtonText', 'CanAct', 'RetryPrepareVisibility')
 Assert-Contract (@($notifications | Where-Object { -not $text.Contains('case "' + $_ + '":') }).Count -eq 0) '真实生成器订阅全部动态成员通知'
 Assert-Contract ($text -match 'this\.dataRoot\.Selected\s*=\s*\(global::Momoka\.AniBt\.AniBtAnime\)this\.obj\d+\.SelectedItem;') '实际SelectedItem TwoWay进入生成setter'
-Assert-Contract ($text.Contains('.Click += this.OnCancelPreview;')) '实际取消控件事件连到生产处理器'
+Assert-Contract ($text.Contains('.Click += this.OnRetryPrepare;')) '实际恢复控件事件连到生产处理器'
 $hash = (Get-FileHash -LiteralPath $resolved -Algorithm SHA256).Hash
 Write-Output "实际生成绑定 $count 项通过；0 失败、0 跳过；SHA256=$hash"

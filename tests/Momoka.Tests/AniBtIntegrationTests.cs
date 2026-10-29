@@ -360,6 +360,94 @@ internal static class AniBtIntegrationTests
             Assert.Equal(0, transport.SentTo("media/scrape").Count);
         });
 
+        Test("AniBT 药屋少女：自动目标保留 S01E52，单次确认正确重新整理", () =>
+        {
+            const string sourceName = "[Nekomoe kissaten&LoliHouse] Kusuriya no Hitorigoto - 52 [WebRip 1080p HEVC-10bit AAC ASSx2].mkv";
+            const string oldPath = "/library/文化圈 (1990)/Season 01/文化圈 S01E52 1080p.mkv";
+            const string newPath = "/library/药屋少女的呢喃 (2023)/Season 01/药屋少女的呢喃 S01E52 1080p.mkv";
+            var anime = new AniBtAnime("apothecary-fixture", 420628, "药屋少女的呢喃", "薬屋のひとりごと", Year: 2023, EpisodeCount: 24);
+            using var transport = TransferTransport(oldPath)
+                .Answer("media/420628?", """{"title":"药屋少女的呢喃","media_source":"bangumi","media_id":"420628","type":"电视剧"}""")
+                .Answer("history/transfer", HistoriesJson((7, oldPath)))
+                .Answer("storage/list", FileReply(oldPath))
+                .Sequence("transfer/manual?",
+                    (HttpStatusCode.OK, PreviewReply(oldPath, newPath)),
+                    (HttpStatusCode.OK, SubmitReply(oldPath, newPath)));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var row = new AniBtScrapeRow(oldPath, sourceName, new([anime], null, "manual", "medium", "low_evidence", null), History(service, 7, oldPath));
+            // 整剧入口没有整体季集，也必须按每个文件自己的编号准备。
+            var plan = new AniBtScrapePlan([row], MoviePilotTransferRequest.TypeSeries,
+                service.CaptureAniBtConnection(), IdentifyItem(), null, "");
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport), plan, [anime], default).GetAwaiter().GetResult();
+            Assert.Equal("药屋少女的呢喃 S01E52", prepared.Rows.Single().Heading);
+            Assert.Contains(newPath, prepared.Rows.Single().Details);
+            Assert.Equal(1, transport.SentTo("transfer/manual?").Count);
+            var result = integration.SubmitAsync(Emby(transport), prepared, default).GetAwaiter().GetResult();
+            Assert.True(result.Single().Success);
+            Assert.Contains(newPath, result.Single().Message);
+            var calls = transport.SentTo("transfer/manual?");
+            Assert.Equal(2, calls.Count);
+            foreach (var call in calls)
+            {
+                var body = Json(call.Body);
+                Assert.Equal(1, body.GetProperty("season").GetInt32());
+                Assert.Equal("52", body.GetProperty("episode_detail").GetString());
+                Assert.Equal("420628", body.GetProperty("media_id").GetString());
+                Assert.False(body.GetProperty("from_history").GetBoolean());
+            }
+            Assert.True(Json(calls[0].Body).GetProperty("preview").GetBoolean());
+            Assert.False(Json(calls[1].Body).GetProperty("preview").GetBoolean());
+        });
+
+        Test("AniBT 空媒体详情：仅一次只读重查，不把空回话当错误身份", () =>
+        {
+            using var transport = TransferTransport(Target)
+                .Sequence("media/42?", (HttpStatusCode.OK, """{"title":null,"media_source":null,"media_id":null,"type":null}"""), (HttpStatusCode.OK, Media));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport), Plan(service, (Target, History(service, 7, Target))), [Anime], default).GetAwaiter().GetResult();
+            Assert.True(prepared.CanSubmit);
+            Assert.Equal(2, transport.SentTo("media/42?").Count);
+            Assert.True(transport.SentTo("transfer/manual?").All(call => Json(call.Body).GetProperty("preview").GetBoolean()));
+        });
+
+        Test("AniBT 空媒体详情持续失败：重查有上限且零整理", () =>
+        {
+            using var transport = TransferTransport(Target).Answer("media/42?", "{}");
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            Assert.Throws<MoviePilotException>(() => integration.PrepareForConfirmationAsync(Emby(transport),
+                Plan(service, (Target, History(service, 7, Target))), [Anime], default).GetAwaiter().GetResult());
+            Assert.Equal(2, transport.SentTo("media/42?").Count);
+            Assert.Equal(0, transport.SentTo("transfer/manual?").Count);
+        });
+
+        Test("AniBT 错误媒体身份：不重读、不放宽来源校验、零整理", () =>
+        {
+            using var transport = TransferTransport(Target).Answer("media/42?", Media.Replace("bangumi", "themoviedb", StringComparison.Ordinal));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            Assert.Throws<MoviePilotException>(() => integration.PrepareForConfirmationAsync(Emby(transport),
+                Plan(service, (Target, History(service, 7, Target))), [Anime], default).GetAwaiter().GetResult());
+            Assert.Equal(1, transport.SentTo("media/42?").Count);
+            Assert.Equal(0, transport.SentTo("transfer/manual?").Count);
+        });
+
+        Test("AniBT 季集优先现有元数据，缺失才按文件与历史；编码不冒充集号", () =>
+        {
+            var row = new AniBtScrapeRow("/library/片名 S01E52.mkv", "片名 - 52 [1080p HEVC-10bit AAC ASSx2].mkv", new([], null, "manual", "", "", 3));
+            Assert.Equal("S01E52", AniBtScrapeNumbering.Resolve(row, null, "").Label);
+            Assert.Equal("S02E04", AniBtScrapeNumbering.Resolve(row, 2, "4").Label);
+            Assert.Equal("S01E52", AniBtScrapeNumbering.Resolve(row with { TargetPath = "/library/无编号.mkv" }, 1, "").Label);
+            Assert.Equal("", AniBtScrapeNumbering.Resolve(row with { TargetPath = "/library/无编号.mkv", SourceName = "片名 [1080p HEVC-10bit AAC ASSx2].mkv" }, 1, "").Label);
+            Assert.Equal("S00E01", AniBtScrapeNumbering.Resolve(row with { TargetPath = "/library/片名 S00E01.mkv" }, null, "").Label);
+        });
+
         Test("AniBT 重新整理成功但 Emby 扫描失败：整理仍算成功并提示手动扫描", () =>
         {
             using var transport = TransferTransport(Target).Fail("Library/Refresh", HttpStatusCode.Forbidden);
@@ -589,22 +677,22 @@ internal static class AniBtIntegrationTests
             .Sequence("transfer/manual?", [.. answers]);
     }
 
-    private static string PreviewReply(string source) => JsonSerializer.Serialize(new
+    private static string PreviewReply(string source, string? target = null) => JsonSerializer.Serialize(new
     {
         success = true,
         data = new
         {
-            items = new[] { new { source, target = TransferTarget, title = "匿名动画", success = true, state = "preview" } },
+            items = new[] { new { source, target = target ?? TransferTarget, title = "匿名动画", success = true, state = "preview" } },
             message = ""
         }
     });
 
-    private static string SubmitReply(string source) => JsonSerializer.Serialize(new
+    private static string SubmitReply(string source, string? target = null) => JsonSerializer.Serialize(new
     {
         success = true,
         data = new
         {
-            items = new[] { new { source, target = TransferTarget, title = "匿名动画", success = true, state = "completed" } },
+            items = new[] { new { source, target = target ?? TransferTarget, title = "匿名动画", success = true, state = "completed" } },
             message = ""
         }
     });

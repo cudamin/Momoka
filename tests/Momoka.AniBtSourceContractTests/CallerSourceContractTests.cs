@@ -36,14 +36,22 @@ internal static class CallerSourceContractTests
             Assert.False(source.Contains("EmbySession", StringComparison.Ordinal),
                 "当前 Emby 来源守卫在实际 VM/Core 委托，不能把 MP 关闭对话框当来源保证");
         });
+        Test("AniBT 多主题探针有完整预算，原生双级菜单重置宽窗而非放宽像素断言", () =>
+        {
+            var runner = ReadSource("ShellNavigationProbe.cs");
+            Assert.Contains("AniBtScrapeAsync, 45);", runner);
+            var source = ReadSource("ShellNavigationProbe.EpisodeSearch.cs");
+            Assert.Contains("ResizeProbeClient(1040, 800);", source);
+            Assert.True(source.IndexOf("ResizeProbeClient(1040, 800);", StringComparison.Ordinal)
+                < source.IndexOf("menu.ShowAt(anchor);", StringComparison.Ordinal));
+            Assert.Contains("SaveProbeScreenAsync(\"anime-version-menu.png\")", source);
+        });
         Program.AsyncCase("R042 实际 VM identify-only 有效预览零写，显式确认 Apply/Refresh 各一次", async _ =>
         {
             using var f = new SourceFixture();
             using var vm = new AniBtScrapeViewModel();
             await vm.LoadAsync(f.Service, f.Scope, f.Item);
             Assert.True(vm.CanPreview);
-            Assert.False(vm.CanSubmit);
-            await vm.PreviewAsync();
             Assert.True(vm.CanSubmit);
             Assert.Contains("series-1", vm.Rows.Single().PreviewDetails);
             f.AssertWrites(0, 0);
@@ -79,7 +87,7 @@ internal static class CallerSourceContractTests
             await vm.PreviewAsync();
             await vm.SubmitAsync();
             Assert.Equal(before, f.Replies.Requests.Count);
-            Assert.Equal(0, Searches(f));
+            Assert.Equal(2, Searches(f), "自动目标的初始只读查询仍保留，切来源后不得追加");
             f.AssertWrites(0, 0);
         });
         Program.AsyncCase("R042 实际 VM 已预览后聚合切来源，旧 canSubmit 不借 available 继续", async _ =>
@@ -87,7 +95,6 @@ internal static class CallerSourceContractTests
             using var f = new SourceFixture();
             using var vm = new AniBtScrapeViewModel();
             await vm.LoadAsync(f.Service, f.Scope, f.Item);
-            await vm.PreviewAsync();
             Assert.True(vm.CanSubmit);
             var before = f.Replies.Requests.Count;
             f.SwitchToOther();
@@ -133,7 +140,6 @@ internal static class CallerSourceContractTests
             using var f = new SourceFixture(2, mixed: true);
             using var vm = new AniBtScrapeViewModel();
             await vm.LoadAsync(f.Service, f.Scope, f.Item);
-            await vm.PreviewAsync();
             f.AssertWrites(0, 0);
             using var pause = f.Transport.PauseNext(request => IsTransferWrite(request) && f.Replies.TransferWrites == 2);
             var submit = vm.SubmitAsync();
@@ -152,7 +158,6 @@ internal static class CallerSourceContractTests
             using var f = new SourceFixture();
             using var vm = new AniBtScrapeViewModel();
             await vm.LoadAsync(f.Service, f.Scope, f.Item);
-            await vm.PreviewAsync();
             using var pause = f.Transport.PauseNext(IsApply);
             var submit = vm.SubmitAsync();
             await pause.Started.Task;
@@ -168,7 +173,6 @@ internal static class CallerSourceContractTests
             using var f = new SourceFixture();
             using var vm = new AniBtScrapeViewModel();
             await vm.LoadAsync(f.Service, f.Scope, f.Item);
-            await vm.PreviewAsync();
             using var pause = f.Transport.PauseNext(IsApply);
             var submit = vm.SubmitAsync();
             await pause.Started.Task;
@@ -185,7 +189,6 @@ internal static class CallerSourceContractTests
             var dialog = new AniBtScrapeDialog(f.Service, f.Scope, f.Item);
             dialog.OpenForFixture();
             await queue.IdleAsync();
-            await dialog.PrimaryForFixtureAsync(queue);
             f.AssertWrites(0, 0);
             Assert.True(dialog.ViewModel.CanSubmit);
             f.SwitchToOther();

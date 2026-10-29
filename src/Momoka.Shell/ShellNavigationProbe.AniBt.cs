@@ -24,6 +24,7 @@ internal sealed partial class ShellNavigationProbe
 {
     private async Task AniBtScrapeAsync()
     {
+        var originalTheme = ThemeHost.Current;
         var moviePilot = new AniBtMoviePilotProbeServer { EnableBangumi = true };
         var aniBt = new AniBtProbeServer();
         using var fixture = CreateFixture(moviePilot, aniBt);
@@ -125,9 +126,9 @@ internal sealed partial class ShellNavigationProbe
             dialog = new AniBtScrapeDialog(service, scope, item) { XamlRoot = _root.XamlRoot };
             shown = MoviePilotDialog.ShowAsync(dialog, mp);
             await UntilAsync(() => dialog.ViewModel.IsReady);
-            Require(dialog.ViewModel.Rows.Count == 1 && dialog.ViewModel.CanPreview && !dialog.ViewModel.CanSubmit
-                && !dialog.ViewModel.NoticeOpen,
-                "AniBT 刮削确认没有载入可预览的识别结果，或尚未预览就能提交");
+            Require(dialog.ViewModel.Rows.Count == 1 && dialog.ViewModel.CanSubmit
+                && !dialog.ViewModel.Busy && !dialog.ViewModel.NoticeOpen,
+                "AniBT 识别没有自动读取并显示可整理的实际目标");
             var row = dialog.ViewModel.Rows[0];
             Require(row.SourceName == "Test.S01E01.mkv" && row.TargetPath == item.Path && row.Selected?.BgmId == 123,
                 "刮削确认的源文件名、目标路径或自动选中的番剧不正确");
@@ -139,11 +140,30 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(dialog);
                 var choice = Descendants(dialog).OfType<ComboBox>().Single(box => box.Name == "AnimeChoice");
                 Require(choice.Items.Count == 2 && choice.SelectedItem is AniBtAnime { BgmId: 123 }
-                    && choice.IsEnabled && dialog.IsPrimaryButtonEnabled && dialog.PrimaryButtonText == "预览计划",
-                    "AniBT 候选没有绑定到实际选择控件或第一阶段预览按钮");
+                    && choice.IsEnabled && dialog.IsPrimaryButtonEnabled && dialog.PrimaryButtonText == "重新整理",
+                    "AniBT 候选没有绑定到实际选择控件或重新整理按钮");
                 await SaveProbeScreenAsync($"anibt-scrape-{width}.png");
             }
             await PreviewAsync(dialog);
+            foreach (var theme in Momoka.Theming.UiThemes.All)
+            {
+                ThemeHost.Apply(theme);
+                await LayoutAsync(dialog);
+                var title = Descendants(dialog).OfType<TextBlock>().Single(text => text.Name == "PreviewHeadingText");
+                var episodeText = Descendants(dialog).OfType<TextBlock>().Single(text => text.Name == "EpisodeLabelText");
+                var fileText = Descendants(dialog).OfType<TextBlock>().Single(text => text.Name == "DestinationFileText");
+                var methodText = Descendants(dialog).OfType<TextBlock>().Single(text => text.Name == "TransferMethodText");
+                var primary = Descendants(dialog).OfType<Button>().Single(button => button.Name == "PrimaryButton");
+                Require(title.Foreground is SolidColorBrush titleBrush && titleBrush.Color == ThemeHost.ToColor(theme.Colors.Accent)
+                    && episodeText.Foreground is SolidColorBrush episodeBrush && episodeBrush.Color == ThemeHost.ToColor(theme.Colors.Accent)
+                    && fileText.Foreground is SolidColorBrush fileBrush && fileBrush.Color == ThemeHost.ToColor(theme.Colors.Accent)
+                    && methodText.Text == row.TransferMethod
+                    && primary.Background is SolidColorBrush buttonBrush && buttonBrush.Color == ThemeHost.ToColor(theme.Colors.Accent),
+                    "AniBT 关键字段没有随当前主题更新或仍显示日志说明");
+                await SaveProbeScreenAsync($"anibt-scrape-{theme.Id}-screen.png");
+            }
+            ThemeHost.Apply(originalTheme);
+            await LayoutAsync(dialog);
             await SaveProbeScreenAsync("anibt-scrape-preview.png");
             var close = Descendants(dialog).OfType<Button>().Single(button => button.Name == "CloseButton" && Equals(button.Content, dialog.CloseButtonText));
             ((IInvokeProvider)new ButtonAutomationPeer(close).GetPattern(PatternInterface.Invoke)).Invoke();
@@ -152,7 +172,7 @@ internal sealed partial class ShellNavigationProbe
                 "关闭 AniBT 已预览计划没有撤销确认，或仍然提交了重新整理");
             RequireReadOnly();
 
-            // 没有自动结论时也直接显示第一个候选，但仍须先预览、再独立确认，不能退回一阶段提交。
+            // 没有自动结论时仍显示第一个候选，实际目标自动读取，打开/改选都不写入。
             aniBt.ManualCandidates = true;
             dialog = new AniBtScrapeDialog(service, scope, item) { XamlRoot = _root.XamlRoot };
             shown = MoviePilotDialog.ShowAsync(dialog, mp);
@@ -160,9 +180,9 @@ internal sealed partial class ShellNavigationProbe
             var manualScale = _root.XamlRoot.RasterizationScale;
             ResizeInspect((int)(1040 * manualScale), (int)(800 * manualScale));
             await LayoutAsync(dialog);
-            Require(dialog.PrimaryButtonText == "预览计划" && dialog.IsPrimaryButtonEnabled
-                && dialog.ViewModel.CanPreview && !dialog.ViewModel.CanSubmit,
-                "AniBT 多候选没有保持先预览、后确认的主按钮契约");
+            Require(dialog.PrimaryButtonText == "重新整理" && dialog.IsPrimaryButtonEnabled
+                && dialog.ViewModel.CanSubmit && !dialog.ViewModel.Busy,
+                "AniBT 多候选没有自动显示实际目标与一键重新整理按钮");
             var manualRow = dialog.ViewModel.Rows[0];
             await LayoutAsync(dialog);
             await UntilAsync(() => Descendants(dialog).OfType<ComboBox>().Any(box => box.Name == "AnimeChoice"));
@@ -174,14 +194,16 @@ internal sealed partial class ShellNavigationProbe
             // 本机 XAML 岛拍不进 BitBlt；另存一张对话框自身的渲染帧，报告里按「渲染帧」记。
             await SaveSettledFrameAsync(dialog, "anibt-scrape-candidates-render.png");
             await PreviewAsync(dialog);
-            var cancelPreview = Descendants(dialog).OfType<Button>().Single(button => button.Name == "CancelPreview");
-            ((IInvokeProvider)new ButtonAutomationPeer(cancelPreview).GetPattern(PatternInterface.Invoke)).Invoke();
+            // 改选为空立即撤销旧凭证；选回后自动读取，不需点击预览。
+            manualChoice.SelectedItem = null;
             await LayoutAsync(dialog);
-            Require(dialog.PrimaryButtonText == "预览计划" && dialog.ViewModel.CanPreview && !dialog.ViewModel.CanSubmit
-                && !dialog.ViewModel.NoticeOpen && manualRow.PreviewDetails.Length == 0 && manualRow.Selected?.BgmId == 123
-                && cancelPreview.Visibility == Visibility.Collapsed
+            Require(!dialog.ViewModel.CanSubmit && manualRow.PreviewDetails.Length == 0
                 && Descendants(dialog).OfType<StackPanel>().Single(panel => panel.Name == "PreparedPlan").Visibility == Visibility.Collapsed,
-                "取消 AniBT 多候选预览没有撤销原确认、收起实际计划或保留选择");
+                "取消候选没有立即撤销旧整理目标");
+            manualChoice.SelectedItem = manualRow.Candidates[0];
+            await UntilAsync(() => dialog.ViewModel.IsReady && !dialog.ViewModel.Busy);
+            await PreviewAsync(dialog);
+            await SaveProbeScreenAsync("anibt-scrape-selection-restored.png");
             close = Descendants(dialog).OfType<Button>().Single(button => button.Name == "CloseButton" && Equals(button.Content, dialog.CloseButtonText));
             ((IInvokeProvider)new ButtonAutomationPeer(close).GetPattern(PatternInterface.Invoke)).Invoke();
             Require(await shown == ContentDialogResult.None && moviePilot.MutationAttempts == 0
@@ -207,6 +229,7 @@ internal sealed partial class ShellNavigationProbe
         {
             menu?.Hide();
             _window.TopMost = topMost;
+            ThemeHost.Apply(originalTheme);
             _root.Children.Remove(anchor);
             _root.Children.Remove(shell);
             Call(shell, "StopMoviePilotMonitoring");
@@ -221,40 +244,24 @@ internal sealed partial class ShellNavigationProbe
 
         async Task PreviewAsync(AniBtScrapeDialog current)
         {
-            Require(current.ViewModel.CanPreview && !current.ViewModel.CanSubmit && current.PrimaryButtonText == "预览计划",
-                "AniBT 第一击必须是只读预览，不得调用确认提交");
-            var primary = Descendants(current).OfType<Button>().Single(button => button.Name == "PrimaryButton"
-                && Equals(button.Content, current.PrimaryButtonText));
-            var started = false;
-            void Changed(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
-            {
-                if (args.PropertyName == nameof(PageViewModel.Busy) && current.ViewModel.Busy) started = true;
-            }
-            current.ViewModel.PropertyChanged += Changed;
-            try
-            {
-                ((IInvokeProvider)new ButtonAutomationPeer(primary).GetPattern(PatternInterface.Invoke)).Invoke();
-                // Invoke 可排队；先确认本次 Busy 已开始，避免把载入阶段的旧 IsReady 当成本次结束。
-                // 不等 CanSubmit 变真：读取失败也应结束等待，再由下面的原强断言如实报错。
-                await UntilAsync(() => started && current.ViewModel.IsReady && !current.ViewModel.Busy);
-            }
-            finally { current.ViewModel.PropertyChanged -= Changed; }
+            await UntilAsync(() => current.ViewModel.IsReady && !current.ViewModel.Busy);
             var row = current.ViewModel.Rows.Single();
-            Require(current.ViewModel.CanSubmit && current.PrimaryButtonText == "确认执行"
-                && current.ViewModel.NoticeOpen && current.ViewModel.NoticeSeverity == InfoBarSeverity.Warning
+            Require(current.ViewModel.CanSubmit && current.PrimaryButtonText == "重新整理"
+                && !current.ViewModel.NoticeOpen
                 && row.PreviewDetails.Contains(series.Id, StringComparison.Ordinal)
                 && row.PreviewDetails.Contains(series.Name, StringComparison.Ordinal)
                 && row.PreviewDetails.Contains("整部剧", StringComparison.Ordinal)
                 && row.PreviewDetails.Contains("Test Anime", StringComparison.Ordinal)
                 && row.PreviewDetails.Contains("2026", StringComparison.Ordinal)
                 && row.PreviewDetails.Contains("元数据", StringComparison.Ordinal) && row.PreviewDetails.Contains("图片", StringComparison.Ordinal),
-                "AniBT 只读预览没有封存实际整剧、精确候选及覆盖影响：" + current.ViewModel.NoticeMessage);
+                "AniBT 自动目标没有封存实际整剧、精确候选及覆盖影响：" + current.ViewModel.NoticeMessage);
             await LayoutAsync(current);
             Require(current.IsPrimaryButtonEnabled
                 && Descendants(current).OfType<StackPanel>().Single(panel => panel.Name == "PreparedPlan").Visibility == Visibility.Visible
-                && Descendants(current).OfType<TextBlock>().Single(text => text.Name == "PreviewDetailsText").Text == row.PreviewDetails
-                && Descendants(current).OfType<Button>().Single(button => button.Name == "CancelPreview").Visibility == Visibility.Visible,
-                "AniBT 封存计划、取消预览和第二阶段确认没有绑定到实际控件");
+                && Descendants(current).OfType<TextBlock>().Single(text => text.Name == "PreviewHeadingText").Text == row.DestinationTitle
+                && Descendants(current).OfType<TextBlock>().Single(text => text.Name == "TargetWarningText").Text == row.TargetWarning
+                && Descendants(current).OfType<Button>().Single(button => button.Name == "RetryPrepare").Visibility == Visibility.Collapsed,
+                "AniBT 自动整理目标与一键重新整理没有绑定到实际控件");
             RequireReadOnly();
         }
 

@@ -15,7 +15,7 @@ public sealed partial class AniBtScrapeDialog : ContentDialog
     internal AniBtScrapeDialog(AniBtService service, EmbySessionScope scope, EmbyItem item)
     {
         InitializeComponent();
-        Title = $"AniBT 识别 — {item.Name}";
+        Title = "AniBT 重新整理";
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
         Opened += async (_, _) => await ViewModel.LoadAsync(service, scope, item);
         Closing += (_, args) => { if (_submitting) args.Cancel = true; };
@@ -28,14 +28,16 @@ public sealed partial class AniBtScrapeDialog : ContentDialog
         if (_operating) return;
         if (!ViewModel.CanAct) { ViewModel.RefreshActions(); return; }
         _operating = true;
-        _submitting = ViewModel.CanSubmit;
-        try
-        {
-            if (_submitting) await ViewModel.SubmitAsync();
-            else await ViewModel.PreviewAsync();
-        }
+        _submitting = true;
+        try { await ViewModel.SubmitAsync(); }
         finally { _submitting = false; _operating = false; }
     }
 
-    private void OnCancelPreview(object sender, RoutedEventArgs args) => ViewModel.CancelPreview();
+    private async void OnRetryPrepare(object sender, RoutedEventArgs args)
+    {
+        if (_operating) return;
+        _operating = true;
+        try { await ViewModel.PreviewAsync(); }
+        finally { _operating = false; }
+    }
 }
