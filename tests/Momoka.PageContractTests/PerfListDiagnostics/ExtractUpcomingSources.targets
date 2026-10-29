@@ -1,0 +1,59 @@
+<Project>
+  <PropertyGroup>
+    <PerfUpcomingSourcePath Condition="'$(PerfUpcomingSourcePath)' == ''">$(MSBuildProjectDirectory)\..\..\..\src\Momoka.Shell\ViewModels\LibraryViewModel.cs</PerfUpcomingSourcePath>
+  </PropertyGroup>
+  <UsingTask TaskName="ExtractPerfUpcomingSources" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourcePath ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var bytes = File.ReadAllBytes(SourcePath);
+        var source = Encoding.UTF8.GetString(bytes).Replace("\r\n", "\n");
+        Func<string, string> method = signature =>
+        {
+            var start = source.IndexOf(signature, StringComparison.Ordinal);
+            if (start < 0 || source.IndexOf(signature, start + signature.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing/ambiguous production method: " + signature);
+            var open = source.IndexOf('{', start + signature.Length);
+            var depth = 0;
+            for (var i = open; i < source.Length; i++)
+            {
+                if (source[i] == '{') depth++;
+                else if (source[i] == '}' && --depth == 0)
+                    return source.Substring(start, i - start + 1) + "\n";
+            }
+            throw new InvalidOperationException("Unclosed production method: " + signature);
+        };
+        string sourceHash;
+        using (var sha = SHA256.Create()) sourceHash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "");
+        var generated = "#nullable enable\n// Verbatim current production methods, regenerated at every build.\n" +
+            "using Momoka.Emby;\nusing Momoka.Diagnostics;\nusing Momoka.Infrastructure;\n" +
+            "namespace Momoka.Shell.ViewModels;\npublic sealed partial class LibraryViewModel\n{\n" +
+            "internal const string FixtureSourceHash = \"" + sourceHash + "\";\n" +
+            method("    private void UpdateUpcomingDays()\n") +
+            method("    private async Task LoadAsync(bool reset)\n") +
+            "    internal bool QueryCurrent(CancellationToken token) =>\n" +
+            "        _active && SourcesAvailable && _queries.IsCurrent(token);\n" +
+            "}\n";
+        // The expression-bodied guard above is also verified against current source, not a loose copy.
+        var guard = "    internal bool QueryCurrent(CancellationToken token) =>\n" +
+            "        _active && SourcesAvailable && _queries.IsCurrent(token);";
+        if (source.IndexOf(guard, StringComparison.Ordinal) < 0)
+            throw new InvalidOperationException("Production query/source lifetime guard changed; review fixture boundary.");
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GeneratePerfUpcomingSources" BeforeTargets="CoreCompile">
+    <ExtractPerfUpcomingSources SourcePath="$(PerfUpcomingSourcePath)"
+                                OutputSource="$(IntermediateOutputPath)UpcomingSources.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)UpcomingSources.g.cs" /></ItemGroup>
+  </Target>
+</Project>

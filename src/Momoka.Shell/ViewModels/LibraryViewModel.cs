@@ -800,31 +800,16 @@ public sealed partial class LibraryViewModel : PageViewModel
         var today = DateOnly.FromDateTime(DateTime.Now);
         var cards = Cards.ToDictionary(card => card.Item.IdentityKey, StringComparer.Ordinal);
         var groups = LibraryUpcoming.Group(Cards.Select(card => card.Item));
+        var existingDays = UpcomingDays.ToDictionary(day => (day.Date, day.Title, day.CardWidth));
         var desired = groups.Select(group =>
         {
             var title = LibraryUpcoming.DateTitle(group.Date, today);
-            var day = UpcomingDays.FirstOrDefault(existing => existing.Date == group.Date
-                && existing.Title == title && existing.CardWidth == _upcomingCardWidth)
+            var day = existingDays.GetValueOrDefault((group.Date, title, _upcomingCardWidth))
                 ?? new UpcomingDay(group.Date, title, _upcomingCardWidth);
-            var contents = group.Items.Select(item => cards[item.IdentityKey]).ToArray();
-            for (var index = day.Cards.Count - 1; index >= 0; index--)
-                if (!contents.Contains(day.Cards[index])) day.Cards.RemoveAt(index);
-            for (var index = 0; index < contents.Length; index++)
-            {
-                var oldIndex = day.Cards.IndexOf(contents[index]);
-                if (oldIndex < 0) day.Cards.Insert(index, contents[index]);
-                else if (oldIndex != index) day.Cards.Move(oldIndex, index);
-            }
+            day.UpdateCards(group.Items.Select(item => cards[item.IdentityKey]).ToArray());
             return day;
         }).ToArray();
-        for (var index = UpcomingDays.Count - 1; index >= 0; index--)
-            if (!desired.Contains(UpcomingDays[index])) UpcomingDays.RemoveAt(index);
-        for (var index = 0; index < desired.Length; index++)
-        {
-            var oldIndex = UpcomingDays.IndexOf(desired[index]);
-            if (oldIndex < 0) UpcomingDays.Insert(index, desired[index]);
-            else if (oldIndex != index) UpcomingDays.Move(oldIndex, index);
-        }
+        UpcomingListDiff.Apply(UpcomingDays, desired);
     }
 
     /// <summary>
@@ -1420,10 +1405,15 @@ public sealed partial class LibraryViewModel : PageViewModel
             _total = result?.TotalRecordCount ?? 0;
             if (result is not null)
             {
+                // Upcoming pages share one identity set for the whole append, including duplicates
+                // within the new page. Source-qualified keys and the existing generation guards stay intact.
+                var upcomingKeys = IsUpcomingPage
+                    ? Cards.Select(card => card.Item.IdentityKey).ToHashSet(StringComparer.Ordinal) : null;
                 foreach (var item in result.Items)
                 {
                     if (IsResumePage) _resumeRead.Add(item.IdentityKey);
-                    if ((IsUpcomingPage || IsResumePage) && Cards.Any(card => card.Item.IdentityKey == item.IdentityKey)) continue;
+                    if (upcomingKeys is not null && !upcomingKeys.Add(item.IdentityKey)
+                        || IsResumePage && Cards.Any(card => card.Item.IdentityKey == item.IdentityKey)) continue;
                     Cards.Add(NewCard(item));
                 }
                 if (IsUpcomingPage) _upcomingReadCount += result.Items.Count;

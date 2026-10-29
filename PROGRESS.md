@@ -65,6 +65,13 @@
 - 失败证据保留：初全Core3311/3310/1准确拦下MP确认窗误用媒体库底色，修后3311/3311；首次隐藏启动的实际UI49项18过31败全被实屏防遮挡守卫拒绝，第二轮可见启动48/49剩订阅标题刚Visible但未布局0高，均在 `ui-first-red`／`ui-second-red`。只修可见启动、标题实际Layout和菜单顶部锚点，不放宽超时／像素／裁切或接受新基线。最终 `shell-probe-20261029-085229283-21476` 的 **moviepilot,settings 49/49，退出0**，实际五主题1280／760完整菜单和确认窗已查看，原生Popup实屏在本轮可见并留完整帧。未选区域74项未执行，非全量Shell自检。
 - 产品修正 `0dbe237262ea8feb705908a2aadb5581066c4f49` 已提交；主树实际 `tools/publish.ps1 -NoArchive -Shortcut` 通过，546文件／284.8MB、14GLSL／4HOOK／59批准mpv文件逐项校验，快捷方式读回正确。发布件 `shell-probe-20261029-090905624-4660` moviepilot25/26，媒体管理新用例通过，旧订阅固定80ms悬停缩放未读到进度；红报告在 `ui-published-first-red`，不算整轮发布验收成功。探针正在改为实际焦点／归一化初态／Storyboard进度检查，原缩放边界及离开隐藏阈值保留，未改产品动画。修正后主树 `shell-probe-20261029-091817030-27968` moviepilot26/26退出0，包含原悬停用例和新媒体管理；报告在 `ui-hover-fixed-green`。一份误与UI重叠启动的Core测试已取消并保留原日志，不作通过证据，最终串行Core3313/3313、媒体管理35/35均0失败0跳过，修正后Shell/Core/Tests0警告0错误。最终提交／重发／发布件复验／旧树删除尚待收尾，不称已交付。未改版本、不生成ZIP/MSIX或对外发布；不执行真实媒体删除、整理、下载、播放或账号写入。
 
+## PERF-06 / PERF-10 定向修复（2026-10-30，待父代理集成）
+
+- 独立树 C:/Users/89400/.codex/worktrees/perf-list-diagnostics/Momoka，分支 codex/perf-list-diagnostics，起点 e3473f10a072058eb11363f89c11e376dbfa6ed9；保留草稿继续，不写主树/父树，不merge/push/发布/刷快捷方式/真实设置库/UI/播放。产品与回归和本段同一提交，SHA以该条提交为准；留树供父代理串行集成、主方案登记与最终主树/UI验收。
+- 预告按day索引复用、引用前缀线性追加、成员集和numeric position差异回退；实际helper 10000+100仅10000次引用比较，真实同日/unknown分组仅100 Add且旧集合/day/卡identity不变；2000->1500删除反序4500次比较。极端重排仍付数组和数字位置位移成本，不声称最坏总时间线性，不用Clear抹identity；原始offset、source-qualified去重、query-load代次保持。
+- 诊断LogVisit弱持VM、访问期一唤醒、dirty/pending同gate补尾交接；拒绝/执行异常复位，Detach Stop及旧sink/同sink重入隔离。10000条=>1回调、消费后0待执行，保留SnapshotAfter追平后O(1)空结果事实。局部筛选/快照版本防重入重复和旧分类污染，不改Log.cs/播放等范围外生产文件。
+- 当前Release Shell/Core及独立套件0警告0错误；定向70/70（31本题/源码关联+39既有诊断专项，Core重叠不叠加），失败0跳过0。抽取缺方法/改query-source guard两负例实际拒绝且合法生成源不变；此前重排比较数和Remove筛选重入重复行用真实回归抓到修复，未放宽阈值。证据在本树work/perf-list-diagnostics/；入口/命令/计数与父UI字段见tests/Momoka.PageContractTests/PerfListDiagnostics/README.md。未跑父主套件/full selfcheck/真UI/最终发布；父代理串行收尾，临时树未交付用户。
+
 ## 旧工作树审查与媒体管理整合（2026-10-29，在途）
 
 - 当前整合树 `C:/Users/89400/.codex/worktrees/old-tree-integration/Momoka`，起点 `8ff289e`，整合旧树 `mp-media-management` 的产品 `eedcfab`／顶端 `4b9aaac`。主树 AniBT 正在由另一聊天收尾，搜索工作树仍在开发；不抢写主树或共同发布目录，不删除活动树。
