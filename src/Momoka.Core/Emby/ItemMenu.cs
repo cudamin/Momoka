@@ -142,11 +142,13 @@ public static class ItemMenu
     /// <param name="aniBtScrapeAvailable">识别要求当前管理来源；独立版本搜索不受此限制，Shell 传本次来源能力。</param>
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
         bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true) => fnNas
-        ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item), Navigation(item))
+        ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item),
+            MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, manage: false), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
         // offered and then refused.
         : plex
-        ? Join(Opening(item, false), UserState(item, true, favorites: false), Navigation(item))
+        ? Join(Opening(item, false), UserState(item, true, favorites: false),
+            MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, manage: false), Navigation(item))
         : Join(
         Opening(item, jellyfin),
         MissingEpisodes(item),
@@ -166,9 +168,10 @@ public static class ItemMenu
         if (fnNas) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
             or ItemCommand.MarkUnplayed or ItemCommand.Favorite or ItemCommand.Unfavorite or ItemCommand.OpenSeries
             or ItemCommand.ManageVersions or ItemCommand.FnNasMatch or ItemCommand.FnNasUnmatch
-            or ItemCommand.RefreshMetadata or ItemCommand.EditMetadata or ItemCommand.Delete;
+            or ItemCommand.RefreshMetadata or ItemCommand.EditMetadata or ItemCommand.Delete
+            or ItemCommand.MoviePilotVersions or ItemCommand.AniBtVersions;
         if (plex) return command is ItemCommand.Play or ItemCommand.Details or ItemCommand.Open or ItemCommand.MarkPlayed
-            or ItemCommand.MarkUnplayed or ItemCommand.OpenSeries;
+            or ItemCommand.MarkUnplayed or ItemCommand.OpenSeries or ItemCommand.MoviePilotVersions or ItemCommand.AniBtVersions;
         return !jellyfin || command != ItemCommand.HideFromResume;
     }
 
@@ -302,10 +305,11 @@ public static class ItemMenu
     /// 子项再带「使用……」和「搜索」只是把那句话重复两遍。
     /// </para>
     /// </summary>
-    private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre, bool canScrape)
+    private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre, bool canScrape, bool manage = true)
     {
         if (!enabled || !MoviePilotVersionQuery.Supports(item)) return [];
-        List<ItemMenuEntry> rows = [new(ItemCommand.MoviePilotVersions, "搜索其他版本"), new(ItemCommand.MoviePilotReorganize, "手动整理…")];
+        List<ItemMenuEntry> rows = [new(ItemCommand.MoviePilotVersions, "搜索其他版本")];
+        if (manage) rows.Add(new(ItemCommand.MoviePilotReorganize, "手动整理…"));
         if (AniBt.AniBtEligibility.Supports(item) && (animeGenre || AniBt.AniBtEligibility.HasGenre(item)))
         {
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",

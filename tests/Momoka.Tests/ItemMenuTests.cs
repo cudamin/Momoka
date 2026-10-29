@@ -444,6 +444,22 @@ internal static class ItemMenuTests
     /// <summary>开了 MoviePilot 之后多出来的那一条「在 MoviePilot 搜索…版本」。</summary>
     private static void RegisterMoviePilot()
     {
+        foreach (var fnNas in new[] { false, true })
+            foreach (var enabled in new[] { false, true })
+                Test($"独立版本搜索：{(fnNas ? "飞牛" : "Plex")}与MoviePilot可用性{enabled}", () =>
+                {
+                    var item = new EmbyItem { Id = "cross-server", Type = EmbyItemType.Series, Name = "测试番剧" };
+                    var rows = ItemMenu.For(item, moviePilotEnabled: enabled, animeGenre: true, fnNas: fnNas, plex: !fnNas);
+                    Assert.Equal(enabled, rows.Any(row => row.Command == ItemCommand.MoviePilotVersions));
+                    if (enabled)
+                        Assert.True(rows.Single(row => row.Command == ItemCommand.MoviePilotVersions).Children!
+                            .Any(row => row.Command == ItemCommand.AniBtVersions));
+                    Assert.False(rows.Any(row => row.Command is ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape));
+                    Assert.True(ItemMenu.Supports(ItemCommand.MoviePilotVersions, false, fnNas, !fnNas));
+                    Assert.True(ItemMenu.Supports(ItemCommand.AniBtVersions, false, fnNas, !fnNas));
+                    Assert.False(ItemMenu.Supports(ItemCommand.AniBtScrape, false, fnNas, !fnNas));
+                });
+
         Test("更多菜单：没开 MoviePilot 时谁都没有「搜索其他版本」那一条", () =>
         {
             foreach (var item in (EmbyItem[])[

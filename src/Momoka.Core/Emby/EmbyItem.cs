@@ -566,6 +566,10 @@ public sealed class EmbyItem
     [JsonIgnore]
     public EmbySessionScope? Source { get; set; }
 
+    /// <summary>Local confirmation revision when the producing request began; never sent to a server.</summary>
+    [JsonIgnore]
+    public long UserStateReadRevision { get; set; } = -1;
+
     /// <summary>区分不同服务器、不同账号上编号相同的条目。</summary>
     [JsonIgnore]
     public string IdentityKey => Source is { } source ? $"{source.Key}:{Id}" : Id;

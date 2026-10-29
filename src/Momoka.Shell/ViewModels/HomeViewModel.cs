@@ -438,9 +438,17 @@ public sealed partial class HomeViewModel : PageViewModel
     {
         if (!Live || card.Scope is not { IsAvailable: true } scope) return;
         if (ResumeShelf() is not { } shelf) return;
-        if (!card.IsCurrent || !shelf.Cards.Contains(card)) return;
+        if (!card.IsCurrent) return;
+        // The command may come from another shelf's DTO for this same item. Its confirmed state
+        // has already been published; the resume representation owns the slot to update.
+        var resumeCard = shelf.Cards.FirstOrDefault(candidate => candidate.IsCurrent
+            && ReferenceEquals(candidate.Scope?.UserStateOwner, scope.UserStateOwner)
+            && candidate.Item.IdentityKey == card.Item.IdentityKey);
+        if (resumeCard is null || !resumeCard.Watched) return;
+        card = resumeCard;
 
         var watched = card.Item;
+        var watchedRevision = card.WatchedRevision;
 
         // 下一集先问回来再动屏：问的这段时间那张卡还在原处（它已经带上已看的对勾了），回来才一次换掉 ——
         // 先撤后插会让那一排空着闪一下。问不出来（最后一集、断线、离页）都按「没有下一集」办。
@@ -449,7 +457,8 @@ public sealed partial class HomeViewModel : PageViewModel
             : null;
 
         // 这一趟往返里页面可能已经走了、或者换了账号：那就一个字都别动。
-        if (!Live || !card.IsCurrent || !shelf.Cards.Contains(card)) return;
+        if (!Live || !card.IsCurrent || !shelf.Cards.Contains(card)
+            || card.WatchedRevision != watchedRevision || !card.Watched) return;
 
         var slot = ResumeSlot.Apply(shelf.Cards, card, next, shelf.NewCard);
         Log.Info(Category, slot is null

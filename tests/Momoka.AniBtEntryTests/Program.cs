@@ -28,6 +28,21 @@ internal static class Program
 
     private static void Register()
     {
+        foreach (var kind in new[] { MediaServerKind.FnNas, MediaServerKind.Plex })
+            Case($"{kind}独立版本搜索进入真实命令且不开放识别写入", () =>
+            {
+                using var f = new EntryFixture(_root, knownAnime: true, kind: kind);
+                var menu = f.Build();
+                Assert.False(f.HasScrape(menu));
+                EntryFixture.ClickSearch(menu, ItemCommand.MoviePilotVersions);
+                EntryFixture.ClickSearch(menu, ItemCommand.AniBtVersions);
+                Assert.Equal(1, f.Actions.MoviePilotSearches);
+                Assert.Equal(1, f.Actions.AniBtSearches);
+                f.DirectScrape();
+                Assert.Equal(0, f.Transport.Writes);
+                return Task.CompletedTask;
+            });
+
         foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
             Test("R040 pure capability only removes identification for " + type, () =>
             {

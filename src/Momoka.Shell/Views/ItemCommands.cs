@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.MoviePilot;
@@ -31,10 +30,6 @@ namespace Momoka.Shell.Views;
 internal static partial class ItemCommands
 {
     private const string Category = "ui";
-
-    // Per DTO rather than per control: recycled controls and two cards sharing an item must share
-    // ordering, but a departed item must not remain in an application-lifetime ID dictionary.
-    private static readonly ConditionalWeakTable<EmbyItem, ItemUserStateOrder> UserStateOrders = new();
 
     /// <summary>
     /// The handler both grids attach. <c>ContextRequested</c> rather than a right-tap handler because it
@@ -486,7 +481,7 @@ internal static partial class ItemCommands
     {
         var item = card.Item;
         var identity = item.IdentityKey;
-        var order = UserStateOrders.GetValue(item, static _ => new ItemUserStateOrder());
+        var order = card.UserStateOrder;
         var change = order.BeginWatched(played);
         RunUserState(
             session,
@@ -520,7 +515,7 @@ internal static partial class ItemCommands
 
         var item = card.Item;
         var identity = item.IdentityKey;
-        var order = UserStateOrders.GetValue(item, static _ => new ItemUserStateOrder());
+        var order = card.UserStateOrder;
         var change = order.BeginFavorite(favourite);
         RunUserState(
             session,
@@ -574,8 +569,7 @@ internal static partial class ItemCommands
         // Ask may finish off-thread before a queued UI callback observes source revocation.
         if (!card.IsCurrent || card.Item.IdentityKey != identity) return false;
         if (order.Apply(change, card.Item.UserData, data) is not { } state) return false;
-        card.Item.UserData = state;
-        card.RefreshUserData();
+        card.ApplyUserState(state, change.Watched);
         return true;
     }
 
@@ -589,8 +583,7 @@ internal static partial class ItemCommands
                 CancellationToken.None).ConfigureAwait(true);
             if (!card.IsCurrent || card.Item.IdentityKey != identity || data is null) return;
             if (order.RefreshConfirmed(change, card.Item.UserData, data) is not { } state) return;
-            card.Item.UserData = state;
-            card.RefreshUserData();
+            card.ApplyUserState(state, watched: false);
         }
         catch (OperationCanceledException) { }
         catch (ObjectDisposedException) { }

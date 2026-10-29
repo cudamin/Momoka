@@ -29,6 +29,11 @@ public sealed class CardItem : INotifyPropertyChanged
 {
     private const string Category = "卡片";
 
+    // Only live card groups are retained. Captured scopes share the online identity owner, while
+    // another account or a later login cannot inherit its state or in-flight command order.
+    private static readonly ConditionalWeakTable<object, UserStateGroups> StateGroups = new();
+    private UserStateGroup _userState;
+
     /// <summary>
     /// Segoe Fluent codepoints, spelled as numbers rather than as characters. The characters are in the
     /// Unicode private-use area: pasted into source they are invisible in a diff, and any tool that
@@ -194,6 +199,9 @@ public sealed class CardItem : INotifyPropertyChanged
         _images = images;
         Scope = images.CaptureScope(item);
         if (item.Source is null) Scope?.Bind(item);
+        _userState = Scope is { } scope
+            ? StateGroups.GetValue(scope.UserStateOwner, static _ => new UserStateGroups()).Join(this)
+            : new UserStateGroup(this);
         _width = width;
         _wide = wide;
         _subtitle = subtitle;
@@ -232,6 +240,27 @@ public sealed class CardItem : INotifyPropertyChanged
     internal EmbySessionScope? Scope { get; }
 
     internal bool IsCurrent => Scope?.IsAvailable == true;
+
+    internal ItemUserStateOrder UserStateOrder
+    {
+        get
+        {
+            if (!_userState.Owns(this))
+                _userState = Scope is { } scope
+                    ? StateGroups.GetValue(scope.UserStateOwner, static _ => new UserStateGroups()).Join(this)
+                    : new UserStateGroup(this);
+            return _userState.Order;
+        }
+    }
+    internal long WatchedRevision => _userState.WatchedRevision;
+
+    /// <summary>Publish only confirmed command results to the other live representations.</summary>
+    internal void ApplyUserState(EmbyUserData state, bool watched)
+    {
+        if (!_userState.Owns(this) || !IsCurrent) return;
+        if (watched) _userState.WatchedRevision++;
+        _userState.Publish(state, Scope!.ConfirmUserStateChange());
+    }
 
     public string Title => _title ?? _item.Name;
     public bool IsUpcoming { get; }
@@ -710,6 +739,76 @@ public sealed class CardItem : INotifyPropertyChanged
         Raise(nameof(PlayActionTip));
         Raise(nameof(ProgressVisibility));
         Raise(nameof(UnplayedVisibility));
+    }
+
+    private sealed class UserStateGroups
+    {
+        private readonly Dictionary<string, WeakReference<UserStateGroup>> _groups = new(StringComparer.Ordinal);
+        private int _joins;
+
+        public UserStateGroup Join(CardItem card)
+        {
+            // Prune keys as well as targets; scrolling through a large library must not build an
+            // application-lifetime catalogue of every item the user has ever displayed.
+            if (_joins++ % 64 == 0)
+                foreach (var key in _groups.Where(pair => !pair.Value.TryGetTarget(out _)).Select(pair => pair.Key).ToArray())
+                    _groups.Remove(key);
+            if (_groups.TryGetValue(card.Item.Id, out var weak) && weak.TryGetTarget(out var group))
+            {
+                group.Add(card);
+                return group;
+            }
+            group = new UserStateGroup(card);
+            _groups[card.Item.Id] = new(group);
+            return group;
+        }
+    }
+
+    private sealed class UserStateGroup
+    {
+        private readonly List<WeakReference<CardItem>> _cards = [];
+        private readonly string _itemId;
+        private readonly object? _owner;
+        private EmbyUserData? _confirmed;
+        private long _confirmedAt;
+        public ItemUserStateOrder Order { get; } = new();
+        public long WatchedRevision { get; set; }
+
+        public UserStateGroup(CardItem card)
+        {
+            _itemId = card.Item.Id;
+            _owner = card.Scope?.UserStateOwner;
+            Add(card);
+        }
+
+        public bool Owns(CardItem card) => card.Item.Id == _itemId
+            && ReferenceEquals(card.Scope?.UserStateOwner, _owner)
+            && (card.Item.Source is null || ReferenceEquals(card.Item.Source.UserStateOwner, _owner));
+
+        public void Add(CardItem card)
+        {
+            if (!Owns(card)) return;
+            _cards.RemoveAll(weak => !weak.TryGetTarget(out _));
+            // A list request started before the confirmation may arrive afterwards. Its stale DTO
+            // must not become the base of the next edit and undo another card's confirmed fields.
+            if (_confirmed is not null && card.Item.UserStateReadRevision < _confirmedAt)
+                card.Item.UserData = ItemUserStateOrder.Copy(_confirmed);
+            _cards.Add(new(card));
+        }
+
+        public void Publish(EmbyUserData state, long revision)
+        {
+            _confirmed = ItemUserStateOrder.Copy(state);
+            _confirmedAt = revision;
+            _cards.RemoveAll(weak => !weak.TryGetTarget(out _));
+            // A property callback may create another card. Keep this publication's targets stable.
+            foreach (var weak in _cards.ToArray())
+                if (weak.TryGetTarget(out var card) && card.IsCurrent && Owns(card))
+                {
+                    card.Item.UserData = ItemUserStateOrder.Copy(state);
+                    card.RefreshUserData();
+                }
+        }
     }
 
     /// <summary>

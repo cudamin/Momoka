@@ -1,3 +1,9 @@
+## 架构审查修复：卡片状态与通用搜索（2026-10-29）
+
+- 工作树 `C:/Users/89400/.codex/worktrees/architecture-state/Momoka`，分支 `codex/architecture-state`，基点 `b167c62`；范围为来源读取版本、卡片状态共享/弱引用、Home/Library 已看后续回填及飞牛/Plex 独立版本搜索。主树既有11项改动未碰。
+- 实现与取舍见 `docs/架构审查修复-2026-10-29.md`。独立复核发现的迟到DTO回滚、正常刷新冻结、可变快照共用和跨货架回填接管均已修正；未新增全局永久DTO缓存。
+- 本树当前 Release Shell/Core/主Tests/状态命令/AniBT入口编译0警告0错误；主测试3248/3248、状态命令73/73、实际Home/Library回填29/29、AniBT入口40/40，0失败0跳过。日志在 `work/architecture-*.log`。尚待整合其他修复、主树重验、实际UI探针/截图及更新交付目录；当前快捷方式仍未包含本批。
+
 ## 待合并分支合入主树并交付（2026-10-29）
 
 - 本轮把 5 个真正待整合的临时分支合入 master：剧资源搜索 `codex/mp-batch-resource-search`、AniBT 非动漫菜单 `codex/anibt-non-anime-series-menu`、手动整理窗口 `codex/mp-manual-organize-dialog`、输入框中性焦点 `codex/neutral-input-focus`、输入框侧栏底色 `codex/neutral-input-surfaces`。在隔离树逐个合并后再快进主树；合并提交 `f2410c2`、`472879e`、`7ebaefb`（清理冲突标记残留）、`31d7924`、`3444a1f`、`8f123f9`，最终 HEAD `3219cba`。

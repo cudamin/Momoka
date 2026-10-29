@@ -35,6 +35,64 @@ internal static class LibraryResumePagingTests
 
     private static void Register(ShellFixture shell)
     {
+        foreach (var playedAgain in new[] { false, true })
+            Case($"主页已看回填：同屏副本改未看{(playedAgain ? "再已看" : "")}后只应用最新NextUp", async () =>
+            {
+                using var fixture = new Fixture(shell, 21);
+                await fixture.Load();
+                var card = fixture.Cards[0];
+                var home = fixture.CreateHome(card);
+                try
+                {
+                    fixture.ConfirmWatched(card, true);
+                    var oldGate = fixture.Transport.HoldNext();
+                    fixture.SetNext(card, "stale-next");
+                    var old = fixture.HomeWatch(home, card);
+                    await oldGate.Entered.Task;
+                    var duplicate = fixture.NewCopy(card);
+                    fixture.ConfirmWatched(duplicate, false);
+                    Task? newer = null;
+                    Gate? newGate = null;
+                    if (playedAgain)
+                    {
+                        fixture.ConfirmWatched(duplicate, true);
+                        fixture.SetNext(card, "current-next");
+                        newGate = fixture.Transport.HoldNext();
+                        newer = fixture.HomeWatch(home, duplicate);
+                        await newGate.Entered.Task;
+                    }
+                    oldGate.Release.TrySetResult();
+                    await old;
+                    Assert.True(fixture.HomeIds(home).Contains("a-0"));
+                    Assert.False(fixture.HomeIds(home).Contains("stale-next"));
+                    if (newer is not null)
+                    {
+                        newGate!.Release.TrySetResult();
+                        await newer;
+                        Assert.True(fixture.HomeIds(home).SequenceEqual(new[] { "current-next" }));
+                    }
+                }
+                finally { ((IDisposable)home).Dispose(); }
+            });
+
+        foreach (var playedAgain in new[] { false, true })
+            Case($"已看回填：NextUp挂起时改未看{(playedAgain ? "再已看" : "")}，旧结果不撤换原卡", async () =>
+            {
+                using var fixture = new Fixture(shell, 21);
+                await fixture.Load();
+                var card = fixture.Cards[0];
+                var gate = fixture.Transport.HoldNext();
+                var marked = fixture.Watch("a-0", "stale-next");
+                await gate.Entered.Task;
+                fixture.ConfirmWatched(card, false);
+                if (playedAgain) fixture.ConfirmWatched(card, true);
+                gate.Release.TrySetResult();
+                await marked;
+                Assert.True(fixture.Cards.Contains(card));
+                Assert.False(fixture.Ids().Contains("stale-next"));
+                Assert.Equal(playedAgain, fixture.Read<EmbyItem>(card, "Item").UserData!.Played);
+            });
+
         Case("R-013 首页仍使用 Resume 路由，20/21 条保留下一页", async () =>
         {
             using var fixture = new Fixture(shell, 21);
@@ -404,6 +462,7 @@ internal static class LibraryResumePagingTests
     {
         private readonly ShellFixture _shell;
         private readonly EmbySession _session;
+        private readonly EmbyImageStore _images;
         private readonly Dictionary<string, EmbySessionScope> _sources = new(StringComparer.Ordinal);
         private readonly object _vm;
         private bool _viewDisposed;
@@ -429,8 +488,8 @@ internal static class LibraryResumePagingTests
             if (secondSource) AddSource("b", count, device, secondKind);
             if (thirdSource) AddSource("c", count, device, MediaServerKind.FnNas);
             SelectDefault("a");
-            var images = new EmbyImageStore(_session, Path.Combine(root, "images"));
-            _vm = shell.Create(_session, images, settings, aggregate ? null : Source("a"), favorites);
+            _images = new EmbyImageStore(_session, Path.Combine(root, "images"));
+            _vm = shell.Create(_session, _images, settings, aggregate ? null : Source("a"), favorites);
             Assert.Equal(0, Transport.Requests.Count, "Attach 不能登录、读取目录或保存配置");
         }
 
@@ -490,6 +549,60 @@ internal static class LibraryResumePagingTests
             watched.UserData.Played = true;
             Transport.Next[(host, watched.SeriesId!)] = nextId is null ? null : Item(nextId, resumable: false);
             return (Task)Invoke("AfterWatchedAsync", card)!;
+        }
+
+        public void ConfirmWatched(object card, bool played)
+        {
+            var order = _shell.Get<ItemUserStateOrder>(card, "UserStateOrder");
+            var item = _shell.Get<EmbyItem>(card, "Item");
+            var change = order.BeginWatched(played);
+            var state = order.Apply(change, item.UserData, null)!;
+            _shell.Invoke(card, "ApplyUserState", state, true);
+            order.Complete(change);
+        }
+
+        public object NewCopy(object original)
+        {
+            var item = _shell.Get<EmbyItem>(original, "Item");
+            var copy = item.Source!.Bind(Item(item.Id));
+            return Invoke("NewCard", copy)!;
+        }
+
+        public void SetNext(object card, string id)
+        {
+            var item = _shell.Get<EmbyItem>(card, "Item");
+            Transport.Next[("a", item.SeriesId!)] = Item(id, resumable: false);
+        }
+
+        public object CreateHome(object card)
+        {
+            var assembly = _vm.GetType().Assembly;
+            var type = assembly.GetType("Momoka.Shell.ViewModels.HomeViewModel", true)!;
+            var home = Activator.CreateInstance(type)!;
+            var shelfType = assembly.GetType("Momoka.Shell.ViewModels.CardShelf", true)!;
+            var shelf = Activator.CreateInstance(shelfType, BindingFlags.Instance | BindingFlags.NonPublic,
+                null, ["继续观看", _images, 170, true, true, null, HomeLayout.HomeRowTarget.Resume, false], null)!;
+            ((System.Collections.IList)_shell.Get<object>(shelf, "Cards")).Add(card);
+            // Only inject the already-loaded presentation state. Calling Attach would start the
+            // real-time channel; the actual AfterWatched/ResumeSlot/CardShelf methods remain intact.
+            type.GetField("_active", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(home, true);
+            type.GetField("_sources", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(home, new[] { Source("a") });
+            var all = type.GetField("_all", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var entryType = all.FieldType.GetElementType()!;
+            var entries = Array.CreateInstance(entryType, 1);
+            entries.SetValue(Activator.CreateInstance(entryType, new HomeRowPlan(HomeLayout.Resume, "继续观看", true), shelf), 0);
+            all.SetValue(home, entries);
+            ((System.Collections.IList)_shell.Get<object>(home, "Shelves")).Add(shelf);
+            return home;
+        }
+
+        public Task HomeWatch(object home, object card) => (Task)_shell.Invoke(home, "AfterWatchedAsync", card)!;
+
+        public string[] HomeIds(object home)
+        {
+            var shelf = ((System.Collections.IEnumerable)_shell.Get<object>(home, "Shelves")).Cast<object>().Single();
+            return ((System.Collections.IEnumerable)_shell.Get<object>(shelf, "Cards")).Cast<object>()
+                .Select(card => _shell.Get<EmbyItem>(card, "Item").Id).ToArray();
         }
 
         public void DisposeView()

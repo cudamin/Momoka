@@ -9,7 +9,7 @@ using static Momoka.Tests.TestHarness;
 namespace Momoka.Tests;
 
 /// <summary>Source-linked real card commands with windowless click/value boundaries and fake HTTP only.</summary>
-internal static class ItemUserStateOrderTests
+internal static partial class ItemUserStateOrderTests
 {
     public static int Main()
     {
@@ -22,6 +22,7 @@ internal static class ItemUserStateOrderTests
     public static void Register()
     {
         FnNasUserStateCardTests.Register();
+        RegisterCardCopies();
         Test("R-016夹具：完成的异常不能被泵洗成成功", () =>
             Assert.Throws<InvalidOperationException>(() => ItemUserStateContext.Run(() => Task.FromException(new InvalidOperationException("synthetic pump failure")))));
         Test("R-016夹具：完成的取消不能被泵洗成成功", () =>

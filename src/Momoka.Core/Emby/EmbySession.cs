@@ -526,6 +526,7 @@ public sealed class EmbySession : IDisposable
     private async Task<T> ExecuteWithSourceAsync<T>(EmbySessionScope scope, Func<EmbyClient, CancellationToken, Task<T>> operation,
         CancellationToken cancellationToken)
     {
+        var readRevision = scope.UserStateRevision;
         var client = scope.Client;
         T result;
         try { result = await InvokeAsync(client, operation, cancellationToken).ConfigureAwait(false); }
@@ -536,7 +537,7 @@ public sealed class EmbySession : IDisposable
             cancellationToken.ThrowIfCancellationRequested();
             result = await InvokeAsync(fresh, operation, cancellationToken).ConfigureAwait(false);
         }
-        return scope.Bind(result);
+        return scope.Bind(result, readRevision);
     }
 
     private static async Task<T> InvokeAsync<T>(EmbyClient client, Func<EmbyClient, CancellationToken, Task<T>> operation, CancellationToken cancellationToken)

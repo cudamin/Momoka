@@ -99,7 +99,7 @@ public sealed class ItemUserStateOrder
     /// <summary>Always finish the edit, including failure/cancellation; failure does not confirm a value.</summary>
     public void Complete(Change change) => (change.Watched ? _watched : _favorite).Pending--;
 
-    private static EmbyUserData Copy(EmbyUserData? source)
+    public static EmbyUserData Copy(EmbyUserData? source)
     {
         var state = new EmbyUserData();
         if (source is null) return state;
@@ -128,7 +128,7 @@ public sealed class ItemUserStateOrder
             OtherPending = otherPending;
         }
         internal long Version { get; }
-        internal bool Watched { get; }
+        public bool Watched { get; }
         internal bool Value { get; }
         internal bool OtherPending { get; }
     }

@@ -1191,6 +1191,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (!QueryCurrent(queryToken) || card.Scope is not { IsAvailable: true } scope || !Cards.Contains(card)) return;
 
         var watched = card.Item;
+        var watchedRevision = card.WatchedRevision;
 
         // 写入已确认后原项已经从服务器 Resume 清单移除。先撤销可能还用旧偏移读取的分页，再回退
         // 它所属来源；不能等下一集补读完才记账，更不能把补入的无续播下一集算作原始记录。
@@ -1211,7 +1212,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             : null;
 
         // 这一趟往返里页面可能已经走了、换了账号、或者换了一次查询：那就一个字都别动。
-        if (!QueryCurrent(queryToken) || !card.IsCurrent || !Cards.Contains(card)) return;
+        if (!QueryCurrent(queryToken) || !card.IsCurrent || !Cards.Contains(card)
+            || card.WatchedRevision != watchedRevision || !card.Watched) return;
 
         var slot = ResumeSlot.Apply(Cards, card, next, NewCard);
         Log.Info(Category, slot is null

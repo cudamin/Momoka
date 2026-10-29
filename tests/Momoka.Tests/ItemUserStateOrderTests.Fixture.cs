@@ -92,9 +92,7 @@ internal sealed class ItemUserStateFixture : IAsyncDisposable
     {
         get
         {
-            var table = (ConditionalWeakTable<EmbyItem, ItemUserStateOrder>)typeof(ItemCommands)
-                .GetField("UserStateOrders", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
-            if (!table.TryGetValue(Card.Item, out var order)) return 0;
+            var order = Card.UserStateOrder;
             return new[] { "_watched", "_favorite" }.Sum(name =>
             {
                 var state = typeof(ItemUserStateOrder).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(order)!;

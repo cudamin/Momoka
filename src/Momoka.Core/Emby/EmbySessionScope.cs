@@ -31,6 +31,13 @@ public sealed class EmbySessionScope
     /// <summary>同身份客户端权限快照的代次；旧能力读取与页面操作不能跨新快照回填。</summary>
     public long PermissionRevision => _session.CurrentPermissions(this).Revision;
 
+    /// <summary>同一在线身份的作用域共享此所有者；退出再登录后使用新的所有者。</summary>
+    public object UserStateOwner => IdentityState.UserStateOwner;
+
+    /// <summary>Marks reads against local confirmed edits, without turning a saved DTO into a cache.</summary>
+    public long UserStateRevision => Interlocked.Read(ref IdentityState.UserStateRevision);
+    public long ConfirmUserStateChange() => Interlocked.Increment(ref IdentityState.UserStateRevision);
+
     public void ThrowIfNotCurrent()
     {
         if (!IsCurrent) throw new OperationCanceledException("任务所属的默认登录身份已改变");
@@ -46,18 +53,26 @@ public sealed class EmbySessionScope
     public EmbyItem Bind(EmbyItem item)
     {
         item.Source = this;
+        if (item.UserStateReadRevision < 0) item.UserStateReadRevision = UserStateRevision;
         return item;
     }
 
-    public T Bind<T>(T result)
+    public T Bind<T>(T result) => Bind(result, UserStateRevision);
+
+    internal T Bind<T>(T result, long readRevision)
     {
-        if (result is EmbyItem item) Bind(item);
-        else if (result is ItemsResult query) Bind(query.Items);
-        else if (result is MovieRecommendation recommendation) Bind(recommendation.Items);
+        void BindRead(EmbyItem item)
+        {
+            item.Source = this;
+            item.UserStateReadRevision = readRevision;
+        }
+        if (result is EmbyItem item) BindRead(item);
+        else if (result is ItemsResult query) Bind(query.Items, readRevision);
+        else if (result is MovieRecommendation recommendation) Bind(recommendation.Items, readRevision);
         else if (result is IEnumerable<MovieRecommendation> recommendations)
-            foreach (var group in recommendations) Bind(group.Items);
+            foreach (var group in recommendations) Bind(group.Items, readRevision);
         else if (result is IEnumerable<EmbyItem> items)
-            foreach (var entry in items) Bind(entry);
+            foreach (var entry in items) BindRead(entry);
         return result;
     }
 
@@ -69,6 +84,8 @@ public sealed class EmbySessionScope
 
     internal sealed class Identity(EmbyClient client, ServerProfile server, AccountProfile account)
     {
+        public object UserStateOwner { get; } = new();
+        public long UserStateRevision;
         public EmbyClient Client { get; set; } = client;
         public long PermissionRevision { get; set; }
         public ServerProfile Server { get; } = server;
