@@ -57,13 +57,13 @@ internal sealed partial class ShellNavigationProbe
                         Require(dialog.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"],
                             $"{theme.Id}/{dialog.GetType().Name} 未使用统一圆角");
                         Require(dialog.BorderThickness == new Thickness(0), $"{dialog.GetType().Name} 留下了方形外边框");
-                        Require(BrushColor(dialog.Background) == ThemeHost.ToColor(theme.Colors.Window),
-                            $"{theme.Id}/{dialog.GetType().Name} 背景与设置侧栏不一致");
+                        Require(BrushColor(dialog.Background) == ThemeHost.ToColor(theme.Colors.Surface),
+                            $"{theme.Id}/{dialog.GetType().Name} 背景没有用弹窗玻璃");
                         var surface = Descendants(dialog).OfType<Border>().First(border => border.Name == "BackgroundElement");
                         Require(surface.CornerRadius == dialog.CornerRadius && BrushColor(surface.Background) == BrushColor(dialog.Background),
                             $"{dialog.GetType().Name} 模板没有实际消费圆角或背景");
                         var contentScroll = Descendants(dialog).OfType<ScrollViewer>().Single(view => view.Name == "ContentScrollViewer");
-                        Require(contentScroll.Content is Grid top && BrushColor(top.Background) == ThemeHost.ToColor(theme.Colors.Window),
+                        Require(contentScroll.Content is Grid top && BrushColor(top.Background).A == 0,
                             $"{dialog.GetType().Name} 正文仍被框架顶层叠色覆盖");
                         await SaveProbeScreenAsync($"library-dialog-{dialog.GetType().Name}-{theme.Id}-screen.png");
                     }
@@ -83,21 +83,21 @@ internal sealed partial class ShellNavigationProbe
                     {
                         await LayoutAsync(panel);
                         var border = (Border)panel.FindName("LibraryDialogSurface");
-                        Require(BrushColor(border.Background) == ThemeHost.ToColor(theme.Colors.Window)
+                        Require(BrushColor(border.Background) == ThemeHost.ToColor(theme.Colors.Surface)
                             && border.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"],
-                            $"{theme.Id}/{name} 没有统一圆角或底色");
+                            $"{theme.Id}/{name} 没有统一圆角或弹窗玻璃");
                         await SaveProbeScreenAsync($"library-dialog-{name}-{theme.Id}-screen.png");
                     }
                     finally { _root.Children.Remove(holder); }
                 }
                 // This ordinary dynamic dialog is the same type MP subscription/resource editors use.
-                var ordinary = new ContentDialog { XamlRoot = _root.XamlRoot, Title = "普通 / MP 动态窗口保持原样", Content = "离线样式检查", CloseButtonText = "关闭" };
+                var ordinary = new ContentDialog { XamlRoot = _root.XamlRoot, Title = "普通 / MP 动态窗口同材质", Content = "离线样式检查", CloseButtonText = "关闭" };
                 var ordinaryShown = ordinary.ShowAsync().AsTask();
                 try
                 {
                     await LayoutAsync(ordinary);
                     Require(BrushColor(ordinary.Background) == ThemeHost.ToColor(theme.Colors.Surface),
-                        "媒体库样式污染了普通/MP动态弹窗");
+                        "普通/MP动态弹窗没有跟上弹窗玻璃");
                 }
                 finally { ordinary.Hide(); await ordinaryShown; }
                 var mp = new MoviePilotSeasonPicker { XamlRoot = _root.XamlRoot, CloseButtonText = "关闭" };
@@ -105,7 +105,7 @@ internal sealed partial class ShellNavigationProbe
                 try
                 {
                     await LayoutAsync(mp);
-                    Require(BrushColor(mp.Background) == ThemeHost.ToColor(theme.Colors.Surface), "MP专有弹窗背景被改成库底色");
+                    Require(BrushColor(mp.Background) == ThemeHost.ToColor(theme.Colors.Surface), "MP专有弹窗背景没有跟上弹窗玻璃");
                     await SaveProbeScreenAsync($"library-dialog-mp-unchanged-{theme.Id}-screen.png");
                 }
                 finally { mp.Hide(); await mpShown; }
@@ -116,9 +116,9 @@ internal sealed partial class ShellNavigationProbe
                     try
                     {
                         await LayoutAsync(dialog);
-                        Require(BrushColor(dialog.Background) == ThemeHost.ToColor(theme.Colors.Window)
+                        Require(BrushColor(dialog.Background) == ThemeHost.ToColor(theme.Colors.Surface)
                             && dialog.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"],
-                            "媒体库删除确认未使用局部库样式");
+                            "媒体库删除确认未使用弹窗玻璃");
                         await SaveProbeScreenAsync($"library-dialog-confirmation-{theme.Id}-screen.png");
                         confirmationChecked = true;
                         return ContentDialogResult.None;
@@ -131,5 +131,10 @@ internal sealed partial class ShellNavigationProbe
         finally { ThemeHost.Apply(savedTheme); }
     }
 
-    private static Windows.UI.Color BrushColor(Brush? brush) => brush is SolidColorBrush solid ? solid.Color : default;
+    private static Windows.UI.Color BrushColor(Brush? brush) => brush switch
+    {
+        SolidColorBrush solid => solid.Color,
+        AcrylicBrush acrylic => acrylic.TintColor,
+        _ => default
+    };
 }

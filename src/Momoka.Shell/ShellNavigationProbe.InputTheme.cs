@@ -22,6 +22,7 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             var background = ThemeHost.ToColor(theme.Colors.Window);
+            var glass = ThemeHost.ToColor(InputControlTheme.Glass(theme));
             var border = ThemeHost.ToColor(theme.Colors.BorderStrong);
             foreach (var entry in InputControlTheme.Brushes)
                 foreach (var dictionary in new[] { "Dark", "Light" })
@@ -41,10 +42,10 @@ internal sealed partial class ShellNavigationProbe
             // 窄窗还存在分类 ComboBox；按业务行名称选同一控件，不能随布局改成验证分类选择器。
             var combo = Descendants(page).OfType<ComboBox>()
                 .Single(control => AutomationProperties.GetName(control) == "轮播图用什么媒体");
-            AssertBackground(combo.Background, "闭合下拉框");
+            AssertGlass(combo.Background, "闭合下拉框");
             await FocusAsync(combo, "闭合下拉框");
             var comboBorder = Descendants(combo).OfType<Border>().Single(control => control.Name == "Background");
-            AssertBackground(comboBorder.Background, "聚焦下拉框");
+            AssertGlass(comboBorder.Background, "聚焦下拉框");
             var comboHighlight = Descendants(combo).OfType<Border>().Single(control => control.Name == "HighlightBackground");
             Require(comboHighlight.BorderBrush is SolidColorBrush focusedCombo && focusedCombo.Color == border,
                 $"{theme.Id} 下拉框键盘焦点仍使用主题色");
@@ -52,11 +53,29 @@ internal sealed partial class ShellNavigationProbe
             Require(!TextFocusSettled(searchInput, TextFrame(searchInput)), "焦点检查没有拒绝已经离焦的搜索框");
             var number = Descendants(page).OfType<NumberBox>()
                 .Single(control => AutomationProperties.GetName(control) == "轮播图张数");
-            AssertBackground(number.Background, "数字框外层");
+            AssertGlass(number.Background, "数字框外层");
             var numberInput = Descendants(number).OfType<TextBox>().Single(control => control.Name == "InputBox");
             await FocusAsync(numberInput, "数字框");
             await AssertTextBorderAsync(numberInput, "数字框");
             await CaptureAsync($"settings-inputs-{theme.Id}-{width}", page);
+
+            // 点空白处恢复：页面把焦点交给卡片区的滚动区（SettingsPage.OnSettingsPointerPressed），
+            // 输入框随即失焦、从侧栏色回到输入玻璃。这里直接走同一个落点，验证的是那条恢复路径本身；
+            // 指针点击如何路由到处理器由 Reader 的源码检查覆盖。
+            var scroll = Get<ScrollViewer>(page, "SettingsScroll");
+            scroll.Focus(FocusState.Programmatic);
+            try
+            {
+                await UntilAsync(() => TextFrame(numberInput).Background is AcrylicBrush acrylic
+                    && acrylic.TintColor == glass && !TextFocusSettled(numberInput, TextFrame(numberInput)));
+            }
+            catch (TimeoutException error)
+            {
+                throw new InvalidOperationException(
+                    $"{theme.Id}/{width}/数字框 失焦后没有回到输入玻璃；{Describe(numberInput, TextFrame(numberInput))}", error);
+            }
+            reads.AppendLine($"数字框失焦恢复：玻璃 tint={glass}");
+            await CaptureAsync($"settings-inputs-restored-{theme.Id}-{width}", page);
 
             var name = "猫与龙";
             var dialog = new MetadataDialog(new EmbyItem { Id = "offline-input-theme", Name = name, Type = EmbyItemType.Movie },
@@ -122,6 +141,11 @@ internal sealed partial class ShellNavigationProbe
             {
                 Require(brush is SolidColorBrush solid && solid.Color == background, $"{theme.Id}/{name} 未使用侧边栏底色");
                 reads.AppendLine($"{name}：背景={background}");
+            }
+            void AssertGlass(Brush brush, string name)
+            {
+                Require(brush is AcrylicBrush acrylic && acrylic.TintColor == glass, $"{theme.Id}/{name} 未使用输入玻璃");
+                reads.AppendLine($"{name}：玻璃 tint={glass}");
             }
             async Task AssertTextBorderAsync(TextBox control, string name)
             {

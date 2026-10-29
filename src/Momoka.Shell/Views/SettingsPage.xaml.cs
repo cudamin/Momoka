@@ -12,6 +12,8 @@ using Momoka.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 
@@ -112,6 +114,32 @@ public sealed partial class SettingsPage : Page, IShellContent
     internal SettingsViewModel ViewModel { get; } = new();
 
     internal bool IsReady => ViewModel.IsReady;
+
+    /// <summary>
+    /// 点空白处把焦点从输入框挪走。输入框聚焦时底色是侧边栏色（见 SettingsScroll.Resources 里
+    /// TextControl* 那两条），而卡片、标题、空白都不是可聚焦的东西 —— 不接这一下，WinUI 就不会替我们
+    /// 换焦点，那块色会一直留着（用户 2026-10-29：「点完输入框之后点再周围没反应不会自动恢复」）。
+    /// <para>
+    /// 落点用卡片这一列的滚动区：它可见、可聚焦，又不画焦点框；试过零尺寸的透明按钮，焦点会在
+    /// 下一次布局时被丢掉，输入框又把焦点拿回去。这一下挂在 Page 上，控件自己吃掉的按下本来就不会
+    /// 上来；下面那张名单是给「不标记 handled、但按下就该由它接焦点」的控件留的，免得把它们刚拿到的
+    /// 焦点又抢走。
+    /// </para>
+    /// </summary>
+    private void OnSettingsPointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        for (var node = e.OriginalSource as DependencyObject; node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            switch (node)
+            {
+                case TextBox or PasswordBox or NumberBox or ComboBox or AutoSuggestBox
+                    or ButtonBase or ToggleSwitch or Slider or ListView or ListViewItem or ScrollBar:
+                    return;
+            }
+        }
+
+        SettingsScroll.Focus(FocusState.Pointer);
+    }
 
     private void OnSettingsSearchClick(object sender, RoutedEventArgs args) => SubmitSettingsSearch(SettingsSearchBox, null);
 

@@ -8,7 +8,7 @@
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanAct, Mode=OneWay}"
     PrimaryButtonClick="OnSubmit">
     <ContentDialog.Resources>
-        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="SystemControlTransparentBrush" />
         <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
         <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
         <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />

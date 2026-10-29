@@ -614,6 +614,16 @@
                                 x:Name="ColumnPickers"
                                 Spacing="10"
                                 Visibility="{x:Bind ViewModel.ColumnPickersVisibility, Mode=OneWay}">
+                                <!-- 2026-10-29：全局闭合下拉底改成了输入玻璃，这三颗按用户「别把剧、电影页面的
+                                     选择框给改了」钉回原来的窗口底色。只钉闭合态；弹层仍走全局亚克力。 -->
+                                <StackPanel.Resources>
+                                    <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgWindowBrush" />
+                                </StackPanel.Resources>
                                 <TextBlock
                                     VerticalAlignment="Center"
                                     Style="{StaticResource EgOnScrimDataStyle}"
@@ -1027,6 +1037,9 @@
                                 <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgPickerGlassBrush" />
                                 <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgPickerGlassBrush" />
                                 <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgPickerGlassBrush" />
+                                <!-- 2026-10-29：全局 Disabled 底也换成了玻璃；这一排补钉一枚，
+                                     停用态才不会在页面的玻璃语言里落下一块别的颜色。 -->
+                                <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgPickerGlassBrush" />
                             </StackPanel.Resources>
                             <local:WrapRow RowSpacing="10" Spacing="14">
                                 <local:EgPicker
@@ -1321,6 +1334,15 @@
                                  读数、挂件、通栏线的横向关系是牌子的事，一带一带地重写一遍就会各自跑偏。这一带
                                  不报读数 —— 季数集数已经写在标题里了（「更多来自：第一季 · 12 集，已看 3 集」）。 -->
                             <local:ShelfHead x:Name="EpisodeHead" Title="{x:Bind ViewModel.EpisodeShelf.Title, Mode=OneWay}">
+                                <!-- 同 ColumnPickers：全局闭合下拉底改玻璃之后，季选择器钉回原来的窗口底色。 -->
+                                <local:ShelfHead.Resources>
+                                    <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgWindowBrush" />
+                                </local:ShelfHead.Resources>
                                 <local:ShelfHead.Trailing>
                                     <local:EgPicker x:Uid="DetailPage_ComboBoxA4"
                                         AutomationProperties.AutomationId="DetailSeasonPicker"

@@ -18,7 +18,8 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:primitives="using:Microsoft.UI.Xaml.Controls.Primitives"
     xmlns:vm="using:Momoka.Shell.ViewModels"
-    Background="{ThemeResource LayerFillColorDefaultBrush}">
+    Background="{ThemeResource LayerFillColorDefaultBrush}"
+    PointerPressed="OnSettingsPointerPressed">
 
     <Page.Resources>
         <CollectionViewSource x:Name="CategoryGroupsSource" IsSourceGrouped="True" />
@@ -411,7 +412,8 @@
                             HorizontalAlignment="Stretch"
                             ItemsSource="{x:Bind Choices, Mode=OneWay}"
                             MinWidth="260"
-                            SelectedItem="{x:Bind Selected, Mode=TwoWay}" />
+                            SelectedItem="{x:Bind Selected, Mode=TwoWay}"
+                            VerticalAlignment="Center" />
                     </Grid>
                 </DataTemplate>
             </local:SettingRowTemplates.Choice>
@@ -556,8 +558,9 @@
                             Maximum="{x:Bind Maximum}"
                             Minimum="{x:Bind Minimum}"
                             PlaceholderText="{x:Bind Placeholder, Mode=OneWay}"
-                            SpinButtonPlacementMode="Compact"
+                            SpinButtonPlacementMode="Hidden"
                             Value="{x:Bind Value, Mode=TwoWay}"
+                            VerticalAlignment="Center"
                             Width="160" />
                     </Grid>
                 </DataTemplate>
@@ -589,8 +592,9 @@
                                 IsEnabled="{x:Bind InputEnabled, Mode=OneWay}"
                                 Minimum="{x:Bind Minimum}"
                                 Maximum="{x:Bind Maximum}"
-                                SpinButtonPlacementMode="Compact"
+                                SpinButtonPlacementMode="Hidden"
                                 Value="{x:Bind Value, Mode=TwoWay}"
+                                VerticalAlignment="Center"
                                 Width="160" />
                         </StackPanel>
                     </Grid>
@@ -668,7 +672,8 @@
                             MinWidth="260"
                             AutomationProperties.Name="{x:Bind Label}"
                             PlaceholderText="{x:Bind Placeholder}"
-                            Text="{x:Bind Text, Mode=TwoWay}" />
+                            Text="{x:Bind Text, Mode=TwoWay}"
+                            VerticalAlignment="Center" />
                     </Grid>
                 </DataTemplate>
             </local:SettingRowTemplates.Text>
@@ -685,7 +690,7 @@
                             <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Note, Mode=OneWay}" TextWrapping="Wrap" Visibility="{x:Bind NoteVisibility, Mode=OneWay}" />
                         </StackPanel>
                         <StackPanel Grid.Column="1" Spacing="8">
-                            <PasswordBox x:Name="SecretInput" Password="{x:Bind Draft, Mode=TwoWay}" PlaceholderText="输入新密钥" AutomationProperties.Name="{x:Bind Label}" />
+                            <PasswordBox x:Name="SecretInput" Password="{x:Bind Draft, Mode=TwoWay}" PlaceholderText="输入新密钥" AutomationProperties.Name="{x:Bind Label}" VerticalAlignment="Center" />
                             <TextBlock Style="{StaticResource EgSettingNote}" Text="{x:Bind Status, Mode=OneWay}" TextWrapping="Wrap" />
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <Button x:Name="SaveSecret" Command="{x:Bind CommitCommand}" Content="保存密钥" AutomationProperties.Name="{x:Bind SaveAutomationName}" />
@@ -1614,6 +1619,17 @@
                     Visibility="{x:Bind ViewModel.CardsVisibility, Mode=OneWay}">
                     <ScrollViewer.Resources>
                         <Thickness x:Key="ScrollViewerScrollBarMargin">0</Thickness>
+
+                        <!--
+                          卡片里输入框的静止底色（2026-10-29 用户令：「点击输入框后输入框内部颜色要切换到设置
+                          页面侧边栏背景的颜色」，「搜索框别改，保持原样」）。只挂在卡片这一列的滚动区上：
+                          TextBox/PasswordBox/NumberBox 的静止与悬停底色接输入玻璃，聚焦态不覆盖 —— 框架的
+                          TextControlBackgroundFocused 仍是全局窗口色（= 侧边栏底色），点进去那一刻整块由
+                          玻璃切成侧栏色，失焦又回到玻璃。左侧搜索框在这一层之外，因此一个像素不变。
+                          Disabled 不覆盖，留全局窗口色，停用的框和可输入的框还分得开。
+                        -->
+                        <StaticResource x:Key="TextControlBackground" ResourceKey="EgInputGlassBrush" />
+                        <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
                     </ScrollViewer.Resources>
                     <!-- 右侧 20 DIP 是滚动条的独立槽位；卡片不伸进滚动指示器区域。 -->
                     <StackPanel x:Name="SettingsCardsContent" Margin="0,0,20,0">

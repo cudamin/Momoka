@@ -21,7 +21,7 @@ internal static class DeleteCommandTests
                 var library = await Momoka.Shell.Views.ConfirmDialog.ForLibrary(owner, dialog =>
                 {
                     Assert.True(ReferenceEquals(dialog.Style, Microsoft.UI.Xaml.Application.Current.Resources["EgLibraryDialogSurfaceStyle"]));
-                    Assert.True(ReferenceEquals(dialog.Resources["ContentDialogTopOverlay"], Microsoft.UI.Xaml.Application.Current.Resources["LayerFillColorDefaultBrush"]));
+                    Assert.True(ReferenceEquals(dialog.Resources["ContentDialogTopOverlay"], Microsoft.UI.Xaml.Application.Current.Resources["SystemControlTransparentBrush"]));
                     Assert.Equal(ContentDialogButton.Close, dialog.DefaultButton);
                     inspected++;
                     return Task.FromResult(ContentDialogResult.None);

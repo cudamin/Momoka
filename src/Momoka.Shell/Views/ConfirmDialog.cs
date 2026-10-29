@@ -72,7 +72,7 @@ internal static class ConfirmDialog
             if (library)
             {
                 dialog.Style = (Style)Application.Current.Resources["EgLibraryDialogSurfaceStyle"];
-                dialog.Resources["ContentDialogTopOverlay"] = Application.Current.Resources["LayerFillColorDefaultBrush"];
+                dialog.Resources["ContentDialogTopOverlay"] = Application.Current.Resources["SystemControlTransparentBrush"];
             }
             var result = show is null ? await dialog.ShowAsync() : await show(dialog);
             return result == ContentDialogResult.Primary;

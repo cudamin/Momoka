@@ -7,8 +7,8 @@
     Title="编辑元数据" PrimaryButtonText="保存" CloseButtonText="取消" DefaultButton="Primary"
     PrimaryButtonClick="OnSave" Closing="OnClosing">
     <ContentDialog.Resources>
-        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
-        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+        <!-- The framework adds a top-only overlay; the dialog surface is glass, so let it show through. -->
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="SystemControlTransparentBrush" />
         <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
         <x:Double x:Key="ContentDialogMinWidth">320</x:Double>
     </ContentDialog.Resources>

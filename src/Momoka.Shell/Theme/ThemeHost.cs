@@ -71,6 +71,9 @@ public static class ThemeHost
         // 它是这一页正文本来的底，亚克力只是让背后那张剧照透上来一点点，不是换一种颜色。
         ("EgFrostBrush", theme => theme.Colors.Window),
 
+        // 弹窗与浮出层的玻璃（2026-10-29）：tint 取弹窗本来的面色，浓度归 Palette 两份字典。
+        ("EgDialogGlassBrush", theme => theme.Colors.Surface),
+
         // 悬停/按下的叠加层。不取自主题的任何一个角色 —— 它按深浅在白和黑之间翻，因为它要压在
         // *下面那层是什么* 上面，而不是配合某个色相。数字和 HostWindow.PaintCaption 给系统窗口按钮
         // 设的那组一致，标题栏两头才是同一种手感。
@@ -109,9 +112,11 @@ public static class ThemeHost
 
         // 影院画布使用稳定的实色层次，避免桌面壁纸透进内容区后冲淡海报和正文。
         // 浮层仍由 EgFrostBrush 提供材质，底层画布与卡片各用自己的主题角色。
+        // 设置卡片（2026-10-29 用户令「所有的卡片也要用亚克力」）：深色取抬两档的悬停面色，
+        // 浅色取白面 —— 两边的浓度都归 Palette 的两份字典，这里只管「这套主题该用哪个色」。
         ("LayerFillColorDefaultBrush", theme => theme.Colors.Window),
         ("LayerFillColorAltBrush", theme => theme.Colors.Surface),
-        ("CardBackgroundFillColorDefaultBrush", theme => theme.Colors.SurfaceAlt),
+        ("CardBackgroundFillColorDefaultBrush", theme => theme.IsDark ? theme.Colors.SurfaceHover : theme.Colors.Surface),
         ("CardBackgroundFillColorSecondaryBrush", theme => theme.Colors.SurfaceElevated),
         ("CardStrokeColorDefaultBrush", theme => theme.Colors.Border),
         ("ControlStrokeColorDefaultBrush", theme => theme.Colors.Border),

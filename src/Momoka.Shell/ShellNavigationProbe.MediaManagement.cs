@@ -92,7 +92,7 @@ internal sealed partial class ShellNavigationProbe
             {
                 ThemeHost.Apply(theme);
                 await LayoutAsync(dialog);
-                Require(dialog.Background is SolidColorBrush { Color.A: > 0 } &&
+                Require(BrushColor(dialog.Background).A > 0 &&
                     Get<TextBlock>(dialog, "SummaryText").Foreground is SolidColorBrush { Color.A: > 0 }, "确认窗口缺主题底色或文字色");
                 await SaveProbeScreenAsync($"mp-media-delete-confirm-{theme.Id}.png");
             }

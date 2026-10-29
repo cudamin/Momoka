@@ -29,7 +29,8 @@ namespace Microsoft.UI.Xaml
         public static Application Current { get; } = new();
         public Dictionary<string, object> Resources { get; } = new()
         {
-            ["EgLibraryDialogSurfaceStyle"] = new Style(), ["LayerFillColorDefaultBrush"] = new object()
+            ["EgLibraryDialogSurfaceStyle"] = new Style(),
+            ["SystemControlTransparentBrush"] = new object()
         };
     }
     public class FrameworkElement
