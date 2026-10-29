@@ -103,6 +103,25 @@ public sealed partial class PlaybackService
     /// </summary>
     public async Task<bool> ReportMarkedWatchedAsync(EmbyItem item, CancellationToken cancellationToken = default)
     {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        lock (_requestGate)
+        {
+            if (_shutdownCompletion is not null) return false;
+            _manualReports.Add(completion);
+        }
+        try { return await ReportMarkedWatchedCoreAsync(item, cancellationToken).ConfigureAwait(false); }
+        finally
+        {
+            lock (_requestGate)
+            {
+                _manualReports.Remove(completion);
+                completion.TrySetResult();
+            }
+        }
+    }
+
+    private async Task<bool> ReportMarkedWatchedCoreAsync(EmbyItem item, CancellationToken cancellationToken)
+    {
         if (!settings.Playback.StopReportEnabled || !settings.Playback.ReportProgressToServer)
         {
             Log.Debug(Category, $"《{item.Name}》标记已看：通知接管没开（或上报已关），不补报");

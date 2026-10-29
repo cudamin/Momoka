@@ -30,6 +30,8 @@ $startNode = $transport.Substring($start[0].offset, $start[0].length)
 $nextNode = $transport.Substring($next[0].offset, $next[0].length)
 $cases = @(
     @{ name = 'missing-start'; expected = 'MEMBER_MISSING_OR_AMBIGUOUS StartPlaybackAsync'; text = $transport.Replace('private async Task StartPlaybackAsync(', 'private async Task MissingCallerAsync(') },
+    @{ name = 'missing-episode-step'; expected = 'MEMBER_MISSING_OR_AMBIGUOUS StepEpisodeAsync'; text = $transport.Replace('private async Task StepEpisodeAsync(', 'private async Task MissingEpisodeStepAsync(') },
+    @{ name = 'missing-episode-cancel'; expected = 'MEMBER_MISSING_OR_AMBIGUOUS CancelEpisodeLookup'; text = $transport.Replace('private void CancelEpisodeLookup(', 'private void MissingEpisodeCancel(') },
     @{ name = 'duplicate-start'; expected = 'MEMBER_MISSING_OR_AMBIGUOUS StartPlaybackAsync count=2'; text = $transport.Insert($transport.LastIndexOf("`n}"), $startNode) },
     @{ name = 'duplicate-next'; expected = 'MEMBER_MISSING_OR_AMBIGUOUS NextEpisodeToAutoPlay count=2'; text = $transport.Insert($transport.LastIndexOf("`n}"), $nextNode) },
     @{ name = 'invalid-syntax'; expected = 'SOURCE_SYNTAX_INVALID'; text = $transport + "`nnamespace {`n" },

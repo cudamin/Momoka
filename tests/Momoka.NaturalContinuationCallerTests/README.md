@@ -1,5 +1,11 @@
 # R046 实际 VM 自然接续 caller：无窗口回归
 
+## 2026-10-29：跨季查询归属回归
+
+本轮在原有 50 项上新增 4 项，当前共 54 项。提取器新增完整 `StepEpisodeAsync`、`ResolveAdjacentEpisodeAsync`、`CancelEpisodeLookup`、`StartEpisode` 和 `StartEpisodeAsync`，继续执行实际 `StartPlaybackAsync`、Stop、Leave 和 NowPlaying；不手写查询状态机。A 跨季 GET 挂起时启动 B，断言实际 HTTP 令牌撤销、B 本地下一集仍可启动、A 迟到成功／失败及 finally 不清 B 查询、不借 B 显示通知，Stop 立即撤销查询。匿名传输刻意晚于取消完成，播放及视觉端点仍为已有假边界。
+
+仅定点同步本次修改的 `PlaybackService.Lifecycle.cs`、`PlayerViewModel.Transport.cs`、`PlayerViewModel.cs` 三项源 hash，其余 pins 原样保留。提取负例新增缺跨季入口／缺取消方法两项，当前 10 项；失败后重新编译当前源并再跑 54 项。真实 Core 手动补报排空另由 `marked-watched-source-fixture` 验证，不能把此处假播放边界记作真实后端运行。
+
 独立控制台 fixture，已最小注册到方案构建，仍需单独运行；不加入共享 Program。来源 fixture-only 提交 `58ec7779407cd2416eed9dc50ad312f1f84f67b0`，基点 `82176c7d57c15ddef2a312af2a6232ecb8c8897b`；本机工具核日期 2026-10-24，Asia/Shanghai（UTC+08:00）。主树仅整合测试文件，不拷来源的未提交产品快照。
 
 ## 真实与 fake 的边界

@@ -77,6 +77,7 @@ public sealed partial class PlaybackService
             expectedContinuation?.ContextClosed);
         lock (_requestGate)
         {
+            if (_shutdownCompletion is not null) throw new OperationCanceledException("播放器正在关闭");
             if (_latestRequest is { Established: false } previous) Cancel(previous.Startup);
             _latestRequest = operation;
             _operations.Add(operation);
@@ -126,6 +127,34 @@ public sealed partial class PlaybackService
     {
         try { await cancellation.ConfigureAwait(false); }
         catch (Exception error) { Log.Warn(Category, "播放取消回调失败", error); }
+    }
+
+    /// <summary>Closes admission and drains both playback and already-admitted manual report pairs.</summary>
+    public Task ShutdownAsync()
+    {
+        TaskCompletionSource completion;
+        Task[] reports;
+        lock (_requestGate)
+        {
+            if (_shutdownCompletion is { } existing) return existing.Task;
+            completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            _shutdownCompletion = completion;
+            reports = _manualReports.Select(report => report.Task).ToArray();
+        }
+        _ = CompleteShutdownAsync(completion, reports);
+        return completion.Task;
+    }
+
+    private async Task CompleteShutdownAsync(TaskCompletionSource completion, Task[] reports)
+    {
+        try
+        {
+            // Do not cancel a manual pair after its start report. Each HTTP report already has a
+            // deadline; App keeps the session alive within its existing outer shutdown deadline.
+            await Task.WhenAll(StopAsync(), Task.WhenAll(reports)).ConfigureAwait(false);
+            completion.TrySetResult();
+        }
+        catch (Exception error) { completion.TrySetException(error); }
     }
 
     public Task StopAsync()

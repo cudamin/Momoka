@@ -22,6 +22,8 @@ internal sealed class AnonymousTransport(Tape tape) : HttpMessageHandler
         _routes.Add(source.Connection.ApiBase.Host + "/emby/Shows/" + series + "/Seasons", _ => Task.FromResult<object>(new { Items = rows }));
     internal void Episodes(EmbySessionScope source, string series, IReadOnlyList<EmbyItem> rows) =>
         _routes.Add(source.Connection.ApiBase.Host + "/emby/Shows/" + series + "/Episodes", _ => Task.FromResult<object>(new { Items = rows }));
+    internal void Episodes(EmbySessionScope source, string series, Func<Read, Task<object>> response) =>
+        _routes.Add(source.Connection.ApiBase.Host + "/emby/Shows/" + series + "/Episodes", response);
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {

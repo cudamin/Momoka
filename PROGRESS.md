@@ -1,3 +1,12 @@
+## 架构审查修复：播放查询与手动补报生命周期（2026-10-29，待主树整合）
+
+- 隔离树 `C:/Users/89400/.codex/worktrees/architecture-playback/Momoka`，基点 `b167c62`。本轮范围仅 `PlayerViewModel` 跨季查询、`PlaybackService` 手动已看关闭排空及对应测试／文档；主树已有未提交工作未触碰。
+- 跨季查询持有本次 CTS 和播放意图；换片、停止、离开与关闭先释放所有者再撤销请求。旧成功／失败／finally 不得清下一部查询或借下一部显示通知。常驻 VM 不再让一部的跨季忙碌状态阻断下一部本地切集。
+- 手动已看补报从接纳到收尾登记在 Service；最终 `ShutdownAsync` 原子关闭入场，等待播放及已接纳的开始→停止补报。普通 `StopAsync` 保留可重用语义，失败／取消也释放登记。仍受现有单次上报 5 秒和应用关闭 25 秒期限约束，网络失败不保证服务器已收下停止。
+- 用户级 SDK `10.0.400`，本树还原后 Core／主测试、真实 Shell Release 单节点编译均 **0 警告、0 错误**。`marked-watched-source-fixture` **86/86**（新增成功／失败／取消排空、关闭拒绝入场、普通 Stop 可重用）；完整生产 VM caller **54/54**（新增 4 项跨季 ownership），均无失败／跳过。提取器 **10 个反例全部按预期拒绝**，随后当前源重新编译并重跑 54 项。
+- 证据：`artifacts/r046-caller/marked-watched-final.log`、`architecture-extractor-final/counterexamples.json`、`architecture-extractor-final/current-reverified/`。仅本次改动三份生产源的 SourcePins 定点更新，其余保留。变更 C# 格式、LF／PS BOM与语法、Git 空白检查通过。
+- 未运行 UI／真实服务器／实际媒体或原生后端，不发布、不推送；应用外层与真实传输退出行为仍待主会话适用验证。此次提交须由主会话合并、最终重新验证并刷新主树交付目录；快捷方式仍为本轮前交付件。
+
 ## 待合并分支合入主树并交付（2026-10-29）
 
 - 本轮把 5 个真正待整合的临时分支合入 master：剧资源搜索 `codex/mp-batch-resource-search`、AniBT 非动漫菜单 `codex/anibt-non-anime-series-menu`、手动整理窗口 `codex/mp-manual-organize-dialog`、输入框中性焦点 `codex/neutral-input-focus`、输入框侧栏底色 `codex/neutral-input-surfaces`。在隔离树逐个合并后再快进主树；合并提交 `f2410c2`、`472879e`、`7ebaefb`（清理冲突标记残留）、`31d7924`、`3444a1f`、`8f123f9`，最终 HEAD `3219cba`。

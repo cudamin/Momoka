@@ -138,6 +138,7 @@ public sealed partial class PlayerViewModel
     {
         InvalidateMenuInteractions();
         ResetTimelineDrag();
+        CancelEpisodeLookup();
         _startIntent.CancelAll();
         _preparing?.Cancel();
         if (!_stopTask.IsCompleted) return _stopTask;
@@ -207,6 +208,7 @@ public sealed partial class PlayerViewModel
         // 这一次起播的意图票：新的 Begin 作废所有旧起播（最后点选的那次胜出），用户停止作废全部。
         // 各段网络之后 IsCurrent 对不上就静默放弃 —— 取消不是错误。
         var intent = continuingIntent ?? _startIntent.Begin();
+        CancelEpisodeLookup();
         InvalidateMenuInteractions();
 
         // 这一场播放的号（见 _playbackAttempt）：比停掉旧那一刀更早，所以旧一场收尾时判得出「已经有新的一场了」。
@@ -628,7 +630,7 @@ public sealed partial class PlayerViewModel
     /// <summary>上一集 / 下一集. The local season is walked first; only a boundary costs a server request.</summary>
     private async Task StepEpisodeAsync(int offset)
     {
-        if (_episodeLookupBusy || _episodeSwitchTargetId is not null) return;
+        if (_episodeLookup is not null || _episodeSwitchTargetId is not null) return;
 
         if (_nowPlaying is not { } current || !HasAggregateQueue && current.Type != EmbyItemType.Episode)
         {
@@ -651,17 +653,18 @@ public sealed partial class PlayerViewModel
             return;
         }
 
-        _episodeLookupBusy = true;
+        var playingItemKey = PlayingItemKey;
+        var intent = _activeIntent;
+        var scope = _playbackScope;
+        if (scope is null || !_startIntent.IsCurrent(intent)) return;
+        using var lookup = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _episodeLookup = lookup;
+        bool Current() => ReferenceEquals(_episodeLookup, lookup) && !lookup.IsCancellationRequested
+            && _startIntent.IsCurrent(intent) && string.Equals(PlayingItemKey, playingItemKey, StringComparison.Ordinal);
         try
         {
-            var playingItemKey = PlayingItemKey;
-            var intent = _activeIntent;
-            var scope = _playbackScope;
-            if (scope is null || !_startIntent.IsCurrent(intent)) return;
-            var destination = await ResolveAdjacentEpisodeAsync(current, offset, scope).ConfigureAwait(true);
-
-            if (!_startIntent.IsCurrent(intent)) return;
-            if (!string.Equals(PlayingItemKey, playingItemKey, StringComparison.Ordinal)) return;
+            var destination = await ResolveAdjacentEpisodeAsync(current, offset, scope, lookup.Token).ConfigureAwait(true);
+            if (!Current()) return;
 
             if (destination is null)
             {
@@ -676,16 +679,26 @@ public sealed partial class PlayerViewModel
         }
         catch (Exception error)
         {
+            if (!Current()) return;
             Log.Warn(Category, "读取跨季单集失败", error);
             Noticed?.Invoke($"读取相邻季失败：{error.Message}", InfoBarSeverity.Warning);
         }
         finally
         {
-            _episodeLookupBusy = false;
+            if (ReferenceEquals(_episodeLookup, lookup)) _episodeLookup = null;
         }
     }
 
-    private async Task<EpisodeDestination?> ResolveAdjacentEpisodeAsync(EmbyItem current, int offset, EmbySessionScope scope)
+    private void CancelEpisodeLookup()
+    {
+        // Release ownership before cancellation: a late catch/finally cannot borrow a successor's slot.
+        var lookup = _episodeLookup;
+        _episodeLookup = null;
+        lookup?.Cancel();
+    }
+
+    private async Task<EpisodeDestination?> ResolveAdjacentEpisodeAsync(EmbyItem current, int offset, EmbySessionScope scope,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrEmpty(current.SeriesId)) return null;
 
@@ -699,7 +712,7 @@ public sealed partial class PlayerViewModel
                     current.SeriesId!,
                     seasonId: null,
                     cancellationToken: token),
-                _lifetime.Token)
+                cancellationToken)
             .ConfigureAwait(true);
 
         return await EpisodeNavigation
@@ -709,7 +722,7 @@ public sealed partial class PlayerViewModel
         async Task<IReadOnlyList<EmbyItem>> FetchSeasonAsync(string? seasonId) => await scope
             .ExecuteAsync(
                 (client, token) => client.GetEpisodesAsync(current.SeriesId!, seasonId, token),
-                _lifetime.Token)
+                cancellationToken)
             .ConfigureAwait(true);
     }
 
@@ -806,7 +819,7 @@ public sealed partial class PlayerViewModel
         _activeIntent = 0;
         CurrentItem = null;
         PlayingItemId = "";
-        _episodeLookupBusy = false;
+        CancelEpisodeLookup();
         _episodeSwitchTargetId = null;
         ResetTimelineDrag();
         _skips.Begin([], 0);

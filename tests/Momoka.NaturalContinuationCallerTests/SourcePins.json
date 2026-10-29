@@ -25,11 +25,11 @@
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackService.Lifecycle.cs",
-      "sha256": "82e08e51d8773faef2823f9ec80c276bb3f4d4d40711faa4d2deaf3ea2a20ba1"
+      "sha256": "8b3426f7b338b0db3677ae3cdbae46c082a031502f6073a9fff347fc94fcd7ec"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs",
-      "sha256": "7ba297fa0bc50eb905adf29bb8f7d19d805337b3aa429d1373f392e89acdddd4"
+      "sha256": "6f488f95bb3d83c595c1c63084d688e57ef65122e6adbbe613e5b7b8b35a297a"
     },
     {
       "path": "tests/Momoka.ShaderCommandGenerationTests/HandleFixture.cs",
@@ -49,7 +49,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
-      "sha256": "b09d102b0a0bd9ad3b41ca12e14854a5948983c4fc46658964f2b903ade828d7"
+      "sha256": "7981274a1cc521e66a18e16732e6f15f24388acd52dd74b63d58fadcb02494b0"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",

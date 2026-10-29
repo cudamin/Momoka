@@ -32,6 +32,8 @@ internal static class CallerCases
         runner.Test("lease-dispose-idempotent-and-release-awaited", () => AwaitedRelease(output));
         foreach (var clone in new[] { false, true })
             runner.Test("failed-replace-original-reference-" + clone, () => FailedReplace(output, clone));
+        foreach (var mode in new[] { "local-step", "stale-success", "stale-error", "stop" })
+            runner.Test("episode-lookup-owner-" + mode, () => EpisodeLookupCases.Run(output, mode));
     }
 
     private static async Task Terminal(string output, string mode)

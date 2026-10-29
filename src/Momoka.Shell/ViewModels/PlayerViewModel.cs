@@ -202,7 +202,7 @@ public sealed partial class PlayerViewModel : ObservableObject
     private bool _playerUp;
 
     /// <summary>Prevents repeated boundary clicks from starting the same server lookup or replacement twice.</summary>
-    private bool _episodeLookupBusy;
+    private CancellationTokenSource? _episodeLookup;
     private string? _episodeSwitchTargetId;
 
     /// <summary>
@@ -340,6 +340,7 @@ public sealed partial class PlayerViewModel : ObservableObject
 
     private async Task ShutdownPlaybackAsync()
     {
+        CancelEpisodeLookup();
         _startIntent.CancelAll();
         _preparing?.Cancel();
         FlushVolume(settled: false);
@@ -355,7 +356,7 @@ public sealed partial class PlayerViewModel : ObservableObject
         _lifetime.Cancel();
         _generation++;
         _coverGeneration++;
-        await _playback.StopAsync().ConfigureAwait(true);
+        await _playback.ShutdownAsync().ConfigureAwait(true);
         if (_playbackIdle is { } idle) await idle.Task.ConfigureAwait(true);
     }
 

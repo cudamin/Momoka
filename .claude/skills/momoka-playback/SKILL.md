@@ -45,6 +45,7 @@ Operational details:
 - Inline signatures contain required pipeline options, UI/keys and the non-film baseline. Keep `start-file` subscribed; swap state and queued native commands share the native gate. Any failed reset, including headers, rejects reuse. A successful DLL binding is process-wide and cannot switch modules until restart.
 - Native diagnostics retain severity/error codes, not raw text that can echo headers. External IPC continues to validate PID before authentication; process exit must not cancel a buffered final `loadfile` reply.
 - Shell owns notice/refresh subscriptions even while PlayerPage is detached. Closing keeps the dispatcher/session alive while playback drains, with a 25-second outer deadline and an explicit incomplete-report warning on timeout.
+- `PlaybackService.ShutdownAsync` closes both play and manual-report admission, then drains normal playback plus every admitted manual watched-report pair. Regular `StopAsync` remains reusable. A manual start already sent must retain the opportunity to send its matching stop before the session is disposed; failed/cancelled reports still release their pending registration.
 - `PlaybackLifecycleTests` and `BackendLifecycleTests` supplement the existing suites. Local auxiliary WinUI/native probes are evidence, not clean-checkout prerequisites; ordinary self-check and real server playback remain separate acceptance steps.
 
 The captured `EmbySessionScope.Lifetime` participates in both startup and the actual running PlayOperation lifetime. Revoking that identity must cancel preparation or monitoring and reach the existing once-only Stop/Finish/release path even with progress reporting disabled. Changing the default management source alone does not revoke an available scope and must not stop its film. Do not replace this with a global source-change Stop event that can cancel a replacement from another account. `Momoka.PlaybackSourceRevocationTests` drives the real service with suspended fake handles, anonymous in-memory identities and fake HTTP; real native cleanup time, window continuity and server-side exactly-once remain unverified.
@@ -53,6 +54,7 @@ The captured `EmbySessionScope.Lifetime` participates in both startup and the ac
 
 - **`_generation` is the boundary.** It increments on every change of film; every async callback compares it on the way back in and drops itself if it no longer matches. A late result from the previous episode landing in the new one is the easiest mistake to make in this area.
 - **Cancellation is not an error.** Stopping, closing and switching episodes all cancel in-flight requests; none of them may surface as an error notice.
+- Cross-season episode reads own one CTS in `PlayerViewModel`, independent of application lifetime. New playback, Stop, Leave and Shutdown release that owner before cancellation. Results, errors and finally retain both query ownership and play intent, so an old read cannot disable or clear the next film's navigation. The natural-caller fixture executes these complete production methods with anonymous HTTP and a controlled playback endpoint.
 
 ## Progress, resume, watched state
 
