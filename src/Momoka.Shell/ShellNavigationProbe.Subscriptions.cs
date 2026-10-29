@@ -87,12 +87,22 @@ internal sealed partial class ShellNavigationProbe
             // 焦点停在订阅区外面的滚动器上：刷新按钮已经按主页要求收起，不能再拿它当焦点目标；
             // 焦点若落回封面，卡片会一直按「有焦点」画，离开后缩放不会复原。
             scroll.IsTabStop = true;
-            scroll.Focus(FocusState.Programmatic);
-            poster.SetHovered(false); await Task.Delay(250);
-            poster.SetHovered(true); await Task.Delay(80);
-            if (HomeMotion.AnimationsEnabled) Require(poster.Zoom > 1 && poster.Zoom <= 1.045, "悬停未产生图片推近动画");
+            Require(scroll.Focus(FocusState.Programmatic), "订阅区外的焦点目标未取得焦点");
+            await UntilAsync(() => ReferenceEquals(Microsoft.UI.Xaml.Input.FocusManager.GetFocusedElement(scroll.XamlRoot), scroll));
+            // 这是由 SetHovered 驱动的状态探针，不要求用户停住鼠标。先结束上一步真实指针的watch，
+            // 避免100ms定时退出覆盖本次合成状态，再等Storyboard实际有进度而非假定80ms已经提交一帧。
+            Call(poster, "ResetMotion");
+            poster.SetHovered(false);
+            await UntilAsync(() => Math.Abs(poster.Zoom - 1) < 0.001 && more.Visibility == Visibility.Collapsed);
+            poster.SetHovered(true);
+            if (HomeMotion.AnimationsEnabled)
+            {
+                await UntilAsync(() => poster.Zoom > 1);
+                Require(poster.Zoom > 1 && poster.Zoom <= 1.045, "悬停未产生图片推近动画");
+            }
             await SaveSettledFrameAsync(host, "mp-subscription-hover.png");
-            poster.SetHovered(false); await Task.Delay(250);
+            poster.SetHovered(false);
+            await UntilAsync(() => Math.Abs(poster.Zoom - 1) < 0.001 && more.Visibility == Visibility.Collapsed);
             Require(Math.Abs(poster.Zoom - 1) < 0.001 && more.Visibility == Visibility.Collapsed, "鼠标离开后缩放没有复原或管理按钮没有隐藏");
             seriesPoster.SetHovered(false);
             var first = vm.Movies[0];
