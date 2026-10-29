@@ -507,9 +507,6 @@
   <data name="SettingsPage_ButtonL2.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>把这个语言往下挪一格</value>
   </data>
-  <data name="SettingsPage_SliderA1.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>mpv 参数滑块</value>
-  </data>
   <data name="SettingsPage_TextBox3.PlaceholderText" xml:space="preserve">
     <value>搜索字体：yahei、雅黑、mono…</value>
   </data>
@@ -698,9 +695,6 @@
   </data>
   <data name="HtmlColorPicker_ValueBox.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>明度（V）</value>
-  </data>
-  <data name="SettingsPage_ColorSwatch.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>颜色，点开 HTML 颜色选择器</value>
   </data>
   <data name="SettingsPage_ColorSwatch.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>点开 HTML 颜色选择器；「不设置」跟随 mpv 自己的默认</value>

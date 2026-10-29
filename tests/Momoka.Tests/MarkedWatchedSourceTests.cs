@@ -125,6 +125,58 @@ internal static class MarkedWatchedSourceTests
             Assert.False(f.Service.ReportMarkedWatchedAsync(new EmbyItem { Id = "old", Type = EmbyItemType.Movie, RunTimeTicks = Duration }).GetAwaiter().GetResult());
             Assert.Equal(0, f.Transport.Total);
         });
+        foreach (var outcome in new[] { "success", "failed", "cancelled" })
+            Test("手动已看关闭排空等待实际停止补报 " + outcome,
+                () => DrainManualReportAsync(outcome).WaitAsync(TimeSpan.FromSeconds(5)).GetAwaiter().GetResult());
+        Test("普通停止不关闭手动补报入场", () =>
+        {
+            using var f = new Fixture(MediaServerKind.Emby);
+            f.Service.StopAsync().GetAwaiter().GetResult();
+            Assert.True(f.Service.ReportMarkedWatchedAsync(f.Item(MediaServerKind.Emby, EmbyItemType.Movie)).GetAwaiter().GetResult());
+        });
+    }
+
+    private static async Task DrainManualReportAsync(string outcome)
+    {
+        using var f = new Fixture(MediaServerKind.Emby);
+        using var cancelled = new CancellationTokenSource();
+        var stopEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseStop = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        f.Transport.OnStopAsync = async token =>
+        {
+            stopEntered.TrySetResult();
+            await releaseStop.Task.WaitAsync(token).ConfigureAwait(false);
+            return outcome == "failed" ? HttpStatusCode.InternalServerError : HttpStatusCode.NoContent;
+        };
+        var report = f.Service.ReportMarkedWatchedAsync(f.Item(MediaServerKind.Emby, EmbyItemType.Movie), cancelled.Token);
+        await stopEntered.Task.WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+        var shutdown = f.Service.ShutdownAsync();
+        try
+        {
+            Assert.False(shutdown.IsCompleted, "开始已确认、停止挂起时关闭必须等待");
+            Assert.True(ReferenceEquals(shutdown, f.Service.ShutdownAsync()), "关闭入场只执行一次");
+            Assert.Equal(2, f.Transport.Reports.Count);
+            Assert.False(await f.Service.ReportMarkedWatchedAsync(f.Item(MediaServerKind.Emby, EmbyItemType.Movie)).ConfigureAwait(false),
+                "关闭后拒绝新的补报");
+            Assert.Equal(2, f.Transport.Reports.Count, "新补报不能逃过关闭快照");
+            var rejected = false;
+            try
+            {
+                await f.Service.PlayAsync(new PlaybackTicket
+                {
+                    Item = f.Item(MediaServerKind.Emby, EmbyItemType.Movie),
+                    Source = new MediaSource { Id = "anonymous" }
+                }, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) { rejected = true; }
+            Assert.True(rejected, "关闭期间也不允许新的播放进入后端");
+            if (outcome == "cancelled") cancelled.Cancel();
+            else releaseStop.TrySetResult();
+            Assert.Equal(outcome == "success", await report.WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false));
+            await shutdown.WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+            Assert.True(shutdown.IsCompletedSuccessfully, "失败和取消也必须结清登记，不能挂死关闭");
+        }
+        finally { releaseStop.TrySetResult(); }
     }
 
     private static void CheckReports(ReportTransport transport, MediaServerKind source, string itemId)
@@ -209,6 +261,7 @@ internal static class MarkedWatchedSourceTests
         public Action? OnEpisodeRead { get; set; }
         public Action? OnStart { get; set; }
         public bool RejectStart { get; set; }
+        public Func<CancellationToken, Task<HttpStatusCode>>? OnStopAsync { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -232,6 +285,7 @@ internal static class MarkedWatchedSourceTests
             {
                 Reports.Enqueue(new(url.Host, url.AbsolutePath, await request.Content!.ReadAsStringAsync(cancellationToken).ConfigureAwait(false)));
                 if (url.AbsolutePath == "/emby/Sessions/Playing") OnStart?.Invoke();
+                else if (OnStopAsync is { } stop) return Reply("", await stop(cancellationToken).ConfigureAwait(false));
                 return Reply("", RejectStart && url.AbsolutePath == "/emby/Sessions/Playing" ? HttpStatusCode.InternalServerError : HttpStatusCode.NoContent);
             }
             throw new AssertionException("已看补报匿名夹具拒绝未登记接口／产品／登录：" + url.AbsolutePath);

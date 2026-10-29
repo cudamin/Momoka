@@ -4,7 +4,7 @@ using Momoka.MoviePilot;
 // claiming rendered layout/input coverage. Nothing creates a window, contacts a server or reads config.
 namespace Microsoft.UI.Xaml
 {
-    public class FrameworkElement { public object? Tag { get; set; } }
+    public class FrameworkElement : DependencyObject { public object? Tag { get; set; } }
     public class RoutedEventArgs : EventArgs;
     public enum Visibility { Visible, Collapsed }
     public sealed class Application

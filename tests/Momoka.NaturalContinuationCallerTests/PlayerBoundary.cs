@@ -48,6 +48,8 @@ public sealed partial class PlayerViewModel
     internal void InvalidateIntentForFixture() => _startIntent.CancelAll();
     internal long NewIntentForFixture() => _startIntent.Begin();
     internal void ChangeEpisodesForFixture(IReadOnlyList<EmbyItem> episodes) => Episodes = episodes;
+    internal Task StepForFixture(int offset) => StepEpisodeAsync(offset);
+    internal bool HasEpisodeLookup => _episodeLookup is not null;
 
     // Reading inert presentation fields prevents absent unrelated partials from creating CS0414.
     // None of these values can acquire native resources, persist settings or start service work.
@@ -55,7 +57,7 @@ public sealed partial class PlayerViewModel
     [
         _aspect, _shaderContext, _outputWatch, _shaderResolver, _shaderPinned, _coverBackdropItemId,
         _coverBackdropLoad, _coverGeneration, _replacingPlayback, _presentedHeadless, _preparingPictureInHost,
-        _seekTouched, _seekSent, _versionSwitchTarget, _volumeReady, _episodeLookupBusy
+        _seekTouched, _seekSent, _versionSwitchTarget, _volumeReady, _episodeLookup
     ];
 
     internal double SubtitleDelay { get; private set; }

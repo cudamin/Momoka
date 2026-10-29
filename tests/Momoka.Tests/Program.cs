@@ -31,6 +31,12 @@ internal static class Program
             CompositionProbePixelsTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["settings-storage-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            SettingsTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["selfcheck-layout-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;

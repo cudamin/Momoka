@@ -38,6 +38,8 @@ public sealed partial class PlaybackService(
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly object _requestGate = new();
     private readonly HashSet<PlayOperation> _operations = [];
+    private readonly HashSet<TaskCompletionSource> _manualReports = [];
+    private TaskCompletionSource? _shutdownCompletion;
     private PlayOperation? _latestRequest;
     private volatile IPlaybackHandle? _current;
     private volatile PlayingAttempt? _active;
