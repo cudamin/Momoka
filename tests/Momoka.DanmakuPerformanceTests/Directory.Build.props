@@ -1,0 +1,9 @@
+<Project>
+    <Import Project="..\..\Directory.Build.props" />
+    <!-- Match the main console runner: blocking assertions are fixture boundaries, not production UI. -->
+    <ItemGroup>
+        <PackageReference Remove="Microsoft.VisualStudio.Threading.Analyzers" />
+        <PackageReference Remove="Microsoft.CodeAnalysis.BannedApiAnalyzers" />
+        <PackageReference Remove="Roslynator.Analyzers" />
+    </ItemGroup>
+</Project>

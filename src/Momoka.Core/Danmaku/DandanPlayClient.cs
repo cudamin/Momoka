@@ -80,17 +80,31 @@ public sealed partial class DandanPlayClient : IDisposable
         CancellationToken cancellationToken = default)
     {
         if (episodeId <= 0) throw new DandanPlayException("弹幕库编号无效。");
+        // 缓存、凭据与闸门都可能已预热，ConfigureAwait(false) 不会强制切线程。
+        // 整条读取/JSON 解析/转换/稳定排序都在同一个后台边界内，不能只包异步读盘。
+        return await Task.Run(() => ReadCommentsAsync(episodeId, withRelated, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IReadOnlyList<DanmakuComment>> ReadCommentsAsync(long episodeId, bool withRelated,
+        CancellationToken cancellationToken)
+    {
         var path = CommentPath(episodeId, withRelated);
         using var document = await GetAsync(path, comments: true, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         if (!document.RootElement.TryGetProperty("comments", out var comments) || comments.ValueKind != JsonValueKind.Array)
             throw new DandanPlayException("弹弹play 返回了无法识别的弹幕数据。");
         var result = new List<DanmakuComment>();
         foreach (var entry in comments.EnumerateArray())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (DanmakuComments.Parse(Text(entry, "p"), Text(entry, "m")) is { } parsed) result.Add(parsed);
             if (result.Count == DanmakuComments.MaximumCount) break;
         }
-        return result.OrderBy(comment => comment.Time).ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        var sorted = result.OrderBy(comment => comment.Time).ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        return sorted;
     }
 
     public static string Signature(string appId, string secret, long timestamp, string path) =>
@@ -115,11 +129,12 @@ public sealed partial class DandanPlayClient : IDisposable
             for (var attempt = 0; ; attempt++)
             {
                 var connection = await ResolveAsync(deadline.Token).ConfigureAwait(false);
+                deadline.Token.ThrowIfCancellationRequested();
                 // 应用弹幕是私有库；缓存按应用与凭据隔离，换应用不能沿用上一份数据或成功状态。
                 var cache = CachePath(connection.AppId, connection.Identity, path);
                 if (TryReadCache(cache) is { } cached)
                 {
-                    try { return Parse(cached, comments); }
+                    try { return Parse(cached, comments, deadline.Token); }
                     catch (DandanPlayException) { /* 损坏缓存不作为联网失败，重取这一份。 */ }
                 }
 
@@ -159,7 +174,7 @@ public sealed partial class DandanPlayClient : IDisposable
                         });
                     }
                     var bytes = await ReadBoundedAsync(response.Content, deadline.Token).ConfigureAwait(false);
-                    var parsed = Parse(bytes, comments);
+                    var parsed = Parse(bytes, comments, deadline.Token);
                     TryWriteCache(cache, bytes);
                     return parsed;
                 }
@@ -206,8 +221,9 @@ public sealed partial class DandanPlayClient : IDisposable
         };
     }
 
-    private static JsonDocument Parse(byte[] bytes, bool comments)
+    private static JsonDocument Parse(byte[] bytes, bool comments, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         JsonDocument document;
         try { document = JsonDocument.Parse(bytes); }
         catch (JsonException) { throw new DandanPlayException("弹弹play 返回的数据不是有效的 JSON。"); }
@@ -220,6 +236,11 @@ public sealed partial class DandanPlayClient : IDisposable
             document.Dispose();
             // 不回显服务器错误正文，避免代理把请求头或密钥夹回异常信息。
             throw new DandanPlayException("弹弹play 拒绝了请求或返回了无效数据，请检查应用授权后重试。");
+        }
+        if (cancellationToken.IsCancellationRequested)
+        {
+            document.Dispose();
+            cancellationToken.ThrowIfCancellationRequested();
         }
         return document;
     }
