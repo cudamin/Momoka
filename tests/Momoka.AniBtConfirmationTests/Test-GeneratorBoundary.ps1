@@ -11,11 +11,11 @@ $evidence = Join-Path $root 'artifacts\r037-r039\generator-boundary'
 New-Item -ItemType Directory -Path $evidence -Force | Out-Null
 $cases = @(
     @{ Name = 'empty'; Marker = ''; Replacement = '' },
-    @{ Name = 'missing-preview'; Marker = 'private void Update_PreviewDetails('; Replacement = 'private void Removed_PreviewDetails(' },
+    @{ Name = 'missing-target'; Marker = 'private void Update_DestinationDirectory('; Replacement = 'private void Removed_DestinationDirectory(' },
     @{ Name = 'wrong-owner'; Marker = 'private global::Momoka.Shell.ViewModels.AniBtScrapeRowViewModel dataRoot;'; Replacement = 'private global::System.Object dataRoot;' },
     @{ Name = 'missing-notification'; Marker = 'case "PreviewVisibility":'; Replacement = 'case "NotPreviewVisibility":' },
     @{ Name = 'wrong-primary'; Marker = 'Set_Microsoft_UI_Xaml_Controls_ContentDialog_PrimaryButtonText('; Replacement = 'Set_OtherControl_Text(' },
-    @{ Name = 'missing-cancel-handler'; Marker = '.Click += this.OnCancelPreview;'; Replacement = '.Click += this.OtherClick;' }
+    @{ Name = 'missing-retry-handler'; Marker = '.Click += this.OnRetryPrepare;'; Replacement = '.Click += this.OtherClick;' }
 )
 $pwsh = Join-Path $PSHOME 'pwsh.exe'
 foreach ($case in $cases) {

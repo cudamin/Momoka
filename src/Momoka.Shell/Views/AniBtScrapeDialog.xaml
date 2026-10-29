@@ -8,51 +8,85 @@
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanAct, Mode=OneWay}"
     PrimaryButtonClick="OnSubmit">
     <ContentDialog.Resources>
-        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
         <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+        <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+        <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
+        <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
     </ContentDialog.Resources>
-
-    <Grid RowSpacing="12" MinWidth="260" MaxWidth="760">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-        <TextBlock Text="先选择 AniBT 结果，再点击“预览计划”。请核对每个文件的实际 MoviePilot 预览或最终 Emby 识别目标；只有再次点击“确认执行”才会写入。取消或更改选择会使原计划失效。" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
-        <ProgressBar Grid.Row="1" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
-        <ListView x:Name="ScrapeFiles" Grid.Row="2" MaxHeight="470" Padding="{StaticResource EgScrollBarLane}" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None">
+    <ContentDialog.PrimaryButtonStyle>
+        <Style TargetType="Button" BasedOn="{StaticResource AccentButtonStyle}">
+            <Setter Property="Background" Value="{ThemeResource EgAccentBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextOnAccentBrush}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+    </ContentDialog.PrimaryButtonStyle>
+    <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+        <ProgressBar Grid.Row="0" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+        <ListView x:Name="ScrapeFiles" Grid.Row="1" MaxHeight="470" Padding="{StaticResource EgScrollBarLane}"
+            ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None">
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="vm:AniBtScrapeRowViewModel">
-                    <StackPanel Spacing="6" Margin="0,8" HorizontalAlignment="Stretch">
-                        <TextBlock Text="{x:Bind SourceName}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" />
-                        <TextBlock Text="{x:Bind TargetPath}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
-                        <TextBlock Text="{x:Bind MatchNote}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                    <StackPanel Spacing="16" Margin="0,4,0,12" HorizontalAlignment="Stretch">
+                        <StackPanel Spacing="6">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <TextBlock Text="源文件" Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock Grid.Column="1" Text="{x:Bind MatchNote}" Style="{StaticResource EgCaptionStyle}" />
+                            </Grid>
+                            <TextBlock Text="{x:Bind SourceName}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+                        </StackPanel>
                         <ComboBox x:Name="AnimeChoice" Header="识别结果" PlaceholderText="选择对应番剧" HorizontalAlignment="Stretch"
-                            IsEnabled="{x:Bind CanSelect, Mode=OneWay}"
+                            IsEnabled="{x:Bind CanSelect, Mode=OneWay}" Foreground="{ThemeResource EgAccentBrush}"
                             ItemsSource="{x:Bind Candidates}" SelectedItem="{x:Bind Selected, Mode=TwoWay}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate x:DataType="anibt:AniBtAnime">
-                                    <StackPanel>
-                                        <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" />
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Text="{x:Bind Title}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}"
+                                            Foreground="{ThemeResource EgAccentBrush}" />
                                         <TextBlock Text="{x:Bind OriginalTitle}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
                                     </StackPanel>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                        <StackPanel x:Name="PreparedPlan" Spacing="4" Visibility="{x:Bind PreviewVisibility, Mode=OneWay}">
-                            <TextBlock x:Name="PreviewHeadingText" Text="{x:Bind PreviewHeading, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" />
-                            <TextBlock x:Name="PreviewDetailsText" Text="{x:Bind PreviewDetails, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                        <StackPanel x:Name="PreparedPlan" Spacing="12" Visibility="{x:Bind PreviewVisibility, Mode=OneWay}">
+                            <Border Background="{ThemeResource EgAccentSoftBrush}" CornerRadius="{StaticResource EgPickerCornerRadius}" Padding="14,12">
+                                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="6">
+                                    <TextBlock x:Name="PreviewHeadingText" Text="{x:Bind DestinationTitle, Mode=OneWay}" TextWrapping="Wrap"
+                                        Style="{StaticResource EgSubheadStyle}" Foreground="{ThemeResource EgAccentBrush}" />
+                                    <TextBlock x:Name="EpisodeLabelText" Grid.Column="1" Text="{x:Bind EpisodeLabel, Mode=OneWay}"
+                                        Style="{StaticResource EgDataStrongStyle}" Foreground="{ThemeResource EgAccentBrush}" VerticalAlignment="Center"
+                                        Visibility="{x:Bind EpisodeVisibility, Mode=OneWay}" />
+                                    <TextBlock x:Name="TransferMethodText" Grid.Row="1" Grid.ColumnSpan="2" Text="{x:Bind TransferMethod, Mode=OneWay}"
+                                        Style="{StaticResource EgCaptionStyle}" />
+                                </Grid>
+                            </Border>
+                            <StackPanel Spacing="4" Visibility="{x:Bind SourceVisibility, Mode=OneWay}">
+                                <TextBlock Text="源目录" Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock x:Name="SourceDirectoryText" Text="{x:Bind SourceDirectory, Mode=OneWay}" TextWrapping="Wrap"
+                                    Style="{StaticResource EgBodyStyle}" />
+                            </StackPanel>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="目标位置" Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock x:Name="DestinationDirectoryText" Text="{x:Bind DestinationDirectory, Mode=OneWay}" TextWrapping="Wrap"
+                                    Style="{StaticResource EgCaptionStyle}" />
+                                <TextBlock x:Name="DestinationFileText" Text="{x:Bind DestinationFile, Mode=OneWay}" TextWrapping="Wrap"
+                                    Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgAccentBrush}" />
+                            </StackPanel>
+                            <TextBlock x:Name="TargetWarningText" Text="{x:Bind TargetWarning, Mode=OneWay}" TextWrapping="Wrap"
+                                Style="{StaticResource EgCaptionStyle}" />
                         </StackPanel>
-                        <TextBlock Text="{x:Bind Result, Mode=OneWay}" TextWrapping="Wrap" Style="{StaticResource EgCaptionStyle}" />
+                        <TextBlock x:Name="ScrapeResultText" Text="{x:Bind DisplayResult, Mode=OneWay}" TextWrapping="Wrap"
+                            Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgAccentBrush}"
+                            Visibility="{x:Bind ResultVisibility, Mode=OneWay}" />
                     </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
-        <StackPanel Grid.Row="3" Spacing="8">
-            <Button x:Name="CancelPreview" Content="取消预览，返回选择" HorizontalAlignment="Left" Click="OnCancelPreview"
-                Visibility="{x:Bind ViewModel.CancelPreviewVisibility, Mode=OneWay}" />
+        <StackPanel Grid.Row="2" Spacing="8">
+            <Button x:Name="RetryPrepare" Content="重新读取整理目标" HorizontalAlignment="Left" Click="OnRetryPrepare"
+                Visibility="{x:Bind ViewModel.RetryPrepareVisibility, Mode=OneWay}" />
             <InfoBar x:Name="ScrapeNotice" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}"
+                Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}"
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}"
                 Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" IsClosable="False" />
         </StackPanel>

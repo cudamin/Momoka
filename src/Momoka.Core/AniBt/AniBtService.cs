@@ -9,7 +9,11 @@ namespace Momoka.AniBt;
 public sealed record AniBtScrapeRow(string TargetPath, string SourceName, AniBtMatch Match,
     MoviePilotTransferHistory? History = null);
 
-public sealed record AniBtScrapeResult(string TargetPath, bool Success, string Message);
+public sealed record AniBtScrapeResult(string TargetPath, bool Success, string Message)
+{
+    /// <summary>界面用简短结果；Message 保留完整逐文件回执，便于核对而不堆到弹窗里。</summary>
+    public string DisplayMessage { get; init; } = "";
+}
 
 public sealed class AniBtScrapePlan
 {
@@ -47,7 +51,15 @@ public sealed class AniBtScrapePlan
 }
 
 /// <summary>只公开可核验文案，不把 MoviePilot 写入请求或可变 Emby 候选交给 UI。</summary>
-public sealed record AniBtScrapeConfirmationRow(string TargetPath, string Heading, string Details);
+public sealed record AniBtScrapeConfirmationRow(string TargetPath, string Heading, string Details)
+{
+    public string Title { get; init; } = "";
+    public string EpisodeLabel { get; init; } = "";
+    public string Method { get; init; } = "";
+    public string SourcePath { get; init; } = "";
+    public string DestinationPath { get; init; } = "";
+    public string Warning { get; init; } = "";
+}
 
 /// <summary>
 /// 一次只读准备得到的确认凭证。提交复用其内部封存预览/候选；取消、改选和消费后不可恢复。
@@ -184,14 +196,14 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         return MoviePilotTransfer.PathName(string.IsNullOrWhiteSpace(sourcePath) ? targetPath : sourcePath);
     }
 
-    /// <summary>整批只读准备，返回必须展示并显式确认的实际计划；这里绝不 Claim 或写入。</summary>
+    /// <summary>整批只读准备，自动显示实际目标；用户点击“重新整理”后才消费凭证，这里不 Claim 或写入。</summary>
     public async Task<AniBtPreparedScrapePlan> PrepareForConfirmationAsync(EmbyClient emby, AniBtScrapePlan plan,
         IReadOnlyList<AniBtAnime> choices, CancellationToken cancellationToken, Func<bool>? canContinue = null)
     {
         moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
         plan.EnsureNotSubmitted();
         if (choices.Count != plan.Rows.Count || choices.Count == 0)
-            throw new MoviePilotOperationBlockedException("请为每个文件选择识别结果后再预览");
+            throw new MoviePilotOperationBlockedException("请为每个文件选择识别结果");
         var selected = choices.ToArray();
         var connection = emby.Connection;
         var transfers = new List<AniBtPreparedTransfer>();
@@ -210,8 +222,10 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 identify.Add((index, choice));
                 continue;
             }
+            var numbering = plan.Type == MoviePilotTransferRequest.TypeSeries
+                ? AniBtScrapeNumbering.Resolve(row, plan.Season, plan.Episode) : new(null, "");
             var transfer = await moviePilot.PrepareAniBtTransferAsync(row.TargetPath, choice, plan.Type, history,
-                plan.Season, plan.Episode, plan.Connection, cancellationToken).ConfigureAwait(false);
+                numbering.Season, numbering.Episode, plan.Connection, cancellationToken).ConfigureAwait(false);
             moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
             CheckContinuation(canContinue, cancellationToken);
             var preview = await moviePilot.TransferPreviewAsync(transfer.Request, [transfer.File], cancellationToken)
@@ -221,12 +235,34 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
             if (!preview.CanSubmit)
                 throw new MoviePilotOperationBlockedException(preview.Result.Message.Length > 0
                     ? preview.Result.Message
-                    : "MoviePilot 预览没有通过，本次没有重新整理任何文件");
+                    : "MoviePilot 没有返回可用的整理目标，本次没有重新整理任何文件");
             transfers.Add(new(index, preview));
-            rows[index] = new(row.TargetPath, $"MoviePilot 重新整理 · {ChoiceName(choice)}",
-                $"整理方式（TransferType）：{(preview.Request.TransferType.Length > 0 ? preview.Request.TransferType : "按目录配置")}\n" +
-                MoviePilotTransfer.Confirmation(preview.Request, preview.Result, background: false) +
-                $"\n旧历史：#{history.Id}；将按原记录清理命中的成功历史及旧目标，无法在本客户端撤销。");
+            var method = preview.Request.TransferType switch
+            {
+                "softlink" => "软链接",
+                "link" => "硬链接",
+                "copy" => "复制",
+                "move" => "移动",
+                _ => "按目录设置"
+            };
+            var source = MoviePilotTransfer.Text(transfer.File, "path");
+            var destination = preview.Result.Items.Single().Target;
+            var warning = preview.Request.TransferType switch
+            {
+                "move" => "源文件将移走，并替换旧目标；同名文件可能覆盖。",
+                "softlink" or "link" or "copy" => "保留源文件，替换旧目标；同名文件可能覆盖。",
+                _ => "源文件和旧目标按目录设置处理，同名文件可能覆盖。"
+            };
+            var heading = $"{choice.Title}{(numbering.Label.Length > 0 ? " " + numbering.Label : "")}";
+            rows[index] = new(row.TargetPath, heading, $"{method}\n源：{source}\n目标：{destination}\n{warning}")
+            {
+                Title = choice.Title,
+                EpisodeLabel = numbering.Label,
+                Method = method,
+                SourcePath = source,
+                DestinationPath = destination,
+                Warning = warning
+            };
         }
         if (transfers.Select(item => item.Preview.Request.Histories[0].Id).Distinct().Count() != transfers.Count)
             throw new MoviePilotOperationBlockedException("多个文件对应同一条原整理记录，已停止，避免重复提交");
@@ -240,19 +276,24 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         if (identifyPlan is not null)
         {
             var candidate = identifyPlan.Candidate.Deserialize<RemoteSearchResult>()!;
-            var type = identifyPlan.TargetType == EmbyItemType.Movie ? "电影" : "整部剧（包括所有季与集，不仅当前文件）";
-            var details = $"实际 Emby 目标：{identifyPlan.TargetName}{YearText(identifyPlan.TargetYear)}\n" +
-                $"目标 ID：{identifyPlan.TargetId}\n影响范围：{type}\n" +
-                $"最终识别候选：{candidate.Name}{YearText(candidate.ProductionYear)}\n" +
-                $"刮削源：{candidate.SearchProviderName ?? "服务器未返回"}\n" +
-                "识别将覆盖该目标的元数据与图片，并请求刷新全部元数据及图片；不移动媒体文件。";
+            var type = identifyPlan.TargetType == EmbyItemType.Movie ? "电影" : "整部剧";
+            var destination = identifyPlan.TargetName + YearText(identifyPlan.TargetYear);
+            var warning = "仅更新" + type + "的元数据与图片，不移动文件。";
+            var details = $"实际 Emby 目标：{destination}\n目标 ID：{identifyPlan.TargetId}\n影响范围：{type}\n" +
+                $"最终识别候选：{candidate.Name}{YearText(candidate.ProductionYear)}\n{warning}";
             foreach (var (index, _) in identify)
-                rows[index] = new(plan.Rows[index].TargetPath, "Emby 识别 · " + ChoiceName(identify[0].Choice), details);
+                rows[index] = new(plan.Rows[index].TargetPath, "Emby 识别 · " + ChoiceName(identify[0].Choice), details)
+                {
+                    Title = (candidate.Name ?? identify[0].Choice.Title) + YearText(candidate.ProductionYear),
+                    Method = "Emby 识别 · " + type,
+                    DestinationPath = destination,
+                    Warning = warning
+                };
         }
         return new(this, plan, connection, selected, transfers, identify.Select(item => item.Index).ToArray(), identifyPlan, rows);
     }
 
-    /// <summary>只消费已展示并确认的凭证，不重新搜索/预览，不接受任意新请求或新目标。</summary>
+    /// <summary>只消费已显示并由“重新整理”确认的凭证，不重新搜索/预览，不接受任意新请求或新目标。</summary>
     public async Task<IReadOnlyList<AniBtScrapeResult>> SubmitAsync(EmbyClient emby, AniBtPreparedScrapePlan prepared,
         CancellationToken cancellationToken, Func<bool>? canContinue = null)
     {
@@ -306,7 +347,10 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                     message += "；" + scanReason;
                     scanAffected.Add(index);
                 }
-                outcomes[index] = new(row.TargetPath, result.Success, message);
+                outcomes[index] = new(row.TargetPath, result.Success, message)
+                {
+                    DisplayMessage = TransferDisplayMessage(result)
+                };
             }
             catch (Exception error) when (error is MoviePilotException or OperationCanceledException)
             {
@@ -333,13 +377,22 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 catch (Exception error) { message = error.Message; }
             }
             foreach (var index in prepared.IdentifyRows)
-                outcomes[index] = new(plan.Rows[index].TargetPath, success, message);
+                outcomes[index] = new(plan.Rows[index].TargetPath, success, message)
+                {
+                    DisplayMessage = success ? "识别完成，已刷新元数据" : message
+                };
         }
         if (scanAffected.Count > 0)
         {
             var scan = await ScanAfterTransferAsync(emby, canContinue, cancellationToken).ConfigureAwait(false);
             foreach (var index in scanAffected)
-                outcomes[index] = outcomes[index] with { Message = outcomes[index].Message + scan };
+                outcomes[index] = outcomes[index] with
+                {
+                    Message = outcomes[index].Message + scan,
+                    DisplayMessage = scan.Contains("已请求 Emby", StringComparison.Ordinal)
+                        ? "整理完成 · 已请求媒体库重扫"
+                        : "整理完成 · 媒体库重扫未完成，请手动扫描"
+                };
         }
         return [.. outcomes];
     }
@@ -382,7 +435,7 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
     private static string YearText(int? year) => year is { } value ? $"（{value}）" : "（年份未返回）";
 
     /// <summary>
-    /// 只在唯一的 completed 回执及实际请求共同证明旧媒体路径变动时扫描，不用整批 Success 猜移动。
+    /// 一批中有唯一明确 completed 文件就请求一次重扫，不再限定移动或旧目标变动；不用 Success 猜完成。
     /// 扫描只是异步请求；失败不撤销已完成整理，也不解除 MoviePilot 的实际发送防重账本。
     /// </summary>
     private static async Task<string> ScanAfterTransferAsync(EmbyClient emby, Func<bool>? canContinue,
@@ -432,6 +485,22 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         return string.Join("；", messages) + detail + "；请先在 MoviePilot 核对整理历史，勿重复提交";
     }
 
+    private static string TransferDisplayMessage(MoviePilotTransferResult result)
+    {
+        if (result.Items.Count != 1)
+            return "结果待核对，请在 MoviePilot 查看，勿重复提交";
+        var line = result.Items[0];
+        return line.State switch
+        {
+            "completed" when line.Success => "整理完成",
+            "accepted" => "已接收，等待 MoviePilot 完成整理",
+            "skipped" => "已跳过整理",
+            "retry_wait" => "等待 MoviePilot 重试",
+            "failed" => line.Message.Length > 0 ? "整理失败：" + line.Message : "整理失败，请在 MoviePilot 查看",
+            _ => "结果待核对，请在 MoviePilot 查看，勿重复提交"
+        };
+    }
+
     private static string TransferScanReason(MoviePilotTransferResult result, MoviePilotTransferPreview preview)
     {
         var request = preview.Request;
@@ -458,6 +527,8 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 request.Files.Any(file => MoviePilotTransfer.SamePath(file.Path, history.TargetPath)));
             if (cleaned is not null)
                 return $"原记录重整涉及清理旧目标 {cleaned.TargetPath}，需要服务器核对旧条目";
+            // 复制/链接、原路径重整也可能更新了元数据；明确完成后统一重扫一次。
+            return "整理已完成，需要服务器重新扫描媒体库";
         }
         return "";
     }

@@ -89,9 +89,12 @@ public sealed partial class MoviePilotService
         var identity = RequireResultConnection(connection.Stamp);
         var id = bangumiId.ToString(CultureInfo.InvariantCulture);
         var path = $"media/{id}?media_source=bangumi&type_name={Uri.EscapeDataString(expectedType)}";
-        var media = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken),
-            cancellationToken, identity).ConfigureAwait(false);
-        CheckAniBtConnection(connection, cancellationToken);
+        var media = await ReadAsync().ConfigureAwait(false);
+        // 来源目录可用不等于一次详情查询必有结果。仅对完全空的只读回话重读一次，
+        // 不重试身份/类型不匹配，更不重试整理写入。
+        if (EmptyMedia(media)) media = await ReadAsync().ConfigureAwait(false);
+        if (EmptyMedia(media))
+            throw new MoviePilotException("MoviePilot 暂时没有返回此 Bangumi 作品的媒体信息，请重新读取整理目标");
         if (media.ValueKind != JsonValueKind.Object ||
             MoviePilotTransfer.Text(media, "media_source") != "bangumi" ||
             MoviePilotTransferHistory.Scalar(media, "media_id") != id ||
@@ -100,7 +103,21 @@ public sealed partial class MoviePilotService
             string.IsNullOrWhiteSpace(MoviePilotTransfer.Text(media, "title")))
             throw new MoviePilotException("MoviePilot 返回的媒体身份或类型与 AniBT 结果不一致，已停止操作");
         return media.Clone();
+
+        async Task<JsonElement> ReadAsync()
+        {
+            var result = await CallAsync((address, token) => _client.GetAsync(address, token, path, cancellationToken),
+                cancellationToken, identity).ConfigureAwait(false);
+            CheckAniBtConnection(connection, cancellationToken);
+            return result;
+        }
     }
+
+    private static bool EmptyMedia(JsonElement media) => media.ValueKind == JsonValueKind.Object
+        && MoviePilotTransfer.Text(media, "media_source").Length == 0
+        && MoviePilotTransferHistory.Scalar(media, "media_id").Length == 0
+        && MoviePilotTransfer.Text(media, "type").Length == 0
+        && MoviePilotTransfer.Text(media, "title").Length == 0;
 
     /// <summary>
     /// 按原整理记录和 AniBT 选中的 Bangumi 身份准备一次真正的 MoviePilot 手动整理（重新整理）。
