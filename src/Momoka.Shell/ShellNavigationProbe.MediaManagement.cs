@@ -33,41 +33,53 @@ internal sealed partial class ShellNavigationProbe
         };
         var shell = new ShellPage();
         shell.Attach(fixture.Services);
-        var anchor = new Button { Content = "MP 媒体管理离线菜单", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var anchor = new Button
+        {
+            Content = "MP 媒体管理离线菜单",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(0, 40, 0, 0)
+        };
         _root.Children.Add(shell);
         _root.Children.Add(anchor);
         MenuFlyout? menu = null;
         MoviePilotMediaManagementDialog? dialog = null;
+        var originalTheme = ThemeHost.Current;
+        var topMost = _window!.TopMost;
         try
         {
-            foreach (var width in new[] { 1280, 760 })
-            {
-                ResizeInspect(width, 900);
-                await LayoutAsync(anchor);
-                var movie = new CardItem(fixture.Session.Capture().Bind(Subject(EmbyItemType.Movie)), fixture.Images, 170);
-                menu = ItemCommands.Build(fixture.Session, shell, anchor, movie);
-                var manual = menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.MoviePilotReorganize);
-                var management = menu.Items.OfType<MenuFlyoutSubItem>().Single(row => row.Tag is ItemCommand.MoviePilotMediaManagement);
-                Require(menu.Items.IndexOf(management) == menu.Items.IndexOf(manual) + 1, "媒体管理没有紧接手动整理");
-                Require(management.Items.Count == 4 && management.Items.All(row => row is MenuFlyoutItem), "四个删除范围未折叠");
-                Require(menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.MoviePilotSmartReorganize).Text == "智能整理", "电影智能整理措辞不正确");
-                menu.ShowAt(anchor);
-                await LayoutAsync(anchor);
-                foreach (var row in menu.Items.Where(row => row.Tag is ItemCommand cmd && ItemMenu.IsMoviePilot(cmd)))
-                    AssertRightBrand((FrameworkElement)row);
-                await Task.Delay(350);
-                await SaveProbeScreenAsync($"mp-media-menu-{width}.png");
-                ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(management).GetPattern(PatternInterface.ExpandCollapse)).Expand();
-                await LayoutAsync(anchor);
-                foreach (var row in management.Items) AssertRightBrand((FrameworkElement)row);
-                Require(management.Items.OfType<MenuFlyoutItem>().Select(row => row.Text).SequenceEqual(new[]
-                { "仅删除记录", "删记录和源文件", "删记录和库文件", "删除记录及两端" }), "删除范围文案不一致");
-                await Task.Delay(350);
-                await SaveProbeScreenAsync($"mp-media-submenu-{width}.png");
-                ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(management).GetPattern(PatternInterface.ExpandCollapse)).Collapse();
-                menu.Hide();
-                await SettleAsync();
-            }
+            // 菜单打开前置顶，避免截图抬高宿主时把原生子菜单压到后面。
+            _window.TopMost = true;
+            foreach (var theme in Momoka.Theming.UiThemes.All)
+                foreach (var width in new[] { 1280, 760 })
+                {
+                    ThemeHost.Apply(theme);
+                    ResizeInspect(width, 900);
+                    await LayoutAsync(anchor);
+                    var movie = new CardItem(fixture.Session.Capture().Bind(Subject(EmbyItemType.Movie)), fixture.Images, 170);
+                    menu = ItemCommands.Build(fixture.Session, shell, anchor, movie);
+                    var manual = menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.MoviePilotReorganize);
+                    var management = menu.Items.OfType<MenuFlyoutSubItem>().Single(row => row.Tag is ItemCommand.MoviePilotMediaManagement);
+                    Require(menu.Items.IndexOf(management) == menu.Items.IndexOf(manual) + 1, "媒体管理没有紧接手动整理");
+                    Require(management.Items.Count == 4 && management.Items.All(row => row is MenuFlyoutItem), "四个删除范围未折叠");
+                    Require(menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.MoviePilotSmartReorganize).Text == "智能整理", "电影智能整理措辞不正确");
+                    menu.ShowAt(anchor);
+                    await LayoutAsync(anchor);
+                    foreach (var row in menu.Items.Where(row => row.Tag is ItemCommand cmd && ItemMenu.IsMoviePilot(cmd)))
+                        AssertRightBrand((FrameworkElement)row);
+                    await Task.Delay(350);
+                    await SaveProbeScreenAsync($"mp-media-menu-{theme.Id}-{width}.png");
+                    ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(management).GetPattern(PatternInterface.ExpandCollapse)).Expand();
+                    await LayoutAsync(anchor);
+                    foreach (var row in management.Items) AssertRightBrand((FrameworkElement)row);
+                    Require(management.Items.OfType<MenuFlyoutItem>().Select(row => row.Text).SequenceEqual(new[]
+                    { "仅删除记录", "删记录和源文件", "删记录和库文件", "删除记录及两端" }), "删除范围文案不一致");
+                    await Task.Delay(350);
+                    await SaveProbeScreenAsync($"mp-media-submenu-{theme.Id}-{width}.png");
+                    ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(management).GetPattern(PatternInterface.ExpandCollapse)).Collapse();
+                    menu.Hide();
+                    await SettleAsync();
+                }
             Require(transport.Writes == 0, "打开菜单发出了副作用请求");
             transport.Type = "电影";
             dialog = new MoviePilotMediaManagementDialog(service, fixture.Session.Capture(), Subject(EmbyItemType.Movie), MoviePilotHistoryAction.DeleteAll) { XamlRoot = _root.XamlRoot };
@@ -75,6 +87,16 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => dialog.IsPrimaryButtonEnabled);
             Require(dialog.DefaultButton == ContentDialogButton.Close && transport.Writes == 0, "准备范围时发出删除或默认 Enter 确认删除");
             Require(Get<TextBox>(dialog, "RecordDetails").Text.Contains("源文件（删除）", StringComparison.Ordinal), "确认没有展示源文件删除范围");
+            ResizeInspect(1040, 800);
+            foreach (var theme in Momoka.Theming.UiThemes.All)
+            {
+                ThemeHost.Apply(theme);
+                await LayoutAsync(dialog);
+                Require(dialog.Background is SolidColorBrush { Color.A: > 0 } &&
+                    Get<TextBlock>(dialog, "SummaryText").Foreground is SolidColorBrush { Color.A: > 0 }, "确认窗口缺主题底色或文字色");
+                await SaveProbeScreenAsync($"mp-media-delete-confirm-{theme.Id}.png");
+            }
+            ThemeHost.Apply(originalTheme);
             await Task.Delay(350);
             await SaveProbeScreenAsync("mp-media-delete-confirm.png");
             InvokeDialog(dialog, "CloseButton");
@@ -127,6 +149,8 @@ internal sealed partial class ShellNavigationProbe
         {
             menu?.Hide();
             dialog?.Hide();
+            ThemeHost.Apply(originalTheme);
+            _window!.TopMost = topMost;
             Call(shell, "StopMoviePilotMonitoring");
             Call(shell, "ReleaseContent");
             shell.SignInRoot.Detach();

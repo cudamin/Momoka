@@ -571,6 +571,9 @@ internal sealed partial class ShellNavigationProbe
                 "订阅分区没有排在媒体库那一段下面");
             // 标题得真有高度 —— 「Visibility 是 Visible 可是没画出高度」在截图上只是「少了一行字」，
             // 只看 Visibility 会放过它。
+            // 可用性刚从异步登录回到 UI，Visible 不代表新标题已经跑过这一帧布局。
+            // 等实际标题有尺寸后仍按原高度与图标裁切守卫检查，不放宽判定。
+            await LayoutAsync(section);
             Require(section.ActualHeight > 0, $"订阅分区标题没有画出高度：{section.ActualHeight:0.#}");
             // 图标是照 MoviePilot 网页端复刻的两条 16×16 路径（场记板／带底座的电视）。这里量的是
             // 「PathIcon 在栏里真占了地方、也没被栏裁掉」—— 路径画错或尺寸不对时图标会是空的或只露出一角，
