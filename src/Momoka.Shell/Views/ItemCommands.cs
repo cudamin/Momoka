@@ -282,11 +282,10 @@ internal static partial class ItemCommands
     private static MenuFlyoutItemBase BuildEntry(ItemMenuEntry row, Action<ItemCommand> invoke)
     {
         if (row.Children is not { } children)
-            return Entry(row.Label, row.Command!.Value, () => invoke(row.Command.Value), row.MoviePilot);
+            return Entry(row.Label, row.Command!.Value, () => invoke(row.Command.Value));
         var submenu = new MenuFlyoutSubItem { Text = row.Label, Tag = row.Command, Icon = new FontIcon { Glyph = Glyph.Of(row.Command!.Value) } };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(submenu,
             row.Command == ItemCommand.MoviePilotMediaManagement ? "MoviePilotMediaManagement" : "SearchVersionSources");
-        MoviePilotMenuBrand.Apply(submenu, row.MoviePilot);
         foreach (var child in children) submenu.Items.Add(BuildEntry(child, invoke));
         return submenu;
     }
@@ -580,7 +579,7 @@ internal static partial class ItemCommands
     /// 菜单上的一行。<c>Tag</c> 上带着它是哪一条命令 —— 自检靠它认出搭出来的这一行是不是该在的那一行，见
     /// <see cref="Build"/>。
     /// </summary>
-    private static MenuFlyoutItem Entry(string text, ItemCommand command, Action invoke, bool moviePilot = false)
+    private static MenuFlyoutItem Entry(string text, ItemCommand command, Action invoke)
     {
         var entry = new MenuFlyoutItem
         {
@@ -590,7 +589,6 @@ internal static partial class ItemCommands
         };
 
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(entry, "Item" + command);
-        MoviePilotMenuBrand.Apply(entry, moviePilot);
         entry.Click += (_, _) => invoke();
         return entry;
     }

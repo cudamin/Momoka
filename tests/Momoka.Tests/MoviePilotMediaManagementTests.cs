@@ -14,7 +14,7 @@ internal static class MoviePilotMediaManagementTests
 {
     public static void Register()
     {
-        Test("MP 媒体管理菜单：紧接手动整理、四个删除范围且品牌归属准确", () =>
+        Test("MP 媒体管理菜单：紧接手动整理、四个删除范围且不套品牌", () =>
         {
             foreach (var backend in new[] { "Emby", "Jellyfin", "FnNas", "Plex" })
                 foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
@@ -31,8 +31,6 @@ internal static class MoviePilotMediaManagementTests
                     Assert.Equal("媒体管理", management.Label);
                     Assert.Equal("仅删除记录|删记录和源文件|删记录和库文件|删除记录及两端",
                         string.Join("|", management.Children!.Select(row => row.Label)));
-                    Assert.True(management.Children!.All(row => row.MoviePilot));
-                    Assert.True(menu.Where(row => row.Command is { } cmd && ItemMenu.IsMoviePilot(cmd)).All(row => row.MoviePilot));
                     Assert.Equal(type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理", menu[managementIndex + 1].Label);
                 }
         });
@@ -73,6 +71,8 @@ internal static class MoviePilotMediaManagementTests
             Assert.Equal(2, runtime.Split("foreach (var theme in Momoka.Theming.UiThemes.All)").Length - 1);
             Assert.Contains("mp-media-menu-{theme.Id}-{width}.png", runtime);
             Assert.Contains("mp-media-submenu-{theme.Id}-{width}.png", runtime);
+            Assert.Contains("AssertNoBrand", runtime);
+            Assert.Contains("仍套用 MP 品牌模板", runtime);
             Assert.Contains("mp-media-delete-confirm-{theme.Id}.png", runtime);
             Assert.Contains("ThemeHost.Apply(originalTheme);", runtime);
             Assert.Contains("_window!.TopMost = topMost;", runtime);
@@ -114,13 +114,16 @@ internal static class MoviePilotMediaManagementTests
             Assert.True(noAi.Any(row => row.Command == ItemCommand.MoviePilotMediaManagement));
             Assert.False(noAi.Any(row => row.Command == ItemCommand.MoviePilotSmartReorganize));
         });
-        Test("MP 菜单品牌：混合版本来源仅标记 MoviePilot 子项，AniBT 不冒名", () =>
+        Test("MP 菜单品牌：条目更多菜单不再套 MP 图标，订阅菜单保留", () =>
         {
-            var menu = ItemMenu.For(new EmbyItem { Type = EmbyItemType.Series, Genres = ["动画"] }, true);
-            var parent = menu.Single(row => row.Command == ItemCommand.MoviePilotVersions);
-            Assert.False(parent.MoviePilot);
-            Assert.True(parent.Children!.Single(row => row.Label == "MoviePilot").MoviePilot);
-            Assert.False(parent.Children!.Single(row => row.Label == "AniBT").MoviePilot);
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (root is not null && !File.Exists(Path.Combine(root.FullName, "CLAUDE.md"))) root = root.Parent;
+            Assert.True(root is not null, "找不到当前源码树");
+            var itemMenu = File.ReadAllText(Path.Combine(root!.FullName, "src", "Momoka.Shell", "Views", "ItemCommands.cs"));
+            Assert.False(itemMenu.Contains("MoviePilotMenuBrand", StringComparison.Ordinal), "条目更多菜单仍在套 MP 图标");
+            foreach (var page in new[] { "MoviePilotSubscriptionMenu.cs", "MoviePilotSubscriptionPage.xaml.cs" })
+                Assert.Contains("MoviePilotMenuBrand.Apply(item)",
+                    File.ReadAllText(Path.Combine(root.FullName, "src", "Momoka.Shell", "Views", page)));
         });
         Test("MP 菜单品牌：与设置页共享白色三路径，未残留紫色 SVG", () =>
         {
@@ -139,8 +142,9 @@ internal static class MoviePilotMediaManagementTests
             Assert.Contains("M107,165 L102,162", (string)paths[2].Attribute("Data")!);
             var settings = XDocument.Load(Path.Combine(root.FullName, "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
             Assert.True(settings.Descendants().Any(element => (string?)element.Attribute("ContentTemplate") == "{StaticResource EgMoviePilotMarkTemplate}"));
-            Assert.Equal(2, templates.Descendants().Count(element => (string?)element.Attribute(x + "Name") == "MoviePilotBrandMark"));
-            Assert.Equal(2, templates.Descendants().Count(element => (string?)element.Attribute("ContentTemplate") == "{StaticResource EgMoviePilotMarkTemplate}"));
+            Assert.Equal(1, templates.Descendants().Count(element => (string?)element.Attribute(x + "Name") == "MoviePilotBrandMark"));
+            Assert.Equal(1, templates.Descendants().Count(element => (string?)element.Attribute("ContentTemplate") == "{StaticResource EgMoviePilotMarkTemplate}"));
+            Assert.False(templates.Descendants().Any(element => (string?)element.Attribute(x + "Key") == "EgMoviePilotMenuSubItemStyle"));
             Assert.False(templates.Descendants().Any(element => element.Name.LocalName == "SvgImageSource"));
         });
         foreach (var action in new[] { MoviePilotHistoryAction.DeleteRecord, MoviePilotHistoryAction.DeleteSource,
