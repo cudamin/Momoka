@@ -11,6 +11,7 @@
 - 产品提交 `94ccdc2`；主树 `tools/publish.ps1 -NoArchive -Shortcut` 通过：546 文件／284.8 MB、14 GLSL／4 HOOK／批准 mpv 载荷 59 文件逐项校验，ProductVersion `0.2.0+94ccdc23c9e8ab5693b94c678f94934c41600bf8`，桌面 `Momoka.lnk` 的 Target／WorkingDirectory 读回为 `artifacts/publish/win-x64`。
 - 发布件首次 `--probe-shell --probe-section moviepilot,search --screen 1` 39/40：本批四区用例全过，红项是「全站输入框五主题中性焦点与窄窗」在 `oled-black/text` 判到非中性描边（`shell-probe-20261029-111526433-32268`）。该用例自建裸 TextBox／ComboBox，不读本批任何资源卡、站点选择器或资源视图模型；同二进制立即重跑 **40/40、退出 0**（`shell-probe-20261029-111837265-8156`），发布件真实屏幕帧 `search-sites-picker-screen.png`、`mp-resources-screen-1040.png`、`search-compact-resources-1040-screen.png` 已查看。两次报告都保留，不把重跑当作该红项从未发生，也不判定为本批回归。
 - 未推送 origin、未改版本、无真实媒体下载／播放／整理或账号写入；未执行区域按 scope 回执保留（92 项），不是全量 Shell 自检。
+- 临时分支已收尾：`qoder/mp资源搜索临时`（顶端 `d21eaf2`）以 fast-forward 合入 master，临时分支删除，本地开发线只剩 master（其他 `codex/*` 树属于并行聊天，未触碰）。master 上重编译 Shell／Tests／资源夹具 0 警告 0 错误，主测试 3313/3313、资源 97/97、0 失败 0 跳过；由 master 重新发布（546 文件／284.8 MB、载荷校验通过），ProductVersion `0.2.0+d21eaf2bdf0060df1c57191fc37dd602c08a9463`，快捷方式读回同上。发布件 `--probe-shell --probe-section moviepilot,search --screen 1` **40/40、退出 0**（`shell-probe-20261029-112835490-29480`）。未执行区域仍为 92 项，非全量 Shell 自检。
 
 ## 旧工作树最终结果（2026-10-29，主树交付完成，清理有三个限制）
 
