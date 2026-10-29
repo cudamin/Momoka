@@ -63,6 +63,31 @@ internal static class NeutralFeedbackTests
             Assert.Equal("{x:Bind Card.PlayVisibility, Mode=OneWay}", button.Attribute("Visibility")?.Value);
         });
 
+        Test("中性反馈：指针和焦点只更新动画，不重设封面样式", () =>
+        {
+            var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "PosterCard.xaml.cs"));
+            var begin = code.IndexOf("    public PosterCard()", StringComparison.Ordinal);
+            var end = code.IndexOf("    private void SyncPoster()", begin, StringComparison.Ordinal);
+            var constructor = code[begin..end];
+            Assert.False(constructor.Contains("Paint();", StringComparison.Ordinal), "悬停或焦点不应反复重设同一封面样式");
+            Assert.Equal(2, constructor.Split("AnimateCard();", StringSplitOptions.None).Length - 1,
+                "指针与焦点仍须各自更新动画");
+        });
+
+        Test("中性反馈：播放键探针先应用模板，异常时也恢复默认态", () =>
+        {
+            var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "PosterCard.xaml.cs"));
+            var begin = code.IndexOf("    private (Windows.UI.Color Still, Windows.UI.Color Active) ProbePlay()", StringComparison.Ordinal);
+            var end = code.IndexOf("    private static Windows.UI.Color Colour(", begin, StringComparison.Ordinal);
+            var probe = code[begin..end];
+            var template = probe.IndexOf("PlayButton.ApplyTemplate();", StringComparison.Ordinal);
+            var hover = probe.IndexOf("VisualStateManager.GoToState(PlayButton, \"PointerOver\"", StringComparison.Ordinal);
+            Assert.True(template >= 0 && hover > template, "必须先应用播放键模板，再切指针态");
+            var cleanup = probe.IndexOf("finally", StringComparison.Ordinal);
+            var normal = probe.IndexOf("VisualStateManager.GoToState(PlayButton, \"Normal\"", StringComparison.Ordinal);
+            Assert.True(cleanup > hover && normal > cleanup, "探针失败也必须恢复默认态");
+        });
+
         Test("中性反馈：强调色只覆盖播放按钮的指针和按下状态", () =>
         {
             var card = View("PosterCard.xaml");
@@ -81,6 +106,22 @@ internal static class NeutralFeedbackTests
                     element.Attribute(Xaml + "Key")?.Value == key).Attribute("ResourceKey")?.Value);
             Assert.False(card.Descendants().Any(element => Name(element) == "Hover"
                 && element.Attribute("Background")?.Value?.Contains("Accent", StringComparison.Ordinal) == true));
+        });
+
+        Test("中性反馈：搜索框逐尺寸一次聚焦，宽帧仍检查全部主题", () =>
+        {
+            var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "ShellNavigationProbe.SearchLayout.cs"));
+            var begin = code.IndexOf("    private async Task SearchHeaderLayoutAsync()", StringComparison.Ordinal);
+            var end = code.IndexOf("    private async Task SearchInteractionAsync()", begin, StringComparison.Ordinal);
+            var probe = code[begin..end];
+            Assert.Equal(1, probe.Split(".Focus(FocusState.Programmatic)", StringSplitOptions.None).Length - 1,
+                "不要重复聚焦、等待布局并检查同一搜索框");
+            Assert.Contains("new[] { 1600, 1040, 760, 520, 360 }", probe);
+            Assert.Contains("foreach (var theme in UiThemes.All)", probe);
+            Assert.Contains("focusEdge.BorderThickness == new Thickness(1)", probe);
+            Assert.Contains("search-focus-neutral-{theme.Id}-screen.png", probe);
+            Assert.Contains("搜索标题重新显示的反例未被检测", probe);
+            Assert.Contains("来源胶囊被改成方形的反例未被检测", probe);
         });
 
         Test("中性反馈：自检同时核对无外圈及播放键两态，不再要求封面变主题色", () =>

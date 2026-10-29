@@ -110,12 +110,13 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(page);
                 }
 
-                var input = Get<AutoSuggestBox>(page, "SearchInput");
-                var field = Descendants(input).OfType<TextBox>().First();
-                Require(field.Focus(FocusState.Programmatic), "搜索框不能获得焦点");
+                // 每个尺寸只聚焦和核对一次；宽帧另外覆盖全部存活主题。
+                var focusInput = Get<AutoSuggestBox>(page, "SearchInput");
+                var focusField = Descendants(focusInput).OfType<TextBox>().First();
+                Require(focusField.Focus(FocusState.Programmatic), "搜索框不能获得焦点");
                 await LayoutAsync(page);
-                var edge = Descendants(field).OfType<Border>().Single(border => border.Name == "BorderElement");
-                Require(Colour(edge.BorderBrush) == Role("EgBorderBrush") && edge.BorderThickness == new Thickness(1),
+                var focusEdge = Descendants(focusField).OfType<Border>().Single(border => border.Name == "BorderElement");
+                Require(Colour(focusEdge.BorderBrush) == Role("EgBorderBrush") && focusEdge.BorderThickness == new Thickness(1),
                     $"{width} 搜索框聚焦仍有主题色外圈或加粗底边");
                 if (width == 1040)
                 {
@@ -126,7 +127,7 @@ internal sealed partial class ShellNavigationProbe
                         {
                             ThemeHost.Apply(theme);
                             await LayoutAsync(page);
-                            Require(Colour(edge.BorderBrush) == Role("EgBorderBrush") && edge.BorderThickness == new Thickness(1),
+                            Require(Colour(focusEdge.BorderBrush) == Role("EgBorderBrush") && focusEdge.BorderThickness == new Thickness(1),
                                 $"主题 {theme.Id} 搜索框出现强调色边框");
                             RequirePill((SegmentedItem)tabs.Items[tabs.SelectedIndex], selected: true);
                             await SaveProbeScreenAsync($"search-focus-neutral-{theme.Id}-screen.png");
@@ -137,7 +138,6 @@ internal sealed partial class ShellNavigationProbe
                 await SaveReturnFrameAsync(page, $"search-layout-{width}.png");
                 if (width is 1040 or 360)
                     await SaveProbeScreenAsync($"search-screen-{width}.png");
-
             }
             page.ViewModel.RememberSearch(sample);
             await page.ViewModel.SearchAsync("");
@@ -148,6 +148,8 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1040, 880);
             await LayoutAsync(page);
             await SaveProbeScreenAsync("search-recent-screen-wide.png");
+            await CompactSearchHeaderAsync(page);
+            page.ExpandSearchOptions();
             Get<Segmented>(page, "SourceTabs").SelectedIndex = 1;
             await page.SearchTypingAsync("");
             var subscriptionPanel = Get<MoviePilotSearchPanel>(page, "MoviePilotPanel");
@@ -166,7 +168,6 @@ internal sealed partial class ShellNavigationProbe
                 await SaveReturnFrameAsync(page, $"search-subscription-no-source-{width}.png");
                 await SaveProbeScreenAsync($"search-subscription-no-source-{width}-screen.png");
             }
-            await CompactSearchHeaderAsync(page);
             page.Release();
             fixture.Settings.MoviePilot.Enabled = false;
             frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services));
@@ -213,15 +214,20 @@ internal sealed partial class ShellNavigationProbe
                 Require(Colour(shape.Background) == Role("EgAccentSoftBrush"), "来源胶囊选中底色未跟随主题");
         }
 
-        Windows.UI.Color Role(string key) => Colour(Application.Current.Resources[key] as Brush);
-        static Windows.UI.Color Colour(Brush? brush) => brush is SolidColorBrush solid ? solid.Color : default;
-
         static Rect Bounds(FrameworkElement element, UIElement relative)
         {
             var origin = element.TransformToVisual(relative).TransformPoint(default);
             return new Rect(origin, new Size(element.ActualWidth, element.ActualHeight));
         }
 
+        // 角色表里那一支现在是什么色。ThemeHost 换主题改的是同一支画刷的 Color，所以每次现问。
+        Windows.UI.Color Role(string key) =>
+            Application.Current.Resources[key] is Microsoft.UI.Xaml.Media.SolidColorBrush brush
+                ? brush.Color
+                : default;
+
+        static Windows.UI.Color Colour(Microsoft.UI.Xaml.Media.Brush? brush) =>
+            brush is Microsoft.UI.Xaml.Media.SolidColorBrush solid ? solid.Color : default;
     }
 
     private async Task SearchInteractionAsync()

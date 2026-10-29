@@ -169,9 +169,7 @@ internal static class Program
             var button = xml.Descendants().Single(node => node.Attribute(x + "Name")?.Value == "DownloadResource");
             Assert.Equal("{x:Bind DownloadVisibility, Mode=OneWay}", button.Attribute("Visibility")?.Value);
             Assert.Equal("{x:Bind DownloadCommand}", button.Attribute("Command")?.Value);
-            // 卡片重做后拒绝原因放到独立标签的 Tooltip；仍断言真实原因与动态显隐，不能只检查文案。
-            var reason = xml.Descendants().Single(node => node.Attribute("Text")?.Value == "身份待核对"
-                && node.Attribute("ToolTipService.ToolTip")?.Value == "{x:Bind DownloadProblem}");
+            var reason = xml.Descendants().Single(node => node.Attribute("ToolTipService.ToolTip")?.Value == "{x:Bind DownloadProblem}");
             Assert.Equal("TextBlock", reason.Name.LocalName);
             Assert.Equal("身份待核对", reason.Attribute("Text")?.Value);
             Assert.Equal("{x:Bind DownloadProblemVisibility, Mode=OneWay}", reason.Attribute("Visibility")?.Value);

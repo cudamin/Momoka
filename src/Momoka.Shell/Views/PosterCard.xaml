@@ -22,7 +22,8 @@
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
         </Style>
-        <!-- 播放键停着是中性色；只有指针实际进入这颗按钮时才用强调色，不随整张封面的悬停换色。 -->
+        <!-- 播放键默认中性色；按钮自身悬停／按下才变强调色，不随整张封面的悬停换色。
+             框架模板从 ButtonBackgroundPointerOver 等主题键取色，因此覆盖放在按钮自己的 Resources。 -->
         <Style x:Key="EgCardPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="48" />
             <Setter Property="Height" Value="48" />

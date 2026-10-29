@@ -151,6 +151,7 @@ internal sealed partial class ShellNavigationProbe
                 Field(head, "_hovered", true);
                 Call(head, "PaintUnderline");
                 await LayoutAsync(home);
+
                 Require(art.BorderThickness == new Thickness(0) && Math.Abs(art.ActualWidth - cardWidth) < 1,
                     "封面悬停仍有描边或改变了尺寸");
                 Require(host.Focus(FocusState.Keyboard), "主页卡片无法接受键盘焦点");
@@ -215,21 +216,32 @@ internal sealed partial class ShellNavigationProbe
             Point Center(FrameworkElement element) => element.TransformToVisual(_root)
                 .TransformPoint(new Point(element.ActualWidth / 2, element.ActualHeight / 2));
             bool HitsScope(Point point) => VisualTreeHelper.FindElementsInHostCoordinates(point, _root).Contains(scope);
+
+            // 角色表里那一支现在是什么色。ThemeHost 换主题改的是同一支画刷的 Color，所以每次现问。
             Windows.UI.Color Role(string key) => Colour(Application.Current.Resources[key] as Brush);
-            static Windows.UI.Color Colour(Brush? brush) => brush is SolidColorBrush solid ? solid.Color : default;
-            static ContentPresenter? Presenter(Button button) => VisualTreeHelper.GetChildrenCount(button) > 0
-                ? VisualTreeHelper.GetChild(button, 0) as ContentPresenter : null;
+
+            static Windows.UI.Color Colour(Brush? brush) =>
+                brush is SolidColorBrush solid ? solid.Color : default;
+
             static IEnumerable<DependencyObject> Ancestors(DependencyObject element)
             {
                 for (var parent = VisualTreeHelper.GetParent(element); parent is not null; parent = VisualTreeHelper.GetParent(parent))
                     yield return parent;
             }
+
+            static ContentPresenter? Presenter(Button button)
+            {
+                button.ApplyTemplate();
+                return VisualTreeHelper.GetChildrenCount(button) > 0
+                    ? VisualTreeHelper.GetChild(button, 0) as ContentPresenter
+                    : null;
+            }
         }
         finally
         {
-            ThemeHost.Apply(originalTheme);
             home?.Release();
             _root.Children.Remove(frame);
+            ThemeHost.Apply(originalTheme);
         }
     }
 }

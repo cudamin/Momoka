@@ -478,7 +478,7 @@
         <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
     </Style>
 
-    <!-- 指针在上面、或者键盘焦点落在上面时的同一根线。卡片静止时没有边，所以这一档把边补回来。 -->
+    <!-- 指针与键盘焦点共用的强调边线。集行和选择器仍使用它；普通与主页订阅封面不再切到这一档。 -->
     <Style x:Key="EgFrameActiveStyle" TargetType="Border" BasedOn="{StaticResource EgFrameStyle}">
         <Setter Property="BorderThickness" Value="{StaticResource EgOutlineThickness}" />
         <Setter Property="BorderBrush" Value="{ThemeResource EgAccentBrush}" />

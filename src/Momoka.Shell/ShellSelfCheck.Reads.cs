@@ -228,7 +228,7 @@ internal static partial class ShellSelfCheck
     private static (bool Ok, string Detail)? ReadCards(ShellPage shell) =>
         shell.Pages.Content is HomePage home ? ReadCards(home) : null;
 
-    // 同一条读数在隔离 Shell 探针里运行，避免为测封面样式登录真实媒体库。
+    // 隔离探针复用同一生产读数，不为验证封面样式登录真实媒体库。
     internal static (bool Ok, string Detail)? ReadCards(HomePage home)
     {
         var cards = home.RealisedCards();
@@ -252,8 +252,9 @@ internal static partial class ShellSelfCheck
         // 底色则要三个态都问过才算数 —— 悬停那一态的灰片是框架给的，不在这张卡的标记里。指针那一问是第三件：
         // 那十赫兹的一拍要是量不到光标和封面的相对位置，它就是白跑，而白跑没有任何症状。
         //
-        // 封面在静止／指针／焦点三态都不画外圈；播放键停着是中性色，只在按钮自身的指针态变强调色。
-        // 颜色与实际描边厚度都从已实现的控件读回，保留外层按钮的键盘焦点检查。
+        // 后四问是封面那圈线与中间那颗播放键（2026-10-27 用户令）：指针上来前后框线必须是同一支色、且都不是
+        // 强调色（封面不再画绿框）；播放键停着是灰色角色、指针压到键上才是强调色。四样都是看不准的 ——
+        // 1 像素的线在截图里认不出色号，而焦点那一半在自检里根本没有焦点可看。
         var accent = ColorOf("EgAccentBrush");
 
         foreach (var group in new[] { library, playable })
@@ -296,7 +297,7 @@ internal static partial class ShellSelfCheck
                 + (card.HostSurfaceTransparent ? "、外层按钮三态透明" : "、外层按钮底色检查失败")
                 + (card.Watch ? "、指针位置查得出来" : "、查不到指针位置")
                 + $"，封面无外圈 {Had(card.FrameBorderless)}，框线角色 {Format(card.FrameRest)} → 指针 {Format(card.FrameActive)}"
-                + $"，播放键 {Format(card.PlayRest)} → 按钮指针 {Format(card.PlayHover)}"
+                + $"，播放键 {Format(card.PlayRest)} → 指针 {Format(card.PlayHover)}"
                 + (card.FrameFocus ? "、焦点接在外层容器上" : "、找不到能接焦点的容器");
 
         static string Had(bool present) => present ? "有" : "无";

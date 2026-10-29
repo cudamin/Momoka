@@ -153,20 +153,23 @@ internal static class CardStripTests
             }
         });
 
-        Test("卡片带：封面无外圈，翻页圆钮仍保留两像素", () =>
+        Test("卡片带：封面不再画悬停框，翻页外圈仍是两像素", () =>
         {
             var styles = XDocument.Load(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Theme", "Styles.xaml"));
             var outline = styles.Descendants().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgOutlineThickness");
             Assert.Equal("2", outline.Value);
-            var card = XDocument.Load(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "PosterCard.xaml"));
-            Assert.Equal("{StaticResource EgFrameStyle}", card.Descendants().Single(element =>
-                element.Attribute(Xaml + "Name")?.Value == "Art").Attribute("Style")?.Value);
-            var code = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "PosterCard.xaml.cs"));
-            Assert.False(code.Contains("EgFrameActiveStyle", StringComparison.Ordinal), "封面不应再切换强调色描边");
             Assert.Equal("{StaticResource EgOutlineThickness}", PageButtonStyle().Elements().Single(element =>
                 element.Attribute("Property")?.Value == "BorderThickness").Attribute("Value")?.Value);
             Assert.Equal("0", styles.Descendants().Single(element =>
                 element.Attribute(Xaml + "Key")?.Value == "EgCardBorderThickness").Value);
+
+            // 2026-10-27 用户令：封面四周不再有那圈绿框。静止那一档就是它唯一的一档，指针和焦点都不换样式。
+            var card = XDocument.Load(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "PosterCard.xaml"));
+            var art = card.Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == "Art");
+            Assert.Equal("{StaticResource EgFrameStyle}", art.Attribute("Style")?.Value);
+            var code = File.ReadAllText(Path.Combine(RepositoryRoot(), "src", "Momoka.Shell", "Views", "PosterCard.xaml.cs"));
+            Assert.False(code.Contains("EgFrameActiveStyle", StringComparison.Ordinal),
+                "PosterCard 又按指针／焦点换框线了");
         });
 
         static void Near(double expected, double actual, string message) =>

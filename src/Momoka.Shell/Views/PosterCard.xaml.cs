@@ -18,10 +18,12 @@ namespace Momoka.Shell.Views;
 /// <paramref name="Watch"/> is whether the card can tell where the cursor really is, which is what takes
 /// the buttons back down when the pointer leaves the window without saying so.
 /// <para>
-/// <paramref name="FrameRest"/> 与 <paramref name="FrameActive"/> 记录封面框线的同一支中性色，
-/// <paramref name="FrameBorderless"/> 同时核对静止／指针／焦点都不画线；<paramref name="FrameFocus"/>
-/// 检查外层键盘容器仍可定位。<paramref name="PlayRest"/> 与 <paramref name="PlayHover"/> 则是播放键
-/// 默认和按钮自身指针态的实际颜色，不把整张卡片的悬停误认为播放按钮悬停。
+/// 封面框线、中间播放键与无描边读数分开记录。<paramref name="FrameBorderless"/> 核三态都不画线。<paramref name="FrameRest"/> 是静止时的框线色，
+/// <paramref name="FrameActive"/> 是指针上来之后的色 —— 2026-10-27 起两者必须相同：封面不再画那圈绿框。
+/// <paramref name="PlayRest"/> 是播放键停着的底色（灰），<paramref name="PlayHover"/> 是指针压到键上的底色
+/// （强调色）—— 48 像素的圆在截图里认得出颜色，但「是不是调色板里那一支」还得靠读数。
+/// <paramref name="FrameFocus"/> 是键盘那一半接上了没有：卡片自己接不到焦点，得往上找到外层容器，找不到的
+/// 话焦点那一半整个不存在，而那是完全没有症状的。
 /// </para>
 /// </summary>
 internal sealed record CardHoverProbe(
@@ -42,10 +44,10 @@ internal sealed record CardHoverProbe(
     bool Watch,
     Windows.UI.Color FrameRest,
     Windows.UI.Color FrameActive,
-    bool FrameFocus,
-    bool FrameBorderless,
     Windows.UI.Color PlayRest,
-    Windows.UI.Color PlayHover);
+    Windows.UI.Color PlayHover,
+    bool FrameFocus,
+    bool FrameBorderless);
 
 /// <summary>需求 6：which of the card's hover buttons was pressed.</summary>
 public enum CardAction
@@ -134,9 +136,9 @@ public sealed partial class PosterCard : UserControl
     private readonly FocusWatch _focus;
 
     /// <summary>
-    /// 胶片格那圈线是不是该亮着的两个来源。分成两个旗子而不是一个 bool：指针和焦点会同时在这张卡上，
-    /// 也会一前一后地走，谁都不能替对方回答 —— 用同一个 bool 的话，点了悬浮层里的按钮再把指针移开，
-    /// 焦点还在这张卡上，线却熄了。
+    /// 「用户此刻在这张卡上」的两个来源：指针停在这张卡上、或者键盘焦点落在它身上。分成两个旗子而不是一个
+    /// bool：两者会同时成立，也会一前一后地走，谁都不能替对方回答 —— 用同一个 bool 的话，点了悬浮层里的按钮
+    /// 再把指针移开，焦点还在这张卡上，封面却会退回去。
     /// </summary>
     private bool _hovered;
 
@@ -154,14 +156,12 @@ public sealed partial class PosterCard : UserControl
         {
             _hovered = up;
             if (!up) _pressed = false;
-            Paint();
             AnimateCard();
         });
 
         _focus = new FocusWatch(Root, on =>
         {
             _focused = on;
-            Paint();
             AnimateCard();
         });
 
@@ -468,8 +468,12 @@ public sealed partial class PosterCard : UserControl
     }
 
     /// <summary>
-    /// 封面本体在指针和焦点状态都不画外圈；键盘定位保留在外层按钮的中性焦点提示中。
-    /// 文件夹仍使用自己的底色，不改图片布局或点击范围。
+    /// 封面那圈线：文件夹卡换自己那一张皮，其余一律是词表里的静止档。
+    /// <para>
+    /// 2026-10-27 用户令「去掉主页所有封面四周绿色的框」之后，指针和键盘焦点都不再换框线：悬停由封面推近、
+    /// 压暗和那层按钮说，键盘焦点由外层按钮自己的中性焦点环说。所以这里只剩「是不是文件夹」一个判断，
+    /// 换卡时由 <see cref="ResetMotion"/> 叫一次。
+    /// </para>
     /// </summary>
     private void Paint() =>
         Art.Style = Card?.FolderFrame == true ? (Style)Resources["FolderFrameStyle"]
@@ -531,7 +535,7 @@ public sealed partial class PosterCard : UserControl
             .TransformToVisual(Art)
             .TransformPoint(new Windows.Foundation.Point(Actions.ActualWidth, Actions.ActualHeight));
 
-        var (rest, active, borderless) = ProbeFrame();
+        var (rest, hovered, borderless) = ProbeFrame();
         var (playRest, playHover) = ProbePlay();
 
         var probe = new CardHoverProbe(
@@ -551,11 +555,11 @@ public sealed partial class PosterCard : UserControl
             HostSurfaceIsTransparent(),
             _watch.Probe(),
             rest,
-            active,
-            _focus.Probe(),
-            borderless,
+            hovered,
             playRest,
-            playHover);
+            playHover,
+            _focus.Probe(),
+            borderless);
 
         Hover.Visibility = restore;
         UpdateLayout();
@@ -564,16 +568,14 @@ public sealed partial class PosterCard : UserControl
     }
 
     /// <summary>
-    /// 自检：静止、指针与焦点三态都没有封面外圈，颜色与厚度照实读回。
+    /// 自检：静止、指针和焦点三态都不画封面外圈，框线角色保持一致。
+    /// 实际描边厚度与颜色分别读回，不把「颜色没变」当成「没有描边」。
     /// <para>
     /// 自检既没有指针也没有焦点，所以两个旗子是摆出来的 —— 而且是先摆再读，包括静止那一次：真有指针停在
     /// 这张卡上的时候（自检跑起来鼠标就在屏幕上某处），不摆的话读到的「静止」就是亮的。读完照原样放回去。
     /// </para>
     /// </summary>
-    /// <remarks>
-    /// 元组的第一个名字不叫 <c>Rest</c>：那是 <c>ValueTuple</c> 给第八个字段留的名字，编译器不让用。
-    /// </remarks>
-    private (Windows.UI.Color Still, Windows.UI.Color Active, bool Borderless) ProbeFrame()
+    private (Windows.UI.Color Still, Windows.UI.Color Hover, bool Borderless) ProbeFrame()
     {
         var (hovered, focused) = (_hovered, _focused);
 
@@ -582,9 +584,9 @@ public sealed partial class PosterCard : UserControl
         var rest = Colour(Art.BorderBrush);
         var borderless = Art.BorderThickness == new Thickness(0);
 
-        _hovered = true;
+        (_hovered, _focused) = (true, false);
         Paint();
-        var active = Colour(Art.BorderBrush);
+        var hover = Colour(Art.BorderBrush);
         borderless &= Art.BorderThickness == new Thickness(0);
         (_hovered, _focused) = (false, true);
         Paint();
@@ -593,28 +595,45 @@ public sealed partial class PosterCard : UserControl
         (_hovered, _focused) = (hovered, focused);
         Paint();
 
-        return (rest, active, borderless);
-
-        // 一支不是纯色的画刷（渐变、图片）在这里就是「没读到颜色」，而全透明的黑正好是自检要判红的东西。
-        static Windows.UI.Color Colour(Brush? brush) =>
-            brush is SolidColorBrush solid ? solid.Color : default;
+        return (rest, hover, borderless);
     }
 
-    /// <summary>读回播放键默认和按钮自身的指针态；只切视觉状态，不调用播放命令。</summary>
+    /// <summary>
+    /// 自检：中间那颗播放键停着与指针压上去的底色，都是照实读回来的。
+    /// <para>
+    /// 停着那一档读按钮自己的 <c>Background</c>（样式给的那支灰）；指针那一档得问模板 —— 框架在
+    /// <c>PointerOver</c> 里把底色画在模板根上，按钮自己的 <c>Background</c> 一个字都不变。切完照原样放回
+    /// <c>Normal</c>，免得自检在屏上留下一颗亮着的键。
+    /// </para>
+    /// </summary>
     private (Windows.UI.Color Still, Windows.UI.Color Active) ProbePlay()
     {
         PlayButton.ApplyTemplate();
         var still = Colour(PlayButton.Background);
-        var applied = VisualStateManager.GoToState(PlayButton, "PointerOver", false);
-        var root = VisualTreeHelper.GetChildrenCount(PlayButton) > 0
-            ? VisualTreeHelper.GetChild(PlayButton, 0) as ContentPresenter : null;
-        var active = applied ? Colour(root?.Background) : default;
-        VisualStateManager.GoToState(PlayButton, "Normal", false);
-        return (still, active);
+        try
+        {
+            var applied = VisualStateManager.GoToState(PlayButton, "PointerOver", false);
+            var active = applied ? Colour(Presenter(PlayButton)?.Background) : default;
+            return (still, active);
+        }
+        finally
+        {
+            VisualStateManager.GoToState(PlayButton, "Normal", false);
+        }
 
-        static Windows.UI.Color Colour(Brush? brush) =>
-            brush is SolidColorBrush solid ? solid.Color : default;
+        static ContentPresenter? Presenter(Button button)
+        {
+            return VisualTreeHelper.GetChildrenCount(button) > 0
+                ? VisualTreeHelper.GetChild(button, 0) as ContentPresenter
+                : null;
+        }
     }
+
+    /// <summary>
+    /// 一支不是纯色的画刷（渐变、图片）在这里就是「没读到颜色」，而全透明的黑正好是自检要判红的东西。
+    /// </summary>
+    private static Windows.UI.Color Colour(Brush? brush) =>
+        brush is SolidColorBrush solid ? solid.Color : default;
 
     /// <summary>
     /// 自检：whether one of the three corner buttons still fills itself in any of the states the pointer

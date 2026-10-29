@@ -335,7 +335,8 @@
                                 TextChanged="OnSearchTextChanged"
                                 Text="{x:Bind ViewModel.SearchText, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
-                                <!-- 只收起搜索框的强调色焦点描边；保留输入光标、框架模板与其他输入框的焦点反馈。 -->
+                                <!-- 搜索框聚焦仍用 EgBorderBrush 和 1 DIP 细边，保留输入光标与框架模板。
+                                     其他输入框继续沿用全局中性焦点边线，不随这个局部覆盖改变。 -->
                                 <AutoSuggestBox.Resources>
                                     <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="EgBorderBrush" />
                                     <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
