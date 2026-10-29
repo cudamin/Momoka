@@ -578,6 +578,7 @@ internal sealed class LibMpvHandle(
     private readonly LibMpvLifetimeGate _apiGate = new();
 
     private Thread? _eventThread;
+    private readonly TaskCompletionSource _eventLoopFinished = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private long _lastPositionMs = -1;
     private volatile bool _stopRequested;
     private volatile bool _leaveLoop;
@@ -848,20 +849,29 @@ internal sealed class LibMpvHandle(
     /// </summary>
     private void EventLoop()
     {
-        while (!_leaveLoop)
+        try
         {
-            var pointer = LibMpvNative.mpv_wait_event(context, 1.0);
-            if (pointer == IntPtr.Zero) continue;
+            while (!_leaveLoop)
+            {
+                var pointer = LibMpvNative.mpv_wait_event(context, 1.0);
+                if (pointer == IntPtr.Zero) continue;
 
-            var mpvEvent = Marshal.PtrToStructure<LibMpvNative.MpvEvent>(pointer);
-            try
-            {
-                if (Guard(() => ProcessEvent(mpvEvent))) return;
+                var mpvEvent = Marshal.PtrToStructure<LibMpvNative.MpvEvent>(pointer);
+                try
+                {
+                    if (Guard(() => ProcessEvent(mpvEvent))) return;
+                }
+                catch (Exception error)
+                {
+                    Log.Warn(Category, "处理内置播放器事件失败", error);
+                }
             }
-            catch (Exception error)
-            {
-                Log.Warn(Category, "处理内置播放器事件失败", error);
-            }
+        }
+        finally
+        {
+            // Completion does not destroy on the reader's stack. A timed-out disposal resumes its
+            // one asynchronous reclaimer, which joins this thread before touching the context.
+            _eventLoopFinished.TrySetResult();
         }
     }
 
@@ -1278,6 +1288,9 @@ internal sealed class LibMpvHandle(
 
         var text = ToMpvString(value);
         var generation = _apiGate.Generation;
+        // Speed is an absolute, high-frequency UI value. Other properties and relative commands
+        // keep their existing execution contract; do not fold track/option transactions together.
+        if (name == "speed") return QueueSpeedWriteAsync(generation, text, cancellationToken);
         return Task.Run(() => _apiGate.RunFor(generation, () =>
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1286,6 +1299,82 @@ internal sealed class LibMpvHandle(
             if (error < 0) Log.Warn(Category, $"设置 mpv 属性 {name} 失败：{LibMpvBackend.Describe(error)}");
             return true;
         }), CancellationToken.None);
+    }
+
+    private readonly object _speedWriteGate = new();
+    private (long Generation, string Text, CancellationToken Token)? _pendingSpeedWrite;
+    private TaskCompletionSource? _speedWriteCompletion;
+
+    /// <summary>
+    /// One worker and one replaceable pending value, even while mpv holds its native gate for seconds.
+    /// A burst shares its completion; cancellation only cancels that caller's wait and, if still the
+    /// latest value, skips its write. Superseded absolute values are deliberately not replayed.
+    /// </summary>
+    private Task QueueSpeedWriteAsync(long generation, string text, CancellationToken cancellationToken)
+    {
+        lock (_speedWriteGate)
+        {
+            if (generation != _apiGate.Generation || _apiGate.IsDestroyed || _contextClosed.Task.IsCompleted
+                || _handedOver || _stopRequested) return Task.CompletedTask;
+            _pendingSpeedWrite = (generation, text, cancellationToken);
+            if (_speedWriteCompletion is null)
+            {
+                _speedWriteCompletion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                _ = Task.Run(DrainSpeedWrites);
+            }
+            return cancellationToken.CanBeCanceled
+                ? _speedWriteCompletion.Task.WaitAsync(cancellationToken) : _speedWriteCompletion.Task;
+        }
+    }
+
+    private void DrainSpeedWrites()
+    {
+        TaskCompletionSource completion;
+        Exception? failure = null;
+        try
+        {
+            while (true)
+            {
+                // Read the latest value AFTER acquiring the native gate: taking it before the wait
+                // would unnecessarily replay the first drag position when that gate finally opens.
+                Guard(() =>
+                {
+                    (long Generation, string Text, CancellationToken Token)? pending;
+                    lock (_speedWriteGate)
+                    {
+                        pending = _pendingSpeedWrite;
+                        _pendingSpeedWrite = null;
+                    }
+                    if (pending is not { } write || write.Token.IsCancellationRequested
+                        || write.Generation != _apiGate.Generation || _contextClosed.Task.IsCompleted
+                        || _handedOver || _stopRequested) return false;
+                    var error = LibMpvNative.mpv_set_property_string(context, "speed", write.Text);
+                    if (error < 0) Log.Warn(Category, $"设置 mpv 属性 speed 失败：{LibMpvBackend.Describe(error)}");
+                    return true;
+                });
+                lock (_speedWriteGate)
+                {
+                    if (_pendingSpeedWrite is not null && !_apiGate.IsDestroyed && !_contextClosed.Task.IsCompleted)
+                        continue;
+                    _pendingSpeedWrite = null;
+                    completion = _speedWriteCompletion!;
+                    _speedWriteCompletion = null;
+                    break;
+                }
+            }
+        }
+        catch (Exception error)
+        {
+            failure = error;
+            lock (_speedWriteGate)
+            {
+                _pendingSpeedWrite = null;
+                completion = _speedWriteCompletion!;
+                _speedWriteCompletion = null;
+            }
+        }
+        if (failure is null) completion.TrySetResult();
+        else completion.TrySetException(failure);
     }
 
     public long FileGeneration => _apiGate.Generation;
@@ -1512,6 +1601,7 @@ internal sealed class LibMpvHandle(
     private readonly object _shutdownGate = new();
     private Task? _stopTask;
     private Task? _disposeTask;
+    private Task? _lateDestroyTask;
 
     public Task StopAsync()
     {
@@ -1556,8 +1646,20 @@ internal sealed class LibMpvHandle(
         });
         _leaveLoop = true;
         JoinWorker(TimeSpan.FromSeconds(3));
-        // A live native reader must never have its context freed underneath it.
-        if (_eventThread is not { IsAlive: true }) Destroy();
+        // A live native reader must never have its context freed underneath it. Keep exactly one
+        // asynchronous owner after the bounded join; a recovered reader must not leak until exit.
+        if (_eventThread is { IsAlive: true } worker) _lateDestroyTask = DestroyAfterWorkerAsync(worker);
+        else Destroy();
+    }
+
+    private async Task DestroyAfterWorkerAsync(Thread worker)
+    {
+        await _eventLoopFinished.Task.ConfigureAwait(false);
+        // The signal is in the loop's finally, a moment before the managed thread actually returns.
+        // This join is only reached after that signal and runs off the UI thread, not a polling worker.
+        worker.Join();
+        try { Destroy(); }
+        catch (Exception error) { Log.Warn(Category, "迟到回收内置播放器资源失败", error); }
     }
 
     /// <summary>mpv_terminate_destroy is only safe to call once, after the event thread exits.</summary>
@@ -1576,9 +1678,9 @@ internal sealed class LibMpvHandle(
         if (_eventThread is not { IsAlive: true }) return;
         if (_eventThread.Join(timeout)) return;
 
-        // A wedged native call must not hang shutdown; the background thread then dies with
-        // the process. That is what IsBackground is for.
-        Log.Warn(Category, "内置播放器事件线程未及时退出，本次播放的 mpv 上下文将留给进程退出时回收");
+        // A permanently wedged native reader still must not hang shutdown. If it recovers, the
+        // asynchronous reclaimer joins it and releases native/config/SVP ownership exactly once.
+        Log.Warn(Category, "内置播放器事件线程未及时退出；线程恢复后自动回收资源，未恢复时由进程退出兜底");
     }
 
     private async Task<bool> ExitWithinAsync(TimeSpan timeout)

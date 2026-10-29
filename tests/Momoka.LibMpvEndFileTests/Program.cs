@@ -17,6 +17,7 @@ internal static class Program
         }
         Console.OutputEncoding = System.Text.Encoding.UTF8;
         Register();
+        NativeResourcePerformanceTests.Register(Test);
         var passed = 0;
         foreach (var (name, run) in Cases)
         {

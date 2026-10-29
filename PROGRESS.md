@@ -9023,3 +9023,10 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 对该最终发布件的真实进程23940复验报告 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261029-080635619-23940\logs\shell-probe.json`：search/accounts/playback26/26、0失败、退出0，105项未选区域单列；不是全量自检或真实播放验收。宽1040／窄360的占位和输入文字、来源标签不截断、五主题中性焦点和760首页的剧名／`S01E29 - 父亲`已检查实屏，换集格式与恢复默认的回归通过。匿名假HTTP/播放请求未启动真实媒体，真实用户设置SHA256前后保持一致。
 - 保留25份隔离树日志（包括路径拒绝与格式首轮失败）于 `work/search-home-compact-20261029/temporary-tree-evidence`。用户可见截图裁自最终实屏且未合成像素，存于同目录`screenshots/search-centered-header.png`与`home-resume-title.png`。
 - 临时分支 `codex/search-home-compact` 顶端 `5646852582aa03878da39e409b1abc2efa586cdb` 已逐文件核对master不缺内容，临时树干净且无他人工作；已detach同一提交并删除本地分支，本地仅master。管理工具拒绝归档本聊天当前primary checkout（The task primary checkout cannot be removed），未绕过保护强删；该无分支干净树仅因聊天cwd仍占用暂留，后续切离后归档，不作为第二开发或交付线。其余聊天工作树不动。
+
+
+## 2026-10-29 性能与资源修复（在途）
+
+用户授权由实现方决定修复已确认问题。父树 `codex/performance-resource-repair` / `C:\Users\89400\.codex\worktrees\performance-resource-repair\Momoka` 基于 `e3473f10`，主代理写 libmpv 迟到回收、speed 绝对值待办及集成文件；六个子代理各用独立树，页面生命周期、设置、图片、弹幕/Lua、列表/诊断、消息/日志预算写范围分离。保护 master 其他会话改动，不直接并行写主树，不 push、不真实播放/凭据，不刷新共享发布目录。待各项回归、独立复核、安全整合 master 后重新验证和交付；当前不能把审查证据视为修复验收。
+
+父树 native 首轮：PERF-02 生产 EventLoop 发完成信号，超时后单异步回收者等待并 Join 真线程再 Destroy；PERF-08 只针对高频 speed 绝对值，用单 worker/单待办合并，保留所有其他属性与相对命令契约。补 10 项真实全 handle/gate 回归（含旧入口不能覆盖新代 pending），和 27 项既有 EOF/REDIRECT 合计37全过0跳过；ShaderCommandGeneration 当前44全过0跳过，Core/测试0警告0错误。均为匿名托管native seam，未加载DLL/媒体，真实管线与最终整合尚待。
