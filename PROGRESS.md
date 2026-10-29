@@ -1,3 +1,24 @@
+## 旧工作树最终结果（2026-10-29，主树交付完成，清理有三个限制）
+
+- 有用的MP媒体管理37份产品差异全部进入master，合并链 `20f719b`／`e3473f1`，表面与全主题／布局验证修正 `0dbe237`、订阅动画探针前置修正 `a72b5e23d195d8ac7428643d9ef905701d032503`。最终主树Core3313/3313、媒体管理35/35及相关八组专项全部通过；开发件moviepilot/settings49/49、订阅探针修后moviepilot26/26均通过。未执行区域明确保留，不冒充全量Shell或四道闸门发版。
+- 实际主树 `artifacts/publish/win-x64` 已在最终 `a72b5e2` 上重新发布，546文件／284.8MB，14GLSL／4HOOK／59批准mpv载荷全部验证；桌面 `Momoka.lnk` Target／WorkingDirectory读回正确，ProductVersion `0.2.0+a72b5e23d195d8ac7428643d9ef905701d032503`。实际发布件 `shell-probe-20261029-092626580-21868` moviepilot **26/26、退出0**，原首发布25/26红项保留，未改动画产品代码或任何基线。最终证据 `work/old-trees-audit-20261029/ui-published-final-green/`，完整机器可读汇总 `verified-summary.json`。
+- 已物理删除三棵：`merged-contract-tests`（337项状态／550份实际变化或新增全部主树覆盖）、`mp-media-management`（全部提交／产品已合入、主树重验交付后删除）、已完成的 `search-home-compact`（无未提交、提交均master祖先）。`delivery-dotnet-pack-tests` 已注销Git，但初次删除长路径失败后留下139.6MiB；后续Remove-Item被执行安全策略拒绝，未绕过。
+- 三个未删限制清楚保留：`delivery-dotnet-pack-tests/Momoka`139.6MiB与未注册 `merge-pending-20261029/Momoka`215.9MiB均已无独有产品内容并留完整恢复ZIP，物理Remove-Item被策略拒绝；本次 `old-tree-integration/Momoka` 干净、e3473f1已master祖先，但应用归档拒绝“当前聊天主工作目录不能移除”。未用其他方式绕过。后续须把聊天切回主树后按应用允许方式清理临时整合树，另在受允许的删除环境清理两残留目录。
+- 本轮过程中另一用户聊天新建 `codex/performance-resource-repair`／同名worktree（e3473f1），有明确正在修复的任务，保持原样，非本轮旧树候选。现Git注册只有master、本聊天整合树及该性能树；本地分支只有master与该活动临时分支，不把正在开发的树当垃圾删。
+- 所有旧树源码、未跟踪文件、binary patch、逐文件哈希与诊断证据保留主树 `work/old-trees-audit-20261029/recovery/`，5份ZIP合计81.1MiB；失败／成功原报告分开保存。不推送GitHub、不改版本、不产生ZIP/MSIX交付包、无真实媒体播放／下载／整理／删除写入。
+
+## 旧工作树审查与媒体管理主树整合（2026-10-29，验证通过、交付收尾中）
+
+- 本轮请求检查旧工作树、合入有用内容并删除无用树。起始主树 `8ff289e` 有另一聊天的 AniBT 在途写入、搜索树也在开发，先只读审查并在 `old-tree-integration` 独立整合；两聊天完成后同步主树 `33a2c90`，随后 master 快进到 `e3473f1`。保留 `07dd0f1` 的 AniBT 一键整理／完成重扫和 `f15a51d` 的搜索紧凑／继续观看标题，不夹带别人的未提交差异。
+- 有用内容：原 `mp-media-management` 产品 `eedcfab156a15179c4b820925ff977de151d76b6`／顶端 `4b9aaac941c4f3d6ff233c6dd2b99b210c4ab6e0` 已随 `20f719b`、`e3473f1` 合入 master：四档记录／文件删除、单条／批量智能整理、权限显隐、白色 MP 品牌与独立确认／防重账本。整合保留 FnNas/Plex 原手动入口限制、整剧手动只收身份与 AniBT 文件展开；管理单独1000文件硬上限、普通30文件不变；新增七字菜单及跨服务器入口回归，不回退主树较新的状态、字幕、设置及主题修正。
+- 无用内容：`delivery-dotnet-pack-tests`（`3b21b7428159fbe2bbc1898ee5006ca86825bcca`）三份未提交文件与主树提交完全相同；`merged-contract-tests`（`4afca26672297aedd7725d675706d7f2b923519c`）550份改动／新增文件，412份字节一致、138份已被主树新版覆盖，master无缺失文件。51处三方等效、62份旧未跟踪复制已有新提交、24处冲突逐项核对为旧写法；唯一干净可套补丁会重复插入Resume扣减，拒绝搬运。旧启动提示／设置活动期／卡片状态逻辑已有更新覆盖，不采用重复字段或旧参数、旧基线。
+- 已删除 `merged-contract-tests` 与已完成 `search-home-compact`（`5646852582aa03878da39e409b1abc2efa586cdb`，所有提交已在master、无未提交文件）；已从Git注销 `delivery-dotnet-pack-tests`，Git初次删除报长路径，后续 Remove-Item 被执行安全策略拒绝，未换工具绕过。未注册的 `merge-pending-20261029/Momoka` 残留有566份非bin/obj文件：529一致、37是主树更新版本、0缺失，亦已备份但目录未删。两个残留目录不是活动工作树，仍占约139.6／215.9MiB；不要报告物理删除成功。
+- 恢复与审查证据均在主树 `work/old-trees-audit-20261029/`：三棵旧树完整源码／未忽略新文件／诊断ZIP、两个已完成树诊断ZIP、binary patch、逐文件SHA256及原始对比。5份ZIP合计81.1MiB，逐文件读回与持久副本哈希均核验；bin/obj可再生不保留。`mp-media-management` 旧顶端及本次临时树待最终主树交付通过后立即清理，不保留第二条开发线。未删除远端分支、不上传。
+- 本轮重读官方前端 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 和后端 `87561a90d16e9bc087225c72bbfebe16865b3baa` 的 TransferHistoryView／删除对话框及测试、history接口／schemas／mutation；三份后端与历史部署v3.2.1 tag逐字相同。不读取真实服务器版本或凭据，历史部署信息不是当前确认。
+- 主树 Release 全方案及Core／Tests／Shell均0警告0错误，完整Core **3312/3312**，媒体管理专项34/34、入口40/40、Plex67/67、卡片状态73/73、整理提交41/41、AniBT源码39/39、确认54/54、资源94/94、详情真实命令19/19，0失败0跳过。保持所有基线。新增运行覆盖回归保护两套全主题截图、原默认Close／零写及标题布局／裁切断言；菜单完整视觉状态、加速键与右侧品牌，XAML、LF和文档政策21负向例另核。
+- 失败证据保留：初全Core3311/3310/1准确拦下MP确认窗误用媒体库底色，修后3311/3311；首次隐藏启动的实际UI49项18过31败全被实屏防遮挡守卫拒绝，第二轮可见启动48/49剩订阅标题刚Visible但未布局0高，均在 `ui-first-red`／`ui-second-red`。只修可见启动、标题实际Layout和菜单顶部锚点，不放宽超时／像素／裁切或接受新基线。最终 `shell-probe-20261029-085229283-21476` 的 **moviepilot,settings 49/49，退出0**，实际五主题1280／760完整菜单和确认窗已查看，原生Popup实屏在本轮可见并留完整帧。未选区域74项未执行，非全量Shell自检。
+- 产品修正 `0dbe237262ea8feb705908a2aadb5581066c4f49` 已提交；主树实际 `tools/publish.ps1 -NoArchive -Shortcut` 通过，546文件／284.8MB、14GLSL／4HOOK／59批准mpv文件逐项校验，快捷方式读回正确。发布件 `shell-probe-20261029-090905624-4660` moviepilot25/26，媒体管理新用例通过，旧订阅固定80ms悬停缩放未读到进度；红报告在 `ui-published-first-red`，不算整轮发布验收成功。探针正在改为实际焦点／归一化初态／Storyboard进度检查，原缩放边界及离开隐藏阈值保留，未改产品动画。修正后主树 `shell-probe-20261029-091817030-27968` moviepilot26/26退出0，包含原悬停用例和新媒体管理；报告在 `ui-hover-fixed-green`。一份误与UI重叠启动的Core测试已取消并保留原日志，不作通过证据，最终串行Core3313/3313、媒体管理35/35均0失败0跳过，修正后Shell/Core/Tests0警告0错误。最终提交／重发／发布件复验／旧树删除尚待收尾，不称已交付。未改版本、不生成ZIP/MSIX或对外发布；不执行真实媒体删除、整理、下载、播放或账号写入。
+
 ## 旧工作树审查与媒体管理整合（2026-10-29，在途）
 
 - 当前整合树 `C:/Users/89400/.codex/worktrees/old-tree-integration/Momoka`，起点 `8ff289e`，整合旧树 `mp-media-management` 的产品 `eedcfab`／顶端 `4b9aaac`。主树 AniBT 正在由另一聊天收尾，搜索工作树仍在开发；不抢写主树或共同发布目录，不删除活动树。

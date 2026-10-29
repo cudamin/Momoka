@@ -63,6 +63,44 @@ internal static class MoviePilotMediaManagementTests
                 }
             }
         });
+        Test("MP 主树运行覆盖：原生菜单和确认窗逐主题截图，保护零写及状态恢复", () =>
+        {
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (root is not null && !File.Exists(Path.Combine(root.FullName, "Momoka.sln"))) root = root.Parent;
+            Assert.True(root is not null);
+            var source = File.ReadAllText(Path.Combine(root!.FullName, "src/Momoka.Shell/ShellNavigationProbe.MediaManagement.cs"));
+            var runtime = source[..source.IndexOf("private async Task InspectMediaManagementAsync", StringComparison.Ordinal)];
+            Assert.Equal(2, runtime.Split("foreach (var theme in Momoka.Theming.UiThemes.All)").Length - 1);
+            Assert.Contains("mp-media-menu-{theme.Id}-{width}.png", runtime);
+            Assert.Contains("mp-media-submenu-{theme.Id}-{width}.png", runtime);
+            Assert.Contains("mp-media-delete-confirm-{theme.Id}.png", runtime);
+            Assert.Contains("ThemeHost.Apply(originalTheme);", runtime);
+            Assert.Contains("_window!.TopMost = topMost;", runtime);
+            Assert.Contains("transport.Writes == 0", runtime);
+            Assert.Contains("dialog.DefaultButton == ContentDialogButton.Close", runtime);
+            Assert.Contains("VerticalAlignment = VerticalAlignment.Top", runtime);
+            var sidebar = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/ShellNavigationProbe.Sidebar.cs"));
+            var titleCheck = sidebar.IndexOf("Require(section.ActualHeight > 0", StringComparison.Ordinal);
+            var measured = sidebar.LastIndexOf("await LayoutAsync(section);", titleCheck, StringComparison.Ordinal);
+            Assert.True(measured >= 0 && measured < titleCheck);
+            Assert.Contains("VisibleArea(icon, host) >= bounds.Width * bounds.Height - 0.5", sidebar);
+        });
+        Test("MP 发布件悬停探针：真实焦点、初态与动画进度均确认，原缩放边界不放宽", () =>
+        {
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (root is not null && !File.Exists(Path.Combine(root.FullName, "Momoka.sln"))) root = root.Parent;
+            Assert.True(root is not null);
+            var source = File.ReadAllText(Path.Combine(root!.FullName, "src/Momoka.Shell/ShellNavigationProbe.Subscriptions.cs"));
+            Assert.Contains("Require(scroll.Focus(FocusState.Programmatic)", source);
+            Assert.Contains("FocusManager.GetFocusedElement(scroll.XamlRoot), scroll)", source);
+            var reset = source.IndexOf("Call(poster, \"ResetMotion\");", StringComparison.Ordinal);
+            var entered = source.IndexOf("poster.SetHovered(true);", reset, StringComparison.Ordinal);
+            var progressed = source.IndexOf("await UntilAsync(() => poster.Zoom > 1);", entered, StringComparison.Ordinal);
+            var guarded = source.IndexOf("poster.Zoom > 1 && poster.Zoom <= 1.045", progressed, StringComparison.Ordinal);
+            Assert.True(reset >= 0 && entered > reset && progressed > entered && guarded > progressed);
+            Assert.Contains("Math.Abs(poster.Zoom - 1) < 0.001 && more.Visibility == Visibility.Collapsed", source);
+            Assert.False(source.Contains("poster.SetHovered(true); await Task.Delay(80);", StringComparison.Ordinal));
+        });
         Test("MP 媒体管理菜单：库卡和合集不加，缺权限或关闭助手时完整隐藏", () =>
         {
             foreach (var type in new[] { EmbyItemType.CollectionFolder, EmbyItemType.BoxSet, EmbyItemType.Person })
