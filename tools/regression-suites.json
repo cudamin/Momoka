@@ -1,0 +1,465 @@
+{
+  "schemaVersion": 1,
+  "shellProject": "src/Momoka.Shell/Momoka.Shell.csproj",
+  "shellAssembly": "src/Momoka.Shell/bin/x64/Release/net10.0-windows10.0.19041.0/win-x64/Momoka.dll",
+  "suites": [
+    {
+      "id": "Momoka.AniBtConfirmationTests",
+      "project": "tests/Momoka.AniBtConfirmationTests/Momoka.AniBtConfirmationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.AniBtConfirmationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.AniBtEntryTests",
+      "project": "tests/Momoka.AniBtEntryTests/Momoka.AniBtEntryTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.AniBtEntryTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.AniBtSourceContractTests",
+      "project": "tests/Momoka.AniBtSourceContractTests/Momoka.AniBtSourceContractTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.AniBtSourceContractTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.AtomicFileWriteTests",
+      "project": "tests/Momoka.AtomicFileWriteTests/Momoka.AtomicFileWriteTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.AtomicFileWriteTests/README.md",
+      "notes": "真实本地文件系统测试；默认只写项目 outputs 独立目录，要求 Windows>=14393/非重解析固定盘。"
+    },
+    {
+      "id": "Momoka.CurrentPermissionSnapshotTests",
+      "project": "tests/Momoka.CurrentPermissionSnapshotTests/Momoka.CurrentPermissionSnapshotTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{root}",
+        "{shell}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.CurrentPermissionSnapshotTests/README.md",
+      "notes": "包含可选 Shell 设置VM覆盖；仅托管匿名夹具。"
+    },
+    {
+      "id": "Momoka.DashboardNavigation.Tests",
+      "project": "tests/Momoka.DashboardNavigation.Tests/Momoka.DashboardNavigation.Tests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.DashboardNavigation.Tests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.DetailDeleteCommandTests",
+      "project": "tests/Momoka.DetailDeleteCommandTests/Momoka.DetailDeleteCommandTests.csproj",
+      "mode": "wrapper",
+      "requiresShell": true,
+      "arguments": [
+        "-Dotnet",
+        "{dotnet}",
+        "-Packages",
+        "{packages}",
+        "-EvidenceRoot",
+        "{output}/delete"
+      ],
+      "wrapper": "tests/Momoka.DetailDeleteCommandTests/Run-Fixture.ps1",
+      "readme": "tests/Momoka.DetailDeleteCommandTests/README.md",
+      "notes": "原 wrapper 构建 Shell/fixture 并生成源码及DLL证明；不执行真实删除。"
+    },
+    {
+      "id": "Momoka.FnNasAccountEditTests",
+      "project": "tests/Momoka.FnNasAccountEditTests/Momoka.FnNasAccountEditTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.FnNasAccountEditTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.FnNasDefaultPermissionTests",
+      "project": "tests/Momoka.FnNasDefaultPermissionTests/Momoka.FnNasDefaultPermissionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.FnNasDefaultPermissionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.FnNasErrorClassificationTests",
+      "project": "tests/Momoka.FnNasErrorClassificationTests/Momoka.FnNasErrorClassificationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.FnNasErrorClassificationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.FrameInterpolationTests",
+      "project": "tests/Momoka.FrameInterpolationTests/Momoka.FrameInterpolationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.FrameInterpolationTests/README.md",
+      "notes": "仅无参规则/界面源码测试；native 本地 DLL 入口须按 README 另跑。"
+    },
+    {
+      "id": "Momoka.HomeDirectoryTests",
+      "project": "tests/Momoka.HomeDirectoryTests/Momoka.HomeDirectoryTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.HomeDirectoryTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.HomeFoldCompletionTests",
+      "project": "tests/Momoka.HomeFoldCompletionTests/Momoka.HomeFoldCompletionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.HomeFoldCompletionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.HomeOrderProbeTests",
+      "project": "tests/Momoka.HomeOrderProbeTests/Momoka.HomeOrderProbeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.HomeOrderProbeTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    {
+      "id": "Momoka.ItemUserStateOrderTests",
+      "project": "tests/Momoka.ItemUserStateOrderTests/Momoka.ItemUserStateOrderTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ItemUserStateOrderTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.LibMpvEndFileTests",
+      "project": "tests/Momoka.LibMpvEndFileTests/Momoka.LibMpvEndFileTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.LibMpvEndFileTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.MissingEpisodesAvailabilityTests",
+      "project": "tests/Momoka.MissingEpisodesAvailabilityTests/Momoka.MissingEpisodesAvailabilityTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.MissingEpisodesAvailabilityTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.MoviePilotSubscribeSettingsTests",
+      "project": "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.MoviePilotSubscribeSettingsTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.NaturalContinuationCallerTests",
+      "project": "tests/Momoka.NaturalContinuationCallerTests/Momoka.NaturalContinuationCallerTests.csproj",
+      "mode": "wrapper",
+      "requiresShell": false,
+      "arguments": [
+        "-OutputDirectory",
+        "{output}/caller"
+      ],
+      "wrapper": "tests/Momoka.NaturalContinuationCallerTests/Run-Caller.ps1",
+      "readme": "tests/Momoka.NaturalContinuationCallerTests/README.md",
+      "notes": "原 wrapper 核对 SourcePins、离线还原和当前编译；另有提取器反例，见 README。"
+    },
+    {
+      "id": "Momoka.NaturalEpisodeContinuationTests",
+      "project": "tests/Momoka.NaturalEpisodeContinuationTests/Momoka.NaturalEpisodeContinuationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.NaturalEpisodeContinuationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.PageContractTests",
+      "project": "tests/Momoka.PageContractTests/Momoka.PageContractTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PageContractTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.PlaybackSourceRevocationTests",
+      "project": "tests/Momoka.PlaybackSourceRevocationTests/Momoka.PlaybackSourceRevocationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PlaybackSourceRevocationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.PlayerMotionProbeTests",
+      "project": "tests/Momoka.PlayerMotionProbeTests/Momoka.PlayerMotionProbeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.PlayerMotionProbeTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.PlexAffordanceTests",
+      "project": "tests/Momoka.PlexAffordanceTests/Momoka.PlexAffordanceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.PlexAffordanceTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    {
+      "id": "Momoka.ProbeFinalizationTests",
+      "project": "tests/Momoka.ProbeFinalizationTests/Momoka.ProbeFinalizationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ProbeFinalizationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.ResourceBrowserTests",
+      "project": "tests/Momoka.ResourceBrowserTests/Momoka.ResourceBrowserTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ResourceBrowserTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.ServerSettingsTabs.Tests",
+      "project": "tests/Momoka.ServerSettingsTabs.Tests/Momoka.ServerSettingsTabs.Tests.csproj",
+      "mode": "external",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ServerSettingsTabs.Tests/README.md",
+      "notes": "完整 DOM 专项需要显式 Node、Playwright 目录与 Chromium。请按 README 调用 Run-Fixture.ps1；不以 contracts 子集冒充整套。"
+    },
+    {
+      "id": "Momoka.SettingsLifetimeTests",
+      "project": "tests/Momoka.SettingsLifetimeTests/Momoka.SettingsLifetimeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsLifetimeTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    {
+      "id": "Momoka.SettingsPersistenceTests",
+      "project": "tests/Momoka.SettingsPersistenceTests/Momoka.SettingsPersistenceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "{output}/fixtures"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsPersistenceTests/README.md",
+      "notes": "匿名真实文件锁与保存反馈测试；显式本树 artifacts 隔离目录。"
+    },
+    {
+      "id": "Momoka.SettingsPriorityMotionTests",
+      "project": "tests/Momoka.SettingsPriorityMotionTests/Momoka.SettingsPriorityMotionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsPriorityMotionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.SettingsProbeContractTests",
+      "project": "tests/Momoka.SettingsProbeContractTests/Momoka.SettingsProbeContractTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsProbeContractTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    {
+      "id": "Momoka.SettingsRowsMotionTests",
+      "project": "tests/Momoka.SettingsRowsMotionTests/Momoka.SettingsRowsMotionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsRowsMotionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.SettingsSearchNavigationTests",
+      "project": "tests/Momoka.SettingsSearchNavigationTests/Momoka.SettingsSearchNavigationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "docs/开发与验证.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.ShaderCommandGenerationTests",
+      "project": "tests/Momoka.ShaderCommandGenerationTests/Momoka.ShaderCommandGenerationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.ShaderCommandGenerationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.ShaderMonitorPolicyTests",
+      "project": "tests/Momoka.ShaderMonitorPolicyTests/Momoka.ShaderMonitorPolicyTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ShaderMonitorPolicyTests/README.md",
+      "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
+    },
+    {
+      "id": "Momoka.SignInInputGenerationTests",
+      "project": "tests/Momoka.SignInInputGenerationTests/Momoka.SignInInputGenerationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SignInInputGenerationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.SubtitleDialogTests",
+      "project": "tests/Momoka.SubtitleDialogTests/Momoka.SubtitleDialogTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubtitleDialogTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.SubtitleDropOwnershipTests",
+      "project": "tests/Momoka.SubtitleDropOwnershipTests/Momoka.SubtitleDropOwnershipTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubtitleDropOwnershipTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.SubtitleTranslationRuntimeTests",
+      "project": "tests/Momoka.SubtitleTranslationRuntimeTests/Momoka.SubtitleTranslationRuntimeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubtitleTranslationRuntimeTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.SubtitleTranslationTests",
+      "project": "tests/Momoka.SubtitleTranslationTests/Momoka.SubtitleTranslationTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubtitleTranslationTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.Tests",
+      "project": "tests/Momoka.Tests/Momoka.Tests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.Tests/README.md",
+      "notes": "完整 Core 离线主套件；有匿名回环、子进程与同用户 SelfCheckRun mutex，须与其他诊断串行。"
+    },
+    {
+      "id": "Momoka.TransferSubmissionTests",
+      "project": "tests/Momoka.TransferSubmissionTests/Momoka.TransferSubmissionTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.TransferSubmissionTests/README.md",
+      "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    }
+  ]
+}
