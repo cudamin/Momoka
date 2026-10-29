@@ -29,17 +29,15 @@ internal static class BoundaryCompatibilityTests
                 Assert.Equal(parameter.DefaultValue, completed[parameter.Position]);
             }
         });
-        TestHarness.Test("Attach真实images及dandan参数不被可选尾部补齐覆盖", () =>
+        TestHarness.Test("Attach真实images及translation参数按名称识别且显式值不被补齐覆盖", () =>
         {
             var method = ShellRuntime.Current.Type("SettingsViewModel").GetMethod("Attach", Members)!;
-            var parameters = method.GetParameters();
-            Assert.Equal("images", parameters[RequiredNames.Length].Name);
-            Assert.Equal("dandanCredentials", parameters[RequiredNames.Length + 1].Name);
-            var supplied = parameters.Take(RequiredNames.Length + 2).Select(_ => (object?)new object()).ToArray();
-            var completed = ShellRuntime.CompleteOptionalArguments(method, supplied);
-            for (var index = 0; index < supplied.Length; index++) Assert.True(ReferenceEquals(supplied[index], completed[index]));
-            Assert.Equal(parameters.Length, completed.Length);
+            AssertNamedOptionalValues(method, RequiredNames.Length, ["images", "translationCredentials"]);
         });
+        foreach (var name in new[] { nameof(CredentialOrderProbe), nameof(ReversedCredentialOrderProbe) })
+            TestHarness.Test("Attach弹幕与翻译可选依赖互换位置仍逐项保留 " + name, () =>
+                AssertNamedOptionalValues(typeof(BoundaryCompatibilityTests).GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic)!,
+                    1, ["images", "dandanCredentials", "translationCredentials"]));
         TestHarness.Test("Attach缺必需参数与多余参数均保持fail-closed", () =>
         {
             var method = ShellRuntime.Current.Type("SettingsViewModel").GetMethod("Attach", Members)!;
@@ -75,6 +73,44 @@ internal static class BoundaryCompatibilityTests
                 null!, null!, null!, fixture.Capabilities, extra));
         });
     }
+
+    private static void AssertNamedOptionalValues(MethodInfo method, int requiredCount, IReadOnlyList<string> expectedNames)
+    {
+        var parameters = method.GetParameters();
+        foreach (var name in expectedNames)
+        {
+            var matches = parameters.Where(parameter => parameter.Name == name).ToArray();
+            Assert.Equal(1, matches.Length, "实际入口必须明确且唯一地声明 " + name);
+            Assert.True(matches[0].Position >= requiredCount && matches[0].HasDefaultValue, name + " 必须为可选依赖");
+        }
+        // Exercise each supplied prefix, including the boundary between the two credential slots.
+        // Values are position markers only: this tests completion without invoking UI or credentials.
+        for (var suppliedCount = requiredCount; suppliedCount <= parameters.Length; suppliedCount++)
+        {
+            var supplied = parameters.Take(suppliedCount).Select(_ => (object?)new object()).ToArray();
+            var completed = ShellRuntime.CompleteOptionalArguments(method, supplied);
+            Assert.Equal(parameters.Length, completed.Length);
+            foreach (var parameter in parameters)
+            {
+                var index = parameter.Position;
+                if (index < supplied.Length)
+                    Assert.True(ReferenceEquals(supplied[index], completed[index]), "显式依赖被覆盖：" + parameter.Name);
+                else
+                {
+                    Assert.True(parameter.HasDefaultValue, "缺少必需参数必须拒绝");
+                    Assert.Equal(parameter.DefaultValue, completed[index]);
+                }
+            }
+        }
+    }
+
+    private static void CredentialOrderProbe(object required, object? images = null,
+        object? dandanCredentials = null, object? translationCredentials = null)
+    { _ = required; _ = images; _ = dandanCredentials; _ = translationCredentials; }
+
+    private static void ReversedCredentialOrderProbe(object required, object? translationCredentials = null,
+        object? images = null, object? dandanCredentials = null)
+    { _ = required; _ = images; _ = dandanCredentials; _ = translationCredentials; }
 
     private static void DefaultProbe(object required, string? optional = "kept-default", int count = 7)
     {
