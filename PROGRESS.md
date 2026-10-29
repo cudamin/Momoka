@@ -9090,3 +9090,12 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 对该最终发布件的真实进程23940复验报告 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261029-080635619-23940\logs\shell-probe.json`：search/accounts/playback26/26、0失败、退出0，105项未选区域单列；不是全量自检或真实播放验收。宽1040／窄360的占位和输入文字、来源标签不截断、五主题中性焦点和760首页的剧名／`S01E29 - 父亲`已检查实屏，换集格式与恢复默认的回归通过。匿名假HTTP/播放请求未启动真实媒体，真实用户设置SHA256前后保持一致。
 - 保留25份隔离树日志（包括路径拒绝与格式首轮失败）于 `work/search-home-compact-20261029/temporary-tree-evidence`。用户可见截图裁自最终实屏且未合成像素，存于同目录`screenshots/search-centered-header.png`与`home-resume-title.png`。
 - 临时分支 `codex/search-home-compact` 顶端 `5646852582aa03878da39e409b1abc2efa586cdb` 已逐文件核对master不缺内容，临时树干净且无他人工作；已detach同一提交并删除本地分支，本地仅master。管理工具拒绝归档本聊天当前primary checkout（The task primary checkout cannot be removed），未绕过保护强删；该无分支干净树仅因聊天cwd仍占用暂留，后续切离后归档，不作为第二开发或交付线。其余聊天工作树不动。
+
+### 2026-10-29 条目更多菜单移除 MoviePilot 图标
+
+- 用户令（附菜单截图）：移除条目「更多」菜单里的 MP 图标。范围按截图为条目更多菜单；MoviePilot 订阅菜单与设置页的白色 MP 标志保留，未改。
+- 改动：`ItemCommands` 不再给 `MenuFlyoutItem`／`MenuFlyoutSubMenu` 套 MP 品牌模板；删除只服务于条目菜单、已无消费者的 `EgMoviePilotMenuSubItemStyle`；`ItemMenuEntry` 去掉纯品牌用途的 `MoviePilot` 标记，`MoviePilotMenuBrand` 收窄为只接受订阅菜单项。产品提交 `2b92a8c`。
+- 验证：Release 全方案编译 0 警告／0 错误；完整 Core 3315/3315、0 失败／0 跳过；直接编译 `ItemCommands` 的夹具 ItemUserStateOrder 73/73、AniBtEntry 40/40、PlexAffordance 67/67、AniBtSourceContract 39/39 全过。开发件 `--probe-section moviepilot` 26/26（`C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261029-145739513-10900`），菜单与四子项运行断言确认无 `MoviePilotBrandMark`；已逐张查看 1280／760 菜单与子菜单实屏，`手动整理…／媒体管理／智能整理` 右侧不再有 MP 图标。
+- 发布：`tools/publish.ps1 -NoArchive` 刷新 `C:\Users\89400\Momoka\artifacts\publish\win-x64`，546 文件／284.8 MB，发布校验通过；桌面 `Momoka.lnk` 目标与工作目录读回均指向该目录。
+- 发布件探针未完成：启动后进程在约第 8 项前退出，终端留下 UI 线程异常栈，报告 `shell-probe-20261029-150324571-9852` 的 8 项均非通过。用户随即明确「直接交付别跑探针」，按指示未重跑；本轮发布件证据是同一源码的 Release 构建与发布校验，不声称发布件在同一探针下完整通过。
+- 未覆盖：真实 Emby 菜单、真实 MP 订阅菜单视觉、真实播放；未推 origin、未改版本。此前的条目更多菜单 MP 图标要求（2026-10-28）以本节用户令为准作废。
