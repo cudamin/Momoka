@@ -9053,3 +9053,15 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 父树 native 首轮：PERF-02 生产 EventLoop 发完成信号，超时后单异步回收者等待并 Join 真线程再 Destroy；PERF-08 只针对高频 speed 绝对值，用单 worker/单待办合并，保留所有其他属性与相对命令契约。补 10 项真实全 handle/gate 回归（含旧入口不能覆盖新代 pending），和 27 项既有 EOF/REDIRECT 合计37全过0跳过；ShaderCommandGeneration 当前44全过0跳过，Core/测试0警告0错误。均为匿名托管native seam，未加载DLL/媒体，真实管线与最终整合尚待。
 
 native追加验证：批准libmpv SHA256逐字匹配后，实际当前Core DLL在独立子进程跑12轮空闲context（video/audio/vo/ao关闭、无窗口/脚本/媒体/网络/账号）；真实最终speed=2.28，reader已退出，SVP假租约一次回收，重复Dispose不重复。常规收尾1.93～8.22ms仅空闲环境，不代表实播GPU或故障超时。完整方案首次因R046 LibMpvBackend固定源SHA漂移失败；逐份核对19pin，仅该1份改动，更新后原caller54/54，提取器10拒绝反例均按预期退出1再当前源54/54。日志保留在artifacts/performance-repair和artifacts/r046-caller；未放宽检查、未宣称最终整合构建已绿。
+
+
+## 2026-10-30 性能与资源修复：保存进度并暂停
+
+用户明确要求“保存进度暂停”。六个子代理均已停止；未安排自动恢复，不再修代码、跑验证、合并、发布或上传。已核对无本轮修复树后台 helper，未关闭用户/其他会话的主树 Momoka。
+
+- 父树 `C:\Users\89400\.codex\worktrees\performance-resource-repair\Momoka` / `codex/performance-resource-repair`，暂停前 HEAD `4ff1e2abee6b0b9a1bdccfd10c3ec37f134b91fa`。产品 `57d0aa77c48c8a64e1fd79bf14d62ccb906cd9cd`、来源复核 `45211b3701663d43e6bf6c140cc0b023cd2a5398` 仍未进入 master；原树代码干净，本次只追加暂停记录。
+- 六树保留：`perf-page-lifetimes`（12份已改/新源码），`perf-settings`（无源码改动），`perf-images`（6份），`perf-danmaku-lua`（16份），`perf-list-diagnostics`（13份），`perf-resource-budgets`（9份）。这些均基于 `e3473f10`，都是尚未最终提交/复核的草稿，不当成修复完成。
+- 完整 checkpoint：`C:\Users\89400\.codex\visualizations\2026\10\29\01a18681-eb82-7940-a5ea-b9a3ffc67294\performance-repair\paused-2026-10-30\checkpoint.json`；同目录 `续接说明.md` 和各树补丁、未完成源码ZIP、日志证据/哈希清单。56份未提交/新源码与259份日志/证据已复制并逐字核验，原文件未移动、删除、stash或覆盖。
+- 已完成的父树验证：主测试3313/3313（失败0/跳过0，仅当时父树、不含子草稿）；native/EOF37、shader/线程44、caller54全部通过，提取器10拒绝反例通过，正式native无媒体空闲上下文12轮通过。完整方案曾因固定SHA漂移失败并留证，定点复核后相关专项通过，但本轮不声称最终整合方案/WinUI/播放闸门全过。
+- 暂停时 master 为 `8d62cb173134d95faa1486184788f1c545263f47`，有其它会话10份未提交界面/主题源码；仅记录状态，不吸收或覆盖。未刷新主树发布目录、桌面快捷方式，未上传origin，桌面交付不含本轮性能修复。
+- 恢复先完整重读 `C:\Users\89400\Momoka\CLAUDE.md`（主树规则已在别的会话更新），重查Git/进程/草稿哈希，接手原树补测并review后提交；逐项集成source pins、新测试清单与Lua批准项，再安全整合master并按最终代码重验交付。原拟新增 `ShellNavigationProbe.Performance.cs` 尚未创建，不得声称已做真实Frame/对话框/性能UI检查。
