@@ -81,6 +81,9 @@ internal sealed partial class ShellNavigationProbe
                 await LayoutAsync(input);
                 Require((bool)typeof(PlayerPage).GetProperty("DanmakuInputFocused", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(page)!, "输入焦点未被识别");
                 Require(!((Momoka.Shell.Windowing.IWin32KeySink)page).WantsKey((int)Windows.System.VirtualKey.Space), "输入中空格仍被播放器兜底接管");
+                var inputBorder = Descendants(input).OfType<Border>().Single(element => element.Name == "BorderElement");
+                Require(ReferenceEquals(inputBorder.Background, page.Resources["PlayerGlassTopBrush"]),
+                    $"{width}播放器玻璃输入框聚焦后被普通表单底色盖住");
                 await SaveProbeScreenAsync($"danmaku-input-{width}-screen.png");
                 fixture.Settings.Danmaku.ShowInput = false;
                 Call(vm, "RefreshDanmakuProperties");

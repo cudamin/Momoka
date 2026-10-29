@@ -18,6 +18,12 @@ internal static class Program
             NeutralFeedbackTests.Register();
             return TestHarness.Run();
         }
+        if (args is ["input-theme-fixture"])
+        {
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            InputControlThemeTests.Register();
+            return TestHarness.Run();
+        }
         if (args is ["composition-readiness-fixture"])
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
@@ -255,6 +261,7 @@ internal static class Program
         WrapLayoutTests.Register();
         StartupArgsTests.Register();
         ThemeTests.Register();
+        InputControlThemeTests.Register();
         DialogChromeTests.Register();
         PlayerPaletteTests.Register();
         PlayerMotionTests.Register();

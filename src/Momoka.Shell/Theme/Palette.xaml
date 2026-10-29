@@ -249,17 +249,18 @@
                 TintOpacity="0.15"
                 Opacity="0.6" />
 
-            <!-- 闭合下拉与输入框沿用页面背景色，跟卡片区分；各态不换成卡片/悬停底色。
-                 只用边线与文字提示焦点，展开浮层仍保留自己的材质。 -->
+            <!-- 闭合下拉与输入框共用窗口/侧边栏底色，避免卡片内出现第三档底色。
+                 悬停、按下和聚焦不另换底色；键盘焦点保留中性边线，不包主题色。展开浮层仍用专用材质。 -->
             <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
 
-            <!-- TextBox、PasswordBox、AutoSuggestBox 与 NumberBox 共用的四态底色。
-                 输入区跟页面背景同色，不跟卡片同色；悬停/焦点使用中性边线，不包主题色。 -->
+            <!-- TextBox、PasswordBox、AutoSuggestBox 和 NumberBox 的内层均读 TextControl*。
+                 字与选中文字仍由框架原有文字/选择角色控制；只统一底色、边线和四边 1 DIP 焦点厚度。 -->
             <SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource EgWindowColor}" />
@@ -268,6 +269,7 @@
             <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{StaticResource EgBorderStrongColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="{StaticResource EgBorderColor}" />
+            <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
         </ResourceDictionary>
 
         <!-- Not the app's normal theme, but the framework demands a Light dictionary and a user who
@@ -414,15 +416,16 @@
                 TintOpacity="0.3"
                 Opacity="0.75" />
 
-            <!-- 闭合下拉各态也用这一边的页面背景色，弹层材质保留。 -->
+            <!-- 与 Dark 同一套输入角色，浅色派生也不增加独立输入底色。 -->
             <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="{StaticResource EgWindowColor}" />
+            <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
 
-            <!-- 输入区四态跟浅色页面背景同色，焦点保持中性边线。 -->
+            <!-- 输入框的背景、边线和焦点厚度与 Dark 对齐。高对比度保留框架的系统资源。 -->
             <SolidColorBrush x:Key="TextControlBackground" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
             <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="{StaticResource EgWindowColor}" />
@@ -431,6 +434,7 @@
             <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="{StaticResource EgBorderStrongColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
             <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="{StaticResource EgBorderColor}" />
+            <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
         </ResourceDictionary>
 
         <!-- High contrast takes the system's own colours; overriding them here would be exactly the

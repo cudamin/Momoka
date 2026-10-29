@@ -1454,7 +1454,7 @@
                         MaxSuggestionListHeight="420"
                         QuerySubmitted="OnSettingsSearchSubmitted">
                         <AutoSuggestBox.Resources>
-                            <!-- 同一层原生圆角边框绘制背景与焦点线，避免外层裁剪；四边统一1 DIP。 -->
+                            <!-- 同一层原生圆角边框绘制窗口底色与中性焦点线，避免外层裁剪；四边统一1 DIP。 -->
                             <Thickness x:Key="TextControlBorderThemeThicknessFocused">1</Thickness>
                         </AutoSuggestBox.Resources>
                         <AutoSuggestBox.ItemTemplate>

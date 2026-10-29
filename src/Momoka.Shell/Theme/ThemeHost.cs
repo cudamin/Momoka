@@ -132,24 +132,8 @@ public static class ThemeHost
         // 的话，自检「主题角色覆盖」那条红：调色板里有了，ThemeHost 却不涂。
         ("EgPickerGlassBrush", theme => theme.Colors.SurfaceElevated),
 
-        // 闭合下拉各态用页面背景色；弹层仍使用上面的专用材质。
-        ("ComboBoxBackground", theme => theme.Colors.Window),
-        ("ComboBoxBackgroundPointerOver", theme => theme.Colors.Window),
-        ("ComboBoxBackgroundPressed", theme => theme.Colors.Window),
-        ("ComboBoxBackgroundFocused", theme => theme.Colors.Window),
-        ("ComboBoxBackgroundUnfocused", theme => theme.Colors.Window),
-        ("ComboBoxBackgroundDisabled", theme => theme.Colors.Window),
-
-        // 输入区四态跟页面背景同色，不跟卡片同色；悬停和焦点加强中性边线。
-        // 字与选中文字仍走框架原有的文字/选择角色。
-        ("TextControlBackground", theme => theme.Colors.Window),
-        ("TextControlBackgroundPointerOver", theme => theme.Colors.Window),
-        ("TextControlBackgroundFocused", theme => theme.Colors.Window),
-        ("TextControlBackgroundDisabled", theme => theme.Colors.Window),
-        ("TextControlBorderBrush", theme => theme.Colors.Border),
-        ("TextControlBorderBrushPointerOver", theme => theme.Colors.BorderStrong),
-        ("TextControlBorderBrushFocused", theme => theme.Colors.BorderStrong),
-        ("TextControlBorderBrushDisabled", theme => theme.Colors.Border)
+        // 与 Palette.xaml 的首帧资源配对；独立表供离线测试编译链接真实选色规则。
+        .. InputControlTheme.Brushes
     ];
 
     /// <summary>

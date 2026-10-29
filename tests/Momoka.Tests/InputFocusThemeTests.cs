@@ -1,4 +1,6 @@
 using System.Xml.Linq;
+using Momoka.Shell;
+using Momoka.Theming;
 using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
@@ -16,9 +18,12 @@ internal static class InputFocusThemeTests
 
         Test("输入焦点：切换主题不会把全局焦点重新涂成强调色", () =>
         {
-            var host = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "ThemeHost.cs"));
-            Assert.Contains("(\"TextControlBorderBrushFocused\", theme => theme.Colors.BorderStrong)", host);
-            Assert.False(host.Contains("(\"TextControlBorderBrushFocused\", theme => theme.Colors.Accent)", StringComparison.Ordinal));
+            var pick = PickBrush(FocusKey);
+            foreach (var theme in UiThemes.All)
+            {
+                Assert.Equal(theme.Colors.BorderStrong, pick(theme));
+                Assert.False(pick(theme) == theme.Colors.Accent);
+            }
         });
 
         Test("输入焦点：所有搜索框的局部覆盖也只能使用中性角色", () =>
@@ -58,12 +63,15 @@ internal static class InputFocusThemeTests
 
         Test("输入底色：运行期换主题沿用窗口底色，不退回卡片色", () =>
         {
-            var host = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "ThemeHost.cs"));
             foreach (var key in new[] { "TextControlBackground", "TextControlBackgroundPointerOver",
                 "TextControlBackgroundFocused", "TextControlBackgroundDisabled", "ComboBoxBackground",
                 "ComboBoxBackgroundPointerOver", "ComboBoxBackgroundPressed", "ComboBoxBackgroundFocused",
                 "ComboBoxBackgroundUnfocused", "ComboBoxBackgroundDisabled" })
-                Assert.Contains($"(\"{key}\", theme => theme.Colors.Window)", host);
+            {
+                var pick = PickBrush(key);
+                foreach (var theme in UiThemes.All)
+                    Assert.Equal(theme.Colors.Window, pick(theme));
+            }
         });
 
         Test("输入底色：闭合下拉框各态也沿用页面背景，弹层材质不改", () =>
@@ -124,8 +132,10 @@ internal static class InputFocusThemeTests
         });
     }
 
-    private static bool IsNeutralPalette(XDocument palette)
-    {
+    private static Func<UiTheme, ThemeColor> PickBrush(string key) =>
+        InputControlTheme.Brushes.Single(entry => entry.Key == key).Pick;
+
+    private static bool IsNeutralPalette(XDocument palette)    {
         var dictionaries = Painted(palette).ToArray();
         return dictionaries.Length == 2 && dictionaries.All(dictionary =>
         {
