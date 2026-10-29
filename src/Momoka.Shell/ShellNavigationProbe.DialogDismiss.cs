@@ -42,12 +42,18 @@ internal sealed partial class ShellNavigationProbe
             var bounds = SurfaceBounds(plain);
             var inside = new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2));
             var outside = OutsidePoint(bounds);
+            // 「外面」必须落在弹窗元素自己身上、而且落在遮罩那一层上：指针事件是从遮罩冒泡到弹窗元素的，
+            // 这两条不成立的话，真实按下根本到不了处理它的地方（真按一下没注入，靠这两条钉住可达性）。
+            Require(new Rect(0, 0, plain.ActualWidth, plain.ActualHeight).Contains(outside),
+                "「外面」那个点已经在弹窗元素之外，真实按下打不到弹窗");
+            Require(SmokeBounds(plain).Contains(outside), "「外面」那个点不在遮罩上，按下不经过弹窗");
             Require(!DialogDismiss.ShouldDismissAt(plain, inside), "弹窗里面的点被当成外面");
             Require(DialogDismiss.ShouldDismissAt(plain, outside), "弹窗外面那块没被认出来");
             Require(!DialogDismiss.TryDismiss(plain, inside), "点在弹窗里面就把表关了");
             await Task.Delay(120);
             Require(plainShown.Status == Windows.Foundation.AsyncStatus.Started, "点在弹窗里面之后表已经关了");
-            insideRead = $"表面 {bounds.Width:0}×{bounds.Height:0}，里面 {inside.X:0},{inside.Y:0}，外面 {outside.X:0},{outside.Y:0}";
+            insideRead = $"表面 {bounds.Width:0}×{bounds.Height:0}，里面 {inside.X:0},{inside.Y:0}，"
+                + $"外面 {outside.X:0},{outside.Y:0}（弹窗元素 {plain.ActualWidth:0}×{plain.ActualHeight:0}、遮罩 {SmokeBounds(plain).Width:0}×{SmokeBounds(plain).Height:0}）";
             Require(DialogDismiss.TryDismiss(plain, outside), "点在弹窗外面没有关表");
             Require(await plainShown == ContentDialogResult.None, "点外面关表的结果不是「没选」");
         }
@@ -117,6 +123,13 @@ internal sealed partial class ShellNavigationProbe
     {
         var surface = DialogDismiss.Surface(dialog) ?? throw new InvalidOperationException("弹窗模板里没有 BackgroundElement");
         return surface.TransformToVisual(dialog).TransformBounds(new Rect(0, 0, surface.ActualWidth, surface.ActualHeight));
+    }
+
+    /// <summary>模板根那颗画遮罩的 Grid；按在它身上的指针事件会冒泡到弹窗元素。</summary>
+    private static Rect SmokeBounds(ContentDialog dialog)
+    {
+        var smoke = DialogDismiss.TemplatePart(dialog, "LayoutRoot") ?? throw new InvalidOperationException("弹窗模板里没有 LayoutRoot");
+        return smoke.TransformToVisual(dialog).TransformBounds(new Rect(0, 0, smoke.ActualWidth, smoke.ActualHeight));
     }
 
     /// <summary>表面左上方 8 DIP —— 落在那圈遮罩上，也就是用户说的「弹窗外部主窗口内」。</summary>
