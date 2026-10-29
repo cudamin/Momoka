@@ -8,7 +8,9 @@
 - 测试：主测试 3313/3313、资源夹具 97/97（新增 R-035「站点变化保留结果且卡片仍能打开下载确认」「模板将卡片点击和状态接到真实 row」，站点偏好两条：更改站点不清空关键词结果、离页后重新进入仍可下载留下的卡片），0 失败 0 跳过。`Agreements.txt` 只删掉已退役的 `handle Views/MoviePilotResourceBrowser.xaml DownloadResource`（按钮整体移除，卡片点击替代该入口，`ResourceList` 句柄仍在），未整份接受新快照。
 - 探针：开发件 `--probe-shell --probe-section moviepilot,search --screen 1` 40/40、退出 0（`shell-probe-20261029-105307607-13376`）；补真实屏幕帧与「已加入下载」卡片后 moviepilot 26/26、退出 0（`shell-probe-20261029-110344490-7864`）。已查看：搜索框内无底色的站点入口、站点面板实屏、1040/720 卡片去下载键与状态底栏、120/760/360 资源布局与排序菜单。未执行区域按 scope 回执保留，非全量 Shell 自检。
 - 已知背景红项：`dotnet format whitespace ./Momoka.sln --verify-no-changes` 在当前 HEAD 上已有 17 个文件的空白问题（Core 的 `EmbyMetadataEdit`／`MoviePilotTransferCollect`、Shell 的 `ShellNavigationProbe.Accessibility` 等），本批改动文件均不在其中，未修改这些无关文件、未放宽基线。本批不是发版，未跑闸门 1/4。
-- 发布与发布件复验待收尾：本次提交后按闸门 3 刷新 `artifacts/publish/win-x64` 并核对桌面快捷方式，然后以发布件重跑 moviepilot,search 分区。未推送 origin、未改版本、无真实媒体下载/播放/整理或账号写入。
+- 产品提交 `94ccdc2`；主树 `tools/publish.ps1 -NoArchive -Shortcut` 通过：546 文件／284.8 MB、14 GLSL／4 HOOK／批准 mpv 载荷 59 文件逐项校验，ProductVersion `0.2.0+94ccdc23c9e8ab5693b94c678f94934c41600bf8`，桌面 `Momoka.lnk` 的 Target／WorkingDirectory 读回为 `artifacts/publish/win-x64`。
+- 发布件首次 `--probe-shell --probe-section moviepilot,search --screen 1` 39/40：本批四区用例全过，红项是「全站输入框五主题中性焦点与窄窗」在 `oled-black/text` 判到非中性描边（`shell-probe-20261029-111526433-32268`）。该用例自建裸 TextBox／ComboBox，不读本批任何资源卡、站点选择器或资源视图模型；同二进制立即重跑 **40/40、退出 0**（`shell-probe-20261029-111837265-8156`），发布件真实屏幕帧 `search-sites-picker-screen.png`、`mp-resources-screen-1040.png`、`search-compact-resources-1040-screen.png` 已查看。两次报告都保留，不把重跑当作该红项从未发生，也不判定为本批回归。
+- 未推送 origin、未改版本、无真实媒体下载／播放／整理或账号写入；未执行区域按 scope 回执保留（92 项），不是全量 Shell 自检。
 
 ## 旧工作树最终结果（2026-10-29，主树交付完成，清理有三个限制）
 
