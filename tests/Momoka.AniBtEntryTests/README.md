@@ -6,7 +6,8 @@
 
 - [项目](Momoka.AniBtEntryTests.csproj) 编译链接当前 [ItemCommands.cs](../../src/Momoka.Shell/Views/ItemCommands.cs)、[CardItem.cs](../../src/Momoka.Shell/Views/CardItem.cs)、[IShellActions.cs](../../src/Momoka.Shell/Views/IShellActions.cs) 与 PosterCache。菜单 Show／Build、补读 Genres、实际点击分派来自生产源码，不复制业务判断。
 - 每次构建原样提取当前 Guard／Ask、卡片事件DTO及 [HomePage](../../src/Momoka.Shell/Views/HomePage.xaml.cs) 的 MenuRead；所有起止标记唯一、缺失或反序立即构建失败。主页仅替代 realized-card 列表和 owner 值，不替代 MenuRead 的计划核验。
-- 共32注册项：Emby/Jellyfin当前与次级、关闭/失联/撤销、两级版本搜索、四媒体类型 capability 保持、FnNas/Plex旧限制、迟到动画读取、来源恢复、来源监听释放、同步Opened先关闭，以及A→B→A期间旧click和GET先/后排队Hide均不复活旧菜单。
+- 共38注册项：Emby/Jellyfin当前与次级、关闭/失联/撤销、两级版本搜索、四媒体类型 capability 保持、FnNas/Plex旧限制、迟到动画读取、来源恢复、来源监听释放、同步Opened先关闭，以及A→B→A期间旧click和GET先/后排队Hide均不复活旧菜单。
+- 非动漫整剧、季、单集的 Emby/Jellyfin 菜单直接分派既有 AniBT 识别，不等待动漫分类补读；动漫版本搜索仍保留原分类条件，MP 不可用或次级来源仍隐藏识别，恢复后重建入口。旧菜单已有识别行时，迟到 Genres 只能补版本搜索，不能重复加行或恢复失效点击。
 - 假UI只提供值、事件和可挂起的dispatcher。真实HTTP只允许匿名单集 Genres GET；没有真实AniBT/MP搜索窗口或服务器识别执行。Shell端点计数用于断言拒绝时连端点也未调用，不冒充真实对话框/服务器提交。
 
 ## 最小行为与代价

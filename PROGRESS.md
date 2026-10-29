@@ -8813,6 +8813,7 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **发布与最终证据**：`tools/publish.ps1 -NoArchive` 已更新主树 `artifacts/publish/win-x64`，校验 546 文件 / 284.3 MB，批准 mpv 载荷及着色器逐项通过。对这个最终发布程序再次运行 library,search,moviepilot 54/54（shell-probe-20261028-073502736-26172），已核对五主题实屏与默认灰色 / 按钮指针主题色；主程序集 SHA-256 `E8141A830756C68774C4A1C88E1C70A6876CDEB810F5D3ABFD9B51076872C894`。未覆盖其它探针分区、完整默认自检、真实服务器播放或读屏 / 高对比主题。
 - **桌面入口与协作**：验证期间另一用户任务把 `Desktop/Momoka.lnk` 改指向 series-reorganize 工作树的发布程序；本轮没有覆盖该快捷方式或那个独立程序，用户要体验本次修改须启动 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`。主树其它未提交工作原样保留；隔离日志 / 指针证据已复制到主树 ignored `work/neutral-feedback-integration/isolated-evidence`；尝试归档临时树时工具指出它仍是本聊天的主工作区，拒绝移除，因此保留该树，不手工绕过保护。不推送 origin、不改版本、不建 Release 或商店包。
 
+<<<<<<< HEAD
 ## 2026-10-28 — Emby 编辑元数据与媒体库弹窗（进行中）
 
 - 工作树：`C:/Users/89400/.codex/worktrees/emby-metadata-editor/Momoka`，分支 `codex/emby-metadata-editor`，基于主树 `c9b68df`；不复制或覆盖主树已有未提交布局/主题改动。
@@ -8853,3 +8854,17 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 实际发布程序再跑metadata4/4：PID24700，目录 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261028-155356358-24700`，退出0；截图已复核，小锁完整且36×32点击格正常。桌面 `C:/Users/89400/Desktop/Momoka.lnk` 当前指向主树这份发布程序，无需改捷径。
 - 仍未覆盖：真实Emby目录/保存写入、真实账号权限变化、真实共享元数据、外部ID网页启动、实鼠拖拽/读屏/高对比或真实播放。本轮全部运行使用匿名样例/独立目录，未播放或试写真实库；范围外123项不是通过。
 - 清理：本聊天创建的临时树已干净、完整进入master，ignored证据先复制到主树 `work/emby-metadata-integration/isolated-evidence`；归档工具因“task primary checkout cannot be removed”拒绝移除，因此保留该主工作区及临时分支，不手工绕过保护、不清理其他聊天的工作树。后续可由应用解除主工作区关联后再归档，产品交付不受影响。
+=======
+
+## 非动漫剧集接入内置 AniBT 识别（2026-10-28）
+
+- 用户要求非动漫剧集菜单也有「AniBT 识别」，并明确复用已内置功能，不新增识别实现。
+- 隔离树：`C:/Users/89400/.codex/worktrees/anibt-non-anime-series-menu/Momoka`；分支 `codex/anibt-non-anime-series-menu`，基于主树 `324eb7d`。未复制或覆盖主树已有未提交工作。
+- 改动范围：Core 的菜单资格、菜单入口和既有 AniBtService 准备阶段守卫；主测试、真实菜单来源专项与既有 AniBT 只读运行探针。剧、季、单集不依赖动漫标签，电影仍只对动漫开放；版本搜索、MP 可用性、当前管理来源以及服务器原有能力限制不变。
+- 编译：本树当前 Release Core／主测试、Shell、AniBT 入口、来源合同与确认专项均 0 警告／0 错误；Git 空白与改动文件 LF 检查通过。`dotnet format whitespace` 对改动 C# 最终退出 0，工具仍提示工作区加载警告；未改无关格式或基线。
+- 离线回归：最终主测试 3117/3117、菜单入口 38/38、原确认专项 53/53、当前生产探针来源合同（含读取失败与取消路径）7/7；均 0 失败／0 跳过。首轮主测试 3101/3117、16 红项均为另一聊天占用用户级诊断互斥；保留首轮红日志，确认它退出后串行重跑通过，不绕过互斥或修改自检守卫。
+- 运行：当前 Release 开发件 `--probe-shell --probe-section anibt --screen 1` 3/3；报告 `shell-probe-20261028-131737312-25596/logs/shell-probe.json`，宿主正常退出。复用现有逐文件识别探针，将剧集与单集 Genres 设为剧情；增加整剧／季／单集在 1040／760 DIP 菜单实屏与 UIA 名称断言，并验证既有宽窄识别弹窗、只读预览、取消、断线。实屏已目视确认六种菜单中的入口，版本搜索未扩大；没有启动真实播放、真实 AniBT／MoviePilot／Emby 请求或写入。
+- 来源边界：本轮不改 MoviePilot API、下载选项或识别实现，只放宽既有识别的剧集资格。只读确认官方前后端 v3 HEAD 为 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2`／`87561a90d16e9bc087225c72bbfebe16865b3baa`；定点取源码遭 GitHub 请求超时，未据旧快照声称完成上游界面对齐，也未登录真实服务核对部署版本。
+- 当前状态：本树已完成实现和上述检查，产品提交待主树整合会话收尾后合入；主树当前有另一聊天写入／整合以及 11 个已有未提交文件，本轮不抢写、覆盖共同发布目录或修改桌面快捷方式。未在 master 重验或发布，快捷方式仍不包含本次修改；尚未交付、不上传 origin、不改版本。
+- 产品提交：`b061373`（`codex/anibt-non-anime-series-menu`）。恢复收尾先核对它或对应移植提交是否已进入 master；当前主树整合会话结束后再合入、对最终主树重验并发布，不复用隔离树报告冒充交付。
+>>>>>>> codex/anibt-non-anime-series-menu

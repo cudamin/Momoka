@@ -35,9 +35,85 @@ internal static class AniBtIntegrationTests
                 Assert.False(ItemMenu.For(item).Any(row => row.Command == ItemCommand.AniBtScrape));
                 item.Genres.Clear();
                 Assert.Null(ItemMenu.For(item, true).Single(row => row.Command == ItemCommand.MoviePilotVersions).Children);
-                Assert.False(ItemMenu.For(item, true).Any(row => row.Command == ItemCommand.AniBtScrape));
+                Assert.Equal(type != EmbyItemType.Movie,
+                    ItemMenu.For(item, true).Any(row => row.Command == ItemCommand.AniBtScrape));
                 Assert.True(ItemMenu.For(item, true, animeGenre: true).Any(row => row.Command == ItemCommand.AniBtScrape));
             }
+        });
+
+        foreach (var type in new[] { EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
+        {
+            Test($"AniBT 非动漫{type}：识别入口即时显示，搜索、可用性和来源限制不变", () =>
+            {
+                foreach (var genres in new List<string>[] { [], ["剧情"] })
+                {
+                    var item = new EmbyItem { Type = type, Genres = genres };
+                    Assert.True(AniBtEligibility.CanIdentify(item));
+                    Assert.False(AniBtEligibility.HasGenre(item));
+                    foreach (var jellyfin in new[] { false, true })
+                    {
+                        var menu = ItemMenu.For(item, true, jellyfin: jellyfin);
+                        Assert.Equal("AniBT 识别", menu.Single(row => row.Command == ItemCommand.AniBtScrape).Label);
+                        Assert.Null(menu.Single(row => row.Command == ItemCommand.MoviePilotVersions).Children);
+                        Assert.False(ItemMenu.For(item, jellyfin: jellyfin).Any(row => row.Command == ItemCommand.AniBtScrape));
+                        Assert.False(ItemMenu.For(item, true, jellyfin: jellyfin, aniBtScrapeAvailable: false)
+                            .Any(row => row.Command == ItemCommand.AniBtScrape));
+                    }
+                    Assert.False(ItemMenu.For(item, true, fnNas: true).Any(row => row.Command == ItemCommand.AniBtScrape));
+                    Assert.False(ItemMenu.For(item, true, plex: true).Any(row => row.Command == ItemCommand.AniBtScrape));
+                }
+            });
+
+            Test($"AniBT 非动漫{type}：接入既有文件识别，不先核对动漫分类且不写入", () =>
+            {
+                var id = type == EmbyItemType.Episode ? "episode-1" : "subject-1";
+                var detail = JsonSerializer.Serialize(new
+                {
+                    Id = id,
+                    Name = "误分类剧集",
+                    Type = type.ToString(),
+                    Genres = new[] { "剧情" },
+                    Path = Target,
+                    SeriesId = "series-1",
+                    IndexNumber = 1,
+                    ParentIndexNumber = 1
+                });
+                using var transport = BaseTransport()
+                    .Answer("Users/user/Items/" + id, detail)
+                    .Answer("Users/user/Items?", JsonSerializer.Serialize(new
+                    {
+                        Items = new[] { new { Id = "episode-1", Name = "第一集", Type = "Episode", Path = Target } },
+                        TotalRecordCount = 1
+                    }))
+                    .Answer("history/transfer?", """{"list":[],"total":0}""");
+                using var moviePilot = Service(transport);
+                using var aniBtTransport = new StubTransport().Answer("api/animes/torrent-match",
+                    """{"version":3,"candidates":[],"decision":{"kind":"manual","confidence":"low","reason":"fixture"}}""");
+                using var client = new AniBtClient(aniBtTransport);
+                var integration = new AniBtService(client, moviePilot);
+                var item = new EmbyItem { Id = id, Name = "误分类剧集", Type = type, Genres = ["剧情"] };
+                var plan = integration.PrepareAsync(Emby(transport), item, CancellationToken.None).GetAwaiter().GetResult();
+                Assert.Equal(MoviePilotTransferRequest.TypeSeries, plan.Type);
+                var row = plan.Rows.Single();
+                Assert.Equal(Target, row.TargetPath);
+                Assert.Equal(MoviePilotTransfer.PathName(Target), row.SourceName);
+                var match = aniBtTransport.SentTo("api/animes/torrent-match").Single();
+                Assert.Equal(row.SourceName, Json(match.Body).GetProperty("rawTitle").GetString());
+                Assert.Equal(0, transport.SentTo("Genres").Count);
+                Assert.True(transport.SentTo("").All(request => request.Method == "GET"));
+                Assert.True(item.Genres.SequenceEqual(["剧情"]));
+            });
+        }
+
+        Test("AniBT 识别范围：非动漫电影和非媒体条目不扩大，动漫电影仍可识别", () =>
+        {
+            var movie = new EmbyItem { Type = EmbyItemType.Movie, Genres = ["剧情"] };
+            Assert.False(AniBtEligibility.CanIdentify(movie));
+            Assert.True(AniBtEligibility.CanIdentify(movie, animeGenre: true));
+            movie.Genres.Add("动漫");
+            Assert.True(AniBtEligibility.CanIdentify(movie));
+            foreach (var type in new[] { EmbyItemType.BoxSet, EmbyItemType.CollectionFolder, EmbyItemType.Person, EmbyItemType.Video })
+                Assert.False(AniBtEligibility.CanIdentify(new EmbyItem { Type = type, Genres = ["动画"] }));
         });
 
         Test("AniBT 搜索电影：Bangumi 回的电影类型优先，不凭缺失 format 猜电视剧", () =>
