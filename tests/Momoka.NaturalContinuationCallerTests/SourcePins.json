@@ -57,15 +57,15 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySession.cs",
-      "sha256": "cf51a6759f38f5bcc5ffbd63d322ea5f425e1391fdf99a37c9948f31092ebfed"
+      "sha256": "48e5a109f693a9512263d77595c26fd5d598a0f3dfcaf0856112c9040ec450f4"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbySessionScope.cs",
-      "sha256": "0662831e59eb35357e4bd6722c52ef2eec84aababa98aceb47f3cefbf1ae378d"
+      "sha256": "ea7931946e0cdcee210fd1736136f69fdb708b193ed02974cee74051f95d8fa5"
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",
-      "sha256": "c3b527c1da1a5028614b70b9c259c145c3e47e3c4bce371ee52a7cf37259390f"
+      "sha256": "487df18de0290a4933a612fd2d9fb9c27f57f7f82768790cce8fbf8315a8ecbc"
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",
