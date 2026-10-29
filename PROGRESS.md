@@ -12,6 +12,11 @@
 - 用户级 SDK `10.0.400`，本树还原后 Core／主测试、真实 Shell Release 单节点编译均 **0 警告、0 错误**。`marked-watched-source-fixture` **86/86**（新增成功／失败／取消排空、关闭拒绝入场、普通 Stop 可重用）；完整生产 VM caller **54/54**（新增 4 项跨季 ownership），均无失败／跳过。提取器 **10 个反例全部按预期拒绝**，随后当前源重新编译并重跑 54 项。
 - 证据：`artifacts/r046-caller/marked-watched-final.log`、`architecture-extractor-final/counterexamples.json`、`architecture-extractor-final/current-reverified/`。仅本次改动三份生产源的 SourcePins 定点更新，其余保留。变更 C# 格式、LF／PS BOM与语法、Git 空白检查通过。
 - 未运行 UI／真实服务器／实际媒体或原生后端，不发布、不推送；应用外层与真实传输退出行为仍待主会话适用验证。此次提交须由主会话合并、最终重新验证并刷新主树交付目录；快捷方式仍为本轮前交付件。
+## 设置输入主题探针前置修正（2026-10-29，待主树运行）
+
+- 主树首轮 `shell-probe-20261029-035525074-31108` 的设置输入主题用例在 760 DIP 数字框边线报错；1100 DIP 五主题与 1440 DIP 默认主题读数通过。原报告没有失败时的实际画刷／状态，暂不能判为产品颜色回归或单纯延迟。
+- 仅修探针：按「轮播图用什么媒体」「轮播图张数」定位同一业务行，避免窄窗选到分类 ComboBox；先将目标完整带入滚动视口，再核对真实焦点和 TextBox 模板 `Focused`、原始颜色／1 DIP 厚度全部落定。不调用 GoToState，不放宽颜色或厚度。异常携带实际画刷、焦点／模板状态、尺寸，finally 保留失败读数；加入离焦负向路径与源码合同。
+- 本树 Shell/Core 与 PageContractTests Release 编译均 0 警告 0 错误；页面契约 107/107、失败 0、跳过 0，diff 空白检查通过。由主交付会话合入后串行运行 `--probe-shell --probe-section settings --screen 1`；本树不启动 UI，不将编译或源码合同当运行成功。
 
 ## 设计架构修复：卡片焦点与设置名称（2026-10-29，待主树整合）
 
