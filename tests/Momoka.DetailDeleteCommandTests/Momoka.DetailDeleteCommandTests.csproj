@@ -45,7 +45,7 @@
             "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.FnNas;\nusing Momoka.Infrastructure;\n" +
             "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nnamespace Momoka.Shell.Views;\n" +
             "internal static partial class ItemCommands\n{\n" +
-            between(commands, "    private const string Category", "    // Per DTO") +
+            between(commands, "    private const string Category", "    /// <summary>\n    /// The handler both grids attach.") +
             between(server, "    private static async Task GuardAsync(", "\n    /// <summary>\n    /// 一次请求。") +
             between(server, "    private static async Task<T> AskAsync<T>(", "\n    /// <inheritdoc cref=\"AskAsync{T}\"/>") +
             between(server, "    private static async Task TellAsync(", "\n    /// <summary>\n    /// 取一段字节，") +

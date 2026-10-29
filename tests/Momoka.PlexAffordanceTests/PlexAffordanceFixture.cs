@@ -102,19 +102,17 @@ internal sealed class PlexAffordanceFixture : IDisposable
     public CardItem Card(EmbyItem item, bool wide = false, bool sourceLine = false) =>
         new(item, Images, wide ? 300 : 170, wide: wide, sourceLine: sourceLine);
 
-    public static bool HasStateOrder(CardItem card) => Orders().TryGetValue(card.Item, out _);
+    public static bool HasStateOrder(CardItem card) =>
+        (long)typeof(ItemUserStateOrder).GetField("_version", Fields)!.GetValue(card.UserStateOrder)! != 0;
     public static int Pending(CardItem card)
     {
-        if (!Orders().TryGetValue(card.Item, out var order)) return 0;
+        var order = card.UserStateOrder;
         return new[] { "_watched", "_favorite" }.Sum(name =>
         {
             var state = typeof(ItemUserStateOrder).GetField(name, Fields)!.GetValue(order)!;
             return (int)state.GetType().GetField("Pending")!.GetValue(state)!;
         });
     }
-    private static ConditionalWeakTable<EmbyItem, ItemUserStateOrder> Orders() =>
-        (ConditionalWeakTable<EmbyItem, ItemUserStateOrder>)typeof(ItemCommands)
-            .GetField("UserStateOrders", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
 
     public void Dispose()
     {
