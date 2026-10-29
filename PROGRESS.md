@@ -30,7 +30,6 @@
 - 失败历史完整保留：首次23/24为新探针误要求 WinRT IValueProvider；隐藏启动13/24含10条像素前件拒绝；第三轮23/24为夹具通配符漏掉季集后编码/小组；第四轮23/24抓到选择重建回归；第五轮23/24抓到默认菜单越出XamlRoot，已显式限界及向下展开。没有关闭像素／UIA／选择断言或改失败基线。互斥占用时启动被正常拒绝，未绕过。
 - 新增23个自动化句柄逐项加入基线，没有接受整份快照；实际菜单/模板UIA和扫描无缺失。定向Shell/Core空白检查退出0（Shell工作区加载提示保留），资源空白、源文件LF、Git差异、项目规则文档回归通过。
 - 部署服务器版本尚未当轮读取；上游与夹具证据不等于真实部署兼容。当前主树另有搜索/元数据交付会话和未提交改动，本任务不抢写主树、不覆盖共同发布或快捷方式；产品提交后跟进最新master整合、当前主树全套与运行复验及实际发布。未推送，不将隔离树结果声称主树已交付。
->>>>>>> codex/mp-batch-resource-search
 ### 搜索胶囊主树验收及发布探针焦点前置修正（2026-10-29）
 
 - `e1976f7` 已快进合入 master，原有11份未提交改动逐份保留，快照与三方预览位于临时树 `work/search-title-upshift-20261028/master-sync/promotion/`；无远程上传。主树 Shell/Core 与相关专项 Release 编译均0警告0错误，主测试3192/3192、资源79/79、页面98/98、整理33/33、报告收尾67/67，失败0、跳过0；输入哈希及日志位于主树 `work/search-capsules-main-20261028/`。
@@ -8813,7 +8812,6 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - **发布与最终证据**：`tools/publish.ps1 -NoArchive` 已更新主树 `artifacts/publish/win-x64`，校验 546 文件 / 284.3 MB，批准 mpv 载荷及着色器逐项通过。对这个最终发布程序再次运行 library,search,moviepilot 54/54（shell-probe-20261028-073502736-26172），已核对五主题实屏与默认灰色 / 按钮指针主题色；主程序集 SHA-256 `E8141A830756C68774C4A1C88E1C70A6876CDEB810F5D3ABFD9B51076872C894`。未覆盖其它探针分区、完整默认自检、真实服务器播放或读屏 / 高对比主题。
 - **桌面入口与协作**：验证期间另一用户任务把 `Desktop/Momoka.lnk` 改指向 series-reorganize 工作树的发布程序；本轮没有覆盖该快捷方式或那个独立程序，用户要体验本次修改须启动 `C:/Users/89400/Momoka/artifacts/publish/win-x64/Momoka.exe`。主树其它未提交工作原样保留；隔离日志 / 指针证据已复制到主树 ignored `work/neutral-feedback-integration/isolated-evidence`；尝试归档临时树时工具指出它仍是本聊天的主工作区，拒绝移除，因此保留该树，不手工绕过保护。不推送 origin、不改版本、不建 Release 或商店包。
 
-<<<<<<< HEAD
 ## 2026-10-28 — Emby 编辑元数据与媒体库弹窗（进行中）
 
 - 工作树：`C:/Users/89400/.codex/worktrees/emby-metadata-editor/Momoka`，分支 `codex/emby-metadata-editor`，基于主树 `c9b68df`；不复制或覆盖主树已有未提交布局/主题改动。
@@ -8854,7 +8852,6 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 实际发布程序再跑metadata4/4：PID24700，目录 `C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261028-155356358-24700`，退出0；截图已复核，小锁完整且36×32点击格正常。桌面 `C:/Users/89400/Desktop/Momoka.lnk` 当前指向主树这份发布程序，无需改捷径。
 - 仍未覆盖：真实Emby目录/保存写入、真实账号权限变化、真实共享元数据、外部ID网页启动、实鼠拖拽/读屏/高对比或真实播放。本轮全部运行使用匿名样例/独立目录，未播放或试写真实库；范围外123项不是通过。
 - 清理：本聊天创建的临时树已干净、完整进入master，ignored证据先复制到主树 `work/emby-metadata-integration/isolated-evidence`；归档工具因“task primary checkout cannot be removed”拒绝移除，因此保留该主工作区及临时分支，不手工绕过保护、不清理其他聊天的工作树。后续可由应用解除主工作区关联后再归档，产品交付不受影响。
-=======
 
 ## 非动漫剧集接入内置 AniBT 识别（2026-10-28）
 
@@ -8867,4 +8864,3 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 来源边界：本轮不改 MoviePilot API、下载选项或识别实现，只放宽既有识别的剧集资格。只读确认官方前后端 v3 HEAD 为 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2`／`87561a90d16e9bc087225c72bbfebe16865b3baa`；定点取源码遭 GitHub 请求超时，未据旧快照声称完成上游界面对齐，也未登录真实服务核对部署版本。
 - 当前状态：本树已完成实现和上述检查，产品提交待主树整合会话收尾后合入；主树当前有另一聊天写入／整合以及 11 个已有未提交文件，本轮不抢写、覆盖共同发布目录或修改桌面快捷方式。未在 master 重验或发布，快捷方式仍不包含本次修改；尚未交付、不上传 origin、不改版本。
 - 产品提交：`b061373`（`codex/anibt-non-anime-series-menu`）。恢复收尾先核对它或对应移植提交是否已进入 master；当前主树整合会话结束后再合入、对最终主树重验并发布，不复用隔离树报告冒充交付。
->>>>>>> codex/anibt-non-anime-series-menu
