@@ -1,3 +1,12 @@
+## 编辑元数据对管理员报「没有权限」（2026-10-29）
+
+- 用户报：「点击编辑元数据后回显示没有权限」。`app-20261029.log` 里 19:32:47 与 20:12:43 两次都是 `System.UnauthorizedAccessException: 只有 Emby 管理员可以编辑元数据`（栈顶 `EmbyMetadataEditor.CheckAccess`），同一份日志里 `/System/Info` 读回「服务器版本 4.10.1.0，管理员账号」——账号确实是管理员，判断本身错了。
+- 根因：`CheckAccess` 要求 `scope.IsAdministrator == true`，但 Emby 的连接快照里这一位常态是 null。登录（`EmbyServerGateway.AuthenticateAsync`）只给 Jellyfin 读 `result.User.Policy`；令牌恢复（`EmbySession.RestoreAttemptAsync`）只在 `IsProbedProduct` 时补读 `Users/Me`，而 Emby 不在 `IsProbedProduct` 里；`ServerCapabilities.ProbeAsync` 用 `/System/Info` 判出的管理员身份只存在它自己字段里，不回写连接。于是 null 被当成「不是管理员」，这张表对任何 Emby 账号都打不开 —— 而 `ServerAccess.CanAdminister` 的既有约定正是「Emby 不把还没问到当成没有权限」。
+- 改法：`CheckAccess` 改用 `ServerAccess.CanAdminister(kind, IsAdministrator)`：只有服务器明确答「不是管理员」才本地拒绝；未知时照常读取与保存，真没权限由服务器以 403 拒绝（`EmbyHttp` 已把 403 译成「当前账户没有访问该内容的权限」，不再被压成笼统的「没有访问权限」）。不新增请求，不改登录与恢复语义 —— Emby 的登录响应是否带 Policy 没有源码可核对，不据此下判断。
+- 测试：`EmbyMetadataEditorTests` 把原来「false 与 null 都拒绝」拆成两条 —— 明确 false 仍拒绝且零请求；**权限未知（Emby 常态）照常读取和保存**（2 次 GET、1 次 POST，提交的是改后的名字），这条就是本次回归。主测试 **3315/3315、0 失败 0 跳过**，`emby-metadata-fixture` **57/57**。
+- 顺带修完整构建：上一批 `7c90465` 给 `SubtitleDialog.xaml.cs` 加了 `using Microsoft.UI.Xaml.Automation`、标题行三个字段与 `Hide()`，而 `Momoka.SubtitleDialogTests` 直接编译这份生产文件却没有对应替身，HEAD 上整套 sln 构建 CS0234／CS0103 红（只构建 Shell 与主测试时看不见，正是记忆里那条坑）。补 `AutomationBoundaries.cs`、`DialogTitleRow`／`DialogTitleText`／`HeaderCloseButton` 三个字段与 `ContentDialog.Hide()`（与真实控件一样走 Closing，被拦下就留在原地），单独提交 `59690d2`；夹具 **36/36**，整套 Release 构建 **0 警告 0 错误**。
+- 没做的：真实服务器上点开与保存（真实共享元数据写入需另行授权，留给用户复验）；本轮不是发版，未跑闸门 1 的空白检查与闸门 4 自检（改动是 Core 判定，运行检查以 Core 套件为准）；Emby 编辑器没有 UI 探针覆盖，这一点与从前相同。
+
 ## 弹窗点外面关闭与字幕弹窗右上角关闭钮（2026-10-29）
 
 - 用户令两条（附截图）：①「在搜索字幕弹窗右上角新增关闭按钮，移除右下方的关闭」；②「项目中所有的弹窗和以后新增的弹窗，都要支持点击弹窗外部主窗口内时自动退出」。本批直接在 master 开发，只改弹窗外壳、字幕管理那一张表、样式表、探针、测试与文档。
