@@ -5,6 +5,7 @@
 - 改法：`CheckAccess` 改用 `ServerAccess.CanAdminister(kind, IsAdministrator)`：只有服务器明确答「不是管理员」才本地拒绝；未知时照常读取与保存，真没权限由服务器以 403 拒绝（`EmbyHttp` 已把 403 译成「当前账户没有访问该内容的权限」，不再被压成笼统的「没有访问权限」）。不新增请求，不改登录与恢复语义 —— Emby 的登录响应是否带 Policy 没有源码可核对，不据此下判断。
 - 测试：`EmbyMetadataEditorTests` 把原来「false 与 null 都拒绝」拆成两条 —— 明确 false 仍拒绝且零请求；**权限未知（Emby 常态）照常读取和保存**（2 次 GET、1 次 POST，提交的是改后的名字），这条就是本次回归。主测试 **3315/3315、0 失败 0 跳过**，`emby-metadata-fixture` **57/57**。
 - 顺带修完整构建：上一批 `7c90465` 给 `SubtitleDialog.xaml.cs` 加了 `using Microsoft.UI.Xaml.Automation`、标题行三个字段与 `Hide()`，而 `Momoka.SubtitleDialogTests` 直接编译这份生产文件却没有对应替身，HEAD 上整套 sln 构建 CS0234／CS0103 红（只构建 Shell 与主测试时看不见，正是记忆里那条坑）。补 `AutomationBoundaries.cs`、`DialogTitleRow`／`DialogTitleText`／`HeaderCloseButton` 三个字段与 `ContentDialog.Hide()`（与真实控件一样走 Closing，被拦下就留在原地），单独提交 `59690d2`；夹具 **36/36**，整套 Release 构建 **0 警告 0 错误**。
+- 闸门 3：`tools/publish.ps1 -NoArchive` 通过，**546 文件／284.8 MB**、14 GLSL／4 HOOK／批准 mpv 59 文件逐项校验，ProductVersion `0.2.0+4a996a3d783b3f5999bda07a18f94017b4d92747`；桌面 `Momoka.lnk` 未动，内嵌路径仍含 `publish\win-x64`。（第一次发布在提交前跑，版本戳落在夹具提交 `59690d2` 上，已清目录、按提交后的代码重发，那一份作废。）
 - 没做的：真实服务器上点开与保存（真实共享元数据写入需另行授权，留给用户复验）；本轮不是发版，未跑闸门 1 的空白检查与闸门 4 自检（改动是 Core 判定，运行检查以 Core 套件为准）；Emby 编辑器没有 UI 探针覆盖，这一点与从前相同。
 
 ## 弹窗点外面关闭与字幕弹窗右上角关闭钮（2026-10-29）
