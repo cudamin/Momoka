@@ -163,6 +163,9 @@ internal sealed class EntryActions : IShellActions
     public Task SwitchProfileAsync(ServerProfile server, AccountProfile? account) => throw Unrelated();
     public void SetTitleStrip(TitleStrip strip) => throw Unrelated();
     public void OpenMoviePilotMedia(Momoka.MoviePilot.MoviePilotMedia media, Momoka.MoviePilot.MoviePilotSubscription? subscription = null) => throw Unrelated();
+    public bool MoviePilotMediaManagementEnabled => false;
+    public bool MoviePilotSmartReorganizeEnabled => false;
+    public void ShowMoviePilotHistoryAction(Momoka.Emby.EmbySessionScope scope, Momoka.Emby.EmbyItem item, Momoka.MoviePilot.MoviePilotHistoryAction action) { }
     public void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) => throw Unrelated();
     public void ShowMissingEpisodes(EmbyItem item, IReadOnlyList<EmbyItem> missing) => throw Unrelated();
     public void ReportMarkedWatched(EmbyItem item) => throw Unrelated();

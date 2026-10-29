@@ -84,6 +84,8 @@ internal interface IShellActions
     /// </summary>
     bool MoviePilotEnabled { get; }
 
+    bool MoviePilotMediaManagementEnabled { get; }
+    bool MoviePilotSmartReorganizeEnabled { get; }
     event EventHandler? MoviePilotAvailabilityChanged;
 
     /// <summary>
@@ -113,6 +115,9 @@ internal interface IShellActions
     /// 收好（那一步要 Emby 会话，外壳不该再碰）。
     /// </summary>
     void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context);
+
+    /// <summary>外壳持有服务与弹窗，读取准确的 MP 历史范围后，在同一对话框二次确认。</summary>
+    void ShowMoviePilotHistoryAction(EmbySessionScope scope, EmbyItem item, MoviePilotHistoryAction action);
 
     /// <summary>读取固定 Emby 身份下的文件并展示 AniBT 识别与刮削确认。</summary>
     void ShowAniBtScrape(EmbySessionScope scope, EmbyItem item);

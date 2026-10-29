@@ -46,6 +46,7 @@ public sealed partial class MoviePilotService
             _connectionGeneration++;
             _availabilityRevision++;
             _availableIdentity = null;
+            _historyCapabilities = null;
             _session = null;
         }
         // 配置变化即使发生在未连接状态，也要通知监测方重新检查。
@@ -60,7 +61,11 @@ public sealed partial class MoviePilotService
             if (revision != _availabilityRevision || !MatchesConfiguration(identity)) return;
             changed = (_availableIdentity is not null) != (available && Enabled);
             _availableIdentity = available && Enabled ? identity : null;
-            if (!available) _availabilityRevision++;
+            if (!available)
+            {
+                _availabilityRevision++;
+                _historyCapabilities = null;
+            }
         }
         if (changed) AvailabilityChanged?.Invoke(this, EventArgs.Empty);
     }

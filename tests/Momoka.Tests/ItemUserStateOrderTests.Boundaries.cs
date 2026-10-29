@@ -147,6 +147,11 @@ namespace Momoka.Shell.Media
 
 namespace Momoka.Shell.Views
 {
+    internal static class MoviePilotMenuBrand
+    {
+        internal static void Apply(Microsoft.UI.Xaml.Controls.MenuFlyoutItemBase item, bool branded = true) { }
+    }
+
     public sealed class PosterCard : FrameworkElement
     {
         public CardItem? Card { get; set; }

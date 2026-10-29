@@ -52,7 +52,7 @@ internal sealed partial class ShellNavigationProbe
             _window.TopMost = true;
             await LayoutAsync(anchor);
             menu = ItemCommands.Build(fixture.Session, shell, anchor, new CardItem(owner, fixture.Images, 170));
-            var versions = menu.Items.OfType<MenuFlyoutSubItem>().Single();
+            var versions = menu.Items.OfType<MenuFlyoutSubItem>().Single(item => item.Tag is ItemCommand.MoviePilotVersions);
             Require(versions.Text == "搜索不同版本" && versions.Items.OfType<MenuFlyoutItem>()
                 .Select(item => item.Text).SequenceEqual(new[] { "MoviePilot", "AniBT" }), "动画版本入口未折叠为两个来源");
             menu.ShowAt(anchor);

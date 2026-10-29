@@ -179,6 +179,7 @@ internal sealed partial class ShellNavigationProbe
         });
         Add("InspectNarrow", "窄窗口", () => { ResizeInspect(1000, 880); return Task.CompletedTask; });
         Add("InspectWide", "宽窗口", () => { ResizeInspect(1420, 900); return Task.CompletedTask; });
+        Add("InspectMoviePilotMediaManagement", "MP 媒体管理", InspectMediaManagementAsync);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);

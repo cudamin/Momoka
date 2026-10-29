@@ -72,6 +72,7 @@ internal static class MoviePilotSubscriptionMenu
         {
             var item = new MenuFlyoutItem { Text = title, Icon = new FontIcon { Glyph = glyph }, IsEnabled = vm.Owns(card) && (!write || vm.CanManage && !needsReview) };
             AutomationProperties.SetAutomationId(item, "Subscription" + title);
+            MoviePilotMenuBrand.Apply(item);
             item.Click += (_, _) => action();
             items.Add(item);
         }

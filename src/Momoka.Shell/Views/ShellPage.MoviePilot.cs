@@ -11,11 +11,14 @@ public sealed partial class ShellPage
     private CancellationTokenSource? _moviePilotCheck;
     private ContentDialog? _moviePilotDialog;
     public event EventHandler? MoviePilotAvailabilityChanged;
+    public bool MoviePilotMediaManagementEnabled => _moviePilotService?.CanManageHistory == true;
+    public bool MoviePilotSmartReorganizeEnabled => _moviePilotService?.CanSmartReorganize == true;
 
     private void StartMoviePilotMonitoring(MoviePilotService service)
     {
         _moviePilotService = service;
         service.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
+        service.HistoryCapabilitiesChanged += OnMoviePilotHistoryCapabilitiesChanged;
         Settings.MoviePilot.ConnectionChanged += OnMoviePilotConfigurationChanged;
         _moviePilotTimer.Tick += CheckMoviePilot;
         _moviePilotTimer.Start();
@@ -28,10 +31,18 @@ public sealed partial class ShellPage
         _moviePilotTimer.Interval = TimeSpan.FromSeconds(30);
         using var check = new CancellationTokenSource();
         _moviePilotCheck = check;
-        try { await service.RefreshAvailabilityAsync(check.Token); }
+        try
+        {
+            if (await service.RefreshAvailabilityAsync(check.Token))
+                await service.HistoryCapabilitiesAsync(check.Token);
+        }
         catch (OperationCanceledException) { }
+        catch (MoviePilotException error) { Diagnostics.Log.Info("moviepilot", "无法读取媒体管理能力：" + Diagnostics.Failure.Describe(error)); }
         finally { _moviePilotCheck = null; }
     }
+
+    private void OnMoviePilotHistoryCapabilitiesChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+        MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty));
 
     private void OnMoviePilotConfigurationChanged(object? sender, EventArgs args)
     {
@@ -83,7 +94,11 @@ public sealed partial class ShellPage
         _moviePilotTimer.Tick -= CheckMoviePilot;
         _moviePilotCheck?.Cancel();
         Settings.MoviePilot.ConnectionChanged -= OnMoviePilotConfigurationChanged;
-        if (_moviePilotService is { } service) service.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
+        if (_moviePilotService is { } service)
+        {
+            service.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
+            service.HistoryCapabilitiesChanged -= OnMoviePilotHistoryCapabilitiesChanged;
+        }
         _moviePilotService = null;
     }
 }

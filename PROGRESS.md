@@ -1,3 +1,8 @@
+## 旧工作树审查与媒体管理整合（2026-10-29，在途）
+
+- 当前整合树 `C:/Users/89400/.codex/worktrees/old-tree-integration/Momoka`，起点 `8ff289e`，整合旧树 `mp-media-management` 的产品 `eedcfab`／顶端 `4b9aaac`。主树 AniBT 正在由另一聊天收尾，搜索工作树仍在开发；不抢写主树或共同发布目录，不删除活动树。
+- 冲突按产品内容处理：保留整剧手动整理只收身份、AniBT 按文件展开、FnNas/Plex 原手动整理显隐、七字菜单、主树较新的卡片状态及弹窗边框；只接入媒体管理四档删除、智能整理、白色 MP 品牌和独立确认安全守卫。完整重验及主树交付待执行。
+
 ## 架构分支清理（2026-10-29）
 
 - 按“分支收尾即删”规则核对三个架构分支，删除本地分支与对应工作树。`codex/architecture-state`（顶端 `93da012`）已是 master 祖先，直接删除。`codex/architecture-ui`（顶端 `9a3aa92`，领先2）的14个改动文件在 master 中字节一致，仅 `ShellNavigationProbe.Accessibility.cs` 与 `ShellNavigationProbe.cs` 两处已被 master 更晚的 `93da012`（真实 WinUI 拒绝 ItemContainer.Child 置 null）和 `14e26f0`（用例名改回“封面悬停态”）取代，不合并。`codex/architecture-settings`（顶端 `1b6a1ed`，领先6）的代码与工具已由 `bf95b9b`、`0232cf6`、`4f97a98` 等效落地，文件全部一致；仅有 PROGRESS 三节与开发文档两行旧描述未进 master，属已被主树交付记录覆盖的待整合状态，不挑拣。三个工作树删除前 `git status` 均干净。
@@ -8960,3 +8965,21 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 当前最终源码完整方案 Release 编译0警告0错误；Core 3114/3114、TransferSubmissionTests 39/39、0失败0跳过（有重叠Core用例，不累加）。相关源文件的 whitespace 检查退出0；整份方案 whitespace 另有两份既有资源排序测试的一行 switch 表达式红项，未改与本任务无关的文件，也未把整方案报告说成通过。自动化扫描499个交互控件、0缺句柄；本窗口模板回执与真实按钮逐项定位检查覆盖。
 - 最终隔离树发布件 `Momoka.dll` SHA256 `3868CE7802F87A84D9EDDE19834C8C0D76BEA7ECF127DAAFFB1A2C309535B5D5`；发布核验546文件284.4MB。针对这个最终程序的实际UI报告 `C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261028-115434654-27712\logs\shell-probe.json`：MoviePilot 24/24，0失败，100项未选分区单列，不是全探针。已核对 `mp-manual-{1040,720,520}-screen.png`、bottom、五主题、历史复用与预览确认实屏。实际文本编辑等待事件通知后撤销确认，取消窗口零写请求；再次开启、预览、明确核对、入队到假服务器一次，随后保持防重。没有真实整理、播放或修改共享库。
 - 主树仍由其它会话持有未提交搜索/外观差异，包含 `ShellNavigationProbe.cs`；本轮不能违反“同树一个写入会话”去 merge、覆盖发布或改快捷方式。保存产品提交后主动跟进收尾；待主树写入空档合入，并在主树最终整合代码上重跑编译、相关与完整Core测试、窗口截图/运行，然后发布核对快捷方式。现在快捷方式仍是旧版，临时树与分支不得提前删除。
+## 在途：MP 媒体管理、智能整理与菜单品牌（2026-10-28）
+
+- 工作树：`C:/Users/89400/.codex/worktrees/mp-media-management/Momoka`，起点 `c9b68df`；主树已有未提交海报、滚动及搜索改动，不覆盖、不混入本次提交。
+- 范围：Core 整理历史操作与防重、公共媒体更多菜单、确认对话框、MP 右侧品牌、相关离线与渲染探针。单会话写入；不启动真实播放、不对真实服务器删除或整理。
+- 上游：官方前端 v3 `1da03170e54c8fbc36d3d4b7ddf33d074f1a21e2` 的 TransferHistoryView.vue / TransferHistoryDeleteDialog.vue / 测试，后端 v3 `be65e047b0e64b216420ba38bec7a087409552ff` 的 history.py / schemas/history.py / history/mutation.py；网页端四档 DELETE 标志和单条 / 批量 ai-redo 接口已核。用户部署版本待只读核对，不声称全版本同步。
+
+- 实现决定：菜单与弹窗是局部 UI 组装，留 code-behind；收集、历史身份核对、权限、确认封存与副作用防重在 Core Service。MP 与 AniBT 跨服务器共用菜单块，保留各服务器自己的原生管理项。官方 v2 删除没有分项回执，明确待核对，不以空成功假装删除完成。
+- 初次全 Core 3136 项中 MP 新增 26 项全部通过；无关 SVP 外进程零命令观察一项首次失败，随后定向 29/29 通过。未改 SVP、不忽略红项，最终完整测试仍须重新跑。
+
+- 用户补充：菜单 MP 图标必须用设置页面那一款，不用紫色标志。已提取设置页原三条路径为共享 EgMoviePilotMarkTemplate，菜单／设置页共用白色文字角色；删除本轮新增紫色 SVG 与资产拷贝，不改设置页外观。
+
+- 隔离树最终主测试（尚未合并）3141/3141 通过、0 失败／0 跳过；全方案 Release 0 警告／0 错误。新增文件型守卫拒绝目录／云盘 FileItem，相关专项待重跑后提交。当前 HEAD 为 detached，完成后以对应 commit 整合 master，不把独立树结果当主树交付。
+- UI：设置＋MoviePilot 分区 46/46 通过（shell-probe-20261028-130951574-32452）；新版白色 MP 实际菜单／四子项、剧“智能批量整理”与媒体库无 MP 操作已用匿名 inspect 台 UIA 检查。五主题直接窗口／popup 拼接截图在 work/ui-evidence/mp-white-menu-*.png；明确不是宿主实屏，宿主 BitBlt 不能显示 native PopupWindowSiteBridge，故用外部 UIA 的窗口捕捉补核图标。原生确认／取消／写请求以新增实际对话框运行用例核对，未删除或整理真实媒体。
+
+- 部署只读核对：当前 MP 报告 v3.2.1、管理权限 true、智能助手总开关 true；仅内存登录并读取 dashboard/system、user/current、system/global/user 三项，0 整理／删除写请求，不打印地址、用户名、密码或 token。相应官方后端 tag daa9212ba161d4573baf3744e2f13b99c2a90516、前端 tag 4797eda16252fb6590e36f2b9ede5fb535d9df04 的四档删除／ai-redo 页面与接口均与本轮 v3 HEAD 相同。
+- 产品提交 eedcfab156a15179c4b820925ff977de151d76b6 已保存；主树有另一会话暂存 Emby 元数据编辑（43 文件），Styles.xaml 正在整合冲突。全文件预合并检查在任何写入主树源码前停止；不得覆盖别人的 index，待该提交收尾后再合入本产品、重验最终 master 并刷新主树发布目录。当前桌面快捷方式仍指向主树既有版本。
+
+- eedcfab 最终隔离验证：全方案 Release 构建 0 警告／0 错误；主套件 3142/3142，0 失败／0 跳过；AniBT 菜单 32/32、Plex 实际菜单／VM 67/67、详情删除 18/18、整理提交 31/31 均通过。新增媒体管理专项 32/32；自动化扫描 493 个交互、无句柄 0；本轮文件定向空白检查通过，整方案另两份既有资源排序测试初始化格式有旧差异，不纳入产品提交。设置＋MoviePilot 实際分区最终 46/46 通过（shell-probe-20261028-145027162-20528），含四档菜单、同窗取消／确认、匿名 DELETE／batch ai-redo 与关闭恢复。原宿主截图不含 native 子菜单，外部 UIA 对原窗口／popup 的直接捕捉已另核五主题白色 MP，不声称为全屏 BitBlt；没有绕过截图守卫。主树目前仍有同一 Emby 暂存整合会话，未合并、未发布、未推送，桌面快捷方式仍旧版；待整合工作完成后继续提交差异到 master、重验与发布。
