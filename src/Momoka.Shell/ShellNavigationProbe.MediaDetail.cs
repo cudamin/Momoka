@@ -325,8 +325,10 @@ internal sealed partial class ShellNavigationProbe
             Require(server.SubtitleDownloads.Count == 1 && server.SubtitleDownloads[0].GetProperty("save_path").GetString() == "/subtitles", "字幕下载没有提交实际保存路径");
             await LayoutAsync(panel);
             await SaveSettledFrameAsync(panel, "mp-media-subtitles.png");
+            // 改站点只作废下一次搜索的范围：已经列出来的字幕和资源一起留在屏幕上，并说明要重新搜索（2026-10-29）。
             panel.ViewModel.SearchSites.UseDefault = false;
-            Require(panel.ViewModel.Subtitles.Count == 0, "更换站点后仍显示已失效字幕");
+            Require(panel.ViewModel.Subtitles.Count == 1 && panel.ViewModel.NoticeOpen,
+                "改站点后字幕被清空或没有提示下一次搜索才应用");
         }
         finally { panel.Release(); _root.Children.Remove(panel); }
     }

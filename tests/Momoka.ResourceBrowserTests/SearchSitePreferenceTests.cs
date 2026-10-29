@@ -55,6 +55,47 @@ internal static class SearchSitePreferenceTests
             Assert.Equal(0, fixture.Saves);
         });
 
+        Test("搜索站点：更改站点不清空关键词结果，下一次搜索才应用", () =>
+        {
+            using var fixture = new SiteFixture();
+            fixture.Transport.SearchResults = "[" + Result("旧结果", "站点甲") + "," + Result("旧结果二", "站点乙") + "]";
+            var vm = new MoviePilotVersionsViewModel();
+            vm.Attach(fixture.Service, new FixtureLauncher());
+            ResourceFixture.Complete(vm.SearchAsync("Target"));
+            Assert.Equal(2, vm.Versions.Count);
+
+            vm.SearchSites.UseDefault = false;
+            Assert.Equal(2, vm.Versions.Count);
+            Assert.True(vm.NoticeOpen && vm.NoticeTitle == "搜索站点已更改" && vm.NoticeMessage?.Contains("重搜") == true,
+                "取消勾选默认站点没有说明要重新搜索才生效");
+            ResourceFixture.Complete(vm.SearchSites.EnsureLoadedAsync());
+            vm.SearchSites.Sites[0].Selected = true;
+            Assert.Equal(2, vm.Versions.Count);
+            Assert.False(vm.ShowEmptyNotice);
+
+            ResourceFixture.Complete(vm.SearchAsync("Target"));
+            Assert.Equal(2, vm.Versions.Count);
+            Assert.True(fixture.Transport.Requests.Last().Contains("sites=1", StringComparison.Ordinal));
+            Assert.False(vm.Busy);
+        });
+
+        Test("搜索站点：离页取消在飞搜索后，重新进入仍可下载留下的卡片", () =>
+        {
+            using var fixture = new SiteFixture();
+            fixture.Transport.SearchResults = "[" + Result("留下的资源", "站点甲") + "]";
+            var vm = new MoviePilotVersionsViewModel();
+            vm.Attach(fixture.Service, new FixtureLauncher());
+            ResourceFixture.Complete(vm.SearchAsync("Target"));
+            var row = vm.Versions.Single();
+            var chosen = 0;
+            vm.UseDownloadPicker((_, _) => { chosen++; return Task.FromResult<MoviePilotDownloadOptions?>(null); });
+
+            vm.Cancel();
+            vm.Attach(fixture.Service, new FixtureLauncher());
+            ResourceFixture.Complete(row.DownloadCommand.ExecuteAsync(null));
+            Assert.Equal(1, chosen);
+        });
+
         Test("搜索站点：默认与手动切换保留已勾选编号", () =>
         {
             using var fixture = new SiteFixture();
@@ -234,6 +275,10 @@ internal static class SearchSitePreferenceTests
         Assert.True(completion.Wait(TimeSpan.FromSeconds(5)), "挂起的匿名任务没有完成");
         ResourceFixture.Complete(task);
     }
+
+    /// <summary>匿名资源行：只带标题、站点与体积，足够铺一张卡。</summary>
+    internal static string Result(string title, string site) =>
+        JsonSerializer.Serialize(new { torrent_info = new { title, site_name = site, size = 1024L } });
 }
 
 internal sealed class SiteFixture : IDisposable
@@ -291,6 +336,7 @@ internal sealed class SiteTransport : HttpMessageHandler
     internal const string FullCatalogue = "[{\"id\":1,\"name\":\"站点甲\",\"is_active\":true},{\"id\":2,\"name\":\"站点乙\",\"is_active\":true}]";
     internal List<string> Requests { get; } = [];
     internal string Catalogue { get; set; } = FullCatalogue;
+    internal string SearchResults { get; set; } = "[]";
     internal bool FailCatalogue { get; set; }
     internal TaskCompletionSource<HttpResponseMessage>? PendingCatalogue { get; set; }
 
@@ -308,6 +354,6 @@ internal sealed class SiteTransport : HttpMessageHandler
             throw new AssertionException("站点夹具拒绝未登记读取");
         if (sites && PendingCatalogue is { } pending) return pending.Task;
         return Task.FromResult(new HttpResponseMessage(sites && FailCatalogue ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK)
-        { Content = new StringContent(sites ? Catalogue : "[]", Encoding.UTF8, "application/json") });
+        { Content = new StringContent(sites ? Catalogue : SearchResults, Encoding.UTF8, "application/json") });
     }
 }

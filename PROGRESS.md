@@ -1,3 +1,15 @@
+## MP 资源卡片点击下载、站点入口去底色与站点面板（2026-10-29）
+
+- 用户令三条：①「MP 资源页面去掉下载按钮，参考网页端源码改为点击卡片触发下载选择栏」；②去掉搜索栏「默认站点」的底色胶囊并美化站点多选面板；③「取消勾选使用 MoviePilot 默认站点时不要自动清空搜索内容」。本批直接在 master 开发，只改 MoviePilot 资源卡片、站点选择器、相关视图模型、探针、测试与文档。
+- 上游核对：官方前端 `jxxghp/MoviePilot-Frontend` 默认分支 v3，HEAD `3d8f54656f6f94a0f6fee83767076f9ccc92b931`（本轮 `git ls-remote --symref` 实读）。`src/components/cards/TorrentCard.vue` 的整卡 `@click` 打开 `AddDownloadDialog`、卡上无下载键，详情是 `@click.stop` 的方钮，已下载卡片加边框；`src/pages/resource.vue` 的站点筛选只筛已取回结果、不重发搜索。本地据此把下载入口搬到卡片，并让站点改动保留已显示结果。后端 `download/` 与 `search/media`、`search/title` 契约本批未改，也没有读取真实服务器版本或发起真实下载。
+- 卡片交互：`MoviePilotResourceRow` 以 `CardAutomationName`/`CardHint` 说明「点卡片打开下载设置」，底栏改为「体积 + 过程状态 + 身份待核对 + 详情方钮」，`State=Done` 时整圈强调色；`ItemsView` 打开 `IsItemInvokedEnabled` 并接 `ItemInvoked`，`MoviePilotResourceBrowser.OpenDownload` 是事件与探针共用的一支。身份待核对、已加入、结果不明时命令不可执行，点卡片无副作用并保留原因。
+- 站点选择器：`ChooseSites` 改为透明无边框（搜索框内只剩文字与箭头，悬停/按下仍由原生状态反馈）；弹出面板重排为「抬头 + 站点数、默认站点卡、目录列表、底栏全选/清空/刷新」，保留全部原句柄与 `Tag` 供探针。
+- 站点改动保留结果：`MoviePilotResourceViewModel`／`MoviePilotVersionsViewModel` 的 `OnSearchSitesChanged` 只作废在飞搜索，不清 `Browser`／字幕；有结果时用信息条说明「当前结果仍是上次搜索的，下一次搜索才按新站点重搜」。下载确认改用页面活跃期令牌（`BeginAction`），改站点不再让眼前卡片点不动；页面收起仍取消在飞对话框与请求，下次操作再开一段。目录读取/保存失败那句提示改为最后写入，避免被「站点已更改」信息条盖掉。
+- 测试：主测试 3313/3313、资源夹具 97/97（新增 R-035「站点变化保留结果且卡片仍能打开下载确认」「模板将卡片点击和状态接到真实 row」，站点偏好两条：更改站点不清空关键词结果、离页后重新进入仍可下载留下的卡片），0 失败 0 跳过。`Agreements.txt` 只删掉已退役的 `handle Views/MoviePilotResourceBrowser.xaml DownloadResource`（按钮整体移除，卡片点击替代该入口，`ResourceList` 句柄仍在），未整份接受新快照。
+- 探针：开发件 `--probe-shell --probe-section moviepilot,search --screen 1` 40/40、退出 0（`shell-probe-20261029-105307607-13376`）；补真实屏幕帧与「已加入下载」卡片后 moviepilot 26/26、退出 0（`shell-probe-20261029-110344490-7864`）。已查看：搜索框内无底色的站点入口、站点面板实屏、1040/720 卡片去下载键与状态底栏、120/760/360 资源布局与排序菜单。未执行区域按 scope 回执保留，非全量 Shell 自检。
+- 已知背景红项：`dotnet format whitespace ./Momoka.sln --verify-no-changes` 在当前 HEAD 上已有 17 个文件的空白问题（Core 的 `EmbyMetadataEdit`／`MoviePilotTransferCollect`、Shell 的 `ShellNavigationProbe.Accessibility` 等），本批改动文件均不在其中，未修改这些无关文件、未放宽基线。本批不是发版，未跑闸门 1/4。
+- 发布与发布件复验待收尾：本次提交后按闸门 3 刷新 `artifacts/publish/win-x64` 并核对桌面快捷方式，然后以发布件重跑 moviepilot,search 分区。未推送 origin、未改版本、无真实媒体下载/播放/整理或账号写入。
+
 ## 旧工作树最终结果（2026-10-29，主树交付完成，清理有三个限制）
 
 - 有用的MP媒体管理37份产品差异全部进入master，合并链 `20f719b`／`e3473f1`，表面与全主题／布局验证修正 `0dbe237`、订阅动画探针前置修正 `a72b5e23d195d8ac7428643d9ef905701d032503`。最终主树Core3313/3313、媒体管理35/35及相关八组专项全部通过；开发件moviepilot/settings49/49、订阅探针修后moviepilot26/26均通过。未执行区域明确保留，不冒充全量Shell或四道闸门发版。

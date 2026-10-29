@@ -71,6 +71,8 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     [ObservableProperty] public partial bool ExcludeHitAndRun { get; set; }
 
     public Visibility FiltersVisibility => _all.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+    /// <summary>当前这批结果有没有内容（不是当前筛剩几条）：改站点时用它判断要不要保留屏幕上的清单。</summary>
+    public bool HasResults => _all.Count > 0;
     public Visibility NoMatchesVisibility => _all.Count > 0 && Rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
     public string CountText => $"{Rows.Count} / {_all.Count} 个资源";
     public Visibility ActiveChoicesVisibility => ActiveChoices.Count > 0 ? Visibility.Visible : Visibility.Collapsed;

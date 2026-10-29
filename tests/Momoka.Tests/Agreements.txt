@@ -410,7 +410,6 @@ handle  Views/MoviePilotReorganizeDialog.xaml  TransferTypeBox
 handle  Views/MoviePilotReorganizeDialog.xaml  TypeBox
 handle  Views/MoviePilotReorganizeDialog.xaml  TypeFolderToggle
 handle  Views/MoviePilotResourceBrowser.xaml  DateFilter
-handle  Views/MoviePilotResourceBrowser.xaml  DownloadResource
 handle  Views/MoviePilotResourceBrowser.xaml  FilterExpander
 handle  Views/MoviePilotResourceBrowser.xaml  FilterText
 handle  Views/MoviePilotResourceBrowser.xaml  HitAndRunFilter

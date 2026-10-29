@@ -48,6 +48,8 @@ internal sealed partial class ShellNavigationProbe
             browser.ResetCommand.Execute(null);
             Require(ReferenceEquals(browser.Rows[0], first) && first.State == MoviePilotDownloadState.Uncertain,
                 "清除筛选丢失原行或下载状态");
+            // 截图里留一张「已加入下载」的卡：底栏状态字和整圈强调色都要在真实尺寸下看得见。
+            first.State = MoviePilotDownloadState.Done;
             Require(Get<ItemsView>(list, "ResourceList").ItemsSource == browser.Rows, "资源列表没有使用卡片结果集合");
             foreach (var width in new[] { 1040, 720, 520 })
             {
@@ -60,19 +62,23 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(720, 980);
             await LayoutAsync(view);
             await Task.Delay(450);
-            Require(Descendants(list).OfType<Button>().Any(button => button.Name == "DownloadResource" &&
-                AutomationProperties.GetName(button).Contains(first.Title, StringComparison.Ordinal)), "卡片下载入口不可定位");
+            // 卡片本身就是下载入口（2026-10-29）：不许再画下载键，点击走的是真实的 ItemsView 调用路径。
+            Require(Get<ItemsView>(list, "ResourceList").IsItemInvokedEnabled, "资源卡没有接到点击下载");
+            Require(!Descendants(list).OfType<Button>().Any(button => button.Name == "DownloadResource"),
+                "资源卡仍在画下载按钮");
             await SaveProbeScreenAsync("mp-resources-cards-screen.png");
 
             var row = browser.Rows[1];
-            var cancelled = row.DownloadCommand.ExecuteAsync(null);
+            Require(list.OpenDownload(row), "点卡片没有开始下载确认");
+            var cancelled = row.DownloadCommand.ExecutionTask!;
             var dialog = await DownloadDialogAsync();
             Require(dialog.DefaultButton == ContentDialogButton.None, "下载对话框不能由普通回车触发默认提交");
             InvokeDialog(dialog, "CloseButton");
             await cancelled;
             Require(server.Downloads.Count == 0 && row.State == MoviePilotDownloadState.Idle, "取消下载仍提交或锁住行");
 
-            var submitted = row.DownloadCommand.ExecuteAsync(null);
+            Require(list.OpenDownload(row), "第二次点卡片没有开始下载确认");
+            var submitted = row.DownloadCommand.ExecutionTask!;
             dialog = await DownloadDialogAsync();
             await UntilAsync(() => !dialog.ViewModel.Busy);
             Require(dialog.ViewModel.CanSubmit && Get<StackPanel>(dialog, "DownloadAdvanced").Visibility == Microsoft.UI.Xaml.Visibility.Collapsed,
@@ -151,17 +157,21 @@ internal sealed partial class ShellNavigationProbe
                 body.GetProperty("media_in").GetProperty("media_source").GetString() == "anilist" &&
                 body.GetProperty("media_in").GetProperty("media_id").GetString() == "74", "下载选项、核对媒体或跨站点资源传错");
 
-            var custom = browser.Rows[3].DownloadCommand.ExecuteAsync(null);
+            var custom = browser.Rows[3];
+            Require(list.OpenDownload(custom), "卡片第三次点击没有开始下载确认");
+            var customTask = custom.DownloadCommand.ExecutionTask!;
             dialog = await DownloadDialogAsync();
             await UntilAsync(() => !dialog.ViewModel.Busy);
             Get<ComboBox>(dialog, "DownloadPath").Text = "/downloads/custom path";
             InvokeDialog(dialog, "PrimaryButton");
-            await custom;
+            await customTask;
             Require(server.Downloads.Count == 2 && !server.Downloads[1].TryGetProperty("downloader", out _) &&
                 server.Downloads[1].GetProperty("save_path").GetString() == "/downloads/custom path", "默认下载器或自定义路径未正确提交");
 
             server.PendingChoices = Pending<bool>();
-            var pending = browser.Rows[2].DownloadCommand.ExecuteAsync(null);
+            var pendingRow = browser.Rows[2];
+            Require(list.OpenDownload(pendingRow), "卡片第四次点击没有开始下载确认");
+            var pending = pendingRow.DownloadCommand.ExecutionTask!;
             dialog = await DownloadDialogAsync();
             Require(dialog.ViewModel.Busy && !dialog.IsPrimaryButtonEnabled, "加载选项时允许提前提交");
             view.Release();
