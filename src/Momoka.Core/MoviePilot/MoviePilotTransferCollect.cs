@@ -23,8 +23,12 @@ public static class MoviePilotTransferCollect
     /// <summary>条目要补问哪些字段：文件路径加上身份那一小撮。</summary>
     private const string Fields = EmbyFields.Files + ",ProviderIds,IndexNumber,ParentIndexNumber,SeriesId,SeriesName";
 
+    /// <summary>
+    /// 手动整理默认整剧只收身份、资源清单取自整理历史；AniBT 识别按文件逐条配对，传入
+    /// <paramref name="seriesFiles"/> 时才展开剧下各集的文件。
+    /// </summary>
     public static async Task<MoviePilotTransferContext> CollectAsync(
-        EmbyClient client, EmbyItem item, CancellationToken cancellationToken)
+        EmbyClient client, EmbyItem item, CancellationToken cancellationToken, bool seriesFiles = false)
     {
         var detail = await client.GetItemAsync(item.Id, cancellationToken, Fields).ConfigureAwait(false);
 
@@ -52,7 +56,7 @@ public static class MoviePilotTransferCollect
             _ => null
         };
 
-        if (detail.Type == EmbyItemType.Series)
+        if (detail.Type == EmbyItemType.Series && !seriesFiles)
         {
             return new MoviePilotTransferContext(detail.Name, MoviePilotTransferRequest.TypeSeries,
                 mediaId ?? "", null, "", []) { BrowseSeriesHistory = true };

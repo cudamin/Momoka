@@ -151,7 +151,7 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         if (!AniBtEligibility.CanIdentify(item)
             && !await AniBtEligibility.ResolveAsync(emby, item, cancellationToken).ConfigureAwait(false))
             throw new MoviePilotOperationBlockedException("AniBT 识别支持剧集、季、单集和动漫电影");
-        var context = await MoviePilotTransferCollect.CollectAsync(emby, item, cancellationToken).ConfigureAwait(false);
+        var context = await MoviePilotTransferCollect.CollectAsync(emby, item, cancellationToken, seriesFiles: true).ConfigureAwait(false);
         moviePilot.CheckAniBtConnection(connection, cancellationToken);
         if (context.Files.Count == 0) throw new MoviePilotException("此条目没有可识别的单个视频文件");
         var rows = new List<AniBtScrapeRow>(context.Files.Count);
