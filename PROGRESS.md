@@ -9,7 +9,8 @@
 - **没有注入真实指针**：探针调的是指针处理里同一个 `TryDismiss`（几何判定与 `Hide` 都在里面），按下事件那一层的接线由源码契约盯着；真实鼠标按下那一下仍属未覆盖，不拿合成鼠标事件冒充。`MoviePilotDownloadDialog` 本轮没有重拍截图（表面值一个没动，只多了一行只带附加属性的样式）。
 - 闸门 4：`tools/selfcheck-diff.ps1` 对发布件 **绿｜186 项、失败 0、消失 0、降级 0、新增 0**（`artifacts/selfcheck/run-eef7043dcb174c16b7e34e43c95a206b`，登录状态「已登录 donxuelian @ 果服」，不是降级跑法）。
 - 闸门 3：`tools/publish.ps1 -NoArchive -Shortcut` 通过，546 文件／284.8 MB、14 GLSL／4 HOOK／批准 mpv 59 文件逐项校验；快捷方式那一步仍被桌面 `Momoka.lnk` 的拒绝写入挡住，按既有绕法改名→重建→删备份，读回 `artifacts\publish\win-x64\Momoka.exe`。
-- 未推送 origin、未改版本、无真实媒体写入或播放。产品提交见下方提交记录。
+- 已知背景红项：`dotnet format whitespace ./Momoka.sln --verify-no-changes` 在当前 HEAD 上仍有 171 行既有空白问题（`ShellNavigationProbe.Accessibility`、`FocusWatchTests`、`ResourceSortMenuTests` 等），本批改动文件一行未命中，未修改这些无关文件、未放宽基线。本批不是发版，未跑完整构建与分析器哈希检查。
+- 未推送 origin、未改版本、无真实媒体写入或播放。产品提交 `7c90465`。
 
 ## 项目规则新增「参考与复刻先读源码」（2026-10-29）
 
