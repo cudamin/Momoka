@@ -52,9 +52,8 @@ internal sealed partial class ShellNavigationProbe
                 finally
                 {
                     content.Children.Remove(host);
-                    if (host is ItemContainer container) container.Child = null;
-                    else ((Button)host).Content = null;
-                    // 卸载完成后再创建下一组，避免 Loaded 周期交叠。
+                    // ItemContainer.Child does not accept null. Removing the whole temporary host
+                    // ends its visual lifetime; no child is reused by the next case.
                     await LayoutAsync(content);
                 }
             }
