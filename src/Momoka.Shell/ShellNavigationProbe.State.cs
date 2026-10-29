@@ -598,12 +598,12 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/Items/Resume", StringComparison.Ordinal))
                 return Task.FromResult(Json(new
                 {
-                    Items = new[] { Movie("movie"), Episode("ep-3", "show"), Episode("ep-12", "show-b") },
+                    Items = new[] { Movie("movie"), ResumeEpisode("ep-3", "show"), ResumeEpisode("ep-12", "show-b") },
                     TotalRecordCount = 3
                 }));
             if (path.EndsWith("/Shows/NextUp", StringComparison.Ordinal))
                 return Task.FromResult(Query(request, "SeriesId") == "show"
-                    ? Json(new { Items = new[] { Episode("ep-4", "show") }, TotalRecordCount = 1 })
+                    ? Json(new { Items = new[] { ResumeEpisode("ep-4", "show") }, TotalRecordCount = 1 })
                     : Json(new { Items = Array.Empty<EmbyItem>(), TotalRecordCount = 0 }));
             return Task.FromResult(FakeTransport.Standard(request));
         };
@@ -615,11 +615,17 @@ internal sealed partial class ShellNavigationProbe
         var shelf = home.Shelves[0];
         Require(shelf.Title == "继续观看", $"主页第一排该是继续观看，实际是「{shelf.Title}」");
 
+        Require(shelf.Cards[1].Title == "剧名-show" && shelf.Cards[1].Subtitle == "S01E03 - ep-3",
+            "首页继续观看初次加载没有互换剧名与集名");
+
         // 单集：那一格换成本剧的下一集，位置不动、总数不变。
         ItemCommands.ToggleWatched(fixture.Session, fixture.Actions, Card(shelf, "ep-3"), home.MarkedWatched);
         await UntilAsync(() => shelf.Cards.Any(card => card.Item.Id == "ep-4"));
         Require(shelf.Cards.Count == 3 && shelf.Cards[1].Item.Id == "ep-4",
             $"主页那一排：单集标记已看后该在原位换成下一集，实际 {Ids(shelf.Cards)}");
+
+        Require(shelf.Cards[1].Title == "剧名-show" && shelf.Cards[1].Subtitle == "S01E04 - ep-4",
+            "首页继续观看换集后丢失剧名与短横线格式");
 
         // 电影：整格撤掉。
         ItemCommands.ToggleWatched(fixture.Session, fixture.Actions, Card(shelf, "movie"), home.MarkedWatched);
@@ -653,6 +659,14 @@ internal sealed partial class ShellNavigationProbe
         await UntilAsync(() => page.Cards.All(card => card.Item.Id != "movie"));
         Require(page.Cards.Count == 2, $"继续观看那一页：电影标记已看后该移出，实际 {Ids(page.Cards)}");
         page.Cancel();
+        static EmbyItem ResumeEpisode(string id, string series)
+        {
+            var item = Episode(id, series);
+            item.SeriesName = "剧名-" + series;
+            item.ParentIndexNumber = 1;
+            item.IndexNumber = int.Parse(id[3..], System.Globalization.CultureInfo.InvariantCulture);
+            return item;
+        }
     }
 
     private static CardItem Card(CardShelf shelf, string id) =>

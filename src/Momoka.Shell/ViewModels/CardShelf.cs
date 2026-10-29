@@ -36,6 +36,8 @@ public sealed partial class CardShelf : ObservableObject
     private readonly bool _wide;
     private readonly bool _indicators;
     private readonly bool _sourceLine;
+    private Func<EmbyItem, string?>? _cardSubtitle;
+    private Func<EmbyItem, string?>? _cardTitle;
 
     /// <param name="wide">
     /// True for a 16:9 row, which prefers the episode still over the poster — a 继续观看 card is about
@@ -147,6 +149,8 @@ public sealed partial class CardShelf : ObservableObject
         // （两者的分工见 CardItem.ReleasePoster 上那段）。
         foreach (var card in Cards) card.AbandonPoster();
         Cards.Clear();
+        _cardSubtitle = null;
+        _cardTitle = null;
     }
 
     /// <summary>
@@ -156,18 +160,18 @@ public sealed partial class CardShelf : ObservableObject
     /// </summary>
     /// <param name="subtitle">Overrides every card's second line, from the item it belongs to.</param>
     /// <param name="title">
-    /// Overrides every card's title. Only the home page's 媒体库 row uses it, to put the server name in
-    /// front of each library name while more than one account is online.
+    /// Overrides every card's title, for example the home page's library source prefix and the
+    /// series name on its resume cards. Retained with the subtitle for a next-episode replacement.
     /// </param>
     internal void Fill(IEnumerable<EmbyItem> items, Func<EmbyItem, string?>? subtitle = null,
         Func<EmbyItem, string?>? title = null)
     {
         Clear();
+        _cardSubtitle = subtitle;
+        _cardTitle = title;
 
         foreach (var item in items)
-            Cards.Add(new CardItem(
-                item, _images, _width, _wide, subtitle?.Invoke(item), _indicators,
-                title: title?.Invoke(item), sourceLine: _sourceLine));
+            Cards.Add(NewCard(item));
     }
 
     /// <summary>
@@ -194,7 +198,8 @@ public sealed partial class CardShelf : ObservableObject
     /// 换卡的那一头不该知道那三样、更不该各写一份。
     /// </summary>
     internal CardItem NewCard(EmbyItem item) =>
-        new(item, _images, _width, _wide, subtitle: null, _indicators, sourceLine: _sourceLine);
+        new(item, _images, _width, _wide, _cardSubtitle?.Invoke(item), _indicators,
+            title: _cardTitle?.Invoke(item), sourceLine: _sourceLine);
 
     /// <summary>
     /// The same, for a shelf drawn as 列表 rows rather than as cards — 详情页's 单集 list. Its own path

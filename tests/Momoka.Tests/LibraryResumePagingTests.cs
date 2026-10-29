@@ -35,6 +35,51 @@ internal static class LibraryResumePagingTests
 
     private static void Register(ShellFixture shell)
     {
+        Case("首页继续观看文案：真实货架 Fill、换集与重新填充保持各自格式", async () =>
+        {
+            using var fixture = new Fixture(shell, 1);
+            await fixture.Load();
+            var home = fixture.CreateHome(fixture.Cards[0]);
+            var shelf = ((System.Collections.IEnumerable)shell.Get<object>(home, "Shelves")).Cast<object>().Single();
+            try
+            {
+                var first = Item("caption-first");
+                first.Name = "父亲";
+                first.SeriesName = "死亡笔记";
+                first.IndexNumber = 29;
+                Fill([first], HomeResumeText.Subtitle, HomeResumeText.Title);
+                var card = ((System.Collections.IEnumerable)shell.Get<object>(shelf, "Cards")).Cast<object>().Single();
+                Assert.Equal("死亡笔记", shell.Get<string>(card, "Title"));
+                Assert.Equal("S01E29 - 父亲", shell.Get<string>(card, "Subtitle"));
+
+                var next = Item("caption-next", resumable: false);
+                next.Name = "正义";
+                next.SeriesName = "死亡笔记";
+                next.IndexNumber = 30;
+                var replacement = shell.Invoke(shelf, "NewCard", next)!;
+                Assert.Equal("死亡笔记", shell.Get<string>(replacement, "Title"));
+                Assert.Equal("S01E30 - 正义", shell.Get<string>(replacement, "Subtitle"));
+
+                // Reusing the shelf for ordinary cards must not retain the resume selectors.
+                Fill([next], null, null);
+                replacement = shell.Invoke(shelf, "NewCard", next)!;
+                Assert.Equal("正义", shell.Get<string>(replacement, "Title"));
+                Assert.Equal(next.CardSubtitle, shell.Get<string>(replacement, "Subtitle"));
+
+                Fill([first], HomeResumeText.Subtitle, HomeResumeText.Title);
+                shell.Invoke(shelf, "Clear");
+                replacement = shell.Invoke(shelf, "NewCard", next)!;
+                Assert.Equal("正义", shell.Get<string>(replacement, "Title"));
+                Assert.Equal(next.CardSubtitle, shell.Get<string>(replacement, "Subtitle"));
+            }
+            finally { ((IDisposable)home).Dispose(); }
+
+            void Fill(IEnumerable<EmbyItem> items, Func<EmbyItem, string?>? subtitle, Func<EmbyItem, string?>? title) =>
+                shelf.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Single(method => method.Name == "Fill" && method.GetParameters().Length == 3)
+                    .Invoke(shelf, [items, subtitle, title]);
+        });
+
         foreach (var playedAgain in new[] { false, true })
             Case($"主页已看回填：同屏副本改未看{(playedAgain ? "再已看" : "")}后只应用最新NextUp", async () =>
             {

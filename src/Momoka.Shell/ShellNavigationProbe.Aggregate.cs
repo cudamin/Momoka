@@ -33,7 +33,11 @@ internal sealed partial class ShellNavigationProbe
             if (path.EndsWith("/Items/Latest", StringComparison.Ordinal))
                 return Task.FromResult(Json(Enumerable.Range(0, 4).Select(index => AggregateMovie(index, host)).ToArray()));
             if (path.EndsWith("/Items/Resume", StringComparison.Ordinal))
-                return Task.FromResult(AggregatePage(host, "", 0, 2, 2));
+                return Task.FromResult(Json(new
+                {
+                    Items = new[] { AggregateResumeEpisode(host), AggregateMovie(1, host) },
+                    TotalRecordCount = 2
+                }));
             if (path.EndsWith("/Shows/NextUp", StringComparison.Ordinal)) return Task.FromResult(Items(0, 0));
             if (path.EndsWith("/Items/shared-0", StringComparison.Ordinal))
                 return Task.FromResult(Json(AggregateMovie(0, host)));
@@ -188,7 +192,12 @@ internal sealed partial class ShellNavigationProbe
             foreach (var card in matches)
             {
                 var item = card.Card!;
-                var expected = item.Item.Type == EmbyItemType.CollectionFolder ? "" : item.Item.CardSubtitle;
+                var isResume = resume is not null && resume.Cards.Contains(item);
+                var expected = item.Item.Type == EmbyItemType.CollectionFolder ? ""
+                    : isResume ? HomeResumeText.Subtitle(item.Item) : item.Item.CardSubtitle;
+                if (isResume)
+                    Require(Get<TextBlock>(card, "TitleLine").Text == HomeResumeText.Title(item.Item),
+                        "首页继续观看没有把剧名放在标题行");
                 var subtitle = Get<TextBlock>(card, "SubLine");
                 Require(subtitle.Text == expected, "浏览卡片不应追加服务器名称或用户名");
                 Require(item.RowInfo == (ItemDetail.EpisodeRowInfo(item.Item) is { Length: > 0 } info ? info : null),
@@ -252,6 +261,18 @@ internal sealed partial class ShellNavigationProbe
         ImageTags = new() { ["Primary"] = "shared-poster" },
         BackdropImageTags = ["shared-backdrop"]
     };
+
+    private static EmbyItem AggregateResumeEpisode(string host)
+    {
+        var item = AggregateMovie(0, host);
+        item.Type = EmbyItemType.Episode;
+        item.Name = "父亲";
+        item.SeriesName = "死亡笔记";
+        item.SeriesId = "resume-series";
+        item.ParentIndexNumber = 1;
+        item.IndexNumber = 29;
+        return item;
+    }
 
     private static EmbyItem AggregateMovie(int index, string host, string term = "共享影片") => new()
     {
