@@ -41,6 +41,7 @@ internal static class Program
         if (args is [_, "search-sites"]) return Run();
         SearchCompactMergeTests.Register(sourceRoot);
         ResourceSortMenuTests.Register(sourceRoot);
+        SeriesResourceViewTests.Register(sourceRoot);
         foreach (var meta in new[] { false, true })
         {
             Test("R-033 精确E05初筛、清除和重新选择 meta=" + meta, () =>

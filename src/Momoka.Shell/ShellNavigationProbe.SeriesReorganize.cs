@@ -37,27 +37,28 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(picker);
             Require(Get<TextBlock>(picker, "SeriesQuery").Text == "tmdbid=283938", "当前剧筛选条件未固定显示");
             var list = Get<ListView>(picker, "SeriesResources");
-            Require(list.SelectionMode == ListViewSelectionMode.Multiple && !list.IsMultiSelectCheckBoxEnabled,
-                "清单没有保留原生多选或还显示框架的灰条复选区");
+            Require(list.SelectionMode == ListViewSelectionMode.None && list.IsItemClickEnabled && !list.IsMultiSelectCheckBoxEnabled,
+                "清单仍有会在重排时丢失的原生选择，或关闭了整行选择入口");
             var selectionBox = Descendants(list).OfType<CheckBox>().First(box => box.Name == "SelectSeriesResource");
             Require(selectionBox.VerticalAlignment == VerticalAlignment.Top &&
                 AutomationProperties.GetName(selectionBox).Contains("学生会也有洞", StringComparison.Ordinal), "资源复选框没有顶部对齐或无法定位");
             var toggle = (IToggleProvider)new CheckBoxAutomationPeer(selectionBox).GetPattern(PatternInterface.Toggle);
             toggle.Toggle();
-            Require(list.SelectedItems.Count == 1 && picker.ViewModel.Rows[0].Selected && picker.ViewModel.SelectedCount == 1,
+            Require(picker.ViewModel.SelectedCount == 1 && picker.ViewModel.Rows[0].Selected && picker.ViewModel.SelectedCount == 1,
                 "复选框勾选未同步列表选择或重复切换");
             toggle.Toggle();
-            Require(list.SelectedItems.Count == 0 && !picker.ViewModel.Rows[0].Selected, "取消勾选未同步列表选择");
-            Require(list.SelectedItems.Count == 0 && !picker.IsPrimaryButtonEnabled, "清单不能默认授权整理所有文件");
-            list.SelectedItems.Add(picker.ViewModel.Rows[0]);
-            list.SelectedItems.Add(picker.ViewModel.Rows[1]);
+            Require(picker.ViewModel.SelectedCount == 0 && !picker.ViewModel.Rows[0].Selected, "取消勾选未同步列表选择");
+            Require(picker.ViewModel.SelectedCount == 0 && !picker.IsPrimaryButtonEnabled, "清单不能默认授权整理所有文件");
+            picker.ViewModel.SetSelected([picker.ViewModel.Rows[0]], true);
+            picker.ViewModel.SetSelected([picker.ViewModel.Rows[1]], true);
             Require(picker.ViewModel.SelectedCount == 2 && picker.IsPrimaryButtonEnabled, "多选与批量按钮没有同步");
             var retained = picker.ViewModel.Rows[0];
             InvokeSeriesButton(picker, "ClearResourceSelection");
-            Require(list.SelectedItems.Count == 0 && !picker.IsPrimaryButtonEnabled && ReferenceEquals(retained, picker.ViewModel.Rows[0]),
+            Require(picker.ViewModel.SelectedCount == 0 && !picker.IsPrimaryButtonEnabled && ReferenceEquals(retained, picker.ViewModel.Rows[0]),
                 "清空选择丢失行对象或没有关闭继续入口");
+            await MoviePilotSeriesResourceBrowserAsync(picker, server);
             InvokeSeriesButton(picker, "SelectAllResources");
-            Require(list.SelectedItems.Count == 6 && picker.ViewModel.SelectedCount == 6 && picker.ViewModel.Rows.All(row => row.Selected),
+            Require(picker.ViewModel.SelectedCount == 6 && picker.ViewModel.Rows.All(row => row.Selected),
                 "全选未选齐当前剧资源或没有同步复选框");
             foreach (var width in new[] { 1120, 760, 420 })
             {
@@ -74,9 +75,7 @@ internal sealed partial class ShellNavigationProbe
             {
                 ThemeHost.Apply(theme.Id);
                 await LayoutAsync(picker);
-                var presenter = Descendants(list).OfType<ListViewItemPresenter>().First();
-                Require(presenter.SelectedBackground is SolidColorBrush selectedBrush && selectedBrush.Color.A == 0 &&
-                    presenter.SelectedPointerOverBackground is SolidColorBrush hoverBrush && hoverBrush.Color.A == 0,
+                Require(list.SelectionMode == ListViewSelectionMode.None && !list.IsMultiSelectCheckBoxEnabled,
                     "资源选择区仍残留原生方形灰色竖带");
                 Require(Descendants(list).OfType<CheckBox>().Where(box => box.Name == "SelectSeriesResource")
                     .All(box => box.IsChecked == true && box.VerticalAlignment == VerticalAlignment.Top), "主题切换丢失复选框选中或顶部对齐");
@@ -86,9 +85,9 @@ internal sealed partial class ShellNavigationProbe
                     actionBrush.Color != closeBrush.Color, "批量整理与取消使用相同背景，主要操作不清晰");
                 await SaveProbeScreenAsync($"mp-series-reorganize-{theme.Id}-screen.png");
             }
-            list.SelectedItems.Clear();
-            list.SelectedItems.Add(picker.ViewModel.Rows[0]);
-            list.SelectedItems.Add(picker.ViewModel.Rows[1]);
+            picker.ViewModel.ClearSelection();
+            picker.ViewModel.SetSelected([picker.ViewModel.Rows[0]], true);
+            picker.ViewModel.SetSelected([picker.ViewModel.Rows[1]], true);
             InvokeSeriesButton(picker, "PrimaryButton");
             Require(await showing == ContentDialogResult.Primary && picker.SelectedHistories.Count == 2,
                 "批量入口没有把实际选择交回下一张表单");
@@ -230,7 +229,7 @@ internal sealed partial class ShellNavigationProbe
                     dest = Target(index),
                     image = "https://images.invalid/poster.png",
                     size = 375_000_000L,
-                    src_fileitem = new { storage = "local", type = "file", path = Source(index), size = 375_000_000L },
+                    src_fileitem = new { storage = "local", type = "file", path = Source(index), size = 375_000_000L + index },
                     dest_fileitem = new { storage = "local", type = "file", path = Target(index) }
                 }).ToArray();
                 return Json(new { success = true, data = new { total = list.Length, list } });

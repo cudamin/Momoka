@@ -10,6 +10,19 @@
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanContinue, Mode=OneWay}"
     CloseButtonText="取消" DefaultButton="None" PrimaryButtonClick="OnContinue">
     <ContentDialog.Resources>
+        <CollectionViewSource x:Name="SeriesGroupsSource" IsSourceGrouped="True" />
+        <!-- 清单上的菜单使用实色浮层，长路径不能从底下透过来干扰选项文字。 -->
+        <Style x:Key="SeriesResourceMenuStyle" TargetType="MenuFlyoutPresenter">
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceElevatedBrush}" />
+            <Setter Property="Foreground" Value="{ThemeResource EgTextBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
+        </Style>
+        <Style x:Key="SeriesGroupHeaderStyle" TargetType="ListViewHeaderItem">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
         <x:Double x:Key="ContentDialogMaxWidth">1040</x:Double>
         <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
         <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
@@ -48,14 +61,73 @@
                 <TextBlock Text="{x:Bind ViewModel.CountLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
             </local:WrapRow>
         </StackPanel>
-        <Grid Grid.Row="1" ColumnSpacing="12">
-            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+        <StackPanel Grid.Row="1" Spacing="8">
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                <AutoSuggestBox x:Name="ResourceSearch" PlaceholderText="搜索标题、季集或路径，支持 * / ?"
+                    Text="{x:Bind ViewModel.SearchText, Mode=TwoWay}" QueryIcon="Find" VerticalAlignment="Center"
+                    TextChanged="OnSearchTextChanged" QuerySubmitted="OnSearchSubmitted" AutomationProperties.Name="搜索当前剧的整理资源"
+                    ToolTipService.ToolTip="输入自定义关键词；多个词用空格分隔，* 匹配任意文字，? 匹配一个字符。" />
+                <Button x:Name="ReloadResources" Grid.Column="1" Content="刷新" Click="OnReload" VerticalAlignment="Center"
+                    IsEnabled="{x:Bind local:MoviePilotSeriesReorganizeDialog.CanReload(ViewModel.Busy), Mode=OneWay}" Style="{StaticResource EgSecondaryButtonStyle}" />
+            </Grid>
+            <local:WrapRow Spacing="8">
+                <Button x:Name="StatusFilterButton" Style="{StaticResource EgSecondaryButtonStyle}"
+                    AutomationProperties.Name="{x:Bind ViewModel.StatusAutomationName, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE71C;" FontSize="{StaticResource EgCaptionFontSize}" />
+                        <TextBlock Text="{x:Bind ViewModel.StatusLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
+                        <FontIcon Glyph="&#xE70D;" FontSize="{StaticResource EgCaptionFontSize}" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout x:Name="StatusFilterMenu" Opening="OnMenuOpening" Placement="Bottom" ShouldConstrainToRootBounds="True" MenuFlyoutPresenterStyle="{StaticResource SeriesResourceMenuStyle}">
+                            <RadioMenuFlyoutItem x:Name="StatusAll" Text="全部" Tag="All" Click="OnStatusFilter" />
+                            <RadioMenuFlyoutItem x:Name="StatusSuccess" Text="成功" Tag="Success" Click="OnStatusFilter">
+                                <RadioMenuFlyoutItem.Icon><FontIcon Glyph="&#xE73E;" Foreground="{ThemeResource EgAccentBrush}" /></RadioMenuFlyoutItem.Icon>
+                            </RadioMenuFlyoutItem>
+                            <RadioMenuFlyoutItem x:Name="StatusFailed" Text="失败" Tag="Failed" Click="OnStatusFilter">
+                                <RadioMenuFlyoutItem.Icon><FontIcon Glyph="&#xE783;" Foreground="{ThemeResource EgDangerBrush}" /></RadioMenuFlyoutItem.Icon>
+                            </RadioMenuFlyoutItem>
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="ResourceSortButton" Style="{StaticResource EgSecondaryButtonStyle}"
+                    AutomationProperties.Name="{x:Bind ViewModel.SortAutomationName, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE8CB;" FontSize="{StaticResource EgCaptionFontSize}" />
+                        <TextBlock Text="{x:Bind ViewModel.SortLabel, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" />
+                        <FontIcon Glyph="&#xE70D;" FontSize="{StaticResource EgCaptionFontSize}" />
+                    </StackPanel>
+                    <Button.Flyout>
+                        <MenuFlyout x:Name="ResourceSortMenu" Opening="OnMenuOpening" Placement="Bottom" ShouldConstrainToRootBounds="True" MenuFlyoutPresenterStyle="{StaticResource SeriesResourceMenuStyle}">
+                            <RadioMenuFlyoutItem x:Name="SortDefault" Text="默认顺序" Tag="Default" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Name="SortTitle" Text="标题" Tag="Title" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Name="SortPath" Text="路径" Tag="Path" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Name="SortMode" Text="转移方式" Tag="Mode" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Name="SortSize" Text="大小" Tag="Size" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Name="SortTime" Text="时间" Tag="Time" Click="OnSort" />
+                            <RadioMenuFlyoutItem x:Name="SortStatus" Text="状态" Tag="Status" Click="OnSort" />
+                            <MenuFlyoutSeparator Visibility="{x:Bind ViewModel.DirectionVisibility, Mode=OneWay}" />
+                            <MenuFlyoutItem x:Name="SortDirection" Text="{x:Bind ViewModel.DirectionAction, Mode=OneWay}"
+                                Visibility="{x:Bind ViewModel.DirectionVisibility, Mode=OneWay}" Click="OnSortDirection" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+                <Button x:Name="ResourceViewButton" Style="{StaticResource EgIconButtonStyle}"
+                    AutomationProperties.Name="{x:Bind ViewModel.ViewAutomationName, Mode=OneWay}" ToolTipService.ToolTip="列表 / 分组模式">
+                    <FontIcon Glyph="{x:Bind ViewModel.ViewGlyph, Mode=OneWay}" />
+                    <Button.Flyout>
+                        <MenuFlyout x:Name="ResourceViewMenu" Opening="OnMenuOpening" Placement="Bottom" ShouldConstrainToRootBounds="True" MenuFlyoutPresenterStyle="{StaticResource SeriesResourceMenuStyle}">
+                            <RadioMenuFlyoutItem x:Name="ViewList" Text="列表模式" Tag="False" Click="OnViewMode" />
+                            <RadioMenuFlyoutItem x:Name="ViewGrouped" Text="分组模式" Tag="True" Click="OnViewMode" />
+                        </MenuFlyout>
+                    </Button.Flyout>
+                </Button>
+            </local:WrapRow>
             <InfoBar x:Name="ResourceProblem" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=OneWay}" IsClosable="False"
                 Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
                 Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-            <Button x:Name="ReloadResources" Grid.Column="1" Content="刷新" Click="OnReload" VerticalAlignment="Center"
-                IsEnabled="{x:Bind local:MoviePilotSeriesReorganizeDialog.CanReload(ViewModel.Busy), Mode=OneWay}" Style="{StaticResource EgSecondaryButtonStyle}" />
-        </Grid>
+        </StackPanel>
         <Grid Grid.Row="2" ColumnSpacing="12" Visibility="{x:Bind ViewModel.SelectionVisibility, Mode=OneWay}">
             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Spacing="8">
@@ -66,8 +138,8 @@
                 Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite" />
         </Grid>
         <Grid Grid.Row="3" MinHeight="120">
-            <ListView x:Name="SeriesResources" ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="Multiple"
-                IsMultiSelectCheckBoxEnabled="False" SelectionChanged="OnSelectionChanged" HorizontalContentAlignment="Stretch"
+            <ListView x:Name="SeriesResources" SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnResourceClicked"
+                IsMultiSelectCheckBoxEnabled="False" HorizontalContentAlignment="Stretch"
                 IsEnabled="{x:Bind ViewModel.CanSelect, Mode=OneWay}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                 ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="当前剧的整理资源">
                 <ListView.Resources>
@@ -80,6 +152,30 @@
                     <SolidColorBrush x:Key="ListViewItemBackgroundPressed" Color="Transparent" />
                     <x:Boolean x:Key="ListViewItemSelectionIndicatorVisualEnabled">False</x:Boolean>
                 </ListView.Resources>
+                <ListView.ItemsPanel>
+                    <ItemsPanelTemplate><ItemsStackPanel AreStickyGroupHeadersEnabled="False" /></ItemsPanelTemplate>
+                </ListView.ItemsPanel>
+                <ListView.GroupStyle>
+                    <GroupStyle HidesIfEmpty="False" HeaderContainerStyle="{StaticResource SeriesGroupHeaderStyle}">
+                        <GroupStyle.HeaderTemplate>
+                            <DataTemplate x:DataType="vm:MoviePilotSeriesTransferGroup">
+                                <Grid Margin="0,4,0,8" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                    <Button x:Name="ToggleSeriesResourceGroup" Tag="{x:Bind}" Click="OnGroupToggle" HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left" AutomationProperties.Name="{x:Bind AutomationName}">
+                                        <local:WrapRow Spacing="8">
+                                            <FontIcon Glyph="{x:Bind ChevronGlyph, Mode=OneWay}" FontSize="{StaticResource EgCaptionFontSize}" />
+                                            <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Text="{x:Bind CountLabel}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                                        </local:WrapRow>
+                                    </Button>
+                                    <Button x:Name="SelectSeriesResourceGroup" Grid.Column="1" Tag="{x:Bind}" Content="全选本组"
+                                        Click="OnSelectGroup" AutomationProperties.Name="{x:Bind AutomationName}" />
+                                </Grid>
+                            </DataTemplate>
+                        </GroupStyle.HeaderTemplate>
+                    </GroupStyle>
+                </ListView.GroupStyle>
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -93,7 +189,7 @@
                             <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <CheckBox x:Name="SelectSeriesResource" IsChecked="{x:Bind Selected, Mode=TwoWay}"
                                 MinWidth="24" MinHeight="24" Padding="0" Margin="4,12,0,0" VerticalAlignment="Top"
-                                Checked="OnResourceCheckChanged" Unchecked="OnResourceCheckChanged" Tapped="OnSelectionTapped"
+                                Tapped="OnSelectionTapped"
                                 AutomationProperties.Name="{x:Bind SelectionName}" />
                         <Border Grid.Column="1" Padding="12" Background="{ThemeResource EgSurfaceAltBrush}" CornerRadius="{StaticResource EgCardCornerRadius}"
                             AutomationProperties.Name="{x:Bind AutomationName}" Loaded="OnResourceLoaded" DataContextChanged="OnResourceContextChanged">
@@ -139,8 +235,8 @@
             <ProgressRing x:Name="ResourcesLoading" Width="32" Height="32" IsActive="{x:Bind ViewModel.Busy, Mode=OneWay}"
                 Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center" />
             <StackPanel x:Name="ResourcesEmpty" Spacing="8" Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="没有找到当前剧的整理记录" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
-                <TextBlock Text="可刷新重试，或在 MoviePilot 媒体整理中核对这部剧的 TMDB 编号。" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxWidth="360" />
+                <TextBlock Text="{x:Bind ViewModel.EmptyTitle, Mode=OneWay}" Style="{StaticResource EgBodyStyle}" TextWrapping="Wrap" />
+                <TextBlock Text="{x:Bind ViewModel.EmptyMessage, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxWidth="360" />
             </StackPanel>
         </Grid>
         <TextBlock Grid.Row="4" Text="选择资源后继续核对整理设置与预览，再确认提交。" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" TextWrapping="Wrap" />

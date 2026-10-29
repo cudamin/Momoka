@@ -25,15 +25,7 @@ public sealed partial class MoviePilotSeriesTransferRow(MoviePilotTransferHistor
     public string Status => History.Success ? "成功" : "失败";
     public Visibility SuccessVisibility => History.Success ? Visibility.Visible : Visibility.Collapsed;
     public Visibility FailureVisibility => History.Success ? Visibility.Collapsed : Visibility.Visible;
-    public string Mode => History.Mode switch
-    {
-        "copy" => "复制",
-        "move" => "移动",
-        "link" => "硬链接",
-        "softlink" => "软链接",
-        "" => "方式未返回",
-        var mode => mode
-    };
+    public string Mode => MoviePilotTransferHistoryView.ModeLabel(History.Mode);
     public string Details => string.Join(" · ", new[] { Mode, TimeFormat.FileSize(History.Size), History.Date }
         .Where(value => value.Length > 0));
     [ObservableProperty]

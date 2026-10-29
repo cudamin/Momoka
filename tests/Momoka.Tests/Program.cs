@@ -145,6 +145,7 @@ internal static class Program
         if (args is ["moviepilot-series-transfer-fixture"])
         {
             MoviePilotSeriesTransferTests.Register();
+            MoviePilotTransferHistoryViewTests.Register();
             MoviePilotTransferTests.Register();
             MoviePilotAuditTests.Register();
             MoviePilotTransferSubmissionTests.Register();
@@ -278,6 +279,7 @@ internal static class Program
         MoviePilotAuditTests.Register();
         MoviePilotTransferTests.Register();
         MoviePilotSeriesTransferTests.Register();
+        MoviePilotTransferHistoryViewTests.Register();
         MoviePilotTransferSubmissionTests.Register();
         MoviePilotVersionQueryTests.Register();
         MoviePilotEpisodePatternTests.Register();

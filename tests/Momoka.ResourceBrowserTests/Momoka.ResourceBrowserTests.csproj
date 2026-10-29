@@ -19,6 +19,9 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotResourceFacet.cs" Link="Production\MoviePilotResourceFacet.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSitePickerViewModel.cs" Link="Production\MoviePilotSitePickerViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Platform\SystemLauncher.cs" Link="Production\SystemLauncher.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSeriesReorganizeViewModel.cs" Link="Production\MoviePilotSeriesReorganizeViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSeriesTransferRow.cs" Link="Production\MoviePilotSeriesTransferRow.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSeriesTransferGroup.cs" Link="Production\MoviePilotSeriesTransferGroup.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
   </ItemGroup>
 </Project>
