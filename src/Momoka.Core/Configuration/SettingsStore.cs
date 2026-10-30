@@ -13,12 +13,16 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
 {
     private const string Category = "settings";
     private readonly object _gate = new();
+    // 编辑登记不能等待磁盘锁；滑块的热路径只递增代次，不快照、不做 IO。
+    private readonly object _stateGate = new();
+    private long _editVersion;
+    private long _savedVersion;
     private bool _hasUnsavedChanges;
 
     /// <summary>包括会话直接保存的失败；所有页面读取同一份状态，而非各自记最后一次保存。</summary>
     public bool HasUnsavedChanges
     {
-        get { lock (_gate) return _hasUnsavedChanges; }
+        get { lock (_stateGate) return _hasUnsavedChanges; }
     }
 
     public event EventHandler? SaveStateChanged;
@@ -113,41 +117,105 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
         return SettingsMigration.FromJson(json, protector);
     }
 
+    internal long PendingVersion
+    {
+        get { lock (_stateGate) return _savedVersion < _editVersion ? _editVersion : 0; }
+    }
+
+    internal void RegisterDeferredChange()
+    {
+        lock (_stateGate) _editVersion++;
+    }
+
+    /// <summary>
+    /// 必须由活设置的拥有线程调用。JsonElement 独立持有序列化结果；后台只读它，
+    /// 不枚举 WinUI 正在绑定/编辑的对象或列表。捕获期间若有另一同步保存，旧代次作废。
+    /// </summary>
+    internal SettingsSaveSnapshot? CapturePendingSave(AppSettings settings)
+    {
+        var version = PendingVersion;
+        if (version == 0) return null;
+        try
+        {
+            var document = JsonSerializer.SerializeToElement(settings, SettingsSerializer.WriteOptions);
+            return PendingVersion == version ? new(version, document) : null;
+        }
+        catch (Exception error)
+        {
+            RecordSaveFailure(version, error);
+            throw;
+        }
+    }
+
     public void Save(AppSettings settings)
     {
+        long version = 0;
         try
         {
             lock (_gate)
             {
-                // 保存结果与文件写入在同一锁内排序；旧失败不能在另一调用者成功后才覆盖 flag。
-                try
-                {
-                    // 会话可在线程池保存，UI 同时仍在编辑这份活对象。文件锁只排序保存，不能授权
-                    // Normalize 把捕获的旧列表写回 UI。只整理独立文档，加载/显式恢复仍负责就地归一化。
-                    // 直接反序列化当前形状，不经过 FromJson 的历史迁移；快照失败沿原欠项反馈处理。
-                    var document = JsonSerializer.SerializeToElement(settings, SettingsSerializer.WriteOptions)
-                        .Deserialize<AppSettings>(SettingsSerializer.ReadOptions)
-                        ?? throw new InvalidDataException("无法创建设置保存快照");
-                    SettingsMigration.Normalize(document);
-                    document.SchemaVersion = AppSettings.CurrentSchemaVersion;
-                    var json = JsonSerializer.Serialize(document, SettingsSerializer.WriteOptions);
-                    AtomicFile.WriteAllText(Paths.SettingsFile, json, new UTF8Encoding(false), Paths.SettingsBackupFile);
-                    _hasUnsavedChanges = false;
-                }
-                catch
-                {
-                    _hasUnsavedChanges = true;
-                    throw;
-                }
+                lock (_stateGate) version = ++_editVersion;
+                // 原有同步调用者仍在调用线程捕获。只 Normalize 独立文档，不写回活设置。
+                var document = JsonSerializer.SerializeToElement(settings, SettingsSerializer.WriteOptions);
+                WriteSnapshot(new(version, document));
             }
             Log.Debug(Category, "设置已保存");
         }
         catch (Exception error)
         {
-            Log.Error(Category, "保存设置失败", error);
+            RecordSaveFailure(version, error, notify: false);
             throw;
         }
         finally { NotifySaveStateChanged(); }
+    }
+
+    /// <summary>只提交稳定快照。与同步 Save 共用磁盘锁；晚来的旧快照不能覆盖新保存。</summary>
+    internal bool TrySaveSnapshot(SettingsSaveSnapshot snapshot)
+    {
+        try
+        {
+            lock (_gate)
+            {
+                if (PendingVersion != snapshot.Version) return true;
+                WriteSnapshot(snapshot);
+            }
+            Log.Debug(Category, "设置已保存");
+            NotifySaveStateChanged();
+            return true;
+        }
+        catch (Exception error)
+        {
+            RecordSaveFailure(snapshot.Version, error);
+            return false;
+        }
+    }
+
+    private void WriteSnapshot(SettingsSaveSnapshot snapshot)
+    {
+        var document = snapshot.Document.Deserialize<AppSettings>(SettingsSerializer.ReadOptions)
+            ?? throw new InvalidDataException("无法创建设置保存快照");
+        SettingsMigration.Normalize(document);
+        document.SchemaVersion = AppSettings.CurrentSchemaVersion;
+        var json = JsonSerializer.Serialize(document, SettingsSerializer.WriteOptions);
+        AtomicFile.WriteAllText(Paths.SettingsFile, json, new UTF8Encoding(false), Paths.SettingsBackupFile);
+        lock (_stateGate)
+        {
+            _savedVersion = Math.Max(_savedVersion, snapshot.Version);
+            // 写盘期间的新编辑仍欠一次保存；旧成功不能清除较新的失败/欠项。
+            if (_editVersion == snapshot.Version) _hasUnsavedChanges = false;
+        }
+    }
+
+    internal void ReportPendingSaveFailure(Exception error) => RecordSaveFailure(PendingVersion, error);
+
+    private void RecordSaveFailure(long version, Exception error, bool notify = true)
+    {
+        lock (_stateGate)
+        {
+            if (version > _savedVersion) _hasUnsavedChanges = true;
+        }
+        Log.Error(Category, "保存设置失败", error);
+        if (notify) NotifySaveStateChanged();
     }
 
     private void NotifySaveStateChanged()

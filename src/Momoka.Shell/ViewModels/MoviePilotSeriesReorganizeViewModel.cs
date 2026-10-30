@@ -39,8 +39,13 @@ public sealed partial class MoviePilotSeriesReorganizeViewModel : PageViewModel
     public string StatusLabel => StatusFilter switch { MoviePilotTransferStatusFilter.Success => "成功", MoviePilotTransferStatusFilter.Failed => "失败", _ => "全部" };
     public string SortLabel => Sort switch
     {
-        MoviePilotTransferSort.Title => "标题", MoviePilotTransferSort.Path => "路径", MoviePilotTransferSort.Mode => "转移方式",
-        MoviePilotTransferSort.Size => "大小", MoviePilotTransferSort.Time => "时间", MoviePilotTransferSort.Status => "状态", _ => "默认顺序"
+        MoviePilotTransferSort.Title => "标题",
+        MoviePilotTransferSort.Path => "路径",
+        MoviePilotTransferSort.Mode => "转移方式",
+        MoviePilotTransferSort.Size => "大小",
+        MoviePilotTransferSort.Time => "时间",
+        MoviePilotTransferSort.Status => "状态",
+        _ => "默认顺序"
     };
     public string StatusAutomationName => "状态筛选：" + StatusLabel;
     public string SortAutomationName => "本页排序：" + SortLabel + (Sort == MoviePilotTransferSort.Default ? "" : Descending ? "，降序" : "，升序");

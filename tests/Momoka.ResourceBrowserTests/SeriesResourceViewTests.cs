@@ -295,9 +295,19 @@ internal sealed class SeriesViewTransport(bool alternateTitle) : HttpMessageHand
             var ids = EmptyHistory ? [] : new[] { 3, 1, 2 };
             var records = ids.Select(id => new
             {
-                id, title = alternateTitle && id == 3 ? "测试剧 " : "测试剧", type = "电视剧", media_source = "themoviedb", media_id = "283938",
-                tmdbid = "283938", seasons = "S01", episodes = id == 3 ? "E10" : "E0" + id, mode = "softlink", status = id != 1,
-                date = "2026-10-28 12:00:00", src = "/downloads/source-" + id + ".mkv", dest = "/library/episode-" + id + ".mkv",
+                id,
+                title = alternateTitle && id == 3 ? "测试剧 " : "测试剧",
+                type = "电视剧",
+                media_source = "themoviedb",
+                media_id = "283938",
+                tmdbid = "283938",
+                seasons = "S01",
+                episodes = id == 3 ? "E10" : "E0" + id,
+                mode = "softlink",
+                status = id != 1,
+                date = "2026-10-28 12:00:00",
+                src = "/downloads/source-" + id + ".mkv",
+                dest = "/library/episode-" + id + ".mkv",
                 src_fileitem = new { storage = "local", type = "file", path = "/downloads/source-" + id + ".mkv", size = id * 100 },
                 dest_fileitem = new { storage = "local", type = "file", path = "/library/episode-" + id + ".mkv" }
             });

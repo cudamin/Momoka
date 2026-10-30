@@ -15,7 +15,7 @@ namespace Momoka.Danmaku;
 /// 没有「自定义凭据」的分支，<see cref="IDandanPlayCredentialSource"/> 只是给离线夹具留的替换点。
 /// </para>
 /// </summary>
-public sealed partial class DandanPlayClient : IDisposable
+public sealed partial class DandanPlayClient : IDisposable, IAsyncDisposable
 {
     public const string ApiOrigin = "https://api.dandanplay.net";
     public const string WebsiteUrl = "https://www.dandanplay.com";
@@ -27,6 +27,12 @@ public sealed partial class DandanPlayClient : IDisposable
     private readonly HttpClient _http;
     private readonly Func<DateTimeOffset> _clock;
     private readonly SemaphoreSlim _requests = new(1, 1);
+    private readonly object _lifetimeGate = new();
+    private readonly CancellationTokenSource _shutdown = new();
+    private TaskCompletionSource? _idle;
+    private Task? _disposeTask;
+    private int _activeRequests;
+    private bool _closing;
 
     public DandanPlayClient(AppSettings settings, string cacheDirectory,
         HttpMessageHandler? handler = null, Func<DateTimeOffset>? clock = null,
@@ -53,6 +59,8 @@ public sealed partial class DandanPlayClient : IDisposable
         if (episode is { Length: > 0 } && (episode.Length > 6 || !episode.All(char.IsAsciiDigit)
             || !int.TryParse(episode, out var episodeNumber) || episodeNumber <= 0))
             throw new DandanPlayException("集数必须是正整数，留空可搜索全部剧集。");
+        using var operation = BeginOperation(cancellationToken);
+        cancellationToken = operation.Token;
         var path = "/api/v2/search/episodes?anime=" + Uri.EscapeDataString(title) + "&v2=true";
         if (!string.IsNullOrEmpty(episode)) path += "&episode=" + Uri.EscapeDataString(episode);
         using var document = await GetAsync(path, comments: false, cancellationToken).ConfigureAwait(false);
@@ -80,17 +88,33 @@ public sealed partial class DandanPlayClient : IDisposable
         CancellationToken cancellationToken = default)
     {
         if (episodeId <= 0) throw new DandanPlayException("弹幕库编号无效。");
+        using var operation = BeginOperation(cancellationToken);
+        cancellationToken = operation.Token;
+        // 缓存、凭据与闸门都可能已预热，ConfigureAwait(false) 不会强制切线程。
+        // 整条读取/JSON 解析/转换/稳定排序都在同一个后台边界内，不能只包异步读盘。
+        return await Task.Run(() => ReadCommentsAsync(episodeId, withRelated, cancellationToken),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<IReadOnlyList<DanmakuComment>> ReadCommentsAsync(long episodeId, bool withRelated,
+        CancellationToken cancellationToken)
+    {
         var path = CommentPath(episodeId, withRelated);
         using var document = await GetAsync(path, comments: true, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         if (!document.RootElement.TryGetProperty("comments", out var comments) || comments.ValueKind != JsonValueKind.Array)
             throw new DandanPlayException("弹弹play 返回了无法识别的弹幕数据。");
         var result = new List<DanmakuComment>();
         foreach (var entry in comments.EnumerateArray())
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (DanmakuComments.Parse(Text(entry, "p"), Text(entry, "m")) is { } parsed) result.Add(parsed);
             if (result.Count == DanmakuComments.MaximumCount) break;
         }
-        return result.OrderBy(comment => comment.Time).ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        var sorted = result.OrderBy(comment => comment.Time).ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        return sorted;
     }
 
     public static string Signature(string appId, string secret, long timestamp, string path) =>
@@ -115,11 +139,12 @@ public sealed partial class DandanPlayClient : IDisposable
             for (var attempt = 0; ; attempt++)
             {
                 var connection = await ResolveAsync(deadline.Token).ConfigureAwait(false);
+                deadline.Token.ThrowIfCancellationRequested();
                 // 应用弹幕是私有库；缓存按应用与凭据隔离，换应用不能沿用上一份数据或成功状态。
                 var cache = CachePath(connection.AppId, connection.Identity, path);
                 if (TryReadCache(cache) is { } cached)
                 {
-                    try { return Parse(cached, comments); }
+                    try { return Parse(cached, comments, deadline.Token); }
                     catch (DandanPlayException) { /* 损坏缓存不作为联网失败，重取这一份。 */ }
                 }
 
@@ -159,7 +184,7 @@ public sealed partial class DandanPlayClient : IDisposable
                         });
                     }
                     var bytes = await ReadBoundedAsync(response.Content, deadline.Token).ConfigureAwait(false);
-                    var parsed = Parse(bytes, comments);
+                    var parsed = Parse(bytes, comments, deadline.Token);
                     TryWriteCache(cache, bytes);
                     return parsed;
                 }
@@ -206,8 +231,9 @@ public sealed partial class DandanPlayClient : IDisposable
         };
     }
 
-    private static JsonDocument Parse(byte[] bytes, bool comments)
+    private static JsonDocument Parse(byte[] bytes, bool comments, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         JsonDocument document;
         try { document = JsonDocument.Parse(bytes); }
         catch (JsonException) { throw new DandanPlayException("弹弹play 返回的数据不是有效的 JSON。"); }
@@ -220,6 +246,11 @@ public sealed partial class DandanPlayClient : IDisposable
             document.Dispose();
             // 不回显服务器错误正文，避免代理把请求头或密钥夹回异常信息。
             throw new DandanPlayException("弹弹play 拒绝了请求或返回了无效数据，请检查应用授权后重试。");
+        }
+        if (cancellationToken.IsCancellationRequested)
+        {
+            document.Dispose();
+            cancellationToken.ThrowIfCancellationRequested();
         }
         return document;
     }
@@ -267,10 +298,65 @@ public sealed partial class DandanPlayClient : IDisposable
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { /* 缓存失败不影响本次播放。 */ }
     }
 
-    public void Dispose()
+    private RequestOperation BeginOperation(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_lifetimeGate)
+        {
+            if (_closing) throw new OperationCanceledException("弹幕客户端正在关闭", new CancellationToken(canceled: true));
+            var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdown.Token);
+            if (_activeRequests++ == 0) _idle = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            return new RequestOperation(this, lifetime);
+        }
+    }
+
+    private void EndOperation()
+    {
+        lock (_lifetimeGate)
+        {
+            if (--_activeRequests == 0) _idle?.TrySetResult();
+        }
+    }
+
+    /// <summary>
+    /// Close admission and cancel all reads/waits, including superseded callers. Wait for their full
+    /// public operation (cache parsing/conversion included), then dispose HTTP and the request gate.
+    /// Shutdown is independent of a particular page's latest task and may safely be called repeatedly.
+    /// </summary>
+    public Task ShutdownAsync()
+    {
+        lock (_lifetimeGate)
+        {
+            if (_disposeTask is not null) return _disposeTask;
+            _closing = true;
+            var idle = _activeRequests == 0 ? Task.CompletedTask : _idle!.Task;
+            return _disposeTask = DisposeCoreAsync(idle);
+        }
+    }
+
+    private async Task DisposeCoreAsync(Task idle)
+    {
+        try { await _shutdown.CancelAsync().ConfigureAwait(false); }
+        catch (AggregateException) { /* Cancellation callback failure cannot skip draining or cleanup. */ }
+        await idle.ConfigureAwait(false);
         _http.Dispose();
         _requests.Dispose();
+        _shutdown.Dispose();
+    }
+
+    // IDisposable never blocks a UI thread or frees a gate that a background finally still owns.
+    // Application shutdown awaits ShutdownAsync before the synchronous container disposal boundary.
+    public void Dispose() => _ = ShutdownAsync();
+    public ValueTask DisposeAsync() => new(ShutdownAsync());
+
+    private sealed class RequestOperation(DandanPlayClient owner, CancellationTokenSource lifetime) : IDisposable
+    {
+        internal CancellationToken Token => lifetime.Token;
+        public void Dispose()
+        {
+            lifetime.Dispose();
+            owner.EndOperation();
+        }
     }
 }
 

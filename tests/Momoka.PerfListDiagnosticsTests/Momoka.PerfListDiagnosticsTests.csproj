@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Reuse Core's existing friend boundary without editing Core/Main or the shared solution. -->
+    <AssemblyName>Momoka.PageContractTests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <StartupObject>Momoka.Tests.PerfListDiagnosticsProgram</StartupObject>
+    <DefineConstants>$(DefineConstants);DIAGNOSTICS_VM_FIXTURE</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\DiagnosticsViewModel.cs" Link="Production\DiagnosticsViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\UpcomingDay.cs" Link="Production\UpcomingDay.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\UpcomingListDiff.cs" Link="Production\UpcomingListDiff.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\LibraryRequest.cs" Link="Production\LibraryRequest.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <!-- Existing diagnostic-only contracts, not the main test entry or the whole PageContract suite. -->
+    <Compile Include="..\Momoka.Tests\DiagnosticsTests.cs" Link="Existing\DiagnosticsTests.cs" />
+  </ItemGroup>
+  <Import Project="ExtractUpcomingSources.targets" />
+</Project>

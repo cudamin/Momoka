@@ -11,4 +11,6 @@ public sealed class UpcomingDay(DateOnly? date, string title, int cardWidth)
     public int CardWidth { get; } = cardWidth;
     public double RowHeight => LibraryUpcoming.RowHeight(CardWidth);
     public ObservableCollection<CardItem> Cards { get; } = [];
+
+    internal void UpdateCards(IReadOnlyList<CardItem> desired) => UpcomingListDiff.Apply(Cards, desired);
 }

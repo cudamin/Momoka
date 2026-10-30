@@ -201,7 +201,8 @@ internal sealed partial class ShellNavigationProbe
     private EmbyMetadataDialog MetadataDialog(JsonObject sample, Func<EmbyMetadataEdit, Task<bool>>? save = null)
     {
         var dialog = new EmbyMetadataDialog("离线示例 · S01E04", EmbyMetadataEdit.Read(sample), MetadataChoices(),
-            save ?? (_ => throw new InvalidOperationException("布局检查不允许提交"))) { XamlRoot = _root.XamlRoot };
+            save ?? (_ => throw new InvalidOperationException("布局检查不允许提交")))
+        { XamlRoot = _root.XamlRoot };
         dialog.SetItemType(EmbyItemType.Episode);
         return dialog;
     }
@@ -231,7 +232,7 @@ internal sealed partial class ShellNavigationProbe
         var roles = new[] { "Rein Garland (voice)", "Lily Flambert (voice)", "Margaret Ells (voice)", "Mirabelle (voice)", "Elsie Zra (voice)",
                             "Nina (voice)", "Half (voice)", "Cornelius (voice)", "Mother of Assassins (voice)" };
         for (var i = 0; i < names.Length; i++) item["People"]!.AsArray().Add(new JsonObject
-            { ["Id"] = $"person-{i}", ["Name"] = names[i], ["Role"] = roles[i], ["Type"] = "Actor", ["Future"] = "preserved" });
+        { ["Id"] = $"person-{i}", ["Name"] = names[i], ["Role"] = roles[i], ["Type"] = "Actor", ["Future"] = "preserved" });
         return item;
     }
 

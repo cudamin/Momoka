@@ -98,14 +98,14 @@
     {
       "path": "mpv-ui/scripts/momoka_danmaku.lua",
       "source": "assets/mpv-ui/scripts/momoka_danmaku.lua",
-      "size": 9756,
-      "sha256": "660a4a4dd1c2d617f3f79a56d9e07e667e27c5fe7a72e7a5741d1f3c102a985c"
+      "size": 13070,
+      "sha256": "322dac8a8404885c676934c8d3b46475c82667a4016c0806bef591a2a6b2ef59"
     },
     {
       "path": "mpv-ui/scripts/momoka_subtitle_translation.lua",
       "source": "assets/mpv-ui/scripts/momoka_subtitle_translation.lua",
-      "size": 4948,
-      "sha256": "303f72c2488c58e4f194611795339d2d117cbba590d251506a29cb8c2f0c6f95"
+      "size": 6035,
+      "sha256": "fd5bad91dcfca38a01a0d6364ad923c8c7dc8549afd32e5fb637f01a82ffe1ae"
     },
     {
       "path": "mpv-ui/scripts/stats.lua",

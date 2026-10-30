@@ -155,6 +155,39 @@
 - 失败证据保留：初全Core3311/3310/1准确拦下MP确认窗误用媒体库底色，修后3311/3311；首次隐藏启动的实际UI49项18过31败全被实屏防遮挡守卫拒绝，第二轮可见启动48/49剩订阅标题刚Visible但未布局0高，均在 `ui-first-red`／`ui-second-red`。只修可见启动、标题实际Layout和菜单顶部锚点，不放宽超时／像素／裁切或接受新基线。最终 `shell-probe-20261029-085229283-21476` 的 **moviepilot,settings 49/49，退出0**，实际五主题1280／760完整菜单和确认窗已查看，原生Popup实屏在本轮可见并留完整帧。未选区域74项未执行，非全量Shell自检。
 - 产品修正 `0dbe237262ea8feb705908a2aadb5581066c4f49` 已提交；主树实际 `tools/publish.ps1 -NoArchive -Shortcut` 通过，546文件／284.8MB、14GLSL／4HOOK／59批准mpv文件逐项校验，快捷方式读回正确。发布件 `shell-probe-20261029-090905624-4660` moviepilot25/26，媒体管理新用例通过，旧订阅固定80ms悬停缩放未读到进度；红报告在 `ui-published-first-red`，不算整轮发布验收成功。探针正在改为实际焦点／归一化初态／Storyboard进度检查，原缩放边界及离开隐藏阈值保留，未改产品动画。修正后主树 `shell-probe-20261029-091817030-27968` moviepilot26/26退出0，包含原悬停用例和新媒体管理；报告在 `ui-hover-fixed-green`。一份误与UI重叠启动的Core测试已取消并保留原日志，不作通过证据，最终串行Core3313/3313、媒体管理35/35均0失败0跳过，修正后Shell/Core/Tests0警告0错误。最终提交／重发／发布件复验／旧树删除尚待收尾，不称已交付。未改版本、不生成ZIP/MSIX或对外发布；不执行真实媒体删除、整理、下载、播放或账号写入。
 
+## PERF-06 / PERF-10 定向修复（2026-10-30，待父代理集成）
+
+- 独立树 C:/Users/89400/.codex/worktrees/perf-list-diagnostics/Momoka，分支 codex/perf-list-diagnostics，起点 e3473f10a072058eb11363f89c11e376dbfa6ed9；保留草稿继续，不写主树/父树，不merge/push/发布/刷快捷方式/真实设置库/UI/播放。产品与回归和本段同一提交，SHA以该条提交为准；留树供父代理串行集成、主方案登记与最终主树/UI验收。
+- 预告按day索引复用、引用前缀线性追加、成员集和numeric position差异回退；实际helper 10000+100仅10000次引用比较，真实同日/unknown分组仅100 Add且旧集合/day/卡identity不变；2000->1500删除反序4500次比较。极端重排仍付数组和数字位置位移成本，不声称最坏总时间线性，不用Clear抹identity；原始offset、source-qualified去重、query-load代次保持。
+- 诊断LogVisit弱持VM、访问期一唤醒、dirty/pending同gate补尾交接；拒绝/执行异常复位，Detach Stop及旧sink/同sink重入隔离。10000条=>1回调、消费后0待执行，保留SnapshotAfter追平后O(1)空结果事实。局部筛选/快照版本防重入重复和旧分类污染，不改Log.cs/播放等范围外生产文件。
+- 当前Release Shell/Core及独立套件0警告0错误；定向70/70（31本题/源码关联+39既有诊断专项，Core重叠不叠加），失败0跳过0。抽取缺方法/改query-source guard两负例实际拒绝且合法生成源不变；此前重排比较数和Remove筛选重入重复行用真实回归抓到修复，未放宽阈值。证据在本树work/perf-list-diagnostics/；入口/命令/计数与父UI字段见tests/Momoka.PageContractTests/PerfListDiagnostics/README.md。未跑父主套件/full selfcheck/真UI/最终发布；父代理串行收尾，临时树未交付用户。
+
+
+
+## R012 ChangeBoundary：适配需求所有共享下载夹具（2026-10-30，待父挑拣）
+
+- 在原 `C:/Users/89400/.codex/worktrees/perf-images/Momoka`、`codex/perf-images`、图片产品提交 `2b3fea8f3e1e6ecbb441e49d235792c33f68b8c7` 上，只改 `tests/Momoka.Tests/CardImageResizeTests.Boundaries.cs`／`CardImageResizeTests.cs` 与本节；已验证生产图片六文件逐份 diff 保持未变，未写父/主树、既有入口/csproj/sln或其它模块。
+- 父报告原PageContract 11/107 R012超时：DeliverAsync在取消后用None重问已撤销的旧键，变成无人释放的新HTTP。夹具现在直接await原CardImageRequest.Response并断言交付不新增请求，不把“观察迟到”变成新需求。仅四个共享/成功迟到用例显式加入独立有效sentinel，先核实2需求后再取消卡片等待，证明剩余需求保活而旧卡片结果仍不回填/污染decoded cache；其他夹具仍真实执行zero-demand取消，未强制legacy scheduler。
+- 原A→B→A共享期待增加“尚有独立有效需求”的必要前提；新增zero-demand A→B→A断言旧A/B取消、自动新A共3请求、旧finally不清新token、Deliver不重开GET及旧结果不写盘/decoded cache，新A按当前宽度正常回填。离页旧缓存期待由completion-owned标题改为zero-demand取消，不留旧字节/decoded cache。原新宽度自动取、迟到防回填、同阶梯新逻辑宽度解码等全部核心断言保留；12秒上下文/3秒等待期限未放宽。
+- 当前Release Core/PageContractTests编译0警告0错误；原107项全部通过，新增1项后最终108/108（R012 21/21），失败0/跳过0，最终run退出0、807ms。本树PageContract没有card-image-resize-fixture定向入口，执行其原完整独立页面契约入口，不运行full Core/Shell/UI/真库。首次适配107通过和最终108通过日志均保留；未重跑父已有超时来重复耗时。
+- 证据 `C:/Users/89400/.codex/worktrees/perf-images/Momoka/work/perf-images/r012-build-final.log`、`r012-page-contract-final.log`（BUILD/TEST_EXIT_CODE=0），先前107通过为`r012-page-contract-run.log`。两夹具LF/diff、生产未变检查通过。父挑拣本夹具提交并重跑其最终PageContract；本树不merge/push/发布，不处理父continuation/未编译套件/format，不替代真实WinUI或整合树验收。
+## PERF-04 / PERF-09 图片预算与遮罩解码（2026-10-30，待父整合）
+
+- 独立树 `C:/Users/89400/.codex/worktrees/perf-images/Momoka`，分支 `codex/perf-images`，起点 `e3473f10a072058eb11363f89c11e376dbfa6ed9`。只改 CoverBackdropImage、Events 的封面路径、EmbyImageStore、SharedWork，窄新类 CoverBackdropSize/SharedWorkBudget 与独立 ImagePerformanceTests；未改父/主树、速度/native/其他播放、设置及其他禁写模块。本节所属产品提交待父挑拣，未合入 master/发布/push，保留原树。
+- 解码两边至多1280、总像素921600、BGRA帧3686400B；整个解码/烘色 Task.Run，XAML创建及两层发布回原UI上下文，下载/WinRT/快换片/源寿命取消和代次逐边界核对。图失败无可信尺寸则两层退纯色，不无界再解原图；不裁改源图，原有 UniformToFill 保留。限交出像素，不声称WIC内部无大图分配/真实第二份surface已测；取消不强杀一次有界Bake。
+- 图片执行6、排队键48、有效等待需求128，Running含取消未退出执行槽至多54；queued工厂不启动，没有Semaphore外无限任务。一个等待者取消不杀其他人，最后需求撤销HTTP及2s/4s重试等待；工厂和CancelAsync回调均真结束才还槽。新/续等排队优先，满时撤销最旧未启动整键，需求满且无法安全淘汰就立即取消新等待；旧可见可能需下次Ensure重试、旧排队可能延迟，是明确预算/公平性取舍。原12连接/30秒deadline保留，SharedWork无预算旧契约不变。
+- 当前Release Core/Shell/独立测试编译均0警告0错误；既有图片/烘色22/22、新专项41/41（共享12、实际Store10、实际WinRT/尺寸11、逐字生产调用方8），失败/跳过0；严格入口三负例均退出2。500不同键实Store峰值54键/48排队/54需求，handler仅6次/峰值6，退出后shared/demands/排队0；500同键在16需求测试预算下仅16有效、484立即取消。8K/4K返回1280×720，方图960²，1×40000/40000×1返回1×1280/1280×1；均受两边/总量限制。六生产源码hash、18文件LF及diff检查通过，Events前后区段与起点一致。
+- 最终实测证据 `C:/Users/89400/.codex/worktrees/perf-images/Momoka/work/perf-images/test-verified.log`、`runs/20261030-165335-651/results.json`、`build-shell-final.log`、`build-tests-final.log`、`strict-entry.log`、`final-file-hashes.json`；命令和覆盖边界在 `C:/Users/89400/.codex/worktrees/perf-images/Momoka/tests/Momoka.ImagePerformanceTests/README.md`。旧测试替身不能clone流导致6红及优先级误用多空槽的1红已保留各首轮日志/JSON，修夹具后重验，未降低产品/像素/取消断言。
+- 未做sln/主全Tests、真实WinUI BitmapImage surface/DPI/屏幕/DWM、真实库/设置/播放、UIA/发布/快捷方式；父统一登记新套件到sln/regression、定点复核最终Events source pin、当前整合源码重build及串行桌面验收。本树Events SHA256 `E6BBE894ADE1BDC236117DFD1ACB2CDAA14F9C435A95C61E2F039AC7EFF068E2`，本套件编译/运行自动核六源码，不编辑其他既有pin。无403、未换provider或代理配置。
+
+## 资源预算原草稿收尾与专项入口文档（2026-10-30，待父集成）
+
+- 原树 `C:/Users/89400/.codex/worktrees/perf-resource-budgets/Momoka`，分支 `codex/perf-resource-budgets`，基点 `e3473f10a072058eb11363f89c11e376dbfa6ed9`；产品与测试已提交 `dd407b53376eaa493636f3826709a378c9dcc10f`。接续既有草稿，仅补必要的目录/祖先重解析守卫，不新树、不覆盖草稿、不写父/主树。
+- PERF11 整条消息累计1MiB UTF8/二进制字节，正常Unicode碎片保原文，超限立即Abort后原退避重连。PERF13 单卷8MiB/总64MiB/14天、一次索引、有界运行期维护、AutoFlush、超长entry省中留头尾及重启新卷；删除失败可丢磁盘写，外部新增文件重启才纳入，旧超量分轮清理。PERF16 decode前128 UTF16码元、name表1MiB、family/typographic各64候选；晚到英文替末候选，可能少留一个本地化别名，保原family优先顺序，不宣称合计64名字。
+- 已实际验证当前产品Core及专项Release强制重编译0警告0错误；all 141/141（WS26、日志28、字体14、源链接兼容73），失败0/跳过0、20332ms。原草稿本轮先137/137；原实现12红项及重解析3修前红项均保留，不修改基线洗绿。证据在本树ignored `artifacts/verification/perf-resource-budgets/` 的 `red-tests.log`、`takeover-20261030-165520817/{reparse-red2-tests.log,final-build.log,final-tests.log,final-hashes.json}`。
+- 补入可随clean checkout获得的 [专项README](tests/Momoka.ResourceBudgetTests/README.md)：当前树定位、独立restore/Release build/run命令、all/budgets/websocket/logs/fonts/compatibility入口、实际预算与匿名127.0.0.1随机socket/私有log/合成字体边界；内部file-tail-child不登记为独立任务。只改README与本节，文档自查核链接/入口/命令/统计/历史保留；未重新build/runtime或运行无关检查。
+- 父负责统一runner/sln/共享文档登记、最终集成全batch验证及交付。本树待集成，不推送/合并/发布，不执行fullCore/selfcheck、真实账号/设置/日志/媒体/UI、共享publish或kill；临时树与提交保留给父，不能把专项通过叫作主树交付。
+
 ## 旧工作树审查与媒体管理整合（2026-10-29，在途）
 
 - 当前整合树 `C:/Users/89400/.codex/worktrees/old-tree-integration/Momoka`，起点 `8ff289e`，整合旧树 `mp-media-management` 的产品 `eedcfab`／顶端 `4b9aaac`。主树 AniBT 正在由另一聊天收尾，搜索工作树仍在开发；不抢写主树或共同发布目录，不删除活动树。
@@ -9181,6 +9214,27 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 保留25份隔离树日志（包括路径拒绝与格式首轮失败）于 `work/search-home-compact-20261029/temporary-tree-evidence`。用户可见截图裁自最终实屏且未合成像素，存于同目录`screenshots/search-centered-header.png`与`home-resume-title.png`。
 - 临时分支 `codex/search-home-compact` 顶端 `5646852582aa03878da39e409b1abc2efa586cdb` 已逐文件核对master不缺内容，临时树干净且无他人工作；已detach同一提交并删除本地分支，本地仅master。管理工具拒绝归档本聊天当前primary checkout（The task primary checkout cannot be removed），未绕过保护强删；该无分支干净树仅因聊天cwd仍占用暂留，后续切离后归档，不作为第二开发或交付线。其余聊天工作树不动。
 
+
+## 2026-10-29 性能与资源修复（在途）
+
+用户授权由实现方决定修复已确认问题。父树 `codex/performance-resource-repair` / `C:\Users\89400\.codex\worktrees\performance-resource-repair\Momoka` 基于 `e3473f10`，主代理写 libmpv 迟到回收、speed 绝对值待办及集成文件；六个子代理各用独立树，页面生命周期、设置、图片、弹幕/Lua、列表/诊断、消息/日志预算写范围分离。保护 master 其他会话改动，不直接并行写主树，不 push、不真实播放/凭据，不刷新共享发布目录。待各项回归、独立复核、安全整合 master 后重新验证和交付；当前不能把审查证据视为修复验收。
+
+父树 native 首轮：PERF-02 生产 EventLoop 发完成信号，超时后单异步回收者等待并 Join 真线程再 Destroy；PERF-08 只针对高频 speed 绝对值，用单 worker/单待办合并，保留所有其他属性与相对命令契约。补 10 项真实全 handle/gate 回归（含旧入口不能覆盖新代 pending），和 27 项既有 EOF/REDIRECT 合计37全过0跳过；ShaderCommandGeneration 当前44全过0跳过，Core/测试0警告0错误。均为匿名托管native seam，未加载DLL/媒体，真实管线与最终整合尚待。
+
+native追加验证：批准libmpv SHA256逐字匹配后，实际当前Core DLL在独立子进程跑12轮空闲context（video/audio/vo/ao关闭、无窗口/脚本/媒体/网络/账号）；真实最终speed=2.28，reader已退出，SVP假租约一次回收，重复Dispose不重复。常规收尾1.93～8.22ms仅空闲环境，不代表实播GPU或故障超时。完整方案首次因R046 LibMpvBackend固定源SHA漂移失败；逐份核对19pin，仅该1份改动，更新后原caller54/54，提取器10拒绝反例均按预期退出1再当前源54/54。日志保留在artifacts/performance-repair和artifacts/r046-caller；未放宽检查、未宣称最终整合构建已绿。
+
+
+## 2026-10-30 性能与资源修复：保存进度并暂停
+
+用户明确要求“保存进度暂停”。六个子代理均已停止；未安排自动恢复，不再修代码、跑验证、合并、发布或上传。已核对无本轮修复树后台 helper，未关闭用户/其他会话的主树 Momoka。
+
+- 父树 `C:\Users\89400\.codex\worktrees\performance-resource-repair\Momoka` / `codex/performance-resource-repair`，暂停前 HEAD `4ff1e2abee6b0b9a1bdccfd10c3ec37f134b91fa`。产品 `57d0aa77c48c8a64e1fd79bf14d62ccb906cd9cd`、来源复核 `45211b3701663d43e6bf6c140cc0b023cd2a5398` 仍未进入 master；原树代码干净，本次只追加暂停记录。
+- 六树保留：`perf-page-lifetimes`（12份已改/新源码），`perf-settings`（无源码改动），`perf-images`（6份），`perf-danmaku-lua`（16份），`perf-list-diagnostics`（13份），`perf-resource-budgets`（9份）。这些均基于 `e3473f10`，都是尚未最终提交/复核的草稿，不当成修复完成。
+- 完整 checkpoint：`C:\Users\89400\.codex\visualizations\2026\10\29\01a18681-eb82-7940-a5ea-b9a3ffc67294\performance-repair\paused-2026-10-30\checkpoint.json`；同目录 `续接说明.md` 和各树补丁、未完成源码ZIP、日志证据/哈希清单。56份未提交/新源码与259份日志/证据已复制并逐字核验，原文件未移动、删除、stash或覆盖。
+- 已完成的父树验证：主测试3313/3313（失败0/跳过0，仅当时父树、不含子草稿）；native/EOF37、shader/线程44、caller54全部通过，提取器10拒绝反例通过，正式native无媒体空闲上下文12轮通过。完整方案曾因固定SHA漂移失败并留证，定点复核后相关专项通过，但本轮不声称最终整合方案/WinUI/播放闸门全过。
+- 暂停时 master 为 `8d62cb173134d95faa1486184788f1c545263f47`，有其它会话10份未提交界面/主题源码；仅记录状态，不吸收或覆盖。未刷新主树发布目录、桌面快捷方式，未上传origin，桌面交付不含本轮性能修复。
+- 恢复先完整重读 `C:\Users\89400\Momoka\CLAUDE.md`（主树规则已在别的会话更新），重查Git/进程/草稿哈希，接手原树补测并review后提交；逐项集成source pins、新测试清单与Lua批准项，再安全整合master并按最终代码重验交付。原拟新增 `ShellNavigationProbe.Performance.cs` 尚未创建，不得声称已做真实Frame/对话框/性能UI检查。
+
 ### 2026-10-29 条目更多菜单移除 MoviePilot 图标
 
 - 用户令（附菜单截图）：移除条目「更多」菜单里的 MP 图标。范围按截图为条目更多菜单；MoviePilot 订阅菜单与设置页的白色 MP 标志保留，未改。
@@ -9189,6 +9243,35 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 发布：`tools/publish.ps1 -NoArchive` 刷新 `C:\Users\89400\Momoka\artifacts\publish\win-x64`，546 文件／284.8 MB，发布校验通过；桌面 `Momoka.lnk` 目标与工作目录读回均指向该目录。
 - 发布件探针未完成：启动后进程在约第 8 项前退出，终端留下 UI 线程异常栈，报告 `shell-probe-20261029-150324571-9852` 的 8 项均非通过。用户随即明确「直接交付别跑探针」，按指示未重跑；本轮发布件证据是同一源码的 Release 构建与发布校验，不声称发布件在同一探针下完整通过。
 - 未覆盖：真实 Emby 菜单、真实 MP 订阅菜单视觉、真实播放；未推 origin、未改版本。此前的条目更多菜单 MP 图标要求（2026-10-28）以本节用户令为准作废。
+
+
+## 2026-10-30 性能与资源修复：恢复
+
+用户明确“继续”，撤销上节暂停。恢复六个原子代理和原独立树，不重建/覆盖已保存草稿；先重读主树已更新的CLAUDE与Git/进程状态。父树合入master已提交至8d62cb1的规则/弹窗/资源卡与权限等改动，PROGRESS仅并列保留双方历史；master大量未提交主题/对话框改动与主树进程仍由其他会话/用户持有，不吸收、不覆盖、不擅关。父写实际离线WinUI性能检查和集成/反证，六代理仅各自领域定向测试。未验证草稿仍不算完成；最终主树整合、全批次重验与实际交付仍待。
+
+### 2026-10-30 PERF-01 / PERF-12 独立树修复待父集成
+
+- 工作树 `C:\Users\89400\.codex\worktrees\perf-page-lifetimes\Momoka`，分支 `codex/perf-page-lifetimes`，基点 `e3473f10a072058eb11363f89c11e376dbfa6ed9`；只改 MoviePilotSearchPanel/VM、FnNasMatchDialog/ItemCommands.FnNas、LibraryPage 一处生命周期接线及自己的定向回归。保留原草稿继续，没有写主/父树、push、合并、发布、真实库/设置/凭据/播放或 UI；真实桌面与主注册由父代理串行。
+- MoviePilot `Release` 可重入退订，解除 UI 回调/旧行图片事件与动作；访问/查询守卫拒绝迟到及同步绑定重入，弱队列不保留页面；同页来源切换改用 `CancelSearch`，重接 `Attach` 不自动搜索。飞牛搜索委托带 CancellationToken，Closed 取消只读与 UI 等待，旧 success/error/finally 不抢新访问/查询；Primary 已选候选保留，确认后 Rescrap 写入不挂搜索令牌。复用 LoadGeneration；内部两参数构造仅兼容匿名取景探针，前置文件读取仍属于原命令身份，不声称被尚未显示的对话框取消。
+- 当前 Release Shell/Core、新 `Momoka.SearchLifetimeTests` 及相关订阅测试项目编译均 0 警告0错误；新的生产源码定向回归 32/32，连续三次相同结果，0失败0跳过；包含 LibraryPage 原样离页/切来源、50次弱引用回收、旧事件/闭包/同步重入/取消/队列与独立写所有权。帮助及4个拒绝参数进程分支均按0/2退出且不运行夹具/不回显敏感值。新项目README/严格参数一致性有回归；不改主Program/csproj/sln或共享开发文档，solution/regression/source pins由父补。
+- 改动范围空白检查退出0，Shell格式工作区加载提示单列，不冒充完整方案0警告；15个产品/测试文本的LF/末尾换行与diff检查通过。初轮Shell旧匿名调用者委托不匹配、测试friend/类型边界及弱引用JIT临时根失败已分别修复，原日志保留，未放宽断言；早期72项相关回归是10月29日草稿证据，10月30日按父约定只重编相关项目、不复跑它或full Core/selfcheck/UI。
+- 全部证据在本树 `artifacts/perf-page-lifetimes/`（含初失败、最终编译/32项/参数/哈希及两路只读子代理重试结论）；外部源码初次核查因网络/限流失败，不宣称部署协议同步，本题不改协议且未反复穷举上游。当前产品与本节同提交，留树待父集成后重验真实 Frame/对话框/WinRT 图片及批次闸门，尚未主树交付或刷新快捷方式。
+
+
+### 2026-10-30 性能专项父集成登记
+
+已接入页面生命周期d73ec48（源f2510af）、弹幕/Lua5375b46（源8ec2765）和预告/诊断1bc3323（源d14f49c）；父树当前分别32/32、49/49、70/70全过。预告/诊断新增31项与既有39项重叠单列。为统一runner严格顶层目录契约，将新PerfListDiagnostics移到tests/Momoka.PerfListDiagnosticsTests，仅相对路径与源哈希定位相应调整，保留实际逻辑和friend程序集。三个新suite逐项入sln与regression-suites，sln只加21行、不改既有项目名/平台；统一清单45项及16个runner成功/失败边界通过。此阶段尚有设置/图片/预算在途，不称最终批次交付。
+
+父实际WinUI首轮performance三组Frame/match/diag通过：12次导航退订差额0、关闭/重开令牌取消、万条日志单Post单执行尾80条，实屏已查看。新增Cover真实caller首轮因误把BitmapSource原图PixelWidth当decoded surface红，查官方WinUI getter与Physical decode源码确认元数据语义后仅修诊断断言/读数标签，保留红日志；不变1280×720帧/921600像素预算。来源main e572e971不是当前包二进制同版，运行现象另验；不宣称内部surface/显存峰值。两次403独立review未成功不计完成，父本地review继续。
+
+
+### 2026-10-30 独立反证收尾修复
+
+Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、未到Join；不是UAF，也不是前项新增问题。父补整段公开Stop/Dispose三秒等待上限，入场先关闭，超时保留唯一后台收尾者等gate/quit/reader退出再Destroy，绝不提前free；正常及时完成仍等真实收尾。新增3项持gate/quit/Stop暂停用例，当前40/40无失败跳过；SOURCE pin仅更新LibMpvBackend一项，其余18一致。真实GPU/永久native挂起仍不是已验证恢复；迟到待办与成本必须报告。设置与资源预算两组已接入，父定向24/141通过，真实WinUI五组在当前正确20261030运行目录全部通过（同PID旧目录未用）；150正式Slider值只1capture/1success，文件锁失败欠项与重试落盘。
+
+独立Lua反证确认热缓存后台finally遇提前Dispose的semaphore而抛Disposed（未验证实际窗口崩溃）。父修DandanPlayClient全公开operation入场/取消/排空，再释放HTTP/gate；包括被替换旧请求，VM Shutdown先await客户端。3项关闭反例+原49=52/52，0失败跳过，未改变发送不重试授权语义。自然接续sourcepin只同步PlayerViewModel1份，其他18一致。
+
+真实设置UI追加检查五组performance均通过，源码DLL6B22AECF8FDFA7049750D8B7DD111D678B30D1C957A17E7849746B3CAA58B475、实际进程24944正确20261030目录；同PID历史20261012目录不是本轮证据已排除。150控件值1capture/1success/实时最后值80，UI同步赋值合计40.24ms仅程序化TwoWay成本；临时文件锁失败→欠项→重试和离页flush通过，截图已保留。后补native/danmaku关闭修复不改变Slider路径，但最终整合仍重验。
 
 ### 2026-10-30 设置亚克力输入、卡片、弹窗与菜单
 
@@ -9228,3 +9311,11 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 发布：`tools/publish.ps1 -NoArchive` 通过（546 文件／284.9 MB、载荷逐项校验），ProductVersion `0.2.0+9a820d81207be5cab2b704c3f68c9b1799cb47c4`，`Momoka.dll` SHA256 `379E83A4B8DB3FF891DE27A2F0575D29B2C231091487A41EED6CE402D2851D8A`；桌面 `Momoka.lnk` Target/WorkDir 读回均指向 `artifacts\publish\win-x64`。
 - 发布件 `--probe-shell --probe-section moviepilot` 最终 **28/28、0 失败、退出 0**（`C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261030-084257963-17836`）；截图 `moviepilot-menu-filled.png` 显示补齐后「搜索其他版本／重新整理／媒体管理」都在、菜单仍开着。目标用例在开发件与发布件的每轮都通过；中间两轮各有 2～4 项不相关用例的截图遮挡／时序守卫失败（`08:23` 遮挡、`08:38` 资源排序超时与紧凑布局未恢复），未放宽守卫，原样重跑通过。
 - 未覆盖：真实 MoviePilot 服务器、真实播放；本轮未推 origin、未改版本；分支 `qoder/临时` 尚未合入 master（master 落后本分支三个提交），合并与主树重验待用户确认。
+
+最终整合方案首次失败：AniBtSourceContractTests源链全部Core，但其替代SettingsStore缺新延迟保存API。父给此IO端点补5个严格RejectIo签名，并补零Save/5拒绝回归，未排除真实queue源码或模拟成功；原业务source测试继续。完整方案初CS1061报告保留，不跑旧输出冒充。
+
+最终主测试3340/3340通过（0失败0跳过）后专项首轮发现三类明确问题并保留red报告：R012旧fixture取消后DeliverAsync重复Get同键新建未放开HTTP（交图片代理仅改夹具）、natural continuation测试未等后继真实排队而把lease排前（已添加Pinned.NET m_asyncHead前置且27/27）、4个独立项目未被sln编译却用no-build（分别显式当前build，24/46/15/72全过）。完整格式发现25份C#空白漂移，仅格式字符调整逐文件无非空白改动；不改基线或缩短超时。最终代码仍须重编/适用测试。
+
+最终独立发布件大范围UI108项107通过1失败（旧日志空态探针反射Append签名漂移）。只修该探针改正式Attach→Ring.Written订阅/访问路径，增加source接线回归，保留原red报告；不更改VM产品或放宽空态断言。重验受影响shell/performance，不为此重跑其余已经通过区域。主树仍保持其他任务隔离，发布件验证和最终主树交付分开。
+
+旧诊断探针接线修复后：当前Shell/Core0警告0错误、原预告/诊断71/71（新增1接线）通过；真实shell/performance17/17退出0，正确日志目录shell-probe-20261030-112302966-17480，含日志淘汰空态与全部5性能case；先108项大范围107通过1反射错的发布red保留。仅该运行工具caller变更，产品方法和其它已通过区域不变。最后主树重验/发布与发布件受影响区域复验仍待。

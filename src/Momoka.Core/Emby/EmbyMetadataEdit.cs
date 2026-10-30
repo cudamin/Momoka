@@ -188,8 +188,10 @@ public sealed record EmbyMetadataPerson
 
     internal static EmbyMetadataPerson Read(JsonObject value) => new()
     {
-        Original = (JsonObject)value.DeepClone(), Name = EmbyMetadataEdit.Text(value, "Name"),
-        Role = EmbyMetadataEdit.Text(value, "Role"), Type = EmbyMetadataEdit.Text(value, "Type")
+        Original = (JsonObject)value.DeepClone(),
+        Name = EmbyMetadataEdit.Text(value, "Name"),
+        Role = EmbyMetadataEdit.Text(value, "Role"),
+        Type = EmbyMetadataEdit.Text(value, "Type")
     };
 
     internal JsonObject ToJson()
@@ -213,7 +215,7 @@ public sealed record EmbyMetadataStudio
     private JsonObject? Original { get; init; }
     public string Name { get; init; } = "";
     internal static EmbyMetadataStudio Read(JsonObject value) => new()
-        { Original = (JsonObject)value.DeepClone(), Name = EmbyMetadataEdit.Text(value, "Name") };
+    { Original = (JsonObject)value.DeepClone(), Name = EmbyMetadataEdit.Text(value, "Name") };
     internal JsonObject ToJson()
     {
         var value = Original is null ? new JsonObject() : (JsonObject)Original.DeepClone();

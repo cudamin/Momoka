@@ -93,6 +93,18 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SubtitleTranslationT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SubtitleTranslationRuntimeTests", "tests\Momoka.SubtitleTranslationRuntimeTests\Momoka.SubtitleTranslationRuntimeTests.csproj", "{3A9F6C14-8E27-4B03-9D5A-C41B7F2809E2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SearchLifetimeTests", "tests\Momoka.SearchLifetimeTests\Momoka.SearchLifetimeTests.csproj", "{BF05A574-E1C8-488B-9B89-38A519A5CAEF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DanmakuPerformanceTests", "tests\Momoka.DanmakuPerformanceTests\Momoka.DanmakuPerformanceTests.csproj", "{5030F4ED-5591-499C-951B-E03C88D35901}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PerfListDiagnosticsTests", "tests\Momoka.PerfListDiagnosticsTests\Momoka.PerfListDiagnosticsTests.csproj", "{F7D0465F-51D8-4CF0-B963-1271C14EF133}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ImagePerformanceTests", "tests\Momoka.ImagePerformanceTests\Momoka.ImagePerformanceTests.csproj", "{E3CD8957-360B-49B1-A873-6E1DBA9B817A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SettingsDeferredSaveTests", "tests\Momoka.SettingsDeferredSaveTests\Momoka.SettingsDeferredSaveTests.csproj", "{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ResourceBudgetTests", "tests\Momoka.ResourceBudgetTests\Momoka.ResourceBudgetTests.csproj", "{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DialogDismissTests", "tests\Momoka.DialogDismissTests\Momoka.DialogDismissTests.csproj", "{42B28CCE-29FC-419B-8248-69D77314874F}"
 EndProject
 Global
@@ -276,6 +288,30 @@ Global
 		{3A9F6C14-8E27-4B03-9D5A-C41B7F2809E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A9F6C14-8E27-4B03-9D5A-C41B7F2809E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A9F6C14-8E27-4B03-9D5A-C41B7F2809E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF05A574-E1C8-488B-9B89-38A519A5CAEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF05A574-E1C8-488B-9B89-38A519A5CAEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF05A574-E1C8-488B-9B89-38A519A5CAEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF05A574-E1C8-488B-9B89-38A519A5CAEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5030F4ED-5591-499C-951B-E03C88D35901}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5030F4ED-5591-499C-951B-E03C88D35901}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5030F4ED-5591-499C-951B-E03C88D35901}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5030F4ED-5591-499C-951B-E03C88D35901}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7D0465F-51D8-4CF0-B963-1271C14EF133}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7D0465F-51D8-4CF0-B963-1271C14EF133}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7D0465F-51D8-4CF0-B963-1271C14EF133}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7D0465F-51D8-4CF0-B963-1271C14EF133}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3CD8957-360B-49B1-A873-6E1DBA9B817A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3CD8957-360B-49B1-A873-6E1DBA9B817A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3CD8957-360B-49B1-A873-6E1DBA9B817A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3CD8957-360B-49B1-A873-6E1DBA9B817A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{42B28CCE-29FC-419B-8248-69D77314874F} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
@@ -319,5 +355,8 @@ Global
 		{E60E6469-3D02-4A2C-AF83-B6011F8C495E} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{7C4E1B2A-9D31-4F58-A6C2-3B7E5D10F801} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 		{3A9F6C14-8E27-4B03-9D5A-C41B7F2809E2} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
+		{BF05A574-E1C8-488B-9B89-38A519A5CAEF} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
+		{5030F4ED-5591-499C-951B-E03C88D35901} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
+		{F7D0465F-51D8-4CF0-B963-1271C14EF133} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}
 	EndGlobalSection
 EndGlobal

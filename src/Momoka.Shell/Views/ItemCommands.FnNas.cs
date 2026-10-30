@@ -127,12 +127,15 @@ internal static partial class ItemCommands
                 client.FnNas.GetItemFilesAsync(client.FnNasConnection, item.Id, token)).ConfigureAwait(true);
             var versions = files.Select(FnNasVersion.From).ToList();
 
-            var dialog = new FnNasMatchDialog(item.Name, async (source, keyword) =>
+            var dialog = new FnNasMatchDialog(item.Name, async (source, keyword, cancellationToken) =>
             {
-                var found = await AskAsync(session, (client, token) => client.FnNas.SearchScrapAsync(
+                session.ThrowIfUnavailable();
+                var found = await session.ExecuteAsync((client, token) => client.FnNas.SearchScrapAsync(
                         client.FnNasConnection,
-                        FnNasItemActions.SearchScrap(item.Id, source, keyword, FnNasLanguage), token))
+                        FnNasItemActions.SearchScrap(item.Id, source, keyword, FnNasLanguage), token), cancellationToken)
                     .ConfigureAwait(true);
+                cancellationToken.ThrowIfCancellationRequested();
+                session.ThrowIfUnavailable();
                 return found.Select(FnNasScrapResult.From).Where(result => result.SourceId.Length > 0).ToList();
             })
             {

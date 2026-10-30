@@ -290,9 +290,18 @@ public partial class App : Application
     {
         _activation?.Dispose();
         _activation = null;
-        if (_shell is null) return;
-        try { await _shell.ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(25)).ConfigureAwait(true); }
+        try
+        {
+            if (_shell is not null) await _shell.ShutdownAsync().WaitAsync(TimeSpan.FromSeconds(25)).ConfigureAwait(true);
+        }
         catch (TimeoutException) { Log.Warn(Category, "播放收尾超时，最终上报可能未完成"); }
+        finally
+        {
+            // 设置收尾不受播放超时/异常影响，也不只取消 debounce。此时 UI 队列仍可捕获最后值。
+            if (_container?.GetService<ISettingsService>() is { } settings
+                && !await settings.FlushAsync().ConfigureAwait(true))
+                Log.Warn(Category, "退出前设置排空失败，内存修改尚未全部保存");
+        }
     }
 
     private void OnWindowClosed()
@@ -312,7 +321,7 @@ public partial class App : Application
 
         // The settings document is edited in place by the settings page and written on the way out, which is
         // what makes an edit survive an exit. Done here rather than by anything in the container: no
-        // registration writes it on dispose, and this is the one place that knows the app is going away.
+        // registration writes it on dispose. BeforeClose 已排空滑块；这里的同步保存再包含最终窗口几何量。
         _container?.GetService<ISettingsService>()?.Save();
 
         // Closes the session's sockets. The session is the only registration that implements IDisposable —

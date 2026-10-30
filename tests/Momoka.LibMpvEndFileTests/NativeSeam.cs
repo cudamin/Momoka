@@ -9,7 +9,7 @@ internal static partial class LibMpvNative
     internal static NativeBoundary Boundary { get; set; } = new();
 
     internal static IntPtr mpv_wait_event(IntPtr context, double timeout) =>
-        throw new AssertionException("R048 禁止启动原生事件线程");
+        Boundary.WaitEvent?.Invoke() ?? throw new AssertionException("未配置匿名托管事件端点；禁止加载原生 DLL");
 
     internal static int mpv_observe_property(IntPtr context, ulong id, string name, int format) =>
         throw new AssertionException("R048 不调用 Start/原生属性订阅");
@@ -29,6 +29,8 @@ internal static partial class LibMpvNative
     internal static int mpv_set_property_string(IntPtr context, string name, string data)
     {
         Boundary.Writes.Add(name);
+        Boundary.WrittenValues.Add((name, data));
+        Boundary.OnWrite?.Invoke(name, data);
         return 0;
     }
 
@@ -64,5 +66,9 @@ internal static partial class LibMpvNative
     internal static void mpv_free(IntPtr data) => Marshal.FreeCoTaskMem(data);
     internal static void mpv_free_node_contents(IntPtr node) { }
     internal static IntPtr mpv_error_string(int error) => IntPtr.Zero;
-    internal static void mpv_terminate_destroy(IntPtr context) => Boundary.DestroyCalls++;
+    internal static void mpv_terminate_destroy(IntPtr context)
+    {
+        Boundary.DestroyCalls++;
+        Boundary.OnDestroy?.Invoke();
+    }
 }

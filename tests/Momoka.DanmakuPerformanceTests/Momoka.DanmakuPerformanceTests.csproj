@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <AssemblyName>Momoka.DanmakuPerformanceTests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+        <Compile Include="..\Momoka.Tests\DanmakuTests.cs" Link="DanmakuTests.cs" />
+        <Compile Include="$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs" />
+    </ItemGroup>
+    <Target Name="ExtractDanmakuLoadOwnership" BeforeTargets="BeforeCompile">
+        <Exec Command="py &quot;$(MSBuildThisFileDirectory)extract-ownership.py&quot; --root &quot;$(MSBuildThisFileDirectory)..\..&quot; --output &quot;$(MSBuildProjectDirectory)\$(IntermediateOutputPath)PlayerViewModel.Danmaku.Load.g.cs&quot;" />
+    </Target>
+</Project>

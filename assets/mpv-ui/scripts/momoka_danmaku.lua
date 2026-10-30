@@ -9,7 +9,9 @@ local highest_transfer = 0
 local comments, layout = {}, {}
 local options = {show = false, opacity = 70, fontSize = 36, speed = 1, area = 50, density = 40, delay = 0}
 local width, height = 1280, 720
-local timer
+local timer, resize_timer, pending_resize
+local resize_quiet_seconds, resize_max_seconds = 0.15, 0.5
+local render
 
 local function finite(value)
     return type(value) == 'number' and value == value and value ~= math.huge and value ~= -math.huge
@@ -45,7 +47,7 @@ local function eligible(previous, start, comment_width, duration)
 end
 
 local function rebuild()
-    layout = {}
+    local layout_count = 0
     local font = options.fontSize
     local line = font + 8
     local rows = math.max(1, math.floor((720 * options.area / 100 - 16) / line))
@@ -68,11 +70,18 @@ local function rebuild()
     for _, comment in ipairs(comments) do
         local start = comment.time + options.delay
         local duration = (comment.mode == 1 and 8 or 6) / options.speed
-        local keep = {}
-        for _, ending in ipairs(endings) do if ending > start then keep[#keep + 1] = ending end end
-        endings = keep
+        -- Compact the bounded density queue in place instead of allocating one table per comment.
+        local kept = 0
+        for index = 1, #endings do
+            if endings[index] > start then kept = kept + 1; endings[kept] = endings[index] end
+        end
+        for index = #endings, kept + 1, -1 do endings[index] = nil end
         if #endings < options.density then
-            local comment_width = text_width(comment.text, font)
+            if comment.measured_font ~= font then
+                comment.measured_width = text_width(comment.text, font)
+                comment.measured_font = font
+            end
+            local comment_width = comment.measured_width
             local lane_set, count, offset
             if comment.mode == 1 then lane_set, count, offset = lanes.scroll, scroll_rows, top_rows
             elseif comment.mode == 5 then lane_set, count, offset = lanes.top, top_rows, 0
@@ -82,16 +91,65 @@ local function rebuild()
                 local free = comment.mode == 1 and eligible(previous, start, comment_width, duration)
                     or comment.mode ~= 1 and (not previous or previous.start + previous.duration <= start)
                 if free then
-                    local entry = {start = start, duration = duration, width = comment_width, mode = comment.mode,
-                        y = 8 + (offset + lane - 1) * line, text = escape(comment.text), color = comment.color}
+                    comment.escaped_text = comment.escaped_text or escape(comment.text)
+                    layout_count = layout_count + 1
+                    local entry = layout[layout_count] or {}
+                    entry.start, entry.duration, entry.width, entry.mode = start, duration, comment_width, comment.mode
+                    entry.y, entry.text, entry.color = 8 + (offset + lane - 1) * line, comment.escaped_text, comment.color
                     lane_set[lane] = entry
-                    layout[#layout + 1] = entry
+                    layout[layout_count] = entry
                     endings[#endings + 1] = start + duration
                     break
                 end
             end
         end
     end
+    for index = #layout, layout_count + 1, -1 do layout[index] = nil end
+end
+
+local function cancel_resize()
+    pending_resize = nil
+    if resize_timer then resize_timer:kill(); resize_timer = nil end
+end
+
+local function virtual_canvas_width()
+    local w, h = mp.get_osd_size()
+    if not finite(w) or not finite(h) or w <= 0 or h <= 0 then return nil end
+    local value = math.floor(w / h * 720 + 0.5)
+    return finite(value) and value > 0 and value or nil
+end
+
+local function settle_resize(request)
+    -- A killed timeout may already have been dispatched. It cannot rebuild a successor file/transfer.
+    if pending_resize ~= request or not loaded or request.file ~= serial or request.transfer ~= transfer then return end
+    -- Sample once more at the boundary, including paused/temporarily unavailable canvases.
+    local latest = virtual_canvas_width()
+    if not latest or math.abs(width - latest) <= 1 then cancel_resize(); return end
+    if math.abs(request.width - latest) > 1 then request.width, request.changed = latest, mp.get_time() end
+    local due = math.min(request.changed + resize_quiet_seconds, request.started + resize_max_seconds)
+    local remaining = due - mp.get_time()
+    if remaining > 0 then
+        resize_timer = mp.add_timeout(remaining, function() settle_resize(request) end)
+        return
+    end
+    pending_resize, resize_timer = nil, nil
+    width = request.width
+    rebuild()
+    render()
+end
+
+local function request_resize(value)
+    if math.abs(width - value) <= 1 then cancel_resize(); return end
+    local now = mp.get_time()
+    if pending_resize then
+        if math.abs(pending_resize.width - value) > 1 then
+            pending_resize.width, pending_resize.changed = value, now
+        end
+        return
+    end
+    local request = {width = value, started = now, changed = now, file = serial, transfer = transfer}
+    pending_resize = request
+    resize_timer = mp.add_timeout(resize_quiet_seconds, function() settle_resize(request) end)
 end
 
 local function lower_bound(time)
@@ -103,13 +161,17 @@ local function lower_bound(time)
     return low
 end
 
-local function render()
+render = function(force_resize)
     local position = mp.get_property_number('time-pos')
     if not loaded or not options.show or not finite(position) or #layout == 0 then overlay:remove(); return end
-    local w, h = mp.get_osd_size()
-    if not w or not h or w <= 0 or h <= 0 then return end
-    local virtual_width = math.floor(w / h * 720 + 0.5)
-    if math.abs(width - virtual_width) > 1 then width = virtual_width; rebuild() end
+    local virtual_width = virtual_canvas_width()
+    if not virtual_width then return end
+    if force_resize == true then
+        cancel_resize()
+        if math.abs(width - virtual_width) > 1 then width = virtual_width; rebuild() end
+    else request_resize(virtual_width) end
+    -- Follow the canvas immediately; keep lane planning until 150 ms quiet (at most 500 ms per batch).
+    -- Seeking and new/configured transfers bypass that delay; no full scan is needed for an ordinary seek.
     height = 720
     local ass = {}
     local alpha = math.floor((100 - options.opacity) * 255 / 100 + 0.5)
@@ -118,7 +180,7 @@ local function render()
         if entry.start > position then break end
         local elapsed = position - entry.start
         if elapsed >= 0 and elapsed < entry.duration then
-            local x = entry.mode == 1 and width - elapsed * (width + entry.width) / entry.duration or width / 2
+            local x = entry.mode == 1 and virtual_width - elapsed * (virtual_width + entry.width) / entry.duration or virtual_width / 2
             local alignment = entry.mode == 1 and 7 or 8
             local color = entry.color
             local red, green, blue = math.floor(color / 65536), math.floor(color / 256) % 256, color % 256
@@ -126,7 +188,7 @@ local function render()
                 alignment, x, entry.y, options.fontSize, alpha, blue, green, red, entry.text)
         end
     end
-    overlay.res_x, overlay.res_y, overlay.data = width, height, table.concat(ass, '\n')
+    overlay.res_x, overlay.res_y, overlay.data = virtual_width, height, table.concat(ass, '\n')
     overlay:update()
 end
 
@@ -138,6 +200,7 @@ local function sync_timer()
 end
 
 local function reset()
+    cancel_resize()
     comments, layout, transfer = {}, {}, nil
     options.show = false
     overlay:remove()
@@ -177,6 +240,8 @@ mp.register_script_message('momoka-danmaku-chunk', function(file, id, json)
             and (entry.mode == 1 or entry.mode == 4 or entry.mode == 5)
             and finite(entry.color) and entry.color >= 0 and entry.color <= 16777215 and entry.color == math.floor(entry.color)
             and type(entry.text) == 'string' and #entry.text > 0 and #entry.text <= 1200 then
+            -- Cached derived values belong to this accepted text, never to fields supplied in JSON.
+            entry.measured_font, entry.measured_width, entry.escaped_text = nil, nil, nil
             comments[#comments + 1] = entry
         end
     end
@@ -185,6 +250,8 @@ end)
 mp.register_script_message('momoka-danmaku-commit', function(file, id)
     if not current(file, id) then return end
     table.sort(comments, function(left, right) return left.time < right.time end)
+    cancel_resize()
+    width = virtual_canvas_width() or width
     rebuild()
     sync_timer()
     mp.commandv('script-message', 'momoka-danmaku-loaded', tostring(serial) .. ':' .. transfer .. ':' .. tostring(#comments))
@@ -203,6 +270,7 @@ timer:kill()
 mp.observe_property('pause', 'bool', sync_timer)
 mp.observe_property('time-pos', 'number', function() if mp.get_property_native('pause', false) then render() end end)
 mp.observe_property('osd-dimensions', 'native', render)
+mp.register_event('seek', function() render(true) end)
 mp.register_event('start-file', function() serial = serial + 1; highest_transfer = 0; loaded = false; reset() end)
 mp.register_event('file-loaded', function()
     loaded = true

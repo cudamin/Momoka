@@ -99,7 +99,8 @@ public sealed partial class MetadataListEditor : UserControl
         var row = _people
             ? MetadataEntry.ForPerson((_editing?.Person ?? new EmbyMetadataPerson()) with
             {
-                Name = name, Role = EntryRoleBox.Text.Trim(),
+                Name = name,
+                Role = EntryRoleBox.Text.Trim(),
                 Type = (EntryTypeBox.SelectedItem as ComboBoxItem)?.Tag as string ?? "Actor"
             })
             : _studio ? MetadataEntry.ForStudio((_editing?.Studio ?? new EmbyMetadataStudio()) with { Name = name })
@@ -155,8 +156,15 @@ public sealed partial class MetadataListEditor : UserControl
     }
     private static string PersonTypeName(string type) => type switch
     {
-        "Actor" => "演员", "Director" => "导演", "Writer" => "编剧", "Producer" => "制片人",
-        "GuestStar" => "客串", "Composer" => "作曲", "Conductor" => "指挥", "Lyricist" => "作词", _ => type
+        "Actor" => "演员",
+        "Director" => "导演",
+        "Writer" => "编剧",
+        "Producer" => "制片人",
+        "GuestStar" => "客串",
+        "Composer" => "作曲",
+        "Conductor" => "指挥",
+        "Lyricist" => "作词",
+        _ => type
     };
 }
 
@@ -169,6 +177,6 @@ public sealed record MetadataEntry
     public EmbyMetadataStudio? Studio { get; private init; }
     public static MetadataEntry ForName(string name) => new() { Name = name };
     public static MetadataEntry ForPerson(EmbyMetadataPerson person) => new()
-        { Name = person.Name, Description = person.Description, Person = person };
+    { Name = person.Name, Description = person.Description, Person = person };
     public static MetadataEntry ForStudio(EmbyMetadataStudio studio) => new() { Name = studio.Name, Studio = studio };
 }

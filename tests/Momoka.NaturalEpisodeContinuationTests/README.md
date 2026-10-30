@@ -77,3 +77,8 @@ A旧lease重复晚Dispose仍不能重复销毁或启动备用后端。其他26�
 按完整生产 `TryRetainAfterEndOfFile`/`HandOver`/`Swap` 核实后分别断言真实两道增量，
 没有修改native生产或放宽成范围/大于零。最终结果在 `run-natural-episode-02.log`。
 复跑命令仍为上文当前项目 Release build/run；无真实mpv、窗口、素材或服务器。
+
+
+## 2026-10-30 父集成：后继排队的实际前置
+
+“lease queued behind a successor”不能把BeginContinuable返回Task当作已经排队；该方法先异步读取metadata/audio，旧fixture可把lease实际排在前面，取消B而不构成所命名场景。只给这一用例加实际SemaphoreSlim等待节点已登记的前置，再排lease；3秒上限不变、生产lease/stop/claims逻辑不变。等待节点字段核对当前.NET运行版本`dotnet/runtime` v10.0.11 `SemaphoreSlim.cs`的m_asyncHead/AddAsyncWaiter，字段缺失直接拒绝要求复核，不假造成功。原其它26用例保留。

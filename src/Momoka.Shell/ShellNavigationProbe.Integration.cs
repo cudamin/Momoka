@@ -1,3 +1,6 @@
+using Momoka.Playback;
+using Momoka.Mpv;
+using Momoka.Infrastructure;
 using System.Collections.ObjectModel;
 using System.Net;
 using Momoka.Configuration;
@@ -191,16 +194,29 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private static Task DiagnosticsEmptyAsync()
+    private async Task DiagnosticsEmptyAsync()
     {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, "diagnostics-empty"));
+        paths.EnsureCreated();
+        var playback = new PlaybackService(fixture.Session, fixture.Settings,
+            () => throw new InvalidOperationException("日志空态探针禁止创建播放后端"),
+            new PlaybackPlanner(fixture.Settings, new ShaderGroupResolver(fixture.Settings.Shaders),
+                paths.ShaderCacheDirectory, paths.ScreenshotDirectory), allowPlayback: false);
+        var sink = new RingBufferLogSink(1);
         using var vm = new DiagnosticsViewModel();
-        Field(vm, "_live", true);
-        Field(vm, "_sink", new RingBufferLogSink(1));
+        // Follow the real wake/visit path, not a private Append signature or a forged live flag.
+        vm.Attach(fixture.Actions, fixture.SettingsService, fixture.Session, fixture.Capabilities,
+            playback, paths, fixture.Dispatcher, new DiagnosticsProbeClipboard(), fixture.Launcher, sink);
+        await vm.ReloadAsync();
         vm.SelectedLevel = 3;
-        Call(vm, "Append", new LogEntry(DateTimeOffset.Now, LogLevel.Error, "fixture", "old", null));
+        sink.Write(new LogEntry(DateTimeOffset.Now, LogLevel.Error, "fixture", "old", null));
+        await UntilAsync(() => vm.Rows.Count == 1 && !vm.ShowEmptyLogs);
         Require(vm.Rows.Count == 1 && !vm.ShowEmptyLogs, "错误日志没有进入筛选");
-        Call(vm, "Append", new LogEntry(DateTimeOffset.Now, LogLevel.Info, "fixture", "new", null));
+        sink.Write(new LogEntry(DateTimeOffset.Now, LogLevel.Info, "fixture", "new", null));
+        await UntilAsync(() => vm.Rows.Count == 0 && vm.ShowEmptyLogs);
         Require(vm.Rows.Count == 0 && vm.ShowEmptyLogs, "最后一条匹配日志被淘汰后未显示空态");
-        return Task.CompletedTask;
+        Require(!playback.IsPlaying && fixture.Actions.Plays == 0, "日志空态探针误触发播放");
     }
 }

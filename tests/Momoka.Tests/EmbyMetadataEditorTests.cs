@@ -144,7 +144,7 @@ internal static class EmbyMetadataEditorTests
         {
             var item = Item();
             var ids = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-                { ["imdb"] = "tt999", ["Tvdb"] = "", ["FutureProvider"] = "keep" };
+            { ["imdb"] = "tt999", ["Tvdb"] = "", ["FutureProvider"] = "keep" };
             Assert.True((EmbyMetadataEdit.Read(item) with { ProviderIds = ids }).ApplyTo(item));
             Assert.Equal("tt999", item["ProviderIds"]!["Imdb"]!.GetValue<string>());
             Assert.Null(item["ProviderIds"]!["imdb"]);
@@ -163,8 +163,12 @@ internal static class EmbyMetadataEditorTests
             var item = Item();
             Assert.True((EmbyMetadataEdit.Read(item) with
             {
-                LockedFields = ["Overview", "FutureLock"], LockData = false,
-                PreferredMetadataLanguage = "", PreferredMetadataCountryCode = "JP", CustomRating = "", Video3DFormat = "MVC"
+                LockedFields = ["Overview", "FutureLock"],
+                LockData = false,
+                PreferredMetadataLanguage = "",
+                PreferredMetadataCountryCode = "JP",
+                CustomRating = "",
+                Video3DFormat = "MVC"
             }).ApplyTo(item));
             Assert.False(item["LockData"]!.GetValue<bool>());
             Assert.Null(item["PreferredMetadataLanguage"]);
@@ -335,7 +339,7 @@ internal static class EmbyMetadataEditorTests
         {
             var device = new DeviceIdentity("fixture", "fixture", "fixture", "0");
             var connection = new EmbyConnection(new Uri("https://metadata-editor.invalid/emby/"), "placeholder-only", "fixture", "fixture", "fixture", device)
-                { ServerKind = kind, IsAdministrator = admin };
+            { ServerKind = kind, IsAdministrator = admin };
             var paths = new AppPaths(Path.Combine(Path.GetTempPath(), "metadata-editor-config|IO-forbidden"));
             Session = new EmbySession(new AppSettings(), new SettingsStore(paths, new NoSecrets()), new CredentialVault(new NoSecrets()), device, Transport);
             Http = (EmbyHttp)typeof(EmbySession).GetField("_http", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(Session)!;
@@ -378,12 +382,12 @@ internal static class EmbyMetadataEditorTests
                 Writes++;
                 Submitted = JsonNode.Parse(await request.Content!.ReadAsStringAsync(cancellationToken))!.AsObject();
                 return new HttpResponseMessage(FailWrite ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.NoContent)
-                    { Content = new StringContent("") };
+                { Content = new StringContent("") };
             }
             throw new AssertionException("未授权的匿名HTTP路径：" + request.Method + " " + request.RequestUri.AbsolutePath);
         }
         private static HttpResponseMessage Json(string text) => new(HttpStatusCode.OK)
-            { Content = new StringContent(text, Encoding.UTF8, "application/json") };
+        { Content = new StringContent(text, Encoding.UTF8, "application/json") };
     }
     private sealed class NoSecrets : ISecretProtector
     {

@@ -1,0 +1,74 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- Use Core's existing friend assembly; no production friend or shared project edits.
+         bin/obj still belong exclusively to this independent project. -->
+    <AssemblyName>Momoka.Tests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <!-- Complete production VMs and views, not a duplicate lifetime model. -->
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchViewModel.cs" Link="Production\MoviePilotSearchViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml.cs" Link="Production\MoviePilotSearchPanel.xaml.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\FnNasMatchDialog.xaml.cs" Link="Production\FnNasMatchDialog.xaml.cs" />
+    <EmbeddedResource Include="README.md" LogicalName="Project.README.md" />
+    <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\FnNasMatchDialog.xaml" LogicalName="Production.FnNasMatchDialog.xaml" />
+    <EmbeddedResource Include="..\..\src\Momoka.Shell\Views\LibraryPage.xaml.cs" LogicalName="Production.LibraryPage.xaml.cs" />
+  </ItemGroup>
+  <!-- Extract the full real match command plus real shared read/write/error wrappers at each build.
+       Boundaries below substitute unused windows and shell actions, never these control-flow bodies. -->
+  <UsingTask TaskName="ExtractSearchLifetimeCommands" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <SourceRoot ParameterType="System.String" Required="true" />
+      <OutputSource ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" /><Using Namespace="System.IO" /><Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, string, string> between = (source, start, end) =>
+        {
+            var begin = source.IndexOf(start, StringComparison.Ordinal);
+            if (begin < 0 || source.IndexOf(start, begin + start.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing/ambiguous production start: " + start);
+            var finish = source.IndexOf(end, begin + start.Length, StringComparison.Ordinal);
+            if (finish < 0 || source.IndexOf(end, finish + end.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing/ambiguous production end: " + end);
+            return source.Substring(begin, finish - begin);
+        };
+        var server = File.ReadAllText(Path.Combine(SourceRoot, "ItemCommands.Server.cs")).Replace("\r\n", "\n");
+        var fnnas = File.ReadAllText(Path.Combine(SourceRoot, "ItemCommands.FnNas.cs")).Replace("\r\n", "\n");
+        var library = File.ReadAllText(Path.Combine(SourceRoot, "LibraryPage.xaml.cs")).Replace("\r\n", "\n");
+        var generated = "#nullable enable\n// Extracted verbatim from this tree at build time.\n" +
+            "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.FnNas;\n" +
+            "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nnamespace Momoka.Shell.Views;\n" +
+            "internal static partial class ItemCommands\n{\n" +
+            "    private const string Category = \"条目命令\";\n" +
+            between(fnnas, "    private const string FnNasLanguage", "    private static Task FnNasRefreshAsync(") +
+            between(server, "    private static async Task GuardAsync(", "\n    /// <summary>\n    /// 一次请求。") +
+            between(server, "    private static async Task<T> AskAsync<T>(", "\n    /// <inheritdoc cref=\"AskAsync{T}\"/>") +
+            between(server, "    private static async Task TellAsync(", "\n    /// <summary>\n    /// 取一段字节，") +
+            between(server, "    private static XamlRoot? Root(", "\n    /// <summary>打开所属剧集。") +
+            between(fnnas, "    private static Task FnNasMatchAsync(", "\n    private static Task FnNasUnmatchAsync(") + "\n}\n" +
+            "public sealed partial class LibraryPage : Page\n{\n" +
+            between(library, "    public void Release()", "\n    private void OnLoaded(") +
+            between(library, "    private int SearchSource =>", "\n    private void CancelTyping()") +
+            between(library, "    private void ApplySource()", "\n    private void OnSearchCategoryChanged(") + "\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
+        if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
+            File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateSearchLifetimeCommands" BeforeTargets="CoreCompile">
+    <ExtractSearchLifetimeCommands SourceRoot="$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\Views"
+                                  OutputSource="$(IntermediateOutputPath)SearchLifetimeCommands.g.cs" />
+    <ItemGroup><Compile Include="$(IntermediateOutputPath)SearchLifetimeCommands.g.cs" /></ItemGroup>
+  </Target>
+</Project>

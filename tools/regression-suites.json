@@ -59,6 +59,19 @@
       "notes": "包含可选 Shell 设置VM覆盖；仅托管匿名夹具。"
     },
     {
+      "id": "Momoka.DanmakuPerformanceTests",
+      "project": "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "--output",
+        "{output}/dynamic"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.DanmakuPerformanceTests/README.md",
+      "notes": "实际Core弹幕与原样宿主Load方法；匿名合成缓存和内存HTTP，Lua运行另走独立工具。"
+    },
+    {
       "id": "Momoka.DashboardNavigation.Tests",
       "project": "tests/Momoka.DashboardNavigation.Tests/Momoka.DashboardNavigation.Tests.csproj",
       "mode": "dotnet",
@@ -84,6 +97,16 @@
       "wrapper": "tests/Momoka.DetailDeleteCommandTests/Run-Fixture.ps1",
       "readme": "tests/Momoka.DetailDeleteCommandTests/README.md",
       "notes": "原 wrapper 构建 Shell/fixture 并生成源码及DLL证明；不执行真实删除。"
+    },
+    {
+      "id": "Momoka.DialogDismissTests",
+      "project": "tests/Momoka.DialogDismissTests/Momoka.DialogDismissTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.DialogDismissTests/README.md",
+      "notes": "现有统一点外关闭生产实现源链接回归；不注入真实指针或启动窗口。"
     },
     {
       "id": "Momoka.FnNasAccountEditTests",
@@ -161,6 +184,18 @@
       "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
     },
     {
+      "id": "Momoka.ImagePerformanceTests",
+      "project": "tests/Momoka.ImagePerformanceTests/Momoka.ImagePerformanceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "perf-images"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ImagePerformanceTests/README.md",
+      "notes": "实际WinRT有界解码和原样封面caller，匿名HTTP预算与取消；严格perf-images入口，不开窗口/播放。"
+    },
+    {
       "id": "Momoka.ItemUserStateOrderTests",
       "project": "tests/Momoka.ItemUserStateOrderTests/Momoka.ItemUserStateOrderTests.csproj",
       "mode": "dotnet",
@@ -231,6 +266,16 @@
       "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
     },
     {
+      "id": "Momoka.PerfListDiagnosticsTests",
+      "project": "tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PerfListDiagnosticsTests/README.md",
+      "notes": "完整诊断VM和原样预告分页更新；有界/弱引用/访问归属，假UI，不是WinUI运行。"
+    },
+    {
       "id": "Momoka.PlaybackSourceRevocationTests",
       "project": "tests/Momoka.PlaybackSourceRevocationTests/Momoka.PlaybackSourceRevocationTests.csproj",
       "mode": "dotnet",
@@ -288,6 +333,28 @@
       "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
     },
     {
+      "id": "Momoka.ResourceBudgetTests",
+      "project": "tests/Momoka.ResourceBudgetTests/Momoka.ResourceBudgetTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "all"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ResourceBudgetTests/README.md",
+      "notes": "真实Core消息/log/font预算；匿名回环socket、临时文件/私有子进程，不是真实库或系统字体扫描。"
+    },
+    {
+      "id": "Momoka.SearchLifetimeTests",
+      "project": "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SearchLifetimeTests/README.md",
+      "notes": "完整实际搜索VM/Panel/Dialog与原样LibraryPage接线；匿名内存边界，无窗口或真实播放。"
+    },
+    {
       "id": "Momoka.ServerSettingsTabs.Tests",
       "project": "tests/Momoka.ServerSettingsTabs.Tests/Momoka.ServerSettingsTabs.Tests.csproj",
       "mode": "external",
@@ -296,6 +363,19 @@
       "wrapper": null,
       "readme": "tests/Momoka.ServerSettingsTabs.Tests/README.md",
       "notes": "完整 DOM 专项需要显式 Node、Playwright 目录与 Chromium。请按 README 调用 Run-Fixture.ps1；不以 contracts 子集冒充整套。"
+    },
+    {
+      "id": "Momoka.SettingsDeferredSaveTests",
+      "project": "tests/Momoka.SettingsDeferredSaveTests/Momoka.SettingsDeferredSaveTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsDeferredSaveTests/README.md",
+      "notes": "当前Shell真实VM/MVVM值与Core设置单保存队列；原样退出/隐藏flush，匿名临时文件不启动UI。"
     },
     {
       "id": "Momoka.SettingsLifetimeTests",

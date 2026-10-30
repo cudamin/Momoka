@@ -117,11 +117,13 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
 
     /// <summary>True between attaching and navigating away; stops a late append touching a dead page.</summary>
     private volatile bool _live;
-    private volatile bool _followLog = true;
+    private LogVisit? _logVisit;
 
     // UI-thread state. A notification only asks us to read writes beyond this atomic snapshot watermark.
     private long _logWatermark;
     private bool _logInitialized;
+    private int _filterVersion;
+    private int _logSnapshotVersion;
 
     public DiagnosticsViewModel()
     {
@@ -278,7 +280,11 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
 
         playback.NowPlayingChanged += OnNowPlaying;
         playback.StatusChanged += OnStatus;
-        if (_sink is not null) _sink.Written += OnWritten;
+        if (_sink is not null)
+        {
+            _logVisit = new LogVisit(this, _sink, ui, Following);
+            _sink.Written += _logVisit.OnWritten;
+        }
     }
 
     /// <summary>
@@ -290,6 +296,8 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
         _live = false;
         _logWatermark = 0;
         _logInitialized = false;
+        _filterVersion++;
+        _logSnapshotVersion++;
 
         if (_playback is not null)
         {
@@ -297,7 +305,12 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
             _playback.StatusChanged -= OnStatus;
         }
 
-        if (_sink is not null) _sink.Written -= OnWritten;
+        if (_logVisit is { } visit)
+        {
+            _logVisit = null;
+            visit.Stop();
+            visit.Sink.Written -= visit.OnWritten;
+        }
         _sink = null;
     }
 
@@ -340,14 +353,15 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
 
     private void ReadLog()
     {
+        var version = ++_logSnapshotVersion;
         var snapshot = _sink?.SnapshotAfter(0) ?? new LogSnapshot(0, []);
         _entries.Clear();
         _entries.AddRange(snapshot.Entries);
         _logWatermark = snapshot.Watermark;
         _logInitialized = true;
 
-        RebuildCategories();
-        ApplyFilter();
+        RebuildCategories(version);
+        if (version == _logSnapshotVersion) ApplyFilter();
     }
 
     /// <summary>
@@ -355,7 +369,7 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
     /// alphabetical, with 「全部」 pinned first. The selection survives a refresh unless its category has
     /// aged out of the ring buffer entirely.
     /// </summary>
-    private void RebuildCategories()
+    private void RebuildCategories(int version)
     {
         var wanted = _entries
             .Select(entry => entry.Category)
@@ -368,7 +382,12 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
 
         var keep = SelectedCategory;
         Categories.Clear();
-        foreach (var name in wanted) Categories.Add(name);
+        if (version != _logSnapshotVersion) return;
+        foreach (var name in wanted)
+        {
+            Categories.Add(name);
+            if (version != _logSnapshotVersion) return;
+        }
 
         // Assigning Categories cleared the ComboBox's selection; put it back, or fall back to 全部 when
         // the category it was showing is no longer in the buffer.
@@ -379,7 +398,7 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
 
     partial void OnSelectedLevelChanged(int value) => ApplyFilter();
 
-    partial void OnFollowingChanged(bool value) => _followLog = value;
+    partial void OnFollowingChanged(bool value) => _logVisit?.SetFollowing(value);
 
     private LogLevel Minimum => SelectedLevel switch
     {
@@ -396,11 +415,18 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
 
     private void ApplyFilter()
     {
+        var version = ++_filterVersion;
         Rows.Clear();
+        if (version != _filterVersion) return;
 
         // Reversed as it is built rather than sorted afterwards: the source list is already in order.
         for (var index = _entries.Count - 1; index >= 0; index--)
+        {
             if (Passes(_entries[index])) Rows.Add(new LogRow(_entries[index]));
+            // A bound notification can refresh, change the filter or reattach synchronously. That
+            // newer projection owns both entries and rows; never continue the old index walk.
+            if (version != _filterVersion) return;
+        }
 
         ShowEmptyLogs = Rows.Count == 0;
         RefreshCounts();
@@ -421,43 +447,141 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
     }
 
     /// <summary>
-    /// A log wake-up, from whatever thread wrote it. Nothing here touches bound state — that happens on
-    /// the UI queue — because this can be called from an HTTP continuation or an mpv IPC read.
-    /// <para>
-    /// <see cref="IUiDispatcher.Post"/> rather than <see cref="IUiDispatcher.Run"/>, and that is not an
-    /// oversight: a log line written on the UI thread would otherwise insert into <see cref="Rows"/> from
-    /// inside whatever operation logged it, which is a bound collection changing under a layout pass.
-    /// </para>
+    /// One narrow owner per attachment. Written is only a wake-up, not a delivery payload. The queue
+    /// retains this owner and a weak VM reference, so Detach need not drain an old UI queue to collect
+    /// the page. Its gate covers writers and the callback's final handoff, never bound/UI work.
     /// </summary>
-    private void OnWritten(LogEntry entry)
+    private sealed class LogVisit(DiagnosticsViewModel owner, RingBufferLogSink sink, IUiDispatcher ui, bool following)
     {
-        if (!_live || !_followLog || _sink is not { } sink || _ui is not { } ui) return;
-        ui.Post(() => ReadNewLog(sink));
+        private readonly WeakReference<DiagnosticsViewModel> _owner = new(owner);
+        private readonly object _gate = new();
+        private bool _active = true;
+        private bool _following = following;
+        private bool _pending;
+        private bool _dirty;
+
+        internal RingBufferLogSink Sink { get; } = sink;
+
+        internal void SetFollowing(bool value)
+        {
+            lock (_gate) _following = value;
+        }
+
+        internal void Stop()
+        {
+            lock (_gate)
+            {
+                _active = false;
+                _dirty = false;
+                _owner.SetTarget(null!);
+            }
+        }
+
+        internal void OnWritten(LogEntry entry)
+        {
+            lock (_gate)
+            {
+                if (!_active || !_following) return;
+                _dirty = true;
+                if (_pending) return;
+                _pending = true;
+            }
+
+            // Post must always hop, including a UI-thread log during a layout/collection notification.
+            // A rejecting (or throwing) dispatcher must not leave this visit permanently pending.
+            var posted = false;
+            try { posted = ui.Post(Drain); }
+            finally
+            {
+                if (!posted)
+                    lock (_gate) _pending = false;
+            }
+        }
+
+        private void Drain()
+        {
+            var released = false;
+            try
+            {
+                while (true)
+                {
+                    lock (_gate)
+                    {
+                        if (!_active || !_following)
+                        {
+                            _pending = false;
+                            released = true;
+                            return;
+                        }
+                        _dirty = false;
+                    }
+
+                    var current = _owner.TryGetTarget(out var target) && target.ReadNewLog(this);
+                    lock (_gate)
+                    {
+                        // Writers arriving during SnapshotAfter/Append set dirty. Re-read their tail
+                        // while owning this same callback; a writer after release posts a new callback.
+                        // Checking and releasing under one gate closes the lost-wake-up window.
+                        if (!current || !_active || !_following || !_dirty)
+                        {
+                            _pending = false;
+                            released = true;
+                            return;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                // Normal release can already have allowed the next writer to post: do not clear that
+                // newer pending state. Only an exceptional exit still owns this callback's slot.
+                if (!released)
+                    lock (_gate) _pending = false;
+            }
+        }
     }
 
-    private void ReadNewLog(RingBufferLogSink sink)
+    private bool OwnsLogVisit(LogVisit visit) =>
+        _live && ReferenceEquals(_logVisit, visit) && ReferenceEquals(_sink, visit.Sink);
+
+    private bool CurrentLogVisit(LogVisit visit) => Following && OwnsLogVisit(visit);
+
+    private bool ReadNewLog(LogVisit visit)
     {
-        // Writers read the volatile follow flag, not a generated UI property. Recheck Following here;
-        // a queued wake-up from an older attachment cannot advance this sink's watermark or append
-        // its old payload.
-        if (!_live || !Following || !ReferenceEquals(_sink, sink)) return;
+        if (!CurrentLogVisit(visit)) return false;
         if (!_logInitialized)
         {
             ReadLog();
-            return;
+            return CurrentLogVisit(visit);
         }
 
-        // The event is only a signal. The first wake-up consumes the retained tail in write order; a
-        // refresh or a later/earlier queued wake-up then reads no already-consumed entries. This also
-        // catches writes made while following was paused, without rebuilding Rows for a normal append.
-        var snapshot = sink.SnapshotAfter(_logWatermark);
-        _logWatermark = snapshot.Watermark;
-        foreach (var item in snapshot.Entries) Append(item);
+        // After catching up, SnapshotAfter returns an O(1) empty result, not a scan of the capacity.
+        var snapshot = visit.Sink.SnapshotAfter(_logWatermark);
+        var sequence = snapshot.Watermark - snapshot.Entries.Count;
+        foreach (var item in snapshot.Entries)
+        {
+            if (!CurrentLogVisit(visit)) return false;
+            sequence++;
+            // Advance one displayed write before its notifications. A reentrant refresh may consume
+            // a newer tail; do not replay it or overwrite its watermark. A mid-drain pause leaves the
+            // remaining retained tail unread, and Detach/reentry resets only the new visit's watermark.
+            if (sequence <= _logWatermark) continue;
+            _logWatermark = sequence;
+            Append(item, visit);
+        }
+        return CurrentLogVisit(visit);
     }
 
-    private void Append(LogEntry entry)
+    private void Append(LogEntry entry, LogVisit visit)
     {
-        if (!_live || !Following) return;
+        if (!CurrentLogVisit(visit)) return;
+        var watermark = _logWatermark;
+        var snapshotVersion = _logSnapshotVersion;
+        var filterVersion = _filterVersion;
+        // Pause may finish the already-consumed entry's bookkeeping. Reentry or Refresh owns a new
+        // snapshot, however, and the old append must not touch its rows/categories after a notification.
+        bool StillAppending() => OwnsLogVisit(visit) && watermark == _logWatermark
+            && snapshotVersion == _logSnapshotVersion;
 
         _entries.Add(entry);
 
@@ -480,24 +604,42 @@ public sealed partial class DiagnosticsViewModel : PageViewModel
         {
             var dropped = _entries[0];
             _entries.RemoveAt(0);
-            if (Passes(dropped) && Rows.Count > 0) Rows.RemoveAt(Rows.Count - 1);
+            if (Passes(dropped) && Rows.Count > 0)
+            {
+                Rows.RemoveAt(Rows.Count - 1);
+                if (!StillAppending()) return;
+            }
             if (!string.Equals(dropped.Category, entry.Category, StringComparison.Ordinal)
                 && !_entries.Any(item => string.Equals(item.Category, dropped.Category, StringComparison.Ordinal)))
                 (expiredCategories ??= []).Add(dropped.Category);
         }
 
-        if (Passes(entry)) Rows.Insert(0, new LogRow(entry));
+        // A filter rebuilt during the eviction's Remove notification already projected _entries,
+        // which includes this new entry. Do not insert its row again, but still finish categories.
+        if (filterVersion == _filterVersion && Passes(entry))
+        {
+            Rows.Insert(0, new LogRow(entry));
+            if (!StillAppending()) return;
+        }
 
         // Finish the row update before changing category selection: its change callback rebuilds the
         // filtered rows, so inserting afterwards would duplicate the newly-added entry again.
         if (!Categories.Contains(entry.Category, StringComparer.Ordinal))
+        {
             InsertCategory(entry.Category);
+            if (!StillAppending()) return;
+        }
         if (expiredCategories is not null)
         {
             var selected = SelectedCategory;
-            foreach (var category in expiredCategories) Categories.Remove(category);
+            foreach (var category in expiredCategories)
+            {
+                Categories.Remove(category);
+                if (!StillAppending()) return;
+            }
             if (selected is not null && expiredCategories.Contains(selected, StringComparer.Ordinal))
                 SelectedCategory = AnyCategory;
+            if (!StillAppending()) return;
         }
         ShowEmptyLogs = Rows.Count == 0;
 

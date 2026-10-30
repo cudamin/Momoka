@@ -348,6 +348,17 @@ internal static class Program
             try
             {
                 next = f.BeginContinuable("B", retain: false, continuation: a.Continuation);
+                // BeginContinuable can still be preparing metadata/audio. This case is specifically
+                // release BEHIND a successor: observe its actual semaphore waiter before enqueueing
+                // lease disposal, rather than assuming Task creation established queue order.
+                var waiterHead = typeof(SemaphoreSlim).GetField("m_asyncHead", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+                    ?? throw new AssertionException("Pinned .NET semaphore waiter boundary changed; review fixture");
+                var waiting = System.Diagnostics.Stopwatch.StartNew();
+                while (waiterHead.GetValue(gate) is null)
+                {
+                    if (waiting.Elapsed > TimeSpan.FromSeconds(3)) throw new AssertionException("Successor did not reach the held player gate");
+                    await Task.Delay(2);
+                }
                 release = a.Continuation!.DisposeAsync().AsTask();
             }
             finally { gate.Release(); }

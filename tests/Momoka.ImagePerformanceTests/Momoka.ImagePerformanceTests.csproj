@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+        <PlatformTarget>x64</PlatformTarget>
+        <!-- The existing Core friend assembly permits anonymous scope construction, not new public APIs. -->
+        <AssemblyName>Momoka.Tests</AssemblyName>
+        <RootNamespace>Momoka.Tests</RootNamespace>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+        <!-- Full production decoder/geometry, real Windows Runtime, no XAML or app launch. -->
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\CoverBackdropImage.cs" Link="Production\CoverBackdropImage.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\CoverBackdropSize.cs" Link="Production\CoverBackdropSize.cs" />
+        <Compile Include="..\Momoka.Tests\ImageCacheTests.cs" Link="Existing\ImageCacheTests.cs" />
+        <Compile Include="..\Momoka.Tests\CoverArtworkTests.cs" Link="Existing\CoverArtworkTests.cs" />
+        <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="Existing\TestHarness.cs" />
+        <!-- These three analyzers are excluded from the original hand-written Momoka.Tests too.
+             Keep its deliberate synchronous test harness unchanged; production Core/Shell retain them. -->
+        <PackageReference Remove="Microsoft.VisualStudio.Threading.Analyzers;Microsoft.CodeAnalysis.BannedApiAnalyzers;Roslynator.Analyzers" />
+    </ItemGroup>
+    <Import Project="ExtractProductionSources.targets" />
+</Project>
