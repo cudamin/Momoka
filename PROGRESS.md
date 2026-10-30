@@ -5,6 +5,8 @@
 - 实际主树publish/win-x64已更新，546文件/285.0MB，着色器/许可/批准mpv清单校验通过；ProductVersion 0.2.0+85728184cc94b5376c8f601b58dfcf72aa157cc0，Shell发布DLL与本次编译SHA256一致。桌面Momoka.lnk目标及工作目录已读回一致。最终记录与截图见artifacts/artwork-main-final-8572818-20261030/verification-summary.md。
 - 全程本地图片/占位身份/假委托，不登录真实账号、不播放或写真实媒体库；保留Jellyfin能力限制与删除核对、写入不明确保护。未证实服务器代理地址错误，不把离线通过当作真实刮削源、上传或删除验收；未上传远程、未改版本或生成Store包。
 - 临时测试/探针树的未提交差异、未跟踪源码与独立进度已保存，完整Git bundle和早期失败证据在上述目录development-archive；仅清理本任务独立副本，其他聊天树与主树已有工作保留。历史“在途”条目保留为本次过程证据，以本节当前交付状态为准。
+- 收尾：两棵子工作树artwork-tests/artwork-probe及codex/artwork-preview-repair分支已删除；根独立副本递归删除被工具策略拒绝，未绕过而保留detached HEAD。文件差异/源码/脚本/日志与完整Git bundle已备份，cleanup-receipt.json记录实际清理状态。
+
 ## 2026-10-30 首页多媒体库避让轮播读数（待主树整合）
 
 - 开发树 `C:/Users/89400/.codex/worktrees/home-banner-controls-space/Momoka`，分支 `codex/home-banner-controls-space`；写入范围为 HomePage／HomeBanner、首页离线运行探针和 fold 回归测试。使用匿名离线夹具，不真实播放或写媒体；用户已撤回发错聊天的编辑图像／集页海报要求，本次仅轮播避让。
