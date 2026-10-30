@@ -107,6 +107,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("继续观看标记已看后换成下一集或撤掉", WatchedResumeSlotAsync, 30);
             await CaseAsync("MoviePilot 关闭后清理历史与操作弹窗", MoviePilotUnavailableNavigationAsync);
             await CaseAsync("MoviePilot 关闭后收起菜单且保留普通菜单", MoviePilotMenusAsync);
+            await CaseAsync("MoviePilot 能力到达时更多菜单原地补齐", MoviePilotMenuFillAsync);
             await CaseAsync("MoviePilot 媒体管理四档、智能整理确认与条目菜单无品牌图标", MoviePilotMediaManagementAsync, 90, section: ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 搜索站点多选、清空、默认及离页取消", MoviePilotSearchSitesAsync);
             await CaseAsync("MoviePilot 版本窗口搜索区与默认搜索站点", MoviePilotSearchShellAsync, 90, ShellProbeSections.MoviePilot);
@@ -552,13 +553,15 @@ internal sealed partial class ShellNavigationProbe
             return Task.CompletedTask;
         }
         public void SetTitleStrip(TitleStrip strip) { }
-        public bool MoviePilotEnabled => false;
-        public event EventHandler? MoviePilotAvailabilityChanged { add { } remove { } }
+        /// <summary>「更多」菜单的能力补齐探针要拨这几档：开机探测是异步的，菜单先开、能力后到。</summary>
+        public bool MoviePilotEnabled { get; set; }
+        public event EventHandler? MoviePilotAvailabilityChanged;
+        public void RaiseMoviePilotAvailabilityChanged() => MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
         public void OpenMoviePilotMedia(Momoka.MoviePilot.MoviePilotMedia media, Momoka.MoviePilot.MoviePilotSubscription? subscription = null) { }
         public void SearchMoviePilotVersions(EmbyItem item) { }
         public void SearchAniBtVersions(EmbyItem item) { }
-        public bool MoviePilotMediaManagementEnabled => false;
-        public bool MoviePilotSmartReorganizeEnabled => false;
+        public bool MoviePilotMediaManagementEnabled { get; set; }
+        public bool MoviePilotSmartReorganizeEnabled { get; set; }
         public void ShowMoviePilotHistoryAction(Momoka.Emby.EmbySessionScope scope, Momoka.Emby.EmbyItem item, Momoka.MoviePilot.MoviePilotHistoryAction action) { }
         public void ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) { }
         public void ShowAniBtScrape(EmbySessionScope scope, EmbyItem item) { }

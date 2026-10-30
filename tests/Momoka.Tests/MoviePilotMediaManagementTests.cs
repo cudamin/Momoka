@@ -91,6 +91,24 @@ internal static class MoviePilotMediaManagementTests
             Assert.True(measured >= 0 && measured < titleCheck);
             Assert.Contains("VisibleArea(icon, host) >= bounds.Width * bounds.Height - 0.5", sidebar);
         });
+        Test("MP 更多菜单：能力补到时不收起且探针在运行清单里", () =>
+        {
+            // 2026-10-30 用户报过：「刚打开应用时更多里少几条，过几秒菜单自己关了，再开才有」。这条把
+            // 「先开菜单、连接与管理能力后到」那段运行检查钉在清单里，别让探针被静默删掉。
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (root is not null && !File.Exists(Path.Combine(root.FullName, "Momoka.sln"))) root = root.Parent;
+            Assert.True(root is not null);
+            var cases = File.ReadAllText(Path.Combine(root!.FullName, "src/Momoka.Shell/ShellNavigationProbe.cs"));
+            Assert.Contains("MoviePilotMenuFillAsync", cases);
+            var sections = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/ShellNavigationProbe.Sections.cs"));
+            Assert.Contains("[nameof(MoviePilotMenuFillAsync)] = ShellProbeSections.MoviePilot", sections);
+            var probe = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/ShellNavigationProbe.MoviePilotAvailability.cs"));
+            Assert.Contains("moviepilot-menu-filled.png", probe);
+            Assert.Contains("把整张菜单收掉了", probe);
+            var commands = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/Views/ItemCommands.cs"));
+            Assert.Contains("before.IsSubsetOf(after)", commands);
+            Assert.Contains("Apply(menu, rows);", commands);
+        });
         Test("MP 发布件悬停探针：真实焦点、初态与动画进度均确认，原缩放边界不放宽", () =>
         {
             var root = new DirectoryInfo(AppContext.BaseDirectory);

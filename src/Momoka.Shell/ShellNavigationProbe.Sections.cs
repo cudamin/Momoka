@@ -73,6 +73,7 @@ internal sealed partial class ShellNavigationProbe
         [nameof(HomeOrderAsync)] = ShellProbeSections.MoviePilot,
         [nameof(MoviePilotUnavailableNavigationAsync)] = ShellProbeSections.MoviePilot,
         [nameof(MoviePilotMenusAsync)] = ShellProbeSections.MoviePilot,
+        [nameof(MoviePilotMenuFillAsync)] = ShellProbeSections.MoviePilot,
         [nameof(MoviePilotMediaManagementAsync)] = ShellProbeSections.MoviePilot,
         [nameof(MoviePilotSearchSitesAsync)] = ShellProbeSections.MoviePilot,
         [nameof(MoviePilotSearchShellAsync)] = ShellProbeSections.MoviePilot,
