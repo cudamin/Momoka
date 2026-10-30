@@ -2,17 +2,17 @@
 
 ## 独立入口
 
-- 项目：tests/Momoka.PageContractTests/PerfListDiagnostics/Momoka.PerfListDiagnosticsTests.csproj。
+- 项目：tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj。
 - 入口：Momoka.Tests.PerfListDiagnosticsProgram.Main；没有额外运行参数。
-- AssemblyName 沿用 Momoka.PageContractTests，复用 Core 已存在的友元边界；本子目录的 bin / obj 独立，不覆盖上层项目输出。
-- 不调用主 Momoka.Tests / PageContract Program；父代理负责主方案、工具清单登记和真实 UI 验收。上层 PageContract csproj 只排除本目录独立源文件。
+- AssemblyName 沿用 Momoka.PageContractTests，复用 Core 已存在的友元边界；本独立项目的 bin / obj 不覆盖原页面契约项目输出。
+- 不调用主 Momoka.Tests / PageContract Program；父代理负责主方案、工具清单登记和真实 UI 验收。父集成将本题套件从 PageContract 子目录移到同名顶层项目，符合统一回归清单路径；只调整相对路径，测试与产品逻辑不变。
 
 在当前工作树根执行，先成功编译当前 Release 再使用 --no-build：
 
 ~~~powershell
-& 'C:/Users/89400/.dotnet/dotnet.exe' restore 'tests/Momoka.PageContractTests/PerfListDiagnostics/Momoka.PerfListDiagnosticsTests.csproj' --disable-parallel -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
-& 'C:/Users/89400/.dotnet/dotnet.exe' build 'tests/Momoka.PageContractTests/PerfListDiagnostics/Momoka.PerfListDiagnosticsTests.csproj' -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
-& 'C:/Users/89400/.dotnet/dotnet.exe' run --project 'tests/Momoka.PageContractTests/PerfListDiagnostics/Momoka.PerfListDiagnosticsTests.csproj' -c Release --no-build
+& 'C:/Users/89400/.dotnet/dotnet.exe' restore 'tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj' --disable-parallel -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
+& 'C:/Users/89400/.dotnet/dotnet.exe' build 'tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj' -c Release --no-restore -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:MSBuildNodeReuse=false
+& 'C:/Users/89400/.dotnet/dotnet.exe' run --project 'tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj' -c Release --no-build
 ~~~
 
 ## 真实源码与边界

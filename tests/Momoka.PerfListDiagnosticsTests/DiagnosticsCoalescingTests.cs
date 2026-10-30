@@ -380,7 +380,8 @@ internal static class DiagnosticsCoalescingTests
                     }
                 }
                 catch (Exception error) { failed = error; }
-            }) { IsBackground = true };
+            })
+            { IsBackground = true };
             writer.Start();
             while (writer.IsAlive)
             {

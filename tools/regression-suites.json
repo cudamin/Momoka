@@ -59,6 +59,19 @@
       "notes": "包含可选 Shell 设置VM覆盖；仅托管匿名夹具。"
     },
     {
+      "id": "Momoka.DanmakuPerformanceTests",
+      "project": "tests/Momoka.DanmakuPerformanceTests/Momoka.DanmakuPerformanceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "--output",
+        "{output}/dynamic"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.DanmakuPerformanceTests/README.md",
+      "notes": "实际Core弹幕与原样宿主Load方法；匿名合成缓存和内存HTTP，Lua运行另走独立工具。"
+    },
+    {
       "id": "Momoka.DashboardNavigation.Tests",
       "project": "tests/Momoka.DashboardNavigation.Tests/Momoka.DashboardNavigation.Tests.csproj",
       "mode": "dotnet",
@@ -231,6 +244,16 @@
       "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
     },
     {
+      "id": "Momoka.PerfListDiagnosticsTests",
+      "project": "tests/Momoka.PerfListDiagnosticsTests/Momoka.PerfListDiagnosticsTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.PerfListDiagnosticsTests/README.md",
+      "notes": "完整诊断VM和原样预告分页更新；有界/弱引用/访问归属，假UI，不是WinUI运行。"
+    },
+    {
       "id": "Momoka.PlaybackSourceRevocationTests",
       "project": "tests/Momoka.PlaybackSourceRevocationTests/Momoka.PlaybackSourceRevocationTests.csproj",
       "mode": "dotnet",
@@ -286,6 +309,16 @@
       "wrapper": null,
       "readme": "tests/Momoka.ResourceBrowserTests/README.md",
       "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.SearchLifetimeTests",
+      "project": "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SearchLifetimeTests/README.md",
+      "notes": "完整实际搜索VM/Panel/Dialog与原样LibraryPage接线；匿名内存边界，无窗口或真实播放。"
     },
     {
       "id": "Momoka.ServerSettingsTabs.Tests",

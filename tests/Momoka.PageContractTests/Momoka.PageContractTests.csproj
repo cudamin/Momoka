@@ -9,8 +9,6 @@
     <StartupObject>Momoka.Tests.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Independent PERF-06/PERF-10 suite; main entry integration belongs to the parent batch. -->
-    <Compile Remove="PerfListDiagnostics\**" />
     <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
     <!-- Same pinned generator as the Shell; no package upgrade. -->
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />

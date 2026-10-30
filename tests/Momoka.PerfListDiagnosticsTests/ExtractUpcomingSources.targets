@@ -1,6 +1,6 @@
 <Project>
   <PropertyGroup>
-    <PerfUpcomingSourcePath Condition="'$(PerfUpcomingSourcePath)' == ''">$(MSBuildProjectDirectory)\..\..\..\src\Momoka.Shell\ViewModels\LibraryViewModel.cs</PerfUpcomingSourcePath>
+    <PerfUpcomingSourcePath Condition="'$(PerfUpcomingSourcePath)' == ''">$(MSBuildProjectDirectory)\..\..\src\Momoka.Shell\ViewModels\LibraryViewModel.cs</PerfUpcomingSourcePath>
   </PropertyGroup>
   <UsingTask TaskName="ExtractPerfUpcomingSources" TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">

@@ -76,8 +76,12 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal void LeaveUpcoming() { _request = _request! with { Section = LibrarySection.Items }; }
     private static LibraryRequest Request(EmbySessionScope? source) => new()
     {
-        Services = null!, Title = "预告夹具", ParentId = "library", CollectionType = "tvshows",
-        Section = LibrarySection.Upcoming, Source = source
+        Services = null!,
+        Title = "预告夹具",
+        ParentId = "library",
+        CollectionType = "tvshows",
+        Section = LibrarySection.Upcoming,
+        Source = source
     };
     internal CardItem NewCard(EmbyItem item) => new(item, _images, _upcomingCardWidth, wide: true, upcoming: true);
     private void RefreshUpcomingState() { }
