@@ -840,7 +840,7 @@ internal static partial class ShellSelfCheck
 
         static Task<EmbyItem?> Reload(string itemId) => Task.FromResult<EmbyItem?>(null);
 
-        static Task<byte[]?> Remote(string address) => Task.FromResult<byte[]?>(null);
+        static Task<byte[]?> Remote(string address, CancellationToken cancellationToken) => Task.FromResult<byte[]?>(null);
 
         void Try(string what, Func<Microsoft.UI.Xaml.Controls.ContentDialog> build)
         {

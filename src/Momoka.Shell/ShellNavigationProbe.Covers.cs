@@ -10,11 +10,11 @@ namespace Momoka.Shell;
 internal sealed partial class ShellNavigationProbe
 {
     private CoverDialog Cover(EmbyItem item, Func<Task<EmbyItem?>> reload,
-        Func<Task>? delete = null, FetchArtwork? fetch = null) => new(item,
+        Func<Task>? delete = null, FetchArtwork? fetch = null, FetchRemote? remote = null) => new(item,
         (_, _) => Task.FromResult(new RemoteImageResult()),
         fetch ?? ((_, _, _, _, _) => Task.FromResult<byte[]?>(null)),
         (_, _, _, _) => Task.CompletedTask, (_, _, _) => delete?.Invoke() ?? Task.CompletedTask,
-        (_, _, _) => Task.CompletedTask, _ => reload(), _ => Task.FromResult<byte[]?>(null))
+        (_, _, _) => Task.CompletedTask, _ => reload(), remote ?? ((_, _) => Task.FromResult<byte[]?>(null)))
         { XamlRoot = _root.XamlRoot };
 
     private async Task CoverPickRaceAsync()

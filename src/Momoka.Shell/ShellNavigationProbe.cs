@@ -138,6 +138,10 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("封面写入期间等待关闭", CoverWriteAsync);
             await CaseAsync("封面结果不明须先刷新", CoverUncertainAsync);
             await CaseAsync("封面迟到图片不复活", CoverLateImageAsync);
+            await CaseAsync("封面所有图种完整预览与缩放清晰度", CoverPreviewLayoutAsync, 45);
+            await CaseAsync("候选图并行加载、回退、失败重试和取消", CoverRemotePreviewAsync, 45);
+            await CaseAsync("当前封面预览失败反馈与原标签刷新恢复", CoverCurrentFailureAsync, 30);
+            await CaseAsync("候选完整60张列表与四路并发上限", CoverCandidateLimitAsync, 30);
             await CaseAsync("完整返回历史和主页按钮", ShellHistoryAsync);
             await CaseAsync("收藏入口显隐、跳转及取消最后一项", FavoritesNavigationAsync);
             await CaseAsync("收藏页聚合所有在线账号与分账号筛选", FavoriteAccountsAsync, 30);

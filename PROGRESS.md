@@ -5,6 +5,15 @@
 - 当前树Shell及测试Release编译0警告0错误；完整主测试3335/3335、0失败0跳过，原样提取实际页面／动画的fold专项52/52。library分区19/19，运行 `shell-probe-20261030-112004867-30320`，10库首尾实屏覆盖1280／800／760／801／1100 DIP，24 DIP间隔、末库完整可达、单张／多张及位置切换恢复均通过；临时向右移视口24 DIP被同一断言拒绝并恢复。已查看1280首项与800末项真实屏幕。
 - 两轮隐藏启动（副屏／主屏）的像素可见性守卫失败保留，几何通过不冒充截图通过；改为可见交互探针后实际19项通过。与其他任务的诊断桌面串行，不终止其进程。主树最终整合、重验及实际交付目录尚待完成。
 
+## 2026-10-30 图片编辑完整预览与候选修复（本次在途）
+
+- 工作树：visualizations/2026/10/30/01a18c4f-d18d-72e2-94b6-dcf463dbe912/Momoka，分支 codex/artwork-preview-repair，基于 master ed36319。本树独占产品写入，artwork-tests 与 artwork-probe 分别隔离测试和探针编写。
+- 范围：CoverDialog/CoverPicker、Core ArtworkPreview、图片代理取消接线、定向单测和 covers 离线探针；保留集/剧现有图种，单集Primary和候选框明确横向16:9；不读取或写入真实账号/媒体。
+- 对照本机网页 imageeditor/imagedownloader/apiclient（SHA256 B61E1C3B0165EF7D30B19816983D955E101F08BB6C4951D8CD73052ABDB882C2、F87B21552A5F792E281648A36AC0F4AF8BCC65D60599E40DA7B121E9D303BA82）：完整缩放、按画框/DPI取图；候选有限并发、缩略失败回原图、失败提示/重试、关闭取消，补使用这张按钮。
+- 本树Release Tests/Core与Shell编译0警告0错误；定向72/72、全主测3407/3407，均0失败0跳过；covers离线真实控件10/10（shell-probe-20261030-112958901-23704）已检查1280/760、单集16:9、各格图片四边及动作按钮、失败单图重试/刷新、60候选和四并发、取消晚到。空白、LF、Git差异、自动化句柄扫描通过；原失败/早期截图保留，最新证据本树artifacts/artwork-covers-final-layout-20261030。
+- 产品提交bc92bfe，整合性能主树提交55e4484；整合最终代码Tests/Core/Shell编译0警告0错误，全主测3412/3412、0失败0跳过，covers10/10（shell-probe-20261030-120606345-1072），宽窄和单集16:9实屏/四边/按钮边界已复核。当前本树证据artifacts/artwork-integrated-covers-20261030和artwork-verification-20261030。
+- 待主树合入后重验和实际publish。开发期间master由性能批次更新至aac0cc8，该主树交付会话仍在收尾；不覆盖活跃会话或真实配置，独立副本不等于主树交付。
+
 ## 2026-10-30 弹窗点击外部关闭已合入主树并交付
 
 - 产品提交 `0b540f7`，主树整合提交 `f3205bd`；保留已提交的更多菜单能力迟到补齐与快捷键焦点改动，两段 PROGRESS 合并冲突均完整保留。最终 master 方案 Release 构建 0警告0错误；主测试 **3335/3335、0失败0跳过**，实际弹窗行为 **10/10**、样式／元数据子集 **61/61**，主规则文档检查3份／21个拒绝反例通过。
@@ -9318,3 +9327,17 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 最终独立发布件大范围UI108项107通过1失败（旧日志空态探针反射Append签名漂移）。只修该探针改正式Attach→Ring.Written订阅/访问路径，增加source接线回归，保留原red报告；不更改VM产品或放宽空态断言。重验受影响shell/performance，不为此重跑其余已经通过区域。主树仍保持其他任务隔离，发布件验证和最终主树交付分开。
 
 旧诊断探针接线修复后：当前Shell/Core0警告0错误、原预告/诊断71/71（新增1接线）通过；真实shell/performance17/17退出0，正确日志目录shell-probe-20261030-112302966-17480，含日志淘汰空态与全部5性能case；先108项大范围107通过1反射错的发布red保留。仅该运行工具caller变更，产品方法和其它已通过区域不变。最后主树重验/发布与发布件受影响区域复验仍待。
+
+## 2026-10-30 性能与资源批次：最终主树交付成功回执
+
+本回执覆盖上方历史“主树重验/发布待”的状态，保留旧记录及原红报告。产品已安全快进进入 master，最终产品提交 aac0cc843c4d6d538bd510c9e71bc7d8ac79db6a；实际发布目录 C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe，ProductVersion 为 0.2.0+aac0cc843c4d6d538bd510c9e71bc7d8ac79db6a。C:\Users\89400\Desktop\Momoka.lnk 的目标、工作目录和空参数已读回正确。本次仅本机交付，未改版本、未推 origin、未生成 ZIP/MSIX、未上传 Store。之后的本条进度/报告提交不改产品代码，不重建、不跑探针、不重发应用。
+
+- 原 16 项中修复 15 项、部分修复 PERF-14：离页订阅/搜索取消、原生关闭整段三秒与安全迟到回收、滑块合并后台写、封面解码预算/后台处理、弹幕缓存后台与全 operation 关停排空、预告线性分组、Lua resize 合并、speed 最新值单待办、图片共享工作预算、诊断单唤醒、WS 整条 1MiB、飞牛匹配只读取消、磁盘日志预算、翻译去重及字体解析预算全部进入最终主树。PERF-14 只消除禁动画时无用采样，启用动画的静止快照及播放时 20Hz 字幕兜底保留；低收益剩余部分暂缓。
+- 最终主树实际重验：完整 Release 方案 0 警告/0 错误；主测试 3340/3340、0 失败/0 跳过；24 个适用独立专项全部通过，重叠数不累加；自然接续源 caller 54/54、错误源码提取控制 10 个均预期拒绝；Lua 合成 40/40、正式 timer 6/6、uosc 47/47；空白退出 0（workspace 加载提示原样单列）；PowerShell 50 脚本通过；UIA 源扫描 548 个交互元素、0 缺句柄（模板/复用跳过范围单列）。
+- 实际主树发布件：校验 546 文件、285.0MB、59 个批准 mpv 文件；shell/performance 17/17、退出 0；settings/library/search/moviepilot/playback 91/91、退出 0。这是两轮分区域共 108 项已执行，不是全部 shell 探针或全账号自检。实际日志分别 C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261030-114330375-8220\logs 与 C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261030-115348510-3080\logs。
+- 实际发布件本地合成播放退出 0：新生成六色条、独立数据目录，无网络/音频/字幕/真实库；两轮加载、resize/全屏、暂停恢复、弹幕局部像素与停止摘 Visual 的自动断言通过。已查看弹幕截图，其他画面/OSD 全面目视仍有边界；集成探针不证明独占窗口、同窗换集、外部 mpv 或 SVP 实播。实际日志 C:\Users\89400\AppData\Local\Momoka\logs\composition-probe-20261030-114650026-27032\logs。
+- 关键实测：真 XAML 滑块 150 次赋值→1 capture/1 success，末值 80 落盘，赋值累计 44.23ms；文件锁失败欠项/重试/离页排空通过。真 Frame 往返 12 次订阅差额 0；10000 日志→1 Post/1 回调，保留 80 条。3840×2160 封面的保留帧/请求 1280×720、BGRA 3,686,400B；BitmapImage 宽高是原图元数据，不是内部 surface 峰值，已核官方实现并保留首轮误读红证据。
+- 边界与成本：未登录真实服务器、未操作真实播放记录或真实配置；未做数小时 CPU/GPU/显存曲线，内部 XAML surface 峰值未测。冷快照约 147ms 是子树离线成本；图片预算可能让旧可见图等下一次 Ensure，降采样损失大图细节；合法超大 WS 也拒绝、超长日志省中留头尾。两条独立产品反证（原生关闭整段等待、弹幕全 operation 排空）已补回归并修复；源码 pin、替身 API、R012/continuation 夹具、BitmapImage 口径、旧 Append 反射及空白 red 均保留，不放宽基线洗绿。
+- 分支收尾：七个本轮 codex/perf-* 与 codex/performance-resource-repair 已逐文件确认无主树缺少的产品内容，原 SHA 同点 detach 后条件删除 ref；工作树仍全部干净。Codex 归档工具逐树核验，六个子树拒绝“置顶任务或工作区保护”，父树拒绝“当前任务主工作区不能移除”；子树归档待解除置顶、父树待正常切离，本轮未取消置顶、未强删或绕过工具；其他聊天的分支/目录不动。为恢复原提交及被忽略证据，保存并校验 Git bundle，另完整复制 907 文件约 196.1MiB、逐文件 SHA256 相符，磁盘成本如实保留。
+- 原分支顶端：perf-page-lifetimes=f2510af47228113791336c6ec270769447815703；perf-settings=b7aebeea63dfa510c82c2dd28728df4086838a05；perf-images=c54e4dc29b3740e5a68bb4c369c07899859afd34；perf-danmaku-lua=5fbf572a84bdec6b2a23c6f3bb77a7984a2b504b；perf-list-diagnostics=d14f49c038fe4a1ff9df18599540b104a340da50；perf-resource-budgets=d08450643776687b8c188687c4e90bdf9d700847；performance-resource-repair=aac0cc843c4d6d538bd510c9e71bc7d8ac79db6a。恢复回执/原提交 bundle 位于 C:\Users\89400\.codex\visualizations\2026\10\29\01a18681-eb82-7940-a5ea-b9a3ffc67294\performance-repair\cleanup-preserved。
+- [最终完整中文报告](C:/Users/89400/.codex/visualizations/2026/10/29/01a18681-eb82-7940-a5ea-b9a3ffc67294/performance-repair/最终交付报告.md)；[机器可读回执](C:/Users/89400/.codex/visualizations/2026/10/29/01a18681-eb82-7940-a5ea-b9a3ffc67294/performance-repair/delivery-report.json)；主树证据目录 C:\Users\89400\Momoka\artifacts\performance-repair\master-final。本次文档检查验证数字/链接/版本哈希/只追加旧记录/分支恢复依据，结果与检查脚本保存同目录，不用无关编译充数。

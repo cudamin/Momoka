@@ -113,6 +113,10 @@ internal sealed partial class ShellNavigationProbe
         [nameof(CoverWriteAsync)] = ShellProbeSections.Covers,
         [nameof(CoverUncertainAsync)] = ShellProbeSections.Covers,
         [nameof(CoverLateImageAsync)] = ShellProbeSections.Covers,
+        [nameof(CoverPreviewLayoutAsync)] = ShellProbeSections.Covers,
+        [nameof(CoverRemotePreviewAsync)] = ShellProbeSections.Covers,
+        [nameof(CoverCurrentFailureAsync)] = ShellProbeSections.Covers,
+        [nameof(CoverCandidateLimitAsync)] = ShellProbeSections.Covers,
 
         // 收藏与删除
         [nameof(FavoritesNavigationAsync)] = ShellProbeSections.Favorites,

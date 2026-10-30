@@ -83,8 +83,15 @@ internal static partial class ItemCommands
     /// 然后在赋值处报一条「可空性与目标类型不匹配」。
     /// </para>
     /// </summary>
-    private static async Task<byte[]?> FetchAsync(EmbySessionScope session, Func<EmbyClient, CancellationToken, Task<byte[]>> work) =>
-        await AskAsync(session, work).ConfigureAwait(false);
+    private static async Task<byte[]?> FetchAsync(EmbySessionScope session, Func<EmbyClient, CancellationToken, Task<byte[]>> work,
+        CancellationToken cancellationToken = default)
+    {
+        session.ThrowIfUnavailable();
+        var bytes = await session.ExecuteAsync(work, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        session.ThrowIfUnavailable();
+        return bytes;
+    }
 
     /// <summary>重新问一遍这个条目，问不到就是空。理由同 <see cref="FetchAsync"/>。</summary>
     private static async Task<EmbyItem?> ReloadAsync(EmbySessionScope session, string itemId) =>
@@ -423,8 +430,8 @@ internal static partial class ItemCommands
                 (id, type, picked) => TellAsync(session, (client, token) => client.UploadImageAsync(
                     id, type, picked.Bytes, ArtworkFile.ContentType(picked.FileName), token)),
                 id => ReloadAsync(session, id),
-                session.Connection.IsJellyfin ? null : address => FetchAsync(session, (client, token) =>
-                    client.GetRemoteImageBytesAsync(address, token)))
+                session.Connection.IsJellyfin ? null : (address, cancellationToken) => FetchAsync(session, (client, token) =>
+                    client.GetRemoteImageBytesAsync(address, token), cancellationToken))
             {
                 XamlRoot = root
             };
