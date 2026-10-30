@@ -12,7 +12,8 @@
 - 最终主树Tests/Core与Shell当前Release编译0警告0错误，完整主测3412/3412、0失败0跳过（72项图片定向包含其中）；修改文件空白/LF/Git检查、自动化扫描零缺句柄、固定分析器哈希通过。主树开发件covers10/10（shell-probe-20261030-125435327-29640），实际发布件covers10/10（shell-probe-20261030-130222445-28412），已复核1280/760、单集16:9、透明图四边、标题/动作/重试按钮完整边界、60候选、并发上限和取消晚到截图。
 - 实际主树publish/win-x64已更新，546文件/285.0MB，着色器/许可/批准mpv清单校验通过；ProductVersion 0.2.0+85728184cc94b5376c8f601b58dfcf72aa157cc0，Shell发布DLL与本次编译SHA256一致。桌面Momoka.lnk目标及工作目录已读回一致。最终记录与截图见artifacts/artwork-main-final-8572818-20261030/verification-summary.md。
 - 全程本地图片/占位身份/假委托，不登录真实账号、不播放或写真实媒体库；保留Jellyfin能力限制与删除核对、写入不明确保护。未证实服务器代理地址错误，不把离线通过当作真实刮削源、上传或删除验收；未上传远程、未改版本或生成Store包。
-- 临时测试/探针树的未提交差异、未跟踪源码与独立进度已保存，完整Git bundle和早期失败证据在上述目录development-archive；仅清理本任务独立副本，其他聊天树与主树已有工作保留。历史“在途”条目保留为本次过程证据，以本节当前交付状态为准。- 收尾：两棵子工作树artwork-tests/artwork-probe及codex/artwork-preview-repair分支已删除；根独立副本递归删除被工具策略拒绝，未绕过而保留detached HEAD。文件差异/源码/脚本/日志与完整Git bundle已备份，cleanup-receipt.json记录实际清理状态。
+- 临时测试/探针树的未提交差异、未跟踪源码与独立进度已保存，完整Git bundle和早期失败证据在上述目录development-archive；仅清理本任务独立副本，其他聊天树与主树已有工作保留。历史“在途”条目保留为本次过程证据，以本节当前交付状态为准。
+- 收尾：两棵子工作树artwork-tests/artwork-probe及codex/artwork-preview-repair分支已删除；根独立副本递归删除被工具策略拒绝，未绕过而保留detached HEAD。文件差异/源码/脚本/日志与完整Git bundle已备份，cleanup-receipt.json记录实际清理状态。
 
 ## 2026-10-30 首页多媒体库避让轮播读数（待主树整合）
 
