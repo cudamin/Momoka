@@ -15,6 +15,21 @@ internal static partial class CompositionPlaybackProbe
     internal static async Task SaveScreenAsync(IntPtr handle, string file)
     {
         var screen = CapturePixels(handle);
+        await EncodeAsync(screen, file);
+    }
+
+    /// <summary>
+    /// 整窗取样（含系统标题栏）。标题栏图标、窗口标题这类只在非客户区画的东西，客户区取样看不到 ——
+    /// 「左上角那颗图标没有了」这条只能靠这一张。
+    /// </summary>
+    internal static async Task SaveWindowScreenAsync(IntPtr handle, string file)
+    {
+        var screen = CaptureWindowPixels(handle);
+        await EncodeAsync(screen, file);
+    }
+
+    private static async Task EncodeAsync(ScreenPixels screen, string file)
+    {
         using var stream = new InMemoryRandomAccessStream();
         var encoder = await BitmapEncoder.CreateAsync(BitmapEncoder.PngEncoderId, stream);
         encoder.SetPixelData(BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore,
@@ -58,17 +73,36 @@ internal static partial class CompositionPlaybackProbe
         var origin = new NativePoint();
         if (!Native.ClientToScreen(handle, ref origin))
             throw new InvalidOperationException("像素探针无法定位客户区");
-        foreach (var (x, y) in new[] { (0.05, 0.2), (0.95, 0.2), (0.05, 0.8), (0.95, 0.8) })
+        GuardVisible(handle, origin.X, origin.Y, client.Width, client.Height);
+        return CopyScreen(origin.X, origin.Y, client.Width, client.Height);
+    }
+
+    private static ScreenPixels CaptureWindowPixels(IntPtr handle)
+    {
+        if (!Native.GetVisibleFrame(handle, out var frame) || frame.Width <= 0 || frame.Height <= 0)
+            throw new InvalidOperationException("像素探针无法读取窗口边框");
+        // 圆角四角是透明的：取样点往里缩 4 像素，别把桌面的窗口当成这扇窗。
+        GuardVisible(handle, frame.Left + 4, frame.Top + 4, frame.Width - 8, frame.Height - 8);
+        return CopyScreen(frame.Left, frame.Top, frame.Width, frame.Height);
+    }
+
+    /// <summary>四个取样点都得落在这扇窗上（<see cref="Native.GetAncestor"/> 取顶层窗口比）。</summary>
+    private static void GuardVisible(IntPtr handle, int x, int y, int width, int height)
+    {
+        foreach (var (column, row) in new[] { (0.05, 0.2), (0.95, 0.2), (0.05, 0.8), (0.95, 0.8) })
         {
             var point = new NativePoint
             {
-                X = origin.X + (int)(client.Width * x),
-                Y = origin.Y + (int)(client.Height * y)
+                X = x + (int)(width * column),
+                Y = y + (int)(height * row)
             };
             if (Native.GetAncestor(Native.WindowFromPoint(point), 2) != handle)
                 throw new InvalidOperationException("像素探针窗口被遮挡或移到屏外，不能把其他窗口的像素当作视频");
         }
+    }
 
+    private static ScreenPixels CopyScreen(int x, int y, int width, int height)
+    {
         var screen = Native.GetDC(IntPtr.Zero);
         var memory = IntPtr.Zero;
         var bitmap = IntPtr.Zero;
@@ -81,8 +115,8 @@ internal static partial class CompositionPlaybackProbe
             var info = new ProbeBitmapInfo
             {
                 Size = (uint)Marshal.SizeOf<ProbeBitmapInfo>(),
-                Width = client.Width,
-                Height = -client.Height,
+                Width = width,
+                Height = -height,
                 Planes = 1,
                 BitCount = 32
             };
@@ -90,12 +124,12 @@ internal static partial class CompositionPlaybackProbe
             if (bitmap == IntPtr.Zero || bits == IntPtr.Zero) throw new Win32Exception();
             previous = SelectObject(memory, bitmap);
             if (previous == IntPtr.Zero || previous == new IntPtr(-1)) throw new Win32Exception();
-            if (!BitBlt(memory, 0, 0, client.Width, client.Height, screen, origin.X, origin.Y, 0x00CC0020))
+            if (!BitBlt(memory, 0, 0, width, height, screen, x, y, 0x00CC0020))
                 throw new Win32Exception();
             if (!GdiFlush()) throw new Win32Exception();
-            var bytes = new byte[checked(client.Width * client.Height * 4)];
+            var bytes = new byte[checked(width * height * 4)];
             Marshal.Copy(bits, bytes, 0, bytes.Length);
-            return new ScreenPixels(client.Width, client.Height, bytes);
+            return new ScreenPixels(width, height, bytes);
         }
         finally
         {

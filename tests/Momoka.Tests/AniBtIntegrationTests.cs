@@ -24,7 +24,7 @@ internal static class AniBtIntegrationTests
             foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
             {
                 var item = new EmbyItem { Type = type, Genres = ["动漫"] };
-                var scrape = ItemMenu.For(item, true).Single(row => row.Command == ItemCommand.AniBtScrape);
+                var scrape = Flatten(ItemMenu.For(item, true)).Single(row => row.Command == ItemCommand.AniBtScrape);
                 Assert.Equal("AniBT 识别", scrape.Label);
                 Assert.DoesNotContain("重新刮削", scrape.Label);
                 var versions = ItemMenu.For(item, true).Single(row => row.Command == ItemCommand.MoviePilotVersions);
@@ -32,12 +32,12 @@ internal static class AniBtIntegrationTests
                 Assert.True(versions.Children!.Select(row => row.Label).SequenceEqual(new[] { "MoviePilot", "AniBT" }));
                 Assert.True(versions.Children!.Select(row => row.Command!.Value)
                     .SequenceEqual(new[] { ItemCommand.MoviePilotVersions, ItemCommand.AniBtVersions }));
-                Assert.False(ItemMenu.For(item).Any(row => row.Command == ItemCommand.AniBtScrape));
+                Assert.False(Flatten(ItemMenu.For(item)).Any(row => row.Command == ItemCommand.AniBtScrape));
                 item.Genres.Clear();
                 Assert.Null(ItemMenu.For(item, true).Single(row => row.Command == ItemCommand.MoviePilotVersions).Children);
                 Assert.Equal(type != EmbyItemType.Movie,
-                    ItemMenu.For(item, true).Any(row => row.Command == ItemCommand.AniBtScrape));
-                Assert.True(ItemMenu.For(item, true, animeGenre: true).Any(row => row.Command == ItemCommand.AniBtScrape));
+                    Flatten(ItemMenu.For(item, true)).Any(row => row.Command == ItemCommand.AniBtScrape));
+                Assert.True(Flatten(ItemMenu.For(item, true, animeGenre: true)).Any(row => row.Command == ItemCommand.AniBtScrape));
             }
         });
 
@@ -53,14 +53,14 @@ internal static class AniBtIntegrationTests
                     foreach (var jellyfin in new[] { false, true })
                     {
                         var menu = ItemMenu.For(item, true, jellyfin: jellyfin);
-                        Assert.Equal("AniBT 识别", menu.Single(row => row.Command == ItemCommand.AniBtScrape).Label);
+                        Assert.Equal("AniBT 识别", Flatten(menu).Single(row => row.Command == ItemCommand.AniBtScrape).Label);
                         Assert.Null(menu.Single(row => row.Command == ItemCommand.MoviePilotVersions).Children);
-                        Assert.False(ItemMenu.For(item, jellyfin: jellyfin).Any(row => row.Command == ItemCommand.AniBtScrape));
-                        Assert.False(ItemMenu.For(item, true, jellyfin: jellyfin, aniBtScrapeAvailable: false)
+                        Assert.False(Flatten(ItemMenu.For(item, jellyfin: jellyfin)).Any(row => row.Command == ItemCommand.AniBtScrape));
+                        Assert.False(Flatten(ItemMenu.For(item, true, jellyfin: jellyfin, aniBtScrapeAvailable: false))
                             .Any(row => row.Command == ItemCommand.AniBtScrape));
                     }
-                    Assert.False(ItemMenu.For(item, true, fnNas: true).Any(row => row.Command == ItemCommand.AniBtScrape));
-                    Assert.False(ItemMenu.For(item, true, plex: true).Any(row => row.Command == ItemCommand.AniBtScrape));
+                    Assert.False(Flatten(ItemMenu.For(item, true, fnNas: true)).Any(row => row.Command == ItemCommand.AniBtScrape));
+                    Assert.False(Flatten(ItemMenu.For(item, true, plex: true)).Any(row => row.Command == ItemCommand.AniBtScrape));
                 }
             });
 
@@ -625,6 +625,10 @@ internal static class AniBtIntegrationTests
         """;
     private static readonly AniBtAnime OtherAnime = new("ani_other", 43, "另一部匿名动画");
     private static readonly AniBtMatch Multiple = new([Anime, OtherAnime], null, "manual", "low", "fixture", 1);
+
+    /// <summary>菜单按层级摊平：父项在前，子项随后 —— 整理入口现在住在「重新整理」组里。</summary>
+    private static IEnumerable<ItemMenuEntry> Flatten(IReadOnlyList<ItemMenuEntry> menu) =>
+        menu.SelectMany(row => row.Children is { } children ? Flatten(children) : new[] { row });
 
     private static AniBtScrapePlan Plan(MoviePilotService service,
         params (string Path, MoviePilotTransferHistory? History)[] rows) => new(

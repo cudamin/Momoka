@@ -145,26 +145,74 @@ internal static partial class ItemCommands
         var menu = Build(session, shell, owner, card, siblings, changed, removed, watched, CanContinue);
         menu.Closed += (_, _) => Interlocked.Exchange(ref invalidated, 1);
 
-        if (menu.Items.Any(item => item.Tag is ItemCommand command && (ItemMenu.IsMoviePilot(command) || command == ItemCommand.AniBtScrape)))
+        // 季、集的 Genres 常留在所属剧集上，菜单打开后只补查这一份元数据。
+        // 不把父级类型塞回 EmbyItem，且关菜单、换账号或断线后不再插入迟到的行。
+        // 开机后 MoviePilot 晚连上时，「搜索不同版本」和「重新整理」是 AvailabilityChanged 补出来的 —— 这段
+        // 补查也要一起补跑，否则「AniBT 识别」仍要关掉菜单再开一次才出现。
+        // async void 是这里的既有形状：它靠调用方的同步上下文登记一桩在途操作，测试夹具据此等它跑完。
+        CancellationTokenSource? genreLifetime = null;
+        async void ResolveGenre()
         {
-            var hadManagement = shell.MoviePilotMediaManagementEnabled;
-            var hadSmart = shell.MoviePilotSmartReorganizeEnabled;
-            void AvailabilityChanged(object? sender, EventArgs args)
+            if (genreLifetime is not null || !shell.MoviePilotEnabled || card.Scope is not { IsAvailable: true } scope ||
+                !Momoka.AniBt.AniBtEligibility.Supports(card.Item) || Momoka.AniBt.AniBtEligibility.HasGenre(card.Item)) return;
+            var lifetime = genreLifetime = new CancellationTokenSource();
+            var original = card.Item;
+            try
             {
-                if (!shell.MoviePilotEnabled || hadManagement != shell.MoviePilotMediaManagementEnabled ||
-                    hadSmart != shell.MoviePilotSmartReorganizeEnabled)
-                {
-                    Interlocked.Exchange(ref invalidated, 1);
-                    menu.Hide();
-                }
+                if (!CanContinue()) return;
+                var eligible = await scope.ExecuteAsync((client, token) =>
+                    Momoka.AniBt.AniBtEligibility.ResolveAsync(client, original, token), lifetime.Token);
+                if (!CanContinue() || !eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
+                var plan = ItemMenu.For(original, true, animeGenre: true,
+                    fnNas: scope.Connection.IsFnNas, plex: scope.Connection.IsPlex,
+                    aniBtScrapeAvailable: scope.IsCurrent,
+                    moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
+                    moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
+                    permissions: shell.MenuPermissionsFor(scope));
+                var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
+                if (versions is not null)
+                    menu.Items[menu.Items.IndexOf(versions)] =
+                        BuildEntry(plan.Single(row => row.Command == ItemCommand.MoviePilotVersions), InvokeCurrent);
+
+                // 「AniBT 识别」住在「重新整理」子菜单里：迟到的这条按 Core 排好的整组重建，不在顶层另插一行。
+                var reorganize = menu.Items.OfType<MenuFlyoutSubItem>()
+                    .FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotReorganizeMenu);
+                var reorganizePlan = plan.FirstOrDefault(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+                if (scope.IsCurrent && reorganize is not null && reorganizePlan.Command is not null
+                    && !reorganize.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
+                    menu.Items[menu.Items.IndexOf(reorganize)] = BuildEntry(reorganizePlan, InvokeCurrent);
             }
-            menu.Opened += (_, _) =>
-            {
-                shell.MoviePilotAvailabilityChanged += AvailabilityChanged;
-                AvailabilityChanged(null, EventArgs.Empty);
-            };
-            menu.Closed += (_, _) => shell.MoviePilotAvailabilityChanged -= AvailabilityChanged;
+            catch (OperationCanceledException) { }
+            catch (Exception error) { Log.Info("anibt", $"无法核对动画类型：{Failure.Describe(error)}"); }
         }
+        menu.Closed += (_, _) => { genreLifetime?.Cancel(); genreLifetime?.Dispose(); };
+        menu.Opened += (_, _) => ResolveGenre();
+
+        // MoviePilot 的可用性和媒体管理能力是两趟异步探测，开机后要几秒才回来，「更多」很可能在那之前就打开了。
+        // 能力增加时原地重排、把迟到的行补上；只有 MP 入口要失去（掉线、失权）才收起整张菜单 —— 那几行点下去
+        // 只会失败。按 MP 那几行比较而不是按能力布尔值：一张本来就没有 MP 行的菜单（比如演员卡）不该因此被收掉，
+        // 服务器权限探测迟到而收起的那几条也不该连累整张菜单。
+        void AvailabilityChanged(object? sender, EventArgs args)
+        {
+            var rows = Rows(shell, owner, card, siblings, changed, removed, watched, CanContinue);
+            var before = MoviePilotCommands(menu.Items);
+            var after = MoviePilotCommands(rows);
+            if (before.SetEquals(after)) return;
+            if (!before.IsSubsetOf(after))
+            {
+                Interlocked.Exchange(ref invalidated, 1);
+                menu.Hide();
+                return;
+            }
+            Apply(menu, rows);
+            ResolveGenre();
+        }
+        menu.Opened += (_, _) =>
+        {
+            shell.MoviePilotAvailabilityChanged += AvailabilityChanged;
+            AvailabilityChanged(null, EventArgs.Empty);
+        };
+        menu.Closed += (_, _) => shell.MoviePilotAvailabilityChanged -= AvailabilityChanged;
 
         // AniBT identification still belongs to the default management source, unlike independent searches.
         // Keep an open menu from advertising a now-inapplicable action; reopening recomputes the rows.
@@ -199,40 +247,6 @@ internal static partial class ItemCommands
             };
         }
 
-        // 季、集的 Genres 常留在所属剧集上，菜单打开后只补查这一份元数据。
-        // 不把父级类型塞回 EmbyItem，且关菜单、换账号或断线后不再插入迟到的行。
-        if (shell.MoviePilotEnabled && card.Scope is { IsAvailable: true } scope &&
-            Momoka.AniBt.AniBtEligibility.Supports(card.Item) && !Momoka.AniBt.AniBtEligibility.HasGenre(card.Item))
-        {
-            var lifetime = new CancellationTokenSource();
-            var original = card.Item;
-            menu.Closed += (_, _) => { lifetime.Cancel(); lifetime.Dispose(); };
-            menu.Opened += async (_, _) =>
-            {
-                try
-                {
-                    if (!CanContinue()) return;
-                    var eligible = await scope.ExecuteAsync((client, token) =>
-                        Momoka.AniBt.AniBtEligibility.ResolveAsync(client, original, token), lifetime.Token);
-                    if (!CanContinue() || !eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
-                    var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
-                    if (versions is not null)
-                    {
-                        var plan = ItemMenu.For(original, true, animeGenre: true, aniBtScrapeAvailable: scope.IsCurrent)
-                            .Single(row => row.Command == ItemCommand.MoviePilotVersions);
-                        menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, InvokeCurrent);
-                    }
-                    var anchor = menu.Items.LastOrDefault(row => row.Tag is ItemCommand.MoviePilotSmartReorganize
-                        or ItemCommand.MoviePilotMediaManagement or ItemCommand.MoviePilotReorganize);
-                    if (scope.IsCurrent && anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
-                        menu.Items.Insert(menu.Items.IndexOf(anchor) + 1, Entry("AniBT 识别", ItemCommand.AniBtScrape,
-                            () => InvokeCurrent(ItemCommand.AniBtScrape)));
-                }
-                catch (OperationCanceledException) { }
-                catch (Exception error) { Log.Info("anibt", $"无法核对动画类型：{Failure.Describe(error)}"); }
-            };
-        }
-
         if (position is { } point) menu.ShowAt(owner, new FlyoutShowOptions { Position = point });
         else menu.ShowAt(owner);
     }
@@ -257,35 +271,92 @@ internal static partial class ItemCommands
         Func<bool>? canContinue = null)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+        Apply(menu, Rows(shell, owner, card, siblings, changed, removed, watched, canContinue));
+        return menu;
+    }
+
+    /// <summary>
+    /// 照当前的 MoviePilot 可用性和账号能力排出菜单的几行。单独一支是为了让打开菜单和「能力迟到」两条路
+    /// 用同一份排版：那条路只换行、不换规矩。
+    /// </summary>
+    private static List<MenuFlyoutItemBase> Rows(
+        IShellActions shell,
+        FrameworkElement owner,
+        CardItem card,
+        IReadOnlyList<EmbyItem>? siblings,
+        Action? changed,
+        Action<CardItem>? removed,
+        Action<CardItem>? watched,
+        Func<bool>? canContinue)
+    {
+        var rows = new List<MenuFlyoutItemBase>(16);
+        var permissions = card.Scope is { } scope ? shell.MenuPermissionsFor(scope) : default;
 
         foreach (var row in ItemMenu.For(card.Item, shell.MoviePilotEnabled,
             jellyfin: card.Scope?.Connection.IsJellyfin == true, fnNas: card.Scope?.Connection.IsFnNas == true,
             plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true,
             moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
-            moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled))
+            moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
+            permissions: permissions))
         {
             if (row.Command is not { } command)
             {
-                menu.Items.Add(new MenuFlyoutSeparator());
+                rows.Add(new MenuFlyoutSeparator());
                 continue;
             }
 
-            menu.Items.Add(BuildEntry(row, selected =>
+            rows.Add(BuildEntry(row, selected =>
             {
                 if (canContinue?.Invoke() != false) Invoke(selected, shell, owner, card, siblings, changed, removed, watched);
             }));
         }
 
-        return menu;
+        return rows;
     }
+
+    /// <summary>
+    /// 把新排的几行换进一张可能正开着的菜单。逐位替换而不是先清空再填：浮层开着时中间那一瞬的空表会让
+    /// 它收起/闪一下，而这里要的正是「一直在，只是多了几行」。
+    /// </summary>
+    private static void Apply(MenuFlyout menu, IReadOnlyList<MenuFlyoutItemBase> rows)
+    {
+        var shared = Math.Min(menu.Items.Count, rows.Count);
+        for (var index = 0; index < shared; index++) menu.Items[index] = rows[index];
+        while (menu.Items.Count > rows.Count) menu.Items.RemoveAt(menu.Items.Count - 1);
+        for (var index = menu.Items.Count; index < rows.Count; index++) menu.Items.Add(rows[index]);
+    }
+
+    /// <summary>
+    /// 菜单上属于 MoviePilot 的那几条命令（含「重新整理」里的 AniBT 识别）。只比这一组：别的行不跟
+    /// MoviePilot 的可用性走。
+    /// </summary>
+    private static HashSet<ItemCommand> MoviePilotCommands(IEnumerable<MenuFlyoutItemBase> items)
+    {
+        var commands = new HashSet<ItemCommand>();
+        foreach (var item in items)
+        {
+            if (item.Tag is ItemCommand command && IsMoviePilotRow(command)) commands.Add(command);
+            if (item is not MenuFlyoutSubItem submenu) continue;
+            foreach (var child in submenu.Items)
+                if (child.Tag is ItemCommand childCommand && IsMoviePilotRow(childCommand)) commands.Add(childCommand);
+        }
+        return commands;
+    }
+
+    private static bool IsMoviePilotRow(ItemCommand command) =>
+        ItemMenu.IsMoviePilot(command) || command is ItemCommand.AniBtScrape or ItemCommand.AniBtVersions;
 
     private static MenuFlyoutItemBase BuildEntry(ItemMenuEntry row, Action<ItemCommand> invoke)
     {
         if (row.Children is not { } children)
             return Entry(row.Label, row.Command!.Value, () => invoke(row.Command.Value));
         var submenu = new MenuFlyoutSubItem { Text = row.Label, Tag = row.Command, Icon = new FontIcon { Glyph = Glyph.Of(row.Command!.Value) } };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(submenu,
-            row.Command == ItemCommand.MoviePilotMediaManagement ? "MoviePilotMediaManagement" : "SearchVersionSources");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(submenu, row.Command switch
+        {
+            ItemCommand.MoviePilotMediaManagement => "MoviePilotMediaManagement",
+            ItemCommand.MoviePilotReorganizeMenu => "MoviePilotReorganizeMenu",
+            _ => "SearchVersionSources"
+        });
         foreach (var child in children) submenu.Items.Add(BuildEntry(child, invoke));
         return submenu;
     }
@@ -713,6 +784,7 @@ internal static partial class ItemCommands
             ItemCommand.MoviePilotVersions => 0xE721,
             ItemCommand.AniBtVersions => 0xE721,
             ItemCommand.MoviePilotReorganize => 0xE8B5,
+            ItemCommand.MoviePilotReorganizeMenu => 0xE8B5,
             ItemCommand.MoviePilotMediaManagement => 0xE8F1,
             ItemCommand.MoviePilotSmartReorganize => 0xE945,
             ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource

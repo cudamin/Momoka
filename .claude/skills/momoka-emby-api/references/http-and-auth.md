@@ -69,6 +69,7 @@ Accept: application/json
 
 - **普通请求 30 秒，且覆盖到正文读完。** `HttpCompletionOption.ResponseHeadersRead` 会让 `HttpClient.Timeout` 在**响应头到达时**就结束，所以 `SendAndReadAsync` 另建一个 `deadline` CTS（`EmbyHttp.cs:164-177`）。少了它，共享图片下载能永远占着连接和下载任务。
 - **下载到设备用第二个 `HttpClient`**（`_long`，`Timeout.InfiniteTimeSpan`）：成功影片下载可以持续更久，只受调用方取消和 handler 的连接超时约束；非成功响应的可选正文仍受上述独立短截止，不得拖住错误反馈或后续下载。两个 client 共用 handler（`disposeHandler: false`），`Dispose` 里只放一次。
+- **下载入口按账号策略显隐。** `ServerCapabilities.ProbeAsync` 在登录后的能力探测里按在线来源读 `GET /Users/{Id}`（Jellyfin 为 `/Users/Me`），把 `EnableContentDownloading`、`EnableContentDeletion`、`EnableSubtitleDownloading` / `EnableSubtitleManagement` 和 `IsAdministrator` 变成 `ItemMenuPermissions`。只有明确 `false` 才收起「下载到设备」等入口，`null`（旧服务器、读不到、探测未完成）照旧显示，服务器仍是最终闸门；账号没有下载权限时 `/Items/{Id}/Download` 答 403。整剧/整季下载看账号策略，不能看条目自己的 `CanDownload`（服务器给剧/季本身常答 false）。
 - **下载先写 `path + ".part"` 再 `File.Move` 改名。** 服务器给了 `Content-Length` 就必须收满，少了当失败并把 `.part` 删掉（`EmbyHttp.cs:255-282`）—— 否则磁盘上留下的是一个名字正确、大小不对的影片。进度每 4 MB 报一次。
 - **`PostBytesAsync` 走 `RawBody`**：正文是原样字节而不是 JSON，用 `ByteArrayContent` 保证准确的 `Content-Length` —— **Emby 对 chunked 分块传输吃不消**（`EmbyHttp.cs:90-112`）。写新的非 JSON 上传时照抄这条路。
 - JSON 选项（`EmbyHttp.Json`）：`PropertyNameCaseInsensitive`、`AllowReadingFromString`（Emby 会把数字写成字符串）、`WhenWritingNull`。

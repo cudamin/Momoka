@@ -1,3 +1,85 @@
+## 2026-10-30 弹窗点击外部关闭已合入主树并交付
+
+- 产品提交 `0b540f7`，主树整合提交 `f3205bd`；保留已提交的更多菜单能力迟到补齐与快捷键焦点改动，两段 PROGRESS 合并冲突均完整保留。最终 master 方案 Release 构建 0警告0错误；主测试 **3335/3335、0失败0跳过**，实际弹窗行为 **10/10**、样式／元数据子集 **61/61**，主规则文档检查3份／21个拒绝反例通过。
+- 主树开发件 metadata **5/5**：`shell-probe-20261030-092749564-29732`；实际发布件 metadata **5/5**：`shell-probe-20261030-093403015-15952`。主树真实鼠标复验内部按钮、ComboBox 与 MenuFlyout 不误关、外部关闭不触发背景首页、重开仍可关闭；发布件实鼠同样验证内部保持与点外关闭不穿透，实屏与UI树在 `artifacts/dialog-master-*`、`artifacts/dialog-published-*`。
+- 实际交付 `artifacts/publish/win-x64` 已由主树 `tools/publish.ps1 -NoArchive -Shortcut` 更新，546文件／284.9MB，着色器与批准mpv清单逐项验证通过；ProductVersion `0.2.0+f3205bd5bbfd3eb4830e65be97e3c9be61701c2a`，Shell DLL与当前发布构建同哈希。桌面 Momoka.lnk 已重建并读回同一目录与WorkingDirectory；未改版本、未上传远程、未生成Store包或版本压缩包。
+- 所有21个具体ContentDialog及普通动态弹窗接共享关闭行为，新类型／本地False／样式覆盖／交互Popup默认关闭行为均有自动检查。点击外部只取消、不保存；正在写入时原有Closing保护仍阻止关闭，写入结束恢复。测试与界面检查都使用匿名离线夹具，不登录真实账号、不播放或写真实媒体元数据。没有逐张进行真实服务器业务操作，也不以此声明真实服务器验收。
+- 本次临时分支 `codex/dialog-light-dismiss` 与已完全整合的 `qoder/临时` 已删除；弹窗任务工作树切为master对应的detached HEAD。应用 archive_worktree 拒绝删除当前聊天的primary checkout，因此保留该detached目录，不绕过应用保护。关键临时证据已复制到主树 `artifacts/dialog-evidence-20261030`；其他活跃性能任务的分支和工作树未动。
+- 原始历史条目与失败证据保留在下方／证据目录，不覆盖成全绿快照；本次日常修复未升级依赖或发新版本，未执行不适用的全量自检／版本四闸门。
+
+## 2026-10-30 所有弹窗点击外部关闭修复（待主树整合）
+
+- 开发树 `C:/Users/89400/.codex/worktrees/dialog-light-dismiss/Momoka`，分支 `codex/dialog-light-dismiss`；写入范围为 DialogDismiss、弹窗检查台／探针、样式注释、对应测试及项目规则。主树其它会话的菜单与外观改动保留，不上传、不真实播放或写媒体。
+- 实际缺陷：WinUI 把 SmokeLayerBackground 搬入独立 Popup，旧处理器只监听 ContentDialog，真实点击不关闭；修为 Opened／Loaded 重找并订阅实际遮罩和模板根，Closed 退订。不能在框架重挂期间的 Unloaded 提前摘掉；遮罩输入直接取消，避免跨树坐标问题，Closing 之前先标记 Handled。
+- 已加入「现有及以后新增的所有弹窗都必须支持点击外部自动关闭」主规则，并同步 Shell／验证技能及开发文档；不允许本地 False／替换样式绕过，交互 Popup 开 LightDismiss，非交互动画残影除外。ContentDialog 外部关闭只返回 None，写入保护继续生效，不保存或执行背景按钮。
+- 实际鼠标：当前开发件副屏小表内部按钮、ComboBox 第二项、内部 MenuFlyout 点击保持父表；外部点击关闭、不点穿，重开再点外也关闭。宽窗 CoverDialog 用已核实位于左侧遮罩的 InspectHome 目标关闭，原媒体库页不变。截图／树在本树 `artifacts/dialog-{verified-*,cover-wide-*}`；实鼠总结 `artifacts/dialog-real-input-summary.txt`。
+- 保留失败证据：第一次窄窗 CoverDialog 的目标坐标 2606,591 位于大弹窗标题范围，并非遮罩；保持不关是正确内部行为，随后改在实际宽窗左侧遮罩验证，没有放宽产品或测试判据。早期几何探针绿不等于实鼠绿。
+- 临时树最终完整方案编译 0 警告 0 错误；主测试 3334/3334、0 失败0 跳过，专用 compile-linked 实际行为 10/10、关闭样式与元数据子集 61/61；metadata 5/5（shell-probe-20261030-091024534-30528），已查看字幕及宽窗实屏。主规则文档检查3份／21个拒绝反例、专用测试格式检查及 git diff --check 通过。首轮主测试和metadata同时运行造成共用诊断锁的16项失败，已保留 dialog-main-full-tests.log；停止重叠诊断后不改代码串行重跑3334全部通过。主树最终整合、重验与实际交付目录尚待完成，不能以临时树证明已交付。
+
+## 退出快捷键编辑后搜索框被自动聚焦（2026-10-30）
+
+- 用户报（附截图）：「修复退出编辑快捷键后会自动触发上方的搜索框」。继续上一节同一块设置页焦点问题。
+- 根因：`SettingsScroll` 的 `IsTabStop` 默认是 false；`Focus(FocusState.Pointer)` 会把焦点转给滚动区里第一个可聚焦子控件。快捷键卡的第一个子控件正好是顶部搜索框（`ShortcutSearchBox`），所以点空白退出编辑后搜索框被聚焦，页面也可能被带回顶部。
+- 改法：`SettingsPage.FocusSettingsCards` 在落焦前临时把 `SettingsScroll.IsTabStop` 设为 true，让滚动区自己接住焦点，`finally` 还原（不长期占用 Tab 顺序）。实测还原后焦点仍留在滚动区；指针焦点态不画焦点框。
+- 测试：`InputControlThemeTests` 检查 `FocusSettingsCards` 的开关与落焦顺序；`input-theme-fixture` **13/13**；`shortcuts` 探针新增断言「点空白后焦点等于 `SettingsScroll`」，宽窄两档均通过（开发件 `shell-probe-20261030-080225440-2552`，**3/3、退出 0**）。
+- 未交付：并行会话正在同一工作树里改 MoviePilot 文件（`ItemCommands.cs`、MoviePilot 探针与测试，未提交），当前分支为 `qoder/临时`。产品提交 `c355033` 已在该分支，但尚未合入 master、未跑最终整合批次的全套闸门、未发布；当前交付目录仍是上一版，不含本节点。
+- 待办：并行会话提交/结束后，把 `c355033` 合入 master，按最终代码重跑主测试与 `shortcuts` 探针，再发布 `artifacts/publish/win-x64` 并核对快捷方式。本节点不改并行会话文件、不发布。
+
+## 设置页抢走快捷键抓取焦点（2026-10-30）
+
+- 用户报：「快捷键编辑不了」。设置 → 快捷键里点抓键方框后无法进入抓键态，按什么键都改不了。
+- 根因：`cd83fba`（同日 01:08）新增的页级 `SettingsPage.OnSettingsPointerPressed` 把 `ShortcutCaptureBox` 当成空白。方框在自己按下时进入抓键态并 `Focus(FocusState.Pointer)`；事件冒泡到页面后处理器又 `SettingsScroll.Focus(FocusState.Pointer)`，方框收到 `LostFocus` 立即 `EndCapture`，所以点完方框按什么键都没用。
+- 改法：`SettingsPage.HandlesPointerFocus` 的排除名单加入 `ShortcutCaptureBox`（落在方框子树里的按下都算它自己接焦点）；`OnSettingsPointerPressed` 把 `e.OriginalSource` 交给内部重载，探针可直接走同一支，空白与标准输入控件的原行为不变。
+- 测试：`InputControlThemeTests` 从「整个文件里出现过控件名」改为截取 `HandlesPointerFocus` 方法体逐项核对，并新增抓键框；`input-theme-fixture` **13/13**、`input-focus-fixture` **20/20**；整套主测试 **3331/3331、0 失败 0 跳过**；整套 Release 构建 **0 警告 0 错误**；三个改动文件的 `format whitespace` 通过（整套空白检查仍有既有红项，与本批无关，未改未放宽）。
+- 探针：开发件与发布件各跑 `--probe-shell --probe-section shortcuts --screen 2`，均 **3/3、退出 0**（开发件 `shell-probe-20261030-072137324-18068`，发布件 `shell-probe-20261030-073231100-3948`）。新增断言用真实设置页上的 `ShortcutCaptureBox`：让它取得焦点，再以框内标签为 `OriginalSource` 调页面处理器，焦点仍留在方框；空白落点仍判给卡片滚动区。宽窄两档的搜索、改绑、空态、恢复与实屏空结果文字检查都通过。
+- 遮挡记录（不是产品红项）：首次 `--screen 1` 窄窗被用户置顶的 mpv 窗口（pid 27124，`settings-shortcut-search-all-760-screen-window.txt` 上两点属于 mpv）挡住；`--screen 2` 一次被 Qt 窗口（pid 21208）挡住，错在 `CompositionPlaybackProbe.GuardVisible`。换到无遮挡的 screen 2 后通过，未移动或关闭用户窗口。
+- **没有注入真实鼠标按下**：探针走的是处理器同一个内部重载与真实控件落点，Win32 指针到 XAML 的路由没有合成；这一层属于平台行为，未用合成点击冒充。
+- 闸门 3：`tools/publish.ps1 -NoArchive` 通过，**546 文件／284.9 MB**、14 GLSL／4 HOOK／批准 mpv 清单 59 文件逐项校验；`artifacts\publish\win-x64\Momoka.exe` 的 ProductVersion 为 `0.2.0+73863a4524cad3d164382181da06375f9bbb9f22`；桌面 `Momoka.lnk` 读回 Target／WorkingDirectory 均指向 `artifacts\publish\win-x64`。
+- 分支：开工时 `master` 与 `qoder/临时` 同在 `34b38a3`，改动直接提交到 master，临时分支收尾删除，本地只留 master（其他 `codex/*` 工作树属并行会话，未触碰）。
+- 未推送 origin、未改版本、无真实服务器读取、播放或媒体写入；本批不是发版，未跑闸门 4 自检。
+- 产品提交 `73863a4`。
+
+## 更多菜单「重新整理」折叠三条整理入口（2026-10-30）
+
+- 用户令：「更多按钮的菜单栏中新增一个重新整理选项用来折叠手动整理和智能整理还有 antbt 识别」。本批只改条目「更多」菜单的计划、搭建、AniBT 迟到补入口以及相关测试与探针；不改整理、识别或媒体管理实际执行的动作。
+- Core：`ItemMenu.MoviePilotBlock` 新增 `MoviePilotReorganizeMenu`（「重新整理」）父项，子项依次为「手动整理…」「智能整理／智能批量整理」「AniBT 识别」；一个可用子项都没有时整组不出现。顶层顺序改为搜索版本 → 重新整理 → 媒体管理，删除仍在最后一段。
+- 边界保留：飞牛／Plex 仍没有手动整理，但智能整理有权限时进入「重新整理」；AniBT 识别仍要求 MoviePilot 开启、条目资格与当前管理来源；`ItemMenu.IsMoviePilot` 收录新父项，MP 关闭时整组随其它 MP 入口一起收起。
+- Shell：子菜单沿用现有 `MenuFlyoutSubItem` 搭建，AutomationId 为 `MoviePilotReorganizeMenu`；迟到的动画分类补读不再往顶层插「AniBT 识别」，而是按 Core 计划重建整个子菜单（带上当前管理／智能权限与来源能力）。图标沿用整理动作那一颗。
+- 测试：主测试 **3331/3331、0 失败 0 跳过**（新增「重新整理」收齐三条与「只列可用条目／空组收起」两组断言，并更新媒体管理结构与 AniBT 菜单的层级查找）；`Momoka.AniBtEntryTests` **40/40**（构建、点击、来源切换与迟到补读全部改为按子菜单读取）；`Momoka.AniBtSourceContractTests shell-probe` **7/7**；`Momoka.ResourceBrowserTests` **100/100**（它读取同一探针源码）。
+- 整套 Release 构建 **0 警告 0 错误**；本轮 11 个改动文件的 `format whitespace` 通过。整套 `format whitespace` 仍有既有红项（本批未触碰文件，未修改、未放宽基线）；本批不是发版，未跑闸门 4 自检。
+- 探针：`--probe-shell --probe-section moviepilot --screen 1` **27/27、退出 0**（`shell-probe-20261030-064449061-25828`）；媒体管理用例新增展开「重新整理」，核对子项文案与自动化句柄、无品牌图标，每个主题×宽窗截图 `mp-media-reorganize-submenu-{theme}-{width}.png`，已看 `mp-media-reorganize-submenu-emby-dark-1280.png`：手动整理…、智能整理在子菜单内，媒体管理紧随其后。
+- 探针：`--probe-shell --probe-section anibt --screen 1` **3/3、退出 0**（`shell-probe-20261030-065014103-15152`）；非动漫剧／季／集的菜单用例改为展开「重新整理」后核对 UIA 名称，截图 `anibt-non-anime-menu-{Series,Season,Episode}-{1040,760}.png` 已看 Series-1040：手动整理… 与 AniBT 识别在子菜单内。此前该分区只跑完第一条就因 `ShellPage` 读历史能力时假 MoviePilot 未登记而崩；本次给假服务器补上 `user/current` 与 `system/global/user` 的只读回复（无管理权限），三条用例才能全部跑完。
+- 闸门 3：`tools/publish.ps1 -NoArchive` 通过，**546 文件／284.9 MB**、14 GLSL／4 HOOK／批准 mpv 清单 59 文件逐项校验；桌面 `Momoka.lnk` 仍指向 `artifacts\publish\win-x64`，未改快捷方式、未打 zip、未改版本、未推送 origin。
+- 产品提交 `a555997`。
+
+## MoviePilot 版本窗口搜索区与设置页默认搜索站点（2026-10-30）
+
+- 用户令（附截图）：①「移除页面左上角的图标，以及搜索框下方文字为“MoviePilot 资源，搜索站点”的部分。参照搜索页面中 mp 资源搜索的样式，对当前搜索区域进行一致化修改，并将站点列表（下拉选择）移动到搜索按钮的左侧。同时，将当前页面的搜索框改为胶囊形状。请保持其余布局与交互不变，确保改动后各元素对齐、间距合理且在各尺寸下显示正常。」②「在设置的mp页面新增支持设置搜索时默认使用的站点」。本批只改「在 MoviePilot 搜索版本」独立窗口、站点选择器、设置页接入卡、相关探针、测试与文档。
+- 窗口：标题栏左上角那颗图标换成全透明的一颗（`BlankCaptionIcon` 从 `SettingsWindow` 抽到 `Interop/`，两扇第二窗口共用；只换小档，大档不动，任务栏与 Alt-Tab 仍是应用图标）。搜索框上方「搜索 MoviePilot 资源」与框下「搜索站点」那两行去掉；框改为 40 DIP 高、20 圆角的胶囊，输入层改用 `Theme/Styles.xaml` 的 `EgSearchTextBoxStyle`（原 `LibraryPage` 局部样式搬过去，搜索页与窗口共用一份），站点下拉由 `SearchSiteSlot` 插进 AutoSuggestBox 模板、排在内置放大镜左边（窄窗 108／其余 180 DIP）。结果区、下载与站点面板的交互未动；页内嵌（搜索页那一支）整条搜索区收起，不留 12 的下边距。
+- 设置：`SettingMoviePilotRow` 增 `SearchSites`（与搜索框同一份 `MoviePilotSitePickerViewModel`）与 `SitesAvailable`；接入卡底部新增「默认搜索站点」，没连上 MoviePilot 时整块收起（目录读不到、选择也存不进去），连接恢复后原选择跟着回来。`MoviePilotSitePicker` 支持设置左边那行字（默认「搜索站点」，设置页写「默认搜索站点」），`ViewModel` 可从模板绑定。
+- 站点选择：`MoviePilotService.SearchSitePreference` 在某一媒体类型没存过时退到 `mediaType=null` 那一份，设置页的默认因此对关键词与按类型的精确搜索都生效；某一类单独改过则以那一类为准（明确清空也是一份记录，不退回上一层）。`SaveSearchSitePreference` 存完喊 `SearchSitesChanged`，还在台上的选择器重读并只在选择真的变了时通知页面（`Attach` 那一次不算更改）。
+- 测试：主测试 **3329/3329、0 失败 0 跳过**（新增三条 Core 规则：继承与覆盖、明确清空、保存后通知且失败不通知）；`Momoka.ResourceBrowserTests` **100/100**（新增继承与覆盖、跨面板刷新；模板契约改认 `EgSearchTextBoxStyle` 与 `SearchSiteSlot`，另加「版本窗口搜索区与搜索页同一套」）；`Momoka.SettingsLifetimeTests` **52/52**（边界同步 `RefreshMoviePilotSites`、删掉 `_blankIcon`）；`Momoka.SettingsProbeContractTests` **31/31**；`Momoka.SettingsSearchNavigationTests` **15/15**；`Momoka.SettingsRowsMotionTests` **46/46**。整套方案 Release 构建 **0 警告 0 错误**；改动文件 `format whitespace` 通过。
+- 探针：`--probe-shell --probe-section moviepilot --screen 2` **27/27、退出 0**（`shell-probe-20261030-060525194-25012`），新增「MoviePilot 版本窗口搜索区与默认搜索站点」：真第二窗口在 900／640／480 逻辑宽下量胶囊、站点与放大镜的次序与宽度、`WM_GETICON` 小档（等于全透明那颗）与大档（仍未换），并拍含标题栏的整窗实屏；再在真设置页上量「默认搜索站点」显示、760 宽不裁切、断线收起、恢复后选择还在、选完进下一次 `sites=2` 搜索。`search,settings` 两区同批 **64/64、退出 0**（`shell-probe-20261030-053815070-14776`），搜索页紧凑布局与设置页布局全部保持。已看 `mp-window-{900,640,480}-screen.png`、`settings-moviepilot-sites-{screen,760-screen}.png`、`settings-moviepilot-sites-offline-screen.png`。
+- 探针踩的坑（已修）：第二窗口是本进程唯一的 WinUI `Window`，真 `Close()` 会触发「最后一个窗口关了 → 进程退出」，头两次跑到一半进程就没了、报告只剩半份；现在探针只 `Hide()`，进程末尾由 `Application.Exit` 收。另：只等搜索的 `IsReady` 就去找 `QueryButton` 会撞上「模板还没应用」，改成先 `LayoutAsync` 再读控件。
+- 分支：本轮进行中另一会话把这棵树切到了 `qoder/临时`，产品提交 `b3dc9b0` 落在那里；核对该分支只有这一条提交后快进合入 master 并删除，本地只剩 master（其他 `codex/*` 工作树属并行会话，未触碰）。
+- 闸门 1 的空白检查：整套 `format whitespace` 仍红，**169 行**既有问题分布在 15 个本批未触碰的文件（`SeriesResourceViewTests`、`EmbyMetadataEdit`、`ShellNavigationProbe.Accessibility` 等），本批文件一行未命中，未修改这些无关文件、未放宽基线。本批不是发版，未跑闸门 4 自检。
+- 闸门 3：按提交后的代码重发 `tools/publish.ps1 -NoArchive` 通过，**546 文件／284.9 MB**、14 GLSL／4 HOOK／批准 mpv 清单 59 文件逐项校验，ProductVersion `0.2.0+b3dc9b086c2af22b2a8655213149d93cd0d654db`；桌面 `Momoka.lnk` 读回 `artifacts\publish\win-x64\Momoka.exe`（未改快捷方式）。
+- 另一条既有红项（与本批无关）：`Momoka.HomeOrderProbeTests` 运行 **2/16**，14 条都是「真实 Shell 缺少入口 `HomeCard`」；HEAD 的 `SettingsViewModel` 里本来就没有这个入口（`git show HEAD:... | grep -c HomeCard` = 0），夹具已落后于产品，本轮只为编译同步了它的 `RefreshMoviePilotSites` 边界。未推送 origin、未改版本、无真实服务器读取或媒体写入。
+- 产品提交 `b3dc9b0`。
+
+## 更多菜单按账号权限收起入口（2026-10-30）
+
+- 用户报：更多菜单里的「下载到设备」用不了，提示「当前账户没有访问该内容的权限」；随后要求其他按钮没有权限时也自动隐藏。
+- 现场证据：`app-20261030.log` 里 00:08:07 与 11:32:53 两次 `GET /emby/Items/{id}/Download -> 403`；只读核对同一账号：`donxuelian` 是管理员，`Policy.EnableContentDownloading=false`、`EnableContentDeletion=true`、`EnableSubtitleDownloading/Management=true`，条目 `CanDownload=false`。未改服务器设置、未发起真实下载。
+- 根因：客户端只按条目类型摆下载入口，没读账号策略；Emby 的登录/恢复链又不写用户策略，账号关掉下载后仍能点到，服务器 403。
+- 改法：`ItemMenuPermissions`（管理员/下载/删除/字幕）由 `ServerCapabilities.ProbeAsync` 在登录后按在线来源读 `GET /Users/{Id}`（Jellyfin `/Users/Me`）得到；`IShellActions.MenuPermissionsFor(scope)` 把按来源权限交给 `ItemMenu.For`。下载、删除、字幕、编辑元数据/改封面/加合集、识别/刷新元数据/扫库都只在服务器明确答 false 时收起；`null`（旧服务器、读不到、探测未完成）照旧显示，服务器仍是最终闸门。登录响应带 Policy 时也写入连接快照作为探测前的兜底。
+- 边界：不改登录/恢复/改密/权限快照安全链（`EmbySession.cs`、`EmbySessionScope.cs` 与 HEAD 逐字相同）；不解析条目自己的 `CanEditItems`/`CanDelete`（Emby 4.10 实测 `CanEditItems` 不返回，剧/季的 `CanDownload` 常为 false），整剧/整季下载按账号策略判断。FnNas/Plex 菜单没有这些账号策略入口，本轮不动。
+- 测试：主测试 **3327/3327、0 失败 0 跳过**；R-011 权限行为夹具 **54/54**；整套 Release 构建 **0 警告 0 错误**。新增 `ItemMenuTests` 覆盖下载/删除/字幕/编辑/管理员五种权限的 false、true、null；`SessionTests` 覆盖能力探测读取策略与读不到时保持未知；`JellyfinProtocolTests` 覆盖登录响应策略。
+- 真实界面：开发件与发布件各跑 `--show-menu --screen 1`，UIA 读到菜单 **19 项**（继续播放、详细信息、标记、收藏、从继续观看移除、合集、MoviePilot 搜索/整理/媒体管理/智能整理、AniBT、编辑元数据、修改封面、搜索字幕、刷新元数据、扫库、打开所属剧集、删除），**没有「下载到设备」**；同一账号是管理员且有删除/字幕权限，这些入口保留。没有非管理员真实账号，其他权限收起只有单测证据；没有真实下载、没有改服务器用户策略。
+- 闸门 3：`tools/publish.ps1 -NoArchive` 通过，**546 文件／284.8 MB**、14 GLSL／4 HOOK／批准 mpv 载荷 59 文件逐项校验；发布件 UIA 菜单同样 19 项、无「下载到设备」。未打 zip（`-NoArchive`）、未动桌面快捷方式（已指向 `artifacts\publish\win-x64`）、未改版本、未推送 origin。
+- R-011 源码契约脚本仍红 4 项：3 项是 master 在脚本基线（`9f07bbd`/`5fa9c96`）之后的既有漂移，1 项是脚本只允许 R-011 修补范围的窄文件清单，而本批按需求改了 Shell 菜单接线、主测试与 `EmbyResponses.cs`；行为夹具 54/54 已过，未为此放宽源码契约。
+- 产品提交 `da306f1`。
+
 ## 编辑元数据对管理员报「没有权限」（2026-10-29）
 
 - 用户报：「点击编辑元数据后回显示没有权限」。`app-20261029.log` 里 19:32:47 与 20:12:43 两次都是 `System.UnauthorizedAccessException: 只有 Emby 管理员可以编辑元数据`（栈顶 `EmbyMetadataEditor.CheckAccess`），同一份日志里 `/System/Info` 读回「服务器版本 4.10.1.0，管理员账号」——账号确实是管理员，判断本身错了。
@@ -9174,3 +9256,42 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 独立Lua反证确认热缓存后台finally遇提前Dispose的semaphore而抛Disposed（未验证实际窗口崩溃）。父修DandanPlayClient全公开operation入场/取消/排空，再释放HTTP/gate；包括被替换旧请求，VM Shutdown先await客户端。3项关闭反例+原49=52/52，0失败跳过，未改变发送不重试授权语义。自然接续sourcepin只同步PlayerViewModel1份，其他18一致。
 
 真实设置UI追加检查五组performance均通过，源码DLL6B22AECF8FDFA7049750D8B7DD111D678B30D1C957A17E7849746B3CAA58B475、实际进程24944正确20261030目录；同PID历史20261012目录不是本轮证据已排除。150控件值1capture/1success/实时最后值80，UI同步赋值合计40.24ms仅程序化TwoWay成本；临时文件锁失败→欠项→重试和离页flush通过，截图已保留。后补native/danmaku关闭修复不改变Slider路径，但最终整合仍重验。
+
+### 2026-10-30 设置亚克力输入、卡片、弹窗与菜单
+
+- 用户令（附亚克力五层示意图和一张选择框截图）：选择框和输入框用亚克力；点输入框后内部切成设置侧边栏背景色；输入文字居中（原来偏上）；去掉数字框右侧上下箭头；点完输入框再点周围要自动恢复；左侧搜索框保持原样；别改剧、电影页面的选择框；所有卡片也要亚克力；快捷键页面和更多菜单里的一些弹窗没改。产品提交 `cd83fba`。
+- 改动：`Palette.xaml` 新增 `EgInputGlassBrush`（深色 tint 取 SurfaceHover 0.6/0.65，实测框内 (40,48,56)）、`EgDialogGlassBrush`（Surface 0.8），并把 `CardBackgroundFillColorDefaultBrush` 改成卡片玻璃（深色 SurfaceHover 0.55，实测 (29,36,44)，原实心卡 (28,37,46)）；`ThemeHost`/`InputControlTheme` 同步涂色。全局闭合选择框六态接输入玻璃；设置页卡片区的 `TextControlBackground`/`PointerOver` 局部接同一支玻璃，`Focused` 仍是全局窗口色（侧栏色），点进去变色、失焦复原。设置页数字/文本/密码框加 `VerticalAlignment="Center"`，数字框 `SpinButtonPlacementMode="Hidden"`。设置页 `PointerPressed` 把空白处按下交给 `SettingsScroll`，输入框随之失焦（零尺寸焦点落点会丢焦点，未采用）。快捷键抓键框静止玻璃、Capturing 回侧栏色。所有 ContentDialog 表面、FilterPanel/LibrarySettingsPanel、MoviePilot 下载弹窗、`MenuFlyoutPresenter`、普通 `FlyoutPresenter` 接弹窗玻璃；`ContentDialogTopOverlay` 在 Palette 两份字典里全局透明，14 张库弹窗的局部别名同步改透明。剧/电影/集页 `PickerPanel`、`ColumnPickers` 和季选择器在 `DetailPage.xaml` 本地钉回原窗口底色/原玻璃，未跟全局玻璃。左侧 `SettingsSearchBox` 保持 `EgWindowBrush`，且不在卡片滚动区内，未受输入玻璃影响。
+- 验证：完整方案 Release 编译 0 警告／0 错误；主套件 3321/3321（0 失败／0 跳过）；SettingsProbeContract 31/31、SettingsLifetime 52/52、SettingsPersistence 42/42、CurrentPermission 54/54、PageContract 107/107、DetailDeleteCommand 19/19。最终构建真实探针：settings/search/shortcuts 40/40（`shell-probe-20261029-170347003-21012`，退出 0）、metadata 5/5（`shell-probe-20261029-165935350-28880`）、moviepilot 26/26（`shell-probe-20261029-170041303-26660`）。设置/搜索这组第一次在最终构建上因其它前台窗口盖住探针窗口而截图失败（3 项失败，均为遮挡守卫抛错，不是断言失败）；没有放宽守卫，临时把本进程窗口置顶后重跑通过。逐张看过设置卡片/输入框、快捷键页面、封面弹窗、更多菜单与子菜单实屏；搜索框保持原样、聚焦输入框为侧栏色、点空白恢复玻璃均有截图/读数。
+- 已知旧红，不属本批：`Momoka.HomeOrderProbeTests` 14 项失败于「真实 Shell 缺少入口 HomeCard」——该口径在 `725447a` 拆分设置卡片时已移除，HEAD 上同样没有，非本轮引入。`dotnet format whitespace` 在未触碰的 `EmbyMetadataEdit.cs`、`MoviePilotTransferCollect.cs`、`ShellNavigationProbe.Accessibility.cs`、`EmbyMetadataDialog.xaml.cs` 和 `Momoka.ResourceBrowserTests/SeriesResourceViewTests.cs` 仍有旧空白错误；本轮改动过的 C# 文件不在其列。未据此宣称闸门 1 全绿。
+- 发布：`tools/publish.ps1 -NoArchive` 刷新 `C:\Users\89400\Momoka\artifacts\publish\win-x64`，546 文件／284.8 MB，发布校验通过（14 GLSL／4 HOOK／批准 mpv 59 文件逐项哈希）。桌面 `Momoka.lnk` 目标与工作目录读回均指向该目录；发布件 ProductVersion `0.2.0+68c6ce66d6b7eba5cdfb69ebb0a3e2718fe3c692`（未改版本），`Momoka.dll` SHA256 `EBB6F4A867FC8A81A2C5E808F94C80FBBDA115B38CE41E5E6F73835991FC48FD`。从发布件实际启动 `--show-settings 主页` 实拍卡面 (29.5,36.5,43.5)、输入玻璃 (39.6,47.5,55.5)，上下箭头已无、文字居中，与开发件一致。
+- 未覆盖：全量自检、真实播放、发布件探针；未推 origin、未改版本。
+
+### 2026-10-30 更多菜单弹窗背景改回实心
+
+- 用户令：「更多菜单里的一些弹窗背景不要用亚克力，卡片和按钮等可以用」。于是把上一节里弹窗/浮出层的底色改回实心：菜单与对话框这块面读字优先，设置页输入框、选择框、快捷键抓键框与所有卡片继续用亚克力，不动。
+- 改动：删除 `EgDialogGlassBrush`（Palette 深浅两字典、高对比度、ThemeHost 涂色表一并移除）与全局透明的 `ContentDialogTopOverlay`；`MenuFlyoutPresenterBackground`／`FlyoutPresenterBackground` 接 `EgSurfaceBrush`（原先是框架的桌面/应用内亚克力，或上一节的弹窗玻璃），边线仍是 `EgBorderBrush`。`EgDialogSurfaceStyle` 回 `EgSurfaceBrush`；`EgLibraryDialogSurfaceStyle`／`EgLibraryFlyoutSurfaceStyle`、`FilterPanel`／`LibrarySettingsPanel`、`ConfirmDialog` 顶盖与 14 张库弹窗的顶盖都回 `LayerFillColorDefaultBrush`（设置侧栏色）；`MoviePilotDownloadDialog` 回 `EgSurfaceBrush`。探针 `LibraryDialogChromeAsync` 的期望同步回侧栏底色与实色顶盖，用例名改回「媒体库弹窗五主题圆角和侧栏底色，MP保持原样」。产品提交 `9dfcd43`。
+- 验证：Shell 与测试项目 Release 编译 0 警告／0 错误；主套件 **3321/3321**（0 失败／0 跳过）；DetailDeleteCommand 夹具 **19/19**。最终构建真实探针：metadata **5/5**（`shell-probe-20261030-012925369-9992`）、moviepilot **26/26**（`shell-probe-20261030-013030381-9296`）、library+anibt **13/13**（`shell-probe-20261030-014223369-7204`）、settings/search/shortcuts **40/40**（`shell-probe-20261030-013749989-24080`）。同一组合第一次跑时「快捷键搜索（宽窗）」在输入文字后判 `ShortcutSearchQuery` 未更新，1 项失败（`shell-probe-20261030-013258051-2532`）；同一二进制单独重跑 shortcuts **3/3**、组合重跑 **40/40**，该失败是绑定/布局时序的偶发，不是本批表面改动，也没有放宽断言。
+- 已看图：开发件 `mp-media-menu-emby-dark-1280.png` 与五主题子菜单、`library-dialog-EmbyMetadataDialog-emby-dark-screen.png` 等——菜单与库弹窗都是实心面色/侧栏色，输入框玻璃仍在。
+- 发布：`tools/publish.ps1 -NoArchive` 通过（546 文件／284.8 MB、载荷逐项校验），桌面 `Momoka.lnk` Target/WorkDir 读回 `artifacts\publish\win-x64`；发布件 ProductVersion `0.2.0+9dfcd434e771d3d9e9f10eb3efc64cc96638a2b7`，`Momoka.dll` SHA256 `A1F09BFA9198EC1B37397B12459B8FC096A68AAE6145F793B1B2FA0F621CD280`。发布件 `--probe-shell --probe-section moviepilot` **26/26**（`shell-probe-20261030-015133803-24284`），已查看其实屏菜单帧。另尝试用发布件 `--show-menu` 直接拍用户那条更多菜单，启动时窗口不在前台，菜单弹出后即被轻关闭，截图里没有菜单；没有据此判失败，菜单表面以发布件探针的实屏帧为准。
+- 未覆盖：全量自检、真实播放、发布件全量探针；未推 origin、未改版本。
+
+### 2026-10-30 手动整理：默认自动、选目录带出配置、放大窗口
+
+- 用户令（附手动整理弹窗截图）：打开整理页面默认用自动、不显示当前剧集数据；选路径后按官方源码自动切换整理方式与分类开关，不自己猜；加大窗口一次显示完整选项、不要滚动条。
+- 上游核对：`jxxghp/MoviePilot-Frontend` v3 HEAD `bc938a9198ec75ba46a91d34ece4c38f790f8176`（2026-10-29）的 `src/components/dialog/ReorganizeDialog.vue` 与 `__tests__/ReorganizeDialog.spec.ts`；后端 `jxxghp/MoviePilot` v3 HEAD `9aab7c0f` 的 `app/api/endpoints/transfer.py`、`app/schemas/transfer.py`、`app/schemas/system.py`。源码事实：初始 `transferForm` 的类型/媒体来源/编号/整理方式/两个分类开关都是 `null`（自动），不预填条目身份；`watch(target_path)` 在命中 `storage/directories?directory_type=library` 的 `library_path` 时把 `library_storage`、`transfer_type`（仅当前仍为空）、`scraping`、`library_type_folder`、`library_category_folder` 带进表单，陌生路径退到 `local`+`copy`+三个开关 `false`，路径清空时这些值回 `null`；后端 `type_name` 为空即自动识别，`season` 只是可选参数。上游弹窗默认宽 `min(45rem, …)` 且内容滚动；放大窗口是用户要求，不属上游行为。
+- 改动：`MoviePilotReorganizeDialog` 打开时类型/数据源/整理方式/季集/编号全部自动，`IdentityGrid` 不再出现；路径变化（选择或手输）统一走 `ApplyTargetPath`，目录配置带出存储、方式（仅自动时）、刮削与两个分类开关，陌生路径按上游回退，回到自动清空显式值；目录下拉不再按当前存储过滤。弹窗宽度 1000、正文按窗口定宽，表单按宽度排 4/2/1 列，行数随列数重建（空行也会吃 RowSpacing），并压缩提示与内边距；默认视图与展开识别区在 1000 宽时都没有纵向滚动条。`EpisodeRow` 容器拆成 `SeasonField`/`EpisodeField`/`EpisodeFormatField`/`EpisodeOffsetField` 等独立字段，复用历史时目的行收成两列、识别区整块收起。产品提交 `bec0d82`。
+- 验证：Release 全方案编译 0 警告／0 错误；主套件 **3321/3321**、0 失败／0 跳过；`Momoka.TransferSubmissionTests` **45/45**（新增默认自动、选目录带出配置、陌生路径回退、已手选方式不被覆盖、清空回自动）。真实控件探针 `--probe-section moviepilot`：开发件 **26/26**（`shell-probe-20261030-031619510-16508`），发布件 **26/26**（`shell-probe-20261030-032702483-9844`）；含默认视图 `ScrollableHeight=0`、识别区展开后 `ScrollableHeight=0`、选 `/library` 带出 `local`+`softlink`+刮削+按类型分类、陌生路径保留已手选方式、520/720/1040 宽窄布局与五主题实屏。中间一次 `03:14:08` 运行里搜索卡片那条因其它窗口遮挡被探针守卫判红，未放宽守卫，置顶后重跑通过。空白检查只命中本轮未触碰的 `EmbyMetadataEdit.cs`、`MoviePilotTransferCollect.cs`、`ShellNavigationProbe.Accessibility.cs`、`MoviePilotSeriesReorganizeViewModel.cs` 等旧项，本轮改动的 C# 文件不在其中。自动化扫描 548 项、0 缺句柄；`EpisodeRow` 作为布局容器退役（SeasonBox/EpisodeBox 等仍在基线），新增字段容器逐行补进 `Agreements.txt`。
+- 已看图：开发件与发布件的 `mp-manual-default-screen.png`（全部自动、无识别区、无滚动条）、`mp-manual-1040-screen.png`（电视剧识别区展开、无滚动条）、`mp-manual-history-screen.png`（复用历史收起识别区、目的行两列）、`mp-manual-520-screen.png`（单列）。520/720 窄窗仍会因高度不足出现滚动条，这是窗口尺寸限制，不是默认宽度下的行为。
+- 发布：`tools/publish.ps1 -NoArchive` 通过（546 文件／284.8 MB、载荷逐项校验），发布件 ProductVersion `0.2.0+bec0d821cce2d4b87b9c65caba1012c3ba6e2b07`，`Momoka.dll` SHA256 `227BCF6F83CA1F1765BE379E550FB2570953540D2876073EE01E6E509C8A1615`。桌面 `Momoka.lnk` 由 COM 读回被安全策略拒绝，改为读取 .lnk 字节确认仍指向 `artifacts\publish\win-x64\Momoka.exe`；发布目录时间戳晚于本次构建。
+- 未覆盖：全量自检、真实 MoviePilot 服务器整理、真实播放；`--probe-section moviepilot` 未选的 107 项不在本轮证据内；未推 origin、未改版本。
+
+### 2026-10-30 更多菜单：MoviePilot 能力迟到时原地补齐
+
+- 用户报（原话）：「刚打开应用时，更多按钮中有些功能选择不会自动显示，过几秒后会自动关闭更多菜单，然后再打开自动菜单才会显示」。
+- 根因：`ShellPage.CheckMoviePilot` 开机后先 `RefreshAvailabilityAsync`、再 `HistoryCapabilitiesAsync`，两趟都走网络；而 `ItemCommands.Show` 旧实现只在菜单已带 MP 行时才订阅 `MoviePilotAvailabilityChanged`，处理器对任何能力差异都 `menu.Hide()`。能力增加也走这条路，于是「少几行 → 几秒后自动关 → 再开才有」；开机瞬间开菜单时连订阅都没有。
+- 改动（产品提交 `9a820d8`）：`ItemCommands` 抽出行排版 `Rows`；菜单打开期间一直跟随可用性，按 MP 行集合（`MoviePilotCommands`）比较——增加就 `Apply` 逐位换行、不收起，减少或失去才收起；演员卡等本来没有 MP 行的菜单、以及服务器权限探测迟到的行，不再连累整张菜单。`ResolveGenre` 保持 `async void` 的既有形状（夹具靠同步上下文计数等待它），能力到达时跟着补跑。新增 `MoviePilotMenuFillAsync` 探针与源码契约测试。
+- 验证：完整方案 Release 编译 0 警告／0 错误；主套件 **3332/3332**（0 失败／0 跳过）、PageContract **107/107**、ItemUserStateOrder **73/73**、AniBTEntry **40/40**、PlexAffordance **67/67**、AniBT 源码契约 **39/39**、字幕 **36/36**；改动 C# 文件的定向 whitespace 检查退出 0。
+- 中途：第一版把补查写成丢弃 Task 的普通异步函数，AniBTEntry 夹具 2 项失败（夹具等的是同步上下文登记的在途操作）；改回 `async void` 后 40/40，理由留在代码注释里。
+- 发布：`tools/publish.ps1 -NoArchive` 通过（546 文件／284.9 MB、载荷逐项校验），ProductVersion `0.2.0+9a820d81207be5cab2b704c3f68c9b1799cb47c4`，`Momoka.dll` SHA256 `379E83A4B8DB3FF891DE27A2F0575D29B2C231091487A41EED6CE402D2851D8A`；桌面 `Momoka.lnk` Target/WorkDir 读回均指向 `artifacts\publish\win-x64`。
+- 发布件 `--probe-shell --probe-section moviepilot` 最终 **28/28、0 失败、退出 0**（`C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261030-084257963-17836`）；截图 `moviepilot-menu-filled.png` 显示补齐后「搜索其他版本／重新整理／媒体管理」都在、菜单仍开着。目标用例在开发件与发布件的每轮都通过；中间两轮各有 2～4 项不相关用例的截图遮挡／时序守卫失败（`08:23` 遮挡、`08:38` 资源排序超时与紧凑布局未恢复），未放宽守卫，原样重跑通过。
+- 未覆盖：真实 MoviePilot 服务器、真实播放；本轮未推 origin、未改版本；分支 `qoder/临时` 尚未合入 master（master 落后本分支三个提交），合并与主树重验待用户确认。

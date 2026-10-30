@@ -144,13 +144,15 @@ public sealed class EmbyServerGateway(EmbyHttp http, DeviceIdentity device)
         }
 
         Log.Info(Category, $"已登录 {serverName}（用户 {result.User!.Name}）");
-        return new EmbyConnection(apiBase, result.AccessToken, result.User.Id, result.User.Name, serverName, device)
+        var connection = new EmbyConnection(apiBase, result.AccessToken, result.User.Id, result.User.Name, serverName, device)
         {
             ServerKind = kind,
             ServerVersion = serverVersion,
-            ServerId = result.ServerId ?? serverId,
-            IsAdministrator = kind == MediaServerKind.Jellyfin ? result.User.Policy?.IsAdministrator : null
+            ServerId = result.ServerId ?? serverId
         };
+        // 登录结果带策略就一次写全：管理员、下载、删除与字幕。没带（旧服务器）就保持「还没问到」；
+        // 登录后的能力探测会再按来源读一次，菜单在那之前照旧显示由服务器拒绝。
+        return result.User.Policy is { } policy ? policy.ApplyTo(connection) : connection;
     }
 
     private sealed class AuthenticateByNameRequest

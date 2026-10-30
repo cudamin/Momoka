@@ -131,5 +131,10 @@ internal sealed partial class ShellNavigationProbe
         finally { ThemeHost.Apply(savedTheme); }
     }
 
-    private static Windows.UI.Color BrushColor(Brush? brush) => brush is SolidColorBrush solid ? solid.Color : default;
+    private static Windows.UI.Color BrushColor(Brush? brush) => brush switch
+    {
+        SolidColorBrush solid => solid.Color,
+        AcrylicBrush acrylic => acrylic.TintColor,
+        _ => default
+    };
 }

@@ -160,12 +160,14 @@
       剪孩子，所以底部按钮区跟着圆；底色同时画到正文和按钮区（CommandSpace 也 TemplateBinding
       Background）。
 
-      下载弹窗不在名单里：它头上那四个本地属性原样保留（本地值优先），图二的样子一个像素不动。
-      以后哪张表要有例外，在它自己头上写属性即可，不用拆这条。
+      2026-10-30（用户：「更多菜单里的一些弹窗背景不要用亚克力，卡片和按钮等可以用」）：底色是实心
+      EgSurfaceBrush —— 弹窗自己这块面不上亚克力，读字优先；弹窗里的卡片、按钮仍各走各的亚克力，
+      不受这一条影响。下载弹窗头上那四个本地属性仍是它的样板；往后哪张表要有例外，在它自己头上写
+      属性即可，不用拆这条。
 
       2026-10-29 起这条样式还负责「点弹窗外面就关掉它」（DialogDismiss.ClosesOnOutsideClick）：
       用户要的是项目里所有弹窗、以及以后新增的弹窗都有这一下，所以它跟表面属性放在同一条基础样式上，
-      派生类型那一行只接样式就一起带上。不想有这一下的表在自己头上写 False，不用改这里。
+      派生类型那一行只接样式就一起带上；不得通过本地 False 或替换样式绕过，测试会检查。
     -->
     <Style x:Key="EgDialogSurfaceStyle" TargetType="ContentDialog" BasedOn="{StaticResource DefaultContentDialogStyle}">
         <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
@@ -176,7 +178,8 @@
     </Style>
 
     <!-- 媒体库弹窗（2026-10-28）：只覆盖库管理相关类型，背景与设置侧栏使用同一个主题角色。
-         不改 EgDialogSurfaceStyle：MoviePilot、普通确认框和设置窗口仍维持原来的表面。 -->
+         不改 EgDialogSurfaceStyle：MoviePilot、普通确认框和设置窗口仍维持原来的表面。
+         2026-10-30 弹窗表面不上亚克力之后，这一条继续钉侧栏底色。 -->
     <Style x:Key="EgLibraryDialogSurfaceStyle" TargetType="ContentDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}">
         <Setter Property="Background" Value="{ThemeResource LayerFillColorDefaultBrush}" />
     </Style>
@@ -566,6 +569,15 @@
         <Setter Property="Padding" Value="0" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
+    <!--
+      搜索框的输入层。原生文本框的上下内边距会让 40 DIP 胶囊里的文字偏上；模板保留（光标、清除键、输入法
+      和键盘都在里面），只把输入与占位文字居中。搜索页那一颗和「在 MoviePilot 搜索版本」窗口那一颗共用这一份
+      —— 两处的框必须一样高、字站在同一条线上，各写一份就迟早只改一处。
+    -->
+    <Style x:Key="EgSearchTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource AutoSuggestBoxTextBoxStyle}">
+        <Setter Property="Padding" Value="10,0,6,0" />
     </Style>
 
     <!--

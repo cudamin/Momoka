@@ -45,15 +45,21 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(card);
                     var expected = ThemeHost.ToColor(theme.Colors.BorderStrong);
                     var background = ThemeHost.ToColor(theme.Colors.Window);
+                    var glass = ThemeHost.ToColor(InputControlTheme.Glass(theme));
                     Require(background != ThemeHost.ToColor(theme.Colors.SurfaceAlt), "样例卡片与页面底色没有区别");
                     foreach (var key in new[] { "TextControlBackground", "TextControlBackgroundPointerOver", "TextControlBackgroundFocused",
-                        "TextControlBackgroundDisabled", "ComboBoxBackground", "ComboBoxBackgroundPointerOver", "ComboBoxBackgroundPressed",
-                        "ComboBoxBackgroundFocused", "ComboBoxBackgroundUnfocused", "ComboBoxBackgroundDisabled" })
+                        "TextControlBackgroundDisabled" })
                         foreach (var dictionary in new[] { "Dark", "Light" })
                             Require(IsInputBackground(ThemeHost.ColorOf(dictionary, key), background),
                                 $"{theme.Id}/{dictionary}/{key} 仍使用卡片底色");
+                    foreach (var key in new[] { "ComboBoxBackground", "ComboBoxBackgroundPointerOver", "ComboBoxBackgroundPressed",
+                        "ComboBoxBackgroundFocused", "ComboBoxBackgroundUnfocused", "ComboBoxBackgroundDisabled", "EgInputGlassBrush" })
+                        foreach (var dictionary in new[] { "Dark", "Light" })
+                            Require(IsInputBackground(ThemeHost.ColorOf(dictionary, key), glass),
+                                $"{theme.Id}/{dictionary}/{key} 未使用输入玻璃");
                     Require(!IsInputBackground(ThemeHost.ToColor(theme.Colors.SurfaceAlt), background)
                         && !IsInputBackground(null, background), "探针未拒绝卡片色与缺失底色反例");
+                    Require(!IsInputBackground(glass, background), "探针未拒绝玻璃 tint 与侧栏色相同的反例");
                     foreach (var dictionary in new[] { "Dark", "Light" })
                         Require(ThemeHost.ColorOf(dictionary, "TextControlBorderBrushFocused") == expected,
                             $"{theme.Id}/{dictionary} 全局焦点被重新涂成主题色");
@@ -62,9 +68,11 @@ internal sealed partial class ShellNavigationProbe
                     Require(!IsNeutralInputBorder(null, expected), "探针未拒绝缺失焦点描边反例");
                     var searchInput = Descendants(search).OfType<TextBox>().Single();
                     var numberInput = Descendants(number).OfType<TextBox>().Single(control => control.Name == "InputBox");
-                    foreach (var outer in new Control[] { text, password, search, number, combo, multiline })
+                    foreach (var outer in new Control[] { text, password, search, number, multiline })
                         Require(outer.Background is SolidColorBrush color && color.Color == background,
                             $"{theme.Id}/{outer.Name} 外层仍用卡片底色");
+                    Require(combo.Background is AcrylicBrush comboOuter && comboOuter.TintColor == glass,
+                        $"{theme.Id} 下拉输入框外层未使用输入玻璃");
                     foreach (var entry in new (string Name, Control Control)[]
                         { ("text", text), ("password", password), ("search", searchInput), ("number", numberInput), ("multiline", multiline) })
                     {
@@ -82,10 +90,13 @@ internal sealed partial class ShellNavigationProbe
                     Require(combo.Focus(FocusState.Keyboard), "下拉输入框不能取得键盘焦点");
                     await LayoutAsync(card);
                     var comboBackground = Descendants(combo).OfType<Border>().Single(control => control.Name == "Background");
-                    Require(comboBackground.Background is SolidColorBrush comboFill && comboFill.Color == background,
+                    Require(comboBackground.Background is AcrylicBrush comboFill && comboFill.TintColor == glass,
                         $"{theme.Id} 闭合下拉聚焦时退回卡片底色");
                     await SaveProbeScreenAsync($"input-focus-{theme.Id}-{width}-combo-screen.png");
                     Require(shortcut.Focus(FocusState.Keyboard), "快捷键输入框不能取得键盘焦点");
+                    var shortcutFrame = Descendants(shortcut).OfType<Border>().Single(control => control.Name == "ComboBorder");
+                    Require(shortcutFrame.Background is AcrylicBrush shortcutGlass && shortcutGlass.TintColor == glass,
+                        $"{theme.Id} 快捷键输入框静止时未使用输入玻璃");
                     Call(shortcut, "StartCapture");
                     try
                     {
@@ -93,7 +104,7 @@ internal sealed partial class ShellNavigationProbe
                         var border = Descendants(shortcut).OfType<Border>().Single(control => control.Name == "ComboBorder");
                         Require(IsNeutralInputBorder(border.BorderBrush, expected), $"{theme.Id} 快捷键抓取仍有主题色外圈");
                         Require(border.Background is SolidColorBrush shortcutFill && shortcutFill.Color == background,
-                            $"{theme.Id} 快捷键输入仍用卡片底色");
+                            $"{theme.Id} 快捷键抓取仍用卡片底色");
                         Require(IsNeutralInputBorder(shortcut.FocusVisualPrimaryBrush, ThemeHost.ToColor(theme.Colors.Text)),
                             "快捷键的系统键盘焦点仍使用强调色");
                         await SaveProbeScreenAsync($"input-focus-{theme.Id}-{width}-shortcut-screen.png");

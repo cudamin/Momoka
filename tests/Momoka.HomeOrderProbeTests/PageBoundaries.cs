@@ -88,6 +88,7 @@ namespace Momoka.Shell.ViewModels
         }
         public void SyncSaveState() => Runtime.Invoke(Inner, "SyncSaveState");
         public void RefreshHomeRows() => Runtime.Invoke(Inner, "RefreshHomeRows");
+        public void RefreshMoviePilotSites() => Runtime.Invoke(Inner, "RefreshMoviePilotSites");
         public void Cancel() => Runtime.Invoke(Inner, "Cancel");
         public void Activate() => Runtime.Invoke(Inner, "Activate");
         public void UseConfirm(object ignored) { }

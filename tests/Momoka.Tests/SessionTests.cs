@@ -67,6 +67,62 @@ internal static class SessionTests
             Assert.Equal(1, probe.Count("Views"), "领这一份不该再打一次接口 —— 省掉的就是这一趟");
         });
 
+        Test("能力探测：账号策略写进菜单权限，按来源查得到", () =>
+        {
+            // 2026-10-30：「允许下载媒体」关着时服务器对下载回 403，菜单要在没有权限时收起下载、删除、字幕和
+            // 管理员入口。策略不走登录/恢复链（那条链是受保护的令牌探针），由能力探测在启动后按来源读一次。
+            var probe = new StubTransport()
+                .Answer("Views", Views)
+                .Answer("System/Info/Public", PublicInfo)
+                .Answer("System/Info", """{ "ServerName": "果服", "Version": "4.10.1.0" }""")
+                .Answer("Users/u1", """
+                {
+                  "Id": "u1", "Name": "docuser",
+                  "Policy": {
+                    "IsAdministrator": false,
+                    "EnableContentDownloading": false,
+                    "EnableContentDeletion": false,
+                    "EnableSubtitleDownloading": false,
+                    "EnableSubtitleManagement": true
+                  }
+                }
+                """);
+
+            var (session, server, account) = Signed(probe);
+            Assert.True(Wait(session.TryRestoreAsync(server, account, CancellationToken.None)));
+
+            var capabilities = new Momoka.Services.ServerCapabilities(session);
+            Wait(capabilities.ProbeAsync(CancellationToken.None));
+
+            var permissions = capabilities.PermissionsFor(session.Capture().Key);
+            Assert.Equal(false, permissions.IsAdministrator);
+            Assert.Equal(false, permissions.CanDownload);
+            Assert.Equal(false, permissions.CanDeleteContent);
+            Assert.Equal(true, permissions.CanManageSubtitles, "两个字幕策略位有一个为 true 就算能管");
+            Assert.Equal(default(ItemMenuPermissions), capabilities.PermissionsFor("不存在的来源"));
+        });
+
+        Test("能力探测：读不到账号策略时菜单权限保持未知，不吓缩入口", () =>
+        {
+            // 旧服务器、反向代理挡住，或这条接口一时读不到：未知不是「不许」。入口照旧显示，真没权限由服务器拒绝。
+            var probe = new StubTransport()
+                .Answer("Views", Views)
+                .Answer("System/Info/Public", PublicInfo)
+                .Answer("System/Info", """{ "ServerName": "果服", "Version": "4.10.1.0" }""");
+
+            var (session, server, account) = Signed(probe);
+            Assert.True(Wait(session.TryRestoreAsync(server, account, CancellationToken.None)));
+
+            var capabilities = new Momoka.Services.ServerCapabilities(session);
+            Wait(capabilities.ProbeAsync(CancellationToken.None));
+
+            var permissions = capabilities.PermissionsFor(session.Capture().Key);
+            Assert.Null(permissions.IsAdministrator);
+            Assert.Null(permissions.CanDownload);
+            Assert.Null(permissions.CanDeleteContent);
+            Assert.Null(permissions.CanManageSubtitles);
+        });
+
         Test("恢复登录：那一份只给一次，刷新照旧真去问服务器", () =>
         {
             // 给两次就意味着服务器上新加的媒体库永远不出现在导航栏里，而用户手动刷新也治不好。
@@ -546,5 +602,19 @@ internal static class SessionTests
         }
 
         return task.GetAwaiter().GetResult();
+    }
+
+    private static void Wait(Task task)
+    {
+        try
+        {
+            Assert.True(task.Wait(TimeSpan.FromSeconds(5)), "请求卡住了");
+        }
+        catch (AggregateException)
+        {
+            // 下面那句会用原始异常重抛。
+        }
+
+        task.GetAwaiter().GetResult();
     }
 }

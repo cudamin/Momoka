@@ -14,7 +14,7 @@ internal static class MoviePilotMediaManagementTests
 {
     public static void Register()
     {
-        Test("MP 媒体管理菜单：紧接手动整理、四个删除范围且不套品牌", () =>
+        Test("MP 媒体管理菜单：重新整理分组在前、媒体管理紧随、四个删除范围且不套品牌", () =>
         {
             foreach (var backend in new[] { "Emby", "Jellyfin", "FnNas", "Plex" })
                 foreach (var type in new[] { EmbyItemType.Movie, EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
@@ -22,16 +22,20 @@ internal static class MoviePilotMediaManagementTests
                     var menu = ItemMenu.For(new EmbyItem { Id = "item", Type = type }, true,
                         jellyfin: backend == "Jellyfin", fnNas: backend == "FnNas", plex: backend == "Plex",
                         moviePilotManagementAvailable: true, moviePilotSmartAvailable: true).ToList();
-                    var manual = menu.FindIndex(row => row.Command == ItemCommand.MoviePilotReorganize);
+                    var versionsIndex = menu.FindIndex(row => row.Command == ItemCommand.MoviePilotVersions);
+                    var groupIndex = menu.FindIndex(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+                    var group = menu[groupIndex];
                     var restricted = backend is "FnNas" or "Plex";
-                    Assert.Equal(restricted ? -1 : menu.FindIndex(row => row.Command == ItemCommand.MoviePilotVersions) + 1, manual);
-                    var managementIndex = restricted ? menu.FindIndex(row => row.Command == ItemCommand.MoviePilotVersions) + 1 : manual + 1;
+                    Assert.Equal(versionsIndex + 1, groupIndex);
+                    Assert.Equal(restricted ? -1 : 0, group.Children!.ToList().FindIndex(row => row.Command == ItemCommand.MoviePilotReorganize));
+                    var managementIndex = menu.FindIndex(row => row.Command == ItemCommand.MoviePilotMediaManagement);
+                    Assert.Equal(groupIndex + 1, managementIndex);
                     var management = menu[managementIndex];
-                    Assert.Equal(ItemCommand.MoviePilotMediaManagement, management.Command);
                     Assert.Equal("媒体管理", management.Label);
                     Assert.Equal("仅删除记录|删记录和源文件|删记录和库文件|删除记录及两端",
                         string.Join("|", management.Children!.Select(row => row.Label)));
-                    Assert.Equal(type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理", menu[managementIndex + 1].Label);
+                    Assert.Equal(type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理",
+                        group.Children!.Single(row => row.Command == ItemCommand.MoviePilotSmartReorganize).Label);
                 }
         });
         Test("MP 主树整合：跨服务器管理不恢复已退役手动入口，短菜单与非动漫识别保留", () =>
@@ -44,9 +48,10 @@ internal static class MoviePilotMediaManagementTests
                 var menu = ItemMenu.For(new EmbyItem { Type = EmbyItemType.Series, Genres = ["剧情"] }, true,
                     jellyfin: jellyfin, fnNas: fnNas, plex: plex,
                     moviePilotManagementAvailable: true, moviePilotSmartAvailable: true);
-                Assert.Equal(!fnNas && !plex, menu.Any(row => row.Command == ItemCommand.MoviePilotReorganize));
+                var reorganize = menu.Single(row => row.Command == ItemCommand.MoviePilotReorganizeMenu).Children!;
+                Assert.Equal(!fnNas && !plex, reorganize.Any(row => row.Command == ItemCommand.MoviePilotReorganize));
                 Assert.Equal(!fnNas && !plex, ItemMenu.Supports(ItemCommand.MoviePilotReorganize, jellyfin, fnNas, plex));
-                Assert.Equal(!fnNas && !plex, menu.Any(row => row.Command == ItemCommand.AniBtScrape));
+                Assert.Equal(!fnNas && !plex, reorganize.Any(row => row.Command == ItemCommand.AniBtScrape));
                 Assert.Equal(1, menu.Count(row => row.Command == ItemCommand.MoviePilotMediaManagement));
                 foreach (var row in menu.Where(row => row.Command is { } command && ItemMenu.IsMoviePilot(command)))
                 {
@@ -70,6 +75,7 @@ internal static class MoviePilotMediaManagementTests
             var runtime = source[..source.IndexOf("private async Task InspectMediaManagementAsync", StringComparison.Ordinal)];
             Assert.Equal(2, runtime.Split("foreach (var theme in Momoka.Theming.UiThemes.All)").Length - 1);
             Assert.Contains("mp-media-menu-{theme.Id}-{width}.png", runtime);
+            Assert.Contains("mp-media-reorganize-submenu-{theme.Id}-{width}.png", runtime);
             Assert.Contains("mp-media-submenu-{theme.Id}-{width}.png", runtime);
             Assert.Contains("AssertNoBrand", runtime);
             Assert.Contains("仍套用 MP 品牌模板", runtime);
@@ -84,6 +90,24 @@ internal static class MoviePilotMediaManagementTests
             var measured = sidebar.LastIndexOf("await LayoutAsync(section);", titleCheck, StringComparison.Ordinal);
             Assert.True(measured >= 0 && measured < titleCheck);
             Assert.Contains("VisibleArea(icon, host) >= bounds.Width * bounds.Height - 0.5", sidebar);
+        });
+        Test("MP 更多菜单：能力补到时不收起且探针在运行清单里", () =>
+        {
+            // 2026-10-30 用户报过：「刚打开应用时更多里少几条，过几秒菜单自己关了，再开才有」。这条把
+            // 「先开菜单、连接与管理能力后到」那段运行检查钉在清单里，别让探针被静默删掉。
+            var root = new DirectoryInfo(AppContext.BaseDirectory);
+            while (root is not null && !File.Exists(Path.Combine(root.FullName, "Momoka.sln"))) root = root.Parent;
+            Assert.True(root is not null);
+            var cases = File.ReadAllText(Path.Combine(root!.FullName, "src/Momoka.Shell/ShellNavigationProbe.cs"));
+            Assert.Contains("MoviePilotMenuFillAsync", cases);
+            var sections = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/ShellNavigationProbe.Sections.cs"));
+            Assert.Contains("[nameof(MoviePilotMenuFillAsync)] = ShellProbeSections.MoviePilot", sections);
+            var probe = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/ShellNavigationProbe.MoviePilotAvailability.cs"));
+            Assert.Contains("moviepilot-menu-filled.png", probe);
+            Assert.Contains("把整张菜单收掉了", probe);
+            var commands = File.ReadAllText(Path.Combine(root.FullName, "src/Momoka.Shell/Views/ItemCommands.cs"));
+            Assert.Contains("before.IsSubsetOf(after)", commands);
+            Assert.Contains("Apply(menu, rows);", commands);
         });
         Test("MP 发布件悬停探针：真实焦点、初态与动画进度均确认，原缩放边界不放宽", () =>
         {
@@ -112,7 +136,8 @@ internal static class MoviePilotMediaManagementTests
             Assert.False(ItemMenu.For(item, true).Any(row => row.Command == ItemCommand.MoviePilotMediaManagement));
             var noAi = ItemMenu.For(item, true, moviePilotManagementAvailable: true);
             Assert.True(noAi.Any(row => row.Command == ItemCommand.MoviePilotMediaManagement));
-            Assert.False(noAi.Any(row => row.Command == ItemCommand.MoviePilotSmartReorganize));
+            Assert.False(noAi.SelectMany(row => row.Children ?? (IReadOnlyList<ItemMenuEntry>)[])
+                .Any(row => row.Command == ItemCommand.MoviePilotSmartReorganize));
         });
         Test("MP 菜单品牌：条目更多菜单不再套 MP 图标，订阅菜单保留", () =>
         {

@@ -196,6 +196,76 @@ internal static class ItemMenuTests
             // 合集是用户自己攒的一篮子东西，可以横跨几个库、几种类型 ——「下载这个合集」不是一句说得清的话。
             Assert.DoesNotContain("下载到设备", Labels(new EmbyItem { Id = "b1", Type = EmbyItemType.BoxSet }));
         });
+
+        Test("更多菜单：账号明确没有下载权限时收起下载，未知时照旧摆着", () =>
+        {
+            // 2026-10-30：服务器上的「允许下载媒体」关着时，Emby 给每一条下载请求回 403。账号策略明确答 false
+            // 就把入口整条收起；null 是「还没问到」（旧服务器、能力探测读不到），仍然显示，由服务器最终拒绝。
+            // 剧和季也要按账号策略判断 —— 服务器给这两个类型本身回的 CanDownload 是 false，不能拿来当权限用。
+            foreach (var item in (EmbyItem[])[
+                new() { Id = "m1", Type = EmbyItemType.Movie },
+                new() { Id = "e1", Type = EmbyItemType.Episode },
+                new() { Id = "s1", Type = EmbyItemType.Series },
+                new() { Id = "n1", Type = EmbyItemType.Season }])
+            {
+                var denied = ItemMenu.For(item, permissions: new() { CanDownload = false });
+                Assert.DoesNotContain("下载到设备", Labels(denied), $"{item.Type} 上不该有下载入口");
+                Assert.Contains("下载到设备",
+                    Labels(ItemMenu.For(item, permissions: new() { CanDownload = true })), $"{item.Type} 允许下载时要保留入口");
+                Assert.Contains("下载到设备", Labels(ItemMenu.For(item)), $"{item.Type} 的权限未知时不收起");
+            }
+
+            Assert.DoesNotContain("下载", Labels(ItemMenu.For(
+                new EmbyItem { Id = "j1", Type = EmbyItemType.Movie }, jellyfin: true,
+                permissions: new() { CanDownload = false })));
+        });
+
+        Test("更多菜单：账号不是管理员时收起编辑、封面、合集和字幕", () =>
+        {
+            var movie = new EmbyItem { Id = "m1", Type = EmbyItemType.Movie };
+            var adminDenied = new ItemMenuPermissions(IsAdministrator: false);
+
+            foreach (var command in (ItemCommand[])[
+                ItemCommand.EditMetadata, ItemCommand.ChangeCover, ItemCommand.AddToCollection, ItemCommand.Subtitles])
+                Assert.False(ItemMenu.For(movie, permissions: adminDenied).Any(row => row.Command == command),
+                    $"账号不是管理员时不该有 {command}");
+
+            // 账号上传字幕权限关掉时只收起字幕，其他编辑入口不受影响（管理员仍在）。
+            var noSubtitles = ItemMenu.For(movie, permissions: new() { CanManageSubtitles = false });
+            Assert.DoesNotContain("搜索字幕…", Labels(noSubtitles));
+            Assert.Contains("编辑元数据…", Labels(noSubtitles));
+
+            // 非管理员但有字幕权限时，字幕仍可用。
+            var subtitleOnly = ItemMenu.For(movie, permissions: new() { IsAdministrator = false, CanManageSubtitles = true });
+            Assert.Contains("搜索字幕…", Labels(subtitleOnly));
+            Assert.DoesNotContain("编辑元数据…", Labels(subtitleOnly));
+
+            // 未知权限照旧全部显示，服务器是最后的闸门。
+            Assert.Contains("编辑元数据…", Labels(ItemMenu.For(movie)));
+            Assert.Contains("搜索字幕…", Labels(ItemMenu.For(movie)));
+        });
+
+        Test("更多菜单：账号明确不能删除时收起删除", () =>
+        {
+            var movie = new EmbyItem { Id = "m1", Type = EmbyItemType.Movie };
+            var denied = ItemMenu.For(movie, permissions: new() { CanDeleteContent = false });
+
+            Assert.DoesNotContain("删除", Labels(denied));
+            Assert.Contains("删除", Labels(ItemMenu.For(movie, permissions: new() { CanDeleteContent = true })));
+            Assert.Contains("删除", Labels(ItemMenu.For(movie)));
+        });
+
+        Test("更多菜单：非管理员收起识别、刷新元数据和扫库，保留其他用户操作", () =>
+        {
+            var movie = new EmbyItem { Id = "m1", Type = EmbyItemType.Movie };
+            var labels = Labels(ItemMenu.For(movie,
+                permissions: new ItemMenuPermissions(IsAdministrator: false, CanDeleteContent: true)));
+
+            foreach (var hidden in (string[])["识别", "刷新元数据", "重新扫描媒体库", "编辑元数据…", "修改封面图…"])
+                Assert.DoesNotContain(hidden, labels);
+            foreach (var kept in (string[])["立即播放", "标记为已观看", "添加到收藏", "删除"])
+                Assert.Contains(kept, labels, "非管理员仍保留自己的播放、状态和账号允许的删除入口");
+        });
     }
 
     /// <summary>电影媒体库里的一张卡。</summary>
@@ -454,11 +524,70 @@ internal static class ItemMenuTests
                     if (enabled)
                         Assert.True(rows.Single(row => row.Command == ItemCommand.MoviePilotVersions).Children!
                             .Any(row => row.Command == ItemCommand.AniBtVersions));
-                    Assert.False(rows.Any(row => row.Command is ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape));
+                    Assert.False(rows.Any(row => row.Command is ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape
+                        or ItemCommand.MoviePilotReorganizeMenu));
                     Assert.True(ItemMenu.Supports(ItemCommand.MoviePilotVersions, false, fnNas, !fnNas));
                     Assert.True(ItemMenu.Supports(ItemCommand.AniBtVersions, false, fnNas, !fnNas));
                     Assert.False(ItemMenu.Supports(ItemCommand.AniBtScrape, false, fnNas, !fnNas));
                 });
+
+        Test("更多菜单：「重新整理」收齐手动整理、智能整理和 AniBT 识别", () =>
+        {
+            var episode = new EmbyItem { Id = "e1", Name = "第一集", Type = EmbyItemType.Episode, Genres = ["动画"] };
+            var menu = ItemMenu.For(episode, moviePilotEnabled: true,
+                moviePilotManagementAvailable: true, moviePilotSmartAvailable: true);
+
+            var reorganize = menu.Single(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+            Assert.Equal("重新整理", reorganize.Label);
+            Assert.True(reorganize.Children!.Select(row => row.Command!.Value).SequenceEqual(new[]
+            {
+                ItemCommand.MoviePilotReorganize, ItemCommand.MoviePilotSmartReorganize, ItemCommand.AniBtScrape
+            }));
+            Assert.True(reorganize.Children!.Select(row => row.Label)
+                .SequenceEqual(new[] { "手动整理…", "智能整理", "AniBT 识别" }));
+
+            // 三条都进了子菜单，顶层不再单摆；搜索在前、整理居中、删除范围收尾。
+            Assert.False(menu.Any(row => row.Command is ItemCommand.MoviePilotReorganize
+                or ItemCommand.MoviePilotSmartReorganize or ItemCommand.AniBtScrape), "整理入口仍留在顶层");
+            var rows = menu.ToList();
+            var index = rows.IndexOf(reorganize);
+            Assert.Equal(ItemCommand.MoviePilotVersions, rows[index - 1].Command);
+            Assert.Equal(ItemCommand.MoviePilotMediaManagement, rows[index + 1].Command);
+        });
+
+        Test("更多菜单：「重新整理」只列本次可用的条目，一条都没有时整组收起", () =>
+        {
+            // 电影不是动画，也没有管理权限：组里只有手动整理。
+            var movie = new EmbyItem { Id = "m1", Name = "某片", Type = EmbyItemType.Movie, Genres = ["剧情"] };
+            var onlyManual = ItemMenu.For(movie, moviePilotEnabled: true)
+                .Single(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+            Assert.True(onlyManual.Children!.Select(row => row.Command!.Value)
+                .SequenceEqual(new[] { ItemCommand.MoviePilotReorganize }));
+
+            var series = new EmbyItem { Id = "s1", Name = "某剧", Type = EmbyItemType.Series, Genres = ["剧情"] };
+
+            // 飞牛和 Plex 不提供手动整理；智能整理有权限时仍要能进来。
+            foreach (var menu in new[]
+            {
+                ItemMenu.For(series, moviePilotEnabled: true, fnNas: true,
+                    moviePilotManagementAvailable: true, moviePilotSmartAvailable: true),
+                ItemMenu.For(series, moviePilotEnabled: true, plex: true,
+                    moviePilotManagementAvailable: true, moviePilotSmartAvailable: true)
+            })
+            {
+                var group = menu.Single(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+                Assert.True(group.Children!.Select(row => row.Command!.Value)
+                    .SequenceEqual(new[] { ItemCommand.MoviePilotSmartReorganize }));
+            }
+
+            // 手动整理被来源挡掉、管理权限也没开：组里没有内容，顶层不出现空的「重新整理」。
+            foreach (var menu in new[]
+            {
+                ItemMenu.For(series, moviePilotEnabled: true, fnNas: true),
+                ItemMenu.For(series, moviePilotEnabled: true, plex: true)
+            })
+                Assert.False(menu.Any(row => row.Command == ItemCommand.MoviePilotReorganizeMenu), "空组仍在顶层");
+        });
 
         Test("更多菜单：没开 MoviePilot 时谁都没有「搜索其他版本」那一条", () =>
         {
@@ -570,6 +699,9 @@ internal static class ItemMenuTests
 
     private static string Labels(EmbyItem item) =>
         string.Join(" | ", ItemMenu.For(item).Select(row => row.IsRule ? "──" : row.Label));
+
+    private static string Labels(IReadOnlyList<ItemMenuEntry> menu) =>
+        string.Join(" | ", menu.Select(row => row.IsRule ? "──" : row.Label));
 
     private static string LabelsMp(EmbyItem item) =>
         string.Join(" | ", ItemMenu.For(item, moviePilotEnabled: true).Select(row => row.IsRule ? "──" : row.Label));

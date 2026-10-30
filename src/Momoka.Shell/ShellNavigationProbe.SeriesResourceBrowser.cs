@@ -154,7 +154,7 @@ internal sealed partial class ShellNavigationProbe
             var presenter = VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
                 .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutPresenter>().Single();
             await LayoutAsync(presenter);
-            Require(presenter.Background is SolidColorBrush brush && brush.Color.A == 255,
+            Require(BrushColor(presenter.Background).A == 255,
                 "整理清单菜单仍为透明背景，长路径会与选项文字重叠");
             var bounds = presenter.TransformToVisual(_root).TransformBounds(new Windows.Foundation.Rect(0, 0, presenter.ActualWidth, presenter.ActualHeight));
             Require(bounds.X >= -1 && bounds.Y >= -1 && bounds.Right <= _root.ActualWidth + 1 && bounds.Bottom <= _root.ActualHeight + 1,

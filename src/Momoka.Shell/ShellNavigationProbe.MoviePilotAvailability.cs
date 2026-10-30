@@ -94,12 +94,12 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(anchor);
             var card = new CardItem(Series(), fixture.Images, 170);
             ItemCommands.Show(fixture.Session, shell, anchor, card, null);
-            await UntilAsync(() => MenuItems().Count(item => item.Tag is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize) == 2);
+            await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand.MoviePilotVersions));
             await SaveProbeScreenAsync("moviepilot-menu-connected.png");
             fixture.Settings.MoviePilot.Enabled = false;
             await UntilAsync(() => MenuItems().Length == 0);
-            Require(ItemCommands.Build(fixture.Session, shell, anchor, card).Items.OfType<MenuFlyoutItem>()
-                .All(item => item.Tag is not (ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize)), "关闭后菜单仍有 MP 入口");
+            Require(ItemCommands.Build(fixture.Session, shell, anchor, card).Items
+                .All(item => item.Tag is not (ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganizeMenu)), "关闭后菜单仍有 MP 入口");
 
             fixture.Settings.MoviePilot.Enabled = true;
             Require(await service.RefreshAvailabilityAsync(), "菜单恢复前连接失败");
@@ -148,6 +148,76 @@ internal sealed partial class ShellNavigationProbe
         MenuFlyoutItem[] MenuItems() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
             .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutItem>().ToArray();
 
+        void CloseMenus()
+        {
+            foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+                .Where(popup => Descendants(popup.Child).OfType<MenuFlyoutPresenter>().Any()).ToArray()) popup.IsOpen = false;
+        }
+    }
+
+    /// <summary>
+    /// 2026-10-30 用户报：刚打开应用时「更多」里少几条（媒体管理、智能整理），过几秒菜单自己收起，再开才有。
+    /// 根子是 MoviePilot 连接与账号能力分两趟探测，而菜单原先只在已经带着 MP 行时才听通知、且能力一到就整张收起。
+    /// 这条把两趟探测的先后摆开：MP 未连上时开菜单 → 连接到达 → 管理能力到达，菜单要留在原地补齐；真掉线仍收起。
+    /// </summary>
+    private async Task MoviePilotMenuFillAsync()
+    {
+        using var fixture = CreateFixture();
+        await fixture.SelectAsync();
+        var shell = fixture.Actions;
+        var anchor = new Button { Content = "更多菜单能力补齐", HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        _root.Children.Add(anchor);
+        var topMost = _window!.TopMost;
+        try
+        {
+            // 先置顶再开菜单：截图抬高宿主那一下会把已经打开的原生浮层压掉（见媒体管理那条）。
+            _window.TopMost = true;
+            await LayoutAsync(anchor);
+            var card = new CardItem(Series(), fixture.Images, 170);
+            ItemCommands.Show(fixture.Session, shell, anchor, card, null);
+            await UntilAsync(() => MenuItems().Length > 0);
+            Require(!Has(ItemCommand.MoviePilotVersions), "MoviePilot 未连接时菜单仍摆出搜索版本");
+
+            // 第一趟探测回来了：连接可用，账号的媒体管理能力还没读到。
+            shell.MoviePilotEnabled = true;
+            shell.RaiseMoviePilotAvailabilityChanged();
+            await UntilAsync(() => Has(ItemCommand.MoviePilotVersions));
+            Require(MenuItems().Length > 0, "连接到达时把整张菜单收掉了");
+            Require(!Has(ItemCommand.MoviePilotMediaManagement), "媒体管理能力未确认就摆出入口");
+
+            // 第二趟：媒体管理与智能整理。排完等一拍再读：换行若把浮层带走，那一瞬的读数看不出来。
+            shell.MoviePilotMediaManagementEnabled = true;
+            shell.MoviePilotSmartReorganizeEnabled = true;
+            shell.RaiseMoviePilotAvailabilityChanged();
+            await UntilAsync(() => Has(ItemCommand.MoviePilotMediaManagement));
+            await Task.Delay(350);
+            Require(MenuItems().Length > 0, "管理能力到达时把整张菜单收掉了");
+            Require(Submenu(ItemCommand.MoviePilotReorganizeMenu)?.Items.OfType<MenuFlyoutItem>()
+                .Any(row => row.Tag is ItemCommand.MoviePilotSmartReorganize) == true, "「重新整理」里没有补上智能整理");
+            await SaveProbeScreenAsync("moviepilot-menu-filled.png");
+
+            // 真掉线：那几行点下去只会失败，整张收掉。
+            shell.MoviePilotEnabled = false;
+            shell.MoviePilotMediaManagementEnabled = false;
+            shell.MoviePilotSmartReorganizeEnabled = false;
+            shell.RaiseMoviePilotAvailabilityChanged();
+            await UntilAsync(() => MenuItems().Length == 0);
+        }
+        finally
+        {
+            _window.TopMost = topMost;
+            CloseMenus();
+            _root.Children.Remove(anchor);
+        }
+
+        MenuFlyoutItem[] MenuItems() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+            .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutItem>().ToArray();
+        bool Has(ItemCommand command) => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+            .SelectMany(popup => Descendants(popup.Child))
+            .Any(node => node is MenuFlyoutItemBase item && item.Tag is ItemCommand value && value == command);
+        MenuFlyoutSubItem? Submenu(ItemCommand command) => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)
+            .SelectMany(popup => Descendants(popup.Child)).OfType<MenuFlyoutSubItem>()
+            .FirstOrDefault(row => row.Tag is ItemCommand value && value == command);
         void CloseMenus()
         {
             foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot)

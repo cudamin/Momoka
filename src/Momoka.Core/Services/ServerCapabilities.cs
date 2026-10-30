@@ -30,6 +30,12 @@ public interface IServerCapabilities
     bool? IsAdministrator { get; }
 
     /// <summary>
+    /// 某个在线来源当前确认的「更多」菜单权限。未知时返回全 null（入口照旧显示，由服务器最终拒绝）。
+    /// 默认实现给假实现和旧测试留一条未知路；真实服务在 <see cref="ServerCapabilities"/>。
+    /// </summary>
+    ItemMenuPermissions PermissionsFor(string sourceKey) => default;
+
+    /// <summary>
     /// 服务器插件贡献的管理页（Emby 主菜单里的 Cinema Intros、DLNA，Jellyfin 的插件配置页）。产品或连接
     /// 模式不适用的时候给空表；失败也静默，设置左栏保留固定条目。默认实现给假实现和旧测试留一条空路。
     /// </summary>
@@ -93,6 +99,8 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
     private bool? _administrator;
     private long _permissionRevision = -1;
     private long _generation;
+    private readonly Dictionary<string, (ItemMenuPermissions Permissions, long Revision)> _sourcePermissions =
+        new(StringComparer.Ordinal);
 
     /// <inheritdoc />
     public Version? ServerVersion
@@ -128,6 +136,26 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
             return scope?.IsCurrent == true && scope.PermissionRevision == revision
                 ? administrator : session.Connection?.IsAdministrator;
         }
+    }
+
+    /// <inheritdoc />
+    public ItemMenuPermissions PermissionsFor(string sourceKey)
+    {
+        var source = session.Sources.FirstOrDefault(value => value.Key == sourceKey);
+        if (source is not { IsAvailable: true }) return default;
+
+        lock (_gate)
+        {
+            if (_sourcePermissions.TryGetValue(sourceKey, out var cached)
+                && cached.Revision == source.PermissionRevision) return cached.Permissions;
+        }
+
+        // Probe hasn't answered yet (or the identity was replaced): use whatever the confirmed connection
+        // already carries. A restored Emby connection has no policy snapshot, so this is usually 「unknown」
+        // and the menu keeps its entries until the probe below fills them in.
+        var connection = source.Connection;
+        return new ItemMenuPermissions(connection.IsAdministrator, connection.CanDownload,
+            connection.CanDeleteContent, connection.CanManageSubtitles);
     }
 
     /// <inheritdoc />
@@ -236,6 +264,51 @@ public sealed class ServerCapabilities(EmbySession session) : IServerCapabilitie
         catch (Exception error)
         {
             Log.Debug(Category, $"读取服务器信息失败：{error.Message}");
+        }
+
+        // 「更多」菜单上那些要看权限的入口（下载、删除、字幕、管理员）靠这一趟拿到账号策略。放在能力探测里
+        // 而不是登录/恢复链：恢复那一趟是受保护的令牌探针，不能为菜单再发一个请求；这里读不到就保持未知，
+        // 入口照旧显示，真没权限由服务器拒绝。
+        try
+        {
+            await ProbeSourcePermissionsAsync(token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
+        catch (Exception error)
+        {
+            Log.Debug(Category, $"读取账号权限失败：{error.Message}");
+        }
+    }
+
+    private async Task ProbeSourcePermissionsAsync(CancellationToken token)
+    {
+        foreach (var source in session.Sources)
+        {
+            if (source.Connection.ServerKind is not (MediaServerKind.Emby or MediaServerKind.Jellyfin)) continue;
+            if (!source.IsAvailable) continue;
+
+            var revision = source.PermissionRevision;
+            try
+            {
+                var user = await source.ExecuteAsync((client, ct) => client.GetCurrentUserAsync(ct), token)
+                    .ConfigureAwait(false);
+                var permissions = user.Policy?.ToPermissions() ?? default;
+                lock (_gate)
+                {
+                    if (source.IsAvailable && source.PermissionRevision == revision)
+                        _sourcePermissions[source.Key] = (permissions, revision);
+                }
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception error)
+            {
+                Log.Debug(Category, $"读取 {source.DisplayName} 的账号权限失败：{error.Message}");
+            }
         }
     }
 }

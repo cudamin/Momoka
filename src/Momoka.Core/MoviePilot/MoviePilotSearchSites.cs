@@ -21,10 +21,20 @@ public sealed record MoviePilotSiteSelection(string ConnectionStamp, IReadOnlyLi
 
 public sealed partial class MoviePilotService
 {
+    /// <summary>
+    /// 站点选择存下来了（设置页或任意一个搜索面板改的）。还在台上的那几个选择器照它重读自己那一份 ——
+    /// 否则同一个账号在两个窗口里会各说各的，直到其中一个被重新创建。
+    /// </summary>
+    public event Action? SearchSitesChanged;
+
+    /// <summary>
+    /// 这一类搜索该用哪些站点。<paramref name="mediaType"/> 自己存过一份就用它；没存过就退到「不限类型」
+    /// 那一份 —— 设置页的「默认搜索站点」写的就是后者，所以电影、电视剧的分类搜索也照它起步。
+    /// 在某一类里单独改过之后，那一类就以自己那份为准。
+    /// </summary>
     public MoviePilotSearchSitePreference SearchSitePreference(string? mediaType = null)
     {
-        var key = SearchSitePreferenceKey(mediaType);
-        var saved = key is null ? null : _settings.MoviePilot.SearchSitePreferences?.GetValueOrDefault(key);
+        var saved = SavedSearchSitePreference(mediaType);
         return new()
         {
             UseDefault = saved?.UseDefault ?? true,
@@ -43,7 +53,24 @@ public sealed partial class MoviePilotService
             UseDefault = useDefault,
             SiteIds = CleanSiteIds(siteIds)
         };
-        _saveSettings?.Invoke();
+        try { _saveSettings?.Invoke(); }
+        finally { SearchSitesChanged?.Invoke(); }
+    }
+
+    /// <summary>
+    /// 这一份存的原始选择。没有记过就是 null，调用方按「跟随 MoviePilot 默认站点」处理；
+    /// 明确清空过（UseDefault=false 且没有编号）也是一份记录，不能当成没记过再退回上一层。
+    /// </summary>
+    private MoviePilotSearchSitePreference? SavedSearchSitePreference(string? mediaType)
+    {
+        var preferences = _settings.MoviePilot.SearchSitePreferences;
+        if (preferences is null) return null;
+        var key = SearchSitePreferenceKey(mediaType);
+        if (key is null) return null;
+        if (preferences.GetValueOrDefault(key) is { } saved) return saved;
+        if (mediaType is null) return null;
+        var fallback = SearchSitePreferenceKey(null);
+        return fallback is null ? null : preferences.GetValueOrDefault(fallback);
     }
 
     private string? SearchSitePreferenceKey(string? mediaType)

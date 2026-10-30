@@ -2344,10 +2344,27 @@ public sealed partial class SettingsViewModel : PageViewModel
             Save,
             TestMoviePilotAsync);
 
+        SyncMoviePilotSites();
+
         return new SettingSection("MoviePilot", "MoviePilot",
             "这是一个可选的服务：接上之后，这个程序能替你去 MoviePilot 那边找片、订阅、查缺集。不接也能正常用。",
             [_moviePilotRow]);
     }
+
+    /// <summary>
+    /// 「默认搜索站点」那一截跟着连接状态走。刚建好卡时接一次；连接状态在页面上落定（测试成功、断线、
+    /// 开关拨动）之后再来一次 —— 只有连接换了代次才重新 Attach，普通刷新只重读选择，不打断正在读的目录。
+    /// </summary>
+    private void SyncMoviePilotSites()
+    {
+        if (_moviePilotRow is null || _moviePilot is not { } service) return;
+        if (service.Available && !_moviePilotRow.SearchSites.IsCurrentConnection)
+            _moviePilotRow.SearchSites.Attach(service);
+        _moviePilotRow.RefreshSites(service.Available);
+    }
+
+    /// <summary>设置页的活动期里连接状态变了：接入卡的站点行当场收放（见 <see cref="SyncMoviePilotSites"/>）。</summary>
+    internal void RefreshMoviePilotSites() => SyncMoviePilotSites();
 
     /// <summary>测试已保存的当前配置，共享连接状态；只记录测试时间，不替用户打开功能开关。</summary>
     private async Task<string> TestMoviePilotAsync(CancellationToken cancellationToken)

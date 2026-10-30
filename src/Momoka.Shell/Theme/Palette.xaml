@@ -116,6 +116,16 @@
                 TintLuminosityOpacity="0.62"
                 TintOpacity="0.55" />
 
+            <!-- 菜单和浮出层（2026-10-30 用户：「更多菜单里的一些弹窗背景不要用亚克力，卡片和按钮等可以用」）。
+                 框架给 MenuFlyoutPresenter 的是桌面亚克力（采的是桌面，不是应用内容），给普通 Flyout 的是
+                 中性应用内亚克力 —— 两条都跟不上主题，底下的画和字也会透上来。弹窗自己的底改回实心面色，
+                 读字优先；卡片、按钮这些抬在面上的元件仍走各自的亚克力，不受这一条影响。边线接已经跟主题
+                 走的 EgBorderBrush。高对比度不覆盖。 -->
+            <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="EgSurfaceBrush" />
+            <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="EgBorderBrush" />
+            <StaticResource x:Key="FlyoutPresenterBackground" ResourceKey="EgSurfaceBrush" />
+            <StaticResource x:Key="FlyoutPresenterBorderBrush" ResourceKey="EgBorderBrush" />
+
             <!-- 悬停/按下时压上去的那一层。深色主题下是透明的白、浅色主题下是透明的黑 —— 跟
                  HostWindow.PaintCaption 给系统那三颗窗口按钮设的是同一组数字（0x23/0x37 与 0x19/0x2D），
                  所以标题栏两头的按钮摸起来是一样的。不透明的底色在这里不行：标题栏那一条要透出 Mica。 -->
@@ -192,7 +202,20 @@
                  nav pane and the page surface instead of a flat fill. -->
             <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#FF0C1116" />
             <SolidColorBrush x:Key="LayerFillColorAltBrush" Color="#FF141B22" />
-            <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#FF1C252E" />
+
+            <!-- 设置页每一张卡的面色（2026-10-29 用户令：「所有的卡片也要用亚克力」）。卡片的底就是页面
+                 底色上的一层玻璃：tint 取 SurfaceHover、0.55 的浓度压过页面，实拍落在 (29,36,44) 一带
+                 （原来的实心卡是 (28,37,46)），噪点由亚克力自己带。ThemeHost 换主题时改 tint 与
+                 FallbackColor；FallbackColor 取同一个 tint，关掉透明效果时是一块实心的亮面，仍读得出是卡。
+
+                 框架的 Expander 也读这颗键，但详情页和 MoviePilot 的折叠栏各自在本地把表头和底色钉回
+                 EgSurfaceAltBrush，所以这一改不会让它们的头变玻璃。 -->
+            <AcrylicBrush
+                x:Key="CardBackgroundFillColorDefaultBrush"
+                FallbackColor="{StaticResource EgSurfaceHoverColor}"
+                TintColor="{StaticResource EgSurfaceHoverColor}"
+                TintLuminosityOpacity="0.5"
+                TintOpacity="0.55" />
             <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#FF20262D" />
             <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
@@ -249,14 +272,33 @@
                 TintOpacity="0.15"
                 Opacity="0.6" />
 
-            <!-- 闭合下拉与输入框共用窗口/侧边栏底色，避免卡片内出现第三档底色。
-                 悬停、按下和聚焦不另换底色；键盘焦点保留中性边线，不包主题色。展开浮层仍用专用材质。 -->
-            <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="{StaticResource EgWindowColor}" />
+            <!-- 输入与选择框的玻璃（2026-10-29 用户令：「参考上图活用亚克力材质修改选择框和输入框」，
+                 并给了那张五层亚克力示意图）。用户要的屏上效果是参考图里那颗「比底板亮一点的半透明块」：
+                 亚克力自带模糊和噪点，所以这里只定 tint 和浓度，不另外叠噪点图。
+
+                 tint 取 SurfaceHover 而不是 EgPickerGlassBrush 那支的 SurfaceElevated：那一支要透出背后
+                 那张剧照，tint 只是「压上去的一层色」；这一支压在设置页不透明的卡片上，背后只有卡片那种
+                 平色，tint 若也取抬升一档的面色，0.6 的浓度算下来只比卡片亮 2～3 级，屏上看不出是块玻璃。
+                 SurfaceHover 亮两档，0.6/0.65 落在卡片上实拍 (40,48,56)，和参考图里那块 (40,43,53) 一个站法。
+                 FallbackColor 取同一个 tint：关掉透明效果时是一块实心亮面，仍读得出是输入区，Focus 时再
+                 换成侧边栏的窗口色（见下面 TextControlBackgroundFocused）。 -->
+            <AcrylicBrush
+                x:Key="EgInputGlassBrush"
+                FallbackColor="{StaticResource EgSurfaceHoverColor}"
+                TintColor="{StaticResource EgSurfaceHoverColor}"
+                TintLuminosityOpacity="0.6"
+                TintOpacity="0.65" />
+
+            <!-- 闭合下拉与输入框的静止底色（2026-10-29 改为输入玻璃；用户同日点名「别把剧、电影页面的
+                 选择框给改了」—— 那两页的选择框各自在 DetailPage 里钉回旧底色，见 PickerPanel 那几行注释）。
+                 悬停、按下和聚焦不另换浓度：反馈仍由框线和箭头给，键盘焦点保留中性边线，不包主题色。
+                 展开浮层仍用上面那支专用亚克力。 -->
+            <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgInputGlassBrush" />
             <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
 
             <!-- TextBox、PasswordBox、AutoSuggestBox 和 NumberBox 的内层均读 TextControl*。
@@ -332,6 +374,12 @@
                 TintLuminosityOpacity="0.9"
                 TintOpacity="0.62" />
 
+            <!-- 同 Dark 那份：菜单与普通浮出层的底改回实心面色和主题边线。 -->
+            <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="EgSurfaceBrush" />
+            <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="EgBorderBrush" />
+            <StaticResource x:Key="FlyoutPresenterBackground" ResourceKey="EgSurfaceBrush" />
+            <StaticResource x:Key="FlyoutPresenterBorderBrush" ResourceKey="EgBorderBrush" />
+
             <!-- 白的叠加在一片白上等于什么都没发生 —— 这一对在浅色这边翻成透明的黑。 -->
             <SolidColorBrush x:Key="EgOverlayHoverBrush" Color="#19000000" />
             <SolidColorBrush x:Key="EgOverlayPressedBrush" Color="#2D000000" />
@@ -384,7 +432,13 @@
                  keeps its contrast whether or not the backdrop came up. -->
             <SolidColorBrush x:Key="LayerFillColorDefaultBrush" Color="#FFFFFFFF" />
             <SolidColorBrush x:Key="LayerFillColorAltBrush" Color="#FFE8EBEF" />
-            <SolidColorBrush x:Key="CardBackgroundFillColorDefaultBrush" Color="#FFFFFFFF" />
+            <!-- 同 Dark 那份的卡片玻璃：浅色这边 tint 取白面（原来的卡面），浓度 0.8。 -->
+            <AcrylicBrush
+                x:Key="CardBackgroundFillColorDefaultBrush"
+                FallbackColor="{StaticResource EgSurfaceColor}"
+                TintColor="{StaticResource EgSurfaceColor}"
+                TintLuminosityOpacity="0.9"
+                TintOpacity="0.8" />
             <SolidColorBrush x:Key="CardBackgroundFillColorSecondaryBrush" Color="#FFF1F3F6" />
             <SolidColorBrush x:Key="CardStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
             <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="{StaticResource EgBorderColor}" />
@@ -416,13 +470,24 @@
                 TintOpacity="0.3"
                 Opacity="0.75" />
 
-            <!-- 与 Dark 同一套输入角色，浅色派生也不增加独立输入底色。 -->
-            <SolidColorBrush x:Key="ComboBoxBackground" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundFocused" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundUnfocused" Color="{StaticResource EgWindowColor}" />
-            <SolidColorBrush x:Key="ComboBoxBackgroundDisabled" Color="{StaticResource EgWindowColor}" />
+            <!-- 同 Dark 那份的输入玻璃：浅色这边 tint 取凹一档的面色（SurfaceAlt），浓度收一档 ——
+                 「比卡片亮一点」在浅色主题里是「比卡片暗一点」，这跟 EgFrostBrush 在浅色那边翻成透明的黑
+                 是同一条道理。Focus 仍换成窗口/侧边栏底色（EgWindowColor）。 -->
+            <AcrylicBrush
+                x:Key="EgInputGlassBrush"
+                FallbackColor="{StaticResource EgSurfaceAltColor}"
+                TintColor="{StaticResource EgSurfaceAltColor}"
+                TintLuminosityOpacity="0.9"
+                TintOpacity="0.55" />
+
+            <!-- 与 Dark 同一套输入角色，浅色派生也不增加独立输入底色。
+                 2026-10-29：闭合下拉各态改为输入玻璃（同 Dark 那份的理由）。 -->
+            <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgInputGlassBrush" />
+            <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgInputGlassBrush" />
             <SolidColorBrush x:Key="ComboBoxBackgroundBorderBrushFocused" Color="{StaticResource EgBorderStrongColor}" />
 
             <!-- 输入框的背景、边线和焦点厚度与 Dark 对齐。高对比度保留框架的系统资源。 -->
@@ -462,8 +527,10 @@
             <SolidColorBrush x:Key="EgScrimBrush" Color="{ThemeResource SystemColorWindowColor}" />
 
             <!-- 高对比度下不上亚克力：那一档的整个意思是「别让任何东西半透明」。换成系统的窗口底色，
-                 正文那张纸于是是实心的，背后那张剧照被它整块盖住 —— 这正是该有的样子。 -->
+                 正文那张纸于是是实心的，背后那张剧照被它整块盖住 —— 这正是该有的样子。
+                 输入玻璃同理：设置页把它接到输入框的静止底色上，这里退回系统窗口色。 -->
             <SolidColorBrush x:Key="EgFrostBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="EgInputGlassBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="EgOverlayHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="EgOverlayPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
         </ResourceDictionary>

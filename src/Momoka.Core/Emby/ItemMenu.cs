@@ -91,6 +91,9 @@ public enum ItemCommand
     /// </summary>
     MoviePilotReorganize,
 
+    /// <summary>折叠的「重新整理」子菜单：手动整理、智能整理和 AniBT 识别都收在这里；父项本身不执行动作。</summary>
+    MoviePilotReorganizeMenu,
+
     /// <summary>折叠的 MoviePilot 媒体管理菜单；父项本身不执行删除。</summary>
     MoviePilotMediaManagement,
     MoviePilotDeleteRecord,
@@ -122,6 +125,16 @@ public readonly record struct ItemMenuEntry(ItemCommand? Command, string Label, 
 }
 
 /// <summary>
+/// 菜单上那几条要看权限的入口所依据的账号能力。每一项只在服务器明确答 false 时收起对应入口；
+/// null 是「还没问到」——照旧显示，由服务器最终拒绝。
+/// </summary>
+public readonly record struct ItemMenuPermissions(
+    bool? IsAdministrator = null,
+    bool? CanDownload = null,
+    bool? CanDeleteContent = null,
+    bool? CanManageSubtitles = null);
+
+/// <summary>
 /// 一张卡片的「更多」菜单上有哪几条、按什么次序、每条写什么字 —— 整个答案由条目自己决定，一个输入一个输出。
 /// <para>
 /// 放在 Core 而不是留在菜单那段代码里，理由是覆盖：单元测试只够得到 Core，而「这一类条目该有哪几条」正是那种
@@ -138,6 +151,10 @@ public readonly record struct ItemMenuEntry(ItemCommand? Command, string Label, 
 /// 版本来源的子菜单只留「MoviePilot」和「AniBT」两个名字。菜单宽度由最长的一行决定，一条长的就把整张菜单
 /// 撑宽 —— 续播位置不再写进「继续播放」那一条，卡片自己画着进度。
 /// </para>
+/// <para>
+/// 「重新整理」把手动整理、智能整理和 AniBT 识别收成一层子菜单（2026-10-30 用户令）：这三条都是对文件本身
+/// 动手的整理动作，平铺时会让菜单更长；分组以后和「媒体管理」的折叠范围并排，找整理入口仍然只有一处。
+/// </para>
 /// </summary>
 public static class ItemMenu
 {
@@ -150,9 +167,14 @@ public static class ItemMenu
     /// 免得点下去弹个连不上的窗口。默认关：全新装机没有 MoviePilot，测试里不点名这一项的也照旧只看基础菜单。
     /// </param>
     /// <param name="aniBtScrapeAvailable">识别要求当前管理来源；独立版本搜索不受此限制，Shell 传本次来源能力。</param>
+    /// <param name="permissions">
+    /// 账号确认过的能力（<see cref="ItemMenuPermissions"/>）。只有服务器明确答 false 才收起对应入口；
+    /// 默认全是 null，也就是「还没问到」——照旧显示，由服务器最终拒绝。
+    /// </param>
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
         bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true,
-        bool moviePilotManagementAvailable = false, bool moviePilotSmartAvailable = false) => fnNas
+        bool moviePilotManagementAvailable = false, bool moviePilotSmartAvailable = false,
+        ItemMenuPermissions permissions = default) => fnNas
         ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
                 manualReorganize: false), Navigation(item))
@@ -166,11 +188,11 @@ public static class ItemMenu
         Opening(item, jellyfin),
         MissingEpisodes(item),
         UserState(item, jellyfin),
-        Organising(item, jellyfin),
+        Organising(item, jellyfin, permissions),
         MoviePilotBlock(item, moviePilotEnabled, animeGenre, aniBtScrapeAvailable, moviePilotManagementAvailable, moviePilotSmartAvailable),
-        Metadata(item, jellyfin),
+        Metadata(item, jellyfin, permissions),
         Navigation(item),
-        Destructive(item, jellyfin));
+        Destructive(item, jellyfin, permissions));
 
     /// <summary>
     /// 菜单和迟到的点击共用同一能力判断；Jellyfin 没有保留续播点的隐藏接口，飞牛没有合集与
@@ -297,18 +319,21 @@ public static class ItemMenu
     }
 
     /// <summary>把它放进哪儿、拿到哪儿去：合集和下载。</summary>
-    private static List<ItemMenuEntry> Organising(EmbyItem item, bool jellyfin)
+    private static List<ItemMenuEntry> Organising(EmbyItem item, bool jellyfin, ItemMenuPermissions permissions)
     {
         var rows = new List<ItemMenuEntry>(2);
-        if (IsCatalogue(item)) rows.Add(new(ItemCommand.AddToCollection, jellyfin ? "加入集合" : "添加到合集…"));
-        if (IsFile(item) || IsEpisodeSet(item)) rows.Add(new(ItemCommand.Download, jellyfin ? "下载" : "下载到设备"));
+        if (IsCatalogue(item) && CanEdit(permissions))
+            rows.Add(new(ItemCommand.AddToCollection, jellyfin ? "加入集合" : "添加到合集…"));
+        if ((IsFile(item) || IsEpisodeSet(item)) && CanDownload(permissions))
+            rows.Add(new(ItemCommand.Download, jellyfin ? "下载" : "下载到设备"));
         return rows;
     }
 
     /// <summary>
     /// MoviePilot 跨媒体服务器共用历史管理；媒体库、合集和演员没有一部作品的整理范围。
     /// 保留 FnNas/Plex 不提供原手动整理的边界，管理与智能助手分别按已确认的权限显示。
-    /// 删除范围在确认表完整说明，菜单仍遵守七字以内的既有约定。
+    /// 三条整理入口（手动整理、智能整理、AniBT 识别）收进「重新整理」子菜单，和删除范围一样用折叠收窄菜单宽度；
+    /// 子菜单一个可用条目都没有时整组不出现。删除范围在确认表完整说明，菜单仍遵守七字以内的既有约定。
     /// </summary>
     private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre, bool canScrape,
         bool canManage, bool canSmartReorganize, bool manualReorganize = true)
@@ -318,7 +343,17 @@ public static class ItemMenu
         [
             new(ItemCommand.MoviePilotVersions, "搜索其他版本")
         ];
-        if (manualReorganize) rows.Add(new(ItemCommand.MoviePilotReorganize, "手动整理…"));
+
+        var reorganize = new List<ItemMenuEntry>(3);
+        if (manualReorganize) reorganize.Add(new(ItemCommand.MoviePilotReorganize, "手动整理…"));
+        if (canManage && canSmartReorganize)
+            reorganize.Add(new(ItemCommand.MoviePilotSmartReorganize,
+                item.Type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理"));
+        if (canScrape && AniBt.AniBtEligibility.CanIdentify(item, animeGenre))
+            reorganize.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
+        if (reorganize.Count > 0)
+            rows.Add(new(ItemCommand.MoviePilotReorganizeMenu, "重新整理", reorganize));
+
         if (canManage)
             rows.Add(new(ItemCommand.MoviePilotMediaManagement, "媒体管理",
             [
@@ -327,19 +362,14 @@ public static class ItemMenu
                 new(ItemCommand.MoviePilotDeleteDestination, "删记录和库文件"),
                 new(ItemCommand.MoviePilotDeleteAll, "删除记录及两端")
             ]));
-        if (canManage && canSmartReorganize)
-            rows.Add(new(ItemCommand.MoviePilotSmartReorganize,
-                item.Type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理"));
         if (AniBt.AniBtEligibility.Supports(item) && (animeGenre || AniBt.AniBtEligibility.HasGenre(item)))
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
                 [new(ItemCommand.MoviePilotVersions, "MoviePilot"), new(ItemCommand.AniBtVersions, "AniBT")]);
-        if (canScrape && AniBt.AniBtEligibility.CanIdentify(item, animeGenre))
-            rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         return rows;
     }
 
     public static bool IsMoviePilot(ItemCommand command) => command is ItemCommand.MoviePilotVersions
-        or ItemCommand.MoviePilotReorganize or ItemCommand.MoviePilotMediaManagement
+        or ItemCommand.MoviePilotReorganize or ItemCommand.MoviePilotReorganizeMenu or ItemCommand.MoviePilotMediaManagement
         or ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource
         or ItemCommand.MoviePilotDeleteDestination or ItemCommand.MoviePilotDeleteAll or ItemCommand.MoviePilotSmartReorganize;
 
@@ -352,24 +382,25 @@ public static class ItemMenu
     /// 列表也没有可对上的片子。给那几种摆一条「识别」，点下去只有 404。
     /// </para>
     /// </summary>
-    private static List<ItemMenuEntry> Metadata(EmbyItem item, bool jellyfin)
+    private static List<ItemMenuEntry> Metadata(EmbyItem item, bool jellyfin, ItemMenuPermissions permissions)
     {
         // 编辑元数据对媒体库自己也成立（库有名字、简介和封面），所以它不看 IsCatalogue。
-        var rows = new List<ItemMenuEntry>
-        {
-            new(ItemCommand.EditMetadata, jellyfin ? "编辑元数据" : "编辑元数据…")
-        };
+        var rows = new List<ItemMenuEntry>(6);
+        if (CanEdit(permissions)) rows.Add(new(ItemCommand.EditMetadata, jellyfin ? "编辑元数据" : "编辑元数据…"));
 
         if (IsCatalogue(item))
         {
-            rows.Add(new(ItemCommand.ChangeCover, jellyfin ? "修改图片" : "修改封面图…"));
-            if (IsFile(item)) rows.Add(new(ItemCommand.Subtitles, jellyfin ? "修改字幕" : "搜索字幕…"));
-            if (ItemIdentify.Supports(item)) rows.Add(new(ItemCommand.Identify, jellyfin ? "刮削元数据" : "识别"));
-            rows.Add(new(ItemCommand.RefreshMetadata, "刷新元数据"));
+            if (CanEdit(permissions)) rows.Add(new(ItemCommand.ChangeCover, jellyfin ? "修改图片" : "修改封面图…"));
+            if (IsFile(item) && CanManageSubtitles(permissions))
+                rows.Add(new(ItemCommand.Subtitles, jellyfin ? "修改字幕" : "搜索字幕…"));
+            if (ItemIdentify.Supports(item) && IsAdministrator(permissions))
+                rows.Add(new(ItemCommand.Identify, jellyfin ? "刮削元数据" : "识别"));
+            if (IsAdministrator(permissions)) rows.Add(new(ItemCommand.RefreshMetadata, "刷新元数据"));
         }
 
         // 扫库是服务器整体的一件事，跟这个条目是什么关系不大 —— 演职人员那一排除外，那不是库里的东西。
-        if (item.Type != EmbyItemType.Person) rows.Add(new(ItemCommand.ScanLibrary, "重新扫描媒体库"));
+        if (item.Type != EmbyItemType.Person && IsAdministrator(permissions))
+            rows.Add(new(ItemCommand.ScanLibrary, "重新扫描媒体库"));
 
         return rows;
     }
@@ -380,10 +411,32 @@ public static class ItemMenu
             : [];
 
     /// <summary>删除，单独一段摆在最后：它连磁盘上的文件一起删，不该和「刷新元数据」贴在一起被误点。</summary>
-    private static List<ItemMenuEntry> Destructive(EmbyItem item, bool jellyfin) =>
-        IsCatalogue(item)
+    private static List<ItemMenuEntry> Destructive(EmbyItem item, bool jellyfin, ItemMenuPermissions permissions) =>
+        IsCatalogue(item) && CanDelete(permissions)
             ? [new(ItemCommand.Delete, jellyfin ? JellyfinDeleteLabel(item) : "删除")]
             : [];
+
+    /// <summary>
+    /// 编辑这一条（编辑元数据、改封面、加入合集）。官方网页端在条目没答 <c>CanEditItems</c> 时要求管理员；
+    /// 这里只按账号策略判断，管理员未知就照旧显示，由服务器拒绝。
+    /// </summary>
+    private static bool CanEdit(ItemMenuPermissions permissions) => permissions.IsAdministrator != false;
+
+    /// <summary>删这一条：看账号的删除策略；未知按可用处理。</summary>
+    private static bool CanDelete(ItemMenuPermissions permissions) => permissions.CanDeleteContent != false;
+
+    /// <summary>下载：看账号的下载策略；未知按可用处理。剧和季也走这一条。</summary>
+    private static bool CanDownload(ItemMenuPermissions permissions) => permissions.CanDownload != false;
+
+    /// <summary>
+    /// 字幕：账号明确答能管字幕就放行；两个策略位都没答时退回管理员判断（官方网页端在没答时也要求管理员）。
+    /// </summary>
+    private static bool CanManageSubtitles(ItemMenuPermissions permissions) =>
+        permissions.CanManageSubtitles == true
+        || (permissions.CanManageSubtitles is null && permissions.IsAdministrator != false);
+
+    /// <summary>识别、刷新元数据、扫库都要求管理员；未知按可用处理，由服务器拒绝。</summary>
+    private static bool IsAdministrator(ItemMenuPermissions permissions) => permissions.IsAdministrator != false;
 
     /// <summary>The context-specific wording Jellyfin Web uses for its delete command.</summary>
     private static string JellyfinDeleteLabel(EmbyItem item) => item.Type switch

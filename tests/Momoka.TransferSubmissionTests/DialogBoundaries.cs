@@ -7,7 +7,10 @@ namespace Microsoft.UI.Xaml
     public enum ElementTheme { Dark, Light }
     public enum HorizontalAlignment { Stretch, Right }
     public enum GridUnitType { Star }
-    public readonly record struct GridLength(double Value, GridUnitType Unit = default);
+    public readonly record struct GridLength(double Value, GridUnitType Unit = default)
+    {
+        public static GridLength Auto => new(double.NaN);
+    }
     public readonly record struct FixtureSize(double Width, double Height);
     public sealed class XamlRoot { public FixtureSize Size { get; set; } = new(800, 900); }
     public sealed class SizeChangedEventArgs : RoutedEventArgs { public FixtureSize NewSize { get; init; } }
@@ -97,10 +100,12 @@ namespace Microsoft.UI.Xaml.Controls
     public class StackPanel : Microsoft.UI.Xaml.FrameworkElement;
     public class Expander : Microsoft.UI.Xaml.FrameworkElement { public bool IsExpanded { get; set; } }
     public class ColumnDefinition { public Microsoft.UI.Xaml.GridLength Width { get; set; } }
+    public class RowDefinition { public Microsoft.UI.Xaml.GridLength Height { get; set; } }
     public class Grid : Microsoft.UI.Xaml.FrameworkElement
     {
         public double ColumnSpacing { get; set; }
-        public List<ColumnDefinition> ColumnDefinitions { get; } = [new(), new()];
+        public List<ColumnDefinition> ColumnDefinitions { get; } = [new(), new(), new(), new()];
+        public List<RowDefinition> RowDefinitions { get; } = [];
         public static void SetRow(Microsoft.UI.Xaml.FrameworkElement field, int value) => field.GridRow = value;
         public static void SetColumn(Microsoft.UI.Xaml.FrameworkElement field, int value) => field.GridColumn = value;
         public static void SetColumnSpan(Microsoft.UI.Xaml.FrameworkElement field, int value) => field.GridColumnSpan = value;
@@ -156,9 +161,9 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.Controls.InfoBar Problem { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ProgressRing PreviewRing { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement FormPanel { get; } = new();
+        internal Microsoft.UI.Xaml.FrameworkElement DialogBody { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement HistoryLookupPanel { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBlock BatchSelectionSummary { get; } = new();
-        internal Microsoft.UI.Xaml.FrameworkElement EpisodeRow { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement PreviewList { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement ConfirmationPanel { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement PreviewButton { get; } = new();
@@ -172,19 +177,23 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.Controls.Button ReorganizeButton { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid DestinationGrid { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid IdentityGrid { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.Grid SeasonGrid { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.Grid EpisodeFormatGrid { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid FileOptionsGrid { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid FolderOptionsGrid { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.Grid ScrapeOptionsGrid { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid ActionsGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel TargetStorageField { get; } = new();
         internal Microsoft.UI.Xaml.Controls.StackPanel TransferMethodField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel TypeField { get; } = new();
         internal Microsoft.UI.Xaml.Controls.StackPanel MediaSourceField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel SeasonField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel EpisodeField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel EpisodeFormatField { get; } = new();
         internal Microsoft.UI.Xaml.Controls.StackPanel EpisodeOffsetField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel PartField { get; } = new();
         internal Microsoft.UI.Xaml.Controls.StackPanel MinimumSizeField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel ScrapeField { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.StackPanel TypeFolderField { get; } = new();
         internal Microsoft.UI.Xaml.Controls.StackPanel CategoryFolderField { get; } = new();
         internal Microsoft.UI.Xaml.Controls.StackPanel FromHistoryField { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.StackPanel IdentityPanel { get; } = new();
         internal Microsoft.UI.Xaml.Controls.StackPanel MediaIdPanel { get; } = new();
         internal Microsoft.UI.Xaml.Controls.StackPanel EpisodeGroupPanel { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ComboBox EpisodeGroupBox { get; } = new();
@@ -209,6 +218,13 @@ namespace Momoka.Shell.Views
             _typeFolder = preview.Request.TypeFolder;
             _categoryFolder = preview.Request.CategoryFolder;
             _scrape = preview.Request.Scrape;
+            TypeBox.SelectedIndex = preview.Request.Type switch
+            {
+                MoviePilotTransferRequest.TypeMovie => 1,
+                MoviePilotTransferRequest.TypeSeries => 2,
+                _ => 0
+            };
+            MediaIdBox.Text = preview.Request.MediaId;
             TargetStorageBox.SelectedItem = new MoviePilotStorage("fixture", preview.Request.TargetStorage);
             TargetPathBox.Text = preview.Request.TargetPath;
             TransferTypeBox.SelectedIndex = 4;

@@ -85,7 +85,13 @@ internal sealed class EntryFixture : IDisposable
         return Menu;
     }
     internal void DirectScrape() => ItemCommands.Run(ItemCommand.AniBtScrape, Session, Actions, Owner, Card);
-    internal bool HasScrape(MenuFlyout menu) => menu.Items.Any(row => row.Tag is ItemCommand.AniBtScrape);
+    internal bool HasScrape(MenuFlyout menu) => menu.Items.OfType<MenuFlyoutSubItem>()
+        .Any(row => row.Tag is ItemCommand.MoviePilotReorganizeMenu
+            && row.Items.OfType<MenuFlyoutItem>().Any(entry => entry.Tag is ItemCommand.AniBtScrape));
+    internal static MenuFlyoutSubItem Reorganize(MenuFlyout menu) => menu.Items.OfType<MenuFlyoutSubItem>()
+        .Single(row => row.Tag is ItemCommand.MoviePilotReorganizeMenu);
+    internal static MenuFlyoutItem Scrape(MenuFlyout menu) => Reorganize(menu).Items.OfType<MenuFlyoutItem>()
+        .Single(row => row.Tag is ItemCommand.AniBtScrape);
     internal static MenuFlyoutSubItem Search(MenuFlyout menu) => menu.Items.OfType<MenuFlyoutSubItem>().Single(row => row.Tag is ItemCommand.MoviePilotVersions);
     internal static void ClickSearch(MenuFlyout menu, ItemCommand command) => Search(menu).Items.OfType<MenuFlyoutItem>()
         .Single(row => row.Tag is ItemCommand value && value == command).ClickForFixture();

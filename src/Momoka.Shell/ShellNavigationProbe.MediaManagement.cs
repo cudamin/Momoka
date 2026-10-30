@@ -58,17 +58,27 @@ internal sealed partial class ShellNavigationProbe
                     await LayoutAsync(anchor);
                     var movie = new CardItem(fixture.Session.Capture().Bind(Subject(EmbyItemType.Movie)), fixture.Images, 170);
                     menu = ItemCommands.Build(fixture.Session, shell, anchor, movie);
-                    var manual = menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.MoviePilotReorganize);
+                    var reorganize = menu.Items.OfType<MenuFlyoutSubItem>().Single(row => row.Tag is ItemCommand.MoviePilotReorganizeMenu);
                     var management = menu.Items.OfType<MenuFlyoutSubItem>().Single(row => row.Tag is ItemCommand.MoviePilotMediaManagement);
-                    Require(menu.Items.IndexOf(management) == menu.Items.IndexOf(manual) + 1, "媒体管理没有紧接手动整理");
+                    Require(menu.Items.IndexOf(management) == menu.Items.IndexOf(reorganize) + 1, "媒体管理没有紧接重新整理");
+                    Require(reorganize.Text == "重新整理" && reorganize.Items.Count == 2 && reorganize.Items.All(row => row is MenuFlyoutItem),
+                        "电影的手动整理与智能整理未折叠进重新整理");
                     Require(management.Items.Count == 4 && management.Items.All(row => row is MenuFlyoutItem), "四个删除范围未折叠");
-                    Require(menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.MoviePilotSmartReorganize).Text == "智能整理", "电影智能整理措辞不正确");
+                    Require(reorganize.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.MoviePilotSmartReorganize).Text == "智能整理", "电影智能整理措辞不正确");
                     menu.ShowAt(anchor);
                     await LayoutAsync(anchor);
                     foreach (var row in menu.Items.Where(row => row.Tag is ItemCommand cmd && ItemMenu.IsMoviePilot(cmd)))
                         AssertNoBrand((FrameworkElement)row);
                     await Task.Delay(350);
                     await SaveProbeScreenAsync($"mp-media-menu-{theme.Id}-{width}.png");
+                    ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(reorganize).GetPattern(PatternInterface.ExpandCollapse)).Expand();
+                    await LayoutAsync(anchor);
+                    foreach (var row in reorganize.Items) AssertNoBrand((FrameworkElement)row);
+                    Require(reorganize.Items.OfType<MenuFlyoutItem>().Select(row => row.Text).SequenceEqual(new[]
+                    { "手动整理…", "智能整理" }), "重新整理子菜单缺手动整理或智能整理");
+                    await Task.Delay(350);
+                    await SaveProbeScreenAsync($"mp-media-reorganize-submenu-{theme.Id}-{width}.png");
+                    ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(reorganize).GetPattern(PatternInterface.ExpandCollapse)).Collapse();
                     ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(management).GetPattern(PatternInterface.ExpandCollapse)).Expand();
                     await LayoutAsync(anchor);
                     foreach (var row in management.Items) AssertNoBrand((FrameworkElement)row);
@@ -92,7 +102,7 @@ internal sealed partial class ShellNavigationProbe
             {
                 ThemeHost.Apply(theme);
                 await LayoutAsync(dialog);
-                Require(dialog.Background is SolidColorBrush { Color.A: > 0 } &&
+                Require(BrushColor(dialog.Background).A > 0 &&
                     Get<TextBlock>(dialog, "SummaryText").Foreground is SolidColorBrush { Color.A: > 0 }, "确认窗口缺主题底色或文字色");
                 await SaveProbeScreenAsync($"mp-media-delete-confirm-{theme.Id}.png");
             }
@@ -130,8 +140,8 @@ internal sealed partial class ShellNavigationProbe
 
             transport.AiEnabled = false;
             await service.HistoryCapabilitiesAsync(CancellationToken.None);
-            Require(!ItemCommands.Build(fixture.Session, shell, anchor,
-                new CardItem(Subject(EmbyItemType.Series), fixture.Images, 170)).Items.Any(row => row.Tag is ItemCommand.MoviePilotSmartReorganize), "关闭助手后仍给智能整理");
+            Require(!HasMenuCommand(ItemCommands.Build(fixture.Session, shell, anchor,
+                new CardItem(Subject(EmbyItemType.Series), fixture.Images, 170)), ItemCommand.MoviePilotSmartReorganize), "关闭助手后仍给智能整理");
             transport.Manage = false;
             await service.HistoryCapabilitiesAsync(CancellationToken.None);
             Require(!ItemCommands.Build(fixture.Session, shell, anchor,
@@ -139,8 +149,8 @@ internal sealed partial class ShellNavigationProbe
             transport.Manage = true;
             transport.AiEnabled = true;
             await service.HistoryCapabilitiesAsync(CancellationToken.None);
-            Require(ItemCommands.Build(fixture.Session, shell, anchor,
-                new CardItem(Subject(EmbyItemType.Series), fixture.Images, 170)).Items.Any(row => row.Tag is ItemCommand.MoviePilotSmartReorganize), "权限恢复后入口未恢复");
+            Require(HasMenuCommand(ItemCommands.Build(fixture.Session, shell, anchor,
+                new CardItem(Subject(EmbyItemType.Series), fixture.Images, 170)), ItemCommand.MoviePilotSmartReorganize), "权限恢复后入口未恢复");
             var libraryMenu = ItemCommands.Build(fixture.Session, shell, anchor,
                 new CardItem(new EmbyItem { Id = "library", Type = EmbyItemType.CollectionFolder }, fixture.Images, 170));
             Require(!libraryMenu.Items.Any(row => row.Tag is ItemCommand cmd && ItemMenu.IsMoviePilot(cmd)), "媒体库菜单误加 MP 操作");
@@ -157,6 +167,11 @@ internal sealed partial class ShellNavigationProbe
             _root.Children.Remove(anchor);
             _root.Children.Remove(shell);
         }
+
+        static bool HasMenuCommand(MenuFlyout menu, ItemCommand wanted) =>
+            menu.Items.Any(row => row.Tag is ItemCommand command && command == wanted)
+            || menu.Items.OfType<MenuFlyoutSubItem>().Any(row =>
+                row.Items.OfType<MenuFlyoutItem>().Any(item => item.Tag is ItemCommand command && command == wanted));
 
         void AssertNoBrand(FrameworkElement item)
         {

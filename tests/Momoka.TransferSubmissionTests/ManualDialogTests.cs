@@ -10,6 +10,29 @@ internal static class ManualDialogTests
 {
     internal static void Register()
     {
+        Test("手动整理窗口：打开时全部自动，不带当前剧集数据", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            var dialog = Load(fixture, series: true);
+            var request = dialog.FixtureRequest;
+            Assert.Equal("", request.Type, "类型默认自动，不预选当前条目的电影/电视剧");
+            Assert.Equal("", request.MediaId);
+            Assert.Equal("", request.Season);
+            Assert.Equal("", request.Episode);
+            Assert.Equal("", request.TargetPath);
+            Assert.Equal("", request.TargetStorage);
+            Assert.Equal("", request.TransferType);
+            Assert.Null(request.TypeFolder);
+            Assert.Null(request.CategoryFolder);
+            Assert.Null(request.Scrape);
+            Assert.Equal("", dialog.SeasonBox.Text);
+            Assert.Equal("", dialog.EpisodeBox.Text);
+            Assert.Equal("", dialog.MediaIdBox.Text);
+            Assert.Equal(Visibility.Collapsed, dialog.IdentityGrid.Visibility);
+            Assert.Equal(Visibility.Collapsed, dialog.EpisodeField.Visibility);
+            Assert.Equal(0, fixture.Transport.Writes);
+            dialog.EmitClosed();
+        });
         Test("手动整理窗口：自动匹配只展示，不覆盖自动请求及继承开关", () =>
         {
             using var fixture = new TransferSubmissionFixture();
@@ -25,6 +48,50 @@ internal static class ManualDialogTests
             Assert.Equal(Visibility.Visible, dialog.MatchedPathPanel.Visibility);
             Assert.Contains("/library", dialog.MatchedPathText.Text);
             Assert.Equal(0, fixture.Transport.Writes);
+            dialog.EmitClosed();
+        });
+        Test("手动整理窗口：选目录自动带出存储、方式、分类与刮削", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            var dialog = Load(fixture);
+            dialog.TargetPathBox.Text = "/library";
+            var request = dialog.FixtureRequest;
+            Assert.Equal("/library", request.TargetPath);
+            Assert.Equal("local", request.TargetStorage);
+            Assert.Equal("softlink", request.TransferType);
+            Assert.Equal(true, request.TypeFolder);
+            Assert.Equal(false, request.CategoryFolder);
+            Assert.Equal(true, request.Scrape);
+            Assert.True(dialog.TypeFolderToggle.IsOn);
+            Assert.False(dialog.CategoryFolderToggle.IsOn);
+            Assert.True(dialog.ScrapeToggle.IsOn);
+            Assert.Equal(Visibility.Collapsed, dialog.MatchedPathPanel.Visibility);
+            dialog.EmitClosed();
+        });
+        Test("手动整理窗口：手填陌生路径退到本地复制并关闭分类", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            var dialog = Load(fixture);
+            dialog.TargetPathBox.Text = "/custom/library";
+            var request = dialog.FixtureRequest;
+            Assert.Equal("/custom/library", request.TargetPath);
+            Assert.Equal("local", request.TargetStorage);
+            Assert.Equal("copy", request.TransferType);
+            Assert.Equal(false, request.TypeFolder);
+            Assert.Equal(false, request.CategoryFolder);
+            Assert.Equal(false, request.Scrape);
+            dialog.EmitClosed();
+        });
+        Test("手动整理窗口：已手选的整理方式不被后来的目录覆盖", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            var dialog = Load(fixture);
+            dialog.TargetPathBox.Text = "/library";
+            dialog.TransferTypeBox.SelectedIndex = 1;
+            dialog.FixtureEdited();
+            Assert.Equal("copy", dialog.FixtureRequest.TransferType);
+            dialog.TargetPathBox.Text = "/custom/library";
+            Assert.Equal("copy", dialog.FixtureRequest.TransferType, "与上游一致：只有自动时才采用目录的方式");
             dialog.EmitClosed();
         });
         Test("手动整理窗口：使用匹配路径一次应用存储、方式、分类和刮削", () =>
@@ -64,8 +131,13 @@ internal static class ManualDialogTests
         {
             using var fixture = new TransferSubmissionFixture();
             var dialog = Load(fixture, series: true);
+            dialog.FixtureType(2);
+            dialog.MediaIdBox.Text = "1";
+            dialog.SeasonBox.Text = "2";
+            dialog.EpisodeBox.Text = "24";
             dialog.EpisodeFormatBox.Text = "第{ep}集";
             dialog.EpisodeOffsetBox.Text = "-10";
+            dialog.FixtureEdited();
             dialog.FixtureFromHistory(true);
             var history = dialog.FixtureRequest;
             Assert.True(history.FromHistory);
@@ -73,27 +145,28 @@ internal static class ManualDialogTests
             Assert.Equal("", history.Season);
             Assert.Equal("", history.EpisodeFormat);
             Assert.Null(history.Problem);
-            Assert.Equal(Visibility.Collapsed, dialog.IdentityPanel.Visibility);
+            Assert.Equal(Visibility.Collapsed, dialog.IdentityGrid.Visibility);
+            Assert.Equal(Visibility.Collapsed, dialog.TypeField.Visibility);
             dialog.FixtureFromHistory(false);
             Assert.Equal("1", dialog.FixtureRequest.MediaId);
             Assert.Equal("2", dialog.FixtureRequest.Season);
             Assert.Equal("24", dialog.FixtureRequest.Episode);
             Assert.Equal("第{ep}集", dialog.FixtureRequest.EpisodeFormat);
             Assert.Equal("-10", dialog.FixtureRequest.EpisodeOffset);
-            Assert.Equal(Visibility.Visible, dialog.EpisodeRow.Visibility);
+            Assert.Equal(Visibility.Visible, dialog.EpisodeField.Visibility);
             dialog.EmitClosed();
         });
         Test("手动整理窗口：自动类型隐藏编号季集，切类型与来源清除旧身份", () =>
         {
             using var fixture = new TransferSubmissionFixture();
             var dialog = Load(fixture, series: true);
-            dialog.FixtureType(0);
             Assert.Equal("", dialog.FixtureRequest.Type);
             Assert.Equal("", dialog.FixtureRequest.MediaId);
             Assert.Equal(Visibility.Collapsed, dialog.MediaIdPanel.Visibility);
-            Assert.Equal(Visibility.Collapsed, dialog.EpisodeRow.Visibility);
+            Assert.Equal(Visibility.Collapsed, dialog.EpisodeField.Visibility);
             dialog.FixtureType(1);
             Assert.Equal("douban", dialog.FixtureRequest.MediaSource, "自动来源来自后端默认，而不是固定 TMDB");
+            Assert.Equal(Visibility.Visible, dialog.MediaIdPanel.Visibility);
             dialog.MediaIdBox.Text = "123";
             dialog.FixtureSource(1);
             Assert.Equal("", dialog.FixtureRequest.MediaId);
@@ -103,6 +176,9 @@ internal static class ManualDialogTests
         {
             using var fixture = new TransferSubmissionFixture();
             var dialog = Load(fixture, series: true);
+            dialog.FixtureType(2);
+            dialog.FixtureSource(1);
+            dialog.MediaIdBox.Text = "283938";
             dialog.EpisodeFormatBox.Text = "第{ep}集";
             dialog.EpisodeOffsetBox.Text = "EP*2";
             dialog.EpisodeGroupBox.Text = "group-1";
@@ -136,7 +212,7 @@ internal static class ManualDialogTests
             dialog.EmitClosed();
             Assert.Equal(0, fixture.Transport.Writes);
         });
-        Test("手动整理窗口接线：所有操作在滚动区外，历史可展开而选项不再深藏", () =>
+        Test("手动整理窗口接线：四列表单在滚动区外留操作，窗口放大到一次看全", () =>
         {
             var root = RepositoryRoot();
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotReorganizeDialog.xaml"));
@@ -151,7 +227,17 @@ internal static class ManualDialogTests
                 Assert.False(Named(option).Ancestors().Any(parent => parent.Name.LocalName == "Expander"));
             }
             Assert.Equal("None", (string?)document.Root!.Attribute("DefaultButton"));
+            Assert.Equal("Stretch", (string?)document.Root!.Attribute("HorizontalContentAlignment"));
             Assert.False(document.Descendants().Any(element => ((string?)element.Attribute(x + "Name"))?.Contains("Cue", StringComparison.OrdinalIgnoreCase) == true));
+            foreach (var grid in new[] { "DestinationGrid", "IdentityGrid", "FileOptionsGrid" })
+            {
+                var definitions = Named(grid).Elements().Single(element => element.Name.LocalName == "Grid.ColumnDefinitions");
+                Assert.Equal(4, definitions.Elements().Count(definition => definition.Name.LocalName == "ColumnDefinition"));
+            }
+            var width = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "ContentDialogMaxWidth");
+            var height = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "ContentDialogMaxHeight");
+            Assert.True(double.Parse(width.Value) >= 900, "弹窗宽度没有放大");
+            Assert.True(double.Parse(height.Value) >= 800, "弹窗高度没有放大");
         });
     }
 

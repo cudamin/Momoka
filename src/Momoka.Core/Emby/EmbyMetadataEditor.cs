@@ -40,10 +40,10 @@ public sealed class EmbyMetadataEditor(EmbySessionScope source)
     {
         source.ThrowIfUnavailable();
         if (source.Connection.ServerKind != MediaServerKind.Emby) throw new NotSupportedException("当前服务器不是 Emby");
-        // Emby 的登录结果和令牌恢复都不写用户策略，连接快照里的 IsAdministrator 常态是「还没问到」的 null
-        // （只有 Jellyfin／飞牛在登录时读 Policy）。从前这里要求 == true，于是管理员点开这张表也只会得到
-        // 「没有访问权限」（2026-10-29 实测 4.10.1.0 管理员账号）。判据与 ServerAccess.CanAdminister 同一条：
-        // 只有服务器明确答「不是管理员」才在这里拦；真的没权限时保存由服务器以 403 拒绝，界面照服务器那句话显示。
+        // Emby 的令牌恢复不写用户策略；登录响应带 Policy 时才写（2026-10-30 起），没带就仍是「还没问到」的 null。
+        // 能力探测另按来源读一次用户策略供菜单显隐，但不回写连接。从前这里要求 == true，于是管理员点开这张表
+        // 也只会得到「没有访问权限」（2026-10-29 实测 4.10.1.0 管理员账号）。判据与 ServerAccess.CanAdminister
+        // 同一条：只有服务器明确答「不是管理员」才在这里拦；真的没权限时保存由服务器以 403 拒绝，界面照服务器那句话显示。
         if (!ServerAccess.CanAdminister(source.Connection.ServerKind, source.IsAdministrator))
             throw new UnauthorizedAccessException("只有 Emby 管理员可以编辑元数据");
     }

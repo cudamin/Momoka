@@ -99,6 +99,16 @@
       "notes": "原 wrapper 构建 Shell/fixture 并生成源码及DLL证明；不执行真实删除。"
     },
     {
+      "id": "Momoka.DialogDismissTests",
+      "project": "tests/Momoka.DialogDismissTests/Momoka.DialogDismissTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.DialogDismissTests/README.md",
+      "notes": "现有统一点外关闭生产实现源链接回归；不注入真实指针或启动窗口。"
+    },
+    {
       "id": "Momoka.FnNasAccountEditTests",
       "project": "tests/Momoka.FnNasAccountEditTests/Momoka.FnNasAccountEditTests.csproj",
       "mode": "dotnet",

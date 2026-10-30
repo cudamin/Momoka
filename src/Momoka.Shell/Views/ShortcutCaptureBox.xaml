@@ -31,8 +31,11 @@
                 <VisualState x:Name="Normal" />
                 <VisualState x:Name="Capturing">
                     <VisualState.Setters>
-                        <!-- 抓键中只加强中性边线；等待按键的文字与键盘焦点提示仍保留。 -->
+                        <!-- 抓键中只加强中性边线、底色换成侧栏色；等待按键的文字与键盘焦点提示仍保留。
+                             2026-10-29：静止态与设置页的输入框一起换成输入玻璃（EgInputGlassBrush），
+                             进入抓键就是「点进去了」，所以这一态用 TextBox 聚焦时的同一个窗口色。 -->
                         <Setter Target="ComboBorder.BorderBrush" Value="{ThemeResource EgBorderStrongBrush}" />
+                        <Setter Target="ComboBorder.Background" Value="{ThemeResource EgWindowBrush}" />
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
@@ -40,7 +43,7 @@
 
         <Border
             x:Name="ComboBorder"
-            Background="{ThemeResource EgWindowBrush}"
+            Background="{ThemeResource EgInputGlassBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
             BorderThickness="{StaticResource EgHairline}"
             CornerRadius="4"

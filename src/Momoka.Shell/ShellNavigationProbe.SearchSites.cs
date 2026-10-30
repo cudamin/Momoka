@@ -81,7 +81,9 @@ internal sealed partial class ShellNavigationProbe
             precise.Open(service, new MoviePilotMedia { Title = "测试电影", Type = "电影", MediaSource = "themoviedb", MediaId = "42" }, fixture.Launcher);
             await LayoutAsync(precise);
             await precise.ViewModel.SearchSites.EnsureLoadedAsync();
-            precise.ViewModel.SearchSites.UseDefault = false;
+            // 分类搜索会继承设置页那份默认站点（见 MoviePilotService.SearchSitePreference）：先清空继承来的勾，
+            // 再只选一个，这条才量得到「精确资源仍按媒体类型读目录、按所选站点发请求」。
+            precise.ViewModel.SearchSites.ClearSelectionCommand.Execute(null);
             precise.ViewModel.SearchSites.Sites[1].Selected = true;
             await precise.ViewModel.SearchAsync();
             Require(server.Paths.Any(path => path.EndsWith("site/media/movie", StringComparison.Ordinal))

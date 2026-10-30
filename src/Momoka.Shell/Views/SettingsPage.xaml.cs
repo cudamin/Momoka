@@ -12,6 +12,8 @@ using Momoka.Updates;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 
@@ -112,6 +114,61 @@ public sealed partial class SettingsPage : Page, IShellContent
     internal SettingsViewModel ViewModel { get; } = new();
 
     internal bool IsReady => ViewModel.IsReady;
+
+    /// <summary>
+    /// 点空白处把焦点从输入框挪走。输入框聚焦时底色是侧边栏色（见 SettingsScroll.Resources 里
+    /// TextControl* 那两条），而卡片、标题、空白都不是可聚焦的东西 —— 不接这一下，WinUI 就不会替我们
+    /// 换焦点，那块色会一直留着（用户 2026-10-29：「点完输入框之后点再周围没反应不会自动恢复」）。
+    /// <para>
+    /// 落点用卡片这一列的滚动区：它可见、可聚焦，又不画焦点框；试过零尺寸的透明按钮，焦点会在
+    /// 下一次布局时被丢掉，输入框又把焦点拿回去。这一下挂在 Page 上，控件自己吃掉的按下本来就不会
+    /// 上来；<see cref="HandlesPointerFocus"/> 那张名单是给「不标记 handled、但按下就该由它接焦点」的
+    /// 控件留的，免得把它们刚拿到的焦点又抢走。
+    /// </para>
+    /// </summary>
+    private void OnSettingsPointerPressed(object sender, PointerRoutedEventArgs e) =>
+        OnSettingsPointerPressed(e.OriginalSource as DependencyObject);
+
+    /// <summary>按下落点决定要不要把焦点交给滚动区；探针用真实控件直接走这一支。</summary>
+    internal void OnSettingsPointerPressed(DependencyObject? source)
+    {
+        if (!HandlesPointerFocus(source)) FocusSettingsCards();
+    }
+
+    /// <summary>
+    /// 把焦点落到卡片滚动区本身。<c>ScrollViewer</c> 默认 <c>IsTabStop=false</c>，直接 <c>Focus</c> 会把焦点
+    /// 转给第一个可聚焦子控件 —— 在快捷键卡上正好是顶部的搜索框（用户 2026-10-30：「退出编辑快捷键后会自动
+    /// 触发上方的搜索框」）。临时打开 tab stop 让滚动区自己接住焦点，随后还原，避免它长期占用 Tab 顺序；
+    /// 实测还原后焦点仍留在滚动区，不会丢回子控件。
+    /// </summary>
+    private void FocusSettingsCards()
+    {
+        var tabStop = SettingsScroll.IsTabStop;
+        SettingsScroll.IsTabStop = true;
+        try { SettingsScroll.Focus(FocusState.Pointer); }
+        finally { SettingsScroll.IsTabStop = tabStop; }
+    }
+
+    /// <summary>
+    /// 按下的落点是不是自己接焦点的控件。名单里的标准控件按下时由框架给焦点；<see cref="ShortcutCaptureBox"/>
+    /// 则在按下那一刻进入抓键态并主动取焦点 —— 页面再补一下就会立刻把它的焦点拿走、退出抓键态，用户看到的
+    /// 就是「点方框没反应，按什么键都改不了」（2026-10-30）。
+    /// </summary>
+    internal static bool HandlesPointerFocus(DependencyObject? source)
+    {
+        for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
+        {
+            switch (node)
+            {
+                case TextBox or PasswordBox or NumberBox or ComboBox or AutoSuggestBox
+                    or ButtonBase or ToggleSwitch or Slider or ListView or ListViewItem or ScrollBar
+                    or ShortcutCaptureBox:
+                    return true;
+            }
+        }
+
+        return false;
+    }
 
     private void OnSettingsSearchClick(object sender, RoutedEventArgs args) => SubmitSettingsSearch(SettingsSearchBox, null);
 
@@ -764,6 +821,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         _moviePilot = service;
         _moviePilot.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
         ViewModel.RefreshHomeRows();
+        ViewModel.RefreshMoviePilotSites();
     }
 
     private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args)
@@ -772,7 +830,9 @@ public sealed partial class SettingsPage : Page, IShellContent
         if (!_activity.IsCurrent(activity) || !ReferenceEquals(sender, _moviePilot)) return;
         DispatcherQueue.TryEnqueue(() =>
         {
-            if (_activity.IsCurrent(activity) && ReferenceEquals(sender, _moviePilot)) ViewModel.RefreshHomeRows();
+            if (!_activity.IsCurrent(activity) || !ReferenceEquals(sender, _moviePilot)) return;
+            ViewModel.RefreshHomeRows();
+            ViewModel.RefreshMoviePilotSites();
         });
     }
 

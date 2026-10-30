@@ -104,8 +104,9 @@ internal sealed partial class ShellNavigationProbe
             var episodeForm = new MoviePilotReorganizeDialog(service, episodeContext);
             Require(Get<StackPanel>(episodeForm, "HistoryLookupPanel").Visibility == Visibility.Visible &&
                 Get<TextBlock>(episodeForm, "BatchSelectionSummary").Visibility == Visibility.Collapsed &&
-                Get<TextBox>(episodeForm, "SeasonBox").Text == "1" && Get<TextBox>(episodeForm, "EpisodeBox").Text == "1",
-                "单集的历史查找区域或原有季集默认值被剧多选改动改变");
+                Get<ComboBox>(episodeForm, "TypeBox").SelectedIndex == 0 &&
+                Get<TextBox>(episodeForm, "SeasonBox").Text.Length == 0 && Get<TextBox>(episodeForm, "EpisodeBox").Text.Length == 0,
+                "单集的历史查找区域或自动默认值被剧多选改动改变");
             var selectedContext = MoviePilotSeriesTransfer.CreateContext(context, chosen);
             var form = new MoviePilotReorganizeDialog(service, selectedContext, chosen) { XamlRoot = _root.XamlRoot };
             var editing = MoviePilotDialog.ShowAsync(form, service);

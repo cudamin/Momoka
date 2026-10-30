@@ -32,6 +32,29 @@ public sealed partial class SettingMoviePilotRow : SettingRow
     private readonly Func<CancellationToken, Task<string>> _test;
 
     /// <summary>
+    /// 「默认搜索站点」那一截的选择器。它和搜索框里那颗是同一份视图模型 —— 改的是同一份存下来的选择，
+    /// 所以设置页选完，搜索页与「在 MoviePilot 搜索版本」窗口的下一次搜索就照它走。
+    /// </summary>
+    public MoviePilotSitePickerViewModel SearchSites { get; } = new();
+
+    /// <summary>
+    /// 站点目录读不出来时这一截整个收起（见 CLAUDE.md 的显隐规则）：没连上 MoviePilot 时既读不到目录，
+    /// 也存不进选择。连接一旦可用，它当场回来，不要求重开设置页。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SitesVisibility))]
+    public partial bool SitesAvailable { get; set; }
+
+    public Visibility SitesVisibility => SitesAvailable ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>连接状态落定后由设置页喊一声；可用时顺手重读一遍已存的选择。</summary>
+    internal void RefreshSites(bool available)
+    {
+        SitesAvailable = available;
+        if (available) SearchSites.RefreshSelection();
+    }
+
+    /// <summary>
     /// Set last in the constructor, after the seeded fields are in place, so handing the row its starting
     /// values does not write them straight back to the settings file. Same flag, same reason, as
     /// <see cref="SettingChoiceRow"/>'s.

@@ -68,6 +68,15 @@ internal sealed class MoviePilotWindow
     /// <summary>Outer size in physical pixels. Read by the self-check if it ever wants it.</summary>
     internal SizeInt32 Size => _window.AppWindow.Size;
 
+    /// <summary>探针要真的把这扇窗摆到某个尺寸、再拍一张含标题栏的实屏：它得拿到 AppWindow。</summary>
+    internal AppWindow AppWindow => _window.AppWindow;
+
+    /// <summary>探针读窗口里那一份内容的状态（搜完没有），不把窗口的内部结构复制一遍。</summary>
+    internal MoviePilotVersionsView View => _view;
+
+    /// <summary>把它带到前面（探针摆好尺寸之后要保证没被别的窗口挡住才拍得到）。</summary>
+    internal void Activate() => _window.Activate();
+
     /// <summary>
     /// Builds the window, or returns null having logged why. Null is not a loud failure: the caller
     /// (<c>ShellPage.SearchMoviePilotVersions</c>) just reports it and does nothing else — a second XAML
@@ -230,8 +239,8 @@ internal sealed class MoviePilotWindow
     /// <summary>
     /// The same caption as the main window's, for the same reason: the app has one appearance. Colours come
     /// from the current theme, so this re-runs on a theme change (<see cref="_repaint"/>). Mirrors
-    /// <c>HostWindow.ConfigureTitleBar</c> / <see cref="SettingsWindow"/>, minus the blank-icon trick — this
-    /// window keeps the ordinary app icon in its caption.
+    /// <c>HostWindow.ConfigureTitleBar</c> / <see cref="SettingsWindow"/>, including the blank-icon trick:
+    /// 左上角那颗图标不要（2026-10-30 用户令），第二窗口和设置窗口同一个样子。
     /// </summary>
     private void PaintCaption()
     {
@@ -245,6 +254,10 @@ internal sealed class MoviePilotWindow
 
             var corners = Native.DwmCornerRound;
             Native.DwmSetWindowAttribute(handle, Native.DwmWindowCornerPreference, ref corners, sizeof(int));
+
+            // 发空句柄摘不掉标题栏图标 —— 系统的查找链会把窗口类或 exe 里那颗补回来（见 SettingsWindow 的
+            // 老账），所以换上一颗全透明的、把那一档占住。大档不动：任务栏和 Alt-Tab 照旧拿应用图标。
+            Native.SendMessage(handle, Native.WmSetIcon, (IntPtr)0, BlankCaptionIcon.Handle);
 
             var titleBar = _window.AppWindow.TitleBar;
             if (titleBar is null) return;

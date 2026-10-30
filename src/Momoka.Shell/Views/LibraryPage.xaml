@@ -28,10 +28,6 @@
     Background="{ThemeResource LayerFillColorDefaultBrush}">
 
     <Page.Resources>
-        <!-- 原生文本框的上下内边距会让 40 DIP 搜索框里的文字偏上；保留模板，只居中输入与占位文字。 -->
-        <Style x:Key="LibrarySearchTextBox" TargetType="TextBox" BasedOn="{StaticResource AutoSuggestBoxTextBoxStyle}">
-            <Setter Property="Padding" Value="10,0,6,0" />
-        </Style>
         <Style x:Key="LibraryPillStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Height" Value="32" />
             <Setter Property="MinWidth" Value="0" />
@@ -335,7 +331,7 @@
                                 MinHeight="40" CornerRadius="20"
                                 VerticalAlignment="Center"
                                 VerticalContentAlignment="Center"
-                                TextBoxStyle="{StaticResource LibrarySearchTextBox}"
+                                TextBoxStyle="{StaticResource EgSearchTextBoxStyle}"
                                 QueryIcon="Find"
                                 QuerySubmitted="OnSearchSubmitted"
                                 TextChanged="OnSearchTextChanged"

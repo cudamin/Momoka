@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 
 namespace Momoka.Shell;
 
@@ -109,6 +110,24 @@ internal sealed partial class ShellNavigationProbe
             await QueryAsync("ctrl + f9");
             Require(Shown().Select(row => row.Id).SequenceEqual(new[] { "toggle-pause" }), "没有按当前自定义组合键过滤");
             var capture = Descendants(page).OfType<ShortcutCaptureBox>().Single(box => AutomationProperties.GetName(box) == "播放 / 暂停");
+            // 点方框要由它自己接焦点：设置页的空白处处理器若把它当成空白，会立刻夺走焦点并退出抓键态。
+            var captureLabel = Get<TextBlock>(capture, "ComboLabel");
+            Require(SettingsPage.HandlesPointerFocus(captureLabel), "点快捷键抓键框仍会被设置页抢走焦点");
+            Require(capture.Focus(FocusState.Programmatic), "快捷键抓键框不能取得焦点");
+            page.OnSettingsPointerPressed(captureLabel);
+            await LayoutAsync(page);
+            Require(ReferenceEquals(FocusManager.GetFocusedElement(page.XamlRoot), capture),
+                "点快捷键抓键框时设置页把焦点交给了卡片滚动区");
+            // 退出编辑（点空白处）应当落在滚动区本身：ScrollViewer 默认 IsTabStop=false，直接 Focus 会把焦点
+            // 转给第一个子控件 —— 在快捷键卡上正好是搜索框，用户看到的就是「搜索框被自动触发」。
+            var cards = Get<StackPanel>(page, "SettingsCardsContent");
+            var scroll = Get<ScrollViewer>(page, "SettingsScroll");
+            Require(!SettingsPage.HandlesPointerFocus(cards), "点空白处仍应交给卡片滚动区");
+            Require(capture.Focus(FocusState.Programmatic), "快捷键抓键框不能取得焦点");
+            page.OnSettingsPointerPressed(cards);
+            await LayoutAsync(page);
+            Require(ReferenceEquals(FocusManager.GetFocusedElement(page.XamlRoot), scroll),
+                "点空白处把焦点交给了快捷键搜索框");
             originalRows["toggle-pause"].OnCommitted(capture, "Ctrl+F8");
             await LayoutAsync(page);
             Require(!Shown().Any(), "改绑后旧键仍留在搜索结果");

@@ -42,6 +42,8 @@ internal static class InputFocusThemeTests
             var capture = view.Descendants().Single(element => element.Attribute(Xaml + "Name")?.Value == "Capturing");
             Assert.Equal("{ThemeResource EgBorderStrongBrush}", capture.Descendants().Single(element =>
                 element.Attribute("Target")?.Value == "ComboBorder.BorderBrush").Attribute("Value")?.Value);
+            Assert.Equal("{ThemeResource EgWindowBrush}", capture.Descendants().Single(element =>
+                element.Attribute("Target")?.Value == "ComboBorder.Background").Attribute("Value")?.Value);
             Assert.Equal("True", view.Root!.Attribute("IsTabStop")?.Value);
             Assert.Equal("True", view.Root.Attribute("UseSystemFocusVisuals")?.Value);
             Assert.Equal("{ThemeResource EgTextBrush}", view.Root.Attribute("FocusVisualPrimaryBrush")?.Value);
@@ -61,12 +63,10 @@ internal static class InputFocusThemeTests
             }
         });
 
-        Test("输入底色：运行期换主题沿用窗口底色，不退回卡片色", () =>
+        Test("输入底色：文本输入运行期换主题沿用窗口底色，不退回卡片色", () =>
         {
             foreach (var key in new[] { "TextControlBackground", "TextControlBackgroundPointerOver",
-                "TextControlBackgroundFocused", "TextControlBackgroundDisabled", "ComboBoxBackground",
-                "ComboBoxBackgroundPointerOver", "ComboBoxBackgroundPressed", "ComboBoxBackgroundFocused",
-                "ComboBoxBackgroundUnfocused", "ComboBoxBackgroundDisabled" })
+                "TextControlBackgroundFocused", "TextControlBackgroundDisabled" })
             {
                 var pick = PickBrush(key);
                 foreach (var theme in UiThemes.All)
@@ -74,26 +74,26 @@ internal static class InputFocusThemeTests
             }
         });
 
-        Test("输入底色：闭合下拉框各态也沿用页面背景，弹层材质不改", () =>
+        Test("输入底色：闭合下拉框各态使用输入玻璃，弹层材质不改", () =>
         {
             foreach (var dictionary in Painted(Palette()))
             {
                 foreach (var key in new[] { "ComboBoxBackground", "ComboBoxBackgroundPointerOver", "ComboBoxBackgroundPressed",
                     "ComboBoxBackgroundFocused", "ComboBoxBackgroundUnfocused", "ComboBoxBackgroundDisabled" })
-                    Assert.Equal("{StaticResource EgWindowColor}", dictionary.Elements().Single(element =>
-                        element.Attribute(Xaml + "Key")?.Value == key).Attribute("Color")?.Value);
+                    Assert.Equal("EgInputGlassBrush", dictionary.Elements().Single(element =>
+                        element.Attribute(Xaml + "Key")?.Value == key).Attribute("ResourceKey")?.Value);
                 Assert.Equal("AcrylicBrush", dictionary.Elements().Single(element =>
                     element.Attribute(Xaml + "Key")?.Value == "ComboBoxDropDownBackground").Name.LocalName);
             }
         });
 
-        Test("输入底色：设置搜索与快捷键框不再局部盖成卡片底色", () =>
+        Test("输入底色：设置搜索保持原样，快捷键框接输入玻璃", () =>
         {
             var settings = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
             Assert.Equal("{ThemeResource EgWindowBrush}", settings.Descendants().Single(element =>
                 element.Attribute(Xaml + "Name")?.Value == "SettingsSearchBox").Attribute("Background")?.Value);
             var shortcut = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "ShortcutCaptureBox.xaml"));
-            Assert.Equal("{ThemeResource EgWindowBrush}", shortcut.Descendants().Single(element =>
+            Assert.Equal("{ThemeResource EgInputGlassBrush}", shortcut.Descendants().Single(element =>
                 element.Attribute(Xaml + "Name")?.Value == "ComboBorder").Attribute("Background")?.Value);
         });
 
@@ -135,7 +135,8 @@ internal static class InputFocusThemeTests
     private static Func<UiTheme, ThemeColor> PickBrush(string key) =>
         InputControlTheme.Brushes.Single(entry => entry.Key == key).Pick;
 
-    private static bool IsNeutralPalette(XDocument palette)    {
+    private static bool IsNeutralPalette(XDocument palette)
+    {
         var dictionaries = Painted(palette).ToArray();
         return dictionaries.Length == 2 && dictionaries.All(dictionary =>
         {
