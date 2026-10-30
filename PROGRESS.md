@@ -1,3 +1,17 @@
+## 设置页抢走快捷键抓取焦点（2026-10-30）
+
+- 用户报：「快捷键编辑不了」。设置 → 快捷键里点抓键方框后无法进入抓键态，按什么键都改不了。
+- 根因：`cd83fba`（同日 01:08）新增的页级 `SettingsPage.OnSettingsPointerPressed` 把 `ShortcutCaptureBox` 当成空白。方框在自己按下时进入抓键态并 `Focus(FocusState.Pointer)`；事件冒泡到页面后处理器又 `SettingsScroll.Focus(FocusState.Pointer)`，方框收到 `LostFocus` 立即 `EndCapture`，所以点完方框按什么键都没用。
+- 改法：`SettingsPage.HandlesPointerFocus` 的排除名单加入 `ShortcutCaptureBox`（落在方框子树里的按下都算它自己接焦点）；`OnSettingsPointerPressed` 把 `e.OriginalSource` 交给内部重载，探针可直接走同一支，空白与标准输入控件的原行为不变。
+- 测试：`InputControlThemeTests` 从「整个文件里出现过控件名」改为截取 `HandlesPointerFocus` 方法体逐项核对，并新增抓键框；`input-theme-fixture` **13/13**、`input-focus-fixture` **20/20**；整套主测试 **3331/3331、0 失败 0 跳过**；整套 Release 构建 **0 警告 0 错误**；三个改动文件的 `format whitespace` 通过（整套空白检查仍有既有红项，与本批无关，未改未放宽）。
+- 探针：开发件与发布件各跑 `--probe-shell --probe-section shortcuts --screen 2`，均 **3/3、退出 0**（开发件 `shell-probe-20261030-072137324-18068`，发布件 `shell-probe-20261030-073231100-3948`）。新增断言用真实设置页上的 `ShortcutCaptureBox`：让它取得焦点，再以框内标签为 `OriginalSource` 调页面处理器，焦点仍留在方框；空白落点仍判给卡片滚动区。宽窄两档的搜索、改绑、空态、恢复与实屏空结果文字检查都通过。
+- 遮挡记录（不是产品红项）：首次 `--screen 1` 窄窗被用户置顶的 mpv 窗口（pid 27124，`settings-shortcut-search-all-760-screen-window.txt` 上两点属于 mpv）挡住；`--screen 2` 一次被 Qt 窗口（pid 21208）挡住，错在 `CompositionPlaybackProbe.GuardVisible`。换到无遮挡的 screen 2 后通过，未移动或关闭用户窗口。
+- **没有注入真实鼠标按下**：探针走的是处理器同一个内部重载与真实控件落点，Win32 指针到 XAML 的路由没有合成；这一层属于平台行为，未用合成点击冒充。
+- 闸门 3：`tools/publish.ps1 -NoArchive` 通过，**546 文件／284.9 MB**、14 GLSL／4 HOOK／批准 mpv 清单 59 文件逐项校验；`artifacts\publish\win-x64\Momoka.exe` 的 ProductVersion 为 `0.2.0+73863a4524cad3d164382181da06375f9bbb9f22`；桌面 `Momoka.lnk` 读回 Target／WorkingDirectory 均指向 `artifacts\publish\win-x64`。
+- 分支：开工时 `master` 与 `qoder/临时` 同在 `34b38a3`，改动直接提交到 master，临时分支收尾删除，本地只留 master（其他 `codex/*` 工作树属并行会话，未触碰）。
+- 未推送 origin、未改版本、无真实服务器读取、播放或媒体写入；本批不是发版，未跑闸门 4 自检。
+- 产品提交 `73863a4`。
+
 ## 更多菜单「重新整理」折叠三条整理入口（2026-10-30）
 
 - 用户令：「更多按钮的菜单栏中新增一个重新整理选项用来折叠手动整理和智能整理还有 antbt 识别」。本批只改条目「更多」菜单的计划、搭建、AniBT 迟到补入口以及相关测试与探针；不改整理、识别或媒体管理实际执行的动作。
