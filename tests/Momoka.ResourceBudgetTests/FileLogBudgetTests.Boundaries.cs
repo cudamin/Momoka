@@ -132,16 +132,16 @@ internal static partial class FileLogBudgetTests
         Test("PERF-13编码预算：128至2048字节截断在多种Unicode长度下始终精确计数且不切代理对", () =>
         {
             foreach (var unit in new[] { "A", "é", "中", "🌸", "é🌸" })
-            foreach (var budget in new[] { 128, 129, 256, 511, 1024, 2048 })
-            {
-                var original = "HEAD" + string.Concat(Enumerable.Repeat(unit, 3000)) + "TAIL";
-                var bounded = FileLogFormat.BoundLine(original, budget);
-                Assert.True(bounded.Bytes <= budget);
-                var bytes = new UTF8Encoding(false, true).GetBytes(bounded.Line + Environment.NewLine);
-                Assert.Equal(bounded.Bytes, bytes.Length);
-                Assert.Contains("HEAD", bounded.Line);
-                Assert.Contains("TAIL", bounded.Line);
-            }
+                foreach (var budget in new[] { 128, 129, 256, 511, 1024, 2048 })
+                {
+                    var original = "HEAD" + string.Concat(Enumerable.Repeat(unit, 3000)) + "TAIL";
+                    var bounded = FileLogFormat.BoundLine(original, budget);
+                    Assert.True(bounded.Bytes <= budget);
+                    var bytes = new UTF8Encoding(false, true).GetBytes(bounded.Line + Environment.NewLine);
+                    Assert.Equal(bounded.Bytes, bytes.Length);
+                    Assert.Contains("HEAD", bounded.Line);
+                    Assert.Contains("TAIL", bounded.Line);
+                }
         });
 
         Test("PERF-13命名：日期/编号不随当前文化变动，非法及非日志文件名不接管", () =>

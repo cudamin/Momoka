@@ -110,7 +110,8 @@ internal sealed class FifoContext : SynchronizationContext, IDisposable
             SetSynchronizationContext(this);
             _ready.SetResult(Environment.CurrentManagedThreadId);
             foreach (var (callback, state) in _queue.GetConsumingEnumerable()) callback(state);
-        }) { IsBackground = true, Name = "Momoka synthetic FIFO UI" };
+        })
+        { IsBackground = true, Name = "Momoka synthetic FIFO UI" };
         _thread.Start();
     }
 

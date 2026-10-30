@@ -38,7 +38,9 @@ internal sealed class StoreFixture : IAsyncDisposable
 
     internal EmbyItem Item(string id) => Scope.Bind(new EmbyItem
     {
-        Id = id, Name = "anonymous-fixture", Type = EmbyItemType.Movie,
+        Id = id,
+        Name = "anonymous-fixture",
+        Type = EmbyItemType.Movie,
         BackdropImageTags = ["tag"]
     });
 

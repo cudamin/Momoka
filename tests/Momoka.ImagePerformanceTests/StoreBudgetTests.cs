@@ -37,9 +37,18 @@ internal static class StoreBudgetTests
             Assert.Equal(0, fixture.Downloads.Queued);
             Assert.Equal(6, fixture.Handler.Total, "只启动6真实生产HTTP请求，不是500等待任务");
             Assert.Equal(0, Directory.GetFiles(Path.Combine(fixture.Root, "images"), "*.img").Length);
-            Measurements.Add(new { kind = "actual-store-500-abandoned", keys = 500, peakKeys, peakQueued, peakDemands,
-                handlerCalls = fixture.Handler.Total, peakHandlerRequests = fixture.Handler.PeakActive,
-                sharedRemaining = fixture.Downloads.Running, demandsRemaining = fixture.Downloads.Demands });
+            Measurements.Add(new
+            {
+                kind = "actual-store-500-abandoned",
+                keys = 500,
+                peakKeys,
+                peakQueued,
+                peakDemands,
+                handlerCalls = fixture.Handler.Total,
+                peakHandlerRequests = fixture.Handler.PeakActive,
+                sharedRemaining = fixture.Downloads.Running,
+                demandsRemaining = fixture.Downloads.Demands
+            });
             foreach (var source in sources) source.Dispose();
         });
 

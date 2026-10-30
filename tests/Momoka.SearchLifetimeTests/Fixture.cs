@@ -87,7 +87,8 @@ internal sealed class FnNasFixture : IDisposable
             [settings, store, new CredentialVault(_secrets), device, Http], null)!;
         var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Members)!.GetValue(Session)!;
         var connection = new EmbyConnection(new Uri("https://fnnas-lifetime.invalid/v/"),
-            "placeholder-only", "fixture-user", "anonymous", "anonymous", device) { ServerKind = MediaServerKind.FnNas };
+            "placeholder-only", "fixture-user", "anonymous", "anonymous", device)
+        { ServerKind = MediaServerKind.FnNas };
         var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
         var identity = Activator.CreateInstance(identityType, Members, null,
             [new EmbyClient(http, connection), new ServerProfile { Id = "fixture-server", Name = "anonymous", ServerKind = MediaServerKind.FnNas },

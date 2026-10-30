@@ -130,7 +130,8 @@ namespace Momoka.Shell.Views
         public int Opens { get; private set; }
         public int Releases { get; private set; }
         public void Open(Momoka.MoviePilot.MoviePilotService service, Momoka.MoviePilot.MoviePilotMedia media,
-            Momoka.Shell.Platform.ISystemLauncher launcher) { Opens++; }
+            Momoka.Shell.Platform.ISystemLauncher launcher)
+        { Opens++; }
         public void Release() { Releases++; }
     }
     public static class MoviePilotSeasonPicker

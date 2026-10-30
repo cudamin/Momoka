@@ -19,7 +19,8 @@ internal static class RunnerContractTests
             }) Check.Equal<int?>(2, Program.HandleArguments(args, output, error));
             Check.False(error.ToString().Contains("nonsecret-placeholder", StringComparison.Ordinal), "拒绝参数时不回显潜在敏感内容");
             return Task.CompletedTask;
-        }));
+        }
+        ));
         cases.Add(("README边界：当前程序集命令/编译标志/允许参数/原样生产与非UI覆盖明确", async () =>
         {
             using var stream = typeof(RunnerContractTests).Assembly.GetManifestResourceStream("Project.README.md")!;
@@ -32,6 +33,7 @@ internal static class RunnerContractTests
                 "文件读取", "不由尚未显示", "Rescrap", "只结束 UI 等待", "不宣称与某个部署版本同步"
             }) Check.Contains(marker, text);
             Check.False(text.Contains("dotnet run", StringComparison.Ordinal), "不能把MSBuild开关混作严格跑器参数");
-        }));
+        }
+        ));
     }
 }

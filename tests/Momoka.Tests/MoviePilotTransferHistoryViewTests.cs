@@ -94,7 +94,14 @@ internal static class MoviePilotTransferHistoryViewTests
 
     private static MoviePilotTransferHistory Row(long id) => new()
     {
-        Id = id, Title = "测试剧", Type = MoviePilotTransferRequest.TypeSeries, Seasons = "S01", Success = true,
-        TargetPath = "/library/episode-" + id + ".mkv", MediaSource = "themoviedb", MediaId = "283938", TmdbId = "283938"
+        Id = id,
+        Title = "测试剧",
+        Type = MoviePilotTransferRequest.TypeSeries,
+        Seasons = "S01",
+        Success = true,
+        TargetPath = "/library/episode-" + id + ".mkv",
+        MediaSource = "themoviedb",
+        MediaId = "283938",
+        TmdbId = "283938"
     };
 }

@@ -15,15 +15,15 @@ internal static partial class EmbyRealtimeTests
     {
         RegisterMessageBoundaries();
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
-        foreach (var type in new[] { WebSocketMessageType.Text, WebSocketMessageType.Binary })
-        foreach (var end in new[] { true, false })
-        {
-            var product = kind;
-            var messageType = type;
-            var endOfMessage = end;
-            Test($"PERF-11：{kind} {type} 累计1MiB+1字节（结束={end}）中止且沿既有退避重连", () =>
-                VerifyOverBudgetAsync(product, messageType, endOfMessage).WaitAsync(TimeSpan.FromSeconds(12)).GetAwaiter().GetResult());
-        }
+            foreach (var type in new[] { WebSocketMessageType.Text, WebSocketMessageType.Binary })
+                foreach (var end in new[] { true, false })
+                {
+                    var product = kind;
+                    var messageType = type;
+                    var endOfMessage = end;
+                    Test($"PERF-11：{kind} {type} 累计1MiB+1字节（结束={end}）中止且沿既有退避重连", () =>
+                        VerifyOverBudgetAsync(product, messageType, endOfMessage).WaitAsync(TimeSpan.FromSeconds(12)).GetAwaiter().GetResult());
+                }
     }
 
     private static async Task VerifyOverBudgetAsync(MediaServerKind kind, WebSocketMessageType type, bool end)

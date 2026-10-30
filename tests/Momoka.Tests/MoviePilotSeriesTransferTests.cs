@@ -192,8 +192,18 @@ internal static class MoviePilotSeriesTransferTests
         var target = "/library/S01E" + id + ".mkv";
         return new MoviePilotTransferHistory
         {
-            Id = id, Title = "测试剧", Type = "电视剧", MediaSource = "themoviedb", MediaId = "283938", TmdbId = "283938",
-            Seasons = "S01", Episodes = "E" + id, Mode = "softlink", Success = true, SourcePath = source, TargetPath = target,
+            Id = id,
+            Title = "测试剧",
+            Type = "电视剧",
+            MediaSource = "themoviedb",
+            MediaId = "283938",
+            TmdbId = "283938",
+            Seasons = "S01",
+            Episodes = "E" + id,
+            Mode = "softlink",
+            Success = true,
+            SourcePath = source,
+            TargetPath = target,
             SourceFile = Json(JsonSerializer.Serialize(new { storage = "local", type = "file", path = source })),
             TargetFile = Json(JsonSerializer.Serialize(new { storage = "local", type = "file", path = target }))
         };
@@ -207,9 +217,18 @@ internal static class MoviePilotSeriesTransferTests
             total,
             list = histories.Select(history => new
             {
-                id = history.Id, title = history.Title, type = history.Type, media_source = history.MediaSource,
-                media_id = history.MediaId, tmdbid = history.TmdbId, src_fileitem = history.SourceFile, dest_fileitem = history.TargetFile,
-                seasons = history.Seasons, episodes = history.Episodes, mode = history.Mode, status = history.Success
+                id = history.Id,
+                title = history.Title,
+                type = history.Type,
+                media_source = history.MediaSource,
+                media_id = history.MediaId,
+                tmdbid = history.TmdbId,
+                src_fileitem = history.SourceFile,
+                dest_fileitem = history.TargetFile,
+                seasons = history.Seasons,
+                episodes = history.Episodes,
+                mode = history.Mode,
+                status = history.Success
             })
         }
     });

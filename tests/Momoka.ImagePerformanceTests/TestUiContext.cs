@@ -15,7 +15,8 @@ internal sealed class TestUiContext : SynchronizationContext, IDisposable
         {
             SetSynchronizationContext(this);
             foreach (var action in _queue.GetConsumingEnumerable()) action();
-        }) { IsBackground = true, Name = "perf-images-managed-ui-fixture" };
+        })
+        { IsBackground = true, Name = "perf-images-managed-ui-fixture" };
         _thread.Start();
     }
 

@@ -28,8 +28,17 @@ internal static class CoverDecodeTests
                 Assert.True(Math.Abs(frame.Pixels[0] - 38) <= 1);
                 Assert.True(Math.Abs(frame.Pixels[1] - 47) <= 1);
                 Assert.True(Math.Abs(frame.Pixels[2] - 56) <= 1);
-                Measurements.Add(new { kind = "actual-WinRT-bounded-cover", width, height, inputBytes = png.Length,
-                    outputWidth = frame.Width, outputHeight = frame.Height, retainedFrameBytes = frame.Pixels.Length, elapsedMs = clock.Elapsed.TotalMilliseconds });
+                Measurements.Add(new
+                {
+                    kind = "actual-WinRT-bounded-cover",
+                    width,
+                    height,
+                    inputBytes = png.Length,
+                    outputWidth = frame.Width,
+                    outputHeight = frame.Height,
+                    retainedFrameBytes = frame.Pixels.Length,
+                    elapsedMs = clock.Elapsed.TotalMilliseconds
+                });
             });
         }
 
@@ -101,8 +110,16 @@ internal static class CoverDecodeTests
             finally { stop.TrySetResult(true); await heartbeat.WaitAsync(Deadline); }
             Assert.True(heartbeats >= 3, "解码期间心跳继续而非只在结束后一次");
             Assert.True(peakDelay < 1000, "仅是宽松不挂死门槛，不冒充实际WinUI帧时限");
-            Measurements.Add(new { kind = "actual-WinRT-managed-queue", inputWidth = 7680, inputHeight = 4320,
-                samples = 5, processedHeartbeats = heartbeats, heartbeatMaxDispatchDelayMs = peakDelay, uiThread = ui.ThreadId });
+            Measurements.Add(new
+            {
+                kind = "actual-WinRT-managed-queue",
+                inputWidth = 7680,
+                inputHeight = 4320,
+                samples = 5,
+                processedHeartbeats = heartbeats,
+                heartbeatMaxDispatchDelayMs = peakDelay,
+                uiThread = ui.ThreadId
+            });
         });
     }
 }
