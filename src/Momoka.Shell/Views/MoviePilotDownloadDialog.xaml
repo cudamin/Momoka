@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:moviepilot="using:Momoka.MoviePilot"
     PrimaryButtonText="开始下载" CloseButtonText="取消" DefaultButton="None"
-    Background="{ThemeResource EgDialogGlassBrush}" Foreground="{ThemeResource EgTextBrush}"
+    Background="{ThemeResource EgSurfaceBrush}" Foreground="{ThemeResource EgTextBrush}"
     BorderThickness="0" CornerRadius="{StaticResource EgCardCornerRadius}"
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}">
     <ContentDialog.Resources>

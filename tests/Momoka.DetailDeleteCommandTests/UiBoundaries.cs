@@ -30,7 +30,7 @@ namespace Microsoft.UI.Xaml
         public Dictionary<string, object> Resources { get; } = new()
         {
             ["EgLibraryDialogSurfaceStyle"] = new Style(),
-            ["SystemControlTransparentBrush"] = new object()
+            ["LayerFillColorDefaultBrush"] = new object()
         };
     }
     public class FrameworkElement

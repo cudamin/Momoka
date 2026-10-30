@@ -20,7 +20,7 @@ internal static class DialogChromeTests
 
     public static void Register()
     {
-        Test("弹窗表面：共享基础样式给弹窗玻璃底、无边框、EgCard 圆角", () =>
+        Test("弹窗表面：共享基础样式给实心面色、无边框、EgCard 圆角", () =>
         {
             var style = Styles().Single(element => element.Attribute(Xaml + "Key")?.Value == SurfaceStyle);
             Assert.Equal("ContentDialog", style.Attribute("TargetType")?.Value);
@@ -28,25 +28,25 @@ internal static class DialogChromeTests
                 "基础样式不接框架那一条就没有 ControlTemplate");
 
             var setters = Setters(style);
-            Assert.Equal("{ThemeResource EgDialogGlassBrush}", setters.GetValueOrDefault("Background"));
+            Assert.Equal("{ThemeResource EgSurfaceBrush}", setters.GetValueOrDefault("Background"));
             Assert.Equal("{ThemeResource EgTextBrush}", setters.GetValueOrDefault("Foreground"));
             Assert.Equal("0", setters.GetValueOrDefault("BorderThickness"));
             Assert.Equal("{StaticResource EgCardCornerRadius}", setters.GetValueOrDefault("CornerRadius"));
         });
 
-        Test("弹窗玻璃：深浅字典都是亚克力，高对比度退回系统窗口色", () =>
+        Test("菜单与浮出层：深浅字典都是实心面色和主题边线，弹窗不再上亚克力", () =>
         {
             var palette = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "Palette.xaml"));
             foreach (var key in new[] { "Dark", "Light" })
             {
                 var entries = palette.Descendants().Single(element => element.Name.LocalName == "ResourceDictionary"
                     && element.Attribute(Xaml + "Key")?.Value == key);
-                var glass = entries.Elements().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgDialogGlassBrush");
-                Assert.Equal("AcrylicBrush", glass.Name.LocalName);
-                Assert.Equal("{StaticResource EgSurfaceColor}", glass.Attribute("TintColor")?.Value);
-                Assert.Equal("{StaticResource EgSurfaceColor}", glass.Attribute("FallbackColor")?.Value);
+                Assert.False(entries.Elements().Any(element => element.Attribute(Xaml + "Key")?.Value == "EgDialogGlassBrush"),
+                    "弹窗表面又用上了亚克力");
+                Assert.False(entries.Elements().Any(element => element.Attribute(Xaml + "Key")?.Value == "ContentDialogTopOverlay"),
+                    "弹窗顶盖又被打成了全局覆盖");
                 foreach (var menuKey in new[] { "MenuFlyoutPresenterBackground", "FlyoutPresenterBackground" })
-                    Assert.Equal("EgDialogGlassBrush", entries.Elements().Single(element =>
+                    Assert.Equal("EgSurfaceBrush", entries.Elements().Single(element =>
                         element.Attribute(Xaml + "Key")?.Value == menuKey).Attribute("ResourceKey")?.Value);
                 foreach (var borderKey in new[] { "MenuFlyoutPresenterBorderBrush", "FlyoutPresenterBorderBrush" })
                     Assert.Equal("EgBorderBrush", entries.Elements().Single(element =>
@@ -54,16 +54,15 @@ internal static class DialogChromeTests
             }
             var contrast = palette.Descendants().Single(element => element.Name.LocalName == "ResourceDictionary"
                 && element.Attribute(Xaml + "Key")?.Value == "HighContrast");
-            var solid = contrast.Elements().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgDialogGlassBrush");
-            Assert.Equal("SolidColorBrush", solid.Name.LocalName);
-            Assert.Equal("{ThemeResource SystemColorWindowColor}", solid.Attribute("Color")?.Value);
+            Assert.False(contrast.Elements().Any(element => element.Attribute(Xaml + "Key")?.Value == "EgDialogGlassBrush"),
+                "高对比度里还留着一张弹窗玻璃");
         });
 
-        Test("媒体库弹窗：同一块弹窗玻璃并继承圆角", () =>
+        Test("媒体库弹窗：同一块侧栏底色并继承圆角", () =>
         {
             var style = Styles().Single(element => element.Attribute(Xaml + "Key")?.Value == LibraryStyle);
             Assert.Equal("{StaticResource " + SurfaceStyle + "}", style.Attribute("BasedOn")?.Value);
-            Assert.Equal("{ThemeResource EgDialogGlassBrush}", Setters(style).GetValueOrDefault("Background"));
+            Assert.Equal("{ThemeResource LayerFillColorDefaultBrush}", Setters(style).GetValueOrDefault("Background"));
         });
 
         Test("弹窗表面：媒体库与MP及普通窗口按明确范围接各自样式", () =>
@@ -87,35 +86,30 @@ internal static class DialogChromeTests
             }
         });
 
-        Test("弹窗表面：正文叠色让玻璃透出来，媒体库逐表透明而MP不另写", () =>
+        Test("弹窗表面：库弹窗顶盖与侧栏同色，MP不另写", () =>
         {
             var folder = Path.Combine(Root(), "src", "Momoka.Shell", "Views");
             foreach (var type in LibraryDialogs)
             {
                 var alias = XDocument.Load(Path.Combine(folder, type + ".xaml")).Descendants().Single(element =>
                     element.Attribute(Xaml + "Key")?.Value == "ContentDialogTopOverlay");
-                Assert.Equal("SystemControlTransparentBrush", alias.Attribute("ResourceKey")?.Value);
+                Assert.Equal("LayerFillColorDefaultBrush", alias.Attribute("ResourceKey")?.Value);
             }
             foreach (var file in Directory.GetFiles(folder, "MoviePilot*.xaml"))
                 Assert.False(File.ReadAllText(file).Contains("ContentDialogTopOverlay", StringComparison.Ordinal), "MP叠色被修改");
-            // 2026-10-29：弹窗底统一成玻璃，顶盖必须透明才不会在玻璃上留一条实色带。
+            // 2026-10-30：弹窗表面回到实心之后，不再需要全局透明盖；普通/MP 弹窗回到框架自己的顶盖。
             var palette = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "Palette.xaml"));
-            foreach (var key in new[] { "Dark", "Light" })
-            {
-                var entries = palette.Descendants().Single(element => element.Name.LocalName == "ResourceDictionary"
-                    && element.Attribute(Xaml + "Key")?.Value == key);
-                var overlay = entries.Elements().Single(element => element.Attribute(Xaml + "Key")?.Value == "ContentDialogTopOverlay");
-                Assert.Equal("Transparent", overlay.Attribute("Color")?.Value);
-            }
+            Assert.False(palette.Descendants().Any(element => element.Attribute(Xaml + "Key")?.Value == "ContentDialogTopOverlay"),
+                "框架顶盖又被打成了全局覆盖");
         });
 
-        Test("媒体库弹窗：筛选和库设置也用弹窗玻璃与圆角刻度", () =>
+        Test("媒体库弹窗：筛选和库设置也用侧栏底色与圆角刻度", () =>
         {
             foreach (var file in new[] { "FilterPanel.xaml", "LibrarySettingsPanel.xaml" })
             {
                 var surface = XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", file)).Descendants()
                     .Single(element => element.Attribute(Xaml + "Name")?.Value == "LibraryDialogSurface");
-                Assert.Equal("{ThemeResource EgDialogGlassBrush}", surface.Attribute("Background")?.Value);
+                Assert.Equal("{ThemeResource LayerFillColorDefaultBrush}", surface.Attribute("Background")?.Value);
                 Assert.Equal("{StaticResource EgCardCornerRadius}", surface.Attribute("CornerRadius")?.Value);
             }
         });
@@ -142,11 +136,11 @@ internal static class DialogChromeTests
             Assert.Equal(9, count, "七个字段锁、列表锁和加入日期按钮应全部覆盖");
         });
 
-        Test("媒体库弹窗：编辑子浮层同材质圆角但不污染全局Flyout", () =>
+        Test("媒体库弹窗：编辑子浮层同底色圆角但不污染全局Flyout", () =>
         {
             var style = Styles().Single(element => element.Attribute(Xaml + "Key")?.Value == "EgLibraryFlyoutSurfaceStyle");
             Assert.Equal("FlyoutPresenter", style.Attribute("TargetType")?.Value);
-            Assert.Equal("{ThemeResource EgDialogGlassBrush}", Setters(style).GetValueOrDefault("Background"));
+            Assert.Equal("{ThemeResource LayerFillColorDefaultBrush}", Setters(style).GetValueOrDefault("Background"));
             Assert.Equal("{StaticResource EgCardCornerRadius}", Setters(style).GetValueOrDefault("CornerRadius"));
             foreach (var file in new[] { "EmbyMetadataDialog.xaml", "MetadataListEditor.xaml" })
                 foreach (var flyout in XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Views", file)).Descendants()
@@ -193,7 +187,7 @@ internal static class DialogChromeTests
 
                 if (Path.GetFileName(file) == "MoviePilotDownloadDialog.xaml")
                 {
-                    Assert.Equal("{ThemeResource EgDialogGlassBrush}", values[0], "下载弹窗的样板底色没有跟上弹窗玻璃");
+                    Assert.Equal("{ThemeResource EgSurfaceBrush}", values[0], "下载弹窗的样板底色被改了");
                     Assert.Equal("{ThemeResource EgTextBrush}", values[1], "下载弹窗的样板前景色被改了");
                     Assert.Equal("0", values[2], "下载弹窗的样板边框被改了");
                     Assert.Equal("{StaticResource EgCardCornerRadius}", values[3], "下载弹窗的样板圆角被改了");

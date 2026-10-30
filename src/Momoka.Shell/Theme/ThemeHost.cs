@@ -71,9 +71,6 @@ public static class ThemeHost
         // 它是这一页正文本来的底，亚克力只是让背后那张剧照透上来一点点，不是换一种颜色。
         ("EgFrostBrush", theme => theme.Colors.Window),
 
-        // 弹窗与浮出层的玻璃（2026-10-29）：tint 取弹窗本来的面色，浓度归 Palette 两份字典。
-        ("EgDialogGlassBrush", theme => theme.Colors.Surface),
-
         // 悬停/按下的叠加层。不取自主题的任何一个角色 —— 它按深浅在白和黑之间翻，因为它要压在
         // *下面那层是什么* 上面，而不是配合某个色相。数字和 HostWindow.PaintCaption 给系统窗口按钮
         // 设的那组一致，标题栏两头才是同一种手感。

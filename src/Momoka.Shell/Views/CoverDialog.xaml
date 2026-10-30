@@ -8,8 +8,8 @@
     PrimaryButtonText="完成">
 
     <ContentDialog.Resources>
-        <!-- The framework adds a top-only overlay; the dialog surface is glass, so let it show through. -->
-        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="SystemControlTransparentBrush" />
+        <!-- The framework adds a top-only overlay; keep the complete library window on the sidebar color. -->
+        <StaticResource x:Key="ContentDialogTopOverlay" ResourceKey="LayerFillColorDefaultBrush" />
         <x:Double x:Key="ContentDialogMaxWidth">1080</x:Double>
     </ContentDialog.Resources>
 
