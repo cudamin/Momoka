@@ -12,30 +12,62 @@ public sealed partial class MoviePilotReorganizeDialog
         if (!_submitting) Hide();
     }
 
+    /// <summary>
+    /// ContentDialog 的表面宽度跟着内容走：不先给正文一个宽度，四列星号列会塌成内容宽度，
+    /// 弹窗也就停在半宽。这里按窗口可用宽度给正文定宽，再由正文决定弹窗宽度（上限 1000）。
+    /// </summary>
+    private void OnDialogSizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        DialogBody.Width = Math.Min(960, Math.Max(260, args.NewSize.Width - 80));
+    }
+
+    /// <summary>
+    /// 表单按窗口宽度在四列、两列和单列之间重排。四列是为了在 1000 宽的弹窗里一次放下全部选项，
+    /// 不再靠滚动条找下半截（上游网页端 720 宽时是滚动的）。
+    /// </summary>
     private void OnBodySizeChanged(object sender, SizeChangedEventArgs args)
     {
-        var narrow = args.NewSize.Width < 480;
-        ReorganizeTitle.Width = args.NewSize.Width;
-        FormScroll.MaxHeight = Math.Max(120, (XamlRoot?.Size.Height ?? 900) - 280);
-        Place(TransferMethodField, DestinationGrid);
-        Place(MediaSourceField, IdentityGrid);
-        Place(EpisodeBox, SeasonGrid);
-        Place(EpisodeOffsetField, EpisodeFormatGrid);
-        Place(MinimumSizeField, FileOptionsGrid);
-        Place(CategoryFolderField, FolderOptionsGrid);
-        Place(FromHistoryField, ScrapeOptionsGrid);
-        var compactActions = args.NewSize.Width < 430;
+        var width = args.NewSize.Width;
+        ReorganizeTitle.Width = width;
+        // 弹窗模板不带可用的滚动区（ContentScrollViewer 关闭滚动），内容高于窗口就会被裁；
+        // 这里按屏幕高度给表单封顶，标题和操作区始终留在屏内。
+        FormScroll.MaxHeight = Math.Clamp((XamlRoot?.Size.Height ?? 900) - 215, 200, 700);
+        _formColumns = width >= 860 ? 4 : width >= 560 ? 2 : 1;
+        LayoutForm();
+        var compactActions = width < 430;
         Grid.SetRow(ReorganizeButton, compactActions ? 1 : 0);
         Grid.SetColumn(ReorganizeButton, compactActions ? 0 : 3);
         Grid.SetColumnSpan(ReorganizeButton, compactActions ? 4 : 1);
         ReorganizeButton.HorizontalAlignment = compactActions ? HorizontalAlignment.Stretch : HorizontalAlignment.Right;
+    }
 
-        void Place(FrameworkElement field, Grid grid)
+    /// <summary>按当前列数把所有字段重新摆进各自的网格；显隐变化（如复用历史）也要重排。</summary>
+    private void LayoutForm()
+    {
+        // 复用历史时类型与数据源收起，目的那一行只剩两颗：收成两列，不在右边留半排空格。
+        var columns = _formColumns;
+        Reflow(DestinationGrid, [TargetStorageField, TransferMethodField, TypeField, MediaSourceField],
+            FromHistoryToggle.IsOn ? Math.Min(2, columns) : columns);
+        Reflow(IdentityGrid, [MediaIdPanel, SeasonField, EpisodeField, EpisodeGroupPanel, EpisodeFormatField, EpisodeOffsetField], columns);
+        Reflow(FileOptionsGrid, [PartField, MinimumSizeField, ScrapeField, FromHistoryField], columns);
+        Reflow(FolderOptionsGrid, [TypeFolderField, CategoryFolderField], Math.Min(2, columns));
+    }
+
+    private static void Reflow(Grid grid, IReadOnlyList<FrameworkElement> fields, int columns)
+    {
+        for (var index = 0; index < grid.ColumnDefinitions.Count; index++)
+            grid.ColumnDefinitions[index].Width = index < columns ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
+        // 只留真正用到的行：空行本身高度是 0，但 Grid.RowSpacing 照样在空行之间加间距，
+        // 四列时会凭空多出三行空白。行数跟着列数重算。
+        grid.RowDefinitions.Clear();
+        for (var index = 0; index < (fields.Count + columns - 1) / columns; index++)
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        grid.ColumnSpacing = columns > 1 ? 14 : 0;
+        for (var index = 0; index < fields.Count; index++)
         {
-            grid.ColumnDefinitions[1].Width = narrow ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
-            grid.ColumnSpacing = narrow ? 0 : 20;
-            Grid.SetColumn(field, narrow ? 0 : 1);
-            Grid.SetRow(field, narrow ? 1 : 0);
+            Grid.SetColumn(fields[index], index % columns);
+            Grid.SetRow(fields[index], index / columns);
+            Grid.SetColumnSpan(fields[index], 1);
         }
     }
 
@@ -49,9 +81,13 @@ public sealed partial class MoviePilotReorganizeDialog
             "anilist" => "AniList 编号",
             _ => "媒体编号"
         };
-        IdentityPanel.Visibility = FromHistoryToggle.IsOn ? Visibility.Collapsed : Visibility.Visible;
+        TypeField.Visibility = MediaSourceField.Visibility = FromHistoryToggle.IsOn ? Visibility.Collapsed : Visibility.Visible;
+        LayoutForm();
+        IdentityGrid.Visibility = !FromHistoryToggle.IsOn && EditIdentity ? Visibility.Visible : Visibility.Collapsed;
         MediaIdPanel.Visibility = EditIdentity ? Visibility.Visible : Visibility.Collapsed;
-        EpisodeRow.Visibility = EditEpisodes ? Visibility.Visible : Visibility.Collapsed;
+        SeasonField.Visibility = EpisodeField.Visibility =
+            EpisodeFormatField.Visibility = EpisodeOffsetField.Visibility =
+                EditEpisodes ? Visibility.Visible : Visibility.Collapsed;
         EpisodeGroupPanel.Visibility = EditGroup ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -74,10 +110,9 @@ public sealed partial class MoviePilotReorganizeDialog
 
     private void UpdatePathChoices()
     {
-        var storage = (TargetStorageBox.SelectedItem as MoviePilotStorage)?.Type ?? "";
         var text = TargetPathBox.Text;
+        // 和上游一样列出全部媒体库目录，不按当前存储筛：选中目录后存储、方式、分类开关都跟着目录配置走。
         TargetPathBox.ItemsSource = new[] { "自动" }.Concat((_options?.Directories ?? [])
-            .Where(directory => storage.Length == 0 || directory.Storage == storage)
             .Select(directory => directory.Path).Distinct(StringComparer.Ordinal)).ToList();
         TargetPathBox.Text = text;
     }
@@ -100,12 +135,85 @@ public sealed partial class MoviePilotReorganizeDialog
     private void OnTargetTextChanged()
     {
         if (!_initialized || _updating) return;
+        if (_busy) return;
+        ApplyTargetPath();
+    }
+
+    private void OnDirectoryChanged(object sender, SelectionChangedEventArgs args)
+    {
+        if (!_initialized || _updating || _busy) return;
+        // 下拉选中与手输走同一条路：文字没变时 TextChanged 不响，选中同一项仍要重新应用目录配置。
+        ApplyTargetPath();
+    }
+
+    /// <summary>
+    /// 目的路径变了就按目录配置改派生项（上游 ReorganizeDialog 监听 target_path 的那一段）：
+    /// 命中的目录带来存储、整理方式、刮削与两个分类开关；手填的陌生路径按上游退到本地存储 + 复制、
+    /// 三个开关显式关闭；回到「自动」则清空全部显式值，交回后端匹配。
+    /// 整理方式只在当前仍是「自动」时采用目录配置，已手选的方式不被后来的路径覆盖。
+    /// </summary>
+    private void ApplyTargetPath()
+    {
         if (AutomaticPath)
         {
             ResetAutomaticTarget();
             _ = RefreshAutomaticTargetAsync();
+            return;
         }
-        else Edited();
+        var path = TargetPathBox.Text.Trim();
+        var directory = _options?.Directories.FirstOrDefault(item => MoviePilotTransfer.SamePath(item.Path, path));
+        _updating = true;
+        if (directory is not null)
+        {
+            SelectStorage(directory.Storage, onlyWhenAutomatic: false);
+            if (TransferTypeBox.SelectedIndex <= 0) TransferTypeBox.SelectedIndex = TransferTypeIndex(directory.TransferType);
+            PinFolderOptions(directory.Scrape, directory.TypeFolder, directory.CategoryFolder);
+        }
+        else
+        {
+            SelectStorage("local", onlyWhenAutomatic: true);
+            if (TransferTypeBox.SelectedIndex <= 0) TransferTypeBox.SelectedIndex = TransferTypeIndex("copy");
+            PinFolderOptions(false, false, false);
+        }
+        _updating = false;
+        _matchedDirectory = null;
+        Edited();
+    }
+
+    private void SelectStorage(string type, bool onlyWhenAutomatic)
+    {
+        var current = (TargetStorageBox.SelectedItem as MoviePilotStorage)?.Type ?? "";
+        if (onlyWhenAutomatic && current.Length > 0) return;
+        if (current == type) return;
+        var items = (TargetStorageBox.ItemsSource as IEnumerable<MoviePilotStorage>)?.ToList() ?? [];
+        var storage = items.FirstOrDefault(item => item.Type == type);
+        if (storage is null)
+        {
+            if (type.Length == 0) return;
+            storage = new MoviePilotStorage(type == "local" ? "本地" : type, type);
+            items.Add(storage);
+            TargetStorageBox.ItemsSource = items;
+        }
+        TargetStorageBox.SelectedItem = storage;
+    }
+
+    private static int TransferTypeIndex(string? type) => type switch
+    {
+        "copy" => 1,
+        "move" => 2,
+        "link" => 3,
+        "softlink" => 4,
+        _ => 0
+    };
+
+    private void PinFolderOptions(bool scrape, bool typeFolder, bool categoryFolder)
+    {
+        _scrape = scrape;
+        _typeFolder = typeFolder;
+        _categoryFolder = categoryFolder;
+        ScrapeToggle.IsOn = scrape;
+        TypeFolderToggle.IsOn = typeFolder;
+        CategoryFolderToggle.IsOn = categoryFolder;
     }
 
     private async Task RefreshAutomaticTargetAsync()
@@ -121,12 +229,8 @@ public sealed partial class MoviePilotReorganizeDialog
     private async void OnStorageChanged(object sender, SelectionChangedEventArgs args)
     {
         if (!_initialized || _updating || _busy) return;
-        Edited();
         _matchedDirectory = null;
-        _updating = true;
-        UpdatePathChoices();
-        _updating = false;
-        UpdateMatchVisibility();
+        Edited();
         if (!AutomaticPath || _histories.Count == 0) return;
         SetBusy(true);
         try { await RefreshTargetMatchAsync().ConfigureAwait(true); }

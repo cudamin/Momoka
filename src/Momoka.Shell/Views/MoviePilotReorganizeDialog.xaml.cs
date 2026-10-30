@@ -24,6 +24,7 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
     private int _groupRevision;
     private CancellationTokenSource? _groupLookup;
     private MoviePilotTransferPreview? _preview;
+    private int _formColumns = 4;
     private bool _initialized;
     private bool _updating;
     private bool _busy;
@@ -44,18 +45,16 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
         ReorganizeSubtitle.Text = $"{context.Title} · 共 {context.Files.Count} 项";
         SourcePathBox.Text = string.Join("\n", context.Files.Select(file => file.Path));
         HistoryQuery.Text = context.Title;
-        TypeBox.SelectedIndex = context.Type == MoviePilotTransferRequest.TypeSeries ? 2 : 1;
+        // 打开时全部是自动（对齐上游 ReorganizeDialog 的初始 transferForm）：类型、数据源、编号和季集都
+        // 不带当前条目的值，由后端按文件名识别；要覆盖识别结果时再由用户手选。
+        TypeBox.SelectedIndex = 0;
         TransferTypeBox.SelectedIndex = 0;
-        SeasonBox.Text = context.Season?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "";
-        EpisodeBox.Text = context.Episode;
-        MediaIdBox.Text = context.MediaId;
         TargetPathBox.RegisterPropertyChangedCallback(ComboBox.TextProperty, (_, _) => OnTargetTextChanged());
         EpisodeGroupBox.RegisterPropertyChangedCallback(ComboBox.TextProperty, (_, _) => Edited());
         Opened += async (_, _) => await LoadAsync().ConfigureAwait(true);
         Closing += (_, args) => { if (_submitting) args.Cancel = true; };
         Closed += (_, _) => { _lifetime.Cancel(); _groupLookup?.Cancel(); };
         _initialized = true;
-        EpisodeRow.Visibility = context.Type == MoviePilotTransferRequest.TypeSeries ? Visibility.Visible : Visibility.Collapsed;
         if (_initialHistories is not null)
         {
             Title = $"批量重新整理 — {context.Title}（{_initialHistories.Count} 条）";
@@ -198,23 +197,12 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
     private void ApplyDirectory(MoviePilotDirectory directory)
     {
         _updating = true;
-        TargetStorageBox.SelectedItem = _options?.Storages.FirstOrDefault(storage => storage.Type == directory.Storage);
-        if (TargetStorageBox.SelectedItem is null && directory.Storage.Length > 0)
-        {
-            var storage = new MoviePilotStorage(directory.Storage, directory.Storage);
-            TargetStorageBox.ItemsSource = new[] { new MoviePilotStorage("自动", "") }.Concat(_options?.Storages ?? []).Append(storage).ToList();
-            TargetStorageBox.SelectedItem = storage;
-        }
-        UpdatePathChoices();
+        SelectStorage(directory.Storage, onlyWhenAutomatic: false);
         TargetPathBox.Text = directory.Path;
-        TransferTypeBox.SelectedIndex = directory.TransferType switch { "copy" => 1, "move" => 2, "link" => 3, "softlink" => 4, _ => 0 };
-        _typeFolder = directory.TypeFolder;
-        _categoryFolder = directory.CategoryFolder;
-        _scrape = directory.Scrape;
-        TypeFolderToggle.IsOn = directory.TypeFolder;
-        CategoryFolderToggle.IsOn = directory.CategoryFolder;
-        ScrapeToggle.IsOn = directory.Scrape;
+        TransferTypeBox.SelectedIndex = TransferTypeIndex(directory.TransferType);
+        PinFolderOptions(directory.Scrape, directory.TypeFolder, directory.CategoryFolder);
         _updating = false;
+        _matchedDirectory = null;
         InvalidatePreview();
         UpdateMatchVisibility();
     }
@@ -422,26 +410,6 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
         UpdateIdentityVisibility();
         QueueGroupLookup();
         Edited();
-    }
-
-    private async void OnDirectoryChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (!_initialized || _updating || _busy) return;
-        if (TargetPathBox.SelectedItem as string == "自动")
-        {
-            ResetAutomaticTarget();
-            SetBusy(true);
-            try { await RefreshTargetMatchAsync().ConfigureAwait(true); }
-            catch (OperationCanceledException) { }
-            catch (Exception error) { Say(Failure.Describe(error)); }
-            finally { SetBusy(false); }
-            return;
-        }
-        var storage = (TargetStorageBox.SelectedItem as MoviePilotStorage)?.Type ?? "";
-        var choices = _options?.Directories.Where(directory => directory.Path == TargetPathBox.SelectedItem as string &&
-            (storage.Length == 0 || directory.Storage == storage)).ToList();
-        if (choices is [var directory]) ApplyDirectory(directory);
-        else Edited();
     }
 
     private async void OnMediaIdQuery(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)

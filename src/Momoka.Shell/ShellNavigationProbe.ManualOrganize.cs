@@ -30,12 +30,57 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             await ShowAsync();
-            Require(Get<ComboBox>(dialog!, "TargetPathBox").Text.Length == 0, "自动匹配覆盖了未确认的目的路径");
-            Require(Get<ComboBox>(dialog!, "TransferTypeBox").SelectedIndex == 0, "自动方式变成了显式目录方式");
+            var type = Get<ComboBox>(dialog!, "TypeBox");
+            var method = Get<ComboBox>(dialog!, "TransferTypeBox");
+            var storage = Get<ComboBox>(dialog!, "TargetStorageBox");
+            var path = Get<ComboBox>(dialog!, "TargetPathBox");
+            var mediaId = Get<AutoSuggestBox>(dialog!, "MediaIdBox");
+            // 打开时全部自动：不预选当前条目的类型、编号、季集，也不显示识别区。
+            Require(type.SelectedIndex == 0, "打开时类型不是自动");
+            Require(mediaId.Text.Length == 0, "媒体编号带了当前条目的值");
+            Require(Get<TextBox>(dialog!, "SeasonBox").Text.Length == 0, "季号带了当前条目的值");
+            Require(Get<TextBox>(dialog!, "EpisodeBox").Text.Length == 0, "集号带了当前条目的值");
+            Require(Get<Grid>(dialog!, "IdentityGrid").Visibility == Visibility.Collapsed, "自动类型仍显示识别区");
+            Require(path.Text.Length == 0, "自动匹配覆盖了未确认的目的路径");
+            Require(method.SelectedIndex == 0, "自动方式变成了显式目录方式");
             Require(Get<TextBox>(dialog!, "OriginalSourceBox").Text == ManualOrganizeServer.Source, "原源文件未回填：" + Get<TextBox>(dialog!, "OriginalSourceBox").Text);
             Require(Get<ToggleSwitch>(dialog!, "TypeFolderToggle").IsOn, "自动分类没有展示匹配目录的有效值");
             Require(Get<Border>(dialog!, "MatchedPathPanel").Visibility == Visibility.Visible, "缺少使用匹配路径入口");
+            // 放大后的窗口一次放下全部选项：默认视图没有纵向滚动。
+            ResizeInspect(1040, 920);
+            await LayoutAsync(dialog!);
+            await Task.Delay(120);
+            var formScroll = Get<ScrollViewer>(dialog!, "FormScroll");
+            Require(dialog!.ActualWidth >= 900, $"整理窗口没有放大：{dialog.ActualWidth:0}");
+            Require(formScroll.ScrollableHeight < 1, $"默认视图仍需滚动：{formScroll.ScrollableHeight:0}；窗口 {dialog!.ActualWidth:0}×{dialog.ActualHeight:0}，正文 {Get<Grid>(dialog, "DialogBody").ActualWidth:0}×{Get<Grid>(dialog, "DialogBody").ActualHeight:0}，视口 {formScroll.ViewportHeight:0}，表单 {Get<ContentControl>(dialog, "FormPanel").ActualHeight:0}，目的 {Get<Grid>(dialog, "DestinationGrid").ActualWidth:0}，折叠 {Get<Expander>(dialog, "AdvancedOptions").IsExpanded}");
+            await SaveProbeScreenAsync("mp-manual-default-screen.png");
+            // 选媒体库目录：存储、整理方式、刮削与两个分类开关跟着目录配置走。
+            path.Text = "/library";
+            await SettleAsync();
+            Require(storage.SelectedItem is MoviePilotStorage { Type: "local" }, "选目录没有带出目的存储");
+            Require(method.SelectedIndex == 4, "选目录没有带出整理方式");
+            Require(Get<ToggleSwitch>(dialog!, "TypeFolderToggle").IsOn, "选目录没有打开按类型分类");
+            Require(!Get<ToggleSwitch>(dialog!, "CategoryFolderToggle").IsOn, "选目录没有按目录关闭按类别分类");
+            Require(Get<ToggleSwitch>(dialog!, "ScrapeToggle").IsOn, "选目录没有带出刮削");
+            Require(Get<Border>(dialog!, "MatchedPathPanel").Visibility == Visibility.Collapsed, "显式路径仍显示自动匹配");
+            // 与上游一致：已手选的整理方式不被后来的路径覆盖；陌生路径退到本地复制。
+            path.Text = "/custom/library";
+            await SettleAsync();
+            Require(method.SelectedIndex == 4, "后来的路径覆盖了已手选的整理方式");
+            // 回到自动：显式值全部清空，交回后端匹配。
+            path.Text = "";
+            await UntilAsync(() => Get<Border>(dialog!, "MatchedPathPanel").Visibility == Visibility.Visible &&
+                method.SelectedIndex == 0 && storage.SelectedIndex == 0);
+            // 手选电视剧、TMDB 来源与编号后才有剧集组，取回两组供下拉。
+            type.SelectedIndex = 2;
+            Get<ComboBox>(dialog!, "SourceBox").SelectedIndex = 1;
+            mediaId.Text = "123";
+            Call(dialog!, "QueueGroupLookup");
             await UntilAsync(() => Get<ComboBox>(dialog!, "EpisodeGroupBox").Items.Count == 2);
+            await LayoutAsync(dialog!);
+            await Task.Delay(120);
+            Require(formScroll.ScrollableHeight < 1,
+                $"识别区展开后仍需滚动：{formScroll.ScrollableHeight:0}；视口 {formScroll.ViewportHeight:0}，表单 {Get<ContentControl>(dialog!, "FormPanel").ActualHeight:0}");
             foreach (var width in new[] { 1040, 720, 520 })
             {
                 ResizeInspect(width, 920);
@@ -87,9 +132,11 @@ internal sealed partial class ShellNavigationProbe
             Get<TextBox>(dialog!, "EpisodeFormatBox").Text = "第{ep}集";
             Get<TextBox>(dialog!, "EpisodeOffsetBox").Text = "-10";
             Get<ToggleSwitch>(dialog!, "FromHistoryToggle").IsOn = true;
-            Require(Get<StackPanel>(dialog!, "IdentityPanel").Visibility == Visibility.Collapsed, "复用历史没有收起手填识别区");
+            Call(dialog!, "OnFromHistoryChanged", Get<ToggleSwitch>(dialog!, "FromHistoryToggle"), new RoutedEventArgs());
+            Require(Get<Grid>(dialog!, "IdentityGrid").Visibility == Visibility.Collapsed, "复用历史没有收起手填识别区");
             await SaveProbeScreenAsync("mp-manual-history-screen.png");
             Get<ToggleSwitch>(dialog!, "FromHistoryToggle").IsOn = false;
+            Call(dialog!, "OnFromHistoryChanged", Get<ToggleSwitch>(dialog!, "FromHistoryToggle"), new RoutedEventArgs());
             Require(Get<TextBox>(dialog!, "EpisodeFormatBox").Text == "第{ep}集" &&
                 Get<TextBox>(dialog!, "EpisodeOffsetBox").Text == "-10", "关闭复用历史丢失手填内容");
             Get<ComboBox>(dialog!, "EpisodeGroupBox").Text = "group-1";
