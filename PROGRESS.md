@@ -4,7 +4,7 @@
 - 最终主树Shell及测试Release编译0警告0错误；完整测试3412/3412、fold实际页面／动画回归52/52，均0失败0跳过。主树library19/19（`shell-probe-20261030-124820868-30116`），实际发布件library19/19（`shell-probe-20261030-130243248-7272`）；10库首尾滚动、1280／800／760／801／1100 DIP、单张／多张恢复、轮播上下档恢复以及遮挡失败注入均通过。已查看发布件800 DIP末库实屏，计数与进度条完整可见。
 - 实际交付目录 `artifacts/publish/win-x64` 已由同一最终主树发布更新，ProductVersion `0.2.0+85728184cc94b5376c8f601b58dfcf72aa157cc0`；Shell发布件与本树发布构建SHA256相同（`BEF5D8B309627B73979FC67C4973C492D3450AAB16DAED945316873FE04A332E`）。桌面快捷方式读回TargetPath和WorkingDirectory均为主树实际交付目录。版本未升级、未上传远端。
 - 证据保存于 `artifacts/home-banner-evidence-20261030`，包含主树／发布件截图、几何读数、全测／fold日志及delivery.json，早期隐藏窗口导致的像素守卫失败日志亦保留。仅运行library分区，其余126项运行检查未执行，不称全量探针或真实服务器验收。
-
+- 收尾：本任务临时分支 `codex/home-banner-controls-space` 已在逐文件核对内容全部进入master后删除；开发树干净并切为detached HEAD。archive_worktree明确拒绝移除当前聊天primary checkout，目录保留，不绕过保护；撤回的集页任务仅创建过干净detached树，无产品改动。清理回执见 `artifacts/home-banner-evidence-20261030/cleanup-receipt.json`。
 
 ## 2026-10-30 图片编辑完整预览、候选与单集16:9已合入主树并交付
 
