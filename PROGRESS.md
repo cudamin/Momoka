@@ -1,3 +1,16 @@
+## 更多菜单「重新整理」折叠三条整理入口（2026-10-30）
+
+- 用户令：「更多按钮的菜单栏中新增一个重新整理选项用来折叠手动整理和智能整理还有 antbt 识别」。本批只改条目「更多」菜单的计划、搭建、AniBT 迟到补入口以及相关测试与探针；不改整理、识别或媒体管理实际执行的动作。
+- Core：`ItemMenu.MoviePilotBlock` 新增 `MoviePilotReorganizeMenu`（「重新整理」）父项，子项依次为「手动整理…」「智能整理／智能批量整理」「AniBT 识别」；一个可用子项都没有时整组不出现。顶层顺序改为搜索版本 → 重新整理 → 媒体管理，删除仍在最后一段。
+- 边界保留：飞牛／Plex 仍没有手动整理，但智能整理有权限时进入「重新整理」；AniBT 识别仍要求 MoviePilot 开启、条目资格与当前管理来源；`ItemMenu.IsMoviePilot` 收录新父项，MP 关闭时整组随其它 MP 入口一起收起。
+- Shell：子菜单沿用现有 `MenuFlyoutSubItem` 搭建，AutomationId 为 `MoviePilotReorganizeMenu`；迟到的动画分类补读不再往顶层插「AniBT 识别」，而是按 Core 计划重建整个子菜单（带上当前管理／智能权限与来源能力）。图标沿用整理动作那一颗。
+- 测试：主测试 **3331/3331、0 失败 0 跳过**（新增「重新整理」收齐三条与「只列可用条目／空组收起」两组断言，并更新媒体管理结构与 AniBT 菜单的层级查找）；`Momoka.AniBtEntryTests` **40/40**（构建、点击、来源切换与迟到补读全部改为按子菜单读取）；`Momoka.AniBtSourceContractTests shell-probe` **7/7**；`Momoka.ResourceBrowserTests` **100/100**（它读取同一探针源码）。
+- 整套 Release 构建 **0 警告 0 错误**；本轮 11 个改动文件的 `format whitespace` 通过。整套 `format whitespace` 仍有既有红项（本批未触碰文件，未修改、未放宽基线）；本批不是发版，未跑闸门 4 自检。
+- 探针：`--probe-shell --probe-section moviepilot --screen 1` **27/27、退出 0**（`shell-probe-20261030-064449061-25828`）；媒体管理用例新增展开「重新整理」，核对子项文案与自动化句柄、无品牌图标，每个主题×宽窗截图 `mp-media-reorganize-submenu-{theme}-{width}.png`，已看 `mp-media-reorganize-submenu-emby-dark-1280.png`：手动整理…、智能整理在子菜单内，媒体管理紧随其后。
+- 探针：`--probe-shell --probe-section anibt --screen 1` **3/3、退出 0**（`shell-probe-20261030-065014103-15152`）；非动漫剧／季／集的菜单用例改为展开「重新整理」后核对 UIA 名称，截图 `anibt-non-anime-menu-{Series,Season,Episode}-{1040,760}.png` 已看 Series-1040：手动整理… 与 AniBT 识别在子菜单内。此前该分区只跑完第一条就因 `ShellPage` 读历史能力时假 MoviePilot 未登记而崩；本次给假服务器补上 `user/current` 与 `system/global/user` 的只读回复（无管理权限），三条用例才能全部跑完。
+- 闸门 3：`tools/publish.ps1 -NoArchive` 通过，**546 文件／284.9 MB**、14 GLSL／4 HOOK／批准 mpv 清单 59 文件逐项校验；桌面 `Momoka.lnk` 仍指向 `artifacts\publish\win-x64`，未改快捷方式、未打 zip、未改版本、未推送 origin。
+- 产品提交 `a555997`。
+
 ## MoviePilot 版本窗口搜索区与设置页默认搜索站点（2026-10-30）
 
 - 用户令（附截图）：①「移除页面左上角的图标，以及搜索框下方文字为“MoviePilot 资源，搜索站点”的部分。参照搜索页面中 mp 资源搜索的样式，对当前搜索区域进行一致化修改，并将站点列表（下拉选择）移动到搜索按钮的左侧。同时，将当前页面的搜索框改为胶囊形状。请保持其余布局与交互不变，确保改动后各元素对齐、间距合理且在各尺寸下显示正常。」②「在设置的mp页面新增支持设置搜索时默认使用的站点」。本批只改「在 MoviePilot 搜索版本」独立窗口、站点选择器、设置页接入卡、相关探针、测试与文档。
