@@ -9191,3 +9191,14 @@ UI证据：屏2 settings,playback在shell-probe-20261025-142638842-25344通过24
 - 已看图：开发件与发布件的 `mp-manual-default-screen.png`（全部自动、无识别区、无滚动条）、`mp-manual-1040-screen.png`（电视剧识别区展开、无滚动条）、`mp-manual-history-screen.png`（复用历史收起识别区、目的行两列）、`mp-manual-520-screen.png`（单列）。520/720 窄窗仍会因高度不足出现滚动条，这是窗口尺寸限制，不是默认宽度下的行为。
 - 发布：`tools/publish.ps1 -NoArchive` 通过（546 文件／284.8 MB、载荷逐项校验），发布件 ProductVersion `0.2.0+bec0d821cce2d4b87b9c65caba1012c3ba6e2b07`，`Momoka.dll` SHA256 `227BCF6F83CA1F1765BE379E550FB2570953540D2876073EE01E6E509C8A1615`。桌面 `Momoka.lnk` 由 COM 读回被安全策略拒绝，改为读取 .lnk 字节确认仍指向 `artifacts\publish\win-x64\Momoka.exe`；发布目录时间戳晚于本次构建。
 - 未覆盖：全量自检、真实 MoviePilot 服务器整理、真实播放；`--probe-section moviepilot` 未选的 107 项不在本轮证据内；未推 origin、未改版本。
+
+### 2026-10-30 更多菜单：MoviePilot 能力迟到时原地补齐
+
+- 用户报（原话）：「刚打开应用时，更多按钮中有些功能选择不会自动显示，过几秒后会自动关闭更多菜单，然后再打开自动菜单才会显示」。
+- 根因：`ShellPage.CheckMoviePilot` 开机后先 `RefreshAvailabilityAsync`、再 `HistoryCapabilitiesAsync`，两趟都走网络；而 `ItemCommands.Show` 旧实现只在菜单已带 MP 行时才订阅 `MoviePilotAvailabilityChanged`，处理器对任何能力差异都 `menu.Hide()`。能力增加也走这条路，于是「少几行 → 几秒后自动关 → 再开才有」；开机瞬间开菜单时连订阅都没有。
+- 改动（产品提交 `9a820d8`）：`ItemCommands` 抽出行排版 `Rows`；菜单打开期间一直跟随可用性，按 MP 行集合（`MoviePilotCommands`）比较——增加就 `Apply` 逐位换行、不收起，减少或失去才收起；演员卡等本来没有 MP 行的菜单、以及服务器权限探测迟到的行，不再连累整张菜单。`ResolveGenre` 保持 `async void` 的既有形状（夹具靠同步上下文计数等待它），能力到达时跟着补跑。新增 `MoviePilotMenuFillAsync` 探针与源码契约测试。
+- 验证：完整方案 Release 编译 0 警告／0 错误；主套件 **3332/3332**（0 失败／0 跳过）、PageContract **107/107**、ItemUserStateOrder **73/73**、AniBTEntry **40/40**、PlexAffordance **67/67**、AniBT 源码契约 **39/39**、字幕 **36/36**；改动 C# 文件的定向 whitespace 检查退出 0。
+- 中途：第一版把补查写成丢弃 Task 的普通异步函数，AniBTEntry 夹具 2 项失败（夹具等的是同步上下文登记的在途操作）；改回 `async void` 后 40/40，理由留在代码注释里。
+- 发布：`tools/publish.ps1 -NoArchive` 通过（546 文件／284.9 MB、载荷逐项校验），ProductVersion `0.2.0+9a820d81207be5cab2b704c3f68c9b1799cb47c4`，`Momoka.dll` SHA256 `379E83A4B8DB3FF891DE27A2F0575D29B2C231091487A41EED6CE402D2851D8A`；桌面 `Momoka.lnk` Target/WorkDir 读回均指向 `artifacts\publish\win-x64`。
+- 发布件 `--probe-shell --probe-section moviepilot` 最终 **28/28、0 失败、退出 0**（`C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261030-084257963-17836`）；截图 `moviepilot-menu-filled.png` 显示补齐后「搜索其他版本／重新整理／媒体管理」都在、菜单仍开着。目标用例在开发件与发布件的每轮都通过；中间两轮各有 2～4 项不相关用例的截图遮挡／时序守卫失败（`08:23` 遮挡、`08:38` 资源排序超时与紧凑布局未恢复），未放宽守卫，原样重跑通过。
+- 未覆盖：真实 MoviePilot 服务器、真实播放；本轮未推 origin、未改版本；分支 `qoder/临时` 尚未合入 master（master 落后本分支三个提交），合并与主树重验待用户确认。
