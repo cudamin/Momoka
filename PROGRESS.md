@@ -1,3 +1,16 @@
+## 更多菜单按账号权限收起入口（2026-10-30）
+
+- 用户报：更多菜单里的「下载到设备」用不了，提示「当前账户没有访问该内容的权限」；随后要求其他按钮没有权限时也自动隐藏。
+- 现场证据：`app-20261030.log` 里 00:08:07 与 11:32:53 两次 `GET /emby/Items/{id}/Download -> 403`；只读核对同一账号：`donxuelian` 是管理员，`Policy.EnableContentDownloading=false`、`EnableContentDeletion=true`、`EnableSubtitleDownloading/Management=true`，条目 `CanDownload=false`。未改服务器设置、未发起真实下载。
+- 根因：客户端只按条目类型摆下载入口，没读账号策略；Emby 的登录/恢复链又不写用户策略，账号关掉下载后仍能点到，服务器 403。
+- 改法：`ItemMenuPermissions`（管理员/下载/删除/字幕）由 `ServerCapabilities.ProbeAsync` 在登录后按在线来源读 `GET /Users/{Id}`（Jellyfin `/Users/Me`）得到；`IShellActions.MenuPermissionsFor(scope)` 把按来源权限交给 `ItemMenu.For`。下载、删除、字幕、编辑元数据/改封面/加合集、识别/刷新元数据/扫库都只在服务器明确答 false 时收起；`null`（旧服务器、读不到、探测未完成）照旧显示，服务器仍是最终闸门。登录响应带 Policy 时也写入连接快照作为探测前的兜底。
+- 边界：不改登录/恢复/改密/权限快照安全链（`EmbySession.cs`、`EmbySessionScope.cs` 与 HEAD 逐字相同）；不解析条目自己的 `CanEditItems`/`CanDelete`（Emby 4.10 实测 `CanEditItems` 不返回，剧/季的 `CanDownload` 常为 false），整剧/整季下载按账号策略判断。FnNas/Plex 菜单没有这些账号策略入口，本轮不动。
+- 测试：主测试 **3327/3327、0 失败 0 跳过**；R-011 权限行为夹具 **54/54**；整套 Release 构建 **0 警告 0 错误**。新增 `ItemMenuTests` 覆盖下载/删除/字幕/编辑/管理员五种权限的 false、true、null；`SessionTests` 覆盖能力探测读取策略与读不到时保持未知；`JellyfinProtocolTests` 覆盖登录响应策略。
+- 真实界面：开发件与发布件各跑 `--show-menu --screen 1`，UIA 读到菜单 **19 项**（继续播放、详细信息、标记、收藏、从继续观看移除、合集、MoviePilot 搜索/整理/媒体管理/智能整理、AniBT、编辑元数据、修改封面、搜索字幕、刷新元数据、扫库、打开所属剧集、删除），**没有「下载到设备」**；同一账号是管理员且有删除/字幕权限，这些入口保留。没有非管理员真实账号，其他权限收起只有单测证据；没有真实下载、没有改服务器用户策略。
+- 闸门 3：`tools/publish.ps1 -NoArchive` 通过，**546 文件／284.8 MB**、14 GLSL／4 HOOK／批准 mpv 载荷 59 文件逐项校验；发布件 UIA 菜单同样 19 项、无「下载到设备」。未打 zip（`-NoArchive`）、未动桌面快捷方式（已指向 `artifacts\publish\win-x64`）、未改版本、未推送 origin。
+- R-011 源码契约脚本仍红 4 项：3 项是 master 在脚本基线（`9f07bbd`/`5fa9c96`）之后的既有漂移，1 项是脚本只允许 R-011 修补范围的窄文件清单，而本批按需求改了 Shell 菜单接线、主测试与 `EmbyResponses.cs`；行为夹具 54/54 已过，未为此放宽源码契约。
+- 产品提交 `da306f1`。
+
 ## 编辑元数据对管理员报「没有权限」（2026-10-29）
 
 - 用户报：「点击编辑元数据后回显示没有权限」。`app-20261029.log` 里 19:32:47 与 20:12:43 两次都是 `System.UnauthorizedAccessException: 只有 Emby 管理员可以编辑元数据`（栈顶 `EmbyMetadataEditor.CheckAccess`），同一份日志里 `/System/Info` 读回「服务器版本 4.10.1.0，管理员账号」——账号确实是管理员，判断本身错了。
