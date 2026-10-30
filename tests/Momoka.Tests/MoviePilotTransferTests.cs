@@ -590,6 +590,11 @@ internal static class MoviePilotTransferTests
         UserData = new EmbyUserData { PlaybackPositionTicks = 1800_000_000, PlayedPercentage = 30 }
     };
 
-    private static string LabelsOf(EmbyItem item) =>
-        string.Join("|", ItemMenu.For(item, moviePilotEnabled: true).Select(row => row.Label));
+    private static string LabelsOf(EmbyItem item) => string.Join("|", Labels(ItemMenu.For(item, moviePilotEnabled: true)));
+
+    /// <summary>菜单文字按屏上的次序摊平：子菜单先报组名，再报组里的每一行。</summary>
+    private static IEnumerable<string> Labels(IReadOnlyList<ItemMenuEntry> rows) =>
+        rows.SelectMany(row => row.Children is { } children
+            ? new[] { row.Label }.Concat(Labels(children))
+            : new[] { row.Label });
 }

@@ -47,12 +47,13 @@ internal static class Program
             Test("R040 pure capability only removes identification for " + type, () =>
             {
                 var item = new EmbyItem { Type = type, Genres = ["动画"] };
-                var normal = ItemMenu.For(item, moviePilotEnabled: true);
-                var secondary = ItemMenu.For(item, moviePilotEnabled: true, aniBtScrapeAvailable: false);
-                Assert.True(normal.Where(row => row.Command != ItemCommand.AniBtScrape).Select(row => row.Command)
-                    .SequenceEqual(secondary.Select(row => row.Command)));
-                Assert.False(secondary.Any(row => row.Command == ItemCommand.AniBtScrape));
-                Assert.Equal(2, secondary.Single(row => row.Command == ItemCommand.MoviePilotVersions).Children!.Count);
+                var normalPlan = ItemMenu.For(item, moviePilotEnabled: true);
+                var secondaryPlan = ItemMenu.For(item, moviePilotEnabled: true, aniBtScrapeAvailable: false);
+                var normal = Commands(normalPlan);
+                var secondary = Commands(secondaryPlan);
+                Assert.True(normal.Where(command => command != ItemCommand.AniBtScrape).SequenceEqual(secondary));
+                Assert.False(secondary.Contains(ItemCommand.AniBtScrape));
+                Assert.Equal(2, secondaryPlan.Single(row => row.Command == ItemCommand.MoviePilotVersions).Children!.Count);
             });
         foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
             foreach (var type in new[] { EmbyItemType.Series, EmbyItemType.Season, EmbyItemType.Episode })
@@ -62,10 +63,9 @@ internal static class Program
                     f.Card.Item.Type = type;
                     f.Card.Item.Genres.Add("剧情");
                     var menu = f.Build();
-                    Assert.Equal("AniBT 识别", menu.Items.OfType<MenuFlyoutItem>()
-                        .Single(row => row.Tag is ItemCommand.AniBtScrape).Text);
+                    Assert.Equal("AniBT 识别", EntryFixture.Scrape(menu).Text);
                     Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions));
-                    menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
+                    EntryFixture.Scrape(menu).ClickForFixture();
                     Assert.Equal(1, f.Actions.Scrapes);
                     Assert.Equal(0, f.Transport.Reads + f.Transport.Writes + f.Transport.Unexpected);
                     f.Actions.SetMoviePilot(false);
@@ -97,7 +97,7 @@ internal static class Program
                 using var f = new EntryFixture(_root, kind: kind);
                 var menu = f.Build();
                 Assert.True(f.HasScrape(menu));
-                menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
+                EntryFixture.Scrape(menu).ClickForFixture();
                 Assert.Equal(1, f.Actions.Scrapes);
                 Assert.Equal(0, f.Transport.Reads + f.Transport.Writes);
                 return Task.CompletedTask;
@@ -143,7 +143,8 @@ internal static class Program
             using var f = new EntryFixture(_root);
             f.Actions.SetMoviePilot(false);
             var menu = f.Build();
-            Assert.False(menu.Items.Any(row => row.Tag is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape));
+            Assert.False(menu.Items.Any(row => row.Tag is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganizeMenu));
+            Assert.False(f.HasScrape(menu));
             f.DirectScrape();
             Assert.Equal(0, f.Actions.Scrapes);
             return Task.CompletedTask;
@@ -159,7 +160,7 @@ internal static class Program
         Case("已构建旧菜单点击不交新管理身份", () =>
         {
             using var f = new EntryFixture(_root);
-            var row = f.Build().Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape);
+            var row = EntryFixture.Scrape(f.Build());
             f.Select(f.B);
             row.ClickForFixture();
             Assert.Equal(0, f.Actions.Scrapes);
@@ -225,7 +226,7 @@ internal static class Program
             var held = new Queue<Action>();
             f.Owner.DispatcherQueue.EnqueueForFixture = action => { held.Enqueue(action); return true; };
             var menu = f.Show();
-            var row = menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape);
+            var row = EntryFixture.Scrape(menu);
             f.Select(f.B);
             f.Select(f.A);
             row.ClickForFixture();
@@ -250,8 +251,8 @@ internal static class Program
             await SynchronizationContextIdle();
             Assert.True(wasClosed);
             Assert.True(f.HasScrape(menu));
-            Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any());
-            menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
+            Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions));
+            EntryFixture.Scrape(menu).ClickForFixture();
             Assert.Equal(0, f.Actions.Scrapes);
             Assert.Equal(0, f.SourceListeners);
         });
@@ -267,8 +268,8 @@ internal static class Program
             f.Transport.Release();
             await SynchronizationContextIdle();
             Assert.True(f.HasScrape(menu));
-            Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any());
-            menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
+            Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions));
+            EntryFixture.Scrape(menu).ClickForFixture();
             Assert.Equal(0, f.Actions.Scrapes);
             while (held.TryDequeue(out var action)) action();
             Assert.False(menu.OpenForFixture);
@@ -279,7 +280,7 @@ internal static class Program
             var menu = f.Show();
             f.Select(f.A);
             Assert.True(menu.OpenForFixture);
-            menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
+            EntryFixture.Scrape(menu).ClickForFixture();
             Assert.Equal(1, f.Actions.Scrapes);
             return Task.CompletedTask;
         });
@@ -306,7 +307,7 @@ internal static class Program
             f.Transport.Release();
             await SynchronizationContextIdle();
             Assert.True(f.HasScrape(menu));
-            Assert.Equal(1, menu.Items.Count(row => row.Tag is ItemCommand.AniBtScrape));
+            Assert.Equal(1, EntryFixture.Reorganize(menu).Items.Count(row => row.Tag is ItemCommand.AniBtScrape));
             Assert.True(menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions));
             Assert.Equal(1, f.Transport.Reads);
         });
@@ -326,8 +327,8 @@ internal static class Program
                 f.Transport.Release();
                 await SynchronizationContextIdle();
                 Assert.True(f.HasScrape(menu));
-                Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any());
-                menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape).ClickForFixture();
+                Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions));
+                EntryFixture.Scrape(menu).ClickForFixture();
                 Assert.Equal(0, f.Actions.Scrapes);
                 Assert.Equal(0, f.Transport.Writes + f.Transport.Unexpected);
             });
@@ -341,6 +342,12 @@ internal static class Program
                 return Task.CompletedTask;
             });
     }
+
+    /// <summary>菜单命令按层级摊平：父项在前，子项随后 —— 识别入口住在「重新整理」组里。</summary>
+    private static IEnumerable<ItemCommand?> Commands(IReadOnlyList<ItemMenuEntry> rows) =>
+        rows.SelectMany(row => row.Children is { } children
+            ? new[] { row.Command }.Concat(Commands(children))
+            : new[] { row.Command });
 
     private static Task SynchronizationContextIdle() => ((UiQueue)SynchronizationContext.Current!).IdleAsync();
 }

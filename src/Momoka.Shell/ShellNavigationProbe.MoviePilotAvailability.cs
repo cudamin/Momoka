@@ -94,12 +94,12 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(anchor);
             var card = new CardItem(Series(), fixture.Images, 170);
             ItemCommands.Show(fixture.Session, shell, anchor, card, null);
-            await UntilAsync(() => MenuItems().Count(item => item.Tag is ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize) == 2);
+            await UntilAsync(() => MenuItems().Any(item => item.Tag is ItemCommand.MoviePilotVersions));
             await SaveProbeScreenAsync("moviepilot-menu-connected.png");
             fixture.Settings.MoviePilot.Enabled = false;
             await UntilAsync(() => MenuItems().Length == 0);
-            Require(ItemCommands.Build(fixture.Session, shell, anchor, card).Items.OfType<MenuFlyoutItem>()
-                .All(item => item.Tag is not (ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganize)), "关闭后菜单仍有 MP 入口");
+            Require(ItemCommands.Build(fixture.Session, shell, anchor, card).Items
+                .All(item => item.Tag is not (ItemCommand.MoviePilotVersions or ItemCommand.MoviePilotReorganizeMenu)), "关闭后菜单仍有 MP 入口");
 
             fixture.Settings.MoviePilot.Enabled = true;
             Require(await service.RefreshAvailabilityAsync(), "菜单恢复前连接失败");

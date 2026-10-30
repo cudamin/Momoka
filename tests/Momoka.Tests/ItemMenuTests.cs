@@ -524,11 +524,70 @@ internal static class ItemMenuTests
                     if (enabled)
                         Assert.True(rows.Single(row => row.Command == ItemCommand.MoviePilotVersions).Children!
                             .Any(row => row.Command == ItemCommand.AniBtVersions));
-                    Assert.False(rows.Any(row => row.Command is ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape));
+                    Assert.False(rows.Any(row => row.Command is ItemCommand.MoviePilotReorganize or ItemCommand.AniBtScrape
+                        or ItemCommand.MoviePilotReorganizeMenu));
                     Assert.True(ItemMenu.Supports(ItemCommand.MoviePilotVersions, false, fnNas, !fnNas));
                     Assert.True(ItemMenu.Supports(ItemCommand.AniBtVersions, false, fnNas, !fnNas));
                     Assert.False(ItemMenu.Supports(ItemCommand.AniBtScrape, false, fnNas, !fnNas));
                 });
+
+        Test("更多菜单：「重新整理」收齐手动整理、智能整理和 AniBT 识别", () =>
+        {
+            var episode = new EmbyItem { Id = "e1", Name = "第一集", Type = EmbyItemType.Episode, Genres = ["动画"] };
+            var menu = ItemMenu.For(episode, moviePilotEnabled: true,
+                moviePilotManagementAvailable: true, moviePilotSmartAvailable: true);
+
+            var reorganize = menu.Single(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+            Assert.Equal("重新整理", reorganize.Label);
+            Assert.True(reorganize.Children!.Select(row => row.Command!.Value).SequenceEqual(new[]
+            {
+                ItemCommand.MoviePilotReorganize, ItemCommand.MoviePilotSmartReorganize, ItemCommand.AniBtScrape
+            }));
+            Assert.True(reorganize.Children!.Select(row => row.Label)
+                .SequenceEqual(new[] { "手动整理…", "智能整理", "AniBT 识别" }));
+
+            // 三条都进了子菜单，顶层不再单摆；搜索在前、整理居中、删除范围收尾。
+            Assert.False(menu.Any(row => row.Command is ItemCommand.MoviePilotReorganize
+                or ItemCommand.MoviePilotSmartReorganize or ItemCommand.AniBtScrape), "整理入口仍留在顶层");
+            var rows = menu.ToList();
+            var index = rows.IndexOf(reorganize);
+            Assert.Equal(ItemCommand.MoviePilotVersions, rows[index - 1].Command);
+            Assert.Equal(ItemCommand.MoviePilotMediaManagement, rows[index + 1].Command);
+        });
+
+        Test("更多菜单：「重新整理」只列本次可用的条目，一条都没有时整组收起", () =>
+        {
+            // 电影不是动画，也没有管理权限：组里只有手动整理。
+            var movie = new EmbyItem { Id = "m1", Name = "某片", Type = EmbyItemType.Movie, Genres = ["剧情"] };
+            var onlyManual = ItemMenu.For(movie, moviePilotEnabled: true)
+                .Single(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+            Assert.True(onlyManual.Children!.Select(row => row.Command!.Value)
+                .SequenceEqual(new[] { ItemCommand.MoviePilotReorganize }));
+
+            var series = new EmbyItem { Id = "s1", Name = "某剧", Type = EmbyItemType.Series, Genres = ["剧情"] };
+
+            // 飞牛和 Plex 不提供手动整理；智能整理有权限时仍要能进来。
+            foreach (var menu in new[]
+            {
+                ItemMenu.For(series, moviePilotEnabled: true, fnNas: true,
+                    moviePilotManagementAvailable: true, moviePilotSmartAvailable: true),
+                ItemMenu.For(series, moviePilotEnabled: true, plex: true,
+                    moviePilotManagementAvailable: true, moviePilotSmartAvailable: true)
+            })
+            {
+                var group = menu.Single(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+                Assert.True(group.Children!.Select(row => row.Command!.Value)
+                    .SequenceEqual(new[] { ItemCommand.MoviePilotSmartReorganize }));
+            }
+
+            // 手动整理被来源挡掉、管理权限也没开：组里没有内容，顶层不出现空的「重新整理」。
+            foreach (var menu in new[]
+            {
+                ItemMenu.For(series, moviePilotEnabled: true, fnNas: true),
+                ItemMenu.For(series, moviePilotEnabled: true, plex: true)
+            })
+                Assert.False(menu.Any(row => row.Command == ItemCommand.MoviePilotReorganizeMenu), "空组仍在顶层");
+        });
 
         Test("更多菜单：没开 MoviePilot 时谁都没有「搜索其他版本」那一条", () =>
         {

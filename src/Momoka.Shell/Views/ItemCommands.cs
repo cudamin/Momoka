@@ -215,19 +215,24 @@ internal static partial class ItemCommands
                     var eligible = await scope.ExecuteAsync((client, token) =>
                         Momoka.AniBt.AniBtEligibility.ResolveAsync(client, original, token), lifetime.Token);
                     if (!CanContinue() || !eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
+                    var plan = ItemMenu.For(original, true, animeGenre: true,
+                        fnNas: scope.Connection.IsFnNas, plex: scope.Connection.IsPlex,
+                        aniBtScrapeAvailable: scope.IsCurrent,
+                        moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
+                        moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
+                        permissions: shell.MenuPermissionsFor(scope));
                     var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
                     if (versions is not null)
-                    {
-                        var plan = ItemMenu.For(original, true, animeGenre: true, aniBtScrapeAvailable: scope.IsCurrent,
-                                permissions: shell.MenuPermissionsFor(scope))
-                            .Single(row => row.Command == ItemCommand.MoviePilotVersions);
-                        menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, InvokeCurrent);
-                    }
-                    var anchor = menu.Items.LastOrDefault(row => row.Tag is ItemCommand.MoviePilotSmartReorganize
-                        or ItemCommand.MoviePilotMediaManagement or ItemCommand.MoviePilotReorganize);
-                    if (scope.IsCurrent && anchor is not null && !menu.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
-                        menu.Items.Insert(menu.Items.IndexOf(anchor) + 1, Entry("AniBT 识别", ItemCommand.AniBtScrape,
-                            () => InvokeCurrent(ItemCommand.AniBtScrape)));
+                        menu.Items[menu.Items.IndexOf(versions)] =
+                            BuildEntry(plan.Single(row => row.Command == ItemCommand.MoviePilotVersions), InvokeCurrent);
+
+                    // 「AniBT 识别」住在「重新整理」子菜单里：迟到的这条按 Core 排好的整组重建，不在顶层另插一行。
+                    var reorganize = menu.Items.OfType<MenuFlyoutSubItem>()
+                        .FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotReorganizeMenu);
+                    var reorganizePlan = plan.FirstOrDefault(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+                    if (scope.IsCurrent && reorganize is not null && reorganizePlan.Command is not null
+                        && !reorganize.Items.OfType<MenuFlyoutItem>().Any(row => row.Tag is ItemCommand.AniBtScrape))
+                        menu.Items[menu.Items.IndexOf(reorganize)] = BuildEntry(reorganizePlan, InvokeCurrent);
                 }
                 catch (OperationCanceledException) { }
                 catch (Exception error) { Log.Info("anibt", $"无法核对动画类型：{Failure.Describe(error)}"); }
@@ -287,8 +292,12 @@ internal static partial class ItemCommands
         if (row.Children is not { } children)
             return Entry(row.Label, row.Command!.Value, () => invoke(row.Command.Value));
         var submenu = new MenuFlyoutSubItem { Text = row.Label, Tag = row.Command, Icon = new FontIcon { Glyph = Glyph.Of(row.Command!.Value) } };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(submenu,
-            row.Command == ItemCommand.MoviePilotMediaManagement ? "MoviePilotMediaManagement" : "SearchVersionSources");
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationId(submenu, row.Command switch
+        {
+            ItemCommand.MoviePilotMediaManagement => "MoviePilotMediaManagement",
+            ItemCommand.MoviePilotReorganizeMenu => "MoviePilotReorganizeMenu",
+            _ => "SearchVersionSources"
+        });
         foreach (var child in children) submenu.Items.Add(BuildEntry(child, invoke));
         return submenu;
     }
@@ -716,6 +725,7 @@ internal static partial class ItemCommands
             ItemCommand.MoviePilotVersions => 0xE721,
             ItemCommand.AniBtVersions => 0xE721,
             ItemCommand.MoviePilotReorganize => 0xE8B5,
+            ItemCommand.MoviePilotReorganizeMenu => 0xE8B5,
             ItemCommand.MoviePilotMediaManagement => 0xE8F1,
             ItemCommand.MoviePilotSmartReorganize => 0xE945,
             ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource

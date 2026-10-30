@@ -91,6 +91,9 @@ public enum ItemCommand
     /// </summary>
     MoviePilotReorganize,
 
+    /// <summary>折叠的「重新整理」子菜单：手动整理、智能整理和 AniBT 识别都收在这里；父项本身不执行动作。</summary>
+    MoviePilotReorganizeMenu,
+
     /// <summary>折叠的 MoviePilot 媒体管理菜单；父项本身不执行删除。</summary>
     MoviePilotMediaManagement,
     MoviePilotDeleteRecord,
@@ -147,6 +150,10 @@ public readonly record struct ItemMenuPermissions(
 /// <b>每一行的中文措辞不超过七个字（2026-10-27 用户令）</b>，弹表的那几条以「…」收尾；品牌名保持原样，
 /// 版本来源的子菜单只留「MoviePilot」和「AniBT」两个名字。菜单宽度由最长的一行决定，一条长的就把整张菜单
 /// 撑宽 —— 续播位置不再写进「继续播放」那一条，卡片自己画着进度。
+/// </para>
+/// <para>
+/// 「重新整理」把手动整理、智能整理和 AniBT 识别收成一层子菜单（2026-10-30 用户令）：这三条都是对文件本身
+/// 动手的整理动作，平铺时会让菜单更长；分组以后和「媒体管理」的折叠范围并排，找整理入口仍然只有一处。
 /// </para>
 /// </summary>
 public static class ItemMenu
@@ -325,7 +332,8 @@ public static class ItemMenu
     /// <summary>
     /// MoviePilot 跨媒体服务器共用历史管理；媒体库、合集和演员没有一部作品的整理范围。
     /// 保留 FnNas/Plex 不提供原手动整理的边界，管理与智能助手分别按已确认的权限显示。
-    /// 删除范围在确认表完整说明，菜单仍遵守七字以内的既有约定。
+    /// 三条整理入口（手动整理、智能整理、AniBT 识别）收进「重新整理」子菜单，和删除范围一样用折叠收窄菜单宽度；
+    /// 子菜单一个可用条目都没有时整组不出现。删除范围在确认表完整说明，菜单仍遵守七字以内的既有约定。
     /// </summary>
     private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre, bool canScrape,
         bool canManage, bool canSmartReorganize, bool manualReorganize = true)
@@ -335,7 +343,17 @@ public static class ItemMenu
         [
             new(ItemCommand.MoviePilotVersions, "搜索其他版本")
         ];
-        if (manualReorganize) rows.Add(new(ItemCommand.MoviePilotReorganize, "手动整理…"));
+
+        var reorganize = new List<ItemMenuEntry>(3);
+        if (manualReorganize) reorganize.Add(new(ItemCommand.MoviePilotReorganize, "手动整理…"));
+        if (canManage && canSmartReorganize)
+            reorganize.Add(new(ItemCommand.MoviePilotSmartReorganize,
+                item.Type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理"));
+        if (canScrape && AniBt.AniBtEligibility.CanIdentify(item, animeGenre))
+            reorganize.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
+        if (reorganize.Count > 0)
+            rows.Add(new(ItemCommand.MoviePilotReorganizeMenu, "重新整理", reorganize));
+
         if (canManage)
             rows.Add(new(ItemCommand.MoviePilotMediaManagement, "媒体管理",
             [
@@ -344,19 +362,14 @@ public static class ItemMenu
                 new(ItemCommand.MoviePilotDeleteDestination, "删记录和库文件"),
                 new(ItemCommand.MoviePilotDeleteAll, "删除记录及两端")
             ]));
-        if (canManage && canSmartReorganize)
-            rows.Add(new(ItemCommand.MoviePilotSmartReorganize,
-                item.Type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理"));
         if (AniBt.AniBtEligibility.Supports(item) && (animeGenre || AniBt.AniBtEligibility.HasGenre(item)))
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
                 [new(ItemCommand.MoviePilotVersions, "MoviePilot"), new(ItemCommand.AniBtVersions, "AniBT")]);
-        if (canScrape && AniBt.AniBtEligibility.CanIdentify(item, animeGenre))
-            rows.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         return rows;
     }
 
     public static bool IsMoviePilot(ItemCommand command) => command is ItemCommand.MoviePilotVersions
-        or ItemCommand.MoviePilotReorganize or ItemCommand.MoviePilotMediaManagement
+        or ItemCommand.MoviePilotReorganize or ItemCommand.MoviePilotReorganizeMenu or ItemCommand.MoviePilotMediaManagement
         or ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource
         or ItemCommand.MoviePilotDeleteDestination or ItemCommand.MoviePilotDeleteAll or ItemCommand.MoviePilotSmartReorganize;
 

@@ -104,11 +104,15 @@ internal sealed partial class ShellNavigationProbe
                 {
                     var subject = scope.Bind(new EmbyItem { Id = "non-anime-menu", Type = type, Genres = ["剧情"] });
                     menu = ItemCommands.Build(fixture.Session, shell, anchor, new CardItem(subject, fixture.Images, 170));
-                    var entry = menu.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape);
+                    var reorganize = menu.Items.OfType<MenuFlyoutSubItem>().Single(row => row.Tag is ItemCommand.MoviePilotReorganizeMenu);
+                    var entry = reorganize.Items.OfType<MenuFlyoutItem>().Single(row => row.Tag is ItemCommand.AniBtScrape);
                     Require(entry.Text == "AniBT 识别"
                         && !menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions),
-                        "非动漫剧、季或单集没有直接识别入口，或误放宽 AniBT 版本搜索");
+                        "非动漫剧、季或单集没有识别入口，或误放宽 AniBT 版本搜索");
                     menu.ShowAt(anchor);
+                    await LayoutAsync(anchor);
+                    ((IExpandCollapseProvider)FrameworkElementAutomationPeer.CreatePeerForElement(reorganize)
+                        .GetPattern(PatternInterface.ExpandCollapse)).Expand();
                     await LayoutAsync(anchor);
                     Require(FrameworkElementAutomationPeer.CreatePeerForElement(entry).GetName() == "AniBT 识别",
                         "非动漫识别菜单没有可定位的 UIA 名称");
@@ -783,6 +787,11 @@ internal sealed partial class ShellNavigationProbe
                 throw new InvalidOperationException("AniBT 搜索和取消确认不得发送写请求");
             }
             if (path.EndsWith("/dashboard/system", StringComparison.Ordinal)) return Task.FromResult(Json(new { version = "fixture" }));
+            // ShellPage 连上 MoviePilot 后会读历史管理能力；这里答「没有管理权限」，AniBT 菜单不应长出删除或智能整理。
+            if (path.EndsWith("/user/current", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { is_active = true, is_superuser = false }));
+            if (path.EndsWith("/system/global/user", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { AI_AGENT_ENABLE = false }));
             if (path.EndsWith("/media/source", StringComparison.Ordinal)) return Task.FromResult(EnableBangumi
                 ? Json(new[] { new { name = "Bangumi", media_source = "bangumi", media_types = new[] { "电视剧" } } })
                 : Json(Array.Empty<object>()));
