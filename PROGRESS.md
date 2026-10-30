@@ -81,6 +81,15 @@
 - 当前Release Core/Shell/独立测试编译均0警告0错误；既有图片/烘色22/22、新专项41/41（共享12、实际Store10、实际WinRT/尺寸11、逐字生产调用方8），失败/跳过0；严格入口三负例均退出2。500不同键实Store峰值54键/48排队/54需求，handler仅6次/峰值6，退出后shared/demands/排队0；500同键在16需求测试预算下仅16有效、484立即取消。8K/4K返回1280×720，方图960²，1×40000/40000×1返回1×1280/1280×1；均受两边/总量限制。六生产源码hash、18文件LF及diff检查通过，Events前后区段与起点一致。
 - 最终实测证据 `C:/Users/89400/.codex/worktrees/perf-images/Momoka/work/perf-images/test-verified.log`、`runs/20261030-165335-651/results.json`、`build-shell-final.log`、`build-tests-final.log`、`strict-entry.log`、`final-file-hashes.json`；命令和覆盖边界在 `C:/Users/89400/.codex/worktrees/perf-images/Momoka/tests/Momoka.ImagePerformanceTests/README.md`。旧测试替身不能clone流导致6红及优先级误用多空槽的1红已保留各首轮日志/JSON，修夹具后重验，未降低产品/像素/取消断言。
 - 未做sln/主全Tests、真实WinUI BitmapImage surface/DPI/屏幕/DWM、真实库/设置/播放、UIA/发布/快捷方式；父统一登记新套件到sln/regression、定点复核最终Events source pin、当前整合源码重build及串行桌面验收。本树Events SHA256 `E6BBE894ADE1BDC236117DFD1ACB2CDAA14F9C435A95C61E2F039AC7EFF068E2`，本套件编译/运行自动核六源码，不编辑其他既有pin。无403、未换provider或代理配置。
+
+## 资源预算原草稿收尾与专项入口文档（2026-10-30，待父集成）
+
+- 原树 `C:/Users/89400/.codex/worktrees/perf-resource-budgets/Momoka`，分支 `codex/perf-resource-budgets`，基点 `e3473f10a072058eb11363f89c11e376dbfa6ed9`；产品与测试已提交 `dd407b53376eaa493636f3826709a378c9dcc10f`。接续既有草稿，仅补必要的目录/祖先重解析守卫，不新树、不覆盖草稿、不写父/主树。
+- PERF11 整条消息累计1MiB UTF8/二进制字节，正常Unicode碎片保原文，超限立即Abort后原退避重连。PERF13 单卷8MiB/总64MiB/14天、一次索引、有界运行期维护、AutoFlush、超长entry省中留头尾及重启新卷；删除失败可丢磁盘写，外部新增文件重启才纳入，旧超量分轮清理。PERF16 decode前128 UTF16码元、name表1MiB、family/typographic各64候选；晚到英文替末候选，可能少留一个本地化别名，保原family优先顺序，不宣称合计64名字。
+- 已实际验证当前产品Core及专项Release强制重编译0警告0错误；all 141/141（WS26、日志28、字体14、源链接兼容73），失败0/跳过0、20332ms。原草稿本轮先137/137；原实现12红项及重解析3修前红项均保留，不修改基线洗绿。证据在本树ignored `artifacts/verification/perf-resource-budgets/` 的 `red-tests.log`、`takeover-20261030-165520817/{reparse-red2-tests.log,final-build.log,final-tests.log,final-hashes.json}`。
+- 补入可随clean checkout获得的 [专项README](tests/Momoka.ResourceBudgetTests/README.md)：当前树定位、独立restore/Release build/run命令、all/budgets/websocket/logs/fonts/compatibility入口、实际预算与匿名127.0.0.1随机socket/私有log/合成字体边界；内部file-tail-child不登记为独立任务。只改README与本节，文档自查核链接/入口/命令/统计/历史保留；未重新build/runtime或运行无关检查。
+- 父负责统一runner/sln/共享文档登记、最终集成全batch验证及交付。本树待集成，不推送/合并/发布，不执行fullCore/selfcheck、真实账号/设置/日志/媒体/UI、共享publish或kill；临时树与提交保留给父，不能把专项通过叫作主树交付。
+
 ## 旧工作树审查与媒体管理整合（2026-10-29，在途）
 
 - 当前整合树 `C:/Users/89400/.codex/worktrees/old-tree-integration/Momoka`，起点 `8ff289e`，整合旧树 `mp-media-management` 的产品 `eedcfab`／顶端 `4b9aaac`。主树 AniBT 正在由另一聊天收尾，搜索工作树仍在开发；不抢写主树或共同发布目录，不删除活动树。
