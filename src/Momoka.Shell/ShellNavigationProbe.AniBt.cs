@@ -795,6 +795,11 @@ internal sealed partial class ShellNavigationProbe
                 ? Json(new[] { new { name = "Bangumi", media_source = "bangumi", media_types = new[] { "电视剧" } } })
                 : Json(Array.Empty<object>()));
             if (path.EndsWith("/history/transfer", StringComparison.Ordinal)) return Task.FromResult(Json(new { list = Array.Empty<object>(), total = 0 }));
+            // 壳层的 MoviePilot 定时能力检查在探针超过 30 秒时也会走这里；只答只读身份，不授予管理能力。
+            if (path.EndsWith("/user/current", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { is_active = true, is_superuser = false, permissions = new { manage = false } }));
+            if (path.EndsWith("/system/global/user", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { AI_AGENT_ENABLE = false }));
             if (path.EndsWith("/download/clients", StringComparison.Ordinal))
                 return Task.FromResult(Json(new[] { new { name = "动画下载器" }, new { name = "备用下载器" } }));
             if (path.EndsWith("/download/paths", StringComparison.Ordinal))

@@ -6,9 +6,11 @@
 - 识别速度：每个文件的 AniBT 匹配改为独立并行（上限 4），行序保持不变；识别、目标读取、提交各记一条耗时日志。对话框新增阶段文字：收集文件、匹配 AniBT、读取整理目标和刮削设置、重新整理并自动刮削，不再只有不确定进度条。
 - 刮削与刷新：MP 请求继续强制 `scrape=true`；整理完成且目标有效时请求 Emby `Library/Refresh` 一次。对话框收起后主页若还开着，立即调用一次入库核对；真正收录仍由服务器扫描和实时通道完成，不强制跳页。
 - 隐藏开关：`MoviePilotSettings.AniBtEnabled` 默认 true，放在设置 → MoviePilot 卡内，关闭后收起 AniBT 识别、搜索页 AniBT 来源、版本来源 AniBT、订阅详情「在 AniBT 中搜索」、遗漏集 AniBT 入口；菜单、搜索页、直接命令都读同一设置，`AniBtChanged` 当场收放。MoviePilot 其他功能、连接与整理防重账本不变。
-- 验证：Release 完整方案 **0 警告、0 错误**；Core 专项全部通过（AniBT 身份归一 2/2、同作品/不同作品身份 2/2）；AniBT 入口 **41/41**、页面契约 **108/108**、资源 **97/97**、确认 **54/54**、缺集 **58/58**、来源契约 **39/39**、设置探针 **31/31**、设置持久化 **42/42**、设置页状态 **30/30**。完整 Core 套件 3331 项中 3315 通过、16 项失败均为自检互斥（`Momoka.exe` PID 11080 正在运行，未关闭用户程序）；AniBT 相关项全部通过。
+- 验证：Release 完整方案 **0 警告、0 错误**；完整 Core 套件 **3331/3331、0 失败、0 跳过**（app 关闭后重跑；先前 16 项自检互斥红项保留在 `work/anibt-main-tests.log`）；AniBT 入口 **41/41**、页面契约 **108/108**、资源 **97/97**、确认 **54/54**、缺集 **58/58**、来源契约 **39/39**、设置探针 **31/31**、设置持久化 **42/42**、设置页状态 **30/30**。
 - **真实只读预览**：连实际 Emby/MoviePilot，当前集有两份文件；修复后两份的预览目标都变成 `/Downloads_link/电视剧/青之箱 (2024) {tmdbid=207347}/Season 02/`，标题「青之箱 S02E03」，方式「软链接 · 沿用主剧集 · 自动刮削」，`CanSubmit=true`，`mutations=0`。没有真实提交、移动文件或触发 Emby 应用。
-- 待办：关闭正在运行的 Momoka 后跑定向 UI 探针（AniBT 搜索页开关收放、设置卡开关）和收尾完整验证，再按主树规则合并、发布到 `artifacts/publish/win-x64` 并读回快捷方式。当前树为临时工作树 `C:/Users/89400/.codex/worktrees/anibt-main-series/Momoka`，分支 `codex/anibt-main-series`。
+- **界面探针**（开发件，app 关闭后）：`--probe-shell --probe-section settings` **24/24、退出 0**（`shell-probe-20261030-060014428-23764`），新增「设置里的 AniBT 开关随 MoviePilot 启用状态收放」通过，截图 `settings-mp-anibt-on-render.png` / `settings-mp-anibt-off-render.png` 已看；首轮该分区在「设置搜索焦点」出现一次瞬时焦点红（`shell-probe-20261030-055547276-7604`），同二进制重跑全绿，原报告保留。`--probe-section anibt` **3/3、退出 0**（`shell-probe-20261030-060407165-21148`），搜索页开关收放、识别候选/确认、取消零写全部通过，截图已看。未执行区域按 scope 回执保留，不是全量 Shell 自检。
+- 现场只读预览与探针都在本树开发件上完成；未真实提交整理，未改真实服务器媒体。
+- 待合入主树：主树 `C:/Users/89400/Momoka`（`qoder/临时`，起点 `d5f0639`）仍有另一会话未提交的设置/搜索站点改动，且同时改到 `SettingsViewModel.cs`、`SettingMoviePilotRow.cs`、`SettingsPage.xaml`、`LibraryPage.xaml.cs`、`docs/MoviePilot订阅.md`、`SearchCompactMergeTests.cs`。本批不得覆盖这些内容；待另一会话提交后，由主树整合本分支、重跑完整验证并发布到 `artifacts/publish/win-x64`、读回快捷方式。当前树 `C:/Users/89400/.codex/worktrees/anibt-main-series/Momoka`，分支 `codex/anibt-main-series`，提交 `505c7cb` 及探针修正提交。
 
 ## 更多菜单按账号权限收起入口（2026-10-30）
 
