@@ -9,6 +9,7 @@ internal static class DialogChromeTests
 {
     private const string SurfaceStyle = "EgDialogSurfaceStyle";
     private const string LibraryStyle = "EgLibraryDialogSurfaceStyle";
+    private const string OutsideClickProperty = "local:DialogDismiss.ClosesOnOutsideClick";
     private static readonly HashSet<string> LibraryDialogs = new(StringComparer.Ordinal)
     {
         "AniBtScrapeDialog", "ArtworkViewer", "CollectionDialog", "CoverDialog", "CoverPickerDialog", "EmbyMetadataDialog",
@@ -16,7 +17,7 @@ internal static class DialogChromeTests
         "MissingEpisodesDialog", "RefreshMetadataDialog", "SubtitleDialog"
     };
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
-    private static readonly Regex Subclass = new(@"class\s+(\w+)\s*:\s*ContentDialog\b", RegexOptions.CultureInvariant);
+    private static readonly Regex Subclass = new(@"class\s+(\w+)(?:\s*<[^>]+>)?(?:\s*\([^)]*\))?\s*:\s*([\w.]+)", RegexOptions.CultureInvariant);
 
     public static void Register()
     {
@@ -73,9 +74,7 @@ internal static class DialogChromeTests
             Assert.Equal("{StaticResource " + SurfaceStyle + "}", rooted.GetValueOrDefault("ContentDialog"),
                 "普通/MP动态窗口不得改成媒体库底色");
             var folder = Path.Combine(Root(), "src", "Momoka.Shell");
-            var subclasses = Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories)
-                .SelectMany(file => Subclass.Matches(File.ReadAllText(file)).Select(match => match.Groups[1].Value))
-                .Distinct(StringComparer.Ordinal).ToArray();
+            var subclasses = DialogTypes(folder);
             Assert.True(subclasses.Length >= 15);
             foreach (var type in subclasses)
             {
@@ -213,40 +212,162 @@ internal static class DialogChromeTests
             // 隐式样式按类型精确匹配，所以「所有弹窗」这句话只能靠每张表各接一行来落实；
             // 这里按源码里的派生类清单逐个数，新增一张表却忘了接样式就在这儿红。
             var folder = Path.Combine(Root(), "src", "Momoka.Shell");
-            var subclasses = Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories)
-                .SelectMany(file => Subclass.Matches(File.ReadAllText(file)).Select(match => match.Groups[1].Value))
-                .Distinct(StringComparer.Ordinal).ToArray();
+            var subclasses = DialogTypes(folder);
             Assert.True(subclasses.Length >= 15, $"只找到 {subclasses.Length} 张 ContentDialog，弹窗清单不完整");
+            Assert.True(CarriesOutsideClick(rooted["ContentDialog"], byKey), "代码创建的普通弹窗不能漏掉");
             foreach (var type in subclasses)
             {
                 Assert.True(rooted.TryGetValue("local:" + type, out var style), $"{type} 没有自己的弹窗样式行");
                 Assert.True(CarriesOutsideClick(style!, byKey), $"{type} 的弹窗样式没有接上「点外面关闭」");
             }
+            foreach (var file in Directory.GetFiles(folder, "*.xaml", SearchOption.AllDirectories))
+            {
+                if (Generated(file)) continue;
+                var doc = XDocument.Load(file);
+                foreach (var attribute in doc.Descendants().Attributes().Where(a => a.Name.LocalName == "DialogDismiss.ClosesOnOutsideClick"))
+                    Assert.True(attribute.Value.Equals("True", StringComparison.OrdinalIgnoreCase), $"{file} 用本地值绕过点外关闭");
+                if (doc.Root?.Name.LocalName != "ContentDialog") continue;
+                var localStyle = doc.Root.Attribute("Style")?.Value;
+                if (localStyle is not null)
+                {
+                    var key = ResourceKey(localStyle);
+                    Assert.True(key is not null && byKey.TryGetValue(key, out var style) && CarriesOutsideClick(style, byKey),
+                        $"{file} 的本地 Style 没有继承点外关闭");
+                }
+                Assert.False(doc.Root.Elements().Any(e => e.Name.LocalName == "ContentDialog.Style"), $"{file} 不应内联替换弹窗样式");
+            }
 
-            // 探针能走几何判定与 Hide，按下的接线只有源码看得见。
+            // 探针能走几何判定与 Hide，按下的接线只有源码看得见。框架把遮罩搬进了另一个 Popup，
+            // 只挂在弹窗本体上会漏掉那一层（2026-10-30 实测点遮罩不关），所以这里连遮罩一起钉住；
+            // 用 Unloaded 退订会在 Opened 后两毫秒把刚接上的处理器摘掉（同一天实测），一并钉住。
             var dismiss = File.ReadAllText(Path.Combine(folder, "Views", "DialogDismiss.cs"));
-            Assert.Contains("dialog.PointerPressed += OnPointerPressed", dismiss);
+            Assert.Contains("GetOpenPopupsForXamlRoot", dismiss);
+            Assert.Contains("SmokeLayerBackground", dismiss);
+            Assert.Contains("AddHandler(UIElement.PointerPressedEvent, _pressed, handledEventsToo: true)", dismiss);
+            Assert.Contains("ReferenceEquals(sender, _overlay)", dismiss);
+            Assert.Contains("dialog.Loaded += OnLoaded", dismiss);
+            Assert.Contains("dialog.Closed += OnClosed", dismiss);
+            Assert.False(dismiss.Contains("dialog.Unloaded +=", StringComparison.Ordinal), "用 Unloaded 退订会把刚接上的遮罩订阅摘掉");
+            Assert.False(dismiss.Contains("dialog.PointerPressed +=", StringComparison.Ordinal), "又退回只挂弹窗本体那条路了");
             Assert.Contains("dialog.Hide()", dismiss);
+        });
+
+        Test("弹窗约定：交互 Popup 必须开启点外关闭，只有动画残影例外", () =>
+        {
+            var folder = Path.Combine(Root(), "src", "Momoka.Shell");
+            foreach (var file in Directory.GetFiles(folder, "*.xaml", SearchOption.AllDirectories).Where(file => !Generated(file)))
+            {
+                var doc = XDocument.Load(file);
+                foreach (var popup in doc.Descendants().Where(e => e.Name.LocalName == "Popup"))
+                    Assert.True(PopupAllowsOutsideClick(popup), $"{file} 的交互 Popup 未开启点外关闭");
+            }
+            foreach (var file in Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories).Where(file => !Generated(file)))
+            {
+                var source = File.ReadAllText(file);
+                if (Path.GetFileName(file) != "DialogDismiss.cs")
+                {
+                    Assert.False(source.Contains("SetClosesOnOutsideClick(", StringComparison.Ordinal), $"{file} 不应逐窗覆盖共享关闭行为");
+                    Assert.False(source.Contains("ClosesOnOutsideClickProperty,", StringComparison.Ordinal), $"{file} 不应绕过共享附加属性");
+                }
+                foreach (Match popup in Regex.Matches(source, @"new\s+(?:[\w.]+\.)?Popup\s*\{(?<body>[^}]+)\}", RegexOptions.CultureInvariant))
+                    Assert.True(PopupAllowsOutsideClick(popup.Groups["body"].Value), $"{file} 的交互 Popup 未在创建时开启点外关闭");
+            }
+            Assert.True(PopupAllowsOutsideClick(XElement.Parse("<Popup IsLightDismissEnabled='True'/>")));
+            Assert.True(PopupAllowsOutsideClick(XElement.Parse("<Popup IsHitTestVisible='False'/>")));
+            Assert.False(PopupAllowsOutsideClick(XElement.Parse("<Popup/>")));
+            Assert.False(PopupAllowsOutsideClick(XElement.Parse("<Popup IsLightDismissEnabled='False'/>")));
+            Assert.True(PopupAllowsOutsideClick("IsLightDismissEnabled = true,"));
+            Assert.True(PopupAllowsOutsideClick("IsHitTestVisible = false,"));
+            Assert.False(PopupAllowsOutsideClick("Child = panel,"));
+            Assert.False(PopupAllowsOutsideClick("IsLightDismissEnabled = false,"));
+        });
+
+        Test("弹窗约定：继承链本地 False、缺失和环不能被祖先 True 放过", () =>
+        {
+            var enabled = XElement.Parse("<Style><Setter Property='local:DialogDismiss.ClosesOnOutsideClick' Value='True'/></Style>");
+            var disabled = XElement.Parse("<Style BasedOn='{StaticResource enabled}'><Setter Property='local:DialogDismiss.ClosesOnOutsideClick' Value='False'/></Style>");
+            var inherit = XElement.Parse("<Style BasedOn='{StaticResource enabled}'/>");
+            var missing = XElement.Parse("<Style BasedOn='{StaticResource missing}'/>");
+            var a = XElement.Parse("<Style BasedOn='{StaticResource b}'/>");
+            var b = XElement.Parse("<Style BasedOn='{StaticResource a}'/>");
+            var styles = new Dictionary<string, XElement> { ["enabled"] = enabled, ["a"] = a, ["b"] = b };
+            Assert.True(CarriesOutsideClick(enabled, styles));
+            Assert.True(CarriesOutsideClick(inherit, styles));
+            Assert.False(CarriesOutsideClick(disabled, styles));
+            Assert.False(CarriesOutsideClick(missing, styles));
+            Assert.False(CarriesOutsideClick(a, styles));
+            Assert.False(CarriesOutsideClick(XElement.Parse("<Style/>"), styles));
+        });
+
+        Test("弹窗约定：间接派生和全名类型也必须登记，普通控件与继承环排除", () =>
+        {
+            var source = "class BaseDialog : Microsoft.UI.Xaml.Controls.ContentDialog {} class FutureDialog(string title) : BaseDialog {} class Ordinary : Border {}";
+            var bases = Subclass.Matches(source).ToDictionary(m => m.Groups[1].Value, m => new[] { m.Groups[2].Value.Split('.').Last() });
+            Assert.True(InheritsDialog("BaseDialog", bases));
+            Assert.True(InheritsDialog("FutureDialog", bases));
+            Assert.False(InheritsDialog("Ordinary", bases));
+            bases["A"] = ["B"];
+            bases["B"] = ["A"];
+            Assert.False(InheritsDialog("A", bases));
         });
     }
 
-    /// <summary>顺着 <c>BasedOn</c> 往上找，看这条样式（或它的祖先）有没有打开点外面关闭。</summary>
+    /// <summary>本地 Setter 优先，false 不能被祖先的 true 洗掉；循环继承也必须判失败。</summary>
     private static bool CarriesOutsideClick(XElement style, Dictionary<string, XElement> byKey)
     {
-        for (var current = style; current is not null;)
+        var seen = new HashSet<XElement>();
+        for (var current = style; current is not null && seen.Add(current);)
         {
-            var carries = current.Elements().Any(setter => setter.Name.LocalName == "Setter"
-                && setter.Attribute("Property")?.Value == "local:DialogDismiss.ClosesOnOutsideClick"
-                && setter.Attribute("Value")?.Value == "True");
-            if (carries) return true;
-            var basedOn = current.Attribute("BasedOn")?.Value;
-            var key = basedOn is not null && basedOn.StartsWith("{StaticResource ", StringComparison.Ordinal)
-                ? basedOn["{StaticResource ".Length..^1]
-                : null;
+            var local = current.Elements().LastOrDefault(setter => setter.Name.LocalName == "Setter"
+                && setter.Attribute("Property")?.Value == OutsideClickProperty);
+            if (local is not null) return local.Attribute("Value")?.Value.Equals("True", StringComparison.OrdinalIgnoreCase) == true;
+            var key = ResourceKey(current.Attribute("BasedOn")?.Value);
             current = key is not null && byKey.TryGetValue(key, out var parent) ? parent : null;
         }
         return false;
     }
+
+    private static bool PopupAllowsOutsideClick(XElement popup) =>
+        popup.Attribute("IsLightDismissEnabled")?.Value.Equals("True", StringComparison.OrdinalIgnoreCase) == true
+        || popup.Attribute("IsHitTestVisible")?.Value.Equals("False", StringComparison.OrdinalIgnoreCase) == true;
+
+    private static bool PopupAllowsOutsideClick(string initializer) =>
+        Regex.IsMatch(initializer, @"\bIsLightDismissEnabled\s*=\s*true\b", RegexOptions.CultureInvariant)
+        || Regex.IsMatch(initializer, @"\bIsHitTestVisible\s*=\s*false\b", RegexOptions.CultureInvariant);
+
+    private static string? ResourceKey(string? value) => value is not null
+        && value.StartsWith("{StaticResource ", StringComparison.Ordinal) && value.EndsWith('}')
+            ? value["{StaticResource ".Length..^1].Trim() : null;
+
+    private static string[] DialogTypes(string folder)
+    {
+        var bases = Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories).Where(file => !Generated(file))
+            .SelectMany(file => Subclass.Matches(File.ReadAllText(file)).Select(match =>
+                (Type: match.Groups[1].Value, Base: match.Groups[2].Value.Split('.').Last())))
+            .GroupBy(pair => pair.Type, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Select(pair => pair.Base).Distinct().ToArray(), StringComparer.Ordinal);
+        return bases.Keys.Where(type => InheritsDialog(type, bases)).ToArray();
+    }
+
+    private static bool InheritsDialog(string type, Dictionary<string, string[]> bases)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var pending = new Queue<string>();
+        pending.Enqueue(type);
+        while (pending.TryDequeue(out var current))
+        {
+            if (!seen.Add(current) || !bases.TryGetValue(current, out var parents)) continue;
+            foreach (var parent in parents)
+            {
+                if (parent == "ContentDialog") return true;
+                pending.Enqueue(parent);
+            }
+        }
+        return false;
+    }
+
+    private static bool Generated(string file) => Path.GetRelativePath(Root(), file).Split(Path.DirectorySeparatorChar)
+        .Any(part => part is "bin" or "obj");
 
     private static XElement[] Styles() =>
         XDocument.Load(Path.Combine(Root(), "src", "Momoka.Shell", "Theme", "Styles.xaml"))

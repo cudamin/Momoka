@@ -1,3 +1,12 @@
+## 2026-10-30 所有弹窗点击外部关闭修复（待主树整合）
+
+- 开发树 `C:/Users/89400/.codex/worktrees/dialog-light-dismiss/Momoka`，分支 `codex/dialog-light-dismiss`；写入范围为 DialogDismiss、弹窗检查台／探针、样式注释、对应测试及项目规则。主树其它会话的菜单与外观改动保留，不上传、不真实播放或写媒体。
+- 实际缺陷：WinUI 把 SmokeLayerBackground 搬入独立 Popup，旧处理器只监听 ContentDialog，真实点击不关闭；修为 Opened／Loaded 重找并订阅实际遮罩和模板根，Closed 退订。不能在框架重挂期间的 Unloaded 提前摘掉；遮罩输入直接取消，避免跨树坐标问题，Closing 之前先标记 Handled。
+- 已加入「现有及以后新增的所有弹窗都必须支持点击外部自动关闭」主规则，并同步 Shell／验证技能及开发文档；不允许本地 False／替换样式绕过，交互 Popup 开 LightDismiss，非交互动画残影除外。ContentDialog 外部关闭只返回 None，写入保护继续生效，不保存或执行背景按钮。
+- 实际鼠标：当前开发件副屏小表内部按钮、ComboBox 第二项、内部 MenuFlyout 点击保持父表；外部点击关闭、不点穿，重开再点外也关闭。宽窗 CoverDialog 用已核实位于左侧遮罩的 InspectHome 目标关闭，原媒体库页不变。截图／树在本树 `artifacts/dialog-{verified-*,cover-wide-*}`；实鼠总结 `artifacts/dialog-real-input-summary.txt`。
+- 保留失败证据：第一次窄窗 CoverDialog 的目标坐标 2606,591 位于大弹窗标题范围，并非遮罩；保持不关是正确内部行为，随后改在实际宽窗左侧遮罩验证，没有放宽产品或测试判据。早期几何探针绿不等于实鼠绿。
+- 临时树最终完整方案编译 0 警告 0 错误；主测试 3334/3334、0 失败0 跳过，专用 compile-linked 实际行为 10/10、关闭样式与元数据子集 61/61；metadata 5/5（shell-probe-20261030-091024534-30528），已查看字幕及宽窗实屏。主规则文档检查3份／21个拒绝反例、专用测试格式检查及 git diff --check 通过。首轮主测试和metadata同时运行造成共用诊断锁的16项失败，已保留 dialog-main-full-tests.log；停止重叠诊断后不改代码串行重跑3334全部通过。主树最终整合、重验与实际交付目录尚待完成，不能以临时树证明已交付。
+
 ## 设置页抢走快捷键抓取焦点（2026-10-30）
 
 - 用户报：「快捷键编辑不了」。设置 → 快捷键里点抓键方框后无法进入抓键态，按什么键都改不了。

@@ -167,7 +167,7 @@
 
       2026-10-29 起这条样式还负责「点弹窗外面就关掉它」（DialogDismiss.ClosesOnOutsideClick）：
       用户要的是项目里所有弹窗、以及以后新增的弹窗都有这一下，所以它跟表面属性放在同一条基础样式上，
-      派生类型那一行只接样式就一起带上。不想有这一下的表在自己头上写 False，不用改这里。
+      派生类型那一行只接样式就一起带上；不得通过本地 False 或替换样式绕过，测试会检查。
     -->
     <Style x:Key="EgDialogSurfaceStyle" TargetType="ContentDialog" BasedOn="{StaticResource DefaultContentDialogStyle}">
         <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />

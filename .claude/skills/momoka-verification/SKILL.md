@@ -91,6 +91,14 @@ Navigation and authorization follow CLAUDE.md. These are measurements from this 
 - Do not base screenshots on a parked pointer. The user can move the same mouse; hover-only states use the documented display switches.
 - Restore pointer position and input-thread attachments when a probe exits. A denied tool is not permission to try another injection mechanism.
 
+## Dialog dismissal needs a real press
+
+"Clicking outside closes the dialog" is pointer evidence; a probe calling `DialogDismiss.TryDismiss` proves the geometry and that `Hide()` yields `None`, not that the press reaches the handler. The framework moves `SmokeLayerBackground` into its own popup (Shell skill, “Dialogs close on outside click”), which is exactly how the 2026-10-29 attempt passed its own probe while the real click did nothing.
+
+Use the offline inspect probe: start `--probe-shell inspect --screen 2`, open the 「点外关闭（小表）」 fixture (it stays open by itself), then click a control behind the dialog with `winapp ui click <automationId> -w <hwnd>` — real input at the element's centre — and confirm with the next `winapp ui inspect` that the dialog is gone and the page is unchanged (the click must not reach the control behind it). First click `InspectDialogInside`, choose a `ComboBox` option and click `InspectDialogMenuItem`; confirm the parent remains open. Reopen after an outside dismissal, and verify `CloseButton` still closes through its own path. Verify the HWND belongs to this run before injecting and follow [Moving the pointer, and proving it moved](#moving-the-pointer-and-proving-it-moved). Prefer an offline fixture button whose action has no server or media side effect.
+
+Keep one checked UI workflow per run and release it with `winapp ui yield`; do not rely on stale foreground state or a process name shared with the user's app. Read dismissal from the parsed UI tree and verify capture encoding before comparing Chinese text. A returned click coordinate alone does not prove that the target handler received the input.
+
 ## Screenshots — what property checks cannot see
 
 Correct properties do not prove correct pixels. A clipped poster or blank background can pass geometry checks; pair relevant assertions with actual screen evidence.

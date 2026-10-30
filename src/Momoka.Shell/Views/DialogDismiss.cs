@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -7,33 +8,31 @@ using Windows.Foundation;
 namespace Momoka.Shell.Views;
 
 /// <summary>
-/// 「点弹窗外面就关掉它」：在弹窗表面以外、主窗口以内按下指针，这张表就退出（2026-10-29 用户令，
-/// 当时的话是「项目中所有的弹窗和以后新增的弹窗，都要支持点击弹窗外部主窗口内时自动退出」）。
+/// 所有弹窗共用的「点击外部取消」行为，由 Theme/Styles.xaml 的弹窗基础样式启用。
+/// 新增弹窗类型必须接同一条样式；DialogChromeTests 检查类型清单及本地覆盖。
 /// <para>
-/// 为什么是附加属性挂在样式上：<see cref="ContentDialog"/> 没有「点外面」这个开关，而 WinUI 的隐式样式
-/// 按类型精确匹配（见 <c>Theme/Styles.xaml</c> 里 <c>EgDialogSurfaceStyle</c> 那段），从它派生的每一张表
-/// 都各接一行样式。把这个属性放进 <c>EgDialogSurfaceStyle</c>，现有各表与以后照规矩接样式的新表都自动
-/// 带上；忘了接样式的新表由 <c>DialogChromeTests</c> 拦住，而不是靠谁记得加一行。
+/// WinUI 的 ContentDialog 模板里，遮罩 <c>SmokeLayerBackground</c> 会被框架搬到另一个 Popup
+/// （microsoft-ui-xaml <c>0a03f68d586d1c100f753ca3221597c3ee550f4a</c> 的
+/// <c>dxaml/xcp/dxaml/lib/ContentDialog_Partial.cpp</c>，<c>PrepareSmokeLayer</c>；还原的 WinUI 2.3.9
+/// generic.xaml 用同名部件）。
+/// 按在遮罩上的指针根本不经过 ContentDialog 元素，只挂弹窗本体收不到那一下。这里在显示时找出那个
+/// 独立 Popup 里的遮罩单独订阅，关掉时退订。
 /// </para>
 /// <para>
-/// 「外面」怎么量：<see cref="ContentDialog"/> 元素本身铺满整个窗口 —— 模板根那颗 <c>LayoutRoot</c> 画的就是
-/// 遮罩，底和圆角在居中的 <c>BackgroundElement</c> 上（<c>CornerRadius</c>/<c>Background</c> 都是
-/// TemplateBinding 到它）。所以不能拿弹窗元素的边界当表面，取模板里那颗 <c>BackgroundElement</c> 的矩形。
-/// 按在遮罩上时指针事件照常冒泡到弹窗元素，判定因此成立；弹窗内部的下拉、菜单是另一层 popup，事件不经过
-/// 这里，点它们不会误关。
+/// 遮罩铺满整个内容区、又永远压在弹窗层之下：能收到按下就说明弹窗表面没接住这一下，直接算「外面」，
+/// 不去跨树换算坐标。经模板根进来的按下才量 <c>BackgroundElement</c> 的矩形（弹窗元素自己铺满窗口，
+/// 它的边界不是表面）。内部下拉、菜单是各自打开的 Popup，按下不经过这两处，点它们不会关掉父弹窗。
 /// </para>
 /// <para>
-/// 关的时候走 <see cref="ContentDialog.Hide()"/>，与关闭按钮同一条出口：表自己写在 <c>Closing</c> 里的
-/// 「写入在飞时不许关」照样拦得住（字幕管理就是这么做的）。
-/// </para>
-/// <para>
-/// 类型与那对访问器是 public 的，因为 XAML 编译器只从公开元数据里认附加属性（<c>Setter
-/// Property="local:DialogDismiss.ClosesOnOutsideClick"</c>）；这不是给外部用的接口，产品里只有样式表引用它。
+/// 只走 <see cref="ContentDialog.Hide()"/>，结果是 None，不替用户保存、确认或执行背后的按钮；
+/// 表自己写在 <c>Closing</c> 里的保护（例如字幕写入在飞）照样拦得住。
+/// public 类型与访问器只为 XAML 编译器读取附加属性元数据，不作为业务接口。
 /// </para>
 /// </summary>
 public static class DialogDismiss
 {
-    /// <summary>为 true 时，弹窗表面以外的按下会关掉这张表。由 <c>EgDialogSurfaceStyle</c> 统一打开。</summary>
+    private static readonly ConditionalWeakTable<ContentDialog, OutsideClickSubscription> Subscriptions = new();
+
     public static readonly DependencyProperty ClosesOnOutsideClickProperty = DependencyProperty.RegisterAttached(
         "ClosesOnOutsideClick",
         typeof(bool),
@@ -49,23 +48,93 @@ public static class DialogDismiss
     private static void OnClosesOnOutsideClickChanged(DependencyObject target, DependencyPropertyChangedEventArgs args)
     {
         if (target is not ContentDialog dialog) return;
-        // 样式可能先被隐式那条应用、再被某张表自己的 Style 换掉；先摘再挂，重复应用也只有一个处理者。
-        dialog.PointerPressed -= OnPointerPressed;
-        if (args.NewValue is true) dialog.PointerPressed += OnPointerPressed;
+        // 样式可能先被隐式那条应用、再被某张表自己的 Style 换掉；重复打开也只留一个订阅者。
+        if (args.NewValue is true)
+            Subscriptions.GetValue(dialog, static owner => new OutsideClickSubscription(owner));
+        else if (Subscriptions.TryGetValue(dialog, out var subscription))
+        {
+            subscription.Dispose();
+            Subscriptions.Remove(dialog);
+        }
     }
 
-    private static void OnPointerPressed(object sender, PointerRoutedEventArgs args)
+    private sealed class OutsideClickSubscription : IDisposable
     {
-        if (sender is not ContentDialog dialog) return;
-        // 这一下只用来关窗：标成已处理，遮罩底下的东西不该同时收到它。
-        if (TryDismiss(dialog, args.GetCurrentPoint(dialog).Position)) args.Handled = true;
+        private readonly ContentDialog _dialog;
+        private readonly PointerEventHandler _pressed;
+        private UIElement? _templateRoot;
+        private UIElement? _overlay;
+
+        internal OutsideClickSubscription(ContentDialog dialog)
+        {
+            _dialog = dialog;
+            _pressed = OnPointerPressed;
+            dialog.Opened += OnOpened;
+            dialog.Loaded += OnLoaded;
+            dialog.Closed += OnClosed;
+            if (dialog.IsLoaded) Attach();
+        }
+
+        private void OnOpened(ContentDialog sender, ContentDialogOpenedEventArgs args) => Attach();
+
+        /// <summary>
+        /// 弹窗挪进 Popup 时，<c>Unloaded</c> 会在 <c>Opened</c> 之后紧接着到（2026-10-30 实测），
+        /// 拿它退订等于刚接上就摘掉、点外面毫无反应。改在 <c>Loaded</c> 重新找一次，只在关掉时退订。
+        /// </summary>
+        private void OnLoaded(object sender, RoutedEventArgs args) => Attach();
+
+        private void OnClosed(ContentDialog sender, ContentDialogClosedEventArgs args) => Detach();
+
+        private void Attach()
+        {
+            Detach();
+            // 子控件可能已处理按下；外面那一下仍要认出来，里面那一下绝不能被改成取消。
+            _templateRoot = TemplatePart(_dialog, "LayoutRoot") ?? (UIElement)_dialog;
+            _templateRoot.AddHandler(UIElement.PointerPressedEvent, _pressed, handledEventsToo: true);
+            _overlay = Overlay(_dialog);
+            _overlay?.AddHandler(UIElement.PointerPressedEvent, _pressed, handledEventsToo: true);
+        }
+
+        private void OnPointerPressed(object sender, PointerRoutedEventArgs args)
+        {
+            var outside = ReferenceEquals(sender, _overlay)
+                || ShouldDismissAt(_dialog, args.GetCurrentPoint(_dialog).Position);
+            if (!outside || !GetClosesOnOutsideClick(_dialog)) return;
+            // 先吞掉按下，再走可能同步触发 Closing 的出口；即便写入保护拒绝关闭也不能点穿。
+            args.Handled = true;
+            TryDismissFromBackdrop(_dialog);
+        }
+
+        private void Detach()
+        {
+            _templateRoot?.RemoveHandler(UIElement.PointerPressedEvent, _pressed);
+            _overlay?.RemoveHandler(UIElement.PointerPressedEvent, _pressed);
+            _templateRoot = null;
+            _overlay = null;
+        }
+
+        public void Dispose()
+        {
+            Detach();
+            _dialog.Opened -= OnOpened;
+            _dialog.Loaded -= OnLoaded;
+            _dialog.Closed -= OnClosed;
+        }
     }
 
-    /// <summary>按在这个点上会不会关掉这张表。真的关了才算 <c>true</c>；探针走同一条路。</summary>
+    /// <summary>尝试取消；true 代表这次外部点击已处理，Closing 仍可拒绝关闭。</summary>
     internal static bool TryDismiss(ContentDialog dialog, Point point)
     {
-        if (!ShouldDismissAt(dialog, point)) return false;
-        // 同一张表重复 Hide 是安全的：框架在 m_hideInProgress / 已关闭时直接返回。
+        return ShouldDismissAt(dialog, point) && TryDismissFromBackdrop(dialog);
+    }
+
+    /// <summary>
+    /// 按在遮罩上：遮罩铺满内容区且在弹窗层之下，这一下能落到它身上就说明表面没接住，直接取消。
+    /// 与 <see cref="TryDismiss"/> 同一条出口，<c>Closing</c> 的保护继续生效。
+    /// </summary>
+    internal static bool TryDismissFromBackdrop(ContentDialog dialog)
+    {
+        if (!GetClosesOnOutsideClick(dialog)) return false;
         dialog.Hide();
         return true;
     }
@@ -81,6 +150,15 @@ public static class DialogDismiss
 
     /// <summary>模板里画底色、圆角和投影的那颗 Border；它才是「弹窗本体」的矩形。</summary>
     internal static Border? Surface(ContentDialog dialog) => TemplatePart(dialog, "BackgroundElement") as Border;
+
+    /// <summary>
+    /// 框架搬出去、铺满内容区的那层遮罩。每个 XamlRoot 同时只允许一张 ContentDialog，
+    /// 所以按名字找得到的就是这张表的遮罩；内部 Flyout/ComboBox 的 popup 不叫这个名字。
+    /// </summary>
+    internal static FrameworkElement? Overlay(ContentDialog dialog) => dialog.XamlRoot is { } root
+        ? VisualTreeHelper.GetOpenPopupsForXamlRoot(root).Select(popup => popup.Child)
+            .OfType<FrameworkElement>().FirstOrDefault(child => child.Name == "SmokeLayerBackground")
+        : null;
 
     /// <summary>按名字取模板部件（弹窗的模板命名域在控件外面，只能走可视树）。</summary>
     internal static FrameworkElement? TemplatePart(ContentDialog dialog, string name) =>
