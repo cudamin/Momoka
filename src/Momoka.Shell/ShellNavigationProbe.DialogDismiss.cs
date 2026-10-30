@@ -2,6 +2,7 @@ using Momoka.Emby;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Windows.Foundation;
 
 namespace Momoka.Shell;
@@ -15,9 +16,9 @@ internal sealed partial class ShellNavigationProbe
     /// 自己铺满整个窗口，所以只有真表量得出这个矩形；屏幕截图另外留一张给右上角的 ✕。
     /// </para>
     /// <para>
-    /// <b>没有注入真实指针。</b>这里调的是指针处理里同一个 <see cref="DialogDismiss.TryDismiss"/>（几何判定
-    /// 与 <c>Hide</c> 都在里面），按下事件那一层的接线由 <c>DialogChromeTests</c> 的源码契约盯着；真实鼠标
-    /// 那一下仍属未覆盖，按验证技能的要求不拿合成鼠标事件冒充。
+    /// 遮罩那一路在这里只能验到「找得到、铺满、不在弹窗树里、点击入口通」：框架把
+    /// <c>SmokeLayerBackground</c> 搬进了另一个 Popup，它收不收到真实按下要真鼠标才看得见
+    /// （2026-10-30 用离线检查台 + UIA 真实点击回归，见 PROGRESS 当日条）。这里不拿合成指针冒充。
     /// </para>
     /// </summary>
     private async Task DialogDismissAsync()
@@ -42,22 +43,43 @@ internal sealed partial class ShellNavigationProbe
             var bounds = SurfaceBounds(plain);
             var inside = new Point(bounds.X + (bounds.Width / 2), bounds.Y + (bounds.Height / 2));
             var outside = OutsidePoint(bounds);
-            // 「外面」必须落在弹窗元素自己身上、而且落在遮罩那一层上：指针事件是从遮罩冒泡到弹窗元素的，
-            // 这两条不成立的话，真实按下根本到不了处理它的地方（真按一下没注入，靠这两条钉住可达性）。
+            // 「外面」必须落在弹窗元素自己身上，且落在框架搬出去的那层遮罩上：真实按下是从遮罩走的，
+            // 不在遮罩上就说明这一下没人接。
             Require(new Rect(0, 0, plain.ActualWidth, plain.ActualHeight).Contains(outside),
                 "「外面」那个点已经在弹窗元素之外，真实按下打不到弹窗");
-            Require(SmokeBounds(plain).Contains(outside), "「外面」那个点不在遮罩上，按下不经过弹窗");
+            var overlay = DialogDismiss.Overlay(plain)
+                ?? throw new InvalidOperationException("没有找到框架搬出去的那层遮罩");
+            Require(overlay.Name == "SmokeLayerBackground", $"遮罩部件名字变了：{overlay.Name}");
+            Require(overlay.IsHitTestVisible, "遮罩不可命中，按在上面会被穿过去");
+            Require(!Inside(overlay, plain), "遮罩还在弹窗自己的树里，说明没走那个独立 Popup");
+            Require(overlay.ActualWidth >= _root.ActualWidth - 2 && overlay.ActualHeight >= _root.ActualHeight - 2,
+                $"遮罩没铺满内容区：遮罩 {overlay.ActualWidth:0}×{overlay.ActualHeight:0}、内容区 {_root.ActualWidth:0}×{_root.ActualHeight:0}");
             Require(!DialogDismiss.ShouldDismissAt(plain, inside), "弹窗里面的点被当成外面");
             Require(DialogDismiss.ShouldDismissAt(plain, outside), "弹窗外面那块没被认出来");
             Require(!DialogDismiss.TryDismiss(plain, inside), "点在弹窗里面就把表关了");
             await Task.Delay(120);
             Require(plainShown.Status == Windows.Foundation.AsyncStatus.Started, "点在弹窗里面之后表已经关了");
             insideRead = $"表面 {bounds.Width:0}×{bounds.Height:0}，里面 {inside.X:0},{inside.Y:0}，"
-                + $"外面 {outside.X:0},{outside.Y:0}（弹窗元素 {plain.ActualWidth:0}×{plain.ActualHeight:0}、遮罩 {SmokeBounds(plain).Width:0}×{SmokeBounds(plain).Height:0}）";
-            Require(DialogDismiss.TryDismiss(plain, outside), "点在弹窗外面没有关表");
+                + $"外面 {outside.X:0},{outside.Y:0}（弹窗元素 {plain.ActualWidth:0}×{plain.ActualHeight:0}、遮罩 {overlay.ActualWidth:0}×{overlay.ActualHeight:0}）";
+            Require(DialogDismiss.TryDismissFromBackdrop(plain), "按在遮罩上没有关表");
             Require(await plainShown == ContentDialogResult.None, "点外面关表的结果不是「没选」");
         }
         finally { plain.Hide(); await plainShown; }
+
+        // 一之二、关掉再开：遮罩是每次显示时重新找的，第二次也得找得到。
+        var reopened = plain.ShowAsync();
+        string reopenRead;
+        try
+        {
+            await LayoutAsync(plain);
+            var overlay = DialogDismiss.Overlay(plain)
+                ?? throw new InvalidOperationException("重开之后没找到遮罩，订阅会漏掉这一轮");
+            reopenRead = $"重开后遮罩 {overlay.ActualWidth:0}×{overlay.ActualHeight:0}、可命中={overlay.IsHitTestVisible}";
+            Require(overlay.IsHitTestVisible, "重开之后遮罩不可命中");
+            Require(DialogDismiss.TryDismissFromBackdrop(plain), "重开之后按在遮罩上没有关表");
+            Require(await reopened == ContentDialogResult.None, "重开之后点外面的结果不是「没选」");
+        }
+        finally { plain.Hide(); await reopened; }
 
         // 二、字幕管理：右下角那颗关闭没了，右上角那颗 ✕ 与正文右沿对齐、按它真的关表。
         var (dialog, shown) = SubtitleFixture("第 4 集", () => Task.CompletedTask);
@@ -103,7 +125,7 @@ internal sealed partial class ShellNavigationProbe
             await busyShown;
         }
 
-        Require(true, $"{insideRead}；{headerRead}；{busyRead}");
+        Require(true, $"{insideRead}；{reopenRead}；{headerRead}；{busyRead}");
     }
 
     private (SubtitleDialog Dialog, Windows.Foundation.IAsyncOperation<ContentDialogResult> Shown) SubtitleFixture(
@@ -125,11 +147,12 @@ internal sealed partial class ShellNavigationProbe
         return surface.TransformToVisual(dialog).TransformBounds(new Rect(0, 0, surface.ActualWidth, surface.ActualHeight));
     }
 
-    /// <summary>模板根那颗画遮罩的 Grid；按在它身上的指针事件会冒泡到弹窗元素。</summary>
-    private static Rect SmokeBounds(ContentDialog dialog)
+    /// <summary>这棵元素在不在弹窗自己的子树里（遮罩被框架搬出去之后应该答 false）。</summary>
+    private static bool Inside(DependencyObject element, DependencyObject root)
     {
-        var smoke = DialogDismiss.TemplatePart(dialog, "LayoutRoot") ?? throw new InvalidOperationException("弹窗模板里没有 LayoutRoot");
-        return smoke.TransformToVisual(dialog).TransformBounds(new Rect(0, 0, smoke.ActualWidth, smoke.ActualHeight));
+        for (var current = element; current is not null; current = VisualTreeHelper.GetParent(current))
+            if (ReferenceEquals(current, root)) return true;
+        return false;
     }
 
     /// <summary>表面左上方 8 DIP —— 落在那圈遮罩上，也就是用户说的「弹窗外部主窗口内」。</summary>

@@ -80,6 +80,12 @@
 
 实现方法见 [Shell 技能](.claude/skills/momoka-winui-shell/SKILL.md#capability-dependent-visibility)，切换与恢复的核验方法见 [验证技能](.claude/skills/momoka-verification/SKILL.md#capability-dependent-visibility)。
 
+## 弹窗
+
+- **现有及以后新增的所有弹窗都必须支持点击外部自动关闭。** 对话框、浮出菜单与自定义交互弹层均适用；关的时候只取消（结果是 `None`），不替用户保存、确认或执行弹窗背后的按钮，表自己写在 `Closing` 里的保护（例如字幕写入在飞）继续拦住。
+- 开关在 `Theme/Styles.xaml` 的 `EgDialogSurfaceStyle` 上（附加属性 `DialogDismiss.ClosesOnOutsideClick`）。新增 `ContentDialog` 派生表必须在同一文件里按类型补一行，`DialogChromeTests` 自动检查全部类型、样式继承与本地覆盖；不得用 `False` 或替换样式绕过。`Flyout`／`MenuFlyout` 保留平台的点外关闭行为，自定义交互 `Popup` 必须开启 `IsLightDismissEnabled`；非交互动画残影不算弹窗。
+- **接住那一下的是遮罩，不是弹窗元素。** 框架把模板里的 `SmokeLayerBackground` 搬进另一个 Popup，只订阅 `ContentDialog` 收不到点外（2026-10-30 实测：点遮罩不关、也无异常）。细节、陷阱与回归方式见 [Shell 技能](.claude/skills/momoka-winui-shell/SKILL.md#dialogs-close-on-outside-click)。
+
 ## 项目约定与自动检查
 
 `tests/Momoka.Tests/AgreementsTests.cs` 与同目录 `Agreements.txt` 记录约定。**基线是要求复核的提醒，不是禁止合法重构。** 新增、改名、合并或退役检查时，先核对调用者、自动化脚本和相关文档，说明旧检查为何不再适用、保留什么覆盖，再逐行更新基线并运行受影响检查；不为让测试变绿整份接受新快照。仅因检查难跑或出现失败，不构成退役理由。

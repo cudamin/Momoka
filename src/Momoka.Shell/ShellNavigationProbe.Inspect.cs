@@ -38,7 +38,9 @@ internal sealed partial class ShellNavigationProbe
         var layout = new Grid();
         layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Margin = new Thickness(12) };
+        // 顶部留出标题栏那 32 DIP：内容铺到标题栏底下，不留这一截最右两颗按钮会被窗口按钮压住，
+        // 手点时按到的是标题栏。WrapRow 让这排排不下时自动换行（这台机器的副屏只有一千零几十宽）。
+        var controls = new WrapRow { Spacing = 8, RowSpacing = 6, Margin = new Thickness(12, 40, 12, 8) };
         var frame = new Frame();
         Grid.SetRow(frame, 1);
         layout.Children.Add(controls);
@@ -131,6 +133,35 @@ internal sealed partial class ShellNavigationProbe
                 (_, _, _) => throw new InvalidOperationException("检查面板不向服务器上传本机文件"),
                 _ => Task.FromResult<EmbyItem?>(item), _ => Task.FromResult<byte[]?>(image))
             { XamlRoot = _root.XamlRoot };
+            await dialog.ShowAsync();
+        });
+        Add("InspectOutsideDismiss", "点外关闭（小表）", async () =>
+        {
+            // 留给手点的一张表：不自己关，点外面应该关掉、点里面不关。遮罩在独立 Popup 里，
+            // 这一下是检查台上专门用真鼠标验证的入口（见 DialogDismiss 的注释）。
+            var body = new StackPanel { Spacing = 12 };
+            body.Children.Add(new TextBlock { Text = "点击内部和下拉选项不关；点击外部只取消。", TextWrapping = TextWrapping.Wrap });
+            var inside = new Button { Content = "内部点击" };
+            AutomationProperties.SetAutomationId(inside, "InspectDialogInside");
+            body.Children.Add(inside);
+            var picker = new ComboBox { ItemsSource = new[] { "第一项", "第二项" }, SelectedIndex = 0 };
+            AutomationProperties.SetAutomationId(picker, "InspectDialogPicker");
+            body.Children.Add(picker);
+            var menuButton = new Button { Content = "内部菜单" };
+            AutomationProperties.SetAutomationId(menuButton, "InspectDialogMenu");
+            var menu = new MenuFlyout();
+            var menuItem = new MenuFlyoutItem { Text = "离线菜单项" };
+            AutomationProperties.SetAutomationId(menuItem, "InspectDialogMenuItem");
+            menu.Items.Add(menuItem);
+            menuButton.Flyout = menu;
+            body.Children.Add(menuButton);
+            var dialog = new ContentDialog
+            {
+                XamlRoot = _root.XamlRoot,
+                Title = "点外面关闭（离线小表）",
+                Content = body,
+                CloseButtonText = "关闭"
+            };
             await dialog.ShowAsync();
         });
         Add("InspectFnNasEdit", "飞牛编辑元数据", async () =>
