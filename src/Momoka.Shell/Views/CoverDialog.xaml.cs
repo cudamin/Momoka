@@ -14,6 +14,8 @@ public sealed partial class ArtworkSlot : INotifyPropertyChanged
 {
     private BitmapImage? _picture;
     private bool _busy;
+    private bool _loading;
+    private bool _previewFailed;
     private int _generation;
 
     public ArtworkSlot(ArtworkKind kind, int index, string? tag)
@@ -32,7 +34,9 @@ public sealed partial class ArtworkSlot : INotifyPropertyChanged
     public string Caption => Kind.Many ? $"{Kind.Name} {Index + 1}" : Kind.Name;
     public string ViewName => $"查看{Caption}";
     public string DeleteName => $"删除{Caption}";
-    public double FrameHeight => Kind.FrameHeight(Kind.Many ? 188 : 140);
+    public int PreviewWidth => Kind.Many ? 188 : 140;
+    public double FrameHeight => Kind is { ImageType: "Primary", Ratio: > 1 }
+        ? PreviewWidth / Kind.Ratio : Kind.FrameHeight(PreviewWidth);
     public string Hint => Kind.Many ? "另加一张背景图（保留现有图片）"
         : Has ? $"换一张{Kind.Name}" : $"还没有{Kind.Name}，点这里加一张";
 
@@ -44,13 +48,21 @@ public sealed partial class ArtworkSlot : INotifyPropertyChanged
             if (ReferenceEquals(_picture, value)) return;
             _picture = value;
             Raise(nameof(Picture));
+            Raise(nameof(HasPicture));
+            Raise(nameof(StatusVisibility));
         }
     }
 
-    public Visibility HasPicture => Has ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility HasPicture => Picture is not null ? Visibility.Visible : Visibility.Collapsed;
+    public bool IsLoading => _loading;
+    public bool PreviewFailed => _previewFailed;
+    public string PreviewStatus => _loading ? "加载中…" : _previewFailed ? "预览加载失败" : "";
+    public Visibility StatusVisibility => Has && Picture is null && (_loading || _previewFailed)
+        ? Visibility.Visible : Visibility.Collapsed;
     public Visibility EmptyMark => Has ? Visibility.Collapsed : Visibility.Visible;
     public bool Ready => !Busy;
     public bool CanDelete => Ready && Has;
+    public Visibility RetryVisibility => _previewFailed ? Visibility.Visible : Visibility.Collapsed;
 
     public bool Busy
     {
@@ -71,6 +83,7 @@ public sealed partial class ArtworkSlot : INotifyPropertyChanged
         _generation++;
         Tag = tag;
         Picture = null;
+        SetPreviewState(false, false);
         Raise(nameof(Has));
         Raise(nameof(HasPicture));
         Raise(nameof(EmptyMark));
@@ -78,21 +91,54 @@ public sealed partial class ArtworkSlot : INotifyPropertyChanged
         Raise(nameof(CanDelete));
     }
 
-    internal void CancelLoad() => _generation++;
+    internal void CancelLoad()
+    {
+        _generation++;
+        SetPreviewState(false, false);
+    }
 
     internal async Task LoadAsync(Func<string, Task<byte[]?>> fetch)
     {
         if (Tag is not { Length: > 0 } tag) return;
         var generation = ++_generation;
+        SetPreviewState(true, false);
         try
         {
             var bytes = await fetch(tag).ConfigureAwait(true);
-            if (generation != _generation || bytes is not { Length: > 0 }) return;
-            var picture = await PosterLoader.DecodeAsync(bytes, 140).ConfigureAwait(true);
-            if (generation == _generation) Picture = picture;
+            if (generation != _generation) return;
+            if (bytes is not { Length: > 0 }) throw new InvalidDataException("服务器没有返回这张图片");
+            var picture = await PosterLoader.DecodeAsync(bytes, PreviewWidth).ConfigureAwait(true);
+            if (generation == _generation)
+            {
+                Picture = picture;
+                SetPreviewState(false, picture is null);
+            }
         }
-        catch (OperationCanceledException) { }
-        catch (Exception error) { Log.Debug("ui", $"面板上一格取不回来（{ImageType}）：{error.Message}"); }
+        catch (OperationCanceledException)
+        {
+            if (generation == _generation) SetPreviewState(false, true);
+        }
+        catch (Exception error)
+        {
+            if (generation != _generation) return;
+            SetPreviewState(false, true);
+            Log.Debug("ui", $"面板上一格取不回来（{ImageType}）：{error.Message}");
+        }
+        finally
+        {
+            if (generation == _generation) SetPreviewState(false, _previewFailed);
+        }
+    }
+
+    private void SetPreviewState(bool loading, bool failed)
+    {
+        _loading = loading;
+        _previewFailed = failed;
+        Raise(nameof(IsLoading));
+        Raise(nameof(PreviewFailed));
+        Raise(nameof(RetryVisibility));
+        Raise(nameof(PreviewStatus));
+        Raise(nameof(StatusVisibility));
     }
 
     private void Raise(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -104,7 +150,7 @@ public readonly record struct ArtworkTarget(string ImageType, int Index);
 public sealed partial class CoverDialog : ContentDialog
 {
     private const string Category = "ui";
-    private const int ThumbnailWidth = 140;
+    private const int PreviewConcurrency = 4;
     private const int ViewerWidth = 1280;
     private readonly EmbyItem _item;
     private readonly FindArtwork _find;
@@ -126,6 +172,11 @@ public sealed partial class CoverDialog : ContentDialog
     public ObservableCollection<ArtworkSlot> Groups { get; } = [];
     public ObservableCollection<ArtworkSlot> Backdrops { get; } = [];
 
+    // ItemsWrapGrid measures its first item once. Reserve the tallest preview plus the caption,
+    // retry and action rows so an episode's short first tile cannot clip the rest of the row.
+    public double SlotHeight => Groups.Select(slot => slot.FrameHeight).DefaultIfEmpty(0).Max() + 132;
+    public double BackdropSlotHeight => ItemArtwork.MultipleKinds.Select(kind => kind.FrameHeight(188)).DefaultIfEmpty(0).Max() + 132;
+
     public CoverDialog(EmbyItem item, FindArtwork find, FetchArtwork fetch, SwapArtwork swap,
         DeleteArtwork delete, UploadArtwork upload, Func<string, Task<EmbyItem?>> reload, FetchRemote? fetchRemote)
     {
@@ -141,7 +192,8 @@ public sealed partial class CoverDialog : ContentDialog
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
         Title = $"修改媒体封面图 — {item.Name}";
         foreach (var kind in ItemArtwork.SingleKinds)
-            Add(Groups, new ArtworkSlot(kind, 0, ItemArtwork.TagsOf(item, kind.ImageType).FirstOrDefault()));
+            Add(Groups, new ArtworkSlot(ArtworkPreview.KindFor(item, kind), 0,
+                ItemArtwork.TagsOf(item, kind.ImageType).FirstOrDefault()));
         Rebuild(item);
         Opened += (_, _) =>
         {
@@ -164,6 +216,16 @@ public sealed partial class CoverDialog : ContentDialog
         };
     }
 
+    private void OnSlotsPanelLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ItemsWrapGrid panel) panel.ItemHeight = SlotHeight;
+    }
+
+    private void OnBackdropPanelLoaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is ItemsWrapGrid panel) panel.ItemHeight = BackdropSlotHeight;
+    }
+
     private void Add(ObservableCollection<ArtworkSlot> into, ArtworkSlot slot)
     {
         into.Add(slot);
@@ -173,17 +235,28 @@ public sealed partial class CoverDialog : ContentDialog
 
     private async Task LoadAsync()
     {
-        foreach (var slot in _slots.ToArray())
+        using var parallel = new SemaphoreSlim(PreviewConcurrency);
+        await Task.WhenAll(_slots.Where(slot => slot.Has).ToArray().Select(LoadSlotAsync)).ConfigureAwait(true);
+
+        async Task LoadSlotAsync(ArtworkSlot slot)
         {
-            if (_closed) return;
-            await slot.LoadAsync(tag => _fetch(_item.Id, slot.ImageType, tag, ThumbnailWidth,
-                slot.Kind.Many ? slot.Index : null)).ConfigureAwait(true);
+            await parallel.WaitAsync().ConfigureAwait(true);
+            try
+            {
+                if (_closed || !_slots.Contains(slot)) return;
+                var width = ArtworkPreview.PixelWidth(slot.PreviewWidth, PreviewScale);
+                await slot.LoadAsync(tag => _fetch(_item.Id, slot.ImageType, tag, width,
+                    slot.Kind.Many ? slot.Index : null)).ConfigureAwait(true);
+            }
+            finally { parallel.Release(); }
         }
     }
 
+    internal double PreviewScale => XamlRoot?.RasterizationScale is { } scale && double.IsFinite(scale) && scale > 0 ? scale : 1;
     internal bool CanPreviewRemoteArtwork => _fetchRemote is not null;
-    internal Task<byte[]?> FetchRemoteAsync(string address) => _closed
-        ? Task.FromCanceled<byte[]?>(new CancellationToken(true)) : _fetchRemote?.Invoke(address) ?? Task.FromResult<byte[]?>(null);
+    internal Task<byte[]?> FetchRemoteAsync(string address, CancellationToken cancellationToken) => _closed
+        ? Task.FromCanceled<byte[]?>(new CancellationToken(true))
+        : _fetchRemote?.Invoke(address, cancellationToken) ?? Task.FromResult<byte[]?>(null);
     internal async Task<PickedArtwork?> PickArtworkAsync() => await ArtworkFile.PickAsync(XamlRoot).ConfigureAwait(true);
     private static ArtworkSlot? SlotOf(object sender) => (sender as FrameworkElement)?.Tag as ArtworkSlot;
 
@@ -258,12 +331,12 @@ public sealed partial class CoverDialog : ContentDialog
         if (SlotOf(sender) is not { Tag.Length: > 0 } slot) return;
         await OperateAsync("看大图失败", async () =>
         {
-            var bytes = await _fetch(_item.Id, slot.ImageType, slot.Tag!, ViewerWidth,
+            var bytes = await _fetch(_item.Id, slot.ImageType, slot.Tag!, ArtworkPreview.PixelWidth(ViewerWidth, PreviewScale),
                 slot.Kind.Many ? slot.Index : null).ConfigureAwait(true);
-            if (bytes is not { Length: > 0 }) return;
-            var picture = await PosterLoader.DecodeAsync(bytes, ViewerWidth).ConfigureAwait(true);
-            if (picture is not null)
-                await ShowPanelAsync(new ArtworkViewer(slot.Caption, picture)).ConfigureAwait(true);
+            if (bytes is not { Length: > 0 }) throw new InvalidDataException("服务器没有返回这张图片，请刷新图片列表后重试");
+            var picture = await PosterLoader.DecodeAsync(bytes, ViewerWidth).ConfigureAwait(true)
+                ?? throw new InvalidDataException("这张图片无法预览，请刷新图片列表后重试");
+            await ShowPanelAsync(new ArtworkViewer(slot.Caption, picture)).ConfigureAwait(true);
         }).ConfigureAwait(true);
     }
 
@@ -295,6 +368,17 @@ public sealed partial class CoverDialog : ContentDialog
         if (ItemArtwork.MultipleKinds.FirstOrDefault() is not { ImageType.Length: > 0 } kind) return;
         await WriteAsync(() => _upload(_item.Id, kind.ImageType, picked)).ConfigureAwait(true);
     }).ConfigureAwait(true);
+
+    private async void OnRetryPreview(object sender, RoutedEventArgs e)
+    {
+        if (SlotOf(sender) is not { Has: true } slot) return;
+        await OperateAsync("重试图片预览失败", async () =>
+        {
+            var width = ArtworkPreview.PixelWidth(slot.PreviewWidth, PreviewScale);
+            await slot.LoadAsync(tag => _fetch(_item.Id, slot.ImageType, tag, width,
+                slot.Kind.Many ? slot.Index : null)).ConfigureAwait(true);
+        }).ConfigureAwait(true);
+    }
 
     private async void OnRefreshArtwork(object sender, RoutedEventArgs e) =>
         await OperateAsync("刷新图片失败", RefreshAsync, refresh: true).ConfigureAwait(true);
@@ -397,4 +481,4 @@ public delegate Task<byte[]?> FetchArtwork(string itemId, string imageType, stri
 public delegate Task SwapArtwork(string itemId, string imageType, int index, RemoteImageInfo chosen);
 public delegate Task DeleteArtwork(string itemId, string imageType, int? index);
 public delegate Task UploadArtwork(string itemId, string imageType, PickedArtwork picked);
-public delegate Task<byte[]?> FetchRemote(string address);
+public delegate Task<byte[]?> FetchRemote(string address, CancellationToken cancellationToken);

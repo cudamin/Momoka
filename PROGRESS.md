@@ -1,3 +1,11 @@
+## 2026-10-30 图片编辑完整预览与候选修复（本次在途）
+
+- 工作树：visualizations/2026/10/30/01a18c4f-d18d-72e2-94b6-dcf463dbe912/Momoka，分支 codex/artwork-preview-repair，基于 master ed36319。本树独占产品写入，artwork-tests 与 artwork-probe 分别隔离测试和探针编写。
+- 范围：CoverDialog/CoverPicker、Core ArtworkPreview、图片代理取消接线、定向单测和 covers 离线探针；保留集/剧现有图种，单集Primary和候选框明确横向16:9；不读取或写入真实账号/媒体。
+- 对照本机网页 imageeditor/imagedownloader/apiclient（SHA256 B61E1C3B0165EF7D30B19816983D955E101F08BB6C4951D8CD73052ABDB882C2、F87B21552A5F792E281648A36AC0F4AF8BCC65D60599E40DA7B121E9D303BA82）：完整缩放、按画框/DPI取图；候选有限并发、缩略失败回原图、失败提示/重试、关闭取消，补使用这张按钮。
+- 本树Release Tests/Core与Shell编译0警告0错误；定向72/72、全主测3407/3407，均0失败0跳过；covers离线真实控件10/10（shell-probe-20261030-112958901-23704）已检查1280/760、单集16:9、各格图片四边及动作按钮、失败单图重试/刷新、60候选和四并发、取消晚到。空白、LF、Git差异、自动化句柄扫描通过；原失败/早期截图保留，最新证据本树artifacts/artwork-covers-final-layout-20261030。
+- 待主树整合重验和实际publish。开发期间master由性能批次更新至aac0cc8，本次先在独立副本保留并整合其已提交更新；不覆盖活跃主树会话或真实配置，分支结果不是主树交付。
+
 ## 2026-10-30 弹窗点击外部关闭已合入主树并交付
 
 - 产品提交 `0b540f7`，主树整合提交 `f3205bd`；保留已提交的更多菜单能力迟到补齐与快捷键焦点改动，两段 PROGRESS 合并冲突均完整保留。最终 master 方案 Release 构建 0警告0错误；主测试 **3335/3335、0失败0跳过**，实际弹窗行为 **10/10**、样式／元数据子集 **61/61**，主规则文档检查3份／21个拒绝反例通过。

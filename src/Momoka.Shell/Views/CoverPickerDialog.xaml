@@ -38,29 +38,43 @@
             SelectionMode="Single">
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="views:CoverChoice">
-                    <StackPanel Margin="0,0,0,8" Width="150">
-                        <!-- 固定高、Uniform：候选封面的形状不一（海报、方的、偶尔一张横的），一格格高矮
-                             不齐的网格看不出哪张更好。 -->
+                    <StackPanel Margin="0,0,0,8" Width="150" Height="{x:Bind CellHeight}">
+                        <!-- 剧/电影沿用竖海报框，单集 Primary 按 16:9 剧照框；Uniform 保留完整图片。 -->
                         <Border
                             x:Name="CoverCandidatePreview"
-                            Height="210"
+                            Height="{x:Bind PreviewHeight}"
                             Visibility="{x:Bind PreviewVisibility}"
                             Style="{StaticResource EgFrameStyle}">
-                            <Image
-                                Source="{x:Bind Picture, Mode=OneWay}"
-                                Stretch="Uniform" />
+                            <Grid>
+                                <Image Source="{x:Bind Picture, Mode=OneWay}" Stretch="Uniform" />
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Style="{StaticResource EgDataStyle}" Text="{x:Bind PreviewStatus, Mode=OneWay}"
+                                    TextWrapping="Wrap" Visibility="{x:Bind StatusVisibility, Mode=OneWay}" />
+                            </Grid>
                         </Border>
                         <TextBlock
                             MaxLines="2"
+                            Height="40"
                             Margin="0,6,0,0"
                             Style="{StaticResource EgDataStyle}"
                             Text="{x:Bind Caption}"
                             TextTrimming="CharacterEllipsis"
                             TextWrapping="Wrap" />
+                        <Grid Height="40" Visibility="{x:Bind PreviewVisibility}">
+                            <Button Click="OnRetry" Content="重试预览" Tag="{x:Bind}"
+                                AutomationProperties.AutomationId="RetryArtworkPreview"
+                                Style="{StaticResource EgSecondaryButtonStyle}"
+                                Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
+                        </Grid>
                     </StackPanel>
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
+
+        <TextBlock x:Name="PreviewNotice" Style="{StaticResource EgDataStyle}"
+            TextWrapping="Wrap" Visibility="Collapsed" />
+        <Button x:Name="RetryArtworkPreviews" Click="OnRetry" Content="重试预览"
+            Style="{StaticResource EgSecondaryButtonStyle}" Visibility="Collapsed" />
 
         <!-- 这一条路和上面那些候选是同一件事的两个答案，所以摆在同一张表里。 -->
         <Button

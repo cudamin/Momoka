@@ -28,12 +28,12 @@
             Click="OnRefreshArtwork"
             Content="刷新图片列表"
             Style="{StaticResource EgSecondaryButtonStyle}" />
-        <ScrollViewer Grid.Row="2" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="ArtworkScroll" Grid.Row="2" HorizontalScrollBarVisibility="Disabled" Padding="{StaticResource EgScrollBarLane}" VerticalScrollBarVisibility="Auto">
             <StackPanel Spacing="{StaticResource EgSpaceXL}">
                 <ItemsControl x:Name="Slots" ItemsSource="{x:Bind Groups}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <ItemsWrapGrid ItemWidth="{StaticResource EgArtworkCellWidth}"
+                            <ItemsWrapGrid ItemWidth="{StaticResource EgArtworkCellWidth}" Loaded="OnSlotsPanelLoaded"
                                 MaximumRowsOrColumns="6" Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
@@ -48,14 +48,21 @@
                                     Style="{StaticResource EgArtworkTileStyle}"
                                     Tag="{x:Bind}" ToolTipService.ToolTip="{x:Bind Hint, Mode=OneWay}">
                                     <Grid>
-                                        <Image Source="{x:Bind Picture, Mode=OneWay}" Stretch="UniformToFill"
+                                        <Image Source="{x:Bind Picture, Mode=OneWay}" Stretch="Uniform"
                                             Visibility="{x:Bind HasPicture, Mode=OneWay}" />
+                                        <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                            Style="{StaticResource EgDataStyle}" Text="{x:Bind PreviewStatus, Mode=OneWay}"
+                                            TextWrapping="Wrap" Visibility="{x:Bind StatusVisibility, Mode=OneWay}" />
                                         <FontIcon Glyph="&#xE710;" Style="{StaticResource EgArtworkEmptyGlyphStyle}"
                                             Visibility="{x:Bind EmptyMark, Mode=OneWay}" />
                                     </Grid>
                                 </Button>
                                 <TextBlock HorizontalAlignment="Center" Style="{StaticResource EgDataStrongStyle}"
                                     Text="{x:Bind Caption}" TextTrimming="CharacterEllipsis" />
+                                <Button Click="OnRetryPreview" Content="重试预览" Tag="{x:Bind}"
+                                    AutomationProperties.AutomationId="RetryCurrentArtworkPreview"
+                                    Style="{StaticResource EgSecondaryButtonStyle}" IsEnabled="{x:Bind Ready, Mode=OneWay}"
+                                    Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
                                 <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
                                     <Button Click="OnSwap" IsEnabled="{x:Bind Ready, Mode=OneWay}"
                                         AutomationProperties.AutomationId="ChangeArtwork"
@@ -85,7 +92,7 @@
                     <ItemsControl x:Name="BackdropSlots" ItemsSource="{x:Bind Backdrops}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <ItemsWrapGrid ItemWidth="{StaticResource EgBackdropCellWidth}" Orientation="Horizontal" />
+                                <ItemsWrapGrid ItemWidth="{StaticResource EgBackdropCellWidth}" Loaded="OnBackdropPanelLoaded" Orientation="Horizontal" />
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate>
@@ -95,10 +102,20 @@
                                     <Button Click="OnView" Padding="0" Height="{x:Bind FrameHeight}" IsEnabled="{x:Bind CanDelete, Mode=OneWay}"
                                         AutomationProperties.AutomationId="ArtworkTile" AutomationProperties.Name="{x:Bind ViewName}"
                                         Style="{StaticResource EgArtworkTileStyle}" Tag="{x:Bind}" ToolTipService.ToolTip="看大图">
-                                        <Image Source="{x:Bind Picture, Mode=OneWay}" Stretch="UniformToFill" />
+                                        <Grid>
+                                            <Image Source="{x:Bind Picture, Mode=OneWay}" Stretch="Uniform"
+                                                Visibility="{x:Bind HasPicture, Mode=OneWay}" />
+                                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                Style="{StaticResource EgDataStyle}" Text="{x:Bind PreviewStatus, Mode=OneWay}"
+                                                TextWrapping="Wrap" Visibility="{x:Bind StatusVisibility, Mode=OneWay}" />
+                                        </Grid>
                                     </Button>
                                     <TextBlock HorizontalAlignment="Center" Style="{StaticResource EgDataStyle}"
                                         Text="{x:Bind Caption}" TextTrimming="CharacterEllipsis" />
+                                    <Button Click="OnRetryPreview" Content="重试预览" Tag="{x:Bind}"
+                                        AutomationProperties.AutomationId="RetryCurrentArtworkPreview"
+                                        Style="{StaticResource EgSecondaryButtonStyle}" IsEnabled="{x:Bind Ready, Mode=OneWay}"
+                                        Visibility="{x:Bind RetryVisibility, Mode=OneWay}" />
                                     <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="{StaticResource EgSpaceS}">
                                         <Button Click="OnSwap" IsEnabled="{x:Bind Ready, Mode=OneWay}"
                                             AutomationProperties.AutomationId="AddRemoteBackdrop" AutomationProperties.Name="{x:Bind Hint}"

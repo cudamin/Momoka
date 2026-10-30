@@ -131,7 +131,7 @@ internal sealed partial class ShellNavigationProbe
                     return Task.CompletedTask;
                 },
                 (_, _, _) => throw new InvalidOperationException("检查面板不向服务器上传本机文件"),
-                _ => Task.FromResult<EmbyItem?>(item), _ => Task.FromResult<byte[]?>(image))
+                _ => Task.FromResult<EmbyItem?>(item), (_, _) => Task.FromResult<byte[]?>(image))
             { XamlRoot = _root.XamlRoot };
             await dialog.ShowAsync();
         });
