@@ -1,3 +1,12 @@
+## 2026-10-30 弹窗点击外部关闭已合入主树并交付
+
+- 产品提交 `0b540f7`，主树整合提交 `f3205bd`；保留已提交的更多菜单能力迟到补齐与快捷键焦点改动，两段 PROGRESS 合并冲突均完整保留。最终 master 方案 Release 构建 0警告0错误；主测试 **3335/3335、0失败0跳过**，实际弹窗行为 **10/10**、样式／元数据子集 **61/61**，主规则文档检查3份／21个拒绝反例通过。
+- 主树开发件 metadata **5/5**：`shell-probe-20261030-092749564-29732`；实际发布件 metadata **5/5**：`shell-probe-20261030-093403015-15952`。主树真实鼠标复验内部按钮、ComboBox 与 MenuFlyout 不误关、外部关闭不触发背景首页、重开仍可关闭；发布件实鼠同样验证内部保持与点外关闭不穿透，实屏与UI树在 `artifacts/dialog-master-*`、`artifacts/dialog-published-*`。
+- 实际交付 `artifacts/publish/win-x64` 已由主树 `tools/publish.ps1 -NoArchive -Shortcut` 更新，546文件／284.9MB，着色器与批准mpv清单逐项验证通过；ProductVersion `0.2.0+f3205bd5bbfd3eb4830e65be97e3c9be61701c2a`，Shell DLL与当前发布构建同哈希。桌面 Momoka.lnk 已重建并读回同一目录与WorkingDirectory；未改版本、未上传远程、未生成Store包或版本压缩包。
+- 所有21个具体ContentDialog及普通动态弹窗接共享关闭行为，新类型／本地False／样式覆盖／交互Popup默认关闭行为均有自动检查。点击外部只取消、不保存；正在写入时原有Closing保护仍阻止关闭，写入结束恢复。测试与界面检查都使用匿名离线夹具，不登录真实账号、不播放或写真实媒体元数据。没有逐张进行真实服务器业务操作，也不以此声明真实服务器验收。
+- 本次临时分支 `codex/dialog-light-dismiss` 与已完全整合的 `qoder/临时` 已删除；弹窗任务工作树切为master对应的detached HEAD。应用 archive_worktree 拒绝删除当前聊天的primary checkout，因此保留该detached目录，不绕过应用保护。关键临时证据已复制到主树 `artifacts/dialog-evidence-20261030`；其他活跃性能任务的分支和工作树未动。
+- 原始历史条目与失败证据保留在下方／证据目录，不覆盖成全绿快照；本次日常修复未升级依赖或发新版本，未执行不适用的全量自检／版本四闸门。
+
 ## 2026-10-30 所有弹窗点击外部关闭修复（待主树整合）
 
 - 开发树 `C:/Users/89400/.codex/worktrees/dialog-light-dismiss/Momoka`，分支 `codex/dialog-light-dismiss`；写入范围为 DialogDismiss、弹窗检查台／探针、样式注释、对应测试及项目规则。主树其它会话的菜单与外观改动保留，不上传、不真实播放或写媒体。
