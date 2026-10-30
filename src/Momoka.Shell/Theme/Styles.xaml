@@ -572,6 +572,15 @@
     </Style>
 
     <!--
+      搜索框的输入层。原生文本框的上下内边距会让 40 DIP 胶囊里的文字偏上；模板保留（光标、清除键、输入法
+      和键盘都在里面），只把输入与占位文字居中。搜索页那一颗和「在 MoviePilot 搜索版本」窗口那一颗共用这一份
+      —— 两处的框必须一样高、字站在同一条线上，各写一份就迟早只改一处。
+    -->
+    <Style x:Key="EgSearchTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource AutoSuggestBoxTextBoxStyle}">
+        <Setter Property="Padding" Value="10,0,6,0" />
+    </Style>
+
+    <!--
       「修改媒体封面图」那一格里摆图的位置（2026-09-13）。
 
       一个 Button 而不是 Border + 手势：这一格整块点下去就是「换这一种图」，用按钮才有焦点环、才有键盘能按到、

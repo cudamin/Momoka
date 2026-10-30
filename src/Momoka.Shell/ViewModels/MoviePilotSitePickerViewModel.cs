@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Momoka.Configuration;
 using Momoka.MoviePilot;
 using Microsoft.UI.Xaml;
 
@@ -17,6 +18,7 @@ public sealed partial class MoviePilotSearchSiteRow(MoviePilotSearchSite site, A
 public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
 {
     private MoviePilotService? _service;
+    private MoviePilotService? _observed;
     private string? _mediaType;
     private string _connectionStamp = "";
     private bool _loaded;
@@ -51,29 +53,85 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         if (!ReferenceEquals(_service, service) || _mediaType != mediaType || !service.IsCurrentConnection(_connectionStamp))
         {
             _updating = true;
-            Sites.Clear();
-            var preference = service.SearchSitePreference(mediaType);
-            UseDefault = preference.UseDefault;
-            _preferredIds = preference.SiteIds.ToHashSet();
-            _updating = false;
+            try { Sites.Clear(); }
+            finally { _updating = false; }
             _loaded = false;
             _connectionStamp = service.Available ? service.ConnectionStamp : "";
             _catalogueLoad = null;
         }
         _service = service;
         _mediaType = mediaType;
+        Observe(service);
+        Apply(service.SearchSitePreference(mediaType));
+    }
+
+    /// <summary>
+    /// 重读一遍存下来的选择（设置页、搜索页或另一个窗口刚改过）。只读本机设置，不读目录、不写盘；
+    /// 已经铺出来的站点目录留在原地，只把勾挪到新的那一份上。
+    /// </summary>
+    internal void RefreshSelection()
+    {
+        if (_service is null || !_service.IsCurrentConnection(_connectionStamp)) return;
+        Apply(_service.SearchSitePreference(_mediaType), notify: true);
+    }
+
+    /// <summary>
+    /// 把一份选择装上。<paramref name="notify"/> 只给「别处改的」那两条路用 —— 真的换了选择才喊
+    /// <see cref="SelectionChanged"/>，让正开着的那一页按「下一次搜索才生效」处理；接上来的头一次不算更改。
+    /// </summary>
+    private void Apply(MoviePilotSearchSitePreference preference, bool notify = false)
+    {
+        var changed = UseDefault != preference.UseDefault || !_preferredIds.SetEquals(preference.SiteIds);
+        _updating = true;
+        try
+        {
+            UseDefault = preference.UseDefault;
+            _preferredIds = preference.SiteIds.ToHashSet();
+            foreach (var site in Sites) site.Selected = _preferredIds.Contains(site.Id);
+        }
+        finally { _updating = false; }
         AnnounceSelection();
+        if (notify && changed) SelectionChanged?.Invoke();
+    }
+
+    /// <summary>跟着一个服务听「站点选择变了」；换服务或离页时把这根线拆掉。</summary>
+    private void Observe(MoviePilotService? service)
+    {
+        if (ReferenceEquals(_observed, service)) return;
+        if (_observed is not null) _observed.SearchSitesChanged -= OnSearchSitesChanged;
+        _observed = service;
+        if (service is not null) service.SearchSitesChanged += OnSearchSitesChanged;
+    }
+
+    /// <summary>
+    /// 别处改了选择：本选择器还在台上就当场跟过去。自己存的那一下也会走到这里，代价是一次重读 ——
+    /// 值本来就一样，属性通知不会白喊（<see cref="Apply"/> 里有 <see cref="_updating"/> 挡着写盘）。
+    /// </summary>
+    private void OnSearchSitesChanged()
+    {
+        if (_service is null || !_service.IsCurrentConnection(_connectionStamp)) return;
+        Apply(_service.SearchSitePreference(_mediaType), notify: true);
     }
 
     internal Task EnsureLoadedAsync() => _loaded && _service?.IsCurrentConnection(_connectionStamp) == true
         ? Task.CompletedTask : _catalogueLoad is { IsCompleted: false } ? _catalogueLoad : ReloadAsync();
+
+    /// <summary>手里这份目录与勾选属于此刻这条连接。设置页据此判断「连接刚恢复、要重新接一次」。</summary>
+    internal bool IsCurrentConnection => _service?.IsCurrentConnection(_connectionStamp) == true;
 
     internal Task PrepareSelectionAsync() => UseDefault ? Task.CompletedTask : EnsureLoadedAsync();
 
     public override void Cancel()
     {
         _catalogueLoad = null;
+        Observe(null);
         base.Cancel();
+    }
+
+    public override void Dispose()
+    {
+        Observe(null);
+        base.Dispose();
     }
 
     public override Task ReloadAsync() => _catalogueLoad = LoadCatalogueAsync();

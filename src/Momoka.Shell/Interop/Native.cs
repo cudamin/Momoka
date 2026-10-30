@@ -209,10 +209,13 @@ internal static partial class Native
     /// WM_SETICON, swap a window's big or small icon — wParam picks the size (0 小档, 1 大档). 发空句柄
     /// 并不是「摘掉图标」：系统画标题栏图标时的查找链是「WM_SETICON 给的 → 窗口类图标 → exe 资源里的
     /// 第一颗」，从第一环退出之后后两环会把图标原样补回来 —— 设置窗口 2026-09-13 发过空句柄，截图上
-    /// 左上角照样有图标。那个位置真正要的是一颗全透明的图标（见 <c>SettingsWindow.CreateBlankIcon</c>），
+    /// 左上角照样有图标。那个位置真正要的是一颗全透明的图标（见 <see cref="BlankCaptionIcon"/>），
     /// 不是空。
     /// </summary>
     public const uint WmSetIcon = 0x0080;
+
+    /// <summary>WM_GETICON，问回来的是 <see cref="WmSetIcon"/> 装进去的那一颗（wParam 同上：0 小档、1 大档）。</summary>
+    public const uint WmGetIcon = 0x007F;
     public const uint WmSize = 0x0005;
     public const uint WmClose = 0x0010;
     public const uint WmEraseBackground = 0x0014;
@@ -465,18 +468,14 @@ internal static partial class Native
     public static partial IntPtr SendMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
 
     /// <summary>
-    /// 从一段 ICO 图像数据造一颗图标。设置窗口用它造「整幅全透明」的那颗占住标题栏 —— 见
-    /// <c>SettingsWindow.CreateBlankIcon</c>。必须是 32bpp：单色 1bpp 的透明掩码 DWM 不认，
+    /// 从一段 ICO 图像数据造一颗图标。两扇第二窗口用它造「整幅全透明」的那颗占住标题栏 —— 见
+    /// <see cref="BlankCaptionIcon"/>。必须是 32bpp：单色 1bpp 的透明掩码 DWM 不认，
     /// 会画成一整块暗色（2026-09-13 截图放大实量）；32bpp 图标按 alpha 合成，alpha 全 0 才是真透明。
     /// </summary>
     [LibraryImport("user32.dll")]
     public static partial IntPtr CreateIconFromResourceEx(
         byte[] presBits, uint size, [MarshalAs(UnmanagedType.Bool)] bool isIcon, uint version,
         int width, int height, uint flags);
-
-    [LibraryImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static partial bool DestroyIcon(IntPtr icon);
 
     [LibraryImport("user32.dll")]
     public static partial IntPtr WindowFromPoint(NativePoint point);

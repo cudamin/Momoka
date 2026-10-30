@@ -54,6 +54,45 @@ internal static class MoviePilotSearchSitesTests
             service.SearchByKeywordAsync("词", CancellationToken.None, new MoviePilotSiteSelection(service.ConnectionStamp, [1, 2])).GetAwaiter().GetResult();
             Assert.Contains("sites=1,2", Uri.UnescapeDataString(transport.SentTo("search/title")[1].Url));
         });
+        Test("MoviePilot 搜索站点：分类没有单独选过时沿用不限类型的那一份", () =>
+        {
+            using var transport = Transport().Answer("search/title", "[]");
+            var (service, _) = Service(transport);
+            // 先走一趟关键词搜索：登录之后才有连接戳可用来存选择（存本身不接受没连上的编号）。
+            service.SearchByKeywordAsync("词", CancellationToken.None).GetAwaiter().GetResult();
+            service.SaveSearchSitePreference(service.ConnectionStamp, null, false, [4]);
+
+            // 设置页写的就是「不限类型」那一份；电影、电视剧没有单独选过时照它起步。
+            foreach (var mediaType in new[] { "电影", "电视剧" })
+            {
+                var inherited = service.SearchSitePreference(mediaType);
+                Assert.False(inherited.UseDefault);
+                Assert.Equal("4", string.Join(',', inherited.SiteIds));
+            }
+
+            // 在某一类里单独改过之后，那一类以自己的为准；另一类仍跟着设置里的那一份。
+            service.SaveSearchSitePreference(service.ConnectionStamp, "电影", false, [1, 3]);
+            Assert.Equal("1,3", string.Join(',', service.SearchSitePreference("电影").SiteIds));
+            Assert.Equal("4", string.Join(',', service.SearchSitePreference("电视剧").SiteIds));
+
+            // 明确清空也是一份记录：不退回默认站点，也不被上一层补回来。
+            service.SaveSearchSitePreference(service.ConnectionStamp, "电视剧", false, []);
+            var cleared = service.SearchSitePreference("电视剧");
+            Assert.False(cleared.UseDefault);
+            Assert.Equal(0, cleared.SiteIds.Count);
+        });
+        Test("MoviePilot 搜索站点：选择存下来之后通知还在台上的选择器", () =>
+        {
+            using var transport = Transport().Answer("search/title", "[]");
+            var (service, _) = Service(transport);
+            service.SearchByKeywordAsync("词", CancellationToken.None).GetAwaiter().GetResult();
+            var announced = 0;
+            service.SearchSitesChanged += () => announced++;
+            service.SaveSearchSitePreference(service.ConnectionStamp, null, false, [2]);
+            Assert.Equal(1, announced);
+            Assert.Throws<MoviePilotOperationBlockedException>(() => service.SaveSearchSitePreference("stale-stamp", null, true, []));
+            Assert.Equal(1, announced);
+        });
         Test("MoviePilot 搜索站点：清空和非法编号不退回默认搜索，不发网络请求", () =>
         {
             foreach (var ids in new int[][] { [], [0], [-1], [1, -2] })

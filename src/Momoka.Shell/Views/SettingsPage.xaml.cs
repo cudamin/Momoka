@@ -792,6 +792,7 @@ public sealed partial class SettingsPage : Page, IShellContent
         _moviePilot = service;
         _moviePilot.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
         ViewModel.RefreshHomeRows();
+        ViewModel.RefreshMoviePilotSites();
     }
 
     private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args)
@@ -800,7 +801,9 @@ public sealed partial class SettingsPage : Page, IShellContent
         if (!_activity.IsCurrent(activity) || !ReferenceEquals(sender, _moviePilot)) return;
         DispatcherQueue.TryEnqueue(() =>
         {
-            if (_activity.IsCurrent(activity) && ReferenceEquals(sender, _moviePilot)) ViewModel.RefreshHomeRows();
+            if (!_activity.IsCurrent(activity) || !ReferenceEquals(sender, _moviePilot)) return;
+            ViewModel.RefreshHomeRows();
+            ViewModel.RefreshMoviePilotSites();
         });
     }
 

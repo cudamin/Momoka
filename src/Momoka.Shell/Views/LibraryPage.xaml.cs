@@ -1141,29 +1141,12 @@ public sealed partial class LibraryPage : Page, IShellContent
         _ = SubmitSearchAsync(e.QueryText ?? sender.Text ?? string.Empty);
     }
 
-    private void PlaceSearchSites()
-    {
-        // 在系统 AutoSuggestBox 的清除键与查询键之间加一格，保留原生输入、清除和回车语义。
-        // 同时扩展模板的跨列表面，站点入口也在输入框边框内；模板重建时重新挂载。
-        if (Find<Button>(SearchInput, "QueryButton") is not { Parent: Grid host } query
-            || ReferenceEquals(SearchSitePicker.Parent, host)) return;
-        if (SearchSitePicker.Parent is Panel previous) previous.Children.Remove(SearchSitePicker);
-        var column = Grid.GetColumn(query);
-        host.ColumnDefinitions.Insert(column, new ColumnDefinition { Width = GridLength.Auto });
-        foreach (var child in host.Children.OfType<FrameworkElement>())
-        {
-            var start = Grid.GetColumn(child);
-            var span = Grid.GetColumnSpan(child);
-            if (start >= column) Grid.SetColumn(child, start + 1);
-            else if (start + span > column) Grid.SetColumnSpan(child, span + 1);
-        }
-        Grid.SetRow(SearchSitePicker, Grid.GetRow(query));
-        Grid.SetColumn(SearchSitePicker, column);
-        SearchSitePicker.Margin = new Thickness(4, 0, 2, 0);
-        host.Children.Add(SearchSitePicker);
-        AutomationProperties.SetAutomationId(query, "SearchSubmit");
-        AutomationProperties.SetName(query, "搜索");
-    }
+    /// <summary>
+    /// 在系统 AutoSuggestBox 的清除键与查询键之间加一格，保留原生输入、清除和回车语义。
+    /// 同时扩展模板的跨列表面，站点入口也在输入框边框内；模板重建时重新挂载。搜索页与「在 MoviePilot 搜索版本」
+    /// 窗口共用 <see cref="SearchSiteSlot"/> 这一份做法。
+    /// </summary>
+    private void PlaceSearchSites() => SearchSiteSlot.Place(SearchInput, SearchSitePicker);
 
     private void OnSearchInputPressed(object sender, PointerRoutedEventArgs e) => ExpandSearchOptions();
 

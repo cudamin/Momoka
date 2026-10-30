@@ -6,15 +6,25 @@
     xmlns:local="using:Momoka.Shell.Views">
     <Grid x:Name="VersionsLayout" Padding="16" Background="{ThemeResource EgWindowBrush}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
         </Grid.RowDefinitions>
-        <AutoSuggestBox x:Name="SearchInput" Header="搜索 MoviePilot 资源" Margin="0,0,0,12"
-            PlaceholderText="输入关键字（如：剧名 S01 E01）" QueryIcon="Find" QuerySubmitted="OnSearch" />
-        <local:MoviePilotSitePicker x:Name="SearchSitePicker" Grid.Row="1" Margin="0,0,0,12" />
-        <InfoBar Grid.Row="2" Margin="0,0,0,12" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
+        <!--
+          搜索框照搜索页那一条做：同样的胶囊与放大镜，站点入口住在框里、放大镜左边（见 MoviePilotVersionsView.
+          PlaceSearchSites）。独立窗口没有来源栏，所以框下不再单起一行站点；框上那行「搜索 MoviePilot 资源」
+          也去掉了 —— 窗口标题已经说着这是哪一页，框里的占位文字说着能搜什么（2026-10-30 用户令）。
+        -->
+        <Grid x:Name="SearchEntry" Margin="0,0,0,12">
+            <AutoSuggestBox x:Name="SearchInput" MinHeight="40" CornerRadius="20"
+                VerticalAlignment="Center" VerticalContentAlignment="Center"
+                TextBoxStyle="{StaticResource EgSearchTextBoxStyle}"
+                PlaceholderText="输入关键字（如：剧名 S01 E01）" QueryIcon="Find" QuerySubmitted="OnSearch" />
+            <!-- 先做框的兄弟，等模板建出来再搬进框里（PlaceSearchSites）；搬之前藏着，免得压在输入文字上。 -->
+            <local:MoviePilotSitePicker x:Name="SearchSitePicker" VerticalAlignment="Center" Visibility="Collapsed" />
+        </Grid>
+        <InfoBar Grid.Row="1" Margin="0,0,0,12" IsClosable="True" IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
             Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="2">
             <local:MoviePilotResourceBrowser x:Name="Browser" />
             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}">
                 <ProgressRing IsActive="{x:Bind ViewModel.Busy, Mode=OneWay}" Width="40" Height="40" />

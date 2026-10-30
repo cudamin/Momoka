@@ -804,6 +804,19 @@
                                 Text="{x:Bind Result, Mode=OneWay}"
                                 TextWrapping="Wrap"
                                 Visibility="{x:Bind ResultVisibility, Mode=OneWay}" />
+
+                            <!--
+                              默认搜索站点（2026-10-30 用户令）。它和搜索框里那颗是同一份视图模型，写的也是同一份
+                              设置 —— 在这里选完，下一次搜索就照它走；在搜索框里改选，这一行也跟着变。
+                              没连上 MoviePilot 时整截收起：目录读不到，选择也存不进去（CLAUDE.md 的显隐规则），
+                              上面的开关、地址和测试按钮照旧留着，连接恢复后这一截原样回来。
+                            -->
+                            <StackPanel Spacing="2" Margin="0,4,0,0" Visibility="{x:Bind SitesVisibility, Mode=OneWay}">
+                                <local:MoviePilotSitePicker x:Name="DefaultSearchSites" Label="默认搜索站点"
+                                    ViewModel="{x:Bind SearchSites}" />
+                                <TextBlock Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
+                                    Text="搜索时默认使用的站点。在搜索框里改选也会记住，这一行跟着变。" />
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
                 </DataTemplate>

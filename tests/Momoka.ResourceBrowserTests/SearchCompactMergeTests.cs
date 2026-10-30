@@ -27,8 +27,11 @@ internal static class SearchCompactMergeTests
             // Hiding the selector must not silently reroute the next request to the media library.
             Assert.Contains("SearchSource => ViewModel.MoviePilotTabsVisibility == Visibility.Visible", source);
             Assert.DoesNotContain("SearchSource => SourceTabs.Visibility", source);
-            Assert.Contains("host.ColumnDefinitions.Insert(column, new ColumnDefinition { Width = GridLength.Auto })", source);
-            Assert.Contains("Grid.SetColumn(SearchSitePicker, column)", source);
+            // 模板里插那一列的做法只有一份（SearchSiteSlot），搜索页与独立窗口都用它。
+            Assert.Contains("SearchSiteSlot.Place(SearchInput, SearchSitePicker)", source);
+            var slot = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/SearchSiteSlot.cs"));
+            Assert.Contains("host.ColumnDefinitions.Insert(column, new ColumnDefinition { Width = GridLength.Auto })", slot);
+            Assert.Contains("Grid.SetColumn(picker, column)", slot);
         });
 
         Test("搜索合并：紧凑探针与来源退役检查共存", () =>
@@ -60,13 +63,28 @@ internal static class SearchCompactMergeTests
         });
 
         Test("搜索输入：占位与实际输入垂直居中，保留原生文本框模板", () =>
-            CheckSearchTextAlignment(Load(sourceRoot, "LibraryPage.xaml")));
+            CheckSearchTextAlignment(Load(sourceRoot, "LibraryPage.xaml"), LoadStyles(sourceRoot)));
 
         Test("搜索输入：居中契约拒绝退回顶部对齐", () =>
         {
             var xml = Load(sourceRoot, "LibraryPage.xaml");
             Named(xml, "SearchInput").SetAttributeValue("VerticalContentAlignment", "Top");
-            Assert.Throws<AssertionException>(() => CheckSearchTextAlignment(xml));
+            Assert.Throws<AssertionException>(() => CheckSearchTextAlignment(xml, LoadStyles(sourceRoot)));
+        });
+
+        Test("搜索合并：版本窗口的搜索区与搜索页同一套胶囊与框内站点", () =>
+        {
+            var xml = Load(sourceRoot, "MoviePilotVersionsView.xaml");
+            var input = Named(xml, "SearchInput");
+            Assert.Equal("40", input.Attribute("MinHeight")?.Value);
+            Assert.Equal("20", input.Attribute("CornerRadius")?.Value);
+            Assert.Equal("{StaticResource EgSearchTextBoxStyle}", input.Attribute("TextBoxStyle")?.Value);
+            Assert.True(input.Attribute("Header") is null, "窗口里仍挂着搜索框上方的标题");
+            Assert.Equal("SearchEntry", Named(xml, "SearchSitePicker").Parent?.Attribute(Xaml + "Name")?.Value);
+            Assert.False(xml.Descendants().Any(node => node.Name.LocalName == "TextBlock"
+                && (string?)node.Attribute("Text") == "搜索 MoviePilot 资源"), "窗口里仍有「搜索 MoviePilot 资源」这行字");
+            var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/MoviePilotVersionsView.xaml.cs"));
+            Assert.Contains("SearchSiteSlot.Place(SearchInput, SearchSitePicker)", source);
         });
 
         Test("搜索胶囊：隐藏搜索标题但保留普通媒体库标题绑定", () =>
@@ -176,6 +194,10 @@ internal static class SearchCompactMergeTests
     private static XDocument Load(string root, string file) =>
         XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Views", file));
 
+    /// <summary>共享样式表：搜索框那一条和「在 MoviePilot 搜索版本」窗口共用同一份。</summary>
+    private static XDocument LoadStyles(string root) =>
+        XDocument.Load(Path.Combine(root, "src/Momoka.Shell/Theme/Styles.xaml"));
+
     private static XElement Named(XDocument xml, string name) =>
         xml.Descendants().Single(node => node.Attribute(Xaml + "Name")?.Value == name);
 
@@ -195,12 +217,12 @@ internal static class SearchCompactMergeTests
             node.Attribute(Xaml + "Key")?.Value == "TextControlBorderThemeThicknessFocused").Value);
     }
 
-    private static void CheckSearchTextAlignment(XDocument xml)
+    private static void CheckSearchTextAlignment(XDocument xml, XDocument styles)
     {
         var input = Named(xml, "SearchInput");
         Assert.Equal("Center", input.Attribute("VerticalContentAlignment")?.Value);
-        Assert.Equal("{StaticResource LibrarySearchTextBox}", input.Attribute("TextBoxStyle")?.Value);
-        var style = xml.Descendants().Single(node => node.Attribute(Xaml + "Key")?.Value == "LibrarySearchTextBox");
+        Assert.Equal("{StaticResource EgSearchTextBoxStyle}", input.Attribute("TextBoxStyle")?.Value);
+        var style = styles.Descendants().Single(node => node.Attribute(Xaml + "Key")?.Value == "EgSearchTextBoxStyle");
         Assert.Equal("TextBox", style.Attribute("TargetType")?.Value);
         Assert.Equal("{StaticResource AutoSuggestBoxTextBoxStyle}", style.Attribute("BasedOn")?.Value);
         Assert.Equal("10,0,6,0", style.Elements().Single(node =>

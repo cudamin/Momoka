@@ -130,6 +130,51 @@ internal static class SearchSitePreferenceTests
             Assert.False(vm.Busy);
         });
 
+        Test("搜索站点：分类搜索沿用设置里的默认站点", () =>
+        {
+            using var fixture = new SiteFixture();
+            // 设置页写的是「不限类型」那一份（mediaType=null）；精确资源那一支按媒体类型读，
+            // 自己没存过时要照它起步，而不是退回 MoviePilot 的默认站点。
+            fixture.Service.SaveSearchSitePreference(fixture.Service.ConnectionStamp, null, false, [2]);
+            var vm = new MoviePilotResourceViewModel();
+            vm.Attach(fixture.Service, ResourceFixture.Media, new FixtureLauncher());
+            ResourceFixture.Complete(vm.SearchAsync());
+            Assert.True(fixture.Transport.Requests[0].Contains("/site/media/tv"));
+            Assert.True(fixture.Transport.Requests[1].Contains("sites=2"));
+            Assert.False(vm.Busy);
+
+            // 同一类里单独改过之后以自己那份为准，设置页那份不再覆盖它。
+            fixture.Service.SaveSearchSitePreference(fixture.Service.ConnectionStamp, "电视剧", false, [1]);
+            fixture.Transport.Requests.Clear();
+            var second = new MoviePilotResourceViewModel();
+            second.Attach(fixture.Service, ResourceFixture.Media, new FixtureLauncher());
+            ResourceFixture.Complete(second.SearchAsync());
+            Assert.True(fixture.Transport.Requests[1].Contains("sites=1"));
+        });
+
+        Test("搜索站点：别处改了选择，已经挂着的选择器当场跟上", () =>
+        {
+            using var fixture = new SiteFixture();
+            var settings = fixture.Picker();
+            ResourceFixture.Complete(settings.EnsureLoadedAsync());
+            var search = fixture.Picker();
+            ResourceFixture.Complete(search.EnsureLoadedAsync());
+
+            // 设置页那一颗改了 → 写同一份设置 → 搜索框那一颗不必重开就显示新选择。
+            settings.UseDefault = false;
+            settings.Sites.Single(site => site.Id == 2).Selected = true;
+            Assert.False(search.UseDefault);
+            Assert.True(search.Sites.Single(site => site.Id == 2).Selected);
+            Assert.Equal("站点乙", search.Summary);
+            Assert.Equal(2, fixture.Saves, "只该由设置页那一颗写盘");
+
+            // 往回拨也一样：搜索框里改回默认站点，设置页那一颗跟着回到「默认站点」。
+            search.UseDefault = true;
+            Assert.True(settings.UseDefault);
+            Assert.Equal("默认站点", settings.Summary);
+            Assert.Equal(3, fixture.Saves);
+        });
+
         Test("搜索站点：目录暂缺所选站点不扩大搜索并在恢复后重选", () =>
         {
             using var fixture = new SiteFixture();
@@ -190,7 +235,6 @@ internal static class SearchSitePreferenceTests
             Assert.True(fixture.Service.SearchSitePreference().UseDefault);
             fixture.Settings.MoviePilot.Url = "HTTP://192.0.2.10:3001/api/v1/";
             Assert.False(fixture.Service.SearchSitePreference().UseDefault);
-            Assert.True(fixture.Service.SearchSitePreference("电影").UseDefault);
             var json = JsonSerializer.Serialize(fixture.Settings.MoviePilot.SearchSitePreferences);
             Assert.False(json.Contains("placeholder"));
             Assert.False(json.Contains(originalStamp));
