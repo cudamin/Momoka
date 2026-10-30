@@ -123,18 +123,23 @@ internal static class InputControlThemeTests
                 Assert.Equal("Center", (string?)number.Attribute("VerticalAlignment"));
             }
         });
-        Test("输入主题：详情页的电影/剧/季选择框钉回原窗口底色，不跟全局玻璃", () =>
+        Test("输入主题：集页宽版式接设置页的输入玻璃，剧/电影/季选择框仍钉窗口底色", () =>
         {
             var page = Read("src/Momoka.Shell/Views/DetailPage.xaml");
             var column = page.Descendants(Xaml + "StackPanel")
                 .Single(element => (string?)element.Attribute(X + "Name") == "ColumnPickers");
             var columnResources = column.Element(Xaml + "StackPanel.Resources")!;
+            foreach (var key in ComboBackgroundKeys)
+                AssertAlias(columnResources, key, "EgInputGlassBrush");
+            // 2026-10-30 用户令「圆角不要改」：集页那三颗的圆角仍是 EgPickerCornerRadius，不随设置页的 4。
+            foreach (var picker in column.Descendants().Where(element => element.Name.LocalName == "EgPicker"))
+                Assert.Equal("{StaticResource EgPickerCornerRadius}", (string?)picker.Attribute("CornerRadius"));
+
             var shelf = page.Descendants()
                 .Single(element => (string?)element.Attribute(X + "Name") == "EpisodeHead");
             var shelfResources = shelf.Element(shelf.Name.Namespace + "ShelfHead.Resources")!;
-            foreach (var resources in new[] { columnResources, shelfResources })
-                foreach (var key in ComboBackgroundKeys)
-                    AssertAlias(resources, key, "EgWindowBrush");
+            foreach (var key in ComboBackgroundKeys)
+                AssertAlias(shelfResources, key, "EgWindowBrush");
         });
         Test("输入主题：点空白处把焦点交给卡片区，输入框回到玻璃", () =>
         {

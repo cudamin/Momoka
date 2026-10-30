@@ -614,15 +614,19 @@
                                 x:Name="ColumnPickers"
                                 Spacing="10"
                                 Visibility="{x:Bind ViewModel.ColumnPickersVisibility, Mode=OneWay}">
-                                <!-- 2026-10-29：全局闭合下拉底改成了输入玻璃，这三颗按用户「别把剧、电影页面的
-                                     选择框给改了」钉回原来的窗口底色。只钉闭合态；弹层仍走全局亚克力。 -->
+                                <!-- 2026-10-30 用户令：「把集页面的选择框改为设置页面的那种样式」，同一轮补一句
+                                     「圆角不要改」。集页宽版式这三颗（媒体源／音频／字幕）因此接设置页那支
+                                     输入玻璃（EgInputGlassBrush）；圆角仍是上面 EgPickerCornerRadius 的 12，不动。
+                                     剧、电影、季三页尾部那一组（PickerPanel）和季选择器照 2026-10-29 钉回窗口
+                                     底色 —— 那一轮用户点名「别把剧、电影页面的选择框给改了」，这一轮只点集页。
+                                     只钉闭合态；弹层仍走全局亚克力。 -->
                                 <StackPanel.Resources>
-                                    <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgWindowBrush" />
-                                    <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgWindowBrush" />
+                                    <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgInputGlassBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="EgInputGlassBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="EgInputGlassBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundFocused" ResourceKey="EgInputGlassBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="EgInputGlassBrush" />
+                                    <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="EgInputGlassBrush" />
                                 </StackPanel.Resources>
                                 <TextBlock
                                     VerticalAlignment="Center"
