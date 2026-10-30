@@ -9295,3 +9295,5 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 发布：`tools/publish.ps1 -NoArchive` 通过（546 文件／284.9 MB、载荷逐项校验），ProductVersion `0.2.0+9a820d81207be5cab2b704c3f68c9b1799cb47c4`，`Momoka.dll` SHA256 `379E83A4B8DB3FF891DE27A2F0575D29B2C231091487A41EED6CE402D2851D8A`；桌面 `Momoka.lnk` Target/WorkDir 读回均指向 `artifacts\publish\win-x64`。
 - 发布件 `--probe-shell --probe-section moviepilot` 最终 **28/28、0 失败、退出 0**（`C:\Users\89400\AppData\Local\Momoka\logs\shell-probe-20261030-084257963-17836`）；截图 `moviepilot-menu-filled.png` 显示补齐后「搜索其他版本／重新整理／媒体管理」都在、菜单仍开着。目标用例在开发件与发布件的每轮都通过；中间两轮各有 2～4 项不相关用例的截图遮挡／时序守卫失败（`08:23` 遮挡、`08:38` 资源排序超时与紧凑布局未恢复），未放宽守卫，原样重跑通过。
 - 未覆盖：真实 MoviePilot 服务器、真实播放；本轮未推 origin、未改版本；分支 `qoder/临时` 尚未合入 master（master 落后本分支三个提交），合并与主树重验待用户确认。
+
+最终整合方案首次失败：AniBtSourceContractTests源链全部Core，但其替代SettingsStore缺新延迟保存API。父给此IO端点补5个严格RejectIo签名，并补零Save/5拒绝回归，未排除真实queue源码或模拟成功；原业务source测试继续。完整方案初CS1061报告保留，不跑旧输出冒充。

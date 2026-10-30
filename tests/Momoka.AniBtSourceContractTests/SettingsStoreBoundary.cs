@@ -19,6 +19,14 @@ public sealed class SettingsStore(AppPaths paths, ISecretProtector protector)
         SaveCalls++;
     }
 
+    // The fixture compile-links all current Core sources. Deferred persistence is not part of the
+    // AniBT contract: reject every deferred endpoint rather than simulate a successful queue/save.
+    internal long PendingVersion => throw RejectIo();
+    internal void RegisterDeferredChange() => throw RejectIo();
+    internal SettingsSaveSnapshot? CapturePendingSave(AppSettings settings) => throw RejectIo();
+    internal bool TrySaveSnapshot(SettingsSaveSnapshot snapshot) => throw RejectIo();
+    internal void ReportPendingSaveFailure(Exception error) => throw RejectIo();
+
     public AppSettings Load() => throw RejectIo();
     public AppSettings LoadStrict() => throw RejectIo();
     public string? PrepareStartupData(IEnumerable<string> priorRoots) => throw RejectIo();
