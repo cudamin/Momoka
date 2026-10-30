@@ -9154,3 +9154,5 @@ native追加验证：批准libmpv SHA256逐字匹配后，实际当前Core DLL�
 ### 2026-10-30 性能专项父集成登记
 
 已接入页面生命周期d73ec48（源f2510af）、弹幕/Lua5375b46（源8ec2765）和预告/诊断1bc3323（源d14f49c）；父树当前分别32/32、49/49、70/70全过。预告/诊断新增31项与既有39项重叠单列。为统一runner严格顶层目录契约，将新PerfListDiagnostics移到tests/Momoka.PerfListDiagnosticsTests，仅相对路径与源哈希定位相应调整，保留实际逻辑和friend程序集。三个新suite逐项入sln与regression-suites，sln只加21行、不改既有项目名/平台；统一清单45项及16个runner成功/失败边界通过。此阶段尚有设置/图片/预算在途，不称最终批次交付。
+
+父实际WinUI首轮performance三组Frame/match/diag通过：12次导航退订差额0、关闭/重开令牌取消、万条日志单Post单执行尾80条，实屏已查看。新增Cover真实caller首轮因误把BitmapSource原图PixelWidth当decoded surface红，查官方WinUI getter与Physical decode源码确认元数据语义后仅修诊断断言/读数标签，保留红日志；不变1280×720帧/921600像素预算。来源main e572e971不是当前包二进制同版，运行现象另验；不宣称内部surface/显存峰值。两次403独立review未成功不计完成，父本地review继续。

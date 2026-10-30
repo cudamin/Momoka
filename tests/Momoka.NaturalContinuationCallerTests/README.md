@@ -200,3 +200,8 @@ LibMpvBackend.cs 这一个 SHA256** 为 `a154d0d9b4c2dba82a478f70d8956f5a1d50834
 `57d0aa7` 只修改内置后端的事件线程迟到回收与 speed 绝对值队列；本专项实际提取的 PlayerViewModel 方法、捕获来源、接续 await-using 及其余18份来源均逐一核对未变。本专项不构造 LibMpvHandle，native/gate控制流另由37项完整handle资源/EOF与44项shader/线程测试验证。仅将这一份 `src/Momoka.Core/Playback/LibMpvBackend.cs` 的固定 SHA256 从 `a1cbc7ec4ff5523baa36844592943197846d08f755c6ccaaa9a8eafbf2d5383c` 更新为 `c26eebec5280e0ee1e647a733cd713164c6c9b195d04b84f5596a7dbc8a0611e`；baseCommit/date、提取规则、失败条件与其它pin不动。原SOURCE_HASH_MISMATCH日志保留在父树 `artifacts/performance-repair/native/solution-build.txt`。更新后须运行原caller与全部反例，并在最终图片回填改动集成后复核Events.cs那一份来源，而非整份自动刷新。
 
 此次1项来源同步后，实际caller54项0失败0跳过；`Test-SourceExtraction.ps1`原10反例逐个按预期退出1，最后当前源重新0警告0错误构建并54项全过。证据：`artifacts/performance-repair/native/caller.txt`、`caller-negative.txt`及`artifacts/r046-caller/native-perf-extractor-20261029-181031-184`。一次忘传参数被入口拒绝，未回退主程序或旧测试，失败输出保留。
+
+
+## 2026-10-30 封面图片父整合的来源复核
+
+PERF-04/09源提交2b3fea8只修改Events.cs的封面取消、客户端有界解码及UI双层回填方法，原caller提取的OnNowPlayingChanged/LeavePlayer等成员未变。逐份核对其它18项pin一致，只更新Events.cs这1份SHA256从`a0c6a78743f984e1ee54fac42abf97c79f1aaa1cb55237f939fd7ce75038274d`到`e6bbe894ade1bdc236117dfd1acb2cdaa14f9c435a95c61e2f039ac7eff068e2`；完整提取/失败条件/其它来源不动。图片调用真实方法另由当前41項专项与WinRT解码验证，不能以caller54代替图片UI或播放验收。同步后原caller与10个拒绝反例仍须重跑。

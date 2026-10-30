@@ -174,6 +174,18 @@
       "notes": "加载本树当前 Release Shell DLL 执行托管夹具；不启动 App/WinUI。"
     },
     {
+      "id": "Momoka.ImagePerformanceTests",
+      "project": "tests/Momoka.ImagePerformanceTests/Momoka.ImagePerformanceTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "perf-images"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ImagePerformanceTests/README.md",
+      "notes": "实际WinRT有界解码和原样封面caller，匿名HTTP预算与取消；严格perf-images入口，不开窗口/播放。"
+    },
+    {
       "id": "Momoka.ItemUserStateOrderTests",
       "project": "tests/Momoka.ItemUserStateOrderTests/Momoka.ItemUserStateOrderTests.csproj",
       "mode": "dotnet",
