@@ -61,7 +61,8 @@ public static class MoviePilotTransferCollect
         if (detail.Type == EmbyItemType.Series && !seriesFiles)
         {
             return new MoviePilotTransferContext(detail.Name, MoviePilotTransferRequest.TypeSeries,
-                mediaId ?? "", null, "", []) { BrowseSeriesHistory = true };
+                mediaId ?? "", null, "", [])
+            { BrowseSeriesHistory = true };
         }
 
         var files = await FilesOf(client, detail, cancellationToken, maxFiles).ConfigureAwait(false);

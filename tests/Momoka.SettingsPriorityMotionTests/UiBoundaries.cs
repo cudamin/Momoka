@@ -51,6 +51,7 @@ namespace Microsoft.UI.Xaml
     }
     public class FrameworkElement : DependencyObject
     {
+        public static int TransformCalls { get; set; }
         public string Name { get; set; } = "";
         public object? XamlRoot { get; set; } = new();
         public double ActualHeight { get; set; } = 50;
@@ -74,6 +75,7 @@ namespace Microsoft.UI.Xaml
         }
         public Microsoft.UI.Xaml.Media.GeneralTransform TransformToVisual(FrameworkElement relative)
         {
+            TransformCalls++;
             if (XamlRoot is null || relative.XamlRoot is null) throw new InvalidOperationException("Off-tree visual measurement.");
             return new(OriginY() - relative.OriginY());
         }

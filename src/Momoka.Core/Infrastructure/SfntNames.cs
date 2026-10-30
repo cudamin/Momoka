@@ -141,6 +141,8 @@ public static class SfntNames
 
         var families = new List<(bool English, string Text)>();
         var typographic = new List<(bool English, string Text)>();
+        var familiesHaveEnglish = false;
+        var typographicHaveEnglish = false;
 
         for (var index = 0; index < count; index++)
         {
@@ -155,10 +157,18 @@ public static class SfntNames
             var offset = BinaryPrimitives.ReadUInt16BigEndian(record[10..]);
 
             if (length == 0 || heap + offset + length > table.Length) continue;
+            var bucket = name == FamilyName ? families : typographic;
+            var english = IsEnglish(platform, language);
+            var hasEnglish = name == FamilyName ? familiesHaveEnglish : typographicHaveEnglish;
+            // A full bucket cannot use another string. The sole exception preserves English-first
+            // selection when an unusually long localized record list puts English after the cap.
+            if (bucket.Count >= MaxNamesPerFont && (!english || hasEnglish)) continue;
             if (Decode(table.Slice(heap + offset, length), platform, encoding) is not { } text) continue;
 
-            var bucket = name == FamilyName ? families : typographic;
-            if (bucket.Count < MaxNamesPerFont) bucket.Add((IsEnglish(platform, language), text));
+            if (bucket.Count >= MaxNamesPerFont) bucket[^1] = (english, text);
+            else bucket.Add((english, text));
+            if (english && name == FamilyName) familiesHaveEnglish = true;
+            if (english && name == TypographicFamilyName) typographicHaveEnglish = true;
         }
 
         // nameID 1 in English first: that is the name Windows itself lists, the name a person types,
@@ -198,37 +208,41 @@ public static class SfntNames
     /// </summary>
     private static string? Decode(ReadOnlySpan<byte> bytes, ushort platform, ushort encoding)
     {
-        string text;
-
         switch (platform)
         {
             case 3 or 0:
                 if (bytes.Length % 2 != 0) return null;
-                text = Encoding.BigEndianUnicode.GetString(bytes);
-                break;
+                // Trim in the encoded span first, exactly as string.Trim did. Long padding around a
+                // normal family is not a long family, and UTF-16 code units must not be split.
+                while (bytes.Length >= 2 && char.IsWhiteSpace((char)BinaryPrimitives.ReadUInt16BigEndian(bytes)))
+                    bytes = bytes[2..];
+                while (bytes.Length >= 2 && char.IsWhiteSpace((char)BinaryPrimitives.ReadUInt16BigEndian(bytes[^2..])))
+                    bytes = bytes[..^2];
+                if (bytes.Length is 0 or > MaxNameLength * 2) return null;
+                for (var index = 0; index < bytes.Length; index += 2)
+                {
+                    var character = (char)BinaryPrimitives.ReadUInt16BigEndian(bytes[index..]);
+                    if (char.IsControl(character) || character == '�' || char.IsLowSurrogate(character)) return null;
+                    if (!char.IsHighSurrogate(character)) continue;
+                    if (index + 2 >= bytes.Length
+                        || !char.IsLowSurrogate((char)BinaryPrimitives.ReadUInt16BigEndian(bytes[(index + 2)..]))) return null;
+                    index += 2;
+                }
+                return Encoding.BigEndianUnicode.GetString(bytes);
 
             case 1 when encoding == 0:
+                while (!bytes.IsEmpty && bytes[0] == 0x20) bytes = bytes[1..];
+                while (!bytes.IsEmpty && bytes[^1] == 0x20) bytes = bytes[..^1];
+                if (bytes.Length is 0 or > MaxNameLength) return null;
                 foreach (var value in bytes)
                 {
                     if (value is < 0x20 or > 0x7E) return null;
                 }
-
-                text = Encoding.ASCII.GetString(bytes);
-                break;
+                return Encoding.ASCII.GetString(bytes);
 
             default:
                 return null;
         }
-
-        text = text.Trim();
-        if (text.Length is 0 or > MaxNameLength) return null;
-
-        foreach (var character in text)
-        {
-            if (char.IsControl(character) || character == '�') return null;
-        }
-
-        return text;
     }
 
     /// <summary>

@@ -174,7 +174,8 @@ internal static partial class ItemCommands
                 var editor = new EmbyMetadataEditor(session);
                 var document = await editor.LoadAsync(item.Id, CancellationToken.None).ConfigureAwait(true);
                 var embyDialog = new EmbyMetadataDialog(item.Name, document.Edit, document.Info,
-                    edit => editor.SaveAsync(document, edit, CancellationToken.None)) { XamlRoot = root };
+                    edit => editor.SaveAsync(document, edit, CancellationToken.None))
+                { XamlRoot = root };
                 embyDialog.SetItemType(item.Type);
                 if (await embyDialog.ShowAsync() == ContentDialogResult.Primary && embyDialog.Changed)
                 {

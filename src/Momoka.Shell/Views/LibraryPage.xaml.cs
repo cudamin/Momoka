@@ -1364,7 +1364,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchSitePicker.ClosePopup();
         _searchPresentationVersion++;
         var source = SearchSource;
-        MoviePilotPanel.Release();
+        MoviePilotPanel.CancelSearch();
         MoviePilotResources.Release();
         AniBtPanel.Release();
         MoviePilotPanel.Visibility = source == 1 ? Visibility.Visible : Visibility.Collapsed;

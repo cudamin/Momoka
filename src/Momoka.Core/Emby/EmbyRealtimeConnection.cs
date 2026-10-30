@@ -130,12 +130,15 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
         Log.Info(Category, $"{_scope.DisplayName} 实时通道已连接");
 
         var buffer = new byte[BufferBytes];
+        // UTF-8 can finish a code point begun in the preceding receive. Keep the decoder across
+        // fragments, and leave one extra character of room for that carried prefix.
+        var characters = new char[Encoding.UTF8.GetMaxCharCount(BufferBytes)];
         while (!token.IsCancellationRequested && socket.State == WebSocketState.Open)
         {
             using var idle = CancellationTokenSource.CreateLinkedTokenSource(token);
             idle.CancelAfter(IdleTimeout);
 
-            var frame = new StringBuilder();
+            EmbyRealtimeMessage? frame = null;
             WebSocketReceiveResult result;
             try
             {
@@ -143,7 +146,14 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
                 {
                     result = await socket.ReceiveAsync(buffer, idle.Token).ConfigureAwait(false);
                     if (result.MessageType == WebSocketMessageType.Close) return;
-                    frame.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                    frame ??= new EmbyRealtimeMessage(result.MessageType);
+                    if (!frame.TryAppend(buffer.AsSpan(0, result.Count), characters, result.EndOfMessage))
+                    {
+                        // Do not drain an unending message or wait for a close handshake. Abort before
+                        // decoding/appending the excess, then use the existing disposal and backoff.
+                        socket.Abort();
+                        throw new WebSocketException("实时消息超过容量上限");
+                    }
                 }
                 while (!result.EndOfMessage);
             }
@@ -153,10 +163,15 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
                 throw new WebSocketException("长时间没有收到任何数据");
             }
 
-            if (EmbyRealtimeProtocol.ReadMessageType(frame.ToString()) is not { } type) continue;
+            token.ThrowIfCancellationRequested();
+            // The server protocol is text JSON. Still count binary fragments above, but never turn
+            // binary data (even JSON-looking bytes) into a library refresh.
+            if (frame?.Text is not { } text) continue;
+            if (EmbyRealtimeProtocol.ReadMessageType(text) is not { } type) continue;
             if (!EmbyRealtimeProtocol.IsLibraryChanged(type)) continue;
 
             Log.Info(Category, $"{_scope.DisplayName} 收到 LibraryChanged，主页将核对新入库");
+            token.ThrowIfCancellationRequested();
             _onLibraryChanged(_scope.Key);
         }
     }
@@ -189,5 +204,38 @@ internal sealed class EmbyRealtimeConnection : IAsyncDisposable
         }
 
         _life.Dispose();
+    }
+}
+
+/// <summary>The bounded assembly of one message, not one receive or one WebSocket fragment.</summary>
+internal sealed class EmbyRealtimeMessage
+{
+    // Production consumes only the LibraryChanged envelope, not Data. Current fixtures are tens of
+    // bytes and the existing business payload is documented as hundreds; 1 MiB leaves room for large
+    // item-ID batches without trusting a server's never-ending or arbitrarily large message.
+    internal const int MaximumBytes = 1 << 20;
+    private static readonly UTF8Encoding Utf8 = new(false, true);
+    private readonly Decoder? _decoder;
+    private readonly StringBuilder? _text;
+    private int _bytes;
+
+    internal EmbyRealtimeMessage(WebSocketMessageType type)
+    {
+        if (type != WebSocketMessageType.Text) return;
+        _decoder = Utf8.GetDecoder();
+        _text = new StringBuilder();
+    }
+
+    internal int Bytes => _bytes;
+    internal string? Text => _text?.ToString();
+
+    internal bool TryAppend(ReadOnlySpan<byte> bytes, Span<char> characters, bool endOfMessage)
+    {
+        if (bytes.Length > MaximumBytes - _bytes) return false;
+        _bytes += bytes.Length;
+        if (_decoder is null) return true;
+        var count = _decoder.GetChars(bytes, characters, flush: endOfMessage);
+        _text!.Append(characters[..count]);
+        return true;
     }
 }

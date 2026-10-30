@@ -33,3 +33,26 @@ $project = Join-Path $root 'tests/Momoka.LibMpvEndFileTests/Momoka.LibMpvEndFile
 来源独立树 `C:/Users/89400/.codex/worktrees/r048-redirect-eof/Momoka` 的有效配对日志在 `artifacts/r048/red-paired-{build,tests}.log`、`green-paired-{build,tests}.log`；输入源码哈希见 `paired-fixture-hashes.log`。早期编译修整与 26/27 中间结果保留，不当最终成功证据。主整合需在其最终代码上定向重验；此树不发布/推送，桌面快捷方式仍旧版。
 
 主树整合时项目已最小入方案，实际当树27项全部通过／0跳过，10次匿名假HTTP。日志 `artifacts/staged-repair/batch05/r048-integrated-*.log`，不把来源配对结果冒充主树。主树仍有题内R025在途产品改动，阶段单项提交按独立写集，不提前称整个批次交付。
+
+
+## 2026-10-29 资源收尾与倍速待办回归
+
+本项目保留上面的 27 项 REDIRECT/EOF 回归，另增加 10 项 `NativeResourcePerformanceTests`。
+生成目标仍逐字编译本树整个 `LibMpvHandle`、`LibMpvLifetimeGate` 和实际命令 marshalling，只给
+`mpv_wait_event` 增加受控的托管回调，不加载 DLL、不调用 `Start`/属性订阅、不播放媒体。
+
+- 真实 `EventLoop` 放在独立托管 Thread，扣住假 wait-event，实际 `DisposeAsync` 三秒 Join 超时后返回；
+  再放开线程，等待生产迟到回收任务，确认原生端点调用时线程已 `IsAlive=false`，context、临时配置副本和
+  SVP 租约各释放一次，重复 Dispose 不重复释放。配置只用新建 TEMP 下匿名文件，测试结束逐个删除。
+- 正常及时退出没有迟到待办，仍必须先终止线程再 Destroy。
+- gate 挂起时 128 个 speed 共用一个完成源/worker、仅保留一个最新值；gate 放开后只写最终值一次。
+  真实写入中追加再合并，取消等待者互不取消后继，最后值取消不写 native，入口捕获跨代不覆盖新待办，
+  HandOver/Swap/Stop/Dispose 与异常重试均覆盖。非 speed 属性与相对命令不纳入合并，原契约保留。
+
+当前 Release 编译与运行命令不变；合计 37 项，匿名 HTTP 的 10 次属于原既有 Service 夹具，不按断言累加。
+这是线程/所有权/有界控制流验证，不证明真实 native 卡住的频率、驱动回收耗时、独占窗口或者实际 FPS。
+
+
+## 2026-10-30 整段原生收尾等待上限
+
+独立反证确认前置native gate/quit等待不受旧三秒Join限制。现在公开Stop/Dispose在锁外关闭新入场，整个公开等待三秒上限；只保留同一后台收尾任务继续等gate/quit/reader/destroy，不超时提前释放资源。长期阻塞时关闭结果及日志明确保留“迟到未完成”，正常及时完成仍实际等待。新增持有native写、quit卡住、Stop卡住三项真实全handle/gate反例；与原37项合计40，不把模拟卡顿当实机频率。公开Dispose任务和内部收尾任务分开，迟到测试等内部任务后才断言一次释放。

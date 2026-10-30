@@ -1,0 +1,62 @@
+<Project>
+    <UsingTask TaskName="ExtractImageProduction" TaskFactory="RoslynCodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+        <ParameterGroup>
+            <Root ParameterType="System.String" Required="true" />
+            <OutputDirectory ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Using Namespace="System" />
+            <Using Namespace="System.IO" />
+            <Using Namespace="System.Text" />
+            <Using Namespace="System.Security.Cryptography" />
+            <Code Type="Fragment" Language="cs"><![CDATA[
+                var root = Path.GetFullPath(Root);
+                var path = Path.Combine(root, "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs");
+                var source = File.ReadAllText(path).Replace("\r\n", "\n");
+                Func<string, int> unique = marker => {
+                    var at = source.IndexOf(marker, StringComparison.Ordinal);
+                    if (at < 0 || source.IndexOf(marker, at + marker.Length, StringComparison.Ordinal) >= 0)
+                        throw new InvalidOperationException("Missing/ambiguous image production boundary: " + marker);
+                    return at;
+                };
+                var start = unique("    private CancellationTokenSource? _coverBackdropCancellation;");
+                var finish = unique("\n    /// <summary>\n    /// Asks mpv which audio output");
+                if (finish <= start) throw new InvalidOperationException("Invalid image production boundary order");
+                var fragment = source.Substring(start, finish - start);
+                foreach (var name in new[] { "LoadCoverBackdropAsync", "ReadCoverBackdropAsync", "PickCoverBackdropBytesAsync" })
+                    if (!fragment.Contains(name)) throw new InvalidOperationException("Incomplete image production methods: " + name);
+                Directory.CreateDirectory(OutputDirectory);
+                var header = "// Verbatim current-tree production methods; boundary substitutes only.\n#nullable enable\n";
+                var imports = "using System.Runtime.InteropServices.WindowsRuntime;\nusing Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.Playback;\nusing Microsoft.UI.Xaml.Media.Imaging;\nusing CoverBackdropImage = Momoka.Tests.ControlledCoverDecoder;\n";
+                File.WriteAllText(Path.Combine(OutputDirectory, "PlayerViewModel.g.cs"),
+                    header + imports + "namespace Momoka.Tests;\npublic sealed partial class PlayerViewModel\n{\n" + fragment + "}\n",
+                    new UTF8Encoding(false));
+                var pins = new StringBuilder(header + "namespace Momoka.Tests;\ninternal static class ProductionPins\n{\n");
+                pins.Append("    internal const string Root = @\"").Append(root.Replace("\"", "\"\"")).Append("\";\n");
+                pins.Append("    internal static readonly (string Path, string Hash)[] Files = [\n");
+                foreach (var relative in new[] {
+                    "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",
+                    "src/Momoka.Shell/ViewModels/CoverBackdropImage.cs",
+                    "src/Momoka.Shell/ViewModels/CoverBackdropSize.cs",
+                    "src/Momoka.Core/Emby/EmbyImageStore.cs",
+                    "src/Momoka.Core/Infrastructure/SharedWork.cs",
+                    "src/Momoka.Core/Infrastructure/SharedWorkBudget.cs" }) {
+                    var bytes = File.ReadAllBytes(Path.Combine(root, relative));
+                    string hash;
+                    using (var sha = SHA256.Create()) hash = BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-", "");
+                    pins.Append("        (\"").Append(relative).Append("\", \"").Append(hash).Append("\"),\n");
+                }
+                pins.Append("    ];\n}\n");
+                File.WriteAllText(Path.Combine(OutputDirectory, "ProductionPins.g.cs"), pins.ToString(), new UTF8Encoding(false));
+            ]]></Code>
+        </Task>
+    </UsingTask>
+    <Target Name="GenerateImageProductionSources" BeforeTargets="CoreCompile">
+        <ExtractImageProduction Root="$(MSBuildProjectDirectory)\..\.." OutputDirectory="$(IntermediateOutputPath)PerfImages" />
+        <ItemGroup>
+            <Compile Include="$(IntermediateOutputPath)PerfImages\PlayerViewModel.g.cs" />
+            <Compile Include="$(IntermediateOutputPath)PerfImages\ProductionPins.g.cs" />
+        </ItemGroup>
+    </Target>
+</Project>

@@ -566,6 +566,7 @@ public sealed partial class SettingSliderRow : SettingRow
         if (!_seeded || _reseeding) return;
         OnPropertyChanged(nameof(ValueLabel));
         _write(value);
+        // 保存请求只登记/合并；预览和播放器选项仍在本次 UI 修改中实时反馈。
         _save();
         _after?.Invoke();
     }

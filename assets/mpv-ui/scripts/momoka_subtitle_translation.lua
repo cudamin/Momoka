@@ -6,12 +6,13 @@ local overlay = mp.create_osd_overlay('ass-events')
 overlay.z = -5 -- Keep interactive uosc and normal OSD above the translation.
 local active, loaded = nil, false
 local published = ''
+local rendered_value, rendered_width, timer
 
 local function finite(value)
     return type(value) == 'number' and value == value and value ~= math.huge and value ~= -math.huge
 end
 local function clear()
-    active = nil
+    active, rendered_value, rendered_width = nil, nil, nil
     overlay.data = ''
     overlay:remove()
 end
@@ -27,20 +28,30 @@ local function current_cue(value)
         and number_matches('sub-start', value.start) and number_matches('sub-end', value['end'])
 end
 local function publish_cue()
-    local value, native_cue = '', ''
-    local text = mp.get_property('sub-text', '')
-    local sid = tostring(mp.get_property_native('sid', 'no'))
-    if loaded and mp.get_property_native('sub-visibility', false) and text ~= ''
-        and #text <= 20000 and sid ~= 'no' and sid ~= 'auto' and #sid <= 20 then
-        local start, ending = mp.get_property_number('sub-start'), mp.get_property_number('sub-end')
-        native_cue = {text = text, sid = sid, start = finite(start) and start or nil,
-            ['end'] = finite(ending) and ending or nil}
-        value = utils.format_json(native_cue)
+    -- The property is already a native map. Compare its fields before allocating/serializing a copy.
+    -- Keep loaded-file polling as a fallback: clear/paused subtitles must still discover the next cue.
+    if loaded then
+        local text = mp.get_property('sub-text', '')
+        local sid = tostring(mp.get_property_native('sid', 'no'))
+        if mp.get_property_native('sub-visibility', false) and text ~= ''
+            and #text <= 20000 and sid ~= 'no' and sid ~= 'auto' and #sid <= 20 then
+            local start, ending = mp.get_property_number('sub-start'), mp.get_property_number('sub-end')
+            start, ending = finite(start) and start or nil, finite(ending) and ending or nil
+            if type(published) == 'table' and published.text == text and published.sid == sid
+                and published.start == start and published['end'] == ending then return end
+            published = {text = text, sid = sid, start = start, ['end'] = ending}
+            mp.set_property_native('user-data/momoka-subtitle-translation/cue', published)
+            return
+        end
     end
-    if value ~= published then
-        published = value
-        mp.set_property_native('user-data/momoka-subtitle-translation/cue', native_cue)
+    if published ~= '' then
+        published = ''
+        mp.set_property_native('user-data/momoka-subtitle-translation/cue', '')
     end
+end
+local function sync_timer()
+    if not timer then return end
+    if loaded then timer:resume() else timer:kill() end
 end
 local function escape(text)
     -- Literal slashes cannot become ASS tags; braces are escaped as in shipped uosc.
@@ -53,10 +64,13 @@ local function render()
     local width, height = mp.get_osd_size()
     if not finite(width) or not finite(height) or height <= 0 then return end
     local res_x = math.max(360, math.min(3840, 720 * width / height))
+    if rendered_value and rendered_width == res_x and rendered_value.text == active.text
+        and rendered_value.fontSize == active.fontSize and rendered_value.position == active.position then return end
     overlay.res_x, overlay.res_y = res_x, 720
     overlay.data = string.format('{\\an2\\pos(%.1f,%.1f)\\fs%d\\b0\\1c&HFFFFFF&\\3c&H000000&\\bord1.5\\shad0\\q2}%s',
-        res_x / 2, 720 * active.position / 100, active.fontSize, escape(active.text))
+        res_x / 2, 720 * active.position / 100, active.fontSize, active.escaped_text)
     overlay:update()
+    rendered_value, rendered_width = active, res_x
 end
 mp.register_script_message('momoka-subtitle-translation-show', function(payload)
     if type(payload) ~= 'string' or #payload > 100000 then return end
@@ -69,22 +83,26 @@ mp.register_script_message('momoka-subtitle-translation-show', function(payload)
     value.fontSize = math.floor(math.max(20, math.min(64, value.fontSize)))
     value.position = math.max(10, math.min(90, value.position))
     if not current_cue(value) then return end
+    value.escaped_text = escape(value.text)
     active = value
     render()
 end)
 mp.register_script_message('momoka-subtitle-translation-clear', clear)
-mp.register_event('start-file', function() loaded = false; clear(); publish_cue() end)
-mp.register_event('file-loaded', function() loaded = true; clear(); publish_cue() end)
-mp.register_event('end-file', function() loaded = false; clear(); publish_cue() end)
+mp.register_event('start-file', function() loaded = false; clear(); publish_cue(); sync_timer() end)
+mp.register_event('file-loaded', function() loaded = true; clear(); publish_cue(); sync_timer() end)
+mp.register_event('end-file', function() loaded = false; clear(); publish_cue(); sync_timer() end)
+mp.register_event('shutdown', function() loaded = false; clear(); publish_cue(); sync_timer() end)
 mp.register_event('seek', function() clear(); publish_cue() end)
-mp.observe_property('sub-text', 'string', function() publish_cue(); if active then render() end end)
-mp.observe_property('sid', 'native', function() publish_cue(); if active then render() end end)
-mp.observe_property('sub-visibility', 'bool', function() publish_cue(); if active then render() end end)
-mp.observe_property('sub-start', 'number', publish_cue)
-mp.observe_property('sub-end', 'number', publish_cue)
+local function cue_changed() publish_cue(); if active then render() end end
+mp.observe_property('sub-text', 'string', cue_changed)
+mp.observe_property('sid', 'native', cue_changed)
+mp.observe_property('sub-visibility', 'bool', cue_changed)
+mp.observe_property('sub-start', 'number', cue_changed)
+mp.observe_property('sub-end', 'number', cue_changed)
 mp.observe_property('osd-dimensions', 'native', function() if active then render() end end)
-mp.add_periodic_timer(0.05, function() publish_cue(); render() end)
+timer = mp.add_periodic_timer(0.05, function() publish_cue(); render() end)
 -- load-script can arrive after file-loaded; initialise from current file without relying on a replayed event.
 loaded = mp.get_property_native('path') ~= nil
+sync_timer()
 mp.set_property_number('user-data/momoka-subtitle-translation/ready', 1)
 publish_cue()

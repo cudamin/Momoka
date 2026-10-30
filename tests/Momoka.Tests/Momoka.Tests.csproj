@@ -20,6 +20,7 @@
     <!-- The entire production source; test-only namespace boundaries replace registry/package endpoints, never control flow. -->
     <Compile Include="..\..\src\Momoka.Shell\Platform\StartupRegistration.cs" Link="Shell\StartupRegistration.cs" />
     <Compile Include="..\..\src\Momoka.Shell\SelfCheckLayoutRules.cs" Link="Shell\SelfCheckLayoutRules.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\PerformanceProbeRules.cs" Link="Shell\PerformanceProbeRules.cs" />
     <Compile Include="..\..\src\Momoka.Shell\CompositionPositionReadiness.cs" Link="Shell\CompositionPositionReadiness.cs" />
     <Compile Include="..\..\src\Momoka.Shell\CompositionProbePixels.cs" Link="Shell\CompositionProbePixels.cs" />
     <!-- Actual Shell color policy, without a WinUI dependency or a copied test model. -->

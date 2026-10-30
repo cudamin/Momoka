@@ -23,12 +23,13 @@ internal sealed class HandleFixture : IAsyncDisposable
     internal bool LeaveLoop => Field<bool>("_leaveLoop");
     internal int StatusListeners => Field<Action<PlayerStatus>?>("StatusChanged")?.GetInvocationList().Length ?? 0;
 
-    internal HandleFixture(bool standalone = false)
+    internal HandleFixture(bool standalone = false, IDisposable? lease = null, MpvCustomConfig? config = null)
     {
         LibMpvNative.Boundary = Native;
         var signature = standalone ? new PlaybackLaunchSignature(VideoPipelineKind.Standalone, [], [], [], []) : null;
         Handle = new LibMpvHandle(new IntPtr(48), standalone ? null : Surface, signature,
-            signature is null ? null : _ => signature);
+            signature is null ? null : _ => signature)
+        { SvpLease = lease, CustomConfig = config };
         Handle.StatusChanged += Published.Add;
         Exit = Field<TaskCompletionSource<PlaybackExit>>("_exit").Task;
         Waiter = Handle.WaitForExitAsync(CancellationToken.None);
@@ -118,6 +119,24 @@ internal sealed class HandleFixture : IAsyncDisposable
 
     internal T Field<T>(string name) => (T)(typeof(LibMpvHandle).GetField(name, Private)
         ?? throw new InvalidOperationException("真实字段不存在：" + name)).GetValue(Handle)!;
+
+    internal Thread StartManagedEventLoop()
+    {
+        var method = typeof(LibMpvHandle).GetMethod("EventLoop", Private)
+            ?? throw new InvalidOperationException("真实事件线程入口不存在");
+        var thread = new Thread(() =>
+        {
+            try { method.Invoke(Handle, null); }
+            catch (TargetInvocationException error) when (error.InnerException is not null)
+            {
+                ExceptionDispatchInfo.Capture(error.InnerException).Throw();
+            }
+        })
+        { IsBackground = true, Name = "perf-managed-event-loop" };
+        typeof(LibMpvHandle).GetField("_eventThread", Private)!.SetValue(Handle, thread);
+        thread.Start();
+        return thread;
+    }
 
     internal static PlaybackRequest Request() => new()
     {

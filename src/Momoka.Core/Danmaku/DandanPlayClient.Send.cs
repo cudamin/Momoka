@@ -29,6 +29,8 @@ public sealed partial class DandanPlayClient
     {
         if (episodeId <= 0) throw new DandanPlayException("请先选择当前视频的弹幕库。");
         text = ValidateComment(text, time);
+        using var operation = BeginOperation(cancellationToken);
+        cancellationToken = operation.Token;
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));
         var entered = false;

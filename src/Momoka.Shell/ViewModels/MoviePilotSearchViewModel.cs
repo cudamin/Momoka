@@ -35,9 +35,9 @@ public sealed partial class MoviePilotResult : ObservableObject
     private const int PosterDecodeWidth = 240;
 
     private bool _posterFailed;
-    private readonly Func<MoviePilotResult, Task> _subscribe;
-    private readonly Func<MoviePilotResult, Task> _searchResources;
-    private readonly Func<MoviePilotResult, Task>? _review;
+    private Func<MoviePilotResult, Task>? _subscribe;
+    private Func<MoviePilotResult, Task>? _searchResources;
+    private Func<MoviePilotResult, Task>? _review;
 
     public MoviePilotResult(
         MoviePilotMedia media,
@@ -55,12 +55,7 @@ public sealed partial class MoviePilotResult : ObservableObject
         if (Uri.TryCreate(media.PosterUrl, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
         {
             Poster = new BitmapImage(uri) { DecodePixelWidth = PosterDecodeWidth };
-            Poster.ImageFailed += (_, _) =>
-            {
-                _posterFailed = true;
-                OnPropertyChanged(nameof(PosterVisibility));
-                OnPropertyChanged(nameof(GlyphVisibility));
-            };
+            Poster.ImageFailed += OnPosterFailed;
         }
     }
 
@@ -100,8 +95,30 @@ public sealed partial class MoviePilotResult : ObservableObject
     public Visibility OverviewVisibility =>
         string.IsNullOrWhiteSpace(Media.Overview) ? Visibility.Collapsed : Visibility.Visible;
 
-    /// <summary>海报，取不到就是 null；这时显示字形占位（见下面两个可见性）。构造时定好，不再变。</summary>
-    public BitmapImage? Poster { get; }
+    /// <summary>海报，取不到或所属结果已释放时为 null；结果离开集合时解除图片事件与动作回调。</summary>
+    public BitmapImage? Poster { get; private set; }
+
+    private void OnPosterFailed(object sender, ExceptionRoutedEventArgs args)
+    {
+        if (!ReferenceEquals(sender, Poster)) return;
+        _posterFailed = true;
+        OnPropertyChanged(nameof(PosterVisibility));
+        OnPropertyChanged(nameof(GlyphVisibility));
+    }
+
+    internal void Release()
+    {
+        _subscribe = null;
+        _searchResources = null;
+        _review = null;
+        Subscription = null;
+        if (Poster is { } poster) poster.ImageFailed -= OnPosterFailed;
+        Poster = null;
+        RefreshAvailability(false);
+        OnPropertyChanged(nameof(Poster));
+        OnPropertyChanged(nameof(PosterVisibility));
+        OnPropertyChanged(nameof(GlyphVisibility));
+    }
 
     public Visibility PosterVisibility => Poster is null || _posterFailed ? Visibility.Collapsed : Visibility.Visible;
 
@@ -169,13 +186,13 @@ public sealed partial class MoviePilotResult : ObservableObject
     private Task Review() => _review?.Invoke(this) ?? Task.CompletedTask;
 
     [RelayCommand(CanExecute = nameof(CanSubscribe))]
-    private Task Subscribe() => _subscribe(this);
+    private Task Subscribe() => _subscribe?.Invoke(this) ?? Task.CompletedTask;
 
     /// <summary>能不能搜资源：和订阅同一个条件（都要身份对齐）。</summary>
     public bool CanSearchResources => ConnectionAvailable && Media.CanSubscribe;
 
     [RelayCommand(CanExecute = nameof(CanSearchResources))]
-    private Task SearchResources() => _searchResources(this);
+    private Task SearchResources() => _searchResources?.Invoke(this) ?? Task.CompletedTask;
 }
 
 /// <summary>
@@ -198,6 +215,10 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
     private const string IdlePrompt = "输入关键字，按回车或点击搜索图标，在 MoviePilot 上找库里还没有的片子";
 
     private MoviePilotService? _service;
+    private EventHandler? _availabilityChanged;
+    private bool _active;
+    private bool _disposed;
+    private int _visit;
     private CancellationToken _query;
 
     /// <summary>上一次搜的词，供 <see cref="ReloadAsync"/> 重跑。</summary>
@@ -209,7 +230,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
 
     /// <summary>点一张卡：把媒体交给页面去开订阅页；唯一对上的订阅一起带过去（见 <see cref="RefreshResult"/>）。</summary>
     private Action<MoviePilotMedia, MoviePilotSubscription?>? _openMedia;
-    private readonly HashSet<MoviePilotSubscriptionIdentity> _subscriptionActions = [];
+    private readonly HashSet<(int Visit, MoviePilotSubscriptionIdentity Identity)> _subscriptionActions = [];
 
     internal void UseSeasonPicker(Func<MoviePilotMedia, CancellationToken, Task> open) => _openSeasonPicker = open;
 
@@ -237,28 +258,88 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
     private Action<Action>? _dispatch;
     internal void Attach(MoviePilotService service, Action<Action>? dispatch = null)
     {
-        if (_service is not null) _service.AvailabilityChanged -= OnAvailabilityChanged;
+        if (_disposed) return;
+        var beforeRelease = Volatile.Read(ref _visit);
+        Release();
+        // Release 的同步绑定通知可能已经重新接线；旧 Attach 不得覆盖那个新访问。
+        if (_disposed || Volatile.Read(ref _visit) != unchecked(beforeRelease + 1)) return;
         _service = service;
         _dispatch = dispatch;
-        service.AvailabilityChanged += OnAvailabilityChanged;
+        _active = true;
+        var visit = Interlocked.Increment(ref _visit);
+        _availabilityChanged = (sender, _) => OnAvailabilityChanged(service, visit, sender);
+        service.AvailabilityChanged += _availabilityChanged;
     }
 
-    private void OnAvailabilityChanged(object? sender, EventArgs args)
+    private bool VisitCurrent(MoviePilotService service, int visit) =>
+        _active && visit == Volatile.Read(ref _visit) && ReferenceEquals(service, _service);
+
+    private bool QueryCurrent(MoviePilotService service, int visit, CancellationToken token) =>
+        VisitCurrent(service, visit) && IsCurrent(token);
+
+    private void OnAvailabilityChanged(MoviePilotService service, int visit, object? sender)
     {
-        if (!ReferenceEquals(sender, _service)) return;
-        var available = _service?.Available == true;
+        if (!ReferenceEquals(sender, service) || !VisitCurrent(service, visit)) return;
+        var available = service.Available;
         var query = _query;
+        // 队列不能成为新的页面保留根；释放或重新 Attach 后，旧通知也不能借用新的访问。
+        var owner = new WeakReference<MoviePilotSearchViewModel>(this);
         void Update()
         {
-            if (!ReferenceEquals(sender, _service)) return;
-            if (!available || _service?.Available != true)
+            if (!owner.TryGetTarget(out var vm) || !vm.VisitCurrent(service, visit) || query != vm._query) return;
+            if (!available || !service.Available)
             {
-                if (query == _query) { base.Cancel(); Results.Clear(); }
+                vm.Cancel();
+                if (!vm.VisitCurrent(service, visit) || query != vm._query) return;
+                vm.ClearResults();
                 return;
             }
-            foreach (var result in Results) result.RefreshAvailability(true);
+            foreach (var result in vm.Results.ToArray())
+            {
+                if (!vm.VisitCurrent(service, visit) || query != vm._query) return;
+                result.RefreshAvailability(true);
+            }
         }
         if (_dispatch is { } dispatch) dispatch(Update); else Update();
+    }
+
+    private void ClearResults()
+    {
+        var previous = Results.ToArray();
+        Results.Clear();
+        foreach (var result in previous) result.Release();
+    }
+
+    /// <summary>可重新附加的离页停用；与同页换来源只取消查询、永久 Dispose 分开。</summary>
+    internal void Release()
+    {
+        _active = false;
+        var visit = Interlocked.Increment(ref _visit);
+        if (_service is { } service && _availabilityChanged is { } changed)
+            service.AvailabilityChanged -= changed;
+        _availabilityChanged = null;
+        _service = null;
+        _dispatch = null;
+        _openResources = null;
+        _openSeasonPicker = null;
+        _openMedia = null;
+        // 基类只接收非空确认委托；替换为静态拒绝，解除可能捕获页面的旧委托。
+        UseConfirm(static (_, _, _) => Task.FromResult(false));
+        _query = default;
+        _lastTerm = "";
+        base.Cancel();
+        if (visit != Volatile.Read(ref _visit)) return;
+        ClearResults();
+        if (visit != Volatile.Read(ref _visit)) return;
+        OnPropertyChanged(nameof(Heading));
+        if (visit != Volatile.Read(ref _visit)) return;
+        ClearNotice();
+        if (visit != Volatile.Read(ref _visit)) return;
+        IsReady = true;
+        if (visit != Volatile.Read(ref _visit)) return;
+        EmptyNotice = IdlePrompt;
+        if (visit != Volatile.Read(ref _visit)) return;
+        ShowEmptyNotice = true;
     }
 
     /// <summary>视图交给它的「开资源面板」入口，见 <see cref="SearchResourcesAsync"/>。</summary>
@@ -273,8 +354,8 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
     /// </summary>
     internal void Open(MoviePilotResult result)
     {
-        if (_service is null || !_service.Available || !Results.Contains(result)
-            || !_service.IsCurrentConnection(result.Media.ConnectionStamp)) return;
+        if (!_active || _service is not { } service || !IsCurrent(_query) || !service.Available || !Results.Contains(result)
+            || !service.IsCurrentConnection(result.Media.ConnectionStamp)) return;
         _openMedia?.Invoke(result.Media, result.Subscription);
     }
 
@@ -284,51 +365,65 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
     /// <summary>搜一个词。空词回到「还没搜」的样子，不发请求。结果整片重填（集合实例保持稳定）。</summary>
     internal async Task SearchAsync(string term)
     {
-        if (_service is null) return;
+        if (!_active || _service is not { } service) return;
+        var visit = Volatile.Read(ref _visit);
 
         var keyword = term.Trim();
-        _lastTerm = keyword;
-        OnPropertyChanged(nameof(Heading));
-
         if (keyword.Length == 0)
         {
+            _query = default;
+            _lastTerm = "";
             base.Cancel();
+            if (!VisitCurrent(service, visit) || _query != default) return;
+            OnPropertyChanged(nameof(Heading));
+            if (!VisitCurrent(service, visit) || _query != default) return;
             ClearNotice();
+            if (!VisitCurrent(service, visit) || _query != default) return;
             IsReady = true;
-            Results.Clear();
+            if (!VisitCurrent(service, visit) || _query != default) return;
+            ClearResults();
+            if (!VisitCurrent(service, visit) || _query != default) return;
             EmptyNotice = IdlePrompt;
+            if (!VisitCurrent(service, visit) || _query != default) return;
             ShowEmptyNotice = true;
             return;
         }
 
-        var token = BeginLoad(value => _query = value);
-        if (!IsCurrent(token)) return;
-        Results.Clear();
+        var token = BeginLoad(value => { _query = value; _lastTerm = keyword; });
+        if (!QueryCurrent(service, visit, token)) return;
+        OnPropertyChanged(nameof(Heading));
+        if (!QueryCurrent(service, visit, token)) return;
+        ClearResults();
+        if (!QueryCurrent(service, visit, token)) return;
         ShowEmptyNotice = false;
 
         try
         {
             // 不指定 media_source，沿用 MoviePilot 服务器的默认搜索范围。
-            var found = await _service.SearchAsync(keyword, token).ConfigureAwait(true);
-            if (!IsCurrent(token) || !_service.Available) return;
+            var found = await service.SearchAsync(keyword, token).ConfigureAwait(true);
+            if (!QueryCurrent(service, visit, token) || !service.Available) return;
             IReadOnlyList<MoviePilotSubscription>? subscriptions = null;
-            try { subscriptions = await _service.SubscriptionsAsync(token).ConfigureAwait(true); }
+            try { subscriptions = await service.SubscriptionsAsync(token).ConfigureAwait(true); }
             catch (OperationCanceledException) { throw; }
             catch (Exception error)
             {
-                if (IsCurrent(token)) Report("订阅状态暂不可用", error);
+                if (QueryCurrent(service, visit, token)) Report("订阅状态暂不可用", error);
             }
-            if (!IsCurrent(token) || !_service.Available) return;
+            if (!QueryCurrent(service, visit, token) || !service.Available) return;
 
-            Results.Clear();
+            ClearResults();
+            if (!QueryCurrent(service, visit, token)) return;
             foreach (var media in found)
             {
                 var result = new MoviePilotResult(media, SubscribeAsync, SearchResourcesAsync, ReviewSubscriptionAsync);
                 RefreshResult(result, subscriptions);
+                if (!QueryCurrent(service, visit, token)) { result.Release(); return; }
                 Results.Add(result);
+                if (!QueryCurrent(service, visit, token)) return;
             }
 
             EmptyNotice = found.Count == 0 ? $"MoviePilot 上没搜到「{keyword}」" : IdlePrompt;
+            if (!QueryCurrent(service, visit, token)) return;
             ShowEmptyNotice = found.Count == 0;
             EndLoad(token);
         }
@@ -338,11 +433,13 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
         }
         catch (Exception error)
         {
-            if (!IsCurrent(token)) return;
+            if (!QueryCurrent(service, visit, token)) return;
 
             Log.Warn(Category, $"MoviePilot 搜「{keyword}」失败", error);
             Report("搜索 MoviePilot 失败", error);
-            Results.Clear();
+            if (!QueryCurrent(service, visit, token)) return;
+            ClearResults();
+            if (!QueryCurrent(service, visit, token)) return;
             ShowEmptyNotice = false;
             EndLoad(token);
         }
@@ -350,8 +447,8 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
 
     private void RefreshResult(MoviePilotResult result, IReadOnlyList<MoviePilotSubscription>? subscriptions)
     {
-        if (_service is null) return;
-        result.RefreshAvailability(_service.Available && _service.IsCurrentConnection(result.Media.ConnectionStamp));
+        if (!_active || _service is not { } service) return;
+        result.RefreshAvailability(service.Available && service.IsCurrentConnection(result.Media.ConnectionStamp));
         if (subscriptions is null) { result.Subscription = null; result.State = MoviePilotSubscribeState.Unknown; return; }
         try
         {
@@ -362,7 +459,7 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
                 ? MoviePilotSubscriptionPlan.Find(result.Media with { Season = null }, "", subscriptions)
                 : matches.Length == 1 ? matches[0] : null;
             var subscribed = result.Media.Type == "电影" ? result.Subscription is not null : matches.Length > 0;
-            var operation = _service.SubscribeState(result.Media);
+            var operation = service.SubscribeState(result.Media);
             result.State = operation is MoviePilotOperationState.Uncertain or MoviePilotOperationState.Working
                 ? MoviePilotResult.StateOf(operation) : subscribed ? MoviePilotSubscribeState.Done : MoviePilotSubscribeState.Idle;
         }
@@ -377,16 +474,19 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
     /// <summary>电视剧开季设置；电影不用第二次确认，按当前明确状态执行一次新增或取消，然后重读。</summary>
     private async Task SubscribeAsync(MoviePilotResult result)
     {
-        if (_service is null || !result.CanSubscribe || !IsCurrent(_query) || !_service.Available
-            || !_service.IsCurrentConnection(result.Media.ConnectionStamp) || !Results.Contains(result)) return;
+        if (!_active || _service is not { } service || !result.CanSubscribe || !IsCurrent(_query) || !service.Available
+            || !service.IsCurrentConnection(result.Media.ConnectionStamp) || !Results.Contains(result)) return;
+        var visit = Volatile.Read(ref _visit);
         var identity = MoviePilotSubscriptionIdentity.Of(result.Media, "");
-        if (!_subscriptionActions.Add(identity)) return;
+        var action = (visit, identity);
+        if (!_subscriptionActions.Add(action)) return;
         var token = _query;
         var previous = result.State;
         var original = result.Subscription;
         result.State = MoviePilotSubscribeState.Working;
         try
         {
+            if (!QueryCurrent(service, visit, token) || !Results.Contains(result)) return;
             if (result.Media.Type == "电视剧")
             {
                 if (_openSeasonPicker is null) throw new MoviePilotOperationBlockedException("订阅季设置尚未就绪");
@@ -400,68 +500,77 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
                 throw new MoviePilotOperationBlockedException("上次操作结果不明，请先在 MoviePilot 核对订阅与下载任务");
             else
             {
-                await _service.ApplyMovieSubscriptionAsync(result.Media, original, token).ConfigureAwait(true);
-                if (!IsCurrent(token)) return;
+                await service.ApplyMovieSubscriptionAsync(result.Media, original, token).ConfigureAwait(true);
+                if (!QueryCurrent(service, visit, token)) return;
                 Notify(null, original is null ? $"已在 MoviePilot 订阅《{result.Media.Title}》" : $"已取消《{result.Media.Title}》的订阅", InfoBarSeverity.Success);
             }
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (IsCurrent(token) && Results.Contains(result)) Report($"《{result.Media.Title}》订阅操作未完成", error);
+            if (QueryCurrent(service, visit, token) && Results.Contains(result)) Report($"《{result.Media.Title}》订阅操作未完成", error);
         }
         finally
         {
             try
             {
-                if (IsCurrent(token) && _service.Available && _service.IsCurrentConnection(result.Media.ConnectionStamp))
+                if (QueryCurrent(service, visit, token) && service.Available && service.IsCurrentConnection(result.Media.ConnectionStamp))
                 {
                     IReadOnlyList<MoviePilotSubscription>? subscriptions = null;
-                    try { subscriptions = await _service.SubscriptionsAsync(token).ConfigureAwait(true); }
+                    try { subscriptions = await service.SubscriptionsAsync(token).ConfigureAwait(true); }
                     catch (OperationCanceledException) { }
-                    catch (Exception error) { if (IsCurrent(token)) Report("订阅状态读取失败", error); }
-                    if (IsCurrent(token) && _service.Available)
+                    catch (Exception error) { if (QueryCurrent(service, visit, token)) Report("订阅状态读取失败", error); }
+                    if (QueryCurrent(service, visit, token) && service.Available)
                         foreach (var current in Results.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, result.Media))) RefreshResult(current, subscriptions);
                 }
             }
-            finally { _subscriptionActions.Remove(identity); }
+            finally { _subscriptionActions.Remove(action); }
         }
     }
 
     /// <summary>用户在独立恢复键明确声明已核对；先读取当前服务器，再解当前电影身份的锁，绝不写入。</summary>
     private async Task ReviewSubscriptionAsync(MoviePilotResult result)
     {
-        if (_service is null || !result.CanReview || !IsCurrent(_query) || !_service.Available || !Results.Contains(result)
-            || !_service.IsCurrentConnection(result.Media.ConnectionStamp)) return;
+        if (!_active || _service is not { } service || !result.CanReview || !IsCurrent(_query) || !service.Available || !Results.Contains(result)
+            || !service.IsCurrentConnection(result.Media.ConnectionStamp)) return;
+        var visit = Volatile.Read(ref _visit);
         var identity = MoviePilotSubscriptionIdentity.Of(result.Media, "");
-        if (!_subscriptionActions.Add(identity)) return;
+        var action = (visit, identity);
+        if (!_subscriptionActions.Add(action)) return;
         var token = _query;
         result.State = MoviePilotSubscribeState.Working;
         try
         {
-            var subscriptions = await _service.SubscriptionsAsync(token).ConfigureAwait(true);
-            if (!IsCurrent(token) || !_service.Available || !Results.Contains(result)) return;
+            if (!QueryCurrent(service, visit, token) || !Results.Contains(result)) return;
+            var subscriptions = await service.SubscriptionsAsync(token).ConfigureAwait(true);
+            if (!QueryCurrent(service, visit, token) || !service.Available || !Results.Contains(result)) return;
             var current = MoviePilotSubscriptionPlan.Find(result.Media, "", subscriptions);
-            _service.ConfirmSeasonSubscriptionReviewed(result.Media);
-            if (current is not null) _service.ConfirmSubscriptionReviewed(current);
+            service.ConfirmSeasonSubscriptionReviewed(result.Media);
+            if (current is not null) service.ConfirmSubscriptionReviewed(current);
             foreach (var row in Results.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, result.Media))) RefreshResult(row, subscriptions);
             Notify(null, "已读取并解除当前电影的待核对状态；未发送订阅或取消请求", InfoBarSeverity.Informational);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
         {
-            if (IsCurrent(token) && Results.Contains(result)) { result.State = MoviePilotSubscribeState.Uncertain; Report("订阅核对未完成", error); }
+            if (QueryCurrent(service, visit, token) && Results.Contains(result)) { result.State = MoviePilotSubscribeState.Uncertain; Report("订阅核对未完成", error); }
         }
-        finally { _subscriptionActions.Remove(identity); }
+        finally { _subscriptionActions.Remove(action); }
     }
 
     public override void Dispose()
     {
-        if (_service is not null) _service.AvailabilityChanged -= OnAvailabilityChanged;
+        if (_disposed) return;
+        _disposed = true;
+        Release();
         base.Dispose();
     }
 
-    /// <summary>一张卡的「搜索资源」按下去：交给视图去开资源覆盖面板（那要 XamlRoot），视图模型只把媒体递出去。</summary>
-    private Task SearchResourcesAsync(MoviePilotResult result) =>
-        _openResources?.Invoke(result.Media) ?? Task.CompletedTask;
+    /// <summary>只认当前访问、查询与结果；外部保留的旧行不能借用重开的页面动作。</summary>
+    private Task SearchResourcesAsync(MoviePilotResult result)
+    {
+        if (!_active || _service is not { } service || !IsCurrent(_query) || !service.Available || !Results.Contains(result)
+            || !service.IsCurrentConnection(result.Media.ConnectionStamp)) return Task.CompletedTask;
+        return _openResources?.Invoke(result.Media) ?? Task.CompletedTask;
+    }
 }

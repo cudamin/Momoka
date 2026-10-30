@@ -137,7 +137,11 @@ internal static class ResourceSortMenuTests
         var now = new DateTimeOffset(2026, 10, 28, 0, 0, 0, TimeSpan.Zero);
         var middle = new MoviePilotResource
         {
-            Title = "middle", SiteName = "B", Size = 20, Seeders = 20, PublishedAt = now.AddDays(-2),
+            Title = "middle",
+            SiteName = "B",
+            Size = 20,
+            Seeders = 20,
+            PublishedAt = now.AddDays(-2),
             TorrentInfo = JsonSerializer.SerializeToElement(new { title = "anonymous" })
         };
         return new[] { middle, middle with { Title = "small", SiteName = "A", Size = 10, Seeders = 10, PublishedAt = now.AddDays(-3) },

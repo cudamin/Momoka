@@ -23,40 +23,40 @@ internal sealed partial class ShellNavigationProbe
         try
         {
             foreach (var poster in new[] { true, false })
-            foreach (var itemContainer in new[] { false, true })
-            {
-                UserControl card = poster ? new PosterCard() : new EpisodeRow();
-                var name = card.GetType().Name + (itemContainer ? "/ItemContainer" : "/Button");
-                Control host = itemContainer
-                    ? new ItemContainer { Child = card, IsTabStop = true }
-                    : new Button { Content = card };
-                host.Width = 320;
-                host.Height = 120;
-                content.Children.Add(host);
-                try
+                foreach (var itemContainer in new[] { false, true })
                 {
-                    await LayoutAsync(content);
-                    await UntilAsync(() => card.IsLoaded);
-                    var watch = Get<FocusWatch>(card, "_focus");
-                    Require(ReferenceEquals(Get<Control>(watch, "_host"), host), name + " 焦点监听没有绑定外层单项容器");
-                    Require(exit.Focus(FocusState.Keyboard), "离焦目标不能取得焦点");
-                    await UntilAsync(() => !Get<bool>(card, "_focused"));
-                    Require(host.Focus(FocusState.Keyboard), name + " 宿主不能取得焦点");
-                    await UntilAsync(() => ReferenceEquals(FocusManager.GetFocusedElement(host.XamlRoot), host)
-                        && Get<bool>(card, "_focused"));
-                    Require(watch.Probe(), name + " 当前宿主诊断失败");
-                    Require(exit.Focus(FocusState.Keyboard), "离焦目标不能再次取得焦点");
-                    await UntilAsync(() => !Get<bool>(card, "_focused"));
-                    readings.AppendLine(name + "：宿主身份、键盘进入和离开均通过");
+                    UserControl card = poster ? new PosterCard() : new EpisodeRow();
+                    var name = card.GetType().Name + (itemContainer ? "/ItemContainer" : "/Button");
+                    Control host = itemContainer
+                        ? new ItemContainer { Child = card, IsTabStop = true }
+                        : new Button { Content = card };
+                    host.Width = 320;
+                    host.Height = 120;
+                    content.Children.Add(host);
+                    try
+                    {
+                        await LayoutAsync(content);
+                        await UntilAsync(() => card.IsLoaded);
+                        var watch = Get<FocusWatch>(card, "_focus");
+                        Require(ReferenceEquals(Get<Control>(watch, "_host"), host), name + " 焦点监听没有绑定外层单项容器");
+                        Require(exit.Focus(FocusState.Keyboard), "离焦目标不能取得焦点");
+                        await UntilAsync(() => !Get<bool>(card, "_focused"));
+                        Require(host.Focus(FocusState.Keyboard), name + " 宿主不能取得焦点");
+                        await UntilAsync(() => ReferenceEquals(FocusManager.GetFocusedElement(host.XamlRoot), host)
+                            && Get<bool>(card, "_focused"));
+                        Require(watch.Probe(), name + " 当前宿主诊断失败");
+                        Require(exit.Focus(FocusState.Keyboard), "离焦目标不能再次取得焦点");
+                        await UntilAsync(() => !Get<bool>(card, "_focused"));
+                        readings.AppendLine(name + "：宿主身份、键盘进入和离开均通过");
+                    }
+                    finally
+                    {
+                        content.Children.Remove(host);
+                        // ItemContainer.Child does not accept null. Removing the whole temporary host
+                        // ends its visual lifetime; no child is reused by the next case.
+                        await LayoutAsync(content);
+                    }
                 }
-                finally
-                {
-                    content.Children.Remove(host);
-                    // ItemContainer.Child does not accept null. Removing the whole temporary host
-                    // ends its visual lifetime; no child is reused by the next case.
-                    await LayoutAsync(content);
-                }
-            }
 
             // 将真实设置 DataTemplate 交给 ItemsControl 实例化，既验证绑定结果，也验证 UIA peer 的最终名称。
             var page = new SettingsPage();

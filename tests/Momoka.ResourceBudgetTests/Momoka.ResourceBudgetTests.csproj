@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Reuse Core's existing friend identity without editing its project or the shared runner. -->
+    <AssemblyName>Momoka.Tests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <!-- Blocking belongs only to the hand-written test harness, never to production Core. -->
+    <PackageReference Remove="Microsoft.VisualStudio.Threading.Analyzers;Microsoft.CodeAnalysis.BannedApiAnalyzers" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="Compatibility\TestHarness.cs" />
+    <Compile Include="..\Momoka.Tests\FontTests.cs" Link="Compatibility\FontTests.cs" />
+    <Compile Include="..\Momoka.Tests\DiagnosticsTests.cs" Link="Compatibility\DiagnosticsTests.cs" />
+    <Compile Include="..\Momoka.Tests\EmbyRealtimeTests.cs" Link="Compatibility\EmbyRealtimeTests.cs" />
+    <Compile Include="..\Momoka.Tests\EmbyRealtimeTests.Transport.cs" Link="Compatibility\EmbyRealtimeTests.Transport.cs" />
+    <Compile Include="..\Momoka.Tests\EmbyRealtimeTests.Redirect.cs" Link="Compatibility\EmbyRealtimeTests.Redirect.cs" />
+  </ItemGroup>
+</Project>

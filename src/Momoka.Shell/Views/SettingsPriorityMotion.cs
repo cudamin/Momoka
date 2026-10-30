@@ -31,7 +31,7 @@ internal sealed class SettingsPriorityMotion
         _list = list;
         _row = row;
         _list.UpdateLayout();
-        _positions = Measure();
+        _positions = HomeMotion.AnimationsEnabled ? Measure() : [];
         _row.Rules.CollectionChanged += OnChanged;
         _list.LayoutUpdated += OnLayoutUpdated;
         HomeMotion.PreferenceChanged += OnPreferenceChanged;
@@ -54,7 +54,11 @@ internal sealed class SettingsPriorityMotion
     private void OnLayoutUpdated(object? sender, object args)
     {
         if (_detached || _list.XamlRoot is null) return;
-        if (!HomeMotion.AnimationsEnabled) Stop();
+        if (!HomeMotion.AnimationsEnabled)
+        {
+            if (IsAnimating || _before is not null) Stop();
+            return;
+        }
         if (!_queued && !_dragging && _active.Count == 0) _positions = Measure();
     }
 
@@ -85,7 +89,8 @@ internal sealed class SettingsPriorityMotion
     {
         if (_detached) return;
         Stop();
-        _before = Measure();
+        // 拖拽提交与动画快照是两件事：禁动画仍 Begin/EndReorder，但不测量无用的 before。
+        _before = HomeMotion.AnimationsEnabled ? Measure() : null;
         _dragging = true;
         _row.BeginReorder();
     }
@@ -184,6 +189,7 @@ internal sealed class SettingsPriorityMotion
     private void OnPreferenceChanged()
     {
         if (!HomeMotion.AnimationsEnabled) Stop();
+        else if (!_detached && !_dragging && _list.XamlRoot is not null) _list.UpdateLayout();
     }
 
     internal void Stop()

@@ -30,6 +30,8 @@ public sealed partial class MoviePilotSearchPanel : UserControl
 
     private MoviePilotService? _service;
     private ISystemLauncher? _launcher;
+    private bool _active;
+    private int _visit;
 
     public MoviePilotSearchPanel()
     {
@@ -45,10 +47,16 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     internal void Attach(MoviePilotService service, ISystemLauncher launcher,
         Action<MoviePilotMedia, MoviePilotSubscription?>? openMedia = null)
     {
+        var beforeRelease = _visit;
+        Release();
+        if (_visit != unchecked(beforeRelease + 1)) return;
         _service = service;
         _launcher = launcher;
-        ViewModel.Attach(service, action => DispatcherQueue.TryEnqueue(() => action()));
-        ViewModel.UseConfirm(ConfirmDialog.For(this, dialog => MoviePilotDialog.ShowAsync(dialog, service)));
+        _active = true;
+        var queue = DispatcherQueue;
+        var visit = _visit;
+        ViewModel.Attach(service, action => queue.TryEnqueue(() => action()));
+        if (!_active || visit != _visit) return;
         ViewModel.UseResourceOpener(ShowResourcesAsync);
         ViewModel.UseSeasonPicker((media, token) => MoviePilotSeasonPicker.ShowAsync(this, service, media, "", media.Season, token));
         if (openMedia is not null) ViewModel.UseMediaOpener(openMedia);
@@ -56,6 +64,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
 
     internal Task PrepareSearchAsync()
     {
+        if (!_active) return Task.CompletedTask;
         ResourceOverlay.Release();
         ResourceOverlay.Visibility = Visibility.Collapsed;
         SearchContent.Visibility = Visibility.Visible;
@@ -66,6 +75,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     /// <summary>页面上那个共享搜索框提交、且此刻在 MoviePilot 段时，由页面把词转到这里。</summary>
     internal Task SearchAsync(string term)
     {
+        if (!_active) return Task.CompletedTask;
         ResourceOverlay.Release();
         ResourceOverlay.Visibility = Visibility.Collapsed;
         SearchContent.Visibility = Visibility.Visible;
@@ -73,10 +83,25 @@ public sealed partial class MoviePilotSearchPanel : UserControl
         return ViewModel.SearchAsync(term);
     }
 
-    /// <summary>离开搜索页时收手：取消在飞的搜索，收起资源面板。</summary>
-    internal void Release()
+    /// <summary>同页换搜索来源只取消本次查询，不永久停用，也不自动重新搜索。</summary>
+    internal void CancelSearch()
     {
         ViewModel.Cancel();
+        ResourceOverlay.Release();
+        ResourceOverlay.Visibility = Visibility.Collapsed;
+        SearchContent.Visibility = Visibility.Visible;
+        Results.Visibility = Visibility.Visible;
+    }
+
+    /// <summary>真正离页时退订单例事件、解除页面回调并释放结果；返回时由 Attach 重新接线。</summary>
+    internal void Release()
+    {
+        _active = false;
+        var visit = ++_visit;
+        _service = null;
+        _launcher = null;
+        ViewModel.Release();
+        if (visit != _visit) return;
         ResourceOverlay.Release();
         ResourceOverlay.Visibility = Visibility.Collapsed;
         SearchContent.Visibility = Visibility.Visible;
@@ -86,7 +111,7 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     /// <summary>点某条结果的「搜索资源」：把资源覆盖面板盖上来并开搜。</summary>
     private Task ShowResourcesAsync(MoviePilotMedia media)
     {
-        if (_service is null || _launcher is null) return Task.CompletedTask;
+        if (!_active || _service is null || _launcher is null) return Task.CompletedTask;
 
         ResourceOverlay.Open(_service, media, _launcher);
         SearchContent.Visibility = Visibility.Collapsed;

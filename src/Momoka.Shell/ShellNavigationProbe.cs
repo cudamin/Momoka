@@ -213,6 +213,11 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("日志淘汰后显示空态", DiagnosticsEmptyAsync);
             await CaseAsync("运行状态紧凑布局、筛选与详情", DiagnosticsLayoutAsync, 30);
             await CaseAsync("对话框构造自检路径", DialogConstructionAsync);
+            await CaseAsync("性能：真实搜索页往返退订、来源切换与迟到通知", PerformanceSearchVisitsAsync, 45, section: ShellProbeSections.Performance);
+            await CaseAsync("资源：真实飞牛匹配框关闭取消、重入与迟到结果", PerformanceMatchCloseAsync, 30, section: ShellProbeSections.Performance);
+            await CaseAsync("性能：真实诊断 UI 队列洪峰合并、拒绝与访问归属", PerformanceDiagnosticsAsync, 30, section: ShellProbeSections.Performance);
+            await CaseAsync("资源：真实XAML封面解码预算、快速换片与队列响应", PerformanceCoverAsync, 30, section: ShellProbeSections.Performance);
+            await CaseAsync("性能：真实设置滑块合并保存、失败重试与离页排空", PerformanceSettingsAsync, 30, section: ShellProbeSections.Performance);
         }
     }
 

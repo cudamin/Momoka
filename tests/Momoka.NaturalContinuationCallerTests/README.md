@@ -193,3 +193,19 @@ LibMpvBackend.cs 这一个 SHA256** 为 `a154d0d9b4c2dba82a478f70d8956f5a1d50834
 ## SVP 接入后的来源复核（2026-10-28）
 
 本轮只更新四份受影响来源的固定哈希：内置后端增加可选组件／管道生命周期与换片禁止标志；播放票据增加默认关闭的 SVP 字段；画面菜单按实际播放状态筛选；HandleFixture 增加可选 SVP 签名参数。自然接续的提取方法、所有权字段及原验证边界保持不变，原 caller 测试继续执行，不接受整份新快照或降低拒绝条件。
+
+
+## 2026-10-29 性能修复来源复核
+
+`57d0aa7` 只修改内置后端的事件线程迟到回收与 speed 绝对值队列；本专项实际提取的 PlayerViewModel 方法、捕获来源、接续 await-using 及其余18份来源均逐一核对未变。本专项不构造 LibMpvHandle，native/gate控制流另由37项完整handle资源/EOF与44项shader/线程测试验证。仅将这一份 `src/Momoka.Core/Playback/LibMpvBackend.cs` 的固定 SHA256 从 `a1cbc7ec4ff5523baa36844592943197846d08f755c6ccaaa9a8eafbf2d5383c` 更新为 `c26eebec5280e0ee1e647a733cd713164c6c9b195d04b84f5596a7dbc8a0611e`；baseCommit/date、提取规则、失败条件与其它pin不动。原SOURCE_HASH_MISMATCH日志保留在父树 `artifacts/performance-repair/native/solution-build.txt`。更新后须运行原caller与全部反例，并在最终图片回填改动集成后复核Events.cs那一份来源，而非整份自动刷新。
+
+此次1项来源同步后，实际caller54项0失败0跳过；`Test-SourceExtraction.ps1`原10反例逐个按预期退出1，最后当前源重新0警告0错误构建并54项全过。证据：`artifacts/performance-repair/native/caller.txt`、`caller-negative.txt`及`artifacts/r046-caller/native-perf-extractor-20261029-181031-184`。一次忘传参数被入口拒绝，未回退主程序或旧测试，失败输出保留。
+
+
+## 2026-10-30 封面图片父整合的来源复核
+
+PERF-04/09源提交2b3fea8只修改Events.cs的封面取消、客户端有界解码及UI双层回填方法，原caller提取的OnNowPlayingChanged/LeavePlayer等成员未变。逐份核对其它18项pin一致，只更新Events.cs这1份SHA256从`a0c6a78743f984e1ee54fac42abf97c79f1aaa1cb55237f939fd7ce75038274d`到`e6bbe894ade1bdc236117dfd1acb2cdaa14f9c435a95c61e2f039ac7eff068e2`；完整提取/失败条件/其它来源不动。图片调用真实方法另由当前41項专项与WinRT解码验证，不能以caller54代替图片UI或播放验收。同步后原caller与10个拒绝反例仍须重跑。
+
+整段收尾上限反证修复后再定点复核LibMpvBackend一项source pin：从`c26eebec5280e0ee1e647a733cd713164c6c9b195d04b84f5596a7dbc8a0611e`到`55d3403df9640de0ef94f623cd2e80c46b5149a729a144940371d7e7688d9801`，所有提取方法与其他18份来源不动。40項全handle/gate提供新的gate/quit阻塞覆盖；caller仍54项及10拒绝控制必须当前重跑。
+
+弹幕全客户端关停排空接入PlayerViewModel.ShutdownPlaybackAsync后，只同步这一份源SHA：`7981274a1cc521e66a18e16732e6f15f24388acd52dd74b63d58fadcb02494b0`→`d3279a1db368711eb22ca24adede2c1cbefa04251b6705c8eb858acedcecd3b1`。提取的caller/NowPlaying/Leave方法未改，其他18份pin一致。独立弹幕实际client+原样load52项含热缓存cancel/dispose、被替换旧加载排空与queued send/search取消；caller54与源提取反例仍当轮重验，不冒充WinUI崩溃复测。

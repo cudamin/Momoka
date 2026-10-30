@@ -44,6 +44,8 @@ internal static class CardImageResizeTests
             var cells = card.Cells;
             var initial = fixture.Begin();
             var old = await fixture.Handler.AtAsync(0);
+            var sentinel = fixture.KeepDownload(old);
+            await CardImageFixture.UntilAsync(() => fixture.DownloadDemands == 2, "independent old-width demand did not join");
             var oldToken = fixture.LoadingToken!.Value;
             Assert.Equal(400, old.Width);
             Assert.Null(card.Poster);
@@ -52,7 +54,9 @@ internal static class CardImageResizeTests
             Assert.True(oldToken.IsCancellationRequested);
             var current = await fixture.Handler.AtAsync(1);
             Assert.Equal(560, current.Width, "请求宽度沿用实际 RequestWidth 阶梯");
+            Assert.False(old.Token.IsCancellationRequested, "旁边有效需求继续下载，而旧卡片等待已取消");
             await fixture.DeliverAsync(old, "old-width");
+            Assert.NotNull(await sentinel);
             await initial;
             Assert.Null(card.Poster, "旧下载成功或进磁盘缓存都不能回填卡片");
             Assert.Equal(0, PosterLoader.Calls.Count);
@@ -75,13 +79,17 @@ internal static class CardImageResizeTests
             await using var fixture = new CardImageFixture();
             var initial = fixture.Begin();
             var old = await fixture.Handler.AtAsync(0);
+            var sentinel = fixture.KeepDownload(old);
+            await CardImageFixture.UntilAsync(() => fixture.DownloadDemands == 2, "independent late-old demand did not join");
             fixture.Card.Resize(250);
             var current = await fixture.Handler.AtAsync(1);
             await fixture.DeliverAsync(current, "new-first");
             await PosterAsync(fixture, 250, "new-first");
             var poster = fixture.Card.Poster;
 
+            Assert.False(old.Token.IsCancellationRequested);
             await fixture.DeliverAsync(old, "old-last");
+            Assert.NotNull(await sentinel);
             await initial;
             Assert.True(ReferenceEquals(poster, fixture.Card.Poster));
             Assert.Equal(1, PosterLoader.Calls.Count);
@@ -135,11 +143,13 @@ internal static class CardImageResizeTests
             Assert.Equal(1, PosterLoader.Calls.Count);
         });
 
-        Case("R-012：宽度A→B→A可复用共享下载但旧代次不清除新等待", async () =>
+        Case("R-012：宽度A→B→A有独立有效需求时共享，旧代次不清除新等待", async () =>
         {
             await using var fixture = new CardImageFixture();
             var initial = fixture.Begin();
             var first = await fixture.Handler.AtAsync(0);
+            var sentinel = fixture.KeepDownload(first);
+            await CardImageFixture.UntilAsync(() => fixture.DownloadDemands == 2, "independent A demand did not join");
             fixture.Card.Resize(250);
             var middle = await fixture.Handler.AtAsync(1);
             fixture.Card.Resize(170);
@@ -148,7 +158,9 @@ internal static class CardImageResizeTests
             Assert.False(currentToken.IsCancellationRequested);
             Assert.Equal<CancellationToken?>(currentToken, fixture.LoadingToken, "旧 finally 不能清除新 CTS");
 
+            Assert.False(first.Token.IsCancellationRequested, "独立需求保活原A下载，不归首个卡片等待者所有");
             await fixture.DeliverAsync(first, "shared-A");
+            Assert.NotNull(await sentinel);
             await PosterAsync(fixture, 170, "shared-A");
             var poster = fixture.Card.Poster;
             await fixture.DeliverAsync(middle, "obsolete-B");
@@ -156,6 +168,37 @@ internal static class CardImageResizeTests
             Assert.Equal(2, fixture.Handler.Count, "相同请求宽度仍合并下载，不另造网络策略");
             Assert.Equal(1, PosterLoader.Calls.Count);
             Assert.False(PosterCache.TryGet(fixture.Key(250), out _));
+        });
+
+        Case("R-012：宽度A→B→A零需求撤销旧共享，自动新取A而旧响应不填回", async () =>
+        {
+            await using var fixture = new CardImageFixture();
+            var initial = fixture.Begin();
+            var oldA = await fixture.Handler.AtAsync(0);
+            fixture.Card.Resize(250);
+            var oldB = await fixture.Handler.AtAsync(1);
+            fixture.Card.Resize(170);
+            var currentA = await fixture.Handler.AtAsync(2);
+            var currentToken = fixture.LoadingToken!.Value;
+            Assert.Equal(400, currentA.Width, "零需求已撤销原A，回到A必须自动建立新需求");
+            Assert.True(oldA.Token.IsCancellationRequested);
+            Assert.True(oldB.Token.IsCancellationRequested);
+            await fixture.DeliverAsync(oldA, "zero-demand-old-A");
+            await fixture.DeliverAsync(oldB, "zero-demand-old-B");
+            await initial;
+            Assert.False(currentToken.IsCancellationRequested);
+            Assert.Equal<CancellationToken?>(currentToken, fixture.LoadingToken, "旧finally不清新A等待");
+            Assert.Equal(3, fixture.Handler.Count, "Deliver不能给取消的A或B再建GET");
+            Assert.Null(fixture.Card.Poster);
+            Assert.Equal(0, PosterLoader.Calls.Count);
+            Assert.False(PosterCache.TryGet(fixture.Key(170), out _));
+            Assert.False(PosterCache.TryGet(fixture.Key(250), out _));
+            Assert.False(File.Exists(fixture.CacheFile(400)));
+            await fixture.DeliverAsync(currentA, "fresh-A");
+            await PosterAsync(fixture, 170, "fresh-A");
+            Assert.Equal(1, PosterLoader.Calls.Count);
+            Assert.True(PosterCache.TryGet(fixture.Key(170), out var cached));
+            Assert.True(ReferenceEquals(cached, fixture.Card.Poster));
         });
 
         Case("R-012：已有图片换宽仍更新，旧解码不当作新宽度图片", async () =>
@@ -263,12 +306,16 @@ internal static class CardImageResizeTests
             await using var fixture = new CardImageFixture();
             var initial = fixture.Begin();
             var shared = await fixture.Handler.AtAsync(0);
+            var sentinel = fixture.KeepDownload(shared);
+            await CardImageFixture.UntilAsync(() => fixture.DownloadDemands == 2, "independent same-step demand did not join");
             var oldToken = fixture.LoadingToken!.Value;
             Assert.Equal(400, shared.Width);
             fixture.Card.Resize(200);
             Assert.True(oldToken.IsCancellationRequested);
             Assert.NotNull(fixture.LoadingToken);
+            Assert.False(shared.Token.IsCancellationRequested);
             await fixture.DeliverAsync(shared, "same-step");
+            Assert.NotNull(await sentinel);
             await initial;
             await PosterAsync(fixture, 200, "same-step");
             Assert.Equal(1, fixture.Handler.Count, "170与200共用400宽下载，不共用解码位图");
@@ -337,7 +384,7 @@ internal static class CardImageResizeTests
             Assert.Equal(0, PosterLoader.Calls.Count);
         });
 
-        Case("R-012：离页取消首图后换宽不复活，旧下载成功只留字节缓存", async () =>
+        Case("R-012：离页零需求取消首图后换宽不复活，旧响应不留缓存", async () =>
         {
             await using var fixture = new CardImageFixture();
             var initial = fixture.Begin();
@@ -349,6 +396,12 @@ internal static class CardImageResizeTests
             Assert.Equal(1, fixture.Handler.Count);
             await fixture.DeliverAsync(old, "abandoned");
             await initial;
+            Assert.True(old.Token.IsCancellationRequested);
+            await CardImageFixture.UntilAsync(() => fixture.DownloadRunning == 0, "zero-demand abandoned download did not exit");
+            Assert.Equal(0, fixture.DownloadDemands);
+            Assert.Equal(1, fixture.Handler.Count, "迟到交付不能复活旧键的新请求");
+            Assert.False(File.Exists(fixture.CacheFile(400)), "零需求取消后的旧字节不写盘");
+            Assert.False(PosterCache.TryGet(fixture.Key(170), out _));
             Assert.Null(fixture.Card.Poster);
             Assert.Equal(0, PosterLoader.Calls.Count);
         });

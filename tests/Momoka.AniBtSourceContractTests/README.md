@@ -63,3 +63,8 @@ SDK 固定 `C:\Users\89400\.dotnet\dotnet.exe` **10.0.400**；Release、`--no-re
 ## 未验证／不改变
 
 真实 modal／WinUI 焦点、设置窗口交互、XAML 生成绑定、像素、真实线程 check-send 极短竞态、A→B→A 瞬时回切、真实服务器接受／完成／原子性、登录／重新认证／凭据／DPAPI／媒体文件／native／播放均未验。伪 HTTP 和惰性调度只能证明此 current caller 合同，不证明真实用户路径触发。历史 R042 继续条件性；所有正式产品代码和历史 records 保持不动。主线程负责最终 Core／方案同步，本题不是发布交付，快捷方式仍旧版。
+
+
+## 2026-10-30 性能保存队列集成边界
+
+本专项编译链接全部Core但替换SettingsStore的IO端点；新SettingsSaveQueue因引用真实Store新增的5个方法/属性，需要端点补齐签名。全部新增端点都严格抛RejectIo，不模拟成功、不运行timer/文件/凭据，不扩大AniBT业务覆盖。新增5次拒绝/零SaveCalls回归；生产设置队列另由SettingsDeferredSaveTests与真实WinUI性能分区验证。原完整source/caller/probe测试保留，初完整方案CS1061失败日志保留在父performance-repair/final，不把缺API用排除真实Core源文件解决。

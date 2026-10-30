@@ -13,17 +13,45 @@ namespace Momoka.Infrastructure;
 /// remembered it — a permanently blank cover until the page was left and reopened.
 /// </para>
 /// <para>
-/// So the work here belongs to no caller. Each waiter may give up on its own (its
-/// <c>waiter</c> token, which cancels the wait and nothing else); the download runs to completion, its
-/// bytes reach the disk cache, and everyone else who was waiting is served.
+/// Work belongs to no individual caller. The original parameterless mode still finishes abandoned
+/// non-cancellable factories; the explicit-budget mode tracks aggregate demand and cancels only when
+/// its last waiter leaves. The image store opts into this bounded, demand-owned mode.
 /// </para>
 /// </summary>
 public sealed class SharedWork<TResult>
 {
     private readonly ConcurrentDictionary<string, Lazy<Task<TResult>>> _running = new(StringComparer.Ordinal);
+    private readonly SharedWorkBudget<TResult>? _budget;
+
+    /// <summary>Legacy completion-owned work; existing non-cancellable factories keep their contract.</summary>
+    public SharedWork() { }
+
+    /// <summary>
+    /// Demand-owned work: execution slots, queued keys and individual waiters are all bounded.
+    /// A new demand replaces the oldest queued key on overflow; it never waits outside the budget.
+    /// </summary>
+    public SharedWork(int maxExecuting, int maxQueued, int maxDemands) =>
+        _budget = new SharedWorkBudget<TResult>(maxExecuting, maxQueued, maxDemands);
 
     /// <summary>How many keys are in flight right now. Diagnostics, and what the tests count.</summary>
-    public int Running => _running.Count;
+    public int Running => _budget?.Running ?? _running.Count;
+
+    /// <summary>Factories actually executing, including cancelled work that has not returned yet.</summary>
+    public int Executing => _budget?.Executing ?? _running.Count;
+
+    /// <summary>Admitted keys not started yet. No factory/task per queued key is started.</summary>
+    public int Queued => _budget?.Queued ?? 0;
+
+    /// <summary>Retained individual waiters in demand-owned mode.</summary>
+    public int Demands => _budget?.Demands ?? 0;
+
+    /// <summary>
+    /// Joins a bounded demand. The token passed to the factory belongs to all its current waiters,
+    /// never to the first one; only zero demand cancels it. Cancellation/overflow never returns null.
+    /// </summary>
+    public Task<TResult> RunAsync(string key, Func<CancellationToken, Task<TResult>> work, CancellationToken waiter) =>
+        (_budget ?? throw new InvalidOperationException("Demand-owned work requires explicit budgets"))
+        .RunAsync(key, work, waiter);
 
     /// <summary>
     /// Runs <paramref name="work"/> for <paramref name="key"/>, or joins the run already under way.
@@ -31,6 +59,8 @@ public sealed class SharedWork<TResult>
     /// </summary>
     public Task<TResult> RunAsync(string key, Func<Task<TResult>> work, CancellationToken waiter)
     {
+        if (_budget is not null) return _budget.RunAsync(key, _ => work(), waiter);
+
         // Lazy rather than GetOrAdd's factory overload: that overload is allowed to run a losing
         // factory as well, which here would start a second download that nothing ever waits on and
         // nothing ever removes from the table.

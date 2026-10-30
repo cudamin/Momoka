@@ -23,6 +23,15 @@ internal static class StartupArgsTests
             Assert.True(sections is { Count: 2 } && sections.Contains("svp") && sections.Contains("settings"));
             Assert.Throws<ArgumentException>(() => StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "svp,unknown-section"]));
         });
+        Test("性能离线探针分区：大小写/去重与非法入口仍严格拒绝", () =>
+        {
+            Assert.True(ShellProbeSections.IsKnown("PERFORMANCE"));
+            Assert.True(ShellProbeSections.All.Contains(ShellProbeSections.Performance));
+            Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "performance,PERFORMANCE"])!.SetEquals([ShellProbeSections.Performance]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "performance,invalid"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(["--probe-shell", "inspect", "--probe-section", "performance"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "performance", "--play"]));
+        });
         Test("字幕离线探针：独立入口与非法组合不落入正常启动", () =>
         {
             foreach (var args in new[]

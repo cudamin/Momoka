@@ -62,8 +62,14 @@ public sealed partial class EmbyMetadataDialog : ContentDialog
             OnLockChanged(toggle, new RoutedEventArgs());
             var header = (string)toggle.Tag switch
             {
-                "Name" => "标题", "SortName" => "排序标题", "Overview" => "概要", "CommunityRating" => "社区评分",
-                "OfficialRating" => "家长评分", "OriginalTitle" => "原始标题", "CriticRating" => "影评指数", _ => "此字段"
+                "Name" => "标题",
+                "SortName" => "排序标题",
+                "Overview" => "概要",
+                "CommunityRating" => "社区评分",
+                "OfficialRating" => "家长评分",
+                "OriginalTitle" => "原始标题",
+                "CriticRating" => "影评指数",
+                _ => "此字段"
             };
             AutomationProperties.SetName(toggle, $"锁定{header}，阻止自动刷新覆盖");
         }
@@ -89,17 +95,29 @@ public sealed partial class EmbyMetadataDialog : ContentDialog
     {
         Basic = _initial.Basic with
         {
-            Name = NameBox.Text, SortName = SortNameBox.Text, OriginalTitle = OriginalTitleBox.Text,
-            Overview = OverviewBox.Text, CommunityRating = CommunityRatingBox.Text, CriticRating = CriticRatingBox.Text,
+            Name = NameBox.Text,
+            SortName = SortNameBox.Text,
+            OriginalTitle = OriginalTitleBox.Text,
+            Overview = OverviewBox.Text,
+            CommunityRating = CommunityRatingBox.Text,
+            CriticRating = CriticRatingBox.Text,
             ProductionYear = ProductionYearBox.Text,
             PremiereDate = PremiereDatePicker.Date?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "",
-            OfficialRating = Choice(OfficialRatingBox), IndexNumber = IndexBox.Text, ParentIndexNumber = ParentIndexBox.Text
+            OfficialRating = Choice(OfficialRatingBox),
+            IndexNumber = IndexBox.Text,
+            ParentIndexNumber = ParentIndexBox.Text
         },
-        DateCreated = DateCreatedBox.Text, CustomRating = Choice(CustomRatingBox), Video3DFormat = Choice(VideoFormatBox),
-        PreferredMetadataLanguage = Choice(LanguageBox), PreferredMetadataCountryCode = Choice(CountryBox),
-        LockData = LockItemSwitch.IsOn, LockedFields = ReadLocks(),
-        Genres = GenresEditor.Rows.Select(row => row.Name).ToArray(), Tags = TagsEditor.Rows.Select(row => row.Name).ToArray(),
-        People = PeopleEditor.Rows.Select(row => row.Person!).ToArray(), Studios = StudiosEditor.Rows.Select(row => row.Studio!).ToArray(),
+        DateCreated = DateCreatedBox.Text,
+        CustomRating = Choice(CustomRatingBox),
+        Video3DFormat = Choice(VideoFormatBox),
+        PreferredMetadataLanguage = Choice(LanguageBox),
+        PreferredMetadataCountryCode = Choice(CountryBox),
+        LockData = LockItemSwitch.IsOn,
+        LockedFields = ReadLocks(),
+        Genres = GenresEditor.Rows.Select(row => row.Name).ToArray(),
+        Tags = TagsEditor.Rows.Select(row => row.Name).ToArray(),
+        People = PeopleEditor.Rows.Select(row => row.Person!).ToArray(),
+        Studios = StudiosEditor.Rows.Select(row => row.Studio!).ToArray(),
         ProviderIds = _providerBoxes.ToDictionary(pair => pair.Key, pair => pair.Value.Text, StringComparer.OrdinalIgnoreCase)
     };
 
@@ -170,8 +188,12 @@ public sealed partial class EmbyMetadataDialog : ContentDialog
     private static string Label(string display, string fallback) => string.IsNullOrWhiteSpace(display) ? fallback : display;
     private static string FormatName(string format) => format switch
     {
-        "HalfSideBySide" => "左右半宽", "FullSideBySide" => "左右全宽", "HalfTopAndBottom" => "上下半高",
-        "FullTopAndBottom" => "上下全高", "MVC" => "MVC", _ => format
+        "HalfSideBySide" => "左右半宽",
+        "FullSideBySide" => "左右全宽",
+        "HalfTopAndBottom" => "上下半高",
+        "FullTopAndBottom" => "上下全高",
+        "MVC" => "MVC",
+        _ => format
     };
 
     private void OnLockChanged(object sender, RoutedEventArgs e)

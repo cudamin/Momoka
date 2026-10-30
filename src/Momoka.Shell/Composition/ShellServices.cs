@@ -152,7 +152,14 @@ internal static class ShellServices
         services.AddSingleton<UpdateClient>();
 
         // ---- what the view models depend on ----------------------------------------------------------
-        services.AddSingleton<ISettingsService, SettingsService>();
+        var settingsQueue = DispatcherQueue.GetForCurrentThread()
+            ?? throw new InvalidOperationException("设置保存队列必须在界面线程上创建");
+        services.AddSingleton<ISettingsService>(provider =>
+        {
+            var service = new SettingsService(provider.GetRequiredService<SettingsStore>(), provider.GetRequiredService<AppSettings>());
+            service.ConfigureDeferredSave(work => settingsQueue.TryEnqueue(() => work()));
+            return service;
+        });
         services.AddSingleton<IServerCapabilities, ServerCapabilities>();
 
         // ---- the three platform capabilities a view model would otherwise reach for --------------------
