@@ -101,6 +101,14 @@ public sealed partial class AniBtScrapeViewModel : PageViewModel
         _prepared.MatchesChoices(Rows.Select(row => row.Selected!).ToArray());
     public bool CanAct => CanSubmit;
     public string PrimaryButtonText => "重新整理";
+
+    /// <summary>这一趟走到哪一步了；比一条不确定进度条更能解释「为什么还没好」。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StageVisibility))]
+    public partial string Stage { get; set; } = "";
+
+    public Visibility StageVisibility => Stage.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+
     public Visibility RetryPrepareVisibility => CanPreview && _prepared is null && NoticeOpen
         ? Visibility.Visible : Visibility.Collapsed;
 
@@ -115,6 +123,7 @@ public sealed partial class AniBtScrapeViewModel : PageViewModel
         _connection = null;
         Rows.Clear();
         var token = BeginLoad();
+        Stage = "正在收集可整理的视频文件…";
         AnnounceActions();
         try
         {
@@ -138,21 +147,31 @@ public sealed partial class AniBtScrapeViewModel : PageViewModel
             }
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { if (IsCurrent(token)) Report("AniBT 识别失败", error); }
+        catch (Exception error) { if (IsCurrent(token)) { Stage = ""; Report("AniBT 识别失败", error); } }
         finally { EndLoad(token); AnnounceActions(); }
         // 默认候选已经选中，自动读取同一份实际整理目标；点击主按钮只负责提交。
-        if (IsCurrent(token) && _active) await PreviewAsync();
+        if (IsCurrent(token) && _active)
+        {
+            Stage = "正在读取整理目标和刮削设置…";
+            await PreviewAsync();
+        }
+        else if (IsCurrent(token)) Stage = "";
     }
 
     internal async Task PreviewAsync()
     {
-        if (!CanPreview || _service is null || _scope is not { IsCurrent: true } scope || _plan is null) return;
+        if (!CanPreview || _service is null || _scope is not { IsCurrent: true } scope || _plan is null)
+        {
+            Stage = "";
+            return;
+        }
         CancelPreview();
         var version = _selectionVersion;
         var plan = _plan;
         var connection = scope.CurrentConnection;
         var choices = Rows.Select(row => row.Selected!).ToArray();
         var token = BeginLoad();
+        Stage = "正在读取整理目标和刮削设置…";
         AnnounceActions();
         try
         {
@@ -171,9 +190,10 @@ public sealed partial class AniBtScrapeViewModel : PageViewModel
                 Rows[index].ShowTarget(prepared.Rows[index]);
             }
             ClearNotice();
+            Stage = "";
         }
-        catch (OperationCanceledException) { }
-        catch (Exception error) { if (IsCurrent(token)) Report("整理目标读取失败，本次没有写入", error); }
+        catch (OperationCanceledException) { if (IsCurrent(token)) Stage = ""; }
+        catch (Exception error) { if (IsCurrent(token)) { Stage = ""; Report("整理目标读取失败，本次没有写入", error); } }
         finally { EndLoad(token); AnnounceActions(); }
     }
 
@@ -186,6 +206,7 @@ public sealed partial class AniBtScrapeViewModel : PageViewModel
         _attempted = true;
         foreach (var row in Rows) row.CanSelect = false;
         var token = BeginLoad();
+        Stage = "正在重新整理并自动刮削，MoviePilot 可能需要一段时间…";
         AnnounceActions();
         try
         {
@@ -212,7 +233,7 @@ public sealed partial class AniBtScrapeViewModel : PageViewModel
             if (IsCurrent(token) && _active) Report("操作已取消或连接改变，请核对已提交结果", error);
         }
         catch (Exception error) { if (IsCurrent(token)) Report("重新整理未完成，请核对 MoviePilot 与 Emby 后再操作", error); }
-        finally { EndLoad(token); AnnounceActions(); }
+        finally { Stage = ""; EndLoad(token); AnnounceActions(); }
     }
 
     internal void CancelPreview()
@@ -222,6 +243,7 @@ public sealed partial class AniBtScrapeViewModel : PageViewModel
         _prepared = null;
         // 改选/关闭立即取消在途只读请求，迟到回话不能恢复旧目标或提交按钮。
         base.Cancel();
+        Stage = "";
         foreach (var row in Rows)
         {
             row.ClearTarget();

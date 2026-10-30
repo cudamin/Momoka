@@ -299,6 +299,7 @@ internal static class Program
         UpdateTests.Register();
         MoviePilotTests.Register();
         AniBtTests.Register();
+        AniBtSeriesIdentityTests.Register();
         AniBtIntegrationTests.Register();
         AniBtReceiptStateTests.Register();
         MoviePilotSubscriptionTests.Register();

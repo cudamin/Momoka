@@ -149,9 +149,12 @@ internal static partial class ItemCommands
         {
             var hadManagement = shell.MoviePilotMediaManagementEnabled;
             var hadSmart = shell.MoviePilotSmartReorganizeEnabled;
+            bool HasAniBt() => menu.Items.Any(row => row.Tag is ItemCommand.AniBtScrape or ItemCommand.AniBtVersions
+                || row is MenuFlyoutSubItem submenu && submenu.Items.Any(child => child.Tag is ItemCommand.AniBtVersions));
             void AvailabilityChanged(object? sender, EventArgs args)
             {
-                if (!shell.MoviePilotEnabled || hadManagement != shell.MoviePilotMediaManagementEnabled ||
+                if (!shell.MoviePilotEnabled || HasAniBt() && !shell.AniBtEnabled ||
+                    hadManagement != shell.MoviePilotMediaManagementEnabled ||
                     hadSmart != shell.MoviePilotSmartReorganizeEnabled)
                 {
                     Interlocked.Exchange(ref invalidated, 1);
@@ -168,7 +171,7 @@ internal static partial class ItemCommands
 
         // AniBT identification still belongs to the default management source, unlike independent searches.
         // Keep an open menu from advertising a now-inapplicable action; reopening recomputes the rows.
-        if (shell.MoviePilotEnabled && card.Scope is { IsAvailable: true } menuScope
+        if (shell.MoviePilotEnabled && shell.AniBtEnabled && card.Scope is { IsAvailable: true } menuScope
             && Momoka.AniBt.AniBtEligibility.Supports(card.Item)
             && ItemMenu.Supports(ItemCommand.AniBtScrape, menuScope.Connection.IsJellyfin, menuScope.Connection.IsFnNas, menuScope.Connection.IsPlex))
         {
@@ -201,7 +204,7 @@ internal static partial class ItemCommands
 
         // 季、集的 Genres 常留在所属剧集上，菜单打开后只补查这一份元数据。
         // 不把父级类型塞回 EmbyItem，且关菜单、换账号或断线后不再插入迟到的行。
-        if (shell.MoviePilotEnabled && card.Scope is { IsAvailable: true } scope &&
+        if (shell.MoviePilotEnabled && shell.AniBtEnabled && card.Scope is { IsAvailable: true } scope &&
             Momoka.AniBt.AniBtEligibility.Supports(card.Item) && !Momoka.AniBt.AniBtEligibility.HasGenre(card.Item))
         {
             var lifetime = new CancellationTokenSource();
@@ -214,12 +217,12 @@ internal static partial class ItemCommands
                     if (!CanContinue()) return;
                     var eligible = await scope.ExecuteAsync((client, token) =>
                         Momoka.AniBt.AniBtEligibility.ResolveAsync(client, original, token), lifetime.Token);
-                    if (!CanContinue() || !eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
+                    if (!CanContinue() || !eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled || !shell.AniBtEnabled) return;
                     var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
                     if (versions is not null)
                     {
                         var plan = ItemMenu.For(original, true, animeGenre: true, aniBtScrapeAvailable: scope.IsCurrent,
-                                permissions: shell.MenuPermissionsFor(scope))
+                                permissions: shell.MenuPermissionsFor(scope), aniBtEnabled: shell.AniBtEnabled)
                             .Single(row => row.Command == ItemCommand.MoviePilotVersions);
                         menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, InvokeCurrent);
                     }
@@ -265,7 +268,7 @@ internal static partial class ItemCommands
             plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true,
             moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
             moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
-            permissions: permissions))
+            permissions: permissions, aniBtEnabled: shell.AniBtEnabled))
         {
             if (row.Command is not { } command)
             {
@@ -330,6 +333,7 @@ internal static partial class ItemCommands
         if (card.Scope is not { IsAvailable: true } scope) return;
         if (!ItemMenu.Supports(command, scope.Connection.IsJellyfin, scope.Connection.IsFnNas, scope.Connection.IsPlex)) return;
         if ((ItemMenu.IsMoviePilot(command) || command is ItemCommand.AniBtScrape or ItemCommand.AniBtVersions) && !shell.MoviePilotEnabled) return;
+        if (command is (ItemCommand.AniBtScrape or ItemCommand.AniBtVersions) && !shell.AniBtEnabled) return;
         if (command is ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource or ItemCommand.MoviePilotDeleteDestination
             or ItemCommand.MoviePilotDeleteAll or ItemCommand.MoviePilotSmartReorganize && !shell.MoviePilotMediaManagementEnabled) return;
         if (command == ItemCommand.MoviePilotSmartReorganize && !shell.MoviePilotSmartReorganizeEnabled) return;

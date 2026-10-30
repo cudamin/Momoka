@@ -151,6 +151,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("设置分类动效与快速切换", SettingsEntranceAsync, 45);
             await CaseAsync("卡片焦点宿主与设置控件具体名称", CardFocusAndSettingNamesAsync, 45, section: ShellProbeSections.Settings);
             await CaseAsync("设置搜索、无标题分隔线与滚动条避让", SettingsSearchLayoutAsync, 60, section: ShellProbeSections.Settings);
+            await CaseAsync("设置里的 AniBT 开关随 MoviePilot 启用状态收放", SettingsMoviePilotAniBtAsync, 45, section: ShellProbeSections.Settings);
             await CaseAsync("全站输入框五主题中性焦点与窄窗", InputFocusControlsAsync, 90, section: ShellProbeSections.Search);
             await CaseAsync("字幕实时翻译的服务显隐、密钥及宽窄布局", SettingsTranslationAsync, 90, section: ShellProbeSections.Settings);
             await CaseAsync("快捷键搜索、改绑、空态与恢复（宽窗）", () => SettingsShortcutSearchAsync(1100), 60, section: ShellProbeSections.Shortcuts);

@@ -148,6 +148,19 @@ internal static class Program
             Assert.Equal(0, f.Actions.Scrapes);
             return Task.CompletedTask;
         });
+        Case("设置关闭 AniBT 后识别和版本来源都消失且直接命令被拒绝", () =>
+        {
+            using var f = new EntryFixture(_root);
+            f.Actions.SetAniBt(false);
+            var menu = f.Build();
+            Assert.False(f.HasScrape(menu));
+            Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions));
+            f.DirectScrape();
+            Assert.Equal(0, f.Actions.Scrapes);
+            f.Actions.SetAniBt(true);
+            Assert.True(f.HasScrape(f.Build()));
+            return Task.CompletedTask;
+        });
         Case("非当前来源直接旧命令拒绝", () =>
         {
             using var f = new EntryFixture(_root);

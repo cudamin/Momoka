@@ -733,6 +733,22 @@
                                 OnContent="开启" />
 
                             <!--
+                              AniBT 入口显隐（2026-10-30 用户令）。它和 MoviePilot 共用一张卡：AniBT 识别、搜索和
+                              下载都经过 MoviePilot，MoviePilot 关着时这一项本来也不会生效，所以整段跟着上面的开关收起，
+                              但关闭它只收入口，不删除已保存的连接或整理防重状态。
+                            -->
+                            <StackPanel Spacing="2" Visibility="{x:Bind AniBtVisibility, Mode=OneWay}">
+                                <ToggleSwitch
+                                    AutomationProperties.Name="显示 AniBT 入口"
+                                    Header="AniBT 功能"
+                                    IsOn="{x:Bind AniBtEnabled, Mode=TwoWay}"
+                                    OffContent="隐藏"
+                                    OnContent="显示" />
+                                <TextBlock Style="{StaticResource EgSettingNote}" TextWrapping="Wrap"
+                                    Text="关闭后隐藏 AniBT 识别、AniBT 搜索和版本来源入口；MoviePilot 其他功能不受影响。" />
+                            </StackPanel>
+
+                            <!--
                               服务地址拆成「协议 + 地址 + API 端口」三格（用户令）：协议是个 http/https 的下拉（SelectedIndex
                               对着 SchemeIndex，0=http、1=https），地址只填主机，端口是 MoviePilot 的 API 端口（默认 3001，
                               不是网页界面那个），留空就用默认。三格合回一条存进设置里那一个字符串，拆/合都在 Core 的

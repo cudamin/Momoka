@@ -290,6 +290,14 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             var tabs = Get<Segmented>(page, "SourceTabs");
             Require(tabs.Visibility == Visibility.Visible && tabs.Items.Count == 4, "连接后未显示 AniBT 搜索栏");
+            var aniBtTab = tabs.Items.OfType<SegmentedItem>().Single(item => item.Name == "AniBtSourceTab");
+            Require(aniBtTab.Visibility == Visibility.Visible, "默认设置下 AniBT 搜索来源被隐藏");
+            fixture.Settings.MoviePilot.AniBtEnabled = false;
+            await UntilAsync(() => aniBtTab.Visibility == Visibility.Collapsed);
+            Require(tabs.SelectedIndex == 0 && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Visible,
+                "关闭 AniBT 后搜索页仍停在 AniBT 面板");
+            fixture.Settings.MoviePilot.AniBtEnabled = true;
+            await UntilAsync(() => aniBtTab.Visibility == Visibility.Visible);
             tabs.SelectedIndex = 3;
             var panel = Get<AniBtSearchPanel>(page, "AniBtPanel");
             Field(panel.ViewModel, "_launcher", launcher);

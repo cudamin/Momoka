@@ -20,6 +20,7 @@ public sealed partial class ShellPage
         service.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
         service.HistoryCapabilitiesChanged += OnMoviePilotHistoryCapabilitiesChanged;
         Settings.MoviePilot.ConnectionChanged += OnMoviePilotConfigurationChanged;
+        Settings.MoviePilot.AniBtChanged += OnMoviePilotAniBtChanged;
         _moviePilotTimer.Tick += CheckMoviePilot;
         _moviePilotTimer.Start();
         CheckMoviePilot(null, null);
@@ -51,6 +52,12 @@ public sealed partial class ShellPage
         _moviePilotTimer.Interval = TimeSpan.FromMilliseconds(700);
         _moviePilotTimer.Start();
     }
+
+    private void OnMoviePilotAniBtChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (!Settings.MoviePilot.AniBtEnabled && _moviePilotDialog is AniBtScrapeDialog dialog) dialog.Hide();
+        MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
+    });
 
     private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
     {
@@ -94,6 +101,7 @@ public sealed partial class ShellPage
         _moviePilotTimer.Tick -= CheckMoviePilot;
         _moviePilotCheck?.Cancel();
         Settings.MoviePilot.ConnectionChanged -= OnMoviePilotConfigurationChanged;
+        Settings.MoviePilot.AniBtChanged -= OnMoviePilotAniBtChanged;
         if (_moviePilotService is { } service)
         {
             service.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;

@@ -25,7 +25,8 @@ internal static class SearchCompactMergeTests
             Assert.Contains("presentation == _searchPresentationVersion", source);
             Assert.Contains("SearchForm.RowSpacing = SourceTabs.Visibility == Visibility.Visible ? 8 : 0", source);
             // Hiding the selector must not silently reroute the next request to the media library.
-            Assert.Contains("SearchSource => ViewModel.MoviePilotTabsVisibility == Visibility.Visible", source);
+            Assert.Contains("if (ViewModel.MoviePilotTabsVisibility != Visibility.Visible) return 0;", source);
+            Assert.Contains("index == 3 && AniBtSourceTab.Visibility != Visibility.Visible ? 0 : index", source);
             Assert.DoesNotContain("SearchSource => SourceTabs.Visibility", source);
             Assert.Contains("host.ColumnDefinitions.Insert(column, new ColumnDefinition { Width = GridLength.Auto })", source);
             Assert.Contains("Grid.SetColumn(SearchSitePicker, column)", source);
@@ -121,7 +122,7 @@ internal static class SearchCompactMergeTests
             var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
             Assert.Contains("SearchEntry.Width = formWidth", source);
             Assert.Contains("SourceTabs.Width = Math.Min(480, formWidth)", source);
-            Assert.Contains("(SourceTabs.Width - 14) / Math.Max(1, SourceTabs.Items.Count)", source);
+            Assert.Contains("(SourceTabs.Width - 14) / Math.Max(1, visibleTabs.Length)", source);
             Assert.Contains("horizontalPadding = formWidth < 520 ? 4 : 8", source);
             Assert.Contains("item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2)", source);
             Assert.Contains("item.MaxWidth - horizontalPadding * 2", source);

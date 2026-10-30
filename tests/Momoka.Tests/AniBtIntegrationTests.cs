@@ -13,7 +13,7 @@ namespace Momoka.Tests;
 internal static class AniBtIntegrationTests
 {
     private const string Target = "/library/Anime S01E01.mkv";
-    private const string Sources = """[{"name":"Bangumi","media_source":"bangumi","media_types":["电影","电视剧"]}]""";
+    private const string Sources = """[{"name":"Bangumi","media_source":"bangumi","media_types":["电影","电视剧"]},{"name":"TheMovieDb","media_source":"themoviedb","media_types":["电影","电视剧"]}]""";
     private const string Media = """{"title":"匿名动画","media_source":"bangumi","media_id":"42","type":"电视剧"}""";
     private static readonly AniBtAnime Anime = new("ani_fixture", 42, "匿名动画", Year: 2026);
 
@@ -32,6 +32,11 @@ internal static class AniBtIntegrationTests
                 Assert.True(versions.Children!.Select(row => row.Label).SequenceEqual(new[] { "MoviePilot", "AniBT" }));
                 Assert.True(versions.Children!.Select(row => row.Command!.Value)
                     .SequenceEqual(new[] { ItemCommand.MoviePilotVersions, ItemCommand.AniBtVersions }));
+                var disabled = ItemMenu.For(item, true, aniBtEnabled: false);
+                Assert.False(disabled.Any(row => row.Command == ItemCommand.AniBtScrape));
+                var plainVersions = disabled.Single(row => row.Command == ItemCommand.MoviePilotVersions);
+                Assert.Equal("搜索其他版本", plainVersions.Label);
+                Assert.Null(plainVersions.Children);
                 Assert.False(ItemMenu.For(item).Any(row => row.Command == ItemCommand.AniBtScrape));
                 item.Genres.Clear();
                 Assert.Null(ItemMenu.For(item, true).Single(row => row.Command == ItemCommand.MoviePilotVersions).Children);
@@ -399,6 +404,72 @@ internal static class AniBtIntegrationTests
             }
             Assert.True(Json(calls[0].Body).GetProperty("preview").GetBoolean());
             Assert.False(Json(calls[1].Body).GetProperty("preview").GetBoolean());
+        });
+
+        Test("AniBT 同作品新一季：整理身份沿用主剧集 TMDB 编号，季集保留", () =>
+        {
+            const string oldPath = "/library/青之箱 第二季/Season 02/青之箱 第二季 S02E03.mkv";
+            const string mainTarget = "/library/青之箱 (2024)/Season 02/青之箱 S02E03.mkv";
+            const string mainReply = """
+                {"success":true,"data":{"target_storage":"local","target_path":"/library/青之箱 (2024)",
+                 "transfer_type":"softlink","scrape":true,"library_type_folder":false,"library_category_folder":false}}
+                """;
+            var anime = new AniBtAnime("ao-fixture", 548156, "青之箱 第二季", "アオのハコ Season 2", Year: 2026, EpisodeCount: 12);
+            using var transport = BaseTransport()
+                .Answer("media/source", Sources)
+                .Answer("history/transfer", HistoriesJson((7, oldPath)))
+                .Answer("transfer/manual/target-path", mainReply)
+                .Answer("storage/list", FileReply(oldPath))
+                .Sequence("transfer/manual?", (HttpStatusCode.OK, PreviewReply(oldPath, mainTarget)));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var row = new AniBtScrapeRow(oldPath, "青之箱 - 03.mkv",
+                new([anime], anime, "auto", "high", "fixture", 2), History(service, 7, oldPath));
+            // 库内主剧集是「青之箱」，这一集属于第二季；整理身份应是主剧集的 TMDB 207347，而不是 Bangumi 548156。
+            var plan = new AniBtScrapePlan([row], MoviePilotTransferRequest.TypeSeries,
+                service.CaptureAniBtConnection(), IdentifyItem(), 2, "3", "青之箱", "207347");
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport), plan, [anime], default).GetAwaiter().GetResult();
+            Assert.Equal("青之箱 S02E03", prepared.Rows.Single().Heading);
+            Assert.Contains("沿用主剧集", prepared.Rows.Single().Method);
+            Assert.Contains("自动刮削", prepared.Rows.Single().Method);
+            var preview = Json(transport.SentTo("transfer/manual?").Single().Body);
+            Assert.Equal("themoviedb", preview.GetProperty("media_source").GetString());
+            Assert.Equal("207347", preview.GetProperty("media_id").GetString());
+            Assert.Equal(2, preview.GetProperty("season").GetInt32());
+            Assert.Equal("3", preview.GetProperty("episode_detail").GetString());
+            Assert.True(preview.GetProperty("scrape").GetBoolean());
+            Assert.Equal(0, transport.SentTo("media/548156?").Count);
+            Assert.Equal(0, transport.SentTo("media/207347?").Count);
+        });
+
+        Test("AniBT 不同作品：不沿用主剧集，仍按所选 Bangumi 身份整理", () =>
+        {
+            const string oldPath = "/library/文化圈 (1990)/Season 01/文化圈 S01E52 1080p.mkv";
+            const string newPath = "/library/药屋少女的呢喃 (2023)/Season 01/药屋少女的呢喃 S01E52 1080p.mkv";
+            var anime = new AniBtAnime("apothecary-fixture", 420628, "药屋少女的呢喃", "薬屋のひとりごと", Year: 2023, EpisodeCount: 24);
+            using var transport = BaseTransport()
+                .Answer("media/source", Sources)
+                .Answer("media/237029?", """{"title":"文化圈","original_title":"文化圈","names":["文化圈"],"media_source":"themoviedb","media_id":"237029","type":"电视剧"}""")
+                .Answer("media/420628?", """{"title":"药屋少女的呢喃","media_source":"bangumi","media_id":"420628","type":"电视剧"}""")
+                .Answer("history/transfer", HistoriesJson((7, oldPath)))
+                .Answer("transfer/manual/target-path", TargetReply)
+                .Answer("storage/list", FileReply(oldPath))
+                .Sequence("transfer/manual?", (HttpStatusCode.OK, PreviewReply(oldPath, newPath)));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var row = new AniBtScrapeRow(oldPath, "Kusuriya no Hitorigoto - 52.mkv",
+                new([anime], anime, "manual", "medium", "low_evidence", 1), History(service, 7, oldPath));
+            var plan = new AniBtScrapePlan([row], MoviePilotTransferRequest.TypeSeries,
+                service.CaptureAniBtConnection(), IdentifyItem(), 1, "52", "文化圈", "237029");
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport), plan, [anime], default).GetAwaiter().GetResult();
+            Assert.Contains("Bangumi 420628", prepared.Rows.Single().Method);
+            var preview = Json(transport.SentTo("transfer/manual?").Single().Body);
+            Assert.Equal("bangumi", preview.GetProperty("media_source").GetString());
+            Assert.Equal("420628", preview.GetProperty("media_id").GetString());
+            Assert.Equal(1, transport.SentTo("media/237029?").Count);
+            Assert.Equal(1, transport.SentTo("media/420628?").Count);
         });
 
         Test("AniBT 空媒体详情：仅一次只读重查，不把空回话当错误身份", () =>

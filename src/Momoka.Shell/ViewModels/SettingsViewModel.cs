@@ -2306,12 +2306,14 @@ public sealed partial class SettingsViewModel : PageViewModel
             "MoviePilot",
             "接上你自己的 MoviePilot，之后就能在库里查缺集、订阅和搜资源。"
                 + "协议选 http 或 https，地址填 MoviePilot 的主机，端口填它的 API 端口（默认 3001），"
-                + "不是网页界面那个端口。",
+                + "不是网页界面那个端口。打开后还可以决定是否显示 AniBT 入口。",
             moviePilot.Enabled,
+            moviePilot.AniBtEnabled,
             moviePilot.Url,
             moviePilot.Username,
             moviePilot.HasSavedPassword,
             value => moviePilot.Enabled = value,
+            value => moviePilot.AniBtEnabled = value,
             value => moviePilot.Url = value,
             value => moviePilot.Username = value,
             value =>

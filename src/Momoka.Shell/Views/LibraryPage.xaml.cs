@@ -492,6 +492,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         _moviePilot = services.GetRequiredService<MoviePilotService>();
         _moviePilot.AvailabilityChanged += OnMoviePilotAvailabilityChanged;
+        _settings.Settings.MoviePilot.AniBtChanged += OnAniBtSettingChanged;
         ViewModel.Attach(
             request,
             _actions,
@@ -514,6 +515,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         // 每次进来都从「我的媒体库」开始：Emby 那半可见、MoviePilot 那半藏着。SelectedIndex 已是 0 时不触发
         // SelectionChanged，所以显式对一次账。
+        ApplyAniBtTab();
         SourceTabs.SelectedIndex = 0;
         ApplySource();
 
@@ -566,6 +568,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         _released = true;
         if (_moviePilot is { } moviePilot) moviePilot.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;
         _moviePilot = null;
+        if (_settings is { } settings) settings.Settings.MoviePilot.AniBtChanged -= OnAniBtSettingChanged;
         CancelTyping();
         CancelImeSubmit();
         _navigation++;
@@ -731,10 +734,12 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchForm.ColumnSpacing = 0;
         SearchForm.RowSpacing = SourceTabs.Visibility == Visibility.Visible ? 8 : 0;
         SourceTabs.Width = Math.Min(480, formWidth);
-        foreach (var item in SourceTabs.Items.OfType<CommunityToolkit.WinUI.Controls.SegmentedItem>())
+        var visibleTabs = SourceTabs.Items.OfType<CommunityToolkit.WinUI.Controls.SegmentedItem>()
+            .Where(item => item.Visibility == Visibility.Visible).ToArray();
+        foreach (var item in visibleTabs)
         {
-            // 4 DIP 容器内边距和三个 2 DIP 间隔；四颗胶囊始终在搜索框宽度内。
-            item.Width = item.MaxWidth = Math.Max(0, (SourceTabs.Width - 14) / Math.Max(1, SourceTabs.Items.Count));
+            // 4 DIP 容器内边距和可见胶囊之间的 2 DIP 间隔；AniBT 收起后三颗胶囊重新分宽度。
+            item.Width = item.MaxWidth = Math.Max(0, (SourceTabs.Width - 14) / Math.Max(1, visibleTabs.Length));
             var horizontalPadding = formWidth < 520 ? 4 : 8;
             item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2);
             if (item.Content is TextBlock label)
@@ -1320,7 +1325,16 @@ public sealed partial class LibraryPage : Page, IShellContent
     }
 
     // 来源栏的展开状态只是展示偏好，不能把已选的 MP / AniBT 查询变成媒体库查询。
-    private int SearchSource => ViewModel.MoviePilotTabsVisibility == Visibility.Visible ? Math.Max(0, SourceTabs.SelectedIndex) : 0;
+    private int SearchSource
+    {
+        get
+        {
+            if (ViewModel.MoviePilotTabsVisibility != Visibility.Visible) return 0;
+            var index = Math.Max(0, SourceTabs.SelectedIndex);
+            // AniBT 入口关闭时即使残留到第 4 个分段，也按「我的媒体库」处理，不能偷偷搜 AniBT。
+            return index == 3 && AniBtSourceTab.Visibility != Visibility.Visible ? 0 : index;
+        }
+    }
 
     private void CancelTyping()
     {
@@ -1328,7 +1342,12 @@ public sealed partial class LibraryPage : Page, IShellContent
         _typing = null;
     }
 
-    private void OnSourceChanged(object sender, SelectionChangedEventArgs e) => ApplySource();
+    private void OnSourceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_released && SourceTabs.SelectedIndex == 3 && AniBtSourceTab.Visibility != Visibility.Visible)
+            SourceTabs.SelectedIndex = 0;
+        ApplySource();
+    }
 
     /// <summary>
     /// 指针点了来源标签：把光标交回搜索框。点击把焦点留在标签上，而用户接下来要么打新词、要么按回车
@@ -1367,6 +1386,23 @@ public sealed partial class LibraryPage : Page, IShellContent
             ApplyHeaderLayout();
         }
     });
+
+    private void OnAniBtSettingChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
+    {
+        if (_released) return;
+        ApplyAniBtTab();
+        ApplySource();
+        ApplyHeaderLayout();
+    });
+
+    /// <summary>设置里的 AniBT 开关控制第 4 个搜索来源；关闭时若正停在那一页，回到媒体库。</summary>
+    private void ApplyAniBtTab()
+    {
+        if (_settings is null) return;
+        var enabled = _settings.Settings.MoviePilot.AniBtEnabled;
+        AniBtSourceTab.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        if (!enabled && SourceTabs.SelectedIndex == 3) SourceTabs.SelectedIndex = 0;
+    }
 
     /// <summary>
     /// 换来源只换面板，不替用户搜一次。旧行为是拿框里现有的词直接发一趟搜索，用户 2026-10-15 报的就是

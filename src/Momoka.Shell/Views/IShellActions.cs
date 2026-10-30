@@ -84,6 +84,9 @@ internal interface IShellActions
     /// </summary>
     bool MoviePilotEnabled { get; }
 
+    /// <summary>设置里是否显示 AniBT 入口。默认 true，测试替身不点名这一项时保持原有菜单。</summary>
+    bool AniBtEnabled => true;
+
     bool MoviePilotMediaManagementEnabled { get; }
     bool MoviePilotSmartReorganizeEnabled { get; }
     event EventHandler? MoviePilotAvailabilityChanged;

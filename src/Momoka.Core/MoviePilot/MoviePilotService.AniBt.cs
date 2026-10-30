@@ -8,6 +8,13 @@ internal sealed record MoviePilotAniBtConnection(string Stamp, long Generation);
 
 internal sealed record MoviePilotAniBtTransfer(MoviePilotTransferRequest Request, JsonElement File);
 
+/// <summary>MoviePilot 媒体详情里 AniBT 整理要用的那几项；不把原始回话交给界面。</summary>
+internal sealed record MoviePilotAniBtMediaInfo(string MediaSource, string MediaId, string Title, string OriginalTitle,
+    IReadOnlyList<string> Names, string Type);
+
+/// <summary>整理时交给 MoviePilot 的媒体身份；同一部主剧集用库内已有的 TMDB 编号，否则用 AniBT 的 Bangumi 编号。</summary>
+internal sealed record MoviePilotAniBtTarget(string MediaSource, string MediaId, string Title);
+
 public sealed partial class MoviePilotService
 {
     internal MoviePilotAniBtConnection CaptureAniBtConnection()
@@ -38,7 +45,8 @@ public sealed partial class MoviePilotService
             ? MoviePilotTransferRequest.TypeMovie : MoviePilotTransferRequest.TypeSeries;
         if (anime.BgmId > 0 && sources.Any(source => source.Id == "bangumi" && source.IsVideo))
         {
-            media = await AniBtMediaAsync(anime.BgmId, type, connection, cancellationToken, requireType: false).ConfigureAwait(false);
+            media = await MediaAsync("bangumi", anime.BgmId.ToString(CultureInfo.InvariantCulture), type, connection,
+                cancellationToken, requireType: false).ConfigureAwait(false);
             type = MoviePilotTransfer.Text(media, "type");
         }
         var result = new List<MoviePilotResource>(releases.Count);
@@ -81,22 +89,25 @@ public sealed partial class MoviePilotService
         return result;
     }
 
-    private async Task<JsonElement> AniBtMediaAsync(long bangumiId, string expectedType,
+    private async Task<JsonElement> MediaAsync(string mediaSource, string mediaId, string expectedType,
         MoviePilotAniBtConnection connection, CancellationToken cancellationToken, bool requireType = true)
     {
         CheckAniBtConnection(connection, cancellationToken);
-        if (bangumiId <= 0) throw new MoviePilotException("AniBT 没有提供有效的 Bangumi 编号");
+        if (mediaSource is not ("bangumi" or "themoviedb"))
+            throw new MoviePilotException("AniBT 没有提供可用的媒体来源");
+        if (!long.TryParse(mediaId, NumberStyles.None, CultureInfo.InvariantCulture, out var number) || number <= 0)
+            throw new MoviePilotException("AniBT 没有提供有效的媒体编号");
         var identity = RequireResultConnection(connection.Stamp);
-        var id = bangumiId.ToString(CultureInfo.InvariantCulture);
-        var path = $"media/{id}?media_source=bangumi&type_name={Uri.EscapeDataString(expectedType)}";
+        var id = number.ToString(CultureInfo.InvariantCulture);
+        var path = $"media/{id}?media_source={Uri.EscapeDataString(mediaSource)}&type_name={Uri.EscapeDataString(expectedType)}";
         var media = await ReadAsync().ConfigureAwait(false);
         // 来源目录可用不等于一次详情查询必有结果。仅对完全空的只读回话重读一次，
         // 不重试身份/类型不匹配，更不重试整理写入。
         if (EmptyMedia(media)) media = await ReadAsync().ConfigureAwait(false);
         if (EmptyMedia(media))
-            throw new MoviePilotException("MoviePilot 暂时没有返回此 Bangumi 作品的媒体信息，请重新读取整理目标");
+            throw new MoviePilotException("MoviePilot 暂时没有返回此作品的媒体信息，请重新读取整理目标");
         if (media.ValueKind != JsonValueKind.Object ||
-            MoviePilotTransfer.Text(media, "media_source") != "bangumi" ||
+            MoviePilotTransfer.Text(media, "media_source") != mediaSource ||
             MoviePilotTransferHistory.Scalar(media, "media_id") != id ||
             MoviePilotTransfer.Text(media, "type") is not (MoviePilotTransferRequest.TypeMovie or MoviePilotTransferRequest.TypeSeries) ||
             requireType && MoviePilotTransfer.Text(media, "type") != expectedType ||
@@ -111,6 +122,20 @@ public sealed partial class MoviePilotService
             CheckAniBtConnection(connection, cancellationToken);
             return result;
         }
+    }
+
+    /// <summary>读一条媒体详情并按白名单投影；AniBT 用它判断候选与库内主剧集是不是同一部作品。</summary>
+    internal async Task<MoviePilotAniBtMediaInfo> ReadAniBtMediaAsync(string mediaSource, string mediaId,
+        string expectedType, MoviePilotAniBtConnection connection, CancellationToken cancellationToken)
+    {
+        var media = await MediaAsync(mediaSource, mediaId, expectedType, connection, cancellationToken).ConfigureAwait(false);
+        var names = new List<string>();
+        if (media.TryGetProperty("names", out var values) && values.ValueKind == JsonValueKind.Array)
+            foreach (var value in values.EnumerateArray())
+                if (value.ValueKind == JsonValueKind.String && value.GetString() is { Length: > 0 } name)
+                    names.Add(name);
+        return new(mediaSource, mediaId, MoviePilotTransfer.Text(media, "title"),
+            MoviePilotTransfer.Text(media, "original_title"), names, MoviePilotTransfer.Text(media, "type"));
     }
 
     private static bool EmptyMedia(JsonElement media) => media.ValueKind == JsonValueKind.Object
@@ -128,15 +153,25 @@ public sealed partial class MoviePilotService
     /// </para>
     /// </summary>
     internal async Task<MoviePilotAniBtTransfer> PrepareAniBtTransferAsync(string targetPath, AniBtAnime anime,
-        string expectedType, MoviePilotTransferHistory history, int? season, string episode,
+        MoviePilotAniBtTarget target, string expectedType, MoviePilotTransferHistory history, int? season, string episode,
         MoviePilotAniBtConnection connection, CancellationToken cancellationToken)
     {
         CheckAniBtConnection(connection, cancellationToken);
+        if (target.MediaSource is not ("bangumi" or "themoviedb") || target.MediaId.Length == 0)
+            throw new MoviePilotOperationBlockedException("AniBT 没有给出可用的整理身份，请重新识别");
         var sources = await MediaSourcesAsync(cancellationToken).ConfigureAwait(false);
         CheckAniBtConnection(connection, cancellationToken);
-        if (!sources.Any(source => source.Id == "bangumi" && source.IsVideo))
-            throw new MoviePilotOperationBlockedException("此 MoviePilot 没有启用 Bangumi 媒体来源，暂时不能按 AniBT 结果重新整理");
-        await AniBtMediaAsync(anime.BgmId, expectedType, connection, cancellationToken).ConfigureAwait(false);
+        if (!sources.Any(source => source.Id == target.MediaSource && source.IsVideo))
+            throw new MoviePilotOperationBlockedException(target.MediaSource == "bangumi"
+                ? "此 MoviePilot 没有启用 Bangumi 媒体来源，暂时不能按 AniBT 结果重新整理"
+                : "此 MoviePilot 没有启用 TheMovieDb 媒体来源，暂时不能沿用主剧集身份整理");
+        if (target.MediaSource == "bangumi")
+        {
+            if (target.MediaId != anime.BgmId.ToString(CultureInfo.InvariantCulture))
+                throw new MoviePilotOperationBlockedException("所选媒体不属于此文件的 AniBT 候选结果，请重新识别");
+            await MediaAsync("bangumi", target.MediaId, expectedType, connection, cancellationToken).ConfigureAwait(false);
+        }
+        // 主剧集的 TMDB 身份由 MoviePilot 预览最终核对；这里不再多发一次媒体详情，识别本身仍用 Bangumi 候选。
         var transferPath = history.TransferPath;
         if (transferPath.Length == 0)
             throw new MoviePilotOperationBlockedException($"原整理记录 #{history.Id} 没有可用的文件路径，请先在 MoviePilot 核对");
@@ -156,8 +191,8 @@ public sealed partial class MoviePilotService
             TargetPath = directory.Path,
             TransferType = directory.TransferType ?? "",
             Type = expectedType,
-            MediaSource = "bangumi",
-            MediaId = anime.BgmId.ToString(CultureInfo.InvariantCulture),
+            MediaSource = target.MediaSource,
+            MediaId = target.MediaId,
             Season = season?.ToString(CultureInfo.InvariantCulture) ?? "",
             Episode = episode,
             TypeFolder = directory.TypeFolder,
