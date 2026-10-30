@@ -118,10 +118,16 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             Require(ReferenceEquals(FocusManager.GetFocusedElement(page.XamlRoot), capture),
                 "点快捷键抓键框时设置页把焦点交给了卡片滚动区");
-            // 空白分支只核对判据：真实指针下的落焦由设置页现有的失焦恢复用例覆盖，
-            // 这里用 Pointer 焦点态模拟反而可能受当前指针位置影响。
-            Require(!SettingsPage.HandlesPointerFocus(Get<StackPanel>(page, "SettingsCardsContent")),
-                "点空白处仍应交给卡片滚动区");
+            // 退出编辑（点空白处）应当落在滚动区本身：ScrollViewer 默认 IsTabStop=false，直接 Focus 会把焦点
+            // 转给第一个子控件 —— 在快捷键卡上正好是搜索框，用户看到的就是「搜索框被自动触发」。
+            var cards = Get<StackPanel>(page, "SettingsCardsContent");
+            var scroll = Get<ScrollViewer>(page, "SettingsScroll");
+            Require(!SettingsPage.HandlesPointerFocus(cards), "点空白处仍应交给卡片滚动区");
+            Require(capture.Focus(FocusState.Programmatic), "快捷键抓键框不能取得焦点");
+            page.OnSettingsPointerPressed(cards);
+            await LayoutAsync(page);
+            Require(ReferenceEquals(FocusManager.GetFocusedElement(page.XamlRoot), scroll),
+                "点空白处把焦点交给了快捷键搜索框");
             originalRows["toggle-pause"].OnCommitted(capture, "Ctrl+F8");
             await LayoutAsync(page);
             Require(!Shown().Any(), "改绑后旧键仍留在搜索结果");

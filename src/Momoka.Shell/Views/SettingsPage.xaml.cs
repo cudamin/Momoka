@@ -132,7 +132,21 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// <summary>按下落点决定要不要把焦点交给滚动区；探针用真实控件直接走这一支。</summary>
     internal void OnSettingsPointerPressed(DependencyObject? source)
     {
-        if (!HandlesPointerFocus(source)) SettingsScroll.Focus(FocusState.Pointer);
+        if (!HandlesPointerFocus(source)) FocusSettingsCards();
+    }
+
+    /// <summary>
+    /// 把焦点落到卡片滚动区本身。<c>ScrollViewer</c> 默认 <c>IsTabStop=false</c>，直接 <c>Focus</c> 会把焦点
+    /// 转给第一个可聚焦子控件 —— 在快捷键卡上正好是顶部的搜索框（用户 2026-10-30：「退出编辑快捷键后会自动
+    /// 触发上方的搜索框」）。临时打开 tab stop 让滚动区自己接住焦点，随后还原，避免它长期占用 Tab 顺序；
+    /// 实测还原后焦点仍留在滚动区，不会丢回子控件。
+    /// </summary>
+    private void FocusSettingsCards()
+    {
+        var tabStop = SettingsScroll.IsTabStop;
+        SettingsScroll.IsTabStop = true;
+        try { SettingsScroll.Focus(FocusState.Pointer); }
+        finally { SettingsScroll.IsTabStop = tabStop; }
     }
 
     /// <summary>

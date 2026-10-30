@@ -142,8 +142,15 @@ internal static class InputControlThemeTests
             Assert.Equal("OnSettingsPointerPressed", (string?)page.Root!.Attribute("PointerPressed"));
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml.cs"));
             Assert.Contains("OnSettingsPointerPressed(e.OriginalSource as DependencyObject)", code);
-            Assert.Contains("if (!HandlesPointerFocus(source))", code);
-            Assert.Contains("SettingsScroll.Focus(FocusState.Pointer)", code);
+            Assert.Contains("if (!HandlesPointerFocus(source)) FocusSettingsCards();", code);
+            var focusStart = code.IndexOf("private void FocusSettingsCards", StringComparison.Ordinal);
+            Assert.True(focusStart >= 0, "缺少卡片滚动区落焦");
+            var focusEnd = code.IndexOf("\n    }", focusStart, StringComparison.Ordinal);
+            Assert.True(focusEnd > focusStart, "无法读出卡片滚动区落焦的边界");
+            var focus = code[focusStart..focusEnd];
+            Assert.Contains("SettingsScroll.IsTabStop = true", focus);
+            Assert.Contains("SettingsScroll.Focus(FocusState.Pointer)", focus);
+            Assert.Contains("SettingsScroll.IsTabStop = tabStop", focus);
             var start = code.IndexOf("internal static bool HandlesPointerFocus", StringComparison.Ordinal);
             Assert.True(start >= 0, "缺少按下落点判断");
             var end = code.IndexOf("\n    }", start, StringComparison.Ordinal);
