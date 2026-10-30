@@ -9297,3 +9297,5 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 未覆盖：真实 MoviePilot 服务器、真实播放；本轮未推 origin、未改版本；分支 `qoder/临时` 尚未合入 master（master 落后本分支三个提交），合并与主树重验待用户确认。
 
 最终整合方案首次失败：AniBtSourceContractTests源链全部Core，但其替代SettingsStore缺新延迟保存API。父给此IO端点补5个严格RejectIo签名，并补零Save/5拒绝回归，未排除真实queue源码或模拟成功；原业务source测试继续。完整方案初CS1061报告保留，不跑旧输出冒充。
+
+最终主测试3340/3340通过（0失败0跳过）后专项首轮发现三类明确问题并保留red报告：R012旧fixture取消后DeliverAsync重复Get同键新建未放开HTTP（交图片代理仅改夹具）、natural continuation测试未等后继真实排队而把lease排前（已添加Pinned.NET m_asyncHead前置且27/27）、4个独立项目未被sln编译却用no-build（分别显式当前build，24/46/15/72全过）。完整格式发现25份C#空白漂移，仅格式字符调整逐文件无非空白改动；不改基线或缩短超时。最终代码仍须重编/适用测试。
