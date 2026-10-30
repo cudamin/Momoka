@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 
 namespace Momoka.Shell;
 
@@ -109,6 +110,18 @@ internal sealed partial class ShellNavigationProbe
             await QueryAsync("ctrl + f9");
             Require(Shown().Select(row => row.Id).SequenceEqual(new[] { "toggle-pause" }), "没有按当前自定义组合键过滤");
             var capture = Descendants(page).OfType<ShortcutCaptureBox>().Single(box => AutomationProperties.GetName(box) == "播放 / 暂停");
+            // 点方框要由它自己接焦点：设置页的空白处处理器若把它当成空白，会立刻夺走焦点并退出抓键态。
+            var captureLabel = Get<TextBlock>(capture, "ComboLabel");
+            Require(SettingsPage.HandlesPointerFocus(captureLabel), "点快捷键抓键框仍会被设置页抢走焦点");
+            Require(capture.Focus(FocusState.Programmatic), "快捷键抓键框不能取得焦点");
+            page.OnSettingsPointerPressed(captureLabel);
+            await LayoutAsync(page);
+            Require(ReferenceEquals(FocusManager.GetFocusedElement(page.XamlRoot), capture),
+                "点快捷键抓键框时设置页把焦点交给了卡片滚动区");
+            // 空白分支只核对判据：真实指针下的落焦由设置页现有的失焦恢复用例覆盖，
+            // 这里用 Pointer 焦点态模拟反而可能受当前指针位置影响。
+            Require(!SettingsPage.HandlesPointerFocus(Get<StackPanel>(page, "SettingsCardsContent")),
+                "点空白处仍应交给卡片滚动区");
             originalRows["toggle-pause"].OnCommitted(capture, "Ctrl+F8");
             await LayoutAsync(page);
             Require(!Shown().Any(), "改绑后旧键仍留在搜索结果");

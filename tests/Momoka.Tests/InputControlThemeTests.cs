@@ -141,10 +141,18 @@ internal static class InputControlThemeTests
             var page = Read("src/Momoka.Shell/Views/SettingsPage.xaml");
             Assert.Equal("OnSettingsPointerPressed", (string?)page.Root!.Attribute("PointerPressed"));
             var code = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "Views", "SettingsPage.xaml.cs"));
+            Assert.Contains("OnSettingsPointerPressed(e.OriginalSource as DependencyObject)", code);
+            Assert.Contains("if (!HandlesPointerFocus(source))", code);
             Assert.Contains("SettingsScroll.Focus(FocusState.Pointer)", code);
+            var start = code.IndexOf("internal static bool HandlesPointerFocus", StringComparison.Ordinal);
+            Assert.True(start >= 0, "缺少按下落点判断");
+            var end = code.IndexOf("\n    }", start, StringComparison.Ordinal);
+            Assert.True(end > start, "无法读出按下落点判断的边界");
+            var guard = code[start..end];
             foreach (var control in new[] { "TextBox", "PasswordBox", "NumberBox", "ComboBox", "AutoSuggestBox",
-                "ButtonBase", "ToggleSwitch", "Slider", "ListView", "ListViewItem", "ScrollBar" })
-                Assert.Contains(control, code);
+                "ButtonBase", "ToggleSwitch", "Slider", "ListView", "ListViewItem", "ScrollBar",
+                "ShortcutCaptureBox" })
+                Assert.Contains(control, guard);
         });
         Test("输入主题：设置卡片改用亚克力，深色 tint 与浅色 tint 各按字典", () =>
         {

@@ -122,23 +122,38 @@ public sealed partial class SettingsPage : Page, IShellContent
     /// <para>
     /// 落点用卡片这一列的滚动区：它可见、可聚焦，又不画焦点框；试过零尺寸的透明按钮，焦点会在
     /// 下一次布局时被丢掉，输入框又把焦点拿回去。这一下挂在 Page 上，控件自己吃掉的按下本来就不会
-    /// 上来；下面那张名单是给「不标记 handled、但按下就该由它接焦点」的控件留的，免得把它们刚拿到的
-    /// 焦点又抢走。
+    /// 上来；<see cref="HandlesPointerFocus"/> 那张名单是给「不标记 handled、但按下就该由它接焦点」的
+    /// 控件留的，免得把它们刚拿到的焦点又抢走。
     /// </para>
     /// </summary>
-    private void OnSettingsPointerPressed(object sender, PointerRoutedEventArgs e)
+    private void OnSettingsPointerPressed(object sender, PointerRoutedEventArgs e) =>
+        OnSettingsPointerPressed(e.OriginalSource as DependencyObject);
+
+    /// <summary>按下落点决定要不要把焦点交给滚动区；探针用真实控件直接走这一支。</summary>
+    internal void OnSettingsPointerPressed(DependencyObject? source)
     {
-        for (var node = e.OriginalSource as DependencyObject; node is not null; node = VisualTreeHelper.GetParent(node))
+        if (!HandlesPointerFocus(source)) SettingsScroll.Focus(FocusState.Pointer);
+    }
+
+    /// <summary>
+    /// 按下的落点是不是自己接焦点的控件。名单里的标准控件按下时由框架给焦点；<see cref="ShortcutCaptureBox"/>
+    /// 则在按下那一刻进入抓键态并主动取焦点 —— 页面再补一下就会立刻把它的焦点拿走、退出抓键态，用户看到的
+    /// 就是「点方框没反应，按什么键都改不了」（2026-10-30）。
+    /// </summary>
+    internal static bool HandlesPointerFocus(DependencyObject? source)
+    {
+        for (var node = source; node is not null; node = VisualTreeHelper.GetParent(node))
         {
             switch (node)
             {
                 case TextBox or PasswordBox or NumberBox or ComboBox or AutoSuggestBox
-                    or ButtonBase or ToggleSwitch or Slider or ListView or ListViewItem or ScrollBar:
-                    return;
+                    or ButtonBase or ToggleSwitch or Slider or ListView or ListViewItem or ScrollBar
+                    or ShortcutCaptureBox:
+                    return true;
             }
         }
 
-        SettingsScroll.Focus(FocusState.Pointer);
+        return false;
     }
 
     private void OnSettingsSearchClick(object sender, RoutedEventArgs args) => SubmitSettingsSearch(SettingsSearchBox, null);
