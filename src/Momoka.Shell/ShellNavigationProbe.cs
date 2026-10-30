@@ -127,6 +127,7 @@ internal sealed partial class ShellNavigationProbe
             // （用户 2026-10-16）。这一条量的是展开态的宽度与弹层右沿。
             await CaseAsync("文件选项下拉展开的位置与宽度", PickerDropDownAsync);
             await CaseAsync("主页标题点击范围与封面悬停态", HomeHeaderAsync, 60);
+            await CaseAsync("多媒体库避让轮播读数与进度条", HomeBannerLibrariesAsync, 60);
             await CaseAsync("隐藏首页行不请求", HiddenHomeAsync);
             await CaseAsync("通知空态属性通知", NotificationEmptyAsync);
             await CaseAsync("离开通知页不弹旧编辑器", NotificationCancelAsync);

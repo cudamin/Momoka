@@ -567,6 +567,9 @@ public sealed partial class HomePage : Page, IShellContent
         // （见 HostWindow.PlayerLayer）。
         if (_window?.PlayerLayer == true) return;
 
+        // 先给轮播读数留出横向空间，再量翻档的起点，避免多库横排盖到右下角。
+        PlaceLibraryOverlay();
+
         // 判定吃的是排完的树：带高、货架顶都要此刻的坐标（同 FoldRead 的两拍）。
         UpdateLayout();
 
@@ -713,6 +716,15 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private void OnPlayerLayerEnded() => ScheduleFold();
 
+    /// <summary>媒体库横向视口停在轮播读数左侧；读数收起时恢复原来的右边距。</summary>
+    private void PlaceLibraryOverlay()
+    {
+        var margin = LibraryOverlay.Margin;
+        var right = Banner.LibraryOverlayRightInset;
+        if (Math.Abs(margin.Right - right) > 0.5)
+            LibraryOverlay.Margin = new Thickness(margin.Left, margin.Top, right, margin.Bottom);
+    }
+
     /// <summary>
     /// 按视图模型此刻的矮窗档状态拨这一页的屏上开关：宿主、浅墨、轮播那头的让位；翻档的那一趟还要把三样东西的
     /// 位移补一趟（见 <see cref="HomeFoldMotion"/>）。
@@ -723,6 +735,8 @@ public sealed partial class HomePage : Page, IShellContent
     /// </summary>
     private void ApplyLibraryChrome()
     {
+        PlaceLibraryOverlay();
+
         var on = ViewModel.LibraryOnBanner && ViewModel.LibraryShelf is not null;
         var shelf = ViewModel.LibraryShelf;
 

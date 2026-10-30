@@ -146,13 +146,23 @@ public sealed partial class HomeBanner : UserControl
 
     /// <summary>
     /// 右下的张数读数：多张、带够宽。**矮窗档照常显示**（2026-09-13「媒体库压在轮播图上的时候不用隐藏图二
-    /// 轮播图右下角的那个」）—— 它在右下角，压上来的那一排在左下角，两边不打架；以前它跟着底边那排分页横条
+    /// 轮播图右下角的那个」）。页面按 <see cref="LibraryOverlayRightInset"/> 限制左下媒体库的视口；以前它跟着底边那排分页横条
     /// 一起收起，那天他点了名要它留下来。（倒计时条跟着它一起，见标记里 SlideStatus 那一段。）
     /// </summary>
     private void SyncSlideStatus() =>
         SlideStatus.Visibility = _slides.Count > 1 && ActualWidth >= 800
             ? Visibility.Visible
             : Visibility.Collapsed;
+
+    /// <summary>
+    /// 左下媒体库需要留出的右边距：读数和进度条的宽、现有右边距，再加一格间隔。
+    /// 首次排版时读数还没有 ActualWidth，进度底条的声明宽度保证那一拍也不会被多库盖住。
+    /// </summary>
+    internal double LibraryOverlayRightInset => SlideStatus.Visibility == Visibility.Visible
+        ? SlideStatus.Margin.Right
+            + Math.Max(SlideStatus.ActualWidth, SlideStatus.Children.OfType<Border>().Single().Width)
+            + (double)Application.Current.Resources["EgSpaceXL"]
+        : 36;
 
     /// <summary>
     /// 简介收不收的那条高度线。矮窗档里字块实分到的高是带高减去压上来的那一排 —— 还按带高整根量，

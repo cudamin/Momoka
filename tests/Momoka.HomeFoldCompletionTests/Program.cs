@@ -210,6 +210,22 @@ internal static class Program
 
     private static void RegisterPage()
     {
+        Case("page/library-viewport-reserves-and-restores-carousel-status-room", () =>
+        {
+            var scene = new Scene(initialOn: true);
+            scene.Page.LibraryOverlay.Margin = new Thickness(36, 0, 36, 4);
+            scene.Page.Banner.LibraryOverlayRightInset = 244;
+            scene.Page.Apply();
+            Equal(new Thickness(36, 0, 244, 4), scene.Page.LibraryOverlay.Margin,
+                "status room only changes the overlay's right margin");
+            scene.Page.Apply();
+            scene.AssertOverlayOnly();
+            Check(scene.Page.MainMotion is null, "same placement does not start another fold");
+            scene.Page.Banner.LibraryOverlayRightInset = 36;
+            scene.Page.Apply();
+            Equal(new Thickness(36, 0, 36, 4), scene.Page.LibraryOverlay.Margin,
+                "hidden status restores the original viewport width");
+        });
         Case("page/default-static-layout-has-only-flow-shelf", () =>
         {
             var scene = new Scene();

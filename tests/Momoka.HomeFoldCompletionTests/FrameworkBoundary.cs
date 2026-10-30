@@ -55,6 +55,7 @@ namespace Microsoft.UI.Xaml
 {
     public enum Visibility { Visible, Collapsed }
     public readonly record struct Duration(TimeSpan TimeSpan);
+    public readonly record struct Thickness(double Left, double Top, double Right, double Bottom);
     public class DependencyObject
     {
         public List<DependencyObject> TestChildren { get; } = [];
@@ -75,6 +76,7 @@ namespace Microsoft.UI.Xaml
     }
     public class FrameworkElement : UIElement
     {
+        public Thickness Margin { get; set; }
         public double ActualWidth { get; set; }
         public double ActualHeight { get; set; }
         public double Opacity { get; set; } = 1;

@@ -40,6 +40,7 @@ namespace Momoka.Shell.Views
     internal sealed class TestBanner : FrameworkElement
     {
         internal FrameworkElement InfoBlock { get; } = new() { RenderTransform = new TranslateTransform(), TestTop = 100 };
+        internal double LibraryOverlayRightInset { get; set; } = 36;
         internal bool OverlayOn { get; private set; }
         internal double OverlayHeight { get; private set; }
         internal void SetLibraryOverlay(bool on, double height)
