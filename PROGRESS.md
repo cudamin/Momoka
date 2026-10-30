@@ -155,6 +155,14 @@
 - 当前Release Shell/Core及独立套件0警告0错误；定向70/70（31本题/源码关联+39既有诊断专项，Core重叠不叠加），失败0跳过0。抽取缺方法/改query-source guard两负例实际拒绝且合法生成源不变；此前重排比较数和Remove筛选重入重复行用真实回归抓到修复，未放宽阈值。证据在本树work/perf-list-diagnostics/；入口/命令/计数与父UI字段见tests/Momoka.PageContractTests/PerfListDiagnostics/README.md。未跑父主套件/full selfcheck/真UI/最终发布；父代理串行收尾，临时树未交付用户。
 
 
+
+## R012 ChangeBoundary：适配需求所有共享下载夹具（2026-10-30，待父挑拣）
+
+- 在原 `C:/Users/89400/.codex/worktrees/perf-images/Momoka`、`codex/perf-images`、图片产品提交 `2b3fea8f3e1e6ecbb441e49d235792c33f68b8c7` 上，只改 `tests/Momoka.Tests/CardImageResizeTests.Boundaries.cs`／`CardImageResizeTests.cs` 与本节；已验证生产图片六文件逐份 diff 保持未变，未写父/主树、既有入口/csproj/sln或其它模块。
+- 父报告原PageContract 11/107 R012超时：DeliverAsync在取消后用None重问已撤销的旧键，变成无人释放的新HTTP。夹具现在直接await原CardImageRequest.Response并断言交付不新增请求，不把“观察迟到”变成新需求。仅四个共享/成功迟到用例显式加入独立有效sentinel，先核实2需求后再取消卡片等待，证明剩余需求保活而旧卡片结果仍不回填/污染decoded cache；其他夹具仍真实执行zero-demand取消，未强制legacy scheduler。
+- 原A→B→A共享期待增加“尚有独立有效需求”的必要前提；新增zero-demand A→B→A断言旧A/B取消、自动新A共3请求、旧finally不清新token、Deliver不重开GET及旧结果不写盘/decoded cache，新A按当前宽度正常回填。离页旧缓存期待由completion-owned标题改为zero-demand取消，不留旧字节/decoded cache。原新宽度自动取、迟到防回填、同阶梯新逻辑宽度解码等全部核心断言保留；12秒上下文/3秒等待期限未放宽。
+- 当前Release Core/PageContractTests编译0警告0错误；原107项全部通过，新增1项后最终108/108（R012 21/21），失败0/跳过0，最终run退出0、807ms。本树PageContract没有card-image-resize-fixture定向入口，执行其原完整独立页面契约入口，不运行full Core/Shell/UI/真库。首次适配107通过和最终108通过日志均保留；未重跑父已有超时来重复耗时。
+- 证据 `C:/Users/89400/.codex/worktrees/perf-images/Momoka/work/perf-images/r012-build-final.log`、`r012-page-contract-final.log`（BUILD/TEST_EXIT_CODE=0），先前107通过为`r012-page-contract-run.log`。两夹具LF/diff、生产未变检查通过。父挑拣本夹具提交并重跑其最终PageContract；本树不merge/push/发布，不处理父continuation/未编译套件/format，不替代真实WinUI或整合树验收。
 ## PERF-04 / PERF-09 图片预算与遮罩解码（2026-10-30，待父整合）
 
 - 独立树 `C:/Users/89400/.codex/worktrees/perf-images/Momoka`，分支 `codex/perf-images`，起点 `e3473f10a072058eb11363f89c11e376dbfa6ed9`。只改 CoverBackdropImage、Events 的封面路径、EmbyImageStore、SharedWork，窄新类 CoverBackdropSize/SharedWorkBudget 与独立 ImagePerformanceTests；未改父/主树、速度/native/其他播放、设置及其他禁写模块。本节所属产品提交待父挑拣，未合入 master/发布/push，保留原树。

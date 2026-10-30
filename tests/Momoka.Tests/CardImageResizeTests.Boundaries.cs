@@ -159,11 +159,25 @@ namespace Momoka.Tests
 
         public async Task DeliverAsync(CardImageRequest request, string image)
         {
+            var requests = Handler.Count;
             request.Complete(image);
-            // Join the real shared store task so late download success/disk-cache completion is observed,
-            // even when Resize already cancelled the original CardItem waiter.
-            await Images.GetAsync(Scope, Item.Id, EmbyImageStore.Primary, "image-tag", request.Width, CancellationToken.None);
+            // Observe this actual handler response, not a new demand. A cancelled last waiter retires
+            // its shared key; asking GetAsync here would start an unrelated GET that nobody releases.
+            await request.Response;
+            Assert.Equal(requests, Handler.Count, "交付旧响应不能另开图片需求");
         }
+
+        public Task<byte[]?> KeepDownload(CardImageRequest request)
+        {
+            // Explicit independent demand only in cases testing a shared late completion. Other cases
+            // retain the production zero-demand cancellation semantics, not a forced legacy scheduler.
+            var load = Images.GetAsync(Scope, Item.Id, EmbyImageStore.Primary, "image-tag", request.Width, CancellationToken.None);
+            _loads.Add(load);
+            return load;
+        }
+
+        public int DownloadDemands => _downloads.Demands;
+        public int DownloadRunning => _downloads.Running;
 
         public void RevokeSource() => Scope.IdentityState.Lifetime.Cancel();
 
