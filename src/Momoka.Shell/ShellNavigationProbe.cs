@@ -214,6 +214,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("资源：真实飞牛匹配框关闭取消、重入与迟到结果", PerformanceMatchCloseAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("性能：真实诊断 UI 队列洪峰合并、拒绝与访问归属", PerformanceDiagnosticsAsync, 30, section: ShellProbeSections.Performance);
             await CaseAsync("资源：真实XAML封面解码预算、快速换片与队列响应", PerformanceCoverAsync, 30, section: ShellProbeSections.Performance);
+            await CaseAsync("性能：真实设置滑块合并保存、失败重试与离页排空", PerformanceSettingsAsync, 30, section: ShellProbeSections.Performance);
         }
     }
 

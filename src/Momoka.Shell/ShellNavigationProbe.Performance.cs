@@ -3,6 +3,10 @@ using System.Reflection;
 using System.Net;
 using CommunityToolkit.WinUI.Controls;
 using Momoka.Diagnostics;
+using Momoka.Configuration;
+using Momoka.Services;
+using Momoka.Updates;
+using System.Diagnostics;
 using Momoka.Danmaku;
 using Momoka.Emby;
 using Momoka.FnNas;
@@ -361,6 +365,108 @@ internal sealed partial class ShellNavigationProbe
             await vm.ShutdownAsync();
             image.Source = null;
             _root.Children.Remove(image);
+            ResizeInspect(1420, 980);
+        }
+    }
+
+    private async Task PerformanceSettingsAsync()
+    {
+        using var fixture = CreateFixture();
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, "settings-save-performance"));
+        paths.EnsureCreated();
+        var settings = new AppSettings();
+        var store = new SettingsStore(paths, PassthroughSecretProtector.Instance);
+        using var service = new SettingsService(store, settings);
+        var captures = 0;
+        service.ConfigureDeferredSave(work => _root.DispatcherQueue.TryEnqueue(() => { captures++; work(); }));
+        using var client = new MoviePilotClient(new RejectNetwork());
+        using var updates = new UpdateClient(new RejectNetwork());
+        var fonts = new FontLibrary();
+        Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
+        var page = new SettingsPage();
+        page.ViewModel.Attach(service, new ShaderStaging(settings), fonts, paths,
+            fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask,
+            _ => Task.CompletedTask, () => Task.CompletedTask,
+            new MoviePilotService(client, new MoviePilotCredentials(PassthroughSecretProtector.Instance), settings),
+            new MoviePilotCredentials(PassthroughSecretProtector.Instance), updates, fixture.Capabilities, fixture.Images);
+        _root.Children.Add(page);
+        var successfulWrites = 0;
+        void Saved(object? sender, EventArgs args)
+        {
+            if (!store.HasUnsavedChanges) Interlocked.Increment(ref successfulWrites);
+        }
+        store.SaveStateChanged += Saved;
+        try
+        {
+            BeginSettingsFixtureVisit(page);
+            await page.ViewModel.ReloadAsync();
+            page.SelectedCategory = "字幕";
+            ResizeProbeClient(1100, 800);
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            var row = page.ViewModel.Sections.SelectMany(section => section.Rows).OfType<SettingSliderRow>()
+                .Single(item => item.Label == "字号");
+            var control = Descendants(page).OfType<Slider>()
+                .Single(slider => Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(slider) == "字号");
+            var oldCapture = captures;
+            var oldSuccess = Volatile.Read(ref successfulWrites);
+            var watch = Stopwatch.StartNew();
+            // Programmatic WinUI RangeValue updates exercise the actual TwoWay generated binding.
+            // They are not pointer drags or FPS measurements; all values differ in one synchronous burst.
+            var low = Math.Max(control.Minimum, 20);
+            var high = Math.Min(control.Maximum, 80);
+            for (var index = 0; index < 150; index++) control.Value = index % 2 == 0 ? low : high;
+            watch.Stop();
+            Require(row.Value == high && settings.Playback.SubtitleFontSize == (int)high,
+                "正式Slider TwoWay绑定没有实时更新内存");
+            Require(await service.FlushAsync().WaitAsync(TimeSpan.FromSeconds(5)), "合并滑块最后值未排空");
+            Require(captures - oldCapture == 1 && Volatile.Read(ref successfulWrites) - oldSuccess == 1,
+                "150个真实控件值仍触发多次捕获或成功保存");
+            Require(store.LoadStrict().Playback.SubtitleFontSize == (int)high, "实际临时文件没有最后字号");
+            await page.ViewModel.FlushSettingsAsync();
+            Require(!page.ViewModel.HasUnsavedChanges, "成功排空后仍显示保存欠项");
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("performance-settings-slider-1100-screen.png");
+
+            // Lock only this fixture's file: failure must be visible and retry must save the live value.
+            using (var locked = new FileStream(paths.SettingsFile, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                control.Value = low;
+                Require(!await service.FlushAsync().WaitAsync(TimeSpan.FromSeconds(5)), "真实文件锁失败被报为成功");
+                page.ViewModel.SyncSaveState();
+                Require(service.HasUnsavedChanges && page.ViewModel.HasUnsavedChanges,
+                    "保存失败没有保留共享欠项和页面提示");
+                await SaveProbeScreenAsync("performance-settings-save-failure-screen.png");
+            }
+            await page.ViewModel.FlushSettingsAsync();
+            Require(!service.HasUnsavedChanges && store.LoadStrict().Playback.SubtitleFontSize == (int)low,
+                "解锁后明确重试没有落下内存最后值");
+            control.Value = high;
+            page.Release();
+            Require(await service.FlushAsync().WaitAsync(TimeSpan.FromSeconds(5)), "离页仍丢了已登记的最后滑块值");
+            Require(store.LoadStrict().Playback.SubtitleFontSize == (int)high, "页面释放没有排空共享保存");
+            await WritePerformanceEvidenceAsync("performance-settings-runtime.json", new
+            {
+                updates = 150,
+                captures = 1,
+                successfulWrites = 1,
+                synchronousControlUpdatesMs = watch.Elapsed.TotalMilliseconds,
+                liveValue = high,
+                diskValue = store.LoadStrict().Playback.SubtitleFontSize,
+                actualXamlTwoWay = true,
+                failedSaveRetainsDebt = true,
+                explicitRetrySaved = true,
+                releasedPageFlushed = true,
+                source = "anonymous temporary SettingsStore",
+                realUserSettings = false
+            });
+        }
+        finally
+        {
+            store.SaveStateChanged -= Saved;
+            page.Release();
+            await service.FlushAsync().WaitAsync(TimeSpan.FromSeconds(5));
+            _root.Children.Remove(page);
             ResizeInspect(1420, 980);
         }
     }
