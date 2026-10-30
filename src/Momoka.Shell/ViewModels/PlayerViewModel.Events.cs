@@ -783,6 +783,8 @@ public sealed partial class PlayerViewModel
             : $"遮罩背景图等了 {CoverBackdropWaitMilliseconds}ms 还没到，照常进播放页（遮罩先退回纯色）");
     }
 
+    private CancellationTokenSource? _coverBackdropCancellation;
+
     /// <summary>
     /// 遮罩垫底的背景图（2026-09-15「视频刚开播还在加载缓存没有正片画面时背景要用背景图」）。按
     /// 本集背景图 → 父级（季/剧）背景图 → 缩略图 的顺序取一张 —— 单集大多没有自己的 Backdrop，
@@ -791,83 +793,114 @@ public sealed partial class PlayerViewModel
     /// 调用时机有两处：StartPlaybackAsync 遮罩亮起的同一刻（拿用户点的卡片，媒体信息还在路上），
     /// 和 OnNowPlayingChanged（详情就绪、字段更全）。按条目 Id 去重：同一个 Id 只取一遍，第二处
     /// 调用对已在路上的那次是空操作。取空（服务器没图、404）或取挂了就忘掉这个 Id —— 详情阶段的
-    /// 重试还带着更全的图片字段；取到图才记住。代际号在两处 await 之后各对一次：换集很快连按的
-    /// 时候，晚到的上一场下载不许盖到这一场上。垫底退回纯色遮罩，图是添头不是承重墙。
+    /// 重试还带着更全的图片字段；取到图才记住。每个异步边界都核对代次与需求：快换片撤销上一张的
+    /// 下载、解码和回填，晚到的旧图不许盖到这一场上。垫底退回纯色遮罩，图是添头不是承重墙。
     /// </para>
     /// </summary>
     private Task LoadCoverBackdropAsync(EmbyItem? item)
     {
-        if (item is null)
-        {
-            _coverGeneration++;
-            _coverBackdropItemId = null;
-            CoverBackdropFrame = null;
-            CoverBackdrop = null;
-            return _coverBackdropLoad = Task.CompletedTask;
-        }
+        // 同一条目换媒体源可复用背景；还在解码时等待原任务，不能提前放行进场。
+        if (item is not null && string.Equals(_coverBackdropItemId, item.IdentityKey, StringComparison.Ordinal))
+            return _coverBackdropLoad;
 
-        // 同一条目换媒体源可复用背景；还在解码时则等待原任务，不能提前放行进场。
-        if (string.Equals(_coverBackdropItemId, item.IdentityKey, StringComparison.Ordinal)) return _coverBackdropLoad;
-
-        _coverBackdropItemId = item.IdentityKey;
+        // 不 Dispose 飞行中的源：Read 的 finally 拥有它；快换片只撤销旧需求，不影响同图其他等待者。
+        _coverBackdropCancellation?.Cancel();
+        _coverBackdropCancellation = null;
         var generation = ++_coverGeneration;
+        _coverBackdropItemId = item?.IdentityKey;
         CoverBackdropFrame = null;
         CoverBackdrop = null;
-        return _coverBackdropLoad = ReadCoverBackdropAsync(item, generation);
+        if (item is null) return _coverBackdropLoad = Task.CompletedTask;
+
+        var owner = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
+        _coverBackdropCancellation = owner;
+        return _coverBackdropLoad = ReadCoverBackdropAsync(item, generation, owner);
     }
 
-    private async Task ReadCoverBackdropAsync(EmbyItem item, int generation)
+    private async Task ReadCoverBackdropAsync(EmbyItem item, int generation, CancellationTokenSource owner)
     {
         try
         {
-            var bytes = await PickCoverBackdropBytesAsync(item, EmbyImageStore.RequestWidth(1280)).ConfigureAwait(true);
+            var scope = _session.Capture(item);
+            using var demand = CancellationTokenSource.CreateLinkedTokenSource(owner.Token, scope.Lifetime);
+            var token = demand.Token;
+            var bytes = await PickCoverBackdropBytesAsync(scope, item, EmbyImageStore.RequestWidth(1280), token)
+                .ConfigureAwait(true);
+            token.ThrowIfCancellationRequested();
             if (bytes is null)
             {
-                // 这张卡上没有可用的图片字段（浏览级元数据常常没有父级继承链）——忘掉，好让详情
-                // 就绪后 OnNowPlayingChanged 那一遍用更全的字段再试一次。
+                // 浏览元数据可能还没有继承字段；允许详情就绪后再试，但旧结果不能清掉新条目的去重标记。
                 if (generation == _coverGeneration) _coverBackdropItemId = null;
                 return;
             }
             if (generation != _coverGeneration) return;
 
-            // 先解覆盖层那一份（起播整屏要用），再把 BitmapImage 交给遮罩：两者一起就位，等这一趟的人
-            // 等到的就是「屏上和层上都有图」。像素那一份解不出来不算失败，遮罩照旧有图可垫。
-            var frame = await CoverBackdropImage.DecodeAsync(bytes, PlayerPalette.Film).ConfigureAwait(true);
+            var frame = await CoverBackdropImage.DecodeAsync(bytes, PlayerPalette.Film, token).ConfigureAwait(true);
+            token.ThrowIfCancellationRequested();
             if (generation != _coverGeneration) return;
+            if (frame is null)
+            {
+                // 没有可信尺寸不能再用原图无约束解码；两层一起退回纯色，可由详情那一趟重试。
+                _coverBackdropItemId = null;
+                return;
+            }
 
-            var image = new BitmapImage();
+            // 只有 XAML 对象的创建/源设置/回填回到 UI。Physical 不随高 DPI 放大已预算过的像素。
+            var image = new BitmapImage
+            {
+                DecodePixelType = DecodePixelType.Physical,
+                DecodePixelWidth = frame.Width,
+                DecodePixelHeight = frame.Height
+            };
             using var stream = new MemoryStream(bytes);
-            await image.SetSourceAsync(stream.AsRandomAccessStream());
+            await image.SetSourceAsync(stream.AsRandomAccessStream()).AsTask(token).ConfigureAwait(true);
+            token.ThrowIfCancellationRequested();
+            scope.ThrowIfUnavailable();
             if (generation != _coverGeneration) return;
 
-            // 两份结果都只在最后一次代际核对后发布，旧解码不能先写覆盖层、再发现自己过期。
+            // 两份结果只在最后一次代际/取消核对后发布；旧 UI 解码也不能晚到回填。
             CoverBackdropFrame = frame;
             CoverBackdrop = image;
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
         {
             if (generation == _coverGeneration) _coverBackdropItemId = null;
+        }
+        catch (Exception ex)
+        {
+            if (generation != _coverGeneration || owner.IsCancellationRequested) return;
+            _coverBackdropItemId = null;
             Log.Info(Category, $"遮罩背景图取用失败（{ex.Message}），垫底退回纯色");
+        }
+        finally
+        {
+            if (ReferenceEquals(_coverBackdropCancellation, owner)) _coverBackdropCancellation = null;
+            owner.Dispose();
         }
     }
 
-    private async Task<byte[]?> PickCoverBackdropBytesAsync(EmbyItem item, int width)
+    private async Task<byte[]?> PickCoverBackdropBytesAsync(EmbySessionScope scope, EmbyItem item, int width,
+        CancellationToken token)
     {
-        var scope = _session.Capture(item);
+        token.ThrowIfCancellationRequested();
         if (item.BackdropImageTags.Count > 0)
         {
-            var own = await _images.GetAsync(scope, item.Id, EmbyImageStore.Backdrop, item.BackdropImageTags[0], width, CancellationToken.None).ConfigureAwait(true);
+            var own = await _images.GetAsync(scope, item.Id, EmbyImageStore.Backdrop, item.BackdropImageTags[0], width, token)
+                .ConfigureAwait(true);
+            token.ThrowIfCancellationRequested();
             if (own is not null) return own;
         }
 
         if (item is { ParentBackdropItemId: { Length: > 0 } parent, ParentBackdropImageTags.Count: > 0 })
         {
-            var inherited = await _images.GetAsync(scope, parent, EmbyImageStore.Backdrop, item.ParentBackdropImageTags[0], width, CancellationToken.None).ConfigureAwait(true);
+            var inherited = await _images.GetAsync(scope, parent, EmbyImageStore.Backdrop, item.ParentBackdropImageTags[0], width, token)
+                .ConfigureAwait(true);
+            token.ThrowIfCancellationRequested();
             if (inherited is not null) return inherited;
         }
 
         if (item.ThumbImageTag is { Length: > 0 } thumb)
-            return await _images.GetAsync(scope, item.Id, EmbyImageStore.Thumb, thumb, width, CancellationToken.None).ConfigureAwait(true);
+            return await _images.GetAsync(scope, item.Id, EmbyImageStore.Thumb, thumb, width, token).ConfigureAwait(true);
 
         return null;
     }

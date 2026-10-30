@@ -72,6 +72,15 @@
 - 诊断LogVisit弱持VM、访问期一唤醒、dirty/pending同gate补尾交接；拒绝/执行异常复位，Detach Stop及旧sink/同sink重入隔离。10000条=>1回调、消费后0待执行，保留SnapshotAfter追平后O(1)空结果事实。局部筛选/快照版本防重入重复和旧分类污染，不改Log.cs/播放等范围外生产文件。
 - 当前Release Shell/Core及独立套件0警告0错误；定向70/70（31本题/源码关联+39既有诊断专项，Core重叠不叠加），失败0跳过0。抽取缺方法/改query-source guard两负例实际拒绝且合法生成源不变；此前重排比较数和Remove筛选重入重复行用真实回归抓到修复，未放宽阈值。证据在本树work/perf-list-diagnostics/；入口/命令/计数与父UI字段见tests/Momoka.PageContractTests/PerfListDiagnostics/README.md。未跑父主套件/full selfcheck/真UI/最终发布；父代理串行收尾，临时树未交付用户。
 
+
+## PERF-04 / PERF-09 图片预算与遮罩解码（2026-10-30，待父整合）
+
+- 独立树 `C:/Users/89400/.codex/worktrees/perf-images/Momoka`，分支 `codex/perf-images`，起点 `e3473f10a072058eb11363f89c11e376dbfa6ed9`。只改 CoverBackdropImage、Events 的封面路径、EmbyImageStore、SharedWork，窄新类 CoverBackdropSize/SharedWorkBudget 与独立 ImagePerformanceTests；未改父/主树、速度/native/其他播放、设置及其他禁写模块。本节所属产品提交待父挑拣，未合入 master/发布/push，保留原树。
+- 解码两边至多1280、总像素921600、BGRA帧3686400B；整个解码/烘色 Task.Run，XAML创建及两层发布回原UI上下文，下载/WinRT/快换片/源寿命取消和代次逐边界核对。图失败无可信尺寸则两层退纯色，不无界再解原图；不裁改源图，原有 UniformToFill 保留。限交出像素，不声称WIC内部无大图分配/真实第二份surface已测；取消不强杀一次有界Bake。
+- 图片执行6、排队键48、有效等待需求128，Running含取消未退出执行槽至多54；queued工厂不启动，没有Semaphore外无限任务。一个等待者取消不杀其他人，最后需求撤销HTTP及2s/4s重试等待；工厂和CancelAsync回调均真结束才还槽。新/续等排队优先，满时撤销最旧未启动整键，需求满且无法安全淘汰就立即取消新等待；旧可见可能需下次Ensure重试、旧排队可能延迟，是明确预算/公平性取舍。原12连接/30秒deadline保留，SharedWork无预算旧契约不变。
+- 当前Release Core/Shell/独立测试编译均0警告0错误；既有图片/烘色22/22、新专项41/41（共享12、实际Store10、实际WinRT/尺寸11、逐字生产调用方8），失败/跳过0；严格入口三负例均退出2。500不同键实Store峰值54键/48排队/54需求，handler仅6次/峰值6，退出后shared/demands/排队0；500同键在16需求测试预算下仅16有效、484立即取消。8K/4K返回1280×720，方图960²，1×40000/40000×1返回1×1280/1280×1；均受两边/总量限制。六生产源码hash、18文件LF及diff检查通过，Events前后区段与起点一致。
+- 最终实测证据 `C:/Users/89400/.codex/worktrees/perf-images/Momoka/work/perf-images/test-verified.log`、`runs/20261030-165335-651/results.json`、`build-shell-final.log`、`build-tests-final.log`、`strict-entry.log`、`final-file-hashes.json`；命令和覆盖边界在 `C:/Users/89400/.codex/worktrees/perf-images/Momoka/tests/Momoka.ImagePerformanceTests/README.md`。旧测试替身不能clone流导致6红及优先级误用多空槽的1红已保留各首轮日志/JSON，修夹具后重验，未降低产品/像素/取消断言。
+- 未做sln/主全Tests、真实WinUI BitmapImage surface/DPI/屏幕/DWM、真实库/设置/播放、UIA/发布/快捷方式；父统一登记新套件到sln/regression、定点复核最终Events source pin、当前整合源码重build及串行桌面验收。本树Events SHA256 `E6BBE894ADE1BDC236117DFD1ACB2CDAA14F9C435A95C61E2F039AC7EFF068E2`，本套件编译/运行自动核六源码，不编辑其他既有pin。无403、未换provider或代理配置。
 ## 旧工作树审查与媒体管理整合（2026-10-29，在途）
 
 - 当前整合树 `C:/Users/89400/.codex/worktrees/old-tree-integration/Momoka`，起点 `8ff289e`，整合旧树 `mp-media-management` 的产品 `eedcfab`／顶端 `4b9aaac`。主树 AniBT 正在由另一聊天收尾，搜索工作树仍在开发；不抢写主树或共同发布目录，不删除活动树。

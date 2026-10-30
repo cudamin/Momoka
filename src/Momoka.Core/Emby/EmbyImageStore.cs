@@ -33,12 +33,13 @@ public sealed class EmbyImageStore
     private readonly string _directory;
     private long _maxBytes;
 
-    /// <summary>
-    /// One download per artwork, however many callers want it at once, and belonging to none of them.
-    /// Which caller cancels is not allowed to decide whether the others get their picture — see
-    /// <see cref="SharedWork{TResult}"/> for what that cost before it was written down.
-    /// </summary>
-    private readonly SharedWork<byte[]?> _downloads = new();
+    // Images reserve only half the transport's existing 12 HTTP connection slots; these are request
+    // execution slots as well (including HTTP/2), not a claim that the old transport was unlimited.
+    internal const int DownloadConcurrency = 6;
+    internal const int DownloadQueueCapacity = 48;
+    internal const int DownloadDemandCapacity = 128;
+    /// <summary>Bounded aggregate demand; one waiter leaving never cancels the others, zero demand does.</summary>
+    private readonly SharedWork<byte[]?> _downloads = new(DownloadConcurrency, DownloadQueueCapacity, DownloadDemandCapacity);
     private readonly object _cacheGate = new();
 
     public EmbyImageStore(EmbySession session, string directory, long maxBytes = 0)
@@ -175,9 +176,10 @@ public sealed class EmbyImageStore
             // Bypass the rejected disk value, but use the same in-flight table as a normal cache miss.
             // A caller arriving after invalidation must join this download, not start a duplicate GET.
             // Canceling one caller cancels only its wait; recovery bytes are persisted after decoding.
-            bytes = await _downloads.RunAsync(key, () => DownloadAsync(scope,
+            using var demand = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, scope.Lifetime);
+            bytes = await _downloads.RunAsync(key, shared => DownloadAsync(scope,
                 (client, token) => client.GetImageBytesAsync(itemId, imageType, tag, width, token),
-                $"{itemId}/{imageType}", path, persist: false), cancellationToken).ConfigureAwait(true);
+                $"{itemId}/{imageType}", path, shared, persist: false), demand.Token).ConfigureAwait(true);
             scope.ThrowIfUnavailable();
             cancellationToken.ThrowIfCancellationRequested();
             if (bytes is null || bytes.Length == 0) return null;
@@ -262,8 +264,9 @@ public sealed class EmbyImageStore
         // Collapse duplicate requests: a fast scroll asks for the same poster repeatedly. The shared
         // download belongs to nobody, so a caller that walks away no longer empties the answer the
         // caller beside it was waiting for.
+        using var demand = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, scope.Lifetime);
         var bytes = await _downloads
-            .RunAsync(key, () => DownloadAsync(scope, download, description, path), cancellationToken)
+            .RunAsync(key, shared => DownloadAsync(scope, download, description, path, shared), demand.Token)
             .ConfigureAwait(false);
         scope.ThrowIfUnavailable();
         cancellationToken.ThrowIfCancellationRequested();
@@ -275,18 +278,20 @@ public sealed class EmbyImageStore
         Func<EmbyClient, CancellationToken, Task<byte[]>> download,
         string description,
         string path,
+        CancellationToken cancellationToken,
         bool persist = true)
     {
         for (var attempt = 0; ; attempt++)
         {
             try
             {
-                // CancellationToken.None on purpose: whoever asked first may be gone by now, and the bytes
-                // are still wanted — by the other cards waiting on this one download, and by the disk cache
-                // that makes the next visit instant. The request is bounded by the HTTP timeout instead.
+                // This is the aggregate demand token, never the first caller's token. Zero demand ends
+                // HTTP and retry delays; the existing transport deadline/lifetime protection still applies.
+                cancellationToken.ThrowIfCancellationRequested();
                 scope.ThrowIfUnavailable();
-                var bytes = await scope.ExecuteAsync(download, CancellationToken.None).ConfigureAwait(false);
+                var bytes = await scope.ExecuteAsync(download, cancellationToken).ConfigureAwait(false);
                 scope.ThrowIfUnavailable();
+                cancellationToken.ThrowIfCancellationRequested();
 
                 if (bytes.Length == 0) return null;
 
@@ -301,6 +306,7 @@ public sealed class EmbyImageStore
                     lock (_cacheGate)
                     {
                         scope.ThrowIfUnavailable();
+                        cancellationToken.ThrowIfCancellationRequested();
                         try { AtomicFile.WriteAllBytes(path, bytes); }
                         catch (Exception error) { Log.Warn(Category, "写入图片缓存失败", error); }
                     }
@@ -312,6 +318,7 @@ public sealed class EmbyImageStore
             }
             catch (EmbyApiException error) when (error.StatusCode == HttpStatusCode.NotFound)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 // 服务器明说没有这一张。这是终局答案，重试一万次也是 404 —— 交回去让卡片记住「没有」。
                 Log.Debug(Category, $"服务器没有这张图（{description}）");
                 return null;
@@ -320,8 +327,8 @@ public sealed class EmbyImageStore
             {
                 // 其余的失败（超时、连不上、5xx）都只算「这一趟没取到」：先按表重试，救不回来才把失败交出去。
                 // 不能像从前那样吞成 null —— 那会让等着的卡片把一次网络打嗝读成「服务器没有这张图」并永久记住，
-                // 封面就一直是灰的。请求带的是 None 令牌，走到这里的取消只剩截止时间那一档，而它早已在 EmbyHttp
-                // 里翻译成 EmbyUnreachableException 了。
+                // 封面就一直是灰的。需求/身份取消直接退出；只有网络失败按原期限与重试表恢复。
+                cancellationToken.ThrowIfCancellationRequested();
                 if (ImageCachePolicy.RetryDelay(attempt) is not { } delay)
                 {
                     Log.Debug(Category, $"获取图片失败（{description}，重试 {attempt} 趟后放弃）：{error.Message}");
@@ -329,7 +336,7 @@ public sealed class EmbyImageStore
                 }
 
                 Log.Debug(Category, $"获取图片失败（{description}，第 {attempt + 1} 趟）：{error.Message}，隔 {delay.TotalSeconds:0} 秒再试");
-                await Task.Delay(delay).ConfigureAwait(false);
+                await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             }
         }
     }
