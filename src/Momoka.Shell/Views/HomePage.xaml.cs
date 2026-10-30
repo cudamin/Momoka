@@ -1100,7 +1100,8 @@ public sealed partial class HomePage : Page, IShellContent
             plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true,
             moviePilotManagementAvailable: _actions.MoviePilotMediaManagementEnabled,
             moviePilotSmartAvailable: _actions.MoviePilotSmartReorganizeEnabled,
-            permissions: card.Scope is { } scope ? _actions.MenuPermissionsFor(scope) : default);
+            permissions: card.Scope is { } scope ? _actions.MenuPermissionsFor(scope) : default,
+            aniBtEnabled: _actions.AniBtEnabled);
         var menu = ItemCommands.Build(_session, _actions, this, card);
         var labels = new List<string>(menu.Items.Count);
         var ok = menu.Items.Count == plan.Count;

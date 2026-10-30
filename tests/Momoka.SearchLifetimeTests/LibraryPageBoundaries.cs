@@ -15,6 +15,7 @@ namespace Momoka.Shell.Views
     {
         private bool _released;
         private Momoka.MoviePilot.MoviePilotService? _moviePilot;
+        private Momoka.Services.ISettingsService? _settings = null; // Unused owner boundary; no saved settings in this fixture.
         private int _navigation;
         private int _searchPresentationVersion;
         private readonly LibraryLifetimeRequest _request = new();
@@ -25,6 +26,7 @@ namespace Momoka.Shell.Views
         internal PickerBoundary SearchSitePicker { get; } = new();
         internal PickerBoundary FilterPane { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ComboBox SourceTabs { get; } = new();
+        internal Microsoft.UI.Xaml.FrameworkElement AniBtSourceTab { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement EmbyContent { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement ToolbarSurface { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox SearchInput { get; } = new();
@@ -39,6 +41,7 @@ namespace Momoka.Shell.Views
         private void CancelImeSubmit() { ImeCancellations++; }
         private void ApplyHeaderLayout() { HeaderUpdates++; }
         private void OnMoviePilotAvailabilityChanged(object? sender, EventArgs args) { }
+        private void OnAniBtSettingChanged(object? sender, EventArgs args) { }
         internal void AttachFixture(Momoka.MoviePilot.MoviePilotService service)
         {
             if (_moviePilot is { } old) old.AvailabilityChanged -= OnMoviePilotAvailabilityChanged;

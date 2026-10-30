@@ -1,3 +1,29 @@
+## 2026-10-30 分支与工作树整合：代码完成，待主树发布复核
+
+- 用户授权自主判断合入和清理。主树只读盘点期间等待封面与轮播聊天完成，保留其全部交付记录；主树清洁后先合入远端唯一 README 个人频道改动（7333e04）。本次不升级版本、不推送远端。
+- 真正缺少的产品工作为 codex/anibt-main-series（505c7cb、7310f4f）：保留主树新版「重新整理」嵌套菜单、权限与迟到能力更新、搜索站点、延迟设置保存，再接回 AniBT 主剧集沿用、四路匹配、阶段文字和全入口开关。新增菜单开关恢复、旧点击拒绝、持久化、隐藏来源回退回归；搜索生命周期夹具同步实际块属性入口，未放宽缺失/重复源码锚点拒绝。
+- 合并审查发现弱标题/唯一历史编号可误用 TMDB 身份，已纳入独立修复467736f：始终核验 Bangumi 来源/编号/类型，电视剧主身份另核 TMDB 详情和双方标题/别名；补号仅允许本批精确文件历史、一致电视剧TMDB主身份，证据不足保留Bangumi，明确冲突拒绝。新增身份及并发回归，四路峰值、乱序、失败/外部取消、A→B→A均执行。
+- 官方源码复核：MoviePilot 当前v3=674c4aef64eaca4b848192ec40cf452bcb6b32c5，Frontend当前v3=bc938a9198ec75ba46a91d34ece4c38f790f8176；读取transfer.py、media.py、ReorganizeDialog.vue及测试、MediaIdSelector及source/id helpers，另比v3.2.1 transfer.py。media_source/media_id/type/season/scrape/preview/from_history契约保持；当前端点差异在未触碰的命名接口管理权限。真实部署版本仅有历史v3.2.1线索，本次未重登、未真实整理，不宣称实服同步。
+- 全量离线首次3417/3418：SVP匿名管道子进程先ready后接收的竞态，复现WaitForConnection的0x800700E8；独立修复b34fbab先挂接收再ready，保留零字节、异身份拒绝、错误与取消失败检查，补已发字节负例，500次压力0失败。未改播放器产品代码。
+- 当前主树完整Release方案0警告0错误；最终测试项目重新编译0警告0错误，主测试3444/3444、0失败0跳过；14个相关独立专项通过（含AniBT入口43、确认54、来源40、资源100、页面109、搜索生命周期33、设置生命周期52、设置探针31、设置保存24、动效46、导航15、翻档52、持久化42、缺集58），重叠不累加。设置持久化最初输出路径不符被拒，改到本树artifacts按契约执行后通过，保留拒绝日志。
+- 实际开发件settings/anibt/search/moviepilot四区69/69，主屏实屏与宽窄截图已核对；程序GUI启动的父shell退出码未捕获，结果依完整报告及正常退出日志，不伪造进程码，实际发布件另取进程回执。首轮竖屏/隐藏启动21项像素守卫失败、6通过完整保留；主屏正常显示后通过。源码自动化扫描553交互元素、0无句柄；模板/复用范围单列，新增AniBT开关实际UIA句柄核验通过。非全量Shell/全账号自检，不含真实媒体读取或写入。
+- 六个旧性能树逐文件和测试迁移复核：产品均已保留或被更完整实现替代，无遗漏；907份既有证据与原manifest/备份三方SHA256相符。旧弹窗、单集海报、旧整合与性能父树均为master祖先。恢复包含本轮盘点的完整Git历史（约44.5MiB），两项新修复另留增量bundle与54份文件日志；证据根C:/Users/89400/.codex/visualizations/2026/10/30/01a18ced-90ca-7072-a329-5a2d713ba0d8/branch-consolidation。
+- 原工作树清理受应用归属限制：old-tree-integration归档报“not attached”，挂接报“owned by another task”；episode-portrait-poster、anibt-main-series归档同样报“not attached”。未绕过应用保护强删；待最终交付后先删除已完成临时分支，当前聊天新建两树用正式归档收尾。旧README stash仅是过时精简表述，已被主树更完整支持范围替代，有完整bundle后可清理。
+
+## AniBT 重新整理落回主剧集、识别进度与隐藏开关（2026-10-30）
+
+- 用户报：AniBT 重新识别要等很久；识别先在主页出现「第二季」，过一会又消失并合进主剧集；默认应直接合并到主剧集。要求识别用 Bangumi 编号加当前剧集季集重新整理，整理后自动刮削并在主页刷新；同时在设置里新增开关隐藏 AniBT 相关功能。附图：源文件 `[Studio GreenTea] Ao no Hako S2 [03]…`，旧目标 `/Downloads_link/电视剧/青之箱 第二季 (2026) {tmdbid=207347}/Season 02/…`，主页出现「青之箱 第二季」卡片。
+- 只读现场：MoviePilot 整理历史 #2055 `bangumi / 548156`、S02E03、目标为新剧集目录；同一集此前的 #2037 `themoviedb / 207347`、目标为主剧集 `/青之箱 (2024) {tmdbid=207347}/Season 02/`。根因不是季集号，而是把季条目「青之箱 第二季」的 Bangumi 编号直接当成了 MoviePilot 的整理身份，MoviePilot 按季名建了新剧集；Emby 之后按同一 TMDB 编号把它并回主剧集。
+- 改法：候选与库内剧集是同一部作品时（去掉末尾「第二季／Season 2／第2期」后作品名相同；跨语言时读 MoviePilot 媒体标题／原名／别名核对），整理身份改用库内主剧集已有的 TMDB 编号，保留当前季集；候选是另一部作品时仍按所选 Bangumi 编号整理，保留修正误识别的能力。Emby 没有 TMDB 编号时，从同作品历史的 tmdbid 交叉编号补一次；补不到才回退 Bangumi。对话框标题改用主剧集名，方式行显示「沿用主剧集 · 自动刮削」或「Bangumi 编号 · 自动刮削」。
+- 识别速度：每个文件的 AniBT 匹配改为独立并行（上限 4），行序保持不变；识别、目标读取、提交各记一条耗时日志。对话框新增阶段文字：收集文件、匹配 AniBT、读取整理目标和刮削设置、重新整理并自动刮削，不再只有不确定进度条。
+- 刮削与刷新：MP 请求继续强制 `scrape=true`；整理完成且目标有效时请求 Emby `Library/Refresh` 一次。对话框收起后主页若还开着，立即调用一次入库核对；真正收录仍由服务器扫描和实时通道完成，不强制跳页。
+- 隐藏开关：`MoviePilotSettings.AniBtEnabled` 默认 true，放在设置 → MoviePilot 卡内，关闭后收起 AniBT 识别、搜索页 AniBT 来源、版本来源 AniBT、订阅详情「在 AniBT 中搜索」、遗漏集 AniBT 入口；菜单、搜索页、直接命令都读同一设置，`AniBtChanged` 当场收放。MoviePilot 其他功能、连接与整理防重账本不变。
+- 验证：Release 完整方案 **0 警告、0 错误**；完整 Core 套件 **3331/3331、0 失败、0 跳过**（app 关闭后重跑；先前 16 项自检互斥红项保留在 `work/anibt-main-tests.log`）；AniBT 入口 **41/41**、页面契约 **108/108**、资源 **97/97**、确认 **54/54**、缺集 **58/58**、来源契约 **39/39**、设置探针 **31/31**、设置持久化 **42/42**、设置页状态 **30/30**。
+- **真实只读预览**：连实际 Emby/MoviePilot，当前集有两份文件；修复后两份的预览目标都变成 `/Downloads_link/电视剧/青之箱 (2024) {tmdbid=207347}/Season 02/`，标题「青之箱 S02E03」，方式「软链接 · 沿用主剧集 · 自动刮削」，`CanSubmit=true`，`mutations=0`。没有真实提交、移动文件或触发 Emby 应用。
+- **界面探针**（开发件，app 关闭后）：`--probe-shell --probe-section settings` **24/24、退出 0**（`shell-probe-20261030-060014428-23764`），新增「设置里的 AniBT 开关随 MoviePilot 启用状态收放」通过，截图 `settings-mp-anibt-on-render.png` / `settings-mp-anibt-off-render.png` 已看；首轮该分区在「设置搜索焦点」出现一次瞬时焦点红（`shell-probe-20261030-055547276-7604`），同二进制重跑全绿，原报告保留。`--probe-section anibt` **3/3、退出 0**（`shell-probe-20261030-060407165-21148`），搜索页开关收放、识别候选/确认、取消零写全部通过，截图已看。未执行区域按 scope 回执保留，不是全量 Shell 自检。
+- 现场只读预览与探针都在本树开发件上完成；未真实提交整理，未改真实服务器媒体。
+- 待合入主树：主树 `C:/Users/89400/Momoka`（`qoder/临时`，起点 `d5f0639`）仍有另一会话未提交的设置/搜索站点改动，且同时改到 `SettingsViewModel.cs`、`SettingMoviePilotRow.cs`、`SettingsPage.xaml`、`LibraryPage.xaml.cs`、`docs/MoviePilot订阅.md`、`SearchCompactMergeTests.cs`。本批不得覆盖这些内容；待另一会话提交后，由主树整合本分支、重跑完整验证并发布到 `artifacts/publish/win-x64`、读回快捷方式。当前树 `C:/Users/89400/.codex/worktrees/anibt-main-series/Momoka`，分支 `codex/anibt-main-series`，提交 `505c7cb` 及探针修正提交。
+
 ## 2026-10-30 首页多媒体库轮播避让已合入主树并交付
 
 - 产品提交 `a9cc47e`，最终主树整合 `8572818`；本任务仅轮播避让，保留主树由其他任务整合的封面与性能修复。媒体库横向视口停在右下张数／进度条左侧，留24 DIP间隔，多库仍可横向滚动到末项；指示器收起后恢复原36 DIP右边距，媒体库位置三档与原轮播计时不变。

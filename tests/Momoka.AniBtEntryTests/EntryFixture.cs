@@ -149,10 +149,16 @@ internal sealed class EntryActions : IShellActions
     internal int AniBtSearches { get; private set; }
     internal List<string> Notices { get; } = [];
     public bool MoviePilotEnabled { get; private set; } = true;
+    public bool AniBtEnabled { get; private set; } = true;
     public event EventHandler? MoviePilotAvailabilityChanged;
     internal void SetMoviePilot(bool available)
     {
         MoviePilotEnabled = available;
+        MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
+    }
+    internal void SetAniBt(bool enabled)
+    {
+        AniBtEnabled = enabled;
         MoviePilotAvailabilityChanged?.Invoke(this, EventArgs.Empty);
     }
     public void ShowAniBtScrape(EmbySessionScope scope, EmbyItem item) => Scrapes++;

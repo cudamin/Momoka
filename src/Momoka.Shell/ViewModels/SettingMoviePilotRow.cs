@@ -25,6 +25,7 @@ namespace Momoka.Shell.ViewModels;
 public sealed partial class SettingMoviePilotRow : SettingRow
 {
     private readonly Action<bool> _writeEnabled;
+    private readonly Action<bool> _writeAniBt;
     private readonly Action<string> _writeUrl;
     private readonly Action<string> _writeUsername;
     private readonly Action<string> _writePassword;
@@ -68,7 +69,14 @@ public sealed partial class SettingMoviePilotRow : SettingRow
     public partial bool Testing { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AniBtVisibility))]
     public partial bool Enabled { get; set; }
+
+    /// <summary>AniBT 入口是否显示；只在 MoviePilot 启用时可改，关闭 MoviePilot 时整段收起。</summary>
+    [ObservableProperty]
+    public partial bool AniBtEnabled { get; set; }
+
+    public Visibility AniBtVisibility => Enabled ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// The protocol picker, as the index the ComboBox binds its <c>SelectedIndex</c> to: 0 = http, 1 = https.
@@ -129,10 +137,12 @@ public sealed partial class SettingMoviePilotRow : SettingRow
         string label,
         string note,
         bool enabled,
+        bool aniBtEnabled,
         string url,
         string username,
         bool hasSavedPassword,
         Action<bool> writeEnabled,
+        Action<bool> writeAniBt,
         Action<string> writeUrl,
         Action<string> writeUsername,
         Action<string> writePassword,
@@ -141,6 +151,7 @@ public sealed partial class SettingMoviePilotRow : SettingRow
         : base(label, note)
     {
         Enabled = enabled;
+        AniBtEnabled = aniBtEnabled;
 
         // The one stored string arrives split into the three boxes; composing it back is the Url getter's job.
         // http unless the stored scheme is explicitly https — the same default MoviePilotAddress applies everywhere.
@@ -154,6 +165,7 @@ public sealed partial class SettingMoviePilotRow : SettingRow
         HasSavedPassword = hasSavedPassword;
         Result = "";
         _writeEnabled = writeEnabled;
+        _writeAniBt = writeAniBt;
         _writeUrl = writeUrl;
         _writeUsername = writeUsername;
         _writePassword = writePassword;
@@ -196,6 +208,13 @@ public sealed partial class SettingMoviePilotRow : SettingRow
     {
         if (!_seeded) return;
         _writeEnabled(value);
+        _save();
+    }
+
+    partial void OnAniBtEnabledChanged(bool value)
+    {
+        if (!_seeded) return;
+        _writeAniBt(value);
         _save();
     }
 

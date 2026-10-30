@@ -22,7 +22,12 @@
         </Style>
     </ContentDialog.PrimaryButtonStyle>
     <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
-        <ProgressBar Grid.Row="0" IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+        <StackPanel Grid.Row="0" Spacing="6">
+            <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+            <TextBlock x:Name="ScrapeStage" Text="{x:Bind ViewModel.Stage, Mode=OneWay}"
+                Visibility="{x:Bind ViewModel.StageVisibility, Mode=OneWay}"
+                Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" TextWrapping="Wrap" />
+        </StackPanel>
         <ListView x:Name="ScrapeFiles" Grid.Row="1" MaxHeight="470" Padding="{StaticResource EgScrollBarLane}"
             ItemsSource="{x:Bind ViewModel.Rows, Mode=OneWay}" SelectionMode="None">
             <ListView.ItemTemplate>

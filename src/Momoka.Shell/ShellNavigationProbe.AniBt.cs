@@ -294,6 +294,14 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(page);
             var tabs = Get<Segmented>(page, "SourceTabs");
             Require(tabs.Visibility == Visibility.Visible && tabs.Items.Count == 4, "连接后未显示 AniBT 搜索栏");
+            var aniBtTab = tabs.Items.OfType<SegmentedItem>().Single(item => item.Name == "AniBtSourceTab");
+            Require(aniBtTab.Visibility == Visibility.Visible, "默认设置下 AniBT 搜索来源被隐藏");
+            fixture.Settings.MoviePilot.AniBtEnabled = false;
+            await UntilAsync(() => aniBtTab.Visibility == Visibility.Collapsed);
+            Require(tabs.SelectedIndex == 0 && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Visible,
+                "关闭 AniBT 后搜索页仍停在 AniBT 面板");
+            fixture.Settings.MoviePilot.AniBtEnabled = true;
+            await UntilAsync(() => aniBtTab.Visibility == Visibility.Visible);
             tabs.SelectedIndex = 3;
             var panel = Get<AniBtSearchPanel>(page, "AniBtPanel");
             Field(panel.ViewModel, "_launcher", launcher);
@@ -787,15 +795,15 @@ internal sealed partial class ShellNavigationProbe
                 throw new InvalidOperationException("AniBT 搜索和取消确认不得发送写请求");
             }
             if (path.EndsWith("/dashboard/system", StringComparison.Ordinal)) return Task.FromResult(Json(new { version = "fixture" }));
-            // ShellPage 连上 MoviePilot 后会读历史管理能力；这里答「没有管理权限」，AniBT 菜单不应长出删除或智能整理。
-            if (path.EndsWith("/user/current", StringComparison.Ordinal))
-                return Task.FromResult(Json(new { is_active = true, is_superuser = false }));
-            if (path.EndsWith("/system/global/user", StringComparison.Ordinal))
-                return Task.FromResult(Json(new { AI_AGENT_ENABLE = false }));
             if (path.EndsWith("/media/source", StringComparison.Ordinal)) return Task.FromResult(EnableBangumi
                 ? Json(new[] { new { name = "Bangumi", media_source = "bangumi", media_types = new[] { "电视剧" } } })
                 : Json(Array.Empty<object>()));
             if (path.EndsWith("/history/transfer", StringComparison.Ordinal)) return Task.FromResult(Json(new { list = Array.Empty<object>(), total = 0 }));
+            // 壳层的 MoviePilot 定时能力检查在探针超过 30 秒时也会走这里；只答只读身份，不授予管理能力。
+            if (path.EndsWith("/user/current", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { is_active = true, is_superuser = false, permissions = new { manage = false } }));
+            if (path.EndsWith("/system/global/user", StringComparison.Ordinal))
+                return Task.FromResult(Json(new { AI_AGENT_ENABLE = false }));
             if (path.EndsWith("/download/clients", StringComparison.Ordinal))
                 return Task.FromResult(Json(new[] { new { name = "动画下载器" }, new { name = "备用下载器" } }));
             if (path.EndsWith("/download/paths", StringComparison.Ordinal))

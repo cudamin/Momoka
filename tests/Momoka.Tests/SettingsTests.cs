@@ -21,6 +21,32 @@ internal static partial class SettingsTests
 
     public static void Register()
     {
+        Test("AniBT 开关：旧配置默认显示、关闭持久化且不触发 MoviePilot 重连", () =>
+        {
+            var directory = Directory.CreateTempSubdirectory("momoka-anibt-settings").FullName;
+            try
+            {
+                var paths = new AppPaths(directory);
+                var store = new SettingsStore(paths, Protector);
+                var settings = store.Load();
+                Assert.True(settings.MoviePilot.AniBtEnabled);
+                var toggles = 0;
+                var reconnects = 0;
+                settings.MoviePilot.AniBtChanged += (_, _) => toggles++;
+                settings.MoviePilot.ConnectionChanged += (_, _) => reconnects++;
+                settings.MoviePilot.AniBtEnabled = false;
+                settings.MoviePilot.AniBtEnabled = false;
+                Assert.Equal(1, toggles);
+                Assert.Equal(0, reconnects);
+                store.Save(settings);
+                var restored = new SettingsStore(paths, Protector).Load();
+                Assert.False(restored.MoviePilot.AniBtEnabled);
+                restored.MoviePilot.AniBtEnabled = true;
+                store.Save(restored);
+                Assert.True(new SettingsStore(paths, Protector).Load().MoviePilot.AniBtEnabled);
+            }
+            finally { Directory.Delete(directory, recursive: true); }
+        });
         RegisterMigration();
         RegisterNormalize();
         RegisterReset();

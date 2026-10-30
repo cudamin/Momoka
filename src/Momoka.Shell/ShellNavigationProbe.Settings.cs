@@ -1770,6 +1770,56 @@ internal sealed partial class ShellNavigationProbe
         return (row, combo);
     }
 
+    private async Task SettingsMoviePilotAniBtAsync()
+    {
+        using var fixture = CreateFixture();
+        using var moviePilot = new MoviePilotClient(new RejectNetwork());
+        var paths = new AppPaths(Path.Combine(_options.Paths.Root, "settings-mp-anibt"));
+        paths.EnsureCreated();
+        var fonts = new FontLibrary();
+        Field(fonts, "_scan", Task.FromResult(FontCatalogue.Empty));
+        fixture.Settings.MoviePilot.Enabled = true;
+        fixture.Settings.MoviePilot.AniBtEnabled = true;
+        var page = new SettingsPage();
+        page.ViewModel.Attach(fixture.SettingsService, new ShaderStaging(fixture.Settings), fonts, paths,
+            fixture.Launcher, fixture.Startup, new AudioDeviceCatalogue(() => null), () => Task.CompletedTask, _ => Task.CompletedTask, () => Task.CompletedTask,
+            new MoviePilotService(moviePilot, new MoviePilotCredentials(PassthroughSecretProtector.Instance), fixture.Settings), new MoviePilotCredentials(PassthroughSecretProtector.Instance),
+            new UpdateClient(new RejectNetwork()),
+            fixture.Capabilities, fixture.Images);
+        await page.ViewModel.ReloadAsync();
+        _root.Children.Add(page);
+        try
+        {
+            BeginSettingsFixtureVisit(page);
+            page.SelectedCategory = "MoviePilot";
+            await LayoutAsync(page);
+            await UntilAsync(() => page.IsLoaded);
+            ToggleSwitch Find(string name) => Descendants(page).OfType<ToggleSwitch>()
+                .Single(control => AutomationProperties.GetName(control) == name);
+            var enabled = Find("MoviePilot");
+            var aniBt = Find("显示 AniBT 入口");
+            Require(AutomationProperties.GetAutomationId(aniBt) == "MoviePilotAniBtToggle",
+                "AniBT 设置开关没有稳定的自动化定位句柄");
+            var aniBtSection = (StackPanel)VisualTreeHelper.GetParent(aniBt);
+            Require(enabled.IsOn && aniBtSection.Visibility == Visibility.Visible, "MoviePilot 启用时 AniBT 开关没有显示");
+            await LayoutAsync(page);
+            await SaveSettledFrameAsync(page, "settings-mp-anibt-on-render.png");
+            var peer = new ToggleSwitchAutomationPeer(enabled);
+            ((IToggleProvider)peer.GetPattern(PatternInterface.Toggle)).Toggle();
+            await UntilAsync(() => !enabled.IsOn && aniBtSection.Visibility == Visibility.Collapsed);
+            Require(!fixture.Settings.MoviePilot.Enabled, "关闭 MoviePilot 没有写入设置");
+            await LayoutAsync(page);
+            await SaveSettledFrameAsync(page, "settings-mp-anibt-off-render.png");
+            peer = new ToggleSwitchAutomationPeer(enabled);
+            ((IToggleProvider)peer.GetPattern(PatternInterface.Toggle)).Toggle();
+            await UntilAsync(() => enabled.IsOn && aniBtSection.Visibility == Visibility.Visible);
+            ((IToggleProvider)new ToggleSwitchAutomationPeer(aniBt).GetPattern(PatternInterface.Toggle)).Toggle();
+            await UntilAsync(() => !aniBt.IsOn && !fixture.Settings.MoviePilot.AniBtEnabled);
+            Require(aniBt.IsOn == false && !fixture.Settings.MoviePilot.AniBtEnabled, "关闭 AniBT 没有写入设置");
+        }
+        finally { _root.Children.Remove(page); }
+    }
+
     private static void AssertGraphicsApi(SettingsPage page, Fixture fixture)
     {
         var integrated = fixture.Settings.Mpv.Backend == MpvBackendKind.BuiltInLibMpv

@@ -97,6 +97,22 @@ internal static class MoviePilotLifetimeTests
             Check.Contains("MoviePilotPanel.CancelSearch();", switchSource);
             Check.False(switchSource.Contains("MoviePilotPanel.Release();", StringComparison.Ordinal));
         });
+        Test("实际搜索来源：AniBT 入口隐藏时残留选择回到媒体库，恢复不自动搜索", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            var page = new LibraryPage(); page.AttachFixture(f.Service);
+            var before = f.Http.Searches;
+            page.AniBtSourceTab.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+            page.SwitchFixture(3);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.AniBtPanel.Visibility);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.EmbyContent.Visibility);
+            page.AniBtSourceTab.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+            page.SwitchFixture(3);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.AniBtPanel.Visibility);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.EmbyContent.Visibility);
+            Check.Equal(before, f.Http.Searches);
+            page.Release();
+        });
         Test("实际 LibraryPage 离页/来源切换原样方法：单例退订、取消、重入与滚动快照", async () =>
         {
             using var f = new MoviePilotFixture(); await f.ConnectAsync();

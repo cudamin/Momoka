@@ -1296,7 +1296,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
                 imageScope is { IsAvailable: true } current
                     ? images.GetAsync(current, art.ItemId, art.ImageType, art.Tag,
                         EmbyImageStore.RequestWidth(CardSize.MissingWidth), token)
-                    : Task.FromResult<byte[]?>(null), canSearch, anime)
+                    : Task.FromResult<byte[]?>(null), canSearch, anime && Settings.MoviePilot.AniBtEnabled)
             { XamlRoot = root };
             void AvailabilityChanged(object? sender, EventArgs args)
             {
@@ -1409,7 +1409,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             _session?.IsSignedIn == true ? _session.Capture() : null,
             target => ((IShellActions)this).PlayAsync(target.Item, target.Parent, episodes: target.Episodes),
             SearchMoviePilotVersions, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMoviePilotMedia,
-            SetTitleStrip: SetTitleStrip, SearchAniBt: SearchAniBtVersions), BrowseTransition());
+            SetTitleStrip: SetTitleStrip,
+            SearchAniBt: Settings.MoviePilot.AniBtEnabled ? SearchAniBtVersions : null), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;
         SyncChrome();
@@ -1469,6 +1470,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
 
     bool IShellActions.MoviePilotEnabled =>
         _services?.GetService<Momoka.MoviePilot.MoviePilotService>()?.Available ?? false;
+
+    bool IShellActions.AniBtEnabled => Settings.MoviePilot.AniBtEnabled;
 
     ItemMenuPermissions IShellActions.MenuPermissionsFor(EmbySessionScope scope) =>
         _capabilities?.PermissionsFor(scope.Key) ?? default;

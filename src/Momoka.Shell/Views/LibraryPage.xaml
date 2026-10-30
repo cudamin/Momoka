@@ -399,7 +399,7 @@
                             <tkcontrols:SegmentedItem AutomationProperties.Name="媒体库搜索"><TextBlock Text="媒体库" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                             <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 订阅搜索"><TextBlock Text="MoviePilot 订阅" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                             <tkcontrols:SegmentedItem AutomationProperties.Name="MoviePilot 资源搜索"><TextBlock Text="MoviePilot 资源" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
-                            <tkcontrols:SegmentedItem AutomationProperties.Name="AniBT 搜索"><TextBlock Text="AniBT" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
+                            <tkcontrols:SegmentedItem x:Name="AniBtSourceTab" AutomationProperties.Name="AniBT 搜索"><TextBlock Text="AniBT" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" /></tkcontrols:SegmentedItem>
                         </local:SearchSourceTabs>
                     </Grid>
                 </Border>

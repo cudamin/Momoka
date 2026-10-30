@@ -153,7 +153,7 @@ internal static partial class ItemCommands
         CancellationTokenSource? genreLifetime = null;
         async void ResolveGenre()
         {
-            if (genreLifetime is not null || !shell.MoviePilotEnabled || card.Scope is not { IsAvailable: true } scope ||
+            if (genreLifetime is not null || !shell.MoviePilotEnabled || !shell.AniBtEnabled || card.Scope is not { IsAvailable: true } scope ||
                 !Momoka.AniBt.AniBtEligibility.Supports(card.Item) || Momoka.AniBt.AniBtEligibility.HasGenre(card.Item)) return;
             var lifetime = genreLifetime = new CancellationTokenSource();
             var original = card.Item;
@@ -162,13 +162,13 @@ internal static partial class ItemCommands
                 if (!CanContinue()) return;
                 var eligible = await scope.ExecuteAsync((client, token) =>
                     Momoka.AniBt.AniBtEligibility.ResolveAsync(client, original, token), lifetime.Token);
-                if (!CanContinue() || !eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled) return;
+                if (!CanContinue() || !eligible || lifetime.IsCancellationRequested || !scope.IsAvailable || !card.IsCurrent || card.Item.IdentityKey != original.IdentityKey || !shell.MoviePilotEnabled || !shell.AniBtEnabled) return;
                 var plan = ItemMenu.For(original, true, animeGenre: true,
                     fnNas: scope.Connection.IsFnNas, plex: scope.Connection.IsPlex,
                     aniBtScrapeAvailable: scope.IsCurrent,
                     moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
                     moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
-                    permissions: shell.MenuPermissionsFor(scope));
+                    permissions: shell.MenuPermissionsFor(scope), aniBtEnabled: shell.AniBtEnabled);
                 var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
                 if (versions is not null)
                     menu.Items[menu.Items.IndexOf(versions)] =
@@ -216,7 +216,7 @@ internal static partial class ItemCommands
 
         // AniBT identification still belongs to the default management source, unlike independent searches.
         // Keep an open menu from advertising a now-inapplicable action; reopening recomputes the rows.
-        if (shell.MoviePilotEnabled && card.Scope is { IsAvailable: true } menuScope
+        if (shell.MoviePilotEnabled && shell.AniBtEnabled && card.Scope is { IsAvailable: true } menuScope
             && Momoka.AniBt.AniBtEligibility.Supports(card.Item)
             && ItemMenu.Supports(ItemCommand.AniBtScrape, menuScope.Connection.IsJellyfin, menuScope.Connection.IsFnNas, menuScope.Connection.IsPlex))
         {
@@ -297,7 +297,7 @@ internal static partial class ItemCommands
             plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true,
             moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
             moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
-            permissions: permissions))
+            permissions: permissions, aniBtEnabled: shell.AniBtEnabled))
         {
             if (row.Command is not { } command)
             {
@@ -398,6 +398,7 @@ internal static partial class ItemCommands
         if (card.Scope is not { IsAvailable: true } scope) return;
         if (!ItemMenu.Supports(command, scope.Connection.IsJellyfin, scope.Connection.IsFnNas, scope.Connection.IsPlex)) return;
         if ((ItemMenu.IsMoviePilot(command) || command is ItemCommand.AniBtScrape or ItemCommand.AniBtVersions) && !shell.MoviePilotEnabled) return;
+        if (command is (ItemCommand.AniBtScrape or ItemCommand.AniBtVersions) && !shell.AniBtEnabled) return;
         if (command is ItemCommand.MoviePilotDeleteRecord or ItemCommand.MoviePilotDeleteSource or ItemCommand.MoviePilotDeleteDestination
             or ItemCommand.MoviePilotDeleteAll or ItemCommand.MoviePilotSmartReorganize && !shell.MoviePilotMediaManagementEnabled) return;
         if (command == ItemCommand.MoviePilotSmartReorganize && !shell.MoviePilotSmartReorganizeEnabled) return;

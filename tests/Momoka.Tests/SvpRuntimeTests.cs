@@ -63,6 +63,8 @@ internal static class SvpRuntimeTests
             Assert.Contains("未启动播放", error.Message);
         });
         TestHarness.Test("SVP 通道：其他进程占用被拒绝且收到零命令", () => ForeignPipeAsync().GetAwaiter().GetResult());
+        TestHarness.Test("SVP 通道夹具：收到一个字节不能回报零命令", () => PipeChildReceivesByteAsync().GetAwaiter().GetResult());
+        TestHarness.Test("SVP 通道夹具：真实管道取消或本地关闭不能回报零命令", () => PipeReadErrorsAsync().GetAwaiter().GetResult());
     }
 
     private static async Task OwnPipeAsync()
@@ -79,9 +81,8 @@ internal static class SvpRuntimeTests
         Assert.Equal(0, await pipe.ReadAsync(bytes, deadline.Token));
     }
 
-    private static async Task ForeignPipeAsync()
+    private static Process StartPipeChild(string name)
     {
-        var name = "anonymous-foreign-svp-" + Guid.NewGuid().ToString("N");
         var start = new ProcessStartInfo(Environment.ProcessPath!)
         {
             UseShellExecute = false,
@@ -94,22 +95,93 @@ internal static class SvpRuntimeTests
             start.ArgumentList.Add(typeof(SvpRuntimeTests).Assembly.Location);
         start.ArgumentList.Add("svp-pipe-child");
         start.ArgumentList.Add(name);
-        using var child = Process.Start(start) ?? throw new InvalidOperationException("无法启动匿名管道夹具");
+        return Process.Start(start) ?? throw new InvalidOperationException("无法启动匿名管道夹具");
+    }
+
+    private static async Task ForeignPipeAsync()
+    {
+        var name = "anonymous-foreign-svp-" + Guid.NewGuid().ToString("N");
+        using var child = StartPipeChild(name);
+        var stderr = child.StandardError.ReadToEndAsync();
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
         try
         {
             Assert.Equal("ready", await child.StandardOutput.ReadLineAsync(deadline.Token));
             var error = Assert.Catch<InvalidOperationException>(() => MpvSvpRuntime.VerifyPipeAsync(deadline.Token, name).GetAwaiter().GetResult());
             Assert.Contains("未启动播放", error.Message);
-            Assert.Equal("zero-commands", await child.StandardOutput.ReadLineAsync(deadline.Token));
+            Assert.Contains("进程身份不符", error.InnerException?.Message);
+            var result = await child.StandardOutput.ReadLineAsync(deadline.Token);
             await child.WaitForExitAsync(deadline.Token);
-            Assert.Equal(0, child.ExitCode);
+            var output = await stderr;
+            var diagnostic = $"child-exit={child.ExitCode}; stderr={output}";
+            Assert.Equal("zero-commands", result, diagnostic);
+            Assert.Equal(0, child.ExitCode, diagnostic);
+            Assert.Equal(string.Empty, output, diagnostic);
         }
         finally
         {
             // Only this synthetic test process is owned here; never terminate a user player.
             if (!child.HasExited) child.Kill();
         }
+    }
+
+    private static async Task PipeChildReceivesByteAsync()
+    {
+        var name = "anonymous-svp-byte-" + Guid.NewGuid().ToString("N");
+        using var child = StartPipeChild(name);
+        var stderr = child.StandardError.ReadToEndAsync();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            Assert.Equal("ready", await child.StandardOutput.ReadLineAsync(deadline.Token));
+            await using var client = new NamedPipeClientStream(".", name, PipeDirection.Out,
+                PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly, System.Security.Principal.TokenImpersonationLevel.Anonymous);
+            await client.ConnectAsync(deadline.Token);
+            // Keep the writer open until the child reports the byte, so disconnect cannot hide it.
+            await client.WriteAsync(new byte[] { 0 }, deadline.Token);
+            var result = await child.StandardOutput.ReadLineAsync(deadline.Token);
+            await child.WaitForExitAsync(deadline.Token);
+            var output = await stderr;
+            var diagnostic = $"child-exit={child.ExitCode}; stderr={output}";
+            Assert.Null(result, diagnostic);
+            Assert.Equal(1, child.ExitCode, diagnostic);
+            Assert.Contains(nameof(AssertionException), output);
+            Assert.Contains("bytes-read=1", output);
+        }
+        finally
+        {
+            if (!child.HasExited) child.Kill();
+        }
+    }
+
+    private static async Task PipeReadErrorsAsync()
+    {
+        var name = "anonymous-svp-read-errors-" + Guid.NewGuid().ToString("N");
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        await using var pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+        var connected = pipe.WaitForConnectionAsync(deadline.Token);
+        await using var client = new NamedPipeClientStream(".", name, PipeDirection.Out,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly, System.Security.Principal.TokenImpersonationLevel.Anonymous);
+        await client.ConnectAsync(deadline.Token);
+        await connected;
+        using var canceled = new CancellationTokenSource();
+        var reading = AssertZeroCommandsAsync(pipe, canceled.Token);
+        Assert.False(reading.IsCompleted, "对端仍连接且未发字节，读取不能提前当作 EOF");
+        canceled.Cancel();
+        var error = Assert.Catch<OperationCanceledException>(() => reading.GetAwaiter().GetResult());
+        Assert.Equal(canceled.Token, error.CancellationToken);
+        pipe.Dispose();
+        Assert.Throws<ObjectDisposedException>(() => AssertZeroCommandsAsync(pipe, deadline.Token).GetAwaiter().GetResult());
+    }
+
+    private static async Task AssertZeroCommandsAsync(NamedPipeServerStream pipe, CancellationToken cancellationToken)
+    {
+        // Only a successful EOF read proves zero bytes. Cancellation, local disposal and every IO
+        // error remain failures; a foreign owner being rejected is not permission to swallow them.
+        var bytes = new byte[1];
+        var count = await pipe.ReadAsync(bytes, cancellationToken);
+        Assert.Equal(0, count, $"bytes-read={count}");
     }
 
     internal static int RunPipeChild(string name)
@@ -119,17 +191,18 @@ internal static class SvpRuntimeTests
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(8));
             using var pipe = new NamedPipeServerStream(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
                 PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+            // Arm the accept before ready: an owner-rejecting client may connect and close
+            // immediately. Advertising an unarmed listener can fail accept with ERROR_NO_DATA.
+            var connected = pipe.WaitForConnectionAsync(deadline.Token);
             Console.WriteLine("ready");
-            pipe.WaitForConnectionAsync(deadline.Token).GetAwaiter().GetResult();
-            var bytes = new byte[1];
-            var count = pipe.ReadAsync(bytes, deadline.Token).AsTask().GetAwaiter().GetResult();
-            if (count != 0) return 1;
+            connected.GetAwaiter().GetResult();
+            AssertZeroCommandsAsync(pipe, deadline.Token).GetAwaiter().GetResult();
             Console.WriteLine("zero-commands");
             return 0;
         }
         catch (Exception error)
         {
-            Console.Error.WriteLine(error.GetType().Name);
+            Console.Error.WriteLine($"{error.GetType().Name}; HResult=0x{error.HResult:X8}; {error}");
             return 1;
         }
     }

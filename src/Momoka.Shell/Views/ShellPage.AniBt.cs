@@ -17,7 +17,7 @@ public sealed partial class ShellPage
     {
         if (_services is null || query.Title.Length == 0) return;
         var moviePilot = _services.GetRequiredService<MoviePilotService>();
-        if (!moviePilot.Available) return;
+        if (!moviePilot.Available || !Settings.MoviePilot.AniBtEnabled) return;
         _moviePilotWindow ??= MoviePilotWindow.TryCreate(_window);
         if (_moviePilotWindow is null)
         {
@@ -34,7 +34,7 @@ public sealed partial class ShellPage
     {
         if (_aniBtScrapeShowing || !scope.IsCurrent || _services is null || XamlRoot is null) return;
         var moviePilot = _services.GetRequiredService<MoviePilotService>();
-        if (!moviePilot.Available) return;
+        if (!moviePilot.Available || !Settings.MoviePilot.AniBtEnabled) return;
         _aniBtScrapeShowing = true;
         try
         {
@@ -43,5 +43,7 @@ public sealed partial class ShellPage
         }
         catch (Exception error) { Notify(Failure.Describe(error), InfoBarSeverity.Warning); }
         finally { _aniBtScrapeShowing = false; }
+        // 整理可能已经请求了媒体库重扫；主页若还开着，先核一次有没有新入库，真正的收录仍由服务器扫描完成。
+        if (ContentFrame.Content is HomePage home) _ = home.ViewModel.AutoRefreshAsync();
     }
 }

@@ -13,7 +13,7 @@ namespace Momoka.Tests;
 internal static class AniBtIntegrationTests
 {
     private const string Target = "/library/Anime S01E01.mkv";
-    private const string Sources = """[{"name":"Bangumi","media_source":"bangumi","media_types":["电影","电视剧"]}]""";
+    private const string Sources = """[{"name":"Bangumi","media_source":"bangumi","media_types":["电影","电视剧"]},{"name":"TheMovieDb","media_source":"themoviedb","media_types":["电影","电视剧"]}]""";
     private const string Media = """{"title":"匿名动画","media_source":"bangumi","media_id":"42","type":"电视剧"}""";
     private static readonly AniBtAnime Anime = new("ani_fixture", 42, "匿名动画", Year: 2026);
 
@@ -32,6 +32,11 @@ internal static class AniBtIntegrationTests
                 Assert.True(versions.Children!.Select(row => row.Label).SequenceEqual(new[] { "MoviePilot", "AniBT" }));
                 Assert.True(versions.Children!.Select(row => row.Command!.Value)
                     .SequenceEqual(new[] { ItemCommand.MoviePilotVersions, ItemCommand.AniBtVersions }));
+                var disabled = ItemMenu.For(item, true, aniBtEnabled: false);
+                Assert.False(Flatten(disabled).Any(row => row.Command == ItemCommand.AniBtScrape));
+                var plainVersions = disabled.Single(row => row.Command == ItemCommand.MoviePilotVersions);
+                Assert.Equal("搜索其他版本", plainVersions.Label);
+                Assert.Null(plainVersions.Children);
                 Assert.False(Flatten(ItemMenu.For(item)).Any(row => row.Command == ItemCommand.AniBtScrape));
                 item.Genres.Clear();
                 Assert.Null(ItemMenu.For(item, true).Single(row => row.Command == ItemCommand.MoviePilotVersions).Children);
@@ -401,6 +406,295 @@ internal static class AniBtIntegrationTests
             Assert.False(Json(calls[1].Body).GetProperty("preview").GetBoolean());
         });
 
+        Test("AniBT 同作品新一季：整理身份沿用主剧集 TMDB 编号，季集保留", () =>
+        {
+            const string oldPath = "/library/青之箱 第二季/Season 02/青之箱 第二季 S02E03.mkv";
+            const string mainTarget = "/library/青之箱 (2024)/Season 02/青之箱 S02E03.mkv";
+            const string mainReply = """
+                {"success":true,"data":{"target_storage":"local","target_path":"/library/青之箱 (2024)",
+                 "transfer_type":"softlink","scrape":true,"library_type_folder":false,"library_category_folder":false}}
+                """;
+            var anime = new AniBtAnime("ao-fixture", 548156, "青之箱 第二季", "アオのハコ Season 2", Year: 2026, EpisodeCount: 12);
+            using var transport = BaseTransport()
+                .Answer("media/source", Sources)
+                .Answer("media/548156?", """{"title":"青之箱 第二季","original_title":"アオのハコ Season 2","media_source":"bangumi","media_id":"548156","type":"电视剧"}""")
+                .Answer("media/207347?", """{"title":"青之箱","original_title":"アオのハコ","media_source":"themoviedb","media_id":"207347","type":"电视剧"}""")
+                .Answer("history/transfer", HistoriesJson((7, oldPath)))
+                .Answer("transfer/manual/target-path", mainReply)
+                .Answer("storage/list", FileReply(oldPath))
+                .Sequence("transfer/manual?", (HttpStatusCode.OK, PreviewReply(oldPath, mainTarget)));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var row = new AniBtScrapeRow(oldPath, "青之箱 - 03.mkv",
+                new([anime], anime, "auto", "high", "fixture", 2), History(service, 7, oldPath));
+            // 库内主剧集是「青之箱」，这一集属于第二季；整理身份应是主剧集的 TMDB 207347，而不是 Bangumi 548156。
+            var plan = new AniBtScrapePlan([row], MoviePilotTransferRequest.TypeSeries,
+                service.CaptureAniBtConnection(), IdentifyItem(), 2, "3", "青之箱", "207347");
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport), plan, [anime], default).GetAwaiter().GetResult();
+            Assert.Equal("青之箱 S02E03", prepared.Rows.Single().Heading);
+            Assert.Contains("沿用主剧集", prepared.Rows.Single().Method);
+            Assert.Contains("自动刮削", prepared.Rows.Single().Method);
+            var preview = Json(transport.SentTo("transfer/manual?").Single().Body);
+            Assert.Equal("themoviedb", preview.GetProperty("media_source").GetString());
+            Assert.Equal("207347", preview.GetProperty("media_id").GetString());
+            Assert.Equal(2, preview.GetProperty("season").GetInt32());
+            Assert.Equal("3", preview.GetProperty("episode_detail").GetString());
+            Assert.True(preview.GetProperty("scrape").GetBoolean());
+            var candidateRead = transport.SentTo("media/548156?").Single();
+            var seriesRead = transport.SentTo("media/207347?").Single();
+            Assert.Contains("media_source=bangumi", candidateRead.Url);
+            Assert.Contains("media_source=themoviedb", seriesRead.Url);
+            Assert.Contains("type_name=电视剧", Uri.UnescapeDataString(candidateRead.Url));
+            Assert.Contains("type_name=电视剧", Uri.UnescapeDataString(seriesRead.Url));
+        });
+
+        Test("AniBT 不同作品：不沿用主剧集，仍按所选 Bangumi 身份整理", () =>
+        {
+            const string oldPath = "/library/文化圈 (1990)/Season 01/文化圈 S01E52 1080p.mkv";
+            const string newPath = "/library/药屋少女的呢喃 (2023)/Season 01/药屋少女的呢喃 S01E52 1080p.mkv";
+            var anime = new AniBtAnime("apothecary-fixture", 420628, "药屋少女的呢喃", "薬屋のひとりごと", Year: 2023, EpisodeCount: 24);
+            using var transport = BaseTransport()
+                .Answer("media/source", Sources)
+                .Answer("media/237029?", """{"title":"文化圈","original_title":"文化圈","names":["文化圈"],"media_source":"themoviedb","media_id":"237029","type":"电视剧"}""")
+                .Answer("media/420628?", """{"title":"药屋少女的呢喃","media_source":"bangumi","media_id":"420628","type":"电视剧"}""")
+                .Answer("history/transfer", HistoriesJson((7, oldPath)))
+                .Answer("transfer/manual/target-path", TargetReply)
+                .Answer("storage/list", FileReply(oldPath))
+                .Sequence("transfer/manual?", (HttpStatusCode.OK, PreviewReply(oldPath, newPath)));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var row = new AniBtScrapeRow(oldPath, "Kusuriya no Hitorigoto - 52.mkv",
+                new([anime], anime, "manual", "medium", "low_evidence", 1), History(service, 7, oldPath));
+            var plan = new AniBtScrapePlan([row], MoviePilotTransferRequest.TypeSeries,
+                service.CaptureAniBtConnection(), IdentifyItem(), 1, "52", "文化圈", "237029");
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport), plan, [anime], default).GetAwaiter().GetResult();
+            Assert.Contains("Bangumi 420628", prepared.Rows.Single().Method);
+            var preview = Json(transport.SentTo("transfer/manual?").Single().Body);
+            Assert.Equal("bangumi", preview.GetProperty("media_source").GetString());
+            Assert.Equal("420628", preview.GetProperty("media_id").GetString());
+            Assert.Equal(1, transport.SentTo("media/237029?").Count);
+            Assert.Equal(1, transport.SentTo("media/420628?").Count);
+        });
+
+        foreach (var example in new[]
+        {
+            (Name: "仅标题唯一编号但文件无关", Target: "/library/Other S01E01.mkv", Type: "电视剧", Source: "themoviedb", Id: "207347", Cross: "207347", Expected: ""),
+            (Name: "同文件电影历史", Target, Type: "电影", Source: "themoviedb", Id: "207347", Cross: "207347", Expected: ""),
+            (Name: "Bangumi 辅助 TMDB 号不冒充主身份", Target, Type: "电视剧", Source: "bangumi", Id: "42", Cross: "207347", Expected: ""),
+            (Name: "历史主身份与交叉号冲突", Target, Type: "电视剧", Source: "themoviedb", Id: "207347", Cross: "999", Expected: ""),
+            (Name: "精确文件电视剧主身份", Target, Type: "电视剧", Source: "themoviedb", Id: "207347", Cross: "207347", Expected: "207347")
+        })
+            Test($"AniBT 历史补号：{example.Name}", () =>
+            {
+                var history = HistoryRecord(7, example.Target, example.Type, example.Source, example.Id, example.Cross);
+                using var transport = PrepareTransport(history)
+                    .Answer("media/42?", Media)
+                    .Answer("media/207347?", Media.Replace("bangumi", "themoviedb", StringComparison.Ordinal).Replace("42", "207347", StringComparison.Ordinal))
+                    .Answer("transfer/manual/target-path", TargetReply)
+                    .Answer("storage/list", FileReply(Target))
+                    .Answer("transfer/manual?", PreviewReply(Target));
+                using var service = Service(transport);
+                using var aniBtTransport = new StubTransport().Answer("api/animes/torrent-match", MatchReply);
+                using var client = new AniBtClient(aniBtTransport);
+                var integration = new AniBtService(client, service);
+                var plan = integration.PrepareAsync(Emby(transport), new EmbyItem { Id = "series-1", Type = EmbyItemType.Series }, default).GetAwaiter().GetResult();
+                Assert.Equal(example.Expected, plan.SeriesMediaId);
+                // 无关文件不能成为此行历史；只有标题命中既不能补号，也不能准备该文件的重整。
+                if (example.Target != Target)
+                {
+                    Assert.Null(plan.Rows.Single().History);
+                    Assert.Equal(0, transport.SentTo("media/207347?").Count);
+                    return;
+                }
+                var prepared = integration.PrepareForConfirmationAsync(Emby(transport), plan,
+                    [plan.Rows.Single().Match.Candidates.Single()], default).GetAwaiter().GetResult();
+                Assert.True(prepared.CanSubmit);
+                var preview = Json(transport.SentTo("transfer/manual?").Single().Body);
+                Assert.Equal(example.Expected.Length > 0 ? "themoviedb" : "bangumi", preview.GetProperty("media_source").GetString());
+                Assert.Equal(example.Expected.Length > 0 ? 1 : 0, transport.SentTo("media/207347?").Count);
+                Assert.True(preview.GetProperty("preview").GetBoolean());
+            });
+
+        Test("AniBT 历史补号：已配对的主编号仍须核详情归属，标题相同不能授权另一作品", () =>
+        {
+            using var transport = PrepareTransport(HistoryRecord(7, Target, "电视剧", "themoviedb", "207347", "207347"))
+                .Answer("media/42?", Media)
+                .Answer("media/207347?", """{"title":"另一部作品","media_source":"themoviedb","media_id":"207347","type":"电视剧"}""")
+                .Answer("transfer/manual/target-path", TargetReply)
+                .Answer("storage/list", FileReply(Target))
+                .Answer("transfer/manual?", PreviewReply(Target));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport().Answer("api/animes/torrent-match", MatchReply));
+            var integration = new AniBtService(client, service);
+            var plan = integration.PrepareAsync(Emby(transport),
+                new EmbyItem { Id = "series-1", Type = EmbyItemType.Series }, default).GetAwaiter().GetResult();
+            Assert.Equal("207347", plan.SeriesMediaId);
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport), plan,
+                [plan.Rows.Single().Match.Candidates.Single()], default).GetAwaiter().GetResult();
+            Assert.True(prepared.CanSubmit);
+            Assert.Equal(1, transport.SentTo("media/207347?").Count);
+            Assert.Equal("bangumi", Json(transport.SentTo("transfer/manual?").Single().Body).GetProperty("media_source").GetString());
+        });
+
+        Test("AniBT 历史补号：所选文件的主剧集身份不一致，整批回退 Bangumi", () =>
+        {
+            const string next = "/library/Anime S01E02.mkv";
+            using var transport = PrepareTransport(
+                HistoryRecord(7, Target, "电视剧", "themoviedb", "207347", "207347"),
+                HistoryRecord(8, next, "电视剧", "themoviedb", "999", "999"))
+                .Answer("Users/user/Items?", JsonSerializer.Serialize(new
+                {
+                    Items = new[] { Target, next }.Select((path, index) => new { Id = $"episode-{index + 1}", Name = "匿名动画", Type = "Episode", Path = path }),
+                    TotalRecordCount = 2
+                }));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport().Answer("api/animes/torrent-match", MatchReply));
+            var plan = new AniBtService(client, service).PrepareAsync(Emby(transport),
+                new EmbyItem { Id = "series-1", Type = EmbyItemType.Series }, default).GetAwaiter().GetResult();
+            Assert.Equal("", plan.SeriesMediaId);
+            Assert.Equal(2, plan.Rows.Count);
+        });
+
+        Test("AniBT 跨语言主剧集：库内名及已核验候选别名分别命中，批次详情缓存但季集不丢", () =>
+        {
+            const string next = "/library/Anime S01E02.mkv";
+            using var transport = TransferTransport(Target, next)
+                .Answer("media/42?", """{"title":"アオのハコ Season 2","original_title":"アオのハコ Season 2","names":["Blue Box Season 2"],"media_source":"bangumi","media_id":"42","type":"电视剧"}""")
+                .Answer("storage/list", JsonSerializer.Serialize(new { success = true, data = new[] { Target, next }.Select(path => new { storage = "local", type = "file", path }) }))
+                .Sequence("transfer/manual?", (HttpStatusCode.OK, PreviewReply(Target)), (HttpStatusCode.OK, PreviewReply(next)))
+                .Answer("media/207347?", """{"title":"青之箱","original_title":"アオのハコ","names":["Blue Box"],"media_source":"themoviedb","media_id":207347,"type":"电视剧"}""");
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var anime = Anime with { Title = "Blue Box Season 2", OriginalTitle = "", Format = "TV" };
+            var rows = new[] { Target, next }.Select((path, index) => new AniBtScrapeRow(path,
+                $"Blue Box S02E0{index + 1}.mkv", new([anime], anime, "auto", "high", "fixture", 2),
+                History(service, 7 + index, path))).ToArray();
+            var plan = new AniBtScrapePlan(rows, MoviePilotTransferRequest.TypeSeries,
+                service.CaptureAniBtConnection(), IdentifyItem(), 2, "", "青之箱", "207347");
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport), plan, [anime, anime], default).GetAwaiter().GetResult();
+            Assert.True(prepared.CanSubmit);
+            Assert.True(prepared.Rows.All(row => row.Title == "青之箱" && row.Method.Contains("沿用主剧集", StringComparison.Ordinal)));
+            var calls = transport.SentTo("transfer/manual?");
+            Assert.Equal(2, calls.Count);
+            Assert.True(calls.All(call => Json(call.Body).GetProperty("media_source").GetString() == "themoviedb"));
+            Assert.True(calls.All(call => Json(call.Body).GetProperty("season").GetInt32() == 2));
+            Assert.Equal("1", Json(calls[0].Body).GetProperty("episode_detail").GetString());
+            Assert.Equal("2", Json(calls[1].Body).GetProperty("episode_detail").GetString());
+            Assert.Equal(1, transport.SentTo("media/42?").Count);
+            Assert.Equal(1, transport.SentTo("media/207347?").Count);
+        });
+
+        Test("AniBT 沿用主剧集仍要求 Bangumi 模块：无模块时不凭 TMDB 可用放行", () =>
+        {
+            using var transport = TransferTransport(Target)
+                .Answer("media/source", """[{"name":"TheMovieDb","media_source":"themoviedb","media_types":["电视剧"]}]""");
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            Assert.Throws<MoviePilotOperationBlockedException>(() => integration.PrepareForConfirmationAsync(
+                Emby(transport), SeriesPlan(service, "匿名动画", "207347"), [Anime], default).GetAwaiter().GetResult());
+            Assert.Equal(0, transport.SentTo("media/42?").Count);
+            Assert.Equal(0, transport.SentTo("media/207347?").Count);
+            Assert.Equal(0, transport.SentTo("transfer/manual?").Count);
+        });
+
+        foreach (var invalid in new[]
+        {
+            (Name: "同名电影", Media: """{"title":"匿名动画","media_source":"bangumi","media_id":"42","type":"电影"}"""),
+            (Name: "错误来源", Media: Media.Replace("bangumi", "themoviedb", StringComparison.Ordinal)),
+            (Name: "错误编号", Media: Media.Replace("42", "43", StringComparison.Ordinal))
+        })
+            Test($"AniBT 主剧集快路径禁止：{invalid.Name}候选不得绕过 Bangumi 核验", () =>
+            {
+                using var transport = TransferTransport(Target).Answer("media/42?", invalid.Media);
+                using var service = Service(transport);
+                using var client = new AniBtClient(new StubTransport());
+                var integration = new AniBtService(client, service);
+                var anime = invalid.Name == "同名电影" ? Anime with { Format = "MOVIE" } : Anime;
+                var plan = SeriesPlan(service, "匿名动画", "207347", anime);
+                Assert.Throws<MoviePilotOperationBlockedException>(() => integration.PrepareForConfirmationAsync(
+                    Emby(transport), plan, [anime], default).GetAwaiter().GetResult());
+                Assert.Equal(1, transport.SentTo("media/42?").Count);
+                Assert.Equal(0, transport.SentTo("media/207347?").Count);
+                Assert.Equal(0, transport.SentTo("transfer/manual?").Count);
+            });
+
+        foreach (var invalid in new[]
+        {
+            (Name: "错误来源", Media: """{"title":"匿名动画","media_source":"bangumi","media_id":"207347","type":"电视剧"}"""),
+            (Name: "错误编号", Media: """{"title":"匿名动画","media_source":"themoviedb","media_id":"999","type":"电视剧"}"""),
+            (Name: "电影类型", Media: """{"title":"匿名动画","media_source":"themoviedb","media_id":"207347","type":"电影"}""")
+        })
+            Test($"AniBT TMDB 主剧集详情{invalid.Name}：明确冲突拒绝，零预览且不降级掩盖", () =>
+            {
+                using var transport = TransferTransport(Target).Answer("media/207347?", invalid.Media);
+                using var service = Service(transport);
+                using var client = new AniBtClient(new StubTransport());
+                var integration = new AniBtService(client, service);
+                Assert.Throws<MoviePilotOperationBlockedException>(() => integration.PrepareForConfirmationAsync(
+                    Emby(transport), SeriesPlan(service, "匿名动画", "207347"), [Anime], default).GetAwaiter().GetResult());
+                Assert.Equal(1, transport.SentTo("media/42?").Count);
+                Assert.Equal(1, transport.SentTo("media/207347?").Count);
+                Assert.Equal(0, transport.SentTo("transfer/manual?").Count);
+            });
+
+        foreach (var mismatch in new[]
+        {
+            (Name: "库内标题与编号归属不符", Library: "匿名动画", Bangumi: "匿名动画", Tmdb: "另一部作品"),
+            (Name: "来源标题与真实候选作品不符", Library: "匿名动画", Bangumi: "另一部作品", Tmdb: "匿名动画"),
+            (Name: "候选与主剧集同名但库内归属不符", Library: "误识别作品", Bangumi: "匿名动画", Tmdb: "匿名动画")
+        })
+            Test($"AniBT {mismatch.Name}：不使另一部作品错误沿用系列 ID", () =>
+            {
+                using var transport = TransferTransport(Target)
+                    .Answer("media/42?", Media.Replace("匿名动画", mismatch.Bangumi, StringComparison.Ordinal))
+                    .Answer("media/207347?", Media.Replace("bangumi", "themoviedb", StringComparison.Ordinal)
+                        .Replace("42", "207347", StringComparison.Ordinal).Replace("匿名动画", mismatch.Tmdb, StringComparison.Ordinal));
+                using var service = Service(transport);
+                using var client = new AniBtClient(new StubTransport());
+                var integration = new AniBtService(client, service);
+                var prepared = integration.PrepareForConfirmationAsync(Emby(transport),
+                    SeriesPlan(service, mismatch.Library, "207347"), [Anime], default).GetAwaiter().GetResult();
+                Assert.True(prepared.CanSubmit);
+                Assert.Equal("bangumi", Json(transport.SentTo("transfer/manual?").Single().Body).GetProperty("media_source").GetString());
+                Assert.Equal(1, transport.SentTo("media/207347?").Count);
+            });
+
+        Test("AniBT TMDB 详情暂不可用：已验证 Bangumi 回退，不发真实整理", () =>
+        {
+            using var transport = TransferTransport(Target).Answer("media/207347?", "{}");
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport),
+                SeriesPlan(service, "匿名动画", "207347"), [Anime], default).GetAwaiter().GetResult();
+            Assert.True(prepared.CanSubmit);
+            Assert.Equal(2, transport.SentTo("media/207347?").Count);
+            Assert.Equal("bangumi", Json(transport.SentTo("transfer/manual?").Single().Body).GetProperty("media_source").GetString());
+            Assert.True(transport.SentTo("transfer/manual?").All(call => Json(call.Body).GetProperty("preview").GetBoolean()));
+        });
+
+        Test("AniBT 动漫电影计划：仍核 Bangumi，不进入主剧集 TMDB 沿用", () =>
+        {
+            using var transport = TransferTransport(Target).Answer("media/42?", Media.Replace("电视剧", "电影", StringComparison.Ordinal));
+            using var service = Service(transport);
+            using var client = new AniBtClient(new StubTransport());
+            var integration = new AniBtService(client, service);
+            var plan = new AniBtScrapePlan([new(Target, "匿名动画.mkv", new([Anime], Anime, "auto", "high", "fixture", null),
+                History(service, 7, Target))], MoviePilotTransferRequest.TypeMovie, service.CaptureAniBtConnection(),
+                new EmbyItem { Id = "movie-1", Type = EmbyItemType.Movie }, null, "", "匿名动画", "207347");
+            var prepared = integration.PrepareForConfirmationAsync(Emby(transport), plan, [Anime], default).GetAwaiter().GetResult();
+            Assert.True(prepared.CanSubmit);
+            Assert.Equal(1, transport.SentTo("media/42?").Count);
+            Assert.Equal(0, transport.SentTo("media/207347?").Count);
+            var body = Json(transport.SentTo("transfer/manual?").Single().Body);
+            Assert.Equal("bangumi", body.GetProperty("media_source").GetString());
+            Assert.Equal("电影", body.GetProperty("type_name").GetString());
+        });
+
         Test("AniBT 空媒体详情：仅一次只读重查，不把空回话当错误身份", () =>
         {
             using var transport = TransferTransport(Target)
@@ -643,6 +937,43 @@ internal static class AniBtIntegrationTests
     {
         var record = MoviePilotTransferHistory.Parse(Json(HistoriesJson((id, target))).GetProperty("list")[0])!;
         return record with { ConnectionStamp = service.ConnectionStamp };
+    }
+
+    private const string MatchReply = """
+        {"version":3,"candidates":[{"animeId":"ani_fixture","bgmId":42,"anime":{"_id":"ani_fixture","bgmId":42,
+        "title":{"chinese":"匿名动画"},"format":"TV"}}],"decision":{"kind":"manual","confidence":"low","reason":"fixture"}}
+        """;
+
+    private static object HistoryRecord(long id, string path, string type, string source, string mediaId, string tmdbId) => new
+    {
+        id,
+        title = "匿名动画",
+        type,
+        media_source = source,
+        media_id = mediaId,
+        tmdbid = tmdbId,
+        mode = "move",
+        status = true,
+        src_fileitem = new { storage = "local", type = "file", path = "/downloads/Original.mkv" },
+        dest_fileitem = new { storage = "local", type = "file", path }
+    };
+
+    private static StubTransport PrepareTransport(params object[] histories) => BaseTransport()
+        .Answer("Users/user/Items/series-1", """{"Id":"series-1","Type":"Series","Name":"匿名动画"}""")
+        .Answer("Users/user/Items?", JsonSerializer.Serialize(new
+        {
+            Items = new[] { new { Id = "episode-1", Name = "匿名动画", Type = "Episode", Path = Target } },
+            TotalRecordCount = 1
+        }))
+        .Answer("media/source", Sources)
+        .Answer("history/transfer", JsonSerializer.Serialize(new { list = histories, total = histories.Length }));
+
+    private static AniBtScrapePlan SeriesPlan(MoviePilotService service, string title, string mediaId,
+        AniBtAnime? anime = null)
+    {
+        var choice = anime ?? Anime;
+        return new([new(Target, "匿名动画 S01E01.mkv", new([choice], choice, "auto", "high", "fixture", 1), History(service, 7, Target))],
+            MoviePilotTransferRequest.TypeSeries, service.CaptureAniBtConnection(), IdentifyItem(), 1, "1", title, mediaId);
     }
 
     private static string HistoriesJson(params (long Id, string Target)[] records) => JsonSerializer.Serialize(new

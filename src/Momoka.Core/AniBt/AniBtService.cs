@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.MoviePilot;
 
@@ -20,7 +22,7 @@ public sealed class AniBtScrapePlan
     private int _submitting;
 
     internal AniBtScrapePlan(IReadOnlyList<AniBtScrapeRow> rows, string type, MoviePilotAniBtConnection connection,
-        EmbyItem item, int? season, string episode)
+        EmbyItem item, int? season, string episode, string seriesTitle = "", string seriesMediaId = "")
     {
         Rows = Array.AsReadOnly(rows.ToArray());
         Type = type;
@@ -28,6 +30,8 @@ public sealed class AniBtScrapePlan
         Item = item;
         Season = season;
         Episode = episode;
+        SeriesTitle = seriesTitle;
+        SeriesMediaId = seriesMediaId;
     }
 
     public IReadOnlyList<AniBtScrapeRow> Rows { get; }
@@ -36,6 +40,10 @@ public sealed class AniBtScrapePlan
     internal EmbyItem Item { get; }
     internal int? Season { get; }
     internal string Episode { get; }
+
+    /// <summary>库内这一条所属剧集的名字与 TMDB 编号；为空时只按 AniBT 的 Bangumi 身份整理。</summary>
+    internal string SeriesTitle { get; }
+    internal string SeriesMediaId { get; }
 
     internal void EnsureNotSubmitted()
     {
@@ -159,6 +167,7 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
 
     public async Task<AniBtScrapePlan> PrepareAsync(EmbyClient emby, EmbyItem item, CancellationToken cancellationToken)
     {
+        var started = Stopwatch.GetTimestamp();
         var connection = moviePilot.CaptureAniBtConnection();
         if (!AniBtEligibility.CanIdentify(item)
             && !await AniBtEligibility.ResolveAsync(emby, item, cancellationToken).ConfigureAwait(false))
@@ -166,26 +175,66 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         var context = await MoviePilotTransferCollect.CollectAsync(emby, item, cancellationToken, seriesFiles: true).ConfigureAwait(false);
         moviePilot.CheckAniBtConnection(connection, cancellationToken);
         if (context.Files.Count == 0) throw new MoviePilotException("此条目没有可识别的单个视频文件");
-        var rows = new List<AniBtScrapeRow>(context.Files.Count);
         var histories = await moviePilot.FindTransferHistoriesAsync(context.Title, cancellationToken).ConfigureAwait(false);
         moviePilot.CheckAniBtConnection(connection, cancellationToken);
-        foreach (var file in context.Files)
+
+        var rows = new AniBtScrapeRow[context.Files.Count];
+        using var failed = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        try
         {
-            var matches = MoviePilotTransferHistoryMatch.Candidates(histories, file.Path);
-            if (matches.Count == 0)
-            {
-                var byPath = await moviePilot.FindTransferHistoriesAsync(file.Path, cancellationToken).ConfigureAwait(false);
-                moviePilot.CheckAniBtConnection(connection, cancellationToken);
-                matches = MoviePilotTransferHistoryMatch.Candidates(byPath, file.Path);
-            }
-            var sourceName = SourceName(file.Path, matches);
-            var match = await client.MatchAsync(sourceName, cancellationToken).ConfigureAwait(false);
-            moviePilot.CheckAniBtConnection(connection, cancellationToken);
-            rows.Add(new(file.Path, sourceName, match, matches.Count == 1 ? matches[0] : null));
+            // 每个文件的匹配互不依赖；整剧最多三十个文件，串行等每一条 AniBT 回话会把识别拖得很长。
+            await Parallel.ForEachAsync(Enumerable.Range(0, context.Files.Count),
+                new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = failed.Token },
+                async (index, token) =>
+                {
+                    var file = context.Files[index];
+                    var matches = MoviePilotTransferHistoryMatch.Candidates(histories, file.Path);
+                    if (matches.Count == 0)
+                    {
+                        var byPath = await moviePilot.FindTransferHistoriesAsync(file.Path, token).ConfigureAwait(false);
+                        moviePilot.CheckAniBtConnection(connection, token);
+                        matches = MoviePilotTransferHistoryMatch.Candidates(byPath, file.Path);
+                    }
+                    var sourceName = SourceName(file.Path, matches);
+                    var match = await client.MatchAsync(sourceName, token).ConfigureAwait(false);
+                    moviePilot.CheckAniBtConnection(connection, token);
+                    rows[index] = new(file.Path, sourceName, match, matches.Count == 1 ? matches[0] : null);
+                }).ConfigureAwait(false);
         }
+        catch
+        {
+            failed.Cancel();
+            throw;
+        }
+        // 电影不能沿用主剧集身份。缺少库内编号时，只从本批文件精确配对的历史主身份补号，
+        // 不接受标题搜索里别的文件或 Bangumi 历史的辅助 tmdbid；详情归属在确认准备时再核验。
+        var seriesMediaId = context.Type == MoviePilotTransferRequest.TypeSeries
+            ? context.MediaId.Length > 0 ? context.MediaId : FindSeriesTmdbId(context, rows)
+            : "";
+        Log.Info("anibt", $"识别准备完成：{rows.Length} 个文件，用时 {Stopwatch.GetElapsedTime(started).TotalSeconds:0.0} 秒");
         return new(rows, context.Type, connection, item, context.Season,
-            context.Files.Count == 1 ? context.Episode : "");
+            context.Files.Count == 1 ? context.Episode : "", context.Title, seriesMediaId);
     }
+
+    private static string FindSeriesTmdbId(MoviePilotTransferContext context, IReadOnlyList<AniBtScrapeRow> rows)
+    {
+        string? mediaId = null;
+        foreach (var row in rows)
+        {
+            if (row.History is not { } history || !history.Matches(row.TargetPath)
+                || history.Type != MoviePilotTransferRequest.TypeSeries || history.MediaSource != "themoviedb"
+                || !IsPositiveId(history.MediaId)
+                || history.TmdbId.Length > 0 && history.TmdbId != history.MediaId
+                || !AniBtSeriesIdentity.SameSeries([history.Title], [context.Title]))
+                return "";
+            if (mediaId is not null && mediaId != history.MediaId) return "";
+            mediaId = history.MediaId;
+        }
+        return mediaId ?? "";
+    }
+
+    private static bool IsPositiveId(string value) => long.TryParse(value, NumberStyles.None,
+        CultureInfo.InvariantCulture, out var id) && id > 0;
 
     internal static string SourceName(string targetPath, IReadOnlyList<MoviePilotTransferHistory> histories)
     {
@@ -200,6 +249,7 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
     public async Task<AniBtPreparedScrapePlan> PrepareForConfirmationAsync(EmbyClient emby, AniBtScrapePlan plan,
         IReadOnlyList<AniBtAnime> choices, CancellationToken cancellationToken, Func<bool>? canContinue = null)
     {
+        var started = Stopwatch.GetTimestamp();
         moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
         plan.EnsureNotSubmitted();
         if (choices.Count != plan.Rows.Count || choices.Count == 0)
@@ -209,6 +259,28 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
         var transfers = new List<AniBtPreparedTransfer>();
         var identify = new List<(int Index, AniBtAnime Choice)>();
         var rows = new AniBtScrapeConfirmationRow[plan.Rows.Count];
+        MoviePilotAniBtMediaInfo? seriesMedia = null;
+        var seriesMediaRead = false;
+        var candidates = new Dictionary<long, MoviePilotAniBtMediaInfo>();
+
+        // 同名也必须核验编号对应的作品；详情失败可回退 Bangumi，但明确身份/类型冲突不能吞掉。
+        // 主剧集详情与同一 Bangumi 候选在本批次只读取一次。
+        async Task<MoviePilotAniBtMediaInfo?> SeriesMediaAsync()
+        {
+            if (seriesMediaRead) return seriesMedia;
+            seriesMediaRead = true;
+            try
+            {
+                seriesMedia = await moviePilot.ReadAniBtMediaAsync("themoviedb", plan.SeriesMediaId, plan.Type,
+                    plan.Connection, cancellationToken).ConfigureAwait(false);
+                moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (MoviePilotOperationBlockedException) { throw; }
+            catch (MoviePilotException) { seriesMedia = null; }
+            return seriesMedia;
+        }
+
         // 所有 MoviePilot 预览和最终 Emby 候选全部准备好，才把同一份凭证交回用户。
         for (var index = 0; index < plan.Rows.Count; index++)
         {
@@ -224,7 +296,14 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
             }
             var numbering = plan.Type == MoviePilotTransferRequest.TypeSeries
                 ? AniBtScrapeNumbering.Resolve(row, plan.Season, plan.Episode) : new(null, "");
-            var transfer = await moviePilot.PrepareAniBtTransferAsync(row.TargetPath, choice, plan.Type, history,
+            if (!candidates.TryGetValue(choice.BgmId, out var candidate))
+            {
+                candidate = await moviePilot.VerifyAniBtCandidateAsync(choice, plan.Type, plan.Connection, cancellationToken)
+                    .ConfigureAwait(false);
+                candidates.Add(choice.BgmId, candidate);
+            }
+            var target = await ResolveTargetAsync(choice, candidate, plan, SeriesMediaAsync).ConfigureAwait(false);
+            var transfer = await moviePilot.PrepareAniBtTransferAsync(row.TargetPath, choice, candidate, target, plan.Type, history,
                 numbering.Season, numbering.Episode, plan.Connection, cancellationToken).ConfigureAwait(false);
             moviePilot.CheckAniBtConnection(plan.Connection, cancellationToken);
             CheckContinuation(canContinue, cancellationToken);
@@ -245,6 +324,8 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 "move" => "移动",
                 _ => "按目录设置"
             };
+            method += target.MediaSource == "themoviedb" ? " · 沿用主剧集" : " · Bangumi " + target.MediaId;
+            method += " · 自动刮削";
             var source = MoviePilotTransfer.Text(transfer.File, "path");
             var destination = preview.Result.Items.Single().Target;
             var warning = preview.Request.TransferType switch
@@ -253,10 +334,10 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                 "softlink" or "link" or "copy" => "保留源文件，替换旧目标；同名文件可能覆盖。",
                 _ => "源文件和旧目标按目录设置处理，同名文件可能覆盖。"
             };
-            var heading = $"{choice.Title}{(numbering.Label.Length > 0 ? " " + numbering.Label : "")}";
+            var heading = $"{target.Title}{(numbering.Label.Length > 0 ? " " + numbering.Label : "")}";
             rows[index] = new(row.TargetPath, heading, $"{method}\n源：{source}\n目标：{destination}\n{warning}")
             {
-                Title = choice.Title,
+                Title = target.Title,
                 EpisodeLabel = numbering.Label,
                 Method = method,
                 SourcePath = source,
@@ -290,13 +371,38 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                     Warning = warning
                 };
         }
+        Log.Info("anibt", $"整理目标读取完成：{plan.Rows.Count} 个文件，用时 {Stopwatch.GetElapsedTime(started).TotalSeconds:0.0} 秒");
         return new(this, plan, connection, selected, transfers, identify.Select(item => item.Index).ToArray(), identifyPlan, rows);
+    }
+
+    /// <summary>
+    /// 候选是同一部作品的新一季时，整理身份改用库内主剧集已有的 TMDB 编号：MoviePilot 会把它写进主剧集目录，
+    /// 而不是按 Bangumi 的季名新建一部剧。候选与库内剧集不是同一部时仍用 Bangumi，保留修正误识别的能力。
+    /// </summary>
+    private static async Task<MoviePilotAniBtTarget> ResolveTargetAsync(AniBtAnime choice,
+        MoviePilotAniBtMediaInfo candidate, AniBtScrapePlan plan, Func<Task<MoviePilotAniBtMediaInfo?>> seriesMedia)
+    {
+        if (plan.Type == MoviePilotTransferRequest.TypeSeries && IsPositiveId(plan.SeriesMediaId))
+        {
+            var media = await seriesMedia().ConfigureAwait(false);
+            if (media is not null)
+            {
+                string[] seriesTitles = [media.Title, media.OriginalTitle, .. media.Names];
+                // 库内标题和候选标题各自都必须对应经过身份/类型核验的主剧集；不能让两份错误标题互相作证。
+                // AniBT 来源标题仅用于显示，不覆盖 Bangumi 详情的归属，尤其不能把同名电影当成新一季。
+                if (AniBtSeriesIdentity.SameSeries([plan.SeriesTitle], seriesTitles)
+                    && AniBtSeriesIdentity.SameSeries([candidate.Title, candidate.OriginalTitle, .. candidate.Names], seriesTitles))
+                    return new("themoviedb", plan.SeriesMediaId, media.Title);
+            }
+        }
+        return new("bangumi", choice.BgmId.ToString(CultureInfo.InvariantCulture), candidate.Title);
     }
 
     /// <summary>只消费已显示并由“重新整理”确认的凭证，不重新搜索/预览，不接受任意新请求或新目标。</summary>
     public async Task<IReadOnlyList<AniBtScrapeResult>> SubmitAsync(EmbyClient emby, AniBtPreparedScrapePlan prepared,
         CancellationToken cancellationToken, Func<bool>? canContinue = null)
     {
+        var started = Stopwatch.GetTimestamp();
         var plan = prepared.Plan;
         try
         {
@@ -394,6 +500,7 @@ public sealed class AniBtService(AniBtClient client, MoviePilotService moviePilo
                         : "整理完成 · 媒体库重扫未完成，请手动扫描"
                 };
         }
+        Log.Info("anibt", $"重新整理提交完成：{outcomes.Length} 个文件，用时 {Stopwatch.GetElapsedTime(started).TotalSeconds:0.0} 秒");
         return [.. outcomes];
     }
 

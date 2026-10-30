@@ -149,6 +149,48 @@ internal static class Program
             Assert.Equal(0, f.Actions.Scrapes);
             return Task.CompletedTask;
         });
+        Case("设置关闭 AniBT 后识别和版本来源都消失且直接命令被拒绝", () =>
+        {
+            using var f = new EntryFixture(_root);
+            f.Actions.SetAniBt(false);
+            var menu = f.Build();
+            Assert.False(f.HasScrape(menu));
+            Assert.False(menu.Items.OfType<MenuFlyoutSubItem>().Any(row => row.Tag is ItemCommand.MoviePilotVersions));
+            f.DirectScrape();
+            Assert.Equal(0, f.Actions.Scrapes);
+            f.Actions.SetAniBt(true);
+            Assert.True(f.HasScrape(f.Build()));
+            return Task.CompletedTask;
+        });
+        Case("打开菜单时关闭 AniBT 收起嵌套识别且旧行不会复活", () =>
+        {
+            using var f = new EntryFixture(_root);
+            var menu = f.Show();
+            var oldScrape = EntryFixture.Scrape(menu);
+            Assert.True(menu.OpenForFixture);
+            f.Actions.SetAniBt(false);
+            Assert.False(menu.OpenForFixture);
+            f.Actions.SetAniBt(true);
+            oldScrape.ClickForFixture();
+            Assert.Equal(0, f.Actions.Scrapes);
+            Assert.True(f.HasScrape(f.Build()));
+            return Task.CompletedTask;
+        });
+        Case("菜单中 AniBT 开启原地补回子项且 MoviePilot 操作保持", () =>
+        {
+            using var f = new EntryFixture(_root);
+            f.Actions.SetAniBt(false);
+            var menu = f.Show();
+            Assert.True(menu.OpenForFixture);
+            Assert.False(f.HasScrape(menu));
+            f.Actions.SetAniBt(true);
+            Assert.True(menu.OpenForFixture);
+            Assert.True(f.HasScrape(menu));
+            EntryFixture.ClickSearch(menu, ItemCommand.MoviePilotVersions);
+            Assert.Equal(1, f.Actions.MoviePilotSearches);
+            menu.Hide();
+            return Task.CompletedTask;
+        });
         Case("非当前来源直接旧命令拒绝", () =>
         {
             using var f = new EntryFixture(_root);

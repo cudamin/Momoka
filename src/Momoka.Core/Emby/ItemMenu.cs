@@ -174,22 +174,23 @@ public static class ItemMenu
     public static IReadOnlyList<ItemMenuEntry> For(EmbyItem item, bool moviePilotEnabled = false, bool animeGenre = false,
         bool jellyfin = false, bool fnNas = false, bool plex = false, bool aniBtScrapeAvailable = true,
         bool moviePilotManagementAvailable = false, bool moviePilotSmartAvailable = false,
-        ItemMenuPermissions permissions = default) => fnNas
+        ItemMenuPermissions permissions = default, bool aniBtEnabled = true) => fnNas
         ? Join(Opening(item, false), UserState(item, true), FnNasManagement(item),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
-                manualReorganize: false), Navigation(item))
+                manualReorganize: false, aniBtEnabled: aniBtEnabled), Navigation(item))
         // Plex answers 已观看/未观看 but has no per-item favourite, so that row is left out rather than
         // offered and then refused.
         : plex
         ? Join(Opening(item, false), UserState(item, true, favorites: false),
             MoviePilotBlock(item, moviePilotEnabled, animeGenre, false, moviePilotManagementAvailable, moviePilotSmartAvailable,
-                manualReorganize: false), Navigation(item))
+                manualReorganize: false, aniBtEnabled: aniBtEnabled), Navigation(item))
         : Join(
         Opening(item, jellyfin),
         MissingEpisodes(item),
         UserState(item, jellyfin),
         Organising(item, jellyfin, permissions),
-        MoviePilotBlock(item, moviePilotEnabled, animeGenre, aniBtScrapeAvailable, moviePilotManagementAvailable, moviePilotSmartAvailable),
+        MoviePilotBlock(item, moviePilotEnabled, animeGenre, aniBtScrapeAvailable, moviePilotManagementAvailable, moviePilotSmartAvailable,
+            aniBtEnabled: aniBtEnabled),
         Metadata(item, jellyfin, permissions),
         Navigation(item),
         Destructive(item, jellyfin, permissions));
@@ -336,7 +337,7 @@ public static class ItemMenu
     /// 子菜单一个可用条目都没有时整组不出现。删除范围在确认表完整说明，菜单仍遵守七字以内的既有约定。
     /// </summary>
     private static List<ItemMenuEntry> MoviePilotBlock(EmbyItem item, bool enabled, bool animeGenre, bool canScrape,
-        bool canManage, bool canSmartReorganize, bool manualReorganize = true)
+        bool canManage, bool canSmartReorganize, bool manualReorganize = true, bool aniBtEnabled = true)
     {
         if (!enabled || !MoviePilotVersionQuery.Supports(item)) return [];
         List<ItemMenuEntry> rows =
@@ -349,7 +350,7 @@ public static class ItemMenu
         if (canManage && canSmartReorganize)
             reorganize.Add(new(ItemCommand.MoviePilotSmartReorganize,
                 item.Type is EmbyItemType.Series or EmbyItemType.Season ? "智能批量整理" : "智能整理"));
-        if (canScrape && AniBt.AniBtEligibility.CanIdentify(item, animeGenre))
+        if (aniBtEnabled && canScrape && AniBt.AniBtEligibility.CanIdentify(item, animeGenre))
             reorganize.Add(new(ItemCommand.AniBtScrape, "AniBT 识别"));
         if (reorganize.Count > 0)
             rows.Add(new(ItemCommand.MoviePilotReorganizeMenu, "重新整理", reorganize));
@@ -362,7 +363,7 @@ public static class ItemMenu
                 new(ItemCommand.MoviePilotDeleteDestination, "删记录和库文件"),
                 new(ItemCommand.MoviePilotDeleteAll, "删除记录及两端")
             ]));
-        if (AniBt.AniBtEligibility.Supports(item) && (animeGenre || AniBt.AniBtEligibility.HasGenre(item)))
+        if (aniBtEnabled && AniBt.AniBtEligibility.Supports(item) && (animeGenre || AniBt.AniBtEligibility.HasGenre(item)))
             rows[0] = new(ItemCommand.MoviePilotVersions, "搜索不同版本",
                 [new(ItemCommand.MoviePilotVersions, "MoviePilot"), new(ItemCommand.AniBtVersions, "AniBT")]);
         return rows;

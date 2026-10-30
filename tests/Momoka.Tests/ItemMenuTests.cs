@@ -589,6 +589,29 @@ internal static class ItemMenuTests
                 Assert.False(menu.Any(row => row.Command == ItemCommand.MoviePilotReorganizeMenu), "空组仍在顶层");
         });
 
+        Test("更多菜单：AniBT 关闭保留重整分组、管理权限及普通版本搜索", () =>
+        {
+            foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin, MediaServerKind.FnNas, MediaServerKind.Plex })
+            {
+                var item = new EmbyItem { Type = EmbyItemType.Episode, Genres = ["动画"] };
+                IReadOnlyList<ItemMenuEntry> Menu(bool enabled) => ItemMenu.For(item, moviePilotEnabled: true,
+                    jellyfin: kind == MediaServerKind.Jellyfin, fnNas: kind == MediaServerKind.FnNas,
+                    plex: kind == MediaServerKind.Plex, moviePilotManagementAvailable: true,
+                    moviePilotSmartAvailable: true, aniBtEnabled: enabled);
+                var enabled = Menu(true);
+                var disabled = Menu(false);
+                var commands = disabled.SelectMany(row => new[] { row.Command }.Concat(
+                    row.Children?.Select(child => child.Command) ?? []));
+                Assert.False(commands.Any(command => command is ItemCommand.AniBtScrape or ItemCommand.AniBtVersions));
+                var reorganize = disabled.Single(row => row.Command == ItemCommand.MoviePilotReorganizeMenu);
+                Assert.True(reorganize.Children!.Any(row => row.Command == ItemCommand.MoviePilotSmartReorganize));
+                Assert.True(disabled.Any(row => row.Command == ItemCommand.MoviePilotMediaManagement));
+                var versions = disabled.Single(row => row.Command == ItemCommand.MoviePilotVersions);
+                Assert.Null(versions.Children);
+                Assert.Equal(enabled.Single(row => row.Command == ItemCommand.MoviePilotReorganizeMenu).Children!
+                    .Count(row => row.Command != ItemCommand.AniBtScrape), reorganize.Children!.Count);
+            }
+        });
         Test("更多菜单：没开 MoviePilot 时谁都没有「搜索其他版本」那一条", () =>
         {
             foreach (var item in (EmbyItem[])[

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Momoka.AniBt;
+using Momoka.Configuration;
 using Momoka.Emby;
 
 namespace Momoka.Shell.Views;
@@ -11,6 +12,7 @@ internal sealed partial class ShellPage
     private const string Category = "shell";
     private readonly IServiceProvider? _services;
     private readonly EmbySession? _session;
+    internal AppSettings Settings { get; } = new();
     internal FrameworkElement Root { get; } = new() { XamlRoot = new XamlRoot() };
     internal Frame ContentFrame { get; } = new();
     internal OfflineDispatcher DispatcherQueue { get; } = new();

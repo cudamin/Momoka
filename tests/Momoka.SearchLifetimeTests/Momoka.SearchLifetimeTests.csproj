@@ -58,7 +58,7 @@
             between(fnnas, "    private static Task FnNasMatchAsync(", "\n    private static Task FnNasUnmatchAsync(") + "\n}\n" +
             "public sealed partial class LibraryPage : Page\n{\n" +
             between(library, "    public void Release()", "\n    private void OnLoaded(") +
-            between(library, "    private int SearchSource =>", "\n    private void CancelTyping()") +
+            between(library, "    private int SearchSource\n", "\n    private void CancelTyping()") +
             between(library, "    private void ApplySource()", "\n    private void OnSearchCategoryChanged(") + "\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
         if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)

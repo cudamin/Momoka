@@ -1279,6 +1279,9 @@ public sealed class MoviePilotSettings
 {
     public event EventHandler? ConnectionChanged;
 
+    /// <summary>AniBT 仅改变界面入口显隐，不重连 MoviePilot；菜单与搜索页据此当场收放。</summary>
+    public event EventHandler? AniBtChanged;
+
     /// <summary>
     /// Whether the settings page may talk to MoviePilot at all. Off by default: a fresh install has no
     /// MoviePilot, and a client that probes an address nobody configured on every visit to the settings
@@ -1289,6 +1292,16 @@ public sealed class MoviePilotSettings
         get;
         set { if (field == value) return; field = value; ConnectionChanged?.Invoke(this, EventArgs.Empty); }
     }
+
+    /// <summary>
+    /// AniBT 识别、AniBT 搜索与「搜索不同版本」里的 AniBT 来源是否出现在界面上。默认开：老设置文件没有这一项时
+    /// 行为不变。关闭只收入口，不删已保存的连接、不解除整理防重，也不影响 MoviePilot 其他功能。
+    /// </summary>
+    public bool AniBtEnabled
+    {
+        get;
+        set { if (field == value) return; field = value; AniBtChanged?.Invoke(this, EventArgs.Empty); }
+    } = true;
 
     /// <summary>
     /// The API address as typed, e.g. <c>192.0.2.10:3001</c>. Normalised through

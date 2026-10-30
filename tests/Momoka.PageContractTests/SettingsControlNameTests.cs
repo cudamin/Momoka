@@ -32,6 +32,24 @@ internal static class SettingsControlNameTests
                 Assert.False(BindsRowName(withUid, resourceOverride), "负向：资源覆盖具体名称必须被拒绝");
             });
 
+        Test("设置 AniBT 开关：MoviePilot 卡内可关闭且随启用状态收起", () =>
+        {
+            var root = FindRoot();
+            var page = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "SettingsPage.xaml"));
+            var toggle = page.Descendants().Single(element => element.Name.LocalName == "ToggleSwitch"
+                && element.Attribute("AutomationProperties.Name")?.Value == "显示 AniBT 入口");
+            Assert.Equal("{x:Bind AniBtEnabled, Mode=TwoWay}", toggle.Attribute("IsOn")?.Value);
+            Assert.Equal("MoviePilotAniBtToggle", toggle.Attribute("AutomationProperties.AutomationId")?.Value);
+            var section = toggle.Ancestors().First(element => element.Name.LocalName == "StackPanel"
+                && element.Attribute("Visibility") is not null);
+            Assert.Equal("{x:Bind AniBtVisibility, Mode=OneWay}", section.Attribute("Visibility")?.Value);
+            var row = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ViewModels", "SettingMoviePilotRow.cs"));
+            Assert.Contains("_writeAniBt(value);", row);
+            Assert.Contains("AniBtVisibility => Enabled ? Visibility.Visible : Visibility.Collapsed", row);
+            var viewModel = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ViewModels", "SettingsViewModel.cs"));
+            Assert.Contains("value => moviePilot.AniBtEnabled = value", viewModel);
+        });
+
         Test("输入主题探针：按业务行定位并等待视口、真实焦点和Focused模板", () =>
         {
             var source = File.ReadAllText(Path.Combine(FindRoot(), "src", "Momoka.Shell", "ShellNavigationProbe.InputTheme.cs"));
