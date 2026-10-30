@@ -43,6 +43,45 @@ public sealed class EmbyUser
 public sealed class EmbyUserPolicy
 {
     public bool IsAdministrator { get; set; }
+
+    /// <summary>
+    /// 用户策略里的「允许下载媒体」。可空：旧版本或登录响应没带这一项时是「还没问到」，不是「不许下载」——
+    /// 未知按可用处理，真没权限由服务器拒绝。
+    /// </summary>
+    public bool? EnableContentDownloading { get; set; }
+
+    /// <summary>用户策略里的「允许删除媒体」。菜单据此收起删除入口。</summary>
+    public bool? EnableContentDeletion { get; set; }
+
+    /// <summary>用户策略里的「允许下载字幕」。</summary>
+    public bool? EnableSubtitleDownloading { get; set; }
+
+    /// <summary>用户策略里的「允许管理字幕」。</summary>
+    public bool? EnableSubtitleManagement { get; set; }
+
+    /// <summary>
+    /// 把这一份策略写进连接快照。只写能确认的值：可空策略字段仍为 null 时表示服务器没答，菜单按未知处理。
+    /// </summary>
+    public EmbyConnection ApplyTo(EmbyConnection connection)
+    {
+        var permissions = ToPermissions();
+        return connection with
+        {
+            IsAdministrator = permissions.IsAdministrator,
+            CanDownload = permissions.CanDownload,
+            CanDeleteContent = permissions.CanDeleteContent,
+            CanManageSubtitles = permissions.CanManageSubtitles
+        };
+    }
+
+    /// <summary>「更多」菜单用的账号能力。两个字幕策略位有一个为 true 就算能管；都没答时留 null。</summary>
+    public ItemMenuPermissions ToPermissions() => new(
+        IsAdministrator,
+        EnableContentDownloading,
+        EnableContentDeletion,
+        EnableSubtitleDownloading == true || EnableSubtitleManagement == true
+            ? true
+            : EnableSubtitleDownloading == false && EnableSubtitleManagement == false ? false : null);
 }
 
 public sealed class AuthenticationResult
@@ -146,6 +185,26 @@ public sealed record EmbyConnection(
     public string? ServerVersion { get; init; }
     public string? ServerId { get; init; }
     public bool? IsAdministrator { get; init; }
+
+    /// <summary>
+    /// 这个账号能不能下载媒体（用户策略里的 <c>EnableContentDownloading</c>）。null 表示还没问到：菜单照旧
+    /// 摆出下载入口，真没权限时由服务器 403 拒绝；只有服务器明确答 false 才把它收起。
+    /// <para>
+    /// 整部剧、整季的下载要下里头的每一集，而服务器给剧和季本身回的 <c>CanDownload</c> 是 false（Jellyfin
+    /// 实测如此），所以入口的显隐只能看账号策略，不能看条目上的那一位。
+    /// </para>
+    /// </summary>
+    public bool? CanDownload { get; init; }
+
+    /// <summary>账号能不能删媒体（用户策略里的 <c>EnableContentDeletion</c>）；null 表示还没问到。</summary>
+    public bool? CanDeleteContent { get; init; }
+
+    /// <summary>
+    /// 账号能不能管理/下载字幕（<c>EnableSubtitleDownloading</c> 或 <c>EnableSubtitleManagement</c>）。
+    /// 两个策略位都没答时是 null。
+    /// </summary>
+    public bool? CanManageSubtitles { get; init; }
+
     public bool IsJellyfin => ServerKind == MediaServerKind.Jellyfin;
     public bool IsFnNas => ServerKind == MediaServerKind.FnNas;
     public bool IsPlex => ServerKind == MediaServerKind.Plex;

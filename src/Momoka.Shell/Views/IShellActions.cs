@@ -89,6 +89,12 @@ internal interface IShellActions
     event EventHandler? MoviePilotAvailabilityChanged;
 
     /// <summary>
+    /// 某个来源确认过的「更多」菜单权限（下载、删除、字幕、管理员）。由能力服务按来源查，菜单据此收起
+    /// 服务器明确不允许的入口；未知返回全 null，照旧显示由服务器拒绝。
+    /// </summary>
+    ItemMenuPermissions MenuPermissionsFor(EmbySessionScope scope) => default;
+
+    /// <summary>
     /// 打开一部 MoviePilot 媒体的订阅页（搜索结果、相关推荐）。给了订阅就开那条订阅的详情，
     /// 没给就开同一页的媒体模式（列季、按季订阅）。走外壳 —— 面包屑、返回栈和标题条只有外壳知道。
     /// </summary>

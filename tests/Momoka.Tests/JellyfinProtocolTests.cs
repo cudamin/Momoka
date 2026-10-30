@@ -41,7 +41,7 @@ internal static partial class JellyfinProtocolTests
         {
             using var handler = new Transport();
             handler.Reply = sent => sent.Path.EndsWith("AuthenticateByName", StringComparison.Ordinal)
-                ? Json("""{"AccessToken":"fixture-token","User":{"Id":"u1","Name":"user","Policy":{"IsAdministrator":false}}}""") : Json(Public);
+                ? Json("""{"AccessToken":"fixture-token","User":{"Id":"u1","Name":"user","Policy":{"IsAdministrator":false,"EnableContentDownloading":false}}}""") : Json(Public);
             using var http = new EmbyHttp(handler);
             var gateway = new EmbyServerGateway(http, Device);
             var detected = await gateway.DetectAsync(ApiBase.AbsoluteUri, default);
@@ -50,6 +50,7 @@ internal static partial class JellyfinProtocolTests
             var connection = await gateway.AuthenticateAsync(detected.ApiBase!, " user ", "fixture-password", default, detected.ServerKind, detected.Version, detected.Id);
             Assert.True(connection.UsesJellyfin12Routes);
             Assert.Equal(false, connection.IsAdministrator);
+            Assert.Equal(false, connection.CanDownload, "登录响应里的下载权限要记到连接上");
             var login = handler.Sent.Single(sent => sent.Path.EndsWith("AuthenticateByName", StringComparison.Ordinal));
             Assert.Contains("MediaBrowser Client=", login.Authorization);
             Assert.Equal("", login.LegacyToken);

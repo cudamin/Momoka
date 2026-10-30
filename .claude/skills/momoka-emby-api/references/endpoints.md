@@ -25,6 +25,7 @@
 | POST | `/Items/{Id}/Refresh` | 刷新元数据 / 图片 |
 | DELETE | `/Items/{Id}` | 删除条目；`DeleteItemAsync` |
 | GET | `/Items/{Id}/Download` | 下载到设备 |
+| GET | `/Users/{Id}` | 当前用户策略：下载、删除、字幕与管理员权限；`ServerCapabilities.ProbeAsync` 按来源读取，供「更多」菜单收起无权限入口 |
 | POST | `/Collections` | 新建合集并加入条目；`CreateCollectionAsync` |
 | POST | `/Collections/{Id}/Items` | 加入已有合集；`AddToCollectionAsync` |
 

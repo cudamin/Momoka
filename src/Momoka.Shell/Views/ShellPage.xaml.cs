@@ -1470,6 +1470,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
     bool IShellActions.MoviePilotEnabled =>
         _services?.GetService<Momoka.MoviePilot.MoviePilotService>()?.Available ?? false;
 
+    ItemMenuPermissions IShellActions.MenuPermissionsFor(EmbySessionScope scope) =>
+        _capabilities?.PermissionsFor(scope.Key) ?? default;
+
     void IShellActions.SearchMoviePilotVersions(EmbyItem item) => SearchMoviePilotVersions(item);
 
     void IShellActions.ShowMoviePilotReorganize(Momoka.MoviePilot.MoviePilotTransferContext context) =>
@@ -2156,8 +2159,10 @@ public sealed partial class ShellPage : UserControl, IShellActions
         // Whatever the previous account was looking at belongs to the previous account.
         ReleaseContent();
 
-        // Not awaited, and on purpose: only the sort menu wants the version, and it opens long after
-        // this. Awaiting it here would put another round trip in front of the home page.
+        // Not awaited, and on purpose: the sort menu wants the version and the item menu wants the account's
+        // download/delete/subtitle permissions, and both open long after this. Awaiting it here would put another
+        // round trip (per online source) in front of the home page; until it answers those entries stay visible
+        // and the server is still the final gate.
         _ = _capabilities.ProbeAsync();
 
         await LoadLibrariesAsync(scope, token).ConfigureAwait(true);

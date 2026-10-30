@@ -218,7 +218,8 @@ internal static partial class ItemCommands
                     var versions = menu.Items.OfType<MenuFlyoutItem>().FirstOrDefault(row => row.Tag is ItemCommand.MoviePilotVersions);
                     if (versions is not null)
                     {
-                        var plan = ItemMenu.For(original, true, animeGenre: true, aniBtScrapeAvailable: scope.IsCurrent)
+                        var plan = ItemMenu.For(original, true, animeGenre: true, aniBtScrapeAvailable: scope.IsCurrent,
+                                permissions: shell.MenuPermissionsFor(scope))
                             .Single(row => row.Command == ItemCommand.MoviePilotVersions);
                         menu.Items[menu.Items.IndexOf(versions)] = BuildEntry(plan, InvokeCurrent);
                     }
@@ -257,12 +258,14 @@ internal static partial class ItemCommands
         Func<bool>? canContinue = null)
     {
         var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+        var permissions = card.Scope is { } scope ? shell.MenuPermissionsFor(scope) : default;
 
         foreach (var row in ItemMenu.For(card.Item, shell.MoviePilotEnabled,
             jellyfin: card.Scope?.Connection.IsJellyfin == true, fnNas: card.Scope?.Connection.IsFnNas == true,
             plex: card.Scope?.Connection.IsPlex == true, aniBtScrapeAvailable: card.Scope?.IsCurrent == true,
             moviePilotManagementAvailable: shell.MoviePilotMediaManagementEnabled,
-            moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled))
+            moviePilotSmartAvailable: shell.MoviePilotSmartReorganizeEnabled,
+            permissions: permissions))
         {
             if (row.Command is not { } command)
             {
