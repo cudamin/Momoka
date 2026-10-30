@@ -51,3 +51,8 @@ $project = Join-Path $root 'tests/Momoka.LibMpvEndFileTests/Momoka.LibMpvEndFile
 
 当前 Release 编译与运行命令不变；合计 37 项，匿名 HTTP 的 10 次属于原既有 Service 夹具，不按断言累加。
 这是线程/所有权/有界控制流验证，不证明真实 native 卡住的频率、驱动回收耗时、独占窗口或者实际 FPS。
+
+
+## 2026-10-30 整段原生收尾等待上限
+
+独立反证确认前置native gate/quit等待不受旧三秒Join限制。现在公开Stop/Dispose在锁外关闭新入场，整个公开等待三秒上限；只保留同一后台收尾任务继续等gate/quit/reader/destroy，不超时提前释放资源。长期阻塞时关闭结果及日志明确保留“迟到未完成”，正常及时完成仍实际等待。新增持有native写、quit卡住、Stop卡住三项真实全handle/gate反例；与原37项合计40，不把模拟卡顿当实机频率。公开Dispose任务和内部收尾任务分开，迟到测试等内部任务后才断言一次释放。

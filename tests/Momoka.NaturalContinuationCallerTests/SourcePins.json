@@ -9,7 +9,7 @@
     },
     {
       "path": "src/Momoka.Core/Playback/LibMpvBackend.cs",
-      "sha256": "c26eebec5280e0ee1e647a733cd713164c6c9b195d04b84f5596a7dbc8a0611e"
+      "sha256": "55d3403df9640de0ef94f623cd2e80c46b5149a729a144940371d7e7688d9801"
     },
     {
       "path": "src/Momoka.Core/Playback/PlaybackContracts.cs",
@@ -49,7 +49,7 @@
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.cs",
-      "sha256": "7981274a1cc521e66a18e16732e6f15f24388acd52dd74b63d58fadcb02494b0"
+      "sha256": "d3279a1db368711eb22ca24adede2c1cbefa04251b6705c8eb858acedcecd3b1"
     },
     {
       "path": "src/Momoka.Shell/ViewModels/PlayerViewModel.Events.cs",

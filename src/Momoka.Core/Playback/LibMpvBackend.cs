@@ -1600,12 +1600,15 @@ internal sealed class LibMpvHandle(
 
     private readonly object _shutdownGate = new();
     private Task? _stopTask;
+    private Task? _stopWork;
     private Task? _disposeTask;
+    private Task? _disposeWork;
     private Task? _lateDestroyTask;
+    private static readonly TimeSpan ShutdownWait = TimeSpan.FromSeconds(3);
 
     public Task StopAsync()
     {
-        lock (_shutdownGate) return _stopTask ??= StopCoreAsync();
+        lock (_shutdownGate) return _stopTask ??= WaitForShutdownAsync(_stopWork = StopCoreAsync(), "停播");
     }
 
     private async Task StopCoreAsync()
@@ -1632,7 +1635,46 @@ internal sealed class LibMpvHandle(
     /// </summary>
     public ValueTask DisposeAsync()
     {
-        lock (_shutdownGate) return new ValueTask(_disposeTask ??= Task.Run(DisposeCore));
+        lock (_shutdownGate)
+        {
+            if (_disposeTask is null)
+            {
+                // Admission closes before any native gate wait, so a wedged renderer cannot retain
+                // new writes/reuse. The background owner still waits for every live native user.
+                _contextClosed.TrySetResult();
+                _stopRequested = true;
+                _leaveLoop = true;
+                _disposeWork = Task.Run(DisposeAllAsync);
+                _disposeTask = WaitForShutdownAsync(_disposeWork, "释放");
+            }
+            return new ValueTask(_disposeTask);
+        }
+    }
+
+    private async Task WaitForShutdownAsync(Task work, string phase)
+    {
+        try { await work.WaitAsync(ShutdownWait).ConfigureAwait(false); }
+        catch (TimeoutException)
+        {
+            // This bound includes native gate/quit/destroy, not merely the reader Join. Never call
+            // Finish here: it takes the same native gate and would defeat the public wait limit.
+            if (_stopRequested && _exit.TrySetResult(new PlaybackExit(PlaybackEndReason.Stopped, LastPosition, 0, null)))
+                _finishedReason = PlaybackEndReason.Stopped;
+            Log.Warn(Category, $"内置播放器{phase}未及时完成；唯一后台收尾者继续等待，原生资源未提前释放");
+            _ = ObserveShutdownAsync(work, phase);
+        }
+    }
+
+    private static async Task ObserveShutdownAsync(Task work, string phase)
+    {
+        try { await work.ConfigureAwait(false); }
+        catch (Exception error) { Log.Warn(Category, $"内置播放器迟到{phase}失败", error); }
+    }
+
+    private async Task DisposeAllAsync()
+    {
+        DisposeCore();
+        if (_lateDestroyTask is { } late) await late.ConfigureAwait(false);
     }
 
     private void DisposeCore()

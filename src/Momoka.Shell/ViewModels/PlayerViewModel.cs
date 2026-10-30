@@ -356,6 +356,9 @@ public sealed partial class PlayerViewModel : ObservableObject
         _lifetime.Cancel();
         _generation++;
         _coverGeneration++;
+        // A superseded cache Task.Run can outlive the newest UI request. The client owns/drains all
+        // admitted operations before DI disposes its HTTP client and semaphore, not just the latest one.
+        await _dandanPlay.ShutdownAsync().ConfigureAwait(true);
         await _playback.ShutdownAsync().ConfigureAwait(true);
         if (_playbackIdle is { } idle) await idle.Task.ConfigureAwait(true);
     }

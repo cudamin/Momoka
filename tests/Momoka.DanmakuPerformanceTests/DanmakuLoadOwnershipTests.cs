@@ -8,6 +8,7 @@ namespace Momoka.Tests;
 internal sealed partial class PlayerViewModel(DandanPlayClient client, AppSettings settings) : IDisposable
 {
     private readonly DandanPlayClient _dandanPlay = client;
+    private bool _disposed;
     private readonly CancellationTokenSource _lifetime = new();
     private readonly SyntheticPlayback _playback = new();
     private CancellationTokenSource? _danmakuLoad;
@@ -34,6 +35,8 @@ internal sealed partial class PlayerViewModel(DandanPlayClient client, AppSettin
     private Task PushDanmakuAsync() { Pushes++; return Task.CompletedTask; }
     public void Dispose()
     {
+        if (_disposed) return;
+        _disposed = true;
         _danmakuLoad?.Cancel();
         _danmakuLoad?.Dispose();
         _lifetime.Cancel();

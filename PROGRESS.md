@@ -9165,3 +9165,10 @@ native追加验证：批准libmpv SHA256逐字匹配后，实际当前Core DLL�
 已接入页面生命周期d73ec48（源f2510af）、弹幕/Lua5375b46（源8ec2765）和预告/诊断1bc3323（源d14f49c）；父树当前分别32/32、49/49、70/70全过。预告/诊断新增31项与既有39项重叠单列。为统一runner严格顶层目录契约，将新PerfListDiagnostics移到tests/Momoka.PerfListDiagnosticsTests，仅相对路径与源哈希定位相应调整，保留实际逻辑和friend程序集。三个新suite逐项入sln与regression-suites，sln只加21行、不改既有项目名/平台；统一清单45项及16个runner成功/失败边界通过。此阶段尚有设置/图片/预算在途，不称最终批次交付。
 
 父实际WinUI首轮performance三组Frame/match/diag通过：12次导航退订差额0、关闭/重开令牌取消、万条日志单Post单执行尾80条，实屏已查看。新增Cover真实caller首轮因误把BitmapSource原图PixelWidth当decoded surface红，查官方WinUI getter与Physical decode源码确认元数据语义后仅修诊断断言/读数标签，保留红日志；不变1280×720帧/921600像素预算。来源main e572e971不是当前包二进制同版，运行现象另验；不宣称内部surface/显存峰值。两次403独立review未成功不计完成，父本地review继续。
+
+
+### 2026-10-30 独立反证收尾修复
+
+Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、未到Join；不是UAF，也不是前项新增问题。父补整段公开Stop/Dispose三秒等待上限，入场先关闭，超时保留唯一后台收尾者等gate/quit/reader退出再Destroy，绝不提前free；正常及时完成仍等真实收尾。新增3项持gate/quit/Stop暂停用例，当前40/40无失败跳过；SOURCE pin仅更新LibMpvBackend一项，其余18一致。真实GPU/永久native挂起仍不是已验证恢复；迟到待办与成本必须报告。设置与资源预算两组已接入，父定向24/141通过，真实WinUI五组在当前正确20261030运行目录全部通过（同PID旧目录未用）；150正式Slider值只1capture/1success，文件锁失败欠项与重试落盘。
+
+独立Lua反证确认热缓存后台finally遇提前Dispose的semaphore而抛Disposed（未验证实际窗口崩溃）。父修DandanPlayClient全公开operation入场/取消/排空，再释放HTTP/gate；包括被替换旧请求，VM Shutdown先await客户端。3项关闭反例+原49=52/52，0失败跳过，未改变发送不重试授权语义。自然接续sourcepin只同步PlayerViewModel1份，其他18一致。

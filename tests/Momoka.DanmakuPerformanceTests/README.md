@@ -49,3 +49,8 @@ Lua 专项采用真实脚本、真实 LuaJIT/JSON、假时钟/字幕属性/OSD �
 本树不发布、不改桌面快捷方式、不合父树或 master，不 push、不杀进程、不修改真实媒体/账号/设置。`assets/mpv-runtime/approved-payload.json` 原样保留；这两份已变 Lua 的旧批准 size/SHA 必然仍指向基点。父会话审查每文件差异和测试后，逐项更新这两条 UI 批准项并实际执行完整批准校验；不得从待测整体扫描重建清单或刷新 native/其他批准项。
 
 合成 CPU 计时不等于真实播放帧延迟。resize 的全片重排成本依然存在（只合并次数、缓存文本并复用工作表）；文本派生缓存增加有限内存，拖动时 lane planning 最多滞后约 500ms，画布立即更新。主树全量测试、适用运行/截图、最终批准校验和交付由父会话以整合后的代码完成。
+
+
+## 2026-10-30 客户端关停反证修复
+
+Task.Run热缓存使Dispose与读取finally并发，不能只取消当前VM的一票后立即释放semaphore。正式DandanPlayClient在每个公开读/搜/发入口登记完整operation，统一ShutdownAsync先关入场并取消，再等所有operation退出才释放HTTP与gate；IDisposable不堵UI，应用VM真正关停先await。包括已被替换的旧票，已有发送仍不重试/重发。新增3项实际client及原样LoadDanmakuAsync关闭反例，与原49项合计52全通过；不靠catch ObjectDisposedException遮掩未排空。shutdown触发的已发写仍可能结果不明，不宣称server撤销。

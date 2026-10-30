@@ -47,6 +47,7 @@ internal static class Program
         DanmakuTests.Register();
         DanmakuPerformanceTests.Register();
         DanmakuLoadOwnershipTests.Register();
+        DanmakuClientLifetimeTests.Register();
         return TestHarness.Run();
     }
 }

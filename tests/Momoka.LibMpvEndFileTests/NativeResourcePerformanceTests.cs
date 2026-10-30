@@ -12,6 +12,9 @@ internal static class NativeResourcePerformanceTests
     {
         test("PERF-02：三秒退出上限后，迟到线程交接 native/config/SVP 恰好回收一次", LateReaderReleasesOnceAsync);
         test("PERF-02：正常退出线程在 Destroy 前终止，不额外留回收任务", PromptReaderReleasesOnceAsync);
+        test("PERF-02：原生写持有gate时公开Dispose仍三秒返回，恢复后安全收尾一次", NativeGateDisposalIsBoundedAsync);
+        test("PERF-02：原生quit卡住时公开Dispose仍有界，不能提前释放租约", QuitDisposalIsBoundedAsync);
+        test("PERF-02：原生gate卡住时公开Stop有界并停止新写，恢复后收尾", NativeGateStopIsBoundedAsync);
         test("PERF-08：native gate 挂起时 128 个 speed 只占一个待办/完成源，最终值只写一次", SpeedBurstIsBoundedAsync);
         test("PERF-08：native 写入中新增 speed 保留最新值，不丢最终唤醒", SpeedDuringWriteIsNotLostAsync);
         test("PERF-08：取消一个 superseded 等待者不取消新等待者的 speed", SpeedCancellationIsIndependentAsync);
@@ -55,7 +58,7 @@ internal static class NativeResourcePerformanceTests
             Assert.Equal(0, lease.Calls);
             Assert.True(File.Exists(copy));
             Assert.True(ReferenceEquals(dispose, f.Handle.DisposeAsync().AsTask()), "重复 Dispose 不增加另一收尾者");
-            var late = f.Field<Task>("_lateDestroyTask");
+            var late = f.Field<Task>("_disposeWork");
             Assert.False(late.IsCompleted);
             release.Set();
             await late.WaitAsync(TimeSpan.FromSeconds(3));
@@ -72,7 +75,7 @@ internal static class NativeResourcePerformanceTests
         {
             release.Set();
             Assert.True(reader.Join(TimeSpan.FromSeconds(3)), "必须先释放匿名测试线程，再释放夹具端点");
-            if (f.Field<Task?>("_lateDestroyTask") is { } late) await late.WaitAsync(TimeSpan.FromSeconds(3));
+            if (f.Field<Task?>("_disposeWork") is { } late) await late.WaitAsync(TimeSpan.FromSeconds(3));
             config.Dispose();
             File.Delete(source);
             Directory.Delete(folder);
@@ -116,6 +119,103 @@ internal static class NativeResourcePerformanceTests
         {
             release.Set();
             Assert.True(reader.Join(TimeSpan.FromSeconds(3)));
+        }
+    }
+
+    private static async Task NativeGateDisposalIsBoundedAsync()
+    {
+        var lease = new CountingLease();
+        await using var f = new HandleFixture(lease: lease);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var release = new ManualResetEventSlim();
+        f.Native.OnWrite = (_, _) =>
+        {
+            entered.TrySetResult();
+            if (!release.Wait(TimeSpan.FromSeconds(10))) throw new AssertionException("测试未放开native write");
+        };
+        var write = f.Handle.SetPropertyAsync("speed", 1.4, CancellationToken.None);
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            var watch = Stopwatch.StartNew();
+            var dispose = f.Handle.DisposeAsync().AsTask();
+            await dispose.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.True(watch.Elapsed.TotalSeconds is >= 2.7 and < 5);
+            Assert.False(write.IsCompleted);
+            Assert.Equal(0, f.Native.DestroyCalls);
+            Assert.Equal(0, lease.Calls);
+            Assert.True(f.LeaveLoop, "公开释放立即关闭事件读取入场，不等待native gate");
+            Assert.True(ReferenceEquals(dispose, f.Handle.DisposeAsync().AsTask()));
+            Assert.True(f.Handle.SetPropertyAsync("speed", 2, CancellationToken.None).IsCompletedSuccessfully);
+            release.Set();
+            await write.WaitAsync(TimeSpan.FromSeconds(3));
+            await f.Field<Task>("_disposeWork").WaitAsync(TimeSpan.FromSeconds(3));
+            Assert.Equal(1, f.Native.DestroyCalls);
+            Assert.Equal(1, lease.Calls);
+        }
+        finally
+        {
+            release.Set();
+            await write.WaitAsync(TimeSpan.FromSeconds(3));
+            if (f.Field<Task?>("_disposeWork") is { } pending) await pending.WaitAsync(TimeSpan.FromSeconds(3));
+        }
+    }
+
+    private static async Task QuitDisposalIsBoundedAsync()
+    {
+        var lease = new CountingLease();
+        await using var f = new HandleFixture(lease: lease);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var release = new ManualResetEventSlim();
+        f.Native.OnCommand = command =>
+        {
+            if (command[0] != "quit") return;
+            entered.TrySetResult();
+            if (!release.Wait(TimeSpan.FromSeconds(10))) throw new AssertionException("测试未放开native quit");
+            f.Dispatch(LibMpvNative.EventShutdown);
+        };
+        try
+        {
+            var dispose = f.Handle.DisposeAsync().AsTask();
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(3));
+            await dispose.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.Equal(0, f.Native.DestroyCalls);
+            Assert.Equal(0, lease.Calls);
+            Assert.False(f.Field<Task>("_disposeWork").IsCompleted);
+            release.Set();
+            await f.Field<Task>("_disposeWork").WaitAsync(TimeSpan.FromSeconds(3));
+            Assert.Equal(1, f.Native.DestroyCalls);
+            Assert.Equal(1, lease.Calls);
+            Assert.Equal(1, f.Native.QuitCalls);
+        }
+        finally
+        {
+            release.Set();
+            if (f.Field<Task?>("_disposeWork") is { } pending) await pending.WaitAsync(TimeSpan.FromSeconds(3));
+        }
+    }
+
+    private static async Task NativeGateStopIsBoundedAsync()
+    {
+        await using var f = new HandleFixture();
+        await using var hold = await GateHold.CreateAsync(f.Field<LibMpvLifetimeGate>("_apiGate"));
+        var stop = f.Handle.StopAsync();
+        try
+        {
+            await stop.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.False(f.Field<Task>("_stopWork").IsCompleted);
+            Assert.Equal(PlaybackEndReason.Stopped, (await f.Exit).Reason);
+            Assert.Equal(0, f.Native.DestroyCalls);
+            Assert.True(f.Handle.SetPropertyAsync("speed", 3, CancellationToken.None).IsCompletedSuccessfully);
+            hold.Release();
+            await f.Field<Task>("_stopWork").WaitAsync(TimeSpan.FromSeconds(3));
+            await f.Handle.DisposeAsync();
+            Assert.Equal(1, f.Native.DestroyCalls);
+        }
+        finally
+        {
+            hold.Release();
+            await f.Field<Task>("_stopWork").WaitAsync(TimeSpan.FromSeconds(3));
         }
     }
 
