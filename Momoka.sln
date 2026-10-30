@@ -101,6 +101,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.PerfListDiagnosticsT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ImagePerformanceTests", "tests\Momoka.ImagePerformanceTests\Momoka.ImagePerformanceTests.csproj", "{E3CD8957-360B-49B1-A873-6E1DBA9B817A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SettingsDeferredSaveTests", "tests\Momoka.SettingsDeferredSaveTests\Momoka.SettingsDeferredSaveTests.csproj", "{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ResourceBudgetTests", "tests\Momoka.ResourceBudgetTests\Momoka.ResourceBudgetTests.csproj", "{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -294,6 +298,14 @@ Global
 		{E3CD8957-360B-49B1-A873-6E1DBA9B817A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E3CD8957-360B-49B1-A873-6E1DBA9B817A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E3CD8957-360B-49B1-A873-6E1DBA9B817A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D0854F9-1070-458E-8BDE-2CE8BB6ABD18}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9813C9C1-E035-4F9D-8B92-9F0255E22CA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4AD193CB-4DE2-448B-85B6-BFED5335A8B6} = {5D010EC7-A5FD-4DEC-AE08-C0BC2CFAE9FA}

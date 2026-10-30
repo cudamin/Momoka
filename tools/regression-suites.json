@@ -323,6 +323,18 @@
       "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
     },
     {
+      "id": "Momoka.ResourceBudgetTests",
+      "project": "tests/Momoka.ResourceBudgetTests/Momoka.ResourceBudgetTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [
+        "all"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.ResourceBudgetTests/README.md",
+      "notes": "真实Core消息/log/font预算；匿名回环socket、临时文件/私有子进程，不是真实库或系统字体扫描。"
+    },
+    {
       "id": "Momoka.SearchLifetimeTests",
       "project": "tests/Momoka.SearchLifetimeTests/Momoka.SearchLifetimeTests.csproj",
       "mode": "dotnet",
@@ -341,6 +353,19 @@
       "wrapper": null,
       "readme": "tests/Momoka.ServerSettingsTabs.Tests/README.md",
       "notes": "完整 DOM 专项需要显式 Node、Playwright 目录与 Chromium。请按 README 调用 Run-Fixture.ps1；不以 contracts 子集冒充整套。"
+    },
+    {
+      "id": "Momoka.SettingsDeferredSaveTests",
+      "project": "tests/Momoka.SettingsDeferredSaveTests/Momoka.SettingsDeferredSaveTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": [
+        "{shell}",
+        "{root}"
+      ],
+      "wrapper": null,
+      "readme": "tests/Momoka.SettingsDeferredSaveTests/README.md",
+      "notes": "当前Shell真实VM/MVVM值与Core设置单保存队列；原样退出/隐藏flush，匿名临时文件不启动UI。"
     },
     {
       "id": "Momoka.SettingsLifetimeTests",
