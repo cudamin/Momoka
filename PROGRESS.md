@@ -1,3 +1,12 @@
+## 退出快捷键编辑后搜索框被自动聚焦（2026-10-30）
+
+- 用户报（附截图）：「修复退出编辑快捷键后会自动触发上方的搜索框」。继续上一节同一块设置页焦点问题。
+- 根因：`SettingsScroll` 的 `IsTabStop` 默认是 false；`Focus(FocusState.Pointer)` 会把焦点转给滚动区里第一个可聚焦子控件。快捷键卡的第一个子控件正好是顶部搜索框（`ShortcutSearchBox`），所以点空白退出编辑后搜索框被聚焦，页面也可能被带回顶部。
+- 改法：`SettingsPage.FocusSettingsCards` 在落焦前临时把 `SettingsScroll.IsTabStop` 设为 true，让滚动区自己接住焦点，`finally` 还原（不长期占用 Tab 顺序）。实测还原后焦点仍留在滚动区；指针焦点态不画焦点框。
+- 测试：`InputControlThemeTests` 检查 `FocusSettingsCards` 的开关与落焦顺序；`input-theme-fixture` **13/13**；`shortcuts` 探针新增断言「点空白后焦点等于 `SettingsScroll`」，宽窄两档均通过（开发件 `shell-probe-20261030-080225440-2552`，**3/3、退出 0**）。
+- 未交付：并行会话正在同一工作树里改 MoviePilot 文件（`ItemCommands.cs`、MoviePilot 探针与测试，未提交），当前分支为 `qoder/临时`。产品提交 `c355033` 已在该分支，但尚未合入 master、未跑最终整合批次的全套闸门、未发布；当前交付目录仍是上一版，不含本节点。
+- 待办：并行会话提交/结束后，把 `c355033` 合入 master，按最终代码重跑主测试与 `shortcuts` 探针，再发布 `artifacts/publish/win-x64` 并核对快捷方式。本节点不改并行会话文件、不发布。
+
 ## 设置页抢走快捷键抓取焦点（2026-10-30）
 
 - 用户报：「快捷键编辑不了」。设置 → 快捷键里点抓键方框后无法进入抓键态，按什么键都改不了。
