@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- The independent runner uses Core's existing friend name, in its own output directory. -->
+    <AssemblyName>Momoka.Tests</AssemblyName>
+    <RootNamespace>Momoka.Tests</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Momoka.Core\Momoka.Core.csproj" />
+    <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
+    <Compile Include="..\Momoka.SubtitleDialogTests\UiQueue.cs" Link="UiQueue.cs" />
+    <Compile Include="..\Momoka.SettingsLifetimeTests\ShellRuntime.cs" Link="ShellRuntime.cs" />
+  </ItemGroup>
+  <!-- Only HWND/window, container resolution and playback endpoints are inert. The awaited App
+       close method and SettingsWindow Hide body are copied verbatim from this checkout at compile time. -->
+  <UsingTask TaskName="ExtractSettingsFlushBoundaries" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, string, string> between = (source, begin, finish) =>
+        {
+            var start = source.IndexOf(begin, StringComparison.Ordinal);
+            if (start < 0 || source.IndexOf(begin, start + begin.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing/ambiguous production method: " + begin);
+            var end = source.IndexOf(finish, start + begin.Length, StringComparison.Ordinal);
+            if (end < 0) throw new InvalidOperationException("Missing production boundary: " + finish);
+            return source.Substring(start, end - start);
+        };
+        var app = File.ReadAllText(Path.Combine(Root, "src/Momoka.Shell/App.xaml.cs")).Replace("\r\n", "\n");
+        var window = File.ReadAllText(Path.Combine(Root, "src/Momoka.Shell/Views/SettingsWindow.cs")).Replace("\r\n", "\n");
+        var prepare = between(app, "    private async Task PrepareWindowCloseAsync()", "    private void OnWindowClosed()");
+        var close = between(app, "    private void OnWindowClosed()", "    /// <summary>");
+        var hide = between(window, "    internal void Hide()", "    /// <summary>");
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        File.WriteAllText(Output, "#nullable enable\nusing Momoka.Services;\nusing Momoka.Diagnostics;\nusing Microsoft.Extensions.DependencyInjection;\n" +
+            "namespace Momoka.Shell { internal sealed partial class FlushAppFixture {\n" + prepare + close + "} }\n" +
+            "namespace Momoka.Shell.Views { internal sealed partial class FlushWindowFixture {\n" + hide + "} }\n", new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateSettingsFlushSources" BeforeTargets="CoreCompile">
+    <ExtractSettingsFlushBoundaries Root="$(MSBuildProjectDirectory)\..\.." Output="$(IntermediateOutputPath)SettingsFlush.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)SettingsFlush.g.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

@@ -802,6 +802,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         _active = false;
         _administrationLoads.Cancel();
+        _ = FlushSettingsAsync();
         base.Cancel();
     }
 
@@ -810,6 +811,7 @@ public sealed partial class SettingsViewModel : PageViewModel
         _disposed = true;
         _active = false;
         _administrationLoads.Dispose();
+        _ = FlushSettingsAsync();
         base.Dispose();
     }
 
@@ -1301,6 +1303,24 @@ public sealed partial class SettingsViewModel : PageViewModel
     {
         if (_settings is null) return;
         HasUnsavedChanges = !_settings.TrySave();
+    }
+
+    private void SaveDeferred()
+    {
+        if (_settings is null) return;
+        _settings.SaveDeferred();
+        SyncSaveState();
+    }
+
+    /// <summary>设置窗口 X/隐藏和页面释放都排空；共享服务不因页取消而丢掉最后值。</summary>
+    internal async Task FlushSettingsAsync()
+    {
+        if (_settings is not { } settings) return;
+        var saved = await settings.FlushAsync().ConfigureAwait(true);
+        if (_disposed || !_active || !ReferenceEquals(_settings, settings)) return;
+        SyncSaveState();
+        if (!saved && settings.HasUnsavedChanges)
+            Notify(null, "设置保存失败，修改仍在本次运行中生效；请重试保存。", InfoBarSeverity.Error);
     }
 
     [RelayCommand(CanExecute = nameof(HasUnsavedChanges))]
@@ -2944,11 +2964,11 @@ public sealed partial class SettingsViewModel : PageViewModel
         new(label, Annotate(note, mpvOption), minimum, maximum, read(), value => write((int)value), () => read(), Save, after);
 
     /// <summary>
-    /// 一行滑块。<paramref name="after"/> 与 Toggle 行的同名钩子同一形状（写盘之后、有文档之外的后果的那一行
+    /// 一行滑块。<paramref name="after"/> 与 Toggle 行的同名钩子同一形状（更新内存之后、有文档之外的后果的那一行
     /// 专用，2026-10-11 截图画质行加入）：截图质量/压缩拖一下就把整组实时推给正在播的那部。
     /// </summary>
     private SettingSliderRow Slider(string label, double minimum, double maximum, double step, Func<double> read, Action<double> write, string? note = null, string mpvOption = "", Action? after = null) =>
-        new(label, Annotate(note, mpvOption), minimum, maximum, step, read(), write, Save, after);
+        new(label, Annotate(note, mpvOption), minimum, maximum, step, read(), write, SaveDeferred, after);
 
     /// <summary>
     /// mpv 单位的滑块（描边大小、阴影共用，2026-09-06「把字号、描边大小，阴影也改成滑块」，取代上一批的
@@ -2962,7 +2982,7 @@ public sealed partial class SettingsViewModel : PageViewModel
             MpvOutputOptions.SubtitleUnitMinimum, MpvOutputOptions.SubtitleUnitMaximum, 0.05,
             ParseUnit(read()) ?? whenUnset,
             value => write(value.ToString("0.###", CultureInfo.InvariantCulture)),
-            Save, after);
+            SaveDeferred, after);
 
     private static double? ParseUnit(string? value) =>
         double.TryParse((value ?? "").Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed)

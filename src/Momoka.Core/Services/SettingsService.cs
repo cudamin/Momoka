@@ -30,6 +30,12 @@ public interface ISettingsService : ISettingsPersistence
 
     void Save();
 
+    /// <summary>滑块专用合并保存。默认实现保留替代服务原来的同步语义。</summary>
+    void SaveDeferred() => Save();
+
+    /// <summary>排空已经登记的最后值，失败保留欠项并返回 false；调用方必须 await 真正退出边界。</summary>
+    Task<bool> FlushAsync() => Task.FromResult(!HasUnsavedChanges);
+
     /// <summary>
     /// 把偏好设置导出到用户选的文件。只含偏好，不含服务器、账号、令牌和窗口位置（见
     /// <see cref="SettingsPreferences"/>），所以这个文件可以带到别的机器或重装后用来恢复。
@@ -45,11 +51,29 @@ public interface ISettingsService : ISettingsPersistence
 }
 
 /// <inheritdoc cref="ISettingsService"/>
-public sealed class SettingsService(SettingsStore store, AppSettings settings) : ISettingsService
+public sealed class SettingsService(SettingsStore store, AppSettings settings) : ISettingsService, IDisposable
 {
     // Unchanged from the composition root this was carved out of, so a line that used to be filed under
     // app still is: the 诊断 page lists by category, and renaming one loses the history behind it.
     private const string Category = "app";
+    private SettingsSaveQueue? _deferred;
+
+    /// <summary>只在组成根配置一次。post 必须始终投递到活设置的拥有线程，不能内联在线程池。</summary>
+    public void ConfigureDeferredSave(Func<Action, bool> post)
+    {
+        if (_deferred is not null) throw new InvalidOperationException("设置保存队列已配置");
+        _deferred = new(store, Settings, post);
+    }
+
+    public void SaveDeferred()
+    {
+        if (_deferred is { } queue) queue.RequestSave();
+        else Save();
+    }
+
+    public Task<bool> FlushAsync() => _deferred?.FlushAsync() ?? Task.FromResult(!HasUnsavedChanges);
+
+    public void Dispose() => _deferred?.Dispose();
 
     /// <inheritdoc />
     public AppSettings Settings { get; } = settings;

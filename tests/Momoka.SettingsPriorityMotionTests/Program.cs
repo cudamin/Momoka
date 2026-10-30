@@ -13,6 +13,29 @@ internal static class Program
 {
     private static int Main()
     {
+        Test("禁动画一万次布局回调不再产生三万次Transform采样", () => With(fixture =>
+        {
+            HomeMotion.ApplyPreference(false);
+            var samples = FrameworkElement.TransformCalls;
+            for (var index = 0; index < 10000; index++) fixture.List.UpdateLayout();
+            Assert.Equal(samples, FrameworkElement.TransformCalls);
+            fixture.AssertClean();
+        }));
+        Test("禁动画拖拽不测before但仍完整提交，重新启用可回弹", () => With(fixture =>
+        {
+            HomeMotion.ApplyPreference(false);
+            var samples = FrameworkElement.TransformCalls;
+            fixture.Motion.BeginDrag();
+            fixture.Row.Rules.Move(0, 1);
+            fixture.Motion.EndDrag();
+            Assert.Equal(samples, FrameworkElement.TransformCalls);
+            Assert.Equal(1, fixture.Row.BeginCalls);
+            Assert.Equal(1, fixture.Row.EndCalls);
+            HomeMotion.ApplyPreference(true);
+            fixture.Move();
+            fixture.Start();
+            Assert.True(fixture.Motion.HasSpring);
+        }));
         Test("禁动画时Rules.Move不排队、不制造before、不报回弹", () => With(fixture =>
         {
             HomeMotion.ApplyPreference(false);
