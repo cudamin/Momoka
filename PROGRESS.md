@@ -1,3 +1,18 @@
+## MoviePilot 版本窗口搜索区与设置页默认搜索站点（2026-10-30）
+
+- 用户令（附截图）：①「移除页面左上角的图标，以及搜索框下方文字为“MoviePilot 资源，搜索站点”的部分。参照搜索页面中 mp 资源搜索的样式，对当前搜索区域进行一致化修改，并将站点列表（下拉选择）移动到搜索按钮的左侧。同时，将当前页面的搜索框改为胶囊形状。请保持其余布局与交互不变，确保改动后各元素对齐、间距合理且在各尺寸下显示正常。」②「在设置的mp页面新增支持设置搜索时默认使用的站点」。本批只改「在 MoviePilot 搜索版本」独立窗口、站点选择器、设置页接入卡、相关探针、测试与文档。
+- 窗口：标题栏左上角那颗图标换成全透明的一颗（`BlankCaptionIcon` 从 `SettingsWindow` 抽到 `Interop/`，两扇第二窗口共用；只换小档，大档不动，任务栏与 Alt-Tab 仍是应用图标）。搜索框上方「搜索 MoviePilot 资源」与框下「搜索站点」那两行去掉；框改为 40 DIP 高、20 圆角的胶囊，输入层改用 `Theme/Styles.xaml` 的 `EgSearchTextBoxStyle`（原 `LibraryPage` 局部样式搬过去，搜索页与窗口共用一份），站点下拉由 `SearchSiteSlot` 插进 AutoSuggestBox 模板、排在内置放大镜左边（窄窗 108／其余 180 DIP）。结果区、下载与站点面板的交互未动；页内嵌（搜索页那一支）整条搜索区收起，不留 12 的下边距。
+- 设置：`SettingMoviePilotRow` 增 `SearchSites`（与搜索框同一份 `MoviePilotSitePickerViewModel`）与 `SitesAvailable`；接入卡底部新增「默认搜索站点」，没连上 MoviePilot 时整块收起（目录读不到、选择也存不进去），连接恢复后原选择跟着回来。`MoviePilotSitePicker` 支持设置左边那行字（默认「搜索站点」，设置页写「默认搜索站点」），`ViewModel` 可从模板绑定。
+- 站点选择：`MoviePilotService.SearchSitePreference` 在某一媒体类型没存过时退到 `mediaType=null` 那一份，设置页的默认因此对关键词与按类型的精确搜索都生效；某一类单独改过则以那一类为准（明确清空也是一份记录，不退回上一层）。`SaveSearchSitePreference` 存完喊 `SearchSitesChanged`，还在台上的选择器重读并只在选择真的变了时通知页面（`Attach` 那一次不算更改）。
+- 测试：主测试 **3329/3329、0 失败 0 跳过**（新增三条 Core 规则：继承与覆盖、明确清空、保存后通知且失败不通知）；`Momoka.ResourceBrowserTests` **100/100**（新增继承与覆盖、跨面板刷新；模板契约改认 `EgSearchTextBoxStyle` 与 `SearchSiteSlot`，另加「版本窗口搜索区与搜索页同一套」）；`Momoka.SettingsLifetimeTests` **52/52**（边界同步 `RefreshMoviePilotSites`、删掉 `_blankIcon`）；`Momoka.SettingsProbeContractTests` **31/31**；`Momoka.SettingsSearchNavigationTests` **15/15**；`Momoka.SettingsRowsMotionTests` **46/46**。整套方案 Release 构建 **0 警告 0 错误**；改动文件 `format whitespace` 通过。
+- 探针：`--probe-shell --probe-section moviepilot --screen 2` **27/27、退出 0**（`shell-probe-20261030-060525194-25012`），新增「MoviePilot 版本窗口搜索区与默认搜索站点」：真第二窗口在 900／640／480 逻辑宽下量胶囊、站点与放大镜的次序与宽度、`WM_GETICON` 小档（等于全透明那颗）与大档（仍未换），并拍含标题栏的整窗实屏；再在真设置页上量「默认搜索站点」显示、760 宽不裁切、断线收起、恢复后选择还在、选完进下一次 `sites=2` 搜索。`search,settings` 两区同批 **64/64、退出 0**（`shell-probe-20261030-053815070-14776`），搜索页紧凑布局与设置页布局全部保持。已看 `mp-window-{900,640,480}-screen.png`、`settings-moviepilot-sites-{screen,760-screen}.png`、`settings-moviepilot-sites-offline-screen.png`。
+- 探针踩的坑（已修）：第二窗口是本进程唯一的 WinUI `Window`，真 `Close()` 会触发「最后一个窗口关了 → 进程退出」，头两次跑到一半进程就没了、报告只剩半份；现在探针只 `Hide()`，进程末尾由 `Application.Exit` 收。另：只等搜索的 `IsReady` 就去找 `QueryButton` 会撞上「模板还没应用」，改成先 `LayoutAsync` 再读控件。
+- 分支：本轮进行中另一会话把这棵树切到了 `qoder/临时`，产品提交 `b3dc9b0` 落在那里；核对该分支只有这一条提交后快进合入 master 并删除，本地只剩 master（其他 `codex/*` 工作树属并行会话，未触碰）。
+- 闸门 1 的空白检查：整套 `format whitespace` 仍红，**169 行**既有问题分布在 15 个本批未触碰的文件（`SeriesResourceViewTests`、`EmbyMetadataEdit`、`ShellNavigationProbe.Accessibility` 等），本批文件一行未命中，未修改这些无关文件、未放宽基线。本批不是发版，未跑闸门 4 自检。
+- 闸门 3：按提交后的代码重发 `tools/publish.ps1 -NoArchive` 通过，**546 文件／284.9 MB**、14 GLSL／4 HOOK／批准 mpv 清单 59 文件逐项校验，ProductVersion `0.2.0+b3dc9b086c2af22b2a8655213149d93cd0d654db`；桌面 `Momoka.lnk` 读回 `artifacts\publish\win-x64\Momoka.exe`（未改快捷方式）。
+- 另一条既有红项（与本批无关）：`Momoka.HomeOrderProbeTests` 运行 **2/16**，14 条都是「真实 Shell 缺少入口 `HomeCard`」；HEAD 的 `SettingsViewModel` 里本来就没有这个入口（`git show HEAD:... | grep -c HomeCard` = 0），夹具已落后于产品，本轮只为编译同步了它的 `RefreshMoviePilotSites` 边界。未推送 origin、未改版本、无真实服务器读取或媒体写入。
+- 产品提交 `b3dc9b0`。
+
 ## 更多菜单按账号权限收起入口（2026-10-30）
 
 - 用户报：更多菜单里的「下载到设备」用不了，提示「当前账户没有访问该内容的权限」；随后要求其他按钮没有权限时也自动隐藏。
