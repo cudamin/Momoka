@@ -9307,3 +9307,7 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 最终整合方案首次失败：AniBtSourceContractTests源链全部Core，但其替代SettingsStore缺新延迟保存API。父给此IO端点补5个严格RejectIo签名，并补零Save/5拒绝回归，未排除真实queue源码或模拟成功；原业务source测试继续。完整方案初CS1061报告保留，不跑旧输出冒充。
 
 最终主测试3340/3340通过（0失败0跳过）后专项首轮发现三类明确问题并保留red报告：R012旧fixture取消后DeliverAsync重复Get同键新建未放开HTTP（交图片代理仅改夹具）、natural continuation测试未等后继真实排队而把lease排前（已添加Pinned.NET m_asyncHead前置且27/27）、4个独立项目未被sln编译却用no-build（分别显式当前build，24/46/15/72全过）。完整格式发现25份C#空白漂移，仅格式字符调整逐文件无非空白改动；不改基线或缩短超时。最终代码仍须重编/适用测试。
+
+最终独立发布件大范围UI108项107通过1失败（旧日志空态探针反射Append签名漂移）。只修该探针改正式Attach→Ring.Written订阅/访问路径，增加source接线回归，保留原red报告；不更改VM产品或放宽空态断言。重验受影响shell/performance，不为此重跑其余已经通过区域。主树仍保持其他任务隔离，发布件验证和最终主树交付分开。
+
+旧诊断探针接线修复后：当前Shell/Core0警告0错误、原预告/诊断71/71（新增1接线）通过；真实shell/performance17/17退出0，正确日志目录shell-probe-20261030-112302966-17480，含日志淘汰空态与全部5性能case；先108项大范围107通过1反射错的发布red保留。仅该运行工具caller变更，产品方法和其它已通过区域不变。最后主树重验/发布与发布件受影响区域复验仍待。
