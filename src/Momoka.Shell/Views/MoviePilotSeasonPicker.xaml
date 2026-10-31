@@ -3,7 +3,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:Momoka.Shell.ViewModels" xmlns:local="using:Momoka.Shell.Views"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
-    PrimaryButtonText="{x:Bind ViewModel.SubmitButtonText, Mode=OneWay}" CloseButtonText="取消" DefaultButton="Close"
+    PrimaryButtonText="{x:Bind ViewModel.SubmitButtonText, Mode=OneWay}" CloseButtonText="取消" DefaultButton="None"
+    PrimaryButtonStyle="{StaticResource EgPrimaryButtonStyle}" CloseButtonStyle="{StaticResource EgSecondaryButtonStyle}"
     HorizontalContentAlignment="Stretch" SizeChanged="OnPickerSizeChanged" Closing="OnPickerClosing"
     IsPrimaryButtonEnabled="{x:Bind ViewModel.CanSubmit, Mode=OneWay}" PrimaryButtonClick="OnSubmit">
     <ContentDialog.Resources>
@@ -14,6 +15,12 @@
             <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
             <Thickness x:Key="ContentDialogPadding">20</Thickness>
             <Thickness x:Key="ContentDialogTitleMargin">0,0,0,16</Thickness>
+            <StaticResource x:Key="AccentButtonBackground" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
+            <StaticResource x:Key="ToggleSwitchFillOn" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleSwitchFillOnPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="ToggleSwitchFillOnPressed" ResourceKey="EgAccentPressedBrush" />
             <Style x:Key="SeasonModeItemStyle" TargetType="toolkit:SegmentedItem" BasedOn="{StaticResource ButtonSegmentedItemStyle}">
                 <Setter Property="Padding" Value="8,6" />
                 <Setter Property="MinWidth" Value="0" />
@@ -84,7 +91,7 @@
                 <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="vm:MoviePilotMediaSeasonRow">
-                        <Border Style="{StaticResource EgFrameStyle}">
+                        <Border Style="{StaticResource EgFrameStyle}" BorderThickness="1">
                             <Grid>
                                 <Border Background="{ThemeResource EgAccentMutedBrush}" CornerRadius="{StaticResource EgPosterCornerRadius}"
                                     Visibility="{x:Bind SelectedVisibility, Mode=OneWay}" IsHitTestVisible="False" />
@@ -105,10 +112,11 @@
                                                     <Border Padding="6,2" CornerRadius="10" Background="{ThemeResource EgAccentMutedBrush}" Visibility="{x:Bind RatingVisibility}">
                                                         <TextBlock Text="{x:Bind RatingText}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
                                                     </Border>
-                                                    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" Visibility="{x:Bind AirDateVisibility}">
+                                                    <Grid ColumnSpacing="4" VerticalAlignment="Center" Visibility="{x:Bind AirDateVisibility}">
+                                                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                                         <FontIcon Glyph="&#xE787;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgTextDimBrush}" />
-                                                        <TextBlock Text="{x:Bind AirDateText}" Style="{StaticResource EgCaptionStyle}" />
-                                                    </StackPanel>
+                                                        <TextBlock Grid.Column="1" Text="{x:Bind AirDateText}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                                    </Grid>
                                                     <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                                                         <FontIcon Glyph="&#xE714;" FontSize="{StaticResource EgCaptionFontSize}" Foreground="{ThemeResource EgTextDimBrush}" />
                                                         <TextBlock Text="{x:Bind EpisodeCountText}" Style="{StaticResource EgCaptionStyle}" />

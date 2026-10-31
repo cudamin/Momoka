@@ -68,8 +68,11 @@ internal sealed partial class ShellNavigationProbe
             var second = (FrameworkElement)list.GetOrCreateElement(1);
             Descendants(first).OfType<CommunityToolkit.WinUI.Controls.Segmented>().Single().SelectedIndex = 2;
             Descendants(second).OfType<ToggleSwitch>().Single().IsOn = true;
+            // 模式区域显示并初始化后才是用户能够选择的状态，先等这一帧完成。
+            await LayoutAsync(dialog);
             Descendants(second).OfType<CommunityToolkit.WinUI.Controls.Segmented>().Single().SelectedIndex = 1;
             await LayoutAsync(dialog);
+            Require(dialog.ViewModel.Seasons[1].ModeIndex == 1, "第二季模式选择没有写回草稿");
             Require(dialog.PrimaryButtonText == "提交订阅" && dialog.IsPrimaryButtonEnabled, "选中季后提交按钮没有恢复");
             Require(dialog.ViewModel.Plan().Count == 2 && server.Writes.Count == 0, "季选择或模式草稿提前写入服务器");
             var pickerBody = Get<StackPanel>(dialog, "PickerBody");

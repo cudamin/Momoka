@@ -785,11 +785,17 @@ internal static class SubscribeSettingsTests
         {
             var xaml = XDocument.Parse(Resource("Production.MoviePilotSeasonPicker.xaml"));
             var root = xaml.Root!; Check.Equal("取消", (string?)root.Attribute("CloseButtonText"));
+            Check.Equal("None", (string?)root.Attribute("DefaultButton"));
+            Check.Contains("EgPrimaryButtonStyle", root.Attribute("PrimaryButtonStyle")?.Value ?? "");
             Check.Contains("SubmitButtonText", root.Attribute("PrimaryButtonText")?.Value ?? "");
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             var names = xaml.Descendants().Select(item => (string?)item.Attribute(x + "Name")).ToHashSet();
             foreach (var name in new[] { "SubscribeSeasons", "PickerEpisodeGroups", "SelectSubscribeSeason", "NormalSubscribeMode", "EpisodeUpgradeMode", "FullSeasonUpgradeMode", "RetrySeasonStates" }) Check.True(names.Contains(name), name);
             Check.True(names.Contains("DismissSeasonPicker"));
+            foreach (var key in new[] { "AccentButtonBackground", "ToggleSwitchFillOn" })
+                Check.True(xaml.Descendants().Any(item => (string?)item.Attribute(x + "Key") == key && (string?)item.Attribute("ResourceKey") == "EgAccentBrush"));
+            Check.True(xaml.Descendants().Any(item => ((string?)item.Attribute("Text"))?.Contains("AirDateText", StringComparison.Ordinal) == true
+                && (string?)item.Attribute("TextWrapping") == "Wrap"));
             var groups = xaml.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "PickerEpisodeGroups");
             Check.True(groups.Descendants().Any(item => item.Name.LocalName == "StackLayout" && (string?)item.Attribute("Orientation") == "Horizontal"));
             var modes = xaml.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "SeasonModes");
