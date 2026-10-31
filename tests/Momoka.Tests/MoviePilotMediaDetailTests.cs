@@ -34,6 +34,14 @@ internal static class MoviePilotMediaDetailTests
 
     internal static void Register()
     {
+        Test("MP 选季名称：保留篇名、特别篇，通用季号不重复", () =>
+        {
+            foreach (var generic in new[] { "第 2 季", "Season 2", "season02", "S02", "s2", "" })
+                Assert.Equal("第 2 季", new MoviePilotMediaSeason(2, generic, 6, "", "", null).PickerLabel);
+            Assert.Equal("第 2 季 · 学前篇", new MoviePilotMediaSeason(2, " 学前篇 ", 6, "", "", 8).PickerLabel);
+            Assert.Equal("第 0 季 · 特别篇", new MoviePilotMediaSeason(0, "特别篇", 5, "", "", null).PickerLabel);
+            Assert.Equal("第 3 季 · Season of light", new MoviePilotMediaSeason(3, "Season of light", 6, "", "", null).PickerLabel);
+        });
         foreach (var missing in new[] { "null", "{}", "{\"title\":\"未识别条目\"}" })
         {
             Test("MP 媒体详情：缺失身份与明确身份冲突分别处理 " + missing, () =>

@@ -406,7 +406,7 @@
 
                 <Grid x:Name="ToolbarSurface" Grid.ColumnSpan="2" Grid.Row="2" Padding="0"
                     HorizontalAlignment="Center" VerticalAlignment="Center"
-                    Visibility="{x:Bind ViewModel.ToolbarVisibility, Mode=OneWay}">
+                    Visibility="Collapsed">
                     <local:WrapRow
                         x:Name="Toolbar"
                         Spacing="8"

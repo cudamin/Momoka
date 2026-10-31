@@ -29,9 +29,8 @@
                 <TextBlock Text="{x:Bind ViewModel.ResultCount, Mode=OneWay}"
                     Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgTextDimBrush}" />
             </StackPanel>
-            <!-- 整张卡都可调用：点封面或片名进这部媒体的订阅页（键盘回车同样生效），与媒体库卡片墙同一套。
-                 卡上三颗小按钮自己吃掉指针事件，不会顺带触发打开。 -->
-            <ItemsView x:Name="Results" Grid.Row="3" IsItemInvokedEnabled="True" ItemInvoked="OnResultInvoked"
+            <!-- 详情按钮与卡内动作互为兄弟，避免 ItemContainer 把操作键的点击也解释为整卡打开。 -->
+            <ItemsView x:Name="Results" Grid.Row="3" IsItemInvokedEnabled="False"
                 Padding="{StaticResource EgScrollBarLane}"
                 ItemTransitionProvider="{x:Null}" ItemsSource="{x:Bind ViewModel.Results, Mode=OneWay}"
                 SelectionMode="None">
@@ -41,16 +40,19 @@
                 </ItemsView.Layout>
                 <ItemsView.ItemTemplate>
                     <DataTemplate x:DataType="vm:MoviePilotResult">
-                        <ItemContainer Width="152" Height="228" automation:AutomationProperties.Name="{x:Bind Title}">
+                        <ItemContainer Width="152" Height="228" IsTabStop="False" automation:AutomationProperties.Name="{x:Bind Title}">
                             <Grid x:Name="MediaPoster" Background="{ThemeResource EgSurfaceAltBrush}"
                                 CornerRadius="{StaticResource EgPosterCornerRadius}" ToolTipService.ToolTip="{x:Bind Title}">
+                                <Button x:Name="OpenMedia" Click="OnOpenResult" Tag="{x:Bind}"
+                                    Style="{StaticResource EgArtworkTileStyle}" BorderThickness="0"
+                                    automation:AutomationProperties.Name="{x:Bind Title}" />
                                 <!-- ImageBrush 的边界就是海报框；图片加载失败后恢复占位。 -->
-                                <Grid Visibility="{x:Bind PosterVisibility, Mode=OneWay}" CornerRadius="{StaticResource EgPosterCornerRadius}">
+                                <Grid IsHitTestVisible="False" Visibility="{x:Bind PosterVisibility, Mode=OneWay}" CornerRadius="{StaticResource EgPosterCornerRadius}">
                                     <Grid.Background>
                                         <ImageBrush ImageSource="{x:Bind Poster}" Stretch="UniformToFill" />
                                     </Grid.Background>
                                 </Grid>
-                                <FontIcon Style="{StaticResource EgArtworkEmptyGlyphStyle}" Glyph="&#xE714;"
+                                <FontIcon IsHitTestVisible="False" Style="{StaticResource EgArtworkEmptyGlyphStyle}" Glyph="&#xE714;"
                                     Margin="0,0,0,48" Visibility="{x:Bind GlyphVisibility, Mode=OneWay}" />
                                 <Grid VerticalAlignment="Bottom" Height="126" IsHitTestVisible="False"
                                     CornerRadius="0,0,12,12">
@@ -62,7 +64,7 @@
                                         </LinearGradientBrush>
                                     </Grid.Background>
                                 </Grid>
-                                <Grid Margin="8" VerticalAlignment="Top">
+                                <Grid IsHitTestVisible="False" Margin="8" VerticalAlignment="Top">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
                                         <ColumnDefinition Width="Auto" />
@@ -79,10 +81,10 @@
                                     </Border>
                                 </Grid>
                                 <StackPanel VerticalAlignment="Bottom" Margin="8,0,8,7" Spacing="4">
-                                    <TextBlock Text="{x:Bind PosterTitle}" Style="{StaticResource EgBodyStyle}"
+                                    <TextBlock IsHitTestVisible="False" Text="{x:Bind PosterTitle}" Style="{StaticResource EgBodyStyle}"
                                         Foreground="{ThemeResource EgOnScrimBrush}" FontWeight="SemiBold"
                                         MaxLines="2" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
-                                    <Border Padding="6,3" CornerRadius="5" Background="{ThemeResource EgScrimBrush}"
+                                    <Border IsHitTestVisible="False" Padding="6,3" CornerRadius="5" Background="{ThemeResource EgScrimBrush}"
                                         Visibility="{x:Bind SubscribeStatusVisibility, Mode=OneWay}">
                                         <StackPanel Orientation="Horizontal" Spacing="5">
                                             <FontIcon Glyph="{x:Bind SubscribeGlyph, Mode=OneWay}" FontSize="{StaticResource EgCaptionFontSize}"
@@ -119,7 +121,7 @@
                                             ToolTipService.ToolTip="已在 MoviePilot 核对 · 重新读取">
                                             <FontIcon Glyph="&#xE72C;" FontSize="{StaticResource EgBodyFontSize}" />
                                         </Button>
-                                        <Border Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                        <Border IsHitTestVisible="False" Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center"
                                             Padding="5,2" CornerRadius="4" Background="{ThemeResource EgScrimBrush}"
                                             Visibility="{x:Bind SourceVisibility}">
                                             <TextBlock Text="{x:Bind SourceLabel}" Style="{StaticResource EgCaptionStyle}"

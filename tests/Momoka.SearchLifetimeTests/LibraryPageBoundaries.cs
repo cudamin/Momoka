@@ -18,6 +18,7 @@ namespace Momoka.Shell.Views
         private Momoka.Services.ISettingsService? _settings = null; // Unused owner boundary; no saved settings in this fixture.
         private int _navigation;
         private int _searchPresentationVersion;
+        private bool _searchOptionsCollapsed = false;
         private readonly LibraryLifetimeRequest _request = new();
         internal LibraryLifetimeViewModel ViewModel { get; } = new();
         internal MoviePilotSearchPanel MoviePilotPanel { get; } = new();
@@ -36,6 +37,7 @@ namespace Momoka.Shell.Views
         internal int HeaderUpdates { get; private set; }
         internal double SavedOffset => _request.ScrollOffset;
         internal int SavedCount => _request.LoadedCount;
+        internal LibraryLifetimeRequest SavedSearch => _request;
         internal int Navigation => _navigation;
         private void CancelTyping() { TypingCancellations++; }
         private void CancelImeSubmit() { ImeCancellations++; }
@@ -58,6 +60,11 @@ namespace Momoka.Shell.Views
         public bool IsSearch { get; } = true;
         public double ScrollOffset { get; set; }
         public int LoadedCount { get; set; }
+        public string? SearchTerm { get; set; }
+        public int SearchSource { get; set; }
+        public bool SearchOptionsCollapsed { get; set; }
+        public double MoviePilotScrollOffset { get; set; }
+        public Momoka.Shell.ViewModels.MoviePilotSearchSnapshot? MoviePilotSearch { get; set; }
     }
     internal sealed class LibraryLifetimeViewModel
     {
@@ -65,6 +72,7 @@ namespace Momoka.Shell.Views
         public Microsoft.UI.Xaml.Visibility ToolbarVisibility { get; set; } = Microsoft.UI.Xaml.Visibility.Visible;
         public List<object> Cards { get; } = [new(), new(), new()];
         public bool NoticeOpen { get; set; }
+        public string SearchText { get; set; } = "";
         internal int Cancels { get; private set; }
         internal int PosterReleases { get; private set; }
         internal int Resumes { get; private set; }

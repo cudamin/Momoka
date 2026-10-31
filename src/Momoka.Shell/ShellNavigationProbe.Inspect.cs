@@ -48,9 +48,10 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(layout);
         var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var busy = false;
+        MoviePilotJourneySession? moviePilotJourney = null;
         using var settingsMoviePilot = new MoviePilotClient(new RejectNetwork());
         var animationPreference = HomeMotion.PreferenceEnabled;
-        void Add(string id, string label, Func<Task> action)
+        void Add(string id, string label, Func<Task> action, bool keepJourney = false)
         {
             var button = new Button { Content = label };
             AutomationProperties.SetAutomationId(button, id);
@@ -58,7 +59,15 @@ internal sealed partial class ShellNavigationProbe
             {
                 if (busy) return;
                 busy = true;
-                try { await action(); }
+                try
+                {
+                    if (!keepJourney)
+                    {
+                        moviePilotJourney?.Dispose();
+                        moviePilotJourney = null;
+                    }
+                    await action();
+                }
                 finally { busy = false; }
             };
             controls.Children.Add(button);
@@ -208,14 +217,17 @@ internal sealed partial class ShellNavigationProbe
             };
             await dialog.ShowAsync();
         });
-        Add("InspectNarrow", "窄窗口", () => { ResizeInspect(1000, 880); return Task.CompletedTask; });
-        Add("InspectWide", "宽窗口", () => { ResizeInspect(1420, 900); return Task.CompletedTask; });
+        Add("InspectNarrow", "窄窗口", () => { ResizeInspect(1000, 880); return Task.CompletedTask; }, keepJourney: true);
+        Add("InspectWide", "宽窗口", () => { ResizeInspect(1420, 900); return Task.CompletedTask; }, keepJourney: true);
+        Add("InspectMoviePilotJourney", "MP 订阅操作", async () => moviePilotJourney = await InspectMoviePilotJourneyAsync(frame));
+        Add("InspectMoviePilotSnapshot", "记录 MP 状态", () => { moviePilotJourney?.Capture(); return Task.CompletedTask; }, keepJourney: true);
         Add("InspectMoviePilotMediaManagement", "MP 媒体管理", InspectMediaManagementAsync);
         Add("InspectDone", "结束检查", () => { finished.TrySetResult(); return Task.CompletedTask; });
         frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services, "离线示例"));
         await LayoutAsync(layout);
         File.WriteAllText(Path.Combine(_options.Paths.LogDirectory, "shell-probe-ready.txt"), Environment.ProcessId.ToString());
         await Task.WhenAny(finished.Task, Task.Delay(TimeSpan.FromMinutes(8)));
+        moviePilotJourney?.Dispose();
         if (frame.Content is IShellContent page) page.Release();
         _root.Children.Remove(layout);
         HomeMotion.ApplyPreference(animationPreference);

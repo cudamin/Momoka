@@ -15,6 +15,7 @@
     <!-- Complete production VMs and views, not a duplicate lifetime model. -->
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchViewModel.cs" Link="Production\MoviePilotSearchViewModel.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchSnapshot.cs" Link="Production\MoviePilotSearchSnapshot.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotSearchPanel.xaml.cs" Link="Production\MoviePilotSearchPanel.xaml.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\FnNasMatchDialog.xaml.cs" Link="Production\FnNasMatchDialog.xaml.cs" />
     <EmbeddedResource Include="README.md" LogicalName="Project.README.md" />
@@ -45,9 +46,10 @@
         var server = File.ReadAllText(Path.Combine(SourceRoot, "ItemCommands.Server.cs")).Replace("\r\n", "\n");
         var fnnas = File.ReadAllText(Path.Combine(SourceRoot, "ItemCommands.FnNas.cs")).Replace("\r\n", "\n");
         var library = File.ReadAllText(Path.Combine(SourceRoot, "LibraryPage.xaml.cs")).Replace("\r\n", "\n");
+        var subscription = File.ReadAllText(Path.Combine(SourceRoot, "MoviePilotSubscriptionPage.xaml.cs")).Replace("\r\n", "\n");
         var generated = "#nullable enable\n// Extracted verbatim from this tree at build time.\n" +
             "using Momoka.Diagnostics;\nusing Momoka.Emby;\nusing Momoka.FnNas;\n" +
-            "using Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nnamespace Momoka.Shell.Views;\n" +
+            "using Momoka.MoviePilot;\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Navigation;\nnamespace Momoka.Shell.Views;\n" +
             "internal static partial class ItemCommands\n{\n" +
             "    private const string Category = \"条目命令\";\n" +
             between(fnnas, "    private const string FnNasLanguage", "    private static Task FnNasRefreshAsync(") +
@@ -59,7 +61,9 @@
             "public sealed partial class LibraryPage : Page\n{\n" +
             between(library, "    public void Release()", "\n    private void OnLoaded(") +
             between(library, "    private int SearchSource\n", "\n    private void CancelTyping()") +
-            between(library, "    private void ApplySource()", "\n    private void OnSearchCategoryChanged(") + "\n}\n";
+            between(library, "    private void ApplySource()", "\n    private void OnSearchCategoryChanged(") + "\n}\n" +
+            "public sealed partial class MoviePilotSubscriptionPage : Page\n{\n" +
+            between(subscription, "    private bool _choosingSeasons;", "\n    private void OnRefreshDetails(") + "\n}\n";
         Directory.CreateDirectory(Path.GetDirectoryName(OutputSource));
         if (!File.Exists(OutputSource) || File.ReadAllText(OutputSource) != generated)
             File.WriteAllText(OutputSource, generated, new UTF8Encoding(false));

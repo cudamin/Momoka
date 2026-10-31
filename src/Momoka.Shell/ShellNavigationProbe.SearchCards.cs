@@ -53,9 +53,10 @@ internal sealed partial class ShellNavigationProbe
         // 点卡片=进这部媒体的订阅页（2026-10-28 用户令）；这里没有订阅列表，走的正是媒体页那一支。
         var firstResult = panel.ViewModel.Results[0];
         panel.OpenResult(firstResult);
-        Require(Get<ItemsView>(panel, "Results").IsItemInvokedEnabled
+        Require(!Get<ItemsView>(panel, "Results").IsItemInvokedEnabled
             && opened.Count == 1 && ReferenceEquals(opened[0].Media, firstResult.Media) && opened[0].Subscription is null,
             "点卡片没有打开对应媒体的订阅页");
+        Require(Descendants(panel).OfType<Button>().Any(button => button.Name == "OpenMedia"), "卡片缺少独立详情按钮");
         var alien = new MoviePilotResult(firstResult.Media with { MediaId = "999" },
             _ => Task.CompletedTask, _ => Task.CompletedTask);
         panel.OpenResult(alien);

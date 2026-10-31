@@ -10,6 +10,14 @@ internal static class SearchCompactMergeTests
 
     internal static void Register(string sourceRoot)
     {
+        Test("搜索返回：工具栏由页面来源统一显隐，绑定不再覆盖", () =>
+        {
+            var xml = Load(sourceRoot, "LibraryPage.xaml");
+            Assert.Equal("Collapsed", Named(xml, "ToolbarSurface").Attribute("Visibility")?.Value);
+            var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
+            Assert.Contains("if (e.PropertyName == nameof(LibraryViewModel.ToolbarVisibility))", source);
+            Assert.Contains("ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : ViewModel.ToolbarVisibility", source);
+        });
         Test("搜索合并：同行站点入口保留中性焦点与原生查询事件", () =>
             CheckSearchEntry(Load(sourceRoot, "LibraryPage.xaml")));
 
@@ -264,8 +272,8 @@ internal static class SearchCompactMergeTests
     {
         Assert.False(xml.Descendants().Any(node => node.Attribute(Xaml + "Name")?.Value == "SourceFilter"));
         var results = Named(xml, "Results");
-        Assert.Equal("True", results.Attribute("IsItemInvokedEnabled")?.Value);
-        Assert.Equal("OnResultInvoked", results.Attribute("ItemInvoked")?.Value);
+        Assert.Equal("False", results.Attribute("IsItemInvokedEnabled")?.Value);
+        Assert.Null(results.Attribute("ItemInvoked"));
         Assert.Equal("{StaticResource EgScrollBarLane}", results.Attribute("Padding")?.Value);
         var content = Named(xml, "SearchContent");
         Assert.True(content.Attribute("RowSpacing") is null or { Value: "0" });

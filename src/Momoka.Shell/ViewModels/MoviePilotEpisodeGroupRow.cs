@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Momoka.MoviePilot;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -19,6 +20,10 @@ public sealed partial class MoviePilotEpisodeGroupRow(
     public MoviePilotEpisodeGroup Group { get; } = group;
     public string Label => Group.Label;
     public string Summary => Group.Summary;
+    public string PickerSummary => Group.IsDefault ? $"{Group.SeasonCount} 季" : Group.Summary;
+    public string PickerGlyph => Group.IsDefault ? "\uE81E" : "\uE8B7";
+    public Brush? PickerBrush => Application.Current?.Resources.TryGetValue(IsCurrent ? "EgAccentBrush" : "EgTextBrush", out var found) == true
+        ? found as Brush : null;
 
     /// <summary>服务器没给季数/集数时那一行不出现，卡片只剩名字 —— 不写「0 季 · 0 集」充数。</summary>
     public Visibility SummaryVisibility => Summary.Length > 0 ? Visibility.Visible : Visibility.Collapsed;

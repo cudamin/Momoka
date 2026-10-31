@@ -496,7 +496,7 @@ internal static class SubscribeSettingsTests
             hold.SetResult();
             await loading;
             Check.False(vm.InitialLoading); Check.Equal(Visibility.Collapsed, vm.InitialLoadingVisibility);
-            Check.True(vm.NoticeOpen);
+            Check.True(vm.DetailError.Length > 0);
         });
     }
 
@@ -687,10 +687,42 @@ internal static class SubscribeSettingsTests
         {
             using var f = new SubscriptionFixture(); await f.ConnectAsync(); ContentDialog.Reset();
             ContentDialog.ShowEndpoint = async dialog => { var picker = (MoviePilotSeasonPicker)dialog; await picker.ViewModel.ReloadAsync(); return ContentDialogResult.None; };
-            await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media(), "", null);
+            Check.False(await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media(), "", null));
             Check.Equal(0, f.Http.Writes); Check.Equal(1, ContentDialog.Created);
-            await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media("电影"), "", null);
+            Check.False(await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media("电影"), "", null));
             Check.Equal(1, ContentDialog.Created); ContentDialog.Reset();
+        });
+        Test("选季结果仅真实提交成功为true，失败留窗且取消仍为false", async () =>
+        {
+            foreach (var fail in new[] { false, true })
+            {
+                using var f = new SubscriptionFixture(); await f.ConnectAsync(); ContentDialog.Reset();
+                f.Http.NoId = fail;
+                ContentDialog.ShowEndpoint = async dialog =>
+                {
+                    var picker = (MoviePilotSeasonPicker)dialog;
+                    await picker.ViewModel.ReloadAsync();
+                    picker.ViewModel.Seasons.Single(row => row.Season.Number == 1).Selected = true;
+                    var args = new ContentDialogButtonClickEventArgs();
+                    typeof(MoviePilotSeasonPicker).GetMethod("OnSubmit", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(picker, [picker, args]);
+                    await args.Completion.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                    Check.Equal(fail, args.Cancel);
+                    Check.Equal(!fail, picker.Succeeded);
+                    return args.Cancel ? ContentDialogResult.None : ContentDialogResult.Primary;
+                };
+                Check.Equal(!fail, await MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media(), "", null));
+                Check.Equal(1, f.Http.Writes);
+                ContentDialog.Reset();
+            }
+        });
+        Test("季卡元数据：篇名日期评分拆开，缺数据不伪造", () =>
+        {
+            var row = new MoviePilotMediaSeasonRow(new(2, "学前篇", 6, "2026-10-30", "", 8), null, _ => { }, _ => { });
+            Check.Equal("第 2 季 · 学前篇", row.PickerTitle);
+            Check.Equal("首播于 2026年10月30日", row.AirDateText); Check.Equal("★ 8", row.RatingText); Check.Equal("6 集", row.EpisodeCountText);
+            var missing = new MoviePilotMediaSeasonRow(new(3, "Season 3", 0, "", "", null), null, _ => { }, _ => { });
+            Check.Equal("第 3 季", missing.PickerTitle); Check.Equal(Visibility.Collapsed, missing.RatingVisibility); Check.Equal(Visibility.Collapsed, missing.AirDateVisibility);
+            return Task.CompletedTask;
         });
         Test("对话打开期间断线立即隐藏，恢复不接受迟到Primary", async () =>
         {
@@ -700,7 +732,7 @@ internal static class SubscribeSettingsTests
             ContentDialog.ShowEndpoint = dialog => { active = (MoviePilotSeasonPicker)dialog; return hold.Task; };
             var pending = MoviePilotSeasonPicker.ShowAsync(new FrameworkElement(), f.Service, f.Media(), "", null);
             Check.True(active is not null); f.Settings.MoviePilot.Enabled = false; Check.True(active!.Hidden);
-            f.Settings.MoviePilot.Enabled = true; await f.ConnectAsync(); hold.SetResult(ContentDialogResult.Primary); await pending;
+            f.Settings.MoviePilot.Enabled = true; await f.ConnectAsync(); hold.SetResult(ContentDialogResult.Primary); Check.False(await pending);
             Check.False(active.ViewModel.CanSubmit); Check.Equal(0, f.Http.Writes); ContentDialog.Reset();
         });
         Test("订阅搜索：移除来源筛选与空列，保留标题和结果计数", () =>
@@ -753,17 +785,32 @@ internal static class SubscribeSettingsTests
         {
             var xaml = XDocument.Parse(Resource("Production.MoviePilotSeasonPicker.xaml"));
             var root = xaml.Root!; Check.Equal("取消", (string?)root.Attribute("CloseButtonText"));
+            Check.Equal("None", (string?)root.Attribute("DefaultButton"));
+            Check.Contains("EgPrimaryButtonStyle", root.Attribute("PrimaryButtonStyle")?.Value ?? "");
             Check.Contains("SubmitButtonText", root.Attribute("PrimaryButtonText")?.Value ?? "");
             XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
             var names = xaml.Descendants().Select(item => (string?)item.Attribute(x + "Name")).ToHashSet();
             foreach (var name in new[] { "SubscribeSeasons", "PickerEpisodeGroups", "SelectSubscribeSeason", "NormalSubscribeMode", "EpisodeUpgradeMode", "FullSeasonUpgradeMode", "RetrySeasonStates" }) Check.True(names.Contains(name), name);
+            Check.True(names.Contains("DismissSeasonPicker"));
+            foreach (var key in new[] { "AccentButtonBackground", "ToggleSwitchFillOn" })
+                Check.True(xaml.Descendants().Any(item => (string?)item.Attribute(x + "Key") == key && (string?)item.Attribute("ResourceKey") == "EgAccentBrush"));
+            Check.True(xaml.Descendants().Any(item => ((string?)item.Attribute("Text"))?.Contains("AirDateText", StringComparison.Ordinal) == true
+                && (string?)item.Attribute("TextWrapping") == "Wrap"));
+            var groups = xaml.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "PickerEpisodeGroups");
+            Check.True(groups.Descendants().Any(item => item.Name.LocalName == "StackLayout" && (string?)item.Attribute("Orientation") == "Horizontal"));
+            var modes = xaml.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "SeasonModes");
+            Check.Equal("Segmented", modes.Name.LocalName);
+            Check.Contains("ModeIndex", modes.Attribute("SelectedIndex")?.Value ?? "");
+            Check.True(xaml.Descendants().Any(item => (string?)item.Attribute(x + "Name") == "ToggleSeasonCard" && (string?)item.Attribute("Click") == "OnToggleSeasonCard"));
             var text = Resource("Production.MoviePilotSearchPanel.xaml.cs"); Check.Contains("UseSeasonPicker", text); Check.Contains("MoviePilotSeasonPicker.ShowAsync", text);
             var page = Resource("Production.MoviePilotSubscriptionPage.xaml.cs"); Check.Contains("ApplyMovieSubscriptionAsync", page);
             // 2026-10-28：搜索结果卡可调用（点封面进订阅页），订阅页首次读取有转圈、且不再有细进度条。
             var search = XDocument.Parse(Resource("Production.MoviePilotSearchPanel.xaml"));
             var results = search.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "Results");
-            Check.Equal("True", (string?)results.Attribute("IsItemInvokedEnabled"));
-            Check.Contains("OnResultInvoked", results.Attribute("ItemInvoked")?.Value ?? "");
+            Check.Equal("False", (string?)results.Attribute("IsItemInvokedEnabled"));
+            Check.True(results.Attribute("ItemInvoked") is null);
+            var open = search.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "OpenMedia");
+            Check.Equal("OnOpenResult", (string?)open.Attribute("Click"));
             Check.Contains("ViewModel.Open(", text);
             var subscriptionPage = XDocument.Parse(Resource("Production.MoviePilotSubscriptionPage.xaml"));
             var loadingRing = subscriptionPage.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "DetailLoadingRing");

@@ -15,6 +15,7 @@
         <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
         <Compile Include="..\..\src\Momoka.Shell\ViewModels\PageViewModel.cs" Link="Production\PageViewModel.cs" />
         <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchViewModel.cs" Link="Production\MoviePilotSearchViewModel.cs" />
+        <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchSnapshot.cs" Link="Production\MoviePilotSearchSnapshot.cs" />
         <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotMediaViewModel.cs" Link="Production\MoviePilotMediaViewModel.cs" />
         <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotMediaViewModel.Related.cs" Link="Production\MoviePilotMediaViewModel.Related.cs" />
         <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotEpisodeGroupRow.cs" Link="Production\MoviePilotEpisodeGroupRow.cs" />

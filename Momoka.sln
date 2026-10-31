@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -107,6 +107,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.ResourceBudgetTests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.DialogDismissTests", "tests\Momoka.DialogDismissTests\Momoka.DialogDismissTests.csproj", "{42B28CCE-29FC-419B-8248-69D77314874F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.SubscriptionEditorTests", "tests\Momoka.SubscriptionEditorTests\Momoka.SubscriptionEditorTests.csproj", "{A6959C1E-39D4-462C-BCFD-FD2B2E02F81E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Momoka.MoviePilotJourneyTests", "tests\Momoka.MoviePilotJourneyTests\Momoka.MoviePilotJourneyTests.csproj", "{112D2B6A-4D66-42AF-B1E8-F8F496916606}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -116,6 +120,14 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A6959C1E-39D4-462C-BCFD-FD2B2E02F81E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6959C1E-39D4-462C-BCFD-FD2B2E02F81E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6959C1E-39D4-462C-BCFD-FD2B2E02F81E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6959C1E-39D4-462C-BCFD-FD2B2E02F81E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{112D2B6A-4D66-42AF-B1E8-F8F496916606}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{112D2B6A-4D66-42AF-B1E8-F8F496916606}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{112D2B6A-4D66-42AF-B1E8-F8F496916606}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{112D2B6A-4D66-42AF-B1E8-F8F496916606}.Release|Any CPU.Build.0 = Release|Any CPU
 		{42B28CCE-29FC-419B-8248-69D77314874F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{42B28CCE-29FC-419B-8248-69D77314874F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{42B28CCE-29FC-419B-8248-69D77314874F}.Release|Any CPU.ActiveCfg = Release|Any CPU

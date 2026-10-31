@@ -203,6 +203,8 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnViewModelChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(LibraryViewModel.ToolbarVisibility))
+            ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : ViewModel.ToolbarVisibility;
         if (e.PropertyName == nameof(LibraryViewModel.View)) ApplyView();
         if (e.PropertyName == nameof(LibraryViewModel.Fields)) ApplyTableWidth();
         if (e.PropertyName == nameof(LibraryViewModel.SectionVisibility))
@@ -475,7 +477,7 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         _request = request;
         _released = false;
-        _searchOptionsCollapsed = false;
+        _searchOptionsCollapsed = request.SearchOptionsCollapsed;
         _navigation++;
 
         // The shell reads this back to restore its pane highlight after a Frame.GoBack.
@@ -513,16 +515,18 @@ public sealed partial class LibraryPage : Page, IShellContent
         SearchCategories.SelectedItem = SearchCategories.Items.FirstOrDefault(item =>
             item.Tag is string value && value == request.SearchCategory.ToString()) ?? TopResultsCategory;
 
-        // 每次进来都从「我的媒体库」开始：Emby 那半可见、MoviePilot 那半藏着。SelectedIndex 已是 0 时不触发
-        // SelectionChanged，所以显式对一次账。
+        // 返回搜索页时恢复来源；新请求默认仍从媒体库开始。
         ApplyAniBtTab();
-        SourceTabs.SelectedIndex = 0;
+        SourceTabs.SelectedIndex = request.IsSearch ? request.SearchSource : 0;
         ApplySource();
+        if (request.IsSearch && MoviePilotPanel.ViewModel.Restore(request.MoviePilotSearch))
+            _ = MoviePilotPanel.ViewModel.RefreshSubscriptionStatesAsync();
 
         ApplyView();
         BuildBrowseSections();
 
-        _ = LoadNavigationAsync(request, _navigation);
+        if (request.IsSearch && SearchSource != 0) ViewModel.Cancel();
+        else _ = LoadNavigationAsync(request, _navigation);
     }
 
     private async Task LoadNavigationAsync(LibraryRequest request, int navigation)
@@ -578,6 +582,14 @@ public sealed partial class LibraryPage : Page, IShellContent
         {
             request.ScrollOffset = ContentScrollOffset;
             request.LoadedCount = ViewModel.Cards.Count;
+            if (request.IsSearch)
+            {
+                request.SearchTerm = ViewModel.SearchText;
+                request.SearchSource = SearchSource;
+                request.SearchOptionsCollapsed = _searchOptionsCollapsed;
+                request.MoviePilotScrollOffset = MoviePilotPanel.ScrollOffset;
+                request.MoviePilotSearch = MoviePilotPanel.ViewModel.Capture();
+            }
         }
         ViewModel.Cancel();
         ViewModel.ReleaseSearchPosters();
@@ -605,6 +617,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         // Here rather than in OnNavigatedTo: nothing can take focus before it is in the tree.
         if (_request is { IsSearch: true } && ViewModel.SearchText.Length == 0)
             SearchInput.Focus(FocusState.Programmatic);
+        if (_request is { IsSearch: true, SearchSource: 1 } search)
+            MoviePilotPanel.RestoreScroll(search.MoviePilotScrollOffset);
 
         if (_scroll is not null) return;
 

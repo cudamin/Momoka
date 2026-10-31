@@ -66,12 +66,29 @@ internal sealed partial class ShellNavigationProbe
             var list = Get<ItemsRepeater>(dialog, "SubscribeSeasons");
             var first = (FrameworkElement)list.GetOrCreateElement(0);
             var second = (FrameworkElement)list.GetOrCreateElement(1);
-            Descendants(first).OfType<RadioButton>().Single(button => button.Name == "FullSeasonUpgradeMode").IsChecked = true;
+            Descendants(first).OfType<CommunityToolkit.WinUI.Controls.Segmented>().Single().SelectedIndex = 2;
             Descendants(second).OfType<ToggleSwitch>().Single().IsOn = true;
-            Descendants(second).OfType<RadioButton>().Single(button => button.Name == "EpisodeUpgradeMode").IsChecked = true;
+            // 模式区域显示并初始化后才是用户能够选择的状态，先等这一帧完成。
             await LayoutAsync(dialog);
+            Descendants(second).OfType<CommunityToolkit.WinUI.Controls.Segmented>().Single().SelectedIndex = 1;
+            await LayoutAsync(dialog);
+            Require(dialog.ViewModel.Seasons[1].ModeIndex == 1, "第二季模式选择没有写回草稿");
             Require(dialog.PrimaryButtonText == "提交订阅" && dialog.IsPrimaryButtonEnabled, "选中季后提交按钮没有恢复");
             Require(dialog.ViewModel.Plan().Count == 2 && server.Writes.Count == 0, "季选择或模式草稿提前写入服务器");
+            var pickerBody = Get<StackPanel>(dialog, "PickerBody");
+            var modeControls = Descendants(dialog).OfType<CommunityToolkit.WinUI.Controls.Segmented>().ToArray();
+            Require(modeControls.Length == 2 && modeControls.All(mode => mode.ActualWidth <= pickerBody.ActualWidth), "订阅方式超出季卡片宽度");
+            var originalTheme = ThemeHost.Current.Id;
+            try
+            {
+                foreach (var theme in Momoka.Theming.UiThemes.All)
+                {
+                    ThemeHost.Apply(theme.Id);
+                    await LayoutAsync(dialog);
+                    await SaveProbeScreenAsync($"mp-subscribe-season-picker-{theme.Id}-760.png");
+                }
+            }
+            finally { ThemeHost.Apply(originalTheme); }
             await SaveProbeScreenAsync("mp-subscribe-season-picker-760.png");
             InvokeSubscriptionButton(Descendants(dialog).OfType<Button>().Single(button => button.Name == "PrimaryButton"));
             await showing;
@@ -87,6 +104,8 @@ internal sealed partial class ShellNavigationProbe
             await LayoutAsync(cancelled);
             cancelled.ViewModel.Seasons[0].Selected = false;
             ResizeInspect(360, 900); await LayoutAsync(cancelled);
+            var narrowBody = Get<StackPanel>(cancelled, "PickerBody");
+            Require(Descendants(cancelled).OfType<CommunityToolkit.WinUI.Controls.Segmented>().All(mode => mode.ActualWidth <= narrowBody.ActualWidth), "窄窗订阅方式被裁切");
             await SaveProbeScreenAsync("mp-subscribe-season-picker-360.png");
             // 关闭按钮的文案会随产品改（2026-10-25 起是「取消」，之前是「关闭」），探针不钉文案：
             // 只按 ContentDialog 模板里的 CloseButton 名字定位，再与对话框自己的 CloseButtonText 核对一次，
@@ -103,7 +122,7 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(760, 1000);
             showing = empty.ShowAsync();
             await LayoutAsync(empty);
-            var emptyModeRows = Descendants(empty).OfType<WrapRow>().Where(panel => Descendants(panel).OfType<RadioButton>().Any()).ToArray();
+            var emptyModeRows = Descendants(empty).OfType<CommunityToolkit.WinUI.Controls.Segmented>().ToArray();
             Require(emptyModeRows.Length == 2 && emptyModeRows.All(panel => panel.Visibility == Visibility.Collapsed), "未选季仍显示模式选择");
             Require(!empty.IsPrimaryButtonEnabled && empty.PrimaryButtonText == "请选择订阅季", "未选季时提交按钮没有禁用或没有改为「请选择订阅季」");
             await SaveProbeScreenAsync("mp-subscribe-season-picker-none-760.png");

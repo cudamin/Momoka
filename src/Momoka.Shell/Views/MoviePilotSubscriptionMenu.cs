@@ -55,7 +55,8 @@ internal static class MoviePilotSubscriptionMenu
         var needsReview = vm.NeedsReview(card);
         var pauseAction = card.Subscription.Paused ? MoviePilotSubscriptionAction.Resume : MoviePilotSubscriptionAction.Pause;
         if (needsReview) Add("核对后继续", "\uE946", () => _ = vm.ReviewAsync(card), false);
-        Add("编辑", "\uE70F", () => _ = vm.EditAsync(card, subscription => MoviePilotSubscriptionEditor.ShowAsync(owner, subscription, service)));
+        Add("编辑", "\uE70F", () => _ = vm.EditAsync(card,
+            (subscription, save, remove) => MoviePilotSubscriptionEditor.ShowAsync(owner, subscription, service, save, remove)));
         Add("搜索", "\uE721", () => _ = vm.ManageAsync(card, MoviePilotSubscriptionAction.Search));
         Add(card.Subscription.Paused ? "恢复" : "暂停", card.Subscription.Paused ? "\uE768" : "\uE769",
             () => _ = vm.ManageAsync(card, pauseAction));

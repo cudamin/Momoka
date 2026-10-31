@@ -13,6 +13,73 @@ internal static class MoviePilotLifetimeTests
     internal static void Register(List<(string Name, Func<Task> Run)> cases)
     {
         void Test(string name, Func<Task> run) => cases.Add(("PERF-01 " + name, run));
+        Test("恢复通知重入新搜索，旧快照不覆盖新空态与通知", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service); await vm.SearchAsync("旧词");
+            var saved = vm.Capture()! with { EmptyNotice = "旧空态", ShowEmptyNotice = true, NoticeTitle = "旧通知", NoticeOpen = true };
+            vm.Release(); vm.Attach(f.Service);
+            Task? fresh = null; var reentered = false;
+            vm.PropertyChanged += (_, args) =>
+            {
+                if (!reentered && args.PropertyName == nameof(vm.EmptyNotice) && vm.EmptyNotice == "旧空态")
+                { reentered = true; fresh = vm.SearchAsync("新词"); }
+            };
+            Check.False(vm.Restore(saved)); await fresh!;
+            Check.Contains("新词", vm.Heading); Check.False(vm.ShowEmptyNotice); Check.False(vm.NoticeOpen);
+            Check.Equal(1, vm.Results.Count);
+        });
+        Test("搜索返回快照保留词与结果，释放图片和旧行后重接动作且不重搜", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            var panel = new MoviePilotSearchPanel(); var opened = 0;
+            panel.Attach(f.Service, new Launcher(), (_, _) => opened++);
+            await panel.SearchAsync("保留这个词"); var old = panel.ViewModel.Results.Single(); var poster = old.Poster!;
+            panel.Results.ScrollView!.VerticalOffset = 183;
+            var offset = panel.ScrollOffset;
+            var snapshot = panel.ViewModel.Capture();
+            var searches = f.Http.Searches;
+            panel.Release();
+            Check.Equal(0, f.Subscribers); Check.Equal(0, panel.ViewModel.Results.Count); Check.Null(old.Poster);
+            Check.Equal(0, poster.Subscribers);
+            panel.Attach(f.Service, new Launcher(), (_, _) => opened++);
+            Check.True(panel.ViewModel.Restore(snapshot)); panel.RestoreScroll(offset);
+            Check.Contains("保留这个词", panel.ViewModel.Heading); Check.Equal(183d, panel.ScrollOffset);
+            Check.Equal(searches, f.Http.Searches); Check.Equal(1, f.Subscribers);
+            var fresh = panel.ViewModel.Results.Single(); Check.False(ReferenceEquals(old, fresh));
+            panel.OpenResult(old); Check.Equal(0, opened);
+            panel.OpenResult(fresh); Check.Equal(1, opened);
+            await fresh.SearchResourcesCommand.ExecuteAsync(null); Check.Equal(1, panel.ResourceOverlay.Opens);
+            await panel.ViewModel.RefreshSubscriptionStatesAsync();
+            Check.Same(fresh, panel.ViewModel.Results.Single()); Check.Equal(searches, f.Http.Searches);
+            panel.Release();
+        });
+        Test("返回快照拒绝旧连接，旧状态刷新不能覆盖新搜索", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            using var vm = new MoviePilotSearchViewModel(); vm.Attach(f.Service); await vm.SearchAsync("保存");
+            var snapshot = vm.Capture();
+            vm.Release(); f.Settings.MoviePilot.Username = "new-anonymous-fixture"; await f.ConnectAsync(); vm.Attach(f.Service);
+            Check.False(vm.Restore(snapshot)); Check.Equal(0, vm.Results.Count);
+            await vm.SearchAsync("新的");
+            var hold = new TaskCompletionSource<System.Net.Http.HttpResponseMessage?>();
+            f.Http.Before = (request, _) => request.Path == "subscribe/" ? hold.Task : Task.FromResult<System.Net.Http.HttpResponseMessage?>(null);
+            var refresh = vm.RefreshSubscriptionStatesAsync();
+            f.Http.Before = null; await vm.SearchAsync("更新的"); var fresh = vm.Results.Single();
+            hold.SetResult(MoviePilotTransport.Reply("[]")); await refresh;
+            Check.Same(fresh, vm.Results.Single()); Check.Contains("更新的", vm.Heading);
+        });
+        Test("同页来源来回切换保留完成结果的详情与资源动作", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            var panel = new MoviePilotSearchPanel(); var opened = 0;
+            panel.Attach(f.Service, new Launcher(), (_, _) => opened++); await panel.SearchAsync("切换");
+            var row = panel.ViewModel.Results.Single(); var before = f.Http.Searches;
+            panel.CancelSearch(); panel.CancelSearch();
+            panel.OpenResult(row); await row.SearchResourcesCommand.ExecuteAsync(null);
+            Check.Equal(1, opened); Check.Equal(1, panel.ResourceOverlay.Opens); Check.Equal(before, f.Http.Searches);
+            panel.Release();
+        });
         Test("未 Attach/Release 后不读、不打开，连续 Attach 只有一份订阅", async () =>
         {
             using var f = new MoviePilotFixture();
