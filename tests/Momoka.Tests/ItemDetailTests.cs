@@ -1916,6 +1916,33 @@ internal static class ItemDetailTests
             Assert.Equal(0d, DetailHero.PaperHeight(887, false, immersive: true));
         });
 
+        // 「设计一个过渡动画」（2026-10-31 晚间，用户选定「分块错峰浮起」）：五块正文不再齐刷刷一起挪，
+        // 而是一块接一块地跟上 —— 切进沉浸从上往下（第一块先到，后面追），切回纸面则倒序（离纸最近的那块
+        // 先落稳，纸从下面盖回来）。错开的是「第几格起步」，不是像素：隔多久一块由页面自己定。
+        Test("沉浸过渡：正文面板错峰起步，还原时倒序", () =>
+        {
+            // 进入沉浸：可见的第一块立刻起步，往下每块晚一格。
+            Assert.Equal(0, DetailHero.FloatOrder(0, 5, immersive: true));
+            Assert.Equal(1, DetailHero.FloatOrder(1, 5, immersive: true));
+            Assert.Equal(4, DetailHero.FloatOrder(4, 5, immersive: true));
+
+            // 还原：同一块面板拿到的是倒过来的那一格 —— 最下面那块先动，最上面那块最后落。
+            Assert.Equal(4, DetailHero.FloatOrder(0, 5, immersive: false));
+            Assert.Equal(0, DetailHero.FloatOrder(4, 5, immersive: false));
+
+            // 只有一块可见（电影页上常常只剩「更多类似」）：没有错峰可言，两个方向都是同一格。
+            Assert.Equal(0, DetailHero.FloatOrder(0, 1, immersive: true));
+            Assert.Equal(0, DetailHero.FloatOrder(0, 1, immersive: false));
+
+            // 一块都没有、序号越界时不许算出负数或越界的格：夹在可见的那一段里。负序号夹到最上面那一块，
+            // 于是它在还原那一趟里就是最后起步的那一格。
+            Assert.Equal(0, DetailHero.FloatOrder(0, 0, immersive: true));
+            Assert.Equal(0, DetailHero.FloatOrder(-1, 3, immersive: true));
+            Assert.Equal(2, DetailHero.FloatOrder(-1, 3, immersive: false));
+            Assert.Equal(2, DetailHero.FloatOrder(9, 3, immersive: true));
+            Assert.Equal(0, DetailHero.FloatOrder(9, 3, immersive: false));
+        });
+
         // 差半级看不出来，差一级就是一道缝，所以按 255 级比。
         static void Near(double expected, double actual) =>
             Assert.True(Math.Abs(expected - actual) * 255 < 1,

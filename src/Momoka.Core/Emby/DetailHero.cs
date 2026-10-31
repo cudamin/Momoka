@@ -143,6 +143,33 @@ public static class DetailHero
         && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
     /// <summary>
+    /// 沉浸切换那一下，第几块正文面板第几个起步 —— 「设计一个过渡动画」（2026-10-31 晚间，用户在「分块错峰浮起」
+    /// 与另外三种手感里选了它）。
+    /// <para>
+    /// 只说顺序，不说时间：隔多久一块（<c>DetailPage.FloatStagger</c>）是手感，可以调；而「进入沉浸从上往下、
+    /// 还原倒序」是版面的意思，调了就不是同一件事了。切进沉浸时内容整体往上收，第一块先到、下面几块一块接一块
+    /// 地追上来，读起来像纸面被抽走之后那一叠自己归位；还原时纸从下面盖回来，离纸最近的那块（最下面）先落稳，
+    /// 上面几块再依次跟上 —— 两个方向都顺着内容行进的方向，不是各走各的。
+    /// </para>
+    /// <para>
+    /// 数的来源是<em>可见</em>的那几块：剧页上单集、剧季、相似、演职人员常在，电影页常常只剩一块，而只有一块
+    /// 时没有错峰可言 —— 所以调用方要先滤掉 <c>Collapsed</c> 的，别把看不见的块也算进格子里，否则「第一块」
+    /// 可能是一块根本没画出来的面板。
+    /// </para>
+    /// </summary>
+    /// <param name="slot">这一块在可见面板里从上往下数的序号，0 起。</param>
+    /// <param name="shown">这一次真正可见的面板共几块。</param>
+    /// <param name="immersive">这一次是切进沉浸（true）还是切回纸面（false）。</param>
+    /// <returns>第几格起步；乘上页面那个间隔就是延迟，越界与空集都夹回 0。</returns>
+    public static int FloatOrder(int slot, int shown, bool immersive)
+    {
+        if (shown <= 1) return 0;
+
+        var index = Math.Clamp(slot, 0, shown - 1);
+        return immersive ? index : shown - 1 - index;
+    }
+
+    /// <summary>
     /// 电影、剧、季那三页宽版式的带高：老档（<see cref="Height"/>，412）减掉那排键独立一行占过的
     /// <see cref="ActionsRow"/>，再和那一叠实测要的高取大。
     /// <para>

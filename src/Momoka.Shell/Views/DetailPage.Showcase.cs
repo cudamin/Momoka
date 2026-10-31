@@ -19,9 +19,18 @@ namespace Momoka.Shell.Views;
 /// </para>
 /// <para>
 /// <b>三样一起走，才是「组件整体上移」。</b>尾部高度是布局属性（<see cref="FrameworkElement.MinHeightProperty"/>），
-/// 只能由 UI 线程一帧一帧重排；纸面颜色和面板底色的透明度是画刷自己的属性，由合成器跑。同一段时间、同一条缓动，
-/// 屏上读起来才是「纸面化开、正文顺着尾部收起来的方向升上去」而不是三件互不相干的事。位移为什么不另做动画：
-/// 正文和尾部在同一个网格里首尾相接，尾部收多少、正文就升多少，这是布局给的；再叠一层位移只会把两者拉开一道缝。
+/// 只能由 UI 线程一帧一帧重排；纸面颜色和面板底色的透明度也是画刷上的依赖动画（不写
+/// <c>EnableDependentAnimation</c> 就会被静默丢掉，屏上只剩尾部自己在动、底色到收尾才啪地一跳）。同一段时间、
+/// 同一条缓动，屏上读起来才是「纸面化开、正文顺着尾部收起来的方向升上去」而不是三件互不相干的事。整体位移不另做
+/// 动画：正文和尾部在同一个网格里首尾相接，尾部收多少、正文就升多少，这是布局给的；再叠一层整体位移只会把两者
+/// 拉开一道缝。
+/// </para>
+/// <para>
+/// <b>块与块之间是另一回事（2026-10-31 晚间「设计一个过渡动画」，用户选定「分块错峰浮起」）。</b>每块正文面板
+/// 各带一支 <see cref="TranslateTransform"/>，起步时先偏开 <see cref="FloatOffset"/>，再各自在 180ms 里归位；
+/// 相邻两块错开 <see cref="FloatStagger"/>，顺序由 <see cref="DetailHero.FloatOrder"/> 给 —— 切进沉浸从上往下，
+/// 切回纸面倒序。这层位移只改渲染变换、不动布局，所以它和尾部那一段可以同时跑而不打架：尾部负责「整块升到哪儿」，
+/// 它负责「这一块比上一块晚多少」，合起来才是「一层层让开」而不是一块铁板平移。
 /// </para>
 /// <para>
 /// 只动 <c>MinHeight</c>、<c>SolidColorBrush.Color</c> 和 <c>SolidColorBrush.Opacity</c>，只走 XAML Storyboard，
@@ -34,6 +43,20 @@ public sealed partial class DetailPage
     /// <summary>这一趟走多久。同 <see cref="HomeFoldMotion"/>：两百六十毫秒，比播放页那 220 长一点，因为挪的是
     /// 整段正文而不是两层界面的溶解。</summary>
     private static readonly TimeSpan ShowcaseSpan = TimeSpan.FromMilliseconds(260);
+
+    /// <summary>单块正文面板浮起那一段有多长 —— 比 <see cref="ShowcaseSpan"/> 短：它只管块与块之间那点差额，
+    /// 跟整体一起在尾部停下来之后再各自归位，拖得一样长就成了「慢慢挪」。</summary>
+    private static readonly TimeSpan FloatSpan = TimeSpan.FromMilliseconds(180);
+
+    /// <summary>相邻两块相隔多久。四块排满（剧页常态）时最后一块比第一块晚三格（120ms），整趟收在 300ms；
+    /// 再大就是一段慢动作，再小就看不出是一块接一块。</summary>
+    private static readonly TimeSpan FloatStagger = TimeSpan.FromMilliseconds(40);
+
+    /// <summary>
+    /// 起步时每块面板偏开多少：切进沉浸先落在该到的位置<em>下面</em> 16px，切回纸面先在上面 16px，然后归位。
+    /// 只改渲染变换，不动布局，所以这 16px 不会挤动下面任何东西。
+    /// </summary>
+    private const double FloatOffset = 16;
 
     /// <summary>
     /// 正文那张纸的底色。这一份是这一页自己的，不是全局那支 <c>EgWindowBrush</c>：沉浸档要把它淡成尾部那道
@@ -87,7 +110,8 @@ public sealed partial class DetailPage
     private IEnumerable<StackPanel> BodyPanels => [EpisodePanel, InfoPanel, SeasonPanel, SimilarPanel, CastPanel];
 
     /// <summary>
-    /// 构造时准备三支画刷：纸面取主题的窗口色，面板取样式原本那两档。都在 <c>InitializeComponent</c> 之后、上树
+    /// 构造时准备三支画刷和五支浮起变换：纸面取主题的窗口色，面板取样式原本那两档，每块面板各装一支
+    /// <see cref="TranslateTransform"/>（错峰那一段动的就是它）。都在 <c>InitializeComponent</c> 之后、上树
     /// 之前做完 —— 第一帧就是对的，不会先按样式的底画一下再换成这一支。
     /// </summary>
     private void PrepareShowcase()
@@ -100,6 +124,7 @@ public sealed partial class DetailPage
         {
             panel.Background = _panelFill;
             panel.BorderBrush = _panelLine;
+            panel.RenderTransform = new TranslateTransform();
         }
     }
 
@@ -199,7 +224,10 @@ public sealed partial class DetailPage
         }
 
         var now = ViewModel.Showcase;
-        if (!animate || was == now || !IsLoaded || XamlRoot is null)
+
+        // 系统关掉界面动画（或设置里关了这一档）就直接落到终点：错峰那一段本来就是为了好看，开关关着的时候
+        // 摆在屏上的只是三百多毫秒的挪动。规矩同 <see cref="HomeMotion"/>。
+        if (!animate || was == now || !IsLoaded || XamlRoot is null || !HomeMotion.AnimationsEnabled)
         {
             SettleShowcase();
             return;
@@ -261,8 +289,8 @@ public sealed partial class DetailPage
     private void StopSpaciousWatch() => _spaciousWatch?.Stop();
 
     /// <summary>
-    /// 不停留地落定：纸面色、面板透明度、尾部下限三样直接写终值。第一次上树、换条目和动画收尾都走它 ——
-    /// 收尾那一下也必须走，因为 <see cref="Storyboard.Stop"/> 会把属性还回动画开始前的底值。
+    /// 不停留地落定：纸面色、面板透明度、尾部下限、每块面板的浮起位移直接写终值。第一次上树、换条目和动画
+    /// 收尾都走它 —— 收尾那一下也必须走，因为 <see cref="Storyboard.Stop"/> 会把属性还回动画开始前的底值。
     /// </summary>
     private void SettleShowcase()
     {
@@ -273,18 +301,48 @@ public sealed partial class DetailPage
         _panelFill.Opacity = showcase ? 0 : 1;
         _panelLine.Opacity = showcase ? 0 : 1;
 
+        // 浮起位移的底值就是起步时种下的那 16px；停掉动画只是把它交回来，还得再写一次 0 才算落定。
+        foreach (var panel in BodyPanels)
+            if (Drift(panel) is { } drift) drift.Y = 0;
+
         // 尾部那个下限绑在视图模型上；这里再写一次是因为动画期间它被本地值压住过，收尾要交回同一个数。
         HeroTail.MinHeight = ViewModel.TailMinHeight;
 
         PaintWash(force: true);
     }
 
+    /// <summary>这一刻真正看得见的那几块正文面板，从上往下 —— 错峰的格子按它们数，不按标记里写了几块。</summary>
+    private List<StackPanel> ShownPanels()
+    {
+        var shown = new List<StackPanel>(5);
+        foreach (var panel in BodyPanels)
+            if (panel.Visibility == Visibility.Visible) shown.Add(panel);
+
+        return shown;
+    }
+
+    /// <summary>这一块面板的浮起变换 —— 构造时每块装了一支（<see cref="PrepareShowcase"/>），这里只取。</summary>
+    private static TranslateTransform? Drift(StackPanel panel) => panel.RenderTransform as TranslateTransform;
+
     /// <summary>
-    /// 走一趟：尾部高度、纸面颜色、面板底与框同一段时间、同一条缓动。三样都从「现在是」走到「该是」，
-    /// 所以中途再翻回来也只是换一个终点，不会从半路跳回起点。
+    /// 走一趟：尾部高度、纸面颜色、面板底与框、每块正文的浮起位移。前四样同一段时间、同一条缓动；浮起那一段
+    /// 更短，并且按 <see cref="DetailHero.FloatOrder"/> 一块错后一块。
+    /// <para>
+    /// 每一样都从「现在是」走到「该是」，所以中途再翻回来也只是换一个终点，不会从半路跳回起点。为了这个
+    /// 「现在是」，量的时候要赶在 <see cref="StopShowcase"/> 之前：停下上一趟会把被它压住的属性交回底值，
+    /// 停完再量，量到的其实是上一趟的终点。
+    /// </para>
     /// </summary>
     private void AnimateShowcase(bool showcase, double fromTail)
     {
+        var sheetFrom = _sheetBrush.Color;
+        var fillFrom = _panelFill.Opacity;
+        var lineFrom = _panelLine.Opacity;
+        var panels = ShownPanels();
+        var driftFrom = new double[panels.Count];
+        for (var slot = 0; slot < panels.Count; slot++)
+            driftFrom[slot] = Drift(panels[slot])?.Y ?? 0;
+
         StopShowcase();
 
         var board = new Storyboard();
@@ -294,13 +352,28 @@ public sealed partial class DetailPage
         Track(board, HeroTail, "MinHeight", fromTail, ViewModel.TailMinHeight, ease, dependent: true);
 
         // 2) 纸面：窗口色 ↔ 尾部那道半透明黑。RGB 本来就一样（ScrimInk），变的只有 alpha。
-        var sheetFrom = _sheetBrush.Color;
         _sheetBrush.Color = showcase ? WashColor : PaperColor;
         TrackColor(board, _sheetBrush, sheetFrom, _sheetBrush.Color, ease);
 
         // 3) 五块正文面板的底和框：沉浸档里淡到 0，还原时淡回来。
-        Track(board, _panelFill, "Opacity", _panelFill.Opacity, showcase ? 0 : 1, ease);
-        Track(board, _panelLine, "Opacity", _panelLine.Opacity, showcase ? 0 : 1, ease);
+        Track(board, _panelFill, "Opacity", fillFrom, showcase ? 0 : 1, ease, dependent: true);
+        Track(board, _panelLine, "Opacity", lineFrom, showcase ? 0 : 1, ease, dependent: true);
+
+        // 4) 每块正文各自浮起那 16px 归位，一块错后一块。停在半路的接着走，停在终点的才种上方向。
+        for (var slot = 0; slot < panels.Count; slot++)
+        {
+            if (Drift(panels[slot]) is not { } drift) continue;
+
+            var from = Math.Abs(driftFrom[slot]) > 0.5
+                ? driftFrom[slot]
+                : showcase ? FloatOffset : -FloatOffset;
+
+            drift.Y = from;
+            Track(
+                board, drift, "Y", from, 0, ease,
+                delay: FloatStagger * DetailHero.FloatOrder(slot, panels.Count, showcase),
+                duration: FloatSpan);
+        }
 
         _showcaseBoard = board;
         board.Completed += (_, _) => SettleShowcase();
@@ -320,13 +393,14 @@ public sealed partial class DetailPage
 
     private static void Track(
         Storyboard board, DependencyObject target, string property, double from, double to,
-        EasingFunctionBase ease, bool dependent = false)
+        EasingFunctionBase ease, bool dependent = false, TimeSpan? duration = null, TimeSpan? delay = null)
     {
         var animation = new DoubleAnimation
         {
             From = from,
             To = to,
-            Duration = new Duration(ShowcaseSpan),
+            Duration = new Duration(duration ?? ShowcaseSpan),
+            BeginTime = delay,
             EasingFunction = ease,
             EnableDependentAnimation = dependent
         };
