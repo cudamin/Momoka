@@ -77,6 +77,11 @@ public sealed partial class DetailPage : Page, IShellContent
         ViewModel = new DetailViewModel();
         InitializeComponent();
         PaintScrim();
+        PrepareShowcase();
+
+        // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
+        // 字段会让那份提取出来的类编译不过。视图模型与这一页同寿，挂着不用退订。
+        ViewModel.PropertyChanged += OnShowcaseChanged;
 
         // 上树之后把背景那一层顶到窗口的上沿一次。第一次量得到「这一页坐在工作区的哪儿」就是这时候 ——
         // 构造的时候页面还不在树上，量出来的是 0。
@@ -97,6 +102,7 @@ public sealed partial class DetailPage : Page, IShellContent
         Unloaded += (_, _) =>
         {
             ThemeHost.Changed -= OnThemeChanged;
+            StopShowcase();
             if (_window is not null)
             {
                 _window.GeometryChanged -= OnWindowGeometryChanged;
@@ -107,7 +113,11 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>换了主题：正文那张纸换了颜色，标题栏那一条洗的就是那个颜色。见 <see cref="PaintWash"/>。</summary>
-    private void OnThemeChanged(UiTheme theme) => PaintWash(force: true);
+    private void OnThemeChanged(UiTheme theme)
+    {
+        RefreshShowcaseBrushes();
+        PaintWash(force: true);
+    }
 
     /// <summary>
     /// 无图版式保留 Core 表里的渐变；有图版式让整个头部与尾部共用该表末档的半透明黑底。
@@ -1517,16 +1527,33 @@ public sealed partial class DetailPage : Page, IShellContent
         if (_window is not null) _window.GeometryChanged -= OnWindowGeometryChanged;
         _window = window;
         window.GeometryChanged += OnWindowGeometryChanged;
+
+        // 进来时窗口是不是最大化：这一档决定正文那张纸要不要让开（DetailHero.Immersive）。第一次上树不走
+        // 过渡 —— 版面还没排过，直接按最终那一档布就是了。
+        _maximized = window.IsMaximized;
+        ApplyShowcase(animate: false);
+
         SyncPaperLine();
         SyncCornerScale();
     }
 
     /// <summary>
-    /// 换了显示器、改了窗口大小、全屏来回（<see cref="Windowing.HostWindow.GeometryChanged"/> 的全部场合）：
-    /// 纸面上沿那条线跟着显示器走（<see cref="DetailHero.PaperLineFor"/>），这些时候都要重算一遍。
+    /// 换了显示器、改了窗口大小、全屏来回、最大化与还原（<see cref="Windowing.HostWindow.GeometryChanged"/>
+    /// 的全部场合）：纸面上沿那条线跟着显示器走（<see cref="DetailHero.PaperLineFor"/>），这些时候都要重算一遍。
+    /// <para>
+    /// 最大化状态在那几个数之外还决定正文那张纸让不让开（2026-10-31 用户令）：只有它真的翻面了才排一趟过渡，
+    /// 拖窗口的每一帧不重来。
+    /// </para>
     /// </summary>
     private void OnWindowGeometryChanged()
     {
+        var maximized = _window?.IsMaximized == true;
+        if (maximized != _maximized)
+        {
+            _maximized = maximized;
+            ScheduleShowcase();
+        }
+
         SyncPaperLine();
         SyncCornerScale();
     }
@@ -1919,6 +1946,18 @@ public sealed partial class DetailPage : Page, IShellContent
     private void ApplyWash(double offset, bool force)
     {
         var artwork = ViewModel.BackdropShown;
+
+        // 沉浸档（最大化、电影/剧/季、有背景图）：正文那张纸整块让开，任何时候都没有纸面往标题栏上盖 ——
+        // 整条一直是尾部那道半透明黑上的浅墨。纸面接管的三个阶段（3、4 和那道硬边渐变）在这一档都不存在。
+        if (ViewModel.Showcase)
+        {
+            _paperCover = 0;
+            _paintPhase = 2;
+            SyncTitleInk(0);
+            TitleWash.Background = HeroTail.Background;
+            return;
+        }
+
         var paperTop = PaperOffset();
         var paperCover = artwork
             ? DetailHero.PaperCover(offset, paperTop, TitleWash.ActualHeight)

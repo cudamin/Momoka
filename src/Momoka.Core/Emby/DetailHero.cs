@@ -84,6 +84,33 @@ public static class DetailHero
     public static double Height(bool artwork) => artwork ? ArtHeight : PlainHeight;
 
     /// <summary>
+    /// 这一页要不要把正文那张纸整块让开、让下方组件直接压在固定的模糊背景上 —— 「剧集页面、电影页面和季页面
+    /// 进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」（2026-10-31，附参考图）。
+    /// <para>
+    /// 四句话缺一不可：
+    /// <list type="bullet">
+    /// <item><paramref name="maximized"/>：这是窗口最大化那一档；还原之后回到纸面版式（<see cref="PaperHeight"/>）。</item>
+    /// <item><paramref name="compact"/>：窄成紧凑版式时不参与 —— 那一档是另一套单列版面。</item>
+    /// <item><paramref name="artwork"/>：背后没有那张图就没有可透的东西，收掉纸面只会剩一页空黑。</item>
+    /// <item><paramref name="type"/>：只有<em>电影、剧、季</em>三页；单集页整段已经合成在一块板上
+    /// （<c>DetailViewModel.HeroCard</c>），不跟这一档走，人物、文件夹这些更没有正文可收。</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// 判据放在 Core 而不是视图模型里：它决定的是三个版面数（<see cref="TailHeight(double, double, bool, double, double, bool)"/>
+    /// 和 <see cref="PaperHeight(double, bool, bool)"/> 的那一档），而「哪几种页面算这一档」是一个有唯一正确答案、
+    /// 错起来屏上只是「某一页没跟着变」的判断 —— 单测能盯住的正是这种。
+    /// </para>
+    /// </summary>
+    /// <param name="maximized">窗口这一刻是不是最大化。</param>
+    /// <param name="compact">这一页这次走不走紧凑版式（<see cref="IsCompact"/>）。</param>
+    /// <param name="artwork">服务器上有没有那张背景图 —— 同 <see cref="Height"/>：不是「位图解出来了没有」。</param>
+    /// <param name="type">这一页讲的条目类型（<see cref="EmbyItemType"/> 的字符串常量）。</param>
+    public static bool Immersive(bool maximized, bool compact, bool artwork, string type) =>
+        maximized && !compact && artwork
+        && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
+
+    /// <summary>
     /// 电影、剧、季那三页宽版式的带高：老档（<see cref="Height"/>，412）减掉那排键独立一行占过的
     /// <see cref="ActionsRow"/>，再和那一叠实测要的高取大。
     /// <para>
@@ -457,6 +484,21 @@ public static class DetailHero
             : 0;
 
     /// <summary>
+    /// 沉浸版式（<see cref="Immersive"/>）下的尾部高：不撑第一屏，内容多高就是多高 —— 下方组件因此紧跟着
+    /// 剧情说明站，而不是被推到第一屏的下沿。还原那一档原样交给五参版本，一个数都不改。
+    /// </summary>
+    /// <param name="viewport">同 <see cref="BodyHeight"/>。</param>
+    /// <param name="heroHeight">同 <see cref="BodyHeight"/>。</param>
+    /// <param name="artwork">同五参版本。</param>
+    /// <param name="paperLine">同五参版本。</param>
+    /// <param name="pictureBottom">同五参版本。</param>
+    /// <param name="immersive">这一页这一刻走不走沉浸版式（<see cref="Immersive"/>）。</param>
+    public static double TailHeight(
+        double viewport, double heroHeight, bool artwork, double paperLine, double pictureBottom,
+        bool immersive) =>
+        immersive ? 0 : TailHeight(viewport, heroHeight, artwork, paperLine, pictureBottom);
+
+    /// <summary>
     /// 纸面上沿那条线对应的<em>窗口</em>高，跟着显示器走 —— 用户原话（2026-09-05）：「显示器分别为4k时设定为
     /// 1920×1080 2k时1600×900 1080p时1366×768」，接在他前一句「窗口大于1600*900后开始显示下方的黑边，
     /// 小于1600*900时海报占满整个窗口」后面。判的是<em>显示器</em>（这张屏有多大），给的是<em>窗口</em>
@@ -499,6 +541,16 @@ public static class DetailHero
     /// <param name="artwork">同 <see cref="TailHeight"/>：没有剧照的那一档不撑尾部，也就不用撑纸。</param>
     public static double PaperHeight(double viewport, bool artwork) =>
         !artwork || viewport <= 0 ? 0 : Math.Round(viewport);
+
+    /// <summary>
+    /// 沉浸版式（<see cref="Immersive"/>）下的纸面下限：0 —— 不再要求纸自己站满一屏。那一档纸本来就透明，
+    /// 「滚到底那一屏全是纸」不再是一条要守的规矩；多出来的整屏只是一段没有内容的滚动余量。
+    /// </summary>
+    /// <param name="viewport">同 <see cref="PaperHeight(double, bool)"/>。</param>
+    /// <param name="artwork">同上。</param>
+    /// <param name="immersive">这一页这一刻走不走沉浸版式（<see cref="Immersive"/>）。</param>
+    public static double PaperHeight(double viewport, bool artwork, bool immersive) =>
+        immersive ? 0 : PaperHeight(viewport, artwork);
 
     /// <summary>
     /// 头图底下那道渐深的罩子：它坐在带子的下沿，上面留 <see cref="ScrimInset"/>，自己高

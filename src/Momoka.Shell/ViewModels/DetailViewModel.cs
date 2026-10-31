@@ -272,6 +272,7 @@ public sealed partial class DetailViewModel : PageViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HeroVisibility))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     public partial ImageSource? HeroImage { get; set; }
 
     [ObservableProperty]
@@ -322,6 +323,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCompact))]
+    [NotifyPropertyChangedFor(nameof(Showcase))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutWidth))]
     [NotifyPropertyChangedFor(nameof(BackdropShown))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
@@ -346,6 +349,8 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
     [NotifyPropertyChangedFor(nameof(SheetPadding))]
     [NotifyPropertyChangedFor(nameof(SheetSpacing))]
+    [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
     [NotifyPropertyChangedFor(nameof(ColumnPickersVisibility))]
     [NotifyPropertyChangedFor(nameof(PickersVisibility))]
     [NotifyPropertyChangedFor(nameof(VideoLineVisibility))]
@@ -364,6 +369,50 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <see cref="HeroLayoutWidth"/>（就是页面本身的宽）走。
     /// </summary>
     public bool IsCompact => DetailHero.IsCompact(PageWidth);
+
+    /// <summary>
+    /// 窗口这一刻是不是最大化。由视图在 <c>DetailPage</c> 挂上窗口时和每次 <c>GeometryChanged</c> 时写进来 ——
+    /// 「这台窗口多大、是不是最大化」只有窗口自己知道（<c>HostWindow.IsMaximized</c>），视图模型不去问。
+    /// <para>
+    /// 它只喂 <see cref="Showcase"/>：三页（电影、剧、季）在最大化时把正文的纸面让开、下方组件整体上移，
+    /// 还原之后回到纸面版式。别的版面一个数都不看它，所以它不需要进 <c>AnnounceShape</c> 那一批。
+    /// </para>
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Showcase))]
+    [NotifyPropertyChangedFor(nameof(TailMinHeight))]
+    [NotifyPropertyChangedFor(nameof(PaperMinHeight))]
+    [NotifyPropertyChangedFor(nameof(PictureHeight))]
+    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetSpacing))]
+    [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
+    public partial bool Maximized { get; set; }
+
+    /// <summary>
+    /// 这一页这一刻走不走「沉浸版式」—— 最大化时把正文那张不透明的纸整块让开，单集/剧季/相似/演职人员直接压在
+    /// 固定的模糊背景上，并且不再撑第一屏的留白（2026-10-31 用户令，附参考图）。
+    /// <para>
+    /// 判据在 Core（<see cref="DetailHero.Immersive"/>）：最大化、宽版式、背后有图、条目是电影/剧/季。这里只是
+    /// 把页面的四个现状交过去 —— 哪几种页面算这一档是一个有唯一正确答案的判断，写在 Core 里才测得住。
+    /// </para>
+    /// <para>
+    /// 三个输入都不在这一个文件的属性表里各自成句：<see cref="Maximized"/> 自己的 setter 会通知，页宽跨过紧凑
+    /// 断点和背景图翻档分别在 <c>PageWidth</c>／<c>HeroArt</c> 的通知名单里，条目种类那一路在
+    /// <see cref="AnnounceShape"/> 里补一句。
+    /// </para>
+    /// </summary>
+    public bool Showcase => DetailHero.Immersive(Maximized, IsCompact, BackdropShown, ItemType);
+
+    /// <summary>
+    /// 货架标题前那条短强调线和底下那条通栏线画不画 —— 沉浸档都不画（2026-10-31 用户令「把线条去掉」）。
+    /// 那一档纸面和面板都让开了，一条横贯整页的发丝线压在模糊背景上就是一条没来由的线；还原档照旧画。
+    /// </summary>
+    public bool ShowShelfLines => !Showcase;
 
     /// <summary>
     /// 集页整段上方合成的那一块面板在不在 —— <see cref="HeroCardVisibility"/>、<see cref="HeroPlainVisibility"/>、
@@ -526,6 +575,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BackdropShown))]
+    [NotifyPropertyChangedFor(nameof(Showcase))]
+    [NotifyPropertyChangedFor(nameof(BackdropFadeVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroLayoutHeight))]
     [NotifyPropertyChangedFor(nameof(HeroHeight))]
     [NotifyPropertyChangedFor(nameof(ScrimHeight))]
@@ -537,6 +588,12 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(HeroArtVisibility))]
     [NotifyPropertyChangedFor(nameof(HeroPlainVisibility))]
     [NotifyPropertyChangedFor(nameof(ScrimVisibility))]
+    [NotifyPropertyChangedFor(nameof(TailSpacing))]
+    [NotifyPropertyChangedFor(nameof(TailPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetPadding))]
+    [NotifyPropertyChangedFor(nameof(SheetSpacing))]
+    [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
+    [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
     public partial bool HeroArt { get; set; }
 
     /// <summary>
@@ -799,8 +856,21 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 背景那一张这次画多高 —— <see cref="DetailHero.PictureHeight"/>：宽窗铺满视口，窄窗整张等比缩，带子是
     /// 它的下限。画在 <c>DetailPage</c> 标记里那个跟宽走的盒子（<c>BackdropPicture</c>）上，层本身照旧铺满
     /// 整个视口 —— 盒子底下多出来的那段交给压暗的尾部。
+    /// <para>
+    /// <b>沉浸版式（<see cref="Showcase"/>）里它一律铺到窗口下沿。</b>那一档正文不再有纸面接着，背景要从片名一直
+    /// 透到页尾；按页宽给高的话，比 16:9 更竖的窗口上画面只占第一屏上面那一条，下方组件就压在一片页底色上
+    /// （2026-10-31 在竖屏上实拍到的黑带）。盒子仍然铺满整页、UniformToFill 照旧裁中间那一段 —— 反正这一层
+    /// 是压暗过的模糊背景，裁掉的不是任何要读的东西。
+    /// </para>
+    /// <para>
+    /// 加 <see cref="HeaderLift"/> 是因为背景那一层被顶上去越过标题栏了（<c>DetailPage.LiftBackdrop</c> 给它
+    /// 一个负的上边距）：盒子从窗口上沿起画，视口高只到标题栏下面那一线，差的那一截就是窗口下沿的一条黑边
+    /// （2026-10-31 实拍：底下 48 像素是页底色）。
+    /// </para>
     /// </summary>
-    public double PictureHeight => DetailHero.PictureHeight(PageWidth, HeroHeightRatio, Viewport, HeroHeight);
+    public double PictureHeight => Showcase && Viewport > 0
+        ? Math.Round(Viewport + Math.Max(0, HeaderLift))
+        : DetailHero.PictureHeight(PageWidth, HeroHeightRatio, Viewport, HeroHeight);
 
     /// <summary>
     /// 背景盒子下沿那道黑色渐变摆多高 —— 盒子的下沿减去渐变自己的高（<see cref="PictureFadeHeight"/>），渐变的
@@ -901,8 +971,12 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 是一条从画面下沿一路排到纸面的窄带，12 落在宽版式那 60 的页边和 24 的板内边距之间看不出来，落在紧凑
     /// 版式这 20 的页边和 8 的板内边距之间就是一段接一段的空。四页共用这一支。
     /// </para>
+    /// <para>
+    /// 2026-10-31「不够紧凑」：沉浸档（最大化时的电影/剧/季）也走 8 —— 那一档纸面和面板都让开了，宽版式那
+    /// 24 的内边距不再衬出「板里的板」，留着只是把下方组件往下推。
+    /// </para>
     /// </summary>
-    public double TailSpacing => IsCompact ? 8 : 12;
+    public double TailSpacing => IsCompact || Showcase ? 8 : 12;
 
     /// <summary>
     /// 尾部那三块面板自己的上下内边距 —— <c>EgBodyPanelStyle</c> 那 24 在这里换成 <see cref="IsCompact"/> 的那一档
@@ -916,8 +990,11 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 左右仍是 24 不动：<see cref="TailInset"/> 那 2 是照着「2 + 24 落在头图那一叠的 20 上」定的
     /// （见那一支的注释），把横向那一份一起收掉，片名、文件选项和播放键那条竖线就散了。
     /// </para>
+    /// <para>
+    /// 沉浸档同紧凑档：那一档没有纸面，24 的上下留白在模糊背景上就是一块空。
+    /// </para>
     /// </summary>
-    public Thickness TailPanelPadding => IsCompact ? new(24, 8, 24, 8) : new(24);
+    public Thickness TailPanelPadding => IsCompact || Showcase ? new(24, 8, 24, 8) : new(24);
 
     /// <summary>
     /// 正文纸面那一层的内边距（<c>BodySheet.Padding</c>）—— 紧凑版式上下收一档，左右照旧 28。
@@ -926,14 +1003,26 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 空」的大半（2026-10-13 的截图里最显眼的一处）。左右不收：纸面上那几块卡的内边距和尾部那条竖线各算各的，
     /// 动它只会让两段的左沿错开。
     /// </para>
+    /// <para>
+    /// 沉浸档把上下收到 10 / 14：那一档没有纸，28 只是把第一块货架从剧情说明底下推开。
+    /// </para>
     /// </summary>
-    public Thickness SheetPadding => IsCompact ? new(28, 18, 28, 18) : new(28);
+    public Thickness SheetPadding => IsCompact ? new(28, 18, 28, 18) : Showcase ? new(28, 10, 28, 14) : new(28);
 
     /// <summary>
     /// 纸面上那几块（单集、媒体信息、剧季、相似、演职人员）之间的竖距（<c>BodySheet.Spacing</c>）——
-    /// 紧凑版式收一档，同 <see cref="TailSpacing"/>。
+    /// 紧凑版式收一档，同 <see cref="TailSpacing"/>；沉浸档再紧一档（8），理由同 <see cref="TailSpacing"/>。
     /// </summary>
-    public double SheetSpacing => IsCompact ? 14 : 20;
+    public double SheetSpacing => Showcase ? 8 : IsCompact ? 14 : 20;
+
+    /// <summary>
+    /// 正文那几块货架面板自己的上下内边距（标记里每块各绑一次）—— 沉浸档从样式的 24 收到 10。
+    /// <para>
+    /// 那几块在沉浸档里没有底也没有框（<c>DetailPage.Showcase.cs</c> 把它们的画刷淡到 0），24 的上下留白于是
+    /// 只剩「把两块货架隔开」一个作用，而隔着模糊背景读起来就是一截空。左右不动，货架标题和卡片的左沿不变。
+    /// </para>
+    /// </summary>
+    public Thickness BodyPanelPadding => Showcase ? new(24, 10, 24, 10) : new(24);
 
     /// <summary>
     /// 片名那一栏里那两栏之间的一格间距（<c>HeroContent.ColumnSpacing</c>，标记里绑的是这一个数）。
@@ -989,6 +1078,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TailMinHeight))]
+    [NotifyPropertyChangedFor(nameof(PictureHeight))]
+    [NotifyPropertyChangedFor(nameof(PictureFadeMargin))]
     public partial double HeaderLift { get; set; }
 
     /// <summary>
@@ -1006,7 +1097,8 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 「黑色渐变下方不要留太大的空位」框住的那一块（2026-09-13）。
     /// </para>
     /// </summary>
-    public double TailMinHeight => DetailHero.TailHeight(Viewport, HeroHeight, BackdropShown, PaperLine, PictureHeight - HeaderLift);
+    public double TailMinHeight => DetailHero.TailHeight(
+        Viewport, HeroHeight, BackdropShown, PaperLine, PictureHeight - HeaderLift, Showcase);
 
     /// <summary>
     /// 正文那张纸自己的下限 —— 见 <see cref="DetailHero.PaperHeight"/>：滚到底的那一屏只能有纸。
@@ -1016,7 +1108,7 @@ public sealed partial class DetailViewModel : PageViewModel
     /// 页面的种类走。
     /// </para>
     /// </summary>
-    public double PaperMinHeight => DetailHero.PaperHeight(Viewport, BackdropShown);
+    public double PaperMinHeight => DetailHero.PaperHeight(Viewport, BackdropShown, Showcase);
 
     /// <summary>
     /// The file 播放 would start: the item itself for a film, the next unwatched episode for a show.
@@ -1245,6 +1337,16 @@ public sealed partial class DetailViewModel : PageViewModel
     /// there is one value and the question is asked of it.
     /// </summary>
     public Visibility HeroVisibility => Show(HeroImage is not null);
+
+    /// <summary>
+    /// 背景图下沿那道黑色渐变显不显。沉浸版式（最大化时的电影/剧/季）里不画 —— 2026-10-31 用户令
+    /// 「最大化的时候背景图下方的黑色渐变去掉」。
+    /// <para>
+    /// 那道渐变只干一件事：藏住背景图下沿与页底色之间的硬边（见 <see cref="PictureFadeHeight"/>）。沉浸档里画面
+    /// 按视口高铺满、下沿就是窗口的下沿，没有硬边可藏；留着它只是在页尾压出一条谁也没要的黑带。
+    /// </para>
+    /// </summary>
+    public Visibility BackdropFadeVisibility => Show(!Showcase && HeroImage is not null);
 
     /// <summary>
     /// 固定在背景里那一层画不画 —— 「当前任务的背景要用亚克力遮罩，固定在背景中……占满标题栏」里那一层
@@ -1934,6 +2036,17 @@ public sealed partial class DetailViewModel : PageViewModel
         OnPropertyChanged(nameof(ScrimHeight));
         OnPropertyChanged(nameof(BodyMinHeight));
         OnPropertyChanged(nameof(TailMinHeight));
+        OnPropertyChanged(nameof(PaperMinHeight));
+        // 「这一页是不是电影/剧/季」也是沉浸版式（Showcase）的一句话；从一集翻到一部剧时 HeroArt 和视口
+        // 可能一个字没改，那两处的通知一次都不会来。TailMinHeight / PaperMinHeight 读它，一并重喊。
+        OnPropertyChanged(nameof(Showcase));
+        OnPropertyChanged(nameof(BackdropFadeVisibility));
+        OnPropertyChanged(nameof(TailSpacing));
+        OnPropertyChanged(nameof(TailPanelPadding));
+        OnPropertyChanged(nameof(SheetPadding));
+        OnPropertyChanged(nameof(SheetSpacing));
+        OnPropertyChanged(nameof(BodyPanelPadding));
+        OnPropertyChanged(nameof(ShowShelfLines));
         OnPropertyChanged(nameof(PictureHeight));
         OnPropertyChanged(nameof(PictureFadeMargin));
         OnPropertyChanged(nameof(HeroInset));

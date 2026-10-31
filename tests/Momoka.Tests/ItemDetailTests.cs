@@ -1853,6 +1853,45 @@ internal static class ItemDetailTests
             Assert.False(DetailHero.WashedOver(0.55, true));
         });
 
+        // 「剧集页面、电影页面和季页面进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」
+        // （2026-10-31）：正文那张不透明的纸整块让开，单集/剧季/相似/演职人员直接压在固定的模糊背景上。
+        // 四句话缺一不可 —— 窗口最大化、宽版式、背后有那张图、条目是电影/剧/季；一票否决的那几种各自成句。
+        Test("最大化：只有电影、剧、季三页收起正文纸面", () =>
+        {
+            Assert.True(DetailHero.Immersive(true, compact: false, artwork: true, EmbyItemType.Series));
+            Assert.True(DetailHero.Immersive(true, false, true, EmbyItemType.Movie));
+            Assert.True(DetailHero.Immersive(true, false, true, EmbyItemType.Season));
+
+            // 单集页整段已经合成在一块板上（HeroCard），不跟这一档走；人物、文件夹这些更不在内。
+            Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Episode));
+            Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Person));
+            Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Folder));
+
+            // 另外三句话各自都能单独否决：没最大化、窄成紧凑版式、背后没有图。
+            Assert.False(DetailHero.Immersive(false, false, true, EmbyItemType.Series));
+            Assert.False(DetailHero.Immersive(true, compact: true, artwork: true, EmbyItemType.Series));
+            Assert.False(DetailHero.Immersive(true, false, artwork: false, EmbyItemType.Series));
+        });
+
+        // 上移那一下的两个数：第一屏的留白不再撑，纸也不再要求至少一整屏 —— 下方组件紧跟剧情说明，
+        // 背景从第一屏一直透到页尾。还原那一档一个数都不动。
+        Test("最大化：第一屏留白和纸面下限一起收掉", () =>
+        {
+            // 还原那一档走的是老规则，原样交回。
+            Assert.Equal(DetailHero.TailHeight(887, DetailHero.ArtHeight, true, 700, 887),
+                DetailHero.TailHeight(887, DetailHero.ArtHeight, true, 700, 887, immersive: false));
+            Assert.Equal(DetailHero.PaperHeight(887, true), DetailHero.PaperHeight(887, true, immersive: false));
+
+            // 沉浸档：不管是哪个视口、哪条纸面线，尾部都不再补第一屏。
+            foreach (var viewport in new double[] { 600, 887, 1080, 1400 })
+                Assert.Equal(0d, DetailHero.TailHeight(viewport, DetailHero.ArtHeight, true, 700, 700, immersive: true));
+
+            // 纸面的整屏下限同样让位：内容多长就多长，底下透出来的是同一张画面。
+            Assert.Equal(0d, DetailHero.PaperHeight(887, true, immersive: true));
+            Assert.Equal(0d, DetailHero.PaperHeight(0, true, immersive: true));
+            Assert.Equal(0d, DetailHero.PaperHeight(887, false, immersive: true));
+        });
+
         // 差半级看不出来，差一级就是一道缝，所以按 255 级比。
         static void Near(double expected, double actual) =>
             Assert.True(Math.Abs(expected - actual) * 255 < 1,

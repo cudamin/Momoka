@@ -1,3 +1,11 @@
+## 2026-10-31 详情页最大化沉浸版式（独立树，待合并）
+
+- 用户令（附参考图）：剧、电影、季三页进入最大化时去掉下方组件的背景遮罩、整体上移，最大化/还原切换要有自然过渡；随后三条追加「背景图下方的黑色渐变去掉」「不够紧凑」「把线条去掉」。单集页不参与（那一页整段已经合成在一块板上）。
+- 本树 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/detail-immersive-max`，分支 `codex/detail-immersive-max`，基准 master `ccf1f7e`。主树另有未提交工作（ItemDetail 与自检五文件），本树不触碰、未合入。
+- 判据在 Core：`DetailHero.Immersive`（最大化 + 宽版式 + 有背景图 + 电影/剧/季），沉浸档 `TailHeight` / `PaperHeight` 归零。视图模型 `Maximized`/`Showcase` 把纸面让开；`PictureHeight` 铺到窗口下沿；`BackdropFadeVisibility` 收起黑渐变；尾部与货架间距收紧（TailSpacing 8、TailPanelPadding 24/8、SheetPadding 28/10/28/14、SheetSpacing 8、BodyPanelPadding 24/10）；`ShelfHead.ShowLines` 同时收起标题前的强调条与通栏线。`DetailPage.Showcase.cs` 用 260ms CubicEase 同时走尾部高度、纸面颜色、面板底/框透明度，标题栏整条保持尾部罩子色与浅墨。
+- 验证：Release 整方案 0 警告 0 错误；Core 全套 3495/3495、0 失败 0 跳过（含新增两条最大化判据与两个版面数）。本树开发件打开真实详情页（尚公主，`--show-detail`，只读、未播放、未改真实设置）在 2560×1440 主屏最大化与 1096×1888 竖屏最大化实拍：下方组件直接压在背景上，无纸面/面板/线条/底部黑带，内容紧跟简介；还原窗口纸面与线条恢复；连拍帧看到面板与纸面在约 0.4–0.6 秒内淡变、内容随尾部收放移动。证据在 `work/showcase-*.png` 与 `work/anim/`（ignored，辅助脚本 `work/win_shot.py`、`work/frames.py`）。未跑闸门 1 的空白/分析器检查与闸门 4，未刷新 `artifacts/publish/win-x64`，未推远端。
+- 待办：用户同意后合并 master，按合并后的最终代码重验并交付；删除临时分支/工作树。
+
 ## 2026-10-31 红项修复暂停交接（17:15）
 
 - 用户要求暂停、更换窗口。产品／探针修复已提交并发布612c6e9，Core3486/3486、受影响四套45/15/67/31、构建／空白／正式发布校验通过；新发布件光标、动效、字幕、合成均退出0。完整Shell正常收尾150/151，唯一红为CompactSeasons图片恢复等待超时；旧布局循环本轮未复现且未确认根因，闸门4尚未重跑。
