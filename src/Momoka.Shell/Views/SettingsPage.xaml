@@ -22,9 +22,14 @@
     PointerPressed="OnSettingsPointerPressed">
 
     <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///Theme/SettingsInputs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <CollectionViewSource x:Name="CategoryGroupsSource" IsSourceGrouped="True" />
         <Style x:Key="SettingsSearchTextBox" TargetType="TextBox" BasedOn="{StaticResource AutoSuggestBoxTextBoxStyle}">
             <Setter Property="Padding" Value="32,6,8,6" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSettingsInputCornerRadius}" />
         </Style>
         <!-- 分组头：默认的 ListViewHeaderItem 会垫一层底、留一段内边距；多服务器折叠头要的是一行小标题。 -->
         <Style x:Key="SettingsGroupHeader" TargetType="ListViewHeaderItem">
@@ -332,8 +337,8 @@
         </Style>
 
         <!-- 本页所有下拉（选择行、字幕标题筛选那几颗小的、紧凑模式那颗分类框）都吃这一条：
-             只换容器样式，闭合框本身不吃自定义皮。 -->
-        <Style TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+             列表项沿用原样，闭合框只接统一圆角，不替换平台模板。 -->
+        <Style TargetType="ComboBox" BasedOn="{StaticResource EgSettingsComboBoxStyle}">
             <Setter Property="ItemContainerStyle" Value="{StaticResource EgComboItemStyle}" />
         </Style>
 
@@ -552,6 +557,7 @@
                           （SettingNumberRow.Placeholder）。
                         -->
                         <NumberBox
+                            CornerRadius="{StaticResource EgSettingsInputCornerRadius}"
                             Grid.Column="1"
                             AutomationProperties.Name="{x:Bind Label}"
                             HorizontalAlignment="Left"
@@ -587,6 +593,7 @@
                                 Content="自动"
                                 IsChecked="{x:Bind Automatic, Mode=TwoWay}" />
                             <NumberBox
+                                CornerRadius="{StaticResource EgSettingsInputCornerRadius}"
                                 x:Name="ManualValue"
                                 AutomationProperties.Name="{x:Bind Label}"
                                 IsEnabled="{x:Bind InputEnabled, Mode=OneWay}"
@@ -1391,6 +1398,7 @@
                 </DataTemplate>
             </local:SettingRowTemplates.Shortcut>
         </local:SettingRowTemplates>
+        </ResourceDictionary>
     </Page.Resources>
 
     <Grid x:Name="SettingsLayout" Margin="16,8,0,16">
@@ -1479,7 +1487,7 @@
                 <Grid x:Name="SettingsSearchField" Margin="0,0,0,12">
                     <AutoSuggestBox
                         x:Name="SettingsSearchBox"
-                        Background="{ThemeResource EgWindowBrush}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="8"
+                        Background="{ThemeResource EgWindowBrush}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="{StaticResource EgSettingsInputCornerRadius}"
                         TextBoxStyle="{StaticResource SettingsSearchTextBox}"
                         PlaceholderText="搜索设置项"
                         AutomationProperties.Name="搜索设置项"

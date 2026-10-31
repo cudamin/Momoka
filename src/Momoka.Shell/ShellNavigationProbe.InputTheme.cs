@@ -35,6 +35,8 @@ internal sealed partial class ShellNavigationProbe
             var search = Get<AutoSuggestBox>(page, "SettingsSearchBox");
             AssertBackground(search.Background, "设置搜索外层");
             var searchInput = Descendants(search).OfType<TextBox>().Single();
+            AssertRadius(search, "设置搜索外层");
+            AssertRadius(searchInput, "设置搜索内层");
             await FocusAsync(searchInput, "设置搜索");
             await AssertTextBorderAsync(searchInput, "设置搜索");
             await CaptureAsync($"settings-search-focus-{theme.Id}-{width}", page);
@@ -45,6 +47,8 @@ internal sealed partial class ShellNavigationProbe
             AssertGlass(combo.Background, "闭合下拉框");
             await FocusAsync(combo, "闭合下拉框");
             var comboBorder = Descendants(combo).OfType<Border>().Single(control => control.Name == "Background");
+            AssertRadius(combo, "闭合下拉框");
+            Require(comboBorder.CornerRadius == new CornerRadius(10), "下拉框真实模板未接收设置圆角");
             AssertGlass(comboBorder.Background, "聚焦下拉框");
             var comboHighlight = Descendants(combo).OfType<Border>().Single(control => control.Name == "HighlightBackground");
             Require(comboHighlight.BorderBrush is SolidColorBrush focusedCombo && focusedCombo.Color == border,
@@ -55,6 +59,8 @@ internal sealed partial class ShellNavigationProbe
                 .Single(control => AutomationProperties.GetName(control) == "轮播图张数");
             AssertGlass(number.Background, "数字框外层");
             var numberInput = Descendants(number).OfType<TextBox>().Single(control => control.Name == "InputBox");
+            AssertRadius(number, "数字框外层");
+            AssertRadius(numberInput, "数字框内层");
             await FocusAsync(numberInput, "数字框");
             await AssertTextBorderAsync(numberInput, "数字框");
             await CaptureAsync($"settings-inputs-{theme.Id}-{width}", page);
@@ -76,6 +82,20 @@ internal sealed partial class ShellNavigationProbe
             }
             reads.AppendLine($"数字框失焦恢复：玻璃 tint={glass}");
             await CaptureAsync($"settings-inputs-restored-{theme.Id}-{width}", page);
+
+            page.SelectedCategory = "播放行为";
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            var pathInput = Descendants(page).OfType<TextBox>().Single(control =>
+                AutomationProperties.GetName(control) == "截图保存目录");
+            AssertRadius(pathInput, "设置文本输入框");
+            await FocusAsync(pathInput, "设置文本输入框");
+            await AssertTextBorderAsync(pathInput, "设置文本输入框");
+            await CaptureAsync($"settings-text-radius-{theme.Id}-{width}", page);
+            page.SelectedCategory = "主页";
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            searchInput = Descendants(search).OfType<TextBox>().Single();
 
             var name = "猫与龙";
             var dialog = new MetadataDialog(new EmbyItem { Id = "offline-input-theme", Name = name, Type = EmbyItemType.Movie },
@@ -141,6 +161,13 @@ internal sealed partial class ShellNavigationProbe
             {
                 Require(brush is SolidColorBrush solid && solid.Color == background, $"{theme.Id}/{name} 未使用侧边栏底色");
                 reads.AppendLine($"{name}：背景={background}");
+            }
+            void AssertRadius(Control control, string name)
+            {
+                Require(control.CornerRadius == new CornerRadius(10), $"{theme.Id}/{width}/{name} 未使用设置页 10 DIP 圆角");
+                if (control is TextBox text)
+                    Require(TextFrame(text).CornerRadius == new CornerRadius(10), $"{name} 真实模板未接收设置圆角");
+                reads.AppendLine($"{name}：圆角={control.CornerRadius}");
             }
             void AssertGlass(Brush brush, string name)
             {

@@ -56,6 +56,10 @@ internal sealed partial class ShellNavigationProbe
             }
             await PickAsync("翻译服务", "AI · 兼容 OpenAI");
             var input = Descendants(page).OfType<PasswordBox>().Single(control => control.Name == "SecretInput");
+            Require(input.CornerRadius == new CornerRadius(10)
+                && Descendants(input).OfType<Microsoft.UI.Xaml.Controls.Border>()
+                    .Single(frame => frame.Name == "BorderElement").CornerRadius == new CornerRadius(10),
+                "设置密钥框与真实模板没有接收 10 DIP 圆角");
             input.Password = "offline-placeholder-key";
             await SettlePageAsync();
             var secret = TranslationRows().OfType<SettingSecretRow>().Single();

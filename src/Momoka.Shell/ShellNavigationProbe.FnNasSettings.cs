@@ -41,10 +41,32 @@ internal sealed partial class ShellNavigationProbe
                 "非默认来源保存未执行");
             Require(fixture.Session.Account?.Username == "b", "定向保存改了默认账号");
             await SaveRenderAsync(page, "fnnas-explicit-source-preferences-render.png");
+            await VerifyInputsAsync(page, "FnNasSubtitleLanguage", "FnNasAudioLanguage");
+
+            // 用真实飞牛来源展开原生表单；目录显隐探针使用的是 Emby 假来源，不能拿空视觉树验证圆角。
+            frame.Navigate(typeof(FnNasLibrariesPage), new FnNasLibrariesRequest(fixture.Services, source.Key));
+            var libraries = (FnNasLibrariesPage)frame.Content;
+            await UntilAsync(() => libraries.ViewModel.CanUse);
+            await libraries.ViewModel.NewLibraryCommand.ExecuteAsync(null);
+            Require(libraries.ViewModel.Editing, "飞牛媒体库编辑表单未展开");
+            await VerifyInputsAsync(libraries, "FnNasLibraryCategory", "FnNasLibraryName", "FnNasMinimumFileSize");
+
+            frame.Navigate(typeof(FnNasUsersPage), new FnNasUsersRequest(fixture.Services, source.Key));
+            var users = (FnNasUsersPage)frame.Content;
+            await UntilAsync(() => users.ViewModel.CanOpenDefaults);
+            users.ViewModel.NewUserCommand.Execute(null);
+            Require(users.ViewModel.Editing, "飞牛用户编辑表单未展开");
+            await VerifyInputsAsync(users, "FnNasUserName", "FnNasUserPassword", "FnNasUserPermission");
+
+            frame.Navigate(typeof(FnNasSettingsPage), new FnNasSettingsRequest(fixture.Services, source.Key));
+            var settings = (FnNasSettingsPage)frame.Content;
+            await UntilAsync(() => settings.ViewModel.CanSave);
+            await VerifyInputsAsync(settings, "FnNasServerName", "FnNasServerLanguage", "FnNasMetadataVolume", "FnNasPlaybackCacheVolume");
 
             frame.Navigate(typeof(FnNasPasswordPage), new FnNasPasswordRequest(fixture.Services, source.Key));
             var passwordPage = (FnNasPasswordPage)frame.Content;
             await LayoutAsync(passwordPage);
+            await VerifyInputsAsync(passwordPage, "FnNasPasswordNew", "FnNasPasswordConfirm");
             passwordPage.ViewModel.NewPassword = passwordPage.ViewModel.ConfirmPassword = "offline-new-password";
             var entered = Pending<bool>();
             var reply = Pending<HttpResponseMessage>();
@@ -80,6 +102,29 @@ internal sealed partial class ShellNavigationProbe
             Require(!passwordPage.IsCurrentSession, "已退出的定向来源仍显示可用");
         }
         finally { frame.Content = null; _root.Children.Remove(frame); }
+
+        async Task VerifyInputsAsync(FrameworkElement nativePage, params string[] names)
+        {
+            foreach (var width in new[] { 1100, 760 })
+            {
+                ResizeProbeClient(width, 900);
+                await LayoutAsync(nativePage);
+                foreach (var name in names)
+                {
+                    var control = Get<Control>(nativePage, name);
+                    control.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+                    await LayoutAsync(control);
+                    Require(control.CornerRadius == new CornerRadius(10), $"{nativePage.GetType().Name}/{name} 未接设置圆角");
+                    if (control is TextBox or PasswordBox or NumberBox)
+                        Require(Descendants(control).OfType<Border>().Single(border => border.Name == "BorderElement")
+                            .CornerRadius == new CornerRadius(10), $"{name} 真实输入模板仍是旧圆角");
+                    if (control is ComboBox)
+                        Require(Descendants(control).OfType<Border>().Single(border => border.Name == "Background")
+                            .CornerRadius == new CornerRadius(10), $"{name} 真实选择框模板仍是旧圆角");
+                }
+                await SaveProbeScreenAsync($"settings-radius-{nativePage.GetType().Name}-{width}-screen.png");
+            }
+        }
     }
 
     private static Task<HttpResponseMessage> FnNasSettingsReply(HttpRequestMessage request, CancellationToken _)
@@ -97,6 +142,24 @@ internal sealed partial class ShellNavigationProbe
             return Task.FromResult(FnNasEnvelope(new { guid = "fn-user", username = "fn-user", is_admin = 1, lan = "zh", audio_lan = "ja" }));
         if (path.EndsWith("/mediadb/list", StringComparison.Ordinal))
             return Task.FromResult(FnNasEnvelope(Array.Empty<object>()));
+        if (path.EndsWith("/mdb/list", StringComparison.Ordinal) || path.EndsWith("/manager/user/list", StringComparison.Ordinal))
+            return Task.FromResult(FnNasEnvelope(Array.Empty<object>()));
+        if (path.EndsWith("/manager/template/permission", StringComparison.Ordinal))
+            return Task.FromResult(FnNasEnvelope(new { media_permission = 2 }));
+        if (path.EndsWith("/server/info", StringComparison.Ordinal))
+            return Task.FromResult(FnNasEnvelope(new
+            {
+                name = "离线飞牛",
+                lan = "zh",
+                file_monitor = 1,
+                meta_dir_vol_index = "1",
+                mediasrv_cache_vol_index = "1",
+                supported_languages = new[] { "zh", "en" }
+            }));
+        if (path.EndsWith("/server/allVols", StringComparison.Ordinal))
+            return Task.FromResult(FnNasEnvelope(new { vols = new[] { new { index = "1", state = 0 } } }));
+        if (path.EndsWith("/search/indexStatus", StringComparison.Ordinal))
+            return Task.FromResult(FnNasEnvelope(new { rebuilding = 0 }));
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
     }
 }

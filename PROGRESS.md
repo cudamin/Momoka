@@ -1,3 +1,9 @@
+## 2026-10-31 设置页选择框与文本输入圆角（在途）
+
+- 按用户截图外观取约 10 DIP，不宣称已核对闭源 ChatGPT 的精确源码参数；WinUI 2.3.9 本机 generic.xaml 已核对：TextBox/PasswordBox 的 BorderElement、AutoSuggestBox 内层 TextBox、NumberBox 的 InputBox 均接 CornerRadius TemplateBinding。
+- 本任务独立树 C:/Users/89400/.codex/worktrees/settings-input-rounding/Momoka；产品范围为局部 SettingsInputs 字典、SettingsPage、飞牛五个原生设置页，离线测试由 settings-radius-tests 独立树编写。只改闭合表面形状，不改颜色、尺寸、绑定、下拉列表项或详情 EgPicker 的12 DIP。
+- 最终开发 Shell 与 Tests/Core Release 0警告0错误，主测3452/3452、input主题21/21、SettingsProbeContract31/31通过。第一轮settings24/24；补原生飞牛真来源表单后第二轮23/24，唯一红项是设置搜索截图窗口遮挡，原红报告保留（进程9112）。五个飞牛页1100/760真实模板与截图已执行通过，已看用户与媒体库截图。另有其他聊天开发件占用桌面，待串行主树重验；尚未刷新快捷方式交付件，不是已交付。未真实服务器播放/写入，未上传远端。
+
 ## 2026-10-30 分支整合已交付，旧工作树目录清理受归属限制
 
 - 最终产品提交8eef164已合入master并发布至主树artifacts/publish/win-x64；发布校验546文件/285.1MB，批准mpv载荷通过。ProductVersion=0.2.0+8eef164844d9d21354819dc28cd1356b52f62b61，Shell SHA256=20B9682F32881812B96FD625F731F0861EA129669A5B63F7853DD91B6B0F715F；桌面Momoka.lnk目标和工作目录读回正确。
