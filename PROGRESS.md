@@ -9454,3 +9454,10 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 
 - 独立测试树 C:/Users/89400/.codex/worktrees/subscription-compact-tests/Momoka，仅修改 MoviePilotSubscriptionPageStateTests.cs；沿用现有 CLI 入口，反射执行真实 Shell 分集行。新增普通／空／含全角和换行空白的重复标题、电影身份、空白简介、图片尚未取得及季心形动态绑定，共 20 项；不复制展示规则，不增加测试项目。
 - 当前测试与 Core Release 编译 0 警告 0 错误；读取主代理 subscription-seasons-compact 树已确认成功编译的 Release Shell，31/31 通过，0 失败 0 跳过。仅匿名内存列表与行属性，不访问真实配置／凭据／网络，不创建图片或窗口，不执行播放／搜索；实际布局、图片成功／失败和 UI 输入仍由主代理最终探针验证。待主树整合、重验、实际发布，未上传远端。
+
+## 2026-10-31 MoviePilot 订阅交互与表单最终交付
+
+- 本轮产品已合入 master，发布提交 `c9eb6084ea7e07f5f850b5e8697386010be03beb`。两张表单按官方源码重排，搜索返回保留结果，封面搜索/订阅独立响应，搜索详情新增订阅后自动跳对应MP订阅列表。真实鼠标与UIA正常路径、取消草稿、目录真实值及增量保存已验证。
+- 主树 Shell 0警告0错误；Core3468/3468、SearchLifetime41/41、SubscribeSettings74/74、Editor19/19、ResourceBrowser119/119、Journey21/21、订阅页状态31/31，0失败0跳过。最终发布件 `moviepilot,search` 46/46、退出0（`shell-probe-20261031-035519045-4060/logs`），五主题和宽窄截图已检查。首次主树资源分组截图遮挡红保留，空闲桌面复验及发布件均通过。
+- 发布 `artifacts/publish/win-x64` 校验546文件/285.3MB/批准mpv59文件，桌面目标和工作目录读回正确，参数为空；Momoka.dll SHA256 `C3D0EEA1D6E89BC3D5DA71762053EEFFD6DD7FB1BD8FD57EBED8E78F0FEA0DBE`。完整回执 `artifacts/mp-subscription-final/交付回执.md`。未改版本号、未推origin、未上传Store；本轮匿名写入验证不代表真实MoviePilot下载/播放或当前实服版本。
+- 用户授权协调后，其他聊天媒体管理的9份在途文件由应用handoff安全转到 `mp-episode-direct-delete`，内容保留供其继续；本轮没有夹带该未完成界面。临时订阅开发树的旧草稿由最终主树实现取代，归档保留恢复快照；本条纯进度记录不重建或发布。
