@@ -9461,3 +9461,4 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 主树 Shell 0警告0错误；Core3468/3468、SearchLifetime41/41、SubscribeSettings74/74、Editor19/19、ResourceBrowser119/119、Journey21/21、订阅页状态31/31，0失败0跳过。最终发布件 `moviepilot,search` 46/46、退出0（`shell-probe-20261031-035519045-4060/logs`），五主题和宽窄截图已检查。首次主树资源分组截图遮挡红保留，空闲桌面复验及发布件均通过。
 - 发布 `artifacts/publish/win-x64` 校验546文件/285.3MB/批准mpv59文件，桌面目标和工作目录读回正确，参数为空；Momoka.dll SHA256 `C3D0EEA1D6E89BC3D5DA71762053EEFFD6DD7FB1BD8FD57EBED8E78F0FEA0DBE`。完整回执 `artifacts/mp-subscription-final/交付回执.md`。未改版本号、未推origin、未上传Store；本轮匿名写入验证不代表真实MoviePilot下载/播放或当前实服版本。
 - 用户授权协调后，其他聊天媒体管理的9份在途文件由应用handoff安全转到 `mp-episode-direct-delete`，内容保留供其继续；本轮没有夹带该未完成界面。临时订阅开发树的旧草稿由最终主树实现取代，归档保留恢复快照；本条纯进度记录不重建或发布。
+- 临时树清理结果补充：应用归档工具拒绝编辑器、流程和检查台三个子树，提示“受置顶任务或工作区保护”；父树归档结果按工具回执保留。没有强删或绕过保护，原树草稿与主树最终提交都保留。此清理限制不影响已完成主树发布。
