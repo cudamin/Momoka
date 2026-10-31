@@ -496,7 +496,7 @@ internal static class SubscribeSettingsTests
             hold.SetResult();
             await loading;
             Check.False(vm.InitialLoading); Check.Equal(Visibility.Collapsed, vm.InitialLoadingVisibility);
-            Check.True(vm.NoticeOpen);
+            Check.True(vm.DetailError.Length > 0);
         });
     }
 
