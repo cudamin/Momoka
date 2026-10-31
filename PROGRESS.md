@@ -1,3 +1,14 @@
+## 2026-11-01 发版 0.2.1：GitHub Release 已发布，微软商店等待登录提交
+
+- 起点：master 合入远端 README 更新（`f882edb`）后升版 0.2.1（`eb2b0ce`），并清理 `qoder/search-grouping` 工作树与两个无独有内容的分支。
+- 闸门 1：Release 整方案 **0 警告 0 错误**；`format whitespace` 退出 0；50 个 PowerShell 脚本检查通过。
+- 闸门 2：Core 全套 **3503/3503**、0 失败 0 跳过。
+- 闸门 3：自包含 Rebuild 后 `tools/publish.ps1 -Store -Shortcut` 通过：**546 文件 / 285.5 MB**、14 GLSL / 4 HOOK / 批准 mpv 清单 59 文件；桌面 `Momoka.lnk` 已写。ZIP 117,658,834 B、商店 MSIX 120,469,186 B（`MOMOKA.Momoka` / `0.2.1.0` / x64 / 未签名）、安装包 83,830,404 B（sha256 `fbfdfa2cf4c56349f81e8bf33cc7aa279d77cf0d99b80b5dfe2354c5a8436ead`）。
+- 闸门 4：第一次自检红 1 项「媒体信息表格」10 行只渲 7 行（冷启动滚动时序，未改代码）；重跑 **187/187、0 失败 0 消失 0 降级**。该次红如实保留，不当作稳定绿。
+- 搜索分区在最终交付件上 **14/14、退出 0**（`shell-probe-20261031-174008635-940`）。
+- GitHub：`master` 已推到 origin（`eb2b0ce`）；Release `v0.2.1`（pre-release，target `eb2b0ce`）两件资产上传，GitHub digest 与本地一致（安装包 `fbfdfa2c…`）。
+- 微软商店：上架 MSIX 已生成；Partner Center 会话过期，Edge 停在 Microsoft 登录页。按安全规则没有代替用户登录，等待登录后继续上传、填写说明并提交审核。
+
 ## 2026-11-01 搜索页结果按类型分组（已提交并交付本机，正式发版待办）
 
 - 用户令：媒体库搜索结果按类型分组显示（节目 / 影片 / 单集 / 视频），单集用 16:9 剧照并加一圈强调色粗框，与影片、节目的竖版海报明确分开。
