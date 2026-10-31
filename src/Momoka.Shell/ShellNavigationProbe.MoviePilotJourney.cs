@@ -296,6 +296,8 @@ internal sealed partial class ShellNavigationProbe
                     new { id = 3, name = "已停用站点", is_active = false }
                 });
                 if (path is "/api/v1/search/title" or "/api/v1/search/media/4" or "/api/v1/search/media/1") return Json(Array.Empty<object>());
+                if (path is "/api/v1/search/title/stream" or "/api/v1/search/media/4/stream" or "/api/v1/search/media/1/stream")
+                    return new(HttpStatusCode.NotFound) { Content = new StringContent("{}") };
                 if (path == "/api/v1/download/clients") return Json(new[] { new { name = "PT" }, new { name = "qbittorrent" } });
                 if (path == "/api/v1/download/paths") return Json(new[]
                 {

@@ -75,7 +75,10 @@ internal sealed partial class ShellNavigationProbe
             type.SelectedIndex = 2;
             await LayoutAsync(dialog!);
             RequireSearchRadius(mediaId);
+            Get<Expander>(dialog!, "AdvancedOptions").IsExpanded = true;
+            await LayoutAsync(dialog!);
             RequireSearchRadius(Get<AutoSuggestBox>(dialog!, "HistoryQuery"));
+            Get<Expander>(dialog!, "AdvancedOptions").IsExpanded = false;
             Get<ComboBox>(dialog!, "SourceBox").SelectedIndex = 1;
             mediaId.Text = "123";
             Call(dialog!, "QueueGroupLookup");

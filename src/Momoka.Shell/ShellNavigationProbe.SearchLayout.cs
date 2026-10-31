@@ -367,7 +367,9 @@ internal sealed partial class ShellNavigationProbe
             await page.SearchTypingAsync("新的资源词");
             var count = mp.Paths.Count;
             await page.SubmitSearchAsync("新的资源词");
-            Require(mp.Paths.Count == count + 1 && mp.Paths.Last().Contains(Uri.EscapeDataString("新的资源词"), StringComparison.Ordinal), "资源没有显式提交新关键词");
+            var resourceSearches = mp.Paths.Skip(count).Where(path => path.Contains("search/title?", StringComparison.Ordinal)).ToArray();
+            Require(resourceSearches.Length == 1 && resourceSearches[0].Contains(Uri.EscapeDataString("新的资源词"), StringComparison.Ordinal),
+                "资源没有显式提交新关键词；SSE能力探测不算重复搜索");
             Require(tabs.Visibility == Visibility.Collapsed && tabs.SelectedIndex == 2, "收起来源选项丢失 MP 资源选择");
             // 用户重新编辑期间到达的旧结果不能再次收起来源栏。
             mp.PendingResource = Pending<HttpResponseMessage>();
