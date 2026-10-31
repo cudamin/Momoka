@@ -9596,3 +9596,11 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - `tools/publish.ps1 -NoArchive -Shortcut` 退出 0，发布 `artifacts/publish/win-x64`：546 文件 / 285.4 MB、批准 mpv 59（50 UI + 2 native），版本仍为 0.2.0（未升版本）；桌面 `Momoka.lnk` 目标与工作目录均为该发布目录、参数为空。`Momoka.dll` SHA256 `91BB3D6211E48DD4140F8B592E92F6489EBDC8AB0E5D743BC238FA82F162B069`。
 - 交付件实测：从发布目录启动 `--show-episode --scroll-end` 落到尚公主 S01E18，媒体信息常显、`HDR：DolbyVision`、无 `ExpanderToggleButton`；退出后无残留进程。
 - 未覆盖：真实 DV 播放、HDR 屏与独占管线；未跑完整自检闸门 4（本轮非发版/升级，受影响界面已用发布件实屏核对）；未推 origin。
+
+## 2026-10-31 详情页其他信息卡（1081442）
+
+- 用户令（附媒体信息卡截图）：卡片标题从「媒体信息」改名为「其他信息」，媒体信息放上面，下面划一条分割线，再放类型、工作室、数据库链接与上次播放日期（集页面特有），「下面的放到一行里」；随后反馈「这个标题为什么没其他卡片标题高」。中途要求「在文件上方加个媒体信息」，随即「算了不要加」，未保留该小标题。
+- 产品：详情页信息卡标题改用 `ShelfHead`（强调线 + 20 号半粗 + 通栏线，与「演职人员」同形），内边距改回 `EgBodyPanelStyle` 的 24、间距 10，标题行与别的卡片等高；媒体信息表在下，`EgRuleStyle` 分割线后是一行由代码搭的内联文字 —— 标签最暗、普通值暗墨、TMDB / IMDb / TVDB / 豆瓣走强调色并可点（`ISystemLauncher` 打开默认浏览器）。这条数据在 Core `ItemDetail.OtherInfo` 拼装：集自己身上没有类型、工作室与刮削 id（实测 4.10.1 单集 Genres/Studios 为空、ProviderIds 只有本集 Tvdb/IMDb），所以集页随取图那趟缓存剧集条目并复用；上次播放日期只给集页。电影页没有上次播放那一项。
+- 自检：新增「其他信息」一关（模型几组、几段带地址就应有几段 Hyperlink；空则整行收起），首轮红在 `详情单集形状（文件页）` —— 模型已有 1 集但条子还没量出高，实渲染 0 张；给文件页的集带最多等四拍（`_infoWaits`）后复跑绿。基线追加 `通过  其他信息`。
+- 验证：完整方案 Release 构建 0 警告 0 错误；`dotnet format whitespace` 通过；主测试 **3496/3496**（0 失败 0 跳过）；`Momoka.PlexAffordanceTests` 67/67；`tools/selfcheck-diff.ps1` 闸门 4 绿（187 项、0 失败、0 消失、0 降级、新增 1 已入基线）。开发件打开尚公主 S01E18 实屏核对：标题「其他信息」与「演职人员」同高、媒体信息表照旧 `HDR：DolbyVision`、分割线后一行读作「类型：剧情 · 工作室：Tencent Video · 数据库链接：TMDB · IMDb · TVDB · 上次播放日期：2026/10/31 18:35」，UIA 三颗 Hyperlink 在位（截图 `work/detail-other-info-screen.png`，仅本机证据，未点开浏览器）。
+- 未覆盖／未交付：没有真实点开外链（避免在用户桌面打开网页），未验证电影页的其他信息实屏；没有重新发布 —— `artifacts/publish/win-x64` 与桌面快捷方式仍是上一批交付（`91BB3D62…`），本批只在主树工作区与开发构建里；未推 origin、未改版本。
