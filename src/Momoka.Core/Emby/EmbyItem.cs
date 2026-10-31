@@ -211,6 +211,31 @@ public sealed class MediaStream
     /// </summary>
     public string? ExtendedVideoType { get; set; }
 
+    /// <summary>
+    /// 杜比视界的配置档，Emby 4.10 的枚举原文：实测 Profile 5 写成 <c>DoviProfile50</c>，与可读说法
+    /// <see cref="ExtendedVideoSubTypeDescription"/> 成对下发。老服务器、Jellyfin 与 Plex 不写这一项。
+    /// </summary>
+    public string? ExtendedVideoSubType { get; set; }
+
+    /// <summary>The same profile in the server's own words — 实测为 <c>Profile 5.0</c>.</summary>
+    public string? ExtendedVideoSubTypeDescription { get; set; }
+
+    /// <summary>
+    /// 媒体信息「杜比配置」一行的值：优先照抄服务器的可读说法（Emby 网页端「杜比配置」也是它），缺了才退回
+    /// 枚举原文，两项都没有就是空串、整行不画。不自己从 <c>DoviProfile50</c> 拼 "Profile 5.0" —— 档位编号的
+    /// 拼法由服务器决定，抄错不如不写。
+    /// </summary>
+    [JsonIgnore]
+    public string DolbyVisionProfile
+    {
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(ExtendedVideoSubTypeDescription))
+                return ExtendedVideoSubTypeDescription!.Trim();
+            return string.IsNullOrWhiteSpace(ExtendedVideoSubType) ? "" : ExtendedVideoSubType!.Trim();
+        }
+    }
+
     /// <summary>Display aspect ratio as text, e.g. "2.40:1" or "16:9"; often absent.</summary>
     public string? AspectRatio { get; set; }
 
