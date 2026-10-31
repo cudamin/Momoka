@@ -9582,3 +9582,10 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 验证：主测试 3491/3491（0 失败／0 跳过）；完整方案构建 0 警告／0 错误；Release 空白、50 脚本、文档规则自测通过；发布件 `0.2.0+ca158f911a454613a2514bc5835b24fb0858bac6`、`Momoka.dll` SHA256 `7718E5B6…`、546 文件／285.4 MB、批准 mpv 59，快捷方式未变。发布件 `moviepilot` 分区 33/33，含此前失败项与失败态实屏；helper 未改产品摆放或加载行为。
 - 用户指示「别跑全量、只跑红的」后未再重跑全量：首轮 151 记录 148 过 3 败均为启动后约 4.5 分钟屏幕未出画面的环境红（登录页／侧边栏／多媒体库轮播），第三轮定向覆盖已全绿；第二轮在同一发布件「无图季列表」用例挂载早期触发既有 `LayoutCycleException`（130 项后中断），发生在新 helper 之前，不是本批引入，布局循环仍未归因。**未取得 151/151，不能宣称全量通过。**
 - 未再跑其余四家族（产品与探针源码未变，612c6e9 结果保留为历史证据）；未推 origin、未制作 ZIP／MSIX。细节见 `docs/全量探针与四道闸门-2026-10-31.md` 续修轮章节。
+
+## 2026-10-31 杜比视界识别与媒体信息折叠移除（4a25082）
+
+- 用户报「怎么没有杜比视界相关的信息」并追加「删除媒体信息的折叠功能」。只读取证：Emby 4.10.1 条目 13512 的原始流是 `VideoRange=DolbyVision`（无空格）、`VideoRangeType` 空、`ExtendedVideoType=DolbyVision`、`ExtendedVideoSubType=DoviProfile50`、`ExtendedVideoSubTypeDescription=Profile 5.0`；旧 `IsHdr` 只认 `DOVI` / `Dolby Vision`（带空格）/ `HLG` / `HDR`，整行不画，播放时也按 SDR 跳过 HDR 处理。字段名以服务器 `/openapi` 的 `ExtendedVideoTypes` 为准。
+- 产品：`MediaStream` 新增 `ExtendedVideoType`；`IsDolbyVision` / `IsHdr` / `DynamicRangeLabel` 共用一套拼法（`DOVI`、`DolbyVision`、`Dolby Vision`、独立 `DV`、`dvhe`/`dvh1`/`dav1` 前缀）。媒体信息 HDR 行走 `RangeDisplay`，优先挑提到杜比视界的服务器原文（用户令「保留服务器原文 DolbyVision」）；SDR 与未知不占行。详情页媒体信息由 Expander 改为 `EgBodyPanelStyle` 常显面板（内边距 16、标题与表格间距 8），折叠入口删除；`InfoRealised` 与自检读数不再带展开状态。
+- 验证：Core / Shell / NaturalContinuation 编译 0 警告 0 错误；主测试 3493/3493（0 失败 0 跳过），`dotnet format whitespace` 通过。开发件打开真实文件页核对：尚公主 S01E18 的媒体信息常显，`HDR：DolbyVision`，无 `ExpanderToggleButton`（截图 `work/detail-mediainfo-dv-screen.png`，仅本机证据）。最终代码另加「只有 `dvhe` 档位时也优先显示」的兜底与单测；该兜底不经过本文件路径，未再重拍实屏（桌面上已有用户打开的发布件，共用单实例互斥，没有关闭其进程）。
+- 未覆盖：完整方案构建仍红在 `Momoka.SettingsProbeContractTests` 的生成代码 —— 用户工作区在途的 `LayoutTrace` 诊断引用 `_options`/`_root`，源码旁标注「交付前移除」，与本轮无关；没有真实 DV 播放、HDR 屏或独占管线验收。未推 origin、未发布、未改版本。
