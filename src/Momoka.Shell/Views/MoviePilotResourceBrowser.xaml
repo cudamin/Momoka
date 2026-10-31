@@ -6,15 +6,32 @@
     xmlns:local="using:Momoka.Shell.Views"
     xmlns:vm="using:Momoka.Shell.ViewModels">
     <UserControl.Resources>
-        <Style x:Key="ResourceTag" TargetType="Border">
-            <Setter Property="Padding" Value="5,2" />
-            <Setter Property="CornerRadius" Value="3" />
-            <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
-        </Style>
-        <Style x:Key="ResourceTagText" TargetType="TextBlock" BasedOn="{StaticResource EgCaptionStyle}">
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Foreground" Value="{ThemeResource EgAccentBrush}" />
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="MoviePilotResourceFilterStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <DataTemplate x:Key="ResourceFilterOptionTemplate" x:DataType="vm:MoviePilotResourceChoice">
+                <ToggleButton x:Name="SelectChoice" Style="{StaticResource ResourceFilterOptionStyle}"
+                    IsChecked="{x:Bind Selected, Mode=TwoWay}" AutomationProperties.Name="{x:Bind FilterLabel}">
+                    <Grid ColumnSpacing="6">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                        <FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}"
+                            Visibility="{x:Bind CheckVisibility, Mode=OneWay}" />
+                        <!-- 字色继承原生 ContentPresenter，选中态不被固定字色盖住。 -->
+                        <TextBlock Grid.Column="1" Text="{x:Bind Label}" TextWrapping="Wrap" />
+                    </Grid>
+                </ToggleButton>
+            </DataTemplate>
+            <Style x:Key="ResourceTag" TargetType="Border">
+                <Setter Property="Padding" Value="5,2" />
+                <Setter Property="CornerRadius" Value="3" />
+                <Setter Property="Background" Value="{ThemeResource EgSurfaceAltBrush}" />
+            </Style>
+            <Style x:Key="ResourceTagText" TargetType="TextBlock" BasedOn="{StaticResource EgCaptionStyle}">
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Foreground" Value="{ThemeResource EgAccentBrush}" />
+            </Style>
+        </ResourceDictionary>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
@@ -84,23 +101,51 @@
                         </StackPanel>
                         <DropDownButton.Flyout>
                             <Flyout x:Name="AdvancedFilters">
-                                <ScrollViewer MaxHeight="440" VerticalScrollBarVisibility="Auto">
-                                    <StackPanel Width="244" Spacing="12">
+                                <ScrollViewer MaxHeight="440" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                    HorizontalScrollMode="Disabled" Padding="4">
+                                    <StackPanel Width="280" MaxWidth="280" Spacing="16">
                                         <TextBlock Text="综合筛选" Style="{StaticResource EgSubheadStyle}" />
                                         <TextBox x:Name="FilterText" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="在结果中筛选" PlaceholderText="标题、副标题或标签"
                                             Text="{x:Bind ViewModel.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                        <ComboBox x:Name="EpisodeFilter" Header="集" HorizontalAlignment="Stretch"
-                                            Visibility="{x:Bind ViewModel.EpisodeVisibility, Mode=OneWay}"
-                                            ItemsSource="{x:Bind ViewModel.Episodes, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedEpisode, Mode=TwoWay}" />
-                                        <ComboBox x:Name="LabelFilter" Header="标签" HorizontalAlignment="Stretch"
-                                            Visibility="{x:Bind ViewModel.LabelVisibility, Mode=OneWay}"
-                                            ItemsSource="{x:Bind ViewModel.Labels, Mode=OneWay}" SelectedItem="{x:Bind ViewModel.SelectedLabel, Mode=TwoWay}" />
-                                        <ComboBox x:Name="DateFilter" Header="发布时间" HorizontalAlignment="Stretch"
-                                            SelectedIndex="{x:Bind ViewModel.DateIndex, Mode=TwoWay}">
-                                            <x:String>不限时间</x:String><x:String>最近 24 小时</x:String><x:String>最近 7 天</x:String><x:String>最近 30 天</x:String><x:String>最近 90 天</x:String>
-                                        </ComboBox>
-                                        <CheckBox x:Name="SeededFilter" Content="仅有做种" IsChecked="{x:Bind ViewModel.SeededOnly, Mode=TwoWay}" />
-                                        <CheckBox x:Name="HitAndRunFilter" Content="排除 HR" IsChecked="{x:Bind ViewModel.ExcludeHitAndRun, Mode=TwoWay}" />
+                                        <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.EpisodeVisibility, Mode=OneWay}">
+                                            <TextBlock Text="集" Style="{StaticResource EgCaptionStyle}" />
+                                            <ItemsControl x:Name="EpisodeFilter" AutomationProperties.Name="集"
+                                                ItemsSource="{x:Bind ViewModel.EpisodeCards, Mode=OneWay}" ItemTemplate="{StaticResource ResourceFilterOptionTemplate}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:WrapRow Spacing="8" RowSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                        <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.LabelVisibility, Mode=OneWay}">
+                                            <TextBlock Text="标签" Style="{StaticResource EgCaptionStyle}" />
+                                            <ItemsControl x:Name="LabelFilter" AutomationProperties.Name="标签"
+                                                ItemsSource="{x:Bind ViewModel.LabelCards, Mode=OneWay}" ItemTemplate="{StaticResource ResourceFilterOptionTemplate}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:WrapRow Spacing="8" RowSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                        <StackPanel Spacing="8">
+                                            <TextBlock Text="发布时间" Style="{StaticResource EgCaptionStyle}" />
+                                            <ItemsControl x:Name="DateFilter" AutomationProperties.Name="发布时间"
+                                                ItemsSource="{x:Bind ViewModel.DateCards, Mode=OneWay}" ItemTemplate="{StaticResource ResourceFilterOptionTemplate}">
+                                                <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:WrapRow Spacing="8" RowSpacing="8" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                        <local:WrapRow Spacing="8" RowSpacing="8">
+                                            <ToggleButton x:Name="SeededFilter" AutomationProperties.Name="仅有做种"
+                                                Style="{StaticResource ResourceFilterOptionStyle}" IsChecked="{x:Bind ViewModel.SeededOnly, Mode=TwoWay}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}"
+                                                        Visibility="{x:Bind local:MoviePilotResourceBrowser.FilterCheckVisibility(ViewModel.SeededOnly), Mode=OneWay}" />
+                                                    <TextBlock Text="仅有做种" />
+                                                </StackPanel>
+                                            </ToggleButton>
+                                            <ToggleButton x:Name="HitAndRunFilter" AutomationProperties.Name="排除 HR"
+                                                Style="{StaticResource ResourceFilterOptionStyle}" IsChecked="{x:Bind ViewModel.ExcludeHitAndRun, Mode=TwoWay}">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgCaptionFontSize}"
+                                                        Visibility="{x:Bind local:MoviePilotResourceBrowser.FilterCheckVisibility(ViewModel.ExcludeHitAndRun), Mode=OneWay}" />
+                                                    <TextBlock Text="排除 HR" />
+                                                </StackPanel>
+                                            </ToggleButton>
+                                        </local:WrapRow>
                                         <Button x:Name="ResetAdvancedFilters" Content="清除筛选" Command="{x:Bind ViewModel.ResetCommand}" HorizontalAlignment="Right" />
                                     </StackPanel>
                                 </ScrollViewer>
@@ -117,9 +162,21 @@
             <ItemsControl.ItemsPanel><ItemsPanelTemplate><local:WrapRow Spacing="6" RowSpacing="6" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:MoviePilotResourceChoice">
-                    <Button x:Name="RemoveFilter" Content="{x:Bind FilterLabel}" Command="{x:Bind RemoveCommand}"
-                        AutomationProperties.Name="{x:Bind RemoveName}" CornerRadius="14" Padding="8,3" MinHeight="28"
-                        FontSize="{StaticResource EgCaptionFontSize}" />
+                    <Border x:Name="ActiveFilterTag" Background="{ThemeResource EgAccentSoftBrush}" BorderBrush="{ThemeResource EgAccentMutedBrush}"
+                        BorderThickness="1" CornerRadius="16" Padding="10,0,2,0">
+                        <Grid ColumnSpacing="4">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Bind FilterLabel}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}"
+                                VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="220" />
+                            <Button x:Name="RemoveFilter" Grid.Column="1" Command="{x:Bind RemoveCommand}"
+                                AutomationProperties.Name="{x:Bind RemoveName}" ToolTipService.ToolTip="{x:Bind RemoveName}"
+                                CornerRadius="14" Padding="6" MinWidth="28" MinHeight="28"
+                                Background="{ThemeResource ControlFillColorTransparentBrush}" Foreground="{ThemeResource EgAccentBrush}"
+                                BorderThickness="0" UseSystemFocusVisuals="True">
+                                <FontIcon Glyph="&#xE711;" FontSize="{StaticResource EgCaptionFontSize}" />
+                            </Button>
+                        </Grid>
+                    </Border>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>

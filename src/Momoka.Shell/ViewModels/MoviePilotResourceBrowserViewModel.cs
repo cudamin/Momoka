@@ -17,6 +17,7 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     private readonly List<MoviePilotResourceRow> _all = [];
     private readonly Dictionary<MoviePilotResourceRow, MoviePilotResourceGroup> _groups = [];
     private bool _resetting;
+    private bool _syncingCards;
     private int? _seededEpisode;
 
     public MoviePilotResourceBrowserViewModel()
@@ -29,6 +30,7 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         ResolutionFacet = new("resolution", "分辨率", "\uE7F4", Apply);
         GroupFacet = new("group", "制作组", "\uE902", Apply);
         Facets = [SiteFacet, SeasonFacet, PromotionFacet, VideoFacet, EditionFacet, ResolutionFacet, GroupFacet];
+        RefreshFilterCards();
     }
 
     public MoviePilotResourceFacet SiteFacet { get; }
@@ -48,6 +50,11 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
     public ObservableCollection<string> Labels { get; } = [AllLabels];
     public ObservableCollection<string> Seasons { get; } = [AllSeasons];
     public ObservableCollection<string> Episodes { get; } = [AllEpisodes];
+    // 这三组仍是原有单选条件；卡片只投影标量属性，不复制 Core 的匹配规则。
+    public ObservableCollection<MoviePilotResourceChoice> EpisodeCards { get; } = [];
+    public ObservableCollection<MoviePilotResourceChoice> LabelCards { get; } = [];
+    public ObservableCollection<MoviePilotResourceChoice> DateCards { get; } = [];
+    public static IReadOnlyList<string> DateLabels { get; } = ["不限时间", "最近 24 小时", "最近 7 天", "最近 30 天", "最近 90 天"];
 
     [ObservableProperty] public partial string Text { get; set; } = "";
     [ObservableProperty] public partial string SelectedSite { get; set; } = AllSites;
@@ -226,7 +233,11 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         var grouped = desired.GroupBy(row => _groups[row]).ToArray();
         foreach (var group in grouped) group.Key.Update(group.ToArray());
         Sync(Groups, grouped.Select(group => group.Key).ToArray());
-        Sync(ActiveChoices, Facets.SelectMany(facet => facet.Choices).Where(choice => choice.Selected).ToArray());
+        RefreshFilterCards();
+        Sync(ActiveChoices, Facets.SelectMany(facet => facet.Choices).Where(choice => choice.Selected)
+            .Concat(EpisodeCards.Where(choice => choice.Selected && choice.Value != AllEpisodes))
+            .Concat(LabelCards.Where(choice => choice.Selected && choice.Value != AllLabels))
+            .Concat(DateCards.Where(choice => choice.Selected && choice.Value != "0")).ToArray());
         OnPropertyChanged(nameof(CountText));
         OnPropertyChanged(nameof(NoMatchesVisibility));
         OnPropertyChanged(nameof(ActiveChoicesVisibility));
@@ -234,6 +245,48 @@ public sealed partial class MoviePilotResourceBrowserViewModel : ObservableObjec
         OnPropertyChanged(nameof(EpisodeVisibility));
         OnPropertyChanged(nameof(LabelVisibility));
         OnPropertyChanged(nameof(AdvancedSummary));
+    }
+
+    private void RefreshFilterCards()
+    {
+        _syncingCards = true;
+        try
+        {
+            SyncFilterCards(EpisodeCards, Episodes.Select(value => (value, value)), "集", AllEpisodes,
+                () => SelectedEpisode, value => SelectedEpisode = value);
+            SyncFilterCards(LabelCards, Labels.Select(value => (value, value)), "标签", AllLabels,
+                () => SelectedLabel, value => SelectedLabel = value);
+            SyncFilterCards(DateCards, DateLabels.Select((label, index) => (index.ToString(CultureInfo.InvariantCulture), label)),
+                "发布时间", "0", () => DateIndex.ToString(CultureInfo.InvariantCulture),
+                value => DateIndex = int.Parse(value, CultureInfo.InvariantCulture));
+        }
+        finally { _syncingCards = false; }
+    }
+
+    private void SyncFilterCards(ObservableCollection<MoviePilotResourceChoice> cards,
+        IEnumerable<(string Value, string Label)> values, string category, string all, Func<string> current, Action<string> select)
+    {
+        var desired = new List<MoviePilotResourceChoice>();
+        foreach (var (value, label) in values)
+        {
+            var card = cards.FirstOrDefault(choice => choice.Value == value);
+            if (card is null)
+            {
+                MoviePilotResourceChoice? created = null;
+                created = new(value, label, category, () =>
+                {
+                    if (_syncingCards || created is null || !cards.Contains(created)) return;
+                    if (created.Selected) select(value);
+                    else if (current() == value) select(all);
+                    // 再点“不限”不能把唯一选中态抹掉；重入由 _syncingCards 挡住。
+                    RefreshFilterCards();
+                });
+                card = created;
+            }
+            desired.Add(card);
+        }
+        Sync(cards, desired);
+        foreach (var card in cards) card.Selected = card.Value == current();
     }
 
     private static void SetFacet(MoviePilotResourceFacet facet, IEnumerable<string?> values) =>

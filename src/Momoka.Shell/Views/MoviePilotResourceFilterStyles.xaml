@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- 只重定向平台模板的颜色槽；原生 Toggle、键盘焦点及禁用态不另造模板。 -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ToggleButtonForeground" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="EgBorderBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextOnAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextOnAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextOnAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+            <StaticResource x:Key="ToggleButtonBackground" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="EgAccentMutedBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="EgAccentSoftBrush" />
+            <StaticResource x:Key="ToggleButtonForeground" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="EgBorderBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundChecked" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBackgroundCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundChecked" ResourceKey="EgTextOnAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPointerOver" ResourceKey="EgTextOnAccentBrush" />
+            <StaticResource x:Key="ToggleButtonForegroundCheckedPressed" ResourceKey="EgTextOnAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushChecked" ResourceKey="EgAccentBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPointerOver" ResourceKey="EgAccentHoverBrush" />
+            <StaticResource x:Key="ToggleButtonBorderBrushCheckedPressed" ResourceKey="EgAccentPressedBrush" />
+        </ResourceDictionary>
+        <!-- 让平台原生高对比度槽接管，不把柔和主题色写进系统对比度主题。 -->
+        <ResourceDictionary x:Key="HighContrast" />
+    </ResourceDictionary.ThemeDictionaries>
+    <Style x:Key="ResourceFilterOptionStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="MaxWidth" Value="240" />
+        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontFamily" Value="{StaticResource EgUiFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource EgCaptionFontSize}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="IsThreeState" Value="False" />
+    </Style>
+</ResourceDictionary>

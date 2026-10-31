@@ -41,9 +41,12 @@ public sealed partial class MoviePilotResourceChoice(string value, string label,
 {
     public string Value { get; } = value;
     public string Label { get; } = label;
-    public string FilterLabel => $"{category} · {Label}  ×";
+    public string FilterLabel => $"{category} · {Label}";
     public string RemoveName => $"移除筛选：{category} · {Label}";
-    [ObservableProperty] public partial bool Selected { get; set; }
+    public Visibility CheckVisibility => Selected ? Visibility.Visible : Visibility.Collapsed;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CheckVisibility))]
+    public partial bool Selected { get; set; }
     partial void OnSelectedChanged(bool value) => changed();
     [RelayCommand] private void Remove() => Selected = false;
 }

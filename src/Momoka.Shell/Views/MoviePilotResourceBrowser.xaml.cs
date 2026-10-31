@@ -22,6 +22,7 @@ public sealed partial class MoviePilotResourceBrowser : UserControl
 
     private static Visibility AscendingIconVisibility(bool descending) => descending ? Visibility.Collapsed : Visibility.Visible;
     private static Visibility DescendingIconVisibility(bool descending) => descending ? Visibility.Visible : Visibility.Collapsed;
+    private static Visibility FilterCheckVisibility(bool selected) => selected ? Visibility.Visible : Visibility.Collapsed;
 
     /// <summary>
     /// 点卡片（指针单击或键盘回车）：打开下载选择栏。卡片上的详情方钮自己处理指针，不会走到这里。
@@ -65,7 +66,5 @@ public sealed partial class MoviePilotResourceBrowser : UserControl
             facet.ClosePopup();
         AdvancedFilters.Hide();
         SortMenu.Hide();
-        foreach (var filter in new[] { LabelFilter, DateFilter, EpisodeFilter })
-            filter.IsDropDownOpen = false;
     }
 }
