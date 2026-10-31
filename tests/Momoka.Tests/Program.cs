@@ -48,6 +48,7 @@ internal static class Program
             CompositionPositionReadinessTests.Register();
             CompositionProbePixelsTests.Register();
             ProbeEvidenceTests.Register();
+            CompactImagesProbeTests.Register();
             return TestHarness.Run();
         }
         if (args is ["settings-storage-fixture"])
@@ -332,6 +333,7 @@ internal static class Program
         CompositionPositionReadinessTests.Register();
         CompositionProbePixelsTests.Register();
         ProbeEvidenceTests.Register();
+        CompactImagesProbeTests.Register();
         PerformanceProbeRulesTests.Register();
         AgreementsTests.Register();
 

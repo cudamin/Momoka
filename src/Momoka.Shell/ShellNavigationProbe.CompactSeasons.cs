@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Momoka.Shell.Views;
 
 namespace Momoka.Shell;
@@ -86,16 +87,23 @@ internal sealed partial class ShellNavigationProbe
             server.Items[4]["total_episode"] = 4;
             server.FailedImageUrl = "https://poster.invalid/episode-1.png";
             await vm.ReloadAsync();
-            seasons.StartBringIntoView();
-            await LayoutAsync(page);
-            await UntilAsync(() => vm.Episodes[1].Artwork is not null && server.ImageRequests.Contains(server.FailedImageUrl));
+            await PrepareSubscriptionImagesAsync(seasons, rows, 0, 1);
+            void TraceImages(string stage)
+            {
+                var list = Descendants(seasons).OfType<ItemsRepeater>().FirstOrDefault(repeater => repeater.Name == "EpisodeStatistics" && ReferenceEquals(repeater.ItemsSource, rows));
+                File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "mp-compact-image-trace.txt"),
+                    $"{DateTimeOffset.Now:O} {stage} rows={rows.Count} filter={vm.FilterIndex} expanded={season.Expanded} row0={list?.TryGetElement(0) is not null} row1={list?.TryGetElement(1) is not null} image0={rows.ElementAtOrDefault(0)?.Artwork is not null} image1={rows.ElementAtOrDefault(1)?.Artwork is not null} requests={string.Join('|', server.ImageRequests.Where(url => url.Contains("episode-", StringComparison.Ordinal)))}\n");
+            }
+            TraceImages("before-wait");
+            try { await UntilAsync(() => vm.Episodes[1].Artwork is not null && server.ImageRequests.Contains(server.FailedImageUrl)); }
+            finally { TraceImages("after-wait"); }
             await SettleAsync();
             Require(vm.Episodes[0].ArtworkVisibility == Visibility.Collapsed && vm.Episodes[1].ArtworkVisibility == Visibility.Visible,
                 "图片失败没有保持文字行，或相邻有图行未恢复");
             await SaveProbeScreenAsync("mp-compact-seasons-image-failed-screen.png");
             server.FailedImageUrl = null;
             await vm.ReloadAsync();
-            await LayoutAsync(page);
+            await PrepareSubscriptionImagesAsync(seasons, rows, 0);
             await UntilAsync(() => vm.Episodes[0].Artwork is not null);
             Require(vm.Episodes[0].ArtworkVisibility == Visibility.Visible, "刷新成功后图片没有恢复");
             Require(server.Writes.Count == 0, "查看或筛选季列表触发了写入");
@@ -111,5 +119,36 @@ internal sealed partial class ShellNavigationProbe
         Require(picture.Visibility == Visibility.Collapsed && element.ActualHeight <= 100, "无图行没有收紧到文字高度");
         Require(content.TransformToVisual(grid).TransformPoint(default).X < 1 && Grid.GetRow(content) == 0,
             "图片隐藏后仍残留左侧列或上方空行");
+    }
+
+    private static async Task PrepareSubscriptionImagesAsync(MoviePilotMediaSeasonsView seasons,
+        System.Collections.IEnumerable rows, params int[] indices)
+    {
+        seasons.StartBringIntoView();
+        await LayoutAsync(seasons);
+        var list = Descendants(seasons).OfType<ItemsRepeater>().Single(repeater =>
+            repeater.Name == "EpisodeStatistics" && ReferenceEquals(repeater.ItemsSource, rows));
+        foreach (var index in indices)
+        {
+            var element = (FrameworkElement)list.GetOrCreateElement(index);
+            element.StartBringIntoView();
+            await LayoutAsync(element);
+            ScrollViewer? viewport = null;
+            for (var parent = VisualTreeHelper.GetParent(element); parent is not null; parent = VisualTreeHelper.GetParent(parent))
+            {
+                if (parent is not ScrollViewer scroll) continue;
+                viewport = scroll;
+                break;
+            }
+            Require(viewport is not null, "订阅图片目标行没有滚动视口");
+            var targetViewport = viewport!;
+            await UntilAsync(() =>
+            {
+                var point = element.TransformToVisual(targetViewport).TransformPoint(default);
+                return element.ActualWidth > 0 && element.ActualHeight > 0 && point.X >= -1 && point.Y >= -1
+                    && point.X + element.ActualWidth <= targetViewport.ActualWidth + 1
+                    && point.Y + element.ActualHeight <= targetViewport.ActualHeight + 1;
+            });
+        }
     }
 }

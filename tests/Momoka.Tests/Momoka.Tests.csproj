@@ -190,6 +190,38 @@
         Directory.CreateDirectory(Path.GetDirectoryName(Output));
         if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
             File.WriteAllText(Output, generated, new UTF8Encoding(false));
+        var compactPath = "src/Momoka.Shell/ShellNavigationProbe.CompactSeasons.cs";
+        var compact = read(compactPath);
+        var sharedPath = "src/Momoka.Shell/ShellNavigationProbe.cs";
+        var shared = read(sharedPath);
+        foreach (var wiring in new[] { "await PrepareSubscriptionImagesAsync(seasons, rows, 0, 1);",
+            "await PrepareSubscriptionImagesAsync(seasons, rows, 0);",
+            "vm.Episodes[1].Artwork is not null && server.ImageRequests.Contains(server.FailedImageUrl)",
+            "vm.Episodes[0].Artwork is not null" })
+            if (compact.IndexOf(wiring, StringComparison.Ordinal) < 0)
+                throw new InvalidOperationException("Compact episode image caller lost original preparation/assertion: " + wiring);
+        var compactGenerated = "// Verbatim image-preparation probe; only framework layout and element endpoints are substitutes.\n#nullable enable\n" +
+            "using FrameworkElement = Momoka.Tests.CompactProbeElement;\nusing DependencyObject = Momoka.Tests.CompactProbeElement;\n" +
+            "using MoviePilotMediaSeasonsView = Momoka.Tests.CompactProbeSeasons;\nusing ItemsRepeater = Momoka.Tests.CompactProbeRepeater;\n" +
+            "using ScrollViewer = Momoka.Tests.CompactProbeViewport;\nusing VisualTreeHelper = Momoka.Tests.CompactProbeVisualTree;\n" +
+            "namespace Momoka.Shell;\ninternal sealed partial class ShellNavigationProbe\n{\n" +
+            between(compact, "    private static async Task PrepareSubscriptionImagesAsync(", "\n}") +
+            between(shared, "    private static void Require(bool condition, string message)", "\n    private static object? Call") +
+            between(shared, "    private static async Task UntilAsync(Func<bool> ready)", "\n    /// <summary>ScrollTo") +
+            between(shared, "    private static IEnumerable<DependencyObject> Descendants(", "\n    private sealed class Fixture") +
+            "\n    internal static Task PrepareCompactImagesForFixture(MoviePilotMediaSeasonsView seasons, System.Collections.IEnumerable rows, params int[] indices) => PrepareSubscriptionImagesAsync(seasons, rows, indices);\n}\n";
+        var compactHashes = new StringBuilder();
+        foreach (var path in new[] { compactPath, sharedPath })
+        {
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+                compactHashes.Append("        (\"").Append(path).Append("\", \"")
+                    .Append(BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(Path.Combine(Root, path)))).Replace("-", ""))
+                    .Append("\"),\n");
+        }
+        compactGenerated += "internal static class CompactProbeInputs\n{\n    internal static readonly (string Path, string Hash)[] Hashes =\n    [\n" + compactHashes + "    ];\n}\n";
+        var compactOutput = Path.Combine(Path.GetDirectoryName(Output), "CompactImagesProbe.g.cs");
+        if (!File.Exists(compactOutput) || File.ReadAllText(compactOutput) != compactGenerated)
+            File.WriteAllText(compactOutput, compactGenerated, new UTF8Encoding(false));
       ]]></Code>
     </Task>
   </UsingTask>
@@ -197,6 +229,7 @@
     <ExtractProbeEvidence Root="$(MSBuildProjectDirectory)\..\.." Output="$(IntermediateOutputPath)ProbeEvidence.g.cs" />
     <ItemGroup>
       <Compile Include="$(IntermediateOutputPath)ProbeEvidence.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)CompactImagesProbe.g.cs" />
     </ItemGroup>
   </Target>
 </Project>
