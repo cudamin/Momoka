@@ -64,7 +64,8 @@ Shell 的完整编译另外执行当前树 `src/Momoka.Shell/Momoka.Shell.csproj
 ## 回归范围
 
 - 重复 Attach 订阅不累加；Release 幂等退订；永久 Dispose 不重启；真实 LibraryPage 离页接线与
-  同页 CancelSearch 区分；返回/恢复不自动搜索，显式提交才能读取。
+  同页 CancelSearch 区分；返回从纯数据快照恢复搜索词、结果和滚动位置，只刷新订阅状态、不重搜媒体。
+  新输入和新查询仍清旧结果，旧连接快照不恢复；同页来源切换保留已完成结果的详情与资源动作。
 - WeakReference 覆盖 50 次面板/VM/行/图片/载荷/页面回调回收；旧 UI 队列故意保留也不成为根。
   即使 VM 自己仍被外部保留，Release 也必须解除确认、资源、季选择、媒体页面闭包与图片事件。
 - 旧事件委托、旧连接、旧请求、旧 success/error/finally、同身份操作锁尾部以及 Busy/Ready/Heading

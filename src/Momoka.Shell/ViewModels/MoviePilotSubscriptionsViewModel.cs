@@ -516,6 +516,52 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         if (changed && Live) await ReloadAsync();
     }
 
+    /// <summary>真实编辑窗口在提交完成后才关闭；错误交回窗口，输入草稿与重试入口保持可见。</summary>
+    internal async Task EditAsync(MoviePilotSubscriptionCard card,
+        Func<MoviePilotSubscription, Func<MoviePilotSubscriptionEdit, Task>, Func<Task>, Task> show)
+    {
+        if (!CanManage || !Owns(card) || _service is null || _lifetime is null) return;
+        var token = _lifetime.Token;
+        Working = true;
+        var changed = false;
+        try
+        {
+            var original = await _service.SubscriptionAsync(card.Subscription, token);
+            if (token.IsCancellationRequested || !Owns(card)) return;
+            await show(original, Save, Remove);
+
+            async Task Save(MoviePilotSubscriptionEdit draft)
+            {
+                RequireCurrent();
+                await _service.UpdateSubscriptionAsync(original, draft, token);
+                RequireCurrent();
+                changed = true;
+            }
+            async Task Remove()
+            {
+                RequireCurrent();
+                // 编辑器内的具名确认区域已获得确认，不叠开第二个 ContentDialog。
+                await _service.ManageSubscriptionAsync(original, MoviePilotSubscriptionAction.Delete, token);
+                RequireCurrent();
+                changed = true;
+                Deleted = _detail;
+                if (!_detail) { card.Release(); Movies.Remove(card); Series.Remove(card); }
+                Notify("取消订阅", "MoviePilot 已确认操作成功，已入库文件保留。", InfoBarSeverity.Success);
+            }
+            void RequireCurrent()
+            {
+                token.ThrowIfCancellationRequested();
+                if (!Owns(card) || !_service.Available || !_service.IsCurrentConnection(original.ConnectionStamp))
+                    throw new MoviePilotOperationBlockedException("订阅或连接已改变，请关闭后重新打开");
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { if (!token.IsCancellationRequested && Live) Report("读取订阅失败", error); }
+        finally { if (!token.IsCancellationRequested) Working = false; }
+        if (changed && !Deleted && Live) await ReloadAsync();
+        NotifyRows();
+    }
+
     private void ApplyFilter()
     {
         Episodes.Clear();

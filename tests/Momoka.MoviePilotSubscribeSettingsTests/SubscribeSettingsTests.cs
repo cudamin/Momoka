@@ -807,8 +807,10 @@ internal static class SubscribeSettingsTests
             // 2026-10-28：搜索结果卡可调用（点封面进订阅页），订阅页首次读取有转圈、且不再有细进度条。
             var search = XDocument.Parse(Resource("Production.MoviePilotSearchPanel.xaml"));
             var results = search.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "Results");
-            Check.Equal("True", (string?)results.Attribute("IsItemInvokedEnabled"));
-            Check.Contains("OnResultInvoked", results.Attribute("ItemInvoked")?.Value ?? "");
+            Check.Equal("False", (string?)results.Attribute("IsItemInvokedEnabled"));
+            Check.True(results.Attribute("ItemInvoked") is null);
+            var open = search.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "OpenMedia");
+            Check.Equal("OnOpenResult", (string?)open.Attribute("Click"));
             Check.Contains("ViewModel.Open(", text);
             var subscriptionPage = XDocument.Parse(Resource("Production.MoviePilotSubscriptionPage.xaml"));
             var loadingRing = subscriptionPage.Descendants().Single(item => (string?)item.Attribute(x + "Name") == "DetailLoadingRing");

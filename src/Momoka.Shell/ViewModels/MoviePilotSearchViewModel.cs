@@ -246,6 +246,77 @@ public sealed partial class MoviePilotSearchViewModel : PageViewModel
 
     public ObservableCollection<MoviePilotResult> Results { get; } = [];
 
+    internal MoviePilotSearchSnapshot? Capture()
+    {
+        if (!_active || _service is not { Available: true } service || _lastTerm.Length == 0) return null;
+        return new(service.ConnectionStamp, _lastTerm,
+            Results.Select(row => row.Media).ToArray(),
+            Busy ? "上次搜索尚未完成，按回车继续搜索。" : EmptyNotice, Busy || ShowEmptyNotice,
+            NoticeTitle, NoticeMessage, NoticeSeverity, NoticeOpen);
+    }
+
+    internal bool Restore(MoviePilotSearchSnapshot? snapshot)
+    {
+        if (!_active || _service is not { Available: true } service || snapshot is null
+            || !service.IsCurrentConnection(snapshot.ConnectionStamp)
+            || snapshot.Results.Any(media => !service.IsCurrentConnection(media.ConnectionStamp))) return false;
+        var visit = Volatile.Read(ref _visit);
+        var token = BeginLoad(value => { _query = value; _lastTerm = snapshot.Term; });
+        if (!QueryCurrent(service, visit, token)) return false;
+        ClearResults();
+        foreach (var saved in snapshot.Results)
+        {
+            if (!QueryCurrent(service, visit, token)) return false;
+            var row = new MoviePilotResult(saved, SubscribeAsync, SearchResourcesAsync, ReviewSubscriptionAsync)
+            {
+                // 详情期间订阅可能已改变。重读完成前只允许核对，不能拿旧快照再写一次。
+                State = service.SubscribeState(saved) == MoviePilotOperationState.Uncertain
+                    ? MoviePilotSubscribeState.Uncertain : MoviePilotSubscribeState.Unknown
+            };
+            Results.Add(row);
+        }
+        if (!QueryCurrent(service, visit, token)) return false;
+        OnPropertyChanged(nameof(Heading));
+        if (!QueryCurrent(service, visit, token)) return false;
+        EmptyNotice = snapshot.EmptyNotice;
+        if (!QueryCurrent(service, visit, token)) return false;
+        ShowEmptyNotice = snapshot.ShowEmptyNotice;
+        if (!QueryCurrent(service, visit, token)) return false;
+        NoticeTitle = snapshot.NoticeTitle;
+        if (!QueryCurrent(service, visit, token)) return false;
+        NoticeMessage = snapshot.NoticeMessage;
+        if (!QueryCurrent(service, visit, token)) return false;
+        NoticeSeverity = snapshot.NoticeSeverity;
+        if (!QueryCurrent(service, visit, token)) return false;
+        NoticeOpen = snapshot.NoticeOpen;
+        if (!QueryCurrent(service, visit, token)) return false;
+        EndLoad(token);
+        return QueryCurrent(service, visit, token);
+    }
+
+    /// <summary>返回时只更新订阅状态，不再次提交媒体搜索，也不重建结果和滚动位置。</summary>
+    internal async Task RefreshSubscriptionStatesAsync()
+    {
+        if (!_active || _service is not { Available: true } service || !IsCurrent(_query) || Results.Count == 0) return;
+        var visit = Volatile.Read(ref _visit);
+        var token = _query;
+        try
+        {
+            var subscriptions = await service.SubscriptionsAsync(token).ConfigureAwait(true);
+            if (!QueryCurrent(service, visit, token) || !service.Available) return;
+            foreach (var row in Results.ToArray())
+            {
+                if (!QueryCurrent(service, visit, token)) return;
+                RefreshResult(row, subscriptions);
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            if (QueryCurrent(service, visit, token)) Report("订阅状态暂不可用", error);
+        }
+    }
+
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EmptyVisibility))]
     public partial bool ShowEmptyNotice { get; set; }

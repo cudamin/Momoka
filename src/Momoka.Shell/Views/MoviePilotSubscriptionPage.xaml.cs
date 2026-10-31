@@ -15,7 +15,8 @@ namespace Momoka.Shell.Views;
 internal sealed record MoviePilotSubscriptionRequest(MoviePilotService Service, MoviePilotSubscription? Subscription,
     EmbySessionScope? PlaybackScope = null, Func<MoviePilotPlaybackTarget, Task>? Play = null, Action<string>? SearchVersions = null,
     ISystemLauncher? Launcher = null, Action<MoviePilotMedia>? OpenMedia = null, MoviePilotMedia? Media = null,
-    Action<TitleStrip>? SetTitleStrip = null, Action<AniBtSearchQuery>? SearchAniBt = null);
+    Action<TitleStrip>? SetTitleStrip = null, Action<AniBtSearchQuery>? SearchAniBt = null,
+    Action<MoviePilotMedia>? Subscribed = null);
 
 public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
 {
@@ -279,7 +280,8 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private void OnEdit(object sender, RoutedEventArgs args)
     {
         if (ViewModel.Selected is { } card)
-            _ = ViewModel.EditAsync(card, subscription => MoviePilotSubscriptionEditor.ShowAsync(this, subscription, _request?.Service));
+            _ = ViewModel.EditAsync(card,
+                (subscription, save, remove) => MoviePilotSubscriptionEditor.ShowAsync(this, subscription, _request?.Service, save, remove));
     }
 
     /// <summary>「更多」菜单的「搜索」：立即搜这条订阅（服务端动作，可能自动加入下载，有确认）。
@@ -362,20 +364,42 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
     private async Task ChooseSeasonsAsync(int? season)
     {
         if (_choosingSeasons || _request is not { } request || !MediaViewModel.CanInteract || MediaViewModel.Detail is not { } detail) return;
+        if (_pageLifetime is not { } lifetime) return;
+        var token = lifetime.Token;
         _choosingSeasons = true;
         try
         {
+            var subscribed = false;
             if (detail.Media.Type == "电影")
             {
-                var subscriptions = await request.Service.SubscriptionsAsync(_pageLifetime!.Token);
-                if (!ReferenceEquals(_request, request) || !MediaViewModel.CanInteract) return;
+                var subscriptions = await request.Service.SubscriptionsAsync(token);
+                if (!ReferenceEquals(_request, request) || token.IsCancellationRequested || !MediaViewModel.CanInteract) return;
                 var current = MoviePilotSubscriptionPlan.Find(detail.Media with { Season = null }, "", subscriptions);
-                await request.Service.ApplyMovieSubscriptionAsync(detail.Media, current, _pageLifetime.Token);
+                await request.Service.ApplyMovieSubscriptionAsync(detail.Media, current, token);
+                subscribed = current is null;
             }
-            else await MoviePilotSeasonPicker.ShowAsync(this, request.Service, detail.Media, MediaViewModel.GroupId, season, _pageLifetime!.Token);
-            if (!ReferenceEquals(_request, request)) return;
+            else
+            {
+                var before = MediaViewModel.Seasons.Where(row => row.CurrentSubscription is not null)
+                    .Select(row => row.CurrentSubscription!.Id).ToHashSet();
+                var submitted = await MoviePilotSeasonPicker.ShowAsync(this, request.Service, detail.Media, MediaViewModel.GroupId, season, token);
+                if (!ReferenceEquals(_request, request) || token.IsCancellationRequested) return;
+                if (submitted && request.Subscribed is not null)
+                {
+                    var after = await request.Service.SubscriptionsAsync(token);
+                    subscribed = after.Any(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, detail.Media) && !before.Contains(item.Id));
+                }
+            }
+            if (!ReferenceEquals(_request, request) || token.IsCancellationRequested
+                || !request.Service.Available || !request.Service.IsCurrentConnection(detail.Media.ConnectionStamp)) return;
+            if (subscribed && request.Subscribed is { } openSubscriptions)
+            {
+                openSubscriptions(detail.Media);
+                return;
+            }
             await RefreshSubscriptionStateAsync();
         }
+        catch (OperationCanceledException) { }
         catch (Exception error)
         {
             if (!ReferenceEquals(_request, request)) return;

@@ -226,6 +226,26 @@
       "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
     },
     {
+      "id": "Momoka.MoviePilotJourneyTests",
+      "project": "tests/Momoka.MoviePilotJourneyTests/Momoka.MoviePilotJourneyTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": true,
+      "arguments": ["{shell}", "{root}"],
+      "wrapper": null,
+      "readme": "tests/Momoka.MoviePilotJourneyTests/README.md",
+      "notes": "加载当前Shell中的匿名检查台传输，不启动窗口或真实服务器。"
+    },
+    {
+      "id": "Momoka.SubscriptionEditorTests",
+      "project": "tests/Momoka.SubscriptionEditorTests/Momoka.SubscriptionEditorTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SubscriptionEditorTests/README.md",
+      "notes": "实际Core和编辑VM的匿名订阅字段及目录回归。"
+    },
+    {
       "id": "Momoka.MoviePilotSubscribeSettingsTests",
       "project": "tests/Momoka.MoviePilotSubscribeSettingsTests/Momoka.MoviePilotSubscribeSettingsTests.csproj",
       "mode": "dotnet",

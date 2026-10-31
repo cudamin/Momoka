@@ -14,6 +14,12 @@ public sealed partial class ShellPage
     public bool MoviePilotMediaManagementEnabled => _moviePilotService?.CanManageHistory == true;
     public bool MoviePilotSmartReorganizeEnabled => _moviePilotService?.CanSmartReorganize == true;
 
+    private void OpenMoviePilotSubscriptionsAfterSubscribe(MoviePilotMedia media)
+    {
+        if (_moviePilotService is not { Available: true } service || !service.IsCurrentConnection(media.ConnectionStamp)) return;
+        GoTo(media.Type == "电视剧" ? Momoka.Emby.HomeLayout.MoviePilotSeries : Momoka.Emby.HomeLayout.MoviePilotMovies, force: true);
+    }
+
     private void StartMoviePilotMonitoring(MoviePilotService service)
     {
         _moviePilotService = service;

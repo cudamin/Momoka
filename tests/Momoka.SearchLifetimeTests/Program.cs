@@ -11,6 +11,7 @@ internal static class Program
         Console.WriteLine("PERF-01 / PERF-12：完整生产 VM/页面/对话代码、Toolkit 与真实 Core；匿名内存 HTTP；不运行真实 WinUI/库/播放/凭据");
         var cases = new List<(string Name, Func<Task> Run)>();
         MoviePilotLifetimeTests.Register(cases);
+        SubscriptionNavigationTests.Register(cases);
         FnNasLifetimeTests.Register(cases);
         RunnerContractTests.Register(cases);
         var failed = 0;

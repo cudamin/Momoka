@@ -294,21 +294,64 @@ public sealed record MoviePilotSubscriptionFiles(IReadOnlyList<MoviePilotSubscri
 public sealed record MoviePilotSubscriptionEdit(string Keyword, string Include, string Exclude,
     string Quality, string Resolution, string Effect, int TotalEpisodes, int StartEpisode, string EpisodeGroup)
 {
+    public IReadOnlyList<int> Sites { get; init; } = [];
+    public IReadOnlyList<string> FilterGroups { get; init; } = [];
+    public int? SearchInterval { get; init; }
+    public int? Season { get; init; }
+    public string Downloader { get; init; } = "";
+    public string SavePath { get; init; } = "";
+    public string CustomWords { get; init; } = "";
+    public string MediaCategory { get; init; } = "";
+    public bool BestVersion { get; init; }
+    public bool BestVersionFull { get; init; }
+    public bool SearchImdbId { get; init; }
+
     public static MoviePilotSubscriptionEdit From(MoviePilotSubscription subscription) => new(
         MoviePilotSubscription.Text(subscription.Data, "keyword"), MoviePilotSubscription.Text(subscription.Data, "include"),
         MoviePilotSubscription.Text(subscription.Data, "exclude"), MoviePilotSubscription.Text(subscription.Data, "quality"),
         MoviePilotSubscription.Text(subscription.Data, "resolution"), MoviePilotSubscription.Text(subscription.Data, "effect"),
         subscription.TotalEpisodes ?? 0, MoviePilotSubscription.Number(subscription.Data, "start_episode") ?? 0,
-        subscription.EpisodeGroup);
+        subscription.EpisodeGroup)
+    {
+        Sites = Array(subscription.Data, "sites").Select(item => int.TryParse(item.ToString(), out var id) ? id : 0).Where(id => id > 0).Distinct().ToArray(),
+        FilterGroups = Array(subscription.Data, "filter_groups").Where(item => item.ValueKind == JsonValueKind.String)
+            .Select(item => item.GetString()!).Where(name => name.Length > 0).Distinct(StringComparer.Ordinal).ToArray(),
+        SearchInterval = subscription.SearchInterval,
+        Season = subscription.Media.Season,
+        Downloader = subscription.Downloader,
+        SavePath = subscription.SavePath,
+        CustomWords = subscription.CustomWords,
+        MediaCategory = MoviePilotSubscription.Text(subscription.Data, "media_category"),
+        BestVersion = subscription.BestVersion,
+        BestVersionFull = MoviePilotSubscription.Number(subscription.Data, "best_version_full") is > 0,
+        SearchImdbId = MoviePilotSubscription.Number(subscription.Data, "search_imdbid") is > 0
+    };
+
+    private static IEnumerable<JsonElement> Array(JsonElement data, string field) =>
+        MoviePilotSubscription.Member(data, field) is { ValueKind: JsonValueKind.Array } items ? items.EnumerateArray() : [];
 
     public IReadOnlyDictionary<string, object?> Changes(MoviePilotSubscription original)
     {
         var before = From(original);
-        if (TotalEpisodes is < 0 or > 10000 || StartEpisode < 0 || TotalEpisodes > 0 && StartEpisode > TotalEpisodes)
+        if (original.IsSeries && (TotalEpisodes is < 0 or > 10000 || StartEpisode is < 0 or > 10000 || TotalEpisodes > 0 && StartEpisode > TotalEpisodes))
             throw new MoviePilotException("请填写有效的起始集和总集数，起始集不能大于总集数");
+        if (SearchInterval is < 1 or > 8760) throw new MoviePilotException("搜索周期须为 1 到 8760 小时，或选择跟随系统");
+        if (original.IsSeries && Season is < 0 or > 100) throw new MoviePilotException("季号须为 0 到 100");
+        if (Sites.Any(id => id <= 0)) throw new MoviePilotException("订阅站点编号无效，请重新选择");
         var result = new Dictionary<string, object?> { ["id"] = original.Id };
         Add("keyword", before.Keyword, Keyword); Add("include", before.Include, Include); Add("exclude", before.Exclude, Exclude);
         Add("quality", before.Quality, Quality); Add("resolution", before.Resolution, Resolution); Add("effect", before.Effect, Effect);
+        Add("downloader", before.Downloader, Downloader); Add("save_path", before.SavePath, SavePath);
+        Add("custom_words", before.CustomWords, CustomWords); Add("media_category", before.MediaCategory, MediaCategory);
+        if (before.SearchInterval != SearchInterval) result["search_interval"] = SearchInterval;
+        if (!before.Sites.Order().SequenceEqual(Sites.Distinct().Order())) result["sites"] = Sites.Distinct().ToArray();
+        var groups = FilterGroups.Select(name => name.Trim()).Where(name => name.Length > 0).Distinct(StringComparer.Ordinal).ToArray();
+        if (!before.FilterGroups.Order(StringComparer.Ordinal).SequenceEqual(groups.Order(StringComparer.Ordinal))) result["filter_groups"] = groups;
+        if (before.BestVersion != BestVersion) result["best_version"] = BestVersion ? 1 : 0;
+        if (before.SearchImdbId != SearchImdbId) result["search_imdbid"] = SearchImdbId ? 1 : 0;
+        // 隐藏时保留草稿偏好，实际请求仍要符合后端：关闭洗版时不能留下全集洗版标记。
+        if (original.IsSeries && (before.BestVersion != BestVersion || before.BestVersionFull != BestVersionFull)) result["best_version_full"] = BestVersion && BestVersionFull ? 1 : 0;
+        if (original.IsSeries && before.Season != Season) result["season"] = Season;
         if (original.IsSeries && before.TotalEpisodes != TotalEpisodes) result["total_episode"] = TotalEpisodes;
         if (original.IsSeries && before.StartEpisode != StartEpisode) result["start_episode"] = StartEpisode;
         // 剧集组是电视剧才有的一档；空串提交成 null，就是「改回 TMDB 默认排序」。

@@ -18,6 +18,7 @@
     <Compile Include="..\..\src\Momoka.Shell\ViewModels\UpcomingListDiff.cs" Link="Production\UpcomingListDiff.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\CardItem.cs" Link="Production\CardItem.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\LibraryRequest.cs" Link="Production\LibraryRequest.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\ViewModels\MoviePilotSearchSnapshot.cs" Link="Production\MoviePilotSearchSnapshot.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Media\PosterCache.cs" Link="Production\PosterCache.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
     <!-- Existing diagnostic-only contracts, not the main test entry or the whole PageContract suite. -->

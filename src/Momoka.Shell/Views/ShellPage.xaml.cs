@@ -1400,6 +1400,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// a detail page is a drill-down that no pane entry points at.
     /// </summary>
     private void OpenSubscription(MoviePilotSubscription subscription)
+        => OpenSubscription(subscription, null);
+
+    private void OpenSubscription(MoviePilotSubscription subscription, Action<MoviePilotMedia>? subscribed)
     {
         if (_services is null) return;
         var service = _services.GetRequiredService<MoviePilotService>();
@@ -1410,7 +1413,8 @@ public sealed partial class ShellPage : UserControl, IShellActions
             target => ((IShellActions)this).PlayAsync(target.Item, target.Parent, episodes: target.Episodes),
             SearchMoviePilotVersions, _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMoviePilotMedia,
             SetTitleStrip: SetTitleStrip,
-            SearchAniBt: Settings.MoviePilot.AniBtEnabled ? SearchAniBtVersions : null), BrowseTransition());
+            SearchAniBt: Settings.MoviePilot.AniBtEnabled ? SearchAniBtVersions : null,
+            Subscribed: subscribed), BrowseTransition());
         _trail.Add(new Crumb(subscription.Title, string.Empty));
         _current = null;
         SyncChrome();
@@ -1424,7 +1428,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
         RememberTrail();
         ContentFrame.Navigate(typeof(MoviePilotSubscriptionPage), new MoviePilotSubscriptionRequest(service, null,
             Launcher: _services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), OpenMedia: OpenMoviePilotMedia, Media: media,
-            SetTitleStrip: SetTitleStrip), BrowseTransition());
+            SetTitleStrip: SetTitleStrip, Subscribed: OpenMoviePilotSubscriptionsAfterSubscribe), BrowseTransition());
         _trail.Add(new Crumb(media.Display, string.Empty));
         _current = null;
         SyncChrome();
@@ -1464,7 +1468,9 @@ public sealed partial class ShellPage : UserControl, IShellActions
     void IShellActions.OpenMoviePilotMedia(MoviePilotMedia media, MoviePilotSubscription? subscription)
     {
         // 唯一对上的订阅（电影，或只有一季的电视剧）直接进订阅详情；其余进同一页的媒体模式。
-        if (subscription is not null) OpenSubscription(subscription);
+        if (subscription is not null) OpenSubscription(subscription,
+            ContentFrame.Content is LibraryPage { NavigationRequest: LibraryRequest { IsSearch: true } }
+                ? OpenMoviePilotSubscriptionsAfterSubscribe : null);
         else OpenMoviePilotMedia(media);
     }
 

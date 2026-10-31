@@ -197,6 +197,7 @@ internal sealed partial class ShellNavigationProbe
             // 这一条从 2026-10-12 起多两帧「下方三段」的截图与一段等待（演职员／相关推荐／相似作品那三排卡片
             // 的图是异步抓的），12 秒的默认限时不够 —— 同视频基础输出用例的理由。
             await CaseAsync("MoviePilot 订阅详情、入库缺集与编辑", MoviePilotSubscriptionDetailAsync, 30);
+            await CaseAsync("MoviePilot 编辑订阅双页、目录与宽窄主题", MoviePilotSubscriptionEditorAsync, 30);
             await CaseAsync("MoviePilot 电影订阅详情不再有入库面板与空季卡", MoviePilotMovieSubscriptionDetailAsync);
             await CaseAsync("MoviePilot 日本动画订阅的 AniBT 入口", MoviePilotAnimeSubscriptionDetailAsync);
             await CaseAsync("MoviePilot 订阅切服、旧确认与离页取消", MoviePilotSubscriptionIdentityAsync);

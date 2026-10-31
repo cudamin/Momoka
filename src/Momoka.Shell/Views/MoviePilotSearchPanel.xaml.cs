@@ -40,6 +40,15 @@ public sealed partial class MoviePilotSearchPanel : UserControl
 
     internal MoviePilotSearchViewModel ViewModel { get; } = new();
 
+    internal double ScrollOffset => Results.ScrollView?.VerticalOffset ?? 0;
+
+    internal void RestoreScroll(double offset)
+    {
+        Results.UpdateLayout();
+        Results.ScrollView?.ScrollTo(0, offset,
+            new ScrollingScrollOptions(ScrollingAnimationMode.Disabled));
+    }
+
     /// <summary>
     /// 由 <see cref="LibraryPage"/> 在它那唯一一处解析块里调一次：把连接服务交给视图模型、把「电视剧订阅季设置」
     /// 接到本控件的 <c>XamlRoot</c> 上，并把「搜索资源」的入口交给视图模型（它只把媒体递回来，开面板归这里）。
@@ -86,7 +95,8 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     /// <summary>同页换搜索来源只取消本次查询，不永久停用，也不自动重新搜索。</summary>
     internal void CancelSearch()
     {
-        ViewModel.Cancel();
+        // 完成的查询令牌也拥有卡片动作；换来源只取消仍在飞的搜索。
+        if (ViewModel.Busy) ViewModel.Cancel();
         ResourceOverlay.Release();
         ResourceOverlay.Visibility = Visibility.Collapsed;
         SearchContent.Visibility = Visibility.Visible;
@@ -121,9 +131,9 @@ public sealed partial class MoviePilotSearchPanel : UserControl
     }
 
     /// <summary>点一张结果卡：进这部媒体的订阅页（唯一对上的订阅随行，见视图模型的 <c>Open</c>）。</summary>
-    private void OnResultInvoked(ItemsView sender, ItemsViewItemInvokedEventArgs args)
+    private void OnOpenResult(object sender, RoutedEventArgs args)
     {
-        if (args.InvokedItem is not MoviePilotResult result) return;
+        if (sender is not FrameworkElement { Tag: MoviePilotResult result }) return;
         OpenResult(result);
     }
 

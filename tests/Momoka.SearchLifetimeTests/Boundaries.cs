@@ -66,6 +66,15 @@ namespace Microsoft.UI.Xaml.Controls
     public class ItemsView : Microsoft.UI.Xaml.FrameworkElement
     {
         public object? ItemsSource { get; set; }
+        public ScrollView? ScrollView { get; set; } = new();
+        public void UpdateLayout() { }
+    }
+    public enum ScrollingAnimationMode { Disabled }
+    public sealed class ScrollingScrollOptions(ScrollingAnimationMode mode) { public ScrollingAnimationMode Mode { get; } = mode; }
+    public sealed class ScrollView
+    {
+        public double VerticalOffset { get; set; }
+        public void ScrollTo(double horizontal, double vertical, ScrollingScrollOptions options) => VerticalOffset = vertical;
     }
     public sealed class ItemsViewItemInvokedEventArgs : EventArgs { public object? InvokedItem { get; init; } }
     public sealed class TextBox : Microsoft.UI.Xaml.FrameworkElement
@@ -137,9 +146,11 @@ namespace Momoka.Shell.Views
     public static class MoviePilotSeasonPicker
     {
         public static int Opens { get; private set; }
-        public static Task ShowAsync(Microsoft.UI.Xaml.FrameworkElement owner, Momoka.MoviePilot.MoviePilotService service,
+        public static Task<bool> ShowAsync(Microsoft.UI.Xaml.FrameworkElement owner, Momoka.MoviePilot.MoviePilotService service,
             Momoka.MoviePilot.MoviePilotMedia media, string group, int? season, CancellationToken token)
-        { Opens++; return Task.CompletedTask; }
+        { Opens++; return Task.FromResult(false); }
+        public static Task<bool> ShowAsync(Microsoft.UI.Xaml.FrameworkElement owner, SubscriptionPageFixtureService service,
+            Momoka.MoviePilot.MoviePilotMedia media, string group, int? season, CancellationToken token) => service.Pick(token);
     }
     public sealed partial class MoviePilotSearchPanel
     {
