@@ -139,6 +139,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         UpcomingScroll.SizeChanged += (_, _) => ViewModel.ResizeUpcoming(UpcomingScroll.ActualWidth - UpcomingScroll.Padding.Right);
         UpcomingScroll.ViewChanged += OnUpcomingViewChanged;
         FavoritesScroll.SizeChanged += (_, _) => ViewModel.ResizeFavorites(FavoritesScroll.ActualWidth - FavoritesScroll.Padding.Right);
+        SearchGroupsScroll.SizeChanged += (_, _) => OnSearchGroupsWidthChanged();
+        SearchGroupsScroll.ViewChanged += OnSearchGroupsViewChanged;
 
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
@@ -537,6 +539,11 @@ public sealed partial class LibraryPage : Page, IShellContent
             UpcomingScroll.UpdateLayout();
             UpcomingScroll.ChangeView(null, offset, null, disableAnimation: true);
         }
+        else if (ViewModel.IsGroupedSearch)
+        {
+            SearchGroupsScroll.UpdateLayout();
+            SearchGroupsScroll.ChangeView(null, offset, null, disableAnimation: true);
+        }
         else if (ViewModel.IsFavoritesPage)
         {
             if (offset > 0)
@@ -792,6 +799,27 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (remaining < UpcomingScroll.ViewportHeight) ViewModel.LoadMore();
     }
 
+    private void OnSearchGroupsViewChanged(object? sender, ScrollViewerViewChangedEventArgs args)
+    {
+        if (_released || _removingCard || !ViewModel.IsGroupedSearch) return;
+        var remaining = SearchGroupsScroll.ScrollableHeight - SearchGroupsScroll.VerticalOffset;
+        if (remaining < SearchGroupsScroll.ViewportHeight) ViewModel.LoadMore();
+    }
+
+    /// <summary>
+    /// 分组视图的可用宽度变了：格宽按它重算，窗口停下来之后再按新宽度重画卡片（同卡片墙那一路）。
+    /// 卡片墙这时是收起的，量它只会得到零，所以分组视图得自己量。
+    /// </summary>
+    private void OnSearchGroupsWidthChanged()
+    {
+        if (!ViewModel.IsGroupedSearch) return;
+        var width = SearchGroupsScroll.ActualWidth - SearchGroupsScroll.Padding.Right;
+        if (width <= 0 || !double.IsFinite(width)) return;
+        ViewModel.ResizeGrid(width);
+        _gridResize.Stop();
+        _gridResize.Start();
+    }
+
     private void OnFavoriteMoreClicked(object sender, RoutedEventArgs e)
     {
         if (sender is Button { Tag: FavoriteRow row }) _ = ViewModel.LoadFavoriteRowAsync(row);
@@ -816,6 +844,10 @@ public sealed partial class LibraryPage : Page, IShellContent
             if (ViewModel.IsUpcomingPage)
             {
                 if (UpcomingScroll.ScrollableHeight < UpcomingScroll.ViewportHeight) ViewModel.LoadMore();
+            }
+            else if (ViewModel.IsGroupedSearch)
+            {
+                if (SearchGroupsScroll.ScrollableHeight < SearchGroupsScroll.ViewportHeight) ViewModel.LoadMore();
             }
             else if (_scroll is { } scroll && scroll.ExtentHeight <= scroll.ViewportHeight + 1) ViewModel.LoadMore();
         });
@@ -888,6 +920,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     }
 
     private double ContentScrollOffset => ViewModel.IsUpcomingPage ? UpcomingScroll.VerticalOffset
+        : ViewModel.IsGroupedSearch ? SearchGroupsScroll.VerticalOffset
         : ViewModel.IsFavoritesPage ? FavoritesScroll.VerticalOffset : _scroll?.VerticalOffset ?? 0;
 
     private bool _removingCard;
@@ -916,6 +949,11 @@ public sealed partial class LibraryPage : Page, IShellContent
         {
             UpcomingScroll.UpdateLayout();
             UpcomingScroll.ChangeView(null, offset, null, disableAnimation: true);
+        }
+        else if (ViewModel.IsGroupedSearch)
+        {
+            SearchGroupsScroll.UpdateLayout();
+            SearchGroupsScroll.ChangeView(null, offset, null, disableAnimation: true);
         }
         else if (ViewModel.IsFavoritesPage)
         {

@@ -287,6 +287,8 @@ handle  Views/LibraryPage.xaml  PlayAllButton
 handle  Views/LibraryPage.xaml  PlayRandomButton
 handle  Views/LibraryPage.xaml  RecommendedRows
 handle  Views/LibraryPage.xaml  RecommendedScroll
+handle  Views/LibraryPage.xaml  SearchGroupsList
+handle  Views/LibraryPage.xaml  SearchGroupsScroll
 handle  Views/LibraryPage.xaml  SearchInput
 handle  Views/LibraryPage.xaml  SettingsOverlay
 handle  Views/LibraryPage.xaml  SettingsPane

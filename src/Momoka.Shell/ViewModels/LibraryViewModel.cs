@@ -176,6 +176,8 @@ public sealed partial class LibraryViewModel : PageViewModel
         SortLabel = EmbySortBy.LabelOf(EmbySortBy.Name);
         FilterTooltip = "筛选";
         CardWidth = Momoka.Infrastructure.CardSize.PosterWidth;
+        Cards.CollectionChanged += OnSearchCardsChanged;
+        UpdateSearchGroupMetrics();
     }
 
     /// <summary>
@@ -642,7 +644,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             nameof(LayoutVisibility), nameof(JellyfinLayoutVisibility), nameof(FnNasFilterVisibility), nameof(FnNasFilterTextVisibility),
             nameof(FnNasLayoutWide), nameof(FilterButtonWidth),
             nameof(FavoriteAccountFilterVisibility), nameof(FavoriteAccountLabel),
-            nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility) }) OnPropertyChanged(name);
+            nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility),
+            nameof(SearchGroupsVisibility) }) OnPropertyChanged(name);
         RefreshUpcomingState();
     }
 
@@ -702,8 +705,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>三排货架在不在（网格由 <see cref="GridVisibility"/> 收起来，两者互斥）。</summary>
     public Visibility RecommendedVisibility => Show(IsRecommendedPage);
 
-    /// <summary>网格在不在。推荐页把整块网格（含它的滚动器与表格列头）收起，屏上只剩那三排。</summary>
-    public Visibility GridVisibility => Show(!IsRecommendedPage && !IsUpcomingPage && !IsFavoritesPage);
+    /// <summary>网格在不在。推荐页把整块网格（含它的滚动器与表格列头）收起，屏上只剩那三排；
+    /// 搜索有词时也一样，卡片改由按类型分组的视图来摆。</summary>
+    public Visibility GridVisibility => Show(!IsRecommendedPage && !IsUpcomingPage && !IsFavoritesPage && !IsGroupedSearch);
 
     /// <summary>
     /// 这一面墙此刻在不在：推荐页、预告页、收藏页各自有自己的一块。只有它在的时候才按窗口宽度重造卡片
@@ -754,6 +758,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         // 它一变，RowHeight 与 CellWidth 跟着喊（见属性上的两个 NotifyPropertyChangedFor），
         // 版面的 MinItemWidth / MinItemHeight 当场换成新的。
         CardWidth = CardBuildWidth;
+        UpdateSearchGroupMetrics();
         return true;
     }
 
@@ -1230,7 +1235,9 @@ public sealed partial class LibraryViewModel : PageViewModel
             title: item.Name, centeredText: true,
             containArtwork: LibraryIndexCards.ContainArtwork(IndexKind),
             aspect: LibraryIndexCards.Aspect(IndexKind))
-        : new(item, _images!, CardBuildWidth, CardBuildWide,
+        : new(item, _images!, CardBuildWidth,
+            // 搜索结果的单集按 16:9 剧照摆（用户令 2026-11-01），其余照这一面墙的宽窄。
+            CardBuildWide || (_request?.IsSearch == true && item.Type == EmbyItemType.Episode),
             subtitle: CardLine(item),
             // 飞牛横卡把竖版海报摆在正中、同一张图铺底，所以先要 Primary；别的视图照旧。
             imageTypes: IsFnNas && View == LibraryView.Thumb
@@ -1245,7 +1252,9 @@ public sealed partial class LibraryViewModel : PageViewModel
                 || IsCardFrameView,
             fnNasWide: IsFnNas && View == LibraryView.Thumb,
             folderFrame: Section == LibrarySection.Folders && View == LibraryView.Poster,
-            cardLayout: IsCardFrameView);
+            cardLayout: IsCardFrameView,
+            // 搜索结果里的单集用另一档框线（见 PosterCard 的 EpisodeFrameStyle）；别的页面不动。
+            episodeFrame: _request?.IsSearch == true);
 
     /// <summary>
     /// 卡片底下那一行字。勾了字段就按勾的拼；一项能说的都没有时交回卡片自己的副标题（
@@ -2307,6 +2316,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(CardMinWidth));
         OnPropertyChanged(nameof(CardBuildWidth));
         OnPropertyChanged(nameof(CardImageTypes));
+        UpdateSearchGroupMetrics();
     }
 
     /// <summary>

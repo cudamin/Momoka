@@ -80,6 +80,53 @@ internal static class LibraryResumePagingTests
                     .Invoke(shelf, [items, subtitle, title]);
         });
 
+        Case("搜索分组：真实 VM 按类型分组、空组不占位、单集用 16:9 且带区分框", async () =>
+        {
+            using var fixture = new Fixture(shell, 3);
+            fixture.Transport.Rows["a"] =
+            [
+                new EmbyItem { Id = "search-show", Name = "搜索剧集", Type = EmbyItemType.Series },
+                new EmbyItem { Id = "search-movie", Name = "搜索电影", Type = EmbyItemType.Movie },
+                new EmbyItem { Id = "search-ep-1", Name = "搜索单集 1", Type = EmbyItemType.Episode, SeriesId = "search-show", IndexNumber = 1 },
+                new EmbyItem { Id = "search-ep-2", Name = "搜索单集 2", Type = EmbyItemType.Episode, SeriesId = "search-show", IndexNumber = 2 }
+            ];
+            var vm = fixture.CreateSearchView();
+            try
+            {
+                await (Task)shell.Invoke(vm, "SearchAsync", "搜索", false)!;
+                var groups = ((System.Collections.IEnumerable)shell.Get<object>(vm, "SearchGroups")).Cast<object>().ToArray();
+                Assert.True(groups.Select(group => shell.Get<string>(group, "Title"))
+                    .SequenceEqual(["节目", "影片", "单集"]), "搜索分组标题或次序不对");
+                Assert.True(groups.Select(group => ((System.Collections.IEnumerable)shell.Get<object>(group, "Cards"))
+                        .Cast<object>().Count()).SequenceEqual([1, 1, 2]), "搜索分组条数不对");
+
+                var cards = ((System.Collections.IEnumerable)shell.Get<object>(vm, "Cards")).Cast<object>().ToArray();
+                foreach (var group in groups)
+                    Assert.True(((System.Collections.IEnumerable)shell.Get<object>(group, "Cards")).Cast<object>()
+                        .All(cards.Contains), "分组里的卡片不是同一批对象");
+
+                var episode = cards.First(card => shell.Get<EmbyItem>(card, "Item").Type == EmbyItemType.Episode);
+                Assert.True(shell.Get<bool>(episode, "EpisodeFrame"), "单集卡没有走区分框线");
+                var width = shell.Get<double>(episode, "CardWidth");
+                var height = shell.Get<double>(episode, "PosterHeight");
+                Assert.Equal(Math.Round(width * 9.0 / 16.0), height, "单集封面不是 16:9");
+
+                // 删掉唯一的电影：影片组要跟着从清单里消失，而不是留一个没有卡片的标题。
+                var movie = cards.Single(card => shell.Get<EmbyItem>(card, "Item").Type == EmbyItemType.Movie);
+                fixture.Transport.Rows["a"].RemoveAll(item => item.Id == "search-movie");
+                var removed = await (Task<bool>)shell.Invoke(vm, "RemoveAsync", movie,
+                    shell.Get<CancellationToken>(vm, "QueryToken"), true)!;
+                Assert.True(removed, "搜索页删除电影失败");
+                groups = ((System.Collections.IEnumerable)shell.Get<object>(vm, "SearchGroups")).Cast<object>().ToArray();
+                Assert.True(groups.Select(group => shell.Get<string>(group, "Title")).SequenceEqual(["节目", "单集"]),
+                    "删除后空的影片组仍占着位置");
+            }
+            finally
+            {
+                ((IDisposable)vm).Dispose();
+            }
+        });
+
         foreach (var playedAgain in new[] { false, true })
             Case($"主页已看回填：同屏副本改未看{(playedAgain ? "再已看" : "")}后只应用最新NextUp", async () =>
             {
@@ -488,6 +535,16 @@ internal static class LibraryResumePagingTests
             return vm;
         }
 
+        public object CreateSearch(EmbySession session, EmbyImageStore images, ISettingsService settings,
+            EmbySessionScope source, string term = "")
+        {
+            var vm = Activator.CreateInstance(_viewModel)!;
+            var request = _request.GetMethod("Search")!.Invoke(null, [new NoServices(), term])!;
+            var actions = DispatchProxy.Create(_actions, typeof(LibraryResumeActionsProxy));
+            Invoke(vm, "Attach", request, actions, settings, session, images, new ServerCapabilities(session), null);
+            return vm;
+        }
+
         public object? Invoke(object target, string name, params object?[] arguments)
         {
             var method = target.GetType().GetMethod(name, Members)
@@ -573,6 +630,10 @@ internal static class LibraryResumePagingTests
         public Task<bool> Choose(string? key) => (Task<bool>)Invoke("ChooseFavoriteAccountAsync", key)!;
         public Task Load(bool reset = true) => (Task)Invoke("LoadAsync", reset)!;
         public string[] Ids() => Cards.Select(card => _shell.Get<EmbyItem>(card, "Item").Id).ToArray();
+
+        /// <summary>同一套匿名来源上再建一页搜索；页面自己的 Cards 与分组从空开始，不借用继续观看那页的状态。</summary>
+        public object CreateSearchView(string term = "") =>
+            _shell.CreateSearch(_session, _images, Settings, Source("a"), term);
 
         public async Task Remove(string id)
         {

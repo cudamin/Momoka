@@ -22,9 +22,43 @@ internal sealed partial class ShellNavigationProbe
         var sample = Series();
         sample.Name = "一念永恒";
         sample.ImageTags["Primary"] = "fixture";
+        var movie = new EmbyItem
+        {
+            Id = "movie-offline",
+            Name = "离线电影",
+            Type = EmbyItemType.Movie,
+            ImageTags = new() { ["Primary"] = "fixture" }
+        };
+        var episode = new EmbyItem
+        {
+            Id = "episode-offline-1",
+            Name = "离线单集 1",
+            Type = EmbyItemType.Episode,
+            SeriesId = "show",
+            SeriesName = "离线测试剧集",
+            SeasonId = "season-1",
+            ParentIndexNumber = 1,
+            IndexNumber = 1,
+            ImageTags = new() { ["Thumb"] = "fixture" }
+        };
+        var nextEpisode = new EmbyItem
+        {
+            Id = "episode-offline-2",
+            Name = "离线单集 2",
+            Type = EmbyItemType.Episode,
+            SeriesId = "show",
+            SeriesName = "离线测试剧集",
+            SeasonId = "season-1",
+            ParentIndexNumber = 1,
+            IndexNumber = 2,
+            ImageTags = new() { ["Thumb"] = "fixture" }
+        };
+        var results = new[] { sample, movie, episode, nextEpisode };
         fixture.Transport.Reply = (request, _) => Task.FromResult(request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal)
             ? new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new ByteArrayContent(poster) }
-            : Query(request, "SearchTerm") is not null ? Json(new { Items = new[] { sample }, TotalRecordCount = 1 }) : FakeTransport.Standard(request));
+            : Query(request, "SearchTerm") is not null
+                ? Json(new { Items = results, TotalRecordCount = results.Length })
+                : FakeTransport.Standard(request));
         var frame = new Frame();
         _root.Children.Add(frame);
         try
@@ -39,6 +73,11 @@ internal sealed partial class ShellNavigationProbe
                 await SaveProbeScreenAsync($"search-placeholder-centered-{width}-screen.png");
             }
             await page.ViewModel.SearchAsync("离线测试");
+            await LayoutAsync(page);
+            Require(page.ViewModel.SearchGroups.Select(group => group.Title).SequenceEqual(["节目", "影片", "单集"]),
+                $"搜索结果分组标题不对：{string.Join('、', page.ViewModel.SearchGroups.Select(group => group.Title))}");
+            Require(page.ViewModel.SearchGroups.Select(group => group.Cards.Count).SequenceEqual([1, 1, 2]),
+                "搜索结果分组条数不对");
             foreach (var width in new[] { 1600, 1040, 760, 520, 360 })
             {
                 var scale = _root.XamlRoot.RasterizationScale;
@@ -62,6 +101,7 @@ internal sealed partial class ShellNavigationProbe
                     Require(rejected, "搜索标题重新显示的反例未被检测");
                     await LayoutAsync(page);
                     RequireSearchHeader(page);
+                    await RequireSearchGroupsAsync(page);
                 }
                 Require(Math.Abs(box.Left + box.Width / 2 - header.ActualWidth / 2) <= 1, "搜索未居中");
                 Require(box.Left >= -1 && box.Right <= header.ActualWidth + 1, "搜索超出内容区");
@@ -212,6 +252,57 @@ internal sealed partial class ShellNavigationProbe
             (frame.Content as IShellContent)?.Release();
             _root.Children.Remove(frame);
             ResizeInspect(1420, 980);
+        }
+
+        async Task RequireSearchGroupsAsync(LibraryPage page)
+        {
+            var list = Get<ItemsRepeater>(page, "SearchGroupsList");
+            var scroll = Get<ScrollViewer>(page, "SearchGroupsScroll");
+            Require(scroll.Visibility == Visibility.Visible
+                && Get<ScrollViewer>(page, "TableScroll").Visibility == Visibility.Collapsed,
+                "搜索分组没有取代平铺卡片墙");
+            await LayoutAsync(page);
+
+            var topTexts = Descendants(list).OfType<TextBlock>()
+                .Where(text => text.Visibility == Visibility.Visible).Select(text => text.Text).ToArray();
+            Require(topTexts.Contains("节目") && topTexts.Contains("影片"),
+                $"分组标题没有画出来：{string.Join('、', topTexts)}");
+            await SaveProbeScreenAsync("search-groups-1040-screen.png");
+
+            var movie = Descendants(list).OfType<PosterCard>()
+                .FirstOrDefault(card => card.Card?.Item.Type == EmbyItemType.Movie);
+            Require(movie is not null, "影片分组没有实现卡片");
+            var movieProbe = movie!.ProbeHover();
+            Require(movieProbe.FrameBorderless, "非单集卡也画了框线");
+            Require(movieProbe.ArtWidth / movieProbe.ArtHeight < 0.8, "影片封面不是竖版海报");
+
+            scroll.UpdateLayout();
+            scroll.ChangeView(null, scroll.ScrollableHeight, null, disableAnimation: true);
+            await UntilAsync(() => scroll.VerticalOffset > 0 || scroll.ScrollableHeight <= 0);
+            await LayoutAsync(page);
+            Require(scroll.VerticalOffset > 0, "单集分组没有滚入视口");
+            var scrollTop = Bounds(scroll, page).Top;
+            var firstHeader = Descendants(list).OfType<TextBlock>()
+                .First(text => text.Visibility == Visibility.Visible && text.Text == "节目");
+            Require(Bounds(firstHeader, page).Top < scrollTop, "滚动后分组内容没有随滚动器上移");
+
+            var episodes = Descendants(list).OfType<PosterCard>()
+                .Where(card => card.Card?.Item.Type == EmbyItemType.Episode).ToArray();
+            Require(episodes.Length > 0, "单集分组没有实现卡片");
+            var episodeProbe = episodes[0].ProbeHover();
+            Require(!episodeProbe.FrameBorderless && episodeProbe.FrameRest == Role("EgAccentBrush"),
+                "单集卡没有使用强调色粗框");
+            Require(Math.Abs(episodeProbe.ArtWidth / episodeProbe.ArtHeight - 16.0 / 9.0) <= 0.02,
+                $"单集封面不是 16:9：{episodeProbe.ArtWidth:F0}×{episodeProbe.ArtHeight:F0}");
+            // 静止的探针窗口里，滚动位置变了而 DWM 还停在上一帧；先渲染一帧返帧把合成逼上去，
+            // 紧接着的真实屏幕帧才是这一屏该有的样子。
+            await SaveReturnFrameAsync(page, "search-groups-episodes-1040-render.png");
+            await SaveProbeScreenAsync("search-groups-episodes-1040-screen.png");
+
+            scroll.ChangeView(null, 0, null, disableAnimation: true);
+            await UntilAsync(() => scroll.VerticalOffset == 0);
+            await LayoutAsync(page);
+            await SaveReturnFrameAsync(page, "search-groups-top-restored-1040-render.png");
         }
 
         void RequireSearchHeader(LibraryPage page)

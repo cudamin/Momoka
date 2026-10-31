@@ -30,6 +30,17 @@ internal static class LibrarySearchTests
             Assert.True(LibrarySearch.Query("词", LibrarySearchCategory.TopResults, 0, 20)!.IncludeItemTypes.Contains("Movie"));
             Assert.True(LibrarySearch.Query("词", LibrarySearchCategory.TopResults, 0, 20)!.IncludeItemTypes.Contains("Episode"));
         });
+        Test("媒体库搜索：结果按类型分组，次序与标题固定，未知类型落最后一组", () =>
+        {
+            Assert.Equal(LibrarySearchGroupKind.Series, LibrarySearchGroups.KindOf(EmbyItemType.Series));
+            Assert.Equal(LibrarySearchGroupKind.Movie, LibrarySearchGroups.KindOf(EmbyItemType.Movie));
+            Assert.Equal(LibrarySearchGroupKind.Episode, LibrarySearchGroups.KindOf(EmbyItemType.Episode));
+            Assert.Equal(LibrarySearchGroupKind.Video, LibrarySearchGroups.KindOf(EmbyItemType.Video));
+            Assert.Equal(LibrarySearchGroupKind.Video, LibrarySearchGroups.KindOf("ServerOnlyType"));
+            Assert.Equal(LibrarySearchGroupKind.Video, LibrarySearchGroups.KindOf(null));
+            Assert.True(LibrarySearchGroups.Order.Select(LibrarySearchGroups.TitleOf)
+                .SequenceEqual(["节目", "影片", "单集", "视频"]), "分组标题或次序变了");
+        });
         Test("最近搜索：关键词升级成选中媒体、去重置顶并限制数量", () =>
         {
             var settings = new AppSettings();

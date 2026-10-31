@@ -10,6 +10,11 @@
             <Setter Property="Background" Value="{ThemeResource EgTextFaintBrush}" />
             <Setter Property="BorderThickness" Value="0" />
         </Style>
+        <!-- 搜索结果的单集：比其余卡片多一圈强调色粗框。别处的单集（季里的集页）不经过这一档。 -->
+        <Style x:Key="EpisodeFrameStyle" TargetType="Border" BasedOn="{StaticResource EgFrameStyle}">
+            <Setter Property="BorderThickness" Value="{StaticResource EgOutlineThickness}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgAccentBrush}" />
+        </Style>
         <!-- 保留平台按钮模板与焦点反馈；右下操作仅画图标，遮罩负责照片上的对比度。 -->
         <Style x:Key="EgCardActionButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="Width" Value="32" />

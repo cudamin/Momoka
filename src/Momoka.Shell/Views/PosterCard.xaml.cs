@@ -477,6 +477,7 @@ public sealed partial class PosterCard : UserControl
     /// </summary>
     private void Paint() =>
         Art.Style = Card?.FolderFrame == true ? (Style)Resources["FolderFrameStyle"]
+            : Card?.EpisodeFrame == true ? (Style)Resources["EpisodeFrameStyle"]
             : (Style)Application.Current.Resources["EgFrameStyle"];
 
     /// <summary>

@@ -90,6 +90,9 @@ public sealed class CardItem : INotifyPropertyChanged
     /// </summary>
     private readonly bool _cardLayout;
 
+    /// <summary>搜索结果的单集卡画另一档框线，与影片、节目分开（见 <see cref="EpisodeFrame"/>）。</summary>
+    private readonly bool _episodeFrame;
+
     /// <summary>这一张卡在季集信息下面再写一行服务器名（多账号主页的继续观看）。</summary>
     private readonly bool _sourceLine;
 
@@ -193,7 +196,8 @@ public sealed class CardItem : INotifyPropertyChanged
         double? aspect = null,
         bool sourceLine = false,
         bool fnNasWide = false,
-        bool cardLayout = false)
+        bool cardLayout = false,
+        bool episodeFrame = false)
     {
         _item = item;
         _images = images;
@@ -213,6 +217,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _aspect = aspect;
         _fnNasWide = fnNasWide;
         _cardLayout = cardLayout;
+        _episodeFrame = episodeFrame && item.Type == EmbyItemType.Episode;
         PosterStretch = containArtwork || fnNasWide ? Stretch.Uniform : Stretch.UniformToFill;
         _note = note;
         _indicators = indicators;
@@ -267,6 +272,9 @@ public sealed class CardItem : INotifyPropertyChanged
     public bool CenteredText { get; }
     public bool FolderFrame { get; }
     public Visibility FolderFrameVisibility => Show(FolderFrame);
+
+    /// <summary>搜索页的单集卡：<see cref="PosterCard"/> 画强调色粗框，其余卡片没有框线。</summary>
+    public bool EpisodeFrame => _episodeFrame;
     public Thickness FrameMargin => FolderFrame ? new Thickness(0, 7, 0, 0) : new Thickness(0);
     public Thickness ArtworkPadding => FolderFrame ? new Thickness(8, 18, 8, 10) : new Thickness(0);
     public string DurationText => FolderFrame && _item.RunTimeTicks > 0

@@ -1,3 +1,11 @@
+## 2026-11-01 搜索页结果按类型分组（已提交，待随本轮发版交付）
+
+- 用户令：媒体库搜索结果按类型分组显示（节目 / 影片 / 单集 / 视频），单集用 16:9 剧照并加一圈强调色粗框，与影片、节目的竖版海报明确分开。
+- 规则在 Core `LibrarySearchGroups`：固定次序、标题，未知类型落「视频」；视图模型 `SearchResultGroup` 持有每组卡片，`SearchGroups` 只收非空组，组对象与卡片清单从头到尾保持同一实例；`Cards` 的增删、移动与重置同步到分组，翻页只往组里追加。搜索有词时分组滚动器取代平铺卡片墙（`GridVisibility` 与 `SearchGroupsVisibility` 互斥），分页、滚动位置保存与恢复都走这一条滚动器。
+- 卡片：`CardItem.EpisodeFrame` 只对搜索页的单集生效，接 `PosterCard` 的 `EpisodeFrameStyle`；搜索页单集走 16:9 宽卡，其余搜索卡仍用竖版海报。
+- 验证（主树最终代码，交付件）：Release Shell 与 Core／Tests 构建 0 警告 0 错误；Core 全套 3503/3503、0 失败 0 跳过；`git diff --check` 通过。交付件 `--probe-shell --probe-section search --screen 1` **14/14、退出 0**（`shell-probe-20261031-172507260-21960`），新增断言覆盖分组标题与条数、单集 16:9 与强调色框、滚动后分组内容随滚动器上移；实屏 `search-groups-1040-screen.png`、滚动后 `search-groups-episodes-1040-screen.png`、返帧 `search-groups-episodes-1040-render.png` 与 `search-groups-top-restored-1040-render.png` 已逐张查看。仅匿名假数据，无真实服务器查询／播放或服务端写入。
+- 本批只改代码与定向验证；版本、正式四道闸门、GitHub Release 与商店包随本轮发版统一处理。
+
 ## 2026-10-31 删记录和库文件、删记录及两端之后主页自动重读（已发布）
 
 - 用户令：这两个删除范围完成后必须自动刷新页面或跳转回主页，避免已删的元数据和海报还留在主页；验收标准是「删除后主页不再显示被删内容」。

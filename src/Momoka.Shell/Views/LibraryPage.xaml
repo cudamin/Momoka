@@ -156,6 +156,22 @@
             </StackPanel>
         </DataTemplate>
 
+        <!-- 搜索结果的类型分组：一块标题接一片同类型的卡片。空组不在清单里，
+             组与卡片清单都由视图模型保持同一实例，翻页只往组里追加。 -->
+        <DataTemplate x:Key="SearchGroupTemplate" x:DataType="vm:SearchResultGroup">
+            <StackPanel Spacing="12">
+                <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgSectionTitleStyle}"
+                    AutomationProperties.HeadingLevel="Level2" />
+                <ItemsRepeater ItemsSource="{x:Bind Cards}" ItemTemplate="{StaticResource ShelfCardTemplate}">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout ItemsJustification="Start" ItemsStretch="None"
+                            MinItemWidth="{x:Bind CardWidth, Mode=OneWay}" MinItemHeight="{x:Bind RowHeight, Mode=OneWay}"
+                            MinColumnSpacing="16" MinRowSpacing="24" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
+            </StackPanel>
+        </DataTemplate>
+
         <DataTemplate x:Key="PosterTemplate" x:DataType="local:CardItem">
             <!-- ItemContainer, not a Button in a Border: it is the one element that gives an
                  ItemsView child its hover state, keyboard focus and invoke handling for free. -->
@@ -844,6 +860,32 @@
                         </ItemsView.Layout>
                     </ItemsView>
                 </Grid>
+            </ScrollViewer>
+
+            <!-- 搜索有词时的结果：按类型分组自上而下摆（节目 / 影片 / 单集 / 视频）。
+                 与卡片墙互斥：有词时整面墙收起（见 LibraryViewModel.GridVisibility 与 SearchGroupsVisibility）。
+                 分页仍由页面按这一条滚动器的高度触发，和收藏页那边同一种做法。 -->
+            <ScrollViewer
+                x:Name="SearchGroupsScroll"
+                x:FieldModifier="internal"
+                Grid.Row="1"
+                Grid.RowSpan="2"
+                Padding="0,0,20,32"
+                HorizontalScrollBarVisibility="Disabled"
+                HorizontalScrollMode="Disabled"
+                VerticalScrollBarVisibility="Auto"
+                VerticalScrollMode="Auto"
+                Visibility="{x:Bind ViewModel.SearchGroupsVisibility, Mode=OneWay}">
+                <ItemsRepeater
+                    x:Name="SearchGroupsList"
+                    x:FieldModifier="internal"
+                    ItemTemplate="{StaticResource SearchGroupTemplate}"
+                    ItemsSource="{x:Bind ViewModel.SearchGroups, Mode=OneWay}">
+                    <ItemsRepeater.Layout>
+                        <!-- 组与组之间 32：比组标题到卡片的 12 宽得多，一眼读得出是几件事。 -->
+                        <StackLayout Orientation="Vertical" Spacing="32" />
+                    </ItemsRepeater.Layout>
+                </ItemsRepeater>
             </ScrollViewer>
 
             <!-- 推荐页那三排。占的是网格那一格（同一行、同样跨到字母条那一行），两者互斥：

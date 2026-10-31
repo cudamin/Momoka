@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using CommunityToolkit.Mvvm.Input;
 using Momoka.Emby;
 using Momoka.Shell.Views;
 using Microsoft.UI.Xaml;
+using CardMetrics = Momoka.Infrastructure.CardSize;
 
 namespace Momoka.Shell.ViewModels;
 
@@ -28,18 +30,121 @@ public sealed partial class LibraryViewModel
 {
     internal Func<string, Task>? SubmitRecentSearch { get; set; }
     public ObservableCollection<RecentSearchRow> RecentSearches { get; } = [];
+
+    /// <summary>四个分组对象从头到尾不变；卡片对象仍由 <see cref="Cards"/> 持有，这里只是同一批对象的另一份按类型排好的清单。</summary>
+    private readonly SearchResultGroup[] _searchGroupBuckets =
+        [.. LibrarySearchGroups.Order.Select(kind => new SearchResultGroup(kind))];
+
+    private static readonly IReadOnlyDictionary<LibrarySearchGroupKind, int> SearchGroupRank =
+        LibrarySearchGroups.Order.Select((kind, index) => (Kind: kind, Index: index))
+            .ToDictionary(entry => entry.Kind, entry => entry.Index);
+
+    /// <summary>
+    /// 有搜索词时的媒体库结果，按类型分开摆（见 <see cref="LibrarySearchGroups"/>）。只收现在有条目的组：
+    /// 空组不占一条空版面，它的标题也就不会孤零零地出现在屏上。
+    /// </summary>
+    public ObservableCollection<SearchResultGroup> SearchGroups { get; } = [];
+
     public Visibility RecentSearchVisibility => Show(_request?.IsSearch == true && SearchText.Length == 0);
     public Visibility ClearRecentVisibility => Show(RecentSearches.Count > 0);
     public Visibility NoRecentVisibility => Show(RecentSearches.Count == 0);
     public Visibility SearchResultsVisibility => Show(_request?.IsSearch != true || SearchText.Length > 0);
     public Visibility SearchCategoriesVisibility => Show(_request?.IsSearch == true && SearchText.Length > 0);
 
+    /// <summary>搜索页有词时，卡片按类型分组的视图取代那一面平铺的墙。</summary>
+    public Visibility SearchGroupsVisibility => Show(IsGroupedSearch);
+
+    internal bool IsGroupedSearch => _request?.IsSearch == true && SearchText.Length > 0;
+
     partial void OnSearchTextChanged(string value)
     {
         OnPropertyChanged(nameof(RecentSearchVisibility));
         OnPropertyChanged(nameof(SearchResultsVisibility));
         OnPropertyChanged(nameof(SearchCategoriesVisibility));
+        OnPropertyChanged(nameof(SearchGroupsVisibility));
+        OnPropertyChanged(nameof(GridVisibility));
         OnPropertyChanged(nameof(EmptyVisibility));
+    }
+
+    /// <summary>Cards 的所有增删都经过这里，分组清单因此不会与平铺清单走散。</summary>
+    private void OnSearchCardsChanged(object? sender, NotifyCollectionChangedEventArgs args)
+    {
+        if (_request?.IsSearch != true) return;
+
+        switch (args.Action)
+        {
+            case NotifyCollectionChangedAction.Add when args.NewItems is { } added:
+                foreach (CardItem card in added)
+                {
+                    var group = GroupOf(card.Item.Type);
+                    group.Cards.Add(card);
+                    ShowGroup(group);
+                }
+                break;
+            case NotifyCollectionChangedAction.Remove when args.OldItems is { } removed:
+                foreach (CardItem card in removed)
+                {
+                    var group = GroupOf(card.Item.Type);
+                    group.Cards.Remove(card);
+                    HideEmptyGroup(group);
+                }
+                break;
+            case NotifyCollectionChangedAction.Reset:
+                foreach (var group in _searchGroupBuckets) group.Cards.Clear();
+                SearchGroups.Clear();
+                break;
+            default:
+                // 删除后的重排会连着发 Move；只有这几条路会在搜索页改次序，整体按平铺次序重排一次最稳。
+                RefreshSearchGroups();
+                break;
+        }
+    }
+
+    private SearchResultGroup GroupOf(string? type) =>
+        _searchGroupBuckets.First(group => group.Kind == LibrarySearchGroups.KindOf(type));
+
+    /// <summary>把分组清单整份对齐到 <see cref="Cards"/> 的次序；删除后的重排走这一支。</summary>
+    private void RefreshSearchGroups()
+    {
+        foreach (var group in _searchGroupBuckets)
+        {
+            var desired = Cards
+                .Where(card => LibrarySearchGroups.KindOf(card.Item.Type) == group.Kind)
+                .ToArray();
+            UpcomingListDiff.Apply(group.Cards, desired);
+            if (desired.Length == 0) HideEmptyGroup(group);
+            else ShowGroup(group);
+        }
+    }
+
+    /// <summary>一组从无到有（或翻页时第一次出现）：按类型次序插进来，而不是都堆到末尾。</summary>
+    private void ShowGroup(SearchResultGroup group)
+    {
+        if (group.Cards.Count == 0 || SearchGroups.Contains(group)) return;
+
+        var rank = SearchGroupRank[group.Kind];
+        var index = 0;
+        while (index < SearchGroups.Count && SearchGroupRank[SearchGroups[index].Kind] < rank) index++;
+        SearchGroups.Insert(index, group);
+    }
+
+    private void HideEmptyGroup(SearchResultGroup group)
+    {
+        if (group.Cards.Count == 0) SearchGroups.Remove(group);
+    }
+
+    /// <summary>卡片格宽或行高变了，组里那一排的版面要按同一档重排。</summary>
+    private void UpdateSearchGroupMetrics()
+    {
+        var posterHeight = RowHeight;
+        foreach (var group in _searchGroupBuckets)
+        {
+            group.CardWidth = CardWidth;
+            // 单集结果按 16:9 的剧照摆（用户令 2026-11-01），和其它组的竖版海报不是同一档高度。
+            group.RowHeight = group.Kind == LibrarySearchGroupKind.Episode
+                ? CardMetrics.HeightFor(CardWidth, wide: true) + CardMetrics.Chrome
+                : posterHeight;
+        }
     }
 
     internal void PrepareSearch(string text)
