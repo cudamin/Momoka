@@ -24,7 +24,7 @@
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="70" />
                     </Grid.ColumnDefinitions>
-                    <TextBox x:Name="TitleBox" PlaceholderText="作品名称" MaxLength="120" AutomationProperties.Name="弹幕作品名称" />
+                    <TextBox x:Name="TitleBox" CornerRadius="{StaticResource EgSearchCornerRadius}" PlaceholderText="作品名称" MaxLength="120" AutomationProperties.Name="弹幕作品名称" />
                     <TextBox x:Name="EpisodeBox" Grid.Column="1" PlaceholderText="集数" MaxLength="6" AutomationProperties.Name="弹幕集数，留空搜索全部" />
                 </Grid>
                 <Button x:Name="SearchButton" Content="搜索弹弹play" Click="OnSearch" HorizontalAlignment="Stretch" />

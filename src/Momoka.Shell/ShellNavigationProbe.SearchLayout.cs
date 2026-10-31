@@ -233,6 +233,7 @@ internal sealed partial class ShellNavigationProbe
         void RequireSearchTextCentered(LibraryPage page)
         {
             var input = Get<AutoSuggestBox>(page, "SearchInput");
+            RequireSearchRadius(input);
             var field = Descendants(input).OfType<TextBox>().Single();
             var content = Descendants(field).OfType<ScrollViewer>().Single(node => node.Name == "ContentElement");
             var placeholder = Descendants(field).OfType<ContentControl>()

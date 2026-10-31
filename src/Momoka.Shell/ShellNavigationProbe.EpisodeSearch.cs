@@ -114,6 +114,7 @@ internal sealed partial class ShellNavigationProbe
             await panel.ViewModel.Results[0].OpenCommand.ExecuteAsync(null);
             Require(aniBt.Requests.Contains("/rss/anime.xml?bgmId=123&episode=4"), "AniBT RSS 没有收到独立分集参数");
             await LayoutAsync(panel);
+            RequireSearchRadius(Get<AutoSuggestBox>(panel, "AnimeSearchInput"));
             await SaveSettledFrameAsync(panel, "anibt-episode-resources-render.png");
             Require(panel.ViewModel.Browser.Rows.Count == 1,
                 $"AniBT 分集资源没有读取到一行：Rows={panel.ViewModel.Browser.Rows.Count}，Empty={panel.ViewModel.Browser.EmptyMessage}，"

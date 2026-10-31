@@ -212,6 +212,7 @@ internal sealed partial class ShellNavigationProbe
         {
             ResizeProbeClient(width, 900);
             await LayoutAsync(panel);
+            RequireSearchRadius(Get<TextBox>(panel, "TitleBox"));
             var opacity = Get<Slider>(panel, "OpacitySlider");
             opacity.Value = 45;
             Require(fixture.Settings.Danmaku.Opacity == 45, "面板滑块未写回与设置页同一偏好");

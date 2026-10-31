@@ -67,6 +67,22 @@ internal sealed partial class ShellNavigationProbe
                         "探针未拒绝强调色描边反例");
                     Require(!IsNeutralInputBorder(null, expected), "探针未拒绝缺失焦点描边反例");
                     var searchInput = Descendants(search).OfType<TextBox>().Single();
+                    RequireSearchRadius(search);
+                    if (width == 1040 && theme == UiThemes.Default)
+                    {
+                        var radius = search.CornerRadius;
+                        var rejected = false;
+                        try
+                        {
+                            search.CornerRadius = new CornerRadius(20);
+                            RequireSearchRadius(search);
+                        }
+                        catch (InvalidOperationException) { rejected = true; }
+                        finally { search.CornerRadius = radius; }
+                        Require(rejected, "搜索框恢复旧胶囊圆角的反例未被拒绝");
+                        await LayoutAsync(search);
+                        RequireSearchRadius(search);
+                    }
                     var numberInput = Descendants(number).OfType<TextBox>().Single(control => control.Name == "InputBox");
                     foreach (var outer in new Control[] { text, password, search, number, multiline })
                         Require(outer.Background is SolidColorBrush color && color.Color == background,
@@ -128,4 +144,15 @@ internal sealed partial class ShellNavigationProbe
     private static bool IsInputBackground(Color? actual, Color expected) => actual == expected;
 
     private static bool IsNeutralInputBorder(Brush? brush, Color expected) => brush is SolidColorBrush color && color.Color == expected;
+
+    private static void RequireSearchRadius(Control input)
+    {
+        Require(input.CornerRadius == new CornerRadius(10), $"{input.Name} 搜索框未使用统一的 10 DIP 圆角");
+        var text = input is AutoSuggestBox
+            ? Descendants(input).OfType<TextBox>().Single()
+            : (TextBox)input;
+        Require(text.CornerRadius == new CornerRadius(10)
+            && Descendants(text).OfType<Border>().Single(border => border.Name == "BorderElement")
+                .CornerRadius == new CornerRadius(10), $"{input.Name} 搜索框真实模板未接收圆角");
+    }
 }

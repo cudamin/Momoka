@@ -1,3 +1,8 @@
+## 2026-10-31 所有搜索框接同一档圆角（在途）
+
+- 用户追加「所有的搜索框也改」：全站 AutoSuggestBox 的闭合表面统一10 DIP；普通 TextBox 的片名搜索、结果筛选、订阅关键词、弹幕作品搜索与 Emby/飞牛识别关键词同档。保留颜色、布局、字号、事件/绑定/建议列表及非搜索输入原样。
+- 当前独立树 C:/Users/89400/.codex/worktrees/settings-input-rounding/Momoka；InputControlTheme 的新增测试由另一独立子树编写。上一批设置圆角已合入主树7b6c510，但发布未完成；本次同批收尾，不声称旧快捷方式已更新。另有 MoviePilot/搜索聊天运行UI，需要串行避免遮挡，不擅自终止其他进程。 当前开发Shell Release 0警告0错误，输入主题25/25、资源专项100/100、差异/LF与改动C#空白检查通过；真实UI与最终主树发布仍待完成。
+
 ## 2026-10-31 订阅季列表紧凑布局与页面审查（待主树交付）
 
 - 独立实现树 `subscription-seasons-compact`，测试树 `subscription-compact-tests`；参考官方 Frontend v3 `1f574a4fa8a254e3308b440f1e265965bfb11f83` 的 `MediaDetailView.vue:1084-1160` 及对应测试，Backend v3 `f5bd3458a6d699600c7496b22a523412d4ef9762` 的 `app/chain/subscribe/query.py:291-328`、`subscribe.py:933-945`。季名旁加集数、分集细分隔、标题日期紧凑；无图和图片失败整框收起、有图最大144×81、默认标题去重。图片失败折叠是本地改进，保留订阅范围统计/筛选/播放/搜索，不照抄网页按季汇总的身份弱点。实际服务器版本未重登确认，不宣称实服同步。

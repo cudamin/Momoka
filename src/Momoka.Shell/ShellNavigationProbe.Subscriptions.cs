@@ -431,6 +431,7 @@ internal sealed partial class ShellNavigationProbe
             try
             {
                 await LayoutAsync(editor);
+                RequireSearchRadius(Get<TextBox>(editor, "KeywordInput"));
                 Get<TextBox>(editor, "IncludeInput").Text = "WEB-DL";
                 Get<NumberBox>(editor, "TotalInput").Value = 6;
                 await SaveSettledFrameAsync(editor, "mp-subscription-editor.png");
