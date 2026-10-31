@@ -7,6 +7,16 @@
 - 新编译Release主测3445/3445、ResourceBrowser100/100、SearchLifetime34/34，0失败0跳过；Shell和三个测试项目0警告0错误，改动文件空白退出0（工作区加载提示保留），diff检查和主树政策自测通过。运行search分区14/14、退出0：`shell-probe-20261031-005437311-14872`；已查看1040/360常驻入口实屏。前两次Hidden启动导致窗口被遮挡的12/14报告保留，改用用户要求的可见UI启动后通过，未削弱像素遮挡检查。
 - 尚未交付：筛选/站点两代理产品和安全离线试用宿主待整合；最终正常用户GUI操作、最终主树重验/实际发布/快捷方式核对待做。新增search-preview只显式单独解析、不能混自动分区，不进入全量；宿主接线后再实际运行，不拿手动试用当自动测试数。
 - 无真实服务器读取/写入/播放，无版本变更或上传；原生libmpv从主树只复制到本树ignored路径供运行。
+## 2026-10-31 搜索站点网格弹窗（独立写入，待父代理整合与UI验收）
+
+- 工作树 `C:/Users/89400/.codex/worktrees/search-sites-grid/Momoka`，临时分支 `codex/search-sites-grid`，基础 `49c411b5cdc47601eb39e0b530269cb2802cbe82`。只改站点 Picker/VM、新 SiteDialog/局部主题、Styles 的该类型一行登记，以及相关测试；未改 LibraryPage、Filter、宿主、父代理探针或 Program。
+- 按图六改为单一 ContentDialog：顶栏图标/标题/X、横向全选/清空/刷新/已选择 n/N、UniformGridLayout 最多三列（168 DIP起步，窄窗二列/一列）、原生整卡 ToggleButton/圆形选中标识。局部覆盖指向 Eg 主题角色，保留原生模板/焦点与高对比度默认，不复制截图紫色；继承 EgDialogSurfaceStyle 点外取消，保留 MP 框架顶盖。
+- 弹窗用站点 VM 草稿，确认才保存；X/Esc/遮罩 None 不存偏好、不触发搜索、不清空结果。默认模式仍省略 sites，按卡退出默认，全选始终显式选择，清空为显式空；已有分类继承、失效站点恢复、失败/忙/空态保留。同步 SearchSitesChanged 只承认本次写入第一份同值回执，外部变更（含 A→B→A/广播内再写）、切连接、离页/重新Attach均拒绝旧确认。
+- 源码比较（ls-remote 后按 SHA 取官方源码）：Frontend 当前 v3 `bc938a9198ec75ba46a91d34ece4c38f790f8176`，v3.2.1 `4797eda16252fb6590e36f2b9ede5fb535d9df04`；后端当前 v3 `f5bd3458a6d699600c7496b22a523412d4ef9762`，v3.2.1 `daa9212ba161d4573baf3744e2f13b99c2a90516`。实际文件是 `src/components/dialog/SearchSiteDialog.vue`（并无 SiteSelectDialog.vue）：与 SearchBarDialog.vue、layouts/default/components/SearchBar.vue、pages/resource.vue、api/site.ts/相关测试，以及后端 app/api/endpoints/site.py、search.py、chain/search/site.py、schemas/site.py，两版所读文件内容一致。上游整卡多选、去重清理不可用ID、md三列/sm两列、零选禁搜索；SearchBarDialog 读取 IndexerSites，目录只留 is_active，零偏好默认全选，确认关闭后调用当前 searchWord 的资源搜索。后端目录 GET site/与 site/media/{type}，搜索 sites 按逗号编号解析。Momoka有意保留本机默认/分类继承，不将显式空降级全站；未接入上游音乐/字幕流。网页 v3.2.1 是父代理给定事实，本代理未读真实配置或复验实服。
+- 本树 .dotnet 10.0.400、缓存离线 restore、Release 单节点构建：资源与流程项目 0警告0错误；资源100/100，SiteGridContract12/12（新suite由临时反射入口执行当前实际程序集，正式Program注册交父），真实Picker/Dialog/VM/Core事件流程13/13，现行DialogChrome14/14，均0失败0跳过。源码扫描554交互元素、0无句柄；改动C#定向 whitespace 与 git diff --check 通过。Shell最终本树构建0警告0错误，日志在 work/search-sites-grid-shell-handoff-final.log；前期 ItemsRepeater.IsEnabled API错误、无通知OneWay警告、构建期间改缩进的校验警告均已修正，不作成功证据。
+- 交接API：Picker SearchOnConfirm默认false（完成），搜索宿主设true（搜索）；OpenAsync()/CurrentDialog/ClosePopup()/SearchRequested（只Primary后发）。Dialog.ViewModel 是草稿，SiteGrid 是 ItemsRepeater；ChooseSites改Button，删除SitesFlyout；UseDefaultSites/SelectAllSites/ClearSelectedSites/ReloadSites/SelectSite句柄移到Dialog，SelectSite改ToggleButton；新CloseSiteDialog与框架PrimaryButton。父需接三处宿主事件、注册 SiteGridContractTests.Register(sourceRoot)、登记/运行独立 Momoka.SiteDialogFlowTests，并替换旧Flyout探针与按宿主VM读勾选断言。
+- 未启动GUI、未读真实凭据/设置、未发真实HTTP、未发布/推送或合入主树。实际弹窗宽窄/五主题/键鼠/UIA、真实遮罩输入及三宿主搜索由父代理在整合后验收；本分支测试通过不是主树已交付，待父代理整合及收尾后删除临时分支/工作树。
+- 宿主重新进入提醒：Cancel保留目录/结果但停止编辑；父代理切回MP资源且available时重新Attach当前Service恢复观察与编辑，不在OpenAsync无条件复活已离页宿主。流程另覆盖Cancel→同服务Attach后新表可确认且旧草稿仍无效。
 ## 2026-10-31 媒体管理卡片与单集直删已交付
 
 - 本轮7405c83（卡片）、9e86878（单集直接删除）及范围子集5f9a808/dc66896已整合master；最新订阅与手动整理改动均保留，最终发布产品HEAD da81574。剧/季卡片默认全选、可取消个别；单集点击已选范围直接删除并提示，未据此做真实媒体删除。

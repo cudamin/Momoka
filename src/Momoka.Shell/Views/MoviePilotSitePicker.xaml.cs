@@ -1,4 +1,5 @@
 using Momoka.Shell.ViewModels;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell.Views;
@@ -7,6 +8,11 @@ public sealed partial class MoviePilotSitePicker : UserControl
 {
     private MoviePilotSitePickerViewModel _viewModel = new();
     private string _label = "搜索站点";
+    private Task<ContentDialogResult>? _opening;
+
+    public bool SearchOnConfirm { get; set; }
+    public event EventHandler? SearchRequested;
+    internal MoviePilotSiteDialog? CurrentDialog { get; private set; }
 
     public MoviePilotSitePicker() => InitializeComponent();
 
@@ -20,6 +26,7 @@ public sealed partial class MoviePilotSitePicker : UserControl
         set
         {
             if (ReferenceEquals(_viewModel, value)) return;
+            ClosePopup();
             _viewModel = value;
             Bindings.Update();
         }
@@ -41,11 +48,37 @@ public sealed partial class MoviePilotSitePicker : UserControl
 
     internal void Attach(MoviePilotSitePickerViewModel viewModel) => ViewModel = viewModel;
 
-    private void OnOpening(object? sender, object args)
+    private async void OnChooseSites(object sender, RoutedEventArgs args) => await OpenAsync();
+
+    /// <summary>用户按钮和运行探针共用同一路径；重复打开共享在飞任务，不叠两张模态表。</summary>
+    internal Task<ContentDialogResult> OpenAsync()
     {
-        // 面板一开就照存下来的那一份重读一次：另一个窗口可能刚改过，而这一颗的标题不能停在旧选择上。
-        ViewModel.RefreshSelection();
-        _ = ViewModel.EnsureLoadedAsync();
+        if (_opening is { IsCompleted: false }) return _opening;
+        return _opening = ShowDialogAsync();
+    }
+
+    private async Task<ContentDialogResult> ShowDialogAsync()
+    {
+        if (XamlRoot is null || !ViewModel.IsCurrentConnection) return ContentDialogResult.None;
+        var owner = ViewModel;
+        var searchOnConfirm = SearchOnConfirm;
+        owner.RefreshSelection();
+        var dialog = new MoviePilotSiteDialog(owner, searchOnConfirm) { XamlRoot = XamlRoot, RequestedTheme = RequestedTheme };
+        CurrentDialog = dialog;
+        try
+        {
+            var result = await dialog.ShowAsync();
+            // 换宿主/连接、离页关闭均不能借用旧弹窗的确认发起新搜索。
+            if (result == ContentDialogResult.Primary && ReferenceEquals(owner, ViewModel)
+                && dialog.ViewModel.IsDraftOwnerCurrent && searchOnConfirm)
+                SearchRequested?.Invoke(this, EventArgs.Empty);
+            return result;
+        }
+        finally
+        {
+            dialog.ViewModel.Dispose();
+            if (ReferenceEquals(CurrentDialog, dialog)) CurrentDialog = null;
+        }
     }
 
     internal void SetCompact(double maxWidth = 180)
@@ -56,5 +89,5 @@ public sealed partial class MoviePilotSitePicker : UserControl
         ChooseSites.Padding = new Microsoft.UI.Xaml.Thickness(2, 0, 2, 0);
     }
 
-    internal void ClosePopup() => SitesFlyout.Hide();
+    internal void ClosePopup() => CurrentDialog?.Hide();
 }

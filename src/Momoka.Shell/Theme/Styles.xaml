@@ -216,6 +216,7 @@
     <Style TargetType="local:MoviePilotReorganizeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MoviePilotSeriesReorganizeDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:MoviePilotSeasonPicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
+    <Style TargetType="local:MoviePilotSiteDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:NotificationEditDialog" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:NotificationServicePicker" BasedOn="{StaticResource EgDialogSurfaceStyle}" />
     <Style TargetType="local:RefreshMetadataDialog" BasedOn="{StaticResource EgLibraryDialogSurfaceStyle}" />

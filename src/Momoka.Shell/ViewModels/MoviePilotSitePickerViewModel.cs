@@ -7,12 +7,19 @@ using Microsoft.UI.Xaml;
 
 namespace Momoka.Shell.ViewModels;
 
-public sealed partial class MoviePilotSearchSiteRow(MoviePilotSearchSite site, Action changed) : ObservableObject
+public sealed partial class MoviePilotSearchSiteRow(MoviePilotSearchSite site, Action<MoviePilotSearchSiteRow> changed) : ObservableObject
 {
     public int Id => site.Id;
     public string Name => site.Name;
     [ObservableProperty] public partial bool Selected { get; set; }
-    partial void OnSelectedChanged(bool value) => changed();
+    public Visibility SelectedVisibility => Selected ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility UnselectedVisibility => Selected ? Visibility.Collapsed : Visibility.Visible;
+    partial void OnSelectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SelectedVisibility));
+        OnPropertyChanged(nameof(UnselectedVisibility));
+        changed(this);
+    }
 }
 
 public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
@@ -25,6 +32,14 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     private bool _updating;
     private HashSet<int> _preferredIds = [];
     private Task? _catalogueLoad;
+    private MoviePilotSitePickerViewModel? _draftOwner;
+    private int _editVersion;
+    private int _ownerEditVersion;
+    private int _preferenceVersion;
+    private int _ownerPreferenceVersion;
+    private MoviePilotSitePickerViewModel? _committingDraft;
+    private bool _ownSaveObserved;
+    private bool _editing = true;
 
     public ObservableCollection<MoviePilotSearchSiteRow> Sites { get; } = [];
     internal event Action? SelectionChanged;
@@ -40,12 +55,70 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         1 => Sites.First(site => site.Selected).Name,
         var count => $"已选 {count} 个站点"
     };
-    /// <summary>面板抬头右端那行读数；目录没读出来时收起，不显示「0 个站点」冒充读到了。</summary>
+    /// <summary>目录没读出来时不显示「0 个站点」冒充成功。</summary>
     public string CatalogueText => _loaded ? $"{Sites.Count} 个站点" : "";
-    public bool CanPick => !UseDefault && !Busy;
+    public int SelectedCount => Sites.Count(site => site.Selected);
+    public string SelectionText => _loaded ? $"已选择 {SelectedCount}/{Sites.Count}" : Busy ? "正在读取站点" : "尚未读取站点目录";
+    // 默认模式不锁住卡片：按任意卡片即明确退出默认模式。
+    public bool CanPick => CanComplete && _loaded;
+    public bool CanComplete => _editing && !Busy && IsCurrentConnection && DraftIsCurrent;
+    public bool CanSearch => CanComplete && HasSelection;
+    private bool CanSelect => CanPick && Sites.Count > 0;
+    private bool CanRefresh => _editing && !Busy && IsCurrentConnection && DraftIsCurrent;
+    private bool DraftIsCurrent => _draftOwner is null || (_draftOwner._editing && _draftOwner._editVersion == _ownerEditVersion
+        && _draftOwner._preferenceVersion == _ownerPreferenceVersion
+        && ReferenceEquals(_draftOwner._service, _service) && _draftOwner._mediaType == _mediaType
+        && _draftOwner._connectionStamp == _connectionStamp);
     public Visibility EmptyVisibility => Show(_loaded && Sites.Count == 0 && !Busy);
     internal bool HasSelection => UseDefault || (_service?.IsCurrentConnection(_connectionStamp) == true && Sites.Any(site => site.Selected));
     internal MoviePilotSiteSelection? Selection => UseDefault ? null : new(_connectionStamp, [.. Sites.Where(site => site.Selected).Select(site => site.Id)]);
+    internal bool IsDraftOwnerCurrent => DraftIsCurrent && IsCurrentConnection;
+
+    /// <summary>弹窗有自己的选择草稿；X、Esc、遮罩取消不写盘，也不通知搜索宿主。</summary>
+    internal MoviePilotSitePickerViewModel CreateDraft()
+    {
+        var draft = new MoviePilotSitePickerViewModel
+        {
+            _draftOwner = this,
+            _ownerEditVersion = _editVersion,
+            _ownerPreferenceVersion = _preferenceVersion,
+            _service = _service,
+            _mediaType = _mediaType,
+            _connectionStamp = _connectionStamp,
+            _loaded = _loaded
+        };
+        draft.Apply(new() { UseDefault = UseDefault, SiteIds = [.. _preferredIds] });
+        draft.CopySites(Sites.Select(site => new MoviePilotSearchSite(site.Id, site.Name)));
+        draft.AnnounceSelection();
+        return draft;
+    }
+
+    /// <summary>只有确认才保存；失败留在弹窗里，不把未保存的选择当成搜索确认。</summary>
+    internal bool CommitSelection()
+    {
+        if (_draftOwner is not { } owner || !CanComplete) return false;
+        var preference = new MoviePilotSearchSitePreference { UseDefault = UseDefault, SiteIds = [.. _preferredIds] };
+        _ownSaveObserved = false;
+        owner._committingDraft = this;
+        try
+        {
+            _service!.SaveSearchSitePreference(_connectionStamp, _mediaType, UseDefault, _preferredIds);
+            if (!IsDraftOwnerCurrent) return false;
+            if (_loaded)
+            {
+                owner.CopySites(Sites.Select(site => new MoviePilotSearchSite(site.Id, site.Name)));
+                owner._loaded = true;
+            }
+            owner.Apply(preference, notify: true);
+            return true;
+        }
+        catch (Exception error)
+        {
+            Report("搜索站点未能保存，请重试或取消", error);
+            return false;
+        }
+        finally { owner._committingDraft = null; }
+    }
 
     internal void Attach(MoviePilotService service, string? mediaType = null)
     {
@@ -61,6 +134,7 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         }
         _service = service;
         _mediaType = mediaType;
+        _editing = true;
         Observe(service);
         Apply(service.SearchSitePreference(mediaType));
     }
@@ -82,6 +156,16 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     private void Apply(MoviePilotSearchSitePreference preference, bool notify = false)
     {
         var changed = UseDefault != preference.UseDefault || !_preferredIds.SetEquals(preference.SiteIds);
+        if (changed) _preferenceVersion++;
+        // SaveSearchSitePreference 同步广播：只认本次写入的第一份同值回执。
+        // 别处先改、通知中再改或 A→B→A 都不借这个豁免更新草稿的归属。
+        if (_committingDraft is { _ownSaveObserved: false } draft)
+        {
+            draft._ownSaveObserved = true;
+            if (_preferenceVersion == draft._ownerPreferenceVersion + (changed ? 1 : 0)
+                && preference.UseDefault == draft.UseDefault && draft._preferredIds.SetEquals(preference.SiteIds))
+                draft._ownerPreferenceVersion = _preferenceVersion;
+        }
         _updating = true;
         try
         {
@@ -123,6 +207,8 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
 
     public override void Cancel()
     {
+        _editing = false;
+        _editVersion++;
         _catalogueLoad = null;
         Observe(null);
         base.Cancel();
@@ -130,6 +216,8 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
 
     public override void Dispose()
     {
+        _editing = false;
+        _editVersion++;
         Observe(null);
         base.Dispose();
     }
@@ -138,13 +226,13 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
 
     private async Task LoadCatalogueAsync()
     {
-        if (_service is null) return;
+        if (_service is null || (_draftOwner is not null && (!DraftIsCurrent || !IsCurrentConnection))) return;
         var token = BeginLoad();
         try
         {
             var stamp = _service.ConnectionStamp;
             var sites = await _service.SearchSitesAsync(_mediaType, token).ConfigureAwait(true);
-            if (!IsCurrent(token) || !_service.IsCurrentConnection(stamp)) return;
+            if (!IsCurrent(token) || !_service.IsCurrentConnection(stamp) || !DraftIsCurrent) return;
             var sameIdentity = stamp == _connectionStamp;
             var hadCatalogue = _loaded;
             var selected = Sites.Where(site => site.Selected).Select(site => site.Id).ToHashSet();
@@ -157,9 +245,7 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
                     UseDefault = preference.UseDefault;
                     _preferredIds = preference.SiteIds.ToHashSet();
                 }
-                Sites.Clear();
-                foreach (var site in sites)
-                    Sites.Add(new MoviePilotSearchSiteRow(site, Changed) { Selected = _preferredIds.Contains(site.Id) });
+                CopySites(sites);
                 _connectionStamp = stamp;
                 _loaded = true;
             }
@@ -176,12 +262,35 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         finally { EndLoad(token); }
     }
 
-    [RelayCommand] private Task Refresh() => ReloadAsync();
-    [RelayCommand] private void SelectAll() => Select(true);
-    [RelayCommand] private void ClearSelection() => Select(false);
+    private void CopySites(IEnumerable<MoviePilotSearchSite> sites)
+    {
+        var wasUpdating = _updating;
+        _updating = true;
+        try
+        {
+            Sites.Clear();
+            foreach (var site in sites)
+                Sites.Add(new MoviePilotSearchSiteRow(site, SiteChanged) { Selected = _preferredIds.Contains(site.Id) });
+        }
+        finally { _updating = wasUpdating; }
+    }
+
+    private void SiteChanged(MoviePilotSearchSiteRow row)
+    {
+        if (_updating || !Sites.Contains(row) || !CanPick) return;
+        _updating = true;
+        try { UseDefault = false; }
+        finally { _updating = false; }
+        Changed();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRefresh))] private Task Refresh() => ReloadAsync();
+    [RelayCommand(CanExecute = nameof(CanSelect))] private void SelectAll() => Select(true);
+    [RelayCommand(CanExecute = nameof(CanSelect))] private void ClearSelection() => Select(false);
 
     private void Select(bool selected)
     {
+        if (!CanSelect) return;
         _updating = true;
         try
         {
@@ -201,10 +310,11 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     private void Changed()
     {
         if (_updating) return;
+        _preferenceVersion++;
         _preferredIds.ExceptWith(Sites.Select(site => site.Id));
         _preferredIds.UnionWith(Sites.Where(site => site.Selected).Select(site => site.Id));
         Exception? saveError = null;
-        if (_service?.IsCurrentConnection(_connectionStamp) == true)
+        if (_draftOwner is null && _service?.IsCurrentConnection(_connectionStamp) == true)
         {
             try { _service.SaveSearchSitePreference(_connectionStamp, _mediaType, UseDefault, _preferredIds); }
             catch (Exception error) { saveError = error; }
@@ -218,7 +328,14 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
         OnPropertyChanged(nameof(Summary));
         OnPropertyChanged(nameof(CatalogueText));
         OnPropertyChanged(nameof(CanPick));
+        OnPropertyChanged(nameof(CanComplete));
+        OnPropertyChanged(nameof(CanSearch));
+        OnPropertyChanged(nameof(SelectedCount));
+        OnPropertyChanged(nameof(SelectionText));
         OnPropertyChanged(nameof(EmptyVisibility));
+        RefreshCommand.NotifyCanExecuteChanged();
+        SelectAllCommand.NotifyCanExecuteChanged();
+        ClearSelectionCommand.NotifyCanExecuteChanged();
     }
     protected override void BusyChanged() => AnnounceSelection();
 }
