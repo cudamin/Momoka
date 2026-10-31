@@ -151,7 +151,7 @@
     <Style x:Key="EgResourceButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
         <Setter Property="MinHeight" Value="30" />
         <Setter Property="Padding" Value="10,4" />
-        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Background" Value="{ThemeResource EgAccentSoftBrush}" />
         <Setter Property="Foreground" Value="{ThemeResource EgAccentBrush}" />

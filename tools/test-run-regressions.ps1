@@ -80,6 +80,7 @@ function Invoke-Case([string]$Name, [string]$Mode, [string[]]$Selection, [int]$E
 Invoke-Case 'list' 'ok' @('-List') 0 @()
 Invoke-Case 'default-list' 'ok' @() 0 @()
 Invoke-Case 'success' 'ok' @('-Suite', $suite) 0 @('--version', 'restore', 'build', 'run')
+Invoke-Case 'site-dialog-flow' 'ok' @('-Suite', 'Momoka.SiteDialogFlowTests') 0 @('--version', 'restore', 'build', 'run')
 Invoke-Case 'restore-failure' 'restore-fail' @('-Suite', $suite) 1 @('--version', 'restore')
 Invoke-Case 'build-failure' 'build-fail' @('-Suite', $suite) 1 @('--version', 'restore', 'build')
 Invoke-Case 'build-warning' 'warning' @('-Suite', $suite) 1 @('--version', 'restore', 'build')

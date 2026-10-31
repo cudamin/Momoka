@@ -3,6 +3,10 @@ function New-MpvDependencyFixturePlan([string]$SourceRepository,[string]$Reposit
     $project=[xml]([IO.File]::ReadAllText((Get-ChildPath $SourceRepository 'src/Momoka.Shell/Momoka.Shell.csproj')))
     $tfm=$project.SelectSingleNode('/Project/PropertyGroup/TargetFramework').InnerText
     $rid=$project.SelectSingleNode('/Project/PropertyGroup/RuntimeIdentifier').InnerText
+    $props=[xml]([IO.File]::ReadAllText((Get-ChildPath $SourceRepository 'Directory.Build.props')))
+    $version=$props.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
+    if ([string]::IsNullOrWhiteSpace($version)) { Fail-Payload '合成依赖缺少源码项目版本。' }
+    $appKey='Momoka/'+$version; $coreKey='Momoka.Core/'+$version
     $active='.NETCoreApp,Version=v10.0/'+$rid
     $selected=@{}; $libraries=@{}; $files=[Collections.Generic.List[object]]::new()
     $targets=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -19,8 +23,8 @@ function New-MpvDependencyFixturePlan([string]$SourceRepository,[string]$Reposit
         $selected[$key]=@{type='package'}
         $libraries[$key]=@{type='package';path=$key.ToLowerInvariant();sha512='';files=@()}
     }
-    $selected['Momoka.Core/0.1.7']=@{type='project';runtime=@{'bin/placeholder/Momoka.Core.dll'=@{}}}
-    $libraries['Momoka.Core/0.1.7']=@{type='project';msbuildProject='../Momoka.Core/Momoka.Core.csproj'}
+    $selected[$coreKey]=@{type='project';runtime=@{'bin/placeholder/Momoka.Core.dll'=@{}}}
+    $libraries[$coreKey]=@{type='project';msbuildProject='../Momoka.Core/Momoka.Core.csproj'}
     $dependencyGroups=@{
         'Microsoft.WindowsAppSDK.Foundation/2.3.12'=@{'runtimes/win-x64/native/Microsoft.WindowsAppRuntime.Bootstrap.dll'='R067 offline host fixture themeresources -- never launch'}
         'Microsoft.WindowsAppSDK.WinUI/2.3.9'=@{'runtimes-framework/win-x64/native/Microsoft.UI.Xaml.Controls.dll'='fixed SDK target copied DLL fixture'}
@@ -80,9 +84,9 @@ function New-MpvDependencyFixturePlan([string]$SourceRepository,[string]$Reposit
     $assets=@{targets=@{ ($tfm+'/'+$rid)=$selected }; libraries=$libraries; packageFolders=@{($packages+'\')=@{}};
         project=@{restore=@{projectPath=(Get-ChildPath $Repository 'src/Momoka.Shell/Momoka.Shell.csproj')};frameworks=@{$tfm=@{downloadDependencies=@(@{name='Microsoft.Windows.SDK.NET.Ref';version='[10.0.19041.57, 10.0.19041.57]'})}}}}
     $deps=@{runtimeTarget=@{name=$active};targets=@{$active=@{
-        'Momoka/0.1.7'=@{runtime=@{'Momoka.dll'=@{}}};'Momoka.Core/0.1.7'=@{runtime=@{'Momoka.Core.dll'=@{}}};
+        $appKey=@{runtime=@{'Momoka.dll'=@{}}};$coreKey=@{runtime=@{'Momoka.Core.dll'=@{}}};
         'Microsoft.WindowsAppSDK.Foundation/2.3.12'=@{native=@{$bootstrap=@{}}};'R067.Offline.Native/1.0.0'=@{native=@{$hostAsset=@{}}}
-    }};libraries=@{'Momoka/0.1.7'=@{type='project'};'Momoka.Core/0.1.7'=@{type='project'};
+    }};libraries=@{$appKey=@{type='project'};$coreKey=@{type='project'};
         'Microsoft.WindowsAppSDK.Foundation/2.3.12'=@{type='package'};'R067.Offline.Native/1.0.0'=@{type='package'}}}
     $packLibrary='runtimepack.'+$packKey
     $deps.targets[$active][$packLibrary]=@{runtime=@{'Microsoft.Windows.SDK.NET.dll'=@{};'WinRT.Runtime.dll'=@{}}}

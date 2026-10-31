@@ -14,7 +14,7 @@
     <Compile Include="..\..\src\Momoka.Shell\Views\IShellContent.cs" Link="Production\IShellContent.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\ISessionScopedPage.cs" Link="Production\ISessionScopedPage.cs" />
   </ItemGroup>
-  <!-- The shared fixture visit, actual page monitoring and changed HomeOrder call sites run verbatim. HomeCard/Rows are the
+  <!-- The shared fixture visit, actual page monitoring and changed HomeOrder call sites run verbatim. HomeSections/Rows are the
        explicitly supplied current Shell DLL; no copied availability or home-row model. -->
   <UsingTask TaskName="ExtractHomeOrderProbeSources" TaskFactory="RoslynCodeTaskFactory"
              AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">

@@ -12,7 +12,7 @@ using Momoka.Shell.Views;
 
 namespace Momoka.Tests;
 
-/// <summary>Real HomeCard/RefreshHomeRows/row objects, real MP availability; no Login/DPAPI/native/UI.</summary>
+/// <summary>Real HomeSections/RefreshHomeRows/row objects, real MP availability; no Login/DPAPI/native/UI.</summary>
 internal sealed class HomeOrderFixture : IDisposable
 {
     private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -22,6 +22,8 @@ internal sealed class HomeOrderFixture : IDisposable
     public MoviePilotReads Reads { get; } = new();
     public MoviePilotService Service { get; }
     public EmbySession Session { get; }
+    public EmbySessionScope Source { get; }
+    public ServerCapabilities Capabilities { get; }
     public object Vm { get; }
     public object Table { get; }
     public IList Rows { get; }
@@ -32,15 +34,6 @@ internal sealed class HomeOrderFixture : IDisposable
 
     public HomeOrderFixture()
     {
-        var library = new EmbyItem { Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder };
-        var plan = HomeLayout.Plan(null, [library]).ToList();
-        var series = plan.Single(row => row.Key == HomeLayout.MoviePilotSeries);
-        plan.Remove(series);
-        plan.Insert(0, series with { Visible = false });
-        var movies = plan.Single(row => row.Key == HomeLayout.MoviePilotMovies);
-        plan[plan.IndexOf(movies)] = movies with { Visible = false };
-        Settings.Settings.Ui.HomeRows = HomeLayout.Save(plan);
-        Saved = HomeLayout.Save(plan);
         Settings.Settings.MoviePilot.Url = "https://homeorder-fixture.invalid:3001";
         Settings.Settings.MoviePilot.Username = "anonymous-fixture";
         // No password is supplied or decoded: the anonymous cached session below is the endpoint boundary.
@@ -51,19 +44,38 @@ internal sealed class HomeOrderFixture : IDisposable
         Session = (EmbySession)Activator.CreateInstance(typeof(EmbySession), Members, null,
             [Settings.Settings, new SettingsStore(paths, protector), new CredentialVault(protector),
                 new DeviceIdentity("homeorder-fixture", "offline", "offline", "1"), _rejectMedia], null)!;
-        var capabilities = new ServerCapabilities(Session);
+        var http = (EmbyHttp)typeof(EmbySession).GetField("_http", Members)!.GetValue(Session)!;
+        var connection = new EmbyConnection(new Uri("https://homeorder-media.invalid/emby/"), "",
+            "anonymous-user", "anonymous-user", "anonymous-server", DeviceIdentity.Create("homeorder", "1"));
+        var identityType = typeof(EmbySessionScope).GetNestedType("Identity", BindingFlags.NonPublic)!;
+        var identity = Activator.CreateInstance(identityType, Members, null,
+            [new EmbyClient(http, connection), new ServerProfile { Id = "homeorder" }, new AccountProfile { Id = "anonymous" }], null)!;
+        Source = (EmbySessionScope)Activator.CreateInstance(typeof(EmbySessionScope), Members, null, [Session, identity], null)!;
+        ((Dictionary<string, EmbySessionScope>)typeof(EmbySession).GetField("_sources", Members)!.GetValue(Session)!).Add(Source.Key, Source);
+        typeof(EmbySession).GetField("_current", Members)!.SetValue(Session, Source);
+        Capabilities = new ServerCapabilities(Session);
+        var library = Source.Bind(new EmbyItem { Id = "library", Name = "离线电影库", Type = EmbyItemType.CollectionFolder });
+        var plan = HomeLayout.Plan(null, [library]).ToList();
+        var series = plan.Single(row => row.Key == HomeLayout.MoviePilotSeries);
+        plan.Remove(series);
+        plan.Insert(0, series with { Visible = false });
+        var movies = plan.Single(row => row.Key == HomeLayout.MoviePilotMovies);
+        plan[plan.IndexOf(movies)] = movies with { Visible = false };
+        Settings.Settings.Ui.HomeRows = HomeLayout.Save(plan);
+        Saved = HomeLayout.Save(plan);
         Vm = Runtime.New("SettingsViewModel");
         var args = Vm.GetType().GetMethod("Attach", Members)!.GetParameters().Select(parameter => parameter.Name switch
         {
             "settings" => (object)Settings,
             "paths" => paths,
             "moviePilot" => Service,
-            "capabilities" => capabilities,
+            "capabilities" => Capabilities,
             _ => parameter.HasDefaultValue ? parameter.DefaultValue : null
         }).ToArray();
         Runtime.Invoke(Vm, "Attach", args);
-        // Only the actual home card is built. Whole-page Reload would construct native subtitle previews.
-        Runtime.List(Vm, "Sections").Add(Runtime.Invoke(Vm, "HomeCard"));
+        // Only the actual home cards are built. Whole-page Reload would construct native subtitle previews.
+        foreach (var section in (IEnumerable)Runtime.Invoke(Vm, "HomeSections")!)
+            Runtime.List(Vm, "Sections").Add(section);
         Runtime.Set(Vm, "SelectedCategory", "主页");
         Runtime.Set(Vm, "IsReady", true);
         Table = Runtime.Get<object>(Vm, "HomeRows");

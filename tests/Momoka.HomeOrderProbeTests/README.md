@@ -1,13 +1,14 @@
 # HomeOrder 运行探针活动期回归
 
-修复 `ShellNavigationProbe.HomeOrder.cs` 的隔离夹具，不改 SettingsPage / SettingsViewModel / MoviePilot 产品行为。
+使用当前主页卡片和在线来源验证 `ShellNavigationProbe.HomeOrder.cs` 的隔离活动期；同时覆盖 SettingsPage 离页后分类通知不得更新绑定的守卫。
 
 ## 根因与边界
 
 - 旧夹具只 Attach VM、Reload 后直接调用 `WatchMoviePilot`，没有经过页面 `OnNavigatedTo` 开启 `_activity`。当前正式页面会拒绝默认/已取消的活动票，因此连接虽成功，原表仍为四行，两个 MP 项永远等不到；Release 后只重挂也一样。
 - 探针现复用 Settings 探针的共享 `BeginSettingsFixtureVisit` 活动期入口，离树明确释放，重入时等待当前表。原18处业务/布局断言、六处截图调用与轮播阈值条件均保留，不放宽 scope，不增加固定延时。
 - 编译时原样提取当前页面的监测、释放方法、共享活动期入口，以及 HomeOrder 中改变的初入/缓存重入调用片段与实际 `UntilAsync`。缺失/歧义边界使构建失败。WinUI、队列和未使用的内嵌页面是边界替身，不复制活动期或可用性模型。
-- VM / HomeCard / RefreshHomeRows / Rows / 排序行 hook 来自显式传入的本树当前 Release Shell DLL。初始仅构建实际 HomeCard，活动期重入走原样的共享入口与页面监测方法；**不执行完整 WinUI 初建、渲染或 Frame 缓存实现**。
+- VM / HomeSections / RefreshHomeRows / Rows / 排序行 hook 来自显式传入的本树当前 Release Shell DLL。初始仅构建实际 HomeSections，活动期重入走原样的共享入口与页面监测方法；**不执行完整 WinUI 初建、渲染或 Frame 缓存实现**。
+- 媒体库绑定反射安装的匿名在线来源，未调用登录、恢复或设置保存；撤销来源后只隐藏该库行，存档顺序和勾选保持。两张主页卡仍使用同一个稳定排序表。
 - MoviePilot 可用性走真实 `RefreshAvailabilityAsync` / `SetAvailable` / `AvailabilityChanged`，HTTP 仅内存匿名 `dashboard/system` GET。匿名会话缓存是传输边界；禁止登录和任何凭据 Protect/Unprotect。设置全在内存，AppPaths 含非法文件名以拒绝误触盘；无 UI、原生设备、注册表、鼠标、真实媒体、网络或发布。
 
 ## 命令

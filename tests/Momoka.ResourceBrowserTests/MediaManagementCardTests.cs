@@ -69,9 +69,19 @@ internal static class MediaManagementCardTests
     {
         var history = new MoviePilotTransferHistory
         {
-            Id = 1, Title = "长标题", Type = "电视剧", Year = "2026", Seasons = "S01", Episodes = "E02",
-            SourcePath = "/Downloads/很长的目录/[字幕组] 第02集 HEVC.mkv", TargetPath = "D:\\媒体库\\测试剧\\测试剧.S01E02.mkv",
-            SourceStorage = "local", TargetStorage = "local", Mode = "softlink", Date = "2026-10-31 08:00:00", Success = true
+            Id = 1,
+            Title = "长标题",
+            Type = "电视剧",
+            Year = "2026",
+            Seasons = "S01",
+            Episodes = "E02",
+            SourcePath = "/Downloads/很长的目录/[字幕组] 第02集 HEVC.mkv",
+            TargetPath = "D:\\媒体库\\测试剧\\测试剧.S01E02.mkv",
+            SourceStorage = "local",
+            TargetStorage = "local",
+            Mode = "softlink",
+            Date = "2026-10-31 08:00:00",
+            Success = true
         };
         return (MoviePilotHistoryPlan)Activator.CreateInstance(typeof(MoviePilotHistoryPlan), BindingFlags.Instance | BindingFlags.NonPublic,
             null, ["长标题", action, true, "fixture", new[] { history }], null)!;

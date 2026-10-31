@@ -19,7 +19,7 @@ internal static class Program
         try
         {
             _ = new ShellRuntime(args[0], args[1]);
-            Console.WriteLine("HomeOrder：真实 HomeCard/Rows/MP 可用性＋源链接页面/共享探针入口；无UI/登录/凭据/网络");
+            Console.WriteLine("HomeOrder：真实 HomeSections/Rows/MP 可用性＋源链接页面/共享探针入口；无UI/登录/凭据/网络");
             if (args.Length == 3)
             {
                 Assert.Equal("legacy-red", args[2]);
@@ -55,6 +55,20 @@ internal static class Program
 
     private static void Register(string root)
     {
+        Test("HomeOrder 真实在线来源保留媒体库行，撤销来源只隐藏该行且偏好不丢", () =>
+        {
+            using var f = new HomeOrderFixture();
+            Assert.True(f.Source.IsCurrent && f.Source.IsAvailable);
+            Assert.Equal(1, f.Capabilities.Sources.Count);
+            Assert.Equal(4, f.Rows.Count);
+            Assert.True(f.Keys.Any(key => key.Contains(Uri.EscapeDataString(f.Source.Key), StringComparison.Ordinal)));
+            var identity = typeof(EmbySessionScope).GetProperty("IdentityState", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(f.Source)!;
+            ((CancellationTokenSource)identity.GetType().GetProperty("Lifetime")!.GetValue(identity)!).Cancel();
+            HomeOrderFixture.Runtime.Invoke(f.Vm, "RefreshHomeRows");
+            Assert.False(f.Source.IsAvailable);
+            Assert.Equal(3, f.Rows.Count);
+            f.Stable();
+        });
         Test("HomeOrder 原case断言、截图和轮播阈值全部保留（源码契约，非像素）", () => CoverageContract(root));
         Test("HomeOrder 实际CategoryGroups通知在活动期换绑定源，主页表与选择保持", async () =>
         {

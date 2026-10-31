@@ -909,8 +909,16 @@ internal sealed partial class ShellNavigationProbe
             var itemId = int.Parse(path.Split('/')[^1]);
             if (!Items.TryGetValue(itemId, out var item)) return new(HttpStatusCode.NotFound);
             if (path.Contains("/files/", StringComparison.Ordinal) && CompactEpisodes)
-                return Json(new { success = true, data = new { subscribe = item, episodes = Enumerable.Range(1, 8).ToDictionary(
-                    number => number.ToString(), number => new { title = $"第 {number} 集", description = "", backdrop = "", library = Array.Empty<object>(), download = Array.Empty<object>() }) } });
+                return Json(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        subscribe = item,
+                        episodes = Enumerable.Range(1, 8).ToDictionary(
+                    number => number.ToString(), number => new { title = $"第 {number} 集", description = "", backdrop = "", library = Array.Empty<object>(), download = Array.Empty<object>() })
+                    }
+                });
             // 文件统计：电视剧按集号给三条（已入库 / 已下载待入库 / 缺集）；电影按真实回话只给零号那一条
             //（见 MoviePilotSubscriptionFiles.Parse —— 电影的非零号条目一律跳过）。电影这一条给入库文件，
             // 好让入库徽标有结论可读。

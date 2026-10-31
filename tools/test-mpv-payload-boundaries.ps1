@@ -115,6 +115,8 @@ Check 'P3 valid scalar approvalId stays accepted' $true
 # P2: 篡改待验deps自授权不得扩大可信restore/编译清单，不限于一个extra文件名。
 $depsPath=Join-Path $fixture.publish 'Momoka.deps.json'
 $depsBytes=[IO.File]::ReadAllBytes($depsPath)
+$sourceProps=[xml]([IO.File]::ReadAllText((Join-Path $repo 'Directory.Build.props')))
+$appKey='Momoka/'+$sourceProps.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
 foreach($variant in @('active-native','active-runtime','active-runtimeTargets','foreign-target','foreign-rid','unknown-library','fake-webview')){
     $extra=Join-Path $fixture.publish 'renamed-old-native.dll'
     try {
@@ -123,7 +125,7 @@ foreach($variant in @('active-native','active-runtime','active-runtimeTargets','
         $active=$deps.targets.($deps.runtimeTarget.name)
         switch($variant){
             'active-native' {$active.'R067.Offline.Native/1.0.0'.native|Add-Member -NotePropertyName 'renamed-old-native.dll' -NotePropertyValue ([pscustomobject]@{})}
-            'active-runtime' {$active.'Momoka/0.1.7'.runtime|Add-Member -NotePropertyName 'renamed-old-native.dll' -NotePropertyValue ([pscustomobject]@{})}
+            'active-runtime' {$active.$appKey.runtime|Add-Member -NotePropertyName 'renamed-old-native.dll' -NotePropertyValue ([pscustomobject]@{})}
             'active-runtimeTargets' {$active.'R067.Offline.Native/1.0.0'|Add-Member -NotePropertyName runtimeTargets -NotePropertyValue ([pscustomobject]@{'runtimes/win-x64/native/renamed-old-native.dll'=[pscustomobject]@{rid='win-x64';assetType='native'}})}
             'foreign-target' {$deps.targets|Add-Member -NotePropertyName 'net0.0/win-arm64' -NotePropertyValue ([pscustomobject]@{'forged/1'=[pscustomobject]@{native=[pscustomobject]@{'renamed-old-native.dll'=[pscustomobject]@{}}}})}
             'foreign-rid' {$deps.runtimeTarget.name='.NETCoreApp,Version=v10.0/win-arm64'}

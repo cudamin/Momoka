@@ -157,7 +157,8 @@ internal static class Program
                     await ThrowsAsync<InvalidOperationException>(() => fixture.SendAsync(HttpMethod.Post, target, Subscription));
                     Equal(0, fixture.WriteCount);
                     Equal(1, fixture.Get<int>("Rejected"));
-                }));
+                }
+                ));
             }
             foreach (var path in new[] { "download/", "transfer/manual", "subscribe/search/4", "settings/", "unknown/" })
             {
@@ -166,14 +167,16 @@ internal static class Program
                     using var fixture = new Fixture(type);
                     await ThrowsAsync<InvalidOperationException>(() => fixture.SendAsync(HttpMethod.Post, path, "{}"));
                     Equal(0, fixture.WriteCount);
-                }));
+                }
+                ));
             }
             tests.Add(("拒绝未知读取而不落入宽松订阅兜底", async () =>
             {
                 using var fixture = new Fixture(type);
                 await ThrowsAsync<InvalidOperationException>(() => fixture.SendAsync(HttpMethod.Get, "download/private"));
                 Equal(0, fixture.WriteCount);
-            }));
+            }
+            ));
             tests.Add(("检查入口使用真路由代理并保持播放隔离", () =>
             {
                 var source = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ShellNavigationProbe.MoviePilotJourney.cs"));
@@ -185,7 +188,8 @@ internal static class Program
                 Check(inspect.Contains("await InspectMoviePilotJourneyAsync(frame)", StringComparison.Ordinal));
                 Check(inspect.Contains("moviePilotJourney?.Dispose()", StringComparison.Ordinal));
                 return Task.CompletedTask;
-            }));
+            }
+            ));
             var failedCount = 0;
             foreach (var test in tests)
             {

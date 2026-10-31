@@ -76,8 +76,16 @@ internal static partial class FileLogBudgetTests
             foreach (var name in originalNames) File.WriteAllText(System.IO.Path.Combine(target, name!), "protected-runtime-target");
             // Windows will not rename a directory while its writer is open. Execute the owner's real
             // close path (also used by rotation/maintenance), retaining its index, then replace the path.
+            var members = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var writerField = typeof(FileLogSink).GetField("_writer", members)!;
+            var writer = (StreamWriter)writerField.GetValue(sink)!;
+            var handle = ((FileStream)writer.BaseStream).SafeFileHandle;
             typeof(FileLogSink).GetMethod("Close", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
                 .Invoke(sink, null);
+            Assert.True(handle.IsClosed, "真实 Close 必须释放 Windows 文件句柄");
+            Assert.True(writerField.GetValue(sink) is null);
+            Assert.True(typeof(FileLogSink).GetField("_current", members)!.GetValue(sink) is null);
+            Console.WriteLine($"    rename preflight: handleClosed={handle.IsClosed}; attributes={File.GetAttributes(owned)}; owned={owned}; parked={parked}");
             Directory.Move(owned, parked); // Both absolute paths were checked inside this fixture.
             Directory.CreateSymbolicLink(owned, target);
             try

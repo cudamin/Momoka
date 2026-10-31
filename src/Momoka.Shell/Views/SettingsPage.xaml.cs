@@ -101,7 +101,8 @@ public sealed partial class SettingsPage : Page, IShellContent
         // follow the selection rather than only the navigation parameter.
         ViewModel.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(SettingsViewModel.CategoryGroups)) UpdateCategoryGroups();
+            if (_activity.IsCurrent(_activityToken) && e.PropertyName == nameof(SettingsViewModel.CategoryGroups))
+                UpdateCategoryGroups();
             if (_activity.IsCurrent(_activityToken) && e.PropertyName == nameof(SettingsViewModel.SelectedCategory))
             {
                 StopSettingsContentMotion();

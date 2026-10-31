@@ -72,7 +72,10 @@ namespace Momoka.Shell.Views
         }
         internal MoviePilotSubscription Subscription(int id) => new()
         {
-            Id = id, Media = MediaViewModel.Detail!.Media, ConnectionStamp = "fixture", Data = System.Text.Json.JsonSerializer.SerializeToElement(new { id })
+            Id = id,
+            Media = MediaViewModel.Detail!.Media,
+            ConnectionStamp = "fixture",
+            Data = System.Text.Json.JsonSerializer.SerializeToElement(new { id })
         };
         internal Task Choose() => ChooseSeasonsAsync(null);
         internal void Leave() { _request = null; _pageLifetime?.Cancel(); }

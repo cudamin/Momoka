@@ -499,6 +499,16 @@
       "notes": "匿名离线控制台入口；不启动应用窗口或真实服务器。"
     },
     {
+      "id": "Momoka.SiteDialogFlowTests",
+      "project": "tests/Momoka.SiteDialogFlowTests/Momoka.SiteDialogFlowTests.csproj",
+      "mode": "dotnet",
+      "requiresShell": false,
+      "arguments": [],
+      "wrapper": null,
+      "readme": "tests/Momoka.SiteDialogFlowTests/README.md",
+      "notes": "实际站点选择对话流程的匿名托管夹具；不启动 WinUI 或真实服务器。"
+    },
+    {
       "id": "Momoka.SubtitleDialogTests",
       "project": "tests/Momoka.SubtitleDialogTests/Momoka.SubtitleDialogTests.csproj",
       "mode": "dotnet",

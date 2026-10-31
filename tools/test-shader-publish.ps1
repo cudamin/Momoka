@@ -27,6 +27,20 @@ function Invoke-Check([string]$Name, [bool]$Success, [string]$Needle = '') {
 }
 
 Invoke-Check 'complete payload' $true
+$fixtureDepsPath = Join-Path $root 'Momoka.deps.json'
+$savedDeps = [IO.File]::ReadAllBytes($fixtureDepsPath)
+$fixtureDeps = ConvertFrom-Json -InputObject ([Text.Encoding]::UTF8.GetString($savedDeps))
+$sourceProps = [xml]([IO.File]::ReadAllText((Join-Path $repo 'Directory.Build.props')))
+$appKey = 'Momoka/' + $sourceProps.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
+$activeTarget = $fixtureDeps.targets.($fixtureDeps.runtimeTarget.name)
+$appEntry = $activeTarget.PSObject.Properties[$appKey]
+if (-not $appEntry) { throw '合成依赖没有采用当前源码项目版本。' }
+$activeTarget | Add-Member -NotePropertyName 'Momoka/0.0.0-fixture-stale' -NotePropertyValue $appEntry.Value
+$activeTarget.PSObject.Properties.Remove($appKey)
+[IO.File]::WriteAllText($fixtureDepsPath, ($fixtureDeps | ConvertTo-Json -Depth 16), [Text.UTF8Encoding]::new($false))
+try { Invoke-Check 'stale published project version' $false 'Momoka/0.0.0-fixture-stale' }
+finally { [IO.File]::WriteAllBytes($fixtureDepsPath, $savedDeps) }
+Invoke-Check 'restored current project version' $true
 $payload = @(Get-ChildItem -LiteralPath $source -Recurse -File | Where-Object { $_.Extension -in @('.glsl', '.hook', '.txt') })
 foreach ($file in $payload) {
     $relative = $file.FullName.Substring($source.Length + 1)
