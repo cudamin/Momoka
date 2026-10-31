@@ -9589,3 +9589,10 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 产品：`MediaStream` 新增 `ExtendedVideoType`；`IsDolbyVision` / `IsHdr` / `DynamicRangeLabel` 共用一套拼法（`DOVI`、`DolbyVision`、`Dolby Vision`、独立 `DV`、`dvhe`/`dvh1`/`dav1` 前缀）。媒体信息 HDR 行走 `RangeDisplay`，优先挑提到杜比视界的服务器原文（用户令「保留服务器原文 DolbyVision」）；SDR 与未知不占行。详情页媒体信息由 Expander 改为 `EgBodyPanelStyle` 常显面板（内边距 16、标题与表格间距 8），折叠入口删除；`InfoRealised` 与自检读数不再带展开状态。
 - 验证：Core / Shell / NaturalContinuation 编译 0 警告 0 错误；主测试 3493/3493（0 失败 0 跳过），`dotnet format whitespace` 通过。开发件打开真实文件页核对：尚公主 S01E18 的媒体信息常显，`HDR：DolbyVision`，无 `ExpanderToggleButton`（截图 `work/detail-mediainfo-dv-screen.png`，仅本机证据）。最终代码另加「只有 `dvhe` 档位时也优先显示」的兜底与单测；该兜底不经过本文件路径，未再重拍实屏（桌面上已有用户打开的发布件，共用单实例互斥，没有关闭其进程）。
 - 未覆盖：完整方案构建仍红在 `Momoka.SettingsProbeContractTests` 的生成代码 —— 用户工作区在途的 `LayoutTrace` 诊断引用 `_options`/`_root`，源码旁标注「交付前移除」，与本轮无关；没有真实 DV 播放、HDR 屏或独占管线验收。未推 origin、未发布、未改版本。
+
+## 2026-10-31 杜比视界修复交付
+
+- 批次收尾：完整方案 Release 构建 0 警告 0 错误；`dotnet format whitespace` 通过；主测试 3493/3493（0 失败 0 跳过）。发布前主树已无未提交改动（先前在途的布局诊断代码已不在工作区）。
+- `tools/publish.ps1 -NoArchive -Shortcut` 退出 0，发布 `artifacts/publish/win-x64`：546 文件 / 285.4 MB、批准 mpv 59（50 UI + 2 native），版本仍为 0.2.0（未升版本）；桌面 `Momoka.lnk` 目标与工作目录均为该发布目录、参数为空。`Momoka.dll` SHA256 `91BB3D6211E48DD4140F8B592E92F6489EBDC8AB0E5D743BC238FA82F162B069`。
+- 交付件实测：从发布目录启动 `--show-episode --scroll-end` 落到尚公主 S01E18，媒体信息常显、`HDR：DolbyVision`、无 `ExpanderToggleButton`；退出后无残留进程。
+- 未覆盖：真实 DV 播放、HDR 屏与独占管线；未跑完整自检闸门 4（本轮非发版/升级，受影响界面已用发布件实屏核对）；未推 origin。
