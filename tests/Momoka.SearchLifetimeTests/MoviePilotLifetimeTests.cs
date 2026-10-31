@@ -193,7 +193,7 @@ internal static class MoviePilotLifetimeTests
             Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.EmbyContent.Visibility);
             Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.SearchUnavailableSurface.Visibility);
             Check.Equal("MoviePilot 尚未连接", page.SearchUnavailableTitle.Text);
-            Check.Contains("设置 → MoviePilot", page.SearchUnavailableMessage.Text);
+            Check.Contains("设置 → MoviePilot", page.SearchUnavailableMessage.Text ?? "");
             f.Settings.MoviePilot.Enabled = true; await f.ConnectAsync();
             page.SwitchFixture(2);
             Check.Equal(2, page.SourceTabs.SelectedIndex);

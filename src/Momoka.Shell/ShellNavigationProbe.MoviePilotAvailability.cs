@@ -58,7 +58,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 1
                 && unavailable.Visibility == Visibility.Visible);
             Require(Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Collapsed
-                && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Visible, "断线后未恢复媒体库内容");
+                && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Collapsed
+                && unavailable.Visibility == Visibility.Visible, "断线后没有保留来源并显示恢复说明");
             await SaveProbeScreenAsync("moviepilot-offline.png");
             mp.Offline = false;
             Require(await service.RefreshAvailabilityAsync(), "恢复后仍不可用");
@@ -67,15 +68,14 @@ internal sealed partial class ShellNavigationProbe
             tabs.SelectedIndex = 2;
             var versions = Get<MoviePilotVersionsView>(page, "MoviePilotResources");
             var picker = Get<MoviePilotSitePicker>(page, "SearchSitePicker");
-            var chooseSites = Get<DropDownButton>(picker, "ChooseSites");
-            chooseSites.Flyout.ShowAt(chooseSites);
-            await UntilAsync(() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Count > 0);
+            var (_, opening) = await OpenSiteDialogAsync(picker, "掉线窗口");
             fixture.Settings.MoviePilot.Enabled = false;
             await UntilAsync(() => tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 2
                 && unavailable.Visibility == Visibility.Visible);
             Require(Get<MoviePilotVersionsView>(page, "MoviePilotResources").Visibility == Visibility.Collapsed,
                 "关闭设置后资源面板没有收起");
-            await UntilAsync(() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Count == 0);
+            await UntilAsync(() => picker.CurrentDialog is null);
+            Require(await opening == ContentDialogResult.None, "断线后站点弹窗没有以取消收束");
             fixture.Settings.MoviePilot.Enabled = true;
             await LayoutAsync(page);
             Require(tabs.Visibility == Visibility.Visible && unavailable.Visibility == Visibility.Visible,

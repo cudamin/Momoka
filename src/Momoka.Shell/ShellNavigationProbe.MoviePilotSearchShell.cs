@@ -151,14 +151,16 @@ internal sealed partial class ShellNavigationProbe
                 ResizeInspect((int)Math.Round(1100 * scale), (int)Math.Round(900 * scale));
                 await LayoutAsync(page);
 
-                var chooseSites = Get<DropDownButton>(sites, "ChooseSites");
-                chooseSites.Flyout.ShowAt(chooseSites);
-                await UntilAsync(() => row.SearchSites.Sites.Count == 3);
-                Get<CheckBox>(sites, "UseDefaultSites").IsChecked = false;
-                row.SearchSites.Sites.Single(site => site.Id == 2).Selected = true;
+                var (dialog, opening) = await OpenSiteDialogAsync(sites, "设置页");
+                var draft = dialog.ViewModel;
+                await UntilAsync(() => draft.Sites.Count == 3);
+                Get<CheckBox>(dialog, "UseDefaultSites").IsChecked = false;
+                draft.Sites.Single(site => site.Id == 2).Selected = true;
+                await UntilAsync(() => dialog.IsPrimaryButtonEnabled);
+                ClickDialogPrimary(dialog);
+                Require(await opening == ContentDialogResult.Primary, "设置页站点网格没有以确认关闭");
                 await UntilAsync(() => service.SearchSitePreference().SiteIds.Contains(2));
                 Require(!service.SearchSitePreference().UseDefault, "设置页选了站点但存下来仍是默认站点");
-                Get<Flyout>(sites, "SitesFlyout").Hide();
                 await LayoutAsync(page);
                 await SaveProbeScreenAsync("settings-moviepilot-sites-screen.png");
 

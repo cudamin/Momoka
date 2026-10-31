@@ -40,7 +40,7 @@ internal sealed partial class ShellNavigationProbe
             Get<Flyout>(seasons, "ChoicesFlyout").ShowAt(Get<DropDownButton>(seasons, "OpenFacet"));
             await LayoutAsync(seasons);
             var chooseSeason = Descendants(Get<ItemsControl>(seasons, "FacetChoices")).OfType<ToggleButton>()
-                .Single(box => AutomationProperties.GetName(box) == "S02");
+                .Single(box => AutomationProperties.GetName(box) == "季 · S02");
             ((IToggleProvider)new ToggleButtonAutomationPeer(chooseSeason).GetPattern(PatternInterface.Toggle)).Toggle();
             seasons.ClosePopup();
             Get<Flyout>(list, "AdvancedFilters").ShowAt(Get<DropDownButton>(list, "FilterExpander"));

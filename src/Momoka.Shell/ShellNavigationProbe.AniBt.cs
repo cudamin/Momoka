@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -303,6 +304,9 @@ internal sealed partial class ShellNavigationProbe
                 "关闭 AniBT 后搜索页仍停在 AniBT 面板");
             fixture.Settings.MoviePilot.AniBtEnabled = true;
             await UntilAsync(() => aniBtTab.Visibility == Visibility.Visible);
+            // 来源栏现在固定显示，等可见不再等于设置回调已经跑完；先让那次 ApplySource/Release 落定再搜。
+            await LayoutAsync(page);
+            await SettleAsync();
             tabs.SelectedIndex = 3;
             var panel = Get<AniBtSearchPanel>(page, "AniBtPanel");
             Field(panel.ViewModel, "_launcher", launcher);
@@ -322,9 +326,16 @@ internal sealed partial class ShellNavigationProbe
             // that real layout before moving focus out of the submitted search field.
             await LayoutAsync(page);
             var focusResults = Get<GridView>(panel, "AnimeResults");
-            Require(focusResults.IsEnabled && focusResults.ActualHeight > 0
-                && focusResults.Focus(FocusState.Programmatic),
-                "搜索完成并布局后番剧列表无法接收验证焦点");
+            var enabled = focusResults.IsEnabled && focusResults.ActualHeight > 0;
+            var focused = focusResults.Focus(FocusState.Programmatic);
+            var focusedNow = focusResults.XamlRoot is { } root
+                ? FocusManager.GetFocusedElement(root)?.GetType().Name ?? "null" : "no-root";
+            Require(enabled && focused,
+                $"搜索完成并布局后番剧列表无法接收验证焦点：enabled={focusResults.IsEnabled}，height={focusResults.ActualHeight}，"
+                + $"focus={focused}，当前焦点={focusedNow}，可选择={panel.ViewModel.CanChooseAnime}，"
+                + $"active={Get<bool>(panel.ViewModel, "_active")}，busy={panel.ViewModel.Busy}，"
+                + $"结果={panel.ViewModel.Results.Count}，连接匹配={panel.ViewModel.ConnectionMatches}，"
+                + $"连接标记={Get<string>(panel.ViewModel, "_connection")}，来源={tabs.SelectedIndex}，面板={panel.Visibility}");
             Require(aniBt.Requests.Any(path => path.StartsWith("/api/animes/search?q=" + Uri.EscapeDataString("离线动画"), StringComparison.Ordinal)),
                 "搜索词没有交给 AniBT");
             Require(fixture.Transport.Requests.Count == embyRequests && moviePilot.Requests.All(path =>
