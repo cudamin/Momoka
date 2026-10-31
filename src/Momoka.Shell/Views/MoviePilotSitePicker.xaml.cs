@@ -59,6 +59,7 @@ public sealed partial class MoviePilotSitePicker : UserControl
 
     private async Task<ContentDialogResult> ShowDialogAsync()
     {
+        ViewModel.RefreshConnection();
         if (XamlRoot is null || !ViewModel.IsCurrentConnection) return ContentDialogResult.None;
         var owner = ViewModel;
         var searchOnConfirm = SearchOnConfirm;

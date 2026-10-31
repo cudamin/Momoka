@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:Momoka.Shell.ViewModels"
     xmlns:local="using:Momoka.Shell.Views"
-    PrimaryButtonText="{x:Bind ConfirmText}" PrimaryButtonStyle="{StaticResource SiteDialogConfirmStyle}" DefaultButton="None"
+    PrimaryButtonText="{x:Bind ConfirmText}" DefaultButton="None"
     IsPrimaryButtonEnabled="False" PrimaryButtonClick="OnConfirm"
     Opened="OnOpened" Closed="OnClosed">
     <ContentDialog.Resources>

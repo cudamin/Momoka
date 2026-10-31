@@ -10,6 +10,14 @@ namespace Microsoft.UI.Xaml
     public sealed class RoutedEventArgs : EventArgs { }
     public sealed class SizeChangedEventArgs(Size size) : EventArgs { public Size NewSize => size; }
     public sealed class XamlRootChangedEventArgs : EventArgs { }
+    public sealed class Style { }
+    public sealed class ResourceDictionary
+    {
+        private readonly Dictionary<object, object> _items = new();
+        public List<ResourceDictionary> MergedDictionaries { get; } = [];
+        public object this[object key] { set => _items[key] = value; }
+        public bool TryGetValue(object key, out object? value) => _items.TryGetValue(key, out value);
+    }
     public sealed class XamlRoot
     {
         public Size Size { get; private set; } = new(1280, 800);
@@ -55,6 +63,8 @@ namespace Microsoft.UI.Xaml.Controls
     {
         private TaskCompletionSource<ContentDialogResult>? _completion;
         public bool IsPrimaryButtonEnabled { get; set; }
+        public Style? PrimaryButtonStyle { get; set; }
+        public ResourceDictionary Resources { get; } = new();
         public event Action<ContentDialog, ContentDialogOpenedEventArgs>? Opened;
         public event Action<ContentDialog, ContentDialogClosedEventArgs>? Closed;
         public event Action<ContentDialog, ContentDialogButtonClickEventArgs>? PrimaryButtonClick;
@@ -105,6 +115,10 @@ namespace Momoka.Shell.Views
         internal readonly Microsoft.UI.Xaml.Controls.Button Primary = new();
         private void InitializeComponent()
         {
+            Resources.MergedDictionaries.Add(new Microsoft.UI.Xaml.ResourceDictionary
+            {
+                ["SiteDialogConfirmStyle"] = new Microsoft.UI.Xaml.Style()
+            });
             Opened += OnOpened;
             Closed += OnClosed;
             PrimaryButtonClick += OnConfirm;

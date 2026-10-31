@@ -22,6 +22,9 @@ public sealed partial class MoviePilotSiteDialog : ContentDialog
         _owner = owner;
         ViewModel = owner.CreateDraft();
         InitializeComponent();
+        // 根属性上的 StaticResource 早于本表 Resources 求值，拿不到合并进来的确认按钮样式，改在这里接。
+        if (Resources.MergedDictionaries[0].TryGetValue("SiteDialogConfirmStyle", out var style) && style is Style confirm)
+            PrimaryButtonStyle = confirm;
     }
 
     private void OnOpened(ContentDialog sender, ContentDialogOpenedEventArgs args)

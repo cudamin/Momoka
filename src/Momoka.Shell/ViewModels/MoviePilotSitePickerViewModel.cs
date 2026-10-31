@@ -203,6 +203,16 @@ public sealed partial class MoviePilotSitePickerViewModel : PageViewModel
     /// <summary>手里这份目录与勾选属于此刻这条连接。设置页据此判断「连接刚恢复、要重新接一次」。</summary>
     internal bool IsCurrentConnection => _service?.IsCurrentConnection(_connectionStamp) == true;
 
+    /// <summary>
+    /// 控件在页面初始化时可能先接在一个尚未连接的服务上；连接恢复后空戳不能挡住用户打开选择表。
+    /// 只有服务此刻可用且戳确实变了才重新接一次，目录与草稿照常按新连接重读。
+    /// </summary>
+    internal void RefreshConnection()
+    {
+        if (_service is not { Available: true } service || service.IsCurrentConnection(_connectionStamp)) return;
+        Attach(service, _mediaType);
+    }
+
     internal Task PrepareSelectionAsync() => UseDefault ? Task.CompletedTask : EnsureLoadedAsync();
 
     public override void Cancel()
