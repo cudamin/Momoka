@@ -196,6 +196,111 @@ internal static class MoviePilotMediaManagementTests
                 Assert.Equal(1, f.Transport.Writes.Count);
             });
         }
+        foreach (var action in new[] { MoviePilotHistoryAction.DeleteRecord, MoviePilotHistoryAction.DeleteSource,
+            MoviePilotHistoryAction.DeleteDestination, MoviePilotHistoryAction.DeleteAll })
+        {
+            Test("MP 媒体管理选择：" + action + " 取消个别记录后只删除原顺序中的选中 ID", () =>
+            {
+                using var f = new HistoryFixture();
+                f.Transport.Count = 3;
+                var original = f.Prepare(action, batch: true);
+                long[] ids = [3, 1];
+                var selected = original.SelectRecords(ids);
+                ids[0] = 2;
+                Assert.True(original.Claimed);
+                Assert.False(selected.Claimed);
+                Assert.Equal("1|3", string.Join("|", selected.Histories.Select(history => history.Id)));
+                Assert.Equal(original.Title, selected.Title);
+                Assert.Equal(original.Action, selected.Action);
+                Assert.Equal(original.Batch, selected.Batch);
+                Assert.Equal(original.ConnectionStamp, selected.ConnectionStamp);
+                Assert.True(ReferenceEquals(original.Histories[0], selected.Histories[0]));
+                Assert.True(ReferenceEquals(original.Histories[2], selected.Histories[1]));
+                Assert.Equal(0, f.Transport.Writes.Count);
+                Assert.Throws<MoviePilotOperationBlockedException>(() => f.Submit(original));
+                Assert.Equal(0, f.Transport.Writes.Count);
+                var result = f.Submit(selected);
+                Assert.Equal(2, result.RequestedCount);
+                Assert.False(result.NeedsReview);
+                Assert.Equal("{\"id\":1}|{\"id\":3}", string.Join("|", f.Transport.Writes.Select(write => write.Body)));
+                Assert.True(f.Transport.Writes.All(write => write.Method == HttpMethod.Delete));
+                Assert.True(f.Transport.Writes.All(write => write.Query ==
+                    $"?deletesrc={(selected.DeleteSource ? "true" : "false")}&deletedest={(selected.DeleteDestination ? "true" : "false")}"));
+                Assert.Throws<MoviePilotOperationBlockedException>(() => selected.SelectRecords([1]));
+                Assert.Throws<MoviePilotOperationBlockedException>(() => f.Submit(selected));
+                Assert.Equal(2, f.Transport.Writes.Count);
+            });
+        }
+        Test("MP 媒体管理选择：全选保留整个范围，原确认只能派生一次且零写", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Count = 3;
+            var original = f.Prepare(MoviePilotHistoryAction.DeleteAll, batch: true);
+            var selected = original.SelectRecords([3, 2, 1]);
+            Assert.Equal("1|2|3", string.Join("|", selected.Histories.Select(history => history.Id)));
+            Assert.Throws<MoviePilotOperationBlockedException>(() => original.SelectRecords([2]));
+            Assert.Throws<MoviePilotOperationBlockedException>(() => f.Submit(original));
+            Assert.Equal(0, f.Transport.Writes.Count);
+        });
+        Test("MP 媒体管理选择：空、重复、未知与非法 ID 不产生确认或写入，也不消费有效范围", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Count = 3;
+            var original = f.Prepare(MoviePilotHistoryAction.DeleteAll, batch: true);
+            Assert.Throws<ArgumentNullException>(() => original.SelectRecords(null!));
+            foreach (long[] ids in new long[][] { [], [1, 1], [1, 4], [0], [-1] })
+            {
+                Assert.Throws<MoviePilotOperationBlockedException>(() => original.SelectRecords(ids));
+                Assert.False(original.Claimed);
+                Assert.Equal(0, f.Transport.Writes.Count);
+            }
+            var selected = original.SelectRecords([2]);
+            Assert.Equal(1, selected.Histories.Count);
+            Assert.Equal(2L, selected.Histories[0].Id);
+            Assert.Equal(0, f.Transport.Writes.Count);
+        });
+        Test("MP 媒体管理选择：并行派生只有一份确认，未选记录不能从子计划加回", () =>
+        {
+            using var f = new HistoryFixture();
+            f.Transport.Count = 3;
+            var original = f.Prepare(MoviePilotHistoryAction.DeleteAll, batch: true);
+            var accepted = new System.Collections.Concurrent.ConcurrentBag<MoviePilotHistoryPlan>();
+            var rejected = 0;
+            Parallel.For(0, 12, _ =>
+            {
+                try { accepted.Add(original.SelectRecords([3, 1])); }
+                catch (MoviePilotOperationBlockedException) { Interlocked.Increment(ref rejected); }
+            });
+            Assert.Equal(1, accepted.Count);
+            Assert.Equal(11, rejected);
+            var selected = accepted.Single();
+            Assert.Throws<MoviePilotOperationBlockedException>(() => selected.SelectRecords([1, 2]));
+            Assert.False(selected.Claimed);
+            Assert.Equal(0, f.Transport.Writes.Count);
+            var reduced = selected.SelectRecords([3]);
+            Assert.Throws<MoviePilotOperationBlockedException>(() => f.Submit(selected));
+            Assert.Equal(0, f.Transport.Writes.Count);
+            var result = f.Submit(reduced);
+            Assert.False(result.NeedsReview);
+            Assert.Equal("{\"id\":3}", f.Transport.Writes.Single().Body);
+        });
+        Test("MP 媒体管理选择：选择后快照变化、连接替换或取消仍拒绝写入", () =>
+        {
+            foreach (var fault in new[] { "changed", "connection", "cancel" })
+            {
+                using var f = new HistoryFixture();
+                f.Transport.Count = 3;
+                var selected = f.Prepare(MoviePilotHistoryAction.DeleteAll, batch: true).SelectRecords([2]);
+                using var cancellation = new CancellationTokenSource();
+                if (fault == "connection") f.Settings.MoviePilot.Username = "replacement";
+                else if (fault == "cancel") cancellation.Cancel();
+                else f.Transport.Fault = fault;
+                if (fault == "cancel")
+                    Assert.Throws<OperationCanceledException>(() => f.Service.SubmitHistoryActionAsync(selected, cancellation.Token).GetAwaiter().GetResult());
+                else Assert.Throws<MoviePilotException>(() => f.Submit(selected));
+                Assert.Equal(0, f.Transport.Writes.Count);
+            }
+        });
         Test("MP 智能整理：电影单记录 POST 无聊天正文，回执只说已提交", () =>
         {
             using var f = new HistoryFixture();
