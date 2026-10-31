@@ -299,9 +299,9 @@ internal sealed partial class ShellNavigationProbe
                     $"资料卡在 {width} 宽下没有按预期并排或叠起来：宽 {facts.ActualWidth}，行 {Grid.GetRow(facts)}，列 {Grid.GetColumn(facts)}，页宽 {page.ActualWidth}");
                 // 这一页不画加载条（用户令 2026-10-12：「不要显示那个加载条」；此前是两份数据合并成的
                 // 一条进度，再往前是订阅与媒体详情各一条并排）。那条线落在「简介」与「演职员」之间那块
-                // 空地方，看着像那一块在加载东西。整页一条都不许再有 —— 进度改由头部与各段自己的说明交代。
-                Require(Descendants(page).OfType<ProgressBar>().Count() == 0,
-                    "页面上还留着加载条：" + string.Join("、", Descendants(page).OfType<ProgressBar>()
+                // 空地方，看着像那一块在加载东西。详情正文仍不画线；资源搜索覆盖层使用自己的进度卡片。
+                Require(!Descendants(Get<ScrollViewer>(page, "DetailScroll")).OfType<ProgressBar>().Any(),
+                    "详情正文还留着加载条：" + string.Join("、", Descendants(Get<ScrollViewer>(page, "DetailScroll")).OfType<ProgressBar>()
                         .Select(bar => string.IsNullOrEmpty(bar.Name) ? "（无名）" : bar.Name)));
 
                 // 操作排（用户令 2026-10-12：「只留这四个按钮 + 一个编辑订阅按钮，其他的折叠到更多按钮里」
@@ -771,6 +771,8 @@ internal sealed partial class ShellNavigationProbe
 
         /// <summary>把电视剧媒体详情那一趟扣在手里，用来读「首次读取中的加载动画」。</summary>
         internal TaskCompletionSource<bool>? DetailGate { get; set; }
+        internal string DetailFailure { get; set; } = "";
+        internal bool FailSubscriptionRead { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Require(request.RequestUri!.Host == "moviepilot.invalid", "订阅探针拒绝真实网络");
@@ -798,6 +800,9 @@ internal sealed partial class ShellNavigationProbe
             if (path == "/api/v1/media/4" || path == "/api/v1/media/9")
             {
                 if (path.EndsWith("/4", StringComparison.Ordinal) && DetailGate is { } gate) await gate.Task;
+                if (DetailFailure == "missing") return Json(new { success = true, data = (object?)null });
+                if (DetailFailure == "mismatch") return Json(new { title = "另一部媒体", type = "电视剧", media_source = "themoviedb", media_id = "999" });
+                if (DetailFailure == "network") throw new HttpRequestException("离线夹具连接失败");
                 return Json(new
                 {
                     title = "漫长的旅途",
@@ -873,7 +878,8 @@ internal sealed partial class ShellNavigationProbe
                 if (UncertainNextWrite) { UncertainNextWrite = false; return Json(new { accepted = true }); }
                 return Json(new { success = true, data = (object?)null });
             }
-            if (path == "/api/v1/subscribe/") return PendingList is { } pending ? await pending.Task : Json(new { success = true, data = Items.Values.ToArray() });
+            if (path == "/api/v1/subscribe/") return FailSubscriptionRead ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                : PendingList is { } pending ? await pending.Task : Json(new { success = true, data = Items.Values.ToArray() });
             // 剧集组那一节的两趟：组列表（media/groups）与默认排序的季列表（media/seasons，只用来算「默认」那一项
             // 的季数/集数）。两条都得排在下面那个 int.Parse 兜底之前 —— 它们的末段不是订阅编号。
             if (path.StartsWith("/api/v1/media/groups/", StringComparison.Ordinal)) return Json(new object[]

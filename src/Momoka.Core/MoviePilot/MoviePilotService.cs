@@ -122,7 +122,8 @@ public sealed partial class MoviePilotService : IDisposable
         MoviePilotMedia media,
         CancellationToken cancellationToken,
         MoviePilotSiteSelection? sites = null,
-        MoviePilotMediaSearchOptions? options = null)
+        MoviePilotMediaSearchOptions? options = null,
+        IProgress<MoviePilotSearchProgress>? progress = null)
     {
         if (!media.CanSubscribe) return [];
 
@@ -133,8 +134,7 @@ public sealed partial class MoviePilotService : IDisposable
         if (media.Season is >= 0 && media.Type == MoviePilotTransferRequest.TypeSeries)
             path += $"&season={media.Season.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
         path += SearchSitesQuery(sites);
-        var data = await CallAsync((apiBase, token) =>
-            _client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await ReadResourceSearchAsync(identity, path, progress, cancellationToken).ConfigureAwait(false);
 
         var stamp = TransferConnectionStamp(identity);
         var resources = MoviePilotMediaParser.ParseResources(data, media.MediaSource, media.MediaId, media)
@@ -152,21 +152,44 @@ public sealed partial class MoviePilotService : IDisposable
     public async Task<IReadOnlyList<MoviePilotResource>> SearchByKeywordAsync(
         string keyword,
         CancellationToken cancellationToken,
-        MoviePilotSiteSelection? sites = null)
+        MoviePilotSiteSelection? sites = null,
+        IProgress<MoviePilotSearchProgress>? progress = null)
     {
         var text = keyword.Trim();
         if (text.Length == 0) return [];
 
         var identity = CaptureIdentity();
         var path = $"search/title?keyword={Uri.EscapeDataString(text)}&page=0" + SearchSitesQuery(sites);
-        var data = await CallAsync((apiBase, token) =>
-            _client.GetAsync(apiBase, token, path, cancellationToken), cancellationToken, identity).ConfigureAwait(false);
+        var data = await ReadResourceSearchAsync(identity, path, progress, cancellationToken).ConfigureAwait(false);
 
         var stamp = TransferConnectionStamp(identity);
         var resources = MoviePilotMediaParser.ParseResources(data, null, null)
             .Select(resource => resource with { ConnectionStamp = stamp }).ToList();
         Log.Info(Category, $"MoviePilot 关键词搜「{text}」：{resources.Count} 个资源");
         return resources;
+    }
+
+    private Task<System.Text.Json.JsonElement> ReadResourceSearchAsync(SessionIdentity identity, string path,
+        IProgress<MoviePilotSearchProgress>? progress, CancellationToken cancellationToken) =>
+        CallAsync(async (apiBase, token) =>
+        {
+            if (progress is not null)
+            {
+                var guarded = new ResourceSearchProgress(value =>
+                {
+                    CheckIdentity(identity, cancellationToken);
+                    progress.Report(value);
+                });
+                var streamed = await _client.SearchStreamAsync(apiBase, token, path, guarded, cancellationToken).ConfigureAwait(false);
+                if (streamed is { } result) return result;
+                progress.Report(new(null, "正在所选站点搜索资源…"));
+            }
+            return await _client.GetAsync(apiBase, token, path, cancellationToken).ConfigureAwait(false);
+        }, cancellationToken, identity);
+
+    private sealed class ResourceSearchProgress(Action<MoviePilotSearchProgress> report) : IProgress<MoviePilotSearchProgress>
+    {
+        public void Report(MoviePilotSearchProgress value) => report(value);
     }
 
     /// <summary>

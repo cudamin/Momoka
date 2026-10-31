@@ -231,6 +231,8 @@ internal sealed partial class ShellNavigationProbe
         {
             Require(request.RequestUri!.Host == "moviepilot.invalid", "资源选项探针拒绝真实网络");
             var path = request.RequestUri.PathAndQuery;
+            if (request.RequestUri.AbsolutePath.EndsWith("/stream", StringComparison.Ordinal))
+                return new HttpResponseMessage(System.Net.HttpStatusCode.NotFound);
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Json(new { access_token = "fixture" });
             if (request.Method == HttpMethod.Post && path.EndsWith("/download/subtitle", StringComparison.Ordinal))
             {

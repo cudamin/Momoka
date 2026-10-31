@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Momoka.AniBt;
 using Momoka.Emby;
 using Momoka.MoviePilot;
+using Momoka.Diagnostics;
 using Momoka.Shell.Media;
 
 namespace Momoka.Shell.ViewModels;
@@ -127,6 +128,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     private int? _preselect;
     private bool _initialSelection;
     private bool _libraryStatesKnown;
+    private bool _subscriptionStateKnown;
     private MoviePilotSubscribeMode _defaultSubscribeMode = MoviePilotSubscribeMode.Normal;
     private readonly Dictionary<(string Group, int Season), (MoviePilotSeasonChoice Choice, bool Touched)> _seasonDrafts = [];
     private bool Live => _service is { Available: true } && _media is not null && _lifetime is { IsCancellationRequested: false }
@@ -137,6 +139,19 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     public ObservableCollection<MoviePilotSubscriptionFact> Facts { get; } = [];
     public ObservableCollection<MoviePilotMediaLink> Links { get; } = [];
     public MoviePilotMediaDetail? Detail { get; private set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DetailErrorVisibility))]
+    [NotifyPropertyChangedFor(nameof(DetailContentVisibility))]
+    public partial string DetailError { get; set; } = "";
+    public Visibility DetailErrorVisibility => Show(!Busy && Detail is null && DetailError.Length > 0);
+    public Visibility DetailContentVisibility => Show(DetailErrorVisibility != Visibility.Visible);
+
+    private void AnnounceDetailState()
+    {
+        OnPropertyChanged(nameof(DetailErrorVisibility));
+        OnPropertyChanged(nameof(DetailContentVisibility));
+    }
 
     /// <summary>
     /// 首次读取媒体详情时这一页要不要摆加载动画（2026-10-28 用户令「点击进入订阅页面时候需要时间加载，
@@ -270,7 +285,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     [ObservableProperty] public partial bool Submitted { get; set; }
     [ObservableProperty] public partial bool ReviewConfirmed { get; set; }
     [ObservableProperty] public partial string SubmitSummary { get; set; } = "选择季和订阅模式，提交后 MoviePilot 将按配置处理订阅。取消订阅会保留已入库文件。";
-    public bool CanInteract => Live && !Busy && _groupLoad is null && !Submitting && !Submitted;
+    public bool CanInteract => Live && _subscriptionStateKnown && !Busy && _groupLoad is null && !Submitting && !Submitted;
     public bool CanSubmit
     {
         get
@@ -315,7 +330,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
     partial void OnSubmittingChanged(bool value) => NotifyState();
     partial void OnSubmittedChanged(bool value) => NotifyState();
     partial void OnAniBtSearchChanged(bool value) => NotifyState();
-    protected override void BusyChanged() { AnnounceInitialLoading(); NotifyState(); }
+    protected override void BusyChanged() { AnnounceInitialLoading(); AnnounceDetailState(); NotifyState(); }
     private void NotifyState()
     {
         OnPropertyChanged(nameof(CanInteract)); OnPropertyChanged(nameof(CanSubmit)); OnPropertyChanged(nameof(SubmitReviewVisibility));
@@ -340,23 +355,38 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
 
     public override async Task ReloadAsync()
     {
-        if (!Live || _media is null || _service is null || Submitting) return;
+        if (_lifetime is not { IsCancellationRequested: false } || _media is null || _service is null || Submitting
+            || !_service.IsCurrentConnection(_media.ConnectionStamp)) return;
         var lifetime = _lifetime!;
         var load = BeginLoad();
-        if (!ReferenceEquals(lifetime, _lifetime) || !Live || !IsCurrent(load)) return;
+        if (!ReferenceEquals(lifetime, _lifetime) || !IsCurrent(load)) return;
+        DetailError = "";
         _firstDetailLoad = Detail is null;
         Detail = null;
         AnnounceInitialLoading();
         Seasons.Clear();
         _libraryStatesKnown = false;
+        _subscriptionStateKnown = false;
         _defaultSubscribeMode = MoviePilotSubscribeMode.Normal;
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(load, lifetime.Token);
         try
         {
             var detail = await _service.MediaDetailAsync(_media, linked.Token);
-            var subscriptions = await _service.SubscriptionsAsync(linked.Token);
             if (!Live || !IsCurrent(load)) return;
-            Detail = detail; _subscriptions = subscriptions.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, _media)).ToArray();
+            Detail = detail;
+            IReadOnlyList<MoviePilotSubscription> subscriptions = [];
+            try
+            {
+                subscriptions = await _service.SubscriptionsAsync(linked.Token);
+                if (IsCurrent(load) && !linked.IsCancellationRequested) _subscriptionStateKnown = true;
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception error)
+            {
+                if (IsCurrent(load)) Report("读取订阅状态失败", error);
+            }
+            if (!IsCurrent(load) || linked.IsCancellationRequested) return;
+            _subscriptions = subscriptions.Where(item => MoviePilotSubscriptionPlan.SameMedia(item.Media, _media)).ToArray();
             _firstDetailLoad = false;
             AnnounceInitialLoading();
             if (_picker && detail.Media.Type == "电视剧")
@@ -365,7 +395,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
                 catch (OperationCanceledException) { throw; }
                 catch (Exception) { _defaultSubscribeMode = MoviePilotSubscribeMode.Normal; }
             }
-            if (!Live || !IsCurrent(load)) return;
+            if (!IsCurrent(load) || linked.IsCancellationRequested) return;
             OnPropertyChanged(nameof(AniBtVisibility)); OnPropertyChanged(nameof(CanSearchAniBt));
             _ = LoadHeroImagesAsync(detail, linked.Token);
             Title = detail.Media.Display; Overview = detail.Media.Overview ?? ""; Tagline = detail.Tagline;
@@ -373,8 +403,9 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             Rating = detail.Vote is > 0 ? $"★ {detail.Vote:0.0} / 10" : "暂无评分";
             Facts.Clear(); foreach (var fact in detail.Facts) Facts.Add(fact);
             Links.Clear(); foreach (var link in detail.Links) Links.Add(link);
-            SubscribeLabel = detail.Media.Type == "电视剧" ? (_subscriptions.Count > 0 ? $"已订阅 {_subscriptions.Count} 季" : "选择订阅季")
+            SubscribeLabel = !_subscriptionStateKnown ? "订阅状态未知" : detail.Media.Type == "电视剧" ? (_subscriptions.Count > 0 ? $"已订阅 {_subscriptions.Count} 季" : "选择订阅季")
                 : MoviePilotSubscriptionPlan.Find(detail.Media with { Season = null }, "", _subscriptions) is not null ? "取消订阅" : "订阅";
+            if (!Live) return;
             var groups = new List<MoviePilotEpisodeGroup>();
             if (detail.SupportsEpisodeGroups)
             {
@@ -388,8 +419,27 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
             if (!_picker) await LoadRelatedAsync(linked.Token);
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { if (Live && IsCurrent(load)) { SeasonNotice = "媒体详情读取失败，可刷新重试。"; Report("媒体详情读取失败", error); } }
-        finally { EndLoad(load); OnPropertyChanged(nameof(SeasonsVisibility)); NotifyState(); }
+        catch (Exception error)
+        {
+            if (ReferenceEquals(lifetime, _lifetime) && IsCurrent(load) && !linked.IsCancellationRequested)
+            {
+                SeasonNotice = "媒体详情读取失败，可刷新重试。";
+                if (Detail is null)
+                {
+                    DetailError = Failure.Describe(error);
+                    if (_picker) Report("媒体详情读取失败", error);
+                    else ClearNotice();
+                }
+                else Report("媒体详情读取失败", error);
+            }
+        }
+        finally
+        {
+            if (IsCurrent(load))
+            {
+                EndLoad(load); AnnounceDetailState(); OnPropertyChanged(nameof(SeasonsVisibility)); NotifyState();
+            }
+        }
     }
 
     private async Task LoadHeroImagesAsync(MoviePilotMediaDetail detail, CancellationToken token)
@@ -695,6 +745,8 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         _lifetime?.Cancel(); _lifetime?.Dispose(); _lifetime = null;
         _groupLoad?.Cancel(); _groupLoad = null;
         Seasons.Clear(); Groups.Clear(); Facts.Clear(); Links.Clear(); Detail = null;
+        DetailError = "";
+        _subscriptionStateKnown = false;
         _firstDetailLoad = false;
         AnnounceInitialLoading();
         Poster = Backdrop = null; ClearRelated(); Submitting = false;

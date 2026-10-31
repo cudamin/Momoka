@@ -28,6 +28,8 @@ public sealed class MoviePilotTransferBlockedException(string message, Exception
 
 public sealed class MoviePilotOperationBlockedException(string message) : MoviePilotException(message);
 
+public sealed class MoviePilotMediaNotRecognizedException() : MoviePilotException("未识别到媒体信息。");
+
 public sealed class MoviePilotOperationUncertainException(string message) : MoviePilotException(message);
 
 /// <summary>Nothing answered at that address, or it answered too slowly. The one failure worth retrying.</summary>

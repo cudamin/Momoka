@@ -78,7 +78,7 @@ MoviePilot 功能仅在设置中开启且当前连接可用时显示，包括搜
 | 媒体入库状态 | `POST mediaserver/exists_remote`，媒体快照加所选 `episode_group`，只读 |
 | 默认电视剧订阅模式 | `GET system/setting/public/DefaultTvSubscribeConfig`，公开设置；读取失败回退普通订阅 |
 | 新增订阅 | `POST subscribe/`，含季、组、`best_version` 和 `best_version_full` |
-| 资源搜索 | `GET search/media/{id}`，`area=title/imdbid`，支持季和站点 |
+| 资源搜索 | 优先 `GET search/media/{id}/stream` / `search/title/stream` 获取本次搜索的事件流；明确不支持时回退普通 GET，保留 `area=title/imdbid`、季和站点 |
 | 字幕搜索／下载 | `GET search/subtitle/media/{id}` / `POST download/subtitle` |
 | 全量订阅 | `GET subscribe/`，省略 page / count 保留全量语义 |
 | 单条详情 | `GET subscribe/{id}` |

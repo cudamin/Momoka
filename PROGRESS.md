@@ -1,3 +1,10 @@
+## 2026-10-31 MoviePilot 搜索进度与未识别媒体（待最终验证和主树交付）
+
+- 用户两张对照要求一并落实：资源搜索改网页式环形进度/来源状态/查询标签/百分比/底部线；未识别主详情改集中胶卷500图形、说明与重试，收起半成品正文和附属错误条。颜色使用现有五套主题角色，字幕搜索仍为不确定进度；未复刻骨架卡和边搜边显示候选，避免把未经最终匹配的资源变成可下载结果。合法空媒体也保留重试是本地有意增加的恢复入口。
+- 上游在线核对 Frontend v3 1f574a4fa8a254e3308b440f1e265965bfb11f83：resource.vue、utils/searchStream.ts及spec、MediaDetailView.vue及spec、states/NoDataFound.vue；Backend v3 f5bd3458a6d699600c7496b22a523412d4ef9762：api/endpoints/search.py、chain/search/{facade,title,media}.py、adapters/web/security/access.py和login.py。逐请求SSE progress/append/replace/replace_batch/done/error、text_i18n/text/value，已有CookieContainer承接登录resource cookie且Bearer不进入URL；未读取真实服务端版本，不能声称实服同步。
+- 两资源VM带取消/代次回调，完整最终快照和done才接受；404/405/501才回普通GET，不中途重搜。流含120秒总期限、32Mi字符单消息/128Mi字符总量/10万条边界。未识别与明确身份冲突分开；主详情网络失败提供恢复，附属订阅读取失败保留可信资料并锁定未知订阅操作。
+- 独立树 C:/Users/89400/.codex/worktrees/moviepilot-status-ui/Momoka；Release Shell/Core/Tests 0警告0错误，主测3455/3455、资源真实VM专项118/118（补中文跨块、多行SSE和权限/500不回退），均0失败0跳过；自动化扫描554交互元素、0缺句柄。首次MoviePilot分区28/30：新增两项通过并获得五主题1040/520实屏，旧资源截图越界及旧“整页无ProgressBar”检查红已保留。修正窗口位置恢复、将无进度线约束限定详情正文、数字5改字体；最终Shell重新0警告0错误，待重跑最终UI。首轮日志 shell-probe-20261031-020005915-28312；相关本地编译/测试日志 work/status-*。
+- 最终重跑被另一个 --probe-shell inspect 进程12536持有桌面诊断锁拒绝（本轮第二次启动退出1，未生成UI报告）；已请用户关闭。主树另一会话的搜索框改动与PROGRESS冲突已收尾到7373553；本任务未触碰该合并索引。用户已明确答复「暂时保留」诊断窗口；本轮按该选择保留运行实例和待验证分支。最终Shell status-build-final.log为0警告0错误，改动C#空白检查退出0，所有改动文件LF/末尾换行通过。待用户关闭诊断窗口后，完成最终UI、合本分支到master、最终编译/测试/相关UI、发布主树artifacts/publish/win-x64并读回快捷方式。本树未上传、未真实订阅/下载/播放。
 ## 2026-10-31 设置页选择框与文本输入圆角（在途）
 
 - 按用户截图外观取约 10 DIP，不宣称已核对闭源 ChatGPT 的精确源码参数；WinUI 2.3.9 本机 generic.xaml 已核对：TextBox/PasswordBox 的 BorderElement、AutoSuggestBox 内层 TextBox、NumberBox 的 InputBox 均接 CornerRadius TemplateBinding。

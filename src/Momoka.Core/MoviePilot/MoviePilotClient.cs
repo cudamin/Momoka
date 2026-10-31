@@ -23,7 +23,7 @@ namespace Momoka.MoviePilot;
 /// object alone would be sixty properties, most of which nothing here reads.
 /// </para>
 /// </summary>
-public sealed class MoviePilotClient : IDisposable
+public sealed partial class MoviePilotClient : IDisposable
 {
     private const string Category = "moviepilot";
     private const string BasePath = "api/v1/";

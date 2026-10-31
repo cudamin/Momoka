@@ -383,6 +383,8 @@ internal sealed class SiteTransport : HttpMessageHandler
     internal string SearchResults { get; set; } = "[]";
     internal bool FailCatalogue { get; set; }
     internal TaskCompletionSource<HttpResponseMessage>? PendingCatalogue { get; set; }
+    internal Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>>? StreamReply { get; set; }
+    internal int StreamReads { get; private set; }
 
     internal static HttpResponseMessage CatalogueResponse() => new(HttpStatusCode.OK)
     { Content = new StringContent(FullCatalogue, Encoding.UTF8, "application/json") };
@@ -392,6 +394,11 @@ internal sealed class SiteTransport : HttpMessageHandler
         cancellationToken.ThrowIfCancellationRequested();
         if (request.Method != HttpMethod.Get) throw new AssertionException("站点夹具拒绝登录或任何写请求");
         var uri = request.RequestUri!;
+        if (uri.AbsolutePath.EndsWith("/stream", StringComparison.Ordinal))
+        {
+            StreamReads++;
+            return StreamReply?.Invoke(request, cancellationToken) ?? Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+        }
         Requests.Add(uri.PathAndQuery);
         var sites = uri.AbsolutePath.StartsWith("/api/v1/site/", StringComparison.Ordinal);
         if (!sites && !uri.AbsolutePath.StartsWith("/api/v1/search/", StringComparison.Ordinal))

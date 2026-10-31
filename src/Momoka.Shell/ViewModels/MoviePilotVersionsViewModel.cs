@@ -38,6 +38,7 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
     public MoviePilotSitePickerViewModel SearchSites { get; } = new();
 
     public MoviePilotResourceBrowserViewModel Browser { get; } = new();
+    public MoviePilotSearchProgressViewModel SearchProgress { get; } = new();
     public ObservableCollection<MoviePilotResourceRow> Versions => Browser.Rows;
 
     [ObservableProperty]
@@ -69,6 +70,7 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
         _lastAutoEpisode = autoEpisode;
         var token = BeginLoad();
         _query = token;
+        if (!IsCurrent(token)) return;
         Browser.SetResults([]);
         ShowEmptyNotice = false;
         if (text.Length == 0)
@@ -78,6 +80,7 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
             EndLoad(token);
             return;
         }
+        var progress = SearchProgress.Start("关键词：" + text, null, () => IsCurrent(token));
         try
         {
             await SearchSites.PrepareSelectionAsync().ConfigureAwait(true);
@@ -88,7 +91,7 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
                 ShowEmptyNotice = true;
                 return;
             }
-            var found = await _service.SearchByKeywordAsync(text, token, SearchSites.Selection).ConfigureAwait(true);
+            var found = await _service.SearchByKeywordAsync(text, token, SearchSites.Selection, progress).ConfigureAwait(true);
             if (!IsCurrent(token)) return;
             Browser.SetResults(found.Select(resource => new MoviePilotResourceRow(resource, DownloadAsync, OpenDetails)
             {
@@ -104,6 +107,11 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
             Report("搜索版本失败", error);
         }
         finally { EndLoad(token); }
+    }
+
+    protected override void BusyChanged()
+    {
+        if (!Busy) SearchProgress.Stop();
     }
 
     /// <summary>
@@ -132,6 +140,7 @@ public sealed partial class MoviePilotVersionsViewModel : PageViewModel
 
     public override void Dispose()
     {
+        SearchProgress.Stop();
         _life.Dispose();
         base.Dispose();
     }

@@ -34,6 +34,8 @@ internal sealed partial class ShellNavigationProbe
     /// </summary>
     private async Task MoviePilotSearchShellAsync()
     {
+        var hostApp = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window!.Handle));
+        var hostBounds = new RectInt32(hostApp.Position.X, hostApp.Position.Y, hostApp.Size.Width, hostApp.Size.Height);
         var server = new SearchProbeServer();
         using var fixture = CreateFixture(server);
         await fixture.SelectAsync();
@@ -204,6 +206,7 @@ internal sealed partial class ShellNavigationProbe
             fixture.Settings.MoviePilot.Enabled = false;
             ClosePopups();
             if (!hidden) window.Hide();
+            hostApp.MoveAndResize(hostBounds);
             _window.Activate();
             await SettleAsync();
         }
