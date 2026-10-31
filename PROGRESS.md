@@ -5,7 +5,8 @@
 - 验证（主树最终代码）：Release 整方案 0 警告 0 错误；Core 全套 3502/3502、0 失败 0 跳过；`git diff --check` 与 `dotnet format whitespace --verify-no-changes` 通过。副屏实拍（工作区 1080×1872）：1096×1888 最大化是沉浸档，无纸面、无面板底、无标题线条，内容紧凑；1080×1200（面积约 0.64）回纸面，面板与线条恢复；1080×1700 单集页的「其他信息」卡标题强调条与通栏线正常，杜比档位写成 `DolbyVision Profile 5.0`。证据 `work/immersive/main-max.png`、`main-paper.png`、`episode-tall.png`；独立树的代表性截图另存 `work/immersive/branch/`。
 - 未覆盖：探针只打开剧/单集页，没有电影页入口，「其他信息」标题在沉浸档被收起这一条只有同一绑定在其余四块标题上的实拍与代码依据，没有电影页截图；未跑自检闸门 4，无真实播放或服务器写入。
 - 清理：`detail-immersive-max` 工作树与 `codex/detail-immersive-max` 分支已删（未合并历史已全部在 master）；`master-635508b1`（无独有提交，原 `ccf1f7e`）的工作树登记与分支 `workbuddy/master-635508b1` 已删，但该目录是本聊天的工作目录、被进程占用，文件夹本身留待关闭会话后手工删除。本地只剩 `master` 与主工作树。
-- 交付目录：`artifacts/publish/win-x64` **未刷新** —— 发布脚本清空该目录时被环境的批量删除保护拦下（需人工确认），没有绕过。桌面快捷方式仍指向旧构建，要用新功能需先刷新该目录。
+- 交付：用户令「交付」后刷新 `artifacts/publish/win-x64`。首次清空被环境的批量删除保护拦下，确认后重新发布成功：546 文件、285.4 MB，`verify-publish.ps1 -SelfContained` 通过（批准 mpv 清单 59 个文件、14 个 GLSL 与 4 个 HOOK 着色器逐文件校验）。用交付件本身 `--show-detail --maximized --screen 2` 实拍，沉浸档正常，证据 `work/immersive/delivered-max.png`。
+- 快捷方式：`publish.ps1` 最后一步重写 `C:\Users\89400\Desktop\Momoka.lnk` 报 UnauthorizedAccessException、脚本因此退出 1；没有绕过。核对 `.lnk` 内嵌路径仍是 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`，目标正确且指向这次的新件，功能上不受影响。
 
 ## 2026-10-31 轮播图开着时「媒体库」固定第一位（已发布本机）
 
