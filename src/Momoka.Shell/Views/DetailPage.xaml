@@ -221,7 +221,7 @@
                  见 DetailViewModel.PictureFadeHeight），底边正好压在画面的下沿上；三段停点让浓度先爬后收，
                  最后一段压到满墨。120 收到 64：「黑色渐变的高度太高了，降低一些，它的主要作用是隐藏背景图
                  下方的分界线」（2026-09-13）—— 藏住那条硬边就够了，再高只是压在剧情说明背后的一段黑。
-                 两档都在 —— 显隐跟着 HeroVisibility（图在渐变就在），不再分「画面条／铺满」：从前写「只在
+                 两档都在 —— 显隐跟着 HeroVisibility（以及「沉浸版式里不画」，见 BackdropFadeVisibility）：从前写「只在
                  画面条那一档出现」，依据是「铺满那一档图连到视口外，下沿根本不在屏上」，这笔账算错了 —— 盒高
                  被视口封顶，盒子却站在窗口的上沿（LiftBackdrop 往上顶的那截），两数相差的那一截正是标题栏加
                  面包屑：铺满那一档的下沿落在窗口下沿上方这一条里，从来就没出过屏。那一档 UniformToFill 裁的
@@ -234,7 +234,7 @@
                 Margin="{x:Bind ViewModel.PictureFadeMargin, Mode=OneWay}"
                 IsHitTestVisible="False"
                 VerticalAlignment="Top"
-                Visibility="{x:Bind ViewModel.HeroVisibility, Mode=OneWay}">
+                Visibility="{x:Bind ViewModel.BackdropFadeVisibility, Mode=OneWay}">
                 <Border.Background>
                     <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
                         <GradientStop Color="#000C0E11" Offset="0" />
@@ -1299,7 +1299,10 @@
                          下限是一整屏（DetailHero.PaperHeight）：第一屏整个归了头图和尾部，这张纸从第二屏起，而
                          滚到底的那一屏只能有纸 —— 纸的内容凑不满一屏的条目（没有单集、相似也寥寥的电影）少了这个
                          下限，滚到底时屏幕上沿会漏出一截压暗的剧照。没有剧照的那一档给 0，那一页照旧由
-                         BodyRegion 的下限把富余高度交给这一行。 -->
+                         BodyRegion 的下限把富余高度交给这一行。
+                         这里的 Background 只是第一帧和设计时的值：构造函数里会换成 DetailPage 自己持有的那支
+                         画刷（DetailPage.Showcase.cs），沉浸档要把它淡成尾部那道半透明黑，全局的 EgWindowBrush
+                         不能改。几个面板的内边距同理（BodyPanelPadding）。 -->
                     <StackPanel
                         x:Name="BodySheet"
                         Grid.Row="1"
@@ -1307,7 +1310,6 @@
                         Padding="{x:Bind ViewModel.SheetPadding, Mode=OneWay}"
                         Background="{ThemeResource EgWindowBrush}"
                         Spacing="{x:Bind ViewModel.SheetSpacing, Mode=OneWay}">
-
                         <!-- 单集：季页一行一集的竖置列表，剧页和集页一条横向翻页带 ——「只有季页的集使用竖置
                              列表列表就好，另外两个页面使用竖置翻页」。两种形状共用上面这一个标题和季切换（切换
                              季替换的就是下面这批集），也共用同一个 EpisodeShelf；露哪一个由 DetailViewModel 按
@@ -1331,12 +1333,13 @@
                         <StackPanel
                             x:Name="EpisodePanel"
                             Style="{StaticResource EgBodyPanelStyle}"
+                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.EpisodeVisibility, Mode=OneWay}">
                             <!-- 季下拉框挂在牌子右端那一格里（ShelfHead.Trailing），不再是自己开一个两列 Grid：
                                  读数、挂件、通栏线的横向关系是牌子的事，一带一带地重写一遍就会各自跑偏。这一带
                                  不报读数 —— 季数集数已经写在标题里了（「更多来自：第一季 · 12 集，已看 3 集」）。 -->
-                            <local:ShelfHead x:Name="EpisodeHead" Title="{x:Bind ViewModel.EpisodeShelf.Title, Mode=OneWay}">
+                            <local:ShelfHead x:Name="EpisodeHead" Title="{x:Bind ViewModel.EpisodeShelf.Title, Mode=OneWay}" ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}">
                                 <!-- 同 ColumnPickers：全局闭合下拉底改玻璃之后，季选择器钉回原来的窗口底色。 -->
                                 <local:ShelfHead.Resources>
                                     <StaticResource x:Key="ComboBoxBackground" ResourceKey="EgWindowBrush" />
@@ -1402,7 +1405,11 @@
                             Spacing="10"
                             Style="{StaticResource EgBodyPanelStyle}"
                             Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}">
-                            <local:ShelfHead x:Name="InfoHead" Title="其他信息" />
+                            <!-- 沉浸档同样收起强调条与通栏线：一块让开的板上不该只剩这一条线。 -->
+                            <local:ShelfHead
+                                x:Name="InfoHead"
+                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
+                                Title="其他信息" />
                             <ItemsRepeater
                                 x:Name="InfoTable"
                                 ItemTemplate="{StaticResource InfoRowTemplate}"
@@ -1427,11 +1434,13 @@
 
                         <!-- 全部剧季：剧集页的季卡横带，点季卡进那一季自己的页面。 -->
                         <StackPanel
+                            x:Name="SeasonPanel"
                             Style="{StaticResource EgBodyPanelStyle}"
+                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.SeasonShelfVisibility, Mode=OneWay}">
                             <local:ShelfHead
-                                Note="{x:Bind ViewModel.SeasonShelf.Note, Mode=OneWay}"
+                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
                                 Title="{x:Bind ViewModel.SeasonShelf.Title, Mode=OneWay}" />
                             <local:ShelfStrip
                                 x:Name="SeasonRow"
@@ -1443,11 +1452,13 @@
 
                         <!-- 更多类似。 -->
                         <StackPanel
+                            x:Name="SimilarPanel"
                             Style="{StaticResource EgBodyPanelStyle}"
+                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.SimilarVisibility, Mode=OneWay}">
                             <local:ShelfHead
-                                Note="{x:Bind ViewModel.SimilarShelf.Note, Mode=OneWay}"
+                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
                                 Title="{x:Bind ViewModel.SimilarShelf.Title, Mode=OneWay}" />
                             <local:ShelfStrip
                                 x:Name="SimilarRow"
@@ -1460,11 +1471,13 @@
                         <!-- 演职人员压在最后一段：这一排是「这部片子背后是谁」，翻它的人已经看完了上面所有
                              关于「看什么」的东西。 -->
                         <StackPanel
+                            x:Name="CastPanel"
                             Style="{StaticResource EgBodyPanelStyle}"
+                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.CastVisibility, Mode=OneWay}">
                             <local:ShelfHead
-                                Note="{x:Bind ViewModel.CastShelf.Note, Mode=OneWay}"
+                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
                                 Title="{x:Bind ViewModel.CastShelf.Title, Mode=OneWay}" />
                             <local:ShelfStrip
                                 x:Name="CastRow"

@@ -1973,6 +1973,96 @@ internal static class ItemDetailTests
             Assert.False(DetailHero.WashedOver(0.55, true));
         });
 
+        // 「剧集页面、电影页面和季页面进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」
+        // （2026-10-31）：正文那张不透明的纸整块让开，单集/剧季/相似/演职人员直接压在固定的模糊背景上。
+        // 四句话缺一不可 —— 窗口铺开（最大化，或占了工作区五分之四以上的面积）、宽版式、背后有那张图、
+        // 条目是电影/剧/季；一票否决的那几种各自成句。
+        Test("铺开：只有电影、剧、季三页收起正文纸面", () =>
+        {
+            Assert.True(DetailHero.Immersive(true, compact: false, artwork: true, EmbyItemType.Series));
+            Assert.True(DetailHero.Immersive(true, false, true, EmbyItemType.Movie));
+            Assert.True(DetailHero.Immersive(true, false, true, EmbyItemType.Season));
+
+            // 单集页整段已经合成在一块板上（HeroCard），不跟这一档走；人物、文件夹这些更不在内。
+            Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Episode));
+            Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Person));
+            Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Folder));
+
+            // 另外三句话各自都能单独否决：窗口没铺开、窄成紧凑版式、背后没有图。
+            Assert.False(DetailHero.Immersive(false, false, true, EmbyItemType.Series));
+            Assert.False(DetailHero.Immersive(true, compact: true, artwork: true, EmbyItemType.Series));
+            Assert.False(DetailHero.Immersive(true, false, artwork: false, EmbyItemType.Series));
+        });
+
+        // 「现在不要仅在最大化时切换，窗口占屏幕五分之四面积时也要自动切换」（2026-10-31 同日追加）：
+        // 面积那条线比的是客户区对工作区（任务栏之外），不是某一条边 —— 只拉宽、高度不动的不算。
+        Test("铺开：面积到工作区五分之四也算，不必等最大化", () =>
+        {
+            // 1600×900 坐在 2000×900 的工作区上正好五分之四，过线；少一个像素就回到纸面版式。
+            Assert.True(DetailHero.Spacious(false, DetailHero.Share(1600, 900, 2000, 900)));
+            Assert.False(DetailHero.Spacious(false, DetailHero.Share(1599, 900, 2000, 900)));
+
+            // 面积是两块面积的比：宽高各九成 = 八成一的面积，过线；宽高各八成九 = 七成九，不过。
+            Assert.True(DetailHero.Spacious(false, DetailHero.Share(1800, 1296, 2000, 1440)));
+            Assert.False(DetailHero.Spacious(false, DetailHero.Share(1780, 1282, 2000, 1440)));
+
+            // 这一档和最大化一样，仍然要过另外三句：条目类型、宽版式、有图。
+            Assert.True(DetailHero.Immersive(DetailHero.Spacious(false, 0.9), false, true, EmbyItemType.Movie));
+            Assert.False(DetailHero.Immersive(DetailHero.Spacious(false, 0.79), false, true, EmbyItemType.Movie));
+            Assert.False(DetailHero.Immersive(DetailHero.Spacious(false, 0.9), true, true, EmbyItemType.Movie));
+
+            // 量不出来（窗口还没建、显示器没读到）按 0 算，不高估；最大化那一档不看面积。
+            Assert.Equal(0d, DetailHero.Share(0, 900, 2000, 900));
+            Assert.Equal(0d, DetailHero.Share(1600, 900, 0, 900));
+            Assert.True(DetailHero.Spacious(true, 0));
+        });
+
+        // 上移那一下的两个数：第一屏的留白不再撑，纸也不再要求至少一整屏 —— 下方组件紧跟剧情说明，
+        // 背景从第一屏一直透到页尾。还原那一档一个数都不动。
+        Test("最大化：第一屏留白和纸面下限一起收掉", () =>
+        {
+            // 还原那一档走的是老规则，原样交回。
+            Assert.Equal(DetailHero.TailHeight(887, DetailHero.ArtHeight, true, 700, 887),
+                DetailHero.TailHeight(887, DetailHero.ArtHeight, true, 700, 887, immersive: false));
+            Assert.Equal(DetailHero.PaperHeight(887, true), DetailHero.PaperHeight(887, true, immersive: false));
+
+            // 沉浸档：不管是哪个视口、哪条纸面线，尾部都不再补第一屏。
+            foreach (var viewport in new double[] { 600, 887, 1080, 1400 })
+                Assert.Equal(0d, DetailHero.TailHeight(viewport, DetailHero.ArtHeight, true, 700, 700, immersive: true));
+
+            // 纸面的整屏下限同样让位：内容多长就多长，底下透出来的是同一张画面。
+            Assert.Equal(0d, DetailHero.PaperHeight(887, true, immersive: true));
+            Assert.Equal(0d, DetailHero.PaperHeight(0, true, immersive: true));
+            Assert.Equal(0d, DetailHero.PaperHeight(887, false, immersive: true));
+        });
+
+        // 「设计一个过渡动画」（2026-10-31 晚间，用户选定「分块错峰浮起」）：五块正文不再齐刷刷一起挪，
+        // 而是一块接一块地跟上 —— 切进沉浸从上往下（第一块先到，后面追），切回纸面则倒序（离纸最近的那块
+        // 先落稳，纸从下面盖回来）。错开的是「第几格起步」，不是像素：隔多久一块由页面自己定。
+        Test("沉浸过渡：正文面板错峰起步，还原时倒序", () =>
+        {
+            // 进入沉浸：可见的第一块立刻起步，往下每块晚一格。
+            Assert.Equal(0, DetailHero.FloatOrder(0, 5, immersive: true));
+            Assert.Equal(1, DetailHero.FloatOrder(1, 5, immersive: true));
+            Assert.Equal(4, DetailHero.FloatOrder(4, 5, immersive: true));
+
+            // 还原：同一块面板拿到的是倒过来的那一格 —— 最下面那块先动，最上面那块最后落。
+            Assert.Equal(4, DetailHero.FloatOrder(0, 5, immersive: false));
+            Assert.Equal(0, DetailHero.FloatOrder(4, 5, immersive: false));
+
+            // 只有一块可见（电影页上常常只剩「更多类似」）：没有错峰可言，两个方向都是同一格。
+            Assert.Equal(0, DetailHero.FloatOrder(0, 1, immersive: true));
+            Assert.Equal(0, DetailHero.FloatOrder(0, 1, immersive: false));
+
+            // 一块都没有、序号越界时不许算出负数或越界的格：夹在可见的那一段里。负序号夹到最上面那一块，
+            // 于是它在还原那一趟里就是最后起步的那一格。
+            Assert.Equal(0, DetailHero.FloatOrder(0, 0, immersive: true));
+            Assert.Equal(0, DetailHero.FloatOrder(-1, 3, immersive: true));
+            Assert.Equal(2, DetailHero.FloatOrder(-1, 3, immersive: false));
+            Assert.Equal(2, DetailHero.FloatOrder(9, 3, immersive: true));
+            Assert.Equal(0, DetailHero.FloatOrder(9, 3, immersive: false));
+        });
+
         // 差半级看不出来，差一级就是一道缝，所以按 255 级比。
         static void Near(double expected, double actual) =>
             Assert.True(Math.Abs(expected - actual) * 255 < 1,

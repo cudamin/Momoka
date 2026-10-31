@@ -84,6 +84,92 @@ public static class DetailHero
     public static double Height(bool artwork) => artwork ? ArtHeight : PlainHeight;
 
     /// <summary>
+    /// 窗口「铺开了」的那条线：占所在显示器可用面积的五分之四（2026-10-31 用户令「窗口占屏幕五分之四面积时
+    /// 也要自动切换」）。最大化当然也算 —— 那一档本来就是一整块工作区，不必再量一次。
+    /// </summary>
+    public const double ImmersiveShare = 0.8;
+
+    /// <summary>
+    /// 窗口面积占工作区的比例。量不出来（窗口还没建、显示器没读到、客户区是空的）时给 0 —— 低于任何一条线。
+    /// <para>
+    /// 比的是面积而不是某一条边：用户说「占屏幕五分之四面积」，一扇 89%×89% 的窗口正好过线，一扇只拉宽、
+    /// 高度不动的不算 —— 后者画面上仍是「一条窄带」，与参考图那种整页铺开的版面不是一回事。
+    /// </para>
+    /// </summary>
+    /// <param name="windowWidth">客户区宽（物理像素）。</param>
+    /// <param name="windowHeight">客户区高（物理像素）。</param>
+    /// <param name="areaWidth">窗口所在显示器的工作区宽（物理像素，任务栏之外）。</param>
+    /// <param name="areaHeight">同上，高。</param>
+    public static double Share(double windowWidth, double windowHeight, double areaWidth, double areaHeight) =>
+        windowWidth > 0 && windowHeight > 0 && areaWidth > 0 && areaHeight > 0
+            ? windowWidth * windowHeight / (areaWidth * areaHeight)
+            : 0;
+
+    /// <summary>
+    /// 这一刻窗口算不算「铺开了」：最大化，或者面积过了 <see cref="ImmersiveShare"/>。窗口那一侧的两个数
+    /// （是不是最大化、面积多大）只有窗口自己知道，这里只把两句话并成一句给下面 <see cref="Immersive"/> 用。
+    /// </summary>
+    /// <param name="maximized">窗口这一刻是不是最大化。</param>
+    /// <param name="share">客户区占工作区的面积比（<see cref="Share"/>）。</param>
+    public static bool Spacious(bool maximized, double share) => maximized || share >= ImmersiveShare;
+
+    /// <summary>
+    /// 这一页要不要把正文那张纸整块让开、让下方组件直接压在固定的模糊背景上 —— 「剧集页面、电影页面和季页面
+    /// 进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」（2026-10-31，附参考图）；「窗口占屏幕
+    /// 五分之四面积时也要自动切换」（同日追加，见 <see cref="Spacious"/>）。
+    /// <para>
+    /// 四句话缺一不可：
+    /// <list type="bullet">
+    /// <item><paramref name="spacious"/>：窗口铺开了 —— 最大化，或面积过了 <see cref="ImmersiveShare"/>；
+    /// 收回纸面之后回到纸面版式（<see cref="PaperHeight"/>）。</item>
+    /// <item><paramref name="compact"/>：窄成紧凑版式时不参与 —— 那一档是另一套单列版面。</item>
+    /// <item><paramref name="artwork"/>：背后没有那张图就没有可透的东西，收掉纸面只会剩一页空黑。</item>
+    /// <item><paramref name="type"/>：只有<em>电影、剧、季</em>三页；单集页整段已经合成在一块板上
+    /// （<c>DetailViewModel.HeroCard</c>），不跟这一档走，人物、文件夹这些更没有正文可收。</item>
+    /// </list>
+    /// </para>
+    /// <para>
+    /// 判据放在 Core 而不是视图模型里：它决定的是三个版面数（<see cref="TailHeight(double, double, bool, double, double, bool)"/>
+    /// 和 <see cref="PaperHeight(double, bool, bool)"/> 的那一档），而「哪几种页面算这一档」是一个有唯一正确答案、
+    /// 错起来屏上只是「某一页没跟着变」的判断 —— 单测能盯住的正是这种。
+    /// </para>
+    /// </summary>
+    /// <param name="spacious">窗口这一刻铺开了没有（<see cref="Spacious"/>）：最大化，或占工作区五分之四以上。</param>
+    /// <param name="compact">这一页这次走不走紧凑版式（<see cref="IsCompact"/>）。</param>
+    /// <param name="artwork">服务器上有没有那张背景图 —— 同 <see cref="Height"/>：不是「位图解出来了没有」。</param>
+    /// <param name="type">这一页讲的条目类型（<see cref="EmbyItemType"/> 的字符串常量）。</param>
+    public static bool Immersive(bool spacious, bool compact, bool artwork, string type) =>
+        spacious && !compact && artwork
+        && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
+
+    /// <summary>
+    /// 沉浸切换那一下，第几块正文面板第几个起步 —— 「设计一个过渡动画」（2026-10-31 晚间，用户在「分块错峰浮起」
+    /// 与另外三种手感里选了它）。
+    /// <para>
+    /// 只说顺序，不说时间：隔多久一块（<c>DetailPage.FloatStagger</c>）是手感，可以调；而「进入沉浸从上往下、
+    /// 还原倒序」是版面的意思，调了就不是同一件事了。切进沉浸时内容整体往上收，第一块先到、下面几块一块接一块
+    /// 地追上来，读起来像纸面被抽走之后那一叠自己归位；还原时纸从下面盖回来，离纸最近的那块（最下面）先落稳，
+    /// 上面几块再依次跟上 —— 两个方向都顺着内容行进的方向，不是各走各的。
+    /// </para>
+    /// <para>
+    /// 数的来源是<em>可见</em>的那几块：剧页上单集、剧季、相似、演职人员常在，电影页常常只剩一块，而只有一块
+    /// 时没有错峰可言 —— 所以调用方要先滤掉 <c>Collapsed</c> 的，别把看不见的块也算进格子里，否则「第一块」
+    /// 可能是一块根本没画出来的面板。
+    /// </para>
+    /// </summary>
+    /// <param name="slot">这一块在可见面板里从上往下数的序号，0 起。</param>
+    /// <param name="shown">这一次真正可见的面板共几块。</param>
+    /// <param name="immersive">这一次是切进沉浸（true）还是切回纸面（false）。</param>
+    /// <returns>第几格起步；乘上页面那个间隔就是延迟，越界与空集都夹回 0。</returns>
+    public static int FloatOrder(int slot, int shown, bool immersive)
+    {
+        if (shown <= 1) return 0;
+
+        var index = Math.Clamp(slot, 0, shown - 1);
+        return immersive ? index : shown - 1 - index;
+    }
+
+    /// <summary>
     /// 电影、剧、季那三页宽版式的带高：老档（<see cref="Height"/>，412）减掉那排键独立一行占过的
     /// <see cref="ActionsRow"/>，再和那一叠实测要的高取大。
     /// <para>
@@ -457,6 +543,21 @@ public static class DetailHero
             : 0;
 
     /// <summary>
+    /// 沉浸版式（<see cref="Immersive"/>）下的尾部高：不撑第一屏，内容多高就是多高 —— 下方组件因此紧跟着
+    /// 剧情说明站，而不是被推到第一屏的下沿。还原那一档原样交给五参版本，一个数都不改。
+    /// </summary>
+    /// <param name="viewport">同 <see cref="BodyHeight"/>。</param>
+    /// <param name="heroHeight">同 <see cref="BodyHeight"/>。</param>
+    /// <param name="artwork">同五参版本。</param>
+    /// <param name="paperLine">同五参版本。</param>
+    /// <param name="pictureBottom">同五参版本。</param>
+    /// <param name="immersive">这一页这一刻走不走沉浸版式（<see cref="Immersive"/>）。</param>
+    public static double TailHeight(
+        double viewport, double heroHeight, bool artwork, double paperLine, double pictureBottom,
+        bool immersive) =>
+        immersive ? 0 : TailHeight(viewport, heroHeight, artwork, paperLine, pictureBottom);
+
+    /// <summary>
     /// 纸面上沿那条线对应的<em>窗口</em>高，跟着显示器走 —— 用户原话（2026-09-05）：「显示器分别为4k时设定为
     /// 1920×1080 2k时1600×900 1080p时1366×768」，接在他前一句「窗口大于1600*900后开始显示下方的黑边，
     /// 小于1600*900时海报占满整个窗口」后面。判的是<em>显示器</em>（这张屏有多大），给的是<em>窗口</em>
@@ -499,6 +600,16 @@ public static class DetailHero
     /// <param name="artwork">同 <see cref="TailHeight"/>：没有剧照的那一档不撑尾部，也就不用撑纸。</param>
     public static double PaperHeight(double viewport, bool artwork) =>
         !artwork || viewport <= 0 ? 0 : Math.Round(viewport);
+
+    /// <summary>
+    /// 沉浸版式（<see cref="Immersive"/>）下的纸面下限：0 —— 不再要求纸自己站满一屏。那一档纸本来就透明，
+    /// 「滚到底那一屏全是纸」不再是一条要守的规矩；多出来的整屏只是一段没有内容的滚动余量。
+    /// </summary>
+    /// <param name="viewport">同 <see cref="PaperHeight(double, bool)"/>。</param>
+    /// <param name="artwork">同上。</param>
+    /// <param name="immersive">这一页这一刻走不走沉浸版式（<see cref="Immersive"/>）。</param>
+    public static double PaperHeight(double viewport, bool artwork, bool immersive) =>
+        immersive ? 0 : PaperHeight(viewport, artwork);
 
     /// <summary>
     /// 头图底下那道渐深的罩子：它坐在带子的下沿，上面留 <see cref="ScrimInset"/>，自己高

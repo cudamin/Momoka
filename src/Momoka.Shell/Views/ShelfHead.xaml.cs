@@ -58,6 +58,20 @@ public sealed partial class ShelfHead : UserControl
         new PropertyMetadata(false, OnOfferChanged));
 
     /// <summary>
+    /// 标题前面那条短强调线和底下那条通栏线画不画。默认画；详情页最大化（沉浸版式）里都不画 ——
+    /// 2026-10-31 用户令「把线条去掉」：那一档纸面和面板都让开了，一条横贯整页的发丝线和标题前的一道色条
+    /// 压在模糊背景上就是没来由的线，参考图上那几行标题本来就是纯字。
+    /// <para>
+    /// 与 <see cref="OnScrim"/> 分开两支：那一支换的是颜色（压在图上用浅墨），这一支是「有没有」。
+    /// </para>
+    /// </summary>
+    public static readonly DependencyProperty ShowLinesProperty = DependencyProperty.Register(
+        nameof(ShowLines),
+        typeof(bool),
+        typeof(ShelfHead),
+        new PropertyMetadata(true, OnShowLinesChanged));
+
+    /// <summary>
     /// 下划线的看门人（<see cref="HoverWatch"/>），看的是 <see cref="Scope"/>。事件是快路，十分之一秒一次的
     /// 轮询兜底 —— 指针从牌子上直接出窗时，Exited 报的位置是旧的，没有这道网下划线就永远亮着
     /// （「鼠标移出窗口后不会自动恢复」在同一块牌子上重演一遍）。
@@ -116,6 +130,22 @@ public sealed partial class ShelfHead : UserControl
     {
         get => (bool)GetValue(OnScrimProperty);
         set => SetValue(OnScrimProperty, value);
+    }
+
+    /// <inheritdoc cref="ShowLinesProperty"/>
+    public bool ShowLines
+    {
+        get => (bool)GetValue(ShowLinesProperty);
+        set => SetValue(ShowLinesProperty, value);
+    }
+
+    private static void OnShowLinesChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        var head = (ShelfHead)sender;
+        var shown = (bool)args.NewValue ? Visibility.Visible : Visibility.Collapsed;
+
+        head.Accent.Visibility = shown;
+        head.Rule.Visibility = shown;
     }
 
     /// <inheritdoc cref="OfferProperty"/>

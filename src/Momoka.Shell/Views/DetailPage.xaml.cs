@@ -81,6 +81,11 @@ public sealed partial class DetailPage : Page, IShellContent
         ViewModel = new DetailViewModel();
         InitializeComponent();
         PaintScrim();
+        PrepareShowcase();
+
+        // 沉浸版式那一支单独订阅：OnViewModelChanged 是 Plex 入口夹具原样提取的契约正文，往里塞这一页新加的
+        // 字段会让那份提取出来的类编译不过。视图模型与这一页同寿，挂着不用退订。
+        ViewModel.PropertyChanged += OnShowcaseChanged;
 
         // 上树之后把背景那一层顶到窗口的上沿一次。第一次量得到「这一页坐在工作区的哪儿」就是这时候 ——
         // 构造的时候页面还不在树上，量出来的是 0。
@@ -101,9 +106,12 @@ public sealed partial class DetailPage : Page, IShellContent
         Unloaded += (_, _) =>
         {
             ThemeHost.Changed -= OnThemeChanged;
+            StopShowcase();
+            StopSpaciousWatch();
             if (_window is not null)
             {
                 _window.GeometryChanged -= OnWindowGeometryChanged;
+                _window.InteractiveResizeChanged -= OnInteractiveResizeChanged;
                 _window = null;
             }
             ViewModel.Dispose();
@@ -111,7 +119,11 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>换了主题：正文那张纸换了颜色，标题栏那一条洗的就是那个颜色。见 <see cref="PaintWash"/>。</summary>
-    private void OnThemeChanged(UiTheme theme) => PaintWash(force: true);
+    private void OnThemeChanged(UiTheme theme)
+    {
+        RefreshShowcaseBrushes();
+        PaintWash(force: true);
+    }
 
     /// <summary>
     /// 无图版式保留 Core 表里的渐变；有图版式让整个头部与尾部共用该表末档的半透明黑底。
@@ -1547,21 +1559,71 @@ public sealed partial class DetailPage : Page, IShellContent
     {
         if (ReferenceEquals(_window, window)) return;
 
-        if (_window is not null) _window.GeometryChanged -= OnWindowGeometryChanged;
+        if (_window is not null)
+        {
+            _window.GeometryChanged -= OnWindowGeometryChanged;
+            _window.InteractiveResizeChanged -= OnInteractiveResizeChanged;
+        }
+
         _window = window;
         window.GeometryChanged += OnWindowGeometryChanged;
+        window.InteractiveResizeChanged += OnInteractiveResizeChanged;
+
+        // 进来时窗口铺开到哪一档：这一档决定正文那张纸要不要让开（DetailHero.Immersive）。第一次上树不走
+        // 过渡 —— 版面还没排过，直接按最终那一档布就是了。
+        _spacious = IsSpacious();
+        _pendingSpacious = _spacious;
+        _maximized = window.IsMaximized;
+        ApplyShowcase(animate: false);
+
         SyncPaperLine();
         SyncCornerScale();
     }
 
     /// <summary>
-    /// 换了显示器、改了窗口大小、全屏来回（<see cref="Windowing.HostWindow.GeometryChanged"/> 的全部场合）：
-    /// 纸面上沿那条线跟着显示器走（<see cref="DetailHero.PaperLineFor"/>），这些时候都要重算一遍。
+    /// 换了显示器、改了窗口大小、全屏来回、最大化与还原（<see cref="Windowing.HostWindow.GeometryChanged"/>
+    /// 的全部场合）：纸面上沿那条线跟着显示器走（<see cref="DetailHero.PaperLineFor"/>），这些时候都要重算一遍。
+    /// <para>
+    /// 窗口形态（最大化，或面积过了工作区五分之四）在那几个数之外还决定正文那张纸让不让开（2026-10-31
+    /// 用户令）：最大化／还原是用户按了窗口按钮，当场落定；面积跨线多半是拖着窗口边过去的，等手停下来
+    /// （<see cref="ScheduleSpacious"/>）—— 拖动里每几毫秒一个 <c>WM_SIZE</c>，跟着每一帧翻面就是一路闪。
+    /// 最小化那一拍客户区是空的，不重新量，保留上一档。
+    /// </para>
     /// </summary>
     private void OnWindowGeometryChanged()
     {
+        if (_window is { Minimized: false } window)
+        {
+            var maximized = window.IsMaximized;
+            var toggle = maximized != _maximized;
+            _maximized = maximized;
+
+            _pendingSpacious = IsSpacious();
+            if (_pendingSpacious == _spacious)
+            {
+                _spaciousWatch?.Stop();
+            }
+            else if (toggle)
+            {
+                CommitSpacious();
+            }
+            else
+            {
+                ScheduleSpacious();
+            }
+        }
+
         SyncPaperLine();
         SyncCornerScale();
+    }
+
+    /// <summary>
+    /// 拖边／贴靠的一次开始与结束。开始不做任何事，结束那一下把还没落定的那一档补上 —— 手势结束比计时器
+    /// 那两百毫秒准，<c>WM_EXITSIZEMOVE</c> 先发这一支、紧跟着再发 <c>GeometryChanged</c>。
+    /// </summary>
+    private void OnInteractiveResizeChanged(bool active)
+    {
+        if (!active) CommitSpacious();
     }
 
     private void SyncCornerScale()
@@ -2027,6 +2089,18 @@ public sealed partial class DetailPage : Page, IShellContent
     private void ApplyWash(double offset, bool force)
     {
         var artwork = ViewModel.BackdropShown;
+
+        // 沉浸档（最大化、电影/剧/季、有背景图）：正文那张纸整块让开，任何时候都没有纸面往标题栏上盖 ——
+        // 整条一直是尾部那道半透明黑上的浅墨。纸面接管的三个阶段（3、4 和那道硬边渐变）在这一档都不存在。
+        if (ViewModel.Showcase)
+        {
+            _paperCover = 0;
+            _paintPhase = 2;
+            SyncTitleInk(0);
+            TitleWash.Background = HeroTail.Background;
+            return;
+        }
+
         var paperTop = PaperOffset();
         var paperCover = artwork
             ? DetailHero.PaperCover(offset, paperTop, TitleWash.ActualHeight)

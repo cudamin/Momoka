@@ -4,6 +4,29 @@
 - 设置表里固定项两头箭头置灰、拖不动（`DragItemsStarting` 取消 + Remove/Add 落位后拉回第一位），行尾把手换成锁；别的排能拖到它后面，拖到它前面会弹回。轮播开关一拨，表、说明和主页当场跟着换（`RefreshHomeRows` 的比较加上 `Pinned`）；说明里多一句「轮播图开着时『媒体库』固定在第一位、不能挪动」。
 - 验证（本树最终代码）：Release 完整方案 0 警告 0 错误、`format whitespace` 退出 0；Core 3497/3497；`Momoka.HomeOrderProbeTests` 19/19（新增轮播开关拨动、固定项拖回与不可越位两条）；`--probe-shell --probe-section moviepilot,settings` 57 项唯一红是 HomeSources 夹具自己关着轮播却按固定第一写的断言，改成按钥匙找隐藏行后 `--probe-section settings` 重跑 24/24、退出 0；`artifacts/publish/win-x64` 已刷新（546 文件 285.4 MB、载荷校验通过），桌面快捷方式指向该目录。未运行自检（日常批次收尾不必跑），无真实播放／服务器写入，未推 origin。
 
+## 2026-10-31 详情页沉浸切换：分块错峰浮起的过渡动画（已合并 master）
+
+- 用户令「设计一个过渡动画」，两问后选定：对象是「纸面 ↔ 沉浸」这一档，手感是「分块错峰浮起」。
+- 设计（`DetailPage.Showcase.cs`）：主线不变，尾部高度、纸面颜色、面板底与框仍是一段 260ms CubicEase EaseOut；新增每块正文面板各带一支 `TranslateTransform`，起步先偏开 16px（进沉浸在下面、回纸面在上面），各自 180ms 归位，相邻两块错 40ms —— 剧页四块排满时整趟 300ms。顺序进沉浸从上往下、回纸面倒序；判据在 Core `DetailHero.FloatOrder(slot, shown, immersive)`，只数看得见的那几块，越界夹回可见区间。
+- 顺手修掉一处静默失效：面板底与框的 `SolidColorBrush.Opacity` 动画原来没写 `EnableDependentAnimation`，Storyboard 把它整个丢掉 —— 慢放诊断版实测到 0.9s（动画共 1.2s）面板底仍完全不透明，收尾才啪地消失。补上后与纸面同段淡出。另外，系统或设置关掉界面动画时直接落定（`HomeMotion.AnimationsEnabled`），不再白走这 300ms。
+- 验证：Release 构建 0 警告 0 错误；Core 全套 3497/3497、0 失败 0 跳过；`dotnet format whitespace` 与 `git diff --check` 通过。副屏（工作区 1080×1872）实拍：1080×1200（面积 0.64）纸面档有纸面、面板、强调条；1080×1550（0.83）非最大化即沉浸；最大化落定无任何残留位移。临时时序日志测得最大化后约 74ms 起步、尾部 232→0、可见面板 4 块，确认动画真的在跑而不是瞬切。诊断用的 4× 慢放版只用于看错峰与淡出顺序，正式版是 300ms。
+- 限制：桌面抓屏在 300ms 动画里会撕裂（同一帧上下来自不同时刻），逐帧截图不能当动效证据，只能核对落定状态与时序日志。
+
+## 2026-10-31 详情页沉浸版式补两条：面积过五分之四也切、去掉「N 项」胶囊
+
+- 用户令：「现在不要仅在最大化时切换，窗口占屏幕五分之四面积时也要自动切换」；随后附截图「去掉这个几项」——详情页货架标题右边那个「N 项」圆角胶囊。
+- 判据加在 Core：`DetailHero.ImmersiveShare`（0.8）、`Share(window, workArea)`（面积比，量不出来给 0）、`Spacious(maximized, share)`；`Immersive` 第一句由「最大化」换成「铺开」，四种否决句不变。视图模型 `Maximized` 改名 `Spacious`；`Showcase` 照旧只由它和宽版式、背景图、条目类型决定。
+- 页面：`DetailPage.IsSpacious()` 取客户区对窗口所在显示器工作区（物理像素、不折 DIP）；最大化/还原立即落定，面积跨线等手停约 180ms（`InteractiveResizeChanged` 提前叫醒），计时器兜底；最小化那一拍客户区为空，不重算（新增 `HostWindow.Minimized`）。拖边途中不跟着每帧翻面。
+- 详情页三块 `ShelfHead`（全部剧季、更多类似、演职人员）去掉 `Note` 绑定，主页与 MoviePilot 订阅页的读数不动。
+- 验证：Release 构建 0 警告 0 错误；Core 全套 3496/3496、0 失败 0 跳过；空白与 `git diff --check` 通过。副屏（1080×1872 工作区）实拍：1080×1650（面积 0.848）非最大化即沉浸、1080×1380（0.71）回纸面；跨线后 30–60ms 仍是纸面、500ms 落定沉浸（拖动静默期生效）；最大化→还原恢复正常；三处「1 项」胶囊均消失。证据 `work/share2-*.png`、`work/landing-*.png`、`work/max-*.png`、`work/note-paper.png`（独立树内，忽略目录）。
+
+## 2026-10-31 详情页最大化沉浸版式（已合并 master）
+
+- 用户令（附参考图）：剧、电影、季三页进入最大化时去掉下方组件的背景遮罩、整体上移，最大化/还原切换要有自然过渡；随后三条追加「背景图下方的黑色渐变去掉」「不够紧凑」「把线条去掉」。单集页不参与（那一页整段已经合成在一块板上）。
+- 出处：独立树 `detail-immersive-max`，分支 `codex/detail-immersive-max`，基准 master `ccf1f7e`；2026-10-31 合入 master。
+- 判据在 Core：`DetailHero.Immersive`（最大化 + 宽版式 + 有背景图 + 电影/剧/季），沉浸档 `TailHeight` / `PaperHeight` 归零。视图模型 `Maximized`/`Showcase` 把纸面让开；`PictureHeight` 铺到窗口下沿；`BackdropFadeVisibility` 收起黑渐变；尾部与货架间距收紧（TailSpacing 8、TailPanelPadding 24/8、SheetPadding 28/10/28/14、SheetSpacing 8、BodyPanelPadding 24/10）；`ShelfHead.ShowLines` 同时收起标题前的强调条与通栏线。`DetailPage.Showcase.cs` 用 260ms CubicEase 同时走尾部高度、纸面颜色、面板底/框透明度，标题栏整条保持尾部罩子色与浅墨。
+- 验证：Release 整方案 0 警告 0 错误；Core 全套 3495/3495、0 失败 0 跳过（含新增两条最大化判据与两个版面数）。本树开发件打开真实详情页（尚公主，`--show-detail`，只读、未播放、未改真实设置）在 2560×1440 主屏最大化与 1096×1888 竖屏最大化实拍：下方组件直接压在背景上，无纸面/面板/线条/底部黑带，内容紧跟简介；还原窗口纸面与线条恢复；连拍帧看到面板与纸面在约 0.4–0.6 秒内淡变、内容随尾部收放移动。证据在 `work/showcase-*.png` 与 `work/anim/`（ignored，辅助脚本 `work/win_shot.py`、`work/frames.py`）。未跑闸门 1 的空白/分析器检查与闸门 4，未刷新 `artifacts/publish/win-x64`，未推远端。
+
 ## 2026-10-31 红项修复暂停交接（17:15）
 
 - 用户要求暂停、更换窗口。产品／探针修复已提交并发布612c6e9，Core3486/3486、受影响四套45/15/67/31、构建／空白／正式发布校验通过；新发布件光标、动效、字幕、合成均退出0。完整Shell正常收尾150/151，唯一红为CompactSeasons图片恢复等待超时；旧布局循环本轮未复现且未确认根因，闸门4尚未重跑。

@@ -79,6 +79,7 @@
         <Grid HorizontalAlignment="Left">
             <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
                 <Border
+                    x:Name="Accent"
                     Width="3"
                     Height="20"
                     Background="{ThemeResource EgAccentBrush}"
