@@ -512,9 +512,9 @@ internal sealed partial class ShellNavigationProbe
     /// 就量不出「换来源不替用户搜一次」。
     /// </summary>
     private static int Searches(IReadOnlyList<string> paths) => paths.Count(path =>
-        path.Contains("media/search", StringComparison.Ordinal)
+        !path.Contains("/stream", StringComparison.Ordinal) && (path.Contains("media/search", StringComparison.Ordinal)
         || path.Contains("search/title", StringComparison.Ordinal)
-        || path.Contains("search/media/", StringComparison.Ordinal));
+        || path.Contains("search/media/", StringComparison.Ordinal)));
 
     /// <summary>
     /// 从 <paramref name="from"/> 之后新增的媒体搜索请求。一次提交在 <c>media/search</c> 后面还要发一条
