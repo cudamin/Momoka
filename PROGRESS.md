@@ -9466,6 +9466,16 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 实际本树验证：.dotnet 10.0.400，使用本机 NuGet 包缓存作为唯一 source 离线 restore；Release --no-restore -m:1 BuildInParallel=false/UseSharedCompilation=false/MSBuildNodeReuse=false。最终 Shell/Core 编译 0警告0错误，ResourceBrowserTests 当前编译0警告0错误；新22项 + 原100项合计122/122，失败0、跳过0。覆盖多选组合/X单项移除/保留排序状态/目标集无meta兜底/单选双向与旧卡撤销/中字与特效真标签/各时间口径/文本做种HR/空态/原生模板主题及既有句柄归属/原卡模板不变/有限宽WrapLayout。
 - 检查：新控件扫描 tools/scan-automation-ids.js 最终共551交互元素、0缺句柄；模板/复用跳过范围由新增源码契约逐项核对，实际UIA仍待父代理。C#定向 whitespace最终通过，Shell workspace加载提示单列但退出0；源文件LF、git diff --check通过，tools/analyzers两文件SHA与现有Agreements基线精确一致。首轮共享字典x:Bind缺class和测试误用row.Done造成编译失败已修复；首次测试空白检查8处失败已按定点格式修复重编重跑，未拿旧输出冒通过。
 - 边界：本轮没有 GUI、真实服务器认证/请求、播放、发布或推送，没有改用户设置和桌面快捷方式；源码/VM/布局算术测试不是像素/鼠标/键盘运行证据。主树整合、正式Program注册、父探针适配、各存活主题正常用户试用、最终批次验证与交付仍待父代理，不能宣称本树产品已经交付。
+## 2026-10-31 搜索离线试用宿主：本树已编译，待父入口及 GUI 验收
+
+- 恢复指定工作树 `C:/Users/89400/.codex/worktrees/search-ux-preview/Momoka` / `codex/search-ux-preview`，起点 `49c411b5cdc47601eb39e0b530269cb2802cbe82`，开始时干净；不新建树、不触碰父 `search-web-ui` 树或已有产品文件。仅新增 `ShellNavigationProbe.SearchPreview.cs`、`SearchPreviewContractTests.cs` 和本进度。产品与合同随本条同一提交，父按本提交挑拣后负责整合。
+- `SearchPreviewAsync()` 使用现有 `CreateFixture` / `FakeTransport` / `ConnectMoviePilotAsync` 及真实 `LibraryPage`。初始资源来源 2、输入「离线示例」并真实调用 `SubmitSearchAsync`。13 个活动假站点含长名称，8 个 MP 假资源覆盖 720p/1080p/2160p、两季八集、字幕/质量/HDR/平台标签、日期、做种数、优惠；3 个 MP 假媒体结果（电影/电视剧、TMDB/豆瓣），AniBT 用已有假目录、详情/组与 RSS 响应。
+- 窗口标题「Momoka · 搜索离线试用」，顶端操作条按 `UiThemes.All` 提供五主题、宽/窄窗口、假 MP 断线恢复、AniBT 开关；底部「结束试用」才结束，关窗也结清。窗口不另建，临时 `TopMost=true` 在退出恢复；宽/窄按实时 scale 与显示器 WorkArea 限幅并移入范围。未改截图 `GuardVisible`。父已确认正常可见启动（不加 Hidden）可解决其旧截图遮挡问题，本树没有 GUI 运行证据。
+- 安全边界：所有 HTTP 均由内存 handler 回答；媒体服务器仅 GET，MP 仅 GET 和既有 helper 的占位登录 POST，其它 POST、未登记端点及真实目标拒绝。AniBT 外围白名单仅目录/详情/组/RSS GET，种子/图片/匹配 POST/异站拒绝；所有远程海报 URL 留空，防止 BitmapImage 绕过假 HTTP。无真实账号、凭据读取、网络、播放或服务器写入；不自动点卡片、订阅、下载或播放。假站点页面 URL 为 `.invalid`，Launcher 与 ShellActions 沿用拒绝真实操作的夹具。
+- 当前 SDK 10.0.400；本树 Shell 当前 Release **0 警告、0 错误**（`work/search-preview/shell-build-final.log`），合同项目当前 Release **0/0**，只调用新套件的临时独立入口 **22/22、0 失败、0 跳过**（`work/search-preview/contracts-build-final.log` / `contracts-run.log`）。执行本树真实假 handler 和真实 Core 解析，涵盖数据与拒绝失败路径；不是 WinUI/窗口输入或完整探针通过。首轮取模表达式括号错误及其 XAML 连带失败保留在 `shell-build.log`，已修复；临时入口首次全局 StartupObject 误传 Core 的失败亦已修正为按项目条件注入，未改产品项目。
+- 新文件空白检查退出 0（Shell 工作区加载警告保留，不能称完整方案空白闸门通过）；LF/末尾换行通过。已运行自动化扫描；其只扫描 XAML，新增 C# 按钮逐一有 `SearchPreview*` AutomationId，真实 UIA 可定位仍待父 Computer Use。未启动 GUI、未全量测试/探针、未发布、未 push、未合入 master，桌面交付不变。
+- 父对接：仅在 `--probe-section search-preview` 特殊独立路径调用 `SearchPreviewAsync()`，不能放进 `CaseAsync`/`ShellProbeSections.All`、全量运行或当自动测试通过；试用就绪回执为隔离 LogDirectory 下 `search-preview-ready.txt`。父负责正常可见启动、Computer Use 按正常用户操作、最终统一验证及主树整合，本树不注册原有入口。合同在 `Momoka.ResourceBrowserTests` 通过 `SearchPreviewContractTests.Register(sourceRoot)` 登记；必须先编译父树当前 Shell，程序集根校验固定当前树 x64 Release。临时独立入口材料在本树忽略目录 `work/search-preview/Runner.cs` / `Entry.targets`，只登记该套件，不运行应用；父可自行临时注入或正式登记，不能依赖忽略材料作为干净检出的必需文件。
+
 ## 2026-10-31 集页面选择框改接设置页的输入玻璃
 
 - 用户令（原话，附集页音频/字幕两颗下拉的截图）：「把集页面的选择框改为设置页面的那种样式」，同一轮补一句「圆角不要改」，并要求改完直接交付、不跑探针。
