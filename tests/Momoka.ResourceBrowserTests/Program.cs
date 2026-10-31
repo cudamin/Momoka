@@ -43,6 +43,7 @@ internal static class Program
         SearchCompactMergeTests.Register(sourceRoot);
         ResourceSortMenuTests.Register(sourceRoot);
         SeriesResourceViewTests.Register(sourceRoot);
+        MediaManagementCardTests.Register();
         foreach (var meta in new[] { false, true })
         {
             Test("R-033 精确E05初筛、清除和重新选择 meta=" + meta, () =>

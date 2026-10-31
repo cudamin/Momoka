@@ -97,7 +97,7 @@ internal sealed partial class ShellNavigationProbe
             var showing = dialog.ShowAsync().AsTask();
             await UntilAsync(() => dialog.IsPrimaryButtonEnabled);
             Require(dialog.DefaultButton == ContentDialogButton.Close && transport.Writes == 0, "准备范围时发出删除或默认 Enter 确认删除");
-            Require(Get<TextBox>(dialog, "RecordDetails").Text.Contains("源文件（删除）", StringComparison.Ordinal), "确认没有展示源文件删除范围");
+            Require(dialog.Records.All(row => row.Media.Selected && row.SourceStatus == "将删除"), "确认没有默认全选或源文件范围错误");
             ResizeInspect(1040, 800);
             foreach (var theme in Momoka.Theming.UiThemes.All)
             {
@@ -134,7 +134,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => transport.Writes == 2 && dialog.PrimaryButtonText.Length == 0);
             Require(transport.LastMethod == HttpMethod.Post && transport.LastPath == "/api/v1/history/transfer/ai-redo" &&
                 transport.LastBody == "{\"history_ids\":[2]}", "剧集未使用 batch ai-redo");
-            Require(Get<TextBlock>(dialog, "SummaryText").Text.Contains("不代表文件已整理完成", StringComparison.Ordinal), "任务接收冒充完成");
+            Require(Get<TextBlock>(dialog, "CountText").Text.Contains("不代表文件已整理完成", StringComparison.Ordinal), "任务接收冒充完成");
             await SaveProbeScreenAsync("mp-smart-series-receipt.png");
             InvokeDialog(dialog, "CloseButton");
             await showing;

@@ -47,3 +47,12 @@ $exe = Join-Path (Get-Location) 'src/Momoka.Shell/bin/x64/Release/net10.0-window
 - 异步连接后订阅分区的Visible读数先过实际标题布局，再守原正高度／图标完整裁切检查；不把还没排版的0当产品失败，不改原失败阈值。首轮隐藏启动被实屏保护拒绝，保留原报告；后续用直接前台诊断启动，不改变像素保护。
 
 - 发布件首轮moviepilot25/26，仅旧订阅悬停固定80ms进度读数失败；原红报告单独保留。探针先证明外部焦点、结束物理watch残留并确认归一化初态，再在原UntilAsync截止内等真实Storyboard进度；缩放 `(1,1.045]`、离开0.001容差与更多隐藏阈值不变。不修改订阅海报产品动画或用户偏好。
+
+## 2026-10-31 卡片列表与单集直接删除
+
+- 本轮读取官方前端 v3 `1f574a4fa8a254e3308b440f1e265965bfb11f83` 的 `TransferHistoryView.vue`、`TransferHistoryDeleteDialog.vue`、相关测试；后端 v3 `f5bd3458a6d699600c7496b22a523412d4ef9762` 的 history API、mutation 与 storage 删除链。媒体身份、两端节点/存储/路径、状态及方式/大小/时间分层参考该实现；本轮未读取真实部署版本。
+- 剧/季从所选删除范围进入卡片清单，记录初始全选，可取消个别或切换全选；确认只把已核对计划缩小到选中的ID，不能增加记录或改变范围。完整路径按目录和文件名区分，宽窗横排，窄窗换行。电影沿用同一清单；智能整理仍单独确认。
+- 集页四种删除菜单直接读取/核对并提交，使用简短通知显示结果，不再打开确认和回执窗口。用户本轮明确要求该交互；没有据此执行真实媒体删除。原服务快照/身份/权限/防重仍生效，离页、来源及连接变化同步撤销。
+- 结果保留本次选中的全部记录，源文件/媒体库/记录分项展示；未取得回执的行标待核对，不能推断未发送。成功结果去掉重复大通知，智能提交仍不代表文件处理完成。部分结果停止且不自动整批重试，与上游的继续/恢复批次是本地有意保留的差异。
+- `Momoka.ResourceBrowserTests` 链接实际卡片行，新增默认全选、路径分层、保留海报/选择、部分结果/未执行/缺回执、智能接收状态；`moviepilot-media-management-fixture` 增加子范围消费和假HTTP精确ID检查；`Momoka.TransferSubmissionTests` 链接真实Shell入口验证集直接删除及撤销。
+- `--probe-shell --probe-section moviepilot --screen 1` 新增“剧卡片默认全选、缩小范围与逐项结果”，保存 `mp-media-cards-<theme>-1280-screen.png`、`mp-media-cards-{760,420}-screen.png`、`mp-media-cards-result-{success,partial,unknown}-screen.png`。匿名夹具不删除真实文件；旧“媒体管理四档”用例包含直接集路径。宽窄截图与最终整合版本需由交付会话串行复验。

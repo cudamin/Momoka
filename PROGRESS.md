@@ -1,3 +1,12 @@
+## 2026-10-31 媒体整理卡片、默认全选与单集直接删除（独立树待整合）
+
+- 用户追加截图与交互：剧/季媒体管理使用网页端样式卡片列表，初始全部勾选；集页点所选删除范围直接执行、只提示。已做海报/作品与季集、源/目标节点和本地存储、目录弱化与文件名强调、状态/方式/大小/时间分层；宽窄自动换行。结果保留全部已选记录，未取得回执仍展示待核对，去掉大文本框与重复成功条。
+- 官方前端 v3 1f574a4fa8a254e3308b440f1e265965bfb11f83 的 TransferHistoryView/TransferHistoryDeleteDialog及spec、后端 v3 f5bd3458a6d699600c7496b22a523412d4ef9762 的history API/mutation/storage链已读。保留本地部分结果停止、不自动整批重试的差异；默认全选与单集无确认是本轮用户指令。实际部署版本未新读，未做真实删除/整理/播放。
+- 工作转移：原主树仅媒体管理9个未提交文件由应用交接到 C:/Users/89400/.codex/worktrees/mp-episode-direct-delete/Momoka，当前分支codex/mp；直接单集功能9e86878已在该树；范围选择dc66896是5817542的挑入等价提交（master已有5f9a808，后续不要重复挑入）。主树由“调整 MoviePilot 页面并修复订阅搜索交互”聊天独占最终发布，本树当前不合入、不启动UI、不覆盖发布目录。
+- 当前独立树最终Shell/Core Release 0警告0错误（work/media-cards-final-build.log）；资源与卡片行129/129、直接单集Shell源链接67/67、Core媒体管理44/44，均0失败0跳过，对应work/media-cards-{row-final,episode,plan}-tests.log。自动化扫描此前556控件、0缺句柄。改动C#空白格式化退出0（工作区加载有泛化警告），git diff --check通过。
+- 前轮主树开发UI证据在 C:/Users/89400/AppData/Local/Momoka/logs/shell-probe-20261031-030204027-4116/logs：卡片五主题1280、760/420、成功/部分失败/未知回执均通过且实图已读；整个moviepilot分区31/32，唯一旧手动整理HistoryQuery圆角探针在折叠AdvancedOptions内找不到子模板。应先展开真实控件再测，不能跳过断言。该问题供主交付会话整合现有修复，当前未改无关探针。
+- 前轮全Core两次均3467/3451，16失败全属SelfCheck共享mutex冲突（与其它诊断并行），没有非自检失败；保留主树work/media-cards-core-tests*.log，不称全套通过。转移后未再跑全量或桌面诊断以免抢主交付锁。
+- 尚待：最终整合master后重新编译及全Core、相关moviepilot探针（包括新增单集真实Shell路径）、最后季集可见/卡片紧凑调整的宽窄及五主题截图、实际artifacts/publish/win-x64刷新。当前分支编译与专项不代表最终交付，桌面入口尚不含本批媒体管理改动；待统一交付后归档本树与mp-history-selection树。
 ## 2026-10-31 媒体管理勾选范围子计划（待主树整合）
 
 - 独立 managed 工作树 C:/Users/89400/.codex/worktrees/mp-history-selection/Momoka，起点 master 11c6ff58d327db54b92657c2e2d12d1003ea8280；只写 MoviePilotHistoryPlan、MoviePilotMediaManagementTests 与本条进度，主树已有 Dialog/HistoryRecordRow 改动不触碰。
