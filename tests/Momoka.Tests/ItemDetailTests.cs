@@ -1229,7 +1229,7 @@ internal static class ItemDetailTests
             Assert.False(ItemDetail.MediaInfo(new EmbyItem(), File(null)).Any(row => row.Label == "HDR："));
         });
 
-        Test("媒体信息：杜比配置照抄服务器的 Profile 5.0，没发就不占行", () =>
+        Test("媒体信息：杜比档位直接接在 DolbyVision 后面，不单占一行", () =>
         {
             static MediaSource File(string? subtype, string? description = null) => new()
             {
@@ -1245,19 +1245,19 @@ internal static class ItemDetailTests
             };
 
             // 实测 Emby 4.10.1 对 Profile 5 的 DV 发这两项，网页端「杜比配置 Profile 5.0」就是后一项。
+            // 用户令 2026-10-31「直接加到 dv 后面」：合成一行，不另起「杜比配置」。
             var rows = ItemDetail.MediaInfo(new EmbyItem(), File("DoviProfile50", "Profile 5.0"));
-            Assert.Equal("Profile 5.0", rows.Single(row => row.Label == "杜比配置：").Value);
-
-            // 配置行紧跟在 HDR 行下面，和网页端「视频范围 / 杜比配置」的先后一致。
-            Assert.Contains("HDR：,杜比配置：", string.Join(",", rows.Select(row => row.Label)));
+            Assert.Equal("DolbyVision Profile 5.0", rows.Single(row => row.Label == "HDR：").Value);
+            Assert.False(rows.Any(row => row.Label == "杜比配置："), "档位已并进 HDR 行，不再单占一行");
 
             // 只有枚举原文时照抄它，不自己从 DoviProfile81 拼 "Profile 8.1"。
-            Assert.Equal("DoviProfile81",
+            Assert.Equal("DolbyVision DoviProfile81",
                 ItemDetail.MediaInfo(new EmbyItem(), File("DoviProfile81"))
-                    .Single(row => row.Label == "杜比配置：").Value);
+                    .Single(row => row.Label == "HDR：").Value);
 
-            // 服务器没说档位（SDR 或老服务器）就整行不画。
-            Assert.False(ItemDetail.MediaInfo(new EmbyItem(), File(null)).Any(row => row.Label == "杜比配置："));
+            // 服务器没说档位时 HDR 行保持原样。
+            Assert.Equal("DolbyVision",
+                ItemDetail.MediaInfo(new EmbyItem(), File(null)).Single(row => row.Label == "HDR：").Value);
         });
 
         Test("媒体信息：字幕两个一行，落单的那个占满整行", () =>

@@ -570,10 +570,9 @@ public static class ItemDetail
         Add("时 长", TimeFormat.Duration(source.RunTimeTicks));
         Add("分辨率", video is { Width: > 0, Height: > 0 } ? $"{video.Width} x {video.Height}" : null);
         Add("码 率", Bitrate(video?.BitRate ?? source.Bitrate));
-        Add("HDR", video?.RangeDisplay);
-        // Emby 网页端「视频范围」下面那行「杜比配置」：Profile 5 的片源粗档位只写 DolbyVision，档位号在
-        // ExtendedVideoSubTypeDescription 里（实测 "Profile 5.0"）。
-        Add("杜比配置", video?.DolbyVisionProfile);
+        // Profile 5 的片源粗档位只写 DolbyVision，档位号在 ExtendedVideoSubTypeDescription 里（实测
+        // "Profile 5.0"）；按用户令接在 DolbyVision 后面，不单占一行。
+        Add("HDR", video?.HdrDisplay);
         Add("色 深", video?.BitDepth is > 0 ? $"{video.BitDepth} bits" : null);
         Add("帧 率", video is { FrameRate: > 0 } ? Fps(video.FrameRate) : null);
 

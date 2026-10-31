@@ -221,9 +221,9 @@ public sealed class MediaStream
     public string? ExtendedVideoSubTypeDescription { get; set; }
 
     /// <summary>
-    /// 媒体信息「杜比配置」一行的值：优先照抄服务器的可读说法（Emby 网页端「杜比配置」也是它），缺了才退回
-    /// 枚举原文，两项都没有就是空串、整行不画。不自己从 <c>DoviProfile50</c> 拼 "Profile 5.0" —— 档位编号的
-    /// 拼法由服务器决定，抄错不如不写。
+    /// 杜比视界的档位说法：优先照抄服务器的可读版本（实测 <c>Profile 5.0</c>），缺了才退回枚举原文
+    /// （<c>DoviProfile50</c>），两项都没有就是空串。不自己从枚举拼 "Profile 5.0" —— 档位编号的拼法由
+    /// 服务器决定，抄错不如不写。
     /// </summary>
     [JsonIgnore]
     public string DolbyVisionProfile
@@ -233,6 +233,23 @@ public sealed class MediaStream
             if (!string.IsNullOrWhiteSpace(ExtendedVideoSubTypeDescription))
                 return ExtendedVideoSubTypeDescription!.Trim();
             return string.IsNullOrWhiteSpace(ExtendedVideoSubType) ? "" : ExtendedVideoSubType!.Trim();
+        }
+    }
+
+    /// <summary>
+    /// 媒体信息 HDR 一行整段要写的字：杜比视界的档位直接接在服务器的档位写法后面（用户令 2026-10-31
+    /// 「直接加到 dv 后面」）—— 实测这集写成 <c>DolbyVision Profile 5.0</c>。不是 DV 的片源不拼档位，
+    /// 免得服务器发错字段时把 SDR / HDR10 写成 DV。
+    /// </summary>
+    [JsonIgnore]
+    public string HdrDisplay
+    {
+        get
+        {
+            var range = RangeDisplay;
+            return IsDolbyVision && range.Length > 0 && DolbyVisionProfile is { Length: > 0 } profile
+                ? $"{range} {profile}"
+                : range;
         }
     }
 
