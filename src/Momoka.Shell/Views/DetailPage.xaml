@@ -1414,7 +1414,6 @@
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.SeasonShelfVisibility, Mode=OneWay}">
                             <local:ShelfHead
-                                Note="{x:Bind ViewModel.SeasonShelf.Note, Mode=OneWay}"
                                 ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
                                 Title="{x:Bind ViewModel.SeasonShelf.Title, Mode=OneWay}" />
                             <local:ShelfStrip
@@ -1433,7 +1432,6 @@
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.SimilarVisibility, Mode=OneWay}">
                             <local:ShelfHead
-                                Note="{x:Bind ViewModel.SimilarShelf.Note, Mode=OneWay}"
                                 ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
                                 Title="{x:Bind ViewModel.SimilarShelf.Title, Mode=OneWay}" />
                             <local:ShelfStrip
@@ -1453,7 +1451,6 @@
                             Spacing="10"
                             Visibility="{x:Bind ViewModel.CastVisibility, Mode=OneWay}">
                             <local:ShelfHead
-                                Note="{x:Bind ViewModel.CastShelf.Note, Mode=OneWay}"
                                 ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
                                 Title="{x:Bind ViewModel.CastShelf.Title, Mode=OneWay}" />
                             <local:ShelfStrip

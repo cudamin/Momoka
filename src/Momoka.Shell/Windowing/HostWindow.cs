@@ -1015,6 +1015,14 @@ internal sealed class HostWindow : IDisposable
     public bool IsMaximized => Handle != IntPtr.Zero && Native.IsZoomed(Handle);
 
     /// <summary>
+    /// Whether the window is minimized right now. A minimized window's client rectangle is empty, so anything
+    /// that measures the window to decide a layout must not read it in this state — the detail page's
+    /// 「五分之四面积」 ruling keeps its last answer instead of flipping to the paper layout on the way down to
+    /// the taskbar and back again on the way up.
+    /// </summary>
+    internal bool Minimized => Handle != IntPtr.Zero && Native.IsIconic(Handle);
+
+    /// <summary>
     /// 这一扇窗口此刻的形态 —— 集成模式的形态事实源（独占模式的窗口归 mpv，问 mpv 的属性）。
     /// <para>
     /// 2026-09-20 加。此前「全屏」与「最大化」两个事实在窗口这一层各自被问，而合起来那句「边已经归显示器」

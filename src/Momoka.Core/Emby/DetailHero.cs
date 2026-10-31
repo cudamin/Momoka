@@ -84,12 +84,44 @@ public static class DetailHero
     public static double Height(bool artwork) => artwork ? ArtHeight : PlainHeight;
 
     /// <summary>
+    /// 窗口「铺开了」的那条线：占所在显示器可用面积的五分之四（2026-10-31 用户令「窗口占屏幕五分之四面积时
+    /// 也要自动切换」）。最大化当然也算 —— 那一档本来就是一整块工作区，不必再量一次。
+    /// </summary>
+    public const double ImmersiveShare = 0.8;
+
+    /// <summary>
+    /// 窗口面积占工作区的比例。量不出来（窗口还没建、显示器没读到、客户区是空的）时给 0 —— 低于任何一条线。
+    /// <para>
+    /// 比的是面积而不是某一条边：用户说「占屏幕五分之四面积」，一扇 89%×89% 的窗口正好过线，一扇只拉宽、
+    /// 高度不动的不算 —— 后者画面上仍是「一条窄带」，与参考图那种整页铺开的版面不是一回事。
+    /// </para>
+    /// </summary>
+    /// <param name="windowWidth">客户区宽（物理像素）。</param>
+    /// <param name="windowHeight">客户区高（物理像素）。</param>
+    /// <param name="areaWidth">窗口所在显示器的工作区宽（物理像素，任务栏之外）。</param>
+    /// <param name="areaHeight">同上，高。</param>
+    public static double Share(double windowWidth, double windowHeight, double areaWidth, double areaHeight) =>
+        windowWidth > 0 && windowHeight > 0 && areaWidth > 0 && areaHeight > 0
+            ? windowWidth * windowHeight / (areaWidth * areaHeight)
+            : 0;
+
+    /// <summary>
+    /// 这一刻窗口算不算「铺开了」：最大化，或者面积过了 <see cref="ImmersiveShare"/>。窗口那一侧的两个数
+    /// （是不是最大化、面积多大）只有窗口自己知道，这里只把两句话并成一句给下面 <see cref="Immersive"/> 用。
+    /// </summary>
+    /// <param name="maximized">窗口这一刻是不是最大化。</param>
+    /// <param name="share">客户区占工作区的面积比（<see cref="Share"/>）。</param>
+    public static bool Spacious(bool maximized, double share) => maximized || share >= ImmersiveShare;
+
+    /// <summary>
     /// 这一页要不要把正文那张纸整块让开、让下方组件直接压在固定的模糊背景上 —— 「剧集页面、电影页面和季页面
-    /// 进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」（2026-10-31，附参考图）。
+    /// 进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」（2026-10-31，附参考图）；「窗口占屏幕
+    /// 五分之四面积时也要自动切换」（同日追加，见 <see cref="Spacious"/>）。
     /// <para>
     /// 四句话缺一不可：
     /// <list type="bullet">
-    /// <item><paramref name="maximized"/>：这是窗口最大化那一档；还原之后回到纸面版式（<see cref="PaperHeight"/>）。</item>
+    /// <item><paramref name="spacious"/>：窗口铺开了 —— 最大化，或面积过了 <see cref="ImmersiveShare"/>；
+    /// 收回纸面之后回到纸面版式（<see cref="PaperHeight"/>）。</item>
     /// <item><paramref name="compact"/>：窄成紧凑版式时不参与 —— 那一档是另一套单列版面。</item>
     /// <item><paramref name="artwork"/>：背后没有那张图就没有可透的东西，收掉纸面只会剩一页空黑。</item>
     /// <item><paramref name="type"/>：只有<em>电影、剧、季</em>三页；单集页整段已经合成在一块板上
@@ -102,12 +134,12 @@ public static class DetailHero
     /// 错起来屏上只是「某一页没跟着变」的判断 —— 单测能盯住的正是这种。
     /// </para>
     /// </summary>
-    /// <param name="maximized">窗口这一刻是不是最大化。</param>
+    /// <param name="spacious">窗口这一刻铺开了没有（<see cref="Spacious"/>）：最大化，或占工作区五分之四以上。</param>
     /// <param name="compact">这一页这次走不走紧凑版式（<see cref="IsCompact"/>）。</param>
     /// <param name="artwork">服务器上有没有那张背景图 —— 同 <see cref="Height"/>：不是「位图解出来了没有」。</param>
     /// <param name="type">这一页讲的条目类型（<see cref="EmbyItemType"/> 的字符串常量）。</param>
-    public static bool Immersive(bool maximized, bool compact, bool artwork, string type) =>
-        maximized && !compact && artwork
+    public static bool Immersive(bool spacious, bool compact, bool artwork, string type) =>
+        spacious && !compact && artwork
         && type is EmbyItemType.Movie or EmbyItemType.Series or EmbyItemType.Season;
 
     /// <summary>

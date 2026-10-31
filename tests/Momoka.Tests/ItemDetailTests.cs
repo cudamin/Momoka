@@ -1855,8 +1855,9 @@ internal static class ItemDetailTests
 
         // 「剧集页面、电影页面和季页面进入最大化状态时，去掉下方组件的背景遮罩，并将下方组件整体上移」
         // （2026-10-31）：正文那张不透明的纸整块让开，单集/剧季/相似/演职人员直接压在固定的模糊背景上。
-        // 四句话缺一不可 —— 窗口最大化、宽版式、背后有那张图、条目是电影/剧/季；一票否决的那几种各自成句。
-        Test("最大化：只有电影、剧、季三页收起正文纸面", () =>
+        // 四句话缺一不可 —— 窗口铺开（最大化，或占了工作区五分之四以上的面积）、宽版式、背后有那张图、
+        // 条目是电影/剧/季；一票否决的那几种各自成句。
+        Test("铺开：只有电影、剧、季三页收起正文纸面", () =>
         {
             Assert.True(DetailHero.Immersive(true, compact: false, artwork: true, EmbyItemType.Series));
             Assert.True(DetailHero.Immersive(true, false, true, EmbyItemType.Movie));
@@ -1867,10 +1868,33 @@ internal static class ItemDetailTests
             Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Person));
             Assert.False(DetailHero.Immersive(true, false, true, EmbyItemType.Folder));
 
-            // 另外三句话各自都能单独否决：没最大化、窄成紧凑版式、背后没有图。
+            // 另外三句话各自都能单独否决：窗口没铺开、窄成紧凑版式、背后没有图。
             Assert.False(DetailHero.Immersive(false, false, true, EmbyItemType.Series));
             Assert.False(DetailHero.Immersive(true, compact: true, artwork: true, EmbyItemType.Series));
             Assert.False(DetailHero.Immersive(true, false, artwork: false, EmbyItemType.Series));
+        });
+
+        // 「现在不要仅在最大化时切换，窗口占屏幕五分之四面积时也要自动切换」（2026-10-31 同日追加）：
+        // 面积那条线比的是客户区对工作区（任务栏之外），不是某一条边 —— 只拉宽、高度不动的不算。
+        Test("铺开：面积到工作区五分之四也算，不必等最大化", () =>
+        {
+            // 1600×900 坐在 2000×900 的工作区上正好五分之四，过线；少一个像素就回到纸面版式。
+            Assert.True(DetailHero.Spacious(false, DetailHero.Share(1600, 900, 2000, 900)));
+            Assert.False(DetailHero.Spacious(false, DetailHero.Share(1599, 900, 2000, 900)));
+
+            // 面积是两块面积的比：宽高各九成 = 八成一的面积，过线；宽高各八成九 = 七成九，不过。
+            Assert.True(DetailHero.Spacious(false, DetailHero.Share(1800, 1296, 2000, 1440)));
+            Assert.False(DetailHero.Spacious(false, DetailHero.Share(1780, 1282, 2000, 1440)));
+
+            // 这一档和最大化一样，仍然要过另外三句：条目类型、宽版式、有图。
+            Assert.True(DetailHero.Immersive(DetailHero.Spacious(false, 0.9), false, true, EmbyItemType.Movie));
+            Assert.False(DetailHero.Immersive(DetailHero.Spacious(false, 0.79), false, true, EmbyItemType.Movie));
+            Assert.False(DetailHero.Immersive(DetailHero.Spacious(false, 0.9), true, true, EmbyItemType.Movie));
+
+            // 量不出来（窗口还没建、显示器没读到）按 0 算，不高估；最大化那一档不看面积。
+            Assert.Equal(0d, DetailHero.Share(0, 900, 2000, 900));
+            Assert.Equal(0d, DetailHero.Share(1600, 900, 0, 900));
+            Assert.True(DetailHero.Spacious(true, 0));
         });
 
         // 上移那一下的两个数：第一屏的留白不再撑，纸也不再要求至少一整屏 —— 下方组件紧跟剧情说明，

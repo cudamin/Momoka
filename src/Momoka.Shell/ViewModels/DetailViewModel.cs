@@ -371,11 +371,13 @@ public sealed partial class DetailViewModel : PageViewModel
     public bool IsCompact => DetailHero.IsCompact(PageWidth);
 
     /// <summary>
-    /// 窗口这一刻是不是最大化。由视图在 <c>DetailPage</c> 挂上窗口时和每次 <c>GeometryChanged</c> 时写进来 ——
-    /// 「这台窗口多大、是不是最大化」只有窗口自己知道（<c>HostWindow.IsMaximized</c>），视图模型不去问。
+    /// 窗口这一刻铺开了没有 —— 最大化，或者面积占了所在显示器工作区的五分之四以上（2026-10-31 用户令
+    /// 「窗口占屏幕五分之四面积时也要自动切换」）。由视图在 <c>DetailPage</c> 挂上窗口时和每次
+    /// <c>GeometryChanged</c> 时写进来 —— 「这台窗口多大、是不是最大化」只有窗口自己知道
+    /// （<c>HostWindow.IsMaximized</c> 与客户区／工作区两个尺寸），视图模型不去问。
     /// <para>
-    /// 它只喂 <see cref="Showcase"/>：三页（电影、剧、季）在最大化时把正文的纸面让开、下方组件整体上移，
-    /// 还原之后回到纸面版式。别的版面一个数都不看它，所以它不需要进 <c>AnnounceShape</c> 那一批。
+    /// 它只喂 <see cref="Showcase"/>：三页（电影、剧、季）在铺开时把正文的纸面让开、下方组件整体上移，
+    /// 收窄之后回到纸面版式。别的版面一个数都不看它，所以它不需要进 <c>AnnounceShape</c> 那一批。
     /// </para>
     /// </summary>
     [ObservableProperty]
@@ -391,22 +393,23 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(SheetSpacing))]
     [NotifyPropertyChangedFor(nameof(BodyPanelPadding))]
     [NotifyPropertyChangedFor(nameof(ShowShelfLines))]
-    public partial bool Maximized { get; set; }
+    public partial bool Spacious { get; set; }
 
     /// <summary>
-    /// 这一页这一刻走不走「沉浸版式」—— 最大化时把正文那张不透明的纸整块让开，单集/剧季/相似/演职人员直接压在
-    /// 固定的模糊背景上，并且不再撑第一屏的留白（2026-10-31 用户令，附参考图）。
+    /// 这一页这一刻走不走「沉浸版式」—— 窗口铺开时把正文那张不透明的纸整块让开，单集/剧季/相似/演职人员直接
+    /// 压在固定的模糊背景上，并且不再撑第一屏的留白（2026-10-31 用户令，附参考图）。
     /// <para>
-    /// 判据在 Core（<see cref="DetailHero.Immersive"/>）：最大化、宽版式、背后有图、条目是电影/剧/季。这里只是
-    /// 把页面的四个现状交过去 —— 哪几种页面算这一档是一个有唯一正确答案的判断，写在 Core 里才测得住。
+    /// 判据在 Core（<see cref="DetailHero.Immersive"/>）：铺开（最大化或过五分之四，<see cref="DetailHero.Spacious"/>）、
+    /// 宽版式、背后有图、条目是电影/剧/季。这里只是把页面的四个现状交过去 —— 哪几种页面算这一档是一个有唯一
+    /// 正确答案的判断，写在 Core 里才测得住。
     /// </para>
     /// <para>
-    /// 三个输入都不在这一个文件的属性表里各自成句：<see cref="Maximized"/> 自己的 setter 会通知，页宽跨过紧凑
+    /// 三个输入都不在这一个文件的属性表里各自成句：<see cref="Spacious"/> 自己的 setter 会通知，页宽跨过紧凑
     /// 断点和背景图翻档分别在 <c>PageWidth</c>／<c>HeroArt</c> 的通知名单里，条目种类那一路在
     /// <see cref="AnnounceShape"/> 里补一句。
     /// </para>
     /// </summary>
-    public bool Showcase => DetailHero.Immersive(Maximized, IsCompact, BackdropShown, ItemType);
+    public bool Showcase => DetailHero.Immersive(Spacious, IsCompact, BackdropShown, ItemType);
 
     /// <summary>
     /// 货架标题前那条短强调线和底下那条通栏线画不画 —— 沉浸档都不画（2026-10-31 用户令「把线条去掉」）。
