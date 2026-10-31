@@ -43,16 +43,22 @@ internal sealed partial class ShellNavigationProbe
             Require(Get<Grid>(dialog!, "IdentityGrid").Visibility == Visibility.Collapsed, "自动类型仍显示识别区");
             Require(path.Text.Length == 0, "自动匹配覆盖了未确认的目的路径");
             Require(method.SelectedIndex == 0, "自动方式变成了显式目录方式");
-            Require(Get<TextBox>(dialog!, "OriginalSourceBox").Text == ManualOrganizeServer.Source, "原源文件未回填：" + Get<TextBox>(dialog!, "OriginalSourceBox").Text);
+            Require(Get<IReadOnlyList<MoviePilotTransferHistory>>(dialog!, "_histories").Single().TransferPath == ManualOrganizeServer.Source, "后台未定位原源文件");
+            Require(Get<StackPanel>(dialog!, "HistoryLookupPanel").Visibility == Visibility.Collapsed, "默认仍显示历史查找区");
             Require(Get<ToggleSwitch>(dialog!, "TypeFolderToggle").IsOn, "自动分类没有展示匹配目录的有效值");
             Require(Get<Border>(dialog!, "MatchedPathPanel").Visibility == Visibility.Visible, "缺少使用匹配路径入口");
-            // 放大后的窗口一次放下全部选项：默认视图没有纵向滚动。
+            // 网页表单保持两列宽度；高度不足时滚正文，按钮仍固定。
             ResizeInspect(1040, 920);
             await LayoutAsync(dialog!);
             await Task.Delay(120);
             var formScroll = Get<ScrollViewer>(dialog!, "FormScroll");
-            Require(dialog!.ActualWidth >= 900, $"整理窗口没有放大：{dialog.ActualWidth:0}");
-            Require(formScroll.ScrollableHeight < 1, $"默认视图仍需滚动：{formScroll.ScrollableHeight:0}；窗口 {dialog!.ActualWidth:0}×{dialog.ActualHeight:0}，正文 {Get<Grid>(dialog, "DialogBody").ActualWidth:0}×{Get<Grid>(dialog, "DialogBody").ActualHeight:0}，视口 {formScroll.ViewportHeight:0}，表单 {Get<ContentControl>(dialog, "FormPanel").ActualHeight:0}，目的 {Get<Grid>(dialog, "DestinationGrid").ActualWidth:0}，折叠 {Get<Expander>(dialog, "AdvancedOptions").IsExpanded}");
+            // ContentDialog 本身铺满遮罩；正文才是可见表面的宽度约束。
+            var formBody = Get<Grid>(dialog!, "DialogBody");
+            Require(formBody.ActualWidth is >= 600 and <= 672, $"整理正文没有保持网页宽度：{formBody.ActualWidth:0}");
+            Require(Grid.GetColumn(Get<StackPanel>(dialog!, "TransferMethodField")) == 1 &&
+                Grid.GetRow(Get<StackPanel>(dialog!, "TransferMethodField")) == 0, "目的存储与整理方式未并排");
+            Require(Get<Grid>(dialog!, "RecognitionGrid").TransformToVisual(dialog).TransformPoint(default).Y >
+                Get<StackPanel>(dialog!, "TargetPathPanel").TransformToVisual(dialog).TransformPoint(default).Y, "类型、数据源没有排在目的路径之后");
             await SaveProbeScreenAsync("mp-manual-default-screen.png");
             // 选媒体库目录：存储、整理方式、刮削与两个分类开关跟着目录配置走。
             path.Text = "/library";
@@ -75,21 +81,16 @@ internal sealed partial class ShellNavigationProbe
             type.SelectedIndex = 2;
             await LayoutAsync(dialog!);
             RequireSearchRadius(mediaId);
-            Get<Expander>(dialog!, "AdvancedOptions").IsExpanded = true;
-            await LayoutAsync(dialog!);
-            RequireSearchRadius(Get<AutoSuggestBox>(dialog!, "HistoryQuery"));
-            Get<Expander>(dialog!, "AdvancedOptions").IsExpanded = false;
             Get<ComboBox>(dialog!, "SourceBox").SelectedIndex = 1;
             mediaId.Text = "123";
             Call(dialog!, "QueueGroupLookup");
             await UntilAsync(() => Get<ComboBox>(dialog!, "EpisodeGroupBox").Items.Count == 2);
             await LayoutAsync(dialog!);
             await Task.Delay(120);
-            Require(formScroll.ScrollableHeight < 1,
-                $"识别区展开后仍需滚动：{formScroll.ScrollableHeight:0}；视口 {formScroll.ViewportHeight:0}，表单 {Get<ContentControl>(dialog!, "FormPanel").ActualHeight:0}");
-            foreach (var width in new[] { 1040, 720, 520 })
+            Require(formScroll.ViewportHeight > 0, "表单滚动视口不可用");
+            foreach (var (width, height) in new[] { (1040, 920), (720, 850), (520, 640) })
             {
-                ResizeInspect(width, 920);
+                ResizeInspect(width, height);
                 await LayoutAsync(dialog!);
                 await Task.Delay(100);
                 var body = Get<Grid>(dialog!, "DialogBody");
@@ -172,6 +173,19 @@ internal sealed partial class ShellNavigationProbe
             Require(!Get<Button>(dialog!, "QueueButton").IsEnabled && !Get<Button>(dialog!, "PreviewButton").IsEnabled,
                 "已提交窗口重新开放了重复请求");
             Require(fixture.Actions.Plays == 0, "手动整理探针不应播放");
+            dialog!.Hide();
+            await showing!;
+            server.EmptyHistory = true;
+            await ShowAsync(expectHistoryProblem: true);
+            Require(Get<StackPanel>(dialog!, "HistoryLookupPanel").Visibility == Visibility.Visible &&
+                !Get<Button>(dialog!, "PreviewButton").IsEnabled, "缺少原记录时未展示直接重试入口");
+            await SaveProbeScreenAsync("mp-manual-history-missing-screen.png");
+            server.EmptyHistory = false;
+            Call(dialog!, "OnHistoryQuery", Get<AutoSuggestBox>(dialog!, "HistoryQuery"), new AutoSuggestBoxQuerySubmittedEventArgs());
+            await UntilAsync(() => Get<Button>(dialog!, "PreviewButton").IsEnabled &&
+                Get<StackPanel>(dialog!, "HistoryLookupPanel").Visibility == Visibility.Collapsed);
+            Require(!Get<InfoBar>(dialog!, "Problem").IsOpen && server.Writes == 1, "历史恢复后仍报错或额外提交整理");
+            await SaveProbeScreenAsync("mp-manual-history-recovered-screen.png");
         }
         finally
         {
@@ -180,7 +194,7 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1420, 980);
         }
 
-        async Task ShowAsync()
+        async Task ShowAsync(bool expectHistoryProblem = false)
         {
             dialog = new MoviePilotReorganizeDialog(service, new MoviePilotTransferContext("离线测试剧集", "电视剧", "123", 1, "01",
                 [new("第一集", ManualOrganizeServer.Target)]))
@@ -189,7 +203,7 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => showing.IsCompleted || !Get<bool>(dialog, "_busy") &&
                 (Get<MoviePilotTransferOptions?>(dialog, "_options") is not null || Get<InfoBar>(dialog, "Problem").IsOpen));
             if (showing.IsCompleted) await showing;
-            Require(!Get<InfoBar>(dialog, "Problem").IsOpen, Get<InfoBar>(dialog, "Problem").Message);
+            Require(Get<InfoBar>(dialog, "Problem").IsOpen == expectHistoryProblem, Get<InfoBar>(dialog, "Problem").Message);
             await LayoutAsync(dialog);
         }
         void Invoke(string name)
@@ -206,6 +220,7 @@ internal sealed partial class ShellNavigationProbe
         internal int Previews { get; private set; }
         internal int Writes { get; private set; }
         internal bool Background { get; private set; }
+        internal bool EmptyHistory { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
         {
             Require(request.RequestUri!.Host == "moviepilot.invalid", "手动整理探针拒绝真实网络");
@@ -223,6 +238,7 @@ internal sealed partial class ShellNavigationProbe
                 new { name = "豆瓣", media_source = "douban", media_types = new[] { "电影", "电视剧" } }
             });
             if (path.EndsWith("system/global/user", StringComparison.Ordinal)) return Json(new { RECOGNIZE_SOURCE = "douban" });
+            if (path.EndsWith("history/transfer", StringComparison.Ordinal) && EmptyHistory) return Json(new { total = 0, list = Array.Empty<object>() });
             if (path.EndsWith("history/transfer", StringComparison.Ordinal)) return Json(new
             {
                 total = 1,

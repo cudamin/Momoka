@@ -202,6 +202,7 @@ internal sealed class TransferSubmissionFixture : IDisposable
 internal sealed class TransferSubmissionTransport : HttpMessageHandler
 {
     public string Failure { get; set; } = "";
+    public bool DuplicateHistory { get; set; }
     public Action? OnHistoryRead { get; set; }
     public int Reads { get; private set; }
     public int Previews { get; private set; }
@@ -232,11 +233,17 @@ internal sealed class TransferSubmissionTransport : HttpMessageHandler
             if (Failure == "history-500") return Reply("server-error", HttpStatusCode.InternalServerError);
             if (Failure == "history-timeout") throw new HttpRequestException("anonymous fixture read interrupted");
             var history = HistoryJson(changed: Failure == "history-changed");
+            if (DuplicateHistory)
+                return Reply("{\"success\":true,\"data\":{\"total\":2,\"list\":[" + history + "," +
+                    history.Replace("\"id\":1,", "\"id\":2,", StringComparison.Ordinal) + "]}}");
             return Reply("{\"success\":true,\"data\":{\"total\":" + (Failure == "dependency-present" && dependency ? "2" : "1") +
                 ",\"list\":[" + history + (Failure == "dependency-present" && dependency ? "," + HistoryJson(dependent: true) : "") + "]}}");
         }
         if (url.AbsolutePath == "/api/v1/storage/options")
+        {
+            if (Failure == "options-500") return Reply("server-error", HttpStatusCode.InternalServerError);
             return Reply("""{"success":true,"data":[{"name":"本地","type":"local"}]}""");
+        }
         if (url.AbsolutePath == "/api/v1/storage/directories")
             return Reply("""{"success":true,"data":[{"library_storage":"local","library_path":"/library","transfer_type":"softlink","scraping":true,"library_type_folder":true,"library_category_folder":false}]}""");
         if (url.AbsolutePath == "/api/v1/media/source")

@@ -102,11 +102,10 @@ internal sealed partial class ShellNavigationProbe
             var episodeContext = new MoviePilotTransferContext(context.Title, MoviePilotTransferRequest.TypeSeries, context.MediaId,
                 1, "1", [new MoviePilotTransferFile("单集", chosen[0].TargetPath)]);
             var episodeForm = new MoviePilotReorganizeDialog(service, episodeContext);
-            Require(Get<StackPanel>(episodeForm, "HistoryLookupPanel").Visibility == Visibility.Visible &&
-                Get<TextBlock>(episodeForm, "BatchSelectionSummary").Visibility == Visibility.Collapsed &&
+            Require(Get<StackPanel>(episodeForm, "HistoryLookupPanel").Visibility == Visibility.Collapsed &&
                 Get<ComboBox>(episodeForm, "TypeBox").SelectedIndex == 0 &&
                 Get<TextBox>(episodeForm, "SeasonBox").Text.Length == 0 && Get<TextBox>(episodeForm, "EpisodeBox").Text.Length == 0,
-                "单集的历史查找区域或自动默认值被剧多选改动改变");
+                "单集没有直接展示自动整理表单");
             var selectedContext = MoviePilotSeriesTransfer.CreateContext(context, chosen);
             var form = new MoviePilotReorganizeDialog(service, selectedContext, chosen) { XamlRoot = _root.XamlRoot };
             var editing = MoviePilotDialog.ShowAsync(form, service);
@@ -126,7 +125,7 @@ internal sealed partial class ShellNavigationProbe
             }
             await LayoutAsync(form);
             Require(Get<StackPanel>(form, "HistoryLookupPanel").Visibility == Visibility.Collapsed &&
-                Get<TextBlock>(form, "BatchSelectionSummary").Text.Contains("2", StringComparison.Ordinal),
+                Get<TextBlock>(form, "ReorganizeSubtitle").Text == "共 2 项",
                 "预选批量表单仍要求再次匹配媒体库文件");
             Require(Get<TextBox>(form, "SeasonBox").Text == "" && Get<TextBox>(form, "EpisodeBox").Text == "",
                 "多选不同集时默认把它们改成同一集");

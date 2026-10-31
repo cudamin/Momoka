@@ -98,17 +98,17 @@ internal static class Program
             Assert.False(dialog.FormPanel.IsEnabled);
             Assert.DoesNotContain("本次没有提交整理请求", dialog.Problem.Message);
         });
-        Test("真实对话框：未传预选记录时保留单集历史查找，季集默认留空交给识别", () =>
+        Test("真实对话框：单集默认只展示整理表单，季集留空交给识别", () =>
         {
             using var fixture = new TransferSubmissionFixture();
             var context = new MoviePilotTransferContext("单集", MoviePilotTransferRequest.TypeSeries, "283938", 1, "4",
                 [new MoviePilotTransferFile("S01E04.mkv", "/library/S01E04.mkv")]);
             var dialog = new MoviePilotReorganizeDialog(fixture.Service, context);
-            Assert.Equal(Microsoft.UI.Xaml.Visibility.Visible, dialog.HistoryLookupPanel.Visibility);
+            Assert.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, dialog.HistoryLookupPanel.Visibility);
             Assert.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, dialog.EpisodeField.Visibility);
             Assert.Equal("", dialog.SeasonBox.Text);
             Assert.Equal("", dialog.EpisodeBox.Text);
-            Assert.Equal("单集 · 共 1 项", dialog.ReorganizeSubtitle.Text);
+            Assert.Equal("共 1 项", dialog.ReorganizeSubtitle.Text);
             Assert.Equal("", dialog.FixtureRequest.Type);
             Assert.Equal(0, fixture.Transport.Writes);
         });
@@ -120,8 +120,7 @@ internal static class Program
                 [new MoviePilotTransferFile("原源", "/downloads/source.mkv")]);
             var dialog = new MoviePilotReorganizeDialog(fixture.Service, context, selected);
             Assert.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, dialog.HistoryLookupPanel.Visibility);
-            Assert.Equal(Microsoft.UI.Xaml.Visibility.Visible, dialog.BatchSelectionSummary.Visibility);
-            Assert.Contains("1 条整理记录", dialog.BatchSelectionSummary.Text);
+            Assert.Equal("共 1 项", dialog.ReorganizeSubtitle.Text);
             Assert.Equal("", dialog.SeasonBox.Text);
             Assert.Equal("", dialog.EpisodeBox.Text);
             Assert.False(dialog.IsPrimaryButtonEnabled);

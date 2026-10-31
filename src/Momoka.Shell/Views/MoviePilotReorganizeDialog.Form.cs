@@ -13,17 +13,15 @@ public sealed partial class MoviePilotReorganizeDialog
     }
 
     /// <summary>
-    /// ContentDialog 的表面宽度跟着内容走：不先给正文一个宽度，四列星号列会塌成内容宽度，
-    /// 弹窗也就停在半宽。这里按窗口可用宽度给正文定宽，再由正文决定弹窗宽度（上限 1000）。
+    /// ContentDialog 的表面宽度跟着内容走；给正文定宽，保持网页端的两列表单比例。
     /// </summary>
     private void OnDialogSizeChanged(object sender, SizeChangedEventArgs args)
     {
-        DialogBody.Width = Math.Min(960, Math.Max(260, args.NewSize.Width - 80));
+        DialogBody.Width = Math.Min(672, Math.Max(260, args.NewSize.Width - 80));
     }
 
     /// <summary>
-    /// 表单按窗口宽度在四列、两列和单列之间重排。四列是为了在 1000 宽的弹窗里一次放下全部选项，
-    /// 不再靠滚动条找下半截（上游网页端 720 宽时是滚动的）。
+    /// 网页端保持两列，窄窗口退为单列；表单可滚动，操作按钮固定。
     /// </summary>
     private void OnBodySizeChanged(object sender, SizeChangedEventArgs args)
     {
@@ -32,7 +30,7 @@ public sealed partial class MoviePilotReorganizeDialog
         // 弹窗模板不带可用的滚动区（ContentScrollViewer 关闭滚动），内容高于窗口就会被裁；
         // 这里按屏幕高度给表单封顶，标题和操作区始终留在屏内。
         FormScroll.MaxHeight = Math.Clamp((XamlRoot?.Size.Height ?? 900) - 215, 200, 700);
-        _formColumns = width >= 860 ? 4 : width >= 560 ? 2 : 1;
+        _formColumns = width >= 500 ? 2 : 1;
         LayoutForm();
         var compactActions = width < 430;
         Grid.SetRow(ReorganizeButton, compactActions ? 1 : 0);
@@ -44,30 +42,29 @@ public sealed partial class MoviePilotReorganizeDialog
     /// <summary>按当前列数把所有字段重新摆进各自的网格；显隐变化（如复用历史）也要重排。</summary>
     private void LayoutForm()
     {
-        // 复用历史时类型与数据源收起，目的那一行只剩两颗：收成两列，不在右边留半排空格。
         var columns = _formColumns;
-        Reflow(DestinationGrid, [TargetStorageField, TransferMethodField, TypeField, MediaSourceField],
-            FromHistoryToggle.IsOn ? Math.Min(2, columns) : columns);
+        Reflow(DestinationGrid, [TargetStorageField, TransferMethodField], columns);
+        Reflow(RecognitionGrid, [TypeField, MediaSourceField], columns);
         Reflow(IdentityGrid, [MediaIdPanel, SeasonField, EpisodeField, EpisodeGroupPanel, EpisodeFormatField, EpisodeOffsetField], columns);
-        Reflow(FileOptionsGrid, [PartField, MinimumSizeField, ScrapeField, FromHistoryField], columns);
-        Reflow(FolderOptionsGrid, [TypeFolderField, CategoryFolderField], Math.Min(2, columns));
+        Reflow(FileOptionsGrid, [PartField, MinimumSizeField], columns);
+        Reflow(FolderOptionsGrid, [TypeFolderField, CategoryFolderField, ScrapeField, FromHistoryField], columns);
     }
 
     private static void Reflow(Grid grid, IReadOnlyList<FrameworkElement> fields, int columns)
     {
         for (var index = 0; index < grid.ColumnDefinitions.Count; index++)
             grid.ColumnDefinitions[index].Width = index < columns ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
-        // 只留真正用到的行：空行本身高度是 0，但 Grid.RowSpacing 照样在空行之间加间距，
-        // 四列时会凭空多出三行空白。行数跟着列数重算。
+        // 隐藏字段不占位置；按有效字段重排行列，避免空行间距和半排空白。
+        var visible = fields.Where(field => field.Visibility == Visibility.Visible).ToArray();
         grid.RowDefinitions.Clear();
-        for (var index = 0; index < (fields.Count + columns - 1) / columns; index++)
+        for (var index = 0; index < (visible.Length + columns - 1) / columns; index++)
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        grid.ColumnSpacing = columns > 1 ? 14 : 0;
-        for (var index = 0; index < fields.Count; index++)
+        grid.ColumnSpacing = columns > 1 ? 24 : 0;
+        for (var index = 0; index < visible.Length; index++)
         {
-            Grid.SetColumn(fields[index], index % columns);
-            Grid.SetRow(fields[index], index / columns);
-            Grid.SetColumnSpan(fields[index], 1);
+            Grid.SetColumn(visible[index], index % columns);
+            Grid.SetRow(visible[index], index / columns);
+            Grid.SetColumnSpan(visible[index], 1);
         }
     }
 
@@ -82,13 +79,14 @@ public sealed partial class MoviePilotReorganizeDialog
             _ => "媒体编号"
         };
         TypeField.Visibility = MediaSourceField.Visibility = FromHistoryToggle.IsOn ? Visibility.Collapsed : Visibility.Visible;
-        LayoutForm();
+        RecognitionGrid.Visibility = FromHistoryToggle.IsOn ? Visibility.Collapsed : Visibility.Visible;
         IdentityGrid.Visibility = !FromHistoryToggle.IsOn && EditIdentity ? Visibility.Visible : Visibility.Collapsed;
         MediaIdPanel.Visibility = EditIdentity ? Visibility.Visible : Visibility.Collapsed;
         SeasonField.Visibility = EpisodeField.Visibility =
             EpisodeFormatField.Visibility = EpisodeOffsetField.Visibility =
                 EditEpisodes ? Visibility.Visible : Visibility.Collapsed;
         EpisodeGroupPanel.Visibility = EditGroup ? Visibility.Visible : Visibility.Collapsed;
+        LayoutForm();
     }
 
     private void OnFromHistoryChanged(object sender, RoutedEventArgs args)

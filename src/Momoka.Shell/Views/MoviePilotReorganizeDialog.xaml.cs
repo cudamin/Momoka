@@ -6,7 +6,7 @@ using Microsoft.UI.Xaml.Controls;
 
 namespace Momoka.Shell.Views;
 
-/// <summary>原记录、表单、只读预览和确认在同一张对话框中，避免嵌套 ContentDialog 吞掉确认。</summary>
+/// <summary>网页式整理表单；自动定位原记录，只读预览和确认仍在同一张对话框中。</summary>
 public sealed partial class MoviePilotReorganizeDialog : ContentDialog
 {
     private readonly MoviePilotService _service;
@@ -24,7 +24,7 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
     private int _groupRevision;
     private CancellationTokenSource? _groupLookup;
     private MoviePilotTransferPreview? _preview;
-    private int _formColumns = 4;
+    private int _formColumns = 2;
     private bool _initialized;
     private bool _updating;
     private bool _busy;
@@ -42,8 +42,8 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
         _initialHistories = initialHistories is null ? null : Array.AsReadOnly(initialHistories.ToArray());
         InitializeComponent();
         RequestedTheme = ThemeHost.Current.IsDark ? ElementTheme.Dark : ElementTheme.Light;
-        ReorganizeSubtitle.Text = $"{context.Title} · 共 {context.Files.Count} 项";
-        SourcePathBox.Text = string.Join("\n", context.Files.Select(file => file.Path));
+        ReorganizeSubtitle.Text = $"共 {context.Files.Count} 项";
+        HistoryLookupPanel.Visibility = Visibility.Collapsed;
         HistoryQuery.Text = context.Title;
         // 打开时全部是自动（对齐上游 ReorganizeDialog 的初始 transferForm）：类型、数据源、编号和季集都
         // 不带当前条目的值，由后端按文件名识别；要覆盖识别结果时再由用户手选。
@@ -57,10 +57,7 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
         _initialized = true;
         if (_initialHistories is not null)
         {
-            Title = $"批量重新整理 — {context.Title}（{_initialHistories.Count} 条）";
-            HistoryLookupPanel.Visibility = Visibility.Collapsed;
-            BatchSelectionSummary.Visibility = Visibility.Visible;
-            BatchSelectionSummary.Text = $"已选 {_initialHistories.Count} 条整理记录。季号与集数留空时，按每份资源的文件名识别。";
+            ReorganizeSubtitle.Text = $"共 {_initialHistories.Count} 项";
         }
         UpdateIdentityVisibility();
         SetBusy(false);
@@ -134,7 +131,11 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
             }
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) { Say(Failure.Describe(error)); }
+        catch (Exception error)
+        {
+            if (_initialHistories is null && _histories.Count == 0) HistoryLookupPanel.Visibility = Visibility.Visible;
+            Say(Failure.Describe(error));
+        }
         finally { _updating = false; SetBusy(false); }
     }
 
@@ -147,7 +148,6 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
         UpdateMatchVisibility();
         _updating = true;
         HistoryBox.ItemsSource = null;
-        OriginalSourceBox.Text = "";
         HistorySummary.Text = "正在查找原整理记录…";
         _updating = false;
         var found = await _service.FindTransferHistoriesAsync(HistoryQuery.Text, _lifetime.Token).ConfigureAwait(true);
@@ -162,7 +162,7 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
             _updating = false;
             if (candidates.Count != 1)
             {
-                AdvancedOptions.IsExpanded = true;
+                HistoryLookupPanel.Visibility = Visibility.Visible;
                 HistorySummary.Text = candidates.Count == 0 ? "没有找到路径匹配的原记录" : "找到多条匹配记录，请选择原整理记录";
                 if (candidates.Count == 0)
                     Say("请更换原片名或文件名查找，或在 MoviePilot 核对路径映射；不会把当前媒体文件重新当作下载源。");
@@ -184,8 +184,7 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
 
     private async Task ApplyHistoryAsync()
     {
-        OriginalSourceBox.Text = string.Join("\n", _histories.Select(history => history.TransferPath));
-        HistorySummary.Text = string.Join("\n", _histories.Select(history => history.Display));
+        HistoryLookupPanel.Visibility = Visibility.Collapsed;
         var dependents = MoviePilotTransferHistoryMatch.Dependents(_histories, _relatedHistories);
         _submissionProblem = dependents.Count == 0 ? null : "旧目标被其他软链接记录引用（" +
             string.Join("、", dependents.Select(history => $"#{history.Id}")) +
@@ -210,6 +209,8 @@ public sealed partial class MoviePilotReorganizeDialog : ContentDialog
     private async void OnHistoryQuery(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
         if (_busy) return;
+        // 首次选项加载失败时，查找按钮也是恢复入口；先补齐存储、来源和目录再定位原记录。
+        if (_options is null) { await LoadAsync().ConfigureAwait(true); return; }
         SetBusy(true);
         try { await FindHistoryAsync().ConfigureAwait(true); }
         catch (OperationCanceledException) { }

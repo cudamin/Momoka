@@ -331,8 +331,6 @@ handle  Views/MissingEpisodesDialog.xaml  List
 handle  Views/MissingEpisodesDialog.xaml  SpecialsSwitch
 handle  Views/MissingEpisodesDialog.xaml  Summary
 handle  Views/MissingEpisodesDialog.xaml  UnairedSwitch
-handle  Views/MoviePilotReorganizeDialog.xaml  AdvancedOptions
-handle  Views/MoviePilotReorganizeDialog.xaml  BatchSelectionSummary
 handle  Views/MoviePilotReorganizeDialog.xaml  CategoryFolderToggle
 handle  Views/MoviePilotReorganizeDialog.xaml  ConfirmChanges
 handle  Views/MoviePilotReorganizeDialog.xaml  ConfirmationPanel
@@ -350,7 +348,6 @@ handle  Views/MoviePilotReorganizeDialog.xaml  HistorySummary
 handle  Views/MoviePilotReorganizeDialog.xaml  IdentityGrid
 handle  Views/MoviePilotReorganizeDialog.xaml  MediaIdBox
 handle  Views/MoviePilotReorganizeDialog.xaml  MinSizeBox
-handle  Views/MoviePilotReorganizeDialog.xaml  OriginalSourceBox
 handle  Views/MoviePilotReorganizeDialog.xaml  PartBox
 handle  Views/MoviePilotReorganizeDialog.xaml  PartField
 handle  Views/MoviePilotReorganizeDialog.xaml  PreviewButton
@@ -364,7 +361,6 @@ handle  Views/MoviePilotReorganizeDialog.xaml  ScrapeToggle
 handle  Views/MoviePilotReorganizeDialog.xaml  SeasonBox
 handle  Views/MoviePilotReorganizeDialog.xaml  SeasonField
 handle  Views/MoviePilotReorganizeDialog.xaml  SourceBox
-handle  Views/MoviePilotReorganizeDialog.xaml  SourcePathBox
 handle  Views/MoviePilotReorganizeDialog.xaml  TargetPathBox
 handle  Views/MoviePilotReorganizeDialog.xaml  TargetPathPanel
 handle  Views/MoviePilotReorganizeDialog.xaml  TargetStorageBox

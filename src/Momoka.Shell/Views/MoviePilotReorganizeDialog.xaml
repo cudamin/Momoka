@@ -8,12 +8,31 @@
     SizeChanged="OnDialogSizeChanged"
     DefaultButton="None">
     <ContentDialog.Resources>
-        <!-- 表单按四列排（2026-10-30）：上游网页端只有 720 宽、内容要滚，这里把窗口放大到能一次看全。 -->
-        <x:Double x:Key="ContentDialogMaxWidth">1000</x:Double>
+        <!-- 与网页端一致：紧凑的两列表单、整行路径、固定底部操作；短窗口只滚动正文。 -->
+        <x:Double x:Key="ContentDialogMaxWidth">720</x:Double>
         <x:Double x:Key="ContentDialogMaxHeight">880</x:Double>
-        <Thickness x:Key="ContentDialogTitleMargin">0,0,0,8</Thickness>
+        <Thickness x:Key="ContentDialogTitleMargin">0,0,0,16</Thickness>
         <Thickness x:Key="ContentDialogCommandSpaceMargin">0,16,0,0</Thickness>
-        <Thickness x:Key="ContentDialogPadding">18</Thickness>
+        <Thickness x:Key="ContentDialogPadding">22</Thickness>
+        <Style x:Key="ReorganizePickerStyle" TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="Padding" Value="38,12,0,12" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgPickerCornerRadius}" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderStrongBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
+        </Style>
+        <Style x:Key="ReorganizeTextStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
+            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="Padding" Value="38,12,12,12" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgPickerCornerRadius}" />
+            <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource EgBorderStrongBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
+        </Style>
+        <Thickness x:Key="ComboBoxEditableTextPadding">38,12,32,12</Thickness>
         <Style x:Key="ReorganizeActionStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
             <Setter Property="MinHeight" Value="36" />
             <Setter Property="Padding" Value="12,8" />
@@ -48,78 +67,107 @@
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
         <InfoBar x:Name="Problem" IsClosable="False" IsOpen="False" Severity="Error" />
         <ScrollViewer x:Name="FormScroll" Grid.Row="1" HorizontalScrollMode="Disabled" HorizontalScrollBarVisibility="Disabled"
-            VerticalScrollBarVisibility="Auto" Padding="0,0,18,0">
+            VerticalScrollBarVisibility="Auto" Padding="0,8,8,4">
             <StackPanel Spacing="10">
                 <ContentControl x:Name="FormPanel" HorizontalContentAlignment="Stretch">
-                    <StackPanel Spacing="10">
-                        <TextBlock x:Name="BatchSelectionSummary" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" Visibility="Collapsed" />
-                        <StackPanel x:Name="HistoryLookupPanel" Spacing="0">
-                        <Expander x:Name="AdvancedOptions" Header="原整理记录与源文件" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
-                            <StackPanel Spacing="10">
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="从原记录找回真实源文件，不会把媒体库中的软链接当成新的下载文件。" TextWrapping="Wrap" />
-                                <TextBox x:Name="SourcePathBox" Header="媒体库当前文件" IsReadOnly="True" TextWrapping="Wrap" />
-                                <AutoSuggestBox x:Name="HistoryQuery" Header="查找整理历史" PlaceholderText="输入原片名或文件名"
-                                    QueryIcon="Find" QuerySubmitted="OnHistoryQuery" />
-                                <ComboBox x:Name="HistoryBox" Header="原整理记录" HorizontalAlignment="Stretch"
-                                    DisplayMemberPath="Display" SelectionChanged="OnHistoryChanged" />
-                                <TextBlock x:Name="HistorySummary" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-                                <TextBox x:Name="OriginalSourceBox" Header="本次实际源文件" IsReadOnly="True" TextWrapping="Wrap" />
-                            </StackPanel>
-                        </Expander>
+                    <StackPanel Spacing="24">
+                        <StackPanel x:Name="HistoryLookupPanel" Spacing="10" Visibility="Collapsed">
+                            <TextBlock x:Name="HistorySummary" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                            <AutoSuggestBox x:Name="HistoryQuery" Header="查找整理历史" PlaceholderText="输入原片名或文件名"
+                                QueryIcon="Find" QuerySubmitted="OnHistoryQuery" />
+                            <ComboBox x:Name="HistoryBox" Header="原整理记录" HorizontalAlignment="Stretch"
+                                DisplayMemberPath="Display" SelectionChanged="OnHistoryChanged" />
                         </StackPanel>
-                        <Grid x:Name="DestinationGrid" ColumnSpacing="14" RowSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                        <Grid x:Name="DestinationGrid" ColumnSpacing="24" RowSpacing="20">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="TargetStorageField" Spacing="6">
-                                <ComboBox x:Name="TargetStorageBox" Header="目的存储" PlaceholderText="自动" HorizontalAlignment="Stretch"
+                                <Grid>
+                                    <ComboBox x:Name="TargetStorageBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="目的存储" PlaceholderText="自动" HorizontalAlignment="Stretch"
                                     DisplayMemberPath="Name" SelectionChanged="OnStorageChanged" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="自动时由后端匹配。" TextWrapping="Wrap" />
+                                    <FontIcon Glyph="&#xE958;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
+                                        HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
+                                    <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
+                                        <TextBlock Text="目的存储" Style="{StaticResource EgCaptionStyle}" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理目的存储，选择自动时由后端匹配" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="TransferMethodField" Spacing="6">
-                                <ComboBox x:Name="TransferTypeBox" Header="整理方式" HorizontalAlignment="Stretch" SelectionChanged="OnSelectionEdited">
+                                <Grid>
+                                    <ComboBox x:Name="TransferTypeBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="整理方式" HorizontalAlignment="Stretch" SelectionChanged="OnSelectionEdited">
                                     <ComboBoxItem Content="自动" Tag="" /><ComboBoxItem Content="复制" Tag="copy" />
                                     <ComboBoxItem Content="移动（移走源文件）" Tag="move" /><ComboBoxItem Content="硬链接" Tag="link" /><ComboBoxItem Content="软链接" Tag="softlink" />
                                 </ComboBox>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="选目录后自动采用目录方式。" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <StackPanel x:Name="TypeField" Spacing="6">
-                                <ComboBox x:Name="TypeBox" Header="类型" HorizontalAlignment="Stretch" SelectionChanged="OnTypeChanged">
-                                    <ComboBoxItem Content="自动" Tag="" /><ComboBoxItem Content="电影" Tag="电影" /><ComboBoxItem Content="电视剧" Tag="电视剧" />
-                                </ComboBox>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="自动时由后端识别。" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <StackPanel x:Name="MediaSourceField" Spacing="6">
-                                <ComboBox x:Name="SourceBox" Header="数据源" HorizontalAlignment="Stretch" DisplayMemberPath="Name" SelectionChanged="OnSourceChanged" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="默认沿用后台识别设置。" TextWrapping="Wrap" />
+                                    <FontIcon Glyph="&#xE8AB;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
+                                        HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
+                                    <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
+                                        <TextBlock Text="整理方式" Style="{StaticResource EgCaptionStyle}" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="文件操作整理方式，选择自动时使用后端匹配结果或默认规则" TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
                         <StackPanel x:Name="TargetPathPanel" Spacing="6">
-                            <ComboBox x:Name="TargetPathBox" Header="目的路径" PlaceholderText="自动" HorizontalAlignment="Stretch" IsEditable="True"
+                            <Grid>
+                                    <ComboBox x:Name="TargetPathBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="目的路径" PlaceholderText="自动" HorizontalAlignment="Stretch" IsEditable="True"
                                 SelectionChanged="OnDirectoryChanged" />
-                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="可选媒体库目录，或直接填写路径。" TextWrapping="Wrap" />
-                            <Border x:Name="MatchedPathPanel" Visibility="Collapsed" Padding="10" CornerRadius="{StaticResource EgCardCornerRadius}"
-                                Background="{StaticResource EgAccentSoftBrush}">
+                                    <FontIcon Glyph="&#xE8B7;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
+                                        HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
+                                    <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
+                                        <TextBlock Text="目的路径" Style="{StaticResource EgCaptionStyle}" />
+                                    </Border>
+                                </Grid>
+                            <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理目的路径，选择自动将由后端按源路径匹配" TextWrapping="Wrap" />
+                            <Border x:Name="MatchedPathPanel" Visibility="Collapsed" Padding="12,8" CornerRadius="{StaticResource EgSearchCornerRadius}"
+                                Background="{ThemeResource EgAccentSoftBrush}">
                                 <Grid ColumnSpacing="10">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                     <TextBlock x:Name="MatchedPathText" Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgAccentBrush}"
                                         TextWrapping="Wrap" VerticalAlignment="Center" />
-                                    <Button x:Name="UseMatchedPathButton" Grid.Column="1" Content="使用匹配路径" Click="OnUseMatchedPath"
-                                        VerticalAlignment="Center" Style="{StaticResource ReorganizeActionStyle}" />
+                                    <Button x:Name="UseMatchedPathButton" AutomationProperties.Name="使用匹配路径" Grid.Column="1" Click="OnUseMatchedPath"
+                                        VerticalAlignment="Center" Style="{StaticResource ReorganizeActionStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE73E;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock Text="使用匹配路径" /></StackPanel>
+                </Button>
                                 </Grid>
                             </Border>
                         </StackPanel>
-                        <Grid x:Name="IdentityGrid" ColumnSpacing="14" RowSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                        <Grid x:Name="RecognitionGrid" ColumnSpacing="24" RowSpacing="20">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <StackPanel x:Name="TypeField" Spacing="6">
+                                <Grid>
+                                    <ComboBox x:Name="TypeBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="类型" HorizontalAlignment="Stretch" SelectionChanged="OnTypeChanged">
+                                    <ComboBoxItem Content="自动" Tag="" /><ComboBoxItem Content="电影" Tag="电影" /><ComboBoxItem Content="电视剧" Tag="电视剧" />
+                                </ComboBox>
+                                    <FontIcon Glyph="&#xE714;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
+                                        HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
+                                    <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
+                                        <TextBlock Text="类型" Style="{StaticResource EgCaptionStyle}" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="文件的媒体类型" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel x:Name="MediaSourceField" Spacing="6">
+                                <Grid>
+                                    <ComboBox x:Name="SourceBox" Style="{StaticResource ReorganizePickerStyle}" AutomationProperties.Name="数据源" HorizontalAlignment="Stretch" DisplayMemberPath="Name" SelectionChanged="OnSourceChanged" />
+                                    <FontIcon Glyph="&#xE1A5;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
+                                        HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
+                                    <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
+                                        <TextBlock Text="数据源" Style="{StaticResource EgCaptionStyle}" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="默认使用后台识别设置，可为本次整理与刮削单独切换" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid x:Name="IdentityGrid" ColumnSpacing="24" RowSpacing="20">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="MediaIdPanel" Spacing="6">
                                 <AutoSuggestBox x:Name="MediaIdBox" Header="媒体编号" PlaceholderText="留空自动识别，或输入片名查找"
                                     QueryIcon="Find" TextChanged="OnMediaIdChanged" QuerySubmitted="OnMediaIdQuery" SuggestionChosen="OnSuggestionChosen" />
@@ -147,37 +195,35 @@
                                 <TextBlock Style="{StaticResource EgCaptionStyle}" Text="按表达式调整识别到的集号。" TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
-                        <Grid x:Name="FileOptionsGrid" ColumnSpacing="14" RowSpacing="8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
+                        <Grid x:Name="FileOptionsGrid" ColumnSpacing="24" RowSpacing="20">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="PartField" Spacing="6">
-                                <TextBox x:Name="PartBox" Header="指定 Part" PlaceholderText="如 part1" TextChanged="OnEdited" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="留空不指定分段。" TextWrapping="Wrap" />
+                                <Grid>
+                                    <TextBox x:Name="PartBox" Style="{StaticResource ReorganizeTextStyle}" AutomationProperties.Name="指定Part" PlaceholderText="如 part1" TextChanged="OnEdited" />
+                                    <FontIcon Glyph="&#xE8C8;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
+                                        HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
+                                    <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
+                                        <TextBlock Text="指定Part" Style="{StaticResource EgCaptionStyle}" />
+                                    </Border>
+                                </Grid>
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="指定Part，如part1" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="MinimumSizeField" Spacing="6">
-                                <TextBox x:Name="MinSizeBox" Header="最小文件大小（MB）" Text="0" TextChanged="OnEdited" />
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="0 表示不限。" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <StackPanel x:Name="ScrapeField" Spacing="6">
-                                <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <ToggleSwitch x:Name="ScrapeToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="刮削元数据" />
-                                    <TextBlock Grid.Column="1" Text="刮削元数据" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
+                                <Grid>
+                                    <TextBox x:Name="MinSizeBox" Style="{StaticResource ReorganizeTextStyle}" AutomationProperties.Name="最小文件大小（MB）" Text="0" TextChanged="OnEdited" />
+                                    <FontIcon Glyph="&#xE8A5;" FontSize="{StaticResource EgSubheadFontSize}" Foreground="{ThemeResource EgTextDimBrush}"
+                                        HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
+                                    <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                        Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
+                                        <TextBlock Text="最小文件大小（MB）" Style="{StaticResource EgCaptionStyle}" />
+                                    </Border>
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理完成后自动刮削。" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <StackPanel x:Name="FromHistoryField" Spacing="6">
-                                <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                                    <ToggleSwitch x:Name="FromHistoryToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFromHistoryChanged" AutomationProperties.Name="复用历史识别信息" />
-                                    <TextBlock Grid.Column="1" Text="复用历史识别信息" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
-                                </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="用原记录的媒体信息。" TextWrapping="Wrap" />
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="只整理大于最小文件大小的文件" TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
-                        <Grid x:Name="FolderOptionsGrid" ColumnSpacing="14" RowSpacing="8">
+                        <Grid x:Name="FolderOptionsGrid" ColumnSpacing="24" RowSpacing="20">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="TypeFolderField" Spacing="6">
@@ -185,17 +231,30 @@
                                     <ToggleSwitch x:Name="TypeFolderToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="按类型分类" />
                                     <TextBlock Grid.Column="1" Text="按类型分类" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="按电影、电视剧建子目录。" TextWrapping="Wrap" />
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理时目的路径下按媒体类型添加子目录" TextWrapping="Wrap" />
                             </StackPanel>
                             <StackPanel x:Name="CategoryFolderField" Spacing="6">
                                 <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                     <ToggleSwitch x:Name="CategoryFolderToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="按类别分类" />
                                     <TextBlock Grid.Column="1" Text="按类别分类" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
                                 </Grid>
-                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="按媒体类别建子目录。" TextWrapping="Wrap" />
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理时在目的路径下按媒体类别添加子目录" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel x:Name="ScrapeField" Spacing="6">
+                                <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <ToggleSwitch x:Name="ScrapeToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFolderOptionChanged" AutomationProperties.Name="刮削元数据" />
+                                    <TextBlock Grid.Column="1" Text="刮削元数据" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理完成后自动刮削元数据" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <StackPanel x:Name="FromHistoryField" Spacing="6">
+                                <Grid ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <ToggleSwitch x:Name="FromHistoryToggle" Style="{StaticResource ReorganizeToggleStyle}" Toggled="OnFromHistoryChanged" AutomationProperties.Name="复用历史识别信息" />
+                                    <TextBlock Grid.Column="1" Text="复用历史识别信息" Style="{StaticResource EgBodyStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                                </Grid>
+                                <TextBlock Style="{StaticResource EgCaptionStyle}" Text="使用历史整理记录中已识别的媒体信息" TextWrapping="Wrap" />
                             </StackPanel>
                         </Grid>
-                        <TextBlock Style="{StaticResource EgCaptionStyle}" Text="按原记录重新整理可能清理旧目标和成功历史；必须先预览、再核对确认。" TextWrapping="Wrap" />
                     </StackPanel>
                 </ContentControl>
                 <ItemsControl x:Name="PreviewList" ItemsSource="{x:Bind Lines}" Visibility="Collapsed">
@@ -217,7 +276,8 @@
                 </Border>
             </StackPanel>
         </ScrollViewer>
-        <StackPanel Grid.Row="2" Spacing="6">
+        <StackPanel Grid.Row="2" Spacing="10">
+            <Border Height="1" Background="{ThemeResource EgBorderBrush}" />
             <Grid x:Name="ProgressRow" ColumnSpacing="10"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                 <ProgressRing x:Name="PreviewRing" Width="20" Height="20" IsActive="False" Visibility="Collapsed" />
                 <TextBlock x:Name="PreviewSummary" Grid.Column="1" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" TextWrapping="Wrap" />
@@ -225,9 +285,15 @@
             <Grid x:Name="ActionsGrid" ColumnSpacing="8" RowSpacing="8">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                <Button x:Name="PreviewButton" Content="预览" Click="OnPreview" Style="{StaticResource ReorganizeActionStyle}" />
-                <Button x:Name="QueueButton" Grid.Column="1" Content="加入整理队列" Click="OnQueueSubmit" Style="{StaticResource ReorganizeActionStyle}" />
-                <Button x:Name="ReorganizeButton" Grid.Column="3" Content="重新整理" Click="OnReorganizeSubmit" Style="{StaticResource AccentButtonStyle}" MinHeight="36" />
+                <Button x:Name="PreviewButton" AutomationProperties.Name="预览" Click="OnPreview" Style="{StaticResource ReorganizeActionStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE890;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock Text="预览" /></StackPanel>
+                </Button>
+                <Button x:Name="QueueButton" AutomationProperties.Name="加入整理队列" Grid.Column="1" Click="OnQueueSubmit" Style="{StaticResource ReorganizeActionStyle}">
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE710;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock Text="加入整理队列" /></StackPanel>
+                </Button>
+                <Button x:Name="ReorganizeButton" AutomationProperties.Name="重新整理" Grid.Column="3" Click="OnReorganizeSubmit" Style="{StaticResource AccentButtonStyle}" MinHeight="36">
+                    <StackPanel Orientation="Horizontal" Spacing="8"><FontIcon Glyph="&#xE72C;" FontSize="{StaticResource EgBodyFontSize}" /><TextBlock Text="重新整理" /></StackPanel>
+                </Button>
             </Grid>
         </StackPanel>
     </Grid>

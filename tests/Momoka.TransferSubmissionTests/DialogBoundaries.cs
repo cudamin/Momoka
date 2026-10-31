@@ -136,7 +136,6 @@ namespace Momoka.Shell.Views
     }
     public sealed partial class MoviePilotReorganizeDialog
     {
-        internal Microsoft.UI.Xaml.Controls.TextBox SourcePathBox { get; } = new();
         internal Microsoft.UI.Xaml.Controls.AutoSuggestBox HistoryQuery { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ComboBox TypeBox { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ComboBox TransferTypeBox { get; } = new();
@@ -147,7 +146,6 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.Controls.ComboBox TargetStorageBox { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ComboBox SourceBox { get; } = new();
         internal Microsoft.UI.Xaml.Controls.ComboBox HistoryBox { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.TextBox OriginalSourceBox { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBlock HistorySummary { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox PartBox { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox MinSizeBox { get; } = new() { Text = "0" };
@@ -163,7 +161,6 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.FrameworkElement FormPanel { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement DialogBody { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement HistoryLookupPanel { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.TextBlock BatchSelectionSummary { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement PreviewList { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement ConfirmationPanel { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement PreviewButton { get; } = new();
@@ -171,11 +168,11 @@ namespace Momoka.Shell.Views
 
         internal Microsoft.UI.Xaml.Controls.TextBlock ReorganizeSubtitle { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid ReorganizeTitle { get; } = new();
-        internal Microsoft.UI.Xaml.Controls.Expander AdvancedOptions { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Button DismissReorganize { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Button QueueButton { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Button ReorganizeButton { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid DestinationGrid { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.Grid RecognitionGrid { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid IdentityGrid { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid FileOptionsGrid { get; } = new();
         internal Microsoft.UI.Xaml.Controls.Grid FolderOptionsGrid { get; } = new();
@@ -236,6 +233,8 @@ namespace Momoka.Shell.Views
         }
         internal Task FixtureSubmitAsync(bool background = false) => SubmitAsync(background);
         internal Task FixtureLoadAsync() => LoadAsync();
+        internal void FixtureFindHistory() => OnHistoryQuery(HistoryQuery, new Microsoft.UI.Xaml.Controls.AutoSuggestBoxQuerySubmittedEventArgs());
+        internal void FixtureSelectHistory() => OnHistoryChanged(HistoryBox, new Microsoft.UI.Xaml.Controls.SelectionChangedEventArgs());
         internal MoviePilotTransferRequest FixtureRequest => Request;
         internal void FixtureApplyMatch() => OnUseMatchedPath(this, new Microsoft.UI.Xaml.RoutedEventArgs());
         internal void FixtureFromHistory(bool enabled)

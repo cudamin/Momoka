@@ -29,7 +29,66 @@ internal static class ManualDialogTests
             Assert.Equal("", dialog.EpisodeBox.Text);
             Assert.Equal("", dialog.MediaIdBox.Text);
             Assert.Equal(Visibility.Collapsed, dialog.IdentityGrid.Visibility);
+            Assert.Equal(Visibility.Collapsed, dialog.HistoryLookupPanel.Visibility);
+            Assert.Equal("/downloads/source.mkv", request.Histories.Single().TransferPath);
             Assert.Equal(Visibility.Collapsed, dialog.EpisodeField.Visibility);
+            Assert.Equal(0, fixture.Transport.Writes);
+            dialog.EmitClosed();
+        });
+        Test("手动整理窗口：原记录查询失败时显示直接重试，恢复后回到简洁表单", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            fixture.Transport.Failure = "history-500";
+            var context = new MoviePilotTransferContext("Original", "电影", "1", null, "",
+                [new("source", "/library/original.mkv")]);
+            var dialog = new MoviePilotReorganizeDialog(fixture.Service, context);
+            TransferSubmissionFixture.Complete(dialog.FixtureLoadAsync());
+            Assert.True(dialog.Problem.IsOpen);
+            Assert.Equal(Visibility.Visible, dialog.HistoryLookupPanel.Visibility);
+            Assert.False(dialog.PreviewButton.IsEnabled);
+            fixture.Transport.Failure = "";
+            dialog.FixtureFindHistory();
+            Assert.False(dialog.Problem.IsOpen);
+            Assert.Equal(Visibility.Collapsed, dialog.HistoryLookupPanel.Visibility);
+            Assert.True(dialog.PreviewButton.IsEnabled);
+            Assert.Equal(0, fixture.Transport.Writes);
+            dialog.EmitClosed();
+        });
+        Test("手动整理窗口：选项加载失败重试会补齐存储来源和目录，再开放预览", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            fixture.Transport.Failure = "options-500";
+            var dialog = new MoviePilotReorganizeDialog(fixture.Service,
+                new("Original", "电影", "1", null, "", [new("source", "/library/original.mkv")]));
+            TransferSubmissionFixture.Complete(dialog.FixtureLoadAsync());
+            Assert.True(dialog.Problem.IsOpen);
+            Assert.Equal(Visibility.Visible, dialog.HistoryLookupPanel.Visibility);
+            Assert.False(dialog.PreviewButton.IsEnabled);
+            fixture.Transport.Failure = "";
+            dialog.FixtureFindHistory();
+            Assert.False(dialog.Problem.IsOpen);
+            Assert.Equal(Visibility.Collapsed, dialog.HistoryLookupPanel.Visibility);
+            Assert.True(dialog.PreviewButton.IsEnabled);
+            Assert.True(((IEnumerable<MoviePilotStorage>)dialog.TargetStorageBox.ItemsSource!).Any(storage => storage.Type == "local"));
+            Assert.True(((IEnumerable<MoviePilotMediaSource>)dialog.SourceBox.ItemsSource!).Any(source => source.Id == "douban"));
+            Assert.True(((IEnumerable<string>)dialog.TargetPathBox.ItemsSource!).Contains("/library", StringComparer.Ordinal));
+            Assert.Equal(0, fixture.Transport.Writes);
+            dialog.EmitClosed();
+        });
+        Test("手动整理窗口：原记录不唯一时直接重选，选择后仍用记录的源文件", () =>
+        {
+            using var fixture = new TransferSubmissionFixture();
+            fixture.Transport.DuplicateHistory = true;
+            var dialog = Load(fixture);
+            Assert.Equal(Visibility.Visible, dialog.HistoryLookupPanel.Visibility);
+            Assert.False(dialog.PreviewButton.IsEnabled);
+            var candidates = ((IEnumerable<MoviePilotTransferHistory>)dialog.HistoryBox.ItemsSource!).ToList();
+            dialog.HistoryBox.SelectedIndex = candidates.FindIndex(history => history.Id == 2);
+            dialog.FixtureSelectHistory();
+            Assert.Equal(Visibility.Collapsed, dialog.HistoryLookupPanel.Visibility);
+            Assert.Equal(2L, dialog.FixtureRequest.Histories.Single().Id);
+            Assert.Equal("/downloads/source.mkv", dialog.FixtureRequest.Histories.Single().TransferPath);
+            Assert.True(dialog.PreviewButton.IsEnabled);
             Assert.Equal(0, fixture.Transport.Writes);
             dialog.EmitClosed();
         });
@@ -212,7 +271,7 @@ internal static class ManualDialogTests
             dialog.EmitClosed();
             Assert.Equal(0, fixture.Transport.Writes);
         });
-        Test("手动整理窗口接线：四列表单在滚动区外留操作，窗口放大到一次看全", () =>
+        Test("手动整理窗口接线：网页两列顺序、固定操作、无折叠和当前文件", () =>
         {
             var root = RepositoryRoot();
             var document = XDocument.Load(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotReorganizeDialog.xaml"));
@@ -220,7 +279,10 @@ internal static class ManualDialogTests
             XElement Named(string name) => document.Descendants().Single(element => (string?)element.Attribute(x + "Name") == name);
             foreach (var action in new[] { "PreviewButton", "QueueButton", "ReorganizeButton" })
                 Assert.False(Named(action).Ancestors().Any(parent => parent.Name.LocalName == "ScrollViewer"));
-            Assert.Equal("Expander", Named("AdvancedOptions").Name.LocalName);
+            Assert.False(document.Descendants().Any(element => element.Name.LocalName == "Expander"));
+            foreach (var removed in new[] { "SourcePathBox", "OriginalSourceBox", "AdvancedOptions", "BatchSelectionSummary" })
+                Assert.False(document.Descendants().Any(element => (string?)element.Attribute(x + "Name") == removed));
+            Assert.Equal("Collapsed", (string?)Named("HistoryLookupPanel").Attribute("Visibility"));
             foreach (var option in new[] { "TypeFolderToggle", "CategoryFolderToggle", "ScrapeToggle", "FromHistoryToggle" })
             {
                 Assert.Equal("ToggleSwitch", Named(option).Name.LocalName);
@@ -229,14 +291,20 @@ internal static class ManualDialogTests
             Assert.Equal("None", (string?)document.Root!.Attribute("DefaultButton"));
             Assert.Equal("Stretch", (string?)document.Root!.Attribute("HorizontalContentAlignment"));
             Assert.False(document.Descendants().Any(element => ((string?)element.Attribute(x + "Name"))?.Contains("Cue", StringComparison.OrdinalIgnoreCase) == true));
-            foreach (var grid in new[] { "DestinationGrid", "IdentityGrid", "FileOptionsGrid" })
+            foreach (var grid in new[] { "DestinationGrid", "RecognitionGrid", "IdentityGrid", "FileOptionsGrid", "FolderOptionsGrid" })
             {
                 var definitions = Named(grid).Elements().Single(element => element.Name.LocalName == "Grid.ColumnDefinitions");
-                Assert.Equal(4, definitions.Elements().Count(definition => definition.Name.LocalName == "ColumnDefinition"));
+                Assert.Equal(2, definitions.Elements().Count(definition => definition.Name.LocalName == "ColumnDefinition"));
             }
+            var blocks = Named("DestinationGrid").Parent!.Elements()
+                .Select(element => (string?)element.Attribute(x + "Name")).Where(name => name is not null).ToArray();
+            Assert.True(blocks.SequenceEqual(new[] { "HistoryLookupPanel", "DestinationGrid", "TargetPathPanel", "RecognitionGrid", "IdentityGrid", "FileOptionsGrid", "FolderOptionsGrid" }));
+            var options = Named("FolderOptionsGrid").Elements().Where(element => element.Name.LocalName == "StackPanel")
+                .Select(element => (string?)element.Attribute(x + "Name")).ToArray();
+            Assert.True(options.SequenceEqual(new[] { "TypeFolderField", "CategoryFolderField", "ScrapeField", "FromHistoryField" }));
             var width = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "ContentDialogMaxWidth");
             var height = document.Descendants().Single(element => (string?)element.Attribute(x + "Key") == "ContentDialogMaxHeight");
-            Assert.True(double.Parse(width.Value) >= 900, "弹窗宽度没有放大");
+            Assert.Equal(720d, double.Parse(width.Value));
             Assert.True(double.Parse(height.Value) >= 800, "弹窗高度没有放大");
         });
     }
