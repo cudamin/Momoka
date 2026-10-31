@@ -65,7 +65,7 @@
     },
     {
       "path": "src/Momoka.Core/Emby/EmbyItem.cs",
-      "sha256": "b681d5c2990577db55d52f4c7d9afb334cd076dc87e64ae771d08dc863778d12"
+      "sha256": "cac59bc2950de2a812de8f15ea847236b0d77a54109c05d0b111da1144988878"
     },
     {
       "path": "src/Momoka.Core/Playback/EpisodeNavigation.cs",
