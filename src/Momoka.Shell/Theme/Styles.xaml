@@ -111,6 +111,12 @@
     -->
     <CornerRadius x:Key="EgPickerCornerRadius">12</CornerRadius>
 
+    <!-- 所有搜索输入统一接设置页截图那档圆角；只改形状，保留平台模板、颜色与输入行为。 -->
+    <CornerRadius x:Key="EgSearchCornerRadius">10</CornerRadius>
+    <Style TargetType="AutoSuggestBox" BasedOn="{StaticResource DefaultAutoSuggestBoxStyle}">
+        <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
+    </Style>
+
     <!--
       详情页那几颗下拉的衣服：<local:EgPicker> 是 ComboBox 的子类，显式样式按「类型精确相等」匹配，框架给
       ComboBox 的那一份隐式样式（generic.xaml 里那条 TargetType="ComboBox"）不会落到子类身上 —— 不接这一行，
@@ -572,7 +578,7 @@
     </Style>
 
     <!--
-      搜索框的输入层。原生文本框的上下内边距会让 40 DIP 胶囊里的文字偏上；模板保留（光标、清除键、输入法
+      搜索框的输入层。原生文本框的上下内边距会让 40 DIP 搜索框里的文字偏上；模板保留（光标、清除键、输入法
       和键盘都在里面），只把输入与占位文字居中。搜索页那一颗和「在 MoviePilot 搜索版本」窗口那一颗共用这一份
       —— 两处的框必须一样高、字站在同一条线上，各写一份就迟早只改一处。
     -->

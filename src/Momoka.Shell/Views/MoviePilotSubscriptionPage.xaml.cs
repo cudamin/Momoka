@@ -72,8 +72,9 @@ public sealed partial class MoviePilotSubscriptionPage : Page, IShellContent
         PaintBackdropFade();
         MediaViewModel.PropertyChanged += (_, args) =>
         {
-            if (args.PropertyName == nameof(MediaViewModel.Backdrop))
-                _request?.SetTitleStrip?.Invoke(MediaViewModel.Backdrop is null ? TitleStrip.Plain : TitleStrip.OnScrim);
+            if (args.PropertyName is nameof(MediaViewModel.Backdrop) or nameof(MediaViewModel.DetailErrorVisibility))
+                _request?.SetTitleStrip?.Invoke(MediaViewModel.DetailErrorVisibility == Visibility.Visible || MediaViewModel.Backdrop is null
+                    ? TitleStrip.Plain : TitleStrip.OnScrim);
         };
     }
 

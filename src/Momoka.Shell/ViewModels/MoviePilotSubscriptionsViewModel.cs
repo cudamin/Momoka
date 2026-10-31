@@ -250,6 +250,8 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     public partial string PlaybackStatus { get; set; } = "";
     [ObservableProperty]
     public partial int FilterIndex { get; set; }
+    public string FilterNotice => _episodes.Count > 0 && Episodes.Count == 0
+        ? FilterIndex == 1 ? "当前范围内暂无已入库的集。" : "当前范围内没有缺集或未入库的集。" : "";
     public bool CanManage => Live && _service?.Available == true && !Working && !Busy && !Deleted;
     public bool CanWriteSelected => CanManage && Selected is { } selected && !NeedsReview(selected);
     partial void OnFilterIndexChanged(int value) => ApplyFilter();
@@ -330,17 +332,20 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
             }
             if (_detail && Selected is { } selected)
             {
+                // 首次读取订阅本身也可能失败；先撤销上一轮入库/播放结论，不能在失败后恢复旧目标。
+                foreach (var row in _episodes) row.Retire();
+                _episodes = [];
+                Episodes.Clear();
+                OnPropertyChanged(nameof(FilterNotice));
+                PlaybackStatus = "";
+                LibraryBadge = "";
+                FileSummary = "正在读取文件统计…";
+                RefreshCommands();
                 var current = await _service.SubscriptionAsync(selected.Subscription, pending.Token);
                 if (!IsCurrent(token) || !Live) return;
                 selected.Update(current);
                 _ = selected.LoadPosterAsync(_service);
                 _ = selected.LoadBackdropAsync(_service);
-                foreach (var row in _episodes) row.Retire();
-                _episodes = [];
-                Episodes.Clear();
-                PlaybackStatus = "";
-                LibraryBadge = "";
-                FileSummary = "正在读取文件统计…";
                 var files = await _service.SubscriptionFilesAsync(current, pending.Token);
                 if (!IsCurrent(token) || !Live) return;
                 var airDates = await AirDatesAsync(current, pending.Token);
@@ -566,6 +571,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
     {
         Episodes.Clear();
         foreach (var episode in _episodes.Where(episode => FilterIndex switch { 1 => episode.InLibrary, 2 => !episode.InLibrary, _ => true })) Episodes.Add(episode);
+        OnPropertyChanged(nameof(FilterNotice));
     }
 
     private async Task LoadPlaybackAsync(MoviePilotSubscription subscription, MoviePilotSubscriptionFiles files,
@@ -654,6 +660,7 @@ public sealed partial class MoviePilotSubscriptionsViewModel : PageViewModel
         _playbackScope = null; _play = null;
         foreach (var row in _episodes) row.Retire();
         _episodes = []; Episodes.Clear();
+        OnPropertyChanged(nameof(FilterNotice));
         Working = false;
         LibraryBadge = "";
 

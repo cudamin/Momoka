@@ -29,7 +29,7 @@
                 <StackPanel x:Name="BasicFields" Spacing="8">
                     <Grid x:Name="EpisodeFields" ColumnSpacing="20" RowSpacing="16">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
-                        <StackPanel x:Name="KeywordField" Spacing="4"><TextBox x:Name="KeywordInput" Header="搜索关键词" Text="{x:Bind ViewModel.Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /><TextBlock Text="指定搜索站点时使用的关键词" Style="{StaticResource EditorHint}" /></StackPanel>
+                        <StackPanel x:Name="KeywordField" Spacing="4"><TextBox x:Name="KeywordInput" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="搜索关键词" Text="{x:Bind ViewModel.Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" /><TextBlock Text="指定搜索站点时使用的关键词" Style="{StaticResource EditorHint}" /></StackPanel>
                         <StackPanel x:Name="TotalField" Grid.Column="1" Spacing="4" Visibility="{x:Bind ViewModel.SeriesVisibility, Mode=OneWay}"><NumberBox x:Name="TotalInput" Header="总集数" Minimum="0" Maximum="10000" Value="{x:Bind ViewModel.TotalEpisodes, Mode=TwoWay}" SpinButtonPlacementMode="Compact" /><TextBlock Text="剧集总集数" Style="{StaticResource EditorHint}" /></StackPanel>
                         <StackPanel x:Name="StartField" Grid.Column="2" Spacing="4" Visibility="{x:Bind ViewModel.SeriesVisibility, Mode=OneWay}"><NumberBox x:Name="StartInput" Header="开始集数" Minimum="0" Maximum="10000" Value="{x:Bind ViewModel.StartEpisode, Mode=TwoWay}" SpinButtonPlacementMode="Compact" /><TextBlock Text="开始订阅集数" Style="{StaticResource EditorHint}" /></StackPanel>
                     </Grid>

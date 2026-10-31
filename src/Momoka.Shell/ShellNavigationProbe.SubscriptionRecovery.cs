@@ -118,9 +118,10 @@ internal sealed partial class ShellNavigationProbe
                 var content = (StackPanel)row.Children[1];
                 var actions = (StackPanel)row.Children[2];
                 await SaveSettledFrameAsync(page, $"mp-subscription-files-recovery-{width}.png");
-                Require(content.ActualWidth >= (width == 600 ? 250 : 150),
+                Require(content.ActualWidth >= 200,
                     $"集名、日期和状态被固定海报挤窄：page={page.ActualWidth}, row={row.ActualWidth}, content={content.ActualWidth}, picture={picture.ActualWidth}, actions={actions.ActualWidth}, contentRow={Grid.GetRow(content)}");
-                Require(Grid.GetRow(content) == (width == 600 ? 1 : 0), "紧凑布局没有随窗口恢复");
+                Require(Grid.GetRow(content) == 0 && picture.Visibility == Visibility.Visible
+                    && Math.Abs(picture.ActualWidth - 144) < 1, "有图行没有保持紧凑的左右布局");
                 Require(actions.TransformToVisual(row).TransformPoint(default).X + actions.ActualWidth <= row.ActualWidth + 1, "播放或搜索按钮超出行宽");
             }
             vm.FilterIndex = 1;
@@ -145,6 +146,12 @@ internal sealed partial class ShellNavigationProbe
             Require(loaded.Length == 1, $"装着订阅统计的季有 {loaded.Length} 行（应为 1）");
             var restored = loaded[0];
             Require(restored.Expanded && ReferenceEquals(restored.FilesEpisodes, files) && restored.FilesFilterIndex == 1, "切回原组没有恢复统计及筛选");
+            var staleEpisode = vm.Episodes[0];
+            server.Items.Remove(subscription.Id);
+            await vm.ReloadAsync();
+            Require(vm.Episodes.Count == 0 && !staleEpisode.HasPlayableTarget && vm.PlayFirstVisibility == Visibility.Collapsed
+                && vm.PlaybackStatus.Length == 0 && vm.LibraryBadge.Length == 0,
+                "订阅读取 404 后仍保留旧入库统计或可播放目标");
             Require(server.Writes.Count == 0, "浏览、匹配或切组意外写入订阅");
         }
         finally

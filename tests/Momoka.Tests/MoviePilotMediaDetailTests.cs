@@ -42,6 +42,23 @@ internal static class MoviePilotMediaDetailTests
             Assert.Equal("第 0 季 · 特别篇", new MoviePilotMediaSeason(0, "特别篇", 5, "", "", null).PickerLabel);
             Assert.Equal("第 3 季 · Season of light", new MoviePilotMediaSeason(3, "Season of light", 6, "", "", null).PickerLabel);
         });
+        foreach (var missing in new[] { "null", "{}", "{\"title\":\"未识别条目\"}" })
+        {
+            Test("MP 媒体详情：缺失身份与明确身份冲突分别处理 " + missing, () =>
+            {
+                Assert.Throws<MoviePilotMediaNotRecognizedException>(() => MoviePilotMediaDetail.Parse(Json(missing), Media));
+                try
+                {
+                    MoviePilotMediaDetail.Parse(Json("""{"title":"另一部剧","media_source":"themoviedb","media_id":"99","type":"电视剧"}"""), Media);
+                    throw new AssertionException("明确冲突必须拒绝");
+                }
+                catch (MoviePilotException error)
+                {
+                    Assert.False(error is MoviePilotMediaNotRecognizedException);
+                    Assert.True(error.Message.Contains("身份不匹配", StringComparison.Ordinal));
+                }
+            });
+        }
         Test("MP 媒体详情：原始标题国家公司与类型身份匹配", () =>
         {
             var data = Json("""{"title":"示例剧","media_source":"themoviedb","media_id":42,"tmdb_id":42,"type":"电视剧","original_name":"Example","production_countries":[{"name":"日本"}],"production_companies":[{"name":"Studio"}],"poster_path":"/poster.jpg","season_info":[]}""");

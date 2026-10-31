@@ -1,3 +1,30 @@
+## 2026-10-31 媒体管理勾选范围子计划（待主树整合）
+
+- 独立 managed 工作树 C:/Users/89400/.codex/worktrees/mp-history-selection/Momoka，起点 master 11c6ff58d327db54b92657c2e2d12d1003ea8280；只写 MoviePilotHistoryPlan、MoviePilotMediaManagementTests 与本条进度，主树已有 Dialog/HistoryRecordRow 改动不触碰。
+- 新增 SelectRecords：已核验列表可以全选或取消个别，只允许非空、无重复且全部属于原计划的 ID；保留原记录顺序、对象/快照、删除范围、批量语义及连接标记。合法派生原子消费原确认，与直接提交共用 Claim 位；重复或并行派生不能取得额外确认，子计划不能把已排除的记录加回。非法集合零写且不消费有效计划。
+- 官方源码核对 Frontend v3 1f574a4fa8a254e3308b440f1e265965bfb11f83 的 TransferHistoryView.vue/TransferHistoryDeleteDialog.vue 及相关测试，Backend v3 f5bd3458a6d699600c7496b22a523412d4ef9762 的 history.py、application/history/mutation.py 与相关测试；DELETE id/范围及分项回执契约未改。实际部署版本未确认，未真实删除或运行UI。
+- 当前本树 Core/Tests Release 编译 0警告0错误；媒体管理专项 44/44、0失败0跳过，新增四种范围实际假HTTP请求验证取消第2条后仅 DELETE 第1/3条，以及空/重复/未知ID、重复/并行派生、子计划越界、后续快照/连接/取消零写保护。尚未合入master、未运行主树UI、未刷新实际交付目录；由主交付会话挑入后统一重验和发布。
+
+## 2026-10-31 MoviePilot 搜索进度与未识别媒体（待最终验证和主树交付）
+
+- 用户两张对照要求一并落实：资源搜索改网页式环形进度/来源状态/查询标签/百分比/底部线；未识别主详情改集中胶卷500图形、说明与重试，收起半成品正文和附属错误条。颜色使用现有五套主题角色，字幕搜索仍为不确定进度；未复刻骨架卡和边搜边显示候选，避免把未经最终匹配的资源变成可下载结果。合法空媒体也保留重试是本地有意增加的恢复入口。
+- 上游在线核对 Frontend v3 1f574a4fa8a254e3308b440f1e265965bfb11f83：resource.vue、utils/searchStream.ts及spec、MediaDetailView.vue及spec、states/NoDataFound.vue；Backend v3 f5bd3458a6d699600c7496b22a523412d4ef9762：api/endpoints/search.py、chain/search/{facade,title,media}.py、adapters/web/security/access.py和login.py。逐请求SSE progress/append/replace/replace_batch/done/error、text_i18n/text/value，已有CookieContainer承接登录resource cookie且Bearer不进入URL；未读取真实服务端版本，不能声称实服同步。
+- 两资源VM带取消/代次回调，完整最终快照和done才接受；404/405/501才回普通GET，不中途重搜。流含120秒总期限、32Mi字符单消息/128Mi字符总量/10万条边界。未识别与明确身份冲突分开；主详情网络失败提供恢复，附属订阅读取失败保留可信资料并锁定未知订阅操作。
+- 独立树 C:/Users/89400/.codex/worktrees/moviepilot-status-ui/Momoka；Release Shell/Core/Tests 0警告0错误，主测3455/3455、资源真实VM专项118/118（补中文跨块、多行SSE和权限/500不回退），均0失败0跳过；自动化扫描554交互元素、0缺句柄。首次MoviePilot分区28/30：新增两项通过并获得五主题1040/520实屏，旧资源截图越界及旧“整页无ProgressBar”检查红已保留。修正窗口位置恢复、将无进度线约束限定详情正文、数字5改字体；最终Shell重新0警告0错误，待重跑最终UI。首轮日志 shell-probe-20261031-020005915-28312；相关本地编译/测试日志 work/status-*。
+- 最终重跑被另一个 --probe-shell inspect 进程12536持有桌面诊断锁拒绝（本轮第二次启动退出1，未生成UI报告）；已请用户关闭。主树另一会话的搜索框改动与PROGRESS冲突已收尾到7373553；本任务未触碰该合并索引。用户已明确答复「暂时保留」诊断窗口；本轮按该选择保留运行实例和待验证分支。最终Shell status-build-final.log为0警告0错误，改动C#空白检查退出0，所有改动文件LF/末尾换行通过。用户回复后复查时进程已由外部退出（本任务未结束它）；最终开发件MoviePilot分区30/30、退出0，shell-probe-20261031-021509884-22436，已复核五主题与520/1040实屏，原两红均修复。现在合入最新master，待主树最终编译/测试/相关UI、发布主树artifacts/publish/win-x64并读回快捷方式。本树未上传、未真实订阅/下载/播放。
+
+## 2026-10-31 所有搜索框接同一档圆角（在途）
+
+- 用户追加「所有的搜索框也改」：全站 AutoSuggestBox 的闭合表面统一10 DIP；普通 TextBox 的片名搜索、结果筛选、订阅关键词、弹幕作品搜索与 Emby/飞牛识别关键词同档。保留颜色、布局、字号、事件/绑定/建议列表及非搜索输入原样。
+- 当前独立树 C:/Users/89400/.codex/worktrees/settings-input-rounding/Momoka；InputControlTheme 的新增测试由另一独立子树编写。上一批设置圆角已合入主树7b6c510，但发布未完成；本次同批收尾，不声称旧快捷方式已更新。另有 MoviePilot/搜索聊天运行UI，需要串行避免遮挡，不擅自终止其他进程。 当前开发Shell Release 0警告0错误，输入主题25/25、资源专项100/100、差异/LF与改动C#空白检查通过；真实UI与最终主树发布仍待完成。
+
+## 2026-10-31 订阅季列表紧凑布局与页面审查（待主树交付）
+
+- 独立实现树 `subscription-seasons-compact`，测试树 `subscription-compact-tests`；参考官方 Frontend v3 `1f574a4fa8a254e3308b440f1e265965bfb11f83` 的 `MediaDetailView.vue:1084-1160` 及对应测试，Backend v3 `f5bd3458a6d699600c7496b22a523412d4ef9762` 的 `app/chain/subscribe/query.py:291-328`、`subscribe.py:933-945`。季名旁加集数、分集细分隔、标题日期紧凑；无图和图片失败整框收起、有图最大144×81、默认标题去重。图片失败折叠是本地改进，保留订阅范围统计/筛选/播放/搜索，不照抄网页按季汇总的身份弱点。实际服务器版本未重登确认，不宣称实服同步。
+- 审查修复：图片加载改为 ItemsRepeater 每次准备当前行时触发；隐藏的其他季筛选器不能覆盖当前筛选；零结果有空态；季心形、提示和读屏名动态更新；刷新首步失败先撤销旧入库和播放结论，404后旧目标不可执行。分集状态使用中性文字，避免所有缺集都显示成功强调色。
+- 开发Shell/Tests/Core Release最终编译0警告0错误，主测3452/3452、实际Shell行属性31/31；MoviePilot分区29/29，0失败，进程11576正常退出，证据 `shell-probe-20261031-015204697-11576`。已看1240/600无图、图片失败混排截图，五主题展开/折叠由同分区实屏覆盖；未执行其他118条探针。新增紧凑高度检查包含故意增高反例与恢复。
+- 保留前轮红证据：18504订阅尺寸等待及新增图片刷新超时；25188新增检查未展开其他季找不到控件；均已修复实际原因。两次主测16条自检失败为另一个探针占用同用户mutex，空档串行后3452全过。未真实订阅/下载/播放/服务写入，未上传远端；接下来合入master后重验和实际发布。
+
 ## 2026-10-31 设置页选择框与文本输入圆角（在途）
 
 - 按用户截图外观取约 10 DIP，不宣称已核对闭源 ChatGPT 的精确源码参数；WinUI 2.3.9 本机 generic.xaml 已核对：TextBox/PasswordBox 的 BorderElement、AutoSuggestBox 内层 TextBox、NumberBox 的 InputBox 均接 CornerRadius TemplateBinding。
@@ -9423,3 +9450,7 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 实屏后修复：返回搜索时ToolbarVisibility绑定覆盖页面来源导致多余播放/排序按钮；编辑表关闭钮按正文宽靠右；基础间距收紧；保存路径选中项与Text同步，避免内部保留路径但表面显示自动；窗口变化更新表宽与可滚高度。正常鼠标首次因非前台被WinApp拒绝，没有注入；实际前台后重试成功，第二轮部分动作是UIA Invoke/Select而非鼠标。
 - 最新整合代码主测试3453/3453、SearchLifetime41/41、SubscribeSettings74/74、Editor19/19、ResourceBrowser101/101、Journey21/21，0失败0跳过；runner16/16。Shell0警告0错误；自动化574交互0缺句柄。第一轮Journey测试错误漏计默认剧集组（应默认+两组）已修测试；早期跨树mutex16红及UI时序红保留。
 - 新增编辑器运行用例正在检查真表单基础/进阶、目录选项、五主题/520宽以及增量保存；主树有其他聊天后续改动，最终整合、主树重验、实际发布与清理尚待，不能宣称交付完成。
+## 2026-10-31 订阅季紧凑列表离线回归（待主代理整合）
+
+- 独立测试树 C:/Users/89400/.codex/worktrees/subscription-compact-tests/Momoka，仅修改 MoviePilotSubscriptionPageStateTests.cs；沿用现有 CLI 入口，反射执行真实 Shell 分集行。新增普通／空／含全角和换行空白的重复标题、电影身份、空白简介、图片尚未取得及季心形动态绑定，共 20 项；不复制展示规则，不增加测试项目。
+- 当前测试与 Core Release 编译 0 警告 0 错误；读取主代理 subscription-seasons-compact 树已确认成功编译的 Release Shell，31/31 通过，0 失败 0 跳过。仅匿名内存列表与行属性，不访问真实配置／凭据／网络，不创建图片或窗口，不执行播放／搜索；实际布局、图片成功／失败和 UI 输入仍由主代理最终探针验证。待主树整合、重验、实际发布，未上传远端。

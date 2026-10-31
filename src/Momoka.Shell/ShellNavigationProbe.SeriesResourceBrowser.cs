@@ -19,6 +19,7 @@ internal sealed partial class ShellNavigationProbe
         var search = Get<AutoSuggestBox>(picker, "ResourceSearch");
         ResizeInspect(1120, 960);
         await LayoutAsync(picker);
+        RequireSearchRadius(search);
         var original = vm.Rows.ToArray();
         var historyReads = server.Queries.Count;
         var topMost = _window!.TopMost;

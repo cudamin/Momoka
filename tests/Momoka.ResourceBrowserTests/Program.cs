@@ -38,6 +38,7 @@ internal static class Program
         }
         Console.WriteLine("资源搜索真实源码/生成命令与模板契约；只用匿名内存HTTP及隔离临时设置，无窗口、登录、联网或下载副作用");
         SearchSitePreferenceTests.Register();
+        SearchProgressTests.Register();
         if (args is [_, "search-sites"]) return Run();
         SearchCompactMergeTests.Register(sourceRoot);
         ResourceSortMenuTests.Register(sourceRoot);
@@ -286,6 +287,8 @@ internal sealed class ResourceTransport(bool meta, string invalid, string status
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (request.Method == HttpMethod.Get && request.RequestUri?.AbsolutePath.EndsWith("/stream", StringComparison.Ordinal) == true)
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
         if (request.Method != HttpMethod.Get)
         {
             Writes++;

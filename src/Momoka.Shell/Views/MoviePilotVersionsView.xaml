@@ -14,7 +14,7 @@
           也去掉了 —— 窗口标题已经说着这是哪一页，框里的占位文字说着能搜什么（2026-10-30 用户令）。
         -->
         <Grid x:Name="SearchEntry" Margin="0,0,0,12">
-            <AutoSuggestBox x:Name="SearchInput" MinHeight="40" CornerRadius="20"
+            <AutoSuggestBox x:Name="SearchInput" MinHeight="40" CornerRadius="{StaticResource EgSearchCornerRadius}"
                 VerticalAlignment="Center" VerticalContentAlignment="Center"
                 TextBoxStyle="{StaticResource EgSearchTextBoxStyle}"
                 PlaceholderText="输入关键字（如：剧名 S01 E01）" QueryIcon="Find" QuerySubmitted="OnSearch" />
@@ -25,13 +25,11 @@
             Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}" Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
             Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" Visibility="{x:Bind ViewModel.NoticeVisibility, Mode=OneWay}" />
         <Grid Grid.Row="2">
-            <local:MoviePilotResourceBrowser x:Name="Browser" />
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16" Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}">
-                <ProgressRing IsActive="{x:Bind ViewModel.Busy, Mode=OneWay}" Width="40" Height="40" />
-                <TextBlock Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
-                    Text="正在所选站点范围搜索版本，可能要等一会儿…" TextAlignment="Center" TextWrapping="Wrap" />
-            </StackPanel>
-            <TextBlock Margin="24,48,24,0" HorizontalAlignment="Center" VerticalAlignment="Top"
+            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+            <local:MoviePilotSearchProgressView x:Name="SearchProgress" Margin="0,0,0,12"
+                Visibility="{x:Bind ViewModel.BusyVisibility, Mode=OneWay}" />
+            <local:MoviePilotResourceBrowser x:Name="Browser" Grid.Row="1" />
+            <TextBlock Grid.Row="1" Margin="24,48,24,0" HorizontalAlignment="Center" VerticalAlignment="Top"
                 Foreground="{ThemeResource EgTextDimBrush}" Style="{StaticResource EgBodyStyle}" Text="{x:Bind ViewModel.EmptyNotice, Mode=OneWay}"
                 TextAlignment="Center" TextWrapping="Wrap" Visibility="{x:Bind ViewModel.EmptyVisibility, Mode=OneWay}" />
         </Grid>

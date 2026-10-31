@@ -206,6 +206,7 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
     public MoviePilotSitePickerViewModel SearchSites { get; } = new();
 
     public MoviePilotResourceBrowserViewModel Browser { get; } = new();
+    public MoviePilotSearchProgressViewModel SearchProgress { get; } = new();
     public ObservableCollection<MoviePilotResourceRow> Resources => Browser.Rows;
 
     /// <summary>对话框标题那一行——搜的是哪部片。</summary>
@@ -256,9 +257,11 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
 
         var token = BeginLoad();
         _query = token;
+        if (!IsCurrent(token)) return;
         Browser.SetResults([]);
         Subtitles.Clear();
         ShowEmptyNotice = false;
+        var progress = SearchProgress.Start("标题：" + _media.Title, _media.Year, () => IsCurrent(token), _options?.Subtitles == true);
 
         try
         {
@@ -279,7 +282,7 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
                 foreach (var subtitle in subtitles) Subtitles.Add(new(subtitle, DownloadSubtitleAsync, _service.SubtitleState(subtitle)));
                 EmptyNotice = "没有找到字幕"; ShowEmptyNotice = subtitles.Count == 0; EndLoad(token); return;
             }
-            var found = await _service.SearchResourcesAsync(_media, token, SearchSites.Selection, _options).ConfigureAwait(true);
+            var found = await _service.SearchResourcesAsync(_media, token, SearchSites.Selection, _options, progress).ConfigureAwait(true);
             if (!IsCurrent(token)) return;
 
             Browser.SetResults(found.Select(resource => new MoviePilotResourceRow(resource, DownloadAsync, OpenDetails)
@@ -305,6 +308,11 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
             ShowEmptyNotice = false;
             EndLoad(token);
         }
+    }
+
+    protected override void BusyChanged()
+    {
+        if (!Busy) SearchProgress.Stop();
     }
 
     private async Task DownloadSubtitleAsync(MoviePilotSubtitleRow row)
@@ -358,6 +366,7 @@ public sealed partial class MoviePilotResourceViewModel : PageViewModel
 
     public override void Dispose()
     {
+        SearchProgress.Stop();
         _life.Dispose();
         base.Dispose();
     }

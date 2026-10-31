@@ -63,7 +63,7 @@
                             TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <TextBox x:Name="NameBox" Header="标题" />
+                    <TextBox x:Name="NameBox" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="标题" />
                     <TextBox x:Name="YearBox" Header="年份" InputScope="Number" />
 
                     <!-- 各家刮削源的标识符：服务器按条目类型答哪几家，所以这一块是代码填的。 -->

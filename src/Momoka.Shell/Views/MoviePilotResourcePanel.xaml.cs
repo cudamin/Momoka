@@ -31,6 +31,7 @@ public sealed partial class MoviePilotResourcePanel : UserControl
     internal void Open(MoviePilotService service, MoviePilotMedia media, ISystemLauncher launcher, MoviePilotMediaSearchOptions? options = null)
     {
         ViewModel.Attach(service, media, launcher, options);
+        SearchProgress.Attach(ViewModel.SearchProgress);
         ResourceList.Attach(ViewModel.Browser);
         SearchSitePicker.Attach(ViewModel.SearchSites);
         ViewModel.UseDownloadPicker((resource, token) => MoviePilotDownloadDialog.ShowAsync(this, service, resource, token));

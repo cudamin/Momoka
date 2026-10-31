@@ -52,6 +52,7 @@ public sealed partial class MoviePilotVersionsView : UserControl
     internal void Attach(MoviePilotService service, ISystemLauncher launcher, bool sharedInput = false)
     {
         ViewModel.Attach(service, launcher);
+        SearchProgress.Attach(ViewModel.SearchProgress);
         Browser.Attach(ViewModel.Browser);
         SearchSitePicker.Attach(ViewModel.SearchSites);
         ViewModel.UseDownloadPicker((resource, token) => MoviePilotDownloadDialog.ShowAsync(this, service, resource, token));

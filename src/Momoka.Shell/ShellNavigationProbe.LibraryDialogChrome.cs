@@ -54,6 +54,10 @@ internal sealed partial class ShellNavigationProbe
                     try
                     {
                         await LayoutAsync(dialog);
+                        if (dialog is IdentifyDialog)
+                            RequireSearchRadius(Get<TextBox>(dialog, "NameBox"));
+                        if (dialog is FnNasMatchDialog)
+                            RequireSearchRadius(Get<TextBox>(dialog, "KeywordBox"));
                         Require(dialog.CornerRadius == (CornerRadius)Application.Current.Resources["EgCardCornerRadius"],
                             $"{theme.Id}/{dialog.GetType().Name} 未使用统一圆角");
                         Require(dialog.BorderThickness == new Thickness(0), $"{dialog.GetType().Name} 留下了方形外边框");

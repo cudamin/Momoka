@@ -110,6 +110,7 @@
                （同 DetailPage 的 BackdropFade）。画刷在 code-behind 里由 Core 那支墨生成，见
                PaintBackdropFade：写在这里会往「硬编码颜色只减不增」那条基线上加四行。
     -->
+    <Grid x:Name="DetailContent" Visibility="{x:Bind MediaViewModel.DetailContentVisibility, Mode=OneWay}">
     <Grid x:Name="DetailBackdropRoot" IsHitTestVisible="False" Visibility="{x:Bind MediaViewModel.BackdropVisibility, Mode=OneWay}">
         <Border x:Name="DetailBackdropBand" Opacity="0.9" VerticalAlignment="Top"
             Height="{x:Bind MediaViewModel.BackdropHeight, Mode=OneWay}">
@@ -358,6 +359,57 @@
                     ItemSpacing="16" ItemTemplate="{StaticResource MediaRelatedCardTemplate}" />
             </StackPanel>
             </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+    </Grid>
+    <ScrollViewer x:Name="DetailErrorState" VerticalScrollBarVisibility="Auto"
+        HorizontalScrollBarVisibility="Disabled" Visibility="{x:Bind MediaViewModel.DetailErrorVisibility, Mode=OneWay}">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="560" Margin="32,72" Spacing="20">
+            <Viewbox MaxWidth="360" Height="132" Stretch="Uniform" AutomationProperties.Name="媒体信息不可用">
+                <Canvas Width="360" Height="132">
+                    <Viewbox Width="86" Height="132" Stretch="Uniform">
+                        <TextBlock Text="5" Style="{StaticResource EgDisplayTitleStyle}" FontWeight="ExtraBold"
+                            Foreground="{ThemeResource EgTextDimBrush}" />
+                    </Viewbox>
+                    <Path Stroke="{ThemeResource EgAccentBrush}" StrokeThickness="5">
+                        <Path.Data><GeometryGroup>
+                            <EllipseGeometry Center="160,66" RadiusX="55" RadiusY="55" />
+                            <EllipseGeometry Center="292,66" RadiusX="55" RadiusY="55" />
+                        </GeometryGroup></Path.Data>
+                    </Path>
+                    <Path Stroke="{ThemeResource EgTextDimBrush}" StrokeThickness="2">
+                        <Path.Data><GeometryGroup>
+                            <EllipseGeometry Center="190,66" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="175,92" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="145,92" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="130,66" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="145,40" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="175,40" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="322,66" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="307,92" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="277,92" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="262,66" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="277,40" RadiusX="11" RadiusY="11" />
+                            <EllipseGeometry Center="307,40" RadiusX="11" RadiusY="11" />
+                        </GeometryGroup></Path.Data>
+                    </Path>
+                    <Path Fill="{ThemeResource EgAccentBrush}">
+                        <Path.Data><GeometryGroup>
+                            <EllipseGeometry Center="160,66" RadiusX="7" RadiusY="7" />
+                            <EllipseGeometry Center="292,66" RadiusX="7" RadiusY="7" />
+                        </GeometryGroup></Path.Data>
+                    </Path>
+                </Canvas>
+            </Viewbox>
+            <StackPanel Spacing="10" HorizontalAlignment="Center">
+                <TextBlock Text="出错啦！" Style="{StaticResource EgSectionTitleStyle}" TextAlignment="Center" />
+                <Border Width="44" Height="3" Background="{ThemeResource EgAccentBrush}" CornerRadius="2" />
+            </StackPanel>
+            <TextBlock x:Name="DetailErrorMessage" Text="{x:Bind MediaViewModel.DetailError, Mode=OneWay}"
+                Style="{StaticResource EgBodyStyle}" Foreground="{ThemeResource EgTextDimBrush}"
+                TextAlignment="Center" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            <Button x:Name="RetryMediaDetail" Content="重试" Click="OnRefreshDetails"
+                HorizontalAlignment="Center" Style="{StaticResource EgSecondaryButtonStyle}" />
         </StackPanel>
     </ScrollViewer>
     <!-- 首次读取媒体详情时的加载动画（2026-10-28 用户令「点击进入订阅页面时候需要时间加载，添加动画

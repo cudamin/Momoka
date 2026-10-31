@@ -81,12 +81,12 @@ internal static class SearchCompactMergeTests
             Assert.Throws<AssertionException>(() => CheckSearchTextAlignment(xml, LoadStyles(sourceRoot)));
         });
 
-        Test("搜索合并：版本窗口的搜索区与搜索页同一套胶囊与框内站点", () =>
+        Test("搜索合并：版本窗口的搜索区与搜索页同一套圆角与框内站点", () =>
         {
             var xml = Load(sourceRoot, "MoviePilotVersionsView.xaml");
             var input = Named(xml, "SearchInput");
             Assert.Equal("40", input.Attribute("MinHeight")?.Value);
-            Assert.Equal("20", input.Attribute("CornerRadius")?.Value);
+            Assert.Equal("{StaticResource EgSearchCornerRadius}", input.Attribute("CornerRadius")?.Value);
             Assert.Equal("{StaticResource EgSearchTextBoxStyle}", input.Attribute("TextBoxStyle")?.Value);
             Assert.True(input.Attribute("Header") is null, "窗口里仍挂着搜索框上方的标题");
             Assert.Equal("SearchEntry", Named(xml, "SearchSitePicker").Parent?.Attribute(Xaml + "Name")?.Value);
@@ -247,7 +247,7 @@ internal static class SearchCompactMergeTests
         Assert.True(surface.Attribute("Background") is null && surface.Attribute("BorderBrush") is null);
         var input = Named(xml, "SearchInput");
         Assert.Equal("40", input.Attribute("MinHeight")?.Value);
-        Assert.Equal("20", input.Attribute("CornerRadius")?.Value);
+        Assert.Equal("{StaticResource EgSearchCornerRadius}", input.Attribute("CornerRadius")?.Value);
         var tabs = Named(xml, "SourceTabs");
         Assert.True(tabs.Descendants().Any(node => node.Name.LocalName == "Setter"
             && node.Attribute("Property")?.Value == "CornerRadius" && node.Attribute("Value")?.Value == "16"));

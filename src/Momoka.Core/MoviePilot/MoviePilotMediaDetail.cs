@@ -103,7 +103,9 @@ public sealed record MoviePilotMediaDetail(MoviePilotMedia Media, JsonElement Da
     public static MoviePilotMediaDetail Parse(JsonElement data, MoviePilotMedia expected)
     {
         var parsed = MoviePilotMediaParser.Parse(JsonSerializer.SerializeToElement(new[] { data })).SingleOrDefault();
-        if (parsed is null || !MoviePilotSubscriptionPlan.SameMedia(parsed, expected))
+        if (parsed is null || !parsed.CanSubscribe)
+            throw new MoviePilotMediaNotRecognizedException();
+        if (!MoviePilotSubscriptionPlan.SameMedia(parsed, expected))
             throw new MoviePilotException("媒体详情身份不匹配，请重新打开页面");
         return new(parsed with
         {

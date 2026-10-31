@@ -53,15 +53,20 @@
                             <Grid ColumnSpacing="8">
                                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                 <StackPanel Spacing="4">
-                                    <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" />
-                                    <TextBlock Text="{x:Bind Summary}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                    <local:WrapRow Spacing="8" RowSpacing="4">
+                                        <TextBlock Text="{x:Bind Title}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <Border Background="{ThemeResource EgSurfaceElevatedBrush}" CornerRadius="8" Padding="8,2">
+                                            <TextBlock Text="{x:Bind EpisodeCountLabel}" Style="{StaticResource EgDataStyle}" />
+                                        </Border>
+                                    </local:WrapRow>
+                                    <TextBlock Text="{x:Bind SeasonMeta}" Visibility="{x:Bind SeasonMetaVisibility}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                                     <TextBlock Text="{x:Bind HeaderStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                                         Foreground="{ThemeResource EgAccentBrush}" TextWrapping="Wrap" />
                                 </StackPanel>
                                 <Button x:Name="SubscribeMediaSeason" Grid.Column="1" Command="{x:Bind SubscribeCommand}" Style="{StaticResource EgIconButtonStyle}"
                                     IsEnabled="{x:Bind Editable, Mode=OneWay}"
-                                    ToolTipService.ToolTip="{x:Bind SubscribeLabel}" AutomationProperties.Name="{x:Bind SubscribeLabel}">
-                                    <FontIcon Glyph="{x:Bind HeartGlyph}" Foreground="{ThemeResource EgAccentBrush}" />
+                                    ToolTipService.ToolTip="{x:Bind SubscribeLabel, Mode=OneWay}" AutomationProperties.Name="{x:Bind SubscribeLabel, Mode=OneWay}">
+                                    <FontIcon Glyph="{x:Bind HeartGlyph, Mode=OneWay}" Foreground="{ThemeResource EgAccentBrush}" />
                                 </Button>
                             </Grid>
                         </Expander.Header>
@@ -70,43 +75,46 @@
                                  通用集列表给订阅季让位（用户令 2026-10-12）。数值与筛选由视图从订阅详情的视图模型推进来 ——
                                  不用嵌套 x:Bind（bind 基线只许减），也不用 ElementName。 -->
                             <StackPanel Spacing="8" Visibility="{x:Bind FilesHostVisibility, Mode=OneWay}">
-                                <TextBlock Text="{x:Bind FilesPlaybackStatus, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
+                                <TextBlock Text="{x:Bind FilesPlaybackStatus, Mode=OneWay}" Visibility="{x:Bind FilesPlaybackStatusVisibility, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}"
                                     TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
                                 <TextBlock Text="按 MoviePilot 关联的媒体库统计；已下载但未入库、尚未播出的集也会计入未入库。" Style="{StaticResource EgCaptionStyle}"
                                     TextWrapping="Wrap" Foreground="{ThemeResource EgTextFaintBrush}" />
                                 <ComboBox x:Name="EpisodeFilter" Header="显示范围" SelectedIndex="{x:Bind FilesFilterIndex, Mode=OneWay}"
-                                    MinWidth="180" SelectionChanged="OnFilesFilterChanged">
+                                    MinWidth="180" SelectionChanged="OnFilesFilterChanged" Tag="{x:Bind}">
                                     <ComboBoxItem Content="全部" /><ComboBoxItem Content="已入库" /><ComboBoxItem Content="缺集 / 未入库" />
                                 </ComboBox>
-                                <ItemsRepeater x:Name="EpisodeStatistics" ItemsSource="{x:Bind FilesEpisodes, Mode=OneWay}">
-                                    <ItemsRepeater.Layout><StackLayout Spacing="8" /></ItemsRepeater.Layout>
+                                <TextBlock Text="{x:Bind FilesEmptyNotice, Mode=OneWay}" Visibility="{x:Bind FilesEmptyNoticeVisibility, Mode=OneWay}"
+                                    Style="{StaticResource EgCaptionStyle}" Margin="0,8" TextWrapping="Wrap" />
+                                <ItemsRepeater x:Name="EpisodeStatistics" ItemsSource="{x:Bind FilesEpisodes, Mode=OneWay}" ElementPrepared="OnFilesEpisodePrepared">
+                                    <ItemsRepeater.Layout><StackLayout /></ItemsRepeater.Layout>
                                     <ItemsRepeater.ItemTemplate>
                                         <DataTemplate x:DataType="vm:MoviePilotSubscriptionEpisodeRow">
-                                            <Border Style="{StaticResource EgFrameStyle}" Padding="12">
-                                                <Grid ColumnSpacing="16" Loaded="OnFilesEpisodeLoaded" SizeChanged="OnFilesEpisodeSizeChanged" Tag="{x:Bind}">
+                                            <Border BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,0,0,1" Padding="0,12">
+                                                <Grid SizeChanged="OnFilesEpisodeSizeChanged" Tag="{x:Bind}" MinHeight="32">
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                                     <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                                    <Border x:Name="EpisodeArtwork" Width="{x:Bind ArtworkWidth}" Height="{x:Bind ArtworkHeight}" HorizontalAlignment="Left" Style="{StaticResource EgFrameStyle}">
-                                                        <Grid>
-                                                            <Grid.Background><ImageBrush ImageSource="{x:Bind Artwork, Mode=OneWay}" Stretch="UniformToFill" /></Grid.Background>
-                                                            <FontIcon Glyph="&#xE714;" Style="{StaticResource EgArtworkEmptyGlyphStyle}" Visibility="{x:Bind EmptyArtworkVisibility, Mode=OneWay}" />
-                                                        </Grid>
+                                                    <Border x:Name="EpisodeArtwork" Width="{x:Bind ArtworkWidth}" Height="{x:Bind ArtworkHeight}" Margin="0,0,16,0"
+                                                        HorizontalAlignment="Left" Style="{StaticResource EgFrameStyle}" Visibility="{x:Bind ArtworkVisibility, Mode=OneWay}">
+                                                        <Border.Background><ImageBrush ImageSource="{x:Bind Artwork, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
                                                     </Border>
-                                                    <StackPanel Grid.Column="1" Spacing="8" VerticalAlignment="Center">
-                                                        <TextBlock Text="{x:Bind RowTitle}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
-                                                        <TextBlock Text="{x:Bind AirDateLabel}" Style="{StaticResource EgCaptionStyle}"
-                                                            Foreground="{ThemeResource EgTextFaintBrush}" Visibility="{x:Bind AirDateVisibility}" />
-                                                        <TextBlock Text="{x:Bind Status}" Style="{StaticResource EgCaptionStyle}" Foreground="{ThemeResource EgAccentBrush}" />
-                                                        <TextBlock Text="{x:Bind Description}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
+                                                    <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                                                        <local:WrapRow Spacing="8" RowSpacing="4">
+                                                            <TextBlock Text="{x:Bind RowTitle}" Style="{StaticResource EgBodyStyle}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                                            <Border Background="{ThemeResource EgSurfaceElevatedBrush}" CornerRadius="6" Padding="6,2" Visibility="{x:Bind AirDateVisibility}">
+                                                                <TextBlock Text="{x:Bind AirDateLabel}" Style="{StaticResource EgDataStyle}" />
+                                                            </Border>
+                                                            <TextBlock Text="{x:Bind Status}" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
+                                                        </local:WrapRow>
+                                                        <TextBlock Text="{x:Bind Description}" Visibility="{x:Bind DescriptionVisibility}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
                                                     </StackPanel>
                                                     <!-- 右侧一列：播放键在上、已播出集的「搜索资源」键在下（用户令 2026-10-10）。 -->
                                                     <StackPanel Grid.Column="2" Spacing="8" VerticalAlignment="Center">
-                                                        <Button x:Name="PlaySubscriptionEpisode" Style="{StaticResource EgIconButtonStyle}"
+                                                        <Button x:Name="PlaySubscriptionEpisode" Style="{StaticResource EgIconButtonStyle}" Margin="12,0,0,0"
                                                             Command="{x:Bind PlayCommand}" Visibility="{x:Bind PlayVisibility, Mode=OneWay}" AutomationProperties.Name="{x:Bind PlayName, Mode=OneWay}"
                                                             ToolTipService.ToolTip="{x:Bind PlayHelp, Mode=OneWay}">
                                                             <FontIcon Glyph="&#xE768;" />
                                                         </Button>
-                                                        <Button x:Name="SearchSubscriptionEpisode" Style="{StaticResource EgIconButtonStyle}"
+                                                        <Button x:Name="SearchSubscriptionEpisode" Style="{StaticResource EgIconButtonStyle}" Margin="12,0,0,0"
                                                             Command="{x:Bind SearchCommand}" Visibility="{x:Bind SearchVisibility}"
                                                             AutomationProperties.Name="{x:Bind SearchName, Mode=OneWay}"
                                                             ToolTipService.ToolTip="{x:Bind SearchHelp}">
@@ -121,17 +129,17 @@
                             </StackPanel>
                             <TextBlock Text="{x:Bind EpisodeNotice, Mode=OneWay}" Visibility="{x:Bind MediaEpisodeNoticeVisibility, Mode=OneWay}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
                             <ItemsRepeater x:Name="MediaEpisodeList" ItemsSource="{x:Bind Episodes}" Visibility="{x:Bind MediaEpisodesVisibility, Mode=OneWay}">
-                                <ItemsRepeater.Layout><StackLayout Spacing="12" /></ItemsRepeater.Layout>
+                                <ItemsRepeater.Layout><StackLayout /></ItemsRepeater.Layout>
                                 <ItemsRepeater.ItemTemplate>
                                     <DataTemplate x:DataType="vm:MoviePilotMediaEpisodeRow">
-                                        <Border Style="{StaticResource EgFrameStyle}" Padding="12">
-                                            <Grid ColumnSpacing="16" RowSpacing="8" SizeChanged="OnEpisodeSizeChanged">
+                                        <Border BorderBrush="{ThemeResource EgBorderBrush}" BorderThickness="0,0,0,1" Padding="0,12">
+                                            <Grid SizeChanged="OnEpisodeSizeChanged" MinHeight="32">
                                                 <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
-                                                <Border Width="180" Height="102" CornerRadius="4" VerticalAlignment="Top">
+                                                <Border Width="144" Height="81" CornerRadius="4" Margin="0,0,16,0" VerticalAlignment="Top" Visibility="{x:Bind ArtworkVisibility, Mode=OneWay}">
                                                     <Border.Background><ImageBrush ImageSource="{x:Bind Artwork, Mode=OneWay}" Stretch="UniformToFill" /></Border.Background>
                                                 </Border>
-                                                <StackPanel Grid.Column="1" Spacing="8">
+                                                <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
                                                 <Grid ColumnSpacing="8">
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
                                                     <StackPanel Spacing="4">
@@ -143,7 +151,7 @@
                                                         <FontIcon Glyph="&#xE721;" />
                                                     </Button>
                                                 </Grid>
-                                                <TextBlock Text="{x:Bind Overview}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
+                                                <TextBlock Text="{x:Bind Overview}" Visibility="{x:Bind OverviewVisibility}" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" MaxLines="3" TextTrimming="CharacterEllipsis" />
                                                 </StackPanel>
                                             </Grid>
                                         </Border>

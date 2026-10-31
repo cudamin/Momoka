@@ -205,7 +205,7 @@ internal sealed partial class ShellNavigationProbe
                 "入库摘要没有统一放在季标题，或展开后重复显示");
             foreach (var width in new[] { 1240, 760 })
             {
-                ResizeInspect(width, 1000);
+                ResizeProbeClient(width, 1000);
                 // 窗口尺寸是异步生效的，而自适应版式跟着窗口宽度走 —— 不等它落下来，下面读到的还是上一档。
                 await UntilAsync(() => page.ActualWidth <= width + 2);
                 await LayoutAsync(page);
@@ -224,7 +224,8 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => vm.Episodes[0].Artwork is not null);
                 var picture = Descendants(page).OfType<Border>().First(border => border.Name == "EpisodeArtwork");
                 var play = Descendants(page).OfType<Button>().First(button => button.Name == "PlaySubscriptionEpisode" && button.Visibility == Visibility.Visible);
-                Require(picture.ActualWidth > picture.ActualHeight && picture.ActualHeight > 100, "集封面没有按横版显示");
+                Require(picture.Visibility == Visibility.Visible && Math.Abs(picture.ActualWidth - 144) < 1
+                    && Math.Abs(picture.ActualHeight - 81) < 1, "集封面没有使用紧凑的 144 × 81 横版缩略图");
                 Require(play.Content is FontIcon && play.TransformToVisual(page).TransformPoint(default).X
                     > picture.TransformToVisual(page).TransformPoint(default).X + picture.ActualWidth, "播放图标不在封面和剧情右侧");
                 var search = Descendants(page).OfType<Button>()
@@ -299,9 +300,9 @@ internal sealed partial class ShellNavigationProbe
                     $"资料卡在 {width} 宽下没有按预期并排或叠起来：宽 {facts.ActualWidth}，行 {Grid.GetRow(facts)}，列 {Grid.GetColumn(facts)}，页宽 {page.ActualWidth}");
                 // 这一页不画加载条（用户令 2026-10-12：「不要显示那个加载条」；此前是两份数据合并成的
                 // 一条进度，再往前是订阅与媒体详情各一条并排）。那条线落在「简介」与「演职员」之间那块
-                // 空地方，看着像那一块在加载东西。整页一条都不许再有 —— 进度改由头部与各段自己的说明交代。
-                Require(Descendants(page).OfType<ProgressBar>().Count() == 0,
-                    "页面上还留着加载条：" + string.Join("、", Descendants(page).OfType<ProgressBar>()
+                // 空地方，看着像那一块在加载东西。详情正文仍不画线；资源搜索覆盖层使用自己的进度卡片。
+                Require(!Descendants(Get<ScrollViewer>(page, "DetailScroll")).OfType<ProgressBar>().Any(),
+                    "详情正文还留着加载条：" + string.Join("、", Descendants(Get<ScrollViewer>(page, "DetailScroll")).OfType<ProgressBar>()
                         .Select(bar => string.IsNullOrEmpty(bar.Name) ? "（无名）" : bar.Name)));
 
                 // 操作排（用户令 2026-10-12：「只留这四个按钮 + 一个编辑订阅按钮，其他的折叠到更多按钮里」
@@ -430,6 +431,7 @@ internal sealed partial class ShellNavigationProbe
             try
             {
                 await LayoutAsync(editor);
+                RequireSearchRadius(Get<TextBox>(editor, "KeywordInput"));
                 Get<TextBox>(editor, "IncludeInput").Text = "WEB-DL";
                 Get<NumberBox>(editor, "TotalInput").Value = 6;
                 await SaveSettledFrameAsync(editor, "mp-subscription-editor.png");
@@ -765,12 +767,15 @@ internal sealed partial class ShellNavigationProbe
 
         /// <summary>把电视剧那份媒体详情标成动画；只有「日本动画订阅的 AniBT 入口」那一条打开。</summary>
         internal bool Anime { get; set; }
+        internal bool CompactEpisodes { get; set; }
 
         internal byte[] Poster { get; set; } = [];
         internal TaskCompletionSource<HttpResponseMessage>? PendingList { get; set; }
 
         /// <summary>把电视剧媒体详情那一趟扣在手里，用来读「首次读取中的加载动画」。</summary>
         internal TaskCompletionSource<bool>? DetailGate { get; set; }
+        internal string DetailFailure { get; set; } = "";
+        internal bool FailSubscriptionRead { get; set; }
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Require(request.RequestUri!.Host == "moviepilot.invalid", "订阅探针拒绝真实网络");
@@ -798,6 +803,9 @@ internal sealed partial class ShellNavigationProbe
             if (path == "/api/v1/media/4" || path == "/api/v1/media/9")
             {
                 if (path.EndsWith("/4", StringComparison.Ordinal) && DetailGate is { } gate) await gate.Task;
+                if (DetailFailure == "missing") return Json(new { success = true, data = (object?)null });
+                if (DetailFailure == "mismatch") return Json(new { title = "另一部媒体", type = "电视剧", media_source = "themoviedb", media_id = "999" });
+                if (DetailFailure == "network") throw new HttpRequestException("离线夹具连接失败");
                 return Json(new
                 {
                     title = "漫长的旅途",
@@ -873,7 +881,8 @@ internal sealed partial class ShellNavigationProbe
                 if (UncertainNextWrite) { UncertainNextWrite = false; return Json(new { accepted = true }); }
                 return Json(new { success = true, data = (object?)null });
             }
-            if (path == "/api/v1/subscribe/") return PendingList is { } pending ? await pending.Task : Json(new { success = true, data = Items.Values.ToArray() });
+            if (path == "/api/v1/subscribe/") return FailSubscriptionRead ? new HttpResponseMessage(HttpStatusCode.ServiceUnavailable)
+                : PendingList is { } pending ? await pending.Task : Json(new { success = true, data = Items.Values.ToArray() });
             // 剧集组那一节的两趟：组列表（media/groups）与默认排序的季列表（media/seasons，只用来算「默认」那一项
             // 的季数/集数）。两条都得排在下面那个 int.Parse 兜底之前 —— 它们的末段不是订阅编号。
             if (path.StartsWith("/api/v1/media/groups/", StringComparison.Ordinal)) return Json(new object[]
@@ -888,6 +897,8 @@ internal sealed partial class ShellNavigationProbe
             });
             // 集播出日期走 TMDB 季集接口（订阅的文件统计不带它，见 MoviePilotEpisodeAirDates）。四条各占一种形态：
             // 已播出、已播出、还没播、没有日期 —— 屏上就该是「播出 / 播出 / 待播出 / 不显示」，搜索入口只给前两条。
+            if (path.Contains("/tmdb/", StringComparison.Ordinal) && CompactEpisodes)
+                return Json(Enumerable.Range(1, 8).Select(number => new { episode_number = number, air_date = "2999-11-25", name = $"第 {number} 集", overview = "", still_path = "" }).ToArray());
             if (path.Contains("/tmdb/", StringComparison.Ordinal)) return Json(new object[]
             {
                 new { episode_number = 1, air_date = "2026-01-01", name = "新的开始", overview = "一场意外的重逢，让旅途有了新的方向。", still_path = "https://poster.invalid/episode-1.png" },
@@ -897,6 +908,9 @@ internal sealed partial class ShellNavigationProbe
             });
             var itemId = int.Parse(path.Split('/')[^1]);
             if (!Items.TryGetValue(itemId, out var item)) return new(HttpStatusCode.NotFound);
+            if (path.Contains("/files/", StringComparison.Ordinal) && CompactEpisodes)
+                return Json(new { success = true, data = new { subscribe = item, episodes = Enumerable.Range(1, 8).ToDictionary(
+                    number => number.ToString(), number => new { title = $"第 {number} 集", description = "", backdrop = "", library = Array.Empty<object>(), download = Array.Empty<object>() }) } });
             // 文件统计：电视剧按集号给三条（已入库 / 已下载待入库 / 缺集）；电影按真实回话只给零号那一条
             //（见 MoviePilotSubscriptionFiles.Parse —— 电影的非零号条目一律跳过）。电影这一条给入库文件，
             // 好让入库徽标有结论可读。

@@ -233,6 +233,7 @@ internal sealed partial class ShellNavigationProbe
         void RequireSearchTextCentered(LibraryPage page)
         {
             var input = Get<AutoSuggestBox>(page, "SearchInput");
+            RequireSearchRadius(input);
             var field = Descendants(input).OfType<TextBox>().Single();
             var content = Descendants(field).OfType<ScrollViewer>().Single(node => node.Name == "ContentElement");
             var placeholder = Descendants(field).OfType<ContentControl>()
@@ -537,6 +538,8 @@ internal sealed partial class ShellNavigationProbe
             Require(request.RequestUri!.Host == "moviepilot.invalid", "搜索探针拒绝真实网络");
             var path = request.RequestUri.PathAndQuery;
             Paths.Add(path);
+            if (request.RequestUri.AbsolutePath.EndsWith("/stream", StringComparison.Ordinal))
+                return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
             if (Offline) throw new HttpRequestException("offline fixture");
             if (path.EndsWith("login/access-token", StringComparison.Ordinal)) return Task.FromResult(Json(new { access_token = "fixture-token" }));
             if (path.EndsWith("dashboard/system", StringComparison.Ordinal)) return Task.FromResult(Json(new { version = "fixture" }));
