@@ -17,8 +17,6 @@ namespace Momoka.Shell.Views
         private Momoka.MoviePilot.MoviePilotService? _moviePilot;
         private Momoka.Services.ISettingsService? _settings = null; // Unused owner boundary; no saved settings in this fixture.
         private int _navigation;
-        private int _searchPresentationVersion;
-        private bool _searchOptionsCollapsed = false;
         private readonly LibraryLifetimeRequest _request = new();
         internal LibraryLifetimeViewModel ViewModel { get; } = new();
         internal MoviePilotSearchPanel MoviePilotPanel { get; } = new();
@@ -30,6 +28,9 @@ namespace Momoka.Shell.Views
         internal Microsoft.UI.Xaml.FrameworkElement AniBtSourceTab { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement EmbyContent { get; } = new();
         internal Microsoft.UI.Xaml.FrameworkElement ToolbarSurface { get; } = new();
+        internal Microsoft.UI.Xaml.FrameworkElement SearchUnavailableSurface { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.TextBox SearchUnavailableTitle { get; } = new();
+        internal Microsoft.UI.Xaml.Controls.TextBox SearchUnavailableMessage { get; } = new();
         internal Microsoft.UI.Xaml.Controls.TextBox SearchInput { get; } = new();
         private double ContentScrollOffset => 73;
         internal int TypingCancellations { get; private set; }
@@ -62,7 +63,6 @@ namespace Momoka.Shell.Views
         public int LoadedCount { get; set; }
         public string? SearchTerm { get; set; }
         public int SearchSource { get; set; }
-        public bool SearchOptionsCollapsed { get; set; }
         public double MoviePilotScrollOffset { get; set; }
         public Momoka.Shell.ViewModels.MoviePilotSearchSnapshot? MoviePilotSearch { get; set; }
     }

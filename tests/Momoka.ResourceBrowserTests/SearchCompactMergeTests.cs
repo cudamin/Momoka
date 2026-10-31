@@ -24,29 +24,35 @@ internal static class SearchCompactMergeTests
         Test("搜索合并：订阅结果保留点击入口与滚动条车道，不恢复来源筛选", () =>
             CheckSubscriptionPanel(Load(sourceRoot, "MoviePilotSearchPanel.xaml")));
 
-        Test("搜索合并：焦点恢复与迟到结果守卫不依赖来源栏显隐", () =>
+        Test("搜索来源：固定四入口，不因完成、焦点或连接改变导航", () =>
         {
             var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
-            Assert.Contains("SearchInput.AddHandler(GettingFocusEvent", source);
-            Assert.Contains("SearchInput.AddHandler(PointerPressedEvent", source);
-            Assert.Contains("args.FocusState is FocusState.Keyboard or FocusState.Pointer", source);
-            Assert.Contains("presentation == _searchPresentationVersion", source);
+            Assert.Contains("SourceTabs.Visibility = ViewModel.MoviePilotTabsVisibility", source);
+            Assert.DoesNotContain("_searchOptionsCollapsed", source);
+            Assert.DoesNotContain("_searchPresentationVersion", source);
             Assert.Contains("SearchForm.RowSpacing = SourceTabs.Visibility == Visibility.Visible ? 8 : 0", source);
-            // Hiding the selector must not silently reroute the next request to the media library.
-            Assert.Contains("if (ViewModel.MoviePilotTabsVisibility != Visibility.Visible) return 0;", source);
-            Assert.Contains("index == 3 && AniBtSourceTab.Visibility != Visibility.Visible ? 0 : index", source);
+            Assert.Contains("get => Math.Clamp(SourceTabs.SelectedIndex, 0, 3)", source);
+            Assert.Contains("AniBtSourceTab.Visibility = Visibility.Visible", source);
+            Assert.Contains("if (!SearchSourceAvailable)", source);
+            Assert.Contains("SearchUnavailableSurface.Visibility = available ? Visibility.Collapsed : Visibility.Visible", source);
             Assert.DoesNotContain("SearchSource => SourceTabs.Visibility", source);
             // 模板里插那一列的做法只有一份（SearchSiteSlot），搜索页与独立窗口都用它。
             Assert.Contains("SearchSiteSlot.Place(SearchInput, SearchSitePicker)", source);
             var slot = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/SearchSiteSlot.cs"));
             Assert.Contains("host.ColumnDefinitions.Insert(column, new ColumnDefinition { Width = GridLength.Auto })", slot);
             Assert.Contains("Grid.SetColumn(picker, column)", slot);
+            Assert.Contains("query.Width = 64", slot);
+            Assert.Contains("query.MinWidth = 64", slot);
+            Assert.Contains("query.IsTabStop = true", slot);
+            Assert.Contains("AutomationProperties.SetAccessibilityView(query, AccessibilityView.Content)", slot);
+            var vm = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/ViewModels/LibraryViewModel.cs"));
+            Assert.Contains("public Visibility MoviePilotTabsVisibility =>\n        Show(_request?.IsSearch == true)", vm.Replace("\r\n", "\n"));
         });
 
         Test("搜索合并：紧凑探针与来源退役检查共存", () =>
         {
             var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/ShellNavigationProbe.SearchLayout.cs"));
-            Assert.Contains("await CompactSearchHeaderAsync(page)", source);
+            Assert.Contains("await PersistentSearchHeaderAsync(page)", source);
             Assert.Contains("picker.Name == \"SourceFilter\"", source);
             Assert.Contains("NewMediaSearches(mp.Paths, beforeReturnSearch)", source);
             Assert.Contains("NewMediaSearches(mp.Paths, beforeRepeatSearch)", source);

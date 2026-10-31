@@ -1,5 +1,6 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 
@@ -18,8 +19,19 @@ internal static class SearchSiteSlot
     /// <summary>插好返回 true；模板还没建出来、或者已经插过，返回 false。</summary>
     internal static bool Place(AutoSuggestBox box, MoviePilotSitePicker picker)
     {
-        if (Find<Button>(box, "QueryButton") is not { Parent: Grid host } query
-            || ReferenceEquals(picker.Parent, host)) return false;
+        if (Find<Button>(box, "QueryButton") is not { Parent: Grid host } query) return false;
+
+        // WinUI 原生模板把 QueryButton 固定为 32 DIP；只拓宽点击区，不替换 Icon 或 Click，
+        // AutoSuggestBox 仍负责回车、清除和 QuerySubmitted（模板重建后也要重新应用）。
+        query.Width = 64;
+        query.MinWidth = 64;
+        query.Height = 32;
+        query.IsTabStop = true;
+        AutomationProperties.SetAccessibilityView(query, AccessibilityView.Content);
+        AutomationProperties.SetAutomationId(query, "SearchSubmit");
+        AutomationProperties.SetName(query, "搜索");
+        ToolTipService.SetToolTip(query, "搜索");
+        if (ReferenceEquals(picker.Parent, host)) return false;
 
         if (picker.Parent is Panel previous) previous.Children.Remove(picker);
 
@@ -38,9 +50,6 @@ internal static class SearchSiteSlot
         picker.Margin = new Thickness(4, 0, 2, 0);
         host.Children.Add(picker);
 
-        // 放大镜那颗按钮的读者名字：没有它，读屏只念一个没有名字的按钮。
-        AutomationProperties.SetAutomationId(query, "SearchSubmit");
-        AutomationProperties.SetName(query, "搜索");
         return true;
     }
 

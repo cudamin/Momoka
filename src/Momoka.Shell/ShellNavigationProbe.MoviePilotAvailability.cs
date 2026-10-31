@@ -38,7 +38,16 @@ internal sealed partial class ShellNavigationProbe
             var page = (LibraryPage)frame.Content;
             await LayoutAsync(page);
             var tabs = Get<Segmented>(page, "SourceTabs");
-            Require(tabs.Visibility == Visibility.Collapsed, "只有开关或历史成功时仍显示入口");
+            Require(tabs.Visibility == Visibility.Visible && tabs.Items.Count == 4,
+                "仅开启但未连接时固定四个搜索来源消失");
+            tabs.SelectedIndex = 1;
+            await LayoutAsync(page);
+            var unavailable = Get<StackPanel>(page, "SearchUnavailableSurface");
+            Require(unavailable.Visibility == Visibility.Visible, "未连接时没有恢复说明");
+            var unavailableSearches = Searches(mp.Paths);
+            await page.SubmitSearchAsync("不可用搜索");
+            Require(Searches(mp.Paths) == unavailableSearches && tabs.SelectedIndex == 1,
+                "未连接时仍发搜索或偷偷改回媒体库");
             await SaveProbeScreenAsync("moviepilot-unverified.png");
             await ConnectMoviePilotAsync(fixture);
             await UntilAsync(() => tabs.Visibility == Visibility.Visible);
@@ -46,7 +55,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Visible);
             mp.Offline = true;
             Require(!await service.RefreshAvailabilityAsync(), "断线仍被视为可用");
-            await UntilAsync(() => tabs.Visibility == Visibility.Collapsed && tabs.SelectedIndex == 0);
+            await UntilAsync(() => tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 1
+                && unavailable.Visibility == Visibility.Visible);
             Require(Get<MoviePilotSearchPanel>(page, "MoviePilotPanel").Visibility == Visibility.Collapsed
                 && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Visible, "断线后未恢复媒体库内容");
             await SaveProbeScreenAsync("moviepilot-offline.png");
@@ -61,13 +71,15 @@ internal sealed partial class ShellNavigationProbe
             chooseSites.Flyout.ShowAt(chooseSites);
             await UntilAsync(() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Count > 0);
             fixture.Settings.MoviePilot.Enabled = false;
-            await UntilAsync(() => tabs.Visibility == Visibility.Collapsed && tabs.SelectedIndex == 0);
+            await UntilAsync(() => tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 2
+                && unavailable.Visibility == Visibility.Visible);
             Require(Get<MoviePilotVersionsView>(page, "MoviePilotResources").Visibility == Visibility.Collapsed,
                 "关闭设置后资源面板没有收起");
             await UntilAsync(() => VisualTreeHelper.GetOpenPopupsForXamlRoot(_root.XamlRoot).Count == 0);
             fixture.Settings.MoviePilot.Enabled = true;
             await LayoutAsync(page);
-            Require(tabs.Visibility == Visibility.Collapsed, "重新开启但未验证时复用了旧连接");
+            Require(tabs.Visibility == Visibility.Visible && unavailable.Visibility == Visibility.Visible,
+                "重新开启但未验证时丢失固定入口或复用了旧连接");
         }
         finally
         {

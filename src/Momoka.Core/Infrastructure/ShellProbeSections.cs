@@ -21,6 +21,8 @@ public static class ShellProbeSections
     public const string Playback = "playback";
     public const string Metadata = "metadata";
     public const string Performance = "performance";
+    /// <summary>手动离线试用，不属于自动全量探针，也不计自动检查通过数。</summary>
+    public const string SearchPreview = "search-preview";
 
     public static readonly IReadOnlyList<string> All =
     [
@@ -28,7 +30,8 @@ public static class ShellProbeSections
     ];
 
     public static bool IsKnown(string name) =>
-        All.Contains(name, StringComparer.OrdinalIgnoreCase);
+        All.Contains(name, StringComparer.OrdinalIgnoreCase)
+        || name.Equals(SearchPreview, StringComparison.OrdinalIgnoreCase);
 
-    public static string Usage => string.Join(", ", All);
+    public static string Usage => string.Join(", ", All) + $", {SearchPreview}（仅独立手动试用）";
 }

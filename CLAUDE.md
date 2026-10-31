@@ -80,6 +80,8 @@
 
 实现方法见 [Shell 技能](.claude/skills/momoka-winui-shell/SKILL.md#capability-dependent-visibility)，切换与恢复的核验方法见 [验证技能](.claude/skills/momoka-verification/SKILL.md#capability-dependent-visibility)。
 
+- **搜索页来源导航例外（2026-10-31 用户指定）。** 搜索框下方「媒体库／MoviePilot 订阅／MoviePilot 资源／AniBT」四个入口始终显示，搜索完成、连接失效和 AniBT 关闭均不自动隐藏，也不改选到媒体库；不可用时显示恢复说明并阻止搜索请求。此例外仅适用于搜索页来源栏，其余从属操作仍遵守上述显隐规则。
+
 ## 弹窗
 
 - **现有及以后新增的所有弹窗都必须支持点击外部自动关闭。** 对话框、浮出菜单与自定义交互弹层均适用；关的时候只取消（结果是 `None`），不替用户保存、确认或执行弹窗背后的按钮，表自己写在 `Closing` 里的保护（例如字幕写入在飞）继续拦住。

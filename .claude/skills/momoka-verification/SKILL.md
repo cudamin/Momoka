@@ -125,7 +125,7 @@ Reference transitions:
 
 | Scenario | Expected UI |
 | --- | --- |
-| MoviePilot available → disabled or disconnected → connected again | Dependent search/subscription entries disappear and recover; configuration remains reachable. Inspect `ShellNavigationProbe.MoviePilotAvailability.cs` for current assertions. |
+| MoviePilot available → disabled or disconnected → connected again | Dependent actions disappear and recover; search-page source tabs remain visible with their selected source and recovery notice, and unavailable queries send no requests; configuration remains reachable. Inspect `ShellNavigationProbe.MoviePilotAvailability.cs` for current assertions. |
 | WebP lossy → lossless → lossy | Quality and compression disappear together, then return with their previous values; the lossless switch remains reachable. |
 | WebP → PNG → WebP | All WebP-only rows disappear, then return according to the preserved lossless preference; format selection remains reachable. |
 

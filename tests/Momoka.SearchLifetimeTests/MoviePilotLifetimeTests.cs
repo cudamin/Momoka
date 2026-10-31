@@ -164,19 +164,41 @@ internal static class MoviePilotLifetimeTests
             Check.Contains("MoviePilotPanel.CancelSearch();", switchSource);
             Check.False(switchSource.Contains("MoviePilotPanel.Release();", StringComparison.Ordinal));
         });
-        Test("实际搜索来源：AniBT 入口隐藏时残留选择回到媒体库，恢复不自动搜索", async () =>
+        Test("实际搜索来源：导航不受标签显隐影响，恢复不自动搜索", async () =>
         {
             using var f = new MoviePilotFixture(); await f.ConnectAsync();
             var page = new LibraryPage(); page.AttachFixture(f.Service);
             var before = f.Http.Searches;
             page.AniBtSourceTab.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
             page.SwitchFixture(3);
-            Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.AniBtPanel.Visibility);
-            Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.EmbyContent.Visibility);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.AniBtPanel.Visibility);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.EmbyContent.Visibility);
             page.AniBtSourceTab.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
             page.SwitchFixture(3);
             Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.AniBtPanel.Visibility);
             Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.EmbyContent.Visibility);
+            Check.Equal(before, f.Http.Searches);
+            page.Release();
+        });
+        Test("实际搜索来源：MoviePilot 掉线保留选择与恢复说明，不改成媒体库", async () =>
+        {
+            using var f = new MoviePilotFixture(); await f.ConnectAsync();
+            var page = new LibraryPage(); page.AttachFixture(f.Service);
+            page.SwitchFixture(2);
+            var before = f.Http.Searches;
+            f.Settings.MoviePilot.Enabled = false;
+            page.SwitchFixture(2);
+            Check.Equal(2, page.SourceTabs.SelectedIndex);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.MoviePilotResources.Visibility);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.EmbyContent.Visibility);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.SearchUnavailableSurface.Visibility);
+            Check.Equal("MoviePilot 尚未连接", page.SearchUnavailableTitle.Text);
+            Check.Contains("设置 → MoviePilot", page.SearchUnavailableMessage.Text);
+            f.Settings.MoviePilot.Enabled = true; await f.ConnectAsync();
+            page.SwitchFixture(2);
+            Check.Equal(2, page.SourceTabs.SelectedIndex);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Visible, page.MoviePilotResources.Visibility);
+            Check.Equal(Microsoft.UI.Xaml.Visibility.Collapsed, page.SearchUnavailableSurface.Visibility);
             Check.Equal(before, f.Http.Searches);
             page.Release();
         });

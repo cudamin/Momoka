@@ -172,8 +172,7 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(1040, 880);
             await LayoutAsync(page);
             await SaveProbeScreenAsync("search-recent-screen-wide.png");
-            await CompactSearchHeaderAsync(page);
-            page.ExpandSearchOptions();
+            await PersistentSearchHeaderAsync(page);
             Get<Segmented>(page, "SourceTabs").SelectedIndex = 1;
             await page.SearchTypingAsync("");
             var subscriptionPanel = Get<MoviePilotSearchPanel>(page, "MoviePilotPanel");
@@ -197,7 +196,7 @@ internal sealed partial class ShellNavigationProbe
             frame.Navigate(typeof(LibraryPage), LibraryRequest.Search(fixture.Services));
             page = (LibraryPage)frame.Content;
             await LayoutAsync(page);
-            Require(Get<Segmented>(page, "SourceTabs").Visibility == Visibility.Collapsed, "未启用 MoviePilot 仍显示来源");
+            Require(Get<Segmented>(page, "SourceTabs").Visibility == Visibility.Visible, "未启用 MoviePilot 时固定来源栏消失");
             page.Release();
             frame.Navigate(typeof(LibraryPage), new LibraryRequest { Services = fixture.Services, Title = "离线媒体库", ParentId = "library" });
             page = (LibraryPage)frame.Content;
@@ -334,7 +333,7 @@ internal sealed partial class ShellNavigationProbe
             var subscriptionPanel = Get<MoviePilotSearchPanel>(page, "MoviePilotPanel");
             await UntilAsync(() => subscriptionPanel.ViewModel.Results.Count == 1);
             Require(mp.Paths.Any(path => path.Contains("media/search?title=", StringComparison.Ordinal)), "订阅未走媒体搜索");
-            Require(tabs.Visibility == Visibility.Collapsed, "提交搜索后来源选项未收起");
+            Require(tabs.Visibility == Visibility.Visible, "提交搜索后固定来源选项消失");
             await LayoutAsync(subscriptionPanel);
             Require(!Descendants(subscriptionPanel).OfType<ComboBox>().Any(picker => picker.Name == "SourceFilter"),
                 "MoviePilot 订阅搜索仍显示右侧来源筛选");
@@ -370,11 +369,10 @@ internal sealed partial class ShellNavigationProbe
             var resourceSearches = mp.Paths.Skip(count).Where(path => path.Contains("search/title?", StringComparison.Ordinal)).ToArray();
             Require(resourceSearches.Length == 1 && resourceSearches[0].Contains(Uri.EscapeDataString("新的资源词"), StringComparison.Ordinal),
                 "资源没有显式提交新关键词；SSE能力探测不算重复搜索");
-            Require(tabs.Visibility == Visibility.Collapsed && tabs.SelectedIndex == 2, "收起来源选项丢失 MP 资源选择");
+            Require(tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 2, "完成搜索后固定入口或 MP 资源选择丢失");
             // 用户重新编辑期间到达的旧结果不能再次收起来源栏。
             mp.PendingResource = Pending<HttpResponseMessage>();
             var delayedSearch = page.SubmitSearchAsync("等待资源");
-            page.ExpandSearchOptions();
             mp.PendingResource.TrySetResult(Json(Array.Empty<object>()));
             await delayedSearch;
             Require(tabs.Visibility == Visibility.Visible, "迟到结果收起了用户重新展开的选项");
@@ -434,7 +432,7 @@ internal sealed partial class ShellNavigationProbe
         }
     }
 
-    private async Task CompactSearchHeaderAsync(LibraryPage page)
+    private async Task PersistentSearchHeaderAsync(LibraryPage page)
     {
         var tabs = Get<Segmented>(page, "SourceTabs");
         var input = Get<AutoSuggestBox>(page, "SearchInput");
@@ -446,13 +444,12 @@ internal sealed partial class ShellNavigationProbe
         {
             var scale = _root.XamlRoot.RasterizationScale;
             ResizeInspect((int)(width * scale), (int)(880 * scale));
-            page.ExpandSearchOptions();
             tabs.SelectedIndex = 2;
             await LayoutAsync(page);
             Require(tabs.Visibility == Visibility.Visible, $"{width} 宽帧的来源栏未展开");
             var expanded = search.ActualHeight;
             await page.SubmitSearchAsync("离线资源布局");
-            Require(tabs.Visibility == Visibility.Collapsed, "资源搜索结束后来源栏仍显示");
+            Require(tabs.Visibility == Visibility.Visible, "资源搜索结束后固定来源栏消失");
             Require(sites.Visibility == Visibility.Visible, "MP 资源收起来源栏后站点入口消失");
             Require(Get<MoviePilotSitePicker>(resources, "SearchSitePicker").Visibility == Visibility.Collapsed,
                 "资源结果上方仍有重复站点入口");
@@ -470,8 +467,9 @@ internal sealed partial class ShellNavigationProbe
                 }, _ => Task.CompletedTask, _ => { })));
             resources.ViewModel.ShowEmptyNotice = false;
             await LayoutAsync(page);
-            Require(tabs.Visibility == Visibility.Collapsed && search.ActualHeight <= expanded - 28,
-                $"{width} 收起来源栏后仍保留空白高度：expanded={expanded}, collapsed={search.ActualHeight}, tabs={tabs.ActualHeight}, form={Get<Grid>(page, "SearchForm").ActualHeight}");
+            Require(tabs.Visibility == Visibility.Visible && Math.Abs(search.ActualHeight - expanded) <= 1,
+                $"{width} 搜索结束改变了固定来源栏高度：before={expanded}, after={search.ActualHeight}");
+            Require(submit.ActualWidth == 64 && submit.IsTabStop, "搜索按钮未加宽或键盘无法定位");
             var inputBox = Box(Descendants(input).OfType<ScrollViewer>().Single(element => element.Name == "ContentElement"));
             var sitesBox = Box(sites);
             var submitBox = Box(submit);
@@ -481,15 +479,15 @@ internal sealed partial class ShellNavigationProbe
                 "站点选择没有与搜索框同行或已裁切");
             var resourceBox = Box(Get<MoviePilotResourceBrowser>(resources, "Browser"));
             Require(resourceBox.Top - Box(search).Bottom <= 16, "资源结果与搜索栏之间仍有过大空白");
-            await SaveProbeScreenAsync($"search-compact-resources-{width}-screen.png");
+            await SaveProbeScreenAsync($"search-persistent-resources-{width}-screen.png");
             Require(Get<ItemsView>(Get<MoviePilotResourceBrowser>(resources, "Browser"), "ResourceList").Focus(FocusState.Programmatic),
                 "资源列表无法接收恢复前的焦点");
             var field = Descendants(input).OfType<TextBox>().First();
             Require(field.Focus(FocusState.Keyboard), "搜索栏无法通过键盘重新聚焦");
             await LayoutAsync(page);
             Require(tabs.Visibility == Visibility.Visible && search.ActualHeight >= expanded - 1,
-                "重新聚焦搜索栏未展开来源选项");
-            await SaveProbeScreenAsync($"search-expanded-resources-{width}-screen.png");
+                "重新聚焦搜索栏改变了固定来源选项");
+            await SaveProbeScreenAsync($"search-focused-resources-{width}-screen.png");
             foreach (var source in new[] { 0, 1, 3, 2 })
             {
                 tabs.SelectedIndex = source;

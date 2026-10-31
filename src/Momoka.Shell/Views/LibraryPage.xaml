@@ -982,6 +982,16 @@
         <local:MoviePilotVersionsView x:Name="MoviePilotResources" Grid.Row="2" Visibility="Collapsed" />
         <local:AniBtSearchPanel x:Name="AniBtPanel" Grid.Row="2" Visibility="Collapsed" />
 
+        <!-- 四个搜索来源固定可见；未启用或未连接时保留所选来源，说明恢复路径，不改搜媒体库。 -->
+        <StackPanel x:Name="SearchUnavailableSurface" Grid.Row="2" Visibility="Collapsed"
+            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="20,36" Spacing="12" MaxWidth="480">
+            <FontIcon Glyph="&#xE774;" Foreground="{ThemeResource EgAccentBrush}" HorizontalAlignment="Center" />
+            <TextBlock x:Name="SearchUnavailableTitle" Style="{StaticResource EgSubheadStyle}"
+                TextAlignment="Center" TextWrapping="Wrap" />
+            <TextBlock x:Name="SearchUnavailableMessage" Style="{StaticResource EgBodyStyle}"
+                Foreground="{ThemeResource EgTextDimBrush}" TextAlignment="Center" TextWrapping="Wrap" />
+        </StackPanel>
+
         <!-- 筛选面板盖在整页上。与设置面板同一套做法：铺满整层、点外面关掉、面板自己一颗 ✕。 -->
         <Grid
             x:Name="FilterOverlay"

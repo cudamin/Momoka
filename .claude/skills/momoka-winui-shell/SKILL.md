@@ -142,6 +142,8 @@ For native FnNas no-body state writes, card commands acknowledge their own field
 
 ## Capability-dependent visibility
 
+The search-page source selector is a user-requested exception: all four source tabs stay visible after search, disconnection and AniBT disablement. The selected source stays unchanged; unavailable sources show a recovery explanation and reject query execution. Other dependent actions retain the normal hiding policy.
+
 Apply [CLAUDE.md's visibility policy](../../../CLAUDE.md#功能可用性与显隐). Establish the prerequisite and the scope of each control before editing XAML: a persistent preference for a supported playback mode is not inapplicable merely because nothing is playing. Use confirmed service capabilities for service-backed actions; a saved enable flag alone need not mean that the service is usable.
 
 - Trace every dependent surface: settings rows, hand-written cards, navigation, context menus and already-open child views. Collapse the whole inapplicable row or group, including its note and spacing; retain other usable content and the switch or selector that restores the prerequisite. `IsEnabled=false` alone does not meet the policy.

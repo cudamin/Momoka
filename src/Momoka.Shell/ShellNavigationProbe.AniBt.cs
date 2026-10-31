@@ -297,7 +297,8 @@ internal sealed partial class ShellNavigationProbe
             var aniBtTab = tabs.Items.OfType<SegmentedItem>().Single(item => item.Name == "AniBtSourceTab");
             Require(aniBtTab.Visibility == Visibility.Visible, "默认设置下 AniBT 搜索来源被隐藏");
             fixture.Settings.MoviePilot.AniBtEnabled = false;
-            await UntilAsync(() => aniBtTab.Visibility == Visibility.Collapsed);
+            await LayoutAsync(page);
+            Require(aniBtTab.Visibility == Visibility.Visible, "关闭 AniBT 后固定搜索入口消失");
             Require(tabs.SelectedIndex == 0 && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Visible,
                 "关闭 AniBT 后搜索页仍停在 AniBT 面板");
             fixture.Settings.MoviePilot.AniBtEnabled = true;
@@ -356,7 +357,6 @@ internal sealed partial class ShellNavigationProbe
                 await SizeAsync(page, width);
                 CheckCompactSearch(page, panel);
                 var search = Get<Border>(page, "SearchSurface");
-                page.ExpandSearchOptions();
                 await LayoutAsync(page);
                 Require(tabs.ActualWidth <= search.ActualWidth + 1, "四个搜索栏超出搜索区域");
                 var list = Get<GridView>(panel, "AnimeResults");
@@ -626,10 +626,11 @@ internal sealed partial class ShellNavigationProbe
             await page.SubmitSearchAsync("断线前请求");
             moviePilot.Offline = true;
             Require(!await service.RefreshAvailabilityAsync(), "假 MP 断线后仍被判为可用");
-            await UntilAsync(() => tabs.Visibility == Visibility.Collapsed && tabs.SelectedIndex == 0);
+            await UntilAsync(() => tabs.Visibility == Visibility.Visible && tabs.SelectedIndex == 3
+                && Get<StackPanel>(page, "SearchUnavailableSurface").Visibility == Visibility.Visible);
             Require(panel.Visibility == Visibility.Collapsed && panel.ViewModel.Results.Count == 0
-                && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Visible,
-                "MP 断线后 AniBT 未收起、查询未清空或媒体库未恢复");
+                && Get<Grid>(page, "EmbyContent").Visibility == Visibility.Collapsed,
+                "MP 断线后 AniBT 未清理或偷偷切到了媒体库");
             var openedBeforeOffline = launcher.Urls.Count;
             panel.ViewModel.OpenAnimeSiteCommand.Execute("anibt");
             Require(launcher.Urls.Count == openedBeforeOffline, "断线后旧网页命令仍打开链接");

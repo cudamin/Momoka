@@ -519,12 +519,10 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility SearchVisibility => Show(_request?.IsSearch == true);
 
     /// <summary>
-    /// 搜索框旁边那个「我的媒体库 / MoviePilot」分段切换在不在。只有搜索页、而且用户在设置里开了 MoviePilot
-    /// 时才出现；没接 MoviePilot 的话这一页和从前一模一样。判据留在这里而不是页面，和 <see cref="SearchVisibility"/>
-    /// 一伙 —— 换一个请求或改了设置就重问一次。
+    /// 搜索页的四个来源固定显示。连接与开关决定是否可以执行，不再决定导航入口在不在。
     /// </summary>
     public Visibility MoviePilotTabsVisibility =>
-        Show(_request?.IsSearch == true && _moviePilot?.Available == true);
+        Show(_request?.IsSearch == true);
 
     private Momoka.MoviePilot.MoviePilotService? _moviePilot;
 

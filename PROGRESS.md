@@ -1,3 +1,12 @@
+## 2026-10-31 搜索网页式筛选与站点弹窗（本批在途）
+
+- 用户要求：筛选折叠栏/标签改主题色卡片，四个来源固定不隐藏，搜索按钮加宽，站点选择改图六网格弹窗；新增验收要求为按正常用户试用后满意才交付。
+- 本树 `C:/Users/89400/.codex/worktrees/search-web-ui/Momoka`，分支 `codex/search-web-ui`，父范围搜索宿主/共享查询按钮/相关探针与测试；站点和资源筛选分别由 `search-sites-grid` / `search-filter-cards` 独立树处理。主树基准49c411b，后续主树集页玻璃改动115ddf7不覆盖。
+- 已改搜索来源始终可见；掉线/AniBT关闭保留选择并显示恢复说明、不发搜索、不偷换媒体库。查询按钮保留SDK模板/Click/QuerySubmitted，将32 DIP点击区扩为64 DIP并暴露Tab和UIA名称。用户指定的search-only例外同步CLAUDE、开发文档及三专项技能。
+- 原生模板依据：microsoft/microsoft-ui-xaml main `6583084e128aca2ac5aed38bd5521029e803ad66` 的 AutoSuggestBox_themeresources.xaml QueryButton固定32 DIP；AutoSuggestBox_Partial.cpp UpdateQueryIcon将Icon写入原按钮Content，故只扩宽不替换Content或事件。WinApp CLI核对当前项目AutomationProperties.SetAccessibilityView及AccessibilityView.Content，安装运行时差异不混进API索引。
+- 新编译Release主测3445/3445、ResourceBrowser100/100、SearchLifetime34/34，0失败0跳过；Shell和三个测试项目0警告0错误，改动文件空白退出0（工作区加载提示保留），diff检查和主树政策自测通过。运行search分区14/14、退出0：`shell-probe-20261031-005437311-14872`；已查看1040/360常驻入口实屏。前两次Hidden启动导致窗口被遮挡的12/14报告保留，改用用户要求的可见UI启动后通过，未削弱像素遮挡检查。
+- 尚未交付：筛选/站点两代理产品和安全离线试用宿主待整合；最终正常用户GUI操作、最终主树重验/实际发布/快捷方式核对待做。新增search-preview只显式单独解析、不能混自动分区，不进入全量；宿主接线后再实际运行，不拿手动试用当自动测试数。
+- 无真实服务器读取/写入/播放，无版本变更或上传；原生libmpv从主树只复制到本树ignored路径供运行。
 ## 2026-10-31 媒体管理卡片与单集直删已交付
 
 - 本轮7405c83（卡片）、9e86878（单集直接删除）及范围子集5f9a808/dc66896已整合master；最新订阅与手动整理改动均保留，最终发布产品HEAD da81574。剧/季卡片默认全选、可取消个别；单集点击已选范围直接删除并提示，未据此做真实媒体删除。

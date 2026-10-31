@@ -48,7 +48,6 @@ internal sealed record LibraryRequest
 
     /// <summary>搜索页返回时的显示状态；结果快照不含页面和图片资源。</summary>
     public int SearchSource { get; set; }
-    public bool SearchOptionsCollapsed { get; set; }
     public double MoviePilotScrollOffset { get; set; }
     public ViewModels.MoviePilotSearchSnapshot? MoviePilotSearch { get; set; }
 

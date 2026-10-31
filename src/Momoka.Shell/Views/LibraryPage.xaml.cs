@@ -58,8 +58,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     private bool _released = true;
     private int _navigation;
     private CancellationTokenSource? _typing;
-    private bool _searchOptionsCollapsed;
-    private int _searchPresentationVersion;
 
     /// <summary>
     /// 这一次回车有没有送到 keydown。输入法组字时没有（见 <see cref="OnSearchKeyUp"/>），
@@ -118,9 +116,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 补提交的那一路见 OnSearchKeyUp。
         SearchInput.AddHandler(UIElement.KeyDownEvent, new KeyEventHandler(OnSearchKeyDown), handledEventsToo: true);
         SearchInput.AddHandler(UIElement.KeyUpEvent, new KeyEventHandler(OnSearchKeyUp), handledEventsToo: true);
-        SearchInput.AddHandler(PointerPressedEvent, new PointerEventHandler(OnSearchInputPressed), handledEventsToo: true);
-        SearchInput.AddHandler(GettingFocusEvent,
-            new Windows.Foundation.TypedEventHandler<UIElement, GettingFocusEventArgs>(OnSearchGettingFocus), handledEventsToo: true);
         SearchInput.Loaded += (_, _) => PlaceSearchSites();
         ViewModel.SubmitRecentSearch = SubmitSearchAsync;
         SearchInput.LostFocus += (_, _) =>
@@ -477,7 +472,6 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         _request = request;
         _released = false;
-        _searchOptionsCollapsed = request.SearchOptionsCollapsed;
         _navigation++;
 
         // The shell reads this back to restore its pane highlight after a Frame.GoBack.
@@ -576,7 +570,6 @@ public sealed partial class LibraryPage : Page, IShellContent
         CancelTyping();
         CancelImeSubmit();
         _navigation++;
-        _searchPresentationVersion++;
         SearchSitePicker.ClosePopup();
         if (_request is { } request)
         {
@@ -586,7 +579,6 @@ public sealed partial class LibraryPage : Page, IShellContent
             {
                 request.SearchTerm = ViewModel.SearchText;
                 request.SearchSource = SearchSource;
-                request.SearchOptionsCollapsed = _searchOptionsCollapsed;
                 request.MoviePilotScrollOffset = MoviePilotPanel.ScrollOffset;
                 request.MoviePilotSearch = MoviePilotPanel.ViewModel.Capture();
             }
@@ -736,11 +728,11 @@ public sealed partial class LibraryPage : Page, IShellContent
         if (!search) return;
 
         var formWidth = Math.Min(900, width);
-        SourceTabs.Visibility = !_searchOptionsCollapsed ? ViewModel.MoviePilotTabsVisibility : Visibility.Collapsed;
-        SearchSitePicker.Visibility = SearchSource == 2 ? Visibility.Visible : Visibility.Collapsed;
+        SourceTabs.Visibility = ViewModel.MoviePilotTabsVisibility;
+        SearchSitePicker.Visibility = SearchSource == 2 && SearchSourceAvailable ? Visibility.Visible : Visibility.Collapsed;
         SearchSitePicker.MaxWidth = formWidth < 520 ? 108 : 180;
         SearchSitePicker.SetCompact(SearchSitePicker.MaxWidth);
-        SearchSurface.Margin = new Thickness(0, _searchOptionsCollapsed ? 4 : 8, 0, 0);
+        SearchSurface.Margin = new Thickness(0, 8, 0, 0);
         MoviePilotPanel.Margin = MoviePilotResources.Margin = AniBtPanel.Margin = searchGap;
         SearchSurface.Width = formWidth;
         SearchSurface.MaxWidth = width;
@@ -752,7 +744,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             .Where(item => item.Visibility == Visibility.Visible).ToArray();
         foreach (var item in visibleTabs)
         {
-            // 4 DIP 容器内边距和可见胶囊之间的 2 DIP 间隔；AniBT 收起后三颗胶囊重新分宽度。
+            // 四个来源始终保留；窄窗只缩短文案，不改查询来源或移走入口。
             item.Width = item.MaxWidth = Math.Max(0, (SourceTabs.Width - 14) / Math.Max(1, visibleTabs.Length));
             var horizontalPadding = formWidth < 520 ? 4 : 8;
             item.Padding = new Thickness(horizontalPadding, 2, horizontalPadding, 2);
@@ -1167,23 +1159,6 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void PlaceSearchSites() => SearchSiteSlot.Place(SearchInput, SearchSitePicker);
 
-    private void OnSearchInputPressed(object sender, PointerRoutedEventArgs e) => ExpandSearchOptions();
-
-    private void OnSearchGettingFocus(UIElement sender, GettingFocusEventArgs args)
-    {
-        // GettingFocus 与本次移焦同步；异步 GotFocus 可能晚于搜索完成，不能拿它重新展开。
-        if (args.FocusState is FocusState.Keyboard or FocusState.Pointer) ExpandSearchOptions();
-    }
-
-    internal void ExpandSearchOptions()
-    {
-        if (_released) return;
-        _searchPresentationVersion++;
-        if (!_searchOptionsCollapsed) return;
-        _searchOptionsCollapsed = false;
-        ApplyHeaderLayout();
-    }
-
     private void OnSearchKeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key == Windows.System.VirtualKey.Enter) _searchEnterDown = true;
@@ -1250,9 +1225,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         CancelTyping();
         if (_released) return Task.CompletedTask;
-        // 先安放焦点再收起，避免从来源标签按回车后焦点留在不可见控件上。
+        // 从来源标签按回车后把焦点交回输入框，接着修改关键词不必再点一次。
         SearchInput.Focus(FocusState.Programmatic);
-        if (string.IsNullOrWhiteSpace(text)) ExpandSearchOptions();
         return RunSearchAsync(text, remember: true);
     }
 
@@ -1274,11 +1248,11 @@ public sealed partial class LibraryPage : Page, IShellContent
     internal async Task SearchTypingAsync(string text)
     {
         if (_released) return;
-        ExpandSearchOptions();
         CancelTyping();
         if (SearchSource != 0)
         {
             ViewModel.SearchText = text;
+            if (!SearchSourceAvailable) return;
             if (SearchSource == 1) await MoviePilotPanel.PrepareSearchAsync().ConfigureAwait(true);
             else if (SearchSource == 3) await AniBtPanel.SearchAsync("").ConfigureAwait(true);
             else await MoviePilotResources.SearchAsync("").ConfigureAwait(true);
@@ -1304,8 +1278,12 @@ public sealed partial class LibraryPage : Page, IShellContent
     private async Task RunSearchAsync(string text, bool remember)
     {
         if (_released) return;
-        var presentation = ++_searchPresentationVersion;
         ViewModel.SearchText = text;
+        if (!SearchSourceAvailable)
+        {
+            ApplySource();
+            return;
+        }
         await (SearchSource switch
         {
             1 => MoviePilotPanel.SearchAsync(text),
@@ -1313,25 +1291,16 @@ public sealed partial class LibraryPage : Page, IShellContent
             3 => AniBtPanel.SearchAsync(text),
             _ => ViewModel.SearchAsync(text, remember)
         }).ConfigureAwait(true);
-        // 搜索期间重新点击、编辑或换来源后，迟到的结果不能再把用户正在用的选项收走。
-        if (!_released && presentation == _searchPresentationVersion && !string.IsNullOrWhiteSpace(text))
-        {
-            _searchOptionsCollapsed = true;
-            ApplyHeaderLayout();
-        }
     }
 
-    // 来源栏的展开状态只是展示偏好，不能把已选的 MP / AniBT 查询变成媒体库查询。
+    // 来源是用户明确选的分段，连接变化不能偷偷把 MP / AniBT 查询改成媒体库查询。
     private int SearchSource
     {
-        get
-        {
-            if (ViewModel.MoviePilotTabsVisibility != Visibility.Visible) return 0;
-            var index = Math.Max(0, SourceTabs.SelectedIndex);
-            // AniBT 入口关闭时即使残留到第 4 个分段，也按「我的媒体库」处理，不能偷偷搜 AniBT。
-            return index == 3 && AniBtSourceTab.Visibility != Visibility.Visible ? 0 : index;
-        }
+        get => Math.Clamp(SourceTabs.SelectedIndex, 0, 3);
     }
+
+    private bool SearchSourceAvailable => SearchSource == 0 || (_moviePilot?.Available == true
+        && (SearchSource != 3 || _settings?.Settings.MoviePilot.AniBtEnabled != false));
 
     private void CancelTyping()
     {
@@ -1341,8 +1310,6 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnSourceChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (!_released && SourceTabs.SelectedIndex == 3 && AniBtSourceTab.Visibility != Visibility.Visible)
-            SourceTabs.SelectedIndex = 0;
         ApplySource();
     }
 
@@ -1376,12 +1343,7 @@ public sealed partial class LibraryPage : Page, IShellContent
     {
         if (_released || !ReferenceEquals(sender, _moviePilot)) return;
         ViewModel.RefreshMoviePilotAvailability();
-        if (_moviePilot?.Available != true)
-        {
-            _searchOptionsCollapsed = false;
-            SourceTabs.SelectedIndex = 0;
-            ApplyHeaderLayout();
-        }
+        if (SearchSource != 0) ApplySource();
     });
 
     private void OnAniBtSettingChanged(object? sender, EventArgs args) => DispatcherQueue.TryEnqueue(() =>
@@ -1392,13 +1354,10 @@ public sealed partial class LibraryPage : Page, IShellContent
         ApplyHeaderLayout();
     });
 
-    /// <summary>设置里的 AniBT 开关控制第 4 个搜索来源；关闭时若正停在那一页，回到媒体库。</summary>
+    /// <summary>用户指定搜索页固定四个来源；AniBT 开关只决定该页能否搜索，不移走标签。</summary>
     private void ApplyAniBtTab()
     {
-        if (_settings is null) return;
-        var enabled = _settings.Settings.MoviePilot.AniBtEnabled;
-        AniBtSourceTab.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
-        if (!enabled && SourceTabs.SelectedIndex == 3) SourceTabs.SelectedIndex = 0;
+        AniBtSourceTab.Visibility = Visibility.Visible;
     }
 
     /// <summary>
@@ -1412,15 +1371,21 @@ public sealed partial class LibraryPage : Page, IShellContent
         CancelTyping();
         CancelImeSubmit();
         SearchSitePicker.ClosePopup();
-        _searchPresentationVersion++;
         var source = SearchSource;
+        var available = SearchSourceAvailable;
         MoviePilotPanel.CancelSearch();
         MoviePilotResources.Release();
         AniBtPanel.Release();
-        MoviePilotPanel.Visibility = source == 1 ? Visibility.Visible : Visibility.Collapsed;
-        MoviePilotResources.Visibility = source == 2 ? Visibility.Visible : Visibility.Collapsed;
-        AniBtPanel.Visibility = source == 3 ? Visibility.Visible : Visibility.Collapsed;
+        MoviePilotPanel.Visibility = source == 1 && available ? Visibility.Visible : Visibility.Collapsed;
+        MoviePilotResources.Visibility = source == 2 && available ? Visibility.Visible : Visibility.Collapsed;
+        AniBtPanel.Visibility = source == 3 && available ? Visibility.Visible : Visibility.Collapsed;
         EmbyContent.Visibility = source == 0 ? Visibility.Visible : Visibility.Collapsed;
+        SearchUnavailableSurface.Visibility = available ? Visibility.Collapsed : Visibility.Visible;
+        SearchUnavailableTitle.Text = source == 3 && _settings?.Settings.MoviePilot.AniBtEnabled == false
+            ? "AniBT 尚未启用" : "MoviePilot 尚未连接";
+        SearchUnavailableMessage.Text = source == 3 && _settings?.Settings.MoviePilot.AniBtEnabled == false
+            ? "请在设置 → MoviePilot 中启用 AniBT；此入口会一直保留。"
+            : "请在设置 → MoviePilot 中启用并连接服务，然后在这里继续搜索。";
         ToolbarSurface.Visibility = _request?.IsSearch == true ? Visibility.Collapsed : ViewModel.ToolbarVisibility;
         SearchInput.PlaceholderText = source switch
         {

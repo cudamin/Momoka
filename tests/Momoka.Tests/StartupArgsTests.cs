@@ -14,6 +14,20 @@ internal static class StartupArgsTests
 {
     public static void Register()
     {
+        Test("搜索手动试用：只能显式单独进入，不加入自动全量或混合检查", () =>
+        {
+            Assert.True(ShellProbeSections.IsKnown("SEARCH-PREVIEW"));
+            Assert.False(ShellProbeSections.All.Contains(ShellProbeSections.SearchPreview));
+            Assert.True(StartupArgs.ShellProbeSectionFilter(["--probe-shell", "--probe-section", "search-preview"])!
+                .SetEquals([ShellProbeSections.SearchPreview]));
+            StartupArgs.ValidateShellProbe(["--probe-shell", "--probe-section", "search-preview"]);
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "--probe-section", "search-preview,search"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "--probe-section", "search-preview", "--play"]));
+            Assert.Throws<ArgumentException>(() => StartupArgs.ValidateShellProbe(
+                ["--probe-shell", "inspect", "--probe-section", "search-preview"]));
+        });
         Test("SVP 离线探针分区：正确解析和重复归一，非法分区仍拒绝", () =>
         {
             Assert.True(ShellProbeSections.IsKnown("SVP"));

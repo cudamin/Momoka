@@ -101,6 +101,9 @@ public static class StartupArgs
         var unknown = values.Where(value => !ShellProbeSections.IsKnown(value)).ToArray();
         if (unknown.Length > 0)
             throw new ArgumentException($"未知的 Shell 探针分区：{string.Join(", ", unknown)}；可用：{ShellProbeSections.Usage}");
+        if (values.Any(value => value.Equals(ShellProbeSections.SearchPreview, StringComparison.OrdinalIgnoreCase))
+            && values.Any(value => !value.Equals(ShellProbeSections.SearchPreview, StringComparison.OrdinalIgnoreCase)))
+            throw new ArgumentException("搜索离线试用不能与自动探针分区组合");
         return values;
     }
 
