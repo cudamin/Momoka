@@ -9604,3 +9604,10 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 自检：新增「其他信息」一关（模型几组、几段带地址就应有几段 Hyperlink；空则整行收起），首轮红在 `详情单集形状（文件页）` —— 模型已有 1 集但条子还没量出高，实渲染 0 张；给文件页的集带最多等四拍（`_infoWaits`）后复跑绿。基线追加 `通过  其他信息`。
 - 验证：完整方案 Release 构建 0 警告 0 错误；`dotnet format whitespace` 通过；主测试 **3496/3496**（0 失败 0 跳过）；`Momoka.PlexAffordanceTests` 67/67；`tools/selfcheck-diff.ps1` 闸门 4 绿（187 项、0 失败、0 消失、0 降级、新增 1 已入基线）。开发件打开尚公主 S01E18 实屏核对：标题「其他信息」与「演职人员」同高、媒体信息表照旧 `HDR：DolbyVision`、分割线后一行读作「类型：剧情 · 工作室：Tencent Video · 数据库链接：TMDB · IMDb · TVDB · 上次播放日期：2026/10/31 18:35」，UIA 三颗 Hyperlink 在位（截图 `work/detail-other-info-screen.png`，仅本机证据，未点开浏览器）。
 - 未覆盖／未交付：没有真实点开外链（避免在用户桌面打开网页），未验证电影页的其他信息实屏；没有重新发布 —— `artifacts/publish/win-x64` 与桌面快捷方式仍是上一批交付（`91BB3D62…`），本批只在主树工作区与开发构建里；未推 origin、未改版本。
+
+## 2026-10-31 其他信息卡交付
+
+- 批次收尾：完整方案 Release 构建 0 警告 0 错误；`dotnet format whitespace` 通过；主测试 3496/3496（0 失败 0 跳过）；`Momoka.PlexAffordanceTests` 67/67；`tools/selfcheck-diff.ps1` 闸门 4 绿（187 项、0 失败、0 消失、0 降级、新增「其他信息」已入基线）。发布前无 Momoka 进程、工作区干净。
+- `tools/publish.ps1 -NoArchive -Shortcut` 退出 0，发布 `artifacts/publish/win-x64`：546 文件 / 285.4 MB、14 GLSL / 4 HOOK、批准 mpv 59（50 UI + 2 native）；版本 `0.2.0+23ac05a04d7009632a6f6626cab60a70cb40a325`，`Momoka.dll` SHA256 `EE132BDEFEDABF975B57EA9ECF3229A5DE1DAABB57F773E8297AAEF27221E762`；桌面 `Momoka.lnk` 目标与工作目录均为该发布目录、参数为空。
+- 交付件实测（发布目录启动 `--show-episode --scroll-end`，落尚公主 S01E18）：标题「其他信息」与「演职人员」UIA 同框 80×26、左边沿同为 436；媒体信息 `HDR：DolbyVision` 在位；分割线后读作「类型：剧情 · 工作室：Tencent Video · 数据库链接：TMDB · IMDb · TVDB · 上次播放日期：2026/10/31 18:35」；三颗 Hyperlink 在位，`ExpanderToggleButton` 0 个。截图 `work/delivered-other-info-screen.png`。关闭后无残留进程。
+- 未覆盖：没有真实点开数据库链接（避免在用户桌面开网页）；未单独核对电影页的其他信息实屏；未推 origin、未升版本、未制作 ZIP／MSIX。
