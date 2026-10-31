@@ -1,4 +1,5 @@
 using System.Text;
+using Momoka.Shell.Interop;
 using Momoka.Shell.Views;
 using Momoka.Theming;
 using Microsoft.UI.Xaml;
@@ -31,12 +32,38 @@ internal sealed partial class ShellNavigationProbe
         _root.Children.Add(card);
         ThemeHost.Register(card);
         var reads = new StringBuilder();
+        var topMost = _window!.TopMost;
         try
         {
+            _window.TopMost = true;
             foreach (var width in new[] { 1040, 760 })
             {
                 ResizeProbeClient(width, 760);
+                var appWindow = Microsoft.UI.Windowing.AppWindow.GetFromWindowId(
+                    Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_window.Handle));
+                var workArea = Microsoft.UI.Windowing.DisplayArea.GetFromWindowId(appWindow.Id,
+                    Microsoft.UI.Windowing.DisplayAreaFallback.Nearest).WorkArea;
+                appWindow.Move(new Windows.Graphics.PointInt32(workArea.X + 24, workArea.Y + 24));
+                _window.Activate();
                 await LayoutAsync(card);
+                await WaitForDiagnosticsFrameAsync();
+                Require(Native.GetClientRect(_window.Handle, out var client), "输入探针不能读取客户区");
+                var origin = new NativePoint();
+                Require(Native.ClientToScreen(_window.Handle, ref origin), "输入探针不能定位客户区");
+                Require(Native.GetVisibleFrame(_window.Handle, out var frame), "输入探针不能读取可见外框");
+                var geometry = $"width={width}, scale={_root.XamlRoot.RasterizationScale}, client={origin.X},{origin.Y}/{client.Width}x{client.Height}, frame={frame.Left},{frame.Top}/{frame.Width}x{frame.Height}, workArea={workArea}, HWND=0x{_window.Handle:X}";
+                await File.AppendAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "input-focus-window.txt"), geometry + "\n");
+                Require(frame.Left >= workArea.X && frame.Top >= workArea.Y
+                    && frame.Right <= workArea.X + workArea.Width && frame.Bottom <= workArea.Y + workArea.Height,
+                    "输入探针窗口不能容纳在所选屏幕工作区：" + geometry);
+                foreach (var (column, row) in new[] { (0.05, 0.2), (0.95, 0.2), (0.05, 0.8), (0.95, 0.8) })
+                {
+                    var point = new NativePoint { X = origin.X + (int)(client.Width * column), Y = origin.Y + (int)(client.Height * row) };
+                    var owner = Native.GetAncestor(Native.WindowFromPoint(point), 2);
+                    await File.AppendAllTextAsync(Path.Combine(_options.Paths.LogDirectory, "input-focus-window.txt"),
+                        $"point={point.X},{point.Y}, owner=0x{owner:X}, expected=0x{_window.Handle:X}\n");
+                    Require(owner == _window.Handle, "输入探针取样点不属于当前窗口");
+                }
                 foreach (var theme in width == 1040 ? UiThemes.All : [UiThemes.Default])
                 {
                     ThemeHost.Apply(theme);
@@ -154,6 +181,7 @@ internal sealed partial class ShellNavigationProbe
         }
         finally
         {
+            _window.TopMost = topMost;
             _root.Children.Remove(card);
             ThemeHost.Apply(before);
             _root.Background = null;

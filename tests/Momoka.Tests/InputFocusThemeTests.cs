@@ -13,6 +13,18 @@ internal static class InputFocusThemeTests
 
     public static void Register()
     {
+        Test("输入探针：客户区定位、完整工作区及四点归属证据保留，截图守卫不放宽", () =>
+        {
+            var source = File.ReadAllText(Path.Combine(Root(), "src", "Momoka.Shell", "ShellNavigationProbe.InputFocus.cs"));
+            Assert.Contains("appWindow.Move(new Windows.Graphics.PointInt32(workArea.X + 24, workArea.Y + 24))", source);
+            Assert.Contains("await WaitForDiagnosticsFrameAsync()", source);
+            Assert.Contains("frame.Right <= workArea.X + workArea.Width", source);
+            Assert.Contains("frame.Bottom <= workArea.Y + workArea.Height", source);
+            Assert.Contains("Require(owner == _window.Handle", source);
+            Assert.Contains("input-focus-window.txt", source);
+            Assert.Contains("await SaveProbeScreenAsync", source);
+            Assert.Contains("_window.TopMost = topMost", source);
+        });
         Test("输入焦点：深浅首帧字典都使用中性边线", () =>
             Assert.True(IsNeutralPalette(Palette())));
 
