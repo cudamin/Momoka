@@ -9617,3 +9617,10 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - `tools/publish.ps1 -NoArchive -Shortcut` 退出 0，发布 `artifacts/publish/win-x64`：546 文件 / 285.4 MB、14 GLSL / 4 HOOK、批准 mpv 59（50 UI + 2 native）；版本 `0.2.0+23ac05a04d7009632a6f6626cab60a70cb40a325`，`Momoka.dll` SHA256 `EE132BDEFEDABF975B57EA9ECF3229A5DE1DAABB57F773E8297AAEF27221E762`；桌面 `Momoka.lnk` 目标与工作目录均为该发布目录、参数为空。
 - 交付件实测（发布目录启动 `--show-episode --scroll-end`，落尚公主 S01E18）：标题「其他信息」与「演职人员」UIA 同框 80×26、左边沿同为 436；媒体信息 `HDR：DolbyVision` 在位；分割线后读作「类型：剧情 · 工作室：Tencent Video · 数据库链接：TMDB · IMDb · TVDB · 上次播放日期：2026/10/31 18:35」；三颗 Hyperlink 在位，`ExpanderToggleButton` 0 个。截图 `work/delivered-other-info-screen.png`。关闭后无残留进程。
 - 未覆盖：没有真实点开数据库链接（避免在用户桌面开网页）；未单独核对电影页的其他信息实屏；未推 origin、未升版本、未制作 ZIP／MSIX。
+
+## 2026-10-31 媒体信息补杜比档位（321209b、f19c42f，已发布本机）
+
+- 用户令「Profile 5.0 呢？」：只读探针实测 Emby 4.10.1 这集的视频流带 `ExtendedVideoSubType="DoviProfile50"`、`ExtendedVideoSubTypeDescription="Profile 5.0"`，`MediaStream` 原来两项都没映射。先加独立「杜比配置」行并提交 321209b；用户随即令「直接加到 dv 后面」，改为 HDR 行写成 `DolbyVision Profile 5.0`、不再单占一行（f19c42f）。档位优先照抄服务器的可读描述，缺了退回枚举原文，不是 DV 的片源不拼。
+- 验证（最终代码）：Tests/Core Release 构建 0 警告 0 错误；主测试 3498/3498（0 失败 0 跳过）；`dotnet format whitespace` 退出 0。开发件实屏（尚公主 S01E18）`HDR：DolbyVision Profile 5.0`（`work/dovi-profile-inline.png`）。
+- 交付：`tools/publish.ps1 -NoArchive -Shortcut` 退出 0，`artifacts/publish/win-x64` 546 文件 / 285.4 MB、载荷校验通过；版本 `0.2.0+f19c42f8cb5985a066b97b8e61bfca474c6c1349`，`Momoka.dll` SHA256 `0787A921B29A529512A3863A5E3F5C7B87025500328DAAF1CB094C473796F5EC`；桌面快捷方式目标与工作目录均为该目录、参数为空。交付件从发布目录启动落尚公主 S01E18：UIA 读到 `HDR：` 与 `DolbyVision Profile 5.0`，「其他信息」标题在位，无单独档位行，截图 `work/delivered-dovi-profile.png`；关闭后无残留进程。
+- 未覆盖：没有真实 DV 播放、HDR 屏或独占管线验证；未推 origin、未升版本。
