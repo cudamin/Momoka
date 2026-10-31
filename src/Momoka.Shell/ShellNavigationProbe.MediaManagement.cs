@@ -113,12 +113,14 @@ internal sealed partial class ShellNavigationProbe
             InvokeDialog(dialog, "CloseButton");
             await showing;
             Require(transport.Writes == 0, "取消确认仍发出删除");
+            Require(!dialog.LibraryFilesRemovalSubmitted, "取消确认仍标记了删除媒体库文件");
 
             dialog = new MoviePilotMediaManagementDialog(service, fixture.Session.Capture(), Subject(EmbyItemType.Movie), MoviePilotHistoryAction.DeleteAll) { XamlRoot = _root.XamlRoot };
             showing = dialog.ShowAsync().AsTask();
             await UntilAsync(() => dialog.IsPrimaryButtonEnabled);
             InvokeDialog(dialog, "PrimaryButton");
             await UntilAsync(() => transport.Writes == 1 && dialog.PrimaryButtonText.Length == 0);
+            Require(dialog.LibraryFilesRemovalSubmitted, "删除媒体库文件后没有通知外壳刷新页面");
             Require(transport.LastMethod == HttpMethod.Delete && transport.LastPath.EndsWith("deletesrc=true&deletedest=true", StringComparison.Ordinal), "确认未走四档 DELETE 协议");
             await SaveProbeScreenAsync("mp-media-delete-receipt.png");
             InvokeDialog(dialog, "CloseButton");

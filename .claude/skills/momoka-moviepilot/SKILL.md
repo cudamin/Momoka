@@ -82,6 +82,7 @@ description: "Develop, review and verify Momoka's MoviePilot integration: availa
 - `total_episode` / `lack_episode` 是订阅目标范围内的下载进度，不是入库进度。已入库只由 `subscribe/files/{id}` 的 `library` 决定；只有 `download` 有文件记录而 `library` 没有时才显示“已下载 · 待入库”，两者都有仍是“已入库”；缺集包含已下载待整理和尚未播出的集。空回话、错误与 `subscribe:null` 都是“统计不可用”，不能显示成 `0 / N` 或全部入库。
 - 订阅写操作按有副作用处理，与 HTTP 方法无关：只提交实际改动的字段，提交中锁住再次提交，结果不明时按订阅逐条保留状态、要求用户先核对服务器再显式解除，不自动重发。回执只代表请求已提交，不代表已找到资源或已入库。
 - 已入库内容的播放入口必须先在**当前 Emby 账号**下重新定位：按主身份查 `AnyProviderIdEquals=<provider>.<mediaId>`，电视剧另核季号与集号；文件统计里的 `itemid` 属于别的媒体服务器，只能在 `server_type` 与文件路径同时对上时才接受，多候选先按入库文件路径筛。找不到、无权读取、待入库与缺集都隐藏播放入口并拒绝起播，保留条目与状态说明；页面只读取，点播放才起播。
+- 媒体管理的「删记录和库文件」「删除记录及两端」确认提交后，关闭回执时必须自动重读当前页；当前是主页时还要把这一件从货架和轮播里摘掉——Emby 的元数据可能比文件晚一步消失，只重读会把旧海报原样带回来。详情页说的就是被删条目时回主页，媒体库页重读清单。`MoviePilotMediaManagementDialog.LibraryFilesRemovalSubmitted` 是外壳唯一的刷新信号，只在 `DeleteDestination`/`DeleteAll` 真正提交时置位，取消不置位；探针以「删除后主页不再出现这一条」为验收，而不是只看有没有发请求。
 
 ## 验证要回答的问题
 

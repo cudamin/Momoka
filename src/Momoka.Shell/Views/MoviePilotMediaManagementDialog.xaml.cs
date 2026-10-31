@@ -30,6 +30,12 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
     private bool _updatingSelection;
     public ObservableCollection<MoviePilotHistoryRecordRow> Records { get; } = [];
 
+    /// <summary>
+    /// 这次确认是否真的提交了「删除媒体库文件」。提交前就置位：结果不明或部分成功时，
+    /// 服务器上的文件也可能已经少了，页面同样不能继续展示旧海报。
+    /// </summary>
+    internal bool LibraryFilesRemovalSubmitted { get; private set; }
+
     internal MoviePilotMediaManagementDialog(MoviePilotService service, EmbySessionScope scope, EmbyItem item,
         MoviePilotHistoryAction action, Frame? frame = null, EmbySession? sourceSession = null)
     {
@@ -116,6 +122,7 @@ public sealed partial class MoviePilotMediaManagementDialog : ContentDialog
         {
             // Page/source ownership is checked again immediately before the service consumes this confirmation.
             if (!Owns()) return;
+            if (plan.DeleteDestination) LibraryFilesRemovalSubmitted = true;
             var result = await _service.SubmitItemHistoryActionAsync(_scope, plan, _lifetime.Token);
             if (_closed) return;
             ShowResult(plan, result);

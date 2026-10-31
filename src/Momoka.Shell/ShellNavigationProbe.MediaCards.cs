@@ -96,6 +96,7 @@ internal sealed partial class ShellNavigationProbe
                     var expected = dialog.Records.Where(row => row.Media.Selected).Select(row => row.Id).ToArray();
                     InvokeMediaCardDialog(dialog, "PrimaryButton");
                     await UntilAsync(() => dialog.PrimaryButtonText.Length == 0);
+                    Require(dialog.LibraryFilesRemovalSubmitted, "剧集删除媒体库文件后没有通知外壳刷新页面");
                     await LayoutAsync(dialog);
                     Require(dialog.Records.Select(row => row.Id).SequenceEqual(expected), "结果列表丢失选中记录或包含未选择记录");
                     Require(dialog.Records.All(row => !row.Selectable), "提交后仍可改变确认范围");

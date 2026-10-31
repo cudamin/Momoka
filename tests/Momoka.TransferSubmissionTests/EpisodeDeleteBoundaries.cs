@@ -76,12 +76,15 @@ namespace Momoka.Shell.Views
             ShowMoviePilotHistoryActionAsync(scope, item, action);
         internal void StopForFixture() => _moviePilotEpisodeDelete?.Cancel();
         private void Notify(string message, InfoBarSeverity severity) => Notices.Add((message, severity));
+        // 页面重读归外壳探针；这里只验证提交与防重，不让主页/详情页类型进入提取范围。
+        private Task RefreshAfterMoviePilotLibraryDeleteAsync(EmbyItem item) => Task.CompletedTask;
     }
 
     // No implementation of the dialog: a direct deletion must never reach this boundary.
     public sealed class MoviePilotMediaManagementDialog : ContentDialog
     {
         internal static int Constructions { get; private set; }
+        internal bool LibraryFilesRemovalSubmitted { get; set; }
         internal MoviePilotMediaManagementDialog(MoviePilotService service, EmbySessionScope scope, EmbyItem item,
             MoviePilotHistoryAction action, Frame frame, EmbySession? sourceSession)
         {

@@ -27,6 +27,7 @@ public sealed partial class ShellPage
         }
         _moviePilotHistoryShowing = true;
         MoviePilotMediaManagementDialog? dialog = null;
+        var libraryFilesRemoved = false;
         try
         {
             if (directDelete)
@@ -39,6 +40,7 @@ public sealed partial class ShellPage
             { XamlRoot = XamlRoot };
             _moviePilotDialog = dialog;
             await dialog.ShowAsync().AsTask();
+            libraryFilesRemoved = dialog.LibraryFilesRemovalSubmitted;
         }
         catch (Exception error)
         {
@@ -49,6 +51,19 @@ public sealed partial class ShellPage
         {
             _moviePilotHistoryShowing = false;
             if (ReferenceEquals(_moviePilotDialog, dialog)) _moviePilotDialog = null;
+        }
+
+        // 确认窗关掉之后才动页面：在窗开着的时候导航会把回执一起关掉。删除媒体库文件之后，主页的货架和
+        // 轮播已经不代表服务器上的样子（用户令 2026-10-31：删除完成后必须自动刷新或回主页）。
+        if (!libraryFilesRemoved) return;
+        try
+        {
+            await RefreshAfterMoviePilotLibraryDeleteAsync(item);
+        }
+        catch (Exception error)
+        {
+            Log.Warn("moviepilot", "媒体管理删除后刷新页面失败", error);
+            Notify("删除已完成，但页面未能刷新；请回主页或重新进入查看", InfoBarSeverity.Warning);
         }
     }
 
@@ -107,6 +122,17 @@ public sealed partial class ShellPage
             var result = await service.SubmitItemHistoryActionAsync(scope, plan, lifetime.Token);
             if (OwnsPage()) Notify($"「{item.Name}」{result.Summary}",
                 result.NeedsReview ? InfoBarSeverity.Warning : InfoBarSeverity.Success);
+            if (plan.DeleteDestination && OwnsPage())
+            {
+                try
+                {
+                    await RefreshAfterMoviePilotLibraryDeleteAsync(item);
+                }
+                catch (Exception error)
+                {
+                    Log.Warn("moviepilot", "单集删除后刷新页面失败", error);
+                }
+            }
         }
         catch (OperationCanceledException)
         {

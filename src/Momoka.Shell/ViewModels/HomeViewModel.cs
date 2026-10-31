@@ -402,20 +402,46 @@ public sealed partial class HomeViewModel : PageViewModel
     internal void Remove(CardItem removed)
     {
         if (!Live || !removed.IsCurrent || !_all.Any(entry => entry.Shelf.Cards.Contains(removed))) return;
+        RemoveItem(removed.Item);
+    }
+
+    /// <summary>
+    /// 服务器已经删掉、但这一页手里还留着的那一件：把它的卡从每一排和轮播里摘掉。
+    /// <para>
+    /// 与 <see cref="Remove(CardItem)"/> 同一套判据，只是手里没有当初那张卡 —— MoviePilot 的删除确认窗
+    /// 只拿着条目本身（用户令 2026-10-31：删记录和库文件、删记录及两端完成后，主页不能还挂着旧海报）。
+    /// 光重读整页不够：Emby 的元数据可能还没随文件一起消失，重读会把它原样带回来；这一手保证已经删掉的
+    /// 条目在刷新完成之前也不会重新出现。
+    /// </para>
+    /// </summary>
+    internal void Remove(EmbyItem removed)
+    {
+        if (!Live) return;
+        RemoveItem(removed);
+    }
+
+    private void RemoveItem(EmbyItem removed)
+    {
         base.Cancel();
-        bool Deleted(EmbyItem item) => item.Source?.Key == removed.Item.Source?.Key && (item.Id == removed.Item.Id || item.ParentId == removed.Item.Id
-            || removed.Item.Type == EmbyItemType.Series && item.SeriesId == removed.Item.Id
-            || removed.Item.Type == EmbyItemType.Season && item.SeasonId == removed.Item.Id);
+        bool Deleted(EmbyItem item) => item.Source?.Key == removed.Source?.Key && (item.Id == removed.Id || item.ParentId == removed.Id
+            || removed.Type == EmbyItemType.Series && item.SeriesId == removed.Id
+            || removed.Type == EmbyItemType.Season && item.SeasonId == removed.Id);
+        var removedAny = false;
         foreach (var (_, shelf) in _all)
         {
             foreach (var card in shelf.Cards.Where(card => Deleted(card.Item)).ToArray())
             {
                 card.AbandonPoster();
                 shelf.Cards.Remove(card);
+                removedAny = true;
             }
         }
         if (Slides.Any(slide => Deleted(slide.Item)))
+        {
             Slides = Slides.Where(slide => !Deleted(slide.Item)).ToArray();
+            removedAny = true;
+        }
+        if (!removedAny) return;
         ReconcileRows();
         IsReady = true;
     }

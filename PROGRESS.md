@@ -1,3 +1,11 @@
+## 2026-10-31 删记录和库文件、删记录及两端之后主页自动重读（已自测，未发布）
+
+- 用户令：这两个删除范围完成后必须自动刷新页面或跳转回主页，避免已删的元数据和海报还留在主页；验收标准是「删除后主页不再显示被删内容」。
+- 关闭确认回执后由外壳重读当前页：主页整页重读并把这一件从货架和轮播里摘掉（Emby 元数据可能比文件晚一步消失，只重读会原样带回来）；详情页说的就是被删条目时回主页再重读并摘掉，别的详情页与媒体库页重读本页，其他页面不动。单集直接删除走同一套（`DeleteDestination`/`DeleteAll` 才触发，`DeleteRecord`/`DeleteSource` 不动页面）。
+- 信号由 `MoviePilotMediaManagementDialog.LibraryFilesRemovalSubmitted` 提供：真正提交前才置位，取消不置位；结果不明或部分成功也算已提交，避免服务器已删文件而页面还挂着旧海报。刷新动作拆在 `ShellPage.MoviePilotMediaManagement.Refresh.cs`，`Momoka.TransferSubmissionTests` 的提取边界只留空实现，不把主页/详情页类型拖进提交测试。
+- 验证（本树最终代码）：Release 整方案 0 警告 0 错误；Core 3502/3502、0 失败 0 跳过；传输提交专项 70/70；`dotnet format whitespace` 退出 0、`git diff --check` 通过。MoviePilot 分区 34/34、退出 0（`shell-probe-20261031-155052171-22520`），新增「MoviePilot 删库文件后主页自动重读且不再显示」连跑 `DeleteDestination` 与 `DeleteAll`：假 Emby 在删除后仍返回该条目，主页重读次数增加后货架与轮播只剩对照条目，被删条目不再出现，前后实屏 `mp-delete-refresh-{destination,all}-{before,after}.png` 已逐张查看。
+- 未覆盖：只走匿名假 Emby/假 MoviePilot，没有真实服务器删除、真实文件变更或真实播放；没有跑自检闸门 4。未刷新 `artifacts/publish/win-x64`：用户正在运行的 `Momoka.exe`（PID 8348，交付目录）占着文件，不擅自杀进程；桌面快捷方式仍是旧版。未推送 origin。
+
 ## 2026-10-31 详情页沉浸版式合入 master（已重验，交付目录未刷新）
 
 - 用户令「合并到主树，清理多余工作树」。`codex/detail-immersive-max`（尖端 `14a4f07`，基于 `ccf1f7e`）以 `--no-ff` 合入 master，合并提交 `8f1fbc0`；随后单独一笔 `8fbdef7` 同步 R046 接续夹具里 `EmbyItem.cs` 的来源哈希 —— 主树 10-31 两笔杜比提交改了该文件却没更新 `SourcePins.json`，整方案构建会直接红，只改这一条、其余 18 条原样保留。
