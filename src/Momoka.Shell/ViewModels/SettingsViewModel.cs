@@ -1897,15 +1897,14 @@ public sealed partial class SettingsViewModel : PageViewModel
 
         HomeRows = new SettingHomeLayoutRow(
             "媒体库顺序",
-            "拖动一行或用右边那两颗箭头决定次序，取消勾选就不显示。「媒体库」那一排是进各媒体库的入口"
-                + "（点上面的卡片打开那个库），其余各排装的是那个库最近添加的内容。",
-            plan.Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible)),
+            HomeRowsNote(ui),
+            plan.Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible, IsPinnedHomeRow(ui, row.Key))),
             rows =>
             {
                 // 来源切换与刷新之间，旧列表也可能交来一次编辑；只接收此刻仍适用的键。
                 var available = CurrentHomeRows().Select(row => row.Key).ToHashSet(StringComparer.Ordinal);
                 ui.HomeRows = Emby.HomeLayout.Save(Emby.HomeLayout.MergeEdits(
-                    Emby.HomeLayout.Plan(ui.HomeRows, null),
+                    Emby.HomeLayout.Plan(ui.HomeRows, null, ui.ShowHomeBanner),
                     rows.Where(row => available.Contains(row.Key))
                         .Select(row => new Emby.HomeRowPlan(row.Key, row.Title, row.Visible)).ToArray()));
 
@@ -1944,6 +1943,10 @@ public sealed partial class SettingsViewModel : PageViewModel
                 value =>
                 {
                     ui.ShowHomeBanner = value;
+                    // 轮播开关也管「媒体库顺序」那一排的固定：开着时它钉在第一位，关掉就放开。说明和那张表
+                    // 当场一起换，不等重开这一页（同页状态变化当场更新的规矩）。
+                    HomeRows?.Restate(HomeRowsNote(ui));
+                    RefreshHomeRows();
                     ShellPrefs.Apply(ui);
                 }),
 
@@ -2022,8 +2025,21 @@ public sealed partial class SettingsViewModel : PageViewModel
     /// <summary>自检用：那张可拖拽的表这一次建出来的那一行。</summary>
     internal SettingHomeLayoutRow? HomeRows { get; private set; }
 
+    /// <summary>
+    /// 「媒体库顺序」那一行的说明。轮播图开着时多一句：那一排固定在第一位（2026-10-31 用户令）。
+    /// 轮播开关一拨这句就换，见那把 <c>Toggle</c> 的 <c>write</c>。
+    /// </summary>
+    private static string HomeRowsNote(UiSettings ui) =>
+        "拖动一行或用右边那两颗箭头决定次序，取消勾选就不显示。"
+            + (ui.ShowHomeBanner ? "轮播图开着时「媒体库」固定在第一位、不能挪动。" : "")
+            + "「媒体库」那一排是进各媒体库的入口（点上面的卡片打开那个库），其余各排装的是那个库最近添加的内容。";
+
+    /// <summary>这一排现在是不是钉住的：轮播图开着时的「媒体库」那一排（见 <see cref="Emby.HomeLayout.Plan"/>）。</summary>
+    private static bool IsPinnedHomeRow(UiSettings ui, string key) =>
+        ui.ShowHomeBanner && key == Emby.HomeLayout.Libraries;
+
     private IReadOnlyList<Emby.HomeRowPlan> CurrentHomeRows() => Emby.HomeLayout.ForSources(
-        Emby.HomeLayout.Plan(Settings.Ui.HomeRows, null),
+        Emby.HomeLayout.Plan(Settings.Ui.HomeRows, null, Settings.Ui.ShowHomeBanner),
         _capabilities?.Sources.Where(source => source.IsAvailable).Select(source => source.Key) ?? [],
         _moviePilot?.Available == true);
 
@@ -2038,15 +2054,17 @@ public sealed partial class SettingsViewModel : PageViewModel
         if (!string.Equals(SelectedCategory, FirstCardCategory, StringComparison.Ordinal)) return;
 
         var wanted = CurrentHomeRows()
-            .Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible))
+            .Select(row => new HomeRowChoice(row.Key, row.Title, row.Visible, IsPinnedHomeRow(Settings.Ui, row.Key)))
             .ToList();
 
         // 名单没变就别重填。重填是一记 Reset，会把这一页上正看着的容器整批拆了重建 —— 而「切回主页」这一次
-        // 调用绝大多数时候名单就是一个没变（见 ShowCategory），白拆一遍只会把切分类那点动效搅乱。
+        // 调用绝大多数时候名单就是一个没变（见 ShowCategory），白拆一遍只会把切分类那点动效搅乱。固定项也算
+        // 「名单变了」：轮播开关一拨，那一排的箭头和把手要跟着锁上或放开。
         if (HomeRows.Rows.Count == wanted.Count
             && HomeRows.Rows.Zip(wanted).All(pair => pair.First.Key == pair.Second.Key
                 && pair.First.Title == pair.Second.Title
-                && pair.First.Visible == pair.Second.Visible))
+                && pair.First.Visible == pair.Second.Visible
+                && pair.First.Pinned == pair.Second.Pinned))
         {
             return;
         }

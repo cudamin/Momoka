@@ -331,9 +331,11 @@ public sealed partial class HomeViewModel : PageViewModel
 
         _refresh.Invalidate();
         var ui = _settings?.Settings.Ui;
-        var savedPlan = HomeLayout.Plan(ui?.HomeRows, _libraryViews);
 
+        // 轮播图开着时「媒体库」那一排固定在第一位（2026-10-31 用户令）：它的落点由「主页媒体库位置」和窗口
+        // 高度决定，次序表里排第几对屏上没有影响。这一档和下面的 _banner 是同一个开关，先读再排。
         _banner = ui?.ShowHomeBanner ?? true;
+        var savedPlan = HomeLayout.Plan(ui?.HomeRows, _libraryViews, _banner);
 
         if (ui is not null && !HomeLayout.Same(ui.HomeRows, savedPlan))
         {

@@ -162,9 +162,15 @@ public static class HomeLayout
     /// 是「这一头不知道」，不是「一个库都没有」：设置窗口不连服务器，而主窗口读库列表失败时也是空手。那种时候
     /// 媒体库那几排照存档里记着的标题排 —— 见 <c>HomeRowSetting.Title</c>。
     /// </param>
+    /// <param name="librariesFirst">
+    /// 轮播图开着（<c>UiSettings.ShowHomeBanner</c>）：<see cref="Libraries"/> 那一排固定排第一（2026-10-31 用户令
+    /// 「开启轮播图后 媒体库顺序 里的 媒体库 固定为第一个」）。那一排摆在第一屏的哪儿由「主页媒体库位置」和窗口
+    /// 高度说了算，次序表里排第几对屏上没有影响 —— 让它在表里跟着拖，只会让人以为拖了会变。关掉轮播时次序照存档。
+    /// </param>
     public static IReadOnlyList<HomeRowPlan> Plan(
         IReadOnlyList<HomeRowSetting>? saved,
-        IReadOnlyList<EmbyItem>? libraries)
+        IReadOnlyList<EmbyItem>? libraries,
+        bool librariesFirst = false)
     {
         var names = new Dictionary<string, string>(StringComparer.Ordinal);
         var order = new List<string>();
@@ -217,6 +223,18 @@ public static class HomeLayout
             if (!taken.Add(key)) continue;
 
             plan.Add(new HomeRowPlan(key, FixedTitle(key) ?? names[key], Visible: true));
+        }
+
+        // 轮播图开着时媒体库那一排钉在第一位（见参数说明）。勾没勾都钉：勾掉只是不显示，不是换个位置。
+        if (librariesFirst)
+        {
+            var index = plan.FindIndex(row => row.Key == Libraries);
+            if (index > 0)
+            {
+                var row = plan[index];
+                plan.RemoveAt(index);
+                plan.Insert(0, row);
+            }
         }
 
         return plan;

@@ -284,6 +284,15 @@ public sealed partial class SettingsPage : Page, IShellContent
     }
 
     /// <summary>
+    /// 固定项（轮播图开着时的「媒体库」那一排）拖不动：那一下直接取消，和两颗箭头置灰是同一个意思。
+    /// 别的排被拖到它前面也不作数 —— 那一下由表自己拉回来。
+    /// </summary>
+    private void OnHomeRowDragStarting(object sender, DragItemsStartingEventArgs e)
+    {
+        if (e.Items.OfType<HomeRowChoice>().Any(row => row.Pinned)) e.Cancel = true;
+    }
+
+    /// <summary>
     /// 自检：那张表真换得了次序 —— 「设置里新增拖拽排序」。
     /// <para>
     /// 拖那一下没法自动做一遍：这台机器上注不进鼠标事件（见 CLAUDE.md）。所以这一条问两件事。一是拖的那条路按
@@ -308,11 +317,14 @@ public sealed partial class SettingsPage : Page, IShellContent
         for (var index = 0; index < rows; index++)
             if (list.ContainerFromIndex(index) is ListViewItem { CanDrag: true }) draggable++;
 
-        // 屏上这张表的两头：头一行的「上移」和末一行的「下移」是灰的。
+        // 屏上这张表的两头：第一排能挪的「上移」和末一行的「下移」是灰的。轮播图开着时第一排是固定项
+        // （「媒体库」），它两头都灰着，所以要找第一个不固定的排来对「到顶」。
         var table = ViewModel.HomeRows;
-        var ends = table is { Rows.Count: > 1 }
-            && !table.Rows[0].CanUp && table.Rows[0].CanDown
-            && table.Rows[^1].CanUp && !table.Rows[^1].CanDown;
+        var first = table?.Rows.FirstOrDefault(row => !row.Pinned);
+        var ends = table is { Rows.Count: > 1 } && first is not null
+            && !first.CanUp && first.CanDown
+            && table.Rows[^1].CanUp && !table.Rows[^1].CanDown
+            && (table.Rows[0].Pinned ? !table.Rows[0].CanUp && !table.Rows[0].CanDown : true);
 
         var arrows = SettingHomeLayoutRow.Probe();
 

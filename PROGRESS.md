@@ -1,3 +1,9 @@
+## 2026-10-31 轮播图开着时「媒体库」固定第一位（已发布本机）
+
+- 用户令「开启轮播图后 媒体库顺序 里的 媒体库 固定为第一个」。`HomeLayout.Plan` 多一档 `librariesFirst`（取自 `UiSettings.ShowHomeBanner`）：轮播开着时把 `libraries` 那一排挪到版面第一位，勾选状态不动；主页 `BuildShelves`、设置页 `CurrentHomeRows`／编辑合并、`HomePage.RefreshHomeRows` 三处都按同一档排。关掉轮播不强制还原旧次序，存下来的就是当前次序。
+- 设置表里固定项两头箭头置灰、拖不动（`DragItemsStarting` 取消 + Remove/Add 落位后拉回第一位），行尾把手换成锁；别的排能拖到它后面，拖到它前面会弹回。轮播开关一拨，表、说明和主页当场跟着换（`RefreshHomeRows` 的比较加上 `Pinned`）；说明里多一句「轮播图开着时『媒体库』固定在第一位、不能挪动」。
+- 验证（本树最终代码）：Release 完整方案 0 警告 0 错误、`format whitespace` 退出 0；Core 3497/3497；`Momoka.HomeOrderProbeTests` 19/19（新增轮播开关拨动、固定项拖回与不可越位两条）；`--probe-shell --probe-section moviepilot,settings` 57 项唯一红是 HomeSources 夹具自己关着轮播却按固定第一写的断言，改成按钥匙找隐藏行后 `--probe-section settings` 重跑 24/24、退出 0；`artifacts/publish/win-x64` 已刷新（546 文件 285.4 MB、载荷校验通过），桌面快捷方式指向该目录。未运行自检（日常批次收尾不必跑），无真实播放／服务器写入，未推 origin。
+
 ## 2026-10-31 红项修复暂停交接（17:15）
 
 - 用户要求暂停、更换窗口。产品／探针修复已提交并发布612c6e9，Core3486/3486、受影响四套45/15/67/31、构建／空白／正式发布校验通过；新发布件光标、动效、字幕、合成均退出0。完整Shell正常收尾150/151，唯一红为CompactSeasons图片恢复等待超时；旧布局循环本轮未复现且未确认根因，闸门4尚未重跑。

@@ -154,6 +154,35 @@ internal static class HomeLayoutTests
             }
         });
 
+        Test("主页版面：轮播图开着时媒体库固定第一位，关掉照存档次序", () =>
+        {
+            // 2026-10-31 用户令「开启轮播图后 媒体库顺序 里的 媒体库 固定为第一个」。
+            List<HomeRowSetting> saved =
+            [
+                Row(HomeLayout.Resume, "继续观看"),
+                Row(HomeLayout.NextUp, "接下来看"),
+                Row(HomeLayout.Libraries, "媒体库", visible: false),
+                Row(HomeLayout.LibraryKey("1"), "最近添加 · 电影")
+            ];
+
+            var plain = HomeLayout.Plan(saved, [Library("1", "电影")]);
+            Assert.Equal(HomeLayout.Resume, plain[0].Key);
+            Assert.Equal(HomeLayout.Libraries, plain[2].Key);
+
+            var pinned = HomeLayout.Plan(saved, [Library("1", "电影")], librariesFirst: true);
+            Assert.Equal(HomeLayout.Libraries, pinned[0].Key);
+            Assert.False(pinned[0].Visible, "勾掉只是不显示，固定第一位不变");
+            Assert.True(pinned.Skip(1).Take(3).Select(row => row.Key).SequenceEqual(
+                new[] { HomeLayout.Resume, HomeLayout.NextUp, HomeLayout.LibraryKey("1") }),
+                "固定媒体库不该打乱别的排的相对次序");
+
+            // 存下来再读一遍仍是同一份：固定不改变别的排的相对次序，也不会因为再算一次而漂。
+            var restored = HomeLayout.Plan(HomeLayout.Save(pinned), [Library("1", "电影")], librariesFirst: true);
+            Assert.True(HomeLayout.Same(HomeLayout.Save(pinned), restored), "固定第一位之后的版面存读不一致");
+            Assert.Equal(HomeLayout.Libraries, restored[0].Key);
+            Assert.Equal(HomeLayout.Resume, restored[1].Key);
+        });
+
         Test("主页版面：存档里那份次序说了算", () =>
         {
             // 用户把媒体库那一排勾掉了。

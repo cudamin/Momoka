@@ -23,7 +23,7 @@ public sealed partial class HomePage
             shelves[HomeLayout.Libraries] = library;
         if (Subscriptions.Movies.HasContent) shelves[HomeLayout.MoviePilotMovies] = Subscriptions.Movies;
         if (Subscriptions.Series.HasContent) shelves[HomeLayout.MoviePilotSeries] = Subscriptions.Series;
-        var ordered = HomeLayout.Plan(_homeSettings.Settings.Ui.HomeRows, null)
+        var ordered = HomeLayout.Plan(_homeSettings.Settings.Ui.HomeRows, null, _homeSettings.Settings.Ui.ShowHomeBanner)
             .Where(row => row.Visible && shelves.ContainsKey(row.Key)).Select(row => shelves[row.Key]).ToList();
         _homeLibraryFlowIndex = ViewModel.LibraryShelf is { } shelf ? ordered.IndexOf(shelf) : -1;
         if (ViewModel.LibraryOnBanner && ViewModel.LibraryShelf is { } overlay) ordered.Remove(overlay);

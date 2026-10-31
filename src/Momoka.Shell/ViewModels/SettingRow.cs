@@ -835,6 +835,10 @@ public sealed partial class SettingFactRow : SettingRow
 /// 而一张拖不动的表在屏上和拖得动的长得一模一样。箭头这条路由 <see cref="Probe"/> 钉着，顺带也给了不使指针的人
 /// 一条路。
 /// </para>
+/// <para>
+/// 表里可以有一项「固定」（<see cref="HomeRowChoice.Pinned"/>）—— 轮播图开着时「媒体库」那一排。它永远排第一，
+/// 箭头两头灰着，别人也拖不到它前面去（2026-10-31 用户令「开启轮播图后 媒体库顺序 里的 媒体库 固定为第一个」）。
+/// </para>
 /// </summary>
 public sealed partial class SettingHomeLayoutRow : SettingRow
 {
@@ -855,7 +859,6 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
         Rows.CollectionChanged += (_, args) =>
         {
             OnPropertyChanged(nameof(ListHeight));
-            MarkEnds();
 
             // 拖一次是两下：先把那一排摘掉，再插到新位置上（ListView 换位走的是 Remove ＋ Add，不是 Move）。
             // 摘掉那一下不写盘 —— 那一刻表里少一排，写出去主页就照少一排重排一遍，被拖的那一排在屏上闪一下
@@ -863,6 +866,9 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
             // 箭头那条路走的是 Move，一下就是一下（见 Shift），所以它落在下面那句上。
             if (args.Action is NotifyCollectionChangedAction.Remove) return;
 
+            // 拖到固定项前面也不作数：钉住的那一排拉回来，其余照新的次序排。挪动自己不再写盘，写盘走下面一次。
+            PinToFront();
+            MarkEnds();
             Save();
         };
 
@@ -923,20 +929,50 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
     /// </summary>
     private void Shift(HomeRowChoice row, int delta)
     {
+        if (row.Pinned) return;
+
         var from = Rows.IndexOf(row);
         var to = from + delta;
-        if (from < 0 || to < 0 || to >= Rows.Count) return;
+        var floor = PinnedCount;
+
+        // 固定项占着最前面几个位置，别的排挪不进它们上面（见 Pinned）。
+        if (from < 0 || to < floor || to >= Rows.Count) return;
 
         Rows.Move(from, to);
     }
 
-    /// <summary>头一排的「上移」和末一排的「下移」置灰 —— 按下去也不动的按钮不该是亮的。</summary>
+    /// <summary>固定项有几个 —— 轮播图开着时「媒体库」那一排占第一位。</summary>
+    private int PinnedCount => Rows.Count(row => row.Pinned);
+
+    /// <summary>
+    /// 把固定项挪回最前面。拖拽换位走的是 Remove ＋ Add，不让拖到固定项前面去 —— 那一下先摘后插，
+    /// 等插回来这一拍再拉回原处，屏上看到的还是「拖不过去」。箭头那条路在 <see cref="Shift"/> 里就拦住了。
+    /// 挪动期间不写盘也不重算两头，由调用者那一次统一做。
+    /// </summary>
+    private void PinToFront()
+    {
+        var pinned = Rows.FirstOrDefault(row => row.Pinned);
+        var from = pinned is null ? -1 : Rows.IndexOf(pinned);
+        if (from <= 0) return;
+
+        var quiet = _quiet;
+        _quiet = true;
+        try { Rows.Move(from, 0); }
+        finally { _quiet = quiet; }
+    }
+
+    /// <summary>
+    /// 箭头的置灰：头一排不能再往上，末一排不能再往下，固定项两头都不亮，固定项下面那一排也不能往上
+    /// （那是固定项的地盘）—— 按下去也不动的按钮不该是亮的。
+    /// </summary>
     private void MarkEnds()
     {
+        var floor = PinnedCount;
+
         for (var index = 0; index < Rows.Count; index++)
         {
-            Rows[index].CanUp = index > 0;
-            Rows[index].CanDown = index < Rows.Count - 1;
+            Rows[index].CanUp = !Rows[index].Pinned && index > floor;
+            Rows[index].CanDown = !Rows[index].Pinned && index < Rows.Count - 1;
         }
     }
 
@@ -974,10 +1010,27 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
         table.Rows[0].UpCommand.Execute(null);
         var stop = Order() == "abc" && saves == 2;
 
-        return (ends && down && up && stop,
+        // 轮播图开着时「媒体库」那一排钉在第一位：两边箭头都灰着，别的排往上挪也越不过它。
+        var pinSaves = 0;
+        var pinned = new SettingHomeLayoutRow(
+            "探针二",
+            null,
+            [new HomeRowChoice("a", "甲", true, pinned: true), new HomeRowChoice("b", "乙", true), new HomeRowChoice("c", "丙", true)],
+            _ => pinSaves++);
+        string PinnedOrder() => string.Concat(pinned.Rows.Select(row => row.Key));
+
+        var locked = !pinned.Rows[0].CanUp && !pinned.Rows[0].CanDown && !pinned.Rows[1].CanUp && pinned.Rows[1].CanDown;
+        pinned.Rows[0].DownCommand.Execute(null);
+        pinned.Rows[1].UpCommand.Execute(null);
+        var held = PinnedOrder() == "abc" && pinSaves == 0;
+        pinned.Rows[1].DownCommand.Execute(null);
+        var moved = PinnedOrder() == "acb" && pinSaves == 1;
+
+        return (ends && down && up && stop && locked && held && moved,
             $"三行假表：两头{(ends ? "置灰" : "没置灰")}、下移{(down ? "换得动" : "没换动")}、"
                 + $"上移{(up ? "换得回" : "没换回")}、到顶再上移{(stop ? "不动也不写盘" : "动了或者写了盘")}"
-                + $"，末了 {Order()}、写盘 {saves} 次");
+                + $"，末了 {Order()}、写盘 {saves} 次；固定项{(locked ? "两边置灰" : "还能挪")}、"
+                + $"别的排越不过去{(held ? "按不动" : "挪过去了")}、下面照常换位{(moved ? "换得动" : "没换动")}");
     }
 }
 
@@ -991,10 +1044,11 @@ public sealed partial class SettingHomeLayoutRow : SettingRow
 /// </summary>
 public sealed partial class HomeRowChoice : ObservableObject
 {
-    internal HomeRowChoice(string key, string title, bool visible)
+    internal HomeRowChoice(string key, string title, bool visible, bool pinned = false)
     {
         Key = key;
         Title = title;
+        Pinned = pinned;
 
         // 直接写属性：这一刻 Changed 还是空的（造完才由那一行挂上），所以不会把「装表」当成「用户点了勾」。
         Visible = visible;
@@ -1004,6 +1058,15 @@ public sealed partial class HomeRowChoice : ObservableObject
     public string Key { get; }
 
     public string Title { get; }
+
+    /// <summary>
+    /// 固定在第一位：轮播图开着时「媒体库」那一排（2026-10-31 用户令）。它那排摆在第一屏的哪儿由「主页媒体库
+    /// 位置」和窗口高度决定，不随这张表的次序走。固定项两头箭头都灰着，也拖不动，别的排挪不到它前面。
+    /// </summary>
+    public bool Pinned { get; }
+
+    /// <summary>行尾那颗图标：能拖的是把手，固定的是锁（同一支 Segoe 图标字体）。</summary>
+    public string HandleGlyph => Pinned ? "\uE72E" : "\uE76F";
 
     /// <summary>勾变了的时候喊一声；由 <see cref="SettingHomeLayoutRow"/> 挂上。</summary>
     internal Action? Changed { get; set; }

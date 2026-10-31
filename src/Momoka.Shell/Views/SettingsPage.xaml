@@ -1079,6 +1079,7 @@
                             AllowDrop="True"
                             CanDragItems="True"
                             CanReorderItems="True"
+                            DragItemsStarting="OnHomeRowDragStarting"
                             Height="{x:Bind ListHeight, Mode=OneWay}"
                             ItemsSource="{x:Bind Rows}"
                             ReorderMode="Enabled"
@@ -1129,13 +1130,14 @@
                                         </Button>
 
                                         <!-- 把手：这一行拖得动的那句话。图标是 Segoe 的「重新排序」，和框架自己
-                                             的拖拽列表用的是同一个。 -->
+                                             的拖拽列表用的是同一个；固定项换成一把锁（轮播图开着时的「媒体库」那一排，
+                                             见 HomeRowChoice.HandleGlyph）。 -->
                                         <FontIcon
                                             Grid.Column="4"
                                             FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                             FontSize="14"
                                             Foreground="{ThemeResource EgTextFaintBrush}"
-                                            Glyph="&#xE76F;"
+                                            Glyph="{x:Bind HandleGlyph}"
                                             VerticalAlignment="Center" />
                                     </Grid>
                                 </DataTemplate>

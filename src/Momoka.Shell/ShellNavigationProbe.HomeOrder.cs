@@ -98,7 +98,9 @@ internal sealed partial class ShellNavigationProbe
             transport.Offline = true;
             Require(!await service.RefreshAvailabilityAsync(), "假断线没有撤销可用性");
             await UntilAsync(() => choices.All(row => !HomeLayout.IsMoviePilot(row.Key)));
-            choices[0].DownCommand.Execute(null);
+            // 轮播图开着时「媒体库」固定第一（2026-10-31 用户令），挪它一下不作数；这一下换了「继续观看」，
+            // 验的还是「断线期间编辑 Emby 排不抹掉隐藏项」那件事。
+            choices.Single(row => row.Key == HomeLayout.Resume).DownCommand.Execute(null);
             var hidden = HomeLayout.Save(HomeLayout.Plan(fixture.Settings.Ui.HomeRows, null));
             await LayoutAsync(settings);
             await SaveProbeScreenAsync("settings-home-order-offline.png");

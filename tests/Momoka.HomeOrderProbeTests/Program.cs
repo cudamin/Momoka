@@ -1,4 +1,6 @@
+using System.Collections;
 using System.Text;
+using System.Windows.Input;
 using Momoka.Emby;
 using Momoka.Shell;
 
@@ -215,10 +217,60 @@ internal static class Program
             Assert.True(await f.Connect());
             f.Drain();
             await f.WaitRows(6);
-            Assert.Equal(HomeLayout.MoviePilotSeries, f.Keys[0]);
+            // 轮播图开着：固定的「媒体库」占第一位，存档里的非默认次序从第二位接上（这一份把订阅排放在最前）。
+            Assert.Equal(HomeLayout.Libraries, f.Keys[0]);
+            Assert.Equal(HomeLayout.MoviePilotSeries, f.Keys[1]);
             foreach (var row in f.Rows.Cast<object>().Where(row => HomeLayout.IsMoviePilot(HomeOrderFixture.Runtime.Get<string>(row, "Key"))))
                 Assert.False(HomeOrderFixture.Runtime.Get<bool>(row, "Visible"));
             f.Stable();
+        });
+        Test("HomeOrder 轮播开着时媒体库固定第一位，关掉放开再开回来", () =>
+        {
+            using var f = new HomeOrderFixture();
+            Assert.True(f.Settings.Settings.Ui.ShowHomeBanner, "夹具默认轮播图开着");
+            Assert.Equal(HomeLayout.Libraries, f.Keys[0]);
+            var library = Choice(f, HomeLayout.Libraries);
+            Assert.True(HomeOrderFixture.Runtime.Get<bool>(library, "Pinned"));
+            Assert.False(HomeOrderFixture.Runtime.Get<bool>(library, "CanUp"));
+            Assert.False(HomeOrderFixture.Runtime.Get<bool>(library, "CanDown"));
+
+            // 第二排不能挪到固定项前面，按了也不动。
+            var second = f.Rows[1]!;
+            Assert.False(HomeOrderFixture.Runtime.Get<bool>(second, "CanUp"));
+            ((ICommand)HomeOrderFixture.Runtime.Get<object>(second, "UpCommand")).Execute(null);
+            Assert.Equal(HomeLayout.Libraries, f.Keys[0]);
+
+            // 轮播关掉：固定放开，次序照存档（这一份把订阅排放在最前，断线时「继续观看」打头）。
+            var toggle = ToggleRow(f);
+            HomeOrderFixture.Runtime.Set(toggle, "IsOn", false);
+            Assert.False(f.Settings.Settings.Ui.ShowHomeBanner);
+            Assert.Equal(HomeLayout.Resume, f.Keys[0]);
+            Assert.False(HomeOrderFixture.Runtime.Get<bool>(Choice(f, HomeLayout.Libraries), "Pinned"));
+
+            HomeOrderFixture.Runtime.Set(toggle, "IsOn", true);
+            Assert.True(f.Settings.Settings.Ui.ShowHomeBanner);
+            Assert.Equal(HomeLayout.Libraries, f.Keys[0]);
+            Assert.True(HomeOrderFixture.Runtime.Get<bool>(Choice(f, HomeLayout.Libraries), "Pinned"));
+        });
+        Test("HomeOrder 固定项被拖到后面自己落回第一位，别的排照常换位", () =>
+        {
+            using var f = new HomeOrderFixture();
+            var library = Choice(f, HomeLayout.Libraries);
+            var writes = f.Settings.Writes;
+
+            // ListView 换位走 Remove ＋ Add 两下：插回来那一拍把固定项拉回第一位，只写一次盘。
+            f.Rows.RemoveAt(0);
+            f.Rows.Insert(2, library);
+            Assert.Equal(HomeLayout.Libraries, f.Keys[0]);
+            Assert.Equal(writes + 1, f.Settings.Writes);
+
+            // 固定项下面照常能挪（那两行不归它管）。
+            var next = Choice(f, HomeLayout.Resume);
+            Assert.False(HomeOrderFixture.Runtime.Get<bool>(next, "CanUp"));
+            Assert.True(HomeOrderFixture.Runtime.Get<bool>(next, "CanDown"));
+            ((ICommand)HomeOrderFixture.Runtime.Get<object>(next, "DownCommand")).Execute(null);
+            Assert.Equal(HomeLayout.Libraries, f.Keys[0]);
+            Assert.Equal(HomeLayout.NextUp, f.Keys[1]);
         });
         Test("HomeOrder Release后直接Watch仍拒绝，共享活动期重入才同步最新可用性", async () =>
         {
@@ -312,6 +364,15 @@ internal static class Program
         });
     }
 
+    private static object Choice(HomeOrderFixture fixture, string key) =>
+        fixture.Rows.Cast<object>().Single(row => HomeOrderFixture.Runtime.Get<string>(row, "Key") == key);
+
+    /// <summary>「显示主页轮播大图」那一行的真对象 —— Shell 程序集只在运行时加载，这里按反射取。</summary>
+    private static object ToggleRow(HomeOrderFixture fixture) =>
+        ((IEnumerable)fixture.Sections).Cast<object>()
+            .SelectMany(section => HomeOrderFixture.Runtime.List(section, "Rows").Cast<object>())
+            .Single(row => HomeOrderFixture.Runtime.Get<string>(row, "Label") == "显示主页轮播大图");
+
     private static void CoverageContract(string root)
     {
         var source = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "ShellNavigationProbe.HomeOrder.cs"));
@@ -334,7 +395,8 @@ internal static class Program
             "new[] { 1100, 760 }", "settings-home-order-{width}.png", "settings-home-order-offline.png",
             "settings-home-order-restored.png", "home-subscription-order-{width}.png",
             "home-subscription-order-overlay.png", "home-subscription-order-disabled.png",
-            "movieCheck.IsChecked = false", "while (series.CanUp)", "choices[0].DownCommand.Execute(null)",
+            "movieCheck.IsChecked = false", "while (series.CanUp)",
+            "choices.Single(row => row.Key == HomeLayout.Resume).DownCommand.Execute(null)",
             "before.HasNext && after.HasNext && Math.Abs(before.Line - after.Line) < 2",
             "home.HomeRows.All(row => row is not MoviePilotHomeRow)", "await UntilAsync(() => choices.Count == 4)",
             "await UntilAsync(() => choices.Count == 6)", "server.Writes.Count == 0"

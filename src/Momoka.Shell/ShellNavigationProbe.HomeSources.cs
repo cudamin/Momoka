@@ -56,7 +56,9 @@ internal sealed partial class ShellNavigationProbe
             new() { Key = HomeLayout.LibraryKey(otherLibrary), Title = "最近添加 · 电影", Visible = false },
             new() { Key = HomeLayout.LibraryKey(currentLibraries[1]), Title = "最近添加 · 电视节目", Visible = false },
             new() { Key = HomeLayout.Libraries, Title = "媒体库" }], [otherLibrary, .. currentLibraries]));
-        var hidden = fixture.Settings.Ui.HomeRows[0];
+        // 按钥匙找这条隐藏来源，不依赖它排第几（轮播图开着时「媒体库」会钉在第一位，见 2026-10-31 用户令；
+        // 这一条夹具本身关着轮播图，见 Fixture 的默认值）。
+        var hidden = fixture.Settings.Ui.HomeRows.Single(row => row.Key == HomeLayout.LibraryKey(otherLibrary));
         fixture.Settings.AggregateMode = false;
         Require(fixture.Session.ApplyAggregateMode() == 1, "未真正收口成单来源");
         Require(!other.IsAvailable && current.IsAvailable, "单来源模式没有撤销其它在线账号");
@@ -127,7 +129,7 @@ internal sealed partial class ShellNavigationProbe
             series.Visible = true;
             series.DownCommand.Execute(null);
             var currentOrder = choices.Select(row => row.Key).ToArray();
-            Require(fixture.Settings.Ui.HomeRows[0].Key == hidden.Key && !fixture.Settings.Ui.HomeRows[0].Visible,
+            Require(fixture.Settings.Ui.HomeRows.Single(row => row.Key == hidden.Key).Visible == false,
                 "编辑当前表清空或移动了隐藏来源偏好");
             // 切到其它分类后再回主页也必须沿用范围和编辑，而不是读回全局表。
             settings.ViewModel.SelectedCategory = "界面";
@@ -140,6 +142,7 @@ internal sealed partial class ShellNavigationProbe
             var account = server.Accounts.Single(account => account.Id == other.AccountProfileId);
             Require(await fixture.Session.TryRestoreAsync(server, account, CancellationToken.None), "聚合恢复来源失败");
             await CheckTableAsync(7, "聚合恢复");
+            // 这一条夹具关着轮播图（Fixture 默认 ShowHomeBanner=false），媒体库那一排不固定，次序照存档。
             Require(choices[0].Key == hidden.Key && !choices[0].Visible, "恢复来源没有还原原排序和勾选");
             Require(choices.Any(row => row.Key == HomeLayout.LibraryKey(currentLibraries[0]))
                 && choices.Any(row => row.Key == HomeLayout.LibraryKey(otherLibrary)), "聚合模式合并了同号库");
@@ -177,7 +180,7 @@ internal sealed partial class ShellNavigationProbe
             var all = Get<(HomeRowPlan Row, CardShelf Shelf)[]>(home.ViewModel, "_all");
             Require(all.Count(entry => HomeLayout.LibraryId(entry.Row.Key) is not null) == 3
                 && all.All(entry => entry.Row.Key != hidden.Key), "主页仍为隐藏来源创建了空货架");
-            Require(fixture.Settings.Ui.HomeRows[0].Key == hidden.Key && !fixture.Settings.Ui.HomeRows[0].Visible,
+            Require(fixture.Settings.Ui.HomeRows.Single(row => row.Key == hidden.Key).Visible == false,
                 "主页归一化抹掉了隐藏来源偏好");
             foreach (var width in new[] { 1100, 760 })
             {
