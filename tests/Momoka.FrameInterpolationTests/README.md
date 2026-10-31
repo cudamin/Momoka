@@ -84,3 +84,5 @@
 设置卡同时提供默认关闭的「接入 SVP」，只在内置后端显示。有效启用时隐藏原有模式／目标帧率／质量，保留偏好；用户安装的 VapourSynth 组件路径、检测状态和 SVP 管理说明随总开关显隐。自定义 mpv.conf 生效时暂停 SVP 接入并收起组件路径，保留两个恢复入口。
 
 本项目的真实源码 fixture 额外覆盖 SVP 开关、路径去引号／保存、重新检测、后端与自定义配置转换；播放规则与匿名管道另在 `Momoka.Tests` 的 `svp-fixture`，实际内核无媒体检查为 `svp-native-fixture`。真实宽窄设置与卡片顺序用 `--probe-shell --probe-section svp --screen 1`。这些检查不启动 SVP Manager 或真实媒体，不证明实际补帧画面／实时性能。
+
+SVP 编辑等待回归原样提取真实 `CommitSvpPathAsync`、`Require` 与两秒 `UntilAsync`，只替换 WinUI 焦点／失焦端点；路径清理仍执行真实文本行。覆盖焦点迟到、失焦迟到或缺失、拒绝转移、保存异常不重试和事件退订。注册前核对当前源码哈希，建后修改须先重新编译。无参运行包含这些用例；实际窗口提交仍由 `svp` 分区检查，读数保存为 `svp-focus-trace.txt`。

@@ -120,4 +120,83 @@
       <Compile Include="$(IntermediateOutputPath)StartupAvailability.g.cs" />
     </ItemGroup>
   </Target>
+
+  <!-- Exercise the exact diagnostic input and frame-evidence control flow; only native/capture IO is inert. -->
+  <UsingTask TaskName="ExtractProbeEvidence" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Root ParameterType="System.String" Required="true" />
+      <Output ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System" />
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        Func<string, string, string, string> between = (source, begin, finish) =>
+        {
+            var start = source.IndexOf(begin, StringComparison.Ordinal);
+            if (start < 0 || source.IndexOf(begin, start + begin.Length, StringComparison.Ordinal) >= 0)
+                throw new InvalidOperationException("Missing or ambiguous probe evidence start: " + begin);
+            var end = source.IndexOf(finish, start + begin.Length, StringComparison.Ordinal);
+            if (end < 0) throw new InvalidOperationException("Missing probe evidence end: " + finish);
+            return source.Substring(start, end - start);
+        };
+        Func<string, string> read = path => File.ReadAllText(Path.Combine(Root, path)).Replace("\r\n", "\n");
+        var cursor = read("src/Momoka.Shell/CursorVisibilityProbe.cs");
+        var pixels = read("src/Momoka.Shell/CompositionPlaybackProbe.Pixels.cs");
+        var composition = read("src/Momoka.Shell/CompositionPlaybackProbe.cs");
+        var motion = read("src/Momoka.Shell/PlayerMotionProbe.cs");
+        if (pixels.Split(new[] { "return new ScreenPixels(width, height, bytes) { OriginX = x, OriginY = y };" }, StringSplitOptions.None).Length != 2)
+            throw new InvalidOperationException("Screen capture lost its exact origin handoff");
+        foreach (var wiring in new[] { "await PrepareInputAsync(window,", "Task Move(int x, int y) => MoveAsync(window!", "NudgeInput(window, Write, token);" })
+            if (cursor.IndexOf(wiring, StringComparison.Ordinal) < 0)
+                throw new InvalidOperationException("Cursor probe caller lost wiring: " + wiring);
+        if (motion.IndexOf("await CompositionPlaybackProbe.ReadEdgeEvidenceAsync(window,", StringComparison.Ordinal) < 0)
+            throw new InvalidOperationException("Motion caller lost same-frame evidence");
+        var input = between(cursor, "    // Diagnostic input preparation and movement;", "    // End diagnostic input preparation and movement.");
+        var evidence = between(pixels, "    // Retained-frame edge evidence;", "\n    /// <summary>");
+        var save = between(pixels, "    internal static Task SaveScreenAsync(HostWindow window, string file)", "    // Retained-frame edge evidence;");
+        var frame = between(pixels, "    private sealed record ScreenPixels(", "\n    [StructLayout(");
+        var line = between(composition, "    internal static string Line(", "\n    /// <summary>");
+        var edge = between(composition, "    internal static string EdgeRead(", "\n    /// <summary>");
+        var blank = between(composition, "    internal static bool HasBlank(", "\n    /// <summary>");
+        var colors = between(composition, "    private static char ColorLetter(uint color)", "\n    internal static Uri LocalFile(");
+        var assertion = between(motion, "            var recognized = fixedRead.Count(", "            // 红/绿对照：");
+        var require = between(motion, "        void Require(bool condition, string message)", "        async Task Until(");
+        var generated = "// Verbatim current probe methods; native/capture/encoder endpoints are test-only.\n#nullable enable\n" +
+            "using System.Diagnostics;\nusing Momoka.Tests;\nusing Native = Momoka.Tests.ProbeEvidenceNative;\n" +
+            "using NativePoint = Momoka.Tests.ProbeEvidencePoint;\nusing HostWindow = Momoka.Tests.ProbeEvidenceWindow;\n" +
+            "namespace Momoka.Shell;\ninternal static class CursorVisibilityProbe\n{\n" + input +
+            "    internal static Task PrepareForFixture(HostWindow window, NativePoint[] targets, Action<string> write, CancellationToken token, int timeout) => PrepareInputAsync(window, targets, write, token, timeout);\n" +
+            "    internal static Task MoveForFixture(HostWindow window, int x, int y, Action<string> write, CancellationToken token) => MoveAsync(window, x, y, write, token);\n}\n" +
+            "internal static partial class CompositionPlaybackProbe\n{\n" + evidence + save + frame + line + edge + blank + colors +
+            "    private static ScreenPixels CapturePixels(HostWindow window) => CapturePixels(window.Handle);\n" +
+            "    private static ScreenPixels CapturePixels(IntPtr handle)\n    {\n        var frame = ProbeEvidenceNative.State.Capture(handle);\n        return new ScreenPixels(frame.Width, frame.Height, frame.Bytes) { OriginX = frame.OriginX, OriginY = frame.OriginY };\n    }\n" +
+            "    private static Task EncodeAsync(ScreenPixels frame, string file) => ProbeEvidenceNative.State.Encode(frame.Bytes, file);\n}\n" +
+            "internal static class RetainedEvidenceCaller\n{\n    internal static void Validate(string fixedRead, Action<string> Write)\n    {\n" +
+            assertion + require + "    }\n}\n";
+        var paths = new[] { "src/Momoka.Shell/CursorVisibilityProbe.cs", "src/Momoka.Shell/CompositionPlaybackProbe.Pixels.cs",
+            "src/Momoka.Shell/CompositionPlaybackProbe.cs", "src/Momoka.Shell/PlayerMotionProbe.cs" };
+        var hashes = new StringBuilder();
+        foreach (var path in paths)
+        {
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+                hashes.Append("        (\"").Append(path).Append("\", \"")
+                    .Append(BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(Path.Combine(Root, path)))).Replace("-", ""))
+                    .Append("\"),\n");
+        }
+        generated += "internal static class ProbeEvidenceInputs\n{\n    internal static readonly (string Path, string Hash)[] Hashes =\n    [\n" + hashes + "    ];\n}\n";
+        Directory.CreateDirectory(Path.GetDirectoryName(Output));
+        if (!File.Exists(Output) || File.ReadAllText(Output) != generated)
+            File.WriteAllText(Output, generated, new UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="GenerateProbeEvidence" BeforeTargets="CoreCompile">
+    <ExtractProbeEvidence Root="$(MSBuildProjectDirectory)\..\.." Output="$(IntermediateOutputPath)ProbeEvidence.g.cs" />
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)ProbeEvidence.g.cs" />
+    </ItemGroup>
+  </Target>
 </Project>

@@ -69,6 +69,35 @@
         var regressionOutput = Path.Combine(Path.GetDirectoryName(Output), "FrameInterpolationRegression.g.cs");
         if (!File.Exists(regressionOutput) || File.ReadAllText(regressionOutput) != regression)
             File.WriteAllText(regressionOutput, regression, new UTF8Encoding(false));
+        var svpPath = Path.Combine(Root, "src/Momoka.Shell/ShellNavigationProbe.Svp.cs");
+        var sharedPath = Path.Combine(Root, "src/Momoka.Shell/ShellNavigationProbe.cs");
+        var svp = File.ReadAllText(svpPath).Replace("\r\n", "\n");
+        var shared = File.ReadAllText(sharedPath).Replace("\r\n", "\n");
+        if (svp.Split(new[] { "await CommitSvpPathAsync(box," }, StringSplitOptions.None).Length != 2)
+            throw new InvalidOperationException("Missing or ambiguous actual SVP edit caller");
+        var caller = between(svp, "        await CommitSvpPathAsync(box,", "        state.RunCommand.Execute(null);");
+        foreach (var required in new[] { "await LayoutAsync(page);", "await WaitForSettingsSettledAsync(page);",
+            "Require(pathRow.Text == unavailable", "Require(settings.Mpv.SvpVapourSynthPath == unavailable && !fixture.SettingsService.HasUnsavedChanges,",
+            "SVP 路径没有保存或刷新状态" })
+            if (caller.IndexOf(required, StringComparison.Ordinal) < 0)
+                throw new InvalidOperationException("SVP caller lost assertion/wait: " + required);
+        Func<string, string> hash = path =>
+        {
+            using (var sha = System.Security.Cryptography.SHA256.Create())
+                return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-", "");
+        };
+        var commit = "// Exact current SVP focus/commit caller helper; WinUI endpoints are test boundaries.\n" +
+            "#nullable enable\nusing Microsoft.UI.Xaml;\nusing Microsoft.UI.Xaml.Controls;\nusing Microsoft.UI.Xaml.Input;\n" +
+            "namespace Momoka.Shell;\ninternal sealed partial class ShellNavigationProbe\n{\n" +
+            between(svp, "    private static async Task CommitSvpPathAsync(", "\n}") +
+            between(shared, "    private static void Require(bool condition, string message)", "\n    private static object? Call") +
+            between(shared, "    private static async Task UntilAsync(Func<bool> ready)", "\n    private static async Task LayoutAsync") +
+            "\n    internal static Task CommitSvpForFixture(TextBox editor, ToggleSwitch next, string typed, Func<Task> verify, Action<string> record) => CommitSvpPathAsync(editor, next, typed, verify, record);\n" +
+            "    internal const string SvpHash = \"" + hash(svpPath) + "\";\n" +
+            "    internal const string SharedHash = \"" + hash(sharedPath) + "\";\n}\n";
+        var commitOutput = Path.Combine(Path.GetDirectoryName(Output), "SvpProbeCommit.g.cs");
+        if (!File.Exists(commitOutput) || File.ReadAllText(commitOutput) != commit)
+            File.WriteAllText(commitOutput, commit, new UTF8Encoding(false));
       ]]></Code>
     </Task>
   </UsingTask>
@@ -77,6 +106,7 @@
     <ItemGroup>
       <Compile Include="$(IntermediateOutputPath)FrameInterpolationUi.g.cs" />
       <Compile Include="$(IntermediateOutputPath)FrameInterpolationRegression.g.cs" />
+      <Compile Include="$(IntermediateOutputPath)SvpProbeCommit.g.cs" />
     </ItemGroup>
   </Target>
 </Project>

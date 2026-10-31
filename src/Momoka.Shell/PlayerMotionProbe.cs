@@ -1023,12 +1023,17 @@ internal static class PlayerMotionProbe
         async Task RetainedPlacementAsync(CompositionVideoTarget surface, PlayerPage page)
         {
             Write("阶段：保留最后一帧的摆放（手动进保留态，读像素）");
+            Write($"保留帧拆链前：客户区={window.ClientSize}，宿主={surface.HostSize}，缓冲={surface.AttachedContentSize}"
+                + $"，像素={surface.PixelSize}，摆放={surface.PlacedRect}，形状={page.RetainedShapeProbeState}，前台=0x{Native.GetForegroundWindow():X}");
             surface.RetainLastFrame = true;
             surface.AttachSwapChain(IntPtr.Zero);
             await Task.Delay(80, token);
             Require(surface.IsRetained, "交还交换链后进入保留态（最后一帧留在屏上）");
+            Write($"保留帧拆链后：客户区={window.ClientSize}，宿主={surface.HostSize}，像素={surface.PixelSize}"
+                + $"，摆放={surface.PlacedRect}，形状={page.RetainedShapeProbeState}，前台=0x{Native.GetForegroundWindow():X}");
 
-            var fixedRead = CompositionPlaybackProbe.EdgeRead(window);
+            var fixedRead = await CompositionPlaybackProbe.ReadEdgeEvidenceAsync(window,
+                Path.Combine(options.Paths.LogDirectory, "retained-frame-screen.png"), Write);
             var recognized = fixedRead.Count(letter => "RGYBMC".Contains(letter));
             Write($"保留帧边缘读数（本次修法）：{fixedRead}（认出彩条 {recognized} 处）");
             Require(recognized >= 3 && !CompositionPlaybackProbe.HasBlank(fixedRead),

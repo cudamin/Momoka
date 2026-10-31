@@ -22,4 +22,5 @@ if (args.Length > 0)
 }
 FrameInterpolationTests.Register();
 FrameInterpolationUiTests.Register();
+SvpProbeCommitTests.Register();
 return TestHarness.Run();

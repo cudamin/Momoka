@@ -29,6 +29,7 @@ internal static class CursorVisibilityProbe
         var originalForeground = Native.GetForegroundWindow();
         var restorePointer = Native.GetCursorPos(out var originalPointer);
         HostWindow? window = null;
+        bool? originalTopMost = null;
         ShellPage? shell = null;
         IPlaybackHandle? playback = null;
         ServiceProvider? services = null;
@@ -52,7 +53,10 @@ internal static class CursorVisibilityProbe
             var picture = (PictureSurface)page.FindName("Root");
             var source = InputPointerSource.GetForIsland(picture.XamlRoot.ContentIsland);
             var inputEvents = 0;
+            var handledInputEvents = 0;
             picture.PointerMoved += (_, _) => inputEvents++;
+            picture.AddHandler(UIElement.PointerMovedEvent,
+                new Microsoft.UI.Xaml.Input.PointerEventHandler((_, _) => handledInputEvents++), true);
             Write($"隔离诊断 PID={Environment.ProcessId} HWND=0x{window.Handle:X} island=0x{window.IslandHandle:X}");
             Write("独立空数据目录；未登录、不读取真实设置、不调用 PlaybackService 播放或上报。");
             Write("使用正式 PlayerPage、HostWindow 和 10Hz 光标计时器；检查系统光标，不以内部隐藏位代替。");
@@ -83,19 +87,24 @@ internal static class CursorVisibilityProbe
             {
                 window.Fullscreen = full;
                 await Task.Delay(400, token);
+                originalTopMost ??= window.TopMost;
                 Native.GetClientRect(window.Handle, out var rect);
                 var centre = new NativePoint { X = rect.Width / 2, Y = rect.Height / 2 };
                 Native.ClientToScreen(window.Handle, ref centre);
-                window.Activate();
+                await PrepareInputAsync(window,
+                    [new NativePoint { X = centre.X - 30, Y = centre.Y }, centre,
+                        new NativePoint { X = centre.X + 60, Y = centre.Y }], Write, token);
                 var eventsBefore = inputEvents;
+                var handledBefore = handledInputEvents;
                 await Move(centre.X - 30, centre.Y);
                 await Move(centre.X, centre.Y);
                 if (inputEvents == eventsBefore)
                 {
-                    Native.NudgeCursorState();
+                    NudgeInput(window, Write, token);
                     await Task.Delay(200, token);
+                    GuardInputOwnership(window, centre, Write, token);
                 }
-                Write($"模式={(full ? "全屏" : "窗口化")} 输入事件={inputEvents - eventsBefore}");
+                Write($"模式={(full ? "全屏" : "窗口化")} 输入事件={inputEvents - eventsBefore}，含已处理事件={handledInputEvents - handledBefore}");
                 Require(inputEvents > eventsBefore, "XAML 收到测试移动，未以纯坐标搬运冒充输入");
                 await Until(() => !page.CursorProbeState.Hidden && !Gone(), 700, "移动后系统光标可见");
                 var moves = page.CursorProbeState.Moves;
@@ -177,6 +186,11 @@ internal static class CursorVisibilityProbe
                 if (window is not null)
                 {
                     window.Closed -= stopping.Cancel;
+                    if (originalTopMost is { } topMost)
+                    {
+                        try { window.TopMost = topMost; }
+                        catch (Exception error) { CleanupFailure(error); }
+                    }
                     try { window.CursorHidden = false; }
                     catch (Exception error) { CleanupFailure(error); }
                     try { window.Dispose(); }
@@ -209,23 +223,7 @@ internal static class CursorVisibilityProbe
                 || Native.CursorIsTransparent(snap.Shape);
         }
 
-        async Task Move(int x, int y)
-        {
-            for (var attempt = 0; attempt < 4; attempt++)
-            {
-                var sent = Native.MovePointerTo(x, y);
-                await Task.Delay(160, token);
-                Native.GetCursorPos(out var at);
-                Write($"测试输入目标={x},{y}，实际={at.X},{at.Y}，SendInput={sent}");
-                if (Math.Abs(at.X - x) <= 1 && Math.Abs(at.Y - y) <= 1) return;
-                if (Native.SetCursorPos(x, y)) Native.NudgeCursorState();
-                await Task.Delay(160, token);
-                if (Native.GetCursorPos(out at) && Math.Abs(at.X - x) <= 1 && Math.Abs(at.Y - y) <= 1) return;
-                await Task.Delay(500, token);
-            }
-            throw new InvalidOperationException("测试鼠标无法到位，未开始显隐断言");
-
-        }
+        Task Move(int x, int y) => MoveAsync(window!, x, y, Write, token);
 
         async Task Until(Func<bool> ready, int milliseconds, string stage)
         {
@@ -251,4 +249,75 @@ internal static class CursorVisibilityProbe
             Log.Info("光标诊断", message);
         }
     }
+
+    // Diagnostic input preparation and movement; compile-linked verbatim by the offline regression.
+    private static async Task PrepareInputAsync(HostWindow window, NativePoint[] targets, Action<string> write,
+        CancellationToken token, int timeoutMilliseconds = 2000)
+    {
+        token.ThrowIfCancellationRequested();
+        window.TopMost = true;
+        window.Activate();
+        var waiting = Stopwatch.StartNew();
+        while (Native.GetForegroundWindow() != window.Handle)
+        {
+            token.ThrowIfCancellationRequested();
+            if (waiting.ElapsedMilliseconds >= timeoutMilliseconds)
+                throw new TimeoutException($"光标探针未取得前台：目标=0x{window.Handle:X}，实际=0x{Native.GetForegroundWindow():X}；未注入输入");
+            await Task.Delay(25, token);
+        }
+        foreach (var target in targets) GuardInputOwnership(window, target, write, token);
+    }
+
+    private static void GuardInputOwnership(HostWindow window, NativePoint target, Action<string> write,
+        CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var foreground = Native.GetForegroundWindow();
+        var under = Native.WindowFromPoint(target);
+        var root = Native.GetAncestor(under, Native.GaRoot);
+        var thread = Native.GetWindowThreadProcessId(under, out var process);
+        var name = new char[256];
+        var length = under == IntPtr.Zero ? 0 : Native.GetClassName(under, name, name.Length);
+        write($"输入归属：目标={target.X},{target.Y}，前台=0x{foreground:X}，命中=0x{under:X}"
+            + $"，根=0x{root:X}，PID={process}，线程={thread}，类={new string(name, 0, Math.Max(0, length))}");
+        if (window.Handle == IntPtr.Zero || foreground != window.Handle || root != window.Handle
+            || process != (uint)Environment.ProcessId)
+            throw new InvalidOperationException("光标探针目标不属于本次前台窗口；未继续注入输入");
+    }
+
+    private static async Task MoveAsync(HostWindow window, int x, int y, Action<string> write,
+        CancellationToken token)
+    {
+        for (var attempt = 0; attempt < 4; attempt++)
+        {
+            var target = new NativePoint { X = x, Y = y };
+            GuardInputOwnership(window, target, write, token);
+            var sent = Native.MovePointerTo(x, y);
+            await Task.Delay(160, token);
+            GuardInputOwnership(window, target, write, token);
+            if (!Native.GetCursorPos(out var at))
+                throw new InvalidOperationException("光标探针位置读取失败；未继续测试输入或后备搬运");
+            write($"测试输入目标={x},{y}，实际={at.X},{at.Y}，SendInput={sent}");
+            if (Math.Abs(at.X - x) <= 1 && Math.Abs(at.Y - y) <= 1) return;
+            GuardInputOwnership(window, target, write, token);
+            if (Native.SetCursorPos(x, y))
+            {
+                NudgeInput(window, write, token);
+            }
+            await Task.Delay(160, token);
+            GuardInputOwnership(window, target, write, token);
+            if (Native.GetCursorPos(out at) && Math.Abs(at.X - x) <= 1 && Math.Abs(at.Y - y) <= 1) return;
+            await Task.Delay(500, token);
+        }
+        throw new InvalidOperationException("测试鼠标无法到位，未开始显隐断言");
+    }
+
+    private static void NudgeInput(HostWindow window, Action<string> write, CancellationToken token)
+    {
+        if (!Native.GetCursorPos(out var at))
+            throw new InvalidOperationException("光标探针无法读取刷新输入位置；未注入输入");
+        GuardInputOwnership(window, at, write, token);
+        Native.NudgeCursorState();
+    }
+    // End diagnostic input preparation and movement.
 }

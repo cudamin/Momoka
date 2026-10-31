@@ -47,6 +47,7 @@ internal static class Program
             Console.OutputEncoding = System.Text.Encoding.UTF8;
             CompositionPositionReadinessTests.Register();
             CompositionProbePixelsTests.Register();
+            ProbeEvidenceTests.Register();
             return TestHarness.Run();
         }
         if (args is ["settings-storage-fixture"])
@@ -330,6 +331,7 @@ internal static class Program
         SelfCheckLayoutRulesTests.Register();
         CompositionPositionReadinessTests.Register();
         CompositionProbePixelsTests.Register();
+        ProbeEvidenceTests.Register();
         PerformanceProbeRulesTests.Register();
         AgreementsTests.Register();
 

@@ -18,6 +18,36 @@ internal static partial class CompositionPlaybackProbe
         await EncodeAsync(screen, file);
     }
 
+    // Retained-frame edge evidence; compile-linked verbatim with capture/encoding boundary substitutes.
+    internal static async Task<string> ReadEdgeEvidenceAsync(HostWindow window, string file, Action<string> write)
+    {
+        var frame = CapturePixels(window);
+        var read = new char[4];
+        var owned = true;
+        var positions = new[] { 0.08, 0.25, 0.75, 0.92 };
+        for (var index = 0; index < positions.Length; index++)
+        {
+            var column = (int)Math.Round((frame.Width - 1) * positions[index]);
+            var row = (int)Math.Round((frame.Height - 1) * 0.4);
+            var point = new NativePoint { X = frame.OriginX + column, Y = frame.OriginY + row };
+            var under = Native.WindowFromPoint(point);
+            var root = Native.GetAncestor(under, Native.GaRoot);
+            var thread = Native.GetWindowThreadProcessId(under, out var process);
+            var name = new char[256];
+            var length = under == IntPtr.Zero ? 0 : Native.GetClassName(under, name, name.Length);
+            read[index] = frame.At(positions[index], 0.4);
+            owned &= root == window.Handle && process == (uint)Environment.ProcessId;
+            write($"保留帧采样：客户区={column},{row}，屏幕={point.X},{point.Y}，RGB={frame.RgbAt(column, row)}"
+                + $"，颜色={read[index]}，命中=0x{under:X}，根=0x{root:X}，PID={process}，线程={thread}"
+                + $"，类={new string(name, 0, Math.Max(0, length))}，前台=0x{Native.GetForegroundWindow():X}");
+        }
+        // 失败帧也先保存；颜色、RGB 与 PNG 必须来自同一份捕获，不能重新采一次洗掉遮挡。
+        await EncodeAsync(frame, file);
+        write($"保留帧证据：{file}，客户区={frame.Width}x{frame.Height}，颜色={new string(read)}，归属={owned}");
+        if (!owned) throw new InvalidOperationException("保留帧实际采样点被遮挡或不属于本次窗口；已保留同帧证据");
+        return new string(read);
+    }
+
     /// <summary>
     /// 整窗取样（含系统标题栏）。标题栏图标、窗口标题这类只在非客户区画的东西，客户区取样看不到 ——
     /// 「左上角那颗图标没有了」这条只能靠这一张。
@@ -129,7 +159,7 @@ internal static partial class CompositionPlaybackProbe
             if (!GdiFlush()) throw new Win32Exception();
             var bytes = new byte[checked(width * height * 4)];
             Marshal.Copy(bits, bytes, 0, bytes.Length);
-            return new ScreenPixels(width, height, bytes);
+            return new ScreenPixels(width, height, bytes) { OriginX = x, OriginY = y };
         }
         finally
         {
@@ -142,6 +172,8 @@ internal static partial class CompositionPlaybackProbe
 
     private sealed record ScreenPixels(int Width, int Height, byte[] Bytes)
     {
+        internal int OriginX { get; init; }
+        internal int OriginY { get; init; }
         internal string RgbAt(int column, int row) => CompositionProbePixels.Rgb(Bytes, Width, Height, column, row);
 
         internal char At(double x, double y)

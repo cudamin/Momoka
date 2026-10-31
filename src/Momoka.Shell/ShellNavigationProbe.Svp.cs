@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 
 namespace Momoka.Shell;
 
@@ -45,16 +46,21 @@ internal sealed partial class ShellNavigationProbe
         Require(box.IsEnabled && !box.IsReadOnly && textPeer.GetName() == "VapourSynth 组件",
             "SVP 组件路径没有可访问编辑入口");
         var unavailable = Path.Combine(_options.Paths.Root, "svp-unavailable", "VSScript.dll");
+        var pathRow = Card().Rows.OfType<SettingTextRow>().Single(row => row.Label == "VapourSynth 组件");
+        void Trace(string stage) => File.AppendAllText(Path.Combine(_options.Paths.LogDirectory, "svp-focus-trace.txt"),
+            $"{DateTimeOffset.Now:O} width={width} stage={stage} boxFocused={ReferenceEquals(FocusManager.GetFocusedElement(box.XamlRoot), box)} box={box.Text} row={pathRow.Text} path={settings.Mpv.SvpVapourSynthPath} unsaved={fixture.SettingsService.HasUnsavedChanges}\n");
         // Match the product's TextBox contract: x:Bind commits Text on lost focus.
         // TextBoxAutomationPeer.GetPattern(Value) is not exposed as IValueProvider
         // by this WinUI projection, so drive the real edit/focus path instead.
-        Require(box.Focus(FocusState.Programmatic), "SVP 路径输入框无法取得焦点");
-        box.Text = "\"" + unavailable + "\"";
-        Require(Switch().Focus(FocusState.Programmatic), "SVP 路径编辑后无法转移焦点");
-        await LayoutAsync(page);
-        await WaitForSettingsSettledAsync(page);
-        Require(settings.Mpv.SvpVapourSynthPath == unavailable && !fixture.SettingsService.HasUnsavedChanges,
-            "SVP 路径没有保存或刷新状态");
+        await CommitSvpPathAsync(box, Switch(), "\"" + unavailable + "\"", async () =>
+        {
+            await LayoutAsync(page);
+            await WaitForSettingsSettledAsync(page);
+            Trace("settled");
+            Require(pathRow.Text == unavailable, "SVP 路径编辑没有提交到当前行模型");
+            Require(settings.Mpv.SvpVapourSynthPath == unavailable && !fixture.SettingsService.HasUnsavedChanges,
+                "SVP 路径没有保存或刷新状态");
+        }, Trace);
         state.RunCommand.Execute(null);
         await LayoutAsync(page);
         await WaitForSettingsSettledAsync(page);
@@ -137,5 +143,29 @@ internal sealed partial class ShellNavigationProbe
             await SaveReturnFrameAsync(page, $"settings-svp-{stateName}-{width}.png");
             await SaveProbeScreenAsync($"settings-svp-{stateName}-{width}-screen.png");
         }
+    }
+    // The real edit/commit path is kept in one small boundary for focus-order regressions.
+    private static async Task CommitSvpPathAsync(TextBox editor, ToggleSwitch next, string typed,
+        Func<Task> verifyCommit, Action<string> record)
+    {
+        Require(editor.Focus(FocusState.Programmatic), "SVP 路径输入框无法取得焦点");
+        record("focus-request");
+        await UntilAsync(() => ReferenceEquals(FocusManager.GetFocusedElement(editor.XamlRoot), editor));
+        record("focus-acquired");
+        var lost = false;
+        void OnLostFocus(object sender, RoutedEventArgs args) { lost = true; record("lost-focus"); }
+        editor.LostFocus += OnLostFocus;
+        try
+        {
+            editor.Text = typed;
+            record("typed");
+            Require(next.Focus(FocusState.Programmatic), "SVP 路径编辑后无法转移焦点");
+            record("transfer-request");
+            await UntilAsync(() => lost && ReferenceEquals(FocusManager.GetFocusedElement(next.XamlRoot), next));
+            record("focus-transferred");
+            await verifyCommit();
+            record("commit-verified");
+        }
+        finally { editor.LostFocus -= OnLostFocus; }
     }
 }
