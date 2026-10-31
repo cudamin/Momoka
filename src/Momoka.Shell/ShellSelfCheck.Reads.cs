@@ -533,13 +533,12 @@ internal static partial class ShellSelfCheck
         // 这一页上最后几眼里的一眼。
         _fileHero = model.HeroImage is not null;
 
-        var (drawn, expanded, first) = page.InfoRealised;
+        var (drawn, first) = page.InfoRealised;
         return new InfoState(
             model.ItemType,
             model.Title ?? string.Empty,
             model.InfoRows.Count,
             drawn,
-            expanded,
             string.Concat(model.InfoRows.Select(row => row.Label)),
             first);
     }

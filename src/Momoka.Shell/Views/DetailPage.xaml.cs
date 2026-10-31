@@ -517,12 +517,16 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     /// <summary>
-    /// What 媒体信息 has drawn: how many of its rows the repeater built, whether the panel is open, and the
-    /// text of the first row it built. The same distinction as <see cref="Realised"/>, and the same reason —
-    /// the row template is markup no build runs — with one more claim on top: the label column is what the
-    /// table is aligned on, and a row that realised with nothing in it counts the same as one that drew.
+    /// What 媒体信息 has drawn: how many of its rows the repeater built and the text of the first one.
+    /// The same distinction as <see cref="Realised"/>, and the same reason — the row template is markup no
+    /// build runs — with one more claim on top: the label column is what the table is aligned on, and a row
+    /// that realised with nothing in it counts the same as one that drew.
+    /// <para>
+    /// 这张表不再折叠（2026-10-31 用户令），所以这里也没有「展开没有」可读；它要么在页面上画着，
+    /// 要么整块跟着 <see cref="DetailViewModel.InfoVisibility"/> 收起。
+    /// </para>
     /// </summary>
-    internal (int Drawn, bool Expanded, string First) InfoRealised
+    internal (int Drawn, string First) InfoRealised
     {
         get
         {
@@ -537,7 +541,7 @@ public sealed partial class DetailPage : Page, IShellContent
                 if (first.Length == 0) first = Texts(row);
             }
 
-            return (drawn, InfoPanel.IsExpanded, first);
+            return (drawn, first);
         }
     }
 

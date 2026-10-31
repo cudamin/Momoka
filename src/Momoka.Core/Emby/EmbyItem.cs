@@ -204,6 +204,13 @@ public sealed class MediaStream
     /// </summary>
     public string? VideoRangeType { get; set; }
 
+    /// <summary>
+    /// Emby 4.10 自己的细分枚举：<c>Hdr10</c> / <c>Hdr10Plus</c> / <c>HyperLogGamma</c> /
+    /// <c>DolbyVision</c>（规格里的 <c>ExtendedVideoTypes</c>）。它和 <see cref="VideoRangeType"/>
+    /// 不是同一套字面量 —— 实测这台 4.10.1 服务器对一篇 Profile 5 的 DV 只发这一项，VideoRangeType 是空的。
+    /// </summary>
+    public string? ExtendedVideoType { get; set; }
+
     /// <summary>Display aspect ratio as text, e.g. "2.40:1" or "16:9"; often absent.</summary>
     public string? AspectRatio { get; set; }
 
@@ -236,15 +243,59 @@ public sealed class MediaStream
 
     /// <summary>
     /// True for any high-dynamic-range flavour. Matched as a substring because the field holds
-    /// "HDR", "HDR10", "HDR10Plus" or "DOVI" depending on the Emby version and the file, and
-    /// everything except a bare "SDR" wants tone mapping.
+    /// "HDR", "HDR10", "HDR10Plus", "DOVI" or "DolbyVision" depending on the Emby version and the
+    /// file, and everything except a bare "SDR" wants tone mapping.
+    /// <para>
+    /// 三个字段都要看：Emby 4.10 把 Profile 5 的 DV 写成 <c>VideoRange="DolbyVision"</c>，
+    /// Jellyfin 可能只把 DV 写在 <c>VideoRangeType</c>，Plex 的写法则落在细分字段里。只认粗档位会让
+    /// 这种片源整条 HDR 管线按 SDR 走（设置页的「HDR 处理」也就下发不到目标空间）。
+    /// </para>
     /// </summary>
     [JsonIgnore]
-    public bool IsHdr => VideoRange is { } range &&
-        (range.Contains("HDR", StringComparison.OrdinalIgnoreCase) ||
-         range.Contains("DOVI", StringComparison.OrdinalIgnoreCase) ||
-         range.Contains("HLG", StringComparison.OrdinalIgnoreCase) ||
-         range.Contains("Dolby Vision", StringComparison.OrdinalIgnoreCase));
+    public bool IsHdr =>
+        IsDolbyVision ||
+        Contains(RangeText, "HDR") ||
+        Contains(RangeText, "HLG") ||
+        Contains(RangeText, "HyperLogGamma");
+
+    /// <summary>
+    /// 服务器把这份视频标成杜比视界，无论它用哪套拼法：<c>DOVI</c>、<c>Dolby Vision</c>、
+    /// Emby 4.10 的 <c>DolbyVision</c>、Plex 的独立记号 <c>DV</c>，或编码档位里的
+    /// <c>dvhe.05.06</c> / <c>dvh1.08.07</c> / <c>dav1.10.08</c>。
+    /// </summary>
+    [JsonIgnore]
+    public bool IsDolbyVision =>
+        MentionsDolbyVision(RangeText) || IsDolbyVisionProfile(Profile);
+
+    /// <summary>
+    /// 媒体信息表 HDR 那一行要的服务器原文。优先挑提到杜比视界的那一项 —— 粗档位写 <c>HDR</c>、
+    /// 细分档位才写 <c>DOVI…</c> 的服务器上，只读粗档位会把 DV 藏掉；SDR 与未知给空串，整行不画。
+    /// </summary>
+    [JsonIgnore]
+    public string RangeDisplay
+    {
+        get
+        {
+            if (!IsHdr) return "";
+
+            var candidates = new[] { VideoRange, VideoRangeType, ExtendedVideoType };
+            foreach (var candidate in candidates)
+                if (MentionsDolbyVision(candidate)) return candidate!.Trim();
+
+            // 档位字段都没写 DV、只有编码档位前缀写着 dvhe…：那一位也是服务器原文，并且比粗档位更具体。
+            if (IsDolbyVisionProfile(Profile)) return Profile!;
+
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate)) continue;
+                if (string.Equals(candidate, "SDR", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(candidate, "None", StringComparison.OrdinalIgnoreCase)) continue;
+                return candidate.Trim();
+            }
+
+            return Profile ?? "";
+        }
+    }
 
     /// <summary>
     /// 片源自带的动态范围角标：<c>HDR</c>、<c>DV</c>、<c>HDR/DV</c>；SDR 与未知一律空串（用户令 2026-10-25
@@ -265,9 +316,8 @@ public sealed class MediaStream
         get
         {
             var range = RangeText;
-            var hdr = Contains(range, "HDR") || Contains(range, "HLG");
-            var dolbyVision = Contains(range, "DOVI") || Contains(range, "Dolby") ||
-                Mentions(range, "DV") || IsDolbyVisionProfile(Profile);
+            var hdr = Contains(range, "HDR") || Contains(range, "HLG") || Contains(range, "HyperLogGamma");
+            var dolbyVision = IsDolbyVision;
 
             return (hdr, dolbyVision) switch
             {
@@ -279,9 +329,12 @@ public sealed class MediaStream
         }
     }
 
-    /// <summary>粗档位与细分档位拼成一串，给上面那条判据读；两项都缺就是空串。</summary>
+    /// <summary>粗档位、细分档位与 Emby 4.10 的扩展枚举拼成一串，给上面的判据读；都缺就是空串。</summary>
     private string RangeText => string.Join(' ',
-        new[] { VideoRange, VideoRangeType }.Where(value => !string.IsNullOrWhiteSpace(value)));
+        new[] { VideoRange, VideoRangeType, ExtendedVideoType }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
+    private static bool MentionsDolbyVision(string? text) =>
+        Contains(text, "DOVI") || Contains(text, "Dolby") || Mentions(text, "DV");
 
     /// <summary>DV 的编码档位前缀：<c>dvhe.05.06</c>（HEVC）、<c>dvh1.08.07</c>、<c>dav1.10.08</c>（AV1）。</summary>
     private static bool IsDolbyVisionProfile(string? profile) => profile is { Length: >= 4 } &&

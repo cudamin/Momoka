@@ -1299,6 +1299,9 @@ internal static class EmbyTests
 
             // DV 单飞（profile 5 那种，底子是 SDR）只写 DV —— 不能因为 IsHdr 也认 DOVI 就多写一个 HDR。
             Assert.Equal("4K  ·  HEVC  ·  DV", PlaybackTitles.Subline(Video("DOVI", "DOVI")));
+            // Emby 4.10 的写法没有空格；Jellyfin 有时只在细分档位里写 DV。
+            Assert.Equal("4K  ·  HEVC  ·  DV", PlaybackTitles.Subline(Video("DolbyVision", null)));
+            Assert.Equal("4K  ·  HEVC  ·  DV", PlaybackTitles.Subline(Video("SDR", "DOVIWithSDR")));
 
             // 两者都有：HDR 在前、DV 在后，写成一个「HDR/DV」。
             Assert.Equal("4K  ·  HEVC  ·  HDR/DV", PlaybackTitles.Subline(Video("DOVI", "DOVIWithHDR10")));
@@ -1326,6 +1329,65 @@ internal static class EmbyTests
                 """;
             var parsed = System.Text.Json.JsonSerializer.Deserialize<MediaSource>(json, EmbyHttp.Json)!;
             Assert.Equal("HDR/DV", parsed.PrimaryVideoStream!.DynamicRangeLabel);
+        });
+
+        Test("杜比视界：Emby 4.10 的 DolbyVision 也进 HDR 管线，媒体信息照抄服务器原文", () =>
+        {
+            static MediaStream Video(string? range, string? rangeType = null, string? extended = null, string? profile = null) => new()
+            {
+                Index = 1,
+                Type = "Video",
+                Codec = "hevc",
+                Profile = profile,
+                VideoRange = range,
+                VideoRangeType = rangeType,
+                ExtendedVideoType = extended
+            };
+
+            // 实测 4.10.1 服务器对 Profile 5 的一部片就这么发：粗档位写 DolbyVision（无空格），
+            // VideoRangeType 是空的，扩展枚举另写一份 DolbyVision。
+            var dv = Video("DolbyVision", extended: "DolbyVision");
+            Assert.True(dv.IsDolbyVision);
+            Assert.True(dv.IsHdr, "DV 片源必须进 HDR 管线，否则「HDR 处理」下发不到目标空间");
+            Assert.Equal("DV", dv.DynamicRangeLabel);
+            Assert.Equal("DolbyVision", dv.RangeDisplay);
+
+            // 只有扩展枚举写着 DV、粗档位为空时也认。
+            var extendedOnly = Video(null, extended: "DolbyVision");
+            Assert.True(extendedOnly.IsHdr);
+            Assert.Equal("DolbyVision", extendedOnly.RangeDisplay);
+
+            // Jellyfin 那种「粗档位 SDR、细分档位 DOVIWithSDR」：认得出，显示细分档位而不是 SDR。
+            var sdrRange = Video("SDR", "DOVIWithSDR");
+            Assert.True(sdrRange.IsHdr);
+            Assert.Equal("DOVIWithSDR", sdrRange.RangeDisplay);
+
+            // 粗档位 HDR、细分档位才写 DV：媒体信息不能把 DV 藏成 HDR。
+            Assert.Equal("DOVI", Video("HDR", "DOVI").RangeDisplay);
+
+            // 只有编码档位写着 dvhe.05.06 时也认，显示服务器给的档位字面量。
+            var profileOnly = Video(null, profile: "dvhe.05.06");
+            Assert.True(profileOnly.IsHdr);
+            Assert.Equal("dvhe.05.06", profileOnly.RangeDisplay);
+
+            // 粗档位写 HDR、档位字段都没写 DV，只有编码档位前缀是 dvhe…：DV 不能被粗档位藏掉。
+            Assert.Equal("dvhe.05.06", Video("HDR", profile: "dvhe.05.06").RangeDisplay);
+
+            // SDR 与未知：不进 HDR 管线，也不占媒体信息那一行。
+            var sdr = Video("SDR", "SDR");
+            Assert.False(sdr.IsHdr);
+            Assert.Equal("", sdr.RangeDisplay);
+            Assert.Equal("", Video(null).RangeDisplay);
+
+            // 字段名照 Emby 的 JSON 认一遍：ExtendedVideoType 是服务器实际发的键。
+            var json = """
+                {"Id":"s1","MediaStreams":[{"Type":"Video","Codec":"hevc","Width":3840,"Height":2160,
+                 "VideoRange":"DolbyVision","ExtendedVideoType":"DolbyVision","Profile":"Main 10"}]}
+                """;
+            var parsed = System.Text.Json.JsonSerializer.Deserialize<MediaSource>(json, EmbyHttp.Json)!;
+            var video = parsed.PrimaryVideoStream!;
+            Assert.True(video.IsHdr);
+            Assert.Equal("DolbyVision", video.RangeDisplay);
         });
 
         Test("条目：续播判定要排除刚开头和快结束", () =>

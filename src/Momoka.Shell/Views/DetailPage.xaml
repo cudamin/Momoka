@@ -1379,40 +1379,20 @@
                         <!-- 媒体信息紧跟在单集下面：这一段说的是「正在放的这个文件」（文件名、格式、音频、
                              字幕），和上面那排集是同一件事的两个粒度，隔着三条卡片带就对不上了。
 
-                             默认展开，而且只在电影页和单集页出现 —— 视图这边不判断，DetailViewModel 只在
-                             页面自己就是个文件的时候才往 InfoRows 里放东西，剧页和季页那一列永远是空的，
-                             这一整块也就跟着收起来。展开的东西不该藏着，收着的东西不该占位。
+                             只在电影页和单集页出现 —— 视图这边不判断，DetailViewModel 只在页面自己就是个
+                             文件的时候才往 InfoRows 里放东西，剧页和季页那一列永远是空的，这一整块也就跟着
+                             收起来。空的东西不该占位。
 
-                             这一块是八块板里唯一一个控件（要能收起来，所以不能改成一块 EgBodyPanelStyle 的
-                             板），底色因此要分两处上：Background 走本地值（框架那份样式把它设成
-                             ExpanderContentBackground，本地值压得过样式里的 Setter），牌子那一条是模板里
-                             写死的 ToggleButton，只能从这里的 Resources 换掉它认的那几个键 —— 它们是
-                             ThemeResource 读的，所以换得动；牌子的内边距是 StaticResource 读的（16，比别的
-                             板少 2），换不动，也就不换。
-                             悬停和按下换成调色板自己那两级面色（Hover / Elevated），不是框架那层半透明的白：
-                             白色叠在什么上面出什么色，而这块牌子的底色是主题给的，两套灰撞在一起就是另一种灰。
-                             BorderThickness 不动：框架给的是「牌子画上沿和两边、正文画两边和下沿」，合起来正好
-                             是一圈，跟别的板那一圈发丝框对得上。 -->
-                        <Expander
+                             2026-10-31 用户令「删除媒体信息的折叠功能」：这张表是读的，不是要用户点开的，
+                             不再套 Expander。底色、边框和圆角沿用正文那几块板；内边距取 16，和原来
+                             Expander 的牌子和正文那圈对齐；标题与表格之间留 8。 -->
+                        <StackPanel
                             x:Name="InfoPanel"
-                            HorizontalAlignment="Stretch"
-                            HorizontalContentAlignment="Stretch"
-                            Background="{ThemeResource EgSurfaceAltBrush}"
-                            BorderBrush="{ThemeResource EgBorderBrush}"
-                            BorderThickness="{StaticResource EgCardBorderThickness}"
-                            CornerRadius="{StaticResource EgCardCornerRadius}"
-                            IsExpanded="True"
+                            Padding="16,10,16,16"
+                            Spacing="8"
+                            Style="{StaticResource EgBodyPanelStyle}"
                             Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}">
-                            <Expander.Resources>
-                                <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="EgSurfaceAltBrush" />
-                                <StaticResource x:Key="ExpanderHeaderPointerOverBackground" ResourceKey="EgSurfaceHoverBrush" />
-                                <StaticResource x:Key="ExpanderHeaderPressedBackground" ResourceKey="EgSurfaceElevatedBrush" />
-                                <StaticResource x:Key="ExpanderHeaderDisabledBackground" ResourceKey="EgSurfaceAltBrush" />
-                                <StaticResource x:Key="ExpanderHeaderBorderBrush" ResourceKey="EgBorderBrush" />
-                            </Expander.Resources>
-                            <Expander.Header>
-                                <TextBlock x:Uid="DetailPage_TextBlock5" />
-                            </Expander.Header>
+                            <TextBlock x:Uid="DetailPage_TextBlock5" />
                             <ItemsRepeater
                                 x:Name="InfoTable"
                                 ItemTemplate="{StaticResource InfoRowTemplate}"
@@ -1421,7 +1401,7 @@
                                     <StackLayout Orientation="Vertical" />
                                 </ItemsRepeater.Layout>
                             </ItemsRepeater>
-                        </Expander>
+                        </StackPanel>
 
                         <!-- 全部剧季：剧集页的季卡横带，点季卡进那一季自己的页面。 -->
                         <StackPanel

@@ -576,14 +576,12 @@ internal static partial class ShellSelfCheck
             return;
         }
 
-        // Three claims in one, because they only mean anything together: the panel is open without anyone
-        // clicking it (图4 is a table you read, not one you open), every row the view model built really
-        // drew, and the first of those rows drew its label — 「文 件：」 is the column the whole table is
-        // aligned on, and an unrealised row and an empty one look identical from a count.
+        // 两件事只有在彼此都在时才有意义：视图模型建出来的每一行都真的画了，而且第一行画出了它的标签
+        // ——「文 件：」是整张表对齐的那一列，没画出来的行和画空的行在计数上一模一样。这张表 2026-10-31
+        // 起不再折叠，所以没有「展开没有」这一项可读。
         check("媒体信息表格",
-            info.Expanded && info.Rows > 0 && info.Drawn == info.Rows && info.First.Contains('：'),
-            $"{info.Type}「{info.Title}」{info.Rows} 行（已渲染 {info.Drawn}，"
-                + $"{(info.Expanded ? "默认展开" : "收着的")}），首行「{info.First}」");
+            info.Rows > 0 && info.Drawn == info.Rows && info.First.Contains('：'),
+            $"{info.Type}「{info.Title}」{info.Rows} 行（已渲染 {info.Drawn}），首行「{info.First}」");
 
         // Informational: which rows this file's own metadata filled. A server that sends no HDR fields for
         // an SDR file is a working server, and the row is simply not there.

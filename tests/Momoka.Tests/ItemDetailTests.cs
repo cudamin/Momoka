@@ -1193,6 +1193,41 @@ internal static class ItemDetailTests
             Assert.Equal("Atmos、杜比视界", rows[12].Value);
         });
 
+        Test("媒体信息：DolbyVision 拼法也补上 HDR 一行，值照抄服务器原文", () =>
+        {
+            static MediaSource File(string? range, string? rangeType = null, string? extended = null) => new()
+            {
+                MediaStreams =
+                {
+                    new MediaStream
+                    {
+                        Type = "Video", Codec = "hevc", Profile = "Main 10", Width = 3840, Height = 2160,
+                        BitDepth = 10, VideoRange = range, VideoRangeType = rangeType, ExtendedVideoType = extended
+                    }
+                }
+            };
+
+            // 实测 Emby 4.10.1 对 Profile 5 的 DV 就写这一种（无空格）；原来只认 DOVI / Dolby Vision，
+            // 整行都不画 —— 2026-10-31 用户报「怎么没有杜比视界相关的信息」。
+            Assert.Equal("DolbyVision",
+                ItemDetail.MediaInfo(new EmbyItem(), File("DolbyVision", extended: "DolbyVision"))
+                    .Single(row => row.Label == "HDR：").Value);
+
+            // 粗档位说 SDR、细分档位才说 DV 的服务器：显示细分档位，不能把 DV 写成 SDR。
+            Assert.Equal("DOVIWithSDR",
+                ItemDetail.MediaInfo(new EmbyItem(), File("SDR", "DOVIWithSDR"))
+                    .Single(row => row.Label == "HDR：").Value);
+
+            // 粗档位 HDR、细分档位 DOVI：DV 优先，不能只写 HDR。
+            Assert.Equal("DOVI",
+                ItemDetail.MediaInfo(new EmbyItem(), File("HDR", "DOVI"))
+                    .Single(row => row.Label == "HDR：").Value);
+
+            // SDR 与未知照旧不占行。
+            Assert.False(ItemDetail.MediaInfo(new EmbyItem(), File("SDR", "SDR")).Any(row => row.Label == "HDR："));
+            Assert.False(ItemDetail.MediaInfo(new EmbyItem(), File(null)).Any(row => row.Label == "HDR："));
+        });
+
         Test("媒体信息：字幕两个一行，落单的那个占满整行", () =>
         {
             var source = new MediaSource();

@@ -557,7 +557,7 @@ public static class ItemDetail
         Add("时 长", TimeFormat.Duration(source.RunTimeTicks));
         Add("分辨率", video is { Width: > 0, Height: > 0 } ? $"{video.Width} x {video.Height}" : null);
         Add("码 率", Bitrate(video?.BitRate ?? source.Bitrate));
-        Add("HDR", video is { IsHdr: true } ? video.VideoRange : null);
+        Add("HDR", video?.RangeDisplay);
         Add("色 深", video?.BitDepth is > 0 ? $"{video.BitDepth} bits" : null);
         Add("帧 率", video is { FrameRate: > 0 } ? Fps(video.FrameRate) : null);
 

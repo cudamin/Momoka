@@ -444,7 +444,6 @@ internal static partial class ShellSelfCheck
         string Title,
         int Rows,
         int Drawn,
-        bool Expanded,
         string Labels,
         string First);
 
