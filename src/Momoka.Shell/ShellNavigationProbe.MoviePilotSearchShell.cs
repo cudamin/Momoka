@@ -24,7 +24,7 @@ internal sealed partial class ShellNavigationProbe
     /// 「在 MoviePilot 搜索版本」独立窗口的搜索区，与设置页 MoviePilot 卡上的「默认搜索站点」。
     /// <para>
     /// 三件事在这里量：窗口标题栏左上角那颗图标换成了全透明的（<see cref="BlankCaptionIcon"/>，大档不动）；
-    /// 搜索框是 40 高的胶囊、站点入口住在框里放大镜左边（与搜索页同一份 <see cref="SearchSiteSlot"/>），
+    /// 搜索框是 40 高、10 圆角的输入框、站点入口住在框里放大镜左边（与搜索页同一份 <see cref="SearchSiteSlot"/>），
     /// 框上框下不再有那两行字；设置页那一条只在连接可用时露出来，选完对搜索生效，断线收起、恢复后回来。
     /// </para>
     /// <para>
@@ -68,9 +68,10 @@ internal sealed partial class ShellNavigationProbe
             Require(!Descendants(view).OfType<TextBlock>().Any(text => text.Text == "搜索 MoviePilot 资源"),
                 "搜索框上方仍有「搜索 MoviePilot 资源」那行标题");
             Require(input.Header is null or "", "搜索框仍带着 Header 标题");
-            // 框是搜索页那种胶囊。
-            Require(Math.Abs(input.MinHeight - 40) < 0.5 && input.CornerRadius == new CornerRadius(20),
-                $"搜索框不是 40 高、20 圆角的胶囊：{input.MinHeight} / {input.CornerRadius}");
+            // 框与搜索页同高、同一档圆角，不改变框内站点的空间。
+            Require(Math.Abs(input.MinHeight - 40) < 0.5 && input.CornerRadius == new CornerRadius(10),
+                $"搜索框不是 40 高、10 圆角的输入框：{input.MinHeight} / {input.CornerRadius}");
+            RequireSearchRadius(input);
             // 站点入口住在框的模板里、放大镜左边 —— 不是框下另起一行。
             Require(ReferenceEquals(picker.Parent, VisualTreeHelper.GetParent(query)),
                 "站点入口没有和搜索按钮同住在搜索框模板里");

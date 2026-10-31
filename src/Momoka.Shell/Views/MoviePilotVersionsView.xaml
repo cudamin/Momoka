@@ -14,7 +14,7 @@
           也去掉了 —— 窗口标题已经说着这是哪一页，框里的占位文字说着能搜什么（2026-10-30 用户令）。
         -->
         <Grid x:Name="SearchEntry" Margin="0,0,0,12">
-            <AutoSuggestBox x:Name="SearchInput" MinHeight="40" CornerRadius="20"
+            <AutoSuggestBox x:Name="SearchInput" MinHeight="40" CornerRadius="{StaticResource EgSearchCornerRadius}"
                 VerticalAlignment="Center" VerticalContentAlignment="Center"
                 TextBoxStyle="{StaticResource EgSearchTextBoxStyle}"
                 PlaceholderText="输入关键字（如：剧名 S01 E01）" QueryIcon="Find" QuerySubmitted="OnSearch" />

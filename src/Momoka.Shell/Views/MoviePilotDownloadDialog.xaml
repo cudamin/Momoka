@@ -140,7 +140,7 @@
                 <StackPanel x:Name="DownloadMediaSearch" Spacing="8" Visibility="{x:Bind ViewModel.SearchVisibility, Mode=OneWay}">
                     <Grid ColumnSpacing="8">
                         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-                        <TextBox x:Name="DownloadSearchText" Header="按片名查找" Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        <TextBox x:Name="DownloadSearchText" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="按片名查找" Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                             IsEnabled="{x:Bind ViewModel.CanEdit, Mode=OneWay}" />
                         <Button x:Name="SubmitDownloadSearch" Grid.Column="1" Content="搜索" VerticalAlignment="Bottom" Command="{x:Bind ViewModel.SearchCommand}" />
                     </Grid>

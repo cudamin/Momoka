@@ -62,6 +62,16 @@ internal sealed partial class ShellNavigationProbe
             ResizeInspect(720, 980);
             await LayoutAsync(view);
             await Task.Delay(450);
+            var filters = Get<Flyout>(list, "AdvancedFilters");
+            filters.ShowAt(Get<DropDownButton>(list, "FilterExpander"));
+            var filterInput = Get<TextBox>(list, "FilterText");
+            try
+            {
+                await LayoutAsync(filterInput);
+                RequireSearchRadius(filterInput);
+                await SaveProbeScreenAsync("mp-resources-search-radius-screen.png");
+            }
+            finally { filters.Hide(); }
             // 卡片本身就是下载入口（2026-10-29）：不许再画下载键，点击走的是真实的 ItemsView 调用路径。
             Require(Get<ItemsView>(list, "ResourceList").IsItemInvokedEnabled, "资源卡没有接到点击下载");
             Require(!Descendants(list).OfType<Button>().Any(button => button.Name == "DownloadResource"),
@@ -113,6 +123,8 @@ internal sealed partial class ShellNavigationProbe
                 dialog.ViewModel.Options.Media?.Id == "73", "收起高级选项清空已核对身份");
             await dialog.ViewModel.ToggleAdvancedCommand.ExecuteAsync(null);
             dialog.ViewModel.ToggleSearchCommand.Execute(null);
+            await LayoutAsync(dialog);
+            RequireSearchRadius(Get<TextBox>(dialog, "DownloadSearchText"));
             Get<TextBox>(dialog, "DownloadSearchText").Text = "核对剧集";
             await dialog.ViewModel.SearchCommand.ExecuteAsync(null);
             Require(dialog.ViewModel.Matches.Count == 1, "按片名搜索没有限定来源和类型");

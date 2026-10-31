@@ -328,7 +328,7 @@
                                 x:Name="SearchInput"
                                 x:Uid="LibrarySearchBox"
                                 HorizontalAlignment="Stretch"
-                                MinHeight="40" CornerRadius="20"
+                                MinHeight="40" CornerRadius="{StaticResource EgSearchCornerRadius}"
                                 VerticalAlignment="Center"
                                 VerticalContentAlignment="Center"
                                 TextBoxStyle="{StaticResource EgSearchTextBoxStyle}"

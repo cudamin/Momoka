@@ -4,7 +4,7 @@
     <ScrollViewer MaxHeight="600" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="12" Padding="0,0,20,0">
             <TextBlock x:Name="IdentityText" Style="{StaticResource EgCaptionStyle}" TextWrapping="Wrap" />
-            <TextBox x:Name="KeywordInput" Header="搜索关键词" />
+            <TextBox x:Name="KeywordInput" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="搜索关键词" />
             <TextBox x:Name="IncludeInput" Header="包含规则（正则表达式）" />
             <TextBox x:Name="ExcludeInput" Header="排除规则（正则表达式）" />
             <TextBox x:Name="QualityInput" Header="质量规则" PlaceholderText="留空使用 MoviePilot 默认规则" />

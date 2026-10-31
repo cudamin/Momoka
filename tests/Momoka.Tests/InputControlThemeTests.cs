@@ -15,6 +15,14 @@ internal static class InputControlThemeTests
     private const string SettingsInputRadiusKey = "EgSettingsInputCornerRadius";
     private const string SettingsInputRadius = "{StaticResource EgSettingsInputCornerRadius}";
     private const string SettingsComboStyle = "{StaticResource EgSettingsComboBoxStyle}";
+    private const string SearchRadiusKey = "EgSearchCornerRadius";
+    private const string SearchRadius = "{StaticResource EgSearchCornerRadius}";
+    private static readonly (string Page, string Name)[] SearchTextInputs =
+    [
+        ("DanmakuPanel.xaml", "TitleBox"), ("FnNasMatchDialog.xaml", "KeywordBox"),
+        ("IdentifyDialog.xaml", "NameBox"), ("MoviePilotDownloadDialog.xaml", "DownloadSearchText"),
+        ("MoviePilotResourceBrowser.xaml", "FilterText"), ("MoviePilotSubscriptionEditor.xaml", "KeywordInput")
+    ];
     private static readonly string[] SettingsInputPages =
     [
         "SettingsPage.xaml", "FnNasPasswordPage.xaml", "FnNasPreferencesPage.xaml",
@@ -236,13 +244,8 @@ internal static class InputControlThemeTests
         {
             var allowed = SettingsInputPages.Select(name => "src/Momoka.Shell/Views/" + name)
                 .Append(SettingsInputDictionary).ToHashSet(StringComparer.Ordinal);
-            foreach (var path in Directory.EnumerateFiles(Path.Combine(Root(), "src", "Momoka.Shell"),
-                "*.xaml", SearchOption.AllDirectories))
+            foreach (var (relative, document) in ProductXaml())
             {
-                var relative = Path.GetRelativePath(Root(), path).Replace('\\', '/');
-                if (relative.StartsWith("src/Momoka.Shell/bin/", StringComparison.Ordinal) ||
-                    relative.StartsWith("src/Momoka.Shell/obj/", StringComparison.Ordinal)) continue;
-                var document = XDocument.Load(path);
                 if (!document.Descendants().Attributes().Any(attribute =>
                     attribute.Value.Contains("SettingsInputs.xaml", StringComparison.Ordinal) ||
                     attribute.Value.Contains(SettingsInputRadiusKey, StringComparison.Ordinal) ||
@@ -352,6 +355,104 @@ internal static class InputControlThemeTests
             Named(missingNumber, "FnNasMinimumFileSize").Attribute("CornerRadius")!.Remove();
             Assert.Throws<AssertionException>(() => AssertSettingsInputControls("FnNasLibrariesPage.xaml", missingNumber));
         });
+        Test("搜索输入圆角：应用级共享 10 DIP 与设置同档，隐式样式只改圆角", () =>
+        {
+            var styles = Read("src/Momoka.Shell/Theme/Styles.xaml");
+            AssertSearchDictionary(styles);
+            Assert.Equal(Resource(Read(SettingsInputDictionary).Root!, SettingsInputRadiusKey).Value.Trim(),
+                Resource(styles.Root!, SearchRadiusKey).Value.Trim());
+            var app = Read("src/Momoka.Shell/App.xaml");
+            Assert.Equal(1, app.Root!.Element(Xaml + "Application.Resources")!
+                .Descendants(Xaml + "ResourceDictionary").Count(element =>
+                    (string?)element.Attribute("Source") == "ms-appx:///Theme/Styles.xaml"));
+            var textStyle = Resource(styles.Root!, "EgSearchTextBoxStyle");
+            Assert.Equal("{StaticResource AutoSuggestBoxTextBoxStyle}", (string?)textStyle.Attribute("BasedOn"));
+            Assert.Equal(1, textStyle.Elements().Count(), "内层只改内边距，由外层 TemplateBinding 传入圆角");
+            var padding = textStyle.Elements().Single();
+            Assert.Equal("Padding", (string?)padding.Attribute("Property"));
+            Assert.Equal("10,0,6,0", (string?)padding.Attribute("Value"));
+        });
+        Test("搜索输入圆角：所有产品 AutoSuggestBox 继承共享样式，无局部旧值或遮蔽", () =>
+        {
+            var count = 0;
+            foreach (var (path, document) in ProductXaml())
+            {
+                foreach (var search in document.Descendants(Xaml + "AutoSuggestBox"))
+                {
+                    AssertSearchSuggestBox(path, search);
+                    count++;
+                }
+                foreach (var style in document.Descendants(Xaml + "Style").Where(element =>
+                    (string?)element.Attribute("TargetType") == "AutoSuggestBox"))
+                    Assert.True(path is "src/Momoka.Shell/Theme/Styles.xaml" or SettingsInputDictionary,
+                        path + " 不另设搜索样式绕过共享圆角");
+                foreach (var radius in document.Descendants().Where(element =>
+                    (string?)element.Attribute(X + "Key") == SearchRadiusKey))
+                    Assert.True(path == "src/Momoka.Shell/Theme/Styles.xaml" && radius.Parent == document.Root,
+                        path + " 不局部重定义共享搜索圆角");
+            }
+            Assert.Equal(8, count, "番剧、主搜索、版本、整理与两处设置搜索均纳入检查");
+            foreach (var page in new[] { "LibraryPage.xaml", "MoviePilotVersionsView.xaml" })
+            {
+                var search = Named(Read("src/Momoka.Shell/Views/" + page), "SearchInput");
+                Assert.Equal(SearchRadius, (string?)search.Attribute("CornerRadius"), page);
+                Assert.Equal("{StaticResource EgSearchTextBoxStyle}", (string?)search.Attribute("TextBoxStyle"));
+            }
+        });
+        Test("搜索输入圆角：六处普通关键词框接共享键，不扩大到非搜索输入", () =>
+        {
+            foreach (var (page, name) in SearchTextInputs)
+            {
+                var search = Named(Read("src/Momoka.Shell/Views/" + page), name);
+                Assert.Equal(Xaml + "TextBox", search.Name);
+                Assert.Equal(SearchRadius, (string?)search.Attribute("CornerRadius"), page + "/" + name);
+            }
+            var styles = Read("src/Momoka.Shell/Theme/Styles.xaml");
+            Assert.False(styles.Descendants(Xaml + "Style").Any(element =>
+                (string?)element.Attribute("TargetType") == "TextBox" && element.Attribute(X + "Key") is null),
+                "普通 TextBox 不接应用级隐式圆角样式");
+            foreach (var (path, document) in ProductXaml())
+                foreach (var text in document.Descendants(Xaml + "TextBox").Where(element =>
+                    (string?)element.Attribute("CornerRadius") == SearchRadius))
+                    Assert.True(SearchTextInputs.Any(input => path == "src/Momoka.Shell/Views/" + input.Page &&
+                        (string?)text.Attribute(X + "Name") == input.Name), path + " 非搜索字段不接搜索圆角");
+        });
+        Test("搜索输入圆角：内存反例拒绝样式夹带颜色和搜索恢复旧 20 DIP", () =>
+        {
+            var extraColor = Read("src/Momoka.Shell/Theme/Styles.xaml");
+            AssertSearchDictionary(extraColor);
+            ImplicitStyle(extraColor, "AutoSuggestBox").Add(new XElement(Xaml + "Setter",
+                new XAttribute("Property", "Background"), new XAttribute("Value", "Transparent")));
+            Assert.Throws<AssertionException>(() => AssertSearchDictionary(extraColor));
+            const string libraryPath = "src/Momoka.Shell/Views/LibraryPage.xaml";
+            var oldRadius = Named(Read(libraryPath), "SearchInput");
+            AssertSearchSuggestBox(libraryPath, oldRadius);
+            oldRadius.SetAttributeValue("CornerRadius", "20");
+            Assert.Throws<AssertionException>(() => AssertSearchSuggestBox(libraryPath, oldRadius));
+        });
+    }
+
+    private static void AssertSearchDictionary(XDocument document)
+    {
+        var radius = Resource(document.Root!, SearchRadiusKey);
+        Assert.Equal(Xaml + "CornerRadius", radius.Name);
+        Assert.Equal("10", radius.Value.Trim());
+        var style = ImplicitStyle(document, "AutoSuggestBox");
+        Assert.Equal(document.Root, style.Parent, "隐式搜索样式定义在共享字典顶层");
+        AssertRadiusStyle(style, "AutoSuggestBox", "{StaticResource DefaultAutoSuggestBoxStyle}", SearchRadius);
+    }
+
+    private static void AssertSearchSuggestBox(string path, XElement search)
+    {
+        var identity = path + "/" + (string?)search.Attribute(X + "Name");
+        foreach (var property in new[] { "Style", "Template", "CornerRadius" })
+            Assert.True(search.Element(Xaml + "AutoSuggestBox." + property) is null,
+                identity + " 不用属性元素绕过共享圆角或平台模板");
+        Assert.True(search.Attribute("Style") is null && search.Attribute("Template") is null, identity);
+        var radius = (string?)search.Attribute("CornerRadius");
+        Assert.True(radius is null || radius == SearchRadius ||
+            (path == "src/Momoka.Shell/Views/SettingsPage.xaml" && radius == SettingsInputRadius),
+            identity + " 必须继承搜索圆角或设置页同档 10 DIP");
     }
 
     private static void AssertSettingsInputDictionary(XDocument document)
@@ -372,7 +473,7 @@ internal static class InputControlThemeTests
         Assert.Equal(0, combo.Elements().Count(), "隐式选择框仅继承具名圆角样式");
     }
 
-    private static void AssertRadiusStyle(XElement style, string type, string basedOn)
+    private static void AssertRadiusStyle(XElement style, string type, string basedOn, string radius = SettingsInputRadius)
     {
         Assert.Equal(Xaml + "Style", style.Name);
         Assert.Equal(type, (string?)style.Attribute("TargetType"));
@@ -381,7 +482,7 @@ internal static class InputControlThemeTests
         var setter = style.Elements().Single();
         Assert.Equal(Xaml + "Setter", setter.Name);
         Assert.Equal("CornerRadius", (string?)setter.Attribute("Property"));
-        Assert.Equal(SettingsInputRadius, (string?)setter.Attribute("Value"));
+        Assert.Equal(radius, (string?)setter.Attribute("Value"));
         Assert.Equal(0, setter.Elements().Count());
     }
 
@@ -457,6 +558,18 @@ internal static class InputControlThemeTests
 
     private static XDocument Read(string relativePath) =>
         XDocument.Load(Path.Combine(Root(), relativePath.Replace('/', Path.DirectorySeparatorChar)));
+
+    private static IEnumerable<(string Path, XDocument Document)> ProductXaml()
+    {
+        foreach (var path in Directory.EnumerateFiles(Path.Combine(Root(), "src", "Momoka.Shell"),
+            "*.xaml", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(Root(), path).Replace('\\', '/');
+            if (relative.StartsWith("src/Momoka.Shell/bin/", StringComparison.Ordinal) ||
+                relative.StartsWith("src/Momoka.Shell/obj/", StringComparison.Ordinal)) continue;
+            yield return (relative, XDocument.Load(path));
+        }
+    }
 
     private static string Root()
     {

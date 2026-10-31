@@ -87,7 +87,7 @@
                                 <ScrollViewer MaxHeight="440" VerticalScrollBarVisibility="Auto">
                                     <StackPanel Width="244" Spacing="12">
                                         <TextBlock Text="综合筛选" Style="{StaticResource EgSubheadStyle}" />
-                                        <TextBox x:Name="FilterText" Header="在结果中筛选" PlaceholderText="标题、副标题或标签"
+                                        <TextBox x:Name="FilterText" CornerRadius="{StaticResource EgSearchCornerRadius}" Header="在结果中筛选" PlaceholderText="标题、副标题或标签"
                                             Text="{x:Bind ViewModel.Text, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                         <ComboBox x:Name="EpisodeFilter" Header="集" HorizontalAlignment="Stretch"
                                             Visibility="{x:Bind ViewModel.EpisodeVisibility, Mode=OneWay}"

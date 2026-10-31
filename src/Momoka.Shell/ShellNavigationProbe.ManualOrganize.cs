@@ -73,6 +73,9 @@ internal sealed partial class ShellNavigationProbe
                 method.SelectedIndex == 0 && storage.SelectedIndex == 0);
             // 手选电视剧、TMDB 来源与编号后才有剧集组，取回两组供下拉。
             type.SelectedIndex = 2;
+            await LayoutAsync(dialog!);
+            RequireSearchRadius(mediaId);
+            RequireSearchRadius(Get<AutoSuggestBox>(dialog!, "HistoryQuery"));
             Get<ComboBox>(dialog!, "SourceBox").SelectedIndex = 1;
             mediaId.Text = "123";
             Call(dialog!, "QueueGroupLookup");

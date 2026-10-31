@@ -64,6 +64,7 @@ public sealed partial class MoviePilotMediaSeasonsView : UserControl
             if (!host) continue;
             row.FilesSummary = _files.FileSummary;
             row.FilesPlaybackStatus = _files.PlaybackStatus;
+            row.FilesEmptyNotice = _files.FilterNotice;
             row.FilesFilterIndex = _files.FilterIndex;
             row.FilesEpisodes = _files.Episodes;
             row.Expanded = true;
@@ -84,48 +85,40 @@ public sealed partial class MoviePilotMediaSeasonsView : UserControl
         {
             case nameof(MoviePilotSubscriptionsViewModel.FileSummary): row.FilesSummary = _files.FileSummary; break;
             case nameof(MoviePilotSubscriptionsViewModel.PlaybackStatus): row.FilesPlaybackStatus = _files.PlaybackStatus; break;
+            case nameof(MoviePilotSubscriptionsViewModel.FilterNotice): row.FilesEmptyNotice = _files.FilterNotice; break;
             case nameof(MoviePilotSubscriptionsViewModel.FilterIndex): row.FilesFilterIndex = _files.FilterIndex; break;
         }
     }
 
     private void OnFilesFilterChanged(object sender, SelectionChangedEventArgs args)
     {
-        if (_files is { } files && sender is ComboBox { SelectedIndex: var index } && index >= 0 && index != files.FilterIndex)
+        if (_files is { } files && sender is ComboBox { Tag: MoviePilotMediaSeasonRow row, SelectedIndex: var index }
+            && ReferenceEquals(row.Files, files) && index >= 0 && index != files.FilterIndex)
             files.FilterIndex = index;
     }
 
-    private void OnFilesEpisodeLoaded(object sender, RoutedEventArgs args)
+    private void OnFilesEpisodePrepared(ItemsRepeater sender, ItemsRepeaterElementPreparedEventArgs args)
     {
-        if (_files is { } files && sender is FrameworkElement { Tag: MoviePilotSubscriptionEpisodeRow row }) _ = files.LoadEpisodeArtworkAsync(row);
+        // 刷新/筛选会复用已经 Loaded 的容器；每次准备新条目都要为当前行加载图片。
+        if (_files is { } files && ReferenceEquals(sender.ItemsSource, files.Episodes)
+            && args.Index >= 0 && args.Index < files.Episodes.Count)
+            _ = files.LoadEpisodeArtworkAsync(files.Episodes[args.Index]);
     }
 
     private void OnFilesEpisodeSizeChanged(object sender, SizeChangedEventArgs args)
     {
         if (sender is not Grid grid) return;
-        var compact = args.NewSize.Width < 560;
         var picture = (Border)grid.Children[0];
-        var content = (StackPanel)grid.Children[1];
-        var actions = (StackPanel)grid.Children[2];
-        grid.RowSpacing = compact ? 8 : 0;
-        Grid.SetColumnSpan(picture, compact ? 3 : 1);
-        Grid.SetRow(content, compact ? 1 : 0);
-        Grid.SetColumn(content, compact ? 0 : 1);
-        Grid.SetColumnSpan(content, compact ? 2 : 1);
-        Grid.SetRow(actions, compact ? 1 : 0);
-        picture.Width = Math.Min(Momoka.Infrastructure.CardSize.WideWidth, Math.Max(0, args.NewSize.Width));
+        // 窄行缩小缩略图，文字始终在同一行；图片迟到或失败只收放 Auto 列，不留下空的上方行。
+        picture.Width = Math.Min(144, Math.Max(0, args.NewSize.Width / 3));
         picture.Height = picture.Width * 9 / 16;
     }
 
     private void OnEpisodeSizeChanged(object sender, SizeChangedEventArgs args)
     {
         if (sender is not Grid grid) return;
-        var compact = args.NewSize.Width < 440;
         var picture = (Border)grid.Children[0];
-        var content = (StackPanel)grid.Children[1];
-        Grid.SetColumn(content, compact ? 0 : 1);
-        Grid.SetRow(content, compact ? 1 : 0);
-        Grid.SetColumnSpan(content, compact ? 2 : 1);
-        picture.Width = compact ? Math.Min(240, Math.Max(0, args.NewSize.Width)) : 180;
+        picture.Width = Math.Min(144, Math.Max(0, args.NewSize.Width / 3));
         picture.Height = picture.Width * 9 / 16;
     }
 }

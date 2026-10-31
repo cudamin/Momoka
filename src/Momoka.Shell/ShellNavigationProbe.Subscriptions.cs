@@ -205,7 +205,7 @@ internal sealed partial class ShellNavigationProbe
                 "入库摘要没有统一放在季标题，或展开后重复显示");
             foreach (var width in new[] { 1240, 760 })
             {
-                ResizeInspect(width, 1000);
+                ResizeProbeClient(width, 1000);
                 // 窗口尺寸是异步生效的，而自适应版式跟着窗口宽度走 —— 不等它落下来，下面读到的还是上一档。
                 await UntilAsync(() => page.ActualWidth <= width + 2);
                 await LayoutAsync(page);
@@ -224,7 +224,8 @@ internal sealed partial class ShellNavigationProbe
                 await UntilAsync(() => vm.Episodes[0].Artwork is not null);
                 var picture = Descendants(page).OfType<Border>().First(border => border.Name == "EpisodeArtwork");
                 var play = Descendants(page).OfType<Button>().First(button => button.Name == "PlaySubscriptionEpisode" && button.Visibility == Visibility.Visible);
-                Require(picture.ActualWidth > picture.ActualHeight && picture.ActualHeight > 100, "集封面没有按横版显示");
+                Require(picture.Visibility == Visibility.Visible && Math.Abs(picture.ActualWidth - 144) < 1
+                    && Math.Abs(picture.ActualHeight - 81) < 1, "集封面没有使用紧凑的 144 × 81 横版缩略图");
                 Require(play.Content is FontIcon && play.TransformToVisual(page).TransformPoint(default).X
                     > picture.TransformToVisual(page).TransformPoint(default).X + picture.ActualWidth, "播放图标不在封面和剧情右侧");
                 var search = Descendants(page).OfType<Button>()
@@ -430,6 +431,7 @@ internal sealed partial class ShellNavigationProbe
             try
             {
                 await LayoutAsync(editor);
+                RequireSearchRadius(Get<TextBox>(editor, "KeywordInput"));
                 Get<TextBox>(editor, "IncludeInput").Text = "WEB-DL";
                 Get<NumberBox>(editor, "TotalInput").Value = 6;
                 await SaveSettledFrameAsync(editor, "mp-subscription-editor.png");
@@ -765,6 +767,7 @@ internal sealed partial class ShellNavigationProbe
 
         /// <summary>把电视剧那份媒体详情标成动画；只有「日本动画订阅的 AniBT 入口」那一条打开。</summary>
         internal bool Anime { get; set; }
+        internal bool CompactEpisodes { get; set; }
 
         internal byte[] Poster { get; set; } = [];
         internal TaskCompletionSource<HttpResponseMessage>? PendingList { get; set; }
@@ -894,6 +897,8 @@ internal sealed partial class ShellNavigationProbe
             });
             // 集播出日期走 TMDB 季集接口（订阅的文件统计不带它，见 MoviePilotEpisodeAirDates）。四条各占一种形态：
             // 已播出、已播出、还没播、没有日期 —— 屏上就该是「播出 / 播出 / 待播出 / 不显示」，搜索入口只给前两条。
+            if (path.Contains("/tmdb/", StringComparison.Ordinal) && CompactEpisodes)
+                return Json(Enumerable.Range(1, 8).Select(number => new { episode_number = number, air_date = "2999-11-25", name = $"第 {number} 集", overview = "", still_path = "" }).ToArray());
             if (path.Contains("/tmdb/", StringComparison.Ordinal)) return Json(new object[]
             {
                 new { episode_number = 1, air_date = "2026-01-01", name = "新的开始", overview = "一场意外的重逢，让旅途有了新的方向。", still_path = "https://poster.invalid/episode-1.png" },
@@ -903,6 +908,9 @@ internal sealed partial class ShellNavigationProbe
             });
             var itemId = int.Parse(path.Split('/')[^1]);
             if (!Items.TryGetValue(itemId, out var item)) return new(HttpStatusCode.NotFound);
+            if (path.Contains("/files/", StringComparison.Ordinal) && CompactEpisodes)
+                return Json(new { success = true, data = new { subscribe = item, episodes = Enumerable.Range(1, 8).ToDictionary(
+                    number => number.ToString(), number => new { title = $"第 {number} 集", description = "", backdrop = "", library = Array.Empty<object>(), download = Array.Empty<object>() }) } });
             // 文件统计：电视剧按集号给三条（已入库 / 已下载待入库 / 缺集）；电影按真实回话只给零号那一条
             //（见 MoviePilotSubscriptionFiles.Parse —— 电影的非零号条目一律跳过）。电影这一条给入库文件，
             // 好让入库徽标有结论可读。

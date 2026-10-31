@@ -9,7 +9,7 @@ using static Momoka.Tests.TestHarness;
 
 namespace Momoka.Tests;
 
-/// <summary>Actual current Shell subscription VM with anonymous in-memory reads only, not WinUI UI.</summary>
+/// <summary>Actual current Shell subscription VM and episode rows, without network, windows or native image decoding.</summary>
 internal static class MoviePilotSubscriptionPageStateTests
 {
     private const BindingFlags Members = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -30,7 +30,7 @@ internal static class MoviePilotSubscriptionPageStateTests
             {
                 var assembly = AssemblyLoadContext.Default.LoadFromAssemblyPath(shell);
                 var type = assembly.GetType("Momoka.Shell.ViewModels.MoviePilotSubscriptionsViewModel", true)!;
-                Console.WriteLine("订阅分类空态：真实Shell VM，禁止配置／凭据／网络／写入／窗口");
+                Console.WriteLine("订阅分类与分集状态：真实Shell VM，禁止配置／凭据／网络／写入／窗口");
                 Console.WriteLine("Shell=" + shell);
                 foreach (var series in new[] { false, true })
                 {
@@ -133,6 +133,7 @@ internal static class MoviePilotSubscriptionPageStateTests
                     Assert.Contains("x:Name=\"RefreshSubscriptions\"", xaml);
                     Assert.Contains("Click=\"OnRefresh\"", xaml);
                 });
+                RegisterEpisodeRows(assembly, root);
                 return TestHarness.Run();
             }
             finally { AssemblyLoadContext.Default.Resolving -= Resolve; }
@@ -144,6 +145,96 @@ internal static class MoviePilotSubscriptionPageStateTests
         }
         catch (Exception error) { Console.Error.WriteLine(error); return 1; }
     }
+
+    private static void RegisterEpisodeRows(Assembly shell, string root)
+    {
+        var subscriptionType = shell.GetType("Momoka.Shell.ViewModels.MoviePilotSubscriptionEpisodeRow", true)!;
+        var mediaType = shell.GetType("Momoka.Shell.ViewModels.MoviePilotMediaEpisodeRow", true)!;
+        foreach (var (name, number, title, expected) in new[]
+        {
+            ("有标题保留集号并裁掉两端空白", 1, "  重逢  ", "第 1 集 · 重逢"),
+            ("空标题只显示集号", 1, "", "第 1 集"),
+            ("空白标题只显示集号", 1, " \t\r\n　", "第 1 集"),
+            ("默认标题不重复", 1, "第 1 集", "第 1 集"),
+            ("无空格默认标题不重复", 1, "第1集", "第 1 集"),
+            ("全角及换行空白默认标题不重复", 1, " \t第　1集\r\n", "第 1 集"),
+            ("相似标题不误当默认标题", 1, "第 1 集后记", "第 1 集 · 第 1 集后记"),
+            ("电影标题仍显示电影身份", 0, " 心愿 ", "电影 · 心愿"),
+            ("电影默认标题不重复", 0, " 电　影\t", "电影")
+        })
+        {
+            Test("订阅分集标题：" + name, () =>
+            {
+                var row = SubscriptionRow(subscriptionType, new(number, title, "", [], []));
+                Assert.Equal(expected, RowProperty(row, "RowTitle"));
+                Assert.Equal("搜索资源 · " + expected, RowProperty(row, "SearchName"), "可访问名称与显示标题一致");
+                Assert.Equal("播放 · " + expected, RowProperty(row, "PlayName"));
+            });
+        }
+        foreach (var (name, description, visibility) in new[]
+        {
+            ("空简介", "", "Collapsed"),
+            ("空白简介", " \t\r\n　", "Collapsed"),
+            ("有简介", "一段关于重逢的故事。", "Visible")
+        })
+        {
+            Test("订阅分集简介：" + name, () =>
+            {
+                var row = SubscriptionRow(subscriptionType, new(1, "重逢", description, [], []));
+                Assert.Equal(visibility, RowProperty(row, "DescriptionVisibility")?.ToString());
+                Assert.Equal(description, RowProperty(row, "Description"), "显隐不清空元数据");
+            });
+            Test("普通分集简介：" + name, () =>
+            {
+                var row = MediaRow(mediaType, new(1, "重逢", description, "", "", null));
+                Assert.Equal(visibility, RowProperty(row, "OverviewVisibility")?.ToString());
+                Assert.Equal(description, RowProperty(row, "Overview"));
+            });
+        }
+        foreach (var (name, url) in new[] { ("未提供图片", ""), ("仅有URL未取得图片", "https://art.invalid/episode.jpg") })
+        {
+            Test("订阅分集无图：" + name, () =>
+            {
+                var row = SubscriptionRow(subscriptionType, new(1, "重逢", "", [], []) { ArtworkUrl = url });
+                Assert.Null(RowProperty(row, "Artwork"));
+                Assert.Equal("Collapsed", RowProperty(row, "ArtworkVisibility")?.ToString(), "未取得图片不保留空图片区域");
+            });
+            Test("普通分集无图：" + name, () =>
+            {
+                var row = MediaRow(mediaType, new(1, "重逢", "", "", url, null));
+                Assert.Null(RowProperty(row, "Artwork"));
+                Assert.Equal("Collapsed", RowProperty(row, "ArtworkVisibility")?.ToString());
+            });
+        }
+        Test("季订阅状态动态绑定：心形、提示及名称随原行更新", () =>
+        {
+            var xaml = File.ReadAllText(Path.Combine(root, "src", "Momoka.Shell", "Views", "MoviePilotMediaSeasonsView.xaml"));
+            Assert.Contains("Glyph=\"{x:Bind HeartGlyph, Mode=OneWay}\"", xaml);
+            Assert.Contains("ToolTipService.ToolTip=\"{x:Bind SubscribeLabel, Mode=OneWay}\"", xaml);
+            Assert.Contains("AutomationProperties.Name=\"{x:Bind SubscribeLabel, Mode=OneWay}\"", xaml);
+        });
+    }
+
+    private static object SubscriptionRow(Type type, MoviePilotSubscriptionEpisode episode)
+    {
+        // Only the actual row's constructor/properties run. The generic delegate types belong to
+        // the loaded Shell; invoking an action would fail before any playback or search work.
+        var play = typeof(MoviePilotSubscriptionPageStateTests).GetMethod(nameof(RejectPlay), BindingFlags.Static | BindingFlags.NonPublic)!
+            .MakeGenericMethod(type).CreateDelegate(typeof(Func<,>).MakeGenericType(type, typeof(Task)));
+        var search = typeof(MoviePilotSubscriptionPageStateTests).GetMethod(nameof(RejectSearch), BindingFlags.Static | BindingFlags.NonPublic)!
+            .MakeGenericMethod(type).CreateDelegate(typeof(Action<>).MakeGenericType(type));
+        Func<bool> unavailable = () => false;
+        return Activator.CreateInstance(type, [episode, unavailable, unavailable, play, unavailable, search])!;
+    }
+
+    private static object MediaRow(Type type, MoviePilotMediaEpisode episode) =>
+        Activator.CreateInstance(type, [episode, null, (Action)(() => throw new AssertionException("分集状态夹具不得搜索"))])!;
+
+    private static object? RowProperty(object row, string property) =>
+        (row.GetType().GetProperty(property, Members) ?? throw new AssertionException("当前Shell分集行缺少属性：" + property)).GetValue(row);
+
+    private static Task RejectPlay<TRow>(TRow row) => throw new AssertionException("分集状态夹具不得播放");
+    private static void RejectSearch<TRow>(TRow row) => throw new AssertionException("分集状态夹具不得搜索");
 
     private sealed class Fixture : IDisposable
     {
