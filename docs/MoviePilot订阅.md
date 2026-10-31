@@ -112,3 +112,11 @@ Core 的 `MoviePilotSubscriptionTests` 覆盖分区和身份、入库统计、�
 `Momoka.TransferSubmissionTests` 覆盖默认自动、选目录带出配置、陌生路径回退、已手选方式不被覆盖、清空回到自动，`--probe-shell --probe-section moviepilot` 在真实控件上核对默认无滚动、目录切换与宽窄布局并保存 `mp-manual-*.png`。
 
 `tmdbid=xxxx` 沿用网页端的文字搜索，在标题、源路径和目标路径中查找，并不是服务端专用的 TMDB 身份过滤；使用不含此标记的自定义命名时，可能查不到历史，需到 MoviePilot 媒体整理中核对。所有请求仍受连接身份、历史重核、预览完整性和本进程防重保护；不明回执或部分完成时保留逐项结果，先核对服务端，不能自动重发整批。
+
+## 2026-10-31 搜索返回与订阅表单
+
+MoviePilot订阅搜索进入媒体/订阅详情再返回，保留关键词、来源、结果和滚动位置。离页仍取消在途请求并释放图片与事件；返回后只更新订阅状态。封面本体打开详情，搜索和订阅小按钮分别打开资源面板与选季表，互不触发。由搜索进入详情后新增订阅成功，自动进入对应的电影或电视剧订阅列表；取消、失败和失效页面不跳转。
+
+选季表参照官方前端的横向剧集组、海报/评分/首播日期/集数/状态标签和三种订阅方式。已订阅季保持选中，取消选中后提交会取消该季订阅并保留文件。编辑表分为基础和进阶，支持站点、搜索周期、下载器、实际下载路径、洗版与IMDb、包含/排除、规则组和剧集组等字段；只发送实际变化。保存失败保留草稿，取消订阅使用表内确认。
+
+离线检查入口为 `Momoka.SearchLifetimeTests`、`Momoka.MoviePilotSubscribeSettingsTests`、`Momoka.SubscriptionEditorTests` 和 `Momoka.MoviePilotJourneyTests`。真实窗口检查运行 `--probe-shell --probe-section moviepilot,search --screen 1`；人工输入检查运行 `--probe-shell inspect --screen 1` 后进入「MP 订阅操作」。匿名HTTP和截图证明本地交互与请求映射，不证明真实MoviePilot服务器的下载任务执行。官方前端核对提交为 `1f574a4fa8a254e3308b440f1e265965bfb11f83`，后端为 `f5bd3458a6d699600c7496b22a523412d4ef9762`；本轮未读取真实部署版本。
