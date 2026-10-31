@@ -5,6 +5,10 @@
     xmlns:vm="using:Momoka.Shell.ViewModels"
     Background="{ThemeResource EgWindowBrush}">
     <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///Theme/SettingsInputs.xaml" />
+            </ResourceDictionary.MergedDictionaries>
         <Style x:Key="FnNasCard" TargetType="Border">
             <Setter Property="Background" Value="{ThemeResource EgSurfaceBrush}" />
             <Setter Property="BorderBrush" Value="{ThemeResource EgBorderBrush}" />
@@ -15,6 +19,7 @@
         <DataTemplate x:Key="FnNasChoiceTemplate" x:DataType="vm:FnNasChoice">
             <TextBlock Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
         </DataTemplate>
+        </ResourceDictionary>
     </Page.Resources>
     <Grid x:Name="PageLayout" RowSpacing="12" Padding="0,0,4,0">
         <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
