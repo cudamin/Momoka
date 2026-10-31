@@ -7,6 +7,18 @@ public sealed record MoviePilotMediaSeason(int Number, string Name, int EpisodeC
 {
     public string Label => Number == 0 ? "第 0 季 · 特别篇" : $"第 {Number} 季";
 
+    /// <summary>选季保留来源的专用季名；剔除上游常见的重复季号标题。</summary>
+    public string PickerLabel
+    {
+        get
+        {
+            var name = Name.Trim();
+            var normalized = string.Concat(name.Where(character => !char.IsWhiteSpace(character))).ToLowerInvariant();
+            var generic = new[] { $"第{Number}季", $"season{Number}", $"season{Number:00}", $"s{Number}", $"s{Number:00}" };
+            return $"第 {Number} 季" + (name.Length > 0 && !generic.Contains(normalized, StringComparer.Ordinal) ? " · " + name : "");
+        }
+    }
+
     public static IReadOnlyList<MoviePilotMediaSeason> Parse(JsonElement data)
     {
         if (data.ValueKind != JsonValueKind.Array) throw new MoviePilotException("MoviePilot 未返回有效的季列表");

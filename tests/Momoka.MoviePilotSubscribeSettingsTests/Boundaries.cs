@@ -69,9 +69,10 @@ namespace Microsoft.UI.Xaml.Controls
     public sealed class ContentDialogButtonClickEventArgs : EventArgs
     {
         public bool Cancel { get; set; }
-        public Deferral GetDeferral() => new();
+        internal TaskCompletionSource Completion { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public Deferral GetDeferral() => new(() => Completion.TrySetResult());
     }
-    public sealed class Deferral { public void Complete() { } }
+    public sealed class Deferral(Action complete) { public void Complete() => complete(); }
 }
 
 namespace Momoka.Shell.Media

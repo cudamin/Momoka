@@ -8,13 +8,14 @@ namespace Momoka.Shell.Views;
 public sealed partial class MoviePilotSeasonPicker : ContentDialog
 {
     public MoviePilotMediaViewModel ViewModel { get; } = new();
+    internal bool Succeeded { get; private set; }
     public MoviePilotSeasonPicker() => InitializeComponent();
 
-    internal static async Task ShowAsync(FrameworkElement owner, MoviePilotService service, MoviePilotMedia media, string group, int? season,
+    internal static async Task<bool> ShowAsync(FrameworkElement owner, MoviePilotService service, MoviePilotMedia media, string group, int? season,
         CancellationToken token = default)
     {
         if (media.Type != "电视剧" || !service.Available || !service.IsCurrentConnection(media.ConnectionStamp)
-            || owner.XamlRoot is null || token.IsCancellationRequested) return;
+            || owner.XamlRoot is null || token.IsCancellationRequested) return false;
         var dialog = new MoviePilotSeasonPicker { XamlRoot = owner.XamlRoot, RequestedTheme = owner.ActualTheme };
         dialog.ViewModel.Attach(service, media, group, picker: true, preselect: season, lifetimeToken: token);
         using var cancelled = token.Register(() => owner.DispatcherQueue.TryEnqueue(() =>
@@ -25,7 +26,9 @@ public sealed partial class MoviePilotSeasonPicker : ContentDialog
         try
         {
             _ = dialog.ViewModel.ReloadAsync();
-            await MoviePilotDialog.ShowAsync(dialog, service);
+            var result = await MoviePilotDialog.ShowAsync(dialog, service);
+            return result == ContentDialogResult.Primary && dialog.Succeeded && !token.IsCancellationRequested
+                && service.Available && service.IsCurrentConnection(media.ConnectionStamp);
         }
         finally { dialog.ViewModel.Cancel(); }
     }
@@ -34,13 +37,9 @@ public sealed partial class MoviePilotSeasonPicker : ContentDialog
     {
         args.Cancel = true;
         var deferral = args.GetDeferral();
-        try { if (await ViewModel.SubmitAsync()) { args.Cancel = false; } }
+        try { if (await ViewModel.SubmitAsync()) { Succeeded = true; args.Cancel = false; } }
         finally { deferral.Complete(); }
     }
     private async void OnReview(object sender, RoutedEventArgs args) => await ViewModel.ReviewAsync();
-    private void OnSeasonModePicked(object sender, RoutedEventArgs args)
-    {
-        if (sender is FrameworkElement { Tag: MoviePilotMediaSeasonRow row }) row.MarkModePicked();
-    }
     private async void OnRetrySeasonStates(object sender, RoutedEventArgs args) => await ViewModel.RetrySeasonStatesAsync();
 }

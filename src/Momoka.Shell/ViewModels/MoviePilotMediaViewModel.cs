@@ -33,6 +33,14 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     public MoviePilotSubscription? Subscription { get; } = subscription;
     public bool IsMovie { get; init; }
     public string Title => IsMovie ? Season.Name : Season.Label;
+    public string PickerTitle => IsMovie ? Season.Name : Season.PickerLabel;
+    public string AirDateText => DateOnly.TryParseExact(Season.AirDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+        System.Globalization.DateTimeStyles.None, out var date) ? $"首播于 {date:yyyy年M月d日}" : Season.AirDate.Length > 0 ? "首播于 " + Season.AirDate : "";
+    public string RatingText => Season.Vote is > 0 and <= 10 ? $"★ {Season.Vote:0.#}" : "";
+    public string EpisodeCountText => $"{Season.EpisodeCount} 集";
+    public Visibility AirDateVisibility => AirDateText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility RatingVisibility => RatingText.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    public Brush? PickerTitleBrush => Paint(Selected ? "EgAccentBrush" : "EgTextBrush");
     public string Summary => (IsMovie ? "电影" : $"{Season.EpisodeCount} 集") + (Season.AirDate.Length > 0 ? $" · 首播于 {Season.AirDate}" : "") + (Season.Vote is > 0 ? $" · ★ {Season.Vote:0.0}" : "");
     public string SubscribeLabel => CurrentSubscription is null ? "未订阅" : "已订阅 · " + MoviePilotSubscriptionPlan.ModeLabel(MoviePilotSubscriptionPlan.Mode(CurrentSubscription));
     public Visibility SubscriptionVisibility => CurrentSubscription is null ? Visibility.Collapsed : Visibility.Visible;
@@ -106,7 +114,11 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     [NotifyPropertyChangedFor(nameof(SubscriptionVisibility))]
     [NotifyPropertyChangedFor(nameof(HeartGlyph))]
     public partial MoviePilotSubscription? CurrentSubscription { get; set; } = subscription;
-    partial void OnSelectedChanged(bool value) => OnPropertyChanged(nameof(SelectedVisibility));
+    partial void OnSelectedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(SelectedVisibility));
+        OnPropertyChanged(nameof(PickerTitleBrush));
+    }
     partial void OnExpandedChanged(bool value) { if (value) expand(this); }
     public IRelayCommand SubscribeCommand => new RelayCommand(() => subscribe(this));
 }
