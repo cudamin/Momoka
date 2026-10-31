@@ -1,3 +1,12 @@
+## 2026-10-31 详情页沉浸版式合入 master（已重验，交付目录未刷新）
+
+- 用户令「合并到主树，清理多余工作树」。`codex/detail-immersive-max`（尖端 `14a4f07`，基于 `ccf1f7e`）以 `--no-ff` 合入 master，合并提交 `8f1fbc0`；随后单独一笔 `8fbdef7` 同步 R046 接续夹具里 `EmbyItem.cs` 的来源哈希 —— 主树 10-31 两笔杜比提交改了该文件却没更新 `SourcePins.json`，整方案构建会直接红，只改这一条、其余 18 条原样保留。
+- 冲突只在 `PROGRESS.md`（主树条目在上、分支三条在下，去掉待合并字样）。`DetailPage.xaml` 自动合并后补一处语义：主树当天把「媒体信息」改成「其他信息」卡并换成 `ShelfHead`，新标题漏了 `ShowLines` 绑定，沉浸档会剩一条强调条和通栏线；已补，并在单集页纸面档实拍确认默认显示正常。
+- 验证（主树最终代码）：Release 整方案 0 警告 0 错误；Core 全套 3502/3502、0 失败 0 跳过；`git diff --check` 与 `dotnet format whitespace --verify-no-changes` 通过。副屏实拍（工作区 1080×1872）：1096×1888 最大化是沉浸档，无纸面、无面板底、无标题线条，内容紧凑；1080×1200（面积约 0.64）回纸面，面板与线条恢复；1080×1700 单集页的「其他信息」卡标题强调条与通栏线正常，杜比档位写成 `DolbyVision Profile 5.0`。证据 `work/immersive/main-max.png`、`main-paper.png`、`episode-tall.png`；独立树的代表性截图另存 `work/immersive/branch/`。
+- 未覆盖：探针只打开剧/单集页，没有电影页入口，「其他信息」标题在沉浸档被收起这一条只有同一绑定在其余四块标题上的实拍与代码依据，没有电影页截图；未跑自检闸门 4，无真实播放或服务器写入。
+- 清理：`detail-immersive-max` 工作树与 `codex/detail-immersive-max` 分支已删（未合并历史已全部在 master）；`master-635508b1`（无独有提交，原 `ccf1f7e`）的工作树登记与分支 `workbuddy/master-635508b1` 已删，但该目录是本聊天的工作目录、被进程占用，文件夹本身留待关闭会话后手工删除。本地只剩 `master` 与主工作树。
+- 交付目录：`artifacts/publish/win-x64` **未刷新** —— 发布脚本清空该目录时被环境的批量删除保护拦下（需人工确认），没有绕过。桌面快捷方式仍指向旧构建，要用新功能需先刷新该目录。
+
 ## 2026-10-31 轮播图开着时「媒体库」固定第一位（已发布本机）
 
 - 用户令「开启轮播图后 媒体库顺序 里的 媒体库 固定为第一个」。`HomeLayout.Plan` 多一档 `librariesFirst`（取自 `UiSettings.ShowHomeBanner`）：轮播开着时把 `libraries` 那一排挪到版面第一位，勾选状态不动；主页 `BuildShelves`、设置页 `CurrentHomeRows`／编辑合并、`HomePage.RefreshHomeRows` 三处都按同一档排。关掉轮播不强制还原旧次序，存下来的就是当前次序。
