@@ -56,6 +56,22 @@ public sealed class MoviePilotHistoryPlan
     public string Details => string.Join("\n\n", Histories.Select(history =>
         $"{history.Display}\n源文件{(DeleteSource ? "（删除）" : Smart ? "" : "（保留）")}：{history.SourcePath}\n媒体库文件{(DeleteDestination ? "（删除）" : Smart ? "" : "（保留）")}：{history.TargetPath}"));
 
+    /// <summary>只缩小已核对范围；合法选择消费原确认，保留原记录顺序与快照，不能派生多份可提交计划。</summary>
+    public MoviePilotHistoryPlan SelectRecords(IReadOnlyCollection<long> ids)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        var selectedIds = ids.ToArray();
+        var selected = selectedIds.ToHashSet();
+        if (selectedIds.Length == 0 || selected.Count != selectedIds.Length)
+            throw new MoviePilotOperationBlockedException("请选择至少一条整理记录，不能重复选择同一条记录");
+        var histories = Histories.Where(history => selected.Contains(history.Id)).ToArray();
+        if (histories.Length != selectedIds.Length)
+            throw new MoviePilotOperationBlockedException("选择包含未核对的整理记录，请重新读取确认范围");
+        // 与直接提交争用同一个消费位；并行派生或原计划提交只能有一方取得确认。
+        Claim();
+        return new MoviePilotHistoryPlan(Title, Action, Batch, ConnectionStamp, histories);
+    }
+
     internal void Claim()
     {
         if (Interlocked.Exchange(ref _claimed, 1) != 0)

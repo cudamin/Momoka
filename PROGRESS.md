@@ -1,3 +1,10 @@
+## 2026-10-31 媒体管理勾选范围子计划（待主树整合）
+
+- 独立 managed 工作树 C:/Users/89400/.codex/worktrees/mp-history-selection/Momoka，起点 master 11c6ff58d327db54b92657c2e2d12d1003ea8280；只写 MoviePilotHistoryPlan、MoviePilotMediaManagementTests 与本条进度，主树已有 Dialog/HistoryRecordRow 改动不触碰。
+- 新增 SelectRecords：已核验列表可以全选或取消个别，只允许非空、无重复且全部属于原计划的 ID；保留原记录顺序、对象/快照、删除范围、批量语义及连接标记。合法派生原子消费原确认，与直接提交共用 Claim 位；重复或并行派生不能取得额外确认，子计划不能把已排除的记录加回。非法集合零写且不消费有效计划。
+- 官方源码核对 Frontend v3 1f574a4fa8a254e3308b440f1e265965bfb11f83 的 TransferHistoryView.vue/TransferHistoryDeleteDialog.vue 及相关测试，Backend v3 f5bd3458a6d699600c7496b22a523412d4ef9762 的 history.py、application/history/mutation.py 与相关测试；DELETE id/范围及分项回执契约未改。实际部署版本未确认，未真实删除或运行UI。
+- 当前本树 Core/Tests Release 编译 0警告0错误；媒体管理专项 44/44、0失败0跳过，新增四种范围实际假HTTP请求验证取消第2条后仅 DELETE 第1/3条，以及空/重复/未知ID、重复/并行派生、子计划越界、后续快照/连接/取消零写保护。尚未合入master、未运行主树UI、未刷新实际交付目录；由主交付会话挑入后统一重验和发布。
+
 ## 2026-10-31 MoviePilot 搜索进度与未识别媒体（待最终验证和主树交付）
 
 - 用户两张对照要求一并落实：资源搜索改网页式环形进度/来源状态/查询标签/百分比/底部线；未识别主详情改集中胶卷500图形、说明与重试，收起半成品正文和附属错误条。颜色使用现有五套主题角色，字幕搜索仍为不确定进度；未复刻骨架卡和边搜边显示候选，避免把未经最终匹配的资源变成可下载结果。合法空媒体也保留重试是本地有意增加的恢复入口。
