@@ -78,7 +78,7 @@
                             <ComboBox x:Name="HistoryBox" Header="原整理记录" HorizontalAlignment="Stretch"
                                 DisplayMemberPath="Display" SelectionChanged="OnHistoryChanged" />
                         </StackPanel>
-                        <Grid x:Name="DestinationGrid" ColumnSpacing="24" RowSpacing="20">
+                        <Grid x:Name="DestinationGrid" ColumnSpacing="24" RowSpacing="20" Margin="0,12,0,0">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <StackPanel x:Name="TargetStorageField" Spacing="6">
@@ -89,7 +89,7 @@
                                         HorizontalAlignment="Left" Margin="14,0,0,0" IsHitTestVisible="False" />
                                     <Border Background="{ThemeResource EgSurfaceBrush}" HorizontalAlignment="Left" VerticalAlignment="Top"
                                         Margin="18,-9,0,0" Padding="4,0" IsHitTestVisible="False">
-                                        <TextBlock Text="目的存储" Style="{StaticResource EgCaptionStyle}" />
+                                        <TextBlock x:Name="TargetStorageLabel" Text="目的存储" Style="{StaticResource EgCaptionStyle}" />
                                     </Border>
                                 </Grid>
                                 <TextBlock Style="{StaticResource EgCaptionStyle}" Text="整理目的存储，选择自动时由后端匹配" TextWrapping="Wrap" />

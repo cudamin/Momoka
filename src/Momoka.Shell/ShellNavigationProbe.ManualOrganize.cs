@@ -59,6 +59,8 @@ internal sealed partial class ShellNavigationProbe
                 Grid.GetRow(Get<StackPanel>(dialog!, "TransferMethodField")) == 0, "目的存储与整理方式未并排");
             Require(Get<Grid>(dialog!, "RecognitionGrid").TransformToVisual(dialog).TransformPoint(default).Y >
                 Get<StackPanel>(dialog!, "TargetPathPanel").TransformToVisual(dialog).TransformPoint(default).Y, "类型、数据源没有排在目的路径之后");
+            var storageLabel = Get<TextBlock>(dialog!, "TargetStorageLabel");
+            Require(storageLabel.TransformToVisual(formScroll).TransformPoint(default).Y >= 0, "首行目的存储标签被滚动区域裁切");
             await SaveProbeScreenAsync("mp-manual-default-screen.png");
             // 选媒体库目录：存储、整理方式、刮削与两个分类开关跟着目录配置走。
             path.Text = "/library";

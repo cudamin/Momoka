@@ -283,6 +283,7 @@ internal static class ManualDialogTests
             foreach (var removed in new[] { "SourcePathBox", "OriginalSourceBox", "AdvancedOptions", "BatchSelectionSummary" })
                 Assert.False(document.Descendants().Any(element => (string?)element.Attribute(x + "Name") == removed));
             Assert.Equal("Collapsed", (string?)Named("HistoryLookupPanel").Attribute("Visibility"));
+            Assert.Equal("0,12,0,0", (string?)Named("DestinationGrid").Attribute("Margin"));
             foreach (var option in new[] { "TypeFolderToggle", "CategoryFolderToggle", "ScrapeToggle", "FromHistoryToggle" })
             {
                 Assert.Equal("ToggleSwitch", Named(option).Name.LocalName);
