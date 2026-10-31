@@ -11,6 +11,7 @@
     <!-- Compile the actual dialog; substitute only XAML/WinUI boundary objects. -->
     <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotReorganizeDialog.xaml.cs" Link="Production\MoviePilotReorganizeDialog.xaml.cs" />
     <Compile Include="..\..\src\Momoka.Shell\Views\MoviePilotReorganizeDialog.Form.cs" Link="Production\MoviePilotReorganizeDialog.Form.cs" />
+    <Compile Include="..\..\src\Momoka.Shell\Views\ShellPage.MoviePilotMediaManagement.cs" Link="Production\ShellPage.MoviePilotMediaManagement.cs" />
     <Compile Include="..\Momoka.Tests\MoviePilotTransferSubmissionTests.cs" Link="MoviePilotTransferSubmissionTests.cs" />
     <Compile Include="..\Momoka.Tests\TestHarness.cs" Link="TestHarness.cs" />
   </ItemGroup>

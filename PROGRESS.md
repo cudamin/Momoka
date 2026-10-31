@@ -9430,3 +9430,10 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 
 - 独立测试树 C:/Users/89400/.codex/worktrees/subscription-compact-tests/Momoka，仅修改 MoviePilotSubscriptionPageStateTests.cs；沿用现有 CLI 入口，反射执行真实 Shell 分集行。新增普通／空／含全角和换行空白的重复标题、电影身份、空白简介、图片尚未取得及季心形动态绑定，共 20 项；不复制展示规则，不增加测试项目。
 - 当前测试与 Core Release 编译 0 警告 0 错误；读取主代理 subscription-seasons-compact 树已确认成功编译的 Release Shell，31/31 通过，0 失败 0 跳过。仅匿名内存列表与行属性，不访问真实配置／凭据／网络，不创建图片或窗口，不执行播放／搜索；实际布局、图片成功／失败和 UI 输入仍由主代理最终探针验证。待主树整合、重验、实际发布，未上传远端。
+
+## 2026-10-31 单集媒体管理直接删除（待主代理整合）
+
+- 独立 managed 工作树 C:/Users/89400/.codex/worktrees/mp-episode-direct-delete/Momoka，临时分支 codex/mp-episode-direct-delete，从 master 11c6ff58d327db54b92657c2e2d12d1003ea8280 开始。范围为 Shell 媒体管理入口的单集四档分流、监控停止取消、独立匿名运行探针及现有整理提交测试项目；没有触碰主树在途 Dialog／卡片／选择改动，没有发布、上传或真实删除。
+- 集页面四档范围直接 prepare→submit→通知结果，沿用完整文件／媒体身份核对、sealed plan、Claim 与服务防重；智能整理及非单集仍走原弹窗。固定页面／来源／MP 连接，Frame.Navigating 和 ContentProperty 回调同步撤销（覆盖 ReleaseContent 直接清空及 A→B→A），来源切换／权限或连接丢失／停止监控取消，finally 摘除事件。结果带原集名；不把媒体服务器条目强行当作已删除。
+- 本轮定点读取官方前端 v3 1f574a4fa8a254e3308b440f1e265965bfb11f83 的 TransferHistoryDeleteDialog.vue（四档点击直接 emit 删除范围），后端 v3 a43290647503e8cd2039ec30059ed486bacc9b82 的 history.py（DELETE transfer 接 id/deletesrc/deletedest 并返回分项结果）。实际配置服务器版本未在子任务中重读，不声称真实版本已同步；直接执行体验来自用户本轮明确要求。
+- 当前独立树 Release Shell/Core 编译 0 警告／0 错误；现有 TransferSubmissionTests 编译 0／0，67/67 通过、失败 0、跳过 0（新增单集路径 22 项，真实 Shell 协调方法 compile-link，原生 Frame／通知为边界，真实 Core 走匿名 HTTP）。实际 WinUI 探针新 partial 已编译，接入旧 MediaManagement 用例仅一行调用；运行／截图由主代理统一执行，尚未在本子树启动 UI。待主树挑入、最终整合重验与交付，当前不算完成主干发布。

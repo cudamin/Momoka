@@ -13,6 +13,7 @@ internal static class Program
         Console.WriteLine("整理提交界限：实际 Core 服务和源码链接 Dialog；无 WinUI、真实服务器或文件操作");
         MoviePilotTransferSubmissionTests.Register();
         ManualDialogTests.Register();
+        MoviePilotEpisodeDeleteTests.Register();
         foreach (var failure in new[] { "history-404", "history-json", "history-schema", "history-timeout", "history-500", "dependency-404" })
         {
             Test("真实对话框：只读失败恢复编辑／重新预览 " + failure, () =>

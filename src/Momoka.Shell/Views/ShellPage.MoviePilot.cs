@@ -97,6 +97,7 @@ public sealed partial class ShellPage
 
     private void StopMoviePilotMonitoring()
     {
+        _moviePilotEpisodeDelete?.Cancel();
         _moviePilotTimer.Stop();
         _moviePilotTimer.Tick -= CheckMoviePilot;
         _moviePilotCheck?.Cancel();

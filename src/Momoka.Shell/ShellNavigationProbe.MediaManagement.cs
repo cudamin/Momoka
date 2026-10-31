@@ -16,6 +16,7 @@ internal sealed partial class ShellNavigationProbe
 {
     private async Task MoviePilotMediaManagementAsync()
     {
+        await MoviePilotEpisodeDeleteAsync();
         var transport = new MediaManagementProbeServer();
         using var fixture = CreateFixture(transport);
         await fixture.SelectAsync();
