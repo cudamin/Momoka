@@ -23,7 +23,7 @@
             </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
-    <DropDownButton x:Name="OpenFacet" CornerRadius="16" Padding="10,4" MinHeight="30"
+    <DropDownButton x:Name="OpenFacet" CornerRadius="{StaticResource EgSearchCornerRadius}" Padding="10,4" MinHeight="30"
         Background="{ThemeResource EgAccentSoftBrush}" Foreground="{ThemeResource EgAccentBrush}"
         BorderThickness="0" AutomationProperties.Name="{x:Bind Facet.Summary, Mode=OneWay}"
         Visibility="{x:Bind Facet.Visibility, Mode=OneWay}">

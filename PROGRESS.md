@@ -1,3 +1,10 @@
+## 2026-10-31 全站输入框统一搜索圆角（待统一运行验证与发布）
+
+- 用户要求所有框改为附件搜索框的圆角。普通/多行文本、密码、数字、搜索、闭合下拉与 EgPicker 全局接 `EgSearchCornerRadius=10`；设置与详情旧键改为别名。登录三框、快捷键抓取及清除、MoviePilot 显式表单和筛选入口同步，保留原模板、颜色、绑定与输入行为。
+- 已读 WinUI 2.3.9 generic.xaml：NumberBox 默认样式无命名键，内层 InputBox 通过 TemplateBinding 接外层圆角；只加属性样式以保留类型默认模板。InputControlThemeTests 扫描全站显式与局部样式，补旧值/漏类型/平台样式绕过反例；InputFocus 探针扩到六类标准输入和快捷键实际模板、聚焦及旧圆角反例。
+- 当前主树代码已冻结。构建曾通过 0警告0错误；最后补测试后由“跑全量探针和闸门”聊天统一重编 Tests/Core，`artifacts/verification-20261031-full/input-tests-build.log` 0警告0错误；`input-theme.log` 28/28、`input-focus.log` 20/20，均0失败0跳过；本任务 diff空白检查通过。源码/测试专项不等于实屏验收。
+- 用户已授权另一聊天统一协调全量验证；本聊天停止后续构建、UI和发布，等待该聊天对最终master全量重验、读取五主题1040/760输入实屏及设置/飞牛/登录/详情/MoviePilot实际页面、更新 `artifacts/publish/win-x64` 和桌面入口。此刻尚未刷新交付目录、不宣称已交付。
+
 ## 2026-10-31 分支与工作树盘点、搜索 UI 合入及清理完成
 
 - 盘点：12 个 codex 分支、26 个注册工作树（含 15 个 detached）、5 个脏树。真正未合入的只有 `codex/search-web-ui`：5 个产品/测试提交加 1 个未提交接线提交（516d41b）。其余内容均已在 master 或被后续提交取代：settings-input-rounding（7373553/6a5456a）、search-radius-tests（同 e1b6f42）、search-filter-cards/search-sites-grid/search-ux-preview（search-web-ui 子集）、manual-reorganize-web（e85a4d3 + da81574）、moviepilot-status-ui（9c6b29b/11c6ff5）、perf-settings（1264635）、subscription-compact-tests（等效）、mp-history-selection（5817542/dc66896）；moviepilot-flow-fix、mp-editor-complete、mp-journey-complete 的脏改动已被 2a185ca 等主树更新版覆盖。

@@ -13,10 +13,10 @@
         <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="EgAccentPressedBrush" />
         <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="EgTextOnAccentBrush" />
         <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="EgTextOnAccentBrush" />
-        <Style x:Key="DownloadPickerStyle" TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+        <Style x:Key="DownloadPickerStyle" TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}">
             <Setter Property="HorizontalAlignment" Value="Stretch" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
             <Setter Property="Background" Value="Transparent" />
         </Style>
     </ContentDialog.Resources>

@@ -14,7 +14,7 @@
         <Thickness x:Key="ContentDialogTitleMargin">0,0,0,16</Thickness>
         <Thickness x:Key="ContentDialogCommandSpaceMargin">0,16,0,0</Thickness>
         <Thickness x:Key="ContentDialogPadding">22</Thickness>
-        <Style x:Key="ReorganizePickerStyle" TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+        <Style x:Key="ReorganizePickerStyle" TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}">
             <Setter Property="MinHeight" Value="52" />
             <Setter Property="Padding" Value="38,12,0,12" />
             <Setter Property="CornerRadius" Value="{StaticResource EgPickerCornerRadius}" />
@@ -23,7 +23,7 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="FontSize" Value="{StaticResource EgBodyFontSize}" />
         </Style>
-        <Style x:Key="ReorganizeTextStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
+        <Style x:Key="ReorganizeTextStyle" TargetType="TextBox" BasedOn="{StaticResource EgTextBoxStyle}">
             <Setter Property="MinHeight" Value="52" />
             <Setter Property="Padding" Value="38,12,12,12" />
             <Setter Property="CornerRadius" Value="{StaticResource EgPickerCornerRadius}" />

@@ -6,7 +6,7 @@
         <TextBlock x:Name="SiteLabel" Text="搜索站点" Style="{StaticResource EgCaptionStyle}" VerticalAlignment="Center" />
         <!-- 搜索框内仍是无底色的原生按钮；选择界面由独立网格对话框承载。 -->
         <Button x:Name="ChooseSites" AutomationProperties.Name="选择搜索站点" ToolTipService.ToolTip="选择搜索站点"
-            Background="Transparent" BorderThickness="0" CornerRadius="6" Padding="6,0,4,0" MinHeight="30" MaxWidth="180"
+            Background="Transparent" BorderThickness="0" CornerRadius="{StaticResource EgSearchCornerRadius}" Padding="6,0,4,0" MinHeight="30" MaxWidth="180"
             Click="OnChooseSites">
             <Grid ColumnSpacing="6">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>

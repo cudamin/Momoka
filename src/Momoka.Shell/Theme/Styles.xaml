@@ -102,17 +102,27 @@
     -->
     <CornerRadius x:Key="EgBleedCornerRadius">0</CornerRadius>
 
-    <!--
-      详情页文件选项那六颗下拉的圆角（「字幕、音频、视频的选择框边角弄圆一些」，2026-09-12）。三个选择器
-      （视频／媒体源、音频、字幕）各有两颗 —— 集页宽版式一份站在片名栏里、其余页面和紧凑版式一份站在尾部，
-      六颗共用这一个键。Fluent 给 ComboBox 的出厂圆角是 4，站在这套 16 的卡片、12 的封面旁边读着太方；
-      取封面那一档 12 —— 下拉高 32，再往上（16）就整颗胶囊了。只圆闭合时那一圈框，点开的下拉列表还是
-      框架自己的圆角，跟设置页那些下拉一个样。
-    -->
-    <CornerRadius x:Key="EgPickerCornerRadius">12</CornerRadius>
-
-    <!-- 所有搜索输入统一接设置页截图那档圆角；只改形状，保留平台模板、颜色与输入行为。 -->
+    <!-- 所有输入框统一使用用户截图中搜索框的圆角。保留平台模板、颜色与输入行为；
+         旧的详情/设置键作为别名，避免不同页面再次各自定义同一档几何。 -->
     <CornerRadius x:Key="EgSearchCornerRadius">10</CornerRadius>
+    <StaticResource x:Key="EgPickerCornerRadius" ResourceKey="EgSearchCornerRadius" />
+    <Style x:Key="EgTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
+        <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
+    </Style>
+    <Style TargetType="TextBox" BasedOn="{StaticResource EgTextBoxStyle}" />
+    <Style x:Key="EgPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource DefaultPasswordBoxStyle}">
+        <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
+    </Style>
+    <Style TargetType="PasswordBox" BasedOn="{StaticResource EgPasswordBoxStyle}" />
+    <!-- NumberBox 没有命名默认样式；只加属性样式，保留类型默认模板。
+         generic.xaml 的 InputBox 显式使用 NumberBoxTextBoxStyle，并通过 TemplateBinding 接收外层圆角。 -->
+    <Style TargetType="NumberBox">
+        <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
+    </Style>
+    <Style x:Key="EgComboBoxStyle" TargetType="ComboBox" BasedOn="{StaticResource DefaultComboBoxStyle}">
+        <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
+    </Style>
+    <Style TargetType="ComboBox" BasedOn="{StaticResource EgComboBoxStyle}" />
     <Style TargetType="AutoSuggestBox" BasedOn="{StaticResource DefaultAutoSuggestBoxStyle}">
         <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
     </Style>
@@ -120,18 +130,18 @@
     <!--
       详情页那几颗下拉的衣服：<local:EgPicker> 是 ComboBox 的子类，显式样式按「类型精确相等」匹配，框架给
       ComboBox 的那一份隐式样式（generic.xaml 里那条 TargetType="ComboBox"）不会落到子类身上 —— 不接这一行，
-      那几颗下拉会一个模板都没有，屏上是空的。接的就是框架那一份，一个字都不改：这次要改的只是弹层开在哪棵树
-      里，那件事在 C# 里（EgPicker.OnApplyTemplate），不在样式里。
+      那几颗下拉会一个模板都没有，屏上是空的。接项目的框架派生样式以取得相同圆角；弹层开在哪棵树
+      里仍由 C#（EgPicker.OnApplyTemplate）处理。
       隐式（没有 x:Key）而不是给每颗下拉写 Style=""：七颗下拉一个样子，写七遍只会漂。
       摆在这个文件而不是 App.xaml —— 这里管形状、Palette 管颜色，一颗下拉穿什么衣服属于前者。
     -->
-    <Style TargetType="local:EgPicker" BasedOn="{StaticResource DefaultComboBoxStyle}" />
+    <Style TargetType="local:EgPicker" BasedOn="{StaticResource EgComboBoxStyle}" />
 
     <!-- 与 MP 资源分面相同的紧凑圆角与角色色，保留框架的焦点和下拉模板。 -->
-    <Style x:Key="EgResourceFilterStyle" TargetType="local:EgPicker" BasedOn="{StaticResource DefaultComboBoxStyle}">
+    <Style x:Key="EgResourceFilterStyle" TargetType="local:EgPicker" BasedOn="{StaticResource EgComboBoxStyle}">
         <Setter Property="MinHeight" Value="30" />
         <Setter Property="Padding" Value="10,4" />
-        <Setter Property="CornerRadius" Value="16" />
+        <Setter Property="CornerRadius" Value="{StaticResource EgSearchCornerRadius}" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Background" Value="{ThemeResource EgAccentSoftBrush}" />
         <Setter Property="Foreground" Value="{ThemeResource EgAccentBrush}" />

@@ -68,8 +68,23 @@ internal sealed partial class ShellNavigationProbe
                     Require(!IsNeutralInputBorder(null, expected), "探针未拒绝缺失焦点描边反例");
                     var searchInput = Descendants(search).OfType<TextBox>().Single();
                     RequireSearchRadius(search);
+                    foreach (var input in new Control[] { text, password, search, number, combo, multiline })
+                        RequireInputRadius(input);
                     if (width == 1040 && theme == UiThemes.Default)
                     {
+                        foreach (var input in new Control[] { text, password, number, combo, multiline })
+                        {
+                            var saved = input.CornerRadius;
+                            var oldRadiusRejected = false;
+                            try
+                            {
+                                input.CornerRadius = new CornerRadius(4);
+                                RequireInputRadius(input);
+                            }
+                            catch (InvalidOperationException) { oldRadiusRejected = true; }
+                            finally { input.CornerRadius = saved; }
+                            Require(oldRadiusRejected, $"{input.Name} 旧圆角反例未被拒绝");
+                        }
                         var radius = search.CornerRadius;
                         var rejected = false;
                         try
@@ -100,17 +115,21 @@ internal sealed partial class ShellNavigationProbe
                             $"{theme.Id}/{entry.Name} 聚焦时退回卡片底色");
                         Require(border.BorderThickness.Left > 0 && border.BorderThickness.Right > 0,
                             $"{entry.Name} 移除颜色时把焦点线一起删掉");
-                        reads.AppendLine($"{theme.Id}/{width}/{entry.Name}: background={background}, border={expected}, thickness={border.BorderThickness}");
+                        RequireInputRadius(entry.Control);
+                        reads.AppendLine($"{theme.Id}/{width}/{entry.Name}: radius={border.CornerRadius}, background={background}, border={expected}, thickness={border.BorderThickness}");
                         await SaveProbeScreenAsync($"input-focus-{theme.Id}-{width}-{entry.Name}-screen.png");
                     }
                     Require(combo.Focus(FocusState.Keyboard), "下拉输入框不能取得键盘焦点");
                     await LayoutAsync(card);
                     var comboBackground = Descendants(combo).OfType<Border>().Single(control => control.Name == "Background");
+                    RequireInputRadius(combo);
                     Require(comboBackground.Background is AcrylicBrush comboFill && comboFill.TintColor == glass,
                         $"{theme.Id} 闭合下拉聚焦时退回卡片底色");
                     await SaveProbeScreenAsync($"input-focus-{theme.Id}-{width}-combo-screen.png");
                     Require(shortcut.Focus(FocusState.Keyboard), "快捷键输入框不能取得键盘焦点");
                     var shortcutFrame = Descendants(shortcut).OfType<Border>().Single(control => control.Name == "ComboBorder");
+                    Require(shortcutFrame.CornerRadius == new CornerRadius(10), "快捷键框未使用统一圆角");
+                    Require(Get<Button>(shortcut, "ClearButton").CornerRadius == new CornerRadius(10), "快捷键清除框未使用统一圆角");
                     Require(shortcutFrame.Background is AcrylicBrush shortcutGlass && shortcutGlass.TintColor == glass,
                         $"{theme.Id} 快捷键输入框静止时未使用输入玻璃");
                     Call(shortcut, "StartCapture");
@@ -119,6 +138,7 @@ internal sealed partial class ShellNavigationProbe
                         await LayoutAsync(card);
                         var border = Descendants(shortcut).OfType<Border>().Single(control => control.Name == "ComboBorder");
                         Require(IsNeutralInputBorder(border.BorderBrush, expected), $"{theme.Id} 快捷键抓取仍有主题色外圈");
+                        Require(border.CornerRadius == new CornerRadius(10), "快捷键抓取时恢复了旧圆角");
                         Require(border.Background is SolidColorBrush shortcutFill && shortcutFill.Color == background,
                             $"{theme.Id} 快捷键抓取仍用卡片底色");
                         Require(IsNeutralInputBorder(shortcut.FocusVisualPrimaryBrush, ThemeHost.ToColor(theme.Colors.Text)),
@@ -144,6 +164,17 @@ internal sealed partial class ShellNavigationProbe
     private static bool IsInputBackground(Color? actual, Color expected) => actual == expected;
 
     private static bool IsNeutralInputBorder(Brush? brush, Color expected) => brush is SolidColorBrush color && color.Color == expected;
+
+    private static void RequireInputRadius(Control input)
+    {
+        var expected = new CornerRadius(10);
+        Require(input.CornerRadius == expected, $"{input.Name} 未使用搜索框的 10 DIP 圆角");
+        var inner = input is AutoSuggestBox or NumberBox ? Descendants(input).OfType<TextBox>().Single() : input;
+        Require(inner.CornerRadius == expected, $"{input.Name} 内层输入未接收圆角");
+        var frameName = input is ComboBox ? "Background" : "BorderElement";
+        var frame = Descendants(inner).OfType<Border>().Single(border => border.Name == frameName);
+        Require(frame.CornerRadius == expected, $"{input.Name} 真实模板未接收圆角");
+    }
 
     private static void RequireSearchRadius(Control input)
     {

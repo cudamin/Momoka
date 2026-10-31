@@ -608,15 +608,14 @@
                                  搬家的那一路这个文件已经付过两次代价（见 PlaceEpisodes 上那段旧账）。
                                  标签取固定的浅墨（EgOnScrim*）同尾部那一份：这两处压的都是深色底（板上／暗罩
                                  上）。外壳不用 WrapRow 了：竖排一列装不下也只会是各占一行，横排的换行算术
-                                 在这里没有事做。三颗下拉的边角取 EgPickerCornerRadius 的 12（「字幕、音频、
-                                 视频的选择框边角弄圆一些」，2026-09-12），出厂的 4 在这套圆角语言里太方。 -->
+                                 在这里没有事做。三颗下拉的 EgPickerCornerRadius 已接全站搜索框的 10 DIP 圆角。 -->
                             <StackPanel
                                 x:Name="ColumnPickers"
                                 Spacing="10"
                                 Visibility="{x:Bind ViewModel.ColumnPickersVisibility, Mode=OneWay}">
                                 <!-- 2026-10-30 用户令：「把集页面的选择框改为设置页面的那种样式」，同一轮补一句
                                      「圆角不要改」。集页宽版式这三颗（媒体源／音频／字幕）因此接设置页那支
-                                     输入玻璃（EgInputGlassBrush）；圆角仍是上面 EgPickerCornerRadius 的 12，不动。
+                                     输入玻璃（EgInputGlassBrush）；圆角沿用 EgPickerCornerRadius 的全站搜索框别名。
                                      剧、电影、季三页尾部那一组（PickerPanel）和季选择器照 2026-10-29 钉回窗口
                                      底色 —— 那一轮用户点名「别把剧、电影页面的选择框给改了」，这一轮只点集页。
                                      只钉闭合态；弹层仍走全局亚克力。 -->
@@ -989,7 +988,7 @@
 
                              里面那一层是 WrapRow 而不是横排的 StackPanel：下拉的宽度按各自最长那条轨道名撑，
                              窄窗口下三个加起来能超过一行，横排会把最右边那个切在窗口右沿上。宽窗口下两者摆出来
-                             一模一样，见 WrapRow 的注释。三颗下拉的边角取 EgPickerCornerRadius 的 12，同集页
+                             一模一样，见 WrapRow 的注释。三颗下拉的边角取 EgPickerCornerRadius 的 10，同集页
                              宽版式那一份（「字幕、音频、视频的选择框边角弄圆一些」，2026-09-12）。
                              三颗都是 local:EgPicker 而不是框架的 ComboBox —— 它是 ComboBox 的一点壳，只把弹层
                              从「开窗口」改回「同一棵树」，好让浮层那支应用内亚克力采得到底下这一页（用户

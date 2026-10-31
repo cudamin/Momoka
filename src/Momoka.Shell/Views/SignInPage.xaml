@@ -195,7 +195,7 @@
                                 AutomationProperties.Name="服务器地址"
                                 MinHeight="52"
                                 Padding="16,14"
-                                CornerRadius="8"
+                                CornerRadius="{StaticResource EgSearchCornerRadius}"
                                 PreviewKeyDown="OnAddressKeyDown"
                                 TextAlignment="Center"
                                 Text="{x:Bind ViewModel.Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -209,7 +209,7 @@
 
                                 <DropDownButton x:Uid="SignInPage_DropDownButton2"
                                     AutomationProperties.AutomationId="SignInSavedServersButton"
-                                    HorizontalAlignment="Stretch" MinHeight="44" CornerRadius="8"
+                                    HorizontalAlignment="Stretch" MinHeight="44" CornerRadius="{StaticResource EgSearchCornerRadius}"
                                     Visibility="{x:Bind ViewModel.SavedVisibility, Mode=OneWay}">
                                     <DropDownButton.Flyout>
                                         <!-- Filled in code: a MenuFlyout holds Items, not an ItemsSource. Each
@@ -288,7 +288,7 @@
                                 AutomationProperties.Name="用户名"
                                 MinHeight="52"
                                 Padding="16,14"
-                                CornerRadius="8"
+                                CornerRadius="{StaticResource EgSearchCornerRadius}"
                                 PreviewKeyDown="OnCredentialKeyDown"
                                 TextAlignment="Center"
                                 Text="{x:Bind ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
@@ -299,7 +299,7 @@
                                 AutomationProperties.Name="密码"
                                 MinHeight="52"
                                 Padding="16,14"
-                                CornerRadius="8"
+                                CornerRadius="{StaticResource EgSearchCornerRadius}"
                                 PreviewKeyDown="OnCredentialKeyDown"
                                 Password="{x:Bind ViewModel.Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 

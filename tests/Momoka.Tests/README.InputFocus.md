@@ -7,7 +7,7 @@
 - [InputFocusThemeTests.cs](InputFocusThemeTests.cs)解析本树实际 Palette / XAML，检查首帧 Dark 与 Light 输入底色使用 Window、焦点使用 BorderStrong；读取实际 ThemeHost 源码，避免运行期切主题退回旧颜色。
 - 检查文本、密码、搜索、数字、闭合下拉及快捷键局部覆盖。播放器弹幕输入沿用专用玻璃背景；不改展开下拉材质或高对比度系统资源。
 - 对每个首帧字典注入强调色和删除焦点资源，检查回归判定确实拒绝它们。这个契约检查不等于真实 WinUI 渲染证明。
-- [真实输入模板探针](../../src/Momoka.Shell/ShellNavigationProbe.InputFocus.cs)在五个存活主题的1040宽窗口，以及默认主题760宽窗口中，聚焦真实控件、回读模板边线与底色、核对输入值未变并保存实屏；卡片色、强调色与空画刷反例必须被拒绝。
+- [真实输入模板探针](../../src/Momoka.Shell/ShellNavigationProbe.InputFocus.cs)在五个存活主题的1040宽窗口，以及默认主题760宽窗口中，聚焦真实控件、回读模板边线与底色、核对输入值未变并保存实屏；普通、多行、密码、数字内外层、搜索、闭合下拉及快捷键框都核对与搜索相同的10 DIP圆角。旧圆角、卡片色、强调色与空画刷反例必须被拒绝。
 
 ## 命令
 

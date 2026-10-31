@@ -46,7 +46,7 @@
             Background="{ThemeResource EgInputGlassBrush}"
             BorderBrush="{ThemeResource EgBorderBrush}"
             BorderThickness="{StaticResource EgHairline}"
-            CornerRadius="4"
+            CornerRadius="{StaticResource EgSearchCornerRadius}"
             MinWidth="150"
             Padding="12,7">
             <TextBlock
@@ -62,6 +62,7 @@
             x:Uid="ShortcutCaptureBox_Clear"
             Grid.Column="1"
             Padding="8"
+            CornerRadius="{StaticResource EgSearchCornerRadius}"
             VerticalAlignment="Stretch">
             <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="12" Glyph="&#xE711;" />
         </Button>

@@ -3,12 +3,12 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!--
-      只合并到设置页面，不进入 App.xaml：按用户提供的 ChatGPT 设置截图取约 10 DIP 的圆角，
-      不是胶囊，也不是闭源上游的精确参数。保留 WinUI 2.3.9 generic.xaml 的模板与视觉状态；
+      设置页面保留局部样式入口，但圆角接全站搜索框的同一资源。
+      保留 WinUI 2.3.9 generic.xaml 的模板与视觉状态；
       TextBox/PasswordBox 的 BorderElement 和 AutoSuggestBox 内层 TextBox 都吃 TemplateBinding。
       NumberBox 没有可引用的默认样式键，在页面上直接设圆角，由 InputBox 的 TemplateBinding 接收。
     -->
-    <CornerRadius x:Key="EgSettingsInputCornerRadius">10</CornerRadius>
+    <StaticResource x:Key="EgSettingsInputCornerRadius" ResourceKey="EgSearchCornerRadius" />
 
     <Style TargetType="TextBox" BasedOn="{StaticResource DefaultTextBoxStyle}">
         <Setter Property="CornerRadius" Value="{StaticResource EgSettingsInputCornerRadius}" />
