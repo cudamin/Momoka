@@ -450,7 +450,7 @@ internal sealed partial class ShellNavigationProbe
             var expanded = search.ActualHeight;
             await page.SubmitSearchAsync("离线资源布局");
             Require(tabs.Visibility == Visibility.Visible, "资源搜索结束后固定来源栏消失");
-            Require(sites.Visibility == Visibility.Visible, "MP 资源收起来源栏后站点入口消失");
+            Require(sites.Visibility == Visibility.Visible, "MP 资源搜索完成后站点入口消失");
             Require(Get<MoviePilotSitePicker>(resources, "SearchSitePicker").Visibility == Visibility.Collapsed,
                 "资源结果上方仍有重复站点入口");
             resources.ViewModel.Browser.SetResults(Enumerable.Range(1, 6).Select(index => new ViewModels.MoviePilotResourceRow(

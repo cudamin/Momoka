@@ -41,6 +41,8 @@ internal static class Program
         SearchProgressTests.Register();
         if (args is [_, "search-sites"]) return Run();
         SearchCompactMergeTests.Register(sourceRoot);
+        ResourceFilterCardTests.Register(sourceRoot);
+        SearchPreviewContractTests.Register(sourceRoot);
         ResourceSortMenuTests.Register(sourceRoot);
         SeriesResourceViewTests.Register(sourceRoot);
         MediaManagementCardTests.Register();

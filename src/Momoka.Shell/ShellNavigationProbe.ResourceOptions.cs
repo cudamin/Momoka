@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 
 namespace Momoka.Shell;
@@ -38,11 +39,16 @@ internal sealed partial class ShellNavigationProbe
             var seasons = Get<MoviePilotResourceFacetPicker>(list, "SeasonFilter");
             Get<Flyout>(seasons, "ChoicesFlyout").ShowAt(Get<DropDownButton>(seasons, "OpenFacet"));
             await LayoutAsync(seasons);
-            var chooseSeason = Descendants(Get<ItemsControl>(seasons, "FacetChoices")).OfType<CheckBox>()
+            var chooseSeason = Descendants(Get<ItemsControl>(seasons, "FacetChoices")).OfType<ToggleButton>()
                 .Single(box => AutomationProperties.GetName(box) == "S02");
-            ((IToggleProvider)new CheckBoxAutomationPeer(chooseSeason).GetPattern(PatternInterface.Toggle)).Toggle();
+            ((IToggleProvider)new ToggleButtonAutomationPeer(chooseSeason).GetPattern(PatternInterface.Toggle)).Toggle();
             seasons.ClosePopup();
-            Get<ComboBox>(list, "EpisodeFilter").SelectedItem = "E02";
+            Get<Flyout>(list, "AdvancedFilters").ShowAt(Get<DropDownButton>(list, "FilterExpander"));
+            await LayoutAsync(list);
+            var chooseEpisode = Descendants(Get<ItemsControl>(list, "EpisodeFilter")).OfType<ToggleButton>()
+                .Single(button => AutomationProperties.GetName(button) == "集 · E02");
+            ((IToggleProvider)new ToggleButtonAutomationPeer(chooseEpisode).GetPattern(PatternInterface.Toggle)).Toggle();
+            Get<Flyout>(list, "AdvancedFilters").Hide();
             Require(browser.Rows.Count == 1 && browser.Rows[0].Resource.Seasons.Contains(2), "季集控件未实际筛选结果");
             first.State = MoviePilotDownloadState.Uncertain;
             browser.ResetCommand.Execute(null);

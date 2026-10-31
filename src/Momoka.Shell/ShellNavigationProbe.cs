@@ -37,7 +37,7 @@ internal sealed partial class ShellNavigationProbe
 
     private async Task RunAsync()
     {
-        await _report.RunAsync(RunChecksAsync, _options.InspectShell,
+        await _report.RunAsync(RunChecksAsync, _options.InspectShell || SearchPreviewRequested,
             () =>
             {
                 // 最后一个框架窗口关闭会终止应用，整轮结束后统一关闭。
@@ -57,6 +57,11 @@ internal sealed partial class ShellNavigationProbe
             if (_options.InspectShell)
             {
                 await InspectAsync();
+                return;
+            }
+            if (SearchPreviewRequested)
+            {
+                await SearchPreviewAsync();
                 return;
             }
             await CaseAsync("登录页两步流程、主题与宽窄布局", SignInAppearanceAsync, 45);
@@ -233,6 +238,10 @@ internal sealed partial class ShellNavigationProbe
 
     private Task CaseAsync(string name, Func<Task> run, int timeoutSeconds = 12, string? section = null) =>
         _report.CaseAsync(name, run, timeoutSeconds, section ?? CaseSections.GetValueOrDefault(run.Method.Name));
+
+    // 手动试用只接受显式独立分区：默认全量既不等待人手操作，也不把试用当成自动测试通过。
+    private bool SearchPreviewRequested => _options.ProbeSections is { Count: 1 }
+        && _options.ProbeSections.Contains(ShellProbeSections.SearchPreview);
 
     private Fixture CreateFixture(HttpMessageHandler? moviePilot = null, HttpMessageHandler? aniBt = null) => new(Path.Combine(_options.Paths.Root, "fixtures", Guid.NewGuid().ToString("N")), moviePilot, aniBt);
     private static TaskCompletionSource<T> Pending<T>() => new(TaskCreationOptions.RunContinuationsAsynchronously);

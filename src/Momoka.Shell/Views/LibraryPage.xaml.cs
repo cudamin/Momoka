@@ -497,8 +497,7 @@ public sealed partial class LibraryPage : Page, IShellContent
             services.GetRequiredService<EmbyImageStore>(),
             _capabilities, _moviePilot);
 
-        // MoviePilot 那半的连接服务，交给面板（它自己接确认对话框）。只有搜索页且接了 MoviePilot 时那个分段
-        // 才出现，但服务无条件拿——构造它不花什么，也省得这里再判一次设置。
+        // MoviePilot 连接交给面板（它自己接确认对话框）；搜索页四个来源固定存在，服务决定是否可以执行。
         MoviePilotPanel.Attach(services.GetRequiredService<MoviePilotService>(),
             services.GetRequiredService<Momoka.Shell.Platform.ISystemLauncher>(), _actions.OpenMoviePilotMedia);
         MoviePilotResources.Attach(services.GetRequiredService<MoviePilotService>(),
