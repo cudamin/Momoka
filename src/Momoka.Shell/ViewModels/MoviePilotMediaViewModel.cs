@@ -17,11 +17,15 @@ public sealed partial class MoviePilotMediaEpisodeRow(MoviePilotMediaEpisode epi
     public MoviePilotMediaEpisode Episode { get; } = episode;
     public string Title => Episode.Title;
     public string Overview => Episode.Overview;
+    public Visibility OverviewVisibility => string.IsNullOrWhiteSpace(Overview) ? Visibility.Collapsed : Visibility.Visible;
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Meta))]
     public partial bool? Exists { get; set; } = exists;
     public string Meta => string.Join(" · ", new[] { Episode.AirDate, Episode.Vote is > 0 ? $"★ {Episode.Vote:0.0}" : "", Exists switch { true => "已入库", false => "缺失", _ => "入库状态未知" } }.Where(value => value.Length > 0));
-    [ObservableProperty] public partial BitmapImage? Artwork { get; set; }
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ArtworkVisibility))]
+    public partial BitmapImage? Artwork { get; set; }
+    public Visibility ArtworkVisibility => Artwork is null ? Visibility.Collapsed : Visibility.Visible;
     public IRelayCommand SearchCommand { get; } = new RelayCommand(search);
 }
 
@@ -34,6 +38,9 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     public bool IsMovie { get; init; }
     public string Title => IsMovie ? Season.Name : Season.Label;
     public string Summary => (IsMovie ? "电影" : $"{Season.EpisodeCount} 集") + (Season.AirDate.Length > 0 ? $" · 首播于 {Season.AirDate}" : "") + (Season.Vote is > 0 ? $" · ★ {Season.Vote:0.0}" : "");
+    public string EpisodeCountLabel => $"{Season.EpisodeCount} 集";
+    public string SeasonMeta => string.Join(" · ", new[] { Season.AirDate.Length > 0 ? $"首播于 {Season.AirDate}" : "", Season.Vote is > 0 ? $"★ {Season.Vote:0.0}" : "" }.Where(value => value.Length > 0));
+    public Visibility SeasonMetaVisibility => SeasonMeta.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     public string SubscribeLabel => CurrentSubscription is null ? "未订阅" : "已订阅 · " + MoviePilotSubscriptionPlan.ModeLabel(MoviePilotSubscriptionPlan.Mode(CurrentSubscription));
     public Visibility SubscriptionVisibility => CurrentSubscription is null ? Visibility.Collapsed : Visibility.Visible;
     public string HeartGlyph => CurrentSubscription is null ? "\uEB51" : "\uEB52";
@@ -69,7 +76,14 @@ public sealed partial class MoviePilotMediaSeasonRow(MoviePilotMediaSeason seaso
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HeaderStatus))]
     public partial string FilesSummary { get; set; } = "";
-    [ObservableProperty] public partial string FilesPlaybackStatus { get; set; } = "";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FilesPlaybackStatusVisibility))]
+    public partial string FilesPlaybackStatus { get; set; } = "";
+    public Visibility FilesPlaybackStatusVisibility => FilesPlaybackStatus.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FilesEmptyNoticeVisibility))]
+    public partial string FilesEmptyNotice { get; set; } = "";
+    public Visibility FilesEmptyNoticeVisibility => FilesEmptyNotice.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
     [ObservableProperty] public partial int FilesFilterIndex { get; set; }
     [ObservableProperty] public partial ObservableCollection<MoviePilotSubscriptionEpisodeRow>? FilesEpisodes { get; set; }
     public Visibility FilesHostVisibility => Files is not null ? Visibility.Visible : Visibility.Collapsed;
@@ -580,7 +594,7 @@ public sealed partial class MoviePilotMediaViewModel : PageViewModel
         try
         {
             var bytes = await _service.FetchImageAsync(row.Episode.ImageUrl, token);
-            var image = await PosterLoader.DecodeAsync(bytes, 220);
+            var image = await PosterLoader.DecodeAsync(bytes, 144);
             if (Live && Seasons.Contains(season) && !token.IsCancellationRequested) row.Artwork = image;
         }
         catch (Exception) { }

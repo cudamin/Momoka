@@ -19,13 +19,15 @@ public sealed partial class MoviePilotSubscriptionEpisodeRow(
     public string Label => Episode.Label;
     public string Title => Episode.Title;
     public string Description => Episode.Description;
-    public string RowTitle => string.IsNullOrWhiteSpace(Title) ? Label : $"{Label}  {Title}";
-    public double ArtworkWidth => CardSize.WideWidth;
-    public double ArtworkHeight => CardSize.HeightFor(CardSize.WideWidth, true);
+    public string RowTitle => string.IsNullOrWhiteSpace(Title) || string.Concat(Title.Where(character => !char.IsWhiteSpace(character)))
+        == string.Concat(Label.Where(character => !char.IsWhiteSpace(character))) ? Label : $"{Label} · {Title.Trim()}";
+    public Visibility DescriptionVisibility => string.IsNullOrWhiteSpace(Description) ? Visibility.Collapsed : Visibility.Visible;
+    public double ArtworkWidth => 144;
+    public double ArtworkHeight => ArtworkWidth * 9 / 16;
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EmptyArtworkVisibility))]
+    [NotifyPropertyChangedFor(nameof(ArtworkVisibility))]
     public partial BitmapImage? Artwork { get; set; }
-    public Visibility EmptyArtworkVisibility => Artwork is null ? Visibility.Visible : Visibility.Collapsed;
+    public Visibility ArtworkVisibility => Artwork is null ? Visibility.Collapsed : Visibility.Visible;
     public string Status => Episode.Status;
 
     /// <summary>
@@ -74,10 +76,10 @@ public sealed partial class MoviePilotSubscriptionEpisodeRow(
         try
         {
             var bytes = await service.FetchImageAsync(url.AbsoluteUri, pending.Token);
-            var bitmap = await PosterLoader.DecodeAsync(bytes, CardSize.WideWidth);
+            var bitmap = await PosterLoader.DecodeAsync(bytes, (int)ArtworkWidth);
             if (!_retired && !pending.IsCancellationRequested && service.IsCurrentConnection(connection)) Artwork = bitmap;
         }
-        catch (Exception) { /* 图片不可用时保留占位，不影响入库信息和播放。 */ }
+        catch (Exception) { /* 图片不可用时保留紧凑文字行，不影响入库信息和播放。 */ }
         finally { if (ReferenceEquals(_artworkLoad, pending)) _artworkLoad = null; }
     }
 

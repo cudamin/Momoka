@@ -19,4 +19,6 @@ $shell = Join-Path (Get-Location).Path 'src/Momoka.Shell/bin/x64/Release/net10.0
 & $sdk run --project ./tests/Momoka.Tests/Momoka.Tests.csproj -c Release --no-build --no-restore -- moviepilot-subscription-page-state-fixture $shell (Get-Location).Path
 ```
 
-新树需先restore；此入口不登录、不解密、不访问真实配置／服务／图片，不发写请求、起播或启动App。当前11个注册用例，源码断言不计额外UI测试，且不会自动进入普通Core全套。
+新树需先restore；此入口不登录、不解密、不访问真实配置／服务／图片，不发写请求、起播或启动App。当前31个注册用例，包含20项真实分集行展示测试：空白／默认／真实标题与电影标记、简介显隐、未取得图片时收起，以及季心形的动态绑定。源码断言不计额外UI测试，且不会自动进入普通Core全套。
+
+`--probe-shell --probe-section moviepilot --screen 1` 的「MoviePilot 无图季列表、筛选空态与图片恢复」另检查真实模板、1240／760／600 DIP 八集高度、故意增高反例、隐藏季筛选隔离、图片失败与刷新恢复；截图为 `mp-compact-*-screen.png`。订阅恢复用例还检查首步读取返回404时撤销旧统计与播放入口。全部使用匿名假传输，不构成真实订阅／下载／播放证据。

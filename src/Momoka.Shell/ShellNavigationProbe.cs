@@ -202,6 +202,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("MoviePilot 订阅切服、旧确认与离页取消", MoviePilotSubscriptionIdentityAsync);
             await CaseAsync("MoviePilot 海报刷新重试与原地更新", MoviePilotSubscriptionPosterRefreshAsync);
             await CaseAsync("MoviePilot 订阅同号季隔离、播放恢复与最窄布局", MoviePilotSubscriptionFilesRecoveryAsync, 25);
+            await CaseAsync("MoviePilot 无图季列表、筛选空态与图片恢复", MoviePilotCompactSeasonsAsync, 45, section: ShellProbeSections.MoviePilot);
             await CaseAsync("MoviePilot 取消后重新订阅同步新编号", MoviePilotSubscriptionRecreateAsync, 25);
             await CaseAsync("MoviePilot 详情操作待核对与恢复", MoviePilotSubscriptionReviewAsync);
             await CaseAsync("MoviePilot 媒体详情、剧集组浏览和真实资源入口", MoviePilotMediaBrowsingAsync);
