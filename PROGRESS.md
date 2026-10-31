@@ -9405,3 +9405,8 @@ Gauss独立反证生产正文native写持gate时3607ms公开Dispose仍pending、
 - 测试：`tests/Momoka.Tests/InputControlThemeTests.cs` 原「详情页的电影/剧/季选择框钉回原窗口底色」改为「集页宽版式接设置页的输入玻璃，剧/电影/季选择框仍钉窗口底色」—— 六个键必须是 `EgInputGlassBrush`，三颗的 `CornerRadius` 必须仍是 `EgPickerCornerRadius`（锁住「圆角不要改」），`EpisodeHead` 的季选择器六键仍 `EgWindowBrush`。
 - 验证：`Momoka.Shell` Release 编译 0 警告／0 错误；主测试 **3444/3444**（0 失败／0 跳过，含本次改过的主题契约）；`tools/publish.ps1 -NoArchive` 通过（546 文件／285.1 MB、14 GLSL／4 HOOK／批准 mpv 59 文件逐项校验），刷新 `artifacts/publish/win-x64`；产品提交后重发一次，发布件 ProductVersion `0.2.0+edac5a98334524499c2e2be8173ffde1d46297ed`，`Momoka.dll` SHA256 `C49AAFD62B6D96D330D3524913309B7FB9CC8BED3AC71B94E4B519E4D32D9296`；桌面快捷方式目标仍是该目录。
 - 未覆盖（用户当轮明确不要探针）：没有实屏截图与发布件探针，没有再跑离线自检；紧凑版式的尾部下拉与季选择器仍是原来的材料（和剧/电影/季共用，未动）。未推 origin、未改版本。
+
+## 2026-10-31 订阅季紧凑列表离线回归（待主代理整合）
+
+- 独立测试树 C:/Users/89400/.codex/worktrees/subscription-compact-tests/Momoka，仅修改 MoviePilotSubscriptionPageStateTests.cs；沿用现有 CLI 入口，反射执行真实 Shell 分集行。新增普通／空／含全角和换行空白的重复标题、电影身份、空白简介、图片尚未取得及季心形动态绑定，共 20 项；不复制展示规则，不增加测试项目。
+- 当前测试与 Core Release 编译 0 警告 0 错误；读取主代理 subscription-seasons-compact 树已确认成功编译的 Release Shell，31/31 通过，0 失败 0 跳过。仅匿名内存列表与行属性，不访问真实配置／凭据／网络，不创建图片或窗口，不执行播放／搜索；实际布局、图片成功／失败和 UI 输入仍由主代理最终探针验证。待主树整合、重验、实际发布，未上传远端。
