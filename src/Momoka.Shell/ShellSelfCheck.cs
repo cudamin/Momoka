@@ -282,6 +282,13 @@ internal static partial class ShellSelfCheck
     private static int _infoLooks;
 
     /// <summary>
+    /// 文件页上那一带集画出来之前等了几拍。单集那一带在页面落地那一拍有时候还没量出高（模型里已经有几条，
+    /// 但条子的 Height 还挂在 0 上），而 <see cref="ShowInfo"/> 是这一页滚走之前唯一一次读它的机会 ——
+    /// 读到 0 张就是一句假的「异步显隐回归」。等几拍再读，真画不出来的照旧在最后一次读成 0。
+    /// </summary>
+    private static int _infoWaits;
+
+    /// <summary>
     /// 看几眼才认账。八眼就是八拍，一拍 500 毫秒，而且每一拍都要等这一页自己停下来（<see cref="Settled"/>）。
     /// <para>
     /// 四眼（两秒）在这台机器上红过两次，两次读数都是 <c>10 行（已渲染 0），首行「」</c> —— 一次滚动落在页面
@@ -295,6 +302,9 @@ internal static partial class ShellSelfCheck
     /// </para>
     /// </summary>
     private const int InfoLooks = 8;
+
+    /// <summary>文件页那一带集最多再多等几拍（四拍两秒），见 <see cref="_infoWaits"/>。</summary>
+    private const int InfoWaits = 4;
 
     /// <summary>
     /// The library row the walk clicked to get onto the detail stage, and the page that click actually
@@ -445,7 +455,12 @@ internal static partial class ShellSelfCheck
         int Rows,
         int Drawn,
         string Labels,
-        string First);
+        string First,
+        int OtherFacts,
+        int OtherWantedLinks,
+        int OtherLinks,
+        string OtherText,
+        bool OtherDrawn);
 
     /// <summary>
     /// 跨季 as the real server answers it: one season boundary walked in the episode list the server
@@ -1042,9 +1057,19 @@ internal static partial class ShellSelfCheck
     {
         if (_infoScrolled || shell.Pages.Content is not DetailPage page) return false;
 
+        var (rows, cards) = page.EpisodeShapes;
+        var models = page.ViewModel.EpisodeShelf?.Cards.Count ?? 0;
+
+        // 模型里有集、屏上一条都还没画：多半是这一页刚落下来，那条带子还没量出高（见 _infoWaits）。
+        // 再等一拍；真的画不出来时，等到 InfoWaits 拍之后照旧读到 0，红得和以前一样。
+        if (models > 0 && rows + cards == 0 && _infoWaits < InfoWaits)
+        {
+            _infoWaits++;
+            return true;
+        }
+
         _infoScrolled = true;
 
-        var (rows, cards) = page.EpisodeShapes;
         var (screenOk, screen) = page.FirstScreenRead();
         _fileEpisodesDrawn = (
             page.ViewModel.ItemType,

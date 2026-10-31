@@ -1,3 +1,4 @@
+using System.Globalization;
 using Momoka.Emby;
 using Momoka.Theming;
 using static Momoka.Tests.TestHarness;
@@ -1261,6 +1262,94 @@ internal static class ItemDetailTests
             var none = ItemDetail.MediaInfo(new EmbyItem(), null);
             Assert.Equal(1, none.Count);
             Assert.Contains("没有返回可播放的媒体源", none[0].Value);
+        });
+
+        Test("其他信息：电影照条目自己说类型、工作室与数据库链接，不占上次播放", () =>
+        {
+            var movie = new EmbyItem
+            {
+                Type = EmbyItemType.Movie,
+                Genres = ["动画", "科幻"],
+                Studios = [new EmbyStudio { Name = "TBS" }],
+                ProviderIds = new()
+                {
+                    ["Tmdb"] = "42",
+                    ["IMDB"] = "tt0000042",
+                    ["Tvdb"] = "999",
+                    ["Douban"] = "1234"
+                },
+                UserData = new EmbyUserData
+                {
+                    LastPlayedDate = new DateTimeOffset(2026, 10, 31, 10, 0, 0, TimeSpan.Zero)
+                }
+            };
+
+            var facts = ItemDetail.OtherInfo(movie, null);
+            Assert.Equal("类型,工作室,数据库链接", string.Join(',', facts.Select(fact => fact.Label)));
+            Assert.Equal("动画、科幻", facts[0].Values[0].Text);
+            Assert.Equal("TBS", facts[1].Values[0].Text);
+
+            // 电影 TMDB 走 /movie/；TVDB 只有剧集页，电影的 id 不给链接；「上次播放日期」只给集页。
+            var links = facts[2].Values;
+            Assert.Equal("TMDB,IMDb,豆瓣", string.Join(',', links.Select(value => value.Text)));
+            Assert.Equal("https://www.themoviedb.org/movie/42", links[0].Url);
+            Assert.Equal("https://www.imdb.com/title/tt0000042/", links[1].Url);
+            Assert.Equal("https://movie.douban.com/subject/1234/", links[2].Url);
+        });
+
+        Test("其他信息：集页读剧集的类型、工作室与链接，上次播放读这一集自己的", () =>
+        {
+            var played = new DateTimeOffset(2026, 10, 31, 10, 35, 30, TimeSpan.Zero);
+            var episode = new EmbyItem
+            {
+                Type = EmbyItemType.Episode,
+                // 单集自己身上只有这一集自己的 Tvdb/IMDB —— 类型、工作室和剧集链接都在剧那一层。
+                ProviderIds = new() { ["Tvdb"] = "12038890", ["IMDB"] = "tt45114169" },
+                UserData = new EmbyUserData { LastPlayedDate = played }
+            };
+            var show = new EmbyItem
+            {
+                Type = EmbyItemType.Series,
+                Genres = ["动画"],
+                Studios = [new EmbyStudio { Name = "Tencent Video" }],
+                ProviderIds = new() { ["Tmdb"] = "286171", ["Imdb"] = "tt35324004", ["Tvdb"] = "465020" }
+            };
+
+            var facts = ItemDetail.OtherInfo(episode, show);
+            Assert.Equal("类型,工作室,数据库链接,上次播放日期",
+                string.Join(',', facts.Select(fact => fact.Label)));
+            Assert.Equal("动画", facts[0].Values[0].Text);
+            Assert.Equal("Tencent Video", facts[1].Values[0].Text);
+
+            var links = facts[2].Values;
+            Assert.Equal("TMDB,IMDb,TVDB", string.Join(',', links.Select(value => value.Text)));
+            Assert.Equal("https://www.themoviedb.org/tv/286171", links[0].Url);
+            Assert.Equal("https://www.imdb.com/title/tt35324004/", links[1].Url);
+            Assert.Equal("https://www.thetvdb.com/?tab=series&id=465020", links[2].Url);
+
+            // 本地时间、固定格式；按当前机器的时区算，测试只钉住「和代码同一条换算」而不是某个时区。
+            Assert.Equal(played.ToLocalTime().ToString("yyyy/M/d HH:mm", CultureInfo.InvariantCulture),
+                facts[3].Values[0].Text);
+        });
+
+        Test("其他信息：剧集那一层还没回来时只留上次播放，不拿单集的 id 拼错链接", () =>
+        {
+            var episode = new EmbyItem
+            {
+                Type = EmbyItemType.Episode,
+                ProviderIds = new() { ["Tvdb"] = "12038890", ["IMDB"] = "tt45114169" },
+                UserData = new EmbyUserData
+                {
+                    LastPlayedDate = new DateTimeOffset(2026, 10, 31, 10, 35, 30, TimeSpan.Zero)
+                }
+            };
+
+            var facts = ItemDetail.OtherInfo(episode, null);
+            Assert.Equal("上次播放日期", string.Join(',', facts.Select(fact => fact.Label)));
+
+            // 不是文件页（剧、季）没有这一段；电影没有上次播放也一样可以整段为空。
+            Assert.Equal(0, ItemDetail.OtherInfo(new EmbyItem { Type = EmbyItemType.Series }, null).Count);
+            Assert.Equal(0, ItemDetail.OtherInfo(new EmbyItem { Type = EmbyItemType.Movie }, null).Count);
         });
     }
 

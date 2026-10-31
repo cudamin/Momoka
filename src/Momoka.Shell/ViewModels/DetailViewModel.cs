@@ -122,6 +122,12 @@ public sealed partial class DetailViewModel : PageViewModel
     private EmbyItem? _detail;
 
     /// <summary>
+    /// 集页背后那部剧，随取图那一趟一起回来（见 <see cref="LoadShowAsync"/>）。其他信息那一行要的类型、工作室
+    /// 和刮削 id 都挂在剧集那一层 —— 单集自己身上这三样是空的 —— 所以缓存起来让取图和这一行共用一趟往返。
+    /// </summary>
+    private EmbyItem? _show;
+
+    /// <summary>
     /// The season whose episodes are on screen. The 季 picker's changed handler compares against this
     /// rather than consulting a 「syncing」 flag: replacing the picker's items makes it report a
     /// selection it chose itself, and that report has to be distinguishable from a person picking a
@@ -1593,6 +1599,17 @@ public sealed partial class DetailViewModel : PageViewModel
     /// </summary>
     public ObservableCollection<InfoRow> InfoRows { get; } = [];
 
+    /// <summary>
+    /// 媒体信息表下面那一行：类型、工作室、数据库链接，集页再加一条上次播放日期（判据在
+    /// <see cref="ItemDetail.OtherInfo"/>）。空表示这一页没有这一段 —— 剧页、季页，或电影页上服务器什么也
+    /// 没给。它不是集合而是整份换掉：这一行要么重排，要么空着，没有「逐项增删」这回事。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OtherInfoVisibility))]
+    public partial IReadOnlyList<OtherFact> OtherFacts { get; set; } = [];
+
+    public Visibility OtherInfoVisibility => Show(OtherFacts.Count > 0);
+
     public Visibility EpisodeVisibility => Show(EpisodeShelf is { Cards.Count: > 0 } || Seasons.Count > 1);
 
     /// <summary>
@@ -1989,6 +2006,10 @@ public sealed partial class DetailViewModel : PageViewModel
         // 也就是点一张封面进来看见的那一次闪。
         var keepArtwork = ItemArtwork.SamePictures(_detail, item);
 
+        // 上一页那部剧只在还是同一部剧时留着（同一页的重新读取省一趟）；换集、换剧、回电影页都作废。
+        if (_show is { } show && (item.Type != EmbyItemType.Episode || show.Id != item.SeriesId))
+            _show = null;
+
         _detail = item;
         _loadedSeason = null;
         _episodes.Clear();
@@ -2070,6 +2091,9 @@ public sealed partial class DetailViewModel : PageViewModel
             && item.Source?.Key == _scope?.Key && item.MediaSources.Count == 0;
         PlayTarget = item.IsPlayable && !knownSourceRemoved ? item : null;
         ShowTarget(PlayTarget);
+
+        // 放在最后：它读的是刚写好的 _detail，而 _show 可能早在取图那一趟就已经回来了。
+        RefreshOtherInfo();
     }
 
     /// <summary>
@@ -2173,6 +2197,15 @@ public sealed partial class DetailViewModel : PageViewModel
         var owner = _versions.FirstOrDefault(version => ReferenceEquals(version.Source, source))?.Item ?? _detail;
         foreach (var row in ItemDetail.MediaInfo(owner, source)) InfoRows.Add(row);
     }
+
+    /// <summary>
+    /// Rebuilds the 其他信息 line. Called when a page is applied and again when the show behind an episode
+    /// arrives — the series is fetched for artwork, and this line reads its genres, studio and scraper ids.
+    /// </summary>
+    private void RefreshOtherInfo() =>
+        OtherFacts = _detail is { IsPlayable: true } item
+            ? ItemDetail.OtherInfo(item, item.Type == EmbyItemType.Episode ? _show : null)
+            : [];
 
     private async Task LoadSeriesAsync(EmbyItem series, CancellationToken token)
     {
@@ -2296,6 +2329,42 @@ public sealed partial class DetailViewModel : PageViewModel
         ShowTarget(detail);
     }
 
+    /// <summary>
+    /// 集页背后那部剧。取图那一趟顺路取回来（右上角艺术图、页尾横幅和左上角封面都要借它的图），其他信息
+    /// 那一行要的类型、工作室和刮削 id 也在这份条目上 —— 单集自己身上这三样都是空的，所以两处共用这一趟，
+    /// 取回来以后记在 <see cref="_show"/>。同一页里只问一次；换集时 <see cref="Apply"/> 会把不属于这一集的清掉。
+    /// <para>
+    /// 失败当「没有剧」处理，和原来取图那一头一样：少借几张图、少一行信息，不是这一页加载失败。
+    /// </para>
+    /// </summary>
+    private async Task<EmbyItem?> LoadShowAsync(EmbyItem item, CancellationTokenSource art)
+    {
+        if (!Attached || item.Type != EmbyItemType.Episode || item.SeriesId is not { Length: > 0 } series)
+            return null;
+
+        if (_show is { } cached && cached.Id == series) return cached;
+
+        try
+        {
+            var show = await _scope!
+                .ExecuteAsync((client, ct) => client.GetItemAsync(series, ct), art.Token).ConfigureAwait(true);
+            if (!Fresh(art, item)) return show;
+
+            _show = show;
+            RefreshOtherInfo();
+            return show;
+        }
+        catch (OperationCanceledException)
+        {
+            return null;
+        }
+        catch (Exception error)
+        {
+            Log.Debug(Category, $"取剧集那一层失败（{item.Name}）：{error.Message}");
+            return null;
+        }
+    }
+
     private async Task LoadArtworkAsync(EmbyItem item, CancellationTokenSource art)
     {
         if (!Attached) return;
@@ -2304,35 +2373,14 @@ public sealed partial class DetailViewModel : PageViewModel
         // 就是剧页面上那张 2:3 海报，借的也是同一条路（show 在 WhenAll 外头就已经在路上了）；借不到（没有
         // SeriesId、服务器没应答、或者剧自己连一张封面都没有）才退回本集自己的那几张 —— 有一张剧照总比
         // 空着一格强。其余页面照旧取自己的 Primary / Thumb。
-        var episode = item.Type == EmbyItemType.Episode;
-
         // 集页的宽版式不铺背景图（见 <see cref="HeroArt"/>），可是头图这一路照取 —— 取图不看这一页这次铺不铺：
         // 窗口从宽拉窄跨过紧凑断点的那一下答案就从不要翻成要，图已经在手，画面就地出来，不用再等一趟往返
         // （2026-10-13「再给集页面的窄窗口加背景图」）。集页多问的倒是另一趟：剧集那一层的条目。右上角那张
         // 艺术图（<see cref="ItemArtwork.Corner"/>）、页尾那张横幅（<see cref="ItemArtwork.Footer"/>）和左上角
         // 这张封面都可能要借它的 —— 服务器不下发 ParentArt / ParentBanner，剧集那个条目只有自己取到才借得成。
-        // 一趟往返三处共用；电影和剧自己就是答案，不用问。
-        async Task<EmbyItem?> ShowAsync(CancellationToken token)
-        {
-            if (!episode || item.SeriesId is not { Length: > 0 } series) return null;
-
-            try
-            {
-                return await _scope!
-                    .ExecuteAsync((client, ct) => client.GetItemAsync(series, ct), token).ConfigureAwait(true);
-            }
-            catch (OperationCanceledException)
-            {
-                return null;
-            }
-            catch (Exception error)
-            {
-                Log.Debug(Category, $"取剧集那一层失败（{item.Name}）：{error.Message}");
-                return null;
-            }
-        }
-
-        var show = ShowAsync(art.Token);
+        // 一趟往返三处共用；电影和剧自己就是答案，不用问。取回来的那一份也缓存进 _show —— 其他信息那一行要的
+        // 类型、工作室和刮削 id 也在这份条目上，两处共用这一趟。
+        var show = LoadShowAsync(item, art);
 
         var plate = ItemArtwork.Plate(item);
 

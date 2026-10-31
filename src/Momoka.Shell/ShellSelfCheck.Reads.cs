@@ -534,13 +534,19 @@ internal static partial class ShellSelfCheck
         _fileHero = model.HeroImage is not null;
 
         var (drawn, first) = page.InfoRealised;
+        var other = page.OtherInfoRealised;
         return new InfoState(
             model.ItemType,
             model.Title ?? string.Empty,
             model.InfoRows.Count,
             drawn,
             string.Concat(model.InfoRows.Select(row => row.Label)),
-            first);
+            first,
+            other.Facts,
+            other.WantedLinks,
+            other.Links,
+            other.Text,
+            other.Drawn);
     }
 
     /// <summary>

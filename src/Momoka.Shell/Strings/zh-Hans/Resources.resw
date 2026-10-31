@@ -153,9 +153,6 @@
   <data name="DetailPage_TextBlock4.Text" xml:space="preserve">
     <value>字幕</value>
   </data>
-  <data name="DetailPage_TextBlock5.Text" xml:space="preserve">
-    <value>媒体信息</value>
-  </data>
   <!-- 已看／未看是那一颗状态键上的字（三排键——宽版式两排、紧凑版式那一排——里的一颗药丸，
        2026-09-12 起带字）：说的是这一集现在的样子，不是按下去会发生什么 —— 所以两个状态两个键，
        各自跟着各自那一个 Visibility 上屏。 -->

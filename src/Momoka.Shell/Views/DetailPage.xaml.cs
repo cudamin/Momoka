@@ -2,6 +2,7 @@ using Momoka.Diagnostics;
 using Momoka.Emby;
 using Momoka.Infrastructure;
 using Momoka.Services;
+using Momoka.Shell.Platform;
 using Momoka.Shell.ViewModels;
 using Momoka.Theming;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +43,9 @@ public sealed partial class DetailPage : Page, IShellContent
     private EmbySession? _session;
     private IShellActions? _actions;
     private EmbyImageStore? _images;
+
+    /// <summary>其他信息那一行里的数据库链接交给它开 —— 和设置页、订阅页那几个外链同一个去处。</summary>
+    private ISystemLauncher? _launcher;
 
     /// <summary>
     /// 外壳在窗口建好后递进来的那一个（<see cref="AttachWindow"/>）：纸面上沿那条线跟着显示器走
@@ -542,6 +546,35 @@ public sealed partial class DetailPage : Page, IShellContent
             }
 
             return (drawn, first);
+        }
+    }
+
+    /// <summary>
+    /// 自检：其他信息那一行 —— 视图模型说几段、其中几段带地址，屏上就该有几段字、几段 <c>Hyperlink</c>。
+    /// <para>
+    /// 值得读，理由和 <see cref="GenreRead"/> 一样：这一行是代码搭的，搭空了或者只搭出中间那几个「 · 」，
+    /// 屏上是一行看着挺正常的字 —— 截图挑不出错，别的读数一个都不会响。空的那一档只读「收着没有」。
+    /// </para>
+    /// </summary>
+    internal (int Facts, int WantedLinks, int Links, string Text, bool Drawn) OtherInfoRealised
+    {
+        get
+        {
+            static string InlineText(Inline inline) => inline switch
+            {
+                Run run => run.Text,
+                Hyperlink link => string.Concat(link.Inlines.OfType<Run>().Select(run => run.Text)),
+                _ => ""
+            };
+
+            var wanted = ViewModel.OtherFacts
+                .SelectMany(fact => fact.Values)
+                .Count(value => value.Url.Length > 0);
+            var links = OtherInfoLine.Inlines.OfType<Hyperlink>().Count();
+            var text = string.Concat(OtherInfoLine.Inlines.Select(InlineText));
+
+            return (ViewModel.OtherFacts.Count, wanted, links, text,
+                OtherInfoLine.Visibility == Visibility.Visible);
         }
     }
 
@@ -1579,6 +1612,7 @@ public sealed partial class DetailPage : Page, IShellContent
         _actions = services.GetRequiredService<IShellActions>();
         var images = services.GetRequiredService<EmbyImageStore>();
         _images = images;
+        _launcher = services.GetRequiredService<ISystemLauncher>();
 
         ViewModel.Attach(
             request,
@@ -1594,6 +1628,7 @@ public sealed partial class DetailPage : Page, IShellContent
         ViewModel.PropertyChanged += OnViewModelChanged;
         // Attach 的能力通知早于这次订阅；同页重入即使题材未变/详情读取失败，也要收起旧链接。
         PaintGenres();
+        PaintOtherInfo();
         _paperCover = -1;
         _paintPhase = -1;
         _washedInk = false;
@@ -1616,6 +1651,10 @@ public sealed partial class DetailPage : Page, IShellContent
         }
         if (args.PropertyName is nameof(DetailViewModel.SublineGenres) or nameof(DetailViewModel.CanOpenGenre))
             PaintGenres();
+
+        // 其他信息那一行整份换掉（页面应用、或集页的剧集那一层晚到），和 GenreLine 一样得在代码里重搭。
+        if (args.PropertyName == nameof(DetailViewModel.OtherFacts))
+            PaintOtherInfo();
 
         // 集页那块板在不在：尾部那一段的底跟着它换。宽窄跨过 1024 那一条线时变的就是它 —— 那一趟 LayoutPage
         // 也会走，可它管不到这一支。
@@ -1762,6 +1801,75 @@ public sealed partial class DetailPage : Page, IShellContent
     }
 
     public void Release() => ViewModel.Cancel();
+
+    /// <summary>
+    /// 其他信息那一行：类型、工作室、数据库链接、上次播放日期排成一条。和 <see cref="PaintGenres"/> 同一套
+    /// 做法 —— 内联元素绑不出来，只能在代码里搭；区别是这一行不是一排链接，而是几组「标签 + 值」，只有
+    /// 数据库链接那几项是 <see cref="Hyperlink"/>。
+    /// <para>
+    /// 标签走最暗的一支、普通值走暗墨 —— 和上面那张表同一个层次；链接走强调色，表示点得动。整行在窄窗口
+    /// 折行，不另起表格。
+    /// </para>
+    /// </summary>
+    private void PaintOtherInfo()
+    {
+        OtherInfoLine.Inlines.Clear();
+
+        var faint = Paint("EgTextFaintBrush");
+        var dim = Paint("EgTextDimBrush");
+        var accent = Paint("EgAccentBrush");
+
+        foreach (var fact in ViewModel.OtherFacts)
+        {
+            if (OtherInfoLine.Inlines.Count > 0)
+                OtherInfoLine.Inlines.Add(new Run { Text = "  ·  ", Foreground = faint });
+
+            OtherInfoLine.Inlines.Add(new Run { Text = fact.Label + "：", Foreground = faint });
+
+            for (var index = 0; index < fact.Values.Count; index++)
+            {
+                if (index > 0) OtherInfoLine.Inlines.Add(new Run { Text = " · ", Foreground = faint });
+
+                var value = fact.Values[index];
+                if (value.Url.Length == 0)
+                {
+                    OtherInfoLine.Inlines.Add(new Run { Text = value.Text, Foreground = dim });
+                    continue;
+                }
+
+                var link = new Hyperlink
+                {
+                    UnderlineStyle = UnderlineStyle.None,
+                    Foreground = accent
+                };
+                link.Inlines.Add(new Run { Text = value.Text });
+
+                var url = value.Url;
+                link.Click += (_, _) => OpenLink(url);
+                OtherInfoLine.Inlines.Add(link);
+            }
+        }
+
+        static Brush Paint(string key) => (Brush)Application.Current.Resources[key];
+    }
+
+    /// <summary>
+    /// Hands one 数据库链接 to the default browser. <see cref="ISystemLauncher.OpenUrl"/> throws on
+    /// anything that is not an http(s) address and on a browser that will not start; a clicked link that
+    /// silently does nothing is the one outcome worth a notice.
+    /// </summary>
+    private void OpenLink(string url)
+    {
+        try
+        {
+            _launcher?.OpenUrl(url);
+        }
+        catch (Exception error)
+        {
+            Log.Warn(Category, $"打开链接失败（{url}）：{error.Message}");
+            _actions?.Notify($"打不开这个链接：{error.Message}", InfoBarSeverity.Warning);
+        }
+    }
 
     protected override void OnNavigatedFrom(NavigationEventArgs e)
     {

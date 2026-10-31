@@ -21,6 +21,9 @@ internal sealed class ReflectedDetail(object value) : INotifyPropertyChanged
     public string Subline => ShellAssembly.Get<string>(Value, nameof(Subline));
     public bool BackdropShown => ShellAssembly.Get<bool>(Value, nameof(BackdropShown));
     public bool HeroCardShown => ShellAssembly.Get<bool>(Value, nameof(HeroCardShown));
+
+    /// <summary>只给提取过来的通知处理认这个名字用；这一份夹具不读其他信息。</summary>
+    public object OtherFacts { get; } = new();
     public object SublineBrush { get; } = new();
     public Task LastLoad { get; private set; } = Task.CompletedTask;
     public void Attach(object request, PlexActionsProxy actions, ISettingsService settings, EmbySession session, EmbyImageStore images) =>
@@ -61,6 +64,7 @@ internal sealed partial class GenrePageContract : IDisposable
     private void PaintScrim() { }
     private void PaintWash(bool force) { }
     private void PlaceEpisodes() { }
+    private void PaintOtherInfo() { }
     public void Leave()
     {
         ((INotifyPropertyChanged)ViewModel.Value).PropertyChanged -= OnViewModelChanged;

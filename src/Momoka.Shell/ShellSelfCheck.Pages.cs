@@ -586,6 +586,17 @@ internal static partial class ShellSelfCheck
         // Informational: which rows this file's own metadata filled. A server that sends no HDR fields for
         // an SDR file is a working server, and the row is simply not there.
         report.AppendLine($"[信息] 媒体信息行 — {info.Labels}");
+
+        // 表下面那一行（2026-10-31：卡片标题改「其他信息」，媒体信息在下划一条线，再放类型/工作室/
+        // 数据库链接/上次播放）。模型里每段带地址的值都得在屏上有一段 Hyperlink —— 这一行也是代码搭的，
+        // 搭空了屏上只是一行看着正常的字。服务器什么也没给时那一行本该整行收起。
+        check("其他信息",
+            info.OtherFacts == 0
+                ? !info.OtherDrawn
+                : info.OtherDrawn && info.OtherLinks == info.OtherWantedLinks && info.OtherText.Contains('：'),
+            info.OtherFacts == 0
+                ? $"这一页没有其他信息（那一行{(info.OtherDrawn ? "没收起" : "收着")}）"
+                : $"{info.OtherFacts} 组、可点 {info.OtherLinks}／{info.OtherWantedLinks}：「{info.OtherText}」");
     }
 
     /// <summary>

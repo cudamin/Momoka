@@ -59,6 +59,19 @@ public sealed record InfoRow(string Label, string Value, string Second = "")
 }
 
 /// <summary>
+/// One fact on the 其他信息 line under the 媒体信息 table —— 「类型」「工作室」「数据库链接」 or
+/// 「上次播放日期」. Values are a list because 数据库链接 puts several providers on the same line, each one
+/// its own link.
+/// </summary>
+public sealed record OtherFact(string Label, IReadOnlyList<OtherFactValue> Values);
+
+/// <summary>
+/// One value on the 其他信息 line. Empty <see cref="Url"/> is plain text; otherwise the page draws it as a
+/// link and hands it to the default browser.
+/// </summary>
+public sealed record OtherFactValue(string Text, string Url = "");
+
+/// <summary>
 /// 媒体源（多版本）的排法，设置页「媒体源排序」那颗下拉的两个档（2026-09-24）。详情页的媒体源行、
 /// 播放器的版本菜单、默认版本的「同分取第一」和自动换源的候选读的是<b>同一张表</b>，这一个选择四处一起变。
 /// </summary>
@@ -582,6 +595,80 @@ public static class ItemDetail
 
         return rows;
     }
+
+    /// <summary>
+    /// 其他信息 —— the one line under the 媒体信息 table: 类型, 工作室, 数据库链接 and, on an episode's own
+    /// page, 上次播放日期.
+    /// <para>
+    /// 集自己身上没有类型、工作室和刮削 id：实测 Emby 4.10.1 给单集的 <c>Genres</c> 与 <c>Studios</c>
+    /// 都是空数组，<c>ProviderIds</c> 只剩这一集自己的 Tvdb/IMDb。这一页的标题是剧名，所以这一行照剧集
+    /// 那一层说（<paramref name="show"/> 就是详情页为取图顺手取回来的那个条目）；剧集还没回来时宁可少说
+    /// 几项，也不拿单集自己的 id 拼一个指向剧集页面的错链接。
+    /// </para>
+    /// <para>
+    /// 上次播放日期只给集页（用户令 2026-10-31「上次播放日期（集页面特有）」）：它说的是「这一集」而不是
+    /// 「这部片子」，而电影页上没有「上次看的是哪一版」这回事。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<OtherFact> OtherInfo(EmbyItem item, EmbyItem? show)
+    {
+        if (!item.IsPlayable) return [];
+
+        var owner = item.Type == EmbyItemType.Episode ? show : item;
+        var facts = new List<OtherFact>(4);
+
+        if (owner is not null)
+        {
+            if (owner.Genres.Count > 0) facts.Add(new("类型", [new(string.Join("、", owner.Genres))]));
+            if (Studio(owner) is { Length: > 0 } studio) facts.Add(new("工作室", [new(studio)]));
+            if (ProviderLinks(owner) is { Count: > 0 } links) facts.Add(new("数据库链接", links));
+        }
+
+        if (item.Type == EmbyItemType.Episode && item.UserData?.LastPlayedDate is { } played)
+        {
+            facts.Add(new("上次播放日期",
+                [new(played.ToLocalTime().ToString("yyyy/M/d HH:mm", CultureInfo.InvariantCulture))]));
+        }
+
+        return facts;
+    }
+
+    /// <summary>
+    /// The scraper entries this item is linked to, in a stable order: TMDB, IMDb, TVDB, 豆瓣. A film's TMDB
+    /// link goes under <c>/movie/</c>; a show's under <c>/tv/</c>. TVDB only has show pages here — a film's
+    /// TVDB id is not a page this client knows how to address.
+    /// </summary>
+    private static IReadOnlyList<OtherFactValue> ProviderLinks(EmbyItem owner)
+    {
+        var links = new List<OtherFactValue>(4);
+        var movie = owner.Type == EmbyItemType.Movie;
+
+        if (ProviderId(owner, "Tmdb") is { Length: > 0 } tmdb)
+        {
+            links.Add(new("TMDB",
+                "https://www.themoviedb.org/" + (movie ? "movie/" : "tv/") + Uri.EscapeDataString(tmdb)));
+        }
+
+        if (ProviderId(owner, "Imdb") is { Length: > 0 } imdb)
+            links.Add(new("IMDb", "https://www.imdb.com/title/" + Uri.EscapeDataString(imdb) + "/"));
+
+        if (!movie && ProviderId(owner, "Tvdb") is { Length: > 0 } tvdb)
+            links.Add(new("TVDB", "https://www.thetvdb.com/?tab=series&id=" + Uri.EscapeDataString(tvdb)));
+
+        if (ProviderId(owner, "Douban") is { Length: > 0 } douban)
+            links.Add(new("豆瓣", "https://movie.douban.com/subject/" + Uri.EscapeDataString(douban) + "/"));
+
+        return links;
+    }
+
+    /// <summary>
+    /// One provider id, matched without regard to case: Emby sends <c>IMDB</c> on episodes and <c>Imdb</c> on
+    /// the series that owns them, and the dictionary is the one the JSON deserializer built.
+    /// </summary>
+    private static string ProviderId(EmbyItem item, string name) =>
+        item.ProviderIds
+            .FirstOrDefault(pair => string.Equals(pair.Key, name, StringComparison.OrdinalIgnoreCase))
+            .Value?.Trim() ?? "";
 
     /// <summary>
     /// The release name: the file with neither its directory nor its extension, because 路 径 and 格 式

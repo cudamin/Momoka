@@ -1376,23 +1376,33 @@
                                 Visibility="{x:Bind ViewModel.EpisodeStripVisibility, Mode=OneWay}" />
                         </StackPanel>
 
-                        <!-- 媒体信息紧跟在单集下面：这一段说的是「正在放的这个文件」（文件名、格式、音频、
-                             字幕），和上面那排集是同一件事的两个粒度，隔着三条卡片带就对不上了。
+                        <!-- 媒体信息与其他信息紧跟在单集下面：这一段说的是「正在放的这个文件」（文件名、格式、
+                             音频、字幕），和上面那排集是同一件事的两个粒度，隔着三条卡片带就对不上了。
 
                              只在电影页和单集页出现 —— 视图这边不判断，DetailViewModel 只在页面自己就是个
-                             文件的时候才往 InfoRows 里放东西，剧页和季页那一列永远是空的，这一整块也就跟着
-                             收起来。空的东西不该占位。
+                             文件的时候才往 InfoRows / OtherFacts 里放东西，剧页和季页那一列永远是空的，
+                             这一整块也就跟着收起来。空的东西不该占位。
 
-                             2026-10-31 用户令「删除媒体信息的折叠功能」：这张表是读的，不是要用户点开的，
-                             不再套 Expander。底色、边框和圆角沿用正文那几块板；内边距取 16，和原来
-                             Expander 的牌子和正文那圈对齐；标题与表格之间留 8。 -->
+                             2026-10-31 用户令：卡片标题从「媒体信息」改名为「其他信息」，媒体信息表照旧放在
+                             上面，下面一条分割线，再下一行放类型、工作室、数据库链接与上次播放日期（集页
+                             特有）（用户令「下面的放到一行里」）。那行由代码搭出来 —— 数据库链接要一段一段
+                             点得动（Hyperlink 是内联元素，绑不出来，见 DetailPage.PaintOtherInfo）。
+
+                             2026-10-31 更早的用户令「删除媒体信息的折叠功能」：这张表是读的，不是要用户点开
+                             的，不再套 Expander。底色、边框和圆角沿用正文那几块板；标题走页面统一的
+                             ShelfHead（强调线 + 标题 + 通栏线），和「演职人员」那些牌子同一个样子。
+
+                             2026-10-31 用户反馈「这个标题为什么没其他卡片标题高」：标题本身已经是同一支
+                             20 号半粗（ShelfHead 的 EgSectionTitleStyle），看上去矮一截的是这一块的
+                             内边距 —— 原来取 16/10 是为了贴 Expander 的牌子，比别的正文板少一圈。
+                             改用 EgBodyPanelStyle 自带的 24 与同一档 10 的间距，标题那一行就和别的卡片
+                             一样高了。 -->
                         <StackPanel
                             x:Name="InfoPanel"
-                            Padding="16,10,16,16"
-                            Spacing="8"
+                            Spacing="10"
                             Style="{StaticResource EgBodyPanelStyle}"
                             Visibility="{x:Bind ViewModel.InfoVisibility, Mode=OneWay}">
-                            <TextBlock x:Uid="DetailPage_TextBlock5" />
+                            <local:ShelfHead x:Name="InfoHead" Title="其他信息" />
                             <ItemsRepeater
                                 x:Name="InfoTable"
                                 ItemTemplate="{StaticResource InfoRowTemplate}"
@@ -1401,6 +1411,18 @@
                                     <StackLayout Orientation="Vertical" />
                                 </ItemsRepeater.Layout>
                             </ItemsRepeater>
+                            <Border
+                                x:Name="OtherInfoDivider"
+                                Margin="0,2,0,0"
+                                Style="{StaticResource EgRuleStyle}"
+                                Visibility="{x:Bind ViewModel.OtherInfoVisibility, Mode=OneWay}" />
+                            <TextBlock
+                                x:Name="OtherInfoLine"
+                                FontSize="{StaticResource EgCaptionFontSize}"
+                                Foreground="{ThemeResource EgTextDimBrush}"
+                                LineHeight="20"
+                                TextWrapping="Wrap"
+                                Visibility="{x:Bind ViewModel.OtherInfoVisibility, Mode=OneWay}" />
                         </StackPanel>
 
                         <!-- 全部剧季：剧集页的季卡横带，点季卡进那一季自己的页面。 -->
