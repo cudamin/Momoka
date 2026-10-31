@@ -1,3 +1,12 @@
+## 2026-10-31 分支与工作树盘点、搜索 UI 合入及清理完成
+
+- 盘点：12 个 codex 分支、26 个注册工作树（含 15 个 detached）、5 个脏树。真正未合入的只有 `codex/search-web-ui`：5 个产品/测试提交加 1 个未提交接线提交（516d41b）。其余内容均已在 master 或被后续提交取代：settings-input-rounding（7373553/6a5456a）、search-radius-tests（同 e1b6f42）、search-filter-cards/search-sites-grid/search-ux-preview（search-web-ui 子集）、manual-reorganize-web（e85a4d3 + da81574）、moviepilot-status-ui（9c6b29b/11c6ff5）、perf-settings（1264635）、subscription-compact-tests（等效）、mp-history-selection（5817542/dc66896）；moviepilot-flow-fix、mp-editor-complete、mp-journey-complete 的脏改动已被 2a185ca 等主树更新版覆盖。
+- 合入：固定来源 d8a5a61、筛选卡片 8a359b9、离线试用 3c8166c、站点网格 95c8feb、接线 0c2f3be；c49f31c 仅删 PROGRESS 空行，冲突解决后跳过。集成后的主树无冲突标记。
+- 真实缺陷：站点弹窗根属性 StaticResource 早于本地字典求值，运行即抛；重连后选择器持有空连接戳，打开被拒。两者已在 ad01f94 修复，测试夹具同步；探针适配新控件与固定来源在 30f8e87。
+- 验证（主树最终代码）：Tests/Core 与 Shell Release 0 警告 0 错误；主测 3469/3469、资源 174/174、搜索生命周期 42/42、站点对话 13/13。探针 search,moviepilot,anibt 50/50，日志 `shell-probe-20261031-051842841-24372`；已查看 1040/360 固定来源、站点网格、资源筛选卡片与设置页站点截图。未执行手动 search-preview 试用、真实服务器写入或播放；未跑闸门 1 的全方案空白/分析器与闸门 4，不称发版验证。
+- 清理：删除 12 个 codex 分支与 26 个注册工作树；Git 只剩 master，工作树只剩主树。mp-episode-direct-delete、mp-subscription-complete 目录仍被进程占用（只剩元数据），未强删；已删除 60 个空壳及 delivery-dotnet-pack-tests、merge-pending-20261029 两个已审查旧目录。脏树差异备份在 `artifacts/worktree-salvage-20261031`，分支顶端清单在同目录 `branches-before.txt`。
+- 未发布、未推 origin。桌面 `artifacts/publish/win-x64` 仍是上一交付版本；需要实际体验时再按闸门 3 串行发布。
+
 ## 2026-10-31 搜索网页式筛选与站点弹窗（本批在途）
 
 - 用户要求：筛选折叠栏/标签改主题色卡片，四个来源固定不隐藏，搜索按钮加宽，站点选择改图六网格弹窗；新增验收要求为按正常用户试用后满意才交付。
