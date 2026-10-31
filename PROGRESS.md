@@ -1,10 +1,11 @@
-## 2026-11-01 搜索页结果按类型分组（已提交，待随本轮发版交付）
+## 2026-11-01 搜索页结果按类型分组（已提交并交付本机，正式发版待办）
 
 - 用户令：媒体库搜索结果按类型分组显示（节目 / 影片 / 单集 / 视频），单集用 16:9 剧照并加一圈强调色粗框，与影片、节目的竖版海报明确分开。
 - 规则在 Core `LibrarySearchGroups`：固定次序、标题，未知类型落「视频」；视图模型 `SearchResultGroup` 持有每组卡片，`SearchGroups` 只收非空组，组对象与卡片清单从头到尾保持同一实例；`Cards` 的增删、移动与重置同步到分组，翻页只往组里追加。搜索有词时分组滚动器取代平铺卡片墙（`GridVisibility` 与 `SearchGroupsVisibility` 互斥），分页、滚动位置保存与恢复都走这一条滚动器。
 - 卡片：`CardItem.EpisodeFrame` 只对搜索页的单集生效，接 `PosterCard` 的 `EpisodeFrameStyle`；搜索页单集走 16:9 宽卡，其余搜索卡仍用竖版海报。
-- 验证（主树最终代码，交付件）：Release Shell 与 Core／Tests 构建 0 警告 0 错误；Core 全套 3503/3503、0 失败 0 跳过；`git diff --check` 通过。交付件 `--probe-shell --probe-section search --screen 1` **14/14、退出 0**（`shell-probe-20261031-172507260-21960`），新增断言覆盖分组标题与条数、单集 16:9 与强调色框、滚动后分组内容随滚动器上移；实屏 `search-groups-1040-screen.png`、滚动后 `search-groups-episodes-1040-screen.png`、返帧 `search-groups-episodes-1040-render.png` 与 `search-groups-top-restored-1040-render.png` 已逐张查看。仅匿名假数据，无真实服务器查询／播放或服务端写入。
-- 本批只改代码与定向验证；版本、正式四道闸门、GitHub Release 与商店包随本轮发版统一处理。
+- 验证（主树最终代码，交付件）：Release Shell 与 Core／Tests 构建 0 警告 0 错误；Core 全套 3503/3503、0 失败 0 跳过；真实 VM 夹具 31/31（分组、删除后空组收起、单集 16:9 与框线标志）；PageContract 109/109、SearchLifetime 42/42、PerfList 71/71；`dotnet format whitespace --verify-no-changes`、`git diff --check` 通过。交付件 `--probe-shell --probe-section search --screen 1` **14/14、退出 0**（`shell-probe-20261031-172611715-16452`），新增断言覆盖分组标题与条数、单集 16:9 与强调色框、滚动后分组内容随滚动器上移；实屏 `search-groups-1040-screen.png`、滚动后 `search-groups-episodes-1040-screen.png`、返帧 `search-groups-episodes-1040-render.png` 与 `search-groups-top-restored-1040-render.png` 已逐张查看。仅匿名假数据，无真实服务器查询／播放或服务端写入。
+- 交付：`tools/publish.ps1 -NoArchive -Shortcut` 通过（546 文件、285.5 MB、14 GLSL／4 HOOK、批准 mpv 清单 59 文件），桌面 `Momoka.lnk` 已写。**发布前要让 bin 的 `Momoka.deps.json` 也是自包含版**：普通 Release 构建的 deps 不含 .NET runtimepack，`verify-publish` 会拒绝；先以 `-t:Rebuild -r win-x64 --self-contained true -p:Platform=x64` 重建 Shell 再发布。
+- 未覆盖／未做：只走匿名假数据，没有真实媒体库搜索、真实服务器行为或播放；版本号、完整四道闸门、GitHub Release／商店包与远端推送都不在本批，未推 origin。
 
 ## 2026-10-31 删记录和库文件、删记录及两端之后主页自动重读（已发布）
 
