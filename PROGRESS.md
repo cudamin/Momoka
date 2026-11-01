@@ -1,3 +1,16 @@
+## 2026-11-01 媒体库审查五条修复（F1～F5，已交付桌面）
+
+- 用户令：修 `docs/媒体库代码审查-2026-11-01.md` 的五条发现；F3 按「网页端什么样你就怎么改」，F1 选「退回普通文字」；每个 bug 修完再派独立子代理复核。
+- **F1**（`857665c`）：`EmbyConnection` 新增 `SupportsGenreBrowse`（仅 Emby/Jellyfin），`DetailViewModel.CanOpenGenre` 改读它；飞牛与 Plex 的类型行退回普通文字，飞牛点进去不再撞 `NotSupportedException`。Core 四来源单测 + Plex 专项新增飞牛场景。
+- **F5**（`2ca6d14`）：`LibraryBrowse.Sections` 对飞牛只留 `Items`，去掉没有出口的 `Favorites`；标题栏收藏页、详情页与卡片菜单不受影响。三种库型单测钉住。
+- **F2**（`b51caa0`）：新增 `LibraryBrowse.SupportsCollectionGrouping`（仅 Emby）；`LibrarySettingsPanel.Show` 接收服务器种类，Plex 下整组收起「将项目分组到合集中」，偏好值保留；Emby 探针断言该行仍显示。
+- **F4**（`8e50ccc`）：库页提示条新增「重试」（`LibraryRetryButton` → 现有 `ReloadAsync`），`RetryVisibility` 跟着页级失败标志通知；真实 VM 失败→重试→恢复用例 32/32，库页探针走 500 → 点击 → 重载且按钮收起。
+- **F3**（`fd6c741`）：照网页端 `videos/moviesuggestions.js` 把 Emby 电影库推荐页改成货架：继续观看 + 最新影片 + `Movies/Recommendations` 按理由分排（标题「类似看过／类似收藏／同一执导／同一出演：X」；译文只读取自真实 Emby 网页语言包）。新增 `LibraryRecommendationRow`/`RecommendationRows`/`RecommendationTitle`、Emby 请求放开、请求形状单测与库页探针假数据；开发文档同步。
+- **验证**：全方案 Release **0 警告 0 错误**（全量中断时发现 `Momoka.PerfListDiagnosticsTests` 抽取源缺 `SetPageFailed`，已在 `cd4bdd0` 补边界）；Core **3535/3535**、Plex 专项 **68/68**、性能诊断 **71/71**、库页分页夹具 **32/32**；`--probe-shell --probe-section library --screen 1` **20/20**（run `shell-probe-20261101-135532867-21256`；前一次 18/20 的两条是既有环境抖动：主页悬停等待超时与像素窗口被遮挡，重跑全绿）；`dotnet format whitespace`、`scan-automation-ids`（无句柄 0）、`check-main-tree-policy --self-test`、`git diff --check` 均通过。
+- **实屏**：`artifacts/ui-review/media-library-fixes-20261101/` —— 电影推荐顶帧/底帧、电视剧推荐、失败重试前/后、电影设置面板（「分组」行仍显示）。
+- **交付**：`tools/publish.ps1 -Shortcut -NoArchive` 通过：**546 文件、285.5 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件（50 UI／2 native）**；发布件与开发构建 `Momoka.dll` SHA-256 同为 `4bacc1e279e94fa7286d60a20d76673c2d71c2f578bedf718bc11058d662f94b`，桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本仍为 0.2.2，未推 origin、未发 GitHub Release、未重打商店包。
+- **未覆盖**：Plex 与飞牛真实服务器未核对 —— F1 的飞牛类型行只有单测/契约证据，F2 的 Plex 面板收起没有 Plex 探针夹具，只由能力判据与代码复核证明；Emby 真实 `Movies/Recommendations` 未点过（只读核了上游源码与网页语言包）；无真实播放、无服务器写入。
+
 ## 2026-11-01 媒体库功能代码审查（只出报告，未改代码）
 
 - 用户令：参考代码审查本项目的媒体库功能是否齐全，查有没有加了却用不了的入口。
