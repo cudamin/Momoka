@@ -12,16 +12,8 @@ public readonly record struct SkipPrompt(bool Visible, string Caption, string Ti
     public static readonly SkipPrompt None = new(false, "", "", 0);
 }
 
-/// <summary>A jump that has been decided on: seek to <see cref="Target"/> and say so.</summary>
-public readonly record struct SkipJump(SkipSection Section, double Target)
-{
-    /// <summary>The line put on the picture after a jump, in chapterskip.lua's wording.</summary>
-    public string Notice =>
-        $"已跳过{Section.Label}: {Clock(Section.Start)}-{Clock(Target)}";
-
-    private static string Clock(double seconds) =>
-        TimeFormat.Clock(TimeSpan.FromSeconds(Math.Max(0, seconds)));
-}
+/// <summary>A jump that has been decided on: seek to <see cref="Target"/>.</summary>
+public readonly record struct SkipJump(SkipSection Section, double Target);
 
 /// <summary>
 /// Runs the 跳过 offer for one file: which section the position is in, whether its offer still

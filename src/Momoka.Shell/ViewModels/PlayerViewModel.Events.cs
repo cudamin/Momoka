@@ -1479,9 +1479,9 @@ public sealed partial class PlayerViewModel
     }
 
     /// <summary>
-    /// Takes the standing offer: seek to the far side of the section and say what was skipped, in
-    /// chapterskip.lua's wording. Shared by the button, by <c>Y</c>, and by the automatic jump — which
-    /// arrives already decided, so the offer is not consulted a second time.
+    /// Takes the standing offer: seek to the far side of the section. Shared by the button, by
+    /// <c>Y</c>, and by the automatic jump — which arrives already decided, so the offer is not
+    /// consulted a second time.
     /// </summary>
     private void AcceptSkip(SkipJump? decided)
     {
@@ -1501,7 +1501,6 @@ public sealed partial class PlayerViewModel
             "seek",
             jump.Target.ToString("0.###", CultureInfo.InvariantCulture),
             "absolute+exact");
-        _ = _playback.CommandAsync("show-text", jump.Notice, "2500");
 
         SkipOffered = false;
         // 独占模式那颗 uosc 按钮当场收起 —— 下一拍 ApplySkipOffer 也会收（seek 后已不在片段里），

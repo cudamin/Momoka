@@ -3653,7 +3653,6 @@ internal static class PlaybackTests
 
             Assert.NotNull(jump);
             Assert.Equal(90, jump!.Value.Target);
-            Assert.Equal("已跳过片头: 0:00-1:30", jump.Value.Notice);
             Assert.False(skips.Prompt.Visible);
 
             Assert.Null(skips.Accept(), "没有待回答的提示就没有可接受的跳跃");
@@ -3774,7 +3773,6 @@ internal static class PlaybackTests
 
             Assert.NotNull(jump);
             Assert.Equal(1440, jump!.Value.Target);
-            Assert.Equal("已跳过片尾: 23:00-24:00", jump.Value.Notice);
         });
     }
 

@@ -167,6 +167,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => handle.Commands.Any(command => command.StartsWith("seek|", StringComparison.Ordinal)));
             Require(handle.Commands.Contains("seek|120|absolute+exact") && !vm.SkipOffered, "点击没有跳到片头结尾并收起按钮");
             Require(!handle.Commands.Any(command => command.Contains("pause", StringComparison.Ordinal)), "跳过按钮错误地暂停了播放");
+            Require(!handle.Commands.Any(command => command.StartsWith("show-text|", StringComparison.Ordinal)),
+                "跳过后仍在画面上显示已跳过提示");
 
             Arm(ending);
             ((IWin32KeySink)page).Handle((int)VirtualKey.Enter);
