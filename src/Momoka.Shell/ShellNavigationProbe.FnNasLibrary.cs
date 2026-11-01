@@ -75,7 +75,7 @@ internal sealed partial class ShellNavigationProbe
             Require(page.ViewModel.IsFnNas, "探针没有落进飞牛媒体库页");
             Require(page.ViewModel.Cards.Count == 1, "飞牛媒体库首屏未载入");
             Require(Get<Border>(page, "LibrarySectionsSurface").Visibility == Visibility.Collapsed,
-                "飞牛媒体库不该画「影片 / 收藏」分段");
+                "飞牛媒体库不该画分区签");
 
             ResizeProbeClient(1280, 800);
             await LayoutAsync(page);

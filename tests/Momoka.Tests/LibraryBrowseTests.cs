@@ -36,10 +36,23 @@ internal static class LibraryBrowseTests
             // Jellyfin 的混合内容库没有分区签：API 里 CollectionType 是 null，网页端走 list.html。
             // 即便某个版本报 "mixed"，JellyfinLibrary 也不为它编出三栏。
             Assert.Equal(0, LibraryBrowse.Sections("mixed", MediaServerKind.Jellyfin).Count);
-            Assert.Equal("影片,收藏", Labels("movies", MediaServerKind.FnNas));
+            Assert.Equal("影片", Labels("movies", MediaServerKind.FnNas));
+            Assert.Equal("节目", Labels("tvshows", MediaServerKind.FnNas));
             Assert.Equal("电影和节目", Labels("mixed", MediaServerKind.FnNas));
             Assert.Equal("节目", Labels("tvshows", MediaServerKind.Plex));
             Assert.Equal("电影和节目", Labels("mixed", MediaServerKind.Plex));
+        });
+        Test("媒体库分类：飞牛库页不摆分区签，分区表只剩内容那一项", () =>
+        {
+            // 飞牛的库页整体收起分区签，库根进来时分区恒为 Items —— 分区表再留「收藏」就是一份
+            // 没有出口的配置（收藏仍在标题栏收藏页、详情页与卡片菜单可达）。
+            foreach (var type in new[] { "movies", "tvshows", "mixed" })
+            {
+                var sections = LibraryBrowse.Sections(type, MediaServerKind.FnNas);
+                Assert.Equal(1, sections.Count, type);
+                Assert.Equal(LibrarySection.Items, sections[0].Section, type);
+                Assert.False(sections.Any(entry => entry.Section == LibrarySection.Favorites), type);
+            }
         });
         Test("媒体库分类：所有查询保留库作用域和分页", () =>
         {

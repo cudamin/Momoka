@@ -73,10 +73,12 @@ public static class LibraryBrowse
             _ => []
         };
         // Other adapters don't implement the named indexes or physical folder hierarchy.
+        // 飞牛只留「内容」一项：它的库页不摆分区签（官网页端也没有），库根进来时分区恒为 Items，
+        // 留「收藏」只会是一份没有出口的配置 —— 收藏入口在标题栏收藏页、详情页与卡片菜单那边。
         return [.. entries.Where(entry => serverKind switch
         {
             MediaServerKind.Emby => true,
-            MediaServerKind.FnNas => entry.Section is LibrarySection.Items or LibrarySection.Favorites,
+            MediaServerKind.FnNas => entry.Section == LibrarySection.Items,
             MediaServerKind.Plex => entry.Section == LibrarySection.Items,
             _ => entry.Section == LibrarySection.Items
         })];

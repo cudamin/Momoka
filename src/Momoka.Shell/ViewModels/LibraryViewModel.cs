@@ -626,7 +626,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     internal IReadOnlyList<LibrarySectionEntry> BrowseSections => IsSectionLibrary
         ? LibraryBrowse.Sections(_request!.CollectionType, _scope?.Connection.ServerKind ?? MediaServerKind.Emby) : [];
-    /// <summary>飞牛媒体库不摆「影片 / 收藏」分段：官网页端没有这一条，收藏仍在别处可达。</summary>
+    /// <summary>飞牛媒体库不摆分区签：官网页端也没有这一条，分区表因此只剩「内容」一项，收藏仍在别处可达。</summary>
     public Visibility SectionVisibility => Show(!IsFnNas && IsSectionLibrary && BrowseSections.Count > 1);
 
     /// <summary>
