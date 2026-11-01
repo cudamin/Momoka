@@ -592,8 +592,9 @@ public sealed partial class PlayerViewModel
         if (item is not null && !_playback.IsPlaying) return;
         if (item is not null) _preparingPictureInHost = null;
         // Re-armed per playback, before anything can look at it: switching episodes comes through here,
-        // and the previous episode's opening is not this one's. The 跳过 sections come from Emby's own
-        // IntroStart/IntroEnd/CreditsStart markers and are not recomputed from mpv's chapter list.
+        // and the previous episode's opening is not this one's. Emby's markers are the first plan; a kind
+        // it did not mark is filled from mpv's chapter list once that list arrives
+        // (ConsiderPlayerSkipSections).
         ResetTimelineDrag();
         InvalidateMenuInteractions();
         FlushVolume(settled: false);
@@ -625,7 +626,8 @@ public sealed partial class PlayerViewModel
         // 跳过 plan reads the marker kinds on the same list.
         _embyMarks = item is null ? [] : SkipSectionPlanner.FromEmby(item.Chapters);
         var runtime = TimeFormat.ToSeconds(item?.RunTimeTicks);
-        _skips.Begin(SkipSectionPlanner.Resolve(item), runtime);
+        _embySkipSections = item is null ? [] : SkipSectionPlanner.Resolve(item);
+        _skips.Begin(_embySkipSections, runtime);
 
         // The server's marks are what the bar draws until mpv publishes its own: they are available
         // immediately, and a bar that grew its ticks two seconds in would look like a glitch rather than
@@ -956,6 +958,7 @@ public sealed partial class PlayerViewModel
                 ChapterMarks = chapters;
                 ClearChapterPeek();
                 ChaptersChanged?.Invoke();
+                ConsiderPlayerSkipSections(chapters);
             }
         }
 
@@ -1301,8 +1304,8 @@ public sealed partial class PlayerViewModel
 
     /// <summary>
     /// Swaps Emby's chapter marks for mpv's own on the seek bar; they arrive a second or two after
-    /// playback starts and describe the file actually being decoded. The 跳过 sections are deliberately
-    /// not recomputed here — they belong to Emby's marker data alone (see <see cref="SkipSectionPlanner"/>).
+    /// playback starts and describe the file actually being decoded. The same list is the player's
+    /// chance to fill in a 跳过 kind Emby did not mark — Emby's own kinds are never replaced.
     /// </summary>
     private Task RefineChapterMarksAsync(int generation) => PollAsync(generation, true, async () =>
     {
@@ -1327,13 +1330,38 @@ public sealed partial class PlayerViewModel
 
         // Emby's marks and mpv's usually agree, but a file remuxed after the library scan is exactly
         // the case where they do not, and the picture on screen is the one to believe. This upgrades
-        // the ticks only; the 跳过 plan keeps Emby's marker data.
+        // the ticks; the 跳过 plan only borrows the player's chapters for kinds Emby never marked.
         ChapterMarks = chapters;
         ChaptersChanged?.Invoke();
+        if (ConsiderPlayerSkipSections(chapters)) ApplySkipOffer();
         return true;
     });
 
     // ---- 跳过片头/片尾 -----------------------------------------------------------
+
+    /// <summary>
+    /// Fills in the 跳过 sections Emby did not mark, once mpv publishes the file's own chapter list.
+    /// Emby's markers always win for a kind it did provide; the player answers only for the missing
+    /// kind (see <see cref="SkipSectionPlanner.Merge"/>). Returns whether the section list changed.
+    /// </summary>
+    private bool ConsiderPlayerSkipSections(IReadOnlyList<SkipChapter> chapters)
+    {
+        if (chapters.Count == 0) return false;
+
+        var opening = _embySkipSections.Any(section => section.Kind == SkipSectionKind.Opening);
+        var ending = _embySkipSections.Any(section => section.Kind == SkipSectionKind.Ending);
+        if (opening && ending) return false;
+
+        var duration = Status.HasDuration && Status.Duration > 0 ? Status.Duration : _skips.Duration;
+        var player = SkipSectionPlanner.ResolveFromPlayer(chapters, duration);
+        if (player.Count == 0) return false;
+
+        var merged = SkipSectionPlanner.Merge(_embySkipSections, player);
+        if (merged.SequenceEqual(_skips.Sections)) return false;
+
+        _skips.UpdateSections(merged, duration);
+        return true;
+    }
 
     /// <summary>
     /// Puts the 跳过 offer up or takes it away for the position playback has reached, and makes the

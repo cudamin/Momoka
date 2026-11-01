@@ -1548,7 +1548,9 @@ public sealed partial class SettingsViewModel : PageViewModel
                 "类型为动画、发行公司带腾讯、哔哩哔哩、优酷或爱奇艺的片子单独按这一档算，不吃上面那行的值"),
             Number("续播自动快退（秒）", 0, 120, () => playback.ResumeRewindSeconds, value => playback.ResumeRewindSeconds = value),
             Number("进度上报间隔（秒）", 1, 60, () => playback.ProgressReportIntervalSeconds, value => playback.ProgressReportIntervalSeconds = value),
-            Choice("跳过片头片尾", SkipModes, () => playback.SkipSections, value => playback.SkipSections = value)
+            Choice("跳过片头片尾", SkipModes, () => playback.SkipSections, value => playback.SkipSections = value,
+                "优先用服务器（Emby）识别出的片头片尾；服务器没标出的那一段，才按播放器读到的章节名与首尾位置识别补上。"
+                + "两段都有服务器标记时，播放器不参与")
         };
 
         var seekRows = new List<SettingRow>

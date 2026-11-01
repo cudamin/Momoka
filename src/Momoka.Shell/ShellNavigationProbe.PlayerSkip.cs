@@ -69,6 +69,39 @@ internal sealed partial class ShellNavigationProbe
             var clearance = page.ProbeClearance();
             Require(clearance.Ok, clearance.Detail);
 
+            // 播放器兜底接线：Emby 只认出片头时，mpv 的章节表到了要补片尾，且不撤掉已经摆着的片头提示。
+            var serverOpening = new SkipSection(SkipSectionKind.Opening, 5, 95, "片头");
+            Field(vm, "_embySkipSections", (IReadOnlyList<SkipSection>)[serverOpening]);
+            skips.Begin([serverOpening], 1500);
+            Field(vm, "_playerUp", true);
+            SetStatus(10);
+            Require(vm.SkipOffered && vm.SkipCaption == "跳过片头", "播放器兜底夹具的服务器片头提示没有摆出来");
+
+            SetStatus(10,
+            [
+                new SkipChapter(0, "OP"),
+                new SkipChapter(90, "正片"),
+                new SkipChapter(1380, "ED"),
+                new SkipChapter(1440, "预告")
+            ]);
+            var supplemented = skips.Sections;
+            Require(supplemented.Count == 2, "播放器章节到了没有补上缺的片尾");
+            Require(supplemented[0] == serverOpening, "Emby 的片头被播放器替换了");
+            Require(supplemented[1].Kind == SkipSectionKind.Ending
+                && supplemented[1].Origin == SkipSectionOrigin.Player
+                && supplemented[1].Start == 1380 && supplemented[1].End == 1440,
+                "播放器片尾的落点或来源不对");
+            Require(vm.SkipOffered && vm.SkipCaption == "跳过片头", "补片尾时把片子头的提示撤掉了");
+
+            SetStatus(1400);
+            Require(vm.SkipOffered && vm.SkipCaption == "跳过片尾", "播放器片尾没有接上跳过提示");
+            report.Add("播放器兜底：Emby 片头保留，mpv 章节补出片尾 1380–1440，提示来源与落点正确。");
+
+            skips.Begin([], 0);
+            Field(vm, "_embySkipSections", (IReadOnlyList<SkipSection>)[]);
+            SetStatus(0);
+            Require(!vm.SkipOffered, "兜底夹具清理后仍留着跳过提示");
+
             vm.Title = "跳过按钮 · 离线验证";
             vm.Subtitle = "仅图标和标题 · 没有提示文字或倒计时";
             foreach (var (width, height, section) in new[] { (1100, 680, opening), (760, 500, ending) })
@@ -178,9 +211,16 @@ internal sealed partial class ShellNavigationProbe
             vm.ApplySkipOffer();
         }
 
-        void SetStatus(double position, bool paused = false)
+        void SetStatus(double position, IReadOnlyList<SkipChapter>? chapters = null, bool paused = false)
         {
-            handle.Status = new PlayerStatus { Position = position, Duration = 1500, Loaded = true, Paused = paused };
+            handle.Status = new PlayerStatus
+            {
+                Position = position,
+                Duration = 1500,
+                Loaded = true,
+                Paused = paused,
+                Chapters = chapters
+            };
             Call(vm, "ApplyStatus", handle.Status);
         }
 

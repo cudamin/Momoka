@@ -3334,10 +3334,10 @@ internal static class PlaybackTests
             Assert.Equal("跳过片尾", sections[1].Caption);
         });
 
-        Test("跳过：章节名和长度不再参与识别", () =>
+        Test("跳过：Emby 规划器不认章节名和长度", () =>
         {
-            // 过去这些都会弹出 跳过：OP/ED 的章节名、90 秒左右的无名章节、位置推测。现在没有
-            // Emby 的标记就什么都不给 —— 片源自带的章节名不是服务器识别结果。
+            // Emby 这一半只认它自己写下的标记：章节名与长度只留给播放器兜底那套规则
+            // （见「播放器按章节名认出片头与片尾」等用例），不能拿来冒充服务器识别结果。
             Assert.Equal(0, SkipSectionPlanner.Resolve(Episode(
                 Chapter(0, "片头"), Chapter(88, "正片"), Chapter(1380, "片尾"))).Count);
             Assert.Equal(0, SkipSectionPlanner.Resolve(Episode(
@@ -3406,6 +3406,126 @@ internal static class PlaybackTests
             Assert.False(section.Covers(154.6), "临界半秒内不再提示，免得点了原地不动");
             Assert.False(section.Covers(160));
             Assert.False(section.Covers(-1), "尚未拿到位置时不提示");
+        });
+
+        Test("跳过：播放器按章节名认出片头与片尾", () =>
+        {
+            var sections = SkipSectionPlanner.ResolveFromPlayer(
+            [
+                new SkipChapter(0, "OP"),
+                new SkipChapter(90, "正片"),
+                new SkipChapter(1380, "ED"),
+                new SkipChapter(1440, "预告")
+            ], 1500);
+
+            Assert.Equal(2, sections.Count);
+            Assert.Equal(
+                (SkipSectionKind.Opening, 0d, 90d, SkipSectionOrigin.Player),
+                (sections[0].Kind, sections[0].Start, sections[0].End, sections[0].Origin));
+            Assert.Equal(
+                (SkipSectionKind.Ending, 1380d, 1440d, SkipSectionOrigin.Player),
+                (sections[1].Kind, sections[1].Start, sections[1].End, sections[1].Origin),
+                "片尾跳到下一章节，预告章节留给用户");
+            Assert.Equal("跳过片头", sections[0].Caption);
+            Assert.Equal("跳过片尾", sections[1].Caption);
+        });
+
+        Test("跳过：播放器按首尾位置推断无标题章节", () =>
+        {
+            var sections = SkipSectionPlanner.ResolveFromPlayer(
+            [
+                new SkipChapter(0, null),
+                new SkipChapter(92, null),
+                new SkipChapter(1200, null),
+                new SkipChapter(1300, null)
+            ], 1500);
+
+            Assert.Equal(2, sections.Count);
+            Assert.Equal((SkipSectionKind.Opening, 0d, 92d), (sections[0].Kind, sections[0].Start, sections[0].End));
+            Assert.Equal((SkipSectionKind.Ending, 1200d, 1300d), (sections[1].Kind, sections[1].Start, sections[1].End));
+        });
+
+        Test("跳过：播放器在两个片头候选取第二个", () =>
+        {
+            var sections = SkipSectionPlanner.ResolveFromPlayer(
+            [
+                new SkipChapter(0, "Recap"),
+                new SkipChapter(90, "OP"),
+                new SkipChapter(180, "正片")
+            ], 1500);
+
+            Assert.Equal(1, sections.Count);
+            Assert.Equal((SkipSectionKind.Opening, 90d, 180d), (sections[0].Kind, sections[0].Start, sections[0].End),
+                "回顾与正片标题都像片头时，取靠后的那一章");
+        });
+
+        Test("跳过：播放器不猜不像片头片尾的首尾章节", () =>
+        {
+            Assert.Equal(0, SkipSectionPlanner.ResolveFromPlayer(
+            [
+                new SkipChapter(0, null),
+                new SkipChapter(120, null),
+                new SkipChapter(900, null),
+                new SkipChapter(1080, null)
+            ], 1200).Count);
+
+            // 「Operation」「Reopening」不是 OP/Opening 的编号变体，不能被模糊匹配吞掉。
+            Assert.Equal(0, SkipSectionPlanner.ResolveFromPlayer(
+            [
+                new SkipChapter(0, "Operation"),
+                new SkipChapter(400, "Main"),
+                new SkipChapter(1200, "Reopening")
+            ], 1400).Count);
+        });
+
+        Test("跳过：短于片头窗口的文件只认标题，不做位置推断", () =>
+        {
+            Assert.Equal(0, SkipSectionPlanner.ResolveFromPlayer(
+            [
+                new SkipChapter(0, null),
+                new SkipChapter(90, null)
+            ], 180).Count);
+
+            var sections = SkipSectionPlanner.ResolveFromPlayer(
+            [
+                new SkipChapter(0, "OP"),
+                new SkipChapter(90, null)
+            ], 180);
+
+            Assert.Equal(1, sections.Count);
+            Assert.Equal((SkipSectionKind.Opening, 0d, 90d), (sections[0].Kind, sections[0].Start, sections[0].End));
+        });
+
+        Test("跳过：Emby 已有的那一段不换，缺的那一段用播放器的", () =>
+        {
+            var server = new[] { new SkipSection(SkipSectionKind.Opening, 5, 95, "片头") };
+            var player = new[]
+            {
+                new SkipSection(SkipSectionKind.Opening, 0, 90, "片头", SkipSectionOrigin.Player),
+                new SkipSection(SkipSectionKind.Ending, 1380, 1440, "片尾", SkipSectionOrigin.Player)
+            };
+
+            var merged = SkipSectionPlanner.Merge(server, player);
+
+            Assert.Equal(2, merged.Count);
+            Assert.Equal((5d, 95d, SkipSectionOrigin.Server), (merged[0].Start, merged[0].End, merged[0].Origin));
+            Assert.Equal((1380d, 1440d, SkipSectionOrigin.Player), (merged[1].Start, merged[1].End, merged[1].Origin));
+        });
+
+        Test("跳过：Emby 两段都有时播放器完全不参与", () =>
+        {
+            var server = new[]
+            {
+                new SkipSection(SkipSectionKind.Opening, 5, 95, "片头"),
+                new SkipSection(SkipSectionKind.Ending, 1380, 1500, "片尾")
+            };
+            var player = new[]
+            {
+                new SkipSection(SkipSectionKind.Opening, 0, 90, "片头", SkipSectionOrigin.Player),
+                new SkipSection(SkipSectionKind.Ending, 1200, 1300, "片尾", SkipSectionOrigin.Player)
+            };
+
+            Assert.True(server.SequenceEqual(SkipSectionPlanner.Merge(server, player)));
         });
     }
 
@@ -3586,6 +3706,53 @@ internal static class PlaybackTests
             skips.Begin(sections, 1500);
             skips.Advance(10, playing: true);
             Assert.True(skips.Prompt.Visible, "上一集的片头不是这一集的");
+        });
+
+        Test("跳过：播放器识别的提示写明来源", () =>
+        {
+            var skips = new SkipCoordinator();
+            skips.Begin([new SkipSection(SkipSectionKind.Opening, 0, 90, "片头", SkipSectionOrigin.Player)], 1500);
+
+            skips.Advance(10, playing: true);
+
+            Assert.Contains("播放器识别", skips.Prompt.Tip);
+            Assert.DoesNotContain("服务器标记", skips.Prompt.Tip);
+        });
+
+        Test("跳过：补上缺的一段不清掉已经在问的提示", () =>
+        {
+            var server = new[] { new SkipSection(SkipSectionKind.Opening, 0, 90, "片头") };
+            var skips = new SkipCoordinator();
+            skips.Begin(server, 1500);
+
+            skips.Advance(10, playing: true);
+            Assert.True(skips.Prompt.Visible);
+
+            var merged = SkipSectionPlanner.Merge(
+                server,
+                [new SkipSection(SkipSectionKind.Ending, 1380, 1440, "片尾", SkipSectionOrigin.Player)]);
+            skips.UpdateSections(merged, 1500);
+
+            Assert.True(skips.Prompt.Visible, "补片尾不该把已经摆着的片头提示收掉");
+            Assert.Equal("跳过片头", skips.Prompt.Caption);
+
+            skips.Advance(1400, playing: true);
+            Assert.True(skips.Prompt.Visible);
+            Assert.Equal("跳过片尾", skips.Prompt.Caption);
+            Assert.Contains("播放器识别", skips.Prompt.Tip);
+        });
+
+        Test("跳过：播放器片尾按下一章节落点", () =>
+        {
+            var skips = new SkipCoordinator();
+            skips.Begin([new SkipSection(SkipSectionKind.Ending, 1380, 1440, "片尾", SkipSectionOrigin.Player)], 1500);
+
+            skips.Advance(1400, playing: true);
+            var jump = skips.Accept();
+
+            Assert.NotNull(jump);
+            Assert.Equal(1440, jump!.Value.Target);
+            Assert.Equal("已跳过片尾: 23:00-24:00", jump.Value.Notice);
         });
     }
 

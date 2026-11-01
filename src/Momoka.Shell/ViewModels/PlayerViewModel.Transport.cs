@@ -823,6 +823,7 @@ public sealed partial class PlayerViewModel
         _episodeSwitchTargetId = null;
         ResetTimelineDrag();
         _skips.Begin([], 0);
+        _embySkipSections = [];
 
         // Everything the bar drew about this particular file. The stills especially: they are keyed by
         // chapter index, and the next file's chapter 3 is not this one's.

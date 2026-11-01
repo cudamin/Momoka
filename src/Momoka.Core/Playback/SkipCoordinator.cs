@@ -60,6 +60,9 @@ public sealed class SkipCoordinator
 
     public IReadOnlyList<SkipSection> Sections => _sections;
 
+    /// <summary>The run time the current sections were planned against, in seconds.</summary>
+    public double Duration => _duration;
+
     /// <summary>Starts a new file, forgetting every decision taken about the last one.</summary>
     public void Begin(IReadOnlyList<SkipSection> sections, double duration)
     {
@@ -70,6 +73,17 @@ public sealed class SkipCoordinator
         _armedAt = 0;
         _answered = false;
         Prompt = SkipPrompt.None;
+    }
+
+    /// <summary>
+    /// Replaces the section list without forgetting decisions already taken. The player's own
+    /// chapters arrive a moment after playback starts and may fill in a kind Emby did not mark; a
+    /// standing offer on Emby's own section must survive that.
+    /// </summary>
+    public void UpdateSections(IReadOnlyList<SkipSection> sections, double duration)
+    {
+        _sections = sections;
+        _duration = duration;
     }
 
     /// <summary>
@@ -173,8 +187,9 @@ public sealed class SkipCoordinator
     private string Describe(SkipSection section)
     {
         var target = TimeFormat.Clock(TimeSpan.FromSeconds(TargetOf(section)));
+        var source = section.Origin == SkipSectionOrigin.Player ? "播放器识别" : "服务器标记";
         // 键名跟着 2026-09-26 的键位改动走（用户令）：确认跳过 Y→回车、关闭 N→Esc，画面提示与之一致。
-        return $"跳到 {target}（服务器标记：{section.Label}） · 回车跳过 · Esc 关闭";
+        return $"跳到 {target}（{source}：{section.Label}） · 回车跳过 · Esc 关闭";
     }
 
     /// <summary>The same section, allowing for a rounding error in the reported start.</summary>

@@ -267,6 +267,13 @@ public sealed partial class PlayerViewModel : ObservableObject
     private IReadOnlyList<SkipChapter> _embyMarks = [];
 
     /// <summary>
+    /// The 跳过 sections Emby's own markers produced for this file. Kept apart from the coordinator's
+    /// current list because the player may later fill in a kind Emby did not mark; Emby's kinds
+    /// always stay the ones in charge.
+    /// </summary>
+    private IReadOnlyList<SkipSection> _embySkipSections = [];
+
+    /// <summary>
     /// Which chapter the preview is naming and which one it is showing a picture of, so a hover that stays
     /// inside both does no work. Two numbers because the two lists can disagree — see
     /// <see cref="ChapterTimeline"/>.
