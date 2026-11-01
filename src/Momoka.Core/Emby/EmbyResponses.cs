@@ -213,6 +213,12 @@ public sealed record EmbyConnection(
     public bool SupportsFavorites => !IsPlex;
 
     /// <summary>
+    /// 跨库题材页（详情页那一行类型点进去的「这个类型下的全部影片和剧集」）目前只有 Emby 与 Jellyfin 有路：
+    /// Plex 客户端未实现，飞牛的适配器对 <c>Genre</c> 条件直接抛 <see cref="NotSupportedException"/>。
+    /// </summary>
+    public bool SupportsGenreBrowse => !IsPlex && !IsFnNas;
+
+    /// <summary>
     /// Whether this product's routes and identity have to be re-probed before a saved token is trusted.
     /// All three non-Emby products do, and for the same reason: what was saved is a token and an address,
     /// and only the server can confirm that the two still belong together.

@@ -399,6 +399,29 @@ internal static class PlexAffordanceTests
             }
             finally { ((IDisposable)vm).Dispose(); }
         });
+        Case("R-030 真飞牛详情题材文字可读，无Hyperlink且旧入口零导航零请求", () =>
+        {
+            using var f = New();
+            var actions = _shell.Actions();
+            var vm = _shell.NewViewModel();
+            _shell.Attach(vm, f, f.Item("fnnas"), actions);
+            ShellAssembly.Set(vm, "SublineGenres", new[] { "动画", "剧情" });
+            using var page = new GenrePageContract(vm);
+            try
+            {
+                page.Paint();
+                Assert.Equal("动画  ·  剧情", page.Text);
+                Assert.Equal(0, page.Links.Count);
+                var read = page.Read();
+                Assert.True(read.Ok, read.Detail);
+                ShellAssembly.Invoke(vm, "OpenGenre", "动画");
+                Assert.Equal(0, actions.Navigation.Count);
+                Assert.Equal(0, f.Transport.Requests.Count);
+                Assert.Equal(0, actions.Messages.Count);
+                return Task.CompletedTask;
+            }
+            finally { ((IDisposable)vm).Dispose(); }
+        });
         foreach (var source in new[] { "emby", "jellyfin" })
             Case($"R-030 真{source}详情链接仍导航原scope并保留跨库路由", async () =>
             {

@@ -331,6 +331,19 @@ internal static class LibraryBrowseTests
                 null, Query(LibrarySection.Genres), default));
             Assert.Equal(0, handler.Requests.Count);
         });
+        Test("能力：跨库题材页只有 Emby 与 Jellyfin 有路，Plex 与飞牛都没有", () =>
+        {
+            // 详情页那一行类型点进去问的是「这个类型下的全部影片和剧集」：Plex 客户端没有这条路，
+            // 飞牛的适配器对 Genre 条件直接抛 NotSupportedException（见 FnNasMediaTests 那一条）。
+            // 这一句是详情页那一行画不画链接的唯一判据，所以四种来源都要钉住。
+            using var handler = new Transport();
+            using var http = new EmbyHttp(handler);
+            foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+                Assert.True(Client(http, kind).Connection.SupportsGenreBrowse, kind + " 应该能按类型浏览");
+            foreach (var kind in new[] { MediaServerKind.Plex, MediaServerKind.FnNas })
+                Assert.False(Client(http, kind).Connection.SupportsGenreBrowse, kind + " 没有跨库题材页");
+            Assert.Equal(0, handler.Requests.Count);
+        });
     }
 
     private static string Labels(string type, MediaServerKind kind) =>

@@ -1235,8 +1235,11 @@ public sealed partial class DetailViewModel : PageViewModel
     [NotifyPropertyChangedFor(nameof(GenreVisibility))]
     public partial IReadOnlyList<string> SublineGenres { get; set; } = [];
 
-    /// <summary>当前客户端未实现 Plex 跨库题材查询；只用详情所属 scope，不借默认管理来源。</summary>
-    internal bool CanOpenGenre => Attached && _scope?.Connection.IsPlex == false;
+    /// <summary>
+    /// 跨库题材页 Plex 客户端未实现、飞牛的适配器对 Genre 条件直接抛不支持，两家都没有这条路；
+    /// 只用详情所属 scope，不借默认管理来源。
+    /// </summary>
+    internal bool CanOpenGenre => Attached && _scope?.Connection.SupportsGenreBrowse == true;
 
     /// <summary>
     /// 点了一个类型：交给外壳开一格「这个类型下的全部影片和剧集」（<see cref="IShellActions.OpenGenre"/>）。
