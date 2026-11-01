@@ -147,7 +147,7 @@ public sealed partial class HomePage : Page, IShellContent
             _ = ViewModel.AutoRefreshAsync();
         };
 
-        // 这一页的三件事都挂在轮播上：剧照一上来就把外壳那 32 像素顶回去（SyncBleed），标题栏那一行的墨
+        // 这一页的三件事都挂在轮播上：剧照一上来就把外壳那 40 像素顶回去（SyncBleed），标题栏那一行的墨
         // 跟着带面走（PaintInk），竖滚动条不从带子上压过去（PlaceScrollBar —— 「滚动条不要延伸到轮播图上，
         // 在下半部分显示就行」，2026-10-01）。三件都只在带子可见时有意义 —— 没有幻灯片时 Apply 会把
         // Visibility 收起来，各条都在那之后重新对一遍。
@@ -316,14 +316,14 @@ public sealed partial class HomePage : Page, IShellContent
 
     /// <summary>
     /// 自检：轮播真铺满了窗口的上半部分 —— 左沿落在窗口左边（0）、右沿吃满窗口宽、上沿顶回到窗口顶边（也就是
-    /// 把外壳留给标题栏的那 32 像素也吃掉，标题栏浮在剧照上）。「占满窗口的上半部分（包括窗口标题）」，2026-09-11。
+    /// 把外壳留给标题栏的那 40 像素也吃掉，标题栏浮在剧照上）。「占满窗口的上半部分（包括窗口标题）」，2026-09-11。
     /// <para>
     /// 量 Banner 自己在窗口里的位置：左、上两条都该贴到 0，右沿也该到 0。下沿与内容之间的界线不在这里量 ——
     /// 那是画面上的渐变过渡，由 HomeBanner 的读数负责。
     /// </para>
     /// <para>
     /// 2026-09-10 到 09-11 之间判的正好相反：「弄个框把轮播图框起来」被落定成四边各留 24 的卡片，那一版要求
-    /// 左、右、上三条都让出 PageInset。谁把 Banner 的负边距删掉（<c>Margin="0,-32,0,0"</c>）、或者给这一页
+    /// 左、右、上三条都让出 PageInset。谁把 Banner 的负边距删掉（<c>Margin="0,-40,0,0"</c>）、或者给这一页
     /// 补回左右留白，这一条当场红。
     /// </para>
     /// </summary>
@@ -348,10 +348,10 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
-    /// 把外壳留给标题栏的那 32 像素顶回来，让剧照铺到窗口的顶边去。这一页是整套里唯一这么干的一页（别的页
-    /// 都把那 32 留白让给标题栏），所以它是这一页自己的事，不是外壳的开关。
+    /// 把外壳留给标题栏的那 40 像素顶回来，让剧照铺到窗口的顶边去。这一页是整套里唯一这么干的一页（别的页
+    /// 都把那 40 留白让给标题栏），所以它是这一页自己的事，不是外壳的开关。
     /// <para>
-    /// 负边距必须落在 Scroller 本身：只把 Banner 往上移，布局坐标虽然到了 0，图片仍被滚动视口在 32 处裁掉。
+    /// 负边距必须落在 Scroller 本身：只把 Banner 往上移，布局坐标虽然到了 0，图片仍被滚动视口在 40 处裁掉。
     /// 连视口一起上移后，图像才真正铺进标题栏。没有幻灯片时归零，普通货架继续让开标题栏。
     /// </para>
     /// <para>
@@ -1032,15 +1032,16 @@ public sealed partial class HomePage : Page, IShellContent
     }
 
     /// <summary>
-    /// <c>ShellPage.xaml</c> 里 <c>ContentHost</c> 给外壳留的那一段（<c>Padding="0,32,0,0"</c>）：标题栏那一行
-    /// 的高。轮播通栏之后这一页要把它顶回去（<see cref="SyncBleed"/>，Banner 挂一条 −32 的上边距），所以这个数
+    /// <c>ShellPage.xaml</c> 里 <c>ContentHost</c> 给外壳留的那一段（<c>Padding="0,40,0,0"</c>）：标题栏那一行
+    /// 的高。轮播通栏之后这一页要把它顶回去（<see cref="SyncBleed"/>，Banner 挂一条 −40 的上边距），所以这个数
     /// 有三份用场：SyncBleed 拿它当那口负边距的大小、BleedRead 拿它写读数、自检那一关
     /// （<c>ShellPage.ProbeChrome</c>）拿它和屏上量出来的外壳高度对一遍 —— 对账要的正是「两边引的是同一个数」。
     /// <para>
-    /// 2026-09-09 起外壳只有标题栏这一行：第 1 行（标签栏删掉后剩下的那条空带）删掉了，这个数从 80 收到 32。
+    /// 2026-09-09 起外壳只有标题栏这一行：第 1 行（标签栏删掉后剩下的那条空带）删掉了，这个数从 80 收到 32；
+    /// 2026-11-01 按钮再下移并放大，标题栏加到 40。
     /// </para>
     /// </summary>
-    internal const double ChromeHeight = 32;
+    internal const double ChromeHeight = 40;
 
     /// <summary>
     /// 自检：the cards this page has actually realised, in tree order. Which row each came from is not

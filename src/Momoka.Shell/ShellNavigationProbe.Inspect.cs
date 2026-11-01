@@ -38,7 +38,7 @@ internal sealed partial class ShellNavigationProbe
         var layout = new Grid();
         layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
         layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        // 顶部留出标题栏那 32 DIP：内容铺到标题栏底下，不留这一截最右两颗按钮会被窗口按钮压住，
+        // 顶部留出标题栏那 40 DIP：内容铺到标题栏底下，不留这一截最右两颗按钮会被窗口按钮压住，
         // 手点时按到的是标题栏。WrapRow 让这排排不下时自动换行（这台机器的副屏只有一千零几十宽）。
         var controls = new WrapRow { Spacing = 8, RowSpacing = 6, Margin = new Thickness(12, 40, 12, 8) };
         var frame = new Frame();

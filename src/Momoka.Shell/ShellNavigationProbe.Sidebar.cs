@@ -183,7 +183,7 @@ internal sealed partial class ShellNavigationProbe
             DumpSidebarLayout(shell, "600 expanded");
             var title = Get<StackPanel>(shell, "TitleActions");
             var account = Get<Button>(shell, "AccountButton");
-            // 账号那一组挪到左下角之后，标题栏那一排不再和它抢地方：整排必须留在标题栏里（不越出那 32），
+            // 账号那一组挪到左下角之后，标题栏那一排不再和它抢地方：整排必须留在标题栏里（不越出那 40），
             // 而账号必须落在窗口下半、栏的左端。
             Require(Top(title, shell) + title.ActualHeight <= HomePage.ChromeHeight + 1,
                 "标题栏那一排被挤出了标题栏");

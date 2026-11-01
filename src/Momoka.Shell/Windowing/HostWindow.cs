@@ -294,7 +294,14 @@ internal sealed class HostWindow : IDisposable
     /// </summary>
     private List<(double X, double Y, double Width, double Height)> _holes = [];
 
-    private const int TitleBarHeight = 32;
+    /// <summary>
+    /// The strip the shell paints its title bar into, in logical pixels. It is the height of the caption and
+    /// passthrough regions this window declares, so it has to stay equal to the shell's row — the row grew
+    /// from 32 to 40 on 2026-11-01 (「再往下移一点，然后再稍微放大一点点」) and the drag area grew with it.
+    /// The framework's own caption buttons keep their standard 32-pixel strip; only the region height and
+    /// the holes declared here follow this number.
+    /// </summary>
+    private const int TitleBarHeight = 40;
     private const int CaptionButtonWidth = 46;
     private const int SystemButtonsWidth = CaptionButtonWidth * 3;
 

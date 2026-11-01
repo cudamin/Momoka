@@ -1927,7 +1927,7 @@ public sealed partial class ShellPage : UserControl, IShellActions
     /// </summary>
     private (double X, double Y, double Width, double Height)? AccountRect()
     {
-        // 侧边栏模式里这一组在左下角、不在标题栏那 32 像素里 —— 报出去就是在一个跟标题栏无关的地方挖洞。
+        // 侧边栏模式里这一组在左下角、不在标题栏那 40 像素里 —— 报出去就是在一个跟标题栏无关的地方挖洞。
         if (SidebarShown) return null;
 
         if (AccountButton.Visibility != Visibility.Visible

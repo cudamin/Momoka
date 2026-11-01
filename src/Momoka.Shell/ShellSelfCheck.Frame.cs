@@ -201,9 +201,12 @@ internal static partial class ShellSelfCheck
         // （页边距从 28 改成 24，见 Theme/Styles.xaml），而从前这里写死的 20 于是掉进了洞里 —— 这一关当场红，
         // 报的是「左端留白 客户区」。一个跟着现场走的数字不会再有第二次。
         // 下限 9 而不是 2：窗口自己那圈缩放边框占着最左边约 8 像素（2026-10-13 实测 x=2 答「左边框」），
-        // 压在上面问到的不是标题栏。侧边栏在屏上时整排从 12 起，9 仍在洞的左边。
+        // 压在上面问到的不是标题栏。侧边栏在屏上时整排从 11 起，9 仍在洞的左边。
         var edge = HitAt(window, Math.Max(9, probe.X / 2), 16);
         var beyond = HitAt(window, probe.X + probe.Width + 40, probe.Y + probe.Height / 2);
+        // 标题栏 2026-11-01 加到 40（按钮下移并放大）：加高的那一段也得是拖动区。取按键下沿往上一像素、
+        // 整排右侧 40 身上那条空带问一次 —— 窗口那边只改了按钮位置、没改 TitleBarHeight 时，这一点会落回客户区。
+        var low = HitAt(window, probe.X + probe.Width + 40, probe.Y + probe.Height - 2);
 
         // 账号那一块：量得到就问三件事 —— 按钮中点得是客户区（不然一按就是拖窗口，这正是它挪进标题栏
         // 要挖第二个洞的理由），窗口留的洞和量出来的矩形对得上，洞左边那一点还得是标题栏（洞开过头把
@@ -243,12 +246,13 @@ internal static partial class ShellSelfCheck
             && centre == Native.HitClient
             && edge == Native.HitCaption
             && beyond == Native.HitCaption
+            && low == Native.HitCaption
             && captionBefore == Native.HitCaption
             && accountOk
             && matched;
 
         return (ok, $"{probe.Detail}；整排中点 {HitName(centre)}、左端留白 {HitName(edge)}、"
-            + $"右侧 40 像素处 {HitName(beyond)}（切播放前 {HitName(captionBefore)}）；{accountNote}；"
+            + $"右侧 40 像素处 {HitName(beyond)}、靠近下沿 {HitName(low)}（切播放前 {HitName(captionBefore)}）；{accountNote}；"
             + $"窗口留的洞 {(holes is { } r ? string.Join("、", r.Select(x => $"({x.X:0},{x.Y:0}) {x.Width:0}×{x.Height:0}")) : "没有")}"
             + $"，{(matched ? "和按键对得上" : "和按键对不上")}");
     }

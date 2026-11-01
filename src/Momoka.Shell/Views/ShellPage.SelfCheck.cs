@@ -113,18 +113,23 @@ public sealed partial class ShellPage
                 && ForwardButton.IsEnabled
                 && TrailBar.Visibility == Visibility.Visible;
 
-            // 位置：整排在标题栏那 32 像素里，左端留白在它左边，页面在它下面。
+            // 位置：整排在标题栏那 40 像素里，左端留白在它左边，页面在它下面。
             var group = At(TitleActions);
             var bar = At(AppTitleBar);
             var places = keys.Select(At).ToArray();
 
+            // 图标外面那层 26 是放大那一步（PathIcon 不缩放几何，见 ShellPage.xaml 的注释）：
+            // 谁把它退回一颗裸 PathIcon，这里量到的就不是 26。
+            var glyph = keys[0].Content as Viewbox;
+            var enlarged = glyph is { ActualWidth: >= 26, ActualHeight: >= 26 };
+
             var sized = TitleActions.ActualWidth > 0 && TitleActions.ActualHeight > 0
                 && keys.All(key => key.ActualWidth > 0 && key.ActualHeight > 0);
 
-            // 在标题栏里：整排从顶部下移 4 像素起（2026-11-01 用户令「左上角的五个按钮往下移一点」），
-            // 28 高的托盘底边正好压在那 32 像素的下沿 —— 既没有越出去，也不是居中（居中会回到 2 像素）。
-            // 左边那段留白留着拖窗口，右边离系统那三个按钮还远。
-            var lowered = Math.Abs(group.Y - (bar.Y + 4)) <= 1;
+            // 在标题栏里：整排从顶部下移 6 像素起（2026-11-01 用户令「再往下移一点，然后再稍微放大一点点」），
+            // 32 高的托盘底边离标题栏下沿 2 像素 —— 既没有越出去，也不是居中。左边那段留白留着拖窗口，
+            // 右边离系统那三个按钮还远。
+            var lowered = Math.Abs(group.Y - (bar.Y + 6)) <= 1;
             var inBar = lowered
                 && group.Y + TitleActions.ActualHeight <= bar.Y + AppTitleBar.Height
                 && group.X > bar.X
@@ -140,10 +145,12 @@ public sealed partial class ShellPage
                 lined &= gap >= 0 && gap <= 8 && Math.Abs(places[index].Y - places[0].Y) < 1;
             }
 
-            var ok = idle && shallow && deep && sized && inBar && lined;
+            var ok = idle && shallow && deep && sized && enlarged && inBar && lined;
 
             return new TitleActionProbe(ok,
-                $"{keys.Length} 颗按键各 {keys[0].ActualWidth:0}×{keys[0].ActualHeight:0}，整排从 ({group.X:0},{group.Y:0}) 起"
+                $"{keys.Length} 颗按键各 {keys[0].ActualWidth:0}×{keys[0].ActualHeight:0}、图标 "
+                    + $"{(glyph is null ? "不是放大框" : $"{glyph.ActualWidth:0}×{glyph.ActualHeight:0}")}，"
+                    + $"整排从 ({group.X:0},{group.Y:0}) 起"
                     + $"，占 {TitleActions.ActualWidth:0}×{TitleActions.ActualHeight:0}，最大间距 {widest:0}；"
                     + $"标题栏 {AppTitleBar.ActualWidth:0}×{AppTitleBar.Height:0}，{(inBar ? "整排在里面" : "整排没落在标题栏里")}；"
                     + $"{(lined ? "依次排成一行" : "没排成一行")}；"
@@ -168,9 +175,10 @@ public sealed partial class ShellPage
     /// 外壳只剩标题栏这一行）。这一关剩下四件事，每一件的坏法在截图里都看不出来：
     /// <list type="number">
     /// <item>那一行在屏上（登录页和播放时整块收起）。</item>
-    /// <item>整条外壳正好 32 高（<c>ChromeHeight</c>）—— 页面顶上让开的那一段就是这个数，少让就是页头被切半行，
-    /// 多让就是图上一条底色，而第 1 行没删干净的样子正是这里多出来的那 48。</item>
-    /// <item>账号那颗按钮贴着右上角（留在系统那三颗窗口按钮左边），而且和左边那一排五颗同在标题栏那 32 像素里
+    /// <item>整条外壳正好 40 高（<c>ChromeHeight</c>）—— 页面顶上让开的那一段就是这个数，少让就是页头被切半行，
+    /// 多让就是图上一条底色，而第 1 行没删干净的样子正是这里多出来的那 48。内容区自己的上内边距也得是同一
+    /// 个数：标题栏加高时只改一边，页面就会被压掉或露出一条底。</item>
+    /// <item>账号那颗按钮贴着右上角（留在系统那三颗窗口按钮左边），而且和左边那一排五颗同在标题栏那 40 像素里
     /// —— 它挪进来是第 1 行删掉的后果，落位错了就压不进挖给它的洞，一按就是拖窗口。</item>
     /// <item>账号那两格字的排法跟着落位走：侧边栏展开那一档两行（用户名在上、服务器名在下），其余各档一行
     /// （「名字 · 服务器」）。</item>
@@ -184,6 +192,9 @@ public sealed partial class ShellPage
         var barAt = At(AppTitleBar);
         var chrome = barAt.Y + AppTitleBar.Height;
         var stacked = Math.Abs(chrome - HomePage.ChromeHeight) <= 0.5;
+        // 页面顶上让开的那一段（ContentHost 的内边距）必须和外壳同高：2026-11-01 标题栏 32→40 时，
+        // 忘掉这一份就会让页面从 y=32 起画、被外壳压掉 8 像素。
+        var padded = Math.Abs(ContentHost.Padding.Top - HomePage.ChromeHeight) <= 0.5;
 
         var accountAt = At(AccountButton);
         var right = accountAt.X + AccountButton.ActualWidth;
@@ -232,12 +243,13 @@ public sealed partial class ShellPage
                 ? arrangement ? "两行：用户名在上、服务器名在下" : "两格字的排法不对（该两行、用户名在上）"
                 : arrangement ? "一行：名字 · 服务器" : "两格字的排法不对（该一行、名字在左）";
 
-        var ok = shown && stacked && corner && arrangement;
+        var ok = shown && stacked && padded && corner && arrangement;
 
         return (ok,
             $"{(shown ? "外壳在屏上" : "外壳收着了")}；"
                 + $"标题栏从 y={barAt.Y:0} 起、高 {AppTitleBar.Height:0}，外壳共 {chrome:0} 高"
-                + $"（该 {HomePage.ChromeHeight:0}{(stacked ? "" : "，对不上")}）；"
+                + $"（该 {HomePage.ChromeHeight:0}{(stacked ? "" : "，对不上")}）"
+                + $"，内容区上内边距 {ContentHost.Padding.Top:0}{(padded ? "" : " 对不上")}；"
                 + $"账号 {(accountShown ? $"{AccountButton.ActualWidth:0}×{AccountButton.ActualHeight:0} 左沿 {accountAt.X:0}／窗口 {ActualWidth:0}×{ActualHeight:0}" : "收着")}"
                 + $"，{(corner ? SidebarShown ? "落在左下角、在侧边栏里" : "贴着右上角、在标题栏里" : "不在它该在的位置")}"
                 + $"，{arrangementText}");

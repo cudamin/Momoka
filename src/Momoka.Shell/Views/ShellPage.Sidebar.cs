@@ -132,13 +132,14 @@ public sealed partial class ShellPage
         SidebarHost.Width = width;
         ContentHost.Margin = new Thickness(width, 0, 0, 0);
 
-        // 标题栏那一排的缩进：侧边栏在屏上时是 12，其余时候是 18（标记里那个值）。12 是「导航开关的字形
-        // 和栏里那几项对齐」算出来的 —— 开关靠左摆、字形宽 24，所以它的中线 = 缩进 + 12；栏里那几项的图标
-        // 中线实测展开时 24（用户 2026-10-13：「关闭导航没和下面对齐」），收成 48 宽的图标栏时框架模板会把它
-        // 再往右挪 2 像素（26）—— 一个数没法两档都精确，取展开那一档，另一档差 2 像素（探针按 3 像素判）。
-        // 12 也把窗口自己那 8 像素缩放边框让开了。上边那 4 像素是 2026-11-01「往下移一点」的落位，
-        // 由 ShellPage.xaml 的 TitleActions 定下，这一处只换左边的缩进，不能把它抹掉。
-        var titleMargin = new Thickness(shown ? 12 : 18, 4, 0, 0);
+        // 标题栏那一排的缩进：侧边栏在屏上时是 11，其余时候是 18（标记里那个值）。11 是「导航开关的字形
+        // 和栏里那几项对齐」算出来的 —— 开关靠左摆、字形宽 26（2026-11-01 从 24 放大到 26），所以它的中线
+        // = 缩进 + 13；栏里那几项的图标中线实测展开时 24（用户 2026-10-13：「关闭导航没和下面对齐」），
+        // 收成 48 宽的图标栏时框架模板会把它再往右挪 2 像素（26）—— 一个数没法两档都精确，取展开那一档，
+        // 另一档差 2 像素（探针按 3 像素判）。11 也把窗口自己那 8 像素缩放边框让开了。上边那 6 像素是
+        // 2026-11-01「再往下移一点」的落位，由 ShellPage.xaml 的 TitleActions 定下，这一处只换左边的缩进，
+        // 不能把它抹掉。
+        var titleMargin = new Thickness(shown ? 11 : 18, 6, 0, 0);
         if (TitleActions.Margin != titleMargin)
         {
             // Moving an unchanged row does not raise SizeChanged. Measure after layout,
@@ -204,7 +205,7 @@ public sealed partial class ShellPage
         {
             AccountCluster.HorizontalAlignment = HorizontalAlignment.Right;
             AccountCluster.VerticalAlignment = VerticalAlignment.Top;
-            AccountCluster.Margin = new Thickness(0, 0, 160, 0);
+            AccountCluster.Margin = new Thickness(0, 4, 160, 0);
             AccountCluster.Padding = new Thickness(0);
             AccountCluster.ColumnSpacing = 0;
             AccountCluster.RowSpacing = 0;
@@ -215,7 +216,7 @@ public sealed partial class ShellPage
             AccountButton.HorizontalContentAlignment = HorizontalAlignment.Left;
             AccountGlyph.Visibility = Visibility.Collapsed;
             AccountText.Visibility = Visibility.Visible;
-            // 标题栏那一档只有 32 像素高：13 号那行自己就 17，再加 12 号那行是 35 —— 装不下，仍旧一行。
+            // 标题栏那一档只有 40 像素高：13 号那行自己就 17，再加 12 号那行是 35 —— 装不下，仍旧一行。
             ApplyAccountText(false);
             AccountMenu.Placement = FlyoutPlacementMode.BottomEdgeAlignedRight;
 
@@ -244,7 +245,7 @@ public sealed partial class ShellPage
     /// </para>
     /// <para>
     /// 一行那一档（标题栏右上角、图标栏）：名字、<c>·</c>、服务器名并排，第 2 列是 <c>*</c>、由服务器名截字 ——
-    /// 标题栏那 32 像素装不下两行（13 号那行自己就 17）。列间距那一档要 8，两行那一档归 0：跨列的两格字
+    /// 标题栏那 40 像素装不下两行（13 号那行自己就 17）。列间距那一档要 8，两行那一档归 0：跨列的两格字
     /// 会把跨过的那两道间距也算进去，白占 16 像素，改由箭头自己留 8。
     /// </para>
     /// </summary>

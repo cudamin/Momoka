@@ -10,7 +10,7 @@
   图右边的媒体库」把右边那一列删了、大图改回铺满整宽。
 
   设置 → 主页 → 「显示主页轮播大图」关掉之后大图整个没有（HomeViewModel 的 _banner），整页就是一叠横着排的普通
-  货架，媒体库也在其中。那一档顶上不再顶掉标题栏那 32 像素，见下面 Scroller 那一段。
+  货架，媒体库也在其中。那一档顶上不再顶掉标题栏那 40 像素，见下面 Scroller 那一段。
 
   Rows that scroll sideways, which is the shape every Emby client uses and the one thing the WinForms
   shell never managed — its home page was the same square grid as a library, so a half-watched episode
@@ -151,14 +151,15 @@
     <!--
       整页就是一个滚动条，第一块是那张铺满的大图。
 
-      这一页从第 32 行起画，和别的页面一样 —— 「红框框出来的地方全填充上海报」那一版把 ContentHost 留给外壳的
-      32 像素顶回去过（HomePage.SyncBleed），2026-09-10「框成卡片」之后连同贴顶一起删了：轮播现在四边都留 24，
-      顶上不再碰标题栏。2026-09-09 起外壳只有标题栏这一行 —— 第 1 行删掉之前这里顶的是 80。
+      这一页从第 40 行起画，和别的页面一样 —— 「红框框出来的地方全填充上海报」那一版把 ContentHost 留给外壳的
+      40 像素顶回去过（HomePage.SyncBleed），2026-09-10「框成卡片」之后连同贴顶一起删了：轮播现在四边都留 24，
+      顶上不再碰标题栏。2026-09-09 起外壳只有标题栏这一行 —— 第 1 行删掉之前这里顶的是 80；2026-11-01 标题栏
+      加到 40（按钮下移并放大），这个负边距跟着走。
 
       进度条和提示条也在滚动条里面，跟着内容一起滚 —— 它们原来在滚动条外面，占着页面顶上的两行；那两行没有别的
       地方可去。两条都自带 12 的下边距，而不是靠 StackPanel.Spacing：收起来的时候它们该一个像素都不占。
     -->
-    <ScrollView x:Name="Scroller" Margin="0,-32,0,0" VerticalScrollBarVisibility="Auto">
+    <ScrollView x:Name="Scroller" Margin="0,-40,0,0" VerticalScrollBarVisibility="Auto">
         <!--
           「收窄首页右边滚动条的背景遮罩」（2026-10-01）：框架那条轨道底跟滚动条一样宽（12 像素），压在
           这一页那张通栏剧照的右端就是一条亮边。EgNarrowScrollBarStyle 把轨道收成中间一条 6 像素，
@@ -190,7 +191,7 @@
 
             <!--
               轮播：通栏（「占满窗口的上半部分（包括窗口标题），下方使用渐变衔接」，2026-09-11）。上沿顶到窗口
-              顶边（即外壳 <c>ContentHost</c> 留给标题栏的那 32 像素也被它吃掉 —— 见 SyncBleed），左右吃满窗口宽；
+              顶边（即外壳 <c>ContentHost</c> 留给标题栏的那 40 像素也被它吃掉 —— 见 SyncBleed），左右吃满窗口宽；
               标题栏（含系统那三颗窗口按钮）浮在剧照上，所以这一页要 SetTitleStrip(TitleStrip.OnScrim)，让那
               一行走固定的浅墨。下沿就是带子自己的硬边（往下探 28 的那条 `Under` 渐变 09-12 按他一句
               「轮播图的下方不用加黑色渐变」删了）。
