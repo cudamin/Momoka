@@ -372,6 +372,11 @@ internal sealed partial class ShellNavigationProbe
                         ResizeProbeClient(1100, 800);
                         await LayoutAsync(page);
                         await SaveProbeScreenAsync("library-movies-recommended-screen.png");
+                        // 服务器推荐那几排在第二屏：滚到底再拍一张，三排都在屏上，靠实图看牌子与卡片。
+                        Get<ScrollViewer>(page, "RecommendedScroll").ChangeView(null, double.MaxValue, null, disableAnimation: true);
+                        await LayoutAsync(page);
+                        await SaveProbeScreenAsync("library-movies-recommended-bottom-screen.png");
+                        Get<ScrollViewer>(page, "RecommendedScroll").ChangeView(null, 0, null, disableAnimation: true);
                         ResizeProbeClient(900, 700);
                         await LayoutAsync(page);
                     }
@@ -843,6 +848,8 @@ internal sealed partial class ShellNavigationProbe
             // 失败之后不走「退出去再进来」：提示条上那颗「重试」重发同一条查询（2026-11-01 审查 F4）。
             var retry = Get<Button>(page, "LibraryRetryButton");
             Require(retry.Visibility == Visibility.Visible, "载入失败没有显示「重试」");
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("library-load-failure-retry-screen.png");
             fixture.Transport.Reply = (request, _) => Task.FromResult(FakeTransport.Standard(request));
             var invokeRetry = FrameworkElementAutomationPeer.CreatePeerForElement(retry)
                 ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
@@ -851,6 +858,8 @@ internal sealed partial class ShellNavigationProbe
             await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
             Require(page.ViewModel.Cards.Count > 0 && page.ViewModel.TotalLabel != "加载失败", "点了重试没有重新载入");
             Require(retry.Visibility == Visibility.Collapsed, "重试成功后「重试」还留在提示条上");
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("library-load-failure-retried-screen.png");
 
             // 文件夹下钻页（2026-11-01 用户令「统一界面」）：网页端 list.html 的头部与工具条。
             // 三种库从「文件夹」点进去都是这一页 —— 父类型 Folder、没有 CollectionType —— 所以单独开一页核对。

@@ -85,6 +85,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     };
     internal CardItem NewCard(EmbyItem item) => new(item, _images, _upcomingCardWidth, wide: true, upcoming: true);
     private void RefreshUpcomingState() { }
+    private void SetPageFailed(bool value) => _pageFailed = value;
     private void RowsArrived() { }
     private void ResetCursor() { _cursor = null; _resumeRead.Clear(); }
     private Task<ItemsResult?> ReadAsync(int start, CancellationToken token) => Read(start, token);
