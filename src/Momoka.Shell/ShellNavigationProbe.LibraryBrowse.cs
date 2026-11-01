@@ -44,13 +44,24 @@ internal sealed partial class ShellNavigationProbe
             var index = path.EndsWith("/Genres", StringComparison.Ordinal) || path.EndsWith("/Studios", StringComparison.Ordinal);
             // 继续观看那一条没有 IncludeItemTypes（它就是 Resume），推荐页那一排装的是单集。
             var resume = path.EndsWith("/Items/Resume", StringComparison.Ordinal);
+            var folders = Query(request, "Recursive") == "false";
             var type = index ? path.EndsWith("/Genres", StringComparison.Ordinal) ? "Genre" : "Studio"
                 : resume ? EmbyItemType.Episode
+                : folders ? EmbyItemType.Folder
                 : (Query(request, "IncludeItemTypes") ?? EmbyItemType.Movie).Split(',')[0];
             var sample = new EmbyItem { Id = "library-sample-" + type, Name = index ? "科幻与动画" : "离线媒体库内容", Type = type };
             // 索引页的两类图各挂各的那一格：类型的四格封面是 Primary，播出平台的台标是 Thumb
             // （本机 4.10.1.0 实测 23 个有图的台全在 Thumb 里）。两格都挂上就分不出卡片到底要的哪一格了。
+            // 文件夹条目照真实服务器：ImageTags 空，封面标记只放在顶层 PrimaryImageTag。
             if (type == EmbyItemType.Studio) sample.ImageTags["Thumb"] = "fixture";
+            else if (folders)
+            {
+                sample.Name = "离线文件夹";
+                sample.IsFolder = true;
+                sample.PrimaryImageTag = "fixture";
+                // 文件夹的封面借自子条目：图片接口必须按这个 Id 去要，拿文件夹自己的 Id 会 404。
+                sample.PrimaryImageItemId = "library-sample-folder-poster";
+            }
             else sample.ImageTags["Primary"] = "fixture";
             if (type == EmbyItemType.Studio) sample.PrimaryImageAspectRatio = 16.0 / 9.0;
             // 推荐页三排卡片底下那两行字要真的能读出来：剧集写年份区间，单集写「SxxExx - 集名」。
@@ -326,8 +337,28 @@ internal sealed partial class ShellNavigationProbe
                     }
                 }
                 await SelectAsync(LibrarySection.Folders);
+                await LayoutAsync(page);
                 Require(fixture.Transport.Requests.Last(value => value.Contains("ParentId", StringComparison.Ordinal)).Contains("Recursive=false", StringComparison.Ordinal), "文件夹被拍平");
                 Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed, "文件夹页还有筛选键");
+                // 网页端文件夹页保留播放与随机播放（BaseListController.supportsPlay 对默认预设为真），
+                // 播放时递归取文件夹里的条目；Momoka 的两颗键据此显示。
+                Require(Get<Button>(page, "PlayAllButton").Visibility == Visibility.Visible
+                    && Get<Button>(page, "PlayRandomButton").Visibility == Visibility.Visible,
+                    $"{collection} 的文件夹页没有按网页端保留播放/随机播放");
+                var folderCard = Descendants(Get<ItemsView>(page, "CardWall")).OfType<PosterCard>()
+                    .FirstOrDefault(card => card.Card?.Item.Id == "library-sample-Folder");
+                Require(folderCard?.Card?.Item.PrimaryImageTag == "fixture",
+                    $"文件夹卡没有读到顶层 PrimaryImageTag 封面（{folderCard?.Card?.Item.Type ?? "无卡"} / "
+                    + $"{folderCard?.Card?.Item.PrimaryImageTag ?? "null"}）");
+                await UntilAsync(() => fixture.Transport.Requests.Any(value =>
+                    value.Contains("/Items/library-sample-folder-poster/Images/Primary", StringComparison.Ordinal)));
+                var wall = Get<ItemsView>(page, "CardWall");
+                var wallLeft = wall.TransformToVisual(page).TransformPoint(new(0, 0)).X;
+                var wallCenter = wallLeft + wall.Padding.Left
+                    + (wall.ActualWidth - wall.Padding.Left - wall.Padding.Right) / 2;
+                var folderCenter = folderCard!.TransformToVisual(page).TransformPoint(new(0, 0)).X + folderCard.ActualWidth / 2;
+                Require(Math.Abs(folderCenter - wallCenter) <= 2,
+                    $"文件夹卡片没有居中（{folderCenter:0} / {wallCenter:0}）");
                 Require(page.ViewModel.SortLabel == "文件名" && !page.ViewModel.SortDescending,
                     $"文件夹默认排序不是文件名升序（{page.ViewModel.SortLabel}）");
                 var folderEntries = page.ViewModel.SortEntries().Select(entry => entry.Option.Label).ToArray();
@@ -348,6 +379,20 @@ internal sealed partial class ShellNavigationProbe
                 await SaveProbeScreenAsync($"library-{collection}-folders-settings-screen.png");
                 page.CloseSettings();
                 await SettleAsync();
+                if (collection == "mixed")
+                {
+                    // 只核对递归取数与调用一次假播放；不让探测器的「禁止播放」异常打断整趟。
+                    fixture.Actions.CapturePlay = (_, _) => { };
+                    var playAll = FrameworkElementAutomationPeer.CreatePeerForElement(Get<Button>(page, "PlayAllButton"))
+                        ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+                    Require(playAll is not null, "文件夹页播放按钮没有可调用的自动化入口");
+                    playAll!.Invoke();
+                    await UntilAsync(() => fixture.Actions.Plays == 1);
+                    Require(fixture.Transport.Requests.Any(value =>
+                        Uri.UnescapeDataString(value).Contains("Recursive=true", StringComparison.Ordinal)
+                        && Uri.UnescapeDataString(value).Contains("IncludeItemTypes=Movie,Episode,Video", StringComparison.Ordinal)),
+                        "文件夹播放没有递归取条目");
+                }
                 await SelectAsync(LibrarySection.Items);
                 var sortLabels = page.BuildSortMenu();
                 Require(page.SortList.Items.Count == sortLabels.Count && sortLabels.Count > 0, "排序菜单没有按条目填满");

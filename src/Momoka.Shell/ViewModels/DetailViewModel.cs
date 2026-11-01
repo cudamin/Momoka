@@ -2694,7 +2694,7 @@ public sealed partial class DetailViewModel : PageViewModel
         {
             var tag = EmbyImageStore.TagFor(item, type);
             if (tag is null || _images!.CaptureScope(item) is not { } scope) return null;
-            return await _images.GetDecodedAsync(scope, item.Id, type, tag,
+            return await _images.GetDecodedAsync(scope, EmbyImageStore.ImageItemId(item, type), type, tag,
                 EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), candidateToken)
                 .ConfigureAwait(true);
         }, token).ConfigureAwait(true);

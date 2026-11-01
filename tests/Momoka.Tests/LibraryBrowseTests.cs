@@ -18,6 +18,16 @@ internal static class LibraryBrowseTests
             Assert.Equal("电影和节目,类型,文件夹", Labels("mixed", MediaServerKind.Emby));
             Assert.Equal(0, LibraryBrowse.Sections("music", MediaServerKind.Emby).Count);
         });
+        Test("混合内容识别：没有 CollectionType 且 Subviews 同时含电影与剧集", () =>
+        {
+            // 网页端 dashboard-ui/videos/videos.js 的 HomeVideosView.getTabs 就是这个判据；
+            // Emby 建混合内容库时把 mixed 写成 null（medialibrarycreator.js）。
+            Assert.True(LibraryBrowse.IsMixedContent(null, ["movies", "series", "genres", "folders"]));
+            Assert.False(LibraryBrowse.IsMixedContent(null, ["movies", "genres", "folders"]));
+            Assert.False(LibraryBrowse.IsMixedContent(null, ["series", "genres", "folders"]));
+            Assert.False(LibraryBrowse.IsMixedContent(null, null));
+            Assert.False(LibraryBrowse.IsMixedContent("movies", ["movies", "series"]));
+        });
         Test("媒体库分类：不支持的服务端入口隐藏", () =>
         {
             // Jellyfin Web 10.10 的标签是另一套：电影有合集、没有文件夹；节目没有收藏与文件夹。

@@ -82,6 +82,19 @@ public static class LibraryBrowse
         })];
     }
 
+    /// <summary>
+    /// Emby 的「混合内容」库：新建时网页端把选中的 mixed 写成 null
+    /// （<c>dashboard-ui/components/medialibrarycreator/medialibrarycreator.js</c>），所以服务器在
+    /// <c>/Views</c> 里报 <c>CollectionType: null</c>。网页端自己的判据是「没有 CollectionType，
+    /// 且 Subviews 同时含 movies 与 series」（<c>dashboard-ui/videos/videos.js</c> 的
+    /// <c>HomeVideosView.getTabs</c>）；Jellyfin 的混合库直接报 "mixed"，不走这一条。
+    /// </summary>
+    public static bool IsMixedContent(string? collectionType, IReadOnlyCollection<string>? subviews) =>
+        collectionType is null
+        && subviews is not null
+        && subviews.Contains("movies", StringComparer.OrdinalIgnoreCase)
+        && subviews.Contains("series", StringComparer.OrdinalIgnoreCase);
+
     public static bool IsIndex(LibrarySection section, string? group) =>
         group is null && section is LibrarySection.Genres or LibrarySection.Studios;
 

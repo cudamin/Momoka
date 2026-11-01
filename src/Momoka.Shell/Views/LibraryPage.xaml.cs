@@ -1555,6 +1555,13 @@ public sealed partial class LibraryPage : Page, IShellContent
             _ => CardLayout
         };
 
+        // 文件夹页只有少量文件夹卡；铺满列的排法会把它们全挤在左边。这一页改成「按卡片原宽、整行居中」，
+        // 其余页仍从左排满（2026-11-01 用户报「文件夹页面……没有居中显示」）。
+        var centerCards = ViewModel.Section == LibrarySection.Folders;
+        CardLayout.ItemsStretch = centerCards ? UniformGridLayoutItemsStretch.None : UniformGridLayoutItemsStretch.Fill;
+        CardLayout.ItemsJustification = centerCards
+            ? UniformGridLayoutItemsJustification.Center : UniformGridLayoutItemsJustification.Start;
+
         // 表格的列头与每一行同一套宽度；换成别的视图就整行收起（一个像素都不占）。
         TableHeader.Visibility = ViewModel.View == LibraryView.Table ? Visibility.Visible : Visibility.Collapsed;
         if (ViewModel.View == LibraryView.Table) BuildTableHeader();

@@ -1,3 +1,13 @@
+## 2026-11-01 混合内容库识别与文件夹页复刻（已提交并交付本机）
+
+- 用户报（附网页与 Momoka 截图）：网页端混合内容库有「电影和节目／类型／文件夹」三栏，Momoka 只显示电视剧、电影两个文件夹；随后报文件夹页不显示海报、没有居中、上方播放/随机播放按钮缺失。
+- 实测服务器（只读，Emby 4.10.1.0）：混合内容库 Id `13269` 的 `CollectionType` 是 **null**，`Subviews` 为 `movies, series, genres, folders`；`/Users/{uid}/Views` 不返回 Subviews，只有按库根条目问才返回。`/Items` 递归查 `Movie,Series,Video` 得到 **98 项**，与网页截图一致。网页判据来自 `dashboard-ui/videos/videos.js` 的 `HomeVideosView.getTabs`（无 CollectionType 且 Subviews 同时含 movies 与 series）；新建库时 `medialibrarycreator.js` 把 mixed 写成 null。文件夹封面另有实测：列表里的 `PrimaryImageTag` 存在，但直接按文件夹 Id 取图 **404**，`PrimaryImageItemId`（这里是 `13173`）取图才 200 image/jpeg。
+- 修法一（识别）：`EmbyItem` 增加 `Subviews`、顶层 `PrimaryImageTag` 兜底与 `PrimaryImageItemId`；`LibraryBrowse.IsMixedContent` 按网页判据识别；`SourceLibraries` 在目录读取时用一次只读 `Items?Ids=…&IncludeItemTypes=CollectionFolder&Fields=Subviews` 补齐，失败不拖垮目录；识别后沿用既有 `mixed` 三栏。默认落在「电影和节目」（与用户给的网页截图一致；网页源码在没有“默认屏幕”偏好时先落文件夹，这是本轮有意按用户可见结果取的差异）。
+- 修法二（文件夹页）：封面 URL 改按 `PrimaryImageItemId` 取（`EmbyImageStore.ImageItemId` 统一供卡片、即将播、详情首图使用）；文件夹页的卡片墙改为 `ItemsStretch=None + ItemsJustification=Center`，少量文件夹卡居中，其余页不变；文件夹页补回「播放／随机播放」，播放时按当前文件夹递归取电影、单集与未识别视频（排序沿用该页）。截图核对：实机与发布件都显示两张文件夹封面、整排居中、播放/随机播放、共 2 项；电影和节目仍为 98 项。
+- 验证：Core 全套 **3520/3520、0 失败 0 跳过**；HomeDirectory R-062 **15/15**；Shell Release 构建 0 警告 0 错误；`dotnet format whitespace --verify-no-changes` 退出 0；开发件库页探针 **19/19、退出 0**（`shell-probe-20261101-043830599-2120`，新增文件夹封面/居中/递归播放请求断言）；发布件同一探针 **19/19、退出 0**（`shell-probe-20261101-045034452-9816`）。
+- 交付：`tools/publish.ps1 -NoArchive` 通过：**546 文件、285.5 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件**；桌面快捷方式指向 `artifacts/publish/win-x64`；旧发布未另存（本轮只刷新当前交付目录）。
+- 未覆盖：没有真实触发文件夹的「播放全部／随机播放」（只用假播放核对递归请求与一次调用）；没有真实服务器写入；未跑完整闸门 1/4；未推 origin。
+
 ## 2026-11-01 去掉跳过后画面上的「已跳过片头: …」提示（已交付本机）
 
 - 用户令（附截图）：跳过成功后的提示不要。

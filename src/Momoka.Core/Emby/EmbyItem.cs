@@ -736,6 +736,19 @@ public sealed class EmbyItem
 
     public string? CollectionType { get; set; }
 
+    /// <summary>
+    /// 封面实际所属的条目。文件夹的封面借自它下面第一个条目，图片接口要按这个 Id 取，拿文件夹自己的 Id
+    /// 会 404（2026-11-01 实测）。普通条目这个字段为空，图片就是它自己。
+    /// </summary>
+    public string? PrimaryImageItemId { get; set; }
+
+    /// <summary>
+    /// 库根条目有哪几面墙（<c>movies</c>、<c>series</c>、<c>genres</c>、<c>folders</c>…）。
+    /// Emby 的 <c>/Users/{id}/Views</c> 不返回它，只有按条目问库根时才带 —— 混合内容库没有
+    /// <see cref="CollectionType"/>，正是靠这份表识别，见 <see cref="LibraryBrowse.IsMixedContent"/>。
+    /// </summary>
+    public List<string>? Subviews { get; set; }
+
     public string? SeriesId { get; set; }
 
     public string? SeriesName { get; set; }
@@ -967,7 +980,18 @@ public sealed class EmbyItem
     /// </summary>
     public string ToPlaybackHeadline() => ToPlaybackTitle();
 
-    public string? PrimaryImageTag => ImageTags.TryGetValue("Primary", out var tag) ? tag : null;
+    private string? _serverPrimaryImageTag;
+
+    /// <summary>
+    /// 封面缓存标记。普通条目放在 <see cref="ImageTags"/> 的 Primary 里，但文件夹条目服务器只发顶层
+    /// <c>PrimaryImageTag</c>、把 ImageTags 留空（2026-11-01 在 4.10.1.0 上实测；混合内容库的
+    /// 电视剧/电影文件夹因此一直没有封面）。setter 是给反序列化接这个顶层字段的，读的时候仍以词典为准。
+    /// </summary>
+    public string? PrimaryImageTag
+    {
+        get => ImageTags.TryGetValue("Primary", out var tag) ? tag : _serverPrimaryImageTag;
+        set => _serverPrimaryImageTag = value;
+    }
 
     public string? ThumbImageTag => ImageTags.TryGetValue("Thumb", out var tag) ? tag : null;
 

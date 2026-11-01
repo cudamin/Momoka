@@ -78,7 +78,7 @@ public static class LibraryUpcoming
     {
         foreach (var type in new[] { EmbyImageStore.Thumb, EmbyImageStore.Primary })
             if (EmbyImageStore.TagFor(item, type) is { Length: > 0 } tag)
-                return new(item.Id, type, tag);
+                return new(EmbyImageStore.ImageItemId(item, type), type, tag);
 
         var inherited = ItemArtwork.Inherited(item);
         foreach (var picture in inherited)

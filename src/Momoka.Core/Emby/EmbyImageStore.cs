@@ -108,13 +108,20 @@ public sealed class EmbyImageStore
     };
 
     /// <summary>
+    /// 图片接口该向哪个条目要这一张图。文件夹的封面借自子条目（<see cref="EmbyItem.PrimaryImageItemId"/>），
+    /// 其余图种仍属于条目自己。
+    /// </summary>
+    public static string ImageItemId(EmbyItem item, string imageType) =>
+        imageType == Primary && item.PrimaryImageItemId is { Length: > 0 } owner ? owner : item.Id;
+
+    /// <summary>
     /// 服务器明说没有这一张（404）时返回 null；取不到（超时、连不上、5xx）时按
     /// <see cref="ImageCachePolicy.RetryDelay"/> 重试几趟，表走完仍失败就把异常交给调用方 —— 「没有」和
     /// 「没取到」必须是两种答案：前者才值得被卡片永久记住，后者过一会儿就该再问。
     /// </summary>
     public Task<byte[]?> GetAsync(EmbyItem item, string imageType, int width, CancellationToken cancellationToken) =>
         TagFor(item, imageType) is { } tag
-            ? GetAsync(_session.Capture(item), item.Id, imageType, tag, width, cancellationToken)
+            ? GetAsync(_session.Capture(item), ImageItemId(item, imageType), imageType, tag, width, cancellationToken)
             : Task.FromResult<byte[]?>(null);
 
     public EmbySessionScope? CaptureScope(EmbyItem? item = null) =>

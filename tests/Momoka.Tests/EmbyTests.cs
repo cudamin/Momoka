@@ -1117,6 +1117,35 @@ internal static class EmbyTests
             Assert.Contains("Status", EmbyFields.Browse);
         });
 
+        Test("条目：文件夹封面读顶层 PrimaryImageTag，普通条目的 ImageTags 优先", () =>
+        {
+            // 实测 4.10.1.0：Folder 条目的 ImageTags 是空的，服务器只把封面标记放在顶层字段；
+            // 没有这一条，混合内容库的电视剧/电影文件夹卡片永远是灰的。
+            var folder = System.Text.Json.JsonSerializer.Deserialize<EmbyItem>(
+                """{"Id":"folder","Type":"Folder","Name":"电视剧","PrimaryImageTag":"folder-tag","PrimaryImageItemId":"child","ImageTags":{}}""",
+                EmbyHttp.Json)!;
+            Assert.Equal("folder-tag", folder.PrimaryImageTag);
+            Assert.Equal("child", EmbyImageStore.ImageItemId(folder, EmbyImageStore.Primary));
+            Assert.Equal("folder", EmbyImageStore.ImageItemId(folder, EmbyImageStore.Thumb));
+
+            var movie = System.Text.Json.JsonSerializer.Deserialize<EmbyItem>(
+                """{"Id":"movie","Type":"Movie","PrimaryImageTag":"legacy","ImageTags":{"Primary":"dictionary"}}""",
+                EmbyHttp.Json)!;
+            Assert.Equal("dictionary", movie.PrimaryImageTag);
+            Assert.Equal("movie", EmbyImageStore.ImageItemId(movie, EmbyImageStore.Primary));
+
+            var roundTrip = System.Text.Json.JsonSerializer.Deserialize<EmbyItem>(
+                System.Text.Json.JsonSerializer.Serialize(new EmbyItem
+                {
+                    Id = "folder",
+                    Type = EmbyItemType.Folder,
+                    PrimaryImageTag = "fixture",
+                    PrimaryImageItemId = "child"
+                }), EmbyHttp.Json)!;
+            Assert.Equal("fixture", roundTrip.PrimaryImageTag);
+            Assert.Equal("child", EmbyImageStore.ImageItemId(roundTrip, EmbyImageStore.Primary));
+        });
+
         Test("条目：章节读出 Emby 的 MarkerType，跳过区间只认这些标记", () =>
         {
             var item = System.Text.Json.JsonSerializer.Deserialize<EmbyItem>(

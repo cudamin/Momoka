@@ -464,8 +464,12 @@ public sealed partial class LibraryViewModel : PageViewModel
     private bool SupportsFilterPanel => IsFnNas || SupportsBrowseConditions;
 
     /// <summary>Whether this grid has anything the player could start, for the two play buttons.</summary>
+    /// <remarks>
+    /// 文件夹页摆的是文件夹本身，它们不可播；可播的东西在下面，播放全部按文件夹递归取（见
+    /// <see cref="ReadFolderPlayablePageAsync"/>），所以这一页只要不是空页就有东西可播。
+    /// </remarks>
     internal bool HasPlayable => _active && SourcesAvailable && _firstPage && !Busy
-        && Cards.Any(card => card.Item.IsPlayable);
+        && (Section == LibrarySection.Folders ? Cards.Count > 0 : Cards.Any(card => card.Item.IsPlayable));
 
     protected override void BusyChanged()
     {
@@ -598,12 +602,15 @@ public sealed partial class LibraryViewModel : PageViewModel
     public string BrowseGroupLabel => _request?.BrowseGroup ?? "";
     /// <summary>
     /// 播放全部与随机播放两颗键在不在。判据是这一页的卡片里有没有能播的：电影库的「影片」、混合内容库的
-    /// 「电影和节目」里的电影、以及「集」那一页都有；电视剧库的「节目」页装的是剧集本身，一集都播不了 ——
-    /// 那种页面上两颗键没有意义，整对收起（原来它们藏在「更多」里，那个菜单 2026-10-17 按用户的话删掉了：
-    /// 菜单里除了这两颗常年灰着的键什么都没有）。
+    /// 「电影和节目」里的电影、以及「集」那一页都有；文件夹页摆的是文件夹本身，可播的内容在下面，按网页端
+    /// 保留这两颗键，播放时递归取文件夹里的条目（见 <see cref="ReadFolderPlayablePageAsync"/>）；
+    /// 电视剧库的「节目」页装的是剧集本身，一集都播不了 —— 那种页面上两颗键没有意义，整对收起
+    /// （原来它们藏在「更多」里，那个菜单 2026-10-17 按用户的话删掉了：菜单里除了这两颗常年灰着的键什么都没有）。
     /// </summary>
     public Visibility DirectPlayVisibility => Show(!IsSectionLibrary
-        || (!IsBrowseIndex && _firstPage && Cards.Any(card => card.Item.IsPlayable)));
+        || (Section == LibrarySection.Folders
+            ? _firstPage && Cards.Count > 0
+            : !IsBrowseIndex && _firstPage && Cards.Any(card => card.Item.IsPlayable)));
     public string TotalLabel => _total < 0 ? _pageFailed ? "加载失败" : "正在加载" : $"共 {_total} 项";
     public string ToolbarSortLabel => SortLabel;
 
@@ -1721,6 +1728,13 @@ public sealed partial class LibraryViewModel : PageViewModel
         var token = BeginLoad();
         try
         {
+            if (Section == LibrarySection.Folders)
+            {
+                var all = await PlayableList.CollectAsync([], true,
+                    (start, ct) => ReadFolderPlayablePageAsync(start, ct),
+                    () => IsCurrent(token), token).ConfigureAwait(true);
+                return (all, token);
+            }
             if (Aggregated)
             {
                 var cursor = NewCursor();
@@ -1739,6 +1753,27 @@ public sealed partial class LibraryViewModel : PageViewModel
         {
             EndLoad(token);
         }
+    }
+
+    /// <summary>
+    /// 文件夹页的播放清单。这一页摆的是文件夹，可播的东西在它们下面；按网页端文件夹页的做法递归问服务器，
+    /// 要电影、单集和未识别视频。排序沿用这一页的排序，翻页照 <see cref="PlayableList"/> 那一套。
+    /// </summary>
+    private async Task<ItemsResult?> ReadFolderPlayablePageAsync(int start, CancellationToken token)
+    {
+        if (_scope is not { IsAvailable: true } scope || _request?.ParentId is not { Length: > 0 } parent)
+            return null;
+        var query = new ItemQuery
+        {
+            ParentId = parent,
+            Recursive = true,
+            IncludeItemTypes = [EmbyItemType.Movie, EmbyItemType.Episode, EmbyItemType.Video],
+            SortBy = SortKey,
+            Descending = SortDescending,
+            StartIndex = start,
+            Limit = Math.Max(50, _settings?.PageSize ?? 50)
+        };
+        return await scope.ExecuteAsync((client, ct) => client.GetItemsAsync(query, ct), token).ConfigureAwait(true);
     }
 
     /// <summary>

@@ -718,7 +718,8 @@ public sealed class CardItem : INotifyPropertyChanged
     /// replaced there has to read as a different picture.
     /// </summary>
     private ArtworkRef? PosterArtwork => _artwork ?? (_imageType is not null
-        && EmbyImageStore.TagFor(_item, _imageType) is { } tag ? new(_item.Id, _imageType, tag) : null);
+        && EmbyImageStore.TagFor(_item, _imageType) is { } tag
+            ? new(EmbyImageStore.ImageItemId(_item, _imageType), _imageType, tag) : null);
 
     private string? PosterKey() =>
         Scope is { } scope && PosterArtwork is { } picture

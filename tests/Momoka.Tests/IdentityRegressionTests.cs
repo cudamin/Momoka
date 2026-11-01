@@ -681,6 +681,56 @@ internal static class IdentityRegressionTests
             Assert.Contains(fixture.A.Account.Username, result.FailedSources[0]);
         });
 
+        Case("混合内容：目录读取按 Subviews 识别无类型库", async () =>
+        {
+            using var fixture = new SessionFixture();
+            fixture.Transport.Reply = (sent, _) =>
+            {
+                if (sent.IsViews)
+                    return Task.FromResult(Json("{\"Items\":[" +
+                        "{\"Id\":\"mix\",\"Name\":\"混合内容\",\"Type\":\"CollectionFolder\"}," +
+                        "{\"Id\":\"plain\",\"Name\":\"普通目录\",\"Type\":\"CollectionFolder\"}]}"));
+                if (sent.Url.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal)
+                    && Uri.UnescapeDataString(sent.Url.Query).Contains("Ids=mix,plain", StringComparison.Ordinal))
+                    return Task.FromResult(Json("{\"Items\":[" +
+                        "{\"Id\":\"mix\",\"Type\":\"CollectionFolder\",\"Subviews\":[\"movies\",\"series\",\"genres\",\"folders\"]}," +
+                        "{\"Id\":\"plain\",\"Type\":\"CollectionFolder\"}]}"));
+                return Task.FromResult(Standard(sent));
+            };
+            await fixture.Session.RestoreAllAsync(None);
+            var result = await SourceLibraries.LoadAsync(fixture.Session, None);
+
+            Assert.Equal(2, result.Items.Count(item => item.Id == "mix"));
+            Assert.True(result.Items.Where(item => item.Id == "mix").All(item => item.CollectionType == "mixed"),
+                "Subviews 同时含电影与剧集的库没有标成 mixed");
+            Assert.True(result.Items.Where(item => item.Id == "plain").All(item => item.CollectionType is null),
+                "没有 Subviews 的库被误标成 mixed");
+            var subviewRequests = fixture.Transport.Sent
+                .Where(sent => sent.Url.AbsolutePath.EndsWith("/Items", StringComparison.Ordinal)).ToArray();
+            Assert.Equal(2, subviewRequests.Length);
+            Assert.True(subviewRequests.All(sent =>
+                Uri.UnescapeDataString(sent.Url.Query).Contains("IncludeItemTypes=CollectionFolder", StringComparison.Ordinal)
+                && Uri.UnescapeDataString(sent.Url.Query).Contains("Fields=Subviews", StringComparison.Ordinal)),
+                "Subviews 请求没有按库根类型查询");
+        });
+
+        Case("混合内容：所有库都有类型时目录不额外问 Subviews", async () =>
+        {
+            using var fixture = new SessionFixture();
+            fixture.Transport.Reply = (sent, _) => Task.FromResult(sent.IsViews
+                ? Json("{\"Items\":[{\"Id\":\"movies\",\"Name\":\"电影\",\"Type\":\"CollectionFolder\",\"CollectionType\":\"movies\"}]}")
+                : Standard(sent));
+            await fixture.Session.RestoreAllAsync(None);
+            foreach (var source in fixture.Session.Sources) fixture.Session.TakeRestoredViews(source);
+            fixture.Transport.Sent.Clear();
+
+            var result = await SourceLibraries.LoadAsync(fixture.Session, None);
+
+            Assert.Equal(2, result.Items.Count);
+            Assert.Equal(2, fixture.Transport.Sent.Count(sent => sent.IsViews));
+            Assert.True(fixture.Transport.Sent.All(sent => sent.IsViews), "有类型的库不该额外请求 Subviews");
+        });
+
         Case("聚合媒体库：退出来源后不再查询该账号", async () =>
         {
             using var fixture = new SessionFixture();
