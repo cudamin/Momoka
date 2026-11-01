@@ -1,4 +1,14 @@
-## 2026-11-01 标题栏五颗按钮下移与主页库排读数改用库总数（已提交、四道闸门、发布 GitHub 与商店包）
+## 2026-11-01 标题栏五颗按钮再下移并放大（提交 `c2449fd`，只交付桌面）
+
+- 用户令（附裁剪截图）：「再往下移一点，然后再稍微放大一点点」；收尾令「交付到桌面就可以」——本批不上 GitHub、不出商店包、不升版本。
+- 改动（Shell）：标题栏 `AppTitleBar` 32→40 高；按钮托盘 28→32、整排从顶下 6 起（上一版是 4）；图标 24→26。`PathIcon` 不缩放几何（`PlayerPage.Chrome` 那条实测），所以放大放在外面那层 26 的 `Viewbox` 上，`PathIcon` 仍按 24 坐标画。图标框从 6–30 移到 9–35（大 2 像素、低 3 像素），整排视觉中心 18→22。账号那一组从顶下 4 起，和系统三颗窗口按钮同一条中线。
+- 标题栏加高牵连：`ContentHost` 上内边距 32→40；`HomePage.ChromeHeight` 32→40、首页通栏 `Scroller` 负边距 −32→−40；`HostWindow.TitleBarHeight` 32→40（拖动区跟着加高）；侧边栏 `NavigationView` 顶部让位 32→40；Toast 顶部 44→52。侧边栏模式下导航开关的横向缩进 12→11，26 宽字形的中线仍在 24，和栏内条目对齐不变。
+- 自检补三处：整排「从顶下 6 起」与图标 26 的断言；`ContentHost.Padding.Top` 必须等于 `ChromeHeight`；加高后的标题栏靠近下沿那一点仍需答「标题栏」（防止只改按钮不改 `TitleBarHeight`）。
+- 验证：Shell Release 构建 **0 警告 0 错误**；Core 全套 **3529/3529、0 失败 0 跳过**；`dotnet format whitespace --verify-no-changes` 退出 0。交付件自检 **187 项、失败 0、消失 0、降级 0、新增 0**（`run-d058855696c64ee896c1ac507e2d7c68`）；「标题栏按键」读数为 `(18,6) 42×32、图标 26×26`，标题栏 40 高，账号 `(754,4)`，四个命中点（整排中点／左端留白／右侧 40／靠近下沿）全部符合，窗口洞与按键矩形对得上。中段两次自检各有一条「媒体信息表格 10 行只画 6／7 行」抖动红；其中一次在**本批之前的 0.2.2 发布件**上同样复现，属既有环境抖动，最终发布件复跑 10/10 通过。
+- 桌面实机截图：`artifacts/ui-review/titlebar-lower-20261101/home-after.png`（1368×906 主页，五颗按钮新落位）与 `before-after-3x.png`（上一版／本版同一区域放大对比）。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 通过：**546 文件、285.5 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件（50 UI／2 native）**；`Momoka.dll` SHA-256 `093542d655c1f7b1e99c48f341b3faf40413acc2c59621f131abdfa407628580`，发布件与开发构建逐字节相同；桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本仍为 0.2.2，GitHub Release 与商店 MSIX 仍是上一批的旧按钮落位，未重打。
+- 未覆盖：`--probe-shell --probe-section shell` 两轮都因桌面上一个置顶播放器窗口遮挡主屏而红（一次报「像素探针窗口被遮挡或移到屏外」，一次报跨断点显隐与侧栏未展开），不是本批代码引起；侧边栏模式本轮没有干净运行态证据，缩进 11 的对齐结论来自计算与既有探针容差。没有真实播放或服务器写入，未推 origin。
+
 
 - 用户令（附两张截图）：①「左上角的五个按钮往下移一点」；②「修复 emby 库和 Jellyfin 库统一显示为 24 项的问题」。收尾令：提交代码、打包发布到 GitHub、生成一个微软商店安装包。
 - 实服只读核对（2026-11-01）：Emby 4.10.1.0 的 `/Users/{uid}/Views` 即使带 `Fields=RecursiveItemCount,ItemCounts` 也不回库总数（RecursiveItemCount／ChildCount／ItemCounts 全 null）；按库页口径 `Items?ParentId=…&Recursive=true&IncludeItemTypes=…` 得 tvshows **55**、movies **43**、mixed（Movie,Series,Video）**98**。Jellyfin 10.10.7：movies **38**、tvshows **142**；混合库 list 页口径（非递归直接子项）**44**，递归 45；`/Views` 的 ChildCount 每次请求随机变化（实测 1～9），不可用。
