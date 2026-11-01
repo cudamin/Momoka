@@ -344,6 +344,12 @@ public static class JellyfinLibrary
     ];
 
     /// <summary>
+    /// Jellyfin 的 list 页：没有 CollectionType 的混合库根与它下面的文件夹。网页端（list.js）对这类页面
+    /// 只列直接子项、不递归，所以「这一页有多少项」问的也是直接子项。
+    /// </summary>
+    public static bool IsListPage(string? collectionType) => collectionType is null or "mixed" or "folders";
+
+    /// <summary>
     /// The filter panel for one tab, in Jellyfin's order: 筛选 (播放状态), status/episode rows when they
     /// apply, 功能, then the dynamic lists and 视频类型. The web client's rows are groups of checkboxes;
     /// <see cref="FilterKind.Checks"/> is the shape that carries them.
@@ -353,7 +359,7 @@ public static class JellyfinLibrary
         // A Jellyfin list page is a mixed-content library root or a folder below one (list.js). Its
         // filter menu is filtermenu.js: four status checks, the server's genres, the six video types,
         // then features. It has no ratings, tags or years rows at all.
-        if (collectionType is null or "mixed" or "folders")
+        if (IsListPage(collectionType))
             return section is LibrarySection.Items or LibrarySection.Favorites
                 ? [ListStatusField, GenresField, ListVideoTypesField, ListFeaturesField]
                 : [];
@@ -457,7 +463,7 @@ public static class JellyfinLibrary
         // A mixed-content root and a folder below it are the same list page; Jellyfin stores the root
         // without a collection type (see Sections). Its view select is the six image types above.
         LibrarySection.Items or LibrarySection.Favorites or LibrarySection.Folders
-            when collectionType is null or "mixed" or "folders" => ListViews,
+            when IsListPage(collectionType) => ListViews,
         _ => [LibraryView.Poster]
     };
 

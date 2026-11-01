@@ -121,9 +121,11 @@ public sealed partial class ShellPage
             var sized = TitleActions.ActualWidth > 0 && TitleActions.ActualHeight > 0
                 && keys.All(key => key.ActualWidth > 0 && key.ActualHeight > 0);
 
-            // 在标题栏里：上下不越出那 32 像素 —— 托盘 26 高，上下各留 3 像素（取等号也算通过，这里只问「没
-            // 越出去」）。左边那段留白留着拖窗口，右边离系统那三个按钮还远。
-            var inBar = group.Y >= bar.Y
+            // 在标题栏里：整排从顶部下移 4 像素起（2026-11-01 用户令「左上角的五个按钮往下移一点」），
+            // 28 高的托盘底边正好压在那 32 像素的下沿 —— 既没有越出去，也不是居中（居中会回到 2 像素）。
+            // 左边那段留白留着拖窗口，右边离系统那三个按钮还远。
+            var lowered = Math.Abs(group.Y - (bar.Y + 4)) <= 1;
+            var inBar = lowered
                 && group.Y + TitleActions.ActualHeight <= bar.Y + AppTitleBar.Height
                 && group.X > bar.X
                 && group.X + TitleActions.ActualWidth <= bar.X + AppTitleBar.ActualWidth;

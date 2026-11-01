@@ -101,7 +101,9 @@
                     <Setter Property="Background" Value="Transparent" />
                     <Setter Property="BorderThickness" Value="0" />
                     <Setter Property="CornerRadius" Value="8" />
-                    <Setter Property="Height" Value="30" />
+                    <!-- 28 高、从标题栏顶下 4 像素起（2026-11-01 用户令「左上角的五个按钮往下移一点」）：
+                         整排底边仍压在标题栏那 32 像素的下沿，图标因此比居中时低 2 像素。 -->
+                    <Setter Property="Height" Value="28" />
                     <Setter Property="Width" Value="42" />
                     <Setter Property="Padding" Value="0" />
                 </Style>
@@ -115,10 +117,10 @@
                  图标继承 Button 前景，主题、高对比度与停用态仍由 PaintTitleInk 统一管理。 -->
             <StackPanel
                 x:Name="TitleActions"
-                Margin="18,0,0,0"
+                Margin="18,4,0,0"
                 Orientation="Horizontal"
                 Spacing="2"
-                VerticalAlignment="Center"
+                VerticalAlignment="Top"
                 HorizontalAlignment="Left">
                 <!-- 导航开关（≡）。2026-10-13：它从侧边栏内部挪到窗口左上角（标题的位置）—— 侧边栏里
                      那颗自带的 ≡ 与这一颗是同一件事，所以框架那颗收掉（Sidebar 的

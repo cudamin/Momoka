@@ -136,8 +136,9 @@ public sealed partial class ShellPage
         // 和栏里那几项对齐」算出来的 —— 开关靠左摆、字形宽 24，所以它的中线 = 缩进 + 12；栏里那几项的图标
         // 中线实测展开时 24（用户 2026-10-13：「关闭导航没和下面对齐」），收成 48 宽的图标栏时框架模板会把它
         // 再往右挪 2 像素（26）—— 一个数没法两档都精确，取展开那一档，另一档差 2 像素（探针按 3 像素判）。
-        // 12 也把窗口自己那 8 像素缩放边框让开了。
-        var titleMargin = new Thickness(shown ? 12 : 18, 0, 0, 0);
+        // 12 也把窗口自己那 8 像素缩放边框让开了。上边那 4 像素是 2026-11-01「往下移一点」的落位，
+        // 由 ShellPage.xaml 的 TitleActions 定下，这一处只换左边的缩进，不能把它抹掉。
+        var titleMargin = new Thickness(shown ? 12 : 18, 4, 0, 0);
         if (TitleActions.Margin != titleMargin)
         {
             // Moving an unchanged row does not raise SizeChanged. Measure after layout,

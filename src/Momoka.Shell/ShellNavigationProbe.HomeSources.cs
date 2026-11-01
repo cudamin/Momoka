@@ -42,6 +42,14 @@ internal sealed partial class ShellNavigationProbe
             if (path.Contains("/Images/", StringComparison.Ordinal))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(poster) });
             if (path.EndsWith("/Items/Latest", StringComparison.Ordinal)) return Task.FromResult(Json(new[] { content }));
+            // 库排读数那一趟（LibraryTotal）：只问总条数。假服务器按库回两个不同的数，读数若还是货架张数就会露馅。
+            if (path.EndsWith("/Items", StringComparison.Ordinal))
+            {
+                var query = request.RequestUri!.Query;
+                var total = query.Contains("ParentId=movies", StringComparison.Ordinal) ? 43
+                    : query.Contains("ParentId=series", StringComparison.Ordinal) ? 55 : 0;
+                return Task.FromResult(Json(new { Items = Array.Empty<object>(), TotalRecordCount = total }));
+            }
             if (path.EndsWith("/Items/Resume", StringComparison.Ordinal) || path.EndsWith("/Shows/NextUp", StringComparison.Ordinal))
                 return Task.FromResult(Json(new { Items = new[] { content } }));
             return Task.FromResult(FakeTransport.Standard(request));
@@ -182,6 +190,13 @@ internal sealed partial class ShellNavigationProbe
                 && all.All(entry => entry.Row.Key != hidden.Key), "主页仍为隐藏来源创建了空货架");
             Require(fixture.Settings.Ui.HomeRows.Single(row => row.Key == hidden.Key).Visible == false,
                 "主页归一化抹掉了隐藏来源偏好");
+
+            // 牌子读数：库的总条目数，不是货架张数（2026-11-01 用户报「主页的电影和电视剧都是 24 项」）。
+            var notes = home.ViewModel.Shelves
+                .Where(shelf => HomeLayout.LibraryId(shelf.HomeKey) is not null)
+                .ToDictionary(shelf => HomeLayout.LibraryId(shelf.HomeKey)!, shelf => shelf.Note);
+            Require(notes.GetValueOrDefault("movies") == "43 项" && notes.GetValueOrDefault("series") == "55 项",
+                "库排读数没有用服务器回的总数：" + string.Join('、', notes.Select(pair => $"{pair.Key}={pair.Value}")));
             foreach (var width in new[] { 1100, 760 })
             {
                 ResizeInspect(width, 980);

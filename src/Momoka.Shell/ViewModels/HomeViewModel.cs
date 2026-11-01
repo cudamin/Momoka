@@ -56,6 +56,17 @@ public sealed partial class HomeViewModel : PageViewModel
     private EmbyImageStore? _images;
     private ISettingsService? _settings;
     private IReadOnlyList<EmbyItem> _libraryViews = [];
+
+    /// <summary>
+    /// 每个库排右端读数用的库总数，按版面钥匙记。读不出来时这里没有那一格，读数退回「这一排装了多少张」。
+    /// <para>
+    /// 从前只有飞牛拿得到库总数（<c>mediadb/sum</c>），Emby／Jellyfin 的牌子上于是写着货架的张数 —— 上限 24，
+    /// 播放量大的库看起来像「库里只有 24 项」（2026-11-01 用户报「主页的电影和电视剧都是 24 项」）。
+    /// 现在两家各问一条 <c>Limit=1</c> 的空查询取 <c>TotalRecordCount</c>，口径见 <see cref="LibraryTotal"/>。
+    /// </para>
+    /// </summary>
+    private IReadOnlyDictionary<string, int> _libraryTotals = new Dictionary<string, int>(StringComparer.Ordinal);
+
     private readonly HomeRefresh _refresh = new();
 
     /// <summary>
@@ -729,6 +740,7 @@ public sealed partial class HomeViewModel : PageViewModel
         // 整个服务器的「最近添加」那一排 2026-09-12 从版面上退役了，但它没有断请求 —— 轮播 2026-09-13 起
         // 单独问一次（见上面 latest）。
         var perLibrary = new Dictionary<string, Task<List<EmbyItem>>>(StringComparer.Ordinal);
+        var libraryTotals = new Dictionary<string, Task<int>>(StringComparer.Ordinal);
         foreach (var (row, shelf) in _all)
         {
             if (!row.Visible || HomeLayout.LibraryId(row.Key) is not { Length: > 0 } id) continue;
@@ -746,6 +758,10 @@ public sealed partial class HomeViewModel : PageViewModel
                     (await client.GetItemsAsync(HomeLatest.SeriesQuery(id, LatestSize), ct).ConfigureAwait(true)).Items,
                     token, source)
                 : FetchAsync(title, (client, ct) => client.GetLatestAsync(id, LatestSize, ct, types), token, source);
+
+            // 牌子右端的读数：库一共有多少项，不是这一排装了多少张（见 _libraryTotals）。
+            if (LibraryTotal.Query(library) is { } countQuery)
+                libraryTotals[row.Key] = FetchTotalAsync(library, countQuery, token, source);
         }
 
         // 定时检查（见 AutoRefreshAsync）的基线也是这一趟记下的：整页重读之后，屏上这一份就是「服务器此刻的
@@ -755,9 +771,13 @@ public sealed partial class HomeViewModel : PageViewModel
             ? ProbeStampsAsync(token)
             : Task.FromResult<Dictionary<string, string>?>(null);
 
-        await Task.WhenAll(perLibrary.Values.Cast<Task>().Append(resume).Append(nextUp).Append(latest).Append(watch)).ConfigureAwait(true);
+        await Task.WhenAll(perLibrary.Values.Cast<Task>()
+            .Concat(libraryTotals.Values)
+            .Append(resume).Append(nextUp).Append(latest).Append(watch)).ConfigureAwait(true);
 
         if (!IsCurrent(token)) return;
+
+        _libraryTotals = libraryTotals.ToDictionary(pair => pair.Key, pair => pair.Value.Result, StringComparer.Ordinal);
 
         if (watch.Result is { } stamps) _watch.Reset(stamps);
 
@@ -782,14 +802,16 @@ public sealed partial class HomeViewModel : PageViewModel
             _ => perLibrary.TryGetValue(key, out var library) ? WithoutMusic(library.Result) : []
         };
 
-        // 飞牛库排的读数用 mediadb/sum 的库总数（见 FnNasMediaAdapter.GetViewsAsync），不是货架张数 ——
-        // 货架上限 24，牌子上写「24 项」会被读成「库里只有 24 项」。
+        // 库排的读数用库的总条目数，不是货架张数 —— 货架上限 24，牌子上写「24 项」会被读成
+        // 「库里只有 24 项」。飞牛读 mediadb/sum（见 FnNasMediaAdapter.GetViewsAsync）；Emby／Jellyfin 读
+        // 本趟问回来的 TotalRecordCount（见 LibraryTotal 与 FetchTotalAsync）。两边都读不出来时退回卡片张数。
         string? LibraryNote(string key)
         {
             if (HomeLayout.LibraryId(key) is not { Length: > 0 }) return null;
             if (_libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == key) is not { } library) return null;
-            return library.Source?.Connection.IsFnNas == true && library.RecursiveItemCount is > 0 and var count
-                ? $"{count} 项" : null;
+            if (library.Source?.Connection.IsFnNas == true && library.RecursiveItemCount is > 0 and var count)
+                return $"{count} 项";
+            return _libraryTotals.TryGetValue(key, out var total) && total > 0 ? $"{total} 项" : null;
         }
 
         // 各媒体库自己那排按版面次序连成的一串。从前轮播的补位从这儿来，2026-09-13 轮播改用整服最近添加
@@ -1073,6 +1095,35 @@ public sealed partial class HomeViewModel : PageViewModel
             foreach (var result in results)
                 if (index < result.Count) items.Add(result[index]);
         return items;
+    }
+
+    /// <summary>
+    /// 库排读数那一趟：只要回包里的 <c>TotalRecordCount</c>。失败回 0，读数退回货架张数（<see cref="LibraryNote"/>）。
+    /// <para>
+    /// 它和 <see cref="FetchSourceAsync"/> 分开：那一趟失败会在屏上弹一条「读取某某失败」，而这一条只是牌子上
+    /// 一个数字的补充，主请求还在、页面也还有内容 —— 为它弹提示条是打扰。失败只记一条 Debug。
+    /// </para>
+    /// </summary>
+    private async Task<int> FetchTotalAsync(EmbyItem library, ItemQuery query, CancellationToken token, EmbySessionScope? source)
+    {
+        var scope = source ?? _scope;
+        if (scope is null) return 0;
+
+        try
+        {
+            if (!Live || !scope.IsAvailable) return 0;
+            var result = await scope.ExecuteAsync((client, ct) => client.GetItemsAsync(query, ct), token).ConfigureAwait(true);
+            return result.TotalRecordCount;
+        }
+        catch (OperationCanceledException)
+        {
+            return 0;
+        }
+        catch (Exception error)
+        {
+            Log.Debug(Category, $"读取「{library.Name}」的库总数失败，牌子退回卡片张数：{error.Message}");
+            return 0;
+        }
     }
 
     private async Task<List<EmbyItem>> FetchSourceAsync(
