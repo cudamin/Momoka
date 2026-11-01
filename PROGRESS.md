@@ -1,3 +1,12 @@
+## 2026-11-01 播放页顶边缩放与首帧比例误判（已提交并交付本机）
+
+- 用户报两条（附一张《死亡笔记》S01E30 截图）：播放页窗口上方拉不动大小；窗口有时不自动裁掉上下黑边。
+- 日志证据（`%LOCALAPPDATA%\Momoka\logs\app-20261101-000003.log`）：09:06:21.466 `播放: 画面比例 0.889（mpv），缩放已联动`，0.889 正是当时 1230×1384 客户区的比例；09:06:27.099 退出全屏时 `按画面比例调整窗口 1246x1392`，16:9 画面上下各留一条黑带。根因是 `dwidth`/`dheight` 在 `playback-restart` 前后仍回落到视频输出尺寸，旧的 `video-params/w` 闸门没能拦住这一拍。顶边一侧 96 dpi 实测：框架只给 4 物理像素 `HTTOP`（左右是 8），窗口被顶到工作区上沿时很难抓住。
+- 改动：`1c16451` 画面比例改读 `video-params/aspect`（缺失时 `w/h + par`），并尊重 `video-aspect-override`；新增 `AspectLock.FromVideoParams` 与源码守卫，确保 `ApplyAspectAsync` 不再读 `dwidth`/`dheight`。`98ba3c3` 播放标题条状态下由 `HostWindow` 自己回答 `WM_NCHITTEST`，顶部 8 物理像素（随 DPI）答上边框/左上/右上；自检的顶边测量从 +1 扩到 +5。
+- 验证：Release Shell 构建 0 警告 0 错误；Core 全套 **3505/3505、0 失败 0 跳过**；`dotnet format whitespace --verify-no-changes` 退出 0。新构建自检与交付件自检都读到 `顶+1 上边框、顶+5 上边框、顶+10 客户区`。「媒体信息表格」仍是已知的 10 行只画 7 行抖动红（与 0.2.1 同一条，见本文件顶部发版记录），未改基线。交付件 `--probe-player-motion work/resize-bars-fixture.mp4 --screen 2` 退出 0，自动断言全过（`player-motion-probe-20261101-014256024-5028`）。
+- 交付：已按用户授权正常关闭运行中的应用，`tools/publish.ps1 -NoArchive` 刷新 `artifacts/publish/win-x64`：**546 文件、285.5 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件**，发布校验通过。桌面快捷方式仍指向该目录。
+- 未覆盖：没有重放真实服务器播放（按播放三档，不拿真实库做夹具）；顶边只验到 `WM_NCHITTEST` 答上边框，没有注入真实鼠标做拖拽；独占模式、外部 mpv.exe 与 uosc 不涉及这两处。未推送 origin。
+
 ## 2026-11-01 发版 0.2.1：GitHub Release 已发布，微软商店等待登录提交
 
 - 起点：master 合入远端 README 更新（`f882edb`）后升版 0.2.1（`eb2b0ce`），并清理 `qoder/search-grouping` 工作树与两个无独有内容的分支。
