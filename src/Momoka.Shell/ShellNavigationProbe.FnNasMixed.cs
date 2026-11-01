@@ -6,6 +6,7 @@ using Momoka.Shell.Views;
 using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace Momoka.Shell;
 
@@ -57,12 +58,17 @@ internal sealed partial class ShellNavigationProbe
                 folder["poster_list"] = new JsonArray(
                     "/poster/fn-folder-1.webp", "/poster/fn-folder-2.webp",
                     "/poster/fn-folder-3.webp", "/poster/fn-folder-4.webp");
+                // 视频文件是 16:9 宽图，竖卡里按官方规则应留边；竖版海报仍裁满。
+                var video = MixedItem("fn-video", "视频", "Video");
+                video["poster_width"] = 1920;
+                video["poster_height"] = 1080;
+                video["media_stream"] = new JsonObject { ["resolutions"] = new JsonArray("1080p") };
                 var all = new[]
                 {
                     MixedItem("fn-movie", "电影", "Movie"),
                     MixedItem("fn-tv", "节目", "TV"),
                     folder,
-                    MixedItem("fn-video", "视频", "Video")
+                    video
                 };
                 var list = types.Length == 0 ? all : all.Where(item => types.Contains(item["type"]!.GetValue<string>())).ToArray();
                 return FnNasEnvelope(new { list, total = list.Length });
@@ -100,6 +106,14 @@ internal sealed partial class ShellNavigationProbe
 
             Require(page.ViewModel.Cards.Count == 4,
                 $"分类为 Movie 的混合库只显示了 {page.ViewModel.Cards.Count} 项，官方 All 应回电影、节目、文件夹、视频四项");
+            var videoCard = page.ViewModel.Cards.Single(card => card.Item.Type == EmbyItemType.Video);
+            var tvCard = page.ViewModel.Cards.Single(card => card.Item.Type == EmbyItemType.Series);
+            Require(videoCard.PosterStretch == Stretch.Uniform,
+                $"竖卡里的 16:9 视频封面应留边，实际 {videoCard.PosterStretch}");
+            Require(tvCard.PosterStretch == Stretch.UniformToFill,
+                $"竖版海报应裁满，实际 {tvCard.PosterStretch}");
+            Require(videoCard.ResolutionText == "1080",
+                $"竖卡里的视频文件没有照官网页端标清晰度：{videoCard.ResolutionText}");
             var folderCard = page.ViewModel.Cards.Single(card => card.Item.Type == EmbyItemType.Folder);
             Require(folderCard.FolderCollage && folderCard.FolderTileCount == 4,
                 $"文件夹卡没有按 poster_list 拼四格：collage={folderCard.FolderCollage} count={folderCard.FolderTileCount}");
@@ -128,6 +142,8 @@ internal sealed partial class ShellNavigationProbe
             Require(uris.Any(uri => uri.StartsWith("/media/v/api/v1/tag/list?ancestor_guid=fn-mix&is_favorite=0", StringComparison.Ordinal)),
                 "混合库筛选没有按 ancestor_guid 问 tag/list：" + string.Join(" | ", uris.Where(uri => uri.Contains("/tag/list", StringComparison.Ordinal))));
             await LayoutAsync(page);
+            var rootCell = page.ViewModel.CellWidth;
+            Require(rootCell > 0, "飞牛库页没有量到格宽");
             await SaveProbeScreenAsync("library-fnnas-mixed-screen.png");
 
             (frame.Content as IShellContent)?.Release();
@@ -161,6 +177,17 @@ internal sealed partial class ShellNavigationProbe
                 "文件夹页筛选没有按 parent_guid 问 tag/list：" + string.Join(" | ", uris.Where(uri => uri.Contains("/tag/list", StringComparison.Ordinal))));
             await LayoutAsync(folder);
             await LayoutAsync(folder);
+            // 封面宽度按库页算：文件夹页此前用 32 边距，同样的窗口会比 Emby 库少排一列、封面大一圈。
+            Require(Math.Abs(folder.ViewModel.CellWidth - rootCell) <= 1,
+                $"文件夹页的封面宽度没有和库页统一（库页 {rootCell:0}，文件夹页 {folder.ViewModel.CellWidth:0}）");
+            var folderVideoCard = folder.ViewModel.Cards.Single(card => card.Item.Type == EmbyItemType.Video);
+            var folderTvCard = folder.ViewModel.Cards.Single(card => card.Item.Type == EmbyItemType.Series);
+            Require(folderVideoCard.PosterStretch == Stretch.Uniform,
+                $"文件夹页里的 16:9 视频封面应留边，实际 {folderVideoCard.PosterStretch}");
+            Require(folderVideoCard.ResolutionText == "1080",
+                $"文件夹页的视频卡没有清晰度角标：{folderVideoCard.ResolutionText}");
+            Require(folderTvCard.PosterStretch == Stretch.UniformToFill,
+                $"文件夹页里的竖版海报应裁满，实际 {folderTvCard.PosterStretch}");
             await SaveProbeScreenAsync("library-fnnas-folder-filter-screen.png");
 
             Require(fixture.Actions.Plays == 0, "飞牛混合库检查意外请求播放");

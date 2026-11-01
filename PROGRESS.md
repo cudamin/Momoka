@@ -1,3 +1,14 @@
+## 2026-11-02 飞牛文件夹竖卡封面按官方留边、清晰度角标与封面宽度统一（已构建、发布并核对本机）
+
+- 用户令（附参考图）：①「布局为竖屏时且图片为21比9时参考上图修改飞牛库文件夹显示的封面」；②「参考emby库封面的大小统一其他库的封面大小」。参考图里 2:3 竖卡中的宽图完整保留、上下留黑，右下角写「1080」。
+- 实服只读核对（0.9.8，未播放、未写入）：BT 文件夹首个子项 `[Studio GreenTea] Ao no Hako S2 [03]…` 带 `poster_width=1920`、`poster_height=1080`、`media_stream.resolutions=["1080p"]`；`parent_guid` + `exclude_grouped_video=1` 仍回 `total=0`，去掉后 47 项（与前一批一致）。
+- 改动（Shell）：`CardItem.PosterStretchFor` 照官网页端 `aB` 判据 —— 图片宽高比在卡片比例的 0.5～1.5 倍之外或接近 1:1 时 contain，否则 cover；只作用于飞牛，16:9／21:9 视频封面在 2:3 竖卡里保留完整画幅。`ResolutionText` 让竖卡里的视频文件也显示清晰度（1080／4K），对应参考图右下角。`LibraryPage.ApplyHeaderLayout` 让所有文件夹下钻页与 Jellyfin list 库页改用库根同一条 20 DIP 页边距：同样 1366 客户端宽下，单元格从 200 收回 172、从 6 列回到 7 列，和 Emby 库封面同宽。
+- 探针：`ShellNavigationProbe.FnNasMixed` 给假视频补 1920×1080 与 `media_stream.resolutions=["1080p"]`，断言库页与文件夹页的视频卡 `PosterStretch=Uniform`、竖版海报仍 `UniformToFill`、清晰度角标为「1080」，并断言文件夹页格宽与库页相差不超过 1 DIP。
+- 验证：全方案 Release 构建 **0 警告 0 错误**；`dotnet format whitespace ./Momoka.sln --verify-no-changes --no-restore` 退出 0；Core **3536/3536、0 失败 0 跳过**。`--probe-shell --probe-section library --screen 1` 五轮均为 **19/20**：新增的飞牛检查全过；唯一红项是既有的主页轮播「多媒体库避让」在 `HomeBannerLibrariesAsync` 第 84 行等 `HorizontalOffset` 归零超时。**上一版发布件（本批改动之前）在同一环境同样红**，因此判为桌面环境/合成抖动而非本批回归；不把该红项写成通过。R046 夹具的 `EmbyItem.cs` 源 hash 因上一批新增 `PosterPaths` 同步一次（README 已记），其余 pins 未动。
+- 实机（真实飞牛账号，只读）：切到飞牛「混合影片」→ BT，文件夹页 **7 列**、封面宽读数 172 DIP（UIA 标题宽），前四张 16:9 封面完整保留并上下留边，视频卡右下角显示「1080」；返回库根同是 7 列、同宽。截图在 `artifacts/ui-review/fnnas-folder-aspect-20261102/`：`folder-bt-7cols-letterbox-1080.png`（改后）、`folder-bt-before-cropped-6cols.png`（改前）、`library-root-7cols.png` 与用户参考图 `reference-user-21x9.png`。应用主窗口在当前会话里屏幕合成是黑的（项目记忆里的黑屏会话），这组图抓自 XAML 岛窗口，不是屏幕裁剪。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 通过：**546 文件、285.6 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件（50 UI／2 native）**；开发件与发布件 `Momoka.dll` SHA-256 同为 `6cbf67b9d7e25e1adb63a0d6fb68f7b469522bfdcdba1f82d1de2ddf66662e13`，桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本仍为 0.2.2，未推 origin。
+- 未覆盖：真实 BT 里的宽图是 16:9，21:9 只有参考图与判据，没有同形状的真实文件可点；没有真实播放、没有服务器写入；主页轮播探针红项未转绿。
+
 ## 2026-11-01 飞牛库内容补全与文件夹封面／下钻（已构建、发布并核对本机）
 
 - 用户报（附官方网页与 Momoka 截图）：飞牛「混合影片」网页 14 项，Momoka 只显示 1 项（仅《死神 千年血战篇 -祸进谭-》）；随后指着 BT 文件夹卡问「这个文件的封面还有里面的内容呢？」。

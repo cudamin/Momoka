@@ -706,8 +706,11 @@ public sealed partial class LibraryPage : Page, IShellContent
         var contentGap = new Thickness(0, 20, 0, 0);
         var pageMargin = (Thickness)Application.Current.Resources["EgPageMargin"];
         // 顶部 32 DIP 供原生窗口按钮使用，再留 8 DIP；去掉搜索标题后内容仍整体上移。
+        // 库根、Jellyfin 的 list 根与所有文件夹下钻页都用库页这 20 边距：卡片宽度是「可用宽 ÷ 列数」，
+        // 同样是 1368 宽的窗口，32 边距会让下钻页从 7 列掉成 6 列、封面比 Emby 库大一档
+        // （2026-11-01 用户令「参考 emby 库封面的大小统一其他库的封面大小」）。
         PageRoot.Margin = search ? new Thickness(pageMargin.Left, 40, pageMargin.Right, pageMargin.Bottom)
-            : sectionLibrary || fnNasRoot ? new Thickness(20) : pageMargin;
+            : sectionLibrary || fnNasRoot || folderDrillDown || jellyfinList ? new Thickness(20) : pageMargin;
         PageRoot.RowSpacing = search ? 0 : contentPage ? 4 : headerByMargin ? 0 : 20;
         HeaderGrid.RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
         HeaderLayout.RowSpacing = search || headerByMargin ? 0 : sectionLibrary ? 12 : 20;

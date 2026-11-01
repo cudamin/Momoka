@@ -309,7 +309,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _fnNasWide = fnNasWide;
         _cardLayout = cardLayout;
         _episodeFrame = episodeFrame && item.Type == EmbyItemType.Episode;
-        PosterStretch = containArtwork || fnNasWide ? Stretch.Uniform : Stretch.UniformToFill;
+        PosterStretch = PosterStretchFor(item, aspect, wide, containArtwork, fnNasWide);
         _note = note;
         _indicators = indicators;
         _sourceLine = sourceLine;
@@ -410,6 +410,27 @@ public sealed class CardItem : INotifyPropertyChanged
         return (index / 2, index % 2, 1, 1);
     }
 
+    /// <summary>
+    /// 官方列表卡片的 object-cover 判据（前端 <c>aB</c>）：1:1 不裁；图片宽高比在卡片比例的
+    /// 0.5～1.5 倍之外就留边（contain），否则裁满。飞牛文件夹里的 16:9／21:9 视频封面因此保留完整画幅，
+    /// 不再被 2:3 卡裁掉两侧；普通 2:3 海报仍裁满。别的服务器保持原行为。
+    /// </summary>
+    private static Stretch PosterStretchFor(EmbyItem item, double? aspect, bool wide, bool containArtwork, bool fnNasWide)
+    {
+        if (containArtwork || fnNasWide) return Stretch.Uniform;
+        if (item.Source?.Connection.IsFnNas != true || item.PrimaryImageAspectRatio is not { } imageAspect
+            || !double.IsFinite(imageAspect) || imageAspect <= 0)
+            return Stretch.UniformToFill;
+
+        if (Math.Abs(imageAspect - 1) <= 0.03) return Stretch.Uniform;
+        // aspect 存的是高 ÷ 宽（见 _aspect），官方判据要的是宽 ÷ 高。
+        var cardAspect = aspect is { } heightOverWidth and > 0
+            ? 1 / heightOverWidth
+            : wide ? 16d / 9d : 2d / 3d;
+        return imageAspect >= cardAspect * 0.5 && imageAspect <= cardAspect * 1.5
+            ? Stretch.UniformToFill : Stretch.Uniform;
+    }
+
     /// <summary>搜索页的单集卡：<see cref="PosterCard"/> 画强调色粗框，其余卡片没有框线。</summary>
     public bool EpisodeFrame => _episodeFrame;
     public Thickness FrameMargin => FolderFrame ? new Thickness(0, 7, 0, 0) : new Thickness(0);
@@ -427,8 +448,12 @@ public sealed class CardItem : INotifyPropertyChanged
 
     public Visibility RatingVisibility => Show(RatingText.Length > 0);
 
-    /// <summary>右下角的清晰度，取列表自带的档位，至多两档。</summary>
-    public string ResolutionText => _fnNasWide ? FnNasResolution(_item.Resolutions) : "";
+    /// <summary>
+    /// 右下角的清晰度，取列表自带的档位，至多两档。横卡一直有；竖卡里的视频文件也写 ——
+    /// 官网页端在文件条目上就这么标（2026-11-01 用户参考图里的 1080），剧集与电影卡不抢这个角。
+    /// </summary>
+    public string ResolutionText => _fnNasWide || _item.Type == EmbyItemType.Video
+        ? FnNasResolution(_item.Resolutions) : "";
 
     public Visibility ResolutionVisibility => Show(ResolutionText.Length > 0);
 
