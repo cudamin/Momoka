@@ -21,6 +21,18 @@ internal static class LibraryEpisodeFolderTests
             Assert.Equal(LibrarySortCatalog.Filename, LibrarySortCatalog.Default("tvshows", LibrarySection.Folders).Value);
             Assert.False(LibrarySortCatalog.Default("tvshows", LibrarySection.Folders).DescendingByDefault);
         });
+        Test("文件夹下钻：没有库类型时仍按文件夹目录，默认文件名升序", () =>
+        {
+            // 网页端 listcontroller.getDefaultSorting：folders 上下文且父条目是 Folder／CollectionFolder 时，
+            // 默认取 Filename；菜单也是文件夹那一份，与混合内容库的「文件夹」分区相同。
+            var fallback = LibrarySortCatalog.Default(null, LibrarySection.Folders);
+            Assert.Equal(LibrarySortCatalog.Filename, fallback.Value);
+            Assert.Equal("文件名", fallback.Label);
+            Assert.False(fallback.DescendingByDefault);
+            Assert.Equal(
+                "上次添加内容日期,专辑,专辑艺人,作曲家,分辨率,加入日期,发行日期,媒体容器,家长评分,导演,帧率,年份,影评人评分,播放日期,播放时长,播放次数,文件名,文件尺寸,标题,比特率,社区评分,编号,艺人,视频编解码器,随机",
+                string.Join(',', LibrarySortCatalog.For(null, LibrarySection.Folders, new Version(4, 10, 1)).Select(option => option.Label)));
+        });
         Test("电视集：筛选行与分组逐项匹配参考图", () => Assert.Equal(
             "播放状态,收藏,重制,类型,工作室,年份,媒体容器,视频编解码器,视频类型,分辨率,3D,音频编解码器,音频布局,音频语言,字幕,字幕编解码器,字幕语言,预告片,附加篇,主题曲,主题视频,已锁定,概要,IMDb Id,Tvdb Id,MovieDb Id",
             string.Join(',', EmbyFilterBy.For(EmbySortPreset.Episode, new Version(4, 10, 1)).Select(field => field.Label))));

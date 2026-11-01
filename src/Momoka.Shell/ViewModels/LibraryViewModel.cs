@@ -469,7 +469,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <see cref="ReadFolderPlayablePageAsync"/>），所以这一页只要不是空页就有东西可播。
     /// </remarks>
     internal bool HasPlayable => _active && SourcesAvailable && _firstPage && !Busy
-        && (Section == LibrarySection.Folders ? Cards.Count > 0 : Cards.Any(card => card.Item.IsPlayable));
+        && (Section == LibrarySection.Folders || IsFolderDrillDown
+            ? Cards.Count > 0
+            : Cards.Any(card => card.Item.IsPlayable));
 
     protected override void BusyChanged()
     {
@@ -565,6 +567,31 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal string? CollectionType => _request?.CollectionType;
 
     internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, CollectionType: "movies" or "tvshows" or "mixed", IsSearch: false };
+
+    /// <summary>
+    /// 从任一媒体库的「文件夹」点进一个文件夹后的那一页。网页端这一页是 <c>list.html</c>：顶栏是
+    /// 返回键加文件夹名，工具条居中，默认按文件名升序，筛选与视图设置都在。
+    /// <para>
+    /// 默认排序出自 <c>dashboard-ui/modules/tabbedview/listcontroller.js</c> 的
+    /// <c>getDefaultSorting</c>：folders 上下文且父条目是 CollectionFolder／Folder 时取
+    /// <c>Filename</c>；菜单与「文件夹」分区共用 <see cref="LibrarySortCatalog"/> 那二十五项
+    /// （<c>dashboard-ui/list/list.html</c> 的 btnSort／btnFilter／btnViewSettings）。
+    /// </para>
+    /// </summary>
+    internal bool IsFolderDrillDown => _request is
+    {
+        IsSearch: false, ParentId.Length: > 0,
+        ParentType: EmbyItemType.Folder or EmbyItemType.CollectionFolder,
+        Row: null, Genre: null, PersonId: null
+    }
+    && !IsSectionLibrary;
+
+    /// <summary>排序菜单与默认值取哪一页的表：文件夹下钻页与「文件夹」分区是同一份。</summary>
+    private LibrarySection SortSection => IsFolderDrillDown ? LibrarySection.Folders : Section;
+
+    /// <summary>这一页的排序用库级目录（逐库、逐分区配置）而不是通用目录。</summary>
+    private bool UsesLibrarySortCatalog => IsSectionLibrary || IsFolderDrillDown;
+
     internal LibrarySection Section => _request?.Section ?? LibrarySection.Items;
     internal bool IsBrowseIndex => IsSectionLibrary && LibraryBrowse.IsIndex(Section, _request!.BrowseGroup);
 
@@ -585,7 +612,7 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     public Visibility ToolbarVisibility => Show(HasToolbar);
     /// <summary>Emby 那颗齿轮里的分组与显示字段对飞牛不生效，飞牛改用官网页端的「布局」两项。</summary>
-    public Visibility SettingsVisibility => Show(IsSectionLibrary && HasToolbar && !IsFnNas && !IsJellyfin);
+    public Visibility SettingsVisibility => Show((IsSectionLibrary || IsFolderDrillDown) && HasToolbar && !IsFnNas && !IsJellyfin);
     public Visibility LayoutVisibility => Show(IsFnNas && HasToolbar && !IsResumePage && !Aggregated && !IsBrowseIndex
         && Section != LibrarySection.Folders);
 
@@ -1602,7 +1629,8 @@ public sealed partial class LibraryViewModel : PageViewModel
 
         return
         [
-            .. (IsSectionLibrary ? LibrarySortCatalog.For(_request.CollectionType, Section, SourceServerVersion)
+            .. (UsesLibrarySortCatalog
+                    ? LibrarySortCatalog.For(_request.CollectionType, SortSection, SourceServerVersion)
                     : EmbySortBy.For(preset, SourceServerVersion))
                 .Where(option => SupportsSort(option.ValueOf(preset)))
                 .Select(option => new SortEntry(option, option.ValueOf(preset) == SortKey, SortDescending))
@@ -1728,7 +1756,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         var token = BeginLoad();
         try
         {
-            if (Section == LibrarySection.Folders)
+            if (Section == LibrarySection.Folders || IsFolderDrillDown)
             {
                 var all = await PlayableList.CollectAsync([], true,
                     (start, ct) => ReadFolderPlayablePageAsync(start, ct),
@@ -2231,8 +2259,11 @@ public sealed partial class LibraryViewModel : PageViewModel
         }
 
         var preset = SortPreset;
-        var fallback = IsSectionLibrary ? LibrarySortCatalog.Default(request.CollectionType, Section) : EmbySortBy.Default(preset);
-        var options = IsSectionLibrary ? LibrarySortCatalog.For(request.CollectionType, Section, SourceServerVersion)
+        var fallback = UsesLibrarySortCatalog
+            ? LibrarySortCatalog.Default(request.CollectionType, SortSection)
+            : EmbySortBy.Default(preset);
+        var options = UsesLibrarySortCatalog
+            ? LibrarySortCatalog.For(request.CollectionType, SortSection, SourceServerVersion)
             : EmbySortBy.For(preset, SourceServerVersion);
 
         if (!SupportsSort(fallback.ValueOf(preset))) fallback = EmbySortBy.Default(preset);

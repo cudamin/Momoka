@@ -689,11 +689,13 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         var search = _request?.IsSearch == true;
         var sectionLibrary = ViewModel.IsSectionLibrary;
+        var folderDrillDown = ViewModel.IsFolderDrillDown;
         var contentPage = ViewModel.IsUpcomingPage || ViewModel.IsFavoritesPage;
         // 分区库（Emby／Jellyfin／飞牛）的头部有一批只在特定状态下出现的行：浏览分组、筛选条、状态条、
         // 搜索分类栏、飞牛的筛选面板。Grid 的 RowSpacing 连收起的行也照算，工具栏到封面因此空出 100 像素。
         // 这一档把这些间距改由元素自己的外边距表达：行收起就一个像素不占，显示时仍是原来的 12／16。
-        var headerByMargin = sectionLibrary && !contentPage;
+        // 文件夹下钻页同理：页内大标题收起，工具条是头部唯一的一行。
+        var headerByMargin = (sectionLibrary && !contentPage) || folderDrillDown;
         var contentGap = new Thickness(0, 20, 0, 0);
         var pageMargin = (Thickness)Application.Current.Resources["EgPageMargin"];
         // 顶部 32 DIP 供原生窗口按钮使用，再留 8 DIP；去掉搜索标题后内容仍整体上移。
@@ -716,19 +718,22 @@ public sealed partial class LibraryPage : Page, IShellContent
         EmbyContent.Margin = headerByMargin ? contentGap : searchGap;
         MoviePilotPanel.Margin = MoviePilotResources.Margin = AniBtPanel.Margin = searchGap;
         LibraryBusyBar.Margin = LibraryNoticeBar.Margin = headerByMargin ? contentGap : searchGap;
-        LibraryTitle.Visibility = search ? Visibility.Collapsed : Visibility.Visible;
-        LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
+        // 文件夹下钻页的面包屑已经写着「媒体库 > 文件夹名」，网页端 list.html 也把这一行放在顶栏里，
+        // 页内不再重复一道大标题；标题收起后工具条独占头部，居中摆放。
+        LibraryTitle.Visibility = search || folderDrillDown ? Visibility.Collapsed : Visibility.Visible;
+        LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary || folderDrillDown ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
         LibrarySectionsSurface.MaxWidth = width;
         LibrarySectionsSurface.HorizontalAlignment = HorizontalAlignment.Center;
         Grid.SetRow(LibrarySectionsSurface, 1);
         Grid.SetColumn(LibrarySectionsSurface, 0);
         Grid.SetColumnSpan(LibrarySectionsSurface, 2);
-        ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right : sectionLibrary ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-        Toolbar.CenterRows = sectionLibrary;
+        ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right
+            : sectionLibrary || folderDrillDown ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        Toolbar.CenterRows = sectionLibrary || folderDrillDown;
         Grid.SetRow(SearchSurface, search ? 0 : 1);
         Grid.SetRow(LibraryTitle, 0);
         Grid.SetColumnSpan(LibraryTitle, search ? 1 : 2);
-        Grid.SetRow(ToolbarSurface, search ? 0 : sectionLibrary ? 2 : 1);
+        Grid.SetRow(ToolbarSurface, search || folderDrillDown ? 0 : sectionLibrary ? 2 : 1);
         LibraryTitle.MaxWidth = width;
         ToolbarSurface.MaxWidth = width;
         if (!search) return;

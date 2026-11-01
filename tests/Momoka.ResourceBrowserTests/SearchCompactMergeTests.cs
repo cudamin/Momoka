@@ -110,7 +110,7 @@ internal static class SearchCompactMergeTests
             Assert.Equal("{x:Bind local:LibraryPage.BrowseHintVisibility(ViewModel.SearchVisibility), Mode=OneWay}",
                 title.Attribute("Visibility")?.Value);
             var source = File.ReadAllText(Path.Combine(sourceRoot, "src/Momoka.Shell/Views/LibraryPage.xaml.cs"));
-            Assert.Contains("LibraryTitle.Visibility = search ? Visibility.Collapsed : Visibility.Visible", source);
+            Assert.Contains("LibraryTitle.Visibility = search || folderDrillDown ? Visibility.Collapsed : Visibility.Visible", source);
             Assert.Contains("Grid.SetRow(SearchSurface, search ? 0 : 1)", source);
             Assert.DoesNotContain("HeaderTitle(", source);
         });

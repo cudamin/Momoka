@@ -1,3 +1,14 @@
+## 2026-11-01 文件夹下钻页统一成网页端 list.html（已构建、发布并核对本机）
+
+- 用户令（附 Momoka 与两张网页截图）：混合内容「文件夹 → 电视剧」页照网页端复刻；随后「顺便把主页-电视界面-文件夹和主页-电影-文件夹也改一下」「统一界面」。
+- 网页依据：文件夹列表页是 `dashboard-ui/list/list.html`，数量与按钮容器 `itemsViewSettingsContainer` 居中（btnPlay／btnShuffle／btnSort／btnFilter／btnViewSettings）；`dashboard-ui/modules/tabbedview/listcontroller.js` 的 `getDefaultSorting` 对 folders 上下文且父条目为 CollectionFolder／Folder 默认取 `Filename`（升序）。`Folderstab.getVisibleFilters()` 为空，所以库里的「文件夹」标签本身没有筛选；下钻的 list 页才有。
+- 改动：`LibraryViewModel.IsFolderDrillDown` 认父类型 Folder／CollectionFolder、无 CollectionType／搜索／Row／Genre／Person 的页面；这类页的排序目录改用 `LibrarySortCatalog` 的文件夹那份（默认文件名升序、二十五个键），筛选与「⋯」视图设置恢复显示；播放／随机播放按文件夹递归取电影、单集与视频（`HasPlayable`、`PlayableItemsAsync`）。`LibraryPage.ApplyHeaderLayout` 在文件夹下钻页收起页内大标题（面包屑即标题）、工具条居中并独占头部，工具栏到封面保留 20 像素。
+- 真实服务器只读核对（Emby 4.10.1.0）：混合内容的「电视剧」「电影」与电影库的物理文件夹都是 `Type=Folder`；电视库的「文件夹」标签返回 `Type=Series`（点进去是剧详情页），所以电视库没有文件夹下钻页，但该标签本身与电影／混合内容共用同一套居中工具条（数量、播放、随机播放、文件名、⋯；无筛选）。
+- 测试与探针：Core 全套 **3521/3521、0 失败 0 跳过**（新增「文件夹下钻：没有库类型时仍按文件夹目录，默认文件名升序」）；`Momoka.ResourceBrowserTests` **174/174**；Shell Release 构建 **0 警告 0 错误**；改动的五个 C# 文件 `dotnet format whitespace --verify-no-changes` 退出 0。库页探针新增文件夹下钻页断言（标题收起、工具条居中、文件名、筛选、⋯、递归播放），开发件 **19/19、退出 0**（`shell-probe-20261101-052456892-25448`），发布件同一探针 **19/19、退出 0**（`shell-probe-20261101-053259724-25008`），保存 `library-folder-drilldown-{1100,760}-screen.png`。
+- 实屏：真实账号、真实库只读导航（未播放、未写服务器）截了五张，存 `artifacts/ui-review/folder-drilldown-20261101/`：混合内容「电视剧」共 56 项、混合内容「电影」共 44 项、电影库文件夹下钻页、电视库「文件夹」标签、电影库「文件夹」标签。下钻页工具条均居中、文件名升序、筛选与⋯在位；页内大标题已收起，只剩「混合内容 › 电视剧」面包屑。
+- 交付：`tools/publish.ps1 -NoArchive` 通过：**546 文件、285.5 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件、50 UI／2 native**；`Momoka.dll` SHA-256 `1ed3d67016688b98da91910d7ac11a3b5550009ffbf67b453ac7390cdecd3568`，发布件与开发构建逐字节相同；桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。
+- 未覆盖／已知红：没有真实播放（只读导航与假播放核对递归请求）；未跑完整闸门 1／4；未推 origin。完整方案 Release 构建在**与本批无关**的 `Momoka.NaturalContinuationCallerTests` 上停于 `R046 SOURCE_HASH_MISMATCH src/Momoka.Shell/ViewModels/PlayerViewModel.Transport.cs`（该文件本批未改，源哈希基线停留在 2026-10-28 的 `SourcePins.json`），没有为凑绿去改这个基线。
+
 ## 2026-11-01 混合内容库识别与文件夹页复刻（已提交并交付本机）
 
 - 用户报（附网页与 Momoka 截图）：网页端混合内容库有「电影和节目／类型／文件夹」三栏，Momoka 只显示电视剧、电影两个文件夹；随后报文件夹页不显示海报、没有居中、上方播放/随机播放按钮缺失。

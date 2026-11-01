@@ -797,6 +797,83 @@ internal sealed partial class ShellNavigationProbe
             fixture.Transport.Reply = (_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError));
             await page.ViewModel.ChooseSectionAsync(LibrarySection.Episodes);
             Require(page.ViewModel.Cards.Count == 0 && page.ViewModel.TotalLabel == "加载失败", "分类载入失败仍冒充旧列表或加载中");
+
+            // 文件夹下钻页（2026-11-01 用户令「统一界面」）：网页端 list.html 的头部与工具条。
+            // 三种库从「文件夹」点进去都是这一页 —— 父类型 Folder、没有 CollectionType —— 所以单独开一页核对。
+            // 文件夹里放一部剧：它自己不可播，播放全部必须按网页端递归取它下面的条目。
+            fixture.Transport.Reply = (request, _) =>
+            {
+                if (request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(poster) });
+                if (Query(request, "ParentId") == "folder-drill")
+                {
+                    var recursive = Query(request, "Recursive") == "true";
+                    var item = recursive
+                        ? new EmbyItem { Id = "folder-drill-movie", Name = "文件夹里的电影", Type = EmbyItemType.Movie }
+                        : new EmbyItem { Id = "folder-drill-series", Name = "文件夹里的剧集", Type = EmbyItemType.Series, ProductionYear = 2020 };
+                    item.ImageTags["Primary"] = recursive ? "fixture-movie" : "fixture";
+                    return Task.FromResult(Json(new { Items = new[] { item }, TotalRecordCount = 1 }));
+                }
+                return Task.FromResult(FakeTransport.Standard(request));
+            };
+            page?.Release();
+            frame.Navigate(typeof(LibraryPage), new LibraryRequest
+            {
+                Services = fixture.Services,
+                Title = "离线文件夹",
+                ParentId = "folder-drill",
+                ParentType = EmbyItemType.Folder
+            });
+            page = (LibraryPage)frame.Content;
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            Require(page.ViewModel.IsFolderDrillDown, "父类型 Folder 的页面没有按文件夹下钻页处理");
+            Require(Get<TextBlock>(page, "LibraryTitle").Visibility == Visibility.Collapsed,
+                "文件夹下钻页仍显示页内大标题；网页端标题在顶栏里，页内不再重复");
+            Require(Get<TextBlock>(page, "LibraryItemCount").Text == "共 1 项", "文件夹下钻页总数未更新");
+            Require(page.ViewModel.SortKey == LibrarySortCatalog.Filename && page.ViewModel.SortLabel == "文件名"
+                && !page.ViewModel.SortDescending,
+                $"文件夹下钻页默认排序不是文件名升序（{page.ViewModel.SortLabel}）");
+            Require(string.Join(',', page.ViewModel.SortEntries().Select(entry => entry.Option.Label)) == FolderSortLabels,
+                "文件夹下钻页排序菜单与文件夹分区不同");
+            await LayoutAsync(page);
+            var folderToolbar = Get<Grid>(page, "ToolbarSurface");
+            var folderToolbarBox = folderToolbar.TransformToVisual(page)
+                .TransformBounds(new(0, 0, folderToolbar.ActualWidth, folderToolbar.ActualHeight));
+            Require(Math.Abs(folderToolbarBox.Left + folderToolbarBox.Width / 2 - page.ActualWidth / 2) <= 2,
+                "文件夹下钻页工具栏没有居中");
+            Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Visible,
+                "文件夹下钻页没有筛选键（网页端 list.html 的 btnFilter）");
+            Require(Get<Button>(page, "LibrarySettingsButton").Visibility == Visibility.Visible,
+                "文件夹下钻页没有视图设置键（网页端 list.html 的 btnViewSettings）");
+            Require(Get<Button>(page, "PlayAllButton").Visibility == Visibility.Visible
+                && Get<Button>(page, "PlayRandomButton").Visibility == Visibility.Visible,
+                "文件夹下钻页没有按网页端保留播放/随机播放");
+            var folderSettings = FrameworkElementAutomationPeer.CreatePeerForElement(Get<Button>(page, "LibrarySettingsButton"))
+                ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+            Require(folderSettings is not null, "文件夹下钻页设置入口没有可调用的自动化入口");
+            folderSettings!.Invoke();
+            await SettleAsync();
+            Require(Get<Grid>(page, "SettingsOverlay").Visibility == Visibility.Visible, "文件夹下钻页设置面板没有打开");
+            page.CloseSettings();
+            await SettleAsync();
+            fixture.Actions.CapturePlay = (_, _) => { };
+            var playsBefore = fixture.Actions.Plays;
+            var requestsBefore = fixture.Transport.Requests.Count;
+            var folderPlay = FrameworkElementAutomationPeer.CreatePeerForElement(Get<Button>(page, "PlayAllButton"))
+                ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+            Require(folderPlay is not null, "文件夹下钻页播放键没有可调用的自动化入口");
+            folderPlay!.Invoke();
+            await UntilAsync(() => fixture.Actions.Plays == playsBefore + 1);
+            Require(fixture.Transport.Requests.Skip(requestsBefore).Any(value =>
+                Uri.UnescapeDataString(value).Contains("Recursive=true", StringComparison.Ordinal)
+                && Uri.UnescapeDataString(value).Contains("IncludeItemTypes=Movie,Episode,Video", StringComparison.Ordinal)),
+                "文件夹下钻页播放全部没有递归取条目");
+            ResizeProbeClient(1100, 800);
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("library-folder-drilldown-1100-screen.png");
+            ResizeProbeClient(760, 900);
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("library-folder-drilldown-760-screen.png");
         }
         finally
         {
