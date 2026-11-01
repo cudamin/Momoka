@@ -5,6 +5,7 @@
 - 结论：工具条、卡片浮层、条目菜单这一层已复刻到位；缺的是能力型入口 —— 播放队列、多选批量、播放列表、从这里播放、条目媒体信息、转换、取消识别；另缺库页载入失败的「重试」。评分、分享、从开头播放在网页端也不在库页，单列 D 类。报告里另有两条复核项：分页读数的含义（我们滚动加载，永远从 1 起算）、电影库那两颗播放键（Jellyfin 的 movies 页模板本来就没有 `btnPlay`）。
 - 读数更正一条：Emby 库页卡片菜单的调用方 `shortcuts.js` 只传 `play`／`queue`／`playAllFromHere`／`queueAllFromHere`／`multiSelect`／`programInfo`，**没有** `playFromBeginning`，所以「从开头播放」不在库页卡片上 —— 先前按 `getCommands` 的定义当成了库页项，读调用方才发现。
 - 交付：`docs/媒体库网页端按钮核对-2026-11-01.md`。纯文档，未构建、未跑探针、未发布、未推 origin；没有真实播放与服务器写入（只读 `System/Info/Public` 与网页静态资源）。
+- 用户令「删掉跟播放器相关的」：报告的缺失清单删去播放队列与播放列表两条（涉及播放器改造），A 类由 8 条收成 5 条，建议表同步去掉 P2 队列与 P4 播放列表；其余五项（重试、从这里播放、条目媒体信息、取消识别、多选批量）不碰播放器。
 - **当晚追加：留档已补全。** `work/媒体库网页端源码` 从「浏览器另存」重做成完整镜像（Emby 4.10.1.0 684 个文件／Jellyfin 10.10.7 1093／飞牛 0.9.8 75，另有 7 张页面 DOM 留档与三份抓取清单），删掉重复资源与 187 张封面图。文件名全部来自各家自己的产物清单：Emby 读 `app.js` 的路由表与 AMD 依赖，Jellyfin 读 `runtime.bundle.js` 的名字表＋哈希表，飞牛读 Vite 的 `assets/*-hash.js` 字面量；没有目录爆破。对账方式：旧留档 876 个 JS/CSS 逐字节比 sha256，唯一没命中的是 `cast_sender.js`（服务器 404，Google Cast SDK）与 Jellyfin 的 `theme.css`（404）。补全后顺手核了 Jellyfin 服务器自带那份 `itemContextMenu`（`55802.*.chunk.js`），`moremediainfo`／`share`／`queuenext`／`clearQueue` 的条件与上游 `v10.10.7` 一致，报告的结论按服务器构建同样成立。脚本留在 `work/crawl/`（crawl.py／crawl_jf.py／crawl_fnos.py／repair.py／assemble.py）。
 
 ## 2026-11-01 标题栏五颗按钮再下移并放大（提交 `c2449fd`，只交付桌面）
