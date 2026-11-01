@@ -77,8 +77,9 @@
                             TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <!-- 索引页（类型、播出平台）整组收起：那一页列的是类型名与台名，没有合集可归。
-                         见 LibrarySettingsPanel.ApplyIndexRows。 -->
+                    <!-- 这一组两种情形收起：索引页（类型、播出平台）列的是类型名与台名，没有合集可归；
+                         Plex 的适配器从不读 GroupItemsIntoCollections，拨了只会重查一次。
+                         见 LibrarySettingsPanel.ApplySectionRows。 -->
                     <StackPanel x:Name="GroupSection" x:FieldModifier="internal" Spacing="4">
                         <Grid ColumnSpacing="{StaticResource EgSpaceM}">
                             <Grid.ColumnDefinitions>

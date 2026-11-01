@@ -523,6 +523,8 @@ internal sealed partial class ShellNavigationProbe
                 Require(fieldLabels.Contains(collection == "mixed" ? "社区评分" : "IMDb 评分"),
                     $"设置面板的评分行不对：{string.Join(',', fieldLabels)}");
                 Require(pane.SizeSection.Visibility == Visibility.Visible, "海报视图下没有图像大小这一行");
+                // 分组到合集只有 Emby 的列表接口认；面板按服务器裁剪，Emby 下这一组照旧要在。
+                Require(pane.GroupSection.Visibility == Visibility.Visible, "Emby 媒体库把「将项目分组到合集中」也收起来了");
                 var before = page.ViewModel.Display;
 
                 // 视图：换成列表，网格要变成一行一条，图像大小那一行同时收起（列表没有格子可缩放）。

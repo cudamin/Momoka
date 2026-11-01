@@ -85,6 +85,14 @@ public static class LibraryBrowse
     }
 
     /// <summary>
+    /// 「将项目分组到合集中」只有 Emby 的列表接口认（发 <c>GroupItemsIntoCollections</c>）：
+    /// Jellyfin 的请求在协议层被删掉这个参数（<c>EmbyClient.Protocol.cs</c>），Plex 与飞牛的适配器从不读它
+    /// （<c>PlexMediaAdapter.Models.cs</c> 只翻排序、类型与播放状态）。媒体库设置面板据此决定这一组收不收。
+    /// </summary>
+    public static bool SupportsCollectionGrouping(MediaServerKind serverKind) =>
+        serverKind == MediaServerKind.Emby;
+
+    /// <summary>
     /// Emby 的「混合内容」库：新建时网页端把选中的 mixed 写成 null
     /// （<c>dashboard-ui/components/medialibrarycreator/medialibrarycreator.js</c>），所以服务器在
     /// <c>/Views</c> 里报 <c>CollectionType: null</c>。网页端自己的判据是「没有 CollectionType，

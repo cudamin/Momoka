@@ -15,6 +15,10 @@ namespace Momoka.Shell.Views;
 /// 面板不知道自己在哪个库：电视剧库和电影库拿到的字段表、默认值、能显示哪几行，都由调用方决定 ——
 /// 两种库本来就不是同一套说法（剧集的「年份」是区间、时长是每集多长，电影的是一年、一整片）。
 /// </para>
+/// <para>
+/// **哪一家有「将项目分组到合集中」也由调用方说**：Plex 的适配器从不读这个参数（见
+/// <see cref="LibraryBrowse.SupportsCollectionGrouping"/>），这一组在 Plex 下整组收起，不留说明与空白。
+/// </para>
 /// </summary>
 public sealed partial class LibrarySettingsPanel : UserControl
 {
@@ -23,8 +27,13 @@ public sealed partial class LibrarySettingsPanel : UserControl
     /// <summary>面板上这一份字段表是给哪一页摆的；换页（比如切到「文件夹」）要重摆。</summary>
     private LibrarySection? _section;
 
-    /// <summary>这一页是不是索引页、是哪一种（类型 / 播出平台 / 不是）。见 <see cref="ApplyIndexRows"/>。</summary>
+    /// <summary>这一页是不是索引页、是哪一种（类型 / 播出平台 / 不是）。见 <see cref="ApplySectionRows"/>。</summary>
     private LibraryIndexKind _index = LibraryIndexKind.None;
+
+    /// <summary>
+    /// 这一页属于哪一家服务器；「将项目分组到合集中」只有 Emby 认。见 <see cref="ApplySectionRows"/>。
+    /// </summary>
+    private MediaServerKind _serverKind = MediaServerKind.Emby;
 
     /// <summary>
     /// 这一页属于哪种库（movies / tvshows / mixed）。同样叫「节目」，电影库与混合内容库的字段表并不是
@@ -59,9 +68,11 @@ public sealed partial class LibrarySettingsPanel : UserControl
     /// 文件本身（文件名、容器、码率…），别的页列的是条目（类型、导演、播出平台…），网页端也是两套。
     /// <paramref name="index"/> 是「这一页是不是索引页、是哪一种」：类型与播出平台只有「标题」一项，
     /// 也没有「将项目分组到合集中」这回事（它们列的是类型名与台名，不是条目）。
+    /// <paramref name="serverKind"/> 决定「将项目分组到合集中」这一组摆不摆：只有 Emby 的列表接口认这个参数，
+    /// Plex 下整组收起（见 <see cref="LibraryBrowse.SupportsCollectionGrouping"/>）。
     /// </summary>
-    internal void Show(LibraryDisplay display, LibrarySection section, LibraryIndexKind index = LibraryIndexKind.None,
-        string? collectionType = null)
+    internal void Show(LibraryDisplay display, LibrarySection section, MediaServerKind serverKind,
+        LibraryIndexKind index = LibraryIndexKind.None, string? collectionType = null)
     {
         SettingsScroll.ChangeView(null, 0, null, disableAnimation: true);
         _syncing = true;
@@ -69,6 +80,7 @@ public sealed partial class LibrarySettingsPanel : UserControl
         {
             _section = section;
             _index = index;
+            _serverKind = serverKind;
             _collectionType = collectionType;
             BuildFieldRows(section, display.View, index, collectionType);
             _carried = [.. display.Fields.Where(field => !LibraryDisplayCatalog.Applies(field, section, display.View, index, collectionType))];
@@ -80,7 +92,7 @@ public sealed partial class LibrarySettingsPanel : UserControl
                 toggle.IsOn = display.Fields.Contains(field);
 
             ApplyViewDependentRows(display.View);
-            ApplyIndexRows();
+            ApplySectionRows();
         }
         finally
         {
@@ -206,20 +218,21 @@ public sealed partial class LibrarySettingsPanel : UserControl
             : Visibility.Visible;
 
     /// <summary>
-    /// 索引页（类型、播出平台）少的那两样。
-    /// <para>
-    /// 「将项目分组到合集中」对它们没有意义 —— 那一页列的是类型名与台名，不是条目，没有合集可归。整组连说明
-    /// 一起收起（见 CLAUDE.md 的显隐规矩：收起完整的无效区域，不留分隔线和空白）。
-    /// </para>
+    /// 「将项目分组到合集中」这一组摆不摆。两种情形整组收起（连说明与空白一起，见 CLAUDE.md 的显隐规矩）：
+    /// <list type="bullet">
+    /// <item>索引页（类型、播出平台）：那一页列的是类型名与台名，不是条目，没有合集可归。</item>
+    /// <item>这一家服务器的列表接口不认这个参数：只有 Emby 发 <c>GroupItemsIntoCollections</c>，Jellyfin 在协议层
+    /// 被删掉，Plex 与飞牛的适配器从不读它。齿轮本来只在 Emby 与 Plex 上出现，所以实际收的是 Plex。</item>
+    /// </list>
     /// <para>
     /// **视图与图像大小留着**：类型的方卡与播出平台的宽卡各按那八档缩放，两页都认这两个设置（2026-10-18 起；
     /// 从前它们在索引页上完全无效，见 <c>LibraryPage.ApplyView</c> 里那段）。
     /// </para>
     /// </summary>
-    private void ApplyIndexRows()
+    private void ApplySectionRows()
     {
-        var index = _index != LibraryIndexKind.None;
-        GroupSection.Visibility = index ? Visibility.Collapsed : Visibility.Visible;
+        var grouping = _index == LibraryIndexKind.None && LibraryBrowse.SupportsCollectionGrouping(_serverKind);
+        GroupSection.Visibility = grouping ? Visibility.Visible : Visibility.Collapsed;
         FieldsSection.Visibility = Visibility.Visible;
     }
 
@@ -242,7 +255,7 @@ public sealed partial class LibrarySettingsPanel : UserControl
             finally { _syncing = false; }
         }
         ApplyViewDependentRows(next.View);
-        ApplyIndexRows();
+        ApplySectionRows();
         Changed?.Invoke(Current);
     }
 

@@ -1513,7 +1513,8 @@ public sealed partial class LibraryPage : Page, IShellContent
     /// </summary>
     private void OnSettingsClicked(object sender, RoutedEventArgs e)
     {
-        SettingsPane.Show(ViewModel.Display, ViewModel.Section, ViewModel.IndexKind, ViewModel.CollectionType);
+        SettingsPane.Show(ViewModel.Display, ViewModel.Section, ViewModel.SourceServerKind, ViewModel.IndexKind,
+            ViewModel.CollectionType);
         SettingsOverlay.Visibility = Visibility.Visible;
         ApplyPanelSize();
     }

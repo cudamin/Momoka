@@ -357,6 +357,15 @@ internal static class LibraryBrowseTests
                 Assert.False(Client(http, kind).Connection.SupportsGenreBrowse, kind + " 没有跨库题材页");
             Assert.Equal(0, handler.Requests.Count);
         });
+        Test("能力：分组到合集只有 Emby 的列表接口认，Jellyfin、Plex 与飞牛都没有", () =>
+        {
+            // 设置面板据此收起「将项目分组到合集中」那一组：Jellyfin 的请求在协议层被删掉这个参数
+            // （EmbyClient.Protocol.cs），Plex 与飞牛的适配器从不读它（PlexMediaAdapter.Models.cs 只翻
+            // 排序、类型与播放状态）。这一句是那一组收不收的唯一判据，所以四种来源都要钉住。
+            Assert.True(LibraryBrowse.SupportsCollectionGrouping(MediaServerKind.Emby), "Emby 的列表接口认这个参数");
+            foreach (var kind in new[] { MediaServerKind.Jellyfin, MediaServerKind.Plex, MediaServerKind.FnNas })
+                Assert.False(LibraryBrowse.SupportsCollectionGrouping(kind), kind + " 没有「分组到合集」");
+        });
     }
 
     private static string Labels(string type, MediaServerKind kind) =>
