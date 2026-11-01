@@ -631,7 +631,14 @@ public sealed partial class PlayerViewModel
         _embySkipSections = item is null ? [] : SkipSectionPlanner.Resolve(item);
         _skips.Begin(_embySkipSections, runtime);
         if (item is not null)
-            Log.Debug(Category, $"跳过计划：Emby {_embySkipSections.Count} 段，条目章节 {item.Chapters.Count} 条");
+        {
+            var emby = string.Join("；", _embySkipSections.Select(section =>
+                $"{section.Kind} {section.Start:0.#}-{section.End:0.#}"));
+            Log.Debug(Category,
+                $"跳过计划：Emby {_embySkipSections.Count} 段[{emby}]，条目章节 {item.Chapters.Count} 条"
+                + $"（标记 {item.Chapters.Count(chapter => !string.IsNullOrWhiteSpace(chapter.MarkerType))} 条），"
+                + $"模式 {Settings.Playback.SkipSections}");
+        }
 
         // A status for this playback may already have arrived (the handle exists before its item is
         // announced), and Emby's chapter list usually equals mpv's — waiting for a chapter-list change
@@ -1379,14 +1386,21 @@ public sealed partial class PlayerViewModel
 
         var duration = Status.HasDuration && Status.Duration > 0 ? Status.Duration : _skips.Duration;
         var player = SkipSectionPlanner.ResolveFromPlayer(chapters, duration);
+        var chapterList = string.Join("；", chapters.Select(chapter =>
+            $"{chapter.Start:0.#} {chapter.Title ?? "(无名)"}"));
         if (player.Count == 0)
         {
-            Log.Debug(Category, $"跳过兜底：播放器章节 {chapters.Count} 条没有认出片头片尾");
+            Log.Debug(Category, $"跳过兜底：播放器章节 {chapters.Count} 条[{chapterList}] 没有认出片头片尾");
             return false;
         }
 
         var merged = SkipSectionPlanner.Merge(_embySkipSections, player);
-        Log.Debug(Category, $"跳过兜底：播放器章节 {chapters.Count} 条 → {player.Count} 段，合并 {merged.Count} 段");
+        var playerList = string.Join("；", player.Select(section =>
+            $"{section.Kind} {section.Start:0.#}-{section.End:0.#}"));
+        var mergedList = string.Join("；", merged.Select(section =>
+            $"{section.Kind} {section.Start:0.#}-{section.End:0.#}（{section.Origin}）"));
+        Log.Debug(Category,
+            $"跳过兜底：播放器章节 {chapters.Count} 条[{chapterList}] → [{playerList}]，合并 [{mergedList}]");
         if (merged.SequenceEqual(_skips.Sections)) return false;
 
         _skips.UpdateSections(merged, duration);
@@ -1426,6 +1440,13 @@ public sealed partial class PlayerViewModel
     /// </summary>
     internal void ShowSkipPrompt(SkipPrompt prompt)
     {
+        if (prompt.Visible != SkipOffered)
+        {
+            Log.Debug(Category, prompt.Visible
+                ? $"跳过提示：{prompt.Caption}（剩余 {prompt.Remaining:0.00}）"
+                : "跳过提示：收回");
+        }
+
         SkipOffered = prompt.Visible;
 
         // 独占模式画面在 mpv 窗口里、那颗 XAML 按钮不在屏上，把这份 offer 推给视频窗的 uosc 画一颗
