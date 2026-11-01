@@ -3512,7 +3512,7 @@ internal static class PlaybackTests
             Assert.Equal((1380d, 1440d, SkipSectionOrigin.Player), (merged[1].Start, merged[1].End, merged[1].Origin));
         });
 
-        Test("跳过：Emby 两段都有时播放器完全不参与", () =>
+        Test("跳过：Emby 两段都有时，重叠的播放器段不参与", () =>
         {
             var server = new[]
             {
@@ -3522,10 +3522,32 @@ internal static class PlaybackTests
             var player = new[]
             {
                 new SkipSection(SkipSectionKind.Opening, 0, 90, "片头", SkipSectionOrigin.Player),
-                new SkipSection(SkipSectionKind.Ending, 1200, 1300, "片尾", SkipSectionOrigin.Player)
+                new SkipSection(SkipSectionKind.Ending, 1380, 1440, "片尾", SkipSectionOrigin.Player)
             };
 
             Assert.True(server.SequenceEqual(SkipSectionPlanner.Merge(server, player)));
+        });
+
+        Test("跳过：Emby 的片头在别处时，播放器认出的片头仍保留", () =>
+        {
+            // 实测《死亡笔记》S01E34：Emby 把 8:55.6–9:15 误识别成片头，而文件章节的 Opening 是
+            // 0–1:20。两者不重叠，不能再让同类型规则把播放器这段整个吞掉。
+            var server = new[] { new SkipSection(SkipSectionKind.Opening, 535.6, 555, "片头") };
+            var player = new[]
+            {
+                new SkipSection(SkipSectionKind.Opening, 0, 80, "片头", SkipSectionOrigin.Player),
+                new SkipSection(SkipSectionKind.Ending, 1280, 1350, "片尾", SkipSectionOrigin.Player)
+            };
+
+            var merged = SkipSectionPlanner.Merge(server, player);
+
+            Assert.Equal(3, merged.Count);
+            Assert.Equal((SkipSectionKind.Opening, 0d, 80d, SkipSectionOrigin.Player),
+                (merged[0].Kind, merged[0].Start, merged[0].End, merged[0].Origin));
+            Assert.Equal((SkipSectionKind.Opening, 535.6, 555d, SkipSectionOrigin.Server),
+                (merged[1].Kind, merged[1].Start, merged[1].End, merged[1].Origin));
+            Assert.Equal((SkipSectionKind.Ending, 1280d, 1350d, SkipSectionOrigin.Player),
+                (merged[2].Kind, merged[2].Start, merged[2].End, merged[2].Origin));
         });
     }
 

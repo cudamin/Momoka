@@ -208,8 +208,11 @@ public static partial class SkipSectionPlanner
     }
 
     /// <summary>
-    /// Combines Emby's sections with the player's: a kind Emby already marked is taken from Emby
-    /// alone, and the player fills only the kinds it did not. The result stays in playing order.
+    /// Combines Emby's sections with the player's. A player section is dropped only when it overlaps
+    /// an Emby section of the same kind — Emby wins where the two describe the same stretch — while a
+    /// distinct chapter is kept. That is what lets a chapter named Opening at 0–80 survive a
+    /// misdetected server IntroStart at 8:55 instead of being suppressed by it. The result stays in
+    /// playing order.
     /// </summary>
     public static IReadOnlyList<SkipSection> Merge(
         IReadOnlyList<SkipSection> server,
@@ -218,16 +221,20 @@ public static partial class SkipSectionPlanner
         if (server.Count == 0) return player;
         if (player.Count == 0) return server;
 
-        var covered = new HashSet<SkipSectionKind>();
-        foreach (var section in server) covered.Add(section.Kind);
-
         var merged = new List<SkipSection>(server);
         foreach (var section in player)
-            if (!covered.Contains(section.Kind)) merged.Add(section);
+        {
+            var overlapped = server.Any(existing =>
+                existing.Kind == section.Kind && Overlaps(existing, section));
+            if (!overlapped) merged.Add(section);
+        }
 
         merged.Sort((left, right) => left.Start.CompareTo(right.Start));
         return merged;
     }
+
+    private static bool Overlaps(SkipSection left, SkipSection right) =>
+        left.Start < right.End && right.Start < left.End;
 
     /// <summary>
     /// Emby's chapter records as the planner's own shape. The list is kept whole — marker entries
