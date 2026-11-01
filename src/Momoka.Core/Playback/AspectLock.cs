@@ -243,4 +243,31 @@ public static class AspectLock
         if (streamWidth > 0 && streamHeight > 0) return streamWidth / streamHeight;
         return 0;
     }
+
+    /// <summary>
+    /// The picture's shape from mpv's <c>video-params</c> family — the one source that cannot be the window.
+    /// <para>
+    /// The top-level <c>dwidth</c>/<c>dheight</c> are not usable here. Before the decoder has configured the
+    /// video they fall back to the video output's size, and that fallback can survive into the first polls
+    /// after <c>playback-restart</c>: on 2026-11-01 a fullscreen film answered 0.889 (= the 1230×1384 window
+    /// it had been opened in) while this poll was watching, the window was reshaped to that shape on the way
+    /// out of fullscreen, and the 16:9 picture sat between two black bands. <c>video-params/aspect</c> is the
+    /// decoder's display aspect and <c>video-params/w/h</c> + <c>video-params/par</c> are its raw size and
+    /// pixel aspect, so none of them can borrow the window's shape.
+    /// </para>
+    /// <para>
+    /// Zero means 「no answer yet」 — keep polling. An aspect outside the range a picture could have is the
+    /// same answer; correcting a window to it would collapse the window.
+    /// </para>
+    /// </summary>
+    public static double FromVideoParams(double aspect, double width, double height, double pixelAspect)
+    {
+        var ratio = double.IsFinite(aspect) && aspect > 0
+            ? aspect
+            : double.IsFinite(width) && width > 0 && double.IsFinite(height) && height > 0
+                ? width * (double.IsFinite(pixelAspect) && pixelAspect > 0 ? pixelAspect : 1) / height
+                : 0;
+
+        return double.IsFinite(ratio) && ratio >= SmallestAspect && ratio <= LargestAspect ? ratio : 0;
+    }
 }

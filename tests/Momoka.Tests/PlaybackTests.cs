@@ -4938,11 +4938,32 @@ internal static class PlaybackTests
             Assert.Equal(proposed, AspectLock.Apply(proposed, ResizeEdge.Right, 16d / 9, 900, 700), "边框比窗口还大");
         });
 
-        Test("比例联动：比例取自 mpv 的显示尺寸，拿不到才退回服务器的", () =>
+        Test("比例联动：比例取自 mpv 的码流参数，窗口自己多大都不算", () =>
         {
-            // 变形宽银幕：存的是 1920×1080，显示是 2560×1080，只有前者会算错。
-            Assert.Equal(2560d / 1080, AspectLock.Ratio(2560, 1080, 1920, 1080));
-            Assert.Equal(1920d / 1080, AspectLock.Ratio(0, 0, 1920, 1080), "开播前先用服务器给的");
+            // 变形宽银幕：存的是 1920×1080，PAR 4:3，显示是 2560×1080。
+            Assert.Equal(2560d / 1080, AspectLock.FromVideoParams(0, 1920, 1080, 4d / 3), "分辨率和 PAR 自己算");
+            Assert.Equal(16d / 9, AspectLock.FromVideoParams(16d / 9, 1920, 1080, 1), "aspect 有就直接用");
+            Assert.Equal(16d / 9, AspectLock.FromVideoParams(double.NaN, 1920, 1080, 0), "坏 aspect 退回分辨率");
+            Assert.Equal(0, AspectLock.FromVideoParams(0, 0, 0, 0), "没有码流信息就继续等");
+            Assert.Equal(0, AspectLock.FromVideoParams(0, 1920, 1080, 40), "PAR 离谱不是画面");
+            Assert.Equal(0, AspectLock.FromVideoParams(40, 0, 0, 0), "40:1 不是画面");
+        });
+
+        Test("比例联动：窗口化整形不再问 mpv 的显示尺寸", () =>
+        {
+            var root = RepositoryRoot();
+            Assert.NotNull(root);
+            var source = File.ReadAllText(
+                Path.Combine(root!, "src", "Momoka.Shell", "ViewModels", "PlayerViewModel.Overlay.cs"));
+
+            Assert.False(source.Contains("\"dwidth\"", StringComparison.Ordinal), "dwidth 会回落到窗口尺寸");
+            Assert.False(source.Contains("\"dheight\"", StringComparison.Ordinal), "dheight 会回落到窗口尺寸");
+            Assert.True(source.Contains("\"video-params/aspect\"", StringComparison.Ordinal), "改问码流自己的比例");
+        });
+
+        Test("比例联动：开播前先用服务器给的", () =>
+        {
+            Assert.Equal(1920d / 1080, AspectLock.Ratio(0, 0, 1920, 1080));
             Assert.Equal(0, AspectLock.Ratio(0, 0, 0, 0), "两边都没有就是「不要改」");
         });
 

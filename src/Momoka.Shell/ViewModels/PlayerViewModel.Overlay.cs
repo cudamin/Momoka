@@ -177,44 +177,46 @@ public sealed partial class PlayerViewModel
     }
 
     /// <summary>
-    /// Corrects the shape to the picture's own once mpv has one. Its <c>dwidth</c>/<c>dheight</c> are the
-    /// displayed size — after any aspect override, rotation and panscan — so a rotated or anamorphic file
-    /// ends up locked to the shape it is actually drawn at rather than to the stream's stored one.
+    /// Corrects the shape to the picture's own once mpv has one: its decoder-level display aspect, not the
+    /// VO's <c>dwidth</c>/<c>dheight</c>.
     /// <para>
     /// Polled for the same reason the track list is: there is no notification to wait for. Silent when it
     /// agrees with <see cref="AdoptServerAspect"/>, which is the ordinary case.
     /// </para>
     /// <para>
-    /// The read is gated on <c>video-params/w</c>, and that gate is the 2026-09-12 黑边事故. This comment
-    /// used to say 「the properties do not exist until a frame has been decoded」 and read the display pair
-    /// straight away — true of <c>video-params</c>, not of <c>dwidth</c>/<c>dheight</c> on the shipped mpv
-    /// (0.41): before the video is configured the pair already exists and falls back to the window's client
-    /// size. S01E07 的 mp4 转封装解码慢了半秒，用户恰好在那半秒把窗口贴成了竖形，这一轮询便收下 0.889 ——
-    /// 正是当时 1230×1384 客户区自己的比例，而不是画面的。窗口随即被 FitToPicture 按它自己 reshape 一遍，
-    /// WM_SIZING 从此把每一把拖拽都锁回竖形，mpv 只能把真正的 16:9 上下加黑边放完剩下的一分半
-    /// （app-20260912.log 21:34:52，「画面比例 0.889（mpv）」）。
-    /// <c>video-params/w</c> 在视频配置出来之前不存在（<c>GetNumberAsync</c> 返回 null，本轮作罢、继续轮询）；
-    /// 它一出现，<c>dwidth</c>/<c>dheight</c> 才真的是画面自己的显示尺寸。
+    /// <b>Why not <c>dwidth</c>/<c>dheight</c> — two incidents.</b> They are VO-level values, and before the
+    /// decoder has configured the video they fall back to the video output's size. The 2026-09-12 incident
+    /// caught that fallback answering with the window's own shape (0.889 from a 1230×1384 client) and the
+    /// window was reshaped to itself. Gating the read on <c>video-params/w</c> fixed that case, but on
+    /// 2026-11-01 it happened again at <c>playback-restart</c> — the gate passed, <c>dwidth</c>/<c>dheight</c>
+    /// still answered 0.889 while the film was 16:9, and the window came out of fullscreen as a tall strip
+    /// with a black band above and below the picture. <c>video-params/aspect</c> (and <c>w/h</c> + <c>par</c>
+    /// when it is absent) is the decoder's own display aspect: it has no window size to borrow. An explicit
+    /// <c>video-aspect-override</c> from the 画面比例 menu still wins, because that is the viewer's choice.
     /// </para>
     /// </summary>
     private Task ApplyAspectAsync(int generation)
     {
-        // 画面不在本窗口（独立管线/外部后端）就整趟不轮询：video-params/dwidth/dheight 是给
-        // 「按画面整形本窗口」用的，没有画面进来，这三问每一秒都是白问。
+        // 画面不在本窗口（独立管线/外部后端）就整趟不轮询：这些比例是给「按画面整形本窗口」用的，
+        // 没有画面进来，每一问都是白问。
         if (!PictureInHostWindow) return Task.CompletedTask;
 
         return PollAsync(generation, true, async () =>
         {
-            // The gate comes before the display pair, for the reason the comment above carries: without it
-            // a slowly decoding file answers this poll with the window's own shape as the picture's.
+            // The gate comes before the display pair: without it mpv answers about the file it has not
+            // configured yet. The gate alone is not enough — see the method comment.
             var decodedWidth = await _playback.GetNumberAsync("video-params/w").ConfigureAwait(true);
             if (decodedWidth is null or 0) return false;
 
-            var displayWidth = await _playback.GetNumberAsync("dwidth").ConfigureAwait(true);
-            var displayHeight = await _playback.GetNumberAsync("dheight").ConfigureAwait(true);
+            var decodedHeight = await _playback.GetNumberAsync("video-params/h").ConfigureAwait(true);
+            var pixelAspect = await _playback.GetNumberAsync("video-params/par").ConfigureAwait(true);
+            var videoAspect = await _playback.GetNumberAsync("video-params/aspect").ConfigureAwait(true);
+            var overrideAspect = await _playback.GetNumberAsync("video-aspect-override").ConfigureAwait(true);
             if (generation != _generation) return true;
 
-            var aspect = AspectLock.Ratio(displayWidth ?? 0, displayHeight ?? 0, 0, 0);
+            var aspect = AspectLock.FromVideoParams(
+                videoAspect ?? 0, decodedWidth.Value, decodedHeight ?? 0, pixelAspect ?? 0);
+            if (overrideAspect is { } forced && forced > 0) aspect = forced;
             if (aspect <= 0) return false;
 
             AdoptAspect(aspect, "mpv");
