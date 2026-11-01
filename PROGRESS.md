@@ -1,10 +1,11 @@
-## 2026-11-01 片头片尾：Emby 优先，缺的那一段由播放器章节识别补位
+## 2026-11-01 片头片尾：Emby 优先，缺的那一段由播放器章节识别补位（已提交并交付本机）
 
 - 用户令：片头片尾优先用 Emby 的数据识别跳过，Emby 没有数据时回退到播放器识别；播放器识别逻辑参考 dyphire/mpv-config，识出的片尾跳到下一章节。
 - 规则：Emby 已给出的那一类继续照 `IntroStart`→`IntroEnd`、`CreditsStart`→片长，播放器不替换；只补 Emby 缺的那一类。`SkipSectionPlanner.ResolveFromPlayer` 照 chapterskip.lua：认 OP/Opening/Intro Start/片头、ED/Ending/Credits/片尾等章节名，首尾 80–100 秒章节按位置推断（片头 200 秒窗、片尾 300 秒窗、两个片头候选取第二个）；片头与片尾都止于下一章节。`SkipSectionPlanner.Merge` 按类合并，`SkipCoordinator.UpdateSections` 保留已经摆着的提示，提示文案按来源写「服务器标记」或「播放器识别」。设置页那行补了优先级说明。
 - 接线：`PlayerViewModel` 在 `ApplyStatus` 的 chapter-list 变化和 `RefineChapterMarksAsync` 两处调用 `ConsiderPlayerSkipSections`；Emby 两段都齐时直接不看播放器。
 - 验证：Core 全套 **3515/3515、0 失败 0 跳过**；Shell Release 构建 0 警告 0 错误；`dotnet format whitespace` 退出 0。开发件 `--probe-shell --probe-section playback --screen 2` 退出 0、8/8 通过，`player-skip-layout.txt` 新增「Emby 片头保留、mpv 章节补出片尾 1380–1440」；`--probe-shell --probe-section settings --screen 2` 退出 0、24/24 通过，实屏 `settings-split-playback-1100-screen.png` 已看，新说明两行、下拉不被挤。
-- 未覆盖：探针用假句柄与合成章节，没有真实 Emby 服务器播放、真实 mpv 章节文件或服务端写入；未跑完整闸门 1（分析器/脚本检查）与闸门 4；未发布到 `artifacts/publish/win-x64`（应用还开着），未推 origin。
+- 交付：`tools/publish.ps1 -NoArchive` 通过：**546 文件、285.5 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件**；桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。交付件 `--probe-shell --probe-section playback --screen 2` 8/8、退出 0（`shell-probe-20261101-022310831-8848`），`player-skip-layout.txt` 含兜底断言；`--probe-shell --probe-section settings --screen 2` 24/24、退出 0（`shell-probe-20261101-022336864-14044`）。旧发布移到 `C:\Users\89400\Momoka-stale\publish-20261101-102044`。
+- 未覆盖：探针用假句柄与合成章节，没有真实 Emby 服务器播放、真实 mpv 章节文件或服务端写入；未跑完整闸门 1（分析器/脚本检查）与闸门 4；未推 origin。
 
 ## 2026-11-01 播放页顶边缩放与首帧比例误判（已提交并交付本机）
 
