@@ -73,7 +73,7 @@ internal static partial class FnNasMediaTests
                     {
                         var client = fixture.Session.Client;
                         var operation = endpoint.StartsWith("/tag/", StringComparison.Ordinal)
-                            ? (Task)client.GetFnNasFilterOptionsAsync("library", false, "zh", default)
+                            ? (Task)client.GetFnNasFilterOptionsAsync("library", null, null, false, "zh", default)
                             : client.GetItemAsync("movie", default);
                         var error = Assert.Catch<FnNasApiException>(() => operation.GetAwaiter().GetResult());
                         Assert.Equal(code, error.Code);
@@ -88,12 +88,12 @@ internal static partial class FnNasMediaTests
                 ? Task.FromException<HttpResponseMessage>(new HttpRequestException("synthetic network"))
                 : request.RequestUri.AbsolutePath.EndsWith("/tag/iso3166", StringComparison.Ordinal)
                     ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound)) : null;
-            var options = fixture.Session.Client.GetFnNasFilterOptionsAsync("library", false, "zh", default).GetAwaiter().GetResult();
+            var options = fixture.Session.Client.GetFnNasFilterOptionsAsync("library", null, null, false, "zh", default).GetAwaiter().GetResult();
             Assert.Equal("2", options.Genres[0].Label);
             Assert.Equal("CN", options.Locations[0].Label);
             fixture.Transport.Override = (request, _) => request.RequestUri!.AbsolutePath.EndsWith("/tag/genres", StringComparison.Ordinal)
                 ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("not-json") }) : null;
-            Assert.Throws<FnNasApiException>(() => fixture.Session.Client.GetFnNasFilterOptionsAsync("library", false, "zh", default).GetAwaiter().GetResult());
+            Assert.Throws<FnNasApiException>(() => fixture.Session.Client.GetFnNasFilterOptionsAsync("library", null, null, false, "zh", default).GetAwaiter().GetResult());
         });
         Test("飞牛补充读取：调用方取消不能被网络降级掩盖", () =>
         {

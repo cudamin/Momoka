@@ -430,6 +430,7 @@
                         VerticalAlignment="Center">
 
                         <TextBlock x:Name="LibraryItemCount" Text="{x:Bind ViewModel.TotalLabel, Mode=OneWay}"
+                            Visibility="{x:Bind ViewModel.ItemCountVisibility, Mode=OneWay}"
                             FontSize="{StaticResource EgCaptionFontSize}" FontWeight="SemiBold" Margin="0,0,2,0" VerticalAlignment="Center" />
                         <!-- 标题栏收藏页聚合所有在线账号；两个及以上可收藏账号时给一颗筛选，选择留在返回栈里。 -->
                         <Button
@@ -589,7 +590,8 @@
                             Click="OnFilterClicked"
                             ToolTipService.ToolTip="{x:Bind ViewModel.FilterTooltip, Mode=OneWay}">
                             <StackPanel Orientation="Horizontal" Spacing="6">
-                                <FontIcon FontSize="14" Glyph="&#xE71C;" />
+                                <FontIcon FontSize="14" Glyph="&#xE71C;"
+                                    Visibility="{x:Bind ViewModel.FilterIconVisibility, Mode=OneWay}" />
                                 <TextBlock x:Name="FilterText" Visibility="Collapsed"
                 x:Uid="LibraryPage_FilterText" />
                                 <TextBlock Text="筛选" VerticalAlignment="Center"
@@ -598,6 +600,10 @@
                                 <InfoBadge
                                     Value="{x:Bind ViewModel.FilterCount, Mode=OneWay}"
                                     Visibility="{x:Bind ViewModel.FilterBadgeVisibility, Mode=OneWay}" />
+                                <!-- 官网页端的筛选也是一颗带向下箭头的文字键。 -->
+                                <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE70D;"
+                                    VerticalAlignment="Center"
+                                    Visibility="{x:Bind ViewModel.FnNasFilterTextVisibility, Mode=OneWay}" />
                             </StackPanel>
                         </Button>
                         <!-- Jellyfin list.html 的 btnViewSettings：竖排三点，tooltip「更多」。它开的是
@@ -639,7 +645,6 @@
                             Visibility="{x:Bind ViewModel.LayoutVisibility, Mode=OneWay}"
                             ToolTipService.ToolTip="布局" AutomationProperties.Name="布局">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE8A9;" />
                                 <TextBlock Text="布局" />
                                 <FontIcon FontSize="{StaticResource EgCaptionFontSize}" Glyph="&#xE70D;" />
                             </StackPanel>

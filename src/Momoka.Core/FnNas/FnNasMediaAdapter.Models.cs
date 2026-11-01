@@ -60,7 +60,9 @@ public sealed partial class FnNasMediaAdapter
             ["exclude_grouped_video"] = 1,
             ["tags"] = tags
         };
-        if (!string.IsNullOrWhiteSpace(query.ParentId)) result["ancestor_guid"] = query.ParentId;
+        // 官网页端：库根用 ancestor_guid（整棵库子树），文件夹下钻用 parent_guid（直接子项）。
+        if (!string.IsNullOrWhiteSpace(query.ParentId))
+            result[query.FnNasDirectChildren ? "parent_guid" : "ancestor_guid"] = query.ParentId;
         // 播放状态这一位来自列表本身的固定条件（收藏页等），比面板上点的更具体，最后写。
         if (query.IsPlayed is { } played) tags["watched"] = played ? "1" : "0";
         else if (selection is { Watched.Length: > 0 } watched) tags["watched"] = watched.Watched;
@@ -80,9 +82,10 @@ public sealed partial class FnNasMediaAdapter
         if (!string.IsNullOrWhiteSpace(value)) tags[key] = value;
     }
 
-    public async Task<FnNasFilterOptions> GetFilterOptionsAsync(string? parentId, bool favorites, string language, CancellationToken ct)
+    public async Task<FnNasFilterOptions> GetFilterOptionsAsync(string? ancestorGuid, string? parentGuid, string? type,
+        bool favorites, string language, CancellationToken ct)
     {
-        var tags = await client.GetFilterTagsAsync(connection, parentId, favorites, ct).ConfigureAwait(false);
+        var tags = await client.GetFilterTagsAsync(connection, ancestorGuid, parentGuid, type, favorites, ct).ConfigureAwait(false);
 
         // 题材与国家/地区只是把原始值换成中文；映射表拿不到不该让整个筛选面板打不开。
         var genres = await OptionalReadAsync(() => client.GetGenreTagsAsync(connection, language, ct), "tag/genres", ct).ConfigureAwait(false);
@@ -134,7 +137,15 @@ public sealed partial class FnNasMediaAdapter
         item.Name = Text(value, "name") is { Length: > 0 } name ? name : item.Name;
         item.Type = EmbyItemType.CollectionFolder;
         item.IsFolder = true;
-        item.CollectionType = Text(value, "category") switch { "Movie" => "movies", "TV" => "tvshows", _ => "homevideos" };
+        // Mix（混合内容）与 Emby 的 mixed 共用一个集合类型；分类列表里的「其他（Others）」才是
+        // homevideos。两者在筛选行与 item/list 的类型集合上不同，见 FnNasLibraryQuery。
+        item.CollectionType = Text(value, "category") switch
+        {
+            "Movie" => "movies",
+            "TV" => "tvshows",
+            "Mix" => "mixed",
+            _ => "homevideos"
+        };
         return item;
     }
 

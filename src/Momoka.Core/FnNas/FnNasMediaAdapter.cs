@@ -97,9 +97,24 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
         return new EmbyUser { Id = id, Name = name, HasPassword = true, Policy = new() { IsAdministrator = Flag(value, "is_admin") } };
     }
 
-    public async Task<List<EmbyItem>> GetViewsAsync(CancellationToken ct) =>
-        (await client.GetLibrariesAsync(connection, ct).ConfigureAwait(false))
+    public async Task<List<EmbyItem>> GetViewsAsync(CancellationToken ct)
+    {
+        var libraries = (await client.GetLibrariesAsync(connection, ct).ConfigureAwait(false))
             .Where(value => Text(value, "category") != "IPTV").Select(Library).ToList();
+
+        // 官方网页的库排读数来自 mediadb/sum 的按库计数，不是货架上装了几张卡。读不到就不补，
+        // 保住媒体库本身；主页那一头会退回自己的读数。
+        var summary = await OptionalReadAsync(() => client.GetLibrarySummaryAsync(connection, ct), "mediadb/sum", ct)
+            .ConfigureAwait(false);
+        if (summary is not null)
+            foreach (var library in libraries)
+                if (SummaryCount(summary, library.Id) is { } count) library.RecursiveItemCount = count;
+        return libraries;
+    }
+
+    /// <summary><c>mediadb/sum</c> 里按库 GUID 记的条目数；缺失或不是有限整数时返回 null。</summary>
+    internal static int? SummaryCount(JsonObject summary, string guid) =>
+        guid.Length == 0 ? null : Integer(summary, guid) is >= 0 and var count ? count : null;
 
     public async Task<ItemsResult> GetItemsAsync(ItemQuery query, CancellationToken ct)
     {

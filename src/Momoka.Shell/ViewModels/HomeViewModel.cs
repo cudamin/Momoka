@@ -782,6 +782,16 @@ public sealed partial class HomeViewModel : PageViewModel
             _ => perLibrary.TryGetValue(key, out var library) ? WithoutMusic(library.Result) : []
         };
 
+        // 飞牛库排的读数用 mediadb/sum 的库总数（见 FnNasMediaAdapter.GetViewsAsync），不是货架张数 ——
+        // 货架上限 24，牌子上写「24 项」会被读成「库里只有 24 项」。
+        string? LibraryNote(string key)
+        {
+            if (HomeLayout.LibraryId(key) is not { Length: > 0 }) return null;
+            if (_libraryViews.FirstOrDefault(library => HomeLayout.LibraryKey(library) == key) is not { } library) return null;
+            return library.Source?.Connection.IsFnNas == true && library.RecursiveItemCount is > 0 and var count
+                ? $"{count} 项" : null;
+        }
+
         // 各媒体库自己那排按版面次序连成的一串。从前轮播的补位从这儿来，2026-09-13 轮播改用整服最近添加
         // （见上面 latest）之后，这一串只剩一个读者：LoadedCount 的那个数。
         List<EmbyItem> added = [.. _all
@@ -806,6 +816,7 @@ public sealed partial class HomeViewModel : PageViewModel
                 row.Key == HomeLayout.Libraries
                     ? item => SourceCaption.Prefix(item.Name, item.Source, ShowServerNames)
                     : row.Key == HomeLayout.Resume ? HomeResumeText.Title : null);
+            shelf.NoteOverride = LibraryNote(row.Key);
         }
 
         // 装到了东西的排一律横着排。媒体库也在其中 —— 2026-09-08「移除轮播图右边的媒体库」之后不再单挑出来当

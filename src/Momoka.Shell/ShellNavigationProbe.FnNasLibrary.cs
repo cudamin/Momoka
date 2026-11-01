@@ -80,6 +80,20 @@ internal sealed partial class ShellNavigationProbe
             ResizeProbeClient(1280, 800);
             await LayoutAsync(page);
             var toolbar = Get<Grid>(page, "ToolbarSurface");
+            // 2026-11-01 用户令：飞牛媒体库上方只留筛选、排序、布局，并摆到左上角。
+            Require(toolbar.HorizontalAlignment == HorizontalAlignment.Left, "飞牛库工具条应靠左上对齐");
+            Require(Get<TextBlock>(page, "LibraryItemCount").Visibility == Visibility.Collapsed,
+                "飞牛库工具条不该显示总数");
+            Require(Get<Button>(page, "PlayAllButton").Visibility == Visibility.Collapsed
+                && Get<Button>(page, "PlayRandomButton").Visibility == Visibility.Collapsed,
+                "飞牛库工具条不该显示播放/随机播放");
+            var visibleButtons = Get<WrapRow>(page, "Toolbar").Children
+                .Where(child => child.Visibility == Visibility.Visible).ToArray();
+            Require(visibleButtons.Length == 3
+                && ReferenceEquals(visibleButtons[0], Get<Button>(page, "FilterButton"))
+                && ReferenceEquals(visibleButtons[1], Get<Button>(page, "SortButton"))
+                && ReferenceEquals(visibleButtons[2], Get<Button>(page, "FnNasLayoutButton")),
+                "飞牛库工具条应只剩筛选、添加日期、布局，且顺序一致");
             var controls = toolbar.TransformToVisual(page).TransformBounds(new(0, 0, toolbar.ActualWidth, toolbar.ActualHeight));
             var panel = Get<Border>(page, "FnNasFilterPanel");
             Require(panel.Visibility == Visibility.Collapsed, "筛选面板默认应收起");

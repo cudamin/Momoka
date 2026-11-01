@@ -44,9 +44,11 @@ internal static class HomeLatestTests
         Test("主页最近添加：飞牛货架按库的类型问，其余服务器不加类型", () =>
         {
             Assert.Equal("Series,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "tvshows")));
-            // BoxSet 飞牛没有，请求那一头会把它丢掉（FnNasMediaAdapter.Query），这里只钉「按库的类型问」。
-            Assert.Equal("Movie,Video,BoxSet", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "movies")));
-            Assert.Equal("Movie,Series,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "mixed")));
+            // BoxSet 飞牛没有，请求那一头会把它丢掉（FnNasMediaAdapter.Query）。
+            Assert.Equal("Movie,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "movies")));
+            // 官方 All 的类型集合含文件夹：混合库里的文件夹也是货架上的一张卡。
+            Assert.Equal("Movie,Series,Folder,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "mixed")));
+            Assert.Equal("Folder,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "homevideos")));
             Assert.Null(HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, null)), "没有集合类型时不猜");
             Assert.Null(HomeLatest.LibraryTypes(Library(MediaServerKind.Emby, "tvshows")), "Emby 照旧不加类型");
             Assert.Null(HomeLatest.LibraryTypes(Library(MediaServerKind.Jellyfin, "tvshows")));

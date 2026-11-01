@@ -515,13 +515,85 @@ internal static partial class FnNasMediaTests
         Test("飞牛筛选：经客户端读取 tag/list、题材与地区映射", () =>
         {
             using var fixture = new Fixture(); fixture.Login();
-            var options = fixture.Session.Client.GetFnNasFilterOptionsAsync("library", false, "zh-CN", default)
+            var options = fixture.Session.Client.GetFnNasFilterOptionsAsync("library", null, null, false, "zh-CN", default)
                 .GetAwaiter().GetResult();
             Assert.Equal("动画,动作", string.Join(',', options.Genres.Select(option => option.Label)));
             Assert.Equal("中国大陆", options.Locations.Single().Label);
-            Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/tag/list?ancestor_guid=library"));
+            Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/tag/list?ancestor_guid=library&is_favorite=0"));
             Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/tag/genres?lan=zh-CN"));
             Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/tag/iso3166?lan=zh-CN"));
+        });
+        Test("飞牛筛选：行集合照官网页端按默认类型与文件夹裁剪", () =>
+        {
+            Assert.Equal(FnNasLibraryQuery.All, FnNasLibraryQuery.DefaultType("movies", false));
+            Assert.Equal(FnNasLibraryQuery.All, FnNasLibraryQuery.DefaultType("tvshows", false));
+            Assert.Equal(FnNasLibraryQuery.All, FnNasLibraryQuery.DefaultType("mixed", false));
+            Assert.Equal(FnNasLibraryQuery.Other, FnNasLibraryQuery.DefaultType("homevideos", false));
+            Assert.Null(FnNasLibraryQuery.DefaultType("mixed", true));
+
+            Assert.Equal("type,genres,resolutions,color_range,audio_type,locate,decades,recognition_status,watched",
+                string.Join(',', FnNasFilterCatalog.Rows(FnNasLibraryQuery.All, false)));
+            Assert.Equal("resolutions,color_range,audio_type,recognition_status,watched",
+                string.Join(',', FnNasFilterCatalog.Rows(FnNasLibraryQuery.Other, false)));
+            Assert.Equal("resolutions,color_range,audio_type,watched",
+                string.Join(',', FnNasFilterCatalog.Rows(null, true)));
+            Assert.Equal("genres", string.Join(',', FnNasFilterCatalog.Rows(FnNasLibraryQuery.Live, false)));
+        });
+        Test("飞牛筛选：tag/list 对文件夹发 parent_guid，对「其他」库发 Directory,Video", () =>
+        {
+            using var fixture = new Fixture(); fixture.Login();
+            fixture.Session.Client.GetFnNasFilterOptionsAsync(null, "folder", null, false, "zh-CN", default)
+                .GetAwaiter().GetResult();
+            Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/tag/list?parent_guid=folder&is_favorite=0"));
+
+            fixture.Session.Client.GetFnNasFilterOptionsAsync("library", null, "Directory,Video", false, "zh-CN", default)
+                .GetAwaiter().GetResult();
+            Assert.True(fixture.Transport.RequestUris.Contains(
+                "/v/api/v1/tag/list?ancestor_guid=library&is_favorite=0&type=Directory%2CVideo"));
+        });
+        Test("飞牛混合库：item/list 带官方 All 类型；文件夹下钻改发 parent_guid", () =>
+        {
+            var mixed = FnNasMediaAdapter.Query(new ItemQuery
+            {
+                ParentId = "mix",
+                Limit = 24,
+                IncludeItemTypes = FnNasLibraryQuery.Types("mixed")
+            });
+            Assert.Equal("Movie,TV,Directory,Video",
+                string.Join(',', mixed["tags"]!["type"]!.AsArray().Select(node => node!.GetValue<string>())));
+            Assert.Equal("mix", mixed["ancestor_guid"]!.GetValue<string>());
+            Assert.False(mixed.ContainsKey("parent_guid"));
+
+            var others = FnNasMediaAdapter.Query(new ItemQuery
+            {
+                ParentId = "others",
+                Limit = 24,
+                IncludeItemTypes = FnNasLibraryQuery.Types("homevideos")
+            });
+            Assert.Equal("Directory,Video",
+                string.Join(',', others["tags"]!["type"]!.AsArray().Select(node => node!.GetValue<string>())));
+
+            var folder = FnNasMediaAdapter.Query(new ItemQuery
+            {
+                ParentId = "folder",
+                Limit = 24,
+                FnNasDirectChildren = true
+            });
+            Assert.Equal("folder", folder["parent_guid"]!.GetValue<string>());
+            Assert.False(folder.ContainsKey("ancestor_guid"));
+            Assert.Equal(0, folder["tags"]!.AsObject().Count, "文件夹页没有默认类型");
+        });
+        Test("飞牛媒体库：mediadb/sum 的按库计数补到 RecursiveItemCount", () =>
+        {
+            var summary = JsonNode.Parse("""{"library":54,"missing":-1,"total":54}""")!.AsObject();
+            Assert.Equal(54, FnNasMediaAdapter.SummaryCount(summary, "library"));
+            Assert.Null(FnNasMediaAdapter.SummaryCount(summary, "missing"));
+            Assert.Null(FnNasMediaAdapter.SummaryCount(summary, ""));
+
+            using var fixture = new Fixture(); fixture.Login();
+            var libraries = fixture.Session.Client.GetViewsAsync(default).GetAwaiter().GetResult();
+            Assert.Equal(54, libraries.Single().RecursiveItemCount);
+            Assert.True(fixture.Transport.RequestUris.Contains("/v/api/v1/mediadb/sum"));
         });
         Test("飞牛筛选：计数、清空与克隆互不影响", () =>
         {
@@ -773,6 +845,7 @@ internal static partial class FnNasMediaTests
                 "/v/api/v1/sys/config" => "{\"server_guid\":\"server\",\"server_name\":\"飞牛\"}",
                 "/v/api/v1/sys/version" => "{\"version\":\"0.9.8\",\"mediasrvVersion\":\"0.8.43\"}",
                 "/v/api/v1/mediadb/list" => "[{\"guid\":\"library\",\"name\":\"电影库\",\"category\":\"Movie\"}]",
+                "/v/api/v1/mediadb/sum" => "{\"library\":54,\"total\":54,\"movie\":52,\"tv\":2,\"video\":0}",
                 "/v/api/v1/tag/list" => "{\"genres\":[2,7],\"resolutions\":[\"4k\",\"1080P\"],\"color_range\":[\"HDR10\",\"SDR\"],\"audio_type\":[\"Stereo\"],\"locate\":[\"CN\"],\"decades\":[\"Recent\",\"2020s\"],\"recognition_status\":[1,2,3]}",
                 "/v/api/v1/tag/genres" => "[{\"id\":2,\"value\":\"动画\"},{\"id\":7,\"value\":\"动作\"}]",
                 "/v/api/v1/tag/iso3166" => "[{\"key\":\"CN\",\"value\":\"中国大陆\"}]",

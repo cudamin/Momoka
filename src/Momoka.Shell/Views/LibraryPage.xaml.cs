@@ -608,6 +608,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         ThemeHost.Changed -= UpdateTabColors;
         ThemeHost.Changed += UpdateTabColors;
         UpdateTabColors(ThemeHost.Current);
+        if (ViewModel.IsFnNas && !ViewModel.IsFolderDrillDown && _request?.IsSearch != true) ReorderFnNasToolbar();
         ApplyHeaderLayout();
         if (_request?.IsSearch == true) HomeMotion.Reveal(SearchSurface, 0, 220, 8);
 
@@ -690,6 +691,8 @@ public sealed partial class LibraryPage : Page, IShellContent
         var search = _request?.IsSearch == true;
         var sectionLibrary = ViewModel.IsSectionLibrary;
         var folderDrillDown = ViewModel.IsFolderDrillDown;
+        // 飞牛库根：只留筛选、排序、布局，摆到左上角（2026-11-01 用户令，照官网页端）。
+        var fnNasRoot = ViewModel.IsFnNas && !folderDrillDown && !search;
         // Jellyfin 的混合内容库根沿用网页端 list.html：没有分区签，工具条居中；页内标题照旧留着，
         // 但落到分区库那一档字号（36 → 20，2026-11-01 用户令）。文件夹下钻页标题仍由面包屑承担。
         var jellyfinList = ViewModel.IsJellyfinListPage;
@@ -733,12 +736,13 @@ public sealed partial class LibraryPage : Page, IShellContent
         Grid.SetColumn(LibrarySectionsSurface, 0);
         Grid.SetColumnSpan(LibrarySectionsSurface, 2);
         ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right
+            : fnNasRoot ? HorizontalAlignment.Left
             : sectionLibrary || folderDrillDown || jellyfinList ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-        Toolbar.CenterRows = sectionLibrary || folderDrillDown || jellyfinList;
+        Toolbar.CenterRows = !fnNasRoot && (sectionLibrary || folderDrillDown || jellyfinList);
         Grid.SetRow(SearchSurface, search ? 0 : 1);
         Grid.SetRow(LibraryTitle, 0);
         Grid.SetColumnSpan(LibraryTitle, search ? 1 : 2);
-        Grid.SetRow(ToolbarSurface, search || folderDrillDown ? 0 : sectionLibrary ? 2 : 1);
+        Grid.SetRow(ToolbarSurface, search || folderDrillDown ? 0 : fnNasRoot ? 1 : sectionLibrary ? 2 : 1);
         LibraryTitle.MaxWidth = width;
         ToolbarSurface.MaxWidth = width;
         if (!search) return;
@@ -776,6 +780,14 @@ public sealed partial class LibraryPage : Page, IShellContent
                 };
             }
         }
+    }
+
+    /// <summary>官网页端的三件顺序：筛选、排序、布局。只对飞牛库根重排，其它服务器保持原顺序。</summary>
+    private void ReorderFnNasToolbar()
+    {
+        UIElement[] order = [FilterButton, SortButton, FnNasLayoutButton];
+        foreach (var control in order) Toolbar.Children.Remove(control);
+        for (var index = 0; index < order.Length; index++) Toolbar.Children.Insert(index, order[index]);
     }
 
     private void ApplyPanelSize()

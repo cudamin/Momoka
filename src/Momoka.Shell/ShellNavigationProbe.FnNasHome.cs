@@ -36,6 +36,8 @@ internal sealed partial class ShellNavigationProbe
                 return FnNasEnvelope(new { guid = "user", username = "user", is_admin = "1" });
             if (path.EndsWith("/api/v1/mediadb/list", StringComparison.Ordinal))
                 return FnNasEnvelope(new[] { new { guid = "fn-tv", name = "电视节目", category = "TV" } });
+            if (path.EndsWith("/api/v1/mediadb/sum", StringComparison.Ordinal))
+                return FnNasEnvelope(new JsonObject { ["fn-tv"] = 56, ["total"] = 56 });
             if (path.EndsWith("/api/v1/play/list", StringComparison.Ordinal))
                 return FnNasEnvelope(Array.Empty<object>());
             if (path.EndsWith("/api/v1/item/list", StringComparison.Ordinal))
@@ -86,6 +88,7 @@ internal sealed partial class ShellNavigationProbe
 
         var libraries = await SourceLibraries.LoadAsync(fixture.Session, CancellationToken.None);
         Require(libraries.Items.Count == 1 && libraries.Items[0].Name == "电视节目", "飞牛库目录没读到");
+        Require(libraries.Items[0].RecursiveItemCount == 56, "飞牛库没有取到 mediadb/sum 的库总数");
         fixture.Settings.Ui.ShowHomeBanner = true;
         fixture.Settings.Ui.CarouselCount = 4;
         fixture.Settings.Ui.CarouselSeconds = 60;
@@ -103,6 +106,7 @@ internal sealed partial class ShellNavigationProbe
             var shelf = home.ViewModel.Shelves.SingleOrDefault(item => item.HomeKey == HomeLayout.LibraryKey(libraries.Items[0]))
                 ?? throw new InvalidOperationException("主页没有飞牛库那一排");
             Require(shelf.Title == "电视节目", $"飞牛货架的标题还是「{shelf.Title}」");
+            Require(shelf.Note == "56 项", $"飞牛库排读数不是库总数，而是「{shelf.Note}」");
             Require(shelf.Cards.Count == 2 && shelf.Cards.All(card => card.Item.Type == EmbyItemType.Series),
                 $"飞牛货架上混进了单集：{string.Join('、', shelf.Cards.Select(card => card.Item.Type))}");
 

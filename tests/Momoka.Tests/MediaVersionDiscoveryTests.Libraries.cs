@@ -338,6 +338,7 @@ internal static partial class MediaVersionDiscoveryTests
             "/v/api/v1/sys/config" => "{\"server_guid\":\"fnnas\",\"server_name\":\"fnnas.invalid\"}",
             "/v/api/v1/sys/version" => "{\"version\":\"0.9.8\",\"mediasrvVersion\":\"0.8.43\"}",
             "/v/api/v1/mediadb/list" => "[]",
+            "/v/api/v1/mediadb/sum" => "{}",
             "/v/api/v1/search/list" => "[" + movie + ",{\"guid\":\"wrong-native\",\"title\":\"电影\",\"type\":\"Movie\",\"imdb_id\":\"tt9999999\",\"release_date\":\"2020-01-01\"}]",
             "/v/api/v1/item/native-movie" => movie,
             "/v/api/v1/stream/list/native-movie" => "{\"files\":[{\"guid\":\"same-source\",\"path\":\"/media/movie.mkv\"}]}",

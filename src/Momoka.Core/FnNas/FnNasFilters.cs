@@ -74,6 +74,51 @@ public sealed record FnNasFilterOptions(
 }
 
 /// <summary>
+/// 筛选面板上出现哪几行。规则照官方 0.9.8 <c>layout/list</c> 的筛选组件：行序固定为
+/// 影视分类、类型、分辨率、视频动态范围、音频规格、国家/地区、发行年份、匹配状态、是否已观看；
+/// 具体哪些行出现由这一页的 <c>defaultType</c> 与是不是文件夹决定。
+/// </summary>
+public static class FnNasFilterCatalog
+{
+    private static readonly string[] PageRows =
+        ["type", "genres", "resolutions", "color_range", "audio_type", "locate", "decades", "recognition_status", "watched"];
+
+    private static readonly string[] FolderRows = ["resolutions", "color_range", "audio_type", "watched"];
+
+    /// <summary>官方是 <c>Me({defaultType, isFolder})</c>：文件夹只有四行；直播只有类型；其余按默认类型裁剪。</summary>
+    public static IReadOnlyList<string> Rows(string? defaultType, bool isFolder)
+    {
+        if (isFolder) return FolderRows;
+        if (defaultType == FnNasLibraryQuery.Live) return ["genres"];
+        return [.. PageRows.Where(key => Shows(defaultType, key))];
+    }
+
+    private static bool Shows(string? defaultType, string key) => defaultType switch
+    {
+        null or "" => true,
+        FnNasLibraryQuery.All => true,
+        // 「其他」与单集页：分类、题材、地区、年代都不适用。
+        FnNasLibraryQuery.Other or "Episode" => key is not ("type" or "genres" or "locate" or "decades"),
+        // 具体类型页（电影／电视节目／直播）：不再让人换分类。
+        _ => key != "type"
+    };
+
+    public static string RowLabel(string key) => key switch
+    {
+        "type" => "影视分类",
+        "genres" => "类型",
+        "resolutions" => "分辨率",
+        "color_range" => "视频动态范围",
+        "audio_type" => "音频规格",
+        "locate" => "国家/地区",
+        "decades" => "发行年份",
+        "recognition_status" => "匹配状态",
+        "watched" => "是否已观看",
+        _ => key
+    };
+}
+
+/// <summary>
 /// 标签值到中文的那一层。服务器对分辨率、动态范围、音频规格给的是短名（<c>4k</c>、<c>HDR10</c>、
 /// <c>Stereo</c>），面板直接显示它们会和网页端的中文对不上；未知值原样交回，宁可显示英文，也不猜。
 /// </summary>

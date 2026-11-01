@@ -1,3 +1,5 @@
+using Momoka.FnNas;
+
 namespace Momoka.Emby;
 
 /// <summary>
@@ -40,7 +42,8 @@ public static class HomeLatest
     {
         if (library.Source?.Connection.IsFnNas != true) return null;
 
-        var types = ItemQuery.FlattenedTypes(library.CollectionType);
+        // 混合库要带上文件夹：官网页端 All 的类型集合是电影、节目、文件夹、视频。
+        var types = FnNasLibraryQuery.Types(library.CollectionType);
         return types.Count == 0 ? null : string.Join(',', types);
     }
 }

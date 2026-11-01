@@ -60,13 +60,19 @@
 
 `scrap/search` 的 `source` 取 `title` / `imdb_id` / `tmdb_id`。`scrap/rescrap` 的正文是 `{item_guid, source, source_id, type, media_guids}`；剧集另带 `season_number`、`episode_number`、`scrap_tv_type`（`SingleEpisode` / `MultiEpisode` / `MultiSeasonMultiEpisode`）。`media_guids` 来自 `media/itemfile` 的 `media_guid`；剧和季按官方前端发空数组。
 
-`item/list` 正文（上游形态）：`{tags:{type:[…]}, sort_type, sort_column, page, page_size, ancestor_guid?, exclude_grouped_video?}`；响应 `data.{total, list[]}`。`ancestor_guid` 省略时是跨库查询。
+`item/list` 正文（上游形态）：`{tags:{type:[…]}, sort_type, sort_column, page, page_size, ancestor_guid? | parent_guid?, exclude_grouped_video?}`；响应 `data.{total, list[]}`。**库根发 `ancestor_guid`（整库子树），文件夹下钻发 `parent_guid`（直接子项），官方 0.9.8 不同时发两个**（2026-11-01 重读官方前端 `dba38…js` 的列表页 `Xe`/`W`）。
+
+**默认类型（同一份官方源码，2026-11-01）**：自定义库页 `/library/{guid}` 除分类 `Others` 外都按 `All` 处理，`tags.type` 为 `[Movie, TV, Directory, Video]`；`Others` 只发 `[Directory, Video]`。此前只发电影/剧集会让混合库少掉文件夹或整类条目；文件夹页没有默认类型，靠 `parent_guid` 取子项。
 
 条目上的集数有两对，别混：`number_of_episodes` / `number_of_seasons` 是**元数据**（TMDB）的说法，`local_number_of_episodes` / `local_number_of_seasons` 是**库里实际有**的。剧集（`type=TV`）的 `local_number_of_episodes` 是跨季合计（真实服务器：《JOJO的奇妙冒险》本地 2 季共 3 集），季条目上则是「这一季几集」。卡片右上角的集数角标只取剧集这一格（`FnNasMediaAdapter.Item` → `EmbyItem.LocalEpisodeCount` → `LibraryCardText.EpisodeCount`），因为列表里没有「未看几集」这个数。
 
 **`tags` 的形状（2026-10-19 官方前端 0.9.8 `tagsParams` 核对）**：只有 `type` 是字符串数组；`genres` 是**单个整数**；`resolution`、`color_range`、`audio_type`、`locate`、`decade`、`recognition_status`、`watched` 都是**单值字符串**。请求键用单数 `resolution` / `decade`，而 `tag/list` 的返回键是复数 `resolutions` / `decades`。没有筛选时省略对应的键；**空数组或把单值字段写成数组会让服务器返回 `-4`**（真实服务器实测，题材筛选尤其容易踩）。真实服务器 `item/list` 的条目还带 `vote_average` 与 `media_stream.resolutions`，可直接做评分/清晰度角标。
 
 `type` 取值：`MediaDB` / `Movie` / `TV` / `Season` / `Episode` / `Video` / `Directory`。
+
+**筛选面板行集合（同一份 0.9.8 官方前端 `ke` / `Me`，2026-11-01）**：固定行序 `type`、`genres`、`resolution`、`color_range`、`audio_type`、`locate`、`decade`、`recognition_status`、`watched`；文件夹页只留 `resolution` / `color_range` / `audio_type` / `watched`；直播库只留 `genres`；`Other`（含单集页）去掉 `type`、`genres`、`locate`、`decade`；其余具体默认类型去掉 `type`（`All` 保留）。官方连没有可选项的行也照画。本项目的纯规则在 `FnNasFilterCatalog` 与 `FnNasLibraryQuery`。
+
+**`mediadb/sum` 的读数**：`{favorite,total,movie,tv,video,...按库 GUID 的计数}`。官方侧栏与主页库排显示 `sumData[guid]`，不是货架张数；`FnNasMediaAdapter.GetViewsAsync` 把它补进 `EmbyItem.RecursiveItemCount`，读取失败按补充信息降级。
 
 ## 季 / 集
 
@@ -95,7 +101,7 @@
 
 | 方法 | 路径 | 用途 | 来源 |
 | --- | --- | --- | --- |
-| GET | `/api/v1/tag/list?ancestor_guid=&is_favorite=` | 筛选可选值（类型/分辨率/地区/年代等） | 抓包 |
+| GET | `/api/v1/tag/list?ancestor_guid=|parent_guid=&is_favorite=&type=` | 筛选可选值（类型/分辨率/地区/年代等）；库根用 `ancestor_guid`、文件夹页用 `parent_guid`，`is_favorite` 总会发，`type=Directory,Video` 只给 `Others` 库 | 0.9.8 官方前端 |
 | GET | `/api/v1/tag/genres` · `/tag/iso3166` · `/tag/iso6391` · `/tag/iso6392` | 类型 / 地区 / 语言标签映射（带 `lan`） | 抓包 |
 | POST | `/api/v1/person/list/{item_guid}` | 演员/导演（正文 `{page, page_size}`） | 抓包 |
 

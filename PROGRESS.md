@@ -1,3 +1,13 @@
+## 2026-11-01 飞牛混合库内容、筛选行与库页三件工具条（已构建、发布并核对本机）
+
+- 用户令（附网页截图与飞牛网页留档）：①「飞牛媒体库上方只留上图三个组件，组件位置移到左上角」；②「飞牛库的筛选选项不是固定的，请查询源码修复，不要自己猜」；③「修复飞牛混合内容媒体库显示内容不全的问题」；④追加报「主页的电影根电视剧都是 24 项，明显是不对的，貌似少了，显示的不对」。
+- 网页依据（2026-11-01 重读服务器 192.168.31.230:5666 的官方 0.9.8 前端，并留档 `Desktop/飞牛影视.html`）：①列表页 `dba38…js` 的 `Xe/W` 在库根发 `ancestor_guid`、文件夹下钻只发 `parent_guid`；自定义库页 `/library/{guid}` 除分类 `Others` 外按 `All` 处理，`tags.type=[Movie,TV,Directory,Video]`，`Others` 只发 `[Directory,Video]`，文件夹页没有默认类型。②筛选组件 `ke/Me` 的固定行序为 `type,genres,resolution,color_range,audio_type,locate,decade,recognition_status,watched`；文件夹页只留 `resolution,color_range,audio_type,watched`；`Other` 去掉 `type,genres,locate,decade`；具体类型页去掉 `type`；行没有可选项也照画。③`tag/list` 库根用 `ancestor_guid`、文件夹页用 `parent_guid`，`is_favorite` 总会发，`type=Directory,Video` 只给 `Others`。④`mediadb/sum` 返回 `{favorite,total,movie,tv,...,[库 GUID]:计数}`，官方侧栏与主页库排读 `sumData[guid]`，不是货架张数（货架上限 24）。
+- 改动（Core）：新增 `FnNasLibraryQuery`（DefaultType／Types／TagListType 纯规则）；`FnNasMediaAdapter` 把 `Mix` 映射为 `mixed`，`GetViewsAsync` 可选读取 `mediadb/sum` 并写入新增的 `EmbyItem.RecursiveItemCount`；`FnNasMediaAdapter.Query` 对文件夹页发 `parent_guid`，`ItemQuery` 新增 `FnNasDirectChildren`；`FnNasFilterCatalog` 按官方规则产出筛选行；`FnNasClient.GetFilterTagsAsync` 支持 `parent_guid`、`is_favorite` 与 `type`；`HomeLatest.LibraryTypes` 改用飞牛自己的类型集合（混合库含文件夹）。
+- 改动（Shell）：飞牛库根工具条只留「筛选、添加日期、布局」三件，隐藏总数与播放/随机播放，去掉前导图标并补筛选下拉箭头，整体左上对齐并去掉分区库的空行；顺序按官网页端重排（文件夹页仍按网页 list.html 居中）。筛选行按 `FnNasFilterCatalog` 重建，选项空也保留行。`CardShelf` 增加 `NoteOverride`，主页飞牛库排读数用 `mediadb/sum` 的库总数（不是 24 张卡）；`HomeViewModel` 只在飞牛来源设置。
+- 测试与探针：Core 全套 **3525/3525、0 失败 0 跳过**；Shell Release 构建 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes` 退出 0。库页探针新增「飞牛混合库与文件夹页的列表类型、父级参数和筛选行」及主页 `mediadb/sum` 读数断言，开发件 **20/20、退出 0**（`shell-probe-20261101-073716543-28864`）；截图 `library-fnnas-spacing-closed/open-screen.png`（左上三件、无总数/播放键）、`library-fnnas-mixed-screen.png`（混合库 9 行筛选与 4 类卡片）、`library-fnnas-folder-filter-screen.png`（文件夹页 4 行筛选）、`home-fnnas-1280-screen.png`（库排读数 56 项）。新探针用假传输断言 `tags.type=Movie,TV,Directory,Video`、文件夹 `parent_guid` 且 `tags` 为空、`tag/list` 的 `ancestor_guid`/`parent_guid` 参数。
+- 交付：`tools/publish.ps1 -NoArchive` 通过：**546 文件、285.5 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件、50 UI／2 native**；`Momoka.dll` SHA-256 `a059cd29dd15f987d1a41d1292d7055a7666644b4847391264f9f8d1b2fa9cb4`，发布件与开发构建逐字节相同；桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。
+- 未覆盖／已知红：本批没有在真实飞牛服务器上读取混合库、主页或播放（只用官方源码与假传输核对请求形状；用户实机截图显示混合库 14 项，需在发布件上复看）；没有真实服务器写入或播放；未跑完整闸门 1／4；未推 origin。
+
 ## 2026-11-01 Jellyfin 混合内容库改走网页端 list.html（已构建、发布并核对本机）
 
 - 用户令（附 Jellyfin 网页截图）：查网页端混合内容库上图组件源码，替换本项目 Jellyfin 混合内容的组件；把 Jellyfin 媒体库左上角「混合内容」字号缩小。

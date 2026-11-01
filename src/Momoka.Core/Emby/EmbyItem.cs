@@ -762,6 +762,12 @@ public sealed class EmbyItem
     public int? ChildCount { get; set; }
 
     /// <summary>
+    /// 整棵子树里的条目数，Emby／Jellyfin 的 <c>RecursiveItemCount</c>。飞牛的媒体库对象自己不带这个数，
+    /// 由 <c>mediadb/sum</c> 按库补上 —— 主页库排的读数要用它，不能用货架装了多少张卡（上限 24）。
+    /// </summary>
+    public int? RecursiveItemCount { get; set; }
+
+    /// <summary>
     /// 这部剧在库里有几集 —— <b>本地集数</b>，不是元数据说的总集数。只有飞牛的列表会带
     /// （<c>local_number_of_episodes</c>），Emby / Jellyfin / Plex 一律 null。
     /// <para>

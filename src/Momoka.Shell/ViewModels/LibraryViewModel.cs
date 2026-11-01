@@ -573,9 +573,9 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <see cref="IsJellyfinListPage"/>.
     /// </summary>
     internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, IsSearch: false }
-        && (IsJellyfin
-            ? _request.CollectionType is "movies" or "tvshows"
-            : _request.CollectionType is "movies" or "tvshows" or "mixed");
+        && (_request.CollectionType is "movies" or "tvshows"
+            // 飞牛的「混合内容」库不摆 Emby 那套分区签：官网页端就是一个 list 页。
+            || (!IsJellyfin && !IsFnNas && _request.CollectionType is "mixed"));
 
     /// <summary>
     /// 从任一媒体库的「文件夹」点进一个文件夹后的那一页。网页端这一页是 <c>list.html</c>：顶栏是
@@ -673,11 +673,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// （原来它们藏在「更多」里，那个菜单 2026-10-17 按用户的话删掉了：菜单里除了这两颗常年灰着的键什么都没有）。
     /// </summary>
     public Visibility DirectPlayVisibility => Show(
+        // 飞牛官网页端没有这两颗键；2026-11-01 用户令「飞牛媒体库上方只留筛选／排序／布局」。
+        !IsFnNas
         // list.js hides 播放/随机播放 on a CollectionFolder unless that collection is Home Videos:
         // `!(itemType === 'CollectionFolder' && item.CollectionType !== Homevideos)`. The mixed root is
         // a CollectionFolder, so the web page shows neither button; a folder drill-down (itemType
         // Folder) shows both and plays its contents recursively.
-        !(IsJellyfinListPage && _request?.ParentType is null)
+        && !(IsJellyfinListPage && _request?.ParentType is null)
         && (!IsSectionLibrary
             || (Section == LibrarySection.Folders
                 ? _firstPage && Cards.Count > 0
@@ -698,8 +700,12 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// <summary>list.js renders its sort text with <c>SortByValue</c> — 「排序方式：文件夹」.</summary>
     public string ToolbarSortLabel => IsJellyfinListPage ? $"排序方式：{SortLabel}" : SortLabel;
 
-    /// <summary>The web list page's sort button is text + arrow; the other toolbars keep their leading icon.</summary>
-    public Visibility SortIconVisibility => Show(!IsJellyfinListPage);
+    /// <summary>飞牛与 Jellyfin list 页的排序／筛选都是纯文字按钮，没有前导图标。</summary>
+    public Visibility SortIconVisibility => Show(!IsJellyfinListPage && !IsFnNas);
+    public Visibility FilterIconVisibility => Show(!IsFnNas);
+
+    /// <summary>飞牛媒体库上方只留筛选、排序、布局三件，总数不着地。</summary>
+    public Visibility ItemCountVisibility => Show(!IsFnNas);
 
     /// <summary>The list page's filter button is a text button so it reads 筛选 like list.html.</summary>
     public Visibility FilterTextVisibility => Show(IsFnNas || IsJellyfinListPage);
@@ -739,7 +745,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             nameof(ToolbarVisibility), nameof(SettingsVisibility), nameof(Fields),
             nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel),
             nameof(LayoutVisibility), nameof(JellyfinLayoutVisibility), nameof(JellyfinMoreVisibility),
-            nameof(SortIconVisibility), nameof(FilterTextVisibility), nameof(ToolbarSortLabel),
+            nameof(SortIconVisibility), nameof(FilterIconVisibility), nameof(ItemCountVisibility),
+            nameof(FilterTextVisibility), nameof(ToolbarSortLabel),
             nameof(FnNasFilterVisibility), nameof(FnNasFilterTextVisibility),
             nameof(FnNasLayoutWide), nameof(FilterButtonWidth), nameof(JellyfinListShowsTitles),
             nameof(FavoriteAccountFilterVisibility), nameof(FavoriteAccountLabel),
@@ -1194,6 +1201,9 @@ public sealed partial class LibraryViewModel : PageViewModel
         OnPropertyChanged(nameof(FnNasFilterTextVisibility));
         OnPropertyChanged(nameof(FilterButtonWidth));
         OnPropertyChanged(nameof(LayoutVisibility));
+        OnPropertyChanged(nameof(SortIconVisibility));
+        OnPropertyChanged(nameof(FilterIconVisibility));
+        OnPropertyChanged(nameof(ItemCountVisibility));
 
         ResetFnNasFilters();
 
@@ -2013,10 +2023,16 @@ public sealed partial class LibraryViewModel : PageViewModel
         FnNasFilterLoading = true;
         try
         {
+            // 官网页端：库根问 ancestor_guid，文件夹页问 parent_guid；「其他」库附带
+            // type=Directory,Video，其余页面不附带类型。
+            var folder = IsFolderDrillDown;
+            var defaultType = FnNasLibraryQuery.DefaultType(CollectionType, folder);
+            var tagListType = FnNasLibraryQuery.TagListType(defaultType);
             var options = await scope.ExecuteAsync((client, ct) => client.GetFnNasFilterOptionsAsync(
-                request.ParentId, request.IsFavorites, "zh-CN", ct), token).ConfigureAwait(true);
+                folder ? null : request.ParentId, folder ? request.ParentId : null,
+                tagListType, request.IsFavorites, "zh-CN", ct), token).ConfigureAwait(true);
             if (!FnNasFilterLoadCurrent(token, scope, request)) return;
-            BuildFnNasFilterRows(options);
+            BuildFnNasFilterRows(options, defaultType);
         }
         catch (OperationCanceledException) { }
         catch (Exception error)
@@ -2036,33 +2052,37 @@ public sealed partial class LibraryViewModel : PageViewModel
         _active && !token.IsCancellationRequested && _fnNasFilterLifetime?.Token == token
         && ReferenceEquals(_scope, scope) && ReferenceEquals(_request, request) && scope.IsAvailable;
 
-    private void BuildFnNasFilterRows(FnNasFilterOptions options)
+    private void BuildFnNasFilterRows(FnNasFilterOptions options, string? defaultType)
     {
         FnNasFilterRows.Clear();
 
-        // 官方前端只在库不是电影或电视剧时给「影视分类」；混合内容库才有电影/剧集两类。
-        if (CollectionType is not ("movies" or "tvshows"))
-            AddFnNasRow("type", "影视分类", [new("Movie", "电影"), new("TV", "电视节目")]);
-        AddFnNasRow("genres", "类型", options.Genres);
-        AddFnNasRow("resolutions", "分辨率", options.Resolutions);
-        AddFnNasRow("color_range", "视频动态范围", options.ColorRanges);
-        AddFnNasRow("audio_type", "音频规格", options.AudioTypes);
-        AddFnNasRow("locate", "国家/地区", options.Locations);
-        AddFnNasRow("decades", "发行年份", options.Decades);
-        AddFnNasRow("recognition_status", "匹配状态", options.RecognitionStatuses);
-        AddFnNasRow("watched", "是否已观看", [new("1", "已观看"), new("0", "未观看")]);
+        // 行集合来自官网页端的筛选组件：库根按默认类型裁剪，文件夹页只剩四行。
+        // 官方连没有可选项的行也照画（只有「全部」），这里不按空表跳过。
+        foreach (var key in FnNasFilterCatalog.Rows(defaultType, IsFolderDrillDown))
+            AddFnNasRow(key, FnNasFilterCatalog.RowLabel(key), FnNasOptions(key, options));
 
         ShowFilterState();
     }
 
+    private static IEnumerable<FnNasTagOption> FnNasOptions(string key, FnNasFilterOptions options) => key switch
+    {
+        "type" => [new("Movie", "电影"), new("TV", "电视节目")],
+        "genres" => options.Genres,
+        "resolutions" => options.Resolutions,
+        "color_range" => options.ColorRanges,
+        "audio_type" => options.AudioTypes,
+        "locate" => options.Locations,
+        "decades" => options.Decades,
+        "recognition_status" => options.RecognitionStatuses,
+        "watched" => [new("1", "已观看"), new("0", "未观看")],
+        _ => []
+    };
+
     private void AddFnNasRow(string key, string label, IEnumerable<FnNasTagOption> options)
     {
-        var values = options.ToList();
-        if (values.Count == 0) return;
-
         var row = new FnNasFilterRow(key, label, ApplyFnNasFilters);
         row.Add("", FnNasFilterLabels.All);
-        foreach (var option in values) row.Add(option.Value, option.Label);
+        foreach (var option in options) row.Add(option.Value, option.Label);
         row.Restore(FnNasValue(key));
         FnNasFilterRows.Add(row);
     }
@@ -2706,7 +2726,10 @@ public sealed partial class LibraryViewModel : PageViewModel
             return LibraryBrowse.Query(request.CollectionType!, request.ParentId!, request.Section,
                 start, IsUpcomingPage ? LibraryUpcoming.PageSize : limit, SortKey, SortDescending, _filters, request.BrowseGroup, _display);
 
-        var types = ItemQuery.FlattenedTypes(request.CollectionType);
+        // 飞牛混合库的官网页端问的是电影、节目、文件夹、视频；Emby 的 mixed 预设不含文件夹。
+        var types = IsFnNas
+            ? FnNasLibraryQuery.Types(request.CollectionType)
+            : ItemQuery.FlattenedTypes(request.CollectionType);
 
         return new ItemQuery
         {
@@ -2715,6 +2738,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             // flattening a series would put every episode of every season on one page.
             Recursive = types.Count > 0,
             IncludeItemTypes = types,
+            // 飞牛文件夹下钻页发 parent_guid 取直接子项；库根仍发 ancestor_guid。
+            FnNasDirectChildren = IsFolderDrillDown,
             SortBy = SortKey,
             Descending = SortDescending,
             StartIndex = start,

@@ -124,10 +124,18 @@ public sealed partial class CardShelf : ObservableObject
     public ObservableCollection<CardItem> Cards { get; } = [];
 
     /// <summary>
+    /// 牌子右端的读数覆盖值。飞牛的库排要写库里的条目总数而不是货架张数（货架有上限），
+    /// null 时退回 <see cref="Note"/> 原来的「这一排装了多少」。
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Note))]
+    public partial string? NoteOverride { get; set; }
+
+    /// <summary>
     /// 牌子右端那个读数，「24 项」。空的时候是空字符串，<see cref="Views.ShelfHead"/> 会把那一格整个收起 ——
     /// 一带还没载入完的时候写个「0 项」，说的是「这里什么都没有」，而事实是「还不知道」。
     /// </summary>
-    public string Note => Cards.Count > 0 ? $"{Cards.Count} 项" : string.Empty;
+    public string Note => NoteOverride ?? (Cards.Count > 0 ? $"{Cards.Count} 项" : string.Empty);
 
     /// <summary>
     /// How tall the row's scroller has to be, picture plus the two lines of text under it. A horizontal
@@ -149,6 +157,7 @@ public sealed partial class CardShelf : ObservableObject
         // （两者的分工见 CardItem.ReleasePoster 上那段）。
         foreach (var card in Cards) card.AbandonPoster();
         Cards.Clear();
+        NoteOverride = null;
         _cardSubtitle = null;
         _cardTitle = null;
     }

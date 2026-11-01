@@ -193,6 +193,12 @@ public sealed class ItemQuery
     /// </summary>
     public Momoka.FnNas.FnNasFilterSelection? FnNasFilters { get; set; }
 
+    /// <summary>
+    /// 飞牛文件夹下钻页：<see cref="ParentId"/> 是文件夹本身，<c>item/list</c> 发 <c>parent_guid</c>
+    /// 取直接子项；库根仍发 <c>ancestor_guid</c>（官方 0.9.8 的两种问法）。
+    /// </summary>
+    public bool FnNasDirectChildren { get; init; }
+
     /// <summary>"Video" restricts a recursive search to things that can actually be played.</summary>
     public string? MediaTypes { get; init; }
 

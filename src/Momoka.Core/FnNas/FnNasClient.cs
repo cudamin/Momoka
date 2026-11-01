@@ -68,15 +68,23 @@ public sealed partial class FnNasClient(FnNasHttp http)
     public Task<JsonObject> GetLibrarySummaryAsync(FnNasConnection c, CancellationToken ct = default) =>
         ObjectAsync(c, HttpMethod.Get, "api/v1/mediadb/sum", null, ct);
 
-    /// <summary>筛选面板的可选标签；<paramref name="ancestorGuid"/> 为空时是跨库查询。</summary>
-    public Task<JsonObject> GetFilterTagsAsync(FnNasConnection c, string? ancestorGuid, bool favorites, CancellationToken ct = default)
+    /// <summary>
+    /// 筛选面板的可选标签。库根用 <paramref name="ancestorGuid"/>，文件夹下钻用
+    /// <paramref name="parentGuid"/>；<paramref name="type"/> 是官方页面对应行的取值
+    /// （「其他」库问 <c>Directory,Video</c>，All 与文件夹页省略）。
+    /// </summary>
+    public Task<JsonObject> GetFilterTagsAsync(FnNasConnection c, string? ancestorGuid, string? parentGuid, string? type,
+        bool favorites, CancellationToken ct = default)
     {
         var query = "api/v1/tag/list";
         var parameters = new List<string>();
-        if (!string.IsNullOrWhiteSpace(ancestorGuid))
+        if (!string.IsNullOrWhiteSpace(parentGuid))
+            parameters.Add("parent_guid=" + Uri.EscapeDataString(parentGuid));
+        else if (!string.IsNullOrWhiteSpace(ancestorGuid))
             parameters.Add("ancestor_guid=" + Uri.EscapeDataString(ancestorGuid));
-        if (favorites) parameters.Add("is_favorite=1");
-        if (parameters.Count > 0) query += "?" + string.Join('&', parameters);
+        parameters.Add("is_favorite=" + (favorites ? "1" : "0"));
+        if (!string.IsNullOrWhiteSpace(type)) parameters.Add("type=" + Uri.EscapeDataString(type));
+        query += "?" + string.Join('&', parameters);
         return ObjectAsync(c, HttpMethod.Get, query, null, ct);
     }
 
