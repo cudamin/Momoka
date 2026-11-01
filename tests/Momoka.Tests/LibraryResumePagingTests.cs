@@ -380,6 +380,17 @@ internal static class LibraryResumePagingTests
             Assert.True(fixture.HasMore);
             Assert.Equal("a:0,a:0", fixture.Transport.Asked());
         });
+        Case("库页加载失败出现重试，重试成功后收起", async () =>
+        {
+            using var fixture = new Fixture(shell, 3);
+            fixture.Transport.FailNextResume = true;
+            await fixture.Load();
+            Assert.Equal("加载失败", fixture.TotalLabel);
+            Assert.Equal("Visible", fixture.Retry);
+            await fixture.Load();
+            Assert.Equal("Collapsed", fixture.Retry);
+            Assert.True(fixture.Cards.Count > 0);
+        });
         Case("R-013 刷新重建服务器消费账，不把旧合成槽当原始记录", async () =>
         {
             using var fixture = new Fixture(shell, 21);
@@ -574,6 +585,7 @@ internal static class LibraryResumePagingTests
         public List<object> Cards => ((System.Collections.IEnumerable)Get<object>("Cards")).Cast<object>().ToList();
         public bool HasMore => Get<bool>("HasMore");
         public string TotalLabel => Get<string>("TotalLabel");
+        public string Retry => Get<object>("RetryVisibility").ToString()!;
 
         public Fixture(ShellFixture shell, int count, bool secondSource = false, bool aggregate = false,
             bool favorites = false, MediaServerKind secondKind = MediaServerKind.Emby, bool thirdSource = false)

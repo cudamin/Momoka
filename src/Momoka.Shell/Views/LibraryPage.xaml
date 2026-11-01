@@ -826,7 +826,16 @@
             IsOpen="{x:Bind ViewModel.NoticeOpen, Mode=TwoWay}"
             Message="{x:Bind ViewModel.NoticeMessage, Mode=OneWay}"
             Severity="{x:Bind ViewModel.NoticeSeverity, Mode=OneWay}"
-            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}" />
+            Title="{x:Bind ViewModel.NoticeTitle, Mode=OneWay}">
+            <!-- 网页端库页上那颗 btnRetryData：失败之后不必退出重进（2026-11-01 审查 F4）。 -->
+            <InfoBar.ActionButton>
+                <Button
+                    x:Name="LibraryRetryButton"
+                    Content="重试"
+                    Click="OnLibraryRetryClicked"
+                    Visibility="{x:Bind ViewModel.RetryVisibility, Mode=OneWay}" />
+            </InfoBar.ActionButton>
+        </InfoBar>
 
         <!-- Emby 结果区整块（网格 + 字母条 + 空态）包进 EmbyContent，好被「MoviePilot」分段一处切走
              （见 OnSourceChanged）。 -->

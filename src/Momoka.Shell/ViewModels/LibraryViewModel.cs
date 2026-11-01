@@ -697,6 +697,16 @@ public sealed partial class LibraryViewModel : PageViewModel
             ? $"{_total} 的 {(Cards.Count > 0 ? 1 : 0)}-{Math.Min(_total, Cards.Count)}"
             : $"共 {_total} 项";
 
+    /// <summary>库页载入失败后提示条上的「重试」在不在；成功重载或开始重载时收起。</summary>
+    public Visibility RetryVisibility => Show(_pageFailed);
+
+    private void SetPageFailed(bool value)
+    {
+        if (_pageFailed == value) return;
+        _pageFailed = value;
+        OnPropertyChanged(nameof(RetryVisibility));
+    }
+
     /// <summary>list.js renders its sort text with <c>SortByValue</c> — 「排序方式：文件夹」.</summary>
     public string ToolbarSortLabel => IsJellyfinListPage ? $"排序方式：{SortLabel}" : SortLabel;
 
@@ -958,7 +968,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         _queryToken = _queries.Begin();
         _jumps.Cancel();
         _firstPage = false;
-        _pageFailed = false;
+        SetPageFailed(false);
         _total = NotLoaded;
         ShowEmptyNotice = false;
         var queryToken = _queryToken;
@@ -984,7 +994,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         catch (Exception error)
         {
             if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
-            _pageFailed = true;
+            SetPageFailed(true);
             Log.Warn(Category, $"读取「{Heading}」的推荐失败", error);
             Report($"读取「{Heading}」失败，请刷新重试", error);
         }
@@ -1265,7 +1275,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         if (IsResumePage && consumed && card.Scope is { } source) _cursor?.RemoveConsumed(source.Key);
         if (consumed && _total > 0) _total--;
         _firstPage = true;
-        _pageFailed = false;
+        SetPageFailed(false);
         IsReady = true;
         ShowEmptyNotice = Cards.Count == 0;
         RowsArrived();
@@ -1429,7 +1439,7 @@ public sealed partial class LibraryViewModel : PageViewModel
                 UpdateUpcomingDays();
             }
             _firstPage = true;
-            _pageFailed = false;
+            SetPageFailed(false);
             ShowEmptyNotice = Cards.Count == 0;
             RowsArrived();
             return true;
@@ -1439,7 +1449,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         {
             if (QueryCurrent(queryToken) && IsCurrent(token))
             {
-                _pageFailed = true;
+                SetPageFailed(true);
                 Report("更新删除后的列表失败，请刷新重试", error);
             }
             return false;
@@ -1465,7 +1475,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             {
                 _total = 0;
                 _firstPage = true;
-                _pageFailed = false;
+                SetPageFailed(false);
                 EmptyNotice = "没有可读取收藏的账号";
                 ShowEmptyNotice = true;
                 IsReady = true;
@@ -1493,7 +1503,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             _queryToken = _queries.Begin();
             _jumps.Cancel();
             _firstPage = false;
-            _pageFailed = false;
+            SetPageFailed(false);
             _total = NotLoaded;
             _upcomingReadCount = 0;
             ResetCursor();
@@ -1543,7 +1553,7 @@ public sealed partial class LibraryViewModel : PageViewModel
             }
             UpdateUpcomingDays();
             _firstPage = true;
-            _pageFailed = false;
+            SetPageFailed(false);
             EmptyNotice = result is null ? "输入关键字开始搜索"
                 : _request.IsSearch ? $"没有找到“{SearchText}”的匹配结果"
                 : IsUpcomingPage ? "暂无即将播出的剧集，可稍后刷新查看" : "这里没有内容";
@@ -1555,7 +1565,7 @@ public sealed partial class LibraryViewModel : PageViewModel
         catch (Exception error)
         {
             if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
-            _pageFailed = true;
+            SetPageFailed(true);
             Log.Warn(Category, $"读取「{Heading}」失败", error);
             Report($"读取「{Heading}」失败，请刷新重试", error);
         }

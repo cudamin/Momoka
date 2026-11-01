@@ -800,6 +800,18 @@ internal sealed partial class ShellNavigationProbe
             await page.ViewModel.ChooseSectionAsync(LibrarySection.Episodes);
             Require(page.ViewModel.Cards.Count == 0 && page.ViewModel.TotalLabel == "加载失败", "分类载入失败仍冒充旧列表或加载中");
 
+            // 失败之后不走「退出去再进来」：提示条上那颗「重试」重发同一条查询（2026-11-01 审查 F4）。
+            var retry = Get<Button>(page, "LibraryRetryButton");
+            Require(retry.Visibility == Visibility.Visible, "载入失败没有显示「重试」");
+            fixture.Transport.Reply = (request, _) => Task.FromResult(FakeTransport.Standard(request));
+            var invokeRetry = FrameworkElementAutomationPeer.CreatePeerForElement(retry)
+                ?.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
+            Require(invokeRetry is not null, "重试按钮没有可调用的自动化入口");
+            invokeRetry!.Invoke();
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            Require(page.ViewModel.Cards.Count > 0 && page.ViewModel.TotalLabel != "加载失败", "点了重试没有重新载入");
+            Require(retry.Visibility == Visibility.Collapsed, "重试成功后「重试」还留在提示条上");
+
             // 文件夹下钻页（2026-11-01 用户令「统一界面」）：网页端 list.html 的头部与工具条。
             // 三种库从「文件夹」点进去都是这一页 —— 父类型 Folder、没有 CollectionType —— 所以单独开一页核对。
             // 文件夹里放一部剧：它自己不可播，播放全部必须按网页端递归取它下面的条目。

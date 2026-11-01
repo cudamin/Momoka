@@ -279,6 +279,7 @@ handle  Views/LibraryPage.xaml  JellyfinLayoutButton
 handle  Views/LibraryPage.xaml  JellyfinLayoutList
 handle  Views/LibraryPage.xaml  JellyfinLayoutMenu
 handle  Views/LibraryPage.xaml  LibraryClearFiltersButton
+handle  Views/LibraryPage.xaml  LibraryRetryButton
 handle  Views/LibraryPage.xaml  LibrarySettingsButton
 handle  Views/LibraryPage.xaml  LibraryTitle
 handle  Views/LibraryPage.xaml  MoviePilotPanel

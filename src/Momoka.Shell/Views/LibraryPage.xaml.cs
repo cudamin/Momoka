@@ -849,6 +849,8 @@ public sealed partial class LibraryPage : Page, IShellContent
 
     private void OnUpcomingRetryClicked(object sender, RoutedEventArgs e) => Reload();
 
+    private void OnLibraryRetryClicked(object sender, RoutedEventArgs e) => Reload();
+
     /// <summary>
     /// Asks for one more page when the last did not fill the window, and keeps the two play buttons
     /// and the letter bar's rule in step with the rows that just landed.

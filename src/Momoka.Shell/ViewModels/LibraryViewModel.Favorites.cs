@@ -129,7 +129,7 @@ public sealed partial class LibraryViewModel
         _favoriteToken = _favoriteLoads.Begin();
         _jumps.Cancel();
         _firstPage = false;
-        _pageFailed = false;
+        SetPageFailed(false);
         _total = NotLoaded;
         ShowEmptyNotice = false;
         foreach (var card in Cards) card.AbandonPoster();
@@ -215,7 +215,7 @@ public sealed partial class LibraryViewModel
     private void UpdateFavoriteState()
     {
         if (!IsFavoritesPage) return;
-        _pageFailed = FavoriteRows.Any(row => row.Error.Length > 0);
+        SetPageFailed(FavoriteRows.Any(row => row.Error.Length > 0));
         _total = FavoriteRows.Sum(row => Math.Max(0, row.Total));
         EmptyNotice = "暂无收藏节目或集，可在详情页或卡片菜单中添加收藏";
         ShowEmptyNotice = !_pageFailed && FavoriteRows.All(row => row.Loaded && !row.Loading && row.Cards.Count == 0);
