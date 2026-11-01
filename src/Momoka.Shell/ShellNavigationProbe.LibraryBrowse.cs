@@ -34,19 +34,35 @@ internal sealed partial class ShellNavigationProbe
         {
             if (request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
                 return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(poster) });
+            var path = request.RequestUri.AbsolutePath;
+            // 电影推荐页照网页端 moviesuggestions.js 多问两条，两条都回裸数组 —— 落到下面那条
+            // { Items, TotalRecordCount } 的通用答复上会解析失败。
+            if (path.EndsWith("/Movies/Recommendations", StringComparison.Ordinal))
+                return Task.FromResult(Json(new[]
+                {
+                    new
+                    {
+                        RecommendationType = "SimilarToRecentlyPlayed",
+                        BaselineItemName = "离线媒体库内容",
+                        Items = new[] { RecommendationMovie("library-sample-recommendation") }
+                    }
+                }));
+            if (path.EndsWith("/Items/Latest", StringComparison.Ordinal))
+                return Task.FromResult(Json(new[] { RecommendationMovie("library-sample-latest") }));
             if (Query(request, "ParentId") is null) return Task.FromResult(FakeTransport.Standard(request));
             // 用户网页端这两页都是 0 项（没装 Trailers 插件、没有收藏）。探针照空态跑，
             // 才能验电影库「预告片」「收藏」的工具栏、排序、筛选与设置，以及没有可播行时收起播放键。
             if (Query(request, "IncludeItemTypes") == EmbyItemType.Trailer
                 || Query(request, "Filters")?.Contains("IsFavorite", StringComparison.Ordinal) == true)
                 return Task.FromResult(Json(new { Items = Array.Empty<EmbyItem>(), TotalRecordCount = 0 }));
-            var path = request.RequestUri.AbsolutePath;
             var index = path.EndsWith("/Genres", StringComparison.Ordinal) || path.EndsWith("/Studios", StringComparison.Ordinal);
-            // 继续观看那一条没有 IncludeItemTypes（它就是 Resume），推荐页那一排装的是单集。
+            // 继续观看那一条没有 IncludeItemTypes（它就是 Resume）。条目类型跟着库走：电影库那一排装电影，
+            // 电视剧库装单集 —— 与生产代码按 CollectionType 过滤的口径一致（ParentId 就是 library-<分类>）。
             var resume = path.EndsWith("/Items/Resume", StringComparison.Ordinal);
+            var resumeType = Query(request, "ParentId") == "library-movies" ? EmbyItemType.Movie : EmbyItemType.Episode;
             var folders = Query(request, "Recursive") == "false";
             var type = index ? path.EndsWith("/Genres", StringComparison.Ordinal) ? "Genre" : "Studio"
-                : resume ? EmbyItemType.Episode
+                : resume ? resumeType
                 : folders ? EmbyItemType.Folder
                 : (Query(request, "IncludeItemTypes") ?? EmbyItemType.Movie).Split(',')[0];
             var sample = new EmbyItem { Id = "library-sample-" + type, Name = index ? "科幻与动画" : "离线媒体库内容", Type = type };
@@ -80,6 +96,14 @@ internal sealed partial class ShellNavigationProbe
             }
             return Task.FromResult(Json(new { Items = new[] { sample }, TotalRecordCount = 1 }));
         };
+        // 电影推荐页那两条裸数组答复里的片子：有 Id、名字、类型与一张假封面，卡片就画得出来。
+        // 两类答复各用一个 Id，好让「哪一排读了哪一条」在请求记录里分得清。
+        static EmbyItem RecommendationMovie(string id)
+        {
+            var movie = new EmbyItem { Id = id, Name = "离线媒体库内容", Type = EmbyItemType.Movie };
+            movie.ImageTags["Primary"] = "fixture";
+            return movie;
+        }
         var frame = new Frame();
         _root.Children.Add(frame);
         LibraryPage? page = null;
@@ -304,7 +328,7 @@ internal sealed partial class ShellNavigationProbe
                     Require(Get<Button>(page, "SortButton").Visibility == Visibility.Collapsed
                         && Get<Button>(page, "FilterButton").Visibility == Visibility.Collapsed, "推荐还显示不生效的排序筛选");
                     // 推荐页：电视剧库是三排货架（继续观看／最新集／最近发布的剧集，2026-10-17 用户令），
-                    // 电影库照旧是网格（网页端电影库的推荐是另一组行，这一轮没做）。
+                    // 电影库是「继续观看／最新影片」加服务器推荐的那几组（2026-11-01，照网页端 movie suggestions）。
                     if (collection == "tvshows")
                     {
                         Require(string.Join(',', page.ViewModel.RecommendedShelves.Select(shelf => shelf.Title)) == "继续观看,最新集,最近发布的剧集", "推荐页三排标题与网页不同");
@@ -332,8 +356,24 @@ internal sealed partial class ShellNavigationProbe
                     }
                     else
                     {
-                        Require(page.ViewModel.RecommendedShelves.Count == 0 && page.TableScroll.Visibility == Visibility.Visible
-                            && Get<ScrollViewer>(page, "RecommendedScroll").Visibility == Visibility.Collapsed, "电影库的推荐不该变成三排");
+                        // 电影库照网页端 movie suggestions：两排固定货架（继续观看、最新影片）后面接服务器
+                        // 按推荐理由给的那一组，牌子由 RecommendationType + 基准片名合成。
+                        var movieTitles = string.Join(',', page.ViewModel.RecommendedShelves.Select(shelf => shelf.Title));
+                        Require(movieTitles == "继续观看,最新影片,类似看过：离线媒体库内容",
+                            $"电影库推荐页的货架与网页不同（{movieTitles}）");
+                        Require(Get<ScrollViewer>(page, "RecommendedScroll").Visibility == Visibility.Visible
+                            && Get<ItemsRepeater>(page, "RecommendedRows").Visibility == Visibility.Visible
+                            && page.TableScroll.Visibility == Visibility.Collapsed, "电影库的推荐没有把网格换成货架");
+                        Require(page.ViewModel.RecommendedShelves.All(shelf => shelf.Cards.Count == 1), "电影库推荐页有一排没载入");
+                        Require(fixture.Transport.Requests.Any(value => value.Contains("Movies/Recommendations", StringComparison.Ordinal)
+                            && value.Contains($"ParentId={libraryId}", StringComparison.Ordinal)), "服务器推荐没有收在本库");
+                        Require(fixture.Transport.Requests.Any(value => value.Contains("/Items/Latest", StringComparison.Ordinal)
+                            && value.Contains($"ParentId={libraryId}", StringComparison.Ordinal)), "最新影片没有收在本库");
+                        ResizeProbeClient(1100, 800);
+                        await LayoutAsync(page);
+                        await SaveProbeScreenAsync("library-movies-recommended-screen.png");
+                        ResizeProbeClient(900, 700);
+                        await LayoutAsync(page);
                     }
                 }
                 await SelectAsync(LibrarySection.Folders);

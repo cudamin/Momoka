@@ -799,16 +799,19 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal bool HasMore => !IsRecommendedPage && !IsFavoritesPage && !(_request?.IsSearch == true && string.IsNullOrWhiteSpace(_request.SearchTerm))
         && (UsesQueryCursor ? _cursor?.HasMore ?? true : _total < 0 || (IsUpcomingPage ? _upcomingReadCount : Cards.Count) < _total);
 
-    // ---------------------------------------------------------------- 推荐页（三排货架）
+    // ---------------------------------------------------------------- 推荐页（若干排货架）
 
     /// <summary>
-    /// 网页端电视剧库「推荐」那一格：三排横着走的货架（继续观看、最新集、最近发布的剧集），不是一面卡片墙。
+    /// 网页端库页「推荐」那一格：横着走的几排货架，不是一面卡片墙。
     /// <para>
-    /// 2026-10-17 用户令「复刻网页端的推荐页面，三个分区 继续观看、最新集、最近发布的剧集」。这一页的「说什么、
-    /// 怎么问」在 <see cref="LibraryRecommended"/> 里；这里只管把三份数据装进三排，以及这一页该显示什么。
+    /// 2026-10-17 用户令「复刻网页端的推荐页面，三个分区 继续观看、最新集、最近发布的剧集」，附网页端截图。
+    /// 这一页的「说什么、怎么问」在 <see cref="LibraryRecommended"/> 里；这里只管把几份数据装进几排，以及这一页
+    /// 该显示什么。
     /// </para>
     /// <para>
-    /// 电影库没有这几排（网页端电影库的推荐是另一组行，本轮没做），别的分类也不是推荐页 —— 那些情况
+    /// **电影库照网页端**（2026-11-01，F3）：Emby 是「继续观看 + 最新影片」两排固定货架，后面接服务器按推荐
+    /// 理由给的那几组（<c>Movies/Recommendations</c>，标题由 <see cref="LibraryRecommended.RecommendationRows"/>
+    /// 合成）。Jellyfin 电影是「继续观看 + 最新电影 + 为你推荐」三排。别的分类不是推荐页 —— 那些情况
     /// <see cref="IsRecommendedPage"/> 为假，页面照旧是网格，一行标记都不用改。
     /// </para>
     /// </summary>
@@ -818,7 +821,18 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal bool IsRecommendedPage => IsSectionLibrary && Section == LibrarySection.Recommended
         && LibraryRecommended.Rows(_request!.CollectionType, SourceServerKind).Count > 0;
 
-    /// <summary>三排货架在不在（网格由 <see cref="GridVisibility"/> 收起来，两者互斥）。</summary>
+    /// <summary>
+    /// 这一页的排数不固定：电影库还要等服务器那几组推荐回来才知道一共几排。
+    /// <para>
+    /// 判据必须同时限定分区、服务器与分类。只限定前两条不够 —— Emby 的电视剧推荐页也在同一个分区，
+    /// <see cref="LibraryRecommended.Rows"/> 对它同样非空，那一条路必须留在原来的固定三排上；电影这一条
+    /// 才会多问一趟 <c>Movies/Recommendations</c>（对电视剧库问它是错的问题）。
+    /// </para>
+    /// </summary>
+    private bool IsEmbyMovieRecommended => IsSectionLibrary && Section == LibrarySection.Recommended
+        && SourceServerKind == MediaServerKind.Emby && _request?.CollectionType == "movies";
+
+    /// <summary>货架在不在（网格由 <see cref="GridVisibility"/> 收起来，两者互斥）。</summary>
     public Visibility RecommendedVisibility => Show(IsRecommendedPage);
 
     /// <summary>网格在不在。推荐页把整块网格（含它的滚动器与表格列头）收起，屏上只剩那三排；
@@ -932,14 +946,17 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 照这一页该有的排数把货架造出来。已经是对的就不重建 —— 每次刷新都 <c>Clear</c> 再 <c>Add</c>，屏上那三排
+    /// 照这一页该有的排数把货架造出来。已经是对的就不重建 —— 每次刷新都 <c>Clear</c> 再 <c>Add</c>，屏上那几排
     /// 会被拆掉重装一遍，滚到一半的位置也会回开头。换库、换分类时排数或标题变了才重造。
     /// </summary>
-    private void EnsureRecommendedShelves()
+    /// <param name="rows">
+    /// 这一页此刻的排表。电影库要等服务器那几组推荐回来才齐全，所以它由调用方给，不在这里现问
+    /// <see cref="LibraryRecommended.Rows"/>。
+    /// </param>
+    private void EnsureRecommendedShelves(IReadOnlyList<RecommendedRow> rows)
     {
         if (_images is not { } images || _request is null) return;
 
-        var rows = LibraryRecommended.Rows(_request.CollectionType, SourceServerKind);
         if (RecommendedShelves.Count == rows.Count
             && RecommendedShelves.Select(shelf => shelf.Title).SequenceEqual(rows.Select(row => row.Title), StringComparer.Ordinal))
             return;
@@ -951,12 +968,16 @@ public sealed partial class LibraryViewModel : PageViewModel
     }
 
     /// <summary>
-    /// 推荐页那一趟：三排各问一次，谁也不等谁。和主页那几排同一个理由 —— 一排一趟往返地串起来，这一页就是
-    /// 一排一秒；三排之间没有任何依赖。
+    /// 推荐页那一趟：每一排各问一次，谁也不等谁。和主页那几排同一个理由 —— 一排一趟往返地串起来，这一页就是
+    /// 一排一秒；排与排之间没有任何依赖。
     /// </summary>
     /// <remarks>
-    /// 不分页：三排各自只要 <see cref="LibraryRecommended.Size"/> 条，翻页由货架自己那一对箭头管（它是在已有
+    /// 不分页：每一排只要 <see cref="LibraryRecommended.Size"/> 条，翻页由货架自己那一对箭头管（它是在已有
     /// 的那些卡里翻，不再问服务器）。
+    /// <para>
+    /// 电影库多一趟 <c>Movies/Recommendations</c>，而且**排数由它的回答决定**：服务器给几组推荐，这一页就
+    /// 多几排。所以它先等这一趟回来，再连同两排固定货架一起把货架造出来。
+    /// </para>
     /// </remarks>
     private async Task LoadRecommendedAsync(bool reset)
     {
@@ -975,13 +996,32 @@ public sealed partial class LibraryViewModel : PageViewModel
         var token = BeginLoad();
         try
         {
-            EnsureRecommendedShelves();
-            var rows = LibraryRecommended.Rows(request.CollectionType, SourceServerKind);
-            var items = await Task.WhenAll(rows.Select(row => ReadRecommendedAsync(row, request, token))).ConfigureAwait(true);
-            if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
+            if (IsEmbyMovieRecommended)
+            {
+                var rows = LibraryRecommended.Rows(request.CollectionType, SourceServerKind);
+                var fixedItems = await Task.WhenAll(rows.Select(row => ReadRecommendedAsync(row, request, token))).ConfigureAwait(true);
+                var categories = await ReadEmbyMovieRecommendationCategoriesAsync(request, token).ConfigureAwait(true);
+                if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
 
-            for (var index = 0; index < rows.Count && index < RecommendedShelves.Count; index++)
-                RecommendedShelves[index].Fill(items[index], LibraryRecommended.Subtitle);
+                var dynamicRows = LibraryRecommended.RecommendationRows(categories);
+                var allRows = rows.Concat(dynamicRows.Select(row => row.Row)).ToArray();
+                var allItems = fixedItems.Select(items => (IReadOnlyList<EmbyItem>)items)
+                    .Concat(dynamicRows.Select(row => row.Items))
+                    .ToArray();
+                EnsureRecommendedShelves(allRows);
+                for (var index = 0; index < allRows.Length && index < RecommendedShelves.Count; index++)
+                    RecommendedShelves[index].Fill(allItems[index], LibraryRecommended.Subtitle);
+            }
+            else
+            {
+                EnsureRecommendedShelves(LibraryRecommended.Rows(request.CollectionType, SourceServerKind));
+                var rows = LibraryRecommended.Rows(request.CollectionType, SourceServerKind);
+                var items = await Task.WhenAll(rows.Select(row => ReadRecommendedAsync(row, request, token))).ConfigureAwait(true);
+                if (!QueryCurrent(queryToken) || !IsCurrent(token)) return;
+
+                for (var index = 0; index < rows.Count && index < RecommendedShelves.Count; index++)
+                    RecommendedShelves[index].Fill(items[index], LibraryRecommended.Subtitle);
+            }
 
             _total = RecommendedShelves.Sum(shelf => shelf.Cards.Count);
             _firstPage = true;
@@ -999,6 +1039,21 @@ public sealed partial class LibraryViewModel : PageViewModel
             Report($"读取「{Heading}」失败，请刷新重试", error);
         }
         finally { EndLoad(token); }
+    }
+
+    /// <summary>
+    /// 服务器按推荐理由分好的那几组（网页端电影推荐页的后半段）。多来源时把各账号的组并在一起，
+    /// 同名标题由 <see cref="LibraryRecommended.RecommendationRows"/> 合并。
+    /// </summary>
+    private async Task<List<MovieRecommendation>> ReadEmbyMovieRecommendationCategoriesAsync(
+        LibraryRequest request, CancellationToken token)
+    {
+        if (request.ParentId is not { Length: > 0 } parent) return [];
+        var sources = _sources.Where(source => source.IsAvailable).ToArray();
+        var results = await Task.WhenAll(sources.Select(scope => scope.ExecuteAsync(
+            (client, ct) => client.GetMovieRecommendationsAsync(parent, LibraryRecommended.EmbyMovieRecommendationSize, ct), token)))
+            .ConfigureAwait(true);
+        return [.. results.SelectMany(result => result)];
     }
 
     /// <summary>
@@ -1035,15 +1090,16 @@ public sealed partial class LibraryViewModel : PageViewModel
                     .ExecuteAsync((client, ct) => client.QueryResumeAsync(0, LibraryRecommended.Size, ct, request.ParentId), token)
                     .ConfigureAwait(true);
                 var items = resume.Items.Where(item => !EmbyItemType.IsMusic(item.Type));
-                // Jellyfin's two suggestions pages ask for the kind of item that page is about, rather
-                // than letting a movie appear on a series row or the other way round.
-                if (scope.Connection.IsJellyfin)
-                    items = request.CollectionType switch
-                    {
-                        "movies" => items.Where(item => item.Type is EmbyItemType.Movie or EmbyItemType.Video),
-                        "tvshows" => items.Where(item => item.Type == EmbyItemType.Episode),
-                        _ => items
-                    };
+                // 这一排只装本页那个分类的条目，与网页端各页的 QueryOptions 一致：电影推荐页的 Resume 是
+                // IncludeItemTypes=Movie，电视剧页是单集 —— 否则电影库的「继续观看」会混进别的类型。
+                // Jellyfin 把 Video 也算电影，这一条是它原来就有的收法，照旧。
+                items = request.CollectionType switch
+                {
+                    "movies" when scope.Connection.IsJellyfin => items.Where(item => item.Type is EmbyItemType.Movie or EmbyItemType.Video),
+                    "movies" => items.Where(item => item.Type == EmbyItemType.Movie),
+                    "tvshows" => items.Where(item => item.Type == EmbyItemType.Episode),
+                    _ => items
+                };
                 return [.. items];
             }
 
@@ -1069,9 +1125,9 @@ public sealed partial class LibraryViewModel : PageViewModel
                 return [.. items.Where(item => !EmbyItemType.IsMusic(item.Type))];
             }
 
-            // Jellyfin's latest movie / episode rows come from /Items/Latest with the library scope. The
-            // endpoint does not filter out watched items there, unlike the Emby call this client already
-            // made for its home carousel, so both switches are turned off explicitly.
+            // 最新影片 / 最新集走 /Items/Latest 并带上库的作用域 —— Emby 与 Jellyfin 都是这条路（网页端
+            // 电影推荐页的 latestmedia 那一段就是 IncludeItemTypes=Movie + ParentId + Recursive）。这条接口
+            // 不过滤已看条目，与 Emby 主页轮播用过的同一趟调用不同，所以两个开关都显式关掉。
             if (row.Shelf == RecommendedShelf.LatestMovies)
             {
                 var items = await scope.ExecuteAsync((client, ct) => client.GetLatestAsync(

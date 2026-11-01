@@ -336,14 +336,16 @@ public sealed partial class EmbyClient(EmbyHttp http, EmbyConnection connection)
     }
 
     /// <summary>
-    /// Jellyfin's 「建议」 rows for one library: <c>GET /Movies/Recommendations</c> groups films by why
-    /// they were suggested and names the film the reason is based on. Emby has no such endpoint; the
-    /// library's movie suggestions page therefore uses only the resume/latest rows there.
+    /// The 「建议」 rows of one library: <c>GET /Movies/Recommendations</c> groups films by why they were
+    /// suggested and names the film the reason is based on. Both Emby and Jellyfin serve it — the Emby web
+    /// client's movie suggestions page is built on exactly this call (<c>videos/moviesuggestions.js</c>,
+    /// <c>fetchSections</c>), with <c>categoryLimit=6</c> and <c>ItemLimit=12</c> in its vertical layout.
+    /// Plex and 飞牛 have no such endpoint.
     /// </summary>
     public async Task<List<MovieRecommendation>> GetMovieRecommendationsAsync(
         string parentId, int limit, CancellationToken cancellationToken)
     {
-        if (!Connection.IsJellyfin) throw new NotSupportedException("当前服务器不支持电影建议");
+        if (Connection.IsPlex || Connection.IsFnNas) throw new NotSupportedException("当前服务器不支持电影建议");
         var url = Url("Movies/Recommendations",
             ("UserId", Connection.UserId),
             ("ParentId", parentId),

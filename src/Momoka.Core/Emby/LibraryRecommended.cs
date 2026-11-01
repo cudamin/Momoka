@@ -20,7 +20,7 @@ public enum RecommendedShelf
     /// <summary>Jellyfin 剧集建议的第三排：每部剧接下来该看的一集。</summary>
     NextUp,
 
-    /// <summary>Jellyfin 电影建议的第三排：服务器按观看记录算出的相似影片。</summary>
+    /// <summary>服务器算出的相似影片：Jellyfin 的电影建议把它压成一排，Emby 每个分类各一排。</summary>
     MovieRecommendations
 }
 
@@ -28,19 +28,27 @@ public enum RecommendedShelf
 public sealed record RecommendedRow(RecommendedShelf Shelf, string Title, bool Wide);
 
 /// <summary>
-/// 网页端电视剧库「推荐」那一页：三排横着走的货架，而不是一面卡片墙。
+/// 服务器推荐分类成出来的一排：牌子与卡片形状是 <see cref="Row"/>，<see cref="Items"/> 是那一排的条目。
+/// </summary>
+public sealed record LibraryRecommendationRow(RecommendedRow Row, IReadOnlyList<EmbyItem> Items);
+
+/// <summary>
+/// 网页端「推荐」那一页：几排横着走的货架，而不是一面卡片墙。
 /// <para>
 /// 2026-10-17 用户令「复刻网页端的推荐页面，三个分区 继续观看、最新集、最近发布的剧集」，附网页端截图。
 /// 这一轮之前这一格是平铺网格（走 <c>Users/{id}/Suggestions</c>），网页端那三行另起一轮，就是这里。
 /// </para>
 /// <para>
-/// **三排的口径**（对着截图定，不是猜的）：继续观看是「本库里看到一半的」，最新集是「本库里最近有内容的
+/// **电视剧库的三排**（对着截图定，不是猜的）：继续观看是「本库里看到一半的」，最新集是「本库里最近有内容的
 /// 剧集」，最近发布的剧集是「本库里按播出日期最新的单集」。三排各自带 <c>ParentId</c>，所以它们说的是这一个
-/// 库，不是整台服务器 —— 这也是它们不能借主页那几排的原因：主页那几排是整服的。
+/// 库，不是整台服务器 —— 这也是它们不能借主页那几排的原因：主页那几排是整服的。Jellyfin 的电视剧第三排换成
+/// 「接下来看」。
 /// </para>
 /// <para>
-/// **只给电视剧库**。电影库网页端也是「推荐」两个字，但装的是另一组行（继续观看、最新电影、最近发布），
-/// 本轮没有做，那一格照旧是网格 —— 与其把电视剧的三排硬套上去，不如让它维持现状。
+/// **电影库照网页端**（<c>videos/moviesuggestions.js</c> 的 <c>fetchSections</c>）：Emby 是「继续观看 + 最新影片」
+/// 两排固定货架，服务器还会按推荐理由（看过／收藏过的片子、同一执导、同一出演）再给几组，每组自带基准片名，
+/// 由 <see cref="RecommendationRows"/> 接在后面各成一排。Jellyfin 沿用已经做好的那三排（继续观看、最新电影、
+/// 为你推荐），它把服务器的分组压成一排。
 /// </para>
 /// <para>
 /// 判据与文案放在 Core，是因为它们是这一页的「说什么」：查询怎么发、卡片底下写什么、哪几种条目不参加，
@@ -53,8 +61,15 @@ public static class LibraryRecommended
     public const int Size = 24;
 
     /// <summary>
-    /// 这个库该有哪几排。Emby 只有电视剧库那三排；Jellyfin 的电影库也有建议页（继续观看、最新电影、
-    /// 服务器推荐），电视剧库的第三排则是「接下来看」而不是按播出日期排的单集。
+    /// 电影推荐页每排问服务器要多少条：网页端 <c>fetchSections</c> 的纵向布局是
+    /// <c>ItemLimit=12</c>（横向布局才是 6，那是电视遥控器上的一屏）。
+    /// </summary>
+    public const int EmbyMovieRecommendationSize = 12;
+
+    /// <summary>
+    /// 这个库该有哪几排。Emby 电影库是「继续观看 + 最新影片」两排，后面接着服务器推荐的那几组
+    /// （见 <see cref="RecommendationRows"/>）；Emby 电视剧库是截图里那三排；Jellyfin 的电影库也有建议页
+    /// （继续观看、最新电影、服务器推荐），电视剧库的第三排则是「接下来看」而不是按播出日期排的单集。
     /// </summary>
     public static IReadOnlyList<RecommendedRow> Rows(string? collectionType, MediaServerKind serverKind = MediaServerKind.Emby) =>
         collectionType switch
@@ -77,8 +92,75 @@ public static class LibraryRecommended
                 new(RecommendedShelf.LatestMovies, "最新电影", Wide: false),
                 new(RecommendedShelf.MovieRecommendations, "为你推荐", Wide: false)
             ],
+            "movies" when serverKind == MediaServerKind.Emby =>
+            [
+                new(RecommendedShelf.ContinueWatching, "继续观看", Wide: true),
+                new(RecommendedShelf.LatestMovies, "最新影片", Wide: false)
+            ],
             _ => []
         };
+
+    /// <summary>
+    /// 服务器那几组推荐各成一排，照网页端 <c>fetchSections</c>：标题由
+    /// <see cref="RecommendationTitle"/> 合成，卡片是竖版海报。没有条目、认不出类型、或者音乐条目之外一条
+    /// 不剩的分类不占屏幕。同名标题（同一部基准片被两种理由推荐）并成一排，条目按
+    /// <see cref="EmbyItem.IdentityKey"/> 去重、保留服务器给的先后次序。
+    /// </summary>
+    public static IReadOnlyList<LibraryRecommendationRow> RecommendationRows(IEnumerable<MovieRecommendation> recommendations)
+    {
+        var rows = new List<LibraryRecommendationRow>();
+        var known = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var recommendation in recommendations)
+        {
+            if (RecommendationTitle(recommendation) is not { } title) continue;
+
+            var items = recommendation.Items
+                .Where(item => !EmbyItemType.IsMusic(item.Type))
+                .DistinctBy(item => item.IdentityKey)
+                .ToArray();
+            if (items.Length == 0) continue;
+
+            if (known.TryGetValue(title, out var index))
+            {
+                rows[index] = rows[index] with
+                {
+                    Items = [.. rows[index].Items.Concat(items).DistinctBy(item => item.IdentityKey)]
+                };
+                continue;
+            }
+
+            known[title] = rows.Count;
+            rows.Add(new LibraryRecommendationRow(
+                new RecommendedRow(RecommendedShelf.MovieRecommendations, title, Wide: false), items));
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// 一排推荐的牌子，照网页端那四条分支：<c>SimilarToRecentlyPlayed</c>「类似看过：X」、
+    /// <c>SimilarToLikedItem</c>「类似收藏：X」、导演那两种「同一执导：X」、演员那两种「同一出演：X」。
+    /// <para>
+    /// 译文取自真实 Emby 服务器网页语言包（<c>BecauseYouWatchedValue</c> 等四条）。基准片名缺失时退回
+    /// Jellyfin 那一排用的「为你推荐」——「同一执导：」后面空着比换一句更糟。认不出的类型交回 null，那一排
+    /// 不生成：网页端那一下会摆出一排没有牌子的卡。
+    /// </para>
+    /// </summary>
+    public static string? RecommendationTitle(MovieRecommendation recommendation)
+    {
+        var prefix = recommendation.RecommendationType switch
+        {
+            "SimilarToRecentlyPlayed" => "类似看过：",
+            "SimilarToLikedItem" => "类似收藏：",
+            "HasDirectorFromRecentlyPlayed" or "HasLikedDirector" => "同一执导：",
+            "HasActorFromRecentlyPlayed" or "HasLikedActor" => "同一出演：",
+            _ => null
+        };
+        if (prefix is null) return null;
+
+        var baseline = recommendation.BaselineItemName?.Trim() ?? "";
+        return baseline.Length > 0 ? prefix + baseline : "为你推荐";
+    }
 
     /// <summary>
     /// 这一排问服务器要什么。继续观看不走这里 —— 它整份交给 Resume 那条接口（见

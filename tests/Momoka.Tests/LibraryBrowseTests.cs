@@ -366,6 +366,31 @@ internal static class LibraryBrowseTests
             foreach (var kind in new[] { MediaServerKind.Jellyfin, MediaServerKind.Plex, MediaServerKind.FnNas })
                 Assert.False(LibraryBrowse.SupportsCollectionGrouping(kind), kind + " 没有「分组到合集」");
         });
+        Test("电影推荐：Emby 与 Jellyfin 都问 Movies/Recommendations，且带本库作用域与网页端上限", async () =>
+        {
+            // 上游 moviesuggestions.js 的 fetchSections 发的是 CategoryLimit=6、竖向 ItemLimit=12、ParentId 本库；
+            // 这三项决定电影推荐页「有几个理由排、每排多少张、问的是哪个库」。
+            foreach (var kind in new[] { MediaServerKind.Emby, MediaServerKind.Jellyfin })
+            {
+                using var handler = new Transport();
+                using var http = new EmbyHttp(handler);
+                var rows = await Client(http, kind).GetMovieRecommendationsAsync(
+                    "library-a", LibraryRecommended.EmbyMovieRecommendationSize, default);
+                Assert.Equal(0, rows.Count);
+                var uri = handler.Requests.Last();
+                Assert.Equal("/media/Movies/Recommendations", uri.AbsolutePath);
+                Assert.Contains("ParentId=library-a", uri.Query);
+                Assert.Contains("CategoryLimit=6", uri.Query);
+                Assert.Contains("ItemLimit=12", uri.Query);
+            }
+            using var plex = new Transport();
+            using var plexHttp = new EmbyHttp(plex);
+            var rejected = false;
+            try { await Client(plexHttp, MediaServerKind.Plex).GetMovieRecommendationsAsync("library-a", 12, default); }
+            catch (NotSupportedException) { rejected = true; }
+            Assert.True(rejected, "Plex 不该有电影推荐接口");
+            Assert.Equal(0, plex.Requests.Count);
+        });
     }
 
     private static string Labels(string type, MediaServerKind kind) =>
@@ -435,8 +460,11 @@ internal static class LibraryBrowseTests
             Assert.Equal(HttpMethod.Get, request.Method);
             Assert.Equal<HttpContent?>(null, request.Content);
             Requests.Add(request.RequestUri!);
+            var body = request.RequestUri!.AbsolutePath.EndsWith("Movies/Recommendations", StringComparison.Ordinal)
+                ? "[]"
+                : "{\"Items\":[],\"TotalRecordCount\":0}";
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
-            { Content = new StringContent("{\"Items\":[],\"TotalRecordCount\":0}", Encoding.UTF8, "application/json") });
+            { Content = new StringContent(body, Encoding.UTF8, "application/json") });
         }
     }
 }
