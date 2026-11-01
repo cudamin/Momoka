@@ -274,6 +274,16 @@ public sealed partial class PlayerViewModel : ObservableObject
     private IReadOnlyList<SkipSection> _embySkipSections = [];
 
     /// <summary>
+    /// Whether the player's own chapters have already been offered to the 跳过 plan for this file.
+    /// Emby's chapter list and mpv's are usually identical, so a chapter-list change is not a
+    /// reliable trigger; this flag makes the first status of each file run the fallback once.
+    /// </summary>
+    private bool _playerSkipSeeded;
+
+    /// <summary>The playback generation of the last status actually applied; 0 before the first one.</summary>
+    private long _statusGeneration;
+
+    /// <summary>
     /// Which chapter the preview is naming and which one it is showing a picture of, so a hover that stays
     /// inside both does no work. Two numbers because the two lists can disagree — see
     /// <see cref="ChapterTimeline"/>.

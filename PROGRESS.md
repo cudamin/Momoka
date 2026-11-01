@@ -1,3 +1,12 @@
+## 2026-11-01 修复：章节表与 Emby 相同导致播放器兜底不运行（已提交并交付本机）
+
+- 用户报「片头跳过按钮不显示了」。
+- 根因：兜底只在 `chaptersChanged` 为真时执行。Emby 的章节表与 mpv 的通常完全一样，第一份状态到达时 `ChapterMarks` 已经是 Emby 那份，判定为「没变」，`ConsiderPlayerSkipSections` 从未执行；`RefineChapterMarksAsync` 又在 `Status.Chapters` 非空时提前返回。于是「Emby 没标片头、播放器能从章节名/位置认出来」的片子永远不出按钮。
+- 修法：`ApplyStatus` 每个文件第一次拿到章节表时无论是否变化都跑一次兜底（`_playerSkipSeeded` 闸门，换片/离开重置）；`OnNowPlayingChanged` 在状态先于条目宣布到达时立即补跑一次，避免 `Begin` 把兜底结果冲掉。补两行「跳过计划/跳过兜底」调试日志（只记段数与章节数，不含凭据）。
+- 验证：Shell Release 构建 0 警告 0 错误；开发件 `--probe-shell --probe-section playback --screen 2` 8/8、退出 0（`shell-probe-20261101-030418777-9192`），新增「章节表与 Emby 相同（chaptersChanged=false）时仍会补片头/片尾」。
+- 交付：`tools/publish.ps1 -NoArchive` 通过：**546 文件、285.5 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件**；桌面快捷方式指向 `artifacts/publish/win-x64/Momoka.exe`；交付件同一探针 8/8、退出 0（`shell-probe-20261101-030727390-5268`）。旧发布移到 `C:\Users\89400\Momoka-stale\publish-20261101-110454`。
+- 未覆盖：探针用假句柄与合成章节；没有用真实剧集播放复核；未跑完整闸门 1/4；未推 origin。真实剧集复核时看 `%LOCALAPPDATA%\Momoka\logs\app-*.log` 里的「跳过计划/跳过兜底」两行即可判断兜底有没有跑、认出了几段。
+
 ## 2026-11-01 片头片尾：Emby 优先，缺的那一段由播放器章节识别补位（已提交并交付本机）
 
 - 用户令：片头片尾优先用 Emby 的数据识别跳过，Emby 没有数据时回退到播放器识别；播放器识别逻辑参考 dyphire/mpv-config，识出的片尾跳到下一章节。

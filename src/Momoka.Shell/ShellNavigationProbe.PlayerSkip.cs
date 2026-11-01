@@ -97,8 +97,33 @@ internal sealed partial class ShellNavigationProbe
             Require(vm.SkipOffered && vm.SkipCaption == "跳过片尾", "播放器片尾没有接上跳过提示");
             report.Add("播放器兜底：Emby 片头保留，mpv 章节补出片尾 1380–1440，提示来源与落点正确。");
 
+            // 回归：Emby 的章节表与 mpv 的完全一样时，chaptersChanged 为假；兜底仍必须跑一次，
+            // 否则「Emby 没标片头、播放器能认出来」的片子永远不出按钮。
+            IReadOnlyList<SkipChapter> sameChapters =
+            [
+                new SkipChapter(0, "OP"),
+                new SkipChapter(90, "正片"),
+                new SkipChapter(1380, "ED"),
+                new SkipChapter(1440, "预告")
+            ];
+            SetStatus(10, sameChapters);
+            Field(vm, "_embySkipSections", (IReadOnlyList<SkipSection>)[]);
+            skips.Begin([], 1500);
+            Field(vm, "_playerSkipSeeded", false);
+            SetStatus(10, sameChapters);
+            var fallbackOnly = skips.Sections;
+            Require(fallbackOnly.Count == 2
+                && fallbackOnly[0].Kind == SkipSectionKind.Opening
+                && fallbackOnly[0].Origin == SkipSectionOrigin.Player
+                && fallbackOnly[1].Kind == SkipSectionKind.Ending
+                && fallbackOnly[1].Origin == SkipSectionOrigin.Player,
+                "章节表与 Emby 相同时播放器兜底没有跑");
+            Require(vm.SkipOffered && vm.SkipCaption == "跳过片头", "章节表相同时播放器兜底没有摆出片头提示");
+            report.Add("播放器兜底：章节表与 Emby 相同（chaptersChanged=false）时仍会补片头/片尾。");
+
             skips.Begin([], 0);
             Field(vm, "_embySkipSections", (IReadOnlyList<SkipSection>)[]);
+            Field(vm, "_playerSkipSeeded", false);
             SetStatus(0);
             Require(!vm.SkipOffered, "兜底夹具清理后仍留着跳过提示");
 

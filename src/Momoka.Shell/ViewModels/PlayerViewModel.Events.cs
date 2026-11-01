@@ -575,7 +575,9 @@ public sealed partial class PlayerViewModel
 
     private void OnStatusChanged(PlaybackUpdate<PlayerStatus> update) => OnUi(() =>
     {
-        if (update.Generation == _playback.Generation && _playback.IsPlaying) ApplyStatus(update.Value);
+        if (update.Generation != _playback.Generation || !_playback.IsPlaying) return;
+        _statusGeneration = update.Generation;
+        ApplyStatus(update.Value);
     });
 
     private void OnTracksChanged(PlaybackUpdate<IReadOnlyList<MpvTrack>> update) => OnUi(() =>
@@ -628,6 +630,20 @@ public sealed partial class PlayerViewModel
         var runtime = TimeFormat.ToSeconds(item?.RunTimeTicks);
         _embySkipSections = item is null ? [] : SkipSectionPlanner.Resolve(item);
         _skips.Begin(_embySkipSections, runtime);
+        if (item is not null)
+            Log.Debug(Category, $"跳过计划：Emby {_embySkipSections.Count} 段，条目章节 {item.Chapters.Count} 条");
+
+        // A status for this playback may already have arrived (the handle exists before its item is
+        // announced), and Emby's chapter list usually equals mpv's — waiting for a chapter-list change
+        // would leave the fallback unrun for the whole file.
+        _playerSkipSeeded = false;
+        if (_statusGeneration == _playback.Generation
+            && Status.Loaded
+            && Status.Chapters is { Count: > 0 } chapters)
+        {
+            _playerSkipSeeded = true;
+            ConsiderPlayerSkipSections(chapters);
+        }
 
         // The server's marks are what the bar draws until mpv publishes its own: they are available
         // immediately, and a bar that grew its ticks two seconds in would look like a glitch rather than
@@ -958,6 +974,14 @@ public sealed partial class PlayerViewModel
                 ChapterMarks = chapters;
                 ClearChapterPeek();
                 ChaptersChanged?.Invoke();
+                _playerSkipSeeded = false;
+            }
+
+            // Emby's chapter list usually equals mpv's, so the first status of a file can arrive with
+            // no change at all. The fallback must still run once for that file.
+            if (!_playerSkipSeeded)
+            {
+                _playerSkipSeeded = true;
                 ConsiderPlayerSkipSections(chapters);
             }
         }
@@ -1333,6 +1357,7 @@ public sealed partial class PlayerViewModel
         // the ticks; the 跳过 plan only borrows the player's chapters for kinds Emby never marked.
         ChapterMarks = chapters;
         ChaptersChanged?.Invoke();
+        _playerSkipSeeded = true;
         if (ConsiderPlayerSkipSections(chapters)) ApplySkipOffer();
         return true;
     });
@@ -1354,9 +1379,14 @@ public sealed partial class PlayerViewModel
 
         var duration = Status.HasDuration && Status.Duration > 0 ? Status.Duration : _skips.Duration;
         var player = SkipSectionPlanner.ResolveFromPlayer(chapters, duration);
-        if (player.Count == 0) return false;
+        if (player.Count == 0)
+        {
+            Log.Debug(Category, $"跳过兜底：播放器章节 {chapters.Count} 条没有认出片头片尾");
+            return false;
+        }
 
         var merged = SkipSectionPlanner.Merge(_embySkipSections, player);
+        Log.Debug(Category, $"跳过兜底：播放器章节 {chapters.Count} 条 → {player.Count} 段，合并 {merged.Count} 段");
         if (merged.SequenceEqual(_skips.Sections)) return false;
 
         _skips.UpdateSections(merged, duration);
