@@ -39,6 +39,12 @@ description: "Develop or review Momoka's 飞牛影视 / fnOS media backend: Core
 
 File/operation permission code `-16` is not proof of rejected credentials; `-2`, `-15` and HTTP401 retain identity failure semantics. Explicit permission codes `-5`/`-16` must not be downgraded as optional reads even when accompanied by a transient/503 marker. [Classification tests](../../../tests/Momoka.FnNasErrorClassificationTests/README.md) run anonymous read/error boundaries, not the authentication chain.
 
+## Library categories, root types and folder drill-down
+
+`mediadb/list.category` classifies the library, not its contents. Live read-only check on 2026-11-01 (0.9.8 / 0.8.43): the library named 混合影片 had `category=Movie` but contained 12 shows + 1 movie + 1 folder (14 items); 电视节目 had `category=TV` but also held 2 movies and 7 folders (54 items). The official library root always asks All — `tags.type=[Movie,TV,Directory,Video]` — and so must Momoka. Narrowing by category showed only 1 of 14. FnNas libraries are also never Emby section libraries in the Shell (no tab strip).
+
+Folders use `poster_list` in `item/list` (BT had four child posters); there is no single `poster`. The official card composes 1–4 of them into a cover wall, and Momoka maps them to `EmbyItem.PosterPaths` and renders the same 1/2/3/4 layouts. Folder drill-down sends `parent_guid` with an empty `tags` object and **must omit `exclude_grouped_video`**: the same server answered `total=0` for `parent_guid + exclude_grouped_video=1`, while omitting it returned BT's 47 videos. Library roots keep `exclude_grouped_video=1` so episodes/seasons stay grouped. `HomeLatest.LibraryTypes` follows the same All set for FnNas shelves.
+
 ## Optional reads and transfer budgets
 
 Ordinary API requests retain a 30-second total deadline. Byte downloads and multipart uploads use a separate five-minute total deadline; caller cancellation, response-size bounds and same-origin redirects still apply. A 32-second fake response test exercises the old deadline boundary without contacting a server.

@@ -132,6 +132,7 @@ public sealed partial class FnNasMediaAdapter(FnNasClient client, FnNasConnectio
             : await client.GetItemsAsync(connection, request, ct).ConfigureAwait(false);
         var values = Objects(response, "list").Select(Item).ToList();
         var total = Integer(response, "total") ?? values.Count;
+        Log.Debug("fnnas", $"item/list {request.ToJsonString()} -> total={total} list={values.Count}");
         var offset = Math.Max(0, query.StartIndex) % Math.Max(1, query.Limit);
         if (offset > 0 && values.Count == Math.Max(1, query.Limit) && query.StartIndex + values.Count < total + offset)
         {

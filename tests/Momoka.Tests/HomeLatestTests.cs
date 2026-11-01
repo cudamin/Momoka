@@ -43,10 +43,10 @@ internal static class HomeLatestTests
         // 会把剧集和单集一起发回来，货架上于是并排摆着剧和它自己的某一集。
         Test("主页最近添加：飞牛货架按库的类型问，其余服务器不加类型", () =>
         {
-            Assert.Equal("Series,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "tvshows")));
-            // BoxSet 飞牛没有，请求那一头会把它丢掉（FnNasMediaAdapter.Query）。
-            Assert.Equal("Movie,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "movies")));
-            // 官方 All 的类型集合含文件夹：混合库里的文件夹也是货架上的一张卡。
+            // 飞牛库的 category 不描述内容（2026-11-01 实服：标成 TV 的「电视节目」里有电影和文件夹，
+            // 标成 Movie 的「混合影片」里有 12 部剧）。货架与库页一样按官方 All 问四类，否则会漏卡。
+            Assert.Equal("Movie,Series,Folder,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "tvshows")));
+            Assert.Equal("Movie,Series,Folder,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "movies")));
             Assert.Equal("Movie,Series,Folder,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "mixed")));
             Assert.Equal("Folder,Video", HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, "homevideos")));
             Assert.Null(HomeLatest.LibraryTypes(Library(MediaServerKind.FnNas, null)), "没有集合类型时不猜");

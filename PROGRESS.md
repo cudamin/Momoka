@@ -1,3 +1,14 @@
+## 2026-11-01 飞牛库内容补全与文件夹封面／下钻（已构建、发布并核对本机）
+
+- 用户报（附官方网页与 Momoka 截图）：飞牛「混合影片」网页 14 项，Momoka 只显示 1 项（仅《死神 千年血战篇 -祸进谭-》）；随后指着 BT 文件夹卡问「这个文件的封面还有里面的内容呢？」。
+- 实服只读核对（0.9.8 / 0.8.43，未播放、未写入）：`mediadb/list` 的「混合影片」`category=Movie`，但 `item/list` 14 项是 12 部剧 + 1 部电影 + 1 个文件夹；同服「电视节目」`category=TV`，54 项里另有 2 部电影、7 个文件夹。`tags.type=[Movie,TV,Directory,Video]` 回 14，按 category 的 `Movie,Video` 只回 1 —— 飞牛的库分类不描述内容。BT 文件夹的 `poster_list` 有 4 张子项海报，没有单张 `poster`；`parent_guid` + `exclude_grouped_video=1` 回 `total=0`，去掉这一位回 47 个视频。
+- 改动（Core）：`FnNasLibraryQuery.Types` 对 movies／tvshows／mixed 一律返回电影、节目、文件夹、视频，「其他」库仍只问文件夹、视频；`HomeLatest.LibraryTypes` 同步（货架与库页同口径）。`EmbyItem.PosterPaths` 映射 `poster_list`（去重、最多 4 张，单图兜底到第一张）；文件夹下钻不再发 `exclude_grouped_video`，库根保留。`FnNasMediaAdapter.GetItemsAsync` 补一条 Debug 日志（请求体与回包条数，无凭据），供同类空页取证。
+- 改动（Shell）：飞牛任何分类的库都不再被当成 Emby 分区库（`IsSectionLibrary` 排除 FnNas），库根改走飞牛四类查询；`LibraryPage.ApplyHeaderLayout` 保留飞牛根原来的页边距、标题字号与按外边距控制间距。`CardItem`／`PosterCard` 按官方 1／2／3／4 张排版渲染文件夹封面墙（4 张是 2×2），加载、缓存、取消、回收与失败冷却跟随单张海报；缺图按格记「没有」，不反复重问。
+- 测试与探针：Core 全套 **3536/3536、0 失败 0 跳过**；Shell Release **0 警告 0 错误**；`dotnet format whitespace ./Momoka.sln --verify-no-changes --no-restore` 退出 0。库页探针新增：分类 Movie 的混合库仍发四类、库根带 `exclude_grouped_video=1`、文件夹页不带、poster_list 四张全部载入。开发件 **20/20、退出 0**（`shell-probe-20261101-150504109-44968`）；发布件 **20/20、退出 0**（`shell-probe-20261101-151625655-42416`；前两次同步运行被桌面置顶窗口遮挡，像素守卫如实报红，改后台运行后全绿）。
+- 实机（真实账号，只读）：混合影片 **14 项**；BT 卡显示四图拼图封面；点进 BT 列出 **47 个视频**，未播放、无服务器写入。截图在 `artifacts/ui-review/fnnas-mixed-folder-20261101/`（开发件与发布件各一组）。
+- 交付：`tools/publish.ps1 -Shortcut -NoArchive` 通过：**546 文件、285.6 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件（50 UI／2 native）**；开发件与发布件 `Momoka.dll` SHA-256 同为 `c5d5908e77b9c97d0dc5515f1e6f06be1f26b0fecf5f51259a9d0df2ea3515c4`，桌面快捷方式指向 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`。版本仍为 0.2.2，未推 origin。
+- 未覆盖：没有真实播放、没有服务器写入；1／2／3 张文件夹封面排版只有与官方源码逐条对照，真实服务器这次只遇到 4 张；未跑完整闸门 4。
+
 ## 2026-11-01 媒体库审查五条修复（F1～F5，已交付桌面）
 
 - 用户令：修 `docs/媒体库代码审查-2026-11-01.md` 的五条发现；F3 按「网页端什么样你就怎么改」，F1 选「退回普通文字」；每个 bug 修完再派独立子代理复核。

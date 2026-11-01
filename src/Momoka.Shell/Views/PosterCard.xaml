@@ -111,6 +111,61 @@
                         <ScaleTransform x:Name="PosterMotion" />
                     </Image.RenderTransform>
                 </Image>
+                <!-- 飞牛文件夹的封面墙：官方前端读 poster_list，1～4 张按张数排版（见 CardItem.FolderTileSlot）。
+                     格子先留着透明，图陆续到达；一张也没有时仍透出下面的字形占位。 -->
+                <Grid
+                    ColumnSpacing="4"
+                    RowSpacing="4"
+                    Visibility="{x:Bind Card.FolderCollageVisibility, Mode=OneWay}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border
+                        Grid.Row="{x:Bind Card.FolderTile0Row, Mode=OneWay}"
+                        Grid.Column="{x:Bind Card.FolderTile0Column, Mode=OneWay}"
+                        Grid.RowSpan="{x:Bind Card.FolderTile0RowSpan, Mode=OneWay}"
+                        Grid.ColumnSpan="{x:Bind Card.FolderTile0ColumnSpan, Mode=OneWay}"
+                        Background="Transparent"
+                        CornerRadius="4"
+                        Visibility="{x:Bind Card.FolderTile0Visibility, Mode=OneWay}">
+                        <Image Source="{x:Bind Card.FolderTile0, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Border>
+                    <Border
+                        Grid.Row="{x:Bind Card.FolderTile1Row, Mode=OneWay}"
+                        Grid.Column="{x:Bind Card.FolderTile1Column, Mode=OneWay}"
+                        Grid.RowSpan="{x:Bind Card.FolderTile1RowSpan, Mode=OneWay}"
+                        Grid.ColumnSpan="{x:Bind Card.FolderTile1ColumnSpan, Mode=OneWay}"
+                        Background="Transparent"
+                        CornerRadius="4"
+                        Visibility="{x:Bind Card.FolderTile1Visibility, Mode=OneWay}">
+                        <Image Source="{x:Bind Card.FolderTile1, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Border>
+                    <Border
+                        Grid.Row="{x:Bind Card.FolderTile2Row, Mode=OneWay}"
+                        Grid.Column="{x:Bind Card.FolderTile2Column, Mode=OneWay}"
+                        Grid.RowSpan="{x:Bind Card.FolderTile2RowSpan, Mode=OneWay}"
+                        Grid.ColumnSpan="{x:Bind Card.FolderTile2ColumnSpan, Mode=OneWay}"
+                        Background="Transparent"
+                        CornerRadius="4"
+                        Visibility="{x:Bind Card.FolderTile2Visibility, Mode=OneWay}">
+                        <Image Source="{x:Bind Card.FolderTile2, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Border>
+                    <Border
+                        Grid.Row="{x:Bind Card.FolderTile3Row, Mode=OneWay}"
+                        Grid.Column="{x:Bind Card.FolderTile3Column, Mode=OneWay}"
+                        Grid.RowSpan="{x:Bind Card.FolderTile3RowSpan, Mode=OneWay}"
+                        Grid.ColumnSpan="{x:Bind Card.FolderTile3ColumnSpan, Mode=OneWay}"
+                        Background="Transparent"
+                        CornerRadius="4"
+                        Visibility="{x:Bind Card.FolderTile3Visibility, Mode=OneWay}">
+                        <Image Source="{x:Bind Card.FolderTile3, Mode=OneWay}" Stretch="UniformToFill" />
+                    </Border>
+                </Grid>
                 <Border HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"
                     Margin="4" Padding="4,1" Background="{ThemeResource EgScrimBrush}"
                     Visibility="{x:Bind Card.DurationVisibility, Mode=OneWay}">

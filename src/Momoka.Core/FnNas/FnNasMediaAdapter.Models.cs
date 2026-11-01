@@ -57,12 +57,15 @@ public sealed partial class FnNasMediaAdapter
             ["page_size"] = Math.Max(1, query.Limit),
             ["sort_column"] = sort,
             ["sort_type"] = query.Descending ? "DESC" : "ASC",
-            ["exclude_grouped_video"] = 1,
             ["tags"] = tags
         };
         // 官网页端：库根用 ancestor_guid（整棵库子树），文件夹下钻用 parent_guid（直接子项）。
         if (!string.IsNullOrWhiteSpace(query.ParentId))
             result[query.FnNasDirectChildren ? "parent_guid" : "ancestor_guid"] = query.ParentId;
+        // 只在库根把「成组的视频」收起来（否则剧集、单集与原始文件混在一起）。
+        // 文件夹下钻不能带：真实服务器 0.9.8 对 parent_guid + exclude_grouped_video=1 回 total=0，
+        // BT 文件夹 47 个原始视频因此显示成空页（2026-11-01 只读实测）。
+        if (!query.FnNasDirectChildren) result["exclude_grouped_video"] = 1;
         // 播放状态这一位来自列表本身的固定条件（收藏页等），比面板上点的更具体，最后写。
         if (query.IsPlayed is { } played) tags["watched"] = played ? "1" : "0";
         else if (selection is { Watched.Length: > 0 } watched) tags["watched"] = watched.Watched;
@@ -138,7 +141,8 @@ public sealed partial class FnNasMediaAdapter
         item.Type = EmbyItemType.CollectionFolder;
         item.IsFolder = true;
         // Mix（混合内容）与 Emby 的 mixed 共用一个集合类型；分类列表里的「其他（Others）」才是
-        // homevideos。两者在筛选行与 item/list 的类型集合上不同，见 FnNasLibraryQuery。
+        // homevideos。分类只决定库的归类，不当作内容类型过滤 —— 飞牛分类不描述库里的内容，
+        // 库根的类型集合见 FnNasLibraryQuery。
         item.CollectionType = Text(value, "category") switch
         {
             "Movie" => "movies",
@@ -201,9 +205,12 @@ public sealed partial class FnNasMediaAdapter
         item.ProductionYear = item.PremiereDate?.Year;
         var width = Number(value, "poster_width"); var height = Number(value, "poster_height");
         if (width is > 0 && height is > 0) item.PrimaryImageAspectRatio = width / height;
+        // 文件夹的封面是 poster_list（官方前端用它拼 1～4 张的封面墙）；普通条目只有单张 poster。
+        item.PosterPaths.AddRange(Strings(value["poster_list"]).Distinct(StringComparer.Ordinal).Take(4));
         var posters = Strings(value["posters"]).ToArray();
         var poster = Text(value, "poster");
         if (poster.Length == 0) poster = posters.FirstOrDefault() ?? "";
+        if (poster.Length == 0) poster = item.PosterPaths.FirstOrDefault() ?? "";
         var still = Text(value, "still_path");
         if (type == EmbyItemType.Episode && still.Length > 0) poster = still;
         if (poster.Length > 0) item.ImageTags["Primary"] = poster;

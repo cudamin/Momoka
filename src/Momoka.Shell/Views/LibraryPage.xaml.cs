@@ -702,12 +702,12 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 这一档把这些间距改由元素自己的外边距表达：行收起就一个像素不占，显示时仍是原来的 12／16。
         // 文件夹下钻页同理：页内大标题收起，工具条是头部唯一的一行。Jellyfin list 页没有分区签，
         // 也不该被 Grid 里那两行空位撑出百来像素的空白，所以同样改由外边距控制。
-        var headerByMargin = (sectionLibrary && !contentPage) || folderDrillDown || jellyfinList;
+        var headerByMargin = fnNasRoot || (sectionLibrary && !contentPage) || folderDrillDown || jellyfinList;
         var contentGap = new Thickness(0, 20, 0, 0);
         var pageMargin = (Thickness)Application.Current.Resources["EgPageMargin"];
         // 顶部 32 DIP 供原生窗口按钮使用，再留 8 DIP；去掉搜索标题后内容仍整体上移。
         PageRoot.Margin = search ? new Thickness(pageMargin.Left, 40, pageMargin.Right, pageMargin.Bottom)
-            : sectionLibrary ? new Thickness(20) : pageMargin;
+            : sectionLibrary || fnNasRoot ? new Thickness(20) : pageMargin;
         PageRoot.RowSpacing = search ? 0 : contentPage ? 4 : headerByMargin ? 0 : 20;
         HeaderGrid.RowSpacing = search || contentPage || headerByMargin ? 0 : 16;
         HeaderLayout.RowSpacing = search || headerByMargin ? 0 : sectionLibrary ? 12 : 20;
@@ -728,7 +728,7 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 文件夹下钻页的面包屑已经写着「媒体库 > 文件夹名」，网页端 list.html 也把这一行放在顶栏里，
         // 页内不再重复一道大标题；标题收起后工具条独占头部，居中摆放。
         LibraryTitle.Visibility = search || folderDrillDown ? Visibility.Collapsed : Visibility.Visible;
-        LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary || folderDrillDown || jellyfinList
+        LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary || fnNasRoot || folderDrillDown || jellyfinList
             ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
         LibrarySectionsSurface.MaxWidth = width;
         LibrarySectionsSurface.HorizontalAlignment = HorizontalAlignment.Center;

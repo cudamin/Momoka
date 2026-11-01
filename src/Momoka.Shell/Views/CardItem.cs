@@ -120,6 +120,97 @@ public sealed class CardItem : INotifyPropertyChanged
 
     private BitmapImage? _poster;
 
+    /// <summary>飞牛文件夹封面墙：<c>poster_list</c> 最多四张，官方前端按张数拼成 1／2／3／4 格。</summary>
+    private readonly BitmapImage?[] _folderTiles = new BitmapImage?[4];
+
+    /// <summary>服务器明说没有的那几格；与单张海报的 <see cref="_missing"/> 同理，不再反复问。</summary>
+    private readonly HashSet<int> _missingFolderTiles = [];
+
+    /// <summary>
+    /// 文件夹封面墙的四张图：与单张海报共用同一套缓存、取消、回收和失败冷却。
+    /// 官方前端用 <c>poster_list</c> 的原始张数排版，图还没到时先留透明格，字形占位仍透出来。
+    /// </summary>
+    private async Task EnsureFolderCollageAsync()
+    {
+        if (Scope is not { IsAvailable: true } scope || _loading is not null) return;
+        if (_folderTiles.All(tile => tile is not null)) return;
+        if (_missingFolderTiles.Count >= FolderTileCount) return;
+        if (_failedAt != default && !ImageCachePolicy.WorthRetrying(_failedAt, DateTime.UtcNow)) return;
+
+        var cts = new CancellationTokenSource();
+        _loading = cts;
+        try
+        {
+            var width = _width;
+            for (var index = 0; index < FolderTileCount; index++)
+            {
+                if (_folderTiles[index] is not null || _missingFolderTiles.Contains(index)) continue;
+                var path = _item.PosterPaths[index];
+                var key = PosterCache.Key(scope.Connection, _item.Id, EmbyImageStore.Primary, path, width);
+                if (PosterCache.TryGet(key, out var kept))
+                {
+                    SetFolderTile(index, kept);
+                    continue;
+                }
+
+                var bitmap = await _images.GetDecodedAsync(scope, _item.Id, EmbyImageStore.Primary, path,
+                        EmbyImageStore.RequestWidth(width), bytes => PosterLoader.DecodeAsync(bytes, width), cts.Token)
+                    .ConfigureAwait(true);
+                if (cts.IsCancellationRequested || !scope.IsAvailable) return;
+                if (bitmap is null)
+                {
+                    _missingFolderTiles.Add(index);
+                    continue;
+                }
+                PosterCache.Remember(key, bitmap);
+                if (_wanted) SetFolderTile(index, bitmap);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception error)
+        {
+            if (cts.IsCancellationRequested || !scope.IsAvailable) return;
+            _failedAt = DateTime.UtcNow;
+            Log.Debug(Category, $"加载文件夹封面失败（{_item.Name}）：{error.Message}");
+        }
+        finally
+        {
+            if (ReferenceEquals(_loading, cts)) _loading = null;
+            cts.Dispose();
+        }
+    }
+
+    private void SetFolderTile(int index, BitmapImage bitmap)
+    {
+        if (ReferenceEquals(_folderTiles[index], bitmap)) return;
+        _folderTiles[index] = bitmap;
+        Raise(index switch
+        {
+            0 => nameof(FolderTile0),
+            1 => nameof(FolderTile1),
+            2 => nameof(FolderTile2),
+            _ => nameof(FolderTile3)
+        });
+    }
+
+    private void ClearFolderTiles()
+    {
+        for (var index = 0; index < _folderTiles.Length; index++)
+        {
+            if (_folderTiles[index] is null) continue;
+            _folderTiles[index] = null;
+            Raise(index switch
+            {
+                0 => nameof(FolderTile0),
+                1 => nameof(FolderTile1),
+                2 => nameof(FolderTile2),
+                _ => nameof(FolderTile3)
+            });
+        }
+    }
+
     /// <summary>
     /// 屏上此刻要不要这张图。<see cref="EnsurePosterAsync"/> 把它抬起来、<see cref="ReleasePoster"/> 按下去，而
     /// 在路上那一趟回来时照它决定「塞回这张卡」还是「只留进 <see cref="PosterCache"/>」。
@@ -273,6 +364,52 @@ public sealed class CardItem : INotifyPropertyChanged
     public bool FolderFrame { get; }
     public Visibility FolderFrameVisibility => Show(FolderFrame);
 
+    /// <summary>飞牛文件夹的封面墙（官方 poster_list）；普通条目和没有这张表的文件夹不画。</summary>
+    public bool FolderCollage => _item.Type == EmbyItemType.Folder && _item.PosterPaths.Count > 0;
+    public Visibility FolderCollageVisibility => Show(FolderCollage);
+    public int FolderTileCount => FolderCollage ? Math.Min(_item.PosterPaths.Count, 4) : 0;
+    public Visibility FolderTile0Visibility => Show(FolderTileCount > 0);
+    public Visibility FolderTile1Visibility => Show(FolderTileCount > 1);
+    public Visibility FolderTile2Visibility => Show(FolderTileCount > 2);
+    public Visibility FolderTile3Visibility => Show(FolderTileCount > 3);
+    public BitmapImage? FolderTile0 => _folderTiles[0];
+    public BitmapImage? FolderTile1 => _folderTiles[1];
+    public BitmapImage? FolderTile2 => _folderTiles[2];
+    public BitmapImage? FolderTile3 => _folderTiles[3];
+    public int FolderTile0Row => FolderTileSlot(0).Row;
+    public int FolderTile0Column => FolderTileSlot(0).Column;
+    public int FolderTile0RowSpan => FolderTileSlot(0).RowSpan;
+    public int FolderTile0ColumnSpan => FolderTileSlot(0).ColumnSpan;
+    public int FolderTile1Row => FolderTileSlot(1).Row;
+    public int FolderTile1Column => FolderTileSlot(1).Column;
+    public int FolderTile1RowSpan => FolderTileSlot(1).RowSpan;
+    public int FolderTile1ColumnSpan => FolderTileSlot(1).ColumnSpan;
+    public int FolderTile2Row => FolderTileSlot(2).Row;
+    public int FolderTile2Column => FolderTileSlot(2).Column;
+    public int FolderTile2RowSpan => FolderTileSlot(2).RowSpan;
+    public int FolderTile2ColumnSpan => FolderTileSlot(2).ColumnSpan;
+    public int FolderTile3Row => FolderTileSlot(3).Row;
+    public int FolderTile3Column => FolderTileSlot(3).Column;
+    public int FolderTile3RowSpan => FolderTileSlot(3).RowSpan;
+    public int FolderTile3ColumnSpan => FolderTileSlot(3).ColumnSpan;
+
+    /// <summary>
+    /// 官方 lB 的 1～4 张排版：1 张铺满；竖向 2 张上下叠、3 张第一张横跨顶部；
+    /// 横向（飞牛横幅卡）2 张并排、3 张第一张竖跨左侧；4 张都是 2×2。
+    /// </summary>
+    private (int Row, int Column, int RowSpan, int ColumnSpan) FolderTileSlot(int index)
+    {
+        var count = FolderTileCount;
+        if (count <= 1) return (0, 0, 2, 2);
+        if (count == 2)
+            return _fnNasWide ? (0, index, 2, 1) : (index, 0, 1, 2);
+        if (count == 3)
+            return _fnNasWide
+                ? index == 0 ? (0, 0, 2, 1) : (index - 1, 1, 1, 1)
+                : index == 0 ? (0, 0, 1, 2) : (1, index - 1, 1, 1);
+        return (index / 2, index % 2, 1, 1);
+    }
+
     /// <summary>搜索页的单集卡：<see cref="PosterCard"/> 画强调色粗框，其余卡片没有框线。</summary>
     public bool EpisodeFrame => _episodeFrame;
     public Thickness FrameMargin => FolderFrame ? new Thickness(0, 7, 0, 0) : new Thickness(0);
@@ -423,6 +560,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _loading = null;
 
         Poster = null;
+        ClearFolderTiles();
 
         // 首图尚未返回也得重启；离屏后只是继续等旧图，不因此开启新宽度请求。
         // 容器再把它递进来时，EnsurePosterAsync 会按最新宽度取。
@@ -573,6 +711,12 @@ public sealed class CardItem : INotifyPropertyChanged
         _wanted = true;
         _resizeWanted = true;
 
+        if (FolderCollage)
+        {
+            await EnsureFolderCollageAsync().ConfigureAwait(true);
+            return;
+        }
+
         if (_imageType is null && _artwork is null || _missing || _poster is not null || _loading is not null) return;
         if (Scope is not { IsAvailable: true } scope) return;
 
@@ -692,6 +836,7 @@ public sealed class CardItem : INotifyPropertyChanged
         // 真正换卡才清持有者；新容器 Claim 会直接取代它，旧容器的迟到 Release 仍然无效。
 
         Poster = null;
+        ClearFolderTiles();
     }
 
     /// <summary>这个容器是不是此刻拿着这张卡的那一个。</summary>
@@ -710,6 +855,7 @@ public sealed class CardItem : INotifyPropertyChanged
         _loading?.Cancel();
         _loading = null;
         Poster = null;
+        ClearFolderTiles();
     }
 
     /// <summary>

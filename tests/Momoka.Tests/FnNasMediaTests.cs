@@ -204,6 +204,30 @@ internal static partial class FnNasMediaTests
             });
             Assert.Equal("/still2.webp", still.ImageTags["Thumb"], "服务器给了 still_path 就用它");
         });
+        Test("飞牛文件夹：poster_list 作为封面拼图，去重后最多四张", () =>
+        {
+            var folder = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "bt",
+                ["title"] = "BT",
+                ["type"] = "Directory",
+                ["poster"] = "",
+                ["posters"] = new JsonArray(),
+                ["poster_list"] = new JsonArray("/a.webp", "/b.webp", "/a.webp", "/c.webp", "/d.webp", "/e.webp")
+            });
+            Assert.Equal(EmbyItemType.Folder, folder.Type);
+            Assert.Equal("/a.webp,/b.webp,/c.webp,/d.webp", string.Join(',', folder.PosterPaths));
+            Assert.Equal("/a.webp", folder.ImageTags["Primary"], "文件夹没有单张 poster 时用第一张兜底");
+
+            var empty = FnNasMediaAdapter.Item(new JsonObject
+            {
+                ["guid"] = "empty",
+                ["title"] = "空文件夹",
+                ["type"] = "Directory"
+            });
+            Assert.Equal(0, empty.PosterPaths.Count);
+            Assert.False(empty.ImageTags.ContainsKey("Primary"));
+        });
         Test("飞牛媒体：标记已看后使用季集列表选择下一集", () =>
         {
             using var fixture = new Fixture(); fixture.Login();
@@ -551,16 +575,31 @@ internal static partial class FnNasMediaTests
             Assert.True(fixture.Transport.RequestUris.Contains(
                 "/v/api/v1/tag/list?ancestor_guid=library&is_favorite=0&type=Directory%2CVideo"));
         });
-        Test("飞牛混合库：item/list 带官方 All 类型；文件夹下钻改发 parent_guid", () =>
+        Test("飞牛库根：不论分类都带官方 All 类型；文件夹下钻改发 parent_guid", () =>
         {
+            // 真实服务器 0.9.8（2026-11-01 只读）：库的 category 不描述内容 ——「混合影片」标成
+            // Movie，里面是 12 部剧 + 1 部电影 + 1 个文件夹；「电视节目」标成 TV，里面还有 2 部电影
+            // 和 7 个文件夹。官网页端库根一律按 All 问四类，照分类收窄会让库页少掉大半内容。
+            foreach (var collection in new[] { "mixed", "movies", "tvshows" })
+            {
+                var root = FnNasMediaAdapter.Query(new ItemQuery
+                {
+                    ParentId = "library-" + collection,
+                    Limit = 24,
+                    IncludeItemTypes = FnNasLibraryQuery.Types(collection)
+                });
+                Assert.Equal("Movie,TV,Directory,Video",
+                    string.Join(',', root["tags"]!["type"]!.AsArray().Select(node => node!.GetValue<string>())));
+                Assert.Equal("library-" + collection, root["ancestor_guid"]!.GetValue<string>());
+                Assert.False(root.ContainsKey("parent_guid"));
+            }
+
             var mixed = FnNasMediaAdapter.Query(new ItemQuery
             {
                 ParentId = "mix",
                 Limit = 24,
                 IncludeItemTypes = FnNasLibraryQuery.Types("mixed")
             });
-            Assert.Equal("Movie,TV,Directory,Video",
-                string.Join(',', mixed["tags"]!["type"]!.AsArray().Select(node => node!.GetValue<string>())));
             Assert.Equal("mix", mixed["ancestor_guid"]!.GetValue<string>());
             Assert.False(mixed.ContainsKey("parent_guid"));
 
@@ -582,6 +621,8 @@ internal static partial class FnNasMediaTests
             Assert.Equal("folder", folder["parent_guid"]!.GetValue<string>());
             Assert.False(folder.ContainsKey("ancestor_guid"));
             Assert.Equal(0, folder["tags"]!.AsObject().Count, "文件夹页没有默认类型");
+            // 实服 0.9.8：parent_guid + exclude_grouped_video=1 回 total=0，下钻必须不带这一位。
+            Assert.False(folder.ContainsKey("exclude_grouped_video"), "文件夹页不能带 exclude_grouped_video");
         });
         Test("飞牛媒体库：mediadb/sum 的按库计数补到 RecursiveItemCount", () =>
         {

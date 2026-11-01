@@ -570,12 +570,13 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// A library root with the web client's own tab strip. Jellyfin's mixed-content library is not one:
     /// its CollectionType is null in the API (the "mixed" value only exists in the creation options),
     /// and Jellyfin Web routes that root to <c>list.html</c> — one tabless list, see
-    /// <see cref="IsJellyfinListPage"/>.
+    /// <see cref="IsJellyfinListPage"/>. Neither is any 飞牛 library: its official page has no tabs, and
+    /// its category does not describe the contents (a Movie-category library can be full of shows).
     /// </summary>
-    internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, IsSearch: false }
+    internal bool IsSectionLibrary => !IsFnNas && _request is { ParentId.Length: > 0, IsSearch: false }
         && (_request.CollectionType is "movies" or "tvshows"
-            // 飞牛的「混合内容」库不摆 Emby 那套分区签：官网页端就是一个 list 页。
-            || (!IsJellyfin && !IsFnNas && _request.CollectionType is "mixed"));
+            // 飞牛任何分类的库都不摆 Emby 那套分区签：官网页端就是一个 list 页。
+            || (!IsJellyfin && _request.CollectionType is "mixed"));
 
     /// <summary>
     /// 从任一媒体库的「文件夹」点进一个文件夹后的那一页。网页端这一页是 <c>list.html</c>：顶栏是
@@ -2792,7 +2793,8 @@ public sealed partial class LibraryViewModel : PageViewModel
             return LibraryBrowse.Query(request.CollectionType!, request.ParentId!, request.Section,
                 start, IsUpcomingPage ? LibraryUpcoming.PageSize : limit, SortKey, SortDescending, _filters, request.BrowseGroup, _display);
 
-        // 飞牛混合库的官网页端问的是电影、节目、文件夹、视频；Emby 的 mixed 预设不含文件夹。
+        // 飞牛库根（电影、节目、混合）都照官网页端问电影、节目、文件夹、视频 —— 飞牛的库分类不描述
+        // 内容，按分类收窄会漏项；Emby 的 mixed 预设不含文件夹。
         var types = IsFnNas
             ? FnNasLibraryQuery.Types(request.CollectionType)
             : ItemQuery.FlattenedTypes(request.CollectionType);
