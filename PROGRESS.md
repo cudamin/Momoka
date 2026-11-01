@@ -1,3 +1,15 @@
+## 2026-11-01 标题栏五颗按钮下移与主页库排读数改用库总数（已提交、四道闸门、发布 GitHub 与商店包）
+
+- 用户令（附两张截图）：①「左上角的五个按钮往下移一点」；②「修复 emby 库和 Jellyfin 库统一显示为 24 项的问题」。收尾令：提交代码、打包发布到 GitHub、生成一个微软商店安装包。
+- 实服只读核对（2026-11-01）：Emby 4.10.1.0 的 `/Users/{uid}/Views` 即使带 `Fields=RecursiveItemCount,ItemCounts` 也不回库总数（RecursiveItemCount／ChildCount／ItemCounts 全 null）；按库页口径 `Items?ParentId=…&Recursive=true&IncludeItemTypes=…` 得 tvshows **55**、movies **43**、mixed（Movie,Series,Video）**98**。Jellyfin 10.10.7：movies **38**、tvshows **142**；混合库 list 页口径（非递归直接子项）**44**，递归 45；`/Views` 的 ChildCount 每次请求随机变化（实测 1～9），不可用。
+- 改动（Core）：新增 `LibraryTotal.Query` —— Emby／Jellyfin 普通库按库页第一页的类型表递归取 `TotalRecordCount`（movies: Movie,Video；tvshows: Series,Video；mixed: Movie,Series,Video），Jellyfin list 页（CollectionType null／mixed／folders）非递归数直接子项；飞牛走 mediadb/sum、Plex 与音乐库不问。`JellyfinLibrary.IsListPage` 收口 list 页判据。
+- 改动（Shell）：`HomeViewModel` 为每个可见库排并行问一条 `Limit=1` 的计数查询；失败只记 Debug、不弹提示条，读数退回货架张数；牌子读数优先库总数。标题栏 `TitleActions` 从居中 30 高改为「距顶 4、28 高」（图标比居中低 2 像素，底边仍压在 32 像素标题栏下沿），侧边栏改缩进时保留这个上边距；自检新增「整排从顶部下移 4 像素起」断言。
+- 测试与探针：Core 全套 **3529/3529、0 失败 0 跳过**（新增 LibraryTotal 四条）；整方案 Release **0 警告 0 错误**、`format whitespace` 退出 0。R046 夹具同步 4 份源 hash（Transport／PlayerViewModel／Events／EmbyItem，均由 10-31 之后的合法产品改动造成），提取器补发 `_embySkipSections`／`_playerSkipSeeded`／`_statusGeneration`／`Status` 与 `ConsiderPlayerSkipSections`；`Run-Caller.ps1` 54/54、`Test-SourceExtraction.ps1` 10 个反例全部预期退出 1、随后当前源重编译再跑 54/54。发布件 `--probe-shell --probe-section settings` **24/24**、`library` **20/20**，均退出 0；`HomeSources` 新增断言：假服务器回 43/55 时牌子读数就是「43 项／55 项」。自检 186 项，标题栏按键通过：`(18,4) 42×28`、洞 `(18,4) 218×28`；2 条红（当前排序 SortName,ProductionYear；媒体库视图与字母条 39 张）在**上一版未改发布件上同样复现**，是自检打开 Jellyfin 库时仍用 Emby 排序目录判据的既有缺口，不是本批引入。
+- 实机：真实 Jellyfin 账号主页截图 `artifacts/ui-review/home-count-titlebar-20261101/home-after.png` ——「最近添加 · 电影 **38 项**」「最近添加 · 混合内容 **44 项**」；开发件与发布件 `Momoka.dll` SHA-256 同为 `042e7d38e9a9e8dab85c441726b68dc91dac9ad527ba457bd572c4c59860a8da`。Emby 一侧未在 UI 上切换账号复看（只读接口 43/55/98 + 假探针 43/55），不把接口读数冒充界面验收。
+- 交付：版本 **0.2.2**（`Directory.Build.props` 三处）；`tools/publish.ps1 -Store -Shortcut` 通过：**546 文件、285.5 MB、14 GLSL / 4 HOOK、批准 mpv 清单 59 文件（50 UI／2 native）**，桌面快捷方式指向 `artifacts/publish/win-x64/Momoka.exe`。安装包 `Momoka_windows-x64_0.2.2.exe` 83,837,189 B（sha256 `64acbaed…`）、便携 ZIP 117,678,657 B（`842c31dc…`）、商店 MSIX `Momoka-0.2.2-win-x64-store.msix` 120,485,841 B（`ff0416f6…`，`MOMOKA.Momoka`／`0.2.2.0`／x64／未签名）。
+- GitHub：`master` 已推 origin（产品提交 `f5d0d51`、夹具 `d698251`、发版 `052a98f`）；Release [v0.2.2](https://github.com/cudamin/Momoka/releases/tag/v0.2.2)（pre-release，tag → `052a98f`）已上传 `Momoka_windows-x64_0.2.2.exe` 与 `SHA256SUMS.txt`，回读字节数与 sha256 均与本地一致。微软商店上传与提审仍只能由用户在 Partner Center 完成。
+- 未覆盖：没有真实播放、没有 Emby 账号的实机 UI 复看、Plex 读数未改；微软商店上传与提审仍只能由用户在 Partner Center 完成。
+
 ## 2026-11-01 飞牛混合库内容、筛选行与库页三件工具条（已构建、发布并核对本机）
 
 - 用户令（附网页截图与飞牛网页留档）：①「飞牛媒体库上方只留上图三个组件，组件位置移到左上角」；②「飞牛库的筛选选项不是固定的，请查询源码修复，不要自己猜」；③「修复飞牛混合内容媒体库显示内容不全的问题」；④追加报「主页的电影根电视剧都是 24 项，明显是不对的，貌似少了，显示的不对」。
