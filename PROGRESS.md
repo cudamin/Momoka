@@ -1,3 +1,11 @@
+## 2026-11-01 媒体库网页端按钮核对（只出报告，未改代码）
+
+- 用户令：核对 `work/媒体库网页端源码` 的三家网页端留档，查功能是否完整、缺哪些功能按钮，梳理已有按钮与功能、列缺失项与判断依据、给补充建议。
+- 证据：Emby 4.10.1.0 与 Jellyfin 10.10.7 由服务器 `/System/Info/Public` 只读确认版本与 serverId；Emby 留档里有整套 `dashboard-ui` JS（`listcontroller`／`baseitemcontroller`／`shortcuts`／`multiselect`／`commandprocessor` 均可读）；Jellyfin 留档只有主包 + 一个 chunk，`itemContextMenu`／`multiSelect` 按 `jellyfin-web` 的 `v10.10.7` 补读；飞牛只有渲染后的 DOM（主包没存），卡片「⋯」菜单内容未核对。
+- 结论：工具条、卡片浮层、条目菜单这一层已复刻到位；缺的是能力型入口 —— 播放队列、多选批量、播放列表、从这里播放、条目媒体信息、转换、取消识别；另缺库页载入失败的「重试」。评分、分享、从开头播放在网页端也不在库页，单列 D 类。报告里另有两条复核项：分页读数的含义（我们滚动加载，永远从 1 起算）、电影库那两颗播放键（Jellyfin 的 movies 页模板本来就没有 `btnPlay`）。
+- 读数更正一条：Emby 库页卡片菜单的调用方 `shortcuts.js` 只传 `play`／`queue`／`playAllFromHere`／`queueAllFromHere`／`multiSelect`／`programInfo`，**没有** `playFromBeginning`，所以「从开头播放」不在库页卡片上 —— 先前按 `getCommands` 的定义当成了库页项，读调用方才发现。
+- 交付：`docs/媒体库网页端按钮核对-2026-11-01.md`。纯文档，未构建、未跑探针、未发布、未推 origin；没有真实播放与服务器写入（只读 `System/Info/Public` 与网页静态资源）。
+
 ## 2026-11-01 标题栏五颗按钮再下移并放大（提交 `c2449fd`，只交付桌面）
 
 - 用户令（附裁剪截图）：「再往下移一点，然后再稍微放大一点点」；收尾令「交付到桌面就可以」——本批不上 GitHub、不出商店包、不升版本。
