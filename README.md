@@ -8,15 +8,6 @@
 
 QQ交流群：[1039548970](https://qm.qq.com/q/vXph3vMyFW)
 
-
-## 设计参考
-
-- UI 界面参考 **Emby网页端和小秘** 设计。
-- 播放器架构参考 [**mpv-winui-player**](https://github.com/ikas-mc/mpv-winui-player) 和 **小幻影视** 设计。
-- 内置lua脚本使用 @dyphire[**mpv-config**](https://github.com/dyphire/mpv-config)的脚本进行魔改
-- mpv 相关设置参考 @dyphire[**mpv-config**](https://github.com/dyphire/mpv-config) 进行设置
-- 内置 [**mpv-winbuild**](https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-10-14-270367e8af)（LGPL 构建）
-
 ## 主要功能
 
 **着色器** — 着色器随程序打包（ArtCNN、ravu、CfL、SSimDownscaler 等），按放大倍数分四档 × 真人/动画 × 显卡档，每一档都做色度重建。
