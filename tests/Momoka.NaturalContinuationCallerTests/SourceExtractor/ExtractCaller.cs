@@ -152,9 +152,10 @@ public sealed class ExtractCaller : BuildTask
             "PendingPlayback", "_pendingPlayback", "_playerHold", "_playbackAttempt", "_generation", "_playerUp",
             "_episodeLookup", "_episodeSwitchTargetId", "_versionSwitchTarget", "_seekTouched", "_seekSent",
             "_volumeMemory", "_aspect", "_shaderContext", "_outputWatch", "_shaderSettings", "_shaderResolver", "_shaderPinned",
-            "_embyMarks", "_playbackScope", "_activeIntent", "_preparing", "_playbackIdle", "_presentedHeadless", "_preparingPictureInHost",
+            "_embyMarks", "_embySkipSections", "_playerSkipSeeded", "_statusGeneration", "_playbackScope",
+            "_activeIntent", "_preparing", "_playbackIdle", "_presentedHeadless", "_preparingPictureInHost",
             "_stopTask", "_versionDiscovery", "_coverBackdropItemId", "_coverBackdropLoad", "_coverGeneration", "_replacingPlayback",
-            "Episodes", "HasAggregateQueue", "Settings", "PreparePresentation", "MeasureRefreshHz", "Noticed", "RefreshRequested",
+            "Episodes", "HasAggregateQueue", "Settings", "Status", "PreparePresentation", "MeasureRefreshHz", "Noticed", "RefreshRequested",
             "PlayerShown", "PlayerHidden", "PictureAspectChanged", "ChaptersChanged", "PlaybackStarted"
         }) Emit(vm, name);
         Emit(events, "_volumeReady");
@@ -166,6 +167,7 @@ public sealed class ExtractCaller : BuildTask
             "StepEpisodeAsync", "ResolveAdjacentEpisodeAsync", "CancelEpisodeLookup", "StartEpisode", "StartEpisodeAsync"
         }) Emit(transport, name);
         Emit(events, "OnNowPlayingChanged");
+        Emit(events, "ConsiderPlayerSkipSections");
         code.Append("}\n");
         var facts = JsonSerializer.Serialize(new { workspaceRoot = workspace.TrimEnd(Path.DirectorySeparatorChar), sources, members, pinsSha256 = Hash(pinsBytes) }, new JsonSerializerOptions { WriteIndented = true });
         Directory.CreateDirectory(outputRoot);
