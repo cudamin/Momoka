@@ -3136,6 +3136,10 @@ internal sealed class HostWindow : IDisposable
 
                 break;
 
+            case Native.WmNcHitTest:
+                if (PlaybackTopResize(window, lParam, out var resizeHit)) return new IntPtr(resizeHit);
+                break;
+
             case Native.WmEraseBackground:
                 // Fact 4: an unpainted client area comes back white, which flashes hard behind a
                 // dark UI on startup and on every resize. Filling with the base colour is the fix;
@@ -3241,6 +3245,41 @@ internal sealed class HostWindow : IDisposable
         }
 
         return Native.DefWindowProc(window, message, wParam, lParam);
+    }
+
+    /// <summary>
+    /// 播放态的顶边缩放热区：顶部 8 物理像素（随 DPI，与左右边框同厚）答上边框 / 左上 / 右上。
+    /// <para>
+    /// 框架自己的窗口边框只分给顶边 4 物理像素（96 dpi 实测），左右各 8。播放页的顶栏整条是页面输入，
+    /// 顶边这一条又常被窗口贴到屏幕最上沿（2026-11-01 用户报「窗口上方无法拉动窗口大小」，那一张截图
+    /// 里窗口正好顶在工作区上沿），4 像素的抓取带几乎抓不住。这里显式回答，让顶边和左右一样好拉；
+    /// 只在播放标题条、非全屏/最大化时生效，浏览态的标题栏拖动区一个字不动。
+    /// </para>
+    /// <para>
+    /// 左/右沿仍用窗口自己的（我们只接管顶边这一条）；顶角按同样的带宽答左上/右上，斜拉也还在。
+    /// </para>
+    /// </summary>
+    private bool PlaybackTopResize(IntPtr window, IntPtr lParam, out int hit)
+    {
+        hit = 0;
+        if (!_playbackTitleBar || OccupiesScreen || Native.IsIconic(window)) return false;
+        if (!Native.GetWindowRect(window, out var outer)) return false;
+
+        var point = lParam.ToInt64();
+        var x = (short)(point & 0xFFFF);
+        var y = (short)((point >> 16) & 0xFFFF);
+        if (x < outer.Left || x >= outer.Right || y < outer.Top) return false;
+
+        var dpi = Native.GetDpiForWindow(window);
+        if (dpi == 0) dpi = 96;
+
+        var band = Native.TopResizeBorder(dpi);
+        if (y - outer.Top >= band) return false;
+
+        hit = x - outer.Left < band ? Native.HitTopLeft
+            : outer.Right - x <= band ? Native.HitTopRight
+            : Native.HitTop;
+        return true;
     }
 
     /// <summary>

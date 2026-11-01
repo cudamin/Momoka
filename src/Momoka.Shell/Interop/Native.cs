@@ -352,6 +352,8 @@ internal static partial class Native
     public const int HitClient = 1;
     public const int HitCaption = 2;
     public const int HitTop = 12;
+    public const int HitTopLeft = 13;
+    public const int HitTopRight = 14;
 
     /// <summary>
     /// The three the framework's own caption buttons answer with. A window that draws them but answers
@@ -974,6 +976,21 @@ internal static partial class Native
     private const int SmYVirtualScreen = 77;
     private const int SmCxVirtualScreen = 78;
     private const int SmCyVirtualScreen = 79;
+    private const int SmCySizeFrame = 33;
+    private const int SmCxPaddedBorder = 92;
+
+    /// <summary>
+    /// How thick the top resize band of a frameless playback window should be, in physical pixels at
+    /// <paramref name="dpi"/>. The frame's own top band is only <c>SM_CYSIZEFRAME</c> (4 px at 96 dpi,
+    /// measured 2026-11-01), half the 8 px the side frames get; a window parked against the top of the
+    /// screen then has a very small grip. Adding the padded border makes it match the sides.
+    /// </summary>
+    public static int TopResizeBorder(uint dpi)
+    {
+        var frame = GetSystemMetricsForDpi(SmCySizeFrame, dpi);
+        var padding = GetSystemMetricsForDpi(SmCxPaddedBorder, dpi);
+        return Math.Max(frame * 2, frame + padding);
+    }
 
     /// <summary>
     /// 虚拟桌面矩形，唤醒取证用（第九报，2026-09-15）。用户报「屏幕一全屏播放时，屏幕二的 AyuGram
@@ -1034,6 +1051,9 @@ internal static partial class Native
 
     [LibraryImport("user32.dll")]
     private static partial int GetSystemMetrics(int index);
+
+    [LibraryImport("user32.dll", EntryPoint = "GetSystemMetricsForDpi")]
+    private static partial int GetSystemMetricsForDpi(int index, uint dpi);
 
     [LibraryImport("user32.dll", SetLastError = true)]
     private static partial uint SendInput(uint count, [In] Input[] inputs, int size);

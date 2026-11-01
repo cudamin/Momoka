@@ -32,19 +32,23 @@ internal static partial class ShellSelfCheck
 
         var midX = outer.Left + outer.Width / 2;
         var edge = Hit(midX, outer.Top + 1);
+        var upper = Hit(midX, outer.Top + 5);
         var strip = Hit(midX, outer.Top + 10);
         var below = Hit(midX, outer.Top + 40);
         var corner = Hit(outer.Right - 30, outer.Top + 16);
 
         // The top row still resizes the window, and everything below it belongs to the page: the strip it
         // draws its own three window commands into, and the corner where the system's would otherwise sit.
+        // +5 是播放态那条加宽到 8 像素的顶边带（见 HostWindow.PlaybackTopResize）：只量 +1 的话，
+        // 框架原本那 4 像素照样能过，用户却仍然抓不住。
         var ok = edge == Native.HitTop
+            && upper == Native.HitTop
             && strip == Native.HitClient
             && below == Native.HitClient
             && corner == Native.HitClient;
 
         return (origin.Y - outer.Top, client.Width, client.Height,
-            $"顶+1 {Name(edge)}、顶+10 {Name(strip)}、顶+40 {Name(below)}、右上角 {Name(corner)}", ok);
+            $"顶+1 {Name(edge)}、顶+5 {Name(upper)}、顶+10 {Name(strip)}、顶+40 {Name(below)}、右上角 {Name(corner)}", ok);
 
         int Hit(int x, int y) => (int)(long)Native.SendMessage(
             window, Native.WmNcHitTest, IntPtr.Zero, new IntPtr(((y & 0xFFFF) << 16) | (x & 0xFFFF)));
