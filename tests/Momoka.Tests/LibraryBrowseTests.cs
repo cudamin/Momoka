@@ -33,7 +33,9 @@ internal static class LibraryBrowseTests
             // Jellyfin Web 10.10 的标签是另一套：电影有合集、没有文件夹；节目没有收藏与文件夹。
             Assert.Equal("节目,建议,即将播出,类型,制片发行商,剧集", Labels("tvshows", MediaServerKind.Jellyfin));
             Assert.Equal("电影,建议,预告片,我的最爱,合集,类型", Labels("movies", MediaServerKind.Jellyfin));
-            Assert.Equal("电影和节目,类型,文件夹", Labels("mixed", MediaServerKind.Jellyfin));
+            // Jellyfin 的混合内容库没有分区签：API 里 CollectionType 是 null，网页端走 list.html。
+            // 即便某个版本报 "mixed"，JellyfinLibrary 也不为它编出三栏。
+            Assert.Equal(0, LibraryBrowse.Sections("mixed", MediaServerKind.Jellyfin).Count);
             Assert.Equal("影片,收藏", Labels("movies", MediaServerKind.FnNas));
             Assert.Equal("电影和节目", Labels("mixed", MediaServerKind.FnNas));
             Assert.Equal("节目", Labels("tvshows", MediaServerKind.Plex));
@@ -91,8 +93,12 @@ internal static class LibraryBrowseTests
                 JellyfinSortLabels("movies", LibrarySection.Trailers));
             Assert.Equal("名称,公众评分,加入日期,家长分级,发行日期",
                 JellyfinSortLabels("movies", LibrarySection.Collections));
-            Assert.Equal("名称,文件夹,公众评分,影评人评分,加入日期,播放日期,家长分级,播放次数,发行日期,播放时长",
+            // list.js 的 getSortMenuOptions 把「文件夹」推在播放日期之后，不在第二位；混合内容库
+            // 与文件夹下钻页都是这一份菜单。
+            Assert.Equal("名称,公众评分,影评人评分,加入日期,播放日期,文件夹,家长分级,播放次数,发行日期,播放时长",
                 JellyfinSortLabels("mixed", LibrarySection.Items));
+            Assert.Equal("名称,公众评分,影评人评分,加入日期,播放日期,文件夹,家长分级,播放次数,发行日期,播放时长",
+                JellyfinSortLabels(null, LibrarySection.Items));
 
             Assert.Equal("SortName,ProductionYear", JellyfinLibrary.DefaultSort("movies", LibrarySection.Items).Value);
             Assert.Equal("SortName", JellyfinLibrary.DefaultSort("tvshows", LibrarySection.Items).Value);
@@ -126,6 +132,20 @@ internal static class LibraryBrowseTests
                 JellyfinCheckLabels("movies", LibrarySection.Items, "jellyfinFeatures"));
             Assert.Equal("蓝光,DVD,HD高清,4K,SD标清,三维",
                 JellyfinCheckLabels("movies", LibrarySection.Items, "jellyfinVideoTypes"));
+
+            // list.html 的筛选是 filtermenu.js：四颗状态复选、服务器类型、六种视频类型、功能；
+            // 没有家长分级／标签／年份。
+            Assert.Equal("播放状态,类型,视频类型,功能",
+                JellyfinFilterLabels(null, LibrarySection.Items));
+            Assert.Equal("播放状态,类型,视频类型,功能",
+                JellyfinFilterLabels("mixed", LibrarySection.Items));
+            Assert.Equal("未播放,已播放,我的最爱,继续观看",
+                JellyfinCheckLabels(null, LibrarySection.Items, "jellyfinListStatus"));
+            Assert.Equal("HD,4K,SD,3D,Blu-ray,DVD",
+                JellyfinCheckLabels(null, LibrarySection.Items, "jellyfinListVideoTypes"));
+            Assert.Equal("字幕,预告片,额外,主题曲,主题视频",
+                JellyfinCheckLabels(null, LibrarySection.Items, "jellyfinListFeatures"));
+            Assert.True(JellyfinLibrary.HasFilter(null, LibrarySection.Items));
         });
         Test("Jellyfin 库：筛选选项进入查询参数，列表分隔符照服务器", () =>
         {
@@ -173,11 +193,19 @@ internal static class LibraryBrowseTests
             Assert.Equal("List,Poster,PosterCard", ViewLabels("tvshows", LibrarySection.Episodes));
             Assert.Equal("Poster", ViewLabels("movies", LibrarySection.Trailers));
             Assert.Equal("Poster", ViewLabels("tvshows", LibrarySection.Genres));
+            // 混合内容库与文件夹（CollectionType 为 null）用 viewSettings.template.html 的六项：
+            // 封面图、横幅图、光盘封面图、徽标、缩略图、列表。
+            Assert.Equal("Poster,Banner,Disc,Logo,Thumb,List", ViewLabels(null, LibrarySection.Items));
+            Assert.Equal("Poster,Banner,Disc,Logo,Thumb,List", ViewLabels("mixed", LibrarySection.Items));
+            Assert.Equal("封面图,横幅图,光盘封面图,徽标,缩略图,列表",
+                string.Join(',', JellyfinLibrary.Views(null, LibrarySection.Items).Select(JellyfinLibrary.ViewLabel)));
             Assert.True(JellyfinLibrary.HasLayout("movies", LibrarySection.Items));
             Assert.True(JellyfinLibrary.HasLayout("movies", LibrarySection.Collections));
             Assert.True(JellyfinLibrary.HasLayout("tvshows", LibrarySection.Episodes));
+            Assert.True(JellyfinLibrary.HasLayout(null, LibrarySection.Items));
             Assert.False(JellyfinLibrary.HasLayout("movies", LibrarySection.Trailers));
             Assert.False(JellyfinLibrary.HasLayout("tvshows", LibrarySection.Genres));
+            Assert.True(JellyfinLibrary.HasAlphabetPicker(null, LibrarySection.Items));
 
             var restored = JellyfinLibrary.Fit(new LibraryDisplay
             {
@@ -192,6 +220,13 @@ internal static class LibraryBrowseTests
             var card = JellyfinLibrary.Fit(new LibraryDisplay { View = LibraryView.PosterCard },
                 "movies", LibrarySection.Items);
             Assert.Equal(LibraryView.PosterCard, card.View);
+
+            var list = JellyfinLibrary.Fit(new LibraryDisplay { View = LibraryView.Logo },
+                null, LibrarySection.Items);
+            Assert.Equal(LibraryView.Logo, list.View);
+            var fallback = JellyfinLibrary.Fit(new LibraryDisplay { View = LibraryView.Table },
+                null, LibrarySection.Items);
+            Assert.Equal(LibraryView.Poster, fallback.View);
         });
         Test("媒体库分类：类型与平台索引不携带内容筛选", () =>
         {
@@ -302,16 +337,16 @@ internal static class LibraryBrowseTests
         string.Join(',', LibraryBrowse.Sections(type, kind).Select(entry => entry.Label));
     private static string SortLabels(string collectionType, LibrarySection section) =>
         string.Join(',', LibrarySortCatalog.For(collectionType, section, new Version(4, 10, 1)).Select(option => option.Label));
-    private static string JellyfinSortLabels(string collectionType, LibrarySection section) =>
+    private static string JellyfinSortLabels(string? collectionType, LibrarySection section) =>
         string.Join(',', JellyfinLibrary.SortOptions(collectionType, section).Select(option => option.Label));
-    private static string JellyfinFilterLabels(string collectionType, LibrarySection section) =>
+    private static string JellyfinFilterLabels(string? collectionType, LibrarySection section) =>
         string.Join(',', JellyfinLibrary.FilterFields(collectionType, section).Select(field => field.Label));
-    private static string JellyfinCheckLabels(string collectionType, LibrarySection section, string field) =>
+    private static string JellyfinCheckLabels(string? collectionType, LibrarySection section, string field) =>
         string.Join(',', JellyfinLibrary.FilterFields(collectionType, section)
             .Single(entry => entry.Id == field)
             .Choices
             .Select(choice => choice.Label));
-    private static string ViewLabels(string collectionType, LibrarySection section) =>
+    private static string ViewLabels(string? collectionType, LibrarySection section) =>
         string.Join(',', JellyfinLibrary.Views(collectionType, section)
             .Select(view => view.ToString()));
     private static string FilterLabels(string preset) =>

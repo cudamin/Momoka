@@ -25,8 +25,13 @@ public static class JellyfinLibrary
 
     /// <summary>
     /// Jellyfin Web's library tabs, in its own order. Movies have Collections and no Folders; series have
-    /// no Favorites and no Folders. Mixed-content libraries keep the generic three tabs this application
-    /// already shows, because Jellyfin's mixed collection type is the generic list page.
+    /// no Favorites and no Folders.
+    /// <para>
+    /// Mixed-content libraries have no tabs at all. Jellyfin stores them with no collection type, and its
+    /// web client routes that root to <c>controllers/list.html</c> — the same single list page a physical
+    /// folder gets (see <c>controllers/list.js</c> and the sidebar link without a <c>collectionType</c>
+    /// parameter). A "mixed" entry here would invent three tabs the web client never draws.
+    /// </para>
     /// </summary>
     public static IReadOnlyList<LibrarySectionEntry> Sections(string? collectionType) => collectionType switch
     {
@@ -47,12 +52,6 @@ public static class JellyfinLibrary
             new(LibrarySection.Genres, "类型"),
             new(LibrarySection.Studios, "制片发行商"),
             new(LibrarySection.Episodes, "剧集")
-        ],
-        "mixed" =>
-        [
-            new(LibrarySection.Items, "电影和节目"),
-            new(LibrarySection.Genres, "类型"),
-            new(LibrarySection.Folders, "文件夹")
         ],
         _ => []
     };
@@ -117,14 +116,21 @@ public static class JellyfinLibrary
         Option("发行日期", "PremiereDate,SortName", descending: true)
     ];
 
+    /// <summary>
+    /// The generic list page's sort menu, in <c>controllers/list.js</c>'s own push order
+    /// (<c>getSortMenuOptions</c>): name, ratings, dates, then 文件夹, rating, play count, release and
+    /// runtime. 文件夹 is sixth here, not second — this is the list page's menu, not the movie page's.
+    /// The page opens on <c>IsFolder,SortName</c> because <c>getDefaultSortBy</c> prepends it when
+    /// <c>params.type</c> is absent.
+    /// </summary>
     private static readonly IReadOnlyList<EmbySortOption> GenericSorts =
     [
         Option("名称", "SortName"),
-        Option("文件夹", "IsFolder,SortName"),
         Option("公众评分", "CommunityRating,SortName", descending: true),
         Option("影评人评分", "CriticRating,SortName", descending: true),
         Option("加入日期", "DateCreated,SortName", descending: true),
         Option("播放日期", "DatePlayed,SortName", descending: true),
+        Option("文件夹", "IsFolder,SortName"),
         Option("家长分级", "OfficialRating,SortName", descending: true),
         Option("播放次数", "PlayCount,SortName", descending: true),
         Option("发行日期", "ProductionYear,PremiereDate,SortName", descending: true),
@@ -245,6 +251,55 @@ public static class JellyfinLibrary
         ]
     };
 
+    // The list page's filter dialog is filtermenu.js, not the movie page's filterdialog.js. Its basic
+    // section has four independent checkboxes in this order; its video row shows HD/4K/SD/3D/Blu-ray/DVD
+    // (the last two are the old VideoTypes list), and its feature row calls extras 额外 rather than 花絮.
+
+    private static readonly EmbyFilterField ListStatusField = new()
+    {
+        Id = "jellyfinListStatus",
+        Label = "播放状态",
+        Kind = FilterKind.Checks,
+        Choices =
+        [
+            new() { Label = "未播放", OptionId = "unplayed", ChipLabel = "未播放" },
+            new() { Label = "已播放", OptionId = "played", ChipLabel = "已播放" },
+            new() { Label = "我的最爱", OptionId = "favorite", ChipLabel = "我的最爱" },
+            new() { Label = "继续观看", OptionId = "resumable", ChipLabel = "继续观看" }
+        ]
+    };
+
+    private static readonly EmbyFilterField ListVideoTypesField = new()
+    {
+        Id = "jellyfinListVideoTypes",
+        Label = "视频类型",
+        Kind = FilterKind.Checks,
+        Choices =
+        [
+            new() { Label = "HD", OptionId = "hd", ChipLabel = "HD" },
+            new() { Label = "4K", OptionId = "is4k", ChipLabel = "4K" },
+            new() { Label = "SD", OptionId = "sd", ChipLabel = "SD" },
+            new() { Label = "3D", OptionId = "3d", ChipLabel = "3D" },
+            new() { Label = "Blu-ray", OptionId = "bluray", ChipLabel = "Blu-ray" },
+            new() { Label = "DVD", OptionId = "dvd", ChipLabel = "DVD" }
+        ]
+    };
+
+    private static readonly EmbyFilterField ListFeaturesField = new()
+    {
+        Id = "jellyfinListFeatures",
+        Label = "功能",
+        Kind = FilterKind.Checks,
+        Choices =
+        [
+            new() { Label = "字幕", OptionId = "subtitles", ChipLabel = "字幕" },
+            new() { Label = "预告片", OptionId = "trailer", ChipLabel = "预告片" },
+            new() { Label = "额外", OptionId = "special", ChipLabel = "额外" },
+            new() { Label = "主题曲", OptionId = "themeSong", ChipLabel = "主题曲" },
+            new() { Label = "主题视频", OptionId = "themeVideo", ChipLabel = "主题视频" }
+        ]
+    };
+
     private static readonly EmbyFilterField GenresField = new()
     {
         Id = "jellyfinGenres",
@@ -284,6 +339,7 @@ public static class JellyfinLibrary
     public static IReadOnlyList<EmbyFilterField> AllFields { get; } =
     [
         StatusField, SeriesStatusField, EpisodeField, FeaturesField, VideoTypesField,
+        ListStatusField, ListVideoTypesField, ListFeaturesField,
         GenresField, RatingsField, TagsField, YearsField
     ];
 
@@ -294,6 +350,14 @@ public static class JellyfinLibrary
     /// </summary>
     public static IReadOnlyList<EmbyFilterField> FilterFields(string? collectionType, LibrarySection section)
     {
+        // A Jellyfin list page is a mixed-content library root or a folder below one (list.js). Its
+        // filter menu is filtermenu.js: four status checks, the server's genres, the six video types,
+        // then features. It has no ratings, tags or years rows at all.
+        if (collectionType is null or "mixed" or "folders")
+            return section is LibrarySection.Items or LibrarySection.Favorites
+                ? [ListStatusField, GenresField, ListVideoTypesField, ListFeaturesField]
+                : [];
+
         if (!HasFilter(collectionType, section)) return [];
 
         List<EmbyFilterField> fields = [StatusField];
@@ -316,7 +380,8 @@ public static class JellyfinLibrary
     /// </summary>
     public static bool HasFilter(string? collectionType, LibrarySection section) => section switch
     {
-        LibrarySection.Items or LibrarySection.Favorites => collectionType is "movies" or "tvshows" or "mixed",
+        LibrarySection.Items or LibrarySection.Favorites
+            => collectionType is "movies" or "tvshows" or "mixed" or "folders" or null,
         LibrarySection.Trailers or LibrarySection.Episodes => collectionType == "movies" || collectionType == "tvshows",
         LibrarySection.Folders => collectionType is "mixed",
         _ => false
@@ -328,7 +393,8 @@ public static class JellyfinLibrary
     /// </summary>
     private static readonly HashSet<string> FilterIds =
     [
-        .. new[] { StatusField, SeriesStatusField, EpisodeField, FeaturesField, VideoTypesField }
+        .. new[] { StatusField, SeriesStatusField, EpisodeField, FeaturesField, VideoTypesField,
+                ListStatusField, ListVideoTypesField, ListFeaturesField }
             .SelectMany(field => field.Choices)
             .Select(choice => choice.OptionId)
             .Where(id => id is not null)
@@ -350,6 +416,29 @@ public static class JellyfinLibrary
     private static readonly IReadOnlyList<LibraryView> MovieViews =
         [LibraryView.Banner, LibraryView.List, LibraryView.Poster, LibraryView.PosterCard, LibraryView.Thumb, LibraryView.ThumbCard];
 
+    /// <summary>
+    /// The list page's 图片类型 select, in <c>viewSettings.template.html</c>'s option order: primary,
+    /// banner, disc, logo, thumb, list. The web names them 封面图 / 横幅图 / 光盘封面图 / 徽标 / 缩略图 /
+    /// 列表; <see cref="ViewLabel"/> is that same list for the view-settings menu.
+    /// </summary>
+    private static readonly IReadOnlyList<LibraryView> ListViews =
+    [
+        LibraryView.Poster, LibraryView.Banner, LibraryView.Disc,
+        LibraryView.Logo, LibraryView.Thumb, LibraryView.List
+    ];
+
+    /// <summary>The label the web list page's view-settings menu puts on one image type.</summary>
+    public static string ViewLabel(LibraryView view) => view switch
+    {
+        LibraryView.Poster => "封面图",
+        LibraryView.Banner => "横幅图",
+        LibraryView.Disc => "光盘封面图",
+        LibraryView.Logo => "徽标",
+        LibraryView.Thumb => "缩略图",
+        LibraryView.List => "列表",
+        _ => LibraryDisplayCatalog.LabelOf(view)
+    };
+
     private static readonly IReadOnlyList<LibraryView> CollectionViews =
         [LibraryView.List, LibraryView.Poster, LibraryView.PosterCard, LibraryView.Thumb, LibraryView.ThumbCard];
 
@@ -365,7 +454,10 @@ public static class JellyfinLibrary
         LibrarySection.Collections => CollectionViews,
         LibrarySection.Episodes => EpisodeViews,
         LibrarySection.Items or LibrarySection.Favorites when collectionType is "movies" or "tvshows" => MovieViews,
-        LibrarySection.Items or LibrarySection.Favorites or LibrarySection.Folders when collectionType == "mixed" => MovieViews,
+        // A mixed-content root and a folder below it are the same list page; Jellyfin stores the root
+        // without a collection type (see Sections). Its view select is the six image types above.
+        LibrarySection.Items or LibrarySection.Favorites or LibrarySection.Folders
+            when collectionType is null or "mixed" or "folders" => ListViews,
         _ => [LibraryView.Poster]
     };
 
@@ -374,18 +466,20 @@ public static class JellyfinLibrary
     {
         LibrarySection.Collections or LibrarySection.Episodes => true,
         LibrarySection.Items or LibrarySection.Favorites or LibrarySection.Folders
-            => collectionType is "movies" or "tvshows" or "mixed",
+            => collectionType is "movies" or "tvshows" or "mixed" or "folders" or null,
         _ => false
     };
 
     /// <summary>
     /// The letter bar's rule: Jellyfin offers it on the movie, series, trailer and episode grids, and on
-    /// nothing else. The count threshold and the name-sort condition stay in the view model.
+    /// the list page (list.js calls <c>initAlphaPicker</c> for every item view). The count threshold and
+    /// the name-sort condition stay in the view model.
     /// </summary>
     public static bool HasAlphabetPicker(string? collectionType, LibrarySection section) => section switch
     {
-        LibrarySection.Items or LibrarySection.Favorites or LibrarySection.Trailers or LibrarySection.Episodes
-            => collectionType is "movies" or "tvshows" or "mixed",
+        LibrarySection.Items or LibrarySection.Favorites
+            => collectionType is "movies" or "tvshows" or "mixed" or "folders" or null,
+        LibrarySection.Trailers or LibrarySection.Episodes => collectionType is "movies" or "tvshows",
         _ => false
     };
 

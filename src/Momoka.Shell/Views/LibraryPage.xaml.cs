@@ -690,12 +690,16 @@ public sealed partial class LibraryPage : Page, IShellContent
         var search = _request?.IsSearch == true;
         var sectionLibrary = ViewModel.IsSectionLibrary;
         var folderDrillDown = ViewModel.IsFolderDrillDown;
+        // Jellyfin 的混合内容库根沿用网页端 list.html：没有分区签，工具条居中；页内标题照旧留着，
+        // 但落到分区库那一档字号（36 → 20，2026-11-01 用户令）。文件夹下钻页标题仍由面包屑承担。
+        var jellyfinList = ViewModel.IsJellyfinListPage;
         var contentPage = ViewModel.IsUpcomingPage || ViewModel.IsFavoritesPage;
         // 分区库（Emby／Jellyfin／飞牛）的头部有一批只在特定状态下出现的行：浏览分组、筛选条、状态条、
         // 搜索分类栏、飞牛的筛选面板。Grid 的 RowSpacing 连收起的行也照算，工具栏到封面因此空出 100 像素。
         // 这一档把这些间距改由元素自己的外边距表达：行收起就一个像素不占，显示时仍是原来的 12／16。
-        // 文件夹下钻页同理：页内大标题收起，工具条是头部唯一的一行。
-        var headerByMargin = (sectionLibrary && !contentPage) || folderDrillDown;
+        // 文件夹下钻页同理：页内大标题收起，工具条是头部唯一的一行。Jellyfin list 页没有分区签，
+        // 也不该被 Grid 里那两行空位撑出百来像素的空白，所以同样改由外边距控制。
+        var headerByMargin = (sectionLibrary && !contentPage) || folderDrillDown || jellyfinList;
         var contentGap = new Thickness(0, 20, 0, 0);
         var pageMargin = (Thickness)Application.Current.Resources["EgPageMargin"];
         // 顶部 32 DIP 供原生窗口按钮使用，再留 8 DIP；去掉搜索标题后内容仍整体上移。
@@ -721,15 +725,16 @@ public sealed partial class LibraryPage : Page, IShellContent
         // 文件夹下钻页的面包屑已经写着「媒体库 > 文件夹名」，网页端 list.html 也把这一行放在顶栏里，
         // 页内不再重复一道大标题；标题收起后工具条独占头部，居中摆放。
         LibraryTitle.Visibility = search || folderDrillDown ? Visibility.Collapsed : Visibility.Visible;
-        LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary || folderDrillDown ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
+        LibraryTitle.Style = (Style)Application.Current.Resources[sectionLibrary || folderDrillDown || jellyfinList
+            ? "EgSectionTitleStyle" : "EgPageTitleStyle"];
         LibrarySectionsSurface.MaxWidth = width;
         LibrarySectionsSurface.HorizontalAlignment = HorizontalAlignment.Center;
         Grid.SetRow(LibrarySectionsSurface, 1);
         Grid.SetColumn(LibrarySectionsSurface, 0);
         Grid.SetColumnSpan(LibrarySectionsSurface, 2);
         ToolbarSurface.HorizontalAlignment = search ? HorizontalAlignment.Right
-            : sectionLibrary || folderDrillDown ? HorizontalAlignment.Center : HorizontalAlignment.Left;
-        Toolbar.CenterRows = sectionLibrary || folderDrillDown;
+            : sectionLibrary || folderDrillDown || jellyfinList ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+        Toolbar.CenterRows = sectionLibrary || folderDrillDown || jellyfinList;
         Grid.SetRow(SearchSurface, search ? 0 : 1);
         Grid.SetRow(LibraryTitle, 0);
         Grid.SetColumnSpan(LibraryTitle, search ? 1 : 2);
@@ -1070,6 +1075,40 @@ public sealed partial class LibraryPage : Page, IShellContent
     }
 
     internal void HideJellyfinLayoutMenu() => JellyfinLayoutMenu.Hide();
+
+    /// <summary>Tooling: rebuilds the Jellyfin list page's 更多 flyout and answers its image-type labels.</summary>
+    internal IReadOnlyList<string> BuildJellyfinMoreMenu()
+    {
+        var entries = ViewModel.JellyfinViews()
+            .Select(view => new LayoutEntry(ViewModel.JellyfinViewLabel(view), view == ViewModel.View, View: view))
+            .ToArray();
+        JellyfinImageTypeList.ItemsSource = entries;
+        JellyfinShowTitleCheck.IsChecked = ViewModel.JellyfinListShowsTitles;
+        return [.. entries.Select(entry => entry.Label)];
+    }
+
+    /// <summary>Tooling: drops the list page's 更多 flyout open where a screenshot can see it.</summary>
+    internal void ShowJellyfinMoreMenu()
+    {
+        BuildJellyfinMoreMenu();
+        JellyfinMoreButton.Flyout?.ShowAt(JellyfinMoreButton);
+    }
+
+    internal void HideJellyfinMoreMenu() => JellyfinMoreMenu.Hide();
+
+    private void OnJellyfinMoreMenuOpening(object sender, object e) => BuildJellyfinMoreMenu();
+
+    private void OnJellyfinImageTypeItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is not LayoutEntry entry) return;
+        ViewModel.ChooseJellyfinView(entry.View);
+        // The web dialog stays open while the user changes image type and title; keep the ticks and the
+        // title checkbox in step with the display that just landed.
+        BuildJellyfinMoreMenu();
+    }
+
+    private void OnJellyfinShowTitleClicked(object sender, RoutedEventArgs e) =>
+        ViewModel.SetJellyfinListShowTitles(JellyfinShowTitleCheck.IsChecked == true);
 
     /// <summary>Tooling: the same for the filter panel.</summary>
     internal void ShowFilterPanel() => OpenFilter();
@@ -1562,6 +1601,8 @@ public sealed partial class LibraryPage : Page, IShellContent
 
         // 文件夹页只有少量文件夹卡；铺满列的排法会把它们全挤在左边。这一页改成「按卡片原宽、整行居中」，
         // 其余页仍从左排满（2026-11-01 用户报「文件夹页面……没有居中显示」）。
+        // Jellyfin list 页不跟这一条：真库的文件夹名常比卡片宽，按原宽摆会把标题左端裁掉
+        // （2026-11-01 实机截图），仍用 Fill 铺满。
         var centerCards = ViewModel.Section == LibrarySection.Folders;
         CardLayout.ItemsStretch = centerCards ? UniformGridLayoutItemsStretch.None : UniformGridLayoutItemsStretch.Fill;
         CardLayout.ItemsJustification = centerCards

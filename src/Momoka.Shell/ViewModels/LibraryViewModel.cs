@@ -394,7 +394,7 @@ public sealed partial class LibraryViewModel : PageViewModel
     public partial int FilterCount { get; set; }
 
     public Visibility FilterBadgeVisibility => Show(FilterCount > 0);
-    public double FilterButtonWidth => IsFnNas ? FilterCount > 0 ? 84 : 70 : FilterCount > 0 ? 52 : 32;
+    public double FilterButtonWidth => IsFnNas || IsJellyfinListPage ? FilterCount > 0 ? 84 : 70 : FilterCount > 0 ? 52 : 32;
 
     /// <summary>飞牛那一套筛选的选择；Emby 的 <see cref="_filters"/> 对它无效。</summary>
     private readonly FnNasFilterSelection _fnNasFilters = new();
@@ -566,7 +566,16 @@ public sealed partial class LibraryViewModel : PageViewModel
 
     internal string? CollectionType => _request?.CollectionType;
 
-    internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, CollectionType: "movies" or "tvshows" or "mixed", IsSearch: false };
+    /// <summary>
+    /// A library root with the web client's own tab strip. Jellyfin's mixed-content library is not one:
+    /// its CollectionType is null in the API (the "mixed" value only exists in the creation options),
+    /// and Jellyfin Web routes that root to <c>list.html</c> — one tabless list, see
+    /// <see cref="IsJellyfinListPage"/>.
+    /// </summary>
+    internal bool IsSectionLibrary => _request is { ParentId.Length: > 0, IsSearch: false }
+        && (IsJellyfin
+            ? _request.CollectionType is "movies" or "tvshows"
+            : _request.CollectionType is "movies" or "tvshows" or "mixed");
 
     /// <summary>
     /// 从任一媒体库的「文件夹」点进一个文件夹后的那一页。网页端这一页是 <c>list.html</c>：顶栏是
@@ -585,6 +594,26 @@ public sealed partial class LibraryViewModel : PageViewModel
         Row: null, Genre: null, PersonId: null
     }
     && !IsSectionLibrary;
+
+    /// <summary>
+    /// The Jellyfin list page — <c>controllers/list.html</c> driven by <c>controllers/list.js</c>. It is
+    /// the page Jellyfin Web opens for a mixed-content library root and for every physical folder below
+    /// it: no tab strip, one centered toolbar, the generic 10-key sort menu with 文件夹 (IsFolder,SortName)
+    /// as the default, the filtermenu.js rows and the six-image-type 视图设置 menu.
+    /// <para>
+    /// A Jellyfin mixed-content library has no <c>CollectionType</c> in the API. The root request is
+    /// therefore not a section library and, unlike a folder drill-down, carries no parent type — those
+    /// are the two shapes this predicate accepts. Series/season/episode grids are not list pages and keep
+    /// their own query and toolbar.
+    /// </para>
+    /// </summary>
+    internal bool IsJellyfinListPage => IsJellyfin && !Aggregated && _request is
+    {
+        IsSearch: false, ParentId.Length: > 0, Row: null, Genre: null, PersonId: null
+    }
+    && (IsFolderDrillDown
+        || (!IsSectionLibrary && _request.ParentType is null
+            && _request.CollectionType is null or "mixed" or "folders"));
 
     /// <summary>排序菜单与默认值取哪一页的表：文件夹下钻页与「文件夹」分区是同一份。</summary>
     private LibrarySection SortSection => IsFolderDrillDown ? LibrarySection.Folders : Section;
@@ -624,6 +653,15 @@ public sealed partial class LibraryViewModel : PageViewModel
     public Visibility JellyfinLayoutVisibility => Show(IsJellyfin && IsSectionLibrary && HasToolbar
         && !IsResumePage && !Aggregated && !IsBrowseIndex && _request?.IsSearch != true
         && JellyfinLibrary.HasLayout(CollectionType, Section));
+
+    /// <summary>
+    /// The list page's last toolbar button: <c>btnViewSettings</c>, the vertical ⋮ (title 更多) that opens
+    /// <c>viewSettings.template.html</c>. The movie/series pages keep their 布局 button instead; this one
+    /// belongs to <see cref="IsJellyfinListPage"/> only.
+    /// </summary>
+    public Visibility JellyfinMoreVisibility => Show(IsJellyfinListPage && HasToolbar
+        && !IsResumePage && !Aggregated && !IsBrowseIndex && _request?.IsSearch != true);
+
     public bool FnNasLayoutWide => IsFnNas && View == LibraryView.Thumb;
     public Visibility BrowseGroupVisibility => Show(IsSectionLibrary && _request?.BrowseGroup is not null);
     public string BrowseGroupLabel => _request?.BrowseGroup ?? "";
@@ -634,12 +672,37 @@ public sealed partial class LibraryViewModel : PageViewModel
     /// 电视剧库的「节目」页装的是剧集本身，一集都播不了 —— 那种页面上两颗键没有意义，整对收起
     /// （原来它们藏在「更多」里，那个菜单 2026-10-17 按用户的话删掉了：菜单里除了这两颗常年灰着的键什么都没有）。
     /// </summary>
-    public Visibility DirectPlayVisibility => Show(!IsSectionLibrary
-        || (Section == LibrarySection.Folders
-            ? _firstPage && Cards.Count > 0
-            : !IsBrowseIndex && _firstPage && Cards.Any(card => card.Item.IsPlayable)));
-    public string TotalLabel => _total < 0 ? _pageFailed ? "加载失败" : "正在加载" : $"共 {_total} 项";
-    public string ToolbarSortLabel => SortLabel;
+    public Visibility DirectPlayVisibility => Show(
+        // list.js hides 播放/随机播放 on a CollectionFolder unless that collection is Home Videos:
+        // `!(itemType === 'CollectionFolder' && item.CollectionType !== Homevideos)`. The mixed root is
+        // a CollectionFolder, so the web page shows neither button; a folder drill-down (itemType
+        // Folder) shows both and plays its contents recursively.
+        !(IsJellyfinListPage && _request?.ParentType is null)
+        && (!IsSectionLibrary
+            || (Section == LibrarySection.Folders
+                ? _firstPage && Cards.Count > 0
+                : !IsBrowseIndex && _firstPage && Cards.Any(card => card.Item.IsPlayable))));
+
+    /// <summary>
+    /// The toolbar's count. The list page uses <c>libraryBrowser.getQueryPagingHtml</c>'s
+    /// <c>ListPaging</c> string — zh-CN renders it as 「44 的 1-44」 — rather than Emby's 「共 44 项」.
+    /// The end is the number of rows loaded so far; the list page scrolls to load more instead of
+    /// drawing the web client's previous/next page buttons.
+    /// </summary>
+    public string TotalLabel => _total < 0
+        ? _pageFailed ? "加载失败" : "正在加载"
+        : IsJellyfinListPage
+            ? $"{_total} 的 {(Cards.Count > 0 ? 1 : 0)}-{Math.Min(_total, Cards.Count)}"
+            : $"共 {_total} 项";
+
+    /// <summary>list.js renders its sort text with <c>SortByValue</c> — 「排序方式：文件夹」.</summary>
+    public string ToolbarSortLabel => IsJellyfinListPage ? $"排序方式：{SortLabel}" : SortLabel;
+
+    /// <summary>The web list page's sort button is text + arrow; the other toolbars keep their leading icon.</summary>
+    public Visibility SortIconVisibility => Show(!IsJellyfinListPage);
+
+    /// <summary>The list page's filter button is a text button so it reads 筛选 like list.html.</summary>
+    public Visibility FilterTextVisibility => Show(IsFnNas || IsJellyfinListPage);
 
     internal async Task ChooseSectionAsync(LibrarySection section)
     {
@@ -675,8 +738,10 @@ public sealed partial class LibraryViewModel : PageViewModel
             nameof(DirectPlayVisibility), nameof(SortFilterVisibility), nameof(FilterVisibility),
             nameof(ToolbarVisibility), nameof(SettingsVisibility), nameof(Fields),
             nameof(AlphaVisibility), nameof(FilterChipsVisibility), nameof(TotalLabel),
-            nameof(LayoutVisibility), nameof(JellyfinLayoutVisibility), nameof(FnNasFilterVisibility), nameof(FnNasFilterTextVisibility),
-            nameof(FnNasLayoutWide), nameof(FilterButtonWidth),
+            nameof(LayoutVisibility), nameof(JellyfinLayoutVisibility), nameof(JellyfinMoreVisibility),
+            nameof(SortIconVisibility), nameof(FilterTextVisibility), nameof(ToolbarSortLabel),
+            nameof(FnNasFilterVisibility), nameof(FnNasFilterTextVisibility),
+            nameof(FnNasLayoutWide), nameof(FilterButtonWidth), nameof(JellyfinListShowsTitles),
             nameof(FavoriteAccountFilterVisibility), nameof(FavoriteAccountLabel),
             nameof(RecommendedVisibility), nameof(GridVisibility), nameof(UpcomingVisibility), nameof(FavoritesVisibility),
             nameof(SearchGroupsVisibility) }) OnPropertyChanged(name);
@@ -1043,9 +1108,15 @@ public sealed partial class LibraryViewModel : PageViewModel
         // 飞牛搜索走 /search/list，排序参数不会随搜索发出；摆一颗按了不动的排序键比不摆更糟。
         && !(IsFnNas && _request?.IsSearch == true));
 
-    /// <summary>Jellyfin's filter button: its own row catalogue, and its own tabs that do not have one.</summary>
+    /// <summary>
+    /// Jellyfin's filter button: its own row catalogue, and its own pages that do not have one. A null
+    /// collection type only means the list page; a season or episode grid also has no collection type
+    /// and must not borrow the list page's filter menu through <see cref="JellyfinLibrary.HasFilter"/>.
+    /// </summary>
     private bool JellyfinFiltersSupported => IsJellyfin
-        && (JellyfinLibrary.HasFilter(FilterCollectionType, Section) || _request?.IsSearch == true);
+        && (IsJellyfinListPage
+            || _request?.IsSearch == true
+            || (FilterCollectionType is not null && JellyfinLibrary.HasFilter(FilterCollectionType, Section)));
 
     /// <summary>
     /// The collection type used for the filter catalogue. A search page has no library root in its
@@ -2073,6 +2144,28 @@ public sealed partial class LibraryViewModel : PageViewModel
     internal IReadOnlyList<LibraryView> JellyfinViews() =>
         IsJellyfin ? JellyfinLibrary.Views(CollectionType, Section) : [];
 
+    /// <summary>The label the list page's 图片类型 menu puts on a view; the movie tabs keep their own names.</summary>
+    internal string JellyfinViewLabel(LibraryView view) => IsJellyfinListPage
+        ? JellyfinLibrary.ViewLabel(view) : LibraryDisplayCatalog.LabelOf(view);
+
+    /// <summary>list.js's 显示标题 checkbox. It drives the card's title and year together, as the web
+    /// client's <c>showTitle</c> does for a poster card.</summary>
+    internal bool JellyfinListShowsTitles => _display.Fields.Contains(LibraryField.Title);
+
+    internal void SetJellyfinListShowTitles(bool show)
+    {
+        if (!IsJellyfinListPage) return;
+        var display = _display.Clone();
+        var fields = display.Fields.Where(field => field is not (LibraryField.Title or LibraryField.ProductionYear)).ToList();
+        if (show)
+        {
+            fields.Add(LibraryField.Title);
+            fields.Add(LibraryField.ProductionYear);
+        }
+        display.Fields = fields;
+        ApplyDisplay(display);
+    }
+
     /// <summary>Jellyfin's 布局 menu picked a shape. Same display pipeline as every other view change.</summary>
     internal void ChooseJellyfinView(LibraryView view)
     {
@@ -2592,6 +2685,22 @@ public sealed partial class LibraryViewModel : PageViewModel
                 Filters = _filters.Clone()
             };
         }
+
+        // Jellyfin's list page asks for the item's children, not the whole library: list.js's getItems
+        // sends ParentId + SortBy and leaves Recursive/IncludeItemTypes unset whenever the request has a
+        // parent item. That is what turns a mixed-content root into its 44 folder rows.
+        if (IsJellyfinListPage)
+            return new ItemQuery
+            {
+                ParentId = request.ParentId,
+                Recursive = false,
+                IncludeItemTypes = [],
+                SortBy = SortKey,
+                Descending = SortDescending,
+                StartIndex = start,
+                Limit = limit,
+                Filters = _filters.Clone()
+            };
 
         if (IsSectionLibrary)
             return LibraryBrowse.Query(request.CollectionType!, request.ParentId!, request.Section,

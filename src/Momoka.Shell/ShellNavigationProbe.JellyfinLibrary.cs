@@ -134,6 +134,149 @@ internal sealed partial class ShellNavigationProbe
             await SettleAsync();
             await LayoutAsync(page);
             await SaveReturnFrameAsync(page, "jellyfin-library-episodes.png");
+
+            // 2026-11-01 用户令：Jellyfin 的混合内容库改走网页端 list.html，不再是本客户端自造的三栏。
+            // 真服务器 10.10.7 的混合库 CollectionType 为 null，list.js 按 ParentId 取子项；
+            // 这里用 44 个文件夹对齐用户截图里的「44 的 1-44」。
+            page.Release();
+            fixture.Transport.Reply = (request, _) =>
+            {
+                if (request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(poster) });
+                if (Query(request, "ParentId") == "jf-mixed")
+                {
+                    var folders = Enumerable.Range(1, 44).Select(index =>
+                    {
+                        var folder = new EmbyItem
+                        {
+                            Id = $"jf-folder-{index:00}",
+                            Name = $"文件夹 {index:00}",
+                            Type = EmbyItemType.Folder,
+                            IsFolder = true
+                        };
+                        folder.ImageTags[EmbyImageStore.Primary] = "fixture";
+                        return folder;
+                    }).ToArray();
+                    return Task.FromResult(Json(new { Items = folders, TotalRecordCount = folders.Length }));
+                }
+                return Task.FromResult(JellyfinResponse(request, poster));
+            };
+            frame.Navigate(typeof(LibraryPage), new LibraryRequest
+            {
+                Services = fixture.Services,
+                Title = "混合内容",
+                ParentId = "jf-mixed"
+            });
+            page = (LibraryPage)frame.Content;
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            Require(page.ViewModel.IsJellyfinListPage && !page.ViewModel.IsSectionLibrary
+                && !page.ViewModel.IsFolderDrillDown, "Jellyfin 混合内容根没有按 list 页处理");
+            Require(TabLabels(page).Length == 0, $"Jellyfin 混合内容页仍画了分区签：{TabLabels(page)}");
+            var mixedTitle = Get<TextBlock>(page, "LibraryTitle");
+            Require(mixedTitle.Visibility == Visibility.Visible && Math.Abs(mixedTitle.FontSize - 20) < 0.1,
+                $"Jellyfin 混合内容标题字号不是 20（{mixedTitle.FontSize}）");
+            Require(Get<TextBlock>(page, "LibraryItemCount").Text == "44 的 1-44"
+                && page.ViewModel.TotalLabel == "44 的 1-44",
+                $"混合内容计数不是 list.html 的 ListPaging（{page.ViewModel.TotalLabel}）");
+            Require(page.ViewModel.SortKey == "IsFolder,SortName" && page.ViewModel.SortLabel == "文件夹"
+                && page.ViewModel.ToolbarSortLabel == "排序方式：文件夹",
+                $"混合内容默认排序不是文件夹升序（{page.ViewModel.ToolbarSortLabel}）");
+            Require(SortLabels(page) == "名称,公众评分,影评人评分,加入日期,播放日期,文件夹,家长分级,播放次数,发行日期,播放时长",
+                $"Jellyfin 混合内容排序菜单与 list.js 不同：{SortLabels(page)}");
+            var mixedQuery = Uri.UnescapeDataString(fixture.Transport.Requests
+                .Last(value => value.Contains("ParentId=jf-mixed", StringComparison.Ordinal)));
+            Require(!mixedQuery.Contains("Recursive=true", StringComparison.Ordinal)
+                && !mixedQuery.Contains("IncludeItemTypes=", StringComparison.Ordinal),
+                $"混合内容根不是按 list.js 取子项：{mixedQuery}");
+            Require(Get<Button>(page, "PlayAllButton").Visibility == Visibility.Collapsed
+                && Get<Button>(page, "PlayRandomButton").Visibility == Visibility.Collapsed,
+                "混合内容根仍露出播放/随机播放；list.js 对 CollectionFolder 收起这两颗");
+            Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Visible,
+                "混合内容根没有筛选键");
+            Require(Get<Button>(page, "JellyfinMoreButton").Visibility == Visibility.Visible,
+                "混合内容根没有更多键（list.html 的 btnViewSettings）");
+            Require(Get<Button>(page, "JellyfinMoreButton").Content is FontIcon { Glyph: "\u22EE" },
+                "更多键不是网页端的竖排三点");
+            Require(Get<Button>(page, "JellyfinLayoutButton").Visibility == Visibility.Collapsed
+                && Get<Button>(page, "LibrarySettingsButton").Visibility == Visibility.Collapsed,
+                "混合内容根仍露出布局/设置键");
+            Require(Get<Button>(page, "SortButton").Visibility == Visibility.Visible,
+                "混合内容根没有排序键");
+            await LayoutAsync(page);
+            var mixedToolbar = Get<Grid>(page, "ToolbarSurface");
+            var mixedToolbarBox = mixedToolbar.TransformToVisual(page)
+                .TransformBounds(new(0, 0, mixedToolbar.ActualWidth, mixedToolbar.ActualHeight));
+            Require(Math.Abs(mixedToolbarBox.Left + mixedToolbarBox.Width / 2 - page.ActualWidth / 2) <= 2,
+                "混合内容工具条没有居中");
+
+            page.ShowFilterPanel();
+            await SettleAsync();
+            Require(string.Join(',', page.FilterPane.RowLabels) == "播放状态,类型,视频类型,功能",
+                $"Jellyfin 混合内容筛选行与 filtermenu.js 不同：{string.Join(',', page.FilterPane.RowLabels)}");
+            var mixedStatus = page.FilterPane.ViewModel.Rows.OfType<ViewModels.FilterChecksRow>()
+                .Single(row => row.Label == "播放状态");
+            Require(string.Join(',', mixedStatus.Values.Select(check => check.Label)) == "未播放,已播放,我的最爱,继续观看",
+                "Jellyfin 混合内容播放状态不是 filtermenu.js 的四颗复选");
+            page.CloseFilter();
+            await SettleAsync();
+
+            Require(string.Join(',', page.BuildJellyfinMoreMenu()) == "封面图,横幅图,光盘封面图,徽标,缩略图,列表",
+                $"Jellyfin 混合内容图片类型不是 viewSettings 的六项：{string.Join(',', page.BuildJellyfinMoreMenu())}");
+            page.ShowJellyfinMoreMenu();
+            await SettleAsync();
+            await SaveProbeScreenAsync("jellyfin-list-more-menu-screen.png");
+            page.HideJellyfinMoreMenu();
+            page.ViewModel.SetJellyfinListShowTitles(false);
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            Require(!page.ViewModel.JellyfinListShowsTitles && !page.ViewModel.Fields.Contains(LibraryField.Title),
+                "关闭显示标题后卡片仍带着标题字段");
+            page.ViewModel.SetJellyfinListShowTitles(true);
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            Require(page.ViewModel.JellyfinListShowsTitles, "显示标题没有恢复");
+            ResizeProbeClient(1100, 800);
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("jellyfin-list-1100-screen.png");
+            ResizeProbeClient(760, 900);
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("jellyfin-list-760-screen.png");
+
+            // 文件夹下钻页与库根是同一个 list 组件；区别是 itemType 为 Folder 时 list.js 会露出播放/随机播放。
+            page.Release();
+            fixture.Transport.Reply = (request, _) =>
+            {
+                if (request.RequestUri!.AbsolutePath.Contains("/Images/", StringComparison.Ordinal))
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(poster) });
+                if (Query(request, "ParentId") == "jf-folder")
+                {
+                    var movie = new EmbyItem { Id = "jf-folder-movie", Name = "文件夹里的电影", Type = EmbyItemType.Movie };
+                    movie.ImageTags[EmbyImageStore.Primary] = "fixture";
+                    return Task.FromResult(Json(new { Items = new[] { movie }, TotalRecordCount = 1 }));
+                }
+                return Task.FromResult(JellyfinResponse(request, poster));
+            };
+            frame.Navigate(typeof(LibraryPage), new LibraryRequest
+            {
+                Services = fixture.Services,
+                Title = "文件夹",
+                ParentId = "jf-folder",
+                ParentType = EmbyItemType.Folder
+            });
+            page = (LibraryPage)frame.Content;
+            await UntilAsync(() => page.ViewModel.IsReady && !page.ViewModel.Busy);
+            Require(page.ViewModel.IsJellyfinListPage && page.ViewModel.IsFolderDrillDown,
+                "Jellyfin 文件夹页没有走 list 组件");
+            Require(Get<TextBlock>(page, "LibraryTitle").Visibility == Visibility.Collapsed,
+                "Jellyfin 文件夹页仍显示页内标题");
+            Require(Get<TextBlock>(page, "LibraryItemCount").Text == "1 的 1-1",
+                $"Jellyfin 文件夹页计数不是 ListPaging（{Get<TextBlock>(page, "LibraryItemCount").Text}）");
+            Require(Get<Button>(page, "PlayAllButton").Visibility == Visibility.Visible
+                && Get<Button>(page, "PlayRandomButton").Visibility == Visibility.Visible,
+                "Jellyfin 文件夹页没有按 list.js 露出播放/随机播放");
+            Require(Get<Button>(page, "FilterButton").Visibility == Visibility.Visible
+                && Get<Button>(page, "JellyfinMoreButton").Visibility == Visibility.Visible,
+                "Jellyfin 文件夹页缺少筛选或更多键");
+            await LayoutAsync(page);
+            await SaveProbeScreenAsync("jellyfin-folder-list-screen.png");
         }
         finally
         {
