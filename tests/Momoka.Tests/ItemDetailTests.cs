@@ -1621,29 +1621,58 @@ internal static class ItemDetailTests
         // 「把集页面下方的剧情说明接到 剩余18分钟下面（多留点空位），然后自动剪裁下方空位（留点空位）」
         // （2026-11-02 用户，红框圈的是带子底下那截空气）：集页的带高按封面和片名那一叠取大，封面高过那一叠时，
         // 多出来的那一截全落在带子底下 —— 而剧情说明原本接在带子下沿之后，离「剩余 x 分钟」就隔着一整截空气。
-        // 这一支算的是尾部那一段要往上提多少，正好让说明的顶落在那一叠底下 OverviewGap 处；提上来的量同时从
+        // 同日更正「不要固定间距，以封面下沿为准」：这一支现在让说明的第一行落到封面下沿那条线上；只有封面下沿
+        // 离那一叠比 OverviewMinGap 还近（或者没有封面）时才退回那一叠底下 OverviewMinGap 处。提上来的量同时从
         // 尾部自己的高里扣掉，纸面／板底于是跟着内容收（「自动剪裁下方空位」）。
-        Test("集页尾部：剧情说明提到「剩余 x 分钟」底下", () =>
+        Test("集页尾部：剧情说明以封面下沿为准", () =>
         {
             const double insetTop = 28d;   // 集页带子的上留白
             const double tailTop = 12d;    // 尾部那一段自己的上留白
             const double panelTop = 24d;   // 剧情说明那一块的上内边距
+            const double coverBottom = 403d; // 封面 375 加带子上留 28：封面下沿正好是带子下沿
 
-            // 封面 375、带子上留 28、底下收到 0（带高 403），字键那一叠实量 335：带子底下多出来的 40 就是要提的
-            // 那一截。原来说明顶落在那一叠底下 40 + 12 + 24 = 76；提 44 之后落在 32。
-            Assert.Equal(44d, DetailHero.TailPull(403, insetTop, 335, tailTop, panelTop, DetailHero.OverviewGap));
-            Assert.Equal(DetailHero.OverviewGap, 40d + tailTop + panelTop - 44d);
+            // 带高 403、字键那一叠实量 335（下沿 363）：说明的第一行落在封面下沿 403，离那一叠 40，
+            // 不再是一个固定数。提量 403 + 36 − 403 = 36。
+            Assert.Equal(36d, DetailHero.TailPull(
+                403, insetTop, 335, tailTop, panelTop, DetailHero.OverviewMinGap, coverBottom));
+            Assert.Equal(coverBottom, 403d - 36d + tailTop + panelTop);
+            Assert.Equal(coverBottom - (insetTop + 335), 403d - 36d + tailTop + panelTop - (insetTop + 335));
 
-            // 那一叠长过封面时带子正好就是那一叠（没有多出来的那一截）：只剩尾部自己那两道上边距比
-            // OverviewGap 多出来的 4，提量跟着收，说明仍旧落在那一叠底下 32，而不是被带子底下的空气推下去。
-            Assert.Equal(4d, DetailHero.TailPull(380, insetTop, 352, tailTop, panelTop, DetailHero.OverviewGap));
+            // 那一叠更矮时（300）第一行仍旧落在封面下沿 403，间距自己变成 75 —— 这就是「以封面下沿为准」
+            // 与固定 32 的区别。
+            Assert.Equal(36d, DetailHero.TailPull(
+                403, insetTop, 300, tailTop, panelTop, DetailHero.OverviewMinGap, coverBottom));
+            Assert.Equal(coverBottom, 403d - 36d + tailTop + panelTop);
+
+            // 同样那一叠、没有封面可画时退回 OverviewMinGap：说明落在 328 + 32 = 360，提 79。
+            Assert.Equal(79d, DetailHero.TailPull(
+                403, insetTop, 300, tailTop, panelTop, DetailHero.OverviewMinGap, 0));
+            Assert.Equal(insetTop + 300 + DetailHero.OverviewMinGap, 403d - 79d + tailTop + panelTop);
+
+            // 封面下沿比那一叠只低一点（370 对 378）时也退回 OverviewMinGap：第一行落在 410，仍在封面下面。
+            Assert.Equal(29d, DetailHero.TailPull(
+                403, insetTop, 350, tailTop, panelTop, DetailHero.OverviewMinGap, 370));
+            Assert.Equal(insetTop + 350 + DetailHero.OverviewMinGap, 403d - 29d + tailTop + panelTop);
+            Assert.True(403d - 29d + tailTop + panelTop > 370d);
+
+            // 那一叠长过封面时带子正好就是那一叠（没有多出来的那一截）：说明落在那一叠底下 32（提 4），
+            // 不是被带子底下的空气推下去。
+            Assert.Equal(4d, DetailHero.TailPull(
+                380, insetTop, 352, tailTop, panelTop, DetailHero.OverviewMinGap, 0));
+
+            // 带子多出来的那一截只剩 27 时（带高 400、那一叠 345），提量跟着收：27 + 36 − 32 = 31。
+            Assert.Equal(31d, DetailHero.TailPull(
+                400, insetTop, 345, tailTop, panelTop, DetailHero.OverviewMinGap, 0));
 
             // 还没量到那一叠（0）不提 —— 第一拍按原版面布，量到之后再来一次。
-            Assert.Equal(0d, DetailHero.TailPull(403, insetTop, 0, tailTop, panelTop, DetailHero.OverviewGap));
-            Assert.Equal(0d, DetailHero.TailPull(0, insetTop, 335, tailTop, panelTop, DetailHero.OverviewGap));
+            Assert.Equal(0d, DetailHero.TailPull(
+                403, insetTop, 0, tailTop, panelTop, DetailHero.OverviewMinGap, coverBottom));
+            Assert.Equal(0d, DetailHero.TailPull(
+                0, insetTop, 335, tailTop, panelTop, DetailHero.OverviewMinGap, coverBottom));
 
             // 要的空比尾部自己那两道上边距加上带子多出来的那一截还大时也不倒着提（不出正边距把说明推下去）。
-            Assert.Equal(0d, DetailHero.TailPull(403, insetTop, 335, tailTop, panelTop, 400));
+            Assert.Equal(0d, DetailHero.TailPull(
+                403, insetTop, 335, tailTop, panelTop, 400, coverBottom));
 
             // 提上去之后说明底下只剩面板自己的 8，靠尾部最后那一格把板底撑到能画 16 的圆角：8 + 16 合起来
             // 才是「留点空位」的那 24（DetailViewModel.OverviewPanelPadding 的底 + CardTailGap）。

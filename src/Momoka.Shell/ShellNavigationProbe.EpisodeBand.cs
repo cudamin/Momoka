@@ -194,9 +194,10 @@ internal sealed partial class ShellNavigationProbe
                     $"{width} 这一档纸面上几块的竖距没绑上：控件 {sheet.Spacing:0.##} 对视图模型 {view.SheetSpacing:0.##}");
 
                 // 2026-11-02「把集页面下方的剧情说明接到 剩余18分钟下面（多留点空位），然后自动剪裁下方空位
-                // （留点空位）」：宽版式上说明的顶落在「剩余 x 分钟」底下 32，板底下沿只剩说明自己的 8 加收尾格
-                // 的 16（那 16 是给板底那两个圆角撑出来的板面）；紧凑版式不提拉（那一档的进度和说明本来就排在
-                // 同一条单列里），收尾格也不占高。
+                // （留点空位）」以及同一天的更正「不要固定间距，以封面下沿为准」：宽版式上说明的第一行落在封面
+                // 实测的下沿那条线上（不高于封面最下方）；封面下沿离「剩余 x 分钟」比 OverviewMinGap 还近、或者
+                // 没有封面时才退回那一行底下 32。板底下沿只剩说明自己的 8 加收尾格的 16（那 16 是给板底那两个
+                // 圆角撑出来的板面）；紧凑版式不提拉（那一档的进度和说明本来就排在同一条单列里），收尾格也不占高。
                 var overviewText = Get<TextBlock>(page, "Overview");
                 var textTop = overviewText.TransformToVisual(page).TransformPoint(default).Y;
                 var textBottom = textTop + overviewText.ActualHeight;
@@ -218,11 +219,20 @@ internal sealed partial class ShellNavigationProbe
                     var foot = cardGap.ActualHeight;
                     var gap = textTop - actionsBottom;
                     var under = cardBottom - textBottom;
+                    var coverBottom = cover.TransformToVisual(page).TransformPoint(default).Y + cover.ActualHeight;
+                    var wantGap = Math.Max(DetailHero.OverviewMinGap, coverBottom - actionsBottom);
                     var wantBottom = Math.Max(tailTop + foot, textBottom + view.OverviewPanelPadding.Bottom + foot);
                     Require(view.TailMargin.Top < -1,
                         $"{width} 这一档宽版式没有提拉剧情说明：{view.TailMargin}");
-                    Require(Math.Abs(gap - DetailHero.OverviewGap) < 1.5,
-                        $"{width} 这一档剧情说明离「剩余 x 分钟」{gap:0.#}，该是 {DetailHero.OverviewGap:0.#}");
+                    Require(Math.Abs(gap - wantGap) < 1.5,
+                        $"{width} 这一档剧情说明离「剩余 x 分钟」{gap:0.#}，该是 {wantGap:0.#}"
+                            + $"（封面下沿 {coverBottom:0.#} 离那一行 {coverBottom - actionsBottom:0.#}，"
+                            + $"OverviewMinGap {DetailHero.OverviewMinGap:0.#}）");
+                    Require(textTop >= coverBottom - 0.5,
+                        $"{width} 这一档剧情说明第一行 {textTop:0.#} 高过左侧封面的下沿 {coverBottom:0.#}");
+                    Require(Math.Abs(textTop - Math.Max(coverBottom, actionsBottom + DetailHero.OverviewMinGap)) < 1.5,
+                        $"{width} 这一档剧情说明第一行 {textTop:0.#} 没落在封面下沿 {coverBottom:0.#}"
+                            + $"（或那一行底下 {DetailHero.OverviewMinGap:0.#}）那条线上");
                     Require(Math.Abs(foot - DetailHero.CardTailGap) < 0.01,
                         $"{width} 这一档板底的收尾格 {foot:0.##}，该是 {DetailHero.CardTailGap:0.##}"
                             + "（不足 16 板底那两个圆角就画不出来）");
@@ -231,7 +241,8 @@ internal sealed partial class ShellNavigationProbe
                             + $" {view.OverviewPanelPadding.Bottom:0.#} 再加收尾格 {foot:0.#}，或带子底下 {tailTop:0.#}）");
                     Require(under >= DetailHero.CardTailGap - 0.01,
                         $"{width} 这一档字到板底只剩 {under:0.#}，板底那两个 16 的圆角画不出来");
-                    readings.Add($"{width} 提拉 {view.TailMargin.Top:0.#}，说明距剩余 {gap:0.#}，板底留 {under:0.#}"
+                    readings.Add($"{width} 提拉 {view.TailMargin.Top:0.#}，说明距剩余 {gap:0.#}"
+                        + $"（封面下沿 {coverBottom:0.#}），板底留 {under:0.#}"
                         + $"（说明自己 {view.OverviewPanelPadding.Bottom:0.#}＋收尾格 {foot:0.#}）");
                 }
 

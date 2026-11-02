@@ -669,6 +669,20 @@ public sealed partial class DetailViewModel : PageViewModel
     public partial double StackRoom { get; set; }
 
     /// <summary>
+    /// 左侧封面（<c>PosterStill</c>）的下沿离带子上沿多远，由视图实测（<c>DetailPage.MeasureCoverBottom</c>）；
+    /// 没有封面可画（没图、或者这一档不画）时是 0。它自己不上屏，是 <see cref="TailMargin"/> 那条
+    /// 「剧情说明第一行不高于封面最下方」的上限（2026-11-02）。
+    /// <para>
+    /// 量出来而不是拿 <see cref="StillHeight"/> 加一道留白算：那一格在行里是垂直居中的（按钮撑满整行，里面那张
+    /// 封面按自己的高居中），片名那一叠长过封面时封面的下沿会比「上留白 + 封面高」低几像素 —— 差的那一点正好是
+    /// 用户要守的那条线。
+    /// </para>
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TailMargin))]
+    public partial double CoverBottom { get; set; }
+
+    /// <summary>
     /// 带子里那一叠（剧照、片名、副标题、读数、那排键）连上下留白实测要占多高。集页那一格的高就是它
     /// （<see cref="DetailHero.EpisodeHeight"/>）；电影、剧、季三页也用它 —— 和老档取大
     /// （<see cref="DetailHero.WideHeight"/>），那一叠长过海报的时候带子跟着长。
@@ -992,11 +1006,16 @@ public sealed partial class DetailViewModel : PageViewModel
     /// <para>
     /// 集页的带高按封面和片名那一叠取大（<see cref="HeroHeight"/>）；封面高过那一叠时，带子底下多出来的那一截全落在
     /// 片名那一栏以外的左侧空气里，而剧情说明原本接在带子下沿之后 —— 它离「剩余 x 分钟」隔着一整截空气
-    /// （2026-11-02 用户圈出来的那块红框）。提的量见 <see cref="DetailHero.TailPull"/>，正好让说明的顶落在那一叠
-    /// 底下 <see cref="DetailHero.OverviewGap"/> 处；提上来的量同时从尾部自己的高里扣掉，所以板底（<c>HeroTail</c>
-    /// 的下沿）跟着内容收 ——「自动剪裁下方空位」。字底下那「一点空位」是说明自己的 <see
-    /// cref="OverviewPanelPadding"/> 那 8 加尾部最后那一格 <see cref="CardTailGapHeight"/> 的 16：单靠说明那 8
-    /// 撑不出板底那两个 16 的圆角，尾巴收成直角就不像这块板了。
+    /// （2026-11-02 用户圈出来的那块红框）。提的量见 <see cref="DetailHero.TailPull"/>：有封面时说明的第一行对齐
+    /// <see cref="CoverBottom"/> 那条线（2026-11-02 同日「不要固定间距，以封面下沿为准」），封面下沿离那一行比
+    /// <see cref="DetailHero.OverviewMinGap"/> 还近、或者没有封面时才退回那一行底下同样的 32 处。提上来的量同时从尾部
+    /// 自己的高里扣掉，所以板底（<c>HeroTail</c> 的下沿）跟着内容收 ——「自动剪裁下方空位」。字底下那「一点空位」
+    /// 是说明自己的 <see cref="OverviewPanelPadding"/> 那 8 加尾部最后那一格 <see cref="CardTailGapHeight"/> 的 16：
+    /// 单靠说明那 8 撑不出板底那两个 16 的圆角，尾巴收成直角就不像这块板了。
+    /// </para>
+    /// <para>
+    /// 封面的下沿由页面实测（<see cref="CoverBottom"/>）：那一格在行里垂直居中，不能用「上留白加封面高」算 ——
+    /// 片名那一叠比封面高时封面会往下让半个差值，算出来的线会比屏上的高一截。
     /// </para>
     /// <para>
     /// 负边距把这一块画到带子下沿以上：那一段背后是集页那块大板的上半截（<c>HeroCardTop</c>，和尾部那张底同一个
@@ -1010,7 +1029,8 @@ public sealed partial class DetailViewModel : PageViewModel
             if (!HeroCard || OverviewVisibility != Visibility.Visible) return default;
 
             var pull = DetailHero.TailPull(
-                HeroHeight, HeroInset.Top, StackRoom, TailInset.Top, OverviewPanelPadding.Top, DetailHero.OverviewGap);
+                HeroHeight, HeroInset.Top, StackRoom, TailInset.Top, OverviewPanelPadding.Top,
+                DetailHero.OverviewMinGap, CoverBottom);
 
             return pull > 0 ? new Thickness(0, -pull, 0, 0) : default;
         }

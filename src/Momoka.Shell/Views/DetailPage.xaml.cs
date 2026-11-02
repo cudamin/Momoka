@@ -1979,8 +1979,36 @@ public sealed partial class DetailPage : Page, IShellContent
     /// 搬回这一栏（尾上的最后一个孩子），它的高重新算在这一个数里。
     /// </para>
     /// </summary>
-    private void OnHeroStackSizeChanged(object sender, SizeChangedEventArgs e) =>
+    private void OnHeroStackSizeChanged(object sender, SizeChangedEventArgs e)
+    {
         ViewModel.StackRoom = HeroStack.ActualHeight;
+        MeasureCoverBottom();
+    }
+
+    private void OnCoverSizeChanged(object sender, SizeChangedEventArgs e) => MeasureCoverBottom();
+
+    /// <summary>
+    /// 左侧封面的下沿量给视图模型 —— 尾部那次提拉拿它兜住「剧情说明第一行不高于封面最下方」（2026-11-02）。
+    /// <para>
+    /// 量的是 <c>PosterStill</c> 在带子坐标系里的下沿，不是「上留白加封面高」：那一格在行里靠垂直居中站
+    /// （按钮撑满整行，封面按自己的高居中），片名那一叠比封面高时封面会往下让半个差值 —— 算出来的下沿会比
+    /// 屏上的高一截。片名那一叠的高变了会走 <see cref="OnHeroStackSizeChanged"/>，封面自己的尺寸或显隐变了
+    /// 会走 <see cref="OnCoverSizeChanged"/>，两处都来这里重报一次。
+    /// </para>
+    /// </summary>
+    private void MeasureCoverBottom()
+    {
+        if (!ViewModel.HeroCardShown || PosterStill.Visibility != Visibility.Visible
+            || PosterStill.XamlRoot is null || PosterStill.ActualWidth <= 0 || PosterStill.ActualHeight <= 0)
+        {
+            ViewModel.CoverBottom = 0;
+            return;
+        }
+
+        var box = PosterStill.TransformToVisual(HeroBand)
+            .TransformBounds(new Rect(0, 0, PosterStill.ActualWidth, PosterStill.ActualHeight));
+        ViewModel.CoverBottom = box.Bottom;
+    }
 
     /// <summary>
     /// 同季那一带集永远是正文那张纸的第一块 —— 媒体信息紧跟在它后面（见 BodySheet 那段注释）。
