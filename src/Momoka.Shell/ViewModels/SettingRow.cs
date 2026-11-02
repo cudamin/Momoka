@@ -590,16 +590,19 @@ public sealed partial class SettingTextRow : SettingRow
 {
     private readonly Func<string, string> _commit;
     private readonly Action _save;
+    private readonly Action? _after;
     private readonly bool _seeded;
     private bool _committing;
 
-    internal SettingTextRow(string label, string? note, string placeholder, string value, Func<string, string> commit, Action save)
+    internal SettingTextRow(string label, string? note, string placeholder, string value, Func<string, string> commit,
+        Action save, Action? after = null)
         : base(label, note)
     {
         Placeholder = placeholder;
         Text = value;
         _commit = commit;
         _save = save;
+        _after = after;
         _seeded = true;
     }
 
@@ -621,6 +624,7 @@ public sealed partial class SettingTextRow : SettingRow
         finally { _committing = false; }
 
         _save();
+        _after?.Invoke();
     }
 }
 

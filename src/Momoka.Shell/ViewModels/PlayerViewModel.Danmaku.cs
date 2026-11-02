@@ -257,6 +257,7 @@ public sealed partial class PlayerViewModel
 
             var notes = new List<string>();
             if (dandanError.Length > 0) notes.Add(dandanError);
+            else if (dandan.HasMore) notes.Add("搜索结果过多，请输入更完整的片名或指定集数后重试。");
             else if (dandan.Episodes.Count > 0) notes.Add("弹弹play 有多个可能的结果，请手动搜索并选择对应剧集。");
             if (customError.Length > 0) notes.Add(customError);
             DanmakuStatus = notes.Count > 0 ? string.Join("；", notes) : "没有找到对应剧集，请尝试其他片名或留空集数。";

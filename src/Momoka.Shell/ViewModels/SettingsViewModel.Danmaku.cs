@@ -7,6 +7,13 @@ public sealed partial class SettingsViewModel
 {
     private const string DanmakuCategory = "弹幕";
 
+    private static readonly (string Label, DanmakuSourceMode Value)[] DanmakuSources =
+    [
+        ("弹弹play", DanmakuSourceMode.DandanPlay),
+        ("danmu_api（自己部署）", DanmakuSourceMode.DanmuApi),
+        ("两者合并", DanmakuSourceMode.Both)
+    ];
+
     /// <summary>
     /// 弹幕此刻能不能真的画出来：服务开关开着、而且当前播放后端画得了弹幕。
     /// <para>
@@ -18,20 +25,11 @@ public sealed partial class SettingsViewModel
     public bool DanmakuReady => _settings is not null && DandanPlayMatching.IsConfigured(Settings);
 
     /// <summary>
-    /// 「弹幕」分类下的三张卡：开关与匹配、显示与外观、类型与屏蔽。
+    /// 「弹幕」分类下的四张卡：开关与匹配、来源与聚合、显示与外观、类型与屏蔽。
     /// <para>
-    /// 2026-10-27 用户令：「同一个页面，有必要分区的功能给他分区，单独弄一个卡片」。原来是一张二十来行的
-    /// 长卡：开关、匹配、外观、屏蔽词和开发者凭据全挤在一起，找一行要滚很久。现在按「这一行在回答哪个
-    /// 问题」拆开。
-    /// </para>
-    /// <para>
-    /// 同一天用户又令「删除这个」，第四张「应用凭据」卡整张退役：应用凭据一律由 Momoka 内置端点下发，
-    /// 设置里不再有 AppId／AppSecret／开发者中心，也不再支持用户自己的应用。所以这里没有第四张卡，也
-    /// 没有按凭据来源增减的行 —— 服务开着就有匹配与外观，关着只剩第一张卡里的总开关。
-    /// </para>
-    /// <para>
-    /// 三张卡一直建着、行在原地增删（<see cref="SettingSection.UpdateRows"/>），不整卡替换：行数归零的卡
-    /// 由 <see cref="SettingSection.SectionVisibility"/> 整张收起，所以服务关着时屏上只有「弹幕」一张。
+    /// 2026-10-27 用户令拆卡，同一天又令删掉「应用凭据」卡。2026-11-02 接 danmu_api 时新增「来源与聚合」卡：
+    /// 每个人填自己部署的地址与令牌，Momoka 不提供公共服务。三张旧卡的实例继续保留，来源卡也走
+    /// <see cref="SettingSection.UpdateRows"/> 原地增删行，行数归零时整张收起。
     /// </para>
     /// </summary>
     private IReadOnlyList<SettingSection> DanmakuSections()
@@ -41,15 +39,41 @@ public sealed partial class SettingsViewModel
 
         var rows = new List<SettingRow>
         {
-            Toggle("启用弹弹play", "默认关闭，开启后自动使用 Momoka 内置凭据。搜索或自动匹配会把作品名称和集数发送到弹弹play，不上传视频、媒体服务器地址或登录信息。",
+            Toggle("启用弹幕", "默认关闭。开启后使用「来源与聚合」里选择的来源；弹弹play 使用 Momoka 内置凭据，"
+                + "danmu_api 使用你自己部署的服务。搜索或自动匹配会把作品名称和集数发送到所选服务，"
+                + "不上传视频、媒体服务器地址或登录信息。",
                 () => settings.Enabled, value => settings.Enabled = value, after: RefreshDanmakuRows),
         };
         if (configured)
         {
-            rows.Add(Toggle("自动匹配弹幕", "只自动接受唯一的精确标题。续季、特别篇或不确定的结果在播放页手动搜索选择，避免串集。",
+            rows.Add(Toggle("自动匹配弹幕", "自动匹配只接受能确认的作品与集数；danmu_api 会带年份并核对集号。"
+                + "续季、特别篇或不确定的结果在播放页手动搜索选择，避免串集。",
                 () => settings.AutoMatch, value => settings.AutoMatch = value, after: RefreshDanmakuRows));
-            rows.Add(Toggle("包含关联弹幕", "同时获取弹弹play 关联的第三方网站弹幕；修改后重新加载当前弹幕库。",
-                () => settings.WithRelated, value => settings.WithRelated = value, after: RefreshDanmakuRows));
+            if (DanmakuSourceRules.IncludesDandanPlay(settings.Source))
+                rows.Add(Toggle("包含关联弹幕", "同时获取弹弹play 关联的第三方网站弹幕；修改后重新加载当前弹幕库。",
+                    () => settings.WithRelated, value => settings.WithRelated = value, after: RefreshDanmakuRows));
+        }
+
+        var sourceRows = new List<SettingRow>();
+        if (configured)
+        {
+            sourceRows.Add(Choice("弹幕来源", DanmakuSources, () => settings.Source, value => settings.Source = value,
+                "每个人填自己部署的 danmu_api；Momoka 不提供公共服务。两者合并会同时请求两个来源，"
+                + "并消耗弹弹play 的共享额度。",
+                after: RefreshDanmakuRows));
+            if (DanmakuSourceRules.IncludesDanmuApi(settings.Source))
+            {
+                sourceRows.Add(Text("danmu_api 地址", "http://192.168.31.230:9321",
+                    () => settings.DanmuApiBaseUrl, value => settings.DanmuApiBaseUrl = value,
+                    "只填服务根地址，不要带令牌；令牌在下一行单独填写。",
+                    after: RefreshDanmakuRows));
+                var tokenRow = new SettingSecretRow("danmu_api 令牌",
+                    value => settings.ProtectedDanmuApiToken = DanmuApiToken.Protect(_secretProtector, value),
+                    () => !string.IsNullOrEmpty(settings.ProtectedDanmuApiToken),
+                    TrySaveDanmuApiToken, RefreshDanmakuRows);
+                tokenRow.Restate("可选。服务未启用令牌时留空；保存后不回填明文，也不进入配置备份。");
+                sourceRows.Add(tokenRow);
+            }
         }
 
         var displayRows = new List<SettingRow>();
@@ -86,11 +110,23 @@ public sealed partial class SettingsViewModel
             new SettingSection(DanmakuCategory, "弹幕",
                 "参考 B 站的显示与屏蔽设置。弹幕使用独立画面叠加层，不占用字幕轨道；支持内置播放器的集成和独占模式。",
                 rows),
+            new SettingSection(DanmakuCategory, "来源与聚合",
+                "弹弹play 使用 Momoka 内置凭据；danmu_api 需要你自己部署并填写地址。"
+                + "两者合并会同时请求两个来源，并消耗弹弹play 的共享额度。",
+                sourceRows),
             new SettingSection(DanmakuCategory, "显示与外观",
                 "弹幕开关、输入栏和画面上的大小与疏密；改完立刻作用到正在播的片子。", displayRows),
             new SettingSection(DanmakuCategory, "类型与屏蔽",
                 "哪几种弹幕显示出来，以及不想看到的词。", typeRows)
         ];
+    }
+
+    private bool TrySaveDanmuApiToken()
+    {
+        if (_settings is null) return false;
+        var saved = _settings.TrySave();
+        SyncSaveState();
+        return saved;
     }
 
     private void RefreshDanmakuRows()
@@ -100,7 +136,7 @@ public sealed partial class SettingsViewModel
     }
 
     /// <summary>
-    /// 分类下三张卡的行原地重算：按标题对上号再 UpdateRows，卡片实例不动 —— 输入焦点、半截文本和行的
+    /// 分类下四张卡的行原地重算：按标题对上号再 UpdateRows，卡片实例不动 —— 输入焦点、半截文本和行的
     /// 增删过渡都跟着留下来。卡还没建（外部 mpv 后端把它整组收走了）就什么也不做，恢复时按当时的值重建。
     /// </summary>
     private void RefreshDanmakuPresentation()
@@ -121,7 +157,7 @@ public sealed partial class SettingsViewModel
         }
         else if (existing.Count == 0)
         {
-            // 三张卡一起插在「快捷键」之前：字幕之后、快捷键之前，与 ReloadAsync 的建卡次序同一处。
+            // 四张卡一起插在「快捷键」之前：字幕之后、快捷键之前，与 ReloadAsync 的建卡次序同一处。
             var index = Sections.ToList().FindIndex(section => section.Category == "快捷键");
             var insert = index < 0 ? Sections.Count : index;
             foreach (var section in DanmakuSections()) Sections.Insert(insert++, section);

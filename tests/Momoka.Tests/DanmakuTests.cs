@@ -861,14 +861,20 @@ internal static class DanmakuTests
         {
             var episode = new EmbyItem
             {
-                Type = EmbyItemType.Episode, SeriesName = "凡人修仙传", IndexNumber = 1,
-                ParentIndexNumber = 1, ProductionYear = 2020
+                Type = EmbyItemType.Episode,
+                SeriesName = "凡人修仙传",
+                IndexNumber = 1,
+                ParentIndexNumber = 1,
+                ProductionYear = 2020
             };
             Assert.True(DanmakuMatchRules.CanAutoMatch(episode));
             Assert.Equal("凡人修仙传 (2020) S01E01", DanmakuMatchRules.MatchFileName(episode));
             var noYear = new EmbyItem
             {
-                Type = EmbyItemType.Episode, SeriesName = "凡人修仙传", IndexNumber = 2, ParentIndexNumber = 1
+                Type = EmbyItemType.Episode,
+                SeriesName = "凡人修仙传",
+                IndexNumber = 2,
+                ParentIndexNumber = 1
             };
             Assert.Equal("凡人修仙传 S01E02", DanmakuMatchRules.MatchFileName(noYear));
 
@@ -890,7 +896,10 @@ internal static class DanmakuTests
         {
             var episode = new EmbyItem
             {
-                Type = EmbyItemType.Episode, SeriesName = "测试", IndexNumber = 1, ParentIndexNumber = 1
+                Type = EmbyItemType.Episode,
+                SeriesName = "测试",
+                IndexNumber = 1,
+                ParentIndexNumber = 1
             };
             Assert.True(DanmakuMatchRules.Accepts(episode, new DandanPlayEpisode(1, "测试", "【youku】 第1集")));
             Assert.False(DanmakuMatchRules.Accepts(episode, new DandanPlayEpisode(1, "测试", "【bilibili1】 第22话 魔道争锋1")));

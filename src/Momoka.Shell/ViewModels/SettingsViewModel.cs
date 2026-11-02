@@ -11,6 +11,7 @@ using Momoka.Mpv;
 using Momoka.Playback;
 using Momoka.Services;
 using Momoka.Shell.Media;
+using Momoka.Shell.Security;
 using Momoka.Theming;
 using Momoka.Updates;
 using Microsoft.UI.Xaml;
@@ -186,6 +187,7 @@ public sealed partial class SettingsViewModel : PageViewModel
     ];
 
     private ISettingsService? _settings;
+    private ISecretProtector _secretProtector = DpapiSecretProtector.Instance;
     private ShaderStaging? _shaders;
     private FontLibrary? _fonts;
     private AppPaths? _paths;
@@ -669,12 +671,14 @@ public sealed partial class SettingsViewModel : PageViewModel
         UpdateClient updates,
         IServerCapabilities capabilities,
         EmbyImageStore? images = null,
-        SubtitleTranslationCredentials? translationCredentials = null)
+        SubtitleTranslationCredentials? translationCredentials = null,
+        ISecretProtector? protector = null)
     {
         if (_disposed) return;
         Activate();
         if (!ReferenceEquals(_capabilities, capabilities)) _administrationPages.Clear();
         _settings = settings;
+        _secretProtector = protector ?? DpapiSecretProtector.Instance;
         _shaders = shaders;
         _fonts = fonts;
         _paths = paths;
@@ -2989,8 +2993,9 @@ public sealed partial class SettingsViewModel : PageViewModel
         return (choices, selected);
     }
 
-    private SettingChoiceRow Choice<T>(string label, IEnumerable<(string Label, T Value)> options, Func<T> read, Action<T> write, string? note = null, Func<T, string>? describe = null) =>
-        Pick(label, note, options, read, write, EqualityComparer<T>.Default, describe);
+    private SettingChoiceRow Choice<T>(string label, IEnumerable<(string Label, T Value)> options, Func<T> read, Action<T> write,
+        string? note = null, Func<T, string>? describe = null, Action? after = null) =>
+        Pick(label, note, options, read, write, EqualityComparer<T>.Default, describe, after);
 
     /// <summary>
     /// A drop-down over one of the mpv option catalogues. Matched case-insensitively, because these values
@@ -3085,13 +3090,14 @@ public sealed partial class SettingsViewModel : PageViewModel
         return row;
     }
 
-    private SettingTextRow Text(string label, string placeholder, Func<string> read, Action<string> write, string? note = null) =>
+    private SettingTextRow Text(string label, string placeholder, Func<string> read, Action<string> write,
+        string? note = null, Action? after = null) =>
         new(label, note, placeholder, read(), typed =>
         {
             var value = typed.Trim();
             write(value);
             return value;
-        }, Save);
+        }, Save, after);
 
     /// <summary>
     /// 一行读数，见 <see cref="SettingFactRow"/>。不接设置，所以不带 <see cref="Save"/> —— 它只是把一件事

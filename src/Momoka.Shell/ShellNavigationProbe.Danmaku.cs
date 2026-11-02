@@ -34,20 +34,46 @@ internal sealed partial class ShellNavigationProbe
             page.SelectedCategory = "弹幕";
             await LayoutAsync(page);
             await WaitForSettingsSettledAsync(page);
-            // 2026-10-27 起「弹幕」分类是三张卡：弹幕（开关与匹配）、显示与外观、类型与屏蔽。同日删掉了原来
-            // 最下面的第四张「应用凭据」卡 —— 应用凭据一律由内置端点下发，设置里不再有 AppId／AppSecret。
+            // 2026-11-02 起「弹幕」分类是四张卡：弹幕（开关与匹配）、来源与聚合、显示与外观、类型与屏蔽。
+            // 2026-10-27 删掉的「应用凭据」卡不再回来；danmu_api 令牌是用户自部署服务的本机设置，不是应用凭据。
             var cards = DanmakuCards(page);
-            Require(cards.Length == 3, "弹幕分类应分成三张卡");
+            Require(cards.Length == 4, "弹幕分类应分成四张卡");
             var first = cards[0];
             Require(DanmakuRows(page).Length == 1 && !fixture.Settings.Danmaku.Enabled, "初始应只显示总开关");
             Require(cards.Count(section => section.SectionVisibility == Visibility.Visible) == 1, "服务关着时应只显示一张有内容的卡");
             await SaveProbeScreenAsync($"settings-danmaku-off-{width}-screen.png");
-            var enabled = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "启用弹弹play");
+            var enabled = Descendants(page).OfType<ToggleSwitch>().Single(control => AutomationProperties.GetName(control) == "启用弹幕");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(enabled).GetPattern(PatternInterface.Toggle)).Toggle();
             await LayoutAsync(page);
             Require(DanmakuRows(page).OfType<SettingSliderRow>().Count() == 5, "开启后没有显示外观设置");
             Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "AppId"), "应用凭据已退役，设置里仍出现 AppId");
-            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "应用凭据已退役，设置里仍出现密钥行");
+            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "弹弹play 来源下仍出现 danmu_api 令牌行");
+            var sourceRow = DanmakuRows(page).OfType<SettingChoiceRow>().Single(row => row.Label == "弹幕来源");
+            var sourceCombo = Descendants(page).OfType<ComboBox>().Single(control => AutomationProperties.GetName(control) == "弹幕来源");
+            Require(sourceCombo.Items.Count == sourceRow.Choices.Count, "来源下拉没有画全三档");
+            Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "弹弹play 来源下不应出现地址行");
+            sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label.StartsWith("danmu_api", StringComparison.Ordinal));
+            await UntilAsync(() => page.IsContentMotionSettled);
+            await LayoutAsync(page);
+            Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.DanmuApi, "来源下拉未写回 danmu_api");
+            Require(DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "danmu_api 来源下没有地址行");
+            Require(DanmakuRows(page).OfType<SettingSecretRow>().Any(row => row.Label == "danmu_api 令牌"), "danmu_api 来源下没有令牌行");
+            Require(!DanmakuRows(page).OfType<SettingToggleRow>().Any(row => row.Label == "包含关联弹幕"), "danmu_api 来源下仍显示弹弹play 的关联弹幕");
+            var addressRow = DanmakuRows(page).OfType<SettingTextRow>().Single(row => row.Label == "danmu_api 地址");
+            addressRow.Text = "http://127.0.0.1:9321";
+            await LayoutAsync(page);
+            Require(fixture.Settings.Danmaku.DanmuApiBaseUrl == "http://127.0.0.1:9321", "danmu_api 地址未写回偏好");
+            await SaveProbeScreenAsync($"settings-danmaku-source-{width}-screen.png");
+            sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label == "两者合并");
+            await UntilAsync(() => page.IsContentMotionSettled);
+            await LayoutAsync(page);
+            Require(DanmakuRows(page).OfType<SettingToggleRow>().Any(row => row.Label == "包含关联弹幕"), "合并模式没有恢复关联弹幕");
+            Require(fixture.Settings.Danmaku.Source == DanmakuSourceMode.Both, "来源下拉未写回合并模式");
+            sourceCombo.SelectedItem = sourceRow.Choices.Single(choice => choice.Label == "弹弹play");
+            await UntilAsync(() => page.IsContentMotionSettled);
+            await LayoutAsync(page);
+            Require(!DanmakuRows(page).OfType<SettingTextRow>().Any(row => row.Label == "danmu_api 地址"), "回到弹弹play 后地址行未收起");
+            Require(!DanmakuRows(page).OfType<SettingSecretRow>().Any(), "回到弹弹play 后令牌行未收起");
             Require(ReferenceEquals(first, DanmakuCards(page)[0]), "开关变更替换了卡片");
             var opacity = Descendants(page).OfType<Slider>().Single(control => control.DataContext is SettingSliderRow row && row.Label == "不透明度（%）");
             opacity.Value = 55;
@@ -64,7 +90,9 @@ internal sealed partial class ShellNavigationProbe
             ((IToggleProvider)new ToggleSwitchAutomationPeer(show).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => page.IsContentMotionSettled);
             Require(!DanmakuRows(page).OfType<SettingSliderRow>().Any() && fixture.Settings.Danmaku.Opacity == 55, "关闭显示未完整隐藏或丢失偏好");
-            Require(cards[1].Rows.Count == 1 && cards[2].Rows.Count == 0, "关闭显示后「类型与屏蔽」应整张收起");
+            Require(cards.Single(section => section.Title == "显示与外观").Rows.Count == 1
+                && cards.Single(section => section.Title == "类型与屏蔽").Rows.Count == 0,
+                "关闭显示后「类型与屏蔽」应整张收起");
             ((IToggleProvider)new ToggleSwitchAutomationPeer(show).GetPattern(PatternInterface.Toggle)).Toggle();
             await UntilAsync(() => page.IsContentMotionSettled);
             await LayoutAsync(page);
@@ -193,6 +221,8 @@ internal sealed partial class ShellNavigationProbe
     {
         using var fixture = CreateFixture();
         fixture.Settings.Danmaku.Enabled = true;
+        fixture.Settings.Danmaku.Source = DanmakuSourceMode.Both;
+        fixture.Settings.Danmaku.DanmuApiBaseUrl = "http://127.0.0.1:9321";
         var paths = new AppPaths(Path.Combine(_options.Paths.Root, $"danmaku-panel-{width}"));
         paths.EnsureCreated();
         using var client = new DandanPlayClient(fixture.Settings, Path.Combine(paths.Root, "cache"), new RejectNetwork());
@@ -213,6 +243,14 @@ internal sealed partial class ShellNavigationProbe
             ResizeProbeClient(width, 900);
             await LayoutAsync(panel);
             RequireSearchRadius(Get<TextBox>(panel, "TitleBox"));
+            var sourceBox = Get<ComboBox>(panel, "SourceBox");
+            Require(sourceBox.Visibility == Visibility.Visible && sourceBox.Items.Count == 2,
+                "合并模式面板没有提供两个搜索来源");
+            Require(vm.DanmakuInputVisible, "合并模式默认应显示发送栏");
+            vm.ChangeDanmakuPreferences(settings => settings.Source = DanmakuSourceMode.DanmuApi);
+            Require(!vm.DanmakuInputVisible, "danmu_api 来源仍显示发送栏");
+            vm.ChangeDanmakuPreferences(settings => settings.Source = DanmakuSourceMode.Both);
+            Require(vm.DanmakuInputVisible, "回到合并模式没有恢复发送栏");
             var opacity = Get<Slider>(panel, "OpacitySlider");
             opacity.Value = 45;
             Require(fixture.Settings.Danmaku.Opacity == 45, "面板滑块未写回与设置页同一偏好");

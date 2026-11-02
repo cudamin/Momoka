@@ -391,6 +391,7 @@ internal sealed partial class ShellNavigationProbe
                 // 按接口注册，不按 FakeCapabilities：页面解析的是 IServerCapabilities，而泛型参数写死之后
                 // 注册进去的就是那个具体类型。
                 .AddSingleton(Images).AddSingleton<IServerCapabilities>(Capabilities).AddSingleton(vault).AddSingleton(moviePilot)
+                .AddSingleton<ISecretProtector>(PassthroughSecretProtector.Instance)
                 .AddSingleton<IShellActions>(Actions).AddSingleton(Launcher).AddSingleton<IStartupRegistration>(Startup)
                 .AddSingleton(Dispatcher)
                 .BuildServiceProvider();

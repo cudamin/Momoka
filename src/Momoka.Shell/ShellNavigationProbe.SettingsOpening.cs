@@ -44,6 +44,7 @@ internal sealed partial class ShellNavigationProbe
             .AddSingleton(fixture.SettingsService).AddSingleton(paths)
             .AddSingleton(fixture.Session).AddSingleton(fixture.Images)
             .AddSingleton<IServerCapabilities>(fixture.Capabilities)
+            .AddSingleton<ISecretProtector>(PassthroughSecretProtector.Instance)
             .AddSingleton<ISystemLauncher>(fixture.Launcher).AddSingleton<IStartupRegistration>(fixture.Startup)
             .AddSingleton(new ShaderStaging(fixture.Settings)).AddSingleton(fonts)
             .AddSingleton(new AudioDeviceCatalogue(() => null)).AddSingleton(playback)
