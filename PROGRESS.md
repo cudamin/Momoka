@@ -1,3 +1,10 @@
+## 2026-11-03 详情页功能收尾：探针稳定性、主树复验与桌面发布（master 1b5022b）
+
+- 承接 `4fd8648`（详情页季页头行、剧页媒体信息、集页全部剧季卡与统一过渡已合入 master）。本笔只补验证与探针稳定性，不改产品行为：移除详情页用例里两次对整页做 `RenderTargetBitmap` 的临时调用（会以 `SetPixelData` 参数异常中断用例）；`SaveProbeScreenAsync` 的截图等待 80→300ms，避免首帧未合成时拍成黑屏；`DetailPickerLayoutAsync` 开头还原最大化，修复前一条用例留下最大化时 `ResizeInspect` 被忽略（要求 1280、实际 1480）的状态复用；修正剧页媒体信息字段注释（季页不摆媒体信息）。
+- 主树复验（2026-11-03）：Shell 与主测试项目 Release 0 警告 0 错误；主测试 **3597/3597、0 失败 0 跳过**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 退出 0；开发件 `--probe-shell --probe-section library --screen 1` **23/23、退出 0**（`shell-probe-20261102-180203522-22936`）。同一发布件首两跑分别因既有的冷启动超时（22/23，`shell-probe-20261102-180817074-19900`）与 1024 宽度取整／LibraryBrowse 超时（21/23，`shell-probe-20261102-181154613-6872`）红，紧接第三跑 **23/23、退出 0**（`shell-probe-20261102-181521204-18272`），未改断言。
+- 发布：主树 `tools/publish.ps1 -Shortcut -NoArchive` 退出 0；`artifacts/publish/win-x64` **546 文件 / 285.7 MB**，14 GLSL / 4 HOOK，批准 mpv 清单 59 文件，载荷校验通过；桌面 `Momoka.lnk` 已重写并读回，目标 `C:\Users\89400\Momoka\artifacts\publish\win-x64\Momoka.exe`、工作目录同名目录、参数为空、目标存在。发布件探针 23/23 见上。
+- 边界：真实服务器上的详情页观感与真实播放未跑；动画只由 `ShowcaseAnimations` 计数证明走过，未做人眼手感验收。主树另有一份未提交的 `docs/开发与验证.md`（另一窗口在写）原样保留；`qoder/临时` 分支归另一窗口，本笔未改动。
+
 ## 2026-11-02 主页轮播：无可用宽图的幻灯片不再上带，进度条改用单一时钟（已合入 master 并发布）
 
 - 用户令（两条，附实屏截图）：①「刚入库的资源如果没有背景图或可用于轮播图的图片就不要放到轮播列表里」；②「轮播图有bug，进度条经常会卡住不动，或者跑到一半回退，请修复」。
