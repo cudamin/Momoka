@@ -1,4 +1,11 @@
-## 2026-11-02 详情页三页响应式：窄窗动态上移＋裁切自动无遮挡＋沉浸背景略提亮（已合入，待本批最终验证）
+## 2026-11-02 工作树收尾：响应式、剧页信息卡与封面下沿合入 master
+
+- 盘点：主树之外有 11 个工作树（4 个 Codex、4 个 Qoder、3 个 WorkBuddy），stash 为空。`e5c5f46`、`bfd2423`、`50bebee`、`4924517` 已只在 master 历史里；`59c12ed`（体积补读）和 `32baca5`（爱心）是 master 上 `a04c7c2`／`754564e` 的平行副本；`49dc95` 的剧页信息卡是 `aec89b60` 的简化子集；`88807d45` 的三页响应式与 `aec89b60` 的剧页信息卡是两份完整在途工作；`059c32` 的 `7e9395b` 是封面下沿最终版。主树 20:21 的固定 48 间距迭代已被 `7e9395b` 取代，留在备份分支 `backup/main-overview-gap48-20261102`（`8eba48d`）与 `C:/Users/89400/.qoder-cn/tmp/worktree-cleanup-20261102/main-overview-gap48.patch`；`49dc95` 的未提交子集留在同目录 `49dc95-series-info-subset.patch`。
+- 合入：`fd6b7cf`（cherry-pick `7e9395b`）、`c1b3464`（三页响应式）、`5d83b13`（剧页单季信息卡）、`e607c66`（`OverviewPanelPadding` 通知修复与探针稳定化）。master 由 `776956c` 快进到 `e607c66`。
+- 验证（主树最终代码）：Release 全方案 **0 警告 0 错误**；主测试 **3594/3594、0 失败 0 跳过**；`dotnet format whitespace --verify-no-changes` 与 `git diff --check` 干净；`--probe-shell --probe-section library --screen 1` **22/22、退出 0**（`shell-probe-20261102-141928216-25884`），三条新用例全绿。未发布、未推 origin。
+- 清理：11 个工作树的 Git 登记全部注销（9 个目录已删盘）；`workbuddy/*` 与集成分支已删，Git 只剩主树。两个目录（`.codex/worktrees/aggregate-settings-loading/Momoka`、`WorkBuddy/.../master-88807d45`）因 Codex／WorkBuddy 进程占用未能删盘，登记已注销，待进程退出后可删。
+
+## 2026-11-02 详情页三页响应式：窄窗动态上移＋裁切自动无遮挡＋沉浸背景略提亮（已合入并验证）
 
 - 用户令（三条）：①「当拉长窗口导致背景图接近被裁剪时，自动切换到最大化（无遮挡）页面状态」；②「在最大化状态下，将页面背景图透明度略微降低（更不透明）」；③「当拉窄窗口导致剧情说明接近移出背景图时，自动将组件向上移动，窗口越窄布局越紧凑（动态响应）……无法再收缩时允许剧情说明超出背景图范围」，并要求电影、剧、季三页一致。
 - 出处：承接 `C:/Users/89400/WorkBuddy/Worktrees/Momoka/master-88807d45`（基准 50bebee）里做了一半的未提交改动继续完成；该树提交 `b599188`，本批合入 master。Qoder 1d88db 工作树未同步。
