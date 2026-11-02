@@ -1369,7 +1369,16 @@
                                  SelectedSeason／SwitchSeasonAsync 照旧，自检和探针还在驱动它；只是这一页的屏上
                                  不再有那颗下拉。这一带不报读数 —— 季数集数已经写在标题里了
                                  （「更多来自：第一季 · 12 集，已看 3 集」）。 -->
-                            <local:ShelfHead x:Name="EpisodeHead" Title="{x:Bind ViewModel.EpisodeShelf.Title, Mode=OneWay}" ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}" />
+                            <!-- 2026-11-03：剧页、集页的集列表变成全季一条之后，季选择改由这块牌子本身承担 ——
+                                 「第x季」就在标题里，点标题唤出季列表（MenuFlyout），选一季把集带对到 S0xE01。
+                                 只有一季（或还没载入）时 Offer 为假，牌子保持不可点，也不露折角。 -->
+                            <local:ShelfHead
+                                x:Name="EpisodeHead"
+                                Glyph="&#xE70D;"
+                                Invoked="OnEpisodeHeadInvoked"
+                                Offer="{x:Bind ViewModel.CanPickEpisodeSeason, Mode=OneWay}"
+                                ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}"
+                                Title="{x:Bind ViewModel.EpisodeShelf.Title, Mode=OneWay}" />
                             <ItemsRepeater
                                 x:Name="EpisodeList"
                                 ItemTemplate="{StaticResource EpisodeRowTemplate}"
@@ -1387,6 +1396,25 @@
                                 ItemTemplate="{StaticResource CardTemplate}"
                                 ItemsSource="{x:Bind ViewModel.EpisodeShelf.Cards, Mode=OneWay}"
                                 Visibility="{x:Bind ViewModel.EpisodeStripVisibility, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <!-- 特别篇：剧页集列表下面的单张季卡（第 0 季）。2026-11-03 用户令「在剧页的集列表下面弄个
+                             特别篇卡片（就是S00/S0季，没有就自动隐藏）」——这个面板只填第 0 季，没有就整块收起。
+                             集页不摆这一块（用户点名的只有剧页），与下面「全部剧季」那张卡带各说各的：季卡带是
+                             所有季的入口，这里只给特别篇一条捷径。 -->
+                        <StackPanel
+                            x:Name="SpecialPanel"
+                            Style="{StaticResource EgBodyPanelStyle}"
+                            Padding="{x:Bind ViewModel.BodyPanelPadding, Mode=OneWay}"
+                            Spacing="10"
+                            Visibility="{x:Bind ViewModel.SpecialShelfVisibility, Mode=OneWay}">
+                            <local:ShelfHead x:Name="SpecialHead" ShowLines="{x:Bind ViewModel.ShowShelfLines, Mode=OneWay}" Title="特别篇" />
+                            <local:ShelfStrip
+                                x:Name="SpecialRow"
+                                Height="{x:Bind ViewModel.SpecialShelf.RowHeight, Mode=OneWay}"
+                                ItemSpacing="16"
+                                ItemTemplate="{StaticResource CardTemplate}"
+                                ItemsSource="{x:Bind ViewModel.SpecialShelf.Cards, Mode=OneWay}" />
                         </StackPanel>
 
                         <!-- 全部剧季：剧集页和集页的季卡横带，点季卡进那一季自己的页面。两张季卡以上才摆 —— 只有一季时

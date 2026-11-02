@@ -829,8 +829,71 @@ public static class ItemDetail
     /// </param>
     public static EmbyItem? PickEpisode(IReadOnlyList<EmbyItem> episodes, EmbyItem? season)
     {
-        var pool = SeasonEpisodes(episodes, season);
+        var pool = AirOrder(SeasonEpisodes(episodes, season));
         return pool.FirstOrDefault(episode => episode.UserData?.Played != true) ?? pool.FirstOrDefault();
+    }
+
+    /// <summary>
+    /// 全剧的集按播出顺序排：网页端把各季连成一条列表时，特典落在它实际播出的位置，而不是因为记在第 0 季就
+    /// 永远排在最前。没有首播日期的集排在所有有日期的集后面，彼此按季号、集号 —— 缺一个日期不足以让它顶到
+    /// 开头；所有集都没有日期时才整份退回季号、集号，与服务器原来的按季顺序一致。
+    /// <para>
+    /// 只在剧页、集页的全季列表和「该播哪一集」上用。季页自己仍是服务器按季给的那一份：那一页读的是
+    /// 「这一季有哪些集」，连 air-order 特典一起，顺序不该被这里改写。
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<EmbyItem> AirOrder(IReadOnlyList<EmbyItem> episodes) =>
+    [
+        .. episodes
+            .OrderBy(episode => episode.PremiereDate is null)
+            .ThenBy(episode => episode.PremiereDate ?? DateTimeOffset.MaxValue)
+            .ThenBy(episode => episode.ParentIndexNumber ?? int.MaxValue)
+            .ThenBy(episode => episode.IndexNumber ?? int.MaxValue)
+    ];
+
+    /// <summary>
+    /// 某一季在集列表里的第一张卡 —— 季列表里点了一季之后，集带要把它对到左边沿。
+    /// <paramref name="season"/> 为 null 时答 0（整份列表的开头）；这一季一集都没有时答 -1，调用方保持原位。
+    /// </summary>
+    public static int FirstEpisodeIndex(IReadOnlyList<EmbyItem> episodes, EmbyItem? season)
+    {
+        if (season is null) return episodes.Count > 0 ? 0 : -1;
+
+        for (var index = 0; index < episodes.Count; index++)
+            if (SameSeasonAs(episodes[index], season)) return index;
+
+        return -1;
+    }
+
+    /// <summary>
+    /// 一集（或者一个季锚点）属于季清单里的哪一季，找不到就是 null。剧页、集页的季锚点用它把服务器发来的
+    /// 季清单与当前这一集对上，好让标题和季列表指着同一条。
+    /// <para>
+    /// 季锚点本身是 Season 对象时不能走 <see cref="SameSeasonAs"/>：那个判据比的是「这一集与这一季」，
+    /// 拿一个季去比时它的季 id／季号字段都是空的，会一路落到「一位都比不出来就当它是」，于是永远返回第一季。
+    /// </para>
+    /// </summary>
+    public static EmbyItem? SeasonOf(IReadOnlyList<EmbyItem> seasons, EmbyItem item)
+    {
+        if (item.Type == EmbyItemType.Season)
+        {
+            // 按优先级整份找：季 id 先于季号、季号先于季名。逐季 OR 会让季名先撞上另一季，
+            // 而一条清单里同名的季比同 id 的季更可能出现。
+            if (item.Id is { Length: > 0 } id
+                && seasons.FirstOrDefault(season => season.Id == id) is { } byId)
+                return byId;
+
+            if (item.IndexNumber is { } number
+                && seasons.FirstOrDefault(season => season.IndexNumber == number) is { } byNumber)
+                return byNumber;
+
+            if (item.Name is { Length: > 0 } name)
+                return seasons.FirstOrDefault(season => season.Name == name);
+
+            return null;
+        }
+
+        return seasons.FirstOrDefault(season => SameSeasonAs(item, season));
     }
 
     /// <summary>
@@ -851,7 +914,7 @@ public static class ItemDetail
     /// <param name="season">这一页正在显示的那一季；null 时整份都算。</param>
     public static EmbyItem? MediaInfoEpisode(IReadOnlyList<EmbyItem> episodes, EmbyItem? season)
     {
-        var pool = SeasonEpisodes(episodes, season);
+        var pool = AirOrder(SeasonEpisodes(episodes, season));
         if (pool.Count == 0) return null;
 
         var resumed = pool

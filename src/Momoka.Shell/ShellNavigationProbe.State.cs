@@ -26,46 +26,57 @@ internal sealed partial class ShellNavigationProbe
             "切回 Emby 必须恢复查询并接收下一页");
     }
 
-    private async Task SeasonRefreshRaceAsync()
+    /// <summary>
+    /// 剧页的集列表是一条全季列表：一次问全剧（不带 SeasonId），按播出时间排；季锚点换一季只换标题和
+    /// 集带起点，不再把别的季从列表里拿走。2026-11-03 用户令的第一、三、四条合在这里量。
+    /// <para>
+    /// 旧的三条切季用例（撤销旧请求／目标失败／空季）测的是「换季按季重读」那条已经不存在的路；它们随
+    /// 2026-11-03 的改动一起退休，换成这条核对新契约的用例。
+    /// </para>
+    /// </summary>
+    private async Task EpisodeSeasonAnchorAsync()
     {
         using var fixture = CreateFixture();
         await fixture.SelectAsync();
-        using var vm = fixture.Detail();
-        await vm.ReloadAsync();
-        var write = Pending<HttpResponseMessage>();
-        var season = Pending<HttpResponseMessage>();
-        var enteredWrite = Pending<bool>();
-        var enteredSeason = Pending<bool>();
+
+        var first = Episode("a");
+        first.PremiereDate = new DateTimeOffset(2014, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var second = Episode("b");
+        second.PremiereDate = new DateTimeOffset(2014, 2, 1, 0, 0, 0, TimeSpan.Zero);
+
         fixture.Transport.Reply = (request, _) =>
         {
-            if (request.RequestUri!.AbsolutePath.Contains("PlayedItems", StringComparison.Ordinal))
-            {
-                enteredWrite.TrySetResult(true);
-                return write.Task;
-            }
-            if (Query(request, "SeasonId") == "b")
-            {
-                enteredSeason.TrySetResult(true);
-                return season.Task;
-            }
+            // 剧页那一趟不带 SeasonId；回两季各一集，且第二季的日期晚于第一季。
+            if (request.RequestUri!.AbsolutePath.EndsWith("/Episodes", StringComparison.Ordinal)
+                && Query(request, "SeasonId") is null)
+                return Task.FromResult(Json(new { Items = new[] { first, second } }));
+
             return Task.FromResult(FakeTransport.Standard(request));
         };
-        var saving = vm.ToggleWatchedCommand.ExecuteAsync(null);
-        await enteredWrite.Task;
+
+        using var vm = fixture.Detail();
+        await vm.ReloadAsync();
+
+        Require(vm.Episodes.Count == 2, $"剧页没有拿到全季集列表：{vm.Episodes.Count} 集");
+        Require(vm.Seasons.Count == 2 && vm.CanPickEpisodeSeason, "两季的剧页没有季列表可点");
+        Require(vm.SelectedSeason?.Id == "a", $"剧页锚点不是第一季：{vm.SelectedSeason?.Name}");
+        Require(vm.PlayTarget?.Id == "ep-a", $"播放落点不是播出最早的集：{vm.PlayTarget?.Id}");
+        Require(vm.EpisodeShelf?.Title.Contains("2 集", StringComparison.Ordinal) == true
+                && vm.EpisodeShelf.Title.Contains(vm.SelectedSeason!.Name, StringComparison.Ordinal),
+            $"集列表标题没有写全季总数或锚点季：{vm.EpisodeShelf?.Title}");
+
+        var before = fixture.Transport.Requests.Count;
         vm.SelectedSeason = vm.Seasons.Last();
-        await enteredSeason.Task;
-        try
-        {
-            write.SetResult(new HttpResponseMessage(HttpStatusCode.NoContent));
-            await saving;
-            Require(vm.IsReady && !vm.Busy && vm.Episodes.Count > 0 && vm.PlayTarget is not null,
-                "整页刷新被旧切季标志取消，留下空列表或空播放目标");
-        }
-        finally
-        {
-            season.TrySetResult(Json(new { Items = new[] { Episode("b") } }));
-            await SettleAsync();
-        }
+        await SettleAsync();
+
+        Require(fixture.Transport.Requests.Count == before, "换季锚点又问了服务器");
+        Require(vm.Episodes.Count == 2 && vm.PlayTarget?.Id == "ep-a",
+            "换季锚点把全季列表或播放落点换掉了");
+        Require(vm.EpisodeShelf?.Title.Contains(vm.SelectedSeason!.Name, StringComparison.Ordinal) == true,
+            $"换季锚点后标题没跟着走：{vm.EpisodeShelf?.Title}");
+        Require(vm.SelectEpisodeSeason(vm.Seasons.First()) == 0
+                && vm.SelectEpisodeSeason(vm.Seasons.Last()) == 1,
+            "季列表没有给出正确的第一张卡位置");
     }
 
     private async Task NavigationRestoreRaceAsync()
@@ -233,60 +244,6 @@ internal sealed partial class ShellNavigationProbe
         await vm.SearchAsync("new");
         reply.SetResult(Items(0, 100));
         Require(await jump is null && counts == 1, "已过期字母跳转不允许发第二次计数或补页");
-    }
-
-    private async Task SeasonCancelAsync()
-    {
-        using var fixture = CreateFixture();
-        await fixture.SelectAsync();
-        using var vm = fixture.Detail();
-        await vm.ReloadAsync();
-        var first = vm.Seasons.First();
-        var second = vm.Seasons.Last();
-        var reply = Pending<HttpResponseMessage>();
-        var entered = Pending<bool>();
-        fixture.Transport.Reply = (request, _) =>
-        {
-            if (Query(request, "SeasonId") != second.Id) return Task.FromResult(FakeTransport.Standard(request));
-            entered.TrySetResult(true);
-            return reply.Task;
-        };
-        vm.SelectedSeason = second;
-        await entered.Task;
-        vm.SelectedSeason = first;
-        reply.SetResult(Json(new { Items = new[] { Episode(second.Id) } }));
-        await SettleAsync();
-        Require(!vm.Busy && vm.SelectedSeason == first && vm.Episodes.All(item => item.SeasonId == first.Id)
-            && vm.PlayTarget?.SeasonId == first.Id, "旧季请求覆盖了重新选中的季");
-    }
-
-    private async Task SeasonFailureAsync()
-    {
-        using var fixture = CreateFixture();
-        await fixture.SelectAsync();
-        using var vm = fixture.Detail();
-        await vm.ReloadAsync();
-        var first = vm.SelectedSeason;
-        fixture.Transport.Reply = (request, _) => request.RequestUri!.AbsolutePath.EndsWith("/Items/ep-b", StringComparison.Ordinal)
-            ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.InternalServerError)) : Task.FromResult(FakeTransport.Standard(request));
-        vm.SelectedSeason = vm.Seasons.Last();
-        await UntilAsync(() => !vm.Busy);
-        Require(vm.SelectedSeason == first && vm.Episodes.All(item => item.SeasonId == first?.Id)
-            && vm.PlayTarget?.SeasonId == first?.Id, "新季目标失败不能留下混合状态");
-    }
-
-    private async Task EmptySeasonAsync()
-    {
-        using var fixture = CreateFixture();
-        await fixture.SelectAsync();
-        using var vm = fixture.Detail();
-        await vm.ReloadAsync();
-        fixture.Transport.Reply = (request, _) => Query(request, "SeasonId") == "b"
-            ? Task.FromResult(Json(new { Items = Array.Empty<EmbyItem>() })) : Task.FromResult(FakeTransport.Standard(request));
-        vm.SelectedSeason = vm.Seasons.Last();
-        await UntilAsync(() => !vm.Busy);
-        Require(vm.Episodes.Count == 0 && vm.EpisodeVisibility == Visibility.Visible && vm.SeasonVisibility == Visibility.Visible
-            && vm.PlayTarget is null, "空季必须保留选择器且清除播放目标");
     }
 
     private async Task DetailWriteAsync()

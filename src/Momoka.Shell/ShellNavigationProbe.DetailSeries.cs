@@ -60,18 +60,23 @@ internal sealed partial class ShellNavigationProbe
 
         var single = SeriesWithInfo("show-one", "离线单季剧集", ["动画", "奇幻"], "Wit Studio", seasons: 1);
         var multi = SeriesWithInfo("show-two", "离线多季剧集", ["剧情"], "TBS", seasons: 2);
+        var special = SeriesWithInfo("show-special", "离线特别篇剧集", ["动画"], "Shaft", seasons: 2);
         var singleSeasons = new[] { SeasonOf(single, "one-s1", 1) };
         var multiSeasons = new[] { SeasonOf(multi, "two-s1", 1), SeasonOf(multi, "two-s2", 2) };
+        // 服务器把第 0 季排在最前；播出日期却让 OAD 落在第一季两集之间 —— 全季列表该按日期把它插进去。
+        var specialSeasons = new[] { SeasonOf(special, "sp-s0", 0), SeasonOf(special, "sp-s1", 1) };
 
         // 集列表按季各生成一次，当成稳定的夹具：导航到集页和运输层回包用的是同一批 id、同一批字段。
         // **两种形状**同 id、同路径 —— 列表那一趟是裸媒体源（Emby 的 /Shows/{id}/Episodes 常见的样子），
         // 按 id 取详情那一趟才带完整轨道。页面缺轨道表就会补取，补回来的正是详情那一份。
         var singleEpisodes = singleSeasons.ToDictionary(season => season.Id, season => EpisodesOf(single, season));
         var multiEpisodes = multiSeasons.ToDictionary(season => season.Id, season => EpisodesOf(multi, season));
-        var details = singleEpisodes.Values.Concat(multiEpisodes.Values)
+        var specialEpisodes = SpecialEpisodesOf(special, specialSeasons);
+        var details = singleEpisodes.Values.Concat(multiEpisodes.Values).Concat(specialEpisodes.Values)
             .SelectMany(episodes => episodes)
             .ToDictionary(episode => episode.Id, EpisodeDetail, StringComparer.Ordinal);
-        var known = new[] { single, multi, singleSeasons[0], multiSeasons[0], multiSeasons[1] }
+        var known = new[] { single, multi, special, singleSeasons[0], multiSeasons[0], multiSeasons[1],
+                specialSeasons[0], specialSeasons[1] }
             .Concat(details.Values)
             .ToDictionary(item => item.Id, StringComparer.Ordinal);
 
@@ -104,6 +109,8 @@ internal sealed partial class ShellNavigationProbe
                 return Task.FromResult(SeriesPart(path, uri.Query, singleSeasons, singleEpisodes));
             if (path.Contains("/Shows/" + multi.Id + "/", StringComparison.Ordinal))
                 return Task.FromResult(SeriesPart(path, uri.Query, multiSeasons, multiEpisodes));
+            if (path.Contains("/Shows/" + special.Id + "/", StringComparison.Ordinal))
+                return Task.FromResult(SeriesPart(path, uri.Query, specialSeasons, specialEpisodes));
 
             return Task.FromResult(FakeTransport.Standard(request));
         };
@@ -136,11 +143,14 @@ internal sealed partial class ShellNavigationProbe
                 Require(Reads("one-s1-e2") == 1, $"单季剧页按 id 取了 {Reads("one-s1-e2")} 次媒体信息那一集");
 
                 var seasonPanel = Get<StackPanel>(page, "SeasonPanel");
+                var specialPanel = Get<StackPanel>(page, "SpecialPanel");
                 var infoPanel = Get<StackPanel>(page, "InfoPanel");
                 var episodePanel = Get<StackPanel>(page, "EpisodePanel");
 
                 Require(seasonPanel.Visibility == Visibility.Collapsed && seasonPanel.ActualHeight == 0,
                     $"只有一季，全部剧季卡还占着位置：{seasonPanel.Visibility}、高 {seasonPanel.ActualHeight:0.#}");
+                Require(specialPanel.Visibility == Visibility.Collapsed && specialPanel.ActualHeight == 0,
+                    $"没有第 0 季，特别篇卡还占着位置：{specialPanel.Visibility}、高 {specialPanel.ActualHeight:0.#}");
                 Require(infoPanel.Visibility == Visibility.Visible && infoPanel.ActualHeight > 0,
                     $"剧页没有其他信息卡：{infoPanel.Visibility}、高 {infoPanel.ActualHeight:0.#}");
 
@@ -220,10 +230,47 @@ internal sealed partial class ShellNavigationProbe
                 Require(page.ViewModel.SeasonShelf is { Cards.Count: 2 }, "多季夹具的季卡带不是两张");
                 Require(seasonPanel.Visibility == Visibility.Visible && seasonPanel.ActualHeight > 0,
                     "两季的剧页没有了全部剧季卡");
+                Require(Get<StackPanel>(page, "SpecialPanel").Visibility == Visibility.Collapsed,
+                    "没有第 0 季，多季剧页却画出了特别篇卡");
                 Require(infoPanel.Visibility == Visibility.Visible && infoPanel.ActualHeight > 0, "多季剧页没有其他信息卡");
 
                 // 季选择栏 2026-11-02 随用户令一起删了：这一页按名字找不到那颗 EgPicker。
                 Require(!HasSeasonPicker(page), "剧页上还有季选择栏");
+
+                // 2026-11-03：剧页集列表是全季一条（两季各两集），按播出日期排；牌子上的「第x季」能点出
+                // 季列表，选一季只移动集带起点、不重读、不改播放落点。
+                var view = page.ViewModel;
+                Require(view.EpisodeShelf is { Cards.Count: 4 },
+                    $"剧页集列表不是全季四条：{view.EpisodeShelf?.Cards.Count ?? -1}");
+                Require(view.EpisodeShelf!.Cards.Select(card => card.Item.Id)
+                        .SequenceEqual(["two-s1-e1", "two-s1-e2", "two-s2-e1", "two-s2-e2"]),
+                    "剧页集列表没有按播出日期排：" + string.Join("、", view.EpisodeShelf.Cards.Select(card => card.Item.Id)));
+                Require(view.SelectedSeason?.Id == "two-s1", $"剧页锚点不是第一季：{view.SelectedSeason?.Name}");
+                Require(view.CanPickEpisodeSeason, "两季的剧页集列表牌子不可点");
+                Require(view.PlayTarget?.Id == "two-s1-e1",
+                    $"剧页播放落点不是播出最早的集：{view.PlayTarget?.Id}");
+
+                var seasonMenu = page.OpenEpisodeSeasonMenu();
+                Require(seasonMenu is { Items.Count: 2 },
+                    $"季列表不是两行：{seasonMenu?.Items.Count ?? -1}");
+                Require(seasonMenu!.Items.OfType<MenuFlyoutItem>().Count(item => item.Icon is not null) == 1,
+                    "季列表没有标出当前季");
+                seasonMenu.Hide();
+
+                var strip = Get<ShelfStrip>(page, "EpisodeStrip");
+                page.SelectEpisodeSeason(multiSeasons[1]);
+                await LayoutAsync(page);
+                Require(view.SelectedSeason?.Id == "two-s2" && strip.Requested > 0,
+                    $"选第二季后集带没有对到它：锚点 {view.SelectedSeason?.Name}、请求 {strip.Requested:0}");
+                Require(view.EpisodeShelf.Title.Contains("第 2 季", StringComparison.Ordinal),
+                    $"选第二季后标题没跟着走：{view.EpisodeShelf.Title}");
+                Require(view.PlayTarget?.Id == "two-s1-e1", "选季改掉了播放落点");
+                readings.Add($"多季换季：锚点「{view.SelectedSeason?.Name ?? "无"}」、集带请求 {strip.Requested:0}");
+
+                page.SelectEpisodeSeason(multiSeasons[0]);
+                await LayoutAsync(page);
+                Require(strip.Requested == 0 && view.SelectedSeason?.Id == "two-s1",
+                    $"回到第一季没有回到开头：锚点 {view.SelectedSeason?.Name}、请求 {strip.Requested:0}");
 
                 // ⑤ 多季剧页同一对下拉；这一页的续播集与播放落点是同一集，补取只该跑一趟（按 id 复用）。
                 RequireAutoTracks(page, "多季剧页");
@@ -277,7 +324,71 @@ internal sealed partial class ShellNavigationProbe
                 _root.Children.Remove(second);
             }
 
-            // ③ 季页：2026-11-02 用户令「把季页面的剧名和季度的字体大小还有位置互换」「给季页面补上图三哪些」
+            // ③ 特别篇：第 0 季的卡片在集列表下面；没有第 0 季时整块收起（单季、双季两页都没有 S0）。
+            ResizeProbeClient(1280, 900);
+            var specialsFrame = new Frame();
+            _root.Children.Add(specialsFrame);
+            try
+            {
+                specialsFrame.Navigate(typeof(DetailPage), DetailRequest.For(fixture.Services, special));
+                var page = (DetailPage)specialsFrame.Content;
+                await UntilAsync(() => page.IsReady);
+                await LayoutAsync(page);
+
+                var view = page.ViewModel;
+                var specialPanel = Get<StackPanel>(page, "SpecialPanel");
+                var specialHead = Get<ShelfHead>(page, "SpecialHead");
+                var specialRow = Get<ShelfStrip>(page, "SpecialRow");
+                var episodePanel = Get<StackPanel>(page, "EpisodePanel");
+
+                Require(view.SpecialShelf is { Cards.Count: 1 } && view.SpecialShelf.Cards[0].Item.Id == "sp-s0",
+                    $"特别篇卡带不是第 0 季那一张：{view.SpecialShelf?.Cards.Count ?? -1}");
+                Require(specialPanel.Visibility == Visibility.Visible && specialPanel.ActualHeight > 0
+                        && specialHead.Visibility == Visibility.Visible && specialHead.Title == "特别篇"
+                        && specialRow.ActualHeight > 0,
+                    $"特别篇卡没有画出来：{specialPanel.Visibility}、高 {specialPanel.ActualHeight:0.#}、"
+                        + $"牌子 {specialHead.Visibility}「{specialHead.Title}」");
+                Require(Descendants(specialRow).OfType<PosterCard>()
+                        .Any(card => card.Card?.Item.Id == "sp-s0" && card.ActualWidth > 0 && card.ActualHeight > 0),
+                    "特别篇卡没有在带子里实现出来");
+
+                // 第 0 季只在特别篇卡上出现一次；「全部剧季」只列正片季（这张夹具只剩一季，整块因此收起）。
+                Require(view.SeasonShelf is { Cards.Count: 1 }
+                        && view.SeasonShelf.Cards[0].Item.Id == "sp-s1"
+                        && Get<StackPanel>(page, "SeasonPanel").Visibility == Visibility.Collapsed,
+                    "第 0 季在全部剧季里又出现了一次");
+                Require(Top(specialPanel, page) >= Top(episodePanel, page) + episodePanel.ActualHeight - 1,
+                    "特别篇卡没有接在集列表下面");
+
+                Require(view.EpisodeShelf is { Cards.Count: 3 }
+                        && view.EpisodeShelf.Cards.Select(card => card.Item.Id)
+                            .SequenceEqual(["sp-s1-e1", "sp-s0-e1", "sp-s1-e2"]),
+                    "全季集列表没有把 OAD 按播出日期插进第一季两集之间："
+                        + string.Join("、", view.EpisodeShelf?.Cards.Select(card => card.Item.Id) ?? []));
+                Require(view.SelectedSeason?.Id == "sp-s1",
+                    $"特别篇夹具的锚点不该是第 0 季：{view.SelectedSeason?.Name}");
+                Require(view.PlayTarget?.Id == "sp-s1-e1",
+                    $"特别篇夹具的播放落点不是最早播出的正片：{view.PlayTarget?.Id}");
+
+                var opened = fixture.Actions.Opened;
+                view.OpenCard(view.SpecialShelf!.Cards[0]);
+                Require(fixture.Actions.Opened == opened + 1, "特别篇卡点不开季页面");
+
+                ScrollToPanel(page, specialPanel);
+                await LayoutAsync(page);
+                await SaveProbeScreenAsync("detail-series-specials-1280.png");
+                readings.Add($"特别篇 1280：卡 {specialRow.ActualHeight:0}、面板 {Top(specialPanel, page):0}–"
+                    + $"{Top(specialPanel, page) + specialPanel.ActualHeight:0}、"
+                    + $"集列表 {string.Join("→", view.EpisodeShelf?.Cards.Select(card => card.Item.Id) ?? [])}、"
+                    + $"锚点「{view.SelectedSeason?.Name ?? "无"}」");
+            }
+            finally
+            {
+                (specialsFrame.Content as IShellContent)?.Release();
+                _root.Children.Remove(specialsFrame);
+            }
+
+            // ④ 季页：2026-11-02 用户令「把季页面的剧名和季度的字体大小还有位置互换」「给季页面补上图三哪些」
             // 「季页面不要媒体信息」。头一行是剧名（点得回剧页面）、第二行是季名、第三行是这部剧的类型；评分和
             // 事实那一行也说这部剧；媒体信息表和整块「其他信息」卡都不出现。
             ResizeProbeClient(1280, 900);
@@ -384,6 +495,15 @@ internal sealed partial class ShellNavigationProbe
                 Require(seasonPanel.Visibility == Visibility.Visible && seasonPanel.ActualHeight > 0,
                     $"集页没有画出全部剧季卡：{seasonPanel.Visibility}、高 {seasonPanel.ActualHeight:0.#}");
                 Require(!HasSeasonPicker(page), "集页上还有季选择栏");
+
+                // 集页的集列表也是全季一条，并且锚点落在这一集所属的季（真季清单里的那一份，不是拼出来的）。
+                Require(page.ViewModel.EpisodeShelf is { Cards.Count: 4 },
+                    $"集页集列表不是全季四条：{page.ViewModel.EpisodeShelf?.Cards.Count ?? -1}");
+                Require(page.ViewModel.SelectedSeason?.Id == "two-s1"
+                        && page.ViewModel.Seasons.Contains(page.ViewModel.SelectedSeason),
+                    $"集页锚点不是清单里的第一季：{page.ViewModel.SelectedSeason?.Name}");
+                Require(page.ViewModel.CanPickEpisodeSeason && page.ViewModel.EpisodeFocus == 0,
+                    "集页的季列表不可点，或集带没有开在正在看的那一集上");
 
                 // ⑤ 集页的下拉：这一页读的是它自己那一集（按 id 取详情，回包就是带轨道的那一份），同一对
                 // 下拉在三页上说的是同一件事。
@@ -524,10 +644,12 @@ internal sealed partial class ShellNavigationProbe
         if (path.EndsWith("/Seasons", StringComparison.Ordinal))
             return Json(new { Items = seasons, TotalRecordCount = seasons.Count });
 
-        // 集那一趟的季 id 在查询串里（AbsolutePath 里没有，别在 path 上找）；没带季 id 就用第一季，同从前。
-        var season = seasons.FirstOrDefault(item => query.Contains("SeasonId=" + item.Id, StringComparison.Ordinal))
-            ?? seasons[0];
-        return Json(new { Items = episodes[season.Id] });
+        // 集那一趟的季 id 在查询串里（AbsolutePath 里没有，别在 path 上找）。剧页、集页现在不带 SeasonId：
+        // 那就是「全剧一条」，按服务器给的季序拼起来；季页仍按 SeasonId 收窄。
+        var season = seasons.FirstOrDefault(item => query.Contains("SeasonId=" + item.Id, StringComparison.Ordinal));
+        return season is not null
+            ? Json(new { Items = episodes[season.Id] })
+            : Json(new { Items = seasons.SelectMany(item => episodes[item.Id]).ToArray() });
     }
 
     /// <summary>一季的那两集 —— 调用方按季各调一次，生成一份当夹具。</summary>
@@ -536,6 +658,29 @@ internal sealed partial class ShellNavigationProbe
         EpisodeOf(series, season, 1, "从右边数第三颗星"),
         EpisodeOf(series, season, 2, "夜里的那班车")
     ];
+
+    /// <summary>
+    /// 特别篇那份：第 0 季一条 OAD，播在第一季两集之间。服务器把第 0 季排在最前，全季列表要按日期把它
+    /// 插到 E1 和 E2 中间 —— 正是用户截图里 S1:E20 → OAD → S2:E1 的形状。
+    /// </summary>
+    private static Dictionary<string, EmbyItem[]> SpecialEpisodesOf(EmbyItem series, IReadOnlyList<EmbyItem> seasons)
+    {
+        var specialSeason = seasons.Single(season => season.IndexNumber == 0);
+        var firstSeason = seasons.Single(season => season.IndexNumber == 1);
+
+        var oad = EpisodeOf(series, specialSeason, 1, "OAD 1");
+        oad.PremiereDate = new DateTimeOffset(2014, 2, 1, 0, 0, 0, TimeSpan.Zero);
+        var first = EpisodeOf(series, firstSeason, 1, "第一集");
+        first.PremiereDate = new DateTimeOffset(2014, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var second = EpisodeOf(series, firstSeason, 2, "第二集");
+        second.PremiereDate = new DateTimeOffset(2014, 4, 1, 0, 0, 0, TimeSpan.Zero);
+
+        return new Dictionary<string, EmbyItem[]>(StringComparer.Ordinal)
+        {
+            [specialSeason.Id] = [oad],
+            [firstSeason.Id] = [first, second]
+        };
+    }
 
     private static EmbyItem EpisodeOf(EmbyItem series, EmbyItem season, int number, string name)
     {
@@ -549,7 +694,11 @@ internal sealed partial class ShellNavigationProbe
             SeasonId = season.Id,
             ParentIndexNumber = season.IndexNumber,
             IndexNumber = number,
-            RunTimeTicks = TimeSpan.FromMinutes(24).Ticks
+            RunTimeTicks = TimeSpan.FromMinutes(24).Ticks,
+            // 播出日期按季往后排，让「全季一条」的排序在夹具里真正起作用；特别篇另有自己的日期。
+            PremiereDate = new DateTimeOffset(2014, 1, 1, 0, 0, 0, TimeSpan.Zero)
+                .AddMonths((season.IndexNumber ?? 1) * 3)
+                .AddDays(number)
         };
 
         // 集列表那一趟的媒体源是**裸的**：文件名、容器、时长都在，轨道表空着 —— Emby 的 /Shows/{id}/Episodes
@@ -595,6 +744,7 @@ internal sealed partial class ShellNavigationProbe
         ParentIndexNumber = list.ParentIndexNumber,
         IndexNumber = list.IndexNumber,
         RunTimeTicks = list.RunTimeTicks,
+        PremiereDate = list.PremiereDate,
         UserData = list.UserData,
         MediaSources = [.. list.MediaSources.Select(source => new MediaSource
         {

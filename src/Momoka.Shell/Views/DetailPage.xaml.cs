@@ -8,6 +8,7 @@ using Momoka.Theming;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
@@ -2322,4 +2323,47 @@ public sealed partial class DetailPage : Page, IShellContent
 
     private void OnCardActionRequested(object? sender, CardActionEventArgs args) =>
         ItemCommands.Handle(_session, _actions, sender, args, ViewModel.Episodes, ViewModel.Reload, ViewModel.Remove);
+
+    /// <summary>
+    /// 集列表牌子上那一下：季列表从牌子上弹出（剧页、集页的全季集列表共用）。只有一季时 Offer 是假，
+    /// 这条事件根本不会来；真来了却没有可选季的异常路径也只当没点。
+    /// </summary>
+    private void OnEpisodeHeadInvoked(object sender, EventArgs e) => OpenEpisodeSeasonMenu();
+
+    /// <summary>
+    /// 弹开季列表，并把菜单交回去给自检读一读（它不点菜单里的行，只核对行数和当前季）。
+    /// 菜单行是每次现搭的：季清单会随这一页重读而替换，摆好的一张每次都得整批改字 —— 同样的活儿。
+    /// </summary>
+    internal MenuFlyout? OpenEpisodeSeasonMenu()
+    {
+        var seasons = ViewModel.EpisodeSeasonChoices;
+        if (seasons.Count < 2) return null;
+
+        var menu = new MenuFlyout { Placement = FlyoutPlacementMode.BottomEdgeAlignedLeft };
+        foreach (var season in seasons)
+        {
+            var item = new MenuFlyoutItem { Text = season.Name, Tag = season };
+            if (season.Id is { Length: > 0 } id && ViewModel.SelectedSeason?.Id == id)
+                item.Icon = new SymbolIcon(Symbol.Accept);
+
+            item.Click += (sender, _) =>
+            {
+                if (sender is MenuFlyoutItem { Tag: EmbyItem picked }) SelectEpisodeSeason(picked);
+            };
+            menu.Items.Add(item);
+        }
+
+        menu.ShowAt(EpisodeHead);
+        return menu;
+    }
+
+    /// <summary>
+    /// 季列表里选中一季：视图模型换锚点、改标题，这里把集带对到那一季的第一张卡。索引 0 也要走
+    /// <see cref="ShelfStrip.JumpTo"/> —— <c>FocusIndex</c> 的 0 表示「别动」，换季回到第一季时正需要它动。
+    /// </summary>
+    internal void SelectEpisodeSeason(EmbyItem season)
+    {
+        var index = ViewModel.SelectEpisodeSeason(season);
+        if (index >= 0) EpisodeStrip.JumpTo(index);
+    }
 }

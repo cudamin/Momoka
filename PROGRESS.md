@@ -1,3 +1,10 @@
+## 2026-11-03 详情页全季集列表、特别篇卡与季列表跳转（在途）
+
+- 用户令（四条）：①集页和剧页的集列表把所有季连起来，按播出时间排序（特别篇不固定在开头）；②剧页集列表下面加特别篇卡（S00/S0 季，没有就自动隐藏）；③未播放的剧集默认播放播出时间最早的集；④集列表牌子的「第x季」可点开季列表，选一季把集带第一张卡对到该季 S0xE01。
+- 实现：剧页、集页的 `GetEpisodesAsync` 不带 `SeasonId`，本地 `ItemDetail.AirOrder` 按 `PremiereDate` 排序（无日期殿后，再按季号、集号）；季页仍按季读。`PickEpisode`／`MediaInfoEpisode` 改用同一播出顺序；剧页播放落点与播放器剧海报起播（`ResolveNextEpisodeAsync`）都取全剧最早未看集，播放器选集仍只放落点所在季。新增 `SpecialShelf` 与 `SpecialPanel`（只装第 0 季），剧页「全部剧季」只列正片季；集页不摆特别篇卡。`SelectedSeason` 成为季锚点：换季只改标题、不重读、不改播放落点；`ShelfHead.Offer` 打开季列表，`ShelfStrip.JumpTo` 用 `CardStrip.StartFor` 把目标季第一张卡对到左边沿（索引 0 也滚回开头）。集页也填 `Seasons`，锚点指向真季。
+- 测试：`ItemDetailTests` 新增 AirOrder／最早未看集／FirstEpisodeIndex／SeasonOf（含季锚点本身是 Season）算例；`CardStripTests` 新增 StartFor。主测试 **3602/3602、0 失败 0 跳过**；Release 全方案 **0 警告 0 错误**；`dotnet format whitespace --verify-no-changes` 退出 0；R025 **19/19**、R046 **54/54**、R056 **36/36**。`--probe-shell --probe-section library --screen 1` 在 03:48 跑出 **23/24**（`shell-probe-20261102-194821280-2024`），唯一红项是既有的「多媒体库避让轮播读数与进度条」800 宽超时；同一根目录下较早的发布件探针也以同样方式失败，按环境/时序红处理，未改断言。新用例「剧页单季不画全部剧季、其他信息卡与集页一致」通过：多季全季四条、换季集带请求 72、特别篇剧集 `sp-s1-e1→sp-s0-e1→sp-s1-e2`、特别篇卡高 314 且已实现、第 0 季不在全部剧季重复。读数在 `detail-series-info.txt`。
+- 未覆盖：详情页实屏截图在探针里仍是黑帧（既有截图路径问题，几何与已实现卡片断言为主证据）；04:01 以后再次跑探针时窗口被桌面遮挡，`GuardVisible` 连报多条，未据此改产品；真实服务器与真实播放、微软商店上传仍需后续完成。
+
 ## 2026-11-03 详情页功能收尾：探针稳定性、主树复验与桌面发布（master 1b5022b）
 
 - 承接 `4fd8648`（详情页季页头行、剧页媒体信息、集页全部剧季卡与统一过渡已合入 master）。本笔只补验证与探针稳定性，不改产品行为：移除详情页用例里两次对整页做 `RenderTargetBitmap` 的临时调用（会以 `SetPixelData` 参数异常中断用例）；`SaveProbeScreenAsync` 的截图等待 80→300ms，避免首帧未合成时拍成黑屏；`DetailPickerLayoutAsync` 开头还原最大化，修复前一条用例留下最大化时 `ResizeInspect` 被忽略（要求 1280、实际 1480）的状态复用；修正剧页媒体信息字段注释（季页不摆媒体信息）。

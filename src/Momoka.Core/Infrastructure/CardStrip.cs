@@ -78,6 +78,14 @@ public static class CardStrip
     }
 
     /// <summary>
+    /// 让第 <paramref name="index"/> 张卡成为视口里的第一张：换季之后集列表要开在 S0xE01，而不是
+    /// 「它碰巧露在第一屏里」就算数。第一张答 0（回到开头），末尾照旧夹住；量不到卡片时也答 0 ——
+    /// 外壳那一层会把请求留到布局之后再落实。
+    /// </summary>
+    public static double StartFor(int index, double pitch, double scrollable) =>
+        index <= 0 || pitch <= 0 || scrollable <= 0 ? 0 : Math.Clamp(index * pitch, 0, scrollable);
+
+    /// <summary>
     /// 要让第 <paramref name="index"/> 张卡整张露出来，这条带该滚到哪儿；已经整张露着就返回 -1，也就是「别动」。
     /// <para>
     /// 「点击主页继续观看、媒体库、最近添加的封面之后会先跳转到页面下方，然后才会进入页面」说的就是这件事以前

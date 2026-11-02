@@ -97,6 +97,12 @@ public sealed partial class ShelfStrip : UserControl
     private int _focus = -1;
 
     /// <summary>
+    /// 这一条定位请求是不是「把第几张对到左边沿」（<see cref="JumpTo"/>）。<c>FocusIndex</c> 的 0 是
+    /// 「别动」，而换季点第一季要的正是「回到开头」—— 两件事都落在同一个索引上，只能另记一位。
+    /// </summary>
+    private bool _align;
+
+    /// <summary>
     /// 最近一次落在这条带里的焦点项。横向 <see cref="ItemsRepeater"/> 是虚拟化的：当方向键把焦点推到
     /// 视口边缘时，下一张卡可能还没有容器，不能只依赖 WinUI 的候选查找。记下索引后，
     /// <see cref="OnNoFocusCandidateFound"/> 可以创建目标容器、让它进视口，再把焦点交给它。
@@ -246,6 +252,20 @@ public sealed partial class ShelfStrip : UserControl
     internal void FocusOn(int index)
     {
         _focus = index;
+        _align = false;
+        ApplyFocus();
+    }
+
+    /// <summary>
+    /// 把第 <paramref name="index"/> 张卡对到视口左边沿。与 <see cref="FocusOn"/> 分开：后者的 0 是
+    /// 「别动」，而换季点到第一季时要的正是回到开头；落点在第一屏里也照滚，因为用户要的是「第一张就是它」。
+    /// </summary>
+    internal void JumpTo(int index)
+    {
+        if (index < 0) return;
+
+        _focus = index;
+        _align = true;
         ApplyFocus();
     }
 
@@ -255,27 +275,32 @@ public sealed partial class ShelfStrip : UserControl
     /// </summary>
     private void ApplyFocus()
     {
-        if (_focus <= 0)
+        if (_focus < 0 || (_focus == 0 && !_align))
         {
             _focus = -1;
+            _align = false;
             return;
         }
 
         var pitch = Measure();
         if (pitch <= 0 || Scroller.ScrollableWidth <= 0) return;
 
-        ScrollToIndex(_focus);
+        ScrollToIndex(_focus, _align);
         _focus = -1;
+        _align = false;
     }
 
     /// <summary>
     /// 直接滚到第 <paramref name="index"/> 张卡并返回请求的位置。不带动画：这是「页面打开时就该在这里」，
-    /// 不是一次人做出来的翻页。
+    /// 不是一次人做出来的翻页。整张露着就不动的规则见 <see cref="CardStrip.OffsetFor"/>；换季要的左边沿
+    /// 落点见 <see cref="CardStrip.StartFor"/>。
     /// </summary>
-    private double ScrollToIndex(int index)
+    private double ScrollToIndex(int index, bool align)
     {
         var viewport = Scroller.ViewportWidth > 0 ? Scroller.ViewportWidth : ActualWidth;
-        var target = CardStrip.OffsetFor(index, Measure(), viewport, Scroller.ScrollableWidth);
+        var target = align
+            ? CardStrip.StartFor(index, Measure(), Scroller.ScrollableWidth)
+            : CardStrip.OffsetFor(index, Measure(), viewport, Scroller.ScrollableWidth);
 
         _requested = target;
 
@@ -667,6 +692,9 @@ public sealed partial class ShelfStrip : UserControl
         strip._focusedIndex = -1;
         strip._pendingFocusedIndex = -1;
         strip._focusRetryQueued = false;
+        // 换了一批卡，上一批的定位请求（尤其是换季的强制左对齐）不该落到新列表上。
+        strip._focus = -1;
+        strip._align = false;
         strip.SyncArrows();
     }
 

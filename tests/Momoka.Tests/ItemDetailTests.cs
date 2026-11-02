@@ -936,6 +936,99 @@ internal static class ItemDetailTests
             Assert.Equal("第一集", ItemDetail.PickEpisode([byNumber, episode1], first)?.Name);
         });
 
+        Test("单集：全季列表按播出时间排，特典按日期插进正片", () =>
+        {
+            // 服务器按季号排时 S00 总在最前；网页端给的是播出顺序，特典落在它实际播出的位置。
+            var s1e1 = Dated("S1E1", 2014, 1, 1, season: 1, number: 1);
+            var s1e2 = Dated("S1E2", 2014, 1, 8, season: 1, number: 2);
+            var oad1 = Dated("OAD 1", 2014, 2, 1, season: 0, number: 1);
+            var s2e1 = Dated("S2E1", 2014, 3, 1, season: 2, number: 1);
+
+            // 无日期的条目排在所有有日期的后面，彼此按季号、集号；不能因为缺日期就顶到开头。
+            var undated = new EmbyItem { Name = "未标日期", Type = EmbyItemType.Episode, ParentIndexNumber = 2, IndexNumber = 2 };
+
+            var ordered = ItemDetail.AirOrder([oad1, s2e1, undated, s1e2, s1e1]);
+
+            Assert.True(ordered.Select(item => item.Name).SequenceEqual(["S1E1", "S1E2", "OAD 1", "S2E1", "未标日期"]),
+                "播出顺序：" + string.Join("、", ordered.Select(item => item.Name)));
+        });
+
+        Test("单集：播放落点取播出时间最早的未看集", () =>
+        {
+            // 输入顺序故意与播出顺序不同：挑的是日期，不是服务器这一次的排列。
+            var s1e1 = Dated("S1E1", 2014, 1, 1, season: 1, number: 1, watched: true);
+            var s1e2 = Dated("S1E2", 2014, 2, 1, season: 1, number: 2);
+            var s2e1 = Dated("S2E1", 2014, 1, 15, season: 2, number: 1);
+            var oad1 = Dated("OAD 1", 2014, 3, 1, season: 0, number: 1);
+
+            var episodes = new List<EmbyItem> { oad1, s1e2, s2e1, s1e1 };
+
+            // 第一集已看：最早未看的是 S2E1（1 月 15 日），不是列表里更靠前的 S1E2。
+            Assert.Equal("S2E1", ItemDetail.PickEpisode(episodes, null)?.Name);
+
+            // 全部看完时回到最早播出的一集，而不是停在列表最后。
+            s2e1.UserData = new EmbyUserData { Played = true };
+            s1e2.UserData = new EmbyUserData { Played = true };
+            oad1.UserData = new EmbyUserData { Played = true };
+            Assert.Equal("S1E1", ItemDetail.PickEpisode(episodes, null)?.Name);
+        });
+
+        Test("单集：换季锚点落在该季第一张卡", () =>
+        {
+            var s1e1 = Dated("S1E1", 2014, 1, 1, season: 1, number: 1);
+            var s2e1 = Dated("S2E1", 2014, 3, 1, season: 2, number: 1);
+            s2e1.SeasonId = "s2";
+            var s2e2 = Dated("S2E2", 2014, 3, 8, season: 2, number: 2);
+            s2e2.SeasonId = "s2";
+            var season2 = new EmbyItem { Id = "s2", Name = "第 2 季", Type = EmbyItemType.Season, IndexNumber = 2 };
+            var episodes = ItemDetail.AirOrder([s1e1, s2e2, s2e1]);
+
+            Assert.Equal(1, ItemDetail.FirstEpisodeIndex(episodes, season2));
+            Assert.Equal(0, ItemDetail.FirstEpisodeIndex(episodes, null));
+            Assert.Equal(-1, ItemDetail.FirstEpisodeIndex([], season2));
+            Assert.Equal(-1, ItemDetail.FirstEpisodeIndex(
+                episodes, new EmbyItem { Id = "s9", Name = "第 9 季", Type = EmbyItemType.Season, IndexNumber = 9 }));
+        });
+
+        Test("单集：从条目认得出所属季", () =>
+        {
+            var seasons = new List<EmbyItem>
+            {
+                new() { Id = "s1", Name = "第 1 季", Type = EmbyItemType.Season, IndexNumber = 1 },
+                new() { Id = "s2", Name = "第 2 季", Type = EmbyItemType.Season, IndexNumber = 2 }
+            };
+
+            // 优先认季 id；缺 id 时退到季号，再退到季名。
+            Assert.Equal("s1", ItemDetail.SeasonOf(seasons, new EmbyItem
+            {
+                Type = EmbyItemType.Episode,
+                SeasonId = "s1",
+                ParentIndexNumber = 9
+            })?.Id);
+            Assert.Equal("s2", ItemDetail.SeasonOf(seasons, new EmbyItem
+            {
+                Type = EmbyItemType.Episode,
+                ParentIndexNumber = 2
+            })?.Id);
+            Assert.Equal("s1", ItemDetail.SeasonOf(seasons, new EmbyItem
+            {
+                Type = EmbyItemType.Episode,
+                SeasonName = "第 1 季"
+            })?.Id);
+            Assert.Null(ItemDetail.SeasonOf(seasons, new EmbyItem
+            {
+                Type = EmbyItemType.Episode,
+                SeasonId = "s9",
+                ParentIndexNumber = 9,
+                SeasonName = "第 9 季"
+            }));
+
+            // 季锚点本身也是 Season 对象（剧页、集页的 SelectedSeason）。不能按「集与季」那套字段去比，
+            // 否则它的季 id／季号都是空的，会认成清单里的第一季。
+            Assert.Equal("s1", ItemDetail.SeasonOf(seasons, seasons[0])?.Id);
+            Assert.Equal("s2", ItemDetail.SeasonOf(seasons, seasons[1])?.Id);
+        });
+
         Test("单集：标题行数出总数与已看数", () =>
         {
             var episodes = new List<EmbyItem> { Watched("一"), Watched("二"), Unwatched("三") };
@@ -2429,6 +2522,17 @@ internal static class ItemDetailTests
         Type = EmbyItemType.Episode,
         UserData = new EmbyUserData { Played = true }
     };
+
+    private static EmbyItem Dated(
+        string name, int year, int month, int day, int? season, int? number, bool watched = false) => new()
+        {
+            Name = name,
+            Type = EmbyItemType.Episode,
+            ParentIndexNumber = season,
+            IndexNumber = number,
+            PremiereDate = new DateTimeOffset(year, month, day, 0, 0, 0, TimeSpan.Zero),
+            UserData = watched ? new EmbyUserData { Played = true } : null
+        };
 
     private static EmbyItem Unwatched(string name) => new() { Name = name, Type = EmbyItemType.Episode };
 

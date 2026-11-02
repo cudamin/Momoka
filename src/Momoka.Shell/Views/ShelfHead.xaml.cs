@@ -58,6 +58,16 @@ public sealed partial class ShelfHead : UserControl
         new PropertyMetadata(false, OnOfferChanged));
 
     /// <summary>
+    /// 可点时跟的那个字形。默认是「进入」的大于号；详情页集列表那一块点开的是季列表（浮层），所以换成
+    /// 向下的折角。只影响这一枚装饰字形，不改变门开不开。
+    /// </summary>
+    public static readonly DependencyProperty GlyphProperty = DependencyProperty.Register(
+        nameof(Glyph),
+        typeof(string),
+        typeof(ShelfHead),
+        new PropertyMetadata("\uE76C", OnGlyphChanged));
+
+    /// <summary>
     /// 标题前面那条短强调线和底下那条通栏线画不画。默认画；详情页最大化（沉浸版式）里都不画 ——
     /// 2026-10-31 用户令「把线条去掉」：那一档纸面和面板都让开了，一条横贯整页的发丝线和标题前的一道色条
     /// 压在模糊背景上就是没来由的线，参考图上那几行标题本来就是纯字。
@@ -153,6 +163,19 @@ public sealed partial class ShelfHead : UserControl
     {
         get => (bool)GetValue(OfferProperty);
         set => SetValue(OfferProperty, value);
+    }
+
+    /// <inheritdoc cref="GlyphProperty"/>
+    public string Glyph
+    {
+        get => (string)GetValue(GlyphProperty);
+        set => SetValue(GlyphProperty, value);
+    }
+
+    private static void OnGlyphChanged(DependencyObject sender, DependencyPropertyChangedEventArgs args)
+    {
+        if (((ShelfHead)sender).OpenGlyph is { } glyph)
+            glyph.Glyph = args.NewValue as string ?? "\uE76C";
     }
 
     /// <summary>

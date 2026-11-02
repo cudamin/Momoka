@@ -16,7 +16,7 @@ namespace Momoka.Shell.Views;
 /// 版面的判据在 Core（<see cref="DetailHero.Immersive"/>）和视图模型（<c>DetailViewModel.Showcase</c>）：
 /// 窗口铺开（最大化，或面积过了工作区五分之四）、或者背景图已经/即将被裁掉（<see cref="DetailHero.NearCrop"/>，
 /// 2026-11-02）、宽版式、背后有图、电影/剧/季 —— 五句同时成立。这一支只管屏上
-/// 那三样东西 —— 正文那张纸的底色、五块正文面板的底与框、尾部补第一屏的那段留白 —— 以及窗口形态翻面那一下怎么走。
+/// 那三样东西 —— 正文那张纸的底色、六块正文面板的底与框、尾部补第一屏的那段留白 —— 以及窗口形态翻面那一下怎么走。
 /// </para>
 /// <para>
 /// <b>三样一起走，才是「组件整体上移」。</b>尾部高度是布局属性（<see cref="FrameworkElement.MinHeightProperty"/>），
@@ -65,10 +65,10 @@ public sealed partial class DetailPage
     /// </summary>
     private readonly SolidColorBrush _sheetBrush = new();
 
-    /// <summary>五块正文面板的底 —— 沉浸档里淡到 0，纸面让开之后不再有「板里的板」那一层。</summary>
+    /// <summary>六块正文面板的底 —— 沉浸档里淡到 0，纸面让开之后不再有「板里的板」那一层。</summary>
     private readonly SolidColorBrush _panelFill = new();
 
-    /// <summary>五块正文面板的描边，同 <see cref="_panelFill"/>。</summary>
+    /// <summary>六块正文面板的描边，同 <see cref="_panelFill"/>。</summary>
     private readonly SolidColorBrush _panelLine = new();
 
     /// <summary>这一趟的 Storyboard；换向或收尾时整份停掉，理由见 <see cref="HomeFoldMotion"/>。</summary>
@@ -132,18 +132,20 @@ public sealed partial class DetailPage
     internal int ShowcaseAnimations { get; private set; }
 
     /// <summary>
-    /// 五块正文面板 —— 它们在标记里都挂着 <c>EgBodyPanelStyle</c>，底色和描边由样式给；这一支在构造时把两样换成
+    /// 六块正文面板 —— 它们在标记里都挂着 <c>EgBodyPanelStyle</c>，底色和描边由样式给；这一支在构造时把两样换成
     /// 自己持有的画刷，好让颜色和透明度能动画。收 <see cref="StackPanel"/> 而不是 <see cref="FrameworkElement"/>：
     /// 换的是 <c>Background</c>／<c>BorderBrush</c> 两个专属于这个类型的属性。
     /// <para>
     /// 次序就是屏上从上往下的次序（<see cref="ShownPanels"/> 按它数错峰的格子）：2026-11-02 用户令把「全部剧季」
-    /// 挪到「其他信息」上面，这两块也跟着换过来 —— 这里不换，浮起那一段里靠下的那块会先动。
+    /// 挪到「其他信息」上面，这两块也跟着换过来 —— 这里不换，浮起那一段里靠下的那块会先动。2026-11-03 特别篇
+    /// 插在单集和全部剧季之间，排在它实际出现的位置。
     /// </para>
     /// </summary>
-    private IEnumerable<StackPanel> BodyPanels => [EpisodePanel, SeasonPanel, InfoPanel, SimilarPanel, CastPanel];
+    private IEnumerable<StackPanel> BodyPanels =>
+        [EpisodePanel, SpecialPanel, SeasonPanel, InfoPanel, SimilarPanel, CastPanel];
 
     /// <summary>
-    /// 构造时准备三支画刷和五支浮起变换：纸面取主题的窗口色，面板取样式原本那两档，每块面板各装一支
+    /// 构造时准备三支画刷和六支浮起变换：纸面取主题的窗口色，面板取样式原本那两档，每块面板各装一支
     /// <see cref="TranslateTransform"/>（错峰那一段动的就是它）。都在 <c>InitializeComponent</c> 之后、上树
     /// 之前做完 —— 第一帧就是对的，不会先按样式的底画一下再换成这一支。
     /// </summary>
@@ -456,7 +458,7 @@ public sealed partial class DetailPage
         _sheetBrush.Color = showcase ? WashColor : PaperColor;
         TrackColor(board, _sheetBrush, sheetFrom, _sheetBrush.Color, ease);
 
-        // 3) 五块正文面板的底和框：沉浸档里淡到 0，还原时淡回来。
+        // 3) 六块正文面板的底和框：沉浸档里淡到 0，还原时淡回来。
         Track(board, _panelFill, "Opacity", fillFrom, showcase ? 0 : 1, ease, dependent: true);
         Track(board, _panelLine, "Opacity", lineFrom, showcase ? 0 : 1, ease, dependent: true);
 

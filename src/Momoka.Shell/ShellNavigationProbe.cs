@@ -100,7 +100,7 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("电视节目收藏分排、分页、失败恢复与宽窄布局", LibraryFavoritesAsync, 60);
             await CaseAsync("电视节目预告日期分组、加载动画、分页和恢复", LibraryUpcomingAsync, 45);
             await CaseAsync("切回 Emby 恢复查询代次", ResumeQueryAsync);
-            await CaseAsync("切季与整页刷新交错不清空", SeasonRefreshRaceAsync);
+            await CaseAsync("剧页换季只换锚点与集带起点", EpisodeSeasonAnchorAsync);
             await CaseAsync("旧导航恢复不补新搜索", NavigationRestoreRaceAsync);
             await CaseAsync("分页失败立即停止", PagingFailureAsync);
             await CaseAsync("离页不会复活补页", PagingCancelAsync);
@@ -139,9 +139,6 @@ internal sealed partial class ShellNavigationProbe
             await CaseAsync("搜索宽窄布局和媒体库工具栏隔离", SearchHeaderLayoutAsync, 45);
             await CaseAsync("加载中禁止播放全部", PlaybackBusyAsync);
             await CaseAsync("字母查询过期不继续", JumpCancelAsync);
-            await CaseAsync("切季回到原季撤销旧请求", SeasonCancelAsync);
-            await CaseAsync("切季目标失败不部分提交", SeasonFailureAsync);
-            await CaseAsync("空季保留选择器", EmptySeasonAsync);
             await CaseAsync("离页后写操作不重开详情", DetailWriteAsync);
             await CaseAsync("文件选项长名称、断点与隐藏行", DetailPickerLayoutAsync, 45);
             // 展开态：框架在弹层打开那一拍把选中项的文本收掉，框的宽度塌回 MinWidth，右邻被弹层压住

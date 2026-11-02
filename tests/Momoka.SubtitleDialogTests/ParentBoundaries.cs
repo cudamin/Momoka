@@ -28,7 +28,6 @@ internal sealed partial class DetailViewModel : PageViewModel
     private EmbySessionScope? _scope;
     private EmbyItem? _seed;
     private FixtureSettings? _settings;
-    private bool _switchingSeason;
     private long _lifetime;
     private readonly CancellationTokenSource? _versionLoad = null;
     private readonly CancellationTokenSource? _art = null;
@@ -37,7 +36,6 @@ internal sealed partial class DetailViewModel : PageViewModel
     internal EmbyItem? PlayTarget { get; private set; }
     private void ShowTarget(EmbyItem? target) => PlayTarget = target;
     internal EmbyItem? Applied { get; private set; }
-    internal bool FixtureSwitchingSeason => _switchingSeason;
 
     internal void FixtureAttach(EmbySessionScope scope, EmbyItem item)
     {

@@ -435,9 +435,10 @@ public sealed partial class PlayerViewModel
     }
 
     /// <summary>
-    /// What 「播放」 on a series or a season poster means: the first episode nobody has watched, together
-    /// with its season's episode list for the 「选集」 picker. Picks the same file the detail page picks,
-    /// so the badge and the page do not start different things.
+    /// What 「播放」 on a series or a season poster means: the earliest-aired episode nobody has watched
+    /// (or the show's earliest episode when everything is watched), together with its season's episode
+    /// list for the 「选集」 picker. Picks the same file the detail page picks, so the badge and the page
+    /// do not start different things.
     /// </summary>
     private async Task<(EmbyItem Episode, IReadOnlyList<EmbyItem> Siblings)?> ResolveNextEpisodeAsync(
         EmbyItem item, EmbySessionScope scope, CancellationToken cancellationToken)
@@ -445,33 +446,31 @@ public sealed partial class PlayerViewModel
         var seriesId = item.Type == EmbyItemType.Series ? item.Id : item.SeriesId;
         if (string.IsNullOrEmpty(seriesId)) return null;
 
-        // A season card already says which season; a series card has to choose one.
+        // A season card already says which season; a series card asks for the whole show and picks by air
+        // date. 2026-11-03 用户令「未播放的剧集默认播放的集数改为播出时间最早的集数」—— 一张剧海报和
+        // 它点进去的那一页必须起同一集，所以两边都走 ItemDetail.PickEpisode 这一条规则。
         var season = item.Type == EmbyItemType.Season ? item : null;
-
-        if (season is null)
-        {
-            var seasons = await scope
-                .ExecuteAsync((client, token) => client.GetSeasonsAsync(seriesId, token), cancellationToken)
-                .ConfigureAwait(true);
-
-            // The same rule the detail page opens on — 「the first season with something left in it, 特辑
-            // aside」 — read from the one place that states it, so a poster and the page it opens cannot
-            // start different episodes. A show with no season rows at all keeps a null season, which asks
-            // the server for every episode it has.
-            season = ItemDetail.PickSeason(seasons);
-        }
+        IReadOnlyList<EmbyItem> seasons = season is null
+            ? await scope.ExecuteAsync(
+                (client, token) => client.GetSeasonsAsync(seriesId, token), cancellationToken).ConfigureAwait(true)
+            : [];
 
         var episodes = await scope
-            .ExecuteAsync((client, token) => client.GetEpisodesAsync(seriesId, season?.Id, token), cancellationToken)
+            .ExecuteAsync(
+                (client, token) => client.GetEpisodesAsync(seriesId, season?.Id, token), cancellationToken)
             .ConfigureAwait(true);
 
         if (episodes.Count == 0) return null;
 
-        // 也是同一个判据，连「这一季的」那一层一起：季列表里并着排在最前的 air-order 特典，照单取第一条
-        // 会从 S00E01 起播，而剧页面的播放键此刻写的是 S01E01 —— 海报和它点进去的那一页不能起不同的集。
         if (ItemDetail.PickEpisode(episodes, season) is not { } next) return null;
 
-        return (next, episodes);
+        // 选集那份仍只放落点所在的那一季：全剧列表只用来挑「最早播出的一集」，播放器里的选集菜单
+        // 还是按季读。找得到那一季就按它筛；找不到（服务器没给季清单）就整份交回。
+        var siblings = season is null
+            ? ItemDetail.SeasonEpisodes(episodes, ItemDetail.SeasonOf(seasons, next))
+            : episodes;
+
+        return (next, siblings);
     }
 
     /// <summary>

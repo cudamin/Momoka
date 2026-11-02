@@ -629,7 +629,7 @@ internal static partial class ShellSelfCheck
                     + $"服务端按季返回 {scoped.Count} 集，{(seasonal ? "两者逐个相同" : "两者不一致")}";
 
                 var picker = await ProbePickerAsync(
-                    shell, services, session, series, last.SeasonId, first.SeasonId, budget.Token)
+                    shell, services, session, series, episodes, last.SeasonId, first.SeasonId, budget.Token)
                     .ConfigureAwait(true);
 
                 return new SeasonState(null, crossOk, cross, picker.Ok, picker.Detail);
@@ -669,14 +669,13 @@ internal static partial class ShellSelfCheck
         : episode.EpisodeCode is { Length: > 0 } code ? code : episode.Name;
 
     /// <summary>
-    /// The 季 picker, driven the way a person drives it: a detail page is loaded on the show and then handed
-    /// another season, which is the one assignment the ComboBox's two-way binding makes.
+    /// 剧页的集列表与季锚点，driven the way a person drives it：页面打开在某一季，再把 SelectedSeason 换成
+    /// 另一季。2026-11-03 起这一下不再按季重读 —— 剧页手上本来就是全季一条，换季只改标题和集带起点。
     /// <para>
-    /// Three things then have to have followed the picker — the rows, the heading above them and what 播放
-    /// would start. The heading is worth its own clause because it is built from a scope rather than from the
-    /// rows (see <c>ItemDetail.EpisodeScope</c>), so a page that fetched the right episodes under the
-    /// previous season's name would otherwise pass. The 下一集 line is checked here for a fourth reason: it
-    /// is the one thing on the page that has to be *announced* rather than merely correct when read.
+    /// 四件事要同时成立：列表仍是全季那一份（同一批对象）、标题跟着新季走且写的是全季总数、播放落点不变
+    /// （规则是最早播出的未看集，与当前显示哪一季无关）、<see cref="DetailViewModel.SelectEpisodeSeason"/>
+    /// 给出该季第一张卡的位置。打开的那一季也要对一遍「播放会起哪一集」—— 那是用户 2026-10-15 报过的
+    /// S00E01 问题，现在由 <see cref="ItemDetail.PickEpisode"/> 按播出时间统一回答。
     /// </para>
     /// </summary>
     /// <returns>Ok null when this show cannot answer the question, which is reported rather than failed.</returns>
@@ -685,6 +684,7 @@ internal static partial class ShellSelfCheck
         IServiceProvider services,
         EmbySession session,
         EmbyItem series,
+        IReadOnlyList<EmbyItem> allEpisodes,
         string? crossedFrom,
         string? crossedInto,
         CancellationToken token)
@@ -704,78 +704,54 @@ internal static partial class ShellSelfCheck
 
         var opened = page.SelectedSeason;
         var expected = ItemDetail.PickSeason(seasons);
-
-        // 打开的那一季也要问一遍「播放会起哪一集」：切季那一半只量了切过去之后的季，而用户 2026-10-15 报的
-        // 那一条正落在打开的这一季上 —— 剧页面有多季、什么都没看过时，播放键写的是 S00E01 而不是 S01E01。
-        // 来由是服务器并进这一季列表的 air-order 特典记在第 0 季、排在正片前面（《伪恋》第 1 季 23 条里有
-        // 3 条是特典），所以这一关问的不是「列表对不对」，而是「照单取第一条之前有没有先认出自己那一季」。
-        // 判据与切季那一半同一条规则，读的也是这一页自己手上的那几行。
         var openingTarget = page.PlayTarget;
         var openingText = page.PlayText;
-        var openingWanted = ItemDetail.PickEpisode(page.Episodes, opened);
+        var openingWanted = ItemDetail.PickEpisode(page.Episodes, null);
 
-        // The page's own choice against the rule applied to a list fetched separately — the same question
-        // the poster on the home page answers, which is why the two have to agree.
         var openedOk = opened is not null
             && expected is not null
             && opened.Id == expected.Id
             && page.Seasons.Count == seasons.Count
+            && page.Episodes.Count == allEpisodes.Count
+            && page.CanPickEpisodeSeason
             && openingTarget?.Id == openingWanted?.Id;
 
         // Whichever side of the boundary above the page did not open on. Both sides are known to hold
-        // episodes — each contributed one to the list the boundary was found in — so 「no episodes」 and
-        // 「the switch never happened」 stay two different readings. A show whose picker holds only the
-        // season it opened on cannot answer this, and says so instead of failing.
+        // episodes — each contributed one to the list the boundary was found in.
         var target = page.Seasons.FirstOrDefault(season => season.Id == crossedInto && season.Id != opened?.Id)
             ?? page.Seasons.FirstOrDefault(season => season.Id == crossedFrom && season.Id != opened?.Id);
 
         if (target is null)
-            return (null, $"季 {page.Seasons.Count} 行，边界两侧的季都不在选择器里（打开在「{opened?.Name ?? "无"}」）");
+            return (null, $"季 {page.Seasons.Count} 行，边界两侧的季都不在季列表里（打开在「{opened?.Name ?? "无"}」）");
 
-        // Which properties the switch announces, not merely which values it ends up with. 播放按钮上的字是
-        // 从 PlayTarget 上靠一个特性扇出来的算得属性，事后读一遍它的值不管那个特性在不在都会通过 —— 页面只绑
-        // 一次，之后靠通知。
-        var announced = new HashSet<string>(StringComparer.Ordinal);
-        page.PropertyChanged += (_, args) =>
-        {
-            if (args.PropertyName is { Length: > 0 } name) announced.Add(name);
-        };
+        var before = page.Episodes.ToArray();
+        var playBefore = page.PlayTarget?.Id;
+        var headingBefore = page.EpisodeShelf?.Title ?? "";
 
         page.SelectedSeason = target;
 
-        // Waits for that load rather than for a guessed interval: the assignment runs the picker's hook
-        // synchronously, and BeginLoad has already raised Busy by the time it comes back.
-        for (var waited = 0; page.Busy && waited < 100; waited++)
-            await Task.Delay(100, token).ConfigureAwait(true);
-
         var rows = page.Episodes;
-        var strayed = rows.Count(episode => episode.SeasonId != target.Id);
         var heading = page.EpisodeShelf?.Title ?? "";
-        var wanted = ItemDetail.PickEpisode(rows, target);
+        var index = page.SelectEpisodeSeason(target);
+        var wantedIndex = ItemDetail.FirstEpisodeIndex(before, target);
 
         var switched = openedOk
             && !page.Busy
             && page.SelectedSeason?.Id == target.Id
-            && rows.Count > 0
-            && strayed == 0
+            && rows.SequenceEqual(before)
             && heading.Contains(target.Name, StringComparison.Ordinal)
-            && wanted is not null
-            && page.PlayTarget?.Id == wanted.Id
-            && page.PlayTarget?.SeasonId == target.Id
-            && page.PlayText == ItemDetail.PlayText(wanted)
-            && announced.Contains(nameof(DetailViewModel.PlayText));
+            && heading.Contains($"{before.Length} 集", StringComparison.Ordinal)
+            && page.PlayTarget?.Id == playBefore
+            && index == wantedIndex;
 
         return (switched,
             $"《{series.Name}》季 {page.Seasons.Count} 行，打开在「{opened?.Name ?? "无"}」"
                 + $"（规则应为「{expected?.Name ?? "无"}」），播放目标「{openingTarget?.Name ?? "无"}」"
                 + $"{Code(openingTarget)}、按钮「{openingText}」"
-                + $"（该季应播「{(openingWanted is null ? "无" : ItemDetail.EpisodeLabel(openingWanted))}」）；"
-                + $"切到「{target.Name}」后 {rows.Count} 集"
-                + $"{(strayed > 0 ? $"，其中 {strayed} 集不属于该季" : "，全部属于该季")}，"
-                + $"标题「{heading}」，播放目标「{page.PlayTarget?.Name ?? "无"}」{Code(page.PlayTarget)}，"
-                + $"按钮「{page.PlayText}」"
-                + $"（该季应播「{(wanted is null ? "无" : ItemDetail.EpisodeLabel(wanted))}」）"
-                + (announced.Contains(nameof(DetailViewModel.PlayText)) ? "（已通知）" : "（**没有通知**）"));
+                + $"（全剧应播「{(openingWanted is null ? "无" : ItemDetail.EpisodeLabel(openingWanted))}」）；"
+                + $"换到「{target.Name}」后仍是 {rows.Count} 集（全季一条），"
+                + $"标题「{headingBefore}」→「{heading}」，播放目标「{page.PlayTarget?.Name ?? "无"}」{Code(page.PlayTarget)}"
+                + $"（换季不动落点），该季第一张卡在 {index}（应为 {wantedIndex}）");
     }
 
     /// <summary>

@@ -78,6 +78,17 @@ internal static class CardStripTests
             Assert.Equal(0d, CardStrip.OffsetFor(5, 0, 900, 2000), "还没量到卡片，请求留着等布局");
         });
 
+        Test("卡片带：换季把目标季第一张对到左边沿", () =>
+        {
+            // StartFor 与 OffsetFor 的差别只有一条：落点在第一屏里也不放过，因为它要的是「第一张卡就是它」，
+            // 不是「它露着就行」。第一张（0）永远回到开头。
+            Assert.Equal(0d, CardStrip.StartFor(0, 186, 2000), "第一张就是开头");
+            Near(930, CardStrip.StartFor(5, 186, 2000), "第 6 张对到左边沿");
+            Near(2000, CardStrip.StartFor(40, 186, 2000), "末尾夹住");
+            Assert.Equal(0d, CardStrip.StartFor(5, 186, 0), "翻不动的带上不动");
+            Assert.Equal(0d, CardStrip.StartFor(5, 0, 2000), "还没量到卡片，回到开头等布局");
+        });
+
         Test("卡片带：整张露着就别动", () =>
         {
             // RevealFor 是焦点落到卡片上时走的那条。-1 是「别动」：鼠标按下去的那一刻卡片就拿到了焦点，而人按

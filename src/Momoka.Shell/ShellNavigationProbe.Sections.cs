@@ -58,7 +58,7 @@ internal sealed partial class ShellNavigationProbe
 
         // 搜索：查询状态、分页、切季与导航竞态
         [nameof(ResumeQueryAsync)] = ShellProbeSections.Search,
-        [nameof(SeasonRefreshRaceAsync)] = ShellProbeSections.Search,
+        [nameof(EpisodeSeasonAnchorAsync)] = ShellProbeSections.Library,
         [nameof(NavigationRestoreRaceAsync)] = ShellProbeSections.Search,
         [nameof(PagingFailureAsync)] = ShellProbeSections.Search,
         [nameof(PagingCancelAsync)] = ShellProbeSections.Search,
@@ -67,9 +67,6 @@ internal sealed partial class ShellNavigationProbe
         [nameof(SearchInteractionAsync)] = ShellProbeSections.Search,
         [nameof(SearchHeaderLayoutAsync)] = ShellProbeSections.Search,
         [nameof(JumpCancelAsync)] = ShellProbeSections.Search,
-        [nameof(SeasonCancelAsync)] = ShellProbeSections.Search,
-        [nameof(SeasonFailureAsync)] = ShellProbeSections.Search,
-        [nameof(EmptySeasonAsync)] = ShellProbeSections.Search,
 
         // MoviePilot：入口显隐、主页混排、资源与订阅
         [nameof(MoviePilotSidebarAsync)] = ShellProbeSections.MoviePilot,
