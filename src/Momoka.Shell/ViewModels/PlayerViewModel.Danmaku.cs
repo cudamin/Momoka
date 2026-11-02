@@ -17,24 +17,35 @@ public sealed partial class PlayerViewModel
     private CancellationTokenSource? _danmakuStylePush;
     private IReadOnlyList<DanmakuComment> _danmakuComments = [];
     private DandanPlayEpisode? _danmakuEpisode;
+    private DandanPlayEpisode? _danmakuDanmuApiEpisode;
     private bool _danmakuFetched;
     private long _danmakuSerial;
     private long _danmakuTransfer;
     private int _danmakuRequest;
     private int _danmakuSearchRequest;
+    private int _danmakuDandanCount;
+    private int _danmakuDanmuApiCount;
     private double _danmakuDelay;
     private string _danmakuConnection = "";
+    private string _danmakuSourceSummary = "弹弹play";
+    private string _danmakuLabel = "";
+    private string _danmakuWarning = "";
 
     [ObservableProperty]
     public partial string DanmakuStatus { get; set; } = "弹幕来源：弹弹play；搜索作品后选择对应剧集。";
 
     internal event Action? DanmakuRequested;
-    public bool DanmakuAvailable => DandanPlayMatching.IsConfigured(Settings) && Embedded;
+    public bool DanmakuAvailable => DanmakuSourceRules.IsAvailable(Settings) && Embedded;
     public Visibility DanmakuControlsVisibility => DanmakuAvailable ? Visibility.Visible : Visibility.Collapsed;
     public bool DanmakuShown => Settings.Danmaku.Show;
+    public bool DanmakuSendSupported => DanmakuSourceRules.CanSend(Settings.Danmaku.Source);
     internal string DanmakuSearchTitle => _nowPlaying is { } item ? DandanPlayMatching.Title(item) : "";
     internal string DanmakuSearchEpisode => _nowPlaying is { } item ? DandanPlayMatching.EpisodeNumber(item) ?? "" : "";
     internal DanmakuSettings DanmakuPreferences => Settings.Danmaku;
+
+    internal IReadOnlyList<DanmakuSourceOption> DanmakuSearchSources() =>
+        [.. DanmakuSourceRules.AvailableSources(Settings)
+            .Select(source => new DanmakuSourceOption(DanmakuSourceRules.SourceName(source), source))];
 
     internal void ChangeDanmakuPreferences(Action<DanmakuSettings> change)
     {
@@ -53,6 +64,9 @@ public sealed partial class PlayerViewModel
 
     internal void RequestDanmaku() { if (DanmakuAvailable) DanmakuRequested?.Invoke(); }
 
+    private string DefaultDanmakuStatus =>
+        $"弹幕来源：{DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source)}；搜索作品后选择对应剧集。";
+
     private void ResetDanmaku(EmbyItem? item)
     {
         CancelDanmakuRequests();
@@ -60,12 +74,18 @@ public sealed partial class PlayerViewModel
         _danmakuTransfer++;
         _danmakuComments = [];
         _danmakuEpisode = null;
+        _danmakuDanmuApiEpisode = null;
         _danmakuFetched = false;
         _danmakuDelay = 0;
+        _danmakuDandanCount = 0;
+        _danmakuDanmuApiCount = 0;
+        _danmakuLabel = "";
+        _danmakuWarning = "";
+        _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
         _danmakuConnection = DanmakuConnection();
         ResetDanmakuInput();
         RefreshDanmakuProperties();
-        DanmakuStatus = "弹幕来源：弹弹play；搜索作品后选择对应剧集。";
+        DanmakuStatus = DefaultDanmakuStatus;
         if (item is not null && DanmakuAvailable)
         {
             _ = PingDanmakuAsync();
@@ -88,14 +108,17 @@ public sealed partial class PlayerViewModel
         _danmakuStylePush = null;
     }
 
-    // 换片、切后端与开关服务要重载弹幕；应用凭据 2026-10-27 起全部内置，设置里已经没有需要跟着重载的密钥。
-    private string DanmakuConnection() => $"{DanmakuAvailable}\n{Settings.Danmaku.WithRelated}";
+    // 换片、切后端、换来源、改地址或改令牌都要重载弹幕；令牌密文只用于比较，不写日志。
+    private string DanmakuConnection() =>
+        $"{DanmakuAvailable}\n{Settings.Danmaku.WithRelated}\n{Settings.Danmaku.Source}\n"
+        + $"{Settings.Danmaku.DanmuApiBaseUrl}\n{Settings.Danmaku.ProtectedDanmuApiToken}";
 
     private void RefreshDanmakuProperties()
     {
         OnPropertyChanged(nameof(DanmakuAvailable));
         OnPropertyChanged(nameof(DanmakuControlsVisibility));
         OnPropertyChanged(nameof(DanmakuShown));
+        OnPropertyChanged(nameof(DanmakuSendSupported));
         RefreshDanmakuInput();
     }
 
@@ -107,17 +130,31 @@ public sealed partial class PlayerViewModel
         if (connection != _danmakuConnection)
         {
             _danmakuConnection = connection;
-            var chosen = _danmakuEpisode;
+            var chosenDandan = _danmakuEpisode;
+            var chosenCustom = _danmakuDanmuApiEpisode;
             CancelDanmakuRequests();
             _danmakuComments = [];
+            _danmakuEpisode = null;
+            _danmakuDanmuApiEpisode = null;
             _danmakuFetched = false;
+            _danmakuDandanCount = 0;
+            _danmakuDanmuApiCount = 0;
+            _danmakuLabel = "";
+            _danmakuWarning = "";
+            _danmakuSourceSummary = DanmakuSourceRules.ModeLabel(Settings.Danmaku.Source);
+            DanmakuStatus = DefaultDanmakuStatus;
             ResetDanmakuInput();
             _danmakuTransfer++;
             _ = ClearDanmakuAsync();
             if (DanmakuAvailable && _nowPlaying is { } current)
             {
                 _ = PingDanmakuAsync();
-                if (chosen is not null) _ = LoadDanmakuAsync(chosen);
+                var selections = new List<(DanmakuSource Source, DandanPlayEpisode Episode)>(2);
+                if (chosenDandan is not null && DanmakuSourceRules.Includes(Settings.Danmaku.Source, DanmakuSource.DandanPlay))
+                    selections.Add((DanmakuSource.DandanPlay, chosenDandan));
+                if (chosenCustom is not null && DanmakuSourceRules.Includes(Settings.Danmaku.Source, DanmakuSource.DanmuApi))
+                    selections.Add((DanmakuSource.DanmuApi, chosenCustom));
+                if (selections.Count > 0) _ = LoadSourcesAsync(selections);
                 else if (Settings.Danmaku.AutoMatch) _ = AutoMatchDanmakuAsync(current);
             }
         }
@@ -151,52 +188,150 @@ public sealed partial class PlayerViewModel
         ? _playback.CommandAsync("script-message", MpvDanmaku.Visibility, DanmakuAvailable ? "yes" : "no")
         : Task.FromResult(false);
 
+    private DanmakuSource DefaultSearchSource() =>
+        DanmakuSourceRules.IncludesDandanPlay(Settings.Danmaku.Source)
+            ? DanmakuSource.DandanPlay
+            : DanmakuSource.DanmuApi;
+
     private async Task AutoMatchDanmakuAsync(EmbyItem item)
     {
         var context = CaptureInteraction();
         if (DandanPlayMatching.Title(item).Trim().Length < 2) return;
-        // 第二季与特别篇不发含糊的自动请求；仍然可以从播放页手动搜索。
-        if (item.Type == EmbyItemType.Episode && (item.ParentIndexNumber is null or 0 or > 1 || item.IndexNumber is not > 0))
+        // 续季与特别篇不发含糊的自动请求；仍然可以从播放页手动搜索。
+        if (!DanmakuMatchRules.CanAutoMatch(item))
         {
             DanmakuStatus = "续季或特别篇请手动搜索并选择弹幕库，避免串集。";
             return;
         }
-        var candidates = await SearchDanmakuAsync(DandanPlayMatching.Title(item), DandanPlayMatching.EpisodeNumber(item)).ConfigureAwait(true);
-        if (!IsCurrentPlayback(context) || !DanmakuAvailable) return;
-        if (DandanPlayMatching.UniqueMatch(item, candidates.Episodes, candidates.HasMore) is { } match) await LoadDanmakuAsync(match).ConfigureAwait(true);
-        else if (!candidates.HasMore && candidates.Episodes.Count > 0) DanmakuStatus = "有多个可能的结果，请手动搜索并选择对应剧集。";
-    }
+        if (!DanmakuAvailable) return;
 
-    internal async Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string? episode)
-    {
-        if (!DanmakuAvailable || !_playback.IsPlaying) return DandanPlaySearchResult.Empty;
         _danmakuSearch?.Cancel();
         _danmakuSearch?.Dispose();
         var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token);
         _danmakuSearch = cancellation;
         var token = cancellation.Token;
         var request = ++_danmakuSearchRequest;
-        var context = CaptureInteraction();
-        DanmakuStatus = "正在搜索弹弹play…";
+        DanmakuStatus = "正在匹配弹幕…";
         try
         {
-            var matches = await _dandanPlay.SearchAsync(title, episode, token).ConfigureAwait(true);
-            if (!IsCurrentPlayback(context) || request != _danmakuSearchRequest || !DanmakuAvailable) return DandanPlaySearchResult.Empty;
-            DanmakuStatus = matches.HasMore ? "搜索结果过多，请输入更完整的片名或指定集数后重试。"
-                : matches.Episodes.Count == 0 ? "没有找到对应剧集，请尝试其他片名或留空集数。" : $"找到 {matches.Episodes.Count} 个剧集，请选择与当前视频对应的一项。";
+            DandanPlaySearchResult dandan = DandanPlaySearchResult.Empty;
+            var dandanError = "";
+            if (DanmakuSourceRules.IsSourceReady(Settings, DanmakuSource.DandanPlay)
+                && DanmakuSourceRules.IncludesDandanPlay(Settings.Danmaku.Source))
+            {
+                (dandan, dandanError) = await SearchSourceAsync(
+                    DandanPlayMatching.Title(item), DandanPlayMatching.EpisodeNumber(item),
+                    DanmakuSource.DandanPlay, token).ConfigureAwait(true);
+            }
+            if (!IsCurrentPlayback(context) || request != _danmakuSearchRequest || !DanmakuAvailable) return;
+
+            var dandanMatch = dandanError.Length == 0
+                ? DandanPlayMatching.UniqueMatch(item, dandan.Episodes, dandan.HasMore)
+                : null;
+
+            DandanPlayEpisode? customMatch = null;
+            var customError = "";
+            if (DanmakuSourceRules.IsSourceReady(Settings, DanmakuSource.DanmuApi)
+                && DanmakuSourceRules.IncludesDanmuApi(Settings.Danmaku.Source))
+            {
+                try
+                {
+                    var candidate = await _dandanPlay.MatchAsync(DanmakuMatchRules.MatchFileName(item), token)
+                        .ConfigureAwait(true);
+                    if (candidate is null) customError = "danmu_api 没有找到匹配。";
+                    else if (DanmakuMatchRules.Accepts(item, candidate)) customMatch = candidate;
+                    else customError = "danmu_api 匹配到的集号与当前视频不一致，请手动搜索。";
+                }
+                catch (DandanPlayException error) { customError = error.Message; }
+            }
+            if (!IsCurrentPlayback(context) || request != _danmakuSearchRequest || !DanmakuAvailable) return;
+
+            var selections = new List<(DanmakuSource Source, DandanPlayEpisode Episode)>(2);
+            if (dandanMatch is not null) selections.Add((DanmakuSource.DandanPlay, dandanMatch));
+            if (customMatch is not null) selections.Add((DanmakuSource.DanmuApi, customMatch));
+            if (selections.Count > 0)
+            {
+                await LoadSourcesAsync(selections).ConfigureAwait(true);
+                return;
+            }
+
+            var notes = new List<string>();
+            if (dandanError.Length > 0) notes.Add(dandanError);
+            else if (dandan.Episodes.Count > 0) notes.Add("弹弹play 有多个可能的结果，请手动搜索并选择对应剧集。");
+            if (customError.Length > 0) notes.Add(customError);
+            DanmakuStatus = notes.Count > 0 ? string.Join("；", notes) : "没有找到对应剧集，请尝试其他片名或留空集数。";
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    internal Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string? episode,
+        CancellationToken cancellationToken = default) =>
+        SearchDanmakuAsync(title, episode, DefaultSearchSource(), cancellationToken);
+
+    internal async Task<DandanPlaySearchResult> SearchDanmakuAsync(string title, string? episode,
+        DanmakuSource source, CancellationToken cancellationToken = default)
+    {
+        if (!DanmakuAvailable || !_playback.IsPlaying) return DandanPlaySearchResult.Empty;
+        if (!DanmakuSourceRules.Includes(Settings.Danmaku.Source, source)
+            || !DanmakuSourceRules.IsSourceReady(Settings, source))
+        {
+            DanmakuStatus = $"当前弹幕来源未包含或尚未配置 {DanmakuSourceRules.SourceName(source)}。";
+            return DandanPlaySearchResult.Empty;
+        }
+        _danmakuSearch?.Cancel();
+        _danmakuSearch?.Dispose();
+        var cancellation = CancellationTokenSource.CreateLinkedTokenSource(_lifetime.Token, cancellationToken);
+        _danmakuSearch = cancellation;
+        var token = cancellation.Token;
+        var request = ++_danmakuSearchRequest;
+        var context = CaptureInteraction();
+        DanmakuStatus = $"正在搜索{DanmakuSourceRules.SourceName(source)}…";
+        try
+        {
+            var (matches, error) = await SearchSourceAsync(title, episode, source, token).ConfigureAwait(true);
+            if (!IsCurrentPlayback(context) || request != _danmakuSearchRequest || !DanmakuAvailable)
+                return DandanPlaySearchResult.Empty;
+            if (error.Length > 0)
+            {
+                DanmakuStatus = error;
+                return DandanPlaySearchResult.Empty;
+            }
+            DanmakuStatus = matches.HasMore
+                ? "搜索结果过多，请输入更完整的片名或指定集数后重试。"
+                : matches.Episodes.Count == 0
+                    ? $"{DanmakuSourceRules.SourceName(source)} 没有找到对应剧集，请尝试其他片名或留空集数。"
+                    : $"找到 {matches.Episodes.Count} 个剧集（{DanmakuSourceRules.SourceName(source)}），请选择与当前视频对应的一项。";
             return matches;
         }
         catch (OperationCanceledException) { return DandanPlaySearchResult.Empty; }
-        catch (DandanPlayException error)
-        {
-            if (IsCurrentPlayback(context) && request == _danmakuSearchRequest) DanmakuStatus = error.Message;
-            return DandanPlaySearchResult.Empty;
-        }
     }
 
-    internal async Task LoadDanmakuAsync(DandanPlayEpisode episode)
+    private async Task<(DandanPlaySearchResult Result, string Error)> SearchSourceAsync(
+        string title, string? episode, DanmakuSource source, CancellationToken token)
+    {
+        try { return (await _dandanPlay.SearchAsync(title, episode, source, token).ConfigureAwait(true), ""); }
+        catch (DandanPlayException error) { return (DandanPlaySearchResult.Empty, error.Message); }
+    }
+
+    internal Task LoadDanmakuAsync(DandanPlayEpisode episode) =>
+        LoadDanmakuAsync(episode, DanmakuSource.DandanPlay);
+
+    internal async Task LoadDanmakuAsync(DandanPlayEpisode episode, DanmakuSource source)
     {
         if (!DanmakuAvailable || !_playback.IsPlaying) return;
+        if (!DanmakuSourceRules.Includes(Settings.Danmaku.Source, source)
+            || !DanmakuSourceRules.IsSourceReady(Settings, source))
+        {
+            DanmakuStatus = $"当前弹幕来源未包含或尚未配置 {DanmakuSourceRules.SourceName(source)}。";
+            return;
+        }
+        var selections = new List<(DanmakuSource Source, DandanPlayEpisode Episode)> { (source, episode) };
+        await LoadSourcesAsync(selections).ConfigureAwait(true);
+    }
+
+    private async Task LoadSourcesAsync(IReadOnlyList<(DanmakuSource Source, DandanPlayEpisode Episode)> selections)
+    {
+        if (!DanmakuAvailable || !_playback.IsPlaying || selections.Count == 0) return;
         CancelDanmakuSearch();
         _danmakuLoad?.Cancel();
         _danmakuLoad?.Dispose();
@@ -205,33 +340,82 @@ public sealed partial class PlayerViewModel
         var token = cancellation.Token;
         var request = ++_danmakuRequest;
         var context = CaptureInteraction();
-        _danmakuEpisode = episode;
         _danmakuComments = [];
+        _danmakuEpisode = null;
+        _danmakuDanmuApiEpisode = null;
         _danmakuFetched = false;
+        _danmakuDandanCount = 0;
+        _danmakuDanmuApiCount = 0;
+        _danmakuLabel = selections[0].Episode.Label;
+        _danmakuWarning = "";
+        _danmakuSourceSummary = string.Join(" + ",
+            selections.Select(selection => DanmakuSourceRules.SourceName(selection.Source)));
         ResetDanmakuInput();
         _danmakuTransfer++;
-        DanmakuStatus = $"正在加载弹幕：{episode.Label}…";
+        DanmakuStatus = $"正在加载{_danmakuSourceSummary} 弹幕：{_danmakuLabel}…";
         await ClearDanmakuAsync().ConfigureAwait(true);
         if (!IsCurrentPlayback(context) || request != _danmakuRequest) return;
-        try
+
+        var comments = new List<DanmakuComment>();
+        var loaded = new List<string>();
+        var errors = new List<string>();
+        var sourceLabels = new List<string>();
+        foreach (var (source, episode) in selections)
         {
-            var comments = await _dandanPlay.GetCommentsAsync(episode.EpisodeId, Settings.Danmaku.WithRelated, token).ConfigureAwait(true);
-            if (!IsCurrentPlayback(context) || request != _danmakuRequest || !DanmakuAvailable) return;
-            _danmakuComments = comments;
-            _danmakuFetched = true;
-            RefreshDanmakuInput();
-            if (_danmakuSerial == 0)
+            if (!DanmakuSourceRules.Includes(Settings.Danmaku.Source, source)) continue;
+            try
             {
-                DanmakuStatus = "弹幕已下载，正在等待播放器图层就绪…";
-                await PingDanmakuAsync().ConfigureAwait(true);
+                var fetched = await _dandanPlay.GetCommentsAsync(episode.EpisodeId,
+                        source == DanmakuSource.DandanPlay && Settings.Danmaku.WithRelated, source, token)
+                    .ConfigureAwait(true);
+                if (!IsCurrentPlayback(context) || request != _danmakuRequest) return;
+                comments.AddRange(fetched);
+                if (source == DanmakuSource.DandanPlay)
+                {
+                    _danmakuEpisode = episode;
+                    _danmakuDandanCount = fetched.Count;
+                    _danmakuLabel = episode.Label;
+                }
+                else
+                {
+                    _danmakuDanmuApiEpisode = episode;
+                    _danmakuDanmuApiCount = fetched.Count;
+                    if (_danmakuEpisode is null) _danmakuLabel = episode.Label;
+                }
+                loaded.Add($"{DanmakuSourceRules.SourceName(source)} {fetched.Count} 条");
+                sourceLabels.Add(DanmakuSourceRules.SourceName(source));
             }
-            else await PushDanmakuAsync().ConfigureAwait(true);
+            catch (OperationCanceledException) { return; }
+            catch (DandanPlayException error)
+            {
+                if (!IsCurrentPlayback(context) || request != _danmakuRequest) return;
+                var name = DanmakuSourceRules.SourceName(source);
+                errors.Add(error.Message.StartsWith(name, StringComparison.Ordinal)
+                    ? error.Message
+                    : $"{name}：{error.Message}");
+            }
         }
-        catch (OperationCanceledException) { }
-        catch (DandanPlayException error)
+        if (!IsCurrentPlayback(context) || request != _danmakuRequest) return;
+        if (loaded.Count == 0)
         {
-            if (IsCurrentPlayback(context) && request == _danmakuRequest) DanmakuStatus = error.Message;
+            DanmakuStatus = errors.Count > 0 ? string.Join("；", errors) : "没有加载到弹幕。";
+            _danmakuFetched = false;
+            return;
         }
+
+        _danmakuComments = DanmakuComments.Combine(comments);
+        _danmakuFetched = true;
+        _danmakuSourceSummary = string.Join(" + ", sourceLabels);
+        _danmakuWarning = errors.Count > 0 ? string.Join("；", errors) : "";
+        DanmakuStatus = $"来源：{string.Join(" + ", loaded)} · {_danmakuLabel}"
+            + (_danmakuWarning.Length > 0 ? $"；{_danmakuWarning}" : "");
+        RefreshDanmakuInput();
+        if (_danmakuSerial == 0)
+        {
+            DanmakuStatus = "弹幕已下载，正在等待播放器图层就绪…";
+            await PingDanmakuAsync().ConfigureAwait(true);
+        }
+        else await PushDanmakuAsync().ConfigureAwait(true);
     }
 
     private async Task PushDanmakuAsync()
@@ -287,7 +471,9 @@ public sealed partial class PlayerViewModel
         var parts = receipt.Split(':');
         if (parts.Length != 3 || !long.TryParse(parts[0], out var serial) || !long.TryParse(parts[1], out var transfer)
             || serial != _danmakuSerial || transfer != _danmakuTransfer || !DanmakuAvailable) return;
-        DanmakuStatus = $"来源：弹弹play · {_danmakuEpisode?.Label ?? "当前视频"} · 已加载 {parts[2]} 条弹幕";
+        var label = _danmakuLabel.Length > 0 ? _danmakuLabel : "当前视频";
+        DanmakuStatus = $"来源：{_danmakuSourceSummary} · {label} · 已加载 {parts[2]} 条弹幕"
+            + (_danmakuWarning.Length > 0 ? $"；{_danmakuWarning}" : "");
     }
 
     internal void ToggleDanmaku()

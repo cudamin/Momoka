@@ -11,7 +11,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="弹幕 · 弹弹play" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
+                <TextBlock Text="弹幕" Style="{StaticResource EgSectionTitleStyle}" VerticalAlignment="Center" />
                 <ToggleSwitch x:Name="ShowToggle" Grid.Column="1" OffContent="关闭" OnContent="开启" Toggled="OnShowToggled" AutomationProperties.Name="显示弹幕" />
             </Grid>
             <TextBlock Style="{StaticResource EgCaptionStyle}" Text="{Binding DanmakuStatus}" TextWrapping="Wrap" />
@@ -19,6 +19,10 @@
 
             <StackPanel Spacing="8">
                 <TextBlock Text="选择弹幕库" Style="{StaticResource EgBodyStyle}" />
+                <ComboBox x:Name="SourceBox" Header="搜索来源" Visibility="Collapsed"
+                          CornerRadius="{StaticResource EgSearchCornerRadius}"
+                          SelectionChanged="OnSourceChanged"
+                          AutomationProperties.Name="弹幕搜索来源" />
                 <Grid ColumnSpacing="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -27,8 +31,8 @@
                     <TextBox x:Name="TitleBox" CornerRadius="{StaticResource EgSearchCornerRadius}" PlaceholderText="作品名称" MaxLength="120" AutomationProperties.Name="弹幕作品名称" />
                     <TextBox x:Name="EpisodeBox" Grid.Column="1" PlaceholderText="集数" MaxLength="6" AutomationProperties.Name="弹幕集数，留空搜索全部" />
                 </Grid>
-                <Button x:Name="SearchButton" Content="搜索弹弹play" Click="OnSearch" HorizontalAlignment="Stretch" />
-                <ListView x:Name="Results" MaxHeight="200" Padding="{StaticResource EgScrollBarLane}" SelectionMode="Single" SelectionChanged="OnResultSelected" Visibility="Collapsed" AutomationProperties.Name="弹弹play剧集搜索结果">
+                <Button x:Name="SearchButton" Content="搜索" Click="OnSearch" HorizontalAlignment="Stretch" />
+                <ListView x:Name="Results" MaxHeight="200" Padding="{StaticResource EgScrollBarLane}" SelectionMode="Single" SelectionChanged="OnResultSelected" Visibility="Collapsed" AutomationProperties.Name="弹幕剧集搜索结果">
                     <ListView.ItemTemplate>
                         <DataTemplate x:DataType="dm:DandanPlayEpisode">
                             <StackPanel Spacing="2">

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Momoka.Configuration;
 using Momoka.Danmaku;
 using Momoka.Mpv;
 using Microsoft.UI.Xaml;
@@ -25,12 +26,19 @@ public sealed partial class PlayerViewModel
     [NotifyPropertyChangedFor(nameof(DanmakuSendEnabled))]
     public partial bool DanmakuSending { get; set; }
 
-    public bool DanmakuInputVisible => DanmakuAvailable && Settings.Danmaku.Show && Settings.Danmaku.ShowInput;
+    public bool DanmakuInputVisible =>
+        DanmakuAvailable && DanmakuSendSupported && Settings.Danmaku.Show && Settings.Danmaku.ShowInput;
     public Visibility DanmakuInputVisibility => DanmakuInputVisible ? Visibility.Visible : Visibility.Collapsed;
     public bool DanmakuCanSend => DanmakuInputVisible && _danmakuFetched && _danmakuEpisode is not null && _playback.IsPlaying;
     public bool DanmakuSendEnabled => DanmakuCanSend && !DanmakuSending;
     public Visibility DanmakuSendVisibility => DanmakuCanSend ? Visibility.Visible : Visibility.Collapsed;
-    public string DanmakuInputPlaceholder => DanmakuCanSend ? "发条弹幕（最多100字）" : "请先选择并加载弹幕库";
+    public string DanmakuInputPlaceholder => !DanmakuSendSupported
+        ? ""
+        : DanmakuCanSend
+            ? Settings.Danmaku.Source == DanmakuSourceMode.Both
+                ? "发到弹弹play（最多100字）"
+                : "发条弹幕（最多100字）"
+            : "请先选择并加载弹弹play弹幕库";
     public string DanmakuSendButtonText => DanmakuSending ? "发送中" : "发送";
 
     private void ResetDanmakuInput()

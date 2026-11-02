@@ -20,15 +20,18 @@ public static class DanmakuSourceRules
 
     public static bool CanSend(DanmakuSourceMode mode) => IncludesDandanPlay(mode);
 
-    /// <summary>至少有一个被选中的来源可以发起请求；合并模式缺 danmu_api 地址时仍可用弹弹play。</summary>
-    public static bool IsAvailable(AppSettings settings)
+    public static bool IsSourceReady(AppSettings settings, DanmakuSource source) => source switch
     {
-        var danmaku = settings.Danmaku;
-        if (!danmaku.Enabled || !DandanPlayMatching.CanRender(settings.Mpv)) return false;
-        if (IncludesDandanPlay(danmaku.Source)) return true;
-        return IncludesDanmuApi(danmaku.Source)
-            && DanmuApiEndpoint.TryCreate(danmaku.DanmuApiBaseUrl, null, out _, out _);
-    }
+        DanmakuSource.DandanPlay => settings.Danmaku.Enabled && DandanPlayMatching.CanRender(settings.Mpv),
+        DanmakuSource.DanmuApi => settings.Danmaku.Enabled && DandanPlayMatching.CanRender(settings.Mpv)
+            && DanmuApiEndpoint.TryCreate(settings.Danmaku.DanmuApiBaseUrl, null, out _, out _),
+        _ => false
+    };
+
+    /// <summary>至少有一个被选中的来源可以发起请求；合并模式缺 danmu_api 地址时仍可用弹弹play。</summary>
+    public static bool IsAvailable(AppSettings settings) => IsSourceReady(settings, DanmakuSource.DandanPlay)
+        && IncludesDandanPlay(settings.Danmaku.Source)
+        || IsSourceReady(settings, DanmakuSource.DanmuApi) && IncludesDanmuApi(settings.Danmaku.Source);
 
     public static string SourceName(DanmakuSource source) => source switch
     {
@@ -49,12 +52,12 @@ public static class DanmakuSourceRules
     public static IReadOnlyList<DanmakuSource> AvailableSources(AppSettings settings)
     {
         var sources = new List<DanmakuSource>(2);
-        var danmaku = settings.Danmaku;
-        if (!danmaku.Enabled || !DandanPlayMatching.CanRender(settings.Mpv)) return sources;
-        if (IncludesDandanPlay(danmaku.Source)) sources.Add(DanmakuSource.DandanPlay);
-        if (IncludesDanmuApi(danmaku.Source)
-            && DanmuApiEndpoint.TryCreate(danmaku.DanmuApiBaseUrl, null, out _, out _))
-            sources.Add(DanmakuSource.DanmuApi);
+        if (IncludesDandanPlay(settings.Danmaku.Source)
+            && IsSourceReady(settings, DanmakuSource.DandanPlay)) sources.Add(DanmakuSource.DandanPlay);
+        if (IncludesDanmuApi(settings.Danmaku.Source)
+            && IsSourceReady(settings, DanmakuSource.DanmuApi)) sources.Add(DanmakuSource.DanmuApi);
         return sources;
     }
 }
+
+public sealed record DanmakuSourceOption(string Label, DanmakuSource Source);

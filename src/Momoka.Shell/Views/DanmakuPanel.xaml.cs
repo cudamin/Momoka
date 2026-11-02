@@ -16,6 +16,8 @@ public sealed partial class DanmakuPanel : UserControl
     private PlayerViewModel.InteractionContext _context;
     private readonly ObservableCollection<DandanPlayEpisode> _results = [];
     private bool _seeding;
+    private bool _sourceSeeding;
+    private DanmakuSource _searchSource = DanmakuSource.DandanPlay;
     private bool _closed;
     private int _searchRequest;
 
@@ -46,6 +48,7 @@ public sealed partial class DanmakuPanel : UserControl
         DataContext = viewModel;
         TitleBox.Text = viewModel.DanmakuSearchTitle;
         EpisodeBox.Text = viewModel.DanmakuSearchEpisode;
+        SeedSources(viewModel);
         Seed();
     }
 
@@ -67,6 +70,7 @@ public sealed partial class DanmakuPanel : UserControl
         SessionMessage.Text = "播放或弹幕连接已切换，请重新打开面板。";
         SessionMessage.Visibility = Visibility.Visible;
         Appearance.Visibility = Visibility.Collapsed;
+        SourceBox.Visibility = Visibility.Collapsed;
         SearchButton.Visibility = Visibility.Collapsed;
         Results.Visibility = Visibility.Collapsed;
         LoadButton.Visibility = Visibility.Collapsed;
@@ -110,7 +114,7 @@ public sealed partial class DanmakuPanel : UserControl
         SearchButton.IsEnabled = false;
         try
         {
-            var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, EpisodeBox.Text.Trim()).ConfigureAwait(true);
+            var matches = await _viewModel.SearchDanmakuAsync(TitleBox.Text, EpisodeBox.Text.Trim(), _searchSource).ConfigureAwait(true);
             if (request != _searchRequest || !Current()) return;
             _results.Clear();
             foreach (var match in matches.Episodes) _results.Add(match);
@@ -126,8 +130,34 @@ public sealed partial class DanmakuPanel : UserControl
     {
         if (!Current() || _viewModel is null || Results.SelectedItem is not DandanPlayEpisode episode) return;
         LoadButton.IsEnabled = false;
-        try { await _viewModel.LoadDanmakuAsync(episode).ConfigureAwait(true); }
+        try { await _viewModel.LoadDanmakuAsync(episode, _searchSource).ConfigureAwait(true); }
         finally { if (!_closed) LoadButton.IsEnabled = true; }
+    }
+
+    private void SeedSources(PlayerViewModel viewModel)
+    {
+        var sources = viewModel.DanmakuSearchSources();
+        _sourceSeeding = true;
+        try
+        {
+            SourceBox.ItemsSource = sources;
+            SourceBox.DisplayMemberPath = nameof(DanmakuSourceOption.Label);
+            SourceBox.SelectedIndex = sources.Count > 0 ? 0 : -1;
+            _searchSource = sources.Count > 0 ? sources[0].Source : DanmakuSource.DandanPlay;
+            SourceBox.Visibility = sources.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+            SearchButton.Content = sources.Count > 0 ? $"搜索{sources[0].Label}" : "搜索";
+        }
+        finally { _sourceSeeding = false; }
+    }
+
+    private void OnSourceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_sourceSeeding || SourceBox.SelectedItem is not DanmakuSourceOption option) return;
+        _searchSource = option.Source;
+        SearchButton.Content = $"搜索{option.Label}";
+        _results.Clear();
+        Results.Visibility = Visibility.Collapsed;
+        LoadButton.Visibility = Visibility.Collapsed;
     }
 
     private void OnShowToggled(object sender, RoutedEventArgs e)
